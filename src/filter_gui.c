@@ -380,14 +380,14 @@ void filter_gui_filter_add(filter_t *f, GList *ruleset)
         ruleset = f->ruleset;
 
     titles[0] = f->name;
-    g_snprintf(fg_tmp, sizeof(fg_tmp), "%d", g_list_length(ruleset));
+    gm_snprintf(fg_tmp, sizeof(fg_tmp), "%d", g_list_length(ruleset));
     titles[1] = g_strdup(fg_tmp);
     buf = f->match_count+f->fail_count;
     if (buf != 0) {
         if (filter_is_builtin(f)) {
-            g_snprintf(fg_tmp, sizeof(fg_tmp), "%d", f->match_count);
+            gm_snprintf(fg_tmp, sizeof(fg_tmp), "%d", f->match_count);
         } else {
-            g_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
+            gm_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
                 f->match_count, buf, (gint)((float)f->match_count/buf*100));
         }
         titles[2] = fg_tmp;
@@ -436,7 +436,7 @@ void filter_gui_update_rule_count(filter_t *f, GList *ruleset)
     node = gtk_ctree_find_by_row_data(ctree_filter_filters, parent, f);
 
     if (node != NULL) {
-        g_snprintf(fg_tmp, sizeof(fg_tmp), "%d", g_list_length(ruleset));
+        gm_snprintf(fg_tmp, sizeof(fg_tmp), "%d", g_list_length(ruleset));
         gtk_ctree_node_set_text
             (GTK_CTREE(ctree_filter_filters), node, 1, fg_tmp);
     }
@@ -639,10 +639,10 @@ void filter_gui_update_filter_stats(void)
             buf = filter->match_count+filter->fail_count;
             if (buf != 0) {
                 if (filter_is_builtin(filter)) {
-                    g_snprintf(fg_tmp, sizeof(fg_tmp), "%d",
+                    gm_snprintf(fg_tmp, sizeof(fg_tmp), "%d",
                         filter->match_count);
                 } else {
-                    g_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
+                    gm_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
                         filter->match_count, buf, 
                         (gint)((float)filter->match_count/buf*100));
                 }
@@ -695,7 +695,7 @@ void filter_gui_update_rule_stats(void)
         } else {
             buf = rule->match_count+rule->fail_count;
             if (buf != 0) {
-                g_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
+                gm_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
                     rule->match_count, buf, 
                     (gint)((float)rule->match_count/buf*100));
                 title = fg_tmp;

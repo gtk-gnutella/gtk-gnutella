@@ -62,8 +62,8 @@ FILE *file_config_open_read(gchar *what, file_path_t *fv, gint fvcnt)
 	g_assert(fv != NULL);
 	g_assert(fvcnt >= 1);
 
-	g_snprintf(tmp, sizeof(tmp), "%s/%s", fv->dir, fv->name);
-	g_snprintf(file_tmp, sizeof(file_tmp), "%s%s", tmp, orig_ext);
+	gm_snprintf(tmp, sizeof(tmp), "%s/%s", fv->dir, fv->name);
+	gm_snprintf(file_tmp, sizeof(file_tmp), "%s%s", tmp, orig_ext);
 
 	in = fopen(tmp, "r");
 
@@ -100,7 +100,7 @@ FILE *file_config_open_read(gchar *what, file_path_t *fv, gint fvcnt)
 		instead = instead_str;
 
 		for (xfv = fv + 1, xfvcnt = fvcnt - 1; xfvcnt; xfv++, xfvcnt--) {
-			g_snprintf(file_tmp, sizeof(file_tmp),
+			gm_snprintf(file_tmp, sizeof(file_tmp),
 				"%s/%s", xfv->dir, xfv->name);
 			
 			in = fopen(file_tmp, "r");
@@ -131,7 +131,7 @@ FILE *file_config_open_write(gchar *what, file_path_t *fv)
 {
 	FILE *out;
 
-	g_snprintf(file_tmp, sizeof(file_tmp),
+	gm_snprintf(file_tmp, sizeof(file_tmp),
 		"%s/%s%s", fv->dir, fv->name, new_ext);
 
 	out = fopen(file_tmp, "w");
@@ -153,7 +153,7 @@ gboolean file_config_close(FILE *out, file_path_t *fv)
 {
 	gchar tmp[2048];
 
-	g_snprintf(file_tmp, sizeof(file_tmp),
+	gm_snprintf(file_tmp, sizeof(file_tmp),
 		"%s/%s%s", fv->dir, fv->name, new_ext);
 
 	if (0 != fclose(out)) {
@@ -161,7 +161,7 @@ gboolean file_config_close(FILE *out, file_path_t *fv)
 		return FALSE;
 	}
 
-	g_snprintf(tmp, sizeof(tmp), "%s/%s", fv->dir, fv->name);
+	gm_snprintf(tmp, sizeof(tmp), "%s/%s", fv->dir, fv->name);
 		
 	if (-1 == rename(file_tmp, tmp)) {
 		g_warning("could not rename \"%s\" as \"%s\": %s",

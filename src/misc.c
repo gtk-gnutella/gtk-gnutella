@@ -76,7 +76,7 @@ gchar *ip_to_gchar(guint32 ip)
 	static gchar a[32];
 	struct in_addr ia;
 	ia.s_addr = g_htonl(ip);
-	g_snprintf(a, sizeof(a), "%s", inet_ntoa(ia));
+	gm_snprintf(a, sizeof(a), "%s", inet_ntoa(ia));
 	return a;
 }
 
@@ -86,7 +86,7 @@ gchar *ip_port_to_gchar(guint32 ip, guint16 port)
 	static gchar a[32];
 	struct in_addr ia;
 	ia.s_addr = g_htonl(ip);
-	g_snprintf(a, sizeof(a), "%s:%u", inet_ntoa(ia), port);
+	gm_snprintf(a, sizeof(a), "%s:%u", inet_ntoa(ia), port);
 	return a;
 }
 
@@ -281,13 +281,13 @@ gchar *short_size(guint32 size)
 	static gchar b[SIZE_FIELD_MAX];
 
 	if (size < 1024)
-		g_snprintf(b, sizeof(b), "%u Bytes", size);
+		gm_snprintf(b, sizeof(b), "%u Bytes", size);
 	else if (size < 1048576)
-		g_snprintf(b, sizeof(b), "%.1f KB", (float) size / 1024.0);
+		gm_snprintf(b, sizeof(b), "%.1f KB", (float) size / 1024.0);
 	else if (size < 1073741824)
-		g_snprintf(b, sizeof(b), "%.1f MB", (float) size / 1048576.0);
+		gm_snprintf(b, sizeof(b), "%.1f MB", (float) size / 1048576.0);
 	else
-		g_snprintf(b, sizeof(b), "%.1f GB", (float) size / 1073741824.0);
+		gm_snprintf(b, sizeof(b), "%.1f GB", (float) size / 1073741824.0);
 
 	return b;
 }
@@ -299,13 +299,13 @@ gchar *short_kb_size(guint32 size)
 	static gchar b[SIZE_FIELD_MAX];
 
 	if (size < 1024)
-		g_snprintf(b, sizeof(b), "%u KB", size);
+		gm_snprintf(b, sizeof(b), "%u KB", size);
 	else if (size < 1048576)
-		g_snprintf(b, sizeof(b), "%.2f MB", (float) size / 1024.0);
+		gm_snprintf(b, sizeof(b), "%.2f MB", (float) size / 1024.0);
 	else if (size < 1073741824)
-		g_snprintf(b, sizeof(b), "%.2f GB", (float) size / 1048576.0);
+		gm_snprintf(b, sizeof(b), "%.2f GB", (float) size / 1048576.0);
 	else
-		g_snprintf(b, sizeof(b), "%.2f TB", (float) size / 1073741824.0);
+		gm_snprintf(b, sizeof(b), "%.2f TB", (float) size / 1073741824.0);
 
 	return b;
 }
@@ -317,13 +317,13 @@ gchar *compact_size(guint32 size)
 	static gchar b[64];
 
 	if (size < 1024)
-		g_snprintf(b, sizeof(b), "%uB", size);
+		gm_snprintf(b, sizeof(b), "%uB", size);
 	else if (size < 1048576)
-		g_snprintf(b, sizeof(b), "%.1fK", (float) size / 1024.0);
+		gm_snprintf(b, sizeof(b), "%.1fK", (float) size / 1024.0);
 	else if (size < 1073741824)
-		g_snprintf(b, sizeof(b), "%.1fM", (float) size / 1048576.0);
+		gm_snprintf(b, sizeof(b), "%.1fM", (float) size / 1048576.0);
 	else
-		g_snprintf(b, sizeof(b), "%.1fG", (float) size / 1073741824.0);
+		gm_snprintf(b, sizeof(b), "%.1fG", (float) size / 1073741824.0);
 
 	return b;
 }
@@ -335,13 +335,13 @@ gchar *short_time(guint32 s)
 	static gchar b[SIZE_FIELD_MAX];
 
 	if (s > 86400)
-		g_snprintf(b, sizeof(b), "%ud %uh", s / 86400, (s % 86400) / 3600);
+		gm_snprintf(b, sizeof(b), "%ud %uh", s / 86400, (s % 86400) / 3600);
 	else if (s > 3600)
-		g_snprintf(b, sizeof(b), "%uh %um", s / 3600, (s % 3600) / 60);
+		gm_snprintf(b, sizeof(b), "%uh %um", s / 3600, (s % 3600) / 60);
 	else if (s > 60)
-		g_snprintf(b, sizeof(b), "%um %us", s / 60, s % 60);
+		gm_snprintf(b, sizeof(b), "%um %us", s / 60, s % 60);
 	else
-		g_snprintf(b, sizeof(b), "%us", s);
+		gm_snprintf(b, sizeof(b), "%us", s);
 
 	return b;
 }
@@ -354,11 +354,11 @@ gchar *short_uptime(guint32 s)
 
 	if (s > 86400) {
 		guint32 d = s % 86400;
-		g_snprintf(b, sizeof(b), "%ud %02u%c%02u",
+		gm_snprintf(b, sizeof(b), "%ud %02u%c%02u",
 			s / 86400, d / 3600, (s & 0x1) ? '.' : ':', (d % 3600) / 60);
 	} else {
 		guint32 h = s % 3600;
-		g_snprintf(b, sizeof(b), "%02u:%02u:%02u", s / 3600, h / 60, h % 60);
+		gm_snprintf(b, sizeof(b), "%02u:%02u:%02u", s / 3600, h / 60, h % 60);
 	}
 
 	return b;
@@ -375,7 +375,7 @@ gchar *guid_hex_str(guchar *guid)
 	gint i;
 
 	for (i = 0; i < 16; i++)
-		g_snprintf(&buf[i*2], 3, "%02x", guid[i]);
+		gm_snprintf(&buf[i*2], 3, "%02x", guid[i]);
 
 	buf[32] = '\0';		/* Should not be necessary, but... */
 
@@ -538,7 +538,7 @@ static void date_to_rfc822(time_t date, gchar *buf, gint len)
 	} else
 		sign = '+';
 
-	g_snprintf(buf, len, "%s, %02d %s %04d %02d:%02d:%02d %c%04d",
+	gm_snprintf(buf, len, "%s, %02d %s %04d %02d:%02d:%02d %c%04d",
 		days[tm->tm_wday], tm->tm_mday, months[tm->tm_mon], tm->tm_year + 1900,
 		tm->tm_hour, tm->tm_min, tm->tm_sec,
 		sign, gmt_off / 60 * 100 + gmt_off % 60);
@@ -911,14 +911,14 @@ gchar *unique_filename(gchar *path, gchar *file, gchar *ext)
 	 * This is the basename.
 	 */
 
-	rw = g_snprintf(filename, sizeof(filename), "%s%s%s",
+	rw = gm_snprintf(filename, sizeof(filename), "%s%s%s",
 		path, path[strlen(path) - 1] == '/' ? "" : "/", file);
 
 	/*
 	 * Append the extension, then try to see whether this file exists.
 	 */
 
-	g_snprintf(&filename[rw], sizeof(filename)-rw, "%s", ext);
+	gm_snprintf(&filename[rw], sizeof(filename)-rw, "%s", ext);
 
 	if (-1 == stat(filename, &buf))
 		return filename;
@@ -929,7 +929,7 @@ gchar *unique_filename(gchar *path, gchar *file, gchar *ext)
 	 */
 
 	for (i = 0; i < 100; i++) {
-		g_snprintf(&filename[rw], sizeof(filename)-rw, ".%02d%s", i, ext);
+		gm_snprintf(&filename[rw], sizeof(filename)-rw, ".%02d%s", i, ext);
 		if (-1 == stat(filename, &buf))
 			return filename;
 	}
@@ -940,7 +940,7 @@ gchar *unique_filename(gchar *path, gchar *file, gchar *ext)
 
 	for (i = 0; i < 100; i++) {
 		guint32 rnum = random_value(RAND_MAX);
-		g_snprintf(&filename[rw], sizeof(filename)-rw, ".%x%s", rnum, ext);
+		gm_snprintf(&filename[rw], sizeof(filename)-rw, ".%x%s", rnum, ext);
 		if (-1 == stat(filename, &buf))
 			return filename;
 	}
@@ -950,7 +950,7 @@ gchar *unique_filename(gchar *path, gchar *file, gchar *ext)
 	 */
 
 	guid_random_fill(xuid);
-	g_snprintf(&filename[rw], sizeof(filename)-rw, ".%s%s",
+	gm_snprintf(&filename[rw], sizeof(filename)-rw, ".%s%s",
 		guid_hex_str(xuid), ext);
 
 	if (-1 == stat(filename, &buf))

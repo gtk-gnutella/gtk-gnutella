@@ -425,7 +425,7 @@ void search_stats_gui_update(time_t now)
 	g_object_thaw_notify(G_OBJECT(treeview));
 
 	/* update the counter */
-	g_snprintf(tmpstr, sizeof(tmpstr), "%lu terms counted",
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%lu terms counted",
 		(gulong) stat_count);
 	gtk_label_set_text(GTK_LABEL(label_search_stats_count), tmpstr);
 }

@@ -247,7 +247,7 @@ static gchar *int_str(gconstpointer v)
 {
 	static gchar fmt[32];
 
-	g_snprintf(fmt, sizeof(fmt), "%d/%u", *(gint *) v, *(guint *) v);
+	gm_snprintf(fmt, sizeof(fmt), "%d/%u", *(gint *) v, *(guint *) v);
 	fmt[sizeof(fmt)-1] = '\0';
 
 	return fmt;

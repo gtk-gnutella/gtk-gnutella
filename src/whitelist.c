@@ -57,7 +57,7 @@ void whitelist_retrieve(void)
     struct stat st;
     int linenum = 0;
 
-    g_snprintf(wl_tmp, sizeof(wl_tmp), "%s/%s", config_dir, whitelist_file);
+    gm_snprintf(wl_tmp, sizeof(wl_tmp), "%s/%s", config_dir, whitelist_file);
 
     if (stat(wl_tmp, &st) == -1) {
         if(dbg)
@@ -223,7 +223,7 @@ gboolean whitelist_check(guint32 ip)
 
         whitelist_checked = now;
 
-        g_snprintf(wl_tmp, sizeof(wl_tmp), "%s/%s", config_dir, whitelist_file);
+        gm_snprintf(wl_tmp, sizeof(wl_tmp), "%s/%s", config_dir, whitelist_file);
         if (stat(wl_tmp, &st) != -1) {
             if (st.st_mtime != whitelist_mtime) {
                 g_warning("whitelist_check(): "

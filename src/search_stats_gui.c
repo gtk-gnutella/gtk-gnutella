@@ -184,8 +184,8 @@ static gboolean stats_hash_to_clist(
 	/* update the display */
 
     // FIXME: make %8.8d %d and set up custom sort function
-	g_snprintf(period_tmp, sizeof(period_tmp), "%8.8d", (int) val->period_cnt);
-	g_snprintf(total_tmp, sizeof(total_tmp), "%8.8d", (int) val->total_cnt);
+	gm_snprintf(period_tmp, sizeof(period_tmp), "%8.8d", (int) val->period_cnt);
+	gm_snprintf(total_tmp, sizeof(total_tmp), "%8.8d", (int) val->total_cnt);
 
 	text[0] = (gchar *) key;
 	text[1] = period_tmp;
@@ -395,6 +395,6 @@ void search_stats_gui_update(time_t now)
 	gtk_clist_thaw(GTK_CLIST(clist_search_stats));
 
 	/* update the counter */
-	g_snprintf(tmpstr, sizeof(tmpstr), "%u terms counted", stat_count);
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%u terms counted", stat_count);
 	gtk_label_set_text(GTK_LABEL(label_search_stats_count), tmpstr);
 }

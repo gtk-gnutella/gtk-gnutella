@@ -3,6 +3,12 @@
  *
  * Copyright (c) 2003, Raphael Manfredi
  *
+ * Functions that should be in glib-1.2 but are not.
+ * They are all prefixed with "gm_" as in "Glib Missing".
+ *
+ * We also include FIXED versions of glib-1.2 routines that are broken
+ * and make sure those glib versions are never called directly.
+ *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -28,9 +34,17 @@
 
 #include <glib.h>
 
+/*
+ * Public interface.
+ */
+
 GSList *gm_slist_insert_after(GSList *list, GSList *link, gpointer data);
 
 GList *gm_list_insert_after(GList *list, GList *link, gpointer data);
+
+size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args);
+size_t gm_snprintf(gchar *str, size_t n, gchar const *fmt, ...)
+	G_GNUC_PRINTF (3, 4);
 
 #endif	/* _glib_missing_h_ */
 

@@ -305,7 +305,7 @@ gchar *dmesh_url_strerror(dmesh_url_error_t errnum)
 		return "Invalid error code";
 
 	if (errnum == DMESH_URL_HTTP_PARSER) {
-		g_snprintf(http_error_str, sizeof(http_error_str),
+		gm_snprintf(http_error_str, sizeof(http_error_str),
 			"%s: %s", parse_errstr[errnum], http_url_strerror(http_url_errno));
 		return http_error_str;
 	}
@@ -566,7 +566,7 @@ static void dmesh_fill_info(dmesh_urlinfo_t *info,
 	info->idx = idx;
 
 	if (idx == URN_INDEX) {
-		g_snprintf(sha1_urn, sizeof(sha1_urn),
+		gm_snprintf(sha1_urn, sizeof(sha1_urn),
 			"urn:sha1:%s", sha1_base32(sha1));
 		info->name = sha1_urn;
 	} else
@@ -782,20 +782,20 @@ static gint dmesh_urlinfo(
 	g_assert(info->name != NULL);
 
 	if (info->port == HTTP_PORT)
-		rw = g_snprintf(buf, len, "http://%s", ip_to_gchar(info->ip));
+		rw = gm_snprintf(buf, len, "http://%s", ip_to_gchar(info->ip));
 	else
-		rw = g_snprintf(buf, len, "http://%s",
+		rw = gm_snprintf(buf, len, "http://%s",
 			ip_port_to_gchar(info->ip, info->port));
 
 	if (rw >= maxslen)
 		return -1;
 
 	if (info->idx == URN_INDEX) {
-		rw += g_snprintf(&buf[rw], len - rw, "/uri-res/N2R?%s", info->name);
+		rw += gm_snprintf(&buf[rw], len - rw, "/uri-res/N2R?%s", info->name);
 		if (quoting != NULL)
 			*quoting = FALSE;			/* No "," in the generated URL */
 	} else {
-		rw += g_snprintf(&buf[rw], len - rw, "/get/%u/", info->idx);
+		rw += gm_snprintf(&buf[rw], len - rw, "/get/%u/", info->idx);
 
 		/*
 		 * Write filename, URL-escaping it directly into the buffer.
@@ -883,7 +883,7 @@ static gint dmesh_entry_url_stamp(struct dmesh_entry *dme, gchar *buf, gint len)
 	 * Append timestamp.
 	 */
 
-	rw += g_snprintf(&buf[rw], len - rw,
+	rw += gm_snprintf(&buf[rw], len - rw,
 		" %s", date_to_iso_gchar((time_t) dme->stamp));
 
 	return (rw >= maxslen) ? -1 : rw;
@@ -942,7 +942,7 @@ gint dmesh_alternate_location(guchar *sha1,
 	 * Start filling the buffer.
 	 */
 
-	len = g_snprintf(buf, size, "X-Gnutella-Alternate-Location:\r\n");
+	len = gm_snprintf(buf, size, "X-Gnutella-Alternate-Location:\r\n");
 	if (len >= maxslen)
 		return 0;
 
@@ -1053,7 +1053,7 @@ gint dmesh_alternate_location(guchar *sha1,
 			 */
 			if (url_len + 6 >= size - len)	/* Needs "\t" and 2*"\r\n" + "," */
 				continue;
-			len += g_snprintf(&buf[len], size - len, ",\r\n");
+			len += gm_snprintf(&buf[len], size - len, ",\r\n");
 		} else {
 			/*
 			 * We just need to be able to emit our URL and close the header,
@@ -1064,7 +1064,7 @@ gint dmesh_alternate_location(guchar *sha1,
 		}
 
 		g_assert((url_len + 1 + len) < size);
-		len += g_snprintf(&buf[len], size - len, "\t%s", url);
+		len += gm_snprintf(&buf[len], size - len, "\t%s", url);
 		g_assert(len + 2 < size);
 
 		nurl++;
@@ -1073,7 +1073,7 @@ gint dmesh_alternate_location(guchar *sha1,
 	g_assert(len < size);
 
 	if (nurl)
-		len += g_snprintf(&buf[len], size - len, "\r\n");
+		len += gm_snprintf(&buf[len], size - len, "\r\n");
 
 	// g_assert(len < size);
 	if (len >= size) {

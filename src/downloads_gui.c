@@ -117,11 +117,11 @@ void gui_update_download(struct download *d, gboolean force)
 
 			gfloat rate = ((d->range_end - d->skip + d->overlap_size) /
 				1024.0) / spent;
-			g_snprintf(tmpstr, sizeof(tmpstr), "%s (%.1f k/s) %s",
+			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%.1f k/s) %s",
 				FILE_INFO_COMPLETE(fi) ? "Completed" : "Chunk done",
 				rate, short_time(spent));
 		} else {
-			g_snprintf(tmpstr, sizeof(tmpstr), "%s (< 1s)",
+			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (< 1s)",
 				FILE_INFO_COMPLETE(fi) ? "Completed" : "Chunk done");
 		}
 		a = tmpstr;
@@ -129,13 +129,13 @@ void gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_VERIFY_WAIT:
 		g_assert(FILE_INFO_COMPLETE(fi));
-		g_snprintf(tmpstr, sizeof(tmpstr), "Waiting for SHA1 checking...");
+		gm_snprintf(tmpstr, sizeof(tmpstr), "Waiting for SHA1 checking...");
 		a = tmpstr;
 		break;
 
 	case GTA_DL_VERIFYING:
 		g_assert(FILE_INFO_COMPLETE(fi));
-		g_snprintf(tmpstr, sizeof(tmpstr),
+		gm_snprintf(tmpstr, sizeof(tmpstr),
 			"Computing SHA1 (%.02f%%)", fi->cha1_hashed * 100.0 / fi->size);
 		a = tmpstr;
 		break;
@@ -150,14 +150,14 @@ void gui_update_download(struct download *d, gboolean force)
 			gboolean sha1_ok = fi->cha1 &&
 				(fi->sha1 == NULL || sha1_eq(fi->sha1, fi->cha1));
 
-			rw = g_snprintf(tmpstr, sizeof(tmpstr), "SHA1 %s %s",
+			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "SHA1 %s %s",
 				fi->sha1 == NULL ? "figure" : "check",
 				fi->cha1 == NULL ?	"ERROR" :
 				sha1_ok ?			"OK" :
 									"FAILED");
 			if (fi->cha1 && fi->cha1_hashed) {
 				time_t elapsed = fi->cha1_elapsed;
-				rw += g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" (%.1f k/s) %s",
 					(gfloat) (fi->cha1_hashed >> 10) / (elapsed ? elapsed : 1),
 					short_time(fi->cha1_elapsed));
@@ -165,16 +165,16 @@ void gui_update_download(struct download *d, gboolean force)
 
 			switch (d->status) {
 			case GTA_DL_MOVE_WAIT:
-				g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					"; Waiting for moving...");
 				break;
 			case GTA_DL_MOVING:
-				g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					"; Moving (%.02f%%)", fi->copied * 100.0 / fi->size);
 				break;
 			case GTA_DL_DONE:
 				if (fi->copy_elapsed) {
-					g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						"; Moved (%.1f k/s) %s",
 						(gfloat) (fi->copied >> 10) / fi->copy_elapsed,
 						short_time(fi->copy_elapsed));
@@ -230,35 +230,35 @@ void gui_update_download(struct download *d, gboolean force)
                 s = remain / avg_bps;
 				bs = bps / 1024.0;
 
-				rw = g_snprintf(tmpstr, sizeof(tmpstr),
+				rw = gm_snprintf(tmpstr, sizeof(tmpstr),
 					"%.02f%% / %.02f%% ", p, pt);
 
 				if (now - d->last_update > IO_STALLED)
-					rw += g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						"(stalled) ");
 				else
-					rw += g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						"(%.1f k/s) ", bs);
 
-				rw += g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					"[%d/%d] TR: %s", fi->recvcount, fi->refcount,
 					s ? short_time(s) : "-");
 
 				if (fi->recv_last_rate) {
 					s = (fi->size - fi->done) / fi->recv_last_rate;
 
-					rw += g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						" / %s", short_time(s));
 
 					if (fi->recvcount > 1) {
 						bs = fi->recv_last_rate / 1024.0;
 
-						rw += g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+						rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 							" (%.1f k/s)", bs);
 					}
 				}
 			} else
-				rw = g_snprintf(tmpstr, sizeof(tmpstr), "%.02f%%%s", p,
+				rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%%%s", p,
 					(now - d->last_update > IO_STALLED) ? " (stalled)" : "");
 
 			/*
@@ -266,7 +266,7 @@ void gui_update_download(struct download *d, gboolean force)
 			 */
 
 			if (d->ranges != NULL)
-				g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" <PFS %.02f%%>", d->ranges_size * 100.0 / fi->size);
 
 			a = tmpstr;
@@ -281,17 +281,17 @@ void gui_update_download(struct download *d, gboolean force)
 	case GTA_DL_TIMEOUT_WAIT:
 		{
 			gint when = d->timeout_delay - (now - d->last_update);
-			g_snprintf(tmpstr, sizeof(tmpstr), "Retry in %ds", MAX(0, when));
+			gm_snprintf(tmpstr, sizeof(tmpstr), "Retry in %ds", MAX(0, when));
 		}
 		a = tmpstr;
 		break;
 	case GTA_DL_SINKING:
-		g_snprintf(tmpstr, sizeof(tmpstr), "Sinking (%u bytes left)",
+		gm_snprintf(tmpstr, sizeof(tmpstr), "Sinking (%u bytes left)",
 			d->sinkleft);
 		a = tmpstr;
 		break;
 	default:
-		g_snprintf(tmpstr, sizeof(tmpstr), "UNKNOWN STATUS %u",
+		gm_snprintf(tmpstr, sizeof(tmpstr), "UNKNOWN STATUS %u",
 				   d->status);
 		a = tmpstr;
 	}
@@ -353,11 +353,11 @@ void gui_update_download_range(struct download *d)
 
 	len += d->overlap_size;
 
-	rw = g_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
+	rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
 		compact_size(len), and_more);
 
 	if (d->skip)
-		g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " @ %s",
+		gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " @ %s",
 			compact_size(d->skip));
 
 	row = gtk_clist_find_row_from_data(clist_downloads,	(gpointer) d);
@@ -370,7 +370,7 @@ void gui_update_c_downloads(gint c, gint ec)
         (lookup_widget(main_window, "progressbar_downloads"));
     gfloat frac;
 
-	g_snprintf(tmpstr, sizeof(tmpstr), "%u/%u download%s", c, ec,
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%u/%u download%s", c, ec,
 			   (c == 1 && ec == 1) ? "" : "s");
     
     frac = MIN(c, ec) != 0 ? (float)MIN(c, ec) / ec : 0;

@@ -175,7 +175,7 @@ static void uploads_gui_update_meter(guint32 i, guint32 t)
          (lookup_widget(main_window, "progressbar_uploads"));
     gfloat frac;
 
-	g_snprintf(tmpstr, sizeof(tmpstr), "%u/%u upload%s", i, t,
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%u/%u upload%s", i, t,
 			   (i == 1 && t == 1) ? "" : "s");
 
     frac = MIN(i, t) != 0 ? (gfloat) MIN(i, t) / t : 0;
@@ -211,7 +211,7 @@ static gchar *uploads_gui_status_str(
 			guint32 spent = u->last_update - data->start_date;
 
 			rate = (requested / 1024.0) / spent;
-			g_snprintf(tmpstr, sizeof(tmpstr),
+			gm_snprintf(tmpstr, sizeof(tmpstr),
 				"Completed (%.1f k/s) %s", rate, short_time(spent));
 		} else
 			g_strlcpy(tmpstr, "Completed (< 1s)", sizeof(tmpstr));
@@ -230,16 +230,16 @@ static gchar *uploads_gui_status_str(
 			/* Time Remaining at the current rate, in seconds  */
 			tr = (data->range_end + 1 - u->pos) / u->avg_bps;
 
-			slen = g_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ", pc);
+			slen = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ", pc);
 
 			if (time((time_t *) NULL) - u->last_update > IO_STALLED)
-				slen += g_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
+				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
 					"(stalled) ");
 			else
-				slen += g_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
+				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
 					"(%.1f k/s) ", rate);
 
-			g_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
+			gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
 				"TR: %s", short_time(tr));
 		} 
 		break;
@@ -282,11 +282,11 @@ static void uploads_gui_update_upload_info(gnet_upload_info_t *u)
 		g_strlcpy(range_tmp, "...", sizeof(range_tmp));
 	} else {
 		g_strlcpy(size_tmp, short_size(u->file_size), sizeof(size_tmp));
-		range_len = g_snprintf(range_tmp, sizeof(range_tmp), "%s",
+		range_len = gm_snprintf(range_tmp, sizeof(range_tmp), "%s",
 			compact_size(u->range_end - u->range_start + 1));
 
 		if (u->range_start)
-			range_len += g_snprintf(
+			range_len += gm_snprintf(
 				&range_tmp[range_len], sizeof(range_tmp)-range_len,
 					" @ %s", compact_size(u->range_start));
 
@@ -342,11 +342,11 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
         titles[c_ul_size] = titles[c_ul_range] =  "...";
     } else {
         g_strlcpy(size_tmp, short_size(u->file_size), sizeof(size_tmp)); 
-        range_len = g_snprintf(range_tmp, sizeof(range_tmp), "%s",
+        range_len = gm_snprintf(range_tmp, sizeof(range_tmp), "%s",
             compact_size(u->range_end - u->range_start + 1));
 
         if (u->range_start)
-            range_len += g_snprintf(
+            range_len += gm_snprintf(
                 &range_tmp[range_len], sizeof(range_tmp)-range_len,
                 " @ %s", compact_size(u->range_start));
     

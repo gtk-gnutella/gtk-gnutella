@@ -730,7 +730,7 @@ gchar *prop_get_string
             target[0] = '\0';
             target = NULL;
         } else {
-            g_snprintf(target, size, "%s", s);
+            gm_snprintf(target, size, "%s", s);
         }
     }
         
@@ -785,7 +785,7 @@ static gchar *config_comment(const gchar *s)
         }
     }
 
-    g_snprintf(result, sizeof(result), "%s", out->str);
+    gm_snprintf(result, sizeof(result), "%s", out->str);
     g_strfreev(sv);
 
     g_string_free(out, TRUE);
@@ -821,7 +821,7 @@ void prop_save_to_file
     if (!is_directory(dir))
         return;
 
-    g_snprintf(prop_tmp, sizeof(prop_tmp), "%s/%s", dir, _filename);
+    gm_snprintf(prop_tmp, sizeof(prop_tmp), "%s/%s", dir, _filename);
     filename = g_strdup(prop_tmp);
 
     if (-1 == stat(filename, &buf))
@@ -890,7 +890,7 @@ void prop_save_to_file
         switch(p->type) {
         case PROP_TYPE_BOOLEAN:
             for (i = 0; i < p->vector_size; i++) {
-                g_snprintf(sbuf, sizeof(sbuf), "%s", 
+                gm_snprintf(sbuf, sizeof(sbuf), "%s", 
                     config_boolean(p->data.boolean.value[i]));
                 vbuf[i] = g_strdup(sbuf);
             }
@@ -901,7 +901,7 @@ void prop_save_to_file
         case PROP_TYPE_MULTICHOICE:
         case PROP_TYPE_GUINT32:
             for (i = 0; i < p->vector_size; i++) {
-                g_snprintf(sbuf, sizeof(sbuf), "%u", 
+                gm_snprintf(sbuf, sizeof(sbuf), "%u", 
                         p->data.guint32.value[i]);
                 vbuf[i] = g_strdup(sbuf);
             }
@@ -915,7 +915,7 @@ void prop_save_to_file
             break;
         case PROP_TYPE_IP:
             for (i = 0; i < p->vector_size; i++) {
-                g_snprintf(sbuf, sizeof(sbuf), "%s", 
+                gm_snprintf(sbuf, sizeof(sbuf), "%s", 
                         ip_to_gchar(p->data.guint32.value[i]));
                 vbuf[i] = g_strdup(sbuf);
             }
@@ -933,7 +933,7 @@ void prop_save_to_file
              *      -- Richard, 12/08/200
              */
             for (i = 0; i < p->vector_size; i++)
-                g_snprintf(&val[(i*2)], 3, "%02x", p->data.storage.value[i]);
+                gm_snprintf(&val[(i*2)], 3, "%02x", p->data.storage.value[i]);
     
             val[(p->vector_size*2)] = '\0';
             quotes = TRUE;
@@ -1041,7 +1041,7 @@ void prop_load_from_file(
     if (!is_directory(dir))
         return;
 
-    g_snprintf(prop_tmp, sizeof(prop_tmp), "%s/%s", dir, filename);
+    gm_snprintf(prop_tmp, sizeof(prop_tmp), "%s/%s", dir, filename);
 
 	config = fopen(prop_tmp, "r");
 	if (!config)

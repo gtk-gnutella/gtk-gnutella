@@ -343,7 +343,7 @@ gboolean on_clist_search_results_button_press_event
                 PROP_SEARCH_RESULTS_SHOW_TABS,
                 &search_results_show_tabs, 0, 1);
 
-            g_snprintf(tmpstr, sizeof(tmpstr), (search_results_show_tabs) ? 
+            gm_snprintf(tmpstr, sizeof(tmpstr), (search_results_show_tabs) ? 
                 "Show search list" : "Show tabs");
         }
 

@@ -67,7 +67,7 @@ static void monitor_gui_append_to_monitor(
 
 	/* If the query is empty and we have a SHA1 extension,
 	 * we print a urn:sha1-query instead. */
-	g_snprintf(tmpstr, sizeof(tmpstr),
+	gm_snprintf(tmpstr, sizeof(tmpstr),
 		type == QUERY_SHA1 ? "urn:sha1:%s" : "%s", item);
 
 	str = locale_to_utf8(tmpstr, -1);

@@ -69,6 +69,7 @@
 #include "guid.h"
 #include "file.h"
 #include "inputevt.h"
+#include "glib-missing.h"
 
 #include "../config.h"
 
@@ -108,6 +109,13 @@
 #define GTA_INTERFACE "X11"
 #define GTA_RELEASE "30/01/2003"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
+
+/*
+ * Forbidden glib calls.
+ */
+
+#define g_snprintf	DONT_CALL_g_snprintf
+#define g_vsnprintf	DONT_CALL_g_vsnprintf
 
 /*
  * Variables

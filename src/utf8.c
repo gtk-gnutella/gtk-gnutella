@@ -298,43 +298,43 @@ malformed:
 
 	switch (warning) {
 	case UTF8_WARN_EMPTY:
-		g_snprintf(msg, sizeof(msg), "empty string");
+		gm_snprintf(msg, sizeof(msg), "empty string");
 		break;
 	case UTF8_WARN_CONTINUATION:
-		g_snprintf(msg, sizeof(msg),
+		gm_snprintf(msg, sizeof(msg),
 			"unexpected continuation byte 0x%02lu", (gulong) v);
 		break;
 	case UTF8_WARN_NON_CONTINUATION:
-		g_snprintf(msg, sizeof(msg),
+		gm_snprintf(msg, sizeof(msg),
 			"unexpected non-continuation byte 0x%02lu "
 			"after start byte 0x%02ld", (gulong) s[1], (gulong) v);
 		break;
 	case UTF8_WARN_FE_FF:
-		g_snprintf(msg, sizeof(msg), "byte 0x%02lu", (gulong) v);
+		gm_snprintf(msg, sizeof(msg), "byte 0x%02lu", (gulong) v);
 		break;
 	case UTF8_WARN_SHORT:
-		g_snprintf(msg, sizeof(msg), "%d byte%s, need %d",
+		gm_snprintf(msg, sizeof(msg), "%d byte%s, need %d",
 			len, len == 1 ? "" : "s", expectlen);
 		break;
 	case UTF8_WARN_OVERFLOW:
-		g_snprintf(msg, sizeof(msg), "overflow at 0x%02lu, byte 0x%02lu",
+		gm_snprintf(msg, sizeof(msg), "overflow at 0x%02lu, byte 0x%02lu",
 			(gulong) ov, (gulong) *s);
 		break;
 	case UTF8_WARN_SURROGATE:
-		g_snprintf(msg, sizeof(msg), "UTF-16 surrogate 0x04%lu", (gulong) v);
+		gm_snprintf(msg, sizeof(msg), "UTF-16 surrogate 0x04%lu", (gulong) v);
 		break;
 	case UTF8_WARN_BOM:
-		g_snprintf(msg, sizeof(msg), "byte order mark 0x%04lu", (gulong) v);
+		gm_snprintf(msg, sizeof(msg), "byte order mark 0x%04lu", (gulong) v);
 		break;
 	case UTF8_WARN_LONG:
-		g_snprintf(msg, sizeof(msg), "%d byte%s, need %d",
+		gm_snprintf(msg, sizeof(msg), "%d byte%s, need %d",
 			expectlen, expectlen == 1 ? "" : "s", UNISKIP(v));
 		break;
 	case UTF8_WARN_FFFF:
-		g_snprintf(msg, sizeof(msg), "character 0x%04lu", (gulong) v);
+		gm_snprintf(msg, sizeof(msg), "character 0x%04lu", (gulong) v);
 		break;
 	default:
-		g_snprintf(msg, sizeof(msg), "unknown reason");
+		gm_snprintf(msg, sizeof(msg), "unknown reason");
 		break;
 	}
 

@@ -205,7 +205,7 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 
     gtk_list_store_append(nodes_model, &iter);
 
-   	g_snprintf(proto_tmp, sizeof(proto_tmp), "%d.%d",
+   	gm_snprintf(proto_tmp, sizeof(proto_tmp), "%d.%d",
 		n->proto_major, n->proto_minor);
     handle = n->node_handle;
 
@@ -252,23 +252,23 @@ static gchar *gui_node_status_str(const gnet_node_status_t *n, time_t now)
 		if (n->sent || n->received) {
 			gint slen = 0;
 			if (n->tx_compressed)
-				slen += g_snprintf(gui_tmp, sizeof(gui_tmp), "TXc=%d,%d%%",
+				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TXc=%d,%d%%",
 					n->sent, (gint) (n->tx_compression_ratio * 100));
 			else
-				slen += g_snprintf(gui_tmp, sizeof(gui_tmp), "TX=%d", n->sent);
+				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TX=%d", n->sent);
 
-			slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+			slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 				" (%.1f k/s)", n->tx_bps);
 
 			if (n->rx_compressed)
-				slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" RXc=%d,%d%%",
 					n->received, (gint) (n->rx_compression_ratio * 100));
 			else
-				slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" RX=%d", n->received);
 
-			slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+			slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 				" (%.1f k/s)"
 				" Query(TX=%d, Q=%d) Drop(TX=%d, RX=%d)"
 				" Dup=%d Bad=%d W=%d Q=%d,%d%% %s",
@@ -284,7 +284,7 @@ static gchar *gui_node_status_str(const gnet_node_status_t *n, time_t now)
 
 	case GTA_NODE_SHUTDOWN:
 		{
-			g_snprintf(gui_tmp, sizeof(gui_tmp),
+			gm_snprintf(gui_tmp, sizeof(gui_tmp),
 				"Closing: %s [Stop in %ds] RX=%d Q=%d,%d%%",
 				n->message, n->shutdown_remain, n->received,
 				n->mqueue_count, n->mqueue_percent_used);
@@ -315,7 +315,7 @@ void gui_update_c_gnutellanet(guint32 cnodes, guint32 nodes)
         (lookup_widget(main_window, "progressbar_connections"));
     gfloat frac;
     
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u gnutellaNet", cnodes, nodes);
+	gm_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u gnutellaNet", cnodes, nodes);
     gtk_progress_bar_set_text(pg, gui_tmp);
 
     frac = MIN(cnodes, nodes) != 0 ? (gfloat) MIN(cnodes, nodes) / nodes : 0;
@@ -388,7 +388,7 @@ void nodes_gui_update_node_info(gnet_node_info_t *n)
 
         node_get_status(n->node_handle, &status);
 
-        g_snprintf(version, sizeof(version), "%d.%d",
+        gm_snprintf(version, sizeof(version), "%d.%d",
             n->proto_major, n->proto_minor);
 
 		vendor = g_strdup(locale_to_utf8(n->vendor ? n->vendor : "...", -1));

@@ -542,7 +542,7 @@ gchar *gmsg_infostr(gpointer head)
 
 	READ_GUINT32_LE(h->size, size);
 
-	g_snprintf(a, sizeof(a), "%s (%u byte%s) [hops=%d, TTL=%d]",
+	gm_snprintf(a, sizeof(a), "%s (%u byte%s) [hops=%d, TTL=%d]",
 		gmsg_name(h->function), size, size == 1 ? "" : "s", h->hops, h->ttl);
 
 	return a;
@@ -561,7 +561,7 @@ static gchar *gmsg_infostr2(gpointer head)
 
 	READ_GUINT32_LE(h->size, size);
 
-	g_snprintf(a, sizeof(a), "%s (%u byte%s) [hops=%d, TTL=%d]",
+	gm_snprintf(a, sizeof(a), "%s (%u byte%s) [hops=%d, TTL=%d]",
 		gmsg_name(h->function), size, size == 1 ? "" : "s", h->hops, h->ttl);
 
 	return a;

@@ -65,9 +65,9 @@ static void monitor_gui_append_to_monitor(
     if (type == QUERY_SHA1) {
         /* If the query is empty and we have a SHA1 extension,
          * we print a urn:sha1-query instead. */
-        g_snprintf(tmpstr, sizeof(tmpstr), "urn:sha1:%s", item);
+        gm_snprintf(tmpstr, sizeof(tmpstr), "urn:sha1:%s", item);
     } else {
-        g_snprintf(tmpstr, sizeof(tmpstr), "%s", item);
+        gm_snprintf(tmpstr, sizeof(tmpstr), "%s", item);
     }
 
     titles[0] = tmpstr;

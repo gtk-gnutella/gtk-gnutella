@@ -68,7 +68,7 @@ void gui_update_files_scanned(void)
     GtkLabel *label_files_scanned =
         GTK_LABEL(lookup_widget(main_window, "label_files_scanned"));
 
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u file%s shared (%s)",
+	gm_snprintf(gui_tmp, sizeof(gui_tmp), "%u file%s shared (%s)",
 		files_scanned, files_scanned == 1 ? "" : "s",
 		short_kb_size(kbytes_scanned));
 	gtk_label_set(label_files_scanned, gui_tmp);
@@ -146,7 +146,7 @@ void gui_update_traffic_stats() {
         current);
     frac = (high_limit == 0) ? 0 : (gfloat) current / high_limit;
 
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
+	gm_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
         compact_size(current), progressbar_bws_in_avg ? "(avg)" : "");
 	gtk_progress_bar_set_text(progressbar_bws_in, gui_tmp);
     gtk_progress_bar_set_fraction(progressbar_bws_in, frac);
@@ -160,7 +160,7 @@ void gui_update_traffic_stats() {
         current);
     frac = (high_limit == 0) ? 0 : (gfloat) current / high_limit;
 
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s out %s",
+	gm_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s out %s",
         compact_size(current), progressbar_bws_out_avg ? "(avg)" : "");
 	gtk_progress_bar_set_text(progressbar_bws_out, gui_tmp);
     gtk_progress_bar_set_fraction(progressbar_bws_out, frac);
@@ -174,7 +174,7 @@ void gui_update_traffic_stats() {
         current);
     frac = (high_limit == 0) ? 0 : (gfloat) current / high_limit;
 
-    g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
+    gm_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
         compact_size(current), progressbar_bws_gin_avg ? "(avg)" : "");
 	gtk_progress_bar_set_text(progressbar_bws_gin, gui_tmp);
     gtk_progress_bar_set_fraction(progressbar_bws_gin, frac);
@@ -189,7 +189,7 @@ void gui_update_traffic_stats() {
         current);
     frac = (high_limit == 0) ? 0 : (gfloat) current / high_limit;
 
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s out %s", 
+	gm_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s out %s", 
         compact_size(current), progressbar_bws_gout_avg ? "(avg)" : "");
 	gtk_progress_bar_set_text(progressbar_bws_gout, gui_tmp);
     gtk_progress_bar_set_fraction(progressbar_bws_gout, frac);

@@ -87,7 +87,7 @@ static FILE *open_read_stamp(guchar *file, time_t *stamp)
 	FILE *f;
 	struct stat buf;
 
-	g_snprintf(ign_tmp, sizeof(ign_tmp), "%s/%s", config_dir, file);
+	gm_snprintf(ign_tmp, sizeof(ign_tmp), "%s/%s", config_dir, file);
 		
 	if (-1 == stat(ign_tmp, &buf)) {
 		if (stamp)
@@ -117,7 +117,7 @@ static FILE *open_append(guchar *file)
 {
 	FILE *f;
 
-	g_snprintf(ign_tmp, sizeof(ign_tmp), "%s/%s", config_dir, file);
+	gm_snprintf(ign_tmp, sizeof(ign_tmp), "%s/%s", config_dir, file);
 
 	f = fopen(ign_tmp, "a");
 

@@ -71,20 +71,20 @@ gchar *version_str(version_t *ver)
 	static gchar str[80];
 	gint rw;
 
-	rw = g_snprintf(str, sizeof(str), "%u.%u", ver->major, ver->minor);
+	rw = gm_snprintf(str, sizeof(str), "%u.%u", ver->major, ver->minor);
 
 	if (ver->patchlevel)
-		rw += g_snprintf(&str[rw], sizeof(str)-rw, ".%u", ver->patchlevel);
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, ".%u", ver->patchlevel);
 
 	if (ver->tag) {
-		rw += g_snprintf(&str[rw], sizeof(str)-rw, "%c", ver->tag);
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%c", ver->tag);
 		if (ver->taglevel)
-			rw += g_snprintf(&str[rw], sizeof(str)-rw, "%u", ver->taglevel);
+			rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%u", ver->taglevel);
 	}
 
 	if (ver->timestamp) {
 		struct tm *tmp = localtime(&ver->timestamp);
-		rw += g_snprintf(&str[rw], sizeof(str)-rw, " (%02d/%02d/%d)",
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, " (%02d/%02d/%d)",
 			tmp->tm_mday, tmp->tm_mon + 1, tmp->tm_year + 1900);
 	}
 
@@ -285,9 +285,9 @@ static void version_new_found(gchar *text, gboolean stable)
     gchar *s;
 
     if (stable)
-        g_snprintf(last_stable, sizeof(last_stable), "%s", text);
+        gm_snprintf(last_stable, sizeof(last_stable), "%s", text);
     else
-        g_snprintf(last_dev, sizeof(last_dev), "%s", text);
+        gm_snprintf(last_dev, sizeof(last_dev), "%s", text);
 
 	s = g_strdup_printf(
 		"%s - Newer version%s available: %s%s%s%s%s",
@@ -419,7 +419,7 @@ void version_init(void)
 
 #ifdef GTA_PATCHLEVEL
 	if (GTA_PATCHLEVEL)
-		g_snprintf(patch, sizeof(patch), ".%u", GTA_PATCHLEVEL);
+		gm_snprintf(patch, sizeof(patch), ".%u", GTA_PATCHLEVEL);
 	else
 		patch[0] = '\0';
 #else
@@ -428,12 +428,12 @@ void version_init(void)
 
 	(void) uname(&un);
 
-	g_snprintf(buf, sizeof(buf) - 1,
+	gm_snprintf(buf, sizeof(buf) - 1,
 		"%u.%u%s%s", GTA_VERSION, GTA_SUBVERSION, patch, GTA_REVCHAR);
 
 	version_number = atom_str_get(buf);
 
-	g_snprintf(buf, sizeof(buf) - 1,
+	gm_snprintf(buf, sizeof(buf) - 1,
 		"gtk-gnutella/%s (%s; %s; %s %s %s)",
 		version_number, GTA_RELEASE, GTA_INTERFACE,
 		un.sysname, un.release, un.machine);

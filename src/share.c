@@ -1474,7 +1474,7 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				 */
 
 				if (qhv != NULL) {
-					g_snprintf(stmp_1, sizeof(stmp_1),
+					gm_snprintf(stmp_1, sizeof(stmp_1),
 						"urn:sha1:%s", sha1_base32(sha1_digest));
 					qhvec_add(qhv, stmp_1, QUERY_H_URN);
 				}

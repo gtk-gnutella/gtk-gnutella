@@ -684,7 +684,7 @@ static void gwc_get_urls(void)
 	if (!check_current_url())
 		return;
 
-	g_snprintf(gwc_tmp, sizeof(gwc_tmp),
+	gm_snprintf(gwc_tmp, sizeof(gwc_tmp),
 		"%s?urlfile=1&%s", current_url, client_info);
 
 	if (dbg > 2)
@@ -803,7 +803,7 @@ void gwc_get_hosts(void)
 	if (!check_current_url())
 		return;
 
-	g_snprintf(gwc_tmp, sizeof(gwc_tmp),
+	gm_snprintf(gwc_tmp, sizeof(gwc_tmp),
 		"%s?hostfile=1&%s", current_url, client_info);
 
 	if (dbg > 2)
@@ -897,7 +897,7 @@ static void gwc_update_this(gchar *cache_url)
 
 	g_assert(cache_url != NULL);
 
-	rw = g_snprintf(gwc_tmp, sizeof(gwc_tmp), "%s?", cache_url);
+	rw = gm_snprintf(gwc_tmp, sizeof(gwc_tmp), "%s?", cache_url);
 
 	/*
 	 * Choose another URL randomly.
@@ -919,7 +919,7 @@ static void gwc_update_this(gchar *cache_url)
 	if (found_alternate) {
 		gchar *escaped_url = url_escape_query(url);		/* For query string */
 
-		rw += g_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw,
+		rw += gm_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw,
 			"url=%s&", escaped_url);
 
 		if (escaped_url != url)
@@ -938,7 +938,7 @@ static void gwc_update_this(gchar *cache_url)
 		current_peermode != NODE_P_LEAF &&
 		host_is_valid(listen_ip(), listen_port)
 	) {
-		rw += g_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw,
+		rw += gm_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw,
 			"ip=%s&", ip_port_to_gchar(listen_ip(), listen_port));
 		has_data = TRUE;
 	}
@@ -957,7 +957,7 @@ static void gwc_update_this(gchar *cache_url)
 	 * Finally, append our client/version information.
 	 */
 
-	rw += g_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw, "%s", client_info);
+	rw += gm_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw, "%s", client_info);
 	
 
 	if (dbg > 2)

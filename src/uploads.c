@@ -504,7 +504,7 @@ static void send_upload_error_v(
 	struct upload_http_cb cb_arg;
 
 	if (msg) {
-		g_vsnprintf(reason, sizeof(reason), msg, ap);
+		gm_vsnprintf(reason, sizeof(reason), msg, ap);
 		reason[sizeof(reason) - 1] = '\0';		/* May be truncated */
 	} else
 		reason[0] = '\0';
@@ -522,7 +522,7 @@ static void send_upload_error_v(
 	 */
 
 	if (ext) {
-		slen = g_snprintf(extra, sizeof(extra), "%s", ext);
+		slen = gm_snprintf(extra, sizeof(extra), "%s", ext);
 		
 		if (slen < sizeof(extra)) {
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
@@ -593,12 +593,12 @@ static void upload_remove_v(
 	gchar errbuf[1024];
 
 	if (reason) {
-		g_vsnprintf(errbuf, sizeof(errbuf), reason, ap);
+		gm_vsnprintf(errbuf, sizeof(errbuf), reason, ap);
 		errbuf[sizeof(errbuf) - 1] = '\0';		/* May be truncated */
 		logreason = errbuf;
 	} else {
 		if (u->error_sent) {
-			g_snprintf(errbuf, sizeof(errbuf), "HTTP %d", u->error_sent);
+			gm_snprintf(errbuf, sizeof(errbuf), "HTTP %d", u->error_sent);
 			logreason = errbuf;
 		} else {
 			errbuf[0] = '\0';
@@ -1049,7 +1049,7 @@ void upload_push_conf(gnutella_upload_t *u)
 	 * Send the GIV string, using our servent GUID.
 	 */
 
-	rw = g_snprintf(giv, sizeof(giv), "GIV %u:%s/%s\n\n",
+	rw = gm_snprintf(giv, sizeof(giv), "GIV %u:%s/%s\n\n",
 		u->index, guid_hex_str(guid), u->name);
 	giv[sizeof(giv)-1] = '\0';			/* Might have been truncated */
 	rw = MIN(sizeof(giv)-1, rw);
@@ -1284,7 +1284,7 @@ static struct shared_file *get_file_to_upload_from_index(
 
 			escaped = url_escape(sfn->file_name);
 
-			g_snprintf(location, sizeof(location),
+			gm_snprintf(location, sizeof(location),
 				"Location: http://%s/get/%d/%s\r\n",
 				ip_port_to_gchar(listen_ip(), listen_port),
 				sfn->file_index, escaped);
@@ -1503,7 +1503,7 @@ static void upload_http_xhost_add(gchar *buf, gint *retval, gpointer arg)
 		gchar *xhost = ip_port_to_gchar(ip, port);
 		gint needed_room = strlen(xhost) + sizeof("X-Host: \r\n") - 1;
 		if (length > needed_room)
-			rw = g_snprintf(buf, length, "X-Host: %s\r\n", xhost);
+			rw = gm_snprintf(buf, length, "X-Host: %s\r\n", xhost);
 	}
 
 	g_assert(rw < length);
@@ -1531,7 +1531,7 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
 	needed_room = 33 + SHA1_BASE32_SIZE + 2;
 
 	if (length - rw > needed_room)
-		rw += g_snprintf(buf, length,
+		rw += gm_snprintf(buf, length,
 			"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
 			sha1_base32(a->sf->sha1_digest));
 
@@ -1574,7 +1574,7 @@ static void upload_416_extra(gchar *buf, gint *retval, gpointer arg)
 	struct upload_http_cb *a = (struct upload_http_cb *) arg;
 	gnutella_upload_t *u = a->u;
 
-	rw = g_snprintf(buf, length,
+	rw = gm_snprintf(buf, length,
 		"Content-Range: bytes */%u\r\n", u->file_size);
 
 	g_assert(rw < length);
@@ -1596,9 +1596,9 @@ static void upload_http_status(gchar *buf, gint *retval, gpointer arg)
 	gnutella_upload_t *u = a->u;
 
 	if (!u->keep_alive)
-		rw = g_snprintf(buf, length, "Connection: close\r\n");
+		rw = gm_snprintf(buf, length, "Connection: close\r\n");
 
-	rw += g_snprintf(&buf[rw], length - rw,
+	rw += gm_snprintf(&buf[rw], length - rw,
 		"Date: %s\r\n"
 		"Last-Modified: %s\r\n"
 		"Content-Type: application/binary\r\n"
@@ -1609,7 +1609,7 @@ static void upload_http_status(gchar *buf, gint *retval, gpointer arg)
 	g_assert(rw < length);
 
 	if (u->skip || u->end != (u->file_size - 1))
-	  rw += g_snprintf(&buf[rw], length - rw,
+	  rw += gm_snprintf(&buf[rw], length - rw,
 		"Content-Range: bytes %u-%u/%u\r\n", u->skip, u->end, u->file_size);
 
 	g_assert(rw < length);

@@ -355,7 +355,7 @@ void config_init(void)
 
 	if (!gui_config_dir) {
 		if (home_dir) {
-			g_snprintf(cfg_tmp, sizeof(cfg_tmp),
+			gm_snprintf(cfg_tmp, sizeof(cfg_tmp),
 				"%s/.gtk-gnutella", home_dir);
 			gui_config_dir = g_strdup(cfg_tmp);
 		} else
@@ -852,7 +852,7 @@ static void config_read(void)
 	if (!is_directory(gui_config_dir))
 		return;
 
-	g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", gui_config_dir, config_file);
+	gm_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", gui_config_dir, config_file);
 
 	config = fopen(cfg_tmp, "r");
 	if (!config)

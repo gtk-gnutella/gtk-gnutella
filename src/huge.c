@@ -336,7 +336,7 @@ static void sha1_read_cache()
 		return;
 	}
 
-	g_snprintf(buffer, sizeof(buffer), "%s/sha1_cache", config_dir);
+	gm_snprintf(buffer, sizeof(buffer), "%s/sha1_cache", config_dir);
 	persistent_cache_file_name = g_strdup(buffer);
 	  
 	persistent_cache_file = fopen(persistent_cache_file_name, "r");

@@ -98,16 +98,16 @@ void load_legacy_settings(void)
  
     if (!config_dir) {
 		if (home_dir) {
-			g_snprintf(tmp, sizeof(tmp),
+			gm_snprintf(tmp, sizeof(tmp),
 				"%s/.gtk-gnutella", home_dir);
 			config_dir = g_strdup(tmp);
 		} else
 			g_warning("no home directory: can't check legacy configuration!");
 	}
 
-    g_snprintf(core_config_file, sizeof(core_config_file), 
+    gm_snprintf(core_config_file, sizeof(core_config_file), 
         "%s/%s", config_dir, "config_gnet");
-    g_snprintf(gui_config_file, sizeof(gui_config_file), 
+    gm_snprintf(gui_config_file, sizeof(gui_config_file), 
         "%s/%s", config_dir, "config_gui");
 
     if (!file_exists(core_config_file) && !file_exists(gui_config_file)) {
@@ -123,7 +123,7 @@ static void gui_init_window_title(void)
 {
 	gchar tmpstr[256];
 
-	g_snprintf(tmpstr, sizeof(tmpstr),
+	gm_snprintf(tmpstr, sizeof(tmpstr),
 #ifdef GTA_REVISION
 		"gtk-gnutella %s %s", version_number, GTA_REVISION
 #else
@@ -518,7 +518,7 @@ void main_gui_shutdown_tick(guint left)
     label_shutdown_count = GTK_LABEL
         (lookup_widget(shutdown_window, "label_shutdown_count"));
 
-	g_snprintf(tmp, sizeof(tmp), "%d seconds", left);
+	gm_snprintf(tmp, sizeof(tmp), "%d seconds", left);
 
 	gtk_label_set(label_shutdown_count,tmp);
     gtk_main_flush();

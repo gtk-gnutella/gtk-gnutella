@@ -478,7 +478,7 @@ gboolean search_gui_new_search_full(
     GtkWidget *entry_search = lookup_widget(main_window, "entry_search");
 
 
-	g_snprintf(query, sizeof(query), "%s", querystr);
+	gm_snprintf(query, sizeof(query), "%s", querystr);
 
 	/*
 	 * If the text is a magnet link we extract the SHA1 urn
@@ -491,7 +491,7 @@ gboolean search_gui_new_search_full(
 		guchar raw[SHA1_RAW_SIZE];
 
 		if (huge_extract_sha1(query, raw)) {
-			g_snprintf(query, sizeof(query), "urn:sha1:%s", sha1_base32(raw));
+			gm_snprintf(query, sizeof(query), "urn:sha1:%s", sha1_base32(raw));
 		} else {
 			return FALSE;		/* Entry refused */
 		}
@@ -753,7 +753,7 @@ static void search_gui_add_record(
 
 	titles[c_sr_filename] = rc->name;
 	titles[c_sr_size] = short_size(rc->size);
-	g_snprintf(tmpstr, sizeof(tmpstr), "%u", rs->speed);
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%u", rs->speed);
 	titles[c_sr_speed] = tmpstr;
 	titles[c_sr_host] = ip_port_to_gchar(rs->ip, rs->port);
     titles[c_sr_urn] = (rc->sha1 != NULL) ? sha1_base32(rc->sha1) : "";
@@ -1037,7 +1037,7 @@ static void search_store_old(void)
 	FILE *out;
 	time_t now = time((time_t *) NULL);
 
-	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
 	out = fopen(tmpstr, "w");
 
 	if (!out) {
@@ -1070,11 +1070,11 @@ void search_gui_store_searches(void)
 #ifdef USE_SEARCH_XML
 	search_store_xml();
     
-  	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
+  	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
     if (file_exists(tmpstr)) {
         gchar filename[1024];
 
-      	g_snprintf(filename, sizeof(filename), "%s.old", tmpstr);
+      	gm_snprintf(filename, sizeof(filename), "%s.old", tmpstr);
 
         g_warning(
             "Found old searches file. The search information has been\n"
@@ -1402,7 +1402,7 @@ static gboolean search_retrieve_old(void)
 	struct stat buf;
 	gint line;				/* File line number */
 
-	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
 	if (-1 == stat(tmpstr, &buf))
 		return FALSE;
 
@@ -1489,7 +1489,7 @@ void search_gui_init(void)
 #ifdef USE_SEARCH_XML
     LIBXML_TEST_VERSION
 	if (search_retrieve_old()) {
-       	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", 
+       	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", 
             gui_config_dir, search_file);
         g_warning(
             "Found old searches file. Loaded it.\n"
@@ -1843,12 +1843,12 @@ void gui_search_update_items(struct search *sch)
         gchar *str = sch->passive ? "(passive search) " : "";
     
         if (sch->items)
-            g_snprintf(tmpstr, sizeof(tmpstr), "%s%u item%s found", 
+            gm_snprintf(tmpstr, sizeof(tmpstr), "%s%u item%s found", 
                 str, sch->items, (sch->items > 1) ? "s" : "");
         else
-            g_snprintf(tmpstr, sizeof(tmpstr), "%sNo items found", str);
+            gm_snprintf(tmpstr, sizeof(tmpstr), "%sNo items found", str);
     } else
-        g_snprintf(tmpstr, sizeof(tmpstr), "No search");
+        gm_snprintf(tmpstr, sizeof(tmpstr), "No search");
 
 	gtk_label_set(
         GTK_LABEL(lookup_widget(main_window, "label_items_found")), 
@@ -1868,19 +1868,19 @@ void gui_search_force_update_tab_label(struct search *sch)
     current_search = search_gui_get_current_search();
 
 	if (sch == current_search || sch->unseen_items == 0)
-		g_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d)", sch->query,
+		gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d)", sch->query,
 				   sch->items);
 	else
-		g_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d, %d)", sch->query,
+		gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d, %d)", sch->query,
 				   sch->items, sch->unseen_items);
 	sch->last_update_items = sch->items;
 	gtk_notebook_set_tab_label_text
         (notebook_search_results, sch->scrolled_window, tmpstr);
 
     row = gtk_clist_find_row_from_data(clist_search, sch);
-    g_snprintf(tmpstr, sizeof(tmpstr), "%u", sch->items);
+    gm_snprintf(tmpstr, sizeof(tmpstr), "%u", sch->items);
     gtk_clist_set_text(clist_search, row, c_sl_hit, tmpstr);
-    g_snprintf(tmpstr, sizeof(tmpstr), "%u", sch->unseen_items);
+    gm_snprintf(tmpstr, sizeof(tmpstr), "%u", sch->unseen_items);
     gtk_clist_set_text(clist_search, row, c_sl_new, tmpstr);
 
     if (sch->unseen_items > 0) {

@@ -150,7 +150,7 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	g_assert(md->rd == -1);
 	g_assert(md->wd == -1);
 
-	g_snprintf(source_name, sizeof(source_name),
+	gm_snprintf(source_name, sizeof(source_name),
 		"%s/%s", download_path(d), download_outname(d));
 
 	md->rd = open(source_name, O_RDONLY);
@@ -226,7 +226,7 @@ static void d_end(gpointer h, gpointer ctx, gpointer item)
 	if (md->error == 0) {
 		g_assert(md->copied == md->size);
 
-		g_snprintf(source_name, sizeof(source_name),
+		gm_snprintf(source_name, sizeof(source_name),
 			"%s/%s", download_path(md->d), download_outname(md->d));
 
 		if (-1 == unlink(source_name))

@@ -310,7 +310,7 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			gchar msg[80];
 			http_extra_desc_t hev;
 
-			g_snprintf(msg, sizeof(msg)-1, "Retry-After: %d\r\n", delay);
+			gm_snprintf(msg, sizeof(msg)-1, "Retry-After: %d\r\n", delay);
 
 			hev.he_type = HTTP_EXTRA_LINE;
 			hev.he_msg = msg;
@@ -1180,7 +1180,7 @@ int connect_http(struct gnutella_socket *s)
 
 	switch (s->pos) {
 	case 0:
-		g_snprintf(s->buffer, sizeof(s->buffer),
+		gm_snprintf(s->buffer, sizeof(s->buffer),
 			"CONNECT %s HTTP/1.0\r\n\r\n",
 			ip_port_to_gchar(s->ip, s->port));
 		if (

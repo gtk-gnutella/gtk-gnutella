@@ -1725,12 +1725,12 @@ static gchar *prop_to_string(property_t prop)
         
             stub->guint32.get(prop, &val, 0, 1);
 
-            g_snprintf(s, sizeof(s), "%u", val);
+            gm_snprintf(s, sizeof(s), "%u", val);
             break;
         }
         case PROP_TYPE_STRING: {
             gchar *buf = stub->string.get(prop, NULL, 0);
-            g_snprintf(s, sizeof(s), "%s", buf);
+            gm_snprintf(s, sizeof(s), "%s", buf);
             g_free(buf);
             break;
         }
@@ -1739,7 +1739,7 @@ static gchar *prop_to_string(property_t prop)
         
             stub->guint32.get(prop, &val, 0, 1);
 
-            g_snprintf(s, sizeof(s), "%s", ip_to_gchar(val));
+            gm_snprintf(s, sizeof(s), "%s", ip_to_gchar(val));
             break;
         }
         case PROP_TYPE_BOOLEAN: {
@@ -1747,7 +1747,7 @@ static gchar *prop_to_string(property_t prop)
         
             stub->boolean.get(prop, &val, 0, 1);
 
-            g_snprintf(s, sizeof(s), "%s", val ? "TRUE" : "FALSE");
+            gm_snprintf(s, sizeof(s), "%s", val ? "TRUE" : "FALSE");
             break;
         }
         default:
@@ -2510,7 +2510,7 @@ static void set_host_progress(const gchar *w, guint32 cur, guint32 max)
 
     frac = MIN(cur, max) != 0 ? (float)MIN(cur, max) / max : 0;
 
-	g_snprintf(set_tmp, sizeof(set_tmp), 
+	gm_snprintf(set_tmp, sizeof(set_tmp), 
 #ifdef USE_GTK2
 		"%u/%u host%s (%u%%)",
 #else
@@ -3418,7 +3418,7 @@ void settings_gui_init(void)
 
 	if (!gui_config_dir) {
 		if (home_dir) {
-			g_snprintf(set_tmp, sizeof(set_tmp),
+			gm_snprintf(set_tmp, sizeof(set_tmp),
 				"%s/.gtk-gnutella", home_dir);
 			gui_config_dir = g_strdup(set_tmp);
 		} else

@@ -84,13 +84,13 @@ gboolean http_send_status(
 	gchar *conn_close = "Connection: close\r\n";
 
 	va_start(args, reason);
-	g_vsnprintf(status_msg, sizeof(status_msg)-1,  reason, args);
+	gm_vsnprintf(status_msg, sizeof(status_msg)-1,  reason, args);
 	va_end(args);
 
 	if (code < 300)
 		conn_close = "";		/* Keep HTTP connection */
 
-	rw = g_snprintf(header, sizeof(header),
+	rw = gm_snprintf(header, sizeof(header),
 		"HTTP/1.1 %d %s\r\n"
 		"Server: %s\r\n"
 		"%s"
@@ -109,7 +109,7 @@ gboolean http_send_status(
 
 		switch (type) {
 		case HTTP_EXTRA_LINE:
-			rw += g_snprintf(&header[rw], sizeof(header) - rw,
+			rw += gm_snprintf(&header[rw], sizeof(header) - rw,
 				"%s", he->he_msg);
 			break;
 		case HTTP_EXTRA_CALLBACK:
@@ -128,13 +128,13 @@ gboolean http_send_status(
 	}
 
 	if (rw < sizeof(header))
-		rw += g_snprintf(&header[rw], sizeof(header) - rw, "\r\n");
+		rw += gm_snprintf(&header[rw], sizeof(header) - rw, "\r\n");
 
 	if (rw >= sizeof(header) && hev) {
 		g_warning("HTTP status %d (%s) too big, ignoring extra information",
 			code, reason);
 
-		rw = mrw + g_snprintf(&header[mrw], sizeof(header) - mrw, "\r\n");
+		rw = mrw + gm_snprintf(&header[mrw], sizeof(header) - mrw, "\r\n");
 		g_assert(rw < sizeof(header));
 	}
 
@@ -1019,10 +1019,10 @@ gchar *http_range_to_gchar(GSList *list)
 	for (l = list, rw = 0; l && rw < sizeof(str); l = g_slist_next(l)) {
 		http_range_t *r = (http_range_t *) l->data;
 
-		rw += g_snprintf(&str[rw], sizeof(str)-rw, "%u-%u", r->start, r->end);
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%u-%u", r->start, r->end);
 
 		if (g_slist_next(l) != NULL)
-			rw += g_snprintf(&str[rw], sizeof(str)-rw, ", ");
+			rw += gm_snprintf(&str[rw], sizeof(str)-rw, ", ");
 	}
 
 	return str;
@@ -1878,7 +1878,7 @@ void http_async_connected(gpointer handle)
 	 * Create the HTTP request.
 	 */
 
-	rw = g_snprintf(req, sizeof(req),
+	rw = gm_snprintf(req, sizeof(req),
 		"%s %s HTTP/1.1\r\n"
 		"Host: %s\r\n"
 		"User-Agent: %s\r\n"

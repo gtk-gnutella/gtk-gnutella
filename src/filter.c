@@ -917,42 +917,42 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
     case RULE_TEXT:
         switch (r->u.text.type) {
         case RULE_TEXT_PREFIX:
-           	g_snprintf(
+           	gm_snprintf(
                 tmp, sizeof(tmp), 
                 "If filename begins with \"%s\" %s",
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         case RULE_TEXT_WORDS:
-           	g_snprintf(
+           	gm_snprintf(
                 tmp, sizeof(tmp), 
                 "If filename contains the words \"%s\" %s",
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         case RULE_TEXT_SUFFIX:
-          	g_snprintf(
+          	gm_snprintf(
                 tmp, sizeof(tmp), 
                 "If filename ends with \"%s\" %s",
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         case RULE_TEXT_SUBSTR:
-           	g_snprintf(
+           	gm_snprintf(
                 tmp, sizeof(tmp), 
                 "If filename contains the substring \"%s\" %s",
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         case RULE_TEXT_REGEXP:
-           	g_snprintf(
+           	gm_snprintf(
                 tmp, sizeof(tmp), 
                 "If filename matches the regex \"%s\" %s",
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         case RULE_TEXT_EXACT:
-           	g_snprintf(
+           	gm_snprintf(
                 tmp, sizeof(tmp), 
                 "If filename is \"%s\" %s",
                 r->u.text.match,
@@ -971,7 +971,7 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
             mask = g_strdup(ip_to_gchar(r->u.ip.mask));
             addr = g_strdup(ip_to_gchar(r->u.ip.addr));
 
-            g_snprintf(tmp, sizeof(tmp), 
+            gm_snprintf(tmp, sizeof(tmp), 
                 "If IP address matches %s/%s", addr, mask);
 
             g_free(addr);
@@ -980,11 +980,11 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
         break;
     case RULE_SIZE:
 		if (r->u.size.lower == 0)
-			g_snprintf(tmp, sizeof(tmp),
+			gm_snprintf(tmp, sizeof(tmp),
 				"If filesize is smaller than %d (%s)",
 				(gint) r->u.size.upper, short_size(r->u.size.upper));
 		else if (r->u.size.upper == r->u.size.lower)
-			g_snprintf(tmp, sizeof(tmp),
+			gm_snprintf(tmp, sizeof(tmp),
 				"If filesize is exactly %d (%s)",
 				(gint) r->u.size.upper, short_size(r->u.size.upper));
         else {
@@ -994,7 +994,7 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
             s1 = g_strdup(short_size(r->u.size.lower));
             s2 = g_strdup(short_size(r->u.size.upper));
     
-			g_snprintf(tmp, sizeof(tmp),
+			gm_snprintf(tmp, sizeof(tmp),
 				"If filesize is between %d and %d (%s - %s)",
 				(gint) r->u.size.lower, (int)r->u.size.upper, s1, s2);
 
@@ -1004,13 +1004,13 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
         break;
     case RULE_SHA1:
         if (r->u.sha1.hash != NULL) {
-            g_snprintf(tmp, sizeof(tmp), "If urn:sha1 is same as for \"%s\"",
+            gm_snprintf(tmp, sizeof(tmp), "If urn:sha1 is same as for \"%s\"",
                 r->u.sha1.filename);
         } else 
-            g_snprintf(tmp, sizeof(tmp), "If urn:sha1 is not available");
+            gm_snprintf(tmp, sizeof(tmp), "If urn:sha1 is not available");
         break;
     case RULE_JUMP:
-       	g_snprintf(
+       	gm_snprintf(
             tmp, sizeof(tmp), 
             "Always");
         break;
@@ -1067,12 +1067,12 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
             }
 
             if (b)
-                g_snprintf(
+                gm_snprintf(
                     tmp, sizeof(tmp),
                     "If flag %s%s%s%s%s", 
                     busy_str, s1, push_str, s2, stable_str);
             else
-                 g_snprintf(
+                 gm_snprintf(
                     tmp, sizeof(tmp),
                     "Always (all flags ignored)");
         }
@@ -1126,12 +1126,12 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
             }
      
             if (b)
-                g_snprintf(
+                gm_snprintf(
                     tmp, sizeof(tmp),
                     "If flag %s%s%s", 
                     display_str, s1, download_str);
             else
-                 g_snprintf(
+                 gm_snprintf(
                     tmp, sizeof(tmp),
                     "Always (all states ignored)");
         }
@@ -1160,7 +1160,7 @@ gchar *filter_rule_to_gchar(rule_t *r)
 
     cond = g_strdup(filter_rule_condition_to_gchar(r));
 
-	g_snprintf(f_tmp, sizeof(f_tmp), "%s%s %s jump to \"%s\"", 
+	gm_snprintf(f_tmp, sizeof(f_tmp), "%s%s %s jump to \"%s\"", 
         RULE_IS_NEGATED(r) ? "(Negated) " : "",
         RULE_IS_ACTIVE(r) ? "" : "(deactivated)",
         cond,

@@ -101,7 +101,7 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	g_assert(vd->fd == -1);
 	g_assert(vd->d == NULL);
 
-	g_snprintf(filename, sizeof(filename),
+	gm_snprintf(filename, sizeof(filename),
 		"%s/%s", download_path(d), download_outname(d));
 
 	vd->fd = open(filename, O_RDONLY);

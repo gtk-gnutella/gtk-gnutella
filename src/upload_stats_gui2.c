@@ -94,7 +94,7 @@ static void upload_stats_cell_render_attempts_func(
 	gchar tmpstr[16];
 
 	gtk_tree_model_get(model, iter, c_us_attempts, &val, -1);
-	g_snprintf(tmpstr, sizeof(tmpstr), "%lu", (gulong) val);
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%lu", (gulong) val);
 	g_object_set(cell, "text", tmpstr, NULL);
 }
 
@@ -109,7 +109,7 @@ static void upload_stats_cell_render_complete_func(
 	gchar tmpstr[16];
 
 	gtk_tree_model_get(model, iter, c_us_complete, &val, -1);
-	g_snprintf(tmpstr, sizeof(tmpstr), "%lu", (gulong) val);
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%lu", (gulong) val);
 	g_object_set(cell, "text", tmpstr, NULL);
 }
 
@@ -124,7 +124,7 @@ static void upload_stats_cell_render_size_func(
 	gchar tmpstr[16];
 
 	gtk_tree_model_get(model, iter, c_us_size, &val, -1);
-	g_snprintf(tmpstr, sizeof(tmpstr), "%s", short_size(val));
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%s", short_size(val));
 	g_object_set(cell, "text", tmpstr, NULL);
 }
 
@@ -139,7 +139,7 @@ static void upload_stats_cell_render_norm_func(
 	gchar tmpstr[16];
 
 	gtk_tree_model_get(model, iter, c_us_norm, &val, -1);
-	g_snprintf(tmpstr, sizeof(tmpstr), "%lu.%lu",
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%lu.%lu",
 		(gulong) val / 1000, (gulong) val % 1000);
 	g_object_set(cell, "text", tmpstr, NULL);
 }

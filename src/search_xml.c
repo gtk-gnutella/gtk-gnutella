@@ -172,7 +172,7 @@ void search_store_xml(void)
     xmlDocSetRootElement(doc, root);
     xmlSetProp(root,"Time", ctime(&now));
 
-	g_snprintf(x_tmp, sizeof(x_tmp), "%s", version_number);
+	gm_snprintf(x_tmp, sizeof(x_tmp), "%s", version_number);
     xmlSetProp(root,"Version", x_tmp);
 
     /*
@@ -200,7 +200,7 @@ void search_store_xml(void)
      */
 
     xmlKeepBlanksDefault(0);
-    g_snprintf(x_tmp, sizeof(x_tmp), "%s/%s.new", 
+    gm_snprintf(x_tmp, sizeof(x_tmp), "%s/%s.new", 
         gui_config_dir, search_file_xml);
 
     if(xmlSaveFormatFile(x_tmp, doc, TRUE) == -1) {
@@ -210,7 +210,7 @@ void search_store_xml(void)
         if (gui_debug >= 3)
             printf("saved searches file: %s\n", x_tmp);
 
-		g_snprintf(filename, sizeof(filename), "%s/%s",
+		gm_snprintf(filename, sizeof(filename), "%s/%s",
 			gui_config_dir, search_file_xml);
 
 		if (-1 == rename(x_tmp, filename))
@@ -235,7 +235,7 @@ gboolean search_retrieve_xml(void)
     xmlNodePtr root;
     GList *f;
     
-  	g_snprintf(x_tmp, sizeof(x_tmp), "%s/%s", gui_config_dir, search_file_xml);
+  	gm_snprintf(x_tmp, sizeof(x_tmp), "%s/%s", gui_config_dir, search_file_xml);
 
 	/* 
      * if the file doesn't exist 
@@ -376,19 +376,19 @@ static void builtin_to_xml(xmlNodePtr parent)
 
     newxml = xmlNewChild(parent,NULL,NODE_BUILTIN, NULL);
     
-  	g_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_show_target());
+  	gm_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_show_target());
     xmlSetProp(newxml,TAG_BUILTIN_SHOW_UID, x_tmp);
 
-  	g_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_drop_target());
+  	gm_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_drop_target());
     xmlSetProp(newxml,TAG_BUILTIN_DROP_UID, x_tmp);
 
-  	g_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_download_target());
+  	gm_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_download_target());
     xmlSetProp(newxml,TAG_BUILTIN_DOWNLOAD_UID, x_tmp);
 
-    g_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_nodownload_target());
+    gm_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_nodownload_target());
     xmlSetProp(newxml,TAG_BUILTIN_NODOWNLOAD_UID, x_tmp);
 
-    g_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_return_target());
+    gm_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_return_target());
     xmlSetProp(newxml,TAG_BUILTIN_RETURN_UID, x_tmp);
 }
 
@@ -411,14 +411,14 @@ static void search_to_xml(xmlNodePtr parent, search_t *s)
     
     xmlSetProp(newxml, TAG_SEARCH_QUERY, s->query);
 
-  	g_snprintf(x_tmp, sizeof(x_tmp), "%u", 
+  	gm_snprintf(x_tmp, sizeof(x_tmp), "%u", 
         search_get_minimum_speed(s->search_handle));
     xmlSetProp(newxml, TAG_SEARCH_SPEED, x_tmp);
 
-    g_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(s->passive));
+    gm_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(s->passive));
     xmlSetProp(newxml, TAG_SEARCH_PASSIVE, x_tmp);
 
-  	g_snprintf(x_tmp, sizeof(x_tmp), "%u", 
+  	gm_snprintf(x_tmp, sizeof(x_tmp), "%u", 
         search_get_reissue_timeout(s->search_handle));
     xmlSetProp(newxml, TAG_SEARCH_REISSUE_TIMEOUT, x_tmp);
     
@@ -454,7 +454,7 @@ static void filter_to_xml(xmlNodePtr parent, filter_t *f)
     
     xmlSetProp(newxml, TAG_FILTER_NAME, f->name);
 
-    g_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(filter_is_active(f)));
+    gm_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(filter_is_active(f)));
     xmlSetProp(newxml, TAG_FILTER_ACTIVE, x_tmp);
 
     /*
@@ -462,16 +462,16 @@ static void filter_to_xml(xmlNodePtr parent, filter_t *f)
      * we use during read-in for setting the
      * destination of JUMP actions.
      */
-  	g_snprintf(x_tmp, sizeof(x_tmp), "%p", f);
+  	gm_snprintf(x_tmp, sizeof(x_tmp), "%p", f);
     xmlSetProp(newxml, TAG_FILTER_UID, x_tmp);
 
     if (filter_get_global_pre() == f) {
-    	g_snprintf(x_tmp, sizeof(x_tmp), "%u", GLOBAL_PRE);
+    	gm_snprintf(x_tmp, sizeof(x_tmp), "%u", GLOBAL_PRE);
         xmlSetProp(newxml, TAG_FILTER_GLOBAL, x_tmp); 
     }
 
     if (filter_get_global_post() == f) {
-    	g_snprintf(x_tmp, sizeof(x_tmp), "%u", GLOBAL_POST);
+    	gm_snprintf(x_tmp, sizeof(x_tmp), "%u", GLOBAL_POST);
         xmlSetProp(newxml, TAG_FILTER_GLOBAL, x_tmp); 
     }
 
@@ -505,7 +505,7 @@ static void rule_to_xml(xmlNodePtr parent, rule_t *r)
             r->u.text.case_sensitive ? "1" : "0");
         xmlSetProp(newxml, TAG_RULE_TEXT_MATCH, r->u.text.match);
 
-        g_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.text.type);
+        gm_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.text.type);
         xmlSetProp(newxml, TAG_RULE_TEXT_TYPE, x_tmp);
         break;
     case RULE_IP:
@@ -517,10 +517,10 @@ static void rule_to_xml(xmlNodePtr parent, rule_t *r)
     case RULE_SIZE:
         newxml = xmlNewChild(parent, NULL, NODE_RULE_SIZE, NULL);
         
-        g_snprintf(x_tmp, sizeof(x_tmp), "%lu", (gulong) r->u.size.lower);
+        gm_snprintf(x_tmp, sizeof(x_tmp), "%lu", (gulong) r->u.size.lower);
         xmlSetProp(newxml, TAG_RULE_SIZE_LOWER, x_tmp);
 
-        g_snprintf(x_tmp, sizeof(x_tmp), "%lu", (gulong) r->u.size.upper);
+        gm_snprintf(x_tmp, sizeof(x_tmp), "%lu", (gulong) r->u.size.upper);
         xmlSetProp(newxml, TAG_RULE_SIZE_UPPER, x_tmp);
         break;
     case RULE_JUMP:
@@ -546,38 +546,38 @@ static void rule_to_xml(xmlNodePtr parent, rule_t *r)
     case RULE_FLAG:
         newxml = xmlNewChild(parent, NULL, NODE_RULE_FLAG, NULL);
         
-        g_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.flag.stable);
+        gm_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.flag.stable);
         xmlSetProp(newxml, TAG_RULE_FLAG_STABLE, x_tmp);
 
-        g_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.flag.busy);
+        gm_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.flag.busy);
         xmlSetProp(newxml, TAG_RULE_FLAG_BUSY, x_tmp);
 
-        g_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.flag.push);
+        gm_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.flag.push);
         xmlSetProp(newxml, TAG_RULE_FLAG_PUSH, x_tmp);
         break;
     case RULE_STATE:
          newxml = xmlNewChild(parent, NULL, NODE_RULE_STATE, NULL);
         
-        g_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.state.display);
+        gm_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.state.display);
         xmlSetProp(newxml, TAG_RULE_STATE_DISPLAY, x_tmp);
 
-        g_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.state.download);
+        gm_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.state.download);
         xmlSetProp(newxml, TAG_RULE_STATE_DOWNLOAD, x_tmp);
         break;
     default:
         g_error("Unknown rule type: %d", r->type);
     }
 
-    g_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(RULE_IS_NEGATED(r)));
+    gm_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(RULE_IS_NEGATED(r)));
     xmlSetProp(newxml, TAG_RULE_NEGATE, x_tmp);
 
-    g_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(RULE_IS_ACTIVE(r)));
+    gm_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(RULE_IS_ACTIVE(r)));
     xmlSetProp(newxml, TAG_RULE_ACTIVE, x_tmp);
 
-    g_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(RULE_IS_SOFT(r)));
+    gm_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(RULE_IS_SOFT(r)));
     xmlSetProp(newxml, TAG_RULE_SOFT, x_tmp);
 
-    g_snprintf(x_tmp, sizeof(x_tmp), "%p", r->target);
+    gm_snprintf(x_tmp, sizeof(x_tmp), "%p", r->target);
     xmlSetProp(newxml, TAG_RULE_TARGET, x_tmp);
 }
 

@@ -639,7 +639,7 @@ static void node_remove_v(
 	g_assert(n->status != GTA_NODE_REMOVING);
 
 	if (reason) {
-		g_vsnprintf(n->error_str, sizeof(n->error_str), reason, ap);
+		gm_vsnprintf(n->error_str, sizeof(n->error_str), reason, ap);
 		n->error_str[sizeof(n->error_str) - 1] = '\0';	/* May be truncated */
 		n->remove_msg = n->error_str;
 	} else if (n->status != GTA_NODE_SHUTDOWN)	/* Preserve shutdown error */
@@ -923,7 +923,7 @@ void node_shutdown(struct gnutella_node *n, const gchar *reason, ...)
 	n->flags |= NODE_F_CLOSING;
 
 	if (reason) {
-		g_vsnprintf(n->error_str, sizeof(n->error_str), reason, args);
+		gm_vsnprintf(n->error_str, sizeof(n->error_str), reason, args);
 		n->error_str[sizeof(n->error_str) - 1] = '\0';	/* May be truncated */
 		n->remove_msg = n->error_str;
 	} else {
@@ -974,7 +974,7 @@ static void node_bye_v(
 	n->flags |= NODE_F_CLOSING;
 
 	if (reason) {
-		g_vsnprintf(n->error_str, sizeof(n->error_str), reason, ap);
+		gm_vsnprintf(n->error_str, sizeof(n->error_str), reason, ap);
 		n->error_str[sizeof(n->error_str) - 1] = '\0';	/* May be truncated */
 		n->remove_msg = n->error_str;
 	} else {
@@ -994,13 +994,13 @@ static void node_bye_v(
 	 * Build the bye message.
 	 */
 
-	len = g_snprintf(reason_base, sizeof(reason_fmt) - 3,
+	len = gm_snprintf(reason_base, sizeof(reason_fmt) - 3,
 		"%s", n->error_str);
 
 	// XXX Add X-Try and X-Try-Ultrapeers
 
 	if (code != 200) {
-		len += g_snprintf(reason_base + len, sizeof(reason_fmt) - len - 3,
+		len += gm_snprintf(reason_base + len, sizeof(reason_fmt) - len - 3,
 			"\r\n"
 			"Server: %s\r\n"
 			"\r\n",
@@ -1294,7 +1294,7 @@ static gchar *formatted_connection_pongs(gchar *field, hcache_type_t htype)
  */
 static gchar *node_crawler_headers(struct gnutella_node *n)
 {
-	static gchar buf[4096];
+	static gchar buf[1536];		/* 1.5 KB */
 	GSList *l;
 	gint rw;
 	gint count;
@@ -1303,7 +1303,7 @@ static gchar *node_crawler_headers(struct gnutella_node *n)
 	 * First, the peers.
 	 */
 
-	rw = g_snprintf(buf, sizeof(buf), "Peers: ");
+	rw = gm_snprintf(buf, sizeof(buf), "Peers: ");
 
 	for (count = 0, l = sl_nodes; l && rw < sizeof(buf); l = l->next) {
 		struct gnutella_node *cn = (struct gnutella_node *) l->data;
@@ -1321,15 +1321,15 @@ static gchar *node_crawler_headers(struct gnutella_node *n)
 			continue;
 
 		if (count > 0)
-			rw += g_snprintf(&buf[rw], sizeof(buf)-rw, ", ");
+			rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, ", ");
 
-		rw += g_snprintf(&buf[rw], sizeof(buf)-rw, "%s",
+		rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "%s",
 			ip_port_to_gchar(cn->gnet_ip, cn->gnet_port));
 
 		count++;
 	}
 
-	rw += g_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
+	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
 
 	if (current_peermode != NODE_P_ULTRA)
 		return buf;
@@ -1338,7 +1338,7 @@ static gchar *node_crawler_headers(struct gnutella_node *n)
 	 * We're an ultranode, list our leaves.
 	 */
 
-	rw += g_snprintf(&buf[rw], sizeof(buf)-rw, "Leaves: ");
+	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "Leaves: ");
 
 	for (count = 0, l = sl_nodes; l && rw < sizeof(buf); l = l->next) {
 		struct gnutella_node *cn = (struct gnutella_node *) l->data;
@@ -1356,15 +1356,15 @@ static gchar *node_crawler_headers(struct gnutella_node *n)
 			continue;
 
 		if (count > 0)
-			rw += g_snprintf(&buf[rw], sizeof(buf)-rw, ", ");
+			rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, ", ");
 
-		rw += g_snprintf(&buf[rw], sizeof(buf)-rw, "%s",
+		rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "%s",
 			ip_port_to_gchar(cn->gnet_ip, cn->gnet_port));
 
 		count++;
 	}
 
-	rw += g_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
+	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
 
 	return buf;
 }
@@ -1384,7 +1384,7 @@ void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 	va_list args;
 
 	va_start(args, msg);
-	g_vsnprintf(msg_tmp, sizeof(msg_tmp)-1,  msg, args);
+	gm_vsnprintf(msg_tmp, sizeof(msg_tmp)-1,  msg, args);
 	va_end(args);
 
 	/*
@@ -1393,7 +1393,7 @@ void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 	 * If we're not a regular node, send out X-Try-Ultrapeers for 204 as well.
 	 */
 
-	rw = g_snprintf(gnet_response, sizeof(gnet_response),
+	rw = gm_snprintf(gnet_response, sizeof(gnet_response),
 		"GNUTELLA/0.6 %d %s\r\n"
 		"User-Agent: %s\r\n"
 		"Remote-IP: %s\r\n"
@@ -1407,7 +1407,7 @@ void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 		(code == 503 || code == 403) ?
 			formatted_connection_pongs("X-Try", HCACHE_ANY) : "");
 
-	rw += g_snprintf(&gnet_response[rw], sizeof(gnet_response)-rw,
+	rw += gm_snprintf(&gnet_response[rw], sizeof(gnet_response)-rw,
 		"%s"		// X-Try-Ultrapeers
 		"\r\n",
 		(current_peermode != NODE_P_NORMAL &&
@@ -2437,7 +2437,7 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 static void node_process_handshake_header(
 	struct gnutella_node *n, header_t *head)
 {
-	gchar gnet_response[1024];
+	gchar gnet_response[2048];
 	gint rw;
 	gint sent;
 	gchar *field;
@@ -2800,7 +2800,7 @@ static void node_process_handshake_header(
 
 		g_assert(!mode_changed || current_peermode == NODE_P_LEAF);
 
-		rw = g_snprintf(gnet_response, sizeof(gnet_response),
+		rw = gm_snprintf(gnet_response, sizeof(gnet_response),
 			"GNUTELLA/0.6 200 OK\r\n"
 			"%s"			// Content-Encoding
 			"%s"			// X-Ultrapeer
@@ -2823,7 +2823,7 @@ static void node_process_handshake_header(
 		ultra_max = MAX(ultra_max, 0);
 
 		if (n->flags & NODE_F_CRAWLER)
-			rw = g_snprintf(gnet_response, sizeof(gnet_response),
+			rw = gm_snprintf(gnet_response, sizeof(gnet_response),
 				"GNUTELLA/0.6 200 OK\r\n"
 				"User-Agent: %s\r\n"
 				"%s"		// Peers & Leaves
@@ -2831,7 +2831,7 @@ static void node_process_handshake_header(
 				"\r\n",
 				version_string, node_crawler_headers(n), start_rfc822_date);
 		else
-			rw = g_snprintf(gnet_response, sizeof(gnet_response),
+			rw = gm_snprintf(gnet_response, sizeof(gnet_response),
 				"GNUTELLA/0.6 200 OK\r\n"
 				"User-Agent: %s\r\n"
 				"Pong-Caching: 0.1\r\n"
@@ -3624,9 +3624,9 @@ void node_init_outgoing(struct gnutella_node *n)
 
 	if (n->proto_major == 0 && n->proto_minor == 4) {
 		old_handshake = TRUE;
-		len = g_snprintf(buf, sizeof(buf), "%s%d.%d\n\n", gnutella_hello, 0, 4);
+		len = gm_snprintf(buf, sizeof(buf), "%s%d.%d\n\n", gnutella_hello, 0, 4);
 	} else
-		len = g_snprintf(buf, sizeof(buf),
+		len = gm_snprintf(buf, sizeof(buf),
 			"GNUTELLA CONNECT/%d.%d\r\n"
 			"Node: %s\r\n"
 			"Remote-IP: %s\r\n"
@@ -4654,10 +4654,10 @@ void node_get_status(const gnet_node_t n, gnet_node_status_t *status)
         status->shutdown_remain = 0;
 
     if (node->error_str != NULL)
-        g_snprintf(status->message, sizeof(status->message), "%s", 
+        gm_snprintf(status->message, sizeof(status->message), "%s", 
             node->error_str);
     else if (node->remove_msg != NULL)
-        g_snprintf(status->message, sizeof(status->message), "%s", 
+        gm_snprintf(status->message, sizeof(status->message), "%s", 
             node->remove_msg);
     else
         status->message[0] = '\0';
@@ -4704,7 +4704,7 @@ gchar *node_ip(gnutella_node_t *n)
 	static gchar a[32];
 	struct in_addr ia;
 	ia.s_addr = g_htonl(n->ip);
-	g_snprintf(a, sizeof(a), "%s:%u", inet_ntoa(ia), n->port);
+	gm_snprintf(a, sizeof(a), "%s:%u", inet_ntoa(ia), n->port);
 	return a;
 }
 

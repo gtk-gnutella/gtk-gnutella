@@ -631,7 +631,7 @@ gboolean download_file_exists(struct download *d)
 	gchar path[2048];
 	struct stat buf;
 
-	g_snprintf(path, sizeof(path), "%s/%s",
+	gm_snprintf(path, sizeof(path), "%s/%s",
 		d->file_info->path, d->file_info->file_name);
 
 	if (-1 == stat(path, &buf))
@@ -655,7 +655,7 @@ void download_remove_file(struct download *d, gboolean reset)
 	gchar path[2048];
 	struct dl_file_info *fi = d->file_info;
 
-	g_snprintf(path, sizeof(path), "%s/%s", fi->path, fi->file_name);
+	gm_snprintf(path, sizeof(path), "%s/%s", fi->path, fi->file_name);
 
 	if (-1 == unlink(path))
 		g_warning("cannot unlink \"%s\": %s", path, g_strerror(errno));
@@ -942,7 +942,7 @@ gint download_remove_all_named(const gchar *name)
 
 	g_return_val_if_fail(name, 0);
 	
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s", name);
+	gm_snprintf(dl_tmp, sizeof(dl_tmp), "%s", name);
 
 	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
 		struct download *d = (struct download *) sl->data;
@@ -1467,7 +1467,7 @@ void download_stop(struct download *d, guint32 new_status,
 	if (reason) {
 		va_list args;
 		va_start(args, reason);
-		g_vsnprintf(d->error_str, sizeof(d->error_str), reason, args);
+		gm_vsnprintf(d->error_str, sizeof(d->error_str), reason, args);
 		d->error_str[sizeof(d->error_str) - 1] = '\0';	/* May be truncated */
 		va_end(args);
 		d->remove_msg = d->error_str;
@@ -1556,7 +1556,7 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	g_assert(!DOWNLOAD_IS_QUEUED(d));
 
 	if (fmt) {
-		g_vsnprintf(d->error_str, sizeof(d->error_str), fmt, ap);
+		gm_vsnprintf(d->error_str, sizeof(d->error_str), fmt, ap);
 		d->error_str[sizeof(d->error_str) - 1] = '\0';	/* May be truncated */
 		/* d->remove_msg updated below */
 	}
@@ -1736,7 +1736,7 @@ static void download_push_insert(struct download *d)
 
 	g_assert(!d->push);
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
+	gm_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
 		d->record_index, guid_hex_str(download_guid(d)));
 
 	/*
@@ -1771,7 +1771,7 @@ static void download_push_insert(struct download *d)
 			g_warning("BUG: duplicate push ignored for \"%s\"", ad->file_name);
 			g_warning("BUG: argument is 0x%lx, \"%s\", key = %s, state = %d",
 				(gulong) d, d->file_name, key, d->status);
-			g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
+			gm_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
 				ad->record_index, guid_hex_str(download_guid(ad)));
 			g_warning("BUG: in table has 0x%lx \"%s\", key = %s, state = %d",
 				(gulong) ad, ad->file_name, dl_tmp, ad->status);
@@ -1796,7 +1796,7 @@ static void download_push_remove(struct download *d)
 
 	g_assert(d->push);
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
+	gm_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
 		d->record_index, guid_hex_str(download_guid(d)));
 
 	if (
@@ -2637,7 +2637,7 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 		 *		--RAM, 18/08/2002
 		 */
 
-		g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", save_file_path, output_name);
+		gm_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", save_file_path, output_name);
 		dl_tmp[sizeof(dl_tmp)-1] = '\0';
 
 		if (file_info_filesize(dl_tmp) > size) {
@@ -2652,7 +2652,7 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 		 * i.e. .01, .02, etc... and keep going while files exist.
 		 */
 
-		g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", move_file_path, output_name);
+		gm_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", move_file_path, output_name);
 		dl_tmp[sizeof(dl_tmp)-1] = '\0';
 
 		if (-1 != stat(dl_tmp, &buf) && buf.st_size >= size) {
@@ -2669,7 +2669,7 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 			for (i = 1; i < 100; i++) {
 				gchar ext[4];
 
-				g_snprintf(ext, 4, ".%02d", i);
+				gm_snprintf(ext, 4, ".%02d", i);
 				dl_tmp[tmplen] = '\0';				/* Ignore prior attempt */
 				strncat(dl_tmp+tmplen, ext, 3);		/* Append .01, .02, ...*/
 
@@ -2677,7 +2677,7 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 					break;							/* No file, stop scanning */
 
 				if (buf.st_size >= size) {
-					g_snprintf(dl_tmp, sizeof(dl_tmp),
+					gm_snprintf(dl_tmp, sizeof(dl_tmp),
 							"alternate complete file #%d bigger", i);
 					reason = dl_tmp;
 					goto abort_download;
@@ -3271,7 +3271,7 @@ static gboolean download_overlap_check(struct download *d)
 	gchar *data = NULL;
 	gint r;
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->file_info->path,
+	gm_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->file_info->path,
 		d->file_info->file_name);
 
 	fd = open(dl_tmp, O_RDONLY);
@@ -4280,7 +4280,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 		short_read[0] = '\0';
 	else {
 		gint count = header_lines(header);
-		g_snprintf(short_read, sizeof(short_read),
+		gm_snprintf(short_read, sizeof(short_read),
 			"[short %d line%s header] ", count, count == 1 ? "" : "s");
 	}
 
@@ -4633,7 +4633,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 
 	g_assert(d->file_desc == -1);
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", fi->path, fi->file_name);
+	gm_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", fi->path, fi->file_name);
 
 	if (stat(dl_tmp, &st) != -1) {
 		/* File exists, we'll append the data to it */
@@ -4908,15 +4908,15 @@ picked:
 	 */
 
 	if (n2r)
-		rw = g_snprintf(dl_tmp, sizeof(dl_tmp),
+		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
 			"GET /uri-res/N2R?urn:sha1:%s HTTP/1.1\r\n",
 			sha1_base32(d->sha1));
 	else
-		rw = g_snprintf(dl_tmp, sizeof(dl_tmp),
+		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
 			"GET /get/%u/%s HTTP/1.1\r\n",
 			d->record_index, d->file_name);
 
-	rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+	rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 		"Host: %s\r\n"
 		"User-Agent: %s\r\n",
 		ip_port_to_gchar(download_ip(d), download_port(d)), version_string);
@@ -4942,7 +4942,7 @@ picked:
 		/* Request only a lower-bounded range, if needed */
 
 		if (d->skip)
-			rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+			rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 				"Range: bytes=%u-\r\n",
 				d->skip - d->overlap_size);
 	} else {
@@ -4953,7 +4953,7 @@ picked:
 
 			d->range_end = d->skip + d->size;
 
-			rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+			rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 				"Range: bytes=%u-%u\r\n",
 				start, d->range_end - 1);
 		}
@@ -5013,12 +5013,12 @@ picked:
 		 */
 
 		if (!n2r || wmesh)
-			rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+			rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 				"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
 				sha1_base32(sha1));
 	}
 
-	rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw, "\r\n");
+	rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw, "\r\n");
 
 	/*
 	 * Send the HTTP Request
@@ -5127,7 +5127,7 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 	gint last_change;
 
 	g_strdown(hex_guid);
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s", file_index, hex_guid);
+	gm_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s", file_index, hex_guid);
 
 	list = (GSList *) g_hash_table_lookup(pushed_downloads, (gpointer) dl_tmp);
 	if (list) {
@@ -5664,7 +5664,7 @@ static void download_move(struct download *d, gchar *dir, gchar *ext)
 	d->status = GTA_DL_MOVING;
 	fi = d->file_info;
 
-	g_snprintf(src_name, sizeof(src_name), "%s/%s", fi->path, fi->file_name);
+	gm_snprintf(src_name, sizeof(src_name), "%s/%s", fi->path, fi->file_name);
 	src_name[sizeof(src_name)-1] = '\0';
 
 	/*
@@ -5797,7 +5797,7 @@ void download_move_error(struct download *d)
 	 * rename it as DL_BAD_EXT.
 	 */
 
-	g_snprintf(src_name, sizeof(src_name), "%s/%s", fi->path, fi->file_name);
+	gm_snprintf(src_name, sizeof(src_name), "%s/%s", fi->path, fi->file_name);
 	src_name[sizeof(src_name)-1] = '\0';
 
 	ext = has_good_sha1(d) ? DL_OK_EXT : DL_BAD_EXT;
@@ -6082,7 +6082,7 @@ gchar *build_url_from_download(struct download *d)
    
     buf = url_escape(d->file_name);
 
-    g_snprintf(url_tmp, sizeof(url_tmp),
+    gm_snprintf(url_tmp, sizeof(url_tmp),
                "http://%s/get/%u/%s",
                ip_port_to_gchar(download_ip(d), download_port(d)),
 			   d->record_index, buf);

@@ -192,9 +192,9 @@ static gchar *pkt_stat_str(
 		g_strlcpy(strbuf, "-", n);
     else {
 		if (!perc)
-        	g_snprintf(strbuf, n, "%lu", (gulong) val_tbl[type]);
+        	gm_snprintf(strbuf, n, "%lu", (gulong) val_tbl[type]);
     	else
-        	g_snprintf(strbuf, n, "%.2f%%", 
+        	gm_snprintf(strbuf, n, "%.2f%%", 
             	(gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
 	}
 
@@ -210,7 +210,7 @@ const gchar *byte_stat_str(
     else if (!perc)
         g_strlcpy(strbuf, compact_size(val_tbl[type]), n);
     else
-        g_snprintf(strbuf, n, "%.2f%%", 
+        gm_snprintf(strbuf, n, "%.2f%%", 
             (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
 
 	return strbuf;
@@ -228,10 +228,10 @@ const gchar *drop_stat_str(
     if (stats->drop_reason[reason][selected_type] == 0)
 		g_strlcpy(str, "-", n);
     else if (gnet_stats_drop_perc)
-        g_snprintf(str, n, "%.2f%%", 
+        gm_snprintf(str, n, "%.2f%%", 
             (gfloat) stats->drop_reason[reason][selected_type] / total * 100);
     else
-        g_snprintf(str, n, "%u", stats->drop_reason[reason][selected_type]);
+        gm_snprintf(str, n, "%u", stats->drop_reason[reason][selected_type]);
 
     return str;
 }
@@ -244,7 +244,7 @@ static const gchar *general_stat_str(
     else if (type == GNR_QUERY_COMPACT_SIZE)
         g_strlcpy(str, compact_size(stats->general[type]), n);
     else
-        g_snprintf(str, n, "%u", stats->general[type]);
+        gm_snprintf(str, n, "%u", stats->general[type]);
 
 	return str;
 }
@@ -260,12 +260,12 @@ static const gchar *type_stat_str(
 	if (value == 0 || total == 0)
 		g_strlcpy(strbuf, "-", n);
 	else if (perc)
-		g_snprintf(strbuf, n, "%.2f%%", (gfloat) value / total * 100.0);
+		gm_snprintf(strbuf, n, "%.2f%%", (gfloat) value / total * 100.0);
 	else {
 		if (bytes)
 			g_strlcpy(strbuf, compact_size(value), n);
 		else
-       		g_snprintf(strbuf, n, "%lu", (gulong) value);
+       		gm_snprintf(strbuf, n, "%lu", (gulong) value);
 	}
 
     return strbuf;
@@ -555,7 +555,7 @@ void gnet_stats_gui_init(void)
 	for (n = 0; n < STATS_FLOWC_COLUMNS; n++) {
     	gchar buf[16];
 
-		g_snprintf(buf, sizeof(buf), "%d%c", n-1,
+		gm_snprintf(buf, sizeof(buf), "%d%c", n-1,
 				(n+1) < STATS_FLOWC_COLUMNS ? '\0' : '+');
 		add_column(treeview, n, width[n], (gfloat) n != 0,
 			n == 0 ? "Type" : buf);
@@ -670,7 +670,7 @@ void gnet_stats_gui_init(void)
 	for (n = 0; n < STATS_FLOWC_COLUMNS; n++) {
     	gchar buf[16];
 
-		g_snprintf(buf, sizeof(buf), "%d%c", n-1,
+		gm_snprintf(buf, sizeof(buf), "%d%c", n-1,
 				(n+1) < STATS_RECV_COLUMNS ? '\0' : '+');
 		add_column(treeview, n, width[n], (gfloat) n != 0,
 			n == 0 ? "Type" : buf);

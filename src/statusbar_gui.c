@@ -127,7 +127,7 @@ void statusbar_gui_set_default(const char *format, ...)
         g_free(statbar_botstr_new);
 
     if (format != NULL) {
-        g_vsnprintf(buf, sizeof(buf), format, args);
+        gm_vsnprintf(buf, sizeof(buf), format, args);
         statbar_botstr_new = g_strdup(buf);
     } else {
         statbar_botstr_new = g_strdup(GTA_WEBSITE);
@@ -158,10 +158,10 @@ statusbar_msgid_t statusbar_gui_push
     if (format != NULL) {
         switch (type) {
         case SB_MESSAGE:
-            g_vsnprintf(buf, sizeof(buf), format, args);
+            gm_vsnprintf(buf, sizeof(buf), format, args);
             break;
         case SB_WARNING:
-            g_vsnprintf(buf, sizeof(buf), format, args);
+            gm_vsnprintf(buf, sizeof(buf), format, args);
             gdk_beep();
             break;
         }

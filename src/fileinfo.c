@@ -425,7 +425,7 @@ void file_info_store_binary(struct dl_file_info *fi)
 {
 	int fd;
 
-	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
+	gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
 
 	/*
 	 * We don't create the file if it does not already exist.  That way,
@@ -455,7 +455,7 @@ void file_info_store_binary(struct dl_file_info *fi)
  */
 void file_info_strip_binary(struct dl_file_info *fi)
 {
-	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
+	gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
 
 	if (-1 == truncate(fi_tmp, fi->size))
 		g_warning("could not chop fileinfo trailer off \"%s\": %s",
@@ -882,7 +882,7 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 	guint32 version;
 	struct trailer trailer;
 
-	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", path, file);
+	gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", path, file);
 	
 	fd = open(fi_tmp, O_RDONLY);
 	if (fd < 0) {
@@ -941,13 +941,13 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 		READ_INT32(&tmpguint);				/* Read field data length */
 
 		if (tmpguint == 0) {
-			g_snprintf(tmp, sizeof(tmp), "field #%d has zero size", field);
+			gm_snprintf(tmp, sizeof(tmp), "field #%d has zero size", field);
 			reason = tmp;
 			goto bailout;
 		}
 		
 		if (tmpguint > FI_MAX_FIELD_LEN) {
-			g_snprintf(tmp, sizeof(tmp),
+			gm_snprintf(tmp, sizeof(tmp),
 				"field #%d is too large (%u bytes) ", field, tmpguint);
 			reason = tmp;
 			goto bailout;
@@ -1067,7 +1067,7 @@ static void file_info_store_one(FILE *f, struct dl_file_info *fi)
 	if (fi->refcount == 0) {
 		struct stat st;
 
-		g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
+		gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
 		if (-1 == stat(fi_tmp, &st))
 			return; 	/* Skip: not referenced, and file no longer exists */
 	}
@@ -1457,7 +1457,7 @@ static void file_info_reparent_all(
 	g_assert(from->done == 0);
 	g_assert(0 != strcmp(from->file_name, to->file_name));
 
-	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", from->path, from->file_name);
+	gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", from->path, from->file_name);
 
 	if (-1 == unlink(fi_tmp)) {
 		/*
@@ -1608,11 +1608,11 @@ void file_info_retrieve(void)
 
 	can_swarm = TRUE;			/* Allows file_info_try_to_swarm_with() */
 
-	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", config_dir, file_info_file);
+	gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", config_dir, file_info_file);
 
 	f = fopen(fi_tmp, "r");
 
-	g_snprintf(filename, sizeof(filename), "%s/%s.orig",
+	gm_snprintf(filename, sizeof(filename), "%s/%s.orig",
 		config_dir, file_info_file);
 
 	if (f) {
@@ -1705,7 +1705,7 @@ void file_info_retrieve(void)
 			dfi = file_info_retrieve_binary(fi->file_name, fi->path);
 
 			if (dfi == NULL) {
-				g_snprintf(fi_tmp, sizeof(fi_tmp),
+				gm_snprintf(fi_tmp, sizeof(fi_tmp),
 					"%s/%s", fi->path, fi->file_name);
 				if (-1 != stat(fi_tmp, &buf)) {
 					g_warning("got metainfo in fileinfo cache, "
@@ -1890,10 +1890,10 @@ static guchar *file_info_new_outname(guchar *name)
 	 * OK, try with .01 extension, then .02, etc...
 	 */
 
-	flen = g_snprintf(fi_tmp, sizeof(fi_tmp), "%s", escaped);
+	flen = gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s", escaped);
 
 	for (i = 1; i < 100; i++) {
-		g_snprintf(&fi_tmp[flen], sizeof(fi_tmp)-flen, ".%02d", i);
+		gm_snprintf(&fi_tmp[flen], sizeof(fi_tmp)-flen, ".%02d", i);
 		if (NULL == g_hash_table_lookup(fi_by_outname, fi_tmp)) {
 			result = atom_str_get(fi_tmp);
 			goto ok;
@@ -1906,7 +1906,7 @@ static guchar *file_info_new_outname(guchar *name)
 
 	guid_random_fill(xuid);
 
-	g_snprintf(&fi_tmp[flen], sizeof(fi_tmp)-flen, "-%s", guid_hex_str(xuid));
+	gm_snprintf(&fi_tmp[flen], sizeof(fi_tmp)-flen, "-%s", guid_hex_str(xuid));
 	if (NULL == g_hash_table_lookup(fi_by_outname, fi_tmp)) {
 		result = atom_str_get(fi_tmp);
 		goto ok;
@@ -1945,7 +1945,7 @@ static struct dl_file_info *file_info_create(
 	fi->done = 0;
 	fi->use_swarming = use_swarming;
 
-	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
+	gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
 
 	if (stat(fi_tmp, &st) != -1) {
 		g_warning("file_info_create(): "
@@ -2104,8 +2104,8 @@ struct dl_file_info *file_info_get(
 			g_warning("found DEAD file \"%s\" bearing SHA1 %s",
 				outname, sha1_base32(fi->sha1));
 
-			g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", path, outname);
-			g_snprintf(dead, sizeof(dead), "%s/%s.DEAD", path, outname);
+			gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", path, outname);
+			gm_snprintf(dead, sizeof(dead), "%s/%s.DEAD", path, outname);
 
 			if (-1 == rename(fi_tmp, dead))
 				g_warning("cannot rename \"%s\" as \"%s\": %s",
@@ -2625,7 +2625,7 @@ static void fi_check_file(struct dl_file_info *fi)
 	 * File should exist since fi->done > 0, and it was not completed.
 	 */
 
-	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
+	gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
 
 	if (-1 == stat(fi_tmp, &buf)) {
 		g_warning("file %s removed, resetting swarming", fi_tmp);
@@ -2937,7 +2937,7 @@ void file_info_scandir(gchar *dir)
 				continue;					/* Skip "." and ".." */
 		}
 
-		g_snprintf(filename, sizeof(filename),
+		gm_snprintf(filename, sizeof(filename),
 			"%s%s%s", dir, slash, dentry->d_name);
 
 		if (-1 == stat(filename, &buf)) {
