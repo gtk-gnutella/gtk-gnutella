@@ -1,5 +1,11 @@
 # since last version
 
+- (2002.12.18 - cbiere)
+ * Fixed race condition in shell_dump_cookie(); moved g_string_printf
+   compatibility quirk to misc.h (shell.c)
+ * Added #define for g_string_printf (misc.h)
+ * Fixed non-local #include (shell.h, gnet_stats_gui2.c)
+
 - (2002.12.17 - RAM)
  * Had to regenerate configure et al. because it complained it could not
    find automake-1.4 on my system with --enable-maintainer-mode.
