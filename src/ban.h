@@ -50,6 +50,7 @@ void ban_record(guint32 ip, const gchar *msg);
 void ban_force(struct gnutella_socket *s);
 gint ban_delay(guint32 ip);
 gchar *ban_message(guint32 ip);
+gboolean ban_is_banned(guint32 ip);
 void ban_max_recompute(void);
 
 const gchar *ban_vendor(const gchar *vendor);

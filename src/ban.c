@@ -329,7 +329,14 @@ void ban_record(guint32 ip, const gchar *msg)
 	ipf->ban_msg = atom_str_get(msg);
 	ipf->ban_delay = MAX_BAN;
 
-	cq_resched(callout_queue, ipf->cq_ev, MAX_BAN * 1000);
+	if (ipf->banned)
+		cq_resched(callout_queue, ipf->cq_ev, MAX_BAN * 1000);
+	else {
+		cq_cancel(callout_queue, ipf->cq_ev);	/* Cancel ipf_destroy */
+		ipf->banned = TRUE;
+		ipf->cq_ev =
+			cq_insert(callout_queue, MAX_BAN * 1000, ipf_unban, ipf);
+	}
 }
 
 /*
@@ -389,6 +396,20 @@ void ban_force(struct gnutella_socket *s)
 	banned_head = g_list_prepend(banned_head, GINT_TO_POINTER(fd));
 	if (banned_tail == NULL)
 		banned_tail = banned_head;
+}
+
+/*
+ * ban_is_banned
+ *
+ * Check whether IP is already recorded as being banned.
+ */
+gboolean ban_is_banned(guint32 ip)
+{
+	struct ip_info *ipf;
+
+	ipf = (struct ip_info *) g_hash_table_lookup(info, GUINT_TO_POINTER(ip));
+
+	return ipf != NULL && ipf->banned;
 }
 
 /*
