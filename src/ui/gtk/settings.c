@@ -2682,7 +2682,6 @@ static prop_map_t property_map[] = {
         "hpaned_filter_main",
         FREQ_UPDATES, 0
     ),
-#ifdef USE_GTK2
     PROP_ENTRY(
         get_main_window,
         PROP_RESULTS_DIVIDER_POS,
@@ -2691,7 +2690,6 @@ static prop_map_t property_map[] = {
         "vpaned_results",
         FREQ_UPDATES, 0
     ),
-#endif
     PROP_ENTRY(
         get_main_window,
         PROP_STATUSBAR_VISIBLE,
