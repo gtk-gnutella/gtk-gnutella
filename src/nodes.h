@@ -171,6 +171,7 @@ void node_read(gpointer, gint, GdkInputCondition);
 void node_write(gpointer, gint, GdkInputCondition);
 gboolean node_enqueue(struct gnutella_node *, gchar *, guint32);
 void node_enqueue_end_of_packet(struct gnutella_node *);
+gboolean node_sent_ttl0(struct gnutella_node *n);
 void node_close(void);
 
 #endif /* __nodes_h__ */

@@ -176,7 +176,8 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 		return;
 
 	if (n->status == GTA_NODE_CONNECTED) {
-		routing_node_remove(n);
+		if (n->routing_data)
+			routing_node_remove(n);
 		connected_node_cnt--;
 		g_assert(connected_node_cnt >= 0);
 	}
@@ -1650,10 +1651,19 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 		return;					/* We haven't read enough bytes yet */
 
 	if (strcmp(s->buffer, gnutella_welcome)) {
-		/* The node does not seem to be a valid gnutella server !? */
+		/*
+		 * The node does not seem to be a valid gnutella server !?
+		 *
+		 * Try to read a little more data, so that we log more than just
+		 * the length of the expected welcome.
+		 */
+
+		r = read(s->file_desc, s->buffer + s->pos, sizeof(s->buffer) - s->pos);
+		if (r > 0)
+			s->pos += r;
 
 		g_warning("node %s replied to our HELLO strangely", node_ip(n));
-		dump_hex(stderr, "HELLO Reply", s->buffer, MIN(s->pos, 80));
+		dump_hex(stderr, "HELLO Reply", s->buffer, MIN(s->pos, 256));
 		node_remove(n, "Failed (Not a Gnutella server?)");
 		return;
 	}
@@ -1669,6 +1679,31 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 
 	node_is_now_connected(n);
 	pcache_outgoing_connection(n);	/* Will send proper handshaking ping */
+}
+
+/*
+ * node_sent_ttl0
+ *
+ * Called when a node sends a message with TTL=0
+ * Returns true if node was kicked.
+ */
+gboolean node_sent_ttl0(struct gnutella_node *n)
+{
+	g_assert(n->header.ttl == 0);
+
+	dropped_messages++;
+
+	if (connected_nodes() > MAX(2, up_connections)) {
+		node_remove(n, "Kicked: %s %s message with TTL=0",
+			n->header.hops ? "relayed" : "sent",
+			msg_name[n->header.function]);
+		return TRUE;
+	}
+
+	n->dropped++;
+	n->n_bad++;
+
+	return FALSE;
 }
 
 void node_close(void)
