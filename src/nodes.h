@@ -209,6 +209,7 @@ typedef struct gnutella_node {
 	 */
 
         hsep_triple hsep_table[HSEP_N_MAX+1];
+        hsep_triple hsep_previous_table[HSEP_N_MAX+1];
         time_t hsep_last_received;
         time_t hsep_last_sent;
 } gnutella_node_t;

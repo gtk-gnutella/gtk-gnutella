@@ -3727,17 +3727,17 @@ static void node_process_handshake_header(
 
 	
 	/* 
-	 * Test for HSEP X-Features header version. According to the specs
-	 * an HSEP featured client should always be able to talk to lower
-	 * versions HSEP clients. So we only need to check wether HSEP is
-	 * supported yes or no.
+	 * Test for HSEP X-Features header version. According to the specs,
+	 * different version of HSEP are not necessarily compatible to each
+	 * other. Therefore, we test for exactly the HSEP version we support
+	 * here.
 	 */
 	{
 		int major, minor;
 		
  		header_get_feature("hsep", head, &major, &minor);
  
- 		if (major > 0 || minor > 0)
+ 		if (major == HSEP_VERSION_MAJOR && minor == HSEP_VERSION_MINOR)
 			n->attrs |= NODE_A_CAN_HSEP;
 	}
 	
