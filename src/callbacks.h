@@ -28,6 +28,17 @@
 
 #include "gui.h"
 
+#ifdef USE_GTK2
+#include "filter_cb.h"
+#include "nodes_cb2.h"
+#include "settings_cb.h"
+#include "search_cb.h"
+#include "main_cb.h"
+#include "monitor_cb.h"
+#include "uploads_cb.h"
+#include "downloads_cb.h"
+#include "gnet_stats_gui.h"
+#else
 #include "filter_cb.h"
 #include "nodes_cb.h"
 #include "settings_cb.h"
@@ -37,6 +48,7 @@
 #include "uploads_cb.h"
 #include "downloads_cb.h"
 #include "gnet_stats_gui.h"
+#endif
 
 gboolean on_entry_search_reissue_timeout_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 void on_button_extra_config_clicked (GtkButton *button, gpointer user_data); 
@@ -106,3 +118,4 @@ gint compare_ul_norm(GtkCList *clist, gconstpointer ptr1, gconstpointer ptr2);
 
 
 #endif	/* __callbacks_h__ */
+ 

@@ -41,7 +41,7 @@ ADDITIONAL_DROPIN = \
 	gui.c gui.h \
 	callbacks.c callbacks.h \
 	monitor_gui2.c monitor_gui.h monitor_cb2.c monitor_cb.h \
-	nodes_gui.c nodes_gui.h nodes_cb.c nodes_cb.h \
+	nodes_gui2.c nodes_gui.h nodes_cb2.c nodes_cb2.h\
 	gui_property.c gui_property.h gui_property_priv.h \
 	settings_gui.c settings_gui.h settings_cb.c settings_cb.h \
 	statusbar_gui.c statusbar_gui.h \
