@@ -1219,7 +1219,7 @@ prop = {
 		  "gif;gz;"
 		  "ifo;iso;it;"
 		  "jpeg;jpg;"
-		  "mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;"
+		  "m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;"
           "nes;"
 		  "ogg;ogm;"
 		  "qt;"
