@@ -26,6 +26,21 @@
 #ifndef __search_gui_h__
 #define __search_gui_h__
 
+#include <gtk/gtk.h>
+
 #include "gui.h"
+#include "gnet.h"
+
+extern GtkWidget *default_search_clist;
+
+void search_gui_init(void);
+void search_gui_remove_search(search_t * sch);
+void search_gui_view_search(search_t *sch);
+
+/*
+ * Callbacks
+ */
+gboolean search_gui_search_results_col_widths_changed(property_t prop);
+gboolean search_gui_search_results_col_visible_changed(property_t prop);
 
 #endif /* __search_gui_h__ */
