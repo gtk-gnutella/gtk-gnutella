@@ -2474,7 +2474,7 @@ again:
 
 	if (status == DL_CHUNK_DONE)
 		file_info_fd_store_binary(d->file_info, d->file_desc, FALSE);
-	else
+	else if (fi->dirty)
 		file_info_store_binary(d->file_info);
 }
 
