@@ -121,15 +121,16 @@ static gint encode_pad_length(gint len, gint *pad)
 }
 
 /*
- * base32_encode_into
+ * base32_encode_exactly
  *
  * Encode `len' bytes from `buf' into `enclen' bytes starting from `encbuf'.
- * Caller must have ensured that there was sufficient room in encbuf.
+ * Caller must have ensured that there was EXACTLY the needed room in encbuf.
  */
-void base32_encode_into(guchar *buf, gint len, guchar *encbuf, gint enclen)
+static void base32_encode_exactly(const guchar *buf, gint len,
+	guchar *encbuf, gint enclen)
 {
 	guint32 i = 0;					/* Input accumulator, 0 for trailing pad */
-	guchar *ip = buf + len;			/* Input pointer, one byte off end */
+	guchar const *ip = buf + len;	/* Input pointer, one byte off end */
 	guchar *op = encbuf + enclen;	/* Output pointer, one byte off end */
 
 	g_assert(buf);
@@ -197,21 +198,46 @@ void base32_encode_into(guchar *buf, gint len, guchar *encbuf, gint enclen)
 }
 
 /*
+ * base32_encode_into
+ *
+ * Encode `len' bytes from `buf' into `enclen' bytes starting from `encbuf'.
+ * Caller must have ensured that there was enough room in encbuf.
+ */
+void base32_encode_into(const guchar *buf, gint len,
+	guchar *encbuf, gint enclen)
+{
+	gint pad;
+	gint exactlen = encode_pad_length(len, &pad);
+
+	g_assert(enclen >= (exactlen + pad));
+
+	base32_encode_exactly(buf, len, encbuf, exactlen);
+	if (pad)
+		memset(encbuf + exactlen, '=', pad);
+}
+
+/*
  * base32_encode
  *
  * Encode `len' bytes starting at `buf' into new allocated buffer.
  * No trailing padding chars are emitted.
  *
- * Returns the new encoded buffer, NUL-terminated, and the required amount
- * of padding chars in `pad' if it is a non-NULL pointer.
+ * Returns the new encoded buffer, NUL-terminated, and the added amount
+ * of padding chars in `retpad' if it is a non-NULL pointer.
  */
-guchar *base32_encode(guchar *buf, gint len, gint *pad)
+guchar *base32_encode(const guchar *buf, gint len, gint *retpad)
 {
-	gint enclen = encode_pad_length(len, pad);
-	gchar *encbuf = g_malloc(enclen + 1);		/* Allow for trailing NUL */
+	gint pad;
+	gint enclen = encode_pad_length(len, &pad);
+	gchar *encbuf = g_malloc(enclen + pad + 1);	/* Allow for trailing NUL */
 
-	base32_encode_into(buf, len, encbuf, enclen);
-	encbuf[enclen] = '\0';
+	base32_encode_exactly(buf, len, encbuf, enclen);
+	if (pad)
+		memset(encbuf + enclen, '=', pad);
+	encbuf[enclen + pad] = '\0';
+
+	if (retpad)
+		*retpad = pad;
 
 	return encbuf;
 }
@@ -224,10 +250,11 @@ guchar *base32_encode(guchar *buf, gint len, gint *pad)
  *
  * Return TRUE if successful, FALSE if the input was not valid base32.
  */
-gboolean base32_decode_into(guchar *buf, gint len, guchar *decbuf, gint declen)
+gboolean base32_decode_into(const guchar *buf, gint len,
+	guchar *decbuf, gint declen)
 {
 	guint32 i = 0;					/* Input accumulator, 0 for trailing pad */
-	guchar *ip = buf + len;			/* Input pointer, one byte off end */
+	guchar const *ip = buf + len;	/* Input pointer, one byte off end */
 	gint dlen = (len >> 3) * 5;		/* Exact decoded lenth */
 	guchar *op;						/* Output pointer, one byte off end */
 	gchar v;
@@ -357,7 +384,7 @@ gboolean base32_decode_into(guchar *buf, gint len, guchar *decbuf, gint declen)
  * encoding.  The caller knows the length of the returned buffer: it's the
  * size of the input divided by 8 and multiplied by 5.
  */
-guchar *base32_decode(guchar *buf, gint len)
+guchar *base32_decode(const guchar *buf, gint len)
 {
 	gint declen;
 	gchar *decbuf;
