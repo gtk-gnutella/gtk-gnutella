@@ -1,5 +1,23 @@
 # since last version
 
+- (2003.07.06 - RAM)
+ * Broadcast Push messages to all known routes to increase reception likelihood.
+ * Double grace period when running in ultra mode: more connections to flush.
+ * Added -mieee to the compile flags when building for Debian on Alpha
+   [Patch from Christoph Reichenbach on Debian].
+ * Raised default gnet connection timeout to 10 seconds.
+ * Now fully supports special "min speed" field in queries.  The GUI min speed
+   value as well as the default min speed are now ignored and should be removed.
+ * We now have the IP address in version checks: log it when bad token is seen.
+ * Added string evaluation code, that can evaluate ~/foo and $HOME or ${HOME}.
+ * Added new generic prop_name() to convert a property into its name.
+ * Property initialization strings are now run through eval_subst() to allow
+   environment variables and ~ in their value.
+ * Factorized setting callback for file path into one file_path_changed(),
+   and added a verification callback for PROP_BAD_FILE_PATH.
+ * Simplified debugging code to use new xxx_prop_name() calls.
+ * File path properties have their default set to "~" instead of "/tmp".
+
 - (2003.07.05 - RAM)
  * Parse all query hits for inclusion into the download mesh.
  * Don't activate the "no keepalive" flag on downloads if we detect that
