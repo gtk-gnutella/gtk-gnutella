@@ -13217,7 +13217,7 @@ Grace time remaining:</label>
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label267</name>
-	  <label>Raphaël Manfredi</label>
+	  <label>Rapha\353l Manfredi</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0</xalign>
@@ -13321,7 +13321,7 @@ Grace time remaining:</label>
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label273</name>
-	  <label>Raphaël Manfredi</label>
+	  <label>Rapha\353l Manfredi</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0</xalign>
@@ -14710,7 +14710,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label442</name>
-		  <label>Max % of file descriptors used</label>
+		  <label>Max. percentage  of file descriptors used</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
@@ -19392,7 +19392,7 @@ allowed</label>
 		<widget>
 		  <class>GtkSpinButton</class>
 		  <name>spinbutton_config_ul_usage_min_percentage</name>
-		  <tooltip>Until xx% of outgoing HTTP bandwidth is in use, open additional upload slots on request.</tooltip>
+		  <tooltip>Until the configured percentage of outgoing HTTP bandwidth is in use, open additional upload slots on request.</tooltip>
 		  <can_focus>True</can_focus>
 		  <climb_rate>1</climb_rate>
 		  <digits>0</digits>

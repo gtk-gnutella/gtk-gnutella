@@ -10499,7 +10499,7 @@ create_dlg_prefs_net_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label515), 0, 0.5);
 
-  label516 = gtk_label_new_with_mnemonic (_("_Max. % of file descriptors used for banning"));
+  label516 = gtk_label_new_with_mnemonic (_("_Max. percentage of file descriptors used for banning"));
   gtk_widget_set_name (label516, "label516");
   gtk_widget_show (label516);
   gtk_table_attach (GTK_TABLE (table43), label516, 0, 1, 1, 2,
@@ -12874,7 +12874,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_table_attach (GTK_TABLE (table4), spinbutton_config_ul_usage_min_percentage, 1, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, spinbutton_config_ul_usage_min_percentage, _("Until xx% of outgoing HTTP bandwidth is in use, open additional upload slots on request."), NULL);
+  gtk_tooltips_set_tip (tooltips, spinbutton_config_ul_usage_min_percentage, _("Until the configured percentage of outgoing HTTP bandwidth is in use, open additional upload slots on request."), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_ul_usage_min_percentage), TRUE);
 
   spinbutton_config_speed_adj = gtk_adjustment_new (64, 0, 2000, 1, 16, 16);

@@ -18160,7 +18160,7 @@ http://maxmind.com/</property>
 		      <child>
 			<widget class="GtkLabel" id="label516">
 			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">_Max. % of file descriptors used for banning</property>
+			  <property name="label" translatable="yes">_Max. percentage of file descriptors used for banning</property>
 			  <property name="use_underline">True</property>
 			  <property name="use_markup">False</property>
 			  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -22810,7 +22810,7 @@ before kicking</property>
 			  <child>
 			    <widget class="GtkSpinButton" id="spinbutton_config_ul_usage_min_percentage">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Until xx% of outgoing HTTP bandwidth is in use, open additional upload slots on request.</property>
+			      <property name="tooltip" translatable="yes">Until the configured percentage of outgoing HTTP bandwidth is in use, open additional upload slots on request.</property>
 			      <property name="can_focus">True</property>
 			      <property name="climb_rate">1</property>
 			      <property name="digits">0</property>
