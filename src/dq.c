@@ -703,8 +703,9 @@ dq_results_expired(cqueue_t *cq, gpointer obj)
 {
 	dquery_t *dq = (dquery_t *) obj;
 
-	dq->results_ev = NULL;	/* Indicates callback fired */
+	g_assert(!(dq->flags & DQ_F_LINGER));
 
+	dq->results_ev = NULL;	/* Indicates callback fired */
 	dq_send_next(dq);
 }
 
@@ -950,6 +951,7 @@ dq_send_next(dquery_t *dq)
 
 		dq_send_query(dq, node, ttl);
 		sent = TRUE;
+		break;
 	}
 
 	if (!sent)
@@ -1211,10 +1213,7 @@ dq_got_results(gchar *muid, gint count)
 {
 	dquery_t *dq;
 
-	g_assert(count >= 0);
-
-	if (count == 0)
-		return;
+	g_assert(count > 0);		/* Query hits with no result are bad! */
 
 	dq = g_hash_table_lookup(by_muid, muid);
 
