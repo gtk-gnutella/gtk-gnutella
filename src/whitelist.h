@@ -43,7 +43,7 @@ struct whitelist {
 gboolean whitelist_check(guint32 ip);
 void whitelist_init(void);
 void whitelist_close(void);
-int whitelist_connect(void);
+guint whitelist_connect(void);
 void whitelist_reload(void);
 
 #endif /* _whitelist_h_ */

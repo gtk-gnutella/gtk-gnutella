@@ -152,12 +152,12 @@ static void whitelist_retrieve(void)
  * Only entries with a specified port will be tried.
  * Returns the number of new nodes that are connected to.
  */
-int whitelist_connect(void)
+guint whitelist_connect(void)
 {
     GSList *sl;
     struct whitelist *n;
     time_t now = time(NULL);
-    int num = 0;
+    guint num = 0;
 
     for (sl = sl_whitelist; sl; sl = g_slist_next(sl)) {
         n = sl->data;
