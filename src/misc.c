@@ -694,7 +694,7 @@ static const gchar months[12][4] = {
 };
 
 /*
- * date_to_rfc822_gchar
+ * date_to_rfc822
  *
  * Convert time to RFC-822 style date, into supplied string buffer.
  */
@@ -705,6 +705,7 @@ static void date_to_rfc822(time_t date, gchar *buf, gint len)
 	gint gmt_off;
 	gchar sign;
 
+	g_assert(len > 0);
 	tm = gmtime(&date);
 	gmt_tm = *tm;					/* struct copy */
 	tm = localtime(&date);
@@ -769,6 +770,37 @@ gchar *date_to_rfc822_gchar2(time_t date)
 	date_to_rfc822(date, buf, sizeof(buf));
 	return buf;
 }
+
+/*
+ * date_to_rfc1123
+ *
+ * Convert time to RFC-1123 style date, into supplied string buffer.
+ */
+static void date_to_rfc1123(time_t date, gchar *buf, gint len)
+{
+	const struct tm *tm;
+
+	g_assert(len > 0);
+	tm = gmtime(&date);
+	gm_snprintf(buf, len, "%s, %02d %s %04d %02d:%02d:%02d GMT",
+		days[tm->tm_wday], tm->tm_mday, months[tm->tm_mon], tm->tm_year + 1900,
+		tm->tm_hour, tm->tm_min, tm->tm_sec);
+}
+
+/*
+ * date_to_rfc1123_gchar
+ *
+ * Convert time to RFC-1123 style date.
+ * Returns pointer to static data.
+ */
+gchar *date_to_rfc1123_gchar(time_t date)
+{
+	static gchar buf[80];
+
+	date_to_rfc1123(date, buf, sizeof(buf));
+	return buf;
+}
+
 
 /*
  * is_pow2
@@ -1368,3 +1400,5 @@ gint do_stat(const gchar *path, struct stat *buf)
 
 	return ret;
 }
+
+/* vi: set ts=4: */
