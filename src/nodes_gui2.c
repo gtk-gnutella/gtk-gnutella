@@ -273,7 +273,7 @@ void nodes_gui_shutdown(void)
  *
  * Removes all references to the given node handle in the gui.
  */
-void inline nodes_gui_remove_node(gnet_node_t n)
+void nodes_gui_remove_node(gnet_node_t n)
 {
     GtkTreeIter *iter;
 
@@ -289,7 +289,7 @@ void inline nodes_gui_remove_node(gnet_node_t n)
  *
  * Adds the given node to the gui.
  */
-void inline nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
+void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 {
     GtkTreeIter *iter = w_tree_iter_new();
 	static gchar proto_tmp[32];

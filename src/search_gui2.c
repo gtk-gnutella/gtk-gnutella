@@ -912,7 +912,9 @@ static void search_gui_menu_select(gint page)
 	GtkTreeView *treeview;
 	GtkTreeModel *model;
 	GtkTreeSelection *selection;
-	struct menu_helper mh = {.page = page};
+	struct menu_helper mh;
+	
+	mh.page = page;
 
 	treeview = GTK_TREE_VIEW(
 		lookup_widget(main_window, "treeview_menu"));

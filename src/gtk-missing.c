@@ -346,7 +346,7 @@ GtkTreeIter *w_tree_iter_copy(GtkTreeIter *iter)
  */
 void w_tree_iter_free(GtkTreeIter *iter)
 {
-	return wfree(iter, sizeof(*iter));
+	wfree(iter, sizeof(*iter));
 }
 
 typedef struct collect_data_struct {
