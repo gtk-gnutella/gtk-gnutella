@@ -99,28 +99,30 @@ Although "Configure" is intended to be run interactively, it can be run
 non-interactively by using the "-d" commandline option, which will configure 
 gtk-gnutella using default values for all symbols.  Defaults can be changed 
 using the "-D" and "-U" options, whether in interactive or noninteractive 
-mode.  The following is a list of commonly used options with the defaults. 
+mode.  The "-O" option will allow "-D" and "-U" options to override values 
+which have been written to config.sh from a previous Configure.  The 
+following is a list of commonly used options with the defaults. 
 
--Dprefix=/usr/local
--Dbindir=/usr/local/bin
--Dsysman=/usr/local/man/man1
--Dprivlib=/usr/local/lib/gtk-gnutella
--Dlocale=/usr/local/share/locale
--Dcc=cc
--Dccflags=''
--Doptimize='-O'
--Dyacc='yacc'
--Dgtkversion=1
--Dofficial='false'
--Dremotectrl='true'
+-D prefix=/usr/local
+-D bindir=/usr/local/bin
+-D sysman=/usr/local/man/man1
+-D privlib=/usr/local/lib/gtk-gnutella
+-D locale=/usr/local/share/locale
+-D cc=cc
+-D ccflags=''
+-D optimize='-O'
+-D yacc='yacc'
+-D gtkversion=1
+-D official='false'
+-D remotectrl='true'
 
 To disable nls:
--Ud_enablenls
+-U d_enablenls
 
 For example, a fairly typical configuration for linux x86, gtk2 gui:
 
-    ./Configure -Dprefix=/usr -Dprivlib=/usr/share/gtk-gnutella -Dcc=gcc \
-	 -Dccflags='-Wall' -Doptimize='-O2' -Dgtkversion=2 -d -e -r -s
+    ./Configure -D prefix=/usr -D privlib=/usr/share/gtk-gnutella -D cc=gcc \
+	 -D ccflags='-Wall' -D optimize='-O2' -D gtkversion=2 -d -e -r -s
 
 Packagers who need to install gtk-gnutella to a special base directory can 
 do so with:
