@@ -3023,17 +3023,6 @@ utf32_to_utf8(const guint32 *in, gchar *out, size_t size)
 }
 
 /**
- * This function is used by bsearch(3) from utf32_nfd_lookup().
- */
-static int
-nfd_bsearch_cmp(const void *key, const void *member)
-{
-	guint32 a = *(const guint32 *) key, b = *(const guint32 *) member;
-
-	return a == b ? 0 : (a < b ? -1 : 1);
-}
-
-/**
  * Looks up the decomposed string for a UTF-32 character.
  *
  * @param uc the unicode character to look up.
@@ -3043,15 +3032,27 @@ nfd_bsearch_cmp(const void *key, const void *member)
  *			string of maximum UTF32_NFD_REPLACE_MAXLEN characters. The result
  *			is constant.
  */
-static const guint32 *
+static inline const guint32 *
 utf32_nfd_lookup(guint32 uc)
 {
-	guint32 *p;
-	
-	p = bsearch(&uc, &utf32_nfd_lut,
-			G_N_ELEMENTS(utf32_nfd_lut), sizeof utf32_nfd_lut[0],
-			nfd_bsearch_cmp);
-	return p ? &p[1] : NULL;
+	size_t i, j = 0, k = G_N_ELEMENTS(utf32_nfd_lut);
+	guint32 ch;
+
+	/* Perform a binary search to find ``uc'' */
+	do {
+		i = j + (k >> 1);
+		ch = utf32_nfd_lut[i][0];
+		if (ch == uc)
+			return &utf32_nfd_lut[i][1];
+
+		if (ch < uc) {
+			j = i + 1;
+			k--;
+		}
+		k >>= 1;
+	} while (k != 0);
+
+	return NULL;
 }
 
 /**
