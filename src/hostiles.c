@@ -61,6 +61,7 @@ void hostiles_retrieve(void)
 	struct hostile *n;
 	FILE *f;
 	int linenum = 0;
+	gint count = 0;
 	file_path_t fp[] = {
 		{ settings_config_dir(), hostiles_file },
 		{ PACKAGE_DATA_DIR, hostiles_file },
@@ -141,7 +142,11 @@ void hostiles_retrieve(void)
 		n->netmask = netmask;
 
 		sl_hostiles = g_slist_append(sl_hostiles, n);
+		count++;
 	}
+
+	if (dbg)
+		printf("Loaded %d hostile IP addresses/netmasks\n", count);
 }
 
 /*

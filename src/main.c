@@ -58,6 +58,7 @@
 #include "adns.h"
 #include "crc.h"
 #include "icon.h"
+#include "hostiles.h"
 
 #ifdef USE_REMOTE_SHELL
 #include "shell.h"
