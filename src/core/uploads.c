@@ -618,6 +618,7 @@ static gnutella_upload_t *upload_clone(gnutella_upload_t *u)
 	u->socket = NULL;
 	u->buffer = NULL;
 	u->user_agent = NULL;
+	u->country = NULL;
 	u->sha1 = NULL;
 	
 	/*
