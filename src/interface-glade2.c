@@ -761,6 +761,7 @@ GtkWidget*
 create_dlg_filters (void)
 {
   GtkWidget *dlg_filters;
+  GdkPixbuf *dlg_filters_icon_pixbuf;
   GtkWidget *vbox_filter_main;
   GtkWidget *hpaned_filter_main;
   GtkWidget *vbox59;
@@ -813,6 +814,12 @@ create_dlg_filters (void)
   gtk_window_set_title (GTK_WINDOW (dlg_filters), _("Ruleset editor"));
   gtk_window_set_position (GTK_WINDOW (dlg_filters), GTK_WIN_POS_MOUSE);
   gtk_window_set_default_size (GTK_WINDOW (dlg_filters), 450, 300);
+  dlg_filters_icon_pixbuf = create_pixbuf ("icon.xpm");
+  if (dlg_filters_icon_pixbuf)
+    {
+      gtk_window_set_icon (GTK_WINDOW (dlg_filters), dlg_filters_icon_pixbuf);
+      gdk_pixbuf_unref (dlg_filters_icon_pixbuf);
+    }
 
   vbox_filter_main = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox_filter_main, "vbox_filter_main");
@@ -1174,6 +1181,7 @@ GtkWidget*
 create_shutdown_window (void)
 {
   GtkWidget *shutdown_window;
+  GdkPixbuf *shutdown_window_icon_pixbuf;
   GtkWidget *frame30;
   GtkWidget *vbox44;
   GtkWidget *label184;
@@ -1183,6 +1191,12 @@ create_shutdown_window (void)
   gtk_widget_set_name (shutdown_window, "shutdown_window");
   gtk_window_set_title (GTK_WINDOW (shutdown_window), _("gtk-gnutella shutdown"));
   gtk_window_set_position (GTK_WINDOW (shutdown_window), GTK_WIN_POS_MOUSE);
+  shutdown_window_icon_pixbuf = create_pixbuf ("icon.xpm");
+  if (shutdown_window_icon_pixbuf)
+    {
+      gtk_window_set_icon (GTK_WINDOW (shutdown_window), shutdown_window_icon_pixbuf);
+      gdk_pixbuf_unref (shutdown_window_icon_pixbuf);
+    }
 
   frame30 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame30, "frame30");
@@ -1273,6 +1287,7 @@ GtkWidget*
 create_dlg_about (void)
 {
   GtkWidget *dlg_about;
+  GdkPixbuf *dlg_about_icon_pixbuf;
   GtkWidget *vbox67;
   GtkWidget *frame44;
   GtkWidget *hbox231;
@@ -1310,6 +1325,12 @@ create_dlg_about (void)
   gtk_widget_set_name (dlg_about, "dlg_about");
   gtk_window_set_title (GTK_WINDOW (dlg_about), _("About gtk-gnutella"));
   gtk_window_set_position (GTK_WINDOW (dlg_about), GTK_WIN_POS_MOUSE);
+  dlg_about_icon_pixbuf = create_pixbuf ("icon.xpm");
+  if (dlg_about_icon_pixbuf)
+    {
+      gtk_window_set_icon (GTK_WINDOW (dlg_about), dlg_about_icon_pixbuf);
+      gdk_pixbuf_unref (dlg_about_icon_pixbuf);
+    }
 
   vbox67 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox67, "vbox67");
@@ -1412,7 +1433,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new (_("Rapha\303«l Manfredi"));
+  label493 = gtk_label_new (_("Rapha\303\253l Manfredi"));
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
@@ -1420,7 +1441,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new (_("Rapha\303«l Manfredi"));
+  label494 = gtk_label_new (_("Rapha\303\253l Manfredi"));
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -1581,6 +1602,7 @@ GtkWidget*
 create_main_window (void)
 {
   GtkWidget *main_window;
+  GdkPixbuf *main_window_icon_pixbuf;
   GtkWidget *vbox12;
   GtkWidget *handlebox1;
   GtkWidget *table70;
@@ -1711,6 +1733,12 @@ create_main_window (void)
   gtk_widget_set_name (main_window, "main_window");
   gtk_window_set_title (GTK_WINDOW (main_window), _("gtk-gnutella"));
   gtk_window_set_position (GTK_WINDOW (main_window), GTK_WIN_POS_MOUSE);
+  main_window_icon_pixbuf = create_pixbuf ("icon.xpm");
+  if (main_window_icon_pixbuf)
+    {
+      gtk_window_set_icon (GTK_WINDOW (main_window), main_window_icon_pixbuf);
+      gdk_pixbuf_unref (main_window_icon_pixbuf);
+    }
 
   vbox12 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox12, "vbox12");
@@ -2608,6 +2636,7 @@ GtkWidget*
 create_dlg_quit (void)
 {
   GtkWidget *dlg_quit;
+  GdkPixbuf *dlg_quit_icon_pixbuf;
   GtkWidget *dialog_vbox1;
   GtkWidget *frame59;
   GtkWidget *label405;
@@ -2621,6 +2650,12 @@ create_dlg_quit (void)
   gtk_window_set_title (GTK_WINDOW (dlg_quit), _("gtk-gnutella: Quit?"));
   gtk_window_set_position (GTK_WINDOW (dlg_quit), GTK_WIN_POS_MOUSE);
   gtk_window_set_resizable (GTK_WINDOW (dlg_quit), FALSE);
+  dlg_quit_icon_pixbuf = create_pixbuf ("icon.xpm");
+  if (dlg_quit_icon_pixbuf)
+    {
+      gtk_window_set_icon (GTK_WINDOW (dlg_quit), dlg_quit_icon_pixbuf);
+      gdk_pixbuf_unref (dlg_quit_icon_pixbuf);
+    }
 
   dialog_vbox1 = GTK_DIALOG (dlg_quit)->vbox;
   gtk_widget_set_name (dialog_vbox1, "dialog_vbox1");
