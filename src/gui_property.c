@@ -1221,8 +1221,10 @@ void gui_prop_shutdown(void) {
 
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
         if (gui_property->props[n].type == PROP_TYPE_STRING) {
-            g_free(*gui_property->props[n].data.string.value);
-            *gui_property->props[n].data.string.value = NULL;
+			gchar **p = gui_property->props[n].data.string.value;
+			if (*p)
+				g_free(*p);
+			*p = NULL;
         }
     }
 

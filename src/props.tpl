@@ -320,8 +320,10 @@ void [=(. func-prefix)=]_shutdown(void) {
 
     for (n = 0; n < [=(. prop-num)=]; n ++) {
         if ([=(. prop-set)=]->props[n].type == PROP_TYPE_STRING) {
-            g_free(*[=(. prop-set)=]->props[n].data.string.value);
-            *[=(. prop-set)=]->props[n].data.string.value = NULL;
+			gchar **p = [=(. prop-set)=]->props[n].data.string.value;
+			if (*p)
+				g_free(*p);
+			*p = NULL;
         }
     }
 

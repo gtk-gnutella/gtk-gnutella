@@ -2000,8 +2000,10 @@ void gnet_prop_shutdown(void) {
 
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
         if (gnet_property->props[n].type == PROP_TYPE_STRING) {
-            g_free(*gnet_property->props[n].data.string.value);
-            *gnet_property->props[n].data.string.value = NULL;
+			gchar **p = gnet_property->props[n].data.string.value;
+			if (*p)
+				g_free(*p);
+			*p = NULL;
         }
     }
 
