@@ -413,7 +413,7 @@ static struct dl_server *allocate_server(guchar *guid, guint32 ip, guint16 port)
 	 * identify the server as the (IP, port) should be unique.
 	 */
 
-	if (check_valid_host(ip, port)) {
+	if (host_is_valid(ip, port)) {
 		struct dl_ip *ipk;
 		gpointer ipkey;
 		gpointer x;					/* Don't care about freeing values */
@@ -457,7 +457,7 @@ static void free_server(struct dl_server *server)
 	ipk.ip = server->key->ip;
 	ipk.port = server->key->port;
 
-	if (check_valid_host(ipk.ip, ipk.port)) {
+	if (host_is_valid(ipk.ip, ipk.port)) {
 		gpointer ipkey;
 		gpointer x;					/* Don't care about freeing values */
 
@@ -2025,13 +2025,13 @@ void download_start(struct download *d, gboolean check_allowed)
 	 */
 
 	if (d->always_push && (d->server->attrs & DLS_A_PUSH_IGN)) {
-		g_assert(check_valid_host(ip, port));	/* Or would not have set flag */
+		g_assert(host_is_valid(ip, port));	/* Or would not have set flag */
 		if (d->push)
 			download_push_remove(d);
 		d->always_push = FALSE;
 	}
 
-	if (!DOWNLOAD_IS_IN_PUSH_MODE(d) && check_valid_host(ip, port)) {
+	if (!DOWNLOAD_IS_IN_PUSH_MODE(d) && host_is_valid(ip, port)) {
 		/* Direct download */
 		d->status = GTA_DL_CONNECTING;
 		d->socket = socket_connect(ip, port, SOCK_TYPE_DOWNLOAD);
@@ -2197,7 +2197,7 @@ static void download_push(struct download *d, gboolean on_timeout)
 			 *		-- RAM, 18/08/2002.
 			 */
 
-			if (!check_valid_host(download_ip(d), download_port(d)))
+			if (!host_is_valid(download_ip(d), download_port(d)))
 				download_stop(d, GTA_DL_ERROR, "Push route lost");
 			else {
 				/*
@@ -3599,7 +3599,7 @@ static void check_xhost(struct download *d, header_t *header)
 	if (buf == NULL)
 		return;
 
-	if (!gchar_to_ip_port(buf, &ip, &port) || !check_valid_host(ip, port))
+	if (!gchar_to_ip_port(buf, &ip, &port) || !host_is_valid(ip, port))
 		return;
 
 	/*
@@ -3807,7 +3807,6 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	gchar *buf;
 	struct stat st;
 	gboolean got_content_length = FALSE;
-	gboolean got_new_server = FALSE;
 	guint32 ip;
 	guint16 port;
 	gint http_major = 0, http_minor = 0;
@@ -3851,11 +3850,25 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	}
 
 	/*
+	 * If we were pushing this download, check for an X-Host header in
+	 * the reply: this will indicate that the remote host is not firewalled
+	 * and will give us its IP:port.
+	 *
+	 * NB: do this before extracting the server token, as it may redirect
+	 * us to an alternate server, and we could therefore loose the server
+	 * vendor string indication (attaching it to a discarded server object).
+	 */
+
+	if (d->push)
+		check_xhost(d, header);
+
+	/*
 	 * Extract Server: header string, if present, and store it unless
 	 * we already have it.
 	 */
 
-	got_new_server = download_get_server_name(d, header);
+	if (download_get_server_name(d, header))
+		gui_update_download_server(d);
 
 	/*
 	 * Check status.
@@ -3868,15 +3881,6 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 		return;
 
 	d->retries = 0;				/* Retry successful, we managed to connect */
-
-	/*
-	 * If we were pushing this download, check for an X-Host header in
-	 * the reply: this will indicate that the remote host is not firewalled
-	 * and will give us its IP:port.
-	 */
-
-	if (d->push)
-		check_xhost(d, header);
 
 	ip = download_ip(d);
 	port = download_port(d);
@@ -3992,9 +3996,6 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 		if (!d->always_push && d->sha1)
 			dmesh_remove(d->sha1, ip, port, d->record_index, d->file_name);
 
-		if (got_new_server)
-			gui_update_download_server(d);
-
 		download_stop(d, GTA_DL_ERROR,
 			"%sHTTP %d %s", short_read, ack_code, ack_message);
 		return;
@@ -4011,9 +4012,6 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	g_assert(ok);
 
 	fi = d->file_info;
-
-	if (got_new_server)
-		gui_update_download_server(d);
 
 	buf = header_get(header, "Content-Length");		/* Mandatory */
 	if (buf) {
@@ -4908,6 +4906,7 @@ static void download_retrieve(void)
 	gboolean has_sha1 = FALSE;
 	gint maxlines = -1;
 	file_path_t fp = { config_dir, download_file };
+	gboolean allow_comments = TRUE;
 
 	in = file_config_open_read(file_what, &fp, 1);
 
@@ -4932,17 +4931,20 @@ static void download_retrieve(void)
 	while (fgets(dl_tmp, sizeof(dl_tmp) - 1, in)) { /* Room for trailing NUL */
 		line++;
 
-		if (dl_tmp[0] == '#')
+		if (dl_tmp[0] == '#' && allow_comments)
 			continue;				/* Skip comments */
 
 		/*
 		 * We emitted a "RECLINES=x" at store time to indicate the amount of
-		 * lines each record takes.
+		 * lines each record takes.  This also signals that we can no longer
+		 * accept comments.
 		 */
 
 		if (maxlines < 0 && dl_tmp[0] == 'R') {
-			if (1 == sscanf(dl_tmp, "RECLINES=%d", &maxlines))
+			if (1 == sscanf(dl_tmp, "RECLINES=%d", &maxlines)) {
+				allow_comments = FALSE;
 				continue;
+			}
 		}
 
 		if (dl_tmp[0] == '\n') {
