@@ -417,6 +417,7 @@ static void add_active_downloads_columns(GtkTreeView *treeview)
 		{ N_("Filename"), 0, c_dl_filename, 0.0, NULL },
 		{ N_("Size"),	  0, c_dl_size,	    1.0, compare_size_func },
 		{ N_("Host"),	  0, c_dl_host,	    0.0, NULL },
+		{ N_("Loc"),	  0, c_dl_loc,	    0.0, NULL },
 		{ N_("Range"),	  0, c_dl_range,	0.0, NULL },
 		{ N_("Server"),	  0, c_dl_server,	0.0, NULL },
 		{ N_("Progress"), 1, c_dl_progress, 0.0, NULL },
@@ -469,6 +470,7 @@ static void add_queue_downloads_columns(GtkTreeView *treeview)
 		{ N_("Filename"), 0, c_queue_filename, 0.0, NULL },
 		{ N_("Size"),	  0, c_queue_size,	   1.0, compare_size_func },
 		{ N_("Host"),	  0, c_queue_host,	   0.0, NULL },
+		{ N_("Loc"),	  0, c_queue_loc,	   0.0, NULL },
 		{ N_("Server"),	  0, c_queue_server,   0.0, NULL },
 		{ N_("Status"),	  0, c_queue_status,   0.0, NULL }
 	};
@@ -525,6 +527,7 @@ void downloads_gui_init(void)
 		G_TYPE_STRING,		/* File */
 		G_TYPE_STRING,		/* Size */
 		G_TYPE_STRING,		/* Host */
+		G_TYPE_STRING,		/* Loc */
 		G_TYPE_STRING,		/* Range */
 		G_TYPE_STRING,		/* Server */
 		G_TYPE_FLOAT,		/* Progress [0.0 - 1.0] */
@@ -553,6 +556,8 @@ void downloads_gui_init(void)
 	gtk_tree_view_column_set_alignment
 		(gtk_tree_view_get_column(treeview, c_dl_host), 0.5);
 	gtk_tree_view_column_set_alignment
+		(gtk_tree_view_get_column(treeview, c_dl_loc), 0.5);
+	gtk_tree_view_column_set_alignment
 		(gtk_tree_view_get_column(treeview, c_dl_range), 0.5);
 	gtk_tree_view_column_set_alignment
 		(gtk_tree_view_get_column(treeview, c_dl_server), 0.5);
@@ -568,6 +573,7 @@ void downloads_gui_init(void)
 		G_TYPE_STRING,		/* File */
 		G_TYPE_STRING,		/* Size */
 		G_TYPE_STRING,		/* Host */
+		G_TYPE_STRING,		/* Loc */
 		G_TYPE_STRING,		/* Server */
 		G_TYPE_STRING,		/* Status */
 		GDK_TYPE_COLOR,		/* Foreground */
@@ -594,6 +600,8 @@ void downloads_gui_init(void)
 		(gtk_tree_view_get_column(treeview, c_queue_size), 0.5);
 	gtk_tree_view_column_set_alignment
 		(gtk_tree_view_get_column(treeview, c_queue_host), 0.5);
+	gtk_tree_view_column_set_alignment
+		(gtk_tree_view_get_column(treeview, c_queue_loc), 0.5);
 	gtk_tree_view_column_set_alignment
 		(gtk_tree_view_get_column(treeview, c_queue_server), 0.5);
 
@@ -712,7 +720,7 @@ void download_gui_add(download_t *d)
 					(GtkTreeModel *) model, parent);
 				g_assert(host_count > 0);
 			} else {
-				gchar *filename, *host, *size, *server, *status;
+				gchar *filename, *host, *size, *server, *status, *country;
 				GtkTreeIter *iter;
 
 				g_assert(find_download(drecord) != NULL);
@@ -720,6 +728,7 @@ void download_gui_add(download_t *d)
 				gtk_tree_model_get((GtkTreeModel *) model, parent,
 		      		c_queue_filename, &filename,
 					c_queue_host, &host,
+					c_queue_loc, &country,
 					c_queue_size, &size,
 					c_queue_server, &server,
 					c_queue_status, &status,
@@ -734,6 +743,7 @@ void download_gui_add(download_t *d)
 				gtk_tree_store_set(model, iter,
 					c_queue_filename, "\"",
 					c_queue_host, host,
+					c_queue_loc, country,
 					c_queue_size, NULL,
 					c_queue_server, server,
 					c_queue_status, status,
@@ -744,6 +754,7 @@ void download_gui_add(download_t *d)
 				gtk_tree_store_set(model, parent,
 					c_queue_filename, filename,
 					c_queue_host, host,
+					c_queue_loc, NULL,
 					c_queue_size, size,
 					c_queue_server, NULL,
 					c_queue_status, NULL,
@@ -768,6 +779,7 @@ void download_gui_add(download_t *d)
 		gtk_tree_store_set(model, child,
 	    	c_queue_filename, d_file_name,
 		  	c_queue_host, guc_download_get_hostname(d),
+		  	c_queue_loc, guc_download_get_country(d),
 	      	c_queue_size, d_file_size,
 	      	c_queue_server, vendor,
 	      	c_queue_status, NULL,
@@ -805,7 +817,8 @@ void download_gui_add(download_t *d)
 								(GtkTreeModel *) model, parent);
 				g_assert(host_count > 0);
 			} else {
-				gchar *filename, *host, *size, *range, *status, *server;
+				gchar *filename, *host, *size, *range, *status,
+					*server, *country;
 				gfloat percent_done, progress;
 				GtkTreeIter *iter;
 
@@ -821,6 +834,7 @@ void download_gui_add(download_t *d)
 				gtk_tree_model_get((GtkTreeModel*) model, parent,
 					c_dl_filename, &filename,
 					c_dl_host, &host,
+					c_dl_loc, &country,
 					c_dl_size, &size,
 					c_dl_range, &range,
 					c_dl_server, &server,
@@ -831,6 +845,7 @@ void download_gui_add(download_t *d)
 				gtk_tree_store_set(model, iter,
 			      	c_dl_filename, "\"",
 			  		c_dl_host, host,
+			  		c_dl_loc, country,
 	      			c_dl_size, NULL,
 	      			c_dl_range, range,
 	     	 		c_dl_server, server,
@@ -849,6 +864,7 @@ void download_gui_add(download_t *d)
 				gtk_tree_store_set(model, parent,
 					c_dl_filename, filename,
 					c_dl_host, NULL,
+					c_dl_loc, NULL,
 					c_dl_size, size,
 					c_dl_range, NULL,
 					c_dl_server, NULL,
@@ -876,6 +892,7 @@ void download_gui_add(download_t *d)
 		gtk_tree_store_set(model, child,
 			c_dl_filename, d_file_name,
 			c_dl_host, guc_download_get_hostname(d),
+			c_dl_loc, guc_download_get_country(d),
 			c_dl_size, d_file_size,
 			c_dl_range, NULL,
 			c_dl_server, vendor,
@@ -920,7 +937,7 @@ void download_gui_remove(download_t *d)
 	GHashTable *ht;
 	download_t *drecord = NULL;
 	gchar *host, *range;
-	gchar *server, *status;
+	gchar *server, *status, *country;
 	gfloat progress;
 	GtkTreeIter *iter;
 	GtkTreeIter *parent;
@@ -1003,12 +1020,14 @@ void download_gui_remove(download_t *d)
 				
 			gtk_tree_model_get(GTK_TREE_MODEL(store), child_iter,
 				c_queue_host, &host,
+				c_queue_loc, &country,
 				c_queue_server, &server,
 				c_queue_status, &status,
 				(-1));
 
 			gtk_tree_store_set(store, parent,
 				c_queue_host, host,
+				c_queue_loc, country,
 				c_queue_server, server,
 				c_queue_status, status,
 				c_queue_record, drecord,
@@ -1022,6 +1041,7 @@ void download_gui_remove(download_t *d)
 
 			gtk_tree_model_get(GTK_TREE_MODEL(store), child_iter,
 				c_dl_host, &host,
+				c_dl_loc, &country,
 				c_dl_range, &range,
 				c_dl_server, &server,
 				c_dl_progress, &progress,
@@ -1033,6 +1053,7 @@ void download_gui_remove(download_t *d)
 
 			gtk_tree_store_set(store, parent,
 				c_dl_host, host,
+				c_dl_loc, country,
 				c_dl_range, range,
 				c_dl_server, server,
 				c_dl_progress, force_range(progress, 0.0, 1.0),
