@@ -1,5 +1,29 @@
 # since last version
 
+- (2003.08.03 - RAM)
+ * Only compute the "escaped filename" for downloads once, not at every
+   saving of the download queue.
+ * Added two new properties: "node_monitor_unstable_ip" and
+  "node_monitor_unstable_servents".
+ * Forgot one more instance where writing of IP address was incorrect (the
+   IP in the GGEP "PUSH" extension).
+ * Reverted Christian's optimization of timestamp emitting on log messages:
+   now always emit the timestamp on messages, otherwise it is a major pain
+   when grepping through logs and trying to correlate events, or simply
+   whem montitoring a logfile via "tail -f log | grep pattern".
+   [Fixes bug #778183]
+ * Fixed query_make_word_vec(), changed by Christian to make the first
+   argument a const: it was not filling the vector at all when there was
+   only one word in the query.
+ * Now tells them exactly why they were denied a Gnet connection.
+ * Fixed computation order for bw_max to avoid integer overflow.
+ * Added url_params_xxx() routines to get parameters in URL query strings.
+ * Added support for the "file=" parameter in push-proxies.
+ * Removed all the code that dealt with legacy 0.4 servents.
+ * Now that 0.4 support is gone, there cannot be any "ponging" connection.
+ * Editing pane for filtering "flags" rules had fixed hardwired values for
+   the "Mark only" and "Active" checkboxes instead of the current rule's ones.
+
 - (2003.08.02 - RAM)
  * Rolled back invalid change wrt reading/writing of IP addresses from/to Gnet.
  * Added magic number at the head of the cproxy structure.
