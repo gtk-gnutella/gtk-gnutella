@@ -1058,10 +1058,15 @@ gint dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt)
  * The `vendor' is given to determine whether it is known to support the
  * more compact X-Alt form, in which case we emit that instead.
  *
+ * When `fi' is non-NULL, it means we're sharing that file and we're sending
+ * alternate locations to remote servers: include ourselves in the list of
+ * alternate locations if PFSP-server is enabled.
+ *
  * Returns amount of generated data.
  */
 gint dmesh_alternate_location(const gchar *sha1,
-	gchar *buf, gint size, guint32 ip, guint32 last_sent, const gchar *vendor)
+	gchar *buf, gint size, guint32 ip, guint32 last_sent, const gchar *vendor,
+	struct dl_file_info *fi)
 {
 	gchar url[1024];
 	struct dmesh *dm;
@@ -1090,6 +1095,45 @@ gint dmesh_alternate_location(const gchar *sha1,
 	linelen = len = gm_snprintf(buf, size,
 		use_compact ? "X-Alt: " : "X-Gnutella-Alternate-Location:\r\n");
 
+	/*
+	 * PFSP-server: If we have to list ourselves in the mesh, do so
+	 * at the first position.
+	 */
+
+	if (fi != NULL && fi->done != 0 && pfsp_server) {
+		gint url_len;
+		struct dmesh_entry ourselves;
+		time_t now = time(NULL);
+		gchar urn[80];
+		gint rw;
+
+		if (!use_compact)
+			gm_snprintf(urn, sizeof(urn), "urn:sha1:%s", sha1_base32(fi->sha1));
+
+		ourselves.inserted = now;
+		ourselves.stamp = now;
+		ourselves.url.ip = listen_ip();
+		ourselves.url.port = listen_port;
+		ourselves.url.idx = URN_INDEX;
+		ourselves.url.name = use_compact ? NULL : urn;
+
+		url_len = use_compact ?
+			dmesh_entry_compact(&ourselves, url, sizeof(url)) :
+			dmesh_entry_url_stamp(&ourselves, url, sizeof(url));
+		
+		if (url_len + len + 2 >= maxslen)	/* Assume worst-case: non-compact */
+			return 0;
+
+		if (use_compact) {
+			rw = gm_snprintf(&buf[len], size - len, "%s", url);
+			linelen += rw;
+		} else
+			rw = gm_snprintf(&buf[len], size - len, "\t%s", url);
+
+		len += rw;
+		nurl++;
+	}
+
 	if (len >= maxslen)
 		return 0;
 
@@ -1100,10 +1144,10 @@ gint dmesh_alternate_location(const gchar *sha1,
 	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
 
 	if (dm == NULL)						/* SHA1 unknown */
-		return 0;
+		goto nomore;
 
 	if (dm->last_update <= last_sent)	/* No new insertion */
-		return 0;
+		goto nomore;
 
 	/*
 	 * Expire old entries.  If none remain, free entry and return.
@@ -1114,7 +1158,7 @@ gint dmesh_alternate_location(const gchar *sha1,
 	if (dm->count == 0) {
 		g_assert(dm->entries == NULL);
 		dmesh_dispose(sha1);
-		return 0;
+		goto nomore;
 	}
 
 	/*
@@ -1150,7 +1194,7 @@ gint dmesh_alternate_location(const gchar *sha1,
 	nselected = i;
 
 	if (nselected == 0)
-		return 0;
+		goto nomore;
 
 	g_assert(nselected <= dm->count);
 
@@ -1265,6 +1309,12 @@ gint dmesh_alternate_location(const gchar *sha1,
 			"(size=%d, len=%d, nurl=%d)", size, len, nurl);
 		return 0;
 	}
+
+	return (nurl > 0) ? len : 0;
+
+nomore:
+	if (nurl)
+		len += gm_snprintf(&buf[len], size - len, "\r\n");
 
 	return (nurl > 0) ? len : 0;
 }
@@ -2040,7 +2090,7 @@ void dmesh_check_results_set(gnet_results_set_t *rs)
 
 		if (!has) {
 			struct shared_file *sf = shared_file_by_sha1(rc->sha1);
-			if (sf != NULL && sf != SHARE_REBUILDING)
+			if (sf != NULL && sf != SHARE_REBUILDING && sf->fi == NULL)
 				has = TRUE;
 		}
 
