@@ -97,15 +97,15 @@ static void nodes_gui_node_removed(gnet_node_t n)
  *
  * Adds the node to the gui.
  */
-static void nodes_gui_node_added(gnet_node_t n, const gchar *t)
+static void nodes_gui_node_added(gnet_node_t n)
 {
     gnet_node_info_t info;
 
     if (gui_debug >= 5)
-        printf("nodes_gui_node_added(%u, %s)\n", n, t);
+        printf("nodes_gui_node_added(%u)\n", n);
 
     guc_node_fill_info(n, &info);
-    nodes_gui_add_node(&info, t);
+    nodes_gui_add_node(&info);
     guc_node_clear_info(&info);
 }
 
@@ -318,7 +318,7 @@ void nodes_gui_remove_node(gnet_node_t n)
  *
  * Adds the given node to the gui.
  */
-void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
+void nodes_gui_add_node(gnet_node_info_t *n)
 {
     GtkCList *clist_nodes;
     gint row;

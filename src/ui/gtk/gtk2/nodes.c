@@ -384,7 +384,7 @@ void nodes_gui_remove_node(gnet_node_t n)
  *
  * Adds the given node to the gui.
  */
-void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
+void nodes_gui_add_node(gnet_node_info_t *n)
 {
     GtkTreeIter *iter = w_tree_iter_new();
 	static gchar proto_tmp[32];
@@ -554,15 +554,15 @@ static void nodes_gui_node_removed(gnet_node_t n)
  *
  * Adds the node to the gui.
  */
-static void nodes_gui_node_added(gnet_node_t n, const gchar *type)
+static void nodes_gui_node_added(gnet_node_t n)
 {
     gnet_node_info_t *info;
 
     if (gui_debug >= 5)
-        g_warning("nodes_gui_node_added(%u, %s)\n", n, type);
+        g_warning("nodes_gui_node_added(%u)\n", n);
 
     info = guc_node_get_info(n);
-    nodes_gui_add_node(info, type);
+    nodes_gui_add_node(info);
     guc_node_free_info(info);
 }
 
