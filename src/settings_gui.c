@@ -157,7 +157,10 @@ static gboolean hosts_in_bad_catcher_changed(property_t prop);
 static gboolean reading_hostfile_changed(property_t prop);
 static gboolean reading_ultrafile_changed(property_t prop);
 static gboolean hostcache_size_changed(property_t prop);
+#ifdef USE_GTK1
 static gboolean config_toolbar_style_changed(property_t prop);
+static gboolean toolbar_visible_changed(property_t prop);
+#endif /* USE_GTK1 */
 static gboolean bw_gnet_lin_enabled_changed(property_t prop);
 static gboolean bw_gnet_lout_enabled_changed(property_t prop);
 static gboolean bw_http_in_enabled_changed(property_t prop);
@@ -172,7 +175,6 @@ static gboolean ancient_version_left_days_changed(property_t prop);
 static gboolean new_version_str_changed(property_t prop);
 static gboolean send_pushes_changed(property_t prop);
 static gboolean statusbar_visible_changed(property_t prop);
-static gboolean toolbar_visible_changed(property_t prop);
 static gboolean progressbar_bws_in_visible_changed(property_t prop);
 static gboolean progressbar_bws_out_visible_changed(property_t prop);
 static gboolean progressbar_bws_gin_visible_changed(property_t prop);
@@ -3923,27 +3925,6 @@ static gboolean statusbar_visible_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean toolbar_visible_changed(property_t prop)
-{
-    gboolean b;
-
-    gui_prop_get_boolean_val(prop, &b);
-    gtk_check_menu_item_set_active(
-        GTK_CHECK_MENU_ITEM
-            (lookup_widget(main_window, "menu_toolbar_visible")), 
-        b);
-
-   	if (b) {
-		gtk_widget_show
-            (lookup_widget(main_window, "hb_toolbar"));
-	} else {
-		gtk_widget_hide
-            (lookup_widget(main_window, "hb_toolbar"));
-	}
-
-    return FALSE;
-}
-
 /*
  * update_stats_visibility:
  *
@@ -4639,6 +4620,9 @@ static gboolean dl_aqueued_count_changed(property_t prop)
 	return FALSE;
 }
 
+#ifdef USE_GTK1
+/* Currently deactivated for GTK+ 2.x because the code created by Glade 2.6.0
+ * requires GTK+ 2.4 */
 static gboolean config_toolbar_style_changed(property_t prop)
 {
 	guint32 val;
@@ -4675,6 +4659,25 @@ static gboolean config_toolbar_style_changed(property_t prop)
 	update_multichoice(prop);
 	return FALSE;
 }
+
+static gboolean toolbar_visible_changed(property_t prop)
+{
+    gboolean b;
+
+    gui_prop_get_boolean_val(prop, &b);
+    gtk_check_menu_item_set_active(
+		GTK_CHECK_MENU_ITEM(lookup_widget(main_window, "menu_toolbar_visible")),
+        b);
+
+   	if (b) {
+		gtk_widget_show(lookup_widget(main_window, "hb_toolbar"));
+	} else {
+		gtk_widget_hide(lookup_widget(main_window, "hb_toolbar"));
+	}
+
+    return FALSE;
+}
+#endif /* USE_GTK1 */
 
 static gboolean update_spinbutton_ultranode(property_t prop)
 {
