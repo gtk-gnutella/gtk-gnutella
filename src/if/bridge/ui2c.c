@@ -47,6 +47,7 @@
 #include "if/core/hcache.h"
 #include "if/core/hsep.h"
 #include "if/core/http.h"
+#include "if/core/parq.h"
 #include "if/core/search.h"
 #include "if/core/share.h"
 #include "if/core/settings.h"
@@ -330,23 +331,6 @@ void guc_hcache_clear(hcache_type_t type)
 void guc_hcache_get_stats(hcache_stats_t *stats)
 {
 	hcache_get_stats(stats);
-}
-
-
-/*	huge interface functions (UI -> Core)*/
-gboolean guc_huge_extract_sha1(gchar *buf, gchar *digest)
-{
-	return huge_extract_sha1(buf, digest);
-}
-
-gboolean guc_huge_extract_sha1_no_urn(gchar *buf, gchar *digest)
-{
-	return huge_extract_sha1_no_urn(buf, digest);
-}
-
-gboolean guc_huge_http_sha1_extract32(gchar *buf, gchar *retval)
-{
-	return huge_http_sha1_extract32(buf, retval);
 }
 
 /*	HSEP interface functions (UI -> Core)*/
