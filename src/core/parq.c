@@ -1025,13 +1025,16 @@ gboolean parq_download_is_passive_queued(struct download *d)
  * to the HTTP GET request
  */
 void parq_download_add_header(
-	gchar *buf, gint len, gint *rw, struct download *d)
+	gchar *buf, size_t len, size_t *rw, struct download *d)
 {
 	gint major = PARQ_VERSION_MAJOR;
 	gint minor = PARQ_VERSION_MINOR;
 
 	g_assert(d != NULL);
-	g_assert(len >= 0 && *rw >= 0 && len >= *rw);
+	g_assert(rw != NULL);
+	g_assert((int) len >= 0 && len <= INT_MAX);
+	g_assert((int) *rw >= 0 && *rw <= INT_MAX);
+	g_assert(len >= *rw);
 
 	if (d->server->attrs & DLS_A_FAKE_G2) {
 		major = 0;

@@ -55,7 +55,7 @@ gboolean parq_download_supports_parq(header_t *header);
 gboolean parq_download_parse_queue_status(struct download *d, header_t *header);
 gboolean parq_download_is_active_queued(struct download *d);
 void parq_download_add_header(
-		gchar *buf, gint len, gint *rw, struct download *d);
+		gchar *buf, size_t len, size_t *rw, struct download *d);
 gboolean parq_download_is_passive_queued(struct download *d);
 void parq_download_queue_ack(struct gnutella_socket *s);
 	
