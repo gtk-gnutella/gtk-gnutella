@@ -2111,7 +2111,7 @@ prop = {
 	data = {
 		default = 20;
 		min = 0;
-		max = 50;
+		max = 90;
 	};
 };
 
@@ -2121,7 +2121,7 @@ prop = {
 	type = guint32;
 	data = {
 		default = 60;
-		min = 50;
+		min = 10;
 		max = 100;
 	};
 };
