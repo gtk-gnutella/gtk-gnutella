@@ -234,2501 +234,2514 @@ static gboolean update_toggle_node_watch_similar_queries(property_t prop);
 static gboolean update_spinbutton_ultranode(property_t prop);
 static gboolean update_toggle_remove_on_mismatch(property_t prop);
 
+#define PROP_ENTRY(widget, prop, handler, init, name, freq, interval)			\
+	{																		\
+		(widget), (prop), (handler), (init), (name), (freq), (interval), 	\
+		0, NULL, NULL														\
+	}																		\
+
 /* FIXME:
  * move to separate file and autogenerate from high-level description.
  */
 static prop_map_t property_map[] = {
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_MONITOR_MAX_ITEMS,
         update_spinbutton,
         TRUE,
         "spinbutton_monitor_items",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MONITOR_ENABLED,
         monitor_enabled_changed,
         TRUE,
         "checkbutton_monitor_enable",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_QUEUE_REGEX_CASE,
         update_togglebutton,
         TRUE,
         "checkbutton_queue_regex_case",
         FREQ_UPDATES, 0
-    },
+    ),
 #ifdef USE_GTK1
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_FI_REGEX_CASE,
         update_togglebutton,
         TRUE,
         "checkbutton_fi_regex_case",
         FREQ_UPDATES, 0
-    },
+    ),
 #endif
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_AUTOSELECT_SIMILAR,
         update_toggle_search_autoselect,
         TRUE,
         "checkbutton_search_autoselect",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_AUTOSELECT_SAMESIZE,
         update_togglebutton,
         TRUE,
         "checkbutton_search_autoselect_ident",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_AUTOSELECT_FUZZY,
         update_togglebutton,
         TRUE,
         "checkbutton_search_autoselect_fuzzy",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MAIN_DIVIDER_POS,
         update_split_pane,
         TRUE,
         "hpaned_main",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_DIVIDER_POS,
         update_split_pane,
         TRUE,
         "hpaned_gnet_stats",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SIDE_DIVIDER_POS,
         update_split_pane,
         TRUE,
         "vpaned_sidebar",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOADS_DIVIDER_POS,
         update_split_pane,
         TRUE,
         "vpaned_downloads",
         FREQ_UPDATES, 0
-    },
+    ),
 #ifdef USE_GTK1
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_FILEINFO_DIVIDER_POS,
         update_split_pane,
         TRUE,
         "vpaned_fileinfo",
         FREQ_UPDATES, 0
-    },
+    ),
 #endif
-    {
+    PROP_ENTRY(
         get_filter_dialog,
         PROP_FILTER_MAIN_DIVIDER_POS,
         update_split_pane,
         TRUE,
         "hpaned_filter_main",
         FREQ_UPDATES, 0
-    },
+    ),
 #ifdef USE_GTK2
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_RESULTS_DIVIDER_POS,
         update_split_pane,
         TRUE,
         "vpaned_results",
         FREQ_UPDATES, 0
-    },
+    ),
 #endif
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_STATUSBAR_VISIBLE,
         statusbar_visible_changed,
         TRUE,
         "menu_statusbar_visible",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_TOOLBAR_VISIBLE,
         toolbar_visible_changed,
         TRUE,
         "menu_toolbar_visible",
         FREQ_UPDATES, 0
-    },
+    ),
 #ifdef USE_GTK2
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_NODES_COL_WIDTHS,
         update_treeview_col_widths,
         TRUE,
         "treeview_nodes",
         FREQ_UPDATES, 0
-    },
+    ),
 #else
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_NODES_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
         "clist_nodes",
         FREQ_UPDATES, 0
-    },
+    ),
 #endif
 #ifdef USE_GTK2
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_DL_ACTIVE_COL_WIDTHS,
         update_treeview_col_widths,
         TRUE,
         "treeview_downloads",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DL_QUEUED_COL_WIDTHS,
         update_treeview_col_widths,
         TRUE,
         "treeview_downloads_queue",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_FILE_INFO_COL_WIDTHS,
         update_treeview_col_widths,
         TRUE,
         "treeview_fileinfo",
         FREQ_UPDATES, 0
-    },
+    ),
 #else
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_DL_ACTIVE_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
         "ctree_downloads",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DL_QUEUED_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
         "ctree_downloads_queue",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_FILE_INFO_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
         "clist_fileinfo",
         FREQ_UPDATES, 0
-    },
+    ),
 #endif
 #ifdef USE_GTK2
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_STATS_COL_WIDTHS,
         update_treeview_col_widths,
         TRUE,
         "treeview_search_stats",
         FREQ_UPDATES, 0
-    },
+    ),
 #else
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_STATS_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
         "clist_search_stats",
         FREQ_UPDATES, 0
-    },
+    ),
 #endif
 #ifdef USE_GTK2
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_UPLOADS_COL_WIDTHS,
         update_treeview_col_widths,
         TRUE,
         "treeview_uploads",
         FREQ_UPDATES, 0
-    },
+    ),
 #else	
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_UPLOADS_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
         "clist_uploads",
         FREQ_UPDATES, 0
-    },
+    ),
 #endif
 #ifndef USE_GTK2
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_UL_STATS_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
         "clist_ul_stats",
         FREQ_UPDATES, 0
-    },
+    ),
 #endif
 #ifdef USE_GTK2
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_LIST_COL_WIDTHS,
         update_treeview_col_widths,
         TRUE,
         "tree_view_search",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_MSG_COL_WIDTHS,
         update_treeview_col_widths,
         TRUE,
         "treeview_gnet_stats_messages",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_FC_TTL_COL_WIDTHS,
         update_treeview_col_widths,
         TRUE,
         "treeview_gnet_stats_flowc",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_FC_HOPS_COL_WIDTHS,
         update_treeview_col_widths,
         TRUE,
         "treeview_gnet_stats_flowc",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS,
         update_treeview_col_widths,
         TRUE,
         "treeview_gnet_stats_drop_reasons",
         FREQ_UPDATES, 0
-    },
+    ),
 #else
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_LIST_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
         "clist_search",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_MSG_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
         "clist_gnet_stats_msg",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_FC_TTL_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
         "clist_gnet_stats_fc_ttl",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_FC_HOPS_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
         "clist_gnet_stats_fc_hops",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
         "clist_gnet_stats_drop_reasons",
         FREQ_UPDATES, 0
-    },
+    ),
 #endif
-    {
+    PROP_ENTRY(
         get_filter_dialog,
         PROP_FILTER_RULES_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
         "clist_filter_rules",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_filter_dialog,
         PROP_FILTER_FILTERS_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
         "clist_filter_filters",
         FREQ_UPDATES, 0
-    },
+    ),
 #ifndef USE_GTK2 
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_RESULTS_COL_WIDTHS,
         search_gui_search_results_col_widths_changed,
         TRUE,
         NULL,
         FREQ_UPDATES, 0
-    },
+    ),
 #endif
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_RESULTS_COL_VISIBLE,
         search_gui_search_results_col_visible_changed,
         TRUE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PROGRESSBAR_BWS_IN_VISIBLE,
         progressbar_bws_in_visible_changed,
         TRUE,
         "menu_bws_in_visible",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PROGRESSBAR_BWS_OUT_VISIBLE,
         progressbar_bws_out_visible_changed,
         TRUE,
         "menu_bws_out_visible",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PROGRESSBAR_BWS_GIN_VISIBLE,
         progressbar_bws_gin_visible_changed,
         TRUE,
         "menu_bws_gin_visible",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PROGRESSBAR_BWS_GOUT_VISIBLE,
         progressbar_bws_gout_visible_changed,
         TRUE,
         "menu_bws_gout_visible",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_AUTOHIDE_BWS_GLEAF,
         autohide_bws_gleaf_changed,
         TRUE,
         "menu_autohide_bws_gleaf",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PROGRESSBAR_BWS_GLIN_VISIBLE,
         progressbar_bws_glin_visible_changed,
         TRUE,
         "menu_bws_glin_visible",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PROGRESSBAR_BWS_GLOUT_VISIBLE,
         progressbar_bws_glout_visible_changed,
         TRUE,
         "menu_bws_glout_visible",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PROGRESSBAR_DOWNLOADS_VISIBLE,
         progressbar_downloads_visible_changed,
         TRUE,
         "menu_downloads_visible",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PROGRESSBAR_UPLOADS_VISIBLE,
         progressbar_uploads_visible_changed,
         TRUE,
         "menu_uploads_visible",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PROGRESSBAR_CONNECTIONS_VISIBLE,
         progressbar_connections_visible_changed,
         TRUE,
         "menu_connections_visible",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_search_popup,
         PROP_SEARCH_RESULTS_SHOW_TABS,
         search_results_show_tabs_changed,
         TRUE,
         "popup_search_toggle_tabs",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_GUI_DEBUG,
         update_spinbutton,
         TRUE,
         "spinbutton_config_gui_debug",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DBG,
         update_spinbutton,
         TRUE,
         "spinbutton_config_dbg",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_TRACK_PROPS,
         update_spinbutton,
         TRUE,
         "spinbutton_config_track_props",
         FREQ_UPDATES, 0
-    },
-    { 
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_UP_CONNECTIONS, 
         update_spinbutton, 
         TRUE,
         "spinbutton_up_connections",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MAX_CONNECTIONS,
         update_spinbutton_ultranode,
         TRUE,
         "spinbutton_max_connections",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MAX_ULTRAPEERS,
         update_spinbutton,
         TRUE,
         "spinbutton_max_ultrapeers",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_LEAF_COUNT,
         gnet_connections_changed,
         FALSE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_NORMAL_COUNT,
         gnet_connections_changed,
         FALSE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_ULTRA_COUNT,
         gnet_connections_changed,
         TRUE,
         NULL,
         FREQ_UPDATES, 0
-    },
-	{
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_UL_RUNNING,
         uploads_count_changed,
         TRUE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_UL_REGISTERED,
         uploads_count_changed,
         TRUE,
         NULL,
         FREQ_UPDATES, 0
-	},
-	{
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MAX_DOWNLOADS,
         update_spinbutton,
         TRUE,
         "spinbutton_max_downloads",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MAX_HOST_DOWNLOADS,
         update_spinbutton,
         TRUE,
         "spinbutton_max_host_downloads",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MAX_UPLOADS,
         update_spinbutton,
         TRUE,
         "spinbutton_max_uploads",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MAX_UPLOADS_IP,
         update_spinbutton,
         TRUE,
         "spinbutton_max_uploads_ip",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PROXY_IP,
         proxy_ip_changed,
         TRUE,
         "entry_config_proxy_ip",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MAX_HOSTS_CACHED,
         update_spinbutton,
         TRUE,
         "spinbutton_nodes_max_hosts_cached",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MAX_TTL,
         update_spinbutton,
         TRUE,
         "spinbutton_config_maxttl",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MY_TTL,
         update_spinbutton,
         TRUE,
         "spinbutton_config_myttl",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_REISSUE_TIMEOUT,
         update_spinbutton,
         TRUE,
         "spinbutton_config_search_reissue_timeout",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PROXY_PORT,
         update_spinbutton,
         TRUE,
         "spinbutton_config_proxy_port",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_UL_USAGE_MIN_PERCENTAGE,
         update_spinbutton,
         TRUE,
         "spinbutton_config_ul_usage_min_percentage",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_CONNECTION_SPEED,
         update_spinbutton,
         TRUE,
         "spinbutton_config_speed",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_COMPUTE_CONNECTION_SPEED,
 		compute_connection_speed_changed,
         TRUE,
         "checkbutton_compute_connection_speed",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_QUERY_RESPONSE_MAX_ITEMS,
         update_spinbutton,
         TRUE,
         "spinbutton_config_search_items",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MAX_HIGH_TTL_RADIUS,
         update_spinbutton,
         TRUE,
         "spinbutton_config_max_high_ttl_radius",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MAX_HIGH_TTL_MSG,
         update_spinbutton,
         TRUE,
         "spinbutton_config_max_high_ttl_msg",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_HARD_TTL_LIMIT,
         update_spinbutton,
         TRUE,
         "spinbutton_config_hard_ttl_limit",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_OVERLAP_RANGE,
         update_spinbutton,
         TRUE,
         "spinbutton_config_download_overlap_range",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_MAX_RETRIES,
         update_spinbutton,
         TRUE,
         "spinbutton_config_download_max_retries",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_RETRY_STOPPED_DELAY,
         update_spinbutton,
         TRUE,
         "spinbutton_config_download_retry_stopped_delay",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_RETRY_REFUSED_DELAY,
         update_spinbutton,
         TRUE,
         "spinbutton_config_download_retry_refused_delay",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_RETRY_BUSY_DELAY,
         update_spinbutton,
         TRUE,
         "spinbutton_config_download_retry_busy_delay",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_RETRY_TIMEOUT_DELAY,
         update_spinbutton,
         TRUE,
         "spinbutton_config_download_retry_timeout_delay",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_RETRY_TIMEOUT_MAX,
         update_spinbutton,
         TRUE,
         "spinbutton_config_download_retry_timeout_max",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_RETRY_TIMEOUT_MIN,
         update_spinbutton,
         TRUE,
         "spinbutton_config_download_retry_timeout_min",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_CONNECTING_TIMEOUT,
         update_spinbutton,
         TRUE,
         "spinbutton_config_download_connecting_timeout",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_CONNECTED_TIMEOUT,
         update_spinbutton,
         TRUE,
         "spinbutton_config_download_connected_timeout",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_PUSH_SENT_TIMEOUT,
         update_spinbutton,
         TRUE,
         "spinbutton_config_download_push_sent_timeout",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_TX_FLOWC_TIMEOUT,
         update_spinbutton,
         TRUE,
         "spinbutton_config_node_tx_flowc_timeout",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_CONNECTING_TIMEOUT,
         update_spinbutton,
         TRUE,
         "spinbutton_config_node_connecting_timeout",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_CONNECTED_TIMEOUT,
         update_spinbutton,
         TRUE,
         "spinbutton_config_node_connected_timeout",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_UPLOAD_CONNECTING_TIMEOUT,
         update_spinbutton,
         TRUE,
         "spinbutton_config_upload_connecting_timeout",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_UPLOAD_CONNECTED_TIMEOUT,
         update_spinbutton,
         TRUE,
         "spinbutton_config_upload_connected_timeout",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SOCKS_USER,
         socks_user_changed,
         TRUE,
         "entry_config_socks_username",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SOCKS_PASS,
         socks_pass_changed,
         TRUE,
         "entry_config_socks_password",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_REMOVE_DOWNLOADED,
         update_togglebutton,
         TRUE,
         "checkbutton_search_remove_downloaded",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DL_REMOVE_FILE_ON_MISMATCH,
         update_toggle_remove_on_mismatch,
         TRUE,
         "checkbutton_dl_remove_file_on_mismatch",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DL_MISMATCH_BACKOUT,
         update_spinbutton,
         TRUE,
         "spinbutton_mismatch_backout",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_GIVE_SERVER_HOSTNAME,
         update_togglebutton,
         TRUE,
         "checkbutton_give_server_hostname",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SERVER_HOSTNAME,
         update_entry,
         TRUE,
         "entry_server_hostname",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PFSP_SERVER,
         update_togglebutton,
         TRUE,
         "checkbutton_pfsp_server",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PFSP_FIRST_CHUNK,
         update_spinbutton,
         TRUE,
         "spinbutton_pfsp_first_chunk",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_HIDE_DOWNLOADED,
         update_togglebutton,
         TRUE,
         "checkbutton_search_hide_downloaded",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_DELETE_ABORTED,
         update_togglebutton,
         TRUE,
         "checkbutton_download_delete_aborted",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BW_HTTP_IN_ENABLED,
         bw_http_in_enabled_changed,
         TRUE,
         "checkbutton_config_bws_in",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BW_HTTP_OUT_ENABLED,
         bw_http_out_enabled_changed,
         TRUE,
         "checkbutton_config_bws_out",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BW_GNET_IN_ENABLED,
         bw_gnet_in_enabled_changed,
         TRUE,
         "checkbutton_config_bws_gin",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BW_GNET_OUT_ENABLED,
         bw_gnet_out_enabled_changed,
         TRUE,
         "checkbutton_config_bws_gout",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BW_HTTP_IN,
         spinbutton_input_bw_changed,
         TRUE,
         "spinbutton_config_bws_in",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BW_HTTP_OUT,
         spinbutton_output_bw_changed,
         TRUE,
         "spinbutton_config_bws_out",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BW_GNET_IN,
         spinbutton_input_bw_changed,
         TRUE,
         "spinbutton_config_bws_gin",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BW_GNET_OUT,
         spinbutton_output_bw_changed,
         TRUE,
         "spinbutton_config_bws_gout",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BW_UL_USAGE_ENABLED,
         bw_ul_usage_enabled_changed,
         TRUE,
         "checkbutton_config_bw_ul_usage_enabled",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_ANCIENT_VERSION,
         ancient_version_changed,
         TRUE,
         "eventbox_image_ancient", /* need eventbox because image has no tooltip */
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_ANCIENT_VERSION_LEFT_DAYS,
         ancient_version_left_days_changed,
         FALSE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NEW_VERSION_STR,
         new_version_str_changed,
         TRUE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEND_PUSHES,
         send_pushes_changed,
         TRUE,
         "checkbutton_downloads_never_push",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_AUTOCLEAR_COMPLETED_UPLOADS,
         update_togglebutton,
         TRUE,
         "checkbutton_uploads_auto_clear_complete",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_AUTOCLEAR_FAILED_UPLOADS,
         update_togglebutton,
         TRUE,
         "checkbutton_uploads_auto_clear_failed",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_AUTOCLEAR_COMPLETED_DOWNLOADS,
         autoclear_completed_downloads_changed,
         TRUE,
         "checkbutton_dl_clear_complete",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_AUTOCLEAR_FAILED_DOWNLOADS,
         autoclear_failed_downloads_changed,
         TRUE,
         "checkbutton_dl_clear_failed",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_AUTOCLEAR_UNAVAILABLE_DOWNLOADS,
         autoclear_unavailable_downloads_changed,
         TRUE,
         "checkbutton_dl_clear_unavailable",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_FORCE_LOCAL_IP,
         force_local_ip_changed,
         TRUE,
         "checkbutton_config_force_ip",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PROXY_AUTH,
         update_togglebutton,
         TRUE,
         "checkbutton_config_proxy_auth",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_HOSTS_IN_CATCHER,
         hosts_in_catcher_changed,
         TRUE,
         "progressbar_hosts_in_catcher",
         FREQ_SECS, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_READING_HOSTFILE,
         reading_hostfile_changed,
         TRUE,
         NULL,
         FREQ_SECS, 1
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_TOTAL_DOWNLOADS,
         update_entry,
         TRUE,
         "entry_count_downloads",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_TOTAL_UPLOADS,
         update_entry,
         TRUE,
         "entry_count_uploads",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_STATS_MODE,
         search_stats_mode_changed,
         FALSE, /* search_stats_gui_init takes care of that */
         "combo_search_stats_type",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_STATS_UPDATE_INTERVAL,
         update_spinbutton,
         TRUE,
         "spinbutton_search_stats_update_interval",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_STATS_DELCOEF,
         update_spinbutton,
         TRUE,
         "spinbutton_search_stats_delcoef",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_USE_NETMASKS,
         use_netmasks_changed,
         TRUE,
         "checkbutton_config_use_netmasks",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_LOCAL_NETMASKS_STRING,
         update_entry,
         TRUE,
         "entry_config_netmasks",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_ALLOW_PRIVATE_NETWORK_CONNECTION,
         update_togglebutton,
         TRUE,
         "checkbutton_config_no_rfc1918",
         FREQ_UPDATES, 0
-    },
-	{
+    ),
+    PROP_ENTRY(
 		get_main_window,
 		PROP_USE_IP_TOS,
 		update_togglebutton,
 		TRUE,
 		"checkbutton_config_use_ip_tos",
         FREQ_UPDATES, 0
-	},
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_FORCED_LOCAL_IP,
         update_entry,
         TRUE,
         "entry_config_force_ip",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_LISTEN_PORT,
         listen_port_changed,
         TRUE,
         "spinbutton_config_port",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SCAN_EXTENSIONS,
         update_entry,
         TRUE,
         "entry_config_extensions",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SCAN_IGNORE_SYMLINK_DIRS,
         update_togglebutton,
         TRUE,
         "checkbutton_scan_ignore_symlink_dirs",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SCAN_IGNORE_SYMLINK_REGFILES,
         update_togglebutton,
         TRUE,
         "checkbutton_scan_ignore_symlink_regfiles",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SAVE_FILE_PATH,
         update_entry,
         TRUE,
         "entry_config_save_path",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MOVE_FILE_PATH,
         update_entry,
         TRUE,
         "entry_config_move_path",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BAD_FILE_PATH,
         update_entry,
         TRUE,
         "entry_config_bad_path",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHARED_DIRS_PATHS,
         update_entry,
         TRUE,
         "entry_config_path",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MIN_DUP_MSG,
         update_spinbutton,
         TRUE,
         "spinbutton_config_min_dup_msg",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MIN_DUP_RATIO,
         min_dup_ratio_changed,
         TRUE,
         "spinbutton_config_min_dup_ratio",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PREFER_COMPRESSED_GNET,
         update_togglebutton,
         TRUE,
         "checkbutton_prefer_compressed_gnet",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DL_MINCHUNKSIZE,
         update_spinbutton,
         TRUE,
         "spinbutton_dl_minchunksize",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DL_MAXCHUNKSIZE,
         update_spinbutton,
         TRUE,
         "spinbutton_dl_maxchunksize",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_FUZZY_THRESHOLD,
         update_spinbutton,
         TRUE,
         "spinbutton_config_fuzzy_threshold",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_AUTO_DOWNLOAD_IDENTICAL,
         update_togglebutton,
         TRUE,
         "checkbutton_config_use_alternate_sources",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_STRICT_SHA1_MATCHING,
         update_togglebutton,
         TRUE,
         "checkbutton_config_strict_sha1_matching",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_USE_FUZZY_MATCHING,
         update_togglebutton,
         TRUE,
         "checkbutton_config_use_fuzzy_matching",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_USE_SWARMING,
         update_togglebutton,
         TRUE,
         "checkbutton_config_use_swarming",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_USE_AGGRESSIVE_SWARMING,
         update_togglebutton,
         TRUE,
         "checkbutton_config_aggressive_swarming",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_STOP_HOST_GET,
         update_togglebutton,
         TRUE,
         "checkbutton_config_stop_host_get",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_HOPS_RANDOM_FACTOR,
         update_spinbutton,
         TRUE,
         "spinbutton_config_hops_random_factor",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_QUERIES_FORWARD_SIZE,
         update_spinbutton,
         TRUE,
         "spinbutton_search_queries_forward_size",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_QUERIES_KICK_SIZE,
         update_spinbutton,
         TRUE,
         "spinbutton_search_queries_kick_size",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_ANSWERS_FORWARD_SIZE,
         update_spinbutton,
         TRUE,
         "spinbutton_search_answers_forward_size",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_ANSWERS_KICK_SIZE,
         update_spinbutton,
         TRUE,
         "spinbutton_search_answers_kick_size",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_OTHER_MESSAGES_KICK_SIZE,
         update_spinbutton,
         TRUE,
         "spinbutton_other_messages_kick_size",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_SHOW_UPTIME,
         update_toggle_node_show_uptime,
         TRUE,
         "checkbutton_node_show_uptime",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_SHOW_HANDSHAKE_VERSION,
         update_toggle_node_show_handshake,
         TRUE,
         "checkbutton_node_show_handshake_version",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_SHOW_DETAILED_INFO,
         update_toggle_node_show_detailed_info,
         TRUE,
         "checkbutton_node_show_detailed_info",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_TXC,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_txc",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_RXC,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_rxc",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_TX_SPEED,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_tx_speed",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_RX_SPEED,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_rx_speed",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_TX_QUERIES,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_tx_queries",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_RX_QUERIES,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_rx_queries",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_TX_HITS,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_tx_hits",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_RX_HITS,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_rx_hits",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_GEN_QUERIES,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_gen_queries",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_SQ_QUERIES,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_sq_queries",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_TX_DROPPED,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_tx_dropped",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_RX_DROPPED,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_rx_dropped",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_QRP_STATS,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_qrp_stats",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_DBW,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_dbw",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_RT,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_rt",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_SHARED_SIZE,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_shared_size",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_GNET_INFO_SHARED_FILES,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_info_shared_files",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_LAST_ULTRA_CHECK,
         update_label_date,
         TRUE,
         "label_node_last_ultracheck",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_LAST_ULTRA_LEAF_SWITCH,
         update_label_date,
         TRUE,
         "label_last_ultra_leaf_switch",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_UP_REQ_AVG_SERVENT_UPTIME,
         update_label_yes_or_no,
         TRUE,
         "label_up_req_avg_servent_uptime",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_UP_REQ_AVG_IP_UPTIME,
         update_label_yes_or_no,
         TRUE,
         "label_up_req_avg_ip_uptime",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_UP_REQ_NODE_UPTIME,
         update_label_yes_or_no,
         TRUE,
         "label_up_req_node_uptime",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_UP_REQ_NOT_FIREWALLED,
         update_label_yes_or_no,
         TRUE,
         "label_up_req_not_firewalled",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_UP_REQ_ENOUGH_FD,
         update_label_yes_or_no,
         TRUE,
         "label_up_req_enough_fd",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_UP_REQ_ENOUGH_MEM,
         update_label_yes_or_no,
         TRUE,
         "label_up_req_enough_mem",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_UP_REQ_ENOUGH_BW,
         update_label_yes_or_no,
         TRUE,
         "label_up_req_enough_bw",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_ENABLE_SHELL,
         update_togglebutton,
         TRUE,
         "checkbutton_enable_shell",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_QUEUE_SIZE,
         update_spinbutton,
         TRUE,
         "spinbutton_search_queue_size",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_QUEUE_SPACING,
         update_spinbutton,
         TRUE,
         "spinbutton_search_queue_spacing",
         FREQ_UPDATES, 0
-	},
-    {
+	),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_WATCH_SIMILAR_QUERIES,
         update_toggle_node_watch_similar_queries,
         TRUE,
         "checkbutton_node_watch_similar_queries",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_QUERIES_HALF_LIFE,
         update_spinbutton,
         TRUE,
         "spinbutton_node_queries_half_life",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_REQUERY_THRESHOLD,
         update_spinbutton,
         TRUE,
         "spinbutton_node_requery_threshold",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_ENTRY_REMOVAL_TIMEOUT,
         update_spinbutton,
         TRUE,
         "spinbutton_entry_removal_timeout",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_ACCUMULATION_PERIOD,
         update_spinbutton,
         TRUE,
         "spinbutton_search_accumulation_period",
         FREQ_UPDATES, 0
-	},
-    {
+	),
+    PROP_ENTRY(
         NULL,
         PROP_PROGRESSBAR_BWS_IN_AVG,
         traffic_stats_mode_changed,
         FALSE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         NULL,
         PROP_PROGRESSBAR_BWS_OUT_AVG,
         traffic_stats_mode_changed,
         FALSE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         NULL,
         PROP_PROGRESSBAR_BWS_GIN_AVG,
         traffic_stats_mode_changed,
         FALSE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         NULL,
         PROP_PROGRESSBAR_BWS_GOUT_AVG,
         traffic_stats_mode_changed,
         FALSE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         NULL,
         PROP_PROGRESSBAR_BWS_GLIN_AVG,
         traffic_stats_mode_changed,
         FALSE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         NULL,
         PROP_PROGRESSBAR_BWS_GLOUT_AVG,
         traffic_stats_mode_changed,
         FALSE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         NULL,
         PROP_NODE_SENDQUEUE_SIZE,
         IGNORE,
         FALSE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+#ifdef USE_GTK2
+    PROP_ENTRY(
         get_main_window,
         PROP_GUID,
         guid_changed,
         TRUE,
-#ifdef USE_GTK2
         "label_nodes_guid",
-#else
-        "entry_nodes_guid",
-#endif
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+#else
+    PROP_ENTRY(
+        get_main_window,
+        PROP_GUID,
+        guid_changed,
+        TRUE,
+        "entry_nodes_guid",
+        FREQ_UPDATES, 0
+    ),
+#endif
+    PROP_ENTRY(
         NULL,
         PROP_LOCAL_IP,
         local_address_changed,
         FALSE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         NULL,
         PROP_IS_FIREWALLED,
         is_firewalled_changed,
         TRUE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_WINDOW_COORDS,
         update_window_geometry,
         TRUE,
         NULL, /* uses fn_toplevel as widget */
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_filter_dialog,
         PROP_FILTER_DLG_COORDS,
         update_window_geometry,
         TRUE,
         NULL, /* uses fn_toplevel as widget */
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         NULL,
         PROP_IS_INET_CONNECTED,
         plug_icon_changed,
         TRUE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_ONLINE_MODE,
         plug_icon_changed,
         TRUE,
         "togglebutton_online",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_SEARCH_RESULTS_SETTINGS,
         show_search_results_settings_changed,
         TRUE,
         "checkbutton_search_results_show_settings",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_DL_SETTINGS,
         show_dl_settings_changed,
         TRUE,
         "checkbutton_dl_show_settings",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_CONFIRM_QUIT,
         update_togglebutton,
         TRUE,
         "checkbutton_config_confirm_quit",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHOW_TOOLTIPS,
         show_tooltips_changed,
         TRUE,
         "checkbutton_config_show_tooltips",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_EXPERT_MODE,
         expert_mode_changed,
         TRUE,
         "checkbutton_expert_mode",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_BYTES,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_stats_bytes",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_PERC,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_stats_perc",
         FREQ_UPDATES, 0
-    },
+    ),
 #ifdef USE_GTK2
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_HOPS,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_stats_hops",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_WITH_HEADERS,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_stats_with_headers",
         FREQ_UPDATES, 0
-    },
+    ),
 #endif
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_DROP_PERC,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_stats_drop_perc",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_COMPACT_QUERY,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_compact_query",
         FREQ_UPDATES, 0
-    },
+    ),
 #ifdef USE_GTK2
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_GENERAL_COL_WIDTHS,
         update_treeview_col_widths,
         TRUE,
         "treeview_gnet_stats_general",
         FREQ_UPDATES, 0
-	},
+	),
 #else
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_GENERAL_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
         "clist_gnet_stats_general",
         FREQ_UPDATES, 0
-    },
+    ),
 #endif
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_OPTIMISTIC_START,
         update_togglebutton,
         TRUE,
         "checkbutton_config_download_optimistic_start",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_LIBRARY_REBUILDING,
         library_rebuilding_changed,
         TRUE,
         "eventbox_image_lib", /* need eventbox because image has no tooltip */
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHA1_REBUILDING,
         sha1_rebuilding_changed,
         TRUE,
         "eventbox_image_sha", /* need eventbox because image has no tooltip */
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SHA1_VERIFYING,
         sha1_verifying_changed,
         TRUE,
         "eventbox_image_shav", /* need eventbox because image has no tooltip */
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_FILE_MOVING,
         file_moving_changed,
         TRUE,
         "eventbox_image_save", /* need eventbox because image has no tooltip */
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_REQUIRE_URN,
         update_togglebutton,
         TRUE,
         "checkbutton_config_req_urn",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_REQUIRE_SERVER_NAME,
         update_togglebutton,
         TRUE,
         "checkbutton_config_req_srv_name",
-        FREQ_UPDATES, 0,
-    },
-    {
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_AUTO_FEED_DOWNLOAD_MESH,
         update_togglebutton,
         TRUE,
         "checkbutton_auto_feed_dmesh",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_FUZZY_FILTER_DMESH,
         update_togglebutton,
         TRUE,
         "checkbutton_fuzzy_filter_dmesh",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_CONFIGURED_PEERMODE,
         configured_peermode_changed,
         TRUE,
         "combo_config_peermode",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_HANDLE_IGNORED_FILES,
         update_multichoice,
         TRUE,
         "combo_search_handle_ignored_files",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_CURRENT_PEERMODE,
         current_peermode_changed,
         TRUE,
         NULL,
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_LIB_DEBUG,
         update_spinbutton,
         TRUE,
         "spinbutton_config_lib_debug",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BAN_RATIO_FDS,
         update_spinbutton,
         TRUE,
         "spinbutton_config_ban_ratio_fds",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BAN_MAX_FDS,
         update_spinbutton,
         TRUE,
         "spinbutton_config_ban_max_fds",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BANNED_COUNT,
         update_label,
         TRUE,
         "label_banned_count",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PROXY_PROTOCOL,
         update_multichoice,
         TRUE,
         "combo_config_proxy_protocol",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BW_ALLOW_STEALING,
         update_togglebutton,
         TRUE,
         "checkbutton_config_bw_allow_stealing",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MAX_ULTRA_HOSTS_CACHED,
         update_spinbutton,
         TRUE,
         "spinbutton_nodes_max_ultra_hosts_cached",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_HOSTS_IN_ULTRA_CATCHER,
         hosts_in_ultra_catcher_changed,
         TRUE,
         "progressbar_hosts_in_ultra_catcher",
         FREQ_SECS, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_UL_BYTE_COUNT,
         update_byte_size_entry,
         TRUE,
         "entry_ul_byte_count",
         FREQ_SECS, 1
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DL_BYTE_COUNT,
         update_byte_size_entry,
         TRUE,
         "entry_dl_byte_count",
         FREQ_SECS, 1
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DL_QUEUE_COUNT,
         update_label,
         TRUE,
         "label_dl_queue_count",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DL_QALIVE_COUNT,
         update_label,
         TRUE,
         "label_dl_qalive_count",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DL_PQUEUED_COUNT,
         update_label,
         TRUE,
         "label_dl_pqueued_count",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DL_RUNNING_COUNT,
         dl_running_count_changed,
         TRUE,
         "label_dl_running_count",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DL_ACTIVE_COUNT,
         dl_active_count_changed,
         TRUE,
         "label_dl_active_count",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DL_AQUEUED_COUNT,
         dl_aqueued_count_changed,
         TRUE,
         "label_dl_aqueued_count",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_FI_ALL_COUNT,
         update_label,
         TRUE,
         "label_fi_all_count",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_FI_WITH_SOURCE_COUNT,
         update_label,
         TRUE,
         "label_fi_with_source_count",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DL_HTTP_LATENCY,
         dl_http_latency_changed,
         TRUE,
         "label_dl_http_latency",
         FREQ_SECS, 1
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_MAX_RESULTS,
         update_spinbutton,
         TRUE,
         "spinbutton_search_max_results",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BW_GNET_LEAF_IN_ENABLED,
         bw_gnet_lin_enabled_changed,
         TRUE,
         "checkbutton_config_bws_glin",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BW_GNET_LEAF_OUT_ENABLED,
         bw_gnet_lout_enabled_changed,
         TRUE,
         "checkbutton_config_bws_glout",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BW_GNET_LIN,
         spinbutton_input_bw_changed,
         TRUE,
         "spinbutton_config_bws_glin",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_BW_GNET_LOUT,
         spinbutton_output_bw_changed,
         TRUE,
         "spinbutton_config_bws_glout",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_MAX_LEAVES,
         update_spinbutton_ultranode,
         TRUE,
         "spinbutton_config_max_leaves",
         FREQ_UPDATES, 0
-    }, 
-    {
+    ), 
+    PROP_ENTRY(
         get_main_window,
         PROP_MAX_BANNED_FD,
         update_entry,
         TRUE,
         "entry_config_max_banned_fd",
         FREQ_UPDATES, 1
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_INCOMING_CONNECTING_TIMEOUT,
         update_spinbutton,
         TRUE,
         "spinbutton_config_incoming_connecting_timeout",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_RX_FLOWC_RATIO,
         update_spinbutton,
         TRUE,
         "spinbutton_config_node_rx_flowc_ratio",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NORMAL_CONNECTIONS,
         update_spinbutton_ultranode,
         TRUE,
         "spinbutton_normal_connections",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_READING_ULTRAFILE,
         update_entry,
         TRUE,
         "entry_reading_ultrafile",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_CURRENT_IP_STAMP,
         update_entry,
         TRUE,
         "entry_current_ip_stamp",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_AVERAGE_IP_UPTIME,
         update_entry,
         TRUE,
         "entry_average_ip_uptime",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_START_STAMP,
         update_entry,
         TRUE,
         "entry_start_stamp",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_AVERAGE_SERVENT_UPTIME,
         update_entry,
         TRUE,
         "entry_average_servent_uptime",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_PROXY_CONNECTIONS,
         update_entry,
         TRUE,
         "entry_proxy_connections",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SYS_NOFILE,
         update_entry,
         TRUE,
         "entry_sys_nofile",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SYS_PHYSMEM,
         update_entry,
         TRUE,
         "entry_sys_physmem",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_CRAWLER_VISIT_COUNT,
         update_entry,
         TRUE,
         "entry_crawler_visit_count",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_CLOCK_SKEW,
         clock_skew_changed,
         TRUE,
         "label_clock_skew",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_HOST_RUNS_NTP,
         update_togglebutton,
         TRUE,
         "checkbutton_host_runs_ntp",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_MONITOR_UNSTABLE_IP,
         update_monitor_unstable_ip,
         TRUE,
         "checkbutton_gnet_monitor_ip",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_MONITOR_UNSTABLE_SERVENTS,
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_monitor_servents",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_CONFIG_TOOLBAR_STYLE,
         config_toolbar_style_changed,
         TRUE,
         "combo_config_toolbar_style",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_RESERVE_GTKG_NODES,
         update_spinbutton,
         TRUE,
         "spinbutton_config_reserve_gtkg_nodes",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_UNIQUE_NODES,
         update_spinbutton,
         TRUE,
         "spinbutton_config_unique_nodes",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_RX_SIZE,
         update_spinbutton,
         TRUE,
         "spinbutton_download_rx_size",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_NODE_RX_SIZE,
         update_spinbutton,
         TRUE,
         "spinbutton_node_rx_size",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_LIBRARY_RESCAN_TIMESTAMP,
         update_label_date,
         TRUE,
         "label_library_rescan_timestamp",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_LIBRARY_RESCAN_TIME,
         update_label,
         TRUE,
         "label_library_rescan_time",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_QRP_INDEXING_TIMESTAMP,
         update_label_date,
         TRUE,
         "label_qrp_indexing_timestamp",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_QRP_INDEXING_TIME,
         update_label,
         TRUE,
         "label_qrp_indexing_time",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_QRP_TIMESTAMP,
         update_label_date,
         TRUE,
         "label_qrp_timestamp",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_QRP_COMPUTATION_TIME,
         update_label,
         TRUE,
         "label_qrp_computation_time",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_QRP_PATCH_TIMESTAMP,
         update_label_date,
         TRUE,
         "label_qrp_patch_timestamp",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_QRP_PATCH_COMPUTATION_TIME,
         update_label,
         TRUE,
         "label_qrp_patch_computation_time",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_QRP_GENERATION,
         update_label,
         TRUE,
         "label_qrp_generation",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_QRP_SLOTS,
         update_label,
         TRUE,
         "label_qrp_slots",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_QRP_SLOTS_FILLED,
         update_label,
         TRUE,
         "label_qrp_slots_filled",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_QRP_FILL_RATIO,
         update_label,
         TRUE,
         "label_qrp_fill_ratio",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_QRP_CONFLICT_RATIO,
         update_label,
         TRUE,
         "label_qrp_conflict_ratio",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_QRP_HASHED_KEYWORDS,
         update_label,
         TRUE,
         "label_qrp_hashed_keywords",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_QRP_PATCH_RAW_LENGTH,
         update_label,
         TRUE,
         "label_qrp_patch_raw_length",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_QRP_PATCH_LENGTH,
         update_label,
         TRUE,
         "label_qrp_patch_length",
         FREQ_UPDATES, 0
-    },
-    {
+	),
+    PROP_ENTRY(
         get_main_window,
         PROP_QRP_PATCH_COMP_RATIO,
         update_label,
         TRUE,
         "label_qrp_patch_comp_ratio",
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_FILE_DESCRIPTOR_SHORTAGE,
         file_descriptor_shortage_changed,
@@ -2736,8 +2749,8 @@ static prop_map_t property_map[] = {
         "eventbox_image_fd_shortage", 
         /* need eventbox because image has no tooltip */
         FREQ_UPDATES, 0
-    },
-    {
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_FILE_DESCRIPTOR_RUNOUT,
         file_descriptor_runout_changed,
@@ -2745,18 +2758,21 @@ static prop_map_t property_map[] = {
         "eventbox_image_fd_runout", 
         /* need eventbox because image has no tooltip */
         FREQ_UPDATES, 0
-    },
+    ),
 #ifdef USE_GTK1
-    {
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_SORT_CASESENSE,
         update_togglebutton,
         TRUE,
         "checkbutton_search_sort_casesense",
         FREQ_UPDATES, 0
-    },
+    ),
 #endif
 };
+
+/* Not needed any longer */
+#undef PROP_ENTRY
 
 /***
  *** III. Simple default callbacks
@@ -5305,3 +5321,5 @@ const gchar *settings_gui_config_dir(void)
 {
 	return settings_config_dir();
 }
+
+/* vi: set ts=4: */
