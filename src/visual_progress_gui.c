@@ -156,7 +156,7 @@ void vp_draw_fi_progress(gnet_fi_t fih)
     if (fih != -1) {
 	gboolean found;
 
-	found = g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, &v);
+	found = g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, (gpointer *)&v);
 	g_assert( found );
 	g_assert( v );
 
@@ -320,7 +320,7 @@ static void vp_gui_fi_removed(gnet_fi_t fih)
     gpointer atom;
     gboolean found;
 
-    found = g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, &v);
+    found = g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, (gpointer *)&v);
     g_assert( found );
     g_assert( v );
 
@@ -361,7 +361,7 @@ static void vp_gui_fi_status_changed(gnet_fi_t fih)
      * TODO: Assuming that only the chunks will change, may not be
      * true...
      */
-    found = g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, &v);
+    found = g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, (gpointer *)&v);
     g_assert( found );
     g_assert( v );
 
