@@ -175,7 +175,7 @@ static gboolean socks_pass_changed(property_t prop);
 static gboolean traffic_stats_mode_changed(property_t prop);
 static gboolean is_firewalled_changed(property_t prop);
 static gboolean min_dup_ratio_changed(property_t prop);
-static gboolean is_inet_connected_changed(property_t prop);
+static gboolean plug_icon_changed(property_t prop);
 static gboolean show_search_results_settings_changed(property_t prop);
 static gboolean local_address_changed(property_t prop);
 static gboolean force_local_ip_changed(property_t prop);
@@ -799,13 +799,6 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
-        PROP_READING_HOSTFILE,
-        reading_hostfile_changed,
-        TRUE,
-        NULL,
-    },
-    {
-        get_main_window,
         PROP_ANCIENT_VERSION,
         ancient_version_changed,
         TRUE,
@@ -866,6 +859,13 @@ static prop_map_t property_map[] = {
         hosts_in_catcher_changed,
         TRUE,
         "progressbar_hosts_in_catcher"
+    },
+    {
+        get_main_window,
+        PROP_READING_HOSTFILE,
+        reading_hostfile_changed,
+        TRUE,
+        NULL,
     },
     {
         get_main_window,
@@ -1185,9 +1185,16 @@ static prop_map_t property_map[] = {
     {
         NULL,
         PROP_IS_INET_CONNECTED,
-        is_inet_connected_changed,
+        plug_icon_changed,
         TRUE,
         NULL
+    },
+    {
+        get_main_window,
+        PROP_ONLINE_MODE,
+        plug_icon_changed,
+        TRUE,
+        "togglebutton_online"
     },
     {
         get_main_window,
@@ -1279,13 +1286,6 @@ static prop_map_t property_map[] = {
         sha1_rebuilding_changed,
         TRUE,
         "eventbox_image_sha" /* need eventbox because image has no tooltip */
-    },
-    {
-        get_main_window,
-        PROP_ONLINE_MODE,
-        update_togglebutton,
-        TRUE,
-        "togglebutton_online"
     },
     {
         get_main_window,
@@ -1778,24 +1778,30 @@ static gboolean is_firewalled_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean is_inet_connected_changed(property_t prop)
+static gboolean plug_icon_changed(property_t prop)
 {
 	GtkWidget *image_online;
 	GtkWidget *image_offline;
-	gboolean val;
+	GtkWidget *tb;
+	gboolean val_is_connected;
+	gboolean val_online_mode;
 
     image_online = lookup_widget(main_window, "image_online");
 	image_offline = lookup_widget(main_window, "image_offline");
+	tb = lookup_widget(main_window, "togglebutton_online");
 
-    gnet_prop_get_boolean(prop, &val, 0, 1);
+    gnet_prop_get_boolean(PROP_IS_INET_CONNECTED, &val_is_connected, 0, 1);
+    gnet_prop_get_boolean(PROP_ONLINE_MODE, &val_online_mode, 0, 1);
 	
-	if (val) {
+	if (val_is_connected && val_online_mode) {
 		gtk_widget_show(image_online);
 		gtk_widget_hide(image_offline);
 	} else {
 		gtk_widget_hide(image_online);
 		gtk_widget_show(image_offline);
 	}
+	
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), val_online_mode);
 
 	return FALSE;
 }
@@ -1820,13 +1826,14 @@ static gboolean reading_hostfile_changed(property_t prop)
     static statusbar_msgid_t id = {0, 0};
 
     gnet_prop_get_boolean(PROP_READING_HOSTFILE, &state, 0, 1);
-
+    
     if (state) {
         GtkProgressBar *pg = GTK_PROGRESS_BAR
             (lookup_widget(main_window, "progressbar_hosts_in_catcher"));
-        id = statusbar_gui_message(0, "Reading host cache...");
         gtk_progress_bar_set_text(pg, "loading...");
+        id = statusbar_gui_message(0, "Reading host cache...");
     } else {
+    	hosts_in_catcher_changed(PROP_HOSTS_IN_CATCHER);
        	statusbar_gui_remove(id);
     }
     return FALSE;
