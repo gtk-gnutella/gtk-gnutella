@@ -144,7 +144,7 @@ void on_clist_gnet_stats_general_resize_column(
 
 static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
 {
-    selected_type = (gint) data;
+    selected_type = GPOINTER_TO_INT(data);
     gnet_stats_gui_update();
 }
 
@@ -304,7 +304,7 @@ void gnet_stats_gui_init(void)
         gtk_signal_connect(
             GTK_OBJECT(list_item), "select",
             GTK_SIGNAL_FUNC(on_gnet_stats_type_selected),
-            (gpointer) n);
+            GINT_TO_POINTER(n));
 
         l = g_list_prepend(NULL, (gpointer) list_item);
         gtk_list_append_items(GTK_LIST(GTK_COMBO(combo_types)->list), l);

@@ -201,7 +201,7 @@ static gboolean search_already_sent_to_node(
 	struct sent_node_data sd;
 	sd.ip = n->ip;
 	sd.port = n->port;
-	return (gboolean) g_hash_table_lookup(sch->sent_nodes, &sd);
+	return GPOINTER_TO_INT(g_hash_table_lookup(sch->sent_nodes, &sd));
 }
 
 /*
@@ -1090,7 +1090,7 @@ gboolean search_results(gnutella_node_t *n)
 			(sch->passive || search_has_muid(sch, n->header.muid))
         ) {
 			selected_searches = g_slist_prepend
-                (selected_searches, (gpointer) sch->search_handle);
+                (selected_searches, GUINT_TO_POINTER(sch->search_handle));
         }
 	}
 

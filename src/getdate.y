@@ -826,7 +826,7 @@ static int LookupWord(char *buff)
 	}
 
     /* Military timezones. */
-    if (buff[1] == '\0' && ISALPHA(*buff)) {
+    if (buff[1] == '\0' && ISALPHA((unsigned char) *buff)) {
 	for (tp = MilitaryTable; tp->name; tp++)
 	    if (strcmp(buff, tp->name) == 0) {
 		yylval.Number = tp->value;

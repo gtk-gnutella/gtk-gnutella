@@ -84,7 +84,7 @@ static void search_stats_tally(const word_vec_t * vec);
 
 static void on_search_stats_type_selected(GtkItem *i, gpointer data)
 {
-    guint32 val = (guint32) data;
+    guint32 val = GPOINTER_TO_UINT(data);
 
     gui_prop_set_guint32(PROP_SEARCH_STATS_MODE, &val, 0, 1);
 }
@@ -341,7 +341,7 @@ void search_stats_gui_init(void)
         gtk_signal_connect(
             GTK_OBJECT(list_item), "select",
             GTK_SIGNAL_FUNC(on_search_stats_type_selected),
-            (gpointer) n);
+            GINT_TO_POINTER(n));
 
         l = g_list_prepend(NULL, (gpointer) list_item);
         gtk_list_append_items(GTK_LIST(GTK_COMBO(combo_types)->list), l);

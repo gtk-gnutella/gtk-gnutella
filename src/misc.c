@@ -636,7 +636,7 @@ done:
 void strlower(gchar *dst, gchar *src)
 {
 	do {
-		*dst++ = tolower(*src);
+		*dst++ = tolower((guchar) *src);
 	} while (*src++);
 }
 

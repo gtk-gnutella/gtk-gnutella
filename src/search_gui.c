@@ -1098,15 +1098,16 @@ static void download_selection_of_clist(GtkCList * c)
          l = c->selection) {
 
         /* make it visibile that we already selected this for download */
-		gtk_clist_set_foreground
-            (c, (gint) l->data, 
-			 &gtk_widget_get_style(GTK_WIDGET(c))->fg[GTK_STATE_ACTIVE]);
+		gtk_clist_set_foreground(
+			c, GPOINTER_TO_INT(l->data), 
+			&gtk_widget_get_style(GTK_WIDGET(c))->fg[GTK_STATE_ACTIVE]);
 
-		rc = (struct record *) gtk_clist_get_row_data(c, (gint) l->data);
+		rc = (struct record *)
+			gtk_clist_get_row_data(c, GPOINTER_TO_INT(l->data));
         
         if (!rc) {
 			g_warning("download_selection_of_clist(): row %d has NULL data\n",
-			          (gint) l->data);
+			          GPOINTER_TO_INT(l->data));
 		    continue;
         }
 
@@ -1192,7 +1193,8 @@ void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
         printf("got incoming results...\n");
 
     for (l = schl; l != NULL; l = g_slist_next(l))
-        search_matched(find_search((gnet_search_t)l->data), rs);
+        search_matched(
+			find_search((gnet_search_t) GPOINTER_TO_UINT(l->data)), rs);
 
    	/*
 	 * Some of the records might have not been used by searches, and need
@@ -1219,7 +1221,8 @@ void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
      */
 	if (rs->num_recs == 0) {
 		for (l = schl; l; l = l->next) {
-			search_t *sch = find_search((gnet_search_t) l->data);
+			search_t *sch =
+				find_search((gnet_search_t) GPOINTER_TO_UINT(l->data));
 			search_remove_r_set(sch, rs);
 		}
 	}

@@ -325,7 +325,7 @@ zone_t *zget(gint size, gint hint)
 		size = sizeof(gchar *);
 	size = zalloc_round(size);
 	
-	zone = (zone_t *) g_hash_table_lookup(zt, (gpointer) size);
+	zone = (zone_t *) g_hash_table_lookup(zt, GINT_TO_POINTER(size));
 
 	if (zone) {
 		if (zone->zn_hint < hint)
@@ -347,7 +347,7 @@ zone_t *zget(gint size, gint hint)
 	 * time!
 	 */
 
-	g_hash_table_insert(zt, (gpointer) size, zone);
+	g_hash_table_insert(zt, GINT_TO_POINTER(size), zone);
 
 	return zone;
 }

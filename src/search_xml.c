@@ -515,10 +515,10 @@ static void rule_to_xml(xmlNodePtr parent, rule_t *r)
     case RULE_SIZE:
         newxml = xmlNewChild(parent, NULL, NODE_RULE_SIZE, NULL);
         
-        g_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.size.lower);
+        g_snprintf(x_tmp, sizeof(x_tmp), "%lu", (gulong) r->u.size.lower);
         xmlSetProp(newxml, TAG_RULE_SIZE_LOWER, x_tmp);
 
-        g_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.size.upper);
+        g_snprintf(x_tmp, sizeof(x_tmp), "%lu", (gulong) r->u.size.upper);
         xmlSetProp(newxml, TAG_RULE_SIZE_UPPER, x_tmp);
         break;
     case RULE_JUMP:

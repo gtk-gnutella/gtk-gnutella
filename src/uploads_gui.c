@@ -453,7 +453,7 @@ void uploads_gui_update_display(time_t now)
                 uploads_gui_status_str(&status, data));
         } else {
             if (clear_uploads && (now - data->last_update > REMOVE_DELAY))
-                to_remove = g_slist_prepend(to_remove, (gpointer)row);
+                to_remove = g_slist_prepend(to_remove, GINT_TO_POINTER(row));
 			else
 				all_removed = FALSE;	/* Not removing all "expired" ones */
         }
@@ -461,7 +461,7 @@ void uploads_gui_update_display(time_t now)
 
     if (clear_uploads) {
         for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
-            gtk_clist_remove(clist, (gint)sl->data);
+            gtk_clist_remove(clist, GPOINTER_TO_INT(sl->data));
 
         g_slist_free(to_remove);
     }
@@ -488,7 +488,7 @@ static gboolean uploads_clear_helper(gpointer user_data) {
             ((GtkCListRow *) l->data)->data;
 
         if (!rd->valid)
-            to_remove = g_slist_prepend(to_remove, (gpointer) row);
+            to_remove = g_slist_prepend(to_remove, GINT_TO_POINTER(row));
         
         row ++;
 		if (row > uploads_rows_done) { 
@@ -499,7 +499,7 @@ static gboolean uploads_clear_helper(gpointer user_data) {
     }
 
     for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
-        gtk_clist_remove(clist, (gint)sl->data);
+        gtk_clist_remove(clist, GPOINTER_TO_INT(sl->data));
     
     g_slist_free(to_remove);
     gtk_clist_thaw(clist);

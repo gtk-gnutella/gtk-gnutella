@@ -68,8 +68,10 @@ void on_popup_monitor_add_search_activate
         l != NULL; 
         l = GTK_CLIST(clist_monitor)->selection 
     ) {		
-        gtk_clist_get_text(GTK_CLIST(clist_monitor), (gint) l->data, 0, titles);
-        gtk_clist_unselect_row(GTK_CLIST(clist_monitor), (gint) l->data, 0);
+        gtk_clist_get_text(GTK_CLIST(clist_monitor), GPOINTER_TO_INT(l->data),
+			0, titles);
+        gtk_clist_unselect_row(GTK_CLIST(clist_monitor),
+			GPOINTER_TO_INT(l->data), 0);
      
 		e = g_strdup(titles[0]);
 

@@ -65,7 +65,8 @@ void on_ctree_menu_tree_select_row
 {
     gint tab;
 
-    tab = (gint) gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));
+    tab = GPOINTER_TO_INT(
+		gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node)));
 
 	gtk_notebook_set_page
         (GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")), tab);

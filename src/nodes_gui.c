@@ -204,7 +204,7 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n)
 
     g_assert(n != NULL);
 
-	row = gtk_clist_find_row_from_data(clist, (gpointer) n->node_handle);
+	row = gtk_clist_find_row_from_data(clist, GUINT_TO_POINTER(n->node_handle));
 
     if (row != -1) {
         gnet_node_status_t status;
@@ -293,7 +293,8 @@ void nodes_gui_remove_node(gnet_node_t n)
 
     clist_nodes = lookup_widget(main_window, "clist_nodes");
 
-	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_nodes), (gpointer) n);
+	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_nodes),
+		GUINT_TO_POINTER(n));
     if (row != -1)
         gtk_clist_remove(GTK_CLIST(clist_nodes), row);
     else 
@@ -328,7 +329,7 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
     clist_nodes = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
 
     row = gtk_clist_append(clist_nodes, titles);
-    gtk_clist_set_row_data(clist_nodes, row, (gpointer) n->node_handle);
+    gtk_clist_set_row_data(clist_nodes, row, GUINT_TO_POINTER(n->node_handle));
     
     g_free(titles[1]);
 }
@@ -365,7 +366,8 @@ void nodes_gui_update_nodes_display(time_t now)
     gtk_clist_freeze(clist);
 
 	for (l = clist->row_list, row = 0; l; l = l->next, row++) {
-		gnet_node_t n = (gnet_node_t) ((GtkCListRow *) l->data)->data;
+		gnet_node_t n =
+			(gnet_node_t) GPOINTER_TO_UINT(((GtkCListRow *) l->data)->data);
 
         node_get_status(n, &status);
 

@@ -49,7 +49,7 @@ static gint gtk_column_chooser_get_column(GtkColumnChooser * cc,
     g_assert(widget != NULL);
     g_assert(cc != NULL);
 
-    return (gint) g_hash_table_lookup(cc->col_map, widget);
+    return GPOINTER_TO_INT(g_hash_table_lookup(cc->col_map, widget));
 }
 
 static void on_column_popup_toggled(GtkCheckMenuItem * checkmenuitem,
@@ -79,7 +79,7 @@ static void on_column_popup_activate(GtkCheckMenuItem * checkmenuitem,
 GtkWidget * gtk_column_chooser_new(GtkCList * list)
 {
     GtkColumnChooser * cc;
-    int i;
+    gint i;
     GtkMenu * menu;
     GtkWidget * menuitem;
 
@@ -110,7 +110,7 @@ GtkWidget * gtk_column_chooser_new(GtkCList * list)
         gtk_menu_append(menu, menuitem);
 
         /* map the menu item to the corresponding column */
-        g_hash_table_insert(cc->col_map, menuitem, (gpointer) i);
+        g_hash_table_insert(cc->col_map, menuitem, GINT_TO_POINTER(i));
     }
 
     /* 

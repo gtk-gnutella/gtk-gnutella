@@ -424,7 +424,7 @@ struct shared_file *shared_file_by_name(gchar *basename)
 
 	g_assert(file_basenames);
 
-	idx = (guint) g_hash_table_lookup(file_basenames, basename);
+	idx = GPOINTER_TO_UINT(g_hash_table_lookup(file_basenames, basename));
 
 	if (idx == 0 || idx == FILENAME_CLASH)
 		return NULL;
@@ -791,14 +791,16 @@ void share_scan(void)
 		 *		--RAM, 06/06/2002
 		 */
 
-		val = (guint) g_hash_table_lookup(file_basenames, sf->file_name);
+		val = GPOINTER_TO_UINT(
+			g_hash_table_lookup(file_basenames, sf->file_name));
 
 		/*
 		 * The following works because 0 cannot be a valid file index.
 		 */
 
 		val = (val != 0) ? FILENAME_CLASH : sf->file_index;
-		g_hash_table_insert(file_basenames, sf->file_name, (gpointer) val);
+		g_hash_table_insert(file_basenames, sf->file_name,
+			GUINT_TO_POINTER(val));
 
 		if (0 == (i & 0x7ff))
 			gtk_main_flush();

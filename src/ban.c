@@ -126,12 +126,13 @@ static void ipf_destroy(cqueue_t *cq, gpointer obj)
 
 	g_assert(ipf);
 	g_assert(!ipf->banned);
-	g_assert((gpointer) ipf == g_hash_table_lookup(info, (gpointer) ipf->ip));
+	g_assert(
+		(gpointer) ipf == g_hash_table_lookup(info, GUINT_TO_POINTER(ipf->ip)));
 
 	if (dbg > 8)
 		printf("disposing of BAN %s\n", ip_to_gchar(ipf->ip));
 
-	g_hash_table_remove(info, (gpointer) ipf->ip);
+	g_hash_table_remove(info, GUINT_TO_POINTER(ipf->ip));
 	ipf->cq_ev = NULL;
 	ipf_free(ipf);
 }
@@ -149,7 +150,8 @@ static void ipf_unban(cqueue_t *cq, gpointer obj)
 
 	g_assert(ipf);
 	g_assert(ipf->banned);
-	g_assert((gpointer) ipf == g_hash_table_lookup(info, (gpointer) ipf->ip));
+	g_assert(
+		(gpointer) ipf == g_hash_table_lookup(info, GUINT_TO_POINTER(ipf->ip)));
 
 	/*
 	 * Decay counter by measuring the amount of seconds since last connection
@@ -179,7 +181,7 @@ static void ipf_unban(cqueue_t *cq, gpointer obj)
 		if (dbg > 8)
 			printf("disposing of BAN %s\n", ip_to_gchar(ipf->ip));
 
-		g_hash_table_remove(info, (gpointer) ipf->ip);
+		g_hash_table_remove(info, GUINT_TO_POINTER(ipf->ip));
 		ipf->cq_ev = NULL;
 		ipf_free(ipf);
 		return;
@@ -205,7 +207,7 @@ gint ban_allow(guint32 ip)
 	struct ip_info *ipf;
 	time_t now = time((time_t *) NULL);
 
-	ipf = (struct ip_info *) g_hash_table_lookup(info, (gpointer) ip);
+	ipf = (struct ip_info *) g_hash_table_lookup(info, GUINT_TO_POINTER(ip));
 
 	/*
 	 * First time we see this IP?  It's OK then.
@@ -213,7 +215,7 @@ gint ban_allow(guint32 ip)
 
 	if (ipf == NULL) {
 		ipf = ipf_make(ip, now);
-		g_hash_table_insert(info, (gpointer) ip, ipf);
+		g_hash_table_insert(info, GUINT_TO_POINTER(ip), ipf);
 		return BAN_OK;
 	}
 
@@ -316,10 +318,10 @@ void ban_force(struct gnutella_socket *s)
 		g_assert(banned_tail);
 		g_assert(prev);
 
-		(void) close((gint) banned_tail->data);		/* Reclaim fd */
+		(void) close(GPOINTER_TO_INT(banned_tail->data));	/* Reclaim fd */
 
 		if (dbg > 9)
-			printf("closed BAN fd #%d\n", (gint) banned_tail->data);
+			printf("closed BAN fd #%d\n", GPOINTER_TO_INT(banned_tail->data));
 
 		banned_head = g_list_remove_link(banned_head, banned_tail);
 		g_list_free_1(banned_tail);
@@ -340,7 +342,7 @@ void ban_force(struct gnutella_socket *s)
 	 * Insert banned fd in the list.
 	 */
 
-	banned_head = g_list_prepend(banned_head, (gpointer) fd);
+	banned_head = g_list_prepend(banned_head, GINT_TO_POINTER(fd));
 	if (banned_tail == NULL)
 		banned_tail = banned_head;
 }
@@ -354,7 +356,7 @@ gint ban_delay(guint32 ip)
 {
 	struct ip_info *ipf;
 
-	ipf = (struct ip_info *) g_hash_table_lookup(info, (gpointer) ip);
+	ipf = (struct ip_info *) g_hash_table_lookup(info, GUINT_TO_POINTER(ip));
 	g_assert(ipf);
 
 	return ipf->ban_delay;
@@ -400,7 +402,7 @@ void ban_close(void)
 	g_hash_table_destroy(info);
 
 	for (l = banned_head; l; l = l->next)
-		(void) close((gint) l->data);		/* Reclaim fd */
+		(void) close(GPOINTER_TO_INT(l->data));		/* Reclaim fd */
 
 	g_list_free(banned_head);
 	zdestroy(ipf_zone);

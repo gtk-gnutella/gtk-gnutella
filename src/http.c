@@ -865,7 +865,7 @@ void http_async_cancel(gpointer handle)
  */
 void http_async_error(gpointer handle, gint code)
 {
-	http_async_remove(handle, HTTP_ASYNC_ERROR, (gpointer) code);
+	http_async_remove(handle, HTTP_ASYNC_ERROR, GINT_TO_POINTER(code));
 }
 
 /*
@@ -875,7 +875,7 @@ void http_async_error(gpointer handle, gint code)
  */
 static void http_async_syserr(gpointer handle, gint code)
 {
-	http_async_remove(handle, HTTP_ASYNC_SYSERR, (gpointer) code);
+	http_async_remove(handle, HTTP_ASYNC_SYSERR, GINT_TO_POINTER(code));
 }
 
 /*
@@ -885,7 +885,7 @@ static void http_async_syserr(gpointer handle, gint code)
  */
 static void http_async_headerr(gpointer handle, gint code)
 {
-	http_async_remove(handle, HTTP_ASYNC_HEADER, (gpointer) code);
+	http_async_remove(handle, HTTP_ASYNC_HEADER, GINT_TO_POINTER(code));
 }
 
 /*
@@ -1433,7 +1433,7 @@ void http_async_log_error(gpointer handle, http_errtype_t type, gpointer v)
 {
 	gchar *url;
 	gchar *req;
-	gint error = (gint) v;
+	gint error = GPOINTER_TO_INT(v);
 	http_error_t *herror = (http_error_t *) v;
 
 	url = http_async_info(handle, &req, NULL, NULL, NULL);

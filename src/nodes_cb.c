@@ -83,7 +83,7 @@ void on_clist_nodes_select_row
 void on_clist_nodes_unselect_row
     (GtkCList *clist, gint row, gint col, GdkEvent *event, gpointer user_data)
 {
-    gboolean sensitive = (gboolean) clist->selection;
+    gboolean sensitive = (gboolean) GPOINTER_TO_INT(clist->selection);
 	gtk_widget_set_sensitive
         (lookup_widget(main_window, "button_nodes_remove"), sensitive);
     gtk_widget_set_sensitive

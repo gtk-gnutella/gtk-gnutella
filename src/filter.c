@@ -410,8 +410,8 @@ void filter_close_dialog(gboolean commit)
 {
     if (commit) {
         filter_apply_changes();
-        filter_default_policy = (gint) option_menu_get_selected_data
-            (lookup_widget(filter_dialog, "optionmenu_filter_default_policy"));
+        filter_default_policy = GPOINTER_TO_INT(option_menu_get_selected_data
+            (lookup_widget(filter_dialog, "optionmenu_filter_default_policy")));
     } else
         filter_revert_changes();
 
@@ -2156,7 +2156,7 @@ static int filter_apply
                     res->props[FILTER_PROP_DISPLAY].state =
                         FILTER_PROP_STATE_DONT;
                     res->props[FILTER_PROP_DISPLAY].user_data =
-                        (gpointer) (RULE_IS_SOFT(r) ? 1 : 0);
+                        GINT_TO_POINTER(RULE_IS_SOFT(r) ? 1 : 0);
 
                     MATCH_RULE(filter, r, res);
                 }

@@ -380,12 +380,12 @@ void gui_update_download_abort_resume(void)
 
 	for (l = clist_downloads->selection; l; l = l->next) {
 		d = (struct download *)
-			gtk_clist_get_row_data(clist_downloads, (gint) l->data);
+			gtk_clist_get_row_data(clist_downloads, GPOINTER_TO_INT(l->data));
 
         if (!d) {
 			g_warning
 				("gui_update_download_abort_resume(): row %d has NULL data\n",
-				 (gint) l->data);
+				 GPOINTER_TO_INT(l->data));
 			continue;
 		}
 

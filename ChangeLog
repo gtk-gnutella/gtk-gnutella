@@ -1,5 +1,9 @@
 # since last version
 
+- (2002.12.05 - cbiere)
+ * Cleanup for 64-bit architectures; replaced non-portable casts by
+   GINT_TO_POINTER() et al.
+
 - (2002.11.30 - RAM)
  * Was passing 'len' as a macro argument, which was then copying this into
    a local variable called 'len' => was getting garbage into that value.

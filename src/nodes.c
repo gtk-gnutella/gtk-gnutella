@@ -3260,7 +3260,7 @@ void node_remove_nodes_by_handle(GSList *node_list)
     for (l = node_list; l != NULL; l = g_slist_next(l)) {
         gnet_node_t node;
 
-        node = (gnet_node_t) l->data;
+        node = (gnet_node_t) GPOINTER_TO_UINT(l->data);
 
         node_remove_by_handle(node);
     }

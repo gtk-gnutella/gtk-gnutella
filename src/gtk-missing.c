@@ -269,7 +269,7 @@ GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
         gpointer data;
         gint row;
          
-        row = (gint) l->data;
+        row = GPOINTER_TO_INT(l->data);
         data = gtk_clist_get_row_data(clist, row);
  
         if ((data != NULL) || allow_null) {
@@ -279,12 +279,13 @@ GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
                     if (gui_debug >= 3)
                         printf("%s has duplicate data: %p\n",
                             (name != NULL) ? name : "<UNKNOWN>", data);
-                    to_unselect = g_slist_prepend(to_unselect, (gpointer) row);
+                    to_unselect =
+						g_slist_prepend(to_unselect, GINT_TO_POINTER(row));
                     continue;
                 }
             }
             result_list = g_slist_prepend(result_list, data);
-            to_unselect = g_slist_prepend(to_unselect, (gpointer) row);
+            to_unselect = g_slist_prepend(to_unselect, GINT_TO_POINTER(row));
         } else {
             const gchar *name = gtk_widget_get_name(GTK_WIDGET(clist));
             if (gui_debug >= 3)
@@ -297,7 +298,7 @@ GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
      * Unselect the rows from which data has been sucessfully gathered.
      */
     for (sl = to_unselect; sl != NULL; sl = g_slist_next(sl))
-        gtk_clist_unselect_row(clist, (gint) sl->data, 0);
+        gtk_clist_unselect_row(clist, GPOINTER_TO_INT(sl->data), 0);
 
     g_slist_free(to_unselect);
 

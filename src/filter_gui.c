@@ -807,7 +807,7 @@ void filter_gui_set_default_policy(gint pol)
 
     option_menu_select_item_by_data(
         lookup_widget(filter_dialog, "optionmenu_filter_default_policy"), 
-        (gpointer) pol);
+        GINT_TO_POINTER(pol));
 }
 
 

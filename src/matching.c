@@ -148,7 +148,8 @@ guint query_make_word_vec(guchar *query, word_vec_t **wovec)
 			 * If word already seen in query, it's in the seen_word table.
 			 * The associated value is the index in the vector plus 1.
 			 */
-			np1 = (guint) g_hash_table_lookup(seen_word, (gconstpointer) start);
+			np1 = GPOINTER_TO_UINT(
+				g_hash_table_lookup(seen_word, (gconstpointer) start));
 			if (np1--) {
 				wv[np1].amount++;
 				wv[np1].len = query - start;
@@ -165,7 +166,8 @@ guint query_make_word_vec(guchar *query, word_vec_t **wovec)
 				entry->word = g_strdup(start);
 				entry->len = query - start;
 				entry->amount = 1;
-				g_hash_table_insert(seen_word, entry->word, (gpointer) n);
+				g_hash_table_insert(seen_word, entry->word,
+					GUINT_TO_POINTER(n));
 			}
 			*query = c;
 			start = NULL;
@@ -562,10 +564,11 @@ void st_insert_item(search_table_t *table, guchar *string, void *data)
 		gint key = st_key(table, string + i);
 
 		/* don't insert item into same bin twice */
-		if (g_hash_table_lookup(seen_keys, (gconstpointer) key))
+		if (g_hash_table_lookup(seen_keys, (gconstpointer)GINT_TO_POINTER(key)))
 			continue;
 
-		g_hash_table_insert(seen_keys, (gpointer) key, (gpointer) 1);
+		g_hash_table_insert(seen_keys, GINT_TO_POINTER(key),
+			GINT_TO_POINTER(1));
 
 		g_assert(key < table->nbins);
 		if (table->bins[key] == NULL)

@@ -526,7 +526,7 @@ gboolean download_server_nopush(guchar *guid, guint32 ip, guint16 port)
  */
 static guint count_running_downloads_with_name(const char *name)
 {
-	return (guint) g_hash_table_lookup(dl_count_by_name, name);
+	return GPOINTER_TO_UINT(g_hash_table_lookup(dl_count_by_name, name));
 }
 
 /*
@@ -538,8 +538,9 @@ static void downloads_with_name_inc(const gchar *name)
 {
 	guint val;
 
-	val = (guint) g_hash_table_lookup(dl_count_by_name, name);
-	g_hash_table_insert(dl_count_by_name, (gchar *) name, (gpointer) (val + 1));
+	val = GPOINTER_TO_UINT(g_hash_table_lookup(dl_count_by_name, name));
+	g_hash_table_insert(dl_count_by_name, (gchar *) name,
+		GUINT_TO_POINTER(val + 1));
 }
 
 /*
@@ -551,13 +552,13 @@ static void downloads_with_name_dec(const gchar *name)
 {
 	guint val;
 
-	val = (guint) g_hash_table_lookup(dl_count_by_name, name);
+	val = GPOINTER_TO_UINT(g_hash_table_lookup(dl_count_by_name, name));
 
 	g_assert(val);		/* Cannot decrement something not present */
 
 	if (val > 1)
 		g_hash_table_insert(dl_count_by_name,
-			(gchar *) name, (gpointer) (val - 1));
+			(gchar *) name, GUINT_TO_POINTER(val - 1));
 	else
 		g_hash_table_remove(dl_count_by_name, name);
 }

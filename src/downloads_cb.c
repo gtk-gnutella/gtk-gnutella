@@ -104,13 +104,13 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
 	for (l = clist_downloads->selection; l; l = clist_downloads->selection ) {
         // FIXME: SLOW O(n*n)
 		d = (struct download *) 
-            gtk_clist_get_row_data(clist_downloads, (gint) l->data);
-        gtk_clist_unselect_row(clist_downloads, (gint) l->data, 0);
+            gtk_clist_get_row_data(clist_downloads, GPOINTER_TO_INT(l->data));
+        gtk_clist_unselect_row(clist_downloads, GPOINTER_TO_INT(l->data), 0);
      
         if (!d) {
 			g_warning(
                 "on_popup_downloads_push_activate(): row %d has NULL data\n",
-			    (gint) l->data);
+			    GPOINTER_TO_INT(l->data));
 		    continue;
         }
      	download_fallback_to_push(d, FALSE, TRUE);
@@ -136,14 +136,14 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
 	for (l = clist_downloads->selection; l; l = clist_downloads->selection ) {
         // FIXME: SLOW O(n*n)
 		d = (struct download *) 
-			gtk_clist_get_row_data(clist_downloads, (gint) l->data);
-		gtk_clist_unselect_row(clist_downloads, (gint) l->data, 0);
+			gtk_clist_get_row_data(clist_downloads, GPOINTER_TO_INT(l->data));
+		gtk_clist_unselect_row(clist_downloads, GPOINTER_TO_INT(l->data), 0);
      
 		if (!d) {
 			g_warning(
                 "on_popup_downloads_abort_named_activate():"
                 " row %d has NULL data\n",
-				(gint) l->data);
+				GPOINTER_TO_INT(l->data));
 			continue;
 		}
 		removed += download_remove_all_named(d->file_name);
@@ -172,14 +172,14 @@ void on_popup_downloads_abort_host_activate
 	for (l = clist_downloads->selection; l; l = clist_downloads->selection ) {
      
 		d = (struct download *) 
-			gtk_clist_get_row_data(clist_downloads, (gint) l->data);
-		gtk_clist_unselect_row(clist_downloads, (gint) l->data, 0);
+			gtk_clist_get_row_data(clist_downloads, GPOINTER_TO_INT(l->data));
+		gtk_clist_unselect_row(clist_downloads, GPOINTER_TO_INT(l->data), 0);
      
 		if (!d) {
 			g_warning(
                 "on_popup_downloads_abort_host_activate():" 
                 " row %d has NULL data\n",
-				(gint) l->data);
+				GPOINTER_TO_INT(l->data));
 			continue;
 		}
 		removed += download_remove_all_from_peer(
@@ -210,14 +210,13 @@ void on_popup_downloads_abort_sha1_activate
 	for (l = clist_downloads->selection; l; l = clist_downloads->selection ) {
      
 		d = (struct download *) 
-			gtk_clist_get_row_data(clist_downloads, (gint) l->data);
-		gtk_clist_unselect_row(clist_downloads, (gint) l->data, 0);
+			gtk_clist_get_row_data(clist_downloads, GPOINTER_TO_INT(l->data));
+		gtk_clist_unselect_row(clist_downloads, GPOINTER_TO_INT(l->data), 0);
      
 		if (!d) {
 			g_warning(
                 "on_popup_downloads_abort_sha1_activate():"
-                " row %d has NULL data\n",
-					  (gint) l->data);
+                " row %d has NULL data\n", GPOINTER_TO_INT(l->data));
 			continue;
 		}
 
@@ -244,14 +243,14 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
 	for (l = clist_downloads->selection; l; l = clist_downloads->selection ) {
      
 		d = (struct download *) 
-			gtk_clist_get_row_data(clist_downloads, (gint) l->data);
-		gtk_clist_unselect_row(clist_downloads, (gint) l->data, 0);
+			gtk_clist_get_row_data(clist_downloads, GPOINTER_TO_INT(l->data));
+		gtk_clist_unselect_row(clist_downloads, GPOINTER_TO_INT(l->data), 0);
      
 		if (!d) {
 			g_warning(
                 "on_popup_downloads_remove_file_activate():" 
                 " row %d has NULL data\n",
-				(gint) l->data);
+				GPOINTER_TO_INT(l->data));
 			continue;
 		}
         
@@ -279,13 +278,14 @@ void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
   
         d = (struct download *) 
             gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
-                                   (gint) l->data);
-        gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
+                                   GPOINTER_TO_INT(l->data));
+        gtk_clist_unselect_row(GTK_CLIST(clist_downloads),
+			GPOINTER_TO_INT(l->data), 0);
      
         if (!d) {
             g_warning
                 ("on_popup_downloads_queue_activate(): row %d has NULL data\n",
-                 (gint) l->data);
+                 GPOINTER_TO_INT(l->data));
             continue;
         }
         download_requeue(d);
@@ -314,11 +314,11 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
                                 GDK_CURRENT_TIME)){  
        	d = (struct download *) 
             gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
-                               (gint) l->data);
+                               GPOINTER_TO_INT(l->data));
 
         if (!d) {
            	g_warning("on_popup_downloads_copy_url(): row %d has NULL data\n",
-			          (gint) l->data);
+			          GPOINTER_TO_INT(l->data));
 		    return;
         }
 
@@ -372,16 +372,17 @@ void on_popup_downloads_connect_activate(GtkMenuItem * menuitem,
 
    	d = (struct download *) 
     gtk_clist_get_row_data(GTK_CLIST(clist_downloads), 
-        (gint) l->data);
+        GPOINTER_TO_INT(l->data));
 
     if (!d) {
     	g_warning("on_popup_downloads_connect_activate():" 
             "row %d has NULL data\n",
-            (gint) l->data);
+            GPOINTER_TO_INT(l->data));
 	    return;
     }
 
-    gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
+    gtk_clist_unselect_row(GTK_CLIST(clist_downloads),
+		GPOINTER_TO_INT(l->data), 0);
     node_add(download_ip(d), download_port(d));
 }
 
@@ -405,12 +406,14 @@ void on_popup_queue_start_now_activate(GtkMenuItem * menuitem,
 
 		d = (struct download *) 
 			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
-                                   (gint) l->data);
-        gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
+                                   GPOINTER_TO_INT(l->data));
+        gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue),
+			GPOINTER_TO_INT(l->data), 0);
      
         if (!d) {
-			g_warning("on_popup_queue_start_now_activate(): row %d has NULL data\n",
-			          (gint) l->data);
+			g_warning(
+				"on_popup_queue_start_now_activate(): row %d has NULL data\n",
+				GPOINTER_TO_INT(l->data));
 		    continue;
         }
 		if (d->status == GTA_DL_QUEUED)
@@ -434,12 +437,14 @@ void on_popup_queue_abort_activate(GtkMenuItem * menuitem,
          l = GTK_CLIST(clist_downloads_queue)->selection ) {		
 		d = (struct download *) 
 			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
-                                   (gint) l->data);
-        gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
+                                   GPOINTER_TO_INT(l->data));
+        gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue),
+			GPOINTER_TO_INT(l->data), 0);
      
         if (!d) {
-			g_warning("on_popup_downloads_queue_remove(): row %d has NULL data\n",
-			          (gint) l->data);
+			g_warning(
+				"on_popup_downloads_queue_remove(): row %d has NULL data\n",
+				GPOINTER_TO_INT(l->data));
 		    continue;
         }
 		if (d->status == GTA_DL_QUEUED)
@@ -469,13 +474,13 @@ void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
      
 		d = (struct download *) 
 			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
-								   (gint) l->data);
-		gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
+								   GPOINTER_TO_INT(l->data));
+		gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue),
+			GPOINTER_TO_INT(l->data), 0);
      
 		if (!d) {
 			g_warning("on_popup_queue_abort_named_activate(): "
-				"row %d has NULL data\n",
-					  (gint) l->data);
+				"row %d has NULL data\n", GPOINTER_TO_INT(l->data));
 			continue;
 		}
 		removed += download_remove_all_named(d->file_name);
@@ -506,12 +511,14 @@ void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
      
 		d = (struct download *) 
 			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
-								   (gint) l->data);
-		gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
+								   GPOINTER_TO_INT(l->data));
+		gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue),
+			GPOINTER_TO_INT(l->data), 0);
      
 		if (!d) {
-			g_warning("on_popup_queue_abort_host_activate(): row %d has NULL data\n",
-					  (gint) l->data);
+			g_warning(
+				"on_popup_queue_abort_host_activate(): row %d has NULL data\n",
+				GPOINTER_TO_INT(l->data));
 			continue;
 		}
 		removed += download_remove_all_from_peer(
@@ -543,12 +550,14 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
      
 		d = (struct download *) 
 			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
-								   (gint) l->data);
-		gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
+								   GPOINTER_TO_INT(l->data));
+		gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue),
+			GPOINTER_TO_INT(l->data), 0);
      
 		if (!d) {
-			g_warning("on_popup_queue_abort_sha1_activate(): row %d has NULL data\n",
-					  (gint) l->data);
+			g_warning(
+				"on_popup_queue_abort_sha1_activate(): row %d has NULL data\n",
+				GPOINTER_TO_INT(l->data));
 			continue;
 		}
 
@@ -589,11 +598,11 @@ void on_popup_queue_copy_url_activate(GtkMenuItem * menuitem,
                                 GDK_CURRENT_TIME)){  
        	d = (struct download *) 
             gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
-                               (gint) l->data);
+                               GPOINTER_TO_INT(l->data));
 
         if (!d) {
            	g_warning("on_popup_queue_copy_url(): row %d has NULL data\n",
-			          (gint) l->data);
+			          GPOINTER_TO_INT(l->data));
 		    return;
         }
 
@@ -624,15 +633,16 @@ void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
 
    	d = (struct download *) 
     gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue), 
-        (gint) l->data);
+        GPOINTER_TO_INT(l->data));
 
     if (!d) {
     	g_warning("on_popup_queue_connect_activate(): row %d has NULL data\n",
-            (gint) l->data);
+            GPOINTER_TO_INT(l->data));
 	    return;
     }
 
-    gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
+    gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue),
+		GPOINTER_TO_INT(l->data), 0);
     node_add(download_ip(d), download_port(d));
 }
  
@@ -652,13 +662,16 @@ void on_button_downloads_abort_clicked(GtkButton * button,
 
 	for (l = GTK_CLIST(clist_downloads)->selection; l; 
          l = GTK_CLIST(clist_downloads)->selection ) {
-		d = (struct download *) gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
-                                                     (gint) l->data);
-        gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
+		d = (struct download *)
+			gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
+				GPOINTER_TO_INT(l->data));
+        gtk_clist_unselect_row(GTK_CLIST(clist_downloads),
+			GPOINTER_TO_INT(l->data), 0);
 
 		if (!d) {
-			g_warning("on_button_downloads_abort_clicked(): row %d has NULL data\n",
-                   (gint) l->data);
+			g_warning(
+				"on_button_downloads_abort_clicked(): row %d has NULL data\n",
+                GPOINTER_TO_INT(l->data));
 			continue;
 		}
 
@@ -683,13 +696,14 @@ void on_button_downloads_resume_clicked(GtkButton * button,
      
         d = (struct download *) 
             gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
-                                   (gint) l->data);
-        gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
+                                   GPOINTER_TO_INT(l->data));
+        gtk_clist_unselect_row(GTK_CLIST(clist_downloads),
+			GPOINTER_TO_INT(l->data), 0);
      
         if (!d) {
             g_warning
                 ("on_button_downloads_resume_clicked(): row %d has NULL data\n",
-                 (gint) l->data);
+                 GPOINTER_TO_INT(l->data));
             continue;
         }
         download_resume(d);

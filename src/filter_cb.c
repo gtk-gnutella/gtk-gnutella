@@ -273,7 +273,7 @@ void on_button_filter_add_rule_clicked(
         /* modify row */
         oldrule = (rule_t *) 
             gtk_clist_get_row_data(clist_filter_rules, 
-					(gint) l->data);
+					GPOINTER_TO_INT(l->data));
         g_assert(oldrule != NULL);
         
         filter_replace_rule_in_session(work_filter, oldrule, r);
@@ -347,7 +347,7 @@ void on_button_filter_remove_rule_clicked(
         return;
 
     r = (rule_t *) 
-        gtk_clist_get_row_data(clist, (gint)clist->selection->data);
+        gtk_clist_get_row_data(clist, GPOINTER_TO_INT(clist->selection->data));
        
     filter_remove_rule_from_session(work_filter, r);
 
@@ -408,9 +408,9 @@ void on_button_filter_reset_rule_clicked(
     if (clist_filter_rules->selection == NULL)
         return;
 
-    rule = (rule_t *) 
-        gtk_clist_get_row_data
-            (clist_filter_rules, (gint) clist_filter_rules->selection->data);
+    rule = (rule_t *) gtk_clist_get_row_data (
+				clist_filter_rules,
+				GPOINTER_TO_INT(clist_filter_rules->selection->data));
 
     filter_rule_reset_stats(rule);
 }
@@ -483,7 +483,7 @@ void on_popup_filter_rule_copy_activate(
         rule_t *r;
         gint row;
 
-        row = (gint) clist_filter_rules->selection->data;
+        row = GPOINTER_TO_INT(clist_filter_rules->selection->data);
 
         r = (rule_t *) gtk_clist_get_row_data(clist_filter_rules, row);
         g_assert(r != NULL);

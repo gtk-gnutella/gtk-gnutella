@@ -157,7 +157,7 @@ static void refresh_popup(void)
     current_search = search_gui_get_current_search();
 
 	sensitive = current_search && 
-        (gboolean) GTK_CLIST(current_search->clist)->selection;
+        (gboolean) GPOINTER_TO_INT(GTK_CLIST(current_search->clist)->selection);
 	gtk_widget_set_sensitive
         (lookup_widget(main_window, "button_search_download"), sensitive);
     gtk_widget_set_sensitive
@@ -187,10 +187,10 @@ static void refresh_popup(void)
 
     gtk_widget_set_sensitive(
         lookup_widget(popup_search, "popup_search_restart"), 
-        (gboolean) current_search);
+        NULL != current_search);
     gtk_widget_set_sensitive(
         lookup_widget(popup_search, "popup_search_duplicate"), 
-        (gboolean) current_search);
+        NULL != current_search);
 
     if (current_search) {
         gtk_widget_set_sensitive(
