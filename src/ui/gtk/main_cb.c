@@ -47,7 +47,7 @@ static void quit(gboolean force)
     gui_prop_get_boolean_val(PROP_CONFIRM_QUIT, &confirm);
     if (force || !confirm)
        	guc_gtk_gnutella_exit(0);
-    else
+	else
         gtk_widget_show(dlg_quit);
 }
 
@@ -89,6 +89,7 @@ on_menu_about_activate(GtkMenuItem *unused_menuitem, gpointer unused_udata)
 	(void) unused_udata;
 
     gtk_widget_show(dlg_about);
+	gdk_window_raise(dlg_about->window);
 }
 
 void
@@ -98,6 +99,7 @@ on_menu_prefs_activate(GtkMenuItem *unused_menuitem, gpointer unused_udata)
 	(void) unused_udata;
 
     gtk_widget_show(dlg_prefs);
+	gdk_window_raise(dlg_prefs->window);
 }
 
 
