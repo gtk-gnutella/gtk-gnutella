@@ -56,15 +56,16 @@ RCSID("$Id$");
 #define MAX_UPLOADS			100		/* Avoid more than that many uploads */
 #define MAX_UPLOAD_QSIZE	4000	/* Size of the PARQ queue */
 
-#define MIBI (1024 * 1024)
+#define MEBI (1024 * 1024)
 /*
- * Queues:
+ * File sizes in queues:
  *
- * 1 ul: 0 < q1
- * 2 ul: 0 < q1 < 300, 300 < q2 < oo
- * 3 ul: 0 < q1 < 150, 150 < q2 < 300, 300 < q2 < oo
+ * 1 ul: 0 < q1 < oo
+ * 2 ul: 0 < q2 <= 300 Mi < q1 < oo
+ * 3 ul: 0 < q3 <= 150 Mi < q2 <= 300 Mi < q1 < oo
+ * ...
  */
-#define PARQ_UL_LARGE_SIZE (300 * MIBI)
+#define PARQ_UL_LARGE_SIZE (300 * MEBI)
 
 #define PARQ_UL_MAGIC	0x6a3900a1
 
@@ -1522,29 +1523,30 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 static struct parq_ul_queue *parq_upload_which_queue(gnutella_upload_t *u)
 {
 	struct parq_ul_queue *queue;
-	guint size = 0;
-	guint slot = 0;
-	
-	size = PARQ_UL_LARGE_SIZE;
+	guint size = PARQ_UL_LARGE_SIZE;
+	guint slot;
 	
 	/* 
 	 * Determine in which queue the upload should be placed. Upload queues:
-	 * 300 < size < oo
-	 * 150 < size < 300
-	 *  75 < size < 150
-	 *   0 < size < 75
+	 * 300 Mi < size < oo
+	 * 150 Mi < size <= 300 Mi
+	 *  75 Mi < size <= 150 Mi
+	 *   0 Mi < size <= 75 Mi
 	 * Smallest: PARQ_UL_LARGE_SIZE / 2^(parq_upload_slots-1)
+	 *
+	 * If the size doesn't fit in any of the first n-1 queues, it is put
+	 * into the last queue implicitly.
 	 */
 	
-	for (slot = 1 ; slot <= max_uploads; slot++) {
-		if (u->file_size > size || slot >= max_uploads)
+	for (slot = 1 ; slot < max_uploads; slot++) {
+		if (u->file_size > size)
 			break;
 		size = size / 2;
 	}
-	
-	while (g_list_length(ul_parqs) < max_uploads) {
-		queue = parq_upload_new_queue();
-	}
+
+	/* if necessary, create missing queues */	
+	while (g_list_length(ul_parqs) < max_uploads)
+		parq_upload_new_queue();
 	
 	queue = (struct parq_ul_queue *) g_list_nth_data(ul_parqs, slot - 1);
 
