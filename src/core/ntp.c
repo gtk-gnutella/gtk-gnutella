@@ -144,7 +144,7 @@ ntp_probe(void)
 	struct ntp_msg m;
 	gnet_host_t to;
 
-	if (!enable_udp)
+	if (!udp_active())
 		return;
 
 	memset(&m, 0, sizeof(m));

@@ -387,7 +387,7 @@ node_tsync_udp(cqueue_t *unused_cq, gpointer obj)
 	 * marked the node with NODE_F_TSYNC_TCP to use TCP instead of UDP.
 	 */
 
-	if (enable_udp && !(n->flags & NODE_F_TSYNC_TCP) && n->gnet_ip)
+	if (udp_active() && !(n->flags & NODE_F_TSYNC_TCP) && n->gnet_ip)
 		udp = node_udp_get_ip_port(n->gnet_ip, n->gnet_port);
 
 	tsync_send(udp == NULL ? n : udp, n->id);
@@ -1080,10 +1080,10 @@ node_init(void)
 void
 node_post_init(void)
 {
-	if (enable_udp) {
+	if (udp_active())
 		node_udp_enable();
+	if (enable_udp)
 		node_udp_gui_show();
-	}
 }
 
 /**
@@ -2890,7 +2890,7 @@ node_is_now_connected(struct gnutella_node *n)
 			if (!NODE_IS_LEAF(n))
 				send_proxy_request(n);
 		}
-		if (enable_udp) {
+		if (udp_active()) {
 			if (!recv_solicited_udp)
 				udp_send_ping(n->ip, n->port);
 			else if (is_udp_firewalled)
@@ -4822,6 +4822,7 @@ node_udp_enable(void)
 	gnutella_node_t *n = udp_node;
 	txdrv_t *tx;
 
+	g_assert(n != NULL);
 	g_assert(n->outq == NULL);
 	g_assert(n->socket == NULL);
 	g_assert(s_udp_listen != NULL);
@@ -4839,6 +4840,7 @@ node_udp_disable(void)
 {
 	gnutella_node_t *n = udp_node;
 
+	g_assert(n != NULL);
 	g_assert(n->outq != NULL);
 	g_assert(n->socket != NULL);
 
@@ -4909,7 +4911,7 @@ void node_udp_gui_show(void)
  */
 void node_udp_gui_remove(void)
 {
-    node_fire_node_removed(udp_node);
+  	node_fire_node_removed(udp_node);
 }
 
 /**
@@ -7803,6 +7805,22 @@ cleanup:
 		wfree(leaves, leaves_len);
 	if (agents)
 		g_string_free(agents, TRUE);
+}
+
+/**
+ * This has to be called once the UDP socket (e.g., due to a changed port
+ * number) was changed because some internal references have to be updated.
+ */
+void
+node_update_udp_socket(void)
+{
+	if (udp_node && s_udp_listen != udp_node->socket) {
+		if (udp_node->socket)
+			node_udp_disable();
+	
+		if (udp_active())
+			node_udp_enable();
+	} 
 }
 
 /* vi: set ts=4 sw=4 cindent: */

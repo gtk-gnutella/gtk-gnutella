@@ -466,7 +466,7 @@ typedef struct gnutella_node {
  */
 #define node_flowc_swift_grace(n)	(NODE_IS_LEAF(n) ? 210 : 30)
 #define node_flowc_swift_period(n)	(NODE_IS_LEAF(n) ? 140 : 20)
-
+	
 /*
  * Global Data
  */
@@ -572,6 +572,8 @@ gnutella_node_t *node_udp_get_ip_port(guint32 ip, guint16 port);
 
 void node_can_tsync(gnutella_node_t *n);
 void node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features);
+
+void node_update_udp_socket(void);
 
 #endif /* _core_nodes_h_ */
 

@@ -1925,7 +1925,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 *				--RAM, 2004-11-27
 	 */
 
-	should_oob = process_oob_queries && enable_udp &&
+	should_oob = process_oob_queries && udp_active() &&
 		recv_solicited_udp && n->header.hops > 1;
 
     if (n->header.hops > max_ttl && !(oob && should_oob)) {
@@ -1940,7 +1940,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 */
 
 	if (
-		!oob && enable_udp && proxy_oob_queries && !is_udp_firewalled &&
+		!oob && udp_active() && proxy_oob_queries && !is_udp_firewalled &&
 		NODE_IS_LEAF(n) && host_is_valid(listen_ip(), listen_port)
 	) {
 		oob_proxy_create(n);

@@ -780,16 +780,15 @@ enable_udp_changed(property_t prop)
 
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
-		if (s_udp_listen == NULL)
+		if (s_udp_listen == NULL && listen_port)
 			s_udp_listen = socket_udp_listen(0, listen_port);
-		node_udp_enable();
 	} else {
 		if (s_udp_listen) {
 			socket_free(s_udp_listen);
 			s_udp_listen = NULL;
 		}
-		node_udp_disable();
 	}
+	node_update_udp_socket();
 
 	return FALSE;
 }
@@ -869,11 +868,13 @@ listen_port_changed(property_t prop)
 		 */
 
 		if (enable_udp) {
-			s_udp_listen = socket_udp_listen(0, listen_port);
+			if (listen_port)
+				s_udp_listen = socket_udp_listen(0, listen_port);
 			if (random_port && s_udp_listen == NULL) {
 				socket_free(s_tcp_listen);
 				s_tcp_listen = NULL;
 			}
+			node_update_udp_socket();
 		}
 	} while (random_port && s_tcp_listen == NULL && ++num_tried < 65535 - 1024);
 

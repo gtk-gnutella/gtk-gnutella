@@ -52,6 +52,7 @@ RCSID("$Id$");
 #include "dq.h"
 #include "dh.h"
 #include "share.h"
+#include "sockets.h"
 #include "vmsg.h"
 #include "sq.h"
 #include "settings.h"		/* For listen_ip() */
@@ -1410,7 +1411,7 @@ build_search_msg(search_ctrl_t *sch, gint *len, gint *sizep)
 	 * the already chosen MUID is valid according to our current IP:port.
 	 */
 
-	if (enable_udp && send_oob_queries && !is_udp_firewalled) {
+	if (udp_active() && send_oob_queries && !is_udp_firewalled) {
 		guint32 ip;
 		guint16 port;
 
@@ -2282,7 +2283,7 @@ search_new_muid(gboolean initial)
 	ip = listen_ip();
 
 	for (i = 0; i < 100; i++) {
-		if (enable_udp && ip_is_valid(ip))
+		if (udp_active() && ip_is_valid(ip))
 			guid_query_oob_muid(muid, ip, listen_port, initial);
 		else
 			guid_query_muid(muid, initial);

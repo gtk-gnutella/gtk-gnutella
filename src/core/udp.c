@@ -197,7 +197,7 @@ udp_connect_back(guint32 ip, guint16 port, const gchar *muid)
 	struct gnutella_node *n = node_udp_get_ip_port(ip, port);
 	guint32 size;
 
-	if (!enable_udp)
+	if (!udp_active())
 		return;
 
 	m = build_ping_msg(muid, 1, FALSE, &size);
@@ -219,7 +219,7 @@ udp_send_ping(guint32 ip, guint16 port)
 	struct gnutella_node *n = node_udp_get_ip_port(ip, port);
 	guint32 size;
 
-	if (!enable_udp)
+	if (!udp_active())
 		return;
 
 	m = build_ping_msg(NULL, 1, FALSE, &size);

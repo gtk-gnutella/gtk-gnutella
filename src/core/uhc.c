@@ -37,6 +37,7 @@ RCSID("$Id$");
 #include "uhc.h"
 #include "udp.h"
 #include "nodes.h"
+#include "sockets.h"
 #include "pcache.h"
 #include "hcache.h"
 #include "hosts.h"
@@ -330,7 +331,7 @@ uhc_get_hosts(void)
 	if (uhc_connecting || ancient_version)
 		return;
 
-	if (!enable_udp)
+	if (!udp_active())
 		return;
 
 	/*
