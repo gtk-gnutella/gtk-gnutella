@@ -29,6 +29,7 @@
 #define _pcache_h_
 
 #include "hcache.h"
+#include "gnet.h"		/* For node_peer_t */
 
 /*
  * Global Functions
@@ -44,6 +45,7 @@ struct gnutella_msg_init_response *build_pong_msg(
 
 void pcache_init(void);
 void pcache_close(void);
+void pcache_set_peermode(node_peer_t mode);
 void pcache_possibly_expired(time_t now);
 void pcache_outgoing_connection(struct gnutella_node *n);
 void pcache_ping_received(struct gnutella_node *n);

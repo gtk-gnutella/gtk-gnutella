@@ -321,11 +321,15 @@ struct recent {
 static struct cache_line pong_cache[PONG_CACHE_SIZE];
 static struct recent recent_pongs[HCACHE_MAX];
 
-#define CACHE_LIFESPAN		5		/* seconds */
+#define CACHE_UP_LIFESPAN	5		/* seconds -- ultra/normal mode */
+#define CACHE_LEAF_LIFESPAN	120		/* seconds -- leaf mode */
 #define MAX_PONGS			10		/* Max pongs returned per ping */
 #define OLD_PING_PERIOD		45		/* Pinging period for "old" clients */
 #define OLD_CACHE_RATIO		20		/* % of pongs from "old" clients we cache */
 #define RECENT_PING_SIZE	50		/* remember last 50 pongs we saw */
+
+#define cache_lifespan(m)	\
+	((m) == NODE_P_LEAF ? CACHE_LEAF_LIFESPAN : CACHE_UP_LIFESPAN)
 
 /*
  * cached_pong_hash
@@ -656,9 +660,19 @@ void pcache_possibly_expired(time_t now)
 {
 	if (now >= pcache_expire_time) {
 		pcache_expire();
-		pcache_expire_time = now + CACHE_LIFESPAN;
+		pcache_expire_time = now + cache_lifespan(current_peermode);
 		ping_all_neighbours(now);
 	}
+}
+
+/*
+ * pcache_set_peermode
+ *
+ * Called when peer mode is changed to recompute the pong cache lifetime.
+ */
+void pcache_set_peermode(node_peer_t mode)
+{
+	pcache_expire_time = time(NULL) + cache_lifespan(mode);
 }
 
 /*

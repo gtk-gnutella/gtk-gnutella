@@ -2263,8 +2263,10 @@ static void node_set_current_peermode(node_peer_t mode)
 	if (dbg > 2)
 		printf("Switching to \"%s\" peer mode\n", msg);
 
-	if (old_mode != NODE_P_UNKNOWN)		/* Not at init time */
+	if (old_mode != NODE_P_UNKNOWN) {	/* Not at init time */
 		bsched_set_peermode(mode);		/* Adapt Gnet bandwidth */
+		pcache_set_peermode(mode);		/* Adapt pong cache lifetime */
+	}
 
 	old_mode = mode;
 }
