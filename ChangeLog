@@ -22,7 +22,7 @@
   well as the ones it already shares, by showing them in lighter color in the
   search results.
 - It is possible to supply to gtk-gnutella your own ignore lists by SHA1 and
-  by name/size but the feature is under-documented. XXX manpage update XXX
+  by name/size but the feature is under-documented.
 - Added an "expert mode".  Only when this is enabled will gtk-gnutella show
   the users some of the most complex settings.
 - New Gnutella statistics pane, showing the packets we sent and received,
@@ -38,6 +38,9 @@
 	from any node gtk-gnutella was directly connected to.
   . "Whole query" shows stats based on the complete query string
 	instead of individual query words.
+- New visual indications via icons in the status bar: whether gtk-gnutella
+  is rebuilding the library, computing SHA1 of shared files in the background,
+  and whether we are connected to Internet or not.
 
 KNOWN BUGS/PROBLEMS:
 
@@ -54,6 +57,16 @@ KNOWN BUGS/PROBLEMS:
   can however edit the done.sha1 and done.namesize files in your
   ~/.gtk-gnutella directory manually. Unignoring via gui is planned
   for the next release.
+
+- (2002.10.18 RAM)
+ * Small cleaning of whitelist/local (patch #623100).
+ * Switched from 409 to 503 when "already downloading that file" so that
+   user can retry later on: this is not a fatal error.
+ * Added pre-condition in download_request().
+ * Revised the descriptions of gnutella properties, and changed a few
+   limit values that were wrong (TTL, max TTL, etc...).
+ * Make sure we do not fill a query hit with more than 255 results.
+ * Only trim TTL larger than our max_ttl for broadcasted packets.
 
 - (2002.10.17 RAM)
  * Reset "Clear Completed" correctly in upload pane when auto-clear is on.
