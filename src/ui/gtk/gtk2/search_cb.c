@@ -503,10 +503,16 @@ void on_tree_view_search_results_select_row(
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1")),
 			rc->sha1 != NULL ? sha1_base32(rc->sha1) : _("<none>"));
-		gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_source")),
-			ip_port_to_gchar(rc->results_set->ip, rc->results_set->port));
-		gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%lu byte)"),
+		if (rc->results_set->hostname)
+			gtk_entry_set_text(GTK_ENTRY(
+				lookup_widget(main_window, "entry_result_info_source")),
+				hostname_port_to_gchar(
+					rc->results_set->hostname, rc->results_set->port));
+		else
+			gtk_entry_set_text(GTK_ENTRY(
+				lookup_widget(main_window, "entry_result_info_source")),
+				ip_port_to_gchar(rc->results_set->ip, rc->results_set->port));
+		gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%lu bytes)"),
 			short_size(rc->size), (gulong) rc->size);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_size")),
@@ -520,9 +526,16 @@ void on_tree_view_search_results_select_row(
 			lookup_widget(main_window, "entry_result_info_timestamp")),
 			tmpstr);
 		vendor = lookup_vendor_name(rc->results_set->vendor);
+		if (vendor == NULL)
+			*tmpstr = '\0';
+		else if (rc->results_set->version)
+			gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s",
+				vendor, rc->results_set->version);
+		else
+			g_strlcpy(tmpstr, vendor, sizeof tmpstr);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_vendor")),
-			vendor != NULL ? vendor : "");
+			tmpstr);
 		gm_snprintf(tmpstr, sizeof(tmpstr), "%lu", (gulong) rc->index);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_index")),
