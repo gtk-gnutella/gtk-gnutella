@@ -76,8 +76,8 @@ guint32  start_stamp     = 0;
 guint32  start_stamp_def = 0;
 guint32  average_servent_uptime     = 0;
 guint32  average_servent_uptime_def = 0;
-guint32  listen_port     = 6346;
-guint32  listen_port_def = 6346;
+guint32  listen_port     = 8436;
+guint32  listen_port_def = 8436;
 guint32  forced_local_ip     = 0x00000000;
 guint32  forced_local_ip_def = 0x00000000;
 guint32  connection_speed     = 0;
@@ -752,7 +752,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[19].name = "listen_port";
-    gnet_property->props[19].desc = _("Local port gtk-gnutella is listening on. Your ISP may block or choke traffic on port 6346 so it would be a good idea to change it to something in the range of 1024-65535.  Don't forget to update your firewall port forwarding / opening, as necessary.");
+    gnet_property->props[19].desc = _("Local port gtk-gnutella is listening on. Your ISP may block or choke traffic on port 6346 so it would be a good idea to change it to something in the range of 1024-65535.  Don't forget to update your firewall port forwarding / opening, as necessary.  Note that by default, the port 6346 is not used to guard against undue censorship.");
     gnet_property->props[19].ev_changed = event_new("listen_port_changed");
     gnet_property->props[19].save = TRUE;
     gnet_property->props[19].vector_size = 1;
