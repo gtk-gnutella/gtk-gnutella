@@ -434,6 +434,7 @@ static struct filter *make_text_filter(GtkWidget *box)
 			g_warning("problem in regular expression: %s"
 				  "; falling back to substring match", buf);
 			f->u.text.type = FILTER_SUBSTR;
+            g_free(re);
 		} else {
 			g_free(f->u.text.u.match);
 			f->u.text.u.re = re;
