@@ -7433,7 +7433,7 @@
 
       <widget>
 	<class>GtkFrame</class>
-	<name>frame123</name>
+	<name>frame_status_images</name>
 	<label_xalign>0</label_xalign>
 	<shadow_type>GTK_SHADOW_IN</shadow_type>
 	<child>
@@ -15859,7 +15859,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 
 		<widget>
 		  <class>GtkFrame</class>
-		  <name>frame135</name>
+		  <name>frame_expert_oob_queries</name>
 		  <label>Out of Band Querying</label>
 		  <label_xalign>0</label_xalign>
 		  <shadow_type>GTK_SHADOW_OUT</shadow_type>

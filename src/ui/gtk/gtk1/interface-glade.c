@@ -543,7 +543,7 @@ create_main_window (void)
   GtkWidget *label_statusbar_horizon_file_count;
   GtkWidget *frame131;
   GtkWidget *label_statusbar_horizon_kb_count;
-  GtkWidget *frame123;
+  GtkWidget *frame_status_images;
   GtkWidget *hbox199;
   GtkWidget *eventbox_image_warning;
   GtkWidget *image_warning;
@@ -5145,14 +5145,14 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame131), label_statusbar_horizon_kb_count);
   gtk_misc_set_padding (GTK_MISC (label_statusbar_horizon_kb_count), 5, 0);
 
-  frame123 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame123, "frame123");
-  gtk_widget_ref (frame123);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame123", frame123,
+  frame_status_images = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame_status_images, "frame_status_images");
+  gtk_widget_ref (frame_status_images);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_status_images", frame_status_images,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame123);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame123, FALSE, FALSE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame123), GTK_SHADOW_IN);
+  gtk_widget_show (frame_status_images);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame_status_images, FALSE, FALSE, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame_status_images), GTK_SHADOW_IN);
 
   hbox199 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox199, "hbox199");
@@ -5160,7 +5160,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox199", hbox199,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox199);
-  gtk_container_add (GTK_CONTAINER (frame123), hbox199);
+  gtk_container_add (GTK_CONTAINER (frame_status_images), hbox199);
 
   eventbox_image_warning = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_warning, "eventbox_image_warning");
@@ -9875,7 +9875,7 @@ create_dlg_prefs (void)
   GtkObject *spinbutton_config_search_reissue_timeout_adj;
   GtkWidget *spinbutton_config_search_reissue_timeout;
   GtkWidget *label568;
-  GtkWidget *frame135;
+  GtkWidget *frame_expert_oob_queries;
   GtkWidget *vbox131;
   GtkWidget *checkbutton_send_oob_queries;
   GtkWidget *checkbutton_process_oob_queries;
@@ -11782,14 +11782,14 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label568), 0, 0.5);
 
-  frame135 = gtk_frame_new (_("Out of Band Querying"));
-  gtk_widget_set_name (frame135, "frame135");
-  gtk_widget_ref (frame135);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame135", frame135,
+  frame_expert_oob_queries = gtk_frame_new (_("Out of Band Querying"));
+  gtk_widget_set_name (frame_expert_oob_queries, "frame_expert_oob_queries");
+  gtk_widget_ref (frame_expert_oob_queries);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame_expert_oob_queries", frame_expert_oob_queries,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame135);
-  gtk_box_pack_start (GTK_BOX (hbox188), frame135, FALSE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame135), GTK_SHADOW_OUT);
+  gtk_widget_show (frame_expert_oob_queries);
+  gtk_box_pack_start (GTK_BOX (hbox188), frame_expert_oob_queries, FALSE, TRUE, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame_expert_oob_queries), GTK_SHADOW_OUT);
 
   vbox131 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox131, "vbox131");
@@ -11797,7 +11797,7 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "vbox131", vbox131,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox131);
-  gtk_container_add (GTK_CONTAINER (frame135), vbox131);
+  gtk_container_add (GTK_CONTAINER (frame_expert_oob_queries), vbox131);
 
   checkbutton_send_oob_queries = gtk_check_button_new_with_label (_("Queries ask for OOB results"));
   gtk_widget_set_name (checkbutton_send_oob_queries, "checkbutton_send_oob_queries");
