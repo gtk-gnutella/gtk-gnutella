@@ -367,7 +367,7 @@ static gnet_results_set_t *get_results_set
 			s++;				/* move s up to the next double NUL */
 
 		if (s >= (e-1))	{		/* There cannot be two NULs: end of packet! */
-            gnet_stats_count_dropped(n, MSG_DROP_RESULT_DOUBLE_NUL);
+            gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
 			goto bad_packet;
         }
 
@@ -521,8 +521,14 @@ static gnet_results_set_t *get_results_set
 
 		if (trailer)
 			memcpy(rs->vendor, trailer, sizeof(rs->vendor));
-
-		// XXX parse trailer after the open data
+		else {
+			g_warning(
+				"UNKNOWN %d-byte trailer in %s from %s (%u/%u records parsed)",
+				tlen, gmsg_infostr(&n->header), node_ip(n), nr, rs->num_recs);
+			if (dbg > 1)
+				dump_hex(stderr, "Query Hit Data (non-empty UNKNOWN trailer?)",
+					n->data, n->size);
+		}
 	}
 
 	if (nr != rs->num_recs) {
@@ -542,6 +548,10 @@ static gnet_results_set_t *get_results_set
 	if (trailer) {
 		gchar *vendor;
 		guint32 t;
+		guint open_size = trailer[4];
+		guint open_parsing_size = trailer[4];
+		guint32 enabler_mask = (guint32) trailer[5];
+		guint32 flags_mask = (guint32) trailer[6];
 
         vendor = lookup_vendor_name(rs->vendor);
 
@@ -556,35 +566,36 @@ static gnet_results_set_t *get_results_set
 			 * NapShare has a one-byte only flag: no enabler, just setters.
 			 *		--RAM, 17/12/2001
 			 */
-			if (trailer[4] == 1) {
-				if (trailer[5] & 0x04) rs->status |= ST_BUSY;
-				if (trailer[5] & 0x01) rs->status |= ST_FIREWALL;
+			if (open_size == 1) {
+				if (enabler_mask & 0x04) rs->status |= ST_BUSY;
+				if (enabler_mask & 0x01) rs->status |= ST_FIREWALL;
 				rs->status |= ST_PARSED_TRAILER;
 			}
 			break;
 		case T_LIME:
 		case T_SWAP:
 		case T_RAZA:
-			if (trailer[4] == 4)
-				trailer[4] = 2;			/* We ignore XML data size */
+			if (open_size == 4)
+				open_parsing_size = 2;		/* We ignore XML data size */
 				/* Fall through */
 		default:
-			if (trailer[4] == 2) {
-				guint32 status =
-					((guint32) trailer[5]) & ((guint32) trailer[6]);
+			if (open_parsing_size == 2) {
+				guint32 status = enabler_mask & flags_mask;
 				if (status & 0x04) rs->status |= ST_BUSY;
 				if (status & 0x01) rs->status |= ST_FIREWALL;
 				if (status & 0x08) rs->status |= ST_UPLOADED;
+				if (status & 0x08) rs->status |= ST_UPLOADED;
+				if (status & 0x20) rs->status |= ST_GGEP;
 				rs->status |= ST_PARSED_TRAILER;
 			} else if (rs->status  & ST_KNOWN_VENDOR) {
 				if (dbg)
 					g_warning("vendor %s changed # of open data bytes to %d",
-							  vendor, trailer[4]);
+							  vendor, open_size);
 			} else if (vendor) {
 				if (dbg)
 					g_warning("ignoring %d open data byte%s from "
 						"unknown vendor %s",
-						trailer[4], trailer[4] == 1 ? "" : "s", vendor);
+						open_size, open_size == 1 ? "" : "s", vendor);
 			}
 			break;
 		}
@@ -603,6 +614,41 @@ static gnet_results_set_t *get_results_set
 				 nr, nr == 1 ? "" : "s");
             gnet_stats_count_dropped(n, MSG_DROP_RESULT_SHA1_ERROR);
 			goto bad_packet;		/* Will drop this bad query hit */
+		}
+
+		/*
+		 * Parse trailer after the open data, if we have a GGEP extension.
+		 */
+
+		if (rs->status & ST_GGEP) {
+			guchar *priv = &trailer[5] + open_size;
+			gint privlen = (guchar *) e - priv;
+			gint exvcnt;
+			extvec_t exv[MAX_EXTVEC];
+			gboolean seen_ggep = FALSE;
+			gint i;
+
+			exvcnt = ext_parse(priv, privlen, exv, MAX_EXTVEC);
+
+			// XXX for now we don't do anything with the information we
+			// XXX collected: we just validate it
+
+			for (i = 0; i < exvcnt; i++) {
+				if (exv[i].ext_type == EXT_GGEP)
+					seen_ggep = TRUE;
+			}
+
+			if (exvcnt == MAX_EXTVEC) {
+				g_warning("%s has %d extensions!",
+					gmsg_infostr(&n->header), exvcnt);
+				if (dbg)
+					ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
+				if (dbg > 1)
+					dump_hex(stderr, "Query Hit private data", priv, privlen);
+			} else if (!seen_ggep) {
+				g_warning("%s claimed GGEP extensions, seen none",
+					gmsg_infostr(&n->header));
+			}
 		}
 
 		/*
