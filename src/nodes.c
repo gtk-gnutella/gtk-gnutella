@@ -283,6 +283,20 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 			n->vendor ? n->vendor : "????",
 			n->remove_msg ? n->remove_msg : "<no reason>");
 
+	if (dbg > 4) {
+		printf("NODE [%d.%d] %s <%s> TX=%d (drop=%d) RX=%d (drop=%d) Bad=%d\n",
+			n->proto_major, n->proto_minor, node_ip(n),
+			n->vendor ? n->vendor : "????",
+			n->sent, n->tx_dropped, n->received, n->rx_dropped, n->n_bad);
+		printf("NODE \"%s%s\" %s PING (drop=%d acpt=%d spec=%d sent=%d) "
+			"PONG (rcvd=%d sent=%d)\n",
+			(n->attrs & NODE_A_PONG_CACHING) ? "new" : "old",
+			(n->attrs & NODE_A_PONG_ALIEN) ? "-alien" : "",
+			node_ip(n),
+			n->n_ping_throttle, n->n_ping_accepted, n->n_ping_special,
+			n->n_ping_sent, n->n_pong_received, n->n_pong_sent);
+	}
+
 	if (NODE_IS_CONNECTED(n)) {
 		if (n->routing_data)
 			routing_node_remove(n);
@@ -331,20 +345,6 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 	n->status = GTA_NODE_REMOVING;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE);
 	n->last_update = time((time_t *) NULL);
-
-	if (dbg > 4) {
-		printf("NODE [%d.%d] %s <%s> TX=%d (drop=%d) RX=%d (drop=%d) Bad=%d\n",
-			n->proto_major, n->proto_minor, node_ip(n),
-			n->vendor ? n->vendor : "????",
-			n->sent, n->tx_dropped, n->received, n->rx_dropped, n->n_bad);
-		printf("NODE \"%s%s\" %s PING (drop=%d acpt=%d spec=%d sent=%d) "
-			"PONG (rcvd=%d sent=%d)\n",
-			(n->attrs & NODE_A_PONG_CACHING) ? "new" : "old",
-			(n->attrs & NODE_A_PONG_ALIEN) ? "-alien" : "",
-			node_ip(n),
-			n->n_ping_throttle, n->n_ping_accepted, n->n_ping_special,
-			n->n_ping_sent, n->n_pong_received, n->n_pong_sent);
-	}
 
 	nodes_in_list--;
 	if (n->flags & NODE_F_TMP)
