@@ -581,19 +581,20 @@ void hosts_read_from_file(gchar * path, gboolean quiet)
 	gui_set_status("Reading caught host file...");
 }
 
-void hosts_write_to_file(gchar * path)
+void hosts_write_to_file(gchar *path)
 {
 	/* Saves the currently catched hosts to a file */
 
 	FILE *f;
 	GList *l;
+	gchar *new = g_strconcat(path, ".new", NULL);
 
-	f = fopen(path, "w");
+	f = fopen(new, "w");
 
 	if (!f) {
-		g_warning("Unable to open output file %s (%s)\n", path,
+		g_warning("Unable to open output file %s (%s)\n", new,
 				  g_strerror(errno));
-		return;
+		goto out;
 	}
 
 	/*
@@ -614,7 +615,15 @@ void hosts_write_to_file(gchar * path)
 				ip_port_to_gchar(((struct gnutella_host *) l->data)->ip,
 								 ((struct gnutella_host *) l->data)->port));
 
-	fclose(f);
+	if (0 == fclose(f)) {
+		if (-1 == rename(new, path))
+			g_warning("could not rename %s as %s: %s",
+				new, path, g_strerror(errno));
+	} else
+		g_warning("could not flush %s: %s", new, g_strerror(errno));
+
+out:
+	g_free(new);
 }
 
 /***
