@@ -726,7 +726,7 @@ void bsched_set_bandwidth(bsched_t *bs, gint bandwidth)
 	g_assert(bandwidth <= BS_BW_MAX);	/* Signed, and multiplied by 1000 */
 
 	bs->bw_per_second = bandwidth;
-	bs->bw_max = bandwidth * bs->period / 1000;
+	bs->bw_max = (gint) (bandwidth / 1000.0 * bs->period);
 
 	/*
 	 * If `bandwidth' is 0, then we're disabling bandwidth scheduling and
@@ -789,6 +789,11 @@ static gint bw_available(bio_source_t *bio, gint len)
 
 	available = bs->bw_max + bs->bw_stolen - bs->bw_actual;
 
+	if (dbg > 8)
+		printf("bw_available: "
+			"[fd #%d] max=%d, stolen=%d, actual=%d => avail=%d\n",
+			bio->fd, bs->bw_max, bs->bw_stolen, bs->bw_actual, available);
+
 	if (available > bs->bw_max) {
 		available = bs->bw_max;
 		capped = TRUE;
@@ -806,6 +811,11 @@ static gint bw_available(bio_source_t *bio, gint len)
 
 	used = bio->flags & BIO_F_USED;
 	active = bio->flags & BIO_F_ACTIVE;
+
+	if (dbg > 8)
+		printf("\tcapped=%s, used=%s, active=%s => avail=%d\n",
+			capped ? "y" : "n", used ? "y" : "n", active ? "y" : "n",
+			available);
 
 	if (!used) {
 		bs->current_used++;
