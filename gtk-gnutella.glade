@@ -2203,7 +2203,7 @@
 	    <class>GtkTable</class>
 	    <name>table2</name>
 	    <rows>1</rows>
-	    <columns>4</columns>
+	    <columns>5</columns>
 	    <homogeneous>False</homogeneous>
 	    <row_spacing>0</row_spacing>
 	    <column_spacing>8</column_spacing>

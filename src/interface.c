@@ -1310,7 +1310,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox18), button_search, FALSE, FALSE, 0);
   gtk_widget_set_sensitive (button_search, FALSE);
 
-  table2 = gtk_table_new (1, 4, FALSE);
+  table2 = gtk_table_new (1, 5, FALSE);
   gtk_widget_ref (table2);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table2", table2,
                             (GtkDestroyNotify) gtk_widget_unref);
