@@ -501,28 +501,8 @@ is_symlink(const gchar *path)
 	return (st.st_mode & S_IFMT) == S_IFLNK;
 }
 
-/**
- * Returns a number of bytes in a more readable form
- */
-gchar *
-short_size(guint32 size)
-{
-	static gchar b[SIZE_FIELD_MAX];
-
-	if (size < 1024)
-		gm_snprintf(b, sizeof(b), "%u Bytes", size);
-	else if (size < 1048576)
-		gm_snprintf(b, sizeof(b), "%.2f KB", (gfloat) size / 1024.0);
-	else if (size < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f MB", (gfloat) size / 1048576.0);
-	else
-		gm_snprintf(b, sizeof(b), "%.2f GB", (gfloat) size / 1073741824.0);
-
-	return b;
-}
-
-gchar *
-short_size64(guint64 size)
+const gchar *
+short_size(guint64 size)
 {
 	static gchar b[SIZE_FIELD_MAX];
 
@@ -547,28 +527,8 @@ short_size64(guint64 size)
 	return b;
 }
 
-/**
- * Returns a number of kbytes in a more readable form
- */
-gchar *
-short_kb_size(guint32 size)
-{
-	static gchar b[SIZE_FIELD_MAX];
-
-	if (size < 1024)
-		gm_snprintf(b, sizeof(b), "%u KB", size);
-	else if (size < 1048576)
-		gm_snprintf(b, sizeof(b), "%.2f MB", (gfloat) size / 1024.0);
-	else if (size < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f GB", (gfloat) size / 1048576.0);
-	else
-		gm_snprintf(b, sizeof(b), "%.2f TB", (gfloat) size / 1073741824.0);
-
-	return b;
-}
-
-gchar *
-short_kb_size64(guint64 size)
+const gchar *
+short_kb_size(guint64 size)
 {
 	static gchar b[SIZE_FIELD_MAX];
 
@@ -593,38 +553,8 @@ short_kb_size64(guint64 size)
 	return b;
 }
 
-/**
- * Returns a number of bytes in a compact readable form
- */
-gchar *
-compact_size(guint32 size)
-{
-	static gchar b[64];
-
-	if (size < 1024)
-		gm_snprintf(b, sizeof(b), "%uB", size);
-	else if (size < 1048576) {
-		if (size & 0x3ff)
-			gm_snprintf(b, sizeof(b), "%.1fK", (gfloat) size / 1024.0);
-		else
-			gm_snprintf(b, sizeof(b), "%dK", size >> 10);
-	} else if (size < 1073741824) {
-		if (size & 0xfffff)
-			gm_snprintf(b, sizeof(b), "%.1fM", (gfloat) size / 1048576.0);
-		else
-			gm_snprintf(b, sizeof(b), "%dM", size >> 20);
-	} else {
-		if (size & 0x3fffffff)
-			gm_snprintf(b, sizeof(b), "%.1fG", (gfloat) size / 1073741824.0);
-		else
-			gm_snprintf(b, sizeof(b), "%dG", size >> 30);
-	}
-
-	return b;
-}
-
-gchar *
-compact_size64(guint64 size)
+const gchar *
+compact_size(guint64 size)
 {
 	static gchar b[64];
 
@@ -656,9 +586,9 @@ compact_size64(guint64 size)
 }
 
 /**
- * Returns a number of Kbytes in a compact readable form
+ * @return a number of Kbytes in a compact readable form
  */
-gchar *
+const gchar *
 compact_kb_size(guint32 size)
 {
 	static gchar b[64];

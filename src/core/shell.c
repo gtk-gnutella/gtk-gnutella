@@ -712,7 +712,7 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 			t++;
 			break;
 		case 3:
-			n = strlen(short_kb_size64(*t + nonhsep[HSEP_IDX_KIB]));
+			n = strlen(short_kb_size(*t + nonhsep[HSEP_IDX_KIB]));
 			t++;
 			break;
 		default:
@@ -741,7 +741,7 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 			maxlen[0], i + 1,
 			maxlen[1], t[HSEP_IDX_NODES] + nonhsep[HSEP_IDX_NODES],
 			maxlen[2], t[HSEP_IDX_FILES] + nonhsep[HSEP_IDX_FILES],
-			maxlen[3], short_kb_size64(t[HSEP_IDX_KIB] +
+			maxlen[3], short_kb_size(t[HSEP_IDX_KIB] +
 			    nonhsep[HSEP_IDX_KIB]));
 
 		shell_write(sh, buf);

@@ -136,7 +136,7 @@ static const gchar *byte_stat_str(
 	if (val_tbl[type] == 0)
 		g_strlcpy(strbuf, "-", n);
 	else if (!perc)
-		g_strlcpy(strbuf, compact_size64(val_tbl[type]), n);
+		g_strlcpy(strbuf, compact_size(val_tbl[type]), n);
 	else
 		gm_snprintf(strbuf, n, "%.2f%%", 
 		    (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
@@ -171,7 +171,7 @@ static const gchar *general_stat_str(
 	if (stats->general[type] == 0)
 		g_strlcpy(str, "-", n);
 	else if (type == GNR_QUERY_COMPACT_SIZE)
-		g_strlcpy(str, compact_size64(stats->general[type]), n);
+		g_strlcpy(str, compact_size(stats->general[type]), n);
 	else
 		gm_snprintf(str, n, "%" PRIu64, stats->general[type]);
 

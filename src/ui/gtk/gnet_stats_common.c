@@ -250,7 +250,7 @@ void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
 	                   "label_statusbar_horizon_file_count")), s);
 
 	val = table[hops][HSEP_IDX_KIB] + other[HSEP_IDX_KIB];
-	gm_snprintf(s, sizeof(s), "%s", short_kb_size64(val));
+	gm_snprintf(s, sizeof(s), "%s", short_kb_size(val));
 	gtk_label_set_text(GTK_LABEL(lookup_widget(main_window,
 	                   "label_statusbar_horizon_kb_count")), s);
 }

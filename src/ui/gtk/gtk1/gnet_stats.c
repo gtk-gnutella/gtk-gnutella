@@ -190,7 +190,7 @@ byte_stat_str(guint64 *val_tbl, guint64 *nb_packets, gint type)
             (float) size / total_size * 100.0);
         return strbuf;
     } else
-        return compact_size64(size);
+        return compact_size(size);
 }
 
 gchar *
@@ -221,7 +221,7 @@ general_stat_str(gnet_stats_t *stats, gint type)
         return "-";
 
     if (type == GNR_QUERY_COMPACT_SIZE) {
-        return compact_size64(stats->general[type]);
+        return compact_size(stats->general[type]);
     } else {
         gm_snprintf(strbuf, sizeof(strbuf), "%" PRIu64, stats->general[type]);
         return strbuf;
@@ -254,9 +254,9 @@ gchar *flowc_stat_str_byte(guint64 *val_tbl, gint type)
 
 	if (gnet_stats_perc) {
 		gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
-            (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
+            (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     } else {
-       	return compact_size64(val_tbl[type]);
+       	return compact_size(val_tbl[type]);
     }
 
     return strbuf;

@@ -1076,9 +1076,9 @@ const gchar *hsep_get_static_str(gint row, gint column)
   		return buf2;
 	
 	case HSEP_IDX_KIB:
-		/* Make a copy because concurrent usage of short_kb_size64()
+		/* Make a copy because concurrent usage of short_kb_size()
 	 	 * could be hard to discover. */
-		g_strlcpy(buf3, short_kb_size64(hsep_table[row][HSEP_IDX_KIB] +
+		g_strlcpy(buf3, short_kb_size(hsep_table[row][HSEP_IDX_KIB] +
 		    other[0][HSEP_IDX_KIB]), sizeof buf3);	
 		wfree(other, sizeof(hsep_triple));
   		return buf3;
