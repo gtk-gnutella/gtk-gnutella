@@ -105,7 +105,7 @@ struct vendor {
     { T_XOLO, "Xolox" },
     { T_XTLA, "Xtella" },
     { T_YAFS, "UlfsYAFS" },
-    { T_ZIGA, "Ziga" }
+    { T_ZIGA, "Ziga" },
     { T_peer, "Peeranha" },
 
 	/* Above line intentionally left blank (for "!}sort" on vi) */
