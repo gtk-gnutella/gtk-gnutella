@@ -430,7 +430,7 @@ void parq_close(void)
 	
 	for (dl = parq_banned_sources ; dl != NULL; dl = dl->next) {
 		struct parq_banned *banned = (struct parq_banned *) dl->data;
-			
+		
 		remove = g_slist_prepend(remove, banned);
 	}
 	
@@ -439,6 +439,9 @@ void parq_close(void)
 			
 		parq_del_banned_source(banned->ip);
 	}
+	
+	g_slist_free(remove);
+	remove = NULL;
 	
 	/* 
 	 * First locate all queued items (dead or alive). And place them in the
@@ -1777,7 +1780,6 @@ void parq_upload_timer(time_t now)
 	
 	g_slist_free(remove);
 	remove = NULL;
-	
 	
 	for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
 		struct parq_ul_queue *queue = (struct parq_ul_queue *) queues->data;
@@ -3571,9 +3573,9 @@ void parq_add_banned_source(guint32 ip, time_t delay)
 		/* Host not yet banned yet, good */
 		banned = walloc0(sizeof(*banned));
 		banned->ip = ip;
-		g_hash_table_insert(parq_banned_source, &banned->ip, banned);
 		
-		g_list_append(parq_banned_sources, banned);
+		g_hash_table_insert(parq_banned_source, &banned->ip, banned);
+		parq_banned_sources = g_list_append(parq_banned_sources, banned);
 	}
 
 	g_assert(banned != NULL);
@@ -3604,10 +3606,11 @@ void parq_del_banned_source(guint32 ip)
 	g_assert(banned != NULL);
 	g_assert(banned->ip == ip);
 	
-	g_hash_table_remove(parq_banned_source, banned);
-	g_list_remove(parq_banned_sources, banned);
+	g_hash_table_remove(parq_banned_source, &ip);
+	parq_banned_sources = g_list_remove(parq_banned_sources, banned);
 
 	wfree(banned, sizeof(*banned));
+	banned = NULL;
 }
 
 gboolean parq_is_banned_source(guint32 ip)
