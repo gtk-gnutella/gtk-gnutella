@@ -168,33 +168,13 @@ always_true(gpointer key, gpointer value, gpointer x)
 }
 
 static gboolean
-on_enter_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
-		gpointer unused_udata)
-{
-	GtkTreePath *path;
-
-	(void) unused_event;
-	(void) unused_udata;
-
-	gtk_tree_view_get_cursor(GTK_TREE_VIEW(widget), &path, NULL);
-	if (!path) {
-		gtk_tooltips_set_tip(settings_gui_tooltips(), widget, NULL, NULL);
-	} else {
-		gtk_tree_path_free(path);
-		path = NULL;
-	}
-	widget_force_tooltip(widget);
-	return FALSE;
-}
-
-static gboolean
 on_leave_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
 		gpointer unused_udata)
 {
 	(void) unused_event;
 	(void) unused_udata;
 
-	set_tooltips_keyboard_mode(widget, FALSE);
+	search_update_tooltip(GTK_TREE_VIEW(widget), NULL);
 	return FALSE;
 }
 
@@ -1361,8 +1341,6 @@ gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 		G_CALLBACK(on_tree_view_search_results_button_press_event), NULL);
     g_signal_connect(GTK_OBJECT(treeview), "key_press_event",
 		G_CALLBACK(on_tree_view_search_results_key_press_event), NULL);
-    g_signal_connect(GTK_OBJECT(treeview), "enter-notify-event",
-		G_CALLBACK(on_enter_notify), NULL);
     g_signal_connect(GTK_OBJECT(treeview), "leave-notify-event",
 		G_CALLBACK(on_leave_notify), NULL);
 

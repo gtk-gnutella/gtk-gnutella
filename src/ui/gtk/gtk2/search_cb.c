@@ -480,14 +480,29 @@ search_get_vendor_from_record(const record_t *rc)
 void
 search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 {
+	static const record_t *last_rc;
 	const record_t *rc;
 	gchar text[1024];
 	
 	g_assert(tv != NULL);
-	g_assert(path != NULL);
 
+	if (!path) {
+		GtkWidget *w;
+		
+		last_rc = NULL;
+		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
+			_("Move the cursor over a row to see details."), NULL);
+		w = settings_gui_tooltips()->tip_window;
+		if (w)
+			gtk_widget_hide(w);
+		return;
+	}
+	
 	rc = search_get_record_at_path(tv, path);
 	g_return_if_fail(rc != NULL);
+	if (last_rc == rc)
+		return;
+	last_rc = rc;
 
 	gm_snprintf(text, sizeof text,
 		"%s %s\n"
@@ -495,8 +510,7 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 		"%s %.64s\n"
 		"%s %s\n"
 		"%s %s\n"
-		"%s %s\n"
-		"%s",
+		"%s %s",
 		_("Peer:"),
 		ip_port_to_gchar(rc->results_set->ip, rc->results_set->port),
 		_("Country:"),
@@ -509,11 +523,9 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 		_("GUID:"),
 		guid_hex_str(rc->results_set->guid),
 		_("Size:"),
-		short_size(rc->size),
-		_("(Press Control-F1 to toggle view)"));
+		short_size(rc->size));
 
 	gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv), text, NULL);
-	set_tooltips_keyboard_mode(GTK_WIDGET(tv), TRUE);
 }
 
 static void

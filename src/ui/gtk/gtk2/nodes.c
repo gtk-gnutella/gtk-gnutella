@@ -257,11 +257,22 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 	GtkTreeIter iter;
 	gnet_node_info_t info;
 	gnet_node_t n = 0xcafebabeU;
+	static gnet_node_t last_n;
 	gchar text[1024];
 
 	g_assert(tv != NULL);
+	if (!path) {
+		GtkWidget *w;
+		
+		last_n = (gnet_node_t) -1;
+		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
+			_("Move the cursor over a row to see details."), NULL);
+		w = settings_gui_tooltips()->tip_window;
+		if (w)
+			gtk_widget_hide(w);
+		return;
+	}
 
-	text[0] = '\0';
 	model = gtk_tree_view_get_model(tv);
 	if (!gtk_tree_model_get_iter(model, &iter, path)) {
 		g_warning("gtk_tree_model_get_iter() failed");
@@ -269,56 +280,40 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 	}
 
 	gtk_tree_model_get(model, &iter, c_gnet_handle, &n, (-1));
+	if (last_n == n)
+		return;
+	last_n = n;
+
 	if (!find_node(n))
 		return;
 
-   	guc_node_fill_info(n, &info);
+	guc_node_fill_info(n, &info);
 	g_assert(info.node_handle == n);
 	gm_snprintf(text, sizeof text,
 		"%s %s\n"
 		"%s %s (%s)\n"
-		"%s %.64s\n"
-		"%s",
+		"%s %.64s",
 		_("Peer:"),
 		ip_port_to_gchar(info.ip, info.port),
 		_("Country:"),
 		iso3166_country_name(info.country),
 		iso3166_country_cc(info.country),
 		_("Vendor:"),
-		info.vendor ? lazy_locale_to_utf8(info.vendor, 0) : _("Unknown"),
-		_("(Press Control-F1 to toggle view)"));
+		info.vendor ? lazy_locale_to_utf8(info.vendor, 0) : _("Unknown"));
 
 	guc_node_clear_info(&info);
 
 	gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv), text, NULL);
-	set_tooltips_keyboard_mode(GTK_WIDGET(tv), TRUE);
-}
-
-static gboolean
-on_enter_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
-		gpointer unused_udata)
-{
-	GtkTreePath *path;
-
-	(void) unused_event;
-	(void) unused_udata;
-
-	gtk_tree_view_get_cursor(GTK_TREE_VIEW(widget), &path, NULL);
-	if (!path) {
-		gtk_tooltips_set_tip(settings_gui_tooltips(), widget, NULL, NULL);
-	}
-	widget_force_tooltip(widget);
-	return FALSE;
 }
 
 static gboolean
 on_leave_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
-		gpointer unused_udata)
+	gpointer unused_udata)
 {
 	(void) unused_event;
 	(void) unused_udata;
 
-	set_tooltips_keyboard_mode(widget, FALSE);
+	update_tooltip(GTK_TREE_VIEW(widget), NULL);
 	return FALSE;
 }
 
@@ -424,10 +419,9 @@ nodes_gui_init(void)
 
 	g_signal_connect(GTK_OBJECT(treeview_nodes), "cursor-changed",
 		G_CALLBACK(on_cursor_changed), treeview_nodes);
+
 	g_signal_connect(GTK_OBJECT(treeview_nodes), "leave-notify-event",
 		G_CALLBACK(on_leave_notify), treeview_nodes);
-	g_signal_connect(GTK_OBJECT(treeview_nodes), "enter-notify-event",
-		G_CALLBACK(on_enter_notify), treeview_nodes);
 
 	tree_view_set_motion_callback(treeview_nodes, update_tooltip);
 }
