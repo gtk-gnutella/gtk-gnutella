@@ -113,13 +113,9 @@ void host_timer(void)
 	if (in_shutdown || !online_mode)
 		return;
 
+	max_nodes = (current_peermode == NODE_P_LEAF) ?
+		max_ultrapeers : max_connections;
 	count = node_count();
-
-	if (current_peermode == NODE_P_LEAF)
-		max_nodes = max_ultrapeers;
-	else
-		max_nodes = max_connections;
-
 	missing = node_keep_missing();
 
 	/*
@@ -142,10 +138,18 @@ void host_timer(void)
 	 */
 
 	if (count >= quick_connect_pool_size)
+		if (dbg > 10) {
+			g_message("host_timer - count %d >= pool size %d",
+				count, quick_connect_pool_size);
 		return;
+	}
 
 	if (count < max_nodes)
 		missing -= whitelist_connect();
+
+	if (dbg > 10)
+		g_message("host_timer - missing %d host%s",
+			count, count == 1 ? "" : "s");
 
 	/*
 	 * If we are under the number of connections wanted, we add hosts
@@ -163,9 +167,8 @@ void host_timer(void)
 		htype = HOST_ANY;
     }
 
-	if (hcache_size(htype) == 0) {
+	if (hcache_size(htype) == 0)
 		htype = HOST_ANY;
-    }
 
     if (!stop_host_get) {
         if (missing > 0) {
@@ -173,15 +176,14 @@ void host_timer(void)
             guint max_pool = MAX(quick_connect_pool_size, max_nodes);
             guint to_add;
 
-//            fan = max_pool / ((max_nodes - missing) + 1);
             fan = (missing * quick_connect_pool_size) / max_nodes;
-            to_add = fan;
+            to_add = is_inet_connected ? fan : missing;
 
             /*
              * Make sure that we never use more connections then the
              * quick pool or the maximum number of hosts allow.
              */
-            if ((to_add + count) > (max_pool))
+            if (to_add + count > max_pool)
                 to_add = max_pool - count;
 
             if (dbg > 10) {
