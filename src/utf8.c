@@ -60,6 +60,7 @@ static void unicode_decompose_init(void);
 size_t utf8_decompose_nfd(const gchar *in, gchar *out, size_t size);
 static inline const guint32 *utf32_decompose_nfd_char(guint32 uc, size_t *len);
 size_t utf32_strmaxlen(const guint32 *s, size_t maxlen);
+size_t utf32_to_utf8(const guint32 *in, gchar *out, size_t size);
 
 #ifdef USE_ICU
 static  UConverter *conv_icu_locale = NULL;
@@ -2672,6 +2673,15 @@ static inline char *g_iconv_complete(GIConv cd,
 	const char *inbuf, size_t inbytes_left,
 	char *outbuf, size_t outbytes_left)
 {
+#if 0
+	/* This is the appropriate replacement unicode character 0xFFFD but
+	 * it looks awkward (a modified question mark) in a non-unicode
+	 * context. So rather use a underscore for filenames.
+	 */
+	static const gchar replacement[] = { 0xEF, 0xBF, 0xBD };
+#else
+	static const gchar replacement[] = { '_' };
+#endif
 	gchar *result = outbuf;
 
 	if ((GIConv) -1 == cd)
@@ -2680,7 +2690,7 @@ static inline char *g_iconv_complete(GIConv cd,
 	if (outbytes_left > 0)
 		outbuf[0] = '\0';
 
-	while (inbytes_left > 0 && outbytes_left > 0) {
+	while (inbytes_left > 0 && outbytes_left > 1) {
 		size_t ret;
 
 		ret = g_iconv(cd, (gpointer) &inbuf, &inbytes_left,
@@ -2693,11 +2703,16 @@ static inline char *g_iconv_complete(GIConv cd,
 				if (common_dbg > 1)
 					g_warning("g_iconv_complete: g_iconv() failed soft: %s",
 						g_strerror(errno));
-				*outbuf = '_';
-				outbuf++;
-				outbytes_left--;
-				inbuf++;
-				inbytes_left--;
+
+				if (outbytes_left > sizeof replacement) {
+					inbuf++;
+					inbytes_left--;
+					memcpy(outbuf, replacement, sizeof replacement);
+					outbuf += sizeof replacement;
+					outbytes_left -= sizeof replacement;
+				} else {
+					outbytes_left = 1;
+				}
 				break;
 			default:
 				if (common_dbg > 1)
@@ -2743,7 +2758,6 @@ gchar *locale_to_utf8(const gchar *str, size_t len)
 				str, len, outbuf, sizeof(outbuf) - 7);
 }
 
-#ifdef USE_GTK2
 /**
  * Converts a string from the current locale encoding to UTF-8 encoding
  * with all characters decomposed.
@@ -2757,8 +2771,11 @@ gchar *locale_to_utf8(const gchar *str, size_t len)
 gchar *
 locale_to_utf8_nfd(const gchar *str, size_t len)
 {
+	char sbuf[4096];
 	const gchar *s;
 	gchar *ret;
+	size_t utf8_len;
+	
 	g_assert(NULL != str);
 
 	if (0 == len)
@@ -2766,26 +2783,34 @@ locale_to_utf8_nfd(const gchar *str, size_t len)
 	if (0 == len)
 		return g_strdup("");
 
+   	utf8_len = len * 6 + 1;
 	if (utf8_is_valid_string(str, len)) {
 		s = str;
 	} else {
-		size_t utf8_len = len * 6 + 1;
-		gchar *buf;
+		gchar *p;
 
 		g_assert((utf8_len - 1) / 6 == len);
-		buf = g_malloc(utf8_len);
-		s = g_iconv_complete(cd_locale_to_utf8, str, len, buf, utf8_len);
+		p = len < sizeof sbuf ? sbuf : g_malloc(utf8_len);
+		s = g_iconv_complete(cd_locale_to_utf8, str, len, p, utf8_len);
 	}
 
-	ret = g_utf8_normalize(s, (gssize) -1, G_NORMALIZE_NFD);
-	if (s != str) {
+	/*
+	 * Do a dry run first to determine the length. The output buffer won't
+	 * be touched, but it must be valid. So just pass ``s'' not NULL.
+	 */
+	len = utf8_decompose_nfd(s, /* fake */ (gchar *) s, 0);
+	utf8_len = len + 1;
+	ret = g_malloc(utf8_len);
+	len = utf8_decompose_nfd(s, ret, utf8_len);
+	g_assert(len < utf8_len);
+	
+	if (s != str && s != sbuf) {
 		g_free((gchar *) s); /* Override const */
 		s = NULL;
 	}
 
 	return ret;
 }
-#endif /* USE_GTK2 */
 
 
 gchar *utf8_to_locale(const gchar *str, size_t len)
@@ -2840,7 +2865,7 @@ gchar *
 lazy_locale_to_utf8(const gchar *str, size_t len)
 {
 	const gchar *s;
-
+	
 	/* Let's assume that most of the supplied strings are pure ASCII. */
 	if (is_ascii_string(str))
 		return (gchar *) str; /* Override const */

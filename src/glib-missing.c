@@ -364,9 +364,10 @@ gm_sanitize_filename(const gchar *filename)
 
 	gnet_prop_get_boolean_val(PROP_CONVERT_SPACES, &no_spaces);
 	
-#if defined(__APPLE__) && defined(__MACH__) /* Mac OS X*/
-	s = locale_to_utf8_nfd(filename, 0);
-	q = s;
+#if defined(__APPLE__) && defined(__MACH__) /* Mac OS X */
+	/* XXX: What about Darwin? */
+	q = locale_to_utf8_nfd(filename, 0);
+	s = q;
 #endif /* Mac OS X */
 
 	/* Replace shell meta characters and likely problematic characters */

@@ -55,13 +55,11 @@ gchar *iso_8859_1_to_utf8(const gchar *fromstr);
 gchar *locale_to_utf8(const gchar *str, size_t len);
 gchar *lazy_locale_to_utf8(const gchar *str, size_t len);
 
-#ifdef USE_GTK2
 /* Necessary for Mac OS X, as it requires filenames to be UTF-8 encoded
  * with all characters decomposed.
  * Requires GLib 2.x due to use of g_utf8_normalize().
  */
 gchar *locale_to_utf8_nfd(const gchar *str, size_t len);
-#endif /* USE_GTK2 */
 
 
 /* 
