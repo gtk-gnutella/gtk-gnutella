@@ -29,8 +29,8 @@
 #include "gui.h"
 #include "downloads_gui_common.h"
 
-/* Indicates that a dl node is a header node */
-#define DL_GUI_IS_HEADER -1		 
+#define DL_GUI_IS_HEADER -1		 /* Indicates that a dl node is a header node */
+
 
 /*
  * Global Functions
@@ -38,7 +38,6 @@
 
 void downloads_gui_init(void);
 void downloads_gui_shutdown(void);
-
 
 void download_gui_add(struct download *d);
 void download_gui_remove(struct download *d);

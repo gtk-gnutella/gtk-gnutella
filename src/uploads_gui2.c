@@ -138,7 +138,8 @@ static void upload_info_changed(gnet_upload_t u,
     gnet_upload_info_t *info;
 	gint current_page;
 
-	current_page = gtk_notebook_get_current_page(notebook_main);
+    current_page = gtk_notebook_get_current_page(
+        GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
 	if (current_page != nb_main_page_uploads)
 		return;
 

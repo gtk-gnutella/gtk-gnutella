@@ -30,15 +30,11 @@
 #include "downloads_gui.h"
 #include "downloads_gui_common.h"
 #include "downloads_cb.h"
-
 #include "statusbar_gui.h"
 
 #include "downloads.h" /* FIXME: remove this dependency */
 
-
 RCSID("$Id$");
-
-static gchar *selected_url = NULL; 
 
 
 /***
@@ -354,28 +350,6 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
     } 
 }
 
-
-
-void on_popup_downloads_selection_get(GtkWidget * widget,
-                                      GtkSelectionData * data, 
-                                      guint info, guint eventtime,
-                                      gpointer user_data) 
-{
-    g_return_if_fail(selected_url);
-
-    gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING,
-                           8, (guchar *) selected_url, strlen(selected_url));
-}
-
-gint on_popup_downloads_selection_clear_event(GtkWidget * widget,
-                                              GdkEventSelection *event)
-{
-    if (selected_url != NULL) {
-        g_free(selected_url);
-        selected_url = NULL;
-    }
-    return TRUE;
-}
 
 void on_popup_downloads_connect_activate(GtkMenuItem * menuitem,
 					 	                 gpointer user_data) 
@@ -732,25 +706,11 @@ void on_button_downloads_resume_clicked(GtkButton * button,
     gtk_clist_thaw(GTK_CLIST(clist_downloads));
 }
 
-void on_button_downloads_clear_stopped_clicked(
-    GtkButton *button, gpointer user_data)
-{
-	download_clear_stopped(TRUE, TRUE, TRUE, TRUE);
-}
+
 
 /*** 
  *** Queued downloads
  ***/
-void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton, 
-										  gpointer user_data) 
-{
-    if (gtk_toggle_button_get_active(togglebutton)) {
-        download_freeze_queue();
-    } else {
-        download_thaw_queue();
-    }
-}
-
 
 void on_clist_downloads_queue_select_row
     (GtkCList *clist, gint row, gint col, GdkEvent *event, gpointer user_data)
@@ -893,5 +853,7 @@ void on_clist_downloads_queue_drag_end(GtkWidget *widget,
 {
     download_thaw_queue();
 }
+
+
 
 #endif	/* USE_GTK1 */

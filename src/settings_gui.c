@@ -373,6 +373,32 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     },
 #endif
+#ifdef USE_GTK2
+    {
+        get_main_window,
+        PROP_DL_ACTIVE_COL_WIDTHS,
+        update_treeview_col_widths,
+        TRUE,
+        "treeview_downloads",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_DL_QUEUED_COL_WIDTHS,
+        update_treeview_col_widths,
+        TRUE,
+        "treeview_downloads_queue",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_FILE_INFO_COL_WIDTHS,
+        update_treeview_col_widths,
+        TRUE,
+        "treeview_fileinfo",
+        FREQ_UPDATES, 0
+    },
+#else
     {
         get_main_window,
         PROP_DL_ACTIVE_COL_WIDTHS,
@@ -389,16 +415,6 @@ static prop_map_t property_map[] = {
         "clist_downloads_queue",
         FREQ_UPDATES, 0
     },
-#ifdef USE_GTK2
-    {
-        get_main_window,
-        PROP_FILE_INFO_COL_WIDTHS,
-        update_treeview_col_widths,
-        TRUE,
-        "treeview_fileinfo",
-        FREQ_UPDATES, 0
-    },
-#else
     {
         get_main_window,
         PROP_FILE_INFO_COL_WIDTHS,

@@ -30,10 +30,20 @@
 
 struct download;
 
+extern gchar *selected_url;
+
 void gui_update_download_clear(void);
 
 void gui_update_c_downloads(gint, gint);
 void gui_update_queue_frozen(void);
 
+void on_button_downloads_clear_stopped_clicked(
+	GtkButton *button, gpointer user_data);
+void on_popup_downloads_selection_get(GtkWidget *widget,
+	GtkSelectionData * data, guint info, guint eventtime, gpointer user_data);
+gint on_popup_downloads_selection_clear_event(
+	GtkWidget *widget, GdkEventSelection *event);
+void on_togglebutton_queue_freeze_toggled(
+	GtkToggleButton *togglebutton, gpointer user_data);
 
 #endif /* _downloads_gui_common_h_ */

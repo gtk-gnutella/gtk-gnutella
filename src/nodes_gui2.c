@@ -362,7 +362,9 @@ void nodes_gui_update_nodes_display(time_t now)
     static time_t last_update = 0;
 	gint current_page;
 
-	current_page = gtk_notebook_get_current_page(notebook_main);
+	/* Why update if no one's looking? */
+    current_page = gtk_notebook_get_current_page(
+        GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
 	if (current_page != nb_main_page_gnet)
 		return;
 
@@ -422,7 +424,9 @@ static void nodes_gui_node_info_changed(gnet_node_t n)
     gnet_node_info_t info;
 	gint current_page;
 
-	current_page = gtk_notebook_get_current_page(notebook_main);
+	/* Why update if no one's looking? */
+    current_page = gtk_notebook_get_current_page(
+        GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
 	if (current_page != nb_main_page_gnet)
 		return;
 

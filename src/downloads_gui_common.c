@@ -22,11 +22,13 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
+ 
+#include "gui.h"
+
+RCSID("$Id$");
 
 #include "downloads_gui_common.h"
 #include "downloads_gui.h"
-
-RCSID("$Id$");
 
 #include "downloads.h" /* FIXME: remove this dependency */
 #include "dmesh.h" /* FIXME: remove this dependency */
@@ -37,17 +39,24 @@ RCSID("$Id$");
 
 #ifdef USE_GTK2
 #include "downloads_cb2.h"
-#endif
-
-#ifdef USE_GTK1
+#else
 #include "downloads_cb.h"
 #endif
 
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
 #define IO_AVG_RATE		5		/* Compute global recv rate every 5 secs */
 
+gchar *selected_url = NULL;
+
 static gchar tmpstr[4096];
 
+/*
+ *	gui_update_download_clear
+ *
+ *	Checks if there are any active downloads that are clearable
+ *  If so, this activates the "Clear Stopped" button
+ *
+ */
 void gui_update_download_clear(void)
 {
 	GSList *l;
@@ -71,6 +80,14 @@ void gui_update_download_clear(void)
         clear);
 }
 
+
+/*
+ *	gui_update_queue_frozen
+ *
+ *	Checks if the download queue is frozen, if so update the freeze queue
+ *  widgets and display a message on the statusbar
+ *
+ */
 void gui_update_queue_frozen(void)
 {
     static gboolean msg_displayed = FALSE;
@@ -128,4 +145,63 @@ void gui_update_queue_frozen(void)
         GTK_OBJECT(togglebutton_queue_freeze),
         GTK_SIGNAL_FUNC(on_togglebutton_queue_freeze_toggled),
         NULL);
+}
+
+
+/*
+ *	on_popup_downloads_selection_get
+ *
+ */
+void on_popup_downloads_selection_get(GtkWidget * widget, 
+	GtkSelectionData * data, guint info, guint eventtime, gpointer user_data) 
+{
+    g_return_if_fail(selected_url);
+
+    gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING,
+                           8, (guchar *) selected_url, strlen(selected_url));
+}
+
+
+/*
+ *	on_popup_downloads_selection_clear_event
+ *
+ */
+gint on_popup_downloads_selection_clear_event(GtkWidget * widget,
+                                              GdkEventSelection *event)
+{
+    if (selected_url != NULL) {
+        g_free(selected_url);
+        selected_url = NULL;
+    }
+    return TRUE;
+}
+
+
+/*
+ *	on_button_downloads_clear_stopped_clicked
+ *
+ *	clear all stopped, complete, and unavailable downloads
+ *
+ */
+void on_button_downloads_clear_stopped_clicked(
+    GtkButton *button, gpointer user_data)
+{
+	download_clear_stopped(TRUE, TRUE, TRUE, TRUE);
+}
+
+
+/*
+ *	on_togglebutton_queue_freeze_toggled
+ *
+ *	Freeze the downloads queue
+ *
+ */
+void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton,
+	gpointer user_data) 
+{
+    if (gtk_toggle_button_get_active(togglebutton)) {
+        download_freeze_queue();
+    } else {
+        download_thaw_queue();
+    }
 }

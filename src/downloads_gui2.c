@@ -56,13 +56,28 @@ static GHashTable *parents_queue;	/* table of parent queued dl iterators */
  ***/
  
  
- static inline void add_parent_with_fi_handle(
+/*
+ *	add_parent_with_fi_handle
+ *
+ *	Add the given tree iterator to the hashtable.
+ *  The key is an atomized int of the fi_handle for a given download.
+ *
+ */
+static inline void add_parent_with_fi_handle(
 	GHashTable *ht, gpointer key, GtkTreeIter *iter)
 {
 	g_hash_table_insert(ht, key, w_tree_iter_copy(iter));
 }
 
-
+/*
+ *	remove_parent_with_fi_handle
+ *
+ *	Removes the tree iterator matching the given fi_handle from the hash table.
+ *  The atom used for the key along with the stored iter are assumed to be freed
+ *  automatically.  The functions to free this memory should be declared when 
+ *	creating the hash table.
+ *
+ */
 static inline void remove_parent_with_fi_handle(
 	GHashTable *ht, const gint *fi_handle)
 {
@@ -74,83 +89,100 @@ static inline void remove_parent_with_fi_handle(
 }
 
 
+/*
+ *	find_parent_with_fi_handle
+ *
+ *	Returns the tree iterator corresponding to the given key, an atomized
+ *	fi_handle.
+ *
+ */
 static inline GtkTreeIter *find_parent_with_fi_handle(
 	GHashTable *ht, gpointer key)
 {
-	GtkTreeIter *iter = NULL;
-	gpointer *orig_key;
-
-	if (g_hash_table_lookup_extended(ht, key,
-			(gpointer) &orig_key, (gpointer) &iter))
-		return iter;
-		
-	return NULL;
+	return g_hash_table_lookup(ht, key);
 }
 
 
+/*
+ *	do_atom_fi_handle_free
+ */
 static inline void do_atom_fi_handle_free(gpointer fi_handle)
 {
 	atom_int_free(fi_handle);
 }
 
  
- 
-
-/* 
-  * Returns true if d is equal to download record for given iter
-  * Also creates path string in temp_iter_string (for later reference)
-  */ 
-gboolean downloads_gui_find_download(GtkTreeModel *model, GtkTreePath *path,
-	GtkTreeIter *iter, gpointer d)
+/*
+ *	downloads_gui_download_eq
+ *
+ *	Checks if the c_dl_record column of the given tree iterator points
+ *	to the given download.
+ *
+ * 	If they match, it will store the path string of the node in temp_iter_string
+ *	If not it will store an empty string.  In either case the string needs to
+ * 	be freed later with G_FREE_NULL
+ */
+gboolean downloads_gui_download_eq(GtkTreeModel *model, GtkTreePath *path,
+	GtkTreeIter *iter, gpointer download)
 {
 	gpointer download_from_treeview;
 
 	gtk_tree_model_get(model, iter, c_dl_record, &download_from_treeview, -1);
 	
-	if(download_from_treeview == d){
+	if (download_from_treeview == download){		
 		temp_iter_string = gtk_tree_model_get_string_from_iter(model, iter);
-		/* sometimes this returns ":" not sure why but that is invalid */
-		return (strcmp(temp_iter_string, ":"));
-	} else {
-		temp_iter_string = g_malloc(1);
-		temp_iter_string[0] = '\0'; 
-		return FALSE;	
+			
+		/* sometimes the returned path is ":" not sure why but that is invalid*/
+		if (0 != strcmp(temp_iter_string, ":"))
+			return TRUE;
 	}
+
+	temp_iter_string = g_malloc(1);
+	temp_iter_string[0] = '\0'; 
+	return FALSE;	
 }
 
 
-/* 
-  * Returns true if d is equal to download record for given iter
-  * Also creates path string in temp_iter_string (for later reference)
-  */ 
-gboolean downloads_gui_find_queue_download(
-	GtkTreeModel *model, GtkTreePath *path,
-	GtkTreeIter *iter, gpointer d)
+/*
+ *	downloads_gui_download_queue_eq
+ *
+ *	Checks if the c_queue_record column of the given tree iterator points
+ *	to the given download.
+ *
+ * 	If they match, it will store the path string of the node in temp_iter_string
+ *	If not it will store an empty string.  In either case the string needs to
+ * 	be freed later with G_FREE_NULL
+ *
+ *  Note: this function is the same as downloads_gui_download_eq except for the
+ * 	column the record is retrieved from. 
+ */
+gboolean downloads_gui_download_queue_eq(GtkTreeModel *model, 
+	GtkTreePath *path, GtkTreeIter *iter, gpointer download)
 {
 	gpointer download_from_treeview;
 
-	gtk_tree_model_get(model, iter, c_queue_record, &download_from_treeview, -1);
+	gtk_tree_model_get(model, iter, c_queue_record, &download_from_treeview,-1);
 	
-	if(download_from_treeview == d){
+	if (download_from_treeview == download){		
 		temp_iter_string = gtk_tree_model_get_string_from_iter(model, iter);
-		/* sometimes this returns ":" not sure why but that is invalid */
-		return (strcmp(temp_iter_string, ":"));
-	} else {
-		temp_iter_string = g_malloc(1);
-		temp_iter_string[0] = '\0'; 
-		return FALSE;	
+			
+		/* sometimes the returned path is ":" not sure why but that is invalid*/
+		if (0 != strcmp(temp_iter_string, ":"))
+			return TRUE;
 	}
+
+	temp_iter_string = g_malloc(1);
+	temp_iter_string[0] = '\0'; 
+	return FALSE;	
 }
 
 
-static void downloads_gui_column_resized(
-    GtkTreeViewColumn *column,
-	property_t prop,
-	gint id,
-	gint min_id,
-	gint max_id)
+/*
+ *	downloads_gui_column_resized
+ */
+static void downloads_gui_column_resized(GtkTreeViewColumn *column,
+	property_t prop, gint id, gint min_id, gint max_id)
 {
-	
     guint32 width;
     static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
 
@@ -164,6 +196,10 @@ static void downloads_gui_column_resized(
     g_static_mutex_unlock(&mutex);
 }
 
+
+/*
+ *	on_downloads_gui_active_column_resized
+ */
 static void on_downloads_gui_active_column_resized(
     GtkTreeViewColumn *column, GParamSpec *param, gpointer data)
 {
@@ -171,6 +207,10 @@ static void on_downloads_gui_active_column_resized(
 		GPOINTER_TO_INT(data), 0, 5);
 }
 
+
+/*
+ *	on_downloads_gui_queue_column_resized
+ */
 static void on_downloads_gui_queue_column_resized(
     GtkTreeViewColumn *column, GParamSpec *param, gpointer data)
 {
@@ -179,16 +219,14 @@ static void on_downloads_gui_queue_column_resized(
 }
 
 
-
-	
-static GtkTreeViewColumn *add_column(
-	GtkTreeView *treeview,
-	gchar *name,
-	gint id,
-	gint width,
-	guint xpad,
-	gfloat xalign,
-	gint fg_column,
+/*
+ *	add_column
+ *	
+ *	Sets the details applicable to a single column in the treeviews.
+ *	Usable for both active downloads and downloads queue treeview.
+ */
+static GtkTreeViewColumn *add_column(GtkTreeView *treeview,	gchar *name, 
+	gint id, gint width, guint xpad, gfloat xalign, gint fg_column,
 	gint bg_column)
 {
     GtkTreeViewColumn *column;
@@ -197,6 +235,7 @@ static GtkTreeViewColumn *add_column(
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_text_set_fixed_height_from_font(
 		GTK_CELL_RENDERER_TEXT(renderer), 1);
+
 	column = gtk_tree_view_column_new_with_attributes(name, renderer,
 		"background-gdk", bg_column,
 		"foreground-gdk", fg_column,
@@ -217,20 +256,23 @@ static GtkTreeViewColumn *add_column(
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		NULL);
-    gtk_tree_view_column_set_sort_column_id(column, id);
+
+	gtk_tree_view_column_set_sort_column_id(column, id);
     gtk_tree_view_append_column(treeview, column);
 	g_object_notify(G_OBJECT(column), "width");
 
 	return column;
 }
 
-static void add_active_downloads_column(
-	GtkTreeView *treeview,
-	gchar *name,
-	gint id,
-	gint width,
-	guint xpad,
-	gfloat xalign,
+
+/*
+ *	add_active_downloads_column
+ *
+ *	Add one column to the treeview
+ *	Note: Usable only for active downloads treeview.
+ */
+static void add_active_downloads_column(GtkTreeView *treeview, gchar *name,
+	gint id, gint width, guint xpad, gfloat xalign,
 	gint (*sortfunc)(GtkTreeModel *, GtkTreeIter *, GtkTreeIter *, gpointer))
 {
     GtkTreeViewColumn *column;
@@ -239,6 +281,7 @@ static void add_active_downloads_column(
 	model = gtk_tree_view_get_model(treeview);
 	column = add_column(treeview,
 		name, id, width, xpad, xalign, c_dl_fg, c_dl_bg);
+
 	if (NULL != sortfunc)
 		gtk_tree_sortable_set_sort_func(
 			GTK_TREE_SORTABLE(model), id, sortfunc, NULL, NULL);
@@ -248,13 +291,14 @@ static void add_active_downloads_column(
 			GINT_TO_POINTER(id));	
 }
 
-static void add_queue_downloads_column(
-	GtkTreeView *treeview,
-	gchar *name,
-	gint id,
-	gint width,
-	guint xpad,
-	gfloat xalign,
+/*
+ *	add_queue_downloads_column
+ *
+ *	Add one column to the treeview
+ *	Note: Usable only for downloads queue treeview.
+ */
+static void add_queue_downloads_column(GtkTreeView *treeview, gchar *name,
+	gint id, gint width, guint xpad, gfloat xalign,
 	gint (*sortfunc)(GtkTreeModel *, GtkTreeIter *, GtkTreeIter *, gpointer))
 {
     GtkTreeViewColumn *column;
@@ -263,6 +307,7 @@ static void add_queue_downloads_column(
 	model = gtk_tree_view_get_model(treeview);
 	column = add_column(treeview, name, id, width, xpad, xalign, 
 		c_queue_fg, c_queue_bg);
+
 	if (NULL != sortfunc)
 		gtk_tree_sortable_set_sort_func(
 			GTK_TREE_SORTABLE(model), id, sortfunc, NULL, NULL);
@@ -271,10 +316,18 @@ static void add_queue_downloads_column(
         G_CALLBACK(on_downloads_gui_queue_column_resized), GINT_TO_POINTER(id));	
 }
 
+
+/*
+ *	add_active_downloads_columns
+ *
+ *	Add all columns to the treeview
+ * 	Set titles, alignment, width, etc. here
+ *	
+ *	Note: Usable only for active downloads treeview.
+ */
 static void add_active_downloads_columns (GtkTreeView *treeview)
 {
 	guint32 *width;
-
     width = gui_prop_get_guint32(PROP_DL_ACTIVE_COL_WIDTHS, NULL, 0, 0);
 
 	add_active_downloads_column(treeview, "Filename", c_dl_filename, 
@@ -293,10 +346,18 @@ static void add_active_downloads_columns (GtkTreeView *treeview)
 	G_FREE_NULL(width);
 }
 
+
+/*
+ *	add_queue_downloads_columns
+ *
+ *	Add all columns to the treeview
+ * 	Set titles, alignment, width, etc. here
+ *	
+ *	Note: Usable only for downloads queue treeview.
+ */
 static void add_queue_downloads_columns (GtkTreeView *treeview)
 {
 	guint32 *width;
-
     width = gui_prop_get_guint32(PROP_DL_QUEUED_COL_WIDTHS, NULL, 0, 0);
 
 	add_queue_downloads_column(treeview, "Filename", c_queue_filename, 
@@ -313,26 +374,38 @@ static void add_queue_downloads_columns (GtkTreeView *treeview)
 	G_FREE_NULL(width);
 }
 
+
+
 /***
  *** Public functions
  ***/
 
+
+/*
+ *	downloads_gui_init
+ *
+ *	Initalize the download gui
+ *
+ *	Important things in here:  initialization of hash tables, adding columns
+ * 	to the treeviews, creating treeview model (what the columns mean and their
+ *	numbers), hooking up of signal callbacks
+ *
+ */
 void downloads_gui_init(void)
 {
 	GtkTreeModel *model;
 	GtkTreeSelection *selection;
 	GtkTreeView	*treeview;
 
-	/* Create parents hash tables */
+	/* Create parents hash tables, with functions to auto-free keys and data */
 	parents = g_hash_table_new_full(NULL, NULL,
 		do_atom_fi_handle_free, (GDestroyNotify) w_tree_iter_free);
 
 	parents_queue = g_hash_table_new_full(NULL, NULL,
 		do_atom_fi_handle_free, (GDestroyNotify) w_tree_iter_free);
 	
-
-	/* Create and setup the active downloads treeview */
 	
+	/* Create and setup the active downloads treeview */
 	model = (GtkTreeModel *) gtk_tree_store_new(c_dl_num,
 		G_TYPE_STRING,		/* File */
 		G_TYPE_STRING,		/* Size */
@@ -346,7 +419,6 @@ void downloads_gui_init(void)
 	
 	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_downloads"));
 	gtk_tree_view_set_model(treeview, model);
-
 
 	selection = gtk_tree_view_get_selection(treeview);
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
@@ -368,14 +440,15 @@ void downloads_gui_init(void)
 	gtk_tree_view_column_set_alignment
 		(gtk_tree_view_get_column(treeview, c_dl_server), 0.5);
 
-
+	/* Set up callbacks */
 	g_signal_connect(GTK_OBJECT(treeview), "cursor-changed",
 		G_CALLBACK(on_treeview_downloads_select_row), treeview);
 	g_signal_connect(GTK_OBJECT(treeview), "button_press_event",
 		G_CALLBACK(on_treeview_downloads_button_press_event), NULL);
 
-	/* Create and setup the queued downloads treeview */
-	
+
+
+	/* Create and setup the queued downloads treeview */	
 	model = (GtkTreeModel *) gtk_tree_store_new(c_queue_num,
 		G_TYPE_STRING,		/* File */
 		G_TYPE_STRING,		/* Size */
@@ -408,19 +481,54 @@ void downloads_gui_init(void)
 	gtk_tree_view_column_set_alignment
 		(gtk_tree_view_get_column(treeview, c_queue_server), 0.5);
 
+	/* Create and setup the queued downloads treeview */	
 	g_signal_connect(GTK_OBJECT(treeview), "cursor-changed",
 		G_CALLBACK(on_treeview_downloads_queue_select_row), treeview);
 	g_signal_connect(GTK_OBJECT(treeview), "button_press_event",
 		G_CALLBACK(on_treeview_downloads_queue_button_press_event), NULL);
 }
 
-/* Add a download to the GUI */
+/*
+ *	downloads_gui_shutdown
+ *
+ */
+void downloads_gui_shutdown(void)
+{
+	/* Clean up our hashtables, this is necessary because they contain
+	 * both dynamically allocated atoms and iterators.  The functions to 
+	 * free this memory should have been associated with the hashtables
+	 * when they were created (in downloads_gui_init).
+	 */
+	g_hash_table_destroy(parents);
+	g_hash_table_destroy(parents_queue);
+}
+
+
+/*
+ *	download_gui_add
+ *
+ *	Add a download to either the active or queued download treeview depending
+ *	on the download's flags.  This function handles grouping new downloads
+ * 	appropriately and creation of parent/child nodes.
+ *
+ */
 void download_gui_add(struct download *d)
 {
 
 	static gchar vendor[256];
-	gchar *file_name, *file_size;
+	gchar *d_file_name, *d_file_size;
+	gchar *filename, *host, *size, *server, *status, *range;
+	struct download *drecord = NULL;
 
+	gint active_src = 0, tot_src = 0;
+	gfloat percent_done = 0;
+	
+	GtkTreeIter iter;
+	GtkTreeIter *parent;
+	GtkTreeView *tree_view;
+	GtkTreeStore *model;
+	
+	
 	g_return_if_fail(d);
 
 	if (DOWNLOAD_IS_VISIBLE(d)) {
@@ -436,44 +544,33 @@ void download_gui_add(struct download *d)
 	 * on disk in that case.
 	 *		--RAM, 22/10/2002
 	 */
-	file_name = file_info_readable_filename(d->file_info);
-	file_name = lazy_locale_to_utf8(file_name, 0);
+	d_file_name = file_info_readable_filename(d->file_info);
+	d_file_name = lazy_locale_to_utf8(d_file_name, 0);
 	
 	gm_snprintf(vendor, sizeof(vendor), "%s%s",
 		(d->server->attrs & DLS_A_BANNING) ? "*" : "",
 		download_vendor_str(d));
 	
-	file_size = short_size(d->file_info->size);
+	d_file_size = short_size(d->file_info->size);
 	
 	
-	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
-	
-		GtkTreeIter iter;
-		GtkTreeIter *parent;
-		GtkTreeView *tree_view = GTK_TREE_VIEW
+	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */	
+
+		tree_view = GTK_TREE_VIEW
 			(lookup_widget(main_window, "treeview_downloads_queue"));
-		GtkTreeStore *model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
+		model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
 
-
-		if (NULL != d->file_info) {		
+		if (NULL != d->file_info) {
 			
 			gpointer key;
 			key = (gpointer) atom_int_get(&(d->file_info->fi_handle));
 			parent = find_parent_with_fi_handle(parents_queue, key);
 
 			if (NULL != parent) {
-				
-				gchar *filename;
-				gchar *host;
-				gchar *size;
-				gchar *server;
-				gchar *status;
-				struct download *drecord = NULL;
-
 				/* 	There already is a download with that file_info
 				 *	we need to figure out if there is a header entry yet
 				 */
-				gtk_tree_model_get((GtkTreeModel *)model, parent,
+				gtk_tree_model_get((GtkTreeModel *) model, parent,
 			      	c_queue_filename, &filename,
 			  		c_queue_host, &host,
 	    	  		c_queue_size, &size,
@@ -482,7 +579,7 @@ void download_gui_add(struct download *d)
 	      			c_queue_record, &drecord,
 		        	(-1));
 
-				if(DL_GUI_IS_HEADER != (guint32)drecord) /* not a header entry */
+				if (DL_GUI_IS_HEADER != (guint32) drecord)/*not a header entry*/
 				{
 					/* No header entry so we will create one */
 					/* Copy the old parents info into a new node */
@@ -521,11 +618,10 @@ void download_gui_add(struct download *d)
 				gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts", n);
 
 				gtk_tree_store_set(model, parent,
-			  		c_queue_host, tmpstr,
-		        	(-1));
+			  		c_queue_host, tmpstr, (-1));
 					
-				file_name = "\"";
-				file_size = "";
+				d_file_name = "\"";
+				d_file_size = "";
 				
 				atom_int_free(key);			
 				
@@ -543,27 +639,24 @@ void download_gui_add(struct download *d)
 
 			/* Fill in the values for current download d */
 			gtk_tree_store_set(model, &iter,
-			      c_queue_filename, file_name,
+			      c_queue_filename, d_file_name,
 				  c_queue_host, is_faked_download(d) ? "" :
 						d->server->hostname == NULL ?
 							ip_port_to_gchar(download_ip(d), download_port(d)) :
 							hostname_port_to_gchar(d->server->hostname,
 								download_port(d)),
-			      c_queue_size, file_size,
+			      c_queue_size, d_file_size,
 			      c_queue_server, vendor,
 			      c_queue_status, "",
-		   	   c_queue_record, d,
-		   	   (-1));		
+				  c_queue_record, d,
+		   	      (-1));		
 		} 
-
+		
 	} else {		/* This is an active download */
 	
-		GtkTreeIter iter;
-		GtkTreeIter *parent;
-		GtkTreeView *tree_view = GTK_TREE_VIEW
+		tree_view = GTK_TREE_VIEW
 			(lookup_widget(main_window, "treeview_downloads"));
-		GtkTreeStore *model = (GtkTreeStore *)
-			gtk_tree_view_get_model(tree_view);
+		model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
 		
 		if (NULL != d->file_info) {
 			gpointer key;
@@ -571,19 +664,10 @@ void download_gui_add(struct download *d)
 			parent = find_parent_with_fi_handle(parents, key);
 
 			if (NULL != parent) {
-
-				gchar *filename;
-				gchar *host;
-				gchar *size;
-				gchar *range;
-				gchar *server;
-				gchar *status;
-				struct download *drecord = NULL;
-
 				/* 	There already is a download with that file_info
 				 *	we need to figure out if there is a header entry yet
 				 */
-				gtk_tree_model_get((GtkTreeModel *)model, parent,
+				gtk_tree_model_get((GtkTreeModel*) model, parent,
 			      	c_dl_filename, &filename,
 			  		c_dl_host, &host,
 	    	  		c_dl_size, &size,
@@ -593,7 +677,7 @@ void download_gui_add(struct download *d)
 	      			c_dl_record, &drecord,
 		        	(-1));
 
-				if(DL_GUI_IS_HEADER != (guint32)drecord) /* not a header entry */
+				if (DL_GUI_IS_HEADER != (guint32) drecord)/*not a header entry*/
 				{
 					/* No header entry so we will create one */
 					
@@ -609,19 +693,13 @@ void download_gui_add(struct download *d)
 		      			c_dl_status, status,
 		      			c_dl_record, drecord,
 			        	(-1));
-
 					
-					gint active_src, tot_src;
-					gfloat percent_done =0;
-
        			    if (download_filesize(d))
                 		percent_done = ((download_filedone(d) * 100.0) 
 							/ download_filesize(d));
 
-					
 					active_src = d->file_info->recvcount;
 					tot_src = d->file_info->lifecount;
-
 					
 					gm_snprintf(tmpstr, sizeof(tmpstr),
 						"%.02f%%  (0 k/s)  [%d/%d]  TR:  -", percent_done,
@@ -653,11 +731,10 @@ void download_gui_add(struct download *d)
 				gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts", n);
 
 				gtk_tree_store_set(model, parent,
-			  		c_dl_host, tmpstr,
-		        	(-1));
+			  		c_dl_host, tmpstr, (-1));
 					
-				file_name = "\"";
-				file_size = "";
+				d_file_name = "\"";
+				d_file_size = "";
 
 				atom_int_free(key);
 
@@ -676,13 +753,13 @@ void download_gui_add(struct download *d)
 		
 			/* Fill in the values for current download d */
 			gtk_tree_store_set(model, &iter,
-			      c_dl_filename, file_name,
+			      c_dl_filename, d_file_name,
 				  c_dl_host, is_faked_download(d) ? "" :
 						d->server->hostname == NULL ?
 							ip_port_to_gchar(download_ip(d), download_port(d)) :
 							hostname_port_to_gchar(d->server->hostname,
 								download_port(d)),
-			      c_dl_size, file_size,
+			      c_dl_size, d_file_size,
 			      c_dl_range, "",
 			      c_dl_server, vendor,
 		    	  c_dl_status, "",
@@ -690,12 +767,290 @@ void download_gui_add(struct download *d)
 		      	(-1));
 		}
 	}
-	
+	/* Download was added to either the active or queued downloads treeview */
 	d->visible = TRUE;
 }
 
+
+/*
+ *	download_gui_remove
+ *
+ *	Remove a download from the GUI.
+ */
+void download_gui_remove(struct download *d)
+{	
+	gint row;
+	gpointer key;
+
+	gchar *host, *range;
+	gchar *server, *status;
+	struct download *drecord = NULL;
+
+	GtkTreeIter iter, child;
+	GtkTreeIter *parent;
+	GtkTreeView *tree_view;
+	GtkTreeStore *model;
+
+
+	g_return_if_fail(d);
+	
+	if (!DOWNLOAD_IS_VISIBLE(d)){
+		g_warning
+			("download_gui_remove() called on invisible download '%s' !",
+			 d->file_name);
+		return;
+	}
+
+	
+	if (DOWNLOAD_IS_QUEUED(d)) {
+		
+		tree_view = GTK_TREE_VIEW
+			(lookup_widget(main_window, "treeview_downloads_queue"));
+		model =	(GtkTreeStore *) gtk_tree_view_get_model(tree_view);
+
+		/* Find row that matches d */
+		gtk_tree_model_foreach(
+			(GtkTreeModel *)model, downloads_gui_download_queue_eq, d);
+	
+		if (0 != strcmp(temp_iter_string, "")) {		
+			if (gtk_tree_model_get_iter_from_string(
+					(GtkTreeModel *)model, &iter, temp_iter_string)){
+	
+				/*  We need to discover if the download has a parent */
+				if (NULL != d->file_info) {
+		
+					key = atom_int_get(&d->file_info->fi_handle);
+					parent =  find_parent_with_fi_handle(parents_queue, key);
+	
+					if (NULL != parent) {
+	
+						guint n = (guint) gtk_tree_model_iter_n_children(
+							(GtkTreeModel *) model, parent);
+										
+						/* If there are children, there should be >1 */
+						if ((1 == n) || ( 0 > n))
+						{
+							g_warning("gui_remove_download (queued):" 
+								"node has %d children!", n);
+							return;						
+						}
+
+						if (2 == n)
+						{
+							/* Removing this download will leave only one left, 
+	 						 * we'll have to get rid of the header. */
+					
+							/* Get rid of current download, d */
+							gtk_tree_store_remove(model, &iter);
+
+							/* Replace header with only remaining child */
+							if (gtk_tree_model_iter_nth_child(
+								(GtkTreeModel *) model, &iter, parent, 0)) {
+
+								gtk_tree_model_get((GtkTreeModel *)model, &iter,
+						  			c_queue_host, &host,
+	     	 						c_queue_server, &server,
+	      							c_queue_status, &status,
+	      							c_queue_record, &drecord,
+		        					(-1));
+				
+								gtk_tree_store_set(model, parent,
+				  					c_queue_host, host,
+			     	 				c_queue_server, server,
+	    		  					c_queue_status, status,
+	      							c_queue_record, drecord,
+		        					(-1));
+							}
+							else
+								g_warning("download_gui_remove() (Queued): "
+									"We've created a parent with only"
+									" one child!!");								
+						}
+					
+						if (0 == n) {
+							/* Node has no children -> is a parent */
+							remove_parent_with_fi_handle
+								(parents_queue, &(d->file_info->fi_handle));
+						}
+
+						
+						if (2 < n){
+							gm_snprintf(tmpstr, sizeof(tmpstr), 
+								"%u hosts", n - 1);
+
+							gtk_tree_store_set(model, parent,
+				  				c_dl_host, tmpstr,
+		       					(-1));							
+						}
+			
+					/*  Note: this line IS correct for cases n=0, n=2,and n>2 */
+					gtk_tree_store_remove(model, &iter);
+					
+					} else 
+						g_warning("download_gui_remove(): "
+							"Download '%s' has no parent", d->file_name);
+	
+					atom_int_free(key);				
+				} 
+			}
+		} else
+			g_warning("download_gui_remove(): "
+				"Queued download '%s' not found in treeview !?", d->file_name);
+	
+		G_FREE_NULL(temp_iter_string);
+
+	} else {
+		tree_view = GTK_TREE_VIEW
+			(lookup_widget(main_window, "treeview_downloads"));
+		model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
+
+		/* Find row that matches d */
+		gtk_tree_model_foreach((GtkTreeModel *) model, 
+			downloads_gui_download_eq, d);
+	
+		if (0 != strcmp(temp_iter_string, "")) {	
+			
+			if (gtk_tree_model_get_iter_from_string(
+					(GtkTreeModel *) model, &iter, temp_iter_string)) {
+			
+				/*  We need to discover if the download has a parent */
+				if (NULL != d->file_info) {
+		
+					key = atom_int_get(&d->file_info->fi_handle);
+					parent = find_parent_with_fi_handle(parents, key);
+
+					if (NULL != parent) {
+
+						guint n = (guint) gtk_tree_model_iter_n_children(
+							(GtkTreeModel *) model, parent);
+					
+						/* If there are children, there should be >1 */
+						if ((1 == n) || ( 0 > n))
+						{
+							g_warning("gui_remove_download (active):" 
+								"node has %d children!", n);
+							return;						
+						}
+						
+						if (2 == n)
+						{
+							/* Removing this download will leave only one left, 
+		 					 * we'll have to get rid of the header. */
+						
+							/* Get rid of current download, d */
+							gtk_tree_store_remove(model, &iter);
+
+							/* Replace header with only remaining child */
+							if (gtk_tree_model_iter_nth_child(
+								(GtkTreeModel *) model, &iter, parent, 0)) {
+
+								gtk_tree_model_get((GtkTreeModel *)model, &iter,
+							  		c_dl_host, &host,
+			      					c_dl_range, &range,
+			     	 				c_dl_server, &server,
+			      					c_dl_status, &status,
+			      					c_dl_record, &drecord,
+				        			(-1));
+				
+								gtk_tree_store_set(model, parent,
+				  					c_dl_host, host,
+		    	 			 		c_dl_range, range,
+		     		 				c_dl_server, server,
+		      						c_dl_status, status,
+		      						c_dl_record, drecord,
+			        				(-1));
+							}
+							else
+								g_warning("download_gui_remove() (Active): "
+									"We've created a parent with only "
+									"one child!!");								
+						}
+					
+						if (0 == n) {
+							/* Node has no children -> is a parent */
+							remove_parent_with_fi_handle(parents, 
+								&(d->file_info->fi_handle));
+						}
+
+						if (2 < n){
+							gm_snprintf(tmpstr, sizeof(tmpstr), 
+								"%u hosts", n - 1);
+
+							gtk_tree_store_set(model, parent,
+				  				c_dl_host, tmpstr,
+		       					(-1));							
+						}
+
+					/*  Note: this line IS correct for cases n=0, n=2, and n>2*/
+						gtk_tree_store_remove(model, &iter);
+					
+					} else 
+						g_warning("download_gui_remove(): "
+							"Active download '%s' no parent", d->file_name);
+
+					atom_int_free(key);		
+				}	
+			}	
+			
+		} else
+			g_warning("download_gui_remove(): "
+				"Active download '%s' not found in treeview !?", d->file_name);
+
+		G_FREE_NULL(temp_iter_string);
+	}
+
+	d->visible = FALSE;
+
+	gui_update_download_abort_resume();
+	gui_update_download_clear();
+}
+
+
+
+/*
+ *	gui_update_download_column
+ *
+ *	Updates the given column of the given treeview	
+ */
+void gui_update_download_column(struct download *d, GtkTreeView *tree_view,
+	gint column, gchar *value)
+{
+	GtkTreeIter iter;
+	GtkTreeStore *model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
+	
+	g_assert(d);
+
+	if (DL_GUI_IS_HEADER != (guint32) d) /*not a header */ {
+
+		/* Find row that matches d */
+		gtk_tree_model_foreach((GtkTreeModel *)model, 
+			downloads_gui_download_eq, d);
+
+		if (0 != strcmp(temp_iter_string, "")) {		
+			if (gtk_tree_model_get_iter_from_string((GtkTreeModel *)model, 
+					&iter, temp_iter_string))
+				gtk_tree_store_set(model, &iter, column, tmpstr, (-1));
+			else
+				g_warning("gui_update_download_column: couldn't find"
+					" download updating column %d", column);
+		}
+		G_FREE_NULL(temp_iter_string);
+	}
+}
+
+
+
+/*
+ *	gui_update_download_server
+ *
+ *	Update the server/vendor column of the active downloads treeview
+ *
+ */
 void gui_update_download_server(struct download *d)
 {
+	GtkTreeView *tree_view = GTK_TREE_VIEW
+		(lookup_widget(main_window, "treeview_downloads"));
+
 	g_assert(d);
 	g_assert(d->status != GTA_DL_QUEUED);
 	g_assert(d->server);
@@ -706,44 +1061,30 @@ void gui_update_download_server(struct download *d)
 	 * banning us and we activated anti-banning features.
 	 *		--RAM, 05/07/2003
 	 */
-	(void) gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
 		(d->server->attrs & DLS_A_BANNING) ? "*" : "",
 		download_vendor(d));
 
-	GtkTreeIter iter;
-	GtkTreeView *tree_view = GTK_TREE_VIEW
-		(lookup_widget(main_window, "treeview_downloads"));
-	GtkTreeStore *model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
-
-	if(DL_GUI_IS_HEADER != (guint32)d) /*not a header */ {
-
-		/* Find row that matches d */
-		gtk_tree_model_foreach((GtkTreeModel *)model, 
-			downloads_gui_find_download, d);
-
-		if(strcmp(temp_iter_string, "")) {		
-			if(gtk_tree_model_get_iter_from_string((GtkTreeModel *)model, 
-					&iter, temp_iter_string))
-				gtk_tree_store_set(model, &iter, c_dl_server, tmpstr, (-1));
-			else
-				g_warning("gui_update_download_server: couldn't find"
-					" download updating server");
-		}
-		g_free(temp_iter_string);
-	}
+	gui_update_download_column(d, tree_view, c_dl_server, tmpstr);
 }
 
+
+/*
+ *	gui_update_download_range
+ *
+ *	Update the range column of the active downloads treeview
+ *
+ */
 void gui_update_download_range(struct download *d)
 {
 	guint32 len;
 	gchar *and_more = "";
 	gint rw;
 	gint row;
-	GtkTreeIter iter;
+	gpointer key;
+
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads"));
-	GtkTreeStore *model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
-
 
 	g_assert(d);
 	g_assert(d->status != GTA_DL_QUEUED);
@@ -766,33 +1107,22 @@ void gui_update_download_range(struct download *d)
 		gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " @ %s",
 			compact_size(d->skip));
 
-	if (DL_GUI_IS_HEADER != (guint32) d) {		/* Not a header */
-			
-		/* Find row that matches d */
-		gtk_tree_model_foreach((GtkTreeModel *)model, 
-			downloads_gui_find_download, d);
-
-		if(strcmp(temp_iter_string, ""))
-		{		
-			if(gtk_tree_model_get_iter_from_string((GtkTreeModel *)model, 
-					&iter, temp_iter_string))
-				gtk_tree_store_set(model, &iter, c_dl_range, tmpstr, (-1));
-			else
-				g_warning("gui_update_download_range: "
-					"couldn't find download updating range");
-		}
-		g_free(temp_iter_string);	
-	}
+	
+	gui_update_download_column(d, tree_view, c_dl_range, tmpstr);
 }
 
 
+/*
+ *	gui_update_download_host
+ *
+ *	Update the host column of the active downloads treeview
+ *
+ */
 void gui_update_download_host(struct download *d)
 {
 	gchar *text;
-	GtkTreeIter iter;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads"));
-	GtkTreeStore *model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
 
 	g_assert(d);
 	g_assert(d->status != GTA_DL_QUEUED);
@@ -802,23 +1132,17 @@ void gui_update_download_host(struct download *d)
 			ip_port_to_gchar(download_ip(d), download_port(d)) :
 			hostname_port_to_gchar(d->server->hostname, download_port(d));
 
-	if (DL_GUI_IS_HEADER != (guint32) d) { /* Not a header */
-
-		/* Find row that matches d */
-		gtk_tree_model_foreach((GtkTreeModel *)model, 
-			downloads_gui_find_download, d);
-	
-		if(strcmp(temp_iter_string, "")) {		
-			if(gtk_tree_model_get_iter_from_string((GtkTreeModel *)model, 
-					&iter, temp_iter_string))
-				gtk_tree_store_set(model, &iter, c_dl_host, text, (-1));
-			else
-				g_warning("downloads_gui: couldn't find download updating host");
-		}
-		g_free(temp_iter_string);
-	}
+	gui_update_download_column(d, tree_view, c_dl_host, text);
 }
 
+
+
+/*
+ *	gui_update_download
+ *
+ *	Update the gui to reflect the current state of the given download
+ *
+ */
 void gui_update_download(struct download *d, gboolean force)
 {
 	const gchar *a = NULL;
@@ -826,15 +1150,22 @@ void gui_update_download(struct download *d, gboolean force)
 	struct dl_file_info *fi;
 	gint rw, row;
 	extern gint sha1_eq(gconstpointer a, gconstpointer b);
+	gpointer key;
 
+	GtkTreeIter iter;
+	GtkTreeIter *parent;
+	GtkTreeView *tree_view;
+	GtkTreeStore *model;
+	
+	
 	/* Why update if no one's looking? */
     gint current_page;
     current_page = gtk_notebook_get_current_page(
         GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
-
     if (current_page != nb_main_page_downloads)
         return;
 	
+
 	if (DL_GUI_IS_HEADER == (guint32) d)
 		return;			/*A header was sent here by mistake */ 		
 	
@@ -848,7 +1179,6 @@ void gui_update_download(struct download *d, gboolean force)
 	case GTA_DL_ACTIVE_QUEUED:	/* JA, 31 jan 2003 Active queueing */
 		{
 			time_t elapsed = now - d->last_update;
-
 			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "Queued");
 
 			if (get_parq_dl_position(d) > 0) {
@@ -867,7 +1197,7 @@ void gui_update_download(struct download *d, gboolean force)
 						", ETA: %s",
 						short_time((get_parq_dl_eta(d)  - elapsed)));
 				}
-
+				
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, /* ( */ ")");
 			}
 
@@ -1110,7 +1440,6 @@ void gui_update_download(struct download *d, gboolean force)
 			/*
 			 * If source is a partial source, show it.
 			 */
-
 			if (d->ranges != NULL)
 				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" <PFS %.02f%%>", d->ranges_size * 100.0 / fi->size);
@@ -1147,31 +1476,28 @@ void gui_update_download(struct download *d, gboolean force)
 
 	if (d->status != GTA_DL_QUEUED) {
 
-		GtkTreeIter iter;
-		GtkTreeIter *parent;
-		GtkTreeView *tree_view = GTK_TREE_VIEW
+		tree_view = GTK_TREE_VIEW
 			(lookup_widget(main_window, "treeview_downloads"));
-		GtkTreeStore *model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
+		GtkTreeStore *model = 
+			(GtkTreeStore *) gtk_tree_view_get_model(tree_view);
 	
 		/* Find row that matches d */
 		gtk_tree_model_foreach(
-			(GtkTreeModel *)model, downloads_gui_find_download, d);
+			(GtkTreeModel *)model, downloads_gui_download_eq, d);
 	
-		if (strcmp(temp_iter_string, "")) {		
+		if (0 != strcmp(temp_iter_string, "")) {		
 			if (gtk_tree_model_get_iter_from_string(
 					(GtkTreeModel *)model, &iter, temp_iter_string))
 				gtk_tree_store_set(model, &iter, c_dl_status, a, (-1));
 			else
 				g_warning("gui_update_download: couldn't find download");
 		}
-		
-		g_free(temp_iter_string);
+		G_FREE_NULL(temp_iter_string);
 		
 		
 		/*  Update header for downloads with multiple hosts */
 		if (NULL != d->file_info) {
 		
-			gpointer key;
 			key = atom_int_get(&d->file_info->fi_handle);
 			parent = find_parent_with_fi_handle(parents, key);
 
@@ -1186,7 +1512,7 @@ void gui_update_download(struct download *d, gboolean force)
 					/* There is a header entry, we need to update it */
 					
 					/* Download is done */
-					if(GTA_DL_DONE == d->status) {
+					if (GTA_DL_DONE == d->status) {
 						
 						gm_snprintf(tmpstr, sizeof(tmpstr),
 							"Complete");
@@ -1194,10 +1520,8 @@ void gui_update_download(struct download *d, gboolean force)
 		      				c_dl_status, tmpstr,
 			        		(-1));			
 					} else {
-						if (
-							(GTA_DL_RECEIVING == d->status) && 
-							(d->pos - d->skip > 0)
-						) {
+						if ((GTA_DL_RECEIVING == d->status) && 
+							(d->pos - d->skip > 0)) {
 							gint active_src, tot_src;
 							gfloat percent_done =0;
 
@@ -1213,15 +1537,17 @@ void gui_update_download(struct download *d, gboolean force)
 							active_src = fi->recvcount;
 							tot_src = fi->lifecount;
 
-							if(d->bio)	
+							if (d->bio)	
 								avg_bps = bio_avg_bps(d->bio);
 
-							if (avg_bps <= 10 && d->last_update != d->start_date)
+							if (avg_bps <= 10 && d->last_update 
+								!= d->start_date)
+								
 								avg_bps = (d->pos - d->skip) / 
 									(d->last_update - d->start_date);
 
 							if (avg_bps) {
-
+								
 			             	   if (d->file_size > d->pos)
             			    	    remain = d->file_size - d->pos;
 
@@ -1248,31 +1574,37 @@ void gui_update_download(struct download *d, gboolean force)
 			
 			atom_int_free(key);
 		}	
-		
 	}
+	
     if (d->status == GTA_DL_QUEUED) {
-		GtkTreeIter iter;
-		GtkTreeIter *parent;
-		GtkTreeView *tree_view = GTK_TREE_VIEW
+		tree_view = GTK_TREE_VIEW
 			(lookup_widget(main_window, "treeview_downloads_queue"));
-		GtkTreeStore *model =
-			(GtkTreeStore *) gtk_tree_view_get_model(tree_view);
+		model =	(GtkTreeStore *) gtk_tree_view_get_model(tree_view);
 
 		/* Find row that matches d */
 		gtk_tree_model_foreach(
-			(GtkTreeModel *) model, downloads_gui_find_queue_download, d);
+			(GtkTreeModel *) model, downloads_gui_download_queue_eq, d);
 	
-		if (strcmp(temp_iter_string, "")) {		
+		if (0 != strcmp(temp_iter_string, "")) {		
 			if (gtk_tree_model_get_iter_from_string(
 					(GtkTreeModel *)model, &iter, temp_iter_string))
 				gtk_tree_store_set(model, &iter, c_queue_status, a, (-1));
 			else
 				g_warning("gui_update_download: couldn't find download");
 		}
-		g_free(temp_iter_string);
+		G_FREE_NULL(temp_iter_string);
 	}
 }
 
+
+/*
+ *	gui_update_download_abort_resume
+ *
+ *	Determines if abort/resume buttons should be sensitive or not
+ *  Determines if the queue and abort options should be available in the 
+ *	treeview popups.
+ *
+ */
 void gui_update_download_abort_resume(void)
 {
 	struct download *d;
@@ -1299,7 +1631,7 @@ void gui_update_download_abort_resume(void)
 			gtk_tree_model_get_iter(model, &iter, l->data);
 			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
 		
-			if (DL_GUI_IS_HEADER == (guint32) d) { /* Header */
+			if (DL_GUI_IS_HEADER == (guint32) d) {
 				
 				abort_sha1 = TRUE;
 				continue;
@@ -1307,8 +1639,9 @@ void gui_update_download_abort_resume(void)
 			
 	        if (!d) {
 				g_warning
-					("gui_update_download_abort_resume(): row %d has NULL data\n",
-					 GPOINTER_TO_INT(l->data));
+					("gui_update_download_abort_resume(): "
+					"row %d has NULL data\n",
+					GPOINTER_TO_INT(l->data));
 				continue;
 			}
 
@@ -1387,255 +1720,5 @@ void gui_update_download_abort_resume(void)
         (lookup_widget(popup_downloads, "popup_downloads_queue"), do_queue);
 }
 
-/*
- * download_gui_remove:
- *
- * Remove a download from the GUI.
- */
-void download_gui_remove(struct download *d)
-{	
-	gint row;
-
-	g_return_if_fail(d);
-
-	
-	if (!DOWNLOAD_IS_VISIBLE(d)){
-		g_warning
-			("download_gui_remove() called on invisible download '%s' !",
-			 d->file_name);
-		return;
-	}
-
-	
-	if (DOWNLOAD_IS_QUEUED(d)) {
-		GtkTreeIter iter, child;
-		GtkTreeIter *parent;
-
-		GtkTreeView *tree_view = GTK_TREE_VIEW
-			(lookup_widget(main_window, "treeview_downloads_queue"));
-		GtkTreeStore *model =
-			(GtkTreeStore *) gtk_tree_view_get_model(tree_view);
-
-		/* Find row that matches d */
-		gtk_tree_model_foreach(
-			(GtkTreeModel *)model, downloads_gui_find_queue_download, d);
-	
-		if (strcmp(temp_iter_string, "")) {		
-			if (
-				gtk_tree_model_get_iter_from_string(
-					(GtkTreeModel *)model, &iter, temp_iter_string)
-			) {
-	
-				/*  We need to discover if the download has a parent */
-				if (NULL != d->file_info) {
-		
-					gpointer key;
-					key = atom_int_get(&d->file_info->fi_handle);
-					parent =  find_parent_with_fi_handle(parents_queue, key);
-	
-					if (NULL != parent) {
-	
-						guint n = (guint) gtk_tree_model_iter_n_children(
-							(GtkTreeModel *) model, parent);
-										
-						/* If there are children, there should be >1 */
-						if((1 == n) || ( 0 > n))
-						{
-							g_warning("gui_remove_download (queued):" 
-								"node has %d children!", n);
-							return;						
-						}
-
-						if(2 == n)
-						{
-							/* Removing this download will leave only one left, 
-	 						 * we'll have to get rid of the header. */
-					
-							/* Get rid of current download, d */
-							gtk_tree_store_remove(model, &iter);
-
-							/* Replace header with only remaining child */
-							if (gtk_tree_model_iter_nth_child(
-								(GtkTreeModel *)model, &iter, parent, 0)) {
-
-								gchar *host;
-								gchar *server;
-								gchar *status;
-								struct download *drecord = NULL;
-
-								gtk_tree_model_get((GtkTreeModel *)model, &iter,
-						  			c_queue_host, &host,
-	     	 						c_queue_server, &server,
-	      							c_queue_status, &status,
-	      							c_queue_record, &drecord,
-		        					(-1));
-				
-								gtk_tree_store_set(model, parent,
-				  					c_queue_host, host,
-			     	 				c_queue_server, server,
-	    		  					c_queue_status, status,
-	      							c_queue_record, drecord,
-		        					(-1));
-							}
-							else
-								g_warning("download_gui_remove() (Queued): "
-						"Critical: We've created a parent with only one child!!");								
-						}
-					
-						if(0 == n) {
-							/* Node has no children -> is a parent */
-							remove_parent_with_fi_handle
-								(parents_queue, &(d->file_info->fi_handle));
-						}
-
-						
-						if(2 < n){
-							gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts", n - 1);
-
-							gtk_tree_store_set(model, parent,
-				  				c_dl_host, tmpstr,
-		       					(-1));							
-						}
-			
-					/*  Note: this line IS correct for cases n=0, n=2,and n>2 */
-					gtk_tree_store_remove(model, &iter);
-					
-					} else 
-						g_warning("download_gui_remove(): "
-							"Download '%s' has no parent", d->file_name);
-	
-					atom_int_free(key);				
-
-				} 
-			}
-		} else
-			g_warning("download_gui_remove(): "
-				"Queued download '%s' not found in treeview !?", d->file_name);
-	
-		g_free(temp_iter_string);
-
-	} else {
-
-		GtkTreeIter iter, child;
-		GtkTreeIter *parent;
-
-		GtkTreeView *tree_view = GTK_TREE_VIEW
-			(lookup_widget(main_window, "treeview_downloads"));
-		GtkTreeStore *model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
-
-		/* Find row that matches d */
-		gtk_tree_model_foreach((GtkTreeModel *)model, 
-			downloads_gui_find_download, d);
-	
-		if (strcmp(temp_iter_string, "")) {	
-			
-			if (
-				gtk_tree_model_get_iter_from_string(
-					(GtkTreeModel *)model, &iter, temp_iter_string)
-			) {
-			
-				/*  We need to discover if the download has a parent */
-				if (NULL != d->file_info) {
-		
-					gpointer key;
-					key = atom_int_get(&d->file_info->fi_handle);
-					parent = find_parent_with_fi_handle(parents, key);
-
-					if (NULL != parent) {
-
-						guint n = (guint) gtk_tree_model_iter_n_children(
-							(GtkTreeModel *) model, parent);
-					
-						/* If there are children, there should be >1 */
-						if ((1 == n) || ( 0 > n))
-						{
-							g_warning("gui_remove_download (active):" 
-								"node has %d children!", n);
-							return;						
-						}
-						
-						if (2 == n)
-						{
-							/* Removing this download will leave only one left, 
-		 					 * we'll have to get rid of the header. */
-						
-
-							/* Get rid of current download, d */
-							gtk_tree_store_remove(model, &iter);
-
-							/* Replace header with only remaining child */
-							if (gtk_tree_model_iter_nth_child(
-								(GtkTreeModel *)model, &iter, parent, 0)) {
-
-								gchar *host;
-								gchar *range;
-								gchar *server;
-								gchar *status;
-								struct download *drecord = NULL;
-
-								gtk_tree_model_get((GtkTreeModel *)model, &iter,
-							  		c_dl_host, &host,
-			      					c_dl_range, &range,
-			     	 				c_dl_server, &server,
-			      					c_dl_status, &status,
-			      					c_dl_record, &drecord,
-				        			(-1));
-				
-								gtk_tree_store_set(model, parent,
-				  					c_dl_host, host,
-		    	 			 		c_dl_range, range,
-		     		 				c_dl_server, server,
-		      						c_dl_status, status,
-		      						c_dl_record, drecord,
-			        				(-1));
-							}
-							else
-								g_warning("download_gui_remove() (Active): "
-					"Critical: We've created a parent with only one child!!");								
-						}
-					
-						if (0 == n) {
-							/* Node has no children -> is a parent */
-							remove_parent_with_fi_handle(parents, 
-								&(d->file_info->fi_handle));
-						}
-
-						if (2 < n){
-							gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts", n - 1);
-
-							gtk_tree_store_set(model, parent,
-				  				c_dl_host, tmpstr,
-		       					(-1));							
-						}
-
-					/*  Note: this line IS correct for cases n=0, n=2, and n>2 */
-						gtk_tree_store_remove(model, &iter);
-					
-					} else 
-						g_warning("download_gui_remove(): "
-							"Active download '%s' no parent", d->file_name);
-
-					atom_int_free(key);		
-				}	
-			}	
-			
-		} else
-			g_warning("download_gui_remove(): "
-				"Active download '%s' not found in treeview !?", d->file_name);
-
-		g_free(temp_iter_string);
-	}
-
-	d->visible = FALSE;
-
-	gui_update_download_abort_resume();
-	gui_update_download_clear();
-}
-
-void downloads_gui_shutdown(void)
-{
-	g_hash_table_destroy(parents);
-	g_hash_table_destroy(parents_queue);
-}
 
 #endif

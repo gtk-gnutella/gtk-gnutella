@@ -27,6 +27,7 @@
 #define _downloads_cb_h_
 
 #include "gui.h"
+#include "downloads_gui_common.h"
 
 /***
  *** downloads panel
@@ -35,18 +36,17 @@
 gboolean on_clist_downloads_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 gboolean on_clist_downloads_queue_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 void on_button_downloads_abort_clicked (GtkButton *button, gpointer user_data); 
-void on_button_downloads_clear_stopped_clicked (GtkButton *button, gpointer user_data);
 void on_clist_downloads_click_column (GtkCList *clist, gint column, gpointer user_data); 
 void on_clist_downloads_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
 void on_clist_downloads_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 void on_clist_downloads_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 void on_button_downloads_resume_clicked (GtkButton *button, gpointer user_data); 
+
 /* queued downloads */
 void on_clist_downloads_queue_click_column (GtkCList *clist, gint column, gpointer user_data);
 void on_clist_downloads_queue_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
 void on_clist_downloads_queue_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 void on_clist_downloads_queue_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
-void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 void on_entry_queue_regex_activate (GtkEditable *editable, gpointer user_data); 
 void on_clist_downloads_queue_drag_begin(GtkWidget *widget, GdkDragContext *drag_context, gpointer user_data);
 void on_clist_downloads_queue_drag_end(GtkWidget *widget, GdkDragContext *drag_context, gpointer user_data);
@@ -64,10 +64,6 @@ void on_popup_downloads_search_again_activate(GtkMenuItem *menuitem, gpointer us
 void on_popup_downloads_queue_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_copy_url_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_connect_activate(GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_selection_get(GtkWidget * widget,
-	GtkSelectionData * data, guint info, guint eventtime, gpointer user_data);
-gint on_popup_downloads_selection_clear_event(GtkWidget * widget, GdkEventSelection *event);
-
 
 
 /***
