@@ -55,6 +55,7 @@
 
 #define DOWNLOAD_RECV_BUFSIZE	114688		/* 112K */
 #define DOWNLOAD_MIN_OVERLAP	64			/* Minimum overlap for safety */
+#define DOWNLOAD_SHORT_DELAY	2			/* Shortest retry delay */
 
 static GSList *sl_downloads = NULL; /* All downloads (queued + unqueued) */
 GSList *sl_unqueued = NULL;			/* Unqueued downloads only */
@@ -1614,11 +1615,10 @@ static gboolean download_retry_no_urires(struct download *d,
 				download_vendor_str(d));
 
 		if (ack_code)
-			download_queue_delay(d,
-				delay ? delay : download_retry_busy_delay,
+			download_queue_delay(d, delay ? delay : DOWNLOAD_SHORT_DELAY,
 				"Server cannot handle /uri-res (%d)", ack_code);
 		else
-			download_queue_delay(d, download_retry_busy_delay,
+			download_queue_delay(d, DOWNLOAD_SHORT_DELAY,
 				"Server cannot handle /uri-res (EOF)");
 
 		return TRUE;
@@ -2555,6 +2555,9 @@ static struct download *download_clone(struct download *d)
 	cd->file_name = atom_str_get(d->file_name);
 	cd->visible = FALSE;
 	cd->push = FALSE;
+
+	if (d->status == GTA_DL_RECEIVING)
+		cd->file_info->recvcount++;
 
 	download_add_to_list(cd, DL_LIST_WAITING);
 
