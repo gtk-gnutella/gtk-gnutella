@@ -347,6 +347,12 @@ static void share_free(void)
 		file_table = NULL;
 	}
 
+	if (shared_files) {
+		struct shared_file *sf = shared_files->data;
+		last_dir = sf->file_directory;
+		last_lower_dir = sf->file_directory_path;
+	}
+
 	for (l = shared_files; l; l = l->next) {
 		struct shared_file *sf = l->data;
 		g_free(sf->file_name);
