@@ -1,5 +1,9 @@
 # since last version
 
+- (2003.10.21 - Jeroen)
+ * Intergrated patch from Thadeu Lima de Souza Cascardo. This fixes a segfault
+   with remote control.
+
 - (2003.10.18 - RAM)
  * [GTK1] Added GUI configuration for server-side PFSP.
  * Trace amount of bytes in HTTP requests and replies.
@@ -43,6 +47,11 @@
  * When outgoing bandwidth is saturated, limit the size of the HTTP replies
    we make, or the size of our HTTP requests.  This includes emitting shorter
    version strings, less alternate locations, etc...
+
+- (2003.10.12 - Jeroen)
+ * Intergrated patch from Richard Hyde which implements the Purge button for
+   the gtk2 interface.
+
 
 - (2003.10.11 - RAM)
  [This batch of changes implements server-side PFSP]
