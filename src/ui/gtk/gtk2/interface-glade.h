@@ -42,3 +42,5 @@ GtkWidget* create_dlg_prefs_ul_tab (void);
 GtkWidget* create_dlg_prefs_ui_tab (void);
 GtkWidget* create_dlg_prefs_dbg_tab (void);
 GtkWidget* create_popup_search_list (void);
+GtkWidget* create_main_window_dl_files_tab (void);
+GtkWidget* create_main_window_dl_queue_tab (void);

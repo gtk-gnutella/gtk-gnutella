@@ -117,6 +117,10 @@ static const struct {
 	{ TRUE,	 N_("Uploads"),			nb_main_page_uploads },
 	{ FALSE, N_("History"), 		nb_main_page_uploads_stats },
 	{ TRUE,	 N_("Downloads"),		nb_main_page_downloads },
+#ifdef USE_GTK2
+	{ FALSE, N_("Files"),			nb_main_page_dl_files },
+	{ FALSE, N_("Queue"),			nb_main_page_dl_queue },
+#endif
 	{ TRUE,	 N_("Search"),			nb_main_page_search },
 	{ FALSE, N_("Monitor"),			nb_main_page_monitor },
 	{ FALSE, N_("Stats"),			nb_main_page_search_stats },
@@ -222,6 +226,12 @@ static GtkWidget *gui_create_main_window(void)
 	tab_window[nb_main_page_uploads_stats] =
 		create_main_window_upload_stats_tab();
 	tab_window[nb_main_page_downloads] = create_main_window_downloads_tab();
+	
+#ifdef USE_GTK2
+	tab_window[nb_main_page_dl_files] = create_main_window_dl_files_tab();
+	tab_window[nb_main_page_dl_queue] = create_main_window_dl_queue_tab();
+#endif /* USE_GTK2*/
+	
 	tab_window[nb_main_page_search] = create_main_window_search_tab();
 	tab_window[nb_main_page_monitor] = create_main_window_monitor_tab();
 	tab_window[nb_main_page_search_stats] =
