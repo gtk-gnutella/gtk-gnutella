@@ -29,6 +29,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <string.h>			/* For strlen() */
 #include <ctype.h>			/* For isalnum() and isspace() */
 
 #include "gnutella.h"
@@ -476,7 +477,7 @@ void dump_hex(FILE *out, gchar *title, gchar *s, gint b)
 	char temp[18];
 
 	if ((b < 1) || (s == NULL)) {		// check everything, this is for debug
-		g_warning("dump_hex: value out of range\n");
+		g_warning("dump_hex: value out of range");
 		fflush(out);
 		return;
 	}
@@ -527,15 +528,69 @@ void strlower(gchar *dst, gchar *src)
 	} while (*src++);
 }
 
+/*
+ * strcasestr
+ *
+ * Same as strstr() but case-insensitive.
+ */
+guchar *strcasestr(const guchar *haystack, const guchar *needle)
+{
+	guint32 delta[256];
+	guint32 nlen = strlen(needle);
+	guint32 *pd = delta;
+	gint i;
+	guchar *n;
+	guint32 haylen = strlen(haystack);
+	const guchar *end = haystack + haylen;
+	guchar *tp;
+
+	/*
+	 * Initialize Sunday's algorithm, lower-casing the needle.
+	 */
+
+	nlen++;		/* Avoid increasing within the loop */
+
+	for (i = 0; i < 256; i++)
+		*pd++ = nlen;
+
+	nlen--;		/* Restore original pattern length */
+
+	for (n = (guchar *) needle, i =0; i < nlen; i++) {
+		guchar c = *n++;
+		delta[(guint) tolower(c)] = nlen - i;
+	}
+	
+	/*
+	 * Now run Sunday's algorithm.
+	 */
+
+	for (tp = (guchar *) haystack; tp + nlen <= end; /* empty */) {
+		guchar *t;
+		guchar c;
+
+		for (n = (guchar *) needle, t = tp, i = 0; i < nlen; n++, t++, i++)
+			if (tolower(*n) != tolower(*t))
+				break;
+
+		if (i == nlen)						/* Got a match! */
+			return tp;
+
+		c = *(tp + nlen);
+		tp += delta[(guint) tolower(c)];	/* Continue search there */
+	}
+
+	return NULL;		/* Not found */
+}
+
 /* 
  * build_url_from_download:
  *
  * creates a url which points to a downloads (e.g. you can move this to a
  * browser and download the file there with this url
  */
-gchar * build_url_from_download(struct download * d) 
+gchar *build_url_from_download(struct download *d) 
 {
-    static gchar url_tmp[256];
+    static gchar url_tmp[1024];
     gchar *buf = NULL;
 
     if (d == NULL)
@@ -549,7 +604,7 @@ gchar * build_url_from_download(struct download * d)
 			   d->record_index, buf);
 
     /*
-     * Since url_escape_cntrl creates a new string ONLY if
+     * Since url_escape() creates a new string ONLY if
      * escaping is necessary, we have to check this and
      * free memory accordingly.
      *     --BLUE, 30/04/2002

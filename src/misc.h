@@ -71,6 +71,7 @@ gchar *short_time(guint32 s);
 gchar *short_uptime(guint32 s);
 guint32 random_value(guint32 max);
 void strlower(gchar *, gchar *);
-gchar * build_url_from_download(struct download * d);
+guchar *strcasestr(const guchar *haystack, const guchar *needle);
+gchar *build_url_from_download(struct download *d);
 
 #endif /* __misc_h__ */
