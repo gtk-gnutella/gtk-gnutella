@@ -110,27 +110,22 @@ static void search_stats_notify_whole(
     query_type_t type, const gchar *search, guint32 ip, guint16 port)
 {
     word_vec_t wovec;
+	char buf[1024];
 
-    if (type == QUERY_SHA1)
-        wovec.word = g_strdup_printf("urn:sha1:%s", search);
-    else
-        wovec.word = g_strdup_printf("[%s]", search);
+    gm_snprintf(buf, sizeof buf, type == QUERY_SHA1 ? "urn:sha1:%s" : "[%s]",
+		search);
 
+	wovec.word = buf;
     wovec.len = strlen(wovec.word);
     wovec.amount = 1;
 
     search_stats_tally(&wovec);
-
-    g_free(wovec.word);
 }
 
 static void search_stats_notify_routed(
     query_type_t type, const gchar *search, guint32 ip, guint16 port)
 {
     word_vec_t wovec;
-
-/*    if (type == QUERY_SHA1)
-        return;*/
 
     wovec.word = ip_port_to_gchar(ip, port);
     wovec.len = strlen(wovec.word);
@@ -405,3 +400,4 @@ void search_stats_gui_update(time_t now)
 }
 
 #endif	/* USE_GTK1 */
+/* vi: set ts=4: */
