@@ -17,6 +17,8 @@
    and added a verification callback for PROP_BAD_FILE_PATH.
  * Simplified debugging code to use new xxx_prop_name() calls.
  * File path properties have their default set to "~" instead of "/tmp".
+ * Call locale_to_utf8() on filenames for GTK2 [Patch from Uriel].
+ * Also "broadcast" our own Push requests if we have multiple routes.
 
 - (2003.07.05 - RAM)
  * Parse all query hits for inclusion into the download mesh.
