@@ -1,0 +1,15 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?X: 
+?X: If you want to initialize any default values, copy this unit to your
+?X: personal U directory and add the assignments to the end.  This file
+?X: is included after variables are initialized but before any old
+?X: config.sh file is read in and before any Configure switch processing.
+?X:
+?MAKE:Myinit: Init
+?MAKE:	-pick add $@ %<
+?LINT:set libswanted
+libswanted='sendfile'
+
