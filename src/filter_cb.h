@@ -34,6 +34,7 @@ void on_button_filter_add_rule_text_clicked(GtkButton *button, gpointer user_dat
 void on_button_filter_add_rule_ip_clicked(GtkButton *button, gpointer user_data);
 void on_button_filter_add_rule_size_clicked(GtkButton *button, gpointer user_data);
 void on_button_filter_add_rule_jump_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_add_rule_flag_clicked(GtkButton *button, gpointer user_data);
 void on_button_filter_ok_clicked(GtkButton *button, gpointer user_data);
 void on_button_filter_cancel_clicked(GtkButton *button, gpointer user_data);
 void on_button_filter_clear_clicked(GtkButton *button, gpointer user_data);

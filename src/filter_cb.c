@@ -157,6 +157,12 @@ void on_button_filter_add_rule_jump_clicked(GtkButton *button, gpointer user_dat
     filter_gui_edit_jump_rule(NULL);
 }
 
+void on_button_filter_add_rule_flag_clicked(GtkButton *button, gpointer user_data)
+{
+    gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
+    filter_gui_edit_flag_rule(NULL);
+}
+
 void on_button_filter_ok_clicked(GtkButton *button, gpointer user_data)
 {
     rule_t * r = NULL;
@@ -174,12 +180,19 @@ void on_button_filter_ok_clicked(GtkButton *button, gpointer user_data)
     case nb_filt_page_ip:
     case nb_filt_page_size:
     case nb_filt_page_jump:
-        r = filter_get_rule();
+    case nb_filt_page_flag:
+        r = filter_gui_get_rule();
         break;
+    case nb_filt_page_sha1:
+        /*
+         * SHA1 rules are not changeable yet (maybe never).
+         * So we just return here.
+         */
+        filter_gui_edit_rule(NULL);
+        return;
     case nb_filt_page_buttons:
     default:
-        g_warning("Unknown page: %d", page);
-        g_assert_not_reached();
+        g_error("on_button_filter_on_clicked: invalid page %d", page);
     };
 
     /*
@@ -201,6 +214,8 @@ void on_button_filter_ok_clicked(GtkButton *button, gpointer user_data)
     } else {
         filter_append_rule_to_session(work_filter, r);   
     }
+
+    filter_gui_edit_rule(NULL);
 }
 
 void on_button_filter_cancel_clicked(GtkButton *button, gpointer user_data)
@@ -315,5 +330,3 @@ void on_button_filter_reset_all_rules_clicked
         filter_rule_reset_stats(rule);
     }
 }
-
-
