@@ -359,7 +359,7 @@ static gboolean main_timer(gpointer p)
 		parq_upload_timer(now);		/* PARQ upload timeouts/removal */
 		upload_timer(now);			/* Upload timeouts */
 		file_info_timer();          /* Notify about changes */
-		hsep_timer();				/* HSEP notify message timer */
+		hsep_timer(now);			/* HSEP notify message timer */
 		pproxy_timer(now);			/* Push-proxy requests */
 	}
 	socket_timer(now);				/* Expire inactive sockets */
