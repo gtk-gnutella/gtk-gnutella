@@ -1,5 +1,16 @@
 # since last version
 
+- (2002.06.20 - Richard)
+  * Bug: segfault during autoselection (NULL rowdata) (Thanks Daniel)
+  * Filtering now supports multiple properties to set (display/download)
+  * Added "Auto-download by [name|hash]" to search popup
+  * Changed valid values for the filter_default_policy config value from
+    0,1 to 1,2 (mapped on load for backward compatibility)
+  * Changes in filtering code make all filter stats count double
+    (one count for every property).
+  * merges search_gui_update into search_matched (search.c)
+  * split search_gui_add_record out of search_gui_update
+
 - (2002.06.17 - Richard)
   * Bugfix to "Autoselect identical" is handled
   * Column visibility is persistant in search panel
