@@ -27,6 +27,7 @@
 
 #include "downloads.h" /* FIXME: remove this dependency */
 #include "dmesh.h" /* FIXME: remove this dependency */
+#include "http.h" /* FIXME: remove this dependency */
 #include "statusbar_gui.h"
 #include "downloads_cb.h"
 #include "parq.h"
@@ -131,7 +132,9 @@ void gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_REQ_SENDING:
 		if (d->req != NULL) {
-			gint pct = (d->req->rptr - d->req->buffer) * 100 / d->req->len;
+			http_buffer_t *r = d->req;
+			gint pct = (http_buffer_read_base(r) - http_buffer_base(r))
+				* 100 / http_buffer_length(r);
 			gm_snprintf(tmpstr, sizeof(tmpstr), "Sending request (%d%%)", pct);
 			a = tmpstr;
 		} else

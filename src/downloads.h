@@ -29,6 +29,7 @@
 #include "bsched.h"
 #include "fileinfo.h"
 #include "header.h"
+#include "http.h"
 
 /*
  * We keep a list of all the downloads queued per GUID+IP:port (host).  Indeed
@@ -73,13 +74,6 @@ struct dl_server {
 	guint32 attrs;
 	GSList *proxies;			/* Known push proxies (struct gnutella_host) */
 	time_t proxies_stamp;		/* Time when list was last updated */
-};
-
-struct dl_request {			/* Partial HTTP request */
-	gchar *buffer;			/* The whole request */
-	gchar *rptr;			/* Reading pointer */
-	gchar *end;				/* First char after request */
-	gint len;				/* Request total length */
 };
 
 /*
@@ -137,7 +131,7 @@ struct download {
 	struct gnutella_socket *socket;
 	gint file_desc;			/* FD for writing into downloaded file */
 	guint32 overlap_size;	/* Size of the overlapping window on resume */
-	struct dl_request *req;	/* HTTP request, when partially sent */
+	http_buffer_t *req;		/* HTTP request, when partially sent */
 
 	time_t start_date;		/* Download start date */
 	time_t last_update;		/* Last status update or I/O */
@@ -163,6 +157,9 @@ struct download {
 	gboolean visible;		/* The download is visible in the GUI */
 	gboolean push;			/* Currently in push mode */
 	gboolean always_push;	/* Always use the push method for this download */
+	gboolean got_giv;		/* Whether download created from GIV reception */
+
+	struct cproxy *cproxy;	/* Push proxy being used currently */
 	
 	gpointer queue_status;	/* Queuing status */
 };
