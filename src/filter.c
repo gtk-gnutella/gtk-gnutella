@@ -1245,30 +1245,16 @@ static gchar *rule_condition_to_gchar(rule_t *r) {
             ip_to_gchar(r->u.ip.mask));
         break;
     case RULE_SIZE:
-        {
-            if (r->u.size.lower == 0) {
-                g_snprintf(
-                    f_tmp, sizeof(f_tmp), 
-                    "If filesize is less than %d",
-                    r->u.size.lower);
-            } else if (r->u.size.upper == 0) {
-                g_snprintf(
-                    f_tmp, sizeof(f_tmp), 
-                    "If filesize is greater than %d",
-                    r->u.size.lower);
-            } else if (r->u.size.upper == r->u.size.lower) {
-                g_snprintf(
-                    f_tmp, sizeof(f_tmp), 
-                    "If filesize is exactly %d",
-                    r->u.size.lower);
-            } else {
-                g_snprintf(
-                    f_tmp, sizeof(f_tmp), 
-                    "If filesize is between %d and %d",
-                    r->u.size.lower,
-                    r->u.size.upper);
-            }
-        }
+		if (r->u.size.lower == 0)
+			g_snprintf(f_tmp, sizeof(f_tmp), 
+				"If filesize is smaller than %d", r->u.size.upper);
+		else if (r->u.size.upper == r->u.size.lower)
+			g_snprintf(f_tmp, sizeof(f_tmp), 
+				"If filesize is exactly %d", r->u.size.upper);
+		else
+			g_snprintf(f_tmp, sizeof(f_tmp), 
+				"If filesize is between %d and %d",
+				r->u.size.lower, r->u.size.upper);
         break;
     case RULE_JUMP:
        	g_snprintf(
@@ -1848,8 +1834,7 @@ static int filter_apply(filter_t *filter, struct record *rec)
 				match = TRUE;
 			break;
 		case RULE_SIZE:
-			if (rec->size >= r->u.size.lower
-			 && rec->size <= r->u.size.upper)
+			if (rec->size >= r->u.size.lower && rec->size <= r->u.size.upper)
 				match = TRUE;
 			break;
 		default:
@@ -1860,7 +1845,11 @@ static int filter_apply(filter_t *filter, struct record *rec)
         /*
          * If negate is set, we invert the meaning of match.
          */
-        if ((match && !r->negate) || (!match && r->negate)) {
+
+		if (r->negate)
+			match = !match;
+
+        if (match) {
             gint val;                                                
             g_free(l_name);                                          
             val = filter_apply(r->target, rec);                      
