@@ -23,14 +23,6 @@ gchar *debug_msg[256];
 
 #define MAX_MESSAGES_PER_LIST	256		/* We can remember 256 * 256 messages */
 
-/* XXX -- must be configured externally --RAM */
-/* Next two work together */
-#define MAX_HARD_TTL_LIMIT_MSG	10		/* Kick node if we're flooded */
-#define MAX_HARD_TTL_HOP		2		/* (node or close node flooding...) */
-/* Next two work together */
-#define MAX_DUP_MSG				5		/* Kick node after that many dups */
-#define MAX_DUP_RATIO			0.5		/* And if dup/RX > ratio% */
-
 /*
  * Log function
  */
@@ -383,16 +375,18 @@ gboolean route_message(struct gnutella_node **node)
 				 * because a dup once in a while is nothing.
 				 *				--RAM, 08/09/2001
 				 */
-				if (++(sender->n_dups) > MAX_DUP_MSG &&
+
+				/* XXX max_dup_msg & max_dup_ratio XXX ***/
+
+				if (++(sender->n_dups) > min_dup_msg &&
 					connected_nodes() > MAX(2, up_connections) &&
 					sender->n_dups >
-					(guint16) (MAX_DUP_RATIO / 100.0 * sender->received)
-					) {
-					node_remove(sender,
-								"Kicked: sent %d dups (%.1f%% of RX)",
-								sender->n_dups,
-								sender->received ? 100.0 * sender->n_dups /
-								sender->received : 0.0);
+						(guint16) (min_dup_ratio / 100.0 * sender->received)
+				) {
+					node_remove(sender, "Kicked: sent %d dups (%.1f%% of RX)",
+						sender->n_dups, sender->received ?
+							100.0 * sender->n_dups / sender->received :
+							0.0);
 					(*node) = NULL;
 				} else {
 					sender->n_bad++;
@@ -430,9 +424,11 @@ gboolean route_message(struct gnutella_node **node)
 				 *				--RAM, 08/09/2001
 				 */
 
+				/* XXX max_high_ttl_radius & max_high_ttl_msg XXX */
+
 				sender->n_hard_ttl++;
-				if (sender->header.hops <= MAX_HARD_TTL_HOP &&
-					sender->n_hard_ttl > MAX_HARD_TTL_LIMIT_MSG) {
+				if (sender->header.hops <= max_high_ttl_radius &&
+					sender->n_hard_ttl > max_high_ttl_msg) {
 					node_remove(sender,
 								"Kicked: relayed %d high TTL messages",
 								sender->n_hard_ttl);
