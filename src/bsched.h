@@ -85,6 +85,7 @@ typedef struct bsched {
 	gint bw_delta;						/* Running diff of actual vs. theoric */
 	gint bw_unwritten;					/* Data that we could not write */
 	gint bw_capped;						/* Bandwidth we refused to sources */
+	gint last_used;						/* Nb of active sources last period */
 	gboolean looped;					/* True when looped once over sources */
 } bsched_t;
 

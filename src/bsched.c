@@ -561,11 +561,19 @@ static void bsched_begin_timeslice(bsched_t *bs)
 	 * bandwidth recorded for the previous timeslice, meaning we did not used
 	 * all our (writing) bandwidth and yet refused some bandwidth to active
 	 * sources.
+	 *
+	 * Finally, if we did not use all our sources last time, we give more
+	 * bandwidth to active sources.  We add 1 to the amount of sources used
+	 * to avoid the same sources using all the bandwidth each time before
+	 * it runs out for the time slice.
 	 */
 
-	if (bs->count)
-		bs->bw_slot = (bs->bw_max + bs->bw_last_capped) / bs->count;
-	else
+	if (bs->count) {
+		gint dividor = bs->count;
+		if (bs->last_used > 0 && bs->last_used < bs->count)
+			dividor = bs->last_used + 1;
+		bs->bw_slot = (bs->bw_max + bs->bw_last_capped) / dividor;
+	} else
 		bs->bw_slot = 0;
 
 	/*
@@ -1282,12 +1290,14 @@ gint bws_read(bsched_t *bs, gint fd, gpointer data, gint len)
  */
 static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 {
+	GList *l;
 	gint delay;
 	gint overused;
 	gint theoric;
 	gint correction;
 	gint last_bw_max;
 	gint last_capped;
+	gint last_used;
 
 	/*
 	 * How much time elapsed since last call?
@@ -1414,14 +1424,35 @@ static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 	bs->bw_capped -= bs->bw_unwritten;
 	bs->bw_capped = MAX(0, bs->bw_capped);
 
+	/*
+	 * Compute the amount of sources used this period.
+	 *
+	 * This information is used to initially compute the bandwidth per slot.
+	 * Indeed, when only a few sources are active, we need to distribute more
+	 * bandwidth per slot that triggers in case we don't have the opportunity
+	 * to loop through all the sources more than once before the end of
+	 * the slot.
+	 */
+
+	last_used = 0;
+
+	for (l = bs->sources; l; l = g_list_next(l)) {
+		bio_source_t *bio = (bio_source_t *) l->data;
+
+		if (bio->flags & BIO_F_USED)
+			last_used++;
+	}
+
+	bs->last_used = last_used;
+
 	if (dbg > 4) {
 		printf("bsched_timer(%s): delay=%d (EMA=%d), b/w=%d (EMA=%d), "
 			"overused=%d (EMA=%d) stolen=%d (EMA=%d) unwritten=%d "
-			"capped=%d (%d)\n",
+			"capped=%d (%d) used %d/%d\n",
 			bs->name, delay, bs->period_ema, bs->bw_actual, bs->bw_ema,
 			overused, bs->bw_ema - bs->bw_stolen_ema - theoric,
 			bs->bw_stolen, bs->bw_stolen_ema, bs->bw_unwritten,
-			last_capped, bs->bw_capped);
+			last_capped, bs->bw_capped, bs->last_used, bs->count);
 		printf("    -> b/w delta=%d, max=%d, slot=%d, first=%d "
 			"(target %d B/s, %d slot%s, real %.02f B/s)\n",
 			bs->bw_delta, bs->bw_max,
@@ -1432,7 +1463,7 @@ static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 	}
 
 	/*
-	 * Reset running counters, and re-enable all sources.
+	 * Reset running counters.
 	 */
 
 new_timeslice:
@@ -1491,18 +1522,19 @@ static void bsched_stealbeat(bsched_t *bs)
 	 * If there are such sources that have callbacks and did not trigger,
 	 * it means there is already some flow control going on.  Maybe the
 	 * remote end is not reading, or we have problem sending.  It's hard to
-	 * tell.  In any case, remove the contribution of each untriggered source.
+	 * tell.  In any case, remove half the contribution of each untriggered
+	 * source.
 	 */
 
 	if (bs->flags & BS_F_WRITE) {
-		gint slot_contribution = bs->count ? bs->bw_max / bs->count : 0;
+		gint half_contribution = bs->count ? bs->bw_max / (2 * bs->count) : 0;
 		GList *bl;
 
 		for (bl = bs->sources; bl && underused > 0; bl = g_list_next(bl)) {
 			bio_source_t *bio = (bio_source_t *) bl->data;
 
 			if (bio->io_callback != NULL && !(bio->flags & BIO_F_USED))
-				underused -= slot_contribution;
+				underused -= half_contribution;
 		}
 	}
 
