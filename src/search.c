@@ -862,11 +862,10 @@ static void __search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 
 	if (is_urn_search) {
 		*m->search.query = '\0';
-		strncpy(m->search.query + 1, sch->query, 9+32+1); /* urn:sha1:32bytes */
-	} else {
+		strncpy(m->search.query + 1, sch->query, 9+32);	/* urn:sha1:32bytes */
+		m->search.query[1+9+32] = '\0';
+	} else
 		strcpy(m->search.query, sch->query);
-		strcpy(m->search.query + qlen + 1, "urn:");
-	}
 
 	message_add(m->header.muid, GTA_MSG_SEARCH, NULL);
 
