@@ -5,6 +5,9 @@
  * [Gtk1] Added odometers for leaf traffic
  * [Gtk1] Added 3 new icons to the gui
  * Fixed connections odometer for the different peermodes
+ * Converted the *_LE and *_BE macros to glib style using G_STMT_START and
+   G_STMT_END
+ * Moved some gui code from downloads.c to downloads_gui.c
 
 # v 0.92   2003.03.04  [beta2]
 
