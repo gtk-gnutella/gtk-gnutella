@@ -193,7 +193,6 @@ struct download {
  */
 
 extern GSList *sl_unqueued;
-extern guint32 count_downloads;
 
 /*
  * Global Functions

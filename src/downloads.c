@@ -56,7 +56,6 @@
 
 static GSList *sl_downloads = NULL;	/* All downloads (queued + unqueued) */
 GSList *sl_unqueued = NULL;			/* Unqueued downloads only */
-guint32 count_downloads = 0;
 gboolean send_pushes = TRUE;
 static gchar dl_tmp[4096];
 static gint queue_frozen = 0;
@@ -2755,10 +2754,11 @@ static void download_write_data(struct download *d)
 	 */
 
 	if (d->pos >= d->size) {
+        guint32 val = total_downloads+1;
+
 		download_stop(d, GTA_DL_COMPLETED, NULL);
 		download_move_to_completed_dir(d);
-		count_downloads++;
-		gui_update_count_downloads();
+        gnet_prop_set_guint32(PROP_TOTAL_DOWNLOADS, &val, 0, 1);
 	} else
 		gui_update_download(d, FALSE);
 }
