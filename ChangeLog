@@ -1,5 +1,8 @@
 # since last version
 
+- (2003.05.20 - Jeroen)
+ * PARQ: Fixed: An upload can't get actively queued more than once at a time.
+
 - (2003.05.19 - Jeroen)
  * PARQ: Shouldn't assert anymore when using dynamic slot allocations
  * PARQ: If a client does not obey the Retry-After header it will be
