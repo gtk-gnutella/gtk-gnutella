@@ -51,7 +51,7 @@ the user wishes to share.
 ./Configure -D_prefix=%_prefix/ -Dbindir=%_bindir/ -Dprivlib=%_datadir/%name/ \
 	-Dsysman=%_mandir/man1/ -Dcc="$CC" -Dccflags="-Wall $CFLAGS" \
 	-Doptimize="%optflags" -Dgtkversion=2 -Dremotectrl=true \
-	-Dyacc="bison -y" -ders
+	-ders
 
 %install
 rm -rf $RPM_BUILD_ROOT

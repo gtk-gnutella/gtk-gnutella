@@ -17,7 +17,7 @@ build:
 	rm -f config.sh
 	./Configure -Dccflags="-Wall $(EXTRA_FLAGS)" -Doptimize="$(OPTFLAGS)" \
 		-Dprefix=/usr -Dprivlib=/usr/share/gtk-gnutella -Dofficial=true \
-		-Dyacc="bison -y" -ders
+		-ders
 	$(MAKE)
 #	cp menu.ex debian/tmp/usr/lib/menu/xtranslate 
 	touch build
