@@ -262,8 +262,8 @@ guint32  search_queries_forward_size     = 256;
 guint32  search_queries_forward_size_def = 256;
 guint32  search_queries_kick_size     = 1024;
 guint32  search_queries_kick_size_def = 1024;
-guint32  search_answers_forward_size     = 65536;
-guint32  search_answers_forward_size_def = 65536;
+guint32  search_answers_forward_size     = 16384;
+guint32  search_answers_forward_size_def = 16384;
 guint32  search_answers_kick_size     = 65536;
 guint32  search_answers_kick_size_def = 65536;
 guint32  other_messages_kick_size     = 40960;
@@ -2687,7 +2687,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[109].data.guint32.value = &search_answers_kick_size;
     gnet_property->props[109].data.guint32.choices = NULL;
     gnet_property->props[109].data.guint32.max   = 65536;
-    gnet_property->props[109].data.guint32.min   = 4096;
+    gnet_property->props[109].data.guint32.min   = 16384;
 
 
     /*

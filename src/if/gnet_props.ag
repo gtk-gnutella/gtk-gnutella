@@ -1284,7 +1284,7 @@ prop = {
            "(in bytes)";
     type = guint32;
     data = {
-        default = 65536;
+        default = 16384;
         min     = 4096;
         max     = 65536;
     };
@@ -1297,7 +1297,7 @@ prop = {
     type = guint32;
     data = {
         default = 65536;
-        min     = 4096;
+        min     = 16384;
         max     = 65536;
     };
 };
