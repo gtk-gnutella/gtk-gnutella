@@ -39,7 +39,6 @@ RCSID("$Id$");
 #include "sq.h"
 #include "mq.h"
 #include "routing.h"
-#include "extensions.h"
 #include "vmsg.h"
 #include "search.h"
 
@@ -260,14 +259,14 @@ gmsg_sendto_one(struct gnutella_node *n, gchar *msg, guint32 size)
 }
 
 /**
- * Send our search message to one node.
+ * Send message to one node, stripping the GGEP part if the node cannot grok
+ * GGEP extensions.
  */
 void
-gmsg_search_sendto_one(
-	struct gnutella_node *n, gnet_search_t sh, gchar *msg, guint32 size)
+gmsg_sendto_one_ggep(struct gnutella_node *n,
+	gchar *msg, guint32 size, guint32 regular_size)
 {
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
-	g_assert(((struct gnutella_header *) msg)->hops <= hops_random_factor);
 
 	if (!NODE_IS_WRITABLE(n))
 		return;
@@ -275,9 +274,11 @@ gmsg_search_sendto_one(
 	if (dbg > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
-	sq_putq(n->searchq, sh, gmsg_to_pmsg(msg, size));
+	if (NODE_CAN_GGEP(n))
+		mq_putq(n->outq, gmsg_to_pmsg(msg, size));
+	else
+		mq_putq(n->outq, gmsg_to_pmsg(msg, regular_size));
 }
-
 
 /**
  * Send control message to one node.
@@ -295,6 +296,47 @@ gmsg_ctrl_sendto_one(struct gnutella_node *n, gchar *msg, guint32 size)
 		gmsg_dump(stdout, msg, size);
 
 	mq_putq(n->outq, gmsg_to_ctrl_pmsg(msg, size));
+}
+
+/**
+ * Send control message to one node.
+ * A control message is inserted ahead any other queued regular data.
+ */
+void
+gmsg_ctrl_sendto_one_ggep(struct gnutella_node *n,
+	gchar *msg, guint32 size, guint32 regular_size)
+{
+	g_assert(((struct gnutella_header *) msg)->ttl > 0);
+
+	if (!NODE_IS_WRITABLE(n))
+		return;
+
+	if (dbg > 6 && gmsg_hops(msg) == 0)
+		gmsg_dump(stdout, msg, size);
+
+	if (NODE_CAN_GGEP(n))
+		mq_putq(n->outq, gmsg_to_ctrl_pmsg(msg, size));
+	else
+		mq_putq(n->outq, gmsg_to_ctrl_pmsg(msg, regular_size));
+}
+
+/**
+ * Send our search message to one node.
+ */
+void
+gmsg_search_sendto_one(
+	struct gnutella_node *n, gnet_search_t sh, gchar *msg, guint32 size)
+{
+	g_assert(((struct gnutella_header *) msg)->ttl > 0);
+	g_assert(((struct gnutella_header *) msg)->hops <= hops_random_factor);
+
+	if (!NODE_IS_WRITABLE(n))
+		return;
+
+	if (dbg > 5 && gmsg_hops(msg) == 0)
+		gmsg_dump(stdout, msg, size);
+
+	sq_putq(n->searchq, sh, gmsg_to_pmsg(msg, size));
 }
 
 /**
@@ -336,6 +378,41 @@ gmsg_sendto_all(const GSList *sl, gchar *msg, guint32 size)
 	}
 
 	pmsg_free(mb);
+}
+
+/**
+ * Broadcast message to all nodes in the list, sending only a stripped down
+ * version without the trailing GGEP extension to nodes not advertising
+ * GGEP support.
+ */
+void
+gmsg_sendto_all_ggep(const GSList *sl,
+	gchar *msg, guint32 size, guint32 regular_size)
+{
+	pmsg_t *mb = gmsg_to_pmsg(msg, size);
+	pmsg_t *mb_stripped = NULL;
+
+	g_assert(((struct gnutella_header *) msg)->ttl > 0);
+
+	if (dbg > 5 && gmsg_hops(msg) == 0)
+		gmsg_dump(stdout, msg, size);
+
+	for (/* empty */; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
+		if (!NODE_IS_ESTABLISHED(dn))
+			continue;
+		if (NODE_CAN_GGEP(dn))
+			mq_putq(dn->outq, pmsg_clone(mb));
+		else {
+			if (mb_stripped == NULL)
+				mb_stripped = gmsg_to_pmsg(msg, regular_size);
+			mq_putq(dn->outq, pmsg_clone(mb_stripped));
+		}
+	}
+
+	pmsg_free(mb);
+	if (mb_stripped)
+		pmsg_free(mb_stripped);
 }
 
 /**
@@ -902,67 +979,6 @@ gmsg_split_dump(FILE *out, gpointer head, gpointer data,
 
 	dump_hex(out, gmsg_infostr_full_split(head, data),
 		data, size - GTA_HEADER_SIZE);
-}
-
-/**
- * Check that current message has an extra payload made of GGEP only, and
- * whose total size is not exceeding `maxsize'.  The `regsize' value is the
- * normal payload length of the message (e.g. 0 for a ping).
- *
- * Returns TRUE if there is a GGEP extension, and only that after the
- * regular payload, with a size no greater than `maxsize'.
- */
-gboolean
-gmsg_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
-{
-	extvec_t exv[MAX_EXTVEC];
-	gint exvcnt;
-	gchar *start;
-	gint len;
-	gint i;
-
-	g_assert(n->size > (guint32) regsize);
-
-	len = n->size - regsize;				/* Extension length */
-
-	if (len > maxsize) {
-		g_warning("%s has %d extra bytes !", gmsg_infostr(&n->header), len);
-		return FALSE;
-	}
-
-	start = n->data + regsize;
-	exvcnt = ext_parse(start, len, exv, MAX_EXTVEC);
-
-	/*
-	 * Assume that if we have MAX_EXTVEC, it's just plain garbage.
-	 */
-
-	if (exvcnt == MAX_EXTVEC) {
-		g_warning("%s has %d extensions!", gmsg_infostr(&n->header), exvcnt);
-		if (dbg)
-			ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
-		return FALSE;
-	}
-
-	/*
-	 * Ensure we have only GGEP extensions in there.
-	 */
-
-	for (i = 0; i < exvcnt; i++) {
-		if (exv[i].ext_type != EXT_GGEP) {
-			g_warning("%s has non-GGEP extensions!", gmsg_infostr(&n->header));
-			if (dbg)
-				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
-			return FALSE;
-		}
-	}
-
-	if (dbg > 3) {
-		printf("%s has GGEP extensions:\n", gmsg_infostr(&n->header));
-		ext_dump(stdout, exv, exvcnt, "> ", "\n", TRUE);
-	}
-
-	return TRUE;
 }
 
 /**

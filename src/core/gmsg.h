@@ -84,9 +84,14 @@ void gmsg_log_dropped(gpointer head,
 void gmsg_log_bad(struct gnutella_node *n,
 	gchar *reason, ...) G_GNUC_PRINTF(2, 3);
 
-gboolean gmsg_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize);
 void gmsg_sendto_route_ggep(
 	struct gnutella_node *n, struct route_dest *rt, gint regular_size);
+void gmsg_sendto_one_ggep(struct gnutella_node *n,
+	gchar *msg, guint32 size, guint32 regular_size);
+void gmsg_ctrl_sendto_one_ggep(struct gnutella_node *n,
+	gchar *msg, guint32 size, guint32 regular_size);
+void gmsg_sendto_all_ggep(const GSList *sl,
+	gchar *msg, guint32 size, guint32 regular_size);
 
 void gmsg_search_sendto_one(
 	struct gnutella_node *n, gnet_search_t sh, gchar *msg, guint32 size);
