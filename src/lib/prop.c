@@ -555,10 +555,7 @@ gboolean *prop_get_boolean(
 
 	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
 
-	target = t;
-	if (target == NULL)
-		target = g_new(gboolean, length);
-
+	target = t != NULL ? t : g_malloc(length * sizeof(gboolean));
 	memcpy(target, &PROP(ps,prop).data.boolean.value[offset],
 		sizeof(gboolean) * length);
 
@@ -675,10 +672,7 @@ guint64 *prop_get_guint64(
 
 	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
 
-	target = t;
-	if (target == NULL)
-		target = g_new(guint64, length);
-
+	target = t != NULL ? t : g_malloc(length * sizeof(guint64));
 	memcpy(target, &PROP(ps,prop).data.guint64.value[offset],
 		sizeof(guint64) * length);
 
@@ -827,10 +821,7 @@ guint32 *prop_get_guint32(
 
 	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
 
-	target = t;
-	if (target == NULL)
-		target = g_new(guint32, length);
-
+	target = t != NULL ? t : g_malloc(length * sizeof(guint32));
 	memcpy(target, &PROP(ps,prop).data.guint32.value[offset],
 		sizeof(guint32) * length);
 
@@ -838,7 +829,7 @@ guint32 *prop_get_guint32(
 }
 
 void prop_set_storage(
-	prop_set_t *ps, property_t prop, const guint8 *src, gsize length)
+	prop_set_t *ps, property_t prop, const gchar *src, gsize length)
 {
 	gboolean differ = FALSE;
 
@@ -873,8 +864,8 @@ void prop_set_storage(
 	prop_emit_prop_changed(ps, prop);
 }
 
-guint8 *prop_get_storage(
-	prop_set_t *ps, property_t prop, guint8 *t, gsize length)
+gchar *
+prop_get_storage(prop_set_t *ps, property_t prop, gchar *t, gsize length)
 {
 	gpointer target;
 
@@ -891,10 +882,7 @@ guint8 *prop_get_storage(
 
 	prop_assert(ps, prop, length == PROP(ps,prop).vector_size);
 
-	target = t;
-	if (target == NULL)
-		target = g_new(guint8, length);
-
+	target = t != NULL ? t : g_malloc(length);
 	memcpy(target, PROP(ps,prop).data.storage.value, length);
 
 	return target;
@@ -1088,7 +1076,7 @@ gchar *prop_to_string(prop_set_t *ps, property_t prop)
 		}
 		case PROP_TYPE_STORAGE: {
 			g_strlcpy(s, guid_hex_str(prop_get_storage(ps, prop, NULL,
-									PROP(ps,prop).vector_size)), sizeof(s));
+							PROP(ps,prop).vector_size)), sizeof(s));
 			break;
 		}
 		default:
@@ -1328,7 +1316,7 @@ void prop_save_to_file(
 			quotes = TRUE;
 			break;
 		case PROP_TYPE_STORAGE:
-			val = g_new(guint8, (p->vector_size * 2) + 1);
+			val = g_malloc((p->vector_size * 2) + 1);
 
 			for (i = 0; i < p->vector_size; i++) {
 				guint8 c = p->data.storage.value[i];
@@ -1440,12 +1428,14 @@ load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 		break;
 	case PROP_TYPE_STORAGE:
 		{
-			guint8 *buf = g_new(guint8, p->vector_size);
+			gchar s[1024];
+			gchar *d = NULL, *buf;
 
+			buf = p->vector_size > sizeof s ? g_malloc(p->vector_size) : s;
 			prop_parse_storage(p->name, val, p->vector_size, buf);
 			stub->storage.set(prop, buf, p->vector_size);
 
-			G_FREE_NULL(buf);
+			G_FREE_NULL(d);
 		}
 		break;
 	}

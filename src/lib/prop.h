@@ -115,8 +115,8 @@ typedef struct prop_def_storage {
     guint8 *value;   /* current data */
 } prop_def_storage_t;
 
-typedef void (*prop_set_storage_t)(property_t, const guint8 *, gsize);
-typedef guint8 *(*prop_get_storage_t)(property_t, guint8 *, gsize);
+typedef void (*prop_set_storage_t)(property_t, const gchar *, gsize);
+typedef gchar *(*prop_get_storage_t)(property_t, gchar *, gsize);
 
 
 typedef struct prop_def_string {
@@ -258,10 +258,8 @@ void prop_set_guint64(
 guint64 *prop_get_guint64(
     prop_set_t *, property_t, guint64 *, guint64, guint64);
 
-void prop_set_storage(
-    prop_set_t *, property_t, const guint8 *, gsize);
-guint8 *prop_get_storage(
-    prop_set_t *, property_t, guint8 *, gsize);
+void prop_set_storage(prop_set_t *, property_t, const gchar *, gsize);
+gchar *prop_get_storage(prop_set_t *, property_t, gchar *, gsize);
 
 gchar *prop_to_string(prop_set_t *ps, property_t prop);
 inline property_t prop_get_by_name(prop_set_t *ps, const char *name);
