@@ -219,16 +219,26 @@ void message_set_muid(struct gnutella_header *header)
 
 void remove_one_message_reference(GSList * cur)
 {
-	if (((struct route_data *)cur->data)->node != fake_node)
-	{
-		((struct route_data *)cur->data)->saved_messages--;
+	struct route_data *rd = (struct route_data *) cur->data;
+
+	/*
+	 * Temporary fix, to try to avoid memory faults at final cleanup,
+	 * until I understand the data structures and can tell what is
+	 * really wrong.
+	 *		--RAM, 28/12/2001
+	 */
+
+	if (!rd)
+		return;
+
+	if (rd->node != fake_node) {
+		rd->saved_messages--;
 			
 		/* if we have no more messages from this node, and our
 		   node has already died, wipe its routing data */
-		if ((((struct route_data *)cur->data)->node == NULL) &&
-			(((struct route_data *)cur->data)->saved_messages == 0))
-		{
-			g_free(cur->data);
+		if (rd->node == NULL && rd->saved_messages == 0) {
+			g_free(rd);
+			cur->data = NULL;	/* Mark: is freed, don't try again --RAM */
 		}
 	}
 }
@@ -329,8 +339,8 @@ GSList * purge_dangling_references(GSList *head)
 		if (((struct route_data *)cur->data)->node == NULL)
 		{
 			GSList * next = cur->next;
-			remove_one_message_reference(cur);
 			head = g_slist_remove(head, cur->data);
+			remove_one_message_reference(cur);
 			cur = next;
 		}
 		else
