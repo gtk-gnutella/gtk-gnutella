@@ -47,6 +47,7 @@ extern gboolean host_low_on_pongs;
 
 void host_init(void);
 void host_timer(void);
+void host_add_ultra(guint32 ip, guint16 port);
 void host_add(guint32, guint16, gboolean);
 void host_add_semi_pong(guint32 ip, guint16 port);
 void host_shutdown(void);

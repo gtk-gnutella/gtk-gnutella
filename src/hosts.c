@@ -61,13 +61,27 @@ static gboolean in_shutdown = FALSE;
 void host_timer(void)
 {
 	static gint called = 0;
-    int count = node_count();
-	int nodes_missing = up_connections - count;
+    gint count;
+	gint nodes_missing;
 	guint32 ip;
 	guint16 port;
+	hcache_type_t hctype;
+	gint max_nodes;
+	gint up_nodes;
 
 	if (in_shutdown || !online_mode)
 		return;
+
+	count = node_count();
+
+	if (current_peermode == NODE_P_LEAF)
+		max_nodes = up_nodes = max_ultrapeers;
+	else {
+		max_nodes = max_connections;
+		up_nodes = up_connections;
+	}
+
+	nodes_missing = up_nodes - count;
 
 	/*
 	 * If we are not connected to the Internet, apparently, make sure to
@@ -82,7 +96,7 @@ void host_timer(void)
 			nodes_missing = 0;			/* Don't connect this run */
 	}
 
-	if (count < max_connections)
+	if (count < max_nodes)
 		nodes_missing -= whitelist_connect();
     
 	/*
@@ -90,10 +104,15 @@ void host_timer(void)
 	 * to the connection list
 	 */
 
+	hctype = current_peermode == NODE_P_LEAF ? HCACHE_ULTRA : HCACHE_ANY;
+
+	if (hcache_size(hctype) == 0)
+		hctype = HCACHE_ANY;
+
 	if (nodes_missing > 0) {
         if (!stop_host_get) {
-			while (hcache_size(HCACHE_ANY) && nodes_missing-- > 0) {
-				hcache_get_caught(HCACHE_ANY, &ip, &port);
+			while (hcache_size(hctype) && nodes_missing-- > 0) {
+				hcache_get_caught(hctype, &ip, &port);
 				node_add(ip, port);
 			}
 			if (nodes_missing)
@@ -102,11 +121,11 @@ void host_timer(void)
 	}
 	else if (use_netmasks) {
 		/* Try to find better hosts */
-		if (hcache_find_nearby(HCACHE_ANY, &ip, &port)) {
+		if (hcache_find_nearby(hctype, &ip, &port)) {
 			if (node_remove_worst(TRUE))
 				node_add(ip, port); 
 			else
-				hcache_add(HCACHE_ANY, ip, port, "nearby host");
+				hcache_add(hctype, ip, port, "nearby host");
 		}
 	}
 }
@@ -156,15 +175,32 @@ static gboolean host_is_connected(guint32 ip, guint16 port)
  * Common processing for host_add() and host_add_semi_pong().
  * Returns true when IP/port passed sanity checks.
  */
-static gboolean add_host_to_cache(guint32 ip, guint16 port, gchar *type)
+static gboolean add_host_to_cache(
+	hcache_type_t htype, guint32 ip, guint16 port, gchar *type)
 {
+	if (ip == listen_ip() && port == listen_port)
+		return FALSE;
+
 	if (host_is_connected(ip, port))
 		return FALSE;			/* Connected to that host? */
 
-	if (hcache_add(HCACHE_ANY, ip, port, type))
+	if (hcache_add(htype, ip, port, type))
 		return TRUE;
 
 	return TRUE;
+}
+
+/*
+ * host_add_ultra
+ *
+ * Add a new host to our ultra pong reserve.
+ */
+void host_add_ultra(guint32 ip, guint16 port)
+{
+	if (!add_host_to_cache(HCACHE_ULTRA, ip, port, "pong"))
+		return;
+
+    hcache_prune(HCACHE_ULTRA);
 }
 
 /*
@@ -175,10 +211,7 @@ static gboolean add_host_to_cache(guint32 ip, guint16 port, gchar *type)
  */
 void host_add(guint32 ip, guint16 port, gboolean connect)
 {
-	if (ip == listen_ip() && port == listen_port)
-		return;
-
-	if (!add_host_to_cache(ip, port, "pong"))
+	if (!add_host_to_cache(HCACHE_ANY, ip, port, "pong"))
 		return;
 
 	/*
@@ -195,12 +228,20 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 
 
 	if (connect) {
-		if (node_count() < max_connections) {
-			if (connected_nodes() < up_connections) {
-				node_add(ip, port);
-			}
-		}
+		gint max_nodes;
+		gint up_nodes;
+
+		if (current_peermode == NODE_P_LEAF)
+			max_nodes = up_nodes = max_ultrapeers;
 		else {
+			max_nodes = max_connections;
+			up_nodes = up_connections;
+		}
+
+		if (node_count() < max_nodes) {
+			if (connected_nodes() < up_nodes)
+				node_add(ip, port);
+		} else {
 			/* If we are above the max connections, delete a non-nearby 
 			 * connection before adding this better one
 			 */
@@ -224,7 +265,7 @@ void host_add_semi_pong(guint32 ip, guint16 port)
 {
 	g_assert(host_low_on_pongs);	/* Only used when low on pongs */
 
-	(void) add_host_to_cache(ip, port, "semi-pong");
+	(void) add_host_to_cache(HCACHE_ANY, ip, port, "semi-pong");
 
 	/*
 	 * Don't attempt to prune cache, we know we're below the limit.
