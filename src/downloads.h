@@ -289,6 +289,7 @@ void download_push_ack(struct gnutella_socket *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
 void download_pickup_queued(void);
 void download_clear_stopped(gboolean, gboolean, gboolean);
+void download_forget(struct download *);
 void download_abort(struct download *);
 void download_resume(struct download *);
 void download_start(struct download *, gboolean);

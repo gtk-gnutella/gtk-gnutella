@@ -160,6 +160,7 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
 void on_popup_downloads_abort_host_activate
     (GtkMenuItem *menuitem, gpointer user_data) 
 {
+	// XXX routing misnamed: we're "forgetting" here, not "aborting"
 	GList *l;
 	struct download *d;
     gint removed = 0;
@@ -191,7 +192,7 @@ void on_popup_downloads_abort_host_activate
     gtk_clist_thaw(clist_downloads_queue);
     gtk_clist_thaw(clist_downloads);
 
-    statusbar_gui_message(15, "Removed %u downloads", removed);
+    statusbar_gui_message(15, "Forgot %u downloads", removed);
 }
 
 void on_popup_downloads_abort_sha1_activate

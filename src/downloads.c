@@ -1239,13 +1239,15 @@ gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port)
 	}
 
 	/*
-	 * Abort all requested downloads.
+	 * We "forget" instead of "aborting"  all requested downloads: we do
+	 * not want to delete the file on the disk if they selected "delete on
+	 * abort".
 	 * Do NOT mark the fileinfo as "discard".
 	 */
 
 	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
 		struct download *d = (struct download *) sl->data;
-		download_abort(d);
+		download_forget(d);
 	}
 
 	g_slist_free(to_remove);
@@ -3439,7 +3441,12 @@ void download_remove(struct download *d)
 
 /* ----------------------------------------- */
 
-void download_abort(struct download *d)
+/*
+ * download_forget
+ *
+ * Forget about download: stop it if running.
+ */
+void download_forget(struct download *d)
 {
 	g_assert(d);
 
@@ -3452,6 +3459,19 @@ void download_abort(struct download *d)
 	}
 
 	download_stop(d, GTA_DL_ABORTED, NULL);
+}
+
+/*
+ * download_abort
+ *
+ * Abort download (forget about it) AND delete file if we removed the last
+ * reference to it and they want to delete on abort.
+ */
+void download_abort(struct download *d)
+{
+	g_assert(d);
+
+	download_forget(d);
 
 	/* 
 	 * The refcount isn't decreased until "Clear completed", so
