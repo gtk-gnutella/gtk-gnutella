@@ -633,7 +633,7 @@ void gui_update_upload(struct upload *u)
 		 */
 		pc = (u->pos - u->skip) / ((requested / 100.0));
 
-		if (u->last_update != u->start_date) {
+		if (u->bio) {
 			bps = bio_bps(u->bio);
 			avg_bps = bio_avg_bps(u->bio);
 			if (avg_bps == 0)
