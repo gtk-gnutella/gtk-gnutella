@@ -37,7 +37,7 @@
 (define set-name-down (string-downcase (get "property_set")))
 (define prop-set (. set-name-down))
 (define prop-array (sprintf "%s->props" (. prop-set)))
-(define prop-offset (string->number (get "offset")))
+(define prop-offset (get "offset"))
 (define (type_ok? type)
     (cond 
         ((= type "boolean") #t)
@@ -95,6 +95,7 @@ prop_set_stub_t *[=(. func-prefix)=]_get_stub(void);
  * Property definition
  */
 prop_def_t *[=(. func-prefix)=]_get_def(property_t);
+property_t [=(. func-prefix)=]_get_by_name(const gchar *);
 
 /*
  * Property-change listeners
@@ -144,6 +145,8 @@ guint32 *[=(. func-prefix)=]_get_guint32(
 void [=(. func-prefix)=]_set_storage(property_t, const guint8 *, gsize);
 guint8 *[=(. func-prefix)=]_get_storage(property_t, guint8 *, gsize);
 
+gchar *[=(. func-prefix)=]_to_string(property_t prop);
+property_t [=(. func-prefix)=]_get_by_name(const gchar *name);
 
 #endif /* _[=(. set-name-down)=]_h_ */
 
@@ -242,6 +245,8 @@ ENDFOR prop =]
 static prop_set_t *[=(. prop-set)=] = NULL;
 
 prop_set_t *[=(. func-prefix)=]_init(void) {
+    guint32 n;
+
     [=(. prop-set)=] = g_new(prop_set_t, 1);
     [=(. prop-set)=]->name   = "[=property_set=]";
     [=(. prop-set)=]->desc   = "";
@@ -249,7 +254,8 @@ prop_set_t *[=(. func-prefix)=]_init(void) {
     [=(. prop-set)=]->offset = [=offset=];
     [=(. prop-set)=]->mtime  = 0;
     [=(. prop-set)=]->props  = g_new(prop_def_t, [=(. prop-num)=]);
-    [=(. prop-set)=]->get_stub = [=(. func-prefix)=]_get_stub;[=
+    [=(. prop-set)=]->get_stub = [=(. func-prefix)=]_get_stub;
+    [=(. prop-set)=]->byName = NULL;[=
 
 FOR prop =][=
     (define current-prop (sprintf "%s[%u]" 
@@ -287,7 +293,7 @@ FOR prop =][=
         (. current-prop) =].name = "[= name =]";[= 
     ENDIF =]
     [=(. current-prop)=].desc = "[=desc=]";
-    [=(. current-prop)=].prop_changed_listeners = NULL;[=     
+    [=(. current-prop)=].ev_changed = event_new("[= name =]_changed");[=
     IF (exist? "save") =]
     [=  (. current-prop) =].save = [=save=];[= 
     ELSE =]
@@ -362,6 +368,13 @@ FOR prop =][=
     }[= 
     ESAC =][=
 ENDFOR prop=]
+
+    [=(. prop-set)=]->byName = g_hash_table_new(g_str_hash, g_str_equal);
+    for (n = 0; n < [=(. prop-num)=]; n ++) {
+        g_hash_table_insert([=(. prop-set)=]->byName, 
+            [=(. prop-array)=][n].name, GINT_TO_POINTER(n+[=offset=]));
+    }
+
     return [=(. prop-set)=];
 }
 
@@ -373,11 +386,19 @@ ENDFOR prop=]
 void [=(. func-prefix)=]_shutdown(void) {
     gint n;
 
+    if ([=(. prop-set)=]->byName) {
+        g_hash_table_destroy([=(. prop-set)=]->byName);
+        [=(. prop-set)=]->byName = NULL;
+    }
+
     for (n = 0; n < [=(. prop-num)=]; n ++) {
         if ([=(. prop-set)=]->props[n].type == PROP_TYPE_STRING) {
-			gchar **p = [=(. prop-set)=]->props[n].data.string.value;
+			gchar **p = [=(. prop-array)=][n].data.string.value;
+            struct event *e = [=(. prop-array)=][n].ev_changed;
 			if (*p)
 				G_FREE_NULL(*p);
+            if (e)
+                event_destroy(e);    
         }
     }
 
@@ -400,6 +421,20 @@ void [=(. func-prefix)=]_add_prop_changed_listener(
     property_t prop, prop_changed_listener_t l, gboolean init)
 {
     prop_add_prop_changed_listener([=(. prop-set)=], prop, l, init);
+}
+
+/*
+ * [=(. func-prefix)=]_add_prop_changed_listener_full:
+ *
+ * Add a change listener to a given property. If init is TRUE then
+ * the listener is immediately called. 
+ */
+void [=(. func-prefix)=]_add_prop_changed_listener_full(
+    property_t prop, prop_changed_listener_t l, gboolean init, 
+    enum frequency_type freq, guint32 interval)
+{
+    prop_add_prop_changed_listener_full([=(. prop-set)=], prop, l, init,
+        freq, interval);
 }
 
 void [=(. func-prefix)=]_remove_prop_changed_listener(
@@ -452,6 +487,17 @@ guint8 *[=(. func-prefix)=]_get_storage(property_t p, guint8 *t, gsize l)
     return prop_get_storage([=(. prop-set)=], p, t, l);
 }
 
+gchar *[=(. func-prefix)=]_to_string(property_t prop)
+{
+    return prop_to_string([=(. prop-set)=], prop);
+}
+
+property_t [=(. func-prefix)=]_get_by_name(const gchar *name)
+{
+    return GPOINTER_TO_UINT(
+        g_hash_table_lookup([=(. prop-set)=]->byName, name));
+}
+
 
 /*
  * [=(. func-prefix)=]_get_stub:
@@ -467,9 +513,13 @@ prop_set_stub_t *[=(. func-prefix)=]_get_stub(void)
     stub->size    = [=(. prop-num)=];
     stub->offset  = [=(. prop-min)=];
     stub->get_def = [=(. func-prefix)=]_get_def;
+    stub->get_by_name = [=(. func-prefix)=]_get_by_name;
+    stub->to_string = [=(. func-prefix)=]_to_string;
 
     stub->prop_changed_listener.add = 
         [=(. func-prefix)=]_add_prop_changed_listener;
+    stub->prop_changed_listener.add_full = 
+        [=(. func-prefix)=]_add_prop_changed_listener_full;
     stub->prop_changed_listener.remove = 
         [=(. func-prefix)=]_remove_prop_changed_listener;
 
