@@ -1897,6 +1897,27 @@ static void node_is_now_connected(struct gnutella_node *n)
 	connected_node_cnt++;
 
 	/*
+	 * Count nodes by type.
+	 */
+
+	switch (n->peermode) {
+	case NODE_P_LEAF:
+		gnet_prop_set_guint32_val(PROP_NODE_LEAF_COUNT,
+			node_leaf_count + 1);
+		break;
+	case NODE_P_NORMAL:
+		gnet_prop_set_guint32_val(PROP_NODE_NORMAL_COUNT,
+			node_normal_count + 1);
+		break;
+	case NODE_P_ULTRA:
+		gnet_prop_set_guint32_val(PROP_NODE_ULTRA_COUNT,
+			node_ultra_count + 1);
+		break;
+	default:
+		break;
+	}
+	
+	/*
 	 * Determine the frequency at which we will send "alive pings", and at
 	 * which we shall accept regular pings on that connection.
 	 */
@@ -2002,27 +2023,6 @@ static void node_is_now_connected(struct gnutella_node *n)
 
 		if (qrt)
 			node_send_qrt(n, qrt);
-	}
-
-	/*
-	 * Count nodes by type.
-	 */
-
-	switch (n->peermode) {
-	case NODE_P_LEAF:
-		gnet_prop_set_guint32_val(PROP_NODE_LEAF_COUNT,
-			node_leaf_count + 1);
-		break;
-	case NODE_P_NORMAL:
-		gnet_prop_set_guint32_val(PROP_NODE_NORMAL_COUNT,
-			node_normal_count + 1);
-		break;
-	case NODE_P_ULTRA:
-		gnet_prop_set_guint32_val(PROP_NODE_ULTRA_COUNT,
-			node_ultra_count + 1);
-		break;
-	default:
-		break;
 	}
 
 	/*

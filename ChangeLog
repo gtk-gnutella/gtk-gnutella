@@ -3,6 +3,9 @@
 - (2003.10.21 - Jeroen)
  * Intergrated patch from Thadeu Lima de Souza Cascardo. This fixes a segfault
    with remote control.
+ * Leaf, normal, ultra node counters are now updated as soon as the connection
+   was established. This should avoid an assert when changing modes while still
+   in handshake. 
 
 - (2003.10.18 - RAM)
  * [GTK1] Added GUI configuration for server-side PFSP.
