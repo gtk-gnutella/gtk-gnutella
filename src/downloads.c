@@ -802,6 +802,24 @@ void download_remove_file(struct download *d, gboolean reset)
 		if (d->file_info != fi)
 			continue;
 
+		/*
+		 * An actively queued download is counted as running, but for our
+		 * purposes here, it does not matter: we're not in the process of
+		 * requesting the file.  Likewise for other special states that are
+		 * counted as running but are harmless here.
+		 *		--RAM, 17/05/2003
+		 */
+
+		switch (d->status) {
+		case GTA_DL_ACTIVE_QUEUED:
+		case GTA_DL_PUSH_SENT:
+		case GTA_DL_FALLBACK:
+		case GTA_DL_SINKING:		/* Will only make a new request after */
+		case GTA_DL_CONNECTING:
+		default:
+			break;		/* go on */
+		}
+
 		if (DOWNLOAD_IS_RUNNING(d)) {
 			download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
 			download_queue(d, "Requeued due to file removal");
@@ -986,7 +1004,7 @@ static void queue_remove_downloads_with_file(
 	}
 
     for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
-        download_free((struct download *) sl->data);
+        download_remove((struct download *) sl->data);
 
     g_slist_free(to_remove);
 }
@@ -1211,7 +1229,7 @@ void download_clear_stopped(gboolean complete, gboolean failed, gboolean now)
                     d->status == GTA_DL_ERROR ||
                     d->status == GTA_DL_ABORTED ))
             )
-				download_free(d);
+				download_remove(d);
         }
 	}
 
@@ -3000,7 +3018,7 @@ void download_free_removed(void)
 }
 
 /*
- * download_free
+ * download_remove
  *
  * Freeing a download cannot be done simply, because it might happen when
  * we are traversing the `sl_downloads' or `sl_unqueued' lists.
@@ -3013,8 +3031,7 @@ void download_free_removed(void)
  * `sl_removed' list where it will be reclaimed later on via
  * download_free_removed().
  */
-// FIXME: this should be called "download_remove"
-void download_free(struct download *d)
+void download_remove(struct download *d)
 {
 	g_assert(d);
 	g_assert(d->status != GTA_DL_REMOVED);		/* Not already freed */
@@ -5324,7 +5341,20 @@ picked:
 		if (d->keep_alive)
 			d->server->attrs |= DLS_A_NO_KEEPALIVE;
 
-		download_stop(d, GTA_DL_ERROR, "Write failed: %s", g_strerror(errno));
+		/*
+		 * If download is queued with PARQ, don't stop the download on a write
+		 * error or we'd loose the PARQ ID, and the download entry.  If the
+		 * server contacts us back with a QUEUE callback, we could be unable
+		 * to resume!
+		 *		--RAM, 17/05/2003
+		 */
+
+		if (d->queue_status == NULL)
+			download_stop(d, GTA_DL_ERROR,
+				"Write failed: %s", g_strerror(errno));
+		else
+			download_queue_delay(d, download_retry_busy_delay,
+				"Write failed: %s", g_strerror(errno));
 		return;
 	} else if (sent < rw) {
 		/*
