@@ -42,6 +42,11 @@
 #if !defined(HAVE_SRANDOM) || !defined(HAVE_RANDOM)
 #define srandom(x)	srand(x)
 #define random(x)	rand(x)
+#define RANDOM_MASK				0xffffffff
+#define RANDOM_MAXV				RAND_MAX
+#else
+#define RANDOM_MASK				2147483647
+#define RANDOM_MAXV				RANDOM_MASK
 #endif
 
 /*
@@ -549,7 +554,8 @@ gchar *date_to_rfc822_gchar2(time_t date)
  */
 guint32 random_value(guint32 max)
 {
-	return (guint32) ((max + 1.0) * random() / (RAND_MAX + 1.0));
+	return (guint32)
+		((max + 1.0) * (random() & RANDOM_MASK) / (RANDOM_MAXV + 1.0));
 }
 
 /* Display header line for hex dumps */
