@@ -802,7 +802,7 @@ void qrp_add_file(struct shared_file *sf)
 {
 	word_vec_t *wovec;
 	guint wocnt;
-	gint i;
+	guint i;
 
 	g_assert(ht_seen_words != NULL);	/* Already in computation */
 	g_assert(sf);
@@ -872,7 +872,7 @@ void qrp_add_file(struct shared_file *sf)
 		if (g_hash_table_lookup(ht_seen_words, (gconstpointer) word))
 			continue;
 
-		g_hash_table_insert(ht_seen_words, g_strdup(word), (gpointer) 1);
+		g_hash_table_insert(ht_seen_words, g_strdup(word), GINT_TO_POINTER(1));
 
 		if (dbg > 8)
 			printf("new QRP word \"%s\" [from %s]\n", word, sf->file_name);
@@ -885,13 +885,14 @@ void qrp_add_file(struct shared_file *sf)
 	 */
 
 	if (sha1_hash_available(sf)) {
-		gchar *key = g_strdup_printf("urn:sha1:%s",
-			sha1_base32(sf->sha1_digest));
+		gchar key[256];
 
-		if (NULL == g_hash_table_lookup(ht_seen_words, key))
-			g_hash_table_insert(ht_seen_words, key, GINT_TO_POINTER(1));
-		else
-			G_FREE_NULL(key);
+		gm_snprintf(key, sizeof key, "urn:sha1:%s",
+			sha1_base32(sf->sha1_digest));
+		if (NULL == g_hash_table_lookup(ht_seen_words, key)) {
+			g_hash_table_insert(ht_seen_words, g_strdup(key),
+				GINT_TO_POINTER(1));
+		}
 	}
 }
 
@@ -1548,7 +1549,8 @@ static void qrp_send_patch(struct gnutella_node *n,
 	msglen = sizeof(*m) + len;
 	paylen = sizeof(m->data) + len;
 
-	if (msglen <= sizeof(qrp_tmp))
+	g_assert(msglen > (gint) sizeof(*m));
+	if (msglen <= (gint) sizeof(qrp_tmp))
 		m = (struct gnutella_msg_qrp_patch *) qrp_tmp;
 	else
 		m = g_malloc(msglen);
@@ -1571,7 +1573,7 @@ static void qrp_send_patch(struct gnutella_node *n,
 	gmsg_sendto_one(n, (gchar *) m, msglen);
 
 	if ((gchar *) m != qrp_tmp)
-		g_free(qrp_tmp);
+		G_FREE_NULL(m);
 
 	if (dbg > 4)
 		printf("QRP sent PATCH #%d/%d (%d bytes) to %s\n",
@@ -3002,7 +3004,7 @@ GSList *qrt_build_query_target(
 			 * Otherwise, ALL the keywords must be present.
 			 */
 
-			g_assert(idx < rt->slots);
+			g_assert(idx < (guint32) rt->slots);
 
 			if (qh->source == QUERY_H_URN)
 				sha1_query = TRUE;
@@ -3159,4 +3161,4 @@ void test_hash(void)
 }
 
 #endif /* TEST */
-
+/* vi: set ts=4: */
