@@ -244,6 +244,18 @@ The number of seconds before timing out for a 'push sent' download.
 This can not be set through the GUI.
 The number of seconds before timing out for a connected download.
 .TP
+.BI upload_connecting_timeout
+This can not be set through the GUI.
+The number of seconds before timing out for a connecting upload,
+whilst we receive the HTTP headers.  This is the maximum amount
+of time allowed to receive the entire set of headers.
+.TP
+.BI upload_connected_timeout
+This can not be set through the GUI.
+The number of seconds before timing out for a connected upload,
+whilst we send data.  This is the maximum amount of time before
+two consecutive data sending.
+.TP
 .BI node_connected_timeout
 This can not be set through the GUI.
 The number of seconds before timing out for a connected node.
@@ -494,7 +506,8 @@ Chuck Homic, Ingo Saitz, Ben Hochstedler, Daniel Walker, Paul
 Cassella, Jared Mauch, Raphael Manfredi, Kenn Brooks Hamm, and Mark
 Schreiber.
 .PP
-Brian St. Pierre <bstpierre@bstpierre.org> wrote this manpage.
+Brian St. Pierre <bstpierre@bstpierre.org> wrote the initial version
+of this manpage.
 .SH COPYRIGHT
 .I gtk-gnutella
 is Copyright (c) 2000, Yann Grossel, with additional copyrights held
