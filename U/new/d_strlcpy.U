@@ -1,0 +1,21 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_strlcpy: Inlibc
+?MAKE:	-pick add $@ %<
+?S:d_strlcpy:
+?S:	This variable conditionally defines the HAS_STRLCPY symbol, which
+?S:	indicates to the C program that the strlcpy() routine is available.
+?S:.
+?C:HAS_STRLCPY :
+?C:	This symbol, if defined, indicates that the chown routine is
+?C:	available.
+?C:.
+?H:#$d_strlcpy HAS_STRLCPY		/**/
+?H:.
+?LINT:set d_strlcpy
+: see if strlcpy exists
+set strlcpy d_strlcpy
+eval $inlibc
+
