@@ -305,7 +305,7 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 
 		/*
 		 * If we reach a message whose priority is higher than ours, stop.
-		 * A less prioritary message cannot supersed a higher priority one,
+		 * A less prioritary message cannot supersede a higher priority one,
 		 * even if its embedded Gnet message is deemed less important.
 		 */
 
@@ -416,7 +416,8 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 	 * Enqueue message.
 	 *
 	 * A normal priority message (the large majority of messages we deal with)
-	 * is always enqueued at the tail.
+	 * is always enqueued at the head: messsages are read from the tail, i.e.
+	 * it is a FIFO queue.
 	 *
 	 * A higher priority message needs to be inserted at the right place,
 	 * near the *tail* but after any partially sent message, and of course
