@@ -2206,6 +2206,8 @@ gpointer parq_upload_get(gnutella_upload_t *u, header_t *header)
 cleanup:
 	g_assert(parq_ul != NULL);
 
+	u->parq_opaque = parq_ul;
+	
 	if (parq_ul->queue->by_date_dead != NULL &&
 		  g_list_find(parq_ul->queue->by_date_dead, parq_ul) != NULL)
 		parq_ul->queue->by_date_dead = 
@@ -2451,8 +2453,10 @@ void parq_upload_force_remove(gnutella_upload_t *u)
 	struct parq_ul_queued *parq_ul = parq_upload_find(u);
 		
 	if (parq_ul != NULL) {
-		if (!parq_upload_remove(u))
+		if (!parq_upload_remove(u)) {
+			u->parq_opaque = NULL;
 			parq_upload_free(parq_ul);
+		}
 	}
 }
 
@@ -2574,11 +2578,21 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 	if (parq_ul->disc_timeout > now && parq_ul->has_slot) {
 		/* Client disconnects to often. This could block our upload
 		 * slots. Sorry, but we are going to remove this upload */
-		g_warning("[PARQ UL] "
-			"Removing %s (%s) for too many disconnections \"%s\" %d secs early",
-			ip_port_to_gchar(u->socket->ip, u->socket->port), 
-			upload_vendor_str(u),
-			u->name, (gint) (parq_ul->disc_timeout - now));
+		if (u->socket != NULL) {
+			g_warning("[PARQ UL] "
+				"Removing %s (%s) for too many disconnections \"%s\" "
+				"%d secs early",
+				ip_port_to_gchar(u->socket->ip, u->socket->port), 
+				upload_vendor_str(u),
+				u->name, (gint) (parq_ul->disc_timeout - now));
+		} else {
+			g_warning("[PARQ UL] "
+				"Removing (%s) for too many disconnections \"%s\" "
+				"%d secs early",
+				upload_vendor_str(u),
+				u->name, (gint) (parq_ul->disc_timeout - now));
+		}
+		u->parq_opaque = NULL;
 		parq_upload_free(parq_ul);
 		return_result = TRUE;
 	} else {
