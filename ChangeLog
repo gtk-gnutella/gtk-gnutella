@@ -1,5 +1,11 @@
 # since last version
 
+- (2002.08.23 - RAM)
+ * Properly reparent all downloads after a file_info_recreate() call which
+   creates a new fileinfo structure to supersede the old one.
+ * Dump handshaking header on misparsing to stderr, if debugging.
+ * Fixed misparsing of header fields: allow spaces before the ':' separator.
+
 - (2002.08.23 - Vidar)
  * Added a missing status reset in search.c, which should fix the wrongly
    set Push flags.
