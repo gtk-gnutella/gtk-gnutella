@@ -989,12 +989,17 @@ gchar *locale_to_utf8(const gchar *str, gssize len)
 	GError *error = NULL;
 	const gchar *local_charset = NULL;
 	gchar *ret;
+	gsize *bytes_read = 0;
+	gsize *bytes_written = 0;
 	
 	g_get_charset(&local_charset);
-	ret = g_convert_with_fallback(
-		str, len, "UTF-8", local_charset, NULL, NULL, NULL, &error);
+	ret = g_convert_with_fallback(str, len, "UTF-8", local_charset, NULL,
+		bytes_read, bytes_written, &error);
     if (NULL != error) {
-        g_warning("locale_to_utf8 failed: %s", error->message);
+        g_warning(
+			"locale_to_utf8 failed: %s (read=%lu, written=%lu, charset=%s)",
+			error->message, (gulong) bytes_read, (gulong) bytes_written,
+			local_charset);
         g_clear_error(&error);
 	}
 	if (NULL == ret)
