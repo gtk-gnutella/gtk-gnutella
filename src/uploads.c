@@ -673,7 +673,7 @@ static void upload_request(struct upload *u, header_t *header)
 {
 	struct gnutella_socket *s = u->socket;
 	struct shared_file *requested_file = NULL;
-	guint index = 0, skip = 0, rw = 0, row = 0, upcount = 0;
+	guint index = 0, skip = 0, end = 0, rw = 0, row = 0, upcount = 0;
 	gchar http_response[1024], *fpath = NULL, sl[] = "/\0";
 	gchar *user_agent = 0;
 	gchar *buf;
@@ -682,6 +682,7 @@ static void upload_request(struct upload *u, header_t *header)
 	GSList *l;
 	gint sent;
 	gboolean head_only;
+	gboolean has_end = FALSE;
 
 	titles[0] = titles[1] = titles[2] = NULL;
 
@@ -833,14 +834,26 @@ static void upload_request(struct upload *u, header_t *header)
 		}
 
 		/*
-		 * Range: bytes=10453-
+		 * Range: bytes=10453-23456
 		 * User-Agent: whatever
 		 * Server: whatever (in case no User-Agent)
 		 */
 
 		buf = header_get(header, "Range");
-		if (buf)
-			sscanf(buf, "bytes=%u-", &skip);
+		if (buf) {
+			if (2 == sscanf(buf, "bytes=%u-%u", &skip, &end)) {
+				has_end = TRUE;
+				if (skip > end) {
+					char *msg = "Malformed Range request";
+					send_upload_error(u, 400, msg);
+					upload_remove(u, msg);
+					return;
+				}
+			} else if (1 == sscanf(buf, "bytes=-%u", &end))
+				has_end = TRUE;
+			else
+				(void) sscanf(buf, "bytes=%u-", &skip);
+		}
 
 		user_agent = header_get(header, "User-Agent");
 
@@ -867,6 +880,22 @@ static void upload_request(struct upload *u, header_t *header)
 				g_strconcat(requested_file->file_directory, &sl,
 							requested_file->file_name, NULL);
 
+		/*
+		 * Validate the rquested range.
+		 */
+
+		if (!has_end)
+			end = requested_file->file_size - 1;
+
+		u->file_size = requested_file->file_size;
+
+		if (skip >= u->file_size || end >= u->file_size) {
+			char *msg = "Requested range not satisfiable";
+			send_upload_error(u, 416, msg);
+			upload_remove(u, msg);
+			return;
+		}
+
 		/* Open the file for reading , READONLY just in case. */
 		if ((u->file_desc = open(fpath, O_RDONLY)) < 0)
 			goto not_found;
@@ -889,8 +918,8 @@ static void upload_request(struct upload *u, header_t *header)
 		u->name = requested_file->file_name;
 
 		u->skip = skip;
+		u->end = end;
 		u->pos = 0;
-		u->file_size = requested_file->file_size;
 		u->start_date = time((time_t *) NULL);
 		u->last_update = time((time_t *) 0);
 
@@ -904,18 +933,18 @@ static void upload_request(struct upload *u, header_t *header)
 		 * If partial content (range request), emit a 206 reply.
 		 */
 
-		if (skip)
+		if (skip || end != (u->file_size - 1))
 			rw = g_snprintf(http_response, sizeof(http_response),
 				"HTTP/1.0 206 Partial Content\r\n"
 				"Server: %s\r\n"
 				"Connection: close\r\n"
 				"X-Live-Since: %s\r\n"
 				"Content-type: application/binary\r\n"
-				"Content-length: %i\r\n"
+				"Content-length: %u\r\n"
 				"Content-Range: bytes %u-%u/%u\r\n\r\n",
 				version_string, start_rfc822_date,
-				u->file_size - u->skip,
-				u->skip, u->file_size - 1, u->file_size);
+				u->end - u->skip + 1,
+				u->skip, u->end, u->file_size);
 		else
 			rw = g_snprintf(http_response, sizeof(http_response),
 				"HTTP/1.0 200 OK\r\n"
@@ -923,7 +952,7 @@ static void upload_request(struct upload *u, header_t *header)
 				"Connection: close\r\n"
 				"X-Live-Since: %s\r\n"
 				"Content-type: application/binary\r\n"
-				"Content-length: %i\r\n\r\n",
+				"Content-length: %u\r\n\r\n",
 				version_string, start_rfc822_date, u->file_size);
 
 		sent = write(s->file_desc, http_response, rw);
@@ -1001,10 +1030,10 @@ static void upload_request(struct upload *u, header_t *header)
  */
 void upload_write(gpointer up, gint source, GdkInputCondition cond)
 {
-	struct upload *current_upload;
+	struct upload *current_upload = (struct upload *) up;
 	guint32 write_bytes;
-	current_upload = (struct upload *) up;
-
+	guint32 amount;
+	guint32 available;
 
 	if (!(cond & GDK_INPUT_WRITE)) {
 		/* If we can't write then we don't want it, kill the socket */
@@ -1027,6 +1056,11 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 		current_upload->pos = current_upload->skip;
 	}
 
+	/*
+	 * Compute the amount of bytes to send.
+	 */
+
+	amount = current_upload->end - current_upload->pos + 1;
 
 	/*
 	 * If the buffer position is equal to zero then we need to read
@@ -1043,10 +1077,14 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 			return;
 		}
 
+	available = current_upload->bsize - current_upload->bpos;
+	if (available > amount)
+		available = amount;
+
 	if ((write_bytes =
 		 write(current_upload->socket->file_desc,
 			   &current_upload->buffer[current_upload->bpos],
-			   (current_upload->bsize - current_upload->bpos))) == -1) {
+			   available)) == -1) {
 		upload_remove(current_upload,
 			"Data write error: %s", g_strerror(errno));
 		return;
@@ -1061,8 +1099,7 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 
 	current_upload->last_update = time((time_t *) NULL);
 
-
-	if (current_upload->pos >= current_upload->file_size) {
+	if (current_upload->pos > current_upload->end) {
 		count_uploads++;
 		gui_update_count_uploads();
 		gui_update_c_uploads();

@@ -23,8 +23,9 @@ struct upload {
 	time_t start_date;
 	time_t last_update;
 
-	gint skip;
-	gint pos;
+	guint skip;						/* First byte to send, inclusive */
+	guint end;						/* Last byte to send, inclusive */
+	guint pos;
 	gboolean push;
 };
 

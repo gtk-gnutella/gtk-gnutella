@@ -613,6 +613,7 @@ void gui_update_upload(struct upload *u)
 	guint32 tr = 0;
 	gint row;
 	gchar gui_tmp[256];
+	guint32 requested = u->end - u->skip + 1;
 
 	if (!UPLOAD_IS_COMPLETE(u)) {
 		gint slen;
@@ -621,7 +622,7 @@ void gui_update_upload(struct upload *u)
 		 * position divided by 1 percentage point, found by dividing
 		 * the total size by 100
 		 */
-		pc = (u->pos) / ((u->file_size / 100.0));
+		pc = (u->pos - u->skip) / ((requested / 100.0));
 
 		/*
 		 * Data rate KBytes/second, K transfered (subtract off 1k remainder)
@@ -634,10 +635,11 @@ void gui_update_upload(struct upload *u)
 		/* Time Remaining at the current rate, in seconds  */
 		if (fabs(rate) < .02)
 			rate = 1;
-		tr = ((u->file_size - u->pos) -
-			  ((u->file_size - u->pos) % 1024)) / 1024 / rate;
+		tr = ((u->end - u->pos + 1) -
+			  ((u->end - u->pos + 1) % 1024)) / 1024 / rate;
 
-		slen = g_snprintf(gui_tmp, sizeof(gui_tmp), "%.1f%% ", pc);
+		slen = g_snprintf(gui_tmp, sizeof(gui_tmp), "%.1f%% [%s] ",
+			pc, short_size(requested));
 
 		if (time((time_t *) 0) - u->last_update > IO_STALLED)
 			slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
@@ -661,12 +663,13 @@ void gui_update_upload(struct upload *u)
 
 	} else {
 		if (u->last_update != u->start_date) {
-			rate = ((u->file_size - u->skip) / 1024.0) /
+			rate = ((u->end - u->skip + 1) / 1024.0) /
 				(u->last_update - u->start_date);
-			g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed (%.1f k/s)",
-					   rate);
+			g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed [%s] (%.1f k/s)",
+				short_size(requested), rate);
 		} else {
-			g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed (< 1s)");
+			g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed [%s] (< 1s)",
+				short_size(requested));
 		}
 	}
 
