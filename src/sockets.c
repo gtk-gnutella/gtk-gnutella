@@ -84,8 +84,8 @@ static void socket_destroy(struct gnutella_socket *s, gchar *reason);
 void socket_timer(time_t now)
 {
 	GSList *l;
+	GSList *to_remove = NULL;
 
-  retry:
 	for (l = sl_incoming; l; l = l->next) {
 		struct gnutella_socket *s = (struct gnutella_socket *) l->data;
 		g_assert(s->last_update);
@@ -97,9 +97,13 @@ void socket_timer(time_t now)
 					dump_hex(stderr, "Connection Header",
 						s->buffer, MIN(s->pos, 80));
 			}
-			socket_destroy(s, "Connection timeout");
-			goto retry;			/* Don't know the internals of lists, retry */
+			to_remove = g_slist_prepend(to_remove, s);
 		}
+	}
+
+	for (l = to_remove; l; l = l->next) {
+		struct gnutella_socket *s = (struct gnutella_socket *) l->data;
+		socket_destroy(s, "Connection timeout");
 	}
 }
 
