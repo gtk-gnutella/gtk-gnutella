@@ -589,14 +589,20 @@ static gboolean forward_message(struct gnutella_node **node,
 	/*
 	 * If node propagates messages with TTL=0, it's a danger to
 	 * the network, kick him out.
-	 *				-- RAM, 15/09/2001
+	 *		-- RAM, 15/09/2001
+	 *
+	 * If we're a leaf node, it's OK though, as we don't have to route
+	 * the message.  Some broken Ultrapeers out there send such messages!
+	 * We'll even handle the message.
+	 *		-- RAM, 12/01/2003
 	 */
 
 	if (sender->header.ttl == 0) {
 		routing_log("[ ] [NEW] TTL was 0\n");
 		if (node_sent_ttl0(sender))
 			*node = NULL;
-		return FALSE;	/* Don't handle, shouldn't have seen it */
+		/* Don't handle unless we're a leaf: shouldn't have seen it */
+		return current_peermode == NODE_P_LEAF;
 	}
 
 	routing_log("[H] [NEW] ");
@@ -741,14 +747,20 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 		/*
 		 * If node propagates messages with TTL=0, it's a danger to
 		 * the network, kick him out.
-		 *				-- RAM, 15/09/2001
+		 *		-- RAM, 15/09/2001
+		 *
+		 * If we're a leaf node, it's OK though, as we don't have to route
+		 * the message.  Some broken Ultrapeers out there send such messages!
+		 * We'll even handle the message.
+	 	 *		-- RAM, 12/01/2003
 		 */
 
 		if (sender->header.ttl == 0) {
 			routing_log("(TTL was 0)\n");
 			if (node_sent_ttl0(sender))
 				*node = NULL;
-			return FALSE;	/* Don't handle, shouldn't have seen it */
+			/* Don't handle unless we're a leaf: shouldn't have seen it */
+			return current_peermode == NODE_P_LEAF;
 		}
 
 		if (!find_message
