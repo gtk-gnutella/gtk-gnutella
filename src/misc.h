@@ -22,7 +22,7 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  *
- * This misc.[ch] provides several miscellaneos small routines & macros for:
+ * This misc.[ch] provides several miscellaneous small routines & macros for:
  *
  * - Array size determination
  * - Flag handling
@@ -54,6 +54,7 @@
 #ifndef USE_GTK2
 #define g_ascii_strcasecmp g_strcasecmp
 #define g_ascii_strncasecmp g_strncasecmp
+#define g_string_printf g_string_sprintf
 #endif
 
 /*
