@@ -660,7 +660,9 @@ ggep_stream_end(ggep_stream_t *gs)
 
 			if (!ok)
 				goto cleanup;
-		}
+		} else if (ggep_debug > 1)
+			g_warning("GGEP \"%.*s\" compressed %d bytes into %d",
+				*gs->fp & GGEP_F_IDLEN, gs->fp + 1, ilen, plen);
 	}
 
 	/*
@@ -724,7 +726,9 @@ ggep_stream_end(ggep_stream_t *gs)
 			 */
 
 			gs->o = gs->lp + (1 + plen);	/* +1 to skip NUL "length" byte */
-		}
+		} else if (ggep_debug > 1)
+			g_message("GGEP \"%.*s\" COBS-ed into %d bytes",
+				*gs->fp & GGEP_F_IDLEN, gs->fp + 1, plen);
 	}
 
 	/*
@@ -742,7 +746,7 @@ ggep_stream_end(ggep_stream_t *gs)
 	 */
 
 	if (ggep_debug > 2)
-		printf("GGEP \"%.*s\" payload holds %d byte%s\n",
+		g_message("GGEP \"%.*s\" payload holds %d byte%s",
 			*gs->fp & GGEP_F_IDLEN, gs->fp + 1, plen, plen == 1 ? "" : "s");
 
 	if (plen <= 63) {
