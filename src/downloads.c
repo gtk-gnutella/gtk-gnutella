@@ -721,18 +721,36 @@ void download_fallback_to_push(struct download *d, gboolean user_request)
 	gui_update_download(d, TRUE);
 }
 
-static void escape_filename(gchar *file)
+/*
+ * escape_filename
+ *
+ * Lazily replace all '/' if filename with '_': if a substitution needs to
+ * be done, a copy of the original argument is made first.  Otherwise,
+ * no change nor allocation occur.
+ *
+ * Returns the pointer to the escaped filename, or the original argument if
+ * no escaping needed to be performed.
+ */
+static gchar *escape_filename(gchar *file)
 {
-	/* Inline substitution of all "/" by "_" within file name */
-
+	gchar *escaped = NULL;
 	gchar *s;
+	gchar c;
 
 	s = file;
-	while (*s) {
-		if (*s == '/')
+	while ((c = *s)) {
+		if (c == '/') {
+			if (escaped == NULL) {
+				escaped = g_strdup(file);
+				s = escaped + (s - file);	/* s now refers to escaped string */
+				g_assert(*s == '/');
+			}
 			*s = '_';
+		}
 		s++;
 	}
+
+	return escaped == NULL ? file : escaped;
 }
 
 /*
@@ -772,10 +790,8 @@ static void create_download(
 	 * arealdy done by caller.	--RAM, 12/01/2002
 	 */
 
-	if (output == NULL) {
-		output = g_strdup(file);
-		escape_filename(output);
-	}
+	if (output == NULL)
+		output = escape_filename(file_name);
 
 	d = (struct download *) g_malloc0(sizeof(struct download));
 
@@ -816,12 +832,11 @@ void auto_download_new(gchar * file, guint32 size, guint32 record_index,
 					   guint32 ip, guint16 port, gchar * guid, gboolean push)
 {
 	gchar dl_tmp[4096];
-	gchar *output_name = g_strdup(file);
+	gchar *output_name = escape_filename(file);
+	gchar *file_name;
 	struct stat buf;
 	char *reason;
 	int tmplen;
-
-	escape_filename(output_name);
 
 	/*
 	 * Make sure we have not got a bigger file in the "download dir".
@@ -875,14 +890,19 @@ void auto_download_new(gchar * file, guint32 size, guint32 record_index,
 		}
 	}
 
-	create_download(g_strdup(file), output_name,
+	file_name = g_strdup(file);
+	if (output_name == file)		/* Not duplicated, has no '/' inside */
+		output_name = file_name;	/* So must reuse file_name */
+
+	create_download(file_name, output_name,
 		size, record_index, ip, port, guid, push, FALSE);
 	return;
 
 abort_download:
 	if (dbg > 4)
 		printf("ignoring auto download for '%s': %s\n", file, reason);
-	g_free(output_name);
+	if (output_name != file)		/* Was allocated by escape_filename() */
+		g_free(output_name);
 	return;
 }
 
@@ -1002,7 +1022,8 @@ void download_free(struct download *d)
 
 	g_free(d->path);
 	g_free(d->file_name);
-	g_free(d->output_name);
+	if (d->output_name != d->file_name)
+		g_free(d->output_name);
 	g_free(d);
 }
 
@@ -2200,7 +2221,8 @@ void download_close(void)
 			download_push_remove(d);
 		g_free(d->path);
 		g_free(d->file_name);
-		g_free(d->output_name);
+		if (d->output_name != d->file_name)
+			g_free(d->output_name);
 		g_free(d);
 	}
 
