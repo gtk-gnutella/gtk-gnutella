@@ -653,6 +653,8 @@ on_tree_view_motion_notify(GtkWidget *widget,
 		cb(tv, path);
 		gtk_tree_path_free(path);
 		path = NULL;
+	} else {
+		cb(tv, NULL);
 	}
 	
 	return FALSE;
@@ -1034,27 +1036,6 @@ gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra)
     gtk_widget_set_size_request(w, max_width, -1);
 
     pango_font_metrics_unref(pfm);
-}
-
-void
-set_tooltips_keyboard_mode(GtkWidget *widget, gboolean on)
-{
-	GtkWidget *toplevel;
-
-	toplevel = gtk_widget_get_toplevel(widget);
-	if (!GTK_IS_WINDOW(toplevel))
-		return;
-
-	g_object_set_data(G_OBJECT(toplevel),
-			"gtk-tooltips-keyboard-mode", GUINT_TO_POINTER(on));
-}
-
-void
-widget_force_tooltip(GtkWidget *widget)
-{
-	g_return_if_fail(widget != NULL);
-	set_tooltips_keyboard_mode(widget, TRUE);
-	set_tooltips_keyboard_mode(widget, FALSE);
 }
 
 #endif
