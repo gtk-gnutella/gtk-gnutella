@@ -41,7 +41,9 @@
 
 RCSID("$Id$");
 
-//#define TRANSPARENT	/* To make sure our macros have no side effect */
+#if 0
+#define TRANSPARENT	/* To make sure our macros have no side effect */
+#endif
 
 /*
  * Structure keeping track of allocated blocks.
@@ -57,7 +59,7 @@ struct block {
 	GSList *realloc;
 };
 
-GHashTable *blocks = NULL;
+static GHashTable *blocks = NULL;
 
 /*
  * malloc_init
@@ -132,7 +134,7 @@ gpointer malloc_record(gpointer o, guint32 s, gchar *file, gint line)
 	if (blocks == NULL)
 		malloc_init();
 
-	b = calloc(sizeof(*b), 1);
+	b = calloc(1, sizeof(*b));
 	if (b == NULL)
 		g_error("unable to allocate %u bytes", sizeof(*b));
 
@@ -1036,24 +1038,26 @@ void leak_close(gpointer o)
 void leak_add(gpointer o, guint32 size, gchar *file, gint line)
 {
 	struct leak_set *ls = (struct leak_set *) o;
-	gchar *key = g_strdup_printf("%s:%d", file, line);
+	gchar key[1024];
 	struct leak_record *lr;
 	gboolean found;
 	gpointer k;
 	gpointer v;
 
+	g_assert(file);
+	g_assert(line >= 0);
+	gm_snprintf(key, sizeof key, "%s:%d", file, line);
 	found = g_hash_table_lookup_extended(ls->places, key, &k, &v);
 
 	if (found) {
 		lr = (struct leak_record *) v;
 		lr->size += size;
 		lr->count++;
-		g_free(key);
 	} else {
 		lr = malloc(sizeof(*lr));
 		lr->size = size;
 		lr->count = 1;
-		g_hash_table_insert(ls->places, key, lr);
+		g_hash_table_insert(ls->places, g_strdup(key), lr);
 	}
 }
 
@@ -1148,4 +1152,4 @@ void leak_dump(gpointer o)
 }
 
 #endif /* TRACK_MALLOC || TRACK_ZALLOC */
-
+/* vi: set ts=4:  */
