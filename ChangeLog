@@ -1,5 +1,12 @@
 # since last version
 
+- (2002.07.13 - RAM)
+ * Forgot to initialize GUID in results_set after switching to new
+   zone allocators (fixes bug #580817).
+ * Now also triggers "Nothing more to get" when the file to download
+   is smaller or equal than something we have in the "done" dir,
+   preventing eclosion of .01, .02 files...
+
 - (2002.07.11 - RAM)
  * Installed workaround for the reception of SIGPIPE on broken systems,
    despite explicit SIG_IGN action (but does not fix bug #578151).
