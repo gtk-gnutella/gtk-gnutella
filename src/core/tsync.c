@@ -137,7 +137,7 @@ tsync_send(struct gnutella_node *n, guint32 node_id)
 
 	g_hash_table_insert(tsync_by_time, &ts->sent, ts);
 
-	vmsg_send_time_sync_req(n, host_runs_ntp, &ts->sent);
+	vmsg_send_time_sync_req(n, ntp_detected, &ts->sent);
 }
 
 /**
@@ -193,7 +193,7 @@ tsync_send_timestamp(tm_t *orig, tm_t *final)
 void
 tsync_got_request(struct gnutella_node *n, tm_t *got)
 {
-	vmsg_send_time_sync_reply(n, host_runs_ntp, got);
+	vmsg_send_time_sync_reply(n, ntp_detected, got);
 }
 
 /**

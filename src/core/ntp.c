@@ -121,7 +121,15 @@ ntp_no_reply(cqueue_t *unused_cq, gpointer unused_udata)
 	if (dbg)
 		printf("NTP no reply from localhost\n");
 
-	gnet_prop_set_boolean_val(PROP_HOST_RUNS_NTP, FALSE);
+	/*
+	 * Don't set PROP_HOST_RUNS_NTP to FALSE.  If they force it to TRUE,
+	 * because they run "ntpdate" once in a while, we'll ignore the
+	 * computed clock skew but we won't advertise to others that we're
+	 * running NTP if we haven't detected it.
+	 *		--RAM, 2004-10-27.
+	 */
+
+	gnet_prop_set_boolean_val(PROP_NTP_DETECTED, FALSE);
 	wait_ev = NULL;
 }
 
@@ -209,6 +217,7 @@ ntp_got_reply(struct gnutella_socket *s)
 	}
 
 	gnet_prop_set_boolean_val(PROP_HOST_RUNS_NTP, TRUE);
+	gnet_prop_set_boolean_val(PROP_NTP_DETECTED, TRUE);
 
 	/*
 	 * Compute the initial clock offset.
