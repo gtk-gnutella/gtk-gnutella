@@ -2368,6 +2368,7 @@ sock_nodelay(struct gnutella_socket *s, gboolean on)
 void
 sock_tx_shutdown(struct gnutella_socket *s)
 {
+	g_assert(-1 != s->file_desc);
 	if (-1 == shutdown(s->file_desc, SHUT_WR))
 		g_warning("unable to shutdown TX on fd#%d: %s",
 			s->file_desc, g_strerror(errno));
