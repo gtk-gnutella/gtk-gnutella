@@ -84,13 +84,13 @@ prop = {
 prop = {
     name = "max_connections";
     desc = "Don't allow more than this number of connections to other "
-           "servents.  As a rule of thumb you should reserve 1kb/s "
+           "servents.  As a rule of thumb you should reserve 512 b/s "
 	       "bandwidth per connection. Never use up all your bandwidth, "
 	       "leave a little space for TCP/IP overhead. It's not "
-           "advisable that you set this to a value larger than 10.";
+           "advisable that you set this to a value larger than 20.";
     type = guint32;
     data = {
-        default = 9;
+        default = 12;
         min     = 0;
         max     = 100;
     };
@@ -507,6 +507,17 @@ prop = {
         default = 100;
         min     = 0;
         max     = 10000;
+    };
+};
+
+prop = {
+    name = "banned_count";
+    desc = "Amount of file descriptors currently used for banning, "
+		"i.e. which are currently kept open for delayed close.";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
     };
 };
 
