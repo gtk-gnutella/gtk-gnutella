@@ -85,7 +85,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.3 2004/08/28 06:36:27 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.4 2004/09/11 12:04:57 rmanfredi Exp $
 
 LSRC = \
 	adns.c \
@@ -98,6 +98,7 @@ LSRC = \
 	crc.c \
 	eval.c \
 	event.c \
+	fifo.c \
 	file.c \
 	fuzzy.c \
 	getline.c \
@@ -134,6 +135,7 @@ LOBJ = \
 	crc.o \
 	eval.o \
 	event.o \
+	fifo.o \
 	file.o \
 	fuzzy.o \
 	getline.o \
