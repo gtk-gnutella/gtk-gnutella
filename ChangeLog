@@ -40,10 +40,12 @@
   but not yet fully connected at the application level
 - Node connections statistics are dumped for debugging
 - Downloads now use the new HTTP header parsing code
-  (but push support was broken, for now)
 - Don't hammer host caches, allow a reasonable delay between two consecutive
   connection attemps to the same host
 - Now uses fresh pongs when the saved caught host list has been re-read
+- Send 10 fresh pongs to old 0.4 servents to whom we deny the connection
+- Sent Pushes now use the Gnet connection socket, so they will work when
+  behind a masquerading+forwarding firewall with only the Gnet port opened.
 
 # v 0.18   2001.11.19
 
