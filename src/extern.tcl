@@ -179,6 +179,7 @@ set w_main_list {
     entry_nodes_guid
     entry_nodes_ip
     pixmap_firewall
+    pixmap_no_firewall
 }
 
 # interface.h ----------------------------------------------------------------------------------------

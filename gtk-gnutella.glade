@@ -5365,9 +5365,10 @@ options</label>
       </widget>
 
       <widget>
-	<class>GtkEventBox</class>
-	<name>eventbox2</name>
-	<tooltip>gtk-gnutella thinks you host is firewalled</tooltip>
+	<class>GtkHBox</class>
+	<name>hbox89</name>
+	<homogeneous>False</homogeneous>
+	<spacing>0</spacing>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -5383,6 +5384,27 @@ options</label>
 	  <xpad>0</xpad>
 	  <ypad>0</ypad>
 	  <build_insensitive>False</build_insensitive>
+	  <child>
+	    <padding>0</padding>
+	    <expand>True</expand>
+	    <fill>True</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkPixmap</class>
+	  <name>pixmap_no_firewall</name>
+	  <filename>no_firewall.xpm</filename>
+	  <xalign>0.5</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
+	  <build_insensitive>True</build_insensitive>
+	  <child>
+	    <padding>0</padding>
+	    <expand>True</expand>
+	    <fill>True</fill>
+	  </child>
 	</widget>
       </widget>
 

@@ -171,6 +171,7 @@ GtkWidget *progressbar_connections;
 GtkWidget *entry_nodes_guid;
 GtkWidget *entry_nodes_ip;
 GtkWidget *pixmap_firewall;
+GtkWidget *pixmap_no_firewall;
 
 /* End of global widgets */
 
@@ -403,7 +404,7 @@ create_main_window (void)
   GtkWidget *label39;
   GtkWidget *label122;
   GtkWidget *label_config;
-  GtkWidget *eventbox2;
+  GtkWidget *hbox89;
   GtkAccelGroup *accel_group;
   GtkTooltips *tooltips;
 
@@ -3014,21 +3015,27 @@ create_main_window (void)
   gtk_widget_show (statusbar);
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), statusbar, TRUE, TRUE, 0);
 
-  eventbox2 = gtk_event_box_new ();
-  gtk_widget_ref (eventbox2);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox2", eventbox2,
+  hbox89 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox89);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox89", hbox89,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (eventbox2);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox2, FALSE, FALSE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox2, "gtk-gnutella thinks you host is firewalled", NULL);
+  gtk_widget_show (hbox89);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox89, FALSE, FALSE, 0);
 
   pixmap_firewall = create_pixmap (main_window, "firewall.xpm");
   gtk_widget_ref (pixmap_firewall);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "pixmap_firewall", pixmap_firewall,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (pixmap_firewall);
-  gtk_container_add (GTK_CONTAINER (eventbox2), pixmap_firewall);
+  gtk_box_pack_start (GTK_BOX (hbox89), pixmap_firewall, TRUE, TRUE, 0);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (pixmap_firewall), FALSE);
+
+  pixmap_no_firewall = create_pixmap (main_window, "no_firewall.xpm");
+  gtk_widget_ref (pixmap_no_firewall);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "pixmap_no_firewall", pixmap_no_firewall,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (pixmap_no_firewall);
+  gtk_box_pack_start (GTK_BOX (hbox89), pixmap_no_firewall, TRUE, TRUE, 0);
 
   label_statusbar_uptime = gtk_label_new ("Uptime");
   gtk_widget_ref (label_statusbar_uptime);

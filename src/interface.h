@@ -164,6 +164,7 @@ extern GtkWidget *progressbar_connections;
 extern GtkWidget *entry_nodes_guid;
 extern GtkWidget *entry_nodes_ip;
 extern GtkWidget *pixmap_firewall;
+extern GtkWidget *pixmap_no_firewall;
 
 /* End of global widgets */
 
