@@ -81,7 +81,6 @@ static GtkTreeViewColumn *add_column(
 	GtkTreeView *treeview, gchar *name, gint id, gint width);
 static void add_search_column(
 	GtkTreeView *treeview, gchar *name, gint id, gint width);
-static void add_hidden_column(GtkTreeView *treeview);
 #ifndef USE_SEARCH_XML
     static void search_store_old(void);
 #endif /* USE_SEARCH_XML */
@@ -759,7 +758,7 @@ static void search_gui_add_record(
 		g_filename_to_utf8(rc->name, -1, NULL, NULL, &error);
 	if (NULL != error) {
 		g_warning("%s", error->message);
-		titles[c_sr_filename] = "<Filename cannot be viewed>";
+		titles[c_sr_filename] = g_strdup("<Filename cannot be viewed>");
 	}
 	titles[c_sr_size] = short_size(rc->size);
 	titles[c_sr_speed] = GUINT_TO_POINTER((guint)rs->speed);
@@ -808,6 +807,9 @@ static void search_gui_add_record(
 		      c_sr_record, rc,
 		      c_sr_sortkey, titles[c_sr_sortkey],
 		      -1);
+
+	g_free(titles[c_sr_filename]);
+	g_free(titles[c_sr_sortkey]);
 
 
 /*    if (!sch->sort) {
@@ -1518,7 +1520,6 @@ static gboolean search_retrieve_old(void)
 }
 
 
-
 /***
  *** Public functions
  ***/
@@ -1547,7 +1548,6 @@ void search_gui_init(void)
 	add_search_column(tree_view_search, "Search", c_sl_name, 80);
 	add_search_column(tree_view_search, "Hits", c_sl_hit, 40);
 	add_search_column(tree_view_search, "New", c_sl_new, 40);
-	add_hidden_column(tree_view_search); /* pointer to search_t */
 	g_signal_connect(G_OBJECT(tree_view_search), 
 		"cursor-changed",
 		G_CALLBACK(on_tree_view_search_select_row),
@@ -1889,12 +1889,12 @@ GtkTreeModel *create_model (void)
   /* create list store */
   store = gtk_list_store_new(
 	c_sr_num,
-                              G_TYPE_STRING,	/* File */
-                              G_TYPE_STRING,	/* Size */
-                              G_TYPE_UINT,		/* Speed */
-                              G_TYPE_STRING,	/* Host */
-                              G_TYPE_STRING,	/* urn:sha1 */
-                              G_TYPE_STRING,	/* Info */
+	G_TYPE_STRING,	/* File */
+	G_TYPE_STRING,	/* Size */
+	G_TYPE_UINT,		/* Speed */
+	G_TYPE_STRING,	/* Host */
+	G_TYPE_STRING,	/* urn:sha1 */
+	G_TYPE_STRING,	/* Info */
 	G_TYPE_POINTER,	/* (record_t *) */
 	G_TYPE_STRING);	/* sort key */
 
@@ -1919,23 +1919,42 @@ static GtkTreeViewColumn *add_column(
 	return column;
 }
 
+gint search_gui_compare_records_cb(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer data)
+{
+    record_t    *rec_a, *rec_b;
+
+    gtk_tree_model_get(model, a, c_sr_record, &rec_a, -1);
+    gtk_tree_model_get(model, b, c_sr_record, &rec_b, -1);
+    return search_gui_compare_records(GPOINTER_TO_INT(data), rec_a, rec_b);
+}
 static void add_results_column(
-	GtkTreeView *treeview, gchar *name, gint id, gint width,
-		gpointer sort_function) 
+	GtkTreeView *treeview, gchar *name, gint id, gint width) 
 {
     GtkTreeViewColumn *column;
 	GtkTreeModel *model;
 
 	model = gtk_tree_view_get_model(treeview);
 	column = add_column(treeview, name, id, width);
-	if (NULL != sort_function)
-		gtk_tree_sortable_set_sort_func(
-			GTK_TREE_SORTABLE(model), id, sort_function, NULL, NULL);
+	gtk_tree_sortable_set_sort_func(
+		GTK_TREE_SORTABLE(model), id, (gpointer) search_gui_compare_records_cb,
+		GINT_TO_POINTER(id), NULL);
+
 	g_signal_connect(
 		GTK_OBJECT(column),
 		"clicked",
 		G_CALLBACK(on_tree_view_search_results_click_column),
 		treeview);
+}
+
+void add_results_columns (GtkTreeView *treeview)
+{
+  add_results_column(treeview, "File", c_sr_filename, 300);
+  add_results_column(treeview, "Size", c_sr_size, 40);
+  add_results_column(treeview, "Speed", c_sr_speed, 40);
+  add_results_column(treeview, "Host", c_sr_host, 60);
+  add_results_column(treeview, "urn:sha1", c_sr_urn, 80);
+  add_results_column(treeview, "Info", c_sr_info, 60);
 }
 
 static void add_search_column(
@@ -1944,64 +1963,6 @@ static void add_search_column(
     GtkTreeViewColumn *column;
 
 	column = add_column(treeview, name, id, width);
-}
-
-static void add_hidden_column (GtkTreeView *treeview)
-{
-	GtkTreeViewColumn *column;
-
-	column = gtk_tree_view_column_new();
-	gtk_tree_view_column_set_visible(column, FALSE);
-	gtk_tree_view_append_column(treeview, column);
-}
-
-gint compare_func_key(
-	GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data)
-{
-	gchar	*str_a;
-	gchar	*str_b;
-
-	gtk_tree_model_get(model, a, c_sr_sortkey, &str_a, -1);
-	gtk_tree_model_get(model, b, c_sr_sortkey, &str_b, -1);
-	return strncmp(str_a, str_b, 50);
-}
-
-gint compare_func_size(
-	GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data)
-{
-	record_t	*rec_a;
-	record_t	*rec_b;
-
-	gtk_tree_model_get(model, a, c_sr_record, &rec_a, -1);
-	gtk_tree_model_get(model, b, c_sr_record, &rec_b, -1);
-	if (rec_a->size < rec_b->size) return -1;
-	else if (rec_a->size == rec_b->size) return 0;
-	else return 1;
-}
-
-gint compare_func_ip(
-	GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data)
-{
-	record_t	*rec_a;
-	record_t	*rec_b;
-
-	gtk_tree_model_get(model, a, c_sr_record, &rec_a, -1);
-	gtk_tree_model_get(model, b, c_sr_record, &rec_b, -1);
-	if (rec_a->results_set->ip < rec_b->results_set->ip) return -1;
-	else if (rec_a->results_set->ip == rec_b->results_set->ip) return 0;
-	else return 1;
-}
-
-void add_columns (GtkTreeView *treeview)
-{
-  add_results_column(treeview, "File", c_sr_filename, 300, compare_func_key);
-  add_results_column(treeview, "Size", c_sr_size, 40, compare_func_size);
-  add_results_column(treeview, "Speed", c_sr_speed, 40, NULL);
-  add_results_column(treeview, "Host", c_sr_host, 60, compare_func_ip);
-  add_results_column(treeview, "urn:sha1", c_sr_urn, 80, NULL);
-  add_results_column(treeview, "Info", c_sr_info, 60, NULL);
-  add_hidden_column(treeview); /* pointer to record_t */
-  add_hidden_column(treeview); /* sort key */
 }
 
 /* Create a new GtkTreeView for search results */
@@ -2013,7 +1974,8 @@ void gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 	GtkTreeModelSort	*tree_modelsort;
 	GtkTreeView	*tree_view;
 
-	tree_modelsort = GTK_TREE_MODEL_SORT(gtk_tree_model_sort_new_with_model(tree_model));
+	tree_modelsort = 
+		GTK_TREE_MODEL_SORT(gtk_tree_model_sort_new_with_model(tree_model));
 	*sw = gtk_scrolled_window_new(NULL, NULL);
 
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(*sw),
@@ -2032,7 +1994,7 @@ void gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 	gtk_tree_view_set_rules_hint(tree_view, TRUE);
 
       /* add columns to the tree view */
-	add_columns(tree_view);
+	add_results_columns(tree_view);
 
 	gtk_container_add(GTK_CONTAINER(*sw), *tv);
 	gtk_tree_view_expand_all(tree_view);

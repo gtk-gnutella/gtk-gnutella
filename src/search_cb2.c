@@ -544,6 +544,9 @@ void on_tree_view_search_results_click_column(
 }
 
 static guint32 autoselect_files_fuzzy_threshold;
+static guint32 autoselect_files_counter;
+static guint32 autoselect_files_called;
+static gboolean autoselect_files_done;
 
 static void autoselect_files(
     GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data) 
@@ -553,8 +556,14 @@ static void autoselect_files(
 	guint32 fuzzy_threshold = autoselect_files_fuzzy_threshold;
 	GtkTreeIter	model_iter;
 	gboolean more_rows;
-	GtkTreeSelection	*tree_selection = GTK_TREE_SELECTION(data);
+	GtkTreeSelection	*tree_selection;
 
+	autoselect_files_called++;
+	if (autoselect_files_done)
+		return;
+
+	autoselect_files_done = TRUE;
+	tree_selection = GTK_TREE_SELECTION(data);
 	/* 
 	 * Rows with NULL data can appear when inserting new rows
 	 * because the selection is resynced and the row data can not
@@ -576,6 +585,8 @@ static void autoselect_files(
 		more_rows = gtk_tree_model_iter_next(model, &model_iter)) 
 	{
 		record_t *rc2;
+
+		autoselect_files_counter++;
 		gtk_tree_model_get(model, &model_iter, c_sr_record, &rc2, -1);
 
 		/*
@@ -671,12 +682,18 @@ gboolean autoselect_files_after_delay(gpointer data)
      */
 	g_warning("Starting autoselect...");
 	start = time(NULL);
+	autoselect_files_counter = 0;
+	autoselect_files_called = 0;
+	autoselect_files_done = FALSE;
 	if (search_autoselect)
 		gtk_tree_selection_selected_foreach(
 			tree_selection,
 			autoselect_files,
 			tree_selection);
-	g_warning("Autoselect done (%d sec.).\n", (int)(time(NULL) - start));
+	g_warning(
+		"Autoselect done (%d sec., over %ld results, %ld times called).\n", 
+		(int)(time(NULL) - start), (gulong)autoselect_files_counter,
+		(gulong)autoselect_files_called);
 
     g_signal_handlers_unblock_by_func(
         G_OBJECT(tree_view),
@@ -698,7 +715,7 @@ void on_tree_view_search_results_select_row(
 {
 	if (!autoselection_running) {
 		autoselection_running = TRUE;
-		g_timeout_add(350, autoselect_files_after_delay, tree_view);
+		g_timeout_add(250, autoselect_files_after_delay, tree_view);
 	}
 }
 
