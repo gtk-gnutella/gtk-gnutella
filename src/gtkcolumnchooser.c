@@ -34,8 +34,6 @@ static gint gtk_column_chooser_button_press(GtkWidget * widget,
 
 static void on_popup_hide(GtkWidget * widget, gpointer user_data)
 {
-    g_message("on_popup_hide");
-
     /* 
      * We remove the last reference to the widget and cause it
      * to be destroyed and finalized.
@@ -83,20 +81,15 @@ GtkWidget * gtk_column_chooser_new(GtkCList * list)
     GtkMenu * menu;
     GtkWidget * menuitem;
 
-    g_message("gtk_column_chooser_new");
-
     g_assert(list != NULL);
 
     cc = gtk_type_new(GTK_TYPE_COLUMN_CHOOSER);
     cc->list = list;
 
-    g_message("cast to menu");
     menu = GTK_MENU(cc);
 
     for(i = 0; i < list->columns; i ++) {
         gchar * title = gtk_clist_get_column_title(list, i);
-
-        g_message( "col %d: title:%s", i, title );
 
         menuitem = gtk_check_menu_item_new_with_label(title);
         gtk_check_menu_item_set_active
@@ -154,8 +147,6 @@ GtkWidget * gtk_column_chooser_new(GtkCList * list)
 static void gtk_column_chooser_finalize(GtkObject * object)
 {
     GtkColumnChooser * cc;
-
-    g_message("gtk_column_chooser_finalize");
 
     g_assert(object != NULL);
     g_assert(GTK_IS_COLUMN_CHOOSER(object));
