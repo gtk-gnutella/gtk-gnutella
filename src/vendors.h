@@ -46,6 +46,7 @@
 #define T_COCO	MAKE_CODE('C','O','C','O')
 #define T_CULT	MAKE_CODE('C','U','L','T')
 #define T_EVIL	MAKE_CODE('E','V','I','L')
+#define T_FEVR	MAKE_CODE('F','E','V','R')
 #define T_FIRE	MAKE_CODE('F','I','R','E')
 #define T_FISH	MAKE_CODE('F','I','S','H')
 #define T_GDNA	MAKE_CODE('G','D','N','A')

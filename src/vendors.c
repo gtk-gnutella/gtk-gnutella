@@ -44,6 +44,7 @@ struct vendor {
     { T_COCO, "CocoGnut" },
     { T_CULT, "Cultiv8r" },
     { T_EVIL, "Suicide" },
+    { T_FEVR, "FileFever" },
     { T_FIRE, "FireFly" },
     { T_FISH, "PEERanha" },
     { T_GDNA, "Gnucleus DNA" },
