@@ -232,6 +232,33 @@ void host_add(struct gnutella_node *n, guint32 t_ip, guint16 t_port,
 static FILE *hosts_r_file = (FILE *) NULL;
 
 /*
+ * host_fill_caught_array
+ *
+ * Fill `hosts', an array of `hcount' hosts already allocated with at most
+ * `hcount' hosts from out caught list, without removing those hosts from
+ * the list.
+ *
+ * Returns the amount of hosts filled.
+ */
+gint host_fill_caught_array(struct gnutella_host *hosts, gint hcount)
+{
+	GList *link = g_list_last(sl_catched_hosts);
+	gint i;
+
+	for (i = 0; i < hcount; i++, link = link->prev) {
+		struct gnutella_host *h;
+
+		if (!link)
+			return i;			/* Amount of hosts we filled */
+		
+		h = (struct gnutella_host *) link->data;
+		hosts[i] = *h;			/* struct copy */
+	}
+
+	return hcount;				/* We  filled all the slots */
+}
+
+/*
  * host_get_caught
  *
  * Get a host from our caught host list.
