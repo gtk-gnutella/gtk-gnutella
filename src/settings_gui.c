@@ -204,6 +204,8 @@ static gboolean file_moving_changed(property_t prop);
 static gboolean dl_running_count_changed(property_t prop);
 static gboolean config_toolbar_style_changed(property_t prop);
 static gboolean gnet_connections_changed(property_t prop);
+static gboolean uploads_count_changed(property_t prop);
+static gboolean downloads_count_changed(property_t prop);
 
 // FIXME: move to separate file and autogenerate from high-level
 //        description.
@@ -670,7 +672,23 @@ static prop_map_t property_map[] = {
         NULL,
         FREQ_UPDATES, 0
     },
+	{
+        get_main_window,
+        PROP_UL_RUNNING,
+        uploads_count_changed,
+        TRUE,
+        NULL,
+        FREQ_UPDATES, 0
+    },
     {
+        get_main_window,
+        PROP_UL_REGISTERED,
+        uploads_count_changed,
+        TRUE,
+        NULL,
+        FREQ_UPDATES, 0
+	},
+	{
         get_main_window,
         PROP_MAX_DOWNLOADS,
         update_spinbutton,
@@ -1745,6 +1763,14 @@ static prop_map_t property_map[] = {
         dl_running_count_changed,
         TRUE,
         "label_dl_running_count",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_DL_ACTIVE_COUNT,
+        downloads_count_changed,
+        TRUE,
+        NULL,
         FREQ_UPDATES, 0
     },
     {
@@ -3299,6 +3325,8 @@ static gboolean dl_running_count_changed(property_t prop)
             "%u source%s active", val, (val != 1) ? "s" : "");
     }
 
+	downloads_count_changed(prop);
+
 	return FALSE;
 }
 
@@ -3364,17 +3392,17 @@ static gboolean gnet_connections_changed(property_t prop)
     gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &peermode);
 
     cnodes = leaf_count + normal_count + ultra_count;
-    frac = MIN(cnodes, nodes) != 0 ? (float)MIN(cnodes, nodes) / nodes : 0;
+    frac = MIN(cnodes, nodes) != 0 ? (gfloat) MIN(cnodes, nodes) / nodes : 0;
 
-    switch(peermode) {
-    case 0: /* leaf */
-    case 1: /* normal */
+    switch (peermode) {
+    case NODE_P_LEAF: /* leaf */
+    case NODE_P_NORMAL: /* normal */
         nodes = max_connections;
         gm_snprintf(set_tmp, sizeof(set_tmp), 
             "%u/%u connection%s",
             cnodes, nodes, (cnodes == 1 && nodes == 1) ? "" : "s");
         break;
-    case 2: /* ultra */
+    case NODE_P_ULTRA: /* ultra */
         nodes = max_connections + max_leaves + max_normal;
         gm_snprintf(set_tmp, sizeof(set_tmp), 
             "%u/%uU | %u/%uN | %u/%uL",
@@ -3389,6 +3417,50 @@ static gboolean gnet_connections_changed(property_t prop)
     gtk_progress_bar_set_text(pg, set_tmp);
     gtk_progress_bar_set_fraction(pg, frac);
 
+    return FALSE;
+}
+
+static gboolean uploads_count_changed(property_t prop)
+{
+    GtkProgressBar *pg = GTK_PROGRESS_BAR
+         (lookup_widget(main_window, "progressbar_uploads"));
+    gfloat frac;
+	guint32 registered;
+	guint32 running;
+	guint32 min;
+
+    gnet_prop_get_guint32_val(PROP_UL_REGISTERED, &registered);
+    gnet_prop_get_guint32_val(PROP_UL_RUNNING, &running);
+	gm_snprintf(set_tmp, sizeof(set_tmp), "%u/%u upload%s",
+		running, registered, (1 == running == registered) ? "" : "s");
+
+	min = MIN(running, registered);
+    frac = min != 0 ? (gfloat) min / registered : 0;
+
+    gtk_progress_bar_set_text(pg, set_tmp);
+    gtk_progress_bar_set_fraction(pg, frac);
+	return FALSE;
+}
+
+static gboolean downloads_count_changed(property_t prop)
+{
+    GtkProgressBar *pg = GTK_PROGRESS_BAR
+         (lookup_widget(main_window, "progressbar_downloads"));
+    gfloat frac;
+    guint32 active;
+    guint32 running;
+    guint32 min;
+
+    gnet_prop_get_guint32_val(PROP_DL_ACTIVE_COUNT, &active);
+    gnet_prop_get_guint32_val(PROP_DL_RUNNING_COUNT, &running);
+    gm_snprintf(set_tmp, sizeof(set_tmp), "%u/%u download%s",
+        active, running, (1 == running == active) ? "" : "s");
+
+    min = MIN(active, running);
+    frac = min != 0 ? (gfloat) active / running : 0;
+
+    gtk_progress_bar_set_text(pg, set_tmp);
+    gtk_progress_bar_set_fraction(pg, frac);
     return FALSE;
 }
 
@@ -3539,7 +3611,10 @@ static void settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
             /*
              * Set tooltip.
              */
-            gtk_tooltips_set_tip(tooltips, w, def->desc, "");
+#ifdef USE_GTK2
+			if (!GTK_IS_TREE_VIEW(w))
+#endif
+            	gtk_tooltips_set_tip(tooltips, w, def->desc, "");
 
             /*
              * If the widget is a spinbutton, configure the bounds
