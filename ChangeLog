@@ -1,5 +1,12 @@
 # since last version
 
+- (2002.08.26 - RAM)
+ * When cloning downloads, was properly duplicating "push state" of the clone.
+ * Fixed assertion failure when bumping into a BUSY chunk (fixes bug #600272).
+ * When HTTP/1.1 download chunk is done, mark it as "Chunk done" and not
+   as "Completed" to avoid confusion.
+ * Fill in Range column of downloads with the actual range requested.
+
 - (2002.08.26 Richard)
  * Added Vidar to the "About" dialog
  * Fixed minimum speed callback in search pane (connect after now)
