@@ -231,8 +231,9 @@ void gtk_gnutella_exit(gint n)
 	main_gui_update_coords();
 	main_gui_shutdown();
 
-    hcache_shutdown(); /* Save host caches to disk */
+    hcache_shutdown();		/* Save host caches to disk */
 	settings_shutdown();
+	oob_shutdown();			/* No longer deliver outstanding OOB hits */
 	socket_shutdown();
 	search_shutdown();
 	bsched_shutdown();

@@ -37,6 +37,7 @@
 struct gnutella_node;
 
 void oob_init(void);
+void oob_shutdown(void);
 void oob_close(void);
 
 void oob_got_results(

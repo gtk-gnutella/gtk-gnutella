@@ -585,13 +585,21 @@ free_servent_kv(gpointer key, gpointer value, gpointer unused_udata)
  * Cleanup at shutdown time.
  */
 void
-oob_close(void)
+oob_shutdown(void)
 {
 	g_hash_table_foreach(results_by_muid, free_oob_kv, NULL);
 	g_hash_table_destroy(results_by_muid);
 
 	g_hash_table_foreach(servent_by_host, free_servent_kv, NULL);
 	g_hash_table_destroy(servent_by_host);
+}
+
+/**
+ * Final cleanup.
+ */
+void
+oob_close(void)
+{
 }
 
 /* vi: set ts=4 sw=4 cindent: */
