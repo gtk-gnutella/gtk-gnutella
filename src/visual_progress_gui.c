@@ -29,13 +29,6 @@
 /* 
  * TODO and other ideas to be implemented.
  *
- * Display more information.
- *
- * - solve issues with redrawing at different widths, although I do
- * not see this happening...
-
- * - track down potential memory leak 
- *
  * make colors into properties so that they can be stored in config,
  * should keep hardcoded backups.
  * 
@@ -44,6 +37,8 @@
  */
 
 #include "gui.h"
+#include "http.h"
+#include "downloads.h"
 #include "visual_progress_gui.h"
 
 RCSID("$Id$");
@@ -75,6 +70,7 @@ typedef struct vp_info {
     gchar *file_name;
     guint32 file_size;
     GSList *chunks_list;
+	GSList *ranges;
     vp_context_t *context;
 } vp_info_t;
 
@@ -86,6 +82,7 @@ GdkColor done_old;         /* Pre-filled color (dull green) for DONE chunks from
 GdkColor busy;             /* Pre-filled color (yellow) for BUSY chunks */
 GdkColor empty;            /* Pre-filled color (red) for EMPTY chunks */
 GdkColor black;            /* Pre-filled color (black) for general drawing */
+GdkColor available;        /* Pre-filled color (blue) available on network */
 GdkColor *base;            /* Theme-defined background color */
 
 vp_context_t fi_context;
@@ -95,14 +92,30 @@ vp_context_t *vp_context;
 /* 
  * The graphics routines that do the actual drawing
  */
+
+void vp_draw_rectangle (vp_info_t *v, guint32 from, guint32 to, guint top, guint bottom)
+{
+    guint32 bpp;
+    guint s_from;
+    guint s_to;
+
+    g_assert( v );
+    g_assert( v->context );
+    g_assert( v->context->drawable );
+
+    bpp = v->file_size / v->context->width;
+    s_from = from / bpp; 
+    s_to = to / bpp; 
+
+    gdk_draw_rectangle(v->context->drawable, v->context->gc, TRUE, 
+        s_from + v->context->offset_hor, top, 
+		s_to - s_from, bottom);
+}
+
 void vp_draw_chunk (gpointer data, gpointer user_data)
 {
     gnet_fi_chunks_t *chunk = data;
     vp_info_t *v = user_data;
-
-    guint s_from;
-    guint s_to;
-    guint32 bpp;
 
     if (DL_CHUNK_EMPTY == chunk->status)
         gdk_gc_set_foreground(v->context->gc, &empty);
@@ -116,15 +129,16 @@ void vp_draw_chunk (gpointer data, gpointer user_data)
         }
     }
 
-    g_assert( v->context->width );
-    bpp = v->file_size / (v->context->width);
-    s_from = chunk->from / bpp; 
-    s_to = chunk->to / bpp; 
-    
-    /* horizontal offset was 10 */
-    gdk_draw_rectangle(v->context->drawable, v->context->gc, TRUE, 
-        s_from + v->context->offset_hor, v->context->offset_ver, 
-		s_to - s_from, v->context->height);
+    vp_draw_rectangle(v, chunk->from, chunk->to, v->context->offset_ver, v->context->height);
+}
+
+static void vp_draw_range (gpointer data, gpointer user_data)
+{
+	http_range_t *range = data;
+	vp_info_t *v = user_data;
+
+	gdk_gc_set_foreground(v->context->gc, &available);
+	vp_draw_rectangle(v, range->start, range->end, v->context->height - 3, v->context->height);
 }
 
 void vp_draw_fi (gpointer key, gpointer value, gpointer user_data)
@@ -178,6 +192,8 @@ void vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 			v->context = &fi_context;
 
 			g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
+
+			g_slist_foreach(v->ranges, &vp_draw_range, v);
 		} else {
 			gdk_gc_set_foreground(fi_context.gc, base);
 			gdk_draw_rectangle(fi_context.drawable, fi_context.gc, TRUE,
@@ -444,6 +460,38 @@ static void vp_gui_fi_status_changed(gnet_fi_t fih)
         vp_draw_fi(atom, v, NULL);
 }
 
+
+/*
+ * Callback for range updates.
+ */
+static void vp_update_ranges(gnet_src_t srcid)
+{
+    vp_info_t *v;
+    gpointer atom;
+	gboolean found;
+	gnet_fi_t fih;
+	struct download *d;
+
+	d = src_get_download(srcid);
+	g_assert( d );
+
+	/* 
+	 * Get our own struct associated with this download.
+	 */
+	fih = d->file_info->fi_handle;
+    found = g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, (gpointer *)&v);
+    g_assert( found );
+    g_assert( v );
+	
+	fprintf(stderr, "Ranges info for %s\n", d->file_info->file_name);
+	fprintf(stderr, "Ranges before: %s\n", http_range_to_gchar(v->ranges));
+	fprintf(stderr, "Ranges new   : %s\n", http_range_to_gchar(d->ranges));
+	v->ranges = http_range_merge(v->ranges, d->ranges);
+	// FIXME: should be freeing old v->ranges list here...
+	fprintf(stderr, "Ranges after : %s\n", http_range_to_gchar(v->ranges));
+}
+
+
 void vp_free_key_value (gpointer key, gpointer value, gpointer user_data)
 {
     atom_int_free(key);
@@ -470,9 +518,12 @@ void vp_gui_init(void)
     fi_add_listener((GCallback)vp_gui_fi_status_changed, 
         EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
 
+	src_add_listener((src_listener_t)vp_update_ranges,
+					 EV_SRC_RANGES_CHANGED, FREQ_SECS, 0);
+
     cmap = gdk_colormap_get_system();
     g_assert( cmap );
-    gdk_color_parse("#00EE00", &done_old);
+    gdk_color_parse("#00DD00", &done_old);
     gdk_colormap_alloc_color(cmap, &done_old, FALSE, TRUE);
     gdk_color_parse("#00FF00", &done);
     gdk_colormap_alloc_color(cmap, &done, FALSE, TRUE);
@@ -482,6 +533,8 @@ void vp_gui_init(void)
     gdk_colormap_alloc_color(cmap, &empty, FALSE, TRUE);
     gdk_color_parse("black", &black);
     gdk_colormap_alloc_color(cmap, &black, FALSE, TRUE);
+	gdk_color_parse("blue", &available);
+	gdk_colormap_alloc_color(cmap, &available, FALSE, TRUE);
 
     /*
      * No progress fih has been seen yet
@@ -498,9 +551,18 @@ void vp_gui_shutdown(void)
     fi_remove_listener((GCallback)vp_gui_fi_added, EV_FI_ADDED);
     fi_remove_listener((GCallback)vp_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
 
+	src_remove_listener((src_listener_t)vp_update_ranges, EV_SRC_RANGES_CHANGED);
+
     gdk_font_unref(vp_font);
 
     g_hash_table_foreach(vp_info_hash, vp_free_key_value, NULL);
     g_hash_table_destroy(vp_info_hash);
 }
 
+
+
+/* 
+ * Local Variables:
+ * tab-width:4
+ * End:
+ */

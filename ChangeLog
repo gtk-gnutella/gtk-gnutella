@@ -1,5 +1,9 @@
 # since last version
 
+- (2004.04.25 - Hans)
+ * [Gtk1] [Gtk2] Show ranges which we have seen to be available on the
+   network as part of the visual progress indicator.
+	
 - (2004.04.18 - Richard)
  * [Gtk2] Activated 'fixed_height_mode' for the nodes TreeView.
  * [Gtk1] [Gtk2] Made the search retry timeout an expert setting.
@@ -11,6 +15,9 @@
  * [Gtk1] Reducted number of times results are resorted in
    download_selection_of_ctree().
 
+- (2004.04.18 - Hans)
+ * [Gtk1] [Gtk2] Fix several bugs in visual progress code.
+	
 - (2004.04.15 - Richard)
  * [Gtk1] [Gtk2] Changed layout of fileinfo pane to integrate progress indicator.
  * Made progess indicator use the complete drawing area.
