@@ -33,6 +33,7 @@
 #include "gmsg.h"
 #include "nodes.h"
 #include "guid.h"
+#include "gnet_stats.h"
 
 #include <stdarg.h>
 
@@ -569,7 +570,7 @@ static gboolean forward_message(struct gnutella_node **node,
 
 		sender->n_hard_ttl++;
 		sender->rx_dropped++;
-		dropped_messages++;
+        gnet_stats_count_dropped(sender, MSG_DROP_HARD_TTL_LIMIT);
 
 		if (sender->header.hops <= max_high_ttl_radius &&
 			sender->n_hard_ttl > max_high_ttl_msg
@@ -610,7 +611,7 @@ static gboolean forward_message(struct gnutella_node **node,
 	if (!--sender->header.ttl) {
 		/* TTL expired, message stops here */
 		routing_log("(TTL expired)\n");
-		dropped_messages++;
+        gnet_stats_count_expired(sender);
 		/* don't increase rx_dropped, we'll handle this message */
 	} else {			/* Forward it to all others nodes */
 		if (target) {
@@ -722,7 +723,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 
 		if (sender->header.hops == 255) {
 			routing_log("(max hop count reached)\n");
-			dropped_messages++;
+            gnet_stats_count_dropped(sender, MSG_DROP_MAX_HOP_COUNT);
 			sender->rx_dropped++;
 			sender->n_bad++;
 			if (dbg)
@@ -750,7 +751,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 			routing_log("[ ] no request matching the reply !\n");
 
 			sender->rx_dropped++;
-			dropped_messages++;
+            gnet_stats_count_dropped(sender, MSG_DROP_UNREQUESTED_REPLY);
 			sender->n_bad++;	/* Node shouldn't have forwarded this message */
 
 			if (dbg > 2)
@@ -775,9 +776,8 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 		if (m->routes == NULL) {
 			routing_log("[%c] route to target lost\n", handle_it ? 'H' : ' ');
 
-			routing_errors++;
-			sender->rx_dropped++;
-			dropped_messages++;
+            sender->rx_dropped++;
+            gnet_stats_count_dropped(sender, MSG_DROP_ROUTE_LOST);
 
 			if (handle_it) {
 				sender->header.hops++;	/* Must be accurate if we handle it */
@@ -823,7 +823,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 		if (!--sender->header.ttl) {
 			/* TTL expired, message stops here */
 			routing_log("(TTL expired)\n");
-			dropped_messages++;
+            gnet_stats_count_expired(sender);
 			sender->rx_dropped++;
 			return handle_it;
 		}
@@ -846,14 +846,12 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 			 * This is a duplicated message, which we're going to drop.
 			 */
 
-			dropped_messages++;
+            gnet_stats_count_dropped(sender, MSG_DROP_DUPLICATE);
 			sender->rx_dropped++;
 
 			if (m->routes && node_sent_message(sender, m)) {
 				/* The same node has sent us a message twice ! */
 				routing_log("[ ] dup message (from the same node!)\n");
-
-				routing_errors++;
 
 				/*
 				 * That is a really good reason to kick the offender
@@ -921,7 +919,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 						"from %s, banned GUID %s",
 						node_ip(sender), guid_hex_str(sender->data));
 
-				dropped_messages++;
+                gnet_stats_count_dropped(sender, MSG_DROP_BANNED);
 				sender->rx_dropped++;
 
 				return FALSE;
@@ -941,15 +939,16 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 					return TRUE;
 				}
 
-				if (m && m->routes == NULL)
+				if (m && m->routes == NULL) {
 					routing_log("[ ] route to target GUID %s gone\n",
 						guid_hex_str(sender->data));
-				else
+                    gnet_stats_count_dropped(sender, MSG_DROP_ROUTE_LOST);
+                } else {
 					routing_log("[ ] no route to target GUID %s\n",
 						guid_hex_str(sender->data));
+                    gnet_stats_count_dropped(sender, MSG_DROP_NO_ROUTE);
+                }
 
-				routing_errors++;
-				dropped_messages++;
 				sender->rx_dropped++;
 
 				return FALSE;
@@ -965,7 +964,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 			 */
 
 			if (!NODE_IS_READABLE(sender)) {		/* Being shutdown */
-				dropped_messages++;
+                gnet_stats_count_dropped(sender, MSG_DROP_SHUTDOWN);
 				sender->rx_dropped++;
 				return FALSE;
 			}
@@ -991,7 +990,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 					gmsg_log_dropped(&sender->header,
 						"from %s, in TX flow-control", node_ip(sender));
 
-				dropped_messages++;
+                gnet_stats_count_dropped(sender, MSG_DROP_FLOW_CONTROL);
 				sender->rx_dropped++;
 
 				return FALSE;

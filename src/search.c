@@ -32,6 +32,7 @@
 #include "routing.h"
 #include "downloads.h"
 #include "guid.h"
+#include "gnet_stats.h"
 
 #include <ctype.h>
 
@@ -320,6 +321,7 @@ static gnet_results_set_t *get_results_set
 		/* packet too small 11 header, 16 GUID min */
 		g_warning("get_results_set(): given too small a packet (%d bytes)",
 				  n->size);
+        gnet_stats_count_dropped(n, MSG_DROP_RESULT_TOO_SMALL);
 		return NULL;
 	}
 
@@ -364,8 +366,10 @@ static gnet_results_set_t *get_results_set
 		while (s < e && *s)
 			s++;				/* move s up to the next double NUL */
 
-		if (s >= (e-1))			/* There cannot be two NULs: end of packet! */
+		if (s >= (e-1))	{		/* There cannot be two NULs: end of packet! */
+            gnet_stats_count_dropped(n, MSG_DROP_RESULT_DOUBLE_NUL);
 			goto bad_packet;
+        }
 
 		/*
 		 * `s' point to the first NUL of the double NUL sequence.
@@ -395,8 +399,10 @@ static gnet_results_set_t *get_results_set
 				taglen++;
 			}
 
-			if (s >= e)
+			if (s >= e) {
+                gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
 				goto bad_packet;
+            }
 
 			s++;				/* Now points to next record */
 		} else
@@ -415,6 +421,7 @@ static gnet_results_set_t *get_results_set
 			rc->index = index;
 			rc->size  = size;
 			rc->name  = atom_str_get(fname);
+            rc->flags = 0;
 		}
 
 		/*
@@ -518,8 +525,10 @@ static gnet_results_set_t *get_results_set
 		// XXX parse trailer after the open data
 	}
 
-	if (nr != rs->num_recs)
+	if (nr != rs->num_recs) {
+        gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
 		goto bad_packet;
+    }
 
 	/* We now have the guid of the node */
 
@@ -592,6 +601,7 @@ static gnet_results_set_t *get_results_set
 				 node_ip(n), n->vendor ? n->vendor : "????",
 				 sha1_errors, sha1_errors == 1 ? "" : "s",
 				 nr, nr == 1 ? "" : "s");
+            gnet_stats_count_dropped(n, MSG_DROP_RESULT_SHA1_ERROR);
 			goto bad_packet;		/* Will drop this bad query hit */
 		}
 
@@ -1044,9 +1054,12 @@ gboolean search_results(gnutella_node_t *n)
 	 * If we're not going to dispatch it to any search, the packet is only
 	 * parsed for validation.
 	 */
-
 	rs = get_results_set(n, selected_searches == NULL);
 	if (rs == NULL) {
+        /*
+         * get_results_set takes care of telling the stats that
+         * the message was dropped.
+         */
 		drop_it = TRUE;				/* Don't forward bad packets */
 		goto final_cleanup;
 	}

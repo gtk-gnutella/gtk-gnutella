@@ -44,6 +44,7 @@
 #include "gmsg.h"
 #include "alive.h"
 #include "inet.h"
+#include "gnet_stats.h"
 
 #include "settings.h"
 
@@ -900,7 +901,7 @@ void pcache_ping_received(struct gnutella_node *n)
 	if (now < n->ping_accept) {
 		n->n_ping_throttle++;		/* Drop the ping */
 		n->rx_dropped++;
-		dropped_messages++;
+        gnet_stats_count_dropped(n, MSG_DROP_PING_THROTTLE);
 		return;
 	} else {
 		n->n_ping_accepted++;

@@ -36,6 +36,7 @@
 #include "pmsg.h"
 #include "gmsg.h"
 #include "tx.h"
+#include "gnet_stats.h"
 
 #define MQ_MAXIOV	256		/* Our limit on the I/O vectors we build */
 
@@ -594,6 +595,7 @@ static void mq_service(gpointer data)
 			r -= ie->iov_len;
 			l = mq_rmlink_prev(q, l, ie->iov_len);
 			sent++;
+            gnet_stats_count_sent(q->node);
 		} else {
 			pmsg_t *mb = (pmsg_t *) l->data;
 			g_assert(r > 0 && r < pmsg_size(mb));
