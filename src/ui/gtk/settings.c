@@ -1328,48 +1328,35 @@ static gboolean uploads_stalling_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean file_descriptor_shortage_changed(property_t prop)
+static gboolean file_descriptor_warn_changed(property_t prop)
 {
-    gboolean b;
-    GtkWidget *w;
+	GtkWidget *icon_shortage;
+	GtkWidget *icon_runout;
+	gboolean fd_shortage;
+	gboolean fd_runout;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
-    GtkWidget *top = map_entry->fn_toplevel();
 
-    w = lookup_widget(top, map_entry->wid);
+    icon_shortage = lookup_widget(main_window, "eventbox_image_fd_shortage");
+    icon_runout = lookup_widget(main_window, "eventbox_image_fd_runout");
 
-    stub->boolean.get(prop, &b, 0, 1);
+    gnet_prop_get_boolean_val(PROP_FILE_DESCRIPTOR_SHORTAGE, &fd_shortage);
+    gnet_prop_get_boolean_val(PROP_FILE_DESCRIPTOR_RUNOUT, &fd_runout);
 
-    if (b) {
-        statusbar_gui_warning(15, _("*** FILE DESCRIPTORS RUNNING LOW! ***"));
-        gtk_widget_show(w);
-    } else {
-        gtk_widget_hide(w);
+	gtk_widget_hide(icon_shortage);
+	gtk_widget_hide(icon_runout);
+
+	if (fd_runout) {
+		gtk_widget_show(icon_runout);
+		if (map_entry->prop == PROP_FILE_DESCRIPTOR_RUNOUT)
+			statusbar_gui_warning(15,
+				_("*** FILE DESCRIPTORS HAVE RUN OUT! ***"));
+	} else if (fd_shortage) {
+		gtk_widget_show(icon_shortage);
+		if (map_entry->prop == PROP_FILE_DESCRIPTOR_SHORTAGE)
+			statusbar_gui_warning(15,
+				_("*** FILE DESCRIPTORS RUNNING LOW! ***"));
+	} else
 		shrink_frame_status();
-    }
-
-    return FALSE;
-}
-
-static gboolean file_descriptor_runout_changed(property_t prop)
-{
-    gboolean b;
-    GtkWidget *w;
-    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
-    GtkWidget *top = map_entry->fn_toplevel();
-
-    w = lookup_widget(top, map_entry->wid);
-
-    stub->boolean.get(prop, &b, 0, 1);
-
-    if (b) {
-        statusbar_gui_warning(15, _("*** FILE DESCRIPTORS HAVE RUN OUT! ***"));
-        gtk_widget_show(w);
-    } else {
-        gtk_widget_hide(w);
-		shrink_frame_status();
-    }
 
     return FALSE;
 }
@@ -5112,7 +5099,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         get_main_window,
         PROP_FILE_DESCRIPTOR_SHORTAGE,
-        file_descriptor_shortage_changed,
+        file_descriptor_warn_changed,
         TRUE,
         "eventbox_image_fd_shortage", 
         /* need eventbox because image has no tooltip */
@@ -5121,7 +5108,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         get_main_window,
         PROP_FILE_DESCRIPTOR_RUNOUT,
-        file_descriptor_runout_changed,
+        file_descriptor_warn_changed,
         TRUE,
         "eventbox_image_fd_runout", 
         /* need eventbox because image has no tooltip */
