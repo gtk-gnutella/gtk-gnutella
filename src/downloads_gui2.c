@@ -476,12 +476,12 @@ static void add_queue_downloads_columns(GtkTreeView *treeview)
 
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {	
 		add_queue_downloads_column(treeview,
-		_(columns[i].title),
-		columns[i].id, 
-		width[columns[i].id],
-		4,
-		columns[i].align,
-		columns[i].func);
+			_(columns[i].title),
+			columns[i].id, 
+			width[columns[i].id],
+			4,
+			columns[i].align,
+			columns[i].func);
 	}
 
 	G_FREE_NULL(width);
@@ -642,13 +642,8 @@ void download_gui_add(download_t *d)
 	
 	g_return_if_fail(d);
 	g_return_if_fail(d->file_info);
-
-	if (DOWNLOAD_IS_VISIBLE(d)) {
-		g_warning("download_gui_add() called on already "
-			"visible download '%s'!", d->file_name);
-		return;
-	}
-	g_assert(g_hash_table_lookup(ht_dl_iters, d) == NULL);
+	g_return_if_fail(!DOWNLOAD_IS_VISIBLE(d));
+	REGRESSION(g_assert(g_hash_table_lookup(ht_dl_iters, d) == NULL);)
 
 	vendor = download_vendor_str(d);
 	if (d->server->attrs & DLS_A_BANNING) {
@@ -916,12 +911,7 @@ void download_gui_remove(download_t *d)
 
 	g_return_if_fail(d);
 	g_return_if_fail(d->file_info);
-	
-	if (!DOWNLOAD_IS_VISIBLE(d)){
-		g_warning("download_gui_remove() called on invisible download '%s'!",
-			 d->file_name);
-		return;
-	}
+	g_return_if_fail(DOWNLOAD_IS_VISIBLE(d));
 
 	iter = find_download(d);
 	g_assert(iter);
@@ -1115,7 +1105,7 @@ void gui_update_download_server(download_t *d)
 	server = download_vendor(d);
 	if (d->server->attrs & DLS_A_BANNING) {
 		tmpstr[0] = '*';
-		g_strlcpy(&tmpstr[1], server, sizeof tmpstr - 1);
+		g_strlcpy(&tmpstr[1], server, sizeof tmpstr - 1); /* Mind the -1 */
 		server = tmpstr;
 	}
 	gui_update_download_column(d, treeview_downloads, c_dl_server, server);
@@ -1200,8 +1190,7 @@ void gui_update_download(download_t *d, gboolean force)
     if (d->last_gui_update == now && !force)
 		return;
 
-	if (DL_GUI_IS_HEADER == d)
-		return;			/* A header was sent here by mistake */ 		
+	g_return_if_fail(DL_GUI_IS_HEADER != d); 		
 	
 	/*
 	 * Why update if no one's looking?
@@ -1577,7 +1566,7 @@ void gui_update_download(download_t *d, gboolean force)
 			break;
 		}	
 		gtk_tree_store_set(model, iter,
-			c_dl_status, a,
+			c_dl_status, (a && a[0] != '\0') ? a : NULL,
 			c_dl_progress, force_range(progress, 0.0, 1.0),
 			(-1));
 	}
@@ -1598,7 +1587,9 @@ void gui_update_download(download_t *d, gboolean force)
 
 		model =	(GtkTreeStore *) gtk_tree_view_get_model(
 									treeview_downloads_queue);
-		gtk_tree_store_set(model, iter, c_queue_status, a, (-1));
+		gtk_tree_store_set(model, iter,
+			c_queue_status, (a && a[0] != '\0') ? a : NULL,
+			(-1));
 		return;
 	}
 
@@ -1617,19 +1608,20 @@ void gui_update_download(download_t *d, gboolean force)
 			progress = 1.0;
 			status = _("Complete");
 		} else if (GTA_DL_RECEIVING == d->status && d->pos > d->skip) {
-			guint32 s;
-			gfloat bs, percent_done = download_total_progress(d);
+			gfloat percent_done = download_total_progress(d);
 			
-			s = fi->recv_last_rate ?
-				(fi->size - fi->done) / fi->recv_last_rate : 0;	
-			bs = fi->recv_last_rate / 1024;
+			if (fi->recv_last_rate) {
+				guint s = (fi->size - fi->done) / fi->recv_last_rate;
 
-			gm_snprintf(tmpstr, sizeof(tmpstr),
-				"%.02f%%  (%.1f k/s)  [%d/%d]  TR:  %s",
-				percent_done * 100.0,
-				bs, fi->recvcount, fi->lifecount,
-				s ? short_time(s): "-");
-				
+				gm_snprintf(tmpstr, sizeof(tmpstr),
+					"%.02f%%  (%.1f k/s)  [%d/%d]  TR:  %s",
+					percent_done * 100.0, fi->recv_last_rate / 1024.0,
+					fi->recvcount, fi->lifecount, short_time(s));
+			} else {
+				gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% [%d/%d]",
+					percent_done * 100.0, fi->recvcount, fi->lifecount);
+			}
+
 			progress = force_range(percent_done, 0.0, 1.0);
    			status = tmpstr;			
 		}
