@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Callout queue.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,12 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @file
+ *
+ * Callout queue.
  */
 
 #include "common.h"
@@ -50,13 +54,12 @@ RCSID("$Id$");
 
 cqueue_t *callout_queue;
 
-/*
- * cq_make
- *
+/**
  * Create a new callout queue object. The 'now' parameter is used to
  * initialize the "current time". Use zero if you don't care...
  */
-cqueue_t *cq_make(time_t now)
+cqueue_t *
+cq_make(time_t now)
 {
 	cqueue_t *cq;
 
@@ -75,12 +78,11 @@ cqueue_t *cq_make(time_t now)
 	return cq;
 }
 
-/*
- * cq_free
- *
+/**
  * Free the callout queue and all contained event objects.
  */
-void cq_free(cqueue_t *cq)
+void
+cq_free(cqueue_t *cq)
 {
 	cevent_t *ev;
 	cevent_t *ev_next;
@@ -100,12 +102,11 @@ void cq_free(cqueue_t *cq)
 	G_FREE_NULL(cq);
 }
 
-/*
- * ev_link
- *
+/**
  * Link event into the callout queue.
  */
-static void ev_link(cqueue_t *cq, cevent_t *ev)
+static void
+ev_link(cqueue_t *cq, cevent_t *ev)
 {
 	struct chash *ch;			/* Hashing bucket */
 	time_t trigger;			/* Trigger time */
@@ -189,12 +190,11 @@ static void ev_link(cqueue_t *cq, cevent_t *ev)
 	g_assert(0);		/* Must have found an event to insert before */
 }
 
-/*
- * ev_unlink
- *
+/**
  * Unlink event from callout queue.
  */
-static void ev_unlink(cqueue_t *cq, cevent_t *ev)
+static void
+ev_unlink(cqueue_t *cq, cevent_t *ev)
 {
 	struct chash *ch;			/* Hashing bucket */
 
@@ -219,9 +219,7 @@ static void ev_unlink(cqueue_t *cq, cevent_t *ev)
 		ev->ce_bnext->ce_bprev = ev->ce_bprev;
 }
 
-/*
- * cq_insert
- *
+/**
  * Insert a new event in the callout queue and return an opaque handle that
  * can be used to cancel the event.
  *
@@ -231,7 +229,8 @@ static void ev_unlink(cqueue_t *cq, cevent_t *ev)
  *
  * Returns the handle, or NULL on error.
  */
-gpointer cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
+gpointer
+cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
 {
 	cevent_t *ev;				/* Event to insert */
 
@@ -251,16 +250,15 @@ gpointer cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
 	return ev;
 }
 
-/*
- * cq_cancel
- *
+/**
  * Cancel a recorded timeout.
  * They give us the opaque handle we returned via cq_insert().
  *
  * NOTE: this routine is also used internally to remove an expired event from
  * the list before firing it off.
  */
-void cq_cancel(cqueue_t *cq, gpointer handle)
+void
+cq_cancel(cqueue_t *cq, gpointer handle)
 {
 	cevent_t *ev = (cevent_t *) handle;
 
@@ -274,14 +272,13 @@ void cq_cancel(cqueue_t *cq, gpointer handle)
 	wfree(ev, sizeof(*ev));
 }
 
-/*
- * cq_resched
- *
+/**
  * Reschedule event at some other point in time. It is the responsibility
  * of the user code to determine that the handle for the event has not yet
  * expired, i.e. that the event has not triggered yet.
  */
-void cq_resched(cqueue_t *cq, gpointer handle, gint delay)
+void
+cq_resched(cqueue_t *cq, gpointer handle, gint delay)
 {
 	cevent_t *ev = (cevent_t *) handle;
 
@@ -313,12 +310,11 @@ void cq_resched(cqueue_t *cq, gpointer handle, gint delay)
 	ev_link(cq, ev);
 }
 
-/*
- * cq_expire
- *
+/**
  * Expire timeout by removing it out of the queue and firing its callback.
  */
-static void cq_expire(cqueue_t *cq, cevent_t *ev)
+static void
+cq_expire(cqueue_t *cq, cevent_t *ev)
 {
 	cq_service_t fn = ev->ce_fn;
 	gpointer arg = ev->ce_arg;
@@ -339,15 +335,14 @@ static void cq_expire(cqueue_t *cq, cevent_t *ev)
 	(*fn)(cq, arg);
 }
 
-/*
- * cq_clock
- *
+/**
  * The heartbeat of our callout queue.
  *
  * Called to notify us about the elapsed "time" so that we can expire timeouts
  * and maintain our notion of "current time".
  */
-void cq_clock(cqueue_t *cq, gint elapsed)
+void
+cq_clock(cqueue_t *cq, gint elapsed)
 {
 	time_t now;
 	gint bucket;
@@ -426,7 +421,8 @@ done:
 /**
  * Called every CALLOUT_PERIOD to heartbeat the callout queue.
  */
-static gboolean callout_timer(gpointer p)
+static gboolean
+callout_timer(gpointer p)
 {
 	static GTimeVal last_period = { 0L, 0L };
 	GTimeVal tv;
@@ -460,7 +456,8 @@ static gboolean callout_timer(gpointer p)
 /**
  * Initialization.
  */
-void cq_init(void)
+void
+cq_init(void)
 {
 	callout_queue = cq_make(0);
 	(void) g_timeout_add(CALLOUT_PERIOD, callout_timer, NULL);
@@ -469,7 +466,8 @@ void cq_init(void)
 /**
  * Final cleanup.
  */
-void cq_close(void)
+void
+cq_close(void)
 {
 	cq_free(callout_queue);
 	callout_queue = NULL;
