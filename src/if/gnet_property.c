@@ -3832,7 +3832,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[171].name = "host_runs_ntp";
-    gnet_property->props[171].desc = _("Whether the clock of this host is kept accurate via NTP. When you enable this, the computed clock skew is ignored.");
+    gnet_property->props[171].desc = _("Whether the clock of this host is kept accurate via NTP. When set, the computed clock skew is ignored. Normally, gtk-gnutella automatically determines whether you are running NTP locally, but it won't be able to determine whether your host is kept synchronized by regular calls to ntpdate, for instance.");
     gnet_property->props[171].ev_changed = event_new("host_runs_ntp_changed");
     gnet_property->props[171].save = TRUE;
     gnet_property->props[171].vector_size = 1;

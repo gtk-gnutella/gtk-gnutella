@@ -2044,7 +2044,10 @@ prop = {
 prop = {
     name = "host_runs_ntp";
     desc = "Whether the clock of this host is kept accurate via NTP. "
-		"When you enable this, the computed clock skew is ignored.";
+		"When set, the computed clock skew is ignored. "
+		"Normally, gtk-gnutella automatically determines whether you are "
+		"running NTP locally, but it won't be able to determine whether your "
+		"host is kept synchronized by regular calls to ntpdate, for instance.";
     type = boolean;
     data = {
         default = FALSE;
