@@ -9131,6 +9131,33 @@ for all filters</label>
 		    <yfill>False</yfill>
 		  </child>
 		</widget>
+
+		<widget>
+		  <class>GtkButton</class>
+		  <name>button_filter_add_rule_state</name>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>clicked</name>
+		    <handler>on_button_filter_add_rule_state_clicked</handler>
+		    <last_modification_time>Sat, 22 Jun 2002 23:36:23 GMT</last_modification_time>
+		  </signal>
+		  <label>Add state rule</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
+		  <child>
+		    <left_attach>1</left_attach>
+		    <right_attach>2</right_attach>
+		    <top_attach>2</top_attach>
+		    <bottom_attach>3</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
 	      </widget>
 	    </widget>
 
@@ -9177,7 +9204,7 @@ for all filters</label>
 	      <xalign>0.5</xalign>
 	      <yalign>0</yalign>
 	      <xscale>1</xscale>
-	      <yscale>0</yscale>
+	      <yscale>1</yscale>
 	      <child>
 		<padding>0</padding>
 		<expand>True</expand>
@@ -9471,7 +9498,7 @@ for all filters</label>
 	      <xalign>0.5</xalign>
 	      <yalign>0</yalign>
 	      <xscale>1</xscale>
-	      <yscale>0</yscale>
+	      <yscale>1</yscale>
 	      <child>
 		<padding>0</padding>
 		<expand>True</expand>
@@ -9796,7 +9823,7 @@ for all filters</label>
 	      <xalign>0.5</xalign>
 	      <yalign>0</yalign>
 	      <xscale>1</xscale>
-	      <yscale>0</yscale>
+	      <yscale>1</yscale>
 	      <child>
 		<padding>0</padding>
 		<expand>True</expand>
@@ -10184,86 +10211,95 @@ for all filters</label>
 	    <spacing>0</spacing>
 
 	    <widget>
-	      <class>GtkHBox</class>
-	      <name>hbox123</name>
-	      <homogeneous>False</homogeneous>
-	      <spacing>0</spacing>
+	      <class>GtkAlignment</class>
+	      <name>alignment24</name>
+	      <xalign>0.5</xalign>
+	      <yalign>7.45058e-09</yalign>
+	      <xscale>1</xscale>
+	      <yscale>1</yscale>
 	      <child>
 		<padding>0</padding>
-		<expand>False</expand>
+		<expand>True</expand>
 		<fill>True</fill>
 	      </child>
 
 	      <widget>
-		<class>GtkFrame</class>
-		<name>frame34</name>
-		<border_width>2</border_width>
-		<label>Flags</label>
-		<label_xalign>0</label_xalign>
-		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>True</fill>
-		</child>
+		<class>GtkHBox</class>
+		<name>hbox123</name>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
 
 		<widget>
-		  <class>GtkVBox</class>
-		  <name>vbox58</name>
-		  <homogeneous>False</homogeneous>
-		  <spacing>0</spacing>
+		  <class>GtkFrame</class>
+		  <name>frame34</name>
+		  <border_width>2</border_width>
+		  <label>Flags</label>
+		  <label_xalign>0</label_xalign>
+		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>True</fill>
+		  </child>
 
 		  <widget>
-		    <class>GtkCheckButton</class>
-		    <name>checkbutton_filter_jump_active</name>
-		    <can_focus>True</can_focus>
-		    <label>active</label>
-		    <active>False</active>
-		    <draw_indicator>True</draw_indicator>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
+		    <class>GtkVBox</class>
+		    <name>vbox58</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
+
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_filter_jump_active</name>
+		      <can_focus>True</can_focus>
+		      <label>active</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
 		  </widget>
 		</widget>
-	      </widget>
-
-	      <widget>
-		<class>GtkFrame</class>
-		<name>frame29</name>
-		<border_width>2</border_width>
-		<label>Condition:</label>
-		<label_xalign>0</label_xalign>
-		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-		<child>
-		  <padding>0</padding>
-		  <expand>True</expand>
-		  <fill>True</fill>
-		</child>
 
 		<widget>
-		  <class>GtkHBox</class>
-		  <name>hbox115</name>
+		  <class>GtkFrame</class>
+		  <name>frame29</name>
 		  <border_width>2</border_width>
-		  <homogeneous>False</homogeneous>
-		  <spacing>0</spacing>
+		  <label>Condition: always</label>
+		  <label_xalign>0</label_xalign>
+		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
 
 		  <widget>
-		    <class>GtkLabel</class>
-		    <name>label209</name>
-		    <label>There is no condition. When this rule is reached, the matching will continue in the specified target filter. That's also why you can't invert this condition. If you could, this rule would just be ignored.</label>
-		    <justify>GTK_JUSTIFY_FILL</justify>
-		    <wrap>True</wrap>
-		    <xalign>0.5</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <child>
-		      <padding>0</padding>
-		      <expand>True</expand>
-		      <fill>True</fill>
-		    </child>
+		    <class>GtkHBox</class>
+		    <name>hbox115</name>
+		    <border_width>2</border_width>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label209</name>
+		      <label>There is no condition. When this rule is reached, the matching will continue in the specified target filter. That's also why you can't invert this condition. If you could, this rule would just be ignored.</label>
+		      <justify>GTK_JUSTIFY_FILL</justify>
+		      <wrap>True</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
+		    </widget>
 		  </widget>
 		</widget>
 	      </widget>
@@ -10388,7 +10424,7 @@ for all filters</label>
 	      <xalign>0.5</xalign>
 	      <yalign>0</yalign>
 	      <xscale>1</xscale>
-	      <yscale>0</yscale>
+	      <yscale>1</yscale>
 	      <child>
 		<padding>0</padding>
 		<expand>True</expand>
@@ -10471,7 +10507,7 @@ for all filters</label>
 		  <class>GtkFrame</class>
 		  <name>frame36</name>
 		  <border_width>2</border_width>
-		  <label>Condition: If file size matches</label>
+		  <label>Condition: If urn:sha1 matches</label>
 		  <label_xalign>0</label_xalign>
 		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		  <child>
@@ -10720,7 +10756,7 @@ for all filters</label>
 	      <xalign>0.5</xalign>
 	      <yalign>0</yalign>
 	      <xscale>1</xscale>
-	      <yscale>0</yscale>
+	      <yscale>1</yscale>
 	      <child>
 		<padding>0</padding>
 		<expand>True</expand>
@@ -11304,6 +11340,560 @@ for all filters</label>
 	    <child_name>Notebook:tab</child_name>
 	    <name>label229</name>
 	    <label>Flags</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0.5</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	  </widget>
+
+	  <widget>
+	    <class>GtkVBox</class>
+	    <name>vbox71</name>
+	    <homogeneous>False</homogeneous>
+	    <spacing>0</spacing>
+
+	    <widget>
+	      <class>GtkAlignment</class>
+	      <name>alignment22</name>
+	      <xalign>0.5</xalign>
+	      <yalign>0</yalign>
+	      <xscale>1</xscale>
+	      <yscale>1</yscale>
+	      <child>
+		<padding>0</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkHBox</class>
+		<name>hbox133</name>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
+
+		<widget>
+		  <class>GtkFrame</class>
+		  <name>frame41</name>
+		  <border_width>2</border_width>
+		  <label>Flags</label>
+		  <label_xalign>0</label_xalign>
+		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>True</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkVBox</class>
+		    <name>vbox74</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>2</spacing>
+
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_filter_state_invert_cond</name>
+		      <can_focus>True</can_focus>
+		      <label>invert condition</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_filter_state_active</name>
+		      <can_focus>True</can_focus>
+		      <label>active</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_filter_state_soft</name>
+		      <can_focus>True</can_focus>
+		      <label>mark only</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkFrame</class>
+		  <name>frame42</name>
+		  <border_width>2</border_width>
+		  <label>Condition: If file size matches</label>
+		  <label_xalign>0</label_xalign>
+		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkAlignment</class>
+		    <name>alignment23</name>
+		    <xalign>0</xalign>
+		    <yalign>7.45058e-09</yalign>
+		    <xscale>1</xscale>
+		    <yscale>0</yscale>
+
+		    <widget>
+		      <class>GtkTable</class>
+		      <name>table27</name>
+		      <border_width>2</border_width>
+		      <rows>2</rows>
+		      <columns>5</columns>
+		      <homogeneous>False</homogeneous>
+		      <row_spacing>2</row_spacing>
+		      <column_spacing>4</column_spacing>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label249</name>
+			<label>DOWNLOAD</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkRadioButton</class>
+			<name>radiobutton_filter_state_download_dont</name>
+			<can_focus>True</can_focus>
+			<active>False</active>
+			<draw_indicator>False</draw_indicator>
+			<group>filter_download_group</group>
+			<child>
+			  <left_attach>2</left_attach>
+			  <right_attach>3</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label251</name>
+			  <label>don't</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkRadioButton</class>
+			<name>radiobutton_filter_state_download_undef</name>
+			<can_focus>True</can_focus>
+			<active>False</active>
+			<draw_indicator>False</draw_indicator>
+			<group>filter_download_group</group>
+			<child>
+			  <left_attach>3</left_attach>
+			  <right_attach>4</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label252</name>
+			  <label>undefined</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label257</name>
+			<label>DISPLAY</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkRadioButton</class>
+			<name>radiobutton_filter_state_download_do</name>
+			<can_focus>True</can_focus>
+			<active>False</active>
+			<draw_indicator>False</draw_indicator>
+			<group>filter_download_group</group>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label256</name>
+			  <label>do</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkRadioButton</class>
+			<name>radiobutton_filter_state_display_do</name>
+			<can_focus>True</can_focus>
+			<active>False</active>
+			<draw_indicator>False</draw_indicator>
+			<group>filter_display_group</group>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>True</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label258</name>
+			  <label>do</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkRadioButton</class>
+			<name>radiobutton_filter_state_display_dont</name>
+			<can_focus>True</can_focus>
+			<active>False</active>
+			<draw_indicator>False</draw_indicator>
+			<group>filter_display_group</group>
+			<child>
+			  <left_attach>2</left_attach>
+			  <right_attach>3</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>True</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label259</name>
+			  <label>don't</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkRadioButton</class>
+			<name>radiobutton_filter_state_display_undef</name>
+			<can_focus>True</can_focus>
+			<active>False</active>
+			<draw_indicator>False</draw_indicator>
+			<group>filter_display_group</group>
+			<child>
+			  <left_attach>3</left_attach>
+			  <right_attach>4</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>True</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label260</name>
+			  <label>undefined</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkRadioButton</class>
+			<name>radiobutton_filter_state_display_ignore</name>
+			<can_focus>True</can_focus>
+			<active>False</active>
+			<draw_indicator>False</draw_indicator>
+			<group>filter_display_group</group>
+			<child>
+			  <left_attach>4</left_attach>
+			  <right_attach>5</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label261</name>
+			  <label>ignore</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkRadioButton</class>
+			<name>radiobutton_filter_state_download_ignore</name>
+			<can_focus>True</can_focus>
+			<active>False</active>
+			<draw_indicator>False</draw_indicator>
+			<group>filter_download_group</group>
+			<child>
+			  <left_attach>4</left_attach>
+			  <right_attach>5</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label262</name>
+			  <label>ignore</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+		      </widget>
+		    </widget>
+		  </widget>
+		</widget>
+	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkHBox</class>
+	      <name>hbox136</name>
+	      <homogeneous>False</homogeneous>
+	      <spacing>0</spacing>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkFrame</class>
+		<name>frame43</name>
+		<border_width>2</border_width>
+		<label>Target</label>
+		<label_xalign>0</label_xalign>
+		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		<child>
+		  <padding>0</padding>
+		  <expand>True</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkOptionMenu</class>
+		  <name>optionmenu_filter_state_target</name>
+		  <can_focus>True</can_focus>
+		  <items>
+</items>
+		  <initial_choice>0</initial_choice>
+		</widget>
+	      </widget>
+
+	      <widget>
+		<class>GtkVBox</class>
+		<name>vbox73</name>
+		<border_width>2</border_width>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>False</fill>
+		</child>
+
+		<widget>
+		  <class>GtkButton</class>
+		  <name>button_filter_state_reset</name>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>clicked</name>
+		    <handler>on_button_filter_reset_rule_clicked</handler>
+		    <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
+		  </signal>
+		  <label>Reset stats</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkButton</class>
+		  <name>button_filter_state_remove</name>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>clicked</name>
+		    <handler>on_button_filter_remove_rule_clicked</handler>
+		    <last_modification_time>Tue, 28 May 2002 22:37:53 GMT</last_modification_time>
+		  </signal>
+		  <label>Remove this rule</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+	      </widget>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <child_name>Notebook:tab</child_name>
+	    <name>label247</name>
+	    <label>State</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>

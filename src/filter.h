@@ -42,7 +42,8 @@ enum rule_type {
     RULE_SIZE,
     RULE_JUMP,
     RULE_SHA1,
-    RULE_FLAG
+    RULE_FLAG,
+    RULE_STATE
 };
 
 enum rule_text_type {
@@ -52,7 +53,6 @@ enum rule_text_type {
     RULE_TEXT_SUBSTR,
     RULE_TEXT_REGEXP,
     RULE_TEXT_EXACT
-
 };
 
 enum rule_flag_action {
@@ -104,16 +104,24 @@ typedef enum filter_prop {
     MAX_FILTER_PROP
 } filter_prop_t;
 
+extern const gchar * const filter_prop_names[];
+
 /*
  * The states a filter_property. I chose 0 for UNKNOWN because that
  * makes it easy to initialize the property array with g_new0 and
  * it's easy to check if the state is still unset by !.
+ * FILTER_PROP_IGNORE is needed because we also want filter rules
+ * that allow to act only on one property and ignores the other.
  */
 typedef enum filter_prop_state {
     FILTER_PROP_STATE_UNKNOWN = 0,
     FILTER_PROP_STATE_DO,
     FILTER_PROP_STATE_DONT,
+    MAX_FILTER_PROP_STATE,
+    FILTER_PROP_STATE_IGNORE
 } filter_prop_state_t;
+
+extern const gchar * const filter_prop_state_names[];
 
 /*
  * The following struct is used to hold the state information of filter
@@ -174,6 +182,10 @@ typedef struct rule {
             enum rule_flag_action stable;
             enum rule_flag_action push;
         } flag;
+        struct _f_state {
+            enum filter_prop_state display;
+            enum filter_prop_state download;
+        } state;
     } u;
 } rule_t;
 
@@ -206,6 +218,9 @@ rule_t *filter_new_sha1_rule(guchar *, gchar *, filter_t *, guint16);
 rule_t *filter_new_flag_rule
     (enum rule_flag_action stable, enum rule_flag_action busy, 
     enum rule_flag_action push, filter_t *target, guint16 flags);
+rule_t *filter_new_state_rule
+    (enum filter_prop_state display, enum filter_prop_state download,
+    filter_t *target, guint16 flags);
 void filter_adapt_order(void);
 void filter_append_rule(filter_t *f, rule_t * const r);
 void filter_append_rule_to_session(filter_t * f, rule_t * const r);

@@ -244,6 +244,7 @@ set w_main_list {
     button_filter_add_rule_size
     button_filter_add_rule_text
     button_filter_add_rule_flag
+    button_filter_add_rule_state
     button_filter_clear
     button_filter_remove
     button_filter_reset
@@ -265,6 +266,9 @@ set w_main_list {
     checkbutton_filter_text_soft
     checkbutton_filter_flag_active
     checkbutton_filter_flag_soft
+    checkbutton_filter_state_invert_cond
+    checkbutton_filter_state_active
+    checkbutton_filter_state_soft
     clist_filter_rules
     ctree_filter_filters
     entry_filter_ip_address
@@ -283,6 +287,7 @@ set w_main_list {
     optionmenu_filter_size_target
     optionmenu_filter_text_target
     optionmenu_filter_flag_target
+    optionmenu_filter_state_target
     optionmenu_filter_text_type
     radiobutton_filter_flag_stable_set
     radiobutton_filter_flag_stable_unset
@@ -293,6 +298,14 @@ set w_main_list {
     radiobutton_filter_flag_push_set
     radiobutton_filter_flag_push_unset
     radiobutton_filter_flag_push_ignore    
+    radiobutton_filter_state_display_undef
+    radiobutton_filter_state_display_do
+    radiobutton_filter_state_display_dont
+    radiobutton_filter_state_display_ignore
+    radiobutton_filter_state_download_undef
+    radiobutton_filter_state_download_do
+    radiobutton_filter_state_download_dont
+    radiobutton_filter_state_download_ignore
     spinbutton_filter_size_max
     spinbutton_filter_size_min
 }

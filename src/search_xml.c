@@ -71,6 +71,7 @@ static void xml_to_size_rule(xmlNodePtr, gpointer);
 static void xml_to_jump_rule(xmlNodePtr, gpointer);
 static void xml_to_sha1_rule(xmlNodePtr, gpointer);
 static void xml_to_flag_rule(xmlNodePtr, gpointer);
+static void xml_to_state_rule(xmlNodePtr, gpointer);
 static guint16 get_rule_flags_from_xml(xmlNodePtr);
 
 /*
@@ -85,6 +86,7 @@ static const gchar NODE_RULE_SIZE[]   = "SizeRule";
 static const gchar NODE_RULE_JUMP[]   = "JumpRule";
 static const gchar NODE_RULE_SHA1[]   = "SHA1Rule";
 static const gchar NODE_RULE_FLAG[]   = "FlagRule";
+static const gchar NODE_RULE_STATE[]  = "StateRule";
 
 static const gchar PROP_BUILTIN_SHOW_UID[]       = "ShowUID";
 static const gchar PROP_BUILTIN_DROP_UID[]       = "DropUID";
@@ -114,6 +116,8 @@ static const gchar PROP_RULE_TARGET[]            = "Target";
 static const gchar PROP_RULE_FLAG_BUSY[]         = "Busy";
 static const gchar PROP_RULE_FLAG_PUSH[]         = "Push";
 static const gchar PROP_RULE_FLAG_STABLE[]       = "Stable";
+static const gchar PROP_RULE_STATE_DISPLAY[]     = "Display";
+static const gchar PROP_RULE_STATE_DOWNLOAD[]    = "Download";
 
 
 
@@ -130,6 +134,7 @@ static node_parser_t parser_map[] = {
     {(gchar *)NODE_RULE_JUMP,   xml_to_jump_rule},
     {(gchar *)NODE_RULE_SHA1,   xml_to_sha1_rule},
     {(gchar *)NODE_RULE_FLAG,   xml_to_flag_rule},
+    {(gchar *)NODE_RULE_STATE,  xml_to_state_rule},
     {NULL, NULL}
 };
 
@@ -525,6 +530,15 @@ static void rule_to_xml(xmlNodePtr parent, rule_t *r)
 
         g_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.flag.push);
         xmlSetProp(newxml, PROP_RULE_FLAG_PUSH, x_tmp);
+        break;
+    case RULE_STATE:
+         newxml = xmlNewChild(parent, NULL, NODE_RULE_STATE, NULL);
+        
+        g_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.state.display);
+        xmlSetProp(newxml, PROP_RULE_STATE_DISPLAY, x_tmp);
+
+        g_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.state.download);
+        xmlSetProp(newxml, PROP_RULE_STATE_DOWNLOAD, x_tmp);
         break;
     default:
         g_error("Unknown rule type: %d", r->type);
@@ -1018,6 +1032,57 @@ static void xml_to_flag_rule(xmlNodePtr xmlnode, gpointer filter)
 
     flags = get_rule_flags_from_xml(xmlnode);
     rule = filter_new_flag_rule(stable, busy, push, target, flags);
+    clear_flags(rule->flags, RULE_FLAG_VALID);
+
+    if (dbg >= 4)
+        printf( "added to filter \"%s\" rule with target %p\n",
+            ((filter_t *)filter)->name, rule->target);
+
+    ((filter_t *) filter)->ruleset =
+        g_list_append(((filter_t *) filter)->ruleset, rule);
+}
+
+static void xml_to_state_rule(xmlNodePtr xmlnode, gpointer filter)
+{
+    enum filter_prop_state display = FILTER_PROP_STATE_UNKNOWN;
+    enum filter_prop_state download = FILTER_PROP_STATE_UNKNOWN;
+    gchar *buf;
+    rule_t *rule;
+    filter_t *target;
+    guint16 flags;
+
+    g_assert(xmlnode != NULL);
+    g_assert(xmlnode->name != NULL);
+    g_assert(filter != NULL);
+    g_assert(g_strcasecmp(xmlnode->name, NODE_RULE_STATE) ==0);
+
+    buf = xmlGetProp(xmlnode, PROP_RULE_STATE_DISPLAY);
+    if (buf != NULL) {
+        gint val = atol(buf);
+        if (((val >= 0) && (val <= MAX_FILTER_PROP_STATE)) ||
+            (val == FILTER_PROP_STATE_IGNORE))
+            display = val;
+    }
+    g_free(buf);
+
+    buf = xmlGetProp(xmlnode, PROP_RULE_STATE_DOWNLOAD);
+    if (buf != NULL) {
+        gint val = atol(buf);
+        if (((val >= 0) && (val <= MAX_FILTER_PROP_STATE)) ||
+            (val == FILTER_PROP_STATE_IGNORE))
+            download = val;
+    }
+    g_free(buf);
+
+    buf = xmlGetProp(xmlnode, PROP_RULE_TARGET);
+    errno = 0;
+    target = (gpointer) strtoul(buf, 0, 16);
+    if (errno != 0)
+        g_error( "xml_to_state_rule: %s", g_strerror(errno));
+    g_free(buf);
+
+    flags = get_rule_flags_from_xml(xmlnode);
+    rule = filter_new_state_rule(display, download, target, flags);
     clear_flags(rule->flags, RULE_FLAG_VALID);
 
     if (dbg >= 4)

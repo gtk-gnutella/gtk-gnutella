@@ -168,6 +168,12 @@ void on_button_filter_add_rule_flag_clicked(GtkButton *button, gpointer user_dat
     filter_gui_edit_flag_rule(NULL);
 }
 
+void on_button_filter_add_rule_state_clicked(GtkButton *button, gpointer user_data)
+{
+    gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
+    filter_gui_edit_state_rule(NULL);
+}
+
 void on_button_filter_ok_clicked(GtkButton *button, gpointer user_data)
 {
     rule_t * r = NULL;
@@ -189,6 +195,7 @@ void on_button_filter_ok_clicked(GtkButton *button, gpointer user_data)
     case nb_filt_page_size:
     case nb_filt_page_jump:
     case nb_filt_page_flag:
+    case nb_filt_page_state:
         r = filter_gui_get_rule();
         break;
     case nb_filt_page_sha1:

@@ -74,6 +74,7 @@ static rule_t *filter_gui_get_ip_rule();
 static rule_t *filter_gui_get_size_rule();
 static rule_t *filter_gui_get_jump_rule();
 static rule_t *filter_gui_get_flag_rule();
+static rule_t *filter_gui_get_state_rule();
 static GtkCTreeNode *getFilterRoot(filter_t *f);
 
 
@@ -524,6 +525,7 @@ void filter_gui_rebuild_target_combos(GList *filters)
         optionmenu_filter_jump_target,
         optionmenu_filter_sha1_target,
         optionmenu_filter_flag_target,
+        optionmenu_filter_state_target,
         NULL };
     gpointer bufptr;
     gint i;
@@ -630,6 +632,9 @@ void filter_gui_edit_rule(rule_t *r)
             break;
         case RULE_FLAG:
             filter_gui_edit_flag_rule(r);
+            break;
+        case RULE_STATE:
+            filter_gui_edit_state_rule(r);
             break;
         default:
             g_error("Unknown rule type: %d", r->type);
@@ -900,8 +905,6 @@ void filter_gui_edit_jump_rule(rule_t *r)
  *
  * Load a flag rule into the rule edtior or clear it if the rule is NULL.
  */
-
-
 void filter_gui_edit_flag_rule(rule_t *r)
 {
     g_assert((r == NULL) || (r->type == RULE_FLAG));
@@ -970,7 +973,7 @@ void filter_gui_edit_flag_rule(rule_t *r)
         }
         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), TRUE);
 
-        option_menu_select_item_by_data(optionmenu_filter_jump_target,
+        option_menu_select_item_by_data(optionmenu_filter_flag_target,
             (gpointer) r->target);
         gtk_toggle_button_set_active
             (GTK_TOGGLE_BUTTON(checkbutton_filter_flag_active),
@@ -982,6 +985,92 @@ void filter_gui_edit_flag_rule(rule_t *r)
 
     gtk_notebook_set_page
         (GTK_NOTEBOOK(notebook_filter_detail), nb_filt_page_flag);
+}
+
+
+
+
+/*
+ * filter_gui_edit_state_rule:
+ *
+ * Load a state rule into the rule edtior or clear it if the rule is NULL.
+ */
+void filter_gui_edit_state_rule(rule_t *r)
+{
+    g_assert((r == NULL) || (r->type == RULE_STATE));
+
+    if (filter_dialog == NULL)
+        return;
+
+    if (r == NULL) {
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(radiobutton_filter_state_display_ignore), TRUE);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(radiobutton_filter_state_download_ignore), TRUE);
+        option_menu_select_item_by_data
+            (optionmenu_filter_state_target, (gpointer) DEFAULT_TARGET);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_state_active), TRUE);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_state_soft), FALSE);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_state_invert_cond), FALSE);
+   } else {
+        GtkWidget *tb = NULL;
+
+        switch (r->u.state.display) {
+        case FILTER_PROP_STATE_UNKNOWN:
+            tb = radiobutton_filter_state_display_undef;
+            break;
+        case FILTER_PROP_STATE_DO:
+            tb = radiobutton_filter_state_display_do;
+            break;
+        case FILTER_PROP_STATE_DONT:
+            tb = radiobutton_filter_state_display_dont;
+            break;
+        case FILTER_PROP_STATE_IGNORE:
+            tb = radiobutton_filter_state_display_ignore;
+            break;
+        default:
+            g_error("filter_gui_edit_state_rule: unknown property: %d",
+                r->u.state.display);
+        }
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), TRUE);
+
+        switch (r->u.state.download) {
+        case FILTER_PROP_STATE_UNKNOWN:
+            tb = radiobutton_filter_state_download_undef;
+            break;
+        case FILTER_PROP_STATE_DO:
+            tb = radiobutton_filter_state_download_do;
+            break;
+        case FILTER_PROP_STATE_DONT:
+            tb = radiobutton_filter_state_download_dont;
+            break;
+        case FILTER_PROP_STATE_IGNORE:
+            tb = radiobutton_filter_state_download_ignore;
+            break;
+        default:
+            g_error("filter_gui_edit_state_rule: unknown property: %d",
+                r->u.state.display);
+        }
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), TRUE);
+    
+        option_menu_select_item_by_data(optionmenu_filter_state_target,
+            (gpointer) r->target);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_state_active),
+            RULE_IS_ACTIVE(r));
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_state_soft),
+            RULE_IS_SOFT(r));
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_state_invert_cond), 
+            RULE_IS_NEGATED(r));
+    }
+
+    gtk_notebook_set_page
+        (GTK_NOTEBOOK(notebook_filter_detail), nb_filt_page_state);
 }
 
 
@@ -1072,6 +1161,9 @@ rule_t *filter_gui_get_rule()
         break;
     case nb_filt_page_flag:
         r = filter_gui_get_flag_rule();
+        break;
+    case nb_filt_page_state:
+        r = filter_gui_get_state_rule();
         break;
     default:
         g_assert_not_reached();
@@ -1331,4 +1423,71 @@ static rule_t *filter_gui_get_flag_rule()
             (soft   ? RULE_FLAG_SOFT   : 0);
 
     return filter_new_flag_rule(stable, busy, push, target, flags);
+}
+
+
+
+/* 
+ * filter_gui_get_state_rule:
+ *
+ * Extract information about a state rule.
+ * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
+ */
+static rule_t *filter_gui_get_state_rule()
+{
+    filter_t *target;
+    enum filter_prop_state display  = FILTER_PROP_STATE_IGNORE;
+    enum filter_prop_state download = FILTER_PROP_STATE_IGNORE;
+    gboolean active;
+    gboolean soft;
+    gboolean negate;
+    guint16 flags;
+    GtkWidget *act;
+
+    if (filter_dialog == NULL)
+        return NULL;
+
+    target = (filter_t *)option_menu_get_selected_data
+        (optionmenu_filter_state_target);
+
+    act = radiobutton_get_active_in_group
+        (GTK_RADIO_BUTTON(radiobutton_filter_state_display_do));
+    if (act == radiobutton_filter_state_display_do)
+        display = FILTER_PROP_STATE_DO;
+    else if (act == radiobutton_filter_state_display_dont)
+        display = FILTER_PROP_STATE_DONT;
+    else if (act == radiobutton_filter_state_display_ignore)
+        display = FILTER_PROP_STATE_IGNORE;
+    else if (act == radiobutton_filter_state_display_undef)
+        display = FILTER_PROP_STATE_UNKNOWN;
+    else
+        g_error("Unknown radiobutton for DISPLAY property");
+
+    act = radiobutton_get_active_in_group
+        (GTK_RADIO_BUTTON(radiobutton_filter_state_download_do));
+    if (act == radiobutton_filter_state_download_do)
+        download = FILTER_PROP_STATE_DO;
+    else if (act == radiobutton_filter_state_download_dont)
+        download = FILTER_PROP_STATE_DONT;
+    else if (act == radiobutton_filter_state_download_ignore)
+        download = FILTER_PROP_STATE_IGNORE;
+    else if (act == radiobutton_filter_state_download_undef)
+        download = FILTER_PROP_STATE_UNKNOWN;
+    else
+        g_error("Unknown radiobutton for DOWNLOAD property");
+  
+    active = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_state_active));
+
+    soft = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_state_soft));
+
+    negate = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_state_invert_cond));
+
+    flags = (active ? RULE_FLAG_ACTIVE : 0) |
+            (soft   ? RULE_FLAG_SOFT   : 0) |
+            (negate ? RULE_FLAG_NEGATE : 0);
+
+    return filter_new_state_rule(display, download, target, flags);
 }

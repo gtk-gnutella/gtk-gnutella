@@ -68,7 +68,16 @@ static void filter_free(filter_t *f);
  * Public variables
  */
 filter_t *work_filter = NULL;
+const gchar * const filter_prop_names[MAX_FILTER_PROP] = {
+    "DISPLAY",
+    "DOWNLOAD"
+};
 
+const gchar * const filter_prop_state_names[MAX_FILTER_PROP_STATE] = {
+    "undefined",
+    "do",
+    "don't"
+};
 
 
 /*
@@ -458,6 +467,9 @@ rule_t *filter_duplicate_rule(rule_t *r)
         return filter_new_flag_rule
             (r->u.flag.stable, r->u.flag.busy, r->u.flag.push, 
             r->target, r->flags);
+    case RULE_STATE:
+        return filter_new_state_rule
+            (r->u.state.display, r->u.state.download, r->target, r->flags);
     default:
         g_error("filter_duplicate_rule: unknown rule type: %d", r->type);
         return NULL;
@@ -644,6 +656,29 @@ rule_t *filter_new_flag_rule
     f->u.flag.stable = stable;
     f->u.flag.busy = busy;
     f->u.flag.push = push;
+  	f->target = target;
+    f->flags  = flags;
+    set_flags(f->flags, RULE_FLAG_VALID);
+
+    return f;
+}
+
+
+
+rule_t *filter_new_state_rule
+    (enum filter_prop_state display, enum filter_prop_state download,
+    filter_t *target, guint16 flags)
+{
+       	rule_t *f;
+
+    g_assert(target != NULL);
+
+    f = g_new0(rule_t, 1);
+
+    f->type = RULE_STATE;
+
+    f->u.state.display = display;
+    f->u.state.download = download;
   	f->target = target;
     f->flags  = flags;
     set_flags(f->flags, RULE_FLAG_VALID);
@@ -1002,6 +1037,65 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
                     "Always (all flags ignored)");
         }
         break;
+    case RULE_STATE:
+        {
+            gchar *display_str = "";
+            gchar *download_str = "";
+            gchar *s1 = "";
+            gboolean b = FALSE;
+
+            switch (r->u.state.display) {
+            case FILTER_PROP_STATE_UNKNOWN:
+                display_str = "DISPLAY is undefined";
+                b = TRUE;
+                break;
+            case FILTER_PROP_STATE_DO:
+                display_str = "DISPLAY";
+                b = TRUE;
+                break;
+            case FILTER_PROP_STATE_DONT:
+                display_str = "DON'T DISPLAY";
+                b = TRUE;
+                break;
+            case FILTER_PROP_STATE_IGNORE:
+                break;
+            default:
+                g_assert_not_reached();
+            }
+    
+            switch (r->u.state.download) {
+            case FILTER_PROP_STATE_UNKNOWN:
+                if (b) s1 = ", ";
+                download_str = "DOWNLOAD is undefined";
+                b = TRUE;
+                break;
+            case FILTER_PROP_STATE_DO:
+                if (b) s1 = ", ";
+                download_str = "DOWNLOAD";
+                b = TRUE;
+                break;
+            case FILTER_PROP_STATE_DONT:
+                if (b) s1 = ", ";
+                download_str = "DON'T DOWNLOAD";
+                b = TRUE;
+                break;
+            case FILTER_PROP_STATE_IGNORE:
+                break;
+            default:
+                g_assert_not_reached();
+            }
+     
+            if (b)
+                g_snprintf(
+                    tmp, sizeof(tmp),
+                    "If flag %s%s%s", 
+                    display_str, s1, download_str);
+            else
+                 g_snprintf(
+                    tmp, sizeof(tmp),
+                    "Always (all states ignored)");
+        }
+        break;
     default:
         g_error("filter_rule_condition_to_gchar: "
                 "unknown rule type: %d", r->type);
@@ -1274,6 +1368,7 @@ void filter_free_rule(rule_t *r)
     case RULE_JUMP:
     case RULE_IP:
     case RULE_FLAG:
+    case RULE_STATE:
         break;
     default:
         g_error("filter_free_rule: unknown rule type: %d", r->type);
@@ -1958,8 +2053,25 @@ static int filter_apply
                          !(rec->results_set->status & ST_UPLOADED)) ||
                         (r->u.flag.stable == RULE_FLAG_IGNORE);
                      
-                    if (stable_match && busy_match && push_match)
-                        match = TRUE;
+                    match = stable_match && busy_match && push_match;
+                }
+                break;
+            case RULE_STATE:
+                {
+                    gboolean display_match;
+                    gboolean download_match;
+
+                    display_match =
+                        (r->u.state.display == FILTER_PROP_STATE_IGNORE) ||
+                        (res->props[FILTER_PROP_DISPLAY].state 
+                            == r->u.state.display);
+                    
+                    download_match = 
+                        (r->u.state.download == FILTER_PROP_STATE_IGNORE) ||
+                        (res->props[FILTER_PROP_DOWNLOAD].state
+                            == r->u.state.download);
+            
+                    match = display_match && download_match;
                 }
                 break;
             default:

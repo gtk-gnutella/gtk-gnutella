@@ -37,7 +37,8 @@ enum {
     nb_filt_page_size,
     nb_filt_page_jump,
     nb_filt_page_sha1,
-    nb_filt_page_flag
+    nb_filt_page_flag,
+    nb_filt_page_state
 };
 
 extern GtkWidget *filter_dialog;
@@ -49,6 +50,7 @@ void filter_gui_edit_size_rule(rule_t *);
 void filter_gui_edit_text_rule(rule_t *);
 void filter_gui_edit_sha1_rule(rule_t *);
 void filter_gui_edit_flag_rule(rule_t *);
+void filter_gui_edit_state_rule(rule_t *);
 void filter_gui_filter_add(filter_t *f, GList *ruleset);
 void filter_gui_filter_clear_list(void);
 void filter_gui_filter_remove(filter_t *f);
