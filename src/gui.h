@@ -179,5 +179,6 @@ void gui_update_upload_connected_timeout();
 void gui_update_max_hosts_cached();
 void gui_update_hosts_in_catcher();
 void gui_update_stats_frames();
+void gui_update_queue_frozen();
 
 #endif /* __gui_h__ */
