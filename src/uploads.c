@@ -660,10 +660,14 @@ static void upload_error_remove(
 	int code,
 	guchar *msg, ...)
 {
-	va_list args;
+	va_list args, errargs;
 
 	va_start(args, msg);
-	send_upload_error_v(u, sf, NULL, code, msg, args);
+
+	VA_COPY(errargs, args);
+	send_upload_error_v(u, sf, NULL, code, msg, errargs);
+	va_end(errargs);
+
 	upload_remove_v(u, msg, args);
 	va_end(args);
 }
@@ -681,10 +685,14 @@ static void upload_error_remove_ext(
 	int code,
 	guchar *msg, ...)
 {
-	va_list args;
+	va_list args, errargs;
 
 	va_start(args, msg);
-	send_upload_error_v(u, sf, ext, code, msg, args);
+
+	VA_COPY(errargs, args);
+	send_upload_error_v(u, sf, ext, code, msg, errargs);
+	va_end(errargs);
+
 	upload_remove_v(u, msg, args);
 	va_end(args);
 }

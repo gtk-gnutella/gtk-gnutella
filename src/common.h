@@ -42,6 +42,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <glib.h>
+#include <stdarg.h>
 
 
 #include "cq.h"
@@ -61,6 +62,21 @@
 #include "idtable.h"
 
 #include "../config.h"
+
+/*
+ * Portability macros.
+ */
+
+/*
+ * Can only use the `args' obtained via va_start(args) ONCE.  If we need
+ * to call another vararg routine, we need to copy the original args.
+ * The __va_copy macro is a GNU extension.
+ */
+#ifdef __va_copy
+#define VA_COPY(dest, src)	__va_copy(dest, src)
+#else
+#define VA_COPY(dest, src)	dest = src
+#endif
 
 /*
  * Constants

@@ -429,6 +429,7 @@ void gmsg_log_dropped(gpointer head, gchar *reason, ...)
 		va_start(args, reason);
 		fputs(": ", stdout);
 		vprintf(reason, args);
+		va_end(args);
 	}
 
 	fputc('\n', stdout);
@@ -451,6 +452,7 @@ void gmsg_log_bad(struct gnutella_node *n, gchar *reason, ...)
 		va_start(args, reason);
 		fputs(": ", stdout);
 		vprintf(reason, args);
+		va_end(args);
 	}
 
 	fputc('\n', stdout);

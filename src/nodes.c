@@ -632,8 +632,14 @@ void node_eof(struct gnutella_node *n, const gchar *reason, ...)
 	if (n->flags & NODE_F_BYE_SENT) {
 		g_assert(n->status == GTA_NODE_SHUTDOWN);
 		if (dbg > 4) {
+			va_list dbargs;
+
 			printf("EOF-style error during BYE to %s:\n (BYE) ", node_ip(n));
-			vprintf(reason, args);
+
+			VA_COPY(dbargs, args);
+			vprintf(reason, dbargs);
+			va_end(dbargs);
+
 			printf("\n");
 		}
 	}
