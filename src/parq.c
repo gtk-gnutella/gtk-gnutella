@@ -449,6 +449,10 @@ void parq_close(void)
 	}
 		
 	g_slist_free(removeq);
+	
+	g_hash_table_destroy(ul_all_parq_by_ip_and_name);
+	g_hash_table_destroy(ul_all_parq_by_ip);
+	g_hash_table_destroy(ul_all_parq_by_id);
 
 }
 
