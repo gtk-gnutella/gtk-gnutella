@@ -384,7 +384,7 @@ void gwc_init(void)
 	 */
 
 	gwc_add("http://www.gnucleus.net/gcache/gcache.php");
-	gwc_add("http://www.zero-g.net/gcache/gcache.php");
+	gwc_add("http://gwebcache.bearshare.net/gcache.php");
 	gwc_add("http://raphael.manfredi.free.fr/gwc/gcache.php");
 
 	gwc_retrieve();
