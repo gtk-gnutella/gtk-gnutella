@@ -2073,7 +2073,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[98].name = "prefer_compressed_gnet";
-    gnet_property->props[98].desc = "When on only compressed incoming connections are allowed after the minimum number of connections has be established. Always allows for one non-compressed connection.";
+    gnet_property->props[98].desc = "If active, only compressed incoming connections are allowed after the minimum number of connections has been established. Always allows for one non-compressed connection.";
     gnet_property->props[98].prop_changed_listeners = NULL;
     gnet_property->props[98].save = TRUE;
     gnet_property->props[98].vector_size = 1;

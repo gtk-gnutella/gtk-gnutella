@@ -1116,8 +1116,8 @@ prop = {
 
 prop = {
     name = "prefer_compressed_gnet";
-    desc = "When on only compressed incoming connections are allowed after "
-           "the minimum number of connections has be established. Always "
+    desc = "If active, only compressed incoming connections are allowed after "
+           "the minimum number of connections has been established. Always "
 	   "allows for one non-compressed connection.";
     save = TRUE;
     type = boolean;
