@@ -112,45 +112,49 @@ const gchar *uploads_gui_status_str(
         return "Transmission complete";
 
 	case GTA_UL_QUEUED:
-		/*
-		 * Status: GTA_UL_QUEUED. When PARQ is enabled, and all upload slots are
-		 * full an upload is placed into the PARQ-upload. Clients supporting 
-		 * Queue 0.1 and 1.0 will get an active slot. We probably want to
-		 * display this information
-		 *		-- JA, 06/02/2003
-		 */
-		if (u->parq_position == 1) {
-			/* position 1 should always get an upload slot */
-			if (u->parq_retry > 0)
-				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"Waiting (slot %4d / %4d) %ds, lifetime: %s", 
-					u->parq_position,
-					u->parq_size,
-					u->parq_retry, 
-					short_time(u->parq_lifetime));
-			else
-				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"Waiting (slot %4d / %4d) lifetime: %s", 
-					u->parq_position,
-					u->parq_size,
-					short_time(u->parq_lifetime));
-		} else {
-			if (u->parq_retry > 0)
-				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"Queued (slot %4d / %4d) %ds, lifetime: %s", 
-					u->parq_position,
-					u->parq_size,
-					u->parq_retry, 
-					short_time(u->parq_lifetime));
-			else
-				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"Queued (slot %4d / %4d) lifetime: %s", 
-					u->parq_position,
-					u->parq_size,
-					short_time(u->parq_lifetime));
+		{
+			extern gint max_uploads;
+			extern gint running_uploads;
+		
+			/*
+			 * Status: GTA_UL_QUEUED. When PARQ is enabled, and all upload slots are
+		 	 * full an upload is placed into the PARQ-upload. Clients supporting 
+			 * Queue 0.1 and 1.0 will get an active slot. We probably want to
+			 * display this information
+			 *		-- JA, 06/02/2003
+			 */
+			if (u->parq_position <= max_uploads - running_uploads) {
+				/* position 1 should always get an upload slot */
+				if (u->parq_retry > 0)
+					gm_snprintf(tmpstr, sizeof(tmpstr),
+						"Waiting (slot %4d / %4d) %ds, lifetime: %s", 
+						u->parq_position,
+						u->parq_size,
+						u->parq_retry, 
+						short_time(u->parq_lifetime));
+				else
+					gm_snprintf(tmpstr, sizeof(tmpstr),
+						"Waiting (slot %4d / %4d) lifetime: %s", 
+						u->parq_position,
+						u->parq_size,
+						short_time(u->parq_lifetime));
+			} else {
+				if (u->parq_retry > 0)
+					gm_snprintf(tmpstr, sizeof(tmpstr),
+						"Queued (slot %4d / %4d) %ds, lifetime: %s", 
+						u->parq_position,
+						u->parq_size,
+						u->parq_retry, 
+						short_time(u->parq_lifetime));
+				else
+					gm_snprintf(tmpstr, sizeof(tmpstr),
+						"Queued (slot %4d / %4d) lifetime: %s", 
+						u->parq_position,
+						u->parq_size,
+						short_time(u->parq_lifetime));
+			}
+			break;
 		}
-        break;
-
     case GTA_UL_QUEUE:
         /*
          * PARQ wants to inform a client that action from the client its side
@@ -203,4 +207,3 @@ gboolean upload_should_remove(time_t now, const upload_row_data_t *ul)
 
 	return FALSE;
 }
-
