@@ -96,8 +96,12 @@ static void auto_connect(void)
 		"connect3.gnutellanet.com",
 		"gnet2.ath.cx",
 		"connect1.bearshare.net",
+		"gnutella-again.hostscache.com",	/* Multiple IPs, oh well */
 	};
-	static time_t *host_tried = NULL;
+	static struct host_catcher {
+		time_t tried;
+		guint32 ip;
+	} *host_tried = NULL;
 	static guint host_idx = 0;
 	guint32 ip = 0;
 	guint16 port = 6346;
@@ -111,23 +115,32 @@ static void auto_connect(void)
 	 * each of them that are not at least HOST_CATCHER_DELAY seconds apart.
 	 * The `host_tried' array keeps track of our last attempts.
 	 *		--RAM, 30/12/2001
+	 *
+	 * To avoid continuous (blocking) DNS lookups when we are low on hosts,
+	 * cache the IP of each host catcher.  We assume those are fairly stable
+	 * hosts and that their IP will never change during the course of our
+	 * running time.
+	 *		--RAM, 14/01/2002
 	 */
 
 	if (host_tried == NULL)
-		host_tried = g_malloc0(sizeof(time_t) * host_count);
+		host_tried = g_malloc0(sizeof(struct host_catcher) * host_count);
 
 	for (i = 0; i < host_count; i++, host_idx++) {
 		if (host_idx >= host_count)
 			host_idx = 0;
 
-		ip = host_to_ip(host_catcher[host_idx]);
+		ip = host_tried[host_idx].ip;
+		if (ip == 0)
+			ip = host_tried[host_idx].ip = host_to_ip(host_catcher[host_idx]);
+
 		if (
 			ip != 0 &&
 			!node_connected(ip, port, FALSE) &&
-			(now - host_tried[host_idx]) >= HOST_CATCHER_DELAY
+			(now - host_tried[host_idx].tried) >= HOST_CATCHER_DELAY
 		) {
 			node_add(NULL, ip, port);
-			host_tried[host_idx] = now;
+			host_tried[host_idx].tried = now;
 			return;
 		}
 	}
