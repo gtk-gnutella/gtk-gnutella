@@ -414,7 +414,7 @@ static void add_column(
 }
 
 static void
-drag_begin(GtkWidget *widget, GdkDragContext *drag_ctx, gpointer udata)
+drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 {
 	GtkTreeView *tv;
 	GtkTreePath *path;
@@ -422,6 +422,8 @@ drag_begin(GtkWidget *widget, GdkDragContext *drag_ctx, gpointer udata)
 	GtkTreeModel *model;
 	gchar **url_ptr = udata;
 
+	(void) unused_drag_ctx;
+	
 	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-begin");
 
 	g_assert(url_ptr != NULL);
