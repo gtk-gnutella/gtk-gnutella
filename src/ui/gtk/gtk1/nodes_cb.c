@@ -30,6 +30,8 @@
 RCSID("$Id$");
 
 #include "nodes_cb.h"
+
+#include "gtk/gtkcolumnchooser.h"
 #include "gtk/settings.h"
 #include "gtk/statusbar.h"
 #include "gtk/gtk-missing.h"
@@ -117,8 +119,9 @@ gboolean on_clist_nodes_button_press_event
     if (event->button != 3)
 		return FALSE;
 
-    if (clist_nodes->selection == NULL)
-        return FALSE;
+	gtk_widget_set_sensitive(
+		lookup_widget(popup_search, "popup_nodes_remove"),
+		clist_nodes->selection != NULL);
 
     if (!gtk_clist_get_selection_info
             (clist_nodes, event->x, event->y, &row, &col))
@@ -192,6 +195,22 @@ void on_entry_host_changed(GtkEditable * editable, gpointer user_data)
 	gtk_widget_set_sensitive(lookup_widget(main_window, "button_nodes_add"),
         	e[0] != '\0');
 	G_FREE_NULL(e);
+}
+
+/* 
+ * 	on_popup_search_config_cols_activate
+ *
+ *	Please add comment
+ */
+void on_popup_nodes_config_cols_activate(GtkMenuItem * menuitem,
+	gpointer user_data)
+{
+    GtkWidget *cc;
+
+    cc = gtk_column_chooser_new(lookup_widget(main_window, "clist_nodes"));
+    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
+
+    /* GtkColumnChooser takes care of cleaning up itself */
 }
 
 /* vi: set ts=4 sw=4 cindent: */

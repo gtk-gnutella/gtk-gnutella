@@ -8536,6 +8536,24 @@
     <label>Remove</label>
     <right_justify>False</right_justify>
   </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>trennlinie1</name>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_nodes_config_cols</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_nodes_config_cols_activate</handler>
+      <last_modification_time>Mon, 18 Oct 2004 22:55:00 GMT</last_modification_time>
+    </signal>
+    <label>Configure columns</label>
+    <right_justify>False</right_justify>
+  </widget>
 </widget>
 
 <widget>
@@ -22881,34 +22899,6 @@ allowed</label>
 		    <name>vbox119</name>
 		    <homogeneous>False</homogeneous>
 		    <spacing>2</spacing>
-
-		    <widget>
-		      <class>GtkCheckButton</class>
-		      <name>checkbutton_node_show_uptime</name>
-		      <can_focus>True</can_focus>
-		      <label>Show node uptime</label>
-		      <active>False</active>
-		      <draw_indicator>True</draw_indicator>
-		      <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
-		      </child>
-		    </widget>
-
-		    <widget>
-		      <class>GtkCheckButton</class>
-		      <name>checkbutton_node_show_handshake_version</name>
-		      <can_focus>True</can_focus>
-		      <label>Show handshaking version</label>
-		      <active>False</active>
-		      <draw_indicator>True</draw_indicator>
-		      <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
-		      </child>
-		    </widget>
 
 		    <widget>
 		      <class>GtkCheckButton</class>

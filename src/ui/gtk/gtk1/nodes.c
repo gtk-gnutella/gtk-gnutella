@@ -30,12 +30,14 @@
 RCSID("$Id$");
 
 #include "interface-glade.h"
+#include "gtk/gtk-missing.h"
 #include "gtk/nodes_common.h"
 #include "gtk/nodes.h"
 #include "gtk/notebooks.h"
 #include "gtk/columns.h"
 
 #include "if/gui_property_priv.h"
+#include "if/gui_property.h"
 #include "if/bridge/ui2c.h"
 
 #include "lib/glib-missing.h"
@@ -240,11 +242,23 @@ void nodes_gui_early_init(void)
  */
 void nodes_gui_init(void) 
 {
-    gtk_clist_column_titles_passive(
-        GTK_CLIST(lookup_widget(main_window, "clist_nodes")));
+	GtkCList *clist;
 
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_nodes, "popup_nodes_remove"), FALSE);
+	clist = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
+
+    gtk_clist_column_titles_passive(clist);
+    gtk_clist_set_column_name(clist, c_gnet_host, _("Host"));
+    gtk_clist_set_column_name(clist, c_gnet_loc, _("Loc"));
+    gtk_clist_set_column_name(clist, c_gnet_flags, _("Flags"));
+    gtk_clist_set_column_name(clist, c_gnet_user_agent, _("User-agent"));
+    gtk_clist_set_column_name(clist, c_gnet_version, _("Ver"));
+    gtk_clist_set_column_name(clist, c_gnet_connected, _("Connected"));
+    gtk_clist_set_column_name(clist, c_gnet_uptime, _("Uptime"));
+    gtk_clist_set_column_name(clist, c_gnet_info, _("Info"));
+	gtk_clist_restore_visibility(clist, PROP_NODES_COL_VISIBLE);
+
+    gtk_widget_set_sensitive(
+		lookup_widget(popup_nodes, "popup_nodes_remove"), FALSE);
 
     ht_node_info_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
     ht_node_flags_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
@@ -252,7 +266,7 @@ void nodes_gui_init(void)
     guc_node_add_node_added_listener(nodes_gui_node_added);
     guc_node_add_node_removed_listener(nodes_gui_node_removed);
     guc_node_add_node_info_changed_listener(nodes_gui_node_info_changed);
-    guc_node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);
+    guc_node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);	
 }
 
 /*
@@ -262,6 +276,11 @@ void nodes_gui_init(void)
  */
 void nodes_gui_shutdown() 
 {
+	GtkCList *clist;
+
+	clist = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
+	gtk_clist_save_visibility(clist, PROP_NODES_COL_VISIBLE);
+
     guc_node_remove_node_added_listener(nodes_gui_node_added);
     guc_node_remove_node_removed_listener(nodes_gui_node_removed);
     guc_node_remove_node_info_changed_listener(nodes_gui_node_info_changed);

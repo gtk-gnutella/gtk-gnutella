@@ -6541,6 +6541,8 @@ create_popup_nodes (void)
   GtkWidget *popup_nodes;
   GtkAccelGroup *popup_nodes_accels;
   GtkWidget *popup_nodes_remove;
+  GtkWidget *trennlinie1;
+  GtkWidget *popup_nodes_config_cols;
 
   popup_nodes = gtk_menu_new ();
   gtk_widget_set_name (popup_nodes, "popup_nodes");
@@ -6555,8 +6557,28 @@ create_popup_nodes (void)
   gtk_widget_show (popup_nodes_remove);
   gtk_container_add (GTK_CONTAINER (popup_nodes), popup_nodes_remove);
 
+  trennlinie1 = gtk_menu_item_new ();
+  gtk_widget_set_name (trennlinie1, "trennlinie1");
+  gtk_widget_ref (trennlinie1);
+  gtk_object_set_data_full (GTK_OBJECT (popup_nodes), "trennlinie1", trennlinie1,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (trennlinie1);
+  gtk_container_add (GTK_CONTAINER (popup_nodes), trennlinie1);
+  gtk_widget_set_sensitive (trennlinie1, FALSE);
+
+  popup_nodes_config_cols = gtk_menu_item_new_with_label (_("Configure columns"));
+  gtk_widget_set_name (popup_nodes_config_cols, "popup_nodes_config_cols");
+  gtk_widget_ref (popup_nodes_config_cols);
+  gtk_object_set_data_full (GTK_OBJECT (popup_nodes), "popup_nodes_config_cols", popup_nodes_config_cols,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_nodes_config_cols);
+  gtk_container_add (GTK_CONTAINER (popup_nodes), popup_nodes_config_cols);
+
   gtk_signal_connect (GTK_OBJECT (popup_nodes_remove), "activate",
                       GTK_SIGNAL_FUNC (on_popup_nodes_remove_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_nodes_config_cols), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_nodes_config_cols_activate),
                       NULL);
 
   return popup_nodes;
@@ -10345,8 +10367,6 @@ create_dlg_prefs (void)
   GtkWidget *hbox190;
   GtkWidget *alignment33;
   GtkWidget *vbox119;
-  GtkWidget *checkbutton_node_show_uptime;
-  GtkWidget *checkbutton_node_show_handshake_version;
   GtkWidget *checkbutton_node_show_detailed_info;
   GtkWidget *vbox123;
   GtkWidget *frame_gnet_detailed_traffic;
@@ -15326,22 +15346,6 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox119);
   gtk_container_add (GTK_CONTAINER (alignment33), vbox119);
-
-  checkbutton_node_show_uptime = gtk_check_button_new_with_label (_("Show node uptime"));
-  gtk_widget_set_name (checkbutton_node_show_uptime, "checkbutton_node_show_uptime");
-  gtk_widget_ref (checkbutton_node_show_uptime);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_node_show_uptime", checkbutton_node_show_uptime,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_node_show_uptime);
-  gtk_box_pack_start (GTK_BOX (vbox119), checkbutton_node_show_uptime, FALSE, FALSE, 0);
-
-  checkbutton_node_show_handshake_version = gtk_check_button_new_with_label (_("Show handshaking version"));
-  gtk_widget_set_name (checkbutton_node_show_handshake_version, "checkbutton_node_show_handshake_version");
-  gtk_widget_ref (checkbutton_node_show_handshake_version);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_node_show_handshake_version", checkbutton_node_show_handshake_version,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_node_show_handshake_version);
-  gtk_box_pack_start (GTK_BOX (vbox119), checkbutton_node_show_handshake_version, FALSE, FALSE, 0);
 
   checkbutton_node_show_detailed_info = gtk_check_button_new_with_label (_("Display detailed traffic information"));
   gtk_widget_set_name (checkbutton_node_show_detailed_info, "checkbutton_node_show_detailed_info");
