@@ -73,8 +73,10 @@ enum {
 /*
  * Private function prototypes
  */
+#if 0
 static gint search_results_compare_func
     (GtkCList * clist, gconstpointer ptr1, gconstpointer ptr2);
+#endif
 static void set_search_color(struct search *sch);
 
 
@@ -868,9 +870,7 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 	GtkCTreeNode *cur_node;
 	GtkCTreeNode *prev_node = NULL;
 	gint n;
-	gint size = 0;
 	gint col_data;
-	record_t *rtemp;	
 
 	/* Nothing to sort */	
 	if (NULL == GTK_CLIST(ctree)->row_list)
@@ -1645,6 +1645,7 @@ gboolean search_gui_search_results_col_visible_changed(property_t prop)
  *** Private functions
  ***/
 
+#if 0
 static gint search_results_compare_func
     (GtkCList * clist, gconstpointer ptr1, gconstpointer ptr2)
 {
@@ -1653,6 +1654,7 @@ static gint search_results_compare_func
 
     return search_gui_compare_records(clist->sort_column, s1, s2);
 }
+#endif
 
 /***
  *** Public functions
