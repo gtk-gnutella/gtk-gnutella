@@ -539,7 +539,7 @@ gboolean hcache_add(
     switch (type) {
     case HCACHE_FRESH_ANY:
     case HCACHE_FRESH_ULTRA:
-        // FIXME: using g_list_append here is potentially slow
+        /* FIXME: using g_list_append here is potentially slow */
         hc->hostlist = g_list_append(hc->hostlist, host);
         break;
 
@@ -689,7 +689,7 @@ gboolean hcache_is_low(host_type_t type)
  */
 static void hcache_remove_all(hostcache_t *hc)
 {
-    // FIXME: may be possible to do this faster
+    /* FIXME: may be possible to do this faster */
 
     if (hc->host_count == 0)
         return;

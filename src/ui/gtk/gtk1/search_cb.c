@@ -668,8 +668,9 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
     /* actually using the "active" guard should be enough, but
      * I'll try to block the signal too, just to be on the save side.
      */
-    // FIXME: Use either guard or signal blocking. Signal blocking
-    //        should be preferred to get better performance.
+    /* FIXME: Use either guard or signal blocking. Signal blocking
+     *        should be preferred to get better performance.
+	 */
     gtk_signal_handler_block_by_func(GTK_OBJECT(ctree), 
 		GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
 		NULL);
@@ -1182,7 +1183,7 @@ static void queue_bitzi_by_sha1(record_t *rec, void *nothing)
 void
 on_popup_search_metadata_activate(GtkMenuItem *menuitem, gpointer user_data)
 {
-    GList *node_list, *data_list = NULL;
+    GList *node_list, *data_list;
     search_t *search;
 
     search = search_gui_get_current_search();
@@ -1194,7 +1195,7 @@ on_popup_search_metadata_activate(GtkMenuItem *menuitem, gpointer user_data)
 	data_list = search_cb_collect_ctree_data(search->ctree, node_list);
 	
 	/* Queue up our requests */
-	g_message("on_popup_earch_metadata_activate: %d items, %p",
+	g_message("on_popup_search_metadata_activate: %d items, %p",
 			  g_list_position(data_list, g_list_last(data_list)) + 1,
 			  data_list);
 

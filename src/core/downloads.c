@@ -5854,7 +5854,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	if (buf) {
 		guint32 content_size = atol(buf);
 		
-		// FIXME: DOWNLOAD_SIZE, don't always use total!!!
+		/* FIXME: DOWNLOAD_SIZE, don't always use total!!! */
 		if (!d->file_size_known) {
 			d->size = content_size;
 			fi->size = content_size;
@@ -5890,7 +5890,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			sscanf(buf, "bytes %d-%d/%d", &start, &end, &total) ||	/* Good */
 			sscanf(buf, "bytes=%d-%d/%d", &start, &end, &total)		/* Bad! */
 		) {
-			// FIXME: DOWNLOAD_SIZE, don't always use total!!!
+			/* FIXME: DOWNLOAD_SIZE, don't always use total!!! */
 			if (!d->file_size_known) {
 				d->size = total;
 				fi->size = total;

@@ -250,7 +250,7 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
 void on_popup_downloads_abort_host_activate(GtkMenuItem * menuitem,
 										   gpointer user_data) 
 {
-	// XXX routing misnamed: we're "forgetting" here, not "aborting"
+	/* XXX routing misnamed: we're "forgetting" here, not "aborting" */
     struct download *d;
     GList *node_list; 
     GList *data_list;

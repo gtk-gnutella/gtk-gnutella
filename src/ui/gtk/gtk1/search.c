@@ -849,9 +849,10 @@ gint search_gui_analyze_col_data(GtkCTree *ctree, gint sort_col)
 	rcur = gtk_ctree_node_get_row_data(ctree, prev_node);
 
 	/* No point anaylzing without enough data */
-    // FIXME: this counts the number of rows, but not the number of top-level
-    // nodes. The number can only be seen as an estimation.
-    //     -- BLUE 17/01/2004
+    /* FIXME: this counts the number of rows, but not the number of top-level
+     * nodes. The number can only be seen as an estimation.
+     *     -- BLUE 17/01/2004
+	 */
 	if (50 > g_list_length((GList *) prev_node)) 
 		return SEARCH_COL_SORT_DATA_DEFAULT;
 		
@@ -983,15 +984,16 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
              *    -- BLUE 17/01/2004
              */
 
-            // FIXME: It might be possible to use fast_mode only when
-            // moving top-level nodes around and also sort the children,
-            // or to simply iterate over all nodes (also children), purge
-            // the tree content are create it from scratch. How fast would
-            // that be? Should be like <O(n^2) for iteration and sorting and
-            // O(n) for purging and rebuilding.
-            // A couple of other places in the code would need to be changed
-            // too (search for GTK_CTREE_NODE_SIBLING).
-            //    -- BLUE 17/01/2004
+            /* FIXME: It might be possible to use fast_mode only when
+             * moving top-level nodes around and also sort the children,
+             * or to simply iterate over all nodes (also children), purge
+             * the tree content are create it from scratch. How fast would
+             * that be? Should be like <O(n^2) for iteration and sorting and
+             * O(n) for purging and rebuilding.
+             * A couple of other places in the code would need to be changed
+             * too (search for GTK_CTREE_NODE_SIBLING).
+             *    -- BLUE 17/01/2004
+			 */
 			for (
 				cur_node = GTK_CTREE_NODE_SIBLING(cur_node);
 				(NULL != cur_node);
@@ -2509,61 +2511,35 @@ void search_gui_end_massive_update(search_t *sch)
 		gtk_clist_thaw(ctree);
 }
 
-/*
- * search_gui_metadata_update
- *
+/**
  * Update the search displays with the correct meta-data
  *
  */
-
-void search_gui_metadata_update(bitzi_data_t *data)
+void
+search_gui_metadata_update(const bitzi_data_t *data)
 {
-    GList       *sr;
-    search_t    *search;
-    gchar	*text = NULL;
-    GtkCTreeNode *parent;
-	
-    /*
-     * Build string
-     */
-	
-    if (data->mime_type) {
-	if (data->mime_desc) {
-	    text = g_strdup_printf("%s (%1.1f): %s (%s)",
-		    bitzi_fjtostring(data->judgement),
-		    data->goodness,
-		    data->mime_type,
-		    data->mime_desc);
-	} else {
-	    text = g_strdup_printf("%s (%1.1f): %s",
-		    bitzi_fjtostring(data->judgement),
-		    data->goodness,
-		    data->mime_type);
-	}	    
-    } else if (data->judgement != UNKNOWN) {
-	text = g_strdup_printf("%s (%1.1f): No other data",
-		bitzi_fjtostring(data->judgement),
-		data->goodness);
-    }
+    GList *l;
+    gchar *text;
 
-    /*
-     * Fill in the coloumns in each search that contains a reference
-     */
-	
-    for (sr=searches; sr; sr = g_list_next(sr) )
-    {
-	search = sr->data;
-	GtkCTree *ctree = GTK_CTREE(search->ctree);
-		
-	parent = find_parent_with_sha1(search->parents, data->urnsha1);
-	if (parent)
-	    gtk_ctree_node_set_text(ctree, parent, c_sr_meta, text); 
+	text = bitzi_gui_get_metadata(data);
 
-    } /* for each search */
+	/*
+	 * Fill in the columns in each search that contains a reference
+	 */
 
-    /* free the string */
-    g_free(text);
+	for (l = searches; l != NULL; l = g_list_next(l)) {
+		search_t *search = l->data;
+		GtkCTree *ctree = GTK_CTREE(search->ctree);
+    	GtkCTreeNode *parent;
 
+		parent = find_parent_with_sha1(search->parents, data->urnsha1);
+		if (parent)
+			gtk_ctree_node_set_text(ctree, parent,
+					c_sr_meta, text ? text : _("Not in database")); 
+	}
+
+	/* free the string */
+	g_free(text);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

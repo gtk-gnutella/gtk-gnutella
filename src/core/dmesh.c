@@ -59,7 +59,7 @@ RCSID("$Id$");
 #include "lib/override.h"	/* Must be the last header included */
 
 /* made visible for us by atoms.c */
-// FIXME: extern functions are horrible -- BLUE
+/* FIXME: extern functions are horrible -- BLUE */
 extern gint sha1_eq(gconstpointer a, gconstpointer b);
 extern guint sha1_hash(gconstpointer key);
 
@@ -2505,7 +2505,7 @@ static void dmesh_ban_retrieve(void)
 			continue;
 		}
 
-		// FIXME: Save SHA1 for banning
+		/* FIXME: Save SHA1 for banning */
 		dmesh_ban_add(NULL, &info, stamp);
 		atom_str_free(info.name);
 	}

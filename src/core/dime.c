@@ -108,7 +108,8 @@ char *dime_create_record_header(dime_record_header_t * dime_record_header)
 	header[1] = header[1] | dime_record_header->resrvd;
 
 	/* BE first */
-	//GUINT16/32_TO_BE(dime_record_header->data_length);
+	/* GUINT16/32_TO_BE(dime_record_header->data_length); */
+
 	*((guint16 *) &header[2]) = dime_record_header->options_length;
 	*((guint16 *) &header[4]) = dime_record_header->id_length;
 	*((guint16 *) &header[6]) = dime_record_header->type_length;
@@ -175,7 +176,7 @@ gboolean dime_parse_record_header(char *dime_record,
 	dime_record_header->type_t = dime_record[1] >> 4;
 	dime_record_header->resrvd = dime_record[1] & 0x0F;
 
-	// FIXME: GUINT16/32_FROM_BE()
+	/* FIXME: GUINT16/32_FROM_BE() */
 	dime_record_header->options_length	= *(guint16 *) &dime_record[2];
 	dime_record_header->id_length		= *(guint16 *) &dime_record[4];
 	dime_record_header->type_length		= *(guint16 *) &dime_record[6];

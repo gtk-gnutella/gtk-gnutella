@@ -155,10 +155,10 @@ struct tokkey {
 		{ 0, 93, 1, '\0', 0, 1072566000 },			/* 28/12/2003 */
 		keys_093_1, G_N_ELEMENTS(keys_093_1),
 	},
-// XXX Keep this out because a bug in 0.94 and 0.93 prevents them from
-// XXX validating our level if there are more entries in the level we
-// XXX generate compared to the level they can validate.
-#if 0	// Until we decide to release 0.95
+/* XXX Keep this out because a bug in 0.94 and 0.93 prevents them from
+ * XXX validating our level if there are more entries in the level we
+ * XXX generate compared to the level they can validate. */
+#if 0	/* Until we decide to release 0.95 */
 	{
 		{ 0, 95, 0, 'u', 0, 1089756000 },			/* 14/07/2004 */
 		keys_095u, G_N_ELEMENTS(keys_095u),
