@@ -52,6 +52,7 @@ RCSID("$Id$");
 #include "dq.h"
 #include "dh.h"
 #include "share.h"
+#include "vmsg.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/gui_property.h"
@@ -86,11 +87,15 @@ struct sent_node_data {
 	guint16 port;
 };
 
+static guint32 search_id = 0;			/* Unique search counter */
+static GHashTable *searches = NULL;		/* All alive searches */
+
 /* 
  * Structure for search results 
  */
 typedef struct search_ctrl {
-    gnet_search_t search_handle; /* Search handle */
+    gnet_search_t search_handle;	/* Search handle */
+	guint32 id;						/* Unique ID */
 
 	/* no more "speed" field -- use marked field now --RAM, 06/07/2003 */
 
@@ -101,8 +106,13 @@ typedef struct search_ctrl {
 
 	gboolean passive;			/* Is this a passive search? */
 	gboolean frozen;			/* True => don't update window */
-	/* keep a record of nodes we've sent this search w/ this muid to. */
-	GHashTable *sent_nodes;
+
+	/*
+	 * Keep a record of nodes we've sent this search w/ this muid to.
+	 */
+
+	GHashTable *sent_nodes;		/* Sent node by ip:port */
+	GHashTable *sent_node_ids;	/* Id (atoms) of nodes to which we sent query */
 
 	GHook *new_node_hook;
 	guint reissue_timeout_id;
@@ -171,7 +181,7 @@ void search_fire_got_results(GSList *sch_matched, const gnet_results_set_t *rs)
 }
 
 /***
- *** Private functions
+ *** Management of the "sent_nodes" hash table.
  ***/
 
 static guint
@@ -210,6 +220,13 @@ search_free_sent_nodes(search_ctrl_t *sch)
 }
 
 static void
+search_reset_sent_nodes(search_ctrl_t *sch)
+{
+	search_free_sent_nodes(sch);
+	sch->sent_nodes = g_hash_table_new(sent_node_hash_func, sent_node_compare);
+}
+
+static void
 mark_search_sent_to_node(search_ctrl_t *sch, gnutella_node_t *n)
 {
 	struct sent_node_data *sd = walloc(sizeof(*sd));
@@ -231,6 +248,44 @@ mark_search_sent_to_connected_nodes(search_ctrl_t *sch)
 			mark_search_sent_to_node(sch, n);
 	}
 	g_hash_table_thaw(sch->sent_nodes);
+}
+
+/***
+ *** Management of the "sent_node_ids" hash table.
+ ***/
+
+static gboolean
+search_free_sent_node_id(gpointer atom, gpointer value, gpointer udata)
+{
+	atom_int_free(atom);
+	return TRUE;
+}
+
+static void
+search_free_sent_node_ids(search_ctrl_t *sch)
+{
+	g_hash_table_foreach_remove(sch->sent_node_ids,
+		search_free_sent_node_id, NULL);
+	g_hash_table_destroy(sch->sent_node_ids);
+}
+
+static void
+search_reset_sent_node_ids(search_ctrl_t *sch)
+{
+	search_free_sent_node_ids(sch);
+	sch->sent_node_ids = g_hash_table_new(g_int_hash, g_int_equal);
+}
+
+static void
+mark_search_sent_to_node_id(search_ctrl_t *sch, guint32 node_id)
+{
+	gint *atom;
+
+	if (g_hash_table_lookup(sch->sent_node_ids, &node_id))
+		return;
+
+	atom = atom_int_get(&node_id);
+	g_hash_table_insert(sch->sent_node_ids, atom, GUINT_TO_POINTER(1));
 }
 
 /**
@@ -1322,13 +1377,6 @@ node_added_callback(gpointer data)
 	}
 }
 
-static void
-search_reset_sent_nodes(search_ctrl_t *sch)
-{
-	search_free_sent_nodes(sch);
-	sch->sent_nodes = g_hash_table_new(sent_node_hash_func, sent_node_compare);
-}
-
 /**
  * Create a new muid and add it to the search's list of muids.
  */
@@ -1337,8 +1385,10 @@ search_add_new_muid(search_ctrl_t *sch, gchar *muid)
 {
 	guint count;
 
-	if (sch->muids)				/* If this isn't the first muid */
+	if (sch->muids) {		/* If this isn't the first muid -- requerying */
 		search_reset_sent_nodes(sch);
+		search_reset_sent_node_ids(sch);
+	}
 
 	sch->muids = g_slist_prepend(sch->muids, (gpointer) muid);
 	g_hash_table_insert(sch->h_muids, muid, muid);
@@ -1455,6 +1505,7 @@ search_init(void)
 	rs_zone = zget(sizeof(gnet_results_set_t), 1024);
 	rc_zone = zget(sizeof(gnet_record_t), 1024);
     
+	searches = g_hash_table_new(g_direct_hash, 0);
     search_handle_map = idtable_new(32,32);
 	query_hashvec = qhvec_alloc(128);	/* Max: 128 unique words / URNs! */
 }
@@ -1470,6 +1521,7 @@ search_shutdown(void)
 
     g_assert(idtable_ids(search_handle_map) == 0);
 
+	g_hash_table_destroy(searches);
     idtable_destroy(search_handle_map);
     search_handle_map = NULL;
 	qhvec_free(query_hashvec);
@@ -1477,6 +1529,62 @@ search_shutdown(void)
 	zdestroy(rs_zone);
 	zdestroy(rc_zone);
 	rs_zone = rc_zone = NULL;
+}
+
+/**
+ * Check whether search bearing the specified ID is still alive.
+ */
+static gboolean
+search_alive(search_ctrl_t *sch, guint32 id)
+{
+	if (!g_hash_table_lookup(searches, sch))
+		return FALSE;
+
+	return sch->id == id;		/* In case it reused the same address */
+}
+
+/**
+ * Send an unsollicited "Query Status Response" to the specified node ID
+ * about the results we kept so far for the relevant search.
+ * -- hash table iterator callback
+ */
+static void
+search_send_status(gpointer key, gpointer value, gpointer udata)
+{
+	gint *node_id = (gint *) key;
+	search_ctrl_t *sch = (search_ctrl_t *) udata;
+	struct gnutella_node *n;
+	guint16 kept;
+
+	n = node_active_by_id(*node_id);
+	if (n == NULL)
+		return;					/* Node disconnected already */
+
+	if (search_debug > 1)
+		printf("SCH reporting %u kept results so far for \"%s\" to %s\n",
+			sch->kept_results, sch->query, node_ip(n));
+
+	/*
+	 * We use the first MUID in the list, i.e. the last one we used
+	 * for sending out queries for that search.
+	 *
+	 * The 0xffff value is a magic number telling them to stop the search,
+	 * so we never report it here.
+	 */
+
+	kept = MIN(sch->kept_results, 0xfffe);
+
+	vmsg_send_qstat_answer(n, sch->muids->data, kept);
+}
+
+/**
+ * Update our querying ultrapeers about the results we kept so far for
+ * the given search.
+ */
+static void
+search_update_results(search_ctrl_t *sch)
+{
+	g_hash_table_foreach(sch->sent_node_ids, search_send_status, sch);
 }
 
 /**
@@ -1609,7 +1717,7 @@ search_results(gnutella_node_t *n, gint *results)
 
      if (selected_searches != NULL)
         search_fire_got_results(selected_searches, rs);
-		
+
     search_free_r_set(rs);
 
 final_cleanup:
@@ -1649,6 +1757,36 @@ search_query_allowed(gnet_search_t sh)
 
 	sch->query_emitted++;
 	return TRUE;
+}
+
+/**
+ * Returns unique ID associated with search with given handle, and return
+ * the address of the search object as well.
+ */
+guint32
+search_get_id(gnet_search_t sh, gpointer *search)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+	g_assert(sch);
+
+	*search = sch;
+	return sch->id;
+}
+
+/**
+ * Notification from sq that a query for this search was sent to the
+ * specified node ID.
+ */
+void
+search_notify_sent(gpointer search, guint32 id, guint32 node_id)
+{
+	search_ctrl_t *sch = (search_ctrl_t *) search;
+
+	if (!search_alive(sch, id))
+		return;
+
+	mark_search_sent_to_node_id(sch, node_id);
 }
 
 /**
@@ -1736,10 +1874,10 @@ search_check_results_set(gnet_results_set_t *rs)
 }
 
 /***
- *** Public functions accessible through gnet.h
+ *** Public functions.
  ***/
 
-/* *
+/**
  * Remove the search from the list of searches and free all 
  * associated ressources.
  */
@@ -1762,6 +1900,7 @@ search_close(gnet_search_t sh)
 
 	sl_search_ctrl = g_slist_remove(sl_search_ctrl, (gpointer) sch);
     search_drop_handle(sch->search_handle);
+	g_hash_table_remove(searches, sch);
 
 	if (!sch->passive) {
 		g_hook_destroy_link(&node_added_hook_list, sch->new_node_hook);
@@ -1778,6 +1917,7 @@ search_close(gnet_search_t sh)
 		g_hash_table_destroy(sch->h_muids);
 
 		search_free_sent_nodes(sch);
+		search_free_sent_node_ids(sch);
 		search_dequeue_all_nodes(sh);
 	} else {
 		search_passive--;
@@ -1863,6 +2003,9 @@ search_new(
 
 	sch = g_new0(search_ctrl_t, 1);
 	sch->search_handle = search_request_handle(sch);
+	sch->id = search_id++;
+
+	g_hash_table_insert(searches, sch, GINT_TO_POINTER(1));
 
 	/*
 	 * Canonicalize the query we're sending.
@@ -1934,6 +2077,20 @@ search_add_kept(gnet_search_t sh, guint32 kept)
     search_ctrl_t *sch = search_find_by_handle(sh);
 
 	sch->kept_results += kept;
+
+	if (search_debug > 2)
+		printf("SCH GUI reported %u new kept results for \"%s\", has %u now\n",
+			kept, sch->query, sch->kept_results);
+
+	/*
+	 * If we're a leaf node, notify our dynamic query managers (the ultranodes
+	 * to which we're connected) about the amount of results we got so far.
+	 */
+
+	if (sch->passive || current_peermode != NODE_P_LEAF)
+		return;
+
+	search_update_results(sch);
 }
 
 /**
@@ -1966,6 +2123,7 @@ search_start(gnet_search_t sh)
 
 			sch->sent_nodes =
 				g_hash_table_new(sent_node_hash_func, sent_node_compare);
+			sch->sent_node_ids = g_hash_table_new(g_int_hash, g_int_equal);
 
 			search_send_packet(sch);		/* Send initial query */
 		}

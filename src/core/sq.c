@@ -3,11 +3,6 @@
  *
  * Copyright (c) 2002-2003, Alex Bennee <alex@bennee.com> & Raphael Manfredi
  *
- * This file takes care of paceing search messages out at a rate
- * that doesn't flood the gnutella network. A search queue is
- * maintained for each gnutella node and regularly polled by the
- * timer function to release messages into the lower message queues
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -26,6 +21,17 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @file
+ *
+ * Search queue.
+ *
+ * This file takes care of paceing search messages out at a rate
+ * that doesn't flood the gnutella network. A search queue is
+ * maintained for each gnutella node and regularly polled by the
+ * timer function to release messages into the lower message queues
  */
 
 #include "common.h"
@@ -61,18 +67,50 @@ typedef struct smsg {
 	gnet_search_t shandle;		/* Handle to search that originated query */
 } smsg_t;
 
+/*
+ * Message information for mutated blocks.
+ *
+ * Records meta-information about the message being queued so that we may
+ * react when the message queue informs us it has processed it.
+ */
+struct smsg_info {
+	gpointer search;			/* The search object which sends the query */
+	guint32 id;					/* The unique search ID */
+	guint32 node_id;			/* The unique node ID to which we're sending */
+};
+
 static void cap_queue(squeue_t *sq);
+
+/**
+ * Free routine for a query message.
+ */
+static void
+sq_pmsg_free(pmsg_t *mb, gpointer arg)
+{
+	struct smsg_info *smi = (struct smsg_info *) arg;
+
+	g_assert(pmsg_is_extended(mb));
+
+	/*
+	 * If we're still in leaf mode, let the search know that we sent a
+	 * query for it to the specified node ID.
+	 */
+
+	if (current_peermode == NODE_P_LEAF)
+		search_notify_sent(smi->search, smi->id, smi->node_id);
+
+	wfree(smi, sizeof(*smi));
+}
 
 /***
  *** Search queue entry management.
  ***/
 
-/*
- * smsg_alloc
- *
+/**
  * Allocate a new search queue entry.
  */
-static smsg_t *smsg_alloc(gnet_search_t sh, pmsg_t *mb)
+static smsg_t *
+smsg_alloc(gnet_search_t sh, pmsg_t *mb)
 {
 	smsg_t *sb = walloc(sizeof(*sb));
 
@@ -82,40 +120,56 @@ static smsg_t *smsg_alloc(gnet_search_t sh, pmsg_t *mb)
 	return sb;
 }
 
-/*
- * smsg_free
- *
+/**
  * Dispose of the search queue entry.
  */
-static void smsg_free(smsg_t *sb)
+static void
+smsg_free(smsg_t *sb)
 {
 	g_assert(sb);
 
 	wfree(sb, sizeof(*sb));
 }
 
+/**
+ * Mutate the message so that we can be notified about its freeing by
+ * the mq to which it will be sent to.
+ */
+static void
+smsg_mutate(smsg_t *sb, struct gnutella_node *n)
+{
+	struct smsg_info *smi;
+	pmsg_t *omb;
+
+	smi = (struct smsg_info *) walloc(sizeof(*smi));
+	smi->id = search_get_id(sb->shandle, &smi->search);
+	smi->node_id = n->id;
+
+	omb = sb->mb;
+	sb->mb = pmsg_clone_extend(omb, sq_pmsg_free, smi);
+	pmsg_free(omb);
+}
+
 /***
  *** "handle" hash table management.
  ***/
 
-/*
- * sqh_exists
- *
+/**
  * Checks whether an entry exists in the search queue for given search handle.
  */
-static gboolean sqh_exists(squeue_t *sq, gnet_search_t sh)
+static gboolean
+sqh_exists(squeue_t *sq, gnet_search_t sh)
 {
 	g_assert(sq != NULL);
 
 	return NULL != g_hash_table_lookup(sq->handles, GUINT_TO_POINTER(sh));
 }
 
-/*
- * sqh_put
- *
+/**
  * Record search handle in the hash table.
  */
-static void sqh_put(squeue_t *sq, gnet_search_t sh)
+static void
+sqh_put(squeue_t *sq, gnet_search_t sh)
 {
 	g_assert(sq != NULL);
 	g_assert(!sqh_exists(sq, sh));
@@ -123,12 +177,11 @@ static void sqh_put(squeue_t *sq, gnet_search_t sh)
 	g_hash_table_insert(sq->handles, GUINT_TO_POINTER(sh), GINT_TO_POINTER(1));
 }
 
-/*
- * sqh_remove
- *
+/**
  * Remove search handle from the hash table.
  */
-static void sqh_remove(squeue_t *sq, gnet_search_t sh)
+static void
+sqh_remove(squeue_t *sq, gnet_search_t sh)
 {
 	gpointer key;
 	gpointer value;
@@ -149,12 +202,11 @@ static void sqh_remove(squeue_t *sq, gnet_search_t sh)
  *** Search queue.
  ***/
 
-/*
- * sq_make
- *
+/**
  * Create a new search queue.
  */
-squeue_t *sq_make(struct gnutella_node *node)
+squeue_t *
+sq_make(struct gnutella_node *node)
 {
     squeue_t *sq;
 
@@ -181,12 +233,11 @@ squeue_t *sq_make(struct gnutella_node *node)
 	return sq;
 }
 
-/*
- * sq_clear
- *
+/**
  * Clear all queued searches.
  */
-void sq_clear(squeue_t *sq)
+void
+sq_clear(squeue_t *sq)
 {
 	GList *l;
 
@@ -209,12 +260,11 @@ void sq_clear(squeue_t *sq)
 	sq->count = 0;
 }
 
-/*
- * sq_free
- *
+/**
  * Free queue and all queued searches.
  */
-void sq_free(squeue_t *sq)
+void
+sq_free(squeue_t *sq)
 {
 	g_assert(sq);
 
@@ -223,9 +273,7 @@ void sq_free(squeue_t *sq)
 	wfree(sq, sizeof(*sq));
 }
 
-/*
- * sq_putq
- *
+/**
  * Enqueue a single query (LIFO behaviour).
  *
  * We are given both the query message `mb' and the search handle `sh'.
@@ -235,7 +283,8 @@ void sq_free(squeue_t *sq)
  * to remove the queries when a search is closed, and avoid queuing twice
  * the same search.
  */
-void sq_putq(squeue_t *sq, gnet_search_t sh, pmsg_t *mb)
+void
+sq_putq(squeue_t *sq, gnet_search_t sh, pmsg_t *mb)
 {
 	smsg_t *sb;
 
@@ -255,13 +304,12 @@ void sq_putq(squeue_t *sq, gnet_search_t sh, pmsg_t *mb)
 		cap_queue(sq);
 }
 
-/*
- * sq_process
- *
+/**
  * Decides if the queue can send a message. Currently use simple fixed
  * time base heuristics. May add bursty control later...
  */
-void sq_process(squeue_t *sq, time_t now)
+void
+sq_process(squeue_t *sq, time_t now)
 {
 	GList *item;
 	smsg_t *sb;
@@ -329,9 +377,19 @@ retry:
 		 */
 
 		if (dbg > 2)
-			printf("sq for node %s, sent \"%s\" (%u left, %d sent)\n",
+			printf("sq for node %s, queuing \"%s\" (%u left, %d sent)\n",
 				node_ip(n), QUERY_TEXT(pmsg_start(sb->mb)),
 				sq->count, sq->n_sent);
+
+		/*
+		 * If we're a leaf node, we're doing a leaf-guided dynamic query.
+		 * In order to be able to report hits we get to the UPs to whom
+		 * we sent our searches, we need to be notified of all the physical
+		 * queries that go out.
+		 */
+
+		if (current_peermode == NODE_P_LEAF)
+			smsg_mutate(sb, n);
 
 		mq_putq(n->outq, sb->mb);
 		sq->n_sent++;
@@ -359,13 +417,12 @@ retry:
 		goto retry;
 }
 
-/*
- * cap_queue
- *
+/**
  * Decides if it needs to drop the oldest messages on the
  * search queue based on the search count
  */
-static void cap_queue(squeue_t *sq)
+static void
+cap_queue(squeue_t *sq)
 {
     while (sq->count > search_queue_size) {
     	GList *item = g_list_last(sq->searches);
@@ -389,13 +446,12 @@ static void cap_queue(squeue_t *sq)
     }
 }
 
-/*
- * sq_search_closed
- *
+/**
  * Signals the search queue that a search was closed.
  * Any query for that search still in the queue is dropped.
  */
-void sq_search_closed(squeue_t *sq, gnet_search_t sh)
+void
+sq_search_closed(squeue_t *sq, gnet_search_t sh)
 {
 	GList *l;
 	GList *next;

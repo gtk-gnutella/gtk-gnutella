@@ -38,6 +38,9 @@
 #define QUERY_SPEED_LEAF_GUIDED	0x0010		/* Leaf-guided query */
 #define QUERY_SPEED_GGEP_H		0x0008		/* Recipient understands GGEP "H" */
 #define QUERY_SPEED_OOB_REPLY	0x0004		/* Out-of-band reply possible */
+#define QUERY_SPEED_FW_TO_FW	0x0002		/* Can do fw to fw transfers */
+
+#define QUERY_FW2FW_FILE_INDEX	2147483645	/* Magic index for fw-fw transfer */
 
 /*
  * Global Functions
@@ -48,6 +51,8 @@ void search_shutdown(void);
 
 gboolean search_results(gnutella_node_t *n, gint *results);
 gboolean search_query_allowed(gnet_search_t sh);
+guint32 search_get_id(gnet_search_t sh, gpointer *search);
+void search_notify_sent(gpointer search, guint32 id, guint32 node_id);
 void search_add_kept(gnet_search_t sh, guint32 kept);
 gboolean search_get_kept_results(gchar *muid, guint32 *kept);
 

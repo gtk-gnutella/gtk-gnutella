@@ -908,11 +908,13 @@ void search_matched(search_t *sch, results_set_t *rs)
 
 	/*
 	 * Update counters in the core-side of the search.
+	 *
+	 * NB: we need to call guc_search_add_kept() even if we kept nothing,
+	 * that is required for proper dynamic querying support by leaf nodes.
 	 */
 
 	guc_search_update_items(sch->search_handle, sch->items);
-	if (results_kept)
-		guc_search_add_kept(sch->search_handle, results_kept);
+	guc_search_add_kept(sch->search_handle, results_kept);
 
 	/*
 	 * Disable search when the maximum amount of items is shown: they need
