@@ -53,6 +53,11 @@
 
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
 
+/*
+ * Private function declarations:
+ */
+//static void gui_init_menu();
+
 static gchar gui_tmp[4096];
 
 /* If no search are currently allocated */
@@ -140,6 +145,97 @@ void gui_init(void)
      */
     gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook_main), FALSE);
 }
+
+/*
+static void gui_init_menu() 
+{
+    const gchar *menus[] = {
+		"gnutellaNet",
+		"Uploads",
+		"Stats",
+		"Downloads",
+		"Search",
+		"Monitor",
+		"Stats",
+		"Config",
+		NULL
+	};
+
+    const gint menutabs[] = { 0, 1, 2, 3, 4, 5, 6, 7, -1 };
+   	gint optimal_width;
+    GtkCTreeNode * parent_node = NULL;    
+    GtkCTreeNode * last_node = NULL;
+
+    g_assert(sizeof(menus) / sizeof(menus[0]) - 2 == NOTEBOOK_MAIN_IDX_MAX);
+
+   	// Final interface setup
+
+	optimal_width =
+		gtk_clist_optimal_column_width(GTK_CLIST(ctree_menu), 0);
+
+    // gnutellaNet
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[0],
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[0]);
+
+    // Uploads
+    parent_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[1],
+        0, NULL, NULL, NULL, NULL, FALSE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), parent_node, (gpointer) &menutabs[1]);
+
+    // Uploads -> Stats
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) &menus[2],
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE);
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[2]);
+
+    // Downloads
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[3],
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[3]);
+
+    // Search
+    parent_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[4],
+        0, NULL, NULL, NULL, NULL, FALSE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), parent_node, (gpointer) &menutabs[4]);
+
+    // Search -> Monitor
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) & menus[5],
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[5]);
+
+    // Search -> Monitor
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) & menus[6],
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[6]);
+
+    // Config
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) & menus[7],
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[7]); 
+
+	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
+
+	gtk_widget_set_usize(sw_menu, optimal_width,
+						 (ctree_menu->style->font->ascent +
+						  ctree_menu->style->font->descent + 4) * 8);
+}
+*/
 
 void gui_update_all() 
 {
@@ -284,7 +380,7 @@ void gui_update_all()
 								   search_stats_col_widths[i]);
 	for (i = 0; i < 5; i++)
 		gtk_clist_set_column_width(GTK_CLIST(clist_ul_stats), i,
-								   ul_stats_col_widths[i]);
+                                   ul_stats_col_widths[i]);
 }
 
 void gui_nodes_remove_selected(void)
@@ -1115,6 +1211,11 @@ void gui_update_download(struct download *d, gboolean force)
 		row = gtk_clist_find_row_from_data(GTK_CLIST(clist_downloads),
 			(gpointer) d);
 		gtk_clist_set_text(GTK_CLIST(clist_downloads), row, 3, a);
+	}
+    if (d->status == GTA_DL_QUEUED) {
+		row = gtk_clist_find_row_from_data(GTK_CLIST(clist_downloads_queue),
+			(gpointer) d);
+		gtk_clist_set_text(GTK_CLIST(clist_downloads_queue), row, 3, a);
 	}
 }
 

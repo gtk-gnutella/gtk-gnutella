@@ -285,10 +285,11 @@ create_main_window (void)
   GtkWidget *vbox35;
   GtkWidget *frame4;
   GtkWidget *vbox15;
-  GtkWidget *scrolledwindow7;
-  GtkWidget *label66;
-  GtkWidget *label96;
-  GtkWidget *label67;
+  GtkWidget *scrolledwindow13;
+  GtkWidget *label152;
+  GtkWidget *label153;
+  GtkWidget *label154;
+  GtkWidget *label155;
   GtkWidget *hbox68;
   GtkWidget *hbox86;
   GtkWidget *label149;
@@ -405,6 +406,8 @@ create_main_window (void)
   GtkWidget *label122;
   GtkWidget *label_config;
   GtkWidget *hbox89;
+  GtkWidget *eventbox2;
+  GtkWidget *eventbox3;
   GtkAccelGroup *accel_group;
   GtkTooltips *tooltips;
 
@@ -1685,46 +1688,54 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame4), vbox15);
   gtk_container_set_border_width (GTK_CONTAINER (vbox15), 2);
 
-  scrolledwindow7 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_ref (scrolledwindow7);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow7", scrolledwindow7,
+  scrolledwindow13 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_ref (scrolledwindow13);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow13", scrolledwindow13,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (scrolledwindow7);
-  gtk_box_pack_start (GTK_BOX (vbox15), scrolledwindow7, TRUE, TRUE, 0);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow7), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+  gtk_widget_show (scrolledwindow13);
+  gtk_box_pack_start (GTK_BOX (vbox15), scrolledwindow13, TRUE, TRUE, 0);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow13), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  clist_downloads_queue = gtk_clist_new (3);
+  clist_downloads_queue = gtk_clist_new (4);
   gtk_widget_ref (clist_downloads_queue);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_downloads_queue", clist_downloads_queue,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (clist_downloads_queue);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow7), clist_downloads_queue);
-  gtk_clist_set_column_width (GTK_CLIST (clist_downloads_queue), 0, 79);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow13), clist_downloads_queue);
+  gtk_clist_set_column_width (GTK_CLIST (clist_downloads_queue), 0, 80);
   gtk_clist_set_column_width (GTK_CLIST (clist_downloads_queue), 1, 80);
   gtk_clist_set_column_width (GTK_CLIST (clist_downloads_queue), 2, 80);
+  gtk_clist_set_column_width (GTK_CLIST (clist_downloads_queue), 3, 80);
   gtk_clist_set_selection_mode (GTK_CLIST (clist_downloads_queue), GTK_SELECTION_EXTENDED);
   gtk_clist_column_titles_show (GTK_CLIST (clist_downloads_queue));
 
-  label66 = gtk_label_new ("File");
-  gtk_widget_ref (label66);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label66", label66,
+  label152 = gtk_label_new ("Filename");
+  gtk_widget_ref (label152);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label152", label152,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label66);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_downloads_queue), 0, label66);
+  gtk_widget_show (label152);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_downloads_queue), 0, label152);
 
-  label96 = gtk_label_new ("Host");
-  gtk_widget_ref (label96);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label96", label96,
+  label153 = gtk_label_new ("Host");
+  gtk_widget_ref (label153);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label153", label153,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label96);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_downloads_queue), 1, label96);
+  gtk_widget_show (label153);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_downloads_queue), 1, label153);
 
-  label67 = gtk_label_new ("Size");
-  gtk_widget_ref (label67);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label67", label67,
+  label154 = gtk_label_new ("Size");
+  gtk_widget_ref (label154);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label154", label154,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label67);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_downloads_queue), 2, label67);
+  gtk_widget_show (label154);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_downloads_queue), 2, label154);
+
+  label155 = gtk_label_new ("Status");
+  gtk_widget_ref (label155);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label155", label155,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label155);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_downloads_queue), 3, label155);
 
   hbox68 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox68);
@@ -3022,20 +3033,36 @@ create_main_window (void)
   gtk_widget_show (hbox89);
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox89, FALSE, FALSE, 0);
 
+  eventbox2 = gtk_event_box_new ();
+  gtk_widget_ref (eventbox2);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox2", eventbox2,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox2);
+  gtk_box_pack_start (GTK_BOX (hbox89), eventbox2, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox2, "gtk-gnutella thinks you're firewalled", NULL);
+
   pixmap_firewall = create_pixmap (main_window, "firewall.xpm");
   gtk_widget_ref (pixmap_firewall);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "pixmap_firewall", pixmap_firewall,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (pixmap_firewall);
-  gtk_box_pack_start (GTK_BOX (hbox89), pixmap_firewall, TRUE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (eventbox2), pixmap_firewall);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (pixmap_firewall), FALSE);
+
+  eventbox3 = gtk_event_box_new ();
+  gtk_widget_ref (eventbox3);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox3", eventbox3,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox3);
+  gtk_box_pack_start (GTK_BOX (hbox89), eventbox3, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox3, "gtk-gnutella found no firewall", NULL);
 
   pixmap_no_firewall = create_pixmap (main_window, "no_firewall.xpm");
   gtk_widget_ref (pixmap_no_firewall);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "pixmap_no_firewall", pixmap_no_firewall,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (pixmap_no_firewall);
-  gtk_box_pack_start (GTK_BOX (hbox89), pixmap_no_firewall, TRUE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (eventbox3), pixmap_no_firewall);
 
   label_statusbar_uptime = gtk_label_new ("Uptime");
   gtk_widget_ref (label_statusbar_uptime);
