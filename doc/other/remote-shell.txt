@@ -4,16 +4,16 @@
 -------------------------------------------------------------------------------
 Date: 17.12.2002
 Author: Richard Eckart
-
+$Id$
 
 
 Introduction
 ------------
 
   The remote shell service of gtk-gnutella serves as a playground for the
-upcoming core<->gui separation. Here I want to implement serveral commands
-the are currently only available through gnet.h. At the moment you can't
-do very much with this service.
+  upcoming core<->gui separation.  Here I want to implement several commands
+  that are currently only available through gnet.h.  At the moment you can't
+  do very much with this service.
 
 
 
@@ -26,23 +26,23 @@ Connecting
 Authentification
 ----------------
 
-  The first thing you need to do after the connect is to authentify. For that
-  you need to supply the command
+  The first thing you need to do after the connect is to authenticate.  For 
+  that you need to supply the command:
 
     HELO [credential]
 
-  The [credential] is stored in $GTK_GNUTELLA_DIR/auth_cookie. Gtk-gnutella
-  creates this file at startup and stored a random base32 value in it. The
+  The [credential] is stored in $GTK_GNUTELLA_DIR/auth_cookie.  Gtk-gnutella
+  creates this file at startup and stored a random base32 value in it.  The
   file is readable only by the owner.
 
 
 Commands
 --------
 
-  After the authentification, you can enter commands. Commands are not case 
-  sensitive (but property names are.) You can use double-quotes in commands to 
-  create arguments that contain spaces. Within those quotes the "\" (backslash) 
-  is used to escape chars ('\x' -> 'x', '\"' -> '"'). This is useful if you 
+  After the authentification, you can enter commands.  Commands are not case 
+  sensitive (but property names are.)  You can use double-quotes in commands to 
+  create arguments that contain spaces.  Within those quotes the "\" (backslash) 
+  is used to escape chars ('\x' -> 'x', '\"' -> '"').  This is useful if you 
   need to have double-quotes in a quoted argument.
 
   Currently there are not many commands that are working. Those are:
@@ -61,8 +61,10 @@ Commands
     the default gnutella port 6346 is used.
 
   - PRINT <property>
-    Print the current value of a property.  Refer to prop.c to find names of 
-    properties.
+    Print the current value of a property.  Refer to gnet_props.ag and 
+    gui_props.ag to find names, descriptions, and possible values of 
+    properties.  Current values are stored in ~/.gtk-gnutella/config_gnet 
+    and ~/.gtk-gnutella/config_gui so you could also look there for hints.
 
   - SET <property> <value>
     Set the value of <property> to <value>.
