@@ -1239,6 +1239,7 @@ void prop_save_to_file(
 		if (-1 == rename(newfile, filename))
 			g_warning("could not rename %s as %s: %s",
 				newfile, filename, g_strerror(errno));
+		ps->mtime = time(NULL);
 	} else
 		g_warning("could not flush %s: %s", newfile, g_strerror(errno));
 
