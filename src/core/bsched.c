@@ -1575,8 +1575,10 @@ bs_socket(enum socket_direction dir, enum socket_type type)
 		return (dir == SOCK_CONN_OUTGOING) ? bws.gout : bws.gin;
 	case SOCK_TYPE_SHELL:
 		return NULL;
+	case SOCK_TYPE_UDP:
+		return (dir == SOCK_CONN_OUTGOING) ? bws.gout_udp : bws.gin_udp;
 	default:
-		g_warning("bws_connect: unhandled socket type %d", type);
+		g_warning("bs_socket: unhandled socket type %d", type);
 		return (dir == SOCK_CONN_OUTGOING) ? bws.out : bws.in;
 	}
 }
