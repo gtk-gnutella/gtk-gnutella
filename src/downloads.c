@@ -6327,6 +6327,7 @@ void download_push_ack(struct gnutella_socket *s)
 	 * Now we have to read that trailing "\n" which comes right afterwards.
 	 */
 
+	g_assert(NULL == d->io_opaque);
 	io_get_header(d, &d->io_opaque, bws.in, s, IO_SINGLE_LINE,
 		call_download_push_ready, NULL, &download_io_error);
 }
