@@ -588,8 +588,11 @@ static void downgrade_handshaking(struct gnutella_node *n)
 		n->proto_major = 0;
 		n->proto_minor = 4;
 		nodes_in_list++;
+		gui_update_c_gnutellanet();
 	} else
 		n->remove_msg = "Re-connection failed";
+
+	gui_update_node(n, TRUE);
 }
 
 /*
@@ -1167,7 +1170,7 @@ nextline:
 	 */
 
 	if (n->proto_major == 0 && n->proto_minor == 4) {
-		g_assert(n->flags & NODE_F_INCOMING);
+		g_assert(n->flags & (NODE_F_INCOMING|NODE_F_TMP));
 		gdk_input_remove(s->gdk_tag);
 		s->gdk_tag = 0;
 		node_is_now_connected(n);
