@@ -1,6 +1,11 @@
 # since last version
 
 - (2002.06.24 - RAM)
+  * Debian package now requires glib1.2 >= 1.2.10.
+  * Added warning in dmesh_alternate_location() in case we overflow buffer.
+	Also check returned val from g_snprintf() to account for trailing NUL.
+  * Integrated Richard's filter cleanup patch.
+  * Added nicer servent name for two new servents: RAZA and SWFT.
   * Mark callout queue event as freed to avoid memory corruptions in case
 	of misuse (i.e. usage bug).
   * Forgot that dm_expire() could empty the mesh entry (fixes bug #573027).
