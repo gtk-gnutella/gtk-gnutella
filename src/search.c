@@ -35,6 +35,7 @@
 #define T_LIME	MAKE_CODE('L','I','M','E')
 #define T_MACT	MAKE_CODE('M','A','C','T')
 #define T_MNAP	MAKE_CODE('M','N','A','P')
+#define T_MRPH	MAKE_CODE('M','R','P','H')
 #define T_MUTE	MAKE_CODE('M','U','T','E')
 #define T_NAPS	MAKE_CODE('N','A','P','S')
 #define T_OCFG	MAKE_CODE('O','C','F','G')
@@ -757,6 +758,7 @@ static gchar *extract_vendor_name(struct results_set * rs)
 	case T_LIME: vendor = "Lime";			break;
 	case T_MACT: vendor = "Mactella";		break;
 	case T_MNAP: vendor = "MyNapster";		break;
+	case T_MRPH: vendor = "Morpheus";		break;
 	case T_MUTE: vendor = "Mutella";		break;
 	case T_NAPS: vendor = "NapShare";		break;
 	case T_OCFG: vendor = "OpenCola";		break;
