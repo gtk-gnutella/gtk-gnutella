@@ -326,6 +326,9 @@ void ban_record(guint32 ip, const gchar *msg)
 		g_hash_table_insert(info, GUINT_TO_POINTER(ip), ipf);
 	}
 
+	if (ipf->ban_msg != NULL)
+		atom_str_free(ipf->ban_msg);
+
 	ipf->ban_msg = atom_str_get(msg);
 	ipf->ban_delay = MAX_BAN;
 
