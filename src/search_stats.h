@@ -26,14 +26,13 @@
 #ifndef _search_stats_h_
 #define _search_stats_h_
 
-#include <glib.h>
-
-#include "common.h"
+#include "gnutella.h"
 
 void search_stats_enable(void);
 void search_stats_disable(void);
 void search_stats_reset(void);
 void search_stats_tally(const word_vec_t *);
+void search_stats_set_timeout(guint32 timeout);
 
 #endif
 

@@ -32,15 +32,13 @@
  *		(C) 2002 Michael Tesch, released with gtk-gnutella & its license
  */
 
-#include "gnutella.h"
+#include "gui.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "search_stats_gui.h" // FIXME: remove this dependency
 #include "search_stats.h"
 
-#include "gnet_property_priv.h"
 
 /* this is what the stat_hash's 'val' points to */
 struct term_counts {
@@ -69,6 +67,47 @@ delete_hash_entry(gpointer key, gpointer val, gpointer data)
 	return TRUE;
 }
 
+static gboolean callback_registered = FALSE;
+
+/***
+ *** Callbacks
+ ***/
+
+static void search_stats_notify(query_type_t type, const gchar *search)
+{
+    word_vec_t *wovec;
+    guint wocnt;
+    guint i;
+    gchar *buf = g_strdup(search);
+
+    if (type == QUERY_SHA1)
+        return;
+
+   	wocnt = query_make_word_vec(buf, &wovec);
+	if (wocnt == 0)
+		return;
+
+    for (i = 0; i < wocnt; i++)
+        search_stats_tally(&wovec[i]);
+
+	query_word_vec_free(wovec, wocnt);
+    g_free(buf);
+}
+
+static gboolean search_stats_update_interval_changed(property_t prop)
+{
+    if (stats_tag) {
+        search_stats_disable();
+        search_stats_enable();
+    }
+    
+    return FALSE;
+}
+
+/***
+ *** Private functions
+ ***/
+
 /* this sucks -- too slow */
 static void empty_hash_table()
 {
@@ -76,40 +115,6 @@ static void empty_hash_table()
 		return;
 
 	g_hash_table_foreach_remove(stat_hash, delete_hash_entry, NULL);
-}
-
-/*
- * search_stats_enable
- *
- * Enable search stats.
- */
-void search_stats_enable(void)
-{
-	if (!stat_hash) {
-        GtkWidget *clist_search_stats = 
-            lookup_widget(main_window, "clist_search_stats");
-
-		stat_hash = g_hash_table_new(g_str_hash, g_str_equal);
-
-		/* set up the clist to be sorted properly */
-		gtk_clist_set_sort_column(GTK_CLIST(clist_search_stats), 2);
-		gtk_clist_set_sort_type(GTK_CLIST(clist_search_stats),
-			GTK_SORT_DESCENDING);
-	}
-
-	g_assert(stats_tag == 0);
-
-	stats_tag = g_timeout_add(1000 * search_stats_update_interval,
-		update_search_stats_display, NULL);
-}
-
-void search_stats_disable(void)
-{
-	if (!stats_tag)
-		return;
-
-	g_source_remove(stats_tag);
-	stats_tag = 0;
 }
 
 /*
@@ -148,6 +153,7 @@ stats_hash_to_clist(gpointer key, gpointer value, gpointer userdata)
 
 	/* update the display */
 
+    // FIXME: make %8.8d %d and set up custom sort function
 	g_snprintf(period_tmp, sizeof(period_tmp), "%8.8d", (int) val->period_cnt);
 	g_snprintf(total_tmp, sizeof(total_tmp), "%8.8d", (int) val->total_cnt);
 
@@ -194,7 +200,7 @@ static int update_search_stats_display(gpointer data)
 	gtk_clist_thaw(GTK_CLIST(clist_search_stats));
 
 	/* update the counter */
-	g_snprintf(tmpstr, sizeof(tmpstr), "%u", stat_count);
+	g_snprintf(tmpstr, sizeof(tmpstr), "%u terms counted", stat_count);
 	gtk_label_set_text(GTK_LABEL(label_search_stats_count), tmpstr);
 
 	/* reschedule? */
@@ -208,13 +214,68 @@ static int update_search_stats_display(gpointer data)
 	return TRUE;
 }
 
+/***
+ *** Public functions 
+ ***/
+
 /*
- * search_stats_reset
+ * search_stats_enable
+ *
+ * Enable search stats.
+ */
+void search_stats_enable(void)
+{
+	if (!stat_hash) {
+        GtkWidget *clist_search_stats = 
+            lookup_widget(main_window, "clist_search_stats");
+
+		stat_hash = g_hash_table_new(g_str_hash, g_str_equal);
+
+		/* set up the clist to be sorted properly */
+		gtk_clist_set_sort_column(GTK_CLIST(clist_search_stats), c_st_total);
+		gtk_clist_set_sort_type(GTK_CLIST(clist_search_stats),
+			GTK_SORT_DESCENDING);
+	}
+
+	g_assert(stats_tag == 0);
+
+	stats_tag = g_timeout_add(1000 * search_stats_update_interval,
+		update_search_stats_display, NULL);
+
+    if (!callback_registered) {
+        share_add_search_request_listener(search_stats_notify);
+        gui_prop_add_prop_changed_listener(
+            PROP_SEARCH_STATS_UPDATE_INTERVAL,
+            search_stats_update_interval_changed, FALSE);
+        callback_registered = TRUE;
+    }
+}
+
+void search_stats_disable(void)
+{
+    if (callback_registered) {
+        share_remove_search_request_listener
+            (search_stats_notify);
+        gui_prop_remove_prop_changed_listener(
+            PROP_SEARCH_STATS_UPDATE_INTERVAL,
+            search_stats_update_interval_changed);
+        callback_registered = FALSE;
+    }
+
+	if (!stats_tag)
+		return;
+
+	g_source_remove(stats_tag);
+	stats_tag = 0;
+}
+
+/*
+ * search_stats_reset:
  *
  * Clear the list, empty the hash table.
  */
 void search_stats_reset(void)
-{
+    {
     GtkWidget *clist_search_stats = 
             lookup_widget(main_window, "clist_search_stats");
 
@@ -229,6 +290,8 @@ void search_stats_reset(void)
 }
 
 /*
+ * search_stats_tally:
+ *
  * Count a word that has been seen.
  */
 void search_stats_tally(const word_vec_t * vec)
@@ -249,4 +312,3 @@ void search_stats_tally(const word_vec_t * vec)
 		g_hash_table_insert(stat_hash, key, (gpointer) val);
 	}
 }
-
