@@ -2641,7 +2641,7 @@ else
 fi
 
 
-if test "x$have_zlib" = "xno"; then
+if test "x$have_zlib" != "xyes"; then
     echo "Missing zlib -- you need to install zlib from www.zlib.org"
 fi
 
