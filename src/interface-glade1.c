@@ -9544,6 +9544,7 @@ create_dlg_about (void)
   GtkWidget *label264;
   GtkWidget *label266;
   GtkWidget *label267;
+  GtkWidget *hbox159;
   GtkWidget *frame45;
   GtkWidget *table29;
   GtkWidget *label269;
@@ -9559,14 +9560,15 @@ create_dlg_about (void)
   GtkWidget *frame46;
   GtkWidget *scrolledwindow18;
   GtkWidget *text1;
-  GtkWidget *hbox137;
+  GtkWidget *label405;
+  GtkWidget *hseparator9;
   GtkWidget *button_about_close;
 
   dlg_about = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (dlg_about, "dlg_about");
   gtk_object_set_data (GTK_OBJECT (dlg_about), "dlg_about", dlg_about);
+  gtk_widget_set_usize (dlg_about, 550, 350);
   gtk_window_set_title (GTK_WINDOW (dlg_about), "About gtk-gnutella");
-  gtk_window_set_policy (GTK_WINDOW (dlg_about), FALSE, FALSE, FALSE);
 
   vbox67 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox67, "vbox67");
@@ -9608,7 +9610,7 @@ create_dlg_about (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "table28", table28,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (table28);
-  gtk_box_pack_start (GTK_BOX (vbox67), table28, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox67), table28, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (table28), 4);
   gtk_table_set_row_spacings (GTK_TABLE (table28), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table28), 4);
@@ -9659,13 +9661,21 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label267), 0, 0.5);
 
+  hbox159 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox159, "hbox159");
+  gtk_widget_ref (hbox159);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "hbox159", hbox159,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox159);
+  gtk_box_pack_start (GTK_BOX (vbox67), hbox159, TRUE, TRUE, 0);
+
   frame45 = gtk_frame_new ("Current roles");
   gtk_widget_set_name (frame45, "frame45");
   gtk_widget_ref (frame45);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "frame45", frame45,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame45);
-  gtk_box_pack_start (GTK_BOX (vbox67), frame45, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox159), frame45, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame45), 3);
 
   table29 = gtk_table_new (5, 2, FALSE);
@@ -9795,7 +9805,7 @@ create_dlg_about (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "frame46", frame46,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame46);
-  gtk_box_pack_start (GTK_BOX (vbox67), frame46, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox159), frame46, TRUE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame46), 3);
 
   scrolledwindow18 = gtk_scrolled_window_new (NULL, NULL);
@@ -9817,15 +9827,23 @@ create_dlg_about (void)
   gtk_container_add (GTK_CONTAINER (scrolledwindow18), text1);
   gtk_widget_set_usize (text1, 146, 126);
   gtk_text_insert (GTK_TEXT (text1), NULL, NULL, NULL,
-                   "Steven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nVidar Madsen <vidar@gimp.org>", -1);
+                   "Steven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>", strlen("Steven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>"));
 
-  hbox137 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox137, "hbox137");
-  gtk_widget_ref (hbox137);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "hbox137", hbox137,
+  label405 = gtk_label_new ("==> We are looking for people who want to contribute to this fine tool. <==\nVist http://gtk-gnutella.sourceforge.net.\nJoin the users or developers mailing lists.\nMeet us on #gtk-gnutella at irc.openprojects.org.");
+  gtk_widget_set_name (label405, "label405");
+  gtk_widget_ref (label405);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label405", label405,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox137);
-  gtk_box_pack_start (GTK_BOX (vbox67), hbox137, TRUE, TRUE, 0);
+  gtk_widget_show (label405);
+  gtk_box_pack_start (GTK_BOX (vbox67), label405, FALSE, FALSE, 0);
+
+  hseparator9 = gtk_hseparator_new ();
+  gtk_widget_set_name (hseparator9, "hseparator9");
+  gtk_widget_ref (hseparator9);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "hseparator9", hseparator9,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hseparator9);
+  gtk_box_pack_start (GTK_BOX (vbox67), hseparator9, FALSE, TRUE, 0);
 
   button_about_close = gtk_button_new_with_label ("Close");
   gtk_widget_set_name (button_about_close, "button_about_close");
@@ -9833,7 +9851,7 @@ create_dlg_about (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "button_about_close", button_about_close,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_about_close);
-  gtk_box_pack_start (GTK_BOX (hbox137), button_about_close, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox67), button_about_close, FALSE, FALSE, 0);
   GTK_WIDGET_SET_FLAGS (button_about_close, GTK_CAN_DEFAULT);
 
   gtk_signal_connect (GTK_OBJECT (dlg_about), "delete_event",
