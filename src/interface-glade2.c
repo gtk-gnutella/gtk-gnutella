@@ -4258,27 +4258,27 @@ create_main_window (void)
   GtkWidget *notebook2;
   GtkWidget *table54;
   GtkWidget *progressbar_hosts_in_catcher;
-  GtkWidget *button_ultra_catcher_clear;
   GtkWidget *label546;
   GtkWidget *label545;
   GtkWidget *progressbar_hosts_in_ultra_catcher;
   GtkWidget *label548;
   GtkWidget *label547;
-  GtkWidget *button_host_catcher_clear;
   GtkObject *spinbutton_nodes_max_hosts_cached_adj;
   GtkWidget *spinbutton_nodes_max_hosts_cached;
   GtkObject *spinbutton_nodes_max_ultra_hosts_cached_adj;
   GtkWidget *spinbutton_nodes_max_ultra_hosts_cached;
+  GtkWidget *button_ultra_catcher_clear;
+  GtkWidget *button_host_catcher_clear;
   GtkWidget *label543;
   GtkWidget *table55;
   GtkWidget *label549;
   GtkWidget *label550;
+  GtkWidget *label551;
+  GtkWidget *label552;
   GtkWidget *entry_count_uploads;
   GtkWidget *entry_count_downloads;
   GtkWidget *entry_ul_byte_count;
   GtkWidget *entry_dl_byte_count;
-  GtkWidget *label551;
-  GtkWidget *label552;
   GtkWidget *label544;
   GtkWidget *frame14;
   GtkWidget *vbox34;
@@ -4515,10 +4515,10 @@ create_main_window (void)
   GtkWidget *table5;
   GtkWidget *entry_config_force_ip;
   GtkWidget *label35;
-  GtkObject *spinbutton_config_port_adj;
-  GtkWidget *spinbutton_config_port;
   GtkWidget *checkbutton_config_force_ip;
   GtkWidget *label129;
+  GtkObject *spinbutton_config_port_adj;
+  GtkWidget *spinbutton_config_port;
   GtkWidget *label287;
   GtkWidget *frame_proxy_settings;
   GtkWidget *vbox28;
@@ -4720,6 +4720,15 @@ create_main_window (void)
   GtkWidget *label480;
   GtkWidget *frame_expert_dl_timeout;
   GtkWidget *table8;
+  GtkWidget *label162;
+  GtkWidget *label163;
+  GtkWidget *label164;
+  GtkWidget *label165;
+  GtkWidget *label166;
+  GtkWidget *label167;
+  GtkWidget *label168;
+  GtkWidget *label169;
+  GtkWidget *label170;
   GtkObject *spinbutton_config_download_retry_stopped_delay_adj;
   GtkWidget *spinbutton_config_download_retry_stopped_delay;
   GtkObject *spinbutton_config_download_retry_refused_delay_adj;
@@ -4738,15 +4747,6 @@ create_main_window (void)
   GtkWidget *spinbutton_config_download_push_sent_timeout;
   GtkObject *spinbutton_config_download_connected_timeout_adj;
   GtkWidget *spinbutton_config_download_connected_timeout;
-  GtkWidget *label162;
-  GtkWidget *label163;
-  GtkWidget *label164;
-  GtkWidget *label165;
-  GtkWidget *label166;
-  GtkWidget *label167;
-  GtkWidget *label168;
-  GtkWidget *label169;
-  GtkWidget *label170;
   GtkWidget *label299;
   GtkWidget *frame51;
   GtkWidget *vbox102;
@@ -4838,22 +4838,22 @@ create_main_window (void)
   GtkWidget *label372;
   GtkWidget *label_config;
   GtkWidget *hpaned_gnet_stats;
-  GtkWidget *viewport25;
-  GtkWidget *vbox100;
-  GtkWidget *scrolledwindow60;
-  GtkWidget *viewport26;
+  GtkWidget *scrolledwindow66;
+  GtkWidget *viewport33;
+  GtkWidget *vpaned1;
+  GtkWidget *frame73;
+  GtkWidget *scrolledwindow32;
+  GtkWidget *treeview_gnet_stats_general;
+  GtkWidget *label539;
   GtkWidget *vbox101;
   GtkWidget *gnet_stats_notebook;
-  GtkWidget *scrolledwindow55;
-  GtkWidget *viewport18;
+  GtkWidget *scrolledwindow65;
   GtkWidget *treeview_gnet_stats_messages;
   GtkWidget *label478;
   GtkWidget *scrolledwindow52;
-  GtkWidget *viewport22;
   GtkWidget *treeview_gnet_stats_flowc;
   GtkWidget *label502;
   GtkWidget *scrolledwindow56;
-  GtkWidget *viewport20;
   GtkWidget *treeview_gnet_stats_recv;
   GtkWidget *label509;
   GtkWidget *table49;
@@ -4861,11 +4861,6 @@ create_main_window (void)
   GtkWidget *checkbutton_gnet_stats_bytes;
   GtkWidget *checkbutton_gnet_stats_hops;
   GtkWidget *checkbutton_gnet_stats_with_headers;
-  GtkWidget *frame73;
-  GtkWidget *scrolledwindow32;
-  GtkWidget *viewport27;
-  GtkWidget *treeview_gnet_stats_general;
-  GtkWidget *label539;
   GtkWidget *viewport21;
   GtkWidget *frame74;
   GtkWidget *vbox86;
@@ -5313,13 +5308,15 @@ create_main_window (void)
   gtk_widget_show (treeview_nodes);
   gtk_container_add (GTK_CONTAINER (scrolledwindow37), treeview_nodes);
   gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_nodes), TRUE);
+  gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_nodes), FALSE);
 
   table56 = gtk_table_new (1, 4, FALSE);
   gtk_widget_set_name (table56, "table56");
   gtk_widget_show (table56);
   gtk_box_pack_start (GTK_BOX (vbox17), table56, FALSE, TRUE, 0);
-  gtk_table_set_row_spacings (GTK_TABLE (table56), 4);
-  gtk_table_set_col_spacings (GTK_TABLE (table56), 2);
+  gtk_container_set_border_width (GTK_CONTAINER (table56), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table56), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table56), 4);
 
   button_nodes_add = gtk_button_new ();
   gtk_widget_set_name (button_nodes_add, "button_nodes_add");
@@ -5361,7 +5358,7 @@ create_main_window (void)
   label519 = gtk_label_new ("Connect to");
   gtk_widget_set_name (label519, "label519");
   gtk_widget_show (label519);
-  gtk_box_pack_start (GTK_BOX (hbox_leaf), label519, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_leaf), label519, FALSE, TRUE, 0);
   gtk_label_set_justify (GTK_LABEL (label519), GTK_JUSTIFY_LEFT);
   gtk_misc_set_padding (GTK_MISC (label519), 5, 0);
 
@@ -5374,7 +5371,7 @@ create_main_window (void)
   label520 = gtk_label_new ("ultrapeers");
   gtk_widget_set_name (label520, "label520");
   gtk_widget_show (label520);
-  gtk_box_pack_start (GTK_BOX (hbox_leaf), label520, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_leaf), label520, FALSE, TRUE, 0);
   gtk_label_set_justify (GTK_LABEL (label520), GTK_JUSTIFY_LEFT);
   gtk_misc_set_padding (GTK_MISC (label520), 5, 0);
 
@@ -5383,15 +5380,14 @@ create_main_window (void)
   gtk_widget_show (entry_host);
   gtk_table_attach (GTK_TABLE (table56), entry_host, 2, 3, 0, 1,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 5, 0);
+                    (GtkAttachOptions) (0), 0, 0);
 
   button_nodes_remove = gtk_button_new ();
   gtk_widget_set_name (button_nodes_remove, "button_nodes_remove");
   gtk_widget_show (button_nodes_remove);
   gtk_table_attach (GTK_TABLE (table56), button_nodes_remove, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 5, 0);
-  gtk_widget_set_sensitive (button_nodes_remove, FALSE);
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
   gtk_tooltips_set_tip (tooltips, button_nodes_remove, "Disconnect from selected nodes", NULL);
 
   alignment32 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -5423,7 +5419,7 @@ create_main_window (void)
   label2 = gtk_label_new ("Try to keep at least");
   gtk_widget_set_name (label2, "label2");
   gtk_widget_show (label2);
-  gtk_box_pack_start (GTK_BOX (hbox_normal_or_ultrapeer), label2, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_normal_or_ultrapeer), label2, FALSE, TRUE, 0);
   gtk_misc_set_padding (GTK_MISC (label2), 5, 0);
 
   spinbutton_up_connections_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
@@ -5436,7 +5432,7 @@ create_main_window (void)
   label3 = gtk_label_new ("connections up");
   gtk_widget_set_name (label3, "label3");
   gtk_widget_show (label3);
-  gtk_box_pack_start (GTK_BOX (hbox_normal_or_ultrapeer), label3, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_normal_or_ultrapeer), label3, FALSE, TRUE, 0);
 
   label82 = gtk_label_new ("Maximum of");
   gtk_widget_set_name (label82, "label82");
@@ -5448,13 +5444,13 @@ create_main_window (void)
   spinbutton_max_connections = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_connections_adj), 1, 0);
   gtk_widget_set_name (spinbutton_max_connections, "spinbutton_max_connections");
   gtk_widget_show (spinbutton_max_connections);
-  gtk_box_pack_start (GTK_BOX (hbox_normal_or_ultrapeer), spinbutton_max_connections, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_normal_or_ultrapeer), spinbutton_max_connections, FALSE, TRUE, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_connections), TRUE);
 
   label83 = gtk_label_new ("total connections");
   gtk_widget_set_name (label83, "label83");
   gtk_widget_show (label83);
-  gtk_box_pack_start (GTK_BOX (hbox_normal_or_ultrapeer), label83, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_normal_or_ultrapeer), label83, FALSE, TRUE, 0);
 
   label279 = gtk_label_new ("gnutellaNet connections");
   gtk_widget_set_name (label279, "label279");
@@ -5479,6 +5475,7 @@ create_main_window (void)
   gtk_widget_set_name (table54, "table54");
   gtk_widget_show (table54);
   gtk_container_add (GTK_CONTAINER (notebook2), table54);
+  gtk_container_set_border_width (GTK_CONTAINER (table54), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table54), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table54), 4);
 
@@ -5488,13 +5485,6 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table54), progressbar_hosts_in_catcher, 1, 3, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-
-  button_ultra_catcher_clear = gtk_button_new_with_mnemonic ("Clear");
-  gtk_widget_set_name (button_ultra_catcher_clear, "button_ultra_catcher_clear");
-  gtk_widget_show (button_ultra_catcher_clear);
-  gtk_table_attach (GTK_TABLE (table54), button_ultra_catcher_clear, 4, 5, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 5, 0);
 
   label546 = gtk_label_new ("Max hosts cached");
   gtk_widget_set_name (label546, "label546");
@@ -5535,20 +5525,13 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  button_host_catcher_clear = gtk_button_new_with_mnemonic ("Clear");
-  gtk_widget_set_name (button_host_catcher_clear, "button_host_catcher_clear");
-  gtk_widget_show (button_host_catcher_clear);
-  gtk_table_attach (GTK_TABLE (table54), button_host_catcher_clear, 2, 3, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_SHRINK), 4, 2);
-
   spinbutton_nodes_max_hosts_cached_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_nodes_max_hosts_cached = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_nodes_max_hosts_cached_adj), 1, 0);
   gtk_widget_set_name (spinbutton_nodes_max_hosts_cached, "spinbutton_nodes_max_hosts_cached");
   gtk_widget_show (spinbutton_nodes_max_hosts_cached);
   gtk_table_attach (GTK_TABLE (table54), spinbutton_nodes_max_hosts_cached, 1, 2, 2, 3,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 4, 2);
+                    (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_nodes_max_hosts_cached), TRUE);
 
   spinbutton_nodes_max_ultra_hosts_cached_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
@@ -5557,8 +5540,22 @@ create_main_window (void)
   gtk_widget_show (spinbutton_nodes_max_ultra_hosts_cached);
   gtk_table_attach (GTK_TABLE (table54), spinbutton_nodes_max_ultra_hosts_cached, 3, 4, 2, 3,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 4, 2);
+                    (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_nodes_max_ultra_hosts_cached), TRUE);
+
+  button_ultra_catcher_clear = gtk_button_new_with_mnemonic ("Clear");
+  gtk_widget_set_name (button_ultra_catcher_clear, "button_ultra_catcher_clear");
+  gtk_widget_show (button_ultra_catcher_clear);
+  gtk_table_attach (GTK_TABLE (table54), button_ultra_catcher_clear, 4, 5, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  button_host_catcher_clear = gtk_button_new_with_mnemonic ("Clear");
+  gtk_widget_set_name (button_host_catcher_clear, "button_host_catcher_clear");
+  gtk_widget_show (button_host_catcher_clear);
+  gtk_table_attach (GTK_TABLE (table54), button_host_catcher_clear, 2, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label543 = gtk_label_new ("Host catcher");
   gtk_widget_set_name (label543, "label543");
@@ -5571,6 +5568,7 @@ create_main_window (void)
   gtk_widget_set_name (table55, "table55");
   gtk_widget_show (table55);
   gtk_container_add (GTK_CONTAINER (notebook2), table55);
+  gtk_container_set_border_width (GTK_CONTAINER (table55), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table55), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table55), 4);
 
@@ -5594,38 +5592,6 @@ create_main_window (void)
   gtk_misc_set_alignment (GTK_MISC (label550), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label550), 5, 0);
 
-  entry_count_uploads = gtk_entry_new ();
-  gtk_widget_set_name (entry_count_uploads, "entry_count_uploads");
-  gtk_widget_show (entry_count_uploads);
-  gtk_table_attach (GTK_TABLE (table55), entry_count_uploads, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 5, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_count_uploads), FALSE);
-
-  entry_count_downloads = gtk_entry_new ();
-  gtk_widget_set_name (entry_count_downloads, "entry_count_downloads");
-  gtk_widget_show (entry_count_downloads);
-  gtk_table_attach (GTK_TABLE (table55), entry_count_downloads, 1, 2, 2, 3,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 5, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_count_downloads), FALSE);
-
-  entry_ul_byte_count = gtk_entry_new ();
-  gtk_widget_set_name (entry_ul_byte_count, "entry_ul_byte_count");
-  gtk_widget_show (entry_ul_byte_count);
-  gtk_table_attach (GTK_TABLE (table55), entry_ul_byte_count, 2, 3, 1, 2,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 5, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_ul_byte_count), FALSE);
-
-  entry_dl_byte_count = gtk_entry_new ();
-  gtk_widget_set_name (entry_dl_byte_count, "entry_dl_byte_count");
-  gtk_widget_show (entry_dl_byte_count);
-  gtk_table_attach (GTK_TABLE (table55), entry_dl_byte_count, 2, 3, 2, 3,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 5, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_dl_byte_count), FALSE);
-
   label551 = gtk_label_new ("Chunks/Files");
   gtk_widget_set_name (label551, "label551");
   gtk_widget_show (label551);
@@ -5639,6 +5605,46 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table55), label552, 2, 3, 0, 1,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  entry_count_uploads = gtk_entry_new ();
+  gtk_widget_set_name (entry_count_uploads, "entry_count_uploads");
+  gtk_widget_show (entry_count_uploads);
+  gtk_table_attach (GTK_TABLE (table55), entry_count_uploads, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_sensitive (entry_count_uploads, FALSE);
+  GTK_WIDGET_UNSET_FLAGS (entry_count_uploads, GTK_CAN_FOCUS);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_count_uploads), FALSE);
+
+  entry_count_downloads = gtk_entry_new ();
+  gtk_widget_set_name (entry_count_downloads, "entry_count_downloads");
+  gtk_widget_show (entry_count_downloads);
+  gtk_table_attach (GTK_TABLE (table55), entry_count_downloads, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_sensitive (entry_count_downloads, FALSE);
+  GTK_WIDGET_UNSET_FLAGS (entry_count_downloads, GTK_CAN_FOCUS);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_count_downloads), FALSE);
+
+  entry_ul_byte_count = gtk_entry_new ();
+  gtk_widget_set_name (entry_ul_byte_count, "entry_ul_byte_count");
+  gtk_widget_show (entry_ul_byte_count);
+  gtk_table_attach (GTK_TABLE (table55), entry_ul_byte_count, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 2, 0);
+  gtk_widget_set_sensitive (entry_ul_byte_count, FALSE);
+  GTK_WIDGET_UNSET_FLAGS (entry_ul_byte_count, GTK_CAN_FOCUS);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_ul_byte_count), FALSE);
+
+  entry_dl_byte_count = gtk_entry_new ();
+  gtk_widget_set_name (entry_dl_byte_count, "entry_dl_byte_count");
+  gtk_widget_show (entry_dl_byte_count);
+  gtk_table_attach (GTK_TABLE (table55), entry_dl_byte_count, 2, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 2, 0);
+  gtk_widget_set_sensitive (entry_dl_byte_count, FALSE);
+  GTK_WIDGET_UNSET_FLAGS (entry_dl_byte_count, GTK_CAN_FOCUS);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_dl_byte_count), FALSE);
 
   label544 = gtk_label_new ("Transfers");
   gtk_widget_set_name (label544, "label544");
@@ -6986,16 +6992,6 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  spinbutton_config_port_adj = gtk_adjustment_new (6346, 0, 65535, 1, 10, 10);
-  spinbutton_config_port = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_port_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_port, "spinbutton_config_port");
-  gtk_widget_show (spinbutton_config_port);
-  gtk_table_attach (GTK_TABLE (table5), spinbutton_config_port, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_widget_set_size_request (spinbutton_config_port, 64, -2);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_port), TRUE);
-
   checkbutton_config_force_ip = gtk_check_button_new_with_mnemonic ("_Force local IP to");
   gtk_widget_set_name (checkbutton_config_force_ip, "checkbutton_config_force_ip");
   gtk_widget_show (checkbutton_config_force_ip);
@@ -7010,6 +7006,15 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 5, 0);
   gtk_misc_set_alignment (GTK_MISC (label129), 0, 0.5);
+
+  spinbutton_config_port_adj = gtk_adjustment_new (6346, 0, 65535, 1, 10, 10);
+  spinbutton_config_port = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_port_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_port, "spinbutton_config_port");
+  gtk_widget_show (spinbutton_config_port);
+  gtk_table_attach (GTK_TABLE (table5), spinbutton_config_port, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_port), TRUE);
 
   label287 = gtk_label_new ("IP settings");
   gtk_widget_set_name (label287, "label287");
@@ -7071,7 +7076,6 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table47), spinbutton_config_proxy_port, 3, 4, 1, 2,
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 5, 0);
-  gtk_widget_set_size_request (spinbutton_config_proxy_port, 64, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_proxy_port), TRUE);
 
   label90 = gtk_label_new_with_mnemonic ("Proxy _type:");
@@ -8156,7 +8160,7 @@ create_main_window (void)
   gtk_widget_set_name (spinbutton_config_download_overlap_range, "spinbutton_config_download_overlap_range");
   gtk_widget_show (spinbutton_config_download_overlap_range);
   gtk_table_attach (GTK_TABLE (table38), spinbutton_config_download_overlap_range, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_overlap_range, "Amount of bytes to overlap when resuming download", NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_overlap_range), TRUE);
@@ -8166,7 +8170,7 @@ create_main_window (void)
   gtk_widget_set_name (spinbutton_config_download_max_retries, "spinbutton_config_download_max_retries");
   gtk_widget_show (spinbutton_config_download_max_retries);
   gtk_table_attach (GTK_TABLE (table38), spinbutton_config_download_max_retries, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_max_retries, "Maximum attempts to make, not counting HTTP busy indications", NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_max_retries), TRUE);
@@ -8228,96 +8232,6 @@ create_main_window (void)
   gtk_container_set_border_width (GTK_CONTAINER (table8), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table8), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table8), 4);
-
-  spinbutton_config_download_retry_stopped_delay_adj = gtk_adjustment_new (15, 15, 100000, 1, 10, 10);
-  spinbutton_config_download_retry_stopped_delay = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_stopped_delay_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_download_retry_stopped_delay, "spinbutton_config_download_retry_stopped_delay");
-  gtk_widget_show (spinbutton_config_download_retry_stopped_delay);
-  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_retry_stopped_delay, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_stopped_delay, "Delay in seconds to wait when running download stops", NULL);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_stopped_delay), TRUE);
-
-  spinbutton_config_download_retry_refused_delay_adj = gtk_adjustment_new (1, 15, 100000, 1, 10, 10);
-  spinbutton_config_download_retry_refused_delay = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_refused_delay_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_download_retry_refused_delay, "spinbutton_config_download_retry_refused_delay");
-  gtk_widget_show (spinbutton_config_download_retry_refused_delay);
-  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_retry_refused_delay, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_refused_delay, "Delay in seconds to wait if connection is refused", NULL);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_refused_delay), TRUE);
-
-  spinbutton_config_download_retry_busy_delay_adj = gtk_adjustment_new (1, 15, 100000, 1, 10, 10);
-  spinbutton_config_download_retry_busy_delay = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_busy_delay_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_download_retry_busy_delay, "spinbutton_config_download_retry_busy_delay");
-  gtk_widget_show (spinbutton_config_download_retry_busy_delay);
-  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_retry_busy_delay, 1, 2, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_busy_delay, "Delay in seconds to wait after HTTP busy indication", NULL);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_busy_delay), TRUE);
-
-  spinbutton_config_download_retry_timeout_delay_adj = gtk_adjustment_new (1, 15, 100000, 1, 10, 10);
-  spinbutton_config_download_retry_timeout_delay = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_timeout_delay_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_download_retry_timeout_delay, "spinbutton_config_download_retry_timeout_delay");
-  gtk_widget_show (spinbutton_config_download_retry_timeout_delay);
-  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_retry_timeout_delay, 3, 4, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_timeout_delay, "Delay in seconds to wait after connection failure", NULL);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_timeout_delay), TRUE);
-
-  spinbutton_config_download_retry_timeout_max_adj = gtk_adjustment_new (15, 15, 100000, 1, 10, 10);
-  spinbutton_config_download_retry_timeout_max = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_timeout_max_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_download_retry_timeout_max, "spinbutton_config_download_retry_timeout_max");
-  gtk_widget_show (spinbutton_config_download_retry_timeout_max);
-  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_retry_timeout_max, 3, 4, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_timeout_max, "Maximum seconds to wait on auto-retry timeouts", NULL);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_timeout_max), TRUE);
-
-  spinbutton_config_download_retry_timeout_min_adj = gtk_adjustment_new (1, 15, 100000, 1, 10, 10);
-  spinbutton_config_download_retry_timeout_min = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_timeout_min_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_download_retry_timeout_min, "spinbutton_config_download_retry_timeout_min");
-  gtk_widget_show (spinbutton_config_download_retry_timeout_min);
-  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_retry_timeout_min, 3, 4, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_timeout_min, "Minimum seconds to wait on auto-retry timeouts", NULL);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_timeout_min), TRUE);
-
-  spinbutton_config_download_connecting_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
-  spinbutton_config_download_connecting_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_connecting_timeout_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_download_connecting_timeout, "spinbutton_config_download_connecting_timeout");
-  gtk_widget_show (spinbutton_config_download_connecting_timeout);
-  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_connecting_timeout, 5, 6, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_connecting_timeout, "Number of seconds before timeout for a connecting download", NULL);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_connecting_timeout), TRUE);
-
-  spinbutton_config_download_push_sent_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
-  spinbutton_config_download_push_sent_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_push_sent_timeout_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_download_push_sent_timeout, "spinbutton_config_download_push_sent_timeout");
-  gtk_widget_show (spinbutton_config_download_push_sent_timeout);
-  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_push_sent_timeout, 5, 6, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_push_sent_timeout, "Number of seconds before timeout for a 'push sent' download", NULL);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_push_sent_timeout), TRUE);
-
-  spinbutton_config_download_connected_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
-  spinbutton_config_download_connected_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_connected_timeout_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_download_connected_timeout, "spinbutton_config_download_connected_timeout");
-  gtk_widget_show (spinbutton_config_download_connected_timeout);
-  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_connected_timeout, 5, 6, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_connected_timeout, "Number of seconds before timeout for a connected download", NULL);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_connected_timeout), TRUE);
 
   label162 = gtk_label_new ("Retry stopped delay");
   gtk_widget_set_name (label162, "label162");
@@ -8391,6 +8305,96 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 5, 0);
   gtk_misc_set_alignment (GTK_MISC (label170), 0, 0.5);
 
+  spinbutton_config_download_retry_stopped_delay_adj = gtk_adjustment_new (15, 15, 100000, 1, 10, 10);
+  spinbutton_config_download_retry_stopped_delay = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_stopped_delay_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_download_retry_stopped_delay, "spinbutton_config_download_retry_stopped_delay");
+  gtk_widget_show (spinbutton_config_download_retry_stopped_delay);
+  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_retry_stopped_delay, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_stopped_delay, "Delay in seconds to wait when running download stops", NULL);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_stopped_delay), TRUE);
+
+  spinbutton_config_download_retry_refused_delay_adj = gtk_adjustment_new (1, 15, 100000, 1, 10, 10);
+  spinbutton_config_download_retry_refused_delay = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_refused_delay_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_download_retry_refused_delay, "spinbutton_config_download_retry_refused_delay");
+  gtk_widget_show (spinbutton_config_download_retry_refused_delay);
+  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_retry_refused_delay, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_refused_delay, "Delay in seconds to wait if connection is refused", NULL);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_refused_delay), TRUE);
+
+  spinbutton_config_download_retry_busy_delay_adj = gtk_adjustment_new (1, 15, 100000, 1, 10, 10);
+  spinbutton_config_download_retry_busy_delay = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_busy_delay_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_download_retry_busy_delay, "spinbutton_config_download_retry_busy_delay");
+  gtk_widget_show (spinbutton_config_download_retry_busy_delay);
+  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_retry_busy_delay, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_busy_delay, "Delay in seconds to wait after HTTP busy indication", NULL);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_busy_delay), TRUE);
+
+  spinbutton_config_download_retry_timeout_delay_adj = gtk_adjustment_new (1, 15, 100000, 1, 10, 10);
+  spinbutton_config_download_retry_timeout_delay = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_timeout_delay_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_download_retry_timeout_delay, "spinbutton_config_download_retry_timeout_delay");
+  gtk_widget_show (spinbutton_config_download_retry_timeout_delay);
+  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_retry_timeout_delay, 3, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_timeout_delay, "Delay in seconds to wait after connection failure", NULL);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_timeout_delay), TRUE);
+
+  spinbutton_config_download_retry_timeout_max_adj = gtk_adjustment_new (15, 15, 100000, 1, 10, 10);
+  spinbutton_config_download_retry_timeout_max = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_timeout_max_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_download_retry_timeout_max, "spinbutton_config_download_retry_timeout_max");
+  gtk_widget_show (spinbutton_config_download_retry_timeout_max);
+  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_retry_timeout_max, 3, 4, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_timeout_max, "Maximum seconds to wait on auto-retry timeouts", NULL);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_timeout_max), TRUE);
+
+  spinbutton_config_download_retry_timeout_min_adj = gtk_adjustment_new (1, 15, 100000, 1, 10, 10);
+  spinbutton_config_download_retry_timeout_min = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_retry_timeout_min_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_download_retry_timeout_min, "spinbutton_config_download_retry_timeout_min");
+  gtk_widget_show (spinbutton_config_download_retry_timeout_min);
+  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_retry_timeout_min, 3, 4, 2, 3,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_retry_timeout_min, "Minimum seconds to wait on auto-retry timeouts", NULL);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_retry_timeout_min), TRUE);
+
+  spinbutton_config_download_connecting_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_config_download_connecting_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_connecting_timeout_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_download_connecting_timeout, "spinbutton_config_download_connecting_timeout");
+  gtk_widget_show (spinbutton_config_download_connecting_timeout);
+  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_connecting_timeout, 5, 6, 0, 1,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_connecting_timeout, "Number of seconds before timeout for a connecting download", NULL);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_connecting_timeout), TRUE);
+
+  spinbutton_config_download_push_sent_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_config_download_push_sent_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_push_sent_timeout_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_download_push_sent_timeout, "spinbutton_config_download_push_sent_timeout");
+  gtk_widget_show (spinbutton_config_download_push_sent_timeout);
+  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_push_sent_timeout, 5, 6, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_push_sent_timeout, "Number of seconds before timeout for a 'push sent' download", NULL);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_push_sent_timeout), TRUE);
+
+  spinbutton_config_download_connected_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_config_download_connected_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_connected_timeout_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_download_connected_timeout, "spinbutton_config_download_connected_timeout");
+  gtk_widget_show (spinbutton_config_download_connected_timeout);
+  gtk_table_attach (GTK_TABLE (table8), spinbutton_config_download_connected_timeout, 5, 6, 2, 3,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_tooltips_set_tip (tooltips, spinbutton_config_download_connected_timeout, "Number of seconds before timeout for a connected download", NULL);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_connected_timeout), TRUE);
+
   label299 = gtk_label_new ("Delays and timeouts (all values in seconds)");
   gtk_widget_set_name (label299, "label299");
   gtk_widget_show (label299);
@@ -8457,22 +8461,23 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
 
-  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 2e+09, 1, 10, 10);
   spinbutton_dl_minchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_minchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_minchunksize, "spinbutton_dl_minchunksize");
   gtk_widget_show (spinbutton_dl_minchunksize);
   gtk_table_attach (GTK_TABLE (table58), spinbutton_dl_minchunksize, 3, 4, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_widget_set_size_request (spinbutton_dl_minchunksize, 196, -2);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_minchunksize), TRUE);
 
-  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 2e+09, 1, 10, 10);
   spinbutton_dl_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_maxchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_maxchunksize, "spinbutton_dl_maxchunksize");
   gtk_widget_show (spinbutton_dl_maxchunksize);
   gtk_table_attach (GTK_TABLE (table58), spinbutton_dl_maxchunksize, 3, 4, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_maxchunksize), TRUE);
 
   hseparator11 = gtk_hseparator_new ();
   gtk_widget_set_name (hseparator11, "hseparator11");
@@ -8926,57 +8931,75 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (notebook_main), hpaned_gnet_stats);
   gtk_paned_set_position (GTK_PANED (hpaned_gnet_stats), 300);
 
-  viewport25 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport25, "viewport25");
-  gtk_widget_show (viewport25);
-  gtk_paned_pack1 (GTK_PANED (hpaned_gnet_stats), viewport25, FALSE, TRUE);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport25), GTK_SHADOW_NONE);
+  scrolledwindow66 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow66, "scrolledwindow66");
+  gtk_widget_show (scrolledwindow66);
+  gtk_paned_pack1 (GTK_PANED (hpaned_gnet_stats), scrolledwindow66, FALSE, TRUE);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow66), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  vbox100 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox100, "vbox100");
-  gtk_widget_show (vbox100);
-  gtk_container_add (GTK_CONTAINER (viewport25), vbox100);
+  viewport33 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport33, "viewport33");
+  gtk_widget_show (viewport33);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow66), viewport33);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport33), GTK_SHADOW_NONE);
 
-  scrolledwindow60 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow60, "scrolledwindow60");
-  gtk_widget_show (scrolledwindow60);
-  gtk_box_pack_start (GTK_BOX (vbox100), scrolledwindow60, TRUE, TRUE, 0);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow60), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+  vpaned1 = gtk_vpaned_new ();
+  gtk_widget_set_name (vpaned1, "vpaned1");
+  gtk_widget_show (vpaned1);
+  gtk_container_add (GTK_CONTAINER (viewport33), vpaned1);
+  gtk_paned_set_position (GTK_PANED (vpaned1), 150);
 
-  viewport26 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport26, "viewport26");
-  gtk_widget_show (viewport26);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow60), viewport26);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport26), GTK_SHADOW_NONE);
+  frame73 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame73, "frame73");
+  gtk_widget_show (frame73);
+  gtk_paned_pack1 (GTK_PANED (vpaned1), frame73, TRUE, TRUE);
+  gtk_container_set_border_width (GTK_CONTAINER (frame73), 2);
 
-  vbox101 = gtk_vbox_new (FALSE, 0);
+  scrolledwindow32 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow32, "scrolledwindow32");
+  gtk_widget_show (scrolledwindow32);
+  gtk_container_add (GTK_CONTAINER (frame73), scrolledwindow32);
+  gtk_container_set_border_width (GTK_CONTAINER (scrolledwindow32), 2);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow32), GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
+  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow32), GTK_SHADOW_IN);
+  gtk_scrolled_window_set_placement (GTK_SCROLLED_WINDOW (scrolledwindow32), GTK_CORNER_BOTTOM_LEFT);
+
+  treeview_gnet_stats_general = gtk_tree_view_new ();
+  gtk_widget_set_name (treeview_gnet_stats_general, "treeview_gnet_stats_general");
+  gtk_widget_show (treeview_gnet_stats_general);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow32), treeview_gnet_stats_general);
+  gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_gnet_stats_general), TRUE);
+  gtk_tree_view_set_reorderable (GTK_TREE_VIEW (treeview_gnet_stats_general), TRUE);
+  gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_gnet_stats_general), FALSE);
+
+  label539 = gtk_label_new ("General");
+  gtk_widget_set_name (label539, "label539");
+  gtk_widget_show (label539);
+  gtk_frame_set_label_widget (GTK_FRAME (frame73), label539);
+  gtk_label_set_justify (GTK_LABEL (label539), GTK_JUSTIFY_LEFT);
+
+  vbox101 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox101, "vbox101");
   gtk_widget_show (vbox101);
-  gtk_container_add (GTK_CONTAINER (viewport26), vbox101);
+  gtk_paned_pack2 (GTK_PANED (vpaned1), vbox101, TRUE, TRUE);
 
   gnet_stats_notebook = gtk_notebook_new ();
   gtk_widget_set_name (gnet_stats_notebook, "gnet_stats_notebook");
   gtk_widget_show (gnet_stats_notebook);
   gtk_box_pack_start (GTK_BOX (vbox101), gnet_stats_notebook, TRUE, TRUE, 0);
-  gtk_notebook_set_scrollable (GTK_NOTEBOOK (gnet_stats_notebook), TRUE);
+  gtk_notebook_set_show_border (GTK_NOTEBOOK (gnet_stats_notebook), FALSE);
 
-  scrolledwindow55 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow55, "scrolledwindow55");
-  gtk_widget_show (scrolledwindow55);
-  gtk_container_add (GTK_CONTAINER (gnet_stats_notebook), scrolledwindow55);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow55), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow55), GTK_SHADOW_IN);
-
-  viewport18 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport18, "viewport18");
-  gtk_widget_show (viewport18);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow55), viewport18);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport18), GTK_SHADOW_NONE);
+  scrolledwindow65 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow65, "scrolledwindow65");
+  gtk_widget_show (scrolledwindow65);
+  gtk_container_add (GTK_CONTAINER (gnet_stats_notebook), scrolledwindow65);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow65), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow65), GTK_SHADOW_IN);
 
   treeview_gnet_stats_messages = gtk_tree_view_new ();
   gtk_widget_set_name (treeview_gnet_stats_messages, "treeview_gnet_stats_messages");
   gtk_widget_show (treeview_gnet_stats_messages);
-  gtk_container_add (GTK_CONTAINER (viewport18), treeview_gnet_stats_messages);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow65), treeview_gnet_stats_messages);
   gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_gnet_stats_messages), TRUE);
   gtk_tree_view_set_reorderable (GTK_TREE_VIEW (treeview_gnet_stats_messages), TRUE);
   gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_gnet_stats_messages), FALSE);
@@ -8994,16 +9017,10 @@ create_main_window (void)
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow52), GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
   gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow52), GTK_SHADOW_IN);
 
-  viewport22 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport22, "viewport22");
-  gtk_widget_show (viewport22);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow52), viewport22);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport22), GTK_SHADOW_NONE);
-
   treeview_gnet_stats_flowc = gtk_tree_view_new ();
   gtk_widget_set_name (treeview_gnet_stats_flowc, "treeview_gnet_stats_flowc");
   gtk_widget_show (treeview_gnet_stats_flowc);
-  gtk_container_add (GTK_CONTAINER (viewport22), treeview_gnet_stats_flowc);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow52), treeview_gnet_stats_flowc);
   gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_gnet_stats_flowc), TRUE);
   gtk_tree_view_set_reorderable (GTK_TREE_VIEW (treeview_gnet_stats_flowc), TRUE);
   gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_gnet_stats_flowc), FALSE);
@@ -9021,16 +9038,10 @@ create_main_window (void)
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow56), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow56), GTK_SHADOW_IN);
 
-  viewport20 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport20, "viewport20");
-  gtk_widget_show (viewport20);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow56), viewport20);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport20), GTK_SHADOW_NONE);
-
   treeview_gnet_stats_recv = gtk_tree_view_new ();
   gtk_widget_set_name (treeview_gnet_stats_recv, "treeview_gnet_stats_recv");
   gtk_widget_show (treeview_gnet_stats_recv);
-  gtk_container_add (GTK_CONTAINER (viewport20), treeview_gnet_stats_recv);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow56), treeview_gnet_stats_recv);
   gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_gnet_stats_recv), TRUE);
   gtk_tree_view_set_reorderable (GTK_TREE_VIEW (treeview_gnet_stats_recv), TRUE);
   gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_gnet_stats_recv), FALSE);
@@ -9044,7 +9055,7 @@ create_main_window (void)
   table49 = gtk_table_new (2, 2, FALSE);
   gtk_widget_set_name (table49, "table49");
   gtk_widget_show (table49);
-  gtk_box_pack_start (GTK_BOX (vbox101), table49, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox101), table49, FALSE, FALSE, 0);
   gtk_table_set_row_spacings (GTK_TABLE (table49), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table49), 4);
 
@@ -9076,39 +9087,6 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 5, 0);
 
-  frame73 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame73, "frame73");
-  gtk_widget_show (frame73);
-  gtk_box_pack_start (GTK_BOX (vbox100), frame73, TRUE, TRUE, 0);
-
-  scrolledwindow32 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow32, "scrolledwindow32");
-  gtk_widget_show (scrolledwindow32);
-  gtk_container_add (GTK_CONTAINER (frame73), scrolledwindow32);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow32), GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
-  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow32), GTK_SHADOW_IN);
-  gtk_scrolled_window_set_placement (GTK_SCROLLED_WINDOW (scrolledwindow32), GTK_CORNER_BOTTOM_LEFT);
-
-  viewport27 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport27, "viewport27");
-  gtk_widget_show (viewport27);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow32), viewport27);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport27), GTK_SHADOW_NONE);
-
-  treeview_gnet_stats_general = gtk_tree_view_new ();
-  gtk_widget_set_name (treeview_gnet_stats_general, "treeview_gnet_stats_general");
-  gtk_widget_show (treeview_gnet_stats_general);
-  gtk_container_add (GTK_CONTAINER (viewport27), treeview_gnet_stats_general);
-  gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_gnet_stats_general), TRUE);
-  gtk_tree_view_set_reorderable (GTK_TREE_VIEW (treeview_gnet_stats_general), TRUE);
-  gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_gnet_stats_general), FALSE);
-
-  label539 = gtk_label_new ("General");
-  gtk_widget_set_name (label539, "label539");
-  gtk_widget_show (label539);
-  gtk_frame_set_label_widget (GTK_FRAME (frame73), label539);
-  gtk_label_set_justify (GTK_LABEL (label539), GTK_JUSTIFY_LEFT);
-
   viewport21 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport21, "viewport21");
   gtk_widget_show (viewport21);
@@ -9119,6 +9097,7 @@ create_main_window (void)
   gtk_widget_set_name (frame74, "frame74");
   gtk_widget_show (frame74);
   gtk_container_add (GTK_CONTAINER (viewport21), frame74);
+  gtk_container_set_border_width (GTK_CONTAINER (frame74), 2);
 
   vbox86 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox86, "vbox86");
@@ -9370,6 +9349,12 @@ create_main_window (void)
                     NULL);
   g_signal_connect ((gpointer) button_nodes_remove, "clicked",
                     G_CALLBACK (on_button_nodes_remove_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_ultra_catcher_clear, "clicked",
+                    G_CALLBACK (on_button_ultra_catcher_clear_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_host_catcher_clear, "clicked",
+                    G_CALLBACK (on_button_host_catcher_clear_clicked),
                     NULL);
   g_signal_connect ((gpointer) clist_uploads, "resize_column",
                     G_CALLBACK (on_clist_uploads_resize_column),
@@ -9663,25 +9648,25 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, notebook2, "notebook2");
   GLADE_HOOKUP_OBJECT (main_window, table54, "table54");
   GLADE_HOOKUP_OBJECT (main_window, progressbar_hosts_in_catcher, "progressbar_hosts_in_catcher");
-  GLADE_HOOKUP_OBJECT (main_window, button_ultra_catcher_clear, "button_ultra_catcher_clear");
   GLADE_HOOKUP_OBJECT (main_window, label546, "label546");
   GLADE_HOOKUP_OBJECT (main_window, label545, "label545");
   GLADE_HOOKUP_OBJECT (main_window, progressbar_hosts_in_ultra_catcher, "progressbar_hosts_in_ultra_catcher");
   GLADE_HOOKUP_OBJECT (main_window, label548, "label548");
   GLADE_HOOKUP_OBJECT (main_window, label547, "label547");
-  GLADE_HOOKUP_OBJECT (main_window, button_host_catcher_clear, "button_host_catcher_clear");
   GLADE_HOOKUP_OBJECT (main_window, spinbutton_nodes_max_hosts_cached, "spinbutton_nodes_max_hosts_cached");
   GLADE_HOOKUP_OBJECT (main_window, spinbutton_nodes_max_ultra_hosts_cached, "spinbutton_nodes_max_ultra_hosts_cached");
+  GLADE_HOOKUP_OBJECT (main_window, button_ultra_catcher_clear, "button_ultra_catcher_clear");
+  GLADE_HOOKUP_OBJECT (main_window, button_host_catcher_clear, "button_host_catcher_clear");
   GLADE_HOOKUP_OBJECT (main_window, label543, "label543");
   GLADE_HOOKUP_OBJECT (main_window, table55, "table55");
   GLADE_HOOKUP_OBJECT (main_window, label549, "label549");
   GLADE_HOOKUP_OBJECT (main_window, label550, "label550");
+  GLADE_HOOKUP_OBJECT (main_window, label551, "label551");
+  GLADE_HOOKUP_OBJECT (main_window, label552, "label552");
   GLADE_HOOKUP_OBJECT (main_window, entry_count_uploads, "entry_count_uploads");
   GLADE_HOOKUP_OBJECT (main_window, entry_count_downloads, "entry_count_downloads");
   GLADE_HOOKUP_OBJECT (main_window, entry_ul_byte_count, "entry_ul_byte_count");
   GLADE_HOOKUP_OBJECT (main_window, entry_dl_byte_count, "entry_dl_byte_count");
-  GLADE_HOOKUP_OBJECT (main_window, label551, "label551");
-  GLADE_HOOKUP_OBJECT (main_window, label552, "label552");
   GLADE_HOOKUP_OBJECT (main_window, label544, "label544");
   GLADE_HOOKUP_OBJECT (main_window, frame14, "frame14");
   GLADE_HOOKUP_OBJECT (main_window, vbox34, "vbox34");
@@ -9906,9 +9891,9 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, table5, "table5");
   GLADE_HOOKUP_OBJECT (main_window, entry_config_force_ip, "entry_config_force_ip");
   GLADE_HOOKUP_OBJECT (main_window, label35, "label35");
-  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_port, "spinbutton_config_port");
   GLADE_HOOKUP_OBJECT (main_window, checkbutton_config_force_ip, "checkbutton_config_force_ip");
   GLADE_HOOKUP_OBJECT (main_window, label129, "label129");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_port, "spinbutton_config_port");
   GLADE_HOOKUP_OBJECT (main_window, label287, "label287");
   GLADE_HOOKUP_OBJECT (main_window, frame_proxy_settings, "frame_proxy_settings");
   GLADE_HOOKUP_OBJECT (main_window, vbox28, "vbox28");
@@ -10085,15 +10070,6 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label480, "label480");
   GLADE_HOOKUP_OBJECT (main_window, frame_expert_dl_timeout, "frame_expert_dl_timeout");
   GLADE_HOOKUP_OBJECT (main_window, table8, "table8");
-  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_retry_stopped_delay, "spinbutton_config_download_retry_stopped_delay");
-  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_retry_refused_delay, "spinbutton_config_download_retry_refused_delay");
-  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_retry_busy_delay, "spinbutton_config_download_retry_busy_delay");
-  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_retry_timeout_delay, "spinbutton_config_download_retry_timeout_delay");
-  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_retry_timeout_max, "spinbutton_config_download_retry_timeout_max");
-  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_retry_timeout_min, "spinbutton_config_download_retry_timeout_min");
-  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_connecting_timeout, "spinbutton_config_download_connecting_timeout");
-  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_push_sent_timeout, "spinbutton_config_download_push_sent_timeout");
-  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_connected_timeout, "spinbutton_config_download_connected_timeout");
   GLADE_HOOKUP_OBJECT (main_window, label162, "label162");
   GLADE_HOOKUP_OBJECT (main_window, label163, "label163");
   GLADE_HOOKUP_OBJECT (main_window, label164, "label164");
@@ -10103,6 +10079,15 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label168, "label168");
   GLADE_HOOKUP_OBJECT (main_window, label169, "label169");
   GLADE_HOOKUP_OBJECT (main_window, label170, "label170");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_retry_stopped_delay, "spinbutton_config_download_retry_stopped_delay");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_retry_refused_delay, "spinbutton_config_download_retry_refused_delay");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_retry_busy_delay, "spinbutton_config_download_retry_busy_delay");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_retry_timeout_delay, "spinbutton_config_download_retry_timeout_delay");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_retry_timeout_max, "spinbutton_config_download_retry_timeout_max");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_retry_timeout_min, "spinbutton_config_download_retry_timeout_min");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_connecting_timeout, "spinbutton_config_download_connecting_timeout");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_push_sent_timeout, "spinbutton_config_download_push_sent_timeout");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_download_connected_timeout, "spinbutton_config_download_connected_timeout");
   GLADE_HOOKUP_OBJECT (main_window, label299, "label299");
   GLADE_HOOKUP_OBJECT (main_window, frame51, "frame51");
   GLADE_HOOKUP_OBJECT (main_window, vbox102, "vbox102");
@@ -10186,22 +10171,22 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label372, "label372");
   GLADE_HOOKUP_OBJECT (main_window, label_config, "label_config");
   GLADE_HOOKUP_OBJECT (main_window, hpaned_gnet_stats, "hpaned_gnet_stats");
-  GLADE_HOOKUP_OBJECT (main_window, viewport25, "viewport25");
-  GLADE_HOOKUP_OBJECT (main_window, vbox100, "vbox100");
-  GLADE_HOOKUP_OBJECT (main_window, scrolledwindow60, "scrolledwindow60");
-  GLADE_HOOKUP_OBJECT (main_window, viewport26, "viewport26");
+  GLADE_HOOKUP_OBJECT (main_window, scrolledwindow66, "scrolledwindow66");
+  GLADE_HOOKUP_OBJECT (main_window, viewport33, "viewport33");
+  GLADE_HOOKUP_OBJECT (main_window, vpaned1, "vpaned1");
+  GLADE_HOOKUP_OBJECT (main_window, frame73, "frame73");
+  GLADE_HOOKUP_OBJECT (main_window, scrolledwindow32, "scrolledwindow32");
+  GLADE_HOOKUP_OBJECT (main_window, treeview_gnet_stats_general, "treeview_gnet_stats_general");
+  GLADE_HOOKUP_OBJECT (main_window, label539, "label539");
   GLADE_HOOKUP_OBJECT (main_window, vbox101, "vbox101");
   GLADE_HOOKUP_OBJECT (main_window, gnet_stats_notebook, "gnet_stats_notebook");
-  GLADE_HOOKUP_OBJECT (main_window, scrolledwindow55, "scrolledwindow55");
-  GLADE_HOOKUP_OBJECT (main_window, viewport18, "viewport18");
+  GLADE_HOOKUP_OBJECT (main_window, scrolledwindow65, "scrolledwindow65");
   GLADE_HOOKUP_OBJECT (main_window, treeview_gnet_stats_messages, "treeview_gnet_stats_messages");
   GLADE_HOOKUP_OBJECT (main_window, label478, "label478");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow52, "scrolledwindow52");
-  GLADE_HOOKUP_OBJECT (main_window, viewport22, "viewport22");
   GLADE_HOOKUP_OBJECT (main_window, treeview_gnet_stats_flowc, "treeview_gnet_stats_flowc");
   GLADE_HOOKUP_OBJECT (main_window, label502, "label502");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow56, "scrolledwindow56");
-  GLADE_HOOKUP_OBJECT (main_window, viewport20, "viewport20");
   GLADE_HOOKUP_OBJECT (main_window, treeview_gnet_stats_recv, "treeview_gnet_stats_recv");
   GLADE_HOOKUP_OBJECT (main_window, label509, "label509");
   GLADE_HOOKUP_OBJECT (main_window, table49, "table49");
@@ -10209,11 +10194,6 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, checkbutton_gnet_stats_bytes, "checkbutton_gnet_stats_bytes");
   GLADE_HOOKUP_OBJECT (main_window, checkbutton_gnet_stats_hops, "checkbutton_gnet_stats_hops");
   GLADE_HOOKUP_OBJECT (main_window, checkbutton_gnet_stats_with_headers, "checkbutton_gnet_stats_with_headers");
-  GLADE_HOOKUP_OBJECT (main_window, frame73, "frame73");
-  GLADE_HOOKUP_OBJECT (main_window, scrolledwindow32, "scrolledwindow32");
-  GLADE_HOOKUP_OBJECT (main_window, viewport27, "viewport27");
-  GLADE_HOOKUP_OBJECT (main_window, treeview_gnet_stats_general, "treeview_gnet_stats_general");
-  GLADE_HOOKUP_OBJECT (main_window, label539, "label539");
   GLADE_HOOKUP_OBJECT (main_window, viewport21, "viewport21");
   GLADE_HOOKUP_OBJECT (main_window, frame74, "frame74");
   GLADE_HOOKUP_OBJECT (main_window, vbox86, "vbox86");
