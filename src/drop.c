@@ -32,7 +32,6 @@
 RCSID("$Id$");
 
 #include "drop.h"
-#include "url.h"			/* url_strtoaddr_strict() */
 #include "statusbar_gui.h"
 #include "search_gui.h"
 #include "override.h"		/* Must be the last header included */
@@ -160,8 +159,7 @@ static gboolean handle_magnet(gchar *url)
 			}
 
 			p = q + sizeof "http://" - 1;
-			if (url_strtoaddr_strict(p, &addr, (const gchar **) &ep)) {
-				addr = ntohl(addr); /* *sigh* */
+			if (gchar_to_ip_strict(p, &addr, (const gchar **) &ep)) {
 				p = ep;
 			} else {
 				hostname = p;
