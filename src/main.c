@@ -120,9 +120,9 @@ void gtk_gnutella_exit(gint n)
             EXIT_GRACE - (gint)difftime(tick,now));
 
         gtk_label_set(GTK_LABEL(label_shutdown_count),tmp);
-		gtk_main_iteration_do(FALSE);
 
-		usleep(50000);					/* 50 ms */
+        gtk_main_flush();
+		usleep(200000);					/* 200 ms */
 	}
 
 	share_close();
@@ -279,9 +279,6 @@ gint main(gint argc, gchar ** argv)
 
 	/* Final interface setup */
 
-	optimal_width =
-		gtk_clist_optimal_column_width(GTK_CLIST(ctree_menu), 0);
-
     // gnutellaNet
     last_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[0],
@@ -339,6 +336,9 @@ gint main(gint argc, gchar ** argv)
 		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[7]); 
 
 	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
+
+    optimal_width =
+		gtk_clist_optimal_column_width(GTK_CLIST(ctree_menu), 0);
 
 	gtk_widget_set_usize(sw_menu, optimal_width,
 						 (ctree_menu->style->font->ascent +
