@@ -613,7 +613,7 @@ void download_gui_add(struct download *d)
 		d->file_info->file_name : d->file_name;
 
 #ifdef USE_GTK2
-	file_name = locale_to_utf8(file_name, 0);
+	file_name = lazy_locale_to_utf8(file_name, 0);
 #endif
 
 	gm_snprintf(vendor, sizeof(vendor), "%s%s",

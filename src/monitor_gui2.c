@@ -73,8 +73,8 @@ static void monitor_gui_append_to_monitor(
 	else
 		len = g_strlcpy(tmpstr, item, sizeof(tmpstr));
 
-	str = locale_to_utf8(tmpstr, len);
-   	gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN, str, -1);
+	str = lazy_locale_to_utf8(tmpstr, MIN(len, sizeof(tmpstr)));
+   	gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN, str, (-1));
 }
 
 
