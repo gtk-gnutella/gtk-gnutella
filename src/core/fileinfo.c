@@ -724,9 +724,7 @@ fi_resize(struct dl_file_info *fi, filesize_t size)
 	fc->from = fi->size;
 	fc->to = size;
 	fc->status = DL_CHUNK_EMPTY;
-	g_assert(file_info_check_chunklist(fi));
 	fi->chunklist = g_slist_append(fi->chunklist, fc);
-	g_assert(file_info_check_chunklist(fi));
 
 	/*
 	 * Don't remove/re-insert `fi' from hash tables: when this routine is
@@ -738,6 +736,7 @@ fi_resize(struct dl_file_info *fi, filesize_t size)
 	atom_uint64_free(fi->size_atom);
 	fi->size = size;
 	fi->size_atom = atom_uint64_get(&size);
+	g_assert(file_info_check_chunklist(fi));
 }
 
 /**
@@ -2771,7 +2770,7 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
 
 	if (sha1)
 		fi->sha1 = atom_sha1_get(sha1);
-	fi->size = 0;							/* Will be updated below */
+	fi->size = 0;	/* Will be updated by fi_resize() */
 	fi->file_size_known = file_size_known;
 	fi->done = 0;
 	fi->use_swarming = use_swarming && file_size_known;
@@ -2793,7 +2792,6 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
 		fi->dirty = TRUE;
 	}
 	G_FREE_NULL(pathname);
-	g_assert(file_info_check_chunklist(fi));
 
 	fi->size_atom = atom_uint64_get(&fi->size);	/* Set now, for fi_resize() */
 
