@@ -110,6 +110,7 @@ GList *gm_list_insert_after(GList *list, GList *link, gpointer data)
 
 #ifdef	HAVE_VSNPRINTF
 #define DO_VSNPRINTF() do {					\
+	str[0] = '\0';							\
 	retval = vsnprintf(str, n, fmt, args);	\
 	if (retval < 0) {				/* Old versions of vsnprintf() */ \
 		str[n - 1] = '\0';					\
@@ -142,6 +143,7 @@ size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args)
 	g_return_val_if_fail (str != NULL, 0);
 	g_return_val_if_fail (fmt != NULL, 0);
 	g_return_val_if_fail (n > 0, 0);
+	g_return_val_if_fail (n <= INT_MAX, 0);
 
 	DO_VSNPRINTF();
 
@@ -163,8 +165,9 @@ size_t gm_snprintf(gchar *str, size_t n, gchar const *fmt, ...)
 	size_t retval;
 
 	g_return_val_if_fail (str != NULL, 0);
-	g_return_val_if_fail (n > 0, 0);
 	g_return_val_if_fail (fmt != NULL, 0);
+	g_return_val_if_fail (n > 0, 0);
+	g_return_val_if_fail (n <= INT_MAX, 0);
 
 	va_start (args, fmt);
 	DO_VSNPRINTF();
