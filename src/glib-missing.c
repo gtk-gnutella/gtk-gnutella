@@ -356,11 +356,10 @@ gchar *
 gm_sanitize_filename(const gchar *filename)
 {
 	gint c;
-	gchar *q = NULL, *r;
+	gchar *q = NULL;
 	const gchar *p, *s = filename;
 	gboolean no_spaces;
-	int len = strlen(filename);
-	
+
 	g_assert(filename != NULL);
 
 	gnet_prop_get_boolean_val(PROP_CONVERT_SPACES, &no_spaces);
@@ -374,12 +373,13 @@ gm_sanitize_filename(const gchar *filename)
 	for (p = s; (c = *(guchar *) p) != '\0'; ++p) {
 		static const gchar evil[] = "$&*/\\`:;<>?|~\177";
 		
-		if (c < 32
-				|| is_ascii_cntrl(c)
-				|| c == G_DIR_SEPARATOR
-				|| (c == ' ' && no_spaces)
-				|| (p == s && c == '.')
-				|| NULL != strchr(evil, c)
+		if (
+			c < 32
+			|| is_ascii_cntrl(c)
+			|| c == G_DIR_SEPARATOR
+			|| (c == ' ' && no_spaces)
+			|| (p == s && c == '.')
+			|| NULL != strchr(evil, c)
 		) {
 			if (!q) {
 				q = g_strdup(s);
