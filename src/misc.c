@@ -189,12 +189,26 @@ gboolean gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port)
 	return TRUE;
 }
 
-guint32 host_to_ip(const gchar * host)
+guint32 host_to_ip(const gchar *host)
 {
 	struct hostent *he = gethostbyname(host);
-	if (he)
-		return (guint32) he->h_addr_list[0];
-	else {
+
+	if (he) {
+		guint32 ip;
+
+		if (AF_INET != he->h_addrtype) {
+			g_warning("host_to_ip: Wrong address type %d (host=%s).",
+				he->h_addrtype, host);
+			return 0;
+		}
+		if (4 != he->h_length) {
+			g_warning("host_to_ip: Wrong address length %d (host=%s).",
+				he->h_length, host);
+			return 0;
+		}
+		memcpy(&ip, he->h_addr_list[0], sizeof(ip));
+		return ip;
+	} else {
 #if defined(HAVE_HSTRERROR)
 		g_warning("cannot resolve \"%s\": %s", host, hstrerror(h_errno));
 #elif defined(HAVE_HERROR)
@@ -1170,6 +1184,6 @@ gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
 		return TRUE;
 	}
 
-	*netmask = ~(~0 >> b);
+	*netmask = htonl(~(~0U >> b));
 	return TRUE;
 }
