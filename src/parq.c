@@ -1720,25 +1720,30 @@ struct parq_ul_queued *parq_upload_get_at(struct parq_ul_queue *queue,
 static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 {
 	GList *l = NULL;
-	guint pos = 0;
+
+	/*
+	 * max_uploads holds the number of upload slots an queue may currently
+	 * use. This is the lowest number of upload slots used by a queue + 1.
+	 */
+	guint max_uploads = -1;
 
 	g_assert(uq != NULL);
-		
+
 	/*
-	 * If there are no free upload slots the queued upload isn't allowed an 
+	 * If there are no free upload slots the queued upload isn't allowed an
 	 * upload slot anyway. So we might just as well abort here
 	 */
 
 	if (free_slots <= 0)
 		return FALSE;
-	
+
 	/*
 	 * If the number of upload slots have been decreased, an old queue
 	 * may still exist. What to do with those uploads? Should we make
 	 * sure those uploads are served first? Those uploads should take
 	 * less time to upload anyway, as they _must_ be smaller.
 	 */
-	
+
 	l = g_list_last(ul_parqs);
 	{
 		struct parq_ul_queue *queue = (struct parq_ul_queue *) l->data;
@@ -1751,38 +1756,61 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	}
 	
 	/*
-	 * Don't allow an upload which just came alive again and as a result
-	 * has a relative postion which allows an upload slot, while the queue
-	 * is already uploading.
+	 * 1) First check if another queue 'needs' an upload slot.
+	 * 2) Avoid  one queue getting almost all upload slots.
+	 * 3) Then, check if the current upload is allowed this upload slot.
 	 */
-	if (uq->relative_position <= uq->queue->active_uploads)
-		return FALSE;
-
-	for (pos = 1; pos <= max_uploads; pos++) {
-		for (l = g_list_last(ul_parqs); l; l = l->prev) {
-			struct parq_ul_queue *queue = (struct parq_ul_queue *) l->data;
-			struct parq_ul_queued *parq_ul = parq_upload_get_at(queue, pos);
-		
-			
-			if (parq_ul == NULL) {
-				g_assert(queue->alive < pos);
-			} else {
-				g_assert(queue == parq_ul->queue);
-				g_assert(pos == parq_ul->relative_position);
-				if (pos > queue->active_uploads + 1)
-					return FALSE;
-				
-			}	
+	
+	/*
+	 * Step 1. Check if another queues must have an upload.
+	 *         That is when the current queue has no active uploads while there
+	 *         are uploads alive.
+	 * Step 2. Avoid one queue getting almost all upload slots.
+	 *
+	 * This is done by determining how many upload slots every queue is using,
+	 * and if the queue would like to have another upload slot.
+	 */
+	
+	for (l = g_list_last(ul_parqs); l; l = l->prev) {
+		struct parq_ul_queue *queue = (struct parq_ul_queue *) l->data;
+		if (queue->alive > queue->active_uploads) {
+			/* Queue would like to get another upload slot */
+			if (max_uploads > queue->active_uploads) {
+				/*
+				 * Determine the current maximum of upload
+				 * slots allowed compared to other queus.
+				 */
+				max_uploads = queue->active_uploads + 1;
+			}
 		}
-
-		if (uq->relative_position == pos) {
-			if (dbg)
-				printf("PARQ UL: Upload %d[%d] is allowed to continue\n",
-					  uq->position, uq->relative_position);
-			return TRUE;	
-		}
- 	}
- 	return FALSE;
+	}
+	
+	if (max_uploads <= uq->queue->active_uploads)
+			return FALSE;
+	
+	/*
+	 * Step 3. Check if current upload may have this slot
+	 *         That is when the current upload is the first upload in its
+	 *         queue which has no upload slot.
+	 */
+	
+	for (l = g_list_first(uq->queue->by_rel_pos); l; l = l->next) {
+		struct parq_ul_queued *parq_ul = (struct parq_ul_queued*) l->data;
+	
+		if (!parq_ul->has_slot && parq_ul != uq)
+			/* Another upload in the current queue is allowed first */
+			return FALSE;
+		else
+		if (parq_ul == uq)
+			/*
+			 * So the current upload is the first in line (we would have
+			 * returned FALSE otherwise by now).
+			 */
+			return TRUE;
+	}
+	
+	/* We should never make it here */
+	return FALSE;
 }
 
 
