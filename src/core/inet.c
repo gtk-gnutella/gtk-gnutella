@@ -348,6 +348,12 @@ inet_udp_got_unsolicited_incoming(guint32 ip)
 	}
 
 	inet_udp_not_firewalled();
+
+	g_assert(incoming_udp_ev == NULL);
+
+	incoming_udp_ev = cq_insert(
+		callout_queue, FW_INCOMING_WINDOW * 1000,
+		got_no_udp_unsolicited, NULL);
 }
 
 /**
