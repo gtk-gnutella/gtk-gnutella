@@ -68,8 +68,10 @@ void gui_update_files_scanned(void)
     GtkLabel *label_files_scanned =
         GTK_LABEL(lookup_widget(main_window, "label_files_scanned"));
 
-	gm_snprintf(gui_tmp, sizeof(gui_tmp), "%u file%s shared (%s)",
-		files_scanned, files_scanned == 1 ? "" : "s",
+	gm_snprintf(gui_tmp, sizeof(gui_tmp),
+		(files_scanned == 1) ?
+			_("%u file shared (%s)") :_("%u files shared (%s)"),
+		files_scanned,
 		short_kb_size(kbytes_scanned));
 	gtk_label_set(label_files_scanned, gui_tmp);
 }
@@ -89,7 +91,7 @@ void gui_update_global(void)
 
     gtk_label_printf(
         GTK_LABEL(lookup_widget(main_window, "label_statusbar_uptime")),
-        "Uptime: %s", short_uptime(difftime(now, start_stamp)));
+        _("Uptime: %s"), short_uptime(difftime(now, start_stamp)));
 
     /*
      * Update the different parts of the GUI.
@@ -119,8 +121,8 @@ static void update_stat(guint32 *max, GtkProgressBar *pg,
 
 	gm_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s %s %s", 
         compact_size(current), 
-        inout ? "in" : "out",
-        avg_mode ? "(avg)" : "");
+        inout ? _("in") : _("out"),
+        avg_mode ? _("(avg)") : "");
 	gtk_progress_bar_set_text(pg, gui_tmp);
     gtk_progress_bar_set_fraction(pg, frac);
 }

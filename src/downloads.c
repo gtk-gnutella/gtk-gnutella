@@ -383,7 +383,7 @@ void download_timer(time_t now)
 		case GTA_DL_SINKING:
 
 			if (!is_inet_connected) {
-				download_queue(d, "No longer connected");
+				download_queue(d, _("No longer connected"));
 				break;
 			}
 
@@ -437,7 +437,7 @@ void download_timer(time_t now)
 			break;
 		case GTA_DL_TIMEOUT_WAIT:
 			if (!is_inet_connected) {
-				download_queue(d, "No longer connected");
+				download_queue(d, _("No longer connected"));
 				break;
 			}
 
@@ -854,7 +854,7 @@ void download_info_change_all(
 			d->flags |= DL_F_SUSPENDED;
 
 		if (is_running)
-			download_queue(d, "Requeued by file info change");
+			download_queue(d, _("Requeued by file info change"));
 	}
 }
 
@@ -927,7 +927,7 @@ static void queue_suspend_downloads_with_file(
 
 		if (suspend) {
 			if (DOWNLOAD_IS_RUNNING(d))
-				download_queue(d, "Suspended (SHA1 checking)");
+				download_queue(d, _("Suspended (SHA1 checking)"));
 			d->flags |= DL_F_SUSPENDED;		/* Can no longer be scheduled */
 		} else
 			d->flags &= ~DL_F_SUSPENDED;
@@ -1934,7 +1934,7 @@ gboolean download_start_prepare_running(struct download *d)
 	 */
 
 	if (d->flags & DL_F_SUSPENDED) {
-		download_queue(d, "Suspended (SHA1 checking)");
+		download_queue(d, _("Suspended (SHA1 checking)"));
 		return FALSE;
 	}
 
@@ -2166,7 +2166,7 @@ void download_start(struct download *d, gboolean check_allowed)
 			count_running_downloads_with_name(d->file_info->file_name) != 0))
 	) {
 		if (!DOWNLOAD_IS_QUEUED(d))
-			download_queue(d, "No download slot");
+			download_queue(d, _("No download slot"));
 		return;
 	}
 
@@ -2384,7 +2384,7 @@ static void download_push(struct download *d, gboolean on_timeout)
 						ip_port_to_gchar(download_ip(d), download_port(d)));
 
 				d->flags |= DL_F_PUSH_IGN;
-				download_queue(d, "Ignoring Push flag");
+				download_queue(d, _("Ignoring Push flag"));
 			}
 		}
 	}
@@ -2615,7 +2615,7 @@ static void create_download(
 				return;
 		} else {
 			download_info_reget(d);
-			download_queue(d, "Dup SHA1 during creation");
+			download_queue(d, _("Dup SHA1 during creation"));
 			return;
 		}
 	}
@@ -2624,7 +2624,7 @@ static void create_download(
 
 
 	if (d->flags & DL_F_SUSPENDED)
-		download_queue(d, "Suspended (SHA1 checking)");
+		download_queue(d, _("Suspended (SHA1 checking)"));
 	else if (
 		count_running_downloads() < max_downloads &&
 		count_running_on_server(d->server) < max_host_downloads &&
@@ -2633,7 +2633,7 @@ static void create_download(
 		download_start(d, FALSE);		/* Start the download immediately */
 	} else {
 		/* Max number of downloads reached, we have to queue it */
-		download_queue(d, "No download slot");
+		download_queue(d, _("No download slot"));
 	}
 }
 
@@ -3119,7 +3119,7 @@ void download_requeue(struct download *d)
 	if (DOWNLOAD_IS_STOPPED(d))
 		d->file_info->lifecount++;
 
-	download_queue(d, "Explicitly requeued");
+	download_queue(d, _("Explicitly requeued"));
 }
 
 /*
@@ -3534,7 +3534,7 @@ static void download_write_data(struct download *d)
 			else if (d->pos == d->range_end)
 				goto partial_done;
 			else
-				download_queue(d, "Requeued by competing download");
+				download_queue(d, _("Requeued by competing download"));
 			break;
 		case DL_CHUNK_BUSY:
 			if (d->pos < d->range_end) {	/* Still within requested chunk */
@@ -3598,9 +3598,9 @@ partial_done:
 	 */
 
 	if (trimmed)
-		download_queue(cd, "Requeued after trimmed data");
+		download_queue(cd, _("Requeued after trimmed data"));
 	else if (!cd->keep_alive)
-		download_queue(cd, "Chunk done, connection closed");
+		download_queue(cd, _("Chunk done, connection closed"));
 	else {
 		if (download_start_prepare(cd)) {
 			cd->keep_alive = TRUE;			/* Was reset by _prepare() */
@@ -3764,7 +3764,7 @@ static gboolean download_check_status(
 		 */
 
 		if (d->keep_alive)
-			download_queue(d, "Weird HTTP status (protocol desync?)");
+			download_queue(d, _("Weird HTTP status (protocol desync?)"));
 		else
 			download_stop(d, GTA_DL_ERROR, "Weird HTTP status");
 		return FALSE;
@@ -4027,7 +4027,7 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 				g_assert(!sha1_eq(d->file_info->sha1, d->sha1));
 
 				download_info_reget(d);
-				download_queue(d, "URN fileinfo mismatch");
+				download_queue(d, _("URN fileinfo mismatch"));
 
 				g_assert(d->file_info->sha1 == d->sha1);
 
@@ -4047,7 +4047,7 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 
 			if (!file_info_got_sha1(d->file_info, d->sha1)) {
 				download_info_reget(d);
-				download_queue(d, "Discovered dup SHA1");
+				download_queue(d, _("Discovered dup SHA1"));
 				return FALSE;
 			}
 
@@ -5830,7 +5830,7 @@ static void download_moved_with_bad_sha1(struct download *d)
 
 		d->file_info->lifecount++;				/* Reactivate download */
 		file_info_reset(d->file_info);
-		download_queue(d, "SHA1 mismatch detected");
+		download_queue(d, _("SHA1 mismatch detected"));
 	}
 }
 

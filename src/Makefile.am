@@ -196,6 +196,8 @@ GLADE_WARNING2 = "  \"glade --write-source\" failed.  To ignore any changes to"
 GLADE_WARNING3 = "  gtk-gnutella.glade, cd to the src directory, and run"
 GLADE_WARNING4 = "  touch interface-glade.c interface-glade.h support.h support.c"
 
+AM_CPPFLAGS = -DLOCALEDIR=\"$(datadir)/locale\"
+
 #
 # Glade generates:
 #	interface-glade[12].c interface-glade[12].h
@@ -212,8 +214,8 @@ glade_files:
 	@echo $(GLADECMD) --write-source ../$(GLADEFILE)
 	@$(GLADECMD) --write-source ../$(GLADEFILE) || (echo $(GLADE_WARNING1);echo $(GLADE_WARNING2);echo $(GLADE_WARNING3);echo $(GLADE_WARNING4))
 
-properties:
+gui_property.c gui_property.h gui_property_priv.h: gui_props.ag props.tpl
 	autogen gui_props.ag
+
+gnet_property.c gnet_property.h gnet_property_priv.h: gnet_props.ag props.tpl
 	autogen gnet_props.ag
-
-

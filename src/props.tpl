@@ -291,7 +291,7 @@ FOR prop =][=
     ELSE =][=
         (. current-prop) =].name = "[= name =]";[= 
     ENDIF =]
-    [=(. current-prop)=].desc = "[=desc=]";
+    [=(. current-prop)=].desc = _("[=desc=]");
     [=(. current-prop)=].ev_changed = event_new("[= name =]_changed");[=
     IF (exist? "save") =]
     [=  (. current-prop) =].save = [=save=];[= 

@@ -2774,8 +2774,8 @@ static gboolean reading_hostfile_changed(property_t prop)
     if (state) {
         GtkProgressBar *pg = GTK_PROGRESS_BAR
             (lookup_widget(main_window, "progressbar_hosts_in_catcher"));
-        gtk_progress_bar_set_text(pg, "loading...");
-        id = statusbar_gui_message(0, "Reading host cache...");
+        gtk_progress_bar_set_text(pg, _("loading..."));
+        id = statusbar_gui_message(0, _("Reading host cache..."));
     } else {
     	hosts_in_catcher_changed(PROP_HOSTS_IN_CATCHER);
 		if (0 != id.scid)
@@ -2791,7 +2791,7 @@ static gboolean ancient_version_changed(property_t prop)
     gnet_prop_get_boolean(prop, &b, 0, 1);
 
     if (b)
-        statusbar_gui_warning(15, "*** RUNNING AN OLD VERSION! ***");
+        statusbar_gui_warning(15, _("*** RUNNING AN OLD VERSION! ***"));
 
     return FALSE;
 }
@@ -2878,9 +2878,9 @@ static void set_host_progress(const gchar *w, guint32 cur, guint32 max)
 
 	gm_snprintf(set_tmp, sizeof(set_tmp), 
 #ifdef USE_GTK2
-		"%u/%u host%s (%u%%)",
+		_("%u/%u host%s (%u%%)"),
 #else
-		"%u/%u host%s (%u%%%%)",
+		_("%u/%u host%s (%u%%%%)"),
 #endif
         cur, max, (cur == 1 && max == 1) ? "" : "s",
         (guint)(frac*100));
@@ -3453,11 +3453,11 @@ static gboolean dl_running_count_changed(property_t prop)
     if (val == 0) {
         gtk_label_printf(
             GTK_LABEL(lookup_widget(main_window, "label_dl_running_count")),
-            "no sources active");
+            _("no sources active"));
     } else {
         gtk_label_printf(
             GTK_LABEL(lookup_widget(main_window, "label_dl_running_count")),
-            "%u source%s active", val, (val != 1) ? "s" : "");
+            _("%u source%s active"), val, (val != 1) ? "s" : "");
     }
 
 	downloads_count_changed(prop);
@@ -3536,7 +3536,7 @@ static gboolean gnet_connections_changed(property_t prop)
         nodes = (peermode == NODE_P_NORMAL) ? 
             max_connections : max_ultrapeers;
         gm_snprintf(set_tmp, sizeof(set_tmp), 
-            "%u/%u connection%s",
+            _("%u/%u connection%s"),
             cnodes, nodes, (cnodes == 1 && nodes == 1) ? "" : "s");
         break;
     case NODE_P_ULTRA: /* ultra */
@@ -3569,7 +3569,7 @@ static gboolean uploads_count_changed(property_t prop)
 
     gnet_prop_get_guint32_val(PROP_UL_REGISTERED, &registered);
     gnet_prop_get_guint32_val(PROP_UL_RUNNING, &running);
-	gm_snprintf(set_tmp, sizeof(set_tmp), "%u/%u upload%s",
+	gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u upload%s"),
 		running, registered, (1 == running && 1 == registered) ? "" : "s");
 
 	min = MIN(running, registered);
@@ -3591,7 +3591,7 @@ static gboolean downloads_count_changed(property_t prop)
 
     gnet_prop_get_guint32_val(PROP_DL_ACTIVE_COUNT, &active);
     gnet_prop_get_guint32_val(PROP_DL_RUNNING_COUNT, &running);
-    gm_snprintf(set_tmp, sizeof(set_tmp), "%u/%u download%s",
+    gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u download%s"),
         active, running, (1 == running && 1 == active) ? "" : "s");
 
     min = MIN(active, running);
@@ -3969,7 +3969,7 @@ void settings_gui_init(void)
 		home_dir = g_strdup(getenv("HOME"));
 
 	if (!home_dir)
-		g_warning("can't find your home directory!");
+		g_warning(_("can't find your home directory!"));
 
 	if (!gui_config_dir) {
 		if (home_dir) {
@@ -3977,14 +3977,14 @@ void settings_gui_init(void)
 				"%s/.gtk-gnutella", home_dir);
 			gui_config_dir = g_strdup(set_tmp);
 		} else
-			g_warning("no home directory: prefs will not be saved!");
+			g_warning(_("no home directory: prefs will not be saved!"));
 	}
 
 	if (gui_config_dir && !is_directory(gui_config_dir)) {
-		g_warning("creating configuration directory '%s'\n", gui_config_dir);
+		g_warning(_("creating configuration directory '%s'\n"), gui_config_dir);
 
 		if (mkdir(gui_config_dir, 0755) == -1) {
-			g_warning("mkdir(%s) failed: %s\n\n",
+			g_warning(_("mkdir(%s) failed: %s\n\n"),
 				gui_config_dir, g_strerror(errno));
 			g_free(gui_config_dir);
 			gui_config_dir = NULL;

@@ -376,6 +376,12 @@ gint main(gint argc, gchar **argv, gchar **env)
 	for (i = 3; i < 256; i++)
 		close(i);				/* Just in case */
 
+#ifdef ENABLE_NLS
+	bindtextdomain(PACKAGE, LOCALEDIR);
+	bind_textdomain_codeset(PACKAGE, "UTF-8");
+	textdomain(PACKAGE);
+#endif
+
 	signal(SIGINT, sig_ignore);		/* ignore SIGINT in adns (e.g. for gdb) */
 	signal(SIGPIPE, sig_ignore);	/* Not SIG_IGN, see comment */
 

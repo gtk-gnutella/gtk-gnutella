@@ -97,7 +97,7 @@ static void load_legacy_settings(void)
 		home_dir = g_strdup(getenv("HOME"));
 
     if (!home_dir)
-		g_warning("can't find your home directory!");
+		g_warning(_("can't find your home directory!"));
  
     if (!config_dir) {
 		if (home_dir) {
@@ -105,7 +105,7 @@ static void load_legacy_settings(void)
 				"%s/.gtk-gnutella", home_dir);
 			config_dir = g_strdup(tmp);
 		} else
-			g_warning("no home directory: can't check legacy configuration!");
+			g_warning(_("no home directory: can't check legacy configuration!"));
 	}
 
     gm_snprintf(core_config_file, sizeof(core_config_file), 
@@ -114,7 +114,7 @@ static void load_legacy_settings(void)
         "%s/%s", config_dir, "config_gui");
 
     if (!file_exists(core_config_file) && !file_exists(gui_config_file)) {
-        g_warning("No configuration found, trying legacy config file");
+        g_warning(_("No configuration found, trying legacy config file"));
         config_init();
     }
 
@@ -169,65 +169,65 @@ static void gui_init_menu(void)
 
 	gtk_tree_store_append(store, &parent, NULL);
 	gtk_tree_store_set(store, &parent,
-		0, "gnutellaNet", 1, nb_main_page_gnet, 2, TREEMENU_NODE_GNET, -1);
+		0, _("gnutellaNet"), 1, nb_main_page_gnet, 2, TREEMENU_NODE_GNET, -1);
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
-		0, "Stats", 1, nb_main_page_gnet_stats, 2, TREEMENU_NODE_GNET_STATS,
+		0, _("Stats"), 1, nb_main_page_gnet_stats, 2, TREEMENU_NODE_GNET_STATS,
 		-1);
 	gtk_tree_store_append(store, &parent, NULL);
 	gtk_tree_store_set(store, &parent,
-		0, "Uploads", 1, nb_main_page_uploads, 2, TREEMENU_NODE_UL, -1);
+		0, _("Uploads"), 1, nb_main_page_uploads, 2, TREEMENU_NODE_UL, -1);
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
-		0, "Stats", 1, nb_main_page_uploads_stats, 2, TREEMENU_NODE_UL_STATS,
-		-1);
-
-	gtk_tree_store_append(store, &parent, NULL);
-	gtk_tree_store_set(store, &parent,
-		0, "Downloads", 1, nb_main_page_downloads, 2, TREEMENU_NODE_DL, -1);
-
-	gtk_tree_store_append(store, &parent, NULL);
-	gtk_tree_store_set(store, &parent,
-		0, "Search", 1, nb_main_page_search, 2, TREEMENU_NODE_SEARCH, -1);
-	gtk_tree_store_append(store, &iter, &parent);
-	gtk_tree_store_set(store, &iter,
-		0, "Monitor", 1, nb_main_page_monitor, 2, TREEMENU_NODE_SEARCH_MON, -1);
-	gtk_tree_store_append(store, &iter, &parent);
-	gtk_tree_store_set(store, &iter,
-		0, "Stats", 1, nb_main_page_search_stats, 2, TREEMENU_NODE_SEARCH_STATS,
+		0, _("Stats"), 1, nb_main_page_uploads_stats, 2, TREEMENU_NODE_UL_STATS,
 		-1);
 
 	gtk_tree_store_append(store, &parent, NULL);
 	gtk_tree_store_set(store, &parent,
-		0, "Config", 1, nb_main_page_config_sel,
+		0, _("Downloads"), 1, nb_main_page_downloads, 2, TREEMENU_NODE_DL, -1);
+
+	gtk_tree_store_append(store, &parent, NULL);
+	gtk_tree_store_set(store, &parent,
+		0, _("Search"), 1, nb_main_page_search, 2, TREEMENU_NODE_SEARCH, -1);
+	gtk_tree_store_append(store, &iter, &parent);
+	gtk_tree_store_set(store, &iter,
+		0, _("Monitor"), 1, nb_main_page_monitor, 2, TREEMENU_NODE_SEARCH_MON, -1);
+	gtk_tree_store_append(store, &iter, &parent);
+	gtk_tree_store_set(store, &iter,
+		0, _("Stats"), 1, nb_main_page_search_stats, 2, TREEMENU_NODE_SEARCH_STATS,
+		-1);
+
+	gtk_tree_store_append(store, &parent, NULL);
+	gtk_tree_store_set(store, &parent,
+		0, _("Config"), 1, nb_main_page_config_sel,
 		2, TREEMENU_NODE_CFG_SEL, -1);
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
-		0, "Network", 1, nb_main_page_config_net,
+		0, _("Network"), 1, nb_main_page_config_net,
 		2, TREEMENU_NODE_CFG_NET, -1);
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
-		0, "GnutellaNet", 1, nb_main_page_config_gnet,
+		0, _("GnutellaNet"), 1, nb_main_page_config_gnet,
 		2, TREEMENU_NODE_CFG_GNET, -1);
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
-		0, "Bandwidth", 1, nb_main_page_config_bwc,
+		0, _("Bandwidth"), 1, nb_main_page_config_bwc,
 		2, TREEMENU_NODE_CFG_BWC, -1);
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
-		0, "Downloads", 1, nb_main_page_config_dl,
+		0, _("Downloads"), 1, nb_main_page_config_dl,
 		2, TREEMENU_NODE_CFG_DL, -1);
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
-		0, "Uploads", 1, nb_main_page_config_ul,
+		0, _("Uploads"), 1, nb_main_page_config_ul,
 		2, TREEMENU_NODE_CFG_UL, -1);
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
-		0, "User Interface", 1, nb_main_page_config_ui,
+		0, _("User Interface"), 1, nb_main_page_config_ui,
 		2, TREEMENU_NODE_CFG_UI, -1);
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
-		0, "Debugging", 1, nb_main_page_config_dbg,
+		0, _("Debugging"), 1, nb_main_page_config_dbg,
 		2, TREEMENU_NODE_CFG_DBG, -1);
 
 	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
