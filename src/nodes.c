@@ -4549,15 +4549,17 @@ static void node_parse(struct gnutella_node *node)
 			break;
 		case GTA_MSG_SEARCH:
             /*
-             * search_request takes care of telling the stats that
+             * search_request() takes care of telling the stats that
              * the message was dropped.
+			 *
+			 * When running as an UP, we'll forward the search to our leaves
+			 * even if its TTL expired here.
              */
 
-			if (current_peermode == NODE_P_ULTRA && dest.type != ROUTE_NONE) {
+			if (current_peermode == NODE_P_ULTRA) {
 				qhv = query_hashvec;
 				qhvec_reset(qhv);
-			} else
-				qhv = NULL;
+			}
 
 			drop = search_request(n, qhv);
 
@@ -4603,13 +4605,10 @@ static void node_parse(struct gnutella_node *node)
 
 			/*
 			 * If message was a query, route it to the appropriate leaves.
+			 * In that case, we have a non-NULL query hash vector `qhv'.
 			 */
 
-			if (
-				current_peermode == NODE_P_ULTRA &&
-				n->header.function == GTA_MSG_SEARCH &&
-				qhv != NULL
-			)
+			if (qhv != NULL)
 				qrt_route_query(n, qhv);
 		}
 	} else
