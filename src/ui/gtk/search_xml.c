@@ -87,6 +87,8 @@ static void xml_to_sha1_rule(xmlNodePtr, gpointer);
 static void xml_to_flag_rule(xmlNodePtr, gpointer);
 static void xml_to_state_rule(xmlNodePtr, gpointer);
 static guint16 get_rule_flags_from_xml(xmlNodePtr);
+static xmlAttrPtr xml_prop_printf(xmlNodePtr node, const xmlChar *name,
+	const char *fmt, ...) G_GNUC_PRINTF(3, 4);
 
 /*
  * Private variables
@@ -137,15 +139,13 @@ static const xmlChar TAG_RULE_FLAG_STABLE[]       = "Stable";
 static const xmlChar TAG_RULE_STATE_DISPLAY[]     = "Display";
 static const xmlChar TAG_RULE_STATE_DOWNLOAD[]    = "Download";
 
-
-
 static const gchar search_file_xml[] = "searches.xml";
 static const gchar search_file_xml_new[] = "searches.xml.new";
 static const gchar search_file_xml_old[] = "searches.xml.orig";
 
-
-static gchar x_tmp[4096];
+static GHashTable *target_map = NULL;
 static GHashTable *id_map = NULL;
+
 static node_parser_t parser_map[] = {
     {NODE_BUILTIN,     xml_to_builtin},
     {NODE_SEARCH,      xml_to_search},
@@ -179,11 +179,14 @@ parse_number(const gchar *buf, gint *error)
 	g_assert(error != NULL);
 
 	ret = parse_uint64(buf, &ep, 10, error);
-	if (!error && *ep != '\0') {
+	if (0 == *error && *ep != '\0') {
 		*error = EINVAL;
+	}
+	if (0 != *error) {
+		g_message("buf=\"%s\"", buf);
 		return 0;
 	}
-
+	
 	return ret;
 }
 
@@ -201,26 +204,130 @@ static gpointer
 parse_target(const gchar *buf, gint *error)
 {
 	gchar *ep;
-	gpointer ret;
+	guint64 v;
+	gulong target; /* Not guint32! for backwards compatibility. See below. */
 
 	g_assert(buf != NULL);
 	g_assert(error != NULL);
 
 	if ('0' == buf[0] && 'x' == buf[1]) {
-		/* Targets are printed using "%p". This format is implementation
-		 * specific. We expect a hexadecimal value that is optionally
+		/* 
+		 * In previous versions, targets were printed using "%p". This format
+		 * is implementation-specific and thus causes a non-portable
+		 * configuration. We expect a hexadecimal value that is optionally
 		 * preceded by "0x".
 		 */
 		buf += 2;
 	}
 
-	ret = TO_TARGET(parse_uint64(buf, &ep, 16, error));
-	if (!error && *ep != '\0') {
+	v = parse_uint64(buf, &ep, 16, error);
+	if (0 == *error && *ep != '\0') {
 		*error = EINVAL;
+	}
+	/*
+	 * For backwards compatibility we allow values above 2^32-1 if the
+	 * machine doesn't use 32-bit wide pointers. Older versions used
+	 * the pointer casted to an integer type as target ID.
+	 */
+	if (0 == *error && 4 == sizeof(gpointer) && v > (~(guint32) 0)) {
+		*error = ERANGE;
+	}
+	if (0 != *error) {
+		g_message("buf=\"%s\"", buf);
 		return NULL;
 	}
 
-	return ret;
+	target = v;
+	/* Not using GUINT_TO_POINTER() is intentional to prevent truncation
+	 * to 32-bit for backwards compability as explained above. */
+	return (gpointer) target;
+}
+
+/**
+ * Returns the next available target ID.
+ *
+ * @param do_reset if TRUE, the ID counter is reset to an initial value.
+ * @return a 32-bit integer stuffed into a pointer
+ */
+static gpointer 
+target_new_id(gboolean do_reset)
+{
+	static guint32 id_counter;
+	guint32 ret;
+
+	/* If target_map is NULL, the counter is reset */
+	if (do_reset) {
+		id_counter = 0;
+	} else {
+		id_counter++;
+		/* 4 billion filters/searches should be enough for everyone */
+		g_assert(0 != id_counter);
+	}
+	
+	ret = id_counter;
+	return GUINT_TO_POINTER(ret);
+}
+
+/**
+ * Resets the target ID counter and frees target_map if it was created. 
+ */
+static void
+target_map_reset(void)
+{
+	target_new_id(TRUE); /* Reset */
+	if (target_map) {
+		g_hash_table_destroy(target_map);
+		target_map = NULL;
+	}
+}
+
+/**
+ * Creates a string representation of a ``target''.
+ *
+ * @target a filter target
+ * @return a static buffer holding the string representation
+ */
+static const xmlChar *
+target_to_string(gpointer target)
+{
+	gpointer value;
+	static gchar buf[128];
+
+	if (!target_map) {
+		target_new_id(TRUE); /* Reset */
+		target_map = g_hash_table_new(NULL, NULL);
+	}
+
+	if (!g_hash_table_lookup_extended(target_map, target, NULL, &value)) {
+		value = target_new_id(FALSE);
+		g_hash_table_insert(target_map, target, value);
+	}
+	
+    gm_snprintf(buf, sizeof buf, "0x%x", GPOINTER_TO_UINT(value));
+	return buf;
+}
+
+/**
+ * A wrapper to set use xmlSetProp() through a printf-like interface. The
+ * length of the created string is limited to 4096 byte and truncation occurs
+ * if this limit is exceeded. For mere strings or longer values use
+ * xmlSetProp() directly instead.
+ *
+ * @param node the node
+ * @param the attribute name
+ * @param fmt the format string
+ * @return the result of xmlSetProp().
+ */
+static xmlAttrPtr
+xml_prop_printf(xmlNodePtr node, const xmlChar *name, const char *fmt, ...)
+{
+	va_list ap;
+	gchar buf[4096];
+
+	va_start(ap, fmt);
+	gm_vsnprintf(buf, sizeof buf, fmt, ap);
+	va_end(ap);
+    return xmlSetProp(node, name, buf);
 }
 
 /**
@@ -235,6 +342,10 @@ search_store_xml(void)
     xmlNodePtr root;
 	gchar *filename_new;
 
+
+	/* Free target_map and reset the target ID counter */
+	target_map_reset();	
+
     /*
      * Create new xml document with version 1.0
      */
@@ -245,7 +356,8 @@ search_store_xml(void)
      */
     root = xmlNewDocNode(doc, NULL, (const xmlChar *) "Searches", NULL);
     xmlDocSetRootElement(doc, root);
-    xmlSetProp(root, (const xmlChar *) "Time", (const xmlChar *) ctime(&now));
+	/* Discard the newline of the ctime string */
+    xml_prop_printf(root, (const xmlChar *) "Time", "%24.24s", ctime(&now));
     xmlSetProp(root, (const xmlChar *) "Version",
 		(const xmlChar *) GTA_VERSION_NUMBER);
 
@@ -303,6 +415,9 @@ search_store_xml(void)
 	G_FREE_NULL(filename_new);
 
 	xmlFreeDoc(doc);
+
+	/* Free target_map and reset the target ID counter */
+	target_map_reset();	
 }
 
 /**
@@ -515,22 +630,22 @@ builtin_to_xml(xmlNodePtr parent)
 
     g_assert(parent != NULL);
 
-    newxml = xmlNewChild(parent,NULL,NODE_BUILTIN, NULL);
+    newxml = xmlNewChild(parent, NULL,NODE_BUILTIN, NULL);
 
-  	gm_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_show_target());
-    xmlSetProp(newxml, TAG_BUILTIN_SHOW_UID, (const xmlChar *) x_tmp);
+    xmlSetProp(newxml, TAG_BUILTIN_SHOW_UID,
+		target_to_string(filter_get_show_target()));
 
-  	gm_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_drop_target());
-    xmlSetProp(newxml, TAG_BUILTIN_DROP_UID, (const xmlChar *) x_tmp);
+    xmlSetProp(newxml, TAG_BUILTIN_DROP_UID,
+		target_to_string(filter_get_drop_target()));
 
-  	gm_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_download_target());
-    xmlSetProp(newxml, TAG_BUILTIN_DOWNLOAD_UID, (const xmlChar *) x_tmp);
+    xmlSetProp(newxml, TAG_BUILTIN_DOWNLOAD_UID,
+		target_to_string(filter_get_download_target()));
 
-    gm_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_nodownload_target());
-    xmlSetProp(newxml, TAG_BUILTIN_NODOWNLOAD_UID, (const xmlChar *) x_tmp);
+    xmlSetProp(newxml, TAG_BUILTIN_NODOWNLOAD_UID,
+		target_to_string(filter_get_nodownload_target()));
 
-    gm_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_return_target());
-    xmlSetProp(newxml, TAG_BUILTIN_RETURN_UID, (const xmlChar *) x_tmp);
+    xmlSetProp(newxml, TAG_BUILTIN_RETURN_UID,
+		target_to_string(filter_get_return_target()));
 }
 
 static void
@@ -568,21 +683,12 @@ search_to_xml(xmlNodePtr parent, search_t *s)
     newxml = xmlNewChild(parent, NULL, NODE_SEARCH, NULL);
     xmlSetProp(newxml, TAG_SEARCH_QUERY, (const xmlChar *) t);
 
-    gm_snprintf(x_tmp, sizeof(x_tmp), "%u", s->enabled);
-    xmlSetProp(newxml, TAG_SEARCH_ENABLED, (const xmlChar *) x_tmp);
-
-    gm_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(s->passive));
-    xmlSetProp(newxml, TAG_SEARCH_PASSIVE, (const xmlChar *) x_tmp);
-
-  	gm_snprintf(x_tmp, sizeof(x_tmp), "%u",
-        guc_search_get_reissue_timeout(s->search_handle));
-    xmlSetProp(newxml, TAG_SEARCH_REISSUE_TIMEOUT, (const xmlChar *) x_tmp);
-
-  	gm_snprintf(x_tmp, sizeof(x_tmp), "%i", s->sort_col);
-    xmlSetProp(newxml, TAG_SEARCH_SORT_COL, (const xmlChar *) x_tmp);
-
-  	gm_snprintf(x_tmp, sizeof(x_tmp), "%i", s->sort_order);
-    xmlSetProp(newxml, TAG_SEARCH_SORT_ORDER, (const xmlChar *) x_tmp);
+	xml_prop_printf(newxml, TAG_SEARCH_ENABLED, "%u", s->enabled);
+    xml_prop_printf(newxml, TAG_SEARCH_PASSIVE, "%u", TO_BOOL(s->passive));
+    xml_prop_printf(newxml, TAG_SEARCH_REISSUE_TIMEOUT,
+		"%u", guc_search_get_reissue_timeout(s->search_handle));
+    xml_prop_printf(newxml, TAG_SEARCH_SORT_COL, "%i", s->sort_col);
+    xml_prop_printf(newxml, TAG_SEARCH_SORT_ORDER, "%i", s->sort_order);
 
     for (l = s->filter->ruleset; l != NULL; l = g_list_next(l))
         rule_to_xml(newxml, (rule_t *) l->data);
@@ -617,28 +723,23 @@ filter_to_xml(xmlNodePtr parent, filter_t *f)
     }
 
     newxml = xmlNewChild(parent, NULL, NODE_FILTER, NULL);
-
     xmlSetProp(newxml, TAG_FILTER_NAME, (const xmlChar *) f->name);
-
-    gm_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(filter_is_active(f)));
-    xmlSetProp(newxml, TAG_FILTER_ACTIVE, (const xmlChar *) x_tmp);
+    xml_prop_printf(newxml, TAG_FILTER_ACTIVE,
+		"%u", TO_BOOL(filter_is_active(f)));
 
     /*
      * We take the pointer as a unique id which
      * we use during read-in for setting the
      * destination of JUMP actions.
      */
-  	gm_snprintf(x_tmp, sizeof(x_tmp), "%p", f);
-    xmlSetProp(newxml, TAG_FILTER_UID, (const xmlChar *) x_tmp);
+    xmlSetProp(newxml, TAG_FILTER_UID, target_to_string(f));
 
     if (filter_get_global_pre() == f) {
-    	gm_snprintf(x_tmp, sizeof(x_tmp), "%u", GLOBAL_PRE);
-        xmlSetProp(newxml, TAG_FILTER_GLOBAL, (const xmlChar *) x_tmp);
+        xml_prop_printf(newxml, TAG_FILTER_GLOBAL, "%u", GLOBAL_PRE);
     }
 
     if (filter_get_global_post() == f) {
-    	gm_snprintf(x_tmp, sizeof(x_tmp), "%u", GLOBAL_POST);
-        xmlSetProp(newxml, TAG_FILTER_GLOBAL, (const xmlChar *) x_tmp);
+        xml_prop_printf(newxml, TAG_FILTER_GLOBAL, "%u", GLOBAL_POST);
     }
 
     /*
@@ -673,8 +774,7 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
         xmlSetProp(newxml, TAG_RULE_TEXT_MATCH,
 			(const xmlChar *) r->u.text.match);
 
-        gm_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.text.type);
-        xmlSetProp(newxml, TAG_RULE_TEXT_TYPE, (const xmlChar *) x_tmp);
+        xml_prop_printf(newxml, TAG_RULE_TEXT_TYPE, "%u", r->u.text.type);
         break;
     case RULE_IP:
         newxml = xmlNewChild(parent, NULL, NODE_RULE_IP, NULL);
@@ -686,14 +786,10 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
         break;
     case RULE_SIZE:
         newxml = xmlNewChild(parent, NULL, NODE_RULE_SIZE, NULL);
-
-        gm_snprintf(x_tmp, sizeof(x_tmp),
+        xml_prop_printf(newxml, TAG_RULE_SIZE_LOWER,
 			"%" PRIu64, (guint64) r->u.size.lower);
-        xmlSetProp(newxml, TAG_RULE_SIZE_LOWER, (const xmlChar *) x_tmp);
-
-        gm_snprintf(x_tmp, sizeof(x_tmp),
+        xml_prop_printf(newxml, TAG_RULE_SIZE_UPPER,
 			"%" PRIu64, (guint64) r->u.size.upper);
-        xmlSetProp(newxml, TAG_RULE_SIZE_UPPER, (const xmlChar *) x_tmp);
         break;
     case RULE_JUMP:
         newxml = xmlNewChild(parent, NULL, NODE_RULE_JUMP, NULL);
@@ -719,39 +815,25 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
     case RULE_FLAG:
         newxml = xmlNewChild(parent, NULL, NODE_RULE_FLAG, NULL);
 
-        gm_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.flag.stable);
-        xmlSetProp(newxml, TAG_RULE_FLAG_STABLE, (const xmlChar *) x_tmp);
-
-        gm_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.flag.busy);
-        xmlSetProp(newxml, TAG_RULE_FLAG_BUSY, (const xmlChar *) x_tmp);
-
-        gm_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.flag.push);
-        xmlSetProp(newxml, TAG_RULE_FLAG_PUSH, (const xmlChar *) x_tmp);
+        xml_prop_printf(newxml, TAG_RULE_FLAG_STABLE, "%u", r->u.flag.stable);
+        xml_prop_printf(newxml, TAG_RULE_FLAG_BUSY, "%u", r->u.flag.busy);
+        xml_prop_printf(newxml, TAG_RULE_FLAG_PUSH, "%u", r->u.flag.push);
         break;
     case RULE_STATE:
-         newxml = xmlNewChild(parent, NULL, NODE_RULE_STATE, NULL);
-
-        gm_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.state.display);
-        xmlSetProp(newxml, TAG_RULE_STATE_DISPLAY, (const xmlChar *) x_tmp);
-
-        gm_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.state.download);
-        xmlSetProp(newxml, TAG_RULE_STATE_DOWNLOAD, (const xmlChar *) x_tmp);
+        newxml = xmlNewChild(parent, NULL, NODE_RULE_STATE, NULL);
+        xml_prop_printf(newxml, TAG_RULE_STATE_DISPLAY,
+			"%u", r->u.state.display);
+        xml_prop_printf(newxml, TAG_RULE_STATE_DOWNLOAD,
+			"%u", r->u.state.download);
         break;
     default:
         g_error("Unknown rule type: 0x%x", r->type);
     }
 
-    gm_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(RULE_IS_NEGATED(r)));
-    xmlSetProp(newxml, TAG_RULE_NEGATE, (const xmlChar *) x_tmp);
-
-    gm_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(RULE_IS_ACTIVE(r)));
-    xmlSetProp(newxml, TAG_RULE_ACTIVE, (const xmlChar *) x_tmp);
-
-    gm_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(RULE_IS_SOFT(r)));
-    xmlSetProp(newxml, TAG_RULE_SOFT, (const xmlChar *) x_tmp);
-
-    gm_snprintf(x_tmp, sizeof(x_tmp), "%p", r->target);
-    xmlSetProp(newxml, TAG_RULE_TARGET, (const xmlChar *) x_tmp);
+    xml_prop_printf(newxml, TAG_RULE_NEGATE, "%u", TO_BOOL(RULE_IS_NEGATED(r)));
+    xml_prop_printf(newxml, TAG_RULE_ACTIVE, "%u", TO_BOOL(RULE_IS_ACTIVE(r)));
+    xml_prop_printf(newxml, TAG_RULE_SOFT, "%u", TO_BOOL(RULE_IS_SOFT(r)));
+    xmlSetProp(newxml, TAG_RULE_TARGET, target_to_string(r->target));
 }
 
 static void
