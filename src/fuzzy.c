@@ -59,7 +59,7 @@ static GSList *fuzzy_make_word_list(const char *n)
 	size_t len;
 
 	while (*n) {
-		len = 1;
+		len = 2;
 		while (!isalnum((guchar) *n)) n++;
 		p = n;
 		while (isalnum((guchar) *n)) {
@@ -67,10 +67,10 @@ static GSList *fuzzy_make_word_list(const char *n)
 			len++;
 		}
 		if (*p) {
-			word_entry_t *w;
+			size_t n = G_STRUCT_OFFSET(word_entry_t, s) + len;
+			word_entry_t *w = walloc(n);
 		
-			w = walloc(sizeof(*w) + len);
-			w->len = sizeof(*w) + len;
+			w->len = n;
 			fuzzy_strlower(w->s, p, len);
 			l = g_slist_append(l, w);
 		}
