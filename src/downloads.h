@@ -69,7 +69,7 @@ struct dl_key {
 struct dl_server {
 	struct dl_key *key;			/* Key properties */
 	GList *list[DL_LIST_SZ];	/* Download lists */
-	gint count[DL_LIST_SZ];		/* Amount of downloads in list */
+	guint count[DL_LIST_SZ];	/* Amount of downloads in list */
 	const gchar *vendor;		/* Remote server vendor string (atom) */
 	const gchar *hostname;		/* Remote hostname, if known (atom) */
 	time_t retry_after;			/* Time at which we may retry from this host */
@@ -326,16 +326,16 @@ void download_actively_queued(struct download *d, gboolean queued);
 
 void download_verify_start(struct download *d);
 void download_verify_progress(struct download *d, guint32 hashed);
-void download_verify_done(struct download *d, gchar *digest, time_t elapsed);
+void download_verify_done(struct download *d, gchar *digest, guint elapsed);
 void download_verify_error(struct download *d);
 
 void download_move_start(struct download *d);
 void download_move_progress(struct download *d, guint32 copied);
-void download_move_done(struct download *d, time_t elapsed);
+void download_move_done(struct download *d, guint elapsed);
 void download_move_error(struct download *d);
 
 guint extract_retry_after(const header_t *header);
-gboolean is_faked_download(struct download *d);
+gboolean is_faked_download(const struct download *d);
 
 struct download *download_find_waiting_unparq(guint32 ip, guint16 port);
 void download_set_socket_rx_size(gint rx_size);
@@ -343,6 +343,8 @@ void download_set_socket_rx_size(gint rx_size);
 void download_proxy_newstate(struct download *d);
 void download_proxy_sent(struct download *d);
 void download_proxy_failed(struct download *d);
+
+const gchar *download_get_hostname(const struct download *d);
 
 /* vi: set ts=4: */
 #endif /* _downloads_h_ */
