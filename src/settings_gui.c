@@ -179,6 +179,7 @@ static gboolean is_inet_connected_changed(property_t prop);
 static gboolean show_search_results_settings_changed(property_t prop);
 static gboolean local_address_changed(property_t prop);
 static gboolean force_local_ip_changed(property_t prop);
+static gboolean listen_port_changed(property_t prop);
 static gboolean use_netmasks_changed(property_t prop);
 static gboolean guid_changed(property_t prop);
 static gboolean show_tooltips_changed(property_t prop);
@@ -921,7 +922,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_LISTEN_PORT,
-        update_spinbutton,
+        listen_port_changed,
         TRUE,
         "spinbutton_config_port"
     },
@@ -2092,7 +2093,7 @@ static gboolean show_search_results_settings_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean local_address_changed(property_t prop)
+static gboolean __update_address_information(void)
 {
     static guint32 old_address = 0;
     static guint16 old_port = 0;
@@ -2133,14 +2134,27 @@ static gboolean local_address_changed(property_t prop)
     return FALSE;
 }
 
-gboolean force_local_ip_changed(property_t prop)
+static gboolean force_local_ip_changed(property_t prop)
 {
     update_togglebutton(prop);
-    local_address_changed(prop);
+    __update_address_information();
     return FALSE;
 }
 
-gboolean use_netmasks_changed(property_t prop)
+static gboolean listen_port_changed(property_t prop)
+{
+    update_spinbutton(prop);
+    __update_address_information();
+    return FALSE;
+}
+
+static gboolean local_address_changed(property_t prop)
+{
+    __update_address_information();
+    return FALSE;
+}
+
+static gboolean use_netmasks_changed(property_t prop)
 {
     gboolean b;
     
@@ -2153,7 +2167,7 @@ gboolean use_netmasks_changed(property_t prop)
     return FALSE;
 }
 
-gboolean guid_changed(property_t prop)
+static gboolean guid_changed(property_t prop)
 {
     guint8 guid_buf[16];
    
@@ -2166,7 +2180,7 @@ gboolean guid_changed(property_t prop)
     return FALSE;
 }
 
-gboolean show_tooltips_changed(property_t prop)
+static gboolean show_tooltips_changed(property_t prop)
 {
     gboolean b;
 
