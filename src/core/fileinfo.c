@@ -1161,6 +1161,9 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	struct stat;
 	gboolean t64;
 
+	g_assert(NULL != file);
+	g_assert(NULL != path);
+
 	pathname = make_pathname(path, file);
 	g_return_val_if_fail(NULL != pathname, NULL);
 
@@ -2150,7 +2153,6 @@ file_info_retrieve(void)
 	guint32 status;
 	struct dl_file_info *fi = NULL;
 	gboolean empty = TRUE;
-	GSList *aliases = NULL;
 	gboolean last_was_truncated = FALSE;
 	file_path_t fp;
 	gchar *old_filename = NULL;		/* In case we must rename the file */
@@ -2216,9 +2218,15 @@ file_info_retrieve(void)
 
 		str_chomp(line, len);
 
-		if ((*line == '\0') && fi && fi->file_name) {
-			GSList *l;
+		if (*line == '\0' && fi) {
 			struct dl_file_info *dfi;
+
+			if (!(fi->file_name && fi->path)) {
+				/* There's an incomplete fileinfo record */
+				fi_free(fi);
+				fi = NULL;
+				continue;
+			}
 
 			/*
 			 * There can't be duplicates!
@@ -2228,7 +2236,9 @@ file_info_retrieve(void)
 			if (dfi != NULL) {
 				g_warning("discarding DUPLICATE fileinfo entry for \"%s\"",
 					fi->file_name);
-				goto discard;
+				fi_free(fi);
+				fi = NULL;
+				continue;
 			}
 
 			/*
@@ -2251,8 +2261,9 @@ file_info_retrieve(void)
 			 * DONE and GENR to 0.
 			 *
 			 * If for instance the partition where temporary files are held
-			 * is lost, a single "grep -v ^CHNK fileinfo > fileinfo.new" will
-			 * be enough to restart without lossing the collected files.
+			 * is lost, a single "grep -v ^CHNK fileinfo > fileinfo.new"
+			 * will be enough to restart without lossing the collected
+			 * files.
 			 *
 			 *		--RAM, 31/12/2003
 			 */
@@ -2338,7 +2349,9 @@ file_info_retrieve(void)
 							"file had %" PRIu64 " bytes downloaded "
 							"but is now gone!", pathname, (guint64) fi->done);
 						G_FREE_NULL(pathname);
-						goto discard;
+						fi_free(fi);
+						fi = NULL;
+						continue;
 					}
 				}
 				G_FREE_NULL(pathname);
@@ -2368,7 +2381,9 @@ file_info_retrieve(void)
 					"(%" PRIu64 " bytes) with \"%s\" (%" PRIu64 " bytes)",
 					fi->file_name, (guint64) fi->size,
 					dfi->file_name, (guint64) dfi->size);
-				goto discard;
+				fi_free(fi);
+				fi = NULL;
+				continue;
 			}
 
 			file_info_merge_adjacent(fi);
@@ -2382,27 +2397,24 @@ file_info_retrieve(void)
 			 * the `aliases' list itself as an added bonus.
 			 */
 
-			for (l = aliases; l; l = g_slist_next(l)) {
-				fi_alias(fi, (gchar *) l->data, TRUE);
-				atom_str_free((gchar *) l->data);
-                l->data = NULL;
+			if (fi->alias) {
+				GSList *aliases, *sl;
+
+				/* For efficency each alias has been prepended to
+				 * the list. To preserve the order between sessions,
+				 * the original list order is restored here. */
+				aliases = g_slist_reverse(fi->alias);
+				fi->alias = NULL;
+				for (sl = aliases; NULL != sl; sl = g_slist_next(sl)) {
+					fi_alias(fi, (gchar *) sl->data, TRUE);
+					atom_str_free((gchar *) sl->data);
+					sl->data = NULL;
+				}
+				g_slist_free(aliases);
+				aliases = NULL;
 			}
-			g_slist_free(aliases);
-            aliases = NULL;
 
 			empty = FALSE;
-			fi = NULL;
-
-			continue;
-
-		discard:
-			for (l = aliases; l; l = g_slist_next(l)) {
-				atom_str_free((gchar *) l->data);
-                l->data = NULL;
-            }
-            g_slist_free(aliases);
-            aliases = NULL;
-			fi_free(fi);
 			fi = NULL;
 			continue;
 		}
@@ -2412,7 +2424,6 @@ file_info_retrieve(void)
 			fi->refcount = 0;
 			fi->seen_on_network = NULL;
 			fi->file_size_known = TRUE;		/* Unless stated otherwise below */
-			aliases = NULL;
 			old_filename = NULL;
 		}
 
@@ -2467,7 +2478,15 @@ file_info_retrieve(void)
 				gchar *s;
 
 				s = gm_sanitize_filename(value, FALSE, FALSE);
-				aliases = g_slist_append(aliases, atom_str_get(s));
+
+				/* The alias is only temporarily added to fi->alias, the list
+				 * of aliases has to be re-constructed with fi_alias()
+			   	 * when the fileinfo record is finished. It's merely done
+				 * this way to simplify discarding incomplete/invalid records
+				 * utilizing fi_free().
+				 * The list should be reversed once it's complete.
+				 */
+				fi->alias = g_slist_prepend(fi->alias, atom_str_get(s));
 				if (s != value) {
 					g_warning("fileinfo database contained an "
 						"unsanitized alias: \"%s\" -> \"%s\"", value, s);
