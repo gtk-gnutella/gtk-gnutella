@@ -162,24 +162,64 @@ static node_parser_t parser_map[] = {
     {NULL, NULL}
 };
 
-
-static gpointer
-parse_target(const gchar *buf, gchar **ep, gint *error)
+/**
+ * A wrapper around parse_uint64. It's a little stricter, so that trailing
+ * characters enforce an error. It accepts base 10 (decimal) only. On failure
+ * *error will be set to a non-zero "errno" value.
+ *
+ * @param buf the string to parse.
+ * @param error an int variable which will indicate success or failure.
+ * @return On success, the parsed value is returned.
+ */
+static guint64
+parse_number(const gchar *buf, gint *error)
 {
-	static const gchar prefix[] = "0x";
-	size_t len = sizeof prefix - 1;
-	
+	gchar *ep;
+	guint64 ret;
+
 	g_assert(buf != NULL);
-	g_assert(ep != NULL);
 	g_assert(error != NULL);
-	
-	if (0 != strncmp(buf, prefix, len)) {
+
+	ret = parse_uint64(buf, &ep, 10, error);
+	if (!error && *ep != '\0') {
 		*error = EINVAL;
-		*ep = (gchar *) buf; /* Override const */
+		return 0;
+	}
+
+	return ret;
+}
+
+/**
+ * A wrapper around parse_uint64. It's a little stricter, so that trailing
+ * characters enforce an error. It accepts base 16 (decimal) only. On failure
+ * *error will be set to a non-zero "errno" value. The value is casted to
+ * a pointer.
+ *
+ * @param buf the string to parse.
+ * @param error an int variable which will indicate success or failure.
+ * @return On success, the parsed value is returned as a pointer.
+ */
+static gpointer
+parse_target(const gchar *buf, gint *error)
+{
+	gchar *ep;
+	gpointer ret;
+
+	g_assert(buf != NULL);
+	g_assert(error != NULL);
+
+	if ('0' != *buf++ || 'x' != *buf++) {
+		*error = EINVAL;
 		return NULL;
 	}
-	
-	return TO_TARGET(parse_uint64(&buf[len], ep, 16, error));
+
+	ret = TO_TARGET(parse_uint64(buf, &ep, 16, error));
+	if (!error && *ep != '\0') {
+		*error = EINVAL;
+		return NULL;
+	}
+
+	return ret;
 }
 
 /**
@@ -372,14 +412,14 @@ search_retrieve_xml(void)
         gint n = 0;
 
 		f_next = g_list_next(f);
-		
+
         if (gui_debug >= 6) {
             g_message("\n\nresolving on filter:");
             dump_filter(filter);
         }
 
         if (!filter_is_builtin(filter)) {
-			
+
             for (r = filter->ruleset; r != NULL; r = g_list_next(r)) {
                 rule_t *rule = (rule_t *) r->data;
                 gpointer new_target;
@@ -744,7 +784,7 @@ parse_xml(xmlNodePtr xmlnode, gpointer user_data)
 static void
 xml_to_builtin(xmlNodePtr xmlnode, gpointer unused_udata)
 {
-    gchar *buf, *ep;
+    gchar *buf;
     gpointer target;
 	gint error;
 
@@ -759,9 +799,9 @@ xml_to_builtin(xmlNodePtr xmlnode, gpointer unused_udata)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_BUILTIN_SHOW_UID));
     g_assert(buf != NULL);
-    target = parse_target(buf, &ep, &error);
+    target = parse_target(buf, &error);
     G_FREE_NULL(buf);
-    if (error || *ep != '\0') {
+    if (error) {
         g_warning("xml_to_builtin: %s", g_strerror(error));
 		return;
 	}
@@ -769,9 +809,8 @@ xml_to_builtin(xmlNodePtr xmlnode, gpointer unused_udata)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_BUILTIN_DROP_UID));
     g_assert(buf != NULL);
-    target = parse_target(buf, &ep, &error);
-    G_FREE_NULL(buf);
-    if (error || *ep != '\0') {
+    target = parse_target(buf, &error);
+    if (error) {
         g_warning("xml_to_builtin: %s", g_strerror(error));
 		return;
 	}
@@ -779,9 +818,9 @@ xml_to_builtin(xmlNodePtr xmlnode, gpointer unused_udata)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_BUILTIN_DOWNLOAD_UID));
     if (buf != NULL) {
-    	target = parse_target(buf, &ep, &error);
+    	target = parse_target(buf, &error);
         G_FREE_NULL(buf);
-    	if (error || *ep != '\0') {
+    	if (error) {
             g_warning("xml_to_builtin: %s", g_strerror(error));
 			return;
 		}
@@ -792,9 +831,9 @@ xml_to_builtin(xmlNodePtr xmlnode, gpointer unused_udata)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_BUILTIN_NODOWNLOAD_UID));
     if (buf != NULL) {
-    	target = parse_target(buf, &ep, &error);
+    	target = parse_target(buf, &error);
         G_FREE_NULL(buf);
-    	if (error || *ep != '\0') {
+    	if (error) {
             g_warning("xml_to_builtin: %s", g_strerror(error));
 			return;
 		}
@@ -805,9 +844,9 @@ xml_to_builtin(xmlNodePtr xmlnode, gpointer unused_udata)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_BUILTIN_RETURN_UID));
     if (buf != NULL) {
-    	target = parse_target(buf, &ep, &error);
+    	target = parse_target(buf, &error);
         G_FREE_NULL(buf);
-    	if (error || *ep != '\0') {
+    	if (error) {
             g_warning("xml_to_builtin: %s", g_strerror(error));
 			return;
 		}
@@ -916,7 +955,7 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 static void
 xml_to_filter(xmlNodePtr xmlnode, gpointer unused_udata)
 {
-    gchar *buf, *ep;
+    gchar *buf;
     gchar *name;
     xmlNodePtr node;
     filter_t *filter;
@@ -940,9 +979,9 @@ xml_to_filter(xmlNodePtr xmlnode, gpointer unused_udata)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_FILTER_GLOBAL));
     if (buf) {
-    	v = parse_uint64(buf, &ep, 10, &error);
+    	v = parse_number(buf, &error);
         G_FREE_NULL(buf);
-        if (error || *ep != '\0') {
+        if (error) {
             g_warning("xml_to_filter: %s", g_strerror(error));
 			return;
 		}
@@ -968,9 +1007,9 @@ xml_to_filter(xmlNodePtr xmlnode, gpointer unused_udata)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_FILTER_ACTIVE));
     if (buf != NULL) {
-    	v = parse_uint64(buf, &ep, 10, &error);
+    	v = parse_number(buf, &error);
         G_FREE_NULL(buf);
-		if (error || v > 1 || *ep != '\0') {
+		if (error || v > 1) {
         	g_warning("xml_to_filter: Invalid \"active\" tag");
 			return;
 		}
@@ -983,9 +1022,9 @@ xml_to_filter(xmlNodePtr xmlnode, gpointer unused_udata)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_FILTER_UID));
     g_assert(buf);
-    dest = parse_target(buf, &ep, &error);
+    dest = parse_target(buf, &error);
     G_FREE_NULL(buf);
-    if (error || *ep != '\0') {
+    if (error) {
         g_warning("xml_to_filter: %s", g_strerror(error));
 		return;
 	}
@@ -1006,7 +1045,7 @@ xml_to_text_rule(xmlNodePtr xmlnode, gpointer data)
     gchar *match;
     enum rule_text_type type;
     gboolean case_sensitive;
-    gchar *buf, *ep;
+    gchar *buf;
     rule_t *rule;
     filter_t *target, *filter = data;
     guint16 flags;
@@ -1026,22 +1065,22 @@ xml_to_text_rule(xmlNodePtr xmlnode, gpointer data)
 	}
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TEXT_CASE));
-    v = parse_uint64(buf, &ep, 10, &error);
+    v = parse_number(buf, &error);
     G_FREE_NULL(buf);
-	if (error || v > 1 || *ep != '\0') {
+	if (error || v > 1) {
         g_warning("xml_to_text_rule: invalid \"text case\" tag");
 		return;
 	}
-	
+
     case_sensitive = 0 != v;
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TEXT_TYPE));
     type = (enum rule_text_type) atol(buf);
     G_FREE_NULL(buf);
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TARGET));
-    target = parse_target(buf, &ep, &error);
+    target = parse_target(buf, &error);
     G_FREE_NULL(buf);
-    if (error || *ep != '\0') {
+    if (error) {
         g_warning("xml_to_text_rule: %s", g_strerror(error));
 		return;
 	}
@@ -1065,7 +1104,7 @@ xml_to_ip_rule(xmlNodePtr xmlnode, gpointer data)
 {
     guint32 addr;
     guint32 mask;
-    gchar *buf, *ep;
+    gchar *buf;
     rule_t *rule;
     filter_t *target, *filter = data;
     guint16 flags;
@@ -1094,8 +1133,8 @@ xml_to_ip_rule(xmlNodePtr xmlnode, gpointer data)
     G_FREE_NULL(buf);
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TARGET));
-    target = parse_target(buf, &ep, &error);
-    if (error || *ep != '\0') {
+    target = parse_target(buf, &error);
+    if (error) {
         g_warning( "xml_to_ip_rule: %s", g_strerror(error));
 		return;
 	}
@@ -1118,7 +1157,7 @@ xml_to_size_rule(xmlNodePtr xmlnode, gpointer data)
 {
     filter_t *target = NULL, *filter = data;
     filesize_t lower, upper;
-    gchar *buf, *ep;
+    gchar *buf;
     rule_t *rule;
     guint16 flags;
 	gint error;
@@ -1134,8 +1173,8 @@ xml_to_size_rule(xmlNodePtr xmlnode, gpointer data)
         g_warning("xml_to_size_rule: rule without lower bound");
 		return;
 	}
-    lower = parse_uint64(buf, &ep, 10, &error);
-	if (error || *ep != '\0') {
+    lower = parse_number(buf, &error);
+	if (error) {
         g_warning("xml_to_size_rule: invalid lower bound");
 		return;
 	}
@@ -1146,16 +1185,16 @@ xml_to_size_rule(xmlNodePtr xmlnode, gpointer data)
         g_warning("xml_to_size_rule: rule without upper bound");
 		return;
 	}
-    upper = parse_uint64(buf, &ep, 10, &error);
-	if (error || *ep != '\0') {
+    upper = parse_number(buf, &error);
+	if (error) {
         g_warning("xml_to_size_rule: invalid upper bound");
 		return;
 	}
     G_FREE_NULL(buf);
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TARGET));
-    target = parse_target(buf, &ep, &error);
-    if (error || *ep != '\0') {
+    target = parse_target(buf, &error);
+    if (error) {
         g_warning("xml_to_size_rule: %s (%p)", g_strerror(error), target);
 		return;
 	}
@@ -1176,7 +1215,7 @@ xml_to_size_rule(xmlNodePtr xmlnode, gpointer data)
 static void
 xml_to_jump_rule(xmlNodePtr xmlnode, gpointer data)
 {
-    gchar *buf, *ep;
+    gchar *buf;
     rule_t *rule;
     filter_t *target, *filter = data;
     guint16 flags;
@@ -1190,9 +1229,9 @@ xml_to_jump_rule(xmlNodePtr xmlnode, gpointer data)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TARGET));
     g_assert(buf != NULL);
-    target = parse_target(buf, &ep, &error);
+    target = parse_target(buf, &error);
     G_FREE_NULL(buf);
-    if (error || *ep != '\0') {
+    if (error) {
         g_warning( "xml_to_jump_rule: %s", g_strerror(error));
 		return;
 	}
@@ -1214,7 +1253,7 @@ xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer data)
 {
     gchar *hash = NULL;
     gchar *filename = NULL;
-    gchar *buf, *ep;
+    gchar *buf;
     rule_t *rule;
     filter_t *target, *filter = data;
     guint16 flags;
@@ -1238,9 +1277,9 @@ xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer data)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TARGET));
     g_assert(buf != NULL);
-    target = parse_target(buf, &ep, &error);
+    target = parse_target(buf, &error);
     G_FREE_NULL(buf);
-    if (error || *ep != '\0') {
+    if (error) {
         g_warning("xml_to_sha1_rule: %s", g_strerror(error));
 		return;
 	}
@@ -1265,7 +1304,7 @@ xml_to_flag_rule(xmlNodePtr xmlnode, gpointer data)
     enum rule_flag_action stable = RULE_FLAG_IGNORE;
     enum rule_flag_action busy   = RULE_FLAG_IGNORE;
     enum rule_flag_action push   = RULE_FLAG_IGNORE;
-    gchar *buf, *ep;
+    gchar *buf;
     rule_t *rule;
     filter_t *target, *filter = data;
     guint16 flags;
@@ -1280,9 +1319,9 @@ xml_to_flag_rule(xmlNodePtr xmlnode, gpointer data)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_FLAG_STABLE));
     if (buf != NULL) {
-    	v = parse_uint64(buf, &ep, 10, &error);
+    	v = parse_number(buf, &error);
     	G_FREE_NULL(buf);
-    	if (error || *ep != '\0') {
+    	if (error) {
         	g_warning("xml_to_flag_rule: %s", g_strerror(error));
 		} else if (v == RULE_FLAG_SET || v == RULE_FLAG_UNSET) {
             stable = v;
@@ -1291,9 +1330,9 @@ xml_to_flag_rule(xmlNodePtr xmlnode, gpointer data)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_FLAG_BUSY));
     if (buf != NULL) {
-    	v = parse_uint64(buf, &ep, 10, &error);
+    	v = parse_number(buf, &error);
     	G_FREE_NULL(buf);
-    	if (error || *ep != '\0') {
+    	if (error) {
         	g_warning("xml_to_flag_rule: %s", g_strerror(error));
 		} else if (v == RULE_FLAG_SET || v == RULE_FLAG_UNSET) {
             busy = v;
@@ -1302,9 +1341,9 @@ xml_to_flag_rule(xmlNodePtr xmlnode, gpointer data)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_FLAG_PUSH));
     if (buf != NULL) {
-    	v = parse_uint64(buf, &ep, 10, &error);
+    	v = parse_number(buf, &error);
     	G_FREE_NULL(buf);
-    	if (error || *ep != '\0') {
+    	if (error) {
         	g_warning("xml_to_flag_rule: %s", g_strerror(error));
 		} else if (v == RULE_FLAG_SET || v == RULE_FLAG_UNSET) {
             push = v;
@@ -1313,9 +1352,9 @@ xml_to_flag_rule(xmlNodePtr xmlnode, gpointer data)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TARGET));
     g_assert(buf != NULL);
-    target = parse_target(buf, &ep, &error);
+    target = parse_target(buf, &error);
     G_FREE_NULL(buf);
-    if (error || *ep != '\0') {
+    if (error) {
         g_warning( "xml_to_flag_rule: %s", g_strerror(error));
 		return;
 	}
@@ -1337,7 +1376,7 @@ xml_to_state_rule(xmlNodePtr xmlnode, gpointer data)
 {
     enum filter_prop_state display = FILTER_PROP_STATE_UNKNOWN;
     enum filter_prop_state download = FILTER_PROP_STATE_UNKNOWN;
-    gchar *buf, *ep;
+    gchar *buf;
     rule_t *rule;
     filter_t *target, *filter = data;
     guint16 flags;
@@ -1352,9 +1391,9 @@ xml_to_state_rule(xmlNodePtr xmlnode, gpointer data)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_STATE_DISPLAY));
     if (buf != NULL) {
-    	v = parse_uint64(buf, &ep, 10, &error);
+    	v = parse_number(buf, &error);
     	G_FREE_NULL(buf);
-		if (error || *ep != '\0') {
+		if (error) {
         	g_warning( "xml_to_state_rule: %s", g_strerror(error));
 		}
         if (v <= MAX_FILTER_PROP_STATE || v == FILTER_PROP_STATE_IGNORE) {
@@ -1364,9 +1403,9 @@ xml_to_state_rule(xmlNodePtr xmlnode, gpointer data)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_STATE_DOWNLOAD));
     if (buf != NULL) {
-    	v = parse_uint64(buf, &ep, 10, &error);
+    	v = parse_number(buf, &error);
     	G_FREE_NULL(buf);
-		if (error || *ep != '\0') {
+		if (error) {
         	g_warning( "xml_to_state_rule: %s", g_strerror(error));
 			return;
 		}
@@ -1377,9 +1416,9 @@ xml_to_state_rule(xmlNodePtr xmlnode, gpointer data)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TARGET));
     g_assert(buf != NULL);
-    target = parse_target(buf, &ep, &error);
+    target = parse_target(buf, &error);
     G_FREE_NULL(buf);
-    if (error || *ep != '\0') {
+    if (error) {
         g_warning( "xml_to_state_rule: %s", g_strerror(error));
 		return;
 	}
@@ -1403,7 +1442,7 @@ get_rule_flags_from_xml(xmlNodePtr xmlnode)
     gboolean active = TRUE;
     gboolean soft   = FALSE;
     guint16 flags;
-    gchar *buf, *ep;
+    gchar *buf;
 	gint error;
 	guint64 v;
 
@@ -1412,9 +1451,9 @@ get_rule_flags_from_xml(xmlNodePtr xmlnode)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_NEGATE));
     if (buf != NULL) {
-    	v = parse_uint64(buf, &ep, 10, &error);
+    	v = parse_number(buf, &error);
         G_FREE_NULL(buf);
-		if (error || v > 1 || *ep != '\0') {
+		if (error || v > 1) {
 			g_warning("get_rule_flags_from_xml: Invalid \"negate\" tag");
 		} else {
         	negate = 0 != v;
@@ -1423,9 +1462,9 @@ get_rule_flags_from_xml(xmlNodePtr xmlnode)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_ACTIVE));
     if (buf != NULL) {
-    	v = parse_uint64(buf, &ep, 10, &error);
+    	v = parse_number(buf, &error);
         G_FREE_NULL(buf);
-		if (error || v > 1 || *ep != '\0') {
+		if (error || v > 1) {
 			g_warning("get_rule_flags_from_xml: Invalid \"active\" tag");
 		} else {
 	    	active = 0 != v;
@@ -1434,9 +1473,9 @@ get_rule_flags_from_xml(xmlNodePtr xmlnode)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_SOFT));
     if (buf != NULL) {
-    	v = parse_uint64(buf, &ep, 10, &error);
+    	v = parse_number(buf, &error);
         G_FREE_NULL(buf);
-		if (error || v > 1 || *ep != '\0') {
+		if (error || v > 1) {
 			g_warning("get_rule_flags_from_xml: Invalid \"soft\" tag");
 		} else {
         	soft = 0 != v;
