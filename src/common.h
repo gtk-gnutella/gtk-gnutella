@@ -43,6 +43,7 @@
 #include <sys/socket.h>
 #include <glib.h>
 #include <stdarg.h>
+#include <regex.h>
 
 
 #include "cq.h"
@@ -57,7 +58,6 @@
 #include "fuzzy.h"
 #include "matching.h"
 #include "getdate.h"
-#include "regex.h"
 #include "sha1.h"
 #include "idtable.h"
 #include "getline.h"

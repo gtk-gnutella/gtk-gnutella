@@ -38,7 +38,6 @@
 #include "routing.h"
 #include "gmsg.h"
 #include "bsched.h"
-#include "regex.h"
 #include "huge.h"
 #include "dmesh.h"
 
@@ -48,6 +47,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <regex.h>
 #include <time.h>			/* For ctime() */
 #include <netinet/in.h>		/* For ntohl() and friends... */
 #include <dirent.h>
