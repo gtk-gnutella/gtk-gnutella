@@ -23,7 +23,7 @@
  *----------------------------------------------------------------------
  */
 
-#include "config.h"
+#include "gui.h"
 
 #ifdef USE_GTK2
 
@@ -33,21 +33,14 @@
 
 RCSID("$Id$");
 
-gboolean on_clist_monitor_button_press_event
-    (GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+gboolean
+on_treeview_monitor_button_press_event(GtkWidget *widget,
+		GdkEventButton *event, gpointer user_data)
 {
-    gint row;
-    gint col;
-    GtkCList *clist_monitor = GTK_CLIST(widget);
+	(void) widget;
+	(void) user_data;
 
 	if (event->button != 3)
-		return FALSE;
-
-    if (GTK_CLIST(clist_monitor)->selection == NULL)
-        return FALSE;
-
-  	if (!gtk_clist_get_selection_info
-		(GTK_CLIST(clist_monitor), event->x, event->y, &row, &col))
 		return FALSE;
 
 	gtk_toggle_button_set_active(
@@ -60,31 +53,36 @@ gboolean on_clist_monitor_button_press_event
 	return TRUE;
 }
 
-void on_popup_monitor_add_search_activate 
-    (GtkMenuItem *menuitem, gpointer user_data)
+static void
+add_search(GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter,
+		gpointer data)
 {
-	GList *l;
-	gchar *titles[1];
-	gchar *e;
-    GtkCList *clist_monitor = GTK_CLIST
-        (lookup_widget(main_window, "clist_monitor"));
+	gchar *s;
 
-	for (
-        l = GTK_CLIST(clist_monitor)->selection; 
-        l != NULL; 
-        l = GTK_CLIST(clist_monitor)->selection 
-    ) {		
-        gtk_clist_get_text(GTK_CLIST(clist_monitor), (gint) l->data, 0, titles);
-        gtk_clist_unselect_row(GTK_CLIST(clist_monitor), (gint) l->data, 0);
-     
-		e = g_strdup(titles[0]);
+	(void) path;
+	(void) data;
 
-		g_strstrip(e);
-		if (*e)
-			search_gui_new_search(e, 0, NULL);
+   	gtk_tree_model_get(model, iter, 0, &s, (-1));
+	g_strstrip(s);
+	if (*s)
+		search_gui_new_search(s, 0, NULL);
 
-		G_FREE_NULL(e);
-	}	
+	G_FREE_NULL(s);
 }
 
+void
+on_popup_monitor_add_search_activate(GtkMenuItem *menuitem, gpointer user_data)
+{
+    GtkTreeView *tv;
+	GtkTreeSelection *s;
+
+	(void) menuitem;
+	(void) user_data;
+
+   	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_monitor"));
+	s = gtk_tree_view_get_selection(tv);
+	gtk_tree_selection_selected_foreach(s, add_search, NULL);
+}
+
+/* vi: set ts=4 sw=4 cindent: */
 #endif	/* USE_GTK2 */

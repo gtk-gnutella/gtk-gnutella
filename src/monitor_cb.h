@@ -28,8 +28,18 @@
 
 #include "gui.h"
 
-void on_popup_monitor_add_search_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_monitor_add_search_activate(GtkMenuItem *menuitem,
+	gpointer user_data);
 
-gboolean on_clist_monitor_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
+#ifdef USE_GTK1
+gboolean on_clist_monitor_button_press_event(GtkWidget *widget,
+	GdkEventButton *event, gpointer user_data);
+#endif
 
+#ifdef USE_GTK2
+gboolean on_treeview_monitor_button_press_event(GtkWidget *widget,
+	GdkEventButton *event, gpointer user_data);
+#endif
+
+/* vi: set ts=4 sw=4 cindent: */
 #endif /* _monitor_cb_h_ */

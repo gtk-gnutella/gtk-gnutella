@@ -27,6 +27,7 @@
 
 #include "gui.h"
 #include "monitor_gui.h"
+#include "monitor_cb.h"
 #include "override.h"		/* Must be the last header included */
 
 #ifdef USE_GTK2
@@ -48,7 +49,8 @@ enum
  *** Callbacks
  ***/
 
-static void monitor_gui_append_to_monitor(
+static void
+monitor_gui_append_to_monitor(
     query_type_t type, const gchar *item, guint32 ip, guint16 port)
 {
     GtkTreeIter iter;
@@ -56,6 +58,9 @@ static void monitor_gui_append_to_monitor(
 	gchar *str;
 	size_t len;
 
+	(void) ip;
+	(void) port;
+	
 	if (monitor_items < monitor_max_items)
         monitor_items++;
     else {
@@ -104,7 +109,7 @@ void monitor_gui_init(void)
 
     /* The view now holds a reference.  We can get rid of our own
      * reference */
-    g_object_unref(G_OBJECT (monitor_model));
+    g_object_unref(G_OBJECT(monitor_model));
 
     /* Create a column, associating the "text" attribute of the
      * cell_renderer to the first column of the model */
@@ -115,7 +120,10 @@ void monitor_gui_init(void)
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
 
     /* Add the column to the view. */
-    gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
+    gtk_tree_view_append_column (GTK_TREE_VIEW(tree), column);
+	
+	g_signal_connect(G_OBJECT(tree), "button_press_event",
+		G_CALLBACK(on_treeview_monitor_button_press_event), NULL);
 }
 
 void monitor_gui_shutdown(void)
@@ -155,4 +163,5 @@ void monitor_gui_enable_monitor(const gboolean val)
     }
 }
 
+/* vi: set ts=4 sw=4 cindent: */
 #endif	/* USE_GTK2 */
