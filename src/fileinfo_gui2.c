@@ -391,8 +391,15 @@ void fi_gui_shutdown(void)
     fi_remove_listener((GCallback) fi_gui_fi_added, EV_FI_ADDED);
     fi_remove_listener((GCallback) fi_gui_fi_status_changed,
 		EV_FI_STATUS_CHANGED);
-	g_hash_table_destroy(fi_gui_handles);
 	gtk_tree_store_clear(store_fileinfo);
+	g_object_unref(G_OBJECT(store_fileinfo));
+	gtk_tree_view_set_model(treeview_fileinfo, NULL);
+	store_fileinfo = NULL;
 	gtk_tree_store_clear(store_aliases);
+	g_object_unref(G_OBJECT(store_aliases));
+	store_aliases = NULL;
+	gtk_tree_view_set_model(treeview_fi_aliases, NULL);
+	g_hash_table_destroy(fi_gui_handles);
+	fi_gui_handles = NULL;
 }
 
