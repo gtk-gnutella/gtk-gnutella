@@ -37,6 +37,9 @@
 /* Define if you have the strcasestr function.  */
 #undef HAVE_STRCASESTR
 
+/* Define if you have the vsnprintf function.  */
+#undef HAVE_VSNPRINTF
+
 /* Name of package */
 #undef PACKAGE
 
