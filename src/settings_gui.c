@@ -37,6 +37,7 @@
 #include "search_gui.h"
 #include "filter_gui.h"
 #include "search_stats_gui.h"
+#include "nodes_gui_common.h"
 
 #include "settings_cb.h"
 
@@ -217,6 +218,11 @@ static void update_input_bw_display(void);
 static gboolean dl_http_latency_changed(property_t prop);
 static gboolean update_byte_size_entry(property_t prop);
 static gboolean compute_connection_speed_changed(property_t prop);
+#ifdef USE_GTK1
+static gboolean update_toggle_node_show_uptime(property_t prop);
+static gboolean update_toggle_node_show_handshake(property_t prop);
+static gboolean update_toggle_node_show_detailed_info(property_t prop);
+#endif
 
 /* FIXME:
  * move to separate file and autogenerate from high-level description.
@@ -1492,46 +1498,6 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     },
     {
-        NULL,
-        PROP_SEARCH_QUERIES_FORWARD_SIZE,
-        IGNORE,
-        FALSE,
-        NULL,
-        FREQ_UPDATES, 0
-    },
-    {
-        NULL,
-        PROP_SEARCH_QUERIES_KICK_SIZE,
-        IGNORE,
-        FALSE,
-        NULL,
-        FREQ_UPDATES, 0
-    },
-    {
-        NULL,
-        PROP_SEARCH_ANSWERS_FORWARD_SIZE,
-        IGNORE,
-        FALSE,
-        NULL,
-        FREQ_UPDATES, 0
-    },
-    {
-        NULL,
-        PROP_SEARCH_ANSWERS_KICK_SIZE,
-        IGNORE,
-        FALSE,
-        NULL,
-        FREQ_UPDATES, 0
-    },
-    {
-        NULL,
-        PROP_OTHER_MESSAGES_KICK_SIZE,
-        IGNORE,
-        FALSE,
-        NULL,
-        FREQ_UPDATES, 0
-    },
-    {
         get_main_window,
         PROP_HOPS_RANDOM_FACTOR,
         update_spinbutton,
@@ -1539,6 +1505,192 @@ static prop_map_t property_map[] = {
         "spinbutton_config_hops_random_factor",
         FREQ_UPDATES, 0
     },
+#ifdef USE_GTK1
+    {
+        get_main_window,
+        PROP_SEARCH_QUERIES_FORWARD_SIZE,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_search_queries_forward_size",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SEARCH_QUERIES_KICK_SIZE,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_search_queries_kick_size",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SEARCH_ANSWERS_FORWARD_SIZE,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_search_answers_forward_size",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SEARCH_ANSWERS_KICK_SIZE,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_search_answers_kick_size",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_OTHER_MESSAGES_KICK_SIZE,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_other_messages_kick_size",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_NODE_SHOW_UPTIME,
+        update_toggle_node_show_uptime,
+        TRUE,
+        "checkbutton_node_show_uptime",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_NODE_SHOW_HANDSHAKE_VERSION,
+        update_toggle_node_show_handshake,
+        TRUE,
+        "checkbutton_node_show_handshake_version",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_NODE_SHOW_DETAILED_INFO,
+        update_toggle_node_show_detailed_info,
+        TRUE,
+        "checkbutton_node_show_detailed_info",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_GNET_INFO_TXC,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_txc",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_GNET_INFO_RXC,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_rxc",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_GNET_INFO_TX_SPEED,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_tx_speed",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_GNET_INFO_RX_SPEED,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_rx_speed",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_GNET_INFO_TX_QUERIES,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_tx_queries",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_GNET_INFO_RX_QUERIES,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_rx_queries",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_GNET_INFO_TX_HITS,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_tx_hits",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_GNET_INFO_RX_HITS,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_rx_hits",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_GNET_INFO_GEN_QUERIES,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_gen_queries",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_GNET_INFO_SQ_QUERIES,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_sq_queries",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_GNET_INFO_TX_DROPPED,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_tx_dropped",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_GNET_INFO_RX_DROPPED,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_rx_dropped",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_GNET_INFO_QRP_STATS,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_qrp_stats",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_GNET_INFO_DBW,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_dbw",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_GNET_INFO_RT,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_rt",
+        FREQ_UPDATES, 0
+    },
+#endif
     {
         NULL,
         PROP_PROGRESSBAR_BWS_IN_AVG,
@@ -2957,6 +3109,50 @@ static gboolean update_byte_size_entry(property_t prop)
     return FALSE;
 }
 
+#ifdef USE_GTK1
+static gboolean update_node_column_visibility(property_t prop, gint col)
+{
+	GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
+	gboolean value;
+	gboolean ret;
+
+	ret = update_togglebutton(prop);
+	gui_prop_get_boolean_val(prop, &value);
+
+	gtk_clist_set_column_visibility(clist, col, value);
+
+	return ret;
+}
+
+static gboolean update_toggle_node_show_uptime(property_t prop)
+{
+	return update_node_column_visibility(prop, NODE_GUI_UPTIME_COLUMN);
+}
+
+static gboolean update_toggle_node_show_handshake(property_t prop)
+{
+	return update_node_column_visibility(prop, NODE_GUI_VERSION_COLUMN);
+}
+
+static gboolean update_toggle_node_show_detailed_info(property_t prop)
+{
+	GtkWidget *frame =
+		lookup_widget(main_window, "frame_gnet_detailed_traffic");
+	gboolean value;
+	gboolean ret;
+
+	ret = update_togglebutton(prop);
+	gui_prop_get_boolean_val(prop, &value);
+
+	if (value)
+		gtk_widget_show(frame);
+	else
+		gtk_widget_hide(frame);
+
+	return ret;
+}
+#endif
+
 static gboolean current_peermode_changed(property_t prop)
 {
 	GtkWidget *hbox_normal_ultrapeer = lookup_widget(main_window,
@@ -3736,6 +3932,9 @@ static gboolean expert_mode_changed(property_t prop)
         "frame_expert_node_info",
         "notebook_expert_stats_hosts",
         "frame_expert_rx_buffers",
+#ifdef USE_GTK1
+        "frame_expert_gnet_message_size",
+#endif
         NULL
     };
     gint n;
