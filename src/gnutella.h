@@ -33,15 +33,23 @@
  * Macros
  */
 
-#define READ_GUINT16_LE(a,v) { memcpy(&v, a, 2); v = GUINT16_FROM_LE(v); }
+#define READ_GUINT16_LE(a,v) \
+	do { memcpy(&v, a, 2); v = GUINT16_FROM_LE(v); } while (0)
 
-#define WRITE_GUINT16_LE(v,a) { guint16 _v = GUINT16_TO_LE(v); memcpy(a, &_v, 2); }
+#define WRITE_GUINT16_LE(v,a) \
+	do { guint16 _v = GUINT16_TO_LE(v); memcpy(a, &_v, 2); } while (0)
 
-#define READ_GUINT32_LE(a,v) { memcpy(&v, a, 4); v = GUINT32_FROM_LE(v); }
-#define READ_GUINT32_BE(a,v) { memcpy(&v, a, 4); v = GUINT32_FROM_BE(v); }
+#define READ_GUINT32_LE(a,v) \
+	do { memcpy(&v, a, 4); v = GUINT32_FROM_LE(v); } while (0)
 
-#define WRITE_GUINT32_LE(v,a) { guint32 _v = GUINT32_TO_LE(v); memcpy(a, &_v, 4); }
-#define WRITE_GUINT32_BE(v,a) { guint32 _v = GUINT32_TO_BE(v); memcpy(a, &_v, 4); }
+#define READ_GUINT32_BE(a,v) \
+	do { memcpy(&v, a, 4); v = GUINT32_FROM_BE(v); } while (0)
+
+#define WRITE_GUINT32_LE(v,a) \
+	do { guint32 _v = GUINT32_TO_LE(v); memcpy(a, &_v, 4); } while (0)
+
+#define WRITE_GUINT32_BE(v,a) \
+	do { guint32 _v = GUINT32_TO_BE(v); memcpy(a, &_v, 4); } while (0)
 
 /*
  * Constants
@@ -155,11 +163,16 @@ struct gnutella_msg_qrp_patch {
 	struct gnutella_qrp_patch data;
 } __attribute__((__packed__));
 
-struct gnutella_msg_vendor {
+struct gnutella_vendor {
 	guchar vendor[4];		/* E.g. "GTKG" */
-	guchar type[2];			/* Message type, little endian */
+	guchar selector_id[2];	/* Message selector ID, little endian */
 	guchar version[2];		/* Message version number, little endian */
 	/* payload follows */
+} __attribute__((__packed__));
+
+struct gnutella_msg_vendor {
+	struct gnutella_header header;
+	struct gnutella_vendor data;
 } __attribute__((__packed__));
 
 /* main.c */

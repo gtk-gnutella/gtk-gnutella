@@ -64,6 +64,7 @@ typedef struct gnutella_node {
 	guint32 pos;			/* write position in data */
 
 	guchar status;			/* See possible values below */
+	guint8 hops_flow;		/* Don't send queries with a >= hop count */
 	guint32 flags;			/* See possible values below */
 	guint32 attrs;			/* See possible values below */
 
@@ -177,6 +178,7 @@ typedef struct gnutella_node {
 #define NODE_A_ULTRA		0x00000040	/* Node wants to be an Ultrapeer */
 #define NODE_A_NO_ULTRA		0x00000080	/* Node is NOT ultra capable */
 
+#define NODE_A_CAN_VENDOR	0x10000000	/* Node supports vendor messages */
 #define NODE_A_CAN_GGEP		0x20000000	/* Node supports big pongs, etc.. */
 #define NODE_A_CAN_ULTRA	0x40000000	/* Node is ultra capable */
 #define NODE_A_CAN_INFLATE	0x80000000	/* Node capable of inflating */
@@ -273,6 +275,12 @@ typedef struct gnutella_node {
 #define node_add_rx_read(n,x)		do { (n)->rx_read += (x); } while (0)
 
 /*
+ * Can we send message of type `t' bearing hop count `h'?
+ */
+#define node_can_send(n, t, h) \
+	((t) != GTA_MSG_SEARCH || (h) < (n)->hops_flow)
+
+/*
  * Global Data
  */
 
@@ -324,6 +332,7 @@ G_INLINE_FUNC void node_add_rxdrop(gnutella_node_t *n, gint x);
 
 G_INLINE_FUNC void node_set_vendor(gnutella_node_t *n, const gchar *vendor);
 
+void node_set_hops_flow(gnutella_node_t *n, guint8 hops);
 void node_set_online_mode(gboolean on);
 void node_set_current_peermode(guint32 mode);
 gchar *node_ip(gnutella_node_t *n);

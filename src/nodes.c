@@ -64,6 +64,7 @@
 #include "ban.h"
 #include "hcache.h"
 #include "qrp.h"
+#include "vmsg.h"
 
 #include "settings.h"
 
@@ -74,6 +75,8 @@ RCSID("$Id$");
 #define NODE_SEND_BUFSIZE		4096	/* TCP send buffer size - 4K */
 #define NODE_RECV_BUFSIZE		114688	/* TCP receive buffer size - 112K */
 #define MAX_GGEP_PAYLOAD		1024	/* In ping, pong, push */
+#define MAX_MSG_SIZE			65536	/* Absolute maximum message length */
+#define MAX_HOP_COUNT			255		/* Architecturally defined maximum */
 
 #define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
 #define SHUTDOWN_GRACE_DELAY	120	/* Grace period for shutdowning nodes */
@@ -1907,8 +1910,8 @@ static void node_process_handshake_header(
 		guint major, minor;
 		sscanf(field, "%u.%u", &major, &minor);
 		if (major > 0 || minor > 1)
-			if (dbg) g_warning("node %s claims Bye-Packet version %u.%u",
-				node_ip(n), major, minor);
+			if (dbg) g_warning("node %s <%s> claims Bye-Packet version %u.%u",
+				node_ip(n), n->vendor ? n->vendor : "????", major, minor);
 		n->attrs |= NODE_A_BYE_PACKET;
 	}
 
@@ -1920,6 +1923,20 @@ static void node_process_handshake_header(
 		sscanf(field, "%u.%u", &major, &minor);
 		if (major > 0 || (major == 0 && minor >= 5))
 			n->attrs |= NODE_A_CAN_GGEP;
+	}
+
+	/* Vendor-Messages -- support for vendor-specific messages */
+
+	field = header_get(head, "vendor-messages");
+	if (field) {
+		guint major, minor;
+		sscanf(field, "%u.%u", &major, &minor);
+		if (major > 0 || (major == 0 && minor > 1))
+			if (dbg) g_warning("node %s <%s> claims Vendor-Messages "
+				"version %u.%u",
+				node_ip(n), n->vendor ? n->vendor : "????", major, minor);
+
+		n->attrs |= NODE_A_CAN_VENDOR;
 	}
 
 	/*
@@ -2144,6 +2161,7 @@ static void node_process_handshake_header(
 			"Pong-Caching: 0.1\r\n"
 			"Bye-Packet: 0.1\r\n"
 			"GGEP: 0.5\r\n"
+			"Vendor-Messages: 0.1\r\n"
 			"Remote-IP: %s\r\n"
 			"Accept-Encoding: deflate\r\n"
 			"%s"
@@ -2431,6 +2449,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	n->proto_major = major;
 	n->proto_minor = minor;
 	n->peermode = NODE_P_UNKNOWN;		/* Until end of handshaking */
+	n->hops_flow = MAX_HOP_COUNT;
 
 	n->routing_data = NULL;
 	n->flags = NODE_F_HDSK_PING;
@@ -2667,6 +2686,20 @@ static void node_parse(struct gnutella_node *node)
         }
 		break;
 
+	case GTA_MSG_VENDOR:
+	case GTA_MSG_STANDARD:
+		if (n->header.hops != 0 || n->header.ttl != 1) {
+			if (dbg)
+				gmsg_log_bad(n, "vendor message with improper hops/ttl");
+			n->n_bad++;
+			drop = TRUE;
+            gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
+		} else if (n->size > MAX_MSG_SIZE) {
+            drop = TRUE;
+            gnet_stats_count_dropped(n, MSG_DROP_TOO_LARGE);
+		}
+		break;
+
 	default:					/* Unknown message type - we drop it */
 		drop = TRUE;
         gnet_stats_count_dropped(n, MSG_DROP_UNKNOWN_TYPE);
@@ -2723,6 +2756,11 @@ static void node_parse(struct gnutella_node *node)
 		/* NOTREACHED */
 	case GTA_MSG_INIT_RESPONSE:		/* Pong */
 		pcache_pong_received(n);
+		goto reset_header;
+		/* NOTREACHED */
+	case GTA_MSG_VENDOR:			/* Vendor-specific, experimental */
+	case GTA_MSG_STANDARD:			/* Vendor-specific, standard */
+		vmsg_handle(n);
 		goto reset_header;
 		/* NOTREACHED */
 	case GTA_MSG_SEARCH_RESULTS:	/* "semi-pongs" */
@@ -2821,6 +2859,7 @@ void node_init_outgoing(struct gnutella_node *n)
 			"Pong-Caching: 0.1\r\n"
 			"Bye-Packet: 0.1\r\n"
 			"GGEP: 0.5\r\n"
+			"Vendor-Messages: 0.1\r\n"
 			"Accept-Encoding: deflate\r\n"
 			"X-Live-Since: %s\r\n"
 			"%s"
@@ -2915,6 +2954,10 @@ void node_flushq(struct gnutella_node *n)
 void node_tx_enter_flowc(struct gnutella_node *n)
 {
 	n->tx_flowc_date = time((time_t *) NULL);
+
+	if (n->attrs & NODE_A_CAN_VENDOR)
+		vmsg_send_hops_flow(n, 0);			/* Disable all query traffic */
+
     node_fire_node_flags_changed(n);
 }
 
@@ -2931,6 +2974,9 @@ void node_tx_leave_flowc(struct gnutella_node *n)
 		printf("node %s spent %d second%s in TX FLOWC\n",
 			node_ip(n), spent, spent == 1 ? "" : "s");
 	}
+
+	if (n->attrs & NODE_A_CAN_VENDOR)
+		vmsg_send_hops_flow(n, 255);		/* Re-enable query traffic */
 
     node_fire_node_flags_changed(n);
 }
@@ -3545,6 +3591,12 @@ void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
     node_fire_node_info_changed(n);
 }
 
+void node_set_hops_flow(gnutella_node_t *n, guint8 hops)
+{
+	n->hops_flow = hops;
+    node_fire_node_flags_changed(n);
+}
+
 /*
  * node_get_info:
  *
@@ -3634,6 +3686,7 @@ void node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
     flags->tx_compressed = NODE_TX_COMPRESSED(node);
     flags->in_tx_flow_control  = NODE_IN_TX_FLOW_CONTROL(node);
     flags->rx_compressed = NODE_RX_COMPRESSED(node);
+	flags->hops_flow = node->hops_flow;
 
 	flags->qrt_state = QRT_S_NONE;
 	if (node->peermode == NODE_P_LEAF) {

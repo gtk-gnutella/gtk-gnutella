@@ -555,6 +555,7 @@ static void mq_service(gpointer data)
 	gint sent = 0;
 	gint r;
 	GList *l;
+	gint dropped = 0;
 
 	g_assert(q->count);		/* Queue is serviced, we must have something */
 
@@ -564,15 +565,41 @@ static void mq_service(gpointer data)
 
 	iovsize = MIN(MQ_MAXIOV, q->count);
 
-	for (l = q->qtail; l && iovsize > 0; l = g_list_previous(l), iovsize--) {
+	for (l = q->qtail; l && iovsize > 0; iovsize--) {
 		struct iovec *ie = &iov[iovcnt++];
 		pmsg_t *mb = (pmsg_t *) l->data;
+		gchar *mbs = pmsg_start(mb);
 
-		ie->iov_base = mb->m_rptr;
-		ie->iov_len = pmsg_size(mb);
+		/*
+		 * Honour hops-flow.
+		 */
+
+		if (node_can_send(q->node, gmsg_function(mbs), gmsg_hops(mbs))) {
+			l = g_list_previous(l);
+			ie->iov_base = mb->m_rptr;
+			ie->iov_len = pmsg_size(mb);
+		} else {
+			l = mq_rmlink_prev(q, l, pmsg_size(mb));
+
+			if (dbg > 4)
+				gmsg_log_dropped(mbs, "to node %s due to hops-flow",
+					node_ip(q->node));
+
+			gnet_stats_count_flowc(mbs);
+			dropped++;
+		}
 	}
 
-	g_assert(iovcnt > 0);
+	g_assert(iovcnt > 0 || dropped > 0);
+
+	if (dropped > 0) {
+		node_add_txdrop(q->node, dropped);	/* Dropped during TX */
+		if (q->qlink)
+			qlink_free(q);			/* Removed something, `qlink' is stale */
+	}
+
+	if (iovcnt == 0)				/* Nothing to send */
+		goto update_servicing;
 
 	/*
 	 * Write as much as possible.
@@ -622,6 +649,7 @@ static void mq_service(gpointer data)
 			qlink_free(q);
 	}
 
+update_servicing:
 	/*
 	 * Update flow-control information.
 	 */
@@ -673,11 +701,29 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 	 */
 
 	if (q->qhead == NULL) {
-		gint written = tx_write(q->tx_drv, pmsg_start(mb), size);
+		gchar *mbs = pmsg_start(mb);
+		gint written;
+
+		/*
+		 * Honour hops-flow.
+		 */
+
+		if (node_can_send(q->node, gmsg_function(mbs), gmsg_hops(mbs)))
+			written = tx_write(q->tx_drv, pmsg_start(mb), size);
+		else {
+			if (dbg > 4)
+				gmsg_log_dropped(mbs, "to node %s due to hops-flow",
+					node_ip(q->node));
+
+			gnet_stats_count_flowc(mbs);
+			node_inc_txdrop(q->node);		/* Dropped during TX */
+
+			written = -1;
+		}
 
 		if (written < 0) {
 			pmsg_free(mb);
-			return;					/* Node removed */
+			return;					/* Node removed if necessary */
 		}
 
 		node_add_tx_given(q->node, written);
