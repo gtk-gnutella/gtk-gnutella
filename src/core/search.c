@@ -1499,7 +1499,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
  * containing only whitespaces, for instance).
  */
 static struct gnutella_msg_search *
-build_search_msg(search_ctrl_t *sch, gint *len, gint *sizep)
+build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 {
 	struct gnutella_msg_search *m;
 	guint32 size;
