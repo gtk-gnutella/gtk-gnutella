@@ -73,8 +73,17 @@ create_main_window (void)
   GtkWidget *label188;
   GtkWidget *handlebox2;
   GtkWidget *vbox31;
+  GtkWidget *hbox_stats_connections;
+  GtkWidget *eventbox6;
+  GtkWidget *pixmap1;
   GtkWidget *progressbar_connections;
+  GtkWidget *hbox_stats_uploads;
+  GtkWidget *eventbox7;
+  GtkWidget *pixmap2;
   GtkWidget *progressbar_uploads;
+  GtkWidget *hbox_stats_downloads;
+  GtkWidget *eventbox8;
+  GtkWidget *pixmap3;
   GtkWidget *progressbar_downloads;
   GtkWidget *frame_bws_inout;
   GtkWidget *vbox42;
@@ -84,6 +93,10 @@ create_main_window (void)
   GtkWidget *vbox43;
   GtkWidget *progressbar_bws_gin;
   GtkWidget *progressbar_bws_gout;
+  GtkWidget *frame75;
+  GtkWidget *vbox107;
+  GtkWidget *progressbar_bws_lin;
+  GtkWidget *progressbar_bws_lout;
   GtkWidget *vbox_right;
   GtkWidget *notebook_main;
   GtkWidget *vbox_gnutellanet;
@@ -1253,15 +1266,67 @@ create_main_window (void)
   gtk_widget_show (vbox31);
   gtk_container_add (GTK_CONTAINER (handlebox2), vbox31);
 
+  hbox_stats_connections = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox_stats_connections, "hbox_stats_connections");
+  gtk_widget_ref (hbox_stats_connections);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox_stats_connections", hbox_stats_connections,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox_stats_connections);
+  gtk_box_pack_start (GTK_BOX (vbox31), hbox_stats_connections, FALSE, FALSE, 0);
+
+  eventbox6 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox6, "eventbox6");
+  gtk_widget_ref (eventbox6);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox6", eventbox6,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox6);
+  gtk_box_pack_start (GTK_BOX (hbox_stats_connections), eventbox6, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox6, "gNet connections", NULL);
+
+  pixmap1 = create_pixmap (main_window, "smallserver.xpm");
+  gtk_widget_set_name (pixmap1, "pixmap1");
+  gtk_widget_ref (pixmap1);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "pixmap1", pixmap1,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (pixmap1);
+  gtk_container_add (GTK_CONTAINER (eventbox6), pixmap1);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (pixmap1), FALSE);
+
   progressbar_connections = gtk_progress_bar_new ();
   gtk_widget_set_name (progressbar_connections, "progressbar_connections");
   gtk_widget_ref (progressbar_connections);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "progressbar_connections", progressbar_connections,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (progressbar_connections);
-  gtk_box_pack_start (GTK_BOX (vbox31), progressbar_connections, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_stats_connections), progressbar_connections, TRUE, TRUE, 0);
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_connections), TRUE);
   gtk_progress_set_format_string (GTK_PROGRESS (progressbar_connections), "%v/%u gNet nodes");
+
+  hbox_stats_uploads = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox_stats_uploads, "hbox_stats_uploads");
+  gtk_widget_ref (hbox_stats_uploads);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox_stats_uploads", hbox_stats_uploads,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox_stats_uploads);
+  gtk_box_pack_start (GTK_BOX (vbox31), hbox_stats_uploads, FALSE, FALSE, 0);
+
+  eventbox7 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox7, "eventbox7");
+  gtk_widget_ref (eventbox7);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox7", eventbox7,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox7);
+  gtk_box_pack_start (GTK_BOX (hbox_stats_uploads), eventbox7, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox7, "uploads", NULL);
+
+  pixmap2 = create_pixmap (main_window, "upload.xpm");
+  gtk_widget_set_name (pixmap2, "pixmap2");
+  gtk_widget_ref (pixmap2);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "pixmap2", pixmap2,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (pixmap2);
+  gtk_container_add (GTK_CONTAINER (eventbox7), pixmap2);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (pixmap2), FALSE);
 
   progressbar_uploads = gtk_progress_bar_new ();
   gtk_widget_set_name (progressbar_uploads, "progressbar_uploads");
@@ -1269,9 +1334,35 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "progressbar_uploads", progressbar_uploads,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (progressbar_uploads);
-  gtk_box_pack_start (GTK_BOX (vbox31), progressbar_uploads, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_stats_uploads), progressbar_uploads, TRUE, TRUE, 0);
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_uploads), TRUE);
   gtk_progress_set_format_string (GTK_PROGRESS (progressbar_uploads), "%v/%u uploads");
+
+  hbox_stats_downloads = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox_stats_downloads, "hbox_stats_downloads");
+  gtk_widget_ref (hbox_stats_downloads);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox_stats_downloads", hbox_stats_downloads,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox_stats_downloads);
+  gtk_box_pack_start (GTK_BOX (vbox31), hbox_stats_downloads, FALSE, FALSE, 0);
+
+  eventbox8 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox8, "eventbox8");
+  gtk_widget_ref (eventbox8);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox8", eventbox8,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox8);
+  gtk_box_pack_start (GTK_BOX (hbox_stats_downloads), eventbox8, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox8, "downloads", NULL);
+
+  pixmap3 = create_pixmap (main_window, "download.xpm");
+  gtk_widget_set_name (pixmap3, "pixmap3");
+  gtk_widget_ref (pixmap3);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "pixmap3", pixmap3,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (pixmap3);
+  gtk_container_add (GTK_CONTAINER (eventbox8), pixmap3);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (pixmap3), FALSE);
 
   progressbar_downloads = gtk_progress_bar_new ();
   gtk_widget_set_name (progressbar_downloads, "progressbar_downloads");
@@ -1279,7 +1370,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "progressbar_downloads", progressbar_downloads,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (progressbar_downloads);
-  gtk_box_pack_start (GTK_BOX (vbox31), progressbar_downloads, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_stats_downloads), progressbar_downloads, TRUE, TRUE, 0);
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_downloads), TRUE);
   gtk_progress_set_format_string (GTK_PROGRESS (progressbar_downloads), "%v/%u downloads");
 
@@ -1364,6 +1455,46 @@ create_main_window (void)
   gtk_widget_set_events (progressbar_bws_gout, GDK_BUTTON_PRESS_MASK);
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bws_gout), TRUE);
   gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_gout), "bws gout");
+
+  frame75 = gtk_frame_new ("leaf traffic");
+  gtk_widget_set_name (frame75, "frame75");
+  gtk_widget_ref (frame75);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame75", frame75,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame75);
+  gtk_box_pack_start (GTK_BOX (vbox31), frame75, TRUE, TRUE, 0);
+  gtk_frame_set_label_align (GTK_FRAME (frame75), 0.5, 0.5);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame75), GTK_SHADOW_NONE);
+
+  vbox107 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox107, "vbox107");
+  gtk_widget_ref (vbox107);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox107", vbox107,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox107);
+  gtk_container_add (GTK_CONTAINER (frame75), vbox107);
+
+  progressbar_bws_lin = gtk_progress_bar_new ();
+  gtk_widget_set_name (progressbar_bws_lin, "progressbar_bws_lin");
+  gtk_widget_ref (progressbar_bws_lin);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "progressbar_bws_lin", progressbar_bws_lin,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (progressbar_bws_lin);
+  gtk_box_pack_start (GTK_BOX (vbox107), progressbar_bws_lin, FALSE, FALSE, 0);
+  gtk_widget_set_events (progressbar_bws_lin, GDK_BUTTON_PRESS_MASK);
+  gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bws_lin), TRUE);
+  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_lin), "bws lin");
+
+  progressbar_bws_lout = gtk_progress_bar_new ();
+  gtk_widget_set_name (progressbar_bws_lout, "progressbar_bws_lout");
+  gtk_widget_ref (progressbar_bws_lout);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "progressbar_bws_lout", progressbar_bws_lout,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (progressbar_bws_lout);
+  gtk_box_pack_start (GTK_BOX (vbox107), progressbar_bws_lout, FALSE, FALSE, 0);
+  gtk_widget_set_events (progressbar_bws_lout, GDK_BUTTON_PRESS_MASK);
+  gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bws_lout), TRUE);
+  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_lout), "bws lout");
 
   vbox_right = gtk_vbox_new (FALSE, 4);
   gtk_widget_set_name (vbox_right, "vbox_right");
@@ -7372,6 +7503,12 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (progressbar_bws_gout), "button_press_event",
                       GTK_SIGNAL_FUNC (on_progressbar_bws_gout_button_press_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (progressbar_bws_lin), "button_press_event",
+                      GTK_SIGNAL_FUNC (on_progressbar_bws_lin_button_press_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (progressbar_bws_lout), "button_press_event",
+                      GTK_SIGNAL_FUNC (on_progressbar_bws_lout_button_press_event),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_nodes), "select_row",
                       GTK_SIGNAL_FUNC (on_clist_nodes_select_row),

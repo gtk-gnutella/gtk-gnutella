@@ -542,63 +542,165 @@
 	      <spacing>0</spacing>
 
 	      <widget>
-		<class>GtkProgressBar</class>
-		<name>progressbar_connections</name>
-		<value>0</value>
-		<lower>0</lower>
-		<upper>100</upper>
-		<bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-		<orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-		<activity_mode>False</activity_mode>
-		<show_text>True</show_text>
-		<format>%v/%u gNet nodes</format>
-		<text_xalign>0.5</text_xalign>
-		<text_yalign>0.5</text_yalign>
+		<class>GtkHBox</class>
+		<name>hbox_stats_connections</name>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
 		  <fill>False</fill>
 		</child>
+
+		<widget>
+		  <class>GtkEventBox</class>
+		  <name>eventbox6</name>
+		  <tooltip>gNet connections</tooltip>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkPixmap</class>
+		    <name>pixmap1</name>
+		    <filename>smallserver.xpm</filename>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <build_insensitive>False</build_insensitive>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkProgressBar</class>
+		  <name>progressbar_connections</name>
+		  <value>0</value>
+		  <lower>0</lower>
+		  <upper>100</upper>
+		  <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		  <activity_mode>False</activity_mode>
+		  <show_text>True</show_text>
+		  <format>%v/%u gNet nodes</format>
+		  <text_xalign>0.5</text_xalign>
+		  <text_yalign>0.5</text_yalign>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+		</widget>
 	      </widget>
 
 	      <widget>
-		<class>GtkProgressBar</class>
-		<name>progressbar_uploads</name>
-		<value>0</value>
-		<lower>0</lower>
-		<upper>100</upper>
-		<bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-		<orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-		<activity_mode>False</activity_mode>
-		<show_text>True</show_text>
-		<format>%v/%u uploads</format>
-		<text_xalign>0.5</text_xalign>
-		<text_yalign>0.5</text_yalign>
+		<class>GtkHBox</class>
+		<name>hbox_stats_uploads</name>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
 		  <fill>False</fill>
 		</child>
+
+		<widget>
+		  <class>GtkEventBox</class>
+		  <name>eventbox7</name>
+		  <tooltip>uploads</tooltip>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkPixmap</class>
+		    <name>pixmap2</name>
+		    <filename>upload.xpm</filename>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <build_insensitive>False</build_insensitive>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkProgressBar</class>
+		  <name>progressbar_uploads</name>
+		  <value>0</value>
+		  <lower>0</lower>
+		  <upper>100</upper>
+		  <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		  <activity_mode>False</activity_mode>
+		  <show_text>True</show_text>
+		  <format>%v/%u uploads</format>
+		  <text_xalign>0.5</text_xalign>
+		  <text_yalign>0.5</text_yalign>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+		</widget>
 	      </widget>
 
 	      <widget>
-		<class>GtkProgressBar</class>
-		<name>progressbar_downloads</name>
-		<value>0</value>
-		<lower>0</lower>
-		<upper>100</upper>
-		<bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-		<orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-		<activity_mode>False</activity_mode>
-		<show_text>True</show_text>
-		<format>%v/%u downloads</format>
-		<text_xalign>0.5</text_xalign>
-		<text_yalign>0.5</text_yalign>
+		<class>GtkHBox</class>
+		<name>hbox_stats_downloads</name>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
 		  <fill>False</fill>
 		</child>
+
+		<widget>
+		  <class>GtkEventBox</class>
+		  <name>eventbox8</name>
+		  <tooltip>downloads</tooltip>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkPixmap</class>
+		    <name>pixmap3</name>
+		    <filename>download.xpm</filename>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <build_insensitive>False</build_insensitive>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkProgressBar</class>
+		  <name>progressbar_downloads</name>
+		  <value>0</value>
+		  <lower>0</lower>
+		  <upper>100</upper>
+		  <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		  <activity_mode>False</activity_mode>
+		  <show_text>True</show_text>
+		  <format>%v/%u downloads</format>
+		  <text_xalign>0.5</text_xalign>
+		  <text_yalign>0.5</text_yalign>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+		</widget>
 	      </widget>
 
 	      <widget>
@@ -736,6 +838,78 @@
 		    <activity_mode>False</activity_mode>
 		    <show_text>True</show_text>
 		    <format>bws gout</format>
+		    <text_xalign>0.5</text_xalign>
+		    <text_yalign>0.5</text_yalign>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+		</widget>
+	      </widget>
+
+	      <widget>
+		<class>GtkFrame</class>
+		<name>frame75</name>
+		<label>leaf traffic</label>
+		<label_xalign>0.5</label_xalign>
+		<shadow_type>GTK_SHADOW_NONE</shadow_type>
+		<child>
+		  <padding>0</padding>
+		  <expand>True</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkVBox</class>
+		  <name>vbox107</name>
+		  <homogeneous>False</homogeneous>
+		  <spacing>0</spacing>
+
+		  <widget>
+		    <class>GtkProgressBar</class>
+		    <name>progressbar_bws_lin</name>
+		    <events>GDK_BUTTON_PRESS_MASK</events>
+		    <signal>
+		      <name>button_press_event</name>
+		      <handler>on_progressbar_bws_lin_button_press_event</handler>
+		      <last_modification_time>Thu, 06 Mar 2003 01:07:02 GMT</last_modification_time>
+		    </signal>
+		    <value>0</value>
+		    <lower>0</lower>
+		    <upper>100</upper>
+		    <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		    <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		    <activity_mode>False</activity_mode>
+		    <show_text>True</show_text>
+		    <format>bws lin</format>
+		    <text_xalign>0.5</text_xalign>
+		    <text_yalign>0.5</text_yalign>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkProgressBar</class>
+		    <name>progressbar_bws_lout</name>
+		    <events>GDK_BUTTON_PRESS_MASK</events>
+		    <signal>
+		      <name>button_press_event</name>
+		      <handler>on_progressbar_bws_lout_button_press_event</handler>
+		      <last_modification_time>Thu, 06 Mar 2003 01:07:08 GMT</last_modification_time>
+		    </signal>
+		    <value>0</value>
+		    <lower>0</lower>
+		    <upper>100</upper>
+		    <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		    <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		    <activity_mode>False</activity_mode>
+		    <show_text>True</show_text>
+		    <format>bws lout</format>
 		    <text_xalign>0.5</text_xalign>
 		    <text_yalign>0.5</text_yalign>
 		    <child>
