@@ -53,9 +53,7 @@ static void
 monitor_gui_append_to_monitor(query_type_t type, const gchar *item,
 	guint32 unused_ip, guint16 unused_port)
 {
-    char *titles[1];
     static GtkWidget *clist_monitor = NULL;
-    gchar tmpstr[100];
 
 	(void) unused_ip;
 	(void) unused_port;
@@ -67,22 +65,32 @@ monitor_gui_append_to_monitor(query_type_t type, const gchar *item,
 
 	gtk_clist_freeze(GTK_CLIST(clist_monitor));
 
-	if (monitor_items < monitor_max_items)
-        monitor_items++;
-	else
-        gtk_clist_remove(GTK_CLIST(clist_monitor),
-            GTK_CLIST(clist_monitor)->rows - 1);
+	for (/* empty */; monitor_items >= monitor_max_items; monitor_items--) {
+		gint row = GTK_CLIST(clist_monitor)->rows - 1;
 
-    if (type == QUERY_SHA1) {
-        /* If the query is empty and we have a SHA1 extension,
-         * we print a urn:sha1-query instead. */
-        gm_snprintf(tmpstr, sizeof(tmpstr), "urn:sha1:%s", item);
-    } else {
-        g_strlcpy(tmpstr, item, sizeof(tmpstr));
-    }
+		if (row < 0)
+			break;
 
-    titles[0] = tmpstr;
-	gtk_clist_prepend(GTK_CLIST(clist_monitor), titles);
+       	gtk_clist_remove(GTK_CLIST(clist_monitor), row);
+	}
+
+	if (monitor_max_items > 0) {
+    	gchar *titles[1];
+    	gchar tmpstr[100];
+		
+    	if (type == QUERY_SHA1) {
+        	/* If the query is empty and we have a SHA1 extension,
+        	 * we print a urn:sha1-query instead. */
+        	gm_snprintf(tmpstr, sizeof(tmpstr), "urn:sha1:%s", item);
+    	} else {
+        	g_strlcpy(tmpstr, item, sizeof(tmpstr));
+    	}
+
+    	titles[0] = tmpstr;
+		gtk_clist_prepend(GTK_CLIST(clist_monitor), titles);
+    	monitor_items++;
+	}
+
 	gtk_clist_thaw(GTK_CLIST(clist_monitor));
 }
 

@@ -58,36 +58,45 @@ static void
 monitor_gui_append_to_monitor(
     query_type_t type, const gchar *item, guint32 ip, guint16 port)
 {
-    GtkTreeIter iter;
-    static gchar tmpstr[100];
-	gchar *str;
-	size_t len;
-
 	(void) ip;
 	(void) port;
-	
-	if (monitor_items < monitor_max_items)
-        monitor_items++;
-    else {
+		
+	/* The user might have changed the max. number of items to
+	 * show, that's why we don't just the remove the first item. */
+	for (/* empty */; monitor_items >= monitor_max_items; monitor_items--) {
+		GtkTreeIter iter;
+		
         /* Get the first iter in the list */
         if (
-			gtk_tree_model_get_iter_first(GTK_TREE_MODEL(monitor_model), &iter)
-		)
-            gtk_list_store_remove(monitor_model, &iter);
+			!gtk_tree_model_get_iter_first(GTK_TREE_MODEL(monitor_model),
+					&iter)
+			) {
+				break;
+			}
+
+		gtk_list_store_remove(monitor_model, &iter);
     }
 
-    /* Aquire an iterator */
-    gtk_list_store_append(monitor_model, &iter);
+	if (monitor_max_items > 0) {
+		GtkTreeIter iter;
+		static gchar tmpstr[100];
+		gchar *str;
+		size_t len;
 
-	/* If the query is empty and we have a SHA1 extension,
-	 * we print a urn:sha1-query instead. */
-	if (type == QUERY_SHA1)
-		len = gm_snprintf(tmpstr, sizeof(tmpstr), "urn:sha1:%s", item);
-	else
-		len = g_strlcpy(tmpstr, item, sizeof(tmpstr));
+    	/* Aquire an iterator */
+    	gtk_list_store_append(monitor_model, &iter);
+    	monitor_items++;
 
-	str = lazy_locale_to_utf8(tmpstr, MIN(len, sizeof(tmpstr)));
-   	gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN, str, (-1));
+		/* If the query is empty and we have a SHA1 extension,
+	 	 * we print a urn:sha1-query instead. */
+		if (type == QUERY_SHA1)
+			len = gm_snprintf(tmpstr, sizeof(tmpstr), "urn:sha1:%s", item);
+		else
+			len = g_strlcpy(tmpstr, item, sizeof(tmpstr));
+
+		str = lazy_locale_to_utf8(tmpstr, MIN(len, sizeof(tmpstr)));
+   		gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN, str, (-1));
+	}
 }
 
 
