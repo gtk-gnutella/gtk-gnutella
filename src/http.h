@@ -134,7 +134,7 @@ typedef void (*http_user_free_t)(gpointer data);
  */
 
 typedef gint (*http_op_request_t)(gpointer handle, gchar *buf, gint len,
-	gchar *verb, gchar *path, gchar *host);
+	gchar *verb, gchar *path, gchar *host, guint16 port);
 
 /*
  * Asynchronous request error codes.

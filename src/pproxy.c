@@ -767,7 +767,7 @@ void pproxy_close(void)
 static gboolean cproxy_http_header_ind(
 	gpointer handle, header_t *header, gint code, const gchar *message);
 static gint cproxy_build_request(gpointer handle, gchar *buf, gint len,
-	gchar *verb, gchar *path, gchar *host);
+	gchar *verb, gchar *path, gchar *host, guint16 port);
 static void cproxy_http_newstate(gpointer handle, http_state_t newstate);
 
 #define CPROXY_MAGIC	0xc8301
@@ -991,7 +991,7 @@ static gboolean cproxy_http_header_ind(
  * Returns length of generated request.
  */
 static gint cproxy_build_request(gpointer handle, gchar *buf, gint len,
-	gchar *verb, gchar *path, gchar *host)
+	gchar *verb, gchar *path, gchar *host, guint16 port)
 {
 	/*
 	 * Note that we send an HTTP/1.0 request here, hence we need neither

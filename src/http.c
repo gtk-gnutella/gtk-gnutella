@@ -1530,15 +1530,23 @@ static void http_async_http_error(
  * header.
  */
 static gint http_async_build_request(gpointer handle, gchar *buf, gint len,
-	gchar *verb, gchar *path, gchar *host)
+	gchar *verb, gchar *path, gchar *host, guint16 port)
 {
-	int rw = gm_snprintf(buf, len,
+	int rw;
+	char port_str[32];
+
+	if (port != HTTP_PORT) {
+		gm_snprintf(port_str, sizeof port_str, ":%u", (guint) port);
+	} else {
+		port_str[0] = '\0';
+	}
+	rw = gm_snprintf(buf, len,
 		"%s %s HTTP/1.1\r\n"
-		"Host: %s\r\n"
+		"Host: %s%s\r\n"
 		"User-Agent: %s\r\n"
 		"Connection: close\r\n"
 		"\r\n",
-		verb, path, host, version_string);
+		verb, path, host, port_str, version_string);
 	
 	header_features_generate(&xfeatures.downloads, buf, len, &rw);
 	
@@ -2290,7 +2298,7 @@ void http_async_connected(gpointer handle)
 
 	rw = (*ha->op_request)(ha, req, sizeof(req),
 		(gchar *) http_verb[ha->type], ha->path,
-		ha->host ? ha->host : ip_to_gchar(s->ip));
+		ha->host ? ha->host : ip_to_gchar(s->ip), s->port);
 
 	if (rw >= sizeof(req)) {
 		http_async_error(ha, HTTP_ASYNC_REQ2BIG);
