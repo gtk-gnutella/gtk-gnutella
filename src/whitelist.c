@@ -111,7 +111,12 @@ void whitelist_retrieve(void)
             port = 0;
 
         if (snetmask) {
-            netmask = gchar_to_ip(snetmask);
+            if (strchr(snetmask, '.')) {
+                netmask = gchar_to_ip(snetmask);
+            } else {
+                int n = atoi(snetmask);
+                netmask = ~(0xffffffff >> n);
+            }
             if(!netmask) {
                 netmask = 0xffffffff;
                 g_warning("whitelist_retrieve(): Line %d: Invalid netmask \"%s\", using 255.255.255.255 instead.", linenum, snetmask);
