@@ -74,6 +74,7 @@ static void xml_to_text_rule(xmlNodePtr, gpointer);
 static void xml_to_ip_rule(xmlNodePtr, gpointer);
 static void xml_to_size_rule(xmlNodePtr, gpointer);
 static void xml_to_jump_rule(xmlNodePtr, gpointer);
+static guint16 get_rule_flags_from_xml(xmlNodePtr);
 
 /*
  * Private variables
@@ -101,6 +102,8 @@ static const gchar PROP_RULE_IP_MASK[]     = "Netmask";
 static const gchar PROP_RULE_SIZE_LOWER[]  = "Lower";
 static const gchar PROP_RULE_SIZE_UPPER[]  = "Upper";
 static const gchar PROP_RULE_NEGATE[]      = "Negate";
+static const gchar PROP_RULE_ACTIVE[]      = "Active";
+static const gchar PROP_RULE_SOFT[]        = "Soft";
 static const gchar PROP_RULE_TARGET[]      = "Target";
 
 
@@ -276,7 +279,7 @@ gboolean search_retrieve_xml(void)
                     g_error("Failed to resolve rule %d in \"%s\": missing key %p",
                         n, filter->name, rule_to_gchar(rule));
                 rule->target = new_target;
-                rule->valid = TRUE;
+                rule_set_flags(rule, RULE_FLAG_VALID);
             
                 /*
                  * We circumwent the shadows, so we must do refcounting
@@ -477,8 +480,14 @@ static void rule_to_xml(xmlNodePtr parent, rule_t *r)
         g_error("Unknown rule type: %d", r->type);
     }
 
-    g_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(r->negate));
+    g_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(RULE_IS_NEGATED(r)));
     xmlSetProp(newxml, PROP_RULE_NEGATE, x_tmp);
+
+    g_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(RULE_IS_ACTIVE(r)));
+    xmlSetProp(newxml, PROP_RULE_ACTIVE, x_tmp);
+
+    g_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(RULE_IS_SOFT(r)));
+    xmlSetProp(newxml, PROP_RULE_SOFT, x_tmp);
 
     g_snprintf(x_tmp, sizeof(x_tmp), "%p", r->target);
     xmlSetProp(newxml, PROP_RULE_TARGET, x_tmp);
@@ -645,7 +654,7 @@ static void xml_to_text_rule(xmlNodePtr xmlnode, gpointer filter)
     gchar *buf;
     rule_t *rule;
     filter_t *target;
-    gboolean negate;
+    guint16 flags;
 
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
@@ -653,13 +662,11 @@ static void xml_to_text_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(g_strcasecmp(xmlnode->name, NODE_RULE_TEXT) ==0);
 
     match = xmlGetProp(xmlnode, PROP_RULE_TEXT_MATCH);
+    if (match == NULL)
+        g_error("xml_to_text_rule: rule without match string");
 
     buf = xmlGetProp(xmlnode, PROP_RULE_TEXT_CASE);
     case_sensitive = atol(buf) == 1 ? TRUE : FALSE;
-    g_free(buf);
-
-    buf = xmlGetProp(xmlnode, PROP_RULE_NEGATE);
-    negate = atol(buf) == 1 ? TRUE : FALSE;
     g_free(buf);
 
     buf = xmlGetProp(xmlnode, PROP_RULE_TEXT_TYPE);
@@ -673,9 +680,10 @@ static void xml_to_text_rule(xmlNodePtr xmlnode, gpointer filter)
         g_error( "xml_to_text_rule: %s", g_strerror(errno));
     g_free(buf);
 
+    flags = get_rule_flags_from_xml(xmlnode);
     rule = filter_new_text_rule
-        (match, type, case_sensitive, target, negate);
-    rule->valid = FALSE;
+        (match, type, case_sensitive, target, flags);
+    rule_clear_flags(rule, RULE_FLAG_VALID);
 
     if (dbg >= 4)
         printf( "added to filter \"%s\" rule with target %p\n",
@@ -694,7 +702,7 @@ static void xml_to_ip_rule(xmlNodePtr xmlnode, gpointer filter)
     gchar *buf;
     rule_t *rule;
     filter_t *target;
-    gboolean negate;
+    guint16 flags;
 
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
@@ -702,15 +710,15 @@ static void xml_to_ip_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(g_strcasecmp(xmlnode->name, NODE_RULE_IP) ==0);
 
     buf = xmlGetProp(xmlnode, PROP_RULE_IP_ADDR);
+    if (buf == NULL)
+        g_error("xml_to_ip_rule: rule without ip address");
     addr = gchar_to_ip(buf);
     g_free(buf);
 
     buf = xmlGetProp(xmlnode, PROP_RULE_IP_MASK);
+    if (buf == NULL)
+        g_error("xml_to_ip_rule: rule without netmask");
     mask = gchar_to_ip(buf);
-    g_free(buf);
-
-    buf = xmlGetProp(xmlnode, PROP_RULE_NEGATE);
-    negate = atol(buf) == 1 ? TRUE : FALSE;
     g_free(buf);
 
     buf = xmlGetProp(xmlnode, PROP_RULE_TARGET);
@@ -720,8 +728,9 @@ static void xml_to_ip_rule(xmlNodePtr xmlnode, gpointer filter)
         g_error( "xml_to_ip_rule: %s", g_strerror(errno));
     g_free(buf);
 
-    rule = filter_new_ip_rule(addr, mask, target, negate);
-    rule->valid = FALSE;
+    flags = get_rule_flags_from_xml(xmlnode);
+    rule = filter_new_ip_rule(addr, mask, target, flags);
+    rule_clear_flags(rule, RULE_FLAG_VALID);
 
     if (dbg >= 4)
         printf( "added to filter \"%s\" rule with target %p\n",
@@ -738,7 +747,7 @@ static void xml_to_size_rule(xmlNodePtr xmlnode, gpointer filter)
     gchar *buf;
     rule_t *rule;
     filter_t *target = NULL;
-    gboolean negate;
+    guint16 flags;
 
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
@@ -746,17 +755,17 @@ static void xml_to_size_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(g_strcasecmp(xmlnode->name, NODE_RULE_SIZE) ==0);
 
     buf = xmlGetProp(xmlnode, PROP_RULE_SIZE_LOWER);
+    if (buf == NULL)
+        g_error("xml_to_size_rule: rule without lower bound");
     lower = atol(buf);
     g_free(buf);
 
     buf = xmlGetProp(xmlnode, PROP_RULE_SIZE_UPPER);
+    if (buf == NULL)
+        g_error("xml_to_size_rule: rule without upper bound");
     upper = atol(buf);
     g_free(buf);
-
-    buf = xmlGetProp(xmlnode, PROP_RULE_NEGATE);
-    negate = atol(buf) == 1 ? TRUE : FALSE;
-    g_free(buf);
-
+ 
     buf = xmlGetProp(xmlnode, PROP_RULE_TARGET);
     errno = 0;
     target = (gpointer) strtoul(buf, 0, 16);
@@ -764,10 +773,11 @@ static void xml_to_size_rule(xmlNodePtr xmlnode, gpointer filter)
         g_error( "xml_to_size_rule: %s (%p)", g_strerror(errno), target);
     g_free(buf);
        
-    rule = filter_new_size_rule(lower, upper, target, negate);
-    rule->valid = FALSE;
+    flags = get_rule_flags_from_xml(xmlnode);
+    rule = filter_new_size_rule(lower, upper, target, flags);
+    rule_clear_flags(rule, RULE_FLAG_VALID);
 
-    if (dbg >= 4);
+    if (dbg >= 4)
         printf( "added to filter \"%s\" rule with target %p\n",
             ((filter_t *)filter)->name, rule->target);
 
@@ -780,6 +790,7 @@ static void xml_to_jump_rule(xmlNodePtr xmlnode, gpointer filter)
     gchar *buf;
     rule_t *rule;
     filter_t *target;
+    guint16 flags;
 
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
@@ -793,8 +804,9 @@ static void xml_to_jump_rule(xmlNodePtr xmlnode, gpointer filter)
         g_error( "xml_to_jump_rule: %s", g_strerror(errno));
     g_free(buf);
        
-    rule = filter_new_jump_rule(target);
-    rule->valid = FALSE;
+    flags = get_rule_flags_from_xml(xmlnode);
+    rule = filter_new_jump_rule(target,flags);
+    rule_clear_flags(rule, RULE_FLAG_VALID);
 
     if (dbg >= 4)
         printf( "added to filter \"%s\" rule with target %p\n",
@@ -802,4 +814,46 @@ static void xml_to_jump_rule(xmlNodePtr xmlnode, gpointer filter)
 
     ((filter_t *) filter)->ruleset =
         g_list_append(((filter_t *) filter)->ruleset, rule);
+}
+
+static guint16 get_rule_flags_from_xml(xmlNodePtr xmlnode)
+{
+    gboolean negate = FALSE;
+    gboolean active = TRUE;
+    gboolean soft   = FALSE;
+    guint16 flags;  
+    gchar *buf;
+
+    g_assert(xmlnode != NULL);
+    g_assert(xmlnode->name != NULL);
+    g_assert(
+        (g_strcasecmp(xmlnode->name, NODE_RULE_TEXT) == 0) ||
+        (g_strcasecmp(xmlnode->name, NODE_RULE_IP) == 0) ||
+        (g_strcasecmp(xmlnode->name, NODE_RULE_SIZE) == 0) ||
+        (g_strcasecmp(xmlnode->name, NODE_RULE_JUMP) == 0));
+    
+    buf = xmlGetProp(xmlnode, PROP_RULE_NEGATE);
+    if (buf != NULL) {
+        negate = atol(buf) == 1 ? TRUE : FALSE;
+        g_free(buf);
+    }
+
+    buf = xmlGetProp(xmlnode, PROP_RULE_ACTIVE);
+    if (buf != NULL) {
+        active = atol(buf) == 1 ? TRUE : FALSE;
+        g_free(buf);
+    }
+
+    buf = xmlGetProp(xmlnode, PROP_RULE_SOFT);
+    if (buf != NULL) {
+        soft = atol(buf) == 1 ? TRUE : FALSE;
+        g_free(buf);
+    }
+
+    flags =
+        (negate ? RULE_FLAG_NEGATE : 0) |
+        (active ? RULE_FLAG_ACTIVE : 0) |
+        (soft   ? RULE_FLAG_SOFT   : 0);
+
+    return flags;
 }
