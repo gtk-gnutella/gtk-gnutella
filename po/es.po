@@ -1,3 +1,4 @@
+# $Id$
 # Spanish translation for GTK-Gnutella
 # Copyright (C) YEAR Copyright (c) 2000-2001, Yann Grossel; Copyright (c) 2001-2003, Raphael Manfredi
 # This file is distributed under the same license as the gtk-gnutella package.
@@ -9,7 +10,7 @@ msgstr ""
 "POT-Creation-Date: 2003-05-25 14:43+0200\n"
 "PO-Revision-Date: 2003-04-06 22:38-0300\n"
 "Last-Translator: Nicolás Lichtmaier <nick@technisys.com.ar>\n"
-"Language-Team: LLANGUAGE <LLL@li.org>\n"
+"Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"

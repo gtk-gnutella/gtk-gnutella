@@ -1,3 +1,4 @@
+# $Id$
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
@@ -11,7 +12,7 @@ msgstr ""
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: nl <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #: downloads.c:389
@@ -263,7 +264,7 @@ msgid "Number of seconds before a Gnet connection times out if no data is transm
 msgstr "Tijd in seconden voordat een Gnet connectie wordt verbroken als er geen data is verstuurd"
 
 #: gnet_property.c:1255
-#, c-format
+# xgettext:no-c-format
 msgid "Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150% of the maximum message size"
 msgstr "Maximum grootte van de te zenden wachtrij voor nodes (in bytes). Moet tenminste 150% van de maximale bericht grootte zijn"
 
