@@ -37,4 +37,5 @@ void on_button_nodes_remove_clicked (GtkButton *button, gpointer user_data);
 void on_entry_host_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_host_changed (GtkEditable *editable, gpointer user_data);
 
+void nodes_gui_remove_selected(void);
 #endif /* _nodes_cb2_h_ */

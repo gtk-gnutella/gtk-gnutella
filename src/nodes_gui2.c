@@ -119,13 +119,13 @@ void nodes_gui_init()
 
     /* Get the monitor widget */
     tree = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
-
     gtk_tree_view_set_model(tree, GTK_TREE_MODEL(nodes_model));
 
     /* The view now holds a reference.  We can get rid of our own
      * reference */
     g_object_unref(G_OBJECT (nodes_model));
-
+	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree),
+		GTK_SELECTION_MULTIPLE);
 
     nodes_gui_add_column(tree, COL_NODE_HOST, "Host");
     nodes_gui_add_column(tree, COL_NODE_TYPE, "Flags");
@@ -531,5 +531,29 @@ static void nodes_gui_add_column(
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
     gtk_tree_view_column_set_min_width(column, 0);
     gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
+}
+
+static void nodes_gui_remove_selected_helper(
+	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
+{
+	GSList **list = data;
+	guint handle;
+
+	gtk_tree_model_get(model, iter, COL_NODE_HANDLE, &handle, -1);
+	*list = g_slist_append(*list, GUINT_TO_POINTER(handle));
+}
+
+void nodes_gui_remove_selected(void)
+{
+	GtkTreeView *treeview;
+	GtkTreeSelection *selection;
+	GSList *node_list = NULL;
+
+	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
+	selection = gtk_tree_view_get_selection(treeview);
+	gtk_tree_selection_selected_foreach(selection,
+		(gpointer) &nodes_gui_remove_selected_helper, &node_list);
+	node_remove_nodes_by_handle(node_list);
+	g_slist_free(node_list);
 }
 

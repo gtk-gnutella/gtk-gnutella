@@ -27,7 +27,7 @@
 
 #include "gui.h"
 
-#include "nodes_cb.h"
+#include "nodes_cb2.h"
 #include "settings_gui.h"
 #include "statusbar_gui.h"
 
@@ -82,17 +82,14 @@ static void add_node(void)
         (lookup_widget(main_window, "entry_host"));
 
     addr = gtk_editable_get_chars(editable, 0, -1);
-
     nodes_cb_connect_by_name(addr);
-
-    g_free(addr);
-
+    G_FREE_NULL(addr);
     gtk_entry_set_text(GTK_ENTRY(editable), "");
 }
 
 void on_button_nodes_remove_clicked(GtkButton *button, gpointer user_data)
 {
-    // FIXME: must add code to remove node
+	nodes_gui_remove_selected();
 }
 
 void on_button_nodes_add_clicked(GtkButton * button, gpointer user_data)
