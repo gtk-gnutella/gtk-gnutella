@@ -52,7 +52,7 @@ RCSID("$Id$");
  */
 
 #define BUFFER_COUNT	2
-#define BUFFER_SIZE		2048
+#define BUFFER_SIZE		1024
 #define BUFFER_FLUSH	4096	/* Try to flush every 4K */
 #define BUFFER_NAGLE	200		/* 200 ms */
 
@@ -120,8 +120,10 @@ static void deflate_send(txdrv_t *tx)
 	r = tx_write(attr->nd, b->rptr, len);
 
 	if (dbg > 9)
-		printf("deflate_send: (%s) wrote %d bytes (buffer #%d)\n",
-			node_ip(tx->node), r, attr->send_idx);
+		printf("deflate_send: (%s) wrote %d bytes (buffer #%d) [%c%c]\n",
+			node_ip(tx->node), r, attr->send_idx,
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
 	if (r < 0)
 		return;
@@ -215,8 +217,10 @@ static void deflate_rotate_and_send(txdrv_t *tx)
 		attr->fill_idx = 0;
 
 	if (dbg > 9)
-		printf("deflate_rotate_and_send: (%s) fill buffer now #%d\n",
-			node_ip(tx->node), attr->fill_idx);
+		printf("deflate_rotate_and_send: (%s) fill buffer now #%d [%c%c]\n",
+			node_ip(tx->node), attr->fill_idx,
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
 	deflate_send(tx);
 }
@@ -237,10 +241,12 @@ static void deflate_service(gpointer data)
 	g_assert(attr->send_idx < BUFFER_COUNT);
 
 	if (dbg > 9)
-		printf("deflate_service: (%s) (buffer #%d, %d bytes held)\n",
+		printf("deflate_service: (%s) (buffer #%d, %d bytes held) [%c%c]\n",
 			node_ip(tx->node), attr->send_idx,
 			(gint) (attr->buf[attr->send_idx].wptr - 
-					attr->buf[attr->send_idx].rptr));
+					attr->buf[attr->send_idx].rptr),
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
 	/*
 	 * First, attempt to transmit the whole send buffer.
@@ -299,6 +305,12 @@ static void deflate_service(gpointer data)
 			tx->srv_routine(tx->srv_arg);
 		}
 	}
+
+	if (dbg > 9)
+		printf("deflate_service: (%s) leaving [%c%c]\n",
+			node_ip(tx->node),
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
 }
 
 /*
@@ -319,8 +331,10 @@ retry:
 	b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
 
 	if (dbg > 9)
-		printf("deflate_flush: (%s) flushing (buffer #%d)\n",
-			node_ip(tx->node), attr->fill_idx);
+		printf("deflate_flush: (%s) flushing (buffer #%d) [%c%c]\n",
+			node_ip(tx->node), attr->fill_idx,
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
 	/*
 	 * Prepare call to deflate().
@@ -397,8 +411,12 @@ static void deflate_nagle_timeout(cqueue_t *cq, gpointer arg)
 	if (attr->send_idx != -1) {		/* Send buffer still incompletely sent */
 
 		if (dbg > 9)
-			printf("deflate_nagle_timeout: (%s) buffer #%d unsent, exiting\n",
-				node_ip(tx->node), attr->send_idx);
+			printf("deflate_nagle_timeout: (%s) buffer #%d unsent,"
+				" exiting [%c%c]\n",
+				node_ip(tx->node), attr->send_idx,
+				(attr->flags & DF_FLOWC) ? 'C' : '-',
+				(attr->flags & DF_FLUSH) ? 'f' : '-');
+
 
 		attr->tm_ev =
 			cq_insert(attr->cq, BUFFER_NAGLE, deflate_nagle_timeout, tx);
@@ -409,8 +427,10 @@ static void deflate_nagle_timeout(cqueue_t *cq, gpointer arg)
 	attr->tm_ev = NULL;
 
 	if (dbg > 9) {
-		printf("deflate_nagle_timeout: (%s) flushing (buffer #%d)\n",
-			node_ip(tx->node), attr->fill_idx);
+		printf("deflate_nagle_timeout: (%s) flushing (buffer #%d) [%c%c]\n",
+			node_ip(tx->node), attr->fill_idx,
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
 		fflush(stdout);
 	}
 
@@ -443,9 +463,11 @@ static gint deflate_add(txdrv_t *tx, gpointer data, gint len)
 
 	if (dbg > 9) {
 		printf("deflate_add: (%s) given %d bytes (buffer #%d, nagle %s, "
-			"unflushed %d)\n",
+			"unflushed %d) [%c%c]\n",
 			node_ip(tx->node), len, attr->fill_idx,
-			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed);
+			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
 		fflush(stdout);
 	}
 
@@ -674,6 +696,14 @@ static gint tx_deflate_write(txdrv_t *tx, gpointer data, gint len)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 
+	if (dbg > 9)
+		printf("tx_deflate_write: (%s) (buffer #%d, nagle %s, "
+			"unflushed %d) [%c%c]\n",
+			node_ip(tx->node), attr->fill_idx,
+			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
+
 	/*
 	 * If we're flow controlled or shut down, don't accept anything.
 	 */
@@ -695,6 +725,14 @@ static gint tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 	struct attr *attr = (struct attr *) tx->opaque;
 	gint sent = 0;
 
+	if (dbg > 9)
+		printf("tx_deflate_writev: (%s) (buffer #%d, nagle %s, "
+			"unflushed %d) [%c%c]\n",
+			node_ip(tx->node), attr->fill_idx,
+			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
+
 	while (iovcnt--) {
 		gint ret;
 
@@ -715,6 +753,14 @@ static gint tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 			break;
 		iov++;
 	}
+
+	if (dbg > 9)
+		printf("tx_deflate_writev: (%s) sent %d bytes (buffer #%d, nagle %s, "
+			"unflushed %d) [%c%c]\n",
+			node_ip(tx->node), sent, attr->fill_idx,
+			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
 	return sent;
 }
