@@ -44,6 +44,7 @@ static void upload_free_resources(struct upload *u)
 		u->file_desc = -1;
 	}
 	if (u->socket != NULL) {
+		g_assert(u->socket->resource.upload == u);
 		socket_free(u->socket);
 		u->socket = NULL;
 	}
@@ -53,22 +54,22 @@ static void upload_free_resources(struct upload *u)
 	}
 }
 
-void upload_remove(struct upload *d, gchar * reason)
+void upload_remove(struct upload *u, gchar * reason)
 {
 	gint row;
 
-	if (d->status != GTA_UL_COMPLETE) {
+	if (u->status != GTA_UL_COMPLETE) {
 		/* if UL_COMPLETE, we've already decremented it. */
 		running_uploads--;
 		gui_update_c_uploads();
 	}
 
-	upload_free_resources(d);
-	g_free(d);
+	upload_free_resources(u);
+	g_free(u);
 
-	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_uploads), (gpointer) d);
+	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_uploads), (gpointer) u);
 	gtk_clist_remove(GTK_CLIST(clist_uploads), row);
-	uploads = g_slist_remove(uploads, (gpointer) d);
+	uploads = g_slist_remove(uploads, (gpointer) u);
 }
 
 struct upload *upload_add(struct gnutella_socket *s)
@@ -99,7 +100,8 @@ struct upload *upload_add(struct gnutella_socket *s)
 	s->buffer[sizeof(s->buffer) - 1] = '\0';	/* Should not override data */
 
 	if (dbg > 4) {
-		printf("---Incoming Request:\n%s----\n", s->buffer);
+		printf("---Incoming Request from %s:\n%s----\n",
+			ip_to_gchar(s->ip), s->buffer);
 		fflush(stdout);
 	}
 
@@ -139,20 +141,6 @@ struct upload *upload_add(struct gnutella_socket *s)
 	}
 
 	if (sscanf(s->buffer, "GET /get/%u/", &index)) {
-		if (running_uploads >= max_uploads) {
-			rw = g_snprintf(http_response, sizeof(http_response),
-				"HTTP/1.0 503 Too many uploads; try again later\r\n"
-				"Server: gtk-gnutella/%d.%d\r\n\r\n",
-				GTA_VERSION, GTA_SUBVERSION);
-			write(s->file_desc, http_response, rw);
-
-			return NULL;
-		}
-
-		requested_file = shared_file(index);
-		if (requested_file == NULL)
-			goto not_found;
-
 		/*
 		 * We must be cautious about file index changing between two scans,
 		 * which may happen when files are moved around on the local library.
@@ -160,6 +148,10 @@ struct upload *upload_add(struct gnutella_socket *s)
 		 * result in a corrupted file!
 		 *		--RAM, 26/09/2001
 		 */
+
+		requested_file = shared_file(index);
+		if (requested_file == NULL)
+			goto not_found;
 
 		buf = s->buffer + sizeof("GET /get/");
 		while ((c = *(guchar *) buf++) && c != '/')
@@ -174,6 +166,24 @@ struct upload *upload_add(struct gnutella_socket *s)
 			write(s->file_desc, http_response, rw);
 			g_warning("file index/name mismatch from %s for %d/%s",
 				ip_to_gchar(s->ip), index, requested_file->file_name);
+			return NULL;
+		}
+
+		/*
+		 * Even though this test is less costly than the previous, doing it
+		 * afterwards allows them to be notified of a mismatch whilst they
+		 * wait for a download slot.  It would be a pity for them to get
+		 * a slot and be told about the mismatch only then.
+		 *		--RAM, 15/12/2001
+		 */
+
+		if (running_uploads >= max_uploads) {
+			rw = g_snprintf(http_response, sizeof(http_response),
+				"HTTP/1.0 503 Too many uploads; try again later\r\n"
+				"Server: gtk-gnutella/%d.%d\r\n\r\n",
+				GTA_VERSION, GTA_SUBVERSION);
+			write(s->file_desc, http_response, rw);
+
 			return NULL;
 		}
 
@@ -309,7 +319,8 @@ struct upload *upload_add(struct gnutella_socket *s)
 		write(new_upload->socket->file_desc, http_response, rw);
 
 		if (dbg > 4) {
-			printf("----Sent Reply:\n%.*s----\n", (int) rw, http_response);
+			printf("----Sent Reply to %s:\n%.*s----\n",
+				ip_to_gchar(s->ip), (int) rw, http_response);
 			fflush(stdout);
 		}
 
@@ -419,12 +430,9 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 		count_uploads++;
 		gui_update_count_uploads();
 		gui_update_c_uploads();
-		if (clear_uploads == TRUE) {
-			gui_update_upload(current_upload);
-			g_assert(current_upload->socket->resource.upload ==
-					 current_upload);
-			socket_destroy(current_upload->socket);
-		} else {
+		if (clear_uploads == TRUE)
+			upload_remove(current_upload, NULL);
+		else {
 			current_upload->status = GTA_UL_COMPLETE;
 			gui_update_upload(current_upload);
 			running_uploads--;
