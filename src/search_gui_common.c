@@ -495,7 +495,8 @@ record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r)
  *
  * Create a new GUI result set from a Gnutella one.
  */
-results_set_t *search_gui_create_results_set(const gnet_results_set_t *r_set)
+results_set_t *search_gui_create_results_set(
+    GSList *schl, gnet_results_set_t *r_set)
 {
     results_set_t *rs;
     GSList *sl;
@@ -504,6 +505,7 @@ results_set_t *search_gui_create_results_set(const gnet_results_set_t *r_set)
     rs = (results_set_t *) zalloc(rs_zone);
 
     rs->refcount = 0;
+    rs->schl = g_slist_copy(schl);
 
     rs->guid = atom_guid_get(r_set->guid);
     rs->ip = r_set->ip;
@@ -949,11 +951,12 @@ void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
     /*
      * Copy the data we got from the backend.
      */
-    rs = search_gui_create_results_set(r_set);
-    rs->schl = g_slist_copy(schl);
+    rs = search_gui_create_results_set(schl, r_set);
 
     if (gui_debug >= 12)
         printf("got incoming results...\n");
+
+    g_assert(!g_slist_find(accumulated_rs, rs));
 
     accumulated_rs = g_slist_prepend(accumulated_rs, rs);
 }
