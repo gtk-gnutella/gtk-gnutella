@@ -578,7 +578,21 @@ static gint search_gui_compare_records(
 							: CMP(rs1->ip, rs2->ip);
 			}
             break;
-			
+
+        case c_sr_loc:
+            if (rs1->country == rs2->country)
+                result = 0;
+            else if (rs1->country == NULL)
+                result = -1;
+            else if (rs2->country == NULL)
+                result = +1;
+            else
+                result =  strcmp(rs1->country, rs2->country);  
+            break;
+
+        case c_sr_meta:
+			break;				/* XXX Can't sort, metadata not in record! */
+
         case c_sr_sha1:
             if (r1->sha1 == r2->sha1)
                 result = 0;
@@ -1227,11 +1241,11 @@ void search_gui_add_record(
 	titles[c_sr_sha1] = (NULL != rc->sha1) ?  sha1_base32(rc->sha1) : empty;
 	titles[c_sr_size] = empty;
 	titles[c_sr_count] = empty;
+	titles[c_sr_loc] = rs->country;
 
 	titles[c_sr_host] = (NULL == rs->hostname) ?
 		ip_port_to_gchar(rs->ip, rs->port) :
 		hostname_port_to_gchar(rs->hostname, rs->port);
-
 
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%u", rs->speed);
 	titles[c_sr_speed] = atom_str_get(tmpstr);
@@ -1596,8 +1610,7 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
         }
 
 		rs = rc->results_set;
-		need_push =
-			(rs->status & ST_FIREWALL) || !host_is_valid(rs->ip, rs->port);
+		need_push = (rs->status & ST_FIREWALL) != 0;
 
 		filename = gm_sanitize_filename(rc->name, FALSE, FALSE);
 		if (guc_download_new(filename, rc->size, rc->index, 
@@ -2208,6 +2221,15 @@ void gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
     gtk_widget_show_all(hbox);
     gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_host, _("Host"));
 	gtk_clist_set_column_visibility(GTK_CLIST(*ctree), c_sr_host, FALSE);
+
+	label = gtk_label_new(_("Loc"));
+    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
+    hbox = gtk_hbox_new(FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	gtk_clist_set_column_widget(GTK_CLIST(*ctree), c_sr_loc, hbox);
+    gtk_widget_show_all(hbox);
+    gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_loc, _("Loc"));
+	gtk_clist_set_column_visibility(GTK_CLIST(*ctree), c_sr_loc, FALSE);
 
 	label = gtk_label_new(_("urn:sha1"));
     gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
