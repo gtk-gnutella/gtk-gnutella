@@ -2602,10 +2602,8 @@ void locale_init(void)
 #endif /* NLS */
 
 #ifdef USE_GLIB2
-
 	g_get_charset(&charset);
-
-#else
+#else /* !USE_GLIB2 */
 
 #if defined(I_LANGINFO) || defined(I_LIBCHARSET)
 	charset = locale_charset();
@@ -2616,9 +2614,9 @@ void locale_init(void)
 		g_warning("locale_init: Using default codeset %s as fallback.",
 			charset);
 	}
-
 #endif /* USE_GLIB2 */
 
+	g_message("using charset \"%s\"", charset);
 	textdomain_init(charset);
 
 	if ((GIConv)-1 == (cd_latin_to_utf8 = g_iconv_open("UTF-8", "ISO-8859-1")))
