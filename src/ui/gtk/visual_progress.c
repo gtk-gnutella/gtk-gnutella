@@ -184,7 +184,7 @@ vp_draw_chunk (gpointer data, gpointer user_data)
  * Draw an downward arrow starting at the top
  */
 void
-vp_draw_arrow(vp_info_t *v, guint32 at)
+vp_draw_arrow(vp_info_t *v, filesize_t at)
 {
 	guint s_at;
 	guint i;
