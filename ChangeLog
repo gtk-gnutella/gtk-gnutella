@@ -1,5 +1,39 @@
 # since last version
 
+- (2002.06.01 - Richard)
+  * Disabled xml backend by default. Use "configure --enable-xml-store"
+    to enable it. You need libxml2 and libxml2-dev packages installed 
+    for it to work.
+  * Fixed bug: assertion failure when trying to edit filters without
+    any search existing.
+  * It's no longer possible to edit the builtin filters (was a bug
+    that this was possible).
+  * Added widgets to configure the minimal upload b/w percentage patch 
+    [From Tobias Frech] to the bandwidth config panel.
+  * Changes build scripts to remove dependency on gnome-config and 
+    added checks for libxml2.
+
+- (2002.05.30 - Richard)
+  * New filter code and dialog.
+  * Moved from callback.c on_search_switch as gui_view_search to gui.c 
+  * Changed searches list from GSList to GList.  
+  * Use search_t instead of struct search.  
+  * Began to move search related gtk code to gui.c (gui_search_close) 
+  * Optionally use xml backend or simple text file for makeing searches
+    persistent.  
+  * Use "search_close" instead of manually closing searches in
+     search_shutdown().
+  * Changed handling of "minium speed" widget. You can change the minimum 
+    speed on a existant search and change the default minimum speed on the 
+    gnutellaNet config pane.
+  * Moved the gui part of removing a search from search.c to gui.c 
+  * Removed macro definitions of the notebook page numbers
+    and switched to enums.  
+  * Moved main_window and shutdown_window to gui.c and have them as externs 
+    in gui.h 
+  * Added gui_show_search(search).
+  * Added some functions to handle option menus more easily (gtk-missing)
+
 - (2002.05.29 - RAM)
   * Added date parsing.
   * Now parses Retry-After in HTTP replies, supersedes user-defined timeouts.
