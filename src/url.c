@@ -66,9 +66,9 @@ static const char hex_alphabet[] = "0123456789ABCDEF";
  *
  * Returns argument if no escaping is necessary, or a new string otherwise.
  */
-static gchar *url_escape_mask(gchar *url, guint8 mask)
+static gchar *url_escape_mask(const gchar *url, guint8 mask)
 {
-	gchar *p;
+	const gchar *p;
 	gchar *q;
 	int need_escape = 0;
 	guchar c;
@@ -79,7 +79,7 @@ static gchar *url_escape_mask(gchar *url, guint8 mask)
 			need_escape++;
 
 	if (need_escape == 0)
-		return url;
+		return (gchar *) url; /* Override const */
 
 	new = g_malloc(p - url + (need_escape << 1));
 
@@ -142,7 +142,7 @@ static gint url_escape_mask_into(
  * Escape undesirable characters using %xx, where xx is an hex code.
  * Returns argument if no escaping is necessary, or a new string otherwise.
  */
-gchar *url_escape(gchar *url)
+gchar *url_escape(const gchar *url)
 {
 	return url_escape_mask(url, PATH_MASK);
 }
@@ -153,7 +153,7 @@ gchar *url_escape(gchar *url)
  * Same as url_escape(), but '+' are also escaped for the query string.
  * Returns argument if no escaping is necessary, or a new string otherwise.
  */
-gchar *url_escape_query(gchar *url)
+gchar *url_escape_query(const gchar *url)
 {
 	return url_escape_mask(url, QUERY_MASK);
 }
