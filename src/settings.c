@@ -25,8 +25,6 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
-
 #include <sys/types.h>
 #include <sys/resource.h>
 
@@ -47,6 +45,8 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <netdb.h>
+
+#include "gnutella.h"
 
 #include "settings.h"
 #include "search.h"
