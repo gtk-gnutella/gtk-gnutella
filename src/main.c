@@ -228,6 +228,7 @@ static void slow_main_timer(time_t now)
 	if (++i > 4)
 		i = 0;
 
+	node_slow_timer(now);
 	ignore_timer(now);
 
 	if (now - last_warn > 600) {

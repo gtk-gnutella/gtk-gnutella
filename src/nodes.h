@@ -57,7 +57,7 @@ struct node_rxfc_mon {
  * CACHE_HOP_IDX is the macro returning the array index in the
  * (0 .. MAX_CACHE_HOPS) range, based on the hop count.
  */
-#define MAX_CACHE_HOPS	9		/* We won't handle anything larger */
+#define MAX_CACHE_HOPS	6		/* We won't handle anything larger */
 
 #define CACHE_HOP_IDX(h)	(((h) > MAX_CACHE_HOPS) ? MAX_CACHE_HOPS : (h))
 
@@ -321,6 +321,7 @@ extern struct gnutella_node *node_added;
  */
 
 void node_init(void);
+void node_slow_timer(time_t now);
 void node_timer(time_t now);
 gboolean on_the_net(void);
 gint32 connected_nodes(void);

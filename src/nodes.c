@@ -88,6 +88,9 @@ RCSID("$Id$");
 #define ALIVE_PERIOD_LEAF		60	/* Idem, for leaf nodes <-> ultrapeers */
 #define ALIVE_MAX_PENDING		4	/* Max unanswered pings in a row */
 
+#define NODE_MIN_UPTIME			3600	/* Minumum uptime to become an UP */
+#define NODE_MIN_AVG_UPTIME		10800	/* Average uptime to become an UP */
+
 GSList *sl_nodes = (GSList *) NULL;
 
 static idtable_t *node_handle_map = NULL;
@@ -292,6 +295,32 @@ static void node_extract_host(
 
 	*ip = hip;
 	*port = hport;
+}
+
+/*
+ * node_slow_timer
+ *
+ * Low frequency node timer.
+ */
+void node_slow_timer(time_t now)
+{
+	/*
+	 * If we're in "auto" mode and we're still running as a leaf node,
+	 * evaluate our ability to become an ultra node.
+	 */
+
+	if (
+		configured_peermode == NODE_P_AUTO &&
+		current_peermode == NODE_P_LEAF &&
+		average_servent_uptime >= NODE_MIN_AVG_UPTIME &&
+		average_ip_uptime >= NODE_MIN_AVG_UPTIME &&
+		now - start_stamp > NODE_MIN_UPTIME &&
+		!is_firewalled
+		/* XXX add bandwidth requirements */
+	) {
+		g_warning("being promoted to Ultrapeer status");
+		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_ULTRA);
+	}
 }
 
 /*
@@ -2862,6 +2891,7 @@ static void node_process_handshake_header(
 			if (n->attrs & NODE_A_ULTRA) {
 				if (
 					current_peermode == NODE_P_ULTRA &&
+					configured_peermode != NODE_P_ULTRA &&
 					node_leaf_count == 0 &&
 					n->up_date != 0 && n->up_date < start_stamp
 				) {
