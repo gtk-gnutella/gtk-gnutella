@@ -66,7 +66,7 @@
 #define GTA_REVISION "beta"
 #define GTA_REVCHAR "b"
 #define GTA_INTERFACE "X11"
-#define GTA_RELEASE "29/06/2002"
+#define GTA_RELEASE "30/06/2002"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #define GTA_MSG_INIT					0x00
@@ -74,7 +74,7 @@
 #define GTA_MSG_BYE						0x02
 #define GTA_MSG_QRP						0x30
 #define GTA_MSG_VENDOR					0x31	/* Vendor-specific */
-#define GTA_MSG_EXTENDED				0x32	/* RESERVED */
+#define GTA_MSG_STANDARD				0x32	/* Standard vendor-specific */
 #define GTA_MSG_PUSH_REQUEST			0x40
 #define GTA_MSG_SEARCH					0x80
 #define GTA_MSG_SEARCH_RESULTS			0x81
@@ -170,10 +170,9 @@ struct qrp_patch {
 struct msg_vendor {
 	guchar vendor[4];		/* E.g. "GTKG" */
 	guchar type[2];			/* Message type, little endian */
+	guchar version[2];		/* Message version number, little endian */
 	/* payload follows */
 } __attribute__((__packed__));
-
-/* */
 
 /*
  * Variables

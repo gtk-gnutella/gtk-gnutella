@@ -1,5 +1,15 @@
 # since last version
 
+- (2002.06.30 - RAM)
+  * Tuned auto-selection in search window to be an O(n) algorithm instead
+	of O(n*n), which greatly improves performance [From Richard].
+  * Protected a few pong-cache warnings, so that they be emitted only
+	when running in debugging mode.
+  * When removing completed downloads from queue, also remove first-order
+	aliases by SHA1, if available.
+  * Fixed upload crash when we can't send back the whole HTTP status
+	[From Paul Cassella].
+
 - (2002.06.29 - RAM)
   * More Solaris fixes [Uros Bizjak, patch #575037].
   * Added hardwired list of servent GUIDs to ban for push routes.
