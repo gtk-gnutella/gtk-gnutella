@@ -1,5 +1,19 @@
 # since last version
 
+- (2002.05.20 - RAM)
+  * When queuing a download from the same GUID/file, check the IP:port in
+	case it changed since we queued it, and not solely reject it as a
+	duplicate.
+  * When the full SHA1 hashing credit is not used, do not perform the
+	feedback adjustment, since those assume all the credit was used.
+  * In share.c: now uses gtk_main_flush() to update the GUI, not the single
+	loop iteration.
+  * uploads.c: fixed segfault at shutdown time (dup free of user_agent field).
+  * Honour X-Gnutella-Content-URN in requests and send a 404 error if
+	the file we have does not match.
+  * Will now send back X-Gnutella-Content-URN in the HTTP reply with the SHA1
+    (if we have it) on 503 Busy errors.
+
 - (2002.05.20 - Richard)
   * Added "User agent" column to uploads
   * Added "Server" column to downloads and queue
