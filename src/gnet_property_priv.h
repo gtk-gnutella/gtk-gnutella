@@ -103,7 +103,6 @@ extern gboolean use_netmasks;
 extern gboolean allow_private_network_connection;
 extern gboolean use_ip_tos;
 extern gboolean download_delete_aborted;
-extern gboolean proxy_connections;
 extern gboolean proxy_auth;
 extern gchar   *socks_user;
 extern gchar   *socks_pass;

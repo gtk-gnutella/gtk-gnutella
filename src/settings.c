@@ -1205,25 +1205,6 @@ static gboolean node_rx_size_changed(property_t prop)
 	return FALSE;
 }
 
-/* This is a quirk to translate the old property PROP_PROXY_CONNECTIONS */
-static gboolean proxy_protocol_changed(property_t prop)
-{
-	gboolean use_proxy;
-
-	gnet_prop_get_boolean_val(PROP_PROXY_CONNECTIONS, &use_proxy);
-	if (!use_proxy) {
-    	gnet_prop_set_guint32_val(prop, PROXY_NONE);
-		/*
-		 * set the deprecated property to TRUE, otherwise we could not enable
-		 * the proxy because after the next start, PROP_PROXY_PROTOCOL would
-		 * be resetted to PROXY_NONE again.
-		 */
-		gnet_prop_set_boolean_val(PROP_PROXY_CONNECTIONS, TRUE);
-	}
-
-    return TRUE;
-}
-
 /*
  * Automatically reset properties have a callout queue entry associated
  * with them.  When the entry fires, the property is cleared.  Each time
@@ -1498,15 +1479,6 @@ static prop_map_t property_map[] = {
 		PROP_FILE_DESCRIPTOR_RUNOUT,
 		file_descriptor_x_changed,
 		FALSE,
-	},
-	{
-		/*
-		 * This is used for a quirk which relies on the order
-		 * of PROP_PROXY_CONNECTIONS and PROP_PROXY_PROTOCOL.
-		 */
-		PROP_PROXY_PROTOCOL,
-		proxy_protocol_changed,
-		TRUE
 	}
 };
 
@@ -1514,7 +1486,7 @@ static prop_map_t property_map[] = {
  *** Control functions
  ***/
 
-#define PROPERTY_MAP_SIZE (sizeof(property_map) / sizeof(property_map[0]))
+#define PROPERTY_MAP_SIZE G_N_ELEMENTS(property_map)
 
 static gboolean init_list[GNET_PROPERTY_NUM];
 
@@ -1562,7 +1534,7 @@ static void settings_callbacks_init(void)
 
 static void settings_callbacks_shutdown(void)
 {
-    gint n;
+    guint n;
 
 	if (ev_file_descriptor_shortage != NULL) {
 		cq_cancel(callout_queue, ev_file_descriptor_shortage);
