@@ -335,10 +335,8 @@ extern gboolean route_exists_for_reply(gchar *muid, guint8 function);
  * Global Data
  */
 
-extern const gchar *gnutella_hello;
-extern guint32 gnutella_hello_length;
-
-extern GSList *sl_nodes;
+#define GNUTELLA_HELLO "GNUTELLA CONNECT/"
+#define GNUTELLA_HELLO_LENGTH	(sizeof(GNUTELLA_HELLO) - 1)
 
 extern GHookList node_added_hook_list;
 extern struct gnutella_node *node_added;
@@ -356,6 +354,7 @@ gint node_keep_missing(void);
 gint node_missing(void);
 gint node_outdegree(void);
 gboolean node_is_connected(guint32 ip, guint16 port, gboolean incoming);
+gboolean node_host_is_connected(guint32 ip, guint16 port);
 void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port);
 void node_remove(struct gnutella_node *, const gchar * reason, ...);
 void node_bye(gnutella_node_t *, gint code, const gchar * reason, ...);
@@ -404,6 +403,7 @@ gboolean node_proxying_add(gnutella_node_t *n, gchar *guid);
 void node_proxy_add(gnutella_node_t *n, guint32 ip, guint16 port);
 void node_http_proxies_add(gchar *buf, gint *retval, gpointer arg);
 GSList *node_push_proxies(void);
+const GSList *node_all_nodes(void);
 
 void node_became_firewalled(void);
 
