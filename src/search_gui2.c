@@ -883,16 +883,16 @@ void search_matched(search_t *sch, results_set_t *rs)
 
     g_assert(sch != NULL);
     g_assert(rs != NULL);
-/*
-    mark_color = &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
+
+    mark_color = &(gtk_widget_get_style(GTK_WIDGET(sch->tree_view))
         ->bg[GTK_STATE_INSENSITIVE]);
 
-    ignore_color = &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
+    ignore_color = &(gtk_widget_get_style(GTK_WIDGET(sch->tree_view))
         ->fg[GTK_STATE_INSENSITIVE]);
 
-    download_color =  &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
+    download_color =  &(gtk_widget_get_style(GTK_WIDGET(sch->tree_view))
         ->fg[GTK_STATE_ACTIVE]);
-*/
+
     vendor = lookup_vendor_name(rs->vendor);
 
    	if (vendor)
