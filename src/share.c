@@ -39,6 +39,7 @@
 #include "misc.h"
 #include "gmsg.h"
 #include "huge.h"
+#include "gtk-missing.h"
 
 guint32 files_scanned = 0;
 guint32 kbytes_scanned = 0;
@@ -468,7 +469,7 @@ static void recurse_scan(gchar *dir, gchar *basedir)
 
 		if (!(files_scanned & 0x1f)) {
 			gui_update_files_scanned();		/* Interim view */
-			gtk_main_iteration_do(FALSE);
+			gtk_main_flush();
 		}
 	}
 
