@@ -872,7 +872,7 @@ void qrp_add_file(struct shared_file *sf)
 		if (g_hash_table_lookup(ht_seen_words, (gconstpointer) word))
 			continue;
 
-		g_hash_table_insert(ht_seen_words, g_strdup(word), (gpointer) 1);
+		g_hash_table_insert(ht_seen_words, g_strdup(word), GINT_TO_POINTER(1));
 
 		if (dbg > 8)
 			printf("new QRP word \"%s\" [from %s]\n", word, sf->file_name);
@@ -885,13 +885,14 @@ void qrp_add_file(struct shared_file *sf)
 	 */
 
 	if (sha1_hash_available(sf)) {
-		gchar *key = g_strdup_printf("urn:sha1:%s",
-			sha1_base32(sf->sha1_digest));
+		gchar key[256];
 
-		if (NULL == g_hash_table_lookup(ht_seen_words, key))
-			g_hash_table_insert(ht_seen_words, key, GINT_TO_POINTER(1));
-		else
-			G_FREE_NULL(key);
+		gm_snprintf(key, sizeof key, "urn:sha1:%s",
+			sha1_base32(sf->sha1_digest));
+		if (NULL == g_hash_table_lookup(ht_seen_words, key)) {
+			g_hash_table_insert(ht_seen_words, g_strdup(key),
+				GINT_TO_POINTER(1));
+		}
 	}
 }
 
@@ -3159,4 +3160,4 @@ void test_hash(void)
 }
 
 #endif /* TEST */
-
+/* vi: set ts=4: */
