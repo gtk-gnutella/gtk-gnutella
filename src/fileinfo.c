@@ -1169,6 +1169,7 @@ void file_info_merge_adjacent(struct dl_file_info *fi)
  * file_info_update
  *
  * Marks a chunk of the file with given status.
+ * The bytes range from `from' (included) to `to' (excluded).
  */
 void file_info_update(
 	struct download *d, guint32 from, guint32 to, enum dl_chunk_status status)

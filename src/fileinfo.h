@@ -35,8 +35,8 @@ enum dl_chunk_status {
 };
 
 struct dl_file_chunk {
-	guint32 from;					/* Range start */
-	guint32 to;						/* Range end */
+	guint32 from;					/* Range offset start (byte included) */
+	guint32 to;						/* Range offset end (byte EXCLUDED) */
 	enum dl_chunk_status status;	/* Status of range */
 	struct download *download;		/* Download that "reserved" the range */
 };
