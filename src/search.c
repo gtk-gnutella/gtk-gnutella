@@ -1093,17 +1093,6 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 		qhv = NULL;
 
 	/*
-	 * Don't send on a temporary connection.
-	 * Although gmsg_sendto_one() is protected, it's useless to go through all
-	 * the message building only to discard the message at the end.
-	 * Moreover, we don't want to record the search being sent to this IP/port.
-	 *		--RAM, 13/01/2002
-	 */
-
-	if (n && NODE_IS_PONGING_ONLY(n))
-		return;
-
-	/*
 	 * Are we dealing with an URN search?
 	 */
 
@@ -1147,7 +1136,7 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 			guint wocnt;
 
 			wocnt = query_make_word_vec(sch->query, &wovec);
-			
+
 			for (i = 0; i < wocnt; i++) {
 				if (wovec[i].len >= QRP_MIN_WORD_LENGTH)
 					qhvec_add(qhv, wovec[i].word, QUERY_H_WORD);

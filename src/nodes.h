@@ -183,9 +183,9 @@ typedef struct gnutella_node {
  */
 
 #define NODE_F_HDSK_PING	0x00000001	/* Expecting handshake ping */
-#define NODE_F_TMP			0x00000002	/* Temporary, until we send pongs */
+#define NODE_F_UNUSED_1		0x00000002	/* UNUSED */
 #define NODE_F_INCOMING		0x00000004	/* Incoming (permanent) connection */
-#define NODE_F_RETRY_04		0x00000008	/* Retry handshake at 0.4 on failure */
+#define NODE_F_UNUSED_2		0x00000008	/* UNUSED */
 #define NODE_F_VALID		0x00000010	/* We handshaked with a Gnutella node */
 #define NODE_F_ALIEN_IP		0x00000020	/* Pong-IP does not match TCP/IP addr */
 #define NODE_F_WRITABLE		0x00000040	/* Node is writable */
@@ -234,11 +234,8 @@ typedef struct gnutella_node {
 	(	(n)->status == GTA_NODE_CONNECTED			\
 	||	(n)->status == GTA_NODE_SHUTDOWN )
 
-#define NODE_IS_PONGING_ONLY(n) \
-	((n)->flags & NODE_F_TMP)
-
 #define NODE_IS_INCOMING(n)	\
-	((n)->flags & (NODE_F_TMP|NODE_F_INCOMING))
+	((n)->flags & NODE_F_INCOMING)
 
 #define NODE_IS_REMOVING(n) \
 	((n)->status == GTA_NODE_REMOVING)
@@ -247,7 +244,7 @@ typedef struct gnutella_node {
 	((n)->outq && mq_is_flow_controlled((n)->outq))
 
 #define NODE_IS_WRITABLE(n) \
-	(((n)->flags & (NODE_F_TMP|NODE_F_WRITABLE)) == NODE_F_WRITABLE)
+	((n)->flags & NODE_F_WRITABLE)
 
 #define NODE_IS_READABLE(n) \
 	(((n)->flags & (NODE_F_READABLE|NODE_F_NOREAD)) == NODE_F_READABLE)

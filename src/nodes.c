@@ -128,7 +128,6 @@ static idtable_t *node_handle_map = NULL;
 
 
 static guint32 nodes_in_list = 0;
-static guint32 ponging_nodes = 0;
 static guint32 shutdown_nodes = 0;
 static guint32 node_id = 0;
 
@@ -167,7 +166,6 @@ static gint32 compressed_node_cnt = 0;
 static gint32 compressed_leaf_cnt = 0;
 static gint pending_byes = 0;			/* Used when shutdowning servent */
 static gboolean in_shutdown = FALSE;
-static gboolean no_gnutella_04 = FALSE;
 
 static query_hashvec_t *query_hashvec = NULL;
 
@@ -669,7 +667,6 @@ void node_init(void)
 	g_hook_list_init(&node_added_hook_list, sizeof(GHook));
 	node_added_hook_list.seq_id = 1;
 	node_added = NULL;
-	no_gnutella_04 = time(NULL) >= 1057010400;	/* Tue Jul  1 00:00:00 2003 */
 
 	query_hashvec = qhvec_alloc(128);		/* Max: 128 unique words / URNs! */
 	
@@ -688,7 +685,7 @@ gint32 connected_nodes(void)
 
 gint32 node_count(void)
 {
-	return nodes_in_list - ponging_nodes - shutdown_nodes - node_leaf_count;
+	return nodes_in_list - shutdown_nodes - node_leaf_count;
 }
 
 /*
@@ -791,8 +788,6 @@ static void get_protocol_version(gchar *handshake, gint *major, gint *minor)
  */
 static void node_type_count_dec(struct gnutella_node *n)
 {
-	g_assert(!NODE_IS_PONGING_ONLY(n));		/* We don't count ponging nodes */
-
 	switch (n->peermode) {
 	case NODE_P_LEAF:
 		g_assert(node_leaf_count > 0);
@@ -939,8 +934,7 @@ static void node_remove_v(
             g_assert(compressed_node_cnt >= 0);
 			g_assert(compressed_leaf_cnt >= 0);
         }
-		if (!NODE_IS_PONGING_ONLY(n))
-			node_type_count_dec(n);
+		node_type_count_dec(n);
 	}
 
 	if (n->status == GTA_NODE_SHUTDOWN)
@@ -988,9 +982,6 @@ static void node_remove_v(
 	n->last_update = time((time_t *) NULL);
 
 	nodes_in_list--;
-	if (n->flags & NODE_F_TMP)
-		ponging_nodes--;
-
 	if (n->flags & NODE_F_EOF_WAIT)
 		pending_byes--;
 
@@ -1293,8 +1284,7 @@ static void node_shutdown_mode(struct gnutella_node *n, guint32 delay)
             g_assert(compressed_node_cnt >= 0);
 			g_assert(compressed_leaf_cnt >= 0);
         }
-		if (!NODE_IS_PONGING_ONLY(n))
-			node_type_count_dec(n);
+		node_type_count_dec(n);
  	}
 
 	n->status = GTA_NODE_SHUTDOWN;
@@ -1368,18 +1358,6 @@ static void node_bye_v(
 
 	if (n->status == GTA_NODE_SHUTDOWN) {
 		node_recursive_shutdown_v(n, "Bye", reason, ap);
-		return;
-	}
-
-	/*
-	 * A "ponging" node is not expected to be sent traffic besides the initial
-	 * connection pongs.  Therefore, don't even try to send the Bye message,
-	 * there is no send queue.  Since a ponging node is a 0.4 client, it won't
-	 * understand our Bye message anyway.
-	 */
-
-	if (NODE_IS_PONGING_ONLY(n)) {
-		node_remove_v(n, reason, ap);
 		return;
 	}
 
@@ -1610,49 +1588,6 @@ static gboolean send_welcome(
 	}
 
 	return TRUE;
-}
-
-/*
- * send_connection_pongs
- *
- * Send CONNECT_PONGS_COUNT pongs to the remote node with proper message ID,
- * then disconnect.
- */
-static void send_connection_pongs(struct gnutella_node *n, gchar *muid)
-{
-	struct gnutella_host hosts[CONNECT_PONGS_COUNT];
-	struct gnutella_socket *s = n->socket;
-	gint hcount;
-	gint pongs = 0;		/* Pongs we sent */
-
-	hcount = hcache_fill_caught_array(HCACHE_ANY, hosts, CONNECT_PONGS_COUNT);
-	g_assert(hcount >= 0 && hcount <= CONNECT_PONGS_COUNT);
-
-	if (hcount) {
-		gint i;
-
-		sock_cork(s, TRUE);
-
-		for (i = 0; i < hcount; i++) {
-			struct gnutella_msg_init_response *pong;
-			gint sent;
-
-			pong = build_pong_msg(0, 1, muid, hosts[i].ip, hosts[i].port, 0, 0);
-
-			/*
-			 * Send pong, aborting on error or partial write.
-			 */
-
-			sent = bws_write(bws.gout, s->file_desc, pong, sizeof(*pong));
-			if (sent != sizeof(*pong))
-				break;
-
-			n->n_pong_sent++;
-			pongs++;
-		}
-	}
-
-	node_remove(n, "Sent %d connection pong%s", pongs, pongs == 1 ? "" : "s");
 }
 
 /*
@@ -1904,6 +1839,7 @@ void node_became_firewalled(void)
 static void node_is_now_connected(struct gnutella_node *n)
 {
 	struct gnutella_socket *s = n->socket;
+	txdrv_t *tx;
 
 	/*
 	 * Cleanup hanshaking objects.
@@ -1943,8 +1879,7 @@ static void node_is_now_connected(struct gnutella_node *n)
 	} else if (n->attrs & NODE_A_ULTRA)
 		n->peermode = NODE_P_ULTRA;
 
-	g_assert(current_peermode != NODE_P_LEAF ||
-		NODE_IS_ULTRA(n) || NODE_IS_PONGING_ONLY(n));
+	g_assert(current_peermode != NODE_P_LEAF || NODE_IS_ULTRA(n));
 
 	/*
 	 * Update state, and mark node as valid.
@@ -2005,77 +1940,75 @@ static void node_is_now_connected(struct gnutella_node *n)
 	n->flags |= NODE_F_READABLE;
 
 	/*
-	 * Create the TX stack if we're going to tranmit Gnet messages.
+	 * Create the TX stack, as we're going to tranmit Gnet messages.
 	 */
 
-	if (!NODE_IS_PONGING_ONLY(n)) {
-		txdrv_t *tx = tx_make(n, &tx_link_ops, 0);		/* Cannot fail */
+	tx = tx_make(n, &tx_link_ops, 0);		/* Cannot fail */
+
+	/*
+	 * If we committed on compressing traffic, install layer.
+	 */
+
+	if (n->attrs & NODE_A_TX_DEFLATE) {
+		struct tx_deflate_args args;
+		txdrv_t *ctx;
+		extern cqueue_t *callout_queue;
+
+		if (dbg > 4)
+			printf("Sending compressed data to node %s\n", node_ip(n));
+
+		args.nd = tx;
+		args.cq = callout_queue;
+
+		ctx = tx_make(n, &tx_deflate_ops, &args);
+		if (ctx == NULL) {
+			tx_free(tx);
+			node_remove(n, "Cannot setup compressing TX stack");
+			return;
+		}
+
+		tx = ctx;		/* Use compressing stack */
+	}
+
+	g_assert(tx);
+
+	n->outq = mq_make(node_sendqueue_size, n, tx);
+	n->searchq = sq_make(n);
+	n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
+	n->flags |= NODE_F_WRITABLE;
+
+	if (current_peermode == NODE_P_LEAF) {
+		gpointer qrt = qrt_get_table();
 
 		/*
-		 * If we committed on compressing traffic, install layer.
+		 * If we don't even have our first QRT computed yet, we
+		 * will send it to our ultranode when node_qrt_changed()
+		 * is called by the computation code.
 		 */
 
-		if (n->attrs & NODE_A_TX_DEFLATE) {
-			struct tx_deflate_args args;
-			txdrv_t *ctx;
-			extern cqueue_t *callout_queue;
+		if (qrt)
+			node_send_qrt(n, qrt);
+	}
 
-			if (dbg > 4)
-				printf("Sending compressed data to node %s\n", node_ip(n));
+	/*
+	 * Count nodes by type.
+	 */
 
-			args.nd = tx;
-			args.cq = callout_queue;
-
-			ctx = tx_make(n, &tx_deflate_ops, &args);
-			if (ctx == NULL) {
-				tx_free(tx);
-				node_remove(n, "Cannot setup compressing TX stack");
-				return;
-			}
-
-			tx = ctx;		/* Use compressing stack */
-		}
-
-		g_assert(tx);
-
-		n->outq = mq_make(node_sendqueue_size, n, tx);
-		n->searchq = sq_make(n);
-		n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
-		n->flags |= NODE_F_WRITABLE;
-
-		if (current_peermode == NODE_P_LEAF) {
-			gpointer qrt = qrt_get_table();
-
-			/*
-			 * If we don't even have our first QRT computed yet, we
-			 * will send it to our ultranode when node_qrt_changed()
-			 * is called by the computation code.
-			 */
-
-			if (qrt)
-				node_send_qrt(n, qrt);
-		}
-
-		/*
-		 * Count nodes by type only if not ponging.
-		 */
-
-		switch (n->peermode) {
-		case NODE_P_LEAF:
-			gnet_prop_set_guint32_val(PROP_NODE_LEAF_COUNT,
-				node_leaf_count + 1);
-			break;
-		case NODE_P_NORMAL:
-			gnet_prop_set_guint32_val(PROP_NODE_NORMAL_COUNT,
-				node_normal_count + 1);
-			break;
-		case NODE_P_ULTRA:
-			gnet_prop_set_guint32_val(PROP_NODE_ULTRA_COUNT,
-				node_ultra_count + 1);
-			break;
-		default:
-			break;
-		}
+	switch (n->peermode) {
+	case NODE_P_LEAF:
+		gnet_prop_set_guint32_val(PROP_NODE_LEAF_COUNT,
+			node_leaf_count + 1);
+		break;
+	case NODE_P_NORMAL:
+		gnet_prop_set_guint32_val(PROP_NODE_NORMAL_COUNT,
+			node_normal_count + 1);
+		break;
+	case NODE_P_ULTRA:
+		gnet_prop_set_guint32_val(PROP_NODE_ULTRA_COUNT,
+			node_ultra_count + 1);
+		break;
+	default:
+		break;
 	}
 
 	/*
@@ -2096,7 +2029,7 @@ static void node_is_now_connected(struct gnutella_node *n)
 
 	if (n->flags & NODE_F_INCOMING)
 		alive_send_ping(n->alive_pings);
-	else if (!NODE_IS_PONGING_ONLY(n))
+	else
 		pcache_outgoing_connection(n);	/* Will send proper handshaking ping */
 
 	/*
@@ -2289,43 +2222,6 @@ static void node_set_current_peermode(node_peer_t mode)
 }
 
 /*
- * downgrade_handshaking
- *
- * For an outgoing *removed* node, retry the outgoing connection using
- * a 0.4 handshaking this time.
- */
-static void downgrade_handshaking(struct gnutella_node *n)
-{
-	struct gnutella_socket *s;
-
-	g_assert(n->status == GTA_NODE_REMOVING);
-	g_assert(!(n->flags & NODE_F_INCOMING));
-	g_assert(n->socket == NULL);
-
-	if (dbg > 4)
-		printf("handshaking with %s failed, retrying at 0.4\n",
-			node_ip(n));
-
-	if (n->io_opaque)				/* I/O data */
-		io_free(n->io_opaque);
-
-	s = socket_connect(n->ip, n->port, SOCK_TYPE_CONTROL);
-	n->flags &= ~NODE_F_RETRY_04;
-
-	if (s) {
-		n->status = GTA_NODE_CONNECTING;
-		s->resource.node = n;
-		n->socket = s;
-		n->proto_major = 0;
-		n->proto_minor = 4;
-		nodes_in_list++;
-	} else
-		n->remove_msg = "Re-connection failed";
-
-    node_fire_node_info_changed(n);
-}
-
-/*
  * extract_field_pongs
  *
  * Extract host:port information out of a header field and add those to our
@@ -2502,12 +2398,10 @@ static gboolean analyse_status(struct gnutella_node *n, gint *code)
 	if (!ack_ok)
 		node_remove(n, "Weird HELLO %s", what);
 	else if (ack_code < 200 || ack_code >= 300) {
-		n->flags &= ~NODE_F_RETRY_04;	/* If outgoing, don't retry */
 		node_remove(n, "HELLO %s error %d (%s)", what, ack_code, ack_message);
 		ack_ok = FALSE;
 	}
 	else if (!incoming && ack_code == 204) {
-		n->flags &= ~NODE_F_RETRY_04;	/* Don't retry */
 		node_remove(n, "Shielded node");
 		ack_ok = FALSE;
 	}
@@ -3016,12 +2910,10 @@ static void node_process_handshake_header(
 	gint rw;
 	gint sent;
 	const gchar *field;
-	gboolean incoming = (n->flags & (NODE_F_INCOMING|NODE_F_TMP));
+	gboolean incoming = (n->flags & NODE_F_INCOMING);
 	const gchar *what = incoming ? "HELLO reply" : "HELLO acknowledgment";
 	const gchar *compressing = "Content-Encoding: deflate\r\n";
 	const gchar *empty = "";
-
-	g_assert(!(n->flags & NODE_F_TMP));	/* 0.6 connections no longer "tmp" */
 
 	if (dbg) {
 		printf("Got %s handshaking headers from node %s:\n",
@@ -3244,21 +3136,8 @@ static void node_process_handshake_header(
 	 * they did not reply with 200, then there's no need for us to reply back.
 	 */
 
-	if (!incoming && !analyse_status(n, NULL)) {
-		/*
-		 * If we have the "retry at 0.4" flag set, re-initiate the
-		 * connection at the 0.4 level if it was an outgoing connection.
-		 *
-		 * If the flag is not set, we got a valid 0.6 reply, but the
-		 * connection was denied.  Check the header nonetheless for
-		 * possible pongs.
-		 */
-
-		if ((n->flags & NODE_F_RETRY_04))
-			downgrade_handshaking(n);
-
+	if (!incoming && !analyse_status(n, NULL))
 		return;				/* node_remove() has freed s->getline */
-	}
 
 	/*
 	 * Vendor-specific banning.
@@ -3279,8 +3158,7 @@ static void node_process_handshake_header(
 	}
 
 	/*
-	 * We no longer flag incoming 0.6 connections as NODE_F_TMP, so we
-	 * need to enforce our connection count here.
+	 * Enforce our connection count here.
 	 *
 	 * This must come after parsing of "Accept-Encoding", since we're
 	 * also enforcing the preference for gnet compression.
@@ -3533,21 +3411,9 @@ static void err_header_error(gpointer obj, gint error)
 	node_remove(NODE(obj), "Failed (%s)", header_strerror(error));
 }
 
-static void maybe_downgrade_handshaking(struct gnutella_node *n)
-{
-	/*
-	 * For an outgoing connection, the remote end probably did not
-	 * like our 0.6 handshake and closed the connection.  Retry at 0.4.
-	 */
-
-	if ((n->flags & (NODE_F_INCOMING|NODE_F_RETRY_04)) == NODE_F_RETRY_04)
-		downgrade_handshaking(n);
-}
-
 static void err_input_exception(gpointer obj)
 {
 	node_remove(NODE(obj), "Failed (Input Exception)");
-	maybe_downgrade_handshaking(NODE(obj));
 }
 
 static void err_input_buffer_full(gpointer obj)
@@ -3558,7 +3424,6 @@ static void err_input_buffer_full(gpointer obj)
 static void err_header_read_error(gpointer obj, gint error)
 {
 	node_remove(NODE(obj), "Failed (Input error: %s)", g_strerror(error));
-	maybe_downgrade_handshaking(NODE(obj));
 }
 
 static void err_header_read_eof(gpointer obj)
@@ -3570,8 +3435,6 @@ static void err_header_read_eof(gpointer obj)
 
 	node_remove(n, (n->flags & NODE_F_CRAWLER) ?
 		"Sent crawling info" : "Failed (EOF)");
-	
-	maybe_downgrade_handshaking(n);
 }
 
 static void err_header_extra_data(gpointer obj)
@@ -3611,7 +3474,7 @@ static void call_node_04_connected(gpointer obj, header_t *header)
 	 */
 
 	g_assert(n->proto_major == 0 && n->proto_minor == 4);
-	g_assert(n->flags & (NODE_F_INCOMING|NODE_F_TMP));
+	g_assert(n->flags & NODE_F_INCOMING);
 
 	node_is_now_connected(n);
 }
@@ -3632,7 +3495,6 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
     gchar *connection_type;
 	gboolean incoming = FALSE, already_connected = FALSE;
 	gint major = 0, minor = 0;
-	gboolean ponging_only = FALSE;
 
 	g_assert(s == NULL || s->resource.node == NULL);
 
@@ -3676,17 +3538,8 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	}
 
 	if (s && major == 0 && minor < 6) {
-		if (no_gnutella_04) {
-			socket_free(s);
-			return;
-		}
-		if (
-			!allow_gnet_connections ||
-			prefer_compressed_gnet ||
-			current_peermode == NODE_P_LEAF ||
-			connected_nodes() >= up_connections
-		)
-            ponging_only = TRUE;	/* Will only send connection pongs */
+		socket_free(s);
+		return;
 	}
 
 	/*
@@ -3720,12 +3573,11 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
         if (!already_connected) {
 			if (whitelist_check(ip)) {
 				/* Incoming whitelisted IP, and we're full. Remove one node. */
-				ponging_only = !node_remove_worst(FALSE);
+				(void) node_remove_worst(FALSE);
 			} else if (use_netmasks && host_is_nearby(ip)) {
 				 /* We are preferring local hosts, remove a non-local node */
-				ponging_only = !node_remove_worst(TRUE);
-			} else
-				ponging_only = TRUE;	/* Will only send connection pongs */
+				(void) node_remove_worst(TRUE);
+			}
 		}
 	}
 
@@ -3757,24 +3609,12 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		socket_tos_default(s);	/* Set proper Type of Service */
 
 		/*
-		 * We need to create a temporary connection, flagging it a "ponging"
-		 * because we have to read the initial GUID of the handshaking ping
-		 * to reply, lest the remote host might drop the pongs.
-		 *
 		 * For incoming connections, we don't know the listening IP:port
 		 * Gnet information.  We mark the node with the NODE_F_INCOMING
 		 * flag so that we send it an "alive" ping to get that information
 		 * as soon as we have handshaked.
 		 *
 		 *		--RAM, 02/02/2001
-		 *
-		 * For 0.6 connections, flagging as Ponging means we're going to
-		 * parse the initial headers, in case there is a Node: header, but
-		 * we'll deny the connection.  This allows us to grab the node's
-		 * address in our pong cache, given that this nodes actively seeks
-		 * a connection, so it may very well accept incoming.
-		 *
-		 *		--RAM, 18/03/2002
 		 *
 		 * As of today, we'll no longer be flagging incoming 0.6 connections
 		 * as Ponging.  Checking for maximum connections will be done
@@ -3783,16 +3623,8 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		 *		--RAM, 17/01/2003
 		 */
 
-		if (major > 0 || minor > 4)
-			ponging_only = FALSE;
-
-		if (ponging_only) {
-			n->flags |= NODE_F_TMP;
-			connection_type = "Ponging";
-		} else {
-			n->flags |= NODE_F_INCOMING;
-			connection_type = "Incoming";
-		}
+		n->flags |= NODE_F_INCOMING;
+		connection_type = "Incoming";
 	} else {
 		/* We have to create an outgoing control connection for the node */
 
@@ -3834,8 +3666,6 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	sl_nodes = g_slist_prepend(sl_nodes, n);
 	if (n->status != GTA_NODE_REMOVING)
 		nodes_in_list++;
-	if (n->flags & NODE_F_TMP)
-		ponging_nodes++;
 
 	if (already_connected) {
 		if (incoming && (n->proto_major > 0 || n->proto_minor > 4))
@@ -3919,26 +3749,21 @@ static void node_parse(struct gnutella_node *node)
 	 * with hops=0 to determine that ability: the GUID[8] byte will be 0xff
 	 * and GUID[15] will be >= 1.
 	 *
-	 * The only time where the handshaking ping is necessary is for "ponging"
-	 * incoming connections.  Those were opened solely to send back connection
-	 * pongs, but we need the initial ping to know the GUID to use as message
-	 * ID when replying...
-	 *
 	 *		--RAM, 02/01/2002
+	 *
+	 * The only time where the handshaking ping wass necessary wass for
+	 * "ponging" incoming connections, which we no longer support.
+	 * Those were opened solely to send back connection pongs, but we need
+	 * the initial ping to know the GUID to use as message ID when replying...
+	 *
+	 * XXX delete the code snippet below? --RAM, 03/08/2003
 	 */
 
 	if (n->flags & NODE_F_HDSK_PING) {
 		if (n->header.function == GTA_MSG_INIT && n->header.hops == 0) {
-			if (n->flags & NODE_F_TMP) {
-				send_connection_pongs(n, n->header.muid); /* Will disconnect */
-				return;
-			}
 			if (n->header.muid[8] == '\xff' && (guchar) n->header.muid[15] >= 1)
 				n->attrs |= NODE_A_PONG_CACHING;
 			n->flags &= ~NODE_F_HDSK_PING;		/* Clear indication */
-		} else if (n->flags & NODE_F_TMP) {
-			node_remove(n, "Ponging connection did not send handshaking ping");
-			return;
 		}
 	}
 
@@ -4302,10 +4127,6 @@ void node_init_outgoing(struct gnutella_node *n)
 		/*
 		 * Prepare parsing of the expected 0.6 reply.
 		 */
-
-		if (!no_gnutella_04 && current_peermode != NODE_P_LEAF)
-			n->flags |= NODE_F_RETRY_04;	/* On failure, retry at 0.4 */
-
 
 		io_get_header(n, &n->io_opaque, bws.gin, s, IO_SAVE_FIRST|IO_HEAD_ONLY,
 			call_node_process_handshake_header, NULL, &node_io_error);
@@ -5238,7 +5059,6 @@ void node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
 	}
 
 	flags->incoming = node->flags & NODE_F_INCOMING;
-	flags->temporary = node->flags & NODE_F_TMP;
 	flags->writable = NODE_IS_WRITABLE(node);
 	flags->readable = NODE_IS_READABLE(node);
     flags->tx_compressed = NODE_TX_COMPRESSED(node);
