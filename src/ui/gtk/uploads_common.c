@@ -124,8 +124,8 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			time_t now = time(NULL);
 			gboolean stalled = delta_time(now, u->last_update) > IO_STALLED;
 
-			slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen, " %s",
-							stalled ? _("(stalled)") : short_rate(u->bps));
+			slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen, " (%s)",
+							stalled ? _("stalled") : short_rate(u->bps));
 
 			gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
 				" TR: %s", short_time(tr));
