@@ -1319,7 +1319,7 @@ static struct shared_file *get_file_to_upload_from_index(
 		 *		--RAM, 19/06/2002
 		 */
 
-		huge_collect_locations(digest, header);
+		huge_collect_locations(digest, header, u->user_agent);
 
 		/*
 		 * They can share serveral clones of the same files, i.e. bearing
@@ -1508,7 +1508,7 @@ static struct shared_file *get_file_to_upload_from_urn(
 	if (!huge_http_sha1_extract32(hash, digest))
 		goto malformed;
 
-	huge_collect_locations(digest, header);
+	huge_collect_locations(digest, header, u->user_agent);
 
 	sf = shared_file_by_sha1(digest);
 
@@ -1648,7 +1648,7 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
 			mi_get_stamp(u->socket->ip, a->sf->sha1_digest, now);
 
 		rw += dmesh_alternate_location(a->sf->sha1_digest,
-			&buf[rw], length - rw, u->socket->ip, last_sent);
+			&buf[rw], length - rw, u->socket->ip, last_sent, u->user_agent);
 
 		u->last_dmesh = now;
 	}
@@ -2508,7 +2508,7 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 	u->bpos += written;
 #endif
 
-	gnet_prop_set_guint32_val(PROP_UL_BYTE_COUNT, ul_byte_count + written);
+	gnet_prop_set_guint64_val(PROP_UL_BYTE_COUNT, ul_byte_count + written);
 
 	u->last_update = time((time_t *) NULL);
 
