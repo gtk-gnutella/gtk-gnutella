@@ -206,11 +206,12 @@ guint32 host_to_ip(const gchar * host)
  */
 gchar *host_name(void)
 {
-	static gchar name[256];
+	static gchar name[256 + 1];
 
 	if (-1 == gethostname(name, sizeof(name)))
 		g_warning("gethostname() failed: %s", g_strerror(errno));
 
+	name[sizeof(name) - 1] = '\0';
 	return name;
 }
 
