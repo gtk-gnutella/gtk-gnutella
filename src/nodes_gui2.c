@@ -279,6 +279,8 @@ void nodes_gui_init(void)
 		main_window, "treeview_nodes"));
 	tree = treeview_nodes;
 
+    g_object_set(tree, "fixed_height_mode", TRUE, NULL);
+
 	width = gui_prop_get_guint32(PROP_NODES_COL_WIDTHS, NULL, 0, 0);
     nodes_gui_set_column_width(tree, c_gnet_host, width[c_gnet_host]);
     nodes_gui_set_column_width(tree, c_gnet_flags, width[c_gnet_flags]);
