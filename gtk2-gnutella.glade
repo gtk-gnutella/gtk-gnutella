@@ -8267,27 +8267,6 @@ Christian Biere &lt;christianbiere@gmx.de&gt;</property>
 				      </child>
 
 				      <child>
-					<widget class="GtkEntry" id="entry_count_downloads">
-					  <property name="visible">True</property>
-					  <property name="can_focus">True</property>
-					  <property name="editable">True</property>
-					  <property name="visibility">True</property>
-					  <property name="max_length">0</property>
-					  <property name="text" translatable="yes"></property>
-					  <property name="has_frame">True</property>
-					  <property name="invisible_char" translatable="yes">*</property>
-					  <property name="activates_default">False</property>
-					</widget>
-					<packing>
-					  <property name="left_attach">1</property>
-					  <property name="right_attach">2</property>
-					  <property name="top_attach">0</property>
-					  <property name="bottom_attach">1</property>
-					  <property name="y_options"></property>
-					</packing>
-				      </child>
-
-				      <child>
 					<widget class="GtkEntry" id="entry_count_uploads">
 					  <property name="visible">True</property>
 					  <property name="can_focus">True</property>
@@ -8298,12 +8277,36 @@ Christian Biere &lt;christianbiere@gmx.de&gt;</property>
 					  <property name="has_frame">True</property>
 					  <property name="invisible_char" translatable="yes">*</property>
 					  <property name="activates_default">False</property>
+					  <property name="width_chars">7</property>
 					</widget>
 					<packing>
 					  <property name="left_attach">1</property>
 					  <property name="right_attach">2</property>
 					  <property name="top_attach">1</property>
 					  <property name="bottom_attach">2</property>
+					  <property name="y_options"></property>
+					</packing>
+				      </child>
+
+				      <child>
+					<widget class="GtkEntry" id="entry_count_downloads">
+					  <property name="visible">True</property>
+					  <property name="can_focus">True</property>
+					  <property name="editable">True</property>
+					  <property name="visibility">True</property>
+					  <property name="max_length">0</property>
+					  <property name="text" translatable="yes"></property>
+					  <property name="has_frame">True</property>
+					  <property name="invisible_char" translatable="yes">*</property>
+					  <property name="activates_default">False</property>
+					  <property name="width_chars">7</property>
+					</widget>
+					<packing>
+					  <property name="left_attach">1</property>
+					  <property name="right_attach">2</property>
+					  <property name="top_attach">0</property>
+					  <property name="bottom_attach">1</property>
+					  <property name="x_options">expand|shrink|fill</property>
 					  <property name="y_options"></property>
 					</packing>
 				      </child>
@@ -8331,7 +8334,7 @@ Christian Biere &lt;christianbiere@gmx.de&gt;</property>
 				</widget>
 				<packing>
 				  <property name="padding">0</property>
-				  <property name="expand">True</property>
+				  <property name="expand">False</property>
 				  <property name="fill">True</property>
 				</packing>
 			      </child>
@@ -8492,12 +8495,14 @@ Christian Biere &lt;christianbiere@gmx.de&gt;</property>
 					  <property name="right_attach">2</property>
 					  <property name="top_attach">1</property>
 					  <property name="bottom_attach">2</property>
+					  <property name="x_options">expand|shrink|fill</property>
 					  <property name="y_options"></property>
 					</packing>
 				      </child>
 
 				      <child>
 					<widget class="GtkProgressBar" id="progressbar_hosts_in_catcher">
+					  <property name="width_request">1</property>
 					  <property name="visible">True</property>
 					  <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 					  <property name="fraction">0</property>
@@ -8543,7 +8548,7 @@ Christian Biere &lt;christianbiere@gmx.de&gt;</property>
 			    <packing>
 			      <property name="padding">0</property>
 			      <property name="expand">False</property>
-			      <property name="fill">True</property>
+			      <property name="fill">False</property>
 			    </packing>
 			  </child>
 
@@ -8678,7 +8683,7 @@ Christian Biere &lt;christianbiere@gmx.de&gt;</property>
 			    <packing>
 			      <property name="padding">0</property>
 			      <property name="expand">False</property>
-			      <property name="fill">True</property>
+			      <property name="fill">False</property>
 			    </packing>
 			  </child>
 			</widget>

@@ -4272,8 +4272,8 @@ create_main_window (void)
   GtkWidget *table30;
   GtkWidget *label356;
   GtkWidget *label357;
-  GtkWidget *entry_count_downloads;
   GtkWidget *entry_count_uploads;
+  GtkWidget *entry_count_downloads;
   GtkWidget *label355;
   GtkWidget *frame10;
   GtkWidget *table11;
@@ -5447,12 +5447,12 @@ create_main_window (void)
   hbox149 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox149, "hbox149");
   gtk_widget_show (hbox149);
-  gtk_box_pack_start (GTK_BOX (vbox33), hbox149, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox33), hbox149, FALSE, FALSE, 0);
 
   frame48 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame48, "frame48");
   gtk_widget_show (frame48);
-  gtk_box_pack_start (GTK_BOX (hbox149), frame48, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox149), frame48, FALSE, TRUE, 0);
 
   table30 = gtk_table_new (2, 2, FALSE);
   gtk_widget_set_name (table30, "table30");
@@ -5480,19 +5480,21 @@ create_main_window (void)
   gtk_label_set_justify (GTK_LABEL (label357), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (label357), 0, 0.5);
 
-  entry_count_downloads = gtk_entry_new ();
-  gtk_widget_set_name (entry_count_downloads, "entry_count_downloads");
-  gtk_widget_show (entry_count_downloads);
-  gtk_table_attach (GTK_TABLE (table30), entry_count_downloads, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
   entry_count_uploads = gtk_entry_new ();
   gtk_widget_set_name (entry_count_uploads, "entry_count_uploads");
   gtk_widget_show (entry_count_uploads);
   gtk_table_attach (GTK_TABLE (table30), entry_count_uploads, 1, 2, 1, 2,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_entry_set_width_chars (GTK_ENTRY (entry_count_uploads), 7);
+
+  entry_count_downloads = gtk_entry_new ();
+  gtk_widget_set_name (entry_count_downloads, "entry_count_downloads");
+  gtk_widget_show (entry_count_downloads);
+  gtk_table_attach (GTK_TABLE (table30), entry_count_downloads, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_entry_set_width_chars (GTK_ENTRY (entry_count_downloads), 7);
 
   label355 = gtk_label_new ("Uploads/downloads");
   gtk_widget_set_name (label355, "label355");
@@ -5563,7 +5565,7 @@ create_main_window (void)
   gtk_widget_set_name (spinbutton_nodes_max_hosts_cached, "spinbutton_nodes_max_hosts_cached");
   gtk_widget_show (spinbutton_nodes_max_hosts_cached);
   gtk_table_attach (GTK_TABLE (table11), spinbutton_nodes_max_hosts_cached, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_nodes_max_hosts_cached), TRUE);
 
@@ -5573,6 +5575,7 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table11), progressbar_hosts_in_catcher, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_size_request (progressbar_hosts_in_catcher, 1, -1);
 
   label281 = gtk_label_new ("Host catcher");
   gtk_widget_set_name (label281, "label281");
@@ -5583,7 +5586,7 @@ create_main_window (void)
   frame14 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame14, "frame14");
   gtk_widget_show (frame14);
-  gtk_box_pack_start (GTK_BOX (vbox33), frame14, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox33), frame14, FALSE, FALSE, 0);
 
   vbox34 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox34, "vbox34");
@@ -9455,8 +9458,8 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, table30, "table30");
   GLADE_HOOKUP_OBJECT (main_window, label356, "label356");
   GLADE_HOOKUP_OBJECT (main_window, label357, "label357");
-  GLADE_HOOKUP_OBJECT (main_window, entry_count_downloads, "entry_count_downloads");
   GLADE_HOOKUP_OBJECT (main_window, entry_count_uploads, "entry_count_uploads");
+  GLADE_HOOKUP_OBJECT (main_window, entry_count_downloads, "entry_count_downloads");
   GLADE_HOOKUP_OBJECT (main_window, label355, "label355");
   GLADE_HOOKUP_OBJECT (main_window, frame10, "frame10");
   GLADE_HOOKUP_OBJECT (main_window, table11, "table11");
