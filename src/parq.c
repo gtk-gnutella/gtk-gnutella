@@ -287,7 +287,7 @@ static gchar *get_header_value(
  *
  * Initialises the upload queue for PARQ.
  */
-void parq_init()
+void parq_init(void)
 {
 	ul_all_parq_by_IP_and_Name = g_hash_table_new(g_str_hash, g_str_equal);
 	ul_all_parq_by_ID = g_hash_table_new(g_str_hash, g_str_equal);
@@ -1872,7 +1872,7 @@ static void parq_store(gpointer data, gpointer x)
  *
  * Loads the saved queue status back into memory
  */
-static void parq_upload_load_queue()
+static void parq_upload_load_queue(void)
 {
 	gchar *file;
 	FILE *f;
@@ -1892,15 +1892,17 @@ static void parq_upload_load_queue()
 	char name[1024];
 	
 	file = g_strdup_printf("%s/%s", settings_config_dir(), file_parq_file);
+	g_return_if_fail(NULL != file);
+
 	f = fopen(file, "r");
-	
 	if (!f) {
 		g_warning("parq_upload_load_queue(): "
 			"unable to open file \"%s\" for reading: %s",
 			file, g_strerror(errno));
-		g_free(file);
+		G_FREE_NULL(file);
 		return;
 	}
+	G_FREE_NULL(file);
 	
 	u = walloc(sizeof(gnutella_upload_t));
 	
