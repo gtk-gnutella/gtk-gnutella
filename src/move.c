@@ -297,8 +297,7 @@ static void d_end(gpointer h, gpointer ctx, gpointer item)
 	}
 
 	elapsed = delta_time(time(NULL), md->start);
-	if (elapsed < 0)	/* time warp? clock not monotic? */
-		elapsed = 1;
+	elapsed = MAX(1, elapsed);		/* time warp? clock not monotic? */
 
 	if (dbg > 1)
 		printf("Moved file \"%s\" at %lu bytes/sec [error=%d]\n",
