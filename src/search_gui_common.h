@@ -1,0 +1,122 @@
+/*
+ * $Id$
+ *
+ * Copyright (c) 2003, Raphael Manfredi
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+#ifndef _search_gui_common_h_
+#define _search_gui_common_h_
+
+#include <time.h>
+#include <glib.h>
+
+#include "gnet.h"
+
+/*
+ * A results_set structure factorizes the common information from a Query Hit
+ * packet, and then has a list of individual records, one for each hit.
+ *
+ * A single structure is created for each Query Hit packet we receive, but
+ * then it can be dispatched for displaying some of its records to the
+ * various searches in presence.  Each time the structure is dispatched,
+ * the `refcount' is incremented, so that we don't free it and its content
+ * until it has been "forgotten" that many times.
+ */
+typedef struct results_set {
+	gint refcount;				/* Numner of "struct search" this belongs to */
+
+	gchar *guid;				/* Servent's GUID (atom) */
+	guint32 ip;
+	guint16 port;
+	guint16 status;				/* Parsed status bits from trailer */
+	guint16 speed;
+	time_t  stamp;				/* Reception time of the hit */
+	guchar  vendor[4];			/* Vendor code */
+	gchar *version;				/* Version information (atom) */
+
+	guint32 num_recs;
+	GSList *records;
+} results_set_t;
+
+/*
+ * A host.
+ */
+struct host {
+	guint32 ip;
+	guint16 port;
+};
+
+/*
+ * Alternate locations held in query hits.
+ */
+typedef struct alt_locs {
+	struct host *hvec;			/* Vector of alternate locations */
+	gint hvcnt;					/* Amount of hosts in vector */
+} alt_locs_t;
+
+/*
+ * An individual hit.  It referes to a file entry on the remote servent,
+ * as identified by the parent results_set structure that contains this hit.
+ *
+ * When a record is kept in a search window for display, it is put into
+ * a hash table and its `refcount' is incremented: since the parent structure
+ * can be dispatched to various searches, each record can be inserted in so
+ * many different hash tables (one per search).
+ */
+typedef struct record {
+	struct results_set *results_set;	/* Parent, containing record */
+	gint refcount;				/* Number of hash tables it has been put to */
+
+	gchar  *name;				/* File name */
+	guint32 size;				/* Size of file, in bytes */
+	guint32 index;				/* Index for GET command */
+	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
+	gchar  *tag;				/* Optional tag data string (atom) */
+	alt_locs_t *alt_locs;		/* Optional alternate locations for record */
+    flag_t  flags;              /* same flags as in gnet_record_t */
+} record_t;
+
+/*
+ * Global Functions
+ */
+
+struct search;
+
+void search_gui_common_init(void);
+void search_gui_common_shutdown(void);
+
+void search_gui_free_alt_locs(record_t *rc);
+void search_gui_free_record(record_t *rc);
+void search_gui_clean_r_set(results_set_t *rs);
+void search_gui_free_r_set(results_set_t *rs);
+void search_gui_dispose_results(results_set_t *rs);
+void search_gui_unref_record(struct record *rc);
+void search_gui_free_r_sets(struct search *sch);
+guint search_gui_hash_func(gconstpointer key);
+gint search_gui_hash_key_compare(gconstpointer a, gconstpointer b);
+void search_gui_remove_r_set(struct search *sch, results_set_t *rs);
+gboolean search_gui_result_is_dup(struct search* sch, struct record * rc);
+struct search *search_gui_find(gnet_search_t sh);
+record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r) ;
+results_set_t *search_gui_create_results_set(const gnet_results_set_t *r_set);
+
+#endif /* _search_gui_common_h_ */

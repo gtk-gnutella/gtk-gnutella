@@ -31,52 +31,7 @@
 #include <time.h>
 #include "filter.h"
 
-/*
- * A results_set structure factorizes the common information from a Query Hit
- * packet, and then has a list of individual records, one for each hit.
- *
- * A single structure is created for each Query Hit packet we receive, but
- * then it can be dispatched for displaying some of its records to the
- * various searches in presence.  Each time the structure is dispatched,
- * the `refcount' is incremented, so that we don't free it and its content
- * until it has been "forgotten" that many times.
- */
-typedef struct results_set {
-	gint refcount;				/* Numner of "struct search" this belongs to */
-
-	gchar *guid;				/* Servent's GUID (atom) */
-	guint32 ip;
-	guint16 port;
-	guint16 status;				/* Parsed status bits from trailer */
-	guint16 speed;
-	time_t  stamp;				/* Reception time of the hit */
-	guchar  vendor[4];			/* Vendor code */
-	gchar *version;				/* Version information (atom) */
-
-	guint32 num_recs;
-	GSList *records;
-} results_set_t;
-
-/*
- * An individual hit.  It referes to a file entry on the remote servent,
- * as identified by the parent results_set structure that contains this hit.
- *
- * When a record is kept in a search window for display, it is put into
- * a hash table and its `refcount' is incremented: since the parent structure
- * can be dispatched to various searches, each record can be inserted in so
- * many different hash tables (one per search).
- */
-typedef struct record {
-	struct results_set *results_set;	/* Parent, containing record */
-	gint refcount;				/* Number of hash tables it has been put to */
-
-	gchar  *name;				/* File name */
-	guint32 size;				/* Size of file, in bytes */
-	guint32 index;				/* Index for GET command */
-	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
-	gchar  *tag;				/* Optional tag data string (atom) */
-    flag_t  flags;              /* same flags as in gnet_record_t */
-} record_t;
+#include "search_gui_common.h"
 
 /* 
  * Structure for search results 

@@ -167,6 +167,7 @@ gtk_gnutella_SOURCES = \
 	extensions.c extensions.h \
 	cobs.c cobs.h \
 	ggep.c ggep.h \
+	ggep_type.c ggep_type.h \
 	dmesh.c dmesh.h \
 	http.c http.h \
 	version.c version.h \
@@ -192,6 +193,7 @@ gtk_gnutella_SOURCES = \
 	hostiles.c hostiles.h \
 	clock.c clock.h \
 	eval.c eval.h \
+	search_gui_common.c search_gui_common.h \
 	nodes_gui_common.c nodes_gui_common.h \
 	uploads_gui_common.c uploads_gui_common.h
 
