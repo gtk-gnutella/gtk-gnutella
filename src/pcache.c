@@ -826,7 +826,8 @@ static void send_cached_pongs(struct gnutella_node *n,
  * they need one at this hop count.
  */
 static void pong_all_neighbours_but_one(
-	struct gnutella_node *n, struct cached_pong *cp, guint8 hops, guint8 ttl)
+	struct gnutella_node *n, struct cached_pong *cp, hcache_type_t ptype,
+	guint8 hops, guint8 ttl)
 {
 	GSList *l;
 
@@ -849,6 +850,13 @@ static void pong_all_neighbours_but_one(
 			continue;
 
 		if (!cn->pong_needed[hops])
+			continue;
+
+		/*
+		 * If node is a leaf node, we can only send it Ultra pongs.
+		 */
+
+		if (NODE_IS_LEAF(cn) && ptype != HCACHE_ULTRA)
 			continue;
 
 		cn->pong_missing--;
@@ -1261,7 +1269,7 @@ void pcache_pong_received(struct gnutella_node *n)
 
 	if (current_peermode != NODE_P_LEAF)
 		pong_all_neighbours_but_one(n,
-			cp, CACHE_HOP_IDX(n->header.hops), MAX(1, n->header.ttl));
+			cp, ptype, CACHE_HOP_IDX(n->header.hops), MAX(1, n->header.ttl));
 
 	/*
 	 * If we're in ultra mode, send 33% of all the ultra pongs we get
