@@ -735,6 +735,25 @@ static gboolean max_bad_hosts_cached_changed(property_t prop)
     return FALSE;
 }
 
+static gboolean enable_udp_changed(property_t prop)
+{
+	gboolean enabled;
+
+    gnet_prop_get_boolean_val(prop, &enabled);
+
+	if (enabled) {
+		if (s_udp_listen == NULL)
+			s_udp_listen = socket_udp_listen(0, listen_port);
+	} else {
+		if (s_udp_listen) {
+			socket_free(s_udp_listen);
+			s_udp_listen = NULL;
+		}
+	}
+
+	return FALSE;
+}
+
 static gboolean listen_port_changed(property_t prop)
 {
 	static guint32 old_listen_port = (guint32) -1;
@@ -784,12 +803,17 @@ static gboolean listen_port_changed(property_t prop)
 		old_listen_port = listen_port;
 	
 		/*
-		 * Close old port.
+		 * Close old ports.
 		 */
 	
 		if (s_tcp_listen) {
 			socket_free(s_tcp_listen);
 			s_tcp_listen = NULL;
+		}
+
+		if (s_udp_listen) {
+			socket_free(s_udp_listen);
+			s_udp_listen = NULL;
 		}
 	
 		/*
@@ -1482,7 +1506,12 @@ static prop_map_t property_map[] = {
 		PROP_PROXY_IP,
 		proxy_ip_changed,
 		TRUE,
-	}
+	},
+	{
+		PROP_ENABLE_UDP,
+		enable_udp_changed,
+		FALSE,				/* UDP socket inited via listen_port_changed() */
+	},
 };
 
 /***
