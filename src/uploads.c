@@ -1029,32 +1029,20 @@ static struct shared_file *get_file_to_upload_from_index(
 	if ((buf = header_get(header, "X-Gnutella-Content-Urn"))) {
 		sha1 = strcasestr(buf, "urn:sha1:");	/* Case-insensitive */
 
-		/*
-		 * NB: base32_decode_into() will stop when NUL is reached
-		 * and return FALSE.
-		 */
-
 		if (sha1) {
 			sha1 += 9;		/* Skip "urn:sha1:" */
-			if (
-				!base32_decode_into(sha1, SHA1_BASE32_SIZE,
-					digest, sizeof(digest))
-			) {
-				g_warning("ignoring invalid SHA1 base32 encoding: %s", sha1);
+			if (!huge_http_sha1_extract32(sha1, digest))
 				sha1 = NULL;
-			}
 		}
 	}
 
 	/*
-	 * If `sf' is NULL, the index was incorrect.
-	 *
 	 * If they sent a SHA1, look whether we got a matching file.
 	 * If we do, let them know the URL changed by returning a 301, otherwise
 	 * it's a 404.
 	 */
 
-	if (sf == NULL && sha1) {
+	if (sha1) {
 		sf = shared_file_by_sha1(digest);
 		if (sf) {
 			gchar location[1024];
@@ -1077,6 +1065,8 @@ static struct shared_file *get_file_to_upload_from_index(
 	}
 
 	/*
+	 * If `sf' is NULL, the index was incorrect.
+	 *
 	 * Maybe we have a unique file with the same basename.  If we do,
 	 * transparently return it instead of what they requested.
 	 *
