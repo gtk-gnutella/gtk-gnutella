@@ -1,5 +1,10 @@
 # since last version
 
+- (2003.06.19 - RAM)
+ * Optimized server banning test.
+ * Don't send pong-cache pings on a flow-controlled connection.
+ * Finished application of Angelo's symlink patch (fixes bug #756146).
+
 - (2003.06.17 - Richard
  * [Gtk2] No longer disable antialiasing. This confuses people who are 
    using Gtk2 and get font problems. If they want better performance, they
