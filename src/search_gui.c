@@ -418,9 +418,22 @@ gint search_gui_compare_records(
                 (rs1->speed > rs2->speed) ? +1 : -1;
             break;
         case c_sr_host:
-            result = (rs1->ip == rs2->ip) ?  
-                (gint) rs1->port - (gint) rs2->port :
-                (rs1->ip > rs2->ip) ? +1 : -1;
+			/*
+			 * If both have a hostname, sort by name.  Otherwise
+			 * any hostname is greater than any IP.
+			 */
+			if (rs1->hostname != NULL) {
+				result = rs2->hostname == NULL ? -1 :
+					strcmp(rs1->hostname, rs2->hostname);
+				if (result == 0)
+					result = rs1->port < rs2->port ? -1 : +1;
+			} else if (rs2->hostname != NULL) {
+				result = +1;		/* greater than any IP address */
+			} else {
+				result = (rs1->ip == rs2->ip) ?  
+					(gint) rs1->port - (gint) rs2->port :
+					(rs1->ip > rs2->ip) ? +1 : -1;
+			}
             break;
         case c_sr_info:
 			result = memcmp(rs1->vendor, rs2->vendor, sizeof(rs1->vendor));
@@ -520,7 +533,9 @@ static void search_gui_add_record(
 	titles[c_sr_size] = short_size(rc->size);
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%u", rs->speed);
 	titles[c_sr_speed] = tmpstr;
-	titles[c_sr_host] = ip_port_to_gchar(rs->ip, rs->port);
+	titles[c_sr_host] = rs->hostname == NULL ?
+		ip_port_to_gchar(rs->ip, rs->port) :
+		hostname_port_to_gchar(rs->hostname, rs->port);
     titles[c_sr_urn] = rc->sha1 != NULL ? sha1_base32(rc->sha1) : "";
 
 	if (rc->tag) {
