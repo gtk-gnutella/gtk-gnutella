@@ -4,6 +4,10 @@
  * Fixed several bugs in filter_cb.c when copying/pasting a rule.
  * Fixed bug: hostcatcher does not update properly in gui if no hosts 
    file was found.
+ * Added "prefer compressed connections" option to gnet config pane.
+   (expert mode)
+ * Replaced GtkSpinButtons with GtkEntry in the size-rule part of the
+   filter dialog. Should give the full range of sized up to 2GB.
 
 - (2002.10.15 RAM)
  * Added GGEP parsing and generation code.
