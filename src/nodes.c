@@ -63,6 +63,7 @@
 #include "version.h"
 #include "alive.h"
 #include "uploads.h" /* for handle_push_request() */
+#include "whitelist.h"
 
 #include "gnet_property_priv.h"
 #include "listener.h"
@@ -2211,11 +2212,15 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		node_remove_non_nearby();
 
 	/* Too many gnutellaNet connections */
-	if (node_count() >= max_connections) {
-		if (!s)
-			return;
-		if (!already_connected)
-			ponging_only = TRUE;	/* Will only send connection pongs */
+    if (node_count() >= max_connections) {
+        if (!s)
+            return;
+        if (whitelist_check(ip)) {
+            /* Incoming whitelisted IP, and we're full.
+             * Remove another node. */
+            node_remove_worst();
+        } else if (!already_connected)
+            ponging_only = TRUE;	/* Will only send connection pongs */
 	}
 
 	/*
@@ -3082,6 +3087,54 @@ gboolean node_remove_non_nearby(void)
 	/* All nodes are local.. Keep them. */
 	return FALSE;
 
+}
+
+/*
+ * node_remove_worst
+ *
+ * Removes the node with the worst stats, considering the
+ * number of weird, bad and duplicate packets.
+ */
+gboolean node_remove_worst(void)
+{
+    GSList *l;
+    GSList *m = NULL;
+    struct gnutella_node *n;
+    int worst = 0, score, num = 0;
+
+    /* Make list of "worst" based on number of "weird" packets. */
+    for (l = sl_nodes; l; l = l->next) {
+        n = l->data;
+        if (n->status != GTA_NODE_CONNECTED)
+            continue;
+        /* Don't kick whitelisted nodes. */
+        if (whitelist_check(n->ip))
+            continue;
+
+        score = n->n_weird * 100 + n->n_bad * 10 + n->n_dups;
+
+        if (score > worst) {
+            worst = score;
+            num = 0;
+            if (m) {
+                g_slist_free(m);
+                m = NULL;
+            }
+        }
+        if (score == worst) {
+            m = g_slist_append(m, n);
+            num++;
+        }
+    }
+    if (m) {
+        /* fixme: pick a random node instead of the first one. */
+        n = g_slist_nth_data(m, random_value(num - 1));
+        g_slist_free(m);
+        node_bye_if_writable(n, 202, "Too many errors");
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 /*
