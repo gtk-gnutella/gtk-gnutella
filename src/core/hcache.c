@@ -438,10 +438,11 @@ hcache_require_caught(hostcache_t *hc)
 static void
 hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
 {
-	hash_list_remove(hc->hostlist, host);
+	g_assert(hc->host_count > 0 && hc->hostlist != NULL);
+	g_assert(hash_list_contains(hc->hostlist, host));
 
-	g_assert(hc->host_count > 0);
-	hc->host_count--;
+	hash_list_remove(hc->hostlist, host);
+    hc->host_count--;
 
     if (hc->mass_update == 0) {
         guint32 cur;
@@ -449,10 +450,10 @@ hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
         gnet_prop_set_guint32_val(hc->hosts_in_catcher, cur - 1);
     }
 
+	hc->dirty = TRUE;
 	hcache_ht_remove(host);
 	wfree(host, sizeof(*host));
 
-	hc->dirty = TRUE;
     hcache_require_caught(hc);
 }
 
@@ -728,29 +729,15 @@ hcache_remove(gnet_host_t *h)
     hostcache_t *hc;
     
     hce = hcache_get_metadata(h);
-    if (hce == NULL)
+    if (hce == NULL) {
+		g_warning("hcache_remove: attempt to remove unknown host: %s",
+				  ip_port_to_gchar(h->ip, h->port));           
         return; /* Host is not in hashtable */
+    }
 
     hc = caches[hce->type];
 
-    g_assert(hc->host_count > 0 && hc->hostlist != NULL);
-	g_assert(hash_list_contains(hc->hostlist, h));
-
-	hash_list_remove(hc->hostlist, h);
-
-	g_assert(hc->host_count > 0);
-	hc->host_count--;
-
-    if (hc->mass_update == 0) {
-        guint32 cur;
-        gnet_prop_get_guint32_val(hc->hosts_in_catcher, &cur);
-        gnet_prop_set_guint32_val(hc->hosts_in_catcher, cur - 1);
-    }
-
-	hc->dirty = TRUE;
-	hcache_ht_remove(h);
-    hcache_require_caught(hc);
-	wfree(h, sizeof(*h));
+    hcache_unlink_host(hc, h);
 }
 
 /**
@@ -883,14 +870,12 @@ hcache_expire_cache(hostcache_t *hc)
 	 */
 
     while (NULL != (h = hash_list_last(hc->hostlist))) {
-        hostcache_entry_t *hce;
+        hostcache_entry_t *hce = hcache_get_metadata(h);
 
-        hce = hcache_get_metadata(h);
-
-        g_assert((hce != NULL) && (hce != NO_METADATA)); 
+        g_assert(hce != NULL);
 
         if (delta_time(now, hce->time_added) > secs_to_keep) {
-            hcache_unlink_host(hc, h);
+            hcache_remove(h);
             expire_count++;
         } else {
             /* Found one which has not expired. Stopping */
