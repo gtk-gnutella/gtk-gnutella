@@ -1520,6 +1520,8 @@ gboolean search_results(gnutella_node_t *n, gint *results)
 		goto final_cleanup;
 	}
 
+	g_assert(rs->num_recs > 0);
+
 	*results = rs->num_recs;
 
 	/*
