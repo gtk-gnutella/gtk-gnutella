@@ -1209,7 +1209,13 @@ void search_matched(struct search *sch, struct results_set *rs)
 			for (l = rs->records; l; l = l->next) {
 				struct record *rc = (struct record *) l->data;
 
-				if (rc->size == 0)
+				/*
+				 * We apply search filters on the entry, on the basis that
+				 * if it is not to be shown, then it is not desirable.
+				 * 		--RAM, 09/03/2002, after an anonymous patch
+				 */
+
+				if (rc->size == 0 || !filter_record(sch, rc))
 					continue;
 
 				/* Attempt to autodownload each result if desirable. */
