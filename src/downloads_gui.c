@@ -43,6 +43,7 @@ void gui_update_download_clear(void)
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ERROR:
 		case GTA_DL_ABORTED:
+		case GTA_DL_VERIFIED:
 			clear = TRUE;
 			break;
 		default:
@@ -62,6 +63,9 @@ void gui_update_download(struct download *d, gboolean force)
 	time_t now = time((time_t *) NULL);
     GdkColor *color;
     GtkCList *clist_downloads;
+	struct dl_file_info *fi;
+	gint rw;
+	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
     if (d->last_gui_update == now && !force)
 		return;
@@ -73,6 +77,7 @@ void gui_update_download(struct download *d, gboolean force)
         ->fg[GTK_STATE_INSENSITIVE]);
 
 	d->last_gui_update = now;
+	fi = d->file_info;
 
 	switch (d->status) {
 	case GTA_DL_QUEUED:
@@ -110,11 +115,44 @@ void gui_update_download(struct download *d, gboolean force)
 			gfloat rate = ((d->range_end - d->skip + d->overlap_size) /
 				1024.0) / spent;
 			g_snprintf(tmpstr, sizeof(tmpstr), "%s (%.1f k/s) %s",
-				FILE_INFO_COMPLETE(d->file_info) ? "Completed" : "Chunk done",
+				FILE_INFO_COMPLETE(fi) ? "Completed" : "Chunk done",
 				rate, short_time(spent));
 		} else {
 			g_snprintf(tmpstr, sizeof(tmpstr), "%s (< 1s)",
-				FILE_INFO_COMPLETE(d->file_info) ? "Completed" : "Chunk done");
+				FILE_INFO_COMPLETE(fi) ? "Completed" : "Chunk done");
+		}
+		a = tmpstr;
+		break;
+
+	case GTA_DL_VERIFY_WAIT:
+		g_assert(FILE_INFO_COMPLETE(fi));
+		g_snprintf(tmpstr, sizeof(tmpstr), "Waiting for SHA1 checking...");
+		a = tmpstr;
+		break;
+
+	case GTA_DL_VERIFYING:
+		g_assert(FILE_INFO_COMPLETE(fi));
+		g_snprintf(tmpstr, sizeof(tmpstr),
+			"Computing SHA1 (%.02f%%)", fi->cha1_hashed * 100.0 / fi->size);
+		a = tmpstr;
+		break;
+
+	case GTA_DL_VERIFIED:
+		g_assert(FILE_INFO_COMPLETE(fi));
+		g_assert(fi->cha1_hashed <= fi->size);
+		{
+			gboolean sha1_ok = fi->cha1 &&
+				(fi->sha1 == NULL || sha1_eq(fi->sha1, fi->cha1));
+
+			rw = g_snprintf(tmpstr, sizeof(tmpstr), "SHA1 check %s",
+				fi->cha1 == NULL ?	"ERROR" :
+				sha1_ok ?			"OK" :
+									"FAILED");
+			if (fi->cha1)
+				rw += g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					" (%.1f k/s) %s",
+					(gfloat) fi->cha1_hashed / fi->cha1_elapsed,
+					short_time(fi->cha1_elapsed));
 		}
 		a = tmpstr;
 		break;
@@ -296,9 +334,17 @@ void gui_update_download_abort_resume(void)
 
 		g_assert(d->status != GTA_DL_REMOVED);
 
-        if (d->status != GTA_DL_COMPLETED)
-            queue = TRUE;
-    
+		switch (d->status) {
+		case GTA_DL_COMPLETED:
+		case GTA_DL_VERIFY_WAIT:
+		case GTA_DL_VERIFYING:
+		case GTA_DL_VERIFIED:
+			break;
+		default:
+			queue = TRUE;
+			break;
+		}
+
         if (d->sha1 != NULL)
             abort_sha1 = TRUE;
 
