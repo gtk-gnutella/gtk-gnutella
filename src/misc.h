@@ -59,6 +59,7 @@ gchar *ip_port_to_gchar(guint32, guint16);
 guint32 gchar_to_ip(gchar *);
 gboolean gchar_to_ip_port(gchar *str, guint32 *ip, guint16 *port);
 guint32 host_to_ip(gchar *);
+gchar *host_name(void);
 gint str_chomp(gchar *str, gint len);
 gboolean is_private_ip(guint32 ip);
 gchar *node_ip(struct gnutella_node *);

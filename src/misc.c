@@ -138,11 +138,26 @@ guint32 host_to_ip(gchar * host)
 #if defined(HAVE_HERROR)
 		herror("gethostbyname()");
 #else
-		g_warning("gethostbyname() failed!\n");
+		g_warning("gethostbyname() failed!");
 #endif
 	}
 
 	return 0;
+}
+
+/*
+ * host_name
+ *
+ * Returns local host name, as pointer to static data.
+ */
+gchar *host_name(void)
+{
+	static gchar name[256];
+
+	if (-1 == gethostname(name, sizeof(name)))
+		g_warning("gethostname() failed: %s", g_strerror(errno));
+
+	return name;
 }
 
 /*
