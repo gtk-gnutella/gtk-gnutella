@@ -490,13 +490,17 @@ void dump_hex(FILE *out, gchar *title, gchar *s, gint b)
 	int i, x, y, z, end;
 	char temp[18];
 
-	if ((b < 1) || (s == NULL)) {		// check everything, this is for debug
-		g_warning("dump_hex: value out of range");
+	if ((b < 0) || (s == NULL)) {
+		g_warning("dump_hex: value out of range [s=0x%lx, b=%d] for %s",
+			(gulong) s, b, title);
 		fflush(out);
 		return;
 	}
 
 	fprintf(out, "----------------- %s:\n", title);
+
+	if (b == 0)
+		goto done;
 
 	i = x = end = 0;
 	while (1) {
@@ -530,6 +534,8 @@ void dump_hex(FILE *out, gchar *title, gchar *s, gint b)
 		if (++x >= b)
 			end = 1;
 	}
+
+done:
 	fprintf(out, "----------------- (%d bytes).\n", b);
 	fflush(out);
 }
