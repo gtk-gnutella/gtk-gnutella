@@ -66,10 +66,6 @@ static GSList *sl_outgoing = NULL;		/* To spot reply timeouts */
  * (either 4xx or 5xx) or a redirection occurs (3xx).
  * Unless keep_alive = true.
  *
- * keep_alive=false is ignored if the errorcode < 300, in which case
- * the Connection: close header never is sent.
- * 		-- JA, 19/4/2003
- *
  * When the outgoing bandwidth is saturated, we start to limit the size of
  * the generated headers.  We reduce the size of the generated header
  * to about 512 bytes, and remove non-essential things.
@@ -151,7 +147,7 @@ gboolean http_send_status(
 		token = tok_version();
 	}
 
-	if (code < 300 || keep_alive)
+	if (keep_alive)
 		conn_close = "";		/* Keep HTTP connection */
 
 	if (code < 300 || !keep_alive) 
