@@ -1362,7 +1362,7 @@ create_dlg_about (void)
   gtk_text_view_set_left_margin (GTK_TEXT_VIEW (textview1), 4);
   gtk_text_view_set_right_margin (GTK_TEXT_VIEW (textview1), 4);
   gtk_text_buffer_set_text (gtk_text_view_get_buffer (GTK_TEXT_VIEW (textview1)),
-	"Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRapha\303«l Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>\nko <junkpile@free.fr>\nT'aZ <tazdev@altern.org>", -1);
+	"Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRapha\303«l Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>\nko <junkpile@free.fr>\nJeroen Asselman <jeroen@asselman.com>\nT'aZ <tazdev@altern.org>", -1);
 
   label302 = gtk_label_new ("Contributors");
   gtk_widget_set_name (label302, "label302");
@@ -1524,9 +1524,18 @@ create_main_window (void)
   GtkWidget *handlebox2;
   GtkWidget *vbox31;
   GtkWidget *frame71;
-  GtkWidget *vbox98;
+  GtkWidget *vbox105;
+  GtkWidget *hbox_stats_connections;
+  GtkWidget *eventbox8;
+  GtkWidget *image131;
   GtkWidget *progressbar_connections;
+  GtkWidget *hbox_stats_uploads;
+  GtkWidget *eventbox7;
+  GtkWidget *image130;
   GtkWidget *progressbar_uploads;
+  GtkWidget *hbox_stats_downloads;
+  GtkWidget *eventbox10;
+  GtkWidget *image132;
   GtkWidget *progressbar_downloads;
   GtkWidget *frame_bws_inout;
   GtkWidget *vbox42;
@@ -1538,6 +1547,11 @@ create_main_window (void)
   GtkWidget *progressbar_bws_gin;
   GtkWidget *progressbar_bws_gout;
   GtkWidget *label278;
+  GtkWidget *frame80;
+  GtkWidget *vbox104;
+  GtkWidget *progressbar_bws_lin;
+  GtkWidget *progressbar_bws_lout;
+  GtkWidget *label605;
   GtkWidget *vbox_right;
   GtkWidget *notebook_main;
   GtkWidget *empty_notebook_page;
@@ -1545,6 +1559,7 @@ create_main_window (void)
   GtkWidget *hbox_statusbar;
   GtkWidget *togglebutton_online;
   GtkWidget *hbox170;
+  GtkWidget *eventbox9;
   GtkWidget *image_offline;
   GtkWidget *image_online;
   GtkWidget *statusbar;
@@ -1928,25 +1943,76 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox31), frame71, FALSE, TRUE, 0);
   gtk_frame_set_shadow_type (GTK_FRAME (frame71), GTK_SHADOW_NONE);
 
-  vbox98 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox98, "vbox98");
-  gtk_widget_show (vbox98);
-  gtk_container_add (GTK_CONTAINER (frame71), vbox98);
+  vbox105 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox105, "vbox105");
+  gtk_widget_show (vbox105);
+  gtk_container_add (GTK_CONTAINER (frame71), vbox105);
+
+  hbox_stats_connections = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox_stats_connections, "hbox_stats_connections");
+  gtk_widget_show (hbox_stats_connections);
+  gtk_box_pack_start (GTK_BOX (vbox105), hbox_stats_connections, TRUE, TRUE, 0);
+
+  eventbox8 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox8, "eventbox8");
+  gtk_widget_show (eventbox8);
+  gtk_box_pack_start (GTK_BOX (hbox_stats_connections), eventbox8, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox8, "gNet connections", NULL);
+
+  image131 = create_pixmap (main_window, "smallserver.xpm");
+  gtk_widget_set_name (image131, "image131");
+  gtk_widget_show (image131);
+  gtk_container_add (GTK_CONTAINER (eventbox8), image131);
+  gtk_misc_set_alignment (GTK_MISC (image131), 0, 0.5);
 
   progressbar_connections = gtk_progress_bar_new ();
   gtk_widget_set_name (progressbar_connections, "progressbar_connections");
   gtk_widget_show (progressbar_connections);
-  gtk_box_pack_start (GTK_BOX (vbox98), progressbar_connections, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_stats_connections), progressbar_connections, TRUE, TRUE, 0);
+
+  hbox_stats_uploads = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox_stats_uploads, "hbox_stats_uploads");
+  gtk_widget_show (hbox_stats_uploads);
+  gtk_box_pack_start (GTK_BOX (vbox105), hbox_stats_uploads, TRUE, TRUE, 0);
+
+  eventbox7 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox7, "eventbox7");
+  gtk_widget_show (eventbox7);
+  gtk_box_pack_start (GTK_BOX (hbox_stats_uploads), eventbox7, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox7, "Uploads", NULL);
+
+  image130 = create_pixmap (main_window, "upload.xpm");
+  gtk_widget_set_name (image130, "image130");
+  gtk_widget_show (image130);
+  gtk_container_add (GTK_CONTAINER (eventbox7), image130);
+  gtk_misc_set_alignment (GTK_MISC (image130), 0, 0.5);
 
   progressbar_uploads = gtk_progress_bar_new ();
   gtk_widget_set_name (progressbar_uploads, "progressbar_uploads");
   gtk_widget_show (progressbar_uploads);
-  gtk_box_pack_start (GTK_BOX (vbox98), progressbar_uploads, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_stats_uploads), progressbar_uploads, TRUE, TRUE, 0);
+
+  hbox_stats_downloads = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox_stats_downloads, "hbox_stats_downloads");
+  gtk_widget_show (hbox_stats_downloads);
+  gtk_box_pack_start (GTK_BOX (vbox105), hbox_stats_downloads, TRUE, TRUE, 0);
+
+  eventbox10 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox10, "eventbox10");
+  gtk_widget_show (eventbox10);
+  gtk_box_pack_start (GTK_BOX (hbox_stats_downloads), eventbox10, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox10, "Downloads", NULL);
+
+  image132 = create_pixmap (main_window, "download.xpm");
+  gtk_widget_set_name (image132, "image132");
+  gtk_widget_show (image132);
+  gtk_container_add (GTK_CONTAINER (eventbox10), image132);
+  gtk_misc_set_alignment (GTK_MISC (image132), 0, 0.5);
 
   progressbar_downloads = gtk_progress_bar_new ();
   gtk_widget_set_name (progressbar_downloads, "progressbar_downloads");
   gtk_widget_show (progressbar_downloads);
-  gtk_box_pack_start (GTK_BOX (vbox98), progressbar_downloads, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_stats_downloads), progressbar_downloads, TRUE, TRUE, 0);
 
   frame_bws_inout = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_bws_inout, "frame_bws_inout");
@@ -2010,6 +2076,34 @@ create_main_window (void)
   gtk_frame_set_label_widget (GTK_FRAME (frame_bws_ginout), label278);
   gtk_label_set_justify (GTK_LABEL (label278), GTK_JUSTIFY_LEFT);
 
+  frame80 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame80, "frame80");
+  gtk_widget_show (frame80);
+  gtk_box_pack_start (GTK_BOX (vbox31), frame80, TRUE, TRUE, 0);
+  gtk_frame_set_label_align (GTK_FRAME (frame80), 0.5, 0.5);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame80), GTK_SHADOW_NONE);
+
+  vbox104 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox104, "vbox104");
+  gtk_widget_show (vbox104);
+  gtk_container_add (GTK_CONTAINER (frame80), vbox104);
+
+  progressbar_bws_lin = gtk_progress_bar_new ();
+  gtk_widget_set_name (progressbar_bws_lin, "progressbar_bws_lin");
+  gtk_widget_show (progressbar_bws_lin);
+  gtk_box_pack_start (GTK_BOX (vbox104), progressbar_bws_lin, FALSE, FALSE, 0);
+
+  progressbar_bws_lout = gtk_progress_bar_new ();
+  gtk_widget_set_name (progressbar_bws_lout, "progressbar_bws_lout");
+  gtk_widget_show (progressbar_bws_lout);
+  gtk_box_pack_start (GTK_BOX (vbox104), progressbar_bws_lout, FALSE, FALSE, 0);
+
+  label605 = gtk_label_new ("Leaf traffic");
+  gtk_widget_set_name (label605, "label605");
+  gtk_widget_show (label605);
+  gtk_frame_set_label_widget (GTK_FRAME (frame80), label605);
+  gtk_label_set_justify (GTK_LABEL (label605), GTK_JUSTIFY_LEFT);
+
   vbox_right = gtk_vbox_new (FALSE, 4);
   gtk_widget_set_name (vbox_right, "vbox_right");
   gtk_widget_show (vbox_right);
@@ -2048,10 +2142,16 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (togglebutton_online), hbox170);
   gtk_widget_set_size_request (hbox170, 28, 6);
 
+  eventbox9 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox9, "eventbox9");
+  gtk_widget_show (eventbox9);
+  gtk_box_pack_start (GTK_BOX (hbox170), eventbox9, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox9, "You seem to be offline.", NULL);
+
   image_offline = create_pixmap (main_window, "offline.xpm");
   gtk_widget_set_name (image_offline, "image_offline");
   gtk_widget_show (image_offline);
-  gtk_box_pack_start (GTK_BOX (hbox170), image_offline, FALSE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (eventbox9), image_offline);
 
   image_online = create_pixmap (main_window, "online.xpm");
   gtk_widget_set_name (image_online, "image_online");
@@ -2183,9 +2283,18 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, handlebox2, "handlebox2");
   GLADE_HOOKUP_OBJECT (main_window, vbox31, "vbox31");
   GLADE_HOOKUP_OBJECT (main_window, frame71, "frame71");
-  GLADE_HOOKUP_OBJECT (main_window, vbox98, "vbox98");
+  GLADE_HOOKUP_OBJECT (main_window, vbox105, "vbox105");
+  GLADE_HOOKUP_OBJECT (main_window, hbox_stats_connections, "hbox_stats_connections");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox8, "eventbox8");
+  GLADE_HOOKUP_OBJECT (main_window, image131, "image131");
   GLADE_HOOKUP_OBJECT (main_window, progressbar_connections, "progressbar_connections");
+  GLADE_HOOKUP_OBJECT (main_window, hbox_stats_uploads, "hbox_stats_uploads");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox7, "eventbox7");
+  GLADE_HOOKUP_OBJECT (main_window, image130, "image130");
   GLADE_HOOKUP_OBJECT (main_window, progressbar_uploads, "progressbar_uploads");
+  GLADE_HOOKUP_OBJECT (main_window, hbox_stats_downloads, "hbox_stats_downloads");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox10, "eventbox10");
+  GLADE_HOOKUP_OBJECT (main_window, image132, "image132");
   GLADE_HOOKUP_OBJECT (main_window, progressbar_downloads, "progressbar_downloads");
   GLADE_HOOKUP_OBJECT (main_window, frame_bws_inout, "frame_bws_inout");
   GLADE_HOOKUP_OBJECT (main_window, vbox42, "vbox42");
@@ -2197,12 +2306,18 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, progressbar_bws_gin, "progressbar_bws_gin");
   GLADE_HOOKUP_OBJECT (main_window, progressbar_bws_gout, "progressbar_bws_gout");
   GLADE_HOOKUP_OBJECT (main_window, label278, "label278");
+  GLADE_HOOKUP_OBJECT (main_window, frame80, "frame80");
+  GLADE_HOOKUP_OBJECT (main_window, vbox104, "vbox104");
+  GLADE_HOOKUP_OBJECT (main_window, progressbar_bws_lin, "progressbar_bws_lin");
+  GLADE_HOOKUP_OBJECT (main_window, progressbar_bws_lout, "progressbar_bws_lout");
+  GLADE_HOOKUP_OBJECT (main_window, label605, "label605");
   GLADE_HOOKUP_OBJECT (main_window, vbox_right, "vbox_right");
   GLADE_HOOKUP_OBJECT (main_window, notebook_main, "notebook_main");
   GLADE_HOOKUP_OBJECT (main_window, label590, "label590");
   GLADE_HOOKUP_OBJECT (main_window, hbox_statusbar, "hbox_statusbar");
   GLADE_HOOKUP_OBJECT (main_window, togglebutton_online, "togglebutton_online");
   GLADE_HOOKUP_OBJECT (main_window, hbox170, "hbox170");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox9, "eventbox9");
   GLADE_HOOKUP_OBJECT (main_window, image_offline, "image_offline");
   GLADE_HOOKUP_OBJECT (main_window, image_online, "image_online");
   GLADE_HOOKUP_OBJECT (main_window, statusbar, "statusbar");
