@@ -25,6 +25,8 @@
 GtkWidget *main_window;
 
 struct gnutella_socket *s_listen = NULL;
+gchar *version_string = NULL;
+
 static guint main_slow_update = 0;
 
 /* */
@@ -48,6 +50,7 @@ void gtk_gnutella_exit(gint n)
 	download_close();
 	upload_close();
 	gui_close();
+	g_free(version_string);
 
 	gtk_exit(n);
 }
@@ -60,6 +63,16 @@ static void SIG_Handler(int n)
 static void SIG_Ignore(int n)
 {
 	return;
+}
+
+static void init_version_string(void)
+{
+	gchar buf[128];
+
+	g_snprintf(buf, sizeof(buf), "gtk-gnutella/%u.%u %s",
+		GTA_VERSION, GTA_SUBVERSION, GTA_REVISION);
+
+	version_string = g_strdup(buf);
 }
 
 static void auto_connect(void)
@@ -323,6 +336,7 @@ gint main(gint argc, gchar ** argv)
 
 	/* Our inits */
 
+	init_version_string();
 	config_init();
 	host_init();
 	network_init();
