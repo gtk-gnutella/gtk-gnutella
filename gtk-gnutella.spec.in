@@ -44,6 +44,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %{_bindir}/*
+%{_datadir}/gtk-gnutella
 /etc/X11/applnk/Applications/gtk-gnutella.desktop
 
 %doc README TODO NEWS INSTALL AUTHORS ChangeLog COPYING
