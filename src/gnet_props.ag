@@ -2615,6 +2615,26 @@ prop = {
 };
 
 prop = {
+	name = "tls_enforce";
+	desc = "If set, all outgoing connections are tunneled over TLS.";
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
+
+prop = {
+	name = "gnet_deflate_enabled";
+	desc = "If not set, support for Gnutella connection compression is "
+			"disabled.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
+
+prop = {
 	name = "enable_udp";
 	desc = "Whether UDP shall be used in complement to TCP.  When set, "
 		"gtk-gnutella will also listen for UDP traffic on the same port "
@@ -2657,5 +2677,4 @@ prop = {
 	};
 };
 
->>>>>>> 1.130
 /* vi: set ts=4: */

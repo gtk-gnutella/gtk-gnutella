@@ -506,6 +506,10 @@ gboolean enable_g2_support     = TRUE;
 gboolean enable_g2_support_def = TRUE;
 gboolean convert_spaces     = FALSE;
 gboolean convert_spaces_def = FALSE;
+gboolean tls_enforce     = FALSE;
+gboolean tls_enforce_def = FALSE;
+gboolean gnet_deflate_enabled     = TRUE;
+gboolean gnet_deflate_enabled_def = TRUE;
 gboolean enable_udp     = FALSE;
 gboolean enable_udp_def = FALSE;
 gboolean process_oob_queries     = TRUE;
@@ -4728,20 +4732,71 @@ prop_set_t *gnet_prop_init(void) {
 
 
     /*
-     * PROP_CONVERT_SPACES:
+     * PROP_ENABLE_G2_SUPPORT:
      *
      * General data:
      */
-    gnet_property->props[219].name = "convert_spaces";
-    gnet_property->props[219].desc = _("If set, spaces in filenames are replaced with underscores.");
-    gnet_property->props[219].ev_changed = event_new("convert_spaces_changed");
+    gnet_property->props[219].name = "enable_g2_support";
+    gnet_property->props[219].desc = _("When set, gtk-gnutella will accept and handle G2 connections. ");
+    gnet_property->props[219].ev_changed = event_new("enable_g2_support_changed");
     gnet_property->props[219].save = TRUE;
     gnet_property->props[219].vector_size = 1;
 
     /* Type specific data: */
     gnet_property->props[219].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[219].data.boolean.def   = &convert_spaces_def;
-    gnet_property->props[219].data.boolean.value = &convert_spaces;
+    gnet_property->props[219].data.boolean.def   = &enable_g2_support_def;
+    gnet_property->props[219].data.boolean.value = &enable_g2_support;
+
+
+    /*
+     * PROP_CONVERT_SPACES:
+     *
+     * General data:
+     */
+    gnet_property->props[220].name = "convert_spaces";
+    gnet_property->props[220].desc = _("If set, spaces in filenames are replaced with underscores.");
+    gnet_property->props[220].ev_changed = event_new("convert_spaces_changed");
+    gnet_property->props[220].save = TRUE;
+    gnet_property->props[220].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[220].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[220].data.boolean.def   = &convert_spaces_def;
+    gnet_property->props[220].data.boolean.value = &convert_spaces;
+
+
+    /*
+     * PROP_TLS_ENFORCE:
+     *
+     * General data:
+     */
+    gnet_property->props[221].name = "tls_enforce";
+    gnet_property->props[221].desc = _("If set, all outgoing connections are tunneled over TLS.");
+    gnet_property->props[221].ev_changed = event_new("tls_enforce_changed");
+    gnet_property->props[221].save = TRUE;
+    gnet_property->props[221].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[221].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[221].data.boolean.def   = &tls_enforce_def;
+    gnet_property->props[221].data.boolean.value = &tls_enforce;
+
+
+    /*
+     * PROP_GNET_DEFLATE_ENABLED:
+     *
+     * General data:
+     */
+    gnet_property->props[222].name = "gnet_deflate_enabled";
+    gnet_property->props[222].desc = _("If not set, support for Gnutella connection compression is disabled.");
+    gnet_property->props[222].ev_changed = event_new("gnet_deflate_enabled_changed");
+    gnet_property->props[222].save = TRUE;
+    gnet_property->props[222].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[222].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[222].data.boolean.def   = &gnet_deflate_enabled_def;
+    gnet_property->props[222].data.boolean.value = &gnet_deflate_enabled;
 
 
     /*
@@ -4749,16 +4804,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[220].name = "enable_udp";
-    gnet_property->props[220].desc = _("Whether UDP shall be used in complement to TCP.  When set, gtk-gnutella will also listen for UDP traffic on the same port as the one configured for TCP and process incoming Gnutella traffic in almost the same way as if it was received via TCP.");
-    gnet_property->props[220].ev_changed = event_new("enable_udp_changed");
-    gnet_property->props[220].save = TRUE;
-    gnet_property->props[220].vector_size = 1;
+    gnet_property->props[223].name = "enable_udp";
+    gnet_property->props[223].desc = _("Whether UDP shall be used in complement to TCP.  When set, gtk-gnutella will also listen for UDP traffic on the same port as the one configured for TCP and process incoming Gnutella traffic in almost the same way as if it was received via TCP.");
+    gnet_property->props[223].ev_changed = event_new("enable_udp_changed");
+    gnet_property->props[223].save = TRUE;
+    gnet_property->props[223].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[220].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[220].data.boolean.def   = &enable_udp_def;
-    gnet_property->props[220].data.boolean.value = &enable_udp;
+    gnet_property->props[223].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[223].data.boolean.def   = &enable_udp_def;
+    gnet_property->props[223].data.boolean.value = &enable_udp;
 
 
     /*
@@ -4766,16 +4821,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[221].name = "process_oob_queries";
-    gnet_property->props[221].desc = _("Whether gtk-gnutella should honour the request for out-of-band delivery of query hits via UDP, regardless of whether UDP listening is enabled.  It should not be necessary to open a port on your firewall to enable this as your node will be the origin of the UDP traffic and should therefore be able to receive replies sent to the transient UDP port opened by a masquerading firewall.  It is enabled by default because it is deemed safe, as your node controls the bulk of the emitted traffic and honours the bandwidth limitation you have put in place.");
-    gnet_property->props[221].ev_changed = event_new("process_oob_queries_changed");
-    gnet_property->props[221].save = TRUE;
-    gnet_property->props[221].vector_size = 1;
+    gnet_property->props[224].name = "process_oob_queries";
+    gnet_property->props[224].desc = _("Whether gtk-gnutella should honour the request for out-of-band delivery of query hits via UDP, regardless of whether UDP listening is enabled.  It should not be necessary to open a port on your firewall to enable this as your node will be the origin of the UDP traffic and should therefore be able to receive replies sent to the transient UDP port opened by a masquerading firewall.  It is enabled by default because it is deemed safe, as your node controls the bulk of the emitted traffic and honours the bandwidth limitation you have put in place.");
+    gnet_property->props[224].ev_changed = event_new("process_oob_queries_changed");
+    gnet_property->props[224].save = TRUE;
+    gnet_property->props[224].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[221].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[221].data.boolean.def   = &process_oob_queries_def;
-    gnet_property->props[221].data.boolean.value = &process_oob_queries;
+    gnet_property->props[224].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[224].data.boolean.def   = &process_oob_queries_def;
+    gnet_property->props[224].data.boolean.value = &process_oob_queries;
 
 
     /*
@@ -4783,33 +4838,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[222].name = "send_oob_queries";
-    gnet_property->props[222].desc = _("Whether gtk-gnutella should send queries requesting out-of-band delivery of query hits via UDP.  This setting is ignored if you appear to be UDP-firewalled, i.e. cannot receive unsollicited UDP traffic.  You need to enable UDP support first.  This can cause the reception of vast quantities of UDP replies (negotiated normally by your node, but still) and that is why it is disabled by default.");
-    gnet_property->props[222].ev_changed = event_new("send_oob_queries_changed");
-    gnet_property->props[222].save = TRUE;
-    gnet_property->props[222].vector_size = 1;
+    gnet_property->props[225].name = "send_oob_queries";
+    gnet_property->props[225].desc = _("Whether gtk-gnutella should send queries requesting out-of-band delivery of query hits via UDP.  This setting is ignored if you appear to be UDP-firewalled, i.e. cannot receive unsollicited UDP traffic.  You need to enable UDP support first.  This can cause the reception of vast quantities of UDP replies (negotiated normally by your node, but still) and that is why it is disabled by default.");
+    gnet_property->props[225].ev_changed = event_new("send_oob_queries_changed");
+    gnet_property->props[225].save = TRUE;
+    gnet_property->props[225].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[222].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[222].data.boolean.def   = &send_oob_queries_def;
-    gnet_property->props[222].data.boolean.value = &send_oob_queries;
-
-
-    /*
-     * PROP_ENABLE_G2_SUPPORT:
-     *
-     * General data:
-     */
-    gnet_property->props[210].name = "enable_g2_support";
-    gnet_property->props[210].desc = _("When set, gtk-gnutella will accept and handle G2 connections. ");
-    gnet_property->props[210].ev_changed = event_new("enable_g2_support_changed");
-    gnet_property->props[210].save = TRUE;
-    gnet_property->props[210].vector_size = 1;
-
-    /* Type specific data: */
-    gnet_property->props[210].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[210].data.boolean.def   = &enable_g2_support_def;
-    gnet_property->props[210].data.boolean.value = &enable_g2_support;
+    gnet_property->props[225].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[225].data.boolean.def   = &send_oob_queries_def;
+    gnet_property->props[225].data.boolean.value = &send_oob_queries;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
