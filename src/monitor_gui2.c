@@ -51,6 +51,7 @@ static void monitor_gui_append_to_monitor(
     GtkTreeIter iter;
     gchar tmpstr[100];
 	gchar *str;
+	size_t len;
 
 	if (monitor_items < monitor_max_items)
         monitor_items++;
@@ -67,10 +68,10 @@ static void monitor_gui_append_to_monitor(
 
 	/* If the query is empty and we have a SHA1 extension,
 	 * we print a urn:sha1-query instead. */
-	gm_snprintf(tmpstr, sizeof(tmpstr),
+	len = gm_snprintf(tmpstr, sizeof(tmpstr),
 		type == QUERY_SHA1 ? "urn:sha1:%s" : "%s", item);
 
-	str = locale_to_utf8(tmpstr, -1);
+	str = locale_to_utf8(tmpstr, len);
    	gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN, str, -1);
 }
 
