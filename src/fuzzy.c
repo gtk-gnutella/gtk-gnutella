@@ -31,31 +31,49 @@
 
 RCSID("$Id$");
 
-static char *fuzzy_strlower(char *a)
-{
-	unsigned char *p;
-	
-	for (p = a; '\0' != *p; p++)
-		*p = tolower(*p);
+typedef struct word_entry {
+	size_t len;  /* length of the whole struct, used for wfree() */
+	gchar s[1]; /* dynamically resized */
+} word_entry_t;
 
-	return a;
+static char *fuzzy_strlower(char *dst, const char *src, size_t len)
+{
+	const guchar *p;
+	guchar *q;
+	size_t i;
+
+	g_assert(len > 0);
+	g_assert(NULL != dst);
+
+	for (p = src, q = dst, i = 0; '\0' != *p && i < len; p++, q++, i++)
+		*q = tolower(*p);
+	
+	dst[len - 1] = '\0'; 
+	return dst;
 }
 
-static GSList *fuzzy_make_word_list(char *n)
+static GSList *fuzzy_make_word_list(const char *n)
 {
 	GSList *l = NULL;
-	char *p;
+	const char *p;
+	size_t len;
 
 	while (*n) {
-		while (!isalnum((unsigned char)*n)) n++;
+		len = 1;
+		while (!isalnum((guchar) *n)) n++;
 		p = n;
-		while (isalnum((unsigned char)*n)) n++;
-		if(*n) { 
-			*n = '\0';
+		while (isalnum((guchar) *n)) {
 			n++;
+			len++;
 		}
-		if (*p)
-			l = g_slist_append(l, fuzzy_strlower(g_strdup(p)));
+		if (*p) {
+			word_entry_t *w;
+		
+			w = walloc(sizeof(*w) + len);
+			w->len = sizeof(*w) + len;
+			fuzzy_strlower(w->s, p, len);
+			l = g_slist_append(l, w);
+		}
 	}
 	return l;
 }
@@ -78,17 +96,18 @@ static gulong fuzzy_word_similarity(const char *a, const char *b)
 	return score / l;
 }
 
-static gulong fuzzy_cmp_word_list(const char *w, GSList *words)
+static gulong fuzzy_cmp_word_list(const char *s, GSList *words)
 {
 	GSList *l;
 	gulong score = 0;
 	gulong n = 0;
 	
-	for (l = words; l; l = g_slist_next(l), n++)
-		if (0 == strcmp(w, l->data))
+	for (l = words; l; l = g_slist_next(l), n++) {
+		if (0 == strcmp(s, ((word_entry_t *) l->data)->s))
 			return 1 << FUZZY_SHIFT;
 		else
-			score += fuzzy_word_similarity(w, l->data);
+			score += fuzzy_word_similarity(s, ((word_entry_t *) l->data)->s);
+	}
 
 	return n > 0 ? score / n : 0;
 }
@@ -100,7 +119,7 @@ static gulong fuzzy_find_score(GSList *a, GSList *b)
 	gulong n = 0;
 	
 	for (l = a; l; l = g_slist_next(l), n++)
-		score += fuzzy_cmp_word_list(l->data, b);
+		score += fuzzy_cmp_word_list(((word_entry_t *) l->data)->s, b);
    
 	return n > 0 ? score / n : 0;
 }
@@ -116,29 +135,22 @@ static gulong fuzzy_find_score(GSList *a, GSList *b)
  */
 gulong fuzzy_compare(const char *str1, const char *str2)
 {
-	char *n1, *n2;
 	GSList *a, *b, *l;
 	gulong score;
 	
-	n1 = g_strdup(str1);
-	n2 = g_strdup(str2);
-	
-	a = fuzzy_make_word_list(n1);
-	b = fuzzy_make_word_list(n2);
+	a = fuzzy_make_word_list(str1);
+	b = fuzzy_make_word_list(str2);
 
 	score = (fuzzy_find_score(a, b) + fuzzy_find_score(b, a)) / 2;
 
 	for (l = a; l; l = g_slist_next(l))
-		G_FREE_NULL(l->data);
+		wfree(l->data, ((word_entry_t *) l->data)->len);
 	g_slist_free(a);
 
 	for (l = b; l; l = g_slist_next(l))
-		G_FREE_NULL(l->data);
+		wfree(l->data, ((word_entry_t *) l->data)->len);
 	g_slist_free(b);
 	
-	g_free(n1);
-	g_free(n2);
-
 	return score;
 }
 
