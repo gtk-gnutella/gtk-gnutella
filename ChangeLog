@@ -6,6 +6,12 @@
  * Moved "(globally) drop..." do submenus. More to come
  * Renamed "local" to "generated" in the gnet statistics
  * "Can't remove node" bug should be fixed now
+ * Fixed serious bug in idtable: last_id was not initialized!
+ * Removed wrong assertion: node handle may be 0
+ * Fixed bug: when removing multiple nodes, only the first is
+   removed
+ * Expanded search stats. Can choose between "word" and "query" stats.
+ * Renamed search_stats.[ch] to search_stats_gui.[ch]
 
 - (2002.09.09 RAM)
  * Fixed reference count problem when resetting fileinfo.
