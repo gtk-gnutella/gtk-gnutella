@@ -93,10 +93,8 @@ static idtable_t *upload_handle_map = NULL;
 
 #define CONST_STRLEN(x) (sizeof(x) - 1)
 
-gint running_uploads = 0;
-gint registered_uploads = 0;
-
-guint32 count_uploads = 0;
+static gint running_uploads = 0;
+static gint registered_uploads = 0;
 
 /*
  * This structure is the key used in the mesh_info hash table to record
@@ -148,39 +146,44 @@ static listeners_t upload_added_listeners   = NULL;
 static listeners_t upload_removed_listeners = NULL;
 static listeners_t upload_info_changed_listeners = NULL;
 
-void upload_add_upload_added_listener(upload_added_listener_t l)
+void
+upload_add_upload_added_listener(upload_added_listener_t l)
 {
     LISTENER_ADD(upload_added, (gpointer) l);
 }
 
-void upload_remove_upload_added_listener(upload_added_listener_t l)
+void
+upload_remove_upload_added_listener(upload_added_listener_t l)
 {
     LISTENER_REMOVE(upload_added, (gpointer) l);
 }
 
-void upload_add_upload_removed_listener(upload_removed_listener_t l)
+void
+upload_add_upload_removed_listener(upload_removed_listener_t l)
 {
     LISTENER_ADD(upload_removed, (gpointer) l);
 }
 
-void upload_remove_upload_removed_listener(upload_removed_listener_t l)
+void
+upload_remove_upload_removed_listener(upload_removed_listener_t l)
 {
     LISTENER_REMOVE(upload_removed, (gpointer) l);
 }
 
-void upload_add_upload_info_changed_listener(
-    upload_info_changed_listener_t l)
+void
+upload_add_upload_info_changed_listener(upload_info_changed_listener_t l)
 {
     LISTENER_ADD(upload_info_changed, (gpointer) l);
 }
 
-void upload_remove_upload_info_changed_listener(
-    upload_info_changed_listener_t l)
+void
+upload_remove_upload_info_changed_listener(upload_info_changed_listener_t l)
 {
     LISTENER_REMOVE(upload_info_changed, (gpointer) l);
 }
 
-static void upload_fire_upload_added(gnutella_upload_t *n)
+static void
+upload_fire_upload_added(gnutella_upload_t *n)
 {
     LISTENER_EMIT(upload_added, n->upload_handle, 
         running_uploads, registered_uploads);
@@ -188,8 +191,8 @@ static void upload_fire_upload_added(gnutella_upload_t *n)
 	gnet_prop_set_guint32_val(PROP_UL_REGISTERED, registered_uploads);
 }
 
-static void upload_fire_upload_removed(
-    gnutella_upload_t *n, const gchar *reason)
+static void
+upload_fire_upload_removed(gnutella_upload_t *n, const gchar *reason)
 {
     LISTENER_EMIT(upload_removed, n->upload_handle, reason,
         running_uploads, registered_uploads);
@@ -197,8 +200,8 @@ static void upload_fire_upload_removed(
 	gnet_prop_set_guint32_val(PROP_UL_REGISTERED, registered_uploads);
 }
 
-void upload_fire_upload_info_changed
-    (gnutella_upload_t *n)
+void
+upload_fire_upload_info_changed(gnutella_upload_t *n)
 {
     LISTENER_EMIT(upload_info_changed, n->upload_handle,
         running_uploads, registered_uploads);
@@ -208,12 +211,11 @@ void upload_fire_upload_info_changed
  *** Private functions
  ***/
 
-/*
- * upload_timer
- *
+/**
  * Upload heartbeat timer.
  */
-void upload_timer(time_t now)
+void
+upload_timer(time_t now)
 {
 	GSList *sl, *to_remove = NULL;
 	gint t;
@@ -253,7 +255,7 @@ void upload_timer(time_t now)
 			 * counter.
 			 */
 
-			if (aging_lookup(stalling_uploads, &u->ip))
+			if (aging_lookup(stalling_uploads, GUINT_TO_POINTER(u->ip)))
 				skip = TRUE;
 
 			if (!(u->flags & UPLOAD_F_STALLED)) {
@@ -273,14 +275,14 @@ void upload_timer(time_t now)
 				 * that it's not the first time we're seeing it, if necessary.
 				 */
 
-				aging_insert(stalling_uploads, atom_int_get(&u->ip),
+				aging_insert(stalling_uploads, GUINT_TO_POINTER(u->ip),
 					skip ? STALL_AGAIN : STALL_FIRST);
 			}
 		} else {
 			gboolean skip = FALSE;
 			gpointer stall;
 
-			stall = aging_lookup(stalling_uploads, &u->ip);
+			stall = aging_lookup(stalling_uploads, GUINT_TO_POINTER(u->ip));
 			if (stall == STALL_AGAIN)
 				skip = TRUE;
 
@@ -300,7 +302,7 @@ void upload_timer(time_t now)
 					socket_tos_throughput(u->socket);
 				}
 
-				if (!skip && stalled > 0)	/* It un-stalled, it's not too bad */
+				if (!skip && stalled > 0) /* It un-stalled, it's not too bad */
 					stalled--;
 			}
 			u->flags &= ~UPLOAD_F_STALLED;
@@ -372,12 +374,11 @@ void upload_timer(time_t now)
 	g_slist_free(to_remove);
 }
 
-/*
- * upload_create
- *
+/**
  * Create a new upload structure, linked to a socket.
  */
-gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push)
+gnutella_upload_t *
+upload_create(struct gnutella_socket *s, gboolean push)
 {
 	gnutella_upload_t *u;
 
@@ -417,9 +418,7 @@ gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push)
 	return u;
 }
 
-/*
- * upload_send_giv
- *
+/**
  * Send a GIV string to the specified IP:port.
  *
  * `ip' and `port' is where we need to connect.
@@ -429,7 +428,8 @@ gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push)
  * `banning' must be TRUE when we determined connections to the IP were
  * currently prohibited.
  */
-void upload_send_giv(guint32 ip, guint16 port, guint8 hops, guint8 ttl,
+void
+upload_send_giv(guint32 ip, guint16 port, guint8 hops, guint8 ttl,
 	guint32 file_index, const gchar *file_name, gboolean banning)
 {
 	gnutella_upload_t *u;
@@ -460,15 +460,14 @@ void upload_send_giv(guint32 ip, guint16 port, guint8 hops, guint8 ttl,
 	/* Now waiting for the connection CONF -- will call upload_connect_conf() */
 }
 
-/*
- * handle_push_request
- *
+/**
  * Called when we receive a Push request on Gnet.
  *
  * If it is not for us, discard it.
  * If we are the target, then connect back to the remote servent.
  */
-void handle_push_request(struct gnutella_node *n)
+void
+handle_push_request(struct gnutella_node *n)
 {
 	struct shared_file *req_file;
 	guint32 file_index;
@@ -564,7 +563,8 @@ void handle_push_request(struct gnutella_node *n)
 		file_index, file_name, show_banning);
 }
 
-void upload_real_remove(void)
+void
+upload_real_remove(void)
 {
 	/* XXX UNUSED
 	 * XXX Currently, we remove failed uploads from the list, but we should
@@ -573,7 +573,8 @@ void upload_real_remove(void)
 	 */
 }
 
-static void upload_free_resources(gnutella_upload_t *u)
+static void
+upload_free_resources(gnutella_upload_t *u)
 {
 	parq_upload_upload_got_freed(u);
 	
@@ -614,9 +615,7 @@ static void upload_free_resources(gnutella_upload_t *u)
     upload_free_handle(u->upload_handle);
 }
 
-/*
- * upload_clone
- *
+/**
  * Clone upload, resetting all dynamically allocated structures in the
  * original, since they are shallow-copied to the new upload.
  *
@@ -624,7 +623,8 @@ static void upload_free_resources(gnutella_upload_t *u)
  * will become a line in the GUI, and the GUI stores upload structures in
  * its row data, and will call upload_remove() to clear them.)
  */
-static gnutella_upload_t *upload_clone(gnutella_upload_t *u)
+static gnutella_upload_t *
+upload_clone(gnutella_upload_t *u)
 {
 	gnutella_upload_t *cu = walloc(sizeof(gnutella_upload_t));
 
@@ -671,12 +671,11 @@ static gnutella_upload_t *upload_clone(gnutella_upload_t *u)
 	return cu;
 }
 
-/*
- * send_upload_error_v
- *
+/**
  * The vectorized (message-wise) version of send_upload_error().
  */
-static void send_upload_error_v(
+static void
+send_upload_error_v(
 	gnutella_upload_t *u,
 	struct shared_file *sf,
 	const gchar *ext,
@@ -796,13 +795,12 @@ static void send_upload_error_v(
 	u->error_sent = code;
 }
 
-/*
- * send_upload_error
- *
+/**
  * Send error message to requestor.
  * This can only be done once per connection.
  */
-static void send_upload_error(
+static void
+send_upload_error(
 	gnutella_upload_t *u,
 	struct shared_file *sf,
 	int code,
@@ -815,13 +813,11 @@ static void send_upload_error(
 	va_end(args);
 }
 
-/*
- * upload_remove_v
- *
+/**
  * The vectorized (message-wise) version of upload_remove().
  */
-static void upload_remove_v(
-	gnutella_upload_t *u, const gchar *reason, va_list ap)
+static void
+upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
 {
 	const gchar *logreason;
 	gchar errbuf[1024];
@@ -930,15 +926,14 @@ static void upload_remove_v(
 	list_uploads = g_slist_remove(list_uploads, u);
 }
 
-/*
- * upload_remove
- *
+/**
  * Remove upload entry, log reason.
  *
  * If no status has been sent back on the HTTP stream yet, give them
  * a 400 error with the reason.
  */
-void upload_remove(gnutella_upload_t *u, const gchar *reason, ...)
+void
+upload_remove(gnutella_upload_t *u, const gchar *reason, ...)
 {
 	va_list args;
 	
@@ -949,12 +944,11 @@ void upload_remove(gnutella_upload_t *u, const gchar *reason, ...)
 	va_end(args);
 }
 
-/*
- * upload_error_remove
- *
+/**
  * Utility routine.  Cancel the upload, sending back the HTTP error message.
  */
-static void upload_error_remove(
+static void
+upload_error_remove(
 	gnutella_upload_t *u,
 	struct shared_file *sf,
 	int code,
@@ -974,13 +968,12 @@ static void upload_error_remove(
 	va_end(args);
 }
 
-/*
- * upload_error_remove_ext
- *
+/**
  * Utility routine.  Cancel the upload, sending back the HTTP error message.
  * `ext' contains additionnal header information to propagate back. 
  */
-static void upload_error_remove_ext(
+static void
+upload_error_remove_ext(
 	gnutella_upload_t *u,
 	struct shared_file *sf,
 	const gchar *ext,
@@ -1002,9 +995,7 @@ static void upload_error_remove_ext(
 	va_end(args);
 }
 
-/*
- * upload_stop_all
- *
+/**
  * Stop all uploads dealing with partial file `fi'.
  */
 void upload_stop_all(struct dl_file_info *fi, const gchar *reason)
@@ -1042,49 +1033,57 @@ void upload_stop_all(struct dl_file_info *fi, const gchar *reason)
 
 #define UPLOAD(x)	((gnutella_upload_t *) (x))
 
-static void err_line_too_long(gpointer obj)
+static void
+err_line_too_long(gpointer obj)
 {
 	upload_error_remove(UPLOAD(obj), NULL, 413, "Header too large");
 }
 
-static void err_header_error_tell(gpointer obj, gint error)
+static void
+err_header_error_tell(gpointer obj, gint error)
 {
 	send_upload_error(UPLOAD(obj), NULL, 413, "%s", header_strerror(error));
 }
 
-static void err_header_error(gpointer obj, gint error)
+static void
+err_header_error(gpointer obj, gint error)
 {
 	upload_remove(UPLOAD(obj), "Failed (%s)", header_strerror(error));
 }
 
-static void err_input_exception(gpointer obj)
+static void
+err_input_exception(gpointer obj)
 {
 	upload_remove(UPLOAD(obj), "Failed (Input Exception)");
 }
 
-static void err_input_buffer_full(gpointer obj)
+static void
+err_input_buffer_full(gpointer obj)
 {
 	upload_error_remove(UPLOAD(obj), NULL, 500, "Input buffer full");
 }
 
-static void err_header_read_error(gpointer obj, gint error)
+static void
+err_header_read_error(gpointer obj, gint error)
 {
 	upload_remove(UPLOAD(obj), "Failed (Input error: %s)", g_strerror(error));
 }
 
-static void err_header_read_eof(gpointer obj)
+static void
+err_header_read_eof(gpointer obj)
 {
 	gnutella_upload_t * u = UPLOAD(obj);
 	u->error_sent = 999;		/* No need to send anything on EOF condition */
 	upload_remove(u, "Failed (EOF)");
 }
 
-static void err_header_extra_data(gpointer obj)
+static void
+err_header_extra_data(gpointer obj)
 {
 	upload_error_remove(UPLOAD(obj), NULL, 400, "Extra data after HTTP header");
 }
 
-static struct io_error upload_io_error = {
+static const struct io_error upload_io_error = {
 	err_line_too_long,
 	err_header_error_tell,
 	err_header_error,
@@ -1095,7 +1094,8 @@ static struct io_error upload_io_error = {
 	err_header_extra_data,
 };
 
-static void call_upload_request(gpointer obj, header_t *header)
+static void
+call_upload_request(gpointer obj, header_t *header)
 {
 	upload_request(UPLOAD(obj), header);
 }
@@ -1106,7 +1106,8 @@ static void call_upload_request(gpointer obj, header_t *header)
  *** Upload mesh info tracking.
  ***/
 
-static struct mesh_info_key *mi_key_make(guint32 ip, const gchar *sha1)
+static struct mesh_info_key *
+mi_key_make(guint32 ip, const gchar *sha1)
 {
 	struct mesh_info_key *mik;
 
@@ -1117,7 +1118,8 @@ static struct mesh_info_key *mi_key_make(guint32 ip, const gchar *sha1)
 	return mik;
 }
 
-static void mi_key_free(struct mesh_info_key *mik)
+static void
+mi_key_free(struct mesh_info_key *mik)
 {
 	g_assert(mik);
 
@@ -1125,7 +1127,8 @@ static void mi_key_free(struct mesh_info_key *mik)
 	wfree(mik, sizeof(*mik));
 }
 
-static guint mi_key_hash(gconstpointer key)
+static guint
+mi_key_hash(gconstpointer key)
 {
 	const struct mesh_info_key *mik = (const struct mesh_info_key *) key;
 	extern guint sha1_hash(gconstpointer key);
@@ -1133,7 +1136,8 @@ static guint mi_key_hash(gconstpointer key)
 	return sha1_hash((gconstpointer) mik->sha1) ^ mik->ip;
 }
 
-static gint mi_key_eq(gconstpointer a, gconstpointer b)
+static gint
+mi_key_eq(gconstpointer a, gconstpointer b)
 {
 	const struct mesh_info_key *mika = (const struct mesh_info_key *) a;
 	const struct mesh_info_key *mikb = (const struct mesh_info_key *) b;
@@ -1143,7 +1147,8 @@ static gint mi_key_eq(gconstpointer a, gconstpointer b)
 		sha1_eq((gconstpointer) mika->sha1, (gconstpointer) mikb->sha1);
 }
 
-static struct mesh_info_val *mi_val_make(guint32 stamp)
+static struct mesh_info_val *
+mi_val_make(guint32 stamp)
 {
 	struct mesh_info_val *miv;
 
@@ -1154,7 +1159,8 @@ static struct mesh_info_val *mi_val_make(guint32 stamp)
 	return miv;
 }
 
-static void mi_val_free(struct mesh_info_val *miv)
+static void
+mi_val_free(struct mesh_info_val *miv)
 {
 	g_assert(miv);
 
@@ -1164,29 +1170,29 @@ static void mi_val_free(struct mesh_info_val *miv)
 	wfree(miv, sizeof(*miv));
 }
 
-/*
- * mi_free_kv
- *
+/**
  * Hash table iterator callback.
  */
-static void mi_free_kv(gpointer key, gpointer value, gpointer udata)
+static void
+mi_free_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
+	(void) unused_udata;
 	mi_key_free((struct mesh_info_key *) key);
 	mi_val_free((struct mesh_info_val *) value);
 }
 
-/*
- * mi_clean
- *
+/**
  * Callout queue callback invoked to clear the entry.
  */
-static void mi_clean(cqueue_t *cq, gpointer obj)
+static void
+mi_clean(cqueue_t *unused_cq, gpointer obj)
 {
 	struct mesh_info_key *mik = (struct mesh_info_key *) obj;
 	gpointer key;
 	gpointer value;
 	gboolean found;
 	
+	(void) unused_cq;
 	found = g_hash_table_lookup_extended(mesh_info, mik, &key, &value);
 
 	g_assert(found);
@@ -1202,14 +1208,13 @@ static void mi_clean(cqueue_t *cq, gpointer obj)
 	mi_free_kv(key, value, NULL);
 }
 
-/*
- * mi_get_stamp
- *
+/**
  * Get timestamp at which we last sent download mesh information for (IP,SHA1).
  * If we don't remember sending it, return 0.
  * Always records `now' as the time we sent mesh information.
  */
-static guint32 mi_get_stamp(guint32 ip, const gchar *sha1, time_t now)
+static guint32
+mi_get_stamp(guint32 ip, const gchar *sha1, time_t now)
 {
 	struct mesh_info_key mikey;
 	struct mesh_info_val *miv;
@@ -1259,12 +1264,11 @@ static guint32 mi_get_stamp(guint32 ip, const gchar *sha1, time_t now)
 }
 
 
-/*
- * upload_add
- *
+/**
  * Create a new upload request, and begin reading HTTP headers.
  */
-void upload_add(struct gnutella_socket *s)
+void
+upload_add(struct gnutella_socket *s)
 {
 	gnutella_upload_t *u;
 
@@ -1280,13 +1284,12 @@ void upload_add(struct gnutella_socket *s)
 		call_upload_request, NULL, &upload_io_error);
 }
 
-/*
- * expect_http_header
- *
+/**
  * Prepare reception of a full HTTP header, including the leading request.
  * Will call upload_request() when everything has been parsed.
  */
-void expect_http_header(gnutella_upload_t *u, upload_stage_t new_status)
+void
+expect_http_header(gnutella_upload_t *u, upload_stage_t new_status)
 {
 	struct gnutella_socket *s = u->socket;
 
@@ -1308,27 +1311,25 @@ void expect_http_header(gnutella_upload_t *u, upload_stage_t new_status)
 		call_upload_request, NULL, &upload_io_error);
 }
 
-/*
- * upload_wait_new_request
- *
+/**
  * This is used for HTTP/1.1 persistent connections.
  *
  * Move the upload back to a waiting state, until a new HTTP request comes
  * on the socket.
  */
-static void upload_wait_new_request(gnutella_upload_t *u)
+static void
+upload_wait_new_request(gnutella_upload_t *u)
 {
 	socket_tos_normal(u->socket);
 	expect_http_header(u, GTA_UL_WAITING);
 }
 
-/*
- * upload_connect_conf
- *
+/**
  * Got confirmation that the connection to the remote host was OK.
  * Send the GIV/QUEUE string, then prepare receiving back the HTTP request.
  */
-void upload_connect_conf(gnutella_upload_t *u)
+void
+upload_connect_conf(gnutella_upload_t *u)
 {
 	gchar giv[MAX_LINE_SIZE];
 	struct gnutella_socket *s;
@@ -1380,28 +1381,24 @@ void upload_connect_conf(gnutella_upload_t *u)
 	expect_http_header(u, GTA_UL_HEADERS);
 }
 
-/*
- * upload_error_not_found
- * 
+/**
  * Send back an HTTP error 404: file not found,
  */
-static void upload_error_not_found(gnutella_upload_t *u, const gchar *request)
+static void
+upload_error_not_found(gnutella_upload_t *u, const gchar *request)
 {
 	g_warning("Returned 404 for %s: %s", ip_to_gchar(u->socket->ip), request);
 	upload_error_remove(u, NULL, 404, "Not Found");
 }
 
-/* 
- * upload_http_version
- * 
+/**
  * Check that we got an HTTP request, extracting the protocol version.
- * Return TRUE if ok or FALSE otherwise (upload must then be aborted)
+ *
+ * @return TRUE if ok or FALSE otherwise (upload must then be aborted)
  */
-static gboolean upload_http_version(
-	gnutella_upload_t *u,
-	header_t *header,
-	gchar *request,
-	gint len)
+static gboolean
+upload_http_version(gnutella_upload_t *u, header_t *header,
+		gchar *request, gint len)
 {
 	gint http_major, http_minor;
 
@@ -1420,15 +1417,15 @@ static gboolean upload_http_version(
 	return TRUE;
 }
 
-/* 
- * get_file_to_upload_from_index
- * 
+/* *
  * Get the shared_file to upload. Request has been extracted already, and is
  * passed as request. The same holds for the file index, which is passed as
  * index.
- * Return the shared_file if found, NULL otherwise.
+ *
+ * @return the shared_file if found, NULL otherwise.
  */
-static struct shared_file *get_file_to_upload_from_index(
+static struct shared_file *
+get_file_to_upload_from_index(
 	gnutella_upload_t *u,
 	header_t *header,
 	gchar *uri,
@@ -1695,13 +1692,12 @@ static const char n2r_query[] = "/uri-res/N2R?";
 
 #define N2R_QUERY_LENGTH	(sizeof(n2r_query) - 1)
 
-/* 
- * get_file_to_upload_from_urn
- * 
+/* *
  * Get the shared_file to upload from a given URN.
  * Return the shared_file if we have it, NULL otherwise
  */
-static struct shared_file *get_file_to_upload_from_urn(
+static struct shared_file *
+get_file_to_upload_from_urn(
 	gnutella_upload_t *u,
 	header_t *header,
 	const gchar *uri)
@@ -1767,17 +1763,15 @@ not_found:
 	return NULL;
 }
 
-/*
- * get_file_to_upload
- * 
+/**
  * A dispatcher function to call either get_file_to_upload_from_index or
  * get_file_to_upload_from_sha1 depending on the syntax of the request.
  *
- * Return the shared_file if we got it, or NULL otherwise.
+ * @return the shared_file if we got it, or NULL otherwise.
  * When NULL is returned, we have sent the error back to the client.
  */
-static struct shared_file *get_file_to_upload(
-	gnutella_upload_t *u, header_t *header, gchar *request)
+static struct shared_file *
+get_file_to_upload(gnutella_upload_t *u, header_t *header, gchar *request)
 {
 	guint idx = 0;
 	gchar *uri;
@@ -1811,14 +1805,12 @@ static struct shared_file *get_file_to_upload(
 	return NULL;
 }
 
-/*
- * upload_http_xhost_add
- *
+/**
  * This routine is called by http_send_status() to generate the
  * X-Host line (added to the HTTP status) into `buf'.
  */
-static void upload_http_xhost_add(
-	gchar *buf, gint *retval, gpointer arg, guint32 flags)
+static void
+upload_http_xhost_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {
 	gint rw = 0;
 	gint length = *retval;
@@ -1842,11 +1834,10 @@ static void upload_http_xhost_add(
 	*retval = rw;
 }
 
-/*
- * upload_http_xhost_add
+/**
  */
-static void upload_xfeatures_add(
-	gchar *buf, gint *retval, gpointer arg, guint32 flags)
+static void
+upload_xfeatures_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {
 	size_t rw = 0;
 	size_t length = *retval;
@@ -1855,14 +1846,12 @@ static void upload_xfeatures_add(
 	
 	*retval = rw;
 }
-/*
- * upload_http_sha1_add
- *
+/**
  * This routine is called by http_send_status() to generate the
  * SHA1-specific headers (added to the HTTP status) into `buf'.
  */
-static void upload_http_sha1_add(
-	gchar *buf, gint *retval, gpointer arg, guint32 flags)
+static void
+upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {
 	gint rw = 0;
 	gint length = *retval;
@@ -1989,14 +1978,12 @@ static void upload_http_sha1_add(
 	*retval = rw;
 }
 
-/*
- * upload_416_extra
- *
+/**
  * This routine is called by http_send_status() to generate the
  * additionnal headers on a "416 Request range not satisfiable" error.
  */
-static void upload_416_extra(
-	gchar *buf, gint *retval, gpointer arg, guint32 flags)
+static void
+upload_416_extra(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {
 	gint rw = 0;
 	gint length = *retval;
@@ -2011,14 +1998,12 @@ static void upload_416_extra(
 	*retval = rw;
 }
 
-/*
- * upload_http_status
- *
+/**
  * This routine is called by http_send_status() to generate the
  * upload-specific headers into `buf'.
  */
-static void upload_http_status(
-	gchar *buf, gint *retval, gpointer arg, guint32 flags)
+static void
+upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {
 	gint rw = 0;
 	gint length = *retval;
@@ -2059,14 +2044,13 @@ static void upload_http_status(
 	*retval = rw;
 }
 
-/*
- * upload_request
- *
+/**
  * Called to initiate the upload once all the HTTP headers have been
  * read.  Validate the request, and begin processing it if all OK.
  * Otherwise cancel the upload.
  */
-static void upload_request(gnutella_upload_t *u, header_t *header)
+static void
+upload_request(gnutella_upload_t *u, header_t *header)
 {
 	struct gnutella_socket *s = u->socket;
 	struct shared_file *reqfile = NULL;
@@ -2831,7 +2815,8 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 * writing too much before detecting the stall.
 	 */
 
-	known_for_stalling = NULL != aging_lookup(stalling_uploads, &u->ip);
+	known_for_stalling = NULL != aging_lookup(stalling_uploads,
+									GUINT_TO_POINTER(u->ip));
 
 	if (stalled <= STALL_THRESH && !known_for_stalling) {
 		sock_cork(s, TRUE);
@@ -2930,12 +2915,11 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	upload_stats_file_begin(u);
 }
 
-/*
- * upload_write
- *
+/**
  * Called when output source can accept more data.
  */
-static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
+static void
+upload_write(gpointer up, gint source, inputevt_cond_t cond)
 {
 	gnutella_upload_t *u = (gnutella_upload_t *) up;
 	gint written;
@@ -3076,12 +3060,11 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 	}
 }
 
-/*
- * upload_kill
- *
+/**
  * Kill a running upload.
  */
-void upload_kill(gnet_upload_t upload)
+void
+upload_kill(gnet_upload_t upload)
 {
     gnutella_upload_t *u = upload_find_by_handle(upload);
 
@@ -3093,12 +3076,11 @@ void upload_kill(gnet_upload_t upload)
 	}
 }
 
-/*
- * upload_kill_ip
- *
+/**
  * Kill all running uploads by IP.
  */
-void upload_kill_ip(guint32 ip)
+void
+upload_kill_ip(guint32 ip)
 {
 	GSList *sl, *to_remove = NULL;
 
@@ -3121,12 +3103,11 @@ void upload_kill_ip(guint32 ip)
 	g_slist_free(to_remove);
 }
 
-/*
- * upload_is_enabled
- *
+/**
  * Check whether uploading is enabled: we have slots, and bandwidth.
  */
-gboolean upload_is_enabled(void)
+gboolean
+upload_is_enabled(void)
 {
 	if (max_uploads == 0)
 		return FALSE;
@@ -3138,31 +3119,18 @@ gboolean upload_is_enabled(void)
 }
 
 /**
- * Free routine for keys inserted in the `stalling_uploads' container.
- */
-static void
-upload_stalling_key_free(gpointer key, gpointer unused_udata)
-{
-	(void) unused_udata;
-
-	atom_int_free((gint *) key);
-}
-
-/*
- * upload_init
- *
  * Initialize uploads.
  */
 void upload_init(void)
 {
 	mesh_info = g_hash_table_new(mi_key_hash, mi_key_eq);
 	stalling_uploads = aging_make(STALL_CLEAR,
-		g_int_hash, g_int_equal,
-		upload_stalling_key_free, NULL, NULL, NULL);
+							NULL, NULL, NULL, NULL, NULL, NULL);
     upload_handle_map = idtable_new(32, 32);
 }
 
-void upload_close(void)
+void
+upload_close(void)
 {
 	GSList *sl, *to_remove = NULL;
 
@@ -3191,7 +3159,8 @@ void upload_close(void)
 	aging_destroy(stalling_uploads);
 }
 
-gnet_upload_info_t *upload_get_info(gnet_upload_t uh)
+gnet_upload_info_t *
+upload_get_info(gnet_upload_t uh)
 {
     gnutella_upload_t *u = upload_find_by_handle(uh); 
     gnet_upload_info_t *info;
@@ -3213,7 +3182,8 @@ gnet_upload_info_t *upload_get_info(gnet_upload_t uh)
     return info;
 }
 
-void upload_free_info(gnet_upload_info_t *info)
+void
+upload_free_info(gnet_upload_info_t *info)
 {
     g_assert(info != NULL);
 
@@ -3225,7 +3195,8 @@ void upload_free_info(gnet_upload_info_t *info)
     wfree(info, sizeof(*info));
 }
 
-void upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
+void
+upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 {
     gnutella_upload_t *u = upload_find_by_handle(uh); 
 	time_t now = time((time_t *) NULL);
@@ -3255,4 +3226,4 @@ void upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
         si->avg_bps++;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

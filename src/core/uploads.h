@@ -109,9 +109,6 @@ struct upload_http_cb {
  * Global Data
  */
 
-extern GSList *uploads;
-extern guint32 count_uploads;
-
 /* 
  * Global Functions
  */
