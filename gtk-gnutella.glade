@@ -8648,7 +8648,7 @@ control</label>
 			  <bottom_attach>5</bottom_attach>
 			  <xpad>0</xpad>
 			  <ypad>0</ypad>
-			  <xexpand>True</xexpand>
+			  <xexpand>False</xexpand>
 			  <yexpand>False</yexpand>
 			  <xshrink>False</xshrink>
 			  <yshrink>False</yshrink>

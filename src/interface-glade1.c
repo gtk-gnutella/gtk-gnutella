@@ -5911,7 +5911,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame_gnet_can_become_ultra);
   gtk_table_attach (GTK_TABLE (table72), frame_gnet_can_become_ultra, 3, 4, 0, 5,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
 
   vbox116 = gtk_vbox_new (FALSE, 0);
