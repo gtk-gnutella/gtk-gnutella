@@ -180,6 +180,38 @@ void qrp_init(char_map_t map)
  ***/
 
 /*
+ * RT_SLOT_READ
+ *
+ * Access slot #`s' in arena `a'.
+ * Table is compacted so that slot #6 is bit 1 of byte 0.
+ *
+ * In general:
+ *
+ *	byte = slot >> 3;
+ *	bit = 7 - (slot & 0x7);
+ *  value = arena[byte] & (1 << bit)
+ *
+ * Returns the TRUE if there is something present, FALSE otherwise.
+ */
+#define RT_SLOT_READ(a,s) ((a)[(s) >> 3] & (1 << (7 - ((s) & 0x7))))
+
+/*
+ * RT_SLOT_SET
+ *
+ * Set slot #`s' in arena `a'.
+ */
+#define RT_SLOT_SET(a,s) \
+	do { (a)[(s) >> 3] |= (1 << (7 - ((s) & 0x7))); } while (0)
+
+/*
+ * RT_SLOT_CLEAR
+ *
+ * Clear slot #`s' in arena `a'.
+ */
+#define RT_SLOT_CLEAR(a,s) \
+	do { (a)[(s) >> 3] &= ~(1 << (7 - ((s) & 0x7))); } while (0)
+
+/*
  * qrt_compact
  *
  * Compact routing table in place so that only one bit of information is used
@@ -276,7 +308,7 @@ static guchar *qrt_sha1(struct routing_table *rt)
 		guint8 value = *p++;
 
 		for (j = 0, mask = 0x80; j < 8; j++, mask >>= 1)
-			vector[j] = (value & mask) ? rt->infinity - 1 : rt->infinity;
+			vector[j] = (value & mask) ? 1 : 0;		/* 1 for presence */
 
 		SHA1Input(&ctx, vector, sizeof(vector));
 	}
@@ -284,122 +316,6 @@ static guchar *qrt_sha1(struct routing_table *rt)
 	SHA1Result(&ctx, digest);
 
 	return (guchar *) digest;
-}
-
-/*
- * qrt_apply_patch_8
- *
- * Given a non-compacted patch array, apply it to the specified routing table.
- * The patch is given with entries being 8-bit wide.
- */
-static void qrt_apply_patch_8(struct routing_table *rt, guchar *patch, gint len)
-{
-	guchar *p;
-	guchar *q;
-	gint i;
-	gint bytes = rt->slots / 8;
-
-	g_assert(rt->compacted);
-	g_assert(len == rt->slots);
-
-	/*
-	 * The only possibilities for the patch are negative values, to
-	 * bring the slot value from infinity to 1, or positive values to put
-	 * the slot back to infinity, 0 for no change.
-	 *
-	 * Therefore, a positive patch value means that we no longer have
-	 * anything for the slot, a negative one that we do have something, 0
-	 * meaning no change.
-	 */
-
-	for (i = 0, p = rt->arena, q = patch; i < bytes; i++) {
-		guint set = 0;				/* Bits to set */
-		guint clear = 0;			/* Bits to clear */
-		guchar r;
-		gint j;
-
-		for (j = 7; j >= 0; j--) {
-			guint8 v = *q++;
-			if (v & 0x80)			/* Negative value, sign bit is 1 */
-				set |= 1 << j;		/* We have something for this slot */
-			else if (v != 0)		/* Positive value */
-				clear |= 1 << j;	/* We no longer have something there */
-		}
-
-		g_assert(0 == (set & clear));	/* Each bit is set or cleared */
-
-		/*
-		 * Apply patch.
-		 */
-
-		r = *p;
-		r &= ~clear;
-		r |= set;
-		*p++ = r;
-	}
-
-	g_assert(q == (patch + len));	/* Went through all the patch */
-}
-
-/*
- * qrt_apply_patch_4
- *
- * Given a non-compacted patch array, apply it to the specified routing table.
- * The patch is given with entries being 4-bit wide.
- */
-static void qrt_apply_patch_4(struct routing_table *rt, guchar *patch, gint len)
-{
-	guchar *p;
-	guchar *q;
-	gint i;
-	gint bytes = rt->slots / 8;
-
-	g_assert(rt->compacted);
-	g_assert(len == rt->slots);
-
-	/*
-	 * The only possibilities for the patch are negative values, to
-	 * bring the slot value from infinity to 1, or positive values to put
-	 * the slot back to infinity, 0 for no change.
-	 *
-	 * Therefore, a positive patch value means that we no longer have
-	 * anything for the slot, a negative one that we do have something, 0
-	 * meaning no change.
-	 */
-
-	for (i = 0, p = rt->arena, q = patch; i < bytes; i++) {
-		guint set = 0;				/* Bits to set */
-		guint clear = 0;			/* Bits to clear */
-		guchar r;
-		gint j;
-
-		for (j = 7; j >= 0; j--) {
-			guint8 v;
-
-			if (j & 0x1)
-				v = (*q & 0xf0) >> 4;		/* First quartet, highest part */
-			else
-				v = (*q++ & 0x0f);			/* Second quartet, lowest part */
-
-			if (v & 0x08)			/* Negative value, sign bit is 1 */
-				set |= 1 << j;		/* We have something for this slot */
-			else if (v != 0)		/* Positive value */
-				clear |= 1 << j;	/* We no longer have something there */
-		}
-
-		g_assert(0 == (set & clear));	/* Each bit is set or cleared */
-
-		/*
-		 * Apply patch.
-		 */
-
-		r = *p;
-		r &= ~clear;
-		r |= set;
-		*p++ = r;
-	}
-
-	g_assert(q == (patch + len));	/* Went through all the patch */
 }
 
 /*
@@ -499,8 +415,10 @@ static struct routing_patch *qrt_diff_4(
 
 			if (j & 0x1)
 				v <<= 4;			/* We have upper half of octet (byte) */
-			else
+			else {
 				*pp++ = v;
+				v = 0;
+			}
 		}
 	}
 
@@ -1951,7 +1869,9 @@ struct qrt_receive {
 	z_streamp inz;			/* Data inflater */
 	gchar *data;			/* Where inflated data is written */
 	gint len;				/* Length of the `data' buffer */
-	gint slots_seen;		/* Amount of slots we processed so far in patch */
+	gint current_slot;		/* Current slot processed in patch */
+	gint current_index;		/* Current index (after shrinking) in QR table */
+	gchar *expansion;		/* Temporary expansion arena before shrinking */
 	gboolean deflated;		/* Is data deflated? */
 };
 
@@ -1995,6 +1915,7 @@ gpointer qrt_receive_create(struct gnutella_node *n, gpointer query_table)
 	qrcv = walloc(sizeof(*qrcv));
 	
 	qrcv->magic = QRT_RECEIVE_MAGIC;
+	qrcv->node = n;
 	qrcv->table = table ? qrt_ref(table) : NULL;
 	qrcv->shrink_factor = 1;		/* Assume none for now */
 	qrcv->seqsize = 0;				/* Unknown yet */
@@ -2004,6 +1925,34 @@ gpointer qrt_receive_create(struct gnutella_node *n, gpointer query_table)
 	qrcv->inz = inz;
 	qrcv->len = QRT_RECEIVE_BUFSIZE;
 	qrcv->data = g_malloc(qrcv->len);
+	qrcv->expansion = NULL;
+
+	/*
+	 * We don't know yet whether we'll receive a RESET, but if we already
+	 * have a table, increase its generation number.  If a RESET comes,
+	 * we'll create a new table anyway.
+	 *
+	 * Also compute proper shrink factor and allocate `expansion'.
+	 */
+
+	if (table != NULL) {
+		gint length = table->client_slots;
+
+		table->generation++;
+
+		/*
+		 * Since we know the table_length is a power of two, to
+		 * know the shrinking factor, we need only count the amount
+		 * of right shifts required to make it be MAX_TABLE_SIZE.
+		 */
+
+		while (length > MAX_TABLE_SIZE) {
+			length >>= 1;
+			qrcv->shrink_factor <<= 1;
+		}
+
+		qrcv->expansion = walloc(qrcv->shrink_factor);
+	}
 
 	return qrcv;
 }
@@ -2023,6 +1972,8 @@ void qrt_receive_free(gpointer handle)
 	wfree(qrcv->inz, sizeof(*qrcv->inz));
 	if (qrcv->table)
 		qrt_unref(qrcv->table);
+	if (qrcv->expansion)
+		wfree(qrcv->expansion, qrcv->shrink_factor);
 	g_free(qrcv->data);
 
 	qrcv->magic = 0;			/* Prevent accidental reuse */
@@ -2039,7 +1990,182 @@ void qrt_receive_free(gpointer handle)
 static gboolean qrt_apply_patch(
 	struct qrt_receive *qrcv, guchar *data, gint len)
 {
-	// XXXXX
+	gint bpe = qrcv->entry_bits;		/* bits per entry */
+	gint epb;							/* entries per byte */
+	guint8 rmask;						/* reading mask */
+	gint expansion_slot;
+	struct routing_table *rt = qrcv->table;
+	gint i;
+
+	g_assert(qrcv->table != NULL);
+	g_assert(qrcv->expansion != NULL);
+
+	/*
+	 * NOTA BENE:
+	 *
+	 * When we're shrinking the table, every entry needs to be expanded
+	 * first by the shrinking factor into the `expansion' array, then
+	 * the patch is applied on that array, and afterwards the array is
+	 * shrunk back to one single value in the table.
+	 *
+	 * If at least one entry in the `expansion' array is set (i.e. is
+	 * marked "present"), the corresponding slot in the routing table will
+	 * end-up being set.
+	 *
+	 * Assume a shrink factor of 2: A "1" in the table will be expaned
+	 * as being { "1", "1" }.  If the patch clears the first entry only,
+	 * the shrunk table will keep its "1" value.  Only if both entries were
+	 * cleared would the table entry become "0".
+	 *
+	 * This means a succession of patches that flips { "1", "0" } in the
+	 * original servent table to { "0", "1" }, and then clears the second
+	 * entry to { "0", "0" } will be INCORRECTLY summarized with a "1" value
+	 * in the table, since { "0", "1" } will expand back to { "1", "1" }.
+	 *
+	 *		--RAM, 13/01/2003
+	 */
+
+	/*
+	 * Compute the expansion slot.  The shrink_factor is always a
+	 * power of two, so it's easy to know where to begin!  Computation
+	 * is done using the remote servent slot numbers (i.e. before shrinking).
+	 *
+	 * If we are already past the expansion slot, it means we already expanded
+	 * the necessary information in `expansion', but did not have enough data
+	 * to shrink it back yet.
+	 */
+
+	expansion_slot = qrcv->current_slot & ~(qrcv->shrink_factor - 1);
+
+	if (qrcv->current_slot > expansion_slot)
+		expansion_slot += qrcv->shrink_factor;
+
+	/*
+	 * Compute the amount of entries per byte, and the initial reading mask.
+	 */
+
+	switch (bpe) {
+	case 8: epb = 1; rmask = 0xff; break;
+	case 4: epb = 2; rmask = 0xf0; break;
+	case 2: epb = 4; rmask = 0xc0; break;
+	case 1: epb = 8; rmask = 0x80; break;
+	default:
+		g_error("unsupported bits per entry: %d", bpe);
+		return FALSE;
+	}
+
+	g_assert(qrcv->expansion != NULL);
+
+	for (i = 0; i < len; i++) {
+		gint j;
+		guint8 value = data[i];		/* Patch byte contains `epb' slots */
+		guint8 smask;				/* Sign bit mask */
+		guint8 mask;
+
+		for (
+			j = 0, mask = rmask, smask = 0x80;
+			j < epb;
+			j++, mask >>= bpe, smask >>= bpe
+		) {
+			guint8 v = value & mask;
+			gint o;
+
+			/*
+			 * If we are at an expansion slot, expand.
+			 *
+			 * We don't special-case the non-shrinking cases, even though
+			 * those will be the most common, because peformance is not what
+			 * matters here.
+			 */
+
+			if (qrcv->current_slot == expansion_slot) {
+				gint k;
+				gboolean v;
+
+				g_assert(qrcv->current_index < rt->slots);
+
+				v = RT_SLOT_READ(rt->arena, qrcv->current_index) ? TRUE : FALSE;
+
+				for (k = 0; k < qrcv->shrink_factor; k++)
+					qrcv->expansion[k] = v;
+
+				expansion_slot += qrcv->shrink_factor;	/* For next expansion */
+			}
+
+			/*
+			 * At this point, `expansion_slot' points to the next expantion
+			 * point.  Our offset `o' within the array (whose size if the
+			 * shrink_factor) is where the next patch must be applied.
+			 */
+
+			g_assert(expansion_slot > qrcv->current_slot);
+
+			o = qrcv->shrink_factor - (expansion_slot - qrcv->current_slot);
+
+			g_assert(o >= 0);
+
+			/*
+			 * The only possibilities for the patch are:
+			 *
+			 * . A negative value, to bring the slot value from infinity to 1.
+			 * . A null value for no change.
+			 * . A positive value to bring the slot back to infinity.
+			 *
+			 * The "bpe=1" patch is special.  The value is XOR-ed, thus
+			 * a 0 means no change, and a 1 inverts the value.
+			 */
+
+			if (bpe == 1) {				/* Special, use XOR */
+				if (v)
+					qrcv->expansion[o] = !qrcv->expansion[o];
+			} else if (v & smask)		/* Negative value, sign bit is 1 */
+				qrcv->expansion[o] = 1;	/* We have something */
+			else if (v != 0)			/* Positive value */
+				qrcv->expansion[o] = 0;	/* We no longer have something */
+
+			/*
+			 * Advance to next slot, and if we reach the next expansion
+			 * slot, it's time to compact the data back into the current index
+			 * and move to the next index.
+			 */
+
+			if (++qrcv->current_slot == expansion_slot) {
+				gint k;
+				gboolean v = FALSE;
+
+				for (k = 0; k < qrcv->shrink_factor; k++) {
+					if (qrcv->expansion[k]) {
+						v = TRUE;
+						break;
+					}
+				}
+
+				g_assert(qrcv->current_index < rt->slots);
+
+				if (v)
+					RT_SLOT_SET(rt->arena, qrcv->current_index);
+				else
+					RT_SLOT_CLEAR(rt->arena, qrcv->current_index);
+
+				qrcv->current_index++;
+			}
+
+			/*
+			 * Make sure they are not providing us with more data than
+			 * the table can hold.
+			 */
+
+			if (qrcv->current_slot >= rt->client_slots) {
+				if (j != (epb - 1) || i != (len - 1)) {
+					struct gnutella_node *n = qrcv->node;
+					g_warning("node %s <%s> overflowed its QRP patch",
+						node_ip(n), n->vendor ? n->vendor : "????");
+					node_bye_if_writable(n, 413, "QRP patch overflowed table");
+					return FALSE;
+				}
+			}
+		}
+	}
 
 	return TRUE;
 }
@@ -2051,7 +2177,7 @@ static gboolean qrt_apply_patch(
  * Returns TRUE if we handled the message correctly, FALSE if an error
  * was found and the node BYE-ed.
  */
-gboolean qrt_handle_reset(
+static gboolean qrt_handle_reset(
 	struct gnutella_node *n, struct qrt_receive *qrcv, struct qrp_reset *reset)
 {
 	struct routing_table *rt;
@@ -2069,6 +2195,9 @@ gboolean qrt_handle_reset(
 
 	if (qrcv->table)
 		qrt_unref(qrcv->table);
+
+	if (qrcv->expansion)
+		wfree(qrcv->expansion, qrcv->shrink_factor);
 
 	/*
 	 * If the advertized table size is not a power of two, good bye.
@@ -2124,8 +2253,14 @@ gboolean qrt_handle_reset(
 
 	while (reset->table_length > MAX_TABLE_SIZE) {
 		reset->table_length >>= 1;
-		qrcv->shrink_factor++;
+		qrcv->shrink_factor <<= 1;
 	}
+
+	if (dbg && qrcv->shrink_factor > 1)
+		g_warning("QRT from %s <%s> will be shrank by a factor of %d",
+			node_ip(n), n->vendor ? n->vendor : "????", qrcv->shrink_factor);
+
+	qrcv->expansion = walloc(qrcv->shrink_factor);
 
 	rt->slots = rt->client_slots / qrcv->shrink_factor;
 
@@ -2137,7 +2272,7 @@ gboolean qrt_handle_reset(
 	 * Since the table is empty, it is zero-ed.
 	 */
 
-	slots = rt->slots / 8;
+	slots = rt->slots / 8;			/* 8 bits per byte, table is compacted */
 	rt->arena = g_malloc0(slots);
 
 	/*
@@ -2156,10 +2291,22 @@ gboolean qrt_handle_reset(
  * was found and the node BYE-ed.  Sets `done' to TRUE on the last message
  * from the sequence.
  */
-gboolean qrt_handle_patch(
+static gboolean qrt_handle_patch(
 	struct gnutella_node *n, struct qrt_receive *qrcv, struct qrp_patch *patch,
 	gboolean *done)
 {
+	/*
+	 * If we don't have a routing table allocated, it means they never sent
+	 * the RESET message, and no prior table was recorded.
+	 */
+
+	if (qrcv->table == NULL) {
+		g_warning("node %s <%s> did not sent any QRP RESET before PATCH",
+			node_ip(n), n->vendor ? n->vendor : "????");
+		node_bye_if_writable(n, 413, "No QRP RESET received before PATCH");
+		return FALSE;
+	}
+
 	/*
 	 * Check that we're receiving the proper sequence.
 	 */
@@ -2182,7 +2329,22 @@ gboolean qrt_handle_patch(
 		qrcv->seqsize = patch->seq_size;
 		qrcv->deflated = patch->compressor == 0x1;
 		qrcv->entry_bits = patch->entry_bits;
-		qrcv->slots_seen = 0;
+		qrcv->current_index = qrcv->current_slot = 0;
+
+		switch (qrcv->entry_bits) {
+		case 8:
+		case 4:
+		case 2:
+		case 1:
+			break;
+		default:
+			g_warning("node %s <%s> sent invalid QRP entry bits %u for PATCH",
+				node_ip(n), n->vendor ? n->vendor : "????",
+				qrcv->entry_bits);
+			node_bye_if_writable(n, 413, "Invalid QRP entry bits %u for PATCH",
+				qrcv->entry_bits);
+			return FALSE;
+		}
 	} else if (patch->seq_size != qrcv->seqsize) {
 		g_warning("node %s <%s> changed QRP seqsize to %u at message #%d "
 			"(started with %u)",
@@ -2274,8 +2436,30 @@ gboolean qrt_handle_patch(
 	 * Was the PATCH sequence fully processed?
 	 */
 
-	if (qrcv->seqno > qrcv->seqsize)
+	if (qrcv->seqno > qrcv->seqsize) {
+		struct routing_table *rt = qrcv->table;
+
 		*done = TRUE;
+
+		g_assert(qrcv->current_index == rt->slots);
+
+		rt->digest = atom_sha1_get(qrt_sha1(rt));
+
+		if (dbg > 4)
+			printf("QRP got whole patch (gen=%d) from %s <%s>: SHA1=%s\n",
+				rt->generation, node_ip(n), n->vendor ? n->vendor : "????",
+				sha1_base32(rt->digest));
+
+		/*
+		 * Install the table in the node, if it was a generation 0 table.
+		 * Otherwise, we only finished patching it.
+		 */
+
+		if (rt->generation == 0)
+			node_qrt_install(n, rt);
+
+		(void) qrt_dump(stdout, rt, dbg > 20);
+	}
 
 	return TRUE;
 }
@@ -2367,22 +2551,12 @@ void qrp_close(void)
  */
 static gboolean qrt_dump_is_slot_present(struct routing_table *rt, gint slot)
 {
-	gint byte;
-	gint bit;
-
 	g_assert(slot < rt->slots);
 
 	if (!rt->compacted)
 		return rt->arena[slot] != rt->infinity;
 
-	/*
-	 * Table is compacted: slot #6 is bit 1 of the first byte.
-	 */
-
-	byte = slot >> 3;
-	bit = 7 - (slot & 0x7);
-
-	return rt->arena[byte] & (1 << bit);
+	return RT_SLOT_READ(rt->arena, slot);
 }
 
 /*
@@ -2416,7 +2590,7 @@ static guint32 qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
 			goto final;
 
 		status = qrt_dump_is_slot_present(rt, i);
-		value = status ? rt->infinity - 1 : rt->infinity;
+		value = status ? 1 : 0;			/* 1 for presence */
 
 		SHA1Input(&ctx, &value, sizeof(value));
 
