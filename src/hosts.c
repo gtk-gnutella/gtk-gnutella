@@ -657,6 +657,13 @@ static void send_neighbouring_info(struct gnutella_node *n)
 			cn->gnet_files_count, cn->gnet_kbytes_count);
 
 		/*
+		 * Since we won't see the neighbour pong, we won't be able to store
+		 * it in our reserve, so do it from here.
+		 */
+
+		host_add(cn->gnet_ip, cn->gnet_port, FALSE);
+
+		/*
 		 * Node can be removed should its send queue saturate.
 		 */
 
@@ -749,12 +756,14 @@ void pcache_outgoing_connection(struct gnutella_node *n)
 static void pcache_expire(void)
 {
 	gint i;
+	gint entries = 0;
 
 	for (i = 0; i < PONG_CACHE_SIZE; i++) {
 		struct cache_line *cl = &pong_cache[i];
 		GSList *l;
 
 		for (l = cl->pongs; l; l = l->next) {
+			entries++;
 			g_free(l->data);
 		}
 		g_slist_free(cl->pongs);
@@ -763,8 +772,10 @@ static void pcache_expire(void)
 		cl->cursor = NULL;
 	}
 
-	if (dbg > 5)
-		printf("Pong CACHE expired\n");
+	if (dbg > 4)
+		printf("Pong CACHE expired (%d entr%s, %d in reserve)\n",
+			entries, entries == 1 ? "y" : "ies",
+			g_hash_table_size(ht_catched_hosts));
 }
 
 /*
@@ -1022,6 +1033,37 @@ void pcache_ping_received(struct gnutella_node *n)
 	guint8 ttl;
 
 	/*
+	 * Handle "alive" pings and "crawler" pings specially.
+	 * Besides, we always accept them.
+	 */
+
+	if (n->header.hops == 0 && n->header.ttl <= 2) {
+		n->n_ping_special++;
+		if (n->header.ttl == 1)
+			send_personal_info(n);
+		else
+			send_neighbouring_info(n);
+		return;
+	}
+
+	/*
+	 * If we get a ping with hops != 0 from a host that claims to
+	 * implement ping/pong reduction, then they are not playing
+	 * by the same rules as we are.  Emit a warning.
+	 *		--RAM, 03/03/2001
+	 */
+
+	if (
+		n->header.hops &&
+		(n->flags & (NODE_F_PING_LIMIT|NODE_F_PING_ALIEN)) == NODE_F_PING_LIMIT
+	) {
+		g_warning("node %s [%d.%d] claimed ping reduction, "
+			"got ping with hops=%d", node_ip(n),
+			n->proto_major, n->proto_minor, n->header.hops);
+		n->flags |= NODE_F_PING_ALIEN;		/* Warn only once */
+	}
+
+	/*
 	 * Accept the ping?.
 	 */
 
@@ -1033,19 +1075,6 @@ void pcache_ping_received(struct gnutella_node *n)
 	} else {
 		n->n_ping_accepted++;
 		n->ping_accept = now + PING_THROTTLE;	/* Drop more ones until then */
-	}
-
-	/*
-	 * Handle "alive" pings and "crawler" pings specially.
-	 */
-
-	if (n->header.hops == 0 && n->header.ttl <= 2) {
-		n->n_ping_special++;
-		if (n->header.ttl == 1)
-			send_personal_info(n);
-		else
-			send_neighbouring_info(n);
-		return;
 	}
 
 	/*
@@ -1070,11 +1099,11 @@ void pcache_ping_received(struct gnutella_node *n)
 	 * If we can accept an incoming connection, send a reply.
 	 */
 
-	if (node_count() < max_connections)
+	if (node_count() < max_connections) {
 		send_personal_info(n);
-
-	if (!NODE_IS_CONNECTED(n))		/* Can be removed if send queue is full */
-		return;
+		if (!NODE_IS_CONNECTED(n))	/* Can be removed if send queue is full */
+			return;
+	}
 
 	/*
 	 * Return cached pongs if we have some and they are needed.
@@ -1086,11 +1115,11 @@ void pcache_ping_received(struct gnutella_node *n)
 	for (h = 0; n->pong_missing && h < n->header.ttl; h++) {
 		struct cache_line *cl = &pong_cache[CACHE_HOP_IDX(h)];
 
-		if (cl->pongs)
+		if (cl->pongs) {
 			send_cached_pongs(n, cl, ttl, TRUE);
-
-		if (!NODE_IS_CONNECTED(n))
-			return;
+			if (!NODE_IS_CONNECTED(n))
+				return;
+		}
 	}
 
 	/*
@@ -1101,11 +1130,11 @@ void pcache_ping_received(struct gnutella_node *n)
 	for (h = 0; n->pong_missing && h < n->header.ttl; h++) {
 		struct cache_line *cl = &pong_cache[CACHE_HOP_IDX(h)];
 
-		if (cl->pongs)
+		if (cl->pongs) {
 			send_cached_pongs(n, cl, ttl, FALSE);
-
-		if (!NODE_IS_CONNECTED(n))
-			return;
+			if (!NODE_IS_CONNECTED(n))
+				return;
+		}
 	}
 }
 
@@ -1173,14 +1202,19 @@ void pcache_pong_received(struct gnutella_node *n)
 
 	/*
 	 * If we got a pong from an "old" client, cache OLD_CACHE_RATIO of
-	 * its pongs, randomly.  Returning from this routing means we won't
+	 * its pongs, randomly.  Returning from this routine means we won't
 	 * cache it.
 	 */
 
 	if (!(n->flags & NODE_F_PING_LIMIT)) {
 		gint ratio = (int) (100.0 * rand() / (RAND_MAX + 1.0));
-		if (ratio >= OLD_CACHE_RATIO)
+		if (ratio >= OLD_CACHE_RATIO) {
+			if (dbg > 7)
+				printf("NOT CACHED pong %s (hops=%d, TTL=%d) from OLD %s\n",
+					ip_port_to_gchar(ip, port), n->header.hops, n->header.ttl,
+					node_ip(n));
 			return;
+		}
 	}
 
 	/*
@@ -1215,6 +1249,8 @@ void pcache_pong_received(struct gnutella_node *n)
 
 void host_close(void)
 {
+	pcache_expire();
+
 	while (sl_catched_hosts)
 		host_remove((struct gnutella_host *) sl_catched_hosts->data, FALSE);
 
@@ -1222,7 +1258,6 @@ void host_close(void)
 
 	ping_reqs_clear();
 	g_list_free(sl_catched_hosts);
-	pcache_expire();
 }
 
 /* vi: set ts=4: */

@@ -111,6 +111,7 @@ struct gnutella_node {
 #define NODE_F_PING_LIMIT	0x00000002	/* Flags a "NEW" ping limiting node */
 #define NODE_F_TMP			0x00000004	/* Temporary, until we send pongs */
 #define NODE_F_INCOMING		0x00000008	/* Incoming (permanent) connection */
+#define NODE_F_PING_ALIEN	0x00000010	/* We don't know the limiting algo */
 
 /*
  * Node states.
