@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Sun Jan 11 17:25:59 MET 2004 [metaconfig 3.0 PL70]
+# Generated on Sun Jan 25 20:23:03 MET 2004 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -349,6 +349,7 @@ medium=''
 models=''
 small=''
 split=''
+msgmerge_update=''
 c=''
 n=''
 d_official=''
@@ -4328,7 +4329,7 @@ gtkldflags=`$gtkconfig --libs`
 : determine our version number
 echo " "
 echo "Figuring out my version number..." >&4
-$grep '^#define GTA' $rsrc/src/common.h >ver.c
+$grep '^#define GTA' $rsrc/src/common.h | $grep -v GTA_INTERFACE >ver.c
 $cat >>ver.c <<'EOM'
 int main()
 {
@@ -4691,6 +4692,19 @@ rp="Name of program to make makefile dependencies?"
 . ./getfile
 mkdep="$ans"
 $rm -f dep.c dep.h dep$_o dep.out
+
+: check whether msgmerge supports --update
+echo " "
+echo "Let's see whether your $msgmerge supports the --update flag..." >&4
+$msgmerge --help | $grep -- --update >msghelp
+if $contains update msghelp; then
+	echo "Good, it does."
+	msgmerge_update="$msgmerge --update"
+else
+	echo "Sorry, it does not: we'll try to do without it."
+	msgmerge_update=":"
+fi
+$rm -f msghelp
 
 : Cruising for prototypes
 echo " "
@@ -5246,6 +5260,7 @@ models='$models'
 more='$more'
 msgfmt='$msgfmt'
 msgmerge='$msgmerge'
+msgmerge_update='$msgmerge_update'
 mv='$mv'
 myuname='$myuname'
 n='$n'
