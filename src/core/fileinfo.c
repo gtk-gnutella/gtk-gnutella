@@ -3024,7 +3024,7 @@ fi_check_file(struct dl_file_info *fi)
 }
 
 /**
- * Count the about of BUSY chunks attached to a given download.
+ * Count the amount of BUSY chunks attached to a given download.
  */
 static gint
 fi_busy_count(struct dl_file_info *fi, struct download *d)
@@ -3644,20 +3644,20 @@ fi_get_chunks(gnet_fi_t fih)
         chunk->status = fc->status;
         chunk->old    = TRUE;
 
-	/*
-	 * g_slist_prepend would be faster, but it changes the order
-	 * of the chunks and breaks the assumption that chunks are in
-	 * increasing order. Thus it would require a sorting or
-	 * walking backwards of the tree, thus negating the
-	 * performance gain. We still get the performance gain here by
-	 * using our own tail to append.
-	 */
-	if (tail) {
-	    tail = g_slist_append(tail, chunk);
-	} else {
-	    chunks = g_slist_append(chunks, chunk); 
-	    tail = chunks;
-	}
+		/*
+	 	 * g_slist_prepend would be faster, but it changes the order
+	 	 * of the chunks and breaks the assumption that chunks are in
+	 	 * increasing order. Thus it would require a sorting or
+	 	 * walking backwards of the tree, thus negating the
+	 	 * performance gain. We still get the performance gain here by
+	 	 * using our own tail to append.
+	 	 */
+		if (tail) {
+	    	tail = g_slist_append(tail, chunk);
+		} else {
+	    	chunks = g_slist_append(chunks, chunk); 
+	    	tail = chunks;
+		}
     }
 
     return chunks;
@@ -4143,45 +4143,83 @@ fi_update_seenonnetwork(gnet_src_t srcid)
 	struct download *d;
 	GSList *old_list;    /** The previous list of ranges, no longer needed */
 	GSList *l;           /** Temporary pointer to help remove old_list */
-
+	GSList *r = NULL;
+	GSList *new_r = NULL;
+	GSList *full_r = NULL;
+	
 	d = src_get_download(srcid);
 	g_assert(d);
 
 	old_list = d->file_info->seenonnetwork;
 	
-	/* 
-	 * If this download is not using swarming then we have the whole
-	 * file. The same is true when d->ranges == NULL.
+	/*
+	 * FIXME: this code is currently only triggered by new HTTP ranges
+	 * information becoming available. In addition to that we should perhaps
+	 * also include add_source and delete_source. We will miss the latter in
+	 * this setup especially.
 	 */
-
-	if (!d->file_info->use_swarming || d->ranges == NULL) {
-		/* Indicate that the whole file is available */
-		d->file_info->seenonnetwork = 
-			fi_range_for_complete_file(d->file_info->size);
-	} else {
-		/* Merge in the new ranges */
-		d->file_info->seenonnetwork 
-			= http_range_merge(d->file_info->seenonnetwork, d->ranges);
-	}
 	
 	/* 
-	 * Remove the old list and free its range elements 
+	 * Look at all the download sources for this fileinfo and calculate the
+	 * overall ranges info for this file.
 	 */
-	for (l = old_list; l; l = g_slist_next(l)) {
-		wfree(l->data, sizeof(http_range_t));
+	printf("*** Fileinfo: %s\n", d->file_info->file_name);
+	for (l = d->file_info->sources; l; l = g_slist_next(l)) {
+		struct download *src = (struct download *)l->data;
+		/*
+		 * We only count the ranges of a file if it has replied to a recent
+		 * request, and if the download request is not done or in an error
+		 * state.
+		 */
+		if (src->flags & DL_F_REPLIED && !(
+			src->status == GTA_DL_COMPLETED
+			|| src->status == GTA_DL_ERROR
+			|| src->status == GTA_DL_ABORTED
+			|| src->status == GTA_DL_REMOVED
+			|| src->status == GTA_DL_DONE )) {
+			printf("    %s:%d replied (%x, %x), ", ip_to_gchar(src->server->key->ip), src->server->key->port, src->flags, src->status);
+			if (!src->file_info->use_swarming || src->ranges == NULL) {
+				/* 
+				 * Indicate that the whole file is available.
+				 * We could just stop here and assign the complete file range,
+   				 * but I'm leaving the code as-is so that we can play with the
+ 				 * info more, e.g. show different colors for ranges that are	
+				 * available more.
+				 * FIXME: it is not clear that the logic in this if()
+				 * properly captures whether a whole file is available.
+				 * This depends also on the HTTP error code, e.g. I 
+				 * believe that currently a 404 will also trigger a 
+				 * whole file is available event...
+				*/
+				printf("whole file available.\n");
+				full_r = fi_range_for_complete_file(d->file_info->size);
+				new_r = http_range_merge(r, full_r);
+				fi_free_ranges(full_r);
+			} else {
+				/* Merge in the new ranges */
+				printf(" ranges %s available\n", http_range_to_gchar(src->ranges));
+				new_r = http_range_merge(r, src->ranges);
+			}
+			fi_free_ranges(r);
+			r = new_r;
+		}
 	}
-	g_slist_free(old_list);
-	
+	printf("    Final ranges: %s\n\n", http_range_to_gchar(r));
+	d->file_info->seenonnetwork = r;
+		
+	/* 
+	 * Remove the old list and free its range elements
+	 */
+	fi_free_ranges(old_list);
+		
 	/*
 	 * Trigger a transient change effect. Transient because we don't store
-	 * this info to disk.
+	 * this info to disk. FIXME: perhaps this should be a special ranges event.
 	 */
 	event_trigger(
         fi_events[EV_FI_STATUS_CHANGED_TRANSIENT], 
         T_NORMAL(fi_listener_t, d->file_info->fi_handle));   
 }
-
-
 
 
 /* 
