@@ -551,7 +551,7 @@ void search_gui_add_record(
 		size_t len;
 
 		len = g_strlcpy(ext_utf8, p ? ++p : "", sizeof ext_utf8);
-		if (len > sizeof ext_utf8) {
+		if (len >= sizeof ext_utf8) {
 			/* If the guessed extension is really this long, assume the
 			 * part after the dot isn't an extension at all. */
 			ext_utf8[0] = '\0';
