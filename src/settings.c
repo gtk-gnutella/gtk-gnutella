@@ -292,6 +292,11 @@ void settings_init(void)
     settings_callbacks_init();
 }
 
+#if 0
+/* 
+ * FIXME: remove this if it is no longer needed
+ * -- Richard, 29 Mar 2003
+ */
 static guint32 *settings_parse_array(gchar * str, guint32 n)
 {
 	/* Parse comma delimited settings */
@@ -312,6 +317,7 @@ static guint32 *settings_parse_array(gchar * str, guint32 n)
 	g_strfreev(h);
 	return r;
 }
+#endif
 
 static void settings_hostcache_save(void)
 {
