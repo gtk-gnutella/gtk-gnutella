@@ -121,6 +121,8 @@ typedef struct bsched {
 #define bsched_bwps(b)		((b)->bw_per_second)
 #define bsched_saturated(b)	((b)->bw_actual > (b)->bw_max)
 
+#define bsched_enabled(b)	((b)->flags & BS_F_ENABLED)
+
 /*
  * Source under bandwidth control.
  */
