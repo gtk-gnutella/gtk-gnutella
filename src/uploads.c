@@ -1000,7 +1000,7 @@ static void upload_request(struct upload *u, header_t *header)
 	gchar http_response[1024], *fpath = NULL, sl[] = "/";
 	gchar *user_agent = 0;
 	gchar *buf;
-	gchar *titles[5];
+	gchar *titles[6];
 	gchar *request = getline_str(s->getline);
 	GSList *l;
 	gint sent;
@@ -1367,11 +1367,12 @@ static void upload_request(struct upload *u, header_t *header)
 			&range_tmp[range_len], sizeof(range_tmp)-range_len,
 			" @ %s", compact_size(u->skip));
 
-	titles[0] = u->name;
-	titles[1] = ip_to_gchar(s->ip);
-	titles[2] = size_tmp;
-	titles[3] = range_tmp;
-	titles[4] = "";
+	titles[c_ul_filename] = u->name;
+	titles[c_ul_host] = ip_to_gchar(s->ip);
+	titles[c_ul_size] = size_tmp;
+	titles[c_ul_range] = range_tmp;
+    titles[c_ul_agent] = (u->user_agent != NULL) ? u->user_agent : "";
+	titles[c_ul_status] = "";
 
 	row = gtk_clist_append(GTK_CLIST(clist_uploads), titles);
 	gtk_clist_set_row_data(GTK_CLIST(clist_uploads), row, (gpointer) u);
