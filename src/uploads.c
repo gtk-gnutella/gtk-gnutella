@@ -565,7 +565,7 @@ void upload_push_conf(struct upload *u)
 	 * Send the GIV string, using our servent GUID.
 	 */
 
-	rw = g_snprintf(giv, sizeof(giv), "GIV %u:%s/%s",
+	rw = g_snprintf(giv, sizeof(giv), "GIV %u:%s/%s\n\n",
 		u->index, guid_hex_str(guid), u->name);
 	giv[sizeof(giv)-1] = '\0';			/* Might have been truncated */
 	
