@@ -55,102 +55,6 @@ static gint search_results_compare_func
     return search_gui_compare_records(clist->sort_column, s1, s2);
 }
 
-static gint rec_name_eq(gconstpointer ptr1, gconstpointer ptr2)
-{
-    gint result;
-
-    result = g_str_equal(
-        ((record_t *)ptr1)->name, 
-        ((record_t *)ptr2)->name) ? 0 : 1;
-
-    printf("[%s] == [%s] -> %d\n",
-        ((record_t *)ptr1)->name, ((record_t *)ptr2)->name, result);
-
-    return result;
-}
-
-static gint rec_sha1_eq(gconstpointer ptr1, gconstpointer ptr2)
-{
-
-    guchar *s1 = ((record_t *)ptr1)->sha1; 
-    guchar *s2 = ((record_t *)ptr2)->sha1; 
-
-    if (s1 == s2)
-        return 0;
-
-    if (s1 == NULL || s2 == NULL)
-        return 1;
-
-    return memcmp(s1, s2, SHA1_RAW_SIZE);
-}
-
-static void add_drop_sha1_filter(record_t *rec, filter_t *filter)
-{
-    rule_t *rule;
-
-    g_assert(rec != NULL);
-    g_assert(filter != NULL);
-
-    rule = filter_new_sha1_rule(rec->sha1, rec->name,
-        filter_get_drop_target(), RULE_FLAG_ACTIVE);
-
-    filter_append_rule(filter, rule);
-}
-
-static void add_drop_name_filter(record_t *rec, filter_t *filter)
-{
-    rule_t *rule;
-
-    g_assert(rec != NULL);
-    g_assert(filter != NULL);
-
-    rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE, 
-        filter_get_drop_target(), RULE_FLAG_ACTIVE);
-
-    filter_append_rule(filter, rule);
-}
-
-static void add_drop_host_filter(record_t *rec, filter_t *filter)
-{
-    rule_t *rule;
-
-    g_assert(rec != NULL);
-    g_assert(filter != NULL);
-
-    rule = filter_new_ip_rule(rec->results_set->ip, 0xFFFFFFFF,
-        filter_get_drop_target(), RULE_FLAG_ACTIVE);
-
-    filter_append_rule(filter, rule);
-}
-
-static void add_download_sha1_filter(record_t *rec, filter_t *filter)
-{
-    g_assert(rec != NULL);
-    g_assert(filter != NULL);
-
-    if (rec->sha1) {
-        rule_t *rule;
-
-        rule = filter_new_sha1_rule(rec->sha1, rec->name,
-            filter_get_download_target(), RULE_FLAG_ACTIVE);
-
-        filter_append_rule(filter, rule);
-    }
-}
-
-static void add_download_name_filter(record_t *rec, filter_t *filter)
-{
-    rule_t *rule;
-
-    g_assert(rec != NULL);
-    g_assert(filter != NULL);
-
-    rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE, 
-        filter_get_download_target(), RULE_FLAG_ACTIVE);
-
-    filter_append_rule(filter, rule);
-}
-
 static void refresh_popup(void)
 {
 	gboolean sensitive;
@@ -212,39 +116,6 @@ static void refresh_popup(void)
             lookup_widget(popup_search, "popup_search_resume"), FALSE);
     }
 }
-
-/*
- * add_targetted_search:
- *
- * Creates a new search based on the filename found and adds a filter 
- * to it based on the sha1 hash if it has one or the exact filename if 
- * it hasn't. 
- * (patch by Andrew Meredith <andrew@anvil.org>)   
- */
-static void add_targetted_search(record_t *rec, filter_t *noneed)
-{
-    search_t *new_search;
-    rule_t *rule;
-
-    g_assert(rec != NULL);
-    g_assert(rec->name != NULL);
-
-    /* create new search item with search string set to filename */
-    search_gui_new_search(rec->name, 0, &new_search);
-    g_assert(new_search != NULL);
-
-    if (rec->sha1) {
-        rule = filter_new_sha1_rule(rec->sha1, rec->name,
-            filter_get_download_target(), RULE_FLAG_ACTIVE);
-    } else {
-        rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE, 
-            filter_get_download_target(), RULE_FLAG_ACTIVE);
-    }
-    g_assert(rule != NULL);
-
-    filter_append_rule(new_search->filter, rule);
-}
-
 
 /***
  *** Glade callbacks
@@ -694,6 +565,8 @@ void on_clist_search_results_select_row(
                 "%d auto selected %s",
                 x, (rc->sha1 != NULL) ? 
                     "by urn:sha1 and filename" : "by filename");
+        } else if (x == 1) {
+            statusbar_gui_message(15, "none auto selected");
         }
 	}
 
@@ -775,10 +648,10 @@ void on_popup_search_drop_name_activate(
     gtk_clist_freeze(GTK_CLIST(current_search->clist));
 
     sl = clist_collect_data(GTK_CLIST(current_search->clist), 
-        FALSE, rec_name_eq);
+        FALSE, gui_record_name_eq);
 
     g_slist_foreach(sl, 
-        (GFunc) add_drop_name_filter, current_search->filter);
+        (GFunc) filter_add_drop_name_rule, current_search->filter);
 
     g_slist_free(sl);
 
@@ -798,10 +671,10 @@ void on_popup_search_drop_sha1_activate(
     gtk_clist_freeze(GTK_CLIST(current_search->clist));
 
     sl = clist_collect_data(GTK_CLIST(current_search->clist), 
-        FALSE, rec_sha1_eq);
+        FALSE, gui_record_sha1_eq);
 
     g_slist_foreach(sl, 
-        (GFunc) add_drop_sha1_filter, current_search->filter);
+        (GFunc) filter_add_drop_sha1_rule, current_search->filter);
 
     g_slist_free(sl);
 
@@ -821,18 +694,18 @@ void on_popup_search_drop_host_activate(
     gtk_clist_freeze(GTK_CLIST(current_search->clist));
 
     sl = clist_collect_data(GTK_CLIST(current_search->clist), 
-        FALSE, rec_sha1_eq);
+        FALSE, gui_record_sha1_eq);
 
-    g_slist_foreach(sl, 
-        (GFunc) add_drop_host_filter, current_search->filter);
+    g_slist_foreach(sl, (GFunc) filter_add_drop_host_rule, 
+        current_search->filter);
 
     g_slist_free(sl);
 
     gtk_clist_thaw(GTK_CLIST(current_search->clist));
 }
 
-void on_popup_search_drop_name_global_activate
-    (GtkMenuItem *menuitem, gpointer user_data)
+void on_popup_search_drop_name_global_activate(
+    GtkMenuItem *menuitem, gpointer user_data)
 {
     GSList *sl = NULL;
     search_t *current_search;
@@ -844,18 +717,18 @@ void on_popup_search_drop_name_global_activate
     gtk_clist_freeze(GTK_CLIST(current_search->clist));
 
     sl = clist_collect_data(GTK_CLIST(current_search->clist), 
-        FALSE, rec_name_eq);
+        FALSE, gui_record_name_eq);
 
-    g_slist_foreach(sl, 
-        (GFunc) add_drop_name_filter, filter_get_global_pre());
+    g_slist_foreach(sl, (GFunc) filter_add_drop_name_rule, 
+        filter_get_global_pre());
 
     g_slist_free(sl);
 
     gtk_clist_thaw(GTK_CLIST(current_search->clist));
 }
 
-void on_popup_search_drop_sha1_global_activate
-    (GtkMenuItem *menuitem, gpointer user_data)
+void on_popup_search_drop_sha1_global_activate(
+    GtkMenuItem *menuitem, gpointer user_data)
 {
     GSList *sl = NULL;
     search_t *current_search;
@@ -867,18 +740,18 @@ void on_popup_search_drop_sha1_global_activate
     gtk_clist_freeze(GTK_CLIST(current_search->clist));
 
     sl = clist_collect_data(GTK_CLIST(current_search->clist), 
-        FALSE, rec_sha1_eq);
+        FALSE, gui_record_sha1_eq);
 
-    g_slist_foreach(sl, 
-        (GFunc) add_drop_sha1_filter, filter_get_global_pre());
+    g_slist_foreach(sl, (GFunc) filter_add_drop_sha1_rule, 
+        filter_get_global_pre());
 
     g_slist_free(sl);
 
     gtk_clist_thaw(GTK_CLIST(current_search->clist));
 }
 
-void on_popup_search_drop_host_global_activate
-    (GtkMenuItem *menuitem, gpointer user_data)
+void on_popup_search_drop_host_global_activate(
+    GtkMenuItem *menuitem, gpointer user_data)
 {
     GSList *sl = NULL;
     search_t *current_search;
@@ -890,18 +763,18 @@ void on_popup_search_drop_host_global_activate
     gtk_clist_freeze(GTK_CLIST(current_search->clist));
 
     sl = clist_collect_data(GTK_CLIST(current_search->clist), 
-        FALSE, rec_sha1_eq);
+        FALSE, gui_record_sha1_eq);
 
-    g_slist_foreach(sl, 
-        (GFunc) add_drop_host_filter, filter_get_global_pre());
+    g_slist_foreach(sl,(GFunc) filter_add_drop_host_rule, 
+        filter_get_global_pre());
 
     g_slist_free(sl);
 
     gtk_clist_thaw(GTK_CLIST(current_search->clist));
 }
 
-void on_popup_search_autodownload_name_activate
-    (GtkMenuItem *menuitem, gpointer user_data)
+void on_popup_search_autodownload_name_activate(
+    GtkMenuItem *menuitem, gpointer user_data)
 {
     GSList *sl = NULL;
     search_t *current_search;
@@ -913,10 +786,10 @@ void on_popup_search_autodownload_name_activate
     gtk_clist_freeze(GTK_CLIST(current_search->clist));
 
     sl = clist_collect_data(GTK_CLIST(current_search->clist), 
-        FALSE, rec_name_eq);
+        FALSE, gui_record_name_eq);
 
-    g_slist_foreach(sl, 
-        (GFunc) add_download_name_filter, current_search->filter);
+    g_slist_foreach(sl, (GFunc) filter_add_download_name_rule, 
+        current_search->filter);
 
     g_slist_free(sl);
 
@@ -936,10 +809,10 @@ void on_popup_search_autodownload_sha1_activate(
     gtk_clist_freeze(GTK_CLIST(current_search->clist));
 
     sl = clist_collect_data(GTK_CLIST(current_search->clist), 
-        FALSE, rec_sha1_eq);
+        FALSE, gui_record_sha1_eq);
 
-    g_slist_foreach(sl, 
-        (GFunc) add_download_sha1_filter, current_search->filter);
+    g_slist_foreach(sl, (GFunc) filter_add_download_sha1_rule, 
+        current_search->filter);
 
     g_slist_free(sl);
 
@@ -960,10 +833,10 @@ void on_popup_search_new_from_selected_activate(
     gtk_clist_freeze(GTK_CLIST(current_search->clist));
 
     sl = clist_collect_data(GTK_CLIST(current_search->clist), 
-        FALSE, rec_sha1_eq);
+        FALSE, gui_record_sha1_eq);
 
-    g_slist_foreach(sl, 
-        (GFunc) add_targetted_search, current_search->filter);
+    g_slist_foreach(sl, (GFunc) gui_add_targetted_search, 
+        current_search->filter);
 
     g_slist_free(sl);
 

@@ -43,94 +43,6 @@ static gchar tmpstr[4096];
  *** Private functions
  ***/
 
-static void add_drop_sha1_filter(
-	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
-{
-	filter_t *filter = data;
-	record_t *rec;
-    rule_t *rule;
-
-	gtk_tree_model_get(model, iter, c_sr_record, &rec, -1);	
-    g_assert(rec != NULL);
-    g_assert(filter != NULL);
-
-    rule = filter_new_sha1_rule(rec->sha1, rec->name,
-        filter_get_drop_target(), RULE_FLAG_ACTIVE);
-
-    filter_append_rule(filter, rule);
-}
-
-static void add_drop_name_filter (
-	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
-{
-	filter_t *filter = data;
-	record_t *rec;
-    rule_t *rule;
-
-	gtk_tree_model_get(model, iter, c_sr_record, &rec, -1);	
-    g_assert(rec != NULL);
-    g_assert(filter != NULL);
-
-    rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE, 
-        filter_get_drop_target(), RULE_FLAG_ACTIVE);
-
-    filter_append_rule(filter, rule);
-}
-
-static void add_drop_host_filter(
-	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
-{
-	filter_t *filter = data;
-	record_t *rec;
-    rule_t *rule;
-
-	gtk_tree_model_get(model, iter, c_sr_record, &rec, -1);	
-    g_assert(rec != NULL);
-    g_assert(filter != NULL);
-
-    rule = filter_new_ip_rule(rec->results_set->ip, 0xFFFFFFFF,
-        filter_get_drop_target(), RULE_FLAG_ACTIVE);
-
-    filter_append_rule(filter, rule);
-}
-
-static void add_download_sha1_filter(
-	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
-{
-	filter_t *filter = data;
-	record_t *rec;
-
-	gtk_tree_model_get(model, iter, c_sr_record, &rec, -1);	
-    g_assert(rec != NULL);
-    g_assert(filter != NULL);
-
-    if (rec->sha1) {
-        rule_t *rule;
-
-        rule = filter_new_sha1_rule(rec->sha1, rec->name,
-            filter_get_download_target(), RULE_FLAG_ACTIVE);
-
-        filter_append_rule(filter, rule);
-    }
-}
-
-static void add_download_name_filter(
-	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
-{
-	filter_t *filter = data;
-	record_t *rec;
-    rule_t *rule;
-
-	gtk_tree_model_get(model, iter, c_sr_record, &rec, -1);	
-    g_assert(rec != NULL);
-    g_assert(filter != NULL);
-
-    rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE, 
-        filter_get_download_target(), RULE_FLAG_ACTIVE);
-
-    filter_append_rule(filter, rule);
-}
-
 static void refresh_popup(void)
 {
 	gboolean sensitive;
@@ -196,42 +108,6 @@ static void refresh_popup(void)
     }
 
 }
-
-/*
- * add_targetted_search:
- *
- * Creates a new search based on the filename found and adds a filter 
- * to it based on the sha1 hash if it has one or the exact filename if 
- * it hasn't. 
- * (patch by Andrew Meredith <andrew@anvil.org>)   
- */
-static void add_targetted_search(
-	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
-{
-    search_t *new_search;
-	record_t *rec;
-    rule_t *rule;
-
-	gtk_tree_model_get(model, iter, c_sr_record, &rec, -1);	
-    g_assert(rec != NULL);
-    g_assert(rec->name != NULL);
-
-    /* create new search item with search string set to filename */
-    search_gui_new_search(rec->name, 0, &new_search);
-    g_assert(new_search != NULL);
-
-    if (rec->sha1) {
-        rule = filter_new_sha1_rule(rec->sha1, rec->name,
-            filter_get_download_target(), RULE_FLAG_ACTIVE);
-    } else {
-        rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE,
-            filter_get_download_target(), RULE_FLAG_ACTIVE);
-    }
-    g_assert(rule != NULL);
-
-    filter_append_rule(new_search->filter, rule);
-}
-
 
 /***
  *** Glade callbacks
@@ -587,9 +463,12 @@ static void autoselect_files(
                 }
         }
 
-	if (x > 1)
+    if (x > 1) {
 		statusbar_gui_message(15, "%d auto selected %s", x, 
 			(rc->sha1 != NULL) ? "by urn:sha1 and filename" : "by filename");
+    } else if (x == 1) {
+        statusbar_gui_message(15, "none auto selected");
+    }
 }
 
 static gboolean autoselection_running = FALSE;
@@ -725,16 +604,17 @@ void on_popup_search_drop_name_activate(
 {
     search_t *current_search;
 	GtkTreeSelection *selection;
+    GSList *sl;
 
     current_search = search_gui_get_current_search();
     g_assert(current_search != NULL);
 	selection = gtk_tree_view_get_selection(
 					GTK_TREE_VIEW(current_search->tree_view));
 
-	gtk_tree_selection_selected_foreach(
-		selection, 
-		add_drop_name_filter, 
-		current_search->filter);
+    sl = tree_selection_collect_data(selection, FALSE, gui_record_name_eq);
+    g_slist_foreach(sl, (GFunc) filter_add_drop_name_rule,
+        current_search->filter);
+    g_slist_free(sl);
 }
 
 void on_popup_search_drop_sha1_activate(
@@ -742,16 +622,17 @@ void on_popup_search_drop_sha1_activate(
 {
     search_t *current_search;
 	GtkTreeSelection *selection;
+    GSList *sl;
 
     current_search = search_gui_get_current_search();
     g_assert(current_search != NULL);
 	selection = gtk_tree_view_get_selection(
 					GTK_TREE_VIEW(current_search->tree_view));
 
-	gtk_tree_selection_selected_foreach(
-		selection, 
-		add_drop_sha1_filter, 
-		current_search->filter);
+    sl = tree_selection_collect_data(selection, FALSE,gui_record_sha1_eq);
+    g_slist_foreach(sl, (GFunc) filter_add_drop_sha1_rule,
+        current_search->filter);
+    g_slist_free(sl);
 }
 
 void on_popup_search_drop_host_activate(
@@ -759,16 +640,17 @@ void on_popup_search_drop_host_activate(
 {
     search_t *current_search;
 	GtkTreeSelection *selection;
+    GSList *sl;
 
     current_search = search_gui_get_current_search();
     g_assert(current_search != NULL);
 	selection = gtk_tree_view_get_selection(
 					GTK_TREE_VIEW(current_search->tree_view));
 
-	gtk_tree_selection_selected_foreach(
-		selection, 
-		add_drop_host_filter, 
-		current_search->filter);
+    sl = tree_selection_collect_data(selection, FALSE, gui_record_host_eq);
+    g_slist_foreach(sl, (GFunc) filter_add_drop_host_rule,
+        current_search->filter);
+    g_slist_free(sl);
 }
 
 void on_popup_search_drop_name_global_activate
@@ -776,16 +658,17 @@ void on_popup_search_drop_name_global_activate
 {
     search_t *current_search;
 	GtkTreeSelection *selection;
+    GSList *sl;
 
     current_search = search_gui_get_current_search();
     g_assert(current_search != NULL);
 	selection = gtk_tree_view_get_selection(
 					GTK_TREE_VIEW(current_search->tree_view));
 
-	gtk_tree_selection_selected_foreach(
-		selection, 
-		add_drop_name_filter, 
-		filter_get_global_pre());
+    sl = tree_selection_collect_data(selection, FALSE, gui_record_name_eq);
+    g_slist_foreach(sl, (GFunc) filter_add_drop_name_rule,
+        filter_get_global_pre());
+    g_slist_free(sl);
 }
 
 void on_popup_search_drop_sha1_global_activate
@@ -793,50 +676,54 @@ void on_popup_search_drop_sha1_global_activate
 {
     search_t *current_search;
 	GtkTreeSelection *selection;
+    GSList *sl;
 
     current_search = search_gui_get_current_search();
     g_assert(current_search != NULL);
 	selection = gtk_tree_view_get_selection(
 					GTK_TREE_VIEW(current_search->tree_view));
 
-	gtk_tree_selection_selected_foreach(
-		selection, 
-		add_drop_sha1_filter, 
-		filter_get_global_pre());
+
+    sl = tree_selection_collect_data(selection, FALSE, gui_record_sha1_eq);
+    g_slist_foreach(sl, (GFunc) filter_add_drop_sha1_rule,
+        filter_get_global_pre());
+    g_slist_free(sl);
 }
 
-void on_popup_search_drop_host_global_activate
-    (GtkMenuItem *menuitem, gpointer user_data)
+void on_popup_search_drop_host_global_activate(
+    GtkMenuItem *menuitem, gpointer user_data)
 {
     search_t *current_search;
 	GtkTreeSelection *selection;
+    GSList *sl;
 
     current_search = search_gui_get_current_search();
     g_assert(current_search != NULL);
 	selection = gtk_tree_view_get_selection(
 				GTK_TREE_VIEW(current_search->tree_view));
 
-	gtk_tree_selection_selected_foreach(
-		selection, 
-		add_drop_host_filter, 
-		filter_get_global_pre());
+    sl = tree_selection_collect_data(selection, FALSE, gui_record_host_eq);
+    g_slist_foreach(sl, (GFunc) filter_add_drop_host_rule,
+        filter_get_global_pre());
+    g_slist_free(sl);
 }
 
-void on_popup_search_autodownload_name_activate
-    (GtkMenuItem *menuitem, gpointer user_data)
+void on_popup_search_autodownload_name_activate(
+    GtkMenuItem *menuitem, gpointer user_data)
 {
     search_t *current_search;
 	GtkTreeSelection *selection;
+    GSList *sl;
 
     current_search = search_gui_get_current_search();
     g_assert(current_search != NULL);
 	selection = gtk_tree_view_get_selection(
-				GTK_TREE_VIEW(current_search->tree_view));
+        GTK_TREE_VIEW(current_search->tree_view));
 
-	gtk_tree_selection_selected_foreach(
-		selection, 
-		add_download_name_filter, 
-		current_search->filter);
+    sl = tree_selection_collect_data(selection, FALSE, gui_record_name_eq);
+    g_slist_foreach(sl, (GFunc) filter_add_download_name_rule,
+        current_search->filter);
+    g_slist_free(sl);
 }
 
 void on_popup_search_autodownload_sha1_activate(
@@ -844,16 +731,17 @@ void on_popup_search_autodownload_sha1_activate(
 {
     search_t *current_search;
 	GtkTreeSelection *selection;
+    GSList *sl;
 
     current_search = search_gui_get_current_search();
     g_assert(current_search != NULL);
 	selection = gtk_tree_view_get_selection(
-					GTK_TREE_VIEW(current_search->tree_view));
+        GTK_TREE_VIEW(current_search->tree_view));
 
-	gtk_tree_selection_selected_foreach(
-		selection, 
-		add_download_sha1_filter, 
-		current_search->filter);
+    sl = tree_selection_collect_data(selection, FALSE, gui_record_sha1_eq);
+    g_slist_foreach(sl, (GFunc) filter_add_download_sha1_rule,
+        current_search->filter);
+    g_slist_free(sl);
 }
 
 void on_popup_search_new_from_selected_activate(
@@ -861,26 +749,28 @@ void on_popup_search_new_from_selected_activate(
 {
     search_t *current_search;
 	GtkTreeSelection *selection;
+    GSList *sl;
 
     current_search = search_gui_get_current_search();
     g_assert(current_search != NULL);
 	selection = gtk_tree_view_get_selection(
-					GTK_TREE_VIEW(current_search->tree_view));
+        GTK_TREE_VIEW(current_search->tree_view));
 
-	gtk_tree_selection_selected_foreach(
-		selection, 
-		add_targetted_search, 
-		current_search->filter);
+    sl = tree_selection_collect_data(selection, FALSE,
+        gui_record_sha1_or_name_eq);
+    g_slist_foreach(sl, (GFunc) gui_add_targetted_search,
+        current_search->filter);
+    g_slist_free(sl);
 }
 
-void on_popup_search_edit_filter_activate(GtkMenuItem * menuitem,
-									gpointer user_data)
+void on_popup_search_edit_filter_activate(
+    GtkMenuItem * menuitem,	gpointer user_data)
 {
     filter_open_dialog();
 }
 
-void on_popup_search_duplicate_activate(GtkMenuItem * menuitem,
-										gpointer user_data)
+void on_popup_search_duplicate_activate(
+    GtkMenuItem * menuitem,	gpointer user_data)
 {
     search_t *current_search;
     guint32 search_reissue_timeout;
