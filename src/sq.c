@@ -235,7 +235,7 @@ retry:
 	if (n->received == 0)		/* RX = 0, wait for handshaking ping */
 		return;
 
-	if (!node_can_send(n, GTA_MSG_SEARCH, 0))	/* Cannot send hops=0 query */
+	if (!node_query_hops_ok(n, 0))		/* Cannot send hops=0 query */
 		return;
 
 	if (!NODE_IS_WRITABLE(n))

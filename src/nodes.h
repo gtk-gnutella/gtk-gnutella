@@ -307,10 +307,24 @@ typedef struct gnutella_node {
 #define node_add_rx_read(n,x)		do { (n)->rx_read += (x); } while (0)
 
 /*
- * Can we send message of type `t' bearing hop count `h'?
+ * Can we send query with hop count `h' according to node's hops-flow value?
  */
-#define node_can_send(n, t, h) \
-	((t) != GTA_MSG_SEARCH || (h) < (n)->hops_flow)
+#define node_query_hops_ok(n, h)	((h) < (n)->hops_flow)
+
+/* Don't include "routing.h" just for that routine */
+extern gboolean route_exists_for_reply(guchar *muid, guint8 function);
+
+/*
+ * Can we send message of type `t', bearing hop count `h' and MUID `m'?
+ *
+ * For queries, we look at the hops-flow, and whether there is a route for
+ * the query hit: no need to forward the request if the reply will be dropped.
+ * (we always forward queries with hops=0, of course, since they are ours!).
+ */
+#define node_can_send(n, t, h, m) \
+	((t) != GTA_MSG_SEARCH || \
+		(node_query_hops_ok(n, h) && \
+			((h) == 0 || route_exists_for_reply(m, t))))
 
 /*
  * Global Data

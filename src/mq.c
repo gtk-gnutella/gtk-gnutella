@@ -907,10 +907,10 @@ again:
 			break;
 
 		/*
-		 * Honour hops-flow.
+		 * Honour hops-flow, and ensure there is a route for possible replies.
 		 */
 
-		if (node_can_send(q->node, gmsg_function(mbs), gmsg_hops(mbs))) {
+		if (node_can_send(q->node, gmsg_function(mbs), gmsg_hops(mbs), mbs)) {
 			/* send the message */
 			l = g_list_previous(l);
 			iovsize--;
@@ -927,7 +927,7 @@ again:
 			l = mq_rmlink_prev(q, l, pmsg_size(mb));
 
 			if (dbg > 4)
-				gmsg_log_dropped(mbs, "to node %s due to hops-flow",
+				gmsg_log_dropped(mbs, "to node %s due to hops-flow / route",
 					node_ip(q->node));
 
 			dropped++;
@@ -1063,14 +1063,14 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 		gint written;
 
 		/*
-		 * Honour hops-flow.
+		 * Honour hops-flow, and ensure there is a route for possible replies.
 		 */
 
-		if (node_can_send(q->node, gmsg_function(mbs), gmsg_hops(mbs)))
-			written = tx_write(q->tx_drv, pmsg_start(mb), size);
+		if (node_can_send(q->node, gmsg_function(mbs), gmsg_hops(mbs), mbs))
+			written = tx_write(q->tx_drv, mbs, size);
 		else {
 			if (dbg > 4)
-				gmsg_log_dropped(mbs, "to node %s due to hops-flow",
+				gmsg_log_dropped(mbs, "to node %s due to hops-flow / route",
 					node_ip(q->node));
 
 			gnet_stats_count_flowc(mbs);

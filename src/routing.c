@@ -545,7 +545,7 @@ static gboolean find_message(
 		return TRUE;		/* Message was seen */
 	}
 }
-	
+
 /*
  * forward_message
  *
@@ -1057,6 +1057,27 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 	g_warning("BUG: fell through route_message");
 
 	return FALSE;
+}
+
+/*
+ * route_exists_for_reply
+ *
+ * Check whether we have a route for the reply that would be generated
+ * for this request.
+ *
+ * Returns boolean indicating whether we have such a route.
+ */
+gboolean route_exists_for_reply(guchar *muid, guint8 function)
+{
+	struct message *m;
+
+	if (
+		!find_message((const guchar *) muid, function & ~0x01, &m) ||
+		m->routes == NULL
+	)
+		return FALSE;
+
+	return TRUE;
 }
 
 /*
