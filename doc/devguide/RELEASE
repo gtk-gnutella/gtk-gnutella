@@ -20,6 +20,8 @@ Quick Release Guide
    #define GTA_REVCHAR ""
    #define GTA_RELEASE "19/10/2002"
 
+   Comment out USE_SOURCE_DIR_AS_FALLBACK.
+
 4. Commit ChangeLog and src/common.h with comment:
 
 	"Release 0.91 stable."
