@@ -418,6 +418,13 @@
 	<widget>
 	  <class>GtkProgressBar</class>
 	  <name>progressbar_bps_in</name>
+	  <tooltip>Click to toggle display.</tooltip>
+	  <events>GDK_BUTTON_PRESS_MASK</events>
+	  <signal>
+	    <name>button_press_event</name>
+	    <handler>on_progressbar_bps_in_button_press_event</handler>
+	    <last_modification_time>Sun, 21 Apr 2002 18:56:14 GMT</last_modification_time>
+	  </signal>
 	  <value>0</value>
 	  <lower>0</lower>
 	  <upper>100</upper>
@@ -438,6 +445,13 @@
 	<widget>
 	  <class>GtkProgressBar</class>
 	  <name>progressbar_bps_out</name>
+	  <tooltip>Click to toggle display.</tooltip>
+	  <events>GDK_BUTTON_PRESS_MASK</events>
+	  <signal>
+	    <name>button_press_event</name>
+	    <handler>on_progressbar_bps_out_button_press_event</handler>
+	    <last_modification_time>Sun, 21 Apr 2002 18:56:24 GMT</last_modification_time>
+	  </signal>
 	  <value>0</value>
 	  <lower>0</lower>
 	  <upper>100</upper>
@@ -470,7 +484,8 @@
 	<widget>
 	  <class>GtkNotebook</class>
 	  <name>notebook_main</name>
-	  <show_tabs>False</show_tabs>
+	  <can_focus>True</can_focus>
+	  <show_tabs>True</show_tabs>
 	  <show_border>False</show_border>
 	  <tab_pos>GTK_POS_TOP</tab_pos>
 	  <scrollable>False</scrollable>
@@ -3312,129 +3327,14 @@
 	    <widget>
 	      <class>GtkVBox</class>
 	      <name>vbox24</name>
+	      <border_width>2</border_width>
 	      <homogeneous>False</homogeneous>
-	      <spacing>0</spacing>
+	      <spacing>2</spacing>
 
 	      <widget>
 		<class>GtkFrame</class>
-		<name>frame_local_ip</name>
-		<label>Local IP</label>
-		<label_xalign>0</label_xalign>
-		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>True</fill>
-		</child>
-
-		<widget>
-		  <class>GtkTable</class>
-		  <name>table_local_ip</name>
-		  <rows>1</rows>
-		  <columns>3</columns>
-		  <homogeneous>False</homogeneous>
-		  <row_spacing>0</row_spacing>
-		  <column_spacing>0</column_spacing>
-
-		  <widget>
-		    <class>GtkLabel</class>
-		    <name>label78</name>
-		    <label>  </label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <child>
-		      <left_attach>2</left_attach>
-		      <right_attach>3</right_attach>
-		      <top_attach>0</top_attach>
-		      <bottom_attach>1</bottom_attach>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
-		      <yexpand>False</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>False</xfill>
-		      <yfill>False</yfill>
-		    </child>
-		  </widget>
-
-		  <widget>
-		    <class>GtkCheckButton</class>
-		    <name>checkbutton_config_force_ip</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>toggled</name>
-		      <handler>on_checkbutton_config_force_ip_toggled</handler>
-		      <last_modification_time>Sun, 26 Mar 2000 17:43:14 GMT</last_modification_time>
-		    </signal>
-		    <label>Force local IP to:</label>
-		    <active>False</active>
-		    <draw_indicator>True</draw_indicator>
-		    <child>
-		      <left_attach>0</left_attach>
-		      <right_attach>1</right_attach>
-		      <top_attach>0</top_attach>
-		      <bottom_attach>1</bottom_attach>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
-		      <yexpand>False</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>True</xfill>
-		      <yfill>False</yfill>
-		    </child>
-		  </widget>
-
-		  <widget>
-		    <class>GtkEntry</class>
-		    <name>entry_config_force_ip</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_entry_config_force_ip_changed</handler>
-		      <last_modification_time>Sun, 26 Mar 2000 17:43:03 GMT</last_modification_time>
-		    </signal>
-		    <signal>
-		      <name>activate</name>
-		      <handler>on_entry_config_force_ip_activate</handler>
-		      <last_modification_time>Sun, 02 Apr 2000 08:43:44 GMT</last_modification_time>
-		    </signal>
-		    <signal>
-		      <name>focus_out_event</name>
-		      <handler>on_entry_config_force_ip_focus_out_event</handler>
-		      <last_modification_time>Thu, 06 Apr 2000 06:26:50 GMT</last_modification_time>
-		    </signal>
-		    <editable>True</editable>
-		    <text_visible>True</text_visible>
-		    <text_max_length>0</text_max_length>
-		    <text></text>
-		    <child>
-		      <left_attach>1</left_attach>
-		      <right_attach>2</right_attach>
-		      <top_attach>0</top_attach>
-		      <bottom_attach>1</bottom_attach>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
-		      <yexpand>False</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>True</xfill>
-		      <yfill>False</yfill>
-		    </child>
-		  </widget>
-		</widget>
-	      </widget>
-
-	      <widget>
-		<class>GtkFrame</class>
-		<name>frame_listen_port</name>
-		<label>Listen port</label>
+		<name>frame13</name>
+		<label>IP settings</label>
 		<label_xalign>0</label_xalign>
 		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		<child>
@@ -3445,26 +3345,43 @@
 
 		<widget>
 		  <class>GtkVBox</class>
-		  <name>vbox9</name>
+		  <name>vbox30</name>
 		  <border_width>4</border_width>
 		  <homogeneous>False</homogeneous>
-		  <spacing>2</spacing>
+		  <spacing>0</spacing>
 
 		  <widget>
 		    <class>GtkHBox</class>
-		    <name>hbox48</name>
+		    <name>hbox79</name>
 		    <homogeneous>False</homogeneous>
-		    <spacing>0</spacing>
+		    <spacing>4</spacing>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
-		      <fill>False</fill>
+		      <fill>True</fill>
 		    </child>
 
 		    <widget>
 		      <class>GtkLabel</class>
-		      <name>label35</name>
-		      <label>Default : 6346, Disable : 0</label>
+		      <name>label128</name>
+		      <label>Current IP settings (Address:Port):</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label_current_port</name>
+		      <label>not yet determined</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0.5</xalign>
@@ -3480,15 +3397,174 @@
 		  </widget>
 
 		  <widget>
-		    <class>GtkHBox</class>
-		    <name>hbox22</name>
+		    <class>GtkHSeparator</class>
+		    <name>hseparator2</name>
+		    <child>
+		      <padding>3</padding>
+		      <expand>False</expand>
+		      <fill>True</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkTable</class>
+		    <name>table5</name>
+		    <rows>2</rows>
+		    <columns>4</columns>
 		    <homogeneous>False</homogeneous>
-		    <spacing>8</spacing>
+		    <row_spacing>4</row_spacing>
+		    <column_spacing>4</column_spacing>
 		    <child>
 		      <padding>0</padding>
 		      <expand>True</expand>
-		      <fill>False</fill>
+		      <fill>True</fill>
 		    </child>
+
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_config_force_ip</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>toggled</name>
+			<handler>on_checkbutton_config_force_ip_toggled</handler>
+			<last_modification_time>Sun, 26 Mar 2000 17:43:14 GMT</last_modification_time>
+		      </signal>
+		      <label>Force local IP to:</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<left_attach>0</left_attach>
+			<right_attach>1</right_attach>
+			<top_attach>0</top_attach>
+			<bottom_attach>1</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label129</name>
+		      <label>Listen port</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<left_attach>0</left_attach>
+			<right_attach>1</right_attach>
+			<top_attach>1</top_attach>
+			<bottom_attach>2</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label35</name>
+		      <label>Default : 6346, Disable : 0</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<left_attach>3</left_attach>
+			<right_attach>4</right_attach>
+			<top_attach>1</top_attach>
+			<bottom_attach>2</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkButton</class>
+		      <name>button_config_update_port</name>
+		      <sensitive>False</sensitive>
+		      <signal>
+			<name>clicked</name>
+			<handler>on_button_config_update_port_clicked</handler>
+			<last_modification_time>Sun, 26 Mar 2000 17:42:28 GMT</last_modification_time>
+		      </signal>
+		      <label> Update </label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
+		      <child>
+			<left_attach>2</left_attach>
+			<right_attach>3</right_attach>
+			<top_attach>1</top_attach>
+			<bottom_attach>2</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkEntry</class>
+		      <name>entry_config_force_ip</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>changed</name>
+			<handler>on_entry_config_force_ip_changed</handler>
+			<last_modification_time>Sun, 26 Mar 2000 17:43:03 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>activate</name>
+			<handler>on_entry_config_force_ip_activate</handler>
+			<last_modification_time>Sun, 02 Apr 2000 08:43:44 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>focus_out_event</name>
+			<handler>on_entry_config_force_ip_focus_out_event</handler>
+			<last_modification_time>Thu, 06 Apr 2000 06:26:50 GMT</last_modification_time>
+		      </signal>
+		      <editable>True</editable>
+		      <text_visible>True</text_visible>
+		      <text_max_length>0</text_max_length>
+		      <text></text>
+		      <child>
+			<left_attach>1</left_attach>
+			<right_attach>3</right_attach>
+			<top_attach>0</top_attach>
+			<bottom_attach>1</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
 
 		    <widget>
 		      <class>GtkEntry</class>
@@ -3510,46 +3586,77 @@
 		      <text_max_length>0</text_max_length>
 		      <text></text>
 		      <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
-		      </child>
-		    </widget>
-
-		    <widget>
-		      <class>GtkButton</class>
-		      <name>button_config_update_port</name>
-		      <sensitive>False</sensitive>
-		      <signal>
-			<name>clicked</name>
-			<handler>on_button_config_update_port_clicked</handler>
-			<last_modification_time>Sun, 26 Mar 2000 17:42:28 GMT</last_modification_time>
-		      </signal>
-		      <label> Update </label>
-		      <relief>GTK_RELIEF_NORMAL</relief>
-		      <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
+			<left_attach>1</left_attach>
+			<right_attach>2</right_attach>
+			<top_attach>1</top_attach>
+			<bottom_attach>2</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
 		      </child>
 		    </widget>
 		  </widget>
+		</widget>
+	      </widget>
+
+	      <widget>
+		<class>GtkFrame</class>
+		<name>frame_proxy_settings</name>
+		<label>Proxy settings</label>
+		<label_xalign>0</label_xalign>
+		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkVBox</class>
+		  <name>vbox28</name>
+		  <border_width>4</border_width>
+		  <homogeneous>False</homogeneous>
+		  <spacing>0</spacing>
 
 		  <widget>
-		    <class>GtkHBox</class>
-		    <name>hbox49</name>
-		    <homogeneous>False</homogeneous>
-		    <spacing>0</spacing>
+		    <class>GtkCheckButton</class>
+		    <name>checkbutton_config_proxy_connections</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>toggled</name>
+		      <handler>on_checkbutton_config_proxy_connections_toggled</handler>
+		      <last_modification_time>Fri, 29 Mar 2002 18:22:42 GMT</last_modification_time>
+		    </signal>
+		    <label>Use proxy to connect to the internet</label>
+		    <active>False</active>
+		    <draw_indicator>True</draw_indicator>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
 		      <fill>False</fill>
 		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkHBox</class>
+		    <name>hbox59</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>4</spacing>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>True</fill>
+		    </child>
 
 		    <widget>
 		      <class>GtkLabel</class>
-		      <name>label_current_port</name>
-		      <label>Current port : 6346</label>
+		      <name>label90</name>
+		      <label>Proxy type:</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0.5</xalign>
@@ -3562,342 +3669,279 @@
 			<fill>False</fill>
 		      </child>
 		    </widget>
+
+		    <widget>
+		      <class>GtkRadioButton</class>
+		      <name>radio_config_http</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>toggled</name>
+			<handler>on_radio_config_http_toggled</handler>
+			<last_modification_time>Fri, 29 Mar 2002 18:27:06 GMT</last_modification_time>
+		      </signal>
+		      <label>http</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <group>socks_version</group>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkRadioButton</class>
+		      <name>radio_config_socksv4</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>toggled</name>
+			<handler>on_radio_config_socksv4_toggled</handler>
+			<last_modification_time>Fri, 29 Mar 2002 18:22:16 GMT</last_modification_time>
+		      </signal>
+		      <label>v4</label>
+		      <active>True</active>
+		      <draw_indicator>True</draw_indicator>
+		      <group>socks_version</group>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkRadioButton</class>
+		      <name>radio_config_socksv5</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>toggled</name>
+			<handler>on_radio_config_socksv5_toggled</handler>
+			<last_modification_time>Fri, 29 Mar 2002 18:22:34 GMT</last_modification_time>
+		      </signal>
+		      <label>v5</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <group>socks_version</group>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
 		  </widget>
-		</widget>
-	      </widget>
-
-	      <widget>
-		<class>GtkFrame</class>
-		<name>frame2</name>
-		<width>301</width>
-		<height>91</height>
-		<label>Proxy Options</label>
-		<label_xalign>0</label_xalign>
-		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>True</fill>
-		</child>
-
-		<widget>
-		  <class>GtkHBox</class>
-		  <name>hbox57</name>
-		  <homogeneous>False</homogeneous>
-		  <spacing>0</spacing>
 
 		  <widget>
-		    <class>GtkVBox</class>
-		    <name>vbox10</name>
+		    <class>GtkHBox</class>
+		    <name>hbox60</name>
 		    <homogeneous>False</homogeneous>
-		    <spacing>0</spacing>
+		    <spacing>5</spacing>
 		    <child>
 		      <padding>0</padding>
-		      <expand>True</expand>
+		      <expand>False</expand>
 		      <fill>True</fill>
 		    </child>
 
 		    <widget>
-		      <class>GtkHBox</class>
-		      <name>hbox59</name>
-		      <homogeneous>False</homogeneous>
-		      <spacing>0</spacing>
+		      <class>GtkLabel</class>
+		      <name>label91</name>
+		      <label>Host:</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
 		      <child>
 			<padding>0</padding>
-			<expand>True</expand>
-			<fill>True</fill>
+			<expand>False</expand>
+			<fill>False</fill>
 		      </child>
-
-		      <widget>
-			<class>GtkLabel</class>
-			<name>label90</name>
-			<label>Proxy type:</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0.5</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkRadioButton</class>
-			<name>radio_config_http</name>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>toggled</name>
-			  <handler>on_radio_config_http_toggled</handler>
-			  <last_modification_time>Fri, 29 Mar 2002 18:27:06 GMT</last_modification_time>
-			</signal>
-			<label>http</label>
-			<active>False</active>
-			<draw_indicator>True</draw_indicator>
-			<group>socks_version</group>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkRadioButton</class>
-			<name>radio_config_socksv4</name>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>toggled</name>
-			  <handler>on_radio_config_socksv4_toggled</handler>
-			  <last_modification_time>Fri, 29 Mar 2002 18:22:16 GMT</last_modification_time>
-			</signal>
-			<label>v4</label>
-			<active>True</active>
-			<draw_indicator>True</draw_indicator>
-			<group>socks_version</group>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkRadioButton</class>
-			<name>radio_config_socksv5</name>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>toggled</name>
-			  <handler>on_radio_config_socksv5_toggled</handler>
-			  <last_modification_time>Fri, 29 Mar 2002 18:22:34 GMT</last_modification_time>
-			</signal>
-			<label>v5</label>
-			<active>False</active>
-			<draw_indicator>True</draw_indicator>
-			<group>socks_version</group>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkCheckButton</class>
-			<name>checkbutton_config_proxy_connections</name>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>toggled</name>
-			  <handler>on_checkbutton_config_proxy_connections_toggled</handler>
-			  <last_modification_time>Fri, 29 Mar 2002 18:22:42 GMT</last_modification_time>
-			</signal>
-			<label>Proxy Connections?</label>
-			<active>False</active>
-			<draw_indicator>True</draw_indicator>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
 		    </widget>
 
 		    <widget>
-		      <class>GtkHBox</class>
-		      <name>hbox60</name>
-		      <homogeneous>False</homogeneous>
-		      <spacing>0</spacing>
+		      <class>GtkEntry</class>
+		      <name>entry_config_socks_host</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>activate</name>
+			<handler>on_entry_config_socks_host_activate</handler>
+			<last_modification_time>Fri, 29 Mar 2002 18:20:07 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>focus_out_event</name>
+			<handler>on_entry_config_socks_host_focus_out_event</handler>
+			<last_modification_time>Fri, 29 Mar 2002 18:20:20 GMT</last_modification_time>
+		      </signal>
+		      <editable>True</editable>
+		      <text_visible>True</text_visible>
+		      <text_max_length>0</text_max_length>
+		      <text></text>
 		      <child>
 			<padding>0</padding>
-			<expand>True</expand>
-			<fill>True</fill>
+			<expand>False</expand>
+			<fill>False</fill>
 		      </child>
-
-		      <widget>
-			<class>GtkLabel</class>
-			<name>label91</name>
-			<label>Socks Host:</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0.5</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkEntry</class>
-			<name>entry_config_socks_host</name>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>activate</name>
-			  <handler>on_entry_config_socks_host_activate</handler>
-			  <last_modification_time>Fri, 29 Mar 2002 18:20:07 GMT</last_modification_time>
-			</signal>
-			<signal>
-			  <name>focus_out_event</name>
-			  <handler>on_entry_config_socks_host_focus_out_event</handler>
-			  <last_modification_time>Fri, 29 Mar 2002 18:20:20 GMT</last_modification_time>
-			</signal>
-			<editable>True</editable>
-			<text_visible>True</text_visible>
-			<text_max_length>0</text_max_length>
-			<text></text>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkLabel</class>
-			<name>label92</name>
-			<label>Port:</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0.5</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkEntry</class>
-			<name>entry_config_socks_port</name>
-			<width>43</width>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>activate</name>
-			  <handler>on_entry_config_socks_port_activate</handler>
-			  <last_modification_time>Fri, 29 Mar 2002 18:20:49 GMT</last_modification_time>
-			</signal>
-			<signal>
-			  <name>focus_out_event</name>
-			  <handler>on_entry_config_socks_port_focus_out_event</handler>
-			  <last_modification_time>Fri, 29 Mar 2002 18:20:57 GMT</last_modification_time>
-			</signal>
-			<editable>True</editable>
-			<text_visible>True</text_visible>
-			<text_max_length>0</text_max_length>
-			<text></text>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
 		    </widget>
 
 		    <widget>
-		      <class>GtkHBox</class>
-		      <name>hbox61</name>
-		      <homogeneous>False</homogeneous>
-		      <spacing>0</spacing>
+		      <class>GtkLabel</class>
+		      <name>label92</name>
+		      <label>Port:</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
 		      <child>
 			<padding>0</padding>
-			<expand>True</expand>
-			<fill>True</fill>
+			<expand>False</expand>
+			<fill>False</fill>
 		      </child>
+		    </widget>
 
-		      <widget>
-			<class>GtkLabel</class>
-			<name>label93</name>
-			<label>Username:</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0.5</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<child>
-			  <padding>4</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
+		    <widget>
+		      <class>GtkEntry</class>
+		      <name>entry_config_socks_port</name>
+		      <width>43</width>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>activate</name>
+			<handler>on_entry_config_socks_port_activate</handler>
+			<last_modification_time>Fri, 29 Mar 2002 18:20:49 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>focus_out_event</name>
+			<handler>on_entry_config_socks_port_focus_out_event</handler>
+			<last_modification_time>Fri, 29 Mar 2002 18:20:57 GMT</last_modification_time>
+		      </signal>
+		      <editable>True</editable>
+		      <text_visible>True</text_visible>
+		      <text_max_length>0</text_max_length>
+		      <text></text>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+		  </widget>
 
-		      <widget>
-			<class>GtkEntry</class>
-			<name>entry_config_socks_username</name>
-			<width>82</width>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>activate</name>
-			  <handler>on_entry_config_socks_username_activate</handler>
-			  <last_modification_time>Fri, 29 Mar 2002 18:21:22 GMT</last_modification_time>
-			</signal>
-			<signal>
-			  <name>focus_out_event</name>
-			  <handler>on_entry_config_socks_username_focus_out_event</handler>
-			  <last_modification_time>Fri, 29 Mar 2002 18:21:28 GMT</last_modification_time>
-			</signal>
-			<editable>True</editable>
-			<text_visible>True</text_visible>
-			<text_max_length>0</text_max_length>
-			<text></text>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
+		  <widget>
+		    <class>GtkCheckButton</class>
+		    <name>checkbutton_config_proxy_auth</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>toggled</name>
+		      <handler>on_checkbutton_config_proxy_auth_toggled</handler>
+		      <last_modification_time>Sun, 21 Apr 2002 17:32:02 GMT</last_modification_time>
+		    </signal>
+		    <label>Use username and password to authenticate to proxy</label>
+		    <active>False</active>
+		    <draw_indicator>True</draw_indicator>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
 
-		      <widget>
-			<class>GtkLabel</class>
-			<name>label94</name>
-			<label>Password:</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0.5</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<child>
-			  <padding>2</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
+		  <widget>
+		    <class>GtkHBox</class>
+		    <name>hbox61</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>4</spacing>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>True</fill>
+		    </child>
 
-		      <widget>
-			<class>GtkEntry</class>
-			<name>entry_config_socks_password</name>
-			<width>82</width>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>activate</name>
-			  <handler>on_entry_config_socks_password_activate</handler>
-			  <last_modification_time>Fri, 29 Mar 2002 18:21:44 GMT</last_modification_time>
-			</signal>
-			<signal>
-			  <name>focus_out_event</name>
-			  <handler>on_entry_config_socks_password_focus_out_event</handler>
-			  <last_modification_time>Fri, 29 Mar 2002 18:21:51 GMT</last_modification_time>
-			</signal>
-			<editable>True</editable>
-			<text_visible>True</text_visible>
-			<text_max_length>0</text_max_length>
-			<text></text>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label93</name>
+		      <label>Username:</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>4</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkEntry</class>
+		      <name>entry_config_socks_username</name>
+		      <width>82</width>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>activate</name>
+			<handler>on_entry_config_socks_username_activate</handler>
+			<last_modification_time>Fri, 29 Mar 2002 18:21:22 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>focus_out_event</name>
+			<handler>on_entry_config_socks_username_focus_out_event</handler>
+			<last_modification_time>Fri, 29 Mar 2002 18:21:28 GMT</last_modification_time>
+		      </signal>
+		      <editable>True</editable>
+		      <text_visible>True</text_visible>
+		      <text_max_length>0</text_max_length>
+		      <text></text>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label94</name>
+		      <label>Password:</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>2</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkEntry</class>
+		      <name>entry_config_socks_password</name>
+		      <width>82</width>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>activate</name>
+			<handler>on_entry_config_socks_password_activate</handler>
+			<last_modification_time>Fri, 29 Mar 2002 18:21:44 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>focus_out_event</name>
+			<handler>on_entry_config_socks_password_focus_out_event</handler>
+			<last_modification_time>Fri, 29 Mar 2002 18:21:51 GMT</last_modification_time>
+		      </signal>
+		      <editable>True</editable>
+		      <text_visible>True</text_visible>
+		      <text_max_length>0</text_max_length>
+		      <text></text>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
 		    </widget>
 		  </widget>
 		</widget>
@@ -3911,7 +3955,7 @@
 		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		<child>
 		  <padding>0</padding>
-		  <expand>True</expand>
+		  <expand>False</expand>
 		  <fill>True</fill>
 		</child>
 
@@ -3926,7 +3970,7 @@
 		    <class>GtkHBox</class>
 		    <name>hbox77</name>
 		    <homogeneous>False</homogeneous>
-		    <spacing>0</spacing>
+		    <spacing>4</spacing>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -3952,17 +3996,13 @@
 			<fill>False</fill>
 		      </child>
 		    </widget>
-
-		    <widget>
-		      <class>Placeholder</class>
-		    </widget>
 		  </widget>
 
 		  <widget>
 		    <class>GtkHBox</class>
 		    <name>hbox78</name>
 		    <homogeneous>False</homogeneous>
-		    <spacing>0</spacing>
+		    <spacing>4</spacing>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -4026,7 +4066,7 @@
 	      <class>GtkLabel</class>
 	      <child_name>Notebook:tab</child_name>
 	      <name>label119</name>
-	      <label>Network
+	      <label>Connection
 settings</label>
 	      <justify>GTK_JUSTIFY_CENTER</justify>
 	      <wrap>False</wrap>
@@ -4039,8 +4079,9 @@ settings</label>
 	    <widget>
 	      <class>GtkVBox</class>
 	      <name>vbox23</name>
+	      <border_width>2</border_width>
 	      <homogeneous>False</homogeneous>
-	      <spacing>0</spacing>
+	      <spacing>2</spacing>
 
 	      <widget>
 		<class>GtkFrame</class>
@@ -4343,221 +4384,243 @@ sharing</label>
 
 	    <widget>
 	      <class>GtkVBox</class>
-	      <name>vbox27</name>
+	      <name>vbox29</name>
+	      <border_width>2</border_width>
 	      <homogeneous>False</homogeneous>
-	      <spacing>0</spacing>
+	      <spacing>2</spacing>
 
 	      <widget>
-		<class>GtkTable</class>
-		<name>table4</name>
-		<rows>2</rows>
-		<columns>3</columns>
-		<homogeneous>False</homogeneous>
-		<row_spacing>0</row_spacing>
-		<column_spacing>0</column_spacing>
+		<class>GtkFrame</class>
+		<name>frame12</name>
+		<label>Bandwidth settings</label>
+		<label_xalign>0</label_xalign>
+		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
-		  <fill>False</fill>
+		  <fill>True</fill>
 		</child>
 
 		<widget>
-		  <class>GtkLabel</class>
-		  <name>label123</name>
-		  <label>Input bandwidth limit</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
-		  <wrap>False</wrap>
-		  <xalign>0</xalign>
-		  <yalign>0.5</yalign>
-		  <xpad>0</xpad>
-		  <ypad>0</ypad>
-		  <child>
-		    <left_attach>0</left_attach>
-		    <right_attach>1</right_attach>
-		    <top_attach>0</top_attach>
-		    <bottom_attach>1</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
+		  <class>GtkVBox</class>
+		  <name>vbox27</name>
+		  <border_width>4</border_width>
+		  <homogeneous>False</homogeneous>
+		  <spacing>4</spacing>
 
-		<widget>
-		  <class>GtkLabel</class>
-		  <name>label124</name>
-		  <label>Output bandwidth limit</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
-		  <wrap>False</wrap>
-		  <xalign>0</xalign>
-		  <yalign>0.5</yalign>
-		  <xpad>0</xpad>
-		  <ypad>0</ypad>
-		  <child>
-		    <left_attach>0</left_attach>
-		    <right_attach>1</right_attach>
-		    <top_attach>1</top_attach>
-		    <bottom_attach>2</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
+		  <widget>
+		    <class>GtkTable</class>
+		    <name>table4</name>
+		    <rows>2</rows>
+		    <columns>3</columns>
+		    <homogeneous>False</homogeneous>
+		    <row_spacing>4</row_spacing>
+		    <column_spacing>4</column_spacing>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
 
-		<widget>
-		  <class>GtkLabel</class>
-		  <name>label125</name>
-		  <label>bps</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
-		  <wrap>False</wrap>
-		  <xalign>0</xalign>
-		  <yalign>0.5</yalign>
-		  <xpad>0</xpad>
-		  <ypad>0</ypad>
-		  <child>
-		    <left_attach>2</left_attach>
-		    <right_attach>3</right_attach>
-		    <top_attach>0</top_attach>
-		    <bottom_attach>1</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label123</name>
+		      <label>Input bandwidth limit</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<left_attach>0</left_attach>
+			<right_attach>1</right_attach>
+			<top_attach>0</top_attach>
+			<bottom_attach>1</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
 
-		<widget>
-		  <class>GtkLabel</class>
-		  <name>label126</name>
-		  <label>bps</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
-		  <wrap>False</wrap>
-		  <xalign>0</xalign>
-		  <yalign>0.5</yalign>
-		  <xpad>0</xpad>
-		  <ypad>0</ypad>
-		  <child>
-		    <left_attach>2</left_attach>
-		    <right_attach>3</right_attach>
-		    <top_attach>1</top_attach>
-		    <bottom_attach>2</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label124</name>
+		      <label>Output bandwidth limit</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<left_attach>0</left_attach>
+			<right_attach>1</right_attach>
+			<top_attach>1</top_attach>
+			<bottom_attach>2</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
 
-		<widget>
-		  <class>GtkSpinButton</class>
-		  <name>spinbutton_config_bps_in</name>
-		  <width>100</width>
-		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>changed</name>
-		    <handler>on_spinbutton_config_bps_in_changed</handler>
-		    <last_modification_time>Sun, 14 Apr 2002 20:49:50 GMT</last_modification_time>
-		  </signal>
-		  <climb_rate>1</climb_rate>
-		  <digits>0</digits>
-		  <numeric>True</numeric>
-		  <update_policy>GTK_UPDATE_ALWAYS</update_policy>
-		  <snap>False</snap>
-		  <wrap>False</wrap>
-		  <value>0</value>
-		  <lower>0</lower>
-		  <upper>2e+06</upper>
-		  <step>1</step>
-		  <page>1024</page>
-		  <page_size>1024</page_size>
-		  <child>
-		    <left_attach>1</left_attach>
-		    <right_attach>2</right_attach>
-		    <top_attach>0</top_attach>
-		    <bottom_attach>1</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label125</name>
+		      <label>bps</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<left_attach>2</left_attach>
+			<right_attach>3</right_attach>
+			<top_attach>0</top_attach>
+			<bottom_attach>1</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
 
-		<widget>
-		  <class>GtkSpinButton</class>
-		  <name>spinbutton_config_bps_out</name>
-		  <width>100</width>
-		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>changed</name>
-		    <handler>on_spinbutton_config_bps_out_changed</handler>
-		    <last_modification_time>Sun, 14 Apr 2002 21:42:55 GMT</last_modification_time>
-		  </signal>
-		  <climb_rate>1</climb_rate>
-		  <digits>0</digits>
-		  <numeric>False</numeric>
-		  <update_policy>GTK_UPDATE_ALWAYS</update_policy>
-		  <snap>False</snap>
-		  <wrap>False</wrap>
-		  <value>0</value>
-		  <lower>0</lower>
-		  <upper>2e+06</upper>
-		  <step>1</step>
-		  <page>1024</page>
-		  <page_size>1024</page_size>
-		  <child>
-		    <left_attach>1</left_attach>
-		    <right_attach>2</right_attach>
-		    <top_attach>1</top_attach>
-		    <bottom_attach>2</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
-	      </widget>
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label126</name>
+		      <label>bps</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<left_attach>2</left_attach>
+			<right_attach>3</right_attach>
+			<top_attach>1</top_attach>
+			<bottom_attach>2</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
 
-	      <widget>
-		<class>GtkLabel</class>
-		<name>label127</name>
-		<label>Due to the current implementation limitations,
+		    <widget>
+		      <class>GtkSpinButton</class>
+		      <name>spinbutton_config_bps_in</name>
+		      <width>100</width>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>changed</name>
+			<handler>on_spinbutton_config_bps_in_changed</handler>
+			<last_modification_time>Sun, 14 Apr 2002 20:49:50 GMT</last_modification_time>
+		      </signal>
+		      <climb_rate>1</climb_rate>
+		      <digits>0</digits>
+		      <numeric>True</numeric>
+		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		      <snap>False</snap>
+		      <wrap>False</wrap>
+		      <value>0</value>
+		      <lower>0</lower>
+		      <upper>2e+06</upper>
+		      <step>1</step>
+		      <page>1024</page>
+		      <page_size>1024</page_size>
+		      <child>
+			<left_attach>1</left_attach>
+			<right_attach>2</right_attach>
+			<top_attach>0</top_attach>
+			<bottom_attach>1</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkSpinButton</class>
+		      <name>spinbutton_config_bps_out</name>
+		      <width>100</width>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>changed</name>
+			<handler>on_spinbutton_config_bps_out_changed</handler>
+			<last_modification_time>Sun, 14 Apr 2002 21:42:55 GMT</last_modification_time>
+		      </signal>
+		      <climb_rate>1</climb_rate>
+		      <digits>0</digits>
+		      <numeric>False</numeric>
+		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		      <snap>False</snap>
+		      <wrap>False</wrap>
+		      <value>0</value>
+		      <lower>0</lower>
+		      <upper>2e+06</upper>
+		      <step>1</step>
+		      <page>1024</page>
+		      <page_size>1024</page_size>
+		      <child>
+			<left_attach>1</left_attach>
+			<right_attach>2</right_attach>
+			<top_attach>1</top_attach>
+			<bottom_attach>2</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label127</name>
+		    <label>Due to the current implementation limitations,
 this does not affect Gnet traffic.</label>
-		<justify>GTK_JUSTIFY_FILL</justify>
-		<wrap>False</wrap>
-		<xalign>7.45058e-09</xalign>
-		<yalign>0.5</yalign>
-		<xpad>0</xpad>
-		<ypad>0</ypad>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>False</fill>
-		</child>
+		    <justify>GTK_JUSTIFY_FILL</justify>
+		    <wrap>False</wrap>
+		    <xalign>7.45058e-09</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+		</widget>
 	      </widget>
 	    </widget>
 
@@ -4578,8 +4641,9 @@ control</label>
 	    <widget>
 	      <class>GtkVBox</class>
 	      <name>vbox25</name>
+	      <border_width>2</border_width>
 	      <homogeneous>False</homogeneous>
-	      <spacing>0</spacing>
+	      <spacing>2</spacing>
 
 	      <widget>
 		<class>GtkFrame</class>
@@ -4706,7 +4770,7 @@ control</label>
 		  <class>GtkHBox</class>
 		  <name>hbox56</name>
 		  <homogeneous>False</homogeneous>
-		  <spacing>0</spacing>
+		  <spacing>4</spacing>
 
 		  <widget>
 		    <class>GtkLabel</class>

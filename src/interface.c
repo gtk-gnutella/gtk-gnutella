@@ -35,8 +35,8 @@ GtkWidget *button_config_rescan_dir;
 GtkWidget *button_config_save_path;
 GtkWidget *button_config_update_port;
 GtkWidget *checkbutton_config_force_ip;
-GtkWidget *checkbutton_config_throttle;
 GtkWidget *checkbutton_config_proxy_connections;
+GtkWidget *checkbutton_config_proxy_auth;
 GtkWidget *entry_config_extensions;
 GtkWidget *entry_config_force_ip;
 GtkWidget *entry_config_maxttl;
@@ -305,18 +305,16 @@ create_main_window (void)
   GtkWidget *label98;
   GtkWidget *notebook1;
   GtkWidget *vbox24;
-  GtkWidget *frame_local_ip;
-  GtkWidget *table_local_ip;
-  GtkWidget *label78;
-  GtkWidget *frame_listen_port;
-  GtkWidget *vbox9;
-  GtkWidget *hbox48;
+  GtkWidget *frame13;
+  GtkWidget *vbox30;
+  GtkWidget *hbox79;
+  GtkWidget *label128;
+  GtkWidget *hseparator2;
+  GtkWidget *table5;
+  GtkWidget *label129;
   GtkWidget *label35;
-  GtkWidget *hbox22;
-  GtkWidget *hbox49;
-  GtkWidget *frame2;
-  GtkWidget *hbox57;
-  GtkWidget *vbox10;
+  GtkWidget *frame_proxy_settings;
+  GtkWidget *vbox28;
   GtkWidget *hbox59;
   GtkWidget *label90;
   GSList *socks_version_group = NULL;
@@ -346,6 +344,8 @@ create_main_window (void)
   GtkWidget *hbox27;
   GtkWidget *label41;
   GtkWidget *label120;
+  GtkWidget *vbox29;
+  GtkWidget *frame12;
   GtkWidget *vbox27;
   GtkWidget *table4;
   GtkWidget *label123;
@@ -362,6 +362,7 @@ create_main_window (void)
   GtkWidget *vbox22;
   GtkWidget *hbox_speed_kpbs;
   GtkWidget *label36;
+  GtkWidget *checkbutton_config_throttle;
   GtkWidget *frame1;
   GtkWidget *hbox56;
   GtkWidget *label84;
@@ -681,6 +682,8 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (progressbar_bps_in);
   gtk_box_pack_start (GTK_BOX (vbox_left), progressbar_bps_in, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, progressbar_bps_in, "Click to toggle display.", NULL);
+  gtk_widget_set_events (progressbar_bps_in, GDK_BUTTON_PRESS_MASK);
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bps_in), TRUE);
   gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bps_in), "%v/%u bps in");
 
@@ -690,6 +693,8 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (progressbar_bps_out);
   gtk_box_pack_start (GTK_BOX (vbox_left), progressbar_bps_out, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, progressbar_bps_out, "Click to toggle display.", NULL);
+  gtk_widget_set_events (progressbar_bps_out, GDK_BUTTON_PRESS_MASK);
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bps_out), TRUE);
   gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bps_out), "%v/%u bps out");
 
@@ -706,8 +711,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (notebook_main);
   gtk_box_pack_start (GTK_BOX (vbox_right), notebook_main, TRUE, TRUE, 0);
-  GTK_WIDGET_UNSET_FLAGS (notebook_main, GTK_CAN_FOCUS);
-  gtk_notebook_set_show_tabs (GTK_NOTEBOOK (notebook_main), FALSE);
   gtk_notebook_set_show_border (GTK_NOTEBOOK (notebook_main), FALSE);
 
   vbox_gnutellanet = gtk_vbox_new (FALSE, 6);
@@ -2063,149 +2066,152 @@ create_main_window (void)
   gtk_widget_show (notebook1);
   gtk_container_add (GTK_CONTAINER (notebook_main), notebook1);
 
-  vbox24 = gtk_vbox_new (FALSE, 0);
+  vbox24 = gtk_vbox_new (FALSE, 2);
   gtk_widget_ref (vbox24);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox24", vbox24,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox24);
   gtk_container_add (GTK_CONTAINER (notebook1), vbox24);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox24), 2);
 
-  frame_local_ip = gtk_frame_new ("Local IP");
-  gtk_widget_ref (frame_local_ip);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_local_ip", frame_local_ip,
+  frame13 = gtk_frame_new ("IP settings");
+  gtk_widget_ref (frame13);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame13", frame13,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame_local_ip);
-  gtk_box_pack_start (GTK_BOX (vbox24), frame_local_ip, FALSE, TRUE, 0);
+  gtk_widget_show (frame13);
+  gtk_box_pack_start (GTK_BOX (vbox24), frame13, FALSE, TRUE, 0);
 
-  table_local_ip = gtk_table_new (1, 3, FALSE);
-  gtk_widget_ref (table_local_ip);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "table_local_ip", table_local_ip,
+  vbox30 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_ref (vbox30);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox30", vbox30,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (table_local_ip);
-  gtk_container_add (GTK_CONTAINER (frame_local_ip), table_local_ip);
+  gtk_widget_show (vbox30);
+  gtk_container_add (GTK_CONTAINER (frame13), vbox30);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox30), 4);
 
-  label78 = gtk_label_new ("  ");
-  gtk_widget_ref (label78);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label78", label78,
+  hbox79 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_ref (hbox79);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox79", hbox79,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label78);
-  gtk_table_attach (GTK_TABLE (table_local_ip), label78, 2, 3, 0, 1,
-                    (GtkAttachOptions) (0),
-                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_show (hbox79);
+  gtk_box_pack_start (GTK_BOX (vbox30), hbox79, FALSE, TRUE, 0);
+
+  label128 = gtk_label_new ("Current IP settings (Address:Port):");
+  gtk_widget_ref (label128);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label128", label128,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label128);
+  gtk_box_pack_start (GTK_BOX (hbox79), label128, FALSE, FALSE, 0);
+
+  label_current_port = gtk_label_new ("not yet determined");
+  gtk_widget_ref (label_current_port);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_current_port", label_current_port,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_current_port);
+  gtk_box_pack_start (GTK_BOX (hbox79), label_current_port, FALSE, FALSE, 0);
+
+  hseparator2 = gtk_hseparator_new ();
+  gtk_widget_ref (hseparator2);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hseparator2", hseparator2,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hseparator2);
+  gtk_box_pack_start (GTK_BOX (vbox30), hseparator2, FALSE, TRUE, 3);
+
+  table5 = gtk_table_new (2, 4, FALSE);
+  gtk_widget_ref (table5);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "table5", table5,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table5);
+  gtk_box_pack_start (GTK_BOX (vbox30), table5, TRUE, TRUE, 0);
+  gtk_table_set_row_spacings (GTK_TABLE (table5), 4);
+  gtk_table_set_col_spacings (GTK_TABLE (table5), 4);
 
   checkbutton_config_force_ip = gtk_check_button_new_with_label ("Force local IP to:");
   gtk_widget_ref (checkbutton_config_force_ip);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_force_ip", checkbutton_config_force_ip,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_config_force_ip);
-  gtk_table_attach (GTK_TABLE (table_local_ip), checkbutton_config_force_ip, 0, 1, 0, 1,
+  gtk_table_attach (GTK_TABLE (table5), checkbutton_config_force_ip, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  entry_config_force_ip = gtk_entry_new ();
-  gtk_widget_ref (entry_config_force_ip);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_config_force_ip", entry_config_force_ip,
+  label129 = gtk_label_new ("Listen port");
+  gtk_widget_ref (label129);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label129", label129,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_config_force_ip);
-  gtk_table_attach (GTK_TABLE (table_local_ip), entry_config_force_ip, 1, 2, 0, 1,
+  gtk_widget_show (label129);
+  gtk_table_attach (GTK_TABLE (table5), label129, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-
-  frame_listen_port = gtk_frame_new ("Listen port");
-  gtk_widget_ref (frame_listen_port);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_listen_port", frame_listen_port,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame_listen_port);
-  gtk_box_pack_start (GTK_BOX (vbox24), frame_listen_port, FALSE, TRUE, 0);
-
-  vbox9 = gtk_vbox_new (FALSE, 2);
-  gtk_widget_ref (vbox9);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox9", vbox9,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox9);
-  gtk_container_add (GTK_CONTAINER (frame_listen_port), vbox9);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox9), 4);
-
-  hbox48 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_ref (hbox48);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox48", hbox48,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox48);
-  gtk_box_pack_start (GTK_BOX (vbox9), hbox48, FALSE, FALSE, 0);
+  gtk_misc_set_alignment (GTK_MISC (label129), 0, 0.5);
 
   label35 = gtk_label_new ("Default : 6346, Disable : 0");
   gtk_widget_ref (label35);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label35", label35,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label35);
-  gtk_box_pack_start (GTK_BOX (hbox48), label35, FALSE, FALSE, 0);
-
-  hbox22 = gtk_hbox_new (FALSE, 8);
-  gtk_widget_ref (hbox22);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox22", hbox22,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox22);
-  gtk_box_pack_start (GTK_BOX (vbox9), hbox22, TRUE, FALSE, 0);
-
-  entry_config_port = gtk_entry_new ();
-  gtk_widget_ref (entry_config_port);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_config_port", entry_config_port,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_config_port);
-  gtk_box_pack_start (GTK_BOX (hbox22), entry_config_port, FALSE, FALSE, 0);
-  gtk_widget_set_usize (entry_config_port, 64, -2);
+  gtk_table_attach (GTK_TABLE (table5), label35, 3, 4, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   button_config_update_port = gtk_button_new_with_label (" Update ");
   gtk_widget_ref (button_config_update_port);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "button_config_update_port", button_config_update_port,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_config_update_port);
-  gtk_box_pack_start (GTK_BOX (hbox22), button_config_update_port, FALSE, FALSE, 0);
+  gtk_table_attach (GTK_TABLE (table5), button_config_update_port, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_sensitive (button_config_update_port, FALSE);
   GTK_WIDGET_UNSET_FLAGS (button_config_update_port, GTK_CAN_FOCUS);
 
-  hbox49 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_ref (hbox49);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox49", hbox49,
+  entry_config_force_ip = gtk_entry_new ();
+  gtk_widget_ref (entry_config_force_ip);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_config_force_ip", entry_config_force_ip,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox49);
-  gtk_box_pack_start (GTK_BOX (vbox9), hbox49, FALSE, FALSE, 0);
+  gtk_widget_show (entry_config_force_ip);
+  gtk_table_attach (GTK_TABLE (table5), entry_config_force_ip, 1, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
-  label_current_port = gtk_label_new ("Current port : 6346");
-  gtk_widget_ref (label_current_port);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_current_port", label_current_port,
+  entry_config_port = gtk_entry_new ();
+  gtk_widget_ref (entry_config_port);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_config_port", entry_config_port,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label_current_port);
-  gtk_box_pack_start (GTK_BOX (hbox49), label_current_port, FALSE, FALSE, 0);
+  gtk_widget_show (entry_config_port);
+  gtk_table_attach (GTK_TABLE (table5), entry_config_port, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (entry_config_port, 64, -2);
 
-  frame2 = gtk_frame_new ("Proxy Options");
-  gtk_widget_ref (frame2);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame2", frame2,
+  frame_proxy_settings = gtk_frame_new ("Proxy settings");
+  gtk_widget_ref (frame_proxy_settings);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_proxy_settings", frame_proxy_settings,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame2);
-  gtk_box_pack_start (GTK_BOX (vbox24), frame2, FALSE, TRUE, 0);
-  gtk_widget_set_usize (frame2, 301, 91);
+  gtk_widget_show (frame_proxy_settings);
+  gtk_box_pack_start (GTK_BOX (vbox24), frame_proxy_settings, FALSE, TRUE, 0);
 
-  hbox57 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_ref (hbox57);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox57", hbox57,
+  vbox28 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_ref (vbox28);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox28", vbox28,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox57);
-  gtk_container_add (GTK_CONTAINER (frame2), hbox57);
+  gtk_widget_show (vbox28);
+  gtk_container_add (GTK_CONTAINER (frame_proxy_settings), vbox28);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox28), 4);
 
-  vbox10 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_ref (vbox10);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox10", vbox10,
+  checkbutton_config_proxy_connections = gtk_check_button_new_with_label ("Use proxy to connect to the internet");
+  gtk_widget_ref (checkbutton_config_proxy_connections);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_proxy_connections", checkbutton_config_proxy_connections,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox10);
-  gtk_box_pack_start (GTK_BOX (hbox57), vbox10, TRUE, TRUE, 0);
+  gtk_widget_show (checkbutton_config_proxy_connections);
+  gtk_box_pack_start (GTK_BOX (vbox28), checkbutton_config_proxy_connections, FALSE, FALSE, 0);
 
-  hbox59 = gtk_hbox_new (FALSE, 0);
+  hbox59 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox59);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox59", hbox59,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox59);
-  gtk_box_pack_start (GTK_BOX (vbox10), hbox59, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox28), hbox59, FALSE, TRUE, 0);
 
   label90 = gtk_label_new ("Proxy type:");
   gtk_widget_ref (label90);
@@ -2239,21 +2245,14 @@ create_main_window (void)
   gtk_widget_show (radio_config_socksv5);
   gtk_box_pack_start (GTK_BOX (hbox59), radio_config_socksv5, FALSE, FALSE, 0);
 
-  checkbutton_config_proxy_connections = gtk_check_button_new_with_label ("Proxy Connections?");
-  gtk_widget_ref (checkbutton_config_proxy_connections);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_proxy_connections", checkbutton_config_proxy_connections,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_config_proxy_connections);
-  gtk_box_pack_start (GTK_BOX (hbox59), checkbutton_config_proxy_connections, FALSE, FALSE, 0);
-
-  hbox60 = gtk_hbox_new (FALSE, 0);
+  hbox60 = gtk_hbox_new (FALSE, 5);
   gtk_widget_ref (hbox60);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox60", hbox60,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox60);
-  gtk_box_pack_start (GTK_BOX (vbox10), hbox60, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox28), hbox60, FALSE, TRUE, 0);
 
-  label91 = gtk_label_new ("Socks Host:");
+  label91 = gtk_label_new ("Host:");
   gtk_widget_ref (label91);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label91", label91,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -2282,12 +2281,19 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox60), entry_config_socks_port, FALSE, FALSE, 0);
   gtk_widget_set_usize (entry_config_socks_port, 43, -2);
 
-  hbox61 = gtk_hbox_new (FALSE, 0);
+  checkbutton_config_proxy_auth = gtk_check_button_new_with_label ("Use username and password to authenticate to proxy");
+  gtk_widget_ref (checkbutton_config_proxy_auth);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_proxy_auth", checkbutton_config_proxy_auth,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_proxy_auth);
+  gtk_box_pack_start (GTK_BOX (vbox28), checkbutton_config_proxy_auth, FALSE, FALSE, 0);
+
+  hbox61 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox61);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox61", hbox61,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox61);
-  gtk_box_pack_start (GTK_BOX (vbox10), hbox61, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox28), hbox61, FALSE, TRUE, 0);
 
   label93 = gtk_label_new ("Username:");
   gtk_widget_ref (label93);
@@ -2324,7 +2330,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame11", frame11,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame11);
-  gtk_box_pack_start (GTK_BOX (vbox24), frame11, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox24), frame11, FALSE, TRUE, 0);
 
   vbox23_2 = gtk_vbox_new (FALSE, 4);
   gtk_widget_ref (vbox23_2);
@@ -2334,7 +2340,7 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame11), vbox23_2);
   gtk_container_set_border_width (GTK_CONTAINER (vbox23_2), 4);
 
-  hbox77 = gtk_hbox_new (FALSE, 0);
+  hbox77 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox77);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox77", hbox77,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -2349,7 +2355,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox77), checkbutton_config_use_netmasks, FALSE, FALSE, 0);
   gtk_tooltips_set_tip (tooltips, checkbutton_config_use_netmasks, "This option can give peformance boosts to those on a large WAN with many peers (such as a university). Enter the networks of nearby dorms and peered networks to take advantage of this", NULL);
 
-  hbox78 = gtk_hbox_new (FALSE, 0);
+  hbox78 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox78);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox78", hbox78,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -2379,19 +2385,20 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox78), entry_config_netmasks, TRUE, TRUE, 0);
   gtk_tooltips_set_tip (tooltips, entry_config_netmasks, "Enter a semicolon separated list of networks that are local to you in the form of ip/bits or ip/netmask (eg 192.168.1.0/24 or 192.168.1.0/255.255.255.0)", NULL);
 
-  label119 = gtk_label_new ("Network\nsettings");
+  label119 = gtk_label_new ("Connection\nsettings");
   gtk_widget_ref (label119);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label119", label119,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label119);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook1), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook1), 0), label119);
 
-  vbox23 = gtk_vbox_new (FALSE, 0);
+  vbox23 = gtk_vbox_new (FALSE, 2);
   gtk_widget_ref (vbox23);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox23", vbox23,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox23);
   gtk_container_add (GTK_CONTAINER (notebook1), vbox23);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox23), 2);
 
   frame_save_new_files = gtk_frame_new ("While downloading, store files to:");
   gtk_widget_ref (frame_save_new_files);
@@ -2526,12 +2533,28 @@ create_main_window (void)
   gtk_widget_show (label120);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook1), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook1), 1), label120);
 
-  vbox27 = gtk_vbox_new (FALSE, 0);
+  vbox29 = gtk_vbox_new (FALSE, 2);
+  gtk_widget_ref (vbox29);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox29", vbox29,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox29);
+  gtk_container_add (GTK_CONTAINER (notebook1), vbox29);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox29), 2);
+
+  frame12 = gtk_frame_new ("Bandwidth settings");
+  gtk_widget_ref (frame12);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame12", frame12,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame12);
+  gtk_box_pack_start (GTK_BOX (vbox29), frame12, FALSE, TRUE, 0);
+
+  vbox27 = gtk_vbox_new (FALSE, 4);
   gtk_widget_ref (vbox27);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox27", vbox27,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox27);
-  gtk_container_add (GTK_CONTAINER (notebook1), vbox27);
+  gtk_container_add (GTK_CONTAINER (frame12), vbox27);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox27), 4);
 
   table4 = gtk_table_new (2, 3, FALSE);
   gtk_widget_ref (table4);
@@ -2539,6 +2562,8 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (table4);
   gtk_box_pack_start (GTK_BOX (vbox27), table4, FALSE, FALSE, 0);
+  gtk_table_set_row_spacings (GTK_TABLE (table4), 4);
+  gtk_table_set_col_spacings (GTK_TABLE (table4), 4);
 
   label123 = gtk_label_new ("Input bandwidth limit");
   gtk_widget_ref (label123);
@@ -2619,12 +2644,13 @@ create_main_window (void)
   gtk_widget_show (label121);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook1), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook1), 2), label121);
 
-  vbox25 = gtk_vbox_new (FALSE, 0);
+  vbox25 = gtk_vbox_new (FALSE, 2);
   gtk_widget_ref (vbox25);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox25", vbox25,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox25);
   gtk_container_add (GTK_CONTAINER (notebook1), vbox25);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox25), 2);
 
   frame_connection_speed = gtk_frame_new ("Connection speed");
   gtk_widget_ref (frame_connection_speed);
@@ -2686,7 +2712,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox25), frame1, FALSE, TRUE, 0);
   gtk_widget_set_usize (frame1, 178, -2);
 
-  hbox56 = gtk_hbox_new (FALSE, 0);
+  hbox56 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox56);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox56", hbox56,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -2843,6 +2869,12 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (ctree_menu), "tree_select_row",
                       GTK_SIGNAL_FUNC (on_ctree_menu_tree_select_row),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (progressbar_bps_in), "button_press_event",
+                      GTK_SIGNAL_FUNC (on_progressbar_bps_in_button_press_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (progressbar_bps_out), "button_press_event",
+                      GTK_SIGNAL_FUNC (on_progressbar_bps_out_button_press_event),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_nodes), "select_row",
                       GTK_SIGNAL_FUNC (on_clist_nodes_select_row),
@@ -3063,6 +3095,9 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (checkbutton_config_force_ip), "toggled",
                       GTK_SIGNAL_FUNC (on_checkbutton_config_force_ip_toggled),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (button_config_update_port), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_config_update_port_clicked),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_force_ip), "changed",
                       GTK_SIGNAL_FUNC (on_entry_config_force_ip_changed),
                       NULL);
@@ -3078,8 +3113,8 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (entry_config_port), "activate",
                       GTK_SIGNAL_FUNC (on_entry_config_port_activate),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (button_config_update_port), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_config_update_port_clicked),
+  gtk_signal_connect (GTK_OBJECT (checkbutton_config_proxy_connections), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_config_proxy_connections_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (radio_config_http), "toggled",
                       GTK_SIGNAL_FUNC (on_radio_config_http_toggled),
@@ -3089,9 +3124,6 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (radio_config_socksv5), "toggled",
                       GTK_SIGNAL_FUNC (on_radio_config_socksv5_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_config_proxy_connections), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_config_proxy_connections_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_socks_host), "activate",
                       GTK_SIGNAL_FUNC (on_entry_config_socks_host_activate),
@@ -3104,6 +3136,9 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_socks_port), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_config_socks_port_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (checkbutton_config_proxy_auth), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_config_proxy_auth_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_socks_username), "activate",
                       GTK_SIGNAL_FUNC (on_entry_config_socks_username_activate),
