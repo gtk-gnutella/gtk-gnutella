@@ -133,8 +133,7 @@ create_main_window (void)
   GtkWidget *button_nodes_remove;
   GtkWidget *button_nodes_add;
   GtkWidget *entry_host;
-  GtkWidget *vbox104;
-  GtkWidget *hbox172;
+  GtkWidget *hbox200;
   GtkWidget *hbox_normal_or_ultrapeer;
   GtkWidget *label530;
   GtkWidget *label531;
@@ -146,24 +145,12 @@ create_main_window (void)
   GtkWidget *label532;
   GtkObject *spinbutton_max_ultrapeers_adj;
   GtkWidget *spinbutton_max_ultrapeers;
+  GtkWidget *table91;
+  GtkObject *spinbutton_quick_connect_pool_size_adj;
+  GtkWidget *spinbutton_quick_connect_pool_size;
+  GtkWidget *label680;
   GtkWidget *vbox83;
-  GtkWidget *notebook_expert_stats_hosts;
-  GtkWidget *table11;
-  GtkWidget *label178;
-  GtkWidget *label95;
-  GtkWidget *label453;
-  GtkWidget *hbox164;
-  GtkWidget *progressbar_hosts_in_catcher;
-  GtkWidget *button_host_catcher_clear;
-  GtkWidget *hbox165;
-  GtkWidget *progressbar_hosts_in_ultra_catcher;
-  GtkWidget *button_ultra_catcher_clear;
-  GtkWidget *label454;
-  GtkObject *spinbutton_nodes_max_hosts_cached_adj;
-  GtkWidget *spinbutton_nodes_max_hosts_cached;
-  GtkObject *spinbutton_nodes_max_ultra_hosts_cached_adj;
-  GtkWidget *spinbutton_nodes_max_ultra_hosts_cached;
-  GtkWidget *label451;
+  GtkWidget *frame127;
   GtkWidget *table37;
   GtkWidget *label12;
   GtkWidget *label11;
@@ -173,7 +160,6 @@ create_main_window (void)
   GtkWidget *entry_ul_byte_count;
   GtkWidget *label456;
   GtkWidget *label455;
-  GtkWidget *label452;
   GtkWidget *frame_expert_node_info;
   GtkWidget *vbox34;
   GtkWidget *table6;
@@ -1096,6 +1082,34 @@ create_main_window (void)
   GtkWidget *label665;
   GtkWidget *label666;
   GtkWidget *label_gnet_stats;
+  GtkWidget *vbox127;
+  GtkWidget *frame128;
+  GtkWidget *scrolledwindow46;
+  GtkWidget *clist_hcache;
+  GtkWidget *label674;
+  GtkWidget *label675;
+  GtkWidget *label676;
+  GtkWidget *label677;
+  GtkWidget *frame126;
+  GtkWidget *table11;
+  GtkWidget *label95;
+  GtkWidget *button_host_catcher_clear;
+  GtkObject *spinbutton_max_hosts_cached_adj;
+  GtkWidget *spinbutton_max_hosts_cached;
+  GtkWidget *label453;
+  GtkObject *spinbutton_max_ultra_hosts_cached_adj;
+  GtkWidget *spinbutton_max_ultra_hosts_cached;
+  GtkWidget *button_ultra_catcher_clear;
+  GtkWidget *label673;
+  GtkWidget *label678;
+  GtkObject *spinbutton_max_other_hosts_cached_adj;
+  GtkWidget *spinbutton_max_other_hosts_cached;
+  GtkWidget *label679;
+  GtkWidget *progressbar_hosts_in_catcher;
+  GtkWidget *progressbar_hosts_in_ultra_catcher;
+  GtkWidget *progressbar_hosts_in_bad_catcher;
+  GtkWidget *button_hostcache_clear_bad;
+  GtkWidget *label672;
   GtkWidget *hbox_statusbar;
   GtkWidget *togglebutton_online;
   GtkWidget *hbox145;
@@ -1104,6 +1118,12 @@ create_main_window (void)
   GtkWidget *image_offline;
   GtkWidget *alignment25;
   GtkWidget *statusbar;
+  GtkWidget *frame129;
+  GtkWidget *label_statusbar_horizon_node_count;
+  GtkWidget *frame130;
+  GtkWidget *label_statusbar_horizon_file_count;
+  GtkWidget *frame131;
+  GtkWidget *label_statusbar_horizon_kb_count;
   GtkWidget *frame123;
   GtkWidget *hbox199;
   GtkWidget *eventbox_image_fd_shortage;
@@ -2137,29 +2157,21 @@ create_main_window (void)
   gtk_widget_show (entry_host);
   gtk_box_pack_start (GTK_BOX (hbox2), entry_host, TRUE, TRUE, 0);
 
-  vbox104 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox104, "vbox104");
-  gtk_widget_ref (vbox104);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox104", vbox104,
+  hbox200 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox200, "hbox200");
+  gtk_widget_ref (hbox200);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox200", hbox200,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox104);
-  gtk_box_pack_start (GTK_BOX (vbox17), vbox104, FALSE, TRUE, 0);
+  gtk_widget_show (hbox200);
+  gtk_box_pack_start (GTK_BOX (vbox17), hbox200, FALSE, TRUE, 0);
 
-  hbox172 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_set_name (hbox172, "hbox172");
-  gtk_widget_ref (hbox172);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox172", hbox172,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox172);
-  gtk_box_pack_start (GTK_BOX (vbox104), hbox172, FALSE, TRUE, 0);
-
-  hbox_normal_or_ultrapeer = gtk_table_new (1, 4, FALSE);
+  hbox_normal_or_ultrapeer = gtk_table_new (2, 2, FALSE);
   gtk_widget_set_name (hbox_normal_or_ultrapeer, "hbox_normal_or_ultrapeer");
   gtk_widget_ref (hbox_normal_or_ultrapeer);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox_normal_or_ultrapeer", hbox_normal_or_ultrapeer,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox_normal_or_ultrapeer);
-  gtk_box_pack_start (GTK_BOX (hbox172), hbox_normal_or_ultrapeer, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox200), hbox_normal_or_ultrapeer, TRUE, TRUE, 0);
   gtk_table_set_row_spacings (GTK_TABLE (hbox_normal_or_ultrapeer), 2);
   gtk_table_set_col_spacings (GTK_TABLE (hbox_normal_or_ultrapeer), 4);
 
@@ -2180,7 +2192,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label531", label531,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label531);
-  gtk_table_attach (GTK_TABLE (hbox_normal_or_ultrapeer), label531, 2, 3, 0, 1,
+  gtk_table_attach (GTK_TABLE (hbox_normal_or_ultrapeer), label531, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label531), 0, 0.5);
@@ -2204,7 +2216,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_max_connections", spinbutton_max_connections,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_max_connections);
-  gtk_table_attach (GTK_TABLE (hbox_normal_or_ultrapeer), spinbutton_max_connections, 3, 4, 0, 1,
+  gtk_table_attach (GTK_TABLE (hbox_normal_or_ultrapeer), spinbutton_max_connections, 1, 2, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_connections), TRUE);
@@ -2215,7 +2227,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox_leaf", hbox_leaf,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox_leaf);
-  gtk_box_pack_start (GTK_BOX (hbox172), hbox_leaf, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox200), hbox_leaf, TRUE, FALSE, 0);
   gtk_table_set_row_spacings (GTK_TABLE (hbox_leaf), 2);
   gtk_table_set_col_spacings (GTK_TABLE (hbox_leaf), 4);
 
@@ -2241,6 +2253,38 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
+  table91 = gtk_table_new (1, 2, FALSE);
+  gtk_widget_set_name (table91, "table91");
+  gtk_widget_ref (table91);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "table91", table91,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table91);
+  gtk_box_pack_start (GTK_BOX (hbox200), table91, TRUE, TRUE, 0);
+  gtk_table_set_row_spacings (GTK_TABLE (table91), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table91), 4);
+
+  spinbutton_quick_connect_pool_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_quick_connect_pool_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_quick_connect_pool_size_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_quick_connect_pool_size, "spinbutton_quick_connect_pool_size");
+  gtk_widget_ref (spinbutton_quick_connect_pool_size);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_quick_connect_pool_size", spinbutton_quick_connect_pool_size,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_quick_connect_pool_size);
+  gtk_table_attach (GTK_TABLE (table91), spinbutton_quick_connect_pool_size, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label680 = gtk_label_new (_("Quick-connect pool size"));
+  gtk_widget_set_name (label680, "label680");
+  gtk_widget_ref (label680);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label680", label680,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label680);
+  gtk_table_attach (GTK_TABLE (table91), label680, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label680), 1, 0.5);
+
   vbox83 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox83, "vbox83");
   gtk_widget_ref (vbox83);
@@ -2249,160 +2293,13 @@ create_main_window (void)
   gtk_widget_show (vbox83);
   gtk_box_pack_start (GTK_BOX (vbox_gnutellanet), vbox83, FALSE, TRUE, 0);
 
-  notebook_expert_stats_hosts = gtk_notebook_new ();
-  gtk_widget_set_name (notebook_expert_stats_hosts, "notebook_expert_stats_hosts");
-  gtk_widget_ref (notebook_expert_stats_hosts);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "notebook_expert_stats_hosts", notebook_expert_stats_hosts,
+  frame127 = gtk_frame_new (_("Transfered data"));
+  gtk_widget_set_name (frame127, "frame127");
+  gtk_widget_ref (frame127);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame127", frame127,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (notebook_expert_stats_hosts);
-  gtk_box_pack_start (GTK_BOX (vbox83), notebook_expert_stats_hosts, TRUE, TRUE, 0);
-  gtk_notebook_set_tab_pos (GTK_NOTEBOOK (notebook_expert_stats_hosts), GTK_POS_LEFT);
-
-  table11 = gtk_table_new (3, 3, FALSE);
-  gtk_widget_set_name (table11, "table11");
-  gtk_widget_ref (table11);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "table11", table11,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (table11);
-  gtk_container_add (GTK_CONTAINER (notebook_expert_stats_hosts), table11);
-  gtk_container_set_border_width (GTK_CONTAINER (table11), 2);
-  gtk_table_set_row_spacings (GTK_TABLE (table11), 2);
-  gtk_table_set_col_spacings (GTK_TABLE (table11), 4);
-
-  label178 = gtk_label_new (_("Max hosts cached"));
-  gtk_widget_set_name (label178, "label178");
-  gtk_widget_ref (label178);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label178", label178,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label178);
-  gtk_table_attach (GTK_TABLE (table11), label178, 0, 1, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label178), 0, 0.5);
-
-  label95 = gtk_label_new (_("Hosts in cache"));
-  gtk_widget_set_name (label95, "label95");
-  gtk_widget_ref (label95);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label95", label95,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label95);
-  gtk_table_attach (GTK_TABLE (table11), label95, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label95), 7.45058e-09, 0.5);
-
-  label453 = gtk_label_new (_("Normal hosts"));
-  gtk_widget_set_name (label453, "label453");
-  gtk_widget_ref (label453);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label453", label453,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label453);
-  gtk_table_attach (GTK_TABLE (table11), label453, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  hbox164 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_set_name (hbox164, "hbox164");
-  gtk_widget_ref (hbox164);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox164", hbox164,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox164);
-  gtk_table_attach (GTK_TABLE (table11), hbox164, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
-
-  progressbar_hosts_in_catcher = gtk_progress_bar_new ();
-  gtk_widget_set_name (progressbar_hosts_in_catcher, "progressbar_hosts_in_catcher");
-  gtk_widget_ref (progressbar_hosts_in_catcher);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "progressbar_hosts_in_catcher", progressbar_hosts_in_catcher,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (progressbar_hosts_in_catcher);
-  gtk_box_pack_start (GTK_BOX (hbox164), progressbar_hosts_in_catcher, TRUE, TRUE, 0);
-  gtk_widget_set_usize (progressbar_hosts_in_catcher, 100, -2);
-  gtk_progress_set_show_text (GTK_PROGRESS (progressbar_hosts_in_catcher), TRUE);
-  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_hosts_in_catcher), _("%v/%u (%P%%)"));
-
-  button_host_catcher_clear = gtk_button_new_with_label (_("Clear"));
-  gtk_widget_set_name (button_host_catcher_clear, "button_host_catcher_clear");
-  gtk_widget_ref (button_host_catcher_clear);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_host_catcher_clear", button_host_catcher_clear,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_host_catcher_clear);
-  gtk_box_pack_start (GTK_BOX (hbox164), button_host_catcher_clear, FALSE, FALSE, 0);
-  gtk_widget_set_sensitive (button_host_catcher_clear, FALSE);
-
-  hbox165 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_set_name (hbox165, "hbox165");
-  gtk_widget_ref (hbox165);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox165", hbox165,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox165);
-  gtk_table_attach (GTK_TABLE (table11), hbox165, 2, 3, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
-
-  progressbar_hosts_in_ultra_catcher = gtk_progress_bar_new ();
-  gtk_widget_set_name (progressbar_hosts_in_ultra_catcher, "progressbar_hosts_in_ultra_catcher");
-  gtk_widget_ref (progressbar_hosts_in_ultra_catcher);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "progressbar_hosts_in_ultra_catcher", progressbar_hosts_in_ultra_catcher,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (progressbar_hosts_in_ultra_catcher);
-  gtk_box_pack_start (GTK_BOX (hbox165), progressbar_hosts_in_ultra_catcher, TRUE, TRUE, 0);
-  gtk_widget_set_usize (progressbar_hosts_in_ultra_catcher, 100, -2);
-  gtk_progress_set_show_text (GTK_PROGRESS (progressbar_hosts_in_ultra_catcher), TRUE);
-  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_hosts_in_ultra_catcher), _("%v/%u (%P%%)"));
-
-  button_ultra_catcher_clear = gtk_button_new_with_label (_("Clear"));
-  gtk_widget_set_name (button_ultra_catcher_clear, "button_ultra_catcher_clear");
-  gtk_widget_ref (button_ultra_catcher_clear);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_ultra_catcher_clear", button_ultra_catcher_clear,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_ultra_catcher_clear);
-  gtk_box_pack_start (GTK_BOX (hbox165), button_ultra_catcher_clear, FALSE, FALSE, 0);
-  gtk_widget_set_sensitive (button_ultra_catcher_clear, FALSE);
-
-  label454 = gtk_label_new (_("Ultrapeers"));
-  gtk_widget_set_name (label454, "label454");
-  gtk_widget_ref (label454);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label454", label454,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label454);
-  gtk_table_attach (GTK_TABLE (table11), label454, 2, 3, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  spinbutton_nodes_max_hosts_cached_adj = gtk_adjustment_new (100, 100, 500000, 1, 100, 100);
-  spinbutton_nodes_max_hosts_cached = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_nodes_max_hosts_cached_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_nodes_max_hosts_cached, "spinbutton_nodes_max_hosts_cached");
-  gtk_widget_ref (spinbutton_nodes_max_hosts_cached);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_nodes_max_hosts_cached", spinbutton_nodes_max_hosts_cached,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_nodes_max_hosts_cached);
-  gtk_table_attach (GTK_TABLE (table11), spinbutton_nodes_max_hosts_cached, 1, 2, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_nodes_max_hosts_cached), TRUE);
-
-  spinbutton_nodes_max_ultra_hosts_cached_adj = gtk_adjustment_new (100, 100, 500000, 1, 100, 100);
-  spinbutton_nodes_max_ultra_hosts_cached = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_nodes_max_ultra_hosts_cached_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_nodes_max_ultra_hosts_cached, "spinbutton_nodes_max_ultra_hosts_cached");
-  gtk_widget_ref (spinbutton_nodes_max_ultra_hosts_cached);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_nodes_max_ultra_hosts_cached", spinbutton_nodes_max_ultra_hosts_cached,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_nodes_max_ultra_hosts_cached);
-  gtk_table_attach (GTK_TABLE (table11), spinbutton_nodes_max_ultra_hosts_cached, 2, 3, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_nodes_max_ultra_hosts_cached), TRUE);
-
-  label451 = gtk_label_new (_("Host catcher"));
-  gtk_widget_set_name (label451, "label451");
-  gtk_widget_ref (label451);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label451", label451,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label451);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_expert_stats_hosts), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_expert_stats_hosts), 0), label451);
-  gtk_misc_set_alignment (GTK_MISC (label451), 7.45058e-09, 0.5);
+  gtk_widget_show (frame127);
+  gtk_box_pack_start (GTK_BOX (vbox83), frame127, TRUE, TRUE, 0);
 
   table37 = gtk_table_new (3, 3, FALSE);
   gtk_widget_set_name (table37, "table37");
@@ -2410,7 +2307,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table37", table37,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (table37);
-  gtk_container_add (GTK_CONTAINER (notebook_expert_stats_hosts), table37);
+  gtk_container_add (GTK_CONTAINER (frame127), table37);
   gtk_container_set_border_width (GTK_CONTAINER (table37), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table37), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table37), 4);
@@ -2504,15 +2401,6 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table37), label455, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-
-  label452 = gtk_label_new (_("Transfered files"));
-  gtk_widget_set_name (label452, "label452");
-  gtk_widget_ref (label452);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label452", label452,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label452);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_expert_stats_hosts), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_expert_stats_hosts), 1), label452);
-  gtk_misc_set_alignment (GTK_MISC (label452), 7.45058e-09, 0.5);
 
   frame_expert_node_info = gtk_frame_new (_("Local node"));
   gtk_widget_set_name (frame_expert_node_info, "frame_expert_node_info");
@@ -10697,6 +10585,256 @@ create_main_window (void)
   gtk_widget_show (label_gnet_stats);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 8), label_gnet_stats);
 
+  vbox127 = gtk_vbox_new (FALSE, 4);
+  gtk_widget_set_name (vbox127, "vbox127");
+  gtk_widget_ref (vbox127);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox127", vbox127,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox127);
+  gtk_container_add (GTK_CONTAINER (notebook_main), vbox127);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox127), 2);
+
+  frame128 = gtk_frame_new (_("Hostcache statistics"));
+  gtk_widget_set_name (frame128, "frame128");
+  gtk_widget_ref (frame128);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame128", frame128,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame128);
+  gtk_box_pack_start (GTK_BOX (vbox127), frame128, TRUE, TRUE, 0);
+
+  scrolledwindow46 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow46, "scrolledwindow46");
+  gtk_widget_ref (scrolledwindow46);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow46", scrolledwindow46,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (scrolledwindow46);
+  gtk_container_add (GTK_CONTAINER (frame128), scrolledwindow46);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow46), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
+  clist_hcache = gtk_clist_new (4);
+  gtk_widget_set_name (clist_hcache, "clist_hcache");
+  gtk_widget_ref (clist_hcache);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_hcache", clist_hcache,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (clist_hcache);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow46), clist_hcache);
+  gtk_clist_set_column_width (GTK_CLIST (clist_hcache), 0, 80);
+  gtk_clist_set_column_width (GTK_CLIST (clist_hcache), 1, 80);
+  gtk_clist_set_column_width (GTK_CLIST (clist_hcache), 2, 80);
+  gtk_clist_set_column_width (GTK_CLIST (clist_hcache), 3, 80);
+  gtk_clist_column_titles_show (GTK_CLIST (clist_hcache));
+
+  label674 = gtk_label_new (_("Cache"));
+  gtk_widget_set_name (label674, "label674");
+  gtk_widget_ref (label674);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label674", label674,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label674);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_hcache), 0, label674);
+
+  label675 = gtk_label_new (_("Hosts"));
+  gtk_widget_set_name (label675, "label675");
+  gtk_widget_ref (label675);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label675", label675,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label675);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_hcache), 1, label675);
+
+  label676 = gtk_label_new (_("Hits"));
+  gtk_widget_set_name (label676, "label676");
+  gtk_widget_ref (label676);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label676", label676,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label676);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_hcache), 2, label676);
+
+  label677 = gtk_label_new (_("Misses"));
+  gtk_widget_set_name (label677, "label677");
+  gtk_widget_ref (label677);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label677", label677,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label677);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_hcache), 3, label677);
+
+  frame126 = gtk_frame_new (_("Hostcache capacity"));
+  gtk_widget_set_name (frame126, "frame126");
+  gtk_widget_ref (frame126);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame126", frame126,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame126);
+  gtk_box_pack_start (GTK_BOX (vbox127), frame126, FALSE, TRUE, 0);
+
+  table11 = gtk_table_new (2, 11, FALSE);
+  gtk_widget_set_name (table11, "table11");
+  gtk_widget_ref (table11);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "table11", table11,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table11);
+  gtk_container_add (GTK_CONTAINER (frame126), table11);
+  gtk_container_set_border_width (GTK_CONTAINER (table11), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table11), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table11), 4);
+
+  label95 = gtk_label_new (_("Regular hosts"));
+  gtk_widget_set_name (label95, "label95");
+  gtk_widget_ref (label95);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label95", label95,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label95);
+  gtk_table_attach (GTK_TABLE (table11), label95, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label95), 7.45058e-09, 0.5);
+
+  button_host_catcher_clear = gtk_button_new_with_label (_("Clear"));
+  gtk_widget_set_name (button_host_catcher_clear, "button_host_catcher_clear");
+  gtk_widget_ref (button_host_catcher_clear);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_host_catcher_clear", button_host_catcher_clear,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_host_catcher_clear);
+  gtk_table_attach (GTK_TABLE (table11), button_host_catcher_clear, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_max_hosts_cached_adj = gtk_adjustment_new (100, 100, 500000, 1, 100, 100);
+  spinbutton_max_hosts_cached = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_hosts_cached_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_max_hosts_cached, "spinbutton_max_hosts_cached");
+  gtk_widget_ref (spinbutton_max_hosts_cached);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_max_hosts_cached", spinbutton_max_hosts_cached,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_max_hosts_cached);
+  gtk_table_attach (GTK_TABLE (table11), spinbutton_max_hosts_cached, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_hosts_cached), TRUE);
+
+  label453 = gtk_label_new (_("Ultrapeers"));
+  gtk_widget_set_name (label453, "label453");
+  gtk_widget_ref (label453);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label453", label453,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label453);
+  gtk_table_attach (GTK_TABLE (table11), label453, 4, 5, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_max_ultra_hosts_cached_adj = gtk_adjustment_new (100, 100, 500000, 1, 100, 100);
+  spinbutton_max_ultra_hosts_cached = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_ultra_hosts_cached_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_max_ultra_hosts_cached, "spinbutton_max_ultra_hosts_cached");
+  gtk_widget_ref (spinbutton_max_ultra_hosts_cached);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_max_ultra_hosts_cached", spinbutton_max_ultra_hosts_cached,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_max_ultra_hosts_cached);
+  gtk_table_attach (GTK_TABLE (table11), spinbutton_max_ultra_hosts_cached, 5, 6, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_ultra_hosts_cached), TRUE);
+
+  button_ultra_catcher_clear = gtk_button_new_with_label (_("Clear"));
+  gtk_widget_set_name (button_ultra_catcher_clear, "button_ultra_catcher_clear");
+  gtk_widget_ref (button_ultra_catcher_clear);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_ultra_catcher_clear", button_ultra_catcher_clear,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_ultra_catcher_clear);
+  gtk_table_attach (GTK_TABLE (table11), button_ultra_catcher_clear, 6, 7, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label673 = gtk_label_new ("");
+  gtk_widget_set_name (label673, "label673");
+  gtk_widget_ref (label673);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label673", label673,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label673);
+  gtk_table_attach (GTK_TABLE (table11), label673, 3, 4, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (label673, 16, -2);
+  gtk_misc_set_alignment (GTK_MISC (label673), 0, 0.5);
+
+  label678 = gtk_label_new (_("Bad hosts"));
+  gtk_widget_set_name (label678, "label678");
+  gtk_widget_ref (label678);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label678", label678,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label678);
+  gtk_table_attach (GTK_TABLE (table11), label678, 8, 9, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label678), 0, 0.5);
+
+  spinbutton_max_other_hosts_cached_adj = gtk_adjustment_new (100, 100, 500000, 1, 100, 100);
+  spinbutton_max_other_hosts_cached = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_other_hosts_cached_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_max_other_hosts_cached, "spinbutton_max_other_hosts_cached");
+  gtk_widget_ref (spinbutton_max_other_hosts_cached);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_max_other_hosts_cached", spinbutton_max_other_hosts_cached,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_max_other_hosts_cached);
+  gtk_table_attach (GTK_TABLE (table11), spinbutton_max_other_hosts_cached, 9, 10, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_other_hosts_cached), TRUE);
+
+  label679 = gtk_label_new ("");
+  gtk_widget_set_name (label679, "label679");
+  gtk_widget_ref (label679);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label679", label679,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label679);
+  gtk_table_attach (GTK_TABLE (table11), label679, 7, 8, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (label679, 16, -2);
+  gtk_misc_set_alignment (GTK_MISC (label679), 0, 0.5);
+
+  progressbar_hosts_in_catcher = gtk_progress_bar_new ();
+  gtk_widget_set_name (progressbar_hosts_in_catcher, "progressbar_hosts_in_catcher");
+  gtk_widget_ref (progressbar_hosts_in_catcher);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "progressbar_hosts_in_catcher", progressbar_hosts_in_catcher,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (progressbar_hosts_in_catcher);
+  gtk_table_attach (GTK_TABLE (table11), progressbar_hosts_in_catcher, 0, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  progressbar_hosts_in_ultra_catcher = gtk_progress_bar_new ();
+  gtk_widget_set_name (progressbar_hosts_in_ultra_catcher, "progressbar_hosts_in_ultra_catcher");
+  gtk_widget_ref (progressbar_hosts_in_ultra_catcher);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "progressbar_hosts_in_ultra_catcher", progressbar_hosts_in_ultra_catcher,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (progressbar_hosts_in_ultra_catcher);
+  gtk_table_attach (GTK_TABLE (table11), progressbar_hosts_in_ultra_catcher, 4, 7, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  progressbar_hosts_in_bad_catcher = gtk_progress_bar_new ();
+  gtk_widget_set_name (progressbar_hosts_in_bad_catcher, "progressbar_hosts_in_bad_catcher");
+  gtk_widget_ref (progressbar_hosts_in_bad_catcher);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "progressbar_hosts_in_bad_catcher", progressbar_hosts_in_bad_catcher,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (progressbar_hosts_in_bad_catcher);
+  gtk_table_attach (GTK_TABLE (table11), progressbar_hosts_in_bad_catcher, 8, 11, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  button_hostcache_clear_bad = gtk_button_new_with_label (_("Clear"));
+  gtk_widget_set_name (button_hostcache_clear_bad, "button_hostcache_clear_bad");
+  gtk_widget_ref (button_hostcache_clear_bad);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_hostcache_clear_bad", button_hostcache_clear_bad,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_hostcache_clear_bad);
+  gtk_table_attach (GTK_TABLE (table11), button_hostcache_clear_bad, 10, 11, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label672 = gtk_label_new (_("Hostcache"));
+  gtk_widget_set_name (label672, "label672");
+  gtk_widget_ref (label672);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label672", label672,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label672);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 9), label672);
+
   hbox_statusbar = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox_statusbar, "hbox_statusbar");
   gtk_widget_ref (hbox_statusbar);
@@ -10763,6 +10901,57 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (statusbar);
   gtk_container_add (GTK_CONTAINER (alignment25), statusbar);
+
+  frame129 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame129, "frame129");
+  gtk_widget_ref (frame129);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame129", frame129,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame129);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame129, FALSE, TRUE, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame129), GTK_SHADOW_IN);
+
+  label_statusbar_horizon_node_count = gtk_label_new (_("[Nodes]"));
+  gtk_widget_set_name (label_statusbar_horizon_node_count, "label_statusbar_horizon_node_count");
+  gtk_widget_ref (label_statusbar_horizon_node_count);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_statusbar_horizon_node_count", label_statusbar_horizon_node_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_statusbar_horizon_node_count);
+  gtk_container_add (GTK_CONTAINER (frame129), label_statusbar_horizon_node_count);
+
+  frame130 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame130, "frame130");
+  gtk_widget_ref (frame130);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame130", frame130,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame130);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame130, FALSE, TRUE, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame130), GTK_SHADOW_IN);
+
+  label_statusbar_horizon_file_count = gtk_label_new (_("[Files]"));
+  gtk_widget_set_name (label_statusbar_horizon_file_count, "label_statusbar_horizon_file_count");
+  gtk_widget_ref (label_statusbar_horizon_file_count);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_statusbar_horizon_file_count", label_statusbar_horizon_file_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_statusbar_horizon_file_count);
+  gtk_container_add (GTK_CONTAINER (frame130), label_statusbar_horizon_file_count);
+
+  frame131 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame131, "frame131");
+  gtk_widget_ref (frame131);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame131", frame131,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame131);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame131, FALSE, TRUE, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame131), GTK_SHADOW_IN);
+
+  label_statusbar_horizon_kb_count = gtk_label_new (_("KB"));
+  gtk_widget_set_name (label_statusbar_horizon_kb_count, "label_statusbar_horizon_kb_count");
+  gtk_widget_ref (label_statusbar_horizon_kb_count);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_statusbar_horizon_kb_count", label_statusbar_horizon_kb_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_statusbar_horizon_kb_count);
+  gtk_container_add (GTK_CONTAINER (frame131), label_statusbar_horizon_kb_count);
 
   frame123 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame123, "frame123");
@@ -11122,12 +11311,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (entry_host), "activate",
                       GTK_SIGNAL_FUNC (on_entry_host_activate),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (button_host_catcher_clear), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_host_catcher_clear_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_ultra_catcher_clear), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_ultra_catcher_clear_clicked),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (clist_uploads), "select_row",
                       GTK_SIGNAL_FUNC (on_clist_uploads_select_row),
                       NULL);
@@ -11346,6 +11529,18 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_horizon), "resize_column",
                       GTK_SIGNAL_FUNC (on_clist_gnet_stats_horizon_resize_column),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (clist_hcache), "resize_column",
+                      GTK_SIGNAL_FUNC (on_clist_hcache_resize_column),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button_host_catcher_clear), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_host_catcher_clear_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button_ultra_catcher_clear), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_ultra_catcher_clear_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button_hostcache_clear_bad), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_hostcache_clear_bad_clicked),
                       NULL);
 
   gtk_widget_add_accelerator (entry_reading_ultrafile, "grab_focus", accel_group,
@@ -15043,7 +15238,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label266), 1, 0.5);
 
-  label267 = gtk_label_new (_("Rapha\353l Manfredi"));
+  label267 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -15087,7 +15282,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label291), 1, 0.5);
 
-  label273 = gtk_label_new (_("Rapha\353l Manfredi"));
+  label273 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label273, "label273");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,
