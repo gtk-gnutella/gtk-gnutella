@@ -261,7 +261,7 @@ ggept_lf_extract(extvec_t *exv, guint64 *filesize)
 {
 	guint64 fs, b;
 	gint i, j, tlen;
-	const gchar *payload;
+	const guint8 *payload;
 
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_LF);
