@@ -548,6 +548,8 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 	g_assert(parq_ul->queue->size > 0);
 	g_assert(parq_ul->queue->by_Position != NULL);
 	
+	parq_upload_decrease_all_after(parq_ul);	
+
 	/* Remove the current queued item from all lists */
 	parq_ul->queue->by_Position = 
 		g_list_remove(parq_ul->queue->by_Position, parq_ul);
@@ -617,7 +619,10 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 			 * is unknown.
 			 * Pessimistic: 1 bytes / sec
 			 */
-			ETA += parq_ul_prev->file_size / max_uploads;
+			if (max_uploads > 0)
+				ETA += parq_ul_prev->file_size / max_uploads;
+			else
+				ETA = (guint) -1;
 		}
 	}
 	
@@ -698,6 +703,9 @@ static struct parq_ul_queue *parq_upload_which_queue(gnutella_upload_t *u)
 	}
 	
 	queue = (struct parq_ul_queue *) g_list_nth_data(ul_parqs, slot - 1);
+
+	/* We might need to reactivate the queue */
+	queue->active = TRUE;
 	
 	g_assert(queue != NULL);
 	g_assert(queue->active == TRUE);
@@ -781,14 +789,17 @@ static void parq_upload_update_ETA(struct parq_ul_queue *which_ul_queue)
 
 		parq_ul->ETA = ETA;
 		
-		/* Recalculate ETA */
-		if (bw_http_out != 0 && bws_out_enabled) {
-			ETA += parq_ul->file_size / (bw_http_out / max_uploads);
-		} else {
-			// FIXME, should use average bandwith here
-			/* Pessimistic: 1 bytes / sec */
-			ETA += parq_ul->file_size;
-		}
+		if (max_uploads > 0) {
+			/* Recalculate ETA */
+			if (bw_http_out != 0 && bws_out_enabled) {
+				ETA += parq_ul->file_size / (bw_http_out / max_uploads);
+			} else {
+				// FIXME, should use average bandwith here
+				/* Pessimistic: 1 bytes / sec */
+				ETA += parq_ul->file_size;
+			}
+		} else
+			ETA = (guint) -1;
 	}
 }
 
@@ -886,9 +897,6 @@ void parq_upload_timer(time_t now)
 	for (sl = remove; sl != NULL; sl = sl->next) {
 		struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) sl->data;
 
-		/* Move uploads after the current upload up one slot */
-		parq_upload_decrease_all_after(parq_ul);
-	
 		parq_upload_free(parq_ul);
 	}
 	
@@ -980,8 +988,8 @@ gboolean parq_upload_queued(gnutella_upload_t *u)
 static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 {
 	GList *l = NULL;
-	guint needed = 0;
-
+	int pos;
+	
 	g_assert(uq != NULL);
 		
 	/*
@@ -1010,30 +1018,20 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	}
 	 */
 	
-	/*
-	 * If the current position = 1 and the current queue hasn't already an item
-	 * uploading than the upload is allowed by default.
-	 */
-	if (uq->position == 1 && uq->queue->active_uploads == 0)
-		return TRUE;
+	for (pos = 1; pos <= max_uploads; pos++) {
+		for (l = g_list_last(ul_parqs); l; l = l->prev) {
+			struct parq_ul_queue *queue = (struct parq_ul_queue *) l->data;
+
+			if (uq->position == pos)
+				return TRUE;
 	
-	/* If position is zero the download is already downloading */
-	g_assert(uq->position != 0);
+			if (queue->active_uploads < pos && queue->size >= pos)
+				return FALSE;
+		}
 		
-	/* See wether the other queues are allowed to get an upload position */
-	for (l = ul_parqs; l ; l = l->next) {
-		struct parq_ul_queue *queue = (struct parq_ul_queue *) l->data;
 		
-		printf("PARQ UL: Q %d/%d Active: %d\n\r", 
-				g_list_position(ul_parqs, g_list_find(ul_parqs, queue)) + 1,
-				g_list_length(ul_parqs),
-				queue->active_uploads);
-		
-		if (queue->size > 1 && queue->active_uploads == 0)
-			needed++;
-	}
-		
-	return needed < free_slots;
+ 	}
+ 	return FALSE;
 }
 
 /*
@@ -1200,12 +1198,10 @@ void parq_upload_busy(gnutella_upload_t *u, gpointer handle)
 	
 	u->parq_status = 0;			// XXX -- get rid of `parq_status'?
 	
-	if (parq_ul->position == 0)
+	if (parq_ul->position <= parq_ul->queue->active_uploads)
 		return;
 	
 	parq_ul->queue->active_uploads++;
-	parq_ul->position = 0;	// Mark as uploading
-	parq_upload_decrease_all_after(parq_ul);	
 }
 
 void parq_upload_add(gnutella_upload_t *u)
@@ -1244,7 +1240,8 @@ void parq_upload_remove(gnutella_upload_t *u)
 	if (parq_ul == NULL)
 		return;
 
-	if (parq_ul->position == 0 && u->keep_alive && u->status == GTA_UL_WAITING) {
+	if (parq_ul->position <= parq_ul->queue->active_uploads
+		  && u->keep_alive && u->status == GTA_UL_WAITING) {
 		printf("**** PARQ UL Q %d/%d: Not removed, waiting for new request\r\n",
 			g_list_position(ul_parqs, 
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
@@ -1259,10 +1256,8 @@ void parq_upload_remove(gnutella_upload_t *u)
 			g_list_length(ul_parqs));
 				
 	
-	if (parq_ul->position == 0)
+	if (parq_ul->position <= parq_ul->queue->active_uploads)
 		parq_ul->queue->active_uploads--;
-	else
-		parq_upload_decrease_all_after(parq_ul);
 	
 	g_assert(parq_ul->queue->active_uploads >= 0);
 	
@@ -1448,14 +1443,9 @@ static void parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
 
 		g_assert(parq_ul != NULL);
 		
-		/* 
-		 * Don't decrease queued position which already have an upload position
-		 */
-		if (parq_ul->position > 0) {
-			parq_ul->position--;
+		parq_ul->position--;
 		
-			g_assert(parq_ul->position > 0);
-		}
+		g_assert(parq_ul->position > 0);
 	}
 }
 
