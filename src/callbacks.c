@@ -1673,8 +1673,7 @@ void on_checkbutton_monitor_enable_toggled(GtkToggleButton * togglebutton,
                                            gpointer user_data)
 {
 	monitor_enabled = gtk_toggle_button_get_active(togglebutton);
-	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "clist_monitor"), !monitor_enabled);
+    share_gui_enable_monitor(monitor_enabled);
 }
 
 void on_entry_monitor_activate(GtkEditable *editable, gpointer user_data)
