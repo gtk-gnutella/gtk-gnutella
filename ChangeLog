@@ -1,5 +1,29 @@
 # since last version
 
+- (2002.09.08 Richard)
+ * Update nodes in gNet panel more often.
+ * Added gnet statistics
+ * Added "User interface" settings to config pane.
+ * Made (most) tooltips optional.
+ * Show confirmation dialog when leaving gtk-gnutella (optional)
+ * Moved code from callbacks.[ch] to downloads_cb.[ch] and uploads_cb.[ch]
+ * Moved code from gui.[ch] to main_gui.[ch]
+ * Moved code from gui.[ch] to downloads_gui.[ch] and uploads_gui.[ch]
+ * Moved code from main.c to main_gui.[ch]
+ * Moved declarations of functions needed by gui from downloads.h to
+   gnet.h
+ * Temporarily relocated a struct declaration from upload_stats to gnet.h
+ * Changed code to update sidebar stats
+ * Added feature summary to output of configure script
+ * Mark files downloaded by "Watch searches for alternate sources" as
+   "queued" in search results (same marking as when you manually download
+   them)
+ * Don't generate duplicate filter rules when creating rules from
+   a number of selected search results.
+ * Updated clist_collect_data to be more usable
+ * Moved code from upload_stats.[ch] to upload_stats_gui.[ch]
+ * Use properties to set scan extensions
+
 - (2002.09.08 RAM)
  * Fixed problem when requeuing a stopped download from the GUI.
  * Internal invalidation of the "fileinfo" was leaving a NULL pointer and
