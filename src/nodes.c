@@ -91,6 +91,7 @@ RCSID("$Id$");
 #define NODE_MIN_AVG_UPTIME		10800	/* Average uptime to become an UP */
 #define NODE_AVG_LEAF_MEM		262144	/* Average memory used by leaf */
 #define NODE_CASUAL_FD			10		/* # of fds we might use casually */
+#define NODE_UPLOAD_QUEUE_FD	5		/* # of fds/upload slot we can queue */
 #define NODE_AUTO_SWITCH_MIN	1800	/* Don't switch too often UP <-> leaf */
 
 static GSList *sl_nodes = NULL;
@@ -112,8 +113,8 @@ typedef struct node_bad_client {
 } node_bad_client_t;
 
 static int node_error_threshold = 6;	/* This requires an average uptime of
-										 * 2 hours for an ultrapeer */
-static time_t node_error_cleanup_timer = 12 * 60 * 60;	/* half day */
+										 * 1 hour for an ultrapeer */
+static time_t node_error_cleanup_timer = 6 * 3600;	/* 6 hours */
 
 static GSList *sl_proxies = NULL;	/* Our push proxies */
 static idtable_t *node_handle_map = NULL;
@@ -400,9 +401,18 @@ static gboolean can_become_ultra(time_t now)
 	/* Connectivity requirements */
 	not_firewalled = !is_firewalled;
 
-	/* System requirements */
-	enough_fd = (max_leaves + max_connections + max_uploads + max_downloads
-			+ max_banned_fd + NODE_CASUAL_FD) < sys_nofile;
+	/*
+	 * System requirements
+	 *
+	 * We don't count all the banned fd, since we can now steal the necessary
+	 * descriptors out of the banned pool if we run short of fd.  We need to
+	 * provision for possible PARQ active queuing, which is why we scale the
+	 * `max_uploads' parameter.
+	 */
+
+	enough_fd = (max_leaves + max_connections + max_downloads
+			+ (max_uploads * (1 + NODE_UPLOAD_QUEUE_FD))
+			+ (max_banned_fd / 10) + NODE_CASUAL_FD) < sys_nofile;
 	enough_mem = (max_leaves * NODE_AVG_LEAF_MEM +
 		(max_leaves + max_connections) * node_sendqueue_size)
 		< 1024 / 2 * sys_physmem;
@@ -594,8 +604,10 @@ void node_timer(time_t now)
 					continue;
 				}
 			} else if (NODE_IS_CONNECTING(n)) {
-				if (now - n->last_update > node_connecting_timeout)
+				if (now - n->last_update > node_connecting_timeout) {
 					node_remove(n, "Timeout");
+					node_mark_bad_ip(n);		/* So we don't retry too soon */
+				}
 			} else if (n->status == GTA_NODE_SHUTDOWN) {
 				if (now - n->shutdown_date > n->shutdown_delay) {
 					gchar *reason = g_strdup(n->error_str);
@@ -1344,7 +1356,7 @@ void node_mark_bad(struct gnutella_node *n)
 
 	now = time((time_t *) NULL);
 
-	/* Don't mark a node as bad with whom we could stay a long time */
+	/* Don't mark a node with whom we could stay a long time as being bad */
 	if (
 		now - n->connect_date >
 			node_error_cleanup_timer / node_error_threshold
