@@ -27,6 +27,7 @@
 #define _gtk_search_common_h_
 
 #include "if/core/search.h"
+#include "if/ui/gtk/search.h"
 #include "search.h"
 
 void search_add_got_results_listener(search_got_results_listener_t l);
