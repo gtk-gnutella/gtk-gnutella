@@ -4522,6 +4522,8 @@ Grace time remaining:</property>
 		      <child>
 			<widget class="GtkEntry" id="entry_config_max_banned_fd">
 			  <property name="visible">True</property>
+			  <property name="sensitive">False</property>
+			  <property name="tooltip" translatable="yes">Actual amount of file descriptors used -- cannot be changed at runtime</property>
 			  <property name="can_focus">True</property>
 			  <property name="editable">False</property>
 			  <property name="visibility">True</property>
@@ -7113,7 +7115,7 @@ Grace time remaining:</property>
 			  <child>
 			    <widget class="GtkLabel" id="label156">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">Report a connection _speed of</property>
+			      <property name="label" translatable="yes">Report an upload connection _speed of</property>
 			      <property name="use_underline">True</property>
 			      <property name="use_markup">False</property>
 			      <property name="justify">GTK_JUSTIFY_CENTER</property>
@@ -8568,7 +8570,7 @@ Grace time remaining:</property>
 		      <child>
 			<widget class="GtkTable" id="table59">
 			  <property name="visible">True</property>
-			  <property name="n_rows">2</property>
+			  <property name="n_rows">3</property>
 			  <property name="n_columns">4</property>
 			  <property name="homogeneous">False</property>
 			  <property name="row_spacing">2</property>
@@ -8644,7 +8646,7 @@ Grace time remaining:</property>
 			    <widget class="GtkCheckButton" id="checkbutton_config_use_alternate_sources">
 			      <property name="visible">True</property>
 			      <property name="can_focus">True</property>
-			      <property name="label" translatable="yes">Watch searches for _alternate sources</property>
+			      <property name="label" translatable="yes">Watch hit for _alternate sources</property>
 			      <property name="use_underline">True</property>
 			      <property name="relief">GTK_RELIEF_NORMAL</property>
 			      <property name="active">False</property>
@@ -8653,7 +8655,7 @@ Grace time remaining:</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">0</property>
-			      <property name="right_attach">4</property>
+			      <property name="right_attach">2</property>
 			      <property name="top_attach">0</property>
 			      <property name="bottom_attach">1</property>
 			      <property name="x_options">fill</property>
@@ -8678,6 +8680,48 @@ Grace time remaining:</property>
 			      <property name="right_attach">4</property>
 			      <property name="top_attach">1</property>
 			      <property name="bottom_attach">2</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkCheckButton" id="checkbutton_auto_feed_dmesh">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="label" translatable="yes">_Feed mesh from hits</property>
+			      <property name="use_underline">True</property>
+			      <property name="relief">GTK_RELIEF_NORMAL</property>
+			      <property name="active">False</property>
+			      <property name="inconsistent">False</property>
+			      <property name="draw_indicator">True</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">2</property>
+			      <property name="right_attach">4</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkCheckButton" id="checkbutton_fuzzy_filter_dmesh">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="label" translatable="yes">_Apply fuzy filter on download mesh entries</property>
+			      <property name="use_underline">True</property>
+			      <property name="relief">GTK_RELIEF_NORMAL</property>
+			      <property name="active">False</property>
+			      <property name="inconsistent">False</property>
+			      <property name="draw_indicator">True</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">2</property>
+			      <property name="right_attach">3</property>
+			      <property name="top_attach">2</property>
+			      <property name="bottom_attach">3</property>
 			      <property name="x_options">fill</property>
 			      <property name="y_options"></property>
 			    </packing>
@@ -9322,7 +9366,7 @@ Grace time remaining:</property>
 			<widget class="GtkCheckButton" id="checkbutton_config_confirm_quit">
 			  <property name="visible">True</property>
 			  <property name="can_focus">True</property>
-			  <property name="label" translatable="yes">show _confirmation dialog when leaving gtk-gnutella</property>
+			  <property name="label" translatable="yes">Show _confirmation dialog when leaving gtk-gnutella</property>
 			  <property name="use_underline">True</property>
 			  <property name="relief">GTK_RELIEF_NORMAL</property>
 			  <property name="active">False</property>
@@ -9344,7 +9388,7 @@ Grace time remaining:</property>
 			<widget class="GtkCheckButton" id="checkbutton_config_show_tooltips">
 			  <property name="visible">True</property>
 			  <property name="can_focus">True</property>
-			  <property name="label" translatable="yes">show _tootips (does not affect all tooltips yet)</property>
+			  <property name="label" translatable="yes">Show _tootips (does not affect all tooltips yet)</property>
 			  <property name="use_underline">True</property>
 			  <property name="relief">GTK_RELIEF_NORMAL</property>
 			  <property name="active">False</property>
@@ -9451,7 +9495,7 @@ Grace time remaining:</property>
 			<widget class="GtkCheckButton" id="checkbutton_expert_mode">
 			  <property name="visible">True</property>
 			  <property name="can_focus">True</property>
-			  <property name="label" translatable="yes">_allow experimenting with low-level settings</property>
+			  <property name="label" translatable="yes">_Allow experimenting with low-level settings</property>
 			  <property name="use_underline">True</property>
 			  <property name="relief">GTK_RELIEF_NORMAL</property>
 			  <property name="active">False</property>
@@ -12854,7 +12898,7 @@ Grace time remaining:</property>
 				<widget class="GtkHBox" id="hbox234">
 				  <property name="visible">True</property>
 				  <property name="homogeneous">False</property>
-				  <property name="spacing">4</property>
+				  <property name="spacing">0</property>
 
 				  <child>
 				    <widget class="GtkLabel" id="label_dl_running_count">
@@ -12880,7 +12924,7 @@ Grace time remaining:</property>
 				  <child>
 				    <widget class="GtkLabel" id="label708">
 				      <property name="visible">True</property>
-				      <property name="label" translatable="yes">(</property>
+				      <property name="label" translatable="yes"> (</property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">False</property>
 				      <property name="justify">GTK_JUSTIFY_RIGHT</property>
@@ -12922,7 +12966,7 @@ Grace time remaining:</property>
 				  <child>
 				    <widget class="GtkLabel" id="label710">
 				      <property name="visible">True</property>
-				      <property name="label" translatable="yes">,</property>
+				      <property name="label" translatable="yes">, </property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">False</property>
 				      <property name="justify">GTK_JUSTIFY_RIGHT</property>
@@ -13403,7 +13447,7 @@ Grace time remaining:</property>
 				  <property name="border_width">2</property>
 				  <property name="visible">True</property>
 				  <property name="homogeneous">False</property>
-				  <property name="spacing">4</property>
+				  <property name="spacing">0</property>
 
 				  <child>
 				    <widget class="GtkLabel" id="label_dl_queue_count">
@@ -13429,7 +13473,7 @@ Grace time remaining:</property>
 				  <child>
 				    <widget class="GtkLabel" id="label586">
 				      <property name="visible">True</property>
-				      <property name="label" translatable="yes">queued (</property>
+				      <property name="label" translatable="yes"> queued (</property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">False</property>
 				      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -13471,7 +13515,7 @@ Grace time remaining:</property>
 				  <child>
 				    <widget class="GtkLabel" id="label588">
 				      <property name="visible">True</property>
-				      <property name="label" translatable="yes">alive with</property>
+				      <property name="label" translatable="yes"> alive with </property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">False</property>
 				      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -13513,7 +13557,7 @@ Grace time remaining:</property>
 				  <child>
 				    <widget class="GtkLabel" id="label714">
 				      <property name="visible">True</property>
-				      <property name="label" translatable="yes">passive)</property>
+				      <property name="label" translatable="yes"> passive)</property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">False</property>
 				      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -13689,7 +13733,7 @@ Grace time remaining:</property>
 		      <property name="border_width">2</property>
 		      <property name="visible">True</property>
 		      <property name="n_rows">2</property>
-		      <property name="n_columns">2</property>
+		      <property name="n_columns">3</property>
 		      <property name="homogeneous">False</property>
 		      <property name="row_spacing">2</property>
 		      <property name="column_spacing">4</property>
@@ -13709,8 +13753,8 @@ Grace time remaining:</property>
 			  <property name="ypad">0</property>
 			</widget>
 			<packing>
-			  <property name="left_attach">1</property>
-			  <property name="right_attach">2</property>
+			  <property name="left_attach">2</property>
+			  <property name="right_attach">3</property>
 			  <property name="top_attach">1</property>
 			  <property name="bottom_attach">2</property>
 			  <property name="x_options">fill</property>
@@ -13733,8 +13777,8 @@ Grace time remaining:</property>
 			  <property name="ypad">0</property>
 			</widget>
 			<packing>
-			  <property name="left_attach">0</property>
-			  <property name="right_attach">1</property>
+			  <property name="left_attach">1</property>
+			  <property name="right_attach">2</property>
 			  <property name="top_attach">0</property>
 			  <property name="bottom_attach">1</property>
 			  <property name="x_padding">4</property>
@@ -13758,8 +13802,8 @@ Grace time remaining:</property>
 			  <property name="ypad">0</property>
 			</widget>
 			<packing>
-			  <property name="left_attach">0</property>
-			  <property name="right_attach">1</property>
+			  <property name="left_attach">1</property>
+			  <property name="right_attach">2</property>
 			  <property name="top_attach">1</property>
 			  <property name="bottom_attach">2</property>
 			  <property name="x_padding">4</property>
@@ -13788,12 +13832,30 @@ Grace time remaining:</property>
 			  </child>
 			</widget>
 			<packing>
-			  <property name="left_attach">1</property>
-			  <property name="right_attach">2</property>
+			  <property name="left_attach">2</property>
+			  <property name="right_attach">3</property>
 			  <property name="top_attach">0</property>
 			  <property name="bottom_attach">1</property>
 			  <property name="x_options">expand|shrink|fill</property>
 			  <property name="y_options">fill</property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkButton" id="button_fi_purge">
+			  <property name="visible">True</property>
+			  <property name="can_focus">True</property>
+			  <property name="label" translatable="yes">_Purge</property>
+			  <property name="use_underline">True</property>
+			  <property name="relief">GTK_RELIEF_NORMAL</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">0</property>
+			  <property name="right_attach">1</property>
+			  <property name="top_attach">0</property>
+			  <property name="bottom_attach">1</property>
+			  <property name="x_options">fill</property>
+			  <property name="y_options"></property>
 			</packing>
 		      </child>
 		    </widget>
