@@ -1176,12 +1176,10 @@ gboolean http_range_contains(GSList *ranges, guint32 from, guint32 to)
 	return FALSE;
 }
 
-/*
- * http_range_copy
- *
- * Returns an allocated copy of the given range.
+/**
+ * Returns an allocated copy of the given HTTP range.
  */
-static http_range_t * http_range_copy(http_range_t *range)
+static http_range_t *http_range_copy(http_range_t *range)
 {
 	http_range_t *r;
 
@@ -1192,13 +1190,10 @@ static http_range_t * http_range_copy(http_range_t *range)
 	return r;
 }
 
-/*
- * http_range_merge
- *
- * Returns a new list based on the merged ranges in the other lists
- * given.
+/**
+ * Returns a new list based on the merged ranges in the other lists given.
  */
-GSList * http_range_merge(GSList *old_list, GSList *new_list)
+GSList *http_range_merge(GSList *old_list, GSList *new_list)
 {
 	http_range_t *old_range;
 	http_range_t *new_range;
@@ -1213,6 +1208,7 @@ GSList * http_range_merge(GSList *old_list, GSList *new_list)
 	 * Build a result list based on the data in the old and new
 	 * lists.
 	 */
+
 	while (old || new) {
 		if (old && new) {
 			old_range = (http_range_t *) old->data;
@@ -1221,20 +1217,22 @@ GSList * http_range_merge(GSList *old_list, GSList *new_list)
 			/*
 			 * If ranges are identical just copy one.
 			 */
+
 			if (new_range->start == old_range->start 
 				&& new_range->end == old_range->end) {
 				highest = old_range->end;
-				result_list = g_slist_append(result_list, http_range_copy(old_range));
+				result_list = 
+					g_slist_append(result_list, http_range_copy(old_range));
 				old = g_slist_next(old);
 				new = g_slist_next(new);
 				continue;
 			}
 
-
 			/*
 			 * Skip over any ranges now below the highest mark, they
 			 * are no longer relevant.
 			 */
+
 			if (old_range->end < highest) {
 				old = g_slist_next(old);
 				continue;
@@ -1249,15 +1247,18 @@ GSList * http_range_merge(GSList *old_list, GSList *new_list)
 			 * non-overlapping range, and move to the next range in
 			 * that list.
 			 */
+
 			if (new_range->end < old_range->start) {
 				highest = new_range->end;
-				result_list = g_slist_append(result_list, http_range_copy(new_range));
+				result_list = 
+					g_slist_append(result_list, http_range_copy(new_range));
 				new = g_slist_next(new);
 				continue;
 			}
 			if (old_range->end < new_range->start) {
 				highest = new_range->end;
-				result_list = g_slist_append(result_list, http_range_copy(old_range));
+				result_list = 
+					g_slist_append(result_list, http_range_copy(old_range));
 
 				old = g_slist_next(old);
 				continue;
@@ -1270,14 +1271,14 @@ GSList * http_range_merge(GSList *old_list, GSList *new_list)
 			 * non-overlapping case here because we handled that just
 			 * before.
 			 */
+
 			if (new_range->start > old_range->start) {
 				r = walloc(sizeof(*r));
 				r->start = old_range->start;
-				if (new_range->end > old_range->end) {
+				if (new_range->end > old_range->end)
 					r->end = new_range->end;
-				} else {
+				else
 					r->end = old_range->end;
-				}
 				highest = r->end;
 				result_list = g_slist_append(result_list, r);
 				old = g_slist_next(old);
@@ -1287,11 +1288,10 @@ GSList * http_range_merge(GSList *old_list, GSList *new_list)
 			if (new_range->start <= old_range->start) {
 				r = walloc(sizeof(*r));
 				r->start = new_range->start;
-				if (new_range->end > old_range->end) {
+				if (new_range->end > old_range->end)
 					r->end = new_range->end;
-				} else {
+				else
 					r->end = old_range->end;
-				}
 				highest = r->end;
 				result_list = g_slist_append(result_list, r);
 				old = g_slist_next(old);
@@ -1299,19 +1299,23 @@ GSList * http_range_merge(GSList *old_list, GSList *new_list)
 				continue;
 			}
 
+		} else {
+
 			/*
 			 * If there are no chunks left in one of the lists we just
 			 * copy the other one.
 			 */
-		} else {
+
 			if (old) {
 				old_range = (http_range_t *) old->data;
-				result_list = g_slist_append(result_list, http_range_copy(old_range));
+				result_list = 
+					g_slist_append(result_list, http_range_copy(old_range));
 				old = g_slist_next(old);
 			}
 			if (new) {
 				new_range = (http_range_t *) new->data;
-				result_list = g_slist_append(result_list, http_range_copy(new_range));
+				result_list = 
+					g_slist_append(result_list, http_range_copy(new_range));
 				new = g_slist_next(new);
 			}
 		}
