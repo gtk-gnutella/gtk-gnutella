@@ -1872,6 +1872,9 @@ nextline:
 			g_warning("node_header_parse: line too long, disconnecting from %s",
 				ip_to_gchar(s->ip));
 			dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+			fprintf(stderr, "------ Header Dump:\n");
+			header_dump(header, stderr);
+			fprintf(stderr, "------\n");
 		}
 		node_remove(n, "Failed (Header line too long)");
 		return;
@@ -1941,6 +1944,9 @@ nextline:
 				header_strerror(error), ip_to_gchar(s->ip));
 			dump_hex(stderr, "Header Line",
 				getline_str(getline), getline_length(getline));
+			fprintf(stderr, "------ Header Dump (so far):\n");
+			header_dump(header, stderr);
+			fprintf(stderr, "------\n");
 		}
 		getline_reset(getline);
 		goto nextline;			/* Go process other lines we may have read */
