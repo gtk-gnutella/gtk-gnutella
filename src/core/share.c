@@ -461,7 +461,6 @@ got_match(gpointer context, shared_file_t *sf)
 #define FILENAME_CLASH 0xffffffff			/* Indicates basename clashes */
 
 static char_map_t query_map;
-static gboolean b_latin = FALSE;
 
 /**
  * Set up keymapping table for Gnutella.
@@ -469,59 +468,42 @@ static gboolean b_latin = FALSE;
 static void
 setup_char_map(char_map_t map)
 {
-	gint c;	
-	gboolean b_ascii = FALSE;
-	gboolean b_iso_8859_1 = FALSE;
-	gboolean b_cp1252 = FALSE;
-	gboolean b_macroman = FALSE;
 	const gchar *charset = locale_get_charset();
-
-	if (0 == strcmp(charset, "ASCII")) {
-		b_ascii = TRUE;
-		b_latin = TRUE;
-	} else if (
-		0 == strcmp(charset, "ISO-8859-1") ||
-		0 == strcmp(charset, "ISO-8859-15")
-	) {
-		b_iso_8859_1 = TRUE;
-		b_latin = TRUE;
-	} else if (0 == strcmp(charset, "CP1252")) {
-		b_cp1252 = TRUE;
-		b_latin = TRUE;
-	} else if (0 == strcmp(charset, "MacRoman")) {
-		b_macroman = TRUE;
-		b_latin = TRUE;
-	} else if (
-		0 == strcmp(charset, "CP437") ||
-		0 == strcmp(charset, "CP775") ||
-		0 == strcmp(charset, "CP850") ||
-		0 == strcmp(charset, "CP852") ||
-		0 == strcmp(charset, "CP865") ||
-		0 == strcmp(charset, "HP-ROMAN8") ||
-		0 == strcmp(charset, "ISO-8859-2") ||
-		0 == strcmp(charset, "ISO-8859-4") ||
-		0 == strcmp(charset, "ISO-8859-14")
-	)
-		b_latin = TRUE;
+	gint c;	
 
 	for (c = 0; c < 256; c++)	{
 		if (!isupper(c)) {  /* not same than islower, cf ssharp */
 			map[c] = tolower(toupper(c)); /* not same than c, cf ssharp */
 			map[toupper(c)] = c;
-		}
-		else if (isupper(c))
-			; /* handled by previous case */
-		else if (ispunct(c) || isspace(c))
+		} else if (isupper(c)) {
+			/* handled by previous case */
+		} else if (ispunct(c) || isspace(c)) {
 			map[c] = ' ';
-		else if (isdigit(c))
+		} else if (isdigit(c)) {
 			map[c] = c;
-		else if (isalnum(c))
+		} else if (isalnum(c)) {
 			map[c] = c;
-		else
+		} else {
 			map[c] = ' ';			/* unknown in our locale */
+		}
 	}
 
-	if (b_latin) {
+	if (is_latin_locale()) {
+		gboolean b_iso_8859_1 = FALSE;
+		gboolean b_cp1252 = FALSE;
+		gboolean b_macroman = FALSE;
+		
+		if (
+				0 == strcmp(charset, "ISO-8859-1") ||
+				0 == strcmp(charset, "ISO-8859-15")
+		   ) {
+			b_iso_8859_1 = TRUE;
+		} else if (0 == strcmp(charset, "CP1252")) {
+			b_cp1252 = TRUE;
+		} else if (0 == strcmp(charset, "MacRoman")) {
+			b_macroman = TRUE;
+		}
+
 		if (b_iso_8859_1 || b_cp1252) {
 			for (c = 160; c < 256; c++)
 				map[c] = iso_8859_1[c - 160];
@@ -2357,15 +2339,6 @@ shared_file_by_sha1(gchar *sha1_digest)
 	}
 
 	return f;
-}
-
-/*
- * Is the locale using the latin alphabet?
- */
-gboolean
-is_latin_locale(void)
-{
-	return b_latin;
 }
 
 /**

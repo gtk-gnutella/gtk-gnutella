@@ -72,6 +72,7 @@ gchar *utf8_to_locale(const gchar *str, size_t len);
 gchar *lazy_utf8_to_locale(const gchar *str, size_t len);
 
 gboolean icu_enabled(void);
+gboolean is_latin_locale(void);
 
 #ifdef USE_ICU
 

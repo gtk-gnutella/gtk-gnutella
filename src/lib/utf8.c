@@ -68,6 +68,9 @@ size_t utf32_to_utf8(const guint32 *in, gchar *out, size_t size);
  * fails, we'll fall back to the non-ICU behaviour. */
 static gboolean use_icu = FALSE;
 
+/* Used by is_latin_locale(). It is initialized by locale_init(). */
+static gboolean latin_locale = FALSE;
+
 #ifdef USE_ICU
 static UConverter *conv_icu_locale = NULL;
 static UConverter *conv_icu_utf8 = NULL;
@@ -2586,12 +2589,14 @@ const char *get_locale_charset(void)
 
 #endif /* USE_GLIB2 */
 
-const gchar *locale_get_charset(void)
+const gchar *
+locale_get_charset(void)
 {
 	return charset;
 }
 
-static void textdomain_init(const char *codeset)
+static void
+textdomain_init(const char *codeset)
 {
 #ifdef ENABLE_NLS
 	bindtextdomain(PACKAGE, LOCALE_EXP);
@@ -2613,9 +2618,27 @@ static void textdomain_init(const char *codeset)
 #endif /* NLS */
 }
 
-void locale_init(void)
+void
+locale_init(void)
 {
-
+	static const gchar * const latin_sets[] = {
+		"ASCII",
+		"ISO-8859-1",
+		"ISO-8859-15",
+		"CP1252",
+		"MacRoman",
+		"CP437",
+		"CP775",
+		"CP850",
+		"CP852",
+		"CP865",
+		"HP-ROMAN8",
+		"ISO-8859-2",
+		"ISO-8859-4",
+		"ISO-8859-14",
+	};
+	guint i;
+	
 	unicode_decompose_init();
 
 	setlocale(LC_ALL, "");
@@ -2630,6 +2653,12 @@ void locale_init(void)
 
 	g_message("using charset \"%s\"", charset);
 	textdomain_init(charset);
+
+	for (i = 0; i < G_N_ELEMENTS(latin_sets); i++)
+		if (0 == strcasecmp(charset, latin_sets[i])) {
+			latin_locale = TRUE;
+			break;
+		}
 
 	if ((GIConv)-1 == (cd_latin_to_utf8 = g_iconv_open("UTF-8", "ISO-8859-1")))
 		g_warning("g_iconv_open(\"UTF-8\", \"ISO-8859-1\") failed.");
@@ -3571,7 +3600,7 @@ unicode_canonize(const gchar *in)
 	UChar *qtmp2;
 	int	len, maxlen;
 	gchar *out;
-	gboolean latin_locale = is_latin_locale();
+	gboolean latin = is_latin_locale();
 
 	g_assert(use_icu);
 
@@ -3583,7 +3612,7 @@ unicode_canonize(const gchar *in)
 	qtmp1 = (UChar *) g_malloc(maxlen*sizeof(UChar));
 	qtmp2 = (UChar *) g_malloc(maxlen*sizeof(UChar));
 
-	if (latin_locale) {
+	if (latin) {
 		len = to_icu_conv(in, len, qtmp1, maxlen);
 		len = unicode_NFC(qtmp1, len, qtmp2, maxlen);
 	} else
@@ -3597,7 +3626,7 @@ unicode_canonize(const gchar *in)
 
 	out = g_malloc(len + 1);
 
-	if (latin_locale) /* Should be pure ASCII now */
+	if (latin) /* Should be pure ASCII now */
 		len = icu_to_utf8_conv(qtmp2, len, out, len);
 	else
 		len = icu_to_utf8_conv(qtmp2, len, out, len * 6);
@@ -3620,6 +3649,15 @@ gboolean
 icu_enabled(void)
 {
 	return use_icu;
+}
+
+/*
+ * Is the locale using the latin alphabet?
+ */
+gboolean
+is_latin_locale(void)
+{
+	return latin_locale;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

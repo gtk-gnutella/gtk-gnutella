@@ -98,7 +98,6 @@ void parse_extensions(const gchar *);
 gchar *get_file_path(gint);
 void shared_dirs_update_prop(void);
 gboolean shared_dirs_parse(const gchar *);
-gint get_file_size(gint);
 
 guint compact_query(gchar *search);
 void query_strip_oob_flag(struct gnutella_node *n, gchar *data);
@@ -108,7 +107,6 @@ void set_sha1(struct shared_file *, const gchar *sha1_digest);
 gboolean sha1_hash_available(const struct shared_file *);
 gboolean sha1_hash_is_uptodate(struct shared_file *sf);
 
-gboolean is_latin_locale(void);
 void use_map_on_query(gchar *query, int len);
 
 #endif /* _core_share_h_ */
