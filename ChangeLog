@@ -3,6 +3,9 @@
 - (2002.05.01 - Richard)
   * fixed sensitivity of "copy url" in downloads popup
   * make search history work (though not persistent)
+  * added "Remove downloaded items from list" checkbox to search panel
+    Use this to have items selected for download automatically be 
+    removed from the result list.
 
 - (2002.04.30 - Richard)
   * Put statistics into a handlebox so they can be displayed seperatly
