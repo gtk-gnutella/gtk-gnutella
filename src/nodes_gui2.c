@@ -127,8 +127,8 @@ void nodes_gui_init()
 
 
     nodes_gui_add_column(tree, COL_NODE_HOST, "Host");
-    nodes_gui_add_column(tree, COL_NODE_TYPE, "Type");
-    nodes_gui_add_column(tree, COL_NODE_VENDOR, "Vendor");
+    nodes_gui_add_column(tree, COL_NODE_TYPE, "Flags");
+    nodes_gui_add_column(tree, COL_NODE_VENDOR, "User-agent");
     nodes_gui_add_column(tree, COL_NODE_VERSION, "Ver");
     nodes_gui_add_column(tree, COL_NODE_CONNECTED, "Connected");
     nodes_gui_add_column(tree, COL_NODE_UPTIME, "Uptime");
@@ -145,7 +145,7 @@ void nodes_gui_init()
  *
  * Unregister callbacks in the backend and clean up.
  */
-void nodes_gui_shutdown() 
+void nodes_gui_shutdown(void) 
 {
     node_remove_node_added_listener(nodes_gui_node_added);
     node_remove_node_removed_listener(nodes_gui_node_removed);
@@ -291,7 +291,7 @@ void gui_update_c_gnutellanet(guint32 cnodes, guint32 nodes)
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u gnutellaNet", cnodes, nodes);
     gtk_progress_bar_set_text(pg, gui_tmp);
 
-    frac = MIN(cnodes, nodes) != 0 ? (float)MIN(cnodes, nodes) / nodes : 0;
+    frac = MIN(cnodes, nodes) != 0 ? (gfloat) MIN(cnodes, nodes) / nodes : 0;
 
     gtk_progress_bar_set_fraction(pg, frac);
 }
@@ -510,6 +510,7 @@ static void nodes_gui_add_column(
     gtk_tree_view_column_set_reorderable(column, TRUE);
     gtk_tree_view_column_set_resizable(column, TRUE);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
+    gtk_tree_view_column_set_min_width(column, 0);
     gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
 }
 

@@ -74,6 +74,7 @@ static void upload_stats_gui_add_column(
     gtk_tree_view_column_set_reorderable(column, TRUE);
     gtk_tree_view_column_set_resizable(column, TRUE);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
+    gtk_tree_view_column_set_min_width(column, 0);
     gtk_tree_view_column_set_fixed_width(column, 100);
     gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 }

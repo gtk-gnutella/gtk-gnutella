@@ -1922,6 +1922,7 @@ static GtkTreeViewColumn *add_column(
         "text", id, NULL);
     gtk_tree_view_column_set_sort_column_id(column, id);
     gtk_tree_view_column_set_fixed_width(column, width);
+    gtk_tree_view_column_set_min_width(column, 0);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
     gtk_tree_view_column_set_resizable(column, TRUE);
     gtk_tree_view_column_set_reorderable(column, TRUE);
