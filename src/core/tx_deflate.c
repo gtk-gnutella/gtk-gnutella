@@ -830,6 +830,7 @@ static const struct txdrv_ops tx_deflate_ops = {
 	tx_deflate_destroy,		/* destroy */
 	tx_deflate_write,		/* write */
 	tx_deflate_writev,		/* writev */
+	tx_no_sendto,			/* sendto */
 	tx_deflate_enable,		/* enable */
 	tx_deflate_disable,		/* disable */
 	tx_deflate_pending,		/* pending */

@@ -109,7 +109,10 @@ static gpointer tx_link_init(txdrv_t *tx, gpointer args)
 	attr->bio = bsched_source_add(bs, attr->wio, BIO_F_WRITE, NULL, NULL);
 
 	tx->opaque = attr;
-	
+
+	g_assert(attr->wio->write != NULL);
+	g_assert(attr->wio->writev != NULL);
+
 	return tx;		/* OK */
 }
 
@@ -284,6 +287,7 @@ static const struct txdrv_ops tx_link_ops = {
 	tx_link_destroy,	/* destroy */
 	tx_link_write,		/* write */
 	tx_link_writev,		/* writev */
+	tx_no_sendto,		/* sendto */
 	tx_link_enable,		/* enable */
 	tx_link_disable,	/* disable */
 	tx_link_pending,	/* pending */

@@ -3,13 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Network TX drivers.
- *
- * This file is the "ancestor" class of all TX drivers, and therefore only
- * implements general routines that are mostly common, as well as provides
- * type-checked entry points for dynamically dispatched routines, such
- * as tx_write().
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -30,6 +23,17 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @file
+ *
+ * Network TX drivers.
+ *
+ * This file is the "ancestor" class of all TX drivers, and therefore only
+ * implements general routines that are mostly common, as well as provides
+ * type-checked entry points for dynamically dispatched routines, such
+ * as tx_write().
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -45,21 +49,20 @@ RCSID("$Id$");
 #define TX_DESTROY(o)		((o)->ops->destroy((o)))
 #define TX_WRITE(o,d,l)		((o)->ops->write((o), (d), (l)))
 #define TX_WRITEV(o,i,c)	((o)->ops->writev((o), (i), (c)))
+#define TX_SENDTO(o,t,d,l)	((o)->ops->sendto((o), (t), (d), (l)))
 #define TX_ENABLE(o)		((o)->ops->enable((o)))
 #define TX_DISABLE(o)		((o)->ops->disable((o)))
 #define TX_PENDING(o)		((o)->ops->pending((o)))
 #define TX_BIO_SOURCE(o)	((o)->ops->bio_source((o)))
 
-/*
- * tx_make
- *
+/**
  * Create a new network driver, equipped with the `ops' operations and
  * initialize its specific parameters by calling the init routine with `args'.
  *
  * Return NULL if there is an initialization problem.
  */
-txdrv_t *tx_make(struct gnutella_node *n, const struct txdrv_ops *ops,
-	gpointer args)
+txdrv_t *
+tx_make(struct gnutella_node *n, const struct txdrv_ops *ops, gpointer args)
 {
 	txdrv_t *tx;
 
@@ -77,12 +80,11 @@ txdrv_t *tx_make(struct gnutella_node *n, const struct txdrv_ops *ops,
 	return tx;
 }
 
-/*
- * tx_free
- *
+/**
  * Dispose of the driver resources.
  */
-void tx_free(txdrv_t *tx)
+void
+tx_free(txdrv_t *tx)
 {
 	g_assert(tx);
 
@@ -90,34 +92,41 @@ void tx_free(txdrv_t *tx)
 	g_free(tx);
 }
 
-/*
- * tx_write
- *
+/**
  * Write `len' bytes starting at `data'.
  * Returns the amount of bytes written, or -1 with errno set on error.
  */
-gint tx_write(txdrv_t *tx, gpointer data, gint len)
+gint
+tx_write(txdrv_t *tx, gpointer data, gint len)
 {
 	return TX_WRITE(tx, data, len);
 }
 
-/*
- * tx_writev
- *
+/**
  * Write I/O vector.
  * Returns amount of bytes written, or -1 on error with errno set.
  */
-gint tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
+gint
+tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 {
 	return TX_WRITEV(tx, iov, iovcnt);
 }
 
-/*
- * tx_srv_register
- *
+/**
+ * Send buffer datagram to specified destination `to'.
+ * Returns amount of bytes written, or -1 on error with errno set.
+ */
+gint
+tx_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, gint len)
+{
+	return TX_SENDTO(tx, to, data, len);
+}
+
+/**
  * Register service routine from upper TX layer.
  */
-void tx_srv_register(txdrv_t *tx, tx_service_t srv_fn, gpointer srv_arg)
+void
+tx_srv_register(txdrv_t *tx, tx_service_t srv_fn, gpointer srv_arg)
 {
 	g_assert(tx);
 	g_assert(srv_fn);
@@ -126,12 +135,11 @@ void tx_srv_register(txdrv_t *tx, tx_service_t srv_fn, gpointer srv_arg)
 	tx->srv_arg = srv_arg;
 }
 
-/*
- * tx_srv_enable
- *
+/**
  * Record that upper layer wants its service routine enabled.
  */
-void tx_srv_enable(txdrv_t *tx)
+void
+tx_srv_enable(txdrv_t *tx)
 {
 	if (tx->flags & TX_SERVICE)		/* Already enabled */
 		return;
@@ -140,12 +148,11 @@ void tx_srv_enable(txdrv_t *tx)
 	tx->flags |= TX_SERVICE;
 }
 
-/*
- * tx_srv_disable
- *
+/**
  * Record that upper layer wants its service routine disabled.
  */
-void tx_srv_disable(txdrv_t *tx)
+void
+tx_srv_disable(txdrv_t *tx)
 {
 	g_assert(tx->flags & TX_SERVICE);
 
@@ -153,29 +160,60 @@ void tx_srv_disable(txdrv_t *tx)
 	tx->flags &= ~TX_SERVICE;
 }
 
-/*
- * tx_pending
- *
+/**
  * Amount of data pending in the whole stack.
  */
-gint tx_pending(txdrv_t *tx)
+gint
+tx_pending(txdrv_t *tx)
 {
 	g_assert(tx);
 
 	return TX_PENDING(tx);
 }
 
-/*
- * tx_bio_source
- *
+/**
  * The I/O source of the lowest layer (link) that physically sends
  * the information.
  */
-struct bio_source *tx_bio_source(txdrv_t *tx)
+struct bio_source *
+tx_bio_source(txdrv_t *tx)
 {
 	g_assert(tx);
 
 	return TX_BIO_SOURCE(tx);
+}
+
+/**
+ * The write() operation is forbidden.
+ */
+gint
+tx_no_write(txdrv_t *tx, gpointer data, gint len)
+{
+	g_error("no write() operation allowed");
+	errno = ENOENT;
+	return -1;
+}
+
+/**
+ * The writev() operation is forbidden.
+ */
+gint
+tx_no_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
+{
+	g_error("no writev() operation allowed");
+	errno = ENOENT;
+	return -1;
+}
+
+/**
+ * The sendto() operation is forbidden.
+ */
+gint
+tx_no_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, gint len)
+{
+	g_error("no sendto() operation allowed");
+	errno = ENOENT;
+	return -1;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -30,6 +30,8 @@
 
 #include <glib.h>
 
+#include "if/core/hosts.h"
+
 struct txdrv_ops;
 struct iovec;
 struct bio_source;
@@ -64,6 +66,7 @@ struct txdrv_ops {
 	void (*destroy)(txdrv_t *tx);
 	gint (*write)(txdrv_t *tx, gpointer data, gint len);
 	gint (*writev)(txdrv_t *tx, struct iovec *iov, gint iovcnt);
+	gint (*sendto)(txdrv_t *tx, gnet_host_t *to, gpointer data, gint len);
 	void (*enable)(txdrv_t *tx);
 	void (*disable)(txdrv_t *tx);
 	gint (*pending)(txdrv_t *tx);
@@ -79,11 +82,15 @@ txdrv_t *tx_make(struct gnutella_node *n, const struct txdrv_ops *ops,
 void tx_free(txdrv_t *d);
 gint tx_write(txdrv_t *tx, gpointer data, gint len);
 gint tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt);
+gint tx_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, gint len);
 void tx_srv_register(txdrv_t *d, tx_service_t srv_fn, gpointer srv_arg);
 void tx_srv_enable(txdrv_t *tx);
 void tx_srv_disable(txdrv_t *tx);
 gint tx_pending(txdrv_t *tx);
 struct bio_source *tx_bio_source(txdrv_t *tx);
+gint tx_no_write(txdrv_t *tx, gpointer data, gint len);
+gint tx_no_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt);
+gint tx_no_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, gint len);
 
 #endif	/* _core_tx_h_ */
 
