@@ -668,7 +668,14 @@ static gboolean file_info_get_trailer(gint fd, struct trailer *tb, gchar *name)
 	if (buf.st_size < sizeof(tr))
 		return FALSE;
 
-	if (lseek(fd, -sizeof(tr), SEEK_END) == -1) {
+	/*
+	 * Don't use SEEK_END with "-sizeof(tr)" to avoid problems when off_t is
+	 * defined as an 8-byte wide quantity.  Since we have the file size
+	 * already, better use SEEK_SET.
+	 *		--RAM, 02/02/2003 after a bug report from Christian Biere
+	 */
+
+	if (lseek(fd, buf.st_size - sizeof(tr), SEEK_SET) == -1) {
 		g_warning("file_info_get_trailer(): "
 			"error seek()ing in file \"%s\": %s", name, g_strerror(errno));
 		return FALSE;
