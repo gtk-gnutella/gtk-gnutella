@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2003, Raphael Manfredi
  *
  * Main Jmakefile for gtk-gnutella.
  *
@@ -22,17 +22,25 @@
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
  */
 
 ;# $Id$
 
 /* >MANSRC		/* This should really become automated */
 
+EXTRA_FILES = \
+	gwcache.boot \
+	hostiles.txt
+
 all::		/* So that default target is not clobber! */
 
-SetSubdirs(src)
+SetSubdirs(src pixmaps)
 DependDirs(src)
 AddedByConfigure(install)
 
-/* InstallManPage(dist,$(MANSRC)) */
+>PRIVLIB	/* Grrr... figure this one automatically */
+
+MakeInstallDirectories($(PRIVLIB))
+InstallMultiple($(EXTRA_FILES), $(PRIVLIB))
 

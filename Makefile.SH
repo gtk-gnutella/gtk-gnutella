@@ -1,5 +1,5 @@
 : Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.0 PL70]
-: $X-Id: Jmake.tmpl,v 3.0.1.3 1997/02/28 14:56:16 ram Exp $
+: $X-Id: Jmake.tmpl,v 3.0.1.3 1997/02/28 14:56:16 ram Exp ram $
 
 case $CONFIG in
 '')
@@ -21,6 +21,8 @@ CURRENT=.
 DIR=`echo $CURRENT/ | sed -e 's/\.\///g'`
 echo "Extracting ${DIR}Makefile (with variable substitutions)"
 
+INSTALL=`echo $install | sed -e 's,\./i,\$(TOP)/i,'`
+INSTALLDIR=`echo $installdir | sed -e 's,\./i,\$(TOP)/i,'`
 DATE=`date`
 
 $spitshell >Makefile <<!GROK!THIS!
@@ -32,6 +34,8 @@ JMAKE = jmake
 TOP = .
 CURRENT = $CURRENT
 DIR = $DIR
+INSTALL = $INSTALL
+INSTALLDIR = $INSTALLDIR
 
 ########################################################################
 # Parameters set by Configure -- edit config.sh if changes are needed
@@ -39,23 +43,28 @@ DIR = $DIR
 CTAGS = ctags
 MAKE = make
 MV = $mv
+PRIVLIB = $installprivlib
 RM = $rm -f
 
 ########################################################################
 # Automatically generated parameters -- do not edit
 
-SUBDIRS = src
+SUBDIRS = src pixmaps
 
 !GROK!THIS!
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules,v 3.0.1.6 1997/02/28 14:56:01 ram Exp $
+# $X-Id: Jmake.rules,v 3.0.1.6 1997/02/28 14:56:01 ram Exp ram $
 
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.1 2003/08/09 22:20:30 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.2 2003/08/09 22:38:30 rmanfredi Exp $
+
+EXTRA_FILES = \
+	gwcache.boot \
+	hostiles.txt
 
 all::
 
@@ -69,6 +78,31 @@ depend::
 
 local_clobber::
 	$(RM) install
+
+local_install::
+	@for dir in $(PRIVLIB); do \
+	case '${MFLAGS}' in *[i]*) set +e;; esac;		\
+	(set -x; test -d $(INSTALL_PREFIX)$$dir			\
+	|| $(INSTALLDIR) $(INSTALL_PREFIX)$$dir);	\
+	done
+
+local_deinstall::
+	@for dir in $(PRIVLIB); do \
+	case '${MFLAGS}' in *[i]*) set +e;; esac; \
+	(set -x; test -d $$dir && $(RM) -r $(INSTALL_PREFIX)$$dir); \
+	done
+
+local_install:: $(EXTRA_FILES)
+	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
+	for i in $(EXTRA_FILES); do \
+	(set -x; $(INSTALL) -c $(INSTALLFLAGS) $$i $(INSTALL_PREFIX)$(PRIVLIB)); \
+	done
+
+local_deinstall::
+	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
+	for i in $(EXTRA_FILES); do \
+	(set -x; $(RM) $(INSTALL_PREFIX)$(PRIVLIB)/$$i); \
+	done
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit
@@ -89,6 +123,11 @@ local_clobber:: local_realclean
 	$(RM) config.sh config.h
 	$(RM) -r .config
 	$(RM) Makefile
+
+install: local_install sub_install
+install.man: local_install.man sub_install.man
+deinstall: sub_deinstall local_deinstall
+deinstall.man: sub_deinstall.man local_deinstall.man
 
 Makefile.SH: Jmakefile
 	-@if test -f $(TOP)/.package; then \
@@ -121,17 +160,19 @@ subdirs:
 	$(MAKE) $(MFLAGS) $(FLAGS) $(TARGET)); \
 	done
 
-install::
+sub_install::
 	@$(MAKE) subdirs TARGET=install VERB="Installing" FLAGS=
 
-deinstall::
+sub_deinstall::
 	@$(MAKE) subdirs TARGET=deinstall VERB="Deinstalling" FLAGS=
+	@echo "Back to $(CURRENT) for "deinstall...
 
-install.man::
+sub_install.man::
 	@$(MAKE) subdirs TARGET=install.man VERB="Installing man pages" FLAGS=
 
-deinstall.man::
+sub_deinstall.man::
 	@$(MAKE) subdirs TARGET=deinstall.man VERB="Deinstalling man pages" FLAGS=
+	@echo "Back to $(CURRENT) for "deinstall.man...
 
 sub_clean::
 	@$(MAKE) subdirs TARGET=clean VERB="Cleaning" FLAGS=
