@@ -74,6 +74,7 @@ struct vendor {
     { T_LIME, "LimeWire" },
     { T_LION, "LionShare" },
     { T_MACT, "Mactella" },
+    { T_MESH, "iMesh" },
     { T_MIRT, "Mirtella" },
     { T_MLDK, "MLDonkey" },
     { T_MMMM, "Morpheus-v2" },
@@ -113,25 +114,12 @@ struct vendor {
 
 #define END(v)		(v - 1 + sizeof(v) / sizeof(v[0]))
 
-/*
- * vendor_code_cmp
- *
- * Compare two codes, alphanumerically (i.e. "ACQX" < "GTKG").
- * Returns -1/0/+1 depending on comparison's sign.
- * Note that this comparison is case-sensitive.
- */
-inline gint vendor_code_cmp(guint32 a, guint32 b)
-{
-	return a < b ? -1 : a > b ? 1 : 0;
-}
-
-/*
- * find_vendor
- *
+/**
  * Find vendor name, given vendor code.
  * Returns vendor string if found, NULL otherwise.
  */
-static gchar *find_vendor(guchar raw[4])
+static gchar *
+find_vendor(guchar raw[4])
 {
 	struct vendor *low = vendor_map;
 	struct vendor *high = END(vendor_map);
@@ -141,7 +129,7 @@ static gchar *find_vendor(guchar raw[4])
 
 	while (low <= high) {
 		struct vendor *mid = low + (high - low) / 2;
-		gint c = vendor_code_cmp(mid->code,  code);
+		gint c = VENDOR_CODE_CMP(mid->code,  code);
 
 		if (c == 0)
 			return mid->name;
@@ -154,12 +142,11 @@ static gchar *find_vendor(guchar raw[4])
 	return NULL;		/* Not found */
 }
 
-/*
- * is_vendor_known:
- *
+/**
  * Return true is gtk-gnutella knows the given 4-byte vendor code.
  */
-gboolean is_vendor_known(guchar raw[4])
+gboolean
+is_vendor_known(guchar raw[4])
 {
     if (raw[0] == '\0')
         return FALSE;
@@ -167,13 +154,12 @@ gboolean is_vendor_known(guchar raw[4])
 	return find_vendor(raw) != NULL;
 }
 
-/*
- * vendor_code_str
- *
+/**
  * Make up a printable version of the vendor code.
  * Returns pointer to static data.
  */
-gchar *vendor_code_str(guint32 code)
+gchar *
+vendor_code_str(guint32 code)
 {
 	static gchar temp[5];
     gint i;
@@ -193,14 +179,13 @@ gchar *vendor_code_str(guint32 code)
 	return temp;
 }
 
-/*
- * lookup_vendor_name
- *
+/**
  * Return the "human readable" name associated with the 4-byte vendor code.
  * If we can't understand the code return NULL or if the 4-byte code
  * consists only of printable characters, return the code as a string.
  */
-gchar *lookup_vendor_name(guchar raw[4])
+gchar *
+lookup_vendor_name(guchar raw[4])
 {
 	static gchar temp[5];
 	gchar *name;
@@ -228,4 +213,4 @@ gchar *lookup_vendor_name(guchar raw[4])
 	return temp[0] ? temp : NULL;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

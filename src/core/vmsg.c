@@ -180,7 +180,7 @@ find_message(guint32 vendor, guint16 id, guint16 version)
 		struct vmsg *mid = low + (high - low) / 2;
 		gint c;
 
-		c = vendor_code_cmp(mid->vendor, vendor);
+		c = VENDOR_CODE_CMP(mid->vendor, vendor);
 
 		if (c == 0) {
 			if (mid->id != id)

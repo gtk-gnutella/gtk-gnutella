@@ -74,6 +74,7 @@
 #define T_LIME	MAKE_CODE('L','I','M','E')
 #define T_LION  MAKE_CODE('L','I','O','N')
 #define T_MACT	MAKE_CODE('M','A','C','T')
+#define T_MESH	MAKE_CODE('M','E','S','H')
 #define T_MIRT  MAKE_CODE('M','I','R','T')
 #define T_MLDK  MAKE_CODE('M','L','D','K')
 #define T_MMMM	MAKE_CODE('M','M','M','M')
@@ -110,7 +111,13 @@
 
 #define T_0000	0x00000000
 
-gint vendor_code_cmp(guint32 a, guint32 b);
+/**
+ * Compare two codes, alphanumerically (i.e. "ACQX" < "GTKG").
+ * Returns -1/0/+1 depending on comparison's sign.
+ * Note that this comparison is case-sensitive.
+ */
+#define VENDOR_CODE_CMP(a, b) CMP(a, b)
+
 gchar *vendor_code_str(guint32 code);
 gchar *lookup_vendor_name(guchar code[4]);
 gboolean is_vendor_known(guchar code[4]);
