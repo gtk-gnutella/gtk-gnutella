@@ -7216,7 +7216,7 @@ create_main_window_config_ul_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label809), 0, 0.5);
 
-  label810 = gtk_label_new (_("Flled slots"));
+  label810 = gtk_label_new (_("Filled slots"));
   gtk_widget_set_name (label810, "label810");
   gtk_widget_show (label810);
   gtk_table_attach (GTK_TABLE (table89), label810, 0, 1, 2, 3,

@@ -3274,7 +3274,7 @@ msgid "Slots"
 msgstr "Ranuras"
 
 #: src/interface-glade2.c:7302
-msgid "Flled slots"
+msgid "Filled slots"
 msgstr "Ranuras ocupadas"
 
 #: src/interface-glade2.c:7318

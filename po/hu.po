@@ -3204,7 +3204,7 @@ msgid "Slots"
 msgstr "Statisztika"
 
 #: src/interface-glade2.c:7302
-msgid "Flled slots"
+msgid "Filled slots"
 msgstr ""
 
 #: src/interface-glade2.c:7318
