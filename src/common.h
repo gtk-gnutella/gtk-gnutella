@@ -157,6 +157,8 @@ typedef void (*GCallback) (void);
  * Other common macros.
  */
 
+#define SRC_PREFIX	"src/"		/* Common prefix to remove in filenames */
+
 #define G_FREE_NULL(p)		\
 do {				\
 	if (p) {		\
