@@ -1,5 +1,12 @@
 # since last version
 
+- (2003.12.10 - RAM)
+ * Added warning when running under debug level tracing the BYE received.
+ * When we're a leaf node, don't issue any "Activity Timeout" to our
+   Ultranodes.  If the connection went dead, this will be caught by their
+   not replying to our alive pings, after 8 minutes.
+ * Added query throttle.
+
 - (2003.12.09 - Jeroen)
  * Intergrated and somewhat adjusted patch from Thadeu Lima de Souza Cascardo.
    Use the WHATIS command in the remote shell to get the 'tooltip' of a
@@ -28,6 +35,10 @@
    we increase the weird message count for a node.
  * Was misparsing HUGE URNs followed by GGEP extensions, causing spurious
    "Security Violations" disconnections from GTKG peers.
+ * Throttle queries that are re-emitted too soon or too closely in time
+   to not be related.
+ * Renamed "Ping throttle" as "Message throttle" since we can now throttle
+   both pings and queries.
 
 - (2003.12.07 - RAM)
  * Count the amount of bytes actually sent back for each upload request.
