@@ -2738,7 +2738,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	use_sendfile = FALSE;
 #endif /* HAS_SENDFILE */
 
-	if (use_sendfile) {
+	if (!use_sendfile) {
 		/* If we got a valid skip amount then jump ahead to that position */
 		if (u->skip > 0) {
 			if (-1 == lseek(u->file_desc, u->skip, SEEK_SET)) {
@@ -2940,11 +2940,16 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 	 	 */
 
 		if (u->bpos == u->bsize) {
-			if ((u->bsize = read(u->file_desc, u->buffer, u->buf_size)) == -1) {
+			ssize_t ret;
+
+			g_assert(u->buffer != NULL);
+			g_assert(u->buf_size > 0);
+			u->bsize = ret = read(u->file_desc, u->buffer, u->buf_size);
+			if ((ssize_t) -1 == ret) {
 				upload_remove(u, "File read error: %s", g_strerror(errno));
 				return;
 			}
-			if (u->bsize == 0) {
+			if (0 == ret) {
 				upload_remove(u, "File EOF?");
 				return;
 			}
