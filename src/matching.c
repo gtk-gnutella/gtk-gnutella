@@ -584,14 +584,15 @@ inline gint st_key(search_table_t *table, gchar k[2])
 
 /* insert an item into the search_table
  * one-char strings are silently ignored */
-void st_insert_item(search_table_t *table, gchar *string, void *data)
+void st_insert_item(search_table_t *table, const gchar *s, void *data)
 {
 	gint i;
 	guint len;
 	struct st_entry *entry;
 	GHashTable *seen_keys;
+	gchar *string;
 
-	string = g_strdup(string);
+	string = g_strdup(s);
 
 	len = match_map_string(table->fold_map, string);
 	if (len < 2) {
