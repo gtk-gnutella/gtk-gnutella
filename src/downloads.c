@@ -4769,15 +4769,19 @@ static void download_request(
 		 * looking as a fake GTKG due to a de-synchronized clock.
 		 */
 
-		if (0 == strncmp(download_vendor_str(d), "gtk-gnutella/", 13))
+		if (0 == strncmp(download_vendor_str(d), "gtk-gnutella/", 13)) {
 			d->server->attrs &= ~DLS_A_BANNING;
-		else if (!(d->server->attrs & DLS_A_BANNING)) {
+			d->server->attrs &= ~DLS_A_MINIMAL_HTTP;
+			d->server->attrs &= ~DLS_A_FAKE_G2;
+		} else if (!(d->server->attrs & DLS_A_BANNING)) {
 			switch (ack_code) {
 			case 401:
 				if (0 != strncmp(download_vendor_str(d), "BearShare", 9))
 					d->server->attrs |= DLS_A_BANNING;	/* Probably */
 				break;
 			case 403:
+				if (0 == strncmp(ack_message, "Network Disabled", 16))
+					d->server->attrs |= DLS_A_FAKE_G2;
 				d->server->attrs |= DLS_A_BANNING;		/* Probably */
 				break;
 			case 404:
@@ -5307,6 +5311,10 @@ picked:
 		ip_port_to_gchar(download_ip(d), download_port(d)),
 		(d->server->attrs & DLS_A_BANNING) ?
 			download_vendor_str(d) : version_string);
+
+	if (d->server->attrs & DLS_A_FAKE_G2)
+		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+			"X-Features: g2/1.0\r\n");
 
 	if (!(d->server->attrs & DLS_A_BANNING))
 		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
