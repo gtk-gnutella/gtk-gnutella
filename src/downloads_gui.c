@@ -277,6 +277,11 @@ void gui_update_download(struct download *d, gboolean force)
 		}
 		a = tmpstr;
 		break;
+	case GTA_DL_SINKING:
+		g_snprintf(tmpstr, sizeof(tmpstr), "Sinking (%u bytes left)",
+			d->sinkleft);
+		a = tmpstr;
+		break;
 	default:
 		g_snprintf(tmpstr, sizeof(tmpstr), "UNKNOWN STATUS %u",
 				   d->status);
