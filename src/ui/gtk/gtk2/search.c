@@ -500,6 +500,7 @@ search_gui_add_record(
 	GtkTreeIter *parent;
 	GtkTreeIter iter;
 	GtkTreeStore *model = GTK_TREE_STORE(sch->model);
+    const struct results_set *rs = rc->results_set;
 	const gchar *name_utf8;
 	size_t rw = 0;
   	gchar info[1024], ext_utf8[32];
@@ -601,6 +602,7 @@ search_gui_add_record(
 		      c_sr_filename, name_utf8,
 		      c_sr_ext, ext_utf8[0] != '\0' ? ext_utf8 : NULL,
 		      c_sr_size, NULL != parent ? NULL : short_size(rc->size),
+			  c_sr_loc, rs->country,
 			  c_sr_meta, NULL,
 		      c_sr_info, info[0] != '\0' ? info : NULL,
 		      c_sr_fg, fg,
@@ -672,8 +674,7 @@ remove_selected_file(gpointer data, gpointer user_data)
 	g_assert(rc->refcount > 1);
 
 	if (gtk_tree_model_iter_nth_child(model, &child, iter, 0)) {
-		gchar *filename, *ext;
-		gchar *info;
+		gchar *filename, *ext, *info, *loc;
 		gpointer fg;
 		gpointer bg;
 		record_t *child_rc = NULL;
@@ -683,6 +684,7 @@ remove_selected_file(gpointer data, gpointer user_data)
     	gtk_tree_model_get(model, &child,
               c_sr_filename, &filename,
               c_sr_ext, &ext,
+              c_sr_loc, &loc,
               c_sr_info, &info,
               c_sr_fg, &fg,
               c_sr_bg, &bg,
@@ -693,6 +695,7 @@ remove_selected_file(gpointer data, gpointer user_data)
 		gtk_tree_store_set((GtkTreeStore *) model, iter,
               c_sr_filename, filename,
               c_sr_ext, ext,
+              c_sr_loc, loc,
               c_sr_info, info,
               c_sr_fg, fg,
               c_sr_bg, bg,
@@ -702,6 +705,7 @@ remove_selected_file(gpointer data, gpointer user_data)
 		G_FREE_NULL(ext);
 		G_FREE_NULL(filename);
 		G_FREE_NULL(info);
+		G_FREE_NULL(loc);
 
 		/* And remove the child's row */
 		gtk_tree_store_remove((GtkTreeStore *) model, &child);
@@ -1177,19 +1181,25 @@ search_gui_set_current_search(search_t *sch)
 static GtkTreeModel *
 create_model(void)
 {
+	GType columns[] = {
+		G_TYPE_STRING,		/* File */
+		G_TYPE_STRING,		/* Extension */
+		G_TYPE_STRING,		/* Size */
+		G_TYPE_STRING,		/* Source counter */
+		G_TYPE_STRING,		/* Location */
+		G_TYPE_STRING,		/* Metadata */
+		G_TYPE_STRING,		/* Info */
+		/* The following columns are invisible */
+		GDK_TYPE_COLOR,		/* Foreground */
+		GDK_TYPE_COLOR,		/* Background */
+		G_TYPE_POINTER		/* (record_t *) */
+	};
 	GtkTreeModel *model;
 
+	STATIC_ASSERT(c_sr_num == G_N_ELEMENTS(columns));
+
 	/* create tree store */
-	model = (GtkTreeModel *) gtk_tree_store_new(c_sr_num,
-	G_TYPE_STRING,		/* File */
-	G_TYPE_STRING,		/* Extension */
-	G_TYPE_STRING,		/* Size */
-	G_TYPE_STRING,		/* Source counter */
-	G_TYPE_STRING,		/* Metadata */
-	G_TYPE_STRING,		/* Info */
-	GDK_TYPE_COLOR,		/* Foreground */
-	GDK_TYPE_COLOR,		/* Background */
-	G_TYPE_POINTER);	/* (record_t *) */
+	model = (GtkTreeModel *) gtk_tree_store_newv(c_sr_num, columns);
 
 	return model;
 }
@@ -1249,10 +1259,14 @@ add_results_columns(GtkTreeView *treeview)
 		{ N_("Extension"), c_sr_ext,	  0.0, NULL },
 		{ N_("Size"),	   c_sr_size,	  1.0, search_gui_compare_size_func },
 		{ N_("#"),		   c_sr_count,	  1.0, search_gui_compare_count_func },
+#if 0
 		{ N_("Speed"),	   c_sr_speed,	  1.0, NULL },
 		{ N_("Host"),	   c_sr_host,	  0.0, NULL },
-		{ N_("Loc"),	   c_sr_loc,	  1.0, NULL },
+#endif
+		{ N_("Loc"),	   c_sr_loc,	  0.0, NULL },
+#if 0
 		{ N_("SHA1"),	   c_sr_sha1,	  0.0, NULL },
+#endif
 		{ N_("Metadata"),  c_sr_meta,	  0.0, NULL },
 		{ N_("Info"),	   c_sr_info,	  0.0, NULL }
 	};
