@@ -1111,7 +1111,7 @@ create_main_window (void)
   gtk_widget_show (label187);
   gtk_clist_set_column_widget (GTK_CLIST (clist_search), 2, label187);
 
-  label_nb_sb_1 = gtk_label_new (_("label187"));
+  label_nb_sb_1 = gtk_label_new ("");
   gtk_widget_set_name (label_nb_sb_1, "label_nb_sb_1");
   gtk_widget_ref (label_nb_sb_1);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_nb_sb_1", label_nb_sb_1,
@@ -1127,7 +1127,7 @@ create_main_window (void)
   gtk_widget_show (label189);
   gtk_container_add (GTK_CONTAINER (notebook_sidebar), label189);
 
-  label188 = gtk_label_new (_("label188"));
+  label188 = gtk_label_new ("");
   gtk_widget_set_name (label188, "label188");
   gtk_widget_ref (label188);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label188", label188,
@@ -3361,7 +3361,7 @@ create_main_window (void)
   gtk_clist_set_column_width (GTK_CLIST (clist_fi_aliases), 0, 80);
   gtk_clist_column_titles_hide (GTK_CLIST (clist_fi_aliases));
 
-  label526 = gtk_label_new (_("label526"));
+  label526 = gtk_label_new ("");
   gtk_widget_set_name (label526, "label526");
   gtk_widget_ref (label526);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label526", label526,
@@ -6509,6 +6509,7 @@ create_popup_search (void)
 {
   GtkWidget *popup_search;
   GtkAccelGroup *popup_search_accels;
+  guint tmp_key;
   GtkWidget *popup_search_edit_filter;
   GtkWidget *separator13;
   GtkWidget *drop1;
@@ -6553,7 +6554,11 @@ create_popup_search (void)
   gtk_object_set_data (GTK_OBJECT (popup_search), "popup_search", popup_search);
   popup_search_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (popup_search));
 
-  popup_search_edit_filter = gtk_menu_item_new_with_label (_("_Edit filters"));
+  popup_search_edit_filter = gtk_menu_item_new_with_label ("");
+  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (popup_search_edit_filter)->child),
+                                   _("_Edit filters"));
+  gtk_widget_add_accelerator (popup_search_edit_filter, "activate_item", popup_search_accels,
+                              tmp_key, 0, 0);
   gtk_widget_set_name (popup_search_edit_filter, "popup_search_edit_filter");
   gtk_widget_ref (popup_search_edit_filter);
   gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_edit_filter", popup_search_edit_filter,
@@ -6924,7 +6929,7 @@ create_popup_nodes (void)
   gtk_object_set_data (GTK_OBJECT (popup_nodes), "popup_nodes", popup_nodes);
   popup_nodes_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (popup_nodes));
 
-  popup_nodes_remove = gtk_menu_item_new_with_label (_("Remove"));
+  popup_nodes_remove = gtk_menu_item_new_with_label (_("Disconnect"));
   gtk_widget_set_name (popup_nodes_remove, "popup_nodes_remove");
   gtk_widget_ref (popup_nodes_remove);
   gtk_object_set_data_full (GTK_OBJECT (popup_nodes), "popup_nodes_remove", popup_nodes_remove,

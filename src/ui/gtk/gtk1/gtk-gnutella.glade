@@ -572,7 +572,7 @@
 		<class>GtkLabel</class>
 		<child_name>Notebook:tab</child_name>
 		<name>label_nb_sb_1</name>
-		<label>label187</label>
+		<label></label>
 		<justify>GTK_JUSTIFY_CENTER</justify>
 		<wrap>False</wrap>
 		<xalign>0.5</xalign>
@@ -597,7 +597,7 @@
 		<class>GtkLabel</class>
 		<child_name>Notebook:tab</child_name>
 		<name>label188</name>
-		<label>label188</label>
+		<label></label>
 		<justify>GTK_JUSTIFY_CENTER</justify>
 		<wrap>False</wrap>
 		<xalign>0.5</xalign>
@@ -4460,7 +4460,7 @@
 			      <class>GtkLabel</class>
 			      <child_name>CList:title</child_name>
 			      <name>label526</name>
-			      <label>label526</label>
+			      <label></label>
 			      <justify>GTK_JUSTIFY_CENTER</justify>
 			      <wrap>False</wrap>
 			      <xalign>0.5</xalign>
