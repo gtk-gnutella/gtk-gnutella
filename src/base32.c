@@ -291,15 +291,16 @@ guchar *base32_encode(const guchar *buf, gint len, gint *retpad)
  * Caller must have ensured that there was sufficient room in decbuf.
  * Uses the specified decoding alphabet.
  *
- * Return TRUE if successful, FALSE if the input was not valid base32.
+ * Return decoded bytes if successful, 0 if the input was not valid base32.
  */
-static gboolean base32_decode_alphabet(gint8 valmap[256],
+static gint base32_decode_alphabet(gint8 valmap[256],
 	const guchar *buf, gint len, guchar *decbuf, gint declen)
 {
 	guint32 i = 0;					/* Input accumulator, 0 for trailing pad */
 	guchar const *ip = buf + len;	/* Input pointer, one byte off end */
 	gint dlen = (len >> 3) * 5;		/* Exact decoded lenth */
 	guchar *op;						/* Output pointer, one byte off end */
+	gint bytes;						/* bytes decoded without padding */
 	gint8 v;
 	
 	g_assert(buf);
@@ -316,6 +317,7 @@ static gboolean base32_decode_alphabet(gint8 valmap[256],
 	if (buf[len-1] == '=') {
 		gint pad = 0;
 		gint n = 0;							/* Amount of bytes to zero */
+		gint s = 0;							/* Amount of bytes to zero */
 
 		/*
 		 * Remove and count trailing input padding bytes.
@@ -327,18 +329,21 @@ static gboolean base32_decode_alphabet(gint8 valmap[256],
 		ip++;			/* Points one byte after real non-padding input */
 
 		switch (pad) {
-		case 1: n = 1; break;
-		case 3: n = 2; break;
-		case 4: n = 3; break;
-		case 6: n = 4; break;
+		case 1: n = 1; s = 0; break;
+		case 3: n = 2; s = 1; break;
+		case 4: n = 3; s = 1; break;
+		case 6: n = 4; s = 3; break;
 		default:
-			return FALSE;			/* Cannot be valid base32 */
+			return 0;				/* Cannot be valid base32 */
 		}
 
 		memset(decbuf + (dlen - n), 0, n);
-		op = decbuf + (dlen - n);
-	} else
+		op = decbuf + (dlen - s);
+		bytes = dlen - n;
+	} else {
 		op = decbuf + dlen;
+		bytes = dlen;
+	}
 
 	/*
 	 * In the following picture, we represent how the 8 bytes of input,
@@ -364,49 +369,49 @@ static gboolean base32_decode_alphabet(gint8 valmap[256],
 	case 0:
 		do {
 			i = valmap[*--ip];				/* Input #7 */
-			if (i < 0) return FALSE;
+			if (i < 0) return 0;
 			/* FALLTHROUGH */
 	case 7:
 			v = valmap[*--ip];				/* Input #6 */
-			if (v < 0) return FALSE;
+			if (v < 0) return 0;
 			i |= v << 5;					/* had 5 bits */
 			*--op = i & 0xff;				/* Output #4 */
 			i >>= 8;						/* lower <01> of output #3 */
 			/* FALLTHROUGH */
 	case 6:
 			v = valmap[*--ip];				/* Input #5 */
-			if (v < 0) return FALSE;
+			if (v < 0) return 0;
 			i |= v << 2;					/* had 2 bits */
 			/* FALLTHROUGH */
 	case 5:
 			v = valmap[*--ip];				/* Input #4 */
-			if (v < 0) return FALSE;
+			if (v < 0) return 0;
 			i |= v << 7;					/* had 7 bits */
 			*--op = i & 0xff;				/* Output #3 */
 			i >>= 8;						/* lower <0123> of output #2 */
 			/* FALLTHROUGH */
 	case 4:
 			v = valmap[*--ip];				/* Input #3 */
-			if (v < 0) return FALSE;
+			if (v < 0) return 0;
 			i |= v << 4;					/* had 4 bits */
 			*--op = i & 0xff;				/* Output #2 */
 			i >>= 8;						/* lower <0> of output #1 */
 			/* FALLTHROUGH */
 	case 3:
 			v = valmap[*--ip];				/* Input #2 */
-			if (v < 0) return FALSE;
+			if (v < 0) return 0;
 			i |= v << 1;					/* had 1 bit */
 			/* FALLTHROUGH */
 	case 2:
 			v = valmap[*--ip];				/* Input #1 */
-			if (v < 0) return FALSE;
+			if (v < 0) return 0;
 			i |= v << 6;					/* had 6 bits */
 			*--op = i & 0xff;				/* Output #1 */
 			i >>= 8;						/* lower <012> of output #0 */
 			/* FALLTHROUGH */
 	case 1:
 			v = valmap[*--ip];				/* Input #0 */
-			if (v < 0) return FALSE;
+			if (v < 0) return 0;
 			i |= v << 3;					/* had 3 bits */
 			*--op = i & 0xff;				/* Output #0 */
 			i >>= 8;						/* Holds nothing, MBZ */
@@ -415,7 +420,7 @@ static gboolean base32_decode_alphabet(gint8 valmap[256],
 		} while (op > decbuf);
 	}
 
-	return TRUE;
+	return bytes;
 }
 
 /*
@@ -424,9 +429,10 @@ static gboolean base32_decode_alphabet(gint8 valmap[256],
  * Decode `len' bytes from `buf' into `declen' bytes starting from `decbuf'.
  * Caller must have ensured that there was sufficient room in decbuf.
  *
- * Return TRUE if successful, FALSE if the input was not valid base32.
+ * Returns the amount of bytes decoded (without trailing padding) if successful,
+ * 0 if the input was not valid base32.
  */
-gboolean base32_decode_into(const guchar *buf, gint len,
+gint base32_decode_into(const guchar *buf, gint len,
 	guchar *decbuf, gint declen)
 {
 	return base32_decode_alphabet(values, buf, len, decbuf, declen);
@@ -439,9 +445,10 @@ gboolean base32_decode_into(const guchar *buf, gint len,
  * Caller must have ensured that there was sufficient room in decbuf.
  * The "old" base32 alphabet is used for decoding.
  *
- * Return TRUE if successful, FALSE if the input was not valid base32.
+ * Returns the amount of bytes decoded (without trailing padding) if successful,
+ * 0 if the input was not valid base32.
  */
-gboolean base32_decode_old_into(const guchar *buf, gint len,
+gint base32_decode_old_into(const guchar *buf, gint len,
 	guchar *decbuf, gint declen)
 {
 	return base32_decode_alphabet(old_values, buf, len, decbuf, declen);
@@ -454,23 +461,31 @@ gboolean base32_decode_old_into(const guchar *buf, gint len,
  *
  * Returns the new decoded buffer, or NULL if the input was not valid base32
  * encoding.  The caller knows the length of the returned buffer: it's the
- * size of the input divided by 8 and multiplied by 5.
+ * size of the input divided by 8 and multiplied by 5.  If `outlen' is non-NULL,
+ * it is filled with the amount of bytes decoded into the buffer (without
+ * trailing padding).
  */
-guchar *base32_decode(const guchar *buf, gint len)
+guchar *base32_decode(const guchar *buf, gint len, gint *outlen)
 {
 	gint declen;
 	gchar *decbuf;
+	gint decoded;
 
-	if (len & 0x7)					/* Padding bytes missing */
+	if (len == 0 || (len & 0x7))		/* Empty, or padding bytes missing */
 		return NULL;
 
 	declen = (len >> 3) * 5;
 	decbuf = g_malloc(declen);
 
-	if (!base32_decode_into(buf, len, decbuf, declen)) {
+	decoded = base32_decode_into(buf, len, decbuf, declen);
+
+	if (decoded == 0) {
 		g_free(decbuf);
 		return NULL;
 	}
+
+	if (outlen != NULL)
+		*outlen = decoded;
 
 	return decbuf;
 }

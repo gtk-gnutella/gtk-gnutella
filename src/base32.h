@@ -38,10 +38,10 @@ guchar *base32_encode(const guchar *buf, gint len, gint *retpad);
 void base32_encode_into(const guchar *buf, gint len,
 	guchar *encbuf, gint enclen);
 
-guchar *base32_decode(const guchar *buf, gint len);
-gboolean base32_decode_into(const guchar *buf, gint len,
+guchar *base32_decode(const guchar *buf, gint len, gint *outbuf);
+gint base32_decode_into(const guchar *buf, gint len,
 	guchar *decbuf, gint declen);
-gboolean base32_decode_old_into(const guchar *buf, gint len,
+gint base32_decode_old_into(const guchar *buf, gint len,
 	guchar *decbuf, gint declen);
 
 #endif	/* _base32_h_ */

@@ -38,8 +38,8 @@ guchar *base64_encode(const guchar *buf, gint len, gint *retpad);
 void base64_encode_into(const guchar *buf, gint len,
 	guchar *encbuf, gint enclen);
 
-guchar *base64_decode(const guchar *buf, gint len);
-gboolean base64_decode_into(const guchar *buf, gint len,
+guchar *base64_decode(const guchar *buf, gint len, gint *outlen);
+gint base64_decode_into(const guchar *buf, gint len,
 	guchar *decbuf, gint declen);
 
 #endif	/* _base64_h_ */
