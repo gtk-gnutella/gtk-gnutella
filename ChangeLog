@@ -1,5 +1,9 @@
 # since last version
 
+- (2003.05.15 - Jeroen)
+ * PARQ: Don't display status Waiting when there are no upload slots available
+ * PARQ: Send a QUEUE command when an upload slot is available
+ 
 - (2003.05.14 - Jeroen)
  * PARQ: Saves and loads the expiration time of a queued upload. This should
          speed up starting uploading on startup.
