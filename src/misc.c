@@ -58,11 +58,14 @@ guint32 host_to_ip(gchar *host)
 {
 	struct hostent *he = gethostbyname(host);
 	if (he) return g_ntohl(*(guint32 *) (he->h_addr_list[0]));
+	else {
+        g_warning("cannot resolve %s:", host);
 #if defined(HAVE_HERROR)
-	else herror("gethostbyname()");
+		herror("gethostbyname()");
 #else
-        else g_warning("gethostbyname('%s') failed!\n",host);
+        g_warning("gethostbyname() failed!\n");
 #endif
+	}
  
 	return 0;
 }
