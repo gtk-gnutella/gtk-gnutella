@@ -51,6 +51,7 @@
 /* */
 
 GtkWidget *main_window;
+GtkWidget *shutdown_window;
 
 struct gnutella_socket *s_listen = NULL;
 gchar *version_string = NULL;
@@ -58,6 +59,8 @@ time_t start_time;
 gchar *start_rfc822_date = NULL;		/* RFC822 format of start_time */
 
 static guint main_slow_update = 0;
+static gboolean exiting = FALSE;
+static time_t exit_time = 0;
 
 /* */
 
@@ -71,13 +74,16 @@ static guint main_slow_update = 0;
  */
 void gtk_gnutella_exit(gint n)
 {
-	static gboolean exiting = FALSE;
 	time_t now = time((time_t *) NULL);
+    time_t tick;
+    gchar tmp[256];
 
 	if (exiting)
 		return;			/* Already exiting, must be in loop below */
 
 	exiting = TRUE;
+
+    exit_time = now;
 
 	node_bye_all();
 	upload_close();		/* Done before config_close() for stats update */
@@ -99,17 +105,24 @@ void gtk_gnutella_exit(gint n)
 	socket_shutdown();
 	search_shutdown();
 	filters_shutdown();
-	bsched_shutdown();
 
 	/* 
 	 * Wait at most EXIT_GRACE seconds, so that BYE messages can go through.
 	 */
 
-	while (node_bye_pending() && time((time_t *) NULL) - now < EXIT_GRACE) {
+    gtk_widget_hide(main_window);
+    gtk_widget_show(shutdown_window);
+
+	while (node_bye_pending() && 
+           (tick = time((time_t *) NULL)) - now < EXIT_GRACE) {
+         g_snprintf(tmp, sizeof(tmp), "%d seconds", 
+            (gint)difftime(now,exit_time));
+        gtk_label_set(GTK_LABEL(label_shutdown_count),tmp);
 		gtk_main_iteration_do(FALSE);
-		usleep(200000);					/* 200 ms */
+		usleep(50000);					/* 50 ms */
 	}
 
+   	bsched_shutdown();
 	share_close();
 	node_close();
 	host_close();
@@ -119,6 +132,8 @@ void gtk_gnutella_exit(gint n)
 	config_close();
 	g_free(version_string);
 	g_free(start_rfc822_date);
+
+    printf("gtk-gnutella shut down cleanly.\n\n");
 
 	gtk_exit(n);
 }
@@ -141,24 +156,43 @@ static void init_constants(void)
 
 	version_string = g_strdup(buf);
 
-	start_time = time((time_t *) NULL);
+        start_time = time((time_t *) NULL);
 	start_rfc822_date = g_strdup(date_to_rfc822_gchar(start_time));
 }
 
 static void slow_main_timer(time_t now)
 {
-		ul_flush_stats_if_dirty();
+	ul_flush_stats_if_dirty();
 }
 
 static gboolean main_timer(gpointer p)
 {
 	time_t now = time((time_t *) NULL);
 
-	bsched_timer();					/* Scheduling update */
+    /*
+    static gboolean shutdown = FALSE;
+
+    if (exiting) {
+        gchar tmp[256];
+
+        if (!shutdown) {
+            shutdown = TRUE;
+            gtk_widget_hide(main_window);
+            gtk_widget_show(shutdown_window);
+        }
+        g_snprintf(tmp, sizeof(tmp), "%d seconds", 
+            (gint)difftime(now,exit_time));
+        gtk_label_set(GTK_LABEL(label_shutdown_count),tmp);
+    }
+    */
+
+    bsched_timer();				    /* Scheduling update */
 	host_timer();					/* Host connection */
 	node_timer(now);				/* Node timeouts */
-	download_timer(now);			/* Download timeouts */
-	upload_timer(now);				/* Upload timeouts */
+    if (!exiting) {
+        download_timer(now);  	    /* Download timeouts */
+        upload_timer(now);			/* Upload timeouts */
+    }
 	socket_monitor_incoming();		/* Expire connecting sockets */
 	pcache_possibly_expired(now);	/* Expire pong cache */
 
@@ -166,14 +200,16 @@ static gboolean main_timer(gpointer p)
 	 * GUI update
 	 */
 
-	gui_statusbar_clear_timeouts(now);
-	gui_update_global();
+    if (!exiting) {
+        gui_statusbar_clear_timeouts(now);
+        gui_update_global();
 
-	/* Update for things that change slowly */
-	if (main_slow_update++ > SLOW_UPDATE_PERIOD) {
-		main_slow_update = 0;
-		slow_main_timer(now);
-	}
+        /* Update for things that change slowly */
+        if (main_slow_update++ > SLOW_UPDATE_PERIOD) {
+            main_slow_update = 0;
+            slow_main_timer(now);
+        }
+    }
 
 	return TRUE;
 }
@@ -220,6 +256,7 @@ gint main(gint argc, gchar ** argv)
 	add_pixmap_directory(PACKAGE_SOURCE_DIR "/pixmaps");
 
 	main_window = create_main_window();
+    shutdown_window = create_shutdown_window();
 
 	/* Our inits */
 
