@@ -3212,6 +3212,9 @@ static void node_bye_flags(guint32 mask, gint code, gchar *message)
 	for (l = sl_nodes; l; l = l->next) {
 		struct gnutella_node *n = l->data;
 
+		if (n->status == GTA_NODE_REMOVING || n->status == GTA_NODE_SHUTDOWN)
+			continue;
+
 		if (n->flags & mask)
 			node_bye_if_writable(n, code, message);
 	}
