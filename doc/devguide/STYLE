@@ -120,6 +120,17 @@ Ladies and gentleman, here's the
             it_would_not,
             fit_on, a_single_line);
 
+4.5  When defining a function with a long argument list that does not
+     fit on the 80-column line, it is important to have the opening '('
+     in the argument list on the same line as the function name, or it
+     will break the vi 'tags':
+
+        static void function(
+            unsigned char *argument1, int arg2)
+        {
+            /* Body */
+        }
+
 5. NAMING **************************************************************
 
 5.1   Exported functions should be named after the package they appear
