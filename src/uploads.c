@@ -2046,8 +2046,11 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	) {
 		g_assert(pfsp_server);
 		range_unavailable = TRUE;
-	} else
+	} else {
 		u->unavailable_range = FALSE;
+		if (u->parq_opaque == NULL)		/* Not gone through PARQ yet */
+			is_followup = FALSE;		/* Perform as if original request */
+	}
 
 	u->skip = skip;
 	u->end = end;
