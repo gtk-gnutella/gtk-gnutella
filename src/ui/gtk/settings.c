@@ -5090,6 +5090,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
+        PROP_GGEP_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_ggep_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
         PROP_PROCESS_OOB_QUERIES,
         update_togglebutton,
         TRUE,
