@@ -356,7 +356,7 @@ void file_info_init(void)
 
     fi_events[EV_FI_ADDED]          = event_new("fi_added");
     fi_events[EV_FI_REMOVED]        = event_new("fi_removed");
-    fi_events[EV_FI_INFO_CHANGED]   = event_new("fi_info_changed");
+    fi_events[EV_FI_INFO_CHANGED]   = event_new("fi_info_changed");	/* UNUSED */
     fi_events[EV_FI_STATUS_CHANGED] = event_new("fi_status_changed");
     fi_events[EV_FI_SRC_ADDED]      = event_new("fi_src_added");
     fi_events[EV_FI_SRC_REMOVED]    = event_new("fi_src_removed");
