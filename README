@@ -121,6 +121,13 @@ For example, a fairly typical configuration for linux x86, gtk2 gui:
 ./Configure -d -e -r -s -Dprefix=/usr -Dprivlib=/usr/share/gtk-gnutella \
 	-Dcc=gcc -Dccflags='-Wall' -Doptimize='-O2' -Dgtkversion=2
 
+Packagers who need to install gtk-gnutella to a special base directory can 
+do so with:
+
+    make install INSTALL_PREFIX=/DESTDIR
+
+which will install in /DESTDIR/$bindir, /DESTDIR/$privlib, etc.
+
 If you need to do unusual things to compile the package, please try
 to figure out how `Configure' could check whether to do them, and mail
 diffs or instructions to the address given in the `README' so they can
