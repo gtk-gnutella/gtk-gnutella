@@ -1,5 +1,8 @@
 # since last version
 
+- (2004.06.04 - Jeroen)
+ * Fixed compilation error due to removed property
+
 - (2004.06.03 - Jeroen)
  * Applied HSEP patch 8, this adds HSEP info to the gnet stats pane
    for gtk1. By Thomas Schuerger

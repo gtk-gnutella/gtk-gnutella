@@ -2511,14 +2511,6 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_main_window,
-        PROP_PROXY_CONNECTIONS,
-        update_entry,
-        TRUE,
-        "entry_proxy_connections",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_main_window,
         PROP_SYS_NOFILE,
         update_entry,
         TRUE,
