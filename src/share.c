@@ -109,10 +109,9 @@ static gint index_of_found_files_count = 0;
  * Return 0 if indexes are the same, a negative value if i1 is bigger
  * than i2 and a positive value otherwise.
  */
-
 static int compare_indexes(guint32 i1, guint32 i2)
 {
-    return i2 - i1;
+	return i2 - i1;
 }
 
 /* 
@@ -121,10 +120,9 @@ static int compare_indexes(guint32 i1, guint32 i2)
  * Check if a given shared_file has been added to the QueryHit.
  * Return TRUE if the shared_file is in the QueryHit already, FALSE otherwise
  */
-
 static gboolean shared_file_already_in_found_set(struct shared_file *sf)
 {
-    return NULL != g_tree_lookup(index_of_found_files,
+	return NULL != g_tree_lookup(index_of_found_files,
 		GUINT_TO_POINTER(sf->file_index));
 }
 
@@ -137,9 +135,9 @@ static gboolean shared_file_already_in_found_set(struct shared_file *sf)
 static void put_shared_file_into_found_set(struct shared_file *sf)
 {
 	index_of_found_files_count++;
-    g_tree_insert(index_of_found_files, 
-                  GUINT_TO_POINTER(sf->file_index), 
-                  GUINT_TO_POINTER(!NULL));
+	g_tree_insert(index_of_found_files, 
+				  GUINT_TO_POINTER(sf->file_index), 
+				  GUINT_TO_POINTER(!NULL));
 }
 
 /* 
@@ -151,8 +149,8 @@ static void put_shared_file_into_found_set(struct shared_file *sf)
  */
 static void found_reset()
 {
-    found_data.s = sizeof(struct gnutella_header) +	
-	    sizeof(struct gnutella_search_results_out);
+	found_data.s = sizeof(struct gnutella_header) +	
+		sizeof(struct gnutella_search_results_out);
 
 	/*
 	 * We only destroy and recreate a new tree if we inserted something
@@ -575,10 +573,10 @@ static gboolean got_match(struct shared_file *sf)
 	guint32 needed = 8 + 2 + sf->file_name_len;		/* size of hit entry */
 	gboolean sha1_available = *sf->sha1_digest;
 	
-    /*
-     * We don't stop adding records if we refused this one, hence the TRUE
-     * returned.
-     */
+	/*
+	 * We don't stop adding records if we refused this one, hence the TRUE
+	 * returned.
+	 */
 
 	if (shared_file_already_in_found_set(sf))
 		return TRUE;
@@ -629,8 +627,8 @@ static gboolean got_match(struct shared_file *sf)
 /* A structure describing the extensions found in the query */
 
 struct query_extensions {
-    int unknown;       /* Number of unknown extensions   */
-    const gchar *urn;  /* Query by urn, only one for now */
+	int unknown;       /* Number of unknown extensions   */
+	const gchar *urn;  /* Query by urn, only one for now */
 };
 
 /*
@@ -640,8 +638,8 @@ struct query_extensions {
  */
 static void initialize_query_extension(struct query_extensions *e)
 {
-    e->unknown = 0;
-    e->urn = NULL; 
+	e->unknown = 0;
+	e->urn = NULL; 
 }
 
 /*
@@ -650,13 +648,12 @@ static void initialize_query_extension(struct query_extensions *e)
  * Return TRUE if string extension of length extension_length embeds a
  * non-printable char, FALSE otherwise
  */
-
-static gboolean extension_embeds_binary(const unsigned char *extension,
-                                        int extension_length)
+static gboolean extension_embeds_binary(
+	const unsigned char *extension, int extension_length)
 {
-    for(; extension_length; extension_length--, extension++)
-	    if (!isprint(*extension)) return TRUE;
-    return FALSE;
+	for(; extension_length; extension_length--, extension++)
+		if (!isprint(*extension)) return TRUE;
+	return FALSE;
 }
 
 /* 
@@ -665,37 +662,33 @@ static gboolean extension_embeds_binary(const unsigned char *extension,
  * Take the extension extension of length extension_length, and update the
  * struct query_extensions with recognized extensions.
  */
-
-static void check_query_extension(const char *extension,
-                                  int extension_length,
-                                  struct query_extensions *qe)
+static void check_query_extension(
+	const char *extension, int extension_length, struct query_extensions *qe)
 {
-    if (extension_length == 9 + SHA1_BASE32_SIZE
-        && !strncmp(extension, "urn:sha1:", 9)) {
+	if (extension_length == 9 + SHA1_BASE32_SIZE
+		&& !strncmp(extension, "urn:sha1:", 9)) {
 
-	    qe->urn = extension + 9;
-	    if (dbg > 4) {
-            fprintf(stdout, "\tQuery by URN\t");
-            fwrite(extension, extension_length, 1, stdout);
-            fprintf(stdout, "\n");
-	    }
+		qe->urn = extension + 9;
+		if (dbg > 4) {
+			fprintf(stdout, "\tQuery by URN\t");
+			fwrite(extension, extension_length, 1, stdout);
+			fprintf(stdout, "\n");
+		}
 
-    } else if (extension_length == 4 && !strncmp(extension, "urn:", 4)) {
-        ; /* We always send URN for now */
-    } else {
-        qe->unknown++;
-	    if (dbg > 4) {
-            if (!extension_embeds_binary(extension, extension_length)) {
-                fprintf(stdout, "<%d:", extension_length);
-                fwrite(extension, extension_length, 1, stdout);
-                fprintf(stdout, ">\n");
-            } else 
-                dump_hex(stdout, 
-                         "Binary extension",
-                         (char *)extension,
-                         extension_length);
-	    }
-    }
+	} else if (extension_length == 4 && !strncmp(extension, "urn:", 4)) {
+		; /* We always send URN for now */
+	} else {
+		qe->unknown++;
+		if (dbg > 4) {
+			if (!extension_embeds_binary(extension, extension_length)) {
+				fprintf(stdout, "<%d:", extension_length);
+				fwrite(extension, extension_length, 1, stdout);
+				fprintf(stdout, ">\n");
+			} else 
+				dump_hex(stdout, "Binary extension",
+					(char *)extension, extension_length);
+		}
+	}
 }
 
 /* 
@@ -705,19 +698,20 @@ static void check_query_extension(const char *extension,
  * and update the struct query_extensions with recognized extensions.
  */
 
-static void scan_query_extensions(const char *extra,
-                                  struct query_extensions *extension)
+static void scan_query_extensions(
+	const char *extra,
+	struct query_extensions *extension)
 {
-    for(;;) {
-	    const char *last_ext = extra;
-	    while(*extra && *extra != FS) extra++;
-	    check_query_extension(last_ext, extra - last_ext, extension);
-	    if (!*extra)
+	for(;;) {
+		const char *last_ext = extra;
+		while(*extra && *extra != FS) extra++;
+		check_query_extension(last_ext, extra - last_ext, extension);
+		if (!*extra)
 			break;
-	    extra++;
-    }
+		extra++;
+	}
 
-    return;
+	return;
 }
 
 /*
@@ -783,24 +777,27 @@ void search_request(struct gnutella_node *n)
 	 */
 
 	initialize_query_extension(&query_extension);
+
 	if (search_len + 3 != n->size) {
 		gint extra = n->size - 3 - search_len;		/* Amount of extra data */
 		if (extra != 1 && search[search_len+1] != '\0') {
 			/* Not a double NUL */
-            scan_query_extensions(search + search_len + 1, &query_extension);
-            if (query_extension.unknown) {
-			g_warning("search request (hops=%d, ttl=%d) "
-				"has %d extra byte%s after NUL",
-				n->header.hops, n->header.ttl, extra, extra == 1 ? "" : "s");
-			    if (dbg > 4) {
-                    dump_hex(stdout, "Extra Query Data", &search[search_len+1],
-						MIN(extra, 256));
-                    printf("Search was: %s\n", search);
-			    }
-            }
+			scan_query_extensions(search + search_len + 1, &query_extension);
 
-            if (dbg > 3 && query_extension.urn && !query_extension.unknown)
-			    printf("URN search was: %s\n", search);
+			if (query_extension.unknown) {
+				g_warning("search request (hops=%d, ttl=%d) "
+					"has %d extra byte%s after NUL",
+					n->header.hops, n->header.ttl, extra,
+					extra == 1 ? "" : "s");
+				if (dbg > 4) {
+					dump_hex(stdout, "Extra Query Data", &search[search_len+1],
+						MIN(extra, 256));
+					printf("Search was: %s\n", search);
+				}
+			}
+
+			if (dbg > 3 && query_extension.urn && !query_extension.unknown)
+				printf("URN search was: %s\n", search);
 		}
 	}
 
@@ -882,17 +879,17 @@ void search_request(struct gnutella_node *n)
 	max_replies = (search_max_items == -1) ? 255 : search_max_items;
 
 	if (query_extension.urn) {
-        struct shared_file *sf =
-            shared_file_from_sha1_hash(query_extension.urn);
+		struct shared_file *sf =
+			shared_file_from_sha1_hash(query_extension.urn);
 
-        if (sf) {
-		    got_match(sf);
+		if (sf) {
+			got_match(sf);
 			if (dbg)
 				printf("********* YYYYEEEESSSS !!!! AN URN MATCH !!!! (%s)\n",
 					query_extension.urn);
 			max_replies--;
 			urn_match++;
-        }
+		}
 	}
 
 	found_files = urn_match + skip_file_search ?
@@ -995,7 +992,7 @@ static GTree *sha1_to_share = NULL;
 
 static int compare_share_sha1(const gchar *s1, const gchar *s2)
 {
-    return memcmp(s1, s2, SHA1_BASE32_SIZE);
+	return memcmp(s1, s2, SHA1_BASE32_SIZE);
 }
 
 /* 
@@ -1006,7 +1003,7 @@ static int compare_share_sha1(const gchar *s1, const gchar *s2)
 
 static void reinit_sha1_table()
 {
-    if (sha1_to_share)
+	if (sha1_to_share)
 		g_tree_destroy(sha1_to_share);
 
 	sha1_to_share = g_tree_new((GCompareFunc)compare_share_sha1);
@@ -1054,7 +1051,7 @@ struct shared_file *shared_file_from_sha1_hash(const gchar *sha1_digest)
 	if (!sha1_hash_available(f))
 		return NULL;
 
-    return f;
+	return f;
 }
 
 /* 
