@@ -29,8 +29,8 @@
 
 RCSID("$Id$");
 
-#include <netdb.h>
-#include <signal.h>
+#include <fcntl.h> /* open(), O_RDONLY */
+#include <signal.h> /* signal(), SIGCHLD, SIG_IGN */
 #include "adns.h"
 #include "http.h" /* MAX_HOSTLEN */
 
@@ -51,6 +51,7 @@ struct adns_reply_t {
 /* private variables */
 
 static gint adns_query_fd = -1;
+static guint adns_event_id = 0;
 
 /* private functions */
 
@@ -75,7 +76,8 @@ G_INLINE_FUNC gboolean adns_do_transfer(
 				g_strerror(errno), errno, (gint) do_write);
 			return FALSE;
 		} else if (0 == ret) {
-			g_warning("adns_do_transfer: EOF (%s)", write ? "write" : "read");
+			g_warning("adns_do_transfer: EOF (%s)",
+				do_write ? "write" : "read");
 			return FALSE;
 		} else {
 			n -= ret;
@@ -118,13 +120,10 @@ static gboolean adns_do_write(gint fd, gpointer buf, size_t len)
 static void adns_gethostbyname(
 	const struct adns_query_t *query, struct adns_reply_t *reply)
 {
-	struct hostent *he;
-
 	g_assert(NULL != query);
 	g_assert(NULL != reply);
 	g_warning("adns_gethostbyname: Resolving \"%s\" ...", query->hostname);
-	he = gethostbyname(query->hostname);
-	reply->ip = NULL != he ? g_ntohl(*(guint32 *) (he->h_addr)) : 0;
+	reply->ip = host_to_ip(query->hostname);
 	reply->user_callback = query->user_callback;
 	reply->user_data = query->user_data;
 }
@@ -154,16 +153,16 @@ static void adns_helper(gint fd_in, gint fd_out)
 
 	close(fd_in);
 	close(fd_out);
-	exit(EXIT_SUCCESS);
+	_exit(EXIT_SUCCESS);
 }
 
 /*
  * adns_callback
  *
  * Callback function for inputevt_add(). This function invokes the callback
- * function given in DNS query on the client-side i.e., gtk-nutella itself.
+ * function given in DNS query on the client-side i.e., gtk-gnutella itself.
  */
-static gboolean adns_callback(
+static void adns_callback(
 	gpointer data, gint source, inputevt_cond_t condition)
 {
 	struct adns_reply_t reply;
@@ -172,10 +171,20 @@ static gboolean adns_callback(
 		g_warning("adns_callback: resolved to \"%s\"", ip_to_gchar(reply.ip));
 		g_assert(NULL != reply.user_callback);
 		reply.user_callback(reply.ip, reply.user_data);
-		return TRUE;
+	} else {
+		g_warning("adns_callback: removing myself");
+		inputevt_remove(adns_event_id);
+		close(source);
 	}
-	return FALSE;
 }
+
+#define CLOSE_IF_VALID(fd)	\
+do {						\
+	if (-1 != (fd))	{		\
+		close(fd);			\
+		fd = -1;			\
+	} 						\
+} while(0) 					
 
 /* public functions */
 
@@ -187,40 +196,50 @@ static gboolean adns_callback(
  */
 void adns_init(void)
 {
-	gint fd_query[2];
-	gint fd_reply[2];
+	gint fd_query[2] = {-1, -1};
+	gint fd_reply[2] = {-1, -1};
 	pid_t pid;
 
 	if (-1 == pipe(fd_query) || -1 == pipe(fd_reply)) {
 		g_warning("adns_init: pipe() failed: %s", g_strerror(errno));
-		return;
+		goto prefork_failure;
 	}
-	signal(SIGCHLD, SIG_IGN);
+	signal(SIGCHLD, SIG_IGN); /* prevent a zombie */
 	pid = fork();
 	if ((pid_t) -1 == pid) {
 		g_warning("adns_init: fork() failed: %s", g_strerror(errno));
-		close(fd_query[0]);
-		close(fd_query[1]);
-		close(fd_reply[0]);
-		close(fd_reply[1]);
-		return;
+		goto prefork_failure;
 	}
 	if (0 == pid) {
 		/* child process */
+		gint null;
 	
 		close(fd_query[1]);
 		close(fd_reply[0]);
+   		close(STDIN_FILENO);  /* Just in case */
+		null = open("/dev/null", O_RDONLY);
+		if (-1 == null)
+			g_error("adns_init: Could not open() /dev/null");
+		g_assert(STDIN_FILENO == null);
 		adns_helper(fd_query[0], fd_reply[1]); 
 		g_assert_not_reached();
-		exit(EXIT_SUCCESS);
+		_exit(EXIT_SUCCESS);
 	} 
 
 	/* parent process */
 	close(fd_query[0]);
 	close(fd_reply[1]);
 	adns_query_fd = fd_query[1];
-	inputevt_add(fd_reply[0], INPUT_EVENT_READ,
+	adns_event_id = inputevt_add(fd_reply[0], INPUT_EVENT_READ,
 		(inputevt_handler_t) &adns_callback, NULL);
+	return;
+
+prefork_failure:
+
+	CLOSE_IF_VALID(fd_query[0]);
+	CLOSE_IF_VALID(fd_query[1]);
+	CLOSE_IF_VALID(fd_reply[0]);
+	CLOSE_IF_VALID(fd_reply[1]);
 }
 
 /*
@@ -254,12 +273,16 @@ void adns_init(void)
 
 	g_strlcpy(query.hostname, hostname, sizeof(query.hostname));
 	
-	if (!adns_do_write(adns_query_fd, &query, sizeof(query))) {
-		g_warning("adns_resolve: adns_do_write failed using fall back");
-		adns_gethostbyname(&query, &reply);
-		g_assert(NULL != reply.user_callback);
-		reply.user_callback(reply.ip, reply.user_data);
+	if (-1 != adns_query_fd
+		&& adns_do_write(adns_query_fd, &query, sizeof(query))) {
+		return;
 	}
+
+	CLOSE_IF_VALID(adns_query_fd);
+	g_warning("adns_resolve: adns_do_write() failed using fall back");
+	adns_gethostbyname(&query, &reply);
+	g_assert(NULL != reply.user_callback);
+	reply.user_callback(reply.ip, reply.user_data);
 }
 
 /*
