@@ -1843,6 +1843,23 @@ static void node_process_handshake_header(
 	}
 
 	/*
+	 * Vendor-specific banning.
+	 *
+	 * This happens at step #2 of the handshaking process for incoming
+	 * connections, at at step #3 for outgoing ones.
+	 */
+
+	if (n->vendor) {
+		gchar *msg = ban_vendor(n->vendor);
+
+		if (msg != NULL) {
+			send_node_error(n->socket, 403, msg);
+			node_remove(n, msg);
+			return;
+		}
+	}
+
+	/*
 	 * If this is an outgoing connection, we're processing the remote
 	 * acknowledgment to our initial handshake.
 	 */
@@ -1887,20 +1904,6 @@ static void node_process_handshake_header(
 				"Gnet connections currently disabled");
 			node_remove(n, "Gnet connections disabled");
 			return;
-		}
-
-		/*
-		 * Vendor-specific banning.
-		 */
-
-		if (n->vendor) {
-			gchar *msg = ban_vendor(n->vendor);
-
-			if (msg != NULL) {
-				send_node_error(n->socket, 403, msg);
-				node_remove(n, msg);
-				return;
-			}
 		}
 
 		/*
