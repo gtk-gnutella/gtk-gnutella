@@ -44,7 +44,7 @@
 #include "gnutella.h"
 #include "hashtree.h"
 
-RCSID("$Id");
+RCSID("$Id$");
 
 static hashtree *recurse_find_free_node(hashtree *parent);
 static void		 recurse_build_hash_tree(hashtree *parent);
