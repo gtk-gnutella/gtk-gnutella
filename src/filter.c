@@ -1874,7 +1874,7 @@ static int filter_apply(filter_t *filter, struct record *rec)
                          (rec->results_set->status & ST_FIREWALL)) ||
                         ((r->u.flag.push == RULE_FLAG_UNSET) &&
                          !(rec->results_set->status & ST_FIREWALL)) ||
-                        (r->u.flag.busy == RULE_FLAG_IGNORE);
+                        (r->u.flag.push == RULE_FLAG_IGNORE);
                 
                     push_match = 
                         ((r->u.flag.stable == RULE_FLAG_SET) &&
