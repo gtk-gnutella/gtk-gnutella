@@ -1,5 +1,4 @@
 *.gmo
 Makefile
-gtk-gnutella.pot
 remove-potcdate.sed
 stamp-po

@@ -15,7 +15,6 @@ src/ui/gtk/drop.c
 src/ui/gtk/filter.c
 src/ui/gtk/filter_core.c
 src/ui/gtk/gnet_stats_common.c
-src/ui/gtk/gtkcolumnchooser.c
 src/ui/gtk/gtk-shared/callbacks.c
 src/ui/gtk/gtk1/callbacks.c
 src/ui/gtk/gtk1/downloads.c
@@ -42,6 +41,7 @@ src/ui/gtk/gtk2/search_stats.c
 src/ui/gtk/gtk2/support-glade.c
 src/ui/gtk/gtk2/upload_stats.c
 src/ui/gtk/gtk2/uploads.c
+src/ui/gtk/gtkcolumnchooser.c
 src/ui/gtk/hcache_common.c
 src/ui/gtk/main.c
 src/ui/gtk/misc.c
