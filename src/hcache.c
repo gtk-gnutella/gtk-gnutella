@@ -625,7 +625,7 @@ gboolean hcache_find_nearby(hcache_type_t type, guint32 *ip, guint16 *port)
  * hcache_get_caught
  *
  * Get host IP/port information from our caught host list, or from the
- * recent pont cache, in alternance.
+ * recent pong cache, in alternance.
  */
 void hcache_get_caught(hcache_type_t type, guint32 *ip, guint16 *port)
 {
