@@ -630,7 +630,7 @@ static gboolean max_ultra_hosts_cached_changed(property_t prop)
 
 static gboolean listen_port_changed(property_t prop)
 {
-	static guint32 old_listen_port = 0;
+	static guint32 old_listen_port = -1;
     guint32 listen_port;
 
     gnet_prop_get_guint32_val(prop, &listen_port);
@@ -642,8 +642,10 @@ static gboolean listen_port_changed(property_t prop)
 	if (listen_port == old_listen_port)
 		return FALSE;
 
+	if (old_listen_port != -1)
+		inet_firewalled();			/* Assume we're firewalled on port change */
+
 	old_listen_port = listen_port;
-	inet_firewalled();			/* Assume we're firewalled on port change */
 
     /*
      * Close old port.
