@@ -34,4 +34,4 @@ dist-hook:
 	fi
 
 build-glade:
-	glade --write-source gtk-gnutella.glade
+	cd src; $(MAKE) glade_files
