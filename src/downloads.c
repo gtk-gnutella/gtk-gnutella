@@ -461,7 +461,7 @@ void download_remove_all_regex(const gchar *regex)
 	g_return_if_fail(re);
 
 	err = regcomp(re, regex,
-		REG_NOSUB|(queue_regex_case ? 0 : REG_ICASE));
+		REG_EXTENDED|REG_NOSUB|(queue_regex_case ? 0 : REG_ICASE));
 
 	if (err) {
 		char buf[1000];

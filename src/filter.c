@@ -504,8 +504,8 @@ rule_t *filter_new_text_rule(gchar *match, gint type,
 		regex_t *re;
 
 		re = g_new0(regex_t, 1);
-		err = regcomp
-            (re, buf, REG_NOSUB|(r->u.text.case_sensitive ? 0 : REG_ICASE));
+		err = regcomp(re, buf,
+			REG_EXTENDED|REG_NOSUB|(r->u.text.case_sensitive ? 0 : REG_ICASE));
 
 		if (err) {
 			char buf[1000];

@@ -1284,7 +1284,7 @@ void on_entry_queue_regex_activate(GtkEditable *editable,
 
     err = regcomp(re, 
                   regex,
-                  REG_NOSUB|(queue_regex_case ? 0 : REG_ICASE));
+                  REG_EXTENDED|REG_NOSUB|(queue_regex_case ? 0 : REG_ICASE));
 
    	if (err) {
         char buf[1000];
