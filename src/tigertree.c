@@ -83,7 +83,7 @@ RCSID("$Id$");
 #   define USE_BIG_ENDIAN		1
 #elif G_BYTE_ORDER == G_LITTLE_ENDIAN
 #	define USE_LITTLE_ENDIAN	0
-#elif
+#else
 #error Byteorder not supported!
 #endif
 
