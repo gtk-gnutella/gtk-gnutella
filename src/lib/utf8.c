@@ -2193,6 +2193,49 @@ gint utf8_is_valid_string(const gchar *s, gint len)
 }
 
 /**
+ * Works exactly like strlcpy() but preserves a valid UTF-8 encoding, if
+ * the string has to be truncated.
+ *
+ * @param dst the target buffer to copy the string to.
+ * @param src the source buffer to copy the string from.
+ * @param dst_size the number of bytes ``dst'' can hold.
+ */
+size_t
+strlcpy_utf8(gchar *dst, const gchar *src, size_t dst_size)
+{
+	gchar *d = dst;
+	const gchar *s = src;
+
+	g_assert(NULL != dst);
+	g_assert(NULL != src);
+
+	if (dst_size--) {
+		size_t i = 0;
+
+		while (i < dst_size) {
+			gint clen;
+
+			if ('\0' == *s)
+				return i;
+			
+			clen = utf8_is_valid_char(s);
+			clen = MAX(1, clen);
+			if (dst_size - i <= clen)
+				break;
+
+			memmove(d, s, clen);
+			d += clen;
+			s += clen;
+			i += clen;
+		}
+		*d = '\0';
+	}
+ 	while (*s)
+		s++;
+	return s - src;
+}
+
+/**
  * @param uc the unicode character to encode.
  * @param buf the destination buffer. MUST BE at least 6 bytes long.
  * @returns 0 if the unicode character is invalid. Otherwise the
