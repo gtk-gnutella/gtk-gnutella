@@ -221,14 +221,12 @@ static gboolean dl_http_latency_changed(property_t prop);
 static gboolean update_byte_size_entry(property_t prop);
 static gboolean compute_connection_speed_changed(property_t prop);
 static gboolean update_toggle_search_autoselect(property_t prop);
-#ifdef USE_GTK1
 static gboolean update_toggle_node_show_uptime(property_t prop);
 static gboolean update_toggle_node_show_handshake(property_t prop);
 static gboolean update_toggle_node_show_detailed_info(property_t prop);
 static gboolean update_label_date(property_t prop);
 static gboolean update_label_yes_or_no(property_t prop);
 static gboolean update_toggle_node_watch_similar_queries(property_t prop);
-#endif
 
 /* FIXME:
  * move to separate file and autogenerate from high-level description.
@@ -1527,7 +1525,6 @@ static prop_map_t property_map[] = {
         "spinbutton_config_hops_random_factor",
         FREQ_UPDATES, 0
     },
-#ifdef USE_GTK1
     {
         get_main_window,
         PROP_SEARCH_QUERIES_FORWARD_SIZE,
@@ -1840,7 +1837,6 @@ static prop_map_t property_map[] = {
         "spinbutton_entry_removal_timeout",
         FREQ_UPDATES, 0
     },
-#endif	/* USE_GTK1 */
     {
         NULL,
         PROP_PROGRESSBAR_BWS_IN_AVG,
@@ -3277,7 +3273,6 @@ static gboolean update_toggle_search_autoselect(property_t prop)
 	return ret;
 }
 
-#ifdef USE_GTK1
 static gboolean update_node_column_visibility(property_t prop, gint col)
 {
 	GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
@@ -3396,26 +3391,21 @@ static gboolean update_toggle_node_watch_similar_queries(property_t prop)
 
 	return ret;
 }
-#endif
 
 static gboolean configured_peermode_changed(property_t prop)
 {
 	guint32 mode;
 	gboolean ret;
-#ifdef USE_GTK1
 	GtkWidget *frame =
 		lookup_widget(main_window, "frame_gnet_can_become_ultra");
-#endif
 
 	ret = update_multichoice(prop);
     gnet_prop_get_guint32_val(prop, &mode);
 
-#ifdef USE_GTK1
 	if (mode == NODE_P_AUTO)
 		gtk_widget_show(frame);
 	else
 		gtk_widget_hide(frame);
-#endif
 
 	return ret;
 }
@@ -4199,10 +4189,8 @@ static gboolean expert_mode_changed(property_t prop)
         "frame_expert_node_info",
         "notebook_expert_stats_hosts",
         "frame_expert_rx_buffers",
-#ifdef USE_GTK1
         "frame_expert_gnet_message_size",
         "frame_expert_search_queue",
-#endif
         NULL
     };
     gint n;
