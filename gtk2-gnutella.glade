@@ -2278,7 +2278,7 @@ Grace time remaining:</property>
 	    <widget class="GtkTable" id="table70">
 	      <property name="visible">True</property>
 	      <property name="n_rows">1</property>
-	      <property name="n_columns">7</property>
+	      <property name="n_columns">4</property>
 	      <property name="homogeneous">False</property>
 	      <property name="row_spacing">0</property>
 	      <property name="column_spacing">4</property>
@@ -2580,7 +2580,7 @@ Grace time remaining:</property>
 			  <property name="justify">GTK_JUSTIFY_LEFT</property>
 			  <property name="wrap">False</property>
 			  <property name="selectable">False</property>
-			  <property name="xalign">0</property>
+			  <property name="xalign">1</property>
 			  <property name="yalign">0.5</property>
 			  <property name="xpad">0</property>
 			  <property name="ypad">0</property>
@@ -2590,7 +2590,6 @@ Grace time remaining:</property>
 			  <property name="right_attach">1</property>
 			  <property name="top_attach">0</property>
 			  <property name="bottom_attach">1</property>
-			  <property name="x_options">fill</property>
 			</packing>
 		      </child>
 
@@ -2613,6 +2612,7 @@ Grace time remaining:</property>
 			  <property name="right_attach">2</property>
 			  <property name="top_attach">0</property>
 			  <property name="bottom_attach">1</property>
+			  <property name="x_options">fill</property>
 			</packing>
 		      </child>
 		    </widget>
@@ -2633,6 +2633,72 @@ Grace time remaining:</property>
 		  <property name="visible">True</property>
 		  <property name="homogeneous">False</property>
 		  <property name="spacing">4</property>
+
+		  <child>
+		    <widget class="GtkEventBox" id="eventbox_image_fd_shortage">
+		      <property name="visible">True</property>
+
+		      <child>
+			<widget class="GtkImage" id="image_fd_shortage">
+			  <property name="visible">True</property>
+			  <property name="pixbuf">clanbomber_yellow.xpm</property>
+			  <property name="xalign">0.5</property>
+			  <property name="yalign">0.5</property>
+			  <property name="xpad">0</property>
+			  <property name="ypad">0</property>
+			</widget>
+		      </child>
+		    </widget>
+		    <packing>
+		      <property name="padding">0</property>
+		      <property name="expand">True</property>
+		      <property name="fill">True</property>
+		    </packing>
+		  </child>
+
+		  <child>
+		    <widget class="GtkEventBox" id="eventbox_image_fd_runout">
+		      <property name="visible">True</property>
+
+		      <child>
+			<widget class="GtkImage" id="image_fd_runout">
+			  <property name="visible">True</property>
+			  <property name="pixbuf">clanbomber_red.xpm</property>
+			  <property name="xalign">0.5</property>
+			  <property name="yalign">0.5</property>
+			  <property name="xpad">0</property>
+			  <property name="ypad">0</property>
+			</widget>
+		      </child>
+		    </widget>
+		    <packing>
+		      <property name="padding">0</property>
+		      <property name="expand">True</property>
+		      <property name="fill">True</property>
+		    </packing>
+		  </child>
+
+		  <child>
+		    <widget class="GtkEventBox" id="eventbox_image_ancient">
+		      <property name="visible">True</property>
+
+		      <child>
+			<widget class="GtkImage" id="image_ancient">
+			  <property name="visible">True</property>
+			  <property name="pixbuf">stock_form-time-field-16.xpm</property>
+			  <property name="xalign">0.5</property>
+			  <property name="yalign">0.5</property>
+			  <property name="xpad">0</property>
+			  <property name="ypad">0</property>
+			</widget>
+		      </child>
+		    </widget>
+		    <packing>
+		      <property name="padding">0</property>
+		      <property name="expand">True</property>
+		      <property name="fill">True</property>
+		    </packing>
+		  </child>
 
 		  <child>
 		    <widget class="GtkEventBox" id="eventbox_image_sha">
@@ -2870,8 +2936,8 @@ Grace time remaining:</property>
 		  </child>
 		</widget>
 		<packing>
-		  <property name="left_attach">5</property>
-		  <property name="right_attach">6</property>
+		  <property name="left_attach">2</property>
+		  <property name="right_attach">3</property>
 		  <property name="top_attach">0</property>
 		  <property name="bottom_attach">1</property>
 		  <property name="x_options">fill</property>
@@ -2893,87 +2959,12 @@ Grace time remaining:</property>
 		  <property name="ypad">0</property>
 		</widget>
 		<packing>
-		  <property name="left_attach">6</property>
-		  <property name="right_attach">7</property>
-		  <property name="top_attach">0</property>
-		  <property name="bottom_attach">1</property>
-		  <property name="x_options">fill</property>
-		  <property name="y_options"></property>
-		</packing>
-	      </child>
-
-	      <child>
-		<widget class="GtkEventBox" id="eventbox_image_ancient">
-		  <property name="visible">True</property>
-
-		  <child>
-		    <widget class="GtkImage" id="image_ancient">
-		      <property name="visible">True</property>
-		      <property name="pixbuf">stock_form-time-field-16.xpm</property>
-		      <property name="xalign">0.5</property>
-		      <property name="yalign">0.5</property>
-		      <property name="xpad">0</property>
-		      <property name="ypad">0</property>
-		    </widget>
-		  </child>
-		</widget>
-		<packing>
-		  <property name="left_attach">4</property>
-		  <property name="right_attach">5</property>
-		  <property name="top_attach">0</property>
-		  <property name="bottom_attach">1</property>
-		  <property name="x_options">fill</property>
-		  <property name="y_options">fill</property>
-		</packing>
-	      </child>
-
-	      <child>
-		<widget class="GtkEventBox" id="eventbox_image_fd_shortage">
-		  <property name="visible">True</property>
-
-		  <child>
-		    <widget class="GtkImage" id="image_fd_shortage">
-		      <property name="visible">True</property>
-		      <property name="pixbuf">clanbomber_yellow.xpm</property>
-		      <property name="xalign">0.5</property>
-		      <property name="yalign">0.5</property>
-		      <property name="xpad">0</property>
-		      <property name="ypad">0</property>
-		    </widget>
-		  </child>
-		</widget>
-		<packing>
-		  <property name="left_attach">2</property>
-		  <property name="right_attach">3</property>
-		  <property name="top_attach">0</property>
-		  <property name="bottom_attach">1</property>
-		  <property name="x_options">fill</property>
-		  <property name="y_options">fill</property>
-		</packing>
-	      </child>
-
-	      <child>
-		<widget class="GtkEventBox" id="eventbox_image_fd_runout">
-		  <property name="visible">True</property>
-
-		  <child>
-		    <widget class="GtkImage" id="image_fd_runout">
-		      <property name="visible">True</property>
-		      <property name="pixbuf">clanbomber_red.xpm</property>
-		      <property name="xalign">0.5</property>
-		      <property name="yalign">0.5</property>
-		      <property name="xpad">0</property>
-		      <property name="ypad">0</property>
-		    </widget>
-		  </child>
-		</widget>
-		<packing>
 		  <property name="left_attach">3</property>
 		  <property name="right_attach">4</property>
 		  <property name="top_attach">0</property>
 		  <property name="bottom_attach">1</property>
 		  <property name="x_options">fill</property>
-		  <property name="y_options">fill</property>
+		  <property name="y_options"></property>
 		</packing>
 	      </child>
 	    </widget>
@@ -2997,8 +2988,32 @@ Grace time remaining:</property>
 	    <widget class="GtkToolbar" id="toolbar_main">
 	      <property name="visible">True</property>
 	      <property name="orientation">GTK_ORIENTATION_HORIZONTAL</property>
-	      <property name="toolbar_style">GTK_TOOLBAR_BOTH_HORIZ</property>
+	      <property name="toolbar_style">GTK_TOOLBAR_BOTH</property>
 	      <property name="tooltips">True</property>
+
+	      <child>
+		<widget class="button" id="button_quit">
+		  <property name="visible">True</property>
+		  <property name="label" translatable="yes">_Quit</property>
+		  <property name="use_underline">True</property>
+		  <property name="stock_pixmap">gtk-quit</property>
+		  <signal name="clicked" handler="on_button_quit_clicked" last_modification_time="Fri, 16 Apr 2004 22:40:47 GMT"/>
+		</widget>
+	      </child>
+
+	      <child>
+		<widget class="button" id="buttonxxx">
+		  <property name="visible">True</property>
+		  <property name="label" translatable="yes">Filters</property>
+		  <property name="use_underline">True</property>
+		  <property name="icon">filter.xpm</property>
+		  <property name="new_group">True</property>
+		  <signal name="clicked" handler="on_button_search_filter_clicked" last_modification_time="Fri, 16 Apr 2004 22:40:55 GMT"/>
+		</widget>
+		<packing>
+		  <property name="new_group">True</property>
+		</packing>
+	      </child>
 	    </widget>
 	  </child>
 	</widget>
@@ -5038,8 +5053,10 @@ Grace time remaining:</property>
 		      </child>
 
 		      <child>
-			<widget class="GtkViewport" id="viewport103">
+			<widget class="GtkFrame" id="frame110">
 			  <property name="visible">True</property>
+			  <property name="label_xalign">0</property>
+			  <property name="label_yalign">0.5</property>
 			  <property name="shadow_type">GTK_SHADOW_IN</property>
 
 			  <child>
@@ -5053,7 +5070,7 @@ Grace time remaining:</property>
 			      <property name="selectable">False</property>
 			      <property name="xalign">0.5</property>
 			      <property name="yalign">0.5</property>
-			      <property name="xpad">4</property>
+			      <property name="xpad">5</property>
 			      <property name="ypad">0</property>
 			    </widget>
 			  </child>
@@ -5063,7 +5080,6 @@ Grace time remaining:</property>
 			  <property name="right_attach">4</property>
 			  <property name="top_attach">2</property>
 			  <property name="bottom_attach">3</property>
-			  <property name="x_padding">4</property>
 			  <property name="x_options">fill</property>
 			  <property name="y_options">fill</property>
 			</packing>
@@ -5196,14 +5212,16 @@ Grace time remaining:</property>
 		      </child>
 
 		      <child>
-			<widget class="GtkViewport" id="viewport102">
+			<widget class="GtkFrame" id="frame109">
 			  <property name="visible">True</property>
+			  <property name="label_xalign">0</property>
+			  <property name="label_yalign">0.5</property>
 			  <property name="shadow_type">GTK_SHADOW_IN</property>
 
 			  <child>
 			    <widget class="GtkLabel" id="label_clock_skew">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">       </property>
+			      <property name="label" translatable="yes">[clock skew]</property>
 			      <property name="use_underline">False</property>
 			      <property name="use_markup">False</property>
 			      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -5221,7 +5239,6 @@ Grace time remaining:</property>
 			  <property name="right_attach">4</property>
 			  <property name="top_attach">0</property>
 			  <property name="bottom_attach">1</property>
-			  <property name="x_padding">4</property>
 			  <property name="x_options">fill</property>
 			  <property name="y_options">fill</property>
 			</packing>
@@ -18656,64 +18673,50 @@ before kicking</property>
 
 	  <child>
 	    <widget class="GtkHBox" id="hbox152">
+	      <property name="border_width">2</property>
 	      <property name="visible">True</property>
 	      <property name="homogeneous">False</property>
 	      <property name="spacing">4</property>
 
 	      <child>
+		<widget class="GtkLabel" id="label832">
+		  <property name="visible">True</property>
+		  <property name="label" translatable="yes">Current search</property>
+		  <property name="use_underline">False</property>
+		  <property name="use_markup">False</property>
+		  <property name="justify">GTK_JUSTIFY_LEFT</property>
+		  <property name="wrap">False</property>
+		  <property name="selectable">False</property>
+		  <property name="xalign">0.5</property>
+		  <property name="yalign">0.5</property>
+		  <property name="xpad">0</property>
+		  <property name="ypad">0</property>
+		</widget>
+		<packing>
+		  <property name="padding">0</property>
+		  <property name="expand">False</property>
+		  <property name="fill">False</property>
+		</packing>
+	      </child>
+
+	      <child>
 		<widget class="GtkViewport" id="viewport104">
 		  <property name="visible">True</property>
-		  <property name="tooltip" translatable="yes">To start a new search, use the sidebar on the left.</property>
-		  <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+		  <property name="shadow_type">GTK_SHADOW_IN</property>
 
 		  <child>
-		    <widget class="GtkHBox" id="hbox264">
+		    <widget class="GtkLabel" id="label_search_current_search">
 		      <property name="visible">True</property>
-		      <property name="homogeneous">False</property>
-		      <property name="spacing">0</property>
-
-		      <child>
-			<widget class="GtkLabel" id="label832">
-			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">Current search:</property>
-			  <property name="use_underline">False</property>
-			  <property name="use_markup">False</property>
-			  <property name="justify">GTK_JUSTIFY_LEFT</property>
-			  <property name="wrap">False</property>
-			  <property name="selectable">False</property>
-			  <property name="xalign">0.5</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">5</property>
-			  <property name="ypad">0</property>
-			</widget>
-			<packing>
-			  <property name="padding">0</property>
-			  <property name="expand">False</property>
-			  <property name="fill">False</property>
-			</packing>
-		      </child>
-
-		      <child>
-			<widget class="GtkLabel" id="label_search_current_search">
-			  <property name="visible">True</property>
-			  <property name="can_focus">True</property>
-			  <property name="label" translatable="yes"></property>
-			  <property name="use_underline">False</property>
-			  <property name="use_markup">False</property>
-			  <property name="justify">GTK_JUSTIFY_LEFT</property>
-			  <property name="wrap">False</property>
-			  <property name="selectable">True</property>
-			  <property name="xalign">0</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">4</property>
-			  <property name="ypad">0</property>
-			</widget>
-			<packing>
-			  <property name="padding">0</property>
-			  <property name="expand">True</property>
-			  <property name="fill">True</property>
-			</packing>
-		      </child>
+		      <property name="label" translatable="yes"></property>
+		      <property name="use_underline">False</property>
+		      <property name="use_markup">False</property>
+		      <property name="justify">GTK_JUSTIFY_LEFT</property>
+		      <property name="wrap">False</property>
+		      <property name="selectable">False</property>
+		      <property name="xalign">0</property>
+		      <property name="yalign">0.5</property>
+		      <property name="xpad">5</property>
+		      <property name="ypad">0</property>
 		    </widget>
 		  </child>
 		</widget>
@@ -18773,7 +18776,7 @@ before kicking</property>
 			      <property name="wrap">False</property>
 			      <property name="selectable">False</property>
 			      <property name="xalign">0.5</property>
-			      <property name="yalign">0</property>
+			      <property name="yalign">0.5</property>
 			      <property name="xpad">0</property>
 			      <property name="ypad">0</property>
 			    </widget>

@@ -1552,14 +1552,14 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label493 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label494 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -1754,6 +1754,12 @@ create_main_window (void)
   GtkWidget *label695;
   GtkWidget *label_statusbar_uptime;
   GtkWidget *hbox211;
+  GtkWidget *eventbox_image_fd_shortage;
+  GtkWidget *image_fd_shortage;
+  GtkWidget *eventbox_image_fd_runout;
+  GtkWidget *image_fd_runout;
+  GtkWidget *eventbox_image_ancient;
+  GtkWidget *image_ancient;
   GtkWidget *eventbox_image_sha;
   GtkWidget *image_sha;
   GtkWidget *eventbox_image_shav;
@@ -1775,14 +1781,11 @@ create_main_window (void)
   GtkWidget *eventbox_image_legacy;
   GtkWidget *image_legacy;
   GtkWidget *label697;
-  GtkWidget *eventbox_image_ancient;
-  GtkWidget *image_ancient;
-  GtkWidget *eventbox_image_fd_shortage;
-  GtkWidget *image_fd_shortage;
-  GtkWidget *eventbox_image_fd_runout;
-  GtkWidget *image_fd_runout;
   GtkWidget *hb_toolbar;
   GtkWidget *toolbar_main;
+  GtkWidget *tmp_toolbar_icon;
+  GtkWidget *button_quit;
+  GtkWidget *buttonxxx;
   GtkWidget *hpaned_main;
   GtkWidget *vpaned_sidebar;
   GtkWidget *scrolledwindow58;
@@ -1877,7 +1880,7 @@ create_main_window (void)
   gtk_widget_show (handlebox1);
   gtk_box_pack_start (GTK_BOX (vbox12), handlebox1, FALSE, FALSE, 0);
 
-  table70 = gtk_table_new (1, 7, FALSE);
+  table70 = gtk_table_new (1, 4, FALSE);
   gtk_widget_set_name (table70, "table70");
   gtk_widget_show (table70);
   gtk_container_add (GTK_CONTAINER (handlebox1), table70);
@@ -2066,25 +2069,55 @@ create_main_window (void)
   gtk_widget_set_name (label695, "label695");
   gtk_widget_show (label695);
   gtk_table_attach (GTK_TABLE (table71), label695, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label695), 0, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label695), 1, 0.5);
 
   label_statusbar_uptime = gtk_label_new (_("[uptime]"));
   gtk_widget_set_name (label_statusbar_uptime, "label_statusbar_uptime");
   gtk_widget_show (label_statusbar_uptime);
   gtk_table_attach (GTK_TABLE (table71), label_statusbar_uptime, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label_statusbar_uptime), 0, 0.5);
 
   hbox211 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox211, "hbox211");
   gtk_widget_show (hbox211);
-  gtk_table_attach (GTK_TABLE (table70), hbox211, 5, 6, 0, 1,
+  gtk_table_attach (GTK_TABLE (table70), hbox211, 2, 3, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
   gtk_container_set_border_width (GTK_CONTAINER (hbox211), 2);
+
+  eventbox_image_fd_shortage = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_fd_shortage, "eventbox_image_fd_shortage");
+  gtk_widget_show (eventbox_image_fd_shortage);
+  gtk_box_pack_start (GTK_BOX (hbox211), eventbox_image_fd_shortage, TRUE, TRUE, 0);
+
+  image_fd_shortage = create_pixmap (main_window, "clanbomber_yellow.xpm");
+  gtk_widget_set_name (image_fd_shortage, "image_fd_shortage");
+  gtk_widget_show (image_fd_shortage);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_fd_shortage), image_fd_shortage);
+
+  eventbox_image_fd_runout = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_fd_runout, "eventbox_image_fd_runout");
+  gtk_widget_show (eventbox_image_fd_runout);
+  gtk_box_pack_start (GTK_BOX (hbox211), eventbox_image_fd_runout, TRUE, TRUE, 0);
+
+  image_fd_runout = create_pixmap (main_window, "clanbomber_red.xpm");
+  gtk_widget_set_name (image_fd_runout, "image_fd_runout");
+  gtk_widget_show (image_fd_runout);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_fd_runout), image_fd_runout);
+
+  eventbox_image_ancient = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_ancient, "eventbox_image_ancient");
+  gtk_widget_show (eventbox_image_ancient);
+  gtk_box_pack_start (GTK_BOX (hbox211), eventbox_image_ancient, TRUE, TRUE, 0);
+
+  image_ancient = create_pixmap (main_window, "stock_form-time-field-16.xpm");
+  gtk_widget_set_name (image_ancient, "image_ancient");
+  gtk_widget_show (image_ancient);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_ancient), image_ancient);
 
   eventbox_image_sha = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_sha, "eventbox_image_sha");
@@ -2203,46 +2236,10 @@ create_main_window (void)
   label697 = gtk_label_new (_(" "));
   gtk_widget_set_name (label697, "label697");
   gtk_widget_show (label697);
-  gtk_table_attach (GTK_TABLE (table70), label697, 6, 7, 0, 1,
+  gtk_table_attach (GTK_TABLE (table70), label697, 3, 4, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label697), 0, 0.5);
-
-  eventbox_image_ancient = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox_image_ancient, "eventbox_image_ancient");
-  gtk_widget_show (eventbox_image_ancient);
-  gtk_table_attach (GTK_TABLE (table70), eventbox_image_ancient, 4, 5, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
-
-  image_ancient = create_pixmap (main_window, "stock_form-time-field-16.xpm");
-  gtk_widget_set_name (image_ancient, "image_ancient");
-  gtk_widget_show (image_ancient);
-  gtk_container_add (GTK_CONTAINER (eventbox_image_ancient), image_ancient);
-
-  eventbox_image_fd_shortage = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox_image_fd_shortage, "eventbox_image_fd_shortage");
-  gtk_widget_show (eventbox_image_fd_shortage);
-  gtk_table_attach (GTK_TABLE (table70), eventbox_image_fd_shortage, 2, 3, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
-
-  image_fd_shortage = create_pixmap (main_window, "clanbomber_yellow.xpm");
-  gtk_widget_set_name (image_fd_shortage, "image_fd_shortage");
-  gtk_widget_show (image_fd_shortage);
-  gtk_container_add (GTK_CONTAINER (eventbox_image_fd_shortage), image_fd_shortage);
-
-  eventbox_image_fd_runout = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox_image_fd_runout, "eventbox_image_fd_runout");
-  gtk_widget_show (eventbox_image_fd_runout);
-  gtk_table_attach (GTK_TABLE (table70), eventbox_image_fd_runout, 3, 4, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
-
-  image_fd_runout = create_pixmap (main_window, "clanbomber_red.xpm");
-  gtk_widget_set_name (image_fd_runout, "image_fd_runout");
-  gtk_widget_show (image_fd_runout);
-  gtk_container_add (GTK_CONTAINER (eventbox_image_fd_runout), image_fd_runout);
 
   hb_toolbar = gtk_handle_box_new ();
   gtk_widget_set_name (hb_toolbar, "hb_toolbar");
@@ -2253,7 +2250,31 @@ create_main_window (void)
   gtk_widget_set_name (toolbar_main, "toolbar_main");
   gtk_widget_show (toolbar_main);
   gtk_container_add (GTK_CONTAINER (hb_toolbar), toolbar_main);
-  gtk_toolbar_set_style (GTK_TOOLBAR (toolbar_main), GTK_TOOLBAR_BOTH_HORIZ);
+  gtk_toolbar_set_style (GTK_TOOLBAR (toolbar_main), GTK_TOOLBAR_BOTH);
+
+  tmp_toolbar_icon = gtk_image_new_from_stock ("gtk-quit", gtk_toolbar_get_icon_size (GTK_TOOLBAR (toolbar_main)));
+  button_quit = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar_main),
+                                GTK_TOOLBAR_CHILD_BUTTON,
+                                NULL,
+                                _("_Quit"),
+                                NULL, NULL,
+                                tmp_toolbar_icon, NULL, NULL);
+  gtk_label_set_use_underline (GTK_LABEL (((GtkToolbarChild*) (g_list_last (GTK_TOOLBAR (toolbar_main)->children)->data))->label), TRUE);
+  gtk_widget_set_name (button_quit, "button_quit");
+  gtk_widget_show (button_quit);
+
+  gtk_toolbar_append_space (GTK_TOOLBAR (toolbar_main));
+
+  tmp_toolbar_icon = create_pixmap (main_window, "filter.xpm");
+  buttonxxx = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar_main),
+                                GTK_TOOLBAR_CHILD_BUTTON,
+                                NULL,
+                                _("Filters"),
+                                NULL, NULL,
+                                tmp_toolbar_icon, NULL, NULL);
+  gtk_label_set_use_underline (GTK_LABEL (((GtkToolbarChild*) (g_list_last (GTK_TOOLBAR (toolbar_main)->children)->data))->label), TRUE);
+  gtk_widget_set_name (buttonxxx, "buttonxxx");
+  gtk_widget_show (buttonxxx);
 
   hpaned_main = gtk_hpaned_new ();
   gtk_widget_set_name (hpaned_main, "hpaned_main");
@@ -2689,6 +2710,12 @@ create_main_window (void)
   g_signal_connect ((gpointer) menu_about, "activate",
                     G_CALLBACK (on_menu_about_activate),
                     NULL);
+  g_signal_connect ((gpointer) button_quit, "clicked",
+                    G_CALLBACK (on_button_quit_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) buttonxxx, "clicked",
+                    G_CALLBACK (on_button_search_filter_clicked),
+                    NULL);
   g_signal_connect ((gpointer) entry_search, "changed",
                     G_CALLBACK (on_entry_search_changed),
                     NULL);
@@ -2763,6 +2790,12 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label695, "label695");
   GLADE_HOOKUP_OBJECT (main_window, label_statusbar_uptime, "label_statusbar_uptime");
   GLADE_HOOKUP_OBJECT (main_window, hbox211, "hbox211");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_fd_shortage, "eventbox_image_fd_shortage");
+  GLADE_HOOKUP_OBJECT (main_window, image_fd_shortage, "image_fd_shortage");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_fd_runout, "eventbox_image_fd_runout");
+  GLADE_HOOKUP_OBJECT (main_window, image_fd_runout, "image_fd_runout");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_ancient, "eventbox_image_ancient");
+  GLADE_HOOKUP_OBJECT (main_window, image_ancient, "image_ancient");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_sha, "eventbox_image_sha");
   GLADE_HOOKUP_OBJECT (main_window, image_sha, "image_sha");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_shav, "eventbox_image_shav");
@@ -2784,14 +2817,10 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_legacy, "eventbox_image_legacy");
   GLADE_HOOKUP_OBJECT (main_window, image_legacy, "image_legacy");
   GLADE_HOOKUP_OBJECT (main_window, label697, "label697");
-  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_ancient, "eventbox_image_ancient");
-  GLADE_HOOKUP_OBJECT (main_window, image_ancient, "image_ancient");
-  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_fd_shortage, "eventbox_image_fd_shortage");
-  GLADE_HOOKUP_OBJECT (main_window, image_fd_shortage, "image_fd_shortage");
-  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_fd_runout, "eventbox_image_fd_runout");
-  GLADE_HOOKUP_OBJECT (main_window, image_fd_runout, "image_fd_runout");
   GLADE_HOOKUP_OBJECT (main_window, hb_toolbar, "hb_toolbar");
   GLADE_HOOKUP_OBJECT (main_window, toolbar_main, "toolbar_main");
+  GLADE_HOOKUP_OBJECT (main_window, button_quit, "button_quit");
+  GLADE_HOOKUP_OBJECT (main_window, buttonxxx, "buttonxxx");
   GLADE_HOOKUP_OBJECT (main_window, hpaned_main, "hpaned_main");
   GLADE_HOOKUP_OBJECT (main_window, vpaned_sidebar, "vpaned_sidebar");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow58, "scrolledwindow58");
@@ -3008,7 +3037,7 @@ create_main_window_config_net_tab (void)
   GtkObject *spinbutton_config_ban_max_fds_adj;
   GtkWidget *spinbutton_config_ban_max_fds;
   GtkWidget *label835;
-  GtkWidget *viewport103;
+  GtkWidget *frame110;
   GtkWidget *label_banned_count;
   GtkWidget *label514;
   GtkWidget *frame83;
@@ -3017,7 +3046,7 @@ create_main_window_config_net_tab (void)
   GtkWidget *label700;
   GtkWidget *label701;
   GtkWidget *checkbutton_host_runs_ntp;
-  GtkWidget *viewport102;
+  GtkWidget *frame109;
   GtkWidget *label_clock_skew;
   GtkWidget *label698;
   GtkWidget *frame99;
@@ -3400,18 +3429,19 @@ create_main_window_config_net_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label835), 0, 0.5);
 
-  viewport103 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport103, "viewport103");
-  gtk_widget_show (viewport103);
-  gtk_table_attach (GTK_TABLE (table43), viewport103, 3, 4, 2, 3,
+  frame110 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame110, "frame110");
+  gtk_widget_show (frame110);
+  gtk_table_attach (GTK_TABLE (table43), frame110, 3, 4, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 4, 0);
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame110), GTK_SHADOW_IN);
 
   label_banned_count = gtk_label_new (_("[banned count]"));
   gtk_widget_set_name (label_banned_count, "label_banned_count");
   gtk_widget_show (label_banned_count);
-  gtk_container_add (GTK_CONTAINER (viewport103), label_banned_count);
-  gtk_misc_set_padding (GTK_MISC (label_banned_count), 4, 0);
+  gtk_container_add (GTK_CONTAINER (frame110), label_banned_count);
+  gtk_misc_set_padding (GTK_MISC (label_banned_count), 5, 0);
 
   label514 = gtk_label_new (_("Banning"));
   gtk_widget_set_name (label514, "label514");
@@ -3458,17 +3488,18 @@ create_main_window_config_net_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
 
-  viewport102 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport102, "viewport102");
-  gtk_widget_show (viewport102);
-  gtk_table_attach (GTK_TABLE (table72), viewport102, 3, 4, 0, 1,
+  frame109 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame109, "frame109");
+  gtk_widget_show (frame109);
+  gtk_table_attach (GTK_TABLE (table72), frame109, 3, 4, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 4, 0);
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame109), GTK_SHADOW_IN);
 
-  label_clock_skew = gtk_label_new (_("       "));
+  label_clock_skew = gtk_label_new (_("[clock skew]"));
   gtk_widget_set_name (label_clock_skew, "label_clock_skew");
   gtk_widget_show (label_clock_skew);
-  gtk_container_add (GTK_CONTAINER (viewport102), label_clock_skew);
+  gtk_container_add (GTK_CONTAINER (frame109), label_clock_skew);
   gtk_misc_set_alignment (GTK_MISC (label_clock_skew), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_clock_skew), 5, 0);
 
@@ -3672,7 +3703,7 @@ create_main_window_config_net_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, spinbutton_config_ban_ratio_fds, "spinbutton_config_ban_ratio_fds");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, spinbutton_config_ban_max_fds, "spinbutton_config_ban_max_fds");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, label835, "label835");
-  GLADE_HOOKUP_OBJECT (main_window_config_net_tab, viewport103, "viewport103");
+  GLADE_HOOKUP_OBJECT (main_window_config_net_tab, frame110, "frame110");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, label_banned_count, "label_banned_count");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, label514, "label514");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, frame83, "frame83");
@@ -3681,7 +3712,7 @@ create_main_window_config_net_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, label700, "label700");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, label701, "label701");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, checkbutton_host_runs_ntp, "checkbutton_host_runs_ntp");
-  GLADE_HOOKUP_OBJECT (main_window_config_net_tab, viewport102, "viewport102");
+  GLADE_HOOKUP_OBJECT (main_window_config_net_tab, frame109, "frame109");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, label_clock_skew, "label_clock_skew");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, label698, "label698");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, frame99, "frame99");
@@ -10516,9 +10547,8 @@ create_main_window_search_tab (void)
   GtkWidget *frame102;
   GtkWidget *vbox79;
   GtkWidget *hbox152;
-  GtkWidget *viewport104;
-  GtkWidget *hbox264;
   GtkWidget *label832;
+  GtkWidget *viewport104;
   GtkWidget *label_search_current_search;
   GtkWidget *button_search_close;
   GtkWidget *alignment76;
@@ -10643,33 +10673,24 @@ create_main_window_search_tab (void)
   gtk_widget_set_name (hbox152, "hbox152");
   gtk_widget_show (hbox152);
   gtk_box_pack_start (GTK_BOX (vbox79), hbox152, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (hbox152), 2);
+
+  label832 = gtk_label_new (_("Current search"));
+  gtk_widget_set_name (label832, "label832");
+  gtk_widget_show (label832);
+  gtk_box_pack_start (GTK_BOX (hbox152), label832, FALSE, FALSE, 0);
 
   viewport104 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport104, "viewport104");
   gtk_widget_show (viewport104);
   gtk_box_pack_start (GTK_BOX (hbox152), viewport104, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, viewport104, _("To start a new search, use the sidebar on the left."), NULL);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport104), GTK_SHADOW_ETCHED_IN);
-
-  hbox264 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox264, "hbox264");
-  gtk_widget_show (hbox264);
-  gtk_container_add (GTK_CONTAINER (viewport104), hbox264);
-
-  label832 = gtk_label_new (_("Current search:"));
-  gtk_widget_set_name (label832, "label832");
-  gtk_widget_show (label832);
-  gtk_box_pack_start (GTK_BOX (hbox264), label832, FALSE, FALSE, 0);
-  gtk_misc_set_padding (GTK_MISC (label832), 5, 0);
 
   label_search_current_search = gtk_label_new ("");
   gtk_widget_set_name (label_search_current_search, "label_search_current_search");
   gtk_widget_show (label_search_current_search);
-  gtk_box_pack_start (GTK_BOX (hbox264), label_search_current_search, TRUE, TRUE, 0);
-  GTK_WIDGET_SET_FLAGS (label_search_current_search, GTK_CAN_FOCUS);
-  gtk_label_set_selectable (GTK_LABEL (label_search_current_search), TRUE);
+  gtk_container_add (GTK_CONTAINER (viewport104), label_search_current_search);
   gtk_misc_set_alignment (GTK_MISC (label_search_current_search), 0, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label_search_current_search), 4, 0);
+  gtk_misc_set_padding (GTK_MISC (label_search_current_search), 5, 0);
 
   button_search_close = gtk_button_new ();
   gtk_widget_set_name (button_search_close, "button_search_close");
@@ -10696,7 +10717,6 @@ create_main_window_search_tab (void)
   gtk_widget_set_name (label670, "label670");
   gtk_widget_show (label670);
   gtk_box_pack_start (GTK_BOX (hbox214), label670, FALSE, FALSE, 0);
-  gtk_misc_set_alignment (GTK_MISC (label670), 0.5, 0);
 
   vpaned_results = gtk_vpaned_new ();
   gtk_widget_set_name (vpaned_results, "vpaned_results");
@@ -11284,9 +11304,8 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, frame102, "frame102");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, vbox79, "vbox79");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox152, "hbox152");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport104, "viewport104");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox264, "hbox264");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label832, "label832");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport104, "viewport104");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label_search_current_search, "label_search_current_search");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, button_search_close, "button_search_close");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, alignment76, "alignment76");
