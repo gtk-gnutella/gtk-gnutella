@@ -1379,7 +1379,8 @@ end:
  *
  * Called by prop_load_from_file to actually set the properties.
  */
-static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
+static void
+load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 {
 	prop_def_t *p = &PROP(ps,prop);
 	prop_set_stub_t *stub;
@@ -1388,6 +1389,11 @@ static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 		guint32		uint32[100];
 		guint64		uint64[100];
 	} vecbuf;
+
+	if (!p->save) {
+		g_warning("Refusing to load run-time only property \"%s\"", p->name);
+		return;
+	}
 
 	stub = ps->get_stub();
 
