@@ -1,5 +1,43 @@
 # since last version
 
+- (2004.01.02 - RAM)
+ * Fixed conflict ratio computation when they don't share anything.
+ * New properties to control ancient versions.
+ * Warn them before the version becomes too old, and refuse to run without
+   user manual action when we become old, after some grace period.
+ * A series of patches from Emile le Vivre:
+   [GTK1] Adds grouped downloads
+   [GTK1] Adds collapse/expand buttons to downloads tab
+   [GTK1] Fixes errors in autoselect
+   [GTK1] Fixes memory leak
+ * Offer ability to backout file by some amount on resuming mismatch
+   [From Hans de Graaff].
+ * Changed definition of char_map_t to be guint8 instead of (signed) char.
+ * Count and display in gnet stats pane the amount proxified push messages
+   we relayed or broadcasted.
+ * Fixed hole in flow-control updating after message write.
+
+- (2004.01.01 - RAM)
+ * Halved requirements for gnet connections: with dynamic querying, there is
+   less traffic between peers (GTKG does not support it yet though).
+ * Raised size of gnutella handshake reply and that of generated crawler
+   info to accomodate the larger number of leaves we can now support.
+ * [GTK1] Added treeview in search results, in line with GTK2's GUI [From
+   Emile le Vivre].
+ * Don't remove gtk-gnutella.pot in "realclean" since we distribute it.
+ * When looking at memory requirements for becoming an ultranode, take into
+   account flow-control via the maximum message queue size.
+ * Fixed assertion failures, and cleaned-up style issues, unused variables.
+ * Update gnet connection counts in gnet bandwidth progressbar immediately
+   when user changes some maximum, in ultra mode.
+ * Factorized drop message logging in gnet_stats.c.
+ * A series of patches from Emile le Vivre:
+   [GTK2] Adds "expand/collapse all" popups for search and download tabs
+   [GTK2] Adds "expand/collapse all" buttons for search tab
+   [GTK2] Adds "Search results" frame around searches tab (missing since
+   we moved the new search entry to the lefthand pane).
+ * Applied ICU patch from Stephane Corbe.
+
 - (2003.12.31 - RAM)
  * Added "emergency fixing" code: if the downloading partition gets trashed,
    one can now reconstruct a fileinfo with "grep -v ^CHNK fileinfo", and
@@ -26,6 +64,8 @@
  * Now that we no longer forward all SHA1 queries to leaves, the bandwidth
    requirement per leaf has dropped significantly.  Increased the default
    number of leaves and halved b/w requirement to 32 bytes/sec/leaf.
+ * Update flow-control indication within make_room() in case we dropped
+   enough messages to go below the low watermark.
 
 - (2003.12.29 - RAM)
  * Removed logical negation causing extra ultranode connections to be rejected
