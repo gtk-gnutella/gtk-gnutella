@@ -2570,7 +2570,8 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 	
 	g_assert(parq_ul->queue->active_uploads >= 0);	
 	
-	if (parq_ul->disc_timeout > now && parq_ul->has_slot) {
+	if (u->status == GTA_UL_ABORTED && 
+			parq_ul->disc_timeout > now && parq_ul->has_slot) {
 		/* Client disconnects to often. This could block our upload
 		 * slots. Sorry, but we are going to remove this upload */
 		if (u->socket != NULL) {
@@ -2590,6 +2591,7 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 		u->parq_opaque = NULL;
 		parq_upload_free(parq_ul);
 		return_result = TRUE;
+
 	} else {
 		/*
 		 * A client is not allowed to disconnect over and over again
