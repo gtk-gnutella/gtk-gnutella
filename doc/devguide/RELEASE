@@ -1,0 +1,127 @@
+Quick Release Guide
+====================
+
+[The whole process will take ~1 hour]
+
+1. Write user summary of changes since last release in ChangeLog.
+
+2. Mark toplevel entry in ChangeLog as being the release:
+
+   # v 0.91   2002.10.19  [stable]
+
+   Highligh of changes (user-visible):
+
+   - Change #1.
+   - Change #2...
+
+3. Edit src/common.h and setup for the release:
+
+   #define GTA_REVISION "stable"
+   #define GTA_REVCHAR ""
+   #define GTA_RELEASE "19/10/2002"
+
+4. Commit ChangeLog and src/common.h with comment:
+
+	"Release 0.91 stable."
+
+5. Update and commit debian/changelog.
+
+6. Update configure.in:
+
+	AM_INIT_AUTOMAKE(gtk-gnutella, 0.91)
+
+7. Regenerate all files configuration files:
+
+	./autogen.sh
+
+8. Check which files have changed and commit them:
+
+	cvs diff -u > ~/tmp/xxx
+	cvs commit Makefile.in aclocal.m4 config.h.in configure configure.in
+
+9. Tag whole CVS:
+
+	cd "top directory"
+	cvs tag V-0-91
+
+10. Make a clean distribution package:
+
+	cd "top directory"
+	make -j4 -ki dist
+
+    This will generate file gtk-gnutella-0.91.tar.gz.
+
+11. Unpack the file somewhere, and move to it.
+
+	cd gtk-gnutella-0.91
+
+12. Build the debian package:
+
+	fakeroot debian/rules binary
+
+	This will generate file ../gtk-gnutella_0.91.0-0_i386.deb
+
+13. Convert the file to an RPM package, keeping the same version number:
+
+	cd ..
+	fakeroot alien --to-rpm --keep-version gtk-gnutella_0.91.0-0_i386.deb
+
+	This will generate file gtk-gnutella-0.91.0-0.i386.rpm
+
+14. Upload the files to sourceforge.
+
+	ftp upload.sf.net
+	ftp> cd incoming
+	ftp> binary
+	ftp> passive
+	ftp> put gtk-gnutella-0.91.tar.gz
+	ftp> put gtk-gnutella_0.91.0-0_i386.deb
+	ftp> put gtk-gnutella-0.91.0-0.i386.rpm
+	ftp> quit
+
+15. Login to www.sf.net and go to the Admin section of the gtk-gnutella
+    project.
+
+16. Go to "Edit/Add Releases"
+
+17. Go to "Add Release" in package gtk-gnutella and create a release "0.91".
+
+18. Paste the ChangeLog high-level summary, and tick "preserve my
+    pre-formatted text", then click "Submit/Refresh".
+
+19. Select the 3 files we uploaded earlier and press "Add files".
+
+20. For each file, set the proper processor release type and file type,
+    being sure to "Update/Refresh" each change separately.
+
+	(source is "platform independent"/"Source.gz" and the others are
+	"i386"/".deb" and "i386"/".rpm".
+
+21. Once all is set, click on "I'm sure" and "Send notice".
+
+22. Go back to the Admin section, "Edit/Add Releases" section.
+
+23. Choose "Edit Release" of "gtk-gnutella".
+
+24. Choose the previous release number and click on "Edit release".
+
+25. Change status to "Hidden" and "Submit/Refresh".
+
+26. Go back to the home page of the project and click on "View ALL project
+    files".  Make sure only the latest release is available.
+
+27. Update sourceforge's website: Create a news entry in htdocs/files/en and
+    submit it.
+
+28. Change the VERSION file in htdocs/ to update the version number.
+
+	VERSION=0.91
+
+29. Manually update the web site by logging to gtk-gnutella.sf.net via SSH.
+
+	ssh -l rmanfredi gtk-gnutella.sf.net
+	$ cd /home/groups/g/gt/gtk-gnutella
+	$ ./update_homepage.sh
+
+30. That's all folks!
+
