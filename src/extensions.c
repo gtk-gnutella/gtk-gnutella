@@ -66,6 +66,7 @@ static struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
 	{ "ALT",			EXT_T_GGEP_ALT },
 	{ "GTKGV1",			EXT_T_GGEP_GTKGV1 },
 	{ "H",				EXT_T_GGEP_H },
+	{ "PUSH",			EXT_T_GGEP_PUSH },
 	{ "T",				EXT_T_GGEP_T },
 	{ "u",				EXT_T_GGEP_u },
 };

@@ -169,3 +169,52 @@ ggept_status_t ggept_alt_extract(extvec_t *exv,
 	return GGEP_OK;
 }
 
+/*
+ * ggept_push_extract
+ *
+ * Extract vector of IP:port push proxy locations.
+ *
+ * The `hvec' pointer is filled with a dynamically allocated vector, and
+ * the `hvcnt' is filled with the size of the allocated vector (number of
+ * items).
+ *
+ * Unless GGEP_OK is returned, no memory allocation takes place.
+ */
+ggept_status_t ggept_push_extract(extvec_t *exv,
+	struct gnutella_host **hvec, gint *hvcnt)
+{
+	gchar tmp[512];		/* Account for 85 entries -- more than enough! */
+	gchar *p = tmp;
+	gint tlen;
+	gint cnt;
+	struct gnutella_host *vec;
+	struct gnutella_host *h;
+	gint i;
+
+	g_assert(exv->ext_type == EXT_GGEP);
+	g_assert(exv->ext_token == EXT_T_GGEP_PUSH);
+
+	tlen = ggep_decode_into(exv, tmp, sizeof(tmp));
+
+	if (tlen <= 0)
+		return GGEP_INVALID;
+
+	if (tlen % 6 != 0)
+		return GGEP_INVALID;
+
+	cnt = tlen / 6;
+	vec = walloc(cnt * sizeof(struct gnutella_host));
+
+	for (i = 0, h = vec; i < cnt; i++, h++) {
+		READ_GUINT32_BE(p, h->ip);
+		p += 4;
+		READ_GUINT16_BE(p, h->port);
+		p += 2;
+	}
+
+	*hvec = vec;
+	*hvcnt = cnt;
+
+	return GGEP_OK;
+}
+

@@ -63,6 +63,9 @@ ggept_status_t ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info);
 ggept_status_t ggept_alt_extract(extvec_t *exv,
 	struct gnutella_host **hvec, gint *hvcnt);
 
+ggept_status_t ggept_push_extract(extvec_t *exv,
+	struct gnutella_host **hvec, gint *hvcnt);
+
 #endif	/* _ggep_type_h_ */
 
 /* vi: set ts=4: */
