@@ -61,7 +61,6 @@ gchar *start_rfc822_date = NULL;		/* RFC822 format of start_time */
 
 static guint main_slow_update = 0;
 static gboolean exiting = FALSE;
-static time_t exit_time = 0;
 
 /* */
 
@@ -83,8 +82,6 @@ void gtk_gnutella_exit(gint n)
 		return;			/* Already exiting, must be in loop below */
 
 	exiting = TRUE;
-
-    exit_time = now;
 
 	node_bye_all();
 	upload_close();		/* Done before config_close() for stats update */
@@ -117,7 +114,7 @@ void gtk_gnutella_exit(gint n)
 	while (node_bye_pending() && 
            (tick = time((time_t *) NULL)) - now < EXIT_GRACE) {
          g_snprintf(tmp, sizeof(tmp), "%d seconds", 
-            (gint)difftime(now,exit_time));
+            EXIT_GRACE - (gint)difftime(tick,now));
         gtk_label_set(GTK_LABEL(label_shutdown_count),tmp);
 		gtk_main_iteration_do(FALSE);
 		usleep(50000);					/* 50 ms */
@@ -169,23 +166,6 @@ static void slow_main_timer(time_t now)
 static gboolean main_timer(gpointer p)
 {
 	time_t now = time((time_t *) NULL);
-
-    /*
-    static gboolean shutdown = FALSE;
-
-    if (exiting) {
-        gchar tmp[256];
-
-        if (!shutdown) {
-            shutdown = TRUE;
-            gtk_widget_hide(main_window);
-            gtk_widget_show(shutdown_window);
-        }
-        g_snprintf(tmp, sizeof(tmp), "%d seconds", 
-            (gint)difftime(now,exit_time));
-        gtk_label_set(GTK_LABEL(label_shutdown_count),tmp);
-    }
-    */
 
     bsched_timer();				    /* Scheduling update */
 	host_timer();					/* Host connection */
