@@ -1532,6 +1532,9 @@ static void dmesh_ban_retrieve(void)
 		if (tmp[0] == '#')
 			continue;			/* Skip comments */
 
+		if (tmp[0] == '\n')
+			continue;			/* Skip empty lines */
+
 		str_chomp(tmp, 0);		/* Remove final "\n" */
 
 		stamp = strtoul(tmp, &p, 10);
