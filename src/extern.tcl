@@ -236,6 +236,13 @@ set w_main_list {
     checkbutton_filter_size_invert_cond
     checkbutton_filter_text_case
     checkbutton_filter_text_invert_cond
+    checkbutton_filter_text_soft
+    checkbutton_filter_size_soft
+    checkbutton_filter_ip_soft
+    checkbutton_filter_text_active
+    checkbutton_filter_size_active
+    checkbutton_filter_ip_active
+    checkbutton_filter_jump_active
     clist_filter_rules
     entry_filter_ip_address
     entry_filter_ip_mask
