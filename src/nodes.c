@@ -1131,7 +1131,7 @@ void node_mark_bad(struct gnutella_node *n)
 		bad_ip->time_added = time(NULL);
 		
 		g_hash_table_insert(unstable_ip, GUINT_TO_POINTER(bad_ip->ip), bad_ip);
-		g_slist_prepend(unstable_ips, bad_ip);
+		unstable_ips = g_slist_prepend(unstable_ips, bad_ip);
 
 		g_warning("[nodes up] Marked ip %s (%s) as a bad host",
 			ip_to_gchar(n->ip),
@@ -1149,7 +1149,7 @@ void node_mark_bad(struct gnutella_node *n)
 		bad_client->errors = 0;
 		bad_client->vendor = atom_str_get(n->vendor);
 		g_hash_table_insert(unstable_servent, bad_client->vendor, bad_client);
-		g_slist_prepend(unstable_servents, bad_client);
+		unstable_servents = g_slist_prepend(unstable_servents, bad_client);
 	}
 
 	g_assert(bad_client != NULL);
