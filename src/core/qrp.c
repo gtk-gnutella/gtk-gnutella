@@ -1162,13 +1162,13 @@ qrp_add_file(struct shared_file *sf)
 	else
 #endif
 	{
-		if (sf->file_name_len >= buffer.len) {
+		if (sf->file_name_len >= (size_t) buffer.len) {
 			gint grow = MAX(MIN_BUF_GROW, sf->file_name_len - buffer.len + 1);
 
 			buffer.arena = g_realloc(buffer.arena, buffer.len + grow);
 			buffer.len += grow;
 		}
-		g_assert(sf->file_name_len <= (buffer.len + 1));
+		g_assert((gint) sf->file_name_len <= (buffer.len + 1));
 
 		strncpy(buffer.arena, sf->file_name, buffer.len);
 

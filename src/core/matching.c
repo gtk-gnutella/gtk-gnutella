@@ -379,7 +379,7 @@ void st_search(
 	gint vcnt;
 	gint scanned = 0;		/* measure search mask efficiency */
 	guint32 search_mask;
-	gint minlen;
+	size_t minlen;
 
 #ifndef USE_ICU
 	len = match_map_string(table->fold_map, search);
@@ -489,6 +489,7 @@ void st_search(
 	for (minlen = 0, i = 0; i < wocnt; i++)
 		minlen += wovec[i].len + 1;
 	minlen--;
+	g_assert(minlen <= INT_MAX);
 
 	/*
 	 * Search through the smallest bin
