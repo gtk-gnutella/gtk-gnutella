@@ -31,7 +31,6 @@
 
 #include "if/core/search.h"
 #include "if/core/bitzi.h"
-#include "if/ui/gtk/search.h"
 #include "lib/hashlist.h"
 #include "lib/prop.h"
 
