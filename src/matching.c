@@ -367,8 +367,13 @@ static void bin_compact(struct st_bin *bin)
 	bin->nslots = bin->nvals;
 }
 
-/* apply a char map to a string -- returns length of string */
-static guint map_string(char_map_t map, guchar *string)
+/*
+ * match_map_string
+ *
+ * Apply a char map to a string, inplace.
+ * Returns length of string.
+ */
+guint match_map_string(char_map_t map, guchar *string)
 {
 	guchar *ptr = string;
 	guchar c;
@@ -466,7 +471,7 @@ void st_insert_item(search_table_t *table, guchar *string, void *data)
 
 	string = g_strdup(string);
 
-	len = map_string(table->fold_map, string);
+	len = match_map_string(table->fold_map, string);
 	if (len < 2) {
 		g_free(string);
 		return;
@@ -547,7 +552,7 @@ gint st_search(
 	gint scanned = 0;		/* measure search mask efficiency */
 	guint32 search_mask;
 
-	len = map_string(table->fold_map, search);
+	len = match_map_string(table->fold_map, search);
 
 	/*
 	 * Find smallest bin

@@ -36,6 +36,10 @@ typedef struct {				/* Query word vector */
 guint query_make_word_vec(guchar *query, word_vec_t **wovec);
 void query_word_vec_free(word_vec_t *wovec, guint n);
 
+typedef	guchar char_map_t[256];		/* Maps one char to another */
+
+guint match_map_string(char_map_t map, guchar *string);
+
 /*
  * Sunday pattern search data structures.
  */
@@ -94,8 +98,6 @@ struct st_entry {
 	void *data;
 	guint32 mask;
 };
-
-typedef	guchar char_map_t[256];		/* Maps one char to another */
 
 struct st_bin {
 	gint nslots, nvals;
