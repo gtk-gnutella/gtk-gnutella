@@ -1,6 +1,9 @@
 # since last version
 
-- (2004-06-10 - Richard)
+- (2004-07-14 - JA)
+ * Added initial support for downloads with unknown size. Patch from emile
+ 
+- (2004-07-10 - Richard)
  * [Gtk1] Replaces GtkFrame around progress indicator in fileinfo pane
    with a GtkViewport
  * Removed gui_update_all()

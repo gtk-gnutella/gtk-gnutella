@@ -254,12 +254,9 @@ static gboolean handle_magnet(gchar *url)
 	
 	if (dl.ready) {
 		g_message("file=\"%s\"", dl.file);
-		/* TODO:	It's not possible to start a download without knowing
-		 *			the filesize in advance. *ARRRGS* */
-#if 0
-		download_new(dl.file, ?, URN_INDEX, dl.ip, dl.port, blank_guid,
-				dl.hostname, dl.sha1, time(NULL), FALSE, NULL, NULL);
-#endif
+
+		download_new_unknown_size(dl.file, URN_INDEX, dl.ip, dl.port, 
+			blank_guid, dl.hostname, dl.sha1, time(NULL), FALSE, NULL, NULL);
 	}
 
 	return TRUE;

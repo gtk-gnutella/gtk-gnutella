@@ -130,6 +130,13 @@ void vp_draw_rectangle(vp_info_t *v,
 	 */
 	g_assert(v->file_size);
 
+	
+	/* FIXME: DOWNLOAD_SIZE:
+	 * This should now be totally screwed up for fileinfo's with an
+	 * unknown size.  Their size will be set to 1 but we shouldn't rely on that.
+	 *		--- Emile.
+	 */
+	
 	s_from = (gfloat) from * v->context->widget->allocation.width 
 		/ v->file_size;
 	s_to   = (gfloat) to   * v->context->widget->allocation.width 

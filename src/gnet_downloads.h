@@ -38,7 +38,7 @@ gboolean download_new(gchar *,
     gboolean, struct dl_file_info *, gnet_host_vec_t *);
 void download_auto_new(gchar *,
  	guint32, guint32, guint32, guint16, gchar *, gchar *, gchar *, time_t,
-    gboolean, struct dl_file_info *, gnet_host_vec_t *);
+    gboolean, gboolean, struct dl_file_info *, gnet_host_vec_t *);
 void download_index_changed(guint32, guint16, gchar *, guint32, guint32);
 
 #define URN_INDEX	0xffffffff		/* Marking index, indicates URN instead */

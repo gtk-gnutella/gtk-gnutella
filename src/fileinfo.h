@@ -58,6 +58,7 @@ struct dl_file_info {
 	GSList *chunklist;		/* List of ranges within file */
 	guint32 generation;		/* Generation number, incremented on disk update */
 	struct shared_file *sf;	/* When PFSP-server is enabled, share this file */
+	gboolean file_size_known; /* File size known? */
 	gboolean use_swarming;	/* Use swarming? */
 	gboolean dirty;			/* Does it need saving? */
 	gboolean dirty_status;  /* Notify about status change on next interval */
@@ -114,7 +115,8 @@ enum dl_chunk_status file_info_chunk_status(
 void file_info_reset(struct dl_file_info *fi);
 void file_info_recreate(struct download *d);
 struct dl_file_info *file_info_get(
-	gchar *file, const gchar *path, guint32 size, gchar *sha1);
+	gchar *file, const gchar *path, guint32 size, gchar *sha1, 
+	gboolean file_size_known);
 void file_info_strip_binary(struct dl_file_info *fi);
 void file_info_strip_binary_from_file(
 	struct dl_file_info *fi, const gchar *file);
@@ -144,4 +146,3 @@ struct dl_file_info *file_info_has_identical(
 	gchar *file, guint32 size, gchar *sha1);
 
 #endif /* _fileinfo_h_ */
-

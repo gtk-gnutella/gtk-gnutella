@@ -1265,7 +1265,8 @@ static void download_info_reget(struct download *d)
 	file_info_remove_source(fi, d, FALSE);		/* Keep it around for others */
 
 	fi = file_info_get(
-		d->file_name, save_file_path, d->file_size, d->sha1);
+		d->file_name, save_file_path, d->file_size, d->sha1, 
+		d->file_size_known);
 	file_info_add_source(fi, d);
 	fi->lifecount++;
 
@@ -3184,8 +3185,8 @@ static struct download *create_download(
 	gchar *file, guint32 size, guint32 record_index,
 	guint32 ip, guint16 port, gchar *guid, gchar *hostname,
 	gchar *sha1, time_t stamp,
-	gboolean push, gboolean interactive, struct dl_file_info *file_info,
-	gnet_host_vec_t *proxies)
+	gboolean push, gboolean interactive, gboolean file_size_known, 
+	struct dl_file_info *file_info, gnet_host_vec_t *proxies)
 {
 	struct dl_server *server;
 	struct download *d;
@@ -3270,12 +3271,16 @@ static struct download *create_download(
 	d->file_name = file_name;
 	d->escaped_name = url_escape_cntrl(file_name);
 
+	if (FALSE == file_size_known)	
+		size = 1; /* Dummy value to prevent divide by zero errors, etc. */
+
+	d->file_size_known = file_size_known;
+	d->file_size = size;
+
 	/*
 	 * Note: size and skip will be filled by download_pick_chunk() later
 	 * if we use swarming.
 	 */
-
-	d->file_size = size;			/* Never changes */
 	d->size = size;					/* Will be changed if range requested */
 	d->record_index = record_index;
 	d->file_desc = -1;
@@ -3299,7 +3304,8 @@ static struct download *create_download(
 	 */
 
 	fi = file_info == NULL ?
-		file_info_get(file_name, save_file_path, size, sha1) : file_info;
+		file_info_get(file_name, save_file_path, size, sha1, file_size_known) 
+		: file_info;
 
 	if (fi->flags & FI_F_SUSPEND)
 		d->flags |= DL_F_SUSPENDED;
@@ -3378,7 +3384,8 @@ static struct download *create_download(
 void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 					guint32 ip, guint16 port, gchar *guid, gchar *hostname,
 					gchar *sha1, time_t stamp, gboolean push,
-					struct dl_file_info *fi, gnet_host_vec_t *proxies)
+					gboolean file_size_known, struct dl_file_info *fi, 
+					gnet_host_vec_t *proxies)
 {
 	gchar *file_name;
 	const char *reason;
@@ -3415,8 +3422,9 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 
 	file_name = atom_str_get(file);
 
-	(void) create_download(file_name, size, record_index, ip, port,
-		guid, hostname, sha1, stamp, push, FALSE, fi, proxies);
+	create_download(file_name, size, record_index, ip, port,
+		guid, hostname, sha1, stamp, push, FALSE, file_size_known, fi, proxies);
+
 	return;
 
 abort_download:
@@ -3608,7 +3616,24 @@ gboolean download_new(gchar *file, guint32 size, guint32 record_index,
 			  struct dl_file_info *fi, gnet_host_vec_t *proxies)
 {
 	return NULL != create_download(file, size, record_index, ip, port, guid,
-		hostname, sha1, stamp, push, TRUE, fi, proxies);
+		hostname, sha1, stamp, push, TRUE, TRUE, fi, proxies);
+}
+
+/**
+ * Download new unknown size,
+ *
+ * Create a new download if the size is unknown.
+ *
+ */
+gboolean download_new_unknown_size(gchar *file, guint32 record_index, 
+			  guint32 ip, guint16 port, gchar *guid, gchar *hostname, 
+			  gchar *sha1, time_t stamp, gboolean push,
+			  struct dl_file_info *fi, gnet_host_vec_t *proxies)
+{
+	guint32 size = 1;
+	
+	return NULL != create_download(file, size, record_index, ip, port, guid,
+		hostname, sha1, stamp, push, TRUE, FALSE, fi, proxies);
 }
 
 /**
@@ -3619,7 +3644,7 @@ void download_orphan_new(
 	gchar *file, guint32 size, gchar *sha1, struct dl_file_info *fi)
 {
 	(void) create_download(file, size, 0, 0, 0, blank_guid, NULL, sha1,
-		time(NULL), FALSE, TRUE, fi, NULL);
+		time(NULL), FALSE, TRUE, TRUE, fi, NULL);
 }
 
 /**
@@ -4397,6 +4422,12 @@ static void download_write_data(struct download *d)
 			 * meaning we put an upper boundary to our request, we are probably
 			 * on a persistent connection where we'll be able to request
 			 * another chunk data of data.
+			 *
+			 *
+			 *	FIXME: DOWNLOAD_SIZE:
+			 *  This won't work if the fileinfo doesn't have a specified
+			 *	file size. --- Emile		
+	 		 *
 			 *
 			 * The only remaining possibility is that we have reached a zone
 			 * where a competing download is busy (aggressive swarming on),
@@ -7332,7 +7363,7 @@ static void download_retrieve(void)
 
 		d = create_download(d_name, d_size, d_index, d_ip, d_port, d_guid,
 			d_hostname, has_sha1 ? sha1_digest : NULL, 1, FALSE, FALSE,
-			NULL, NULL);
+			TRUE, NULL, NULL);
 
 		if (d == NULL) {
 			g_message("Ignored dup download at line #%d (server %s)",

@@ -93,7 +93,8 @@ gint dmesh_alternate_location(
 	const gchar *vendor, struct dl_file_info *fi, gboolean request);
 
 void dmesh_multiple_downloads(
-    gchar *sha1, guint32 size, struct dl_file_info *fi);
+    gchar *sha1, guint32 size, gboolean file_size_known, 
+	struct dl_file_info *fi);
 
 void dmesh_check_results_set(gnet_results_set_t *rs);
 
@@ -103,4 +104,3 @@ void dmesh_ban_store(void);
 #endif	/* _dmesh_h_ */
 
 /* vi: set ts=4: */
-

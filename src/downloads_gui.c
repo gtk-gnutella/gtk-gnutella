@@ -562,6 +562,7 @@ void downloads_gui_shutdown(void)
  */
 void download_gui_add(struct download *d)
 {
+	const gchar *UNKNOWN_SIZE_STR = "unknown size";
 	const gchar *titles[6], *titles_parent[6];
 	GtkCTreeNode *new_node, *parent;
 	GdkColor *color;
@@ -600,7 +601,12 @@ void download_gui_add(struct download *d)
 	titles[c_queue_filename] = file_name;
     titles[c_queue_server] = vendor;
 	titles[c_queue_status] = "";
-	titles[c_queue_size] = short_size(d->file_info->size);
+
+	if (d->file_info->file_size_known)
+		titles[c_queue_size] = short_size(d->file_info->size);
+	else
+		titles[c_queue_size] = UNKNOWN_SIZE_STR;				
+
 	titles[c_queue_host] = download_get_hostname(d);
 
 
@@ -723,7 +729,11 @@ void download_gui_add(struct download *d)
 		titles[c_dl_filename] = file_name;
 		titles[c_dl_server] = vendor;
 		titles[c_dl_status] = "";
-		titles[c_dl_size] = short_size(d->file_info->size);
+
+		if (d->file_info->file_size_known)
+			titles[c_dl_size] = short_size(d->file_info->size);
+		else
+			titles[c_dl_size] = UNKNOWN_SIZE_STR;				
 		titles[c_dl_range] = "";
         titles[c_dl_host] = download_get_hostname(d);
 		

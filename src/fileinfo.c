@@ -1009,6 +1009,11 @@ shared_file_t *file_info_shared_sha1(const gchar *sha1)
 		sf->file_path = atom_str_get(path);
 		sf->file_name = filename;
 		sf->file_name_len = strlen(fi->file_name);
+
+		/* FIXME: DOWNLOAD_SIZE:
+		 * Do we need to add anything here now that fileinfos can have an
+		 *  unknown length? --- Emile
+		 */
 		sf->file_size = fi->size;
 		sf->file_index = URN_INDEX;
 		sf->mtime = fi->last_flush;
@@ -2071,6 +2076,13 @@ void file_info_retrieve(void)
 		if (!fi) {
 			fi = walloc0(sizeof(struct dl_file_info));
 			fi->refcount = 0;
+			
+			/* FIXME: DOWNLOAD_SIZE: This should be saved and restored as well,
+			 * however, we should assume true by default, so this line should
+			 * stay
+			 *	-- Jeroen
+			 */
+			fi->file_size_know = true;	
 			aliases = NULL;
 		}
 
@@ -2241,7 +2253,8 @@ ok:
  * The `sha1' is the known SHA1 for the file (NULL if unknown).
  */
 static struct dl_file_info *file_info_create(
-	gchar *file, const gchar *path, guint32 size, const gchar *sha1)
+	gchar *file, const gchar *path, guint32 size, const gchar *sha1, 
+	gboolean file_size_known)
 {
 	struct dl_file_info *fi;
 	struct stat st;
@@ -2253,6 +2266,7 @@ static struct dl_file_info *file_info_create(
 	if (sha1)
 		fi->sha1 = atom_sha1_get(sha1);
 	fi->size = 0;							/* Will be updated below */
+	fi->file_size_known = file_size_known;
 	fi->done = 0;
 	fi->use_swarming = use_swarming;
 
@@ -2304,7 +2318,8 @@ void file_info_recreate(struct download *d)
 	 */
 
 	file_info_hash_remove(fi);
-	new_fi = file_info_create(fi->file_name, fi->path, fi->size, fi->sha1);
+	new_fi = file_info_create(fi->file_name, fi->path, fi->size, fi->sha1, 
+		fi->file_size_known);
 
 	/*
 	 * Copy old aliases to new structure.
@@ -2350,7 +2365,8 @@ void file_info_recreate(struct download *d)
  * `file' is the file name on the server.
  */ 
 struct dl_file_info *file_info_get(
-	gchar *file, const gchar *path, guint32 size, gchar *sha1)
+	gchar *file, const gchar *path, guint32 size, gchar *sha1, 
+	gboolean file_size_known)
 {
 	struct dl_file_info *fi;
 	gchar *outname;
@@ -2438,6 +2454,10 @@ struct dl_file_info *file_info_get(
 			fi_free(fi);
 			fi = NULL;
 		}
+		/* FIXME: DOWNLOAD_SIZE:
+		 * Do we need to add something here because fileinfos can have
+		 * an unknown size --- Emile
+		 */
 		else if (fi->size < size) {
 			/*
 			 * Existing file is smaller than the total size of this file.
@@ -2466,14 +2486,14 @@ struct dl_file_info *file_info_get(
 	 */
 
 	if (fi == NULL) {
-		fi = file_info_create(outname, path, size, sha1);
+		fi = file_info_create(outname, path, size, sha1, file_size_known);
 		fi_alias(fi, file, FALSE);
 	}
 	
 	file_info_hash_insert(fi);
 
 	if (sha1)
-		dmesh_multiple_downloads(sha1, size, fi);
+		dmesh_multiple_downloads(sha1, size, file_size_known, fi);
 
 	atom_str_free(outname);
 
@@ -3410,7 +3430,7 @@ void file_info_try_to_swarm_with(
 		return;
 
 	download_auto_new(file_name, fi->size, idx, ip, port, blank_guid, NULL,
-		sha1, time(NULL), FALSE, fi, NULL);
+		sha1, time(NULL), FALSE, TRUE, fi, NULL);
 }
 
 /*

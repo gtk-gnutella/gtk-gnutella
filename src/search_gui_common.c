@@ -571,7 +571,7 @@ void search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 
 		download_auto_new(rc->name, rc->size, URN_INDEX, h->ip,
 			h->port, blank_guid, rs->hostname,
-			rc->sha1, rs->stamp, FALSE, NULL, NULL);
+			rc->sha1, rs->stamp, FALSE, TRUE, NULL, NULL);
 	}
 
 	search_gui_free_alt_locs(rc);
@@ -815,7 +815,7 @@ void search_matched(search_t *sch, results_set_t *rs)
 				FILTER_PROP_STATE_DO)
 		) {
             download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-                rs->guid, rs->hostname, rc->sha1, rs->stamp, need_push,
+                rs->guid, rs->hostname, rc->sha1, rs->stamp, need_push, TRUE,
 				NULL, rs->proxies);
 
 			if (rs->proxies != NULL)

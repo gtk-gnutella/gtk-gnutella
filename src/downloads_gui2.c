@@ -636,6 +636,7 @@ void downloads_gui_shutdown(void)
 void download_gui_add(download_t *d)
 {
 	const gchar *vendor;
+	const gchar *UNKNOWN_SIZE_STR = "unknown size";
 	GHashTable *ht;
 	GtkTreeView *treeview;
 	GtkTreeIter *parent;
@@ -686,7 +687,11 @@ void download_gui_add(download_t *d)
 			d_file_name = file_info_readable_filename(d->file_info);
 			d_file_name = lazy_locale_to_utf8(
 					(gchar *) d_file_name, 0); /* Override const */
-			d_file_size = short_size(d->file_info->size);
+			
+			if (d->file_info->file_size_known)
+				d_file_size = short_size(d->file_info->size);
+			else
+				d_file_size = UNKNOWN_SIZE_STR;				
 		} else {
 			download_t *drecord;
 
@@ -774,7 +779,11 @@ void download_gui_add(download_t *d)
 			d_file_name = file_info_readable_filename(d->file_info);
 			d_file_name = lazy_locale_to_utf8(
 					(gchar *) d_file_name, 0); /* Override const */
-			d_file_size = short_size(d->file_info->size);
+
+			if (d->file_info->file_size_known)
+				d_file_size = short_size(d->file_info->size);
+			else
+				d_file_size = UNKNOWN_SIZE_STR;				
 		} else {
 			download_t *drecord;
 

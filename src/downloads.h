@@ -160,6 +160,7 @@ struct download {
 
 	guint32 flags;
 
+	gboolean file_size_known; /* File size known? */
 	gboolean keep_alive;	/* Keep HTTP connection? */
 	gboolean visible;		/* The download is visible in the GUI */
 	gboolean push;			/* Currently in push mode */
