@@ -154,6 +154,7 @@ void sq_process(squeue_t *sq, time_t now)
 	 * 1. The queue is empty.
 	 * 2. We sent our last search less than QUEUE_SPACING seconds ago.
 	 * 3. We never got a packet from that node.
+	 * 4. The node activated hops-flow to shut all queries
 	 *
 	 *		--RAM, 01/05/2002
 	 */
@@ -167,6 +168,9 @@ void sq_process(squeue_t *sq, time_t now)
 	n = sq->node;
 
 	if (n->received == 0)		/* RX = 0, wait for handshaking ping */
+		return;
+
+	if (!node_can_send(n, GTA_MSG_SEARCH, 0))	/* Cannot sent hops=0 query */
 		return;
 
 	if (!NODE_IS_WRITABLE(n))
