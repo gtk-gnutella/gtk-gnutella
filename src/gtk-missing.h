@@ -69,6 +69,8 @@ inline gint gtk_ctree_count_node_children(
     GtkCTree *ctree, GtkCTreeNode *parent);
 #define GTK_CTREE_NODE_SIBLING(n) \
     ((n) ? (GTK_CTREE_ROW(n)->sibling) : (NULL))
+#define GTK_CTREE_NODE_PARENT(n) \
+    ((n) ? (GTK_CTREE_ROW(n)->parent) : (NULL))
 #endif /* USE_GTK1 */
 
 /*
