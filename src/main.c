@@ -70,6 +70,7 @@
 #include "main_gui.h"
 #include "settings.h"
 #include "fileinfo.h"
+#include "settings_gui.h"
 
 RCSID("$Id$");
 
