@@ -7049,9 +7049,7 @@ download_store(void)
 
 	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
-		gchar *id;
-		gchar *guid;
-		const gchar *hostname;
+		const gchar *id, *guid, *hostname;
 
 		g_assert(d != NULL);
 
