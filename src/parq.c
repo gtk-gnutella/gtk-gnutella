@@ -1725,7 +1725,10 @@ static inline struct parq_ul_queued *parq_upload_find(gnutella_upload_t *u)
 	g_assert(u != NULL);
 	g_assert(ul_all_parq_by_ip_and_name != NULL);
 	g_assert(ul_all_parq_by_id != NULL);
-	g_assert(u->name != NULL);
+
+	/* Can't lookup an upload with no name */
+	if (u->name == NULL)
+		return NULL;
 	
 	if (u->parq_opaque != NULL)
 		return (struct parq_ul_queued *) u->parq_opaque;
