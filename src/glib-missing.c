@@ -38,6 +38,8 @@
 
 RCSID("$Id$");
 
+#ifndef TRACK_MALLOC
+
 /*
  * gm_slist_insert_after
  *
@@ -105,6 +107,8 @@ GList *g_list_delete_link(GList *l, GList *lnk)
 	return new;
 }
 #endif /* !USE_GTK2 */
+
+#endif /* !TRACK_MALLOC */
 
 /*
  * DO_VSNPRINTF

@@ -77,8 +77,44 @@
 	strdup_printf_track(__FILE__, __LINE__, fmt, __VA_ARGS__)
 
 #define g_strsplit(s,d,m)		strsplit_track((s),(d),(m), __FILE__, __LINE__)
+
 #define g_hash_table_new(x,y)	hashtable_new_track(x, y, __FILE__, __LINE__)
 #define g_hash_table_destroy(x)	hashtable_destroy_track(x, __FILE__, __LINE__)
+
+#define hash_list_new()			hash_list_new_track(__FILE__, __LINE__)
+#define hash_list_free(h)		hash_list_free_track((h), __FILE__, __LINE__)
+
+#define g_slist_alloc()			slist_alloc_track(__FILE__, __LINE__)
+#define g_slist_append(l,d)		slist_append_track((l),(d), __FILE__, __LINE__)
+#define g_slist_prepend(l,d)	slist_prepend_track((l),(d), __FILE__, __LINE__)
+#define g_slist_copy(l)			slist_copy_track((l), __FILE__, __LINE__)
+#define g_slist_free(l)			slist_free_track((l), __FILE__, __LINE__)
+#define g_slist_free_1(l)		slist_free1_track((l), __FILE__, __LINE__)
+#define g_slist_remove(l,d)		slist_remove_track((l),(d), __FILE__, __LINE__)
+
+#define g_slist_insert(l,d,p) \
+	slist_insert_track((l),(d),(p), __FILE__, __LINE__)
+#define g_slist_insert_sorted(l,d,c) \
+	slist_insert_sorted_track((l),(d),(c), __FILE__, __LINE__)
+#define gm_slist_insert_after(l,lk,d) \
+	slist_insert_after_track((l),(lk),(d), __FILE__, __LINE__)
+
+#define g_list_alloc()			list_alloc_track(__FILE__, __LINE__)
+#define g_list_append(l,d)		list_append_track((l),(d), __FILE__, __LINE__)
+#define g_list_prepend(l,d)		list_prepend_track((l),(d), __FILE__, __LINE__)
+#define g_list_copy(l)			list_copy_track((l), __FILE__, __LINE__)
+#define g_list_free(l)			list_free_track((l), __FILE__, __LINE__)
+#define g_list_free_1(l)		list_free1_track((l), __FILE__, __LINE__)
+#define g_list_remove(l,d)		list_remove_track((l),(d), __FILE__, __LINE__)
+
+#define g_list_insert(l,d,p) \
+	list_insert_track((l),(d),(p), __FILE__, __LINE__)
+#define g_list_insert_sorted(l,d,c) \
+	list_insert_sorted_track((l),(d),(c), __FILE__, __LINE__)
+#define gm_list_insert_after(l,lk,d) \
+	list_insert_after_track((l),(lk),(d), __FILE__, __LINE__)
+#define g_list_delete_link(l,lk) \
+	list_delete_link_track((l),(lk), __FILE__, __LINE__)
 
 /*
  * Use STRTRACK() to track an allocated string by some obscure routine that
@@ -117,9 +153,42 @@ gchar *strconcat_track(gchar *file, gint line, const gchar *s, ...);
 gchar *strdup_printf_track(gchar *file, gint line, const gchar *fmt, ...);
 gchar **strsplit_track(
 	const gchar *s, const gchar *d, gint m, gchar *file, gint line);
+
 GHashTable *hashtable_new_track(
 	GHashFunc h, GCompareFunc y, gchar *file, gint line);
 void hashtable_destroy_track(GHashTable *h, gchar *file, gint line);
+
+hash_list_t *hash_list_new_track(gchar *file, gint line);
+void hash_list_free_track(hash_list_t *h, gchar *file, gint line);
+
+GSList *slist_alloc_track(gchar *file, gint line);
+GSList *slist_append_track(GSList *l, gpointer data, gchar *file, gint line);
+GSList *slist_prepend_track(GSList *l, gpointer data, gchar *file, gint line);
+GSList *slist_copy_track(GSList *l, gchar *file, gint line);
+void slist_free_track(GSList *l, gchar *file, gint line);
+void slist_free1_track(GSList *l, gchar *file, gint line);
+GSList *slist_remove_track(GSList *l, gpointer data, gchar *file, gint line);
+GSList *slist_insert_track(
+	GSList *l, gpointer d, gint pos, gchar *file, gint line);
+GSList *slist_insert_sorted_track(
+	GSList *l, gpointer d, GCompareFunc c, gchar *file, gint line);
+GSList *slist_insert_after_track(
+	GSList *l, GSList *lk, gpointer data, gchar *file, gint line);
+
+GList *list_alloc_track(gchar *file, gint line);
+GList *list_append_track(GList *l, gpointer data, gchar *file, gint line);
+GList *list_prepend_track(GList *l, gpointer data, gchar *file, gint line);
+GList *list_copy_track(GList *l, gchar *file, gint line);
+void list_free_track(GList *l, gchar *file, gint line);
+void list_free1_track(GList *l, gchar *file, gint line);
+GList *list_remove_track(GList *l, gpointer data, gchar *file, gint line);
+GList *list_insert_track(
+	GList *l, gpointer d, gint pos, gchar *file, gint line);
+GList *list_insert_sorted_track(
+	GList *l, gpointer d, GCompareFunc c, gchar *file, gint line);
+GList *list_insert_after_track(
+	GList *l, GList *lk, gpointer data, gchar *file, gint line);
+GList *list_delete_link_track(GList *l, GList *lk, gchar *file, gint line);
 
 #endif	/* TRACK_MALLOC || MALLOC_SOURCE */
 

@@ -32,6 +32,8 @@
 #include <string.h>		/* For memset() */
 #include <glib.h>
 
+#include "hashlist.h"
+
 #ifdef TRACK_MALLOC
 
 #define MALLOC_SOURCE	/* Avoid nasty remappings, but include signatures */
@@ -453,6 +455,348 @@ void hashtable_destroy_track(GHashTable *h, gchar *file, gint line)
 {
 	free_record(h, file, line);
 	g_hash_table_destroy(h);
+}
+
+/*
+ * hash_list_new_track
+ *
+ * Wrapper over hash_list_new().
+ */
+hash_list_t *hash_list_new_track(gchar *file, gint line)
+{
+	return malloc_record(hash_list_new(), 16, file, line);	/* Random size */
+}
+
+/*
+ * hash_list_free_track
+ *
+ * Wrapper over hash_list_free().
+ */
+void hash_list_free_track(hash_list_t *h, gchar *file, gint line)
+{
+	free_record(h, file, line);
+	hash_list_free(h);
+}
+
+/***
+ *** List trackers, to unveil hidden linkable allocation.
+ ***/
+
+#define GSLIST_LINK_SIZE	8		/* Random size */
+#define GLIST_LINK_SIZE		12		/* Random size */
+
+GSList *slist_alloc_track(gchar *file, gint line)
+{
+	return malloc_record(g_slist_alloc(), GSLIST_LINK_SIZE, file, line);
+}
+
+GSList *slist_append_track(GSList *l, gpointer data, gchar *file, gint line)
+{
+	GSList *new;
+
+	new = slist_alloc_track(file, line);
+	new->data = data;
+
+	if (l) {
+		GSList *last = g_slist_last(l);
+		last->next = new;
+		return l;
+	} else
+		return new;
+}
+
+GSList *slist_prepend_track(GSList *l, gpointer data, gchar *file, gint line)
+{
+	GSList *new;
+
+	new = slist_alloc_track(file, line);
+	new->data = data;
+	new->next = l;
+
+	return new;
+}
+
+GSList *slist_copy_track(GSList *list, gchar *file, gint line)
+{
+	GSList *new;
+	GSList *l;
+
+	new = g_slist_copy(list);
+
+	for (l = new; l; l = g_slist_next(l))
+		malloc_record(l, GSLIST_LINK_SIZE, file, line);
+
+	return new;
+}
+
+void slist_free_track(GSList *l, gchar *file, gint line)
+{
+	GSList *lk;
+
+	for (lk = l; lk; lk = g_slist_next(lk))
+		free_record(lk, file, line);
+
+	g_slist_free(l);
+}
+
+void slist_free1_track(GSList *l, gchar *file, gint line)
+{
+	if (l == NULL)
+		return;
+
+	free_record(l, file, line);
+	g_slist_free_1(l);
+}
+
+GSList *slist_remove_track(GSList *l, gpointer data, gchar *file, gint line)
+{
+	GSList *lk;
+
+	lk = g_slist_find(l, data);
+	if (lk == NULL)
+		return l;
+
+	free_record(lk, file, line);
+	return g_slist_remove(l, data);
+}
+
+GSList *slist_insert_track(
+	GSList *l, gpointer data, gint pos, gchar *file, gint line)
+{
+	GSList *lk;
+
+	if (pos < 0)
+		return slist_append_track(l, data, file, line);
+	else if (pos == 0)
+		return slist_prepend_track(l, data, file, line);
+
+	lk = g_slist_nth(l, pos - 1);
+	if (lk == NULL)
+		return slist_append_track(l, data, file, line);
+	else
+		return slist_insert_after_track(l, lk, data, file, line);
+}
+
+GSList *slist_insert_sorted_track(
+	GSList *l, gpointer d, GCompareFunc c, gchar *file, gint line)
+{
+	gint cmp;
+	GSList *tmp = l;
+	GSList *prev;
+	GSList *new;
+
+	if (l == NULL)
+		return slist_prepend_track(l, d, file, line);
+
+	cmp = (*c)(d, tmp->data);
+	while (tmp->next != NULL && cmp > 0) {
+		prev = tmp;
+		tmp = tmp->next;
+		cmp = (*c)(d, tmp->data);
+	}
+
+	new = slist_alloc_track(file, line);
+	new->data = d;
+
+	if (tmp->next == NULL && cmp > 0) {
+		tmp->next = new;
+		return l;
+	}
+
+	if (prev != NULL) {
+		prev->next = new;
+		new->next = tmp;
+		return l;
+	}
+
+	new->next = l;
+	return new;
+}
+
+GSList *slist_insert_after_track(
+	GSList *l, GSList *lk, gpointer data, gchar *file, gint line)
+{
+	GSList *new;
+
+	if (lk == NULL)
+		return slist_prepend_track(l, data, file, line);
+
+	new = slist_alloc_track(file, line);
+	new->data = data;
+
+	new->next = lk->next;
+	lk->next = new;
+
+	return l;
+}
+
+GList *list_alloc_track(gchar *file, gint line)
+{
+	return malloc_record(g_list_alloc(), GLIST_LINK_SIZE, file, line);
+}
+
+GList *list_append_track(GList *l, gpointer data, gchar *file, gint line)
+{
+	GList *new;
+
+	new = list_alloc_track(file, line);
+	new->data = data;
+
+	if (l) {
+		GList *last = g_list_last(l);
+		last->next = new;
+		new->prev = last;
+		return l;
+	} else
+		return new;
+}
+
+GList *list_prepend_track(GList *l, gpointer data, gchar *file, gint line)
+{
+	GList *new;
+
+	new = list_alloc_track(file, line);
+	new->data = data;
+
+	if (l) {
+		if (l->prev) {
+			l->prev->next = new;
+			new->prev = l->prev;
+		}
+		l->prev = new;
+		new->next = l;
+	}
+
+	return new;
+}
+
+GList *list_copy_track(GList *list, gchar *file, gint line)
+{
+	GList *new;
+	GList *l;
+
+	new = g_list_copy(list);
+
+	for (l = new; l; l = g_list_next(l))
+		malloc_record(l, GLIST_LINK_SIZE, file, line);
+
+	return new;
+}
+
+void list_free_track(GList *l, gchar *file, gint line)
+{
+	GList *lk;
+
+	for (lk = l; lk; lk = g_list_next(lk))
+		free_record(lk, file, line);
+
+	g_list_free(l);
+}
+
+void list_free1_track(GList *l, gchar *file, gint line)
+{
+	if (l == NULL)
+		return;
+
+	free_record(l, file, line);
+	g_list_free_1(l);
+}
+
+GList *list_remove_track(GList *l, gpointer data, gchar *file, gint line)
+{
+	GList *lk;
+
+	lk = g_list_find(l, data);
+	if (lk == NULL)
+		return l;
+
+	free_record(lk, file, line);
+	return g_list_remove(l, data);
+}
+
+GList *list_insert_track(
+	GList *l, gpointer data, gint pos, gchar *file, gint line)
+{
+	GList *lk;
+
+	if (pos < 0)
+		return list_append_track(l, data, file, line);
+	else if (pos == 0)
+		return list_prepend_track(l, data, file, line);
+
+	lk = g_list_nth(l, pos - 1);
+	if (lk == NULL)
+		return list_append_track(l, data, file, line);
+	else
+		return list_insert_after_track(l, lk, data, file, line);
+}
+
+GList *list_insert_sorted_track(
+	GList *l, gpointer d, GCompareFunc c, gchar *file, gint line)
+{
+	gint cmp;
+	GList *tmp = l;
+	GList *new;
+
+	if (l == NULL)
+		return list_prepend_track(l, d, file, line);
+
+	cmp = (*c)(d, tmp->data);
+	while (tmp->next != NULL && cmp > 0) {
+		tmp = tmp->next;
+		cmp = (*c)(d, tmp->data);
+	}
+
+	new = list_alloc_track(file, line);
+	new->data = d;
+
+	if (tmp->next == NULL && cmp > 0) {
+		tmp->next = new;
+		new->prev = tmp;
+		return l;
+	}
+
+	if (tmp->prev != NULL) {
+		tmp->prev->next = new;
+		new->prev = tmp->prev;
+	}
+
+	new->next = tmp;
+	tmp->prev = new;
+
+	return (tmp == l) ? new : l;
+}
+
+GList *list_insert_after_track(
+	GList *l, GList *lk, gpointer data, gchar *file, gint line)
+{
+	GList *new;
+
+	if (lk == NULL)
+		return list_prepend_track(l, data, file, line);
+
+	new = list_alloc_track(file, line);
+	new->data = data;
+	
+	new->prev = lk;
+	new->next = lk->next;
+
+	if (lk->next)
+		lk->next->prev = new;
+
+	lk->next = new;
+
+	return l;
+}
+
+GList *list_delete_link_track(GList *l, GList *lk, gchar *file, gint line)
+{
+	GList *new;
+
+	new = g_list_remove_link(l, lk);
+	list_free1_track(l, file, line);
+
+	return new;
 }
 
 #endif /* TRACK_MALLOC */

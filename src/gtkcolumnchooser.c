@@ -23,10 +23,12 @@
  *----------------------------------------------------------------------
  */
 
+#include "common.h"
+
 #include <gtk/gtkcheckmenuitem.h>
 
 #include "gtkcolumnchooser.h"
-#include "misc.h"				/* For RCSID */
+#include "misc.h"					/* For RCSID */
 #include "override.h"				/* Must be the last header included */
 
 RCSID("$Id$");

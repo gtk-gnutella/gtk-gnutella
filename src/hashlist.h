@@ -33,7 +33,7 @@ typedef struct hash_list_iter hash_list_iter_t;
 typedef struct hash_list hash_list_t;
 
 hash_list_t *hash_list_new(void);
-void hash_list_free(hash_list_t **hl);
+void hash_list_free(hash_list_t *hl);
 void hash_list_remove(hash_list_t *hl, gpointer data);
 void hash_list_append(hash_list_t *hl, gpointer data);
 void hash_list_prepend(hash_list_t *hl, gpointer data);

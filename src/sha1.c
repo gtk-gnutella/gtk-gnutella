@@ -56,6 +56,7 @@
  *
  */
 
+#include "common.h"
 #include "sha1.h"
 #include "misc.h"		/* For RCSID */
 #include "override.h"		/* Must be the last header included */

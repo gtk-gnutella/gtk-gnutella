@@ -69,6 +69,11 @@ static void inline hash_list_regression(const hash_list_t *hl)
 #define hash_list_regression(hl)
 #endif
 
+#ifdef TRACK_MALLOC
+#undef hash_list_new
+#undef hash_list_free
+#endif
+
 hash_list_t *hash_list_new(void)
 {
 	hash_list_t *hl = walloc(sizeof(*hl));
@@ -84,24 +89,22 @@ hash_list_t *hash_list_new(void)
 	return hl;
 }
 
-void hash_list_free(hash_list_t **hl)
+void hash_list_free(hash_list_t *hl)
 {
 	g_assert(NULL != hl);
-	g_assert(NULL != *hl);
-	hash_list_regression(*hl);
+	hash_list_regression(hl);
 
-	if (--(*hl)->refcount != 0) {
+	if (--hl->refcount != 0) {
 		g_warning("hash_list_free: hash list is still referenced! "
-			"(hl=%p, hl->refcount=%lu)", *hl, (*hl)->refcount);
+			"(hl=%p, hl->refcount=%lu)", hl, hl->refcount);
 	}
-	g_hash_table_destroy((*hl)->ht);
-	g_list_free((*hl)->l);
-	(*hl)->ht = NULL; 
-	(*hl)->l = NULL;
-	(*hl)->len = 0;
+	g_hash_table_destroy(hl->ht);
+	g_list_free(hl->l);
+	hl->ht = NULL; 
+	hl->l = NULL;
+	hl->len = 0;
 
-	wfree(*hl, sizeof(**hl));
-	*hl = NULL;
+	wfree(hl, sizeof(*hl));
 }
 
 void hash_list_append(hash_list_t *hl, gpointer data)
