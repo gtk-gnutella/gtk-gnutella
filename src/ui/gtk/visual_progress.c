@@ -50,6 +50,12 @@
  * Do not redraw the bar too often, only on event for actual file and
  * perhaps max once a second.
  *
+ * Make busy chunks stand out more, e.g. by drawing arrow: *graaff:
+ * what about drawing an arrow centered at the start of the downloaded
+ * part (beginning of the yellow chunk) of about 5 pixels height?
+ * <ram> You'd draw 1, then 3, then 5 then 7 then 9 pixels.  Should be
+ * readable that way, no?
+ *
  */
 
 #include "gui.h"
@@ -403,8 +409,10 @@ vp_create_chunk(
 	chunk->status = status;
 	chunk->old = old;
 
+#ifdef VP_DEBUG
 	printf("VP adding: ");
 	vp_print_chunk(chunk, TRUE);
+#endif
 
 	return chunk;
 }
@@ -501,8 +509,10 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	guc_fi_free_chunks(v->chunks_list);
 	v->chunks_list = NULL;
 
+#ifdef VP_DEBUG
 	vp_print_chunk_list(old, "Old");
 	vp_print_chunk_list(new, "New");
+#endif
 
 	while (old || new) {
 		if (old && new) {
@@ -563,8 +573,43 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 					vp_create_chunk(nc->from, oc->from, nc->status, FALSE));
 			}
 			highest = oc->to;
-			v->chunks_list = g_slist_append(v->chunks_list,
-				vp_create_chunk(oc->from, oc->to, oc->status, TRUE));
+			/*
+			 * The old chunk can be copied into the list now, but
+			 * there is one special case we need to make: it may be
+			 * that the new chunk is actually smaller than the old one
+			 * because we had to back out some data, e.g. on a resume
+			 * mismatch.
+			 */
+			if (oc->from >= nc->from && oc->to <= nc->to) 
+				v->chunks_list = g_slist_append(v->chunks_list,
+				    vp_create_chunk(oc->from, oc->to, oc->status, TRUE));
+			else {
+				/* 
+				 * The new chunk we are considering covers a smaller
+				 * area than the old chunk, so some data got lost. To
+				 * cope with this we follow two paths.
+				 */
+				if (nc->status == DL_CHUNK_DONE && nc->to >= oc->to)
+					/*
+					 * In this case we copy the old part of the done
+					 * chunk here, and the new extended part
+					 * below. This is why we do not continue here.
+					 */
+					vp_create_chunk(nc->from, oc->to, nc->status, TRUE);
+				else {
+					/* 
+					 * In this case we copy the chunk and skip
+					 * it. Depending on the situation the next
+					 * iteration will deal with the remainder of this
+					 * overlap, or skip the old chunk, depending on
+					 * whether nc->to is larger than oc->to.
+					 */
+					vp_create_chunk(nc->from, nc->to, nc->status, TRUE);
+					highest = nc->to;
+					new = g_slist_next(new);
+					continue;
+				}
+			}
 			if (oc->to < nc->to) {
 				highest = nc->to;
 				v->chunks_list = g_slist_append(v->chunks_list,
@@ -600,8 +645,10 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	 */
 	guc_fi_free_chunks(keep_new);
 
+#ifdef VP_DEBUG
 	vp_print_chunk_list(v->chunks_list, "Merged");
 	vp_assert_chunks_list(v->chunks_list);
+#endif
 }
 
 
