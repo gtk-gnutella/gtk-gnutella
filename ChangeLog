@@ -1,5 +1,15 @@
 # since last version
 
+- (2003.01.26 - RAM)
+ * Added glib-missing routines.
+ * New HTTP range parsing routines.
+ * Range requests now handled through new HTTP parsing routines.
+ * Don't add words less than QRP_MIN_WORD_LENGTH chars to the QRP vector.
+ * Fixed RX flow-control ratio computation.
+ * Don't accept nodes claiming so-called "gnutella2" support as peers.
+ * Added support for client-side PFSP (Partial File Sharing Protocol).
+ * New download state "sinking" when slurping HTTP reply between requests.
+
 - (2003.01.24 - RAM)
  * Reworked the bandwidth stealing algorithm to behave less aggressively when
    the kernel flow-controls us on the way out.
