@@ -926,6 +926,26 @@ prop = {
 };
 
 prop = {
+    name = "show_gnet_info_shared_size";
+    desc = "Whether we should display the size of the node's library, when "
+		"it is known to us.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_shared_files";
+    desc = "Whether we should display the amount of files shared by nodes, "
+		"when that is known to us.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
     name = "search_accumulation_period";
     desc = "The amount of time in seconds that the GUI should buffer "
 		"search results as they come in.  This prevents too frequent "
