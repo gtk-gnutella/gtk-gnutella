@@ -103,7 +103,8 @@ mq_udp_pmsg_free_extended(pmsg_t *mb, gpointer arg)
  * Attach meta information to supplied message block, returning a possibly
  * new message block to use.
  */
-static pmsg_t *mq_udp_attach_metadata(pmsg_t *mb, gnet_host_t *to)
+static pmsg_t *
+mq_udp_attach_metadata(pmsg_t *mb, gnet_host_t *to)
 {
 	pmsg_t *result;
 
@@ -132,7 +133,7 @@ static pmsg_t *mq_udp_attach_metadata(pmsg_t *mb, gnet_host_t *to)
 		pmsg_free(mb);
 	}
 
-	g_assert(pmsg_is_extended(mb));
+	g_assert(pmsg_is_extended(result));
 
 	return result;
 }
@@ -141,8 +142,8 @@ static pmsg_t *mq_udp_attach_metadata(pmsg_t *mb, gnet_host_t *to)
  * Create new message queue capable of holding `maxsize' bytes, and
  * owned by the supplied node.
  */
-mqueue_t *mq_udp_make(
-	gint maxsize, struct gnutella_node *n, struct txdriver *nd)
+mqueue_t *
+mq_udp_make(gint maxsize, struct gnutella_node *n, struct txdriver *nd)
 {
 	mqueue_t *q;
 
@@ -161,13 +162,11 @@ mqueue_t *mq_udp_make(
 	return q;
 }
 
-
-/*
- * mq_udp_service
- *
+/**
  * Service routine for UDP message queue.
  */
-static void mq_udp_service(gpointer data)
+static void
+mq_udp_service(gpointer data)
 {
 	mqueue_t *q = (mqueue_t *) data;
 	gint r;
@@ -267,7 +266,8 @@ static void mq_udp_service(gpointer data)
  * The data held in `to' is copied, so the structure can be reclaimed
  * immediately by the caller.
  */
-void mq_udp_putq(mqueue_t *q, pmsg_t *mb, gnet_host_t *to)
+void
+mq_udp_putq(mqueue_t *q, pmsg_t *mb, gnet_host_t *to)
 {
 	gint size = pmsg_size(mb);
 	gchar *mbs = pmsg_start(mb);
@@ -356,10 +356,11 @@ cleanup:
 	return;
 }
 
-/*
+/**
  * Enqueue message to be sent to the ip:port held in the supplied node.
  */
-void mq_udp_node_putq(mqueue_t *q, pmsg_t *mb, gnutella_node_t *n)
+void
+mq_udp_node_putq(mqueue_t *q, pmsg_t *mb, gnutella_node_t *n)
 {
 	gnet_host_t to;
 
@@ -372,7 +373,8 @@ void mq_udp_node_putq(mqueue_t *q, pmsg_t *mb, gnutella_node_t *n)
 /**
  * Disable plain mq_putq() operation on an UDP queue.
  */
-static void mq_no_putq(mqueue_t *q, pmsg_t *mb)
+static void
+mq_no_putq(mqueue_t *q, pmsg_t *mb)
 {
 	g_error("plain mq_putq() forbidden on UDP queue -- use mq_udp_putq()");
 }
