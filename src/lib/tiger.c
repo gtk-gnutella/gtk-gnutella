@@ -40,7 +40,7 @@ RCSID("$Id$");
  * optimization of time. Otherwise it does nothing.
  */
 #if !(G_MAXULONG < 0xffffffffffffffffULL)
-#	define OPTIMIZE_FOR_64BIT
+#define OPTIMIZE_FOR_64BIT
 #endif
 
 /*
@@ -196,7 +196,7 @@ void tiger_compress(guint64 *str, guint64 state[3])
 	 * module calls it directly.
 	 */
 
-#	define tiger_compress(str, state) \
+#define tiger_compress(str, state) \
 		tiger_compress_macro(((guint64 *) str), ((guint64 *) state))
 #endif
 
@@ -259,3 +259,4 @@ void tiger(guint64 *str, guint64 length, guint64 res[3])
 	tiger_compress(temp64, res);
 }
 
+/* vi: set ts=4 sw=4 cindent: */
