@@ -2082,7 +2082,7 @@ void file_info_retrieve(void)
 			 * stay
 			 *	-- Jeroen
 			 */
-			fi->file_size_know = true;	
+			fi->file_size_known = TRUE;	
 			aliases = NULL;
 		}
 
