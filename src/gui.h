@@ -26,19 +26,20 @@
 #ifndef __gui_h__
 #define __gui_h__
 
-#include "common.h"
+#include "gnet.h"
 
 #include <gtk/gtk.h>
 
-#include "downloads.h"
-#include "uploads.h"
+#include "downloads.h" // FIXME: remove this dependency
+#include "uploads.h" // FIXME: remove this dependency
 
 #include "interface-glade1.h"
 #include "support-glade1.h"
 
 #include "gui_property.h"
+#include "gui_property_priv.h"
 #include "gtk-missing.h"
-#include "gnet.h"
+
 
 
 
@@ -107,6 +108,17 @@ enum {
 
 
 /*
+ * Search stats table columns
+ */
+enum {
+    c_st_term = 0,
+    c_st_period,
+    c_st_total
+};
+
+
+
+/*
  * Notebook tabs in the main notebook.
  */
 enum {
@@ -143,56 +155,30 @@ struct search;
 /*
  * Public interface.
  */
-gboolean gui_search_update_tab_label(struct search *);
 void gui_init(void);
 void gui_update_all(void);
-void gui_search_clear_results(void);
-void gui_search_history_add(gchar *s);
-void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist);
-void gui_search_force_update_tab_label(struct search *);
-void gui_search_init(void);
-void gui_search_update_items(struct search *);
-void gui_new_version_found(gchar *text, gboolean stable);
-void gui_ancient_warn(void);
+//void gui_new_version_found(gchar *text, gboolean stable);
 void gui_update_guid(void);
 void gui_update_c_downloads(gint, gint);
 void gui_update_c_gnutellanet(void);
 void gui_update_c_uploads(void);
 void gui_update_config_force_ip(gboolean force);
 void gui_update_connection_speed(void);
-void gui_update_download(struct download *, gboolean);
-void gui_update_download_server(struct download *);
-void gui_update_download_range(struct download *d);
-void gui_update_download_abort_resume(void);
-void gui_update_download_clear(void);
 void gui_update_files_scanned(void);
 void gui_update_global(void);
 void gui_update_traffic_stats(void);
-void gui_update_max_ttl(void);
-void gui_update_minimum_speed(void);
-void gui_update_my_ttl(void);
 void gui_update_scan_extensions(void);
-void gui_update_download(struct download *, gboolean);
 void gui_update_c_gnutellanet(void);
 void gui_update_c_uploads(void);
 void gui_update_c_downloads(gint, gint);
 void gui_update_files_scanned(void);
 void gui_update_connection_speed(void);
-void gui_update_shared_dirs(void);
-void gui_update_bandwidth_input();
-void gui_update_bandwidth_output();
-void gui_update_bandwidth_ginput();
-void gui_update_bandwidth_goutput();
 void gui_update_stats(void);
 void gui_update_proxy_auth();
 void gui_update_proxy_connections();
 void gui_update_upload(struct upload *);
 void gui_update_upload_kill(void);
 void gui_update_config_netmasks();
-void gui_update_search_remove_downloaded();
-void gui_update_search_autoselect_ident();
-void gui_update_download_delete_aborted();
-void gui_update_search_pick_all();
 void gui_update_stats_frames();
 void gui_update_queue_frozen();
 void gui_allow_rescan_dir(gboolean flag);
