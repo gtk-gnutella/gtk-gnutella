@@ -1702,6 +1702,7 @@ create_dlg_about (void)
   GLADE_HOOKUP_OBJECT (dlg_about, button_about_close, "button_about_close");
   GLADE_HOOKUP_OBJECT (dlg_about, label538, "label538");
 
+  gtk_widget_grab_default (button_about_close);
   return dlg_about;
 }
 
@@ -1876,7 +1877,6 @@ create_main_window (void)
 
   main_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (main_window, "main_window");
-  gtk_window_set_title (GTK_WINDOW (main_window), _("gtk-gnutella"));
   main_window_icon_pixbuf = create_pixbuf ("icon.xpm");
   if (main_window_icon_pixbuf)
     {
@@ -2308,7 +2308,7 @@ create_main_window (void)
   vbox138 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox138, "vbox138");
   gtk_widget_show (vbox138);
-  gtk_paned_pack1 (GTK_PANED (hpaned_main), vbox138, FALSE, TRUE);
+  gtk_paned_pack1 (GTK_PANED (hpaned_main), vbox138, FALSE, FALSE);
 
   vpaned_sidebar = gtk_vpaned_new ();
   gtk_widget_set_name (vpaned_sidebar, "vpaned_sidebar");
@@ -2503,7 +2503,7 @@ create_main_window (void)
   frame_bws_glinout = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_bws_glinout, "frame_bws_glinout");
   gtk_widget_show (frame_bws_glinout);
-  gtk_box_pack_start (GTK_BOX (vbox31), frame_bws_glinout, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox31), frame_bws_glinout, FALSE, TRUE, 0);
   gtk_frame_set_label_align (GTK_FRAME (frame_bws_glinout), 0.5, 0.5);
   gtk_frame_set_shadow_type (GTK_FRAME (frame_bws_glinout), GTK_SHADOW_NONE);
 
