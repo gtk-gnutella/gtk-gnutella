@@ -6,6 +6,7 @@
    - hosts.c (parse_netmasks)
    - settings.c (move_file_path_changed)
    - settings.c (save_file_path_changed)
+   (thanks Rhamphoryncus for spotting)
  * Gui/core separation for uploads
  * Better monitoring of the gtk-gnutella internal server activity including
    monitoring of failed upload attempts and connections that are being kept
