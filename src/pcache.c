@@ -927,9 +927,18 @@ void pcache_ping_received(struct gnutella_node *n)
 
 	/*
 	 * If we can accept an incoming connection, send a reply.
+	 *
+	 * If we are firewalled, we nonetheless send a ping
+	 * when inet_can_answer_ping() tells us we can, irrespective
+	 * of whether we can accept a new node connection: the aim is
+	 * to trigger an incoming connection that will prove us we're
+	 * not firewalled.
 	 */
 
-	if (node_count() < max_connections && inet_can_answer_ping()) {
+	if (
+		(node_count() < max_connections || is_firewalled)
+		&& inet_can_answer_ping()
+	) {
 		send_personal_info(n, FALSE);
 		if (!NODE_IS_CONNECTED(n))	/* Can be removed if send queue is full */
 			return;
