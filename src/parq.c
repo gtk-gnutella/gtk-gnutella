@@ -2015,24 +2015,31 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 	
 	if (
 		org_retry > now && 
-		!((parq_ul->flags & PARQ_UL_QUEUE_SENT) || 
-			(u->status & GTA_UL_QUEUE_WAITING))
-		) {
+		!(
+			(parq_ul->flags & PARQ_UL_QUEUE_SENT) || 
+			u->status == GTA_UL_QUEUE_WAITING
+		)
+	) {
 		/*
 		 * Bad bad client, re-requested within the Retry-After interval.
 		 * we are not going to allow this download. Wether it could get an
 		 * upload slot or not. Neither are we going to active queue it.
 		 */
-		g_warning(__FILE__ ": Host %s re-requested to soon %d", 
+		g_warning("host %s re-requested \"%s\" too soon (%d secs early)", 
 			  ip_port_to_gchar(u->socket->ip, u->socket->port), 
-		 	  (gint) (org_retry - now));
+			  u->name, (gint) (org_retry - now));
 
 		if (parq_ul->ban_timeout > now) {
 			/*
 			 * Bye bye, the client did it again, and is removed from the PARQ
 		 	 * queue now.
 			 */
-			parq_upload_remove(u);
+
+			g_warning("punishing %s for re-requesting \"%s\" %d secs early", 
+				  ip_port_to_gchar(u->socket->ip, u->socket->port), 
+				  u->name, (gint) (org_retry - now));
+
+			parq_upload_force_remove(u);
 			return FALSE;
 		}
 		
@@ -2786,7 +2793,7 @@ static void parq_store(gpointer data, gpointer x)
 	struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) data;
 	
 	g_assert(NULL != f);
-	if (dbg > 2)
+	if (dbg > 5)
 		printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): Saving ID: '%s' - %s '%s'\n",
 			  g_list_position(ul_parqs, 
 				  g_list_find(ul_parqs, parq_ul->queue)) + 1,
