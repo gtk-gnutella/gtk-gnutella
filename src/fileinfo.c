@@ -2123,26 +2123,23 @@ void file_info_retrieve(void)
  * Returns the pointer to the escaped filename, or the original argument if
  * no escaping needed to be performed.
  */
-static gchar *escape_filename(gchar *file)
+static gchar *escape_filename(const gchar *file)
 {
 	gchar *escaped = NULL;
-	gchar *s;
 	guchar c;
+	size_t i;
 
-	s = file;
-	while ((c = *(guchar *) s)) {
-		if (c == '/' || is_ascii_cntrl(c) || (c == '.' && s == file)) {
+	for (i = 0; (c = (guchar) file[i]) != '\0'; i++) {
+		if (c == '/' || is_ascii_cntrl(c) || (c == '.' && i == 0)) {
 			if (escaped == NULL) {
 				escaped = g_strdup(file);
-				s = escaped + (s - file);	/* s now refers to escaped string */
-				g_assert(*(guchar *) s == c);
+				g_assert(escaped[i] == c);
 			}
-			*s = '_';
+			escaped[i] = '_';
 		}
-		s++;
 	}
 
-	return escaped == NULL ? file : escaped;
+	return escaped == NULL ? (gchar *) file : escaped; /* Override const */
 }
 
 /*
@@ -2151,14 +2148,15 @@ static gchar *escape_filename(gchar *file)
  * Allocate unique output name for file `name'.
  * Returns filename atom.
  */
-static gchar *file_info_new_outname(gchar *name)
+static gchar *file_info_new_outname(const gchar *name)
 {
 	gint i;
 	gchar xuid[16];
 	gint flen;
-	gchar *escaped = escape_filename(name);
+	const gchar *escaped = escape_filename(name);
 	gchar *result;
-	gchar *empty = "noname";
+	const gchar empty[] = "noname";
+	gchar ext[32] = "";
 
 	if (*escaped == '\0')			/* Don't allow empty names */
 		escaped = empty;
@@ -2173,13 +2171,30 @@ static gchar *file_info_new_outname(gchar *name)
 	}
 
 	/*
-	 * OK, try with .01 extension, then .02, etc...
+	 * OK, insert .01 before the extension (if any), then .02, etc...
 	 */
 
-	flen = gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s", escaped);
+	flen = g_strlcpy(fi_tmp, escaped, sizeof fi_tmp);
+	if (flen >= sizeof fi_tmp) {
+		g_warning("file_info_new_outname: Filename was truncated: \"%s\"",
+			fi_tmp);
+	}
+
+	for (i = flen; i > 0; i--) {
+		if (escaped[i] != '.')
+			continue;
+		if (g_strlcpy(ext, &escaped[i], sizeof ext) >= sizeof ext) {
+			ext[0] = '\0'; /* Probably not an extension, don't preserve */
+		} else {
+			flen = i;
+		}
+		break;
+	}
+
+	flen = MIN(sizeof fi_tmp, flen);
 
 	for (i = 1; i < 100; i++) {
-		gm_snprintf(&fi_tmp[flen], sizeof(fi_tmp)-flen, ".%02d", i);
+		gm_snprintf(&fi_tmp[flen], sizeof(fi_tmp) - flen, ".%02d%s", i, ext);
 		if (NULL == g_hash_table_lookup(fi_by_outname, fi_tmp)) {
 			result = atom_str_get(fi_tmp);
 			goto ok;
@@ -2192,7 +2207,8 @@ static gchar *file_info_new_outname(gchar *name)
 
 	guid_random_fill(xuid);
 
-	gm_snprintf(&fi_tmp[flen], sizeof(fi_tmp)-flen, "-%s", guid_hex_str(xuid));
+	gm_snprintf(&fi_tmp[flen], sizeof(fi_tmp) - flen, "-%s%s",
+		guid_hex_str(xuid), ext);
 	if (NULL == g_hash_table_lookup(fi_by_outname, fi_tmp)) {
 		result = atom_str_get(fi_tmp);
 		goto ok;
@@ -2203,7 +2219,7 @@ static gchar *file_info_new_outname(gchar *name)
 
 ok:
 	if (escaped != name && escaped != empty)
-		G_FREE_NULL(escaped);
+		G_FREE_NULL((gchar *) escaped); /* Override const */
 
 	return result;
 }
