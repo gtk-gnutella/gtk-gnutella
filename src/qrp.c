@@ -3777,8 +3777,13 @@ qrp_node_can_route(gnutella_node_t *n, query_hashvec_t *qhv)
 {
 	struct routing_table *rt = (struct routing_table *) n->recv_query_table;
 
-	if (rt == NULL)			/* Node has not sent its query routing table */
-		return FALSE;
+	/*
+	 * If we did not get any table for an UP, act as if it did not
+	 * support QRP-routing and send it everything.
+	 */
+
+	if (rt == NULL)
+		return NODE_IS_LEAF(n) ? FALSE : TRUE;
 
 	if (!NODE_IS_WRITABLE(n))
 		return FALSE;
@@ -3835,9 +3840,6 @@ qrt_build_query_target(
 		struct routing_table *rt =
 			(struct routing_table *) dn->recv_query_table;
 
-		if (rt == NULL)			/* Node has not sent its query routing table */
-			continue;
-
 		if (dn == source)		/* This is the node that sent us the query */
 			continue;
 
@@ -3850,6 +3852,9 @@ qrt_build_query_target(
 		if (hops >= dn->hops_flow)		/* Hops-flow prevents sending */
 			continue;
 
+		if (rt == NULL && NODE_IS_LEAF(dn))
+			continue;
+
 		/*
 		 * Look whether we can route the query to the peer (a leaf node or
 		 * a last-hop QRP capable ultra node).
@@ -3859,6 +3864,9 @@ qrt_build_query_target(
 
 		if (!NODE_IS_LEAF(dn) && !NODE_UP_QRP(dn))
 			goto can_send;				/* Broadcast to that node */
+
+		if (rt == NULL)					/* UP has not sent us its table */
+			goto can_send;				/* Forward everything then */
 
 		if (!qrp_can_route(qhvec, rt))
 			continue;
