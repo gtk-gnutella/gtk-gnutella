@@ -2353,8 +2353,9 @@ sock_nodelay(struct gnutella_socket *s, gboolean on)
 		-1 == setsockopt(s->file_desc, sol_tcp(), TCP_NODELAY,
 				&arg, sizeof(arg))
 	) {
-		g_warning("unable to %s TCP_NODELAY on fd#%d: %s",
-			on ? "set" : "clear", s->file_desc, g_strerror(errno));
+		if (errno != ECONNRESET)
+			g_warning("unable to %s TCP_NODELAY on fd#%d: %s",
+				on ? "set" : "clear", s->file_desc, g_strerror(errno));
 	}
 }
 
