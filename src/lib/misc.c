@@ -1971,4 +1971,38 @@ ip_range_split(
 	}
 }
 
+/**
+ * Installs a signal handler. The signal handler is not reset to the default
+ * handler after delivery. If the signal is SIGALRM, the handler is installed
+ * so that interrupted system calls fail with EINTR. Handlers for other all
+ * signals are installed so that interrupted system calls are restarted
+ * instead.
+ *
+ * @param signo the signal number.
+ * @param handler the signal handler to install.
+ * @return the previous signal handler or SIG_ERR on failure.
+ *
+ * TODO: Add Configure check for SA_INTERRUPT
+ *
+ */
+void (*
+set_signal(gint signo, void (*handler)(gint)))(gint)
+{
+	struct sigaction sa, osa;
+
+	g_assert(handler != SIG_ERR);
+
+	memset(&sa, 0, sizeof sa);
+	sa.sa_handler = handler;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = signo != SIGALRM ? SA_RESTART
+#if defined(HAVE_SA_INTERRUPT) || defined(SA_INTERRUPT)
+		: SA_INTERRUPT;
+#else
+		: 0;
+#endif
+
+	return sigaction(signo, &sa, &osa) ? SIG_ERR : osa.sa_handler;
+}
+
 /* vi: set ts=4 sw=4 cindent: */

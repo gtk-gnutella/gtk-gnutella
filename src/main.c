@@ -166,7 +166,7 @@ static void gtk_gnutella_atexit()
 	if (!exiting) {
 		g_warning("trapped foreign exit(), cleaning up...");
 		from_atexit = TRUE;
-		signal(SIGALRM, sig_alarm);
+		set_signal(SIGALRM, sig_alarm);
 		if (setjmp(atexit_env)) {
 			g_warning("cleanup aborted while in %s().", exit_step);
 			return;
@@ -329,7 +329,10 @@ static void sig_terminate(int n)
  */
 static void sig_ignore(int n)
 {
-#ifndef SIGNALS_KEPT
+#if 0 && !defined(SIGNALS_KEPT)
+/* This should be unnecessary due to using set_signal() instead of signal()
+ *	-- cbiere, 2004-31-12
+ */
 	gint saved_errno = errno;
 	signal(n, sig_ignore);
 	errno = saved_errno;
@@ -545,12 +548,12 @@ gint main(gint argc, gchar **argv, gchar **env)
 	for (i = 3; i < 256; i++)
 		close(i);				/* Just in case */
 
-	signal(SIGINT, sig_ignore);		/* ignore SIGINT in adns (e.g. for gdb) */
-	signal(SIGPIPE, sig_ignore);	/* Not SIG_IGN, see comment */
+	set_signal(SIGINT, sig_ignore);	/* ignore SIGINT in adns (e.g. for gdb) */
+	set_signal(SIGPIPE, sig_ignore);	/* Not SIG_IGN, see comment */
 
 #ifdef MALLOC_STATS
-	signal(SIGUSR1, sig_malloc);
-	signal(SIGUSR2, sig_malloc);
+	set_signal(SIGUSR1, sig_malloc);
+	set_signal(SIGUSR2, sig_malloc);
 #endif
 
 	gm_savemain(argc, argv, env);	/* For gm_setproctitle() */
@@ -622,11 +625,11 @@ gint main(gint argc, gchar **argv, gchar **env)
 
 	/* Some signal handlers */
 
-	signal(SIGTERM, sig_terminate);
-	signal(SIGINT, sig_terminate);
+	set_signal(SIGTERM, sig_terminate);
+	set_signal(SIGINT, sig_terminate);
 
 #ifdef SIGXFSZ
-	signal(SIGXFSZ, sig_ignore);
+	set_signal(SIGXFSZ, sig_ignore);
 #endif
 
 	/* Setup the main timers */

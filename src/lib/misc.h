@@ -253,6 +253,7 @@ gchar *data_hex_str(const gchar *data, size_t len);
 gint create_directory(const gchar *dir);
 gboolean filepath_exists(const gchar *dir, const gchar *file);
 guint64 parse_uint64(const gchar *, gchar **, gint, gint *);
+void (*set_signal(gint signo, void (*handler)(gint)))(gint);
 
 #ifdef HAVE_STRCASESTR
 char *strcasestr(const char *haystack, const char *needle);
