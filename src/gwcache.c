@@ -103,10 +103,12 @@ static gint current_reused = 0;				/* Amount of times we reused it */
 #define MIN_IP_LINES	5					/* Min lines expected */
 #define MIN_URL_LINES	5					/* Min lines expected */
 #define HOUR_MS			(3600 * 1000)		/* Callout queue time in ms */
+#define URL_RETRY_MS	(20 * 1000)			/* Retry timer for urlfile, in ms */
 
 static gchar *gwc_file = "gwcache";
 static gpointer hourly_update_ev = NULL;
 static gpointer hourly_refresh_ev = NULL;
+static gpointer urlfile_retry_ev = NULL;
 static gchar *client_info;
 static gboolean gwc_file_dirty = FALSE;
 
@@ -336,10 +338,32 @@ static void gwc_hourly_update(cqueue_t *cq, gpointer obj)
  */
 static void gwc_hourly_refresh(cqueue_t *cq, gpointer obj)
 {
+	/*
+	 * Disable retry timer, since we are about to retry now based on our
+	 * regular background periodic refreshing.
+	 */
+
+	if (urlfile_retry_ev) {
+		cq_cancel(callout_queue, urlfile_retry_ev);
+		urlfile_retry_ev = NULL;
+	}
+
 	gwc_get_urls();
 
 	hourly_refresh_ev = cq_insert(callout_queue,
 		HOUR_MS, gwc_hourly_refresh, NULL);
+}
+
+/*
+ * gwc_urlfile_retry
+ *
+ * Called when we failed last urlfile request, after some delay.
+ * Scheduled as a callout queue event.
+ */
+static void gwc_urlfile_retry(cqueue_t *cq, gpointer obj)
+{
+	urlfile_retry_ev = NULL;
+	gwc_get_urls();
 }
 
 /*
@@ -622,7 +646,15 @@ static void gwc_url_eof(struct parse_context *ctx)
 	if (ctx->processed < MIN_URL_LINES) {
 		gwc_seed_cache(current_url);
 		clear_current_url();		/* This webcache has nothing */
-		gwc_get_urls();				/* Try with another one! */
+
+		/*
+		 * Retry the urlfile request after some delay.
+		 */
+
+		g_assert(urlfile_retry_ev == NULL);
+
+		urlfile_retry_ev = cq_insert(callout_queue,
+			URL_RETRY_MS, gwc_urlfile_retry, NULL);
 	}
 }
 
@@ -646,7 +678,15 @@ static void gwc_url_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 	http_async_log_error(handle, type, v);
 
 	clear_current_url();			/* This webcache is not good */
-	gwc_get_urls();					/* Try with another one! */
+
+	/*
+	 * Retry the urlfile request after some delay.
+	 */
+
+	g_assert(urlfile_retry_ev == NULL);
+
+	urlfile_retry_ev = cq_insert(callout_queue,
+		URL_RETRY_MS, gwc_urlfile_retry, NULL);
 }
 
 /*
@@ -660,6 +700,8 @@ static void gwc_url_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 static void gwc_get_urls(void)
 {
 	gpointer handle;
+
+	g_assert(urlfile_retry_ev == NULL);
 
 	check_current_url();
 
