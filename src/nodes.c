@@ -3197,6 +3197,8 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	 * This header is present in the 3rd handshake only when the two servents
 	 * advertised different support.  This last indication is the highest
 	 * version supported by the remote end, that is less or equals to ours.
+	 * (If not present, it means the remote end implicitly expects us to
+	 * comply with his older version.)
 	 *
 	 * If we don't support that version, we'll BYE the servent later.
 	 */
@@ -3235,10 +3237,10 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 		/* 
 		 * Only BYE them if they finally declared to use a protocol we
 		 * don't support yet, despite their knowing that we only support
-		 * the 0.1 version.
+		 * the 0.2 version.
 		 */
 
-		if (qrp_final_set && (n->qrp_major > 0 || n->qrp_minor > 1)) {
+		if (qrp_final_set && (n->qrp_major > 0 || n->qrp_minor > 2)) {
 			node_bye(n, 505, "Query Routing protocol %u.%u not supported",
 				(guint) n->qrp_major, (guint) n->qrp_minor);
 			return;
@@ -3300,6 +3302,28 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 		s->pos = 0;
 
 	}
+}
+
+/*
+ * node_query_routing_header
+ *
+ * Returns the header string that should be used to advertise our QRP version
+ * in the reply to their handshake, as a pointer to static data.
+ */
+static gchar *node_query_routing_header(struct gnutella_node *n)
+{
+	/*
+	 * We're backward compatible with 0.1, i.e. we fully support that version.
+	 * If they advertised something under the level we support (0.2), then
+	 * tell them we're at their version level so they are not confused.
+	 *
+	 * GTKG started to advertise 0.2 on 01/01/2004.
+	 */
+
+	if (n->qrp_major > 0 || n->qrp_minor >= 2)
+		return "X-Query-Routing: 0.2\r\n";
+	else
+		return "X-Query-Routing: 0.1\r\n";	/* Only other possible level */
 }
 
 /*
@@ -3614,7 +3638,7 @@ static void node_process_handshake_header(
 	if (field) {
 		guint major, minor;
 		sscanf(field, "%u.%u", &major, &minor);
-		if (major > 0 || minor > 1)
+		if (major > 0 || minor > 2)
 			if (dbg) g_warning("node %s <%s> claims QRP version %u.%u",
 				node_ip(n), node_vendor(n), major, minor);
 		n->qrp_major = (guint8) major;
@@ -3736,9 +3760,9 @@ static void node_process_handshake_header(
 			"\r\n",
 			(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty,
 			mode_changed ? "X-Ultrapeer: False\r\n" : "",
-			(n->qrp_major > 0 || n->qrp_minor > 1) ?
-				"X-Query-Routing: 0.1\r\n" : "");
-	 	
+			(n->qrp_major > 0 || n->qrp_minor > 2) ?
+				"X-Query-Routing: 0.2\r\n" : "");
+
 		g_assert(rw < sizeof(gnet_response));
 	} else {
 		gint ultra_max;
@@ -3786,7 +3810,7 @@ static void node_process_handshake_header(
 				node_leaf_count < max_leaves ? "X-Ultrapeer-Needed: False\r\n" :
 					"",
 				current_peermode != NODE_P_NORMAL ?
-					"X-Query-Routing: 0.1\r\n" : "",
+					node_query_routing_header(n) : "",
 				tok_version(), start_rfc822_date);
 				
 			header_features_generate(&xfeatures.connections,
@@ -4501,7 +4525,7 @@ void node_init_outgoing(struct gnutella_node *n)
 		current_peermode == NODE_P_NORMAL ? "" :
 		current_peermode == NODE_P_LEAF ?
 			"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
-		current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.1\r\n" : ""
+		current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.2\r\n" : ""
 	);
 
 	header_features_generate(&xfeatures.connections, buf, sizeof(buf), &len);
