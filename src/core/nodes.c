@@ -4341,6 +4341,7 @@ node_udp_create(void)
 		NODE_F_READABLE | NODE_F_WRITABLE | NODE_F_VALID;
 	n->up_date = start_stamp;
 	n->connect_date = start_stamp;
+	n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
 
 	return n;
 }
@@ -4397,6 +4398,16 @@ node_udp_get(struct gnutella_socket *s)
 	n->port = s->port;
 
 	return n;
+}
+
+/**
+ * Get the message queue attached to the UDP node.
+ * @return the UDP message queue, or NULL if UDP has been disabled.
+ */
+mqueue_t *
+node_udp_get_outq(void)
+{
+	return udp_node->outq;
 }
 
 /**
@@ -5138,7 +5149,19 @@ node_udp_process(struct gnutella_socket *s)
 	 */
 
 	g_assert(n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n));
-	node_parse(n);
+
+	/*
+	 * Discard incoming datagrams from registered hostile IP addresses.
+	 */
+
+	if (hostiles_check(n->ip)) {
+		if (udp_debug)
+			g_warning("UDP got %s from hostile %s -- dropped",
+				gmsg_infostr_full(s->buffer), node_ip(n));
+		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
+	} else
+		node_parse(n);
+
 	g_assert(n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n));
 
 	node_udp_release(s);
@@ -6039,6 +6062,8 @@ node_close(void)
 
 	if (udp_node->outq)
 		mq_free(udp_node->outq);
+	if (udp_node->alive_pings)
+		alive_free(udp_node->alive_pings);
 	node_real_remove(udp_node);
 
 	g_slist_free(sl_proxies);
@@ -6398,6 +6423,22 @@ node_ip(const gnutella_node_t *n)
 
 	ia.s_addr = htonl(n->ip);
 	gm_snprintf(a, sizeof(a), "%s:%u", inet_ntoa(ia), n->port);
+	return a;
+}
+
+/**
+ * Returns the advertised Gnutella ip:port of a node 
+ */
+gchar *
+node_gnet_ip(const gnutella_node_t *n)
+{
+	static gchar a[32];
+	struct in_addr ia;
+
+	g_assert(n != NULL);
+
+	ia.s_addr = htonl(n->gnet_ip);
+	gm_snprintf(a, sizeof(a), "%s:%u", inet_ntoa(ia), n->gnet_port);
 	return a;
 }
 

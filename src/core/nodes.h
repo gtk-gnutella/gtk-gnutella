@@ -525,6 +525,7 @@ void node_set_hops_flow(gnutella_node_t *n, guint8 hops);
 void node_set_online_mode(gboolean on);
 void node_current_peermode_changed(node_peer_t mode);
 gchar *node_ip(const gnutella_node_t *n);
+gchar *node_gnet_ip(const gnutella_node_t *n);
 
 void node_connect_back(const gnutella_node_t *n, guint16 port);
 void node_connected_back(struct gnutella_socket *s);
@@ -544,6 +545,7 @@ gnutella_node_t *node_active_by_id(guint32 id);
 void node_became_firewalled(void);
 void node_set_socket_rx_size(gint rx_size);
 
+mqueue_t *node_udp_get_outq(void);
 void node_udp_enable(void);
 void node_udp_disable(void);
 void node_udp_process(struct gnutella_socket *s);
