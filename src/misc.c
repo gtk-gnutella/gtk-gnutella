@@ -616,6 +616,25 @@ guint32 next_pow2(guint32 n)
 }
 
 /*
+ * highest_bit_set
+ *
+ * Determine the highest bit set in `n', -1 if value was 0.
+ */
+gint highest_bit_set(guint32 n)
+{
+	gint h = 0;
+	guint32 r = n;
+
+	if (r == 0)
+		return -1;
+	
+	while (r >>= 1)			/* Will find largest bit set */
+		h++;
+
+	return h;
+}
+
+/*
  * random_value:
  *
  * Return random value between (0..max).

@@ -150,6 +150,7 @@ void dump_hex(FILE *, gchar *, gchar *, gint);
 void strlower(gchar *, gchar *);
 gchar *unique_filename(gchar *path, gchar *file, gchar *ext);
 guchar *hex_escape(guchar *name);
+gint highest_bit_set(guint32 n);
 
 #ifdef HAVE_STRCASESTR
 char *strcasestr(const char *haystack, const char *needle);
