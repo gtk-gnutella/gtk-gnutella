@@ -352,7 +352,7 @@ static void log_init(void)
 		&log_handler, NULL);
 }
 
-gint main(gint argc, gchar ** argv)
+gint main(gint argc, gchar **argv, gchar **env)
 {
 	gint i;
 
@@ -361,6 +361,8 @@ gint main(gint argc, gchar ** argv)
 
 	signal(SIGINT, sig_ignore);		/* ignore SIGINT in adns (e.g. for gdb) */
 	signal(SIGPIPE, sig_ignore);	/* Not SIG_IGN, see comment */
+
+	gm_savemain(argc, argv, env);	/* For gm_setproctitle() */
 
 	/* Our inits */
 	log_init();

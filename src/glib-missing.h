@@ -46,5 +46,8 @@ size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args);
 size_t gm_snprintf(gchar *str, size_t n, gchar const *fmt, ...)
 	G_GNUC_PRINTF (3, 4);
 
+void gm_savemain(gint argc, gchar **argv, gchar **env);
+void gm_setproctitle(gchar *title);
+
 #endif	/* _glib_missing_h_ */
 

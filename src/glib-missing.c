@@ -178,3 +178,83 @@ size_t gm_snprintf(gchar *str, size_t n, gchar const *fmt, ...)
 	return retval;
 }
 
+static gint orig_argc;
+static gchar **orig_argv;
+static gchar **orig_env;
+
+/*
+ * gm_savemain
+ *
+ * Save the original main() arguments.
+ */
+void gm_savemain(gint argc, gchar **argv, gchar **env)
+{
+	orig_argc = argc;
+	orig_argv = argv;
+	orig_env = env;
+}
+
+/*
+ * gm_setproctitle
+ *
+ * Change the process title as seen by "ps".
+ */
+void gm_setproctitle(gchar *title)
+{
+	static gint sysarglen = 0;		/* Length of the exec() arguments */
+	gint tlen;
+	gint i;
+
+	/*
+	 * Compute the length of the exec() arguments that were given to us.
+	 */
+
+	if (sysarglen == 0) {
+		gchar *s = orig_argv[0];
+
+		s += strlen(s) + 1;			/* Go past trailing NUL */
+
+		/*
+		 * Let's see whether all the argv[] arguments were contiguous.
+		 */
+
+		for (i = 1; i < orig_argc; i++) {
+			if (orig_argv[i] != s)
+				break;
+			s += strlen(s) + 1;		/* Yes, still contiguous */
+		}
+
+		/*
+		 * Maybe the environment is contiguous as well...
+		 */
+
+		for (i = 0; orig_env[i] != NULL; i++) {
+			if (orig_env[i] != s)
+				break;
+			s += strlen(s) + 1;		/* Yes, still contiguous */
+		}
+
+		sysarglen = s - orig_argv[0] - 1;	/* -1: leave room for NUL */
+
+		g_warning("exec() args used %d contiguous bytes", sysarglen + 1);
+	}
+
+	tlen = strlen(title);
+	
+	if (tlen >= sysarglen) {		/* If too large, needs truncation */
+		memcpy(orig_argv[0], title, sysarglen);
+		(orig_argv[0])[sysarglen] = '\0';
+	} else {
+		memcpy(orig_argv[0], title, tlen + 1);	/* Copy trailing NUL */
+		if (tlen + 1 < sysarglen)
+			memset(orig_argv[0] + tlen + 1, ' ', sysarglen - tlen - 1);
+	}
+
+	/*
+	 * Scrap references to the arguments.
+	 */
+
+	for (i = 1; i < orig_argc; i++)
+		orig_argv[i] = NULL;
+}
+
