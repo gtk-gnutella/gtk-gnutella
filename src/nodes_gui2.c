@@ -197,7 +197,7 @@ void nodes_gui_remove_node(gnet_node_t n)
 void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 {
     GtkTreeIter iter;
-	gchar proto_tmp[16];
+	gchar proto_tmp[32];
     guint handle;
 	gchar *vendor;
 
@@ -351,7 +351,7 @@ void nodes_gui_update_nodes_display(time_t now)
     
     while (valid) {
         GValue val = { 0, };
-        gchar timestr[32];
+        static gchar timestr[SIZE_FIELD_MAX];
 
         gtk_tree_model_get_value(GTK_TREE_MODEL(nodes_model),
             &iter, COL_NODE_HANDLE, &val);
@@ -382,7 +382,7 @@ void nodes_gui_update_node_info(gnet_node_info_t *n)
 
     if (valid) {
 		gchar *vendor;
-		gchar version[16];
+		static gchar version[32];
         gnet_node_status_t status;
         time_t now = time((time_t *) NULL);
 
