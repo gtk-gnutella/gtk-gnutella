@@ -302,7 +302,9 @@ void node_timer(time_t now)
 				NODE_IN_TX_FLOW_CONTROL(n) &&
 				now - n->tx_flowc_date > node_tx_flowc_timeout
 			)
-				node_bye(n, 405, "Transmit timeout");
+				node_bye(n, 405, "Flow-controlled for too long (%d sec%s)",
+					node_tx_flowc_timeout,
+					node_tx_flowc_timeout == 1 ? "" : "s");
 		}
 
 		if (n->searchq != NULL)
