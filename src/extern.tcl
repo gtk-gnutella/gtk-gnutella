@@ -110,8 +110,7 @@ set w_main_list {
 	button_search_clear
 	button_search_close
 	button_search_download 
-	button_search_filter 
-	button_search_stream 
+	button_search_filter
 	checkbutton_search_jump_to_downloads
     checkbutton_search_remove_downloaded
     checkbutton_search_pick_all
@@ -215,6 +214,8 @@ set w_main_list {
     spinbutton_nodes_max_hosts_cached
     frame_bws_inout
     frame_bws_ginout
+
+    label_shutdown_count
 }
 
 # interface.h ----------------------------------------------------------------------------------------
