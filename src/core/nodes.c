@@ -2754,6 +2754,7 @@ node_got_bye(struct gnutella_node *n)
 
 		if (is_ascii_alnum(c1) && is_ascii_alnum(c2)) {
 			message = n->data;
+			message_len = n->size;
 			code = 901;
 		}
 	}
