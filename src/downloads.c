@@ -51,6 +51,7 @@
 #include "uploads.h"
 #include "ban.h"
 #include "guid.h"
+#include "pproxy.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -91,6 +92,7 @@ static void download_incomplete_header(struct download *d);
 static gboolean has_blank_guid(const struct download *d);
 static void download_verify_sha1(struct download *d);
 static gboolean download_get_server_name(struct download *d, header_t *header);
+static gboolean use_push_proxy(struct download *d);
 
 static gboolean download_dirty = FALSE;
 static void download_store(void);
@@ -336,44 +338,6 @@ static gboolean has_good_sha1(struct download *d)
 	struct dl_file_info *fi = d->file_info;
 
 	return fi->sha1 == NULL || sha1_eq(fi->sha1, fi->cha1);
-}
-
-/*
- * dl_req_alloc
- *
- * Allocate HTTP request buffer, capable of holding request at `buf', or `len'
- * bytes, whose `written' bytes have already been sent out.
- */
-static struct dl_request *dl_req_alloc(gchar *buf, gint len, gint written)
-{
-	struct dl_request *r;
-
-	g_assert(buf);
-	g_assert(len > 0);
-	g_assert(written >= 0 && written < len);
-
-	r = walloc(sizeof(*r));
-	r->buffer = walloc(len);		/* Should be small enough for walloc */
-	r->len = len;
-	r->end = r->buffer + len;
-	r->rptr = r->buffer + written;
-
-	memcpy(r->buffer, buf, len);
-
-	return r;
-}
-
-/*
- * dl_req_free
- *
- * Dispose of HTTP request buffer.
- */
-static void dl_req_free(struct dl_request *r)
-{
-	g_assert(r);
-
-	wfree(r->buffer, r->len);
-	wfree(r, sizeof(*r));
 }
 
 /* ----------------------------------------- */
@@ -1420,10 +1384,10 @@ static void download_move_to_list(struct download *d, enum dl_list idx)
 			g_assert(DOWNLOAD_IS_ESTABLISHING(d));
 			dl_establishing--;
 		}
-		downloads_with_name_dec(d->file_info->file_name);
+		downloads_with_name_dec(download_outname(d));
 	} else if (idx == DL_LIST_RUNNING) {
 		dl_establishing++;
-		downloads_with_name_inc(d->file_info->file_name);
+		downloads_with_name_inc(download_outname(d));
 	}
 
 	g_assert(dl_active >= 0 && dl_establishing >= 0);
@@ -1708,7 +1672,7 @@ void download_stop(struct download *d, guint32 new_status,
 	}
 
 	if (d->req) {
-		dl_req_free(d->req);
+		http_buffer_free(d->req);
 		d->req = NULL;
 	}
 
@@ -2202,6 +2166,7 @@ gboolean download_start_prepare_running(struct download *d)
 
 	d->skip = 0;			/* We're setting it here only if not swarming */
 	d->keep_alive = FALSE;	/* Until proven otherwise by server's reply */
+	d->got_giv = FALSE;		/* Don't know yet, assume no GIV */
 
 	d->flags &= ~DL_F_OVERLAPPED;		/* Clear overlapping indication */
 	d->flags &= ~DL_F_SHRUNK_REPLY;		/* Clear server shrinking indication */
@@ -2418,7 +2383,7 @@ void download_start(struct download *d, gboolean check_allowed)
 		count_running_downloads() >= max_downloads ||
 		count_running_on_server(d->server) >= max_host_downloads ||
 		(!d->file_info->use_swarming &&
-			count_running_downloads_with_name(d->file_info->file_name) != 0))
+			count_running_downloads_with_name(download_outname(d)) != 0))
 	) {
 		if (!DOWNLOAD_IS_QUEUED(d))
 			download_queue(d, _("No download slot"));
@@ -2612,38 +2577,49 @@ static void download_push(struct download *d, gboolean on_timeout)
 		download_push_insert(d);
 
 	g_assert(d->push);
-	if (!send_push_request(download_guid(d), d->record_index, listen_port)) {
-		if (!d->always_push) {
-			download_push_remove(d);
-			goto attempt_retry;
+
+	/*
+	 * Before sending a push on Gnet, look whether we have some push-proxies
+	 * available for the server.
+	 *		--RAM, 18/07/2003
+	 */
+
+	if (use_push_proxy(d))
+		return;
+
+	if (send_push_request(download_guid(d), d->record_index, listen_port))
+		return;
+
+	if (!d->always_push) {
+		download_push_remove(d);
+		goto attempt_retry;
+	} else {
+		/*
+		 * If the address is not a private IP, it is possible that the
+		 * servent set the "Push" flag incorrectly.
+		 *		-- RAM, 18/08/2002.
+		 */
+
+		if (!host_is_valid(download_ip(d), download_port(d))) {
+			download_stop(d, GTA_DL_ERROR, "Push route lost");
+			download_remove_all_from_peer(
+				download_guid(d), download_ip(d), download_port(d));
 		} else {
 			/*
-			 * If the address is not a private IP, it is possible that the
-			 * servent set the "Push" flag incorrectly.
-			 *		-- RAM, 18/08/2002.
+			 * Later on, if we manage to connect to the server, we'll
+			 * make sure to mark it so that we ignore pushes to it, and
+			 * we will clear the `always_push' indication.
+			 * (see download_send_request() for more information)
 			 */
 
-			if (!host_is_valid(download_ip(d), download_port(d))) {
-				download_stop(d, GTA_DL_ERROR, "Push route lost");
-				download_remove_all_from_peer(
-					download_guid(d), download_ip(d), download_port(d));
-			} else {
-				/*
-				 * Later on, if we manage to connect to the server, we'll
-				 * make sure to mark it so that we ignore pushes to it, and
-				 * we will clear the `always_push' indication.
-				 * (see download_send_request() for more information)
-				 */
+			download_push_remove(d);
 
-				download_push_remove(d);
+			if (dbg > 2)
+				printf("PUSH trying to ignore them for %s\n",
+					ip_port_to_gchar(download_ip(d), download_port(d)));
 
-				if (dbg > 2)
-					printf("PUSH trying to ignore them for %s\n",
-						ip_port_to_gchar(download_ip(d), download_port(d)));
-
-				d->flags |= DL_F_PUSH_IGN;
-				download_queue(d, _("Ignoring Push flag"));
-			}
+			d->flags |= DL_F_PUSH_IGN;
+			download_queue(d, _("Ignoring Push flag"));
 		}
 	}
 
@@ -2913,7 +2889,8 @@ static struct download *create_download(
 	else if (
 		count_running_downloads() < max_downloads &&
 		count_running_on_server(d->server) < max_host_downloads &&
-		count_running_downloads_with_name(d->file_info->file_name) == 0
+		(d->file_info->use_swarming ||
+			count_running_downloads_with_name(download_outname(d)) == 0)
 	) {
 		download_start(d, FALSE);		/* Start the download immediately */
 	} else {
@@ -3334,7 +3311,7 @@ void download_remove(struct download *d)
 	}
 
 	if (d->req) {
-		dl_req_free(d->req);
+		http_buffer_free(d->req);
 		d->req = NULL;
 	}
 	
@@ -3446,6 +3423,31 @@ void download_requeue(struct download *d)
 }
 
 /*
+ * use_push_proxy
+ *
+ * Try to setup the downlaod to use the push proxies available on the server.
+ * Returns TRUE is we can use a push proxy.
+ */
+static gboolean use_push_proxy(struct download *d)
+{
+	struct dl_server *server = d->server;
+	gnet_host_t *host;
+
+	// XXXX
+	return FALSE;
+
+	g_assert(d->push);
+	g_assert(!has_blank_guid(d));
+	g_assert(d->cproxy == NULL);
+
+	if (server->proxies == NULL)
+		return FALSE;
+
+	host = (gnet_host_t *) server->proxies->data;	/* Pick the first */
+	d->cproxy = cproxy_create(d, host->ip, host->port, download_guid(d));
+}
+
+/*
  * IO functions
  */
 
@@ -3467,7 +3469,7 @@ static gboolean send_push_request(
 	if (nodes == NULL)
 		return FALSE;
 
-	message_set_muid(&(m.header), GTA_MSG_PUSH_REQUEST);
+	message_set_muid(&m.header, GTA_MSG_PUSH_REQUEST);
 
 	/*
 	 * NB: we send the PUSH message with max_ttl, not my_ttl, in case the
@@ -3481,7 +3483,7 @@ static gboolean send_push_request(
 
 	WRITE_GUINT32_LE(sizeof(struct gnutella_push_request), m.header.size);
 
-	memcpy(&(m.request.guid), guid, 16);
+	memcpy(m.request.guid, guid, 16);
 
 	WRITE_GUINT32_LE(file_id, m.request.file_id);
 	WRITE_GUINT32_BE(listen_ip(), m.request.host_ip);
@@ -3493,8 +3495,7 @@ static gboolean send_push_request(
 	 */
 
 	message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
-	gmsg_sendto_all(nodes,
-		(gchar *) &m, sizeof(struct gnutella_msg_push_request));
+	gmsg_sendto_all(nodes, (gchar *) &m, sizeof(m));
 
 	g_slist_free(nodes);
 
@@ -4244,7 +4245,7 @@ static void check_xhost(struct download *d, const header_t *header)
 	guint32 ip;
 	guint16 port;
 
-	g_assert(d->push);
+	g_assert(d->got_giv);
 
 	buf = header_get(header, "X-Host");
 
@@ -4464,6 +4465,46 @@ collect_locations:
 	return TRUE;
 }
 
+/*
+ * check_push_proxies
+ *
+ * Extract host:port information out of X-Push-Proxies if present and
+ * update the server's list.
+ */
+static void check_push_proxies(struct download *d, header_t *header)
+{
+	gchar *buf;
+	struct dl_server *server = d->server;
+	const gchar *tok;
+	GSList *l = NULL;
+
+	buf = header_get(header, "X-Push-Proxies");
+	if (buf == NULL)
+		buf = header_get(header, "X-Pushproxies");	/* Legacy */
+
+	if (buf == NULL)
+		return;
+
+	for (tok = strtok(buf, ","); tok; tok = strtok(NULL, ",")) {
+		guint32 ip;
+		guint16 port;
+
+		if (gchar_to_ip_port(tok, &ip, &port)) {
+			gnet_host_t *host = walloc(sizeof(*host));
+
+			host->ip = ip;
+			host->port = port;
+
+			l = g_slist_prepend(l, host);
+		}
+	}
+
+	if (server->proxies)
+		free_proxies(server);
+
+	server->proxies = l;
+	server->proxies_stamp = time(NULL);
+}
 
 /*
  * update_available_ranges
@@ -4666,8 +4707,11 @@ static void download_request(
 	 * vendor string indication (attaching it to a discarded server object).
 	 */
 
-	if (d->push)
-		check_xhost(d, header);
+	if (d->got_giv) {
+		if (!is_followup)
+			check_xhost(d, header);
+		check_push_proxies(d, header);
+	}
 
 	/*
 	 * Extract Server: header string, if present, and store it unless
@@ -5500,7 +5544,7 @@ static void download_request_sent(struct download *d)
 /*
  * download_write_request
  *
- * I/O callback called when we can write more data to the server to finish
+ * I/O callback invoked when we can write more data to the server to finish
  * sending the HTTP request.
  */
 static void download_write_request(
@@ -5508,9 +5552,10 @@ static void download_write_request(
 {
 	struct download *d = (struct download *) data;
 	struct gnutella_socket *s = d->socket;
-	struct dl_request *r = d->req;
+	http_buffer_t *r = d->req;
 	gint sent;
 	gint rw;
+	gchar *base;
 
 	g_assert(s->gdk_tag);		/* I/O callback still registered */
 	g_assert(r != NULL);
@@ -5535,9 +5580,10 @@ static void download_write_request(
 		return;
 	}
 
-	rw = r->end - r->rptr;		/* Data we still have to send */
+	rw = http_buffer_unread(r);			/* Data we still have to send */
+	base = http_buffer_read_base(r);	/* And where unsent data start */
 
-	if (-1 == (sent = bws_write(bws.out, s->file_desc, r->rptr, rw))) {
+	if (-1 == (sent = bws_write(bws.out, s->file_desc, base, rw))) {
 		/*
 		 * If download is queued with PARQ, etc...  [Same as above]
 		 */
@@ -5551,13 +5597,13 @@ static void download_write_request(
 				msg, g_strerror(errno));
 		return;
 	} else if (sent < rw) {
-		r->rptr += sent;
+		http_buffer_add_read(r, sent);
 		return;
 	} else if (dbg > 2) {
 		printf("----Sent Request (%s) completely to %s:\n%.*s----\n",
 			d->keep_alive ? "follow-up" : "initial",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
-				r->len, r->buffer);
+			http_buffer_length(r), http_buffer_base(r));
 		fflush(stdout);
 	}
 
@@ -5567,12 +5613,13 @@ static void download_write_request(
 
 	if (dbg)
 		g_warning("flushed partially written HTTP request to %s (%d bytes)",
-			ip_port_to_gchar(download_ip(d), download_port(d)), d->req->len);
+			ip_port_to_gchar(download_ip(d), download_port(d)),
+			http_buffer_length(r));
 	 
 	g_source_remove(s->gdk_tag);
 	s->gdk_tag = 0;
 
-	dl_req_free(r);
+	http_buffer_free(r);
 	d->req = NULL;
 
 	download_request_sent(d);
@@ -5877,7 +5924,7 @@ picked:
 
 		g_assert(d->req == NULL);
 
-		d->req = dl_req_alloc(dl_tmp, rw, sent);
+		d->req = http_buffer_alloc(dl_tmp, rw, sent);
 
 		/*
 		 * Install the writing callback.
@@ -5993,26 +6040,20 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 	 * we could request.
 	 */
 
-	hex_to_guid(hex_guid, rguid);
-
-#if 0		/* XXX do not limit by download slot */
-	/*
-	 * If we have already reached our maximum amount of concurrent downloads,
-	 * or if we have reached our maximum amount of downloads for this host,
-	 * then abort: this connection is wasted.
-	 *
-	 * XXX As a future enhancement, we could instead "kill" a non-active
-	 * XXX download for which no push is done, to give priority to the
-	 * XXX push, which is precious since we need a route to the remote
-	 * XXX servent to initiate the requests. --RAM, 20/01/2002
-	 */
-
-	if (count_running_downloads() >= max_downloads) {
-		g_warning("discarding GIV from %s: no more download slot",
-			guid_hex_str(rguid));
+	if (!hex_to_guid(hex_guid, rguid)) {
+		g_warning("discarding GIV with malformed GUID %s", hex_guid);
 		return NULL;
 	}
-#endif
+
+	/*
+	 * We do not limit by download slots for GIV... Indeed, pushes are
+	 * precious little things.  We must peruse the connection we got
+	 * because we don't know whether we'll be able to get another one.
+	 * This is where it is nice that the remote end supports queuing... and
+	 * PARQ will work either way (i.e. active or passive queuing, since
+	 * then we'll get QUEUE callbacks).
+	 *		--RAM, 19/07/2003
+	 */
 
 	/*
 	 * Look for a queued download on this host that we could request.
@@ -6040,10 +6081,28 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 			if (!guid_eq(rguid, server->key->guid))
 				continue;
 
-			if (
-				server->count[DL_LIST_WAITING] == 0 ||
-				count_running_on_server(server) >= max_host_downloads
-			)
+			/*
+			 * Look for an active download for this host, expecting a GIV.
+			 */
+
+			for (w = server->list[DL_LIST_RUNNING]; w; w = g_list_next(w)) {
+				struct download *d = (struct download *) w->data;
+
+				g_assert(DOWNLOAD_IS_RUNNING(d));
+
+				if (DOWNLOAD_IS_EXPECTING_GIV(d)) {
+					if (dbg > 2)
+						printf("GIV: selected active download '%s' from %s\n",
+							d->file_name, guid_hex_str(rguid));
+					return d;
+				}
+			}
+
+			/*
+			 * No luck so far.  Look for waiting downloads for this host.
+			 */
+
+			if (count_running_on_server(server) >= max_host_downloads)
 				continue;
 
 			for (w = server->list[DL_LIST_WAITING]; w; w = g_list_next(w)) {
@@ -6052,8 +6111,8 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 				g_assert(!DOWNLOAD_IS_RUNNING(d));
 
 				if (
-					count_running_downloads_with_name(
-						d->file_info->file_name) != 0
+					!d->file_info->use_swarming &&
+					count_running_downloads_with_name(download_outname(d)) != 0
 				)
 					continue;
 
@@ -6088,7 +6147,7 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 					gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT,
 						count_running_downloads());
 
-					if (dbg > 4)
+					if (dbg > 2)
 						printf(
 							"GIV: selected alternate download '%s' from %s\n",
 							d->file_name, guid_hex_str(rguid));
@@ -6172,6 +6231,7 @@ void download_push_ack(struct gnutella_socket *s)
 
 	g_assert(d->socket == NULL);
 
+	d->got_giv = TRUE;
 	d->last_update = time((time_t *) NULL);
 	d->socket = s;
 	s->resource.download = d;
@@ -6490,7 +6550,9 @@ static void download_retrieve(void)
 		 * At the last line of the record.
 		 */
 
-		hex_to_guid(d_hexguid, d_guid);
+		if (!hex_to_guid(d_hexguid, d_guid))
+			g_warning("download_rerieve: malformed GUID %s near line #%d",
+				d_hexguid, line);
 
 		/*
 		 * Download is created with a timestamp of `1' so that it is very
@@ -7007,7 +7069,7 @@ void download_close(void)
 		if (d->ranges)
 			http_range_free(d->ranges);
 		if (d->req)
-			dl_req_free(d->req);
+			http_buffer_free(d->req);
         
 		file_info_remove_source(d->file_info, d, TRUE);
 		parq_dl_remove(d);
