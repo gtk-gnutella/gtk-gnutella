@@ -33,6 +33,7 @@
 #include "gnutella.h"
 #include "settings.h"
 #include "downloads.h"
+#include "guid.h"
 #include "gnet_property.h"
 
 RCSID("$Id$");
@@ -152,8 +153,6 @@ struct parq_dl_queued {
 };
 
 
-struct parq_dl_queued* parq_dl_create(struct download *d);
-void parq_dl_add_id(struct download *d, const gchar *new_id);
 void parq_dl_del_id(struct download *d);
 
 static void parq_upload_free(struct parq_ul_queued *parq_ul);
@@ -597,7 +596,7 @@ void parq_dl_free(struct download *d)
  * Creates a queue structure for a download.
  * Returns a parq_dl_queued pointer to the newly created structure.
  */
-struct parq_dl_queued* parq_dl_create(struct download *d)
+gpointer parq_dl_create(struct download *d)
 {
 	struct parq_dl_queued* parq_dl = NULL;
 	
@@ -605,7 +604,8 @@ struct parq_dl_queued* parq_dl_create(struct download *d)
 	
 	parq_dl = walloc(sizeof(*parq_dl));
 	
-	parq_dl->id = NULL;	/* Can't allocate yet, ID size isn't fixed */
+	parq_dl->id = NULL;		/* Can't allocate yet, ID size isn't fixed */
+	parq_dl->position = 0;
 	
 	return parq_dl;
 }
@@ -721,7 +721,7 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 	
 	if (d->queue_status == NULL) {
 		/* So this download has no parq structure yet, well create one! */
-		d->queue_status = (gpointer *) parq_dl_create(d);
+		d->queue_status = parq_dl_create(d);
 	}
 	
 	parq_dl = (struct parq_dl_queued *) d->queue_status;
@@ -887,6 +887,7 @@ void parq_download_add_header(
 	 * add X-Queued if there is no ID available. This could be because it is
 	 * a first request.
 	 */
+
 	if (d->server->parq_version.major == 1) {
 		if (get_parq_dl_id(d) != NULL)
 			*rw += gm_snprintf(&buf[*rw], len - *rw,
@@ -913,9 +914,11 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 {
 	gchar *queue;
 	gchar *id;
+	gchar *ip_str;
 	struct download *dl;
-	guint32 ip;
-	guint16 port;
+	guint32 ip = 0;
+	guint16 port = 0;
+	gboolean has_ip_port = TRUE;
 
 	socket_tos_default(s);	/* Set proper Type of Service */
 
@@ -937,11 +940,56 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 	id = queue + sizeof("QUEUE ") - 1;
 	while (isspace((guchar) *id))
 		id++;
-		
+
+	/*
+	 * Fetch the IP port at the end of the QUEUE string.
+	 */
+
+	ip_str = strchr(id, ' ');
+
+	if (ip_str == NULL || !gchar_to_ip_port(ip_str + 1, &ip, &port)) {
+		g_warning("missing IP:port in \"%s\" from %s",
+			queue, ip_to_gchar(s->ip));
+		has_ip_port = FALSE;
+	}
+
+	/*
+	 * Terminate the ID part from the QUEUE message.
+	 */
+
+	if (ip_str != NULL)
+		*ip_str = '\0';
+
 	dl = (struct download *) g_hash_table_lookup(dl_all_parq_by_id, id);
 
+	/*
+	 * If we were unable to locate a download by this ID, try to elect
+	 * another download from this host for which we don't have any PARQ
+	 * information yet.
+	 */
+
 	if (dl == NULL) {
-		g_warning("Could not locate QUEUE id '%s'", queue);
+		g_warning("could not locate QUEUE id '%s' from %s",
+			id, ip_port_to_gchar(ip, port));
+
+		if (has_ip_port) {
+			dl = download_find_waiting_unparq(ip, port);
+
+			if (dl != NULL) {
+				g_warning("elected '%s' from %s for QUEUE id '%s'",
+					dl->file_name, ip_port_to_gchar(ip, port), id);
+
+				g_assert(dl->queue_status == NULL);		/* unparq'ed */
+
+				dl->queue_status = parq_dl_create(dl);
+				parq_dl_add_id(dl, queue);
+
+				/* All set for request now */
+			}
+		}
+	}
+
+	if (dl == NULL) {
 		g_assert(s->resource.download == NULL);	/* Hence socket_free() */
 		socket_free(s);
 		return;
@@ -954,21 +1002,19 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 		return;
 	}
 
-	/*
-	 * Fetch the IP port at the end of the QUEUE string.
-	 */
-
-	id = strchr(id, ' ');
-
-	if (id == NULL || !gchar_to_ip_port(id, &ip, &port))
-		g_warning("missing IP:port in \"%s\" from %s",
-			queue, ip_to_gchar(s->ip));
-	else
+	if (has_ip_port)
 		download_redirect_to_server(dl, ip, port);	/* Might have changed */
 
+	dl->server->parq_version.major = 1;				/* At least */
+	dl->server->parq_version.minor = 0;
+
 	/*
-	 * Look for a recorded download.
+	 * Send the request on the connection the server opened.
+	 *
+	 * NB: if this is the initial QUEUE request we get after being relaunched,
+	 * we won't have a valid queue position to send back, and 0 will be used.
 	 */
+
 	if (download_start_prepare(dl)) {
 		struct gnutella_socket *ds = dl->socket;
 		dl->socket = s;
@@ -1104,6 +1150,7 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	struct parq_ul_queued *parq_ul = NULL;
 	struct parq_ul_queued *parq_ul_prev = NULL;
 	struct parq_ul_queue *parq_ul_queue = NULL;
+	guchar parq_id[16];
 
 	guint eta = 0;
 	guint rel_pos = 1;
@@ -1160,11 +1207,9 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	parq_ul->remote_ip = u->ip;
 	parq_upload_update_ip_and_name(parq_ul, u);
 	
-	/* Create an ID. We might want to do this better some day. */
-	parq_ul->id = g_strdup_printf("%08x%x%x",
-						(unsigned) u->ip,
-						(unsigned) random_value(0xFFFFFFFF),
-						(unsigned) now);
+	/* Create an ID */
+	guid_random_muid(parq_id);
+	parq_ul->id = g_strdup(guid_hex_str(parq_id));
 
 	g_assert(parq_ul->ip_and_name != NULL);
 	g_assert(parq_ul->id != NULL);

@@ -41,7 +41,10 @@ gint get_parq_dl_position(const struct download *d);
 gint get_parq_dl_queue_length(const struct download *d);
 gint get_parq_dl_eta(const struct download *d);
 gint get_parq_dl_retry_delay(const struct download *d);
+gchar *get_parq_dl_id(const struct download *d);
 
+gpointer parq_dl_create(struct download *d);
+void parq_dl_add_id(struct download *d, const gchar *new_id);
 void parq_dl_remove(struct download *d);
 void parq_dl_free(struct download *d);
 	
