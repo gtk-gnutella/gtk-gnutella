@@ -3780,7 +3780,7 @@ gboolean download_remove(struct download *d)
 
 	atom_str_free(d->file_name);
 	if (d->escaped_name != d->file_name)
-		g_free(d->escaped_name);
+		G_FREE_NULL(d->escaped_name);
 
 	d->file_name = NULL;
 	d->escaped_name = NULL;
@@ -4330,7 +4330,7 @@ static gboolean download_overlap_check(struct download *d)
 			s->pos - d->overlap_size);
 	s->pos -= d->overlap_size;
 
-	g_free(data);
+	G_FREE_NULL(data);
 	close(fd);
 
 	if (dbg > 3)
@@ -4343,7 +4343,7 @@ out:
 	if (fd != -1)
 		close(fd);
 	if (data)
-		g_free(data);
+		G_FREE_NULL(data);
 
 	return FALSE;
 }
@@ -4618,7 +4618,7 @@ static gboolean download_moved_permanently(
 
 		atom_str_free(d->file_name);
 		if (d->escaped_name != d->file_name)
-			g_free(d->escaped_name);
+			G_FREE_NULL(d->escaped_name);
 
 		d->file_name = info.name;			/* Already an atom */
 		d->escaped_name = url_escape_cntrl(info.name);
@@ -4666,7 +4666,7 @@ static gboolean download_get_server_name(
 			if (faked) {
 				gchar *name = g_strdup_printf("!%s", buf);
 				server->vendor = atom_str_get(name);
-				g_free(name);
+				G_FREE_NULL(name);
 			} else
 				server->vendor = atom_str_get(buf);
 			got_new_server = TRUE;
@@ -7368,8 +7368,7 @@ static void download_retrieve(void)
 		recline = 0;				/* Mark the end */
 		has_sha1 = FALSE;
 		if (parq_id != NULL) {
-			g_free(parq_id);
-			parq_id = NULL;
+			G_FREE_NULL(parq_id);
 		}
 	}
 
@@ -7931,7 +7930,7 @@ const gchar *build_url_from_download(struct download *d)
 	 */
 
 	if (buf != d->file_name) {
-		g_free(buf);
+		G_FREE_NULL(buf);
 	}
 	
 	return url_tmp;

@@ -440,8 +440,7 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
          *      --BLUE, 24/04/2002
          */
         if (selected_url != NULL) {
-            g_free(selected_url);
-            selected_url = NULL;
+            G_FREE_NULL(selected_url);
         }
 
         selected_url = g_strdup(build_url_from_download(d));
@@ -695,8 +694,7 @@ void on_popup_queue_copy_url_activate(GtkMenuItem * menuitem,
          *      --BLUE, 24/04/2002
          */
         if (selected_url != NULL) {
-            g_free(selected_url);
-            selected_url = NULL;
+            G_FREE_NULL(selected_url);
         }
 
         selected_url = g_strdup(build_url_from_download(d));
@@ -959,7 +957,7 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
 		regfree(&re);
     }
 
-    g_free(regex);
+    G_FREE_NULL(regex);
 
     gtk_entry_set_text(GTK_ENTRY(editable), "");
 }

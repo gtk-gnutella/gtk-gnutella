@@ -1075,7 +1075,7 @@ static void gwc_update_this(gchar *cache_url)
 			"url=%s&", escaped_url);
 
 		if (escaped_url != url)
-			g_free(escaped_url);
+			G_FREE_NULL(escaped_url);
 
 		has_data = TRUE;		/* We have something to submit */
 	}

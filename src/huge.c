@@ -419,7 +419,7 @@ static void push(struct file_sha1 **stack,struct file_sha1 *record)
 static void free_cell(struct file_sha1 *cell)
 {
 	atom_str_free(cell->file_name);
-	g_free(cell);
+	G_FREE_NULL(cell);
 }
 
 /* The context of the SHA1 computation being performed */
@@ -448,7 +448,7 @@ static void sha1_computation_context_free(gpointer u)
 	if (ctx->file)
 		free_cell(ctx->file);
 
-	g_free(ctx->buffer);
+	G_FREE_NULL(ctx->buffer);
 
 	wfree(ctx, sizeof(*ctx));
 }
@@ -957,7 +957,7 @@ static gboolean cache_free_entry(gpointer k, gpointer v, gpointer udata)
 	struct sha1_cache_entry *e = (struct sha1_cache_entry *) v;
 
 	atom_str_free(e->file_name);
-	g_free(e);
+	G_FREE_NULL(e);
 
 	return TRUE;
 }
@@ -976,7 +976,7 @@ void huge_close(void)
 		dump_cache();
 
 	if (persistent_cache_file_name)
-		g_free(persistent_cache_file_name);
+		G_FREE_NULL(persistent_cache_file_name);
 
 	g_hash_table_foreach_remove(sha1_cache, cache_free_entry, NULL);
 	g_hash_table_destroy(sha1_cache);
@@ -1202,8 +1202,9 @@ void huge_collect_locations(gchar *sha1, header_t *header, const gchar *vendor)
 
 	alt = header_get(header, "X-Alt");
 
-	if (alt)
+	if (alt) {
 		dmesh_collect_compact_locations(sha1, alt);
+    }
 }
 
 /* 
