@@ -980,9 +980,9 @@ static char *hex_alphabet = "0123456789ABCDEF";
  * Escape all non-printable chars into the hexadecimal \xhh form.
  * Returns new escaped string, or the original string if no escaping occurred.
  */
-guchar *hex_escape(guchar *name)
+guchar *hex_escape(const guchar *name)
 {
-	guchar *p;
+	const guchar *p;
 	guchar *q;
 	guchar c;
 	gint need_escape = 0;
@@ -1011,3 +1011,4 @@ guchar *hex_escape(guchar *name)
 
 	return new;
 }
+
