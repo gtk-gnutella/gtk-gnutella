@@ -148,11 +148,11 @@ fi
 
 dnl Checks for zlib.h
 
-  AC_CHECK_HEADER(zlib.h,
-      AC_CHECK_LIB(z, deflate, [have_zlib_h=yes], [have_zlib_h=no]))
+AC_CHECK_HEADER(zlib.h,
+	AC_CHECK_LIB(z, deflate, [have_zlib=yes], [have_zlib=no]))
 
-if test "$have_zlib_h" = no; then
-    echo "Missing zlib.h -- you need to install zlib from www.zlib.org"
+if test "x$have_zlib" = "xno"; then
+    echo "Missing zlib -- you need to install zlib from www.zlib.org"
 fi
 
 AC_OUTPUT([
@@ -192,10 +192,10 @@ else
 fi
 
 msg="gNet traffic compression :  "
-if test "$have_zlib_h" = no ; then
-    echo "$msg no (you need to install zlib from www.zlib.org)"
-else
+if test "x$have_zlib" = "xyes" ; then
     echo "$msg yes"
+else
+    echo "$msg no (you need to install zlib from www.zlib.org)"
 fi
 
 echo ""

@@ -1,5 +1,8 @@
 # since last version
 
+- (2002.11.26 - cbiere)
+ * Fixed detection of zlib because it could accidently default to "yes"
+
 - (2002.11.24 - cbiere)
  * [Gtk2] Port search pane to Gtk2 (search_cb2.[ch], search_gui2.c)
 
