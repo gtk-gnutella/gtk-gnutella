@@ -1097,6 +1097,7 @@ void pcache_ping_received(struct gnutella_node *n)
 
 	if (n->header.hops == 0 && n->header.ttl <= 2) {
 		n->n_ping_special++;
+		n->n_ping_accepted++;
 		if (n->header.ttl == 1)
 			send_personal_info(n, TRUE);	/* Control message, prioritary */
 		else if (n->header.ttl == 2) {
@@ -1169,10 +1170,14 @@ void pcache_ping_received(struct gnutella_node *n)
 	 * of whether we can accept a new node connection: the aim is
 	 * to trigger an incoming connection that will prove us we're
 	 * not firewalled.
+	 *
+	 * Finally, we always reply to the first ping we get with our
+	 * personal information (reply to initial ping sent after handshake).
 	 */
 
 	if (
-		(is_firewalled || node_missing() > 0) && inet_can_answer_ping()
+		n->n_ping_accepted == 1 ||
+		((is_firewalled || node_missing() > 0) && inet_can_answer_ping())
 	) {
 		send_personal_info(n, FALSE);
 		if (!NODE_IS_CONNECTED(n))	/* Can be removed if send queue is full */
