@@ -1873,6 +1873,7 @@ node_bye_v(struct gnutella_node *n, gint code, const gchar *reason, va_list ap)
 	gchar *reason_base = &reason_fmt[2];	/* Leading 2 bytes for code */
 
 	g_assert(n);
+	g_assert(!NODE_IS_UDP(n));
 
 	if (n->status == GTA_NODE_SHUTDOWN) {
 		node_recursive_shutdown_v(n, "Bye", reason, ap);
