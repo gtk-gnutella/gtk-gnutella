@@ -37,13 +37,13 @@ RCSID("$Id$");
 #define ID_BLOCK(id) (id/BLOCK_SIZE)
 
 #define MARK_ID(tbl, s) \
-    (tbl->used_ids[s/BLOCK_SIZE] |= (guint32)0x80000000 >> s)
+    (tbl->used_ids[s/BLOCK_SIZE] |= (guint32)0x80000000 >> (s % BLOCK_SIZE))
 
 #define CLEAR_ID(tbl, s) \
-    (tbl->used_ids[s/BLOCK_SIZE] &= ~((guint32)0x80000000 >> s))
+    (tbl->used_ids[s/BLOCK_SIZE] &= ~((guint32)0x80000000 >> (s % BLOCK_SIZE)))
 
 #define IS_ID_TAKEN(tbl, s) \
-    (tbl->used_ids[s/BLOCK_SIZE] & ((guint32)0x80000000 >> s))
+    (tbl->used_ids[s/BLOCK_SIZE] & ((guint32)0x80000000 >> (s % BLOCK_SIZE)))
 
 /***
  *** Private functions
