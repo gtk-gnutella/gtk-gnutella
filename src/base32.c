@@ -284,7 +284,7 @@ gboolean base32_decode_into(guchar *buf, gint len, guchar *decbuf, gint declen)
 	 *
 	 * Because of possible padding, which must be done as if the input
 	 * was 0, and because the fractional part is at the end, we'll
-	 * start encoding from the end.  The encoding loop is unrolled for
+	 * start decoding from the end.  The decoding loop is unrolled for
 	 * greater performance (using the infamous Duff's device to directly
 	 * switch at the proper stage within the do {} while loop).
 	 */
