@@ -446,7 +446,7 @@ gchar *ban_vendor(gchar *vendor)
 #undef GTKG_NAME
 #undef GTKG_LEN
 
-#define GNUC_NAME	"Gnucleus"
+#define GNUC_NAME	"Gnucleus "
 #define GNUC_LEN	(sizeof(GNUC_NAME) - 1)
 
 	if (
