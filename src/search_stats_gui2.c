@@ -184,7 +184,7 @@ static gboolean stats_hash_to_treeview(
 
 	gtk_list_store_append(search_stats_list_store, &iter);
 	gtk_list_store_set(search_stats_list_store, &iter,
-		0, locale_to_utf8(key, -1),
+		0, locale_to_utf8(key, 0),
 		1, (gulong) val->period_cnt,
 		2, (gulong) val->total_cnt,
 		-1);

@@ -222,16 +222,14 @@ void upload_stats_gui_add(struct ul_stats *us)
 {
     GtkListStore *store;
 	GtkTreeIter iter;
-	gchar *filename;
 
 	g_assert(NULL != us);
 
 	upload_stats_gui_init();
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(upload_stats_treeview));
-    filename = locale_to_utf8(us->filename, -1);
 	gtk_list_store_append(store, &iter);
 	gtk_list_store_set(store, &iter,
-		c_us_filename, filename,
+		c_us_filename, locale_to_utf8(us->filename, 0),
 		c_us_attempts, us->attempts,
 		c_us_complete, us->complete,
 		c_us_size, (guint) us->size,

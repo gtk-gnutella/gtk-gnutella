@@ -32,7 +32,9 @@ RCSID("$Id$");
 
 static gboolean uploads_remove_lock = FALSE;
 static guint uploads_rows_done = 0;
+
 static GtkTreeView *uploads_gui_treeview = NULL;
+static GtkWidget *button_uploads_clear_completed = NULL;
 
 static gboolean find_row(GtkTreeIter *, gnet_upload_t, upload_row_data_t **);
 
@@ -61,18 +63,14 @@ static void upload_removed(
 {
     GtkTreeIter iter;
     upload_row_data_t *data;
-	gboolean found; 
 
     /* Invalidate row and remove it from the gui if autoclear is on */
-	found = find_row(&iter, uh, &data);
-    if (found) {
+    if (find_row(&iter, uh, &data)) {
         GtkListStore *store = GTK_LIST_STORE(gtk_tree_view_get_model(
             GTK_TREE_VIEW(uploads_gui_treeview)));
         data->valid = FALSE;
 
-        gtk_widget_set_sensitive(
-            lookup_widget(main_window, "button_uploads_clear_completed"), 
-            TRUE);
+        gtk_widget_set_sensitive(button_uploads_clear_completed, TRUE);
 
         if (reason != NULL)
             gtk_list_store_set(store, &iter, c_ul_status, reason, -1);
@@ -277,10 +275,10 @@ static void uploads_gui_update_upload_info(gnet_upload_info_t *u)
  		color = &(gtk_widget_get_style(GTK_WIDGET(uploads_gui_treeview))
 			->fg[GTK_STATE_INSENSITIVE]);
 
-	g_strlcpy(filename, NULL != u->name ? locale_to_utf8(u->name, -1) : "...",
+	g_strlcpy(filename, NULL != u->name ? locale_to_utf8(u->name, 0) : "...",
 		sizeof(filename));
 	g_strlcpy(agent,
-		NULL != u->user_agent ? locale_to_utf8(u->user_agent, -1) : "...",
+		NULL != u->user_agent ? locale_to_utf8(u->user_agent, 0) : "...",
 		sizeof(agent));
 	gtk_list_store_set(store, &iter,
 		c_ul_size, size_tmp,
@@ -334,10 +332,10 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
         titles[c_ul_range]    = range_tmp;
     }
 
-	g_strlcpy(filename, NULL != u->name ? locale_to_utf8(u->name, -1) : "...",
+	g_strlcpy(filename, NULL != u->name ? locale_to_utf8(u->name, 0) : "...",
 		sizeof(filename));
 	g_strlcpy(agent,
-		NULL != u->user_agent ? locale_to_utf8(u->user_agent, -1) : "...",
+		NULL != u->user_agent ? locale_to_utf8(u->user_agent, 0) : "...",
 		sizeof(agent));
 	titles[c_ul_filename] = filename;
 	titles[c_ul_host]     = ip_to_gchar(u->ip);
@@ -413,7 +411,8 @@ void uploads_gui_early_init(void)
 void uploads_gui_init(void)
 {
 	GtkTreeModel *model;
-	
+	button_uploads_clear_completed = lookup_widget(main_window,
+		"button_uploads_clear_completed");
 	uploads_gui_treeview =
 		GTK_TREE_VIEW(lookup_widget(main_window, "treeview_uploads"));
 	model = GTK_TREE_MODEL(gtk_list_store_new(c_ul_num,
@@ -509,9 +508,7 @@ void uploads_gui_update_display(time_t now)
     	}
 
 	if (all_removed)
-		gtk_widget_set_sensitive(
-			lookup_widget(main_window, "button_uploads_clear_completed"),
-			FALSE);
+		gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
 }
 
 static gboolean uploads_clear_helper(gpointer user_data) {
@@ -520,7 +517,6 @@ static gboolean uploads_clear_helper(gpointer user_data) {
     GtkTreeModel *model;
 	GtkTreeIter iter;
 	gboolean valid;
-	gboolean done;
 
 	model = GTK_TREE_MODEL(gtk_tree_view_get_model(
 		GTK_TREE_VIEW(uploads_gui_treeview)));
@@ -549,15 +545,13 @@ static gboolean uploads_clear_helper(gpointer user_data) {
 		gtk_tree_iter_free(iter);
 	}
     
-	done = NULL == to_remove;
-    g_slist_free(to_remove);
-    
-    if (done) {
-		gtk_widget_set_sensitive(lookup_widget(
-			main_window, "button_uploads_clear_completed"), FALSE);
+    if (NULL != to_remove)
+    	g_slist_free(to_remove);
+	else {
+		gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
     	uploads_remove_lock = FALSE;
     	return FALSE;
-    }
+    } else
     
     return TRUE;
 }
