@@ -1262,217 +1262,196 @@
 
 		  <widget>
 		    <class>GtkHBox</class>
-		    <name>hbox172</name>
+		    <name>hbox_normal_or_ultrapeer</name>
 		    <homogeneous>False</homogeneous>
 		    <spacing>4</spacing>
 		    <child>
 		      <padding>0</padding>
-		      <expand>False</expand>
+		      <expand>True</expand>
 		      <fill>True</fill>
 		    </child>
 
 		    <widget>
-		      <class>GtkTable</class>
-		      <name>hbox_normal_or_ultrapeer</name>
-		      <rows>1</rows>
-		      <columns>4</columns>
-		      <homogeneous>False</homogeneous>
-		      <row_spacing>2</row_spacing>
-		      <column_spacing>4</column_spacing>
+		      <class>GtkLabel</class>
+		      <name>label2</name>
+		      <label>Try to keep at least</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
 		      <child>
 			<padding>0</padding>
-			<expand>True</expand>
-			<fill>True</fill>
+			<expand>False</expand>
+			<fill>False</fill>
 		      </child>
-
-		      <widget>
-			<class>GtkLabel</class>
-			<name>label530</name>
-			<label>Minimum</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<child>
-			  <left_attach>0</left_attach>
-			  <right_attach>1</right_attach>
-			  <top_attach>0</top_attach>
-			  <bottom_attach>1</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkLabel</class>
-			<name>label531</name>
-			<label>Maximum</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<child>
-			  <left_attach>2</left_attach>
-			  <right_attach>3</right_attach>
-			  <top_attach>0</top_attach>
-			  <bottom_attach>1</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkSpinButton</class>
-			<name>spinbutton_up_connections</name>
-			<can_focus>True</can_focus>
-			<climb_rate>1</climb_rate>
-			<digits>0</digits>
-			<numeric>True</numeric>
-			<update_policy>GTK_UPDATE_ALWAYS</update_policy>
-			<snap>False</snap>
-			<wrap>False</wrap>
-			<value>1</value>
-			<lower>0</lower>
-			<upper>100</upper>
-			<step>1</step>
-			<page>10</page>
-			<page_size>10</page_size>
-			<child>
-			  <left_attach>1</left_attach>
-			  <right_attach>2</right_attach>
-			  <top_attach>0</top_attach>
-			  <bottom_attach>1</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkSpinButton</class>
-			<name>spinbutton_max_connections</name>
-			<can_focus>True</can_focus>
-			<climb_rate>1</climb_rate>
-			<digits>0</digits>
-			<numeric>True</numeric>
-			<update_policy>GTK_UPDATE_ALWAYS</update_policy>
-			<snap>False</snap>
-			<wrap>False</wrap>
-			<value>1</value>
-			<lower>0</lower>
-			<upper>100</upper>
-			<step>1</step>
-			<page>10</page>
-			<page_size>10</page_size>
-			<child>
-			  <left_attach>3</left_attach>
-			  <right_attach>4</right_attach>
-			  <top_attach>0</top_attach>
-			  <bottom_attach>1</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
 		    </widget>
 
 		    <widget>
-		      <class>GtkTable</class>
-		      <name>hbox_leaf</name>
-		      <rows>1</rows>
-		      <columns>2</columns>
-		      <homogeneous>False</homogeneous>
-		      <row_spacing>2</row_spacing>
-		      <column_spacing>4</column_spacing>
+		      <class>GtkSpinButton</class>
+		      <name>spinbutton_up_connections</name>
+		      <can_focus>True</can_focus>
+		      <climb_rate>1</climb_rate>
+		      <digits>0</digits>
+		      <numeric>True</numeric>
+		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		      <snap>False</snap>
+		      <wrap>False</wrap>
+		      <value>1</value>
+		      <lower>0</lower>
+		      <upper>100</upper>
+		      <step>1</step>
+		      <page>10</page>
+		      <page_size>10</page_size>
 		      <child>
 			<padding>0</padding>
 			<expand>False</expand>
 			<fill>True</fill>
 		      </child>
+		    </widget>
 
-		      <widget>
-			<class>GtkLabel</class>
-			<name>label532</name>
-			<label>Ultrapeers in leaf mode</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<child>
-			  <left_attach>0</left_attach>
-			  <right_attach>1</right_attach>
-			  <top_attach>0</top_attach>
-			  <bottom_attach>1</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label3</name>
+		      <label>connections up</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
 
-		      <widget>
-			<class>GtkSpinButton</class>
-			<name>spinbutton_max_ultrapeers</name>
-			<can_focus>True</can_focus>
-			<climb_rate>1</climb_rate>
-			<digits>0</digits>
-			<numeric>False</numeric>
-			<update_policy>GTK_UPDATE_ALWAYS</update_policy>
-			<snap>False</snap>
-			<wrap>False</wrap>
-			<value>3</value>
-			<lower>0</lower>
-			<upper>5</upper>
-			<step>1</step>
-			<page>10</page>
-			<page_size>10</page_size>
-			<child>
-			  <left_attach>1</left_attach>
-			  <right_attach>2</right_attach>
-			  <top_attach>0</top_attach>
-			  <bottom_attach>1</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label82</name>
+		      <label>Maximum of</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>1</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkSpinButton</class>
+		      <name>spinbutton_max_connections</name>
+		      <can_focus>True</can_focus>
+		      <climb_rate>1</climb_rate>
+		      <digits>0</digits>
+		      <numeric>True</numeric>
+		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		      <snap>False</snap>
+		      <wrap>False</wrap>
+		      <value>1</value>
+		      <lower>0</lower>
+		      <upper>100</upper>
+		      <step>1</step>
+		      <page>10</page>
+		      <page_size>10</page_size>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>True</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label83</name>
+		      <label>total connections</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+		  </widget>
+
+		  <widget>
+		    <class>GtkHBox</class>
+		    <name>hbox_leaf</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>4</spacing>
+		    <child>
+		      <padding>0</padding>
+		      <expand>True</expand>
+		      <fill>True</fill>
+		    </child>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label449</name>
+		      <label>Connect to</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>1</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkSpinButton</class>
+		      <name>spinbutton_max_ultrapeers</name>
+		      <can_focus>True</can_focus>
+		      <climb_rate>1</climb_rate>
+		      <digits>0</digits>
+		      <numeric>False</numeric>
+		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		      <snap>False</snap>
+		      <wrap>False</wrap>
+		      <value>3</value>
+		      <lower>0</lower>
+		      <upper>5</upper>
+		      <step>1</step>
+		      <page>10</page>
+		      <page_size>10</page_size>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>True</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label450</name>
+		      <label>ultrapeers</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
 		    </widget>
 		  </widget>
 		</widget>
@@ -3807,6 +3786,11 @@
 			<last_modification_time>Mon, 10 Mar 2003 17:44:50 GMT</last_modification_time>
 		      </signal>
 		      <signal>
+			<name>button_press_event</name>
+			<handler>on_clist_fileinfo_button_press_event</handler>
+			<last_modification_time>Wed, 12 Mar 2003 23:32:38 GMT</last_modification_time>
+		      </signal>
+		      <signal>
 			<name>select_row</name>
 			<handler>on_clist_fileinfo_select_row</handler>
 			<last_modification_time>Wed, 12 Mar 2003 23:33:01 GMT</last_modification_time>
@@ -3912,7 +3896,7 @@
 			<name>table59</name>
 			<border_width>2</border_width>
 			<rows>2</rows>
-			<columns>3</columns>
+			<columns>2</columns>
 			<homogeneous>False</homogeneous>
 			<row_spacing>2</row_spacing>
 			<column_spacing>4</column_spacing>
@@ -3976,8 +3960,34 @@
 
 			<widget>
 			  <class>GtkLabel</class>
+			  <name>label_fi_filename</name>
+			  <label>[filename]</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <child>
+			    <left_attach>1</left_attach>
+			    <right_attach>2</right_attach>
+			    <top_attach>0</top_attach>
+			    <bottom_attach>1</bottom_attach>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			    <xexpand>False</xexpand>
+			    <yexpand>False</yexpand>
+			    <xshrink>False</xshrink>
+			    <yshrink>False</yshrink>
+			    <xfill>True</xfill>
+			    <yfill>False</yfill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
 			  <name>label_fi_size</name>
-			  <label></label>
+			  <label>[size]</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>0</xalign>
@@ -3999,60 +4009,6 @@
 			    <yfill>False</yfill>
 			  </child>
 			</widget>
-
-			<widget>
-			  <class>GtkButton</class>
-			  <name>button_fi_purge</name>
-			  <sensitive>False</sensitive>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>clicked</name>
-			    <handler>on_button_fi_purge_clicked</handler>
-			    <last_modification_time>Wed, 07 May 2003 09:48:30 GMT</last_modification_time>
-			  </signal>
-			  <label>Purge</label>
-			  <relief>GTK_RELIEF_NORMAL</relief>
-			  <child>
-			    <left_attach>2</left_attach>
-			    <right_attach>3</right_attach>
-			    <top_attach>0</top_attach>
-			    <bottom_attach>1</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <name>label_fi_filename</name>
-			  <label></label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <child>
-			    <left_attach>1</left_attach>
-			    <right_attach>2</right_attach>
-			    <top_attach>0</top_attach>
-			    <bottom_attach>1</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>True</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
 		      </widget>
 
 		      <widget>
@@ -4066,11 +4022,16 @@
 		      </widget>
 
 		      <widget>
-			<class>GtkFrame</class>
-			<name>frame79</name>
-			<label>Alternate filenames</label>
-			<label_xalign>0</label_xalign>
-			<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+			<class>GtkNotebook</class>
+			<name>notebook6</name>
+			<can_focus>True</can_focus>
+			<show_tabs>True</show_tabs>
+			<show_border>True</show_border>
+			<tab_pos>GTK_POS_LEFT</tab_pos>
+			<scrollable>False</scrollable>
+			<tab_hborder>2</tab_hborder>
+			<tab_vborder>2</tab_vborder>
+			<popup_enable>False</popup_enable>
 			<child>
 			  <padding>0</padding>
 			  <expand>True</expand>
@@ -4079,9 +4040,94 @@
 
 			<widget>
 			  <class>GtkScrolledWindow</class>
+			  <name>scrolledwindow43</name>
+			  <hscrollbar_policy>GTK_POLICY_ALWAYS</hscrollbar_policy>
+			  <vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
+			  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+			  <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+
+			  <widget>
+			    <class>GtkCList</class>
+			    <name>clist_fi_sources</name>
+			    <can_focus>True</can_focus>
+			    <columns>4</columns>
+			    <column_widths>80,80,80,80</column_widths>
+			    <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+			    <show_titles>True</show_titles>
+			    <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+			    <widget>
+			      <class>GtkLabel</class>
+			      <child_name>CList:title</child_name>
+			      <name>label519</name>
+			      <label>Host</label>
+			      <justify>GTK_JUSTIFY_CENTER</justify>
+			      <wrap>False</wrap>
+			      <xalign>0.5</xalign>
+			      <yalign>0.5</yalign>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			    </widget>
+
+			    <widget>
+			      <class>GtkLabel</class>
+			      <child_name>CList:title</child_name>
+			      <name>label520</name>
+			      <label>Server</label>
+			      <justify>GTK_JUSTIFY_CENTER</justify>
+			      <wrap>False</wrap>
+			      <xalign>0.5</xalign>
+			      <yalign>0.5</yalign>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			    </widget>
+
+			    <widget>
+			      <class>GtkLabel</class>
+			      <child_name>CList:title</child_name>
+			      <name>label521</name>
+			      <label>Range</label>
+			      <justify>GTK_JUSTIFY_CENTER</justify>
+			      <wrap>False</wrap>
+			      <xalign>0.5</xalign>
+			      <yalign>0.5</yalign>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			    </widget>
+
+			    <widget>
+			      <class>GtkLabel</class>
+			      <child_name>CList:title</child_name>
+			      <name>label522</name>
+			      <label>Status</label>
+			      <justify>GTK_JUSTIFY_CENTER</justify>
+			      <wrap>False</wrap>
+			      <xalign>0.5</xalign>
+			      <yalign>0.5</yalign>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			    </widget>
+			  </widget>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>Notebook:tab</child_name>
+			  <name>label517</name>
+			  <label>Sources</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+
+			<widget>
+			  <class>GtkScrolledWindow</class>
 			  <name>scrolledwindow44</name>
-			  <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-			  <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+			  <hscrollbar_policy>GTK_POLICY_ALWAYS</hscrollbar_policy>
+			  <vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
 			  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
 			  <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 
@@ -4108,6 +4154,19 @@
 			      <ypad>0</ypad>
 			    </widget>
 			  </widget>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>Notebook:tab</child_name>
+			  <name>label518</name>
+			  <label>Aliases</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
 			</widget>
 		      </widget>
 		    </widget>
@@ -6354,123 +6413,6 @@
 			  <xfill>True</xfill>
 			  <yfill>False</yfill>
 			</child>
-		      </widget>
-		    </widget>
-		  </widget>
-
-		  <widget>
-		    <class>GtkFrame</class>
-		    <name>frame80</name>
-		    <label>Miscellaneous</label>
-		    <label_xalign>0</label_xalign>
-		    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>True</fill>
-		    </child>
-
-		    <widget>
-		      <class>GtkTable</class>
-		      <name>table62</name>
-		      <border_width>2</border_width>
-		      <rows>1</rows>
-		      <columns>3</columns>
-		      <homogeneous>False</homogeneous>
-		      <row_spacing>2</row_spacing>
-		      <column_spacing>4</column_spacing>
-
-		      <widget>
-			<class>GtkCheckButton</class>
-			<name>checkbutton_host_runs_ntp</name>
-			<can_focus>True</can_focus>
-			<label>Host runs NTP</label>
-			<active>False</active>
-			<draw_indicator>True</draw_indicator>
-			<child>
-			  <left_attach>0</left_attach>
-			  <right_attach>1</right_attach>
-			  <top_attach>0</top_attach>
-			  <bottom_attach>1</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkLabel</class>
-			<name>label529</name>
-			<label>Clock skew:</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<child>
-			  <left_attach>1</left_attach>
-			  <right_attach>2</right_attach>
-			  <top_attach>0</top_attach>
-			  <bottom_attach>1</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkViewport</class>
-			<name>viewport12</name>
-			<shadow_type>GTK_SHADOW_IN</shadow_type>
-			<child>
-			  <left_attach>2</left_attach>
-			  <right_attach>3</right_attach>
-			  <top_attach>0</top_attach>
-			  <bottom_attach>1</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>True</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>True</yfill>
-			</child>
-
-			<widget>
-			  <class>GtkHBox</class>
-			  <name>hbox171</name>
-			  <homogeneous>False</homogeneous>
-			  <spacing>0</spacing>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <name>label_clock_skew</name>
-			    <label>[clock skew]</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>5</xpad>
-			    <ypad>0</ypad>
-			    <child>
-			      <padding>0</padding>
-			      <expand>False</expand>
-			      <fill>False</fill>
-			    </child>
-			  </widget>
-			</widget>
 		      </widget>
 		    </widget>
 		  </widget>
@@ -10393,58 +10335,6 @@ settings</label>
 
 		      <widget>
 			<class>GtkHBox</class>
-			<name>hbox173</name>
-			<homogeneous>False</homogeneous>
-			<spacing>0</spacing>
-			<child>
-			  <padding>0</padding>
-			  <expand>True</expand>
-			  <fill>True</fill>
-			</child>
-
-			<widget>
-			  <class>GtkHBox</class>
-			  <name>hbox174</name>
-			  <homogeneous>False</homogeneous>
-			  <spacing>4</spacing>
-			  <child>
-			    <padding>0</padding>
-			    <expand>True</expand>
-			    <fill>True</fill>
-			  </child>
-
-			  <widget>
-			    <class>GtkCheckButton</class>
-			    <name>checkbutton_scan_ignore_symlink_dirs</name>
-			    <can_focus>True</can_focus>
-			    <label>Ignore symbolically linked directories</label>
-			    <active>False</active>
-			    <draw_indicator>True</draw_indicator>
-			    <child>
-			      <padding>0</padding>
-			      <expand>False</expand>
-			      <fill>False</fill>
-			    </child>
-			  </widget>
-
-			  <widget>
-			    <class>GtkCheckButton</class>
-			    <name>checkbutton_scan_ignore_symlink_regfiles</name>
-			    <can_focus>True</can_focus>
-			    <label>Ignore symbolically linked regular files</label>
-			    <active>False</active>
-			    <draw_indicator>True</draw_indicator>
-			    <child>
-			      <padding>0</padding>
-			      <expand>False</expand>
-			      <fill>False</fill>
-			    </child>
-			  </widget>
-			</widget>
-		      </widget>
-
-		      <widget>
-			<class>GtkHBox</class>
 			<name>hbox27</name>
 			<homogeneous>False</homogeneous>
 			<spacing>4</spacing>
@@ -11124,7 +11014,7 @@ interface</label>
 		      <class>GtkTable</class>
 		      <name>table57</name>
 		      <border_width>2</border_width>
-		      <rows>9</rows>
+		      <rows>11</rows>
 		      <columns>2</columns>
 		      <homogeneous>False</homogeneous>
 		      <row_spacing>2</row_spacing>
@@ -11294,6 +11184,60 @@ interface</label>
 
 		      <widget>
 			<class>GtkLabel</class>
+			<name>label476</name>
+			<label>PROP__FORCE__ULTRAPEER</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<default_focus_target>entry_force_ultrapeer</default_focus_target>
+			<child>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>6</top_attach>
+			  <bottom_attach>7</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label477</name>
+			<label>PROP__FORCE__LEAF</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<default_focus_target>entry_force_leaf</default_focus_target>
+			<child>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>7</top_attach>
+			  <bottom_attach>8</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
 			<name>label479</name>
 			<label>PROP__SYS__NOFILE</label>
 			<justify>GTK_JUSTIFY_CENTER</justify>
@@ -11306,8 +11250,8 @@ interface</label>
 			<child>
 			  <left_attach>0</left_attach>
 			  <right_attach>1</right_attach>
-			  <top_attach>6</top_attach>
-			  <bottom_attach>7</bottom_attach>
+			  <top_attach>8</top_attach>
+			  <bottom_attach>9</bottom_attach>
 			  <xpad>0</xpad>
 			  <ypad>0</ypad>
 			  <xexpand>False</xexpand>
@@ -11333,8 +11277,8 @@ interface</label>
 			<child>
 			  <left_attach>0</left_attach>
 			  <right_attach>1</right_attach>
-			  <top_attach>7</top_attach>
-			  <bottom_attach>8</bottom_attach>
+			  <top_attach>9</top_attach>
+			  <bottom_attach>10</bottom_attach>
 			  <xpad>0</xpad>
 			  <ypad>0</ypad>
 			  <xexpand>False</xexpand>
@@ -11468,7 +11412,31 @@ interface</label>
 
 		      <widget>
 			<class>GtkEntry</class>
-			<name>entry_sys_nofile</name>
+			<name>entry_force_leaf</name>
+			<can_focus>True</can_focus>
+			<editable>False</editable>
+			<text_visible>True</text_visible>
+			<text_max_length>0</text_max_length>
+			<text></text>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>7</top_attach>
+			  <bottom_attach>8</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>True</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkEntry</class>
+			<name>entry_force_ultrapeer</name>
 			<can_focus>True</can_focus>
 			<editable>False</editable>
 			<text_visible>True</text_visible>
@@ -11492,6 +11460,30 @@ interface</label>
 
 		      <widget>
 			<class>GtkEntry</class>
+			<name>entry_sys_nofile</name>
+			<can_focus>True</can_focus>
+			<editable>False</editable>
+			<text_visible>True</text_visible>
+			<text_max_length>0</text_max_length>
+			<text></text>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>8</top_attach>
+			  <bottom_attach>9</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>True</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkEntry</class>
 			<name>entry_sys_physmem</name>
 			<can_focus>True</can_focus>
 			<editable>False</editable>
@@ -11501,8 +11493,8 @@ interface</label>
 			<child>
 			  <left_attach>1</left_attach>
 			  <right_attach>2</right_attach>
-			  <top_attach>7</top_attach>
-			  <bottom_attach>8</bottom_attach>
+			  <top_attach>9</top_attach>
+			  <bottom_attach>10</bottom_attach>
 			  <xpad>0</xpad>
 			  <ypad>0</ypad>
 			  <xexpand>True</xexpand>
@@ -11552,8 +11544,8 @@ interface</label>
 			<child>
 			  <left_attach>0</left_attach>
 			  <right_attach>1</right_attach>
-			  <top_attach>8</top_attach>
-			  <bottom_attach>9</bottom_attach>
+			  <top_attach>10</top_attach>
+			  <bottom_attach>11</bottom_attach>
 			  <xpad>0</xpad>
 			  <ypad>0</ypad>
 			  <xexpand>False</xexpand>
@@ -11576,8 +11568,8 @@ interface</label>
 			<child>
 			  <left_attach>1</left_attach>
 			  <right_attach>2</right_attach>
-			  <top_attach>8</top_attach>
-			  <bottom_attach>9</bottom_attach>
+			  <top_attach>10</top_attach>
+			  <bottom_attach>11</bottom_attach>
 			  <xpad>0</xpad>
 			  <ypad>0</ypad>
 			  <xexpand>True</xexpand>
@@ -12656,72 +12648,6 @@ interface</label>
 	  <xalign>0.5</xalign>
 	  <yalign>0.5</yalign>
 	  <xpad>1</xpad>
-	  <ypad>0</ypad>
-	  <build_insensitive>False</build_insensitive>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkEventBox</class>
-	<name>eventbox_image_leaf</name>
-	<tooltip>Running in leaf mode.</tooltip>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>False</fill>
-	</child>
-
-	<widget>
-	  <class>GtkPixmap</class>
-	  <name>image_leaf</name>
-	  <filename>leaf.xpm</filename>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <build_insensitive>False</build_insensitive>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkEventBox</class>
-	<name>eventbox_image_legacy</name>
-	<tooltip>Running in legacy mode. Consider switching to auto mode (Config-&gt;gNet settings-&gt;Current peermode)</tooltip>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>False</fill>
-	</child>
-
-	<widget>
-	  <class>GtkPixmap</class>
-	  <name>image_legacy</name>
-	  <filename>legacy.xpm</filename>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <build_insensitive>False</build_insensitive>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkEventBox</class>
-	<name>eventbox_image_ultra</name>
-	<tooltip>Running in ultrapeer mode</tooltip>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkPixmap</class>
-	  <name>image_ultra</name>
-	  <filename>ultra.xpm</filename>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
 	  <ypad>0</ypad>
 	  <build_insensitive>False</build_insensitive>
 	</widget>
@@ -17248,48 +17174,20 @@ Grace time remaining:</label>
 	<spacing>0</spacing>
 
 	<widget>
-	  <class>GtkHBox</class>
-	  <name>hbox170</name>
-	  <homogeneous>False</homogeneous>
-	  <spacing>4</spacing>
+	  <class>GtkLabel</class>
+	  <name>label_about_title</name>
+	  <label>[name and version]</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>0.5</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
 	  <child>
 	    <padding>0</padding>
-	    <expand>True</expand>
-	    <fill>True</fill>
+	    <expand>False</expand>
+	    <fill>False</fill>
 	  </child>
-
-	  <widget>
-	    <class>GtkPixmap</class>
-	    <name>pixmap4</name>
-	    <filename>icon.xpm</filename>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <build_insensitive>False</build_insensitive>
-	    <child>
-	      <padding>0</padding>
-	      <expand>False</expand>
-	      <fill>True</fill>
-	    </child>
-	  </widget>
-
-	  <widget>
-	    <class>GtkLabel</class>
-	    <name>label_about_title</name>
-	    <label>[name and version]</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <child>
-	      <padding>0</padding>
-	      <expand>True</expand>
-	      <fill>True</fill>
-	    </child>
-	  </widget>
 	</widget>
 
 	<widget>
@@ -17337,7 +17235,7 @@ Grace time remaining:</label>
 	<class>GtkTable</class>
 	<name>table28</name>
 	<border_width>4</border_width>
-	<rows>6</rows>
+	<rows>5</rows>
 	<columns>2</columns>
 	<homogeneous>False</homogeneous>
 	<row_spacing>2</row_spacing>
@@ -17559,7 +17457,7 @@ Grace time remaining:</label>
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label272</name>
-	  <label>Richard Eckart (Gtk1), Christian Biere (Gtk2)</label>
+	  <label>Richard Eckart, Christian Biere</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0</xalign>
@@ -17607,58 +17505,6 @@ Grace time remaining:</label>
 	    <yfill>False</yfill>
 	  </child>
 	</widget>
-
-	<widget>
-	  <class>GtkLabel</class>
-	  <name>label527</name>
-	  <label>PARQ development:</label>
-	  <justify>GTK_JUSTIFY_CENTER</justify>
-	  <wrap>False</wrap>
-	  <xalign>1</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <child>
-	    <left_attach>0</left_attach>
-	    <right_attach>1</right_attach>
-	    <top_attach>5</top_attach>
-	    <bottom_attach>6</bottom_attach>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <xexpand>False</xexpand>
-	    <yexpand>False</yexpand>
-	    <xshrink>False</xshrink>
-	    <yshrink>False</yshrink>
-	    <xfill>True</xfill>
-	    <yfill>False</yfill>
-	  </child>
-	</widget>
-
-	<widget>
-	  <class>GtkLabel</class>
-	  <name>label528</name>
-	  <label>Jeroen Asselman</label>
-	  <justify>GTK_JUSTIFY_CENTER</justify>
-	  <wrap>False</wrap>
-	  <xalign>0</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <child>
-	    <left_attach>1</left_attach>
-	    <right_attach>2</right_attach>
-	    <top_attach>5</top_attach>
-	    <bottom_attach>6</bottom_attach>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <xexpand>False</xexpand>
-	    <yexpand>False</yexpand>
-	    <xshrink>False</xshrink>
-	    <yshrink>False</yshrink>
-	    <xfill>True</xfill>
-	    <yfill>False</yfill>
-	  </child>
-	</widget>
       </widget>
     </widget>
 
@@ -17686,11 +17532,41 @@ Grace time remaining:</label>
 
 	<widget>
 	  <class>GtkText</class>
-	  <name>text_about_contributors</name>
+	  <name>text1</name>
 	  <width>213</width>
 	  <can_focus>True</can_focus>
 	  <editable>False</editable>
-	  <text></text>
+	  <text>Yann Grossel &lt;olrick@users.sourceforge.net&gt;
+Steven Wilcoxon &lt;swilcoxon@users.sourceforge.net&gt;
+Jason Lingohr &lt;lingman@users.sourceforge.net&gt;
+Brian St Pierre &lt;bstpierre@users.sourceforge.net&gt;
+Chuck Homic &lt;homic@users.sourceforge.net&gt;
+Ingo Saitz &lt;salz@users.sourceforge.net&gt;
+Ben Hochstedler &lt;hochstrb@users.sourceforge.net&gt;
+Daniel Walker &lt;axiom@users.sourceforge.net&gt;
+Paul Cassella &lt;pwc@users.sourceforge.net&gt; 
+Jared Mauch &lt;jaredmauch@users.sourceforge.net&gt;
+Nate E &lt;web1 (at) users dot sourceforge dot net&gt;
+Raphaël Manfredi &lt;Raphael_Manfredi@pobox.com&gt;
+Kenn Brooks Hamm &lt;khamm@andrew.cmu.edu&gt;
+Mark Schreiber &lt;mark7@andrew.cmu.edu&gt;
+Sam Varshavchik &lt;mrsam@courier-mta.com&gt;
+Vladimir Klebanov &lt;unny@rz.uni-karlsruhe.de&gt;
+Roman Shterenzon &lt;roman@xpert.com&gt;
+Robert Bihlmeyer &lt;robbe@orcus.priv.at&gt;
+Noel T.Nunkovich &lt;ntnunk@earthlink.net&gt;
+Michael Tesch &lt;tesch@users.sourceforge.net&gt;
+Markus 'guruz' Goetz &lt;guruz@guruz.info&gt;
+Richard Eckart &lt;wyldfire@users.sourceforge.net&gt;
+Christophe Tronche &lt;ch.tronche@computer.org&gt;
+Alex Bennee &lt;alex@bennee.com&gt;
+Mike Perry &lt;mikepery@fscked.org&gt;
+Zygo Blaxell &lt;zblaxell@feedme.hungrycats.org&gt;
+Vidar Madsen &lt;vidar@gimp.org&gt;
+Christian Biere &lt;christianbiere@gmx.de
+ko &lt;junkpile@free.fr&gt;
+Jeroen Asselman &lt;jeroen@asselman.com&gt;
+</text>
 	</widget>
       </widget>
     </widget>
