@@ -505,6 +505,7 @@ void config_init(void)
 	gui_update_max_downloads();
 	gui_update_max_host_downloads();
 	gui_update_max_uploads();
+    gui_update_max_host_uploads();
 	gui_update_files_scanned();
 
 	gui_update_connection_speed();
