@@ -518,7 +518,7 @@ void download_remove_all_regex(const gchar *regex)
 
 void download_gui_add(struct download *d)
 {
-	gchar *titles[4];
+	gchar *titles[5];
 	gint row;
 
 	g_return_if_fail(d);
@@ -530,10 +530,11 @@ void download_gui_add(struct download *d)
 		return;
 	}
 
-	titles[0] = d->file_name;
-	titles[1] = ip_port_to_gchar(d->ip, d->port);
-	titles[2] = short_size(d->size);
-	titles[3] = "";
+	titles[c_dl_filename] = d->file_name;
+	titles[c_dl_host] = ip_port_to_gchar(d->ip, d->port);
+    titles[c_dl_size] = short_size(d->size);
+    titles[c_dl_server] = (d->server != NULL) ? d->server : "";
+	titles[c_dl_status] = "";
 
 	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
 		row = gtk_clist_append(GTK_CLIST(clist_downloads_queue), titles);
