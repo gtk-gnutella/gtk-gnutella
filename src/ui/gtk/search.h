@@ -123,6 +123,11 @@ void search_gui_remove_search(search_t * sch);
 void search_gui_reset_search(search_t *sch);
 void search_gui_download_files(void);
 
+#ifdef USE_GTK2
+/* FIXME: Gtk+ 1.2 users want this too! */
+void search_gui_discard_files(void);
+#endif /* USE_GTK2 */
+
 void search_gui_sort_column(search_t *search, gint column);
 
 void search_gui_add_record(
