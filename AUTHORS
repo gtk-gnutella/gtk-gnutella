@@ -73,8 +73,8 @@ Artwork:
 	Taken from the gtop package:
 	arrow_up.xpm, arrow_down.xpm
 
-        Taken from eMule:
-        upload.xpm, download.xpm, smallserver.xpm
+    Taken from eMule:
+    upload.xpm, download.xpm, smallserver.xpm
 	
 	Taken from Evolution:
 	online.xpm, offline.xpm
@@ -82,6 +82,13 @@ Artwork:
 	Taken from http://jimmac.musichall.cz who created
 	the icons for OpenOffice.org
 	stock_form-time-field-16.xpm
+
+    Taken from KDE CrystalSVG Theme (and modified)
+    clanbomber_yellow.xpm, clanbomber_red.xpm
+
+    Taken from KDE Slick Theme
+    filter.xpm
 	
 	Original art by Richard Eckart created using the Gimp:
 	firewall.xpm, no_firewall.xpm
+
