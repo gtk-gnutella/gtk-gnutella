@@ -4,7 +4,7 @@
  * This file comes from http://sourceforge.net/projects/tigertree/
  * Inclusion in gtk-gnutella is:
  *
- *   Copyright (c) 20033, Jeroen Asselman
+ *   Copyright (c) 2003, Jeroen Asselman
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
