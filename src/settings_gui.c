@@ -1476,8 +1476,6 @@ static prop_map_t property_map[] = {
         TRUE,
         "spinbutton_search_max_results"
     },
-#ifndef USE_GTK2
-/* FIXME: Gtk2 version should have these too */
     {
         get_main_window,
         PROP_BW_GNET_LEAF_IN_ENABLED,
@@ -1639,7 +1637,6 @@ static prop_map_t property_map[] = {
         TRUE,
         "entry_dl_qalive_count"
     },
-#endif
 #ifdef USE_GTK2
 /* FIXME: Gtk1 version should have these too */
     {
@@ -2843,9 +2840,7 @@ static gboolean expert_mode_changed(property_t prop)
 		"frame_expert_dl_timeout",
         "frame_expert_ul_timeout",
         "frame_expert_dl_source_quality",
-#ifndef USE_GTK2
         "frame_expert_unmapped",
-#endif
         NULL
     };
     gint n;
