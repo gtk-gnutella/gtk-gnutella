@@ -881,7 +881,7 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 					break;
 				}
 
-				if (file_stat.st_size > (guint64) 0xffffffffU) {
+				if (file_stat.st_size > (off_t) 0xffffffffU) {
 					g_warning("File is too big to be shared: \"%s\"",
 						full, g_strerror(errno));
 					break;
