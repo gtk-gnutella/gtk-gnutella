@@ -1,5 +1,20 @@
 # since last version
 
+- (2003.10.26 - RAM)
+ * Fixed async DNS resolution to behave properly when pipe with ADNS fills up.
+ * When creating downloads, one can optionally supply a hostname as well.
+ * New servent code "FEVR" for FileFever.
+ * Added support for symbolic hostname in downloads.
+ * Added parsing support for new GGEP "HNAME" extension.
+ * Generate the GGEP "HNAME" extension in our query hits, if possible.
+ * New properties "server_hostname" and "give_server_hostname" controlling
+   the setup and the advertising of the server's hostname.
+ * Added generation of the X-Hostname header.
+ * Added parsing of the HNAME extension in query hits.
+ * Added socket_bad_hostname().
+ * Return the X-Hostname to uploaders if possible.
+ * [GTK1] Added configuration of the server's hostname.
+
 - (2003.10.25 - Jeroen)
  * Don't allow removing a download for which a background task is active. EG,
    while verifying an SHA1 hash.
@@ -11,6 +26,11 @@
  * Leaf, normal, ultra node counters are now updated as soon as the connection
    was established. This should avoid an assert when changing modes while still
    in handshake. 
+
+- (2003.10.19 - RAM)
+ * Rotate sources in bandwidth scheduler at each timeslice, since apparently
+   the order used to insert them as I/O callbacks determines the order with
+   which glib calls us back when they trigger.
 
 - (2003.10.18 - RAM)
  * [GTK1] Added GUI configuration for server-side PFSP.
