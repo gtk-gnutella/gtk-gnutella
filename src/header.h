@@ -49,6 +49,9 @@ typedef struct header {
 	gint lines;					/* Total header lines seen */
 } header_t;
 
+#define header_size(h)		((h)->size)
+#define header_lines(h)		((h)->lines)
+
 /*
  * A header field.
  *
@@ -106,9 +109,6 @@ void header_dump(header_t *o, FILE *out);
 gchar *header_strerror(gint errnum);
 gchar *header_get(header_t *o, gchar *field);
 gchar *header_getdup(header_t *o, gchar *field);
-
-gint parse_status_line(gchar *line,
-	gchar *proto, gchar **msg, gint *major, gint *minor);
 
 #endif	/* __header_h__ */
 
