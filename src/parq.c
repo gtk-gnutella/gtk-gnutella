@@ -1055,6 +1055,9 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 	g_hash_table_remove(ul_all_parq_by_ip_and_name, parq_ul->ip_and_name);
 	g_hash_table_remove(ul_all_parq_by_id, parq_ul->id);
 
+	g_assert(g_list_find(parq_ul->queue->by_date_dead, parq_ul) == NULL);
+	g_assert(g_list_find(parq_ul->queue->by_rel_pos, parq_ul) == NULL);
+
 	/* 
 	 * Queued upload is now removed from all lists. So queue size can be
 	 * safely decreased and new ETAs can be calculate.
@@ -1454,8 +1457,6 @@ void parq_upload_timer(time_t now)
 			struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) dl->data;
 
 			g_assert(parq_ul != NULL);
-			if (parq_ul == NULL)		// XXX how can this happen? -- RAM
-				break;
 			
 			if (
 				parq_ul->expire <= now &&
@@ -1483,25 +1484,13 @@ void parq_upload_timer(time_t now)
 						ip_to_gchar(parq_ul->remote_ip),
 						parq_ul->name);
 				
-				parq_ul->is_alive = FALSE;
-				parq_ul->queue->alive--;
-				
-				parq_ul->queue->by_rel_pos = 
-					  g_list_remove(parq_ul->queue->by_rel_pos, parq_ul);
-
-				parq_upload_update_relative_position(parq_ul);
-				g_assert(parq_ul->queue->alive >= 0);					
 				
 				/*
 			 	 * Mark for removal. Can't remove now as we are still using the
 			 	 * ul_parq_by_position linked list. (prepend is probably the 
 				 * fastest function
 			 	 */
-				if (!enable_real_passive)
-					remove = g_slist_prepend(remove, parq_ul);		
-				
-				parq_ul->queue->by_date_dead = 
-					  g_list_append(parq_ul->queue->by_date_dead, parq_ul);
+				remove = g_slist_prepend(remove, parq_ul);		
 			}
 		}
 
@@ -1515,8 +1504,24 @@ void parq_upload_timer(time_t now)
 	}
 	
 
-	for (sl = remove; sl != NULL; sl = g_slist_next(sl))
-		parq_upload_free((struct parq_ul_queued *) sl->data);
+	for (sl = remove; sl != NULL; sl = g_slist_next(sl)) {
+		struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) sl->data;
+			
+		parq_ul->is_alive = FALSE;
+		parq_ul->queue->alive--;
+				
+		parq_ul->queue->by_rel_pos = 
+			  g_list_remove(parq_ul->queue->by_rel_pos, parq_ul);
+
+		parq_upload_update_relative_position(parq_ul);
+		g_assert(parq_ul->queue->alive >= 0);					
+
+		if (!enable_real_passive)
+			parq_upload_free((struct parq_ul_queued *) sl->data);
+		else
+			parq_ul->queue->by_date_dead = 
+				  g_list_append(parq_ul->queue->by_date_dead, parq_ul);
+	}
 	
 	g_slist_free(remove);
 
@@ -1830,6 +1835,8 @@ cleanup:
 		g_assert(parq_ul->queue->alive > 0);
 
 		/* Insert again, in the relative position list. */
+		// FIXME: Remove the following
+		g_assert(parq_ul != NULL);
 		parq_ul->queue->by_rel_pos = 
 			g_list_insert_sorted(parq_ul->queue->by_rel_pos, parq_ul, 
 				  parq_ul_rel_pos_cmp);	
@@ -1945,9 +1952,8 @@ void parq_upload_add(gnutella_upload_t *u)
 void parq_upload_remove(gnutella_upload_t *u)
 {
 	struct parq_ul_queued *parq_ul = NULL;
-#ifdef FIXTHIS
-	struct parq_ul_queued *parq_ul_next = NULL;
-#endif	
+//FIXME	struct parq_ul_queued *parq_ul_next = NULL;
+
 	g_assert(u != NULL);
 
 	/*
@@ -1982,38 +1988,32 @@ void parq_upload_remove(gnutella_upload_t *u)
 				
 	
 	if (parq_ul->has_slot) {
-#ifdef FIXTHIS
-		GList *next = NULL;
-#endif
+//FIXME		GList *next = NULL;
 		
 		if (dbg)
 			printf("PARQ UL: Freed an upload slot\n");
 
 		parq_ul->queue->active_uploads--;
 		
-#ifdef FIXTHIS
 		/* Search next waiting upload that an slot is avail using QUEUE */
-		for (next = g_list_first(parq_ul->queue->by_rel_pos); 
-			  next != NULL; next = next->next) {
-			parq_ul_next = (struct parq_ul_queued *) next->data;
-				
-			if (!parq_ul_next->has_slot)
-				break;
-		}
+//FIXME		for (next = g_list_first(parq_ul->queue->by_rel_pos); 
+//FIXME			  next != NULL; next = next->next) {
+//FIXME			parq_ul_next = (struct parq_ul_queued *) next->data;
+//FIXME				
+//FIXME			if (!parq_ul_next->has_slot)
+//FIXME				break;
+//FIXME		}
 		
-		g_list_free(next);
-#endif
+//FIXME		g_list_free(next);
 	}
 	
 	g_assert(parq_ul->queue->active_uploads >= 0);	
 	
 	parq_upload_free(parq_ul);
 
-#ifdef FIXTHIS
 	/* Signal next */
-	if (parq_ul_next != NULL && parq_ul_next->has_slot)
-		parq_upload_send_queue(parq_ul_next);	
-#endif
+//FIXME		if (parq_ul_next != NULL && parq_ul_next->has_slot)
+//FIXME		parq_upload_send_queue(parq_ul_next);	
 }
 
 /*
@@ -2494,10 +2494,11 @@ void parq_upload_save_queue()
 static void parq_store(gpointer data, gpointer x)
 {
 	FILE *f = (FILE *)x;
+	time_t now = time((time_t *) NULL);
 	struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) data;
 	
 	g_assert(NULL != f);
-	if (dbg)
+	if (dbg > 2)
 		printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): Saving ID: '%s' - %s '%s'\n",
 			  g_list_position(ul_parqs, 
 				  g_list_find(ul_parqs, parq_ul->queue)) + 1,
@@ -2512,10 +2513,12 @@ static void parq_store(gpointer data, gpointer x)
 	/*
 	 * Save all needed parq information. The ip and port information gathered
 	 * from X-Node is saved as XIP and XPORT 
+	 * The lifetime is saved as a relative value.
 	 */
 	fprintf(f, "QUEUE: %d\n"
 		  "POS: %d\n"
 		  "ENTERED: %d\n"
+		  "EXPIRE: %d\n"
 		  "ID: %s\n"
 		  "SIZE: %d\n"
 		  "XIP: %u\n"
@@ -2525,6 +2528,7 @@ static void parq_store(gpointer data, gpointer x)
 		  g_list_position(ul_parqs, g_list_find(ul_parqs, parq_ul->queue)) + 1,
 		  parq_ul->position,
 		  (gint) parq_ul->enter,
+		  (gint) parq_ul->expire - now,
 		  parq_ul->id,
 		  parq_ul->file_size,
 		  parq_ul->ip,
@@ -2546,10 +2550,12 @@ static void parq_upload_load_queue(void)
 	gboolean next = FALSE;
 	gnutella_upload_t *u;
 	struct parq_ul_queued *parq_ul;
-	
+	time_t now = time((time_t *) NULL);
+
 	int queue = 0;
 	int position = 0;
 	int enter = 0;
+	int expire = 0;
 	int filesize = 0;
 	guint32 ip = 0;
 	guint32 xip = 0;
@@ -2602,6 +2608,7 @@ static void parq_upload_load_queue(void)
 		sscanf(line, "QUEUE: %d", &queue);
 		sscanf(line, "POS: %d\n", &position);
 		sscanf(line, "ENTERED: %d\n", &enter);
+		sscanf(line, "EXPIRE: %d\n", &expire);
 		sscanf(line, "SIZE: %d\n", &filesize);
 		sscanf(line, "XPORT: %d\n", &xport);
 		
@@ -2640,6 +2647,7 @@ static void parq_upload_load_queue(void)
 			g_assert(parq_ul != NULL);
 	
 			parq_ul->enter = enter;
+			parq_ul->expire = now + expire;
 			parq_ul->ip = xip;
 			parq_ul->port = xport;
 			
@@ -2649,7 +2657,7 @@ static void parq_upload_load_queue(void)
 			parq_ul->id = g_strdup(id);
 			g_hash_table_insert(ul_all_parq_by_id, parq_ul->id, parq_ul);
 			
-			if (dbg)
+			if (dbg > 2)
 				printf(
 					"PARQ UL Q %d/%d (%3d[%3d]/%3d) ETA: %s Restored: %s '%s'\n",
 					g_list_position(ul_parqs,
