@@ -1,5 +1,21 @@
 # since last version
 
+- (2003.02.23 - cbiere)
+ * adns_do_transfer(): forgot to rename write to do_write
+ * adns_gethostbyname(): use host_to_ip() instead of gethostbyname()
+ * adns_callback(): remove the callback manually because the relay in
+		inputevt.c doesn't propagate the return value;
+	close() pipe if adns_do_read() fails
+ * adns_init(): close() stdin and wire the file descriptor to /dev/null,
+		just in case because it's shared with the main process;
+    use _exit() instead of exit();
+    close() all opened file descriptors in case fork() fails
+ * adns_resolve(): close() pipe if adns_do_write() fails and don't retry
+ * main(): ignore SIGINT and SIGPIPE before adns_init();
+	use sig_ignore also for SIGXFSZ
+ * host_to_ip(): declare hostname as const
+ * upload_write(): Hide variable "pos" if HAVE_SENDFILE is undefined
+
 - (2003.02.23 - RAM)
  * Forgot to negate the return of version_check().
  * Partially validate version whose token is given.
