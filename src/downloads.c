@@ -41,6 +41,7 @@
 #include "dmesh.h"
 #include "http.h"
 #include "version.h"
+#include "ignore.h"
 
 #include "settings.h"
 #include "nodes.h"
@@ -54,6 +55,7 @@
 
 static GSList *sl_downloads = NULL; /* All downloads (queued + unqueued) */
 GSList *sl_unqueued = NULL;			/* Unqueued downloads only */
+GSList *sl_removed = NULL;			/* Removed downloads only */
 static gchar dl_tmp[4096];
 static gint queue_frozen = 0;
 
@@ -68,6 +70,7 @@ static void download_push_remove(struct download *d);
 static void download_push(struct download *d, gboolean on_timeout);
 static void download_store(void);
 static void download_retrieve(void);
+static void download_free_removed(void);
 
 /*
  * Download structures.
@@ -298,6 +301,7 @@ void download_timer(time_t now)
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ABORTED:
 		case GTA_DL_ERROR:
+		case GTA_DL_REMOVED:
 			break;
 		case GTA_DL_QUEUED:
 			g_error("found queued download in sl_unqueued list: \"%s\"",
@@ -312,6 +316,8 @@ void download_timer(time_t now)
 
 	if (clear_downloads)
 		download_clear_stopped(FALSE, FALSE);
+
+	download_free_removed();
 
 	/* Dequeuing */
 	if (is_inet_connected)
@@ -609,8 +615,12 @@ void download_file_info_change_all(
 
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
+
+		if (d->status == GTA_DL_REMOVED)
+			continue;
 	
-		if (d->file_info != old_fi) continue;
+		if (d->file_info != old_fi)
+			continue;
 
 		if (DOWNLOAD_IS_RUNNING(d))
 			download_queue(d, "Requeued by file info change");
@@ -625,161 +635,46 @@ void download_file_info_change_all(
  * queue_remove_downloads_with_file
  *
  * Removes all downloads that point to the file_info struct.
- * This replaces queue_remove_identical, since downloads can
- * have different file names but still point to the same file.
+ * If `skip' is non-NULL, that download is skipped.
  */
-static void queue_remove_downloads_with_file(struct dl_file_info *fi)
+static void queue_remove_downloads_with_file(
+	struct dl_file_info *fi, struct download *skip)
 {
-	GSList *to_remove = NULL;
 	GSList *l;
-	static gboolean removing = FALSE;
-
-	if (removing) return;
-	removing = TRUE;
 
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
 
-		if (d->file_info != fi) continue;
-		
-		if (d->status != GTA_DL_COMPLETED)
-			to_remove = g_slist_prepend(to_remove, d);
-	}
-	
-	for (l = to_remove; l; l = l->next)
-		download_free((struct download *)l->data);
-
-	g_slist_free(to_remove);
-
-	removing = FALSE;
-}
-
-
-/*
- * queue_remove_identical
- *
- * Remove all queued downloads bearing given name or which have common SHA1.
- * During traversal, we also collect SHA1 of identically named files and will
- * also remove them.
- *
- * Only entries smaller or equal than `size' are removed.
- *
- * NB: we don't remove second-order aliases.  For instance, download "a" which
- * has a SHA1 of XA1 is removed.  There is also another "a" in the queue whose
- * SHA1 is XA2.	Then we'll remove all XA1 and XA2, but if we find a "b"
- * whose SHA1 is also XA2, we won't remove all "b".
- */
-static void queue_remove_identical(
-	const gchar *name, guchar *sha1, guint32 size)
-{
-	GSList *to_remove = NULL;
-	GSList *l;
-	gint bigger = 0;
-	extern guint sha1_hash(gconstpointer key);
-	extern gint sha1_eq(gconstpointer a, gconstpointer b);
-	GHashTable *seen_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
-
-	g_assert(name);
-
-	if (dbg > 3)
-		printf("queue_remove_identical: for \"%s\" (%s) <= %d bytes\n",
-			name, sha1 ? sha1_base32(sha1) : "", size);
-
-	/*
-	 * If SHA1 given, record it.
-	 *
-	 * Note that we don't need to clone the `sha1' atom since we'll dispose
-	 * of the `seen_sha1' table before actually removing the downloads.
-	 */
-
-	if (sha1)
-		g_hash_table_insert(seen_sha1, sha1, (gpointer) 1);
-
-	/*
-	 * First pass, by name: collect SHA1, mark identical downloads.
-	 */
-
-	for (l = sl_downloads; l; l = l->next) {
-		struct download *d = (struct download *) l->data;
-
-		d->flags &= ~DL_F_MARK;			/* Clear traversal mark */
-
-		switch (d->status) {
-		case GTA_DL_QUEUED:
-		case GTA_DL_TIMEOUT_WAIT:
-			if (0 == strcmp(name, d->file_info->file_name)) {
-				d->flags |= DL_F_MARK;
-				if (d->file_info->size <= size)
-					to_remove = g_slist_prepend(to_remove, d);
-				else
-					bigger++;
-				if (d->sha1 && !g_hash_table_lookup(seen_sha1, d->sha1))
-					g_hash_table_insert(seen_sha1, d->sha1, (gpointer) 1);
-			}
-			break;
-		default:
-			break;
-		}
-	}
-
-	/*
-	 * Second pass, by collected SHA1.
-	 * We only scan items not marked by first pass.
-	 */
-
-	for (l = sl_downloads; l; l = l->next) {
-		struct download *d = (struct download *) l->data;
-
-		if (d->flags & DL_F_MARK)		/* Already processed above */
+		if (d->status == GTA_DL_REMOVED)
 			continue;
 
+		if (d->file_info != fi)
+			continue;
+
+		if (d == skip)
+			continue;
+		
 		switch (d->status) {
-		case GTA_DL_QUEUED:
-		case GTA_DL_TIMEOUT_WAIT:
-			if (d->sha1 && g_hash_table_lookup(seen_sha1, d->sha1)) {
-				if (d->file_info->size <= size)
-					to_remove = g_slist_prepend(to_remove, d);
-				else
-					bigger++;
-			}
+		case GTA_DL_COMPLETED:
+		case GTA_DL_REMOVED:
 			break;
 		default:
+			download_free(d);
 			break;
 		}
 	}
-
-	g_hash_table_destroy(seen_sha1);	/* No allocated key/value */
-
-	for (l = to_remove; l; l = l->next) {
-		struct download *d = (struct download *) l->data;
-
-		if (dbg > 3)
-			printf("queue_remove_identical: removing \"%s\" (%s) %d bytes\n",
-				d->file_name, d->sha1 ? sha1_base32(d->sha1) : "",
-				d->file_info->size);
-
-		download_free(d);
-	}
-
-	g_slist_free(to_remove);
-
-	if (bigger)
-		g_warning("file \"%s\" is incomplete: %d bigger entr%s in queue",
-			name, bigger, bigger == 1 ? "y" : "ies");
 }
 
 /*
  * download_remove_all_from_peer
  *
  * Remove all downloads to a given peer from the download queue
- * and abort all conenctions to peer in the active download list.
+ * and abort all connections to peer in the active download list.
  * Return the number of removed downloads.
  */
 gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
 {
 	struct dl_server *server = get_server((gchar *) guid, ip, port);
-	GSList *l;
-	GSList *to_remove = NULL;
 	gint n;
 	enum dl_list listnum[] = { DL_LIST_RUNNING, DL_LIST_WAITING };
 
@@ -789,26 +684,22 @@ gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
 
 		for (l = server->list[idx]; l; l = g_list_next(l)) {
 			struct download *d = (struct download *) l->data;
+
 			g_assert(d);
-			to_remove = g_slist_prepend(to_remove, d);
+			g_assert(d->status != GTA_DL_REMOVED);
+
+			n++;
+			switch (d->status) {
+			case GTA_DL_QUEUED:
+			case GTA_DL_TIMEOUT_WAIT:
+				download_free(d);
+				break;
+			default:
+				download_abort(d);
+				break;
+			}
 		}
 	}
-
-	for (n = 0, l = to_remove; l; l = l->next) {
-		struct download *d = (struct download *) l->data;
-		n++;
-		switch (d->status) {
-		case GTA_DL_QUEUED:
-		case GTA_DL_TIMEOUT_WAIT:
-			download_free(d);
-			break;
-		default:
-			download_abort(d);
-			break;
-		}
-	}
-
-	g_slist_free(to_remove);
 
 	return n;
 }
@@ -823,9 +714,7 @@ gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
 gint download_remove_all_named(const gchar *name)
 {
 	GSList *l;
-	GSList *to_remove = NULL;
-	
-	int n = 0, m = 0;
+	gint n = 0;
 
 	g_return_val_if_fail(name, 0);
 	
@@ -834,34 +723,26 @@ gint download_remove_all_named(const gchar *name)
 	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
 
-		n ++;
+		g_assert(d);
 
-		if (!d) {
-			g_warning("download_remove_all_named(): NULL download");
+		if (d->status == GTA_DL_REMOVED)
 			continue;
-		}
 
-		if (!strcmp(dl_tmp, d->file_name)) 
-			to_remove = g_slist_prepend(to_remove, d);
-	}
-
-	for (l = to_remove; l; l = l->next) {
-		struct download *d = (struct download *) l->data;
-		m ++;
-		switch (d->status) {
-		case GTA_DL_QUEUED:
-		case GTA_DL_TIMEOUT_WAIT:
-			download_free(d);
-			break;
-		default:
-			download_abort(d);
-			break;
+		if (0 == strcmp(dl_tmp, d->file_name))  {
+			n++;
+			switch (d->status) {
+			case GTA_DL_QUEUED:
+			case GTA_DL_TIMEOUT_WAIT:
+				download_free(d);
+				break;
+			default:
+				download_abort(d);
+				break;
+			}
 		}
 	}
 
-	g_slist_free(to_remove);
-
-	return m;
+	return n;
 }
 
 /*
@@ -876,43 +757,33 @@ gint download_remove_all_named(const gchar *name)
 gint download_remove_all_with_sha1(const guchar *sha1)
 {
 	GSList *l;
-	GSList *to_remove = NULL;
-	
-	int n = 0, m = 0;
+	gint n = 0;
 
 	g_return_val_if_fail(sha1 != NULL, 0);
 	
 	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
 
-		n ++;
+		g_assert(d);
 
-		if (!d) {
-			g_warning("download_remove_all_with_sha1(): NULL download");
+		if (d->status == GTA_DL_REMOVED)
 			continue;
-		}
 
-		if ((d->sha1 != NULL) && (memcmp(sha1, d->sha1, SHA1_RAW_SIZE) == 0)) 
-			to_remove = g_slist_prepend(to_remove, d);
-	}
-
-	for (l = to_remove; l; l = l->next) {
-		struct download *d = (struct download *) l->data;
-		m ++;
-		switch (d->status) {
-		case GTA_DL_QUEUED:
-		case GTA_DL_TIMEOUT_WAIT:
-			download_free(d);
-			break;
-		default:
-			download_abort(d);
-			break;
+		if ((d->sha1 != NULL) && (0 == memcmp(sha1, d->sha1, SHA1_RAW_SIZE))) {
+			n++;
+			switch (d->status) {
+			case GTA_DL_QUEUED:
+			case GTA_DL_TIMEOUT_WAIT:
+				download_free(d);
+				break;
+			default:
+				download_abort(d);
+				break;
+			}
 		}
 	}
 
-	g_slist_free(to_remove);
-
-	return m;
+	return n;
 }
 
 /*
@@ -1051,6 +922,9 @@ void download_clear_stopped(gboolean all, gboolean now)
 	while (l) {
 		struct download *d = (struct download *) l->data;
 		l = l->next;
+
+		if (d->status == GTA_DL_REMOVED)
+			continue;
 
 		if (!DOWNLOAD_IS_STOPPED(d))
 			continue;
@@ -1642,6 +1516,8 @@ static gboolean download_start_prepare(struct download *d)
 {
 	struct stat st;
 	gboolean all_done = FALSE;
+	struct dl_file_info *fi = d->file_info;
+	enum ignore_val reason;
 
     g_assert(d != NULL);
 	g_assert(d->list_idx != DL_LIST_RUNNING);
@@ -1665,6 +1541,19 @@ static gboolean download_start_prepare(struct download *d)
 	d->status = GTA_DL_CONNECTING;	/* Most common state if we succeed */
 
 	/*
+	 * If we were asked to ignore this download, abort now.
+	 */
+
+	if ((reason = ignore_is_requested(fi->file_name, fi->size, fi->sha1))) {
+		if (!DOWNLOAD_IS_VISIBLE(d))
+			download_gui_add(d);
+		download_stop(d, GTA_DL_ERROR, "Ignoring requested (%s)",
+			reason == IGNORE_SHA1 ? "SHA1" : "Name & Size");
+		queue_remove_downloads_with_file(fi, d);
+		return FALSE;
+	}
+
+	/*
 	 * If the output file already exists, we have to send a partial request
 	 * This is done here so multiple downloads of existing files drop out when
 	 * they are smaller than the existing file.
@@ -1684,24 +1573,20 @@ static gboolean download_start_prepare(struct download *d)
 	 *		--RAM, 13/03/2002
 	 */
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s",
-			d->file_info->path, d->file_info->file_name);
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", fi->path, fi->file_name);
 
 	d->skip = 0;			/* We're setting it here only if not swarming */
 	d->keep_alive = FALSE;	/* Until proven otherwise by server's reply */
 
 	if (stat(dl_tmp, &st) != -1) {
-		if (
-			!d->file_info->use_swarming &&
-			st.st_size > download_overlap_range
-		)
+		if (!fi->use_swarming && st.st_size > download_overlap_range)
 			d->skip = st.st_size;	/* Not swarming => file size on disk OK */
 	} else {
 		gchar dl_dest[4096];
 		gboolean found = FALSE;
 
 		g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s",
-					move_file_path, d->file_info->file_name);
+					move_file_path, fi->file_name);
 
 		if (stat(dl_dest, &st) != -1)
 			found = TRUE;
@@ -1723,8 +1608,7 @@ static gboolean download_start_prepare(struct download *d)
 					if (st.st_size > download_overlap_range)
 						d->skip = st.st_size;
 					g_warning("moved incomplete \"%s\" back to "
-						"download dir as \"%s\"",
-						dl_dest, d->file_info->file_name);
+						"download dir as \"%s\"", dl_dest, fi->file_name);
 					file_info_recreate(d);
 				}
 			} else
@@ -1738,7 +1622,7 @@ static gboolean download_start_prepare(struct download *d)
 	 *		--RAM, 22/08/2002.
 	 */
 
-	if (!d->file_info->use_swarming) {
+	if (!fi->use_swarming) {
 		d->pos = d->skip;
 		d->overlap_size = (d->skip == 0 || d->size <= d->pos) ?
 			0 : download_overlap_range;
@@ -1752,12 +1636,11 @@ static gboolean download_start_prepare(struct download *d)
 	 * Is there anything to get at all?
 	 */
 
-	if (all_done || FILE_INFO_COMPLETE(d->file_info)) {
+	if (all_done || FILE_INFO_COMPLETE(fi)) {
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			download_gui_add(d);
 		download_stop(d, GTA_DL_ERROR, "Nothing more to get");
-		//queue_remove_identical(d->file_info->file_name, d->sha1, d->file_info->size);
-		queue_remove_downloads_with_file(d->file_info);
+		queue_remove_downloads_with_file(fi, d);
 		return FALSE;
 	}
 
@@ -1808,7 +1691,7 @@ static gboolean download_pick_chunk(struct download *d)
 			download_gui_add(d);
 
 		download_stop(d, GTA_DL_ERROR, "No more gaps to fill");
-		queue_remove_downloads_with_file(d->file_info);
+		queue_remove_downloads_with_file(d->file_info, d);
 		return FALSE;
 	}
 
@@ -2303,6 +2186,7 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 	struct stat buf;
 	char *reason;
 	int tmplen;
+	enum ignore_val ign_reason;
 
 	/* 
 	 * If we already got a file_info pointer, all the testing has been
@@ -2310,7 +2194,6 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 	 */
 
 	if (!fi) {
-	
 		/*
 		 * Make sure we have not got a bigger file in the "download dir".
 		 *
@@ -2367,8 +2250,31 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 				}
 			}
 		}
-
 	}
+
+	/*
+	 * Make sure we're not prevented from downloading that file.
+	 */
+
+	ign_reason = ignore_is_requested(
+		fi ? fi->file_name : output_name,
+		fi ? fi->size : size,
+		fi ? fi->sha1 : sha1);
+
+	switch (ign_reason) {
+	case IGNORE_FALSE:
+		break;
+	case IGNORE_SHA1:
+		reason = "ignore by SHA1 requested";
+		goto abort_download;
+	case IGNORE_NAMESIZE:
+		reason = "ignore by name & size requested";
+		goto abort_download;
+	}
+
+	/*
+	 * Create download.
+	 */
 
 	file_name = atom_str_get(file);
 	if (output_name == file)		/* Not duplicated, has no '/' inside */
@@ -2543,8 +2449,47 @@ void download_new(gchar *file, guint32 size, guint32 record_index,
 		stamp, push, TRUE, fi);
 }
 
-/* Free a download. */
+/*
+ * download_free_removed
+ *
+ * Free all downloads listed in the `sl_removed' list.
+ */
+static void download_free_removed(void)
+{
+	GSList *l;
 
+	if (sl_removed == NULL)
+		return;
+
+	for (l = sl_removed; l; l = l->next) {
+		struct download *d = (struct download *) l->data;
+
+		g_assert(d->status == GTA_DL_REMOVED);
+
+		sl_downloads = g_slist_remove(sl_downloads, d);
+		sl_unqueued = g_slist_remove(sl_unqueued, d);
+
+		g_free(d);
+	}
+
+	g_slist_free(sl_removed);
+	sl_removed = NULL;
+}
+
+/*
+ * download_free
+ *
+ * Freeing a download cannot be done simply, because it might happen when
+ * we are traversing the `sl_downloads' or `sl_unqueued' lists.
+ *
+ * Therefore download_free() marks the download as "removed" and frees some
+ * of the memory used, but does not reclaim the download structure yet, nor
+ * does it remove it from the lists.
+ *
+ * The "freed" download is marked GTA_DL_REMOVED and is put into the
+ * `sl_removed' list where it will be reclaimed later on via
+ * download_free_removed().
+ */
 void download_free(struct download *d)
 {
 	g_assert(d);
@@ -2557,9 +2502,6 @@ void download_free(struct download *d)
 
 	g_assert(d->io_opaque == NULL);
 
-	sl_downloads = g_slist_remove(sl_downloads, d);
-	sl_unqueued = g_slist_remove(sl_unqueued, d);
-
 	if (d->push)
 		download_push_remove(d);
 
@@ -2567,11 +2509,14 @@ void download_free(struct download *d)
 		atom_sha1_free(d->sha1);
 
 	download_remove_from_server(d);
+	d->status = GTA_DL_REMOVED;
 
 	atom_str_free(d->file_name);
 	file_info_free(d->file_info, FALSE);
 
-	g_free(d);
+	sl_removed = g_slist_prepend(sl_removed, d);
+
+	/* download structure will be freed in download_free_removed() */
 }
 
 /* ----------------------------------------- */
@@ -3085,7 +3030,7 @@ static gboolean download_overlap_check(struct download *d)
 	 * immediately.
 	 */
 
-	if (!d->file_info->use_swarming && d->skip != buf.st_size) {
+	if (!d->file_info->use_swarming && d->skip != d->file_info->done) {
 		g_warning("File '%s' changed size (now %lu, but was %u)",
 			d->file_info->file_name, (gulong) buf.st_size, d->skip);
 		download_queue_delay(d, download_retry_stopped_delay,
@@ -3115,10 +3060,14 @@ static gboolean download_overlap_check(struct download *d)
 	}
 
 	if (r != d->overlap_size) {
-		if (r == 0)
-			download_queue_delay(d, download_retry_stopped_delay,
-				"Stopped (EOF)");
-		else {
+		if (r == 0) {
+			if (d->retries++ < download_max_retries)
+				download_queue_delay(d, download_retry_stopped_delay,
+					"Stopped (EOF)");
+			else
+				download_stop(d, GTA_DL_ERROR, "Too many attempts (%d)",
+					d->retries - 1);
+		} else {
 			g_warning("Short read (%d instead of %d bytes) on resuming data "
 				"for \"%s\"", r, d->overlap_size, d->file_info->file_name);
 			download_stop(d, GTA_DL_ERROR, "Short read on resume data");
@@ -3349,8 +3298,9 @@ partial_done:
 
 done:
 	download_stop(d, GTA_DL_COMPLETED, NULL);
-	queue_remove_downloads_with_file(d->file_info);
+	queue_remove_downloads_with_file(d->file_info, d);
 	download_move_to_completed_dir(d);
+	ignore_add(d->file_info->file_name, d->file_info->size, d->file_info->sha1);
 
 	val = total_downloads + 1;
 	gnet_prop_set_guint32(PROP_TOTAL_DOWNLOADS, &val, 0, 1);
@@ -4502,7 +4452,7 @@ static void download_store(void)
 		struct download *d = (struct download *) l->data;
 		gchar *escaped;
 
-		if (d->status == GTA_DL_COMPLETED)
+		if (d->status == GTA_DL_COMPLETED || d->status == GTA_DL_REMOVED)
 			continue;
 		if (d->always_push)
 			continue;
@@ -4744,6 +4694,8 @@ void download_close(void)
 
 	download_store();			/* Save latest copy */
 	download_freeze_queue(TRUE);
+
+	download_free_removed();
 
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;

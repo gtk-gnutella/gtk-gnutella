@@ -126,6 +126,7 @@ struct download {
 #define GTA_DL_ERROR			9	/* Download is stopped due to error */
 #define GTA_DL_ABORTED			10	/* User used the 'Abort Download' button */
 #define GTA_DL_TIMEOUT_WAIT		11	/* Waiting to try connecting again */
+#define GTA_DL_REMOVED			12	/* Download was removed, pending free */
 
 /*
  * Download flags.
