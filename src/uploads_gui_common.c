@@ -37,7 +37,6 @@
 RCSID("$Id$");
 
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
-#define REMOVE_DELAY    5       /* delay before outdated info is removed */
 
 /*
  * uploads_gui_status_str
@@ -191,10 +190,9 @@ const gchar *uploads_gui_status_str(
  */
 gboolean upload_should_remove(time_t now, const upload_row_data_t *ul) 
 {
-	g_assert(NULL != ul);
+	guint32 grace;
 
-	if (now - ul->last_update <= REMOVE_DELAY)
-		return FALSE;
+	g_assert(NULL != ul);
 
 	switch (ul->status) {
 	case GTA_UL_COMPLETE:
@@ -202,6 +200,11 @@ gboolean upload_should_remove(time_t now, const upload_row_data_t *ul)
 			gboolean val;
 
 			gui_prop_get_boolean_val(PROP_AUTOCLEAR_COMPLETED_UPLOADS, &val);
+			gnet_prop_get_guint32_val(PROP_ENTRY_REMOVAL_TIMEOUT, &grace);
+
+			if (now - ul->last_update <= grace)
+				return FALSE;
+
 			return val;
 		}
 		break;
@@ -211,6 +214,11 @@ gboolean upload_should_remove(time_t now, const upload_row_data_t *ul)
 			gboolean val;
 
 			gui_prop_get_boolean_val(PROP_AUTOCLEAR_FAILED_UPLOADS, &val);
+			gnet_prop_get_guint32_val(PROP_ENTRY_REMOVAL_TIMEOUT, &grace);
+
+			if (now - ul->last_update <= grace)
+				return FALSE;
+
 			return val;
 		}
 		break;
@@ -220,3 +228,4 @@ gboolean upload_should_remove(time_t now, const upload_row_data_t *ul)
 	
 	return FALSE;
 }
+
