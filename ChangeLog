@@ -1,10 +1,22 @@
 # since last version
 
+- (2003.12.20 - RAM)
+ * PARQ will no longer send QUEUE when uploads are disabled.
+ * Changed semantics of reported connection speed: it is now the connection
+   speed in kbits/s for each upload slot, not a global one.
+ * New property "compute_connection_speed", TRUE by default.
+ * [GTK1] Added GUI interface for "compute_connection_speed" configuration.
+ * [GTK2] Patch from Russell Francis adding the avail b/w display like in GTK1.
+
 - (2003.12.17 - RAM)
  * Changed some property defaults:
 	 node_monitor_unstable_servents -> FALSE (was TRUE)
      max_leaves -> 48 (was 100)
  * Changed minimum bandwidth requirements per leaf (128 bytes -> 64).
+ * [GTK1] Removed unused "Default minimum speed" configuration in the
+   Config / Gnutella pane.
+ * [GTK1] Changed increments for bandwidth changes via PageUp and PageDown
+   to be 5 units, and increments for the speed reported to peers to be 8 units.
 
 - (2003.12.16 - RAM)
  * New property "dl_http_latency".
