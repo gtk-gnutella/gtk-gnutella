@@ -310,6 +310,12 @@ struct upload {
 
 };
 
+/* A file extension we have to share */
+struct extension {
+	gchar *str;			/* Extension string (e.g. "divx") */
+	gint len;			/* Extension length (e.g. 4) */
+};
+
 /* XXX could be clever and share the file_directory's ... */
 struct shared_file {
 	gchar *file_name;
@@ -406,6 +412,11 @@ extern guint32 dl_queued_col_widths[];
 extern guint32 uploads_col_widths[];
 extern guint32 search_results_col_widths[];
 extern guint32 hops_random_factor;
+extern guint32 max_high_ttl_msg;
+extern guint32 max_high_ttl_radius;
+extern guint32 min_dup_msg;
+extern gfloat min_dup_ratio;
+extern guint32 max_hosts_cached;
 
 extern gint dbg;
 extern gint stop_host_get;
@@ -452,7 +463,7 @@ extern struct gnutella_node *node_added;
 
 /* hosts.c */
 
-extern GSList *sl_catched_hosts;
+extern GList *sl_catched_hosts;
 extern struct ping_req *pr_ref;
 extern gint hosts_idle_func;
 
