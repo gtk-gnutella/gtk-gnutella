@@ -539,8 +539,6 @@ static void version_maybe_refuse(time_t overtime)
 	gchar *force;
 	property_t prop = PROP_ANCIENT_VERSION_FORCE;
 
-printf("overtime = %d\n", overtime);
-
 	if (overtime < VERSION_ANCIENT_GRACE)
 		return;
 
@@ -590,8 +588,6 @@ void version_ancient_warn(void)
 	gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, FALSE);
 
 	elapsed = now - our_version.timestamp;
-
-printf("elapsed = %d\n", elapsed);
 
 	if (elapsed > VERSION_ANCIENT_WARN || tok_is_ancient(now)) {
 		version_maybe_refuse(elapsed - VERSION_ANCIENT_WARN);
