@@ -1,5 +1,40 @@
 # since last version
 
+- (2003.04.29 - Richard)
+ * downloads.c:
+   - Added some skeletons for having events on the downloads (sources).
+   - Added handles to downloads.
+ * downloads.c,downloads_cb.c,settings_gui.c:
+   - download_clear_stopped can clear failed and/or completed downloads.
+ * event.h: 
+   - Typedefed frequency_t and event_t.
+ * fileinfo.c: 
+   - Put events into an array instead of keeping several event_t variables.
+   - Removed event specific add/remove listeners functions and added 
+     general fi_add/remove_listener() function. Event types are defined
+     in gnet.h.
+ * fileinfo_gui.c:
+   - Correctly show when a file is finished.
+   - Use generalized fi_add/remove_listener().
+ * gnet.h: 
+   - Added basic support for download/source related events.
+   - Added event type enumeration for download/source related events.
+   - Added event type enumeration for fileinfo related events.
+ * oldconfig.c: 
+   - Mapped old "clear_downloads" configuration variable to both new 
+     PROP_AUTOCLEAR_*_DOWNLOADS properties.
+ * settings_gui.c:
+   - Fixed connection odometer in NODE_P_LEAF.
+ * gnet properties:
+   - Added PROP_AUTOCLEAR_COMPLETED_DOWNLOADS.
+   - Added PROP_AUTOCLEAR_FAILED_DOWNLOADS.
+   - Removed PROP_AUTOCLEAR_DOWNLOADS.
+ * gui properties:
+   - Added PROP_SHOW_DL_SETTINGS.
+ * [Gtk1] gui modifications:
+   - Download settings on download pane hidable.
+   - Added detail panel to fileinfo pane.
+
 - (2003.03.26 - RAM)
  * Split parq_upload_request() into two to avoid assertion failures.
  * New parq_upload_get() call to return an opaque PARQ slot for uploads.
