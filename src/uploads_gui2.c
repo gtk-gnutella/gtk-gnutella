@@ -30,6 +30,7 @@
 #include "interface-glade2.h"
 #include "uploads_gui.h"
 #include "uploads_gui_common.h"
+#include "pbarcellrenderer_gui2.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -55,6 +56,8 @@ static inline upload_row_data_t *find_upload(gnet_upload_t u);
 static void uploads_gui_update_upload_info(const gnet_upload_info_t *u);
 static void uploads_gui_add_upload(gnet_upload_info_t *u);
 
+static gfloat force_range(gfloat, gfloat, gfloat);
+
 
 static const char *column_titles[UPLOADS_GUI_VISIBLE_COLUMNS] = {
 	N_("Filename"),
@@ -62,6 +65,7 @@ static const char *column_titles[UPLOADS_GUI_VISIBLE_COLUMNS] = {
 	N_("Size"),
 	N_("Range"),
 	N_("User-Agent"),
+	N_("Progress"),
 	N_("Status")
 };
 
@@ -246,7 +250,8 @@ static void uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 	if (u->file_size != rd->size) {
 		rd->size = u->file_size;
 		gtk_list_store_set(store_uploads, &rd->iter,
-			c_ul_size, short_size(rd->size), (-1));
+			c_ul_size, short_size(rd->size),
+			(-1));
 	}
 
 	/* Exploit that u->name is an atom! */ 
@@ -275,7 +280,11 @@ static void uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 	rd->status = status.status;
 
 	gtk_list_store_set(store_uploads, &rd->iter,
-		c_ul_status, uploads_gui_status_str(&status, rd), (-1));
+		c_ul_progress, 
+			force_range(
+				uploads_gui_progress(&status, rd), 0.0, 1.0),
+		c_ul_status, uploads_gui_status_str(&status, rd),
+		(-1));
 
 	if (u->push) {
 	    color = &(gtk_widget_get_style(GTK_WIDGET(treeview_uploads))
@@ -363,6 +372,9 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
 		c_ul_filename, titles[c_ul_filename],
 		c_ul_host, titles[c_ul_host],
 		c_ul_agent, titles[c_ul_agent],
+		c_ul_progress, 
+			force_range(
+				uploads_gui_progress(&status, rd), 0.0, 1.0),
 		c_ul_status, titles[c_ul_status],
 		c_ul_fg, NULL,
 		c_ul_data, rd,
@@ -371,7 +383,8 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
 	list_uploads = g_list_prepend(list_uploads, rd);
 }
 
-static void add_column(gint column_id, GtkTreeIterCompareFunc sortfunc)
+static void add_column(gint column_id, GtkTreeIterCompareFunc sortfunc,
+	GtkType column_type)
 {
 	GtkTreeViewColumn *column;
 	GtkCellRenderer *renderer;
@@ -382,17 +395,29 @@ static void add_column(gint column_id, GtkTreeIterCompareFunc sortfunc)
 	g_assert(NULL != store_uploads);
 
 	gui_prop_get_guint32(PROP_UPLOADS_COL_WIDTHS, &width, column_id, 1);
-	renderer = gtk_cell_renderer_text_new();
-	gtk_cell_renderer_text_set_fixed_height_from_font(
-		GTK_CELL_RENDERER_TEXT(renderer), 1);
-	g_object_set(renderer,
-		"xalign", (gfloat) 0.0,
-		"ypad", GUI_CELL_RENDERER_YPAD,
-		"foreground-set", TRUE,
-		NULL);
-	column = gtk_tree_view_column_new_with_attributes(
-		column_titles[column_id], renderer, "text", column_id, 
-		"foreground-gdk", c_ul_fg, NULL);
+	if (column_type == GTK_TYPE_CELL_RENDERER_PROGRESS) {
+		renderer = gtk_cell_renderer_progress_new();
+		g_object_set(renderer,
+			"xalign", (gfloat) 0.0,
+			"ypad", GUI_CELL_RENDERER_YPAD,
+			NULL);
+		column = gtk_tree_view_column_new_with_attributes(
+			column_titles[column_id], renderer, "value",
+			column_id, NULL);
+	} else { /* if (column_type == GTK_TYPE_CELL_RENDERER_TEXT) { */
+		renderer = gtk_cell_renderer_text_new();
+		gtk_cell_renderer_text_set_fixed_height_from_font(
+			GTK_CELL_RENDERER_TEXT(renderer), 1);
+		g_object_set(renderer,
+			"xalign", (gfloat) 0.0,
+			"ypad", GUI_CELL_RENDERER_YPAD,
+			"foreground-set", TRUE,
+			NULL);
+		column = gtk_tree_view_column_new_with_attributes(
+			column_titles[column_id], renderer, "text", column_id, 
+			"foreground-gdk", c_ul_fg, NULL);
+	}
+
 	g_object_set(G_OBJECT(column),
 		"min-width", 1,
 		"fixed-width", MAX(1, width),
@@ -400,6 +425,7 @@ static void add_column(gint column_id, GtkTreeIterCompareFunc sortfunc)
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		NULL);
+
 	gtk_tree_view_column_set_sort_column_id(column, column_id);
 	gtk_tree_view_append_column(treeview_uploads, column);
 
@@ -431,17 +457,19 @@ void uploads_gui_init(void)
 		G_TYPE_STRING,
 		G_TYPE_STRING,
 		G_TYPE_STRING,
+		G_TYPE_FLOAT,
 		G_TYPE_STRING,
 		GDK_TYPE_COLOR,
 		G_TYPE_POINTER);
 	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store_uploads));
 
-	add_column(c_ul_filename, NULL);
-	add_column(c_ul_host, compare_hosts_func);
-	add_column(c_ul_size, compare_sizes_func);
-	add_column(c_ul_range, compare_ranges_func);
-	add_column(c_ul_agent, NULL);
-	add_column(c_ul_status, NULL);
+	add_column(c_ul_filename, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
+	add_column(c_ul_host, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
+	add_column(c_ul_size, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
+	add_column(c_ul_range, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
+	add_column(c_ul_agent, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
+	add_column(c_ul_progress, NULL, GTK_TYPE_CELL_RENDERER_PROGRESS); 
+	add_column(c_ul_status, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
 
 	upload_handles = g_hash_table_new(NULL, NULL);
 
@@ -483,7 +511,12 @@ static inline void update_row(
 		rd->last_update = *now;
 		upload_get_status(rd->handle, &status);
 		gtk_list_store_set(store_uploads, &rd->iter,
-			c_ul_status, uploads_gui_status_str(&status, rd), (-1));
+			c_ul_progress, 
+				force_range(
+					uploads_gui_progress(&status, rd),
+					0.0, 1.0),
+			c_ul_status, uploads_gui_status_str(&status, rd),
+			(-1));
 	}
 }
 

@@ -317,6 +317,8 @@ src/nodes_gui_common.h
 src/override.h
 src/parq.c
 src/parq.h
+src/pbarcellrenderer_gui2.c
+src/pbarcellrenderer_gui2.h
 src/pcache.c
 src/pcache.h
 src/pmsg.c

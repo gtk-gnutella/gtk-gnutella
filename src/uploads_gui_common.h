@@ -32,6 +32,8 @@
 #include <time.h>           /* For time_t */
 #include "uploads_gui.h"    /* For upload_row_data_t */
 
+gfloat uploads_gui_progress(
+	const gnet_upload_status_t *u, const upload_row_data_t *data);
 const gchar *uploads_gui_status_str(
     const gnet_upload_status_t *u, const upload_row_data_t *data);
 gboolean upload_should_remove(time_t now, const upload_row_data_t *ul);

@@ -356,6 +356,53 @@ static gboolean has_good_sha1(struct download *d)
 /* ----------------------------------------- */
 
 /*
+ * download_total_progress
+ *
+ * Return the total progress of a download.  The range
+ * on the return value should be 0 -> 1 but there is no
+ * guarantee.
+ *
+ * @param d The download structure which we are interested
+ *        in knowing the progress of.
+ * @return The total percent completed for this file.
+ */
+gfloat download_total_progress(struct download *d)
+{
+	gfloat progress = 0.0;
+	gfloat filesize = (gfloat)download_filesize(d);
+	gfloat filedone = (gfloat)download_filedone(d);
+
+	if (filesize > 0.0)
+		progress = filedone / filesize;
+	return progress;	
+}
+
+/*
+ * download_source_progress
+ * 
+ * Return the total progress of a download source.  The
+ * range on the return value should be 0 -> 1 but there is
+ * no guarantee.
+ *
+ * @param d The download structure which we are interested
+ *          in knowing the progress of.
+ * @return The percent completed for this source.
+ */
+gfloat download_source_progress(struct download *d)
+{
+	gfloat progress = 0.0;
+	gfloat size = (gfloat)d->size;
+	gfloat pos = (gfloat)d->pos;
+	gfloat skip = (gfloat)d->skip;
+
+	if (size > 0.0)
+		progress = (pos - skip) / size;
+		
+	return progress;
+}	
+
+
+/*
  * download_init
  *
  * Initialize downloading data structures.

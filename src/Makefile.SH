@@ -103,6 +103,7 @@ all:: .FORCE_DEPEND
 # $X-Id: Jmakefile,v 1.11 2004/01/16 00:06:34 rmanfredi Exp $
 
 GUI_GTK2 = \
+	pbarcellrenderer_gui2.c \
 	downloads_cb2.c \
 	downloads_gui2.c \
 	fileinfo_gui2.c \
@@ -253,6 +254,7 @@ SRCLIST = \
 	$(CORE)
 
 OBJLIST = \
+	pbarcellrenderer_gui2.o \
 	downloads_cb2.o \
 	downloads_gui2.o \
 	fileinfo_gui2.o \

@@ -49,8 +49,8 @@ gboolean search_hide_downloaded     = FALSE;
 gboolean search_hide_downloaded_def = FALSE;
 guint32  nodes_col_widths[7]     = { 130, 50, 120, 20, 30, 30, 80 };
 guint32  nodes_col_widths_def[7] = { 130, 50, 120, 20, 30, 30, 80 };
-guint32  dl_active_col_widths[6]     = { 240, 80, 80, 80, 80, 80 };
-guint32  dl_active_col_widths_def[6] = { 240, 80, 80, 80, 80, 80 };
+guint32  dl_active_col_widths[7]     = { 240, 80, 80, 80, 80, 80, 80 };
+guint32  dl_active_col_widths_def[7] = { 240, 80, 80, 80, 80, 80, 80 };
 guint32  dl_queued_col_widths[5]     = { 240, 80, 80, 80, 80 };
 guint32  dl_queued_col_widths_def[5] = { 240, 80, 80, 80, 80 };
 guint32  file_info_col_widths[5]     = { 240, 80, 80, 80, 80 };
@@ -65,8 +65,8 @@ guint32  search_stats_col_widths[3]     = { 200, 80, 80 };
 guint32  search_stats_col_widths_def[3] = { 200, 80, 80 };
 guint32  ul_stats_col_widths[5]     = { 200, 80, 80, 80, 80 };
 guint32  ul_stats_col_widths_def[5] = { 200, 80, 80, 80, 80 };
-guint32  uploads_col_widths[6]     = { 200, 120, 36, 80, 80, 80 };
-guint32  uploads_col_widths_def[6] = { 200, 120, 36, 80, 80, 80 };
+guint32  uploads_col_widths[7]     = { 200, 120, 36, 80, 80, 80, 80 };
+guint32  uploads_col_widths_def[7] = { 200, 120, 36, 80, 80, 80, 80 };
 guint32  filter_rules_col_widths[4]     = { 10, 240, 80, 40 };
 guint32  filter_rules_col_widths_def[4] = { 10, 240, 80, 40 };
 guint32  filter_filters_col_widths[3]     = { 80, 40, 20 };
@@ -380,7 +380,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[6].desc = _("Widths of the columns in the active downloads table");
     gui_property->props[6].ev_changed = event_new("dl_active_col_widths_changed");
     gui_property->props[6].save = TRUE;
-    gui_property->props[6].vector_size = 6;
+    gui_property->props[6].vector_size = 7;
 
     /* Type specific data: */
     gui_property->props[6].type               = PROP_TYPE_GUINT32;
@@ -540,7 +540,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[14].desc = _("Widths of the columns in the uploads table");
     gui_property->props[14].ev_changed = event_new("uploads_col_widths_changed");
     gui_property->props[14].save = TRUE;
-    gui_property->props[14].vector_size = 6;
+    gui_property->props[14].vector_size = 7;
 
     /* Type specific data: */
     gui_property->props[14].type               = PROP_TYPE_GUINT32;

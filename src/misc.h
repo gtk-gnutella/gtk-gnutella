@@ -179,6 +179,7 @@ gint strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit);
 char *unique_filename(const gchar *path, const gchar *file, const gchar *ext);
 gchar *hex_escape(const gchar *name, gboolean strict);
 gint highest_bit_set(guint32 n);
+gfloat force_range(gfloat value, gfloat min, gfloat max);
 
 #ifdef HAVE_STRCASESTR
 char *strcasestr(const char *haystack, const char *needle);

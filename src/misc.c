@@ -831,6 +831,29 @@ gint highest_bit_set(guint32 n)
 }
 
 /*
+ * force_range
+ *
+ * Enforce range boundaries on a given floating point
+ * number.
+ *
+ * @param val The value to force within the range.
+ * @param min The minimum value which val can be.
+ * @param max The maximum value with val can be.
+ * @return The new value of val which will be between
+ *         min and max.
+ */
+gfloat force_range(gfloat val, gfloat min, gfloat max)
+{
+    g_assert(min <= max);
+
+    if (val < min)
+	return min;
+    if (val > max)
+	return max;
+    return val;	
+}
+
+/*
  * random_value:
  *
  * Return random value between (0..max).

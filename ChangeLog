@@ -1,5 +1,9 @@
 # since last version
 
+- (2004.01.27 - Hans)
+ * [Gtk2] Show progress bars in the up- and download lists to indicate
+   progress [from Russell Francis, patches 873182 and 874590].
+	
 # v 0.93.3   2004.01.25  [stable]
 
 - GUI updates:

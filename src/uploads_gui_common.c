@@ -40,6 +40,57 @@ RCSID("$Id$");
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
 
 /*
+ * uploads_gui_progress
+ *
+ * Returns a floating point value from [0:1] which indicates
+ * the total progress of the upload.
+ */
+gfloat uploads_gui_progress(
+	const gnet_upload_status_t *u,
+	const upload_row_data_t *data)
+{
+	gfloat progress;
+	guint32 requested;
+	
+	if (u->pos < data->range_start) /* No progress yet */
+		return 0.0; 
+
+	switch (u->status) {
+    case GTA_UL_HEADERS:
+    case GTA_UL_WAITING:
+    case GTA_UL_PFSP_WAITING:
+    case GTA_UL_ABORTED:
+	case GTA_UL_QUEUED:
+    case GTA_UL_QUEUE:
+    case GTA_UL_QUEUE_WAITING:
+	case GTA_UL_PUSH_RECEIVED:
+		progress = 0.0;
+		break;
+    case GTA_UL_CLOSED:
+	case GTA_UL_COMPLETE:
+		progress = 1.0;
+		break;
+	case GTA_UL_SENDING:
+		requested = data->range_end - data->range_start + 1;
+		if (requested != 0) {
+			/*
+			 * position divided by 1 percentage point, found by dividing
+			 * the total size by 100
+			 */
+			progress = (gfloat)(u->pos - data->range_start) /
+				(gfloat)requested;
+		} else {
+			progress = 0.0;
+		}	
+		break;
+	default:	/* Should never get this far. */ 
+		g_assert_not_reached(); 
+		break;
+	}
+	return progress;
+}
+
+/*
  * uploads_gui_status_str
  *
  * Returns a pointer to a static buffer containing a string which
@@ -72,18 +123,12 @@ const gchar *uploads_gui_status_str(
 		{
 			gint slen;
 			gfloat rate = u->bps / 1024.0;
-	        guint32 requested = data->range_end - data->range_start + 1;
-			/*
-			 * position divided by 1 percentage point, found by dividing
-			 * the total size by 100
-			 */
-			gfloat pc = (u->pos - data->range_start) * 100.0 / requested;
-
 
 			/* Time Remaining at the current rate, in seconds  */
 			guint32 tr = (data->range_end + 1 - u->pos) / u->avg_bps;
 
-			slen = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ", pc);
+			slen = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ", 
+				uploads_gui_progress(u, data) * 100.0);
 
 			if (time((time_t *) NULL) - u->last_update > IO_STALLED)
 				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,

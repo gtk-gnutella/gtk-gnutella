@@ -73,9 +73,9 @@ prop = {
     cfgvar = "widths_dl_active";
     desc = "Widths of the columns in the active downloads table";
     type = guint32;
-    vector_size = 6;
+    vector_size = 7;
     data = {
-        default = "{ 240, 80, 80, 80, 80, 80 }";
+        default = "{ 240, 80, 80, 80, 80, 80, 80 }";
     };
 };
 
@@ -160,9 +160,9 @@ prop = {
     cfgvar = "widths_uploads";
     desc = "Widths of the columns in the uploads table";
     type = guint32;
-    vector_size = 6;
+    vector_size = 7;
     data = {
-        default = "{ 200, 120, 36, 80, 80, 80 }";
+        default = "{ 200, 120, 36, 80, 80, 80, 80 }";
     };
 };
 

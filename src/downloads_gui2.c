@@ -32,6 +32,7 @@ RCSID("$Id$");
 #include "downloads_gui.h"
 #include "downloads_gui_common.h"
 #include "downloads_cb2.h"
+#include "pbarcellrenderer_gui2.h"
 
 #include "downloads.h" /* FIXME: remove this dependency */
 #include "dmesh.h" /* FIXME: remove this dependency */
@@ -110,7 +111,6 @@ static inline void do_atom_fi_handle_free(gpointer fi_handle)
 {
 	atom_int_free(fi_handle);
 }
-
 
 
 /*
@@ -286,7 +286,7 @@ static void on_downloads_gui_active_column_resized(
     GtkTreeViewColumn *column, GParamSpec *param, gpointer data)
 {
     downloads_gui_column_resized(column, PROP_DL_ACTIVE_COL_WIDTHS,
-		GPOINTER_TO_INT(data), 0, 5);
+		GPOINTER_TO_INT(data), 0, 6);
 }
 
 
@@ -307,30 +307,45 @@ static void on_downloads_gui_queue_column_resized(
  *	Sets the details applicable to a single column in the treeviews.
  *	Usable for both active downloads and downloads queue treeview.
  */
-static GtkTreeViewColumn *add_column(GtkTreeView *treeview,	gchar *name, 
-	gint id, gint width, guint xpad, gfloat xalign, gint fg_column,
-	gint bg_column)
+static GtkTreeViewColumn *add_column(
+	GtkTreeView *treeview, GtkType column_type, gchar *name,
+	gint id, gint width, guint xpad, gfloat xalign,
+	gint fg_column, gint bg_column)
 {
     GtkTreeViewColumn *column;
 	GtkCellRenderer *renderer;
 
-	renderer = gtk_cell_renderer_text_new();
-	gtk_cell_renderer_text_set_fixed_height_from_font(
-		GTK_CELL_RENDERER_TEXT(renderer), 1);
+	if (column_type == GTK_TYPE_CELL_RENDERER_PROGRESS) {
+		renderer = gtk_cell_renderer_progress_new();
+		column = gtk_tree_view_column_new_with_attributes(
+			name, renderer, "value", id, NULL);
+		g_object_set(G_OBJECT(renderer),
+			"mode", GTK_CELL_RENDERER_MODE_INERT,
+			"xpad", xpad,
+			"xalign", xalign,
+			"ypad", (guint) GUI_CELL_RENDERER_YPAD,
+			NULL);
+	} else { /* ie. (column_type == GTK_TYPE_CELL_RENDERER_TEXT) */
+		renderer = gtk_cell_renderer_text_new();
+		gtk_cell_renderer_text_set_fixed_height_from_font(
+			GTK_CELL_RENDERER_TEXT(renderer), 1);
 
-	column = gtk_tree_view_column_new_with_attributes(name, renderer,
-		"background-gdk", bg_column,
-		"foreground-gdk", fg_column,
-		"text", id,
-		NULL);
-	g_object_set(G_OBJECT(renderer),
-		"background-set", TRUE,
-		"foreground-set", TRUE,
-		"mode", GTK_CELL_RENDERER_MODE_INERT,
-		"xpad", xpad,
-		"xalign", xalign,
-		"ypad", (guint) GUI_CELL_RENDERER_YPAD,
-		NULL);
+		column = gtk_tree_view_column_new_with_attributes(name,
+			renderer,
+			"background-gdk", bg_column,
+			"foreground-gdk", fg_column,
+			"text", id,
+			NULL);
+		g_object_set(G_OBJECT(renderer),
+			"background-set", TRUE,
+			"foreground-set", TRUE,
+			"mode", GTK_CELL_RENDERER_MODE_INERT,
+			"xpad", xpad,
+			"xalign", xalign,
+			"ypad", (guint) GUI_CELL_RENDERER_YPAD,
+			NULL);
+	}
+
 	g_object_set(G_OBJECT(column),
 		"fixed-width", MAX(1, width),
 		"min-width", 1,
@@ -353,7 +368,8 @@ static GtkTreeViewColumn *add_column(GtkTreeView *treeview,	gchar *name,
  *	Add one column to the treeview
  *	Note: Usable only for active downloads treeview.
  */
-static void add_active_downloads_column(GtkTreeView *treeview, gchar *name,
+static void add_active_downloads_column(GtkTreeView *treeview,
+	GtkType column_type, gchar *name,
 	gint id, gint width, guint xpad, gfloat xalign,
 	gint (*sortfunc)(GtkTreeModel *, GtkTreeIter *, GtkTreeIter *, gpointer))
 {
@@ -361,7 +377,7 @@ static void add_active_downloads_column(GtkTreeView *treeview, gchar *name,
 	GtkTreeModel *model;
 
 	model = gtk_tree_view_get_model(treeview);
-	column = add_column(treeview,
+	column = add_column(treeview, column_type,
 		name, id, width, xpad, xalign, c_dl_fg, c_dl_bg);
 
 	if (NULL != sortfunc)
@@ -379,15 +395,17 @@ static void add_active_downloads_column(GtkTreeView *treeview, gchar *name,
  *	Add one column to the treeview
  *	Note: Usable only for downloads queue treeview.
  */
-static void add_queue_downloads_column(GtkTreeView *treeview, gchar *name,
-	gint id, gint width, guint xpad, gfloat xalign,
-	gint (*sortfunc)(GtkTreeModel *, GtkTreeIter *, GtkTreeIter *, gpointer))
+static void add_queue_downloads_column(GtkTreeView *treeview,
+	gchar *name, gint id, gint width, guint xpad, gfloat xalign,
+	gint (*sortfunc)(GtkTreeModel *, GtkTreeIter *, GtkTreeIter *,
+	gpointer))
 {
     GtkTreeViewColumn *column;
 	GtkTreeModel *model;
 
 	model = gtk_tree_view_get_model(treeview);
-	column = add_column(treeview, name, id, width, xpad, xalign, 
+	column = add_column(treeview, GTK_TYPE_CELL_RENDERER_TEXT,
+		name, id, width, xpad, xalign, 
 		c_queue_fg, c_queue_bg);
 
 	if (NULL != sortfunc)
@@ -395,7 +413,8 @@ static void add_queue_downloads_column(GtkTreeView *treeview, gchar *name,
 			GTK_TREE_SORTABLE(model), id, sortfunc, NULL, NULL);
 
 	g_signal_connect(G_OBJECT(column), "notify::width",
-        G_CALLBACK(on_downloads_gui_queue_column_resized), GINT_TO_POINTER(id));	
+        G_CALLBACK(on_downloads_gui_queue_column_resized),
+		GINT_TO_POINTER(id));
 }
 
 
@@ -412,17 +431,27 @@ static void add_active_downloads_columns (GtkTreeView *treeview)
 	guint32 *width;
     width = gui_prop_get_guint32(PROP_DL_ACTIVE_COL_WIDTHS, NULL, 0, 0);
 
-	add_active_downloads_column(treeview, "Filename", c_dl_filename, 
+	add_active_downloads_column(treeview, GTK_TYPE_CELL_RENDERER_TEXT,
+		"Filename", c_dl_filename, 
 		width[c_dl_filename], 4, (gfloat) 0.0, NULL);
-	add_active_downloads_column(treeview, "Size", c_dl_size, 
+	add_active_downloads_column(treeview, GTK_TYPE_CELL_RENDERER_TEXT,
+		"Size", c_dl_size, 
 		width[c_dl_size], 4, (gfloat) 1.0, NULL);
-	add_active_downloads_column(treeview, "Host", c_dl_host, 
+	add_active_downloads_column(treeview, GTK_TYPE_CELL_RENDERER_TEXT,
+		"Host", c_dl_host, 
 		width[c_dl_host], 4, (gfloat) 0.0, NULL);
-	add_active_downloads_column(treeview, "Range", c_dl_range, 
+	add_active_downloads_column(treeview, GTK_TYPE_CELL_RENDERER_TEXT,
+		"Range", c_dl_range, 
 		width[c_dl_range], 4, (gfloat) 0.0, NULL);
-	add_active_downloads_column(treeview, "Server", c_dl_server, 
+	add_active_downloads_column(treeview, GTK_TYPE_CELL_RENDERER_TEXT,
+		"Server", c_dl_server, 
 		width[c_dl_server],	4, (gfloat) 0.0, NULL);
-	add_active_downloads_column(treeview, "Status", c_dl_status, 
+	add_active_downloads_column(treeview,
+		GTK_TYPE_CELL_RENDERER_PROGRESS,	
+		"Progress", c_dl_progress,
+		width[c_dl_progress], 4, (gfloat) 0.0, NULL);
+	add_active_downloads_column(treeview, GTK_TYPE_CELL_RENDERER_TEXT,
+		"Status", c_dl_status, 
 		width[c_dl_status],	4, (gfloat) 0.0, NULL);
 
 	G_FREE_NULL(width);
@@ -494,6 +523,7 @@ void downloads_gui_init(void)
 		G_TYPE_STRING,		/* Host */
 		G_TYPE_STRING,		/* Range */
 		G_TYPE_STRING,		/* Server */
+		G_TYPE_FLOAT,		/* Progress [0.0 - 1.0] */
 		G_TYPE_STRING,		/* Status */
 		GDK_TYPE_COLOR,		/* Foreground */
 		GDK_TYPE_COLOR,		/* Background */
@@ -604,7 +634,7 @@ void download_gui_add(struct download *d)
 	gpointer key;
 
 	gint active_src = 0, tot_src = 0;
-	gfloat percent_done = 0;
+	gfloat percent_done = 0.0, progress = 0.0;
 	guint n = 0;
 	
 	GtkTreeIter iter;
@@ -759,6 +789,7 @@ void download_gui_add(struct download *d)
 	    	  		c_dl_size, &size,
 	      			c_dl_range, &range,
 	     	 		c_dl_server, &server,
+			        c_dl_progress, &progress,
 	      			c_dl_status, &status,
 	      			c_dl_record, &drecord,
 		        	(-1));
@@ -776,19 +807,19 @@ void download_gui_add(struct download *d)
 		      			c_dl_size, "",
 		      			c_dl_range, range,
 		     	 		c_dl_server, server,
+					c_dl_progress, force_range(progress, 0.0, 1.0),
 		      			c_dl_status, status,
 		      			c_dl_record, drecord,
 			        	(-1));
 					
-       			    if (download_filesize(d))
-                		percent_done = ((download_filedone(d) * 100.0) 
-							/ download_filesize(d));
-
 					active_src = d->file_info->recvcount;
 					tot_src = d->file_info->lifecount;
-					
+
+					percent_done = download_total_progress(d);
+
 					gm_snprintf(tmpstr, sizeof(tmpstr),
-						"%.02f%%  (0 k/s)  [%d/%d]  TR:  -", percent_done,
+						"%.02f%%  (0 k/s)  [%d/%d]  TR:  -",
+						percent_done * 100.0,
 						active_src, tot_src);
 					
 					
@@ -799,10 +830,11 @@ void download_gui_add(struct download *d)
 	    	  			c_dl_size, size,
 	      				c_dl_range, "",
 	     	 			c_dl_server, "",
+					c_dl_progress, force_range(percent_done, 0.0, 1.0),
 	      				c_dl_status, tmpstr,
 	      				c_dl_record, DL_GUI_IS_HEADER,
 		        		(-1));
-					}
+				}
 				
 				G_FREE_NULL(filename);
 				G_FREE_NULL(host);
@@ -841,7 +873,8 @@ void download_gui_add(struct download *d)
 				add_parent_with_fi_handle(parents, key, &iter);
 			}
 
-		
+			percent_done = download_total_progress(d);
+	
 			/* Fill in the values for current download d */
 			gtk_tree_store_set(model, &iter,
 			      c_dl_filename, d_file_name,
@@ -853,8 +886,9 @@ void download_gui_add(struct download *d)
 			      c_dl_size, d_file_size,
 			      c_dl_range, "",
 			      c_dl_server, vendor,
+			      c_dl_progress, force_range(percent_done, 0.0, 1.0),
 		    	  c_dl_status, "",
-		     	 c_dl_record, d,
+		     	  c_dl_record, d,
 		      	(-1));
 		}
 	}
@@ -874,6 +908,7 @@ void download_gui_remove(struct download *d)
 
 	gchar *host, *range;
 	gchar *server, *status;
+	gfloat progress, percent_done;
 	struct download *drecord = NULL;
 
 	GtkTreeIter *iter;
@@ -1041,15 +1076,21 @@ void download_gui_remove(struct download *d)
 						  		c_dl_host, &host,
 		      					c_dl_range, &range,
 		     	 				c_dl_server, &server,
+							c_dl_progress, &progress,
 		      					c_dl_status, &status,
 		      					c_dl_record, &drecord,
 			        			(-1));
-				
+
+							gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%%  %s",
+								progress * 100.0, status);
+
 							gtk_tree_store_set(model, parent,
 			  					c_dl_host, host,
 	    	 			 		c_dl_range, range,
 	     		 				c_dl_server, server,
-	      						c_dl_status, status,
+							c_dl_progress, 
+							force_range(progress, 0.0, 1.0),
+	      						c_dl_status, tmpstr,
 	      						c_dl_record, drecord,
 		        				(-1));
 									
@@ -1247,6 +1288,7 @@ void gui_update_download(struct download *d, gboolean force)
 	gint rw;
 	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 	gpointer key;
+	gfloat progress = 0.0;
 
 	GtkTreeIter *iter;
 	GtkTreeIter *parent;
@@ -1507,20 +1549,20 @@ void gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_RECEIVING:
 		if (d->pos - d->skip > 0) {
-			gfloat p = 0, pt = 0;
 			gint bps;
 			guint32 avg_bps;
+			gfloat progress_source, progress_total;
 
-			if (d->size)
-                p = (d->pos - d->skip) * 100.0 / d->size;
-            if (download_filesize(d))
-                pt = download_filedone(d) * 100.0 / download_filesize(d);
-
+			progress_total = download_total_progress(d);
+			progress_source = download_source_progress(d);
+			
 			bps = bio_bps(d->bio);
 			avg_bps = bio_avg_bps(d->bio);
 
-			if (avg_bps <= 10 && d->last_update != d->start_date)
-				avg_bps = (d->pos - d->skip) / (d->last_update - d->start_date);
+			if (avg_bps <= 10 && d->last_update != d->start_date) {
+				avg_bps = (d->pos - d->skip) /
+					(d->last_update - d->start_date);
+			}
 
 			rw = 0;
 
@@ -1536,13 +1578,14 @@ void gui_update_download(struct download *d, gboolean force)
 				bs = bps / 1024.0;
 
 				rw = gm_snprintf(tmpstr, sizeof(tmpstr),
-					"%.02f%% / %.02f%% ", p, pt);
+					"%.02f%% / %.02f%% ", 
+					progress_source * 100.0, progress_total * 100.0);
 
 				if (now - d->last_update > IO_STALLED)
-					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr) - rw,
 						"(stalled) ");
 				else
-					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr) - rw,
 						"(%.1f k/s) ", bs);
 
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
@@ -1563,7 +1606,7 @@ void gui_update_download(struct download *d, gboolean force)
 					}
 				}
 			} else
-				rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%%%s", p,
+				rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s",
 					(now - d->last_update > IO_STALLED) ? " (stalled)" : "");
 
 			/*
@@ -1615,9 +1658,32 @@ void gui_update_download(struct download *d, gboolean force)
 			(GtkTreeModel *)model, downloads_gui_download_eq, d);
 	
 		if (NULL != temp_iter_global) {		
-			
 			iter = temp_iter_global;
-			gtk_tree_store_set(model, iter, c_dl_status, a, (-1));
+			switch (d->status) {
+			case GTA_DL_DONE:
+			case GTA_DL_VERIFIED:
+			case GTA_DL_COMPLETED:
+				progress = 1.0;
+				break;
+			case GTA_DL_VERIFYING:
+				if (fi->size)
+					progress = (gfloat)fi->cha1_hashed /
+						(gfloat)fi->size;
+				else
+					progress = 0.0;
+				break;
+			case GTA_DL_CONNECTING:	
+			case GTA_DL_VERIFY_WAIT:
+				progress = 0.0;
+				break;
+			default:
+				progress = download_source_progress(d);
+				break;
+			}	
+			gtk_tree_store_set(model, iter,
+				c_dl_status, a,
+				c_dl_progress, force_range(progress, 0.0, 1.0),
+				(-1));
 		}
 		else
 			return;
@@ -1648,19 +1714,17 @@ void gui_update_download(struct download *d, gboolean force)
 							"Complete");
 						gtk_tree_store_set(model, parent,
 		      				c_dl_status, tmpstr,
+						c_dl_progress, 1.0,
 			        		(-1));			
 					} else {
 						if ((GTA_DL_RECEIVING == d->status) && 
 							(d->pos - d->skip > 0)) {
 							gint active_src, tot_src;
-							gfloat percent_done =0;
-
+							gfloat percent_done;
 							guint32 s = 0;
-							gfloat bs = 0;
+							gfloat bs = 0.0;
 
-	        			    if (download_filesize(d))
-		                		percent_done = ((download_filedone(d) * 100.0) 
-									/ download_filesize(d));
+							percent_done = download_total_progress(d);
 
 							active_src = fi->recvcount;
 							tot_src = fi->lifecount;
@@ -1671,16 +1735,20 @@ void gui_update_download(struct download *d, gboolean force)
 
 							if (s)
 								gm_snprintf(tmpstr, sizeof(tmpstr),
-						"%.02f%%  (%.1f k/s)  [%d/%d]  TR:  %s", percent_done,
+									"%.02f%%  (%.1f k/s)  [%d/%d]  TR:  %s",
+									percent_done * 100.0,
 									bs, active_src, tot_src, short_time(s));
 							else
 								gm_snprintf(tmpstr, sizeof(tmpstr),
-						"%.02f%%  (%.1f k/s)  [%d/%d]  TR:  -", percent_done,
+									"%.02f%%  (%.1f k/s)  [%d/%d]  TR:  -",
+									percent_done * 100.0,
 									bs, active_src, tot_src);
 						
 							gtk_tree_store_set(model, parent,
+									c_dl_progress, force_range(
+										percent_done, 0.0, 1.0),
 				     				c_dl_status, tmpstr,
-					       		(-1));			
+						       		(-1));			
 						}
 					}
 				}	

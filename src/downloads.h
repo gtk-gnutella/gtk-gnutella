@@ -278,6 +278,8 @@ extern GSList *sl_unqueued;
  * Global Functions
  */
 
+gfloat download_source_progress(struct download *);
+gfloat download_total_progress(struct download *);
 void download_init(void);
 void download_restore_state(void);
 void download_store_if_dirty(void);
