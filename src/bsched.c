@@ -154,7 +154,7 @@ bsched_t *bsched_make(gchar *name,
 	bs->max_period = period << 1;		/* 200% of nominal period */
 	bs->period_ema = period;
 	bs->bw_per_second = bandwidth;
-	bs->bw_max = bandwidth * period / 1000;
+	bs->bw_max = (gint) (bandwidth / 1000.0 * period);
 
 	return bs;
 }
@@ -1366,13 +1366,13 @@ static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 	last_bw_max = bs->bw_max;
 	last_capped = bs->bw_capped;
 
-	theoric = bs->bw_per_second * delay / 1000;
+	theoric = (gint) (bs->bw_per_second / 1000.0 * delay);
 	overused = bs->bw_actual - theoric;
 	bs->bw_delta += overused;
 
 	overused -= bs->bw_stolen;		/* Correct for computations below */
 
-	bs->bw_max = bs->bw_per_second * bs->period_ema / 1000;
+	bs->bw_max = (gint) (bs->bw_per_second / 1000.0 * bs->period_ema);
 
 	/*
 	 * We correct the bandwidth for the next slot.
