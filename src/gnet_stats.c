@@ -41,13 +41,12 @@ static gchar * const msg_drop_reason[MSG_DROP_REASON_COUNT] = {
 	N_("Unknown message type"),				/* MSG_DROP_UNKNOWN_TYPE */
 	N_("Unexpected message"),				/* MSG_DROP_UNEXPECTED */
 	N_("Message sent with TTL = 0"),		/* MSG_DROP_TTL0 */
-	N_("Improper hops/ttl combination"),		/* MSG_DROP_IMPROPER_HOPS_TTL */
+	N_("Improper hops/ttl combination"),	/* MSG_DROP_IMPROPER_HOPS_TTL */
 	N_("Max TTL exceeded"),					/* MSG_DROP_MAX_TTL_EXCEEDED */
 	N_("Message throttle"),					/* MSG_DROP_THROTTLE */
 	N_("Unusable Pong"),					/* MSG_DROP_PONG_UNUSABLE */
 	N_("Hard TTL limit reached"),			/* MSG_DROP_HARD_TTL_LIMIT */
 	N_("Max hop count reached"),			/* MSG_DROP_MAX_HOP_COUNT */
-	N_("Unrequested reply"),				/* MSG_DROP_UNREQUESTED_REPLY */
 	N_("Route lost"),						/* MSG_DROP_ROUTE_LOST */
 	N_("No route"),							/* MSG_DROP_NO_ROUTE */
 	N_("Duplicate message"),				/* MSG_DROP_DUPLICATE */

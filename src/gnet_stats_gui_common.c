@@ -86,7 +86,6 @@ const gchar *msg_drop_str(int value)
 		N_("Unusable Pong"),
 		N_("Hard TTL limit reached"),
 		N_("Max hop count reached"),
-		N_("Unrequested reply"),
 		N_("Route lost"),
 		N_("No route"),
 		N_("Duplicate message"),
