@@ -57,6 +57,7 @@ mkinstalldirs = \$(MKINSTALLDIRS)
 DESTDIR = \$(INSTALL_PREFIX)
 
 GMSGFMT = $gmsgfmt
+GMSGFMT_FLAGS =`$gmsgfmt -V >/dev/null 2>&1 || echo --statistics -c`
 MSGFMT = $msgfmt
 XGETTEXT = $xgettext
 MSGMERGE = $msgmerge
@@ -139,8 +140,8 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 .po.gmo:
 	@lang=`echo $* | sed -e 's,.*/,,'`; \
 	test "$(srcdir)" = . && cdcmd="" || cdcmd="cd $(srcdir) && "; \
-	echo "$${cdcmd}rm -f $${lang}.gmo && $(GMSGFMT) -c --statistics -o $${lang}.gmo $${lang}.po"; \
-	cd $(srcdir) && rm -f $${lang}.gmo && $(GMSGFMT) -c --statistics -o t-$${lang}.gmo $${lang}.po && mv t-$${lang}.gmo $${lang}.gmo
+	echo "$${cdcmd}rm -f $${lang}.gmo && $(GMSGFMT) $(GMSGFMT_FLAGS) -o $${lang}.gmo $${lang}.po"; \
+	cd $(srcdir) && rm -f $${lang}.gmo && $(GMSGFMT) $(GMSGFMT_FLAGS) -o t-$${lang}.gmo $${lang}.po && mv t-$${lang}.gmo $${lang}.gmo
 
 .sin.sed:
 	sed -e '/^#/d' $< > t-$@
