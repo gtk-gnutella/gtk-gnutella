@@ -278,101 +278,48 @@ static GtkWidget *gui_create_main_window(void)
 
 static void gui_init_menu(void) 
 {
-	gchar *title;
+	static const struct {
+		gboolean	parent;
+		const gchar *title;
+		gint		page;
+	} menu[] = {
+		TRUE,	N_("gnutellaNet"),	nb_main_page_gnet,
+		FALSE,	N_("Stats"),		nb_main_page_gnet_stats,
+		TRUE,	N_("Uploads"),		nb_main_page_uploads,
+		FALSE,	N_("Stats"),		nb_main_page_uploads_stats,
+		TRUE,	N_("Downloads"),	nb_main_page_downloads,
+		TRUE,	N_("Search"),		nb_main_page_search,
+		FALSE,	N_("Monitor"),		nb_main_page_monitor,
+		FALSE,	N_("Stats"),		nb_main_page_search_stats,
+		TRUE,	N_("Config"),		nb_main_page_config,
+	};
+    GtkCTree *ctree_menu = GTK_CTREE(lookup_widget(main_window, "ctree_menu"));
 	GtkCTreeNode *parent_node = NULL;    
-	GtkCTreeNode *last_node = NULL;
-    GtkCTree *ctree_menu =
-        GTK_CTREE(lookup_widget(main_window, "ctree_menu"));
+	guint i;
 
-     /* gNet */
-    title = (gchar *) _("gnutellaNet");
-    parent_node = gtk_ctree_insert_node(
-		ctree_menu, NULL, NULL, &title,
-        0, NULL, NULL, NULL, NULL, FALSE, TRUE );
-    gtk_ctree_node_set_row_data(
-		ctree_menu, parent_node, 
-        GINT_TO_POINTER(nb_main_page_gnet));
+	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
+		GtkCTreeNode *node;
+		gchar *title[] = { _(menu[i].title) };
 
-    /* gNet -> Stats */
-    title = (gchar *) _("Stats");
-    last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
-        0, NULL, NULL, NULL, NULL, TRUE, TRUE);
-    gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, 
-        GINT_TO_POINTER(nb_main_page_gnet_stats));
-
-    /* Uploads */
-    title = (gchar *) _("Uploads");
-    parent_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), NULL, NULL, &title,
-        0, NULL, NULL, NULL, NULL, FALSE, TRUE );
-    gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), parent_node, 
-        GINT_TO_POINTER(nb_main_page_uploads));
-
-    /* Uploads -> Stats */
-    title = (gchar *) _("Stats");
-    last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
-        0, NULL, NULL, NULL, NULL, TRUE, TRUE);
-    gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, 
-        GINT_TO_POINTER(nb_main_page_uploads_stats));
-
-    /* Downloads */
-    title = (gchar *) _("Downloads");
-    last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), NULL, NULL, &title,
-        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
-    gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, 
-        GINT_TO_POINTER(nb_main_page_downloads));
-
-    /* Search */
-    title = (gchar *) _("Search");
-    parent_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), NULL, NULL, &title,
-        0, NULL, NULL, NULL, NULL, FALSE, TRUE );
-    gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), parent_node, 
-        GINT_TO_POINTER(nb_main_page_search));
-
-    /* Search -> Monitor */
-    title = (gchar *) _("Monitor");
-    last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
-        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
-    gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, 
-        GINT_TO_POINTER(nb_main_page_monitor));
-
-    /* Search -> search stats */
-    title = (gchar *) _("Stats");
-    last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
-        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
-    gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, 
-        GINT_TO_POINTER(nb_main_page_search_stats));
-
-    /* Config */
-    title = (gchar *) _("Config");
-    last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), NULL, NULL, &title,
-        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
-    gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, 
-        GINT_TO_POINTER(nb_main_page_config));
+    	node = gtk_ctree_insert_node(ctree_menu,
+					menu[i].parent ? NULL : parent_node,
+					NULL, title, 0, NULL, NULL, NULL, NULL, FALSE, TRUE);
+		if (menu[i].parent)
+			parent_node = node;
+		
+    	gtk_ctree_node_set_row_data(ctree_menu, node,
+			GINT_TO_POINTER(menu[i].page));
+	}
 
 	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
 }
+
 #endif /* USE_GTK2 */
 
 static GtkWidget *gui_create_dlg_about(void)
 {
     /* NB: These strings are UTF-8 encoded. */
-    static const char *contributors[] = {
+    static const char * const contributors[] = {
         "Yann Grossel <olrick@users.sourceforge.net>",
         "Steven Wilcoxon <swilcoxon@users.sourceforge.net>",
         "Jason Lingohr <lingman@users.sourceforge.net>",
@@ -463,22 +410,21 @@ static GtkWidget *gui_create_dlg_about(void)
  * - $HOME/.gtk1/gtkrc ($HOME/.gtk2/gtkrc if GTK2 interface is used)
  * - <GTK_GNUTELLA_SETTINGS_DIR>/gtkrc
  * - ./gtkrc
- * Where the last one can overule settings from earlier resource files.
+ * Where the last one can overrule settings from earlier resource files.
  */
 void main_gui_gtkrc_init(void)
 {
 #ifdef USE_GTK2
-    gchar *rcfn = "gtkrc-2.0";
-    gchar *rchfn = ".gtkrc-2.0";
+    const gchar rcfn[] = "gtkrc-2.0";
+    const gchar rchfn[] = ".gtkrc-2.0";
 #else
-    gchar *rcfn = "gtkrc";
-    gchar *rchfn = ".gtkrc";
+    const gchar rcfn[] = "gtkrc";
+    const gchar rchfn[] = ".gtkrc";
 #endif
 	gchar *userrc;
 
-	/* parse gtkrc files (thx for sylpheed-claws developpers for the tip) */
-	userrc = g_strconcat(settings_home_dir(), G_DIR_SEPARATOR_S, rchfn,
-		  NULL);
+	/* parse gtkrc files (thx to the sylpheed-claws developers for the tip) */
+	userrc = g_strconcat(settings_home_dir(), G_DIR_SEPARATOR_S, rchfn, NULL);
 	gtk_rc_parse(userrc);
 	G_FREE_NULL(userrc);
 
@@ -497,8 +443,7 @@ void main_gui_gtkrc_init(void)
 	gtk_rc_parse(userrc);
 	G_FREE_NULL(userrc);
 
-	userrc = g_strconcat(settings_config_dir(), G_DIR_SEPARATOR_S, rcfn, 
-		  NULL);
+	userrc = g_strconcat(settings_config_dir(), G_DIR_SEPARATOR_S, rcfn, NULL);
 	gtk_rc_parse(userrc);
 	G_FREE_NULL(userrc);
 
@@ -710,3 +655,5 @@ void main_gui_shutdown_tick(guint left)
 	gtk_label_set(label_shutdown_count,tmp);
     gtk_main_flush();
 }
+
+/* vi: set ts=4: */
