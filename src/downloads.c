@@ -5302,6 +5302,8 @@ static void download_request_sent(struct download *d)
 	d->last_update = time((time_t *) 0);
 	d->status = GTA_DL_REQ_SENT;
 
+	gui_update_download(d, TRUE);
+
 	/*
 	 * Now prepare to read the status line and the headers.
 	 * XXX separate this to swallow 100 continuations?
