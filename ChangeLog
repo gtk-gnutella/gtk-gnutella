@@ -1,5 +1,48 @@
 # since last version
 
+- (2003.03.02 - cbiere)
+ * [GTK2] gtk2-gnutella.glade:
+	Added spinbutton_config_track_props (sync with GTK1)
+	main_window_config_sel_tab: center contents
+ * oldconfig.c/config_set_param(): Translate proxy_connections to
+	proxy_protocol=PROXY_NONE from old config files
+ * sockets.c/socket_connect_prepare():
+	Moved ip parameter to socket_connect_finalize()
+ * sockets.c/socket_connect_finalize():
+	Fixed typo: addr <-> lcladdr
+	Added another memset() to clear lcladdr
+	Don't call socket_destroy() if the function was called from the
+		ADNS callback which would cause a second socket_destroy() later
+ * sockets.c/socket_connect_by_name_helper():
+	Don't call socket_destroy() but set SOCK_ADNS_FAILED in case of an error
+ * sockets.c/socket_connect_by_name():
+	If the callback for adns_resolve was already invoked, check the status
+	and call socket_destroy() in case of an error
+ * sockets.h/struct gnutella_socket:
+	Replaced `gboolean adns_pending' with `gint adns' as status variable
+	Added `adns_msg' which should point to a static error message when
+		SOCK_ADNS_FAILED is set, points to NULL otherwise
+ * Removed all GDK legacy from core i.e., s/GDK_INPUT/INPUT_EVENT/ and
+	no #include <gdk/gdk.h> any longer
+ * Applied patch by Murphy <juncus@telus.net> which fixes typos in tooltips
+ * nodes_cb(2).c: Added add_node_helper() for proper type translation
+ * adns.c:
+	Use adns_callback_t instead of a lazy gpointer
+	Revised client-side to use non-blocking pipes which prevents
+		deadlocks, allows partial transfers and to handle filled
+		pipe buffers
+ * adns.c/adns_resolve(): Returns FALSE if the resolution happened
+	synchronous, otherwise returns TRUE.
+
+- (2003.03.01 - RAM)
+ * Special case the insertion to an empty array in qlink_insert().
+ * Added gm_setproctitle().
+ * The ADNS subprocess will now be identified by "ps" as the "DNS helper".
+ * Fixed assertion failure when parsing PARQ replies.
+ * Avoid uninitialized memory reads by bind(): zero the addr structs.
+ * Forgot to free the list in socket_timer().
+ * Changed socket_timer() to avoid removing entries whilst iterating on list.
+
 - (2003.02.28 - RAM)
  * The `dl_by_time' list was split into a hashed array, to cut down the number
    of item comparisons we do when inserting, at the cost of more work when
