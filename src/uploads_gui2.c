@@ -551,7 +551,7 @@ static gboolean uploads_clear_helper(gpointer user_data) {
 		gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
     	uploads_remove_lock = FALSE;
     	return FALSE;
-    } else
+    }
     
     return TRUE;
 }
