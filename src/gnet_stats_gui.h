@@ -46,5 +46,6 @@ void on_combo_entry_gnet_stats_drop_reasons_changed(
 
 void gnet_stats_gui_init(void);
 void gnet_stats_gui_update(time_t now);
+void gnet_stats_gui_shutdown(void);
 
 #endif /* _gnet_stats_gui_h_ */

@@ -622,6 +622,7 @@ void main_gui_shutdown(void)
     fi_gui_shutdown();
     nodes_gui_shutdown();
     uploads_gui_shutdown();
+	gnet_stats_gui_shutdown();
     settings_gui_shutdown();
 }
 

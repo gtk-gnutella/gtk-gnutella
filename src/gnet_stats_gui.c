@@ -388,6 +388,11 @@ void gnet_stats_gui_init(void)
     }
 }
 
+void gnet_stats_gui_shutdown(void)
+{
+	/* Nothing for now */
+}
+
 void gnet_stats_gui_update(time_t now)
 {
 	static time_t last_update = 0;

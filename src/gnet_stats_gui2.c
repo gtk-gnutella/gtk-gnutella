@@ -116,43 +116,6 @@ static void gnet_stats_update_drop_reasons(const gnet_stats_t *);
  *** Callbacks
  ***/
 
-static void on_gnet_stats_column_resized(
-	GtkTreeViewColumn *column, GParamSpec *param, gpointer data)
-{
-	const gchar *widget_name;
-	guint32 width;
-	gint property;
-	gint column_id = GPOINTER_TO_INT(data);
-
-	g_assert(column_id >= 0 && column_id <= 9);
-
-	widget_name = gtk_widget_get_name(column->tree_view);
- 	width = gtk_tree_view_column_get_width(column);
-
-#if 0
-	g_message(
-		"on_gnet_stats_column_resized: widget=\"%s\" title=\"%s\", width=%u",
-		widget_name, title, width);
-#endif
-
-    if (!strcmp(widget_name, "treeview_gnet_stats_general"))
-		property = PROP_GNET_STATS_GENERAL_COL_WIDTHS;
-    else if (!strcmp(widget_name, "treeview_gnet_stats_drop_reasons"))
-		property = PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS;
-    else if (!strcmp(widget_name, "treeview_gnet_stats_messages"))
-		property = PROP_GNET_STATS_MSG_COL_WIDTHS;
-    else if (!strcmp(widget_name, "treeview_gnet_stats_flowc"))
-		property = PROP_GNET_STATS_FC_COL_WIDTHS;
-    else if (!strcmp(widget_name, "treeview_gnet_stats_recv"))
-		property = PROP_GNET_STATS_RECV_COL_WIDTHS;
-	else {
-		property = -1;
-		g_assert_not_reached();
-	}
-
-	gui_prop_set_guint32(property, &width, column_id, 1);
-}
-
 static gint gnet_stats_drop_reasons_type = MSG_TOTAL;
 
 static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
@@ -305,9 +268,6 @@ static void add_column(
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		NULL);
 	gtk_tree_view_append_column(treeview, column);
-	g_object_notify(G_OBJECT(column), "width");
-	g_signal_connect(G_OBJECT(column), "notify::width",
-		G_CALLBACK(on_gnet_stats_column_resized), GINT_TO_POINTER(column_id));
 }
 
 static void gnet_stats_update_general(const gnet_stats_t *stats)
@@ -690,6 +650,19 @@ void gnet_stats_gui_init(void)
 	g_object_unref(model);
 }
 
+void gnet_stats_gui_shutdown(void)
+{
+    tree_view_save_widths(treeview_gnet_stats_general,
+		PROP_GNET_STATS_GENERAL_COL_WIDTHS);
+    tree_view_save_widths(treeview_gnet_stats_drop_reasons,
+		PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS);
+    tree_view_save_widths(treeview_gnet_stats_messages,
+		PROP_GNET_STATS_MSG_COL_WIDTHS);
+    tree_view_save_widths(treeview_gnet_stats_flowc,
+		PROP_GNET_STATS_FC_COL_WIDTHS);
+    tree_view_save_widths(treeview_gnet_stats_recv,
+		PROP_GNET_STATS_RECV_COL_WIDTHS);
+}
 
 void gnet_stats_gui_update(time_t now)
 {
