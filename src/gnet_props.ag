@@ -1,0 +1,992 @@
+autogen definitions 'props.tpl';
+
+/*
+ * $Id$
+ */
+
+uses = "filter.h";
+uses = "sockets.h";
+uses = "gnet.h";
+
+property_set = "gnet_property";
+func_prefix  = "gnet_prop";
+offset = 0;
+
+prop = {
+    name = "reading_hostfile";
+    desc = "Indicates wether the hostcache file is being read";
+    type = boolean;
+    save = FALSE;
+    data = {  
+        default = FALSE;
+    };
+};
+
+
+prop = {
+    name = "ancient_version";
+    desc = "Indicates that gtk-gnutella finds the version you run "
+           "very very old";
+    type = boolean;
+    save = FALSE;
+    data = { 
+        default = FALSE;
+    };
+};
+  
+prop = {
+    name = "new_version_str";
+    desc = "Gtk-gnutella found a newer version on the gNet and gives"
+           "information about it here";
+    type = string;
+    save = FALSE;
+    data = { 
+        default = "no new version available";
+    };
+};
+
+prop = {
+    name = "up_connections";
+    desc = "Try to keep at least this number of connections to other" 
+           "servents";
+    type = guint32;
+    data = {
+        default = 4;
+        min     = 1;
+        max     = 100;
+    };
+};
+
+prop = {
+    name = "max_connections";
+    desc = "Don't allow more that this number of connections to other"
+           "servents";
+    type = guint32;
+    data = {
+        default = 4;
+        min     = 0;
+        max     = 100;
+    };
+};
+prop = {
+    name ="max_downloads";
+    cfgvar = "max_simultaneous_downloads";
+    desc = "Don't start more than this number of parallel downloads";
+    type = guint32;
+    data = {
+        default = 10;
+        min     = 0;
+        max     = 100;
+    };
+};
+
+prop = {
+    name = "max_host_downloads";
+    cfgvar = "max_simultaneous_host_downloads";
+    desc = "Don't make more connections then given here to a single host "
+           "to download a file";
+    type = guint32;
+    data = {
+        default = 4;
+        min     = 1;
+        max     = 100;
+    };
+};
+
+prop = {
+    name = "max_uploads";
+    cfgvar = "max_simultaneous_uploads";
+    desc = "Don't allow more then this number of uploads in total";
+    type = guint32;
+    data = {
+        default = 5;
+        value   = max_uploads;
+        min     = 0;
+        max     = 100;
+    };
+};
+
+prop = {
+    name = "max_uploads_ip";
+    desc = "Don't upload more then this number of files in parallel to a "
+           "single host";
+    type = guint32;
+    data = {
+        default = 2;
+        min     = 1;
+        max     = 100; 
+    }; 
+};
+
+prop = {
+    name = "local_ip";
+    desc = "Local IP address";
+    save = FALSE;
+    type = ip;
+    data = {
+        default = 0x00000000;
+    };
+};
+
+prop = {
+    name = "listen_port";
+    desc = "Local port gtk-gnutella is listening on";
+    type = guint32;
+    data = {
+        default = 6436;
+        min     = 0x0000;
+        max     = 0xFFFF;
+    };
+};
+
+prop = {
+    name = "forced_local_ip";
+    desc = "Use this IP address as source address if 'force local ip' "
+           "is activated";
+    type = ip;
+    data = {
+        default = 0x00000000;
+    }; 
+};
+
+prop = {
+    name = "minimum_speed";
+    cfgvar = "search_minimum_speed";
+    desc = "This is the default minimum speed for new searches in kbit/s";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 2000; 
+    }; 
+};
+
+prop = {
+    name = "connection_speed";
+    desc = "The connection bandwidth reported to other hosts";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 2000;
+    };
+};
+
+prop = {
+    name = "query_response_max_items";
+    cfgvar = "limit_search_results";
+    desc = "Return at most this number of results in a query response";
+    type = guint32;
+    data = { 
+        default = 50;
+        value   = search_max_items;
+        min     = 1;
+        max     = 255;
+    };
+};
+
+prop = {
+    name = "ul_usage_min_percentage";
+    cfgvar = "upload_bandwith_min_percentage";
+    desc = "Unless this percentage or more of the upload bandwidth is used, "
+           "allow additional upload slots";
+    type = guint32;
+    data = {
+        default = 70;
+        min     = 0;
+        max     = 100;
+    };
+};
+
+prop = {
+    name = "download_connecting_timeout";
+    desc = "Number of seconds before a download connect attempt "
+           "times out";
+    type = guint32; 
+    data = {
+        default = 30;
+        min     = 1;
+        max     = 100000; 
+    }; 
+};
+
+prop = {
+    name = "download_push_sent_timeout";
+    desc = "Number of seconds before a push request times out";
+    type = guint32;
+    data = { 
+        default = 60;
+        min     = 1;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "download_connected_timeout";
+    desc = "Number of seconds before a download times out if no data "
+           "is recieved";
+    type = guint32;
+    data = {
+        default = 60;
+        min     = 1;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "download_retry_timeout_min";
+    desc = "Minimum number of seconds to wait on auto-retry timeouts";
+    type = guint32;  
+    data = {
+        default = 20;
+        min     = 1;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "download_retry_timeout_max";
+    desc = "Maximum number of seconds to wait on auto-retry timeouts";
+    type = guint32;
+    data = {
+        default = 120;
+        min     = 1;
+        max     = 100000;
+    };
+};
+  
+prop = {
+    name = "download_max_retries";
+    desc = "Maximum number of attempts to download a file not "
+           "counting HTTP busy indications";
+    type = guint32;
+    data = {
+        default = 256;
+        min     = 1;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "download_retry_timeout_delay";
+    desc = "Delay in seconds before retrying after a connection " 
+           "timed out";
+    type = guint32;
+    data = {
+        default = 1200;
+        min     = 15;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "download_retry_busy_delay";
+    desc = "Delay in seconds before retrying after getting a 'busy' "
+           "response from a host";
+    type = guint32;
+    data = {  
+        default = 60;
+        min     = 15;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "download_retry_refused_delay";
+    desc = "Delay in seconds before retrying after getting a 'connection "
+           "refused' response from a host";
+    type = guint32;
+    data = {
+        default = 1800;
+        min     = 15;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "download_retry_stopped_delay";
+    cfgvar = "download_retry_stopped";
+    desc = "Delay in seconds before retrying after a retry stopped "
+           "(timed out, connection reset by peer, etc.)";
+    type = guint32;
+    data = {
+        default = 15;
+        min     = 15;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "download_overlap_range";
+    desc = "Ammount of bytes to overlap when resuming a download";
+    type = guint32;
+    data = {
+        default = 512;
+        min     = 1;
+        max     = SOCK_BUFSZ;
+    };
+};
+
+prop = {
+    name = "upload_connecting_timeout";
+    desc =  "Number of seconds before an upload times out if no "
+            "connection can be established during a push";
+    type = guint32;
+    data = {
+        default = 60;
+        min     = 1;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "upload_connected_timeout";
+    desc = "Number of seconds before an upload times out if no data "
+           "is transmitted";
+    type = guint32;
+    data = {
+        default = 180;
+        min     = 1;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "search_reissue_timeout";
+    desc = "Ammount of seconds to wait before a search is issued again "
+           "to see if new results are available";
+    type = guint32;
+    data = {
+        default = 600;
+        min     = 600;
+        max     = 9999;
+    };
+};
+
+prop = {
+    name = "ban_ratio_fds";
+    desc = "Maximum ratio of file descriptors reserved for banning";
+    type = guint32;
+    data = {
+        default = 25;
+        min     = 0;
+        max     = 100;
+    };
+};
+
+prop = {
+    name = "ban_max_fds";
+    desc =  "Maximum number of file descriptors reserved for banning";
+    type = guint32;
+    data = {
+        default = 100;
+        min     = 0;
+        max     = 10000;
+    };
+};
+
+prop = {
+    name = "node_connecting_timeout";
+    desc =  "Number of seconds before a gNet connect attempt times "  
+            "out if no connection can be established";
+    type = guint32;
+    data = {
+        default = 5;
+        min     = 1;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "node_connected_timeout";
+    desc =  "Number of seconds before a gNet connection times out "
+            "if no data is transmitted";
+    type = guint32;
+    data = {
+        default = 45;
+        min     = 1;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "node_sendqueue_size";
+    desc = "Maximum size of the sendqueue for the nodes (in bytes). "
+           "Must be at lest 150% of the maximum message size";
+    type = guint32;
+    data = {
+        default = 98304;
+        min     = 98305;
+        max     = 256000;
+    };
+};
+
+prop = {
+    name = "node_tx_flowc_timeout";
+    desc = "Maximum number of seconds a node can remain in transit flow "
+           "control";
+    type = guint32;
+    data = {
+        default = 60;
+        min     = 1;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "max_ttl";
+    desc = "[unknown, please provide description in gnet_props.ag]";
+    type = guint32;
+    data = { 
+        default = 10;
+        min     = 1;
+        max     = 99;
+    };
+};
+
+prop = {
+    name = "my_ttl";
+    desc = "[unknown, please provide description in gnet_props.ag]";
+    type = guint32;
+    data = {
+        default = 7;
+        min     = 1;
+        max     = 99;
+    };
+};
+
+prop = {
+    name = "hard_ttl_limit";
+    desc = "Maximum hard TTL limit (hop+ttl) on message";
+    type = guint32;
+    data = {
+        default = 10;
+        min     = 1;
+        max     = 99;
+    };
+};
+
+prop = {
+    name = "dbg";
+    desc = "For development use: debug level";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+    name = "stop_host_get";
+    desc = "For development use: don't add new hosts to the hostcatcher";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "filter_default_policy";
+    desc = "Default policy for the DISPLAY filter property";
+    type = guint32;
+    data = {
+        default = FILTER_PROP_STATE_DO;
+        min     = FILTER_PROP_STATE_DO;
+        max     = FILTER_PROP_STATE_DONT;
+    };
+};
+
+prop = {
+    name = "bw_http_in_enabled";
+    cfgvar = "bandwidth_input_limit";
+    desc = "Enable bandwidth limitation for incoming HTTP traffic";
+    type = boolean;
+    data = {
+        default = FALSE;
+        value   = bws_in_enabled;
+    };
+};
+
+prop = {
+    name = "bw_http_out_enabled";
+    cfgvar = "bandwidth_output_limit";
+    desc = "Enable bandwidth limitation for outgoing HTTP traffic";
+    type = boolean;
+    data = {
+        default = FALSE;
+        value   = bws_out_enabled;
+    };
+};
+
+prop = {
+    name = "bw_gnet_in_enabled";
+    cfgvar = "bandwidth_ginput_limit";
+    desc = "Enable bandwidth limitation for incoming gNet traffic";
+    type = boolean;
+    data = {
+        default = FALSE;
+        value   = bws_gin_enabled;
+    };
+};
+
+prop = {
+    name = "bw_gnet_out_enabled";
+    cfgvar = "bandwidth_goutput_limit";
+    desc = "Enable bandwidth limitation for outgoing gNet traffic";
+    type = boolean;
+    data = {
+        default = FALSE;
+        value   = bws_gout_enabled;
+    };
+};
+
+prop = {
+    name = "bw_ul_usage_enabled";
+    cfgvar = "upload_bandwith_usage_enabled";
+    desc = "Enable dynamic upload slots allocation";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "autoclear_uploads";
+    cfgvar = "auto_clear_completed_uploads";
+    desc = "Auto clear completed uploads";
+    type = boolean;
+    data = {
+        default = FALSE;
+        value   = clear_uploads;
+    };
+};
+
+prop = {
+    name = "autoclear_downloads";
+    cfgvar = "auto_clear_completed_downloads";
+    desc = "Auto clear completed downloads";
+    type = boolean;  
+    data = {
+        default = FALSE;
+        value   = clear_downloads;
+    };
+};
+
+prop = {
+    name = "search_remove_downloaded";
+    desc = "Remove downloaded files from the search result";
+    type = boolean;
+    data = {
+        default = FALSE;
+        value   = search_remove_downloaded;
+    };
+};
+
+prop = {
+    name = "force_local_ip";
+    desc = "Enable to use [forced_local_ip] as local ip";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "use_netmasks";
+    desc = "Try to connect to local networks first";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "download_delete_aborted";
+    desc = "Remove files of aborted downloads from disk";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "proxy_connections";
+    desc = "Use a proxy to connect to the internet";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "proxy_auth";
+    desc = "Use username and password to authenticate to proxy";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "socks_user";
+    desc = "Username for proxy";
+    type = string;
+    data = {
+        default = "username";
+    };
+};
+
+prop = {
+    name = "socks_pass";
+    desc = "Password for proxy";
+    type = string;
+    data = {
+        default = "password";
+    };
+};
+
+prop = {
+    name = "proxy_ip";
+    desc = "IP address of the proxy";
+    type = ip;
+    data = {
+        default = 0x00000000;
+    };
+};
+
+prop = {
+    name = "proxy_port";
+    desc = "Port the proxy is listening on";
+    type = guint32;
+    data = {
+        default = 0x0000;
+        min     = 0x0000;
+        max     = 0xFFFF;
+    };
+};
+
+prop = {
+    name = "proxy_protocol";
+    desc = "Protocol the proxy uses";
+    type = guint32;
+    data = {
+        default = PROXY_SOCKSV4;
+        min     = 0x1;
+        max     = 0x5;
+    };
+};
+
+prop = {
+    name = "max_hosts_cached";
+    desc = "Maximum number of hosts in the host catcher";
+    type = guint32;
+    data = {
+        default = 20480;
+        min     = 100;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "hosts_in_catcher";
+    desc = "Current number of hosts in hostcatcher";
+    save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "max_high_ttl_msg";
+    desc = "Amount of tolerable messages abot hard TTL limit per node. "
+           "See also MAX_HIGH_TTL_RADIUS";
+    type = guint32;
+    data = {
+        default = 10;
+        min     = 0;
+        max     = 99;
+    };
+};
+
+prop = {
+    name = "max_high_ttl_radius";
+    desc = "Hop radius for counting high TTL limit messages (# hops "
+           "lower than...) See also MAX_HIGH_TTL_MSG";
+    type = guint32;
+    data = {
+        default = 2;
+        min     = 0;
+        max     = 99;
+    };
+};
+
+prop = {
+    name = "bw_http_in";
+    cfgvar = "input_bandwidth";
+    desc = "Bandwidth limit for incoming HTTP traffic in bytes/sec";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = BS_BW_MAX;
+    };
+};
+
+prop = {
+    name = "bw_http_out";
+    cfgvar = "output_bandwidth";
+    desc = "Bandwidth limit for outgoing HTTP traffic in bytes/sec";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = BS_BW_MAX;
+    };
+};
+
+prop = {
+     name = "bw_gnet_in";
+     cfgvar = "input_gnet_bandwidth";
+     desc = "Bandwidth limit for incoming gNet traffic in bytes/sec";
+     type = guint32;
+     data = {
+        default = 0;
+        min     = 0;
+        max     = BS_BW_MAX;
+    };
+};
+
+prop = {
+    name = "bw_gnet_out";
+    cfgvar = "output_gnet_bandwidth";
+    desc = "Bandwidth limit for outgoing gNet traffic in bytes/sec";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = BS_BW_MAX;
+    };
+};
+
+prop = {
+    name = "search_queries_forward_size";
+    desc = "Maximum size of search queries messages we forward to others "
+           " (in bytes)";
+    type = guint32;
+    data = {
+        default = 256;
+        min     = 65;
+        max     = 65534;
+    };
+};
+
+prop = {
+    name = "search_queries_kick_size";
+    desc =  "Maximum size of search queries messages we allow, otherwise "
+            "close the connection (in bytes)";
+    type = guint32;
+    data = {
+        default = 1024;
+        min     = 513;
+        max     = 65534;
+    };
+};
+
+prop = {
+    name = "search_answers_forward_size";
+    desc = "Maximum size of search answers messages we forward to others "
+           "(in bytes)";
+    type = guint32;
+    data = {
+        default = 65536;
+        min     = 513;
+        max     = 1048575;
+    };
+};
+
+prop = {
+    name = "search_answers_kick_size";
+    desc =  "Maximum size of search answers messages we allow, otherwise "
+            "close the connection (in bytes)";
+    type = guint32;
+    data = {
+        default = 65536;
+        min     = 513;
+        max     = 1048575;
+    };
+};
+
+prop = {
+    name = "other_messages_kick_size";
+    desc = "Maximum size of unknown messages we allow, otherwise close the"
+           "connection (in bytes)";
+    type = guint32;
+    data = {
+        default = 40960;
+        min     = 513;
+        max     = 1048575;
+    };
+};
+
+prop = {
+    name = "hops_random_factor";
+    desc = "Random factor for the hops field in search packets we send "
+           "between 0 and 3 inclusive)";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 3;
+    };
+};
+
+prop = {
+    name = "send_pushes";
+    desc = "Wether or not to send push requests";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "min_dup_msg";
+    desc = "Minimum amount of dup messages to enable kicking, per node "
+           "(also see [min_dup_ratio])";
+    type = guint32;
+    data = {
+        default = 5;
+        min     = 1;
+        max     = 99;
+    };
+};
+
+prop = {
+    name = "min_dup_ratio";
+    desc = "Minimum ratio of dups on received messages, per node "
+           "(between 0.0 and 100.0) (also see [min_dup_msg])";
+    type = guint32;
+    data = {
+        default = 1;
+        min     = 0;
+        max     = 100;
+    };
+};
+
+prop = {
+    name = "scan_extensions";
+    cfgvar = "shared_files_extensions";
+    desc = "Only files with the given extensions will be shared";
+    type = string;
+    data = {
+        default = "asf;avi;bz2;divx;gif;gz;it;jpeg;jpg;mod;mov;mpg;mpeg;"
+                  "mp3;mp2;mp1;ogg;png;ps;pdf;rar;s3m;stm;txt;voc;vqf;wav;"
+                  "wma;xm;zip";
+    };
+};
+
+prop = {
+    name = "save_file_path";
+    cfgvar = "store_downloading_files_to";
+    desc = "Store incomplete files in this directory";
+    type = string;
+    data = {
+        default = "/tmp";
+    };
+};
+
+prop = {
+    name = "move_file_path";
+    cfgvar = "move_downloading_files_to";
+    desc = "Move complete files to this directory";
+    type = string;
+    data = {
+        default = ".";
+    };
+};
+
+prop = {
+    name = "shared_dirs_paths";
+    cfgvar = "shared_dirs";
+    desc = "Directories which contain shared files";
+    type = string;
+    data = {
+        default = "";
+    };
+};
+
+prop = {
+    name = "local_netmasks_string";
+    cfgvar = "local_netmasks";
+    desc = "List of networks considered local";
+    type = string;
+    data = {
+        default = "";
+    };
+};
+
+prop = {
+    name = "search_stats_enabled";
+    desc = "Collect statistics about search that go through this node";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "search_stats_update_interval";
+    desc = "Interval in which the search stats are updated";
+    type = guint32;
+    data = {
+        default = 200;
+        min     = 0;
+        max     = 50000;
+    };
+};
+
+prop = {
+    name = "search_stats_delcoef";
+    desc = "[unknown, please provide description in gnet_props.ag]";
+    type = guint32;
+    data = {
+        default = 25;
+        min     = 0;
+        max     = 100;
+    };
+};
+
+prop = {
+    name = "total_downloads";
+    desc = "Total number of completed downloads in this session";
+    save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+        min = 0x00000000;
+        max = 0xFFFFFFFF;
+    };
+};
+
+prop = {
+    name = "total_uploads";
+    desc = "Total number of completed uploads in this session";
+    save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+        min = 0x00000000;
+        max = 0xFFFFFFFF;
+    };
+};
+
+prop = {
+    name = "guid";
+    desc = "Global Unique IDentifier of this node";
+    type = storage;
+    vector_size = 16;
+};

@@ -1,0 +1,398 @@
+autogen definitions 'props.tpl';
+
+/*
+ * $Id$
+ */
+property_set = "gui_property";
+func_prefix = "gui_prop";
+offset = 1000;
+
+prop = {
+    name = "monitor_enabled";
+    desc = "Search monitor enabled";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "monitor_max_items";
+    desc = "Maximum number of queries visible in search monitor";
+    type = guint32;
+    data = {
+        default = 25;
+        min     = 0;
+        max     = 100;
+    };
+};
+
+prop = {
+    name = "queue_regex_case";
+    desc = "Match queue selection by regexp case sensitive";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "search_pick_all";
+    desc = "Autoselect similar files in searches";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+    
+prop = {
+    name = "nodes_col_widths";
+    cfgvar = "widths_nodes";
+    desc = "Widths of the columns in the nodes table";
+    type = guint32;
+    vector_size = 5;
+    data = {
+        default = "{ 130, 50, 120, 20, 80 }";
+    };
+};
+
+prop = {
+    name = "dl_active_col_widths";
+    cfgvar = "widths_dl_active";
+    desc = "Widths of the columns in the active downloads table";
+    type = guint32;
+    vector_size = 5;
+    data = {
+        default = "{ 240, 80, 80, 80, 80 }";
+    };
+};
+
+prop = {
+    name = "dl_queued_col_widths";
+    cfgvar = "widths_dl_queued";
+    desc = "Widths of the columns in the queued downloads table";
+    type = guint32;
+    vector_size = 5;
+    data = {
+        default = "{ 240, 80, 80, 80, 80 }";
+    };
+};
+    
+prop = {
+    name = "search_results_col_visible";
+    desc = "Which columns are visible in the search results tables";
+    type = guint32;
+    vector_size = 6;
+    data = {
+        default = "{ 1,1,1,1,0,1}";
+    };
+};
+
+prop = {
+    name = "search_list_col_widths";
+    cfgvar = "widths_search_list";
+    desc = "Widths of the columns in the search list on the sidebar";
+    type = guint32;
+    vector_size = 3;
+    data = {
+        default = "{ 80, 20, 20 }";
+    };
+};
+
+prop = {
+    name ="search_results_col_widths";
+    cfgvar = "widths_search_results";
+    desc = "Widths of the columns in the search results tables";
+    type = guint32;
+    vector_size = 6;
+    data = {
+        default = "{ 210, 80, 50, 70, 70, 140 }";
+    };
+};
+
+prop = {
+    name = "search_stats_col_widths";
+    cfgvar = "widths_search_stats";
+    desc = "Widths of the columns in the search stats table";
+    type = guint32;
+    vector_size = 3;
+    data = {
+        default = "{ 200, 80, 80 }";
+    };
+};
+
+prop = {
+    name = "ul_stats_col_widths";
+    cfgvar = "widths_ul_stats";
+    desc = "Widths of the columns in the upload stats table";
+    type = guint32;
+    vector_size = 5;
+    data = {
+        default = "{ 200, 80, 80, 80, 80 }";
+    };
+};
+
+prop = {
+    name = "uploads_col_widths";
+    cfgvar = "widths_uploads";
+    desc = "Widths of the columns in the uploads table";
+    type = guint32;
+    vector_size = 6;
+    data = {
+        default = "{ 200, 120, 36, 80, 80, 80 }";
+    };
+};
+
+prop = {
+    name = "filter_rules_col_widths";
+    cfgvar = "widths_filter_table";
+    desc = "Widths of the columns in the rules table in the filter dialog";
+    type = guint32;
+    vector_size = 4;
+    data = {
+        default = "{ 10, 240, 80, 40 }";
+    };
+};
+
+prop = {
+    name = "filter_filters_col_widths";
+    cfgvar = "widths_filter_filters";
+    desc = "Widths of the columns in the filter table in the filter dialog";
+    type = guint32;
+    vector_size = 3;
+    data = {
+        default = "{ 80, 20, 20 }";
+    };
+};
+
+prop = {
+    name = "window_coords";
+    desc = "Position and size of the main window";
+    type = guint32;
+    vector_size = 4;
+    data = {
+        default = "{ 0, 0, 0, 0 }";
+    };
+};
+
+prop = {
+    name = "filter_dlg_coords";
+    desc = "Position and size of the filter dialog";
+    type = guint32;
+    vector_size = 4;
+    data = {
+        default = "{ 0, 0, 0, 0 }";
+    };
+};
+
+
+prop = {
+    name = "downloads_divider_pos";
+    desc = "Position of the divider in the downloads panel";
+    type = guint32;
+    data = {
+        default = 0x0000;
+        min     = 0x0000;
+        max     = 0xFFFF;
+    };
+};
+
+prop = {
+    name = "main_divider_pos";
+    desc = "Size of the sidebar";
+    type = guint32;
+    data = {
+        default = 0x0000;
+        min     = 0x0000;
+        max     = 0xFFFF;
+    };
+};
+
+prop = {
+    name = "side_divider_pos";
+    desc = "Size of the menu in the sidebar";
+    type = guint32;
+    data = {
+        default = 0x0000;
+        min     = 0x0000;
+        max     = 0xFFFF;
+    };
+};
+
+prop = {
+    name = "search_max_results";
+    desc = "Maximum number of results to show in any search";
+    type = guint32;
+    data = {
+        default = 5000;
+        min     = 10;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "gui_debug";
+    desc = "Debug level for the gui";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+    name = "filter_main_divider_pos";
+    desc = "Size of the filter tree in the filter dialog";
+    type = guint32;
+    data = {
+        default = 0x0000;
+        min     = 0x0000;
+        max     = 0xFFFF;
+    };
+};
+
+prop = {
+    name = "search_results_show_tabs";
+    desc = "Show tabs or search list";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "toolbar_visible";
+    desc = "Display toolbar";
+    type = boolean;
+    data = {
+        default     = FALSE;
+    };
+};
+
+prop = {
+    name = "statusbar_visible";
+    desc = "Display statusbar";
+    type = boolean;  
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_uploads_visible";
+    desc = "Display upload statistics in sidebar";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_downloads_visible";
+    desc = "Display download statistics in sidebar";
+    type = boolean;  
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_connections_visible";
+    desc = "Display connection statistics in sidebar";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_bws_in_visible";
+    desc = "Display incoming HTTP traffic bandwidth usage";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_bws_out_visible";
+    desc = "Display outgoing HTTP traffic bandwidth usage";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_bws_gin_visible";
+    desc = "Display incoming gNet traffic bandwidth usage";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_bws_gout_visible";
+    desc = "Display outgoing gNet traffic bandwidth usage";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_bws_in_avg";
+    desc = "Display incoming HTTP traffic bandwidth average";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_bws_out_avg";
+    desc = "Display outgoing HTTP traffic bandwidth average";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_bws_gin_avg";
+    desc = "Display incoming gNet traffic bandwidth average";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_bws_gout_avg";
+    desc = "Display outgoing gNet traffic bandwidth average";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "search_autoselect_ident";
+    desc = "When enabled autoselection only takes place if filesize "
+           "matches exactly, otherwise it must be equal or greater";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "jump_to_downloads";
+    desc = "Jump to downloads screen when downloading a file";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};

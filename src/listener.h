@@ -1,0 +1,65 @@
+/*
+ * Copyright (c) 2001-2002, Richard Eckart
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+#ifndef __listener_h__
+#define __listener_h__
+
+#include "gnutella.h"
+
+/*
+ * To use the macros below with a "node_added" signal for example, 
+ * you need to have a storage stucture to hold the listeners list
+ * This needs to be defined in the following fashion. The name is
+ * important for the macros to access the structure. For a "node_removed"
+ * signal replace node_added_listeners with node_removed_listeners.
+ *
+ * listeners_t node_added_listeners = NULL;
+ *
+ * You also need a special type defined which holds the signature of the
+ * callback function. For example:
+ *
+ * typedef void (*node_added_listener_t) (gnutella_node_t *, const gchar *);
+ *
+ * Again the name is important (like above).
+ */
+
+typedef GSList *listeners_t;
+
+#define LISTENER_ADD(signal, callback)                                 \
+    g_assert(callback != NULL);                                        \
+    signal##_listeners = g_slist_prepend(signal##_listeners, callback);
+
+#define LISTENER_REMOVE(signal, callback)                              \
+    g_assert(callback != NULL);                                        \
+    signal##_listeners = g_slist_remove(signal##_listeners, callback);
+
+#define LISTENER_EMIT(signal, args...)                                 \
+    {                                                                  \
+        GSList *l;                                                     \
+        for (l = signal##_listeners; l != NULL; l = g_slist_next(l)) { \
+            signal##_listener_t fn = (signal##_listener_t) l->data;    \
+            (*fn)(args);                                               \
+        }                                                              \
+    }
+
+#endif /* __listener_h__ */
