@@ -34,8 +34,10 @@
 #include "search_cb.h"
 #include "main_cb.h"
 #include "monitor_cb.h"
+#include "uploads_cb.h"
+#include "downloads_cb.h"
+#include "gnet_stats_gui.h"
 
-gboolean on_clist_uploads_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 gboolean on_entry_search_reissue_timeout_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 void on_button_extra_config_clicked (GtkButton *button, gpointer user_data); 
 void on_ctree_menu_tree_select_row (GtkCTree *clist, GList *node, gint column, gpointer user_data);
@@ -56,44 +58,6 @@ gboolean on_progressbar_bws_gout_button_press_event(GtkWidget *widget, GdkEventB
  *** gnutellaNet panel
  ***/
 void on_button_host_catcher_clear_clicked (GtkButton *button, gpointer user_data);
-
- 
-
-/***
- *** uploads panel
- ***/
-void on_button_uploads_kill_clicked (GtkButton *button, gpointer user_data);
-void on_button_uploads_remove_clicked (GtkButton *button, gpointer user_data); 
-void on_clist_uploads_click_column (GtkCList *clist, gint column, gpointer user_data); 
-void on_clist_uploads_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
-void on_clist_uploads_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data); 
-void on_clist_uploads_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
-void on_button_uploads_clear_completed_clicked (GtkButton *button, gpointer user_data);
-
-
-
-/***
- *** downloads panel
- ***/
-/* active downloads */
-gboolean on_clist_downloads_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
-gboolean on_clist_downloads_queue_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
-void on_button_downloads_abort_clicked (GtkButton *button, gpointer user_data); 
-void on_button_downloads_clear_completed_clicked (GtkButton *button, gpointer user_data);
-void on_clist_downloads_click_column (GtkCList *clist, gint column, gpointer user_data); 
-void on_clist_downloads_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
-void on_clist_downloads_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
-void on_clist_downloads_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
-void on_button_downloads_resume_clicked (GtkButton *button, gpointer user_data); 
-/* queued downloads */
-void on_clist_downloads_queue_click_column (GtkCList *clist, gint column, gpointer user_data);
-void on_clist_downloads_queue_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
-void on_clist_downloads_queue_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
-void on_clist_downloads_queue_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
-void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton, gpointer user_data);
-void on_entry_queue_regex_activate (GtkEditable *editable, gpointer user_data); 
-void on_clist_downloads_queue_drag_begin(GtkWidget *widget, GdkDragContext *drag_context, gpointer user_data);
-void on_clist_downloads_queue_drag_end(GtkWidget *widget, GdkDragContext *drag_context, gpointer user_data);
 
 
 
@@ -125,59 +89,6 @@ void on_radio_config_socksv5_toggled (GtkToggleButton *togglebutton, gpointer us
 
 
 
-/***
- *** popup-uploads 
- ***/
-void on_popup_uploads_title_activate (GtkMenuItem *menuitem, gpointer user_data);
-
-
-
-
-
-
-/***
- *** popup-downloads
- ***/
-void on_popup_downloads_push_activate(GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_abort_named_activate(GtkMenuItem *menuitem, gpointer user_data); 
-void on_popup_downloads_abort_host_activate(GtkMenuItem *menuitem, gpointer user_data); 
-void on_popup_downloads_abort_sha1_activate(GtkMenuItem *menuitem, gpointer user_data); 
-void on_popup_downloads_remove_file_activate(GtkMenuItem *menuitem, gpointer user_data); 
-void on_popup_downloads_search_again_activate(GtkMenuItem *menuitem, gpointer user_data); 
-void on_popup_downloads_queue_activate(GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_copy_url_activate(GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_connect_activate(GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_selection_get(GtkWidget * widget, GtkSelectionData * data, 
-                                      guint info, guint time, gpointer user_data);
-gint on_popup_downloads_selection_clear_event(GtkWidget * widget, GdkEventSelection *event);
-
-
-
-/***
- *** popup-queue
- ***/
-void on_popup_queue_start_now_activate (GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_queue_freeze_activate (GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_queue_search_again_activate (GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem, gpointer user_data); 
-void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_popup_queue_abort_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_popup_queue_copy_url_activate(GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_queue_connect_activate(GtkMenuItem *menuitem, gpointer user_data);
-
-
-
-/***
- *** upload stats
- ***/
-void on_button_ul_stats_clear_all_clicked(GtkButton * button, gpointer user_data);
-void on_button_ul_stats_clear_deleted_clicked(GtkButton * button, gpointer user_data);
-void on_clist_ul_stats_click_column(GtkCList * clist, gint column, gpointer user_data);
-void on_clist_ul_stats_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
-
-
-
 /*** 
  *** search stats
  ***/
@@ -186,10 +97,16 @@ void     on_clist_search_stats_resize_column(GtkCList * clist, gint column, gint
 
 
 
-
 /***
  *** search list (sidebar)
  ***/
 void on_clist_search_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 
+
+
+// FIXME: temporaily relocated
+gint compare_ul_norm(GtkCList *clist, gconstpointer ptr1, gconstpointer ptr2);
+
+
 #endif	/* __callbacks_h__ */
+
