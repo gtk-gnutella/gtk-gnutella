@@ -42,7 +42,8 @@ static guint32 monitor_items = 0;
  *** Callbacks
  ***/
 
-static void monitor_gui_append_to_monitor(query_type_t type, const gchar *item)
+static void monitor_gui_append_to_monitor(
+    query_type_t type, const gchar *item)
 {
     char *titles[1];
     static GtkWidget *clist_monitor = NULL;
