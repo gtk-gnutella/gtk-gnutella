@@ -407,7 +407,7 @@ retry:
 		if (current_peermode != NODE_P_ULTRA)
 			return;
 
-		if (node_keep_missing() * 3 > up_connections)
+		if (node_keep_missing() * 3 > 2 * up_connections)
 			return;							/* Not enough nodes for querying */
 	}
 
