@@ -174,7 +174,7 @@
 		<last_modification_time>Mon, 15 Apr 2002 14:56:55 GMT</last_modification_time>
 	      </signal>
 	      <label>show _Input Banwidth</label>
-	      <active>False</active>
+	      <active>True</active>
 	      <always_show_toggle>True</always_show_toggle>
 	    </widget>
 
@@ -187,7 +187,7 @@
 		<last_modification_time>Mon, 15 Apr 2002 14:57:22 GMT</last_modification_time>
 	      </signal>
 	      <label>show _Output Bandwidth</label>
-	      <active>False</active>
+	      <active>True</active>
 	      <always_show_toggle>True</always_show_toggle>
 	    </widget>
 	  </widget>

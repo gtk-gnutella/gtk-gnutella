@@ -531,6 +531,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (menu_bps_in_visible);
   gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_bps_in_visible);
+  gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_bps_in_visible), TRUE);
   gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_bps_in_visible), TRUE);
 
   menu_bps_out_visible = gtk_check_menu_item_new_with_label ("");
@@ -543,6 +544,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (menu_bps_out_visible);
   gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_bps_out_visible);
+  gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_bps_out_visible), TRUE);
   gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_bps_out_visible), TRUE);
 
   hb_toolbar = gtk_handle_box_new ();
