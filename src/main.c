@@ -98,6 +98,7 @@ void gtk_gnutella_exit(gint n)
 {
 	time_t now = time((time_t *) NULL);
 	time_t tick;
+	time_t exit_grace = EXIT_GRACE;
 
 	if (exiting)
 		return;			/* Already exiting, must be in loop below */
@@ -131,13 +132,18 @@ void gtk_gnutella_exit(gint n)
 
 	/* 
 	 * Wait at most EXIT_GRACE seconds, so that BYE messages can go through.
+	 * This amount of time is doubled when running in Ultra mode since we
+	 * have more connections to flush.
 	 */
+
+	if (current_peermode == NODE_P_ULTRA)
+		exit_grace *= 2;
 
 	while (
 		node_bye_pending() && 
-		(tick = time((time_t *) NULL)) - now < EXIT_GRACE
+		(tick = time((time_t *) NULL)) - now < exit_grace
 	) {
-        main_gui_shutdown_tick(EXIT_GRACE - (gint)difftime(tick,now));
+        main_gui_shutdown_tick(exit_grace - (gint) difftime(tick, now));
 		usleep(200000);					/* 200 ms */
 	}
 
