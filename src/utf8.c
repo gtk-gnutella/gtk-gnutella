@@ -571,7 +571,7 @@ error:
 
 gboolean is_ascii_string(gchar *str)
 {
-	while (str)
+	while (*str)
 		if (*str++ & 0x80)
 	        return FALSE;
 
