@@ -321,7 +321,7 @@ static gchar *tok_generate(time_t now, const gchar *version)
 	memset(lvlbase64, 0, sizeof(lvlbase64));
 	base64_encode_into(lvldigest, 2 * lvlsize, lvlbase64, LEVEL_BASE64_SIZE);
 
-	return g_strdup_printf("%s; %s", token, lvlbase64);
+	return g_strconcat(token, "; ", lvlbase64, NULL);
 }
 
 /*
