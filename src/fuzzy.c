@@ -45,7 +45,7 @@ static char *fuzzy_strlower(char *dst, const char *src, size_t len)
 	g_assert(NULL != dst);
 
 	len--;
-	while ('\0' != (*p++ = tolower(*src++)) && i++ < len)
+	while ('\0' != (*p++ = tolower((guchar) *src++)) && i++ < len)
 		;
 
 	return dst;
