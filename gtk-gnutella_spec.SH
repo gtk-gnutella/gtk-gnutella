@@ -1,3 +1,5 @@
+# $Id$
+
 case $CONFIG in
 '')
 	if test -f config.sh; then TOP=.;
@@ -31,27 +33,26 @@ Version: $gtkgversion
 $spitshell >>gtk-gnutella.spec <<'!NO!SUBS!'
 Release: 1
 URL: http://sourceforge.net/projects/gtk-gnutella/
-Source0: %{name}-%{version}.tar.gz
+Source: %{name}-%{version}.tar.gz
 License: GPL
 Group: Applications/Internet
 BuildRoot: %{_tmppath}/%{name}-root
-BuildPreReq: gtk+-devel glib-devel bison
+BuildPreReq: gtk2-devel glib2-devel libglade2-devel libxml2-devel bison
 
 %description
-Gtk-Gnutella is a GUI based Gnutella Client. It's based upon the original
-look of Gnutella v0.5.
-
-It's a fully featured Gnutella Client designed to share any type of file
-the user wishes to share.
+Gtk-Gnutella is a GUI based Gnutella p2p servent. It's a fully featured  
+servent designed to share any type of file.  Gtk-gnutella implements 
+compressed gnutella net connections, ultrapeer and leaf nodes and uses 
+Passive/Active Remote Queueing (PARQ).
 
 %prep
 %setup -q
 
 %build
-./Configure -Dprefix=%_prefix/ -Dbindir=%_bindir/ -Dprivlib=%_datadir/%name/ \
-	-Dsysman=%_mandir/man1/ -Dccflags="-Wall" \
-	-Doptimize="%optflags" -Dgtkversion=2 \
-	-ders
+./Configure -Dprefix=%_prefix -Dbindir=%_bindir -Dprivlib=%_datadir/%name \
+	-Dsysman=%_mandir/man1 -Dccflags="-Wall" -Dcc=gcc \
+	-Doptimize="-g -O2" -Dyacc="bison -y" -Dgtkversion=2  \
+	-Dofficial=true -ders
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -59,17 +60,13 @@ mkdir -p $RPM_BUILD_ROOT/%_bindir $RPM_BUILD_ROOT/%_mandir/man1
 %{__make} install INSTALL_PREFIX=$RPM_BUILD_ROOT
 %{__make} install.man INSTALL_PREFIX=$RPM_BUILD_ROOT
 
-mkdir -p $RPM_BUILD_ROOT/etc/X11/applnk/Applications
+mkdir -p $RPM_BUILD_ROOT/%_datadir/applications
+cp -f gtk-gnutella.desktop \
+$RPM_BUILD_ROOT/%_datadir/applications/gtk-gnutella.desktop
 
-cat >$RPM_BUILD_ROOT/etc/X11/applnk/Applications/gtk-gnutella.desktop <<EOF
-[Desktop Entry]
-Name=Gtk-Gnutella
-Comment=A GUI based Gnutella Client
-Exec=%{_bindir}/gtk-gnutella
-Terminal=0
-Type=Application
-Icon=gnome-modem.png
-EOF
+mkdir -p $RPM_BUILD_ROOT/%_datadir/pixmaps
+cp -f gtk-gnutella.png $RPM_BUILD_ROOT/%_datadir/pixmaps
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
@@ -77,14 +74,15 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %{_bindir}/*
 %{_datadir}/gtk-gnutella
-/etc/X11/applnk/Applications/gtk-gnutella.desktop
+%{_datadir}/applications
+%{_datadir}/pixmaps
+%{_mandir)/man1
 
 %doc README TODO AUTHORS ChangeLog
 
 %changelog
 * Tue Dec 11 2001 Sam Varshavchik <mrsam@courier-mta.com>
 - Initial build.
-
 
 !NO!SUBS!
 chmod 755 gtk-gnutella.spec
