@@ -33,7 +33,6 @@
 my @DEVS = (
 	"Raphael Manfredi",
 	"Jeroen Asselman",
-	"Richard Eckart",
 );
 
 my $COPYRIGHT = "Copyright \\(c\\)";
