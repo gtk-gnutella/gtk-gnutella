@@ -79,30 +79,33 @@ RCSID("$Id$");
 
 #define PARQ_UL_MAGIC	0x6a3900a1
 
-GHashTable *dl_all_parq_by_id = NULL;
+static GHashTable *dl_all_parq_by_id = NULL;
 
-guint parq_max_upload_size = MAX_UPLOAD_QSIZE;
-guint parq_upload_active_size = 20;	/* Max number of active upload slots per
-									 * queue. This limit will only be reached
-									 * when all requests are QUEUE, push or
-									 * the number of upload slots is also large
-									 */
-guint parq_upload_ban_window = 600;
-static const gchar *file_parq_file = "parq";
-
-GList *ul_parqs = NULL;			/* List of all queued uploads */
-GList *ul_parq_queue = NULL;	/* To whom we need to send a QUEUE */
-GHashTable *ul_all_parq_by_ip_and_name = NULL;
-GHashTable *ul_all_parq_by_ip = NULL;
-GHashTable *ul_all_parq_by_id = NULL;
-gboolean enable_real_passive = TRUE;	/* If TRUE, a dead upload is only marked
-										 * dead, if FALSE, a dead upload is 
-										 * really removed and cannot reclaim
-										 * its position */
+static guint parq_max_upload_size = MAX_UPLOAD_QSIZE;
 
 
-GHashTable *parq_banned_source = NULL;
-GList *parq_banned_sources = NULL;
+/* parq_upload_active_size is the maximum number of active upload slots per
+ * queue. This limit will only be reached when all requests are QUEUE, push or
+ * the number of upload slots is also large
+ */
+static guint parq_upload_active_size = 20;
+
+static guint parq_upload_ban_window = 600;
+static const gchar file_parq_file[] = "parq";
+
+static GList *ul_parqs = NULL;			/* List of all queued uploads */
+static GList *ul_parq_queue = NULL;	/* To whom we need to send a QUEUE */
+static GHashTable *ul_all_parq_by_ip_and_name = NULL;
+static GHashTable *ul_all_parq_by_ip = NULL;
+static GHashTable *ul_all_parq_by_id = NULL;
+
+/* If enable_real_passive is TRUE, a dead upload is only marked dead, if FALSE,
+ * a dead upload is really removed and cannot reclaim its position */
+static gboolean enable_real_passive = TRUE;
+
+
+static GHashTable *ht_banned_source = NULL;
+static GList *parq_banned_sources = NULL;
 
 struct parq_banned {
 	guint32 ip;
@@ -111,7 +114,7 @@ struct parq_banned {
 };
 
 
-gboolean parq_shutdown = FALSE;
+static gboolean parq_shutdown = FALSE;
  
 /*
  * Holds status of current queue.
@@ -224,7 +227,7 @@ static struct parq_ul_queue *parq_upload_which_queue(gnutella_upload_t *u);
 static struct parq_ul_queue *parq_upload_new_queue();
 static void parq_upload_free_queue(struct parq_ul_queue *queue);
 static void parq_upload_update_eta(struct parq_ul_queue *which_ul_queue);
-static struct parq_ul_queued *parq_upload_find(gnutella_upload_t *u);
+static struct parq_ul_queued *parq_upload_find(const gnutella_upload_t *u);
 static gint parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b);
 static gboolean parq_upload_continue(
 		struct parq_ul_queued *uq, gint free_slots);
@@ -265,8 +268,8 @@ void parq_del_banned_source(guint32 ip);
  * @return a boolean which is true when parsing of the header version was
  * succesfull.
  */
-static gboolean get_header_version(gchar const *const header, 
-								gint *major, gint *minor)
+static gboolean
+get_header_version(gchar const * const header, gint *major, gint *minor)
 {
 	return sscanf(header, "%d.%d", major, minor) == 2;
 }
@@ -279,13 +282,13 @@ static gboolean get_header_version(gchar const *const header,
  * 
  * @param s is a pointer to the header string that will be parsed.
  * @param attribute is the attribute which will be searched in the header string
- * @param length is a pointer to a gint which will contain the length of the
- *        header value, if parsing was succesfull.
+ * @param length is a pointer to a size_t variable which will contain the
+ *		  length of the header value, if parsing was successful.
  * 
  * @return a pointer in the s pointer indicating the start of the header value.
  */
-static gchar *get_header_value(
-	gchar *const s, gchar const *const attribute, gint *length)
+static gchar *
+get_header_value(gchar *const s, gchar const *const attribute, size_t *length)
 {
 	gchar *header = s;
 	gchar *end;
@@ -380,8 +383,8 @@ static gchar *get_header_value(
 
 			if (!found_right_attribute) {
 				g_assert(!found_equal_sign);
-				g_warning(__FILE__ ": attribute '%s' has no value in string: %s",
-					attribute, s);
+				g_warning("%s: attribute '%s' has no value in string: %s",
+					__FILE__, attribute, s);
 			}
 		}		
 	} while (!found_right_attribute);	
@@ -408,20 +411,18 @@ static gchar *get_header_value(
 		 * If we couldn't find a delimiter, then this value is the last one.
 		 */
 
-		*length = (end == NULL) ?
-			strlen(header) : end - header;
+		*length = (end == NULL) ? strlen(header) : (size_t) (end - header);
 	}
 
 	return header;
 }
 
 
-/*
- * parq_upload_queue_init
- *
+/**
  * Initialises the upload queue for PARQ.
  */
-void parq_init(void)
+void
+parq_init(void)
 {
 	header_features_add(&xfeatures.uploads, 
 		"queue", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);
@@ -429,11 +430,11 @@ void parq_init(void)
 		"queue", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);
 	
 	ul_all_parq_by_ip_and_name = g_hash_table_new(g_str_hash, g_str_equal);
-	ul_all_parq_by_ip = g_hash_table_new(g_int_hash, g_int_equal);
+	ul_all_parq_by_ip = g_hash_table_new(NULL, NULL);
 	ul_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
 	dl_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
 
-	parq_banned_source = g_hash_table_new(g_int_hash, g_int_equal);
+	ht_banned_source = g_hash_table_new(NULL, NULL);
 	
 	(void) parq_upload_new_queue();
 	
@@ -441,18 +442,16 @@ void parq_init(void)
 	g_assert(ul_all_parq_by_id != NULL);
 	g_assert(ul_all_parq_by_ip != NULL);
 	g_assert(dl_all_parq_by_id != NULL);
-	g_assert(parq_banned_source != NULL);
+	g_assert(ht_banned_source != NULL);
 	
 	parq_upload_load_queue();
 }
 
-/*
- * parq_close
- *
+/**
  * Saves any queueing information and frees all memory used by PARQ
  */
-
-void parq_close(void)
+void
+parq_close(void)
 {
 	GList *queues;
 	GList *dl;
@@ -525,7 +524,7 @@ void parq_close(void)
 	g_hash_table_destroy(ul_all_parq_by_ip);
 	g_hash_table_destroy(ul_all_parq_by_id);
 	
-	g_hash_table_destroy(parq_banned_source);
+	g_hash_table_destroy(ht_banned_source);
 	g_list_free(parq_banned_sources);
 
 }
@@ -534,13 +533,13 @@ void parq_close(void)
  ***  The following section contains download PARQ functions
  ***/
 
-/*
- * get_parq_dl_id
+/**
+ * Retrieves the PARQ ID associated with an download.
  *
- * Retreives the PARQ ID associated with an download.
- * Returns a gchar pointer to the ID, or NULL if no ID is available.
+ * @return a gchar pointer to the ID, or NULL if no ID is available.
  */
-gchar *get_parq_dl_id(const struct download *d)
+const gchar *
+get_parq_dl_id(const struct download *d)
 {
 	g_assert(d != NULL);
 
@@ -550,14 +549,13 @@ gchar *get_parq_dl_id(const struct download *d)
 	return ((struct parq_dl_queued *) d->queue_status)->id;
 }
 
-/*
- * get_parq_dl_position
- *
- * Retreives the remote queued position associated with an download.
+/**
+ * Retrieves the remote queued position associated with an download.
  * Returns the remote queued position or 0 if download is not queued or queuing
  * status is unknown
  */
-gint get_parq_dl_position(const struct download *d)
+gint
+get_parq_dl_position(const struct download *d)
 {
 	g_assert(d != NULL);
 	
@@ -567,14 +565,14 @@ gint get_parq_dl_position(const struct download *d)
 	return ((struct parq_dl_queued *) d->queue_status)->position;
 }
 
-/*
- * get_parq_dl_queue_length
+/**
+ * Retrieves the remote queue size associated with an download.
  *
- * Retreives the remote queue size associated with an download.
- * Returns the remote queue size or 0 if download is not queued or queueing 
+ * @return the remote queue size or 0 if download is not queued or queueing 
  * status is unknown.
  */
-gint get_parq_dl_queue_length(const struct download *d)
+gint
+get_parq_dl_queue_length(const struct download *d)
 {
 	g_assert(d != NULL);
 	
@@ -584,14 +582,14 @@ gint get_parq_dl_queue_length(const struct download *d)
 	return ((struct parq_dl_queued *) d->queue_status)->length;
 }
 
-/*
- * get_parq_dl_eta
+/**
+ * Retrieves the estimated time of arival for a queued download.
  *
- * Retreives the estimated time of arival for a queued download.
- * Returns the relative eta or 0 if download is not queued or queuing status is
+ * @return the relative eta or 0 if download is not queued or queuing status is
  * unknown.
  */
-gint get_parq_dl_eta(const struct download *d)
+gint
+get_parq_dl_eta(const struct download *d)
 {
 	g_assert(d != NULL);
 	
@@ -601,14 +599,14 @@ gint get_parq_dl_eta(const struct download *d)
 	return ((struct parq_dl_queued *) d->queue_status)->eta;
 }
 
-/*
- * get_parq_dl_retry_delay
- * 
- * Retreives the retry rate at which a queued download should retry.
- * Returns the retry rate or 0 if download is not queued or queueing status is
+/**
+ * Retrieves the retry rate at which a queued download should retry.
+ *
+ * @return the retry rate or 0 if download is not queued or queueing status is
  * unknown.
  */
-gint get_parq_dl_retry_delay(const struct download *d)
+gint
+get_parq_dl_retry_delay(const struct download *d)
 {
 	g_assert(d != NULL);
 	
@@ -618,14 +616,13 @@ gint get_parq_dl_retry_delay(const struct download *d)
 	return ((struct parq_dl_queued *) d->queue_status)->retry_delay;
 }
 
-/*
- * parq_download_retry_active_queued
- *
+/**
  * Active queued means we didn't close the http connection on a HTTP 503 busy
  * when the server supports queueing. So prepare the download structure
  * for a 'valid' segment. And re-request the segment.
  */
-void parq_download_retry_active_queued(struct download *d)
+void
+parq_download_retry_active_queued(struct download *d)
 {
 	g_assert(d != NULL);
 	g_assert(d->socket != NULL);
@@ -648,16 +645,17 @@ void parq_download_retry_active_queued(struct download *d)
 	}
 }
 	
-/*
- * get_integer
+/**
+ * Convenience wrapper on top of parse_uint64().
  *
- * Convenience wrapper on top of strtoul().
- * Returns parsed integer (base 10), or 0 if none could be found.
+ * @return parsed integer (base 10), or 0 if none could be found.
  */
-static gint get_integer(const gchar *buf)
+static guint
+get_integer(const gchar *buf)
 {
-	gulong val;
+	guint64 val;
 	gchar *end;
+	gint error;
 
 	/* XXX This needs to get more parameters, so that we can log the
 	 * XXX problem if we cannot parse, or if the value does not fit.
@@ -666,34 +664,32 @@ static gint get_integer(const gchar *buf)
 	 * XXX	--RAM, 02/02/2003.
 	 */
 
-	val = strtoul(buf, &end, 10);
+	while (is_ascii_space(*buf))
+		buf++;
+
+	val = parse_uint64(buf, &end, 10, &error);
 	if (end == buf)
 		return 0;
 
-	if (val > INT_MAX)
-		val = INT_MAX;
-
-	return (gint) val;
+	return error || val > INT_MAX ? INT_MAX : val;
 }
 
-/*
- * parq_dl_remove
- *
+/**
  * Tells the parq logic that a download has been removed. If parq has
  * associated a queue structure with this download it will be freed.
  */
-void parq_dl_remove(struct download *d)
+void
+parq_dl_remove(struct download *d)
 {
 	if (d->queue_status != NULL)
 		parq_dl_free(d);
 }
 
-/*
- * parq_dl_free
- * 
+/**
  * Removes the queue information for a download from memory.
  */
-void parq_dl_free(struct download *d)
+void
+parq_dl_free(struct download *d)
 {
 	struct parq_dl_queued* parq_dl = NULL;
 		
@@ -712,13 +708,13 @@ void parq_dl_free(struct download *d)
 	g_assert(d->queue_status == NULL);
 }
 
-/*
- * parq_dl_create
- *
+/**
  * Creates a queue structure for a download.
- * Returns a parq_dl_queued pointer to the newly created structure.
+ *
+ * @return a parq_dl_queued pointer to the newly created structure.
  */
-gpointer parq_dl_create(struct download *d)
+gpointer
+parq_dl_create(struct download *d)
 {
 	struct parq_dl_queued* parq_dl = NULL;
 	
@@ -732,12 +728,11 @@ gpointer parq_dl_create(struct download *d)
 	return parq_dl;
 }
 
-/*
- * parq_dl_add_id
- * 
+/**
  * Assigns an parq ID to a download, and places them in various lists for lookup
  */
-void parq_dl_add_id(struct download *d, const gchar *new_id)
+void
+parq_dl_add_id(struct download *d, const gchar *new_id)
 {
 	struct parq_dl_queued *parq_dl = NULL;
 
@@ -756,13 +751,12 @@ void parq_dl_add_id(struct download *d, const gchar *new_id)
 	g_assert(parq_dl->id != NULL);
 }
 
-/*
- * parq_dl_del_id
- *
+/**
  * Remove the memory used by the ID string, and removes it from 
  * various lists
  */
-void parq_dl_del_id(struct download *d)
+void
+parq_dl_del_id(struct download *d)
 {
 	struct parq_dl_queued *parq_dl = NULL;
 
@@ -779,13 +773,12 @@ void parq_dl_del_id(struct download *d)
 	g_assert(parq_dl->id == NULL);	/* We don't expect an id here */
 }
 
-/*
- * parq_dl_reparent_id
- *
+/**
  * Called from download_clone() to reparent the PARQ ID from the parent `d'
  * to the cloned `cd'.
  */
-void parq_dl_reparent_id(struct download *d, struct download *cd)
+void
+parq_dl_reparent_id(struct download *d, struct download *cd)
 {
 	struct parq_dl_queued *parq_dl = NULL;
 
@@ -809,12 +802,11 @@ void parq_dl_reparent_id(struct download *d, struct download *cd)
 	d->queue_status = NULL;			/* No longer associated to `d' */
 }
 
-/*
- * parq_dl_update_id
- *
+/**
  * Updates a parq id if needed.
  */
-static void parq_dl_update_id(struct download *d, const gchar *temp)
+static void
+parq_dl_update_id(struct download *d, const gchar *temp)
 {
 	struct parq_dl_queued *parq_dl = NULL;
 
@@ -832,20 +824,20 @@ static void parq_dl_update_id(struct download *d, const gchar *temp)
 	parq_dl_add_id(d, temp);
 }
 
-/*
- * parq_download_parse_queue_status
- *
+/**
  * Retrieve and parse queueing information.
- * Returns TRUE if we parsed it OK, FALSE on error.
+ *
+ * @return TRUE if we parsed it OK, FALSE on error.
  */
-gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
+gboolean
+parq_download_parse_queue_status(struct download *d, header_t *header)
 {	
 	struct parq_dl_queued *parq_dl = NULL;
 	gchar *buf = NULL;
 	gchar *temp = NULL;
 	gchar *value = NULL;
 	gint major = 0, minor = 0;
-	gint header_value_length;
+	size_t header_value_length;
 	gint retry;
 
 	g_assert(d != NULL);
@@ -860,7 +852,7 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 	
 	if (major == 0 && minor == 0 &&!get_header_version(buf, &major, &minor)) {
 		/*
-	 	* Could not retreive queueing version. It could be 0.1 but there is 
+	 	* Could not retrieve queueing version. It could be 0.1 but there is 
 		* no way to tell for certain
 	 	*/
 		major = 0;
@@ -959,8 +951,8 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 		retry = parq_dl->retry_delay;
 
 	if (dbg > 2)
-		printf("Queue version: %d.%d, position %d out of %d,"
-			" retry in %ds within [%d, %d]\n",
+		g_message("Queue version: %d.%d, position %d out of %d,"
+			" retry in %ds within [%d, %d]",
 			major, minor, parq_dl->position, parq_dl->length,
 			retry, parq_dl->retry_delay, parq_dl->lifetime);
 	
@@ -979,12 +971,11 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 	return TRUE;		/* OK */
 }
 
-/*
- * parq_download_is_active_queued
- *
+/**
  * Whether the download is queued remotely or not.
  */
-gboolean parq_download_is_active_queued(struct download *d)
+gboolean
+parq_download_is_active_queued(struct download *d)
 {
 	struct parq_dl_queued *parq_dl = NULL;
 		
@@ -996,12 +987,11 @@ gboolean parq_download_is_active_queued(struct download *d)
 	return parq_dl->position > 0 && d->keep_alive;
 }
 
-/*
- * parq_download_is_active_queued
- *
+/**
  * Whether the download is queued remotely without keeping the connection or not
  */
-gboolean parq_download_is_passive_queued(struct download *d)
+gboolean
+parq_download_is_passive_queued(struct download *d)
 {
 	struct parq_dl_queued *parq_dl = NULL;
 		
@@ -1016,9 +1006,7 @@ gboolean parq_download_is_passive_queued(struct download *d)
 }
 
 
-/*
- * parq_download_add_header
- *
+/**
  * Adds an:
  *
  *    X-Queue: 1.0
@@ -1026,7 +1014,8 @@ gboolean parq_download_is_passive_queued(struct download *d)
  *
  * to the HTTP GET request
  */
-void parq_download_add_header(
+void
+parq_download_add_header(
 	gchar *buf, size_t len, size_t *rw, struct download *d)
 {
 	gint major = PARQ_VERSION_MAJOR;
@@ -1075,11 +1064,12 @@ void parq_download_add_header(
  *
  * PARQ enabled servers send a 'QUEUE' command when the lifetime of the download
  * (upload from the servers point of view) is about to expire, or if the 
- * download has retreived an download slot (upload slot from the servers point
+ * download has retrieved an download slot (upload slot from the servers point
  * of view). This function looksup the ID associated with the QUEUE command
  * and prepares the download to continue.
  */
-void parq_download_queue_ack(struct gnutella_socket *s)
+void
+parq_download_queue_ack(struct gnutella_socket *s)
 {
 	gchar *queue;
 	gchar *id;
@@ -1099,10 +1089,7 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 	gnet_stats_count_general(GNR_QUEUE_CALLBACKS, 1);
 
 	if (dbg) {
-		printf("--- Got QUEUE from %s:\n", ip_to_gchar(s->ip));
-		printf("%s\n", queue);
-		printf("---\n");
-		fflush(stdout);
+		g_message("--- Got QUEUE from %s:\n%s\n---", ip_to_gchar(s->ip), queue);
 	}
 
  	/* ensured by socket_read() */
@@ -1235,12 +1222,11 @@ ignore:
  ***  The following section contains upload queueing
  ***/
 
-/*
- * handle_to_queued
- *
+/**
  * Convert an handle to a `parq_ul_queued' structure.
  */
-inline struct parq_ul_queued *handle_to_queued(gpointer handle)
+static inline struct parq_ul_queued *
+handle_to_queued(gpointer handle)
 {
 	struct parq_ul_queued *uq = (struct parq_ul_queued *) handle;
 
@@ -1250,12 +1236,11 @@ inline struct parq_ul_queued *handle_to_queued(gpointer handle)
 	return uq;
 }
 
-/*
- * parq_upload_free
- *
+/**
  * removes an parq_ul from the parq list and frees all its memory
  */
-static void parq_upload_free(struct parq_ul_queued *parq_ul)
+static void
+parq_upload_free(struct parq_ul_queued *parq_ul)
 {		
 	g_assert(parq_ul != NULL);
 	g_assert(parq_ul->ip_and_name != NULL);
@@ -1282,11 +1267,12 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 		g_assert(parq_ul->by_ip->list == NULL);
 
 		/* No more uploads from this ip, cleaning up */
-		g_hash_table_remove(ul_all_parq_by_ip, &parq_ul->by_ip->ip);
+		g_hash_table_remove(ul_all_parq_by_ip,
+			GUINT_TO_POINTER(parq_ul->by_ip->ip));
 		wfree(parq_ul->by_ip, sizeof(*parq_ul->by_ip));
 		
 		g_assert(g_hash_table_lookup(ul_all_parq_by_ip,
-			  &parq_ul->remote_ip) == NULL);
+			  GUINT_TO_POINTER(parq_ul->remote_ip)) == NULL);
 	}
 	
 	parq_ul->by_ip = NULL;
@@ -1353,16 +1339,16 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 	parq_ul = NULL;
 	
 	if (dbg > 3)
-		printf("PARQ UL: Entry freed from memory\n");
+		g_message("PARQ UL: Entry freed from memory");
 }
 
-/*
- * parq_ul_calc_retry
- *
+/**
  * Calculates the retry delay for an upload
- * Returns the recommended retry delay.
+ *
+ * @return the recommended retry delay.
  */
-guint32 parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
+guint32
+parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 {
 	int result = 60 + 45 * (parq_ul->relative_position - 1);
 #if AGGRESSIVE
@@ -1396,13 +1382,12 @@ guint32 parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 	return MIN(PARQ_MAX_UL_RETRY_DELAY, result);
 }
 
-/*
- * parq_upload_create
- *
+/**
  * Creates a new upload structure and prefills some values. Returns a pointer to
  * the newly created ul_queued structure.
  */
-static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
+static struct parq_ul_queued *
+parq_upload_create(gnutella_upload_t *u)
 {
 	time_t now = time((time_t *) NULL);
 	struct parq_ul_queued *parq_ul = NULL;
@@ -1497,7 +1482,7 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 		g_list_append(parq_ul_queue->by_rel_pos, parq_ul);	
 	
 	if (dbg > 3) {
-		printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): New: %s \"%s\"; ID=\"%s\"\n",
+		g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): New: %s \"%s\"; ID=\"%s\"",
 			g_list_position(ul_parqs, 
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
 			g_list_length(ul_parqs), 
@@ -1510,16 +1495,16 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	}	
 	
 	/* Check if the requesting client has already other PARQ entries */
-	parq_ul->by_ip = (struct parq_ul_queued_by_ip *)
-		g_hash_table_lookup(ul_all_parq_by_ip, &parq_ul->remote_ip);
+	parq_ul->by_ip = g_hash_table_lookup(ul_all_parq_by_ip,
+						GUINT_TO_POINTER(parq_ul->remote_ip));
 	
 	if (parq_ul->by_ip == NULL) {
 		/* The requesting client has no other PARQ entries yet, create an ip
 		 * reference structure */
 		parq_ul->by_ip = walloc0(sizeof(*parq_ul->by_ip));
 		parq_ul->by_ip->ip = parq_ul->remote_ip;
-		g_hash_table_insert(
-			ul_all_parq_by_ip, &parq_ul->by_ip->ip, parq_ul->by_ip);
+		g_hash_table_insert(ul_all_parq_by_ip,
+			GUINT_TO_POINTER(parq_ul->by_ip->ip), parq_ul->by_ip);
 		parq_ul->by_ip->uploading = 0;
 		parq_ul->by_ip->total = 0;
 		parq_ul->by_ip->list = NULL;
@@ -1547,14 +1532,14 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	return parq_ul;
 }
 
-/*
- * parq_upload_which_queue
- * 
+/**
  * Looks up in which queue the current upload should be placed and if the queue
  * doesn't exist yet it will be created.
- * Returns a pointer to the queue in which the upload should be queued.
+ *
+ * @return a pointer to the queue in which the upload should be queued.
  */
-static struct parq_ul_queue *parq_upload_which_queue(gnutella_upload_t *u)
+static struct parq_ul_queue *
+parq_upload_which_queue(gnutella_upload_t *u)
 {
 	struct parq_ul_queue *queue;
 	guint size = PARQ_UL_LARGE_SIZE;
@@ -1593,13 +1578,12 @@ static struct parq_ul_queue *parq_upload_which_queue(gnutella_upload_t *u)
 	return queue;
 }
 
-/*
- * parq_upload_new_queue
- *
+/**
  * Creates a new parq_ul_queue structure and places it in the ul_parqs
  * linked list.
  */
-static struct parq_ul_queue *parq_upload_new_queue()
+static struct parq_ul_queue *
+parq_upload_new_queue(void)
 {
 	struct parq_ul_queue *queue = NULL;
 
@@ -1617,8 +1601,8 @@ static struct parq_ul_queue *parq_upload_new_queue()
 	ul_parqs = g_list_append(ul_parqs, queue);
 
 	if (dbg)
-		printf("PARQ UL: Created new queue %d\n", 
-				g_list_position(ul_parqs, g_list_find(ul_parqs, queue)) + 1);
+		g_message("PARQ UL: Created new queue %d", 
+			g_list_position(ul_parqs, g_list_find(ul_parqs, queue)) + 1);
 		
 	g_assert(ul_parqs != NULL);
 	g_assert(ul_parqs->data != NULL);
@@ -1627,12 +1611,11 @@ static struct parq_ul_queue *parq_upload_new_queue()
 	return queue;
 }
 
-/*
- * parq_upload_free_queue
- *
+/**
  * Frees the queue from memory and the ul_parqs linked list
  */
-static void parq_upload_free_queue(struct parq_ul_queue *queue)
+static void
+parq_upload_free_queue(struct parq_ul_queue *queue)
 {
 	g_assert(queue != NULL);
 	g_assert(ul_parqs != NULL);
@@ -1643,7 +1626,7 @@ static void parq_upload_free_queue(struct parq_ul_queue *queue)
 	g_assert(queue->active == FALSE);
 	
 	if (dbg)
-		printf("PARQ UL: Removing inactive queue %d\n", 
+		g_message("PARQ UL: Removing inactive queue %d", 
 				g_list_position(ul_parqs, g_list_find(ul_parqs, queue)) + 1);
 		
 	/* Remove queue from all lists */
@@ -1654,12 +1637,11 @@ static void parq_upload_free_queue(struct parq_ul_queue *queue)
 	queue = NULL;
 }
 
-/*
- * parq_upload_update_eta
- *
+/**
  * Updates the ETA of all queued items in the given queue
  */
-static void parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
+static void
+parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 {
 	GList *l;
 	guint eta = 0;
@@ -1724,17 +1706,15 @@ static void parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 	}
 }
 
-static struct parq_ul_queued *parq_upload_find_id(gnutella_upload_t *u, 
-												  header_t *header)
+static struct parq_ul_queued *
+parq_upload_find_id(header_t *header)
 {
 	gchar *buf;
 	struct parq_ul_queued *parq_ul = NULL;
 	
 	buf = header_get(header, "X-Queued");
-	
 	if (buf != NULL) {
-		gint length;
-		gchar *id = get_header_value(buf, "ID", &length);
+		const gchar *id = get_header_value(buf, "ID", NULL);
 
 		if (id == NULL) {
 			g_warning("[PARQ UL] missing ID in PARQ request");
@@ -1751,13 +1731,13 @@ static struct parq_ul_queued *parq_upload_find_id(gnutella_upload_t *u,
 	return parq_ul;
 }
 	
-/*
- * parq_upload_find
- *
+/**
  * Finds an upload if available in the upload queue.
- * returns NULL if upload could not be found.
+ *
+ * @return NULL if upload could not be found.
  */
-static inline struct parq_ul_queued *parq_upload_find(gnutella_upload_t *u)
+static inline struct parq_ul_queued *
+parq_upload_find(const gnutella_upload_t *u)
 {
 	gchar buf[1024];
 	
@@ -1772,17 +1752,16 @@ static inline struct parq_ul_queued *parq_upload_find(gnutella_upload_t *u)
 	if (u->parq_opaque != NULL)
 		return (struct parq_ul_queued *) u->parq_opaque;
 	
-	gm_snprintf(buf, sizeof(buf), "%u %s", u->ip, u->name);
+	gm_snprintf(buf, sizeof(buf), "%u %s", (guint) u->ip, u->name);
 	
 	return g_hash_table_lookup(ul_all_parq_by_ip_and_name, buf);
 }
 
-/*
- * parq_upload_timer
- *
+/**
  * Removes any PARQ uploads which show no activity.
  */
-void parq_upload_timer(time_t now)
+void
+parq_upload_timer(time_t now)
 {
 	GList *queues;
 	GList *dl;
@@ -1880,7 +1859,8 @@ void parq_upload_timer(time_t now)
 				!(parq_ul->flags & PARQ_UL_QUEUE)	/* No timeout if pending */
 			) {
 				if (dbg > 3) 
-					printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): Timeout: %s '%s'\n",
+					g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
+						"Timeout: %s '%s'",
 						g_list_position(ul_parqs, 
 							g_list_find(ul_parqs, parq_ul->queue)) + 1,
 						g_list_length(ul_parqs), 
@@ -1937,14 +1917,13 @@ void parq_upload_timer(time_t now)
 		print_q_size = 0;
 
 		if (dbg) {
-			printf("\n");
 
 			for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
 				struct parq_ul_queue *queue = 
 					  (struct parq_ul_queue *) queues->data;
 			
-				printf("PARQ UL: Queue %d/%d contains %d items, "
-					  "%d uploading, %d alive, queue is marked %s \n",
+				g_message("PARQ UL: Queue %d/%d contains %d items, "
+					  "%d uploading, %d alive, queue is marked %s",
 					  g_list_position(ul_parqs, g_list_find(ul_parqs, queue))
 						  + 1,
 					  g_list_length(ul_parqs),
@@ -2003,8 +1982,8 @@ void parq_upload_timer(time_t now)
 			) {
 
 				if (dbg > 3)
-					printf("PARQ UL: Removing QUEUE command due to other "
-						"failed QUEUE command for ip: %s\n",
+					g_message("PARQ UL: Removing QUEUE command due to other "
+						"failed QUEUE command for ip: %s",
 						ip_to_gchar(parq_ul->by_ip->ip));
 
 				parq_ul->last_queue_sent = parq_ul->by_ip->last_queue_sent;
@@ -2025,10 +2004,11 @@ void parq_upload_timer(time_t now)
 					parq_ul->by_ip->last_queue_connected
 				) {
 					
-					if (dbg > 3)
-						printf("PARQ UL: Not sending QUEUE command due to "
-							"another pending QUEUE command for ip: %s\n",
+					if (dbg > 3) {
+						g_message("PARQ UL: Not sending QUEUE command due to "
+							"another pending QUEUE command for ip: %s",
 							ip_to_gchar(parq_ul->by_ip->ip));
+					}
 					continue;
 			}
 
@@ -2052,12 +2032,11 @@ void parq_upload_timer(time_t now)
 	}
 }
 
-/*
- * parq_upload_queue_full
- *
- * Returns true if parq cannot hold any more uploads
+/**
+ * @return true if parq cannot hold any more uploads
  */
-gboolean parq_upload_queue_full(gnutella_upload_t *u)
+gboolean
+parq_upload_queue_full(gnutella_upload_t *u)
 {
 	struct parq_ul_queue *q_ul = NULL;	
 	struct parq_ul_queued *parq_ul = NULL;
@@ -2076,7 +2055,7 @@ gboolean parq_upload_queue_full(gnutella_upload_t *u)
 	g_assert(q_ul->by_date_dead != NULL);
 	
 	if (dbg > 2)
-		printf("PARQ UL: Removing a 'dead' upload\n");
+		g_message("PARQ UL: Removing a 'dead' upload");
 	
 	parq_ul = (struct parq_ul_queued *) g_list_first(q_ul->by_date_dead)->data;
 	parq_upload_free(parq_ul);
@@ -2084,35 +2063,32 @@ gboolean parq_upload_queue_full(gnutella_upload_t *u)
 	return FALSE;
 }
 
-/*
- * parq_upload_queued
- *
+/**
  * Whether the current upload is already queued.
  */
-gboolean parq_upload_queued(gnutella_upload_t *u)
+gboolean
+parq_upload_queued(gnutella_upload_t *u)
 {
 	return parq_upload_lookup_position(u) != (guint) -1;
 }
 
-/*
- * parq_upload_get_at
- *
+/**
  * Get parq structure at specified position.
  */
-struct parq_ul_queued *parq_upload_get_at(struct parq_ul_queue *queue,
-		int position)
+struct parq_ul_queued *
+parq_upload_get_at(struct parq_ul_queue *queue, int position)
 {
 	return (struct parq_ul_queued *) g_list_nth_data(queue->by_rel_pos,
 			  position - 1);
 }
 
-/*
- * parq_upload_ip_can_proceed
- *
+/**
  * Check that the IP is not already downloading more than is alllowed.
- * Returns TRUE if it is OK for that IP to download from us.
+ *
+ * @return TRUE if it is OK for that IP to download from us.
  */
-gboolean parq_upload_ip_can_proceed(gnutella_upload_t *u)
+gboolean
+parq_upload_ip_can_proceed(const gnutella_upload_t *u)
 {
 	struct parq_ul_queued *uq = u->parq_opaque;
 
@@ -2121,12 +2097,11 @@ gboolean parq_upload_ip_can_proceed(gnutella_upload_t *u)
 	return (uq->by_ip->uploading >= max_uploads_ip) ? FALSE : TRUE;
 }
 
-/*
- * parq_upload_continue
- * 
- * Returns true if the current upload is allowed to get an upload slot.
+/**
+ * @return TRUE if the current upload is allowed to get an upload slot.
  */
-static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
+static gboolean
+parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 {
 	GList *l = NULL;
 	gint slots_free = max_uploads;
@@ -2256,13 +2231,12 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 }
 
 
-/*
- * parq_upload_update_ip_and_name
- *
+/**
  * Updates the IP and name entry in the queued structure and makes sure the hash
  * table remains in sync
  */
-static void parq_upload_update_ip_and_name(struct parq_ul_queued *parq_ul, 
+static void
+parq_upload_update_ip_and_name(struct parq_ul_queued *parq_ul,
 	gnutella_upload_t *u)
 {
 	g_assert(parq_ul != NULL);
@@ -2282,14 +2256,13 @@ static void parq_upload_update_ip_and_name(struct parq_ul_queued *parq_ul,
 		parq_ul);
 }
 
-/*
- * parq_ul_rel_pos_cmp
- * 
+/**
  * Function used to keep the relative position list sorted by relative position.
  * It should never be possible for 2 downloads to have the same relative
  * position in the same queue.
  */
-static gint parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b)
+static gint
+parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b)
 {
 	const struct parq_ul_queued *as = (const struct parq_ul_queued *) a;
 	const struct parq_ul_queued *bs = (const struct parq_ul_queued *) b;
@@ -2299,7 +2272,8 @@ static gint parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b)
 	return as->relative_position - bs->relative_position;
 }
 
-void parq_upload_upload_got_cloned(gnutella_upload_t *u, gnutella_upload_t *cu)
+void
+parq_upload_upload_got_cloned(gnutella_upload_t *u, gnutella_upload_t *cu)
 {
 	struct parq_ul_queued *parq_ul = NULL;
 	
@@ -2324,12 +2298,11 @@ void parq_upload_upload_got_cloned(gnutella_upload_t *u, gnutella_upload_t *cu)
 	g_assert(cu->parq_opaque != NULL);
 }
 
-/*
- * parq_upload_upload_got_freed
- *
+/**
  * Makes sure parq doesn't keep any internal reference to the upload structure
  */
-void parq_upload_upload_got_freed(gnutella_upload_t *u)
+void
+parq_upload_upload_got_freed(gnutella_upload_t *u)
 {
 	struct parq_ul_queued *parq_ul = NULL;
 	
@@ -2349,17 +2322,15 @@ void parq_upload_upload_got_freed(gnutella_upload_t *u)
 	u->parq_opaque = NULL;
 }
 
-/*
- * parq_upload_get
- *
+/**
  * Get a queue slot, either existing or new.
  * When `replacing' is TRUE, they issued a new request for a possibly
  * stalling entry, which was killed anyway, so give them a slot!
  *
- * Return slot as an opaque handle, NULL if slot cannot be created.
+ * @return slot as an opaque handle, NULL if slot cannot be created.
  */
-gpointer parq_upload_get(
-	gnutella_upload_t *u, header_t *header, gboolean replacing)
+gpointer
+parq_upload_get(gnutella_upload_t *u, header_t *header, gboolean replacing)
 {
 	struct parq_ul_queued *parq_ul = NULL;
 	gchar *buf;
@@ -2374,7 +2345,7 @@ gpointer parq_upload_get(
 	 * uploading.
 	 */
 	
-	parq_ul = parq_upload_find_id(u, header);
+	parq_ul = parq_upload_find_id(header);
 	
 	if (parq_ul != NULL) {
 		if (!parq_ul->had_slot)
@@ -2400,7 +2371,7 @@ gpointer parq_upload_get(
 		g_assert(parq_ul != NULL);
 
 		if (dbg > 3)
-			printf("PARQ UL Q %d/%d (%3d[%3d]/%3d) ETA: %s Added: %s '%s'\n",
+			g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d) ETA: %s Added: %s '%s'",
 				g_list_position(ul_parqs,
 					g_list_find(ul_parqs, parq_ul->queue)) + 1,
 				g_list_length(ul_parqs),
@@ -2500,9 +2471,7 @@ cleanup:
 	return parq_ul;
 }
 
-/*
- * parq_upload_request_force
- *
+/**
  * If the download may continue, true is returned. False otherwise (which 
  * probably means the upload is queued).
  * Where parq_upload_request honours the number of upload slots, this one
@@ -2510,8 +2479,9 @@ cleanup:
  * This function expects that the upload was checked with parq_upload_request
  * first.
  */
-gboolean parq_upload_request_force(gnutella_upload_t *u, gpointer handle, 
-	  guint used_slots)
+gboolean
+parq_upload_request_force(gnutella_upload_t *u, gpointer handle,
+	guint used_slots)
 {
 	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
 	
@@ -2535,14 +2505,12 @@ gboolean parq_upload_request_force(gnutella_upload_t *u, gpointer handle,
 	}
 }
 
-/*
- * parq_upload_request
- *
- * If the download may continue, true is returned. False otherwise (which 
- * probably means the upload is queued).
+/**
+ * @return If the download may continue, TRUE is returned. FALSE otherwise
+ * (which probably means the upload is queued).
  */
-gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle, 
-	  guint used_slots)
+gboolean
+parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 {
 	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
 	time_t now = time((time_t *) NULL);
@@ -2670,19 +2638,18 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 	}
 }
 
-/*
- * parq_upload_busy
- *
+/**
  * Mark an upload as really being active instead of just being queued.
  */
-void parq_upload_busy(gnutella_upload_t *u, gpointer handle)
+void
+parq_upload_busy(gnutella_upload_t *u, gpointer handle)
 {
 	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
 	
 	g_assert(parq_ul != NULL);
 	
 	if (dbg > 2) {
-		printf("PARQ UL: Upload %d[%d] is busy\n",
+		g_message("PARQ UL: Upload %d[%d] is busy",
 		  	  parq_ul->position, parq_ul->relative_position);
 	}
 	
@@ -2706,15 +2673,18 @@ void parq_upload_busy(gnutella_upload_t *u, gpointer handle)
 	parq_ul->by_ip->uploading++;
 }
 
-void parq_upload_add(gnutella_upload_t *u)
+void
+parq_upload_add(gnutella_upload_t *unused_u)
 {
 	/*
 	 * Cosmetic. Not used at the moment. gnutella_upload_t structure probably
 	 * isn't complete yet at this moment
 	 */	
+	(void) unused_u;
 }
 
-void parq_upload_force_remove(gnutella_upload_t *u)
+void
+parq_upload_force_remove(gnutella_upload_t *u)
 {
 	struct parq_ul_queued *parq_ul = parq_upload_find(u);
 		
@@ -2725,16 +2695,15 @@ void parq_upload_force_remove(gnutella_upload_t *u)
 	}
 }
 
-/*
- * parq_upload_remove
- *
+/**
  * When an upload is removed this function should be called so parq
  * knows the current upload status of an upload.
  * 
  * @return TRUE if the download was totally removed. And the associated memory
  * was cleared. FALSE if the parq structure still exists.
  */
-gboolean parq_upload_remove(gnutella_upload_t *u)
+gboolean
+parq_upload_remove(gnutella_upload_t *u)
 {
 	gboolean return_result = FALSE; /* True if the upload was really removed
 									   ie: Removed from memory */
@@ -2767,7 +2736,8 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 	 */
 
 	if (dbg > 2 && (parq_ul->flags & PARQ_UL_QUEUE_SENT))
-		printf("PARQ UL Q %d/%d: QUEUE #%d sent [refused=%d], u->status = %d\n",
+		g_message("PARQ UL Q %d/%d: "
+			"QUEUE #%d sent [refused=%d], u->status = %d",
 			g_list_position(ul_parqs, 
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
 			g_list_length(ul_parqs),
@@ -2781,7 +2751,7 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 	parq_ul->flags &= ~PARQ_UL_QUEUE_SENT;
 
 	if (parq_ul->has_slot && u->keep_alive && u->status == GTA_UL_WAITING) {
-		printf("**** PARQ UL Q %d/%d: Not removed, waiting for new request\n",
+		g_message("**** PARQ UL Q %d/%d: Not removed, waiting for new request",
 			g_list_position(ul_parqs, 
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
 			g_list_length(ul_parqs));
@@ -2805,7 +2775,7 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 	parq_ul->active_queued = FALSE;
 	
 	if (dbg > 3)
-		printf("PARQ UL Q %d/%d: Upload removed\n",
+		g_message("PARQ UL Q %d/%d: Upload removed",
 			g_list_position(ul_parqs, 
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
 			g_list_length(ul_parqs));
@@ -2814,7 +2784,7 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 		GList *lnext = NULL;
 		
 		if (dbg > 2)
-			printf("PARQ UL: Freed an upload slot\n");
+			g_message("PARQ UL: Freed an upload slot");
 
 		g_assert(parq_ul->by_ip != NULL);
 		g_assert(parq_ul->by_ip->uploading > 0);
@@ -2886,9 +2856,7 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 	return return_result;
 }
 
-/*
- * parq_upload_add_header
- * 
+/**
  * Adds X-Queued status in the HTTP reply header for a queued upload.
  *
  * `buf' is the start of the buffer where the headers are to be added.
@@ -2898,8 +2866,8 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
  * NB: Adds a Retry-After field for servents that will not understand PARQ,
  * to make sure they do not re-request too soon.
  */
-void parq_upload_add_header(
-	gchar *buf, gint *retval, gpointer arg, guint32 flags)
+void
+parq_upload_add_header(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {	
 	gint rw = 0;
 	gint length = *retval;
@@ -2984,9 +2952,7 @@ void parq_upload_add_header(
 	*retval = rw;
 }
 
-/*
- * parq_upload_add_header_id
- * 
+/**
  * Adds X-Queued status in the HTTP reply header showing the queue ID
  * for an upload getting a slot.
  *
@@ -2994,16 +2960,19 @@ void parq_upload_add_header(
  * `retval' contains the length of the buffer initially, and is filled
  * with the amount of data written.
  */
-void parq_upload_add_header_id(
-	gchar *buf, gint *retval, gpointer arg, guint32 flags)
+void
+parq_upload_add_header_id(gchar *buf, gint *retval, gpointer arg,
+		guint32 unused_flags)
 {	
-	gint rw = 0;
-	gint length = *retval;
+	size_t rw = 0;
+	size_t length = *retval;
 	struct upload_http_cb *a = (struct upload_http_cb *) arg;
 	struct parq_ul_queued *parq_ul;
 
+	(void) unused_flags;
 	g_assert(buf != NULL);
 	g_assert(retval != NULL);
+	g_assert(length <= INT_MAX);
 	g_assert(a->u != NULL);
 	
 	parq_ul = (struct parq_ul_queued *) parq_upload_find(a->u);
@@ -3033,25 +3002,23 @@ void parq_upload_add_header_id(
 	*retval = rw;
 }
 
-/*
- * parq_ul_id_sent
- *
+/**
  * Determines whether the PARQ ID was already sent for an upload.
  */
-gboolean parq_ul_id_sent(gnutella_upload_t *u)
+gboolean
+parq_ul_id_sent(const gnutella_upload_t *u)
 {
 	struct parq_ul_queued *parq_ul = parq_upload_find(u);
 
 	return parq_ul != NULL && (parq_ul->flags & PARQ_UL_ID_SENT);
 }
 
-/*
- * parq_upload_lookup_position
- *
- * Returns the current queueing position of an upload. Returns a value of 
+/**
+ * @return the current queueing position of an upload. Returns a value of 
  * (guint) -1 if not found.
  */
-guint parq_upload_lookup_position(gnutella_upload_t *u)
+guint
+parq_upload_lookup_position(const gnutella_upload_t *u)
 {
 	struct parq_ul_queued *parq_ul = NULL;
 	
@@ -3066,12 +3033,11 @@ guint parq_upload_lookup_position(gnutella_upload_t *u)
 	}
 }
 
-/*
- * parq_upload_lookup_id
- * 
- * Returns the current ID of the upload.
+/**
+ * @return the current ID of the upload.
  */
-gchar* parq_upload_lookup_id(gnutella_upload_t *u)
+const gchar *
+parq_upload_lookup_id(const gnutella_upload_t *u)
 {
 	struct parq_ul_queued *parq_ul = NULL;
 	
@@ -3085,12 +3051,11 @@ gchar* parq_upload_lookup_id(gnutella_upload_t *u)
 		return NULL;
 }
 
-/*
- * parq_upload_lookup_ETA
- *
- * Returns the Estimated Time of Arrival for an upload slot for a given upload.
+/**
+ * @return the Estimated Time of Arrival for an upload slot for a given upload.
  */
-guint parq_upload_lookup_eta(gnutella_upload_t *u)
+guint
+parq_upload_lookup_eta(const gnutella_upload_t *u)
 {
 	struct parq_ul_queued *parq_ul;
 	
@@ -3103,12 +3068,11 @@ guint parq_upload_lookup_eta(gnutella_upload_t *u)
 		return (guint) -1;
 }
 
-/*
- * parq_upload_lookup_size
- *
- * Returns the current upload queue size of alive uploads.
+/**
+ * @return the current upload queue size of alive uploads.
  */
-guint parq_upload_lookup_size(gnutella_upload_t *u)
+guint
+parq_upload_lookup_size(const gnutella_upload_t *u)
 {
 	struct parq_ul_queued *parq_ul = NULL;
 	
@@ -3129,12 +3093,11 @@ guint parq_upload_lookup_size(gnutella_upload_t *u)
 	}
 }
 
-/*
- * parq_upload_lookup_lifetime
- *
- * Returns the lifetime of a queued upload
+/**
+ * @return the lifetime of a queued upload
  */
-time_t parq_upload_lookup_lifetime(gnutella_upload_t *u)
+time_t
+parq_upload_lookup_lifetime(const gnutella_upload_t *u)
 {
 	struct parq_ul_queued *parq_ul = NULL;
 	
@@ -3153,12 +3116,11 @@ time_t parq_upload_lookup_lifetime(gnutella_upload_t *u)
 	}	
 }
 
-/*
- * parq_upload_lookup_retry
- *
- * Returns the time_t at which the next retry is expected
+/**
+ * @return the time_t at which the next retry is expected
  */
-time_t parq_upload_lookup_retry(gnutella_upload_t *u)
+time_t
+parq_upload_lookup_retry(const gnutella_upload_t *u)
 {
 	struct parq_ul_queued *parq_ul = NULL;
 	
@@ -3177,12 +3139,11 @@ time_t parq_upload_lookup_retry(gnutella_upload_t *u)
 	}	
 }
 
-/*
- * parq_upload_lookup_queue_no
- *
- * Returns the queue number the current upload is queued in.
+/**
+ * @return the queue number the current upload is queued in.
  */
-guint parq_upload_lookup_queue_no(gnutella_upload_t *u)
+guint
+parq_upload_lookup_queue_no(const gnutella_upload_t *u)
 {
 	struct parq_ul_queued *parq_ul = NULL;
 	
@@ -3198,15 +3159,12 @@ guint parq_upload_lookup_queue_no(gnutella_upload_t *u)
 }
 
 
-/*
- * parq_upload_update_relative_position
- *
+/**
  * Updates the relative position of all queued after the given queued
  * item
  */
-
-static void parq_upload_update_relative_position(
-	  struct parq_ul_queued *cur_parq_ul)
+static void
+parq_upload_update_relative_position(struct parq_ul_queued *cur_parq_ul)
 {
 	GList *l = NULL;
 	guint rel_pos = cur_parq_ul->relative_position;
@@ -3236,12 +3194,11 @@ static void parq_upload_update_relative_position(
 	}
 }
 
-/* 
- * parq_upload_decrease_all_after
- *
+/* *
  * Decreases the position of all queued items after the given queued item.
  */
-static void parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
+static void
+parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
 {
 	GList *l;
 	gint pos_cnt = 0;	/* Used for assertion */
@@ -3273,20 +3230,19 @@ static void parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
 	}
 }
 
-/*
- * parq_upload_register_send_queue
- *
+/**
  * Possibly register the upload in the list for deferred QUEUE sending.
  */
-static void parq_upload_register_send_queue(struct parq_ul_queued *parq_ul)
+static void
+parq_upload_register_send_queue(struct parq_ul_queued *parq_ul)
 {
 	g_assert(!(parq_ul->flags & PARQ_UL_QUEUE));
 
 	/* No known connect back port / ip */
 	if (parq_ul->port == 0 || parq_ul->ip == 0) {
 		if (dbg > 2) {
-			printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
-				"No port to send QUEUE: %s '%s'\n",
+			g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
+				"No port to send QUEUE: %s '%s'",
 				  g_list_position(ul_parqs, 
 				  g_list_find(ul_parqs, parq_ul->queue)) + 1,
 				  g_list_length(ul_parqs), 
@@ -3305,12 +3261,11 @@ static void parq_upload_register_send_queue(struct parq_ul_queued *parq_ul)
 	parq_ul->flags |= PARQ_UL_QUEUE;
 }
 
-/*
- * parq_upload_send_queue
- *
+/**
  * Sends a QUEUE to a parq enabled client
  */
-static void parq_upload_send_queue(struct parq_ul_queued *parq_ul)
+static void
+parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 {
 	struct gnutella_socket *s;
 	gnutella_upload_t *u;
@@ -3323,8 +3278,8 @@ static void parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 	parq_ul->by_ip->last_queue_sent = now;
 	
 	if (dbg)
-		printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
-			"Sending QUEUE #%d to %s: '%s'\n",
+		g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
+			"Sending QUEUE #%d to %s: '%s'",
 			  g_list_position(ul_parqs, 
 			  g_list_find(ul_parqs, parq_ul->queue)) + 1,
 			  g_list_length(ul_parqs), 
@@ -3357,12 +3312,11 @@ static void parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 	g_assert(parq_upload_find(u) != NULL);
 }
 	
-/*
- * parq_upload_send_queue_conf
- *
+/**
  * 'Call back' connection was succesfull. So prepare to send headers
  */
-void parq_upload_send_queue_conf(gnutella_upload_t *u)
+void
+parq_upload_send_queue_conf(gnutella_upload_t *u)
 {
 	gchar queue[MAX_LINE_SIZE];
 	struct parq_ul_queued *parq_ul = NULL;
@@ -3405,9 +3359,8 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 			  sent, rw, u->name, ip_port_to_gchar(s->ip, s->port),
 			  g_strerror(errno));
 	} else if (dbg > 2) {
-		printf("PARQ UL: Sent #%d to %s: %s",
+		g_message("PARQ UL: Sent #%d to %s: %s",
 			  parq_ul->queue_sent, ip_port_to_gchar(s->ip, s->port), queue);
-		fflush(stdout);
 	}
 
 	if (sent != rw) {
@@ -3423,13 +3376,12 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 	expect_http_header(u, GTA_UL_QUEUE_WAITING);
 }
 
-/*
- * parq_upload_save_queue
- *
+/**
  * Saves all the current queues and their items so it can be restored when the
  * client starts up again.
  */
-void parq_upload_save_queue()
+void
+parq_upload_save_queue(void)
 {
 	FILE *f;
 	file_path_t fp;
@@ -3437,7 +3389,7 @@ void parq_upload_save_queue()
 	GList *queues;
 
 	if (dbg > 3)
-		printf("PARQ UL: Trying to save all queue info\n");
+		g_message("PARQ UL: Trying to save all queue info");
 	
 	file_path_set(&fp, settings_config_dir(), file_parq_file);
 	f = file_config_open_write("PARQ upload queue data", &fp);
@@ -3458,17 +3410,16 @@ void parq_upload_save_queue()
 	file_config_close(f, &fp)	;
 
 	if (dbg > 3)
-		printf("PARQ UL: All saved\n");
+		g_message("PARQ UL: All saved");
 
 }
 
-/*
- * parq_store
- *
+/**
  * Saves an individual queued upload to disc. This is the callback function
  * used by g_list_foreach in function parq_upload_save_queue
  */
-static void parq_store(gpointer data, gpointer x)
+static void
+parq_store(gpointer data, gpointer x)
 {
 	FILE *f = (FILE *)x;
 	time_t now = time((time_t *) NULL);
@@ -3482,7 +3433,7 @@ static void parq_store(gpointer data, gpointer x)
 	
 	g_assert(NULL != f);
 	if (dbg > 5)
-		printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): Saving ID: '%s' - %s '%s'\n",
+		g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): Saving ID: '%s' - %s '%s'",
 			  g_list_position(ul_parqs, 
 				  g_list_find(ul_parqs, parq_ul->queue)) + 1,
 			  g_list_length(ul_parqs), 
@@ -3524,12 +3475,11 @@ static void parq_store(gpointer data, gpointer x)
 	fprintf(f, "NAME: %s\n\n", parq_ul->name);
 }
 
-/*
- * parq_upload_load_queue
- *
+/**
  * Loads the saved queue status back into memory
  */
-static void parq_upload_load_queue(void)
+static void
+parq_upload_load_queue(void)
 {
 	FILE *f;
 	file_path_t fp;
@@ -3590,7 +3540,7 @@ static void parq_upload_load_queue(void)
 		}
 		
 		if (!strncmp(line, "XIP: ", 5)) {
-			char *newline;
+			gchar *newline;
 
 			strncpy(ip_copy, line + sizeof("XIP:"), sizeof(ip_copy));
 			newline = strchr(ip_copy, '\n');
@@ -3615,22 +3565,23 @@ static void parq_upload_load_queue(void)
 		sscanf(line, "XPORT: %d\n", &xport);
 		
 		if (!strncmp(line, "ID: ", 4)) {
-			char *newline;
+			gchar *newline;
+
 			g_strlcpy(id, (line + sizeof("ID:")), sizeof(id));
 			newline = strchr(id, '\n');
 			if (newline)
 				*newline = '\0';
 		}		
 		if (0 == strncmp(line, "SHA1: ", 6)) {
-			char *newline;
+			gchar *newline;
 			g_strlcpy(base32, (line + sizeof("SHA1:")), sizeof(base32));
 			newline = strchr(base32, '\n');
 			if (newline)
-			*newline = '\0';
+				*newline = '\0';
 			sha1 = atom_sha1_get(base32_sha1(base32));
 		}
 		if (!strncmp(line, "NAME: ", 6)) {
-			char *newline;
+			gchar *newline;
 
 			g_strlcpy(name, (line + sizeof("NAME:")), sizeof(name));
 			newline = strchr(name, '\n');
@@ -3661,7 +3612,7 @@ static void parq_upload_load_queue(void)
 			parq_ul->ip = xip;
 			parq_ul->port = xport;
 			parq_ul->sha1 = sha1;
-			sha1 = NULL;  /* We are not sure the next record will contain a SHA1 */
+			sha1 = NULL;  /* We aren't sure the next record contains a SHA1 */
 			
 			/* During parq_upload_create already created an ID for us */
 			g_hash_table_remove(ul_all_parq_by_id, parq_ul->id);
@@ -3670,9 +3621,8 @@ static void parq_upload_load_queue(void)
 			g_hash_table_insert(ul_all_parq_by_id, parq_ul->id, parq_ul);
 			
 			if (dbg > 2)
-				printf(
-					"PARQ UL Q %d/%d (%3d[%3d]/%3d) ETA: %s "
-					"Restored: %s '%s'\n",
+				g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d) ETA: %s "
+					"Restored: %s '%s'",
 					g_list_position(ul_parqs,
 						g_list_find(ul_parqs, parq_ul->queue)) + 1,
 					g_list_length(ul_parqs),
@@ -3692,29 +3642,27 @@ static void parq_upload_load_queue(void)
 	fclose(f);
 }
 
-/*
- * parq_add_banned_source
- *
+/**
  * Adds an ip to the parq ban list. This list is used to deny connections from
  * such a host. Sources will only make it in this list when they ignore our
  * delay Retry-After header twice.
  */
-void parq_add_banned_source(guint32 ip, time_t delay)
+void
+parq_add_banned_source(guint32 ip, time_t delay)
 {
 	time_t now = time((time_t *) NULL);
 	struct parq_banned *banned = NULL;
 		
-	g_assert(parq_banned_source != NULL);
+	g_assert(ht_banned_source != NULL);
 
-	banned = (struct parq_banned *) 
-			g_hash_table_lookup(parq_banned_source, &ip);
-	
+	banned = g_hash_table_lookup(ht_banned_source, GUINT_TO_POINTER(ip));
 	if (banned == NULL) {
 		/* Host not yet banned yet, good */
 		banned = walloc0(sizeof(*banned));
 		banned->ip = ip;
 		
-		g_hash_table_insert(parq_banned_source, &banned->ip, banned);
+		g_hash_table_insert(ht_banned_source,
+			GUINT_TO_POINTER(banned->ip), banned);
 		parq_banned_sources = g_list_append(parq_banned_sources, banned);
 	}
 
@@ -3728,43 +3676,40 @@ void parq_add_banned_source(guint32 ip, time_t delay)
 	}
 }
 
-/*
- * parq_del_banned_source
- *
+/**
  * Removes a banned ip from the parq banned list 
  */
-void parq_del_banned_source(guint32 ip)
+void
+parq_del_banned_source(guint32 ip)
 {
 	struct parq_banned *banned = NULL;
 
-	g_assert(parq_banned_source != NULL);
+	g_assert(ht_banned_source != NULL);
 	g_assert(parq_banned_sources != NULL);
 	
-	banned = (struct parq_banned *)
-		g_hash_table_lookup(parq_banned_source, &ip);
+	banned = g_hash_table_lookup(ht_banned_source, GUINT_TO_POINTER(ip));
 	
 	g_assert(banned != NULL);
 	g_assert(banned->ip == ip);
 	
-	g_hash_table_remove(parq_banned_source, &ip);
+	g_hash_table_remove(ht_banned_source, GUINT_TO_POINTER(ip));
 	parq_banned_sources = g_list_remove(parq_banned_sources, banned);
 
 	wfree(banned, sizeof(*banned));
 	banned = NULL;
 }
 
-/*
- * parq_banned_source_expire
- *
- * Returns expiration timestamp if source is banned, or 0 if it isn't banned.
+/**
+ * @return expiration timestamp if source is banned, or 0 if it isn't banned.
  */
-time_t parq_banned_source_expire(guint32 ip)
+time_t
+parq_banned_source_expire(guint32 ip)
 {
 	struct parq_banned *banned;
 
-	g_assert(parq_banned_source != NULL);
+	g_assert(ht_banned_source != NULL);
 	
-	banned = g_hash_table_lookup(parq_banned_source, &ip);
+	banned = g_hash_table_lookup(ht_banned_source, GUINT_TO_POINTER(ip));
 
 	return (banned == NULL) ? 0 : banned->expire;
 }
@@ -3775,11 +3720,12 @@ time_t parq_banned_source_expire(guint32 ip)
  * Determine if we are still sharing this file, so that PARQ can
  * determine if it makes sense to keep this file in the queue.
  *
- * Returns FALSE if the file is no longer shared, or TRUE if the file
+ * @return FALSE if the file is no longer shared, or TRUE if the file
  * is shared or if we don't know, e.g. if the library is being
  * rebuilt.
  */
-static gboolean parq_still_sharing(struct parq_ul_queued *parq_ul)
+static gboolean
+parq_still_sharing(struct parq_ul_queued *parq_ul)
 {
 	struct shared_file *sf;
 
@@ -3821,6 +3767,4 @@ static gboolean parq_still_sharing(struct parq_ul_queued *parq_ul)
 	return TRUE;
 }
 
-/*
-# vim:ts=4:sw=4
-*/
+/* vi: set ts=4 sw=4 cindent: */

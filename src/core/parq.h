@@ -42,7 +42,7 @@
 void parq_init(void);
 void parq_close(void);
 
-gchar *get_parq_dl_id(const struct download *d);
+const gchar *get_parq_dl_id(const struct download *d);
 void parq_dl_reparent_id(struct download *d, struct download *cd);
 
 gpointer parq_dl_create(struct download *d);
@@ -70,16 +70,16 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 		guint used_slots);
 gboolean parq_upload_request_force(gnutella_upload_t *u, gpointer handle, 
 	  guint used_slots);
-guint parq_upload_lookup_position(gnutella_upload_t *u);
-gchar* parq_upload_lookup_id(gnutella_upload_t *u);
+guint parq_upload_lookup_position(const gnutella_upload_t *u);
+const gchar * parq_upload_lookup_id(const gnutella_upload_t *u);
 gboolean parq_upload_queue_full(gnutella_upload_t *u);
-guint parq_upload_lookup_size(gnutella_upload_t *u);
-gboolean parq_upload_ip_can_proceed(gnutella_upload_t *u);
+guint parq_upload_lookup_size(const gnutella_upload_t *u);
+gboolean parq_upload_ip_can_proceed(const gnutella_upload_t *u);
 
-time_t parq_upload_lookup_lifetime(gnutella_upload_t *u);
-time_t parq_upload_lookup_retry(gnutella_upload_t *u);
-guint parq_upload_lookup_eta(gnutella_upload_t *u);
-guint parq_upload_lookup_queue_no(gnutella_upload_t *u);
+time_t parq_upload_lookup_lifetime(const gnutella_upload_t *u);
+time_t parq_upload_lookup_retry(const gnutella_upload_t *u);
+guint parq_upload_lookup_eta(const gnutella_upload_t *u);
+guint parq_upload_lookup_queue_no(const gnutella_upload_t *u);
 
 gboolean parq_upload_queued(gnutella_upload_t *u);
 gboolean parq_upload_remove(gnutella_upload_t *u);
@@ -91,7 +91,7 @@ void parq_upload_busy(gnutella_upload_t *u, gpointer handle);
 void parq_upload_save_queue(void);
 void parq_upload_send_queue_conf(gnutella_upload_t *u);
 
-gboolean parq_ul_id_sent(gnutella_upload_t *u);
+gboolean parq_ul_id_sent(const gnutella_upload_t *u);
 
 time_t parq_banned_source_expire(guint32 ip);
 
