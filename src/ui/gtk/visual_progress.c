@@ -375,7 +375,6 @@ vp_gui_fi_removed(gnet_fi_t fih)
     fi_context.fih_valid = FALSE;
 }
 
-#ifdef VP_DEBUG
 /**
  * For debugging: print chunk.
  */
@@ -389,7 +388,6 @@ vp_print_chunk(gnet_fi_chunks_t *c, gboolean show_old)
 		printf("%10d - %10d %d\n",
 			c->from, c->to, c->status);
 }
-#endif /* VP_DEBUG */
 
 /**
  * Allocate a new chunk based on the parameters.
@@ -438,7 +436,6 @@ vp_assert_chunks_list(GSList *list)
 	}
 }
 
-#ifdef VP_DEBUG
 /*
  * For debugging: print chunk list.
  */
@@ -456,7 +453,6 @@ vp_print_chunk_list(GSList *list, gchar *title)
 
 	printf("End of list \"%s\".\n", title);
 }
-#endif /* VP_DEBUG */
 
 /** 
  * Fileinfo has been changed for a file. Update the information and 
@@ -513,11 +509,6 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	guc_fi_free_chunks(v->chunks_list);
 	v->chunks_list = NULL;
 
-#ifdef VP_DEBUG
-	vp_print_chunk_list(old, "Old");
-	vp_print_chunk_list(new, "New");
-#endif
-
 	while (old || new) {
 		if (old && new) {
 			oc = (gnet_fi_chunks_t *) old->data;
@@ -540,9 +531,18 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 				continue;
 			}
 
-#ifdef VP_DEBUG
-			g_assert(nc->from == highest);		/* Contiguous new list */
-#endif
+			/*
+			 * Check for contiguous list: emit debug info if not
+			 * correct. FIXME: should become an assert once the
+			 * algorithm is stable.
+			 */
+			if (nc->from != highest) {
+				g_warning("Visual progress list corruption!");
+				g_warning("Please email trace below to hans@degraaff.org for analysis.");
+				vp_print_chunk_list(v->chunks_initial, "Old");
+				vp_print_chunk_list(keep_new, "New");
+				vp_print_chunk_list(v->chunks_list, "Result");
+			}
 
 			/*
 			 * The chunks are identical: nothing changed, copy one chunk
@@ -653,9 +653,11 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	 */
 	guc_fi_free_chunks(keep_new);
 
-#ifdef VP_DEBUG
-	vp_assert_chunks_list(v->chunks_list);
-#endif
+	/* 
+	 * This code is not needed right now because we already dump
+	 * debugging info as soon as we detect a problem.
+	 * vp_assert_chunks_list(v->chunks_list); 
+     */
 }
 
 

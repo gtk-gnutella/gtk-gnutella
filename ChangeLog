@@ -169,6 +169,16 @@
 - (2004-09-13 - RAM)
  * RX dropped packets are now accounted for in gnet_stats_count_dropped().
 
+- (2004-09-12 - Hans)
+ * Update visual progress code to avoid flickering and fix small problems
+   with the code.
+ * Create separate event for available ranges updates for more efficient
+   handling of fileinfo information.
+ * Provide initial version of a manual in doc/manual. The manual is in
+   DocBook XML format. Currently it is only an outline. Please commit
+   a placeholder or let me know if you would like to work on a specific
+   part.
+
 - (2004-09-11 - RAM)
  * Will now send queries marked for out-of-band hit delivery.
  * Out-of-band hit delivery is now enabled by default.
