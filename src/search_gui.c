@@ -1252,7 +1252,8 @@ void search_gui_download_files(void)
 {
     GtkWidget *notebook_main;
     GtkWidget *ctree_menu;
-
+	GtkCTreeNode *ctree_node;
+	
     notebook_main = lookup_widget(main_window, "notebook_main");
     ctree_menu = lookup_widget(main_window, "ctree_menu");
 
@@ -1261,10 +1262,21 @@ void search_gui_download_files(void)
 	if (jump_to_downloads) {
 		gtk_notebook_set_page(GTK_NOTEBOOK(notebook_main),
             nb_main_page_downloads);
-        /* FIXME: should convert to ctree here. Expand nodes if necessary. */
-#if 0
-		gtk_clist_select_row(GTK_CLIST(ctree_menu), nb_main_page_downloads, 0);
-#endif
+
+		/*
+		 * Get ctree node for "downloads" row.
+		 * Start searching from root node (0th)
+		 */
+		ctree_node = gtk_ctree_find_by_row_data(GTK_CTREE(ctree_menu), 
+			gtk_ctree_node_nth(GTK_CTREE(ctree_menu), 0), 
+			GINT_TO_POINTER(nb_main_page_downloads));
+
+		/*
+		 * Select "downloads" row.
+		 * May need additional code in the future to expand node,
+		 * if necessary -- emile
+		 */		
+		gtk_ctree_select(GTK_CTREE(ctree_menu), ctree_node);
 	}
 
 	if (current_search) {
