@@ -56,6 +56,19 @@
 
 #define SIZE_FIELD_MAX 64		/* Max size of sprintf-ed size quantity */
 
+/*
+ * STATIC_ASSERT() can be used to verify conditions at compile-time e.g., that
+ * an array has a minimum size. This is better than a run-time * assertion
+ * because the condition is checked even if the code would seldomly or never
+ * reached at run-time. However, this can only be used for static conditions
+ * which can verified at compile-time.
+ *
+ * N.B.: The trick is declaring a negative sized array if the condition
+ *	 is false - which is invalid C. This cannot be used outside a
+ *	 function.
+ */
+#define STATIC_ASSERT(x) \
+	(void) sizeof(char[((x) ? 1 : -23)]);
 
 /*
  * Needs to be defined if we are not using Glib 2
