@@ -894,7 +894,7 @@ static void flush_match(void)
 	trailer[5] = 0x04 | 0x08 | 0x20;	/* Valid flags we set */
 	trailer[6] = 0x01;				/* Our flags (valid firewall bit) */
 
-	if (running_uploads >= max_uploads)
+	if (ul_running >= max_uploads)
 		trailer[6] |= 0x04;			/* Busy flag */
 	if (count_uploads > 0)
 		trailer[6] |= 0x08;			/* One file uploaded, at least */

@@ -78,8 +78,6 @@ typedef struct upload {
  */
 
 extern GSList *uploads;
-extern gint running_uploads;
-extern gint registered_uploads;
 extern guint32 count_uploads;
 
 /* 
