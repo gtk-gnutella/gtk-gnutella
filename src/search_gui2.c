@@ -83,18 +83,13 @@ GtkWidget *default_scrolled_window = NULL;
 
 /* ----------------------------------------- */
 
-static void do_atom_sha1_free(gpointer key)
-{
-	atom_sha1_free(key);
-}
-
-static void add_parent_with_sha1(
+static inline void add_parent_with_sha1(
 	GHashTable *ht, gpointer key, GtkTreeIter *iter)
 {
 	g_hash_table_insert(ht, key, w_tree_iter_copy(iter));
 }
 
-static void remove_parent_with_sha1(GHashTable *ht, const gchar *sha1)
+static inline void remove_parent_with_sha1(GHashTable *ht, const gchar *sha1)
 {
 	gpointer key;
  
@@ -103,7 +98,7 @@ static void remove_parent_with_sha1(GHashTable *ht, const gchar *sha1)
 	atom_sha1_free(key);
 }
 
-static GtkTreeIter *find_parent_with_sha1(GHashTable *ht, gpointer key)
+static inline GtkTreeIter *find_parent_with_sha1(GHashTable *ht, gpointer key)
 {
 	GtkTreeIter *iter = NULL;
 	gpointer *orig_key;
@@ -119,10 +114,16 @@ static gboolean unref_record(
 	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
 {
 	record_t *rc = NULL;
+	GHashTable *dups = (GHashTable *) data;
 
 	gtk_tree_model_get(model, iter, c_sr_record, &rc, (-1));	
+	g_assert(g_hash_table_lookup(dups, rc) != NULL);
 	g_assert(NULL != rc);
+	g_assert(rc->refcount > 0);
 	search_gui_unref_record(rc);
+	g_assert(rc->refcount > 0);
+	g_hash_table_remove(dups, rc);
+	g_assert(g_hash_table_lookup(dups, rc) == NULL);
 	return FALSE;
 }
  
@@ -131,8 +132,9 @@ static void	search_gui_clear_store(search_t *sch)
 	GtkTreeModel *model;
 
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(sch->tree_view));
-	gtk_tree_model_foreach(model, unref_record, NULL);
+	gtk_tree_model_foreach(model, unref_record, sch->dups);
 	gtk_tree_store_clear(GTK_TREE_STORE(model));
+	g_assert(0 == g_hash_table_size(sch->dups));
 }
 
 void search_gui_restart_search(search_t *sch)
@@ -154,14 +156,10 @@ static gboolean always_true(gpointer key, gpointer value, gpointer x)
  *
  * Decrement refcount of hash table key entry.
  */
-static gboolean dec_records_refcount(gpointer key, gpointer value, gpointer x)
+void ht_unref_record(record_t *rc)
 {
-	struct record *rc = (struct record *) key;
-
 	g_assert(rc->refcount > 0);
-
-	rc->refcount--;
-	return TRUE;
+	search_gui_unref_record(rc);
 }
 
 /*
@@ -182,7 +180,10 @@ void search_gui_clear_search(search_t *sch)
 	 * Otherwise, we will violate the pre-condition of search_free_record(),
 	 * which is there precisely for that reason!
 	 */
+/* XXX */
+#if 0
 	g_hash_table_foreach_remove(sch->dups, dec_records_refcount, NULL);
+#endif /* 0 */
 	search_gui_free_r_sets(sch);
 	g_hash_table_foreach_remove(sch->parents, always_true, NULL);
 
@@ -207,6 +208,8 @@ void search_gui_close_search(search_t *sch)
      * the same calls may still need them!.
      *      --BLUE 26/05/2002
      */
+
+	search_gui_clear_store(sch);
  	searches = g_list_remove(searches, (gpointer) sch);
 
     search_gui_remove_search(sch);
@@ -237,6 +240,11 @@ gboolean search_gui_new_search(
 	return search_gui_new_search_full(
         query, 0, timeout, SORT_NO_COL, SORT_NONE,
 		flags | SEARCH_ENABLED, search);
+}
+
+void do_atom_sha1_free(gpointer sha1)
+{
+	atom_sha1_free(sha1);
 }
 
 /* 
@@ -332,12 +340,15 @@ gboolean search_gui_new_search_full(
 	sch->enabled = (flags & SEARCH_ENABLED) ? TRUE : FALSE;
 	sch->search_handle = search_new(query, speed, reissue_timeout, flags);
 	sch->passive = (flags & SEARCH_PASSIVE) ? TRUE : FALSE;
-	sch->dups = g_hash_table_new((GHashFunc) search_gui_hash_func,
-		(GEqualFunc) search_gui_hash_key_compare);
+	sch->dups = g_hash_table_new_full(
+					(GHashFunc) search_gui_hash_func,
+					(GEqualFunc) search_gui_hash_key_compare,
+					(GDestroyNotify) ht_unref_record,
+					NULL);
 	if (!sch->dups)
 		g_error("new_search: unable to allocate hash table.");
 	sch->parents = g_hash_table_new_full(NULL, NULL,
-		do_atom_sha1_free, (gpointer) w_tree_iter_free);
+		do_atom_sha1_free, (GDestroyNotify) w_tree_iter_free);
     
   	filter_new_for_search(sch);
 
@@ -467,6 +478,7 @@ static void search_gui_add_record(
 	GtkTreeView *tree_view = GTK_TREE_VIEW(sch->tree_view);
 	GtkTreeStore *model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
 
+	g_assert(rc->refcount == 1);
 	if (rc->tag) {
 		guint len = strlen(rc->tag);
 
@@ -515,7 +527,9 @@ static void search_gui_add_record(
 	} else
 		gtk_tree_store_append(model, &iter, (parent = NULL));
 
-	rc->refcount++;
+	g_assert(rc->refcount == 1);
+	search_gui_ref_record(rc);
+	g_assert(rc->refcount == 2);
 	gtk_tree_store_set(model, &iter,
 		      c_sr_filename, lazy_locale_to_utf8(rc->name, 0),
 		      c_sr_size, NULL != parent ? NULL : short_size(rc->size),
@@ -604,6 +618,7 @@ void search_matched(search_t *sch, results_set_t *rs)
         filter_result_t *flt_result;
         gboolean downloaded = FALSE;
 
+		g_assert(rc->refcount == 0);
         if (gui_debug > 7)
             g_warning("search_matched: [%s] considering %s (%s)\n",
 				sch->query, rc->name, vinfo->str);
@@ -625,7 +640,9 @@ void search_matched(search_t *sch, results_set_t *rs)
 		)
 			continue;
 
+		g_assert(rc->refcount == 0);
         flt_result = filter_record(sch, rc);
+		g_assert(rc->refcount == 0);
 
         /*
          * Check whether this record was already scheduled for
@@ -664,9 +681,12 @@ void search_matched(search_t *sch, results_set_t *rs)
             GdkColor *fg_color = NULL;
 			const gchar *status = NULL;
             gboolean mark;
+
             sch->items++;
+			g_assert(rc->refcount == 0);
             g_hash_table_insert(sch->dups, rc, GINT_TO_POINTER(1));
-            rc->refcount++;
+            search_gui_ref_record(rc);
+			g_assert(rc->refcount == 1);
 
             mark = 
                 (flt_result->props[FILTER_PROP_DISPLAY].state == 
@@ -690,6 +710,7 @@ void search_matched(search_t *sch, results_set_t *rs)
 			if (NULL == status && mark)
 				status = "Filtered";
 
+			g_assert(rc->refcount == 1);
             search_gui_add_record(sch, rc, vinfo, fg_color,
                 mark ? mark_color : NULL, status);
         }
@@ -700,12 +721,16 @@ void search_matched(search_t *sch, results_set_t *rs)
     /*
      * A result set may not be added more then once to a search!
      */
-    /* FIXME: expensive assert */
-    g_assert(g_slist_find(sch->r_sets, rs) == NULL);
+	if (NULL != sch->r_sets)
+    	g_assert(!hash_list_contains(sch->r_sets, rs));
+	else
+		sch->r_sets = hash_list_new();
 
 	/* Adds the set to the list */
-	sch->r_sets = g_slist_prepend(sch->r_sets, (gpointer) rs);
+	hash_list_prepend(sch->r_sets, (gpointer) rs);
 	rs->refcount++;
+   	g_assert(hash_list_contains(sch->r_sets, rs));
+	g_assert(hash_list_first(sch->r_sets) == rs);
 
 	if (old_items == 0 && sch == current_search && sch->items > 0)
 		gtk_widget_set_sensitive(GTK_WIDGET(button_search_clear), TRUE);
@@ -734,10 +759,11 @@ static void download_selected_file(
 	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
 {
 	struct results_set *rs;
-	struct record *rc;
+	struct record *rc = NULL;
 	gboolean need_push;
 
 	gtk_tree_model_get(model, iter, c_sr_record, &rc, (-1));
+	g_assert(rc->refcount > 0);
 
 	rs = rc->results_set;
 	need_push = (rs->status & ST_FIREWALL) || !host_is_valid(rs->ip, rs->port);
@@ -756,6 +782,7 @@ static void download_selected_file(
 
 		*iter_list = g_slist_prepend(*iter_list, w_tree_iter_copy(iter));
 	}
+	g_assert(rc->refcount > 0);
 }
 
 static void remove_selected_file(
@@ -764,46 +791,55 @@ static void remove_selected_file(
 	GtkTreeModel *model = (GtkTreeModel *) user_data;
 	GtkTreeIter *iter = data;
 	GtkTreeIter child;
-	record_t *rc;
+	record_t *rc = NULL;
 	
 	current_search->items--;
+
+	/* First get the record, it must be unreferenced at the end */
+	gtk_tree_model_get(model, iter, c_sr_record, &rc, (-1));
+	g_assert(rc->refcount > 1);
 
 	if (gtk_tree_model_iter_nth_child(model, &child, iter, 0)) {
 		gchar *filename;
 		gchar *info;
 		gpointer fg;
 		gpointer bg;
-		
+		record_t *child_rc = NULL;
+
+		/* Copy the contents of the first child's row into
+		 * the parent's row */
     	gtk_tree_model_get(model, &child,
               c_sr_filename, &filename,
               c_sr_info, &info,
               c_sr_fg, &fg,
               c_sr_bg, &bg,
-              c_sr_record, &rc,
+              c_sr_record, &child_rc,
               (-1));
 
+		g_assert(child_rc->refcount > 0);
 		gtk_tree_store_set((GtkTreeStore *) model, iter,
               c_sr_filename, filename,
               c_sr_info, info,
               c_sr_fg, fg,
               c_sr_bg, bg,
-              c_sr_record, rc,
+              c_sr_record, child_rc,
               (-1));
+
+		/* And remove the child's row */
 		gtk_tree_store_remove((GtkTreeStore *) model, &child);
+		g_assert(child_rc->refcount > 0);
 	} else {
-    	gtk_tree_model_get(model, iter, c_sr_record, &rc, (-1));
+		g_assert(rc->refcount > 0);
+		/* The row has no children, remove it's sha1 and the row itself */
 		if (NULL != rc->sha1)
 			remove_parent_with_sha1(current_search->parents, rc->sha1);
 		gtk_tree_store_remove((GtkTreeStore *) model, iter);
 	}
 
-/* FIXME: Is there a memory leak or not? The records cannot be unref'ed here
- *        but where's the right place? */
-/* NOTE: I confirm there is a huge memory leak if you don't unref. --RAM */
-	/* Remove one reference to this record. */
 	search_gui_unref_record(rc);
+	g_assert(rc->refcount > 0);
 	g_hash_table_remove(current_search->dups, rc);
-	search_gui_unref_record(rc);
+	/* hash table with dups unrefs the record itself*/
 
 	w_tree_iter_free(iter);
 }
@@ -1206,8 +1242,6 @@ void search_gui_remove_search(search_t *sch)
 
    	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
 	gtk_list_remove_items(GTK_LIST(combo_searches->list), glist);
-
-	search_gui_clear_store(sch);
 
 	model = gtk_tree_view_get_model(tree_view_search);
     gtk_tree_model_foreach(model, tree_view_search_remove, sch);
