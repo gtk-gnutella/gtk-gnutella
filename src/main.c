@@ -17,7 +17,6 @@
 #include "autodownload.h"
 
 #define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
-#define DL_UPDATE_DELAY			10	/* Don't update downloads too often */
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 
 /* */
@@ -96,6 +95,7 @@ gboolean main_timer(gpointer p)
 	struct download *d;
 	guint32 t;
 	time_t now = time((time_t *) NULL);
+	GSList *remove;
 
 	/*
 	 * If we are under the number of connections wanted, we add hosts
@@ -124,11 +124,15 @@ gboolean main_timer(gpointer p)
 		n = (struct gnutella_node *) l->data;
 		l = l->next;
 
-		if (n->status == GTA_NODE_REMOVING &&
-			now - n->last_update > NODE_ERRMSG_TIMEOUT)
+		if (
+			n->status == GTA_NODE_REMOVING &&
+			now - n->last_update > NODE_ERRMSG_TIMEOUT
+		)
 			node_real_remove(n);
-		else if (n->status == GTA_NODE_CONNECTING &&
-				 now - n->last_update > node_connecting_timeout)
+		else if (
+			NODE_IS_CONNECTING(n) &&
+			now - n->last_update > node_connecting_timeout
+		)
 			node_remove(n, "Timeout");
 		else if (now - n->last_update > node_connected_timeout)
 			node_remove(n, "Activity Timeout");
@@ -148,45 +152,46 @@ gboolean main_timer(gpointer p)
 		case GTA_DL_CONNECTING:
 		case GTA_DL_REQ_SENT:
 		case GTA_DL_FALLBACK:
-			{
-				if (now - d->last_update < DL_UPDATE_DELAY)
-					break;
 
-				switch (d->status) {
-				case GTA_DL_PUSH_SENT:
-				case GTA_DL_FALLBACK:
-					t = download_push_sent_timeout;
-					break;
-
-				case GTA_DL_CONNECTING:
-					t = download_connecting_timeout;
-					break;
-
-				default:
-					t = download_connected_timeout;
-				}
-
-				if (now - d->last_update > t) {
-					if (d->status == GTA_DL_CONNECTING)
-						download_fallback_to_push(d, FALSE);
-					else {
-						if (++d->retries <= download_max_retries)
-							download_retry(d);
-						else
-							download_stop(d, GTA_DL_ERROR, "Timeout");
-					}
-				}
-
+			switch (d->status) {
+			case GTA_DL_PUSH_SENT:
+			case GTA_DL_FALLBACK:
+				t = download_push_sent_timeout;
+				break;
+			case GTA_DL_CONNECTING:
+				t = download_connecting_timeout;
+				break;
+			default:
+				t = download_connected_timeout;
 				break;
 			}
+
+			if (now - d->last_update > t) {
+				if (d->status == GTA_DL_CONNECTING)
+					download_fallback_to_push(d, FALSE);
+				else {
+					if (++d->retries <= download_max_retries)
+						download_retry(d);
+					else
+						download_stop(d, GTA_DL_ERROR, "Timeout");
+				}
+			} else if (now != d->last_gui_update)
+				gui_update_download(d, TRUE);
+			break;
 		case GTA_DL_TIMEOUT_WAIT:
-			{
-				if (now - d->last_update > d->timeout_delay)
-					download_start(d, TRUE);
-				else
-					gui_update_download(d, FALSE);
-				break;
-			}
+			if (now - d->last_update > d->timeout_delay)
+				download_start(d, TRUE);
+			else
+				gui_update_download(d, FALSE);
+			break;
+		case GTA_DL_QUEUED:
+		case GTA_DL_COMPLETED:
+		case GTA_DL_ABORTED:
+		case GTA_DL_ERROR:
+			break;
+		default:
+			g_warning("Hmm... new download state %d not handled", d->status);
+			break;
 		}
 	}
 
@@ -198,8 +203,40 @@ gboolean main_timer(gpointer p)
 
 	/* Uploads */
 
-	for (l = uploads; l; l = l->next)
-		gui_update_upload((struct upload *) l->data);
+	remove = NULL;
+
+	for (l = uploads; l; l = l->next) {
+		struct upload *u = (struct upload *) l->data;
+
+		if (UPLOAD_IS_COMPLETE(u))
+			continue;					/* Complete, no timeout possible */
+
+		if (UPLOAD_IS_VISIBLE(u))
+			gui_update_upload(u);
+
+		/*
+		 * Check for timeouts.
+		 */
+
+		t = UPLOAD_IS_CONNECTING(u) ?
+				upload_connecting_timeout :
+				upload_connected_timeout;
+
+		/*
+		 * We can't call upload_remove() since it will remove the upload
+		 * from the list we are traversing.
+		 */
+
+		if (now - u->last_update > t)
+			remove = g_slist_append(remove, u);
+	}
+
+	for (l = remove; l; l = l->next) {
+		struct upload *u = (struct upload *) l->data;
+		upload_remove(u, UPLOAD_IS_CONNECTING(u) ?
+			"Connect timeout" : "Data timeout");
+	}
+	g_slist_free(remove);
 
 	/* Expire connecting sockets */
 	socket_monitor_incoming();
