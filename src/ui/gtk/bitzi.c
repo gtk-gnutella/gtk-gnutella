@@ -68,10 +68,9 @@ bitzi_fjtostring(bitzi_fj_t fj)
 	const gchar *s, *t;
 	
 	g_assert((gint) fj >= 0 && fj < G_N_ELEMENTS(bitzi_fj_table));
-	t = bitzi_fj_table[fj];
+	t = _(bitzi_fj_table[fj]);
 	s = strchr(t, '|');
-	t = s ? ++s : t;
-	return _(t);
+	return s ? ++s : t;
 }
 
 void
