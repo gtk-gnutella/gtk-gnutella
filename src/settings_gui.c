@@ -151,8 +151,8 @@ static gboolean update_window_geometry(property_t prop);
 
 #ifdef USE_GTK2
 static gboolean update_treeview_col_widths(property_t prop);
-static gboolean config_toolbar_style_changed(property_t prop);
 #endif
+static gboolean config_toolbar_style_changed(property_t prop);
 static gboolean bw_gnet_lin_enabled_changed(property_t prop);
 static gboolean bw_gnet_lout_enabled_changed(property_t prop);
 static gboolean bw_http_in_enabled_changed(property_t prop);
@@ -2548,7 +2548,6 @@ static prop_map_t property_map[] = {
         "checkbutton_gnet_monitor_servents",
         FREQ_UPDATES, 0
     },
-#ifdef USE_GTK2
     {
         get_main_window,
         PROP_CONFIG_TOOLBAR_STYLE,
@@ -2557,7 +2556,6 @@ static prop_map_t property_map[] = {
         "combo_config_toolbar_style",
         FREQ_UPDATES, 0
     },
-#endif
     {
         get_main_window,
         PROP_RESERVE_GTKG_NODES,
@@ -4590,7 +4588,6 @@ static gboolean dl_aqueued_count_changed(property_t prop)
 	return FALSE;
 }
 
-#ifdef USE_GTK2
 static gboolean config_toolbar_style_changed(property_t prop)
 {
 	guint32 val;
@@ -4627,7 +4624,6 @@ static gboolean config_toolbar_style_changed(property_t prop)
 	update_multichoice(prop);
 	return FALSE;
 }
-#endif
 
 static gboolean update_spinbutton_ultranode(property_t prop)
 {

@@ -1,6 +1,10 @@
 This is the stable 0.93.x branch.
 
 # since last version
+
+- (2004.04.16 - Richard)
+ * [Gtk1] Added "Toolbar style" setting to the gui config pane.
+
 - (2004.04.15 - Jeroen)
  * Added cache.kicks-ass.net:8000 to the list of fallback caches
  * When looking for a more up to date version, only look for newer releases
