@@ -126,8 +126,8 @@ gboolean bws_gin_enabled     = FALSE;
 gboolean bws_gin_enabled_def = FALSE;
 gboolean bws_gout_enabled     = FALSE;
 gboolean bws_gout_enabled_def = FALSE;
-gboolean bw_ul_usage_enabled     = TRUE;
-gboolean bw_ul_usage_enabled_def = TRUE;
+gboolean bw_ul_usage_enabled     = FALSE;
+gboolean bw_ul_usage_enabled_def = FALSE;
 gboolean clear_downloads     = FALSE;
 gboolean clear_downloads_def = FALSE;
 gboolean search_remove_downloaded     = FALSE;
@@ -235,6 +235,8 @@ gboolean sha1_rebuilding     = FALSE;
 gboolean sha1_rebuilding_def = FALSE;
 gboolean sha1_verifying     = FALSE;
 gboolean sha1_verifying_def = FALSE;
+gboolean file_moving     = FALSE;
+gboolean file_moving_def = FALSE;
 gboolean prefer_compressed_gnet     = FALSE;
 gboolean prefer_compressed_gnet_def = FALSE;
 gboolean online_mode     = TRUE;
@@ -2112,20 +2114,37 @@ prop_set_t *gnet_prop_init(void) {
 
 
     /*
-     * PROP_PREFER_COMPRESSED_GNET:
+     * PROP_FILE_MOVING:
      *
      * General data:
      */
-    gnet_property->props[100].name = "prefer_compressed_gnet";
-    gnet_property->props[100].desc = "If active, only compressed incoming connections are allowed after the minimum number of connections has been established. Always allows for one non-compressed connection.";
+    gnet_property->props[100].name = "file_moving";
+    gnet_property->props[100].desc = "Whether gtk-gnutella is currently moving files accross filesystems or simply copying in the background";
     gnet_property->props[100].prop_changed_listeners = NULL;
-    gnet_property->props[100].save = TRUE;
+    gnet_property->props[100].save = FALSE;
     gnet_property->props[100].vector_size = 1;
 
     /* Type specific data: */
     gnet_property->props[100].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[100].data.boolean.def   = &prefer_compressed_gnet_def;
-    gnet_property->props[100].data.boolean.value = &prefer_compressed_gnet;
+    gnet_property->props[100].data.boolean.def   = &file_moving_def;
+    gnet_property->props[100].data.boolean.value = &file_moving;
+
+
+    /*
+     * PROP_PREFER_COMPRESSED_GNET:
+     *
+     * General data:
+     */
+    gnet_property->props[101].name = "prefer_compressed_gnet";
+    gnet_property->props[101].desc = "If active, only compressed incoming connections are allowed after the minimum number of connections has been established. Always allows for one non-compressed connection.";
+    gnet_property->props[101].prop_changed_listeners = NULL;
+    gnet_property->props[101].save = TRUE;
+    gnet_property->props[101].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[101].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[101].data.boolean.def   = &prefer_compressed_gnet_def;
+    gnet_property->props[101].data.boolean.value = &prefer_compressed_gnet;
 
 
     /*
@@ -2133,16 +2152,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[101].name = "online_mode";
-    gnet_property->props[101].desc = "If deactivated only uploads and downloads will continue. All gNet connections are disabled/terminated.";
-    gnet_property->props[101].prop_changed_listeners = NULL;
-    gnet_property->props[101].save = TRUE;
-    gnet_property->props[101].vector_size = 1;
+    gnet_property->props[102].name = "online_mode";
+    gnet_property->props[102].desc = "If deactivated only uploads and downloads will continue. All gNet connections are disabled/terminated.";
+    gnet_property->props[102].prop_changed_listeners = NULL;
+    gnet_property->props[102].save = TRUE;
+    gnet_property->props[102].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[101].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[101].data.boolean.def   = &online_mode_def;
-    gnet_property->props[101].data.boolean.value = &online_mode;
+    gnet_property->props[102].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[102].data.boolean.def   = &online_mode_def;
+    gnet_property->props[102].data.boolean.value = &online_mode;
     return gnet_property;
 }
 

@@ -566,7 +566,7 @@ prop = {
     desc = "Enable dynamic upload slots allocation";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
@@ -1193,6 +1193,17 @@ prop = {
 };
 
 prop = {
+    name = "file_moving";
+    desc = "Whether gtk-gnutella is currently moving files accross "
+           "filesystems or simply copying in the background";
+    save = FALSE;
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
     name = "prefer_compressed_gnet";
     desc = "If active, only compressed incoming connections are allowed after "
            "the minimum number of connections has been established. Always "
@@ -1212,3 +1223,4 @@ prop = {
         default = TRUE;
     };
 };
+
