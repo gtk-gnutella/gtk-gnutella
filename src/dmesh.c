@@ -2155,7 +2155,7 @@ void dmesh_multiple_downloads(
 				dmesh_urlinfo_to_gchar(p));
 
 		download_auto_new(p->name, size, p->idx, p->ip, p->port,
-			blank_guid, sha1, now, FALSE, fi, NULL);
+			blank_guid, NULL, sha1, now, FALSE, fi, NULL);
 	}
 }
 

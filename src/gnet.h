@@ -289,6 +289,7 @@ typedef struct gnet_results_set {
 	gchar *version;				/* Version information (atom) */
     flag_t  flags;
 	gnet_host_vec_t *proxies;	/* Optional: known push proxies */
+	gchar *hostname;			/* Optional: server's hostname */
 
 	GSList *records;
 	guint32 num_recs;
@@ -524,10 +525,10 @@ void gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *stats);
  */
 struct dl_file_info;
 gboolean download_new(gchar *,
-	guint32, guint32, guint32, guint16, gchar *, gchar *, time_t,
+	guint32, guint32, guint32, guint16, gchar *, gchar *, gchar *, time_t,
     gboolean, struct dl_file_info *, gnet_host_vec_t *);
 void download_auto_new(gchar *,
- 	guint32, guint32, guint32, guint16, gchar *, gchar *, time_t,
+ 	guint32, guint32, guint32, guint16, gchar *, gchar *, gchar *, time_t,
     gboolean, struct dl_file_info *, gnet_host_vec_t *);
 void download_index_changed(guint32, guint16, gchar *, guint32, guint32);
 

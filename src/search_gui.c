@@ -719,7 +719,8 @@ void search_matched(search_t *sch, results_set_t *rs)
 				FILTER_PROP_STATE_DO)
 		) {
             download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-                rs->guid, rc->sha1, rs->stamp, need_push, NULL, rs->proxies);
+                rs->guid, rs->hostname, rc->sha1, rs->stamp, need_push,
+				NULL, rs->proxies);
 
 			if (rs->proxies != NULL)
 				search_gui_free_proxies(rs);
@@ -854,7 +855,8 @@ static guint download_selection_of_clist(GtkCList * c, guint *selected)
 
 		if (
 			download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-				rs->guid, rc->sha1, rs->stamp, need_push, NULL, rs->proxies)
+				rs->guid, rs->hostname,
+				rc->sha1, rs->stamp, need_push, NULL, rs->proxies)
 		)
 			created++;
 
