@@ -75,6 +75,8 @@ static void auto_connect(void)
 		"connect2.gnutellanet.com",
 		"public.bearshare.net",
 		"connect3.gnutellanet.com",
+		"gnet2.ath.cx",
+		"connect1.bearshare.net",
 	};
 	static time_t *host_tried = NULL;
 	static guint host_idx = 0;
