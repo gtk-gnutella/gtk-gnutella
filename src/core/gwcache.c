@@ -493,7 +493,7 @@ forget_url(gchar *url)
 	g_assert(count <= MAX_GWC_URLS);
 	g_assert(count == MAX_GWC_URLS || gwc_url_slot < count);
 	g_assert(gwc_url_slot >= 0);
-	g_assert(sizeof(url_tmp) == sizeof(gwc_url));
+	STATIC_ASSERT(sizeof(url_tmp) == sizeof(gwc_url));
 
 	if (gwc_debug)
 		g_warning("forgetting GWC URL \"%s\"", url);
@@ -547,12 +547,13 @@ forget_url(gchar *url)
 
 	count--;							/* New amount of data in cache */
 	gwc_url_slot = j - 1;				/* Last position we filled */
-	memcpy(gwc_url, url_tmp, sizeof(gwc_url));
-
-	g_assert(gwc_url_slot >= 0 && gwc_url_slot < MAX_GWC_URLS);
-	g_assert(gwc_url_slot == count - 1);
-
 	gwc_url_slot = MAX(0, gwc_url_slot);	/* If we removed ALL entries */
+	if (count > 0) {
+		memcpy(&gwc_url[0], url_tmp, sizeof(gwc_url[0]));
+		g_assert(gwc_url_slot == count - 1);
+	}
+	g_assert(gwc_url_slot >= 0 && gwc_url_slot < MAX_GWC_URLS);
+
 	gwc_file_dirty = TRUE;
 }
 
