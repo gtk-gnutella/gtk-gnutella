@@ -2451,13 +2451,13 @@ static void node_parse(struct gnutella_node *node)
 	case GTA_MSG_INIT:
         if (n->size) {
 			drop = TRUE;
-			gnet_stats_count_dropped(n, MSG_DROP_INIT_BAD_SIZE);
+			gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
         }
 		break;
 	case GTA_MSG_INIT_RESPONSE:
         if (n->size != sizeof(struct gnutella_init_response)) {
 			drop = TRUE;
-            gnet_stats_count_dropped(n,MSG_DROP_INIT_RESPONSE_BAD_SIZE);
+            gnet_stats_count_dropped(n,MSG_DROP_BAD_SIZE);
         }
 		break;
 	case GTA_MSG_BYE:
@@ -2466,23 +2466,23 @@ static void node_parse(struct gnutella_node *node)
 				gmsg_log_bad(n, "bye message with improper hops/ttl");
 			n->n_bad++;
 			drop = TRUE;
-            gnet_stats_count_dropped(n, MSG_DROP_BYE_BAD_SIZE);
+            gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
 		}
 		break;
 	case GTA_MSG_PUSH_REQUEST:
         if (n->size != sizeof(struct gnutella_push_request)) {
 			drop = TRUE;
-            gnet_stats_count_dropped(n, MSG_DROP_PUSH_BAD_SIZE);
+            gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
         }
 		break;
 	case GTA_MSG_SEARCH:
 		if (n->size <= 3) {	/* At least speed(2) + NUL(1) */
 			drop = TRUE;
-            gnet_stats_count_dropped(n, MSG_DROP_SEARCH_TOO_SMALL);
+            gnet_stats_count_dropped(n, MSG_DROP_TOO_SMALL);
         }
 		else if (n->size > search_queries_forward_size) {
 			drop = TRUE;
-            gnet_stats_count_dropped(n, MSG_DROP_SEARCH_TOO_LARGE);
+            gnet_stats_count_dropped(n, MSG_DROP_TOO_LARGE);
         }
 
 		/*
@@ -2497,7 +2497,7 @@ static void node_parse(struct gnutella_node *node)
 	case GTA_MSG_SEARCH_RESULTS:
         if (n->size > search_answers_forward_size) {
             drop = TRUE;
-            gnet_stats_count_dropped(n, MSG_DROP_RESULT_TOO_LARGE);
+            gnet_stats_count_dropped(n, MSG_DROP_TOO_LARGE);
         }
 		break;
 

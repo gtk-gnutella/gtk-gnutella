@@ -321,7 +321,7 @@ static gnet_results_set_t *get_results_set
 		/* packet too small 11 header, 16 GUID min */
 		g_warning("get_results_set(): given too small a packet (%d bytes)",
 				  n->size);
-        gnet_stats_count_dropped(n, MSG_DROP_RESULT_TOO_SMALL);
+        gnet_stats_count_dropped(n, MSG_DROP_TOO_SMALL);
 		return NULL;
 	}
 
