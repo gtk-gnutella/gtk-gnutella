@@ -3865,7 +3865,8 @@ qrt_build_query_target(
 		 * a last-hop QRP capable ultra node).
 		 */
 
-		node_inc_qrp_query(dn);
+		if (rt != NULL)
+			node_inc_qrp_query(dn);
 
 		if (!NODE_IS_LEAF(dn)) {
 			if (ttl == 0)				/* Message expired here */
@@ -3928,7 +3929,8 @@ qrt_build_query_target(
 	can_send:
 		nodes = g_slist_prepend(nodes, dn);
 		count++;
-		node_inc_qrp_match(dn);
+		if (rt != NULL)
+			node_inc_qrp_match(dn);
 	}
 
 	return nodes;
