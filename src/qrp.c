@@ -2752,6 +2752,17 @@ GSList *qrt_build_query_target(
 	g_assert(qhvec != NULL);
 	g_assert(hops >= 0);
 
+	if (qhvec->count == 0) {
+		if (dbg) {
+			if (source != NULL)
+				g_warning("QRP %s had empty hash vector",
+					gmsg_infostr(&source->header));
+			else
+				g_warning("QRP query [hops=%d] had empty hash vector", hops);
+		}
+		return NULL;
+	}
+
 	for (l = sl_nodes; l; l = l->next) {
 		struct gnutella_node *dn = (struct gnutella_node *) l->data;
 		struct routing_table *rt = (struct routing_table *) dn->query_table;
@@ -2768,7 +2779,7 @@ GSList *qrt_build_query_target(
 		if (!NODE_IS_LEAF(dn) || !NODE_IS_WRITABLE(dn))
 			continue;
 
-		if (hops >= dn->hops_flow)		/* Hops-flow prevent sending */
+		if (hops >= dn->hops_flow)		/* Hops-flow prevents sending */
 			continue;
 
 		/*
