@@ -1916,22 +1916,25 @@ static int filter_apply(filter_t *filter, struct record *rec)
                             r->u.text.match, strlen(r->u.text.match)) == 0)
                         match = TRUE;
                     break;
-                case RULE_TEXT_WORDS:
+                case RULE_TEXT_WORDS:	/* Contains ALL the words */
                     {
                         GList *l;
+						gboolean failed = FALSE;
         
                         for (
                             l = g_list_first(r->u.text.u.words);
-                            l && !match; 
+                            l && !failed; 
                             l = g_list_next(l)
                         ) {
                             if (pattern_qsearch
                                 ((cpattern_t *)l->data,
                                  r->u.text.case_sensitive
                                  ? rec->name : l_name, 0, 0, qs_any)
-                                != NULL)
-                                match = TRUE;
+                                == NULL)
+                                failed = TRUE;
                         }
+
+						match = !failed;
                     }
                     break;
                 case RULE_TEXT_SUFFIX:
