@@ -4059,7 +4059,6 @@ for all filters</property>
 					      <property name="active">False</property>
 					      <property name="inconsistent">False</property>
 					      <property name="draw_indicator">False</property>
-					      <property name="group">radiobutton_filter_flag_busy_ignore</property>
 
 					      <child>
 						<widget class="GtkAlignment" id="alignment48">
@@ -4135,7 +4134,7 @@ for all filters</property>
 					      <property name="active">False</property>
 					      <property name="inconsistent">False</property>
 					      <property name="draw_indicator">False</property>
-					      <property name="group">radiobutton_filter_flag_busy_ignore</property>
+					      <property name="group">radiobutton_filter_flag_push_ignore</property>
 
 					      <child>
 						<widget class="GtkAlignment" id="alignment42">
@@ -4211,7 +4210,7 @@ for all filters</property>
 					      <property name="active">False</property>
 					      <property name="inconsistent">False</property>
 					      <property name="draw_indicator">False</property>
-					      <property name="group">radiobutton_filter_flag_busy_ignore</property>
+					      <property name="group">radiobutton_filter_flag_push_ignore</property>
 
 					      <child>
 						<widget class="GtkAlignment" id="alignment51">
@@ -4386,7 +4385,6 @@ for all filters</property>
 					      <property name="active">False</property>
 					      <property name="inconsistent">False</property>
 					      <property name="draw_indicator">False</property>
-					      <property name="group">radiobutton_filter_flag_busy_ignore</property>
 
 					      <child>
 						<widget class="GtkAlignment" id="alignment49">
@@ -4462,7 +4460,7 @@ for all filters</property>
 					      <property name="active">False</property>
 					      <property name="inconsistent">False</property>
 					      <property name="draw_indicator">False</property>
-					      <property name="group">radiobutton_filter_flag_busy_ignore</property>
+					      <property name="group">radiobutton_filter_flag_stable_set</property>
 
 					      <child>
 						<widget class="GtkAlignment" id="alignment41">
@@ -4538,7 +4536,7 @@ for all filters</property>
 					      <property name="active">False</property>
 					      <property name="inconsistent">False</property>
 					      <property name="draw_indicator">False</property>
-					      <property name="group">radiobutton_filter_flag_busy_ignore</property>
+					      <property name="group">radiobutton_filter_flag_stable_set</property>
 
 					      <child>
 						<widget class="GtkAlignment" id="alignment46">
@@ -5490,7 +5488,6 @@ for all filters</property>
 					      <property name="active">False</property>
 					      <property name="inconsistent">False</property>
 					      <property name="draw_indicator">False</property>
-					      <property name="group">radiobutton_filter_state_download_dont</property>
 
 					      <child>
 						<widget class="GtkAlignment" id="alignment52">
@@ -5565,7 +5562,7 @@ for all filters</property>
 					      <property name="active">False</property>
 					      <property name="inconsistent">False</property>
 					      <property name="draw_indicator">False</property>
-					      <property name="group">radiobutton_filter_state_download_dont</property>
+					      <property name="group">radiobutton_filter_state_display_do</property>
 
 					      <child>
 						<widget class="GtkAlignment" id="alignment54">
@@ -5640,7 +5637,7 @@ for all filters</property>
 					      <property name="active">False</property>
 					      <property name="inconsistent">False</property>
 					      <property name="draw_indicator">False</property>
-					      <property name="group">radiobutton_filter_state_download_dont</property>
+					      <property name="group">radiobutton_filter_state_display_do</property>
 
 					      <child>
 						<widget class="GtkAlignment" id="alignment56">
@@ -5715,7 +5712,7 @@ for all filters</property>
 					      <property name="active">False</property>
 					      <property name="inconsistent">False</property>
 					      <property name="draw_indicator">False</property>
-					      <property name="group">radiobutton_filter_state_download_dont</property>
+					      <property name="group">radiobutton_filter_state_display_do</property>
 
 					      <child>
 						<widget class="GtkAlignment" id="alignment58">

@@ -909,6 +909,7 @@ create_dlg_filters (void)
   GtkWidget *image79;
   GtkWidget *label444;
   GtkWidget *radiobutton_filter_flag_push_ignore;
+  GSList *radiobutton_filter_flag_push_ignore_group = NULL;
   GtkWidget *alignment48;
   GtkWidget *hbox180;
   GtkWidget *image80;
@@ -930,6 +931,7 @@ create_dlg_filters (void)
   GtkWidget *label447;
   GtkWidget *label_d232;
   GtkWidget *radiobutton_filter_flag_stable_set;
+  GSList *radiobutton_filter_flag_stable_set_group = NULL;
   GtkWidget *alignment49;
   GtkWidget *hbox181;
   GtkWidget *image81;
@@ -1005,6 +1007,7 @@ create_dlg_filters (void)
   GtkWidget *image85;
   GtkWidget *label450;
   GtkWidget *radiobutton_filter_state_display_do;
+  GSList *radiobutton_filter_state_display_do_group = NULL;
   GtkWidget *alignment52;
   GtkWidget *hbox184;
   GtkWidget *image84;
@@ -2383,8 +2386,8 @@ create_dlg_filters (void)
   gtk_table_attach (GTK_TABLE (table26), radiobutton_filter_flag_push_ignore, 3, 4, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_ignore), radiobutton_filter_flag_busy_ignore_group);
-  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_ignore));
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_ignore), radiobutton_filter_flag_push_ignore_group);
+  radiobutton_filter_flag_push_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_ignore));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_flag_push_ignore), FALSE);
 
   alignment48 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2414,8 +2417,8 @@ create_dlg_filters (void)
   gtk_table_attach (GTK_TABLE (table26), radiobutton_filter_flag_push_unset, 2, 3, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_unset), radiobutton_filter_flag_busy_ignore_group);
-  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_unset));
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_unset), radiobutton_filter_flag_push_ignore_group);
+  radiobutton_filter_flag_push_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_unset));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_flag_push_unset), FALSE);
 
   alignment42 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2445,8 +2448,8 @@ create_dlg_filters (void)
   gtk_table_attach (GTK_TABLE (table26), radiobutton_filter_flag_push_set, 1, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_set), radiobutton_filter_flag_busy_ignore_group);
-  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_set));
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_set), radiobutton_filter_flag_push_ignore_group);
+  radiobutton_filter_flag_push_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_set));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_flag_push_set), FALSE);
 
   alignment51 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2515,8 +2518,8 @@ create_dlg_filters (void)
   gtk_table_attach (GTK_TABLE (table26), radiobutton_filter_flag_stable_set, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_set), radiobutton_filter_flag_busy_ignore_group);
-  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_set));
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_set), radiobutton_filter_flag_stable_set_group);
+  radiobutton_filter_flag_stable_set_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_set));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_flag_stable_set), FALSE);
 
   alignment49 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2546,8 +2549,8 @@ create_dlg_filters (void)
   gtk_table_attach (GTK_TABLE (table26), radiobutton_filter_flag_stable_unset, 2, 3, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_unset), radiobutton_filter_flag_busy_ignore_group);
-  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_unset));
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_unset), radiobutton_filter_flag_stable_set_group);
+  radiobutton_filter_flag_stable_set_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_unset));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_flag_stable_unset), FALSE);
 
   alignment41 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2577,8 +2580,8 @@ create_dlg_filters (void)
   gtk_table_attach (GTK_TABLE (table26), radiobutton_filter_flag_stable_ignore, 3, 4, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_ignore), radiobutton_filter_flag_busy_ignore_group);
-  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_ignore));
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_ignore), radiobutton_filter_flag_stable_set_group);
+  radiobutton_filter_flag_stable_set_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_ignore));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_flag_stable_ignore), FALSE);
 
   alignment46 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2946,8 +2949,8 @@ create_dlg_filters (void)
   gtk_table_attach (GTK_TABLE (table27), radiobutton_filter_state_display_do, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_do), radiobutton_filter_state_download_dont_group);
-  radiobutton_filter_state_download_dont_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_do));
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_do), radiobutton_filter_state_display_do_group);
+  radiobutton_filter_state_display_do_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_do));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_state_display_do), FALSE);
 
   alignment52 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2977,8 +2980,8 @@ create_dlg_filters (void)
   gtk_table_attach (GTK_TABLE (table27), radiobutton_filter_state_display_dont, 2, 3, 0, 1,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_dont), radiobutton_filter_state_download_dont_group);
-  radiobutton_filter_state_download_dont_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_dont));
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_dont), radiobutton_filter_state_display_do_group);
+  radiobutton_filter_state_display_do_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_dont));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_state_display_dont), FALSE);
 
   alignment54 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -3008,8 +3011,8 @@ create_dlg_filters (void)
   gtk_table_attach (GTK_TABLE (table27), radiobutton_filter_state_display_undef, 3, 4, 0, 1,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_undef), radiobutton_filter_state_download_dont_group);
-  radiobutton_filter_state_download_dont_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_undef));
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_undef), radiobutton_filter_state_display_do_group);
+  radiobutton_filter_state_display_do_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_undef));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_state_display_undef), FALSE);
 
   alignment56 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -3039,8 +3042,8 @@ create_dlg_filters (void)
   gtk_table_attach (GTK_TABLE (table27), radiobutton_filter_state_display_ignore, 4, 5, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_ignore), radiobutton_filter_state_download_dont_group);
-  radiobutton_filter_state_download_dont_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_ignore));
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_ignore), radiobutton_filter_state_display_do_group);
+  radiobutton_filter_state_display_do_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_ignore));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_state_display_ignore), FALSE);
 
   alignment58 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -3935,6 +3938,8 @@ create_dlg_about (void)
   gtk_widget_set_name (label_about_title, "label_about_title");
   gtk_widget_show (label_about_title);
   gtk_container_add (GTK_CONTAINER (frame44), label_about_title);
+  GTK_WIDGET_SET_FLAGS (label_about_title, GTK_CAN_FOCUS);
+  gtk_label_set_selectable (GTK_LABEL (label_about_title), TRUE);
   gtk_misc_set_padding (GTK_MISC (label_about_title), 10, 10);
 
   hbox208 = gtk_hbox_new (TRUE, 0);
