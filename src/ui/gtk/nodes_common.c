@@ -84,9 +84,25 @@ const gchar *nodes_gui_common_status_str(
 			else
 				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TX=%d", n->sent);
 
-			if (show_gnet_info_tx_speed)
+			if (show_gnet_info_tx_speed || show_gnet_info_tx_wire) {
+				gboolean is_first = TRUE;
+
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					" (%.1f k/s)", n->tx_bps);
+					" (" /* ')' */);
+
+				if (show_gnet_info_tx_wire) {
+					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+						"%s", compact_size(n->tx_written));
+					is_first = FALSE;
+				}
+
+				if (show_gnet_info_tx_speed)
+					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+						"%s%.1f k/s", is_first ? "" : ", ", n->tx_bps);
+
+				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					/* '(' */ ")");
+			}
 
 			if (n->rx_compressed && show_gnet_info_rxc)
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
@@ -96,9 +112,25 @@ const gchar *nodes_gui_common_status_str(
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" RX=%d", n->received);
 
-			if (show_gnet_info_rx_speed)
+			if (show_gnet_info_rx_speed || show_gnet_info_rx_wire) {
+				gboolean is_first = TRUE;
+
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					" (%.1f k/s)", n->rx_bps);
+					" (" /* ')' */);
+
+				if (show_gnet_info_rx_wire) {
+					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+						"%s", compact_size(n->rx_given));
+					is_first = FALSE;
+				}
+
+				if (show_gnet_info_rx_speed)
+					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+						"%s%.1f k/s", is_first ? "" : ", ", n->rx_bps);
+
+				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					/* '(' */ ")");
+			}
 
 			if (
 				show_gnet_info_tx_queries || show_gnet_info_rx_queries ||
