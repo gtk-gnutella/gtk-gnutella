@@ -85,6 +85,7 @@ doc/gnutella/min_speed
 doc/gnutella/msg/GTKG.lst
 doc/gnutella/msg/README
 doc/gnutella/msg/connect_back
+doc/gnutella/msg/proxy_cancel
 doc/gnutella/msg/route_lost
 doc/gnutella/out-of-band
 doc/gnutella/ping-pong
@@ -349,6 +350,7 @@ src/if/gui_property_priv.h
 src/if/gui_props.ag 
 src/if/props.tpl 
 src/if/ui/gtk/downloads.h
+src/if/ui/gtk/gnet_stats.h
 src/if/ui/gtk/misc.h
 src/if/ui/gtk/search.h
 src/if/ui/gtk/upload_stats.h
