@@ -1,5 +1,11 @@
 # since last version
 
+- (2003.08.04 - Jeroen)
+ * 'Banning' of unstable servents and IPs is optional now using the
+   node_monitor_unstable_ip and node_monitor_unstable_servents config
+   settings which defaults to TRUE. node_monitor_unstable_servents
+   won't work when node_monitor_unstable_ip is disabled though.
+
 - (2003.08.04 - RAM)
  * Made a distinction between "connection timeout" and "data timeout" for
    asynchronous HTTP requests.
@@ -31,6 +37,9 @@
  * Editing pane for filtering "flags" rules had fixed hardwired values for
    the "Mark only" and "Active" checkboxes instead of the current rule's ones.
 
+- (2003.08.02 - Jeroen)
+ * PARQ was banning an IP pernamently instead of max 20 minutes.
+ 
 - (2003.08.02 - RAM)
  * Rolled back invalid change wrt reading/writing of IP addresses from/to Gnet.
  * Added magic number at the head of the cproxy structure.
