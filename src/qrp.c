@@ -655,7 +655,7 @@ qrt_create(gchar *name, gchar *arena, gint slots, gint max)
 	rt->arena = (guchar *) arena;
 	rt->slots = slots;
 	rt->generation = generation++;
-	rt->refcnt = 1;
+	rt->refcnt = 0;
 	rt->infinity = max;
 	rt->compacted = FALSE;
 	rt->digest = NULL;
@@ -1601,8 +1601,8 @@ qrp_step_create_table(gpointer h, gpointer u, gint ticks)
 	if (*ctx->rtp != NULL)
 		qrt_unref(*ctx->rtp);
 
-	*ctx->rtp = qrt_create("Local table",
-		ctx->table, ctx->slots, LOCAL_INFINITY);
+	*ctx->rtp = qrt_ref(qrt_create("Local table",
+		ctx->table, ctx->slots, LOCAL_INFINITY));
 	ctx->table = NULL;		/* Don't free table when freeing context */
 
 	/*
