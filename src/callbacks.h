@@ -129,35 +129,6 @@ gboolean
 on_dlg_faq_delete_event                (GtkWidget       *widget,
                                         GdkEvent        *event,
                                         gpointer         user_data);
-
-void
-on_button_config_select_net_clicked    (GtkButton       *button,
-                                        gpointer         user_data);
-
-void
-on_button_config_select_gnet_clicked   (GtkButton       *button,
-                                        gpointer         user_data);
-
-void
-on_button_config_select_bwc_clicked    (GtkButton       *button,
-                                        gpointer         user_data);
-
-void
-on_button_config_select_dl_clicked     (GtkButton       *button,
-                                        gpointer         user_data);
-
-void
-on_button_config_select_ul_clicked     (GtkButton       *button,
-                                        gpointer         user_data);
-
-void
-on_button_config_select_ui_clicked     (GtkButton       *button,
-                                        gpointer         user_data);
-
-void
-on_button_config_select_dbg_clicked    (GtkButton       *button,
-                                        gpointer         user_data);
-
 void
 on_menu_wizard_connection_unknown_activate
                                         (GtkMenuItem     *menuitem,
@@ -197,5 +168,3 @@ on_menu_wizard_connection_modem_activate
                                         gpointer         user_data);
 
 #endif	/* _callbacks_h_ */
-
-

@@ -103,6 +103,10 @@ static GtkWidget *get_main_window(void) {
     return main_window;
 }
 
+static GtkWidget *get_prefs_dialog(void) {
+    return dlg_prefs;
+}
+
 static GtkWidget *get_filter_dialog(void) {
     return filter_dialog;
 }
@@ -384,7 +388,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_CONFIG_TOOLBAR_STYLE,
         config_toolbar_style_changed,
         TRUE,
@@ -635,7 +639,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_GUI_DEBUG,
         update_spinbutton,
         TRUE,
@@ -643,7 +647,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DBG,
         update_spinbutton,
         TRUE,
@@ -651,7 +655,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_TRACK_PROPS,
         update_spinbutton,
         TRUE,
@@ -763,7 +767,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_PROXY_HOSTNAME,
         update_entry,
         TRUE,
@@ -771,7 +775,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_MAX_TTL,
         update_spinbutton,
         TRUE,
@@ -779,7 +783,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_MY_TTL,
         update_spinbutton,
         TRUE,
@@ -787,7 +791,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SEARCH_REISSUE_TIMEOUT,
         update_spinbutton,
         TRUE,
@@ -795,7 +799,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_PROXY_PORT,
         update_spinbutton,
         TRUE,
@@ -803,7 +807,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_UL_USAGE_MIN_PERCENTAGE,
         update_spinbutton,
         TRUE,
@@ -811,7 +815,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_CONNECTION_SPEED,
         update_spinbutton,
         TRUE,
@@ -819,7 +823,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_COMPUTE_CONNECTION_SPEED,
 		compute_connection_speed_changed,
         TRUE,
@@ -827,7 +831,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_QUERY_RESPONSE_MAX_ITEMS,
         update_spinbutton,
         TRUE,
@@ -835,7 +839,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_MAX_HIGH_TTL_RADIUS,
         update_spinbutton,
         TRUE,
@@ -843,7 +847,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_MAX_HIGH_TTL_MSG,
         update_spinbutton,
         TRUE,
@@ -851,7 +855,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_HARD_TTL_LIMIT,
         update_spinbutton,
         TRUE,
@@ -859,7 +863,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DOWNLOAD_OVERLAP_RANGE,
         update_spinbutton,
         TRUE,
@@ -867,7 +871,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DOWNLOAD_MAX_RETRIES,
         update_spinbutton,
         TRUE,
@@ -875,7 +879,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DOWNLOAD_RETRY_STOPPED_DELAY,
         update_spinbutton,
         TRUE,
@@ -883,7 +887,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DOWNLOAD_RETRY_REFUSED_DELAY,
         update_spinbutton,
         TRUE,
@@ -891,7 +895,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DOWNLOAD_RETRY_BUSY_DELAY,
         update_spinbutton,
         TRUE,
@@ -899,7 +903,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DOWNLOAD_RETRY_TIMEOUT_DELAY,
         update_spinbutton,
         TRUE,
@@ -907,7 +911,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DOWNLOAD_RETRY_TIMEOUT_MAX,
         update_spinbutton,
         TRUE,
@@ -915,7 +919,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DOWNLOAD_RETRY_TIMEOUT_MIN,
         update_spinbutton,
         TRUE,
@@ -923,7 +927,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DOWNLOAD_CONNECTING_TIMEOUT,
         update_spinbutton,
         TRUE,
@@ -931,7 +935,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DOWNLOAD_CONNECTED_TIMEOUT,
         update_spinbutton,
         TRUE,
@@ -939,7 +943,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DOWNLOAD_PUSH_SENT_TIMEOUT,
         update_spinbutton,
         TRUE,
@@ -947,7 +951,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_NODE_TX_FLOWC_TIMEOUT,
         update_spinbutton,
         TRUE,
@@ -955,7 +959,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_NODE_CONNECTING_TIMEOUT,
         update_spinbutton,
         TRUE,
@@ -963,7 +967,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_NODE_CONNECTED_TIMEOUT,
         update_spinbutton,
         TRUE,
@@ -971,7 +975,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_UPLOAD_CONNECTING_TIMEOUT,
         update_spinbutton,
         TRUE,
@@ -979,7 +983,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_UPLOAD_CONNECTED_TIMEOUT,
         update_spinbutton,
         TRUE,
@@ -987,7 +991,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SOCKS_USER,
         update_entry,
         TRUE,
@@ -995,7 +999,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SOCKS_PASS,
         update_entry,
         TRUE,
@@ -1027,7 +1031,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_GIVE_SERVER_HOSTNAME,
         update_togglebutton,
         TRUE,
@@ -1035,7 +1039,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SERVER_HOSTNAME,
         update_entry,
         TRUE,
@@ -1043,7 +1047,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_PFSP_SERVER,
         update_togglebutton,
         TRUE,
@@ -1051,7 +1055,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_PFSP_FIRST_CHUNK,
         update_spinbutton,
         TRUE,
@@ -1075,7 +1079,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BW_HTTP_IN_ENABLED,
         bw_http_in_enabled_changed,
         TRUE,
@@ -1083,7 +1087,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BW_HTTP_OUT_ENABLED,
         bw_http_out_enabled_changed,
         TRUE,
@@ -1091,7 +1095,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BW_GNET_IN_ENABLED,
         bw_gnet_in_enabled_changed,
         TRUE,
@@ -1099,7 +1103,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BW_GNET_OUT_ENABLED,
         bw_gnet_out_enabled_changed,
         TRUE,
@@ -1107,7 +1111,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BW_HTTP_IN,
         spinbutton_input_bw_changed,
         TRUE,
@@ -1115,7 +1119,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BW_HTTP_OUT,
         spinbutton_output_bw_changed,
         TRUE,
@@ -1123,7 +1127,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BW_GNET_IN,
         spinbutton_input_bw_changed,
         TRUE,
@@ -1131,7 +1135,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BW_GNET_OUT,
         spinbutton_output_bw_changed,
         TRUE,
@@ -1139,7 +1143,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BW_UL_USAGE_ENABLED,
         bw_ul_usage_enabled_changed,
         TRUE,
@@ -1219,7 +1223,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_FORCE_LOCAL_IP,
         force_local_ip_changed,
         TRUE,
@@ -1227,7 +1231,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_PROXY_AUTH,
         update_togglebutton,
         TRUE,
@@ -1275,7 +1279,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_USE_NETMASKS,
         use_netmasks_changed,
         TRUE,
@@ -1283,7 +1287,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_LOCAL_NETMASKS_STRING,
         update_entry,
         TRUE,
@@ -1291,7 +1295,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_ALLOW_PRIVATE_NETWORK_CONNECTION,
         update_togglebutton,
         TRUE,
@@ -1299,7 +1303,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-		get_main_window,
+		get_prefs_dialog,
 		PROP_USE_IP_TOS,
 		update_togglebutton,
 		TRUE,
@@ -1307,7 +1311,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_FORCED_LOCAL_IP,
         update_entry,
         TRUE,
@@ -1315,7 +1319,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_LISTEN_PORT,
         listen_port_changed,
         TRUE,
@@ -1323,7 +1327,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SCAN_EXTENSIONS,
         update_entry,
         TRUE,
@@ -1331,7 +1335,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SCAN_IGNORE_SYMLINK_DIRS,
         update_togglebutton,
         TRUE,
@@ -1339,7 +1343,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SCAN_IGNORE_SYMLINK_REGFILES,
         update_togglebutton,
         TRUE,
@@ -1347,7 +1351,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SAVE_FILE_PATH,
         update_entry,
         TRUE,
@@ -1355,7 +1359,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_MOVE_FILE_PATH,
         update_entry,
         TRUE,
@@ -1363,7 +1367,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BAD_FILE_PATH,
         update_entry,
         TRUE,
@@ -1371,7 +1375,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHARED_DIRS_PATHS,
         update_entry,
         TRUE,
@@ -1379,7 +1383,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_MIN_DUP_MSG,
         update_spinbutton,
         TRUE,
@@ -1387,7 +1391,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_MIN_DUP_RATIO,
         min_dup_ratio_changed,
         TRUE,
@@ -1395,7 +1399,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_PREFER_COMPRESSED_GNET,
         update_togglebutton,
         TRUE,
@@ -1403,7 +1407,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DL_MINCHUNKSIZE,
         update_spinbutton,
         TRUE,
@@ -1411,7 +1415,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DL_MAXCHUNKSIZE,
         update_spinbutton,
         TRUE,
@@ -1419,7 +1423,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_FUZZY_THRESHOLD,
         update_spinbutton,
         TRUE,
@@ -1427,7 +1431,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_AUTO_DOWNLOAD_IDENTICAL,
         update_togglebutton,
         TRUE,
@@ -1435,7 +1439,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_STRICT_SHA1_MATCHING,
         update_togglebutton,
         TRUE,
@@ -1443,7 +1447,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_USE_FUZZY_MATCHING,
         update_togglebutton,
         TRUE,
@@ -1451,7 +1455,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_USE_SWARMING,
         update_togglebutton,
         TRUE,
@@ -1459,7 +1463,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_USE_AGGRESSIVE_SWARMING,
         update_togglebutton,
         TRUE,
@@ -1467,7 +1471,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_STOP_HOST_GET,
         update_togglebutton,
         TRUE,
@@ -1475,7 +1479,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_HOPS_RANDOM_FACTOR,
         update_spinbutton,
         TRUE,
@@ -1483,7 +1487,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SEARCH_QUERIES_FORWARD_SIZE,
         update_spinbutton,
         TRUE,
@@ -1491,7 +1495,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SEARCH_QUERIES_KICK_SIZE,
         update_spinbutton,
         TRUE,
@@ -1499,7 +1503,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SEARCH_ANSWERS_FORWARD_SIZE,
         update_spinbutton,
         TRUE,
@@ -1507,7 +1511,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SEARCH_ANSWERS_KICK_SIZE,
         update_spinbutton,
         TRUE,
@@ -1515,7 +1519,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_OTHER_MESSAGES_KICK_SIZE,
         update_spinbutton,
         TRUE,
@@ -1523,7 +1527,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_NODE_SHOW_UPTIME,
         update_toggle_node_show_uptime,
         TRUE,
@@ -1531,7 +1535,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_NODE_SHOW_HANDSHAKE_VERSION,
         update_toggle_node_show_handshake,
         TRUE,
@@ -1539,7 +1543,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_NODE_SHOW_DETAILED_INFO,
         update_toggle_node_show_detailed_info,
         TRUE,
@@ -1547,7 +1551,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_TXC,
         update_togglebutton,
         TRUE,
@@ -1555,7 +1559,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_RXC,
         update_togglebutton,
         TRUE,
@@ -1563,7 +1567,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_TX_SPEED,
         update_togglebutton,
         TRUE,
@@ -1571,7 +1575,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_RX_SPEED,
         update_togglebutton,
         TRUE,
@@ -1579,7 +1583,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_TX_QUERIES,
         update_togglebutton,
         TRUE,
@@ -1587,7 +1591,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_RX_QUERIES,
         update_togglebutton,
         TRUE,
@@ -1595,7 +1599,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_TX_HITS,
         update_togglebutton,
         TRUE,
@@ -1603,7 +1607,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_RX_HITS,
         update_togglebutton,
         TRUE,
@@ -1611,7 +1615,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_GEN_QUERIES,
         update_togglebutton,
         TRUE,
@@ -1619,7 +1623,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_SQ_QUERIES,
         update_togglebutton,
         TRUE,
@@ -1627,7 +1631,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_TX_DROPPED,
         update_togglebutton,
         TRUE,
@@ -1635,7 +1639,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_RX_DROPPED,
         update_togglebutton,
         TRUE,
@@ -1643,7 +1647,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_QRP_STATS,
         update_togglebutton,
         TRUE,
@@ -1651,7 +1655,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_DBW,
         update_togglebutton,
         TRUE,
@@ -1659,7 +1663,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_RT,
         update_togglebutton,
         TRUE,
@@ -1667,7 +1671,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_SHARED_SIZE,
         update_togglebutton,
         TRUE,
@@ -1675,7 +1679,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_SHARED_FILES,
         update_togglebutton,
         TRUE,
@@ -1683,7 +1687,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_NODE_LAST_ULTRA_CHECK,
         update_label_date,
         TRUE,
@@ -1691,7 +1695,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_NODE_LAST_ULTRA_LEAF_SWITCH,
         update_label_date,
         TRUE,
@@ -1699,7 +1703,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_UP_REQ_AVG_SERVENT_UPTIME,
         update_label_yes_or_no,
         TRUE,
@@ -1707,7 +1711,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_UP_REQ_AVG_IP_UPTIME,
         update_label_yes_or_no,
         TRUE,
@@ -1715,7 +1719,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_UP_REQ_NODE_UPTIME,
         update_label_yes_or_no,
         TRUE,
@@ -1723,7 +1727,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_UP_REQ_NOT_FIREWALLED,
         update_label_yes_or_no,
         TRUE,
@@ -1731,7 +1735,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_UP_REQ_ENOUGH_CONN,
         update_label_yes_or_no,
         TRUE,
@@ -1739,7 +1743,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_UP_REQ_ENOUGH_FD,
         update_label_yes_or_no,
         TRUE,
@@ -1747,7 +1751,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_UP_REQ_ENOUGH_MEM,
         update_label_yes_or_no,
         TRUE,
@@ -1755,7 +1759,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_UP_REQ_ENOUGH_BW,
         update_label_yes_or_no,
         TRUE,
@@ -1763,7 +1767,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_ENABLE_SHELL,
         update_togglebutton,
         TRUE,
@@ -1771,7 +1775,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SEARCH_QUEUE_SIZE,
         update_spinbutton,
         TRUE,
@@ -1779,7 +1783,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SEARCH_QUEUE_SPACING,
         update_spinbutton,
         TRUE,
@@ -1787,7 +1791,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
 	),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_NODE_WATCH_SIMILAR_QUERIES,
         update_toggle_node_watch_similar_queries,
         TRUE,
@@ -1795,7 +1799,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_NODE_QUERIES_HALF_LIFE,
         update_spinbutton,
         TRUE,
@@ -1803,7 +1807,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_NODE_REQUERY_THRESHOLD,
         update_spinbutton,
         TRUE,
@@ -1811,7 +1815,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_ENTRY_REMOVAL_TIMEOUT,
         update_spinbutton,
         TRUE,
@@ -1819,7 +1823,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SEARCH_ACCUMULATION_PERIOD,
         update_spinbutton,
         TRUE,
@@ -1966,7 +1970,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_CONFIRM_QUIT,
         update_togglebutton,
         TRUE,
@@ -1974,7 +1978,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SHOW_TOOLTIPS,
         show_tooltips_changed,
         TRUE,
@@ -1982,7 +1986,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_EXPERT_MODE,
         expert_mode_changed,
         TRUE,
@@ -2032,7 +2036,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_GNET_COMPACT_QUERY,
         update_togglebutton,
         TRUE,
@@ -2040,7 +2044,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DOWNLOAD_OPTIMISTIC_START,
         update_togglebutton,
         TRUE,
@@ -2080,7 +2084,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DOWNLOAD_REQUIRE_URN,
         update_togglebutton,
         TRUE,
@@ -2088,7 +2092,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DOWNLOAD_REQUIRE_SERVER_NAME,
         update_togglebutton,
         TRUE,
@@ -2096,7 +2100,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_AUTO_FEED_DOWNLOAD_MESH,
         update_togglebutton,
         TRUE,
@@ -2104,7 +2108,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_FUZZY_FILTER_DMESH,
         update_togglebutton,
         TRUE,
@@ -2112,7 +2116,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_CONFIGURED_PEERMODE,
         configured_peermode_changed,
         TRUE,
@@ -2136,7 +2140,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_LIB_DEBUG,
         update_spinbutton,
         TRUE,
@@ -2144,7 +2148,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BAN_RATIO_FDS,
         update_spinbutton,
         TRUE,
@@ -2152,7 +2156,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BAN_MAX_FDS,
         update_spinbutton,
         TRUE,
@@ -2160,7 +2164,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BANNED_COUNT,
         update_label,
         TRUE,
@@ -2168,7 +2172,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_PROXY_PROTOCOL,
         update_multichoice,
         TRUE,
@@ -2176,7 +2180,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BW_ALLOW_STEALING,
         update_togglebutton,
         TRUE,
@@ -2328,7 +2332,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DL_HTTP_LATENCY,
         dl_http_latency_changed,
         TRUE,
@@ -2344,7 +2348,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BW_GNET_LEAF_IN_ENABLED,
         bw_gnet_lin_enabled_changed,
         TRUE,
@@ -2352,7 +2356,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BW_GNET_LEAF_OUT_ENABLED,
         bw_gnet_lout_enabled_changed,
         TRUE,
@@ -2360,7 +2364,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BW_GNET_LIN,
         spinbutton_input_bw_changed,
         TRUE,
@@ -2368,7 +2372,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_BW_GNET_LOUT,
         spinbutton_output_bw_changed,
         TRUE,
@@ -2376,7 +2380,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_MAX_LEAVES,
         update_spinbutton_ultranode,
         TRUE,
@@ -2384,7 +2388,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ), 
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_MAX_BANNED_FD,
         update_entry,
         TRUE,
@@ -2392,7 +2396,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 1
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_INCOMING_CONNECTING_TIMEOUT,
         update_spinbutton,
         TRUE,
@@ -2400,7 +2404,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_NODE_RX_FLOWC_RATIO,
         update_spinbutton,
         TRUE,
@@ -2408,7 +2412,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_NORMAL_CONNECTIONS,
         update_spinbutton_ultranode,
         TRUE,
@@ -2416,7 +2420,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_CURRENT_IP_STAMP,
         update_entry,
         TRUE,
@@ -2424,7 +2428,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_AVERAGE_IP_UPTIME,
         update_entry,
         TRUE,
@@ -2432,7 +2436,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_START_STAMP,
         update_entry,
         TRUE,
@@ -2440,7 +2444,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_AVERAGE_SERVENT_UPTIME,
         update_entry,
         TRUE,
@@ -2448,7 +2452,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SYS_NOFILE,
         update_entry,
         TRUE,
@@ -2456,7 +2460,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_SYS_PHYSMEM,
         update_entry,
         TRUE,
@@ -2464,7 +2468,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_CRAWLER_VISIT_COUNT,
         update_entry,
         TRUE,
@@ -2472,7 +2476,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_CLOCK_SKEW,
         clock_skew_changed,
         TRUE,
@@ -2480,7 +2484,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_HOST_RUNS_NTP,
         update_togglebutton,
         TRUE,
@@ -2488,7 +2492,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_NODE_MONITOR_UNSTABLE_IP,
         update_monitor_unstable_ip,
         TRUE,
@@ -2496,7 +2500,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_NODE_MONITOR_UNSTABLE_SERVENTS,
         update_togglebutton,
         TRUE,
@@ -2504,7 +2508,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_RESERVE_GTKG_NODES,
         update_spinbutton,
         TRUE,
@@ -2512,7 +2516,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_UNIQUE_NODES,
         update_spinbutton,
         TRUE,
@@ -2520,7 +2524,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_DOWNLOAD_RX_SIZE,
         update_spinbutton,
         TRUE,
@@ -2528,7 +2532,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_NODE_RX_SIZE,
         update_spinbutton,
         TRUE,
@@ -2536,7 +2540,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_LIBRARY_RESCAN_TIMESTAMP,
         update_label_date,
         TRUE,
@@ -2544,7 +2548,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_LIBRARY_RESCAN_TIME,
         update_label,
         TRUE,
@@ -2552,7 +2556,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_QRP_INDEXING_TIMESTAMP,
         update_label_date,
         TRUE,
@@ -2560,7 +2564,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_QRP_INDEXING_TIME,
         update_label,
         TRUE,
@@ -2568,7 +2572,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_QRP_TIMESTAMP,
         update_label_date,
         TRUE,
@@ -2576,7 +2580,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_QRP_COMPUTATION_TIME,
         update_label,
         TRUE,
@@ -2584,7 +2588,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_QRP_PATCH_TIMESTAMP,
         update_label_date,
         TRUE,
@@ -2592,7 +2596,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_QRP_PATCH_COMPUTATION_TIME,
         update_label,
         TRUE,
@@ -2600,7 +2604,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_QRP_GENERATION,
         update_label,
         TRUE,
@@ -2608,7 +2612,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_QRP_SLOTS,
         update_label,
         TRUE,
@@ -2616,7 +2620,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_QRP_SLOTS_FILLED,
         update_label,
         TRUE,
@@ -2624,7 +2628,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_QRP_FILL_RATIO,
         update_label,
         TRUE,
@@ -2632,7 +2636,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_QRP_CONFLICT_RATIO,
         update_label,
         TRUE,
@@ -2640,7 +2644,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_QRP_HASHED_KEYWORDS,
         update_label,
         TRUE,
@@ -2648,7 +2652,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_QRP_PATCH_RAW_LENGTH,
         update_label,
         TRUE,
@@ -2656,7 +2660,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_QRP_PATCH_LENGTH,
         update_label,
         TRUE,
@@ -2664,7 +2668,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
 	),
     PROP_ENTRY(
-        get_main_window,
+        get_prefs_dialog,
         PROP_QRP_PATCH_COMP_RATIO,
         update_label,
         TRUE,
@@ -3133,8 +3137,8 @@ static gboolean bw_gnet_lin_enabled_changed(property_t prop)
     GtkWidget *s;
     gboolean val;
 
-    w = lookup_widget(main_window, "checkbutton_config_bws_glin");
-    s = lookup_widget(main_window, "spinbutton_config_bws_glin");
+    w = lookup_widget(dlg_prefs, "checkbutton_config_bws_glin");
+    s = lookup_widget(dlg_prefs, "spinbutton_config_bws_glin");
 
     gnet_prop_get_boolean_val(prop, &val);
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
@@ -3152,8 +3156,8 @@ static gboolean bw_gnet_lout_enabled_changed(property_t prop)
 
     gnet_prop_get_boolean_val(prop, &val);
 
-    w = lookup_widget(main_window, "checkbutton_config_bws_glout");
-    s = lookup_widget(main_window, "spinbutton_config_bws_glout");
+    w = lookup_widget(dlg_prefs, "checkbutton_config_bws_glout");
+    s = lookup_widget(dlg_prefs, "spinbutton_config_bws_glout");
 
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
     gtk_widget_set_sensitive(s, val);
@@ -3170,8 +3174,8 @@ static gboolean bw_http_in_enabled_changed(property_t prop)
 
     gnet_prop_get_boolean_val(prop, &val);
 
-    w = lookup_widget(main_window, "checkbutton_config_bws_in");
-    s = lookup_widget(main_window, "spinbutton_config_bws_in");
+    w = lookup_widget(dlg_prefs, "checkbutton_config_bws_in");
+    s = lookup_widget(dlg_prefs, "spinbutton_config_bws_in");
 
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
     gtk_widget_set_sensitive(s, val);
@@ -3188,8 +3192,8 @@ static gboolean bw_gnet_in_enabled_changed(property_t prop)
 
     gnet_prop_get_boolean_val(prop, &val);
 
-    w = lookup_widget(main_window, "checkbutton_config_bws_gin");
-    s = lookup_widget(main_window, "spinbutton_config_bws_gin");
+    w = lookup_widget(dlg_prefs, "checkbutton_config_bws_gin");
+    s = lookup_widget(dlg_prefs, "spinbutton_config_bws_gin");
 
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
     gtk_widget_set_sensitive(s, val);
@@ -3206,8 +3210,8 @@ static gboolean bw_gnet_out_enabled_changed(property_t prop)
 
     gnet_prop_get_boolean_val(prop, &val);
 
-    w = lookup_widget(main_window, "checkbutton_config_bws_gout");
-    s = lookup_widget(main_window, "spinbutton_config_bws_gout");
+    w = lookup_widget(dlg_prefs, "checkbutton_config_bws_gout");
+    s = lookup_widget(dlg_prefs, "spinbutton_config_bws_gout");
 
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
     gtk_widget_set_sensitive(s, val);
@@ -3227,9 +3231,9 @@ static gboolean bw_ul_usage_enabled_changed(property_t prop)
     gnet_prop_get_boolean_val(PROP_BW_HTTP_OUT_ENABLED, &val2);
 
     w = lookup_widget
-        (main_window, "checkbutton_config_bw_ul_usage_enabled");
+        (dlg_prefs, "checkbutton_config_bw_ul_usage_enabled");
     s = lookup_widget
-        (main_window, "spinbutton_config_ul_usage_min_percentage");
+        (dlg_prefs, "spinbutton_config_ul_usage_min_percentage");
 
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
     gtk_widget_set_sensitive(s, val && val2);
@@ -3243,13 +3247,13 @@ static gboolean bw_http_out_enabled_changed(property_t prop)
     gboolean val2;
 
     GtkWidget *w = lookup_widget
-        (main_window, "checkbutton_config_bws_out");
+        (dlg_prefs, "checkbutton_config_bws_out");
     GtkWidget *s1 = lookup_widget
-        (main_window, "spinbutton_config_ul_usage_min_percentage");
+        (dlg_prefs, "spinbutton_config_ul_usage_min_percentage");
     GtkWidget *s2 = lookup_widget
-        (main_window, "spinbutton_config_bws_out");
+        (dlg_prefs, "spinbutton_config_bws_out");
     GtkWidget *c = lookup_widget
-        (main_window, "checkbutton_config_bw_ul_usage_enabled");
+        (dlg_prefs, "checkbutton_config_bw_ul_usage_enabled");
 
     gnet_prop_get_boolean_val(prop, &val);
     gnet_prop_get_boolean_val(PROP_BW_UL_USAGE_ENABLED, &val2);
@@ -3431,7 +3435,7 @@ static gboolean update_toggle_node_show_handshake(property_t prop)
 static gboolean update_toggle_node_show_detailed_info(property_t prop)
 {
 	GtkWidget *frame =
-		lookup_widget(main_window, "frame_gnet_detailed_traffic");
+		lookup_widget(dlg_prefs, "frame_gnet_detailed_traffic");
 	gboolean value;
 	gboolean ret;
 
@@ -3512,7 +3516,7 @@ static gboolean update_label_yes_or_no(property_t prop)
 static gboolean update_toggle_node_watch_similar_queries(property_t prop)
 {
 	GtkWidget *spin =
-		lookup_widget(main_window, "spinbutton_node_queries_half_life");
+		lookup_widget(dlg_prefs, "spinbutton_node_queries_half_life");
 	gboolean value;
 	gboolean ret;
 
@@ -3529,14 +3533,14 @@ static gboolean configured_peermode_changed(property_t prop)
 	guint32 mode;
 	gboolean ret;
 	GtkWidget *frame =
-		lookup_widget(main_window, "frame_gnet_can_become_ultra");
+		lookup_widget(dlg_prefs, "frame_gnet_can_become_ultra");
 	GtkWidget *qrp_frame1;
 	GtkWidget *qrp_frame2;
 	GtkWidget *qrp_frame3;
 
-	qrp_frame1 = lookup_widget(main_window, "frame_qrp_statistics");
-	qrp_frame2 = lookup_widget(main_window, "frame_qrp_table_info");
-	qrp_frame3 = lookup_widget(main_window, "frame_qrp_patch_info");
+	qrp_frame1 = lookup_widget(dlg_prefs, "frame_qrp_statistics");
+	qrp_frame2 = lookup_widget(dlg_prefs, "frame_qrp_table_info");
+	qrp_frame3 = lookup_widget(dlg_prefs, "frame_qrp_patch_info");
 
 	ret = update_multichoice(prop);
     gnet_prop_get_guint32_val(prop, &mode);
@@ -4139,7 +4143,7 @@ static gboolean compute_connection_speed_changed(property_t prop)
     gnet_prop_get_boolean_val(prop, &b);
     update_togglebutton(prop);
     gtk_widget_set_sensitive(
-        lookup_widget(main_window, "spinbutton_config_speed"), !b);
+        lookup_widget(dlg_prefs, "spinbutton_config_speed"), !b);
 
     return FALSE;
 }
@@ -4260,7 +4264,7 @@ static gboolean _update_address_information(void)
 
         statusbar_gui_message(15, _("Address/port changed to: %s"), iport);
         gtk_label_set_text(
-            GTK_LABEL(lookup_widget(main_window, "label_current_port")) , 
+            GTK_LABEL(lookup_widget(dlg_prefs, "label_current_port")) , 
             iport);
 
 #ifdef USE_GTK2
@@ -4304,7 +4308,7 @@ static void update_input_bw_display(void)
 	}
 
 	gtk_label_printf(
-		GTK_LABEL(lookup_widget(main_window, "label_input_bw_limit")),
+		GTK_LABEL(lookup_widget(dlg_prefs, "label_input_bw_limit")),
 		"%.2f", val / 1024.0);
 }
 
@@ -4346,7 +4350,7 @@ static void update_output_bw_display(void)
 	}
 
 	gtk_label_printf(
-		GTK_LABEL(lookup_widget(main_window, "label_output_bw_limit")),
+		GTK_LABEL(lookup_widget(dlg_prefs, "label_output_bw_limit")),
 		"%.2f", val / 1024.0);
 }
 
@@ -4386,7 +4390,7 @@ static gboolean use_netmasks_changed(property_t prop)
     gnet_prop_get_boolean_val(prop, &b);
     update_togglebutton(prop);
     gtk_widget_set_sensitive(
-        lookup_widget(main_window, "entry_config_netmasks"), b);
+        lookup_widget(dlg_prefs, "entry_config_netmasks"), b);
 
     return FALSE;
 }
@@ -4423,7 +4427,7 @@ static gboolean update_monitor_unstable_ip(property_t prop)
 	gnet_prop_get_boolean_val(prop, &b);
 
 	gtk_widget_set_sensitive(
-		lookup_widget(main_window, "checkbutton_gnet_monitor_servents"), b);
+		lookup_widget(dlg_prefs, "checkbutton_gnet_monitor_servents"), b);
 
 	return update_togglebutton(prop);
 }
@@ -4451,7 +4455,15 @@ static gboolean show_tooltips_changed(property_t prop)
 
 static gboolean expert_mode_changed(property_t prop)
 {
-    static const gchar *expert_widgets[] = {
+    static const gchar *expert_widgets_main[] = {
+        "button_search_passive",
+        "frame_expert_node_info",
+        "frame_expert_search_autoselect",
+        "hbox_expert_search_timeout",
+		NULL
+	};
+
+	static const gchar *expert_widgets_prefs[] = {
         "frame_expert_nw_local",
         "frame_expert_nw_misc",
         "frame_expert_gnet_timeout",
@@ -4463,27 +4475,38 @@ static gboolean expert_mode_changed(property_t prop)
         "frame_expert_ul_timeout",
         "frame_expert_dl_source_quality",
         "frame_expert_unmapped",
-        "button_search_passive",
-        "frame_expert_node_info",
         "frame_expert_rx_buffers",
         "frame_expert_gnet_message_size",
         "frame_expert_search_queue",
         "frame_expert_share_statistics",
-        "frame_expert_search_autoselect",
-        "hbox_expert_search_timeout",
         NULL
     };
+	
     gint n;
     gboolean b;
 
     update_togglebutton(prop);
     gui_prop_get_boolean_val(prop, &b);
 
-    for (n = 0; expert_widgets[n] != NULL; n++) {
-        GtkWidget *w = lookup_widget(main_window, expert_widgets[n]);
+	/* Enable/Disable main_window expert widgets */
+    for (n = 0; expert_widgets_main[n] != NULL; n++) {
+        GtkWidget *w = lookup_widget(main_window, expert_widgets_main[n]);
 
-        if (w == NULL)
-            continue;
+       if (w == NULL)
+			continue;
+
+        if (b)
+            gtk_widget_show(w);
+        else
+            gtk_widget_hide(w);
+    }
+
+	/* Enable/Disable preferences dialog expert widgets */
+    for (n = 0; expert_widgets_prefs[n] != NULL; n++) {
+        GtkWidget *w = lookup_widget(dlg_prefs, expert_widgets_prefs[n]);
+
+       if (w == NULL)
+			continue;
 
         if (b)
             gtk_widget_show(w);
@@ -4576,7 +4599,7 @@ static gboolean dl_http_latency_changed(property_t prop)
 
     gnet_prop_get_guint32_val(prop, &val);
 	gtk_label_printf(
-		GTK_LABEL(lookup_widget(main_window, "label_dl_http_latency")),
+		GTK_LABEL(lookup_widget(dlg_prefs, "label_dl_http_latency")),
 		"%.3f", val / 1000.0);
 
 	return FALSE;
@@ -4780,7 +4803,7 @@ static gboolean clock_skew_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &val);
     gm_snprintf(s, sizeof(s), "%d secs", (gint32) val);
     gtk_label_set_text(
-		GTK_LABEL(lookup_widget(main_window, "label_clock_skew")), s);
+		GTK_LABEL(lookup_widget(dlg_prefs, "label_clock_skew")), s);
     return FALSE;
 }
 

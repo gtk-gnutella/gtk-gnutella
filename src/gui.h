@@ -288,22 +288,26 @@ enum {
     nb_main_page_search,
     nb_main_page_monitor,
     nb_main_page_search_stats,
-#ifdef USE_GTK2
-    nb_main_page_config_sel,
-    nb_main_page_config_net,
-    nb_main_page_config_gnet,
-    nb_main_page_config_bwc,
-    nb_main_page_config_dl,
-    nb_main_page_config_ul,
-    nb_main_page_config_ui,
-    nb_main_page_config_dbg,
-#else
-    nb_main_page_config,
-#endif
     nb_main_page_gnet_stats,
     nb_main_page_hostcache,
 
     nb_main_page_num
+};
+
+
+/*
+ * Notebook tabs in the preferences dialog.
+ */
+enum {
+    nb_prefs_net = 0,
+    nb_prefs_gnet,
+    nb_prefs_bw,
+    nb_prefs_dl,
+    nb_prefs_ul,
+    nb_prefs_ui,
+    nb_prefs_dbg,
+
+    nb_prefs_num
 };
 
 /*
@@ -346,6 +350,7 @@ enum {
 extern GtkWidget *main_window;
 extern GtkWidget *shutdown_window;
 extern GtkWidget *dlg_about;
+extern GtkWidget *dlg_prefs;
 extern GtkWidget *dlg_quit;
 extern GtkWidget *popup_downloads;
 extern GtkWidget *popup_uploads;

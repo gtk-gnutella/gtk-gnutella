@@ -68,6 +68,7 @@ RCSID("$Id$");
 GtkWidget *main_window = NULL;
 GtkWidget *shutdown_window = NULL;
 GtkWidget *dlg_about = NULL;
+GtkWidget *dlg_prefs = NULL;
 GtkWidget *dlg_quit = NULL;
 GtkWidget *popup_downloads = NULL;
 GtkWidget *popup_uploads = NULL;
@@ -109,18 +110,6 @@ static const struct {
 	{ TRUE,	 N_("Search"),			nb_main_page_search },
 	{ FALSE, N_("Monitor"),			nb_main_page_monitor },
 	{ FALSE, N_("Stats"),			nb_main_page_search_stats },
-#ifndef USE_GTK2
-	{ TRUE,	 N_("Config"),			nb_main_page_config }
-#else
-	{ TRUE,	 N_("Config"),			nb_main_page_config_sel },
-	{ FALSE, N_("Network"),			nb_main_page_config_net },
-	{ FALSE, N_("GnutellaNet"),		nb_main_page_config_gnet },
-	{ FALSE, N_("Bandwidth"),		nb_main_page_config_bwc },
-	{ FALSE, N_("Downloads"),		nb_main_page_config_dl },
-	{ FALSE, N_("Uploads"),			nb_main_page_config_ul },
-	{ FALSE, N_("User Interface"),	nb_main_page_config_ui },
-	{ FALSE, N_("Debugging"),		nb_main_page_config_dbg }
-#endif /* USE_GTK2 */
 };
 
 
@@ -227,15 +216,6 @@ static GtkWidget *gui_create_main_window(void)
 	tab_window[nb_main_page_gnet_stats] = create_main_window_gnet_stats_tab();
 	tab_window[nb_main_page_hostcache] = create_main_window_hostcache_tab();
 
-	tab_window[nb_main_page_config_sel] = create_main_window_config_sel_tab();
-	tab_window[nb_main_page_config_net] = create_main_window_config_net_tab();
-	tab_window[nb_main_page_config_gnet] = create_main_window_config_gnet_tab();
-	tab_window[nb_main_page_config_bwc] = create_main_window_config_bwc_tab();
-	tab_window[nb_main_page_config_dl] = create_main_window_config_dl_tab();
-	tab_window[nb_main_page_config_ul] = create_main_window_config_ul_tab();
-	tab_window[nb_main_page_config_ui] = create_main_window_config_ui_tab();
-	tab_window[nb_main_page_config_dbg] = create_main_window_config_dbg_tab();
-
 	/*
 	 * Merge the UI and destroy the source windows.
 	 */
@@ -283,8 +263,51 @@ static void gui_init_menu(void)
 
 	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
 }
-
 #endif /* USE_GTK2 */
+
+
+
+static GtkWidget *gui_create_dlg_prefs(void)
+{
+	GtkWidget *dialog;
+    GtkWidget *notebook;
+    GtkWidget *tab_window[nb_prefs_num];
+	gint i;
+	
+    dialog = create_dlg_prefs();
+#ifdef USE_GTK2
+
+    notebook = lookup_widget(dialog, "notebook_prefs");
+
+    /*
+     * Then create all the tabs in their own window.
+     */
+	tab_window[nb_prefs_net] = create_dlg_prefs_net_tab();
+	tab_window[nb_prefs_gnet] = create_dlg_prefs_gnet_tab();
+	tab_window[nb_prefs_bw] = create_dlg_prefs_bw_tab();
+	tab_window[nb_prefs_dl] = create_dlg_prefs_dl_tab();
+	tab_window[nb_prefs_ul] = create_dlg_prefs_ul_tab();
+	tab_window[nb_prefs_ui] = create_dlg_prefs_ui_tab();
+	tab_window[nb_prefs_dbg] = create_dlg_prefs_dbg_tab();
+
+    /*
+     * Merge the UI and destroy the source windows.
+     */
+    for (i = 0; i < nb_prefs_num; i++) {
+        GtkWidget *w = tab_window[i];
+        gui_merge_window_as_tab(dialog, notebook, w);
+        gtk_object_destroy(GTK_OBJECT(w));
+    }
+
+    /*
+     * Get rid of the first (dummy) notebook tab.
+     */
+    gtk_container_remove(GTK_CONTAINER(notebook),
+        gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook), 0));
+#endif /* USE_GTK2 */
+
+	return dialog;
+}
 
 static GtkWidget *gui_create_dlg_about(void)
 {
@@ -448,6 +471,7 @@ void main_gui_early_init(gint argc, gchar **argv)
     main_window = gui_create_main_window();
     shutdown_window = create_shutdown_window();
     dlg_about = gui_create_dlg_about();
+    dlg_prefs = gui_create_dlg_prefs();
     dlg_quit = create_dlg_quit();
 
 	/* popup menus */

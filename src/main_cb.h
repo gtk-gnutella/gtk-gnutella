@@ -39,6 +39,7 @@ gboolean on_main_window_delete_event(
  *** Menu bar
  ***/
 void on_menu_about_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_menu_prefs_activate(GtkMenuItem * menuitem, gpointer user_data);
 
 
 /***
@@ -46,6 +47,13 @@ void on_menu_about_activate(GtkMenuItem * menuitem, gpointer user_data);
  ***/
 void on_button_about_close_clicked(GtkButton *button, gpointer user_data);
 gboolean on_dlg_about_delete_event(
+    GtkWidget *widget, GdkEvent *event, gpointer user_data);
+
+/***
+ *** Prefs dialog
+ ***/
+void on_button_prefs_close_clicked(GtkButton *button, gpointer user_data);
+gboolean on_dlg_prefs_delete_event(
     GtkWidget *widget, GdkEvent *event, gpointer user_data);
 
 

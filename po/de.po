@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.94u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2004-07-09 19:36+0200\n"
+"POT-Creation-Date: 2004-07-03 15:52+0200\n"
 "PO-Revision-Date: 2004-07-09 19:41+0100\n"
 "Last-Translator: Thomas Schuerger <thomas@schuerger.com>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -125,8 +125,8 @@ msgstr "Dateiname"
 #: src/interface-glade1.c:3360 src/interface-glade1.c:3630
 #: src/interface-glade1.c:6585 src/interface-glade1.c:10549
 #: src/interface-glade1.c:13629 src/interface-glade2.c:4430
-#: src/search_gui.c:2177 src/search_gui.c:2183 src/search_gui2.c:1211
-#: src/shell.c:589 src/upload_stats_gui2.c:252 src/uploads_gui2.c:60
+#: src/search_gui.c:2177 src/search_gui.c:2183 src/search_gui2.c:1290
+#: src/shell.c:586 src/upload_stats_gui2.c:252 src/uploads_gui2.c:60
 msgid "Size"
 msgstr "Größe"
 
@@ -339,40 +339,35 @@ msgstr ""
 msgid "Protocol is not supported"
 msgstr "Protokoll wird nicht unterstützt"
 
-#: src/fileinfo_gui.c:116 src/fileinfo_gui2.c:220
+#: src/fileinfo_gui2.c:84
+#, c-format
+msgid "%s (%u bytes)"
+msgstr ""
+
+#: src/fileinfo_gui2.c:220
 #, c-format
 msgid "Downloading (%.1f k/s)"
 msgstr "Lade herunter (%.1f k/s)"
 
-#: src/fileinfo_gui.c:119 src/fileinfo_gui2.c:223
+#: src/fileinfo_gui2.c:223
 msgid "Finished"
 msgstr "Fertig"
 
-#: src/fileinfo_gui.c:121 src/fileinfo_gui2.c:225
+#: src/fileinfo_gui2.c:225
 msgid "No sources"
 msgstr "Keine Quellen"
-
-#: src/fileinfo_gui.c:124
-#, fuzzy, c-format
-msgid "Queued (%d active/ %d passive)"
-msgstr "In Warteschlange (%d aktiv, %d passiv)"
-
-#: src/fileinfo_gui.c:128 src/fileinfo_gui2.c:232
-msgid "Waiting"
-msgstr "Warte"
-
-#: src/fileinfo_gui.c:160 src/fileinfo_gui2.c:84
-#, c-format
-msgid "%s (%u bytes)"
-msgstr ""
 
 #: src/fileinfo_gui2.c:228
 #, c-format
 msgid "Queued (%d active, %d passive)"
 msgstr "In Warteschlange (%d aktiv, %d passiv)"
 
+#: src/fileinfo_gui2.c:232
+msgid "Waiting"
+msgstr "Warte"
+
 #: src/fileinfo_gui2.c:343 src/interface-glade1.c:3621 src/search_gui.c:2161
-#: src/search_gui.c:2167 src/search_gui2.c:1209
+#: src/search_gui.c:2167 src/search_gui2.c:1288
 msgid "File"
 msgstr "Datei"
 
@@ -1997,17 +1992,17 @@ msgstr "Weitergeleitet"
 msgid "Generated"
 msgstr "Erzeugt"
 
-#: src/gnet_stats_gui2.c:454 src/interface-glade1.c:10522 src/shell.c:586
+#: src/gnet_stats_gui2.c:454 src/interface-glade1.c:10522 src/shell.c:583
 msgid "Hops"
 msgstr ""
 
-#: src/gnet_stats_gui2.c:455 src/interface-glade1.c:10531 src/shell.c:587
+#: src/gnet_stats_gui2.c:455 src/interface-glade1.c:10531 src/shell.c:584
 msgid "Nodes"
 msgstr "Knoten"
 
 #: src/gnet_stats_gui2.c:456 src/interface-glade1.c:2396
 #: src/interface-glade1.c:3904 src/interface-glade1.c:10540
-#: src/interface-glade2.c:10326 src/shell.c:588
+#: src/interface-glade2.c:10326 src/shell.c:585
 msgid "Files"
 msgstr "Dateien"
 
@@ -2690,7 +2685,7 @@ msgid "Hosts"
 msgstr ""
 
 #: src/hcache_gui2.c:42 src/interface-glade1.c:1691
-#: src/interface-glade1.c:10621 src/search_gui2.c:804
+#: src/interface-glade1.c:10621 src/search_gui2.c:862
 msgid "Hits"
 msgstr "Treffer"
 
@@ -2824,7 +2819,7 @@ msgid "New search:"
 msgstr "Neue Suche:"
 
 #: src/interface-glade1.c:1617 src/interface-glade1.c:1699
-#: src/search_gui2.c:805
+#: src/search_gui2.c:863
 msgid "New"
 msgstr "Neu"
 
@@ -2839,7 +2834,7 @@ msgstr ""
 
 #: src/interface-glade1.c:1682 src/interface-glade1.c:3573
 #: src/interface-glade1.c:4334 src/interface-glade1.c:4421 src/main_gui.c:109
-#: src/search_gui2.c:803
+#: src/search_gui2.c:861
 msgid "Search"
 msgstr "Suchen"
 
@@ -2948,7 +2943,7 @@ msgid "Uptime"
 msgstr "Uptime"
 
 #: src/interface-glade1.c:2116 src/nodes_gui2.c:142 src/search_gui.c:2220
-#: src/search_gui.c:2226 src/search_gui2.c:1213
+#: src/search_gui.c:2226 src/search_gui2.c:1292
 msgid "Info"
 msgstr "Info"
 
@@ -3311,7 +3306,7 @@ msgstr "Suche schließen"
 
 #: src/interface-glade1.c:3993 src/interface-glade2.c:10718
 #: src/search_gui.c:466 src/search_gui.c:1837 src/search_gui.c:1957
-#: src/search_gui2.c:420 src/search_gui2.c:883 src/search_gui2.c:1016
+#: src/search_gui2.c:420 src/search_gui2.c:939 src/search_gui2.c:1090
 msgid "(no search)"
 msgstr "(keine Suche)"
 
@@ -3836,7 +3831,7 @@ msgstr ""
 "Knoten zurückgeliefert werden sollen."
 
 #: src/interface-glade1.c:6513 src/interface-glade2.c:4360
-#: src/search_gui2.c:1275
+#: src/search_gui2.c:1354
 msgid "items"
 msgstr ""
 
@@ -5430,8 +5425,7 @@ msgid "_Close"
 msgstr "_Schließen"
 
 #: src/interface-glade2.c:1698
-msgid ""
-"@(#) $Id$"
+msgid "@(#) $Id$"
 msgstr ""
 
 #: src/interface-glade2.c:2050
@@ -6464,11 +6458,11 @@ msgstr ""
 msgid "%d files auto selected with %d sources by urn:sha1."
 msgstr ""
 
-#: src/search_gui.c:2169 src/search_gui.c:2175 src/search_gui2.c:1210
+#: src/search_gui.c:2169 src/search_gui.c:2175 src/search_gui2.c:1289
 msgid "Extension"
 msgstr "Endung"
 
-#: src/search_gui.c:2185 src/search_gui.c:2191 src/search_gui2.c:1212
+#: src/search_gui.c:2185 src/search_gui.c:2191 src/search_gui2.c:1291
 msgid "#"
 msgstr ""
 
@@ -6481,25 +6475,25 @@ msgstr "Geschw."
 msgid "%s%u item%s found"
 msgstr ""
 
-#: src/search_gui.c:2265 src/search_gui2.c:1277
+#: src/search_gui.c:2265 src/search_gui2.c:1356
 #, c-format
 msgid "%sNo items found"
 msgstr "%sKeine Dateien gefunden"
 
-#: src/search_gui.c:2267 src/search_gui2.c:1279
+#: src/search_gui.c:2267 src/search_gui2.c:1358
 msgid "No search"
 msgstr "Keine Suche"
 
-#: src/search_gui2.c:1271
+#: src/search_gui2.c:1350
 msgid "(passive search) "
 msgstr "(passive Suche)"
 
-#: src/search_gui2.c:1274
+#: src/search_gui2.c:1353
 #, c-format
 msgid "%s%u %s found"
 msgstr ""
 
-#: src/search_gui2.c:1275
+#: src/search_gui2.c:1354
 msgid "item"
 msgstr ""
 
@@ -6664,64 +6658,64 @@ msgstr "%u/%u Upload%s"
 msgid "%u/%u download%s"
 msgstr "%u/%u Download%s"
 
-#: src/shell.c:264
+#: src/shell.c:261
 msgid "Node added"
 msgstr "Knoten hinzugefügt"
 
-#: src/shell.c:267
+#: src/shell.c:264
 msgid "Invalid IP/Port"
 msgstr "IP/Port fehlerhaft"
 
-#: src/shell.c:273 src/shell.c:320
+#: src/shell.c:270 src/shell.c:317
 msgid "Unknown operation"
 msgstr "Unbekannte Operation"
 
-#: src/shell.c:284 src/shell.c:331 src/shell.c:388 src/shell.c:500
-#: src/shell.c:568
+#: src/shell.c:281 src/shell.c:328 src/shell.c:385 src/shell.c:497
+#: src/shell.c:565
 msgid "Malformed command"
 msgstr "Fehlerhaftes Kommando"
 
-#: src/shell.c:308
+#: src/shell.c:305
 msgid "Query string missing"
 msgstr "Suchanfrage fehlt"
 
-#: src/shell.c:315
+#: src/shell.c:312
 msgid "Search added"
 msgstr "Suche hinzugefügt"
 
-#: src/shell.c:355 src/shell.c:414 src/shell.c:530
+#: src/shell.c:352 src/shell.c:411 src/shell.c:527
 msgid "Property missing"
 msgstr "Eigenschaft fehlt"
 
-#: src/shell.c:368 src/shell.c:427 src/shell.c:543
+#: src/shell.c:365 src/shell.c:424 src/shell.c:540
 msgid "Unknown property"
 msgstr "Unbekannte Eigenschaft"
 
-#: src/shell.c:372
+#: src/shell.c:369
 msgid "Value: "
 msgstr "Wert:"
 
-#: src/shell.c:376
+#: src/shell.c:373
 msgid "Value found and displayed"
 msgstr "Wert gefunden und angezeigt"
 
-#: src/shell.c:438
+#: src/shell.c:435
 msgid "Value missing"
 msgstr "Wert fehlt"
 
-#: src/shell.c:482
+#: src/shell.c:479
 msgid "Type not supported"
 msgstr "Typ nicht unterstützt"
 
-#: src/shell.c:486
+#: src/shell.c:483
 msgid "Value found and set"
 msgstr "Wert gefunden und gesetzt"
 
-#: src/shell.c:551
+#: src/shell.c:548
 msgid "Help: "
 msgstr "Hilfe:"
 
-#: src/shell.c:601
+#: src/shell.c:598
 #, c-format
 msgid ""
 "Horizon size (%u/%u nodes support HSEP):\n"
@@ -6730,11 +6724,11 @@ msgstr ""
 "Horizontgröße (%u/%u Knoten unterstützen HSEP):\n"
 "\n"
 
-#: src/shell.c:695
+#: src/shell.c:692
 msgid "Good bye"
 msgstr "Auf Wiedersehen"
 
-#: src/shell.c:728
+#: src/shell.c:725
 msgid "Unknown command"
 msgstr "Unbekanntes Kommando"
 
@@ -6812,3 +6806,7 @@ msgstr "Sende QUEUE, verbinde zurück..."
 #: src/uploads_gui_common.c:219
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE gesendet, warte auf Kopfzeilen..."
+
+#, fuzzy
+#~ msgid "Queued (%d active/ %d passive)"
+#~ msgstr "In Warteschlange (%d aktiv, %d passiv)"

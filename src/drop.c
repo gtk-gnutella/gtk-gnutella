@@ -159,6 +159,7 @@ static gboolean handle_magnet(gchar *url)
 			}
 
 			p = q + sizeof "http://" - 1;
+
 			if (gchar_to_ip_strict(p, &addr, (const gchar **) &ep)) {
 				p = ep;
 			} else {

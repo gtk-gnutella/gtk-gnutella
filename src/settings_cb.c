@@ -152,7 +152,7 @@ void on_entry_config_force_ip_activate
    	gchar *e;
 	guint32 ip;
 	e = STRTRACK(gtk_editable_get_chars(
-        GTK_EDITABLE(lookup_widget(main_window, "entry_config_force_ip")), 
+        GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_config_force_ip")), 
         0, -1));
 	g_strstrip(e);
 	ip = gchar_to_ip(e);
@@ -169,7 +169,7 @@ void on_entry_config_force_ip_changed
 	g_strstrip(e);
 
 	gtk_widget_set_sensitive(
-        lookup_widget(main_window, "checkbutton_config_force_ip"),
+        lookup_widget(dlg_prefs, "checkbutton_config_force_ip"),
         is_string_ip(e));
 
 	g_free(e);
@@ -181,7 +181,7 @@ void on_entry_server_hostname_activate
    	gchar *e;
 
 	e = STRTRACK(gtk_editable_get_chars(
-        GTK_EDITABLE(lookup_widget(main_window, "entry_server_hostname")), 
+        GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_server_hostname")), 
         0, -1));
 	g_strstrip(e);
 	gnet_prop_set_string(PROP_SERVER_HOSTNAME, e);
@@ -197,7 +197,7 @@ void on_entry_server_hostname_changed
 	g_strstrip(e);
 
 	gtk_widget_set_sensitive(
-        lookup_widget(main_window, "checkbutton_give_server_hostname"),
+        lookup_widget(dlg_prefs, "checkbutton_give_server_hostname"),
         strlen(e) > 3);		/* Minimum: "x.cx" */
 
 	g_free(e);

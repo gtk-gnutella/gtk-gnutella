@@ -50,7 +50,7 @@ static gchar gui_tmp[4096];
 void gui_update_files_scanned(void)
 {
     GtkLabel *label_files_scanned =
-        GTK_LABEL(lookup_widget(main_window, "label_files_scanned"));
+        GTK_LABEL(lookup_widget(dlg_prefs, "label_files_scanned"));
 
 	gm_snprintf(gui_tmp, sizeof(gui_tmp),
 		(shared_files_scanned() == 1) ?
@@ -63,7 +63,7 @@ void gui_update_files_scanned(void)
 void gui_allow_rescan_dir(gboolean flag)
 {
 	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_config_rescan_dir"), flag);
+        (lookup_widget(dlg_prefs, "button_config_rescan_dir"), flag);
 }
 
 /**
@@ -363,4 +363,3 @@ void gui_merge_window_as_tab(GtkWidget *toplvl, GtkWidget *notebook,
 
 /* vi: set ts=4 sw=4 cindent: */
 #endif	/* USE_GTK2 */
-

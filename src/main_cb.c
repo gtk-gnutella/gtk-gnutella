@@ -74,6 +74,10 @@ void on_menu_about_activate(GtkMenuItem *menuitem, gpointer user_data)
     gtk_widget_show(dlg_about);
 }
 
+void on_menu_prefs_activate(GtkMenuItem *menuitem, gpointer user_data)
+{
+    gtk_widget_show(dlg_prefs);
+}
 
 
 
@@ -93,6 +97,21 @@ gboolean on_dlg_about_delete_event
 	return TRUE;
 }
 
+/***
+ *** prefs dialog
+ ***/
+
+void on_button_prefs_close_clicked(GtkButton *button, gpointer user_data)
+{
+    gtk_widget_hide(dlg_prefs);
+}
+
+gboolean on_dlg_prefs_delete_event
+    (GtkWidget *widget, GdkEvent *event, gpointer user_data)
+{
+	gtk_widget_hide(dlg_prefs);
+	return TRUE;
+}
 
 
 /***
