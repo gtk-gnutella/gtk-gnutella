@@ -56,6 +56,7 @@
 #include "guid.h"
 #include "pproxy.h"
 #include "features.h"
+#include "gnet_stats.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -4007,22 +4008,6 @@ err_header_read_eof(gpointer o)
 
 	if (header_lines(header) == 0) {
 		/*
-		 * If the connection was flagged keep-alive, we were making
-		 * a follow-up request but the server did not honour it and
-		 * closed the connection (probably after serving the last byte
-		 * of the previous request).
-		 *		--RAM, 01/09/2002
-		 *
-		 * If server shrunk our reply, then it's probably a server
-		 * implementing some kind of "rotating" queues.  Don't activate
-		 * the "no keepalive" attribute then.
-		 *		--RAM, 05/07/2003
-		 */
-
-		if (d->keep_alive && !(d->flags & DL_F_SHRUNK_REPLY))
-			d->server->attrs |= DLS_A_NO_KEEPALIVE;
-
-		/*
 		 * Maybe we sent HTTP header continuations and the server does not
 		 * understand them, breaking the connection on "invalid" request.
 		 * Use minimalist HTTP then when talking to this server!
@@ -4327,7 +4312,6 @@ download_write_data(struct download *d)
 			extra, extra == 1 ? "" : "s", download_outname(d));
 		s->pos -= extra;
 		trimmed = TRUE;
-		d->server->attrs |= DLS_A_NO_KEEPALIVE;		/* Since we have to trim */
 		g_assert(s->pos > 0);	/* We had not reached range_end previously */
 	}
 
@@ -5581,10 +5565,6 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		if (!d->always_push && d->sha1)
 			dmesh_add(d->sha1, ip, port, d->record_index, d->file_name, 0);
 
-		/* If connection is not kept alive, remember it for this server */
-		if (!d->keep_alive)
-			d->server->attrs |= DLS_A_NO_KEEPALIVE;
-
 		download_passively_queued(d, FALSE);
 		download_actively_queued(d, FALSE);
 
@@ -5655,15 +5635,6 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			/* Make sure we're waiting for the right file, collect alt-locs */
 			if (!check_content_urn(d, header))
 				return;
-			/*
-			 * If we made a follow-up request, mark host as not reliable.
-			 *
-			 * We know 503 means really "busy" here and not "range not
-			 * available" because we already checked for PFSP above.
-			 */
-
-			if (is_followup)
-				d->server->attrs |= DLS_A_NO_KEEPALIVE;
 
 			/* FALL THROUGH */
 		case 408:				/* Request timeout */
@@ -6533,17 +6504,7 @@ picked:
 
 	d->range_end = download_filesize(d);
 
-	if (
-		(d->server->attrs & (DLS_A_NO_KEEPALIVE|DLS_A_HTTP_1_1)) !=
-			DLS_A_HTTP_1_1
-	) {
-		/* Request only a lower-bounded range, if needed */
-
-		if (d->skip)
-			rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
-				"Range: bytes=%u-\r\n",
-				d->skip - d->overlap_size);
-	} else {
+	if (d->server->attrs & DLS_A_HTTP_1_1) {
 		/* Request exact range, unless we're asking for the full file */
 
 		if (d->size != download_filesize(d)) {
@@ -6555,6 +6516,13 @@ picked:
 				"Range: bytes=%u-%u\r\n",
 				start, d->range_end - 1);
 		}
+	} else {
+		/* Request only a lower-bounded range, if needed */
+
+		if (d->skip)
+			rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+				"Range: bytes=%u-\r\n",
+				d->skip - d->overlap_size);
 	}
 
 	g_assert(rw + 3U < sizeof(dl_tmp));		/* Should not have filled yet! */
@@ -6633,17 +6601,6 @@ picked:
 	socket_tos_normal(s);
 
 	if (-1 == (sent = bws_write(bws.out, &s->wio, dl_tmp, rw))) {
-		/*
-		 * If the connection was flagged keep-alive, we were making
-		 * a follow-up request but the server did not honour it and
-		 * closed the connection (probably after serving the last byte
-		 * of the previous request).
-		 *		--RAM, 01/09/2002
-		 */
-
-		if (d->keep_alive)
-			d->server->attrs |= DLS_A_NO_KEEPALIVE;
-
 		/*
 		 * If download is queued with PARQ, don't stop the download on a write
 		 * error or we'd loose the PARQ ID, and the download entry.  If the
@@ -6887,6 +6844,8 @@ download_push_ack(struct gnutella_socket *s)
 
 	g_assert(s->getline);
 	giv = getline_str(s->getline);
+
+	gnet_stats_count_general(NULL, GNR_GIV_CALLBACKS, 1);
 
 	if (dbg > 4) {
 		printf("----Got GIV from %s:\n", ip_to_gchar(s->ip));

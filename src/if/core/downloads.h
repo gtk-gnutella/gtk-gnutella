@@ -216,9 +216,9 @@ struct download {
  * Server attributes.
  */
 
-#define DLS_A_UNUSED		0x00000001	/* UNUSED */
+#define DLS_A_UNUSED_1		0x00000001	/* UNUSED */
 #define DLS_A_PUSH_IGN		0x00000002	/* Ignore pushes and connect directly */
-#define DLS_A_NO_KEEPALIVE	0x00000004	/* No persistent connection */
+#define DLS_A_UNUSED_2		0x00000004	/* UNUSED */
 #define DLS_A_HTTP_1_1		0x00000008	/* Server supports HTTP/1.1 */
 #define DLS_A_MINIMAL_HTTP	0x00000010	/* Use minimalist HTTP with server */
 #define DLS_A_BANNING		0x00000020	/* Server might be banning us */
