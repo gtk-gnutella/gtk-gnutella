@@ -32,6 +32,9 @@
 
 RCSID("$Id$");
 
+#define PARQ_RETRY_SAFETY	40		/* 40 seconds before lifetime */
+#define PARQ_TIMER_BY_POS	30		/* 30 seconds for each queue position */
+
 /*
  * get_header_version
  * 
@@ -262,6 +265,7 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 	gchar *value;
 	gint major, minor;
 	gint header_value_length;
+	gint retry;
 
 	g_assert(d != NULL);
 	g_assert(header != NULL);
@@ -320,12 +324,28 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 	value = get_header_value(buf, "ETA", NULL);
 	d->queue_status.ETA  = value == NULL ? 0 : get_integer(value);
 
+	/*
+	 * If we're not in the first position, lower our retry rate.
+	 * We try to retry every 60 seconds when in position 2, every 90 in
+	 * position 3, and so on.  If we fall out of range, adjust: we must not
+	 * poll before the minimum specified by `retry_delay', and we try to
+	 * poll again at least 40 seconds before `lifetime' to avoid being
+	 * kicked out.
+	 *		--RAM, 22/02/2003
+	 */
 
-	if (dbg) {
-		printf("Queue version: %d.%d, position %d out of %d, retry in %ds\n",
+	retry = d->queue_status.position * PARQ_TIMER_BY_POS;
+
+	if (retry > (d->queue_status.lifetime - PARQ_RETRY_SAFETY))
+		retry = d->queue_status.lifetime - PARQ_RETRY_SAFETY;
+	if (retry < d->queue_status.retry_delay)
+		retry = d->queue_status.retry_delay;
+
+	if (dbg)
+		printf("Queue version: %d.%d, position %d out of %d,"
+			" retry in %ds within [%d, %d]\n",
 			major, minor, d->queue_status.position, d->queue_status.length,
-			d->queue_status.retry_delay);
-	}
+			retry, d->queue_status.retry_delay, d->queue_status.lifetime);
 	
 	if (parq_download_is_active_queued(d)) {
 		/*
@@ -337,7 +357,7 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 		d->status = GTA_DL_ACTIVE_QUEUED;
 	}
 	
-	d->timeout_delay = d->queue_status.retry_delay;
+	d->timeout_delay = retry;
 
 	return TRUE;		/* OK */
 }
