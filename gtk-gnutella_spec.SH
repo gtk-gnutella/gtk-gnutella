@@ -37,7 +37,7 @@ Source: %{name}-%{version}.tar.gz
 License: GPL
 Group: Applications/Internet
 BuildRoot: %{_tmppath}/%{name}-root
-BuildPreReq: gtk2-devel glib2-devel libglade2-devel libxml2-devel bison
+BuildPreReq: gtk+-devel glib-devel libglade-devel libxml2-devel bison
 
 %description
 Gtk-Gnutella is a GUI based Gnutella p2p servent. It's a fully featured  
@@ -51,7 +51,7 @@ Passive/Active Remote Queueing (PARQ).
 %build
 ./Configure -Dprefix=%_prefix -Dbindir=%_bindir -Dprivlib=%_datadir/%name \
 	-Dsysman=%_mandir/man1 -Dccflags="-Wall" -Dcc=gcc \
-	-Doptimize="-g -O2" -Dyacc="bison -y" -Dgtkversion=2  \
+	-Doptimize="-g -O2" -Dyacc="bison -y" -Dgtkversion=1  \
 	-Dofficial=true -ders
 
 %install
