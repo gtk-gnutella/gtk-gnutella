@@ -434,18 +434,40 @@ void tree_view_save_widths(GtkTreeView *treeview, property_t prop)
 {
 	gint i;
 
-	for (i = 0; /* empty */ ; i++) {
-		GtkTreeViewColumn *column;
+	g_assert(treeview);
+
+	for (i = 0; i < INT_MAX; i++) {
+		GtkTreeViewColumn *c;
 		guint32 width;
 
-		column = gtk_tree_view_get_column(treeview, i);
-		if (NULL == column)
+		c = gtk_tree_view_get_column(treeview, i);
+		if (!c)
 			break;
 
-		width = gtk_tree_view_column_get_width(column);
-		gui_prop_set_guint32(prop, &width, i, 1);
+		width = gtk_tree_view_column_get_width(c);
+		if ((gint) width > 0)
+			gui_prop_set_guint32(prop, &width, i, 1);
 	}
 }
+
+void tree_view_save_visibility(GtkTreeView *treeview, property_t prop)
+{
+	guint i;
+
+	g_assert(treeview);
+
+	for (i = 0; i < INT_MAX; i++) {
+		GtkTreeViewColumn *c;
+		guint32 val;
+
+		c = gtk_tree_view_get_column(treeview, i);
+		if (!c)
+			break;
+		val = gtk_tree_view_column_get_visible(c);
+		gui_prop_set_boolean(prop, &val, i, 1);
+	}
+}
+
 
 #endif /* USE_GTK2 */
 
