@@ -103,14 +103,6 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"
 
-#if G_BYTE_ORDER == G_BIG_ENDIAN
-#define guint64_to_LE(x)	GUINT64_SWAP_LE_BE(x)
-#elif G_BYTE_ORDER == G_LITTLE_ENDIAN
-#define guint64_to_LE(x)	x
-#else
-#error "Byte order not supported"
-#endif
-
 /* global HSEP table */
 static hsep_triple hsep_global_table[HSEP_N_MAX+1];
 

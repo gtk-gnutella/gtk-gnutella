@@ -26,6 +26,16 @@
 #ifndef _endian_h_
 #define _endian_h_
 
+#if G_BYTE_ORDER == G_BIG_ENDIAN
+#define guint64_to_BE(x)	x
+#define guint64_to_LE(x)	GUINT64_SWAP_LE_BE(x)
+#elif G_BYTE_ORDER == G_LITTLE_ENDIAN
+#define guint64_to_BE(x)	GUINT64_SWAP_LE_BE(x)
+#define guint64_to_LE(x)	x
+#else
+#error "Byte order not supported"
+#endif
+
 /*
  * Macros
  *
@@ -34,6 +44,10 @@
  * the value is copied from "v", which can therefore be a manifest value.
  *
  * WATCH OUT: the order of the arguments for READ and WRITE is inverted.
+ */
+
+/*
+ * 16-bit
  */
 
 #define READ_GUINT16_LE(a,v) G_STMT_START { \
@@ -52,6 +66,10 @@
     guint16 _v = htons(v); memcpy(a, &_v, 2); \
 } G_STMT_END
 
+/*
+ * 32-bit
+ */
+
 #define READ_GUINT32_LE(a,v) G_STMT_START { \
     memcpy(&v, a, 4); v = GUINT32_FROM_LE(v); \
 } G_STMT_END
@@ -66,6 +84,26 @@
 
 #define WRITE_GUINT32_BE(v,a) G_STMT_START { \
     guint32 _v = htonl(v); memcpy(a, &_v, 4); \
+} G_STMT_END
+
+/*
+ * 64-bit
+ */
+
+#define READ_GUINT64_BE(a,v) G_STMT_START { \
+    memcpy(&v, a, sizeof v); v = guint64_to_BE(v); \
+} G_STMT_END
+
+#define READ_GUINT64_LE(a,v) G_STMT_START { \
+    memcpy(&v, a, sizeof v); v = guint64_to_LE(v); \
+} G_STMT_END
+
+#define WRITE_GUINT64_BE(v,a) G_STMT_START { \
+    guint64 _v = guint64_to_BE(v); memcpy(a, &_v, sizeof _v); \
+} G_STMT_END
+
+#define WRITE_GUINT64_LE(v,a) G_STMT_START { \
+    guint64 _v = guint64_to_LE(v); memcpy(a, &_v, sizeof _v); \
 } G_STMT_END
 
 #endif /* _endian_h_ */
