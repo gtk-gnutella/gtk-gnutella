@@ -77,7 +77,7 @@ gboolean http_send_status(
 	http_extra_desc_t *hev, gint hevcnt,
 	const gchar *reason, ...)
 {
-	gchar header[1536];			/* 1.5 K max */
+	gchar header[2560];			/* 2.5 K max */
 	gchar status_msg[512];
 	gint rw;
 	gint mrw;
