@@ -1725,6 +1725,7 @@ static inline struct parq_ul_queued *parq_upload_find(gnutella_upload_t *u)
 	g_assert(u != NULL);
 	g_assert(ul_all_parq_by_ip_and_name != NULL);
 	g_assert(ul_all_parq_by_id != NULL);
+	g_assert(u->name != NULL);
 	
 	if (u->parq_opaque != NULL)
 		return (struct parq_ul_queued *) u->parq_opaque;
@@ -2204,6 +2205,8 @@ static void parq_upload_update_ip_and_name(struct parq_ul_queued *parq_ul,
 	gnutella_upload_t *u)
 {
 	g_assert(parq_ul != NULL);
+	g_assert(u != NULL);
+	g_assert(u->name != NULL);
 	
 	if (parq_ul->ip_and_name != NULL) {
 		g_hash_table_remove(ul_all_parq_by_ip_and_name, parq_ul->ip_and_name);
@@ -2473,6 +2476,8 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
 	time_t now = time((time_t *) NULL);
 	time_t org_retry = parq_ul->retry; 
+	
+	g_assert(u != NULL);
 	
 	parq_ul->chunk_size = abs(u->skip - u->end);
 	parq_ul->updated = now;
