@@ -1,24 +1,30 @@
 /*
- * Main Jmakefile for dist 3.0
+ * $Id$
+ *
+ * Copyright (c) 2001-2003, Raphael Manfredi
+ *
+ * Main Jmakefile for gtk-gnutella.
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 ;# $Id$
-;#
-;#  @COPYRIGHT@
-;#
-;# $Log$
-;# Revision 1.1  2003/08/09 22:20:30  rmanfredi
-;# Added metaconfig files.
-;#
-;# Revision 3.0.1.2  1995/07/25  13:29:41  ram
-;# patch56: re-ordered macros, moving the install at the end
-;#
-;# Revision 3.0.1.1  1994/01/24  13:42:41  ram
-;# patch16: added dependency generation stage
-;#
-;# Revision 3.0  1993/08/18  12:03:53  ram
-;# Baseline for dist 3.0 netwide release.
-;#
 
 /* >MANSRC		/* This should really become automated */
 

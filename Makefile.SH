@@ -55,20 +55,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 3.0.1.2 1995/07/25 13:29:41 ram Exp ram $
-#
-#  @COPYRIGHT@
-#
-# $X-Log: Jmakefile,v $
-# Revision 3.0.1.2  1995/07/25  13:29:41  ram
-# patch56: re-ordered macros, moving the install at the end
-#
-# Revision 3.0.1.1  1994/01/24  13:42:41  ram
-# patch16: added dependency generation stage
-#
-# Revision 3.0  1993/08/18  12:03:53  ram
-# Baseline for dist 3.0 netwide release.
-#
+# $X-Id: Jmakefile,v 1.1 2003/08/09 22:20:30 rmanfredi Exp $
 
 all::
 
