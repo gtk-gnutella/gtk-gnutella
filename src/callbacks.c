@@ -22,7 +22,7 @@
 gchar c_tmp[2048];
 
 /***
-/*** Main window
+ *** Main window
  ***/
 
 gboolean on_main_window_delete_event(GtkWidget * widget, GdkEvent * event,
