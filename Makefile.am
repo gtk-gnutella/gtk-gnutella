@@ -56,7 +56,7 @@ dist-hook:
 	  done \
 	fi
 
-build-glade:
+glade_files:
 	cd src; $(MAKE) glade_files
 
 properties:
