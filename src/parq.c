@@ -948,8 +948,13 @@ void parq_download_add_header(
 				  "X-Queued: position=%d; ID=%s\r\n",
 				  get_parq_dl_position(d), get_parq_dl_id(d));
 	}
-	
-	if (!is_firewalled)
+
+	/*
+	 * Only send X-Node if not firewalled and the listen IP/port combination
+	 * we're claiming is "valid".
+	 */
+
+	if (!is_firewalled && host_is_valid(listen_ip(), listen_port))
 		*rw += gm_snprintf(&buf[*rw], len - *rw,
 		  	  "X-Node: %s\r\n", 
 			  ip_port_to_gchar(listen_ip(), listen_port));
