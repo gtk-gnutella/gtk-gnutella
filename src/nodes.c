@@ -407,11 +407,13 @@ void node_timer(time_t now)
 					rxfc->start_half_period = now;
 
 					fc_ratio = (gdouble) total / (2.0 * NODE_RX_FC_HALF_PERIOD);
+					fc_ratio *= 100.0;
 
 					if ((gint) fc_ratio > node_rx_flowc_ratio) {
 						node_bye(n, 405,
-							"Remotely flow-controlled too often (%d%% of time)",
-							(gint) fc_ratio);
+							"Remotely flow-controlled too often "
+							"(%.2f%% > %d%% of time)",
+							fc_ratio, node_rx_flowc_ratio);
 						return;
 					}
 
@@ -2111,6 +2113,52 @@ static gboolean node_can_accept_connection(
 }
 
 /*
+ * node_can_accept_protocol
+ *
+ * Check whether we can accept a servent supporting a foreign protocol.
+ * When `handshaking' is TRUE, we are still within an handshake so we
+ * can reply with an error.  Otherwise, caller will need to send a BYE.
+ *
+ * Returns TRUE if OK, FALSE if connection was denied.
+ */
+static gboolean node_can_accept_protocol(
+	struct gnutella_node *n, header_t *head, gboolean handshaking)
+{
+	gchar *field;
+
+	/*
+	 * Accept -- protocols supported
+	 *
+	 * We ban ultrapeers claiming support for "application/x-gnutella2" if
+	 * we are an ultranode ourselves.
+	 *
+	 * Study has shown that this closed protocol is not inter-operating
+	 * well with Gnutella: it is more comparable to massive leaching.
+	 * See the various GDF articles written on the subject that prove this.
+	 *		--RAM, 25/01/2003
+	 */
+
+	field = header_get(head, "Accept");
+	if (field) {
+		if (
+			current_peermode != NODE_P_LEAF &&
+			!(n->flags & NODE_F_LEAF) &&
+			strstr(field, "application/x-gnutella2")	// XXX parse the ","
+		) {
+			gchar *msg = "Protocol not acceptable";
+
+			if (handshaking) {
+				send_node_error(n->socket, 406, msg);
+				node_remove(n, msg);
+			}
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+/*
  * node_process_handshake_ack
  *
  * This routine is called to process the whole 0.6+ final handshake header
@@ -2122,6 +2170,7 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	gboolean ack_ok;
 	gchar *field;
 	gboolean qrp_final_set = FALSE;
+	gboolean acceptable;
 
 	if (dbg) {
 		printf("Got final acknowledgment headers from node %s:\n",
@@ -2195,6 +2244,15 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	}
 
 	/*
+	 * Check that remote host speaks a protocol we can accept.
+	 *
+	 * We cannot send the BYE until we called node_is_now_connected(),
+	 * but that call will clean up `head', so we need to check now, BYE later.
+	 */
+
+	acceptable = node_can_accept_protocol(n,  head, FALSE);
+
+	/*
 	 * Install new node.
 	 */
 
@@ -2222,6 +2280,15 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 				(guint) n->qrp_major, (guint) n->qrp_minor);
 			return;
 		}
+	}
+
+	/*
+	 * If remote host speaks a foreign protocol, good bye.
+	 */
+
+	if (!acceptable) {
+		node_bye(n, 406, "Protocol not acceptable");
+		return;
 	}
 
 	/*
@@ -2613,6 +2680,13 @@ static void node_process_handshake_header(
 			g_warning("node %s <%s> is not an ultrapeer but sent the "
 				"X-Ultrapeer-Needed header",
 				node_ip(n), n->vendor ? n->vendor : "????");
+
+		/*
+		 * Check that remote host speaks a protocol we can accept.
+		 */
+
+		if (!node_can_accept_protocol(n,  head, TRUE))
+			return;
 
 		/*
 		 * Prepare our final acknowledgment.
@@ -3316,7 +3390,7 @@ static void node_parse(struct gnutella_node *node)
 				node_fire_node_flags_changed(n);
 			}
 		}
-		break;
+		goto reset_header;
 	case GTA_MSG_SEARCH_RESULTS:	/* "semi-pongs" */
 		if (host_low_on_pongs) {
 			guint32 ip;
