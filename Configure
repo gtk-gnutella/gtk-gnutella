@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Thu Aug 14 23:08:08 MEST 2003 [metaconfig 3.0 PL70]
+# Generated on Fri Aug 15 22:11:29 MEST 2003 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -229,6 +229,9 @@ RCSfile=''
 Revision=''
 Source=''
 State=''
+_a=''
+_exe=''
+_o=''
 archobjs=''
 firstmakefile=''
 afs=''
@@ -322,6 +325,11 @@ libs=''
 lns=''
 locale=''
 localeexp=''
+make_set_make=''
+installmansrc=''
+manext=''
+mansrc=''
+mansrcexp=''
 mkdep=''
 huge=''
 large=''
@@ -420,7 +428,7 @@ inclwanted=''
 
 : default library list
 libswanted=''
-libswanted='sendfile z icuuc intl'
+libswanted='sendfile z icuuc intl resolv'
 
 : Find the basic shell for Bourne shell scripts
 case "$sh" in
@@ -1183,6 +1191,7 @@ chown
 echo
 expr
 grep
+make
 mkdir
 mv
 rm
@@ -1203,6 +1212,7 @@ gmsgfmt
 ln
 msgfmt
 msgmerge
+nroff
 test
 uname
 xgettext
@@ -1970,6 +1980,112 @@ else
 	installbin="$binexp"
 fi
 
+: determine where manual pages are on this system
+echo " "
+case "$sysman" in
+'') 
+	syspath='/usr/man/man1 /usr/man/mann /usr/man/manl /usr/man/local/man1'
+	syspath="$syspath /usr/man/u_man/man1 /usr/share/man/man1"
+	syspath="$syspath /usr/catman/u_man/man1 /usr/man/l_man/man1"
+	syspath="$syspath /usr/local/man/u_man/man1 /usr/local/man/l_man/man1"
+	syspath="$syspath /usr/man/man.L /local/man/man1 /usr/local/man/man1"
+	sysman=`./loc . /usr/man/man1 $syspath`
+	;;
+esac
+if $test -d "$sysman"; then
+	echo "System manual is in $sysman." >&4
+else
+	echo "Could not find manual pages in source form." >&4
+fi
+
+: set the prefixup variable, to restore leading tilda escape
+prefixup='case "$prefixexp" in
+"$prefix") ;;
+*) eval "$1=\`echo \$$1 | sed \"s,^$prefixexp,$prefix,\"\`";;
+esac'
+
+: determine where manual pages go
+set mansrc mansrc none
+eval $prefixit
+$cat <<EOM
+
+$spackage has manual pages available in source form.
+EOM
+case "$nroff" in
+nroff)
+	echo "However, you don't have nroff, so they're probably useless to you."
+	case "$mansrc" in
+	'') mansrc="none";;
+	esac;;
+esac
+echo "If you don't want the manual sources installed, answer 'none'."
+case "$mansrc" in
+'')
+	lookpath="$prefixexp/share/man/man1 $prefixexp/man/man1"
+	lookpath="$lookpath $prefixexp/man/u_man/man1 $prefixexp/man/l_man/man1"
+	lookpath="$lookpath /usr/local/man/man1 /opt/man/man1 /usr/man/manl"
+	lookpath="$lookpath /usr/share/man/man1 /usr/local/share/man/man1"
+	lookpath="$lookpath /usr/man/local/man1 /usr/man/l_man/man1"
+	lookpath="$lookpath /usr/local/man/u_man/man1 /usr/local/man/l_man/man1"
+	lookpath="$lookpath /usr/man/man.L"
+	mansrc=`./loc . $prefixexp/man/man1 $lookpath`
+	if $test -d "$mansrc"; then
+		dflt="$mansrc"
+	else
+		dflt="$sysman"
+	fi
+	set dflt
+	eval $prefixup
+	;;
+' ') dflt=none;;
+*)  dflt="$mansrc"
+	;;
+esac
+echo " "
+fn=dn~
+rp='Where do the manual pages (source) go?'
+. ./getfile
+if test "X$mansrcexp" != "X$ansexp"; then
+	installmansrc=''
+fi
+mansrc="$ans"
+mansrcexp="$ansexp"
+case "$mansrc" in
+'') mansrc=' '
+	installmansrc='';;
+esac
+if $afs && $test "$mansrc"; then
+	$cat <<EOM
+
+Since you are running AFS, I need to distinguish the directory in which
+manual pages reside from the directory in which they are installed (and from
+which they are presumably copied to the former directory by occult means).
+
+EOM
+	case "$installmansrc" in
+	'') dflt=`echo $mansrcexp | sed 's#^/afs/#/afs/.#'`;;
+	*) dflt="$installmansrc";;
+	esac
+	fn=de~
+	rp='Where will man pages be installed?'
+	. ./getfile
+	installmansrc="$ans"
+else
+	installmansrc="$mansrcexp"
+fi
+
+case "$mansrc" in
+' ') manext='0';;
+*l) manext=l;;
+*n) manext=n;;
+*o) manext=l;;
+*p) manext=n;;
+*C) manext=C;;
+*L) manext=L;;
+*L1) manext=L1;;
+*) manext=1;;
+esac
+
 : determine where private executables go
 set dflt privlib lib/$package
 eval $prefixit
@@ -2005,30 +2121,6 @@ EOM
 	installprivlib="$ans"
 else
 	installprivlib="$privlibexp"
-fi
-
-: set the prefixup variable, to restore leading tilda escape
-prefixup='case "$prefixexp" in
-"$prefix") ;;
-*) eval "$1=\`echo \$$1 | sed \"s,^$prefixexp,$prefix,\"\`";;
-esac'
-
-: determine where manual pages are on this system
-echo " "
-case "$sysman" in
-'') 
-	syspath='/usr/man/man1 /usr/man/mann /usr/man/manl /usr/man/local/man1'
-	syspath="$syspath /usr/man/u_man/man1 /usr/share/man/man1"
-	syspath="$syspath /usr/catman/u_man/man1 /usr/man/l_man/man1"
-	syspath="$syspath /usr/local/man/u_man/man1 /usr/local/man/l_man/man1"
-	syspath="$syspath /usr/man/man.L /local/man/man1 /usr/local/man/man1"
-	sysman=`./loc . /usr/man/man1 $syspath`
-	;;
-esac
-if $test -d "$sysman"; then
-	echo "System manual is in $sysman." >&4
-else
-	echo "Could not find manual pages in source form." >&4
 fi
 
 : see what memory models we can support
@@ -2185,13 +2277,15 @@ echo exit 1 >eunice
 echo exit 1 >xenix
 echo exit 1 >venix
 echo exit 1 >os2
+echo exit 1 >gnu
+echo exit 1 >linux
 d_bsd="$undef"
 $cat /usr/include/signal.h /usr/include/sys/signal.h >foo 2>/dev/null
 if test -f /osf_boot || $contains 'OSF/1' /usr/include/ctype.h >/dev/null 2>&1
 then
 	echo "Looks kind of like an OSF/1 system, but we'll see..."
 	echo exit 0 >osf1
-elif test `echo abc | tr a-z A-Z` = Abc ; then
+elif test `echo abc | $tr a-z A-Z` = Abc ; then
 	xxx=`./loc addbib blurfl $pth`
 	if $test -f $xxx; then
 	echo "Looks kind of like a USG system with BSD features, but we'll see..."
@@ -2209,6 +2303,13 @@ elif $contains SIGTSTP foo >/dev/null 2>&1 ; then
 	echo "Looks kind of like a BSD system, but we'll see..."
 	d_bsd="$define"
 	echo exit 0 >bsd
+elif $tr --help 2>/dev/null | $contains gnu\\.org >/dev/null; then
+	xxx=`uname`
+	echo exit 0 >gnu
+	echo "Looks kind of like a GNU/$xxx system, but we'll see..."
+	if $test X$xxx = XLinux; then
+		echo exit 0 >linux
+	fi
 else
 	echo "Looks kind of like a Version 7 system, but we'll see..."
 	echo exit 0 >v7
@@ -2261,8 +2362,8 @@ else
 		echo "Nor is it Venix..."
 	fi
 fi
-chmod +x bsd usg v7 osf1 eunice xenix venix os2
-$eunicefix bsd usg v7 osf1 eunice xenix venix os2
+chmod +x bsd usg v7 osf1 eunice xenix venix os2 gnu linux
+$eunicefix bsd usg v7 osf1 eunice xenix venix os2 gnu linux
 $rm -f foo
 
 : see if we need a special compiler
@@ -3002,11 +3103,15 @@ case "$usenm" in
 		dflt=n
 		;;
 	*)
-		dflt=`$egrep 'inlibc|csym' $rsrc/Configure | wc -l 2>/dev/null`
-		if $test $dflt -gt 20; then
-			dflt=y
-		else
+		if ./gnu; then
 			dflt=n
+		else
+			dflt=`$egrep 'inlibc|csym' $rsrc/Configure | wc -l 2>/dev/null`
+			if $test $dflt -gt 20; then
+				dflt=y
+			else
+				dflt=n
+			fi
 		fi
 		;;
 	esac
@@ -4163,6 +4268,26 @@ case "$installdir" in
 *) echo "As you already told me, '$installdir' should work.";;
 esac
 
+echo " "
+echo "Checking if your $make program sets \$(MAKE)..." >&4
+case "$make_set_make" in
+'')
+	$sed 's/^X //' > testmake.mak << 'EOF'
+Xall:
+X 	@echo 'maketemp="$(MAKE)"'
+EOF
+	case "`$make -f testmake.mak 2>/dev/null`" in
+	*maketemp=*) make_set_make='#' ;;
+	*)	make_set_make="MAKE=$make" ;;
+	esac
+	$rm -f testmake.mak
+	;;
+esac
+case "$make_set_make" in
+'#') echo "Yup, it does.";;
+*) echo "Nope, it doesn't.";;
+esac
+
 : find out how to generate dependencies
 echo " "
 echo "Checking how to generate makefile dependencies on your machine..." >&4
@@ -4386,15 +4511,15 @@ $rm -f prototype*
 : check for void type
 echo " "
 echo "Checking to see how well your C compiler groks the void type..." >&4
-echo " "
-$cat >&4 <<EOM
+$cat >flags <<EOM
+
   Support flag bits are:
     1: basic void declarations.
     2: arrays of pointers to functions returning void.
     4: operations between pointers to and addresses of void functions.
     8: generic void pointers.
+
 EOM
-echo " "
 case "$voidflags" in
 '')
 	$cat >try.c <<'EOCP'
@@ -4423,13 +4548,15 @@ main() { sub(); }
 EOCP
 	if $cc $ccflags -c -DTRY=$defvoidused try.c >.out 2>&1 ; then
 		voidflags=$defvoidused
-	echo "It appears to support void to the level $package wants ($defvoidused)."
+	echo "It appears to support void to the level $package wants."
 		if $contains warning .out >/dev/null 2>&1; then
 			echo "However, you might get some warnings that look like this:"
 			$cat .out
 		fi
 	else
 echo "Hmm, your compiler has some difficulty with void. Checking further..." >&4
+		$cat flags
+		$rm -f flags
 		if $cc $ccflags -c -DTRY=1 try.c >/dev/null 2>&1; then
 			echo "It supports 1..."
 			if $cc $ccflags -c -DTRY=3 try.c >/dev/null 2>&1; then
@@ -4466,17 +4593,22 @@ echo "Hmm, your compiler has some difficulty with void. Checking further..." >&4
 			voidflags=0
 		fi
 	fi
+	;;
+"$defvoidused")
+	echo "I know it supports void to the level $package wants."
+	;;
 esac
 case "$voidflags" in
 "$defvoidused") ;;
 *)
 	dflt="$voidflags";
+	test -f flags && $cat flags
 	rp="Your void support flags add up to what?"
 	. ./myread
 	voidflags="$ans"
 	;;
 esac
-$rm -f try.* .out
+$rm -f try.* .out flags
 
 : determine compiler compiler
 echo " "
@@ -4712,6 +4844,9 @@ RCSfile='$RCSfile'
 Revision='$Revision'
 Source='$Source'
 State='$State'
+_a='$_a'
+_exe='$_exe'
+_o='$_o'
 afs='$afs'
 ar='$ar'
 archobjs='$archobjs'
@@ -4830,6 +4965,7 @@ inews='$inews'
 install='$install'
 installbin='$installbin'
 installdir='$installdir'
+installmansrc='$installmansrc'
 installprivlib='$installprivlib'
 ksh='$ksh'
 large='$large'
@@ -4853,6 +4989,10 @@ ls='$ls'
 mail='$mail'
 mailx='$mailx'
 make='$make'
+make_set_make='$make_set_make'
+manext='$manext'
+mansrc='$mansrc'
+mansrcexp='$mansrcexp'
 medium='$medium'
 mips='$mips'
 mips_type='$mips_type'

@@ -41,7 +41,7 @@ INSTALLDIR = $INSTALLDIR
 # Parameters set by Configure -- edit config.sh if changes are needed
 
 CTAGS = ctags
-MAKE = make
+$make_set_make
 MV = $mv
 PRIVLIB = $installprivlib
 RM = $rm -f
@@ -60,7 +60,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.4 2003/08/12 17:56:13 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.5 2003/08/14 20:36:22 rmanfredi Exp $
 
 EXTRA_FILES = \
 	gwcache.boot \
@@ -125,9 +125,15 @@ local_clobber:: local_realclean
 	$(RM) Makefile
 
 install: local_install sub_install
-install.man: local_install.man sub_install.man
+install.man: maybe_install.man sub_install.man
 deinstall: sub_deinstall local_deinstall
-deinstall.man: sub_deinstall.man local_deinstall.man
+deinstall.man: sub_deinstall.man maybe_deinstall.man
+
+install.man-no:
+deinstall.man-no:
+
+maybe_install.man: install.man-no
+maybe_deinstall.man: deinstall.man-no
 
 Makefile.SH: Jmakefile
 	-@if test -f $(TOP)/.package; then \
