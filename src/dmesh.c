@@ -2598,4 +2598,3 @@ void dmesh_close(void)
 	g_hash_table_foreach_remove(ban_mesh_by_sha1, dmesh_ban_sha1_free_kv, NULL);
 	g_hash_table_destroy(ban_mesh_by_sha1);
 }
-

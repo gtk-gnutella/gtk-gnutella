@@ -1530,7 +1530,7 @@ static gint http_async_build_request(gpointer handle, gchar *buf, gint len,
 		"\r\n",
 		verb, path, host, version_string);
 	
-	header_features_generate(&xfeatures.downloads, buf, sizeof(buf), &rw);
+	header_features_generate(&xfeatures.downloads, buf, len, &rw);
 	
 	return rw;
 }
