@@ -1889,6 +1889,8 @@ static gboolean download_start_prepare(struct download *d)
 	d->skip = 0;			/* We're setting it here only if not swarming */
 	d->keep_alive = FALSE;	/* Until proven otherwise by server's reply */
 
+	d->flags &= ~DL_F_OVERLAPPED;		/* Clear overlapping indication */
+
 	/*
 	 * If this file is swarming, the overlapping size and skipping offset
 	 * will be determined before making the requst, in download_pick_chunk().
@@ -3210,16 +3212,18 @@ static void download_write_data(struct download *d)
 	g_assert(s->pos > 0);
 
 	/*
-	 * If we have d->pos == d->skip and a non-zero overlapping window, then
-	 * the leading data we have in the buffer are overlapping data.
-	 *		--RAM, 12/01/2002
+	 * If we have an overlapping window and DL_F_OVERLAPPED is not set yet,
+	 * then the leading data we have in the buffer are overlapping data.
+	 *		--RAM, 12/01/2002, revised 23/11/2002
 	 */
 
-	if (d->overlap_size && d->pos == d->skip) {
+	if (d->overlap_size && !(d->flags & DL_F_OVERLAPPED)) {
+		g_assert(d->pos == d->skip);
 		if (s->pos < d->overlap_size)		/* Not enough bytes yet */
 			return;							/* Don't even write anything */
 		if (!download_overlap_check(d))		/* Mismatch on overlapped bytes? */
 			return;							/* Download was stopped */
+		d->flags |= DL_F_OVERLAPPED;		/* Don't come here again */
 		if (s->pos == 0)					/* No bytes left to write */
 			return;
 		/* FALL THROUGH */
