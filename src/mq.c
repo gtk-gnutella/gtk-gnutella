@@ -5,9 +5,10 @@
  */
 
 #include <stdlib.h>			/* For qsort() */
+#include <sys/types.h>		/* FreeBSD requires this before <sys/uio.h> */
 #include <sys/uio.h>		/* For struct iovec */
-#include <glib.h>
 
+#include "gnutella.h"		/* Needed to be able to compile with dmalloc */
 #include "appconfig.h"		/* For dbg */
 #include "nodes.h"
 #include "mq.h"
