@@ -30,6 +30,10 @@
    both save on memory and incite users to setup filters or emit more specific
    queries.
 
+- (2004-08-31 - Hans)
+ * Visual progress indicator now correctly shows previous and newly
+   downloaded chunks.
+   
 - (2004-08-30 - RAM)
  * Message queue now maintains whether queue is within the warn-zone range
    (between hiwat and lowat) to update node's flag as soon as the condition
@@ -61,6 +65,10 @@
  * Forgot to tie the GUI button for "convert_spaces" to the property, hence
    setting in the GUI had no effect.
 
+- (2004-08-28 - Hans)
+ * Move available ranges (blue line in visual progress) code from the gui
+   to the core.
+	
 - (2004-08-18 - RAM)
  * (move.c) Fixed stupid floating point exception on a debug message
    when elapsed == 0
