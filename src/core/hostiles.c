@@ -115,7 +115,7 @@ hostiles_load(FILE *f)
 			break;
 		case IPR_ERR_RANGE_OVERLAP:
 			error = iprange_add_cidr_force(hostile_db, ip, bits, THERE, NULL);
-			if (error == IPR_ERR_OK) {
+			if (dbg > 0 && error == IPR_ERR_OK) {
 				g_warning("%s: line %d: "
 					"entry \"%s\" (%s/%d) superseded earlier smaller range",
 					hostiles_file, linenum, line, ip_to_gchar(ip), bits);
@@ -123,9 +123,11 @@ hostiles_load(FILE *f)
 			}
 			/* FALL THROUGH */
 		default:
-			g_warning("%s, line %d: rejected entry \"%s\" (%s/%d): %s",
-				hostiles_file, linenum, line, ip_to_gchar(ip), bits,
-				iprange_strerror(error));
+			if (dbg > 0 || error != IPR_ERR_RANGE_SUBNET) {
+				g_warning("%s, line %d: rejected entry \"%s\" (%s/%d): %s",
+					hostiles_file, linenum, line, ip_to_gchar(ip), bits,
+					iprange_strerror(error));
+			}
 			continue;
 		}
 
