@@ -137,23 +137,32 @@ extern cqueue_t *callout_queue;
 static void gwc_add(gchar *url)
 {
 	gchar *url_atom;
-	gchar *old_url;
+	gchar *old_url = NULL;
 
-	/*
-	 * Don't add duplicates in the cache.
-	 */
+	for (;;) {
+		/*
+		 * Don't add duplicates in the cache.
+	  	 */
 
-	if (g_hash_table_lookup(gwc_known_url, url))
-		return;
+		if (g_hash_table_lookup(gwc_known_url, url))
+			return;
 
-	/*
-	 * Make sure the entry is well-formed.
-	 */
+		/*
+	 	 * Make sure the entry is well-formed.
+	 	 */
 
-	if (!http_url_parse(url, NULL, NULL, NULL)) {
-		g_warning("ignoring bad web cache URL \"%s\": %s",
-			url, http_url_strerror(http_url_errno));
-		return;
+		if (http_url_parse(url, NULL, NULL, NULL)) {
+			break;
+		} else {
+			if (http_url_errno == HTTP_URL_MISSING_URI && !old_url) {
+				old_url = url;
+				url = g_strconcat(old_url, "/", NULL);
+			} else {
+				g_warning("ignoring bad web cache URL \"%s\": %s",
+					url, http_url_strerror(http_url_errno));
+				return;
+			}
+		}
 	}
 
 	/*
@@ -165,6 +174,10 @@ static void gwc_add(gchar *url)
 
 	g_assert(url != NULL);
 	url_atom = atom_str_get(url);
+	if (old_url) {
+		/* This means we've appended a "/" to the original URL "url" */
+		G_FREE_NULL(url);
+	}
 
 	/*
 	 * Expire any entry present at the slot we're about to write into.
@@ -1164,3 +1177,5 @@ static void gwc_update_ip_url(void)
 		return;
 	gwc_update_this(current_url);
 }
+
+/* vi: set ts=4: */
