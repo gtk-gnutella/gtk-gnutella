@@ -100,33 +100,21 @@ gchar *msg_stats_label[] = {
 #define STATS_MSGS_MODE_PACKETS 1
 #define STATS_MSGS_MODE_REL 2
 
+enum {
+	GNET_STATS_NB_PAGE_GENERAL,
+	GNET_STATS_NB_PAGE_DROP_REASONS,
+	GNET_STATS_NB_PAGE_MESSAGES,
+	GNET_STATS_NB_PAGE_FLOWC,
+
+	GNET_STATS_NP_PAGE_NUMBER
+};
 
 static gint selected_type = MSG_TOTAL;
 static gint selected_flowc = 0;
 static gint gnet_stats_msgs_mode = 0;
 
-static void column_set_hidden(
-	GtkTreeView *treeview, const gchar *header_title, gboolean hidden)
-{
-	GList *list, *l;
-	const gchar *title;
+static void column_set_hidden(GtkTreeView *, const gchar *, gboolean);
 
-	g_assert(NULL != header_title); 
-	list = gtk_tree_view_get_columns(treeview);
-	g_assert(NULL != list); 
-
-	for (l = list; NULL != l; l = g_list_next(l))
-		if (NULL != l->data) {
-			gtk_object_get(GTK_OBJECT(l->data), "title", &title, NULL);
-			if (NULL != title && !strcmp(header_title, title)) {
-				gtk_tree_view_column_set_visible(GTK_TREE_VIEW_COLUMN(l->data),
-					hidden);
-				break;
-			}
-		}
-
-	g_list_free(list);
-}
 
 /***
  *** Callbacks
@@ -140,11 +128,10 @@ static void on_gnet_stats_column_resized(
 	guint32 width;
 	gint property;
 	gint column_id;
-	static gboolean lock = FALSE;
+	static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
 
-	if (lock)
+	if (!g_static_mutex_trylock(&mutex))
 		return;
-	lock = TRUE;
 
 	widget_name = gtk_widget_get_name(column->tree_view);
 	title = gtk_tree_view_column_get_title(column);
@@ -192,7 +179,7 @@ static void on_gnet_stats_column_resized(
 	}
 
 	gui_prop_set_guint32(property, &width, column_id, 1);
-	lock = FALSE;
+	g_static_mutex_unlock(&mutex);
 }
 
 static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
@@ -241,86 +228,100 @@ static void on_gnet_stats_fc_toggled(GtkWidget *widget, gpointer data)
 /***
  *** Private functions
  ***/
-G_INLINE_FUNC gchar *pkt_stat_str(const guint32 *val_tbl, gint type)
+
+static void column_set_hidden(
+	GtkTreeView *treeview, const gchar *header_title, gboolean hidden)
 {
-    static gchar strbuf[20];
+	GList *list, *l;
+	const gchar *title;
 
+	g_assert(NULL != header_title); 
+	list = gtk_tree_view_get_columns(treeview);
+	g_assert(NULL != list); 
+
+	for (l = list; NULL != l; l = g_list_next(l))
+		if (NULL != l->data) {
+			gtk_object_get(GTK_OBJECT(l->data), "title", &title, NULL);
+			if (NULL != title && !strcmp(header_title, title)) {
+				gtk_tree_view_column_set_visible(GTK_TREE_VIEW_COLUMN(l->data),
+					hidden);
+				break;
+			}
+		}
+
+	g_list_free(list);
+}
+
+G_INLINE_FUNC gchar *pkt_stat_str(
+	gchar *strbuf, gulong n, const guint32 *val_tbl, gint type)
+{
     if (val_tbl[type] == 0)
-        return "-";
-
-    if (gnet_stats_msgs_mode & STATS_MSGS_MODE_REL)
-        g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
+		g_strlcpy(strbuf, "-", n);
+    else if (gnet_stats_msgs_mode & STATS_MSGS_MODE_REL)
+        g_snprintf(strbuf, n, "%.2f%%", 
             (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
     else
-        g_snprintf(strbuf, sizeof(strbuf), "%u", val_tbl[type]);
+        g_snprintf(strbuf, n, "%u", val_tbl[type]);
 
     return strbuf;
 }
 
 
-G_INLINE_FUNC const gchar *byte_stat_str(const guint32 *val_tbl, gint type)
+G_INLINE_FUNC const gchar *byte_stat_str(
+	gchar *strbuf, gulong n, const guint32 *val_tbl, gint type)
 {
-    static gchar strbuf[20];
-
     if (val_tbl[type] == 0)
-        return  "-";
-
-    if (gnet_stats_msgs_mode & STATS_MSGS_MODE_REL) {
-        g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
+		g_strlcpy(strbuf, "-", n);
+    else if (gnet_stats_msgs_mode & STATS_MSGS_MODE_REL)
+        g_snprintf(strbuf, n, "%.2f%%", 
             (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
-        return strbuf;
-    } else
-        return compact_size(val_tbl[type]);
+    else
+        g_strlcpy(strbuf, compact_size(val_tbl[type]), n);
+
+	return strbuf;
 }
 
-G_INLINE_FUNC const gchar *drop_stat_str(const gnet_stats_t *stats, gint reason)
+G_INLINE_FUNC const gchar *drop_stat_str(
+	gchar *str, gulong n, const gnet_stats_t *stats, gint reason)
 {
-    static gchar strbuf[20];
     guint32 total = stats->pkg.dropped[MSG_TOTAL];
 
     if (stats->drop_reason[reason][selected_type] == 0)
-        return gnet_stats_drop_perc ? "-  " : "-";
-
-    if (gnet_stats_drop_perc)
-        g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
+		g_strlcpy(str, "-", n);
+    else if (gnet_stats_drop_perc)
+        g_snprintf(str, n, "%.2f%%", 
             (float)stats->drop_reason[reason][selected_type]/total*100);
     else
-        g_snprintf(strbuf, sizeof(strbuf), "%u", 
-            stats->drop_reason[reason][selected_type]);
+        g_snprintf(str, n, "%u", stats->drop_reason[reason][selected_type]);
 
-    return strbuf;
+    return str;
 }
 
 G_INLINE_FUNC const gchar *general_stat_str(
-	const gnet_stats_t *stats, gint type)
+	gchar *str, gulong n, const gnet_stats_t *stats, gint type)
 {
-    static gchar strbuf[20];
-
     if (stats->general[type] == 0)
-        return "-";
+        strlcpy(str, "-", n);
+    else if (type == GNR_QUERY_COMPACT_SIZE)
+        strlcpy(str, compact_size(stats->general[type]), n);
+    else
+        g_snprintf(str, n, "%u", stats->general[type]);
 
-    if (type == GNR_QUERY_COMPACT_SIZE) {
-        return compact_size(stats->general[type]);
-    } else {
-        g_snprintf(strbuf, sizeof(strbuf), "%u", stats->general[type]);
-        return strbuf;
-    }
+	return str;
 }
 
-G_INLINE_FUNC const gchar *flowc_stat_str(gulong value, gulong total)
+G_INLINE_FUNC const gchar *flowc_stat_str(
+	gchar *strbuf, gulong n, gulong value, gulong total)
 {
-    static gchar strbuf[20];
-
-	if (value == 0 || total == 0)
-		return "-";
-
-	if (FLOWC_MODE_ABS(selected_flowc)) {
+	if (value == 0 || total == 0) {
+		g_strlcpy(strbuf, "-", n);
+	} else if (FLOWC_MODE_ABS(selected_flowc)) {
 		if (FLOWC_MODE_BYTE(selected_flowc))	/* byte mode */
-			return compact_size(value);
+			g_strlcpy(strbuf, compact_size(value), n);
 		else									/* packet mode */
-       		g_snprintf(strbuf, sizeof(strbuf), "%lu", (gulong) value);
+       		g_snprintf(strbuf, n, "%lu", (gulong) value);
 	} else 
-		g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", (float) value/total*100.0);
+		g_snprintf(strbuf, n, "%.2f%%", (float) value/total*100.0);
 
     return strbuf;
 }
@@ -341,6 +342,157 @@ static void add_column(
 	g_object_notify(G_OBJECT(column), "width");
 	g_signal_connect(G_OBJECT(column), "notify::width",
 		(gpointer) on_gnet_stats_column_resized, NULL);
+}
+
+static void gnet_stats_update_general(const gnet_stats_t *stats)
+{
+    GtkTreeView *treeview;
+    GtkListStore *store;
+    GtkTreeIter iter;
+    gint n;
+	static gchar str[32];
+
+    treeview = GTK_TREE_VIEW(
+        lookup_widget(main_window, "treeview_gnet_stats_general"));
+	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
+	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
+
+	for (n = 0; n < GNR_TYPE_COUNT; n++) {
+		general_stat_str(str, sizeof(str), stats, n++);
+		gtk_list_store_set(store, &iter, 1, str, -1);
+		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
+	}
+}
+
+static void gnet_stats_update_drop_reasons(const gnet_stats_t *stats)
+{
+    GtkTreeView *treeview;
+    GtkListStore *store;
+    GtkTreeIter iter;
+    gint n;
+	static gchar str[32];
+
+    treeview = GTK_TREE_VIEW(
+        lookup_widget(main_window, "treeview_gnet_stats_drop_reasons"));
+	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
+	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
+
+	for (n = 0; n < MSG_DROP_REASON_COUNT; n++) {
+		drop_stat_str(str, sizeof(str), stats, n++);
+		gtk_list_store_set(store, &iter, 1, str, -1);
+		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
+	}
+
+}
+
+static void gnet_stats_update_messages(const gnet_stats_t *stats)
+{
+    GtkTreeView *treeview;
+    GtkListStore *store;
+    GtkTreeIter iter;
+    gint n;
+	static char str[5][32];
+
+    treeview = GTK_TREE_VIEW(
+        lookup_widget(main_window, "treeview_gnet_stats_messages"));
+	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
+	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
+
+    for (n = 0; n < MSG_TYPE_COUNT; n ++) {
+		if (gnet_stats_msgs_mode & STATS_MSGS_MODE_PACKETS) {
+			gtk_list_store_set(store, &iter,
+				c_gs_received,
+				pkt_stat_str(str[0], sizeof(str[0]), stats->pkg.received, n), 
+				c_gs_generated,
+				pkt_stat_str(str[1], sizeof(str[0]), stats->pkg.generated, n),
+				c_gs_dropped,
+				pkt_stat_str(str[2], sizeof(str[0]), stats->pkg.dropped, n),
+				c_gs_expired,
+				pkt_stat_str(str[3], sizeof(str[0]), stats->pkg.expired, n),
+				c_gs_relayed,
+				pkt_stat_str(str[4], sizeof(str[0]), stats->pkg.relayed, n),
+				-1);
+		} else { /* STATS_MSGS_MODE_BYTES */
+			gtk_list_store_set(store, &iter,
+				c_gs_received,
+				byte_stat_str(str[0], sizeof(str[0]), stats->byte.received, n),
+				c_gs_generated,
+				byte_stat_str(str[1], sizeof(str[0]), stats->byte.generated, n),
+				c_gs_dropped,
+				byte_stat_str(str[2], sizeof(str[0]), stats->byte.dropped, n),
+				c_gs_expired,
+				byte_stat_str(str[3], sizeof(str[0]), stats->byte.expired, n),
+				c_gs_relayed,
+				byte_stat_str(str[4], sizeof(str[0]), stats->byte.relayed, n),
+				-1);
+    	}
+		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
+	}
+
+}
+
+static void gnet_stats_update_flowc(const gnet_stats_t *stats) {
+    GtkTreeView *treeview;
+    GtkListStore *store;
+    GtkTreeIter iter;
+    gint n;
+	static gchar str[MSG_TYPE_COUNT][32];
+	const guint32 (*byte_counters)[MSG_TYPE_COUNT];
+	const guint32 (*pkg_counters)[MSG_TYPE_COUNT];
+
+    treeview = GTK_TREE_VIEW(
+        lookup_widget(main_window, "treeview_gnet_stats_flowc"));
+	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
+	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
+
+	if (FLOWC_MODE_HOPS(selected_flowc)) {
+		/* Hops mode */
+		pkg_counters = stats->pkg.flowc_hops;
+		byte_counters = stats->byte.flowc_hops;
+	} else {
+		/* TTL mode */
+		pkg_counters = stats->pkg.flowc_ttl;
+		byte_counters = stats->byte.flowc_ttl;
+	}
+
+	for (n = 0; n < MSG_TYPE_COUNT; n++) {
+		gint i;
+
+		if (FLOWC_MODE_PKTS(selected_flowc))	/* packet mode */
+			for (i = 0; i < STATS_FLOWC_COLUMNS; i++)
+				flowc_stat_str(str[i], sizeof(str[0]),
+					(gulong) pkg_counters[i][n],
+					(gulong) pkg_counters[i][MSG_TOTAL]);
+		else									/* byte mode */
+			for (i = 0; i < STATS_FLOWC_COLUMNS; i++) {
+				gulong	value;
+				gulong	total;
+		
+				value = byte_counters[i][n];
+				total = byte_counters[i][MSG_TOTAL];
+				if (FLOWC_MODE_HDRS(selected_flowc)) {
+					value += pkg_counters[i][n]
+						* sizeof(struct gnutella_header);
+					total += pkg_counters[i][MSG_TOTAL]
+						* sizeof(struct gnutella_header);
+				}
+				flowc_stat_str(str[i], sizeof(str[0]), value, total);
+			}
+
+		gtk_list_store_set(store, &iter,
+			1, str[0], 2, str[1], 3, str[2], 4, str[3], 5, str[4],
+			6, str[5], 7, str[6], 8, str[7], 9, str[8], -1);
+#if 0		
+		g_message("%-12s %-4s %-4s %-4s %-4s %-4s %-4s %-4s",
+			msg_type_str[n],
+			str[0], str[1], str[2], str[3], str[4], str[5], str[6]);
+#endif
+		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
+	}
+
+#if 0 
+	g_message(" ");
+#endif
 }
 
 /***
@@ -500,148 +652,43 @@ void gnet_stats_gui_init(void)
 		"toggled", G_CALLBACK(on_gnet_stats_msgs_abs_toggled), NULL);
 }
 
+
 void gnet_stats_gui_update(void)
 {
-    GtkTreeView *treeview;
-    GtkListStore *store;
-    GtkTreeIter iter;
-    gint n;
     gnet_stats_t stats;
-	static gboolean lock = FALSE;
-	gchar *str[MSG_TYPE_COUNT];
-	guint32 (*byte_counters)[MSG_TYPE_COUNT];
-	guint32 (*pkg_counters)[MSG_TYPE_COUNT];
+	static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
     gint current_page;
 
-	if (lock)
+	if (!g_static_mutex_trylock(&mutex))
 		return;
-
-	lock = TRUE;
-
+	
     current_page = gtk_notebook_get_current_page(
         GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
-    if (current_page != nb_main_page_gnet_stats) {
-		lock = FALSE;
-        return;
-	}
+    if (current_page != nb_main_page_gnet_stats)
+		goto cleanup;
 
     gnet_stats_get(&stats);
 
-    treeview = GTK_TREE_VIEW(
-        lookup_widget(main_window, "treeview_gnet_stats_messages"));
-	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
-	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
+    current_page = gtk_notebook_get_current_page(
+        GTK_NOTEBOOK(lookup_widget(main_window, "gnet_stats_notebook")));
 
-    for (n = 0; n < MSG_TYPE_COUNT; n ++)
-		if (gnet_stats_msgs_mode & STATS_MSGS_MODE_PACKETS) {
-			gtk_list_store_set(store, &iter,
-				c_gs_received, pkt_stat_str(stats.pkg.received, n), -1);
-			gtk_list_store_set(store, &iter,
-				c_gs_generated, pkt_stat_str(stats.pkg.generated, n), -1);
-			gtk_list_store_set(store, &iter,
-				c_gs_dropped, pkt_stat_str(stats.pkg.dropped, n), -1);
-			gtk_list_store_set(store, &iter,
-				c_gs_expired, pkt_stat_str(stats.pkg.expired, n), -1);
-			gtk_list_store_set(store, &iter,
-				c_gs_relayed, pkt_stat_str(stats.pkg.relayed, n), -1);
-			if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter))
-				break;
-		} else { /* STATS_MSGS_MODE_BYTES */
-			gtk_list_store_set(store, &iter,
-				c_gs_received, byte_stat_str(stats.byte.received, n), -1);
-			gtk_list_store_set(store, &iter,
-				c_gs_generated, byte_stat_str(stats.byte.generated, n), -1);
-			gtk_list_store_set(store, &iter,
-						c_gs_dropped, byte_stat_str(stats.byte.dropped, n), -1);
-			gtk_list_store_set(store, &iter,
-				c_gs_expired, byte_stat_str(stats.byte.expired, n), -1);
-			gtk_list_store_set(store, &iter,
-				c_gs_relayed, byte_stat_str(stats.byte.relayed, n), -1);
-			if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter))
-				break;
-    	}
-
-	if (FLOWC_MODE_HOPS(selected_flowc)) {
-		/* Hops mode */
-		pkg_counters = stats.pkg.flowc_hops;
-		byte_counters = stats.byte.flowc_hops;
-	} else {
-		/* TTL mode */
-		pkg_counters = stats.pkg.flowc_ttl;
-		byte_counters = stats.byte.flowc_ttl;
-	}
-
-	/* ------------------------------------------------------------ */
-
-    treeview = GTK_TREE_VIEW(
-        lookup_widget(main_window, "treeview_gnet_stats_flowc"));
-	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
-	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
-
-	for (n = 0; n < MSG_TYPE_COUNT; n++) {
-		gint i;
-
-		if (FLOWC_MODE_PKTS(selected_flowc))	/* packet mode */
-			for (i = 0; i < STATS_FLOWC_COLUMNS; i++)
-				str[i] = g_strdup(flowc_stat_str(
-					(gulong) pkg_counters[i][n],
-					(gulong) pkg_counters[i][MSG_TOTAL]));
-		else									/* byte mode */
-			for (i = 0; i < STATS_FLOWC_COLUMNS; i++)
-				str[i] = g_strdup(FLOWC_MODE_HDRS(selected_flowc)
-					?  flowc_stat_str(		/* add headers */
-							(gulong) byte_counters[i][n]
-								+ (gulong) pkg_counters[i][n]
-									* sizeof(struct gnutella_header),
-							(gulong) byte_counters[i][MSG_TOTAL]
-								+ (gulong) pkg_counters[i][MSG_TOTAL]
-									* sizeof(struct gnutella_header))
-
-					:  flowc_stat_str(		/* show payload only */ 
-						(gulong) byte_counters[i][n],
-						(gulong) byte_counters[i][MSG_TOTAL]));
-
-		for (i = 1; i < STATS_FLOWC_COLUMNS; i++)
-			gtk_list_store_set(store, &iter, i, str[i-1], -1);
-#if 0		
-		g_message("%-12s %-4s %-4s %-4s %-4s %-4s %-4s %-4s",
-			msg_type_str[n],
-			str[0], str[1], str[2], str[3], str[4], str[5], str[6]);
-#endif
-
-		for (i = 0; i < STATS_FLOWC_COLUMNS; i++)
-			G_FREE_NULL(str[i]);
-		if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter))
+	switch (current_page) {
+		case GNET_STATS_NB_PAGE_GENERAL:
+			gnet_stats_update_general(&stats);
 			break;
+		case GNET_STATS_NB_PAGE_DROP_REASONS:
+			gnet_stats_update_drop_reasons(&stats);
+			break;
+		case GNET_STATS_NB_PAGE_MESSAGES:
+			gnet_stats_update_messages(&stats);
+			break;
+		case GNET_STATS_NB_PAGE_FLOWC:
+			gnet_stats_update_flowc(&stats);
+			break;
+		default:
+			g_assert_not_reached();
 	}
 
-#if 0
-	g_message(" ");
-#endif
-
-	/* ------------------------------------------------------------ */
-
-    treeview = GTK_TREE_VIEW(
-        lookup_widget(main_window, "treeview_gnet_stats_drop_reasons"));
-	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
-	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
-
-	for (n = 0; n < MSG_DROP_REASON_COUNT; n++) {
-		gtk_list_store_set(store, &iter, 1, drop_stat_str(&stats, n++), -1);
-		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
-	}
-
-	/* ------------------------------------------------------------ */
-
-    treeview = GTK_TREE_VIEW(
-        lookup_widget(main_window, "treeview_gnet_stats_general"));
-	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
-	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
-
-	for (n = 0; n < GNR_TYPE_COUNT; n++) {
-		gtk_list_store_set(store, &iter, 1, general_stat_str(&stats, n++), -1);
-		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
-	}
-
-	lock = FALSE;
+cleanup:
+	g_static_mutex_unlock(&mutex);
 }

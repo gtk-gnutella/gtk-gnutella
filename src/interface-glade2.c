@@ -4816,7 +4816,7 @@ create_main_window (void)
   GtkWidget *label375;
   GtkWidget *label372;
   GtkWidget *label_config;
-  GtkWidget *notebook2;
+  GtkWidget *gnet_stats_notebook;
   GtkWidget *frame58;
   GtkWidget *scrolledwindow32;
   GtkWidget *treeview_gnet_stats_general;
@@ -8621,15 +8621,16 @@ create_main_window (void)
   gtk_widget_show (label_config);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 7), label_config);
 
-  notebook2 = gtk_notebook_new ();
-  gtk_widget_set_name (notebook2, "notebook2");
-  gtk_widget_show (notebook2);
-  gtk_container_add (GTK_CONTAINER (notebook_main), notebook2);
+  gnet_stats_notebook = gtk_notebook_new ();
+  gtk_widget_set_name (gnet_stats_notebook, "gnet_stats_notebook");
+  gtk_widget_show (gnet_stats_notebook);
+  gtk_container_add (GTK_CONTAINER (notebook_main), gnet_stats_notebook);
+  gtk_notebook_set_scrollable (GTK_NOTEBOOK (gnet_stats_notebook), TRUE);
 
   frame58 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame58, "frame58");
   gtk_widget_show (frame58);
-  gtk_container_add (GTK_CONTAINER (notebook2), frame58);
+  gtk_container_add (GTK_CONTAINER (gnet_stats_notebook), frame58);
 
   scrolledwindow32 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow32, "scrolledwindow32");
@@ -8648,13 +8649,13 @@ create_main_window (void)
   label477 = gtk_label_new_with_mnemonic ("_General");
   gtk_widget_set_name (label477, "label477");
   gtk_widget_show (label477);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 0), label477);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (gnet_stats_notebook), gtk_notebook_get_nth_page (GTK_NOTEBOOK (gnet_stats_notebook), 0), label477);
   gtk_label_set_justify (GTK_LABEL (label477), GTK_JUSTIFY_LEFT);
 
   frame56 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame56, "frame56");
   gtk_widget_show (frame56);
-  gtk_container_add (GTK_CONTAINER (notebook2), frame56);
+  gtk_container_add (GTK_CONTAINER (gnet_stats_notebook), frame56);
 
   vbox86 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox86, "vbox86");
@@ -8706,13 +8707,13 @@ create_main_window (void)
   label476 = gtk_label_new_with_mnemonic ("_Drop reasons");
   gtk_widget_set_name (label476, "label476");
   gtk_widget_show (label476);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 1), label476);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (gnet_stats_notebook), gtk_notebook_get_nth_page (GTK_NOTEBOOK (gnet_stats_notebook), 1), label476);
   gtk_label_set_justify (GTK_LABEL (label476), GTK_JUSTIFY_LEFT);
 
   frame55 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame55, "frame55");
   gtk_widget_show (frame55);
-  gtk_container_add (GTK_CONTAINER (notebook2), frame55);
+  gtk_container_add (GTK_CONTAINER (gnet_stats_notebook), frame55);
 
   vbox84 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox84, "vbox84");
@@ -8803,13 +8804,13 @@ create_main_window (void)
   label478 = gtk_label_new_with_mnemonic ("_Messages");
   gtk_widget_set_name (label478, "label478");
   gtk_widget_show (label478);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 2), label478);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (gnet_stats_notebook), gtk_notebook_get_nth_page (GTK_NOTEBOOK (gnet_stats_notebook), 2), label478);
   gtk_label_set_justify (GTK_LABEL (label478), GTK_JUSTIFY_LEFT);
 
   frame61 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame61, "frame61");
   gtk_widget_show (frame61);
-  gtk_container_add (GTK_CONTAINER (notebook2), frame61);
+  gtk_container_add (GTK_CONTAINER (gnet_stats_notebook), frame61);
   gtk_container_set_border_width (GTK_CONTAINER (frame61), 2);
   gtk_frame_set_shadow_type (GTK_FRAME (frame61), GTK_SHADOW_IN);
 
@@ -8961,7 +8962,7 @@ create_main_window (void)
   label502 = gtk_label_new_with_mnemonic ("Flow _control");
   gtk_widget_set_name (label502, "label502");
   gtk_widget_show (label502);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 3), label502);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (gnet_stats_notebook), gtk_notebook_get_nth_page (GTK_NOTEBOOK (gnet_stats_notebook), 3), label502);
   gtk_label_set_justify (GTK_LABEL (label502), GTK_JUSTIFY_LEFT);
 
   label378 = gtk_label_new ("gNet stats");
@@ -9956,7 +9957,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label375, "label375");
   GLADE_HOOKUP_OBJECT (main_window, label372, "label372");
   GLADE_HOOKUP_OBJECT (main_window, label_config, "label_config");
-  GLADE_HOOKUP_OBJECT (main_window, notebook2, "notebook2");
+  GLADE_HOOKUP_OBJECT (main_window, gnet_stats_notebook, "gnet_stats_notebook");
   GLADE_HOOKUP_OBJECT (main_window, frame58, "frame58");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow32, "scrolledwindow32");
   GLADE_HOOKUP_OBJECT (main_window, treeview_gnet_stats_general, "treeview_gnet_stats_general");
