@@ -164,8 +164,6 @@ static const struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
 #undef GGEP_ID
 };
 
-#define END(v)		(v - 1 + G_N_ELEMENTS(v))
-
 /**
  * Perform a dichotomic search for keywords in the reserved-word table.
  * The `case_sensitive' parameter governs whether lookup is done with or
@@ -176,29 +174,27 @@ static const struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
  */
 static ext_token_t
 rw_screen(gboolean case_sensitive,
-	const struct rwtable *low, const struct rwtable *high,
+	const struct rwtable *table, size_t size,
 	const gchar *word, const gchar **retkw)
 {
-	const struct rwtable *mid;
-	gint c;
-
 	g_assert(retkw);
 
-	while (low <= high) {
-		mid = low + (high-low)/2;
-		c = case_sensitive ?
-			strcmp(mid->rw_name, word) : strcasecmp(mid->rw_name, word);
-		if (c == 0) {
-			*retkw = mid->rw_name;
-			return mid->rw_token;
-		} else if (c < 0)
-			low = mid + 1;
-		else
-			high = mid - 1;
-	}
+#define GET_KEY(i) (table[(i)].rw_name)
+#define FOUND(i) \
+	do { \
+		*retkw = table[(i)].rw_name; \
+	   	return table[(i)].rw_token; \
+	} while (0) \
 
+	if (case_sensitive)
+		BINARY_SEARCH(const gchar *, word, size, strcmp, GET_KEY, FOUND);
+	else
+		BINARY_SEARCH(const gchar *, word, size, strcasecmp, GET_KEY, FOUND);
+	
+#undef FOUND
+#undef GET_KEY
+	
 	*retkw = NULL;
-
 	return EXT_T_UNKNOWN;
 }
 
@@ -207,12 +203,14 @@ rw_screen(gboolean case_sensitive,
  */
 static void
 rw_is_sorted(const gchar *name,
-	const struct rwtable *low, const struct rwtable *high)
+	const struct rwtable *table, size_t size)
 {
-	const struct rwtable *e;
+	size_t i;
 
-	for (e = low + 1; e <= high; e++) {
-		const struct rwtable *prev = e - 1;
+	/* Skip the first to have a previous element, tables with a single
+	 * element are sorted anyway. */
+	for (i = 1; i < size; i++) {
+		const struct rwtable *prev = &table[i - 1], *e = &table[i];
 		if (strcmp(prev->rw_name, e->rw_name) >= 0)
 			g_error("reserved word table \"%s\" unsorted (near item \"%s\")",
 				name, e->rw_name);
@@ -228,7 +226,7 @@ rw_ggep_screen(gchar *word, const gchar **retkw)
 {
 	ext_token_t t;
 
-	t = rw_screen(TRUE, ggeptable, END(ggeptable), word, retkw);
+	t = rw_screen(TRUE, ggeptable, G_N_ELEMENTS(ggeptable), word, retkw);
 
 	return (t == EXT_T_UNKNOWN) ? EXT_T_UNKNOWN_GGEP : t;
 }
@@ -240,7 +238,7 @@ rw_ggep_screen(gchar *word, const gchar **retkw)
 static ext_token_t
 rw_urn_screen(gchar *word, const gchar **retkw)
 {
-	return rw_screen(FALSE, urntable, END(urntable), word, retkw);
+	return rw_screen(FALSE, urntable, G_N_ELEMENTS(urntable), word, retkw);
 }
 
 /***
@@ -1513,8 +1511,8 @@ ext_init(void)
 {
 	ext_names = g_hash_table_new(g_str_hash, g_str_equal);
 
-	rw_is_sorted("ggeptable", ggeptable, END(ggeptable));
-	rw_is_sorted("urntable", urntable, END(urntable));
+	rw_is_sorted("ggeptable", ggeptable, G_N_ELEMENTS(ggeptable));
+	rw_is_sorted("urntable", urntable, G_N_ELEMENTS(urntable));
 }
 
 /**
