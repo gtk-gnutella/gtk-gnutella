@@ -29,6 +29,7 @@
 #define __dmesh_h__
 
 #include <glib.h>
+#include <errno.h>
 
 /*
  * A download mesh info (describes an URL).

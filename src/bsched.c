@@ -38,7 +38,7 @@
 #endif
 
 #include "bsched.h"
-#include "appconfig.h"
+#include "gnet_property_priv.h"
 
 /*
  * Global bandwidth schedulers.
@@ -185,16 +185,16 @@ static void bsched_free(bsched_t *bs)
 void bsched_init(void)
 {
 	bws.out = bsched_make("out",
-		BS_T_STREAM, BS_F_WRITE, bandwidth.output, 1000);
+		BS_T_STREAM, BS_F_WRITE, bw_http_out, 1000);
 
 	bws.gout = bsched_make("G out",
-		BS_T_STREAM, BS_F_WRITE, bandwidth.goutput, 1000);
+		BS_T_STREAM, BS_F_WRITE, bw_gnet_out, 1000);
 
 	bws.in = bsched_make("in",
-		BS_T_STREAM, BS_F_READ, bandwidth.input, 1000);
+		BS_T_STREAM, BS_F_READ, bw_http_in, 1000);
 
 	bws.gin = bsched_make("G in",
-		BS_T_STREAM, BS_F_READ, bandwidth.ginput, 1000);
+		BS_T_STREAM, BS_F_READ, bw_gnet_in, 1000);
 }
 
 /*

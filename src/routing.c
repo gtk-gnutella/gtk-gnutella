@@ -32,9 +32,12 @@
 #include "misc.h"
 #include "gmsg.h"
 #include "atoms.h"
+#include "nodes.h"
 
 #include <stdarg.h>
 #include <assert.h>
+
+#include "gnet_property_priv.h"
 
 /*
  * Flags for GUID[15] tagging.
@@ -231,6 +234,7 @@ static void patch_muid_for_modern_node(guchar *muid)
 /* Init function */
 void routing_init(void)
 {
+    guint8 guid_buf[16];
 	guint32 i;
 	gboolean need_guid = TRUE;
 	extern guint guid_hash(gconstpointer key);		/* from atoms.c */
@@ -270,8 +274,10 @@ void routing_init(void)
 	 *		--RAM, 08/03/2002
 	 */
 
+    gnet_prop_get_storage(PROP_GUID, guid_buf, sizeof(guid_buf));
+
 	for (i = 0; i < 15; i++) {
-		if (guid[i]) {
+		if (guid_buf[i]) {
 			need_guid = FALSE;
 			break;
 		}
@@ -280,7 +286,7 @@ void routing_init(void)
 retry:
 	if (need_guid) {
 		for (i = 0; i < 15; i++)
-			guid[i] = random_value(0xff);
+			guid_buf[i] = random_value(0xff);
 	}
 
 	/*
@@ -291,16 +297,18 @@ retry:
 	 *		--RAM, 08/03/2002
 	 */
 
-	patch_muid_for_modern_node(guid);
+	patch_muid_for_modern_node(guid_buf);
 
 	/*
 	 * If by extraordinary, we have generated a banned GUID, retry.
 	 */
 
-	if (g_hash_table_lookup(ht_banned_push, guid)) {
+	if (g_hash_table_lookup(ht_banned_push, guid_buf)) {
 		need_guid = TRUE;
 		goto retry;
 	}
+
+    gnet_prop_set_storage(PROP_GUID, guid_buf, sizeof(guid_buf));
 
 	/*
 	 * Initialize message type array for routing logs.

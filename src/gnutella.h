@@ -39,11 +39,10 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-
-#include <gtk/gtk.h>
+#include <glib.h>
 
 #include "../config.h"
-#include "appconfig.h"
+
 
 /*
  * Macros
@@ -176,17 +175,9 @@ struct msg_vendor {
 	/* payload follows */
 } __attribute__((__packed__));
 
-/*
- * Variables
- */
-
-guchar guid[16];				/* ID of our client for this session */
-
-
 /* main.c */
 
 extern struct gnutella_socket *s_listen;
-extern GtkWidget *main_window;
 extern gchar *version_string;
 extern time_t start_time;
 extern gchar *start_rfc822_date;

@@ -37,7 +37,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "appconfig.h"
 #include "base32.h"
 #include "sha1.h"
 #include "huge.h"
@@ -47,6 +46,9 @@
 #include "gmsg.h"
 #include "header.h"
 #include "dmesh.h"
+
+#include "gnet_property_priv.h"
+#include "settings.h"
 
 /***
  *** Server side: computation of SHA1 hash digests and replies.

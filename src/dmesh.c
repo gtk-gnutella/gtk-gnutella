@@ -37,9 +37,11 @@
 #include "url.h"
 #include "misc.h"
 #include "getdate.h"
-#include "appconfig.h"
 #include "huge.h"
 #include "base32.h"
+
+#include "gnet_property_priv.h"
+#include "settings.h"
 
 #define HTTP_PORT	80		/* Registered HTTP port */
 

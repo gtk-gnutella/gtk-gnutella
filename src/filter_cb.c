@@ -29,6 +29,7 @@
 #include "filter.h"
 #include "filter_cb.h"
 #include "filter_gui.h"
+#include "gui_property_priv.h"
 
 /*
  * Private variables
@@ -124,7 +125,7 @@ void on_ctree_filter_filters_resize_column
 void on_clist_filter_rules_resize_column
     (GtkCList * clist, gint column, gint width, gpointer user_data)
 {
-    filter_table_col_widths[column] = width;
+    filter_rules_col_widths[column] = width;
 }
 
 gboolean on_dlg_filters_delete_event(GtkWidget *widget, gpointer user_data)

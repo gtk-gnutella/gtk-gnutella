@@ -32,6 +32,8 @@
 #include "search_stats.h"
 #include "zalloc.h"
 
+#include "gnet_property_priv.h"
+
 #define WOVEC_DFLT	10				/* Default size of word-vectors */
 
 static zone_t *wovec_zone = NULL;	/* Word-vectors of WOVEC_DFLT entries */

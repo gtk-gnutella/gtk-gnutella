@@ -43,11 +43,13 @@
 #include "gmsg.h"
 #include "pcache.h"
 
+#include "gnet_property_priv.h"
+#include "settings.h"
+
 GList *sl_caught_hosts = NULL;				/* Reserve list */
 static GList *sl_valid_hosts = NULL;		/* Validated hosts */
 static GHashTable *ht_known_hosts = NULL;	/* All known hosts */
 
-guint32 hosts_in_catcher = 0;
 gboolean host_low_on_pongs = FALSE;			/* True when less than 12% full */
 
 gchar h_tmp[4096];
@@ -59,22 +61,28 @@ gint hosts_idle_func = 0;
 #define MIN_RESERVE_SIZE	1024	/* we'd like that many pongs in reserve */
 
 static gboolean in_shutdown = FALSE;
+static gint mass_operation  = 0;
+
+static void start_mass_update(void)
+{
+    mass_operation ++;
+}
+
+static void end_mass_update(void) 
+{
+    guint32 val = hosts_in_catcher;
+
+    g_assert(mass_operation > 0);
+
+    mass_operation --;
+
+    if (mass_operation == 0)
+        gnet_prop_set_guint32(PROP_HOSTS_IN_CATCHER, &val, 0, 1);
+}
 
 /***
  *** Host timer.
  ***/
-
-static void set_button_host_catcher_clear_sensitive(gboolean b)
-{
-    static GtkWidget *button = NULL;
-
-    if (button == NULL)
-        button = lookup_widget(main_window, "button_host_catcher_clear");
-
-    g_assert(button != NULL);
-
-    gtk_widget_set_sensitive(button, b);
-}
 
 /*
  * auto_connect
@@ -134,7 +142,7 @@ static void auto_connect(void)
 			!node_connected(ip, port, FALSE) &&
 			(now - host_tried[host_idx].tried) >= HOST_CATCHER_DELAY
 		) {
-			node_add(NULL, ip, port);
+			node_add(ip, port);
 			host_tried[host_idx].tried = now;
 			return;
 		}
@@ -165,7 +173,7 @@ void host_timer(void)
 			if (sl_caught_hosts != NULL) {
 				while (nodes_missing-- > 0 && sl_caught_hosts) {
 					host_get_caught(&ip, &port);
-					node_add(NULL, ip, port);
+					node_add(ip, port);
 				}
 			} else
 				auto_connect();
@@ -174,7 +182,7 @@ void host_timer(void)
 	else if (use_netmasks) {
 		/* Try to find better hosts */
 		if (find_nearby_host(&ip, &port) && node_remove_non_nearby())
-			node_add(NULL, ip, port); 
+			node_add(ip, port); 
 	}
 }
 
@@ -207,7 +215,13 @@ static gboolean host_ht_add(struct gnutella_host *host)
 		return FALSE;
 	}
 
-	hosts_in_catcher++;
+    if (!mass_operation) {
+        guint32 val = hosts_in_catcher+1;
+
+        gnet_prop_set_guint32(PROP_HOSTS_IN_CATCHER, &val, 0, 1);
+    } else
+        hosts_in_catcher ++;
+
 	g_hash_table_insert(ht_known_hosts, host, (gpointer) 1);
 
 	return TRUE;
@@ -223,7 +237,13 @@ static void host_ht_remove(struct gnutella_host *host)
 		return;
 	}
 
-	hosts_in_catcher--;
+    if (!mass_operation) {
+        guint32 val = hosts_in_catcher-1;
+
+        gnet_prop_set_guint32(PROP_HOSTS_IN_CATCHER, &val, 0, 1);
+    } else
+        hosts_in_catcher --;
+
 	g_hash_table_remove(ht_known_hosts, host);
 }
 
@@ -265,9 +285,6 @@ void host_save_valid(guint32 ip, guint16 port)
 		sl_valid_hosts = g_list_prepend(sl_valid_hosts, host);
 	else
 		g_free(host);
-
-
-    set_button_host_catcher_clear_sensitive(sl_valid_hosts != NULL);
 }
 
 /***
@@ -317,10 +334,6 @@ void host_remove(struct gnutella_host *h)
 		sl_valid_hosts = NULL;
 	}
 
-    set_button_host_catcher_clear_sensitive(FALSE);
-	if (!sl_caught_hosts)
-        set_button_host_catcher_clear_sensitive(FALSE);
-
 	g_free(h);
 }
 
@@ -369,9 +382,6 @@ static gboolean add_host_to_cache(guint32 ip, guint16 port, gchar *type)
 	host->port = port;
 	host->ip = ip;
 
-	if (!sl_caught_hosts) 		/* Assume addition below will be a success */
-        set_button_host_catcher_clear_sensitive(TRUE);
-
 	if (host_ht_add(host))
 		sl_caught_hosts = g_list_append(sl_caught_hosts, host);
 	else
@@ -381,9 +391,6 @@ static gboolean add_host_to_cache(guint32 ip, guint16 port, gchar *type)
 		sl_caught_hosts = sl_valid_hosts;
 		sl_valid_hosts = NULL;
 	}
-
-	if (!sl_caught_hosts)
-		set_button_host_catcher_clear_sensitive(FALSE);
 
 	host_low_on_pongs = (hosts_in_catcher < (max_hosts_cached >> 3));
 
@@ -444,7 +451,7 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 	if (connect) {
 		if (node_count() < max_connections) {
 			if (connected_nodes() < up_connections) {
-				node_add(NULL, ip, port);
+				node_add(ip, port);
 			}
 		}
 		else {
@@ -452,7 +459,7 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 			 * connection before adding this better one
 			 */
 			if (use_netmasks && host_is_nearby(ip) && node_remove_non_nearby())
-				node_add(NULL, ip, port);
+				node_add(ip, port);
 		}
 
 	}
@@ -703,10 +710,6 @@ gboolean find_nearby_host(guint32 *ip, guint16 *port)
 				sl_caught_hosts = sl_valid_hosts;
 				sl_valid_hosts = NULL;
 			}
-
-			if (!sl_caught_hosts) 
-				set_button_host_catcher_clear_sensitive(FALSE);
-
 			return TRUE;
 		}
 
@@ -768,9 +771,6 @@ void host_get_caught(guint32 *ip, guint16 *port)
 		sl_caught_hosts = sl_valid_hosts;
 		sl_valid_hosts = NULL;
 	}
-
-	if (!sl_caught_hosts)
-        set_button_host_catcher_clear_sensitive(FALSE);
 }
 
 /***
@@ -805,15 +805,31 @@ done:
 	hosts_r_file = (FILE *) NULL;
 	hosts_idle_func = 0;
 
-	gui_statusbar_pop(scid_hostsfile);
+    /*
+     * Order is important so the GUI can update properly. First we say
+     * that loading has finished, then we tell the GUI the number of
+     * hosts in the catcher.
+     *      -- Richard, 6/8/2002
+     */
+    {
+        gboolean b = FALSE;
+    
+        gnet_prop_set_boolean(PROP_READING_HOSTFILE, &b, 0, 1);
+    }
+    end_mass_update();
 
 	return FALSE;
 }
 
+/* 
+ * hosts_read_from_file:
+ *
+ * Loads 'catched' hosts from a text file.
+ */
 void hosts_read_from_file(const gchar * path, gboolean quiet)
 {
-	/* Loads 'catched' hosts from a text file */
-
+    start_mass_update();
+    
 	hosts_r_file = fopen(path, "r");
 
 	if (!hosts_r_file) {
@@ -825,7 +841,10 @@ void hosts_read_from_file(const gchar * path, gboolean quiet)
 
 	hosts_idle_func = g_idle_add(hosts_reading_func, (gpointer) NULL);
 
-	gui_statusbar_push(scid_hostsfile, "Reading caught host file...");
+    {
+        gboolean b = TRUE;
+        gnet_prop_set_boolean(PROP_READING_HOSTFILE, &b, 0, 1);
+    }
 }
 
 void hosts_write_to_file(const gchar *path)
@@ -880,6 +899,8 @@ out:
  */
 void host_clear_cache(void)
 {
+    start_mass_update();
+
 	while (sl_caught_hosts)
 		host_remove((struct gnutella_host *) sl_caught_hosts->data);
 	g_list_free(sl_caught_hosts);
@@ -893,7 +914,7 @@ void host_clear_cache(void)
 
 	pcache_clear_recent();
 
-    set_button_host_catcher_clear_sensitive(FALSE);
+    end_mass_update();
 }
 
 /*

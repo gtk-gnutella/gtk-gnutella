@@ -36,6 +36,7 @@
 #include "mq.h"
 #include "gnutella.h"
 #include "routing.h"
+#include "gnet_property_priv.h"
 
 static gchar *msg_name[256];
 static gint msg_weight[256];		/* For gmsg_cmp() */

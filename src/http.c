@@ -36,10 +36,11 @@
 #include <sys/types.h>
 
 #include "http.h"
-#include "appconfig.h"
+#include "gnet_property_priv.h"
 #include "sockets.h"
 #include "bsched.h"
 #include "misc.h"
+#include "gnutella.h"
 
 /*
  * http_send_status

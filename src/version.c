@@ -34,6 +34,8 @@
 #include "getdate.h"
 #include "gui.h"
 
+#include "gnet_property_priv.h"
+
 gchar *version_string = NULL;
 
 /*

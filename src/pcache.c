@@ -46,6 +46,9 @@
 #include "gmsg.h"
 #include "alive.h"
 
+#include "gnet_property_priv.h"
+#include "settings.h"
+
 #define FW_STATUS_GRACE		300		/* Startup period where we send pongs */
 
 static GList *last_returned_pong = NULL;	/* Last returned from list */

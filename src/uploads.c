@@ -55,6 +55,10 @@
 #include "http.h"
 #include "cq.h"
 #include "version.h"
+#include "nodes.h"
+
+#include "gnet_property_priv.h"
+#include "settings.h"
 
 GSList *uploads = NULL;
 gint running_uploads = 0;
@@ -2225,8 +2229,9 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 
 	/* This upload is complete */
 	if (u->pos > u->end) {
-		count_uploads++;
-		gui_update_count_uploads();
+        guint32 val = total_uploads+1;
+
+        gnet_prop_set_guint32(PROP_TOTAL_UPLOADS, &val, 0, 1);
 		gui_update_c_uploads();
 		ul_stats_file_complete(u);
 		u->accounted = TRUE;			/* Called ul_stats_file_complete() */

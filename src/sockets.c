@@ -38,7 +38,7 @@
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 
-#include "appconfig.h"		/* For local_ip */
+#include "gnet_property_priv.h"
 #include "sockets.h"
 #include "downloads.h"
 #include "uploads.h"
@@ -47,9 +47,10 @@
 #include "header.h"
 #include "getline.h"
 #include "bsched.h"
-#include "gui.h"			/* For gui_update_config_port() */
+#include "gui.h"			// FIXME: remove this dependency
 #include "ban.h"
 #include "http.h"
+#include "settings.h"
 
 #if !defined(SOL_TCP) && defined(IPPROTO_TCP)
 #define SOL_TCP IPPROTO_TCP
@@ -290,7 +291,7 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 	 */
 
 	if (0 == strncmp(first, gnutella_hello, gnutella_hello_length))
-		node_add(s, s->ip, s->port);	/* Incoming control connection */
+		node_add_socket(s, s->ip, s->port);	/* Incoming control connection */
 	else if (0 == strncmp(first, "GET ", 4))
 		upload_add(s);
 	else if (0 == strncmp(first, "HEAD ", 5))
@@ -983,9 +984,9 @@ int proxy_connect(int __fd, const struct sockaddr *__addr, guint __len)
 	int rc = 0;
 
 
-	if (!(inet_aton(proxy_ip, &server.sin_addr))) {
+	if (!(inet_aton(ip_to_gchar(proxy_ip), &server.sin_addr))) {
 		show_error("The SOCKS server (%s) in configuration "
-				   "file is invalid\n", proxy_ip);
+				   "file is invalid\n", ip_to_gchar(proxy_ip));
 	} else {
 		/* Construct the addr for the socks server */
 		server.sin_family = AF_INET;	/* host byte order */

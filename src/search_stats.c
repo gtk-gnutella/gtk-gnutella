@@ -44,6 +44,8 @@
 #include "search_stats_gui.h"
 #include "search_stats.h"
 
+#include "gnet_property_priv.h"
+
 /* this is what the stat_hash's 'val' points to */
 struct term_counts {
 	guint32 period_cnt;
@@ -51,7 +53,6 @@ struct term_counts {
 	guint32 periods;
 };
 
-gboolean search_stats_enabled = FALSE;
 static guint32 stat_count;
 static gint stats_tag = 0;
 

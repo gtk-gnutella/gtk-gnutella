@@ -30,7 +30,7 @@
 #include <sys/uio.h>		/* For struct iovec */
 
 #include "gnutella.h"		/* Needed to be able to compile with dmalloc */
-#include "appconfig.h"		/* For dbg */
+#include "gnet_property_priv.h"	/* For dbg */
 #include "nodes.h"
 #include "mq.h"
 #include "pmsg.h"

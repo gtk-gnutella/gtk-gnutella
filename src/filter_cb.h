@@ -26,6 +26,8 @@
 #ifndef __filter_cb_h__
 #define __filter_cb_h__
 
+#include <gtk/gtk.h>
+
 void filter_cb_close();
 
 /*

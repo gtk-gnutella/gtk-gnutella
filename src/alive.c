@@ -34,6 +34,8 @@
 #include "misc.h"
 #include "walloc.h"
 
+#include "gnet_property_priv.h"
+
 #define INFINITY	0xffffffff
 
 /*

@@ -37,6 +37,8 @@
 #include "misc.h"			/* For debug printf() only */
 #include "zalloc.h"
 
+#include "gnet_property_priv.h"
+
 /*
  * We keep a hash table, indexed by IP address, which records all the
  * requests we have from the various IPs.  When hammering is detected,
@@ -56,7 +58,6 @@ static gfloat decay_coeff;		/* Decay coefficient, per second */
 static zone_t *ipf_zone;		/* Zone for ip_info allocation */
 
 extern cqueue_t *callout_queue;
-extern gint dbg;
 
 /*
  * Information kept in the info table, per IP address.
