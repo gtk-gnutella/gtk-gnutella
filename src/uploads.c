@@ -905,7 +905,9 @@ static void err_header_read_error(gpointer obj, gint error)
 
 static void err_header_read_eof(gpointer obj)
 {
-	upload_remove(UPLOAD(obj), "Failed (EOF)");
+	gnutella_upload_t * u = UPLOAD(obj);
+	u->error_sent = 999;		/* No need to send anything on EOF condition */
+	upload_remove(u, "Failed (EOF)");
 }
 
 static void err_header_extra_data(gpointer obj)
@@ -2331,20 +2333,20 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 			}
 
 			/*
-		 	* Support for bandwith-dependent number of upload slots.
-		 	* The upload bandwith limitation has to be enabled, otherwise
-		 	* we cannot be sure that we have reasonable values for the
-		 	* outgoing bandwith set.
-		 	*		--TF 30/05/2002
-		 	*
-		 	* NB: if max_uploads is 0, then we disable sharing, period.
-		 	*
-		 	* Require that BOTH the average and "instantaneous" usage be
-		 	* lower than the minimum to trigger the override.  This will
-		 	* make it more robust when bandwidth stealing is enabled.
-		 	*		--RAM, 27/01/2003
-		 	*
-		 	*/
+			 * Support for bandwith-dependent number of upload slots.
+		 	 * The upload bandwith limitation has to be enabled, otherwise
+		 	 * we cannot be sure that we have reasonable values for the
+		 	 * outgoing bandwith set.
+		 	 *		--TF 30/05/2002
+		 	 *
+		 	 * NB: if max_uploads is 0, then we disable sharing, period.
+		 	 *
+		 	 * Require that BOTH the average and "instantaneous" usage be
+		 	 * lower than the minimum to trigger the override.  This will
+		 	 * make it more robust when bandwidth stealing is enabled.
+		 	 *		--RAM, 27/01/2003
+		 	 *
+			 */
 
 			if (
 				upload_is_enabled() &&
