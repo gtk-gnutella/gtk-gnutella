@@ -764,8 +764,8 @@ void download_info_change_all(
 		}
 
 		g_assert(old_fi->refcount > 0);
-        file_info_unref(old_fi);
-        file_info_ref(new_fi);
+        file_info_remove_source(old_fi, d);
+        file_info_add_source(new_fi, d);
 		d->file_info = new_fi;
 
 		d->flags &= ~DL_F_SUSPENDED;
@@ -800,9 +800,9 @@ static void download_info_reget(struct download *d)
 	fi->lifecount--;
 	file_info_free(fi, FALSE);					/* Keep it around for others */
 
-	fi = d->file_info = file_info_get(
+	fi = file_info_get(
 		d->file_name, save_file_path, d->file_size, d->sha1);
-	file_info_ref(fi);
+	file_info_add_source(fi, d);
 	fi->lifecount++;
 
 	d->flags &= ~DL_F_SUSPENDED;
@@ -1358,6 +1358,7 @@ void download_stop(struct download *d, guint32 new_status,
 		g_assert(d->file_info->recvcount <= d->file_info->lifecount);
 
 		d->file_info->recvcount--;
+        d->file_info->dirty_status = TRUE;
 	}
 
 	switch (new_status) {
@@ -2422,9 +2423,6 @@ static void create_download(
 		return;
 	}
 
-	fi = file_info == NULL ?
-		file_info_get(file_name, save_file_path, size, sha1) : file_info;
-
 	/*
 	 * Initialize download, creating new server if needed.
 	 */
@@ -2476,11 +2474,13 @@ static void create_download(
 	 * schedule them: we wait for the outcome of the SHA1 verification process.
 	 */
 
+	fi = file_info == NULL ?
+		file_info_get(file_name, save_file_path, size, sha1) : file_info;
+
 	if (fi->flags & FI_F_SUSPEND)
 		d->flags |= DL_F_SUSPENDED;
 
-	d->file_info = fi;
-    file_info_ref(fi);
+    file_info_add_source(fi, d);
 	fi->lifecount++;
 
 	download_add_to_list(d, DL_LIST_WAITING);
@@ -2669,15 +2669,19 @@ abort_download:
 static struct download *download_clone(struct download *d)
 {
 	struct download *cd = walloc(sizeof(struct download));
+    struct dl_file_info *fi;
 
-	*cd = *d;		/* Struct copy */
+    fi = d->file_info;
+
+	*cd = *d;		                /* Struct copy */
+    cd->file_info = NULL;           /* has not been added to fi sources list */
+	file_info_add_source(fi, cd);   /* add clonded source */
 
 	g_assert(d->io_opaque == NULL);		/* If cloned, we were receiving! */
 
 	cd->bio = NULL;						/* Recreated on each transfer */
 	cd->file_desc = -1;					/* File re-opened each time */
 	cd->socket->resource.download = cd;	/* Takes ownership of socket */
-	file_info_ref(cd->file_info);		/* Clone and original share same info */
 	cd->file_info->lifecount++;			/* Both are still "alive" for now */
 	cd->list_idx = -1;
 	cd->file_name = atom_str_get(d->file_name);
@@ -4706,10 +4710,12 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	d->start_date = time((time_t *) NULL);
 	d->status = GTA_DL_RECEIVING;
 
-	if (0 == fi->recvcount++) {		/* First source to begin receiving */
+	if (fi->recvcount == 0) {		/* First source to begin receiving */
 		fi->recv_last_time = d->start_date;
 		fi->recv_last_rate = 0;
 	}
+    fi->recvcount++;
+    fi->dirty_status = TRUE;
 
 	dl_establishing--;
 	dl_active++;
