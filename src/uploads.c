@@ -916,7 +916,7 @@ static void upload_request(struct upload *u, header_t *header)
 		 */
 
 		if (max_uploads == 0) {
-			upload_error_remove(u, 500, "Sharing currently disabled");
+			upload_error_remove(u, 503, "Sharing currently disabled");
 			return;
 		}
 
