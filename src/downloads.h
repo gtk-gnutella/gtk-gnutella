@@ -176,6 +176,8 @@ struct download {
 #define DL_F_CHUNK_CHOSEN	0x00000010	/* Retrying with specific chunk */
 #define DL_F_SHRUNK_REPLY	0x00000020	/* Server sending less than we asked */
 #define DL_F_SUNK_DATA		0x00000040	/* Whether we previously sunk data */
+#define DL_F_ACTIVE_QUEUED	0x00000080	/* Download is actively queued */
+#define DL_F_PASSIVE_QUEUED	0x00000100	/* Download is passively queued */
 #define DL_F_SUSPENDED		0x40000000	/* Suspended, do not schedule */
 #define DL_F_MARK			0x80000000	/* Marked in traversal */
 
@@ -305,6 +307,7 @@ gboolean download_server_nopush(gchar *guid, guint32 ip, guint16 port);
 const gchar *build_url_from_download(struct download *d);
 void download_free_removed(void);
 void download_redirect_to_server(struct download *d, guint32 ip, guint16 port);
+void download_actively_queued(struct download *d);
 
 void download_verify_start(struct download *d);
 void download_verify_progress(struct download *d, guint32 hashed);

@@ -1712,6 +1712,26 @@ prop = {
 };
 
 prop = {
+    name = "dl_aqueued_count";
+    desc = "How many downloads are currently actively queued.";
+    save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "dl_pqueued_count";
+    desc = "How many downloads are currently passively queued.";
+    save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
     name = "dl_qalive_count";
     desc = "How many queued downloads are currently responsive "
 			"(remote servent answering requests).";

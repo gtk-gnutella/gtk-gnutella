@@ -172,6 +172,8 @@ extern guint32  sys_physmem;
 extern guint32  dl_queue_count;
 extern guint32  dl_running_count;
 extern guint32  dl_active_count;
+extern guint32  dl_aqueued_count;
+extern guint32  dl_pqueued_count;
 extern guint32  dl_qalive_count;
 extern guint32  dl_byte_count;
 extern guint32  ul_byte_count;

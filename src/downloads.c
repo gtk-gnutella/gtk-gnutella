@@ -840,6 +840,45 @@ static struct download *has_same_download(
 }
 
 /*
+ * download_actively_queued
+ *
+ * Mark a download as being actively queued.
+ */
+void download_actively_queued(struct download *d)
+{
+	d->status = GTA_DL_ACTIVE_QUEUED;
+
+	if (d->flags & DL_F_ACTIVE_QUEUED)		/* Already accounted for */
+		return;
+
+	d->flags |= DL_F_ACTIVE_QUEUED;
+	gnet_prop_set_guint32_val(PROP_DL_AQUEUED_COUNT, dl_aqueued_count + 1);
+}
+
+/*
+ * download_passively_queued
+ *
+ * Mark download as being passively queued (if queued is TRUE) or unmark it.
+ */
+static void download_passively_queued(struct download *d, gboolean queued)
+{
+	if (queued) {
+		if (d->flags & DL_F_PASSIVE_QUEUED)		/* Already accounted for */
+			return;
+
+		d->flags |= DL_F_PASSIVE_QUEUED;
+		gnet_prop_set_guint32_val(PROP_DL_PQUEUED_COUNT, dl_pqueued_count + 1);
+	} else {
+		if (!(d->flags & DL_F_PASSIVE_QUEUED))	/* Already accounted for */
+			return;
+
+		gnet_prop_set_guint32_val(PROP_DL_PQUEUED_COUNT, dl_pqueued_count - 1);
+		g_assert((gint) dl_pqueued_count >= 0);
+		d->flags &= ~DL_F_PASSIVE_QUEUED;
+	}
+}
+
+/*
  * download_file_exists
  *
  * Returns whether the download file exists in the temporary directory.
@@ -1751,6 +1790,12 @@ void download_stop(struct download *d, guint32 new_status,
 
 	file_info_clear_download(d, FALSE);
 	d->flags &= ~DL_F_CHUNK_CHOSEN;
+
+	if (d->flags & DL_F_ACTIVE_QUEUED) {
+		gnet_prop_set_guint32_val(PROP_DL_AQUEUED_COUNT, dl_aqueued_count - 1);
+		g_assert((gint) dl_aqueued_count >= 0);
+		d->flags &= ~DL_F_ACTIVE_QUEUED;
+	}
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
@@ -4904,6 +4949,7 @@ static void download_request(
 			if (parq_download_parse_queue_status(d, header)) {
 				/* If we are queued, there is nothing else we can do for now */
 				if (parq_download_is_active_queued(d)) {
+					download_passively_queued(d, FALSE);
 					
 					/* Make sure we're waiting for the right file, 
 					   collect alt-locs */
@@ -5083,6 +5129,8 @@ static void download_request(
 		if (!d->keep_alive)
 			d->server->attrs |= DLS_A_NO_KEEPALIVE;
 
+		download_passively_queued(d, FALSE);
+
 		if (!ok) {
 			download_queue_delay(d, download_retry_busy_delay,
 				"%sHTTP %d %s", short_read, ack_code, ack_message);
@@ -5093,6 +5141,7 @@ static void download_request(
 		case 301:				/* Moved permanently */
 			if (!download_moved_permanently(d, header))
 				break;
+			download_passively_queued(d, FALSE);
 			download_queue_delay(d,
 				delay ? delay : download_retry_busy_delay,
 				"%sHTTP %d %s", short_read, ack_code, ack_message);
@@ -5136,7 +5185,8 @@ static void download_request(
 			 * queued remotely. We might want to display this.
 			 *		-- JA, 21/03/2003 (it is spring!)
 			 */
-			if (parq_download_is_passive_queued(d))
+			if (parq_download_is_passive_queued(d)) {
+				download_passively_queued(d, TRUE);
 				download_queue_delay(d,
 					delay ? delay : download_retry_busy_delay,
 						"Queued (slot %d/%d) ETA: %s",
@@ -5144,13 +5194,16 @@ static void download_request(
 							get_parq_dl_queue_length(d),
 							short_time(get_parq_dl_eta(d))
 				);
-			else 
+			} else {
 				/* No hammering -- hold further requests on server */
+				download_passively_queued(d, TRUE);
 				download_queue_hold(d,
 					delay ? delay : download_retry_busy_delay,
 					"%sHTTP %d %s", short_read, ack_code, ack_message);
+			}
 			return;
 		case 550:				/* Banned */
+			download_passively_queued(d, FALSE);
 			download_queue_hold(d,
 				delay ? delay : download_retry_refused_delay,
 				"%sHTTP %d %s", short_read, ack_code, ack_message);
@@ -5160,6 +5213,7 @@ static void download_request(
 		}
 
 		download_bad_source(d);
+		download_passively_queued(d, FALSE);
 
 		/*
 		 * Check whether server is banning us based on our user-agent.

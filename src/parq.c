@@ -932,7 +932,7 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 		 */
 
 		file_info_clear_download(d, TRUE);
-		d->status = GTA_DL_ACTIVE_QUEUED;
+		download_actively_queued(d);
 	}
 	
 	d->timeout_delay = retry;
