@@ -45,15 +45,25 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
  */
 #$d_bsd BSD		/**/
 
+/* CAT2:
+ *	This macro catenates 2 tokens together.
+ */
+/* CAT3:
+ *	This macro catenates 3 tokens together.
+ */
 /* STRINGIFY:
  *	This macro surrounds its token with double quotes.
  */
 #if $cpp_stuff == 1
+#define CAT2(a,b)a/**/b
+#define CAT3(a,b,c)a/**/b/**/c
 #define STRINGIFY(a)"a"
 #define SQuoTe(a)"a
 #define EQuoTe(a)a"
 #endif
 #if $cpp_stuff == 42
+#define CAT2(a,b)a ## b
+#define CAT3(a,b,c)a ## b ## c
 #define StGiFy(a)# a
 #define STRINGIFY(a)StGiFy(a)
 #endif
