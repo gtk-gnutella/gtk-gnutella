@@ -86,11 +86,11 @@ const gchar *header_strerror(guint errnum)
  * In-place normalize the header field name: all letters starting a word
  * are upper-cased, the others are lowercased.
  */
-static void normalize(guchar *field)
+static void normalize(gchar *field)
 {
 	gboolean start_word = TRUE;
-	guchar *s;
-	gint c;
+	gchar *s;
+	guchar c;
 	
 	for (s = field, c = *s; c; c = *(++s)) {
 		if (start_word) {
@@ -117,7 +117,7 @@ static void normalize(guchar *field)
  * Create a new empty header field, whose normalized name is `name'.
  * A private copy of `name' is done.
  */
-static header_field_t *hfield_make(const guchar *name)
+static header_field_t *hfield_make(const gchar *name)
 {
 	header_field_t *h;
 
@@ -150,7 +150,7 @@ static void hfield_free(header_field_t *h)
  * Append line of text to given header field.
  * A private copy of the data is made.
  */
-static void hfield_append(header_field_t *h, const guchar *text)
+static void hfield_append(header_field_t *h, const gchar *text)
 {
 	h->lines = g_slist_append(h->lines, g_strdup(text));
 }
@@ -286,7 +286,7 @@ gchar *header_getdup(const header_t *o, const gchar *field)
  * Add header line to the `headers' hash for specified field name.
  * A private copy of the `field' name and of the `text' data is made.
  */
-static void add_header(header_t *o, const guchar *field, const guchar *text)
+static void add_header(header_t *o, const gchar *field, const gchar *text)
 {
 	GHashTable *h = o->headers;
 	GString *v;
@@ -322,7 +322,7 @@ static void add_header(header_t *o, const guchar *field, const guchar *text)
  * A private copy of the data is made.
  */
 static void add_continuation(
-	header_t *o, const guchar *field, const guchar *text)
+	header_t *o, const gchar *field, const gchar *text)
 {
 	GHashTable *h = o->headers;
 	GString *v;
@@ -341,11 +341,11 @@ static void add_continuation(
  *
  * Returns an error code, or HEAD_OK if appending was successful.
  */
-gint header_append(header_t *o, const guchar *text, gint len)
+gint header_append(header_t *o, const gchar *text, gint len)
 {
-	guchar buf[MAX_LINE_SIZE];
-	const guchar *p = text;
-	gint c;
+	gchar buf[MAX_LINE_SIZE];
+	const gchar *p = text;
+	guchar c;
 	header_field_t *hf;
 
 	if (o->flags & HEAD_F_EOH)
@@ -432,7 +432,7 @@ gint header_append(header_t *o, const guchar *text, gint len)
 		 */
 
 	} else {
-		guchar *b;
+		gchar *b;
 		gboolean seen_space = FALSE;
 
 		/*

@@ -36,17 +36,17 @@ void matching_close(void);
  */
 
 typedef struct {				/* Query word vector */
-	guchar *word;				/* The word to search */
+	gchar *word;				/* The word to search */
 	gint len;					/* The word's length */
 	guint amount;				/* Amount of expected occurrences */
 } word_vec_t;
 
-guint query_make_word_vec(guchar *query, word_vec_t **wovec);
+guint query_make_word_vec(gchar *query, word_vec_t **wovec);
 void query_word_vec_free(word_vec_t *wovec, guint n);
 
-typedef	guchar char_map_t[256];		/* Maps one char to another */
+typedef	gchar char_map_t[256];		/* Maps one char to another */
 
-guint match_map_string(char_map_t map, guchar *string);
+guint match_map_string(char_map_t map, gchar *string);
 
 /*
  * Sunday pattern search data structures.
@@ -55,7 +55,7 @@ guint match_map_string(char_map_t map, guchar *string);
 #define ALPHA_SIZE	256			/* Alphabet size */
 
 typedef struct {				/* Compiled pattern */
-	guchar *pattern;			/* The pattern */
+	gchar *pattern;				/* The pattern */
 	guint32 len;				/* Pattern length */
 	guint32 delta[ALPHA_SIZE];	/* Shifting deltas */
 } cpattern_t;
@@ -66,10 +66,10 @@ typedef enum {
 	qs_whole					/* Match whole words only */
 } qsearch_mode_t;
 
-cpattern_t *pattern_compile(guchar *pattern);
+cpattern_t *pattern_compile(gchar *pattern);
 void pattern_free(cpattern_t *cpat);
 gchar *pattern_qsearch(cpattern_t *cpat,
-	guchar *text, guint32 tlen, guint32 toffset, qsearch_mode_t word);
+	gchar *text, guint32 tlen, guint32 toffset, qsearch_mode_t word);
 
 /*
  * Basic explanation of how search table works:
@@ -102,7 +102,7 @@ gchar *pattern_qsearch(cpattern_t *cpat,
  */
 
 struct st_entry {
-	guchar *string;
+	gchar *string;
 	void *data;
 	guint32 mask;
 };
@@ -122,7 +122,7 @@ typedef struct _search_table {
 void st_initialize(search_table_t *, char_map_t);
 void st_create(search_table_t *table);
 void st_destroy(search_table_t *);
-void st_insert_item(search_table_t *, guchar *, void *);
+void st_insert_item(search_table_t *, gchar *, void *);
 void st_compact(search_table_t *);
 
 #include "share.h" /* For shared_file. FIXME: see note below. */
@@ -132,7 +132,7 @@ typedef gboolean (*st_search_callback)(shared_file_t *);
 
 gint st_search(
 	search_table_t *table,
-	guchar *search,
+	gchar *search,
 	st_search_callback callback,
 	gint max_res,
 	struct query_hashvec *qhv);

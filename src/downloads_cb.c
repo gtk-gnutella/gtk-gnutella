@@ -357,7 +357,7 @@ void on_popup_downloads_selection_get(GtkWidget * widget,
     g_return_if_fail(selected_url);
 
     gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING,
-                           8, selected_url, strlen(selected_url));
+                           8, (guchar *) selected_url, strlen(selected_url));
 }
 
 gint on_popup_downloads_selection_clear_event(GtkWidget * widget,

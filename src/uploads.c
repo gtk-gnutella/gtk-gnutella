@@ -85,7 +85,7 @@ guint32 count_uploads = 0;
  */
 struct mesh_info_key {
 	guint32 ip;						/* Remote host IP address */
-	const guchar *sha1;				/* SHA1 atom */
+	const gchar *sha1;				/* SHA1 atom */
 };
 
 struct mesh_info_val {
@@ -101,10 +101,10 @@ static GHashTable *mesh_info = NULL;
 
 static void upload_request(gnutella_upload_t *u, header_t *header);
 static void upload_error_remove(gnutella_upload_t *u, struct shared_file *sf,
-	int code, const guchar *msg, ...);
+	int code, const gchar *msg, ...);
 static void upload_error_remove_ext(gnutella_upload_t *u,
 	struct shared_file *sf, const gchar *extended, int code,
-	const guchar *msg, ...);
+	const gchar *msg, ...);
 static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg);
 static void upload_http_xhost_add(gchar *buf, gint *retval, gpointer arg);
 static void upload_write(gpointer up, gint source, inputevt_cond_t cond);
@@ -120,34 +120,34 @@ static listeners_t upload_info_changed_listeners = NULL;
 
 void upload_add_upload_added_listener(upload_added_listener_t l)
 {
-    LISTENER_ADD(upload_added, l);
+    LISTENER_ADD(upload_added, (gpointer) l);
 }
 
 void upload_remove_upload_added_listener(upload_added_listener_t l)
 {
-    LISTENER_REMOVE(upload_added, l);
+    LISTENER_REMOVE(upload_added, (gpointer) l);
 }
 
 void upload_add_upload_removed_listener(upload_removed_listener_t l)
 {
-    LISTENER_ADD(upload_removed, l);
+    LISTENER_ADD(upload_removed, (gpointer) l);
 }
 
 void upload_remove_upload_removed_listener(upload_removed_listener_t l)
 {
-    LISTENER_REMOVE(upload_removed, l);
+    LISTENER_REMOVE(upload_removed, (gpointer) l);
 }
 
 void upload_add_upload_info_changed_listener(
     upload_info_changed_listener_t l)
 {
-    LISTENER_ADD(upload_info_changed, l);
+    LISTENER_ADD(upload_info_changed, (gpointer) l);
 }
 
 void upload_remove_upload_info_changed_listener(
     upload_info_changed_listener_t l)
 {
-    LISTENER_REMOVE(upload_info_changed, l);
+    LISTENER_REMOVE(upload_info_changed, (gpointer) l);
 }
 
 static void upload_fire_upload_added(gnutella_upload_t *n)
@@ -283,7 +283,7 @@ void handle_push_request(struct gnutella_node *n)
 	guint32 file_index;
 	guint32 ip;
 	guint16 port;
-	guchar *info;
+	gchar *info;
 	gboolean show_banning = FALSE;
 
 	if (0 != memcmp(n->data, guid, 16))		/* Servent ID matches our GUID? */
@@ -502,7 +502,7 @@ static void send_upload_error_v(
 	struct shared_file *sf,
 	const gchar *ext,
 	int code,
-	const guchar *msg, va_list ap)
+	const gchar *msg, va_list ap)
 {
 	gchar reason[1024];
 	gchar extra[1024];
@@ -601,7 +601,7 @@ static void send_upload_error(
 	gnutella_upload_t *u,
 	struct shared_file *sf,
 	int code,
-	const guchar *msg, ...)
+	const gchar *msg, ...)
 {
 	va_list args;
 
@@ -750,7 +750,7 @@ static void upload_error_remove(
 	gnutella_upload_t *u,
 	struct shared_file *sf,
 	int code,
-	const guchar *msg, ...)
+	const gchar *msg, ...)
 {
 	va_list args, errargs;
 
@@ -777,7 +777,7 @@ static void upload_error_remove_ext(
 	struct shared_file *sf,
 	const gchar *ext,
 	int code,
-	const guchar *msg, ...)
+	const gchar *msg, ...)
 {
 	va_list args, errargs;
 
@@ -862,7 +862,7 @@ static void call_upload_request(gpointer obj, header_t *header)
  *** Upload mesh info tracking.
  ***/
 
-static struct mesh_info_key *mi_key_make(guint32 ip, const guchar *sha1)
+static struct mesh_info_key *mi_key_make(guint32 ip, const gchar *sha1)
 {
 	struct mesh_info_key *mik;
 
@@ -965,7 +965,7 @@ static void mi_clean(cqueue_t *cq, gpointer obj)
  * If we don't remember sending it, return 0.
  * Always records `now' as the time we sent mesh information.
  */
-static guint32 mi_get_stamp(guint32 ip, const guchar *sha1, time_t now)
+static guint32 mi_get_stamp(guint32 ip, const gchar *sha1, time_t now)
 {
 	struct mesh_info_key mikey;
 	struct mesh_info_val *miv;
@@ -1110,7 +1110,7 @@ void upload_connect_conf(gnutella_upload_t *u)
 	 */
 
 	rw = gm_snprintf(giv, sizeof(giv), "GIV %u:%s/%s\n\n",
-		u->index, guid_hex_str(guid), u->name);
+		u->index, guid_hex_str((gchar *) guid), u->name);
 	giv[sizeof(giv)-1] = '\0';			/* Might have been truncated */
 	rw = MIN(sizeof(giv)-1, rw);
 	
@@ -1193,7 +1193,7 @@ static struct shared_file *get_file_to_upload_from_index(
 	guint idx)
 {
 	struct shared_file *sf;
-	guchar c;
+	gchar c;
 	gchar *buf;
 	gchar *basename;
 	gboolean sent_sha1 = FALSE;
@@ -1228,7 +1228,7 @@ static struct shared_file *get_file_to_upload_from_index(
 	buf = uri + sizeof("/get/");		/* Go after first index char */
 	(void) url_unescape(buf, TRUE);		/* Index is escape-safe anyway */
 
-	while ((c = *(guchar *) buf++) && c != '/')
+	while ((c = *buf++) && c != '/')
 		/* empty */;
 
 	if (c != '/') {
@@ -1720,7 +1720,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	const gchar *http_msg;
 	http_extra_desc_t hev[3];
 	gint hevcnt = 0;
-	guchar *sha1;
+	gchar *sha1;
 	gboolean is_followup = u->status == GTA_UL_WAITING;
 	gboolean was_actively_queued = u->status == GTA_UL_QUEUED;
 	gboolean faked = FALSE;

@@ -34,15 +34,15 @@
  * Public interface.
  */
 
-guchar *base32_encode(const guchar *buf, gint len, gint *retpad);
-void base32_encode_into(const guchar *buf, gint len,
-	guchar *encbuf, gint enclen);
+gchar *base32_encode(const gchar *buf, gint len, gint *retpad);
+void base32_encode_into(const gchar *buf, gint len,
+	gchar *encbuf, gint enclen);
 
-guchar *base32_decode(const guchar *buf, gint len, gint *outbuf);
-gint base32_decode_into(const guchar *buf, gint len,
-	guchar *decbuf, gint declen);
-gint base32_decode_old_into(const guchar *buf, gint len,
-	guchar *decbuf, gint declen);
+gchar *base32_decode(const gchar *buf, gint len, gint *outbuf);
+gint base32_decode_into(const gchar *buf, gint len,
+	gchar *decbuf, gint declen);
+gint base32_decode_old_into(const gchar *buf, gint len,
+	gchar *decbuf, gint declen);
 
 #endif	/* _base32_h_ */
 

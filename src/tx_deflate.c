@@ -343,7 +343,7 @@ retry:
 	 * be consumed.
 	 */
 
-	outz->next_out = b->wptr;
+	outz->next_out = (gpointer) b->wptr;
 	outz->avail_out = old_avail = b->end - b->wptr;
 
 	outz->avail_in = 0;
@@ -482,10 +482,10 @@ static gint deflate_add(txdrv_t *tx, gpointer data, gint len)
 		 * Prepare call to deflate().
 		 */
 
-		outz->next_out = b->wptr;
+		outz->next_out = (gpointer) b->wptr;
 		outz->avail_out = old_avail = b->end - b->wptr;
 
-		outz->next_in = (gchar *) data + added;
+		outz->next_in = (guchar *) data + added;
 		outz->avail_in = len - added;
 
 		g_assert(outz->avail_out > 0);
@@ -511,7 +511,7 @@ static gint deflate_add(txdrv_t *tx, gpointer data, gint len)
 		 * Update the parameters.
 		 */
 
-		b->wptr = outz->next_out;
+		b->wptr = (gpointer) outz->next_out;
 		added = (gchar *) outz->next_in - (gchar *) data;
 
 		g_assert(added >= old_added);

@@ -405,7 +405,7 @@ static guint32 *config_parse_array(gchar * str, guint32 n)
 
 static void config_set_param(keyword_t keyword, gchar *value)
 {
-	gint32 i = atol(value);
+	guint32 i = atol(value);
 
 	switch (keyword) {
         CONFIG_SET_BOOL(
@@ -772,10 +772,10 @@ static void config_set_param(keyword_t keyword, gchar *value)
 
     case k_guid:
         if (strlen(value) == 32) {
-            guint8 buf[16];
+            gchar buf[16];
 
 			hex_to_guid(value, buf);
-            gnet_prop_set_storage(PROP_GUID, buf, sizeof(buf));
+            gnet_prop_set_storage(PROP_GUID, (guint8 *) buf, sizeof(buf));
         }
 		return;
 

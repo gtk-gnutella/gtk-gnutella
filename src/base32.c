@@ -171,12 +171,12 @@ static gint encode_pad_length(gint len, gint *pad)
  * Encode `len' bytes from `buf' into `enclen' bytes starting from `encbuf'.
  * Caller must have ensured that there was EXACTLY the needed room in encbuf.
  */
-static void base32_encode_exactly(const guchar *buf, gint len,
-	guchar *encbuf, gint enclen)
+static void base32_encode_exactly(const gchar *buf, guint len,
+	gchar *encbuf, gint enclen)
 {
 	guint32 i = 0;					/* Input accumulator, 0 for trailing pad */
-	guchar const *ip = buf + len;	/* Input pointer, one byte off end */
-	guchar *op = encbuf + enclen;	/* Output pointer, one byte off end */
+	gchar const *ip = buf + len;	/* Input pointer, one byte off end */
+	gchar *op = encbuf + enclen;	/* Output pointer, one byte off end */
 
 	g_assert(buf);
 	g_assert(encbuf);
@@ -207,31 +207,31 @@ static void base32_encode_exactly(const guchar *buf, gint len,
 	case 0:
 		do {
 			g_assert(op - encbuf >= 8);
-			i = *--ip;							/* Input #4 */
+			i = (guchar) *--ip;					/* Input #4 */
 			*--op = b32_alphabet[i & 0x1f];		/* Ouput #7 */
 			i >>= 5;							/* upper <234>, input #4 */
 			/* FALLTHROUGH */
 	case 4:
-			i |= ((guint32) *--ip) << 3;		/* had 3 bits in `i' */
+			i |= ((guchar) *--ip) << 3;			/* had 3 bits in `i' */
 			*--op = b32_alphabet[i & 0x1f];		/* Output #6 */
 			i >>= 5;							/* upper <401234>, input #3 */
 			*--op = b32_alphabet[i & 0x1f];		/* Output #5 */
 			i >>= 5;							/* upper <4>, input #3 */
 			/* FALLTHROUGH */
 	case 3:
-			i |= ((guint32) *--ip) << 1;		/* had 1 bits in `i' */
+			i |= ((guchar) *--ip) << 1;			/* had 1 bits in `i' */
 			*--op = b32_alphabet[i & 0x1f];		/* Output #4 */
 			i >>= 5;							/* upper <1234>, input #2 */
 			/* FALLTHROUGH */
 	case 2:
-			i |= ((guint32) *--ip) << 4;		/* had 4 bits in `i' */
+			i |= ((guchar) *--ip) << 4;		/* had 4 bits in `i' */
 			*--op = b32_alphabet[i & 0x1f];		/* Output #3 */
 			i >>= 5;							/* upper <3401234>, input #1 */
 			*--op = b32_alphabet[i & 0x1f];		/* Output #2 */
 			i >>= 5;							/* upper <34>, input #1 */
 			/* FALLTHROUGH */
 	case 1:
-			i |= ((guint32) *--ip) << 2;		/* had 2 bits in `i' */
+			i |= ((guchar) *--ip) << 2;		/* had 2 bits in `i' */
 			*--op = b32_alphabet[i & 0x1f];		/* Output #1 */
 			i >>= 5;							/* upper <01234>, input #0 */
 			*--op = b32_alphabet[i & 0x1f];		/* Output #0 */
@@ -248,8 +248,8 @@ static void base32_encode_exactly(const guchar *buf, gint len,
  * Encode `len' bytes from `buf' into `enclen' bytes starting from `encbuf'.
  * Caller must have ensured that there was enough room in encbuf.
  */
-void base32_encode_into(const guchar *buf, gint len,
-	guchar *encbuf, gint enclen)
+void base32_encode_into(const gchar *buf, gint len,
+	gchar *encbuf, gint enclen)
 {
 	gint pad;
 	gint exactlen = encode_pad_length(len, &pad);
@@ -270,7 +270,7 @@ void base32_encode_into(const guchar *buf, gint len,
  * Returns the new encoded buffer, NUL-terminated, and the added amount
  * of padding chars in `retpad' if it is a non-NULL pointer.
  */
-guchar *base32_encode(const guchar *buf, gint len, gint *retpad)
+gchar *base32_encode(const gchar *buf, gint len, gint *retpad)
 {
 	gint pad;
 	gint enclen = encode_pad_length(len, &pad);
@@ -297,12 +297,12 @@ guchar *base32_encode(const guchar *buf, gint len, gint *retpad)
  * Return decoded bytes if successful, 0 if the input was not valid base32.
  */
 static gint base32_decode_alphabet(const gint8 valmap[256],
-	const guchar *buf, gint len, guchar *decbuf, gint declen)
+	const gchar *buf, gint len, gchar *decbuf, gint declen)
 {
 	guint32 i = 0;					/* Input accumulator, 0 for trailing pad */
-	guchar const *ip = buf + len;	/* Input pointer, one byte off end */
+	gchar const *ip = buf + len;	/* Input pointer, one byte off end */
 	gint dlen = (len >> 3) * 5;		/* Exact decoded lenth */
-	guchar *op;						/* Output pointer, one byte off end */
+	gchar *op;						/* Output pointer, one byte off end */
 	gint bytes;						/* bytes decoded without padding */
 	gint8 v;
 	
@@ -371,49 +371,49 @@ static gint base32_decode_alphabet(const gint8 valmap[256],
 	switch ((ip - buf) % 8) {
 	case 0:
 		do {
-			i = valmap[*--ip];				/* Input #7 */
+			i = valmap[(guchar) *--ip];		/* Input #7 */
 			if (i < 0) return 0;
 			/* FALLTHROUGH */
 	case 7:
-			v = valmap[*--ip];				/* Input #6 */
+			v = valmap[(guchar) *--ip];		/* Input #6 */
 			if (v < 0) return 0;
 			i |= v << 5;					/* had 5 bits */
 			*--op = i & 0xff;				/* Output #4 */
 			i >>= 8;						/* lower <01> of output #3 */
 			/* FALLTHROUGH */
 	case 6:
-			v = valmap[*--ip];				/* Input #5 */
+			v = valmap[(guchar) *--ip];		/* Input #5 */
 			if (v < 0) return 0;
 			i |= v << 2;					/* had 2 bits */
 			/* FALLTHROUGH */
 	case 5:
-			v = valmap[*--ip];				/* Input #4 */
+			v = valmap[(guchar) *--ip];		/* Input #4 */
 			if (v < 0) return 0;
 			i |= v << 7;					/* had 7 bits */
 			*--op = i & 0xff;				/* Output #3 */
 			i >>= 8;						/* lower <0123> of output #2 */
 			/* FALLTHROUGH */
 	case 4:
-			v = valmap[*--ip];				/* Input #3 */
+			v = valmap[(guchar) *--ip];		/* Input #3 */
 			if (v < 0) return 0;
 			i |= v << 4;					/* had 4 bits */
 			*--op = i & 0xff;				/* Output #2 */
 			i >>= 8;						/* lower <0> of output #1 */
 			/* FALLTHROUGH */
 	case 3:
-			v = valmap[*--ip];				/* Input #2 */
+			v = valmap[(guchar) *--ip];		/* Input #2 */
 			if (v < 0) return 0;
 			i |= v << 1;					/* had 1 bit */
 			/* FALLTHROUGH */
 	case 2:
-			v = valmap[*--ip];				/* Input #1 */
+			v = valmap[(guchar) *--ip];		/* Input #1 */
 			if (v < 0) return 0;
 			i |= v << 6;					/* had 6 bits */
 			*--op = i & 0xff;				/* Output #1 */
 			i >>= 8;						/* lower <012> of output #0 */
 			/* FALLTHROUGH */
 	case 1:
-			v = valmap[*--ip];				/* Input #0 */
+			v = valmap[(guchar) *--ip];		/* Input #0 */
 			if (v < 0) return 0;
 			i |= v << 3;					/* had 3 bits */
 			*--op = i & 0xff;				/* Output #0 */
@@ -435,8 +435,8 @@ static gint base32_decode_alphabet(const gint8 valmap[256],
  * Returns the amount of bytes decoded (without trailing padding) if successful,
  * 0 if the input was not valid base32.
  */
-gint base32_decode_into(const guchar *buf, gint len,
-	guchar *decbuf, gint declen)
+gint base32_decode_into(const gchar *buf, gint len,
+	gchar *decbuf, gint declen)
 {
 	return base32_decode_alphabet(values, buf, len, decbuf, declen);
 }
@@ -451,8 +451,8 @@ gint base32_decode_into(const guchar *buf, gint len,
  * Returns the amount of bytes decoded (without trailing padding) if successful,
  * 0 if the input was not valid base32.
  */
-gint base32_decode_old_into(const guchar *buf, gint len,
-	guchar *decbuf, gint declen)
+gint base32_decode_old_into(const gchar *buf, gint len,
+	gchar *decbuf, gint declen)
 {
 	return base32_decode_alphabet(old_values, buf, len, decbuf, declen);
 }
@@ -468,7 +468,7 @@ gint base32_decode_old_into(const guchar *buf, gint len,
  * it is filled with the amount of bytes decoded into the buffer (without
  * trailing padding).
  */
-guchar *base32_decode(const guchar *buf, gint len, gint *outlen)
+gchar *base32_decode(const gchar *buf, gint len, gint *outlen)
 {
 	gint declen;
 	gchar *decbuf;

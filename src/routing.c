@@ -42,7 +42,7 @@ RCSID("$Id$");
 struct gnutella_node *fake_node;		/* Our fake node */
 
 struct message {
-	guchar muid[16];			/* Message UID */
+	gchar muid[16];				/* Message UID */
 	GSList *routes;	            /* route_data from where the message came */
 	guint8 function;			/* Type of the message */
 };
@@ -88,7 +88,7 @@ GHashTable *messages_hashed; 	/* we hash the last MAX_STORED_MESSAGES */
 guint next_message_index;		/* next slot to use in message_array */
 
 static gboolean find_message(
-	const guchar *muid, guint8 function, struct message **m);
+	const gchar *muid, guint8 function, struct message **m);
 
 /*
  * "banned" GUIDs for push routing.
@@ -96,12 +96,12 @@ static gboolean find_message(
  * The following GUIDs are so common that it does not make sense to
  * route pushes to them (i.e. they are are NOT unique on the network!).
  */
-static const guchar *banned_push[] = {
+static const gchar *banned_push[] = {
 	"20d262ff0e6fd6119734004005a207b1",		/* Morpheus, 29/06/2002 */
 };
 GHashTable *ht_banned_push = NULL;
 
-#define BANNED_PUSH_COUNT	(sizeof(banned_push) / sizeof(banned_push[0]))
+#define BANNED_PUSH_COUNT	G_N_ELEMENTS(banned_push)
 
 /*
  * Log function
@@ -207,7 +207,7 @@ static guint message_hash_func(gconstpointer key)
 /* Init function */
 void routing_init(void)
 {
-    guint8 guid_buf[16];
+    gchar guid_buf[16];
 	guint32 i;
 	gboolean need_guid = TRUE;
 	extern guint guid_hash(gconstpointer key);		/* from atoms.c */
@@ -228,8 +228,8 @@ void routing_init(void)
 	ht_banned_push = g_hash_table_new(guid_hash, guid_eq);
 
 	for (i = 0; i < BANNED_PUSH_COUNT; i++) {
-		guchar g[16];
-		const guchar *hex = banned_push[i];
+		gchar g[16];
+		const gchar *hex = banned_push[i];
 
 		g_assert(strlen(hex) == 2*sizeof(g));
 
@@ -245,7 +245,7 @@ void routing_init(void)
 	 *		--RAM, 08/03/2002
 	 */
 
-    gnet_prop_get_storage(PROP_GUID, guid_buf, sizeof(guid_buf));
+    gnet_prop_get_storage(PROP_GUID, (guint8 *) guid_buf, sizeof(guid_buf));
 
 	for (i = 0; i < 15; i++) {
 		if (guid_buf[i]) {
@@ -270,7 +270,7 @@ retry:
 		goto retry;
 	}
 
-    gnet_prop_set_storage(PROP_GUID, guid_buf, sizeof(guid_buf));
+    gnet_prop_set_storage(PROP_GUID, (guint8 *) guid_buf, sizeof(guid_buf));
 
 	/*
 	 * Initialize message type array for routing logs.
@@ -398,7 +398,7 @@ void routing_node_remove(struct gnutella_node *node)
 
 /* Adds a new message in the routing tables */
 
-void message_add(const guchar * muid, guint8 function,
+void message_add(const gchar * muid, guint8 function,
 				 struct gnutella_node *node)
 {
 	static time_t last_rotation = 0;
@@ -520,7 +520,7 @@ static void purge_dangling_references(struct message *m)
  * m->routes will be NULL.
  */
 static gboolean find_message(
-	const guchar *muid, guint8 function, struct message **m)
+	const gchar *muid, guint8 function, struct message **m)
 {
 	/* Returns TRUE if the message is found */
 	/* Set *node to node if there is a connected node associated
@@ -735,7 +735,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 		 */
 
 		if (sender->header.function == GTA_MSG_SEARCH_RESULTS) {
-			guchar *guid = sender->data + sender->size - 16;
+			gchar *guid = sender->data + sender->size - 16;
 			g_assert(sender->size >= 16);
 
 			if (!find_message(guid, QUERY_HIT_ROUTE_SAVE, &m)) {
@@ -1082,7 +1082,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 		}
 	}
 
-	g_warning("BUG: fell through route_message");
+	g_error("BUG: fell through route_message");
 
 	return FALSE;
 }
@@ -1095,14 +1095,11 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
  *
  * Returns boolean indicating whether we have such a route.
  */
-gboolean route_exists_for_reply(guchar *muid, guint8 function)
+gboolean route_exists_for_reply(gchar *muid, guint8 function)
 {
 	struct message *m;
 
-	if (
-		!find_message((const guchar *) muid, function & ~0x01, &m) ||
-		m->routes == NULL
-	)
+	if (!find_message(muid, function & ~0x01, &m) || m->routes == NULL)
 		return FALSE;
 
 	return TRUE;
@@ -1117,7 +1114,7 @@ gboolean route_exists_for_reply(guchar *muid, guint8 function)
  * Returns NULL if we have no such route, or a list of  node to which we should
  * send the packet otherwise.  It is up to the caller to free that list.
  */
-GSList *route_towards_guid(const guchar *guid)
+GSList *route_towards_guid(const gchar *guid)
 {
 	struct message *m;
 	GSList *nodes = NULL;
@@ -1147,8 +1144,7 @@ static void free_routing_data(gpointer key, gpointer value, gpointer udata)
 /* frees the banned GUID atom keys */
 static void free_banned_push(gpointer key, gpointer value, gpointer udata)
 {
-	guchar *g = (guchar *) key;
-	atom_guid_free(g);
+	atom_guid_free((gchar *) key);
 }
 
 void routing_close(void)

@@ -119,9 +119,9 @@ static guint8 utf8len[256] = {
  * Are the first bytes of string `s' forming a valid UTF-8 character?
  * Returns amount of bytes used to encode that character, or 0 if invalid.
  */
-gint utf8_is_valid_char(const guchar *s)
+gint utf8_is_valid_char(const gchar *s)
 {
-	const guchar u = *s;
+	const guchar u = (guchar) *s;
 	gint len;
 	gint slen;
 	guint32 v;
@@ -138,7 +138,7 @@ gint utf8_is_valid_char(const guchar *s)
 	if (len < 2 || !UTF8_IS_CONTINUATION(s[1]))
 		return 0;
 
-	for (slen = len -1, s++, ov = v = u; slen; slen--, s++, ov = v) {
+	for (slen = len - 1, s++, ov = v = u; slen; slen--, s++, ov = v) {
 		if (!UTF8_IS_CONTINUATION(*s))
 			return 0;
 		v = UTF8_ACCUMULATE(v, *s);
@@ -160,10 +160,10 @@ gint utf8_is_valid_char(const guchar *s)
  *
  * If `len' is 0, the length is computed with strlen().
  */
-gint utf8_is_valid_string(const guchar *s, gint len)
+gint utf8_is_valid_string(const gchar *s, gint len)
 {
-	const guchar *x = s;
-	const guchar *s_end;
+	const gchar *x = s;
+	const gchar *s_end;
 	gint n = 0;
 
 	if (!len)
@@ -196,7 +196,7 @@ gint utf8_is_valid_string(const guchar *s, gint len)
  * the caller will raise a warning, and this function will silently just
  * set `retlen' to -1 and return zero.
  */
-guint32 utf8_decode_char(guchar *s, gint len, gint *retlen, gboolean warn)
+guint32 utf8_decode_char(gchar *s, gint len, gint *retlen, gboolean warn)
 {
 	guint32 v = *s;
 	guint32 ov = 0;
@@ -363,11 +363,11 @@ malformed:
  *
  * Returns length of decoded string.
  */
-gint utf8_to_iso8859(guchar *s, gint len, gboolean space)
+gint utf8_to_iso8859(gchar *s, gint len, gboolean space)
 {
-	guchar *x = s;
-	guchar *xw = s;			/* Where we write back ISO-8859 chars */
-	guchar *s_end;
+	gchar *x = s;
+	gchar *xw = s;			/* Where we write back ISO-8859 chars */
+	gchar *s_end;
 
 	if (!len)
 		len = strlen(s);

@@ -44,8 +44,9 @@ RCSID("$Id$");
 static const gchar *msg_name[256];
 static gint msg_weight[256];		/* For gmsg_cmp() */
 
-static void gmsg_dump(FILE *out, guchar *data, guint32 size);
-static void gmsg_split_dump(FILE *out, guchar *head, guchar *data, guint32 size);
+static void gmsg_dump(FILE *out, gpointer data, guint32 size);
+static void gmsg_split_dump(FILE *out, gpointer head, gpointer data,
+				guint32 size);
 
 /*
  * gmsg_init
@@ -98,7 +99,7 @@ const gchar *gmsg_name(guint function)
  *
  * Construct PDU from message.
  */
-static pmsg_t *gmsg_to_pmsg(gint prio, guchar *msg, guint32 size)
+static pmsg_t *gmsg_to_pmsg(gint prio, gpointer msg, guint32 size)
 {
 	return pmsg_new(prio, msg, size);
 }
@@ -108,7 +109,7 @@ static pmsg_t *gmsg_to_pmsg(gint prio, guchar *msg, guint32 size)
  *
  * Construct PDU from header and data.
  */
-static pmsg_t *gmsg_split_to_pmsg(guchar *head, guchar *data, guint32 size)
+static pmsg_t *gmsg_split_to_pmsg(gpointer head, gpointer data, guint32 size)
 {
 	pmsg_t *mb;
 	gint written;
@@ -131,7 +132,7 @@ static pmsg_t *gmsg_split_to_pmsg(guchar *head, guchar *data, guint32 size)
  *
  * Send message to one node.
  */
-void gmsg_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
+void gmsg_sendto_one(struct gnutella_node *n, gchar *msg, guint32 size)
 {
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 
@@ -150,7 +151,7 @@ void gmsg_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
  * Send our search message to one node.
  */
 void gmsg_search_sendto_one(
-	struct gnutella_node *n, gnet_search_t sh, guchar *msg, guint32 size)
+	struct gnutella_node *n, gnet_search_t sh, gchar *msg, guint32 size)
 {
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 	g_assert(((struct gnutella_header *) msg)->hops <= hops_random_factor);
@@ -171,7 +172,7 @@ void gmsg_search_sendto_one(
  * Send control message to one node.
  * A control message is inserted ahead any other queued regular data.
  */
-void gmsg_ctrl_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
+void gmsg_ctrl_sendto_one(struct gnutella_node *n, gchar *msg, guint32 size)
 {
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 
@@ -190,7 +191,7 @@ void gmsg_ctrl_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
  * Send message consisting of header and data to one node.
  */
 void gmsg_split_sendto_one(struct gnutella_node *n,
-	guchar *head, guchar *data, guint32 size)
+	gpointer head, gpointer data, guint32 size)
 {
 	g_assert(((struct gnutella_header *) head)->ttl > 0);
 
@@ -208,7 +209,7 @@ void gmsg_split_sendto_one(struct gnutella_node *n,
  *
  * Broadcast message to all nodes in the list.
  */
-void gmsg_sendto_all(GSList *l, guchar *msg, guint32 size)
+void gmsg_sendto_all(GSList *l, gchar *msg, guint32 size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(PMSG_P_DATA, msg, size);
 
@@ -233,7 +234,7 @@ void gmsg_sendto_all(GSList *l, guchar *msg, guint32 size)
  * Broadcast our search message to all nodes in the list.
  */
 void gmsg_search_sendto_all(
-	GSList *l, gnet_search_t sh, guchar *msg, guint32 size)
+	GSList *l, gnet_search_t sh, gchar *msg, guint32 size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(PMSG_P_DATA, msg, size);
 
@@ -259,7 +260,7 @@ void gmsg_search_sendto_all(
  * Broadcast our search message to all non-leaf nodes in the list.
  */
 void gmsg_search_sendto_all_nonleaf(
-	GSList *l, gnet_search_t sh, guchar *msg, guint32 size)
+	GSList *l, gnet_search_t sh, gchar *msg, guint32 size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(PMSG_P_DATA, msg, size);
 
@@ -288,7 +289,7 @@ void gmsg_search_sendto_all_nonleaf(
  * We never broadcast anything to a leaf node.  Those are handled specially.
  */
 void gmsg_split_sendto_all_but_one(GSList *l, struct gnutella_node *n,
-	guchar *head, guchar *data, guint32 size)
+	gpointer head, gpointer data, guint32 size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
 
@@ -314,7 +315,7 @@ void gmsg_split_sendto_all_but_one(GSList *l, struct gnutella_node *n,
  * Send message consisting of header and data to all the leaves in the list.
  */
 void gmsg_split_sendto_leaves(GSList *l,
-	guchar *head, guchar *data, guint32 size)
+	gpointer head, gpointer data, guint32 size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
 
@@ -347,7 +348,7 @@ void gmsg_split_sendto_leaves(GSList *l,
 static void gmsg_split_sendto_all_but_one_ggep(
 	GSList *l,
 	struct gnutella_node *n,
-	guchar *head, guchar *data, guint32 size, gint regular_size)
+	gpointer head, gpointer data, guint32 size, gint regular_size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
 	pmsg_t *mb_stripped = NULL;
@@ -656,11 +657,12 @@ void gmsg_log_bad(struct gnutella_node *n, gchar *reason, ...)
  *
  * to the specified file descriptor.
  */
-static void gmsg_dump(FILE *out, guchar *data, guint32 size)
+static void gmsg_dump(FILE *out, gpointer data, guint32 size)
 {
 	g_assert(size >= HEADER_SIZE);
 
-	dump_hex(out, gmsg_infostr(data), data + HEADER_SIZE, size - HEADER_SIZE);
+	dump_hex(out, gmsg_infostr(data),
+		(gchar *) data + HEADER_SIZE, size - HEADER_SIZE);
 }
 
 /*
@@ -668,7 +670,8 @@ static void gmsg_dump(FILE *out, guchar *data, guint32 size)
  *
  * Same as gmsg_dump(), but the header and the PDU data are separated.
  */
-static void gmsg_split_dump(FILE *out, guchar *head, guchar *data, guint32 size)
+static void gmsg_split_dump(FILE *out, gpointer head, gpointer data,
+	guint32 size)
 {
 	g_assert(size >= HEADER_SIZE);
 

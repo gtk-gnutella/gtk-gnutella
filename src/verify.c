@@ -163,7 +163,7 @@ static void d_end(gpointer h, gpointer ctx, gpointer item)
 			download_outname(d), (gulong) vd->size / elapsed, vd->error);
 
 	if (vd->error == 0)
-		download_verify_done(d, digest, elapsed);
+		download_verify_done(d, (gchar *) digest, elapsed);
 	else
 		download_verify_error(d);
 }
@@ -233,7 +233,7 @@ static bgret_t d_step_compute(gpointer h, gpointer u, gint ticks)
 	if (used != ticks)
 		bg_task_ticks_used(h, used);
 
-	res = SHA1Input(&vd->context, vd->buffer, r);
+	res = SHA1Input(&vd->context, (guint8 *) vd->buffer, r);
 	if (res != shaSuccess) {
 		g_warning("SHA1 computation error for %s", download_outname(vd->d));
 		vd->error = -1;

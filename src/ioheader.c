@@ -127,7 +127,7 @@ static void io_header_parse(struct io_header *ih)
 	struct gnutella_socket *s = ih->socket;
 	getline_t *getline = ih->getline;
 	header_t *header = ih->header;
-	guint parsed;
+	gint parsed;
 	gint error;
 
 	/*

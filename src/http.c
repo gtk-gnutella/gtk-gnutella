@@ -180,9 +180,9 @@ gboolean http_send_status(
  */
 static gint code_message_parse(const gchar *line, const gchar **msg)
 {
-	const guchar *p;
-	guchar code[4];
-	gint c;
+	const gchar *p;
+	gchar code[4];
+	guchar c;
 	gint i;
 	gint status;
 
@@ -267,8 +267,8 @@ static gint code_message_parse(const gchar *line, const gchar **msg)
 gint http_status_parse(const gchar *line,
 	const gchar *proto, const gchar **msg, gint *major, gint *minor)
 {
-	gint c;
-	const guchar *p;
+	guchar c;
+	const gchar *p;
 
 	/*
 	 * Skip leading spaces.
@@ -413,9 +413,7 @@ gboolean http_extract_version(
 	 */
 
 	for (p = request + len - 1, i = 0; i < limit; p--, i++) {
-		gint c = *p;
-
-		if (c == ' ')		/* Not isspace(), looking for space only */
+		if (*p == ' ')		/* Not isspace(), looking for space only */
 			break;
 	}
 
@@ -716,7 +714,7 @@ GSList *http_range_parse(
 	const gchar *field, gchar *value, guint32 size, const gchar *vendor)
 {
 	GSList *ranges = NULL;
-	const guchar *str = value;
+	const gchar *str = value;
 	guchar c;
 	guint32 start;
 	guint32 end;
@@ -786,21 +784,21 @@ GSList *http_range_parse(
 
 			if (!minus_seen) {
 				g_warning("weird %s header from <%s>, offset %d (no range?): "
-					"%s", field, vendor, (gint) ((gchar *) str - value) - 1, value);
+					"%s", field, vendor, (gint) (str - value) - 1, value);
 				goto reset;
 			}
 
 			if (start == HTTP_OFFSET_MAX && !has_end) {	/* Bad negative range */
 				g_warning("weird %s header from <%s>, offset %d "
 					"(incomplete negative range): %s",
-					field, vendor, (gint) ((gchar *) str - value) - 1, value);
+					field, vendor, (gint) (str - value) - 1, value);
 				goto reset;
 			}
 
 			if (start > end) {
 				g_warning("weird %s header from <%s>, offset %d "
 					"(swapped range?): %s", field, vendor,
-					(gint) ((gchar *) str - value) - 1, value);
+					(gint) (str - value) - 1, value);
 				goto reset;
 			}
 
@@ -811,7 +809,7 @@ GSList *http_range_parse(
 			if (ignored)
 				g_warning("weird %s header from <%s>, offset %d "
 					"(ignored range #%d): %s",
-					field, vendor, (gint) ((gchar *) str - value) - 1, count,
+					field, vendor, (gint) (str - value) - 1, count,
 					value);
 
 			goto reset;
@@ -824,7 +822,7 @@ GSList *http_range_parse(
 			if (minus_seen) {
 				g_warning("weird %s header from <%s>, offset %d "
 					"(spurious '-'): %s",
-					field, vendor, (gint) ((gchar *) str - value) - 1, value);
+					field, vendor, (gint) (str - value) - 1, value);
 				goto resync;
 			}
 			minus_seen = TRUE;
@@ -832,7 +830,7 @@ GSList *http_range_parse(
 				if (!request) {
 					g_warning("weird %s header from <%s>, offset %d "
 						"(negative range in reply): %s",
-						field, vendor, (gint) ((gchar *) str - value) - 1,
+						field, vendor, (gint) (str - value) - 1,
 						value);
 					goto resync;
 				}
@@ -847,14 +845,14 @@ GSList *http_range_parse(
 			guint32 val = strtoul(str - 1, &dend, 10);
 
 			/* Started with digit! */
-			g_assert((const guchar *) dend != (str - 1));
+			g_assert(dend != (str - 1));
 
-			str = (const guchar *) dend;		/* Skip number */
+			str = dend;		/* Skip number */
 
 			if (has_end) {
 				g_warning("weird %s header from <%s>, offset %d "
 					"(spurious boundary %u): %s",
-					field, vendor, (gint) ((gchar *) str - value) - 1, val,
+					field, vendor, (gint) (str - value) - 1, val,
 					value);
 				goto resync;
 			}
@@ -862,7 +860,7 @@ GSList *http_range_parse(
 			if (val >= size) {
 				g_warning("weird %s header from <%s>, offset %d "
 					"(%s boundary %u outside resource range 0-%u): %s",
-					field, vendor, (gint) ((gchar *) str - value) - 1,
+					field, vendor, (gint) (str - value) - 1,
 					has_start ? "end" : "start", val, size - 1, value);
 				goto resync;
 			}
@@ -871,8 +869,7 @@ GSList *http_range_parse(
 				if (!minus_seen) {
 					g_warning("weird %s header from <%s>, offset %d "
 						"(no '-' before boundary %u): %s",
-						field, vendor, (gint) ((gchar *) str - value) - 1, val,
-						value);
+						field, vendor, (gint) (str - value) - 1, val, value);
 					goto resync;
 				}
 				if (start == HTTP_OFFSET_MAX) {			/* Negative range */
@@ -890,7 +887,7 @@ GSList *http_range_parse(
 
 		g_warning("weird %s header from <%s>, offset %d "
 			"(unexpected char '%c'): %s",
-			field, vendor, (gint) ((gchar *) str - value) - 1, c, value);
+			field, vendor, (gint) (str - value) - 1, c, value);
 
 		/* FALL THROUGH */
 
@@ -912,14 +909,14 @@ GSList *http_range_parse(
 		if (start == HTTP_OFFSET_MAX && !has_end) {	/* Bad negative range */
 			g_warning("weird %s header from <%s>, offset %d "
 				"(incomplete trailing negative range): %s",
-				field, vendor, (gint) ((gchar *) str - value) - 1, value);
+				field, vendor, (gint) (str - value) - 1, value);
 			goto final;
 		}
 
 		if (start > end) {
 			g_warning("weird %s header from <%s>, offset %d "
 				"(swapped trailing range?): %s", field, vendor,
-				(gint) ((gchar *) str - value) - 1, value);
+				(gint) (str - value) - 1, value);
 			goto final;
 		}
 
@@ -929,7 +926,7 @@ GSList *http_range_parse(
 		if (ignored)
 			g_warning("weird %s header from <%s>, offset %d "
 				"(ignored final range #%d): %s",
-				field, vendor, (gint) ((gchar *) str - value) - 1, count,
+				field, vendor, (gint) (str - value) - 1, count,
 				value);
 	}
 

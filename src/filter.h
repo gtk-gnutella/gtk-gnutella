@@ -159,16 +159,16 @@ filter_t *filter_new(gchar *);
 filter_result_t *filter_record(struct search *, struct record *);
 gchar *filter_rule_condition_to_gchar(const rule_t *r);
 gchar *filter_rule_to_gchar(rule_t *f);
-inline gboolean filter_is_builtin(filter_t *f);
-inline gboolean filter_is_global(filter_t *f);
-inline void filter_reset_stats(filter_t *filter);
-inline void filter_rule_reset_stats(rule_t *rule);
+gboolean filter_is_builtin(filter_t *f);
+gboolean filter_is_global(filter_t *f);
+void filter_reset_stats(filter_t *filter);
+void filter_rule_reset_stats(rule_t *rule);
 rule_t *filter_duplicate_rule(rule_t *rule);
 rule_t *filter_new_ip_rule(guint32, guint32, filter_t *, guint16);
 rule_t *filter_new_jump_rule(filter_t *,guint16);
 rule_t *filter_new_size_rule(size_t, size_t, filter_t *, guint16);
 rule_t *filter_new_text_rule(gchar *, gint, gboolean, filter_t *, guint16);
-rule_t *filter_new_sha1_rule(guchar *, gchar *, filter_t *, guint16);
+rule_t *filter_new_sha1_rule(gchar *, gchar *, filter_t *, guint16);
 rule_t *filter_new_flag_rule
     (enum rule_flag_action stable, enum rule_flag_action busy, 
     enum rule_flag_action push, filter_t *target, guint16 flags);
@@ -198,13 +198,13 @@ void filter_free_result(filter_result_t *);
 void filter_free_rule(rule_t *rule);
 filter_t *filter_find_by_name_in_session(gchar *name);
 gboolean filter_is_valid_in_session(filter_t *f);
-inline filter_t *filter_get_drop_target(void);
-inline filter_t *filter_get_show_target(void);
-inline filter_t *filter_get_download_target(void);
-inline filter_t *filter_get_nodownload_target(void);
-inline filter_t *filter_get_return_target(void);
-inline filter_t *filter_get_global_pre(void);
-inline filter_t *filter_get_global_post(void);
+filter_t *filter_get_drop_target(void);
+filter_t *filter_get_show_target(void);
+filter_t *filter_get_download_target(void);
+filter_t *filter_get_nodownload_target(void);
+filter_t *filter_get_return_target(void);
+filter_t *filter_get_global_pre(void);
+filter_t *filter_get_global_post(void);
 
 /*
  * Helper functions for adding filters.

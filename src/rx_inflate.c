@@ -66,7 +66,7 @@ static pmsg_t *inflate_data(rxdrv_t *rx, pmsg_t *mb)
 	 * Prepare call to inflate().
 	 */
 
-	inz->next_in = pmsg_read_base(mb);
+	inz->next_in = (gpointer) pmsg_read_base(mb);
 	inz->avail_in = old_size = pmsg_size(mb);
 
 	if (old_size == 0)
@@ -74,7 +74,7 @@ static pmsg_t *inflate_data(rxdrv_t *rx, pmsg_t *mb)
 
 	db = rxbuf_new();
 
-	inz->next_out = pdata_start(db);
+	inz->next_out = (gpointer) pdata_start(db);
 	inz->avail_out = old_avail = pdata_len(db);
 
 	g_assert(inz->avail_out > 0);

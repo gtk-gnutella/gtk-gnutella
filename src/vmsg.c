@@ -42,7 +42,7 @@ static gchar v_tmp[256];
  * Vendor message handler.
  */
 typedef void (*vmsg_handler_t)(struct gnutella_node *n,
-	guint16 version, guchar *payload, gint size);
+	guint16 version, gchar *payload, gint size);
 
 /*
  * Definition of vendor messages
@@ -56,11 +56,11 @@ struct vmsg_known {
 };
 
 static void handle_messages_supported(struct gnutella_node *n,
-	guint16 version, guchar *payload, gint size);
+	guint16 version, gchar *payload, gint size);
 static void handle_hops_flow(struct gnutella_node *n,
-	guint16 version, guchar *payload, gint size);
+	guint16 version, gchar *payload, gint size);
 static void handle_connect_back(struct gnutella_node *n,
-	guint16 version, guchar *payload, gint size);
+	guint16 version, gchar *payload, gint size);
 
 /*
  * Known vendor-specific messages.
@@ -216,7 +216,7 @@ static guchar *vmsg_fill_type(
  * Handle the "Messages Supported" message.
  */
 static void handle_messages_supported(struct gnutella_node *n,
-	guint16 version, guchar *payload, gint size)
+	guint16 version, gchar *payload, gint size)
 {
 	guint16 count;
 
@@ -288,7 +288,7 @@ void vmsg_send_messages_supported(struct gnutella_node *n)
 		payload += 2;
 	}
 
-	gmsg_sendto_one(n, (guchar *) vms, msgsize);
+	gmsg_sendto_one(n, (gchar *) vms, msgsize);
 }
 
 /*
@@ -297,7 +297,7 @@ void vmsg_send_messages_supported(struct gnutella_node *n)
  * Handle the "Hops Flow" message.
  */
 static void handle_hops_flow(struct gnutella_node *n,
-	guint16 version, guchar *payload, gint size)
+	guint16 version, gchar *payload, gint size)
 {
 	guint8 hops;
 
@@ -335,7 +335,7 @@ void vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops)
 	 * Send the message as a control message, so that it gets sent ASAP.
 	 */
 
-	gmsg_ctrl_sendto_one(n, (guchar *) hflow, msgsize);
+	gmsg_ctrl_sendto_one(n, (gchar *) hflow, msgsize);
 }
 
 /*
@@ -344,7 +344,7 @@ void vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops)
  * Handle the "Connect Back" message.
  */
 static void handle_connect_back(struct gnutella_node *n,
-	guint16 version, guchar *payload, gint size)
+	guint16 version, gchar *payload, gint size)
 {
 	guint16 port;
 
@@ -388,6 +388,6 @@ void vmsg_send_connect_back(struct gnutella_node *n, guint16 port)
 
 	WRITE_GUINT16_LE(port, payload);
 
-	gmsg_sendto_one(n, (guchar *) cbak, msgsize);
+	gmsg_sendto_one(n, (gchar *) cbak, msgsize);
 }
 

@@ -119,13 +119,13 @@ static guint16 guid_gtkg_encode_version(guint major, guint minor, gboolean rel)
  *
  * Compute GUID's HEC over bytes 1..15
  */
-static guint8 guid_hec(guchar *xuid)
+static guint8 guid_hec(const gchar *xuid)
 {
 	gint i;
 	guint8 hec = 0;
 
 	for (i = 1; i < 16; i++)
-		hec = syndrome_table[hec ^ xuid[i]];
+		hec = syndrome_table[hec ^ (guchar) xuid[i]];
 
 	return hec ^ HEC_GTKG_MASK;
 }
@@ -137,7 +137,7 @@ static guint8 guid_hec(guchar *xuid)
  */
 void guid_init(void)
 {
-	guchar *rev = GTA_REVCHAR;		/* Empty string means stable release */
+	gchar *rev = GTA_REVCHAR;		/* Empty string means stable release */
 
 	guid_gen_syndrome_table();
 
@@ -154,7 +154,7 @@ void guid_init(void)
  * Make sure the MUID we use in initial handshaking pings are marked
  * specially to indicate we're modern nodes.
  */
-static void guid_flag_modern(guchar *muid)
+static void guid_flag_modern(gchar *muid)
 {
 	/*
 	 * We're a "modern" client, meaning we're not Gnutella 0.56.
@@ -176,7 +176,7 @@ static void guid_flag_modern(guchar *muid)
  * Bytes 2/3 become the GTKG version mark.
  * Byte 0 becomes the HEC of the remaining 15 bytes.
  */
-static void guid_flag_gtkg(guchar *xuid)
+static void guid_flag_gtkg(gchar *xuid)
 {
 	xuid[2] = gtkg_version_mark >> 8;
 	xuid[3] = gtkg_version_mark & 0xff;
@@ -189,15 +189,17 @@ static void guid_flag_gtkg(guchar *xuid)
  * Test whether GUID is that of GTKG, and extract version major/minor, along
  * with release status provided the `majp', `minp' and `relp' are non-NULL.
  */
-gboolean guid_is_gtkg(guchar *xuid, guint8 *majp, guint8 *minp, gboolean *relp)
+gboolean guid_is_gtkg(
+	const gchar *guid, guint8 *majp, guint8 *minp, gboolean *relp)
 {
 	guint8 major;
 	guint8 minor;
 	gboolean release;
 	guint16 mark;
 	guint16 xmark;
+	const guint8 *xuid = (const guint8 *) guid;
 
-	if (xuid[0] != guid_hec(xuid))
+	if (guid[0] != guid_hec(guid))
 		return FALSE;
 
 	major = xuid[2] & 0x0f;
@@ -227,7 +229,7 @@ gboolean guid_is_gtkg(guchar *xuid, guint8 *majp, guint8 *minp, gboolean *relp)
  *
  * Test whether a GTKG MUID in a Query is marked as being a retry.
  */
-gboolean guid_is_requery(guchar *xuid)
+gboolean guid_is_requery(const gchar *xuid)
 {
 	return (xuid[15] & GUID_REQUERY) ? TRUE : FALSE;
 }
@@ -237,7 +239,7 @@ gboolean guid_is_requery(guchar *xuid)
  *
  * Generate a new random GUID within given `xuid'.
  */
-void guid_random_fill(guchar *xuid)
+void guid_random_fill(gchar *xuid)
 {
 	gint i;
 
@@ -250,7 +252,7 @@ void guid_random_fill(guchar *xuid)
  *
  * Generate a new random GUID, flagged as GTKG.
  */
-void guid_random_muid(guchar *muid)
+void guid_random_muid(gchar *muid)
 {
 	guid_random_fill(muid);
 	guid_flag_gtkg(muid);		/* Mark as being from GTKG */
@@ -261,7 +263,7 @@ void guid_random_muid(guchar *muid)
  *
  * Generate a new random (modern) message ID for pings.
  */
-void guid_ping_muid(guchar *muid)
+void guid_ping_muid(gchar *muid)
 {
 	guid_random_fill(muid);
 	guid_flag_modern(muid);
@@ -274,7 +276,7 @@ void guid_ping_muid(guchar *muid)
  * Generate a new random message ID for queries.
  * If `initial' is false, this is a requery.
  */
-void guid_query_muid(guchar *muid, gboolean initial)
+void guid_query_muid(gchar *muid, gboolean initial)
 {
 	guid_random_fill(muid);
 

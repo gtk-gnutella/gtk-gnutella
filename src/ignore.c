@@ -67,10 +67,10 @@ static time_t ignore_namesize_mtime;
 static FILE *sha1_out = NULL;
 static FILE *namesize_out = NULL;
 
-static guchar ign_tmp[1024];
+static gchar ign_tmp[1024];
 
-static void ignore_sha1_load(const guchar *file, time_t *stamp);
-static void ignore_namesize_load(const guchar *file, time_t *stamp);
+static void ignore_sha1_load(const gchar *file, time_t *stamp);
+static void ignore_namesize_load(const gchar *file, time_t *stamp);
 
 /*
  * open_read_stamp
@@ -82,7 +82,7 @@ static void ignore_namesize_load(const guchar *file, time_t *stamp);
  *
  * Returns file handle of the opened file on success, NULL on failure.
  */
-static FILE *open_read_stamp(const guchar *file, time_t *stamp)
+static FILE *open_read_stamp(const gchar *file, time_t *stamp)
 {
 	FILE *f;
 	char *path;
@@ -117,7 +117,7 @@ static FILE *open_read_stamp(const guchar *file, time_t *stamp)
  *
  * Open `file' for appending.
  */
-static FILE *open_append(const guchar *file)
+static FILE *open_append(const gchar *file)
 {
 	FILE *f;
 	char *path;
@@ -164,11 +164,11 @@ void ignore_init(void)
  *
  * Parse opened file `f' containing SHA1s to ignore.
  */
-static void sha1_parse(FILE *f, const guchar *file)
+static void sha1_parse(FILE *f, const gchar *file)
 {
 	gint line = 0;
-	guchar sha1_digest[SHA1_RAW_SIZE];
-	guchar *sha1;
+	gchar sha1_digest[SHA1_RAW_SIZE];
+	gchar *sha1;
 
 	g_assert(f);
 
@@ -208,7 +208,7 @@ static void sha1_parse(FILE *f, const guchar *file)
  * If `stamp' is non-NULL, fill it with the mtime of the file, or the current
  * time if the file does not exist.
  */
-static void ignore_sha1_load(const guchar *file, time_t *stamp)
+static void ignore_sha1_load(const gchar *file, time_t *stamp)
 {
 	FILE *f;
 
@@ -226,12 +226,12 @@ static void ignore_sha1_load(const guchar *file, time_t *stamp)
  *
  * Parse opened `f' containing size/filenames to ignore.
  */
-static void namesize_parse(FILE *f, const guchar *file)
+static void namesize_parse(FILE *f, const gchar *file)
 {
 	gint line = 0;
 	guint32 size;
 	guint8 c;
-	guchar *p, *q;
+	gchar *p, *q;
 	namesize_t *ns;
 	namesize_t nsk;
 
@@ -273,7 +273,7 @@ static void namesize_parse(FILE *f, const guchar *file)
 			continue;
 
 		ns = namesize_make(q, size);
-		g_hash_table_insert(by_namesize, ns, (gpointer) 0x1);
+		g_hash_table_insert(by_namesize, ns, GINT_TO_POINTER(1));
 	}
 }
 
@@ -285,7 +285,7 @@ static void namesize_parse(FILE *f, const guchar *file)
  * If `stamp' is non-NULL, fill it with the mtime of the file, or the current
  * time if the file does not exist.
  */
-static void ignore_namesize_load(const guchar *file, time_t *stamp)
+static void ignore_namesize_load(const gchar *file, time_t *stamp)
 {
 	FILE *f;
 
@@ -305,7 +305,7 @@ static void ignore_namesize_load(const guchar *file, time_t *stamp)
  * Priority is given to the SHA1, if supplied.
  */
 enum ignore_val ignore_is_requested(
-	guchar *file, guint32 size, guchar *sha1)
+	gchar *file, guint32 size, gchar *sha1)
 {
 	namesize_t ns;
 
@@ -334,7 +334,7 @@ enum ignore_val ignore_is_requested(
  *
  * Add `sha1' to the set of ignored entries.
  */
-void ignore_add_sha1(const guchar *file, const guchar *sha1)
+void ignore_add_sha1(const gchar *file, const gchar *sha1)
 {
 	g_assert(sha1);
 
@@ -357,7 +357,7 @@ void ignore_add_sha1(const guchar *file, const guchar *sha1)
  *
  * Add `file', `size' to the set of ignored entries.
  */
-void ignore_add_filesize(guchar *file, guint32 size)
+void ignore_add_filesize(gchar *file, guint32 size)
 {
 	namesize_t *ns;
 	namesize_t nsk;
@@ -425,7 +425,7 @@ void ignore_timer(time_t now)
  */
 static gboolean free_sha1_kv(gpointer key, gpointer value, gpointer udata)
 {
-	atom_sha1_free((guchar *) key);
+	atom_sha1_free((gchar *) key);
 	return TRUE;
 }
 

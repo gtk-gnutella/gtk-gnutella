@@ -64,7 +64,7 @@ gint namesize_eq(gconstpointer a, gconstpointer b)
  *
  * Create a new namesize structure.
  */
-namesize_t *namesize_make(const guchar *name, guint32 size)
+namesize_t *namesize_make(const gchar *name, guint32 size)
 {
 	namesize_t *ns;
 

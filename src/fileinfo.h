@@ -50,8 +50,8 @@ struct dl_file_info {
 	GSList *alias;			/* List of file name aliases (atoms) */
 	guint32 size;			/* File size */
 	gint *size_atom;		/* File size (atom -- points to value in memory) */
-	guchar *sha1;			/* server SHA1 (atom) if known, NULL if not. */
-	guchar *cha1;			/* computed SHA1 (atom) if known, NULL if not. */
+	gchar *sha1;			/* server SHA1 (atom) if known, NULL if not. */
+	gchar *cha1;			/* computed SHA1 (atom) if known, NULL if not. */
 	gint32 refcount;		/* Reference count of file (number of sources)*/
     GSList *sources;        /* list of sources (struct download *)*/
 	gint32 lifecount;		/* Amount of "alive" downloads referencing us */
@@ -118,19 +118,19 @@ struct dl_file_info *file_info_get(
 void file_info_strip_binary(struct dl_file_info *fi);
 void file_info_strip_binary_from_file(
 	struct dl_file_info *fi, const gchar *file);
-gboolean file_info_got_sha1(struct dl_file_info *fi, const guchar *sha1);
+gboolean file_info_got_sha1(struct dl_file_info *fi, const gchar *sha1);
 void file_info_update(
 	struct download *d, guint32 from, guint32 to, enum dl_chunk_status status);
 enum dl_chunk_status file_info_pos_status(struct dl_file_info *fi, guint32 pos);
 void file_info_close(void);
 void file_info_try_to_swarm_with(
-	gchar *file_name, guint32 idx, guint32 ip, guint32 port, guchar *sha1);
+	gchar *file_name, guint32 idx, guint32 ip, guint32 port, gchar *sha1);
 void file_info_spot_completed_orphans(void);
-inline void file_info_add_source(
+void file_info_add_source(
     struct dl_file_info *fi, struct download *dl);
-inline void file_info_remove_source(
+void file_info_remove_source(
     struct dl_file_info *fi, struct download *dl, gboolean discard);
-inline void file_info_timer(void);
+void file_info_timer(void);
 
 
 #endif /* _fileinfo_h_ */

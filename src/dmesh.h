@@ -78,20 +78,20 @@ const gchar *dmesh_url_strerror(dmesh_url_error_t errnum);
 gboolean dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info);
 
 gboolean dmesh_add(
-	guchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name,
+	gchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name,
 	guint32 stamp);
 
 void dmesh_remove(
-	const guchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name);
+	const gchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name);
 
-gboolean dmesh_collect_sha1(guchar *value, guchar *digest);
-void dmesh_collect_locations(guchar *sha1, guchar *value, gboolean defer);
+gboolean dmesh_collect_sha1(gchar *value, gchar *digest);
+void dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer);
 
 gint dmesh_alternate_location(
-	const guchar *sha1, gchar * buf, gint size, guint32 ip, guint32 last_sent);
+	const gchar *sha1, gchar * buf, gint size, guint32 ip, guint32 last_sent);
 
 void dmesh_multiple_downloads(
-    guchar *sha1, guint32 size, struct dl_file_info *fi);
+    gchar *sha1, guint32 size, struct dl_file_info *fi);
 
 void dmesh_check_results_set(gnet_results_set_t *rs);
 

@@ -51,7 +51,7 @@ RCSID("$Id$");
 #endif
 
 static const char *hex_alphabet = "0123456789ABCDEF";
-static const char *hex_alphabet_lower = "0123456789abcdef";
+const char *hex_alphabet_lower = "0123456789abcdef";
 
 #ifndef HAVE_STRLCPY
 size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size)
@@ -420,14 +420,15 @@ gchar *short_uptime(guint32 s)
  *
  * Returns hexadecimal string representing given GUID.
  */
-gchar *guid_hex_str(const guchar *guid)
+gchar *guid_hex_str(const gchar *guid)
 {
 	static gchar buf[33];
 	gulong i;
+	const guchar *g = (guchar *) guid;
 
-	for (i = 0; i < 32; guid++) {
-		buf[i++] = hex_alphabet_lower[*guid >> 4];
-		buf[i++] = hex_alphabet_lower[*guid & 0x0f];
+	for (i = 0; i < 32; g++) {
+		buf[i++] = hex_alphabet_lower[*g >> 4];
+		buf[i++] = hex_alphabet_lower[*g & 0x0f];
 	}
 
 	buf[32] = '\0';
@@ -451,13 +452,13 @@ inline guint hex2dec(guchar c)
  *
  * Converts hexadecimal string into a GUID.
  */
-void hex_to_guid(const gchar *hexguid, guchar *guid)
+void hex_to_guid(const gchar *hexguid, gchar *guid)
 {
 	gulong i;
 
 	for (i = 0; i < 16; i++)
-		guid[i] = (hex2dec(hexguid[i << 1]) << 4)
-				+ hex2dec(hexguid[(i << 1) + 1]);
+		guid[i] = (hex2dec((guchar) hexguid[i << 1]) << 4)
+				+ hex2dec((guchar) hexguid[(i << 1) + 1]);
 }
 
 /*
@@ -466,7 +467,7 @@ void hex_to_guid(const gchar *hexguid, guchar *guid)
  * Convert binary SHA1 into a base32 string.
  * Returns pointer to static data.
  */
-gchar *sha1_base32(const guchar *sha1)
+gchar *sha1_base32(const gchar *sha1)
 {
 	static gchar digest_b32[SHA1_BASE32_SIZE + 1];
 
@@ -482,9 +483,9 @@ gchar *sha1_base32(const guchar *sha1)
  * Convert base32 string into binary SHA1.
  * Returns pointer to static data.
  */
-guchar *base32_sha1(const gchar *base32)
+gchar *base32_sha1(const gchar *base32)
 {
-	static guchar digest_sha1[SHA1_RAW_SIZE];
+	static gchar digest_sha1[SHA1_RAW_SIZE];
 
 	base32_decode_into(base32, SHA1_BASE32_SIZE,
 		digest_sha1, sizeof(digest_sha1));
@@ -715,11 +716,11 @@ inline static void dump_hex_header(FILE *out)
  * Displays the "title" then the characters in "s", # of bytes to print in "b"
  */
 
-void dump_hex(FILE *out, const gchar *title, const gchar *s, gint b)
+void dump_hex(FILE *out, const gchar *title, gconstpointer data, gint b)
 {
-
 	int i, x, y, z, end;
-	guchar temp[18];
+	gchar *s = (gchar *) data;
+	gchar temp[18];
 
 	if ((b < 0) || (s == NULL)) {
 		g_warning("dump_hex: value out of range [s=0x%lx, b=%d] for %s",
@@ -785,16 +786,16 @@ void strlower(gchar *dst, const gchar *src)
  *
  * Same as strstr() but case-insensitive.
  */
-guchar *strcasestr(const guchar *haystack, const guchar *needle)
+gchar *strcasestr(const gchar *haystack, const gchar *needle)
 {
 	guint32 delta[256];
 	guint32 nlen = strlen(needle);
 	guint32 *pd = delta;
 	gint i;
-	const guchar *n;
+	const gchar *n;
 	guint32 haylen = strlen(haystack);
-	const guchar *end = haystack + haylen;
-	guchar *tp;
+	const gchar *end = haystack + haylen;
+	gchar *tp;
 
 	/*
 	 * Initialize Sunday's algorithm, lower-casing the needle.
@@ -809,26 +810,26 @@ guchar *strcasestr(const guchar *haystack, const guchar *needle)
 
 	for (n = needle, i =0; i < nlen; i++) {
 		guchar c = *n++;
-		delta[(guint) tolower(c)] = nlen - i;
+		delta[(guchar) tolower(c)] = nlen - i;
 	}
 	
 	/*
 	 * Now run Sunday's algorithm.
 	 */
 
-	for (tp = *(guchar **) &haystack; tp + nlen <= end; /* empty */) {
-		const guchar *t;
+	for (tp = *(gchar **) &haystack; tp + nlen <= end; /* empty */) {
+		const gchar *t;
 		guchar c;
 
 		for (n = needle, t = tp, i = 0; i < nlen; n++, t++, i++)
-			if (tolower(*n) != tolower(*t))
+			if (tolower((guchar) *n) != tolower((guchar) *t))
 				break;
 
 		if (i == nlen)						/* Got a match! */
 			return tp;
 
 		c = *(tp + nlen);
-		tp += delta[(guint) tolower(c)];	/* Continue search there */
+		tp += delta[(guchar) tolower(c)];	/* Continue search there */
 	}
 
 	return NULL;		/* Not found */
@@ -957,7 +958,7 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	size_t len;
 	struct stat buf;
 	gint i;
-	guchar xuid[16];
+	gchar xuid[16];
 	const gchar *extra_bytes = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 	/* Use extra_bytes so we can easily append a few chars later */
@@ -1029,20 +1030,20 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
  * Escape all non-printable chars into the hexadecimal \xhh form.
  * Returns new escaped string, or the original string if no escaping occurred.
  */
-guchar *hex_escape(const guchar *name, gboolean strict)
+gchar *hex_escape(const gchar *name, gboolean strict)
 {
-	const guchar *p;
-	guchar *q;
+	const gchar *p;
+	gchar *q;
 	guchar c;
 	gint need_escape = 0;
-	guchar *new;
+	gchar *new;
 
 	for (p = name, c = *p++; c; c = *p++)
 		if (!CHAR_IS_SAFE(c, strict))
 			need_escape++;
 
 	if (need_escape == 0)
-		return *(guchar **) &name; /* suppress compiler warning */
+		return *(gchar **) &name; /* suppress compiler warning */
 
 	new = g_malloc(p - name + 3 * need_escape);
 

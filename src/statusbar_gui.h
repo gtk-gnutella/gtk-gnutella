@@ -51,11 +51,11 @@ typedef struct {
 /*
  * Public interface.
  */
-#define statusbar_gui_message(t, format...) \
-    statusbar_gui_push(SB_MESSAGE, scid_info, t, format);
+#define statusbar_gui_message(t, ...) \
+    statusbar_gui_push(SB_MESSAGE, scid_info, t, __VA_ARGS__);
 
-#define statusbar_gui_warning(t, format...) \
-    statusbar_gui_push(SB_WARNING, scid_warn, t, format);
+#define statusbar_gui_warning(t, ...) \
+    statusbar_gui_push(SB_WARNING, scid_warn, t, __VA_ARGS__);
 
 void statusbar_gui_init(void);
 void statusbar_gui_shutdown(void);

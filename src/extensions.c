@@ -36,7 +36,7 @@
 
 RCSID("$Id$");
 
-#define HUGE_FS		0x1c		/* Field separator (HUGE) */
+#define HUGE_FS		'\x1c'		/* Field separator (HUGE) */
 
 static const gchar *extype[] = {
 	"UNKNOWN",					/* EXT_UNKNOWN */
@@ -209,20 +209,20 @@ static gboolean ext_names_kv_free(gpointer key, gpointer value, gpointer udata)
  * Parses a GGEP block (can hold several extensions).
  */
 static gint ext_ggep_parse(
-	guchar **retp, gint len, extvec_t *exv, gint exvcnt)
+	gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 {
-	guchar *p = *retp;
-	guchar *end = p + len;
-	guchar *lastp = p;				/* Last parsed point */
+	gchar *p = *retp;
+	gchar *end = p + len;
+	gchar *lastp = p;				/* Last parsed point */
 	gint count;
 
 	for (count = 0; count < exvcnt && p < end; /* empty */) {
 		guchar flags;
-		guchar id[16];
+		gchar id[16];
 		gint id_len;
 		gint data_length = 0;
 		gint i;
-		guchar *ip = id;
+		gchar *ip = id;
 		gboolean length_ended = FALSE;
 		gchar *name;
 
@@ -230,7 +230,7 @@ static gint ext_ggep_parse(
 		 * First byte is GGEP flags.
 		 */
 
-		flags = *p++;
+		flags = (guchar) *p++;
 
 		if (flags & GGEP_F_MBZ)		/* A byte that Must Be Zero is set */
 			goto out;
@@ -336,7 +336,7 @@ static gint ext_ggep_parse(
 	}
 
 out:
-	*retp = lastp;		/* Points to first byte after what we parsed */
+	*retp = lastp;	/* Points to first byte after what we parsed */
 
 	return count;
 }
@@ -346,14 +346,14 @@ out:
  *
  * Parses a URN block (one URN only).
  */
-static gint ext_huge_parse(guchar **retp, gint len, extvec_t *exv, gint exvcnt)
+static gint ext_huge_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 {
-	guchar *p = *retp;
-	guchar *end = p + len;
-	guchar *lastp = p;				/* Last parsed point */
-	guchar *name_start;
+	gchar *p = *retp;
+	gchar *end = p + len;
+	gchar *lastp = p;				/* Last parsed point */
+	gchar *name_start;
 	gint token;
-	guchar *payload_start = NULL;
+	gchar *payload_start = NULL;
 	gint data_length = 0;
 	gchar *name = NULL;
 
@@ -439,7 +439,7 @@ found:
 	g_assert(ext_headlen(exv) >= 0);
 	g_assert(p - lastp == exv->ext_len);
 
-	*retp = p;			/* Points to first byte after what we parsed */
+	*retp = p;	/* Points to first byte after what we parsed */
 
 	return 1;
 }
@@ -449,15 +449,15 @@ found:
  *
  * Parses a XML block (grabs the whole xml up to the first NUL or separator).
  */
-static gint ext_xml_parse(guchar **retp, gint len, extvec_t *exv, gint exvcnt)
+static gint ext_xml_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 {
-	guchar *p = *retp;
-	guchar *end = p + len;
-	guchar *lastp = p;				/* Last parsed point */
+	gchar *p = *retp;
+	gchar *end = p + len;
+	gchar *lastp = p;				/* Last parsed point */
 
 	while (p < end) {
 		guchar c = *p++;
-		if (c == '\0' || c == HUGE_FS) {
+		if (c == '\0' || c == (guchar) HUGE_FS) {
 			p--;
 			break;
 		}
@@ -489,11 +489,11 @@ static gint ext_xml_parse(guchar **retp, gint len, extvec_t *exv, gint exvcnt)
  * If `skip' is TRUE, we don't resync on the first resync point.
  */
 static gint ext_unknown_parse(
-	guchar **retp, gint len, extvec_t *exv, gint exvcnt, gboolean skip)
+	gchar **retp, gint len, extvec_t *exv, gint exvcnt, gboolean skip)
 {
-	guchar *p = *retp;
-	guchar *end = p + len;
-	guchar *lastp = p;				/* Last parsed point */
+	gchar *p = *retp;
+	gchar *end = p + len;
+	gchar *lastp = p;				/* Last parsed point */
 
 	/*
 	 * Try to resync on a NUL byte, the HUGE_FS separator, "urn:" or what
@@ -503,13 +503,13 @@ static gint ext_unknown_parse(
 	while (p < end) {
 		guchar c = *p++;
 		if (
-			(c == '\0' || c == HUGE_FS || c == GGEP_MAGIC) ||
+			(c == '\0' || c == (guchar) HUGE_FS || c == (guchar) GGEP_MAGIC) ||
 			(
 				(c == 'u' || c == 'U') &&
 				(end - p) >= 3 &&
 				0 == strncasecmp(p, "rn:", 3)
 			) ||
-			(c == '<' && (p < end) && isalpha(*p))
+			(c == '<' && (p < end) && isalpha((guchar) *p))
 		) {
 			if (skip) {
 				skip = FALSE;
@@ -547,15 +547,15 @@ static gint ext_unknown_parse(
  * If more that one separator in a row is found, they are all wrapped as a
  * "none" extension.
  */
-static gint ext_none_parse(guchar **retp, gint len, extvec_t *exv, gint exvcnt)
+static gint ext_none_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 {
-	guchar *p = *retp;
-	guchar *end = p + len;
-	guchar *lastp = p;				/* Last parsed point */
+	gchar *p = *retp;
+	gchar *end = p + len;
+	gchar *lastp = p;				/* Last parsed point */
 
 	while (p < end) {
 		guchar c = *p++;
-		if (c == '\0' || c == HUGE_FS)
+		if (c == '\0' || c == (guchar) HUGE_FS)
 			continue;
 		p--;						/* Point back to the non-NULL char */
 		break;
@@ -594,9 +594,9 @@ static gint ext_none_parse(guchar **retp, gint len, extvec_t *exv, gint exvcnt)
  */
 static void ext_merge_adjacent(extvec_t *exv, extvec_t *next)
 {
-	guchar *end;
-	guchar *nend;
-	guchar *nbase;
+	gchar *end;
+	gchar *nend;
+	gchar *nbase;
 	guint16 added;
 
 	end = exv->ext_payload + exv->ext_paylen;
@@ -632,10 +632,10 @@ static void ext_merge_adjacent(extvec_t *exv, extvec_t *next)
  *
  * Returns the number of filled entries.
  */
-gint ext_parse(guchar *buf, gint len, extvec_t *exv, gint exvcnt)
+gint ext_parse(gchar *buf, gint len, extvec_t *exv, gint exvcnt)
 {
-	guchar *p = buf;
-	guchar *end = buf + len;
+	gchar *p = buf;
+	gchar *end = buf + len;
 	gint cnt = 0;
 
 	g_assert(buf);
@@ -645,7 +645,7 @@ gint ext_parse(guchar *buf, gint len, extvec_t *exv, gint exvcnt)
 
 	while (p < end && exvcnt > 0) {
 		gint found = 0;
-		guchar *old_p = p;
+		gchar *old_p = p;
 
 		g_assert(len > 0);
 
@@ -747,7 +747,7 @@ out:
  */
 gboolean ext_is_printable(const extvec_t *e)
 {
-	const guchar *p = e->ext_payload;
+	const gchar *p = e->ext_payload;
 	gint len = e->ext_paylen;
 
 	while (len--) {
@@ -766,7 +766,7 @@ gboolean ext_is_printable(const extvec_t *e)
  */
 gboolean ext_is_ascii(const extvec_t *e)
 {
-	const guchar *p = e->ext_payload;
+	const gchar *p = e->ext_payload;
 	gint len = e->ext_paylen;
 
 	while (len--) {
@@ -785,7 +785,7 @@ gboolean ext_is_ascii(const extvec_t *e)
  */
 gboolean ext_has_ascii_word(const extvec_t *e)
 {
-	const guchar *p = e->ext_payload;
+	const gchar *p = e->ext_payload;
 	gint len = e->ext_paylen;
 	gboolean has_alnum = FALSE;
 

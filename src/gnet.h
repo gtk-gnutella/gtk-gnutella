@@ -257,7 +257,7 @@ typedef guint32 gnet_search_t;
  * various searches in presence.
  */
 typedef struct gnet_results_set {
-	guchar *guid;				/* Servent's GUID (atom) */
+	gchar *guid;				/* Servent's GUID (atom) */
 	guint32 ip;
 	guint16 port;
 	guint16 status;				/* Parsed status bits from trailer */
@@ -285,7 +285,7 @@ typedef struct gnet_record {
 	gchar  *name;				/* File name */
 	guint32 size;				/* Size of file, in bytes */
 	guint32 index;				/* Index for GET command */
-	guchar *sha1;				/* SHA1 URN (binary form, atom) */
+	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
 	gchar  *tag;				/* Optional tag data string (atom) */
     flag_t  flags;
 } gnet_record_t;
@@ -501,12 +501,12 @@ void gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *stats);
  */
 struct dl_file_info;
 gboolean download_new(gchar *,
-	guint32, guint32, guint32, guint16, gchar *, guchar *, time_t,
+	guint32, guint32, guint32, guint16, gchar *, gchar *, time_t,
     gboolean, struct dl_file_info *);
 void download_auto_new(gchar *,
- 	guint32, guint32, guint32, guint16, gchar *, guchar *, time_t,
+ 	guint32, guint32, guint32, guint16, gchar *, gchar *, time_t,
     gboolean, struct dl_file_info *);
-void download_index_changed(guint32, guint16, guchar *, guint32, guint32);
+void download_index_changed(guint32, guint16, gchar *, guint32, guint32);
 
 
 

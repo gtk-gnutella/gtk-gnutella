@@ -49,7 +49,7 @@ struct alive {
 };
 
 struct alive_ping {
-	guchar *muid;				/* The GUID of the message */
+	gchar *muid;				/* The GUID of the message */
 	GTimeVal sent;				/* Time at which we sent the message */
 };
 
@@ -58,7 +58,7 @@ struct alive_ping {
  *
  * Create an alive_ping, with proper message ID.
  */
-static struct alive_ping *ap_make(guchar *muid)
+static struct alive_ping *ap_make(gchar *muid)
 {
 	struct alive_ping *ap;
 
@@ -125,9 +125,9 @@ void alive_free(gpointer obj)
 gboolean alive_send_ping(gpointer obj)
 {
 	struct alive *a = (struct alive *) obj;
-	guchar muid[16];
+	gchar muid[16];
 	struct alive_ping *ap;
-	extern void send_alive_ping(struct gnutella_node *n, guchar *muid);
+	extern void send_alive_ping(struct gnutella_node *n, gchar *muid);
 
 	g_assert(a->count == 0 || a->pings != NULL);
 
@@ -219,7 +219,7 @@ static void alive_trim_upto(struct alive *a, GSList *item)
  * Got a pong that could be an acknowledge to one of our alive pings.
  * Return TRUE if it was indeed an ACK for a ping we sent.
  */
-gboolean alive_ack_ping(gpointer obj, guchar *muid)
+gboolean alive_ack_ping(gpointer obj, gchar *muid)
 {
 	struct alive *a = (struct alive *) obj;
 	GSList *l;

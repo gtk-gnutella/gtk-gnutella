@@ -126,7 +126,7 @@ static word_vec_t *word_vec_zrealloc(word_vec_t *wv, gint ncount)
  * with the pointer to the allocated vector.  If there are no items, there
  * is no vector returned.
  */
-guint query_make_word_vec(guchar *query, word_vec_t **wovec)
+guint query_make_word_vec(gchar *query_str, word_vec_t **wovec)
 {
 	guint n = 0;
 	GHashTable *seen_word = g_hash_table_new(g_str_hash, g_str_equal);
@@ -134,6 +134,7 @@ guint query_make_word_vec(guchar *query, word_vec_t **wovec)
 	word_vec_t *wv = zalloc(wovec_zone);
 	guchar c;
 	guchar *start = NULL;
+	guchar *query = (guchar *) query_str;
 
 	g_assert(wovec != NULL);
 
@@ -223,13 +224,13 @@ void query_word_vec_free(word_vec_t *wovec, guint n)
  *
  * Returns a compiled pattern structure.
  */
-cpattern_t *pattern_compile(guchar *pattern)
+cpattern_t *pattern_compile(gchar *pattern)
 {
 	cpattern_t *p = (cpattern_t *) zalloc(pat_zone);
 	guint32 plen = strlen(pattern);
 	guint32 *pd = p->delta;
 	gint i;
-	guchar *c;
+	gchar *c;
 
 	p->pattern = g_strdup(pattern);
 	p->len = plen;
@@ -242,7 +243,7 @@ cpattern_t *pattern_compile(guchar *pattern)
 	plen--;			/* Restore original pattern length */
 
 	for (pd = p->delta, c = pattern, i = 0; i < plen; c++, i++)
-		pd[(guint) *c] = plen - i;
+		pd[(guchar) *c] = plen - i;
 
 	return p;
 }
@@ -269,17 +270,17 @@ void pattern_free(cpattern_t *cpat)
  */
 gchar *pattern_qsearch(
 	cpattern_t *cpat,		/* Compiled pattern */
-	guchar *text,			/* Text we're scanning */
+	gchar *text,			/* Text we're scanning */
 	guint32 tlen,			/* Text length, 0 = compute strlen(text) */
 	guint32 toffset,		/* Offset within text for search start */
 	qsearch_mode_t word)	/* Beginning/whole word matching? */
 {
-	guchar *p;			/* Pointer within string pattern */
-	guchar *t;			/* Pointer within text */
-	guchar *tp;			/* Initial local search text pointer */
+	gchar *p;			/* Pointer within string pattern */
+	gchar *t;			/* Pointer within text */
+	gchar *tp;			/* Initial local search text pointer */
 	guint32 i;			/* Position within pattern string */
-	guchar *start;		/* Start of matching */
-	guchar *end;		/* End of text (first byte after physical end) */
+	gchar *start;		/* Start of matching */
+	gchar *end;			/* End of text (first byte after physical end) */
 	guint32 plen;
 
 	if (!tlen)
@@ -312,7 +313,7 @@ gchar *pattern_qsearch(
 			if (tp == text) {					/* At beginning of text */
 				if (word == qs_begin) return tp;
 				else at_begin = TRUE;
-			} else if (!isalnum(*(tp-1))) {		/* At word boundary */
+			} else if (!isalnum((guchar) *(tp-1))) {	/* At word boundary */
 				if (word == qs_begin) return tp;
 				else at_begin = TRUE;
 			}
@@ -320,17 +321,17 @@ gchar *pattern_qsearch(
 			if (at_begin && word == qs_whole) {
 				if (tp + plen == end)			/* At end of string */
 					return tp;
-				else if (!isalnum(*(tp+plen)))	/* At word boundary after */
-					return tp;
+				else if (!isalnum((guchar) *(tp+plen)))
+					return tp; /* At word boundary after */
 			}
 
 			/* Fall through */
 		}
 
-		tp += cpat->delta[(guint) *(tp + plen)]; /* Continue search there */
+		tp += cpat->delta[(guchar) *(tp + plen)]; /* Continue search there */
 	}
 
-	return (char *) 0;		/* Not found */
+	return NULL;		/* Not found */
 }
 
 /*
@@ -409,7 +410,7 @@ static void bin_insert_item(struct st_bin *bin, struct st_entry *entry)
 /* makes a bin take as little memory as needed */
 static void bin_compact(struct st_bin *bin)
 {
-	g_assert(bin->vals > 0);	/* Or it would not have been allocated */
+	g_assert(bin->vals != NULL);	/* Or it would not have been allocated */
 	bin->vals = g_realloc(bin->vals, bin->nvals * sizeof(bin->vals[0]));
 	bin->nslots = bin->nvals;
 }
@@ -420,12 +421,12 @@ static void bin_compact(struct st_bin *bin)
  * Apply a char map to a string, inplace.
  * Returns length of string.
  */
-guint match_map_string(char_map_t map, guchar *string)
+guint match_map_string(char_map_t map, gchar *string)
 {
-	guchar *ptr = string;
+	gchar *ptr = string;
 	guchar c;
 
-	while ((c = *ptr))
+	while ((c = (guchar) *ptr))
 		*ptr++ = map[c];
 
 	return ptr - string;
@@ -513,12 +514,11 @@ void st_destroy(search_table_t *table)
  * Compute character mask "hash", using one bit per letter of the alphabet,
  * plus one for any digit.
  */
-static guint32 mask_hash(guchar *str) {
-	guchar *s = str;
+static guint32 mask_hash(gchar *s) {
 	guchar c;
 	guint32 mask = 0;
 
-	while ((c = *s++)) {
+	while ((c = (guchar) *s++)) {
 		if (isspace(c))
 			continue;
 		else if (isdigit(c))
@@ -534,15 +534,15 @@ static guint32 mask_hash(guchar *str) {
 }
 
 /* get key of two-char pair */
-G_INLINE_FUNC gint st_key(search_table_t *table, guchar k[2])
+inline gint st_key(search_table_t *table, gchar k[2])
 {
-	return table->index_map[k[0]] * table->nchars +
-		table->index_map[k[1]];
+	return table->index_map[(guchar) k[0]] * table->nchars +
+		table->index_map[(guchar) k[1]];
 }
 
 /* insert an item into the search_table
  * one-char strings are silently ignored */
-void st_insert_item(search_table_t *table, guchar *string, void *data)
+void st_insert_item(search_table_t *table, gchar *string, void *data)
 {
 	gint i;
 	guint len;
@@ -608,7 +608,7 @@ void st_compact(search_table_t *table)
  *
  * NB: there is no pattern_free_fast(), just call zfree() on the result.
  */
-static cpattern_t *pattern_compile_fast(guchar *pattern, guint32 plen)
+static cpattern_t *pattern_compile_fast(gchar *pattern, guint32 plen)
 {
 	cpattern_t *p = (cpattern_t *) zalloc(pat_zone);
 	guint32 *pd = p->delta;
@@ -625,8 +625,8 @@ static cpattern_t *pattern_compile_fast(guchar *pattern, guint32 plen)
 
 	plen--;			/* Restore original pattern length */
 
-	for (pd = p->delta, c = pattern, i = 0; i < plen; c++, i++)
-		pd[(guint) *c] = plen - i;
+	for (pd = p->delta, c = (guchar *) pattern, i = 0; i < plen; c++, i++)
+		pd[(guchar) *c] = plen - i;
 
 	return p;
 }
@@ -669,7 +669,7 @@ static gboolean entry_match(
 /* do an actual search */
 gint st_search(
 	search_table_t *table,
-	guchar *search,
+	gchar *search,
 	gboolean (*callback)(shared_file_t *),
 	gint max_res,
 	query_hashvec_t *qhv)
@@ -695,7 +695,7 @@ gint st_search(
 
 	for (i = 0; i < len-1; i++) {
 		struct st_bin *bin;
-		if (isspace(search[i]) || isspace(search[i+1]))
+		if (isspace((guchar) search[i]) || isspace((guchar) search[i+1]))
 			continue;
 		key = st_key(table, search + i);
 		if ((bin = table->bins[key]) == NULL) {

@@ -101,12 +101,12 @@ static const gchar *b64_alphabet =
  * Furthermore, if `pad' is a non-NULL pointer, it is filled with the amount
  * of padding chars that would be necessary.
  */
-static gint encode_pad_length(gint len, gint *pad)
+static guint encode_pad_length(guint len, guint *pad)
 {
-	gint ndigits;			/* Base64 digits necessary */
-	gint npad = 0;			/* Final padding chars necessary */
-	gint tcount;			/* Amount of full triplets */
-	gint remainder;			/* Amount of input bytes in final triplet */
+	guint ndigits;			/* Base64 digits necessary */
+	guint npad = 0;			/* Final padding chars necessary */
+	guint tcount;			/* Amount of full triplets */
+	guint remainder;		/* Amount of input bytes in final triplet */
 
 	g_assert(len > 0);
 
@@ -138,12 +138,12 @@ static gint encode_pad_length(gint len, gint *pad)
  * Encode `len' bytes from `buf' into `enclen' bytes starting from `encbuf'.
  * Caller must have ensured that there was EXACTLY the needed room in encbuf.
  */
-static void base64_encode_exactly(const guchar *buf, gint len,
-	guchar *encbuf, gint enclen)
+static void base64_encode_exactly(const gchar *buf, guint len,
+	gchar *encbuf, guint enclen)
 {
 	guint32 i = 0;					/* Input accumulator, 0 for trailing pad */
-	guchar const *ip = buf + len;	/* Input pointer, one byte off end */
-	guchar *op = encbuf + enclen;	/* Output pointer, one byte off end */
+	gchar const *ip = buf + len; /* Input pointer, one byte off end */
+	gchar *op = encbuf + enclen; /* Output pointer, one byte off end */
 
 	g_assert(buf);
 	g_assert(encbuf);
@@ -174,17 +174,17 @@ static void base64_encode_exactly(const guchar *buf, gint len,
 	case 0:
 		do {
 			g_assert(op - encbuf >= 4);
-			i = *--ip;							/* Input #2 */
+			i = (guchar) *--ip;					/* Input #2 */
 			*--op = b64_alphabet[i & 0x3f];		/* Ouput #3 */
 			i >>= 6;							/* upper <45>, input #2 */
 			/* FALLTHROUGH */
 	case 2:
-			i |= ((guint32) *--ip) << 2;		/* had 2 bits in `i' */
+			i |= ((guchar) *--ip) << 2;			/* had 2 bits in `i' */
 			*--op = b64_alphabet[i & 0x3f];		/* Output #2 */
 			i >>= 6;							/* upper <2345>, input #1 */
 			/* FALLTHROUGH */
 	case 1:
-			i |= ((guint32) *--ip) << 4;		/* had 4 bits in `i' */
+			i |= ((guchar) *--ip) << 4;			/* had 4 bits in `i' */
 			*--op = b64_alphabet[i & 0x3f];		/* Output #1 */
 			i >>= 6;							/* upper <012345>, input #0 */
 			*--op = b64_alphabet[i & 0x3f];		/* Output #0 */
@@ -201,11 +201,11 @@ static void base64_encode_exactly(const guchar *buf, gint len,
  * Encode `len' bytes from `buf' into `enclen' bytes starting from `encbuf'.
  * Caller must have ensured that there was enough room in encbuf.
  */
-void base64_encode_into(const guchar *buf, gint len,
-	guchar *encbuf, gint enclen)
+void base64_encode_into(const gchar *buf, guint len,
+	gchar *encbuf, guint enclen)
 {
-	gint pad;
-	gint exactlen = encode_pad_length(len, &pad);
+	guint pad;
+	guint exactlen = encode_pad_length(len, &pad);
 
 	g_assert(enclen >= (exactlen + pad));
 
@@ -223,10 +223,10 @@ void base64_encode_into(const guchar *buf, gint len,
  * Returns the new encoded buffer, NUL-terminated, and the added amount
  * of padding chars in `retpad' if it is a non-NULL pointer.
  */
-guchar *base64_encode(const guchar *buf, gint len, gint *retpad)
+gchar *base64_encode(const gchar *buf, guint len, guint *retpad)
 {
-	gint pad;
-	gint enclen = encode_pad_length(len, &pad);
+	guint pad;
+	guint enclen = encode_pad_length(len, &pad);
 	gchar *encbuf = g_malloc(enclen + pad + 1);	/* Allow for trailing NUL */
 
 	base64_encode_exactly(buf, len, encbuf, enclen);
@@ -249,14 +249,14 @@ guchar *base64_encode(const guchar *buf, gint len, gint *retpad)
  *
  * Return decoded bytes if successful, 0 if the input was not valid base64.
  */
-static gint base64_decode_alphabet(const gint8 valmap[256],
-	const guchar *buf, gint len, guchar *decbuf, gint declen)
+static guint base64_decode_alphabet(const gint8 valmap[256],
+	const gchar *buf, guint len, gchar *decbuf, guint declen)
 {
 	guint32 i = 0;					/* Input accumulator, 0 for trailing pad */
-	guchar const *ip = buf + len;	/* Input pointer, one byte off end */
-	gint dlen = (len >> 2) * 3;		/* Exact decoded lenth */
-	guchar *op;						/* Output pointer, one byte off end */
-	gint bytes;						/* Bytes decoded without padding */
+	gchar const *ip = buf + len;	/* Input pointer, one byte off end */
+	guint dlen = (len >> 2) * 3;	/* Exact decoded lenth */
+	gchar *op;						/* Output pointer, one byte off end */
+	guint bytes;					/* Bytes decoded without padding */
 	gint8 v;
 	
 	g_assert(buf);
@@ -321,25 +321,25 @@ static gint base64_decode_alphabet(const gint8 valmap[256],
 	switch ((ip - buf) % 4) {
 	case 0:
 		do {
-			i = valmap[*--ip];				/* Input #3 */
+			i = valmap[(guchar) *--ip];		/* Input #3 */
 			if (i < 0) return 0;
 			/* FALLTHROUGH */
 	case 3:
-			v = valmap[*--ip];				/* Input #2 */
+			v = valmap[(guchar) *--ip];		/* Input #2 */
 			if (v < 0) return 0;
 			i |= v << 6;					/* had 6 bits */
 			*--op = i & 0xff;				/* Output #2 */
 			i >>= 8;						/* lower <0123> of output #1 */
 			/* FALLTHROUGH */
 	case 2:
-			v = valmap[*--ip];				/* Input #1 */
+			v = valmap[(guchar) *--ip];		/* Input #1 */
 			if (v < 0) return 0;
 			i |= v << 4;					/* had 4 bits */
 			*--op = i & 0xff;				/* Output #1 */
 			i >>= 8;						/* lower <01> of output #0 */
 			/* FALLTHROUGH */
 	case 1:
-			v = valmap[*--ip];				/* Input #0 */
+			v = valmap[(guchar) *--ip];		/* Input #0 */
 			if (v < 0) return 0;
 			i |= v << 2;					/* had 2 bits */
 			*--op = i & 0xff;				/* Output #0 */
@@ -361,8 +361,8 @@ static gint base64_decode_alphabet(const gint8 valmap[256],
  * Returns the amount of bytes decoded (without trailing padding) if successful,
  * 0 if the input was not valid base64.
  */
-gint base64_decode_into(const guchar *buf, gint len,
-	guchar *decbuf, gint declen)
+guint base64_decode_into(const gchar *buf, guint len,
+	gchar *decbuf, guint declen)
 {
 	return base64_decode_alphabet(values, buf, len, decbuf, declen);
 }
@@ -378,11 +378,11 @@ gint base64_decode_into(const guchar *buf, gint len,
  * it is filled with the amount of bytes decoded into the buffer (without
  * trailing padding).
  */
-guchar *base64_decode(const guchar *buf, gint len, gint *outlen)
+gchar *base64_decode(const gchar *buf, guint len, guint *outlen)
 {
-	gint declen;
+	guint declen;
 	gchar *decbuf;
-	gint decoded;
+	guint decoded;
 
 	if (len == 0 || (len & 0x3))		/* Empty, or padding bytes missing */
 		return NULL;

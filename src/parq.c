@@ -1277,7 +1277,7 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	struct parq_ul_queued *parq_ul = NULL;
 	struct parq_ul_queued *parq_ul_prev = NULL;
 	struct parq_ul_queue *parq_ul_queue = NULL;
-	guchar parq_id[16];
+	gchar parq_id[16];
 
 	guint eta = 0;
 	guint rel_pos = 1;

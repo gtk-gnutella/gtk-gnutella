@@ -75,7 +75,7 @@ struct sha1_cache_entry {
     gchar *file_name;                     /* Full path name                 */
     off_t  size;                          /* File size                      */
     time_t mtime;                         /* Last modification time         */
-    guchar digest[SHA1_RAW_SIZE];         /* SHA1 digest as a binary string */
+    gchar digest[SHA1_RAW_SIZE];          /* SHA1 digest as a binary string */
     gboolean shared;                      /* There's a known entry for this
                                            * file in the share library
                                            */
@@ -763,7 +763,7 @@ static void sha1_timer_one_step(
 		((r & ((1 << HASH_BLOCK_SHIFT) - 1)) ? 1 : 0);
 
 	if (r > 0) {
-		res = SHA1Input(&ctx->context, ctx->buffer, r);
+		res = SHA1Input(&ctx->context, (guint8 *) ctx->buffer, r);
 		if (res != shaSuccess) {
 			g_warning("SHA1 error while computing hash for %s\n",
 				ctx->file->file_name);
@@ -775,7 +775,7 @@ static void sha1_timer_one_step(
 	if (r < amount) {					/* EOF reached */
 		guint8 digest[SHA1HashSize];
 		SHA1Result(&ctx->context, digest);
-		got_sha1_result(ctx, digest);
+		got_sha1_result(ctx, (gchar *) digest);
 		close_current_file(ctx);
 	}
 }
@@ -1003,10 +1003,10 @@ void huge_close(void)
  *
  * Returns TRUE if the SHA1 was valid and properly decoded, FALSE on error.
  */
-gboolean huge_http_sha1_extract32(guchar *buf, guchar *retval)
+gboolean huge_http_sha1_extract32(gchar *buf, gchar *retval)
 {
 	gint i;
-	const guchar *p;
+	const gchar *p;
 
 	/*
 	 * Make sure we have at least SHA1_BASE32_SIZE characters before the
@@ -1059,7 +1059,7 @@ invalid:
  *
  * Returns TRUE if the SHA1 was valid and properly decoded, FALSE on error.
  */
-gboolean huge_sha1_extract32(guchar *buf, gint len, guchar *retval,
+gboolean huge_sha1_extract32(gchar *buf, gint len, gchar *retval,
 	gpointer header, gboolean check_old)
 {
 	if (len != SHA1_BASE32_SIZE) {
@@ -1103,7 +1103,7 @@ gboolean huge_sha1_extract32(guchar *buf, gint len, guchar *retval,
  *
  * Returns whether we successfully extracted the SHA1.
  */
-gboolean huge_extract_sha1(gchar *buf, guchar *digest)
+gboolean huge_extract_sha1(gchar *buf, gchar *digest)
 {
 	gchar *sha1;
 
@@ -1137,7 +1137,7 @@ gboolean huge_extract_sha1(gchar *buf, guchar *digest)
  * Parse the "X-Gnutella-Alternate-Location" header if present to learn
  * about other sources for this file.
  */
-void huge_collect_locations(guchar *sha1, header_t *header)
+void huge_collect_locations(gchar *sha1, header_t *header)
 {
 	gchar *alt = header_get(header, "X-Gnutella-Alternate-Location");
 

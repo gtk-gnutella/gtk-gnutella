@@ -142,7 +142,7 @@ static gint dl_active = 0;				/* Active downloads */
 #define count_running_downloads()	(dl_establishing + dl_active)
 #define count_running_on_server(s)	(s->count[DL_LIST_RUNNING])
 
-static guchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+static gchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
 extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
@@ -287,7 +287,7 @@ static gint dl_server_retry_cmp(gconstpointer a, gconstpointer b)
  */
 static gboolean has_blank_guid(const struct download *d)
 {
-	const guchar *g = download_guid(d);
+	const gchar *g = download_guid(d);
 	gint i;
 
 	for (i = 0; i < 16; i++)
@@ -520,7 +520,7 @@ static void dl_by_time_remove(struct dl_server *server)
  * Allocate new server structure.
  */
 static struct dl_server *allocate_server(
-	const guchar *guid, guint32 ip, guint16 port)
+	const gchar *guid, guint32 ip, guint16 port)
 {
 	struct dl_key *key;
 	struct dl_server *server;
@@ -606,7 +606,7 @@ static void free_server(struct dl_server *server)
  * Returns NULL if not found.
  */
 static struct dl_server *get_server(
-	guchar *guid, guint32 ip, guint16 port)
+	gchar *guid, guint32 ip, guint16 port)
 {
 	struct dl_ip ikey;
 	struct dl_key key;
@@ -634,7 +634,7 @@ static struct dl_server *get_server(
  * Check whether we can safely ignore Push indication for this server,
  * identified by its GUID, IP and port.
  */
-gboolean download_server_nopush(guchar *guid, guint32 ip, guint16 port)
+gboolean download_server_nopush(gchar *guid, guint32 ip, guint16 port)
 {
 	struct dl_server *server = get_server(guid, ip, port);
 
@@ -700,7 +700,7 @@ static void downloads_with_name_dec(gchar *name)
  * Returns found active download, or NULL if we have no such download yet.
  */
 static struct download *has_same_download(
-	const gchar *file, const guchar *sha1, gchar *guid,
+	const gchar *file, const gchar *sha1, gchar *guid,
 	guint32 ip, guint16 port)
 {
 	struct dl_server *server = get_server(guid, ip, port);
@@ -1158,7 +1158,7 @@ gint download_remove_all_named(const gchar *name)
  * Note: if sha1 is NULL, we do not clear all download with sha1==NULL
  *		but abort instead.
  */
-gint download_remove_all_with_sha1(const guchar *sha1)
+gint download_remove_all_with_sha1(const gchar *sha1)
 {
 	GSList *sl;
     GSList *to_remove = NULL;
@@ -1418,7 +1418,7 @@ static void download_remove_from_server(struct download *d, gboolean reclaim)
 void download_redirect_to_server(struct download *d, guint32 ip, guint16 port)
 {
 	struct dl_server *server;
-	guchar old_guid[16];
+	gchar old_guid[16];
 	enum dl_list list_idx;
 	
 	g_assert(d);
@@ -2696,7 +2696,7 @@ static struct download *create_download(
 /* Automatic download request */
 
 void download_auto_new(gchar *file, guint32 size, guint32 record_index,
-					guint32 ip, guint16 port, gchar *guid, guchar *sha1,
+					guint32 ip, guint16 port, gchar *guid, gchar *sha1,
 		   			time_t stamp, gboolean push, struct dl_file_info *fi)
 {
 	gchar *file_name;
@@ -2878,7 +2878,7 @@ static struct download *download_clone(struct download *d)
 
 /* search has detected index change in queued download --RAM, 18/12/2001 */
 
-void download_index_changed(guint32 ip, guint16 port, guchar *guid,
+void download_index_changed(guint32 ip, guint16 port, gchar *guid,
 	guint32 from, guint32 to)
 {
 	struct dl_server *server = get_server(guid, ip, port);
@@ -2981,7 +2981,7 @@ void download_index_changed(guint32 ip, guint16 port, guchar *guid,
  * Return whether download was created.
  */
 gboolean download_new(gchar *file, guint32 size, guint32 record_index,
-			  guint32 ip, guint16 port, gchar *guid, guchar *sha1,
+			  guint32 ip, guint16 port, gchar *guid, gchar *sha1,
 			  time_t stamp, gboolean push, struct dl_file_info *fi)
 {
 	return NULL != create_download(file, size, record_index, ip, port, guid,
@@ -2995,7 +2995,7 @@ gboolean download_new(gchar *file, guint32 size, guint32 record_index,
  * its fileinfo trailer.
  */
 void download_orphan_new(
-	gchar *file, guint32 size, guchar *sha1, struct dl_file_info *fi)
+	gchar *file, guint32 size, gchar *sha1, struct dl_file_info *fi)
 {
 	(void) create_download(file, size, 0, 0, 0, blank_guid, sha1,
 		time(NULL), FALSE, TRUE, fi);
@@ -3168,7 +3168,7 @@ void download_resume(struct download *d)
 	case GTA_DL_MOVING:
 	case GTA_DL_DONE:
 		return;
-    default:
+    default: ;
 		/* FALL THROUGH */
 	}
 
@@ -3255,7 +3255,7 @@ static gboolean send_push_request(
 
 	message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
 	gmsg_sendto_all(nodes,
-		(guchar *) &m, sizeof(struct gnutella_msg_push_request));
+		(gchar *) &m, sizeof(struct gnutella_msg_push_request));
 
 	g_slist_free(nodes);
 
@@ -4048,7 +4048,7 @@ static void check_xhost(struct download *d, const header_t *header)
 static gboolean check_content_urn(struct download *d, header_t *header)
 {
 	gchar *buf;
-	guchar digest[SHA1_RAW_SIZE];
+	gchar digest[SHA1_RAW_SIZE];
 	gboolean found_sha1 = FALSE;
 
 	buf = header_get(header, "X-Gnutella-Content-Urn");
@@ -5215,7 +5215,7 @@ void download_send_request(struct download *d)
 	gint rw;
 	gint sent;
 	gboolean n2r = FALSE;
-	const guchar *sha1;
+	const gchar *sha1;
 
 	g_assert(d);
 
@@ -5561,7 +5561,7 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 {
 	struct download *d = NULL;
 	GSList *list;
-	guchar rguid[16];		/* Remote GUID */
+	gchar rguid[16];		/* Remote GUID */
 	gint i;
 
 	g_strdown(hex_guid);
@@ -5872,11 +5872,12 @@ static void download_store(void)
 {
 	FILE *out;
 	GSList *l;
-	file_path_t fp = { settings_config_dir(), download_file };
+	file_path_t fp;
 
 	if (retrieving)
 		return;
 
+	file_path_set(&fp, settings_config_dir(), download_file);
 	out = file_config_open_write(file_what, &fp);
 
 	if (!out)
@@ -5950,7 +5951,7 @@ void download_store_if_dirty(void)
 static void download_retrieve(void)
 {
 	FILE *in;
-	guchar d_guid[16];		/* The d_ vars are what we deserialize */
+	gchar d_guid[16];		/* The d_ vars are what we deserialize */
 	guint32 d_size;
 	gchar *d_name;
 	guint32 d_ip;
@@ -5960,14 +5961,15 @@ static void download_retrieve(void)
 	gchar d_ipport[23];
 	gint recline;			/* Record line number */
 	gint line;				/* File line number */
-	guchar sha1_digest[SHA1_RAW_SIZE];
+	gchar sha1_digest[SHA1_RAW_SIZE];
 	gboolean has_sha1 = FALSE;
 	gint maxlines = -1;
-	file_path_t fp = { settings_config_dir(), download_file };
+	file_path_t fp;
 	gboolean allow_comments = TRUE;
 	gchar *parq_id = NULL;
 	struct download *d;
 
+	file_path_set(&fp, settings_config_dir(), download_file);
 	in = file_config_open_read(file_what, &fp, 1);
 
 	if (!in)
@@ -6437,7 +6439,7 @@ void download_verify_progress(struct download *d, guint32 hashed)
  *
  * Called when download verification is finished and digest is known.
  */
-void download_verify_done(struct download *d, guchar *digest, time_t elapsed)
+void download_verify_done(struct download *d, gchar *digest, time_t elapsed)
 {
 	struct dl_file_info *fi;
 

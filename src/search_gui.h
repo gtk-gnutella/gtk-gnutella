@@ -44,7 +44,7 @@
 typedef struct results_set {
 	gint refcount;				/* Numner of "struct search" this belongs to */
 
-	guchar *guid;				/* Servent's GUID (atom) */
+	gchar *guid;				/* Servent's GUID (atom) */
 	guint32 ip;
 	guint16 port;
 	guint16 status;				/* Parsed status bits from trailer */

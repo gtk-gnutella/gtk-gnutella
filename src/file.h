@@ -50,6 +50,7 @@ FILE *file_config_open_write(const gchar *what, const file_path_t *fv);
 gboolean file_config_close(FILE *out, const file_path_t *fv);
 
 void file_config_preamble(FILE *out, const gchar *what);
+void file_path_set(file_path_t *fp, const char *dir, const char *name);
 
 #endif /* _file_ */
 

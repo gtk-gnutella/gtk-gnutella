@@ -170,42 +170,42 @@ static listeners_t node_flags_changed_listeners = NULL;
 
 void node_add_node_added_listener(node_added_listener_t l)
 {
-    LISTENER_ADD(node_added, l);
+    LISTENER_ADD(node_added, (gpointer) l);
 }
 
 void node_remove_node_added_listener(node_added_listener_t l)
 {
-    LISTENER_REMOVE(node_added, l);
+    LISTENER_REMOVE(node_added, (gpointer) l);
 }
 
 void node_add_node_removed_listener(node_removed_listener_t l)
 {
-    LISTENER_ADD(node_removed, l);
+    LISTENER_ADD(node_removed, (gpointer) l);
 }
 
 void node_remove_node_removed_listener(node_removed_listener_t l)
 {
-    LISTENER_REMOVE(node_removed, l);
+    LISTENER_REMOVE(node_removed, (gpointer) l);
 }
 
 void node_add_node_info_changed_listener(node_info_changed_listener_t l)
 {
-    LISTENER_ADD(node_info_changed, l);
+    LISTENER_ADD(node_info_changed, (gpointer) l);
 }
 
 void node_remove_node_info_changed_listener(node_info_changed_listener_t l)
 {
-    LISTENER_REMOVE(node_info_changed, l);
+    LISTENER_REMOVE(node_info_changed, (gpointer) l);
 }
 
 void node_add_node_flags_changed_listener(node_flags_changed_listener_t l)
 {
-    LISTENER_ADD(node_flags_changed, l);
+    LISTENER_ADD(node_flags_changed, (gpointer) l);
 }
 
 void node_remove_node_flags_changed_listener(node_flags_changed_listener_t l)
 {
-    LISTENER_REMOVE(node_flags_changed, l);
+    LISTENER_REMOVE(node_flags_changed, (gpointer) l);
 }
 
 static void node_fire_node_added(
@@ -672,7 +672,7 @@ gint node_outdegree(void)
  * Parse the first handshake line to determine the protocol version.
  * The major and minor are returned in `major' and `minor' respectively.
  */
-static void get_protocol_version(guchar *handshake, gint *major, gint *minor)
+static void get_protocol_version(gchar *handshake, gint *major, gint *minor)
 {
 	if (sscanf(&handshake[gnutella_hello_length], "%d.%d", major, minor))
 		return;
@@ -1183,8 +1183,7 @@ static void node_bye_v(
 		len + sizeof(head) + 1024;		/* Slightly larger, for flow-control */
 
 	sock_send_buf(n->socket, sendbuf_len, FALSE);
-	gmsg_split_sendto_one(n,
-		(guchar *) &head, (guchar *) payload, len + sizeof(head));
+	gmsg_split_sendto_one(n, &head, payload, len + sizeof(head));
 
 	/*
 	 * Whether we sent the message or not, enter shutdown mode.
@@ -1333,7 +1332,7 @@ static gboolean send_welcome(
  * Send CONNECT_PONGS_COUNT pongs to the remote node with proper message ID,
  * then disconnect.
  */
-static void send_connection_pongs(struct gnutella_node *n, guchar *muid)
+static void send_connection_pongs(struct gnutella_node *n, gchar *muid)
 {
 	struct gnutella_host hosts[CONNECT_PONGS_COUNT];
 	struct gnutella_socket *s = n->socket;
@@ -1538,7 +1537,7 @@ static gchar *node_crawler_headers(struct gnutella_node *n)
  * NB: We don't need a node to call this routine, only a socket.
  */
 void send_node_error(
-	struct gnutella_socket *s, int code, const guchar *msg, ...)
+	struct gnutella_socket *s, int code, const gchar *msg, ...)
 {
 	gchar gnet_response[2048];
 	gchar msg_tmp[256];
@@ -1838,7 +1837,7 @@ static void node_got_bye(struct gnutella_node *n)
 {
 	guint16 code;
 	gchar *message = n->data + 2; 
-	gint c;
+	guchar c;
 	gint cnt;
 	gchar *p;
 	gboolean warned = FALSE;
@@ -2037,9 +2036,9 @@ static void downgrade_handshaking(struct gnutella_node *n)
  *
  * i.e. we're very flexible about the separators which can be "," or ";".
  */
-static gint extract_field_pongs(guchar *field, hcache_type_t type)
+static gint extract_field_pongs(gchar *field, hcache_type_t type)
 {
-	const guchar *tok;
+	const gchar *tok;
 	gint pong = 0;
 
 	for (tok = strtok(field, ",;"); tok; tok = strtok(NULL, ",;")) {
@@ -3595,7 +3594,7 @@ static void node_parse(struct gnutella_node *node)
 				send_connection_pongs(n, n->header.muid); /* Will disconnect */
 				return;
 			}
-			if (n->header.muid[8] == 0xff && n->header.muid[15] >= 1)
+			if (n->header.muid[8] == '\xff' && (guchar) n->header.muid[15] >= 1)
 				n->attrs |= NODE_A_PONG_CACHING;
 			n->flags &= ~NODE_F_HDSK_PING;		/* Clear indication */
 		} else if (n->flags & NODE_F_TMP) {
@@ -4092,12 +4091,10 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 	gint r;
 
 	if (!n->have_header) {		/* We haven't got the header yet */
-		guchar *w = (guchar *) &n->header;
+		gchar *w = (gchar *) &n->header;
 		gboolean kick = FALSE;
 
-		r = pmsg_read(mb, w + n->pos,
-				 sizeof(struct gnutella_header) - n->pos);
-
+		r = pmsg_read(mb, w + n->pos, sizeof(struct gnutella_header) - n->pos);
 		n->pos += r;
 		node_add_rx_read(n, r);
 
@@ -4183,9 +4180,9 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 			}
 
 			if (n->allocated)
-				n->data = (guchar *) g_realloc(n->data, maxsize);
+				n->data = g_realloc(n->data, maxsize);
 			else
-				n->data = (guchar *) g_malloc0(maxsize);
+				n->data = g_malloc0(maxsize);
 			n->allocated = maxsize;
 		}
 
@@ -4715,7 +4712,7 @@ inline void node_add_rxdrop(gnutella_node_t *n, gint x)
 	n->rx_dropped += x; 
 }
 
-inline void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
+void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 {
 	if (n->flags & NODE_F_FAKE_NAME) {
 		gchar *name = g_strdup_printf("!%s", vendor);

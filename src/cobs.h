@@ -36,11 +36,11 @@
 
 struct iovec;
 
-guchar *cobs_encode(const guchar *buf, gint len, gint *retlen);
-guchar *cobs_encodev(struct iovec *iov, gint iovcnt, gint *retlen);
-guchar *cobs_decode(guchar *buf, gint len, gint *retlen, gboolean inplace);
+gchar *cobs_encode(gchar *buf, gint len, gint *retlen);
+gchar *cobs_encodev(struct iovec *iov, gint iovcnt, gint *retlen);
+gchar *cobs_decode(gchar *buf, gint len, gint *retlen, gboolean inplace);
 gboolean cobs_decode_into(
-	guchar *buf, gint len, guchar *out, gint outlen, gint *retlen);
+	gchar *buf, gint len, gchar *out, gint outlen, gint *retlen);
 
 #endif	/* _cobs_h_ */
 

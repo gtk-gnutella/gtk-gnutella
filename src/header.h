@@ -75,7 +75,7 @@ typedef struct header {
  */
 
 typedef struct {
-	guchar *name;				/* Field name */
+	gchar *name;				/* Field name */
 	GSList *lines;				/* List of lines making this header */
 } header_field_t;
 
@@ -107,7 +107,7 @@ typedef struct {
 header_t *header_make(void);
 void header_free(header_t *o);
 void header_reset(header_t *o);
-gint header_append(header_t *o, const guchar *text, gint len);
+gint header_append(header_t *o, const gchar *text, gint len);
 void header_dump(const header_t *o, FILE *out);
 const gchar *header_strerror(guint errnum);
 gchar *header_get(const header_t *o, const gchar *field);

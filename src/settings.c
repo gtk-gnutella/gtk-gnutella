@@ -686,7 +686,7 @@ static gboolean max_ultra_hosts_cached_changed(property_t prop)
 
 static gboolean listen_port_changed(property_t prop)
 {
-	static guint32 old_listen_port = -1;
+	static guint32 old_listen_port = (guint32) -1;
     guint32 listen_port;
 
     gnet_prop_get_guint32_val(prop, &listen_port);

@@ -44,7 +44,7 @@ RCSID("$Id$");
  */
 struct atom {
 	gint refcnt;				/* Amount of references */
-	guchar arena[1];			/* Start of user arena */
+	gchar arena[1];			/* Start of user arena */
 };
 
 #define ARENA_OFFSET	G_STRUCT_OFFSET(struct atom, arena)
@@ -193,7 +193,7 @@ static gint guid_len(gconstpointer v)
  */
 static const gchar *guid_str(gconstpointer v)
 {
-	return guid_hex_str((const guchar *) v);
+	return guid_hex_str((const gchar *) v);
 }
 
 /*
@@ -250,7 +250,7 @@ static gint sha1_len(gconstpointer v)
  */
 static const gchar *sha1_str(gconstpointer v)
 {
-	return sha1_base32((const guchar *) v);
+	return sha1_base32((const gchar *) v);
 }
 
 /*

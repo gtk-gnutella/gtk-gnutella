@@ -35,11 +35,12 @@
  */
 
 void guid_init(void);
-gboolean guid_is_gtkg(guchar *xuid, guint8 *majp, guint8 *minp, gboolean *relp);
-gboolean guid_is_requery(guchar *xuid);
-void guid_random_fill(guchar *xuid);
-void guid_random_muid(guchar *muid);
-void guid_ping_muid(guchar *muid);
-void guid_query_muid(guchar *muid, gboolean initial);
+gboolean guid_is_gtkg(
+	const gchar *xuid, guint8 *majp, guint8 *minp, gboolean *relp);
+gboolean guid_is_requery(const gchar *xuid);
+void guid_random_fill(gchar *xuid);
+void guid_random_muid(gchar *muid);
+void guid_ping_muid(gchar *muid);
+void guid_query_muid(gchar *muid, gboolean initial);
 
 #endif /* _guid_h_ */

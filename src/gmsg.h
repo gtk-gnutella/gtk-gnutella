@@ -44,13 +44,13 @@ struct route_dest;
 void gmsg_init(void);
 const gchar *gmsg_name(guint function);
 
-void gmsg_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size);
-void gmsg_ctrl_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size);
+void gmsg_sendto_one(struct gnutella_node *n, gchar *msg, guint32 size);
+void gmsg_ctrl_sendto_one(struct gnutella_node *n, gchar *msg, guint32 size);
 void gmsg_split_sendto_one(struct gnutella_node *n,
-	guchar *head, guchar *data, guint32 size);
-void gmsg_sendto_all(GSList *l, guchar *msg, guint32 size);
+	gpointer head, gpointer data, guint32 size);
+void gmsg_sendto_all(GSList *l, gchar *msg, guint32 size);
 void gmsg_split_sendto_all_but_one(GSList *l, struct gnutella_node *n,
-	guchar *head, guchar *data, guint32 size);
+	gpointer head, gpointer data, guint32 size);
 void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt);
 
 gboolean gmsg_can_drop(gpointer pdu, gint size);
@@ -64,14 +64,14 @@ void gmsg_sendto_route_ggep(
 	struct gnutella_node *n, struct route_dest *rt, gint regular_size);
 
 void gmsg_split_sendto_leaves(GSList *l,
-	guchar *head, guchar *data, guint32 size);
+	gpointer head, gpointer data, guint32 size);
 
 void gmsg_search_sendto_one(
-	struct gnutella_node *n, gnet_search_t sh, guchar *msg, guint32 size);
+	struct gnutella_node *n, gnet_search_t sh, gchar *msg, guint32 size);
 void gmsg_search_sendto_all(
-	GSList *l, gnet_search_t sh, guchar *msg, guint32 size);
+	GSList *l, gnet_search_t sh, gchar *msg, guint32 size);
 void gmsg_search_sendto_all_nonleaf(
-	GSList *l, gnet_search_t sh, guchar *msg, guint32 size);
+	GSList *l, gnet_search_t sh, gchar *msg, guint32 size);
 
 #endif	/* _gmsg_h_ */
 

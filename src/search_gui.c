@@ -491,7 +491,7 @@ gboolean search_gui_new_search_full(
 	 */
 
 	if (0 == strncasecmp(query, "magnet:", 7)) {
-		guchar raw[SHA1_RAW_SIZE];
+		gchar raw[SHA1_RAW_SIZE];
 
 		if (huge_extract_sha1(query, raw)) {
 			gm_snprintf(query, sizeof(query), "urn:sha1:%s", sha1_base32(raw));
@@ -508,7 +508,7 @@ gboolean search_gui_new_search_full(
 	 */
 
 	if (0 == strncasecmp(query, "urn:sha1:", 9)) {
-		guchar raw[SHA1_RAW_SIZE];
+		gchar raw[SHA1_RAW_SIZE];
 		gchar *b = query + 9;
 
 		if (strlen(b) < SHA1_BASE32_SIZE)
@@ -522,7 +522,7 @@ gboolean search_gui_new_search_full(
 		 * the new one on the fly.
 		 */
 		if (base32_decode_old_into(b, SHA1_BASE32_SIZE, raw, sizeof(raw))) {
-			guchar b32[SHA1_BASE32_SIZE];
+			gchar b32[SHA1_BASE32_SIZE];
 			base32_encode_into(raw, sizeof(raw), b32, sizeof(b32));
 			memcpy(b, b32, SHA1_BASE32_SIZE);
 			goto validated;
@@ -804,10 +804,10 @@ static gboolean search_result_is_dup(search_t * sch, struct record * rc)
 	 */
 
 	if (rc->index != old_rc->index) {
-		if (gui_debug) g_warning(
-			"Index changed from %u to %u at %s for %s",
-			old_rc->index, rc->index, guid_hex_str(rc->results_set->guid),
-			rc->name);
+		if (gui_debug)
+			g_warning("Index changed from %u to %u at %s for %s",
+				old_rc->index, rc->index, guid_hex_str(rc->results_set->guid),
+				rc->name);
 		download_index_changed(
 			rc->results_set->ip,		/* This is for optimizing lookups */
 			rc->results_set->port,
@@ -833,7 +833,7 @@ static void search_gui_add_record(
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%u", rs->speed);
 	titles[c_sr_speed] = tmpstr;
 	titles[c_sr_host] = ip_port_to_gchar(rs->ip, rs->port);
-    titles[c_sr_urn] = (rc->sha1 != NULL) ? sha1_base32(rc->sha1) : "";
+    titles[c_sr_urn] = rc->sha1 != NULL ? sha1_base32(rc->sha1) : "";
 
 	if (rc->tag) {
 		guint len = strlen(rc->tag);
@@ -1030,7 +1030,8 @@ static void search_matched(search_t *sch, results_set_t *rs)
             (flt_result->props[FILTER_PROP_DOWNLOAD].state ==
             FILTER_PROP_STATE_DO)) {
             download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-                rs->guid, rc->sha1, rs->stamp, need_push, NULL);
+                rs->guid, rc->sha1, rs->stamp, need_push,
+				NULL);
             downloaded = TRUE;
         }
     
@@ -1538,8 +1539,9 @@ static gboolean search_retrieve_old(void)
 {
 	FILE *in;
 	gint line;				/* File line number */
-	const file_path_t fp = { settings_gui_config_dir(), search_file };
+	file_path_t fp;
 
+	file_path_set(&fp, settings_gui_config_dir(), search_file);
 	in = file_config_open_read("old searches (gtkg pre v0.90)", &fp, 1);
 	if (!in)
 		return FALSE;

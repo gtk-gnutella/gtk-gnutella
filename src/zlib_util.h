@@ -52,7 +52,7 @@ zlib_deflater_t *zlib_deflater_make(gpointer data, gint len, gint level);
 gint zlib_deflate(zlib_deflater_t *zd, gint amount);
 void zlib_deflater_free(zlib_deflater_t *zd, gboolean output);
 
-guchar *zlib_uncompress(guchar *data, gint len, gint uncompressed_len);
+gpointer zlib_uncompress(gpointer data, gint len, gint uncompressed_len);
 
 #endif	/* _zlib_util_h_ */
 

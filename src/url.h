@@ -32,11 +32,11 @@
  * Public interface.
  */
 
-guchar *url_escape(guchar *url);
-guchar *url_escape_query(guchar *url);
-gint url_escape_into(const guchar *url, guchar *target, gint len);
-guchar *url_escape_cntrl(guchar *url);
-guchar *url_unescape(guchar *url, gboolean inplace);
+gchar *url_escape(gchar *url);
+gchar *url_escape_query(gchar *url);
+gint url_escape_into(const gchar *url, gchar *target, gint len);
+gchar *url_escape_cntrl(gchar *url);
+gchar *url_unescape(gchar *url, gboolean inplace);
 
 #endif	/* _url_h_ */
 

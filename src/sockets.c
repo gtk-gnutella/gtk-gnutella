@@ -353,8 +353,8 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	gint r;
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
 	guint count;
-	guint parsed;
-	guchar *first;
+	gint parsed;
+	gchar *first;
 
 	/* s->type = 0; */
 
@@ -1485,9 +1485,9 @@ int recv_socks(struct gnutella_socket *s)
 int connect_http(struct gnutella_socket *s)
 {
 	int rc = 0;
-	guint parsed;
+	gint parsed;
 	int status;
-	guchar *str;
+	gchar *str;
 
 	switch (s->pos) {
 	case 0:

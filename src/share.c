@@ -176,12 +176,12 @@ static listeners_t search_request_listeners = NULL;
 
 void share_add_search_request_listener(search_request_listener_t l)
 {
-    LISTENER_ADD(search_request, l);
+    LISTENER_ADD(search_request, (gpointer) l);
 }
 
 void share_remove_search_request_listener(search_request_listener_t l)
 {
-    LISTENER_REMOVE(search_request, l);
+    LISTENER_REMOVE(search_request, (gpointer) l);
 }
 
 static void share_emit_search_request(
@@ -930,16 +930,16 @@ static void flush_match(void)
 		WRITE_GUINT32_BE(release_date, &release);
 		WRITE_GUINT32_BE(start_stamp, &start);
 
-		iov[0].iov_base = &major;
+		iov[0].iov_base = (gpointer) &major;
 		iov[0].iov_len = 1;
 
-		iov[1].iov_base = &minor;
+		iov[1].iov_base = (gpointer) &minor;
 		iov[1].iov_len = 1;
 
-		iov[2].iov_base = &patch;
+		iov[2].iov_base = (gpointer) &patch;
 		iov[2].iov_len = 1;
 
-		iov[3].iov_base = &revchar;
+		iov[3].iov_base = (gpointer) &revchar;
 		iov[3].iov_len = 1;
 
 		iov[4].iov_base = (gpointer) &release;
@@ -1008,7 +1008,7 @@ static void flush_match(void)
 	WRITE_GUINT32_BE(listen_ip(), search_head->host_ip);
 	WRITE_GUINT32_LE(connection_speed, search_head->host_speed);
 
-	gmsg_sendto_one(n, FOUND_BUF, FOUND_SIZE);
+	gmsg_sendto_one(n, (gchar *) FOUND_BUF, FOUND_SIZE);
 }
 
 /*
@@ -1077,13 +1077,13 @@ static gboolean got_match(struct shared_file *sf)
 			struct iovec iov[2];
 			gint w;
 
-			iov[0].iov_base = &type;
+			iov[0].iov_base = (gpointer) &type;
 			iov[0].iov_len = 1;
 
 			iov[1].iov_base = sf->sha1_digest;
 			iov[1].iov_len = SHA1_RAW_SIZE;
 
-			w = ggep_ext_writev(&FOUND_BUF[pos], FOUND_LEFT(pos),
+			w = ggep_ext_writev((gchar *) &FOUND_BUF[pos], FOUND_LEFT(pos),
 					"H", iov, G_N_ELEMENTS(iov),
 					GGEP_W_FIRST|GGEP_W_LAST|GGEP_W_COBS);
 
@@ -1236,10 +1236,10 @@ guint compact_query(gchar *search, gint utf8_len)
  * Returns FALSE on bad UTF-8, TRUE otherwise.
  */
 static gboolean query_utf8_decode(
-	const gchar *text, guint32 len, guint32 *retlen, guint *retoff)
+	const gchar *text, gint len, gint *retlen, gint *retoff)
 {
-	guint offset = 0;
-	guint32 utf8_len = -1;
+	gint offset = 0;
+	gint utf8_len = -1;
 
 	/*
 	 * Look whether we're facing an UTF-8 query.
@@ -1298,7 +1298,7 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	} exv_sha1[MAX_EXTVEC];
 	gint exv_sha1cnt = 0;
 	gint utf8_len = -1;
-	guint offset = 0;			/* Query string start offset */
+	gint offset = 0;			/* Query string start offset */
 	gboolean drop_it = FALSE;
 
 	/*

@@ -46,7 +46,7 @@ typedef struct event {
     GSList      *subscribers;
 } event_t;
 
-inline struct event *event_new(const gchar *name);
+struct event *event_new(const gchar *name);
 
 #define event_destroy(evt) G_STMT_START {                          \
     real_event_destroy(evt);                                       \

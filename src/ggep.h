@@ -32,25 +32,25 @@
 
 #include <glib.h>
 
-#define GGEP_MAGIC		0xc3		/* GGEP extension prefix */
+#define GGEP_MAGIC		'\xc3'		/* GGEP extension prefix */
 
 /*
  * GGEP Extension Header Flags.
  */
 
-#define GGEP_F_LAST		0x80		/* Last extension in GGEP block */
-#define GGEP_F_COBS		0x40		/* Whether COBS was used on payload */
-#define GGEP_F_DEFLATE	0x20		/* Whether payload was deflated */
-#define GGEP_F_MBZ		0x10		/* Bits that Must Be Zero */
-#define GGEP_F_IDLEN	0x0f		/* Where ID length is stored */
+#define GGEP_F_LAST		'\x80'		/* Last extension in GGEP block */
+#define GGEP_F_COBS		'\x40'		/* Whether COBS was used on payload */
+#define GGEP_F_DEFLATE	'\x20'		/* Whether payload was deflated */
+#define GGEP_F_MBZ		'\x10'		/* Bits that Must Be Zero */
+#define GGEP_F_IDLEN	'\x0f'		/* Where ID length is stored */
 
 /*
  * GGEP Length Encoding.
  */
 
-#define GGEP_L_CONT		0x80		/* Continuation present */
-#define GGEP_L_LAST		0x40		/* Last byte */
-#define GGEP_L_VALUE	0x3f		/* Value */
+#define GGEP_L_CONT		'\x80'		/* Continuation present */
+#define GGEP_L_LAST		'\x40'		/* Last byte */
+#define GGEP_L_VALUE	'\x3f'		/* Value */
 #define GGEP_L_VSHIFT	6
 
 #define GGEP_L_XFLAGS	(GGEP_L_CONT | GGEP_L_LAST)
@@ -88,21 +88,21 @@ typedef enum ggept_status {
 
 struct iovec;
 
-gint ggep_decode_into(extvec_t *exv, guchar *buf, gint len);
+gint ggep_decode_into(extvec_t *exv, gchar *buf, gint len);
 
 gint ggep_ext_write(
-	guchar *buf, gint len,
-	gchar *id, guchar *payload, gint plen,
+	gchar *buf, gint len,
+	gchar *id, gchar *payload, gint plen,
 	guint32 wflags);
 
 gint ggep_ext_writev(
-	guchar *buf, gint len,
+	gchar *buf, gint len,
 	gchar *id, struct iovec *iov, gint iovcnt,
 	guint32 wflags);
 
-void ggep_mark_last(guchar *start);
+void ggep_mark_last(gchar *start);
 
-ggept_status_t ggept_h_sha1_extract(extvec_t *exv, guchar *buf, gint len);
+ggept_status_t ggept_h_sha1_extract(extvec_t *exv, gchar *buf, gint len);
 
 struct ggep_gtkgv1 {				/* Decompiled payload of "GTKGV1" */
 	guint8 major;

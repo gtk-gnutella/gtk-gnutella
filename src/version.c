@@ -48,7 +48,7 @@ static version_t last_dev_version;
  * Dump original version string and decompiled form to stdout.
  */
 static void version_dump(
-	const guchar *str, const version_t *ver, const gchar *cmptag)
+	const gchar *str, const version_t *ver, const gchar *cmptag)
 {
 	printf("VERSION%s \"%s\":\n"
 		"\tmajor=%u minor=%u patch=%u tag=%c taglevel=%u\n",
@@ -93,10 +93,10 @@ const gchar *version_str(const version_t *ver)
  * Parse gtk-gnutella's version number in User-Agent/Server string `str'
  * and extract timestamp into `ver'.
  */
-static void version_stamp(const guchar *str, version_t *ver)
+static void version_stamp(const gchar *str, version_t *ver)
 {
 	static gchar stamp[256];
-	const guchar *p;
+	const gchar *p;
 
 	ver->timestamp = 0;
 
@@ -110,7 +110,7 @@ static void version_stamp(const guchar *str, version_t *ver)
 
 	p = strchr(str, '(');
 	if (p) {
-		const guchar *end;
+		const gchar *end;
 
 		p++;
 		end = strchr(p, ';');
@@ -145,9 +145,9 @@ static void version_stamp(const guchar *str, version_t *ver)
  * Returns TRUE if we parsed a gtk-gnutella version correctly, FALSE if we
  * were not facing a gtk-gnutella version, or if we did not recognize it.
  */
-static gboolean version_parse(const guchar *str, version_t *ver)
+static gboolean version_parse(const gchar *str, version_t *ver)
 {
-	const guchar *v;
+	const gchar *v;
 
 	/*
 	 * Modern version numbers are formatted like this:
@@ -333,7 +333,7 @@ static void version_new_found(const gchar *text, gboolean stable)
  * Returns TRUE if we properly checked the version, FALSE if we got something
  * looking as gtk-gnutella but which failed the token-based sanity checks.
  */
-gboolean version_check(const guchar *str, const gchar *token, guint32 ip)
+gboolean version_check(const gchar *str, const gchar *token, guint32 ip)
 {
 	version_t their_version;
 	version_t *target_version;

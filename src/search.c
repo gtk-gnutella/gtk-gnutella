@@ -121,7 +121,7 @@ void search_add_got_results_listener(search_got_results_listener_t l)
     g_assert(l != NULL);
 
     search_got_results_listeners = 
-        g_slist_append(search_got_results_listeners, l);
+        g_slist_append(search_got_results_listeners, (gpointer) l);
 }
 
 void search_remove_got_results_listener(search_got_results_listener_t l)
@@ -129,7 +129,7 @@ void search_remove_got_results_listener(search_got_results_listener_t l)
     g_assert(l != NULL);
 
     search_got_results_listeners = 
-        g_slist_remove(search_got_results_listeners, l);
+        g_slist_remove(search_got_results_listeners, (gpointer) l);
 }
 
 static void search_fire_got_results(
@@ -229,7 +229,7 @@ static gboolean search_already_sent_to_node(
  * Return TRUE if the muid list of the given search contains the
  * given muid.
  */
-static gboolean search_has_muid(search_ctrl_t *sch, const guchar *muid)
+static gboolean search_has_muid(search_ctrl_t *sch, const gchar *muid)
 {
 	g_assert(sch->h_muids);
 
@@ -297,7 +297,7 @@ static gnet_results_set_t *get_results_set(
 	struct gnutella_search_results *r;
 	GString *info = NULL;
 	gint sha1_errors = 0;
-	guchar *trailer = NULL;
+	gchar *trailer = NULL;
 	gboolean seen_ggep_h = FALSE;
 	gboolean seen_bitprint = FALSE;
 
@@ -340,7 +340,7 @@ static gnet_results_set_t *get_results_set(
 
 	/* Now come the result set, and the servent ID will close the packet */
 
-	s = r->records;				/* Start of the records */
+	s = (gchar *) r->records;	/* Start of the records */
 	e = s + n->size - 11 - 16;	/* End of the records, less header, GUID */
 
 	if (dbg > 7)
@@ -385,8 +385,7 @@ static gnet_results_set_t *get_results_set(
 			 */
 
 			while (s < e) {		/* On the way to second NUL */
-				guchar c = *s;
-				if (!c)
+				if ('\0' == *s)
 					break;		/* Reached second nul */
 				s++;
 				taglen++;
@@ -457,8 +456,8 @@ static gnet_results_set_t *get_results_set(
 					/* FALLTHROUGH */
 				case EXT_T_URN_SHA1:
 					if (
-						huge_sha1_extract32(e->ext_payload, e->ext_paylen,
-							sha1_digest, &n->header, TRUE)
+						huge_sha1_extract32((gchar *) e->ext_payload,
+								e->ext_paylen, sha1_digest, &n->header, TRUE)
 					) {
 						if (!validate_only)
 							rc->sha1 = atom_sha1_get(sha1_digest);
@@ -491,14 +490,14 @@ static gnet_results_set_t *get_results_set(
 						!validate_only &&
 						e->ext_paylen && ext_has_ascii_word(e)
 					) {
-						guchar *p = e->ext_payload + e->ext_paylen;
-						guchar c = *p;
+						gchar *p = (gchar *) e->ext_payload + e->ext_paylen;
+						gchar c = *p;
 
 						if (info->len)
 							g_string_append(info, "; ");
 
 						*p = '\0';
-						g_string_append(info, e->ext_payload);
+						g_string_append(info, (gchar *) e->ext_payload);
 						*p = c;
 					}
 					break;
@@ -635,8 +634,8 @@ static gnet_results_set_t *get_results_set(
 		 */
 
 		if (rs->status & ST_GGEP) {
-			guchar *priv = &trailer[5] + open_size;
-			gint privlen = (guchar *) e - priv;
+			gchar *priv = &trailer[5] + open_size;
+			gint privlen = e - priv;
 			gint exvcnt = 0;
 			extvec_t exv[MAX_EXTVEC];
 			gboolean seen_ggep = FALSE;
@@ -1045,19 +1044,19 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 
 	if (n) {
 		mark_search_sent_to_node(sch, n);
-		gmsg_search_sendto_one(n, sch->search_handle, (guchar *) m, size);
+		gmsg_search_sendto_one(n, sch->search_handle, (gchar *) m, size);
 	} else {
 		mark_search_sent_to_connected_nodes(sch);
 		if (qhv != NULL) {
 			GSList *nodes = qrt_build_query_target(qhv, 0, NULL);
-			gmsg_search_sendto_all(
-				nodes, sch->search_handle, (guchar *) m, size);
+			gmsg_search_sendto_all(nodes, sch->search_handle,
+				(gchar *) m, size);
 			g_slist_free(nodes);
 			gmsg_search_sendto_all_nonleaf(
-				sl_nodes, sch->search_handle, (guchar *) m, size);
+				sl_nodes, sch->search_handle, (gchar *) m, size);
 		} else
 			gmsg_search_sendto_all(
-				sl_nodes, sch->search_handle, (guchar *) m, size);
+				sl_nodes, sch->search_handle, (gchar *) m, size);
 	}
 
 	wfree(m, size);
@@ -1098,7 +1097,7 @@ static void search_reset_sent_nodes(search_ctrl_t *sch)
  *
  * Create a new muid and add it to the search's list of muids.
  */
-static void search_add_new_muid(search_ctrl_t *sch, guchar *muid)
+static void search_add_new_muid(search_ctrl_t *sch, gchar *muid)
 {
 	guint count;
 
@@ -1428,7 +1427,7 @@ void search_close(gnet_search_t sh)
 void search_reissue(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
-	guchar *muid;
+	gchar *muid;
 
     if (sch->frozen) {
         g_warning("trying to reissue a frozen search, aborted");
@@ -1439,7 +1438,7 @@ void search_reissue(gnet_search_t sh)
 		printf("reissuing search \"%s\" (queries broadcasted: %d)\n",
 			sch->query, sch->query_emitted);
 
-	muid = (guchar *) walloc(MUID_SIZE);
+	muid = walloc(MUID_SIZE);
 	guid_query_muid(muid, FALSE);
 
 	sch->query_emitted = 0;
@@ -1556,8 +1555,8 @@ gnet_search_t search_new(
 		search_passive++;
 	} else {
 		sch->new_node_hook = g_hook_alloc(&node_added_hook_list);
-		sch->new_node_hook->data = sch;
-		sch->new_node_hook->func = node_added_callback;
+		sch->new_node_hook->data = (gpointer) sch;
+		sch->new_node_hook->func = (gpointer) node_added_callback;
 		g_hook_prepend(&node_added_hook_list, sch->new_node_hook);
 
 		sch->reissue_timeout = reissue_timeout;
@@ -1588,7 +1587,7 @@ void search_start(gnet_search_t sh)
 		 */
 
 		if (sch->muids == NULL) {
-			guchar *muid = (guchar *) walloc(MUID_SIZE);
+			gchar *muid = walloc(MUID_SIZE);
 			extern guint guid_hash(gconstpointer key);
 			extern gint guid_eq(gconstpointer a, gconstpointer b);
 

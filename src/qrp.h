@@ -61,7 +61,7 @@ typedef struct query_hashvec {
 
 typedef void (*qrp_callback_t)(gpointer arg, gboolean cancelled);
 
-guint32 qrp_hashcode(guchar *x);
+guint32 qrp_hashcode(gchar *x);
 
 void qrp_init(char_map_t map);
 void qrp_close(void);

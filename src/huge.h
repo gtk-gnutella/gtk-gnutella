@@ -49,12 +49,12 @@ void huge_close(void);		/* Call this when servent is shutdown */
 
 void request_sha1(struct shared_file *);
 
-gboolean huge_http_sha1_extract32(guchar *buf, guchar *retval);
-gboolean huge_sha1_extract32(guchar *buf, gint len, guchar *retval,
+gboolean huge_http_sha1_extract32(gchar *buf, gchar *retval);
+gboolean huge_sha1_extract32(gchar *buf, gint len, gchar *retval,
 	gpointer header, gboolean check_old);
-gboolean huge_extract_sha1(gchar *buf, guchar *digest);
+gboolean huge_extract_sha1(gchar *buf, gchar *digest);
 
-void huge_collect_locations(guchar *sha1, struct header *header);
+void huge_collect_locations(gchar *sha1, struct header *header);
 
 #endif	/* _huge_h_ */
 

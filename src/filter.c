@@ -101,15 +101,15 @@ static GList *filters_added = NULL;
 static GList *filters_removed = NULL;
 
 /* built-in targets */
-static filter_t *filter_drop = NULL;
-static filter_t *filter_show = NULL;
-static filter_t *filter_download = NULL;
-static filter_t *filter_nodownload = NULL;
-static filter_t *filter_return = NULL;
+filter_t *filter_drop = NULL;
+filter_t *filter_show = NULL;
+filter_t *filter_download = NULL;
+filter_t *filter_nodownload = NULL;
+filter_t *filter_return = NULL;
 
 /* global filters */
-static filter_t *filter_global_pre = NULL;
-static filter_t *filter_global_post = NULL;
+filter_t *filter_global_pre = NULL;
+filter_t *filter_global_post = NULL;
 
 /* not static because needed in search_xml. */
 GList *filters = NULL;
@@ -423,14 +423,12 @@ void filter_close_dialog(gboolean commit)
         filter_revert_changes();
 
     if (filter_dialog != NULL) {
-        guint32 coord[4] = {0, 0, 0, 0};
+        gint32 coord[4] = {0, 0, 0, 0};
 
-        gdk_window_get_root_origin
-            (filter_dialog->window, &coord[0], &coord[1]);
-        gdk_drawable_get_size
-            (filter_dialog->window, &coord[2], &coord[3]);
+        gdk_window_get_root_origin(filter_dialog->window, &coord[0], &coord[1]);
+        gdk_drawable_get_size(filter_dialog->window, &coord[2], &coord[3]);
 
-        gui_prop_set_guint32(PROP_FILTER_DLG_COORDS, coord, 0, 4);
+        gui_prop_set_guint32(PROP_FILTER_DLG_COORDS, (guint32 *) coord, 0, 4);
         
         filter_main_divider_pos =
             gtk_paned_get_position
@@ -630,7 +628,7 @@ rule_t *filter_new_jump_rule(filter_t *target, guint16 flags)
 
 
 rule_t *filter_new_sha1_rule
-    (guchar *sha1, gchar *filename, filter_t *target, guint16 flags)
+    (gchar *sha1, gchar *filename, filter_t *target, guint16 flags)
 {
    	rule_t *f;
 
@@ -2024,11 +2022,11 @@ static int filter_apply
                             l && !failed; 
                             l = g_list_next(l)
                         ) {
-                            if (pattern_qsearch
-                                ((cpattern_t *)l->data,
-                                 r->u.text.case_sensitive
-                                 ? rec->name : l_name, 0, 0, qs_any)
-                                == NULL)
+                            if (
+								pattern_qsearch((cpattern_t *)l->data,
+                                 r->u.text.case_sensitive ? rec->name : l_name,
+								 0, 0, qs_any) == NULL
+							)
                                 failed = TRUE;
                         }
 
@@ -2044,10 +2042,11 @@ static int filter_apply
                         match = TRUE;
                     break;
                 case RULE_TEXT_SUBSTR: 
-                    if (pattern_qsearch(r->u.text.u.pattern,
-                                r->u.text.case_sensitive
-                                ? rec->name : l_name, 0, 0,
-                                qs_any) != NULL)
+                    if (
+						pattern_qsearch(r->u.text.u.pattern,
+                                r->u.text.case_sensitive ? rec->name : l_name,
+								0, 0, qs_any) != NULL
+					)
                         match = TRUE;
                     break;
                 case RULE_TEXT_REGEXP:
@@ -2522,12 +2521,12 @@ filter_t *filter_find_by_name_in_session(gchar *name)
     return NULL;
 }
 
-inline gboolean filter_is_global(filter_t *f)
+gboolean filter_is_global(filter_t *f)
 {
     return ((f == filter_global_pre) || (f == filter_global_post));
 }
 
-inline gboolean filter_is_builtin(filter_t *f)
+gboolean filter_is_builtin(filter_t *f)
 {
     return ((f == filter_show) || (f == filter_drop) || 
             (f == filter_download) || (f == filter_nodownload) ||

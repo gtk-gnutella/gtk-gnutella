@@ -72,8 +72,8 @@ zlib_deflater_t *zlib_deflater_make(gpointer data, gint len, gint level)
 	gint ret;
 
 	outz = walloc(sizeof(*outz));
-	outz->zalloc = NULL;
-	outz->zfree = NULL;
+	outz->zalloc = (alloc_func) NULL;
+	outz->zfree = (free_func) NULL;
 	outz->opaque = NULL;
 
 	ret = deflateInit(outz, level ? level : Z_DEFAULT_COMPRESSION);
@@ -136,7 +136,7 @@ gint zlib_deflate(zlib_deflater_t *zd, gint amount)
 	 * Compute amount of input data to process.
 	 */
 
-	remaining = zd->inlen - ((guchar *) outz->next_in - (guchar *) zd->in);
+	remaining = zd->inlen - ((gchar *) outz->next_in - (gchar *) zd->in);
 	g_assert(remaining >= 0);
 
 	process = MIN(remaining, amount);
@@ -168,7 +168,7 @@ gint zlib_deflate(zlib_deflater_t *zd, gint amount)
 	case Z_STREAM_END:
 		g_assert(finishing);
 
-		zd->outlen = (guchar *) outz->next_out - (guchar *) zd->out;
+		zd->outlen = (gchar *) outz->next_out - (gchar *) zd->out;
 		g_assert(zd->outlen > 0);
 
 		ret = deflateEnd(outz);
@@ -192,7 +192,7 @@ gint zlib_deflate(zlib_deflater_t *zd, gint amount)
 		return -1;				/* Error! */
 	}
 
-	g_assert(0);		/* Not reached */
+	g_assert_not_reached();		/* Not reached */
 	return -1;
 }
 
@@ -227,11 +227,11 @@ void zlib_deflater_free(zlib_deflater_t *zd, gboolean output)
  * Inflate data, whose final uncompressed size is known.
  * Return allocated uncompressed data if OK, NULL on error.
  */
-guchar *zlib_uncompress(guchar *data, gint len, gint uncompressed_len)
+gpointer zlib_uncompress(gpointer data, gint len, gint uncompressed_len)
 {
 	gint ret;
 	guchar *out = g_malloc(uncompressed_len);
-	glong retlen = uncompressed_len;
+	gulong retlen = uncompressed_len;
 
 	ret = uncompress(out, &retlen, data, len);
 

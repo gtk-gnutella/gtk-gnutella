@@ -48,7 +48,7 @@
  * computed if needed.
  */
 typedef struct extvec {
-	guchar *ext_payload;	/* Start of payload buffer */
+	gchar *ext_payload;		/* Start of payload buffer */
 	gchar *ext_name;		/* Extension name (may be NULL) */
 	gint ext_token;			/* Extension token */
 	guint16 ext_len;		/* Extension length (header + payload) */
@@ -109,7 +109,7 @@ typedef struct extvec {
 void ext_init(void);
 void ext_close(void);
 
-gint ext_parse(guchar *buf, gint len, extvec_t *exv, gint extcnt);
+gint ext_parse(gchar *buf, gint len, extvec_t *exv, gint extcnt);
 
 gboolean ext_is_printable(const extvec_t *e);
 gboolean ext_is_ascii(const extvec_t *e);

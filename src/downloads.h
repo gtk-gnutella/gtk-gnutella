@@ -58,7 +58,7 @@ struct vernum {
 };
 
 struct dl_key {
-	guchar *guid;			/* GUID of server (atom) */
+	gchar *guid;			/* GUID of server (atom) */
 	guint32 ip;				/* IP address of server */
 	guint16 port;			/* Port of server */
 };
@@ -138,7 +138,7 @@ struct download {
 
 	const gchar *remove_msg;
 
-	guchar *sha1;			/* Known SHA1 (binary atom), NULL if none */
+	gchar *sha1;			/* Known SHA1 (binary atom), NULL if none */
 	guint32 last_dmesh;		/* Time when last download mesh was sent */
 
 	GSList *ranges;			/* PFSP -- known list of ranges, NULL if none */
@@ -266,7 +266,7 @@ void download_timer(time_t now);
 void download_info_change_all(
 	struct dl_file_info *old_fi, struct dl_file_info *new_fi);
 void download_orphan_new(
-	gchar *file, guint32 size, guchar *sha1, struct dl_file_info *fi);
+	gchar *file, guint32 size, gchar *sha1, struct dl_file_info *fi);
 void download_queue(struct download *d, const gchar *fmt, ...);
 void download_freeze_queue(void);
 void download_thaw_queue(void);
@@ -288,17 +288,17 @@ void download_retry(struct download *);
 void download_close(void);
 gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port);
 gint download_remove_all_named(const gchar *name);
-gint download_remove_all_with_sha1(const guchar *sha1);
+gint download_remove_all_with_sha1(const gchar *sha1);
 void download_remove_file(struct download *d, gboolean reset);
 gboolean download_file_exists(struct download *d);
-gboolean download_server_nopush(guchar *guid, guint32 ip, guint16 port);
+gboolean download_server_nopush(gchar *guid, guint32 ip, guint16 port);
 const gchar *build_url_from_download(struct download *d);
 void download_free_removed(void);
 void download_redirect_to_server(struct download *d, guint32 ip, guint16 port);
 
 void download_verify_start(struct download *d);
 void download_verify_progress(struct download *d, guint32 hashed);
-void download_verify_done(struct download *d, guchar *digest, time_t elapsed);
+void download_verify_done(struct download *d, gchar *digest, time_t elapsed);
 void download_verify_error(struct download *d);
 
 void download_move_start(struct download *d);

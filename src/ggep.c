@@ -50,9 +50,9 @@ RCSID("$Id$");
  * Returns the allocated inflated buffer, and its inflated length in `retlen'.
  * Returns NULL on error.
  */
-static guchar *ggep_inflate(guchar *buf, gint len, gint *retlen, gint token)
+static gchar *ggep_inflate(gchar *buf, gint len, gint *retlen, gint token)
 {
-	guchar *result;					/* Inflated buffer */
+	gchar *result;					/* Inflated buffer */
 	gint rsize;						/* Result's buffer size */
 	z_streamp inz;
 	gint ret;
@@ -86,7 +86,7 @@ static guchar *ggep_inflate(guchar *buf, gint len, gint *retlen, gint token)
 	 * Prepare call to inflate().
 	 */
 
-	inz->next_in = buf;
+	inz->next_in = (gpointer) buf;
 	inz->avail_in = len;
 
 	inflated = 0;
@@ -113,7 +113,7 @@ static guchar *ggep_inflate(guchar *buf, gint len, gint *retlen, gint token)
 			result = g_realloc(result, rsize);
 		}
 
-		inz->next_out = result + inflated;
+		inz->next_out = (guchar *) result + inflated;
 		inz->avail_out = rsize - inflated;
 
 		/*
@@ -172,7 +172,7 @@ static guchar *ggep_inflate(guchar *buf, gint len, gint *retlen, gint token)
  * Returns inflated length if OK, -1 on error.
  */
 static gint ggep_inflate_into(
-	guchar *buf, gint len, guchar *out, gint outlen, gint token)
+	gchar *buf, gint len, gchar *out, gint outlen, gint token)
 {
 	z_streamp inz;
 	gint ret;
@@ -206,10 +206,10 @@ static gint ggep_inflate_into(
 	 * Preapre call to a single inflate().
 	 */
 
-	inz->next_in = buf;
+	inz->next_in = (gpointer) buf;
 	inz->avail_in = len;
 
-	inz->next_out = out;
+	inz->next_out = (gpointer) out;
 	inz->avail_out = outlen;
 	
 	ret = inflate(inz, Z_FINISH);
@@ -247,11 +247,11 @@ static gint ggep_inflate_into(
  *
  * Returns the amount of bytes copied into `buf', -1 on error.
  */
-gint ggep_decode_into(extvec_t *exv, guchar *buf, gint len)
+gint ggep_decode_into(extvec_t *exv, gchar *buf, gint len)
 {
-	guchar *pbase;					/* Current payload base */
+	gchar *pbase;					/* Current payload base */
 	gint plen;						/* Curernt payload length */
-	guchar *uncobs = NULL;			/* COBS-decoded buffer */
+	gchar *uncobs = NULL;			/* COBS-decoded buffer */
 	gint result;					/* Decoded length */
 
 	g_assert(exv);
@@ -330,13 +330,13 @@ out:
  * Vectorized version of ggep_ext_write().
  */
 gint ggep_ext_writev(
-	guchar *buf, gint len,
+	gchar *buf, gint len,
 	gchar *id, struct iovec *iov, gint iovcnt,
 	guint32 wflags)
 {
 	gint idlen;
 	gboolean needs_cobs = FALSE;
-	guchar *p;
+	gchar *p;
 	gint i;
 	gint8 hlen[2];
 	gint slen;
@@ -344,7 +344,7 @@ gint ggep_ext_writev(
 	guint8 flags = 0;
 	struct iovec *xiov;
 	gint plen = 0;
-	guchar *payload = NULL;
+	gchar *payload = NULL;
 	gint initial_plen;
 
 	g_assert(buf);
@@ -368,7 +368,7 @@ gint ggep_ext_writev(
 		for (i = iovcnt, xiov = iov; i-- && !needs_cobs; xiov++) {
 			gint j;
 
-			for (j = xiov->iov_len, p = (guchar *) xiov->iov_base; j--; /**/) {
+			for (j = xiov->iov_len, p = xiov->iov_base; j--; /**/) {
 				if (*p++ == '\0') {
 					needs_cobs = TRUE;		/* Will break us from outer loop */
 					break;
@@ -516,8 +516,8 @@ bad:
  * to hold the whole extension.
  */
 gint ggep_ext_write(
-	guchar *buf, gint len,
-	gchar *id, guchar *payload, gint plen,
+	gchar *buf, gint len,
+	gchar *id, gchar *payload, gint plen,
 	guint32 wflags)
 {
 	struct iovec iov;
@@ -555,9 +555,9 @@ static void ggep_ext_mark_last(guchar *start)
  * Returns extraction status: only then GGEP_OK is returned will we have
  * the SHA1 in buf.
  */
-ggept_status_t ggept_h_sha1_extract(extvec_t *exv, guchar *buf, gint len)
+ggept_status_t ggept_h_sha1_extract(extvec_t *exv, gchar *buf, gint len)
 {
-	guchar tmp[512];
+	gchar tmp[512];
 	gint tlen;
 
 	g_assert(exv->ext_type == EXT_GGEP);
@@ -601,8 +601,8 @@ ggept_status_t ggept_h_sha1_extract(extvec_t *exv, guchar *buf, gint len)
  */
 ggept_status_t ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
 {
-	guchar tmp[16];
-	guchar *p = tmp;
+	gchar tmp[16];
+	gchar *p = tmp;
 	gint tlen;
 
 	g_assert(exv->ext_type == EXT_GGEP);

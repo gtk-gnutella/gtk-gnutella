@@ -35,7 +35,7 @@
  */
 
 struct gnutella_msg_init_response *build_pong_msg(
-	guint8 hops, guint8 ttl, guchar *muid,
+	guint8 hops, guint8 ttl, gchar *muid,
 	guint32 ip, guint16 port, guint32 files, guint32 kbytes);
 
 /*

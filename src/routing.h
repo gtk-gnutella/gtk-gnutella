@@ -62,8 +62,8 @@ void routing_close(void);
 void message_set_muid(struct gnutella_header *header, guint8 function);
 gboolean route_message(struct gnutella_node **, struct route_dest *);
 void routing_node_remove(struct gnutella_node *);
-void message_add(const guchar *, guint8, struct gnutella_node *);
-GSList *route_towards_guid(const guchar *guid);
-gboolean route_exists_for_reply(guchar *muid, guint8 function);
+void message_add(const gchar *, guint8, struct gnutella_node *);
+GSList *route_towards_guid(const gchar *guid);
+gboolean route_exists_for_reply(gchar *muid, guint8 function);
 
 #endif /* _routing_h_ */

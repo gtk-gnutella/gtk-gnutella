@@ -34,13 +34,13 @@
  * Public interface.
  */
 
-guchar *base64_encode(const guchar *buf, gint len, gint *retpad);
-void base64_encode_into(const guchar *buf, gint len,
-	guchar *encbuf, gint enclen);
+gchar *base64_encode(const gchar *buf, guint len, guint *retpad);
+void base64_encode_into(const gchar *buf, guint len,
+	gchar *encbuf, guint enclen);
 
-guchar *base64_decode(const guchar *buf, gint len, gint *outlen);
-gint base64_decode_into(const guchar *buf, gint len,
-	guchar *decbuf, gint declen);
+gchar *base64_decode(const gchar *buf, guint len, guint *outlen);
+guint base64_decode_into(const gchar *buf, guint len,
+	gchar *decbuf, guint declen);
 
 #endif	/* _base64_h_ */
 

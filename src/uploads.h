@@ -64,7 +64,7 @@ typedef struct upload {
 	off_t pos;						/* Read position in file we're sending */
 
 	guint32 last_dmesh;				/* Time when last download mesh was sent */
-	guchar *sha1;					/* SHA1 of requested file */
+	gchar *sha1;					/* SHA1 of requested file */
 	off_t total_requested;			/* Total amount of bytes requested */
 	gint http_major;				/* HTTP major version */
 	gint http_minor;				/* HTTP minor version */

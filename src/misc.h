@@ -127,8 +127,8 @@ gchar *compact_size(guint32 size);
 /*
  * SHA1<->base32 string conversion
  */
-gchar *sha1_base32(const guchar *sha1);
-guchar *base32_sha1(const gchar *base32);
+gchar *sha1_base32(const gchar *sha1);
+gchar *base32_sha1(const gchar *base32);
 
 /*
  * Tests
@@ -152,19 +152,19 @@ guint32 random_value(guint32 max);
  * Stuff
  */
 gint str_chomp(gchar *str, gint len);
-gchar *guid_hex_str(const guchar *guid);
-inline guint hex2dec(guchar c);
-void hex_to_guid(const gchar *hexguid, guchar *guid);
-void dump_hex(FILE *, const gchar *, const gchar *, gint);
+gchar *guid_hex_str(const gchar *guid);
+guint hex2dec(guchar c);
+void hex_to_guid(const gchar *hexguid, gchar *guid);
+void dump_hex(FILE *, const gchar *, gconstpointer, gint);
 void strlower(gchar *, const gchar *);
 char *unique_filename(const gchar *path, const gchar *file, const gchar *ext);
-guchar *hex_escape(const guchar *name, gboolean strict);
+gchar *hex_escape(const gchar *name, gboolean strict);
 gint highest_bit_set(guint32 n);
 
 #ifdef HAVE_STRCASESTR
 char *strcasestr(const char *haystack, const char *needle);
 #else
-guchar *strcasestr(const guchar *haystack, const guchar *needle);
+gchar *strcasestr(const gchar *haystack, const gchar *needle);
 #endif
 
 #endif /* _misc_h_ */

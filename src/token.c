@@ -98,7 +98,7 @@ static const gchar *keys_092c[] = {
 struct tokkey {
 	version_t ver;		/* Version number */
 	const gchar **keys;	/* Keys to use */
-	gint count;			/* Amount of keys defined */
+	guint count;		/* Amount of keys defined */
 } token_keys[] = {
 	/* Keep this array sorted by increasing timestamp */
 	{
@@ -174,10 +174,10 @@ static const struct tokkey *find_tokkey(time_t now)
  * and the token key structure used in `tkused'.
  */
 static const gchar *random_key(
-	time_t now, gint *idx, const struct tokkey **tkused)
+	time_t now, guint *idx, const struct tokkey **tkused)
 {
 	static gboolean warned = FALSE;
-	gint random_idx;
+	guint random_idx;
 	const struct tokkey *tk;
 
 	tk = find_tokkey(now);
@@ -209,17 +209,17 @@ static const gchar *random_key(
  * It is not meant to be used for strict authentication management, since
  * the algorithm and the keys are exposed publicly.
  */
-guchar *tok_version(void)
+gchar *tok_version(void)
 {
 	static time_t last_generated = 0;
-	static guchar *toklevel = NULL;
-	guchar token[TOKEN_BASE64_SIZE + 1];
-	guint8 digest[TOKEN_VERSION_SIZE];
-	guchar lvldigest[LEVEL_SIZE];
-	guchar lvlbase64[LEVEL_BASE64_SIZE + 1];
+	static gchar *toklevel = NULL;
+	gchar token[TOKEN_BASE64_SIZE + 1];
+	gchar digest[TOKEN_VERSION_SIZE];
+	gchar lvldigest[LEVEL_SIZE];
+	gchar lvlbase64[LEVEL_BASE64_SIZE + 1];
 	time_t now = time(NULL);
 	const struct tokkey *tk;
-	gint idx;
+	guint idx;
 	const gchar *key;
 	SHA1Context ctx;
 	guint8 seed[3];
@@ -258,10 +258,10 @@ guchar *tok_version(void)
 	memcpy(digest + 4, &seed, 3);
 
 	SHA1Reset(&ctx);
-	SHA1Input(&ctx, key, strlen(key));
-	SHA1Input(&ctx, digest, 7);
-	SHA1Input(&ctx, version_string, strlen(version_string));
-	SHA1Result(&ctx, digest + 7);
+	SHA1Input(&ctx, (guint8 *) key, strlen(key));
+	SHA1Input(&ctx, (guint8 *) digest, 7);
+	SHA1Input(&ctx, (guint8 *) version_string, strlen(version_string));
+	SHA1Result(&ctx, (guint8 *) digest + 7);
 
 	/*
 	 * Compute level.
@@ -311,29 +311,29 @@ guchar *tok_version(void)
  * Returns error code, or TOK_OK if token is valid.
  */
 tok_error_t tok_version_valid(
-	const gchar *version, const guchar *tokenb64, gint len, guint32 ip)
+	const gchar *version, const gchar *tokenb64, gint len, guint32 ip)
 {
 	time_t now = time(NULL);
 	time_t stamp;
 	guint32 stamp32;
 	const struct tokkey *tk;
 	const struct tokkey *rtk;
-	gint idx;
+	guint idx;
 	const gchar *key;
 	SHA1Context ctx;
-	guchar lvldigest[1024];
-	guint8 token[TOKEN_VERSION_SIZE]; 
-	guint8 digest[SHA1HashSize];
+	gchar lvldigest[1024];
+	gchar token[TOKEN_VERSION_SIZE]; 
+	gchar digest[SHA1HashSize];
 	version_t rver;
-	guchar *end;
+	gchar *end;
 	gint toklen;
 	gint lvllen;
 	gint lvlsize;
 	gint klen;
 	gint i;
-	guchar *c = (guchar *) &stamp32;
+	gchar *c = (gchar *) &stamp32;
 
-	end = (guchar *) strchr(tokenb64, ';');		/* After 25/02/2003 */
+	end = strchr(tokenb64, ';');		/* After 25/02/2003 */
 	toklen = end ? (end - tokenb64) : len;
 
 	/*
@@ -363,17 +363,17 @@ tok_error_t tok_version_valid(
 	if (tk == NULL)
 		return TOK_BAD_KEYS;
 
-	idx = token[6] & 0x1f;					/* 5 bits for the index */
+	idx = (guchar) token[6] & 0x1f;					/* 5 bits for the index */
 	if (idx >= tk->count)
 		return TOK_BAD_INDEX;
 
 	key = tk->keys[idx];
 
 	SHA1Reset(&ctx);
-	SHA1Input(&ctx, key, strlen(key));
-	SHA1Input(&ctx, token, 7);
-	SHA1Input(&ctx, version, strlen(version));
-	SHA1Result(&ctx, digest);
+	SHA1Input(&ctx, (guint8 *) key, strlen(key));
+	SHA1Input(&ctx, (guint8 *) token, 7);
+	SHA1Input(&ctx, (guint8 *) version, strlen(version));
+	SHA1Result(&ctx, (guint8 *) digest);
 
 	if (0 != memcmp(token + 7, digest, SHA1HashSize))
 		return TOK_INVALID;

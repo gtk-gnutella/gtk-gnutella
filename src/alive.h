@@ -39,7 +39,7 @@ struct gnutella_node;
 gpointer alive_make(struct gnutella_node *n, gint max);
 void alive_free(gpointer obj);
 gboolean alive_send_ping(gpointer obj);
-gboolean alive_ack_ping(gpointer obj, guchar *muid);
+gboolean alive_ack_ping(gpointer obj, gchar *muid);
 void alive_get_roundtrip_ms(gpointer obj, guint32 *avg, guint32 *last);
 
 #endif /* _alive_h_ */

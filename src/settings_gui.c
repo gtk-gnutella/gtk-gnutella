@@ -148,6 +148,7 @@ static gboolean update_window_geometry(property_t prop);
 
 #ifdef USE_GTK2
 static gboolean update_treeview_col_widths(property_t prop);
+static gboolean config_toolbar_style_changed(property_t prop);
 #endif
 static gboolean bw_gnet_lin_enabled_changed(property_t prop);
 static gboolean bw_gnet_lout_enabled_changed(property_t prop);
@@ -199,7 +200,6 @@ static gboolean library_rebuilding_changed(property_t prop);
 static gboolean sha1_verifying_changed(property_t prop);
 static gboolean file_moving_changed(property_t prop);
 static gboolean dl_running_count_changed(property_t prop);
-static gboolean config_toolbar_style_changed(property_t prop);
 static gboolean gnet_connections_changed(property_t prop);
 static gboolean uploads_count_changed(property_t prop);
 static gboolean downloads_count_changed(property_t prop);
@@ -2041,7 +2041,6 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     },
 #ifdef USE_GTK2
-/* FIXME: Gtk1 version should have these too */
     {
         get_main_window,
         PROP_CONFIG_TOOLBAR_STYLE,
@@ -2266,7 +2265,7 @@ static gboolean update_togglebutton(property_t prop)
 static gboolean update_multichoice(property_t prop)
 {
     GtkWidget *w;
-    gboolean val = 0;
+    guint32 val = 0;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
     prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
@@ -3341,9 +3340,9 @@ static gboolean use_netmasks_changed(property_t prop)
 
 static gboolean guid_changed(property_t prop)
 {
-    guint8 guid_buf[16];
+    gchar guid_buf[16];
    
-    gnet_prop_get_storage(prop, guid_buf, sizeof(guid_buf));
+    gnet_prop_get_storage(prop, (guint8 *) guid_buf, sizeof(guid_buf));
 
 #ifdef USE_GTK2
     gtk_label_set_text(
@@ -3509,6 +3508,7 @@ static gboolean dl_running_count_changed(property_t prop)
 	return FALSE;
 }
 
+#ifdef USE_GTK2
 static gboolean config_toolbar_style_changed(property_t prop)
 {
 	guint32 val;
@@ -3545,6 +3545,7 @@ static gboolean config_toolbar_style_changed(property_t prop)
 	update_multichoice(prop);
 	return FALSE;
 }
+#endif
 
 static gboolean gnet_connections_changed(property_t prop)
 {

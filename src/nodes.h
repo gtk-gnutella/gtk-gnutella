@@ -142,7 +142,7 @@ typedef struct gnutella_node {
 	guint ping_throttle;		/* Period for accepting new pings (secs) */
 	time_t ping_accept;			/* Time after which we accept new pings */
 	time_t next_ping;			/* When to send a ping, for "OLD" clients */
-	guchar ping_guid[16];		/* The GUID of the last accepted ping */
+	gchar ping_guid[16];		/* The GUID of the last accepted ping */
 	guchar pong_needed[MAX_CACHE_HOPS+1];	/* Pongs needed, by hop value */
 	guchar pong_missing;		/* Sum(pong_needed[i]), i = 0..MAX_CACHE_HOPS */
 
@@ -152,7 +152,7 @@ typedef struct gnutella_node {
 	guint32 gnet_kbytes_count;	/* Used to answer "Crawling" pings */
 	guint32 gnet_pong_ip;		/* When != 0, last IP we got in pong */
 	guint32 gnet_qhit_ip;		/* When != 0, last IP we got in query hit */
-	guchar *gnet_guid;			/* GUID of node (atom) seen on the network */
+	gchar *gnet_guid;			/* GUID of node (atom) seen on the network */
 
 	guint32 n_ping_throttle;	/* Number of pings we throttled */
 	guint32 n_ping_accepted;	/* Number of pings we accepted */
@@ -312,7 +312,7 @@ typedef struct gnutella_node {
 #define node_query_hops_ok(n, h)	((h) < (n)->hops_flow)
 
 /* Don't include "routing.h" just for that routine */
-extern gboolean route_exists_for_reply(guchar *muid, guint8 function);
+extern gboolean route_exists_for_reply(gchar *muid, guint8 function);
 
 /*
  * Can we send message of type `t', bearing hop count `h' and MUID `m'?
@@ -377,13 +377,13 @@ void node_qrt_discard(struct gnutella_node *n);
 void node_qrt_install(struct gnutella_node *n, gpointer query_table);
 
 void send_node_error(
-	struct gnutella_socket *s, int code, const guchar *msg, ...);
+	struct gnutella_socket *s, int code, const gchar *msg, ...);
 
-inline void node_add_sent(gnutella_node_t *n, gint x);
-inline void node_add_txdrop(gnutella_node_t *n, gint x);
-inline void node_add_rxdrop(gnutella_node_t *n, gint x);
+void node_add_sent(gnutella_node_t *n, gint x);
+void node_add_txdrop(gnutella_node_t *n, gint x);
+void node_add_rxdrop(gnutella_node_t *n, gint x);
 
-inline void node_set_vendor(gnutella_node_t *n, const gchar *vendor);
+void node_set_vendor(gnutella_node_t *n, const gchar *vendor);
 
 void node_set_hops_flow(gnutella_node_t *n, guint8 hops);
 void node_set_online_mode(gboolean on);

@@ -58,7 +58,7 @@ typedef struct gnutella_shell {
     gboolean shutdown;  /* In shutdown mode? */
 } gnutella_shell_t;
 
-static guchar auth_cookie[SHA1_RAW_SIZE];
+static gchar auth_cookie[SHA1_RAW_SIZE];
 
 static void shell_destroy(gnutella_shell_t *sh);
 void shell_shutdown(gnutella_shell_t *sh);
@@ -724,9 +724,10 @@ void shell_add(struct gnutella_socket *s)
 static void shell_dump_cookie()
 {
 	FILE *out;
-	file_path_t fp = { settings_config_dir(), "auth_cookie" };
+	file_path_t fp;
 	mode_t mask;
 
+	file_path_set(&fp, settings_config_dir(), "auth_cookie");
 	mask = umask(S_IRWXG | S_IRWXO); /* umask 077 */
 	out = file_config_open_write("auth_cookie", &fp);
 	umask(mask);

@@ -91,7 +91,7 @@ extern gint sha1_eq(gconstpointer a, gconstpointer b);
 static GHashTable *fi_by_sha1 = NULL;
 static GHashTable *fi_by_namesize = NULL;
 static GHashTable *fi_by_size = NULL;
-static GHashTable *fi_by_outname = NULL;
+GHashTable *fi_by_outname = NULL;
 
 static const gchar *file_info_file = "fileinfo";
 static gboolean fileinfo_dirty = FALSE;
@@ -207,12 +207,18 @@ static struct {
 #define WRITE_INT32(a) do {			\
 	gint32 val = htonl(a);			\
 	TBUF_PUTINT32(val);				\
-	file_info_checksum(&checksum, (guchar *) &val, sizeof(val)); \
+	file_info_checksum(&checksum, (gchar *) &val, sizeof(val)); \
+} while(0)
+
+#define WRITE_UINT32(a) do {			\
+	guint32 val = htonl(a);			\
+	TBUF_PUTINT32(val);				\
+	file_info_checksum(&checksum, (gchar *) &val, sizeof(val)); \
 } while(0)
 
 #define WRITE_STR(a, b) do {		\
 	TBUF_WRITE(a, b);				\
-	file_info_checksum(&checksum, (guchar *) a, b); \
+	file_info_checksum(&checksum, (gchar *) a, b); \
 } while(0)
 
 /*
@@ -223,12 +229,12 @@ static struct {
 	gint32 val;						\
 	TBUF_GETINT32(&val);			\
 	*a = ntohl(val);				\
-	file_info_checksum(&checksum, (guchar *) &val, sizeof(val)); \
+	file_info_checksum(&checksum, (gchar *) &val, sizeof(val)); \
 } while(0)
 
 #define READ_STR(a, b) do {			\
 	TBUF_READ(a, b);				\
-	file_info_checksum(&checksum, (guchar *) a, b); \
+	file_info_checksum(&checksum, (gchar *) a, b); \
 } while(0)
 
 /*
@@ -270,7 +276,7 @@ static idtable_t *fi_handle_map = NULL;
 #define file_info_drop_handle(n) \
     idtable_free_id(fi_handle_map, n);
 
-static event_t *fi_events[EV_FI_EVENTS] = {
+event_t *fi_events[EV_FI_EVENTS] = {
     NULL, NULL, NULL, NULL, NULL, NULL };
 
 /*
@@ -347,10 +353,10 @@ void file_info_init(void)
     fi_events[EV_FI_SRC_REMOVED]    = event_new("fi_src_removed");
 }
 
-static inline void file_info_checksum(guint32 *checksum, guchar *d, int len)
+static inline void file_info_checksum(guint32 *checksum, gchar *d, int len)
 {
 	while (len--)
-		*checksum = (*checksum << 1) ^ (*checksum >> 31) ^ *d++;
+		*checksum = (*checksum << 1) ^ (*checksum >> 31) ^ (guchar) *d++;
 }
 
 /*
@@ -428,7 +434,7 @@ static void file_info_fd_store_binary(
 
 	WRITE_INT32(length);				/* Total trailer size */
 	WRITE_INT32(checksum);
-	WRITE_INT32(FILE_INFO_MAGIC);
+	WRITE_UINT32(FILE_INFO_MAGIC);
 
 	tbuf_write(fd, fi->file_name);		/* Flush buffer at current position */
 
@@ -820,7 +826,7 @@ static gboolean file_info_has_filename(struct dl_file_info *fi, gchar *file)
  * Returns the fileinfo structure if found, NULL otherwise.
  */
 static struct dl_file_info *file_info_lookup(
-	guchar *name, guint32 size, const guchar *sha1)
+	gchar *name, guint32 size, const gchar *sha1)
 {
 	struct dl_file_info *fi;
 	struct namesize nsk;
@@ -1235,7 +1241,7 @@ void file_info_store_if_dirty(void)
  */
 static void file_info_free_sha1_kv(gpointer key, gpointer val, gpointer x)
 {
-	const guchar *sha1 = (const guchar *) key;
+	const gchar *sha1 = (const gchar *) key;
 	const struct dl_file_info *fi = (const struct dl_file_info *) val;
 
 	g_assert(sha1 == fi->sha1);		/* SHA1 shared with fi's, don't free */
@@ -1597,7 +1603,7 @@ static void file_info_reparent_all(
  *
  * Returns TRUE if OK, FALSE if a duplicate record with the same SHA1 exists.
  */
-gboolean file_info_got_sha1(struct dl_file_info *fi, const guchar *sha1)
+gboolean file_info_got_sha1(struct dl_file_info *fi, const gchar *sha1)
 {
 	struct dl_file_info *xfi;
 
@@ -1663,9 +1669,9 @@ gboolean file_info_got_sha1(struct dl_file_info *fi, const guchar *sha1)
  * Extract sha1 from SHA1/CHA1 line in the ASCII "fileinfo" summary file
  * and return NULL if none or invalid, the SHA1 atom otherwise.
  */
-static guchar *extract_sha1(const gchar *line)
+static gchar *extract_sha1(const gchar *line)
 {
-	guchar sha1_digest[SHA1_RAW_SIZE];
+	gchar sha1_digest[SHA1_RAW_SIZE];
 
 	if (
 		line[5] &&
@@ -1694,7 +1700,7 @@ void file_info_retrieve(void)
 	gboolean empty = TRUE;
 	GSList *aliases = NULL;
 	gboolean last_was_truncated = FALSE;
-	const file_path_t fp = { settings_config_dir(), file_info_file };
+	file_path_t fp;
 
 	/*
 	 * We have a complex interaction here: each time a new entry within the
@@ -1710,6 +1716,8 @@ void file_info_retrieve(void)
 
 	can_swarm = TRUE;			/* Allows file_info_try_to_swarm_with() */
 
+	fp.dir = settings_config_dir();
+	fp.name = file_info_file;
 	f = file_config_open_read("fileinfo file", &fp, 1);
 	if (!f)
 		return;
@@ -1943,14 +1951,14 @@ static gchar *escape_filename(gchar *file)
  * Allocate unique output name for file `name'.
  * Returns filename atom.
  */
-static guchar *file_info_new_outname(guchar *name)
+static gchar *file_info_new_outname(gchar *name)
 {
 	gint i;
-	guchar xuid[16];
+	gchar xuid[16];
 	gint flen;
-	guchar *escaped = escape_filename(name);
-	guchar *result;
-	guchar *empty = "noname";
+	gchar *escaped = escape_filename(name);
+	gchar *result;
+	gchar *empty = "noname";
 
 	if (*escaped == '\0')			/* Don't allow empty names */
 		escaped = empty;
@@ -2008,7 +2016,7 @@ ok:
  * The `sha1' is the known SHA1 for the file (NULL if unknown).
  */
 static struct dl_file_info *file_info_create(
-	gchar *file, const gchar *path, guint32 size, const guchar *sha1)
+	gchar *file, const gchar *path, guint32 size, const gchar *sha1)
 {
 	struct dl_file_info *fi;
 	struct dl_file_chunk *fc;
@@ -2119,7 +2127,7 @@ struct dl_file_info *file_info_get(
 	gchar *file, const gchar *path, guint32 size, gchar *sha1)
 {
 	struct dl_file_info *fi;
-	guchar *outname;
+	gchar *outname;
 
 	/*
 	 * See if we know anything about the file already.
@@ -2949,7 +2957,7 @@ found:
  *
  * Return a dl_file_info if there's an active one with the same sha1.
  */
-static struct dl_file_info *file_info_active(const guchar *sha1)
+static struct dl_file_info *file_info_active(const gchar *sha1)
 {
 	return g_hash_table_lookup(fi_by_sha1, sha1);
 }
@@ -2967,9 +2975,9 @@ static struct dl_file_info *file_info_active(const guchar *sha1)
  * sha1: the SHA1 of the file
  */
 void file_info_try_to_swarm_with(
-	gchar *file_name, guint32 idx, guint32 ip, guint32 port, guchar *sha1)
+	gchar *file_name, guint32 idx, guint32 ip, guint32 port, gchar *sha1)
 {
-	static guchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+	static gchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 	struct dl_file_info *fi;
 
 	if (!can_swarm)				/* Downloads not initialized yet */
@@ -2979,8 +2987,7 @@ void file_info_try_to_swarm_with(
 	if (!fi)
 		return;
 
-	download_auto_new(
-		file_name, fi->size, idx, ip, port, blank_guid, sha1,
+	download_auto_new(file_name, fi->size, idx, ip, port, blank_guid, sha1,
 		time(NULL), FALSE, fi);
 }
 
@@ -3183,7 +3190,7 @@ gchar **fi_get_aliases(gnet_fi_t fih)
     return a;
 }
 
-inline void file_info_add_source(
+void file_info_add_source(
     struct dl_file_info *fi, struct download *dl)
 {
     g_assert(dl->file_info == NULL);

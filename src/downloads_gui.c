@@ -576,7 +576,7 @@ void download_gui_add(struct download *d)
 	GdkColor *color;
 	GtkCList* clist_downloads;
 	static gchar vendor[256];
-	guchar *file_name;
+	gchar *file_name;
 
 	g_return_if_fail(d);
 

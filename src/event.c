@@ -61,7 +61,7 @@ inline struct event *event_new(const gchar *name)
 }
 
 /*
- * event_destroy:
+ * real_event_destroy:
  *
  * Destroy an event and free all associated memory. The pointer to the
  * event will be NULL after this call.
@@ -80,7 +80,7 @@ void event_add_subscriber(
 
     g_assert(evt != NULL);
     g_assert(cb != NULL);
-    g_assert(g_slist_find(evt->subscribers, cb) == NULL);
+    g_assert(g_slist_find(evt->subscribers, (gpointer) cb) == NULL);
 
     s = subscriber_new(cb, t, interval);
 
@@ -99,11 +99,11 @@ void event_remove_subscriber(struct event *evt, GCallback cb)
     g_assert(evt != NULL);
     g_assert(cb != NULL);
     
-    sl = g_slist_find_custom(evt->subscribers, cb, 
+    sl = g_slist_find_custom(evt->subscribers, (gpointer) cb, 
         (GCompareFunc) cmp_subscriber_callback);
     g_assert(sl != NULL);
     evt->subscribers = g_slist_remove(evt->subscribers, sl->data);
-    subscriber_destroy((struct subscriber *)sl->data);
+    subscriber_destroy(sl->data);
 }
 
 
@@ -158,7 +158,7 @@ void event_table_remove_event(struct event_table *t, struct event *evt)
 
 static gboolean remove_helper(gpointer key, gpointer value, gpointer data)
 {
-    event_destroy((struct event *)value);
+    event_destroy(value);
 
     return TRUE;
 }

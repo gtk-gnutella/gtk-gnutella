@@ -65,13 +65,13 @@ static const char *hex_alphabet = "0123456789ABCDEF";
  *
  * Returns argument if no escaping is necessary, or a new string otherwise.
  */
-static guchar *url_escape_mask(guchar *url, guint8 mask)
+static gchar *url_escape_mask(gchar *url, guint8 mask)
 {
-	guchar *p;
-	guchar *q;
+	gchar *p;
+	gchar *q;
 	int need_escape = 0;
-	gint c;
-	guchar *new;
+	guchar c;
+	gchar *new;
 
 	for (p = url, c = *p++; c; c = *p++)
 		if (!TRANSPARENT_CHAR(c, mask))
@@ -107,14 +107,14 @@ static guchar *url_escape_mask(guchar *url, guint8 mask)
  * NUL), or -1 if the buffer was too small.
  */
 static gint url_escape_mask_into(
-	const guchar *url, guchar *target, gint len, guint8 mask)
+	const gchar *url, gchar *target, gint len, guint8 mask)
 {
-	const guchar *p;
-	guchar *q;
-	gint c;
-	guchar *end = target + len;
+	const gchar *p = url;
+	gchar *q;
+	guchar c;
+	gchar *end = target + len;
 
-	for (p = url, q = target, c = *p++; c && q < end; c = *p++) {
+	for (q = target, c = *p++; c && q < end; c = *p++) {
 		if (TRANSPARENT_CHAR(c, mask))
 			*q++ = c;
 		else if (end - q >= 3) {
@@ -141,7 +141,7 @@ static gint url_escape_mask_into(
  * Escape undesirable characters using %xx, where xx is an hex code.
  * Returns argument if no escaping is necessary, or a new string otherwise.
  */
-guchar *url_escape(guchar *url)
+gchar *url_escape(gchar *url)
 {
 	return url_escape_mask(url, PATH_MASK);
 }
@@ -152,7 +152,7 @@ guchar *url_escape(guchar *url)
  * Same as url_escape(), but '+' are also escaped for the query string.
  * Returns argument if no escaping is necessary, or a new string otherwise.
  */
-guchar *url_escape_query(guchar *url)
+gchar *url_escape_query(gchar *url)
 {
 	return url_escape_mask(url, QUERY_MASK);
 }
@@ -166,7 +166,7 @@ guchar *url_escape_query(guchar *url)
  * Returns amount of characters written into buffer (not counting trailing
  * NUL), or -1 if the buffer was too small.
  */
-gint url_escape_into(const guchar *url, guchar *target, gint len)
+gint url_escape_into(const gchar *url, gchar *target, gint len)
 {
 	return url_escape_mask_into(url, target, len, PATH_MASK);
 }
@@ -178,13 +178,13 @@ gint url_escape_into(const guchar *url, guchar *target, gint len)
  *
  * Returns argument if no escaping is necessary, or a new string otherwise.
  */
-guchar *url_escape_cntrl(guchar *url)
+gchar *url_escape_cntrl(gchar *url)
 {
-	guchar *p;
-	guchar *q;
+	gchar *p;
+	gchar *q;
 	int need_escape = 0;
-	gint c;
-	guchar *new;
+	guchar c;
+	gchar *new;
 
 	for (p = url, c = *p++; c; c = *p++)
 		if (iscntrl(c) || c == ESCAPE_CHAR)
@@ -217,13 +217,13 @@ guchar *url_escape_cntrl(guchar *url)
  * Returns the argument if un-escaping is NOT necessary, a new string
  * otherwise unless in-place decoding was requested.
  */
-guchar *url_unescape(guchar *url, gboolean inplace)
+gchar *url_unescape(gchar *url, gboolean inplace)
 {
-	guchar *p;
-	guchar *q;
+	gchar *p;
+	gchar *q;
 	gint need_unescape = 0;
-	gint c;
-	guchar *new;
+	guchar c;
+	gchar *new;
 
 	for (p = url, c = *p++; c; c = *p++)
 		if (c == ESCAPE_CHAR)

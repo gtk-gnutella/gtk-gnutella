@@ -249,7 +249,7 @@ static void search_stats_tally(const word_vec_t * vec)
 	if (val) {
 		val->period_cnt++;
 	} else {
-		key = g_strdup(vec->word);
+		key = g_strdup((gchar *) vec->word);
 		val = (struct term_counts *) g_malloc0(sizeof(struct term_counts));
 		val->period_cnt = vec->amount;
 		g_hash_table_insert(stat_hash, key, (gpointer) val);

@@ -76,7 +76,7 @@ static void send_ping(struct gnutella_node *n, guint8 ttl)
 	if (n) {
 		if (NODE_IS_WRITABLE(n)) {
 			n->n_ping_sent++;
-			gmsg_sendto_one(n, (guchar *) &m, sizeof(struct gnutella_msg_init));
+			gmsg_sendto_one(n, (gchar *) &m, sizeof(struct gnutella_msg_init));
 		}
 	} else {
 		GSList *l;
@@ -93,7 +93,7 @@ static void send_ping(struct gnutella_node *n, guint8 ttl)
 			n->n_ping_sent++;
 		}
 
-		gmsg_sendto_all(sl_nodes, (guchar *) &m,
+		gmsg_sendto_all(sl_nodes, (gchar *) &m,
 			sizeof(struct gnutella_msg_init));
 	}
 }
@@ -109,7 +109,7 @@ static void send_ping(struct gnutella_node *n, guint8 ttl)
  *
  * NB: this routine is only made visible for "alive.c".
  */
-void send_alive_ping(struct gnutella_node *n, guchar *muid)
+void send_alive_ping(struct gnutella_node *n, gchar *muid)
 {
 	struct gnutella_msg_init m;
 
@@ -126,7 +126,7 @@ void send_alive_ping(struct gnutella_node *n, guchar *muid)
 	WRITE_GUINT32_LE(0, m.header.size);
 
 	n->n_ping_sent++;
-	gmsg_ctrl_sendto_one(n, (guchar *) &m, sizeof(struct gnutella_msg_init));
+	gmsg_ctrl_sendto_one(n, (gchar *) &m, sizeof(struct gnutella_msg_init));
 }
 
 /*
@@ -135,7 +135,7 @@ void send_alive_ping(struct gnutella_node *n, guchar *muid)
  * Build pong message, returns pointer to static data.
  */
 struct gnutella_msg_init_response *build_pong_msg(
-	guint8 hops, guint8 ttl, guchar *muid,
+	guint8 hops, guint8 ttl, gchar *muid,
 	guint32 ip, guint16 port, guint32 files, guint32 kbytes)
 {
 	static struct gnutella_msg_init_response pong;
@@ -161,7 +161,7 @@ struct gnutella_msg_init_response *build_pong_msg(
  * If `control' is true, send it as a higher priority message.
  */
 static void send_pong(struct gnutella_node *n, gboolean control,
-	guint8 hops, guint8 ttl, guchar *muid,
+	guint8 hops, guint8 ttl, gchar *muid,
 	guint32 ip, guint16 port, guint32 files, guint32 kbytes)
 {
 	struct gnutella_msg_init_response *r;
@@ -175,9 +175,9 @@ static void send_pong(struct gnutella_node *n, gboolean control,
 	n->n_pong_sent++;
 
 	if (control)
-		gmsg_ctrl_sendto_one(n, (guchar *) r, sizeof(*r));
+		gmsg_ctrl_sendto_one(n, (gchar *) r, sizeof(*r));
 	else
-		gmsg_sendto_one(n, (guchar *) r, sizeof(*r));
+		gmsg_sendto_one(n, (gchar *) r, sizeof(*r));
 }
 
 /*
@@ -676,7 +676,7 @@ void pcache_possibly_expired(time_t now)
  * those as being "his" pongs.
  */
 static void setup_pong_demultiplexing(
-	struct gnutella_node *n, guchar *muid, guint8 ttl)
+	struct gnutella_node *n, gchar *muid, guint8 ttl)
 {
 	gint remains;
 	gint h;
