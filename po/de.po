@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.94u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2004-07-01 23:29+0200\n"
-"PO-Revision-Date: 2004-07-01 23:33+0100\n"
+"POT-Creation-Date: 2004-07-04 10:41+0200\n"
+"PO-Revision-Date: 2004-07-04 10:48+0100\n"
 "Last-Translator: Thomas Schuerger <thomas@schuerger.com>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -98,14 +98,14 @@ msgstr "%u Downloads entfernt"
 
 #: src/downloads_cb2.c:287 src/downloads_cb2.c:341 src/downloads_cb2.c:540
 #: src/downloads_cb2.c:568 src/downloads_cb2.c:596
-#, fuzzy, c-format
+#, c-format
 msgid "Removed %d downloads"
-msgstr "%v/%u Downloads"
+msgstr "%d Downloads entfernt"
 
 #: src/downloads_cb2.c:315
-#, fuzzy, c-format
+#, c-format
 msgid "Forgot %d downloads"
-msgstr "%v/%u Downloads"
+msgstr "%d Downloads vergessen"
 
 #: src/downloads_cb2.c:785
 #, c-format
@@ -119,7 +119,7 @@ msgstr ""
 msgid "Filename"
 msgstr "Dateiname"
 
-#: src/downloads_gui2.c:414 src/downloads_gui2.c:466 src/fileinfo_gui2.c:345
+#: src/downloads_gui2.c:414 src/downloads_gui2.c:466 src/fileinfo_gui2.c:344
 #: src/gnet_stats_gui2.c:457 src/interface-glade1.c:2547
 #: src/interface-glade1.c:2740 src/interface-glade1.c:2900
 #: src/interface-glade1.c:3360 src/interface-glade1.c:3630
@@ -152,7 +152,7 @@ msgstr "Server"
 msgid "Progress"
 msgstr "Fortschritt"
 
-#: src/downloads_gui2.c:419 src/downloads_gui2.c:469 src/fileinfo_gui2.c:348
+#: src/downloads_gui2.c:419 src/downloads_gui2.c:469 src/fileinfo_gui2.c:347
 #: src/interface-glade1.c:2571 src/interface-glade1.c:2924
 #: src/interface-glade1.c:3376 src/interface-glade1.c:3654
 #: src/uploads_gui2.c:64
@@ -344,43 +344,43 @@ msgstr "Protokoll wird nicht unterstützt"
 msgid "%s (%u bytes)"
 msgstr ""
 
-#: src/fileinfo_gui2.c:221
+#: src/fileinfo_gui2.c:220
 #, c-format
 msgid "Downloading (%.1f k/s)"
 msgstr "Lade herunter (%.1f k/s)"
 
-#: src/fileinfo_gui2.c:224
+#: src/fileinfo_gui2.c:223
 msgid "Finished"
 msgstr "Fertig"
 
-#: src/fileinfo_gui2.c:226
+#: src/fileinfo_gui2.c:225
 msgid "No sources"
 msgstr "Keine Quellen"
 
-#: src/fileinfo_gui2.c:229
+#: src/fileinfo_gui2.c:228
 #, c-format
 msgid "Queued (%d active, %d passive)"
 msgstr ""
 
-#: src/fileinfo_gui2.c:233
+#: src/fileinfo_gui2.c:232
 msgid "Waiting"
 msgstr "Warte"
 
-#: src/fileinfo_gui2.c:344 src/interface-glade1.c:3621 src/search_gui.c:2161
+#: src/fileinfo_gui2.c:343 src/interface-glade1.c:3621 src/search_gui.c:2161
 #: src/search_gui.c:2167 src/search_gui2.c:1288
 msgid "File"
 msgstr "Datei"
 
-#: src/fileinfo_gui2.c:346 src/interface-glade1.c:3638
+#: src/fileinfo_gui2.c:345 src/interface-glade1.c:3638
 msgid "Done"
 msgstr "Fertig"
 
-#: src/fileinfo_gui2.c:347 src/interface-glade1.c:3521
+#: src/fileinfo_gui2.c:346 src/interface-glade1.c:3521
 #: src/interface-glade1.c:3646 src/interface-glade2.c:10116
 msgid "Sources"
 msgstr "Quellen"
 
-#: src/fileinfo_gui2.c:403
+#: src/fileinfo_gui2.c:402
 msgid "Aliases"
 msgstr ""
 
@@ -3253,6 +3253,11 @@ msgid ""
 "The blue line indicates which parts of the file have been seen on the "
 "network in this session."
 msgstr ""
+"Zeigt Informationen zum Fortschritt des Downloads. Grüne Stücke wurden "
+"heruntergeladen, wobei die hellgrünen Stücke seit Programmstart angefasst "
+"wurden. Gelbe Stücke sind gerade aktiv. Rote Stücke wurden noch nicht "
+"heruntergeladen. Die blaue Linie gibt an, welche Dateiteile seit "
+"Programmstart im Netz gesehen wurden."
 
 #: src/interface-glade1.c:3793 src/interface-glade2.c:10271
 msgid "Alternate filenames"
@@ -3569,12 +3574,12 @@ msgstr "Socket-Empfangspuffergröße"
 
 #: src/interface-glade1.c:5244
 msgid "Gnutella RX buffer"
-msgstr ""
+msgstr "Gnutella Empfangspuffer"
 
 #: src/interface-glade1.c:5255 src/interface-glade1.c:5266
 #: src/interface-glade2.c:3578 src/interface-glade2.c:3586
 msgid "Kbytes"
-msgstr ""
+msgstr "KBytes"
 
 #: src/interface-glade1.c:5277
 msgid "Download RX buffer"
@@ -3614,7 +3619,7 @@ msgstr "Eingehende Gesamtbandbreite:"
 
 #: src/interface-glade1.c:5427 src/interface-glade1.c:5448
 msgid " K/s"
-msgstr ""
+msgstr " KB/s"
 
 #: src/interface-glade1.c:5437
 msgid "Total output bandwidth limit: "
@@ -3660,7 +3665,7 @@ msgstr "Begrenze ausgehenden Verkehr auf"
 #: src/interface-glade2.c:5559 src/interface-glade2.c:5576
 #: src/interface-glade2.c:5627 src/interface-glade2.c:5636
 msgid "K/s"
-msgstr ""
+msgstr "KB/s"
 
 #: src/interface-glade1.c:5642 src/interface-glade2.c:5598
 msgid "Ultrapeer mode"
@@ -3874,11 +3879,11 @@ msgstr ""
 
 #: src/interface-glade1.c:6753
 msgid "gnutellaNet TTL settings"
-msgstr ""
+msgstr "Gnet-TTL-Einstellungen"
 
 #: src/interface-glade1.c:6772
 msgid "Max TTL"
-msgstr ""
+msgstr "Max. TTL"
 
 #: src/interface-glade1.c:6783
 msgid "My TTL"
@@ -3970,7 +3975,7 @@ msgstr "Anfragen vor Verarbeitung bereinigen"
 
 #: src/interface-glade1.c:7225 src/interface-glade2.c:5031
 msgid "gnutellaNet message size limits"
-msgstr ""
+msgstr "Gnet-Paketgrößenbeschränkungen"
 
 #: src/interface-glade1.c:7244
 msgid ""
@@ -4055,7 +4060,7 @@ msgstr "Quellenqualität"
 
 #: src/interface-glade1.c:7611
 msgid "Optimistic first chunk"
-msgstr ""
+msgstr "Optimistisches erstes Stück"
 
 #: src/interface-glade1.c:7621
 msgid "Require urn"
@@ -4167,7 +4172,7 @@ msgstr ""
 
 #: src/interface-glade1.c:8059
 msgid "Watch hits for alternate download sources"
-msgstr ""
+msgstr "Suchtreffer nach alternativen Quellen durchsuchen"
 
 #: src/interface-glade1.c:8069
 msgid "Feed mesh from hits"
@@ -5543,16 +5548,16 @@ msgstr "Lokale Netzwerke"
 
 #: src/interface-glade2.c:3406
 msgid "Max. file descriptors reserved for banning"
-msgstr ""
+msgstr "Max. reservierte Dateideskriptoren zum Verbannen"
 
 #: src/interface-glade2.c:3414
-#, c-format
+#, fuzzy, c-format
 msgid "Max. % of file descriptors used for banning"
-msgstr ""
+msgstr "Max. % der Dateideskriptoren zum Verbannen"
 
 #: src/interface-glade2.c:3422
 msgid "Hard limit of file descriptors used"
-msgstr ""
+msgstr "Hartes Limit für zu benutzende Dateideskriptoren"
 
 #: src/interface-glade2.c:3611
 msgid "Download RX buffer: "
@@ -5564,7 +5569,7 @@ msgstr ""
 
 #: src/interface-glade2.c:3627
 msgid "Socket receive buffer size"
-msgstr ""
+msgstr "Socket-Empfangspuffergröße"
 
 #: src/interface-glade2.c:3948
 msgid "window2"
@@ -5584,7 +5589,7 @@ msgstr "Suchergebnisse begrenzen auf "
 
 #: src/interface-glade2.c:4388
 msgid "Default search _reissue timeout"
-msgstr ""
+msgstr "Standard-Wiederholungsrate für Suchen"
 
 #: src/interface-glade2.c:4396
 msgid "seconds (0 - disable)"
@@ -5628,7 +5633,7 @@ msgstr ""
 
 #: src/interface-glade2.c:4725
 msgid "Number of tolerable _duplicate messages per node"
-msgstr ""
+msgstr "Anzahl tolerierbarer Paketduplikate pro Knoten"
 
 #: src/interface-glade2.c:4870
 msgid "Maximum percentage of connection slots a vendor can occupy."
@@ -5652,7 +5657,7 @@ msgstr ""
 
 #: src/interface-glade2.c:5370
 msgid "Total output bandwidth limit:"
-msgstr ""
+msgstr "Gesamte ausgehende Bandbreitenbegrenzung:"
 
 #: src/interface-glade2.c:5378
 msgid "Measured HTTP latency:"
@@ -5672,11 +5677,11 @@ msgstr ""
 
 #: src/interface-glade2.c:5517 src/interface-glade2.c:5708
 msgid "Limit bandwidth for _incoming traffic to"
-msgstr ""
+msgstr "_Eingehende Bandbreite begrenzen auf"
 
 #: src/interface-glade2.c:5524 src/interface-glade2.c:5715
 msgid "Limit bandwidth for _outgoing traffic to"
-msgstr ""
+msgstr "_Ausgehende Bandbreite begrenzen auf"
 
 #: src/interface-glade2.c:5692
 msgid "kbits/s to peers"
@@ -5688,7 +5693,7 @@ msgstr "_Dynamische Belegung von Upload-Slots aktivieren"
 
 #: src/interface-glade2.c:5730
 msgid "Report an upload connection _speed of"
-msgstr ""
+msgstr "Upload-_Geschwindigkeit melden von"
 
 #: src/interface-glade2.c:5938
 msgid "window4"
@@ -5710,7 +5715,7 @@ msgstr "Maximale Anzahl an _Versuchen"
 
 #: src/interface-glade2.c:6176
 msgid "Optimistic first _chunk"
-msgstr ""
+msgstr "Optimistisches erstes _Stück"
 
 #: src/interface-glade2.c:6183
 msgid "Require _urn"
@@ -5726,23 +5731,23 @@ msgstr ""
 
 #: src/interface-glade2.c:6409
 msgid "M_inimum chunk size"
-msgstr ""
+msgstr "M_inimale Stückgröße"
 
 #: src/interface-glade2.c:6417
 msgid "Ma_ximum chunk size"
-msgstr ""
+msgstr "M_aximale Stückgröße"
 
 #: src/interface-glade2.c:6425
 msgid "Enable s_warming"
-msgstr ""
+msgstr "Ausschwärmen aktivieren"
 
 #: src/interface-glade2.c:6465
 msgid "A_ggressive mode"
-msgstr ""
+msgstr "A_ggressiver Modus"
 
 #: src/interface-glade2.c:6470
 msgid "Watch hit for _alternate sources"
-msgstr ""
+msgstr "Treffer nach _alternativen Quellen durchsuchen"
 
 #: src/interface-glade2.c:6475
 msgid "Strict SHA_1 matching"
@@ -5758,7 +5763,7 @@ msgstr ""
 
 #: src/interface-glade2.c:6527 src/interface-glade2.c:10758
 msgid "Use fu_zzy matching"
-msgstr ""
+msgstr "Unscharfen _Vergleich benutzen"
 
 #: src/interface-glade2.c:6773
 msgid "window5"
@@ -5950,6 +5955,8 @@ msgid ""
 "The current IP address and listening port for this node. To change these go "
 "to Config->Network."
 msgstr ""
+"Aktuelle IP-Adresse/Port für diesen Knoten. Änderbar in den "
+"Netzwerkeinstellungen."
 
 #: src/interface-glade2.c:9085
 msgid "window9"
@@ -5981,11 +5988,11 @@ msgstr ""
 
 #: src/interface-glade2.c:9655
 msgid "Max. downloads from single host"
-msgstr ""
+msgstr "Max. Downloads von einzelnem Host"
 
 #: src/interface-glade2.c:9663
 msgid "Max. simultaneous downloads"
-msgstr ""
+msgstr "Max. gleichzeitige Downloads"
 
 #: src/interface-glade2.c:9750
 msgid "More Settings"
@@ -6052,6 +6059,8 @@ msgid ""
 "If on autoselection only takes place if filesize matches exactly, if off "
 "filesize must be equals or greater."
 msgstr ""
+"Falls an, wird Autoselektierung nur bei gleicher Dateigröße angewendet. "
+"Ansonsten muss die Dateigröße größer oder gleich sein."
 
 #: src/interface-glade2.c:10763
 msgid "Enable _autoselect"
@@ -6119,7 +6128,7 @@ msgstr ""
 
 #: src/interface-glade2.c:11165
 msgid "_Download selected"
-msgstr ""
+msgstr "_Ausgewählte herunterladen"
 
 #: src/interface-glade2.c:11190
 msgid "Edit _Filters"
@@ -6248,16 +6257,22 @@ msgid ""
 "Peer mode selection, timeout and TTL settings, quality management regarding "
 "GnutellaNet traffic"
 msgstr ""
+"Auswahl für Betriebsmodus, Zeitüberschreitungen, TTL-Einstellungen und "
+"Qualitätsmanagement für Gnet-Verkehr."
 
 #: src/interface-glade2.c:14832
 msgid ""
 "Bandwidth limit configuration for HTTP, normal GnutellaNet and Ultrapeer "
 "traffic"
 msgstr ""
+"Einstellungen für Bandbreitenbeschränkungen für HTTP-, Gnet- und Ultrapeer-"
+"Verkehr"
 
 #: src/interface-glade2.c:14841
 msgid "Choose directories for completed files and downloads in progress"
 msgstr ""
+"Verzeichnisse für fertige und noch unfertig heruntergeladene Dateien "
+"auswählen"
 
 #: src/interface-glade2.c:14850
 msgid "Selection of directories and filetypes to share"
@@ -6280,7 +6295,7 @@ msgstr "Netzwerkeinstellungen"
 
 #: src/interface-glade2.c:14924
 msgid "GnutellaNet Settings"
-msgstr ""
+msgstr "Gnet-Einstellungen"
 
 #: src/interface-glade2.c:14951
 msgid "Bandwidth Control"
@@ -6313,15 +6328,15 @@ msgstr ""
 
 #: src/interface-glade2.c:15600
 msgid "Select a directory to save _downloads to"
-msgstr ""
+msgstr "Verzeichnis zum Speichern von _Downloads auswählen"
 
 #: src/interface-glade2.c:15649
 msgid "Select one or more directories to be _shared on the Gnutella network:"
-msgstr ""
+msgstr "Ein oder mehrere freizugebende Verzeichnisse im Gnutella-Netz:"
 
 #: src/interface-glade2.c:15665
 msgid "Listen on TCP _port:"
-msgstr ""
+msgstr "Eingehender TCP-_Port:"
 
 #: src/interface-glade2.c:15677
 msgid "Make sure your firewall does not block this port!"
@@ -6396,11 +6411,11 @@ msgstr ""
 
 #: src/nodes_gui_common.c:54
 msgid "Hello sent"
-msgstr ""
+msgstr "Begrüßung gesendet"
 
 #: src/nodes_gui_common.c:58
 msgid "Welcome sent"
-msgstr ""
+msgstr "Willkommen gesendet"
 
 #: src/nodes_gui_common.c:223
 #, c-format
@@ -6413,7 +6428,7 @@ msgstr "Entferne"
 
 #: src/nodes_gui_common.c:235
 msgid "Receiving hello"
-msgstr ""
+msgstr "Empfange Begrüßung"
 
 #: src/nodes_gui_common.c:239
 msgid "UNKNOWN STATUS"
@@ -6425,7 +6440,7 @@ msgstr "Suchliste anzeigen"
 
 #: src/search_cb2.c:489
 msgid "<none>"
-msgstr ""
+msgstr "<keine>"
 
 #: src/search_cb2.c:493
 #, c-format
@@ -6483,7 +6498,7 @@ msgstr ""
 
 #: src/search_gui_common.c:71
 msgid "stable"
-msgstr ""
+msgstr "stabil"
 
 #: src/search_gui_common.c:72
 msgid "push"
@@ -6681,11 +6696,11 @@ msgstr "Wert:"
 
 #: src/shell.c:373
 msgid "Value found and displayed"
-msgstr ""
+msgstr "Wert gefunden und angezeigt"
 
 #: src/shell.c:435
 msgid "Value missing"
-msgstr ""
+msgstr "Wert fehlt"
 
 #: src/shell.c:479
 msgid "Type not supported"
@@ -6693,7 +6708,7 @@ msgstr "Typ nicht unterstützt"
 
 #: src/shell.c:483
 msgid "Value found and set"
-msgstr ""
+msgstr "Wert gefunden und gesetzt"
 
 #: src/shell.c:548
 msgid "Help: "
