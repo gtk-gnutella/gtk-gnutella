@@ -10,6 +10,6 @@
 ?X:
 ?MAKE:Myinit: Init
 ?MAKE:	-pick add $@ %<
-?LINT:set libswanted
+?LINT:change libswanted
 libswanted='sendfile'
 
