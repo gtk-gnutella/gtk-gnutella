@@ -1228,6 +1228,7 @@ void pcache_pong_received(struct gnutella_node *n)
 	guint16 port;
 	guint32 files_count;
 	guint32 kbytes_count;
+	guint32 swapped_count;
 	struct cached_pong *cp;
 	host_type_t ptype;
 
@@ -1241,6 +1242,39 @@ void pcache_pong_received(struct gnutella_node *n)
 	READ_GUINT32_BE(n->data + 2, ip);
 	READ_GUINT32_LE(n->data + 6, files_count);
 	READ_GUINT32_LE(n->data + 10, kbytes_count);
+
+	/*
+	 * Sanity checks: make sure the files_count is reasonable, or try
+	 * to swap it otherwise.  Then try to adjust the kbytes_count if we
+	 * fixed the files_count.
+	 *		--RAM, 13/07/2004
+	 */
+
+	if (files_count > 10000000) {		/* Arbitrarily large constant */
+		gboolean fixed = FALSE;
+
+		swapped_count = GUINT32_SWAP_LE_BE(files_count);
+
+		if (swapped_count < files_count) {
+			if (dbg && ip == n->ip) g_warning(
+				"node %s (%s) sent us a pong with suspect file count %u "
+				"(fixed to %u)",
+				node_ip(n), node_vendor(n), files_count, swapped_count);
+			files_count = swapped_count;
+			fixed = TRUE;
+		} else if (dbg && ip == n->ip)
+			g_warning("node %s (%s) sent us a pong with large file count %u",
+				node_ip(n), node_vendor(n), files_count);
+
+		/*
+		 * Maybe the kbytes_count is correct if the files_count was?
+		 */
+
+		swapped_count = GUINT32_SWAP_LE_BE(kbytes_count);
+
+		if (fixed && swapped_count < kbytes_count)
+			kbytes_count = swapped_count;		/* Probably wrong as well */
+	}
 
 	/*
 	 * Handle replies from our neighbours specially
