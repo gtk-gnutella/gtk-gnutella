@@ -375,25 +375,46 @@ static void settings_remove_pidfile(void)
  * provided we get the same information each time.
  *
  *		--RAM, 13/01/2002
+ *
+ * ``peer_ip'' is the IP address of peer which reported the new IP address.
+ * There must be 3 peers from 3 different /16 networks before a change is
+ * accepted. Otherwise, it would be very easy to confuse GTKG by connecting
+ * 3 times in a row and submitting a *wrong* IP address.
+ *
+ *		--cbiere, 2004-08-01
  */
-void settings_ip_changed(guint32 new_ip)
+void settings_ip_changed(guint32 new_ip, guint32 peer_ip)
 {
 	static guint32 last_ip_seen = 0;
-	static gint same_ip_count = 0;
+	static guint same_ip_count = 0;
+	static guint32 peers[3];
+	guint i;
 
 	g_assert(!force_local_ip);		/* Must be called when IP isn't forced */
+	g_assert(new_ip != 0);			/* The new IP must be valid */
+
+	peer_ip &= 0xffff0000;		/* One vote per /16 network; host byteorder! */
+	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
+		if (peers[i] == peer_ip)
+			return;
+	}
 
 	if (new_ip != last_ip_seen) {
 		last_ip_seen = new_ip;
 		same_ip_count = 1;
+		peers[0] = peer_ip;
 		return;
 	}
 
-	if (++same_ip_count < 3)
+	g_assert(same_ip_count > 0 && same_ip_count < G_N_ELEMENTS(peers));
+	peers[same_ip_count] = peer_ip;
+
+	if (++same_ip_count < G_N_ELEMENTS(peers))
 		return;
 
 	last_ip_seen = 0;
 	same_ip_count = 0;
+	memset(peers, 0, sizeof peers);
 
 	if (new_ip == local_ip)
 		return;
