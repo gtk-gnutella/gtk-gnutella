@@ -60,7 +60,7 @@
 #include "hostiles.h"
 #include "pproxy.h"
 
-#ifdef USE_REMOTE_SHELL
+#ifdef USE_REMOTE_CTRL
 #include "shell.h"
 #endif
 
@@ -589,7 +589,7 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		else
 			upload_add(s);
 	}
-#ifdef USE_REMOTE_SHELL
+#ifdef USE_REMOTE_CTRL
 	else if (0 == strncmp(first, "HELO ", 5))
         shell_add(s);
 #endif
@@ -812,7 +812,7 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 			node_connected_back(s);
 			break;
 
-#ifdef USE_REMOTE_SHELL
+#ifdef USE_REMOTE_CTRL
         case SOCK_TYPE_SHELL:
             g_assert_not_reached(); /* FIXME: add code here? */
             break;

@@ -62,7 +62,7 @@
 #include "eval.h"
 #include "pproxy.h"
 
-#ifdef USE_REMOTE_SHELL
+#ifdef USE_REMOTE_CTRL
 #include "shell.h"
 #endif
 
@@ -104,7 +104,7 @@ void gtk_gnutella_exit(gint n)
 
 	exiting = TRUE;
 
-#ifdef USE_REMOTE_SHELL
+#ifdef USE_REMOTE_CTRL
     shell_close();
 #endif
 
@@ -258,7 +258,7 @@ static gboolean main_timer(gpointer p)
 	node_timer(now);				/* Node timeouts */
 	http_timer(now);				/* HTTP request timeouts */
 	if (!exiting) {
-#ifdef USE_REMOTE_SHELL
+#ifdef USE_REMOTE_CTRL
         shell_timer(now);
 #endif
 		download_timer(now);  	    /* Download timeouts */
@@ -441,7 +441,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	dmesh_init();			/* Muse be done BEFORE download_init() */
 	download_init();
 	upload_init();
-#ifdef USE_REMOTE_SHELL
+#ifdef USE_REMOTE_CTRL
     shell_init();
 #endif
 	ban_init();
