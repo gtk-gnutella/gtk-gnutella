@@ -213,7 +213,7 @@ void gui_update_traffic_stats() {
 
     g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
         compact_size(current), progressbar_bws_gin_avg ? "(avg)" : "");
-	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bws_gin), gui_tmp);
+	gtk_progress_bar_set_text(progressbar_bws_gin, gui_tmp);
     gtk_progress_bar_set_fraction(progressbar_bws_gin, frac);
 
 
@@ -228,7 +228,7 @@ void gui_update_traffic_stats() {
 
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s out %s", 
         compact_size(current), progressbar_bws_gout_avg ? "(avg)" : "");
-	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bws_gout), gui_tmp);
+	gtk_progress_bar_set_text(progressbar_bws_gout, gui_tmp);
     gtk_progress_bar_set_fraction(progressbar_bws_gout, frac);
 }
 
