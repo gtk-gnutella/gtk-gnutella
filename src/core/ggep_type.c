@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2004, Raphael Manfredi
  *
  * GGEP type-specific routines.
  *
@@ -279,18 +279,67 @@ ggept_lf_extract(extvec_t *exv, guint64 *filesize)
  * @return the amount of chars written.
  */
 gint
-ggep_lf_encode(guint64 filesize, guint8 *data)
+ggept_lf_encode(guint64 filesize, guint8 *data)
 {
-  guint8 *p = data;
+	guint8 *p = data;
 
-  if (0 == filesize)
-    return 0;
-  
-  do {
-    *p++ = filesize;
-  } while (0 != (filesize >>= 8));
+	if (0 == filesize)
+		return 0;
 
-  return p - data;
+	do {
+		*p++ = filesize;
+	} while (0 != (filesize >>= 8));
+
+	return p - data;
+}
+
+/**
+ * Extract daily uptime into `uptime', from the GGEP "DU" extensions.
+ */
+ggept_status_t
+ggept_du_extract(extvec_t *exv, guint32 *uptime)
+{
+	guint32 up, b;
+	gint i, j, tlen;
+	guint8 buf[sizeof(guint32)];
+
+	g_assert(exv->ext_type == EXT_GGEP);
+	g_assert(exv->ext_token == EXT_T_GGEP_DU);
+	
+	tlen = ggep_decode_into(exv, buf, sizeof buf);
+	if (tlen < 1 || tlen > (int) sizeof buf)
+		return GGEP_INVALID;
+
+	up = j = i = 0;
+	do {
+		b = buf[i];
+		up |= b << j;
+		j += 8;
+	} while (++i < tlen);
+
+	if (uptime)
+		*uptime = up;
+
+	return GGEP_OK;
+}
+
+/**
+ * Encode `uptime' for the GGEP "DU" extension into `data'.
+ * @return the amount of chars written.
+ */
+gint
+ggept_du_encode(guint32 uptime, guint8 *data)
+{
+	guint8 *p = data;
+
+	if (0 == uptime)
+		return 0;
+
+	do {
+		*p++ = uptime;
+	} while (0 != (uptime >>= 8));
+
+	return p - data;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
