@@ -50,6 +50,7 @@ RCSID("$Id$");
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
+#include "lib/aging.h"
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/endian.h"
@@ -116,6 +117,12 @@ struct mesh_info_val {
 #define MESH_INFO_TIMEOUT	((PARQ_MAX_UL_RETRY_DELAY + PARQ_GRACE_TIME)*1000)
 
 static GHashTable *mesh_info = NULL;
+
+/* Remember IP address of stalling uploads for a while */
+static gpointer stalling_uploads = NULL;
+
+#define STALL_FIRST		GUINT_TO_POINTER(0x1)
+#define STALL_AGAIN		GUINT_TO_POINTER(0x2)
 
 static void upload_request(gnutella_upload_t *u, header_t *header);
 static void upload_error_remove(gnutella_upload_t *u, struct shared_file *sf,
@@ -237,23 +244,55 @@ void upload_timer(time_t now)
 			goto not_sending;		/* Avoid deep nesting level */
 
 		if (delta_time(now, u->last_update) > IO_STALLED) {
+			gboolean skip = FALSE;
+
+			/*
+			 * Check whether we know about this IP.  If we do, then it
+			 * has been stalling recently, and it might be a problem on
+			 * their end rather than ours, so don't increase the stalling
+			 * counter.
+			 */
+
+			if (aging_lookup(stalling_uploads, &u->ip))
+				skip = TRUE;
+
 			if (!(u->flags & UPLOAD_F_STALLED)) {
-				if (stalled++ == STALL_THRESH) {
+				if (!skip && stalled++ == STALL_THRESH) {
 					g_warning("frequent stalling detected, using workarounds");
 					gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, TRUE);
 				}
-				last_stalled = now;
+				if (!skip) last_stalled = now;
 				u->flags |= UPLOAD_F_STALLED;
 				g_warning("connection to %s (%s) stalled after %u bytes sent,"
-					" stall counter at %d",
-					ip_to_gchar(u->ip), upload_vendor_str(u), u->sent, stalled);
+					" stall counter at %d%s",
+					ip_to_gchar(u->ip), upload_vendor_str(u), u->sent, stalled,
+					skip ? " (IGNORED)" : "");
+
+				/*
+				 * Record that this IP is stalling, but also record the fact
+				 * that it's not the first time we're seeing it, if necessary.
+				 */
+
+				aging_insert(stalling_uploads, atom_int_get(&u->ip),
+					skip ? STALL_AGAIN : STALL_FIRST);
 			}
 		} else {
-			if (u->flags & UPLOAD_F_STALLED) {
-				g_warning("connection to %s (%s) un-stalled, %u bytes sent",
-					ip_to_gchar(u->ip), upload_vendor_str(u), u->sent);
+			gboolean skip = FALSE;
+			gpointer stall;
 
-				if (stalled <= STALL_THRESH && !sock_is_corked(u->socket)) {
+			stall = aging_lookup(stalling_uploads, &u->ip);
+			if (stall == STALL_AGAIN)
+				skip = TRUE;
+
+			if (u->flags & UPLOAD_F_STALLED) {
+				g_warning("connection to %s (%s) un-stalled, %u bytes sent%s",
+					ip_to_gchar(u->ip), upload_vendor_str(u), u->sent,
+					skip ? " (IGNORED)" : "");
+
+				if (
+					!skip && stalled <= STALL_THRESH &&
+					!sock_is_corked(u->socket)
+				) {
 					g_warning(
 						"re-enabling TCP_CORK on connection to %s (%s)",
 						ip_to_gchar(u->ip), upload_vendor_str(u));
@@ -261,7 +300,7 @@ void upload_timer(time_t now)
 					socket_tos_throughput(u->socket);
 				}
 
-				if (stalled > 0)		/* It un-stalled, it's not too bad */
+				if (!skip && stalled > 0)	/* It un-stalled, it's not too bad */
 					stalled--;
 			}
 			u->flags &= ~UPLOAD_F_STALLED;
@@ -2055,6 +2094,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean replacing_stall = FALSE;
 	gboolean use_sendfile;
 	gchar *token;
+	gboolean known_for_stalling;
 	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
 	if (dbg > 2) {
@@ -2518,6 +2558,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 				else {
 					upload_error_remove(u, NULL, 503,
 						"Already downloading that file");
+					g_slist_free(to_remove);
 					return;
 				}
 			}
@@ -2540,6 +2581,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 			upload_remove(up, "Stalling upload replaced");
 			replacing_stall = TRUE;
 		}
+		g_slist_free(to_remove);
 	}
 		
 	/*
@@ -2783,22 +2825,21 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 * On linux, turn TCP_CORK on so that we only send out full TCP/IP
 	 * frames.  The exact size depends on your LAN interface, but on
 	 * Ethernet, it's about 1500 bytes.
-	 */
-
-	if (stalled <= STALL_THRESH) {
-		sock_cork(s, TRUE);
-		socket_tos_throughput(s);
-	} else
-		socket_tos_normal(s);	/* Make sure ACKs come back faster */
-
-	/*
+	 *
 	 * If they have some connections stalling recently, reduce the send buffer
 	 * size.  This will lower TCP's throughput but will prevent us from
 	 * writing too much before detecting the stall.
 	 */
 
-	if (stalled > STALL_THRESH)
-		sock_send_buf(s, UP_SEND_BUFSIZE, TRUE);
+	known_for_stalling = NULL != aging_lookup(stalling_uploads, &u->ip);
+
+	if (stalled <= STALL_THRESH && !known_for_stalling) {
+		sock_cork(s, TRUE);
+		socket_tos_throughput(s);
+	} else {
+		socket_tos_normal(s);	/* Make sure ACKs come back faster */
+		sock_send_buf(s, UP_SEND_BUFSIZE, TRUE);	/* Shrink TX buffer */
+	}
 
 	/*
 	 * Send back HTTP status.
@@ -3096,6 +3137,17 @@ gboolean upload_is_enabled(void)
 	return TRUE;
 }
 
+/**
+ * Free routine for keys inserted in the `stalling_uploads' container.
+ */
+static void
+upload_stalling_key_free(gpointer key, gpointer unused_udata)
+{
+	(void) unused_udata;
+
+	atom_int_free((gint *) key);
+}
+
 /*
  * upload_init
  *
@@ -3104,6 +3156,9 @@ gboolean upload_is_enabled(void)
 void upload_init(void)
 {
 	mesh_info = g_hash_table_new(mi_key_hash, mi_key_eq);
+	stalling_uploads = aging_make(STALL_CLEAR,
+		g_int_hash, g_int_equal,
+		upload_stalling_key_free, NULL, NULL, NULL);
     upload_handle_map = idtable_new(32, 32);
 }
 
@@ -3131,6 +3186,8 @@ void upload_close(void)
 
 	g_hash_table_foreach(mesh_info, mi_free_kv, NULL);
 	g_hash_table_destroy(mesh_info);
+
+	aging_destroy(stalling_uploads);
 }
 
 gnet_upload_info_t *upload_get_info(gnet_upload_t uh)
