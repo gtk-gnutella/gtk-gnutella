@@ -1287,6 +1287,89 @@ static gchar *formatted_connection_pongs(gchar *field, hcache_type_t htype)
 }
 
 /*
+ * node_crawler_headers
+ *
+ * Generate the "Peers:" and "Leaves:" headers in a static buffer.
+ * Returns ready-to-insert header chunk, with all lines ending with "\r\n".
+ */
+static gchar *node_crawler_headers(struct gnutella_node *n)
+{
+	static gchar buf[4096];
+	GSList *l;
+	gint rw;
+	gint count;
+
+	/*
+	 * First, the peers.
+	 */
+
+	rw = g_snprintf(buf, sizeof(buf), "Peers: ");
+
+	for (count = 0, l = sl_nodes; l && rw < sizeof(buf); l = l->next) {
+		struct gnutella_node *cn = (struct gnutella_node *) l->data;
+
+		if (cn == n)				/* Don't show the crawler itself */
+			continue;
+
+		if (!NODE_IS_WRITABLE(cn))	/* No longer (or not yet) connected */
+			continue;
+
+		if (NODE_IS_LEAF(cn))
+			continue;
+
+		if (cn->gnet_ip == 0)		/* No information yet */
+			continue;
+
+		if (count > 0)
+			rw += g_snprintf(&buf[rw], sizeof(buf)-rw, ", ");
+
+		rw += g_snprintf(&buf[rw], sizeof(buf)-rw, "%s",
+			ip_port_to_gchar(cn->gnet_ip, cn->gnet_port));
+
+		count++;
+	}
+
+	rw += g_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
+
+	if (current_peermode != NODE_P_ULTRA)
+		return buf;
+
+	/*
+	 * We're an ultranode, list our leaves.
+	 */
+
+	rw += g_snprintf(&buf[rw], sizeof(buf)-rw, "Leaves: ");
+
+	for (count = 0, l = sl_nodes; l && rw < sizeof(buf); l = l->next) {
+		struct gnutella_node *cn = (struct gnutella_node *) l->data;
+
+		if (cn == n)				/* Don't show the crawler itself */
+			continue;
+
+		if (!NODE_IS_WRITABLE(cn))	/* No longer (or not yet) connected */
+			continue;
+
+		if (!NODE_IS_LEAF(cn))
+			continue;
+
+		if (cn->gnet_ip == 0)		/* No information yet */
+			continue;
+
+		if (count > 0)
+			rw += g_snprintf(&buf[rw], sizeof(buf)-rw, ", ");
+
+		rw += g_snprintf(&buf[rw], sizeof(buf)-rw, "%s",
+			ip_port_to_gchar(cn->gnet_ip, cn->gnet_port));
+
+		count++;
+	}
+
+	rw += g_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
+
+	return buf;
+}
+
+/*
  * send_node_error
  *
  * Send error message to remote end, a node presumably.
@@ -1366,6 +1449,15 @@ static void node_is_now_connected(struct gnutella_node *n)
 	if (n->socket->getline) {
 		getline_free(n->socket->getline);
 		n->socket->getline = NULL;
+	}
+
+	/*
+	 * Terminate crawler connection.
+	 */
+
+	if (n->flags & NODE_F_CRAWLER) {
+		node_remove(n, "Sent crawling info");
+		return;
 	}
 
 	/*
@@ -1956,6 +2048,13 @@ static gboolean node_can_accept_connection(
 	}
 
 	/*
+	 * Always accept crawler connections.
+	 */
+
+	if (n->flags & NODE_F_CRAWLER)
+		return TRUE;
+
+	/*
 	 * If we are handshaking, we have not incremented the node counts yet.
 	 * Hence we can do >= tests against the limits.
 	 */
@@ -2537,6 +2636,14 @@ static void node_process_handshake_header(
 	}
 
 	/*
+	 * Crawler -- LimeWire's Gnutella crawler
+	 */
+
+	field = header_get(head, "Crawler");
+	if (field)
+		n->flags |= NODE_F_CRAWLER;
+
+	/*
 	 * We no longer flag incoming 0.6 connections as NODE_F_TMP, so we
 	 * need to enforce our connection count here.
 	 *
@@ -2553,8 +2660,9 @@ static void node_process_handshake_header(
 	 */
 
 	if (current_peermode == NODE_P_LEAF) {
-		g_assert(n->attrs & NODE_A_ULTRA);
-		n->flags |= NODE_F_ULTRA;			/* This is our ultranode */
+		g_assert((n->flags & NODE_F_CRAWLER) || (n->attrs & NODE_A_ULTRA));
+		if (!(n->flags & NODE_F_CRAWLER))
+			n->flags |= NODE_F_ULTRA;			/* This is our ultranode */
 	}
 
 	/*
@@ -2687,11 +2795,13 @@ static void node_process_handshake_header(
 			"%s"			// Content-Encoding
 			"%s"			// X-Ultrapeer
 			"%s"			// X-Query-Routing (advertise version we'll use)
+			"%s"			// Peers & Leaves
 			"\r\n",
 			(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty,
 			mode_changed ? "X-Ultrapeer: False\r\n" : "",
 			(n->qrp_major > 0 || n->qrp_minor > 1) ?
-				"X-Query-Routing: 0.1\r\n" : "");
+				"X-Query-Routing: 0.1\r\n" : "",
+			(n->flags & NODE_F_CRAWLER) ? node_crawler_headers(n) : "");
 	 	
 		g_assert(rw < sizeof(gnet_response));
 	} else {
@@ -2717,6 +2827,7 @@ static void node_process_handshake_header(
 			"%s"		// X-Ultrapeer
 			"%s"		// X-Ultrapeer-Needed
 			"%s"		// X-Query-Routing
+			"%s"		// Peers & Leaves
 			"X-Live-Since: %s\r\n"
 			"\r\n",
 			version_string, ip_to_gchar(n->socket->ip),
@@ -2728,6 +2839,7 @@ static void node_process_handshake_header(
 			node_ultra_count < ultra_max ? "X-Ultrapeer-Needed: True\r\n"
 				: "X-Ultrapeer-Needed: False\r\n",
 			current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.1\r\n" : "",
+			(n->flags & NODE_F_CRAWLER) ? node_crawler_headers(n) : "",
 			start_rfc822_date);
 
 		g_assert(rw < sizeof(gnet_response));
@@ -3507,8 +3619,8 @@ void node_init_outgoing(struct gnutella_node *n)
 			"Vendor-Message: 0.1\r\n"
 			"Accept-Encoding: deflate\r\n"
 			"X-Live-Since: %s\r\n"
-			"%s"
-			"%s"
+			"%s"		// X-Ultrapeer
+			"%s"		// X-Query-Routing
 			"\r\n",
 			n->proto_major, n->proto_minor,
 			ip_port_to_gchar(listen_ip(), listen_port),
@@ -4439,7 +4551,9 @@ void node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
 
 	flags->peermode = node->peermode;
 	if (node->peermode == NODE_P_UNKNOWN) {
-		if (node->attrs & NODE_A_ULTRA)
+		if (node->flags & NODE_F_CRAWLER)
+			flags->peermode = NODE_P_CRAWLER;
+		else if (node->attrs & NODE_A_ULTRA)
 			flags->peermode = NODE_P_ULTRA;
 		else if (node->attrs & NODE_A_CAN_ULTRA)
 			flags->peermode = NODE_P_LEAF;

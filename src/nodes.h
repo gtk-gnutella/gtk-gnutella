@@ -185,6 +185,7 @@ typedef struct gnutella_node {
 #define NODE_F_CLOSING		0x00001000	/* Initiated bye or shutdown */
 #define NODE_F_ULTRA		0x00002000	/* Is one of our ultra nodes */
 #define NODE_F_LEAF			0x00004000	/* Is one of our leaves */
+#define NODE_F_CRAWLER		0x00008000	/* Is a Gnutella Crawler */
 
 /*
  * Node attributes.

@@ -435,6 +435,7 @@ static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
 		case NODE_P_ULTRA:		status[0] = 'U'; break;
 		case NODE_P_NORMAL:		status[0] = 'N'; break;
 		case NODE_P_LEAF:		status[0] = 'L'; break;
+		case NODE_P_CRAWLER:	status[0] = 'C'; break;
 		default:				g_assert(0); break;
 		}
 
