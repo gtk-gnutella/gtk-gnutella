@@ -66,8 +66,6 @@ static gint generation = 0;
 
 static gchar qrp_tmp[4096];
 
-extern void node_qrt_changed(void);		/* Notify that QRT changed */
-
 /*
  * qrp_hashcode
  *
@@ -1127,7 +1125,7 @@ static bgret_t qrp_step_install(gpointer h, gpointer u, gint ticks)
 	routing_table = qrt_create(ctx->table, ctx->slots, LOCAL_INFINITY);
 	ctx->table = NULL;		/* Don't free table when freeing context */
 
-	node_qrt_changed();
+	node_qrt_changed(routing_table);
 
 	if (old)
 		qrt_unref(old);
@@ -1467,7 +1465,7 @@ gboolean qrt_update_send_next(gpointer handle)
 
 	g_assert(qup->seqno <= qup->seqsize || qup->offset == qup->patch->len);
 
-	return qup->seqno < qup->seqsize;
+	return qup->seqno <= qup->seqsize;
 }
 
 /*
