@@ -34,7 +34,7 @@
 RCSID("$Id$");
 
 #define VERSION_ANCIENT_WARN	(86400*365)		/* 1 year */
-#define VERSION_ANCIENT_BAN		(86400*549)		/* 1.5 year */
+#define VERSION_ANCIENT_BAN		(86400*365)		/* 1 year */
 
 gchar *version_number = NULL;
 gchar *version_string = NULL;
