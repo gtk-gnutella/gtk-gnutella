@@ -18,8 +18,9 @@
 #include "nodes.h"
 #include "share.h" /* For files_scanned and kbytes_scanned. */
 
-GList *sl_catched_hosts = NULL;
-GHashTable *ht_catched_hosts = NULL;	/* Same, as H table */
+GList *sl_caught_hosts = NULL;				/* Reserve list */
+static GList *sl_valid_hosts = NULL;		/* Validated hosts */
+static GHashTable *ht_known_hosts = NULL;	/* All known hosts */
 
 GSList *ping_reqs = NULL;
 guint32 n_ping_reqs = 0;
@@ -56,32 +57,73 @@ static gint host_eq(gconstpointer v1, gconstpointer v2)
 
 static gboolean host_ht_add(struct gnutella_host *host)
 {
-	/* Add host to the ht_catched_hosts table */
+	/* Add host to the ht_known_hosts table */
 
-	if (g_hash_table_lookup(ht_catched_hosts, (gconstpointer) host)) {
+	if (g_hash_table_lookup(ht_known_hosts, (gconstpointer) host)) {
 		g_warning("Attempt to add %s twice to caught host list",
 				  ip_port_to_gchar(host->ip, host->port));
 		return FALSE;
 	}
 
 	hosts_in_catcher++;
-	g_hash_table_insert(ht_catched_hosts, host, (gpointer) 1);
+	g_hash_table_insert(ht_known_hosts, host, (gpointer) 1);
 
 	return TRUE;
 }
 
 static void host_ht_remove(struct gnutella_host *host)
 {
-	/* Remove host from the ht_catched_hosts table */
+	/* Remove host from the ht_known_hosts table */
 
-	if (!g_hash_table_lookup(ht_catched_hosts, (gconstpointer) host)) {
+	if (!g_hash_table_lookup(ht_known_hosts, (gconstpointer) host)) {
 		g_warning("Attempt to remove missing %s from caught host list",
 				  ip_port_to_gchar(host->ip, host->port));
 		return;
 	}
 
 	hosts_in_catcher--;
-	g_hash_table_remove(ht_catched_hosts, host);
+	g_hash_table_remove(ht_known_hosts, host);
+}
+
+/*
+ * host_save_valid
+ *
+ * Save host to the validated server list
+ *
+ * We put in this list all the Gnet nodes to which we were able to connect
+ * and transmit at list one packet (indicating a successful handshake).
+ */
+void host_save_valid(guint32 ip, guint16 port)
+{
+	struct gnutella_host *host;
+
+	/*
+	 * This routing must be called only when the node has been removed
+	 * from `sl_nodes' or find_host() will report we have the node.
+	 */
+
+	if (!check_valid_host(ip, port))
+		return;
+
+	if (find_host(ip, port))
+		return;						/* Already have it, from a pong? */
+
+	host = (struct gnutella_host *) g_malloc0(sizeof(struct gnutella_host));
+
+	host->ip = ip;
+	host->port = port;
+
+	/*
+	 * We prepend to the list instead of appending because the day
+	 * we switch it as `sl_caught_hosts', we'll start reading from the end.
+	 */
+
+	if (host_ht_add(host))
+		sl_valid_hosts = g_list_prepend(sl_valid_hosts, host);
+	else
+		g_free(host);
+
+	gtk_widget_set_sensitive(button_host_catcher_clear, sl_valid_hosts != NULL);
 }
 
 /*
@@ -92,7 +134,7 @@ void host_init(void)
 {
 	static void pcache_init(void);
 
-	ht_catched_hosts = g_hash_table_new(host_hash, host_eq);
+	ht_known_hosts = g_hash_table_new(host_hash, host_eq);
 	pcache_init();
 }
 
@@ -118,15 +160,20 @@ gboolean find_host(guint32 ip, guint16 port)
 
 	/* Check the hosts -- large list, use hash table --RAM */
 
-	return g_hash_table_lookup(ht_catched_hosts, &lhost) ? TRUE : FALSE;
+	return g_hash_table_lookup(ht_known_hosts, &lhost) ? TRUE : FALSE;
 }
 
 void host_remove(struct gnutella_host *h)
 {
-	sl_catched_hosts = g_list_remove(sl_catched_hosts, h);
+	sl_caught_hosts = g_list_remove(sl_caught_hosts, h);
 	host_ht_remove(h);
 
-	if (!sl_catched_hosts)
+	if (!sl_caught_hosts) {
+		sl_caught_hosts = sl_valid_hosts;
+		sl_valid_hosts = NULL;
+	}
+
+	if (!sl_caught_hosts)
 		gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
 
 	g_free(h);
@@ -146,6 +193,8 @@ gboolean check_valid_host(guint32 ip, guint16 port)
 		return FALSE;			/* IP == 0.0.0.0 / 8 */
 	if ((ip & (guint32) 0xFF000000) == (guint32) 0x7F000000)
 		return FALSE;			/* IP == 127.0.0.0 / 8 */
+	if ((ip & (guint32) 0xFFFFFF00) == (guint32) 0xFFFFFF00)
+		return FALSE;			/* IP == 255.255.255.0 / 24 */
 
 	return TRUE;
 }
@@ -187,19 +236,43 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 			connected_nodes() < up_connections)
 		node_add(NULL, host->ip, host->port);
 
-	if (!sl_catched_hosts)
+	if (!sl_caught_hosts)		/* Assume addition below will be a success */
 		gtk_widget_set_sensitive(button_host_catcher_clear, TRUE);
 
 	if (host_ht_add(host))
-		sl_catched_hosts = g_list_append(sl_catched_hosts, host);
+		sl_caught_hosts = g_list_append(sl_caught_hosts, host);
+	else
+		g_free(host);
+
+	if (!sl_caught_hosts) {
+		sl_caught_hosts = sl_valid_hosts;
+		sl_valid_hosts = NULL;
+	}
+
+	if (!sl_caught_hosts)
+		gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
 
 	/*
 	 * Prune cache if we reached our limit.
+	 *
+	 * Because the `ht_known_hosts' table records the hosts in the
+	 * `sl_caught_hosts' list as well as those in the `sl_valid_hosts' list,
+	 * it is possible that during the while loop, we reach the end of the
+	 * `sl_valid_hosts'.  At that point, we switch.
 	 */
 
-	extra = g_hash_table_size(ht_catched_hosts) - max_hosts_cached;
-	while (extra-- > 0)
-		host_remove(g_list_first(sl_catched_hosts)->data);
+	extra = g_hash_table_size(ht_known_hosts) - max_hosts_cached;
+	while (extra-- > 0) {
+		if (sl_caught_hosts == NULL) {
+			sl_caught_hosts = sl_valid_hosts;
+			sl_valid_hosts = NULL;
+		}
+		if (sl_caught_hosts == NULL) {
+			g_warning("BUG: asked to remove hosts, but hostcache list empty");
+			break;
+		}
+		host_remove(g_list_first(sl_caught_hosts)->data);
+	}
 }
 
 static FILE *hosts_r_file = (FILE *) NULL;
@@ -215,7 +288,7 @@ static FILE *hosts_r_file = (FILE *) NULL;
  */
 gint host_fill_caught_array(struct gnutella_host *hosts, gint hcount)
 {
-	GList *link = g_list_last(sl_catched_hosts);
+	GList *link = g_list_last(sl_caught_hosts);
 	gint i;
 
 	for (i = 0; i < hcount; i++, link = link->prev) {
@@ -234,17 +307,14 @@ gint host_fill_caught_array(struct gnutella_host *hosts, gint hcount)
 /*
  * host_get_caught
  *
- * Get a host from our caught host list.
- *
- * The returned host is removed from the list, but it is up to the caller
- * to free the host structure if it is no longer needed.
+ * Get host IP/port information from our caught host list.
  */
-struct gnutella_host *host_get_caught(void)
+void host_get_caught(guint32 *ip, guint16 *port)
 {
 	struct gnutella_host *h;
 	GList *link;
 
-	g_assert(sl_catched_hosts);		/* Must not call if no host in list */
+	g_assert(sl_caught_hosts);		/* Must not call if no host in list */
 
 	/*
 	 * If we're done reading from the host file, get latest host, at the
@@ -252,17 +322,24 @@ struct gnutella_host *host_get_caught(void)
 	 */
 
 	link = (hosts_r_file == NULL) ?
-		g_list_last(sl_catched_hosts) : g_list_first(sl_catched_hosts);
+		g_list_last(sl_caught_hosts) : g_list_first(sl_caught_hosts);
 
 	h = (struct gnutella_host *) link->data;
-	sl_catched_hosts = g_list_remove_link(sl_catched_hosts, link);
+	sl_caught_hosts = g_list_remove_link(sl_caught_hosts, link);
 	g_list_free_1(link);
 	host_ht_remove(h);
 
-	if (!sl_catched_hosts)
-		gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
+	*ip = h->ip;
+	*port = h->port;
+	g_free(h);
 
-	return h;
+	if (!sl_caught_hosts) {
+		sl_caught_hosts = sl_valid_hosts;
+		sl_valid_hosts = NULL;
+	}
+
+	if (!sl_caught_hosts)
+		gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
 }
 
 /*
@@ -271,7 +348,7 @@ struct gnutella_host *host_get_caught(void)
 
 gint hosts_reading_func(gpointer data)
 {
-	gint max_read = max_hosts_cached - g_hash_table_size(ht_catched_hosts);
+	gint max_read = max_hosts_cached - g_hash_table_size(ht_known_hosts);
 	gint count = MIN(max_read, HOST_READ_CNT);
 	gint i;
 
@@ -335,7 +412,20 @@ void hosts_write_to_file(gchar * path)
 		return;
 	}
 
-	for (l = sl_catched_hosts; l; l = l->next)
+	/*
+	 * Write "valid" hosts first.  Next time we are launched, we'll first
+	 * start reading from the head first.  And once the whole cache has
+	 * been read in memory, we'll begin using the tail of the list, i.e.
+	 * possibly older hosts, which will help ensure we don't always connect
+	 * to the same set of hosts.
+	 */
+
+	for (l = sl_valid_hosts; l; l = l->next)
+		fprintf(f, "%s\n",
+				ip_port_to_gchar(((struct gnutella_host *) l->data)->ip,
+								 ((struct gnutella_host *) l->data)->port));
+
+	for (l = sl_caught_hosts; l; l = l->next)
 		fprintf(f, "%s\n",
 				ip_port_to_gchar(((struct gnutella_host *) l->data)->ip,
 								 ((struct gnutella_host *) l->data)->port));
@@ -675,7 +765,7 @@ static struct cache_line pong_cache[PONG_CACHE_SIZE];
 #define MAX_PONGS			10		/* Max pongs returned per ping */
 #define OLD_PING_PERIOD		45		/* Pinging period for "old" clients */
 #define OLD_CACHE_RATIO		20		/* % of pongs from "old" clients we cache */
-#define MIN_RESERVE_SIZE	512		/* we'd like that many pongs in reserve */
+#define MIN_RESERVE_SIZE	1024	/* we'd like that many pongs in reserve */
 
 /*
  * pcache_init
@@ -703,7 +793,7 @@ void pcache_outgoing_connection(struct gnutella_node *n)
 {
 	if (
 		connected_nodes() < up_connections ||
-		g_hash_table_size(ht_catched_hosts) < MIN_RESERVE_SIZE
+		g_hash_table_size(ht_known_hosts) < MIN_RESERVE_SIZE
 	)
 		send_ping(n, my_ttl);			/* Regular ping, get fresh pongs */
 	else
@@ -737,7 +827,7 @@ static void pcache_expire(void)
 	if (dbg > 4)
 		printf("Pong CACHE expired (%d entr%s, %d in reserve)\n",
 			entries, entries == 1 ? "y" : "ies",
-			g_hash_table_size(ht_catched_hosts));
+			g_hash_table_size(ht_known_hosts));
 }
 
 /*
@@ -1074,7 +1164,7 @@ void pcache_ping_received(struct gnutella_node *n)
 	 * If we can accept an incoming connection, send a reply.
 	 */
 
-	if (node_count() < max_connections) {
+	if (node_count() < max_connections && !is_firewalled) {
 		send_personal_info(n);
 		if (!NODE_IS_CONNECTED(n))	/* Can be removed if send queue is full */
 			return;
@@ -1158,9 +1248,11 @@ void pcache_pong_received(struct gnutella_node *n)
 			if (ip == n->ip) {
 				n->gnet_ip = ip;		/* Signals: we have figured it out */
 				n->gnet_port = port;
-			} else
+			} else if (n->gnet_port == 0) {
 				g_warning("node %s sent us a pong for itself with alien IP %s",
 					node_ip(n), ip_to_gchar(ip));
+				n->gnet_port = 1;		/* Signals: don't warn again */
+			}
 		}
 		n->gnet_files_count = files_count;
 		n->gnet_kbytes_count = kbytes_count;
@@ -1226,17 +1318,33 @@ void pcache_pong_received(struct gnutella_node *n)
 	pong_all_neighbours_but_one(n, cp, hop, n->header.ttl);
 }
 
+/*
+ * host_clear_cache
+ *
+ * Clear the whole host cache.
+ */
+void host_clear_cache(void)
+{
+	while (sl_caught_hosts)
+		host_remove((struct gnutella_host *) sl_caught_hosts->data);
+	g_list_free(sl_caught_hosts);
+
+	sl_caught_hosts = sl_valid_hosts;	/* host_remove() uses that list */
+	sl_valid_hosts = NULL;
+
+	while (sl_caught_hosts)
+		host_remove((struct gnutella_host *) sl_valid_hosts->data);
+	g_list_free(sl_caught_hosts);
+
+	gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
+}
+
 void host_close(void)
 {
 	pcache_expire();
-
-	while (sl_catched_hosts)
-		host_remove((struct gnutella_host *) sl_catched_hosts->data);
-
-	g_hash_table_destroy(ht_catched_hosts);
-
+	host_clear_cache();
+	g_hash_table_destroy(ht_known_hosts);
 	ping_reqs_clear();
-	g_list_free(sl_catched_hosts);
 }
 
 /* vi: set ts=4: */

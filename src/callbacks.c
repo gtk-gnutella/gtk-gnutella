@@ -200,8 +200,7 @@ void on_popup_nodes_title_activate(GtkMenuItem * menuitem,
 void on_button_host_catcher_clear_clicked(GtkButton * button,
 										  gpointer user_data)
 {
-	while (sl_catched_hosts)
-		host_remove((struct gnutella_host *) sl_catched_hosts->data);
+	host_clear_cache();
 }
 
 GtkWidget *hosts_write_filesel = (GtkWidget *) NULL;

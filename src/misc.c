@@ -13,9 +13,11 @@
 
 gchar *ip_to_gchar(guint32 ip)
 {
+	static gchar a[128];
 	struct in_addr ia;
 	ia.s_addr = g_htonl(ip);
-	return inet_ntoa(ia);
+	g_snprintf(a, sizeof(a), "%s", inet_ntoa(ia));
+	return a;
 }
 
 

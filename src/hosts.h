@@ -10,7 +10,7 @@ struct gnutella_host {
  * Global Data
  */
 
-extern GList *sl_catched_hosts;
+extern GList *sl_caught_hosts;
 extern struct ping_req *pr_ref;
 extern gint hosts_idle_func;
 extern guint32 hosts_in_catcher;
@@ -21,14 +21,16 @@ extern guint32 hosts_in_catcher;
 void host_init(void);
 gboolean find_host(guint32, guint16);
 void host_remove(struct gnutella_host *);
+void host_save_valid(guint32 ip, guint16 port);
 void host_add(guint32, guint16, gboolean);
 gint host_fill_caught_array(struct gnutella_host *hosts, gint hcount);
-struct gnutella_host *host_get_caught(void);
+void host_get_caught(guint32 *ip, guint16 *port);
 void ping_stats_add(struct gnutella_node *);
 void ping_stats_update(void);
 gboolean check_valid_host(guint32, guint16);
 void hosts_read_from_file(gchar *, gboolean);
 void hosts_write_to_file(gchar *);
+void host_clear_cache(void);
 void host_close(void);
 struct gnutella_msg_init_response *build_pong_msg(
 	guint8 hops, guint8 ttl, guchar *muid,

@@ -164,6 +164,17 @@ void node_real_remove(struct gnutella_node *n)
 
 	sl_nodes = g_slist_remove(sl_nodes, n);
 
+	/*
+	 * Now that the node was removed from the list of known nodes, we
+	 * can call host_save_valid() iff the node was marked NODE_F_VALID,
+	 * meaning we identified it as a Gnutella server, even though we
+	 * might not have been granted a full connection.
+	 *		--RAM, 13/01/2002
+	 */
+
+	if (n->gnet_ip && (n->flags & NODE_F_VALID))
+		host_save_valid(n->gnet_ip, n->gnet_port);
+
 	g_free(n);
 }
 
@@ -486,10 +497,11 @@ static void node_is_now_connected(struct gnutella_node *n)
 	g_assert(s->gdk_tag);
 
 	/*
-	 * Update state.
+	 * Update state, and mark node as valid.
 	 */
 
 	n->status = GTA_NODE_CONNECTED;
+	n->flags |= NODE_F_VALID;
 	n->last_update = n->connect_date = time((time_t *) NULL);
 	connected_node_cnt++;
 
@@ -718,8 +730,10 @@ static gboolean analyse_status(struct gnutella_node *n, gint *code)
 		} else
 			g_warning("node %s gave a 0.4 reply to our 0.6 HELLO, dropping",
 				node_ip(n));
-	} else
+	} else {
 		ack_ok = TRUE;
+		n->flags |= NODE_F_VALID;		/* This is a Gnutella node */
+	}
 
 	if (ack_ok && (major != n->proto_major || minor != n->proto_minor)) {
 		if (incoming)

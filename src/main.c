@@ -45,8 +45,8 @@ void gtk_gnutella_exit(gint n)
 	socket_shutdown();
 	search_shutdown();
 	share_close();
-	host_close();
 	node_close();
+	host_close();
 	routing_close();
 	download_close();
 	upload_close();
@@ -149,13 +149,13 @@ gboolean main_timer(gpointer p)
 	 */
 
 	if (nodes_missing > 0 && !stop_host_get) {
-		if (sl_catched_hosts != NULL) {
-			struct gnutella_host *host;
+		if (sl_caught_hosts != NULL) {
+			while (nodes_missing-- > 0 && sl_caught_hosts) {
+				guint32 ip;
+				guint16 port;
 
-			while (nodes_missing-- > 0 && sl_catched_hosts) {
-				host = host_get_caught();
-				node_add(NULL, host->ip, host->port);
-				g_free(host);
+				host_get_caught(&ip, &port);
+				node_add(NULL, ip, port);
 			}
 		} else
 			auto_connect();
