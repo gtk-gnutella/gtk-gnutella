@@ -62,6 +62,7 @@ typedef void (*io_start_cb_t)(gpointer resource);
 #define IO_SAVE_FIRST		0x00000002	/* Save 1st line in socket's getline */
 #define IO_SINGLE_LINE		0x00000004	/* Get one line only, then process */
 #define IO_3_WAY			0x00000008	/* In 3-way handshaking */
+#define IO_SAVE_HEADER		0x00000010	/* Save header text for later perusal */
 
 /*
  * Public interface
@@ -70,6 +71,7 @@ typedef void (*io_start_cb_t)(gpointer resource);
 void io_free(gpointer opaque);
 struct header *io_header(gpointer opaque);
 struct getline *io_getline(gpointer opaque);
+gchar *io_gettext(gpointer opaque);
 
 void io_get_header(
 	gpointer resource,			/* Resource for which we're reading headers */

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Asynchronous I/O header parsing.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,7 +23,15 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @file
+ *
+ * Asynchronous I/O header parsing.
+ */
+
 #include "gnutella.h"
+
+RCSID("$Id$");
 
 #include <string.h>
 #include <errno.h>
@@ -37,7 +43,7 @@
 #include "bsched.h"
 #include "override.h"		/* Must be the last header included */
 
-RCSID("$Id$");
+#define DFLT_SIZE	2048	/* Expected headers should not be larger */
 
 /*
  * This structure is used to encapsulate the various arguments required
@@ -53,15 +59,15 @@ struct io_header {
 	struct io_error *error;				/* Error callbacks */
 	io_done_cb_t process_header;		/* Called when all headers are read */
 	io_start_cb_t header_read_start;	/* Called when reading first byte */
+	GString *text;						/* Full header text */
 	gint flags;
 };
 
-/*
- * io_free
- *
+/**
  * Free the opaque I/O data.
  */
-void io_free(gpointer opaque)
+void
+io_free(gpointer opaque)
 {
 	struct io_header *ih = (struct io_header *) opaque;
 
@@ -77,16 +83,17 @@ void io_free(gpointer opaque)
 		header_free(ih->header);
 	if (ih->getline)
 		getline_free(ih->getline);
+	if (ih->text)
+		g_string_free(ih->text, TRUE);
 	
 	wfree(ih, sizeof(*ih));
 }
 
-/*
- * io_header
- *
+/**
  * Fetch header structure from opaque I/O data.
  */
-struct header *io_header(gpointer opaque)
+struct header *
+io_header(gpointer opaque)
 {
 	struct io_header *ih = (struct io_header *) opaque;
 
@@ -99,12 +106,11 @@ struct header *io_header(gpointer opaque)
 	return ih->header;
 }
 
-/*
- * io_getline
- *
+/**
  * Fetch getline structure from opaque I/O data.
  */
-struct getline *io_getline(gpointer opaque)
+struct getline *
+io_getline(gpointer opaque)
 {
 	struct io_header *ih = (struct io_header *) opaque;
 
@@ -117,13 +123,33 @@ struct getline *io_getline(gpointer opaque)
 	return ih->getline;
 }
 
-/*
- * io_header_parse
- *
+/**
+ * Fetch header text as C string from opaque I/O data.
+ * It is up to the caller to strdup the data if needed.
+ * The returned data will be freed when io_free() is called.
+ */
+gchar *
+io_gettext(gpointer opaque)
+{
+	struct io_header *ih = (struct io_header *) opaque;
+
+	g_assert(ih);
+	g_assert(ih->io_opaque);
+	g_assert((gchar *) ih->io_opaque > (gchar *) ih->resource);
+	g_assert(((gchar *) ih->io_opaque - (gchar *) ih->resource) < 1024);
+	g_assert(*ih->io_opaque == opaque);
+	g_assert(ih->flags & IO_SAVE_HEADER);	/* They must have requested this */
+	g_assert(ih->text);
+
+	return ih->text->str;
+}
+
+/**
  * This routine is called to parse the input buffer (the socket's buffer),
  * a line at a time, until EOH is reached.
  */
-static void io_header_parse(struct io_header *ih)
+static void
+io_header_parse(struct io_header *ih)
 {
 	struct gnutella_socket *s = ih->socket;
 	getline_t *getline = ih->getline;
@@ -163,6 +189,21 @@ nextline:
 	/*
 	 * We come here everytime we get a full header line.
 	 */
+
+	if (ih->flags & IO_SAVE_HEADER) {
+		/*
+		 * Make sure we get an exact copy of the header data, in the way
+		 * we read them.  However, we insert a "\n" at the end of the
+		 * line instead of the "\r\n" because the data is only meant for
+		 * tracing / debugging, and we don't really care about the "\r".
+		 *		--RAM, 2004-08-02
+		 */
+
+		g_assert(ih->text != NULL);
+		/* No g_string_append_len() in glib 1.2, use g_string_append() --RAM */
+		g_string_append(ih->text, getline_str(getline));
+		g_string_append_c(ih->text, '\n');
+	}
 
 	if (ih->flags & IO_SAVE_FIRST) {
 		/*
@@ -285,16 +326,14 @@ nextline:
 	ih->process_header(ih->resource, ih->header);
 }
 
-/*
- * io_read_data
- *
+/**
  * This routine is installed as an input callback to read the headers
  * into the socket's buffer.
  *
  * Read data is then handed out to io_header_parse() for analysis.
  */
-static void io_read_data(
-	gpointer data, gint source, inputevt_cond_t cond)
+static void
+io_read_data(gpointer data, gint source, inputevt_cond_t cond)
 {
 	struct io_header *ih = (struct io_header *) data;
 	struct gnutella_socket *s = ih->socket;
@@ -363,9 +402,7 @@ static void io_read_data(
 	io_header_parse(ih);
 }
 
-/*
- * io_get_header
- *
+/**
  * Setup input callback and context for reading/parsing the header.
  * The I/O parsing context is directly written into the structure.
  *
@@ -374,7 +411,8 @@ static void io_read_data(
  * first line will be copied into the (dynamically allocated) socket's
  * getline buffer.
  */
-void io_get_header(
+void
+io_get_header(
 	gpointer resource,			/* Resource for which we're reading headers */
 	gpointer *io_opaque,		/* Field address in resource's structure */
 	bsched_t *bs,				/* B/w scheduler from which we read */
@@ -412,6 +450,7 @@ void io_get_header(
 	ih->process_header = done;
 	ih->header_read_start = start;
 	ih->header = (flags & IO_SINGLE_LINE) ? NULL : header_make();
+	ih->text = (flags & IO_SAVE_HEADER) ? g_string_sized_new(DFLT_SIZE) : NULL;
 
 	/*
 	 * Associate the structure with the resource.
@@ -439,9 +478,7 @@ void io_get_header(
 	io_header_parse(ih);
 }
 
-/*
- * io_continue_header
- *
+/**
  * Called during a 3-way handshaking process.
  *
  * This is used when we're receiving an incoming connection.  Once we have
@@ -449,7 +486,8 @@ void io_get_header(
  * to parse the final handshaking headers from our peer.  That's when
  * this routine is called.
  */
-void io_continue_header(
+void
+io_continue_header(
 	gpointer opaque,			/* Existing header parsing context */
 	gint flags,					/* New I/O parsing flags */
 	io_done_cb_t done,			/* Mandatory: final callback when all done */
@@ -463,8 +501,29 @@ void io_continue_header(
 
 	g_assert(!(flags & IO_HEAD_ONLY) || ih->error->header_extra_data);
 
+	/*
+	 * If they no longer wish to save the header, discard any existing
+	 * entry.  Otherwise, reset it.
+	 *
+	 * If they begin to set IO_SAVE_HEADER here, create the data structure
+	 * necessary to save the header text.
+	 */
+
+	if (ih->text) {
+		g_assert(ih->flags & IO_SAVE_HEADER);
+
+		if (flags & IO_SAVE_HEADER)
+			g_string_truncate(ih->text, 0);
+		else {
+			g_string_free(ih->text, TRUE);
+			ih->text = NULL;
+		}
+	} else if (flags & IO_SAVE_HEADER)
+		ih->text = g_string_sized_new(DFLT_SIZE);
+
 	header_reset(ih->header);
 	ih->flags = flags;
 	ih->process_header = done;
 	ih->header_read_start = start;
 }
+
