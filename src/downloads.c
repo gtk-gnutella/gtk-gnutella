@@ -4597,6 +4597,11 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 				g_warning("server \"%s\" at %s might be banning us",
 					download_vendor_str(d),
 					ip_port_to_gchar(download_ip(d), download_port(d)));
+
+				download_queue_delay(d,
+					delay ? delay : download_retry_busy_delay,
+					"%sHTTP %d %s", short_read, ack_code, ack_message);
+				return;
 			}
 		}
 
