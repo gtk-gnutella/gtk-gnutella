@@ -134,7 +134,7 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 
     titles[0] = ip_port_to_gchar(n->ip, n->port);
     titles[1] = g_strdup(type);
-    titles[2] = "...";
+    titles[2] = n->vendor ? n->vendor : "...";
     titles[3] = proto_tmp;
     titles[4] = "...";
 
