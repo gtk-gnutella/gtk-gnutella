@@ -626,6 +626,15 @@ static void ping_all_neighbours(time_t now)
 		if (!NODE_IS_WRITABLE(n) || NODE_IS_LEAF(n))
 			continue;
 
+		/*
+		 * If node is in TX flow control, we already have problems,
+		 * so don't increase them by sending more pings.
+		 *		--RAM, 19/06/2003
+		 */
+
+		if (NODE_IN_TX_FLOW_CONTROL(n))
+			continue;
+
 		if (n->attrs & NODE_A_PONG_CACHING)
 			send_ping(n, my_ttl);
 		else if (now > n->next_ping) {
