@@ -106,6 +106,8 @@ typedef struct hostcache {
 
 static hostcache_t *caches[HCACHE_MAX];
 
+static gboolean hcache_close_running = FALSE;
+
 /**
  * Names of the host caches. 
  *
@@ -267,7 +269,7 @@ hcache_ht_get(guint32 ip, guint16 port, gnet_host_t **h, hostcache_entry_t **e)
 /**
  * Add host to the hash table host cache. 
  * Also creates a metadata struct unless the host was added to HL_CAUGHT 
- * in which case we can not know anything about the host. Yet we can not 
+ * in which case we cannot know anything about the host. Yet we cannot 
  * assert that HL_CAUGHT never contains a host with metadata because when 
  * HL_CAUGHT becomes empty, move all hosts from HL_VALID to HL_CAUGHT. We 
  * can however assert that any host which does not have metadata is in 
@@ -454,7 +456,11 @@ hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
 	hcache_ht_remove(host);
 	wfree(host, sizeof(*host));
 
-    hcache_require_caught(hc);
+	if (!hcache_close_running) {
+		/* This must not be called during a close sequence as it
+		 * would refill some caches and cause an assertion failure */
+    	hcache_require_caught(hc);
+	}
 }
 
 /**
@@ -784,6 +790,7 @@ hcache_remove_all(hostcache_t *hc)
     g_assert(hc->host_count == 0);
 
     stop_mass_update(hc);
+    g_assert(hc->host_count == 0);
 }
 
 /**
@@ -1643,8 +1650,8 @@ void hcache_close(void)
 {
 	static const hcache_type_t types[] = { 
         HCACHE_FRESH_ANY, 
-        HCACHE_FRESH_ULTRA,
         HCACHE_VALID_ANY,
+        HCACHE_FRESH_ULTRA,
         HCACHE_VALID_ULTRA,
         HCACHE_TIMEOUT,
         HCACHE_BUSY,
@@ -1652,6 +1659,9 @@ void hcache_close(void)
     };
 	guint i;
 
+	g_assert(!hcache_close_running);	
+	hcache_close_running = TRUE;	
+	
     /*
      * First we stop all background processes and remove all hosts, 
      * only then we free the hcaches. This is important because 
@@ -1659,12 +1669,21 @@ void hcache_close(void)
      */
 
 	for (i = 0; i < G_N_ELEMENTS(types); i++) {
+		guint j;
 		hcache_type_t type = types[i];
 
 		if (bg_reader[type] != NULL)
 			bg_task_cancel(bg_reader[type]);
 
+		/* Make sure all previous caches have been cleared */
+		for (j = 0; j < type; j++)
+    		g_assert(caches[j]->host_count == 0);
+		
         hcache_remove_all(caches[type]);
+		
+		/* Make sure no caches have been refilled */
+		for (j = 0; j <= type; j++)
+    		g_assert(caches[j]->host_count == 0);
 	}
 
 	for (i = 0; i < G_N_ELEMENTS(types); i++) {
