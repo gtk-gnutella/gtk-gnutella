@@ -233,7 +233,7 @@ void gnet_stats_count_expired(gnutella_node_t *n)
     stats->byte.expired[t] += size;
 }
 
-#define DROP_STATS(t,s) do {							\
+#define DROP_STATS(gs,t,s) do {							\
     if (												\
         (reason == MSG_DROP_ROUTE_LOST) ||				\
         (reason == MSG_DROP_DUPLICATE) ||				\
@@ -247,18 +247,25 @@ void gnet_stats_count_expired(gnutella_node_t *n)
     gnet_stats.pkg.dropped[t]++;						\
     gnet_stats.byte.dropped[MSG_TOTAL] += (s);			\
     gnet_stats.byte.dropped[t] += (s);					\
+    gs->pkg.dropped[MSG_TOTAL]++;						\
+    gs->pkg.dropped[t]++;								\
+    gs->byte.dropped[MSG_TOTAL] += (s);					\
+    gs->byte.dropped[t] += (s);							\
 } while (0)
 
 void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 {
 	guint32 size;
 	guint type;
+	gnet_stats_t *stats;
+
 	g_assert((gint) reason >= 0 && reason < MSG_DROP_REASON_COUNT);
 
     size = n->size + sizeof(n->header);
 	type = stats_lut[n->header.function];
+	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
-	DROP_STATS(type, size);
+	DROP_STATS(stats, type, size);
 
 	if (dbg > 4)
 		gmsg_log_dropped(&n->header, "from %s <%s>: %s",
@@ -278,11 +285,14 @@ void gnet_stats_count_dropped_nosize(
 	gnutella_node_t *n, msg_drop_reason_t reason)
 {
 	guint type;
+	gnet_stats_t *stats;
 	g_assert((gint) reason >= 0 && reason < MSG_DROP_REASON_COUNT);
 
 	type = stats_lut[n->header.function];
+	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
-	DROP_STATS(type, sizeof(n->header));	/* Data part of message not read */
+	/* Data part of message not read */
+	DROP_STATS(stats, type, sizeof(n->header));
 
 	if (dbg > 4)
 		gmsg_log_dropped(&n->header, "from %s <%s>: %s",
