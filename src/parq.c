@@ -1108,15 +1108,20 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 	 */
 
 	if (dl == NULL) {
-		g_warning("[PARQ DL] could not locate QUEUE id '%s' from %s",
-			id, ip_port_to_gchar(ip, port));
+        if (dbg) {
+            g_message("[PARQ DL] could not locate QUEUE id '%s' from %s",
+                id, ip_port_to_gchar(ip, port));
+        }
 
 		if (has_ip_port) {
 			dl = download_find_waiting_unparq(ip, port);
 
 			if (dl != NULL) {
-				g_warning("[PARQ DL] elected '%s' from %s for QUEUE id '%s'",
-					dl->file_name, ip_port_to_gchar(ip, port), id);
+                if (dbg) {
+                    g_message("[PARQ DL] elected '%s' from %s for QUEUE"
+                        " id '%s'",
+                        dl->file_name, ip_port_to_gchar(ip, port), id);
+                }
 
 				g_assert(dl->queue_status == NULL);		/* unparq'ed */
 

@@ -2515,8 +2515,10 @@ void http_async_log_error(gpointer handle, http_errtype_t type, gpointer v)
 
 	switch (type) {
 	case HTTP_ASYNC_SYSERR:
-		g_warning("aborting \"%s %s\" at %s on system error: %s",
-			req, url, ip_port_to_gchar(ip, port), g_strerror(error));
+        if (dbg) {
+            g_message("aborting \"%s %s\" at %s on system error: %s",
+                req, url, ip_port_to_gchar(ip, port), g_strerror(error));
+        }
 		break;
 	case HTTP_ASYNC_ERROR:
 		if (error == HTTP_ASYNC_CANCELLED) {
@@ -2528,16 +2530,22 @@ void http_async_log_error(gpointer handle, http_errtype_t type, gpointer v)
 				printf("connection closed for \"%s %s\" at %s\n", req, url,
 					ip_port_to_gchar(ip, port));
 		} else
-			g_warning("aborting \"%s %s\" at %s on error: %s", req, url,
-				ip_port_to_gchar(ip, port), http_async_strerror(error));
+            if (dbg) {
+                g_message("aborting \"%s %s\" at %s on error: %s", req, url,
+                    ip_port_to_gchar(ip, port), http_async_strerror(error));
+            }
 		break;
 	case HTTP_ASYNC_HEADER:
-		g_warning("aborting \"%s %s\" at %s on header parsing error: %s",
-			req, url, ip_port_to_gchar(ip, port), header_strerror(error));
+        if (dbg) {
+            g_message("aborting \"%s %s\" at %s on header parsing error: %s",
+                req, url, ip_port_to_gchar(ip, port), header_strerror(error));
+        }
 		break;
 	case HTTP_ASYNC_HTTP:
-		g_warning("stopping \"%s %s\" at %s: HTTP %d %s", req, url,
-			ip_port_to_gchar(ip, port), herror->code, herror->message);
+        if (dbg) {
+            g_message("stopping \"%s %s\" at %s: HTTP %d %s", req, url,
+                ip_port_to_gchar(ip, port), herror->code, herror->message);
+        }
 		break;
 	default:
 		g_error("unhandled HTTP request error type %d", type);
