@@ -185,6 +185,8 @@ static gboolean guid_changed(property_t prop);
 static gboolean show_tooltips_changed(property_t prop);
 static gboolean expert_mode_changed(property_t prop);
 static gboolean search_stats_mode_changed(property_t prop);
+static gboolean sha1_rebuilding_changed(property_t prop);
+static gboolean library_rebuilding_changed(property_t prop);
 
 // FIXME: move to separate file and autoegenerate from high-level
 //        description. 
@@ -1248,6 +1250,20 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_search_mark_ignored"
     },
+    {
+        get_main_window,
+        PROP_LIBRARY_REBUILDING,
+        library_rebuilding_changed,
+        TRUE,
+        "eventbox_image_lib" /* need eventbox because image has no tooltip */
+    },
+    {
+        get_main_window,
+        PROP_SHA1_REBUILDING,
+        sha1_rebuilding_changed,
+        TRUE,
+        "eventbox_image_sha" /* need eventbox because image has no tooltip */
+    },
 };
 
 /***
@@ -2252,6 +2268,35 @@ static gboolean search_stats_mode_changed(property_t prop)
 
     return FALSE;
 }
+
+static gboolean sha1_rebuilding_changed(property_t prop)
+{
+	GtkWidget *image;
+	gboolean val;
+
+	image = lookup_widget(main_window, "image_sha");
+
+    gnet_prop_get_boolean(prop, &val, 0, 1);
+
+    gtk_widget_set_sensitive(image, val);
+	
+	return FALSE;
+}
+
+static gboolean library_rebuilding_changed(property_t prop)
+{
+	GtkWidget *image;
+	gboolean val;
+
+	image = lookup_widget(main_window, "image_lib");
+
+    gnet_prop_get_boolean(prop, &val, 0, 1);
+
+    gtk_widget_set_sensitive(image, val);
+
+	return FALSE;
+}
+
 
 
 /***

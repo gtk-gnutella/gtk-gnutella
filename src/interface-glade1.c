@@ -603,6 +603,11 @@ create_main_window (void)
   GtkWidget *eventbox6;
   GtkWidget *image_online;
   GtkWidget *statusbar;
+  GtkWidget *image_save;
+  GtkWidget *eventbox_image_sha;
+  GtkWidget *image_sha;
+  GtkWidget *eventbox_image_lib;
+  GtkWidget *image_lib;
   GtkWidget *hbox89;
   GtkWidget *eventbox2;
   GtkWidget *image_firewall;
@@ -5606,6 +5611,49 @@ create_main_window (void)
   gtk_widget_show (statusbar);
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), statusbar, TRUE, TRUE, 0);
 
+  image_save = create_pixmap (main_window, "save.xpm");
+  gtk_widget_set_name (image_save, "image_save");
+  gtk_widget_ref (image_save);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_save", image_save,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), image_save, FALSE, TRUE, 0);
+  gtk_misc_set_padding (GTK_MISC (image_save), 1, 0);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_save), FALSE);
+
+  eventbox_image_sha = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_sha, "eventbox_image_sha");
+  gtk_widget_ref (eventbox_image_sha);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_sha", eventbox_image_sha,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_sha);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_sha, FALSE, FALSE, 0);
+
+  image_sha = create_pixmap (main_window, "booksha.xpm");
+  gtk_widget_set_name (image_sha, "image_sha");
+  gtk_widget_ref (image_sha);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_sha", image_sha,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_sha);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_sha), image_sha);
+  gtk_misc_set_padding (GTK_MISC (image_sha), 1, 0);
+
+  eventbox_image_lib = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_lib, "eventbox_image_lib");
+  gtk_widget_ref (eventbox_image_lib);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_lib", eventbox_image_lib,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_lib);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_lib, FALSE, TRUE, 0);
+
+  image_lib = create_pixmap (main_window, "booklib.xpm");
+  gtk_widget_set_name (image_lib, "image_lib");
+  gtk_widget_ref (image_lib);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_lib", image_lib,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_lib);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_lib), image_lib);
+  gtk_misc_set_padding (GTK_MISC (image_lib), 1, 0);
+
   hbox89 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox89, "hbox89");
   gtk_widget_ref (hbox89);
@@ -5630,6 +5678,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_firewall);
   gtk_container_add (GTK_CONTAINER (eventbox2), image_firewall);
+  gtk_misc_set_padding (GTK_MISC (image_firewall), 1, 0);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_firewall), FALSE);
 
   eventbox3 = gtk_event_box_new ();
@@ -5648,6 +5697,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_no_firewall);
   gtk_container_add (GTK_CONTAINER (eventbox3), image_no_firewall);
+  gtk_misc_set_padding (GTK_MISC (image_no_firewall), 1, 0);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_no_firewall), FALSE);
 
   label_statusbar_uptime = gtk_label_new ("Uptime");

@@ -8981,6 +8981,65 @@ interface</label>
       </widget>
 
       <widget>
+	<class>GtkPixmap</class>
+	<name>image_save</name>
+	<visible>False</visible>
+	<filename>save.xpm</filename>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>1</xpad>
+	<ypad>0</ypad>
+	<build_insensitive>False</build_insensitive>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>True</fill>
+	</child>
+      </widget>
+
+      <widget>
+	<class>GtkEventBox</class>
+	<name>eventbox_image_sha</name>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+
+	<widget>
+	  <class>GtkPixmap</class>
+	  <name>image_sha</name>
+	  <filename>booksha.xpm</filename>
+	  <xalign>0.5</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>1</xpad>
+	  <ypad>0</ypad>
+	  <build_insensitive>True</build_insensitive>
+	</widget>
+      </widget>
+
+      <widget>
+	<class>GtkEventBox</class>
+	<name>eventbox_image_lib</name>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>True</fill>
+	</child>
+
+	<widget>
+	  <class>GtkPixmap</class>
+	  <name>image_lib</name>
+	  <filename>booklib.xpm</filename>
+	  <xalign>0.5</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>1</xpad>
+	  <ypad>0</ypad>
+	  <build_insensitive>True</build_insensitive>
+	</widget>
+      </widget>
+
+      <widget>
 	<class>GtkHBox</class>
 	<name>hbox89</name>
 	<homogeneous>False</homogeneous>
@@ -9007,7 +9066,7 @@ interface</label>
 	    <filename>firewall.xpm</filename>
 	    <xalign>0.5</xalign>
 	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
+	    <xpad>1</xpad>
 	    <ypad>0</ypad>
 	    <build_insensitive>False</build_insensitive>
 	  </widget>
@@ -9029,7 +9088,7 @@ interface</label>
 	    <filename>no_firewall.xpm</filename>
 	    <xalign>0.5</xalign>
 	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
+	    <xpad>1</xpad>
 	    <ypad>0</ypad>
 	    <build_insensitive>False</build_insensitive>
 	  </widget>
