@@ -589,8 +589,8 @@ msgid "IP address of the proxy"
 msgstr "Proxy IP-címe"
 
 #: src/gnet_property.c:1968
-msgid "Port the proxy is listening on"
-msgstr "Kapu, amelyen a proxy várja a kapcsolatot"
+msgid "TCP Port the proxy is listening on"
+msgstr "TCP Kapu, amelyen a proxy várja a kapcsolatot"
 
 #: src/gnet_property.c:1988
 msgid "Protocol the proxy uses"
@@ -2363,8 +2363,8 @@ msgid "IP settings"
 msgstr "IP beállítások"
 
 #: src/interface-glade2.c:3220
-msgid "_Port:"
-msgstr "_Kapu:"
+msgid "TCP _Port:"
+msgstr "TCP _Kapu:"
 
 #: src/interface-glade2.c:3237
 msgid "Proxy _type:"
@@ -4263,10 +4263,10 @@ msgstr "Feltétel: ha a jelenlegi szűrő eredmény tulajdonságai illenek"
 
 #: src/interface-glade2.c:14901
 msgid ""
-"Configuration of IP address, Port,\n"
+"Configuration of IP address, TCP Port,\n"
 "Proxy settings etc. "
 msgstr ""
-"IP-cím, kapu, proxy, stb. \n"
+"IP-cím, TCP kapu, proxy, stb. \n"
 "beállítása."
 
 #: src/interface-glade2.c:14911

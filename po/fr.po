@@ -212,16 +212,17 @@ msgstr "Uptime moyen du servent, en secondes"
 #: src/gnet_property.c:869
 msgid ""
 "Local port gtk-gnutella is listening on. Your ISP may block or choke traffic "
-"on port 6346 so it would be a good idea to change it to something in the "
+"on TCP port 6346 so it would be a good idea to change it to something in the "
 "range of 1024-65535.  Don't forget to update your firewall port forwarding / "
-"opening, as necessary.  Note that by default, the port 6346 is not used to "
-"guard against undue censorship."
+"opening, as necessary.  Note that by default, the TCP port 6346 is not used "
+"to guard against undue censorship."
 msgstr ""
-"Port sur lequel gtk-gnutella écoute. Votre FAI peut bloquer ou limiter le "
-"trafic sur le port 6346, ça serait une bonne idée de le changer vers quelque-"
+"TCP Port sur lequel gtk-gnutella écoute. Votre FAI peut bloquer ou limiter "
+"le trafic sur le TCP port 6346, ça serait une bonne idée de le changer "
+"vers quelque-"
 "chose entre 1024-65535. N'oubliez pas de mettre à jour votre forwarding/"
 "ouverture du port sur votre firewall, si nécessaire. Notez que par défaut, "
-"le port 6346 n'est pas utilisé pour protéger contre la censure anormale."
+"le TCP port 6346 n'est pas utilisé pour protéger contre la censure anormale."
 
 #: src/gnet_property.c:889
 msgid "Use this IP address as source address if 'force local ip' is activated"
@@ -618,8 +619,8 @@ msgid "IP address of the proxy"
 msgstr "Adresse IP du proxy"
 
 #: src/gnet_property.c:1968
-msgid "Port the proxy is listening on"
-msgstr "Port sur lequel le proxy écoute"
+msgid "TCP Port the proxy is listening on"
+msgstr "TCP Port sur lequel le proxy écoute"
 
 #: src/gnet_property.c:1988
 msgid "Protocol the proxy uses"
@@ -2445,15 +2446,15 @@ msgid "_Force local IP to"
 msgstr "_Forcer l'IP locale à"
 
 #: src/interface-glade2.c:3167
-msgid "_Listen port"
-msgstr "Port d'éc_oute"
+msgid "_Listen TCP port"
+msgstr "TCP Port d'éc_oute"
 
 #: src/interface-glade2.c:3175
 msgid "IP settings"
 msgstr "Paramètres IP"
 
 #: src/interface-glade2.c:3220
-msgid "_Port:"
+msgid "TCP _Port:"
 msgstr ""
 
 #: src/interface-glade2.c:3237
@@ -4378,10 +4379,10 @@ msgstr "Condition: Si les propriétés du résultat du filtre actuel correspond"
 
 #: src/interface-glade2.c:14901
 msgid ""
-"Configuration of IP address, Port,\n"
+"Configuration of IP address, TCP Port,\n"
 "Proxy settings etc. "
 msgstr ""
-"Configuration de l'adresse IP , Port,\n"
+"Configuration de l'adresse IP , TCP Port,\n"
 "Paramètres du proxy etc."
 
 #: src/interface-glade2.c:14911
@@ -4754,8 +4755,8 @@ msgstr "%u/%u téléchargement%s"
 #~ msgid "Force local IP to"
 #~ msgstr "Forcer l'IP locale à"
 
-#~ msgid "Listen port"
-#~ msgstr "Port d'écoute"
+#~ msgid "Listen TCP port"
+#~ msgstr "TCP Port d'écoute"
 
 #~ msgid "Host:"
 #~ msgstr "Hôte:"

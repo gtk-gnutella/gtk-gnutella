@@ -618,8 +618,8 @@ msgid "IP address of the proxy"
 msgstr "IP adres van de proxy"
 
 #: src/gnet_property.c:1968
-msgid "Port the proxy is listening on"
-msgstr "De poort waarop de proxy luistert"
+msgid "TCP Port the proxy is listening on"
+msgstr "De TCP poort waarop de proxy luistert"
 
 #: src/gnet_property.c:1988
 msgid "Protocol the proxy uses"
@@ -2542,8 +2542,8 @@ msgid "IP settings"
 msgstr "IP instellingen"
 
 #: src/interface-glade2.c:3220
-msgid "_Port:"
-msgstr "_Poort:"
+msgid "TCP _Port:"
+msgstr "TCP _Poort:"
 
 #: src/interface-glade2.c:3237
 msgid "Proxy _type:"
@@ -4435,10 +4435,10 @@ msgstr ""
 
 #: src/interface-glade2.c:14901
 msgid ""
-"Configuration of IP address, Port,\n"
+"Configuration of IP address, TCP Port,\n"
 "Proxy settings etc. "
 msgstr ""
-"Configuratie van IP adres, poort,\n"
+"Configuratie van IP adres, TCP poort,\n"
 "Proxy instellingen, etc. "
 
 #: src/interface-glade2.c:14911

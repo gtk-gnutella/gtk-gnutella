@@ -4915,7 +4915,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label91), 7.45058e-09, 0.5);
 
-  label92 = gtk_label_new (_("Port:"));
+  label92 = gtk_label_new (_("TCP Port:"));
   gtk_widget_set_name (label92, "label92");
   gtk_widget_ref (label92);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label92", label92,

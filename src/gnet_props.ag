@@ -232,12 +232,12 @@ prop = {
 
 prop = {
     name = "listen_port";
-    desc = "Local port gtk-gnutella is listening on. Your ISP may "
-			"block or choke traffic on port 6346 so it would be a "
+    desc = "Local TCP port gtk-gnutella is listening on. Your ISP may "
+			"block or choke traffic on TCP port 6346 so it would be a "
 			"good idea to change it to something in the range of "
 			"1024-65535.  Don't forget to update your firewall port "
 			"forwarding / opening, as necessary.  Note that by default, "
-			"the port 6346 is not used to guard against undue censorship.";
+			"the TCP port 6346 is not used to guard against undue censorship.";
     type = guint32;
     data = {
         default = 0;
@@ -922,7 +922,7 @@ prop = {
 
 prop = {
     name = "proxy_port";
-    desc = "Port the proxy is listening on";
+    desc = "TCP Port the proxy is listening on";
     type = guint32;
     data = {
         default = 0x0000;
@@ -2452,3 +2452,5 @@ prop = {
 		default = FALSE;
 	};
 };
+
+/* vi: set ts=4: */

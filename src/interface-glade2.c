@@ -3230,7 +3230,7 @@ create_main_window_config_net_tab (void)
   gtk_widget_show (combo_entry4);
   gtk_editable_set_editable (GTK_EDITABLE (combo_entry4), FALSE);
 
-  label92 = gtk_label_new_with_mnemonic (_("_Port:"));
+  label92 = gtk_label_new_with_mnemonic (_("TCP _Port:"));
   gtk_widget_set_name (label92, "label92");
   gtk_widget_show (label92);
   gtk_table_attach (GTK_TABLE (table47), label92, 2, 3, 1, 2,
@@ -14782,7 +14782,7 @@ create_main_window_config_sel_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table64), 8);
   gtk_table_set_col_spacings (GTK_TABLE (table64), 4);
 
-  label592 = gtk_label_new (_("Configuration of IP address, Port,\nProxy settings etc. "));
+  label592 = gtk_label_new (_("Configuration of IP address, TCP Port,\nProxy settings etc. "));
   gtk_widget_set_name (label592, "label592");
   gtk_widget_show (label592);
   gtk_table_attach (GTK_TABLE (table64), label592, 1, 2, 0, 1,

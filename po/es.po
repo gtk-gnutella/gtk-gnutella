@@ -595,8 +595,8 @@ msgid "IP address of the proxy"
 msgstr "Dirección IP del proxy"
 
 #: src/gnet_property.c:1968
-msgid "Port the proxy is listening on"
-msgstr "Puerto sobre el cual está escuchando el proxy"
+msgid "TCP Port the proxy is listening on"
+msgstr "TCP Puerto sobre el cual está escuchando el proxy"
 
 #: src/gnet_property.c:1988
 msgid "Protocol the proxy uses"
@@ -2446,8 +2446,8 @@ msgid "IP settings"
 msgstr "Configuración IP"
 
 #: src/interface-glade2.c:3220
-msgid "_Port:"
-msgstr "_Puerto:"
+msgid "TCP _Port:"
+msgstr "TCP _Puerto:"
 
 #: src/interface-glade2.c:3237
 msgid "Proxy _type:"
@@ -3640,10 +3640,10 @@ msgstr "Dirección/Puerto:"
 
 #: src/interface-glade2.c:9045
 msgid ""
-"The current IP address and listening port for this node. To change these go "
-"to Config->Network."
+"The current IP address and listening TCP port for this node. To change these "
+"go to Config->Network."
 msgstr ""
-"La dirección IP actual y el puerto de escucha para este nodo. Para "
+"La dirección IP actual y el TCP puerto de escucha para este nodo. Para "
 "cambiarlas, ir a Configuración->Red."
 
 #: src/interface-glade2.c:9056
@@ -4317,11 +4317,11 @@ msgstr "Condición: Si las propiedades del resultado del filtro actual coincide"
 
 #: src/interface-glade2.c:14901
 msgid ""
-"Configuration of IP address, Port,\n"
+"Configuration of IP address, TCP Port,\n"
 "Proxy settings etc. "
 msgstr ""
 "Configuración de la dirección IP,\n"
-"Puerto, Proxy, etc. "
+"TCP Puerto, Proxy, etc. "
 
 #: src/interface-glade2.c:14911
 msgid ""
