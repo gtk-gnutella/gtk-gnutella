@@ -148,6 +148,8 @@ search_gui_free_record(record_t *rc)
 		atom_str_free(rc->info);
 	if (rc->sha1 != NULL)
 		atom_sha1_free(rc->sha1);
+	if (rc->xml != NULL)
+		atom_str_free(rc->xml);
 	if (rc->alt_locs != NULL)
 		search_gui_free_alt_locs(rc);
 	rc->refcount = -1;
@@ -503,6 +505,7 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     rc->size = r->size;
     rc->index = r->index;
     rc->sha1 = r->sha1 != NULL ? atom_sha1_get(r->sha1) : NULL;
+    rc->xml = r->xml != NULL ? atom_str_get(r->xml) : NULL;
     rc->tag = r->tag != NULL ? atom_str_get(r->tag) : NULL;
 	rc->info = NULL;
    	rc->flags = r->flags;

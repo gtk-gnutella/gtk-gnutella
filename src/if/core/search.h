@@ -114,6 +114,7 @@ typedef struct gnet_record {
 	guint32 index;				/* Index for GET command */
 	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
 	gchar  *tag;				/* Optional tag data string (atom) */
+	gchar  *xml;				/* Optional XML data string (atom) */
 	gnet_host_vec_t *alt_locs;	/* Optional: known alternate locations */
     flag_t  flags;
 } gnet_record_t;

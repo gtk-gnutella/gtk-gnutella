@@ -346,6 +346,8 @@ search_free_record(gnet_record_t *rc)
 		atom_str_free(rc->tag);
 	if (rc->sha1 != NULL)
 		atom_sha1_free(rc->sha1);
+	if (rc->xml != NULL)
+		atom_str_free(rc->xml);
 	if (rc->alt_locs != NULL)
 		search_free_alt_locs(rc);
 	zfree(rc_zone, rc);
@@ -562,6 +564,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 			rc->index = idx;
 			rc->size  = size;
 			rc->name  = atom_str_get(fname);
+			rc->xml   = NULL;
             rc->flags = 0;
             rc->alt_locs = NULL;
 		}
@@ -622,7 +625,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 					} else
 						sha1_errors++;
 					break;
-				case EXT_T_GGEP_u:			/* HUGE URN, wihtout leading urn: */
+				case EXT_T_GGEP_u:			/* HUGE URN, without leading urn: */
 					paylen = ext_paylen(e);
 					payload = ext_payload(e);
 					if (
@@ -714,6 +717,22 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 						}
 					}
 					break;
+				case EXT_T_GGEP_LIME_XML:
+					paylen = ext_paylen(e);
+					payload = ext_payload(e);
+					g_message("YAY!");
+					if (!rc->xml && paylen > 0) {
+						size_t len;
+						gchar buf[4096];
+
+						len = MIN((size_t) paylen, sizeof buf - 1);
+						memcpy(buf, payload, len);
+						buf[len] = '\0';
+						if (utf8_is_valid_string(buf, 0)) {
+							rc->xml = atom_str_get(buf);
+						}
+					}
+					break;
 				case EXT_T_UNKNOWN_GGEP:	/* Unknown GGEP extension */
 					if (search_debug) {
 						g_warning("%s unknown GGEP \"%s\" (dumping)",
@@ -801,7 +820,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 			}
 		}
 
-		if (!validate_only)
+		if (!validate_only) 
 			rs->records = g_slist_prepend(rs->records, (gpointer) rc);
 	}
 
@@ -1036,6 +1055,28 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 								g_warning("%s bad GGEP \"HNAME\" (dumping)",
 									gmsg_infostr(&n->header));
 								ext_dump(stderr, e, 1, "....", "\n", TRUE);
+							}
+						}
+					}
+					break;
+				case EXT_T_XML:
+					{
+						size_t paylen = ext_paylen(e);
+						const gchar *payload = ext_payload(e);
+
+						/* XXX: Add the XML data to the next best record.
+						 *		Maybe better to all? It's just an atom.
+						 */
+						rc = rs->records ? rs->records->data : NULL; 
+						if (rc && !rc->xml && paylen > 0) {
+							size_t len;
+							gchar buf[4096];
+
+							len = MIN((size_t) paylen, sizeof buf - 1);
+							memcpy(buf, payload, len);
+							buf[len] = '\0';
+							if (utf8_is_valid_string(buf, 0)) {
+								rc->xml = atom_str_get(buf);
 							}
 						}
 					}

@@ -94,6 +94,7 @@ typedef struct record {
 	filesize_t size;			/* Size of file, in bytes */
 	guint32 index;				/* Index for GET command */
 	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
+	gchar  *xml;				/* Optional XML data string (atom) */
 	gchar  *tag;				/* Optional tag data string (atom) */
 	gchar  *info;				/* Short version of tag (atom) */
 	gnet_host_vec_t *alt_locs;	/* Optional alternate locations for record */
