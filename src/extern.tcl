@@ -34,7 +34,10 @@ set w_main_list {
 	label_current_port
 	checkbutton_config_force_ip entry_config_search_items entry_config_maxttl entry_config_myttl
 	button_config_update_port button_config_rescan_dir
-	label_left label_right
+        label_left label_right entry_config radio_socksv4 radio_socksv5
+        checkbutton_proxy_connections config_entry_socks_host
+        config_entry_socks_port config_entry_socks_username 
+        config_entry_socks_password entry_max_connections entry_search_reissue_timeout
 	popup_hosts popup_hosts_title popup_hosts_export
 	popup_dl_active popup_dl_active_title download_p_push download_p_queue download_p_kill
 	popup_dl_queued popup_dl_queued_title download_start_now
@@ -45,24 +48,11 @@ set w_main_list {
 	popup_uploads popup_uploads_title
 }
 
-# First we check wether the script hasn't been run already
-
-set h [open "interface.h"]
-
-while { ! [eof $h] } {
-	set l [gets $h]
-	if { [regexp -- "^/\\* Global Widgets \\(added by extern\\.tcl\\) \\*/$" $l] == 1 } {
-		puts stderr "\n\nYou can't run this script more than once !\n\n"
-		exit 1
-	}
-}
-
-close $h
-
 # interface.h ----------------------------------------------------------------------------------------
 
 # We add the global widgets declarations
 
+file copy -force -- interface-glade.h interface.h
 set h [open "interface.h" "a"]
 
 puts $h "\n/* Global Widgets (added by extern.tcl) */\n"
@@ -75,8 +65,8 @@ close $h
 
 # interface.c ----------------------------------------------------------------------------------------
 
-set s [open "interface.c" "r"]
-set d [open "interface.c.tmp" "w" 0600]
+set s [open "interface-glade.c" "r"]
+set d [open "interface.c" "w" 0600]
 
 # First, copy the head until the first "GtkWidget *"
 
@@ -130,12 +120,4 @@ close $d
 
 # Rename the file
 
-file rename -force -- interface.c.tmp interface.c
-
-#
-
-set s [open ".externs_made.interface" "w" ]
-close $s
-
 puts stdout ""
-
