@@ -213,12 +213,14 @@ oob_proxy_create(gnutella_node_t *n)
  */
 gboolean
 oob_proxy_pending_results(
-	gnutella_node_t *n, gchar *muid, gint hits, gboolean udp_firewalled)
+	gnutella_node_t *n, gchar *muid, gint hits, gboolean uu_udp_firewalled)
 {
 	struct oob_proxy_rec *opr;
 	struct gnutella_node *leaf;
 	guint32 wanted;
 	gchar *msg = NULL;
+
+	(void) uu_udp_firewalled;
 
 	g_assert(NODE_IS_UDP(n));
 	g_assert(hits > 0);
@@ -421,11 +423,12 @@ oob_proxy_init(void)
  * Cleanup servent -- hash table iterator callback
  */
 static void
-free_oob_proxy_kv(gpointer key, gpointer value, gpointer unused_udata)
+free_oob_proxy_kv(gpointer uu_key, gpointer value, gpointer uu_udata)
 {
 	struct oob_proxy_rec *opr = (struct oob_proxy_rec *) value;
 
-	(void) unused_udata;
+	(void) uu_key;
+	(void) uu_udata;
 	oob_proxy_rec_free(opr);
 }
 
