@@ -12,6 +12,11 @@
  * Based on my experiments about the necessary bandwidth to run an Ultrapeer,
    changed the default amount of leaves to 15 and the minimum to 5.
  * Display max amount of leaves/ultra/nodes when rejecting connections.
+ * Added necessary callback from mq.c to warn when queue count changes, so
+   we can update the node's flag immediately.
+ * Was not parsing version tag properly, and therefore started to ban recent
+   stable GTKG versions.
+ * Do not trigger "activity timeout" for leaf nodes.
 
 - (2003.01.18 - RAM)
  * Added new properties: "bw_gnet_leaf_in_enabled", "bw_gnet_leaf_out_enabled",
