@@ -227,6 +227,7 @@ static gboolean update_toggle_node_show_detailed_info(property_t prop);
 static gboolean update_label_date(property_t prop);
 static gboolean update_label_yes_or_no(property_t prop);
 static gboolean update_toggle_node_watch_similar_queries(property_t prop);
+static gboolean update_spinbutton_ultranode(property_t prop);
 
 /* FIXME:
  * move to separate file and autogenerate from high-level description.
@@ -722,7 +723,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_MAX_CONNECTIONS,
-        update_spinbutton,
+        update_spinbutton_ultranode,
         TRUE,
         "spinbutton_max_connections",
         FREQ_UPDATES, 0
@@ -2355,7 +2356,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_MAX_LEAVES,
-        update_spinbutton,
+        update_spinbutton_ultranode,
         TRUE,
         "spinbutton_config_max_leaves",
         FREQ_UPDATES, 0
@@ -2387,7 +2388,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_NORMAL_CONNECTIONS,
-        update_spinbutton,
+        update_spinbutton_ultranode,
         TRUE,
         "spinbutton_normal_connections",
         FREQ_UPDATES, 0
@@ -4531,6 +4532,24 @@ static gboolean config_toolbar_style_changed(property_t prop)
 	return FALSE;
 }
 #endif
+
+static gboolean update_spinbutton_ultranode(property_t prop)
+{
+	gboolean ret;
+	guint32 current_peermode;
+
+	ret = update_spinbutton(prop);
+
+	/*
+	 * In ultra mode, update the max connection display.
+	 */
+
+    gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &current_peermode);
+	if (current_peermode == NODE_P_ULTRA)
+		gnet_connections_changed(prop);		/* `prop' will be unused here */
+
+	return ret;
+}
 
 static gboolean gnet_connections_changed(property_t prop)
 {
