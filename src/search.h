@@ -47,8 +47,8 @@ struct results_set {
 	guint16 port;
 	guint16 status;				/* Parsed status bits from trailer */
 	guint32 speed;
-	guint32 trailer_len;		/* Length of the trailer data */
-	guchar *trailer;			/* Raw trailer data */
+	time_t stamp;				/* Reception time of the hit */
+	guchar vendor[4];			/* Vendor code */
 
 	GSList *records;
 };

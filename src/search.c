@@ -243,8 +243,6 @@ static void search_free_r_set(struct results_set *rs)
 	for (m = rs->records; m; m = m->next)
 		search_free_record((struct record *) m->data);
 
-	if (rs->trailer)
-		g_free(rs->trailer);
 	if (rs->guid)
 		atom_guid_free(rs->guid);
 
@@ -795,10 +793,13 @@ gint search_compare(gint sort_col, record_t *r1, record_t *r2)
                 (rs1->ip > rs2->ip) ? +1 : -1;
             break;
         case c_sr_info:
-            if (rs1->trailer && rs2->trailer)
-                result = strcmp(rs1->trailer, rs2->trailer);
+			result = memcmp(rs1->vendor, rs2->vendor, sizeof(rs1->vendor));
+			if (result)
+				break;
+            if (rs1->status == rs2->status)
+                result = 0;
             else
-                result = (rs1->trailer != NULL) ? +1 : -1;
+                result = (rs1->status > rs2->status) ? +1 : -1;
             break;
         case c_sr_urn:
             if (r1->sha1 == r2->sha1)
@@ -822,7 +823,7 @@ gint search_compare(gint sort_col, record_t *r1, record_t *r2)
  * extract_vendor_name
  *
  * Extract vendor name from the results set's trailer, and return the name.
- * If no trailer, or if we can't understand the name, return NULL.
+ * If we can't understand the name, return NULL.
  * Otherwise returns the name as a pointer to static data.
  *
  * As a side effect, set the ST_KNOWN_VENDOR in the status flags when the
@@ -835,10 +836,10 @@ static gchar *extract_vendor_name(struct results_set * rs)
 	guint32 t;
 	gint i;
 
-	if (!rs->trailer)
+	if (rs->vendor[0] == '\0')
 		return NULL;
 
-	READ_GUINT32_BE(rs->trailer, t);
+	READ_GUINT32_BE(rs->vendor, t);
 	rs->status |= ST_KNOWN_VENDOR;
 
 	switch (t) {
@@ -872,8 +873,8 @@ static gchar *extract_vendor_name(struct results_set * rs)
 		/* Unknown type, look whether we have all alphanum */
 		rs->status &= ~ST_KNOWN_VENDOR;
 		for (i = 0; i < 4; i++) {
-			if (isalpha(rs->trailer[i]))
-				temp[i] = rs->trailer[i];
+			if (isalpha(rs->vendor[i]))
+				temp[i] = rs->vendor[i];
 			else {
 				temp[0] = 0;
 				break;
@@ -905,6 +906,7 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 	struct gnutella_search_results *r;
 	GString *info = g_string_sized_new(80);
 	gint sha1_errors = 0;
+	guchar *trailer = NULL;
 
 	/* We shall try to detect malformed packets as best as we can */
 	if (n->size < 27) {
@@ -1079,9 +1081,15 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 
 	if (s < e) {
 		guint32 tlen = e - s;
-		rs->trailer_len = tlen;
-		rs->trailer = g_malloc0(tlen);
-		memcpy(rs->trailer, s, tlen);	/* Copy whole trailer */
+		guchar *x = (guchar *) s;
+
+		if (tlen >= 5 && x[4] + 5 <= tlen)
+			trailer = s;
+
+		if (trailer)
+			memcpy(rs->vendor, trailer, sizeof(rs->vendor));
+
+		// XXX parse trailer after the open data
 	}
 
 	if (nr != rs->num_recs)
@@ -1090,16 +1098,17 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 	/* We now have the guid of the node */
 
 	rs->guid = atom_guid_get(e);
+	rs->stamp = time(NULL);
 
 	/*
 	 * Compute status bits, decompile trailer info, if present
 	 */
 
-	if (rs->trailer) {
+	if (trailer) {
 		gchar *vendor = extract_vendor_name(rs);
 		guint32 t;
 
-		READ_GUINT32_BE(rs->trailer, t);
+		READ_GUINT32_BE(trailer, t);
 
 		switch (t) {
 		case T_NAPS:
@@ -1107,15 +1116,15 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 			 * NapShare has a one-byte only flag: no enabler, just setters.
 			 *		--RAM, 17/12/2001
 			 */
-			if (rs->trailer[4] == 1) {
-				if (rs->trailer[5] & 0x04) rs->status |= ST_BUSY;
-				if (rs->trailer[5] & 0x01) rs->status |= ST_FIREWALL;
+			if (trailer[4] == 1) {
+				if (trailer[5] & 0x04) rs->status |= ST_BUSY;
+				if (trailer[5] & 0x01) rs->status |= ST_FIREWALL;
 				rs->status |= ST_PARSED_TRAILER;
 			}
 			break;
 		case T_LIME:
-			if (rs->trailer[4] == 4)
-				rs->trailer[4] = 2;		/* We ignore XML data size */
+			if (trailer[4] == 4)
+				trailer[4] = 2;			/* We ignore XML data size */
 				/* Fall through */
 		case T_FIRE:
 		case T_FISH:
@@ -1125,19 +1134,19 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 		case T_GNUC:
 		case T_SNUT:
 		default:
-			if (rs->trailer[4] == 2) {
+			if (trailer[4] == 2) {
 				guint32 status =
-					((guint32) rs->trailer[5]) & ((guint32) rs-> trailer[6]);
+					((guint32) trailer[5]) & ((guint32) trailer[6]);
 				if (status & 0x04) rs->status |= ST_BUSY;
 				if (status & 0x01) rs->status |= ST_FIREWALL;
 				if (status & 0x08) rs->status |= ST_UPLOADED;
 				rs->status |= ST_PARSED_TRAILER;
 			} else if (rs->status  & ST_KNOWN_VENDOR)
 				g_warning("vendor %s changed # of open data bytes to %d",
-						  vendor, rs->trailer[4]);
+						  vendor, trailer[4]);
 			else if (vendor)
 				g_warning("ignoring %d open data byte%s from unknown vendor %s",
-					rs->trailer[4], rs->trailer[4] == 1 ? "" : "s", vendor);
+					trailer[4], trailer[4] == 1 ? "" : "s", vendor);
 			break;
 		}
 
@@ -1412,7 +1421,7 @@ void search_matched(search_t *sch, struct results_set *rs)
         if (flt_result->props[FILTER_PROP_DOWNLOAD].state ==
             FILTER_PROP_STATE_DO) {
             download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-                rs->guid, rc->sha1, need_push);
+                rs->guid, rc->sha1, rs->stamp, need_push);
             downloaded = TRUE;
         }
     
@@ -1441,7 +1450,7 @@ void search_matched(search_t *sch, struct results_set *rs)
         if (use_autodownload) {
             /* Attempt to autodownload each result if desirable. */
 			autodownload_notify(rc->name, rc->size, rc->index, rs->ip,
-				rs->port, rs->guid, rc->sha1, need_push);
+				rs->port, rs->guid, rc->sha1, rs->stamp, need_push);
         }
 
         filter_free_result(flt_result);
@@ -1751,7 +1760,7 @@ static void download_selection_of_clist(GtkCList * c)
 		need_push =
 			(rs->status & ST_FIREWALL) || !check_valid_host(rs->ip, rs->port);
 		download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-					 rs->guid, rc->sha1, need_push);
+					 rs->guid, rc->sha1, rs->stamp, need_push);
 
         /*
          * I'm not totally sure why we have to determine the row again,
