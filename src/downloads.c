@@ -1245,7 +1245,6 @@ void download_stop(struct download *d, guint32 new_status,
 	case GTA_DL_TIMEOUT_WAIT:
 		list_target = DL_LIST_WAITING;
 		break;
-		break;
 	default:
 		g_warning("download_stop(): unexpected new status %d !", new_status);
 		return;
@@ -1613,6 +1612,7 @@ static void download_push_remove(struct download *d)
 static gboolean download_start_prepare(struct download *d)
 {
 	struct stat st;
+	gboolean all_done = FALSE;
 
 	g_assert(d->list_idx != DL_LIST_RUNNING);
 
@@ -1654,88 +1654,74 @@ static gboolean download_start_prepare(struct download *d)
 	 *		--RAM, 13/03/2002
 	 */
 
-	if (!d->file_info->use_swarming) {
-
-		g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s",
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s",
 			d->file_info->path, d->file_info->file_name);
 
-		d->skip = 0;
+	d->skip = 0;		/* We're setting it here only if not swarming */
 
-		if (stat(dl_tmp, &st) != -1) {
-			if (st.st_size > download_overlap_range)
-				d->skip = st.st_size;
-		} else if (!d->file_info->use_swarming) {
-			gchar dl_dest[4096];
+	if (stat(dl_tmp, &st) != -1) {
+		if (
+			!d->file_info->use_swarming &&
+			st.st_size > download_overlap_range
+		)
+			d->skip = st.st_size;	/* Not swarming => file size on disk OK */
+	} else {
+		gchar dl_dest[4096];
+		gboolean found = FALSE;
 
+		g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s",
+					move_file_path, d->file_info->file_name);
+
+		if (stat(dl_dest, &st) != -1)
+			found = TRUE;
+
+		if (!found) {
 			g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s",
-						move_file_path, d->file_info->file_name);
-
-			if (stat(dl_dest, &st) != -1) {		/* File exists in "done" dir */
-				if (st.st_size < d->size) {		/* And is smaller */
-					if (-1 == rename(dl_dest, dl_tmp))
-						g_warning("cannot move incomplete \"%s\" back to "
-							"download dir: %s", dl_dest, g_strerror(errno));
-					else {
-						if (st.st_size > download_overlap_range)
-							d->skip = st.st_size;
-						g_warning("moved incomplete \"%s\" back to download dir",
-									d->file_info->file_name);
-					}
-				} else
-					d->skip = st.st_size;		/* "done" file is larger */
-			}
+						move_file_path, d->file_name);
+			if (stat(dl_dest, &st) != -1)
+				found = TRUE;
 		}
 
-		d->pos = d->skip;
-		d->last_update = time((time_t *) NULL);
-		d->overlap_size = (d->skip == 0 || d->size <= d->pos) ?
-			0 : download_overlap_range;
-
-	} else { /* using swarming */
-	
-		enum dl_chunk_status status;
-		guint32 from, to;
-
-		d->overlap_size = 0;
-		d->last_update = time((time_t *) NULL);
-
-		status = file_info_find_hole(d, &from, &to);
-
-		if (status == DL_CHUNK_EMPTY) {
-
-			d->skip = d->pos = from;
-			d->size = to - from;
-
-			if (
-				from > download_overlap_range &&
-				file_info_chunk_status(d->file_info, 
-					from - download_overlap_range, from) == DL_CHUNK_DONE
-			)
-				d->overlap_size = download_overlap_range;
-
-		} else if (status == DL_CHUNK_BUSY) {
-
-			download_queue_delay(d, 10, "Waiting for a free slot");
-			return FALSE;
-
-		} else if (status == DL_CHUNK_DONE) {
-
-			if (!DOWNLOAD_IS_VISIBLE(d))
-				download_gui_add(d);
-
-			download_stop(d, GTA_DL_ERROR, "No more gaps to fill");
-			queue_remove_downloads_with_file(d->file_info);
-			return FALSE;
+		if (found) {						/* File exists in "done" dir */
+			if (st.st_size < d->size) {		/* And is smaller */
+				if (-1 == rename(dl_dest, dl_tmp))
+					g_warning("cannot move incomplete \"%s\" back to "
+						"download dir as \"%s\": %s", dl_dest, dl_tmp,
+						g_strerror(errno));
+				else {
+					if (st.st_size > download_overlap_range)
+						d->skip = st.st_size;
+					g_warning("moved incomplete \"%s\" back to "
+						"download dir as \"%s\"",
+						dl_dest, d->file_info->file_name);
+					file_info_recreate(d);
+				}
+			} else
+				all_done = TRUE;			/* "done" file is larger */
 		}
 	}
 
-	g_assert(d->overlap_size == 0 || d->skip > d->overlap_size);
+	/*
+	 * If this file is swarming, the overlapping size and skipping offset
+	 * will be determined before making the requst, in download_pick_chunk().
+	 *		--RAM, 22/08/2002.
+	 */
+
+	if (!d->file_info->use_swarming) {
+		d->pos = d->skip;
+		d->overlap_size = (d->skip == 0 || d->size <= d->pos) ?
+			0 : download_overlap_range;
+
+		g_assert(d->overlap_size == 0 || d->skip > d->overlap_size);
+	}
+
+	d->last_update = time((time_t *) NULL);
 
 	/*
 	 * Is there anything to get at all?
 	 */
 
-	if (d->file_info->done == d->file_info->size) {
+	if (all_done || FILE_INFO_COMPLETE(d->file_info)) {
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			download_gui_add(d);
 		download_stop(d, GTA_DL_ERROR, "Nothing more to get");
@@ -1743,6 +1729,59 @@ static gboolean download_start_prepare(struct download *d)
 		queue_remove_downloads_with_file(d->file_info);
 		return FALSE;
 	}
+
+	return TRUE;
+}
+
+/*
+ * download_pick_chunk
+ *
+ * Called for swarming downloads when we are connected to the remote server,
+ * but before making the request, to pick up a chunk for downloading.
+ *
+ * Returns TRUE if we can continue with the download, FALSE if it has
+ * been stopped.
+ */
+static gboolean download_pick_chunk(struct download *d)
+{
+	enum dl_chunk_status status;
+	guint32 from, to;
+
+	g_assert(d->file_info->use_swarming);
+
+	d->overlap_size = 0;
+	d->last_update = time((time_t *) NULL);
+
+	status = file_info_find_hole(d, &from, &to);
+
+	if (status == DL_CHUNK_EMPTY) {
+
+		d->skip = d->pos = from;
+		d->size = to - from;
+
+		if (
+			from > download_overlap_range &&
+			file_info_chunk_status(d->file_info, 
+				from - download_overlap_range, from) == DL_CHUNK_DONE
+		)
+			d->overlap_size = download_overlap_range;
+
+	} else if (status == DL_CHUNK_BUSY) {
+
+		download_queue_delay(d, 10, "Waiting for a free slot");
+		return FALSE;
+
+	} else if (status == DL_CHUNK_DONE) {
+
+		if (!DOWNLOAD_IS_VISIBLE(d))
+			download_gui_add(d);
+
+		download_stop(d, GTA_DL_ERROR, "No more gaps to fill");
+		queue_remove_downloads_with_file(d->file_info);
+		return FALSE;
+	}
+
+	g_assert(d->overlap_size == 0 || d->skip > d->overlap_size);
 
 	return TRUE;
 }
@@ -1962,14 +2001,20 @@ static void download_push(struct download *d, gboolean on_timeout)
 
 attempt_retry:
 	/*
-	 * If we're aboring a download flagged with "Push ignore" due to a
+	 * If we're aborting a download flagged with "Push ignore" due to a
 	 * timeout reason, chances are great that this host is indeed firewalled!
 	 * Tell them so. -- RAM, 18/08/2002.
 	 */
 
-	if (on_timeout && d->always_push && (d->flags & DL_F_PUSH_IGN))
-		download_stop(d, GTA_DL_ERROR, "Can't reach host (Push or Direct)");
-	else if (d->retries < download_max_retries) {
+	if (d->always_push && ignore_push) {
+		d->retries++;
+		if (on_timeout || d->retries > 5)
+			download_stop(d, GTA_DL_ERROR, "Can't reach host (Push or Direct)");
+		else
+			download_queue_delay(d, download_retry_refused_delay,
+				"No direct connection yet (%d retr%s)",
+				d->retries, d->retries == 1 ? "y" : "ies");
+	} else if (d->retries < download_max_retries) {
 		d->retries++;
 		if (on_timeout)
 			download_queue_delay(d, download_retry_timeout_delay,
@@ -2217,10 +2262,11 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", save_file_path, output_name);
 	dl_tmp[sizeof(dl_tmp)-1] = '\0';
 
-	if (file_info_filesize(dl_tmp) >= size) {
-		reason = "downloaded file bigger";
-		goto abort_download;
-	}
+// XXX temporary -- RAM
+//	if (file_info_filesize(dl_tmp) >= size) {
+//		reason = "downloaded file bigger";
+//		goto abort_download;
+//	}
 
 	/*
 	 * Make sure we have not got a bigger file in the "completed dir".
@@ -2704,7 +2750,10 @@ nextline:
 		g_warning("download_header_parse: line too long, disconnecting from %s",
 			ip_to_gchar(s->ip));
 		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
-		download_stop(d, GTA_DL_ERROR, "Failed (Header too large)");
+		fprintf(stderr, "------ Header Dump:\n");
+		header_dump(header, stderr);
+		fprintf(stderr, "------\n");
+		download_stop(d, GTA_DL_ERROR, "Failed (Header line too large)");
 		return;
 		/* NOTREACHED */
 	case READ_DONE:
@@ -3633,7 +3682,7 @@ gboolean download_send_request(struct download *d)
 	gint sent;
 	gboolean n2r = FALSE;
 
-	g_return_val_if_fail(d, FALSE);
+	g_assert(d);
 
 	if (!s) {
 		g_warning("download_send_request(): No socket for '%s'", d->file_name);
@@ -3654,6 +3703,14 @@ gboolean download_send_request(struct download *d)
 		d->server->attrs |= DLS_A_PUSH_IGN;
 		d->always_push = FALSE;
 	}
+
+	/*
+	 * If we're swarming, pick a free chunk.
+	 * (will set d->skip and d->overlap_size).
+	 */
+
+	if (d->file_info->use_swarming && !download_pick_chunk(d))
+		return FALSE;
 
 	g_assert(d->overlap_size <= sizeof(s->buffer));
 
@@ -4076,6 +4133,9 @@ void download_retry(struct download *d)
 		d->timeout_delay = download_retry_timeout_min;
 	if (d->timeout_delay > download_retry_timeout_max)
 		d->timeout_delay = download_retry_timeout_max;
+
+	if (d->push)
+		d->timeout_delay = 1;	/* Must send pushes before route expires! */
 
 	download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
 }

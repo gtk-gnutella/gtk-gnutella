@@ -58,6 +58,8 @@ struct dl_file_info {
 	gboolean dirty;		/* Does it need saving? */
 };
 
+#define FILE_INFO_COMPLETE(x)	((x)->done == (x)->size)
+
 void file_info_init(void);
 off_t file_info_filesize(gchar *path);
 void file_info_retrieve(void);
@@ -69,6 +71,7 @@ void file_info_merge_adjacent(struct dl_file_info *fi);
 void file_info_clear_download(struct download *d);
 enum dl_chunk_status file_info_chunk_status(
 	struct dl_file_info *fi, guint32 from, guint32 to);
+void file_info_recreate(struct download *d);
 struct dl_file_info *file_info_get(
 	gchar *file, gchar *path, guint32 size, gchar *sha1);
 void file_info_free(struct dl_file_info *fi, gboolean keep);

@@ -1118,6 +1118,82 @@ static gboolean file_info_has_filename(struct dl_file_info *fi, gchar *file)
 }
 
 /*
+ * file_info_create
+ *
+ * Create a fileinfo structure from existing file with no swarming trailer.
+ * The given `size' argument reflect the final size of the (complete) file.
+ * The `sha1' is the known SHA1 for the file (NULL if unknown).
+ */
+static struct dl_file_info *file_info_create(
+	gchar *file, gchar *path, guint32 size, guchar *sha1)
+{
+	struct dl_file_info *fi;
+	struct dl_file_chunk *fc;
+	struct stat st;
+	guint32 pos = 0;
+
+	fi = g_malloc0(sizeof(struct dl_file_info));
+	fi->refcount = 1;
+	fi->file_name = atom_str_get(file);
+	fi->path = atom_str_get(path);
+	if (sha1)
+		fi->sha1 = atom_sha1_get(sha1);
+	fi->size = size;
+	fi->done = 0;
+	fi->use_swarming = use_swarming;
+
+	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
+
+	if (stat(fi_tmp, &st) != -1) {
+		g_warning("file_info_get(): "
+			"assuming file \"%s\" is complete up to %lu bytes",
+			fi->file_name, st.st_size);
+		fc = g_malloc0(sizeof(struct dl_file_chunk));
+		fc->from = 0;
+		pos = fc->to = st.st_size;
+		fc->status = DL_CHUNK_DONE;
+		fi->chunklist = g_slist_append(fi->chunklist, fc);
+		fi->dirty = TRUE;
+	} 
+
+	if (size > pos) {	
+		fc = g_malloc0(sizeof(struct dl_file_chunk));
+		fc->from = pos;
+		fc->to = size;
+		fc->status = DL_CHUNK_EMPTY;
+		fi->chunklist = g_slist_append(fi->chunklist, fc);
+	}
+
+	return fi;
+}
+
+/*
+ * file_info_recreate
+ *
+ * Existing fileinfo structure is obsolete.  Recreate it from existing
+ * file with no swarming info (i.e. a file with no free holes over its
+ * completed range so far).
+ */
+void file_info_recreate(struct download *d)
+{
+	struct dl_file_info *fi = d->file_info;
+	struct dl_file_info *new_fi;
+
+	/*
+	 * NB: we use d->size, and are not reusing fi->size, because the download
+	 * can be larger than what we thought the file oringally was, so the
+	 * old fi->size may be incorrect.
+	 *		--RAM, 22/08/2002.
+	 */
+
+	g_assert(d->size >= fi->size);
+
+	new_fi = file_info_create(fi->file_name, fi->path, d->size,  fi->sha1);
+	file_info_free(fi, FALSE);
+	d->file_info = new_fi;
+}
+
+/*
  * file_info_get
  *
  * Returns a pointer to file_info struct that matches the given file
@@ -1128,9 +1204,6 @@ struct dl_file_info *file_info_get(
 {
 	GSList *p;
 	struct dl_file_info *fi;
-	struct dl_file_chunk *fc;
-	struct stat st;
-	guint32 pos = 0;
 
 	/* See if we know anything about the file already. */
 	for (p = g_hash_table_lookup(file_info_size_hash, &size); p; p = p->next) {
@@ -1197,39 +1270,9 @@ struct dl_file_info *file_info_get(
 	 * => Use an alternative output name (fixme)
 	 *
 	 */
+
+	fi = file_info_create(file, path, size, sha1);
 	
-	fi = g_malloc0(sizeof(struct dl_file_info));
-	fi->refcount = 1;
-	fi->file_name = atom_str_get(file);
-	fi->path = atom_str_get(path);
-	if (sha1)
-		fi->sha1 = atom_sha1_get(sha1);
-	fi->size = size;
-	fi->done = 0;
-	fi->use_swarming = use_swarming;
-
-	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
-
-	if (stat(fi_tmp, &st) != -1) {
-		g_warning("file_info_get(): "
-			"assuming file \"%s\" is complete up to %lu bytes",
-			fi->file_name, st.st_size);
-		fc = g_malloc0(sizeof(struct dl_file_chunk));
-		fc->from = 0;
-		pos = fc->to = st.st_size;
-		fc->status = DL_CHUNK_DONE;
-		fi->chunklist = g_slist_append(fi->chunklist, fc);
-		fi->dirty = TRUE;
-	} 
-
-	if (size > pos) {	
-		fc = g_malloc0(sizeof(struct dl_file_chunk));
-		fc->from = pos;
-		fc->to = size;
-		fc->status = DL_CHUNK_EMPTY;
-		fi->chunklist = g_slist_append(fi->chunklist, fc);
-	}
-
     file_info_hash_insert(fi);
 
 	if (sha1)
@@ -1487,7 +1530,7 @@ again:
 		}
 	}
 
-	file_info_merge_adjacent(fi);
+	file_info_merge_adjacent(fi);		/* Also updates fi->done */
 
 	/*
 	 * When status is DL_CHUNK_DONE, we're coming from an "active" download,
@@ -1524,6 +1567,37 @@ void file_info_clear_download(struct download *d)
 	file_info_merge_adjacent(d->file_info);
 
 	/* No need to flush data to disk, those are transient changes */
+}
+
+/*
+ * file_info_reset
+ *
+ * Reset all chunks to EMPTY.
+ */
+static void file_info_reset(struct dl_file_info *fi)
+{
+	GSList *l;
+	struct dl_file_chunk *fc;
+
+	for (l = fi->chunklist; l; l = g_slist_next(l)) {
+		fc = (struct dl_file_chunk *) l->data;
+		fc->status = DL_CHUNK_EMPTY;
+	}
+
+restart:
+	for (l = fi->chunklist; l; l = g_slist_next(l)) {
+		struct download *d;
+
+		fc = (struct dl_file_chunk *) l->data;
+		d = fc->download;
+
+		if (d && DOWNLOAD_IS_RUNNING(d)) {
+			download_queue(d, "Requeued due to file removal");
+			goto restart;		/* Because file_info_clear_download() called */
+		}
+	}
+
+	file_info_merge_adjacent(fi);
 }
 
 /*
@@ -1593,6 +1667,32 @@ enum dl_chunk_status file_info_find_hole(
 	struct dl_file_chunk *fc;
 	struct dl_file_info *fi = d->file_info;
 	guint32 chunksize;
+	struct stat buf;
+
+	/*
+	 * This routine is called each time we start a new download, before
+	 * making the request to the remote server.  If we detect that the
+	 * file is "gone", then it means the user manually deleted the file.
+	 * In that case, we need to reset all the chunks and mark the whole
+	 * thing as being EMPTY.
+	 *		--RAM, 21/08/2002.
+	 */
+
+	if (fi->done) {
+		if (fi->done == fi->size)
+			return DL_CHUNK_DONE;
+
+		/*
+		 * File should exist since fi->done > 0, and it was not completed.
+		 */
+
+		g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
+
+		if (-1 == stat(fi_tmp, &buf)) {
+			g_warning("file %s removed, resetting swarming", fi_tmp);
+			file_info_reset(fi);
+		}
+	}
 
 	/* fixme: find a decent chunksize strategy */
 	//chunksize = (d->file_info->size - d->file_info->done) /
