@@ -550,10 +550,12 @@ void gui_update_node_display(struct gnutella_node *n, time_t now)
 	case GTA_NODE_CONNECTED:
 		if (n->sent || n->received) {
 			g_snprintf(gui_tmp, sizeof(gui_tmp),
-				"Connected: "
-				"TX=%d RX=%d Drop(TX=%d, RX=%d) Bad=%d Q=%d,%d%% %s",
-				n->sent, n->received, n->tx_dropped, n->rx_dropped, n->n_bad,
-				NODE_QUEUE_COUNT(n), NODE_QUEUE_PERCENT_USED(n),
+				"TX=%d RX=%d Query(TX=%d, Q=%d) Drop(TX=%d, RX=%d) "
+				"Dup=%d Bad=%d Q=%d,%d%% %s",
+				n->sent, n->received,
+				NODE_SQUEUE_SENT(n), NODE_SQUEUE_COUNT(n),
+				n->tx_dropped, n->rx_dropped, n->n_dups, n->n_bad,
+				NODE_MQUEUE_COUNT(n), NODE_MQUEUE_PERCENT_USED(n),
 				NODE_IN_TX_FLOW_CONTROL(n) ? " [FC]" : "");
 			a = gui_tmp;
 		} else
@@ -569,7 +571,7 @@ void gui_update_node_display(struct gnutella_node *n, time_t now)
 			g_snprintf(gui_tmp, sizeof(gui_tmp),
 				"Shutdowning: %s [Stop in %ds] RX=%d Q=%d,%d%%",
 				n->error_str, remain, n->received,
-				NODE_QUEUE_COUNT(n), NODE_QUEUE_PERCENT_USED(n));
+				NODE_MQUEUE_COUNT(n), NODE_MQUEUE_PERCENT_USED(n));
 			a = gui_tmp;
 		}
 		break;
