@@ -780,6 +780,17 @@ prop = {
 };
 
 prop = {
+	name = "ggep_debug";
+	desc = "Debug level for GGEP.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
     name = "track_props";
     desc = "For development use: track properties";
     type = guint32;
