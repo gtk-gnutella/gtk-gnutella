@@ -103,12 +103,15 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	g_assert(vd->fd == -1);
 	g_assert(vd->d == NULL);
 
+	download_verify_start(d);
+
 	filename = g_strdup_printf("%s/%s", download_path(d), download_outname(d));
 	g_return_if_fail(NULL != filename);
 
 	vd->fd = file_open(filename, O_RDONLY);
 
 	if (vd->fd == -1) {
+		vd->error = errno;
 		g_warning("can't open %s to verify SHA1: %s",
 			filename, g_strerror(errno));
 		G_FREE_NULL(filename);
@@ -125,8 +128,6 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	if (dbg > 1)
 		printf("Verifying SHA1 digest for %s\n", filename);
 	G_FREE_NULL(filename);
-
-	download_verify_start(d);
 }
 
 /*
@@ -138,13 +139,15 @@ static void d_end(gpointer h, gpointer ctx, gpointer item)
 {
 	struct verifyd *vd = (struct verifyd *) ctx;
 	struct download *d = (struct download *) item;
-	time_t elapsed;
+	time_t elapsed = 0;
 	guint8 digest[SHA1HashSize];
 
 	g_assert(vd->magic == VERIFYD_MAGIC);
 
-	if (vd->fd == -1)			/* Did not start properly */
-		return;
+	if (vd->fd == -1) {				/* Did not start properly */
+		g_assert(vd->error);
+		goto finish;
+	}
 
 	g_assert(vd->d == d);
 
@@ -164,6 +167,7 @@ static void d_end(gpointer h, gpointer ctx, gpointer item)
 		printf("Computed SHA1 digest for %s at %lu bytes/sec [error=%d]\n",
 			download_outname(d), (gulong) vd->size / elapsed, vd->error);
 
+finish:
 	if (vd->error == 0)
 		download_verify_done(d, (gchar *) digest, elapsed);
 	else
