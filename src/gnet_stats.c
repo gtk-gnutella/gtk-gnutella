@@ -190,9 +190,13 @@ void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 			node_ip(n), node_vendor(n), msg_drop_reason[reason]);
 }
 
-void gnet_stats_count_general(gnutella_node_t *n, gint type, guint32 amount)
+void gnet_stats_count_general(gnutella_node_t *n, gnr_stats_t type, guint32 x)
 {
-    gnet_stats.general[type] += amount;
+	/* XXX - parameter `n' is unused, remove? */
+
+	g_assert(type >= 0 && type < GNR_TYPE_COUNT);
+
+    gnet_stats.general[type] += x;
 }
 
 void gnet_stats_count_dropped_nosize(

@@ -468,8 +468,8 @@ typedef enum msg_drop_reason {
 	MSG_DROP_REASON_COUNT /* number of known reasons to drop a message */
 } msg_drop_reason_t;
 
-enum {
-	GNR_ROUTING_ERRORS,
+typedef enum {
+	GNR_ROUTING_ERRORS = 0,
 	GNR_LOCAL_SEARCHES,
 	GNR_LOCAL_HITS,
 	GNR_QUERY_COMPACT_COUNT,
@@ -477,8 +477,10 @@ enum {
 	GNR_QUERY_UTF8,
 	GNR_QUERY_SHA1,
 	GNR_BROADCASTED_PUSHES,
+	GNR_PUSH_PROXY_RELAYED,
+	GNR_PUSH_PROXY_BROADCASTED,
 	GNR_TYPE_COUNT /* number of general stats */
-};
+} gnr_stats_t;
 
 #define STATS_FLOWC_COLUMNS 10 /* Type, 0..7, 8+ */
 #define STATS_RECV_COLUMNS 10 /* -"- */

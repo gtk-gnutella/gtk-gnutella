@@ -45,6 +45,7 @@
 #include "gmsg.h"
 #include "uploads.h"
 #include "url.h"
+#include "gnet_stats.h"
 
 /* Following extra needed for the client-side */
 
@@ -583,6 +584,7 @@ static void pproxy_request(struct pproxy *pp, header_t *header)
 		message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
 
 		gmsg_sendto_one(n, (gchar *) &m, sizeof(m));
+		gnet_stats_count_general(NULL, GNR_PUSH_PROXY_RELAYED, 1);
 
 		http_send_status(pp->socket, 202, FALSE, NULL, 0,
 			"Push-proxy: message sent to node");
@@ -607,6 +609,7 @@ static void pproxy_request(struct pproxy *pp, header_t *header)
 		message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
 
 		gmsg_sendto_all(nodes, (gchar *) &m, sizeof(m));
+		gnet_stats_count_general(NULL, GNR_PUSH_PROXY_BROADCASTED, 1);
 
 		cnt = g_slist_length(nodes);
 		g_slist_free(nodes);

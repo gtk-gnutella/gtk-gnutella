@@ -116,6 +116,8 @@ const gchar *general_type_str(int value)
 		case 5: return _("UTF8 queries");
 		case 6: return _("SHA1 queries");
 		case 7: return _("Broadcasted push messages");
+		case 8: return _("Proxified push messages relayed");
+		case 9: return _("Proxified push messages broadcasted");
 		default: 
 			g_warning("Requested general_type_str %d is invalid", value);
 			return "";
