@@ -408,7 +408,7 @@ void download_kill(struct download *d)
 		return;
 	}
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->path, d->file_name);
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->path, d->output_name);
 	unlink(dl_tmp);
 
 	download_free(d);
@@ -552,7 +552,7 @@ void download_start(struct download *d, gboolean check_allowed)
 	 * the file if he so wants --RAM, 03/09/2001)
 	 */
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->path, d->file_name);
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->path, d->output_name);
 
 	if (stat(dl_tmp, &st) != -1)
 		d->skip = st.st_size;
@@ -739,20 +739,22 @@ static void escape_filename(gchar *file)
  * Downloads creation and destruction
  */
 
-/* Create a new download */
-
+/*
+ * create_download
+ * 
+ * Create a new download
+ *
+ * When `interactive' is true, we assume that `file' was already duped,
+ * and take ownership of the pointer.
+ * If `output' is not NULL, we also take ownership.
+ */
 static void create_download(
-	gchar *file, guint32 size, guint32 record_index,
+	gchar *file, gchar *output, guint32 size, guint32 record_index,
 	guint32 ip, guint16 port, gchar *guid, gboolean push,
 	gboolean interactive)
 {
 	struct download *d;
 	gchar *file_name = interactive ? g_strdup(file) : file;
-
-	/* Replace all slashes by underscores in the file name */
-
-	if (interactive) 		/* Was already done in auto_download_new() */
-		escape_filename(file_name);
 
 	/*
 	 * Refuse to queue the same download twice. --RAM, 04/11/2001
@@ -765,9 +767,20 @@ static void create_download(
 		return;
 	}
 
+	/*
+	 * Replace all slashes by underscores in the file name, if not
+	 * arealdy done by caller.	--RAM, 12/01/2002
+	 */
+
+	if (output == NULL) {
+		output = g_strdup(file);
+		escape_filename(output);
+	}
+
 	d = (struct download *) g_malloc0(sizeof(struct download));
 
 	d->path = g_strdup(save_file_path);
+	d->output_name = output;
 	d->file_name = file_name;
 	d->size = size;
 	d->record_index = record_index;
@@ -803,18 +816,18 @@ void auto_download_new(gchar * file, guint32 size, guint32 record_index,
 					   guint32 ip, guint16 port, gchar * guid, gboolean push)
 {
 	gchar dl_tmp[4096];
-	gchar *file_name = g_strdup(file);
+	gchar *output_name = g_strdup(file);
 	struct stat buf;
 	char *reason;
 	int tmplen;
 
-	escape_filename(file_name);
+	escape_filename(output_name);
 
 	/*
 	 * Make sure we have not got a bigger file in the "download dir".
 	 */
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", save_file_path, file_name);
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", save_file_path, output_name);
 	dl_tmp[sizeof(dl_tmp)-1] = '\0';
 
 	if (-1 != stat(dl_tmp, &buf) && buf.st_size >= size) {
@@ -829,7 +842,7 @@ void auto_download_new(gchar * file, guint32 size, guint32 record_index,
 	 * i.e. .01, .02, etc... and keep going while files exist.
 	 */
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", move_file_path, file_name);
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", move_file_path, output_name);
 	dl_tmp[sizeof(dl_tmp)-1] = '\0';
 
 	if (-1 != stat(dl_tmp, &buf) && buf.st_size >= size) {
@@ -840,7 +853,7 @@ void auto_download_new(gchar * file, guint32 size, guint32 record_index,
 	tmplen = strlen(dl_tmp);
 	if (tmplen >= sizeof(dl_tmp) - 4) {
 		g_warning("'%s' in completed dir is too long for further checks",
-			file_name);
+			output_name);
 	} else {
 		int i;
 		for (i = 1; i < 100; i++) {
@@ -862,13 +875,14 @@ void auto_download_new(gchar * file, guint32 size, guint32 record_index,
 		}
 	}
 
-	create_download(file_name, size, record_index, ip, port, guid, push, FALSE);
+	create_download(g_strdup(file), output_name,
+		size, record_index, ip, port, guid, push, FALSE);
 	return;
 
 abort_download:
 	if (dbg > 4)
-		printf("ignoring auto download for '%s': %s\n", file_name, reason);
-	g_free(file_name);
+		printf("ignoring auto download for '%s': %s\n", file, reason);
+	g_free(output_name);
 	return;
 }
 
@@ -962,7 +976,7 @@ void download_index_changed(guint32 ip, guint16 port, guchar *guid,
 void download_new(gchar * file, guint32 size, guint32 record_index,
 				  guint32 ip, guint16 port, gchar * guid, gboolean push)
 {
-	create_download(file, size, record_index, ip, port, guid, push, TRUE);
+	create_download(file, NULL, size, record_index, ip, port, guid, push, TRUE);
 }
 
 
@@ -988,6 +1002,7 @@ void download_free(struct download *d)
 
 	g_free(d->path);
 	g_free(d->file_name);
+	g_free(d->output_name);
 	g_free(d);
 }
 
@@ -1049,9 +1064,9 @@ void download_move_to_completed_dir(struct download *d)
 	if (0 == strcmp(d->path, move_file_path))
 		return;			/* Already in "completed dir" */
 
-	g_snprintf(dl_src, sizeof(dl_src), "%s/%s", d->path, d->file_name);
+	g_snprintf(dl_src, sizeof(dl_src), "%s/%s", d->path, d->output_name);
 	g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s", move_file_path,
-			   d->file_name);
+			   d->output_name);
 
 	dl_src[sizeof(dl_src)-1] = '\0';
 	dl_dest[sizeof(dl_dest)-1] = '\0';
@@ -1079,7 +1094,7 @@ void download_move_to_completed_dir(struct download *d)
 
 		if (destlen >= sizeof(dl_dest) - 4) {
 			g_warning("Found '%s' in completed dir, and path already too long",
-				d->file_name);
+				d->output_name);
 			return;
 		}
 
@@ -1098,7 +1113,7 @@ void download_move_to_completed_dir(struct download *d)
 		if (i == 100) {
 			g_warning("Found '%s' in completed dir, "
 				"and was unable to find another unique name",
-				d->file_name);
+				d->output_name);
 			return;
 		}
 
@@ -1475,7 +1490,7 @@ static void download_write_data(struct download *d)
 	} else if (written < s->pos) {
 		g_warning("download_read(): "
 			"partial write of %d out of %d bytes to file '%s'",
-			written, s->pos, d->file_name);
+			written, s->pos, d->output_name);
 		download_stop(d, GTA_DL_ERROR, "Partial write to file");
 		return;
 	}
@@ -1627,13 +1642,13 @@ static void download_request(struct download *d, header_t *header)
 
 	g_assert(d->file_desc == -1);
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->path, d->file_name);
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->path, d->output_name);
 
 	if (stat(dl_tmp, &st) != -1) {
 		/* File exists, we'll append the data to it */
 		if (st.st_size != d->skip) {
 			g_warning("File '%s' changed size (now %ld, but was %d)",
-				d->file_name, st.st_size, d->skip);
+				d->output_name, st.st_size, d->skip);
 			download_stop(d, GTA_DL_ERROR, "File modified since start");
 			return;
 		}
@@ -2155,7 +2170,7 @@ static void download_retrieve(void)
 
 		hex_to_guid(d_hexguid, d_guid);
 
-		create_download(d_name, d_size, d_index, d_ip, d_port, d_guid,
+		create_download(d_name, NULL, d_size, d_index, d_ip, d_port, d_guid,
 			FALSE, FALSE);
 
 		/*
@@ -2185,6 +2200,7 @@ void download_close(void)
 			download_push_remove(d);
 		g_free(d->path);
 		g_free(d->file_name);
+		g_free(d->output_name);
 		g_free(d);
 	}
 

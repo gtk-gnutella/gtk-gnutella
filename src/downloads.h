@@ -6,10 +6,11 @@ struct download {
 	guint32 status;			/* Current status of the download */
 
 	gchar *path;			/* Path of the created output file */
-	gchar *file_name;		/*		Name of the created output file */
+	gchar *output_name;		/* Basename of the created output file */
 
 	gchar guid[16];			/* GUID of server from which we download the file */
 	guint32 record_index;	/* Index of the file on the Gnutella server */
+	gchar *file_name;		/* Name of the file on the Gnutella server */
 
 	guint32 size;			/* Total size of the file, in bytes */
 
