@@ -39,20 +39,6 @@
 
 #ifndef _hashtree_h_
 #define _hashtree_h_
-
-/*
- * Usage: Create a new hash tree with hash_tree_new, save the returned
- *        pointer as the parent. Add new leaf nodes to the hash tree using
- *        hash_tree_append_leaf_node, pass the parent as an argument, save
- *        the returned pointer as parent again. When you are done adding
- *        leaf nodes, call hash_tree_finish. After this you can read
- *        parent->hash to read the calculated hash. If you are done with
- *        this tree, free the tree with hash_tree_destroy. Look at the function
- *        header description for a more detailed information about the
- *        arguments and the returned values.
- *
- *			-- Jeroen Asselman <jeroen@asselman.com>
- */
  
 typedef struct node_s node_t;
 struct node_s {

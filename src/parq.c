@@ -238,12 +238,22 @@ void parq_del_banned_source(guint32 ip);
  ***  Generic non PARQ specific functions
  ***/
 
-/*
- * get_header_version
+/**
+ * Get header version.
  * 
  * Extract the version from a given header. EG:
  * X-Queue: 1.0
  * major=1 minor=0
+ * 
+ * @param header is a pointer to the header string that will be parsed for
+ *        the version number
+ * @param major is a pointer to a gint in which the major version number will
+ *        be returned on success.
+ * @param minor is a pointer to a gint in which the minor version number will be
+ *        returned on success.
+ * 
+ * @return a boolean which is true when parsing of the header version was
+ * succesfull.
  */
 static gboolean get_header_version(gchar const *const header, 
 								gint *major, gint *minor)
@@ -251,11 +261,18 @@ static gboolean get_header_version(gchar const *const header,
 	return sscanf(header, "%d.%d", major, minor) == 2;
 }
 
-/* 
- * get_header_value
+/** 
+ * Get header value.
  *
  * Retrieves a value from a header line. If possible the length (in gchars)
  * is returned for that value.
+ * 
+ * @param s is a pointer to the header string that will be parsed.
+ * @param attribute is the attribute which will be searched in the header string
+ * @param length is a pointer to a gint which will contain the length of the
+ *        header value, if parsing was succesfull.
+ * 
+ * @return a pointer in the s pointer indicating the start of the header value.
  */
 static gchar *get_header_value(
 	gchar *const s, gchar const *const attribute, gint *length)

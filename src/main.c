@@ -35,6 +35,7 @@
 #include "sockets.h"
 #include "routing.h"
 #include "downloads.h"
+#include "drop.h"
 #include "hosts.h"
 #include "gmsg.h"
 #include "bsched.h"
@@ -223,6 +224,7 @@ void gtk_gnutella_exit(gint n)
 
 	hsep_close();
 	hostiles_close();
+	drop_close();
 	file_info_close();
 	ext_close();
 	share_close();
@@ -572,6 +574,8 @@ gint main(gint argc, gchar **argv, gchar **env)
 	clock_init();
 
 	main_gui_init();
+	
+	drop_init();
 
 	download_restore_state();
 

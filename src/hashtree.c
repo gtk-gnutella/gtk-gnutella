@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2003 Jeroen Asselman.
+ * Copyright (c) 2003 - 2004 Jeroen Asselman.
  * 
  * Merkle Hash tree implementation, not yet memory and speed optimized yet.
  *
@@ -35,6 +35,24 @@
  *   the provisions above, a recipient may use your version of this file
  *   under either the MPL or the GPL License.
  *----------------------------------------------------------------------
+ */
+
+/**
+ *  @file
+ * 
+ * Hashtree can be used to build any hashtree. This could be a SHA1 tree or a
+ * tigertree for example.
+ * 
+ * To create a new hash tree, use the function hash_tree_new, save the returned
+ * pointer as the parent. Add new leaf nodes to the hash tree using 
+ * hash_tree_append_leaf_node, pass the parent as an argument, save the returned 
+ * pointer as parent again. When you are done adding leaf nodes, call 
+ * hash_tree_finish. After this you can read parent->hash to read the calculated
+ * hash. If you are done with this tree, free the tree with hash_tree_destroy. 
+ * Look at the function header description for a more detailed information about
+ * the arguments and the returned values.
+ *
+ *			-- Jeroen Asselman <jeroen@asselman.com>
  */
 
 /*
@@ -405,7 +423,7 @@ node_t *node_new()
  * Destorys a node and all its child nodes using recursing, all memory assinged
  * to this node will be freed, including an assigned hash.
  *
- * @param is a pointer to the node that should be destroyed.
+ * @param node is a pointer to the node that should be destroyed.
  */
 void node_destroy(node_t *node)
 {

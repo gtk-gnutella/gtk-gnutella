@@ -177,6 +177,7 @@ CORE = \
 	crc.c \
 	dmesh.c \
 	downloads.c \
+	drop.c \
 	eval.c \
 	event.c \
 	extensions.c \
@@ -325,6 +326,7 @@ OBJLIST = \
 	crc.o \
 	dmesh.o \
 	downloads.o \
+	drop.o \
 	eval.o \
 	event.o \
 	extensions.o \

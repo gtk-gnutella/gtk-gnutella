@@ -335,6 +335,11 @@ void download_move_progress(struct download *d, guint32 copied);
 void download_move_done(struct download *d, guint elapsed);
 void download_move_error(struct download *d);
 
+gboolean download_new_unknown_size(gchar *file, guint32 record_index, 
+			  guint32 ip, guint16 port, gchar *guid, gchar *hostname, 
+			  gchar *sha1, time_t stamp, gboolean push,
+			  struct dl_file_info *fi, gnet_host_vec_t *proxies);
+
 guint extract_retry_after(const header_t *header);
 gboolean is_faked_download(const struct download *d);
 

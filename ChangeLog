@@ -1,6 +1,9 @@
 # since last version
 
-- (2004-07-14 - JA)
+- (2004-07-15 - Jeroen)
+ * Enabled drag and drop for the GTK2 interface for magnet links.
+
+- (2004-07-14 - Jeroen)
  * Added initial support for downloads with unknown size. Patch from emile
  
 - (2004-07-10 - Richard)
@@ -1039,7 +1042,7 @@
  * Purge button now available in GTK2 interface
  
 - (2003.11.07 - Jeroen)
- * Added Hungarian translation from Sulyok Péter
+ * Added Hungarian translation from Sulyok Pï¿½ter
 
 - (2003.11.06 - Jeroen)
  * Intergrated shell patch from Thadeu Cascardo.
@@ -5185,7 +5188,7 @@ Detailed changes:
   cannot be made at the TCP/IP level (because there's nothing listening).
 - Added support for the Bye packet.
 - Dispatched heartbeat timer routines to the relevant files.
-- Integrated HTTP proxy patch [From Szabolcs Seláf].
+- Integrated HTTP proxy patch [From Szabolcs Selï¿½f].
 - Properly handle Range requests such as "123-456" and "-567".  Still no
   handling for things like "123-456,457-789" though.
 - Extract and log vendor information of nodes we connect to.
