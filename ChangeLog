@@ -1,5 +1,25 @@
 # since last version
 
+- (2003.01.01 - RAM)
+ * Removed the G_INLINE_FUNC attribute in node_add_tx() and friends, as
+   it no longer links properly.
+ * Template props.tpl was not defining the default value correctly for
+   the new "multichoice" type, resulting in badly initialized properties
+   whereby the default of the previous property was used.
+ * Replaced an "inline" directive in nodes.h with G_INLINE_FUNC.
+ * Added a wrapper on top of the qrp_patch_compress() user-defined callback to
+   cleanly remove the task from the list where we put it at creation time.
+ * Added tracing of extensions for big pings/pongs/pushes.
+ * Validate all the /uri-res/N2R?urn:sha1 alternate locations we might get.
+ * Whenever we can do a successful /uri-res/N2R? request, force the download
+   to always request that URL from the server to avoid problems in case the
+   library is reshuffled remotely (for non-GTKG servents).  This also forces
+   the /uri-res/N2R? URL into the download mesh.
+ * Fixed logic bug in upload code for checking that followup requests still
+   refer to the same source.
+ * Check for duplicate download in new download_convert_to_urires().
+ * In leaf node mode, ignore the "hops_random_factor" property.
+
 - (2003.01.01 - cbiere)
  * Fixed identifiers with leading underscores
  * Removed usage of __FUNCTION__ as it's a gcc-only feature
@@ -10,6 +30,9 @@
  * Now accepts and forwards big pings/pongs/pushes to nodes that will
    advertize "GGEP: 0.5" (at least) in their handshakes.  Other nodes
    will get a stripped down message without the GGEP extensions.
+ * Do not send a RESET before subsequent PATCH messages if we already
+   sent a routing table to our ultrapeer, unless the new table has a
+   different size.
 
 - (2002.12.31 - cbiere)
  * [Gtk2] Added and removed properties for gnet stats
