@@ -206,8 +206,10 @@ find_download(download_t *d)
 	g_assert(d);
 	g_assert(d != DL_GUI_IS_HEADER);
 
-    g_hash_table_lookup_extended(ht_dl_iters, d, NULL, (gpointer) &iter);
-    return iter;
+    if (g_hash_table_lookup_extended(ht_dl_iters, d, NULL, (gpointer) &iter))
+    	return iter;
+
+	return NULL;
 }
 
 /**
