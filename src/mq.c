@@ -25,11 +25,8 @@
  *----------------------------------------------------------------------
  */
 
+#include "common.h"
 #include "gnutella.h"		/* Needed to be able to compile with dmalloc */
-
-#include <stdlib.h>			/* For qsort() */
-#include <sys/types.h>		/* FreeBSD requires this before <sys/uio.h> */
-#include <sys/uio.h>		/* For struct iovec */
 
 #include "nodes.h"
 #include "mq.h"
@@ -51,7 +48,7 @@ static void qlink_free(mqueue_t *q);
 static void mq_service(gpointer data);
 static void mq_update_flowc(mqueue_t *q);
 static gboolean make_room_header(
-	mqueue_t *q, gchar *header, gint prio, gint needed, gint *offset);
+	mqueue_t *q, gchar *header, guint prio, gint needed, gint *offset);
 static void mq_swift_timer(cqueue_t *cq, gpointer obj);
 
 extern cqueue_t *callout_queue;
@@ -764,7 +761,7 @@ static void qlink_remove(mqueue_t *q, GList *l)
 static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
 {
 	gchar *header = pmsg_start(mb);
-	gint prio = pmsg_prio(mb);
+	guint prio = pmsg_prio(mb);
 
 	return make_room_header(q, header, prio, needed, offset);
 }
@@ -776,7 +773,7 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
  * point but a Gnutella header and a message priority explicitly.
  */
 static gboolean make_room_header(
-	mqueue_t *q, gchar *header, gint prio, gint needed, gint *offset)
+	mqueue_t *q, gchar *header, guint prio, gint needed, gint *offset)
 {
 	gint n;
 	gint dropped = 0;				/* Amount of messages dropped */
@@ -1025,7 +1022,7 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 			q->qtail = q->qhead;
 	} else {
 		GList *l;
-		gint prio = pmsg_prio(mb);
+		guint prio = pmsg_prio(mb);
 		gboolean inserted = FALSE;
 
 		/*
