@@ -723,7 +723,7 @@
 
 	  <widget>
 	    <class>GtkHandleBox</class>
-	    <name>handlebox2</name>
+	    <name>handlebox_traffic</name>
 	    <border_width>1</border_width>
 	    <shadow_type>GTK_SHADOW_OUT</shadow_type>
 	    <handle_position>GTK_POS_TOP</handle_position>

@@ -87,7 +87,7 @@ create_main_window (void)
   GtkWidget *label_nb_sb_1;
   GtkWidget *label189;
   GtkWidget *label188;
-  GtkWidget *handlebox2;
+  GtkWidget *handlebox_traffic;
   GtkWidget *vbox31;
   GtkWidget *frame75;
   GtkWidget *vbox108;
@@ -1473,16 +1473,16 @@ create_main_window (void)
   gtk_widget_show (label188);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_sidebar), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_sidebar), 1), label188);
 
-  handlebox2 = gtk_handle_box_new ();
-  gtk_widget_set_name (handlebox2, "handlebox2");
-  gtk_widget_ref (handlebox2);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "handlebox2", handlebox2,
+  handlebox_traffic = gtk_handle_box_new ();
+  gtk_widget_set_name (handlebox_traffic, "handlebox_traffic");
+  gtk_widget_ref (handlebox_traffic);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "handlebox_traffic", handlebox_traffic,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (handlebox2);
-  gtk_box_pack_start (GTK_BOX (vbox46), handlebox2, FALSE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (handlebox2), 1);
-  gtk_handle_box_set_handle_position (GTK_HANDLE_BOX (handlebox2), GTK_POS_TOP);
-  gtk_handle_box_set_snap_edge (GTK_HANDLE_BOX (handlebox2), GTK_POS_LEFT);
+  gtk_widget_show (handlebox_traffic);
+  gtk_box_pack_start (GTK_BOX (vbox46), handlebox_traffic, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (handlebox_traffic), 1);
+  gtk_handle_box_set_handle_position (GTK_HANDLE_BOX (handlebox_traffic), GTK_POS_TOP);
+  gtk_handle_box_set_snap_edge (GTK_HANDLE_BOX (handlebox_traffic), GTK_POS_LEFT);
 
   vbox31 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox31, "vbox31");
@@ -1490,7 +1490,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox31", vbox31,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox31);
-  gtk_container_add (GTK_CONTAINER (handlebox2), vbox31);
+  gtk_container_add (GTK_CONTAINER (handlebox_traffic), vbox31);
 
   frame75 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame75, "frame75");
