@@ -57,7 +57,8 @@
 
 #include <stdlib.h>
 #include "pbarcellrenderer_gui2.h"
-#include "override.h"
+
+#include "override.h"		/* Must be the last header included */
 
 
 RCSID("$Id$");
