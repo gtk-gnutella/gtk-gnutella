@@ -60,6 +60,8 @@ gdouble _gtk_spin_button_get_value(GtkSpinButton *);
 void gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t);
 GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
     GCompareFunc cfn);
+void gtk_clist_save_visibility(GtkCList *clist, property_t prop);
+void gtk_clist_restore_visibility(GtkCList *clist, property_t prop);
 #endif /* USE_GTK1 */
 
 /*

@@ -54,9 +54,8 @@ gint gtk_paned_get_position(GtkPaned *paned)
 }
 #endif
 
-/*
- * gtk_clist_set_column_name:
- *
+#ifdef USE_GTK1
+/**
  * Set the internal name of the column without changing the
  * column header widget. (Copy paste internal column_title_new
  * from gtkclist.c)
@@ -72,6 +71,41 @@ void gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t)
 
     clist->column[col].title = g_strdup(t);
 }
+
+/**
+ * Save visibility of columns in given property which must by a boolean array 
+ * property with at least as many elements as there are columns.
+ */
+void gtk_clist_save_visibility(GtkCList *clist, property_t prop)
+{
+	guint i;
+	guint32 val;
+
+	g_assert(clist);
+
+    for (i = 0; i < clist->columns; i ++) {
+		val = clist->column[i].visible;
+		gui_prop_set_boolean(prop, &val, i, 1);
+	}
+}
+
+/**
+ * Restore visibility of columns from given property which must by a boolean array 
+ * property with at least as many elements as there are columns.
+ */
+void gtk_clist_restore_visibility(GtkCList *clist, property_t prop)
+{
+	guint i;
+	gboolean val;
+
+	g_assert(clist);
+
+    for (i = 0; i < clist->columns; i ++) {
+		gui_prop_get_boolean(prop, &val, i, 1);
+    	gtk_clist_set_column_visibility(clist, i, val);
+	}
+}
+#endif /* USE_GTK1 */
 
 
 /*
@@ -508,7 +542,6 @@ void tree_view_restore_visibility(GtkTreeView *treeview, property_t prop)
 		gtk_tree_view_column_set_visible(c, val);
 	}
 }
-
 
 #endif /* USE_GTK2 */
 
