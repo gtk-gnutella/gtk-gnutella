@@ -9,7 +9,7 @@
   <pixmaps_directory>pixmaps</pixmaps_directory>
   <language>C</language>
   <gnome_support>False</gnome_support>
-  <gettext_support>False</gettext_support>
+  <gettext_support>True</gettext_support>
   <use_widget_names>True</use_widget_names>
   <output_main_file>False</output_main_file>
   <output_build_files>False</output_build_files>
@@ -4444,7 +4444,7 @@
 		<name>table34</name>
 		<border_width>2</border_width>
 		<rows>3</rows>
-		<columns>3</columns>
+		<columns>4</columns>
 		<homogeneous>False</homogeneous>
 		<row_spacing>2</row_spacing>
 		<column_spacing>4</column_spacing>
@@ -4634,6 +4634,29 @@
 		    <right_attach>3</right_attach>
 		    <top_attach>1</top_attach>
 		    <bottom_attach>2</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_search_hide_downloaded</name>
+		  <can_focus>True</can_focus>
+		  <label>Hide downloaded files</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>3</left_attach>
+		    <right_attach>4</right_attach>
+		    <top_attach>0</top_attach>
+		    <bottom_attach>1</bottom_attach>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
 		    <xexpand>False</xexpand>
@@ -7522,6 +7545,67 @@ control</label>
 			      <yfill>False</yfill>
 			    </child>
 			  </widget>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkTable</class>
+			<name>table63</name>
+			<rows>1</rows>
+			<columns>2</columns>
+			<homogeneous>False</homogeneous>
+			<row_spacing>0</row_spacing>
+			<column_spacing>0</column_spacing>
+			<child>
+			  <padding>0</padding>
+			  <expand>True</expand>
+			  <fill>True</fill>
+			</child>
+
+			<widget>
+			  <class>GtkCheckButton</class>
+			  <name>checkbutton_gnet_monitor_ip</name>
+			  <can_focus>True</can_focus>
+			  <label>Monitor bad node IP addresses</label>
+			  <active>False</active>
+			  <draw_indicator>True</draw_indicator>
+			  <child>
+			    <left_attach>0</left_attach>
+			    <right_attach>1</right_attach>
+			    <top_attach>0</top_attach>
+			    <bottom_attach>1</bottom_attach>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			    <xexpand>False</xexpand>
+			    <yexpand>False</yexpand>
+			    <xshrink>False</xshrink>
+			    <yshrink>False</yshrink>
+			    <xfill>True</xfill>
+			    <yfill>False</yfill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkCheckButton</class>
+			  <name>checkbutton_gnet_monitor_servents</name>
+			  <can_focus>True</can_focus>
+			  <label>Monitor and auto-ban unstable servent types</label>
+			  <active>False</active>
+			  <draw_indicator>True</draw_indicator>
+			  <child>
+			    <left_attach>1</left_attach>
+			    <right_attach>2</right_attach>
+			    <top_attach>0</top_attach>
+			    <bottom_attach>1</bottom_attach>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			    <xexpand>False</xexpand>
+			    <yexpand>False</yexpand>
+			    <xshrink>False</xshrink>
+			    <yshrink>False</yshrink>
+			    <xfill>True</xfill>
+			    <yfill>False</yfill>
+			  </child>
 			</widget>
 		      </widget>
 		    </widget>
