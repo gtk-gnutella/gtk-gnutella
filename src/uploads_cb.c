@@ -25,78 +25,74 @@
 
 #include "uploads_cb.h"
 #include "uploads_gui.h"
-#include "uploads.h"      // FIXME: remove this dependency
 #include "upload_stats.h" // FIXME: remove this dependency
 
-void on_clist_uploads_select_row(GtkCList * clist, gint row, gint column,
-								 GdkEvent * event, gpointer user_data)
+/***
+ *** Private functions
+ ***/
+
+/*
+ * kill_upload:
+ *
+ * Suited for use as a GFunc in a g_list_for_each.
+ */
+static void kill_upload(upload_row_data_t *d, gpointer user_data)
 {
-	gui_update_upload_kill();
+    if (d->valid)
+        upload_kill(d->handle);
 }
 
-void on_clist_uploads_unselect_row(GtkCList * clist, gint row, gint column,
-								   GdkEvent * event, gpointer user_data)
+/***
+ *** Public functions
+ ***/
+
+void on_clist_uploads_select_row(GtkCList *clist, 
+    gint row, gint column, GdkEvent *event, gpointer user_data)
 {
-	gui_update_upload_kill();
+    GtkWidget *button;
+
+    button = lookup_widget(main_window, "button_uploads_kill");
+
+    gtk_widget_set_sensitive(button, clist->selection != NULL);
 }
 
-void on_clist_uploads_resize_column(GtkCList * clist, gint column,
-									gint width, gpointer user_data)
+void on_clist_uploads_unselect_row(GtkCList * clist, 
+    gint row, gint column, GdkEvent * event, gpointer user_data)
 {
+    GtkWidget *button;
+
+    button = lookup_widget(main_window, "button_uploads_kill");
+
+    gtk_widget_set_sensitive(button, clist->selection != NULL);
+}
+
+void on_clist_uploads_resize_column(GtkCList * clist, 
+    gint column, gint width, gpointer user_data)
+{
+    // FIXME: use properties
 	uploads_col_widths[column] = width;
 }
 
-void on_button_uploads_kill_clicked(GtkButton * button, gpointer user_data)
+void on_button_uploads_kill_clicked(GtkButton *button, gpointer user_data)
 {
-	GList *l = NULL;
-	struct upload *d;
-    GtkCList *clist_uploads = GTK_CLIST
-        (lookup_widget(main_window, "clist_uploads"));
-        
+    GSList *sl = NULL;
+    GtkCList *clist;
 
-    gtk_clist_freeze(clist_uploads);
+    clist = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
 
-	for (l = clist_uploads->selection; l; l = clist_uploads->selection ) {
-		d = (struct upload *) 
-			gtk_clist_get_row_data(clist_uploads,(gint) l->data);
-        gtk_clist_unselect_row(clist_uploads, (gint) l->data, 0);
-     
-        if (!d) {
-			g_warning(
-                "on_button_uploads_kill_clicked(): row %d has NULL data\n",
-			    (gint) l->data);
-		    continue;
-        }
+    gtk_clist_freeze(clist);
 
-        upload_kill(d);
-	}  
+    sl = clist_collect_data(clist, FALSE, NULL);
+    g_slist_foreach(sl, (GFunc) kill_upload, NULL);
+    g_slist_free(sl);
 
-	gui_update_c_uploads();
-
-    gtk_clist_thaw(clist_uploads);
+    gtk_clist_thaw(clist);
 }
 
-void on_button_uploads_clear_completed_clicked
-    (GtkButton *button, gpointer user_data)
+void on_button_uploads_clear_completed_clicked(
+    GtkButton *button, gpointer user_data)
 {
-	struct upload *d;
-	gint row;
-    GtkCList *clist_uploads = GTK_CLIST
-        (lookup_widget(main_window, "clist_uploads"));
-
-    // FIXME: SLOW!!!!
-	for (row = 0;;) {
-		d = gtk_clist_get_row_data(clist_uploads, row);
-		if (!d)
-			break;
-		if (UPLOAD_IS_COMPLETE(d))
-			upload_remove(d, NULL);
-		else
-			row++;
-	}
-
-	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_uploads_clear_completed"), 0);
+    uploads_gui_clear_completed();
 }
 
 /* uploads popup menu */
@@ -225,9 +221,10 @@ void on_clist_ul_stats_click_column
 	gtk_clist_sort(clist);
 }
 
-void on_clist_ul_stats_resize_column
-    (GtkCList *clist, gint column, gint width, gpointer user_data)
+void on_clist_ul_stats_resize_column(GtkCList *clist, 
+    gint column, gint width, gpointer user_data)
 {
+    // FIXME: use properties
 	ul_stats_col_widths[column] = width;
 }
 
