@@ -128,7 +128,7 @@ static void remove_selected_nodes(void)
 
     g_assert(clist != NULL);
 
-    node_list = clist_collect_data(clist, FALSE, g_direct_equal);
+    node_list = clist_collect_data(clist, TRUE, g_direct_equal);
     node_remove_nodes_by_handle(node_list);
     g_slist_free(node_list);
 }
