@@ -1302,11 +1302,15 @@ void download_pickup_queued(void)
 	time_t now = time((time_t *) NULL);
 	gint running = count_running_downloads();
     GtkCList *clist_downloads_queue;
+    GtkCList *clist_downloads;
+    gboolean frozen = FALSE;
 
     clist_downloads_queue = GTK_CLIST
         (lookup_widget(main_window, "clist_downloads_queue"));
 
-	gtk_clist_freeze(clist_downloads_queue);
+    clist_downloads = GTK_CLIST
+       (lookup_widget(main_window, "clist_downloads"));
+
 	row = 0;
 	while (row < clist_downloads_queue->rows && running < max_downloads) {
 		struct download *d = (struct download *)
@@ -1321,6 +1325,12 @@ void download_pickup_queued(void)
 			count_running_downloads_with_guid(d->guid) < max_host_downloads
 			&& count_running_downloads_with_name(d->file_name) == 0
 		) {
+            if (!frozen) {
+                frozen = TRUE;
+                gtk_clist_freeze(clist_downloads_queue);
+                gtk_clist_freeze(clist_downloads);
+            }
+
 			download_start(d, FALSE);
 			if (!DOWNLOAD_IS_QUEUED(d))
 				running++;
@@ -1328,15 +1338,17 @@ void download_pickup_queued(void)
 			row++;
 	}
 
+    if (frozen) {
+        gtk_clist_thaw(clist_downloads_queue);
+        gtk_clist_thaw(clist_downloads);
+    }
+
 	/*
 	 * Enable "Start now" only if we would not exceed limits.
 	 */
-
 	gtk_widget_set_sensitive(
         lookup_widget(popup_queue, "popup_queue_start_now"), 
         (running < max_downloads) && clist_downloads_queue->selection); 
-
-	gtk_clist_thaw(GTK_CLIST(clist_downloads_queue));
 }
 
 static void download_push(struct download *d, gboolean on_timeout)
