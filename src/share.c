@@ -778,6 +778,12 @@ void shared_dir_add(const gchar * path)
     shared_dirs_update_prop();
 }
 
+static inline gboolean too_big_for_gnutella(off_t size)
+{
+	g_return_val_if_fail(size > 0, TRUE);
+	return size > (gint64) 0xffffffffUL;
+}
+
 /*
  * recurse_scan
  *
@@ -881,9 +887,9 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 					break;
 				}
 
-				if (file_stat.st_size > (off_t) 0xffffffffU) {
+				if (too_big_for_gnutella(file_stat.st_size)) {
 					g_warning("File is too big to be shared: \"%s\"",
-						full, g_strerror(errno));
+						full);
 					break;
 				}
 
