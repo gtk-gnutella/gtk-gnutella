@@ -30,6 +30,7 @@
 #include "fileinfo.h"
 #include "header.h"
 #include "http.h"
+#include "tm.h"
 
 /*
  * We keep a list of all the downloads queued per GUID+IP:port (host).  Indeed
@@ -141,6 +142,7 @@ struct download {
 	time_t last_gui_update;	/* Last stats update on the GUI */
 	time_t record_stamp;	/* Stamp of the query hit that launched us */
 	time_t retry_after;		/* Time at which we may retry for this download */
+	tm_t header_sent;		/* When we sent the headers, for latency measures */
 
 	guint32 retries;
 	guint32 timeout_delay;

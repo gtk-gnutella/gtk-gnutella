@@ -52,6 +52,7 @@
 #include "ban.h"
 #include "guid.h"
 #include "pproxy.h"
+#include "tm.h"
 
 #include <errno.h>
 #include <sys/types.h>
@@ -4069,6 +4070,21 @@ static struct io_error download_io_error = {
 static void download_start_reading(gpointer o)
 {
 	struct download *d = DOWNLOAD(o);
+	tm_t now;
+	tm_t elapsed;
+	guint32 latency;
+
+	/*
+	 * Compute the time it took since we sent the headers, and update
+	 * the fast EMA (n=7 terms) storing the HTTP latency, in msecs.
+	 */
+
+	tm_now(&now);
+	tm_elapsed(&elapsed, &now, &d->header_sent);
+
+	gnet_prop_get_guint32_val(PROP_DL_HTTP_LATENCY, &latency);
+	latency += (tm2ms(&elapsed) >> 2) - (latency >> 2);
+	gnet_prop_set_guint32_val(PROP_DL_HTTP_LATENCY, latency);
 
 	/*
 	 * Update status and GUI, timestamp start of header reading.
@@ -4402,7 +4418,6 @@ partial_done:
 	else if (!cd->keep_alive)
 		download_queue(cd, _("Chunk done, connection closed"));
 	else {
-		socket_tos_normal(s);
 		if (download_start_prepare(cd)) {
 			cd->keep_alive = TRUE;			/* Was reset by _prepare() */
 			download_gui_add(cd);
@@ -6107,6 +6122,7 @@ static void download_request_sent(struct download *d)
 
 	d->last_update = time((time_t *) 0);
 	d->status = GTA_DL_REQ_SENT;
+	tm_now(&d->header_sent);
 
 	gui_update_download(d, TRUE);
 
@@ -6497,6 +6513,8 @@ picked:
 	/*
 	 * Send the HTTP Request
 	 */
+
+	socket_tos_normal(s);
 
 	if (-1 == (sent = bws_write(bws.out, s->file_desc, dl_tmp, rw))) {
 		/*
