@@ -38,22 +38,26 @@ RCSID("$Id$");
  */
 const gchar *msg_type_str(int value)
 {
-	switch (value) {
-		case 0: return _("Unknown");
-		case 1: return _("Ping");
-		case 2: return _("Pong");
-		case 3: return _("Bye");
-		case 4: return _("QRP");
-		case 5: return _("Vendor Spec.");
-		case 6: return _("Vendor Std.");
-		case 7: return _("Push");
-		case 8: return _("Query");
-		case 9: return _("Query Hit");
-		case 10: return _("Total");
-		default: 
-			g_warning("Requested general_type_str %d is invalid", value);
-			return "";
+	static const char * const strs[] = {
+		N_("Unknown"),
+		N_("Ping"),
+		N_("Pong"),
+		N_("Bye"),
+		N_("QRP"),
+		N_("Vendor Spec."),
+		N_("Vendor Std."),
+		N_("Push"),
+		N_("Query"),
+		N_("Query Hit"),
+		N_("Total"),
+	};
+
+	if ((guint) value >= G_N_ELEMENTS(strs)) {
+		g_warning("Requested general_type_str %d is invalid", value);
+		return "";
 	}
+
+	return _(strs[value]);
 }
 
 int msg_type_str_size(void)
@@ -68,38 +72,42 @@ int msg_type_str_size(void)
  */
 const gchar *msg_drop_str(int value)
 {
-	switch (value) {
-		case 0: return _("Bad size");
-		case 1: return _("Too small");
-		case 2: return _("Too large");
-		case 3: return _("Way too large");
-		case 4: return _("Unknown message type");
-		case 5: return _("Unexpected message");
-		case 6: return _("Message sent with TTL = 0");
-		case 7: return _("Improper hops/TTL combination");
-		case 8: return _("Max TTL exceeded");
-		case 9: return _("Message throttle");
-		case 10: return _("Unusable Pong");
-		case 11: return _("Hard TTL limit reached");
-		case 12: return _("Max hop count reached");
-		case 13: return _("Unrequested reply");
-		case 14: return _("Route lost");
-		case 15: return _("No route");
-		case 16: return _("Duplicate message");
-		case 17: return _("Message to banned GUID");
-		case 18: return _("Node shutting down");
-		case 19: return _("Flow control");
-		case 20: return _("Query text had no trailing NUL");
-		case 21: return _("Query text too short");
-		case 22: return _("Query had unnecessary overhead");
-		case 23: return _("Message with malformed SHA1");
-		case 24: return _("Message with malformed UTF-8");
-		case 25: return _("Malformed Query Hit");
-		case 26: return _("Hostile IP address");
-		default: 
-			g_warning("Requested general_type_str %d is invalid", value);
-			return "";
+	static const char * const strs[] = {
+		N_("Bad size"),
+		N_("Too small"),
+		N_("Too large"),
+		N_("Way too large"),
+		N_("Unknown message type"),
+		N_("Unexpected message"),
+		N_("Message sent with TTL = 0"),
+		N_("Improper hops/TTL combination"),
+		N_("Max TTL exceeded"),
+		N_("Message throttle"),
+		N_("Unusable Pong"),
+		N_("Hard TTL limit reached"),
+		N_("Max hop count reached"),
+		N_("Unrequested reply"),
+		N_("Route lost"),
+		N_("No route"),
+		N_("Duplicate message"),
+		N_("Message to banned GUID"),
+		N_("Node shutting down"),
+		N_("Flow control"),
+		N_("Query text had no trailing NUL"),
+		N_("Query text too short"),
+		N_("Query had unnecessary overhead"),
+		N_("Message with malformed SHA1"),
+		N_("Message with malformed UTF-8"),
+		N_("Malformed Query Hit"),
+		N_("Hostile IP address"),
+	};
+	
+	if ((guint) value >= G_N_ELEMENTS(strs)) {
+		g_warning("Requested general_type_str %d is invalid", value);
+		return "";
 	}
+
+	return _(strs[value]);
 }
 
 /*
@@ -109,22 +117,26 @@ const gchar *msg_drop_str(int value)
  */
 const gchar *general_type_str(int value)
 {
-	switch (value) {
-		case 0: return _("Routing errors");
-		case 1: return _("Searches to local DB");
-		case 2: return _("Hits on local DB");
-		case 3: return _("Compacted queries");
-		case 4: return _("Bytes saved by compacting");
-		case 5: return _("UTF8 queries");
-		case 6: return _("SHA1 queries");
-		case 7: return _("Broadcasted push messages");
-		case 8: return _("Push proxy relayed messages");
-		case 9: return _("Push proxy broadcasted messages");
-		case 10: return _("Push proxy lookup failures");
-		default: 
-			g_warning("Requested general_type_str %d is invalid", value);
-			return "";
+	static const char * const strs[] = {
+		N_("Routing errors"),
+		N_("Searches to local DB"),
+		N_("Hits on local DB"),
+		N_("Compacted queries"),
+		N_("Bytes saved by compacting"),
+		N_("UTF8 queries"),
+		N_("SHA1 queries"),
+		N_("Broadcasted push messages"),
+		N_("Push proxy relayed messages"),
+		N_("Push proxy broadcasted messages"),
+		N_("Push proxy lookup failures"),
+	};
+	
+	if ((guint) value >= G_N_ELEMENTS(strs)) {
+		g_warning("Requested general_type_str %d is invalid", value);
+		return "";
 	}
+
+	return _(strs[value]);
 }
 
 /*
@@ -141,14 +153,14 @@ const gchar *horizon_stat_str(hsep_triple *table, hsep_triple *other, gint row,
 		{
     		static gchar buf[21];
 
-			gm_snprintf(buf, sizeof(buf), "%u", row);
+			gm_snprintf(buf, sizeof(buf), "%d", row);
            	return buf;
 		}
     case c_horizon_nodes:
 		{
     		static gchar buf[21];
 
-			gm_snprintf(buf, sizeof(buf), "%llu",
+			gm_snprintf(buf, sizeof(buf), "%" PRIu64,
 			    table[row][HSEP_IDX_NODES] + other[0][HSEP_IDX_NODES]);
            	return buf;
 		}
@@ -156,7 +168,7 @@ const gchar *horizon_stat_str(hsep_triple *table, hsep_triple *other, gint row,
 		{
     		static gchar buf[21];
 
-			gm_snprintf(buf, sizeof(buf), "%llu",
+			gm_snprintf(buf, sizeof(buf), "%" PRIu64,
 			    table[row][HSEP_IDX_FILES] + other[0][HSEP_IDX_FILES]);
            	return buf;
 		}
@@ -207,12 +219,12 @@ void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
 
 	val = table[hops][HSEP_IDX_NODES] + other[HSEP_IDX_NODES];
 	gm_snprintf(s, sizeof(s),
-	            "%llu %s", val, val == 1 ? _("node") : _("nodes"));
+	            "%" PRIu64 " %s", val, val == 1 ? _("node") : _("nodes"));
 	gtk_label_set_text(GTK_LABEL(lookup_widget(main_window,
 	                   "label_statusbar_horizon_node_count")), s);
 
 	val = table[hops][HSEP_IDX_FILES] + other[HSEP_IDX_FILES];
-	gm_snprintf(s, sizeof(s), "%llu %s",
+	gm_snprintf(s, sizeof(s), "%" PRIu64 " %s",
 	            val, val == 1 ? _("file") : _("files"));
 	gtk_label_set_text(GTK_LABEL(lookup_widget(main_window,
 	                   "label_statusbar_horizon_file_count")), s);
@@ -223,4 +235,4 @@ void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
 	                   "label_statusbar_horizon_kb_count")), s);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
