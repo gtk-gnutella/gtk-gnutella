@@ -1,6 +1,16 @@
 # since last version
 
 - (2003.12.24 - Richard)
+ * Increased similarity between gtk1 and gtk2 interfaces.
+ * [Gtk1] [Gtk2] More padding fixes.
+ * [Gtk1] In bandwidth config panel changed layout to match that of the 
+   Gtk2 interface.
+ * [Gtk1] [Gtk2] Updated gui maintainer entry in about dialog.
+ * [Gtk1] [Gtk2] Changed label of expert mode toggle to
+   "Show additional information and settings for advanced and expert users"
+ * [Gtk2] Added "Compute upload connection speed" setting to config pane.
+
+- (2003.12.24 - Richard)
  * [Gtk2] Changed lots of paddings and spacings so they are more uniform.
  * [Gtk1] [Gtk2] Applied suggestions of Emile le Vivre for gui simplification:
    - moved to expert mode:
