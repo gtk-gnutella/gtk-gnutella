@@ -1296,8 +1296,16 @@ static gchar *node_crawler_headers(struct gnutella_node *n)
 {
 	static gchar buf[1536];		/* 1.5 KB */
 	GSList *l;
+	gint maxsize;
 	gint rw;
 	gint count;
+
+	/*
+	 * Avoid sending an incomplete trailing IP address by roughly avoiding
+	 * any write if less than 32 chars are available in the buffer.
+	 */
+
+	maxsize = sizeof(buf) - 32;
 
 	/*
 	 * First, the peers.
@@ -1305,7 +1313,7 @@ static gchar *node_crawler_headers(struct gnutella_node *n)
 
 	rw = gm_snprintf(buf, sizeof(buf), "Peers: ");
 
-	for (count = 0, l = sl_nodes; l && rw < sizeof(buf); l = l->next) {
+	for (count = 0, l = sl_nodes; l && rw < maxsize; l = l->next) {
 		struct gnutella_node *cn = (struct gnutella_node *) l->data;
 
 		if (cn == n)				/* Don't show the crawler itself */
@@ -1331,7 +1339,7 @@ static gchar *node_crawler_headers(struct gnutella_node *n)
 
 	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
 
-	if (current_peermode != NODE_P_ULTRA)
+	if (current_peermode != NODE_P_ULTRA || rw >= maxsize)
 		return buf;
 
 	/*
@@ -1340,7 +1348,7 @@ static gchar *node_crawler_headers(struct gnutella_node *n)
 
 	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "Leaves: ");
 
-	for (count = 0, l = sl_nodes; l && rw < sizeof(buf); l = l->next) {
+	for (count = 0, l = sl_nodes; l && rw < maxsize; l = l->next) {
 		struct gnutella_node *cn = (struct gnutella_node *) l->data;
 
 		if (cn == n)				/* Don't show the crawler itself */
