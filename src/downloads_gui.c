@@ -591,8 +591,8 @@ void download_gui_add(struct download *d)
 
         titles[c_queue_filename] = d->record_index == URN_INDEX ?
 			d->file_info->file_name : d->file_name;
-        titles[c_queue_server] = g_strdup(download_vendor_str(d));
-        titles[c_queue_status] = vendor;
+        titles[c_queue_server] = vendor;
+        titles[c_queue_status] = "";
 		titles[c_queue_size] = short_size(d->file_info->size);
         titles[c_queue_host] = is_faked_download(d) ? "" :
 			ip_port_to_gchar(download_ip(d), download_port(d));
