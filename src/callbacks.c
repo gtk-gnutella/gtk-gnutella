@@ -491,7 +491,7 @@ void on_download_p_push_activate(GtkMenuItem * menuitem,
 								 gpointer user_data)
 {
 	if (selected_active_download)
-		download_fallback_to_push(selected_active_download, TRUE);
+		download_fallback_to_push(selected_active_download, FALSE, TRUE);
 	selected_active_download = (struct download *) NULL;
 }
 

@@ -216,7 +216,7 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 		if (s->type == GTA_TYPE_CONTROL && s->resource.node)
 			node_remove(s->resource.node, "Connection failed");
 		else if (s->type == GTA_TYPE_DOWNLOAD && s->resource.download)
-			download_fallback_to_push(s->resource.download, FALSE);
+			download_fallback_to_push(s->resource.download, FALSE, FALSE);
 		else if (s->type == GTA_TYPE_UPLOAD && s->resource.upload)
 			upload_remove(s->resource.upload, "Connection failed");
 		else
@@ -291,7 +291,7 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 			if (s->type == GTA_TYPE_CONTROL && s->resource.node)
 				node_remove(s->resource.node, "Connection failed");
 			else if (s->type == GTA_TYPE_DOWNLOAD && s->resource.download)
-				download_fallback_to_push(s->resource.download, FALSE);
+				download_fallback_to_push(s->resource.download, FALSE, FALSE);
 			else
 				socket_destroy(s);
 			return;
