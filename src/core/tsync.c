@@ -56,6 +56,7 @@ struct tsync {
 	tm_t sent;				/* Time at which we sent the synchronization */
 	guint32 node_id;		/* Node to which we sent the request */
 	gpointer expire_ev;		/* Expiration callout queue callback */
+	gboolean udp;			/* Whether request was sent using UDP */
 };
 
 /*
@@ -82,6 +83,7 @@ static void
 tsync_expire(cqueue_t *cq, gpointer obj)
 {
 	struct tsync *ts = obj;
+	struct gnutella_node *n;
 
 	if (dbg > 1)
 		printf("TSYNC expiring time %d.%d\n",
@@ -89,6 +91,18 @@ tsync_expire(cqueue_t *cq, gpointer obj)
 
 	ts->expire_ev = NULL;
 	g_hash_table_remove(tsync_by_time, &ts->sent);
+
+	/*
+	 * If we sent the request via UDP, the ndoe is probanly UDP-firewalled:
+	 * use TCP next time...
+	 */
+
+	if (ts->udp) {
+		n = node_active_by_id(ts->node_id);
+		if (n != NULL)
+			n->flags |= NODE_F_TSYNC_TCP;
+	}
+
 	tsync_free(ts);
 }
 
@@ -110,6 +124,7 @@ tsync_send(struct gnutella_node *n, guint32 node_id)
 	tm_now(&ts->sent);
 	ts->sent.tv_sec = clock_loc2gmt(ts->sent.tv_sec);
 	ts->node_id = node_id;
+	ts->udp = NODE_IS_UDP(n);
 
 	/*
 	 * As far as time synchronization goes, we must get the reply within

@@ -363,7 +363,12 @@ node_tsync_udp(cqueue_t *cq, gpointer obj)
 	g_assert(!NODE_IS_UDP(n));
 	g_assert(n->attrs & NODE_A_TIME_SYNC);
 
-	if (n->gnet_ip)
+	/*
+	 * If we did not get replies within the reasonable time period, we
+	 * marked the node with NODE_F_TSYNC_TCP to use TCP instead of UDP.
+	 */
+	
+	if (!(n->flags & NODE_F_TSYNC_TCP) && n->gnet_ip)
 		udp = node_udp_get_ip_port(n->gnet_ip, n->gnet_port);
 
 	tsync_send(udp == NULL ? n : udp, n->id);
