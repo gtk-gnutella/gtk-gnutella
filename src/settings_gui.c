@@ -25,6 +25,8 @@
  *----------------------------------------------------------------------
  */
 
+#include "gui.h"
+
 #include "settings_gui.h"
 
 #include <pwd.h>
@@ -33,7 +35,6 @@
 #include "monitor_gui.h"
 #include "statusbar_gui.h"
 #include "search_gui.h"
-#include "gui_property_priv.h"
 #include "filter_gui.h"
 
 #include "settings_cb.h"
@@ -57,6 +58,7 @@
  * update_spinbutton (from part III) and add an entry to 
  * the property_map table. The rest will be done automatically.
  * If debugging is activated, you will get a list of unmapped and
+
  * ignored properties on startup.
  * To ignore a property, just set the cb, fn_toplevel and wid attributes
  * in the property_map to IGNORE,
@@ -176,6 +178,7 @@ static gboolean is_inet_connected_changed(property_t prop);
 static gboolean show_search_results_settings_changed(property_t prop);
 static gboolean local_address_changed(property_t prop);
 static gboolean force_local_ip_changed(property_t prop);
+//static gboolean queue_frozen_changed(property_t prop);
 
 // FIXME: move to separate file and autoegenerate from high-level
 //        description. 
