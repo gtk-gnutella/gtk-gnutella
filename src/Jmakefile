@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2003, Raphael Manfredi
  *
  * Jmakefile for gtk-gnutella sources.
  *
@@ -22,6 +22,7 @@
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
  */
 
 ;# $Id$
@@ -190,10 +191,12 @@ DPFLAGS = -I$(TOP) $(GTK_CFLAGS) $(XML2_CFLAGS)
 LDFLAGS = $(GTK_LDFLAGS) $(XML2_LDFLAGS)
 
 >PRIVLIB	/* Force metaconfig to ask for privlib location */
+>BINDIR
 
 DependTarget()
 SimpleYaccTarget(gtk-gnutella, getdate)
 NormalProgramTarget(gtk-gnutella, $(SRC), $(OBJ) getdate.o)
+InstallProgram(gtk-gnutella, $(BINDIR))
 
 #
 # Glade generates:

@@ -1,5 +1,5 @@
 : Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.0 PL70]
-: $X-Id: Jmake.tmpl,v 3.0.1.3 1997/02/28 14:56:16 ram Exp $
+: $X-Id: Jmake.tmpl,v 3.0.1.3 1997/02/28 14:56:16 ram Exp ram $
 
 case $CONFIG in
 '')
@@ -21,6 +21,7 @@ CURRENT=src
 DIR=`echo $CURRENT/ | sed -e 's/\.\///g'`
 echo "Extracting ${DIR}Makefile (with variable substitutions)"
 
+INSTALL=`echo $install | sed -e 's,\./i,\$(TOP)/i,'`
 DATE=`date`
 
 $spitshell >Makefile <<!GROK!THIS!
@@ -32,10 +33,12 @@ JMAKE = jmake
 TOP = ..
 CURRENT = $CURRENT
 DIR = $DIR
+INSTALL = $INSTALL
 
 ########################################################################
 # Parameters set by Configure -- edit config.sh if changes are needed
 
+BINDIR = $installbin
 CC = $cc
 CTAGS = ctags
 JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
@@ -81,7 +84,7 @@ OBJECTS =   getdate.o  \$(OBJ) getdate.o
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules,v 3.0.1.6 1997/02/28 14:56:01 ram Exp $
+# $X-Id: Jmake.rules,v 3.0.1.6 1997/02/28 14:56:01 ram Exp ram $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -93,7 +96,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.1 2003/08/09 22:20:31 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.2 2003/08/09 22:38:30 rmanfredi Exp $
 
 GUI_GTK2 = \
 	fileinfo_gui2.c \
@@ -391,7 +394,7 @@ depend:: ../mkdep
 depend::
 	($(SED) '/^# DO NOT DELETE/q' Makefile && \
 	$(MKDEP) $(SOURCES) | \
-	$(SED) -e 's:/usr/include[^ ]*::g; s:$(USRINC)[^ ]*::g; ' \
+	$(SED) -e 's:/usr/lib[^ ]*::g; s:$(USRINC)[^ ]*::g; ' \
 	-e '/: / b print' -e 'H; d; n; : print' -e 'x; s/\\\n//g' \
 	-e 's/  */ /g; s/ :/:/;' -e '/: *$$/d' \
 	) > Makefile.new
@@ -413,6 +416,12 @@ gtk-gnutella:  $(OBJ) getdate.o
 	$(RM) $@
 	if test -f $@; then $(MV) $@ $@~; else exit 0; fi
 	$(CC) -o $@  $(OBJ) getdate.o $(JLDFLAGS) $(LIBS)
+
+local_install:: gtk-gnutella
+	$(INSTALL) -c -s -m 555  gtk-gnutella $(INSTALL_PREFIX)$(BINDIR)
+
+local_deinstall::
+	$(RM) $(INSTALL_PREFIX)$(BINDIR)/gtk-gnutella
 
 #Glade generates:
 #interface-glade[12].c interface-glade[12].h
@@ -449,6 +458,11 @@ local_realclean:: local_clean
 local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
+install: local_install
+install.man: local_install.man
+deinstall: local_deinstall
+deinstall.man: local_deinstall.man
+
 Makefile.SH: Jmakefile
 	-@if test -f $(TOP)/.package; then \
 	if test -f Makefile.SH; then \
@@ -472,16 +486,16 @@ local_clobber::
 ########################################################################
 # Empty rules for directories with no sub-directories -- do not edit
 
-install::
+local_install::
 	@echo "install in $(CURRENT) done."
 
-deinstall::
+local_deinstall::
 	@echo "deinstall in $(CURRENT) done."
 
-install.man::
+local_install.man::
 	@echo "install.man in $(CURRENT) done."
 
-deinstall.man::
+local_deinstall.man::
 	@echo "deinstall.man in $(CURRENT) done."
 
 Makefiles::
