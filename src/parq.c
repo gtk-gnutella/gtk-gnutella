@@ -1098,6 +1098,7 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 			  g_list_remove(parq_ul->queue->by_rel_pos, parq_ul);
 		
 		parq_upload_update_relative_position(parq_ul);
+		parq_upload_update_eta(parq_ul->queue);
 	} else {
 		parq_ul->queue->by_date_dead = g_list_remove(
 			  parq_ul->queue->by_date_dead, parq_ul);
@@ -1393,27 +1394,69 @@ static void parq_upload_free_queue(struct parq_ul_queue *queue)
  */
 static void parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 {
+	extern gint running_uploads;
 	GList *l;
 	guint eta = 0;
 	
-	/* Cycle through the current queue linked list */
-	for (l = which_ul_queue->by_position; l; l = g_list_next(l)) {	
+	if (which_ul_queue->active_uploads) {
+		/*
+		 * Current queue as an upload slot. Use this one for a start ETA.
+		 * Locate the first active upload in this queue.
+		 */
+		
+		for (l = which_ul_queue->by_position; l; l = g_list_next(l)) {	
+			struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) l->data;
+				if (parq_ul->has_slot) {
+					eta = parq_ul->eta;
+					break;
+				}
+		}
+	}
+	
+	if (eta == 0 && running_uploads > max_uploads) {
+		/* We don't have an upload slot available, so an start ETA (for position
+		 * 1) is necessary.
+		 * Use the eta of another queue. First by the queue which uses more than
+		 * one upload slot. If that result is still 0, we have a small problem
+		 * as the ETA can't be calculated correctly anymore.
+		 */
+		
+		for (l = ul_parqs; l; l = g_list_next(l)) {
+			struct parq_ul_queue *q = (struct parq_ul_queue *) l->data;
+			
+			if (q->active_uploads > 1) {
+				struct parq_ul_queued *parq_ul = 
+					(struct parq_ul_queued *) q->by_rel_pos->data;
+				
+				eta = parq_ul->eta;
+				break;
+			}
+		}
+		
+		if (eta == 0)
+			g_warning("[parq] Was unable to calculate an accurate ETA");
+
+	}
+	
+	for (l = which_ul_queue->by_rel_pos; l; l = g_list_next(l)) {	
 		struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) l->data;
-
-		g_assert(parq_ul != NULL);
-
+		
+		g_assert(parq_ul->is_alive);
+		
 		parq_ul->eta = eta;
 		
+		if (parq_ul->has_slot)
+			/* Skip already uploading uploads */
+			continue;
+		
 		if (max_uploads > 0) {
-			if (parq_ul->is_alive) {
-				/* Recalculate ETA */
-				if (bw_http_out != 0 && bws_out_enabled) {
-					eta += parq_ul->file_size / (bw_http_out / max_uploads);
-				} else {
-					/* FIXME, should use average bandwidth here */
-					/* Pessimistic: 1 bytes / sec */
-					eta += parq_ul->file_size;
-				}
+			/* Recalculate ETA */
+			if (bw_http_out != 0 && bws_out_enabled) {
+				eta += parq_ul->file_size / (bw_http_out / max_uploads);
+			} else {
+				/* FIXME, should use average bandwidth here */
+				/* Pessimistic: 1 bytes / sec */
+				eta += parq_ul->file_size;
 			}
 		} else
 			eta = (guint) -1;
@@ -1583,6 +1626,8 @@ void parq_upload_timer(time_t now)
 			  g_list_remove(parq_ul->queue->by_rel_pos, parq_ul);
 
 		parq_upload_update_relative_position(parq_ul);
+		parq_upload_update_eta(parq_ul->queue);
+		
 		g_assert(parq_ul->queue->alive >= 0);					
 
 		if (!enable_real_passive)
@@ -1928,11 +1973,10 @@ cleanup:
 		g_assert(parq_ul->queue->alive > 0);
 
 		/* Insert again, in the relative position list. */
-		// FIXME: Remove the following
-		g_assert(parq_ul != NULL);
 		parq_ul->queue->by_rel_pos = 
 			g_list_insert_sorted(parq_ul->queue->by_rel_pos, parq_ul, 
 				  parq_ul_rel_pos_cmp);	
+		parq_upload_update_eta(parq_ul->queue);
 	}
 		
 	buf = header_get(header, "X-Queue");
