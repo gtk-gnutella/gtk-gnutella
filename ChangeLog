@@ -1,5 +1,9 @@
 # since last version
 
+- (2002.12.30 - cbiere)
+ * Fixed phys. RAM detection so it should work with Linux, Free/Net/OpenBSD
+   and Solaris (settings.c)
+
 - (2002.12.29 - RAM)
  * When "enable_ultrapeer" is FALSE, forbid setting "current_peermode" to
    anything other than NODE_P_NORMAL, forcing the value if necessary.
