@@ -1,5 +1,10 @@
 # since last version
 
+- (2002.11.12 Richard)
+ * [Gtk2] Add new widgets from Gtk1 frontend
+ * [Gtk2] Filled in contributors to about box
+ * [Gtk2] Greatly improved search monitor performance
+
 - (2002.11.11 Richard)
  * Added entry for PROP_BAD_FILE_PATH to download config
  * Added icons to reflect state of PROP_FILE_MOVING
