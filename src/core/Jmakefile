@@ -92,6 +92,7 @@ SRC = \
 	tx_dgram.c \
 	tx_link.c \
 	udp.c \
+	uhc.c \
 	upload_stats.c \
 	uploads.c \
 	verify.c \
