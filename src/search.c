@@ -1417,7 +1417,6 @@ static void search_dequeue_all_nodes(gnet_search_t sh)
 
 void search_init(void)
 {
-    printf("search_init\n");
 	rs_zone = zget(sizeof(gnet_results_set_t), 1024);
 	rc_zone = zget(sizeof(gnet_record_t), 1024);
     
@@ -1820,40 +1819,9 @@ gnet_search_t search_new(
 	 */
 
 #ifdef USE_ICU
-	{
-		UChar *qtmp1;
-		UChar *qtmp2;
-		int	len, maxlen;
-
-		len=strlen(query);
-		maxlen = len*6; /* Max 6 bytes for one char in utf8 */
-
-		qtmp1 = (UChar *) g_malloc(maxlen*sizeof(UChar));
-		qtmp2 = (UChar *) g_malloc(maxlen*sizeof(UChar));
-
-		if (latin_locale) {
-			len = to_icu_conv(query, len, qtmp1, maxlen);
-			len = unicode_NFC(qtmp1, len, qtmp2, maxlen);
-		} else
-			len = to_icu_conv(query, len, qtmp2, maxlen);
-
-		len = unicode_NFKD(qtmp2, len, qtmp1, maxlen);
-		len = unicode_upper(qtmp1, len, qtmp2, maxlen);
-		len = unicode_lower(qtmp2, len, qtmp1, maxlen);
-		len = unicode_filters(qtmp1, len, qtmp2);
-
-		qdup = g_malloc(len);
-
-		if (latin_locale)
-			utf8_len = icu_to_utf8_conv(qtmp2, len, qdup, len);
-		else
-			utf8_len = icu_to_utf8_conv(qtmp2, len, qdup, len*6);
-
-		g_free(qtmp1);
-		g_free(qtmp2);
-	}
+	qdup = unicode_canonize(query);
+	utf8_len = strlen(qdup);
 #else
-
 	qdup = g_strdup(query);
 	qlen = strlen(qdup);
 

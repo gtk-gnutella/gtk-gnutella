@@ -75,6 +75,7 @@ int unicode_NFKD(const UChar *source, gint32 len, UChar *result, gint32 rlen);
 int unicode_lower(const UChar *source, gint32 len, UChar *result, gint32 rlen);
 int unicode_upper(const UChar *source, gint32 len, UChar *result, gint32 rlen);
 int unicode_filters(const UChar *source, gint32 len, UChar *result);
+gchar* unicode_canonize(const gchar *in);
 
 #endif	/* USE_ICU */
 

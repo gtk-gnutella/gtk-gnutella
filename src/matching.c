@@ -144,7 +144,15 @@ guint query_make_word_vec(const gchar *query_str, word_vec_t **wovec)
 		gboolean is_alpha;
 
 		c = *(guchar *) query;
+#ifdef USE_ICU
+		is_alpha = (c != ' ' && c != '\0');
+		/*
+		 * We can't meet other non alpha than space, because the
+		 * string is normalised.
+		 */
+#else
 		is_alpha = isalnum(c);
+#endif
 
 		if (start == NULL) {				/* Not in a word yet */
 			if (is_alpha) start = query;
@@ -719,7 +727,12 @@ gint st_search(
 	guint32 search_mask;
 	gint minlen;
 
+#ifndef USE_ICU
 	len = match_map_string(table->fold_map, search);
+#else
+	len = strlen(search);
+	/* We don't need of the map because the strings are normalized */
+#endif
 
 	/*
 	 * Find smallest bin

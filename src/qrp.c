@@ -810,13 +810,13 @@ void qrp_add_file(struct shared_file *sf)
 	 * Copy filename to buffer, since we're going to map it inplace.
 	 */
 
+#ifndef USE_ICU
 	if (sf->file_name_len >= buffer.len) {
 		gint grow = MAX(MIN_BUF_GROW, sf->file_name_len - buffer.len + 1);
 
 		buffer.arena = g_realloc(buffer.arena, buffer.len + grow);
 		buffer.len += grow;
 	}
-
 	g_assert(sf->file_name_len <= (buffer.len + 1));
 
 	strncpy(buffer.arena, sf->file_name, buffer.len);
@@ -829,6 +829,15 @@ void qrp_add_file(struct shared_file *sf)
 
 	(void) match_map_string(qrp_map, buffer.arena);
 	wocnt = query_make_word_vec(buffer.arena, &wovec);
+#else
+	{
+		gchar *normalised_filename;
+
+		normalised_filename = unicode_canonize(sf->file_name);
+		wocnt = query_make_word_vec(normalised_filename, &wovec);
+		g_free(normalised_filename);
+	}
+#endif
 
 	if (wocnt == 0)
 		return;

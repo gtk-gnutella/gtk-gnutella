@@ -777,6 +777,12 @@ gchar *lazy_locale_to_utf8(gchar *str, size_t len)
 
 #ifdef USE_ICU
 
+/*
+ * to_icu_conv
+ *
+ * Convert a string from the locale encoding to internal ICU encoding (UTF32)
+ *
+ */
 int to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout)
 {
 	UErrorCode error = U_ZERO_ERROR;
@@ -787,16 +793,29 @@ int to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout)
 	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
 }
 
+/*
+ * to_icu_conv
+ *
+ * Convert a string from ICU encoding (UTF32) to UTF8 encoding (fast)
+ *
+ */
 int icu_to_utf8_conv(const UChar *in, int lenin, gchar *out, int lenout)
 {
 	UErrorCode error = U_ZERO_ERROR;
 	int r;
 
-	r = ucnv_fromUChars(conv_icu_utf8, out, lenout, in, lenin, &erro);
+	r = ucnv_fromUChars(conv_icu_utf8, out, lenout, in, lenin, &error);
 
-	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
+	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR &&
+			error != U_STRING_NOT_TERMINATED_WARNING) ? 0 : r;
 }
 
+/*
+ * unicode_NFC
+ *
+ * Compact a string as specified in unicode
+ *
+ */
 int unicode_NFC(const UChar *source, gint32 len, UChar *result, gint32 rlen)
 {
 	UErrorCode error = U_ZERO_ERROR;
@@ -807,6 +826,14 @@ int unicode_NFC(const UChar *source, gint32 len, UChar *result, gint32 rlen)
 	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
 }
 
+/*
+ * unicode_NFC
+ *
+ * Expand and K a string as specified in unicode
+ * K will transform special character in the standard form
+ * for instance : The large japanese space will be transform to a normal space
+ *
+ */
 int unicode_NFKD(const UChar *source, gint32 len, UChar *result, gint32 rlen)
 {
 	UErrorCode error = U_ZERO_ERROR;
@@ -817,6 +844,14 @@ int unicode_NFKD(const UChar *source, gint32 len, UChar *result, gint32 rlen)
 	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
 }
 
+/*
+ * unicode_upper
+ *
+ * Upper case a string
+ * This is usefull to transorm the german sset to SS
+ * Note : this will not transform hiragana to katakana
+ *
+ */
 int unicode_upper(const UChar *source, gint32 len, UChar *result, gint32 rlen)
 {
 	UErrorCode error = U_ZERO_ERROR;
@@ -827,6 +862,12 @@ int unicode_upper(const UChar *source, gint32 len, UChar *result, gint32 rlen)
 	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
 }
 
+/*
+ * unicode_lower
+ *
+ * Lower case a string
+ *
+ */
 int unicode_lower(const UChar *source, gint32 len, UChar *result, gint32 rlen)
 {
 	UErrorCode error = U_ZERO_ERROR;
@@ -837,6 +878,14 @@ int unicode_lower(const UChar *source, gint32 len, UChar *result, gint32 rlen)
 	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
 }
 
+/*
+ * unicode_filters
+ *
+ * Remove all the non letter and non digit by looking the unicode symbol type
+ * all other characters will be reduce to normal space
+ * try to merge continues spaces in the same time
+ * keep the important non spacing marks
+ */
 int unicode_filters(const UChar *source, gint32 len, UChar *result)
 {
 	int i, j;
@@ -852,25 +901,89 @@ int unicode_filters(const UChar *source, gint32 len, UChar *result)
 			space = 0;
 			break;
 
-		case U_ENCLOSING_MARK :
-			result[j++] = 0x0043;
-			break;
-
 		case U_CONTROL_CHAR :
 			if (source[i] == '\n')
 				result[j++] = source[i];
 			break;
 
 		case U_NON_SPACING_MARK :
-			if (source[i] == 0x3099 || source[i] == 0x309A)
+			/* Do not skip the japanese " and ° kana marks and so on */
+
+			switch (source[i]) {
+				/* Japanese voiced sound marks */
+			case 0x3099:
+			case 0x309A:
+				/* Virama signs */
+			case 0x0BCD:
+			case 0x094D:
+			case 0x09CD:
+			case 0x0A4D:
+			case 0x0ACD:
+			case 0x0B4D:
+			case 0x0CCD:
+			case 0x1039:
+			case 0x1714:
+			case 0x0C4D:
+				/* Nukta signs */
+			case 0x093C:
+			case 0x09BC:
+			case 0x0A3C:
+			case 0x0ABC:
+			case 0x0B3C:
+			case 0x0CBC:
+				/* Greek Ypogegrammeni */
+			case 0x0345:
+				/* Tibetan */
+			case 0x0F71:
+			case 0x0F72:
+			case 0x0F7A:
+			case 0x0F7B:
+			case 0x0F7C:
+			case 0x0F7D:
+			case 0x0F80:
+			case 0x0F74:
+			case 0x0F39:
+			case 0x0F18:
+			case 0x0F19:
+			case 0x0F35:
+			case 0x0F37:
+			case 0x0FC6:
+			case 0x0F82:
+			case 0x0F83:
+			case 0x0F84:
+			case 0x0F86:
+			case 0x0F87:
+
+		/* Others : not very sure we must keep them or not ... */
+
+				/* Myanmar */
+			case 0x1037:
+				/* Sinhala */
+			case 0x0DCA:
+				/* Thai */
+			case 0x0E3A:
+				/* Hanundo */
+			case 0x1734:
+				/* Devanagari */
+			case 0x0951:
+			case 0x0952:
+				/* Lao */
+			case 0x0EB8:
+			case 0x0EB9:
+				/* Limbu */
+			case 0x193B:
+			case 0x1939:
+			case 0x193A:
+				/* Mongolian */
+			case 0x18A9:
 				result[j++] = source[i];
+			}
 			break;
 
 		case U_UPPERCASE_LETTER :
 		case U_TITLECASE_LETTER :
 		case U_PARAGRAPH_SEPARATOR :
 		case U_UNASSIGNED :
-/*		case U_GENERAL_OTHER_TYPES : */
 		case U_COMBINING_SPACING_MARK :
 		case U_LINE_SEPARATOR :
 		case U_LETTER_NUMBER :
@@ -893,11 +1006,57 @@ int unicode_filters(const UChar *source, gint32 len, UChar *result)
 		case U_CHAR_CATEGORY_COUNT :
 			if (0 == space)
 				result[j++] = 0x0020;
-			space=1;
+			space = 1;
 			break;
 		}
 	}
+	return j;
+}
 
+/*
+ * unicode_canonize
+ *
+ * Apply the NFKD/NFC algo to have nomalized keywords
+ */
+gchar *unicode_canonize(const gchar *in)
+{
+	UChar *qtmp1;
+	UChar *qtmp2;
+	int	len, maxlen;
+	gchar *out;
+	gboolean latin_locale = is_latin_locale();
+
+	len = strlen(in);
+	maxlen = len*6; /* Max 6 bytes for one char in utf8 */
+
+	qtmp1 = (UChar *) g_malloc(maxlen*sizeof(UChar));
+	qtmp2 = (UChar *) g_malloc(maxlen*sizeof(UChar));
+
+	if (latin_locale) {
+		len = to_icu_conv(in, len, qtmp1, maxlen);
+		len = unicode_NFC(qtmp1, len, qtmp2, maxlen);
+	} else
+		len = to_icu_conv(in, len, qtmp2, maxlen);
+
+	len = unicode_NFKD(qtmp2, len, qtmp1, maxlen);
+	len = unicode_upper(qtmp1, len, qtmp2, maxlen);
+	len = unicode_lower(qtmp2, len, qtmp1, maxlen);
+	len = unicode_filters(qtmp1, len, qtmp2);
+	len = unicode_NFC(qtmp2, len, qtmp1, maxlen);
+
+	out = g_malloc(len+1);
+
+	if (latin_locale) /* Should be pure ASCII now */
+		len = icu_to_utf8_conv(qtmp2, len, out, len);
+	else
+		len = icu_to_utf8_conv(qtmp2, len, out, len*6);
+
+	out[len]=0;
+
+	g_free(qtmp1);
+	g_free(qtmp2);
+
+	return out;
 }
 
 #endif	/* USE_ICU */

@@ -2222,9 +2222,7 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		gboolean ignore = FALSE;
 
 		/*
-		 * If the query string is UTF-8 encoded, decode it and keep only
-		 * the characters in the ISO-8859-1 charset.
-		 *		--RAM, 21/05/2002
+		 * Keep only UTF8 encoded queries (This includes ASCII)
 		 */
 
 		g_assert(search[search_len] == '\0');
@@ -2253,6 +2251,26 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		search_len -= offset;
 		memcpy(stmp_1, search + offset, search_len + 1);
 
+#ifdef USE_ICU
+		if (!is_utf8) {
+			char* stmp_2;
+
+			stmp_2 = iso_8859_1_to_utf8(stmp_1);
+			if (!stmp_2 || (strlen(stmp_2) < search_len)) {
+				/* COUNT MARK : Not an utf8 and not an iso-8859-1 query */
+				ignore = TRUE;
+			} else {
+				/* COUNT MARK : We received an ISO-8859-1 query */
+				use_map_on_query(stmp_1, search_len);
+			}
+		}
+
+		/*
+		 * Here we suppose that the peer has the same NFKD/NFC keyword algo
+		 * than us, see unicode_canonize() in utf8.c.
+		 * (It must anyway, for compatibility with the QRP) */
+		 */
+#else
 		if (is_utf8) {
 			gint isochars;
 
@@ -2265,6 +2283,7 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				printf("UTF-8 query, len=%d, utf8-len=%d, iso-len=%d: \"%s\"\n",
 					search_len, utf8_len, isochars, stmp_1);
 		}
+#endif
 
 		if (!ignore)
 			found_files +=
