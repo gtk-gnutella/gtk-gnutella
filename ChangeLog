@@ -1,5 +1,14 @@
 # since last version
 
+- (2004-09-06 - RAM)
+ * Added UDP bandwidth schedulers for Gnet traffic, taking half the bandwidth.
+   The other half being given to the TCP Gnet traffic.  Both auto-steal their
+   unused bandwidth, if necessary.
+ * Added new UDP message queue.
+ * The pseudo UDP node is now advertised and shown in the GUI.
+ * Extended the wrapped I/O with sendto().
+ * Show pseudo UDP node in GUI as being of type 'P'.
+
 - (2004-09-04 - RAM)
  * Fixed typo causing aggregated TCP+UDP stats to be returned when TCP stats
    were requested.
@@ -7,6 +16,8 @@
  * Was accounting stats for HSEP message exchanges as "unknown"!
  * Reply to an UDP ping with an UDP pong.
  * Keep statistics about UDP traffic.
+ * Found the origin of the "race condition" that caused assertions to fail
+   in dh_pmsg_free().  We just can't assert at that point.
 
 - (2004-09-03 - RAM)
  * Keep and allow retrieval of TCP and UDP stats, separately or in
