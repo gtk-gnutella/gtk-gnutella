@@ -1164,7 +1164,7 @@ dump_hex_header(FILE *out)
 {
 	fprintf(out, "%s%s\n",
 		"Offset  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f  ",
-		"01234567 89abcdef");
+		"0123456789abcdef");
 }
 
 /**
@@ -1214,8 +1214,6 @@ dump_hex(FILE *out, const gchar *title, gconstpointer data, gint b)
 		if (++i >= 16) {
 			fputc(' ', out);
 			for (y = 0; y < 16; y++) {	/* do 16 bytes ASCII */
-				if (y == 8)
-					fputc(' ', out);
 				fputc(temp[y], out);
 			}
 			fputc('\n', out);
