@@ -129,8 +129,8 @@ pmsg_t *pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff)
 	pmsg_t *mb;
 
 	g_assert(valid_ptr(db));
-	g_assert(roff >= 0 && roff <= pdata_len(db));
-	g_assert(woff >= 0 && woff <= pdata_len(db));
+	g_assert(roff >= 0 && (size_t) roff <= pdata_len(db));
+	g_assert(woff >= 0 && (size_t) woff <= pdata_len(db));
 	g_assert(woff >= roff);
 
 	mb = (pmsg_t *) zalloc(mb_zone);
@@ -239,7 +239,7 @@ pdata_t *pdata_new(int len)
 
 	db = pdata_allocb(arena, len + EMBEDDED_OFFSET, NULL, 0);
 
-	g_assert(len == pdata_len(db));
+	g_assert((size_t) len == pdata_len(db));
 
 	return db;
 }
@@ -269,7 +269,7 @@ pdata_t *pdata_allocb(void *buf, gint len,
 	db->d_free = freecb;
 	db->d_arg = freearg;
 
-	g_assert(len - EMBEDDED_OFFSET == pdata_len(db));
+	g_assert((size_t) len - EMBEDDED_OFFSET == pdata_len(db));
 
 	return db;
 }
@@ -298,7 +298,7 @@ pdata_t *pdata_allocb_ext(void *buf, gint len,
 	db->d_free = freecb;
 	db->d_arg = freearg;
 
-	g_assert(len == pdata_len(db));
+	g_assert((size_t) len == pdata_len(db));
 
 	return db;
 }

@@ -100,7 +100,7 @@ static pmsg_t *inflate_data(rxdrv_t *rx, pmsg_t *mb)
 	 * Check whether some data was produced.
 	 */
 
-	if (inz->avail_out == old_avail)
+	if (inz->avail_out == (guint) old_avail)
 		goto cleanup;
 
 	/*

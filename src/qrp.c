@@ -2017,7 +2017,7 @@ struct qrt_receive {
 	gchar *data;			/* Where inflated data is written */
 	gint len;				/* Length of the `data' buffer */
 	gint current_slot;		/* Current slot processed in patch */
-	gint current_index;		/* Current index (after shrinking) in QR table */
+	gint current_index;	/* Current index (after shrinking) in QR table */
 	gchar *expansion;		/* Temporary expansion arena before shrinking */
 	gboolean deflated;		/* Is data deflated? */
 };
@@ -2327,7 +2327,7 @@ static gboolean qrt_apply_patch(
 			 * the table can hold.
 			 */
 
-			if (qrcv->current_slot >= rt->client_slots) {
+			if ((guint) qrcv->current_slot >= rt->client_slots) {
 				if (j != (epb - 1) || i != (len - 1)) {
 					struct gnutella_node *n = qrcv->node;
 					g_warning("node %s <%s> overflowed its QRP patch"
@@ -3042,7 +3042,7 @@ GSList *qrt_build_query_target(
 		 */
 
 		if (rt->pass_throw < 100 && NODE_MQUEUE_COUNT(dn) != 0) {
-			if (random_value(99) >= rt->pass_throw)
+			if ((gint) random_value(99) >= rt->pass_throw)
 				continue;
 		}
 

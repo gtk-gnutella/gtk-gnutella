@@ -62,7 +62,7 @@ typedef struct pdata {
 } pdata_t;
 
 #define pdata_start(x)		((x)->d_arena)
-#define pdata_len(x)		((x)->d_end - (x)->d_arena)
+#define pdata_len(x)		((size_t) ((x)->d_end - (x)->d_arena))
 #define pdata_addref(x)		do { (x)->d_refcnt++; } while (0)
 
 /*

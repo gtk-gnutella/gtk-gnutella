@@ -142,7 +142,7 @@ static void on_column_resized(
 
 	g_assert(column != NULL);
 	g_assert(column_id >= 0);
-	g_assert(column_id < UPLOAD_STATS_GUI_VISIBLE_COLUMNS);
+	g_assert((guint) column_id < UPLOAD_STATS_GUI_VISIBLE_COLUMNS);
 	
 	g_static_mutex_lock(&mutex);
     width = gtk_tree_view_column_get_width(column);
