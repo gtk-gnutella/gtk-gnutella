@@ -200,7 +200,7 @@ static void bg_task_suspend(struct bgtask *bt)
 		gdouble new_cost =
 			(4 * bt->tick_cost + (elapsed / bt->ticks_used)) / 5.0;
 
-		if (dbg > 1)
+		if (dbg > 4)
 			printf("BGTASK \"%s\" total=%d msecs, elapsed=%d, ticks=%d, "
 				"used=%d, tick_cost=%f usecs (was %f)\n",
 				bt->name, bt->wtime, elapsed, bt->ticks, bt->ticks_used,
@@ -733,7 +733,7 @@ void bg_sched_timer(void)
 		 * Run the next step.
 		 */
 
-		if (dbg > 1)
+		if (dbg > 4)
 			printf("BGTASK \"%s\" running step #%d.%d with %d tick%s\n",
 				bt->name, bt->step, bt->seqno, ticks, ticks == 1 ? "" : "s");
 
@@ -744,7 +744,7 @@ void bg_sched_timer(void)
 		bg_task_switch(NULL);		/* Stop current task, update stats */
 		remain -= bt->elapsed;
 
-		if (dbg > 1)
+		if (dbg > 4)
 			printf("BGTASK \"%s\" step #%d.%d ran %d tick%s "
 				"in %d usecs [ret=%d]\n",
 				bt->name, bt->step, bt->seqno,
