@@ -74,6 +74,7 @@ RCSID("$Id$");
 #include "ioheader.h"
 #include "settings.h"
 #include "features.h"
+#include "udp.h"
 #ifdef ENABLE_G2
 #include "g2/g2nodes.h"
 #endif
@@ -2560,8 +2561,12 @@ node_is_now_connected(struct gnutella_node *n)
 			if (!NODE_IS_LEAF(n))
 				send_proxy_request(n);
 		}
-		if (enable_udp && is_udp_firewalled)
-			vmsg_send_udp_connect_back(n, listen_port);
+		if (enable_udp) {
+			if (!recv_solicited_udp)
+				udp_send_ping(n->ip, n->port);
+			else if (is_udp_firewalled)
+				vmsg_send_udp_connect_back(n, listen_port);
+		}
 	}
 
 	/*
