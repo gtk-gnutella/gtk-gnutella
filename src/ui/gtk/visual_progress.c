@@ -71,6 +71,9 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
+/* The height of the indicator arrows in visual progress */
+#define VP_ARROW_HEIGHT 5
+
 /**
  * The context for drawing, including location to draw
  */
@@ -102,6 +105,7 @@ static GdkColor done;       /* Pre-filled color (green) for DONE chunks */
 static GdkColor done_old;	/* Pre-filled color (dull green) for DONE
 							 * chunks from previous sessions */
 static GdkColor busy;       /* Pre-filled color (yellow) for BUSY chunks */
+static GdkColor arrow;      /* Pre-filled color (blue) for start of BUSY */
 static GdkColor empty;      /* Pre-filled color (red) for EMPTY chunks */
 static GdkColor black;      /* Pre-filled color (black) for general drawing */
 static GdkColor available;  /* Pre-filled color (blue) available on network */
@@ -177,6 +181,45 @@ vp_draw_chunk (gpointer data, gpointer user_data)
 }
 
 /**
+ * Draw an downward arrow starting at the top
+ */
+void
+vp_draw_arrow(vp_info_t *v, guint32 at)
+{
+	guint s_at;
+	guint i;
+
+    g_assert(v);
+    g_assert(v->context);
+    g_assert(v->context->drawable);
+
+	g_assert(v->file_size);
+
+	s_at = (gfloat) at * v->context->widget->allocation.width / v->file_size;
+
+	gdk_gc_set_foreground(v->context->gc, &arrow);
+	for (i = VP_ARROW_HEIGHT + 1; i--; i > 0) {
+		gdk_draw_line(v->context->drawable, v->context->gc,
+		    s_at - i, VP_ARROW_HEIGHT - i, s_at + i, VP_ARROW_HEIGHT - i);
+	}
+}
+
+/**
+ * Draw arrows on the start of BUSY chunks to make them stand out.
+ * This is done in a separate funtion, because the arrows need to be
+ * drawn on top of the chunks.
+ */
+void
+vp_draw_arrows (gpointer data, gpointer user_data)
+{
+    gnet_fi_chunks_t *chunk = data;
+    vp_info_t *v = user_data;
+
+	if (DL_CHUNK_BUSY == chunk->status)
+		vp_draw_arrow(v, chunk->from);
+}
+
+/**
  * Draw an available range. Callback for a list iterator.
  *
  * @param data       The HTTP range to draw.
@@ -228,6 +271,7 @@ vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 
 			if (v->file_size > 0) {
 				g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
+				g_slist_foreach(v->chunks_list, &vp_draw_arrows, v);
 				g_slist_foreach(v->ranges_list, &vp_draw_range, v);
 			} else {
 				gdk_gc_set_foreground(fi_context.gc, &nosize);
@@ -743,6 +787,8 @@ vp_gui_init(void)
     gdk_colormap_alloc_color(cmap, &done, FALSE, TRUE);
     gdk_color_parse("yellow2", &busy);
     gdk_colormap_alloc_color(cmap, &busy, FALSE, TRUE);
+	gdk_color_parse("light sky blue", &arrow);
+	gdk_colormap_alloc_color(cmap, &arrow, FALSE, TRUE);
     gdk_color_parse("red2", &empty);
     gdk_colormap_alloc_color(cmap, &empty, FALSE, TRUE);
     gdk_color_parse("black", &black);

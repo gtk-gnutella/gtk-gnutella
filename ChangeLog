@@ -1,5 +1,9 @@
 # since last version
 
+- (2004-11-07 - Hans)
+ * Show arrows in visual progress to indicate downloads in progress more
+   clearly.
+	
 - (2004-10-31 - RAM)
  * Changed the interface for hashlist iterators.
  * Move bogons and hostiles closing after host_close() since the cache can be
