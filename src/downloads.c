@@ -762,19 +762,39 @@ void download_remove_file(struct download *d, gboolean reset)
 {
 	gchar path[2048];
 	struct dl_file_info *fi = d->file_info;
+	GSList *l;
 
 	gm_snprintf(path, sizeof(path), "%s/%s", fi->path, fi->file_name);
 
 	if (-1 == unlink(path))
 		g_warning("cannot unlink \"%s\": %s", path, g_strerror(errno));
 	else {
-		if (reset)
-			file_info_reset(fi);
 		g_warning("unlinked \"%s\" (%u/%u bytes done, %s SHA1%s%s)",
 			fi->file_name, fi->done, fi->size,
 			fi->sha1 ? "with" : "no",
 			fi->sha1 ? ": " : "",
 			fi->sha1 ? sha1_base32(fi->sha1) : "");
+		if (reset)
+			file_info_reset(fi);
+	}
+
+	/*
+	 * Requeue all the active downloads that were referencing that file.
+	 */
+
+	for (l = sl_downloads; l; l = l->next) {
+		struct download *d = (struct download *) l->data;
+
+		if (d->status == GTA_DL_REMOVED)
+			continue;
+
+		if (d->file_info != fi)
+			continue;
+
+		if (DOWNLOAD_IS_RUNNING(d)) {
+			download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
+			download_queue(d, "Requeued due to file removal");
+		}
 	}
 }
 
