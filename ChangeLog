@@ -1,6 +1,11 @@
 # since last version
 
 - (2002.07.09 - Richard)
+  * Have two versions of share_gui (API compatible), one for Gtk1 using
+    a GtkCList and one for Gtk2 using a GtkTreeView (GtkListStore)
+  * Optimized redrawing of download queue.
+  
+- (2002.07.09 - Richard)
   * Gtk-gnutella is now compatible with Gtk2. To compile against Gtk2, 
     use the --enable-gtk2 switch with the configure script.
   * Now have two glade files, one for Gtk1.2/Glade 0.6.4 and one for
