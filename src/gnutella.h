@@ -82,6 +82,7 @@
 #define GTA_MSG_PUSH_REQUEST			0x40
 #define GTA_MSG_SEARCH					0x80
 #define GTA_MSG_SEARCH_RESULTS			0x81
+#define GTA_MSG_HSEP_DATA 				0xcd
 
 #define GTA_MSGV_QRP_RESET				0x00
 #define GTA_MSGV_QRP_PATCH				0x01
@@ -200,6 +201,11 @@ struct gnutella_vendor {
 struct gnutella_msg_vendor {
 	struct gnutella_header header;
 	struct gnutella_vendor data;
+} __attribute__((__packed__));
+
+struct gnutella_msg_hsep_data {
+	struct gnutella_header header;
+	/* payload follows */
 } __attribute__((__packed__));
 
 /* main.c */

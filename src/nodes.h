@@ -31,6 +31,7 @@
 #include "sq.h"
 #include "rx.h"
 #include "qrp.h"
+#include "hsep.h"
 
 /*
  * This structure keeps tracks of remote flow-control indications and
@@ -202,6 +203,14 @@ typedef struct gnutella_node {
 	guint32 tx_queries;			/* Total amount of queries sent */
 	guint32 rx_qhits;			/* Total amount of hits received */
 	guint32 tx_qhits;			/* Total amount of hits sent */
+
+	/*
+	 * Horizon size estimation (HSEP) -- TSC, 11/02/2004.
+	 */
+
+        hsep_triple hsep_table[HSEP_N_MAX+1];
+        time_t hsep_last_received;
+        time_t hsep_last_sent;
 } gnutella_node_t;
 
 /*
@@ -240,6 +249,7 @@ typedef struct gnutella_node {
 #define NODE_A_ULTRA		0x00000040	/* Node wants to be an Ultrapeer */
 #define NODE_A_NO_ULTRA		0x00000080	/* Node is NOT ultra capable */
 
+#define NODE_A_CAN_HSEP		0x04000000	/* Node supports HSEP */
 #define NODE_A_CAN_QRP		0x08000000	/* Node supports query routing */
 #define NODE_A_CAN_VENDOR	0x10000000	/* Node supports vendor messages */
 #define NODE_A_CAN_GGEP		0x20000000	/* Node supports big pongs, etc.. */

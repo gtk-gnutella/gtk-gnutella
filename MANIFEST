@@ -258,6 +258,8 @@ src/hostiles.c
 src/hostiles.h
 src/hosts.c
 src/hosts.h
+src/hsep.c
+src/hsep.h
 src/http.c
 src/http.h
 src/huge.c

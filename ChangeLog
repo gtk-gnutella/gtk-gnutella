@@ -1,5 +1,8 @@
 # since last version
 
+- (2004.02.24 - Jeroen)
+ * Included initial HSEP support files from Thomas Schuerger.
+
 - (2004.02.16 - Emile)
  * [GTK1] When a parent node is downloaded from the search tab (but not its
    children), GTKG will now correctly update parent hashtable

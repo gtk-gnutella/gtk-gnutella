@@ -109,6 +109,7 @@ CORE = \
 	header.c \
 	hostiles.c \
 	hosts.c \
+	hsep.c \
 	http.c \
 	huge.c \
 	icon.c \

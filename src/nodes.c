@@ -63,6 +63,7 @@
 #include "token.h"
 #include "hostiles.h"
 #include "clock.h"
+#include "hsep.h"
 
 #include "settings.h"
 #include "override.h"		/* Must be the last header included */
@@ -1070,6 +1071,9 @@ static void node_remove_v(
 			n->n_ping_throttle, n->n_ping_accepted, n->n_ping_special,
 			n->n_ping_sent, n->n_pong_received, n->n_pong_sent);
 	}
+
+	if (n->attrs & NODE_A_CAN_HSEP)
+		hsep_connection_close(n);
 
 	if (n->routing_data)
 		routing_node_remove(n);
@@ -2456,6 +2460,11 @@ static void node_is_now_connected(struct gnutella_node *n)
 		}
 	}
 
+	/* Initialize connection's HSEP data and send first HSEP message. */
+
+	if (n->attrs & NODE_A_CAN_HSEP)
+		hsep_connection_init(n);
+
 	/*
 	 * If we're an Ultranode, we're going to monitor the queries sent by
 	 * our leaves and by our neighbours.
@@ -3716,6 +3725,22 @@ static void node_process_handshake_header(
 		return;
 	}
 
+	
+	/* 
+	 * Test for HSEP X-Features header version. According to the specs
+	 * an HSEP featured client should always be able to talk to lower
+	 * versions HSEP clients. So we only need to check wether HSEP is
+	 * supported yes or no.
+	 */
+	{
+		int major, minor;
+		
+ 		header_get_feature("hsep", head, &major, &minor);
+ 
+ 		if (major > 0 || minor > 0)
+			n->attrs |= NODE_A_CAN_HSEP;
+	}
+	
 	/*
 	 * If this is an outgoing connection, we're processing the remote
 	 * acknowledgment to our initial handshake.
@@ -4341,6 +4366,19 @@ static void node_parse(struct gnutella_node *node)
 			n->n_bad++;
 		}
 		break;
+	case GTA_MSG_HSEP_DATA:     /* never routed */
+		if (n->header.hops != 0 || n->header.ttl != 1) {
+			n->n_bad++;
+			drop = TRUE;
+			gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
+		} else if (!(n->attrs & NODE_A_CAN_HSEP)) {
+			drop = TRUE;
+			gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
+			if (dbg)
+				gmsg_log_bad(n, "unexpected HSEP message");
+			n->n_bad++;
+		}
+		break;
 	default:					/* Unknown message type - we drop it */
 		drop = TRUE;
         gnet_stats_count_dropped(n, MSG_DROP_UNKNOWN_TYPE);
@@ -4434,6 +4472,9 @@ static void node_parse(struct gnutella_node *node)
 			host_add_semi_pong(ip, port);
 		}
 		break;
+	case GTA_MSG_HSEP_DATA:
+		hsep_process_msg(n);
+		goto reset_header;
 	default:
 		break;
 	}

@@ -62,6 +62,7 @@
 #include "clock.h"
 #include "eval.h"
 #include "pproxy.h"
+#include "hsep.h"
 
 #ifdef USE_REMOTE_CTRL
 #include "shell.h"
@@ -353,6 +354,7 @@ static gboolean main_timer(gpointer p)
 		parq_upload_timer(now);		/* PARQ upload timeouts/removal */
 		upload_timer(now);			/* Upload timeouts */
         file_info_timer();          /* Notify about changes */
+		hsep_timer();				/* HSEP notify message timer */
 		pproxy_timer(now);			/* Push-proxy requests */
 	}
 	socket_timer(now);				/* Expire inactive sockets */
@@ -538,6 +540,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	crc_init();
 	hostiles_init();
 	parq_init();
+	hsep_init();
 	clock_init();
 
     main_gui_init();

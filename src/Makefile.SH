@@ -194,6 +194,7 @@ CORE = \
 	header.c \
 	hostiles.c \
 	hosts.c \
+	hsep.c \
 	http.c \
 	huge.c \
 	icon.c \
@@ -340,6 +341,7 @@ OBJLIST = \
 	header.o \
 	hostiles.o \
 	hosts.o \
+	hsep.o \
 	http.o \
 	huge.o \
 	icon.o \
