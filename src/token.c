@@ -522,3 +522,14 @@ tok_error_t tok_version_valid(
 	return TOK_OK;
 }
 
+/*
+ * tok_is_ancient
+ *
+ * Check whether the version is too ancient to be able to generate a proper
+ * token string identifiable by remote parties.
+ */
+gboolean tok_is_ancient(time_t now)
+{
+	return find_tokkey(now) == NULL;
+}
+

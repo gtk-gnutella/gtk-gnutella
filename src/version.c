@@ -518,6 +518,7 @@ void version_init(void)
 	 */
 
 	if (
+		tok_is_ancient(now) ||
 		now - our_version.timestamp > VERSION_ANCIENT_WARN ||
 		(our_version.tag && now - our_version.timestamp > VERSION_UNSTABLE_WARN)
 	)
@@ -534,6 +535,8 @@ void version_init(void)
  */
 void version_ancient_warn(void)
 {
+	time_t now = time(NULL);
+
 	g_assert(our_version.timestamp > 0);	/* version_init() called */
 
 	/*
@@ -545,14 +548,17 @@ void version_ancient_warn(void)
 
 	gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, FALSE);
 
-	if (time(NULL) - our_version.timestamp > VERSION_ANCIENT_WARN) {
+	if (
+		now - our_version.timestamp > VERSION_ANCIENT_WARN ||
+		tok_is_ancient(now)
+	) {
 		g_warning("version of gtk-gnutella is too old, you should upgrade!");
         gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, TRUE);
 	}
 
 	if (
 		our_version.tag &&
-		time(NULL) - our_version.timestamp > VERSION_UNSTABLE_WARN
+		now - our_version.timestamp > VERSION_UNSTABLE_WARN
 	) {
 		g_warning("unstable version of gtk-gnutella is aging, please upgrade!");
         gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, TRUE);

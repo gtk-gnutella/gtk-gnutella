@@ -62,6 +62,7 @@ gchar *tok_version(void);
 gchar *tok_short_version(void);
 tok_error_t tok_version_valid(
 	const gchar *version, const gchar *tokenb64, gint len, guint32 ip);
+gboolean tok_is_ancient(time_t now);
 
 #endif	/* _token_h_ */
 
