@@ -63,6 +63,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <dirent.h>
+#include <setjmp.h>
 
 #ifdef I_TIME
 #include <time.h>

@@ -33,9 +33,6 @@
 
 RCSID("$Id$");
 
-#include <setjmp.h>
-#include <glib.h>
-
 #include "bg.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
