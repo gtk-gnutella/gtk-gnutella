@@ -100,7 +100,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.14 2004/02/01 14:32:37 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.16 2004/03/28 11:14:27 rmanfredi Exp $
 
 GUI_GTK2 = \
 	downloads_cb2.c \
@@ -397,8 +397,8 @@ OBJLIST = \
 	zalloc.o \
 	zlib_util.o 
 
-SRC = $(GUI_GLADE_SRC) $(SRCLIST)
-OBJ = $(GUI_GLADE_OBJ) $(OBJLIST)
+SRC = $(SRCLIST) $(GUI_GLADE_SRC)
+OBJ = $(OBJLIST) $(GUI_GLADE_OBJ)
 
 # Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) $(GTK_CFLAGS) $(XML2_CFLAGS)

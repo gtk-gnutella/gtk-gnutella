@@ -177,8 +177,8 @@ OBJLIST = \
 	!f:\.c=.o \
 -expand \\
 
-SRC = $(GUI_GLADE_SRC) $(SRCLIST)
-OBJ = $(GUI_GLADE_OBJ) $(OBJLIST)
+SRC = $(SRCLIST) $(GUI_GLADE_SRC)
+OBJ = $(OBJLIST) $(GUI_GLADE_OBJ)
 
 /* Additional flags for GTK compilation, added in the substituted section */
 ++GTK_CFLAGS $gtkcflags
