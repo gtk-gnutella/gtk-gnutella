@@ -55,7 +55,7 @@ const gchar *msg_type_str(int value)
 	}
 }
 
-int msg_type_str_size()
+int msg_type_str_size(void)
 {
 	return MSG_TYPE_COUNT;
 }
@@ -130,23 +130,48 @@ const gchar *general_type_str(int value)
  * horizon_stat_str
  *
  * Returns the cell contents for the horizon stats table.
+ * NB: The static buffers for each column are disjunct.
  */
-const gchar *horizon_stat_str(hsep_triple *table, gint row, gint column)
+const gchar *horizon_stat_str(hsep_triple *table, gint row,
+	c_horizon_t column)
 {
-    static gchar strbuf[21];
+    switch (column) {
+    case c_horizon_hops:
+		{
+    		static gchar buf[21];
 
-    switch (column)
-    {
-      case 0: gm_snprintf(strbuf, sizeof(strbuf), "%u", row);
-              return strbuf;
-      case 1: gm_snprintf(strbuf, sizeof(strbuf),
-                     "%llu", table[row][HSEP_IDX_NODES]);
-              return strbuf;
-      case 2: gm_snprintf(strbuf, sizeof(strbuf),
-                     "%llu", table[row][HSEP_IDX_FILES]);
-              return strbuf;
-      case 3: return(short_kb_size64(table[row][HSEP_IDX_KIB]));
+			gm_snprintf(buf, sizeof(buf), "%u", row);
+           	return buf;
+		}
+    case c_horizon_nodes:
+		{
+    		static gchar buf[21];
+
+			gm_snprintf(buf, sizeof(buf), "%llu", table[row][HSEP_IDX_NODES]);
+           	return buf;
+		}
+    case c_horizon_files:
+		{
+    		static gchar buf[21];
+
+			gm_snprintf(buf, sizeof(buf), "%llu", table[row][HSEP_IDX_FILES]);
+           	return buf;
+		}
+    case c_horizon_size:
+		{
+   			static gchar buf[21];
+
+			/* Make a copy because concurrent usage of short_kb_size64()
+		 	 * could be hard to discover. */
+			g_strlcpy(buf, short_kb_size64(table[row][HSEP_IDX_KIB]),
+				sizeof buf);
+			return buf;
+		}
+    case num_c_horizon:
+		g_assert_not_reached();
     }
 
     return NULL;
 }
+
+/* vi: set ts=4: */
