@@ -244,3 +244,72 @@ void gtk_mass_widget_set_sensitive
         gtk_widget_set_sensitive(w, b);
     }
 }
+
+/*
+ * clist_collect_data:
+ *
+ * Fetch data from the selection of a clist. Returns a GList containing
+ * the user_data pointers from the selected rows. If allow_null is TRUE,
+ * the returned list may contain NULL pointers, if allow_dup is TRUE,
+ * the list may contain duplicate pointers. Setting allow_dup to FALSE
+ * will significantly increase runtime.
+ */
+GList *clist_collect_data(
+    GtkWidget *toplevel, const gchar *list_widget,
+    gboolean allow_null, gboolean allow_dup)
+{
+    GList *result_list = NULL;
+    GList *l;
+    GList *to_unselect = NULL;
+    GtkCList *clist;
+
+    g_assert(toplevel != NULL);
+    g_assert(list_widget != NULL);
+
+    clist = GTK_CLIST(lookup_widget(toplevel, list_widget));
+
+    g_assert(clist != NULL);
+    
+    /*
+     * Collect the data of the selected rows.
+     */
+    for (l = clist->selection; l != NULL; l = g_list_next(l)) {
+        gpointer data;
+        gint row;
+         
+        row = (gint) l->data;
+        data = gtk_clist_get_row_data(clist, row);
+ 
+        if ((data != NULL) || allow_null) {
+            if (!allow_dup) {
+                if ( g_list_find(result_list, data) != NULL) {
+                    g_warning("%s has duplicate data: %p", list_widget, data);
+                    continue;
+                }
+            }
+            result_list = g_list_append(result_list, data);
+            to_unselect = g_list_append(to_unselect, (gpointer) row);
+        } else 
+            g_warning("%s contains NULL data in row %d", list_widget, row);
+    }
+
+    /*
+     * Unselect the rows from which data has been sucessfully gathered.
+     */
+    for (l = to_unselect; l != NULL; l = g_list_next(l))
+        gtk_clist_unselect_row(clist, (gint) l->data, 0);
+
+    return result_list;
+}
+
+gdouble _gtk_spin_button_get_value(GtkSpinButton *spinbutton)
+{
+    gchar *e;
+    gdouble result;
+
+    e = gtk_editable_get_chars(GTK_EDITABLE(spinbutton), 0, -1);
+    g_strstrip(e);
+    result = g_strtod(e, NULL);
+    g_free(e);
+    return result;
+}

@@ -39,6 +39,11 @@
 gint gtk_paned_get_position(GtkPaned *paned);
 #endif
 
+#ifndef USE_GTK2
+#define gtk_spin_button_get_value(w) \
+    _gtk_spin_button_get_value(w)
+#endif
+
 void gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t);
 gint gtk_main_flush();
 void option_menu_select_item_by_data(GtkWidget *m, gpointer *d);
@@ -48,5 +53,7 @@ GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb);
 void gtk_entry_printf(GtkEntry *entry, const gchar * format, ...);
 void gtk_label_printf(GtkLabel *label, const gchar * format, ...);
 void gtk_mass_widget_set_sensitive(GtkWidget *tl, gchar *list[], gboolean b);
+GList *clist_collect_data(GtkWidget *toplevel, const gchar *list_widget, gboolean allow_null, gboolean allow_dup);
+gdouble _gtk_spin_button_get_value(GtkSpinButton *);
 
 #endif	/* __gtk_missing_h__ */
