@@ -4,6 +4,9 @@
  * Optimized server banning test.
  * Don't send pong-cache pings on a flow-controlled connection.
  * Finished application of Angelo's symlink patch (fixes bug #756146).
+ * Restored stripped out gtk_init(&argc, &argv) call (fixes bug #757504).
+ * Moved verify_close() and move_close() calls before main_gui_shutdown()
+   so that no ticks to the daemon thread be made whilst in shutdown!
 
 - (2003.06.17 - Richard
  * [Gtk2] No longer disable antialiasing. This confuses people who are 
