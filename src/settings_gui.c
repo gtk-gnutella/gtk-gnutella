@@ -1680,7 +1680,7 @@ static gboolean update_multichoice(property_t prop)
         cur = GPOINTER_TO_UINT(gtk_object_get_user_data(GTK_OBJECT(l->data)));
 
         if (cur == val) {
-            gtk_list_select_child(GTK_LIST(GTK_COMBO(w)->list), l->data);
+            gtk_list_item_select(GTK_LIST_ITEM(l->data));
             break;
         }
 
@@ -2812,7 +2812,7 @@ void multichoice_item_selected(GtkItem *i, gpointer data)
 
 /*
  * settings_gui_config_widget:
- *
+     *
  * Set up tooltip and constraints where applicable.
  */
 static void settings_gui_config_widget(prop_map_t *map, prop_def_t *def)

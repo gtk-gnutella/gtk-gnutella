@@ -361,7 +361,7 @@ void gtk_combo_init_choices(
 
         gtk_widget_show(list_item);
         
-        gtk_signal_connect(
+        gtk_signal_connect_after(
             GTK_OBJECT(list_item), "select", func, user_data);
 
         l = g_list_prepend(NULL, (gpointer) list_item);
