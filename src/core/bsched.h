@@ -163,14 +163,14 @@ bio_source_t *bsched_source_add(bsched_t *bs, wrap_io_t *wio, guint32 flags,
 void bio_add_callback(bio_source_t *bio,
 	inputevt_handler_t callback, gpointer arg);
 void bio_remove_callback(bio_source_t *bio);
-gint bio_write(bio_source_t *bio, gconstpointer data, gint len);
-gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt);
-gint bio_sendto(bio_source_t *bio, gnet_host_t *to,
-	gconstpointer data, gint len);
-gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len);
-gint bio_read(bio_source_t *bio, gpointer data, gint len);
-gint bws_write(bsched_t *bs, wrap_io_t *wio, gconstpointer data, gint len);
-gint bws_read(bsched_t *bs, wrap_io_t *wio, gpointer data, gint len);
+ssize_t bio_write(bio_source_t *bio, gconstpointer data, size_t len);
+ssize_t bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt);
+ssize_t bio_sendto(bio_source_t *bio, gnet_host_t *to,
+	gconstpointer data, size_t len);
+ssize_t bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, size_t len);
+ssize_t bio_read(bio_source_t *bio, gpointer data, size_t len);
+ssize_t bws_write(bsched_t *bs, wrap_io_t *wio, gconstpointer data, size_t len);
+ssize_t bws_read(bsched_t *bs, wrap_io_t *wio, gpointer data, size_t len);
 void bsched_timer(void);
 
 void bws_sock_connect(enum socket_type type);
@@ -191,4 +191,4 @@ void bsched_config_steal_gnet(void);
 
 #endif	/* _core_bsched_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

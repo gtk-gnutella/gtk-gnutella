@@ -86,18 +86,18 @@ static gint bws_in_ema = 0;
  * Wrapper over writev() ensuring that we don't request more than
  * MAX_IOV_COUNT entries at a time.
  */
-static gint
+static ssize_t
 safe_writev(wrap_io_t *wio, struct iovec *iov, gint iovcnt)
 {
-	gint sent = 0;
+	size_t sent = 0;
 	struct iovec *end = iov + iovcnt;
 	struct iovec *siov;
 	gint siovcnt = MAX_IOV_COUNT;
 	gint iovsent = 0;
 
 	for (siov = iov; siov < end; siov += siovcnt) {
-		gint r;
-		gint size;
+		ssize_t r;
+		size_t size;
 		struct iovec *xiv;
 		struct iovec *xend;
 
@@ -108,7 +108,7 @@ safe_writev(wrap_io_t *wio, struct iovec *iov, gint iovcnt)
 		
 		r = wio->writev(wio, siov, siovcnt);
 
-		if (r <= 0) {
+		if ((ssize_t) -1 == r || 0 == r) {
 			if (r == 0 || sent)
 				break;				/* Don't flag error if bytes sent */
 			return -1;				/* Propagate error */
@@ -125,7 +125,7 @@ safe_writev(wrap_io_t *wio, struct iovec *iov, gint iovcnt)
 		for (size = 0, xiv = siov, xend = siov + siovcnt; xiv < xend; xiv++)
 			size += xiv->iov_len;
 
-		if (r < size)
+		if ((size_t) r < size)
 			break;
 	}
 
@@ -1128,12 +1128,12 @@ bsched_bw_update(bsched_t *bs, gint used, gint requested)
  * If we cannot write anything due to bandwidth constraints, return -1 with
  * errno set to EAGAIN.
  */
-gint
-bio_write(bio_source_t *bio, gconstpointer data, gint len)
+ssize_t
+bio_write(bio_source_t *bio, gconstpointer data, size_t len)
 {
-	gint available;
-	gint amount;
-	gint r;
+	size_t available;
+	size_t amount;
+	ssize_t r;
 
 	g_assert(bio);
 	g_assert(bio->flags & BIO_F_WRITE);
@@ -1154,7 +1154,7 @@ bio_write(bio_source_t *bio, gconstpointer data, gint len)
 
 	if (dbg > 7)
 		printf("bio_write(wio=%d, len=%d) available=%d\n",
-			bio->wio->fd(bio->wio), len, available);
+			bio->wio->fd(bio->wio), (gint) len, (gint) available);
 
 	r = bio->wio->write(bio->wio, data, amount);
 
@@ -1166,9 +1166,9 @@ bio_write(bio_source_t *bio, gconstpointer data, gint len)
 	 *		--RAM, 05/10/2003
 	 */
 
-	if (r == -1 && errno == 0) {
+	if ((ssize_t) -1  == r && errno == 0) {
 		g_warning("wio->write(fd=%d, len=%d) returned -1 with errno = 0, "
-			"assuming EAGAIN", bio->wio->fd(bio->wio), len);
+			"assuming EAGAIN", bio->wio->fd(bio->wio), (gint) len);
 		errno = EAGAIN;
 	}
 
@@ -1185,12 +1185,12 @@ bio_write(bio_source_t *bio, gconstpointer data, gint len)
  * If we cannot write anything due to bandwidth constraints, return -1 with
  * errno set to EAGAIN.
  */
-gint
+ssize_t
 bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 {
-	gint available;
-	gint r;
-	gint len;
+	size_t available;
+	ssize_t r;
+	size_t len;
 	struct iovec *siov;
 	gint slen = -1;			/* Avoid "may be used uninitialized" warning */
 
@@ -1223,7 +1223,7 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 	 */
 
 	if (len > available) {
-		gint curlen;
+		size_t curlen;
 
 		for (r = 0, siov = iov, curlen = 0; r < iovcnt; r++, siov++) {
 			curlen += siov->iov_len;
@@ -1280,14 +1280,14 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 	 *		--RAM, 05/10/2003
 	 */
 
-	if (r == -1 && errno == 0) {
+	if ((ssize_t) -1 == r && errno == 0) {
 		g_warning("writev(fd=%d, len=%d) returned -1 with errno = 0, "
-			"assuming EAGAIN", bio->wio->fd(bio->wio), len);
+			"assuming EAGAIN", bio->wio->fd(bio->wio), (gint) len);
 		errno = EAGAIN;
 	}
 
 	if (r > 0) {
-		g_assert(r <= available);
+		g_assert((size_t) r <= available);
 		bsched_bw_update(bio->bs, r, MIN(len, available));
 		bio->bw_actual += r;
 	}
@@ -1309,11 +1309,11 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
  * If we cannot write anything due to bandwidth constraints, return -1 with
  * errno set to EAGAIN.
  */
-gint
-bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, gint len)
+ssize_t
+bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, size_t len)
 {
-	gint available;
-	gint r;
+	size_t available;
+	ssize_t r;
 
 	g_assert(bio);
 	g_assert(bio->flags & BIO_F_WRITE);
@@ -1339,7 +1339,7 @@ bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, gint len)
 
 	if (dbg > 7)
 		printf("bio_sendto(wio=%d, len=%d) available=%d\n",
-			bio->wio->fd(bio->wio), len, available);
+			bio->wio->fd(bio->wio), (gint) len, (gint) available);
 
 	r = bio->wio->sendto(bio->wio, to, data, len);
 
@@ -1351,9 +1351,9 @@ bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, gint len)
 	 *		--RAM, 05/10/2003
 	 */
 
-	if (r == -1 && errno == 0) {
+	if ((ssize_t) -1 == r && errno == 0) {
 		g_warning("wio->sendto(fd=%d, len=%d) returned -1 with errno = 0, "
-			"assuming EAGAIN", bio->wio->fd(bio->wio), len);
+			"assuming EAGAIN", bio->wio->fd(bio->wio), (gint) len);
 		errno = EAGAIN;
 	}
 
@@ -1373,8 +1373,8 @@ bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, gint len)
  * If we cannot write anything due to bandwidth constraints, return -1 with
  * errno set to EAGAIN.
  */
-gint
-bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
+ssize_t
+bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, size_t len)
 {
 #ifndef HAS_SENDFILE
 	(void) bio;
@@ -1384,9 +1384,9 @@ bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 	g_error("missing sendfile(2), should not have been called");
 	return EOPNOTSUPP;		/* g_error() is fatal, just shut warnings */
 #else
-	gint available;
-	gint amount;
-	gint r;
+	size_t available;
+	size_t amount;
+	ssize_t r;
 	off_t start = *offset;
 
 	g_assert(bio);
@@ -1409,7 +1409,7 @@ bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 
 	if (dbg > 7)
 		printf("bsched_write(fd=%d, len=%d) available=%d\n",
-			bio->wio->fd(bio->wio), len, available);
+			bio->wio->fd(bio->wio), (gint) len, (gint) available);
 
 #ifdef USE_BSD_SENDFILE
 	/*
@@ -1430,7 +1430,7 @@ bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 		r = sendfile(in_fd, bio->wio->fd(bio->wio), start, amount, NULL,
 				&written, 0);
 
-		if (r == -1) {
+		if ((ssize_t) -1 == r) {
 			if (errno == EAGAIN)
 				r = (gint) written;
 		} else
@@ -1447,9 +1447,9 @@ bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 	if (r >= 0 && *offset != start + r) {		/* Paranoid, as usual */
 		g_warning("FIXED SENDFILE returned offset: "
 			"was set to %ld instead of %ld (%d byte%s written)",
-			(glong) *offset, (glong) (start + r), r, r == 1 ? "" : "s");
+			(glong) *offset, (glong) (start + r), (gint) r, r == 1 ? "" : "s");
 		*offset = start + r;
-	} else if (r == -1)
+	} else if ((ssize_t) -1 == r)
 		*offset = start;	/* Paranoid: in case sendfile() touched it */
 
 #endif	/* USE_BSD_SENDFILE */
@@ -1468,12 +1468,12 @@ bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
  * If we cannot read anything due to bandwidth constraints, return -1 with
  * errno set to EAGAIN.
  */
-gint
-bio_read(bio_source_t *bio, gpointer data, gint len)
+ssize_t
+bio_read(bio_source_t *bio, gpointer data, size_t len)
 {
-	gint available;
-	gint amount;
-	gint r;
+	size_t available;
+	size_t amount;
+	ssize_t r;
 
 	g_assert(bio);
 	g_assert(bio->flags & BIO_F_READ);
@@ -1484,20 +1484,17 @@ bio_read(bio_source_t *bio, gpointer data, gint len)
 	 */
 
 	available = bw_available(bio, len);
-
 	if (available == 0) {
 		errno = EAGAIN;
 		return -1;
 	}
 
 	amount = len > available ? available : len;
-
 	if (dbg > 7)
 		printf("bsched_read(fd=%d, len=%d) available=%d\n",
-			bio->wio->fd(bio->wio), len, available);
+			bio->wio->fd(bio->wio), (gint) len, (gint) available);
 
 	r = bio->wio->read(bio->wio, data, amount);
-
 	if (r > 0) {
 		bsched_bw_update(bio->bs, r, amount);
 		bio->bw_actual += r;
@@ -1513,16 +1510,15 @@ bio_read(bio_source_t *bio, gpointer data, gint len)
  *
  * @return The amount of bytes written or (-1) if an error occurred.
  */
-gint
-bws_write(bsched_t *bs, wrap_io_t *wio, gconstpointer data, gint len)
+ssize_t
+bws_write(bsched_t *bs, wrap_io_t *wio, gconstpointer data, size_t len)
 {
-	gint r;
+	ssize_t r;
 
 	g_assert(bs);
 	g_assert(bs->flags & BS_F_WRITE);
 
 	r = wio->write(wio, data, len);
-
 	if (r > 0)
 		bsched_bw_update(bs, r, len);
 
@@ -1534,16 +1530,15 @@ bws_write(bsched_t *bs, wrap_io_t *wio, gconstpointer data, gint len)
  * bandwidth used.  Any overused bandwidth will be tracked, so that on
  * average, we stick to the requested bandwidth rate.
  */
-gint
-bws_read(bsched_t *bs, wrap_io_t *wio, gpointer data, gint len)
+ssize_t
+bws_read(bsched_t *bs, wrap_io_t *wio, gpointer data, size_t len)
 {
-	gint r;
+	ssize_t r;
 
 	g_assert(bs);
 	g_assert(bs->flags & BS_F_READ);
 
 	r = wio->read(wio, data, len);
-
 	if (r > 0)
 		bsched_bw_update(bs, r, len);
 
@@ -2190,4 +2185,4 @@ bsched_enough_up_bandwidth(void)
 	return TRUE;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
