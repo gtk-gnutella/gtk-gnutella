@@ -7226,7 +7226,7 @@
 			<widget>
 			  <class>GtkLabel</class>
 			  <name>label697</name>
-			  <label> Show protocol:</label>
+			  <label>Show protocol:</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>0.5</xalign>
@@ -8438,38 +8438,50 @@
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_downloads_abort_named</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_downloads_abort_named_activate</handler>
-      <last_modification_time>Tue, 09 Apr 2002 23:48:06 GMT</last_modification_time>
-    </signal>
-    <label>Abort all with name</label>
+    <name>abort_all3</name>
+    <label>Abort all...</label>
     <right_justify>False</right_justify>
-  </widget>
 
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_downloads_abort_sha1</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_downloads_abort_sha1_activate</handler>
-      <last_modification_time>Sun, 16 Jun 2002 16:49:30 GMT</last_modification_time>
-    </signal>
-    <label>Abort all with urn:sha1</label>
-    <right_justify>False</right_justify>
-  </widget>
+    <widget>
+      <class>GtkMenu</class>
+      <name>abort_all3_menu</name>
 
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_downloads_abort_host</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_downloads_abort_host_activate</handler>
-      <last_modification_time>Tue, 09 Apr 2002 17:55:57 GMT</last_modification_time>
-    </signal>
-    <label>Forget all from host</label>
-    <right_justify>False</right_justify>
+      <widget>
+	<class>GtkMenuItem</class>
+	<name>popup_downloads_abort_named</name>
+	<signal>
+	  <name>activate</name>
+	  <handler>on_popup_downloads_abort_named_activate</handler>
+	  <last_modification_time>Tue, 09 Apr 2002 23:48:06 GMT</last_modification_time>
+	</signal>
+	<label>with the same name</label>
+	<right_justify>False</right_justify>
+      </widget>
+
+      <widget>
+	<class>GtkMenuItem</class>
+	<name>popup_downloads_abort_sha1</name>
+	<signal>
+	  <name>activate</name>
+	  <handler>on_popup_downloads_abort_sha1_activate</handler>
+	  <last_modification_time>Sun, 16 Jun 2002 16:49:30 GMT</last_modification_time>
+	</signal>
+	<label>with the same urn:sha1</label>
+	<right_justify>False</right_justify>
+      </widget>
+
+      <widget>
+	<class>GtkMenuItem</class>
+	<name>popup_downloads_abort_host</name>
+	<signal>
+	  <name>activate</name>
+	  <handler>on_popup_downloads_abort_host_activate</handler>
+	  <last_modification_time>Tue, 09 Apr 2002 17:55:57 GMT</last_modification_time>
+	</signal>
+	<label>from the same host</label>
+	<right_justify>False</right_justify>
+      </widget>
+    </widget>
   </widget>
 
   <widget>
@@ -8540,7 +8552,7 @@
       <handler>on_popup_downloads_copy_url_activate</handler>
       <last_modification_time>Wed, 24 Apr 2002 08:50:46 GMT</last_modification_time>
     </signal>
-    <label>Copy url to clipboard</label>
+    <label>Copy URL to clipboard</label>
     <right_justify>False</right_justify>
   </widget>
 
@@ -8618,40 +8630,52 @@
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_queue_abort_named</name>
-    <tooltip>Abort and dequeue all downloads with selected names</tooltip>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_queue_abort_named_activate</handler>
-      <last_modification_time>Thu, 11 Apr 2002 16:51:59 GMT</last_modification_time>
-    </signal>
-    <label>Abort all with name</label>
+    <name>abort_all2</name>
+    <label>Abort all...</label>
     <right_justify>False</right_justify>
-  </widget>
 
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_queue_abort_host</name>
-    <tooltip>Abort and dequeue all downloads from selected hosts</tooltip>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_queue_abort_host_activate</handler>
-      <last_modification_time>Thu, 11 Apr 2002 16:45:55 GMT</last_modification_time>
-    </signal>
-    <label>Abort all from host</label>
-    <right_justify>False</right_justify>
-  </widget>
+    <widget>
+      <class>GtkMenu</class>
+      <name>abort_all2_menu</name>
 
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_queue_abort_sha1</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_queue_abort_sha1_activate</handler>
-      <last_modification_time>Sun, 16 Jun 2002 16:50:24 GMT</last_modification_time>
-    </signal>
-    <label>Abort all with urn:sha1</label>
-    <right_justify>False</right_justify>
+      <widget>
+	<class>GtkMenuItem</class>
+	<name>popup_queue_abort_named</name>
+	<tooltip>Abort and dequeue all downloads with selected names</tooltip>
+	<signal>
+	  <name>activate</name>
+	  <handler>on_popup_queue_abort_named_activate</handler>
+	  <last_modification_time>Thu, 11 Apr 2002 16:51:59 GMT</last_modification_time>
+	</signal>
+	<label>with the same name</label>
+	<right_justify>False</right_justify>
+      </widget>
+
+      <widget>
+	<class>GtkMenuItem</class>
+	<name>popup_queue_abort_sha1</name>
+	<signal>
+	  <name>activate</name>
+	  <handler>on_popup_queue_abort_sha1_activate</handler>
+	  <last_modification_time>Sun, 16 Jun 2002 16:50:24 GMT</last_modification_time>
+	</signal>
+	<label>with the same urn:sha1</label>
+	<right_justify>False</right_justify>
+      </widget>
+
+      <widget>
+	<class>GtkMenuItem</class>
+	<name>popup_queue_abort_host</name>
+	<tooltip>Abort and dequeue all downloads from selected hosts</tooltip>
+	<signal>
+	  <name>activate</name>
+	  <handler>on_popup_queue_abort_host_activate</handler>
+	  <last_modification_time>Thu, 11 Apr 2002 16:45:55 GMT</last_modification_time>
+	</signal>
+	<label>from the same host</label>
+	<right_justify>False</right_justify>
+      </widget>
+    </widget>
   </widget>
 
   <widget>
@@ -8668,7 +8692,7 @@
       <handler>on_popup_queue_copy_url_activate</handler>
       <last_modification_time>Thu, 23 May 2002 19:44:21 GMT</last_modification_time>
     </signal>
-    <label>Copy url to clipboard</label>
+    <label>Copy URL to clipboard</label>
     <right_justify>False</right_justify>
   </widget>
 
@@ -8740,7 +8764,7 @@
   <widget>
     <class>GtkMenuItem</class>
     <name>drop1</name>
-    <label>Drop...</label>
+    <label>Drop results...</label>
     <right_justify>False</right_justify>
 
     <widget>
@@ -8756,7 +8780,7 @@
 	  <handler>on_popup_search_drop_name_activate</handler>
 	  <last_modification_time>Sun, 16 Jun 2002 18:55:52 GMT</last_modification_time>
 	</signal>
-	<label>results with name</label>
+	<label>with the same name</label>
 	<right_justify>False</right_justify>
       </widget>
 
@@ -8769,7 +8793,7 @@
 	  <handler>on_popup_search_drop_sha1_activate</handler>
 	  <last_modification_time>Sun, 16 Jun 2002 18:55:52 GMT</last_modification_time>
 	</signal>
-	<label>results with urn:sha1</label>
+	<label>with the same urn:sha1</label>
 	<right_justify>False</right_justify>
       </widget>
 
@@ -8781,7 +8805,7 @@
 	  <handler>on_popup_search_drop_host_activate</handler>
 	  <last_modification_time>Wed, 11 Sep 2002 16:03:53 GMT</last_modification_time>
 	</signal>
-	<label>results from host</label>
+	<label>from the same host</label>
 	<right_justify>False</right_justify>
       </widget>
     </widget>
@@ -8790,7 +8814,7 @@
   <widget>
     <class>GtkMenuItem</class>
     <name>globally_drop1</name>
-    <label>Globally drop...</label>
+    <label>Globally drop results...</label>
     <right_justify>False</right_justify>
 
     <widget>
@@ -8806,7 +8830,7 @@
 	  <handler>on_popup_search_drop_name_global_activate</handler>
 	  <last_modification_time>Sun, 16 Jun 2002 18:55:52 GMT</last_modification_time>
 	</signal>
-	<label>results with name</label>
+	<label>with the same name</label>
 	<right_justify>False</right_justify>
       </widget>
 
@@ -8819,7 +8843,7 @@
 	  <handler>on_popup_search_drop_sha1_global_activate</handler>
 	  <last_modification_time>Sun, 16 Jun 2002 18:55:52 GMT</last_modification_time>
 	</signal>
-	<label>results with urn:sha1</label>
+	<label>with the same urn:sha1</label>
 	<right_justify>False</right_justify>
       </widget>
 
@@ -8831,7 +8855,7 @@
 	  <handler>on_popup_search_drop_host_global_activate</handler>
 	  <last_modification_time>Wed, 11 Sep 2002 16:03:53 GMT</last_modification_time>
 	</signal>
-	<label>results from host</label>
+	<label>from the same host</label>
 	<right_justify>False</right_justify>
       </widget>
     </widget>
@@ -9013,7 +9037,7 @@
       <handler>on_popup_search_metadata_activate</handler>
       <last_modification_time>Tue, 21 Sep 2004 09:04:22 GMT</last_modification_time>
     </signal>
-    <label>Search Metadata</label>
+    <label>Bitzi Metadata</label>
     <right_justify>False</right_justify>
   </widget>
 </widget>
@@ -15806,7 +15830,7 @@ http://maxmind.com/</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_node_last_ultracheck</name>
-			    <label>26/12/2003 17:54:23</label>
+			    <label>2003-12-26 17:54:23</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>0.5</xalign>
@@ -15839,7 +15863,7 @@ http://maxmind.com/</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_last_ultra_leaf_switch</name>
-			    <label>26/12/2003 17:54:23</label>
+			    <label>2003-12-26 17:54:23</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>0.5</xalign>
@@ -18929,20 +18953,18 @@ allowed</label>
 	      </child>
 
 	      <widget>
-		<class>GtkVBox</class>
-		<name>vbox105</name>
+		<class>GtkHBox</class>
+		<name>hbox208</name>
 		<border_width>2</border_width>
 		<homogeneous>False</homogeneous>
-		<spacing>2</spacing>
+		<spacing>4</spacing>
 
 		<widget>
-		  <class>GtkTable</class>
-		  <name>table13</name>
-		  <rows>2</rows>
-		  <columns>3</columns>
-		  <homogeneous>False</homogeneous>
-		  <row_spacing>2</row_spacing>
-		  <column_spacing>4</column_spacing>
+		  <class>GtkFrame</class>
+		  <name>frame138</name>
+		  <label>General</label>
+		  <label_xalign>0</label_xalign>
+		  <shadow_type>GTK_SHADOW_OUT</shadow_type>
 		  <child>
 		    <padding>0</padding>
 		    <expand>True</expand>
@@ -18950,175 +18972,186 @@ allowed</label>
 		  </child>
 
 		  <widget>
-		    <class>GtkCheckButton</class>
-		    <name>checkbutton_config_bws_gin</name>
-		    <can_focus>True</can_focus>
-		    <label>Limit bandwidth for incoming traffic to</label>
-		    <active>False</active>
-		    <draw_indicator>True</draw_indicator>
-		    <child>
-		      <left_attach>0</left_attach>
-		      <right_attach>1</right_attach>
-		      <top_attach>0</top_attach>
-		      <bottom_attach>1</bottom_attach>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
-		      <yexpand>False</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>True</xfill>
-		      <yfill>False</yfill>
-		    </child>
-		  </widget>
+		    <class>GtkTable</class>
+		    <name>table13</name>
+		    <rows>2</rows>
+		    <columns>3</columns>
+		    <homogeneous>False</homogeneous>
+		    <row_spacing>2</row_spacing>
+		    <column_spacing>4</column_spacing>
 
-		  <widget>
-		    <class>GtkCheckButton</class>
-		    <name>checkbutton_config_bws_gout</name>
-		    <can_focus>True</can_focus>
-		    <label>Limit bandwidth for outgoing traffic to</label>
-		    <active>False</active>
-		    <draw_indicator>True</draw_indicator>
-		    <child>
-		      <left_attach>0</left_attach>
-		      <right_attach>1</right_attach>
-		      <top_attach>1</top_attach>
-		      <bottom_attach>2</bottom_attach>
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label181</name>
+		      <label>KiB/s</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0</xalign>
+		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
-		      <yexpand>False</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>True</xfill>
-		      <yfill>False</yfill>
-		    </child>
-		  </widget>
+		      <child>
+			<left_attach>2</left_attach>
+			<right_attach>3</right_attach>
+			<top_attach>0</top_attach>
+			<bottom_attach>1</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
 
-		  <widget>
-		    <class>GtkLabel</class>
-		    <name>label181</name>
-		    <label>KiB/s</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <child>
-		      <left_attach>2</left_attach>
-		      <right_attach>3</right_attach>
-		      <top_attach>0</top_attach>
-		      <bottom_attach>1</bottom_attach>
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label182</name>
+		      <label>KiB/s</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0</xalign>
+		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
-		      <yexpand>False</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>True</xfill>
-		      <yfill>False</yfill>
-		    </child>
-		  </widget>
+		      <child>
+			<left_attach>2</left_attach>
+			<right_attach>3</right_attach>
+			<top_attach>1</top_attach>
+			<bottom_attach>2</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
 
-		  <widget>
-		    <class>GtkLabel</class>
-		    <name>label182</name>
-		    <label>KiB/s</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <child>
-		      <left_attach>2</left_attach>
-		      <right_attach>3</right_attach>
-		      <top_attach>1</top_attach>
-		      <bottom_attach>2</bottom_attach>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
-		      <yexpand>False</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>True</xfill>
-		      <yfill>False</yfill>
-		    </child>
-		  </widget>
+		    <widget>
+		      <class>GtkSpinButton</class>
+		      <name>spinbutton_config_bws_gin</name>
+		      <width>64</width>
+		      <can_focus>True</can_focus>
+		      <climb_rate>1</climb_rate>
+		      <digits>2</digits>
+		      <numeric>True</numeric>
+		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		      <snap>False</snap>
+		      <wrap>False</wrap>
+		      <value>1</value>
+		      <lower>1</lower>
+		      <upper>2000</upper>
+		      <step>1</step>
+		      <page>5</page>
+		      <page_size>16</page_size>
+		      <child>
+			<left_attach>1</left_attach>
+			<right_attach>2</right_attach>
+			<top_attach>0</top_attach>
+			<bottom_attach>1</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
 
-		  <widget>
-		    <class>GtkSpinButton</class>
-		    <name>spinbutton_config_bws_gin</name>
-		    <width>64</width>
-		    <can_focus>True</can_focus>
-		    <climb_rate>1</climb_rate>
-		    <digits>2</digits>
-		    <numeric>True</numeric>
-		    <update_policy>GTK_UPDATE_ALWAYS</update_policy>
-		    <snap>False</snap>
-		    <wrap>False</wrap>
-		    <value>1</value>
-		    <lower>1</lower>
-		    <upper>2000</upper>
-		    <step>1</step>
-		    <page>5</page>
-		    <page_size>16</page_size>
-		    <child>
-		      <left_attach>1</left_attach>
-		      <right_attach>2</right_attach>
-		      <top_attach>0</top_attach>
-		      <bottom_attach>1</bottom_attach>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
-		      <yexpand>False</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>True</xfill>
-		      <yfill>False</yfill>
-		    </child>
-		  </widget>
+		    <widget>
+		      <class>GtkSpinButton</class>
+		      <name>spinbutton_config_bws_gout</name>
+		      <width>64</width>
+		      <can_focus>True</can_focus>
+		      <climb_rate>1</climb_rate>
+		      <digits>2</digits>
+		      <numeric>True</numeric>
+		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		      <snap>False</snap>
+		      <wrap>False</wrap>
+		      <value>1</value>
+		      <lower>1</lower>
+		      <upper>2000</upper>
+		      <step>1</step>
+		      <page>5</page>
+		      <page_size>16</page_size>
+		      <child>
+			<left_attach>1</left_attach>
+			<right_attach>2</right_attach>
+			<top_attach>1</top_attach>
+			<bottom_attach>2</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
 
-		  <widget>
-		    <class>GtkSpinButton</class>
-		    <name>spinbutton_config_bws_gout</name>
-		    <width>64</width>
-		    <can_focus>True</can_focus>
-		    <climb_rate>1</climb_rate>
-		    <digits>2</digits>
-		    <numeric>True</numeric>
-		    <update_policy>GTK_UPDATE_ALWAYS</update_policy>
-		    <snap>False</snap>
-		    <wrap>False</wrap>
-		    <value>1</value>
-		    <lower>1</lower>
-		    <upper>2000</upper>
-		    <step>1</step>
-		    <page>5</page>
-		    <page_size>16</page_size>
-		    <child>
-		      <left_attach>1</left_attach>
-		      <right_attach>2</right_attach>
-		      <top_attach>1</top_attach>
-		      <bottom_attach>2</bottom_attach>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
-		      <yexpand>False</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>True</xfill>
-		      <yfill>False</yfill>
-		    </child>
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_config_bws_gout</name>
+		      <can_focus>True</can_focus>
+		      <label>_Outgoing traffic</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<left_attach>0</left_attach>
+			<right_attach>1</right_attach>
+			<top_attach>1</top_attach>
+			<bottom_attach>2</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>True</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_config_bws_gin</name>
+		      <can_focus>True</can_focus>
+		      <label>_Incoming traffic</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<left_attach>0</left_attach>
+			<right_attach>1</right_attach>
+			<top_attach>0</top_attach>
+			<bottom_attach>1</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>True</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
 		  </widget>
 		</widget>
 
 		<widget>
-		  <class>GtkHBox</class>
-		  <name>hbox193</name>
-		  <homogeneous>False</homogeneous>
-		  <spacing>0</spacing>
+		  <class>GtkFrame</class>
+		  <name>frame74</name>
+		  <label>Ultrapeer mode</label>
+		  <label_xalign>0</label_xalign>
+		  <shadow_type>GTK_SHADOW_OUT</shadow_type>
 		  <child>
 		    <padding>0</padding>
 		    <expand>True</expand>
@@ -19126,190 +19159,177 @@ allowed</label>
 		  </child>
 
 		  <widget>
-		    <class>GtkFrame</class>
-		    <name>frame74</name>
-		    <label>Ultrapeer mode</label>
-		    <label_xalign>0</label_xalign>
-		    <shadow_type>GTK_SHADOW_OUT</shadow_type>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>True</fill>
-		    </child>
+		    <class>GtkTable</class>
+		    <name>table58</name>
+		    <border_width>2</border_width>
+		    <rows>2</rows>
+		    <columns>3</columns>
+		    <homogeneous>False</homogeneous>
+		    <row_spacing>2</row_spacing>
+		    <column_spacing>4</column_spacing>
 
 		    <widget>
-		      <class>GtkTable</class>
-		      <name>table58</name>
-		      <border_width>2</border_width>
-		      <rows>2</rows>
-		      <columns>3</columns>
-		      <homogeneous>False</homogeneous>
-		      <row_spacing>2</row_spacing>
-		      <column_spacing>4</column_spacing>
-
-		      <widget>
-			<class>GtkCheckButton</class>
-			<name>checkbutton_config_bws_glin</name>
-			<can_focus>True</can_focus>
-			<label>Limit incoming bandwidth from leaves to</label>
-			<active>False</active>
-			<draw_indicator>True</draw_indicator>
-			<child>
-			  <left_attach>0</left_attach>
-			  <right_attach>1</right_attach>
-			  <top_attach>0</top_attach>
-			  <bottom_attach>1</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkCheckButton</class>
-			<name>checkbutton_config_bws_glout</name>
-			<can_focus>True</can_focus>
-			<label>Limit outgoing bandwidth to leaves to</label>
-			<active>False</active>
-			<draw_indicator>True</draw_indicator>
-			<child>
-			  <left_attach>0</left_attach>
-			  <right_attach>1</right_attach>
-			  <top_attach>1</top_attach>
-			  <bottom_attach>2</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkSpinButton</class>
-			<name>spinbutton_config_bws_glin</name>
-			<width>64</width>
-			<can_focus>True</can_focus>
-			<climb_rate>1</climb_rate>
-			<digits>2</digits>
-			<numeric>True</numeric>
-			<update_policy>GTK_UPDATE_ALWAYS</update_policy>
-			<snap>False</snap>
-			<wrap>False</wrap>
-			<value>1</value>
-			<lower>0</lower>
-			<upper>100</upper>
-			<step>1</step>
-			<page>5</page>
-			<page_size>10</page_size>
-			<child>
-			  <left_attach>1</left_attach>
-			  <right_attach>2</right_attach>
-			  <top_attach>0</top_attach>
-			  <bottom_attach>1</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkSpinButton</class>
-			<name>spinbutton_config_bws_glout</name>
-			<width>64</width>
-			<can_focus>True</can_focus>
-			<climb_rate>1</climb_rate>
-			<digits>2</digits>
-			<numeric>True</numeric>
-			<update_policy>GTK_UPDATE_ALWAYS</update_policy>
-			<snap>False</snap>
-			<wrap>False</wrap>
-			<value>1</value>
-			<lower>0</lower>
-			<upper>100</upper>
-			<step>1</step>
-			<page>5</page>
-			<page_size>10</page_size>
-			<child>
-			  <left_attach>1</left_attach>
-			  <right_attach>2</right_attach>
-			  <top_attach>1</top_attach>
-			  <bottom_attach>2</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkLabel</class>
-			<name>label556</name>
-			<label>KiB/s</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0</xalign>
-			<yalign>0.5</yalign>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_config_bws_glin</name>
+		      <can_focus>True</can_focus>
+		      <label>Incoming incoming traffic from _leaves</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<left_attach>0</left_attach>
+			<right_attach>1</right_attach>
+			<top_attach>0</top_attach>
+			<bottom_attach>1</bottom_attach>
 			<xpad>0</xpad>
 			<ypad>0</ypad>
-			<child>
-			  <left_attach>2</left_attach>
-			  <right_attach>3</right_attach>
-			  <top_attach>0</top_attach>
-			  <bottom_attach>1</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
 
-		      <widget>
-			<class>GtkLabel</class>
-			<name>label557</name>
-			<label>KiB/s</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0</xalign>
-			<yalign>0.5</yalign>
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_config_bws_glout</name>
+		      <can_focus>True</can_focus>
+		      <label>Incoming outgoing traffic to lea_ves</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<left_attach>0</left_attach>
+			<right_attach>1</right_attach>
+			<top_attach>1</top_attach>
+			<bottom_attach>2</bottom_attach>
 			<xpad>0</xpad>
 			<ypad>0</ypad>
-			<child>
-			  <left_attach>2</left_attach>
-			  <right_attach>3</right_attach>
-			  <top_attach>1</top_attach>
-			  <bottom_attach>2</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkSpinButton</class>
+		      <name>spinbutton_config_bws_glin</name>
+		      <width>64</width>
+		      <can_focus>True</can_focus>
+		      <climb_rate>1</climb_rate>
+		      <digits>2</digits>
+		      <numeric>True</numeric>
+		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		      <snap>False</snap>
+		      <wrap>False</wrap>
+		      <value>1</value>
+		      <lower>0</lower>
+		      <upper>100</upper>
+		      <step>1</step>
+		      <page>5</page>
+		      <page_size>10</page_size>
+		      <child>
+			<left_attach>1</left_attach>
+			<right_attach>2</right_attach>
+			<top_attach>0</top_attach>
+			<bottom_attach>1</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkSpinButton</class>
+		      <name>spinbutton_config_bws_glout</name>
+		      <width>64</width>
+		      <can_focus>True</can_focus>
+		      <climb_rate>1</climb_rate>
+		      <digits>2</digits>
+		      <numeric>True</numeric>
+		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		      <snap>False</snap>
+		      <wrap>False</wrap>
+		      <value>1</value>
+		      <lower>0</lower>
+		      <upper>100</upper>
+		      <step>1</step>
+		      <page>5</page>
+		      <page_size>10</page_size>
+		      <child>
+			<left_attach>1</left_attach>
+			<right_attach>2</right_attach>
+			<top_attach>1</top_attach>
+			<bottom_attach>2</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label556</name>
+		      <label>KiB/s</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<left_attach>2</left_attach>
+			<right_attach>3</right_attach>
+			<top_attach>0</top_attach>
+			<bottom_attach>1</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label557</name>
+		      <label>KiB/s</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<left_attach>2</left_attach>
+			<right_attach>3</right_attach>
+			<top_attach>1</top_attach>
+			<bottom_attach>2</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
 		    </widget>
 		  </widget>
 		</widget>
@@ -19434,7 +19454,7 @@ allowed</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_config_bws_in</name>
 		  <can_focus>True</can_focus>
-		  <label>Limit bandwidth for incoming traffic to</label>
+		  <label>Cumulative _download rate</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -19457,7 +19477,7 @@ allowed</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_config_bws_out</name>
 		  <can_focus>True</can_focus>
-		  <label>Limit bandwidth for outgoing traffic to</label>
+		  <label>Cumulative _upload rate</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -21420,7 +21440,7 @@ allowed</label>
 		      <class>GtkCheckButton</class>
 		      <name>checkbutton_scan_ignore_symlink_dirs</name>
 		      <can_focus>True</can_focus>
-		      <label>Ignore symbolically linked directories</label>
+		      <label>Ignore symbolically linked _directories</label>
 		      <active>False</active>
 		      <draw_indicator>True</draw_indicator>
 		      <child>
@@ -21434,7 +21454,7 @@ allowed</label>
 		      <class>GtkCheckButton</class>
 		      <name>checkbutton_scan_ignore_symlink_regfiles</name>
 		      <can_focus>True</can_focus>
-		      <label>Ignore symbolically linked regular files</label>
+		      <label>Ignore symbolically linked regular _files</label>
 		      <active>False</active>
 		      <draw_indicator>True</draw_indicator>
 		      <child>
@@ -21555,13 +21575,14 @@ allowed</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label180</name>
-		  <label>Connected timeout</label>
+		  <label>Connected time_out</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
+		  <default_focus_target>spinbutton_config_upload_connected_timeout</default_focus_target>
 		  <child>
 		    <left_attach>2</left_attach>
 		    <right_attach>3</right_attach>
@@ -21669,13 +21690,14 @@ allowed</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label547</name>
-		  <label>First chunk size</label>
+		  <label>First chunk _size</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
+		  <default_focus_target>spinbutton_pfsp_first_chunk</default_focus_target>
 		  <child>
 		    <left_attach>1</left_attach>
 		    <right_attach>2</right_attach>
@@ -21696,7 +21718,7 @@ allowed</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_pfsp_server</name>
 		  <can_focus>True</can_focus>
-		  <label>Enable</label>
+		  <label>Enable upload of _partially downloaded files</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -21753,7 +21775,7 @@ allowed</label>
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame_expert_share_statistics</name>
-	      <label>Statistics</label>
+	      <label>Statistics:</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
@@ -21944,7 +21966,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_library_rescan_timestamp</name>
-			    <label>26/12/2003 17:54:23</label>
+			    <label>2003-12-26 17:54:23</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22235,7 +22257,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_indexing_timestamp</name>
-			    <label>26/12/2003 17:54:23</label>
+			    <label>2003-12-26 17:54:23</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22268,7 +22290,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_timestamp</name>
-			    <label>26/12/2003 17:54:23</label>
+			    <label>2003-12-26 17:54:23</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22301,7 +22323,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_patch_timestamp</name>
-			    <label>26/12/2003 17:54:23</label>
+			    <label>2003-12-26 17:54:23</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22436,7 +22458,7 @@ allowed</label>
 		    <widget>
 		      <class>GtkFrame</class>
 		      <name>frame_qrp_table_info</name>
-		      <label>Query routing table information</label>
+		      <label>Query routing table information:</label>
 		      <label_xalign>0</label_xalign>
 		      <shadow_type>GTK_SHADOW_OUT</shadow_type>
 		      <child>

@@ -14,7 +14,7 @@
       <signal name="activate" handler="on_button_downloads_abort_clicked"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image341">
+	<widget class="GtkImage" id="image413">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-stop</property>
 	  <property name="icon_size">1</property>
@@ -39,27 +39,27 @@
 	  <child>
 	    <widget class="GtkMenuItem" id="popup_downloads_abort_named">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">with name</property>
+	      <property name="label" translatable="yes">with the same name</property>
 	      <property name="use_underline">True</property>
 	      <signal name="activate" handler="on_popup_downloads_abort_named_activate"/>
 	    </widget>
 	  </child>
 
 	  <child>
-	    <widget class="GtkMenuItem" id="popup_downloads_abort_host">
+	    <widget class="GtkMenuItem" id="popup_downloads_abort_sha1">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">from host</property>
+	      <property name="label" translatable="yes">with the same urn:sha1</property>
 	      <property name="use_underline">True</property>
-	      <signal name="activate" handler="on_popup_downloads_abort_host_activate"/>
+	      <signal name="activate" handler="on_popup_downloads_abort_sha1_activate"/>
 	    </widget>
 	  </child>
 
 	  <child>
-	    <widget class="GtkMenuItem" id="popup_downloads_abort_sha1">
+	    <widget class="GtkMenuItem" id="popup_downloads_abort_host">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">with urn:sha1</property>
+	      <property name="label" translatable="yes">from the same host</property>
 	      <property name="use_underline">True</property>
-	      <signal name="activate" handler="on_popup_downloads_abort_sha1_activate"/>
+	      <signal name="activate" handler="on_popup_downloads_abort_host_activate"/>
 	    </widget>
 	  </child>
 	</widget>
@@ -70,12 +70,12 @@
   <child>
     <widget class="GtkImageMenuItem" id="popup_downloads_remove_file">
       <property name="visible">True</property>
-      <property name="label" translatable="yes">Remove file</property>
+      <property name="label" translatable="yes">Remove</property>
       <property name="use_underline">True</property>
-      <signal name="activate" handler="on_popup_downloads_remove_file_activate"/>
+      <signal name="activate" handler="on_popup_downloads_remove_file_activate" last_modification_time="Tue, 21 Dec 2004 06:25:52 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image342">
+	<widget class="GtkImage" id="image414">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -96,7 +96,7 @@
       <signal name="activate" handler="on_button_downloads_resume_clicked"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image343">
+	<widget class="GtkImage" id="image415">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-redo</property>
 	  <property name="icon_size">1</property>
@@ -117,7 +117,7 @@
       <signal name="activate" handler="on_popup_downloads_queue_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image344">
+	<widget class="GtkImage" id="image416">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-undo</property>
 	  <property name="icon_size">1</property>
@@ -154,12 +154,12 @@
   <child>
     <widget class="GtkImageMenuItem" id="popup_downloads_copy_url">
       <property name="visible">True</property>
-      <property name="label" translatable="yes">Copy url to clipboard</property>
+      <property name="label" translatable="yes">Copy URL to clipboard</property>
       <property name="use_underline">True</property>
       <signal name="activate" handler="on_popup_downloads_copy_url_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image345">
+	<widget class="GtkImage" id="image417">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-copy</property>
 	  <property name="icon_size">1</property>
@@ -180,7 +180,7 @@
       <signal name="activate" handler="on_popup_downloads_connect_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image346">
+	<widget class="GtkImage" id="image418">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-jump-to</property>
 	  <property name="icon_size">1</property>
@@ -207,7 +207,7 @@
       <signal name="activate" handler="on_popup_downloads_config_cols_activate" last_modification_time="Fri, 18 Jun 2004 02:16:51 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image347">
+	<widget class="GtkImage" id="image419">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-preferences</property>
 	  <property name="icon_size">1</property>
@@ -228,7 +228,7 @@
       <signal name="activate" handler="on_popup_downloads_expand_all_activate" last_modification_time="Thu, 01 Jan 2004 05:03:24 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image348">
+	<widget class="GtkImage" id="image420">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
@@ -249,7 +249,7 @@
       <signal name="activate" handler="on_popup_downloads_collapse_all_activate" last_modification_time="Thu, 01 Jan 2004 05:03:24 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image349">
+	<widget class="GtkImage" id="image421">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-remove</property>
 	  <property name="icon_size">1</property>
@@ -283,7 +283,7 @@
       <signal name="activate" handler="on_popup_queue_abort_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image326">
+	<widget class="GtkImage" id="image483">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-stop</property>
 	  <property name="icon_size">1</property>
@@ -308,27 +308,27 @@
 	  <child>
 	    <widget class="GtkMenuItem" id="popup_queue_abort_named">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">with name</property>
+	      <property name="label" translatable="yes">with the same name</property>
 	      <property name="use_underline">True</property>
 	      <signal name="activate" handler="on_popup_queue_abort_named_activate"/>
 	    </widget>
 	  </child>
 
 	  <child>
-	    <widget class="GtkMenuItem" id="popup_queue_abort_host">
+	    <widget class="GtkMenuItem" id="popup_queue_abort_sha1">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">from host</property>
+	      <property name="label" translatable="yes">with the same urn:sha1</property>
 	      <property name="use_underline">True</property>
-	      <signal name="activate" handler="on_popup_queue_abort_host_activate"/>
+	      <signal name="activate" handler="on_popup_queue_abort_sha1_activate"/>
 	    </widget>
 	  </child>
 
 	  <child>
-	    <widget class="GtkMenuItem" id="popup_queue_abort_sha1">
+	    <widget class="GtkMenuItem" id="popup_queue_abort_host">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">with urn:sha1</property>
+	      <property name="label" translatable="yes">from the same host</property>
 	      <property name="use_underline">True</property>
-	      <signal name="activate" handler="on_popup_queue_abort_sha1_activate"/>
+	      <signal name="activate" handler="on_popup_queue_abort_host_activate"/>
 	    </widget>
 	  </child>
 	</widget>
@@ -345,12 +345,12 @@
   <child>
     <widget class="GtkImageMenuItem" id="popup_queue_copy_url">
       <property name="visible">True</property>
-      <property name="label" translatable="yes">Copy url to clipboard</property>
+      <property name="label" translatable="yes">Copy URL to clipboard</property>
       <property name="use_underline">True</property>
       <signal name="activate" handler="on_popup_queue_copy_url_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image327">
+	<widget class="GtkImage" id="image484">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-copy</property>
 	  <property name="icon_size">1</property>
@@ -371,7 +371,7 @@
       <signal name="activate" handler="on_popup_queue_connect_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image328">
+	<widget class="GtkImage" id="image485">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-jump-to</property>
 	  <property name="icon_size">1</property>
@@ -398,7 +398,7 @@
       <signal name="activate" handler="on_popup_queue_config_cols_activate" last_modification_time="Fri, 18 Jun 2004 02:15:28 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image329">
+	<widget class="GtkImage" id="image486">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-preferences</property>
 	  <property name="icon_size">1</property>
@@ -419,7 +419,7 @@
       <signal name="activate" handler="on_popup_queue_expand_all_activate" last_modification_time="Thu, 01 Jan 2004 05:04:18 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image330">
+	<widget class="GtkImage" id="image487">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
@@ -440,7 +440,7 @@
       <signal name="activate" handler="on_popup_queue_collapse_all_activate" last_modification_time="Thu, 01 Jan 2004 05:04:18 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image331">
+	<widget class="GtkImage" id="image488">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-remove</property>
 	  <property name="icon_size">1</property>
@@ -465,7 +465,7 @@
       <signal name="activate" handler="on_popup_search_download_activate" last_modification_time="Sun, 30 Mar 2003 12:52:08 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image390">
+	<widget class="GtkImage" id="image453">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-save</property>
 	  <property name="icon_size">1</property>
@@ -481,11 +481,11 @@
   <child>
     <widget class="GtkImageMenuItem" id="drop1">
       <property name="visible">True</property>
-      <property name="label" translatable="yes">Drop...</property>
+      <property name="label" translatable="yes">Drop results...</property>
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image391">
+	<widget class="GtkImage" id="image454">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -502,7 +502,7 @@
 	  <child>
 	    <widget class="GtkMenuItem" id="popup_search_drop_name">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">results with name</property>
+	      <property name="label" translatable="yes">with the same name</property>
 	      <property name="use_underline">True</property>
 	      <signal name="activate" handler="on_popup_search_drop_name_activate"/>
 	    </widget>
@@ -511,7 +511,7 @@
 	  <child>
 	    <widget class="GtkMenuItem" id="popup_search_drop_sha1">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">results with urn:sha1</property>
+	      <property name="label" translatable="yes">with the same urn:sha1</property>
 	      <property name="use_underline">True</property>
 	      <signal name="activate" handler="on_popup_search_drop_sha1_activate"/>
 	    </widget>
@@ -520,7 +520,7 @@
 	  <child>
 	    <widget class="GtkMenuItem" id="popup_search_drop_host">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">results from host</property>
+	      <property name="label" translatable="yes">from the same host</property>
 	      <property name="use_underline">True</property>
 	      <signal name="activate" handler="on_popup_search_drop_host_activate" last_modification_time="Sun, 15 Sep 2002 12:34:12 GMT"/>
 	    </widget>
@@ -533,11 +533,11 @@
   <child>
     <widget class="GtkImageMenuItem" id="globally_drop1">
       <property name="visible">True</property>
-      <property name="label" translatable="yes">Globally drop...</property>
+      <property name="label" translatable="yes">Globally drop results</property>
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image392">
+	<widget class="GtkImage" id="image455">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -554,7 +554,7 @@
 	  <child>
 	    <widget class="GtkMenuItem" id="popup_search_drop_name_global">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">results with name</property>
+	      <property name="label" translatable="yes">with the same name</property>
 	      <property name="use_underline">True</property>
 	      <signal name="activate" handler="on_popup_search_drop_name_global_activate"/>
 	    </widget>
@@ -563,7 +563,7 @@
 	  <child>
 	    <widget class="GtkMenuItem" id="popup_search_drop_sha1_global">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">results with urn:sha1</property>
+	      <property name="label" translatable="yes">with the same urn:sha1</property>
 	      <property name="use_underline">True</property>
 	      <signal name="activate" handler="on_popup_search_drop_sha1_global_activate"/>
 	    </widget>
@@ -572,7 +572,7 @@
 	  <child>
 	    <widget class="GtkMenuItem" id="popup_search_drop_host_global">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">results from host</property>
+	      <property name="label" translatable="yes">from the same host</property>
 	      <property name="use_underline">True</property>
 	      <signal name="activate" handler="on_popup_search_drop_host_global_activate" last_modification_time="Sun, 15 Sep 2002 12:34:12 GMT"/>
 	    </widget>
@@ -595,7 +595,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image393">
+	<widget class="GtkImage" id="image456">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-execute</property>
 	  <property name="icon_size">1</property>
@@ -617,7 +617,7 @@
 	      <signal name="activate" handler="on_popup_search_autodownload_sha1_activate"/>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image394">
+		<widget class="GtkImage" id="image457">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-execute</property>
 		  <property name="icon_size">1</property>
@@ -638,7 +638,7 @@
 	      <signal name="activate" handler="on_popup_search_autodownload_name_activate"/>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image395">
+		<widget class="GtkImage" id="image458">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-execute</property>
 		  <property name="icon_size">1</property>
@@ -669,7 +669,7 @@
       <signal name="activate" handler="on_popup_search_new_from_selected_activate" last_modification_time="Sun, 15 Sep 2002 11:07:06 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image396">
+	<widget class="GtkImage" id="image459">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-new</property>
 	  <property name="icon_size">1</property>
@@ -696,7 +696,7 @@
       <signal name="activate" handler="on_popup_search_expand_all_activate" last_modification_time="Thu, 01 Jan 2004 05:01:39 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image397">
+	<widget class="GtkImage" id="image460">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
@@ -717,7 +717,7 @@
       <signal name="activate" handler="on_popup_search_collapse_all_activate" last_modification_time="Thu, 01 Jan 2004 05:01:39 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image398">
+	<widget class="GtkImage" id="image461">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-remove</property>
 	  <property name="icon_size">1</property>
@@ -744,7 +744,7 @@
       <signal name="activate" handler="on_popup_search_toggle_tabs_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image399">
+	<widget class="GtkImage" id="image462">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-index</property>
 	  <property name="icon_size">1</property>
@@ -765,7 +765,7 @@
       <signal name="activate" handler="on_popup_search_config_cols_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image400">
+	<widget class="GtkImage" id="image463">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-preferences</property>
 	  <property name="icon_size">1</property>
@@ -785,11 +785,23 @@
   </child>
 
   <child>
-    <widget class="GtkMenuItem" id="popup_search_metadata">
+    <widget class="GtkImageMenuItem" id="popup_search_metadata">
       <property name="visible">True</property>
-      <property name="label" translatable="yes">Search Metadata</property>
+      <property name="label" translatable="yes">Bitzi Metadata</property>
       <property name="use_underline">True</property>
       <signal name="activate" handler="on_popup_search_metadata_activate" last_modification_time="Thu, 02 Sep 2004 08:35:41 GMT"/>
+
+      <child internal-child="image">
+	<widget class="GtkImage" id="image464">
+	  <property name="visible">True</property>
+	  <property name="stock">gtk-dialog-info</property>
+	  <property name="icon_size">1</property>
+	  <property name="xalign">0.5</property>
+	  <property name="yalign">0.5</property>
+	  <property name="xpad">0</property>
+	  <property name="ypad">0</property>
+	</widget>
+      </child>
     </widget>
   </child>
 </widget>
@@ -15277,7 +15289,7 @@ http://maxmind.com/</property>
       <signal name="activate" handler="on_popup_nodes_disconnect_activate" last_modification_time="Sat, 26 Jul 2003 00:52:57 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image382">
+	<widget class="GtkImage" id="image467">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-cancel</property>
 	  <property name="icon_size">1</property>
@@ -15293,12 +15305,12 @@ http://maxmind.com/</property>
   <child>
     <widget class="GtkImageMenuItem" id="popup_nodes_reverse_lookup">
       <property name="visible">True</property>
-      <property name="label" translatable="yes">Reverse lookup</property>
+      <property name="label" translatable="yes">Reverse DNS lookup</property>
       <property name="use_underline">True</property>
       <signal name="activate" handler="on_popup_nodes_reverse_lookup_activate" last_modification_time="Thu, 21 Oct 2004 13:21:51 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image383">
+	<widget class="GtkImage" id="image468">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-dialog-info</property>
 	  <property name="icon_size">1</property>
@@ -15319,7 +15331,7 @@ http://maxmind.com/</property>
       <signal name="activate" handler="on_popup_nodes_config_cols_activate" last_modification_time="Sat, 26 Jul 2003 00:52:57 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image384">
+	<widget class="GtkImage" id="image469">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-preferences</property>
 	  <property name="icon_size">1</property>
@@ -16602,31 +16614,6 @@ http://maxmind.com/</property>
 			  <property name="column_spacing">4</property>
 
 			  <child>
-			    <widget class="GtkLabel" id="label129">
-			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">_Listen port</property>
-			      <property name="use_underline">True</property>
-			      <property name="use_markup">False</property>
-			      <property name="justify">GTK_JUSTIFY_CENTER</property>
-			      <property name="wrap">False</property>
-			      <property name="selectable">False</property>
-			      <property name="xalign">0</property>
-			      <property name="yalign">0.5</property>
-			      <property name="xpad">4</property>
-			      <property name="ypad">0</property>
-			      <property name="mnemonic_widget">spinbutton_config_port</property>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">0</property>
-			      <property name="right_attach">1</property>
-			      <property name="top_attach">0</property>
-			      <property name="bottom_attach">1</property>
-			      <property name="x_options">fill</property>
-			      <property name="y_options"></property>
-			    </packing>
-			  </child>
-
-			  <child>
 			    <widget class="GtkLabel" id="label35">
 			      <property name="visible">True</property>
 			      <property name="label" translatable="yes">Disable: 0, Random: 1</property>
@@ -16669,28 +16656,6 @@ http://maxmind.com/</property>
 			      <property name="bottom_attach">1</property>
 			      <property name="x_options">fill</property>
 			      <property name="y_options">fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkCheckButton" id="checkbutton_enable_udp">
-			      <property name="visible">True</property>
-			      <property name="can_focus">True</property>
-			      <property name="label" translatable="yes">Enable _UDP</property>
-			      <property name="use_underline">True</property>
-			      <property name="relief">GTK_RELIEF_NORMAL</property>
-			      <property name="focus_on_click">True</property>
-			      <property name="active">False</property>
-			      <property name="inconsistent">False</property>
-			      <property name="draw_indicator">True</property>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">0</property>
-			      <property name="right_attach">1</property>
-			      <property name="top_attach">1</property>
-			      <property name="bottom_attach">2</property>
-			      <property name="x_options">fill</property>
-			      <property name="y_options"></property>
 			    </packing>
 			  </child>
 
@@ -16824,6 +16789,53 @@ http://maxmind.com/</property>
 			      <property name="x_padding">4</property>
 			      <property name="x_options">shrink|fill</property>
 			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkLabel" id="label129">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">_Listen port</property>
+			      <property name="use_underline">True</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_CENTER</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">0</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">4</property>
+			      <property name="ypad">0</property>
+			      <property name="mnemonic_widget">spinbutton_config_port</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">0</property>
+			      <property name="right_attach">1</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">shrink|fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkCheckButton" id="checkbutton_enable_udp">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="label" translatable="yes">Enable _UDP</property>
+			      <property name="use_underline">True</property>
+			      <property name="relief">GTK_RELIEF_NORMAL</property>
+			      <property name="focus_on_click">True</property>
+			      <property name="active">False</property>
+			      <property name="inconsistent">False</property>
+			      <property name="draw_indicator">True</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">0</property>
+			      <property name="right_attach">3</property>
+			      <property name="top_attach">1</property>
+			      <property name="bottom_attach">2</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
 			    </packing>
 			  </child>
 			</widget>
@@ -17412,7 +17424,7 @@ http://maxmind.com/</property>
 		      <child>
 			<widget class="GtkLabel" id="label516">
 			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">Max._ percentage of file descriptors</property>
+			  <property name="label" translatable="yes">Max. _percentage of file descriptors</property>
 			  <property name="use_underline">True</property>
 			  <property name="use_markup">False</property>
 			  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -17568,7 +17580,6 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkEntry" id="entry_config_max_banned_fd">
 			      <property name="visible">True</property>
-			      <property name="sensitive">False</property>
 			      <property name="tooltip" translatable="yes">Actual amount of file descriptors used -- cannot be changed at runtime</property>
 			      <property name="can_focus">True</property>
 			      <property name="editable">False</property>
@@ -18441,7 +18452,7 @@ http://maxmind.com/</property>
 					  <child>
 					    <widget class="GtkLabel" id="label_last_ultra_leaf_switch">
 					      <property name="visible">True</property>
-					      <property name="label">26/12/2001 7:54:23</property>
+					      <property name="label">2001-12-26 7:54:23</property>
 					      <property name="use_underline">False</property>
 					      <property name="use_markup">False</property>
 					      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -18471,7 +18482,7 @@ http://maxmind.com/</property>
 					  <child>
 					    <widget class="GtkLabel" id="label_node_last_ultracheck">
 					      <property name="visible">True</property>
-					      <property name="label">26/12/2001 7:54:23</property>
+					      <property name="label">2001-12-26 7:54:23</property>
 					      <property name="use_underline">False</property>
 					      <property name="use_markup">False</property>
 					      <property name="justify">GTK_JUSTIFY_CENTER</property>
@@ -19153,7 +19164,7 @@ http://maxmind.com/</property>
 				  <property name="selectable">False</property>
 				  <property name="xalign">7.45058e-09</property>
 				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
+				  <property name="xpad">4</property>
 				  <property name="ypad">0</property>
 				  <property name="mnemonic_widget">spinbutton_config_search_items</property>
 				</widget>
@@ -19178,7 +19189,7 @@ http://maxmind.com/</property>
 				  <property name="selectable">False</property>
 				  <property name="xalign">0</property>
 				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
+				  <property name="xpad">4</property>
 				  <property name="ypad">0</property>
 				  <property name="mnemonic_widget">spinbutton_config_search_reissue_timeout</property>
 				</widget>
@@ -19285,6 +19296,7 @@ http://maxmind.com/</property>
 			      <property name="right_attach">1</property>
 			      <property name="top_attach">0</property>
 			      <property name="bottom_attach">1</property>
+			      <property name="x_padding">4</property>
 			      <property name="x_options">fill</property>
 			      <property name="y_options"></property>
 			    </packing>
@@ -19307,6 +19319,7 @@ http://maxmind.com/</property>
 			      <property name="right_attach">1</property>
 			      <property name="top_attach">1</property>
 			      <property name="bottom_attach">2</property>
+			      <property name="x_padding">4</property>
 			      <property name="x_options">fill</property>
 			      <property name="y_options"></property>
 			    </packing>
@@ -19329,6 +19342,7 @@ http://maxmind.com/</property>
 			      <property name="right_attach">1</property>
 			      <property name="top_attach">2</property>
 			      <property name="bottom_attach">3</property>
+			      <property name="x_padding">4</property>
 			      <property name="x_options">fill</property>
 			      <property name="y_options"></property>
 			    </packing>
@@ -19388,9 +19402,9 @@ http://maxmind.com/</property>
 			      <property name="justify">GTK_JUSTIFY_CENTER</property>
 			      <property name="wrap">False</property>
 			      <property name="selectable">False</property>
-			      <property name="xalign">0.5</property>
+			      <property name="xalign">0</property>
 			      <property name="yalign">0.5</property>
-			      <property name="xpad">2</property>
+			      <property name="xpad">4</property>
 			      <property name="ypad">0</property>
 			    </widget>
 			    <packing>
@@ -19412,9 +19426,9 @@ http://maxmind.com/</property>
 			      <property name="justify">GTK_JUSTIFY_LEFT</property>
 			      <property name="wrap">False</property>
 			      <property name="selectable">False</property>
-			      <property name="xalign">0.5</property>
+			      <property name="xalign">0</property>
 			      <property name="yalign">0.5</property>
-			      <property name="xpad">2</property>
+			      <property name="xpad">4</property>
 			      <property name="ypad">0</property>
 			    </widget>
 			    <packing>
@@ -19535,7 +19549,7 @@ http://maxmind.com/</property>
 			  <property name="selectable">False</property>
 			  <property name="xalign">0</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
+			  <property name="xpad">4</property>
 			  <property name="ypad">0</property>
 			  <property name="mnemonic_widget">spinbutton_config_node_connecting_timeout</property>
 			</widget>
@@ -19560,7 +19574,7 @@ http://maxmind.com/</property>
 			  <property name="selectable">False</property>
 			  <property name="xalign">0</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
+			  <property name="xpad">4</property>
 			  <property name="ypad">0</property>
 			  <property name="mnemonic_widget">spinbutton_config_node_tx_flowc_timeout</property>
 			</widget>
@@ -19748,274 +19762,298 @@ http://maxmind.com/</property>
 		  <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
 
 		  <child>
-		    <widget class="GtkTable" id="table9">
-		      <property name="border_width">2</property>
+		    <widget class="GtkVBox" id="vbox143">
 		      <property name="visible">True</property>
-		      <property name="n_rows">3</property>
-		      <property name="n_columns">5</property>
 		      <property name="homogeneous">False</property>
-		      <property name="row_spacing">2</property>
-		      <property name="column_spacing">4</property>
+		      <property name="spacing">0</property>
 
 		      <child>
-			<widget class="GtkLabel" id="label160">
+			<widget class="GtkTable" id="table9">
+			  <property name="border_width">2</property>
 			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">hops radius</property>
-			  <property name="use_underline">False</property>
-			  <property name="use_markup">False</property>
-			  <property name="justify">GTK_JUSTIFY_CENTER</property>
-			  <property name="wrap">False</property>
-			  <property name="selectable">False</property>
-			  <property name="xalign">0.5</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
-			  <property name="ypad">0</property>
+			  <property name="n_rows">1</property>
+			  <property name="n_columns">6</property>
+			  <property name="homogeneous">False</property>
+			  <property name="row_spacing">2</property>
+			  <property name="column_spacing">4</property>
+
+			  <child>
+			    <widget class="GtkSpinButton" id="spinbutton_config_maxttl">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="climb_rate">1</property>
+			      <property name="digits">0</property>
+			      <property name="numeric">True</property>
+			      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
+			      <property name="snap_to_ticks">False</property>
+			      <property name="wrap">False</property>
+			      <property name="adjustment">1 1 99 1 5 5</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">1</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkSpinButton" id="spinbutton_config_myttl">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="climb_rate">1</property>
+			      <property name="digits">0</property>
+			      <property name="numeric">True</property>
+			      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
+			      <property name="snap_to_ticks">False</property>
+			      <property name="wrap">False</property>
+			      <property name="adjustment">1 1 99 1 5 5</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">3</property>
+			      <property name="right_attach">4</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkLabel" id="label84">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">Max _TTL</property>
+			      <property name="use_underline">True</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_LEFT</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">1</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">4</property>
+			      <property name="ypad">0</property>
+			      <property name="mnemonic_widget">spinbutton_config_maxttl</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">0</property>
+			      <property name="right_attach">1</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkLabel" id="label85">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">M_y TTL</property>
+			      <property name="use_underline">True</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_CENTER</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">1</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			      <property name="mnemonic_widget">spinbutton_config_myttl</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">2</property>
+			      <property name="right_attach">3</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkLabel" id="label159">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">H_ard TTL limit</property>
+			      <property name="use_underline">True</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_LEFT</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">1</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">4</property>
+			      <property name="ypad">0</property>
+			      <property name="mnemonic_widget">spinbutton_config_hard_ttl_limit</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">4</property>
+			      <property name="right_attach">5</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkSpinButton" id="spinbutton_config_hard_ttl_limit">
+			      <property name="visible">True</property>
+			      <property name="tooltip" translatable="yes">Max hard TTL limit (hop+ttl) on message</property>
+			      <property name="can_focus">True</property>
+			      <property name="climb_rate">1</property>
+			      <property name="digits">0</property>
+			      <property name="numeric">True</property>
+			      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
+			      <property name="snap_to_ticks">False</property>
+			      <property name="wrap">False</property>
+			      <property name="adjustment">5 5 99 1 10 10</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">5</property>
+			      <property name="right_attach">6</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
 			</widget>
 			<packing>
-			  <property name="left_attach">4</property>
-			  <property name="right_attach">5</property>
-			  <property name="top_attach">1</property>
-			  <property name="bottom_attach">2</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
+			  <property name="padding">0</property>
+			  <property name="expand">True</property>
+			  <property name="fill">True</property>
 			</packing>
 		      </child>
 
 		      <child>
-			<widget class="GtkSpinButton" id="spinbutton_config_maxttl">
+			<widget class="GtkVBox" id="vbox144">
 			  <property name="visible">True</property>
-			  <property name="can_focus">True</property>
-			  <property name="climb_rate">1</property>
-			  <property name="digits">0</property>
-			  <property name="numeric">True</property>
-			  <property name="update_policy">GTK_UPDATE_ALWAYS</property>
-			  <property name="snap_to_ticks">False</property>
-			  <property name="wrap">False</property>
-			  <property name="adjustment">1 1 99 1 5 5</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">1</property>
-			  <property name="right_attach">2</property>
-			  <property name="top_attach">0</property>
-			  <property name="bottom_attach">1</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
+			  <property name="homogeneous">False</property>
+			  <property name="spacing">0</property>
 
-		      <child>
-			<widget class="GtkSpinButton" id="spinbutton_config_max_high_ttl_msg">
-			  <property name="visible">True</property>
-			  <property name="tooltip" translatable="yes">Amount of tolerable messages above hard TTL limit per node</property>
-			  <property name="can_focus">True</property>
-			  <property name="climb_rate">1</property>
-			  <property name="digits">0</property>
-			  <property name="numeric">True</property>
-			  <property name="update_policy">GTK_UPDATE_ALWAYS</property>
-			  <property name="snap_to_ticks">False</property>
-			  <property name="wrap">False</property>
-			  <property name="adjustment">1 0 99 1 10 10</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">1</property>
-			  <property name="right_attach">2</property>
-			  <property name="top_attach">1</property>
-			  <property name="bottom_attach">2</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
+			  <child>
+			    <widget class="GtkHBox" id="hbox9294">
+			      <property name="visible">True</property>
+			      <property name="homogeneous">False</property>
+			      <property name="spacing">4</property>
 
-		      <child>
-			<widget class="GtkSpinButton" id="spinbutton_config_hard_ttl_limit">
-			  <property name="visible">True</property>
-			  <property name="tooltip" translatable="yes">Max hard TTL limit (hop+ttl) on message</property>
-			  <property name="can_focus">True</property>
-			  <property name="climb_rate">1</property>
-			  <property name="digits">0</property>
-			  <property name="numeric">True</property>
-			  <property name="update_policy">GTK_UPDATE_ALWAYS</property>
-			  <property name="snap_to_ticks">False</property>
-			  <property name="wrap">False</property>
-			  <property name="adjustment">1 5 99 1 10 10</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">1</property>
-			  <property name="right_attach">2</property>
-			  <property name="top_attach">2</property>
-			  <property name="bottom_attach">3</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
+			      <child>
+				<widget class="GtkLabel" id="label157">
+				  <property name="visible">True</property>
+				  <property name="label" translatable="yes">Max # of _high TTL msg</property>
+				  <property name="use_underline">True</property>
+				  <property name="use_markup">False</property>
+				  <property name="justify">GTK_JUSTIFY_LEFT</property>
+				  <property name="wrap">False</property>
+				  <property name="selectable">False</property>
+				  <property name="xalign">0</property>
+				  <property name="yalign">0.5</property>
+				  <property name="xpad">4</property>
+				  <property name="ypad">0</property>
+				  <property name="mnemonic_widget">spinbutton_config_max_high_ttl_msg</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">False</property>
+				</packing>
+			      </child>
 
-		      <child>
-			<widget class="GtkSpinButton" id="spinbutton_config_myttl">
-			  <property name="visible">True</property>
-			  <property name="can_focus">True</property>
-			  <property name="climb_rate">1</property>
-			  <property name="digits">0</property>
-			  <property name="numeric">True</property>
-			  <property name="update_policy">GTK_UPDATE_ALWAYS</property>
-			  <property name="snap_to_ticks">False</property>
-			  <property name="wrap">False</property>
-			  <property name="adjustment">1 1 99 1 5 5</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">3</property>
-			  <property name="right_attach">4</property>
-			  <property name="top_attach">0</property>
-			  <property name="bottom_attach">1</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
+			      <child>
+				<widget class="GtkSpinButton" id="spinbutton_config_max_high_ttl_msg">
+				  <property name="visible">True</property>
+				  <property name="tooltip" translatable="yes">Amount of tolerable messages above hard TTL limit per node</property>
+				  <property name="can_focus">True</property>
+				  <property name="climb_rate">1</property>
+				  <property name="digits">0</property>
+				  <property name="numeric">True</property>
+				  <property name="update_policy">GTK_UPDATE_ALWAYS</property>
+				  <property name="snap_to_ticks">False</property>
+				  <property name="wrap">False</property>
+				  <property name="adjustment">1 0 99 1 10 10</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">True</property>
+				</packing>
+			      </child>
 
-		      <child>
-			<widget class="GtkSpinButton" id="spinbutton_config_max_high_ttl_radius">
-			  <property name="visible">True</property>
-			  <property name="tooltip" translatable="yes">Hop radius for counting high TTL limit messages (#hops lower than...)</property>
-			  <property name="can_focus">True</property>
-			  <property name="climb_rate">1</property>
-			  <property name="digits">0</property>
-			  <property name="numeric">True</property>
-			  <property name="update_policy">GTK_UPDATE_ALWAYS</property>
-			  <property name="snap_to_ticks">False</property>
-			  <property name="wrap">False</property>
-			  <property name="adjustment">1 1 99 1 10 10</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">3</property>
-			  <property name="right_attach">4</property>
-			  <property name="top_attach">1</property>
-			  <property name="bottom_attach">2</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
+			      <child>
+				<widget class="GtkLabel" id="label158">
+				  <property name="visible">True</property>
+				  <property name="label" translatable="yes">from _nodes within a</property>
+				  <property name="use_underline">True</property>
+				  <property name="use_markup">False</property>
+				  <property name="justify">GTK_JUSTIFY_CENTER</property>
+				  <property name="wrap">False</property>
+				  <property name="selectable">False</property>
+				  <property name="xalign">0</property>
+				  <property name="yalign">0.5</property>
+				  <property name="xpad">0</property>
+				  <property name="ypad">0</property>
+				  <property name="mnemonic_widget">spinbutton_config_max_high_ttl_radius</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">False</property>
+				</packing>
+			      </child>
 
-		      <child>
-			<widget class="GtkLabel" id="label159">
-			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">H_ard TTL limit</property>
-			  <property name="use_underline">True</property>
-			  <property name="use_markup">False</property>
-			  <property name="justify">GTK_JUSTIFY_LEFT</property>
-			  <property name="wrap">False</property>
-			  <property name="selectable">False</property>
-			  <property name="xalign">0</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
-			  <property name="ypad">0</property>
-			  <property name="mnemonic_widget">spinbutton_config_hard_ttl_limit</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">0</property>
-			  <property name="right_attach">1</property>
-			  <property name="top_attach">2</property>
-			  <property name="bottom_attach">3</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
+			      <child>
+				<widget class="GtkSpinButton" id="spinbutton_config_max_high_ttl_radius">
+				  <property name="visible">True</property>
+				  <property name="tooltip" translatable="yes">Hop radius for counting high TTL limit messages (#hops lower than...)</property>
+				  <property name="can_focus">True</property>
+				  <property name="climb_rate">1</property>
+				  <property name="digits">0</property>
+				  <property name="numeric">True</property>
+				  <property name="update_policy">GTK_UPDATE_ALWAYS</property>
+				  <property name="snap_to_ticks">False</property>
+				  <property name="wrap">False</property>
+				  <property name="adjustment">1 1 99 1 10 10</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">True</property>
+				</packing>
+			      </child>
 
-		      <child>
-			<widget class="GtkLabel" id="label157">
-			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">Max # of _high TTL msg</property>
-			  <property name="use_underline">True</property>
-			  <property name="use_markup">False</property>
-			  <property name="justify">GTK_JUSTIFY_LEFT</property>
-			  <property name="wrap">False</property>
-			  <property name="selectable">False</property>
-			  <property name="xalign">0</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
-			  <property name="ypad">0</property>
-			  <property name="mnemonic_widget">spinbutton_config_max_high_ttl_msg</property>
+			      <child>
+				<widget class="GtkLabel" id="label160">
+				  <property name="visible">True</property>
+				  <property name="label" translatable="yes">hops radius</property>
+				  <property name="use_underline">False</property>
+				  <property name="use_markup">False</property>
+				  <property name="justify">GTK_JUSTIFY_CENTER</property>
+				  <property name="wrap">False</property>
+				  <property name="selectable">False</property>
+				  <property name="xalign">0.5</property>
+				  <property name="yalign">0.5</property>
+				  <property name="xpad">0</property>
+				  <property name="ypad">0</property>
+				</widget>
+				<packing>
+				  <property name="padding">0</property>
+				  <property name="expand">False</property>
+				  <property name="fill">False</property>
+				</packing>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="padding">0</property>
+			      <property name="expand">False</property>
+			      <property name="fill">True</property>
+			    </packing>
+			  </child>
 			</widget>
 			<packing>
-			  <property name="left_attach">0</property>
-			  <property name="right_attach">1</property>
-			  <property name="top_attach">1</property>
-			  <property name="bottom_attach">2</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
-
-		      <child>
-			<widget class="GtkLabel" id="label84">
-			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">Max _TTL</property>
-			  <property name="use_underline">True</property>
-			  <property name="use_markup">False</property>
-			  <property name="justify">GTK_JUSTIFY_LEFT</property>
-			  <property name="wrap">False</property>
-			  <property name="selectable">False</property>
-			  <property name="xalign">7.45058e-09</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
-			  <property name="ypad">0</property>
-			  <property name="mnemonic_widget">spinbutton_config_maxttl</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">0</property>
-			  <property name="right_attach">1</property>
-			  <property name="top_attach">0</property>
-			  <property name="bottom_attach">1</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
-
-		      <child>
-			<widget class="GtkLabel" id="label158">
-			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">from _nodes within a</property>
-			  <property name="use_underline">True</property>
-			  <property name="use_markup">False</property>
-			  <property name="justify">GTK_JUSTIFY_CENTER</property>
-			  <property name="wrap">False</property>
-			  <property name="selectable">False</property>
-			  <property name="xalign">0</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
-			  <property name="ypad">0</property>
-			  <property name="mnemonic_widget">spinbutton_config_max_high_ttl_radius</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">2</property>
-			  <property name="right_attach">3</property>
-			  <property name="top_attach">1</property>
-			  <property name="bottom_attach">2</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
-
-		      <child>
-			<widget class="GtkLabel" id="label85">
-			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">M_y TTL</property>
-			  <property name="use_underline">True</property>
-			  <property name="use_markup">False</property>
-			  <property name="justify">GTK_JUSTIFY_CENTER</property>
-			  <property name="wrap">False</property>
-			  <property name="selectable">False</property>
-			  <property name="xalign">7.45058e-09</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
-			  <property name="ypad">0</property>
-			  <property name="mnemonic_widget">spinbutton_config_myttl</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">2</property>
-			  <property name="right_attach">3</property>
-			  <property name="top_attach">0</property>
-			  <property name="bottom_attach">1</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
+			  <property name="padding">0</property>
+			  <property name="expand">True</property>
+			  <property name="fill">True</property>
 			</packing>
 		      </child>
 		    </widget>
@@ -20144,7 +20182,7 @@ http://maxmind.com/</property>
 			  <property name="selectable">False</property>
 			  <property name="xalign">0</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
+			  <property name="xpad">4</property>
 			  <property name="ypad">0</property>
 			  <property name="mnemonic_widget">spinbutton_config_min_dup_ratio</property>
 			</widget>
@@ -20169,7 +20207,7 @@ http://maxmind.com/</property>
 			  <property name="selectable">False</property>
 			  <property name="xalign">0</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
+			  <property name="xpad">4</property>
 			  <property name="ypad">0</property>
 			  <property name="mnemonic_widget">spinbutton_config_min_dup_msg</property>
 			</widget>
@@ -20240,7 +20278,7 @@ http://maxmind.com/</property>
 			  <property name="selectable">False</property>
 			  <property name="xalign">0</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
+			  <property name="xpad">4</property>
 			  <property name="ypad">0</property>
 			</widget>
 			<packing>
@@ -20268,28 +20306,6 @@ http://maxmind.com/</property>
 		      </child>
 
 		      <child>
-			<widget class="GtkCheckButton" id="checkbutton_node_watch_similar_queries">
-			  <property name="visible">True</property>
-			  <property name="can_focus">True</property>
-			  <property name="label" translatable="yes">Watch for similar queries</property>
-			  <property name="use_underline">True</property>
-			  <property name="relief">GTK_RELIEF_NORMAL</property>
-			  <property name="focus_on_click">True</property>
-			  <property name="active">False</property>
-			  <property name="inconsistent">False</property>
-			  <property name="draw_indicator">True</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">4</property>
-			  <property name="right_attach">6</property>
-			  <property name="top_attach">0</property>
-			  <property name="bottom_attach">1</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
-
-		      <child>
 			<widget class="GtkLabel" id="label773">
 			  <property name="visible">True</property>
 			  <property name="label" translatable="yes">Similar query half-life</property>
@@ -20300,7 +20316,7 @@ http://maxmind.com/</property>
 			  <property name="selectable">False</property>
 			  <property name="xalign">0</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
+			  <property name="xpad">4</property>
 			  <property name="ypad">0</property>
 			</widget>
 			<packing>
@@ -20346,7 +20362,7 @@ http://maxmind.com/</property>
 			  <property name="selectable">False</property>
 			  <property name="xalign">0</property>
 			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
+			  <property name="xpad">4</property>
 			  <property name="ypad">0</property>
 			</widget>
 			<packing>
@@ -20376,6 +20392,29 @@ http://maxmind.com/</property>
 			  <property name="right_attach">6</property>
 			  <property name="top_attach">2</property>
 			  <property name="bottom_attach">3</property>
+			  <property name="x_options">fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkCheckButton" id="checkbutton_node_watch_similar_queries">
+			  <property name="visible">True</property>
+			  <property name="can_focus">True</property>
+			  <property name="label" translatable="yes">Watch for similar queries</property>
+			  <property name="use_underline">True</property>
+			  <property name="relief">GTK_RELIEF_NORMAL</property>
+			  <property name="focus_on_click">True</property>
+			  <property name="active">False</property>
+			  <property name="inconsistent">False</property>
+			  <property name="draw_indicator">True</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">4</property>
+			  <property name="right_attach">6</property>
+			  <property name="top_attach">0</property>
+			  <property name="bottom_attach">1</property>
+			  <property name="x_padding">4</property>
 			  <property name="x_options">fill</property>
 			  <property name="y_options"></property>
 			</packing>
@@ -20444,7 +20483,7 @@ http://maxmind.com/</property>
 			      <property name="selectable">False</property>
 			      <property name="xalign">0</property>
 			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
+			      <property name="xpad">4</property>
 			      <property name="ypad">0</property>
 			      <property name="mnemonic_widget">spinbutton_config_reserve_gtkg_nodes</property>
 			    </widget>
@@ -20517,7 +20556,7 @@ http://maxmind.com/</property>
 			      <property name="selectable">False</property>
 			      <property name="xalign">0</property>
 			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
+			      <property name="xpad">4</property>
 			      <property name="ypad">0</property>
 			      <property name="mnemonic_widget">spinbutton_config_unique_nodes</property>
 			    </widget>
@@ -20656,7 +20695,7 @@ http://maxmind.com/</property>
 			      <property name="selectable">False</property>
 			      <property name="xalign">0</property>
 			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
+			      <property name="xpad">4</property>
 			      <property name="ypad">0</property>
 			    </widget>
 			    <packing>
@@ -20686,6 +20725,7 @@ http://maxmind.com/</property>
 			      <property name="right_attach">2</property>
 			      <property name="top_attach">1</property>
 			      <property name="bottom_attach">2</property>
+			      <property name="x_padding">4</property>
 			      <property name="x_options">fill</property>
 			      <property name="y_options"></property>
 			    </packing>
@@ -20745,31 +20785,6 @@ http://maxmind.com/</property>
 		      <property name="column_spacing">4</property>
 
 		      <child>
-			<widget class="GtkLabel" id="label776">
-			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">Forwarded
-message</property>
-			  <property name="use_underline">False</property>
-			  <property name="use_markup">False</property>
-			  <property name="justify">GTK_JUSTIFY_CENTER</property>
-			  <property name="wrap">False</property>
-			  <property name="selectable">False</property>
-			  <property name="xalign">0</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
-			  <property name="ypad">0</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">0</property>
-			  <property name="right_attach">1</property>
-			  <property name="top_attach">0</property>
-			  <property name="bottom_attach">1</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
-
-		      <child>
 			<widget class="GtkLabel" id="label777">
 			  <property name="visible">True</property>
 			  <property name="label" translatable="yes">Maximum size
@@ -20814,78 +20829,6 @@ before kicking</property>
 			  <property name="right_attach">3</property>
 			  <property name="top_attach">0</property>
 			  <property name="bottom_attach">1</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
-
-		      <child>
-			<widget class="GtkLabel" id="label779">
-			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">Query</property>
-			  <property name="use_underline">False</property>
-			  <property name="use_markup">False</property>
-			  <property name="justify">GTK_JUSTIFY_LEFT</property>
-			  <property name="wrap">False</property>
-			  <property name="selectable">False</property>
-			  <property name="xalign">0</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
-			  <property name="ypad">0</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">0</property>
-			  <property name="right_attach">1</property>
-			  <property name="top_attach">1</property>
-			  <property name="bottom_attach">2</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
-
-		      <child>
-			<widget class="GtkLabel" id="label780">
-			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">Query hit</property>
-			  <property name="use_underline">False</property>
-			  <property name="use_markup">False</property>
-			  <property name="justify">GTK_JUSTIFY_LEFT</property>
-			  <property name="wrap">False</property>
-			  <property name="selectable">False</property>
-			  <property name="xalign">0</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
-			  <property name="ypad">0</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">0</property>
-			  <property name="right_attach">1</property>
-			  <property name="top_attach">2</property>
-			  <property name="bottom_attach">3</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
-
-		      <child>
-			<widget class="GtkLabel" id="label781">
-			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">Unknown</property>
-			  <property name="use_underline">False</property>
-			  <property name="use_markup">False</property>
-			  <property name="justify">GTK_JUSTIFY_LEFT</property>
-			  <property name="wrap">False</property>
-			  <property name="selectable">False</property>
-			  <property name="xalign">0</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
-			  <property name="ypad">0</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">0</property>
-			  <property name="right_attach">1</property>
-			  <property name="top_attach">3</property>
-			  <property name="bottom_attach">4</property>
 			  <property name="x_options">fill</property>
 			  <property name="y_options"></property>
 			</packing>
@@ -21020,6 +20963,107 @@ before kicking</property>
 			  <property name="right_attach">3</property>
 			  <property name="top_attach">3</property>
 			  <property name="bottom_attach">4</property>
+			  <property name="x_options">fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkLabel" id="label776">
+			  <property name="visible">True</property>
+			  <property name="label" translatable="yes">Forwarded
+message</property>
+			  <property name="use_underline">False</property>
+			  <property name="use_markup">False</property>
+			  <property name="justify">GTK_JUSTIFY_CENTER</property>
+			  <property name="wrap">False</property>
+			  <property name="selectable">False</property>
+			  <property name="xalign">0</property>
+			  <property name="yalign">0.5</property>
+			  <property name="xpad">0</property>
+			  <property name="ypad">0</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">0</property>
+			  <property name="right_attach">1</property>
+			  <property name="top_attach">0</property>
+			  <property name="bottom_attach">1</property>
+			  <property name="x_padding">4</property>
+			  <property name="x_options">fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkLabel" id="label779">
+			  <property name="visible">True</property>
+			  <property name="label" translatable="yes">Query</property>
+			  <property name="use_underline">False</property>
+			  <property name="use_markup">False</property>
+			  <property name="justify">GTK_JUSTIFY_LEFT</property>
+			  <property name="wrap">False</property>
+			  <property name="selectable">False</property>
+			  <property name="xalign">0</property>
+			  <property name="yalign">0.5</property>
+			  <property name="xpad">0</property>
+			  <property name="ypad">0</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">0</property>
+			  <property name="right_attach">1</property>
+			  <property name="top_attach">1</property>
+			  <property name="bottom_attach">2</property>
+			  <property name="x_padding">4</property>
+			  <property name="x_options">fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkLabel" id="label780">
+			  <property name="visible">True</property>
+			  <property name="label" translatable="yes">Query hit</property>
+			  <property name="use_underline">False</property>
+			  <property name="use_markup">False</property>
+			  <property name="justify">GTK_JUSTIFY_LEFT</property>
+			  <property name="wrap">False</property>
+			  <property name="selectable">False</property>
+			  <property name="xalign">0</property>
+			  <property name="yalign">0.5</property>
+			  <property name="xpad">0</property>
+			  <property name="ypad">0</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">0</property>
+			  <property name="right_attach">1</property>
+			  <property name="top_attach">2</property>
+			  <property name="bottom_attach">3</property>
+			  <property name="x_padding">4</property>
+			  <property name="x_options">fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkLabel" id="label781">
+			  <property name="visible">True</property>
+			  <property name="label" translatable="yes">Unknown</property>
+			  <property name="use_underline">False</property>
+			  <property name="use_markup">False</property>
+			  <property name="justify">GTK_JUSTIFY_LEFT</property>
+			  <property name="wrap">False</property>
+			  <property name="selectable">False</property>
+			  <property name="xalign">0</property>
+			  <property name="yalign">0.5</property>
+			  <property name="xpad">0</property>
+			  <property name="ypad">0</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">0</property>
+			  <property name="right_attach">1</property>
+			  <property name="top_attach">3</property>
+			  <property name="bottom_attach">4</property>
+			  <property name="x_padding">4</property>
 			  <property name="x_options">fill</property>
 			  <property name="y_options"></property>
 			</packing>
@@ -22254,7 +22298,7 @@ before kicking</property>
 			    <widget class="GtkCheckButton" id="checkbutton_config_bws_in">
 			      <property name="visible">True</property>
 			      <property name="can_focus">True</property>
-			      <property name="label" translatable="yes">Cumulative _downloads rate</property>
+			      <property name="label" translatable="yes">Cumulative _download rate</property>
 			      <property name="use_underline">True</property>
 			      <property name="relief">GTK_RELIEF_NORMAL</property>
 			      <property name="focus_on_click">True</property>
@@ -23154,32 +23198,6 @@ before kicking</property>
 			  </child>
 
 			  <child>
-			    <widget class="GtkLabel" id="label171">
-			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">_Overlap when resuming</property>
-			      <property name="use_underline">True</property>
-			      <property name="use_markup">False</property>
-			      <property name="justify">GTK_JUSTIFY_CENTER</property>
-			      <property name="wrap">False</property>
-			      <property name="selectable">False</property>
-			      <property name="xalign">0</property>
-			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
-			      <property name="ypad">0</property>
-			      <property name="mnemonic_widget">spinbutton_config_download_overlap_range</property>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">0</property>
-			      <property name="right_attach">1</property>
-			      <property name="top_attach">0</property>
-			      <property name="bottom_attach">1</property>
-			      <property name="x_padding">4</property>
-			      <property name="x_options">fill</property>
-			      <property name="y_options"></property>
-			    </packing>
-			  </child>
-
-			  <child>
 			    <widget class="GtkLabel" id="label172">
 			      <property name="visible">True</property>
 			      <property name="label" translatable="yes">Maximum number of _retries</property>
@@ -23190,7 +23208,7 @@ before kicking</property>
 			      <property name="selectable">False</property>
 			      <property name="xalign">0</property>
 			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
+			      <property name="xpad">4</property>
 			      <property name="ypad">0</property>
 			      <property name="mnemonic_widget">spinbutton_config_download_max_retries</property>
 			    </widget>
@@ -23222,6 +23240,31 @@ before kicking</property>
 			      <property name="right_attach">2</property>
 			      <property name="top_attach">1</property>
 			      <property name="bottom_attach">2</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkLabel" id="label171">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">_Overlap when resuming</property>
+			      <property name="use_underline">True</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_CENTER</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">0</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">4</property>
+			      <property name="ypad">0</property>
+			      <property name="mnemonic_widget">spinbutton_config_download_overlap_range</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">0</property>
+			      <property name="right_attach">1</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">fill</property>
 			      <property name="y_options"></property>
 			    </packing>
 			  </child>
@@ -23989,7 +24032,7 @@ before kicking</property>
 				      <property name="right_attach">2</property>
 				      <property name="top_attach">0</property>
 				      <property name="bottom_attach">1</property>
-				      <property name="x_options">fill</property>
+				      <property name="x_options">shrink|fill</property>
 				      <property name="y_options"></property>
 				    </packing>
 				  </child>
@@ -24380,7 +24423,7 @@ before kicking</property>
 			    <widget class="GtkCheckButton" id="checkbutton_scan_ignore_symlink_dirs">
 			      <property name="visible">True</property>
 			      <property name="can_focus">True</property>
-			      <property name="label" translatable="yes">Ignore symbolically linked directories</property>
+			      <property name="label" translatable="yes">Ignore symbolically linked _directories</property>
 			      <property name="use_underline">True</property>
 			      <property name="relief">GTK_RELIEF_NORMAL</property>
 			      <property name="focus_on_click">True</property>
@@ -24399,7 +24442,7 @@ before kicking</property>
 			    <widget class="GtkCheckButton" id="checkbutton_scan_ignore_symlink_regfiles">
 			      <property name="visible">True</property>
 			      <property name="can_focus">True</property>
-			      <property name="label" translatable="yes">Ignore symbolically linked regular files</property>
+			      <property name="label" translatable="yes">Ignore symbolically linked regular _files</property>
 			      <property name="use_underline">True</property>
 			      <property name="relief">GTK_RELIEF_NORMAL</property>
 			      <property name="focus_on_click">True</property>
@@ -24475,8 +24518,8 @@ before kicking</property>
 			  <child>
 			    <widget class="GtkLabel" id="label726">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">First chunk size</property>
-			      <property name="use_underline">False</property>
+			      <property name="label" translatable="yes">First chunk _size</property>
+			      <property name="use_underline">True</property>
 			      <property name="use_markup">False</property>
 			      <property name="justify">GTK_JUSTIFY_LEFT</property>
 			      <property name="wrap">False</property>
@@ -24485,6 +24528,7 @@ before kicking</property>
 			      <property name="yalign">0.5</property>
 			      <property name="xpad">0</property>
 			      <property name="ypad">0</property>
+			      <property name="mnemonic_widget">spinbutton_pfsp_first_chunk</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">0</property>
@@ -24523,7 +24567,7 @@ before kicking</property>
 			    <widget class="GtkCheckButton" id="checkbutton_pfsp_server">
 			      <property name="visible">True</property>
 			      <property name="can_focus">True</property>
-			      <property name="label" translatable="yes">Enable upload of partially downloaded files</property>
+			      <property name="label" translatable="yes">Enable upload of _partially downloaded files</property>
 			      <property name="use_underline">True</property>
 			      <property name="relief">GTK_RELIEF_NORMAL</property>
 			      <property name="focus_on_click">True</property>
@@ -24598,7 +24642,7 @@ before kicking</property>
 			      <property name="selectable">False</property>
 			      <property name="xalign">0</property>
 			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
+			      <property name="xpad">4</property>
 			      <property name="ypad">0</property>
 			      <property name="mnemonic_widget">spinbutton_config_upload_connecting_timeout</property>
 			    </widget>
@@ -24623,7 +24667,7 @@ before kicking</property>
 			      <property name="selectable">False</property>
 			      <property name="xalign">0</property>
 			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
+			      <property name="xpad">4</property>
 			      <property name="ypad">0</property>
 			      <property name="mnemonic_widget">spinbutton_config_upload_connected_timeout</property>
 			    </widget>
@@ -24769,7 +24813,7 @@ before kicking</property>
 					  <property name="selectable">False</property>
 					  <property name="xalign">0</property>
 					  <property name="yalign">0.5</property>
-					  <property name="xpad">0</property>
+					  <property name="xpad">4</property>
 					  <property name="ypad">0</property>
 					</widget>
 					<packing>
@@ -24793,7 +24837,7 @@ before kicking</property>
 					  <property name="selectable">False</property>
 					  <property name="xalign">0</property>
 					  <property name="yalign">0.5</property>
-					  <property name="xpad">0</property>
+					  <property name="xpad">4</property>
 					  <property name="ypad">0</property>
 					</widget>
 					<packing>
@@ -24869,7 +24913,7 @@ before kicking</property>
 					  <child>
 					    <widget class="GtkLabel" id="label_library_rescan_timestamp">
 					      <property name="visible">True</property>
-					      <property name="label">26/12/2003 17:54:23</property>
+					      <property name="label">2003-12-26 17:54:23</property>
 					      <property name="use_underline">False</property>
 					      <property name="use_markup">False</property>
 					      <property name="justify">GTK_JUSTIFY_CENTER</property>
@@ -24969,7 +25013,7 @@ before kicking</property>
 					  <property name="selectable">False</property>
 					  <property name="xalign">0</property>
 					  <property name="yalign">0.5</property>
-					  <property name="xpad">0</property>
+					  <property name="xpad">4</property>
 					  <property name="ypad">0</property>
 					</widget>
 					<packing>
@@ -24993,7 +25037,7 @@ before kicking</property>
 					  <property name="selectable">False</property>
 					  <property name="xalign">0</property>
 					  <property name="yalign">0.5</property>
-					  <property name="xpad">0</property>
+					  <property name="xpad">4</property>
 					  <property name="ypad">0</property>
 					</widget>
 					<packing>
@@ -25017,7 +25061,7 @@ before kicking</property>
 					  <property name="selectable">False</property>
 					  <property name="xalign">0</property>
 					  <property name="yalign">0.5</property>
-					  <property name="xpad">0</property>
+					  <property name="xpad">4</property>
 					  <property name="ypad">0</property>
 					</widget>
 					<packing>
@@ -25041,7 +25085,7 @@ before kicking</property>
 					  <property name="selectable">False</property>
 					  <property name="xalign">0</property>
 					  <property name="yalign">0.5</property>
-					  <property name="xpad">0</property>
+					  <property name="xpad">4</property>
 					  <property name="ypad">0</property>
 					</widget>
 					<packing>
@@ -25065,7 +25109,7 @@ before kicking</property>
 					  <property name="selectable">False</property>
 					  <property name="xalign">0</property>
 					  <property name="yalign">0.5</property>
-					  <property name="xpad">0</property>
+					  <property name="xpad">4</property>
 					  <property name="ypad">0</property>
 					</widget>
 					<packing>
@@ -25089,7 +25133,7 @@ before kicking</property>
 					  <property name="selectable">False</property>
 					  <property name="xalign">0</property>
 					  <property name="yalign">0.5</property>
-					  <property name="xpad">0</property>
+					  <property name="xpad">4</property>
 					  <property name="ypad">0</property>
 					</widget>
 					<packing>
@@ -25361,7 +25405,7 @@ before kicking</property>
 			    </widget>
 			    <packing>
 			      <property name="padding">0</property>
-			      <property name="expand">False</property>
+			      <property name="expand">True</property>
 			      <property name="fill">True</property>
 			    </packing>
 			  </child>
@@ -25553,7 +25597,7 @@ before kicking</property>
 					  <child>
 					    <widget class="GtkLabel" id="label_qrp_indexing_timestamp">
 					      <property name="visible">True</property>
-					      <property name="label">26/12/2003 17:54:23</property>
+					      <property name="label">2003-12-26 17:54:23</property>
 					      <property name="use_underline">False</property>
 					      <property name="use_markup">False</property>
 					      <property name="justify">GTK_JUSTIFY_CENTER</property>
@@ -25613,7 +25657,7 @@ before kicking</property>
 					  <child>
 					    <widget class="GtkLabel" id="label_qrp_timestamp">
 					      <property name="visible">True</property>
-					      <property name="label">26/12/2003 17:54:23</property>
+					      <property name="label">2003-12-26 17:54:23</property>
 					      <property name="use_underline">False</property>
 					      <property name="use_markup">False</property>
 					      <property name="justify">GTK_JUSTIFY_CENTER</property>
@@ -25644,7 +25688,7 @@ before kicking</property>
 					  <child>
 					    <widget class="GtkLabel" id="label_qrp_patch_timestamp">
 					      <property name="visible">True</property>
-					      <property name="label">26/12/2003 17:54:23</property>
+					      <property name="label">2003-12-26 17:54:23</property>
 					      <property name="use_underline">False</property>
 					      <property name="use_markup">False</property>
 					      <property name="justify">GTK_JUSTIFY_CENTER</property>

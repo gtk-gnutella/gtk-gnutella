@@ -120,19 +120,19 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 		{
 			/* Time Remaining at the current rate, in seconds  */
 			filesize_t tr = (data->range_end + 1 - u->pos) / u->avg_bps;
-			gint slen = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ",
+			gint slen = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%%",
 							uploads_gui_progress(u, data) * 100.0);
 
 			if (time((time_t *) NULL) - u->last_update > IO_STALLED) {
-				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-					_("(stalled) "));
+				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen, " %s",
+							_("(stalled)"));
 			} else {
 				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-					"(%s) ", compact_rate(u->bps));
+					" (%s)", compact_rate(u->bps));
 			}
 
 			gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-				"TR: %s", short_time(tr));
+				" TR: %s", short_time(tr));
 		}
 		break;
 
