@@ -1,5 +1,14 @@
 # since last version
 
+- (2004-11-13 - RAM)
+ * As a leaf node, refuse to connect to "ancient" ultra nodes.
+ * Most vendors now send small ~4K max query hits: lower max hit size to 16K.
+ * The dynamic query layer expects much less results out of a SHA1 query.
+ * Added knowledge about GGEP "PATH" (unhandled for now).
+ * Make sure reserved word tables are lexically sorted, for binary search.
+ * Limit frequency of UDP ping replies.
+ * Limit frequency of TCP/UDP crawler replies.
+
 - (2004-11-12 - RAM)
  * Properly echo UDP crawler's ping MUID in the pong.
  * LimeWire added the user-agent of the node replying at the tail of the
@@ -14,6 +23,8 @@
  * Added knowledge about GGEP "BH" and "CT" (unhandled for now).
  * Search results now ignore unknown GGEP extensions in tags, thereby avoiding
    display of "funny" characters in tag.
+ * Handle older LIME/21v1 and LIME/22v1 messages (older specifications of
+   the push-proxy requests, still used by outdated servents like GnucDNA).
 
 - (2004-11-11 - RAM)
  * Refactored decoding of GGEP extensions: this is now done transparently
