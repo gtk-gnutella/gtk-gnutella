@@ -197,11 +197,22 @@ void prop_parse_storage(const gchar *str, gsize size, guint8 *t)
 {
 	gsize i;
 
-	if ((size*2) != strlen(str))
+	g_assert(size > 0);
+	if (size * 2 != strlen(str))
 		g_error("prop_parse_storage: storage does not match requested size");
 
-	for (i = 0; i < size; i++)
-		t[i] = (hex2dec(str[i*2]) << 4) + hex2dec(str[i*2+1]);
+	for (i = 0; i < size; i++) {
+		guchar h, l;
+
+		h = str[i * 2];
+		l = str[i * 2 + 1];
+		if (!is_ascii_xdigit(h) || !is_ascii_xdigit(l)) {
+			t[i] = '\0';
+			g_warning("prop_parse_storage: storage is damaged: \"%s\"", str);
+			return;
+		}
+		t[i] = (hex2dec(h) << 4) + hex2dec(l);
+	}
 }
 
 
@@ -1103,7 +1114,7 @@ void prop_save_to_file(
 	struct stat buf;
 	gchar *newfile;
 	gchar *filename;
-	gint n;
+	guint n;
 
 	g_assert(_filename != NULL);
 	g_assert(ps != NULL);
@@ -1165,7 +1176,7 @@ void prop_save_to_file(
 	for (n = 0; n < ps->size; n++) {
 		prop_def_t *p = &ps->props[n];
 		gchar **vbuf;
-		gint i;
+		guint i;
 		gchar sbuf[1024];
 		gchar *val = NULL;
 		gboolean quotes = FALSE;
@@ -1241,24 +1252,20 @@ void prop_save_to_file(
 			quotes = TRUE;
 			break;
 		case PROP_TYPE_STORAGE:
-			val = g_new(gchar, (p->vector_size*2)+1);
+			val = g_new(guint8, (p->vector_size * 2) + 1);
 
-			/*
-			 * This may not be entirely portable to architectures where
-			 * a byte is not 8 bits. Also see guid_hex_str in misc.c
-			 *	  -- Richard, 12/08/200
-			 */
 			for (i = 0; i < p->vector_size; i++) {
-				gm_snprintf(&val[(i*2)], 3, "%02x", p->data.storage.value[i]);
-        
-				/* 
-                 * No default values for storage type properties.
-                 */
-				defaultvalue = FALSE;
+				guint8 c = p->data.storage.value[i];
+
+				val[i * 2] = hex_alphabet_lower[c >> 4];
+				val[i * 2 + 1] = hex_alphabet_lower[c & 0x0f];
 			}
 	
-			val[(p->vector_size*2)] = '\0';
+			val[i * 2] = '\0';
 			quotes = TRUE;
+
+			/* No default values for storage type properties. */
+			defaultvalue = FALSE;
 			break;
 		};
 

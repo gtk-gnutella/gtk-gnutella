@@ -89,6 +89,8 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 #define is_ascii_upper(c) (isascii(c) && isupper(c))
 #define is_ascii_xdigit(c) (isascii(c) && isxdigit(c))
 
+static const char hex_alphabet_lower[] = "0123456789abcdef";
+
 /*
  * Array size determination
  */
@@ -148,6 +150,7 @@ gchar *short_uptime(time_t s);
 gchar *short_size(guint32);
 gchar *short_size64(guint64 size);
 gchar *short_kb_size(guint32);
+gchar *short_kb_size64(guint64 size);
 gchar *compact_size(guint32 size);
 gchar *compact_size64(guint64 size);
 gchar *compact_kb_size(guint32 size);
