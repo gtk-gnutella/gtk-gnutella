@@ -657,7 +657,7 @@ static gboolean dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, guint32 stamp)
 	if (ip == listen_ip() && port == listen_port)
 		return FALSE;
 
-	if (is_private_ip(ip))
+	if (!host_is_valid(ip, port))
 		return FALSE;
 
 	if (hostiles_check(ip))
