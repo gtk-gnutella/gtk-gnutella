@@ -57,7 +57,7 @@ struct term_counts {
 	guint32 periods;
 };
 
-static gulong stat_count = 0;
+static guint stat_count = 0;
 
 static GHashTable *stat_hash = NULL;
 static GtkListStore *store_search_stats = NULL;
@@ -438,7 +438,6 @@ void
 search_stats_gui_update(time_t now)
 {
 	static time_t last_update = 0;
-	gchar tmpstr[32];
 
     if (delta_time(now, last_update) < search_stats_update_interval)
         return;
@@ -453,8 +452,9 @@ search_stats_gui_update(time_t now)
 	g_object_thaw_notify(G_OBJECT(treeview_search_stats));
 
 	/* update the counter */
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%lu terms counted", stat_count);
-	gtk_label_set_text(label_search_stats_count, tmpstr);
+	gtk_label_printf(GTK_LABEL(label_search_stats_count),
+		NG_("%u term counted", "%u terms counted", stat_count),
+		stat_count);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
