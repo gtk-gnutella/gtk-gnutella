@@ -3182,12 +3182,18 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 
 	/*
 	 * Too many gnutellaNet connections?
+     *
+     * In leaf-mode we only respect max_ultrapeers, in normal-mode
+     * node_ultra_count is always 0, and in ultra_mode we can only
+     * have outgoing connections to ultra and normal peers, so we do not
+     * respect any leaf maximum.
+     * -- Richard, 28 Mar 2003
 	 */
 
     if (
 		(current_peermode == NODE_P_LEAF && node_ultra_count >= max_ultrapeers)
 		||
-		(current_peermode != NODE_P_ULTRA &&
+		(current_peermode != NODE_P_LEAF &&
 			node_ultra_count + node_normal_count >= max_connections)
 	) {
         if (!s)
