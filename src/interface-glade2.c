@@ -881,7 +881,7 @@ create_dlg_filters (void)
   gtk_widget_show (button_filter_clear);
   gtk_box_pack_start (GTK_BOX (hbox125), button_filter_clear, FALSE, FALSE, 0);
 
-  button_filter_reset_all_rules = gtk_button_new_with_mnemonic ("Reset all rule stats\nin this fiter");
+  button_filter_reset_all_rules = gtk_button_new_with_mnemonic ("Reset all rule stats\nin this filter");
   gtk_widget_set_name (button_filter_reset_all_rules, "button_filter_reset_all_rules");
   gtk_widget_show (button_filter_reset_all_rules);
   gtk_box_pack_start (GTK_BOX (hbox125), button_filter_reset_all_rules, FALSE, FALSE, 0);
@@ -7346,7 +7346,7 @@ GtkWidget*
 create_main_window_search_tab (void)
 {
   GtkWidget *main_window_search_tab;
-  GtkWidget *vpaned2;
+  GtkWidget *vpaned_results;
   GtkWidget *vbox79;
   GtkWidget *frame27;
   GtkWidget *vbox53;
@@ -7425,20 +7425,37 @@ create_main_window_search_tab (void)
   GtkWidget *frame80;
   GtkWidget *scrolledwindow67;
   GtkWidget *viewport33;
-  GtkWidget *hbox214;
-  GtkWidget *vbox106;
-  GtkWidget *label624;
-  GtkWidget *label625;
-  GtkWidget *label626;
-  GtkWidget *vbox107;
-  GtkWidget *label_result_info_filename;
   GtkWidget *table66;
-  GtkWidget *label632;
-  GtkWidget *label_result_info_sha1;
-  GtkWidget *label_result_info_source;
   GtkWidget *label634;
-  GtkWidget *label_result_info_size;
-  GtkWidget *label_result_info_speed;
+  GtkWidget *label640;
+  GtkWidget *label641;
+  GtkWidget *label638;
+  GtkWidget *label637;
+  GtkWidget *viewport45;
+  GtkWidget *entry_result_info_index;
+  GtkWidget *viewport44;
+  GtkWidget *entry_result_info_source;
+  GtkWidget *viewport43;
+  GtkWidget *entry_result_info_tag;
+  GtkWidget *viewport42;
+  GtkWidget *entry_result_info_timestamp;
+  GtkWidget *viewport41;
+  GtkWidget *entry_result_info_vendor;
+  GtkWidget *viewport40;
+  GtkWidget *entry_result_info_guid;
+  GtkWidget *viewport39;
+  GtkWidget *entry_result_info_speed;
+  GtkWidget *viewport37;
+  GtkWidget *entry_result_info_size;
+  GtkWidget *viewport35;
+  GtkWidget *entry_result_info_sha1;
+  GtkWidget *viewport34;
+  GtkWidget *entry_result_info_filename;
+  GtkWidget *label636;
+  GtkWidget *label639;
+  GtkWidget *label635;
+  GtkWidget *label643;
+  GtkWidget *label642;
   GtkWidget *label619;
   GtkAccelGroup *accel_group;
   GtkTooltips *tooltips;
@@ -7451,16 +7468,16 @@ create_main_window_search_tab (void)
   gtk_widget_set_name (main_window_search_tab, "main_window_search_tab");
   gtk_window_set_title (GTK_WINDOW (main_window_search_tab), "window12");
 
-  vpaned2 = gtk_vpaned_new ();
-  gtk_widget_set_name (vpaned2, "vpaned2");
-  gtk_widget_show (vpaned2);
-  gtk_container_add (GTK_CONTAINER (main_window_search_tab), vpaned2);
-  gtk_paned_set_position (GTK_PANED (vpaned2), 350);
+  vpaned_results = gtk_vpaned_new ();
+  gtk_widget_set_name (vpaned_results, "vpaned_results");
+  gtk_widget_show (vpaned_results);
+  gtk_container_add (GTK_CONTAINER (main_window_search_tab), vpaned_results);
+  gtk_paned_set_position (GTK_PANED (vpaned_results), 400);
 
   vbox79 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox79, "vbox79");
   gtk_widget_show (vbox79);
-  gtk_paned_pack1 (GTK_PANED (vpaned2), vbox79, FALSE, FALSE);
+  gtk_paned_pack1 (GTK_PANED (vpaned_results), vbox79, FALSE, FALSE);
   gtk_container_set_border_width (GTK_CONTAINER (vbox79), 2);
 
   frame27 = gtk_frame_new (NULL);
@@ -7882,7 +7899,7 @@ create_main_window_search_tab (void)
   frame80 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame80, "frame80");
   gtk_widget_show (frame80);
-  gtk_paned_pack2 (GTK_PANED (vpaned2), frame80, FALSE, TRUE);
+  gtk_paned_pack2 (GTK_PANED (vpaned_results), frame80, FALSE, TRUE);
   gtk_container_set_border_width (GTK_CONTAINER (frame80), 2);
 
   scrolledwindow67 = gtk_scrolled_window_new (NULL, NULL);
@@ -7897,119 +7914,253 @@ create_main_window_search_tab (void)
   gtk_container_add (GTK_CONTAINER (scrolledwindow67), viewport33);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport33), GTK_SHADOW_NONE);
 
-  hbox214 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox214, "hbox214");
-  gtk_widget_show (hbox214);
-  gtk_container_add (GTK_CONTAINER (viewport33), hbox214);
-
-  vbox106 = gtk_vbox_new (FALSE, 2);
-  gtk_widget_set_name (vbox106, "vbox106");
-  gtk_widget_show (vbox106);
-  gtk_box_pack_start (GTK_BOX (hbox214), vbox106, FALSE, TRUE, 4);
-
-  label624 = gtk_label_new ("Filename:");
-  gtk_widget_set_name (label624, "label624");
-  gtk_widget_show (label624);
-  gtk_box_pack_start (GTK_BOX (vbox106), label624, FALSE, FALSE, 0);
-  gtk_label_set_justify (GTK_LABEL (label624), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label624), 1, 0.5);
-
-  label625 = gtk_label_new ("SHA1:");
-  gtk_widget_set_name (label625, "label625");
-  gtk_widget_show (label625);
-  gtk_box_pack_start (GTK_BOX (vbox106), label625, FALSE, FALSE, 0);
-  gtk_label_set_justify (GTK_LABEL (label625), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label625), 1, 0.5);
-
-  label626 = gtk_label_new ("Source:");
-  gtk_widget_set_name (label626, "label626");
-  gtk_widget_show (label626);
-  gtk_box_pack_start (GTK_BOX (vbox106), label626, FALSE, FALSE, 0);
-  gtk_label_set_justify (GTK_LABEL (label626), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label626), 1, 0.5);
-
-  vbox107 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox107, "vbox107");
-  gtk_widget_show (vbox107);
-  gtk_box_pack_start (GTK_BOX (hbox214), vbox107, FALSE, TRUE, 0);
-
-  label_result_info_filename = gtk_label_new ("");
-  gtk_widget_set_name (label_result_info_filename, "label_result_info_filename");
-  gtk_widget_show (label_result_info_filename);
-  gtk_box_pack_start (GTK_BOX (vbox107), label_result_info_filename, FALSE, FALSE, 1);
-  GTK_WIDGET_SET_FLAGS (label_result_info_filename, GTK_CAN_FOCUS);
-  gtk_label_set_justify (GTK_LABEL (label_result_info_filename), GTK_JUSTIFY_LEFT);
-  gtk_label_set_selectable (GTK_LABEL (label_result_info_filename), TRUE);
-  gtk_misc_set_alignment (GTK_MISC (label_result_info_filename), 0, 0.5);
-
-  table66 = gtk_table_new (2, 3, FALSE);
+  table66 = gtk_table_new (6, 4, FALSE);
   gtk_widget_set_name (table66, "table66");
   gtk_widget_show (table66);
-  gtk_box_pack_start (GTK_BOX (vbox107), table66, TRUE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (viewport33), table66);
+  gtk_container_set_border_width (GTK_CONTAINER (table66), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table66), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table66), 4);
 
-  label632 = gtk_label_new ("Size:");
-  gtk_widget_set_name (label632, "label632");
-  gtk_widget_show (label632);
-  gtk_table_attach (GTK_TABLE (table66), label632, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_label_set_justify (GTK_LABEL (label632), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label632), 1, 0.5);
-
-  label_result_info_sha1 = gtk_label_new ("");
-  gtk_widget_set_name (label_result_info_sha1, "label_result_info_sha1");
-  gtk_widget_show (label_result_info_sha1);
-  gtk_table_attach (GTK_TABLE (table66), label_result_info_sha1, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  GTK_WIDGET_SET_FLAGS (label_result_info_sha1, GTK_CAN_FOCUS);
-  gtk_label_set_justify (GTK_LABEL (label_result_info_sha1), GTK_JUSTIFY_LEFT);
-  gtk_label_set_selectable (GTK_LABEL (label_result_info_sha1), TRUE);
-  gtk_misc_set_alignment (GTK_MISC (label_result_info_sha1), 0, 0.5);
-
-  label_result_info_source = gtk_label_new ("");
-  gtk_widget_set_name (label_result_info_source, "label_result_info_source");
-  gtk_widget_show (label_result_info_source);
-  gtk_table_attach (GTK_TABLE (table66), label_result_info_source, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  GTK_WIDGET_SET_FLAGS (label_result_info_source, GTK_CAN_FOCUS);
-  gtk_label_set_justify (GTK_LABEL (label_result_info_source), GTK_JUSTIFY_LEFT);
-  gtk_label_set_selectable (GTK_LABEL (label_result_info_source), TRUE);
-  gtk_misc_set_alignment (GTK_MISC (label_result_info_source), 0, 0.5);
-
-  label634 = gtk_label_new ("Speed:");
+  label634 = gtk_label_new ("Filename:");
   gtk_widget_set_name (label634, "label634");
   gtk_widget_show (label634);
-  gtk_table_attach (GTK_TABLE (table66), label634, 1, 2, 1, 2,
+  gtk_table_attach (GTK_TABLE (table66), label634, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_label_set_justify (GTK_LABEL (label634), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (label634), 1, 0.5);
 
-  label_result_info_size = gtk_label_new ("");
-  gtk_widget_set_name (label_result_info_size, "label_result_info_size");
-  gtk_widget_show (label_result_info_size);
-  gtk_table_attach (GTK_TABLE (table66), label_result_info_size, 2, 3, 0, 1,
+  label640 = gtk_label_new ("GUID:");
+  gtk_widget_set_name (label640, "label640");
+  gtk_widget_show (label640);
+  gtk_table_attach (GTK_TABLE (table66), label640, 2, 3, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  GTK_WIDGET_SET_FLAGS (label_result_info_size, GTK_CAN_FOCUS);
-  gtk_label_set_justify (GTK_LABEL (label_result_info_size), GTK_JUSTIFY_LEFT);
-  gtk_label_set_selectable (GTK_LABEL (label_result_info_size), TRUE);
-  gtk_misc_set_alignment (GTK_MISC (label_result_info_size), 0, 0.5);
+  gtk_label_set_justify (GTK_LABEL (label640), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label640), 1, 0.5);
 
-  label_result_info_speed = gtk_label_new ("");
-  gtk_widget_set_name (label_result_info_speed, "label_result_info_speed");
-  gtk_widget_show (label_result_info_speed);
-  gtk_table_attach (GTK_TABLE (table66), label_result_info_speed, 2, 3, 1, 2,
+  label641 = gtk_label_new ("Vendor:");
+  gtk_widget_set_name (label641, "label641");
+  gtk_widget_show (label641);
+  gtk_table_attach (GTK_TABLE (table66), label641, 2, 3, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  GTK_WIDGET_SET_FLAGS (label_result_info_speed, GTK_CAN_FOCUS);
-  gtk_label_set_justify (GTK_LABEL (label_result_info_speed), GTK_JUSTIFY_LEFT);
-  gtk_label_set_selectable (GTK_LABEL (label_result_info_speed), TRUE);
-  gtk_misc_set_alignment (GTK_MISC (label_result_info_speed), 0, 0.5);
+  gtk_label_set_justify (GTK_LABEL (label641), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label641), 1, 0.5);
+
+  label638 = gtk_label_new ("Tag:");
+  gtk_widget_set_name (label638, "label638");
+  gtk_widget_show (label638);
+  gtk_table_attach (GTK_TABLE (table66), label638, 0, 1, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label638), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label638), 1, 0.5);
+
+  label637 = gtk_label_new ("Timestamp:");
+  gtk_widget_set_name (label637, "label637");
+  gtk_widget_show (label637);
+  gtk_table_attach (GTK_TABLE (table66), label637, 2, 3, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label637), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label637), 1, 0.5);
+
+  viewport45 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport45, "viewport45");
+  gtk_widget_show (viewport45);
+  gtk_table_attach (GTK_TABLE (table66), viewport45, 1, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport45), GTK_SHADOW_ETCHED_IN);
+
+  entry_result_info_index = gtk_entry_new ();
+  gtk_widget_set_name (entry_result_info_index, "entry_result_info_index");
+  gtk_widget_show (entry_result_info_index);
+  gtk_container_add (GTK_CONTAINER (viewport45), entry_result_info_index);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_result_info_index), FALSE);
+  gtk_entry_set_has_frame (GTK_ENTRY (entry_result_info_index), FALSE);
+
+  viewport44 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport44, "viewport44");
+  gtk_widget_show (viewport44);
+  gtk_table_attach (GTK_TABLE (table66), viewport44, 3, 4, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport44), GTK_SHADOW_ETCHED_IN);
+
+  entry_result_info_source = gtk_entry_new ();
+  gtk_widget_set_name (entry_result_info_source, "entry_result_info_source");
+  gtk_widget_show (entry_result_info_source);
+  gtk_container_add (GTK_CONTAINER (viewport44), entry_result_info_source);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_result_info_source), FALSE);
+  gtk_entry_set_has_frame (GTK_ENTRY (entry_result_info_source), FALSE);
+
+  viewport43 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport43, "viewport43");
+  gtk_widget_show (viewport43);
+  gtk_table_attach (GTK_TABLE (table66), viewport43, 1, 4, 5, 6,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport43), GTK_SHADOW_ETCHED_IN);
+
+  entry_result_info_tag = gtk_entry_new ();
+  gtk_widget_set_name (entry_result_info_tag, "entry_result_info_tag");
+  gtk_widget_show (entry_result_info_tag);
+  gtk_container_add (GTK_CONTAINER (viewport43), entry_result_info_tag);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_result_info_tag), FALSE);
+  gtk_entry_set_has_frame (GTK_ENTRY (entry_result_info_tag), FALSE);
+
+  viewport42 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport42, "viewport42");
+  gtk_widget_show (viewport42);
+  gtk_table_attach (GTK_TABLE (table66), viewport42, 3, 4, 4, 5,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport42), GTK_SHADOW_ETCHED_IN);
+
+  entry_result_info_timestamp = gtk_entry_new ();
+  gtk_widget_set_name (entry_result_info_timestamp, "entry_result_info_timestamp");
+  gtk_widget_show (entry_result_info_timestamp);
+  gtk_container_add (GTK_CONTAINER (viewport42), entry_result_info_timestamp);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_result_info_timestamp), FALSE);
+  gtk_entry_set_has_frame (GTK_ENTRY (entry_result_info_timestamp), FALSE);
+
+  viewport41 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport41, "viewport41");
+  gtk_widget_show (viewport41);
+  gtk_table_attach (GTK_TABLE (table66), viewport41, 3, 4, 3, 4,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport41), GTK_SHADOW_ETCHED_IN);
+
+  entry_result_info_vendor = gtk_entry_new ();
+  gtk_widget_set_name (entry_result_info_vendor, "entry_result_info_vendor");
+  gtk_widget_show (entry_result_info_vendor);
+  gtk_container_add (GTK_CONTAINER (viewport41), entry_result_info_vendor);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_result_info_vendor), FALSE);
+  gtk_entry_set_has_frame (GTK_ENTRY (entry_result_info_vendor), FALSE);
+
+  viewport40 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport40, "viewport40");
+  gtk_widget_show (viewport40);
+  gtk_table_attach (GTK_TABLE (table66), viewport40, 3, 4, 2, 3,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport40), GTK_SHADOW_ETCHED_IN);
+
+  entry_result_info_guid = gtk_entry_new ();
+  gtk_widget_set_name (entry_result_info_guid, "entry_result_info_guid");
+  gtk_widget_show (entry_result_info_guid);
+  gtk_container_add (GTK_CONTAINER (viewport40), entry_result_info_guid);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_result_info_guid), FALSE);
+  gtk_entry_set_has_frame (GTK_ENTRY (entry_result_info_guid), FALSE);
+
+  viewport39 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport39, "viewport39");
+  gtk_widget_show (viewport39);
+  gtk_table_attach (GTK_TABLE (table66), viewport39, 1, 2, 4, 5,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport39), GTK_SHADOW_ETCHED_IN);
+
+  entry_result_info_speed = gtk_entry_new ();
+  gtk_widget_set_name (entry_result_info_speed, "entry_result_info_speed");
+  gtk_widget_show (entry_result_info_speed);
+  gtk_container_add (GTK_CONTAINER (viewport39), entry_result_info_speed);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_result_info_speed), FALSE);
+  gtk_entry_set_has_frame (GTK_ENTRY (entry_result_info_speed), FALSE);
+
+  viewport37 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport37, "viewport37");
+  gtk_widget_show (viewport37);
+  gtk_table_attach (GTK_TABLE (table66), viewport37, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport37), GTK_SHADOW_ETCHED_IN);
+
+  entry_result_info_size = gtk_entry_new ();
+  gtk_widget_set_name (entry_result_info_size, "entry_result_info_size");
+  gtk_widget_show (entry_result_info_size);
+  gtk_container_add (GTK_CONTAINER (viewport37), entry_result_info_size);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_result_info_size), FALSE);
+  gtk_entry_set_has_frame (GTK_ENTRY (entry_result_info_size), FALSE);
+
+  viewport35 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport35, "viewport35");
+  gtk_widget_show (viewport35);
+  gtk_table_attach (GTK_TABLE (table66), viewport35, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport35), GTK_SHADOW_ETCHED_IN);
+
+  entry_result_info_sha1 = gtk_entry_new ();
+  gtk_widget_set_name (entry_result_info_sha1, "entry_result_info_sha1");
+  gtk_widget_show (entry_result_info_sha1);
+  gtk_container_add (GTK_CONTAINER (viewport35), entry_result_info_sha1);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_result_info_sha1), FALSE);
+  gtk_entry_set_has_frame (GTK_ENTRY (entry_result_info_sha1), FALSE);
+
+  viewport34 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport34, "viewport34");
+  gtk_widget_show (viewport34);
+  gtk_table_attach (GTK_TABLE (table66), viewport34, 1, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport34), GTK_SHADOW_ETCHED_IN);
+
+  entry_result_info_filename = gtk_entry_new ();
+  gtk_widget_set_name (entry_result_info_filename, "entry_result_info_filename");
+  gtk_widget_show (entry_result_info_filename);
+  gtk_container_add (GTK_CONTAINER (viewport34), entry_result_info_filename);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_result_info_filename), FALSE);
+  gtk_entry_set_has_frame (GTK_ENTRY (entry_result_info_filename), FALSE);
+
+  label636 = gtk_label_new ("Source:");
+  gtk_widget_set_name (label636, "label636");
+  gtk_widget_show (label636);
+  gtk_table_attach (GTK_TABLE (table66), label636, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label636), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label636), 1, 0.5);
+
+  label639 = gtk_label_new ("SHA1:");
+  gtk_widget_set_name (label639, "label639");
+  gtk_widget_show (label639);
+  gtk_table_attach (GTK_TABLE (table66), label639, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label639), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label639), 1, 0.5);
+
+  label635 = gtk_label_new ("Size:");
+  gtk_widget_set_name (label635, "label635");
+  gtk_widget_show (label635);
+  gtk_table_attach (GTK_TABLE (table66), label635, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label635), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label635), 1, 0.5);
+
+  label643 = gtk_label_new ("Index:");
+  gtk_widget_set_name (label643, "label643");
+  gtk_widget_show (label643);
+  gtk_table_attach (GTK_TABLE (table66), label643, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label643), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label643), 1, 0.5);
+
+  label642 = gtk_label_new ("Speed:");
+  gtk_widget_set_name (label642, "label642");
+  gtk_widget_show (label642);
+  gtk_table_attach (GTK_TABLE (table66), label642, 0, 1, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label642), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label642), 1, 0.5);
 
   label619 = gtk_label_new ("Information about selected file");
   gtk_widget_set_name (label619, "label619");
@@ -8054,7 +8205,7 @@ create_main_window_search_tab (void)
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_search_tab, main_window_search_tab, "main_window_search_tab");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, vpaned2, "vpaned2");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, vpaned_results, "vpaned_results");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, vbox79, "vbox79");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, frame27, "frame27");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, vbox53, "vbox53");
@@ -8127,20 +8278,37 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, frame80, "frame80");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, scrolledwindow67, "scrolledwindow67");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport33, "viewport33");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox214, "hbox214");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, vbox106, "vbox106");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, label624, "label624");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, label625, "label625");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, label626, "label626");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, vbox107, "vbox107");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, label_result_info_filename, "label_result_info_filename");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, table66, "table66");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, label632, "label632");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, label_result_info_sha1, "label_result_info_sha1");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, label_result_info_source, "label_result_info_source");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label634, "label634");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, label_result_info_size, "label_result_info_size");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, label_result_info_speed, "label_result_info_speed");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, label640, "label640");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, label641, "label641");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, label638, "label638");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, label637, "label637");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport45, "viewport45");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, entry_result_info_index, "entry_result_info_index");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport44, "viewport44");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, entry_result_info_source, "entry_result_info_source");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport43, "viewport43");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, entry_result_info_tag, "entry_result_info_tag");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport42, "viewport42");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, entry_result_info_timestamp, "entry_result_info_timestamp");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport41, "viewport41");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, entry_result_info_vendor, "entry_result_info_vendor");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport40, "viewport40");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, entry_result_info_guid, "entry_result_info_guid");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport39, "viewport39");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, entry_result_info_speed, "entry_result_info_speed");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport37, "viewport37");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, entry_result_info_size, "entry_result_info_size");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport35, "viewport35");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, entry_result_info_sha1, "entry_result_info_sha1");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport34, "viewport34");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, entry_result_info_filename, "entry_result_info_filename");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, label636, "label636");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, label639, "label639");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, label635, "label635");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, label643, "label643");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, label642, "label642");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label619, "label619");
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_search_tab, tooltips, "tooltips");
 
