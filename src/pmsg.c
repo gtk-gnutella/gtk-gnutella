@@ -56,7 +56,7 @@ typedef struct pmsg_ext {
 	gchar *m_rptr;					/* First unread byte in buffer */
 	gchar *m_wptr;					/* First unwritten byte in buffer */
 	pdata_t *m_data;				/* Data buffer */
-	gint m_prio;					/* Message priority (0 = normal) */
+	guint m_prio;					/* Message priority (0 = normal) */
 	/* Additional fields */
 	pmsg_free_t m_free;				/* Free routine */
 	gpointer m_arg;					/* Argument to pass to free routine */
@@ -269,8 +269,9 @@ pmsg_free(pmsg_t *mb)
 {
 	/* In provision for messsage chaining */
 	do {
+		pdata_t *db = mb->m_data;
+
 		g_assert(valid_ptr(mb));
-		pdata_unref(mb->m_data);
 
 		/*
 		 * Invoke free routine on extended message block.
@@ -282,6 +283,14 @@ pmsg_free(pmsg_t *mb)
 			wfree(emb, sizeof(*emb));
 		} else
 			zfree(mb_zone, mb);
+
+		/*
+		 * Unref buffer data only after possible free routine was
+		 * invoked, since it may cause a free, preventing access to
+		 * memory from within the free routine.
+		 */
+
+		pdata_unref(db);
 	} while (0);
 }
 
