@@ -4884,7 +4884,7 @@ extract_retry_after(const header_t *header)
 	delay = gm_atoul(buf, NULL, &error);
 	if (error || delay > INT_MAX) {
 		time_t now = time((time_t *) NULL);
-		time_t retry = date2time(buf, &now);
+		time_t retry = date2time(buf, now);
 
 		if (retry == (time_t) -1) {
 			g_message("Cannot parse Retry-After: %s", buf);
@@ -4911,8 +4911,7 @@ check_date(const header_t *header, guint32 ip)
 
 	buf = header_get(header, "Date");
 	if (buf) {
-		time_t now = time((time_t *) NULL);
-		time_t their = date2time(buf, &now);
+		time_t their = date2time(buf, time(NULL));
 
 		if (their == (time_t) -1)
 			g_message("Cannot parse Date: %s", buf);
@@ -5718,7 +5717,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 					d->status = GTA_DL_SINKING;
 
-					d->bio = bsched_source_add(bws.in, s->file_desc,
+					d->bio = bsched_source_add(bws.in, &s->wio,
 						BIO_F_READ, download_sink_read, (gpointer) d);
 				
 					if (s->pos > 0)
@@ -6280,7 +6279,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	g_assert(s->gdk_tag == 0);
 	g_assert(d->bio == NULL);
 
-	d->bio = bsched_source_add(bws.in, s->file_desc,
+	d->bio = bsched_source_add(bws.in, &s->wio,
 		BIO_F_READ, download_read, (gpointer) d);
 
 	/*
@@ -6471,7 +6470,7 @@ download_write_request(gpointer data, gint source, inputevt_cond_t cond)
 	rw = http_buffer_unread(r);			/* Data we still have to send */
 	base = http_buffer_read_base(r);	/* And where unsent data start */
 
-	if (-1 == (sent = bws_write(bws.out, s->file_desc, base, rw))) {
+	if (-1 == (sent = bws_write(bws.out, &s->wio, base, rw))) {
 		/*
 		 * If download is queued with PARQ, etc...  [Same as above]
 		 */
@@ -6816,7 +6815,7 @@ picked:
 
 	socket_tos_normal(s);
 
-	if (-1 == (sent = bws_write(bws.out, s->file_desc, dl_tmp, rw))) {
+	if (-1 == (sent = bws_write(bws.out, &s->wio, dl_tmp, rw))) {
 		/*
 		 * If the connection was flagged keep-alive, we were making
 		 * a follow-up request but the server did not honour it and
@@ -6863,7 +6862,7 @@ picked:
 
 		g_assert(s->gdk_tag == 0);
 
-		s->gdk_tag = inputevt_add(s->file_desc,
+		s->gdk_tag = inputevt_add(s->wio.fd(&s->wio),
 			(inputevt_cond_t) INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
 			download_write_request, (gpointer) d);
 

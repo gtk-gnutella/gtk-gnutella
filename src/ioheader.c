@@ -377,15 +377,15 @@ io_read_data(gpointer data, gint source, inputevt_cond_t cond)
 	 * Ignore interrupted read syscall (EAGAIN), but signal EOF and other
 	 * errors to our client.
 	 */
-
-	r = bws_read(ih->bs, s->file_desc, s->buffer + s->pos, count);
+	
+	r = bws_read(ih->bs, &s->wio, s->buffer + s->pos, count);
 	if (r == 0) {
 		socket_eof(s);
 		(*ih->error->header_read_eof)(ih->resource);
 		return;
-	} else if (r < 0 && errno == EAGAIN)
+	} else if (r < 0 && errno == EAGAIN) {
 		return;
-	else if (r < 0) {
+	} else if (r < 0) {
 		socket_eof(s);
 		(*ih->error->header_read_error)(ih->resource, errno);
 		return;
@@ -423,6 +423,7 @@ io_get_header(
 	struct io_error *error)		/* Mandatory: error callbacks for resource */
 {
 	struct io_header *ih;
+	gint mask;
 
 	g_assert(resource);
 	g_assert(io_opaque);
@@ -466,9 +467,9 @@ io_get_header(
 
 	g_assert(s->gdk_tag == 0);
 
-	s->gdk_tag = inputevt_add(s->file_desc,
-		(inputevt_cond_t) INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
-		io_read_data, (gpointer) ih);
+	mask = INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION;
+	s->gdk_tag = inputevt_add(s->wio.fd(&s->wio), mask, io_read_data,
+					(gpointer) ih);
 
 	/*
 	 * There may be pending input in the socket buffer, so go handle
@@ -527,3 +528,4 @@ io_continue_header(
 	ih->header_read_start = start;
 }
 
+/* vi: set ts=4 sw=4 cindent: */

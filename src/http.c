@@ -215,7 +215,7 @@ http_send_status(
 		g_assert(rw < header_size);
 	}
 
-	if (-1 == (sent = bws_write(bws.out, s->file_desc, header, rw))) {
+	if (-1 == (sent = bws_write(bws.out, &s->wio, header, rw))) {
 		socket_eof(s);
 		g_warning("Unable to send back HTTP status %d (%s) to %s: %s",
 			code, status_msg, ip_to_gchar(s->ip), g_strerror(errno));
@@ -2225,7 +2225,7 @@ http_got_header(struct http_async *ha, header_t *header)
 	g_assert(s->gdk_tag == 0);
 	g_assert(ha->bio == NULL);
 
-	ha->bio = bsched_source_add(bws.in, s->file_desc,
+	ha->bio = bsched_source_add(bws.in, &s->wio,
 		BIO_F_READ, http_data_read, (gpointer) ha);
 
 	/*
@@ -2354,7 +2354,7 @@ http_async_write_request(gpointer data, gint source, inputevt_cond_t cond)
 	rw = http_buffer_unread(r);			/* Data we still have to send */
 	base = http_buffer_read_base(r);	/* And where unsent data start */
 
-	if (-1 == (sent = bws_write(bws.out, s->file_desc, base, rw))) {
+	if (-1 == (sent = bws_write(bws.out, &s->wio, base, rw))) {
 		g_warning("HTTP request sending to %s failed: %s",
 			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
 		http_async_syserr(ha, errno);
@@ -2423,7 +2423,7 @@ http_async_connected(gpointer handle)
 
 	http_async_newstate(ha, HTTP_AS_REQ_SENDING);
 	
-	if (-1 == (sent = bws_write(bws.out, s->file_desc, req, rw))) {
+	if (-1 == (sent = bws_write(bws.out, &s->wio, req, rw))) {
 		g_warning("HTTP request sending to %s failed: %s",
 			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
 		http_async_syserr(ha, errno);

@@ -3385,7 +3385,7 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 	
 	s = u->socket;
 
-	if (-1 == (sent = bws_write(bws.out, s->file_desc, queue, rw))) {
+	if (-1 == (sent = bws_write(bws.out, &s->wio, queue, rw))) {
 		g_warning("[PARQ UL] "
 			"Unable to send back QUEUE for \"%s\" to %s: %s",
 			  u->name, ip_port_to_gchar(s->ip, s->port), g_strerror(errno));

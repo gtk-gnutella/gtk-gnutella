@@ -1308,7 +1308,7 @@ void upload_connect_conf(gnutella_upload_t *u)
 		u->index, guid_hex_str((gchar *) guid), u->name);
 	
 	s = u->socket;
-	if (-1 == (sent = bws_write(bws.out, s->file_desc, giv, rw))) {
+	if (-1 == (sent = bws_write(bws.out, &s->wio, giv, rw))) {
 		g_warning("Unable to send back GIV for \"%s\" to %s: %s",
 			u->name, ip_to_gchar(s->ip), g_strerror(errno));
 	} else if (sent < rw) {
@@ -2866,7 +2866,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	g_assert(s->gdk_tag == 0);
 	g_assert(u->bio == NULL);
 	
-	u->bio = bsched_source_add(bws.out, s->file_desc,
+	u->bio = bsched_source_add(bws.out, &s->wio,
 		BIO_F_WRITE, upload_write, (gpointer) u);
 
 	upload_stats_file_begin(u);
@@ -2947,7 +2947,7 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 
 #endif	/* HAS_SENDFILE */
 
-	if (written ==  -1) {
+	if (written == -1) {
 		if (errno != EAGAIN) {
 			socket_eof(u->socket);
 			upload_remove(u, "Data write error: %s", g_strerror(errno));
