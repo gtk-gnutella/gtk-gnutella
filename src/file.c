@@ -38,8 +38,6 @@ static const gchar *new_ext = ".new";
 static const gchar *instead_str = " instead";
 static const gchar *empty_str = "";
 
-static gchar file_tmp[2048];
-
 /*
  * file_config_open_read
  *
@@ -54,33 +52,39 @@ static gchar file_tmp[2048];
 FILE *file_config_open_read(
 	const gchar *what, const file_path_t *fv, gint fvcnt)
 {
-	FILE *in;
-	gchar tmp[2048];
+	FILE *in = NULL;
+	gchar *path;
+	gchar *path_orig;
 	const gchar *error;
 	struct stat buf;
 	const gchar *instead = empty_str;
 
 	g_assert(fv != NULL);
 	g_assert(fvcnt >= 1);
+	
+	path = g_strdup_printf("%s/%s", fv->dir, fv->name);
+	g_return_val_if_fail(NULL != path, NULL);
+	path_orig = g_strdup_printf("%s%s", path, orig_ext);
+	if (NULL == path_orig)
+		goto out;
 
-	gm_snprintf(tmp, sizeof(tmp), "%s/%s", fv->dir, fv->name);
-	gm_snprintf(file_tmp, sizeof(file_tmp), "%s%s", tmp, orig_ext);
-
-	in = fopen(tmp, "r");
+	in = fopen(path, "r");
 
 	if (in) {
-		if (-1 == rename(tmp, file_tmp))
+		if (-1 == rename(path, path_orig))
 			g_warning("could not rename \"%s\" as \"%s\": %s",
-				tmp, file_tmp, g_strerror(errno));
-		return in;
+				path, path_orig, g_strerror(errno));
+		goto out;
 	}
 
 	error = g_strerror(errno);
 
-	if (-1 != stat(tmp, &buf)) {
+	if (-1 != stat(path, &buf)) {
 		instead = instead_str;			/* Regular file was present */
-		g_warning("unable to open \"%s\" to retrieve %s: %s", tmp, what, error);
+		g_warning("unable to open \"%s\" to retrieve %s: %s",
+			path, what, error);
 	}
+	G_FREE_NULL(path);
 
 	/*
 	 * Maybe we crashed after having retrieved the file in a previous run
@@ -88,7 +92,7 @@ FILE *file_config_open_read(
 	 * ".orig" file instead.
 	 */
 
-	in = fopen(file_tmp, "r");			/* The ".orig", in case of a crash */
+	in = fopen(path_orig, "r");	/* The ".orig", in case of a crash */
 
 	/*
 	 * Try with alternatives, if supplied.
@@ -101,21 +105,28 @@ FILE *file_config_open_read(
 		instead = instead_str;
 
 		for (xfv = fv + 1, xfvcnt = fvcnt - 1; xfvcnt; xfv++, xfvcnt--) {
-			gm_snprintf(file_tmp, sizeof(file_tmp),
-				"%s/%s", xfv->dir, xfv->name);
-			
-			in = fopen(file_tmp, "r");
-			if (in)
+			path = g_strdup_printf("%s/%s", xfv->dir, xfv->name);
+			if (NULL == path)
 				break;
+			if (NULL != (in = fopen(path, "r"))) {
+				break;
+			}
+			G_FREE_NULL(path);
 		}
 	}
 
 	if (in)
-		g_warning("retrieving %s from \"%s\"%s", what, file_tmp, instead);
+		g_warning("retrieving %s from \"%s\"%s", what, path, instead);
 	else if (instead == instead_str)
 		g_warning("unable to retrieve %s, tried %d alternate location%s",
 			what, fvcnt, fvcnt == 1 ? "" : "s");
 
+out:
+
+	if (NULL != path)
+		G_FREE_NULL(path);
+	if (NULL != path_orig)
+		G_FREE_NULL(path_orig);
 	return in;
 }
 
@@ -130,17 +141,17 @@ FILE *file_config_open_read(
  */
 FILE *file_config_open_write(const gchar *what, const file_path_t *fv)
 {
-	FILE *out;
+	FILE *out = NULL;
+	char *path;
 
-	gm_snprintf(file_tmp, sizeof(file_tmp),
-		"%s/%s%s", fv->dir, fv->name, new_ext);
+	path = g_strdup_printf("%s/%s%s", fv->dir, fv->name, new_ext);
+	g_return_val_if_fail(NULL != path, NULL);
 
-	out = fopen(file_tmp, "w");
-
+	out = fopen(path, "w");
 	if (out == NULL)
 		g_warning("unable to create \"%s\" to persist %s: %s",
-			file_tmp, what, g_strerror(errno));
-
+			path, what, g_strerror(errno));
+	G_FREE_NULL(path);
 	return out;
 }
 
@@ -152,25 +163,37 @@ FILE *file_config_open_write(const gchar *what, const file_path_t *fv)
  */
 gboolean file_config_close(FILE *out, const file_path_t *fv)
 {
-	gchar tmp[2048];
-
-	gm_snprintf(file_tmp, sizeof(file_tmp),
-		"%s/%s%s", fv->dir, fv->name, new_ext);
+	char *path = NULL;
+	char *path_new = NULL;
 
 	if (0 != fclose(out)) {
-		g_warning("could not flush \"%s\": %s", file_tmp, g_strerror(errno));
-		return FALSE;
+		g_warning("could not flush \"%s\": %s", fv->name, g_strerror(errno));
+		goto failed;
 	}
 
-	gm_snprintf(tmp, sizeof(tmp), "%s/%s", fv->dir, fv->name);
-		
-	if (-1 == rename(file_tmp, tmp)) {
+	path = g_strdup_printf("%s/%s", fv->dir, fv->name);
+	g_return_val_if_fail(NULL != path, FALSE);
+	path_new = g_strdup_printf("%s%s", path, new_ext);
+	if (NULL == path_new)
+		goto failed;
+
+	if (-1 == rename(path_new, path)) {
 		g_warning("could not rename \"%s\" as \"%s\": %s",
-			file_tmp, tmp, g_strerror(errno));
-		return FALSE;
+			path_new, path, g_strerror(errno));
+		goto failed;
 	}
 
+	G_FREE_NULL(path_new);
+	G_FREE_NULL(path);
 	return TRUE;
+
+failed:
+
+	if (NULL != path_new)
+		G_FREE_NULL(path_new);
+	if (NULL != path)
+		G_FREE_NULL(path);
+	return FALSE;
 }
 
 /*
