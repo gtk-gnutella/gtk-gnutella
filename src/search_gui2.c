@@ -790,64 +790,6 @@ void search_gui_download_files(void)
 
 
 /***
- *** Callbacks
- ***/
-
-/*
- * search_gui_search_results_col_widths_changed:
- *
- * known outside this file.
- */
-static void sync_column_widths(GtkTreeView *treeview)
-{
-    guint32 width[SEARCH_RESULTS_VISIBLE_COLUMNS];
-	guint i;
-
-	g_assert(NULL != treeview);
-
-    gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, width, 0,
-		G_N_ELEMENTS(width));
-    for (i = 0; i < G_N_ELEMENTS(width); i++) {
-		gtk_tree_view_column_set_fixed_width(
-			gtk_tree_view_get_column(treeview, i), MAX(1, (gint) width[i]));
-	}
-}
-
-/*
- * search_gui_search_results_col_visible_changed:
- *
- * Callback to update the columns withs in the currently visible search.
- * This is not in settings_gui because the current search should not be
- * known outside this file.
- */
-gboolean search_gui_search_results_col_visible_changed(property_t prop)
-{
-    search_t *current = search_gui_get_current_search();
-	GtkTreeView *treeview;
-	gboolean val[SEARCH_RESULTS_VISIBLE_COLUMNS];
-	guint i;
-
-    if (!current && !default_search_tree_view)
-        return FALSE;
-
-    treeview = GTK_TREE_VIEW(current ?
-					current->tree_view : default_search_tree_view);
-    if (!treeview)
-		return FALSE;
-
-	gui_prop_get_boolean(prop, val, 0, G_N_ELEMENTS(val));
-
-	for (i = 0; i < G_N_ELEMENTS(val); i++) {
-		GtkTreeViewColumn *c;
-
-		c = gtk_tree_view_get_column(treeview, i);
-		gtk_tree_view_column_set_visible(c, val[i]);
-	}
-
-	return FALSE;
-}
-
-/***
  *** Private functions
  ***/
 
@@ -902,6 +844,8 @@ static void add_results_column(
 void search_gui_init(void)
 {
     GtkTreeStore *store;
+    GtkTreeView *tv;
+	search_t *current_search;
 
     tree_view_search = GTK_TREE_VIEW(lookup_widget(main_window,
 							"tree_view_search"));
@@ -943,29 +887,11 @@ void search_gui_init(void)
 	g_signal_connect(GTK_OBJECT(notebook_search_results), "focus_tab",
 		G_CALLBACK(on_search_notebook_focus_tab), NULL);
 
-    /*
-     * Now we restore the column visibility
-     */
-    {
-        guint i;
-        GtkTreeView *treeview;
-		search_t *current_search = search_gui_get_current_search();
-		gboolean visible[SEARCH_RESULTS_VISIBLE_COLUMNS];
-
-        treeview = current_search != NULL ? 
-                GTK_TREE_VIEW(current_search->tree_view) : 
-                GTK_TREE_VIEW(default_search_tree_view);
-      
-		gui_prop_get_boolean(PROP_SEARCH_RESULTS_COL_VISIBLE, visible, 0,
-			G_N_ELEMENTS(visible));
-		for (i = 0; i < G_N_ELEMENTS(visible); i++) {
-        	GtkTreeViewColumn *c;
-			
-			c = gtk_tree_view_get_column(treeview, i);
-            gtk_tree_view_column_set_visible(c, visible[i]);
-		}
-    }
-
+   	current_search = search_gui_get_current_search();
+    tv = current_search != NULL ? 
+			GTK_TREE_VIEW(current_search->tree_view) : 
+			GTK_TREE_VIEW(default_search_tree_view);
+	tree_view_restore_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
 	search_gui_retrieve_searches();
     search_add_got_results_listener(search_gui_got_results);
 }
@@ -1133,20 +1059,14 @@ void search_gui_set_current_search(search_t *sch)
      * We now propagate the column visibility from the current_search
      * to the new current_search.
      */
+	
     if (current_search != NULL) {
-        guint i;
-        GtkTreeView *treeview = GTK_TREE_VIEW(sch->tree_view);
-        GtkTreeView *treeview_old = GTK_TREE_VIEW(current_search->tree_view);
+        GtkTreeView *tv_new = GTK_TREE_VIEW(sch->tree_view);
+        GtkTreeView *tv_old = GTK_TREE_VIEW(current_search->tree_view);
         
-		for (i = 0; i < SEARCH_RESULTS_VISIBLE_COLUMNS; i++) {
-			GtkTreeViewColumn *c, *old_c;
-
-			c = gtk_tree_view_get_column(treeview, i);
-			old_c = gtk_tree_view_get_column(treeview_old, i);
-            gtk_tree_view_column_set_visible(c,
-				 gtk_tree_view_column_get_visible(old_c));
-        }
-		tree_view_save_widths(treeview_old, PROP_SEARCH_RESULTS_COL_WIDTHS);
+		tree_view_save_widths(tv_old, PROP_SEARCH_RESULTS_COL_WIDTHS);
+		tree_view_save_visibility(tv_old, PROP_SEARCH_RESULTS_COL_VISIBLE);
+		tree_view_restore_visibility(tv_new, PROP_SEARCH_RESULTS_COL_VISIBLE);
     } else if (default_search_tree_view) {
 		tree_view_save_widths(GTK_TREE_VIEW(default_search_tree_view),
 			PROP_SEARCH_RESULTS_COL_WIDTHS);
@@ -1201,7 +1121,8 @@ void search_gui_set_current_search(search_t *sch)
             lookup_widget(popup_search, "popup_search_resume"), FALSE);
     }
 
-	sync_column_widths(GTK_TREE_VIEW(sch->tree_view));
+	tree_view_restore_widths(GTK_TREE_VIEW(sch->tree_view),
+			PROP_SEARCH_RESULTS_COL_WIDTHS);
 
     /*
      * Search results notebook
