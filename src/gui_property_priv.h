@@ -58,6 +58,7 @@ extern guint32  downloads_divider_pos;
 extern guint32  main_divider_pos;
 extern guint32  gnet_stats_divider_pos;
 extern guint32  side_divider_pos;
+extern guint32  results_divider_pos;
 extern guint32  search_max_results;
 extern guint32  gui_debug;
 extern guint32  filter_main_divider_pos;

@@ -63,6 +63,7 @@ typedef enum {
     PROP_MAIN_DIVIDER_POS,    
     PROP_GNET_STATS_DIVIDER_POS,    
     PROP_SIDE_DIVIDER_POS,    
+    PROP_RESULTS_DIVIDER_POS,    
     PROP_SEARCH_MAX_RESULTS,    
     PROP_GUI_DEBUG,    
     PROP_FILTER_MAIN_DIVIDER_POS,    
@@ -169,7 +170,6 @@ void gui_prop_set_storage(property_t, const guint8 *, gsize);
 guint8 *gui_prop_get_storage(property_t, guint8 *, gsize);
 
 gchar *gui_prop_to_string(property_t prop);
-property_t gui_prop_get_by_name(const gchar *name);
 
 #endif /* _gui_property_h_ */
 
