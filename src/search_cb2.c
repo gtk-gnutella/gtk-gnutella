@@ -411,7 +411,7 @@ static void autoselect_files_helper(
 				continue;
 
 			if (rc2 == NULL) {
-				g_warning(" on_tree_view_search_results_select_row: "
+				g_warning("autoselect_files_helper: "
 					"detected row with NULL data, skipping");
 				continue;
 			}
@@ -574,18 +574,6 @@ void on_tree_view_search_results_select_row(
 	autoselection_running = TRUE;
 	autoselect_files(tree_view);
 	autoselection_running = FALSE;
-}
-
-void on_tree_view_search_results_resize_column(
-    GtkTreeView * tree_view, gint column, gint width, gpointer user_data)
-{
-/* FIXME */
-#if 0
-    guint32 buf = width; 
-
-    /* remember the width for storing it to the config file later */
-    gui_prop_set_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, &buf, column, 1);
-#endif
 }
 
 void on_button_search_passive_clicked(
