@@ -47,6 +47,7 @@ RCSID("$Id$");
 
 #include "lib/atoms.h"
 #include "lib/endian.h"
+#include "lib/glib-missing.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -157,17 +158,179 @@ GHashTable *ht_banned_push = NULL;
  */
 GHashTable *ht_proxyfied = NULL;
 
+/*
+ * Routing logging.
+ */
+struct route_log {
+	guint32 ip;					/* Sender's IP */
+	guint16 port;				/* Sender's port */
+	gchar muid[16];				/* Message ID */
+	guint8 function;			/* Message function */
+	guint8 hops;				/* Message hops */
+	guint8 ttl;					/* Message ttl */
+	gboolean handle;			/* Whether message will be handled */
+	gboolean local;				/* Whether message originated locally */
+	gboolean new;				/* Whether message is a new message */
+	gchar extra[80];			/* Extra text for logging */
+	struct route_dest dest;		/* Message destination */
+};
+
 extern gint guid_eq(gconstpointer a, gconstpointer b);
 
-#define routing_log(...) \
-	do { \
-		if (dbg >= 8) \
-			g_log(G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, __VA_ARGS__); \
-	} while (0)
-
-#define routing_log_flush(x)	/* XXX */
-
 static void free_route_list(struct message *m);
+
+/**
+ * Record message parameters.
+ */
+static void
+routing_log_init(struct route_log *log,
+	struct gnutella_node *n,
+	const gchar *muid, guint8 function, guint8 hops, guint8 ttl)
+{
+	if (routing_debug <= 7)
+		return;
+
+	if (n == NULL) {
+		log->local = TRUE;
+		log->ip = 0;
+		log->port = 0;
+	} else {
+		log->local = FALSE;
+		log->ip = n->ip;
+		log->port = n->port;
+	}
+
+	log->function = function;
+	log->hops = hops;
+	log->ttl = ttl;
+	memcpy(log->muid, muid, 16);
+
+	log->extra[0] = '\0';
+	log->handle = FALSE;
+	log->new = FALSE;
+	log->dest.type = ROUTE_NONE;
+}
+
+/**
+ * Record message's route.
+ */
+static void
+routing_log_set_route(struct route_log *log,
+	struct route_dest *dest, gboolean handle)
+{
+	if (routing_debug <= 7)
+		return;
+
+	log->dest = *dest;		/* Struct copy */
+	log->handle = handle;
+}
+
+/**
+ * Mark message as being new.
+ */
+static void
+routing_log_set_new(struct route_log *log)
+{
+	if (routing_debug <= 7)
+		return;
+
+	log->new = TRUE;
+}
+
+/**
+ * Record extra logging information, appending to existing information.
+ */
+static void
+routing_log_extra(struct route_log *log, const gchar *fmt, ...)
+{
+	va_list args;
+	gchar *buf;
+	gint buflen;
+	gint len;
+
+	if (routing_debug <= 7)
+		return;
+
+	buf = log->extra;
+	buflen = sizeof(log->extra);
+	len = strlen(log->extra);
+
+	/*
+	 * If there was already a message recorded, append "; " before
+	 * the new message.
+	 */
+
+	if (len) {
+		buflen -= len;
+		buf += len;
+
+		if (buflen > 2) {
+			gint seplen = gm_snprintf(buf, buflen, "; ");
+
+			buflen -= seplen;
+			buf += seplen;
+		}
+	}
+
+	if (buflen <= 2)
+		return;
+
+	va_start(args, fmt);
+	gm_vsnprintf(buf, buflen, fmt, args);
+	va_end(args);
+}
+
+/**
+ * Return string representation of message route, as pointer to static data.
+ */
+static gchar *
+route_string(struct route_dest *dest, guint32 origin_ip)
+{
+	static gchar msg[80];
+
+	switch (dest->type) {
+	case ROUTE_NONE:
+		gm_snprintf(msg, sizeof(msg), "stops here");
+		break;
+	case ROUTE_ONE:
+		gm_snprintf(msg, sizeof(msg), "node %s", node_ip(dest->ur.u_node));
+		break;
+	case ROUTE_ALL_BUT_ONE:
+		gm_snprintf(msg, sizeof(msg), "all but %s", ip_to_gchar(origin_ip));
+		break;
+	case ROUTE_MULTI:
+		{
+			gint count = g_slist_length(dest->ur.u_nodes);
+			gm_snprintf(msg, sizeof(msg), "selected %u node%s",
+				count, count == 1 ? "" : "s");
+		}
+		break;
+	default:
+		gm_snprintf(msg, sizeof(msg), "** BUG ** UNKNOWN ROUTE");
+		break;
+	}
+
+	return msg;
+}
+
+/**
+ * Emit log message.
+ */
+static void
+routing_log_flush(struct route_log *log)
+{
+	if (routing_debug <= 7)
+		return;
+
+	g_log(G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG,
+		"ROUTE %-21s %s %s %3d/%3d: [%c] %s%s%s-> %s",
+		log->local ? "OURSELVES": ip_port_to_gchar(log->ip, log->port),
+		debug_msg[log->function], guid_hex_str(log->muid),
+		log->hops, log->ttl, log->handle ? 'H' : ' ',
+		log->new ? "[NEW] " : "",
+		log->extra, log->extra[0] == '\0' ? "" : " ",
+		route_string(&log->dest, log->ip));
+}
 
 /**
  * Used to ensure type safety when accessing the routing_data field
@@ -282,7 +445,7 @@ get_next_slot(void)
 		) {
 			gint elapsed = now - routing.last_rotation;
 
-			if (dbg)
+			if (routing_debug)
 				printf("RT cycling over table, elapsed=%d, holds %d / %d\n",
 					elapsed, routing.count, routing.capacity);
 
@@ -301,7 +464,7 @@ get_next_slot(void)
 			routing.chunks[chunk_idx] = (struct message **)
 				g_malloc0(CHUNK_MESSAGES * sizeof(struct message *));
 
-			if (dbg)
+			if (routing_debug)
 				printf("RT created new chunk #%d, now holds %d / %d\n",
 					chunk_idx, routing.count, routing.capacity);
 
@@ -320,7 +483,7 @@ get_next_slot(void)
 			time_t now = time((time_t) NULL);
 			gint elapsed = now - routing.last_rotation;
 
-			if (dbg)
+			if (routing_debug)
 				printf("RT cycling over FORCED, elapsed=%d, holds %d / %d\n",
 					elapsed, routing.count, routing.capacity);
 
@@ -560,8 +723,9 @@ retry:
 	debug_msg[GTA_MSG_SEARCH_RESULTS] = "Q-Hit";
 	debug_msg[GTA_MSG_PUSH_REQUEST]   = "Push ";
 	debug_msg[GTA_MSG_VENDOR]         = "Vndor";
-	debug_msg[GTA_MSG_STANDARD]       = "V-Std";
+	debug_msg[GTA_MSG_STANDARD]       = "Vstd ";
 	debug_msg[GTA_MSG_QRP]            = "QRP  ";
+	debug_msg[GTA_MSG_HSEP_DATA]      = "HSEP ";
 
 	/*
 	 * Should be around for life of program, so should *never*
@@ -680,6 +844,11 @@ routing_node_remove(struct gnutella_node *node)
 
 /**
  * Adds a new message in the routing tables.
+ *
+ * @param muid is the message MUID
+ * @param function is the message type
+ * @param node is the node from which we got the message, NULL if we are the
+ * node emitting it.
  */
 void
 message_add(const gchar *muid, guint8 function, struct gnutella_node *node)
@@ -692,6 +861,11 @@ message_add(const gchar *muid, guint8 function, struct gnutella_node *node)
 	found = find_message(muid, function, &m);
 
 	if (!node) {
+		struct route_log log;
+		gboolean already_recorded = FALSE;
+
+		routing_log_init(&log, NULL, muid, function, 0, my_ttl);
+
 		if (found) {
 			/*
 			 * It is possible that we insert the message in the routing table,
@@ -704,21 +878,19 @@ message_add(const gchar *muid, guint8 function, struct gnutella_node *node)
 			 */
 
 			if (node_sent_message(fake_node, m)) {
-				routing_log("ROUTE %-21s %s %s %3d/%3d [already sent]",
-					"OURSELVES", debug_msg[function],
-					guid_hex_str(muid), 0, my_ttl);
-				return;
-			}
-
-			routing_log("ROUTE %-21s %s %s %3d/%3d [forgot we sent it]",
-					"OURSELVES", debug_msg[function],
-					guid_hex_str(muid), 0, my_ttl);
-		} else
-			routing_log("ROUTE %-21s %s %s %3d/%3d", "OURSELVES",
-				debug_msg[function], guid_hex_str(muid), 0, my_ttl);
+				routing_log_extra(&log, "already sent");
+				already_recorded = TRUE;
+			} else
+				routing_log_extra(&log, "forgot we sent it");
+		}
 
 		route = &fake_route;
 		node = fake_node;		/* We are the sender of the message */
+
+		routing_log_flush(&log);
+
+		if (already_recorded)
+			return;
 	} else {
 		if (node->routing_data == NULL)
 			init_routing_data(node);
@@ -829,7 +1001,7 @@ find_message(const gchar *muid, guint8 function, struct message **m)
  * message.
  */
 static gboolean
-check_hops_ttl(struct gnutella_node *sender)
+check_hops_ttl(struct route_log *log, struct gnutella_node *sender)
 {
 	/*
 	 * Can't forward a message with 255 hops: we can't increase the
@@ -839,16 +1011,16 @@ check_hops_ttl(struct gnutella_node *sender)
 	 */
 
 	if (sender->header.hops == 255) {
-		routing_log("(max hop count reached)");
+		routing_log_extra(log, "max hop count reached");
 		gnet_stats_count_dropped(sender, MSG_DROP_MAX_HOP_COUNT);
 		sender->n_bad++;
-		if (dbg)
+		if (routing_debug)
 			gmsg_log_bad(sender, "message with HOPS=255!");
 		return FALSE;	/* Don't route, something is wrong */
 	}
 
 	if (sender->header.ttl == 0) {
-		routing_log("(TTL was 0)");
+		routing_log_extra(log, "TTL was 0");
 		node_sent_ttl0(sender);
 		return FALSE;	/* Don't route */
 	}
@@ -873,6 +1045,7 @@ check_hops_ttl(struct gnutella_node *sender)
  */
 static gboolean
 forward_message(
+	struct route_log *log,
 	struct gnutella_node **node,
 	struct gnutella_node *target, struct route_dest *dest, GSList *routes)
 {
@@ -881,9 +1054,11 @@ forward_message(
 	g_assert(routes == NULL || target == NULL);
 	g_assert(current_peermode != NODE_P_LEAF);
 
+	routing_log_set_new(log);
+
 	/* Drop messages that would travel way too many nodes --RAM */
 	if ((guint32) sender->header.ttl + sender->header.hops > hard_ttl_limit) {
-		routing_log("[ ] [NEW] hard TTL limit reached");
+		routing_log_extra(log, "hard TTL limit reached");
 
 		/*
 		 * When close neighboors of that node send messages we drop
@@ -911,14 +1086,12 @@ forward_message(
 		return TRUE;
 	}
 
-	if (!check_hops_ttl(sender))
+	if (!check_hops_ttl(log, sender))
 		return TRUE;
-
-	routing_log("[H] [NEW] ");
 
 	if (sender->header.ttl == 1) {
 		/* TTL expired, message stops here */
-		routing_log("(TTL expired)");
+		routing_log_extra(log, "TTL expired");
 		gnet_stats_count_expired(sender);
 	} else {
 		/*
@@ -938,9 +1111,6 @@ forward_message(
 				if (rd->node == sender)
 					continue;
 				nodes = g_slist_prepend(nodes, rd->node);
-
-				routing_log("-> sendto_multi(%s) #%d",
-					node_ip(rd->node), count + 1);
 			}
 
 			/*
@@ -954,7 +1124,6 @@ forward_message(
 				gnet_stats_count_general(sender, GNR_BROADCASTED_PUSHES, 1);
 
 		} else if (target != NULL) {
-			routing_log("-> sendto_one(%s)", node_ip(target));
 			dest->type = ROUTE_ONE;
 			dest->ur.u_node = target;
 		} else {
@@ -966,10 +1135,9 @@ forward_message(
 
 			if (sender->header.ttl > max_ttl + 1) {	/* TTL too large */
 				sender->header.ttl = max_ttl + 1;	/* Trim down */
-				routing_log("(TTL trimmed down to %d) ", max_ttl);
+				routing_log_extra(log, "TTL trimmed down to %d ", max_ttl);
 			}
 
-			routing_log("-> sendto_all_but_one()");
 			dest->type = ROUTE_ALL_BUT_ONE;
 			dest->ur.u_node = sender;
 		}
@@ -981,6 +1149,7 @@ forward_message(
 /**
  * Lookup message in the routing table and check whether we have a duplicate.
  *
+ * @param log is a structure recording to-be-logged information for debug
  * @param node is a pointer to the variable holding the node, and it can be
  * set to NULL if we removed the node.
  * @param mp is set on output to the message if found in the routing table.
@@ -989,7 +1158,8 @@ forward_message(
  * the message was a duplicate and it should not be handled locally.
  */
 static gboolean
-check_duplicate(struct gnutella_node **node, struct message **mp)
+check_duplicate(struct route_log *log,
+	struct gnutella_node **node, struct message **mp)
 {
 	struct gnutella_node *sender = *node;
 
@@ -1009,7 +1179,7 @@ check_duplicate(struct gnutella_node **node, struct message **mp)
 		 */
 
 		if (sender->header.ttl > m->ttl) {
-			routing_log("[ ] dup message with higher ttl (forwarded)");
+			routing_log_extra(log, "dup message with higher ttl");
 
 			gnet_stats_count_general(sender, GNR_DUPS_WITH_HIGHER_TTL, 1);
 
@@ -1022,7 +1192,7 @@ check_duplicate(struct gnutella_node **node, struct message **mp)
 
 		if (m->routes && node_sent_message(sender, m)) {
 			/* The same node has sent us a message twice ! */
-			routing_log("[ ] dup message (from the same node!)");
+			routing_log_extra(log, "dup message (from the same node!)");
 
 			/*
 			 * That is a really good reason to kick the offender
@@ -1049,30 +1219,15 @@ check_duplicate(struct gnutella_node **node, struct message **mp)
 						0.0);
 				*node = NULL;
 			} else {
-				if (dbg > 2)
+				if (routing_debug > 2)
 					gmsg_log_bad(sender, "dup message ID %s from same node",
 						guid_hex_str(sender->header.muid));
 			}
 		} else {
-			struct route_data *route;
-
 			if (m->routes == NULL)
-				routing_log("[ ] dup message, original route lost");
+				routing_log_extra(log, "dup message, original route lost");
 			else
-				routing_log("[ ] dup message");
-
-			/*
-			 * append so that we route matches to the one that sent it
-			 * to us first; ie., presumably the one closest to the
-			 * original sender.
-			 */
-
-			route = get_routing_data(sender);
-			
-			g_assert(route != NULL);
-			
-			m->routes = g_slist_append(m->routes, route);
-			route->saved_messages++;
+				routing_log_extra(log, "dup message");
 		}
 
 		return FALSE;			/* Don't forward and don't handle */
@@ -1089,7 +1244,8 @@ check_duplicate(struct gnutella_node **node, struct message **mp)
  * @return whether message should be handled
  */
 static gboolean
-route_push(struct gnutella_node **node, struct route_dest *dest)
+route_push(struct route_log *log,
+	struct gnutella_node **node, struct route_dest *dest)
 {
 	struct gnutella_node *sender = *node;
 	struct message *m;
@@ -1108,7 +1264,7 @@ route_push(struct gnutella_node **node, struct route_dest *dest)
 	 */
 
 	if (0 == memcmp(guid, sender->data, 16)) {
-		routing_log("[H] we are the target");
+		routing_log_extra(log, "we are the target");
 		return TRUE;
 	}
 
@@ -1120,7 +1276,7 @@ route_push(struct gnutella_node **node, struct route_dest *dest)
 	 */
 
 	if (g_hash_table_lookup(ht_banned_push, sender->data)) {
-		if (dbg > 3)
+		if (routing_debug > 3)
 			gmsg_log_dropped(&sender->header,
 				"from %s, banned GUID %s",
 				node_ip(sender), guid_hex_str(sender->data));
@@ -1151,11 +1307,11 @@ route_push(struct gnutella_node **node, struct route_dest *dest)
 		m->routes == NULL
 	) {
 		if (m && m->routes == NULL) {
-			routing_log("[ ] route to target GUID %s gone",
+			routing_log_extra(log, "route to target GUID %s gone",
 				guid_hex_str(sender->data));
 			gnet_stats_count_dropped(sender, MSG_DROP_ROUTE_LOST);
 		} else {
-			routing_log("[ ] no route to target GUID %s",
+			routing_log_extra(log, "no route to target GUID %s",
 				guid_hex_str(sender->data));
 			gnet_stats_count_dropped(sender, MSG_DROP_NO_ROUTE);
 		}
@@ -1169,7 +1325,7 @@ route_push(struct gnutella_node **node, struct route_dest *dest)
 	 */
 
 	revitalize_entry(m, FALSE);
-	forward_message(node, NULL, dest, m->routes);
+	forward_message(log, node, NULL, dest, m->routes);
 
 	return FALSE;		/* We are not the target, don't handle it */
 }
@@ -1180,7 +1336,8 @@ route_push(struct gnutella_node **node, struct route_dest *dest)
  * @return whether message should be handled
  */
 static gboolean
-route_query(struct gnutella_node **node, struct route_dest *dest)
+route_query(struct route_log *log,
+	struct gnutella_node **node, struct route_dest *dest)
 {
 	struct gnutella_node *sender = *node;
 	gboolean is_oob_query;
@@ -1231,7 +1388,7 @@ route_query(struct gnutella_node **node, struct route_dest *dest)
 		return FALSE;
 	}
 
-	return forward_message(node, NULL, dest, NULL);		/* Broadcast */
+	return forward_message(log, node, NULL, dest, NULL);	/* Broadcast */
 }
 
 /**
@@ -1240,7 +1397,8 @@ route_query(struct gnutella_node **node, struct route_dest *dest)
  * @return whether message should be handled
  */
 static gboolean
-route_query_hit(struct gnutella_node **node, struct route_dest *dest)
+route_query_hit(struct route_log *log,
+	struct gnutella_node **node, struct route_dest *dest)
 {
 	GSList *l;
 	struct gnutella_node *sender = *node;
@@ -1295,18 +1453,18 @@ route_query_hit(struct gnutella_node **node, struct route_dest *dest)
 		}
 	}
 
-	if (!check_hops_ttl(sender))
+	if (!check_hops_ttl(log, sender))
 		goto handle;				/* We will handle the hit nonetheless */
 
 	if (!find_message(sender->header.muid, GTA_MSG_SEARCH, &m)) {
 		/* We have never seen any request matching this reply ! */
 
-		routing_log("[ ] no request matching the reply!");
+		routing_log_extra(log, "no request matching the reply!");
 
 		gnet_stats_count_dropped(sender, MSG_DROP_NO_ROUTE);
 		sender->n_bad++;	/* Node shouldn't have forwarded this message */
 
-		if (dbg)
+		if (routing_debug)
 			gmsg_log_bad(sender, "got reply without matching request %s",
 				guid_hex_str(sender->header.muid));
 
@@ -1363,19 +1521,17 @@ route_query_hit(struct gnutella_node **node, struct route_dest *dest)
 	if (sender->header.ttl == 1) {
 		if (NODE_IS_LEAF(found)) {
 			/* TTL expired, but target is a leaf node */
-			routing_log("(expired TTL bumped)");
+			routing_log_extra(log, "expired TTL bumped");
 			sender->header.ttl++;
 		} else {
 			/* TTL expired, message stops here in any case */
 			if (current_peermode != NODE_P_LEAF) {
-				routing_log("(TTL expired)");
+				routing_log_extra(log, "TTL expired");
 				gnet_stats_count_expired(sender);
 			}
 			goto handle;
 		}
 	}
-
-	routing_log("-> sendto_one(%s)", node_ip(found));
 
 	dest->type = ROUTE_ONE;
 	dest->ur.u_node = found;
@@ -1383,15 +1539,14 @@ route_query_hit(struct gnutella_node **node, struct route_dest *dest)
 	goto handle;
 
 route_lost:
-	routing_log("[H] route to target lost ");
+	routing_log_extra(log, "route to target lost");
 
 	gnet_stats_count_dropped(sender, MSG_DROP_ROUTE_LOST);
 	goto final;
 
 handle:
-	routing_log("[H] ");
 	if (node_is_target)
-		routing_log("we are the target ");
+		routing_log_extra(log, "we are the target");
 
 	/* FALL THROUGH */
 final:
@@ -1410,7 +1565,7 @@ final:
 	 */
 
 	if (sender->header.ttl > hard_ttl_limit + 1) {	/* TTL too large */
-		routing_log("(TTL adjusted) ");
+		routing_log_extra(log, "TTL adjusted");
 		sender->header.ttl = hard_ttl_limit + 1;
 	}
 
@@ -1437,6 +1592,8 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	struct gnutella_node *sender = *node;
 	struct message *m;
 	gboolean duplicate = FALSE;
+	gboolean route_it = FALSE;
+	struct route_log log;
 
 	/* Ensure we never get something bearing our special GUID route marker */
 	g_assert(sender->header.function != QUERY_HIT_ROUTE_SAVE);
@@ -1447,10 +1604,8 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	if (sender->routing_data == NULL)
 		init_routing_data(sender);
 
-	routing_log("ROUTE %-21s ", node_ip(sender));
-	routing_log("%s ", debug_msg[sender->header.function]);
-	routing_log("%s ", guid_hex_str(sender->header.muid));
-	routing_log("%3d/%3d : ", sender->header.hops, sender->header.ttl);
+	routing_log_init(&log, sender, sender->header.muid,
+		sender->header.function, sender->header.hops, sender->header.ttl);
 
 	/*
 	 * For routed messages, we check whether we get a duplicate and
@@ -1460,15 +1615,21 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	switch (sender->header.function) {
 	case GTA_MSG_PUSH_REQUEST:
 	case GTA_MSG_SEARCH:
-		if (!check_duplicate(node, &m))
-			goto done;
+		route_it = check_duplicate(&log, node, &m);
 		duplicate = (m != NULL);
 
 		/*
 		 * Record the message in the routing table.
+		 *
+		 * If it's a duplicate, we'll record the additional route, which
+		 * will enable us to find alternate routes for query hits should
+		 * the original one fail due to a node disconnection.
 		 */
 
 		message_add(sender->header.muid, sender->header.function, sender);
+
+		if (!route_it)
+			goto done;
 		break;
 	default:
 		break;
@@ -1480,21 +1641,23 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 
 	switch (sender->header.function) {
 	case GTA_MSG_PUSH_REQUEST:
-		handle_it = route_push(node, dest);
+		handle_it = route_push(&log, node, dest);
 		break;
 	case GTA_MSG_SEARCH:
-		handle_it = route_query(node, dest);
+		handle_it = route_query(&log, node, dest);
 		break;
 	case GTA_MSG_SEARCH_RESULTS:
-		handle_it = route_query_hit(node, dest);
+		handle_it = route_query_hit(&log, node, dest);
 		break;
 	default:
 		g_error("messages 0x%x \"%s\" should not be routed",
 			sender->header.function, debug_msg[sender->header.function]);
 	}
 
+	routing_log_set_route(&log, dest, handle_it);
+
 done:
-	routing_log_flush("\n");
+	routing_log_flush(&log);
 
 	sender->header.hops++;				/* Mark passage through our node */
 	sender->header.ttl--;
