@@ -55,7 +55,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.2 2004/01/05 00:44:26 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.4 2004/04/15 12:20:35 rmanfredi Exp $
 
 PIXMAPS = \
 	arrow_down.xpm \
@@ -63,6 +63,8 @@ PIXMAPS = \
 	booklib.xpm \
 	booksha.xpm \
 	bookshav.xpm \
+	clanbomber_red.xpm \
+	clanbomber_yellow.xpm \
 	download.xpm \
 	exit.xpm \
 	filter.xpm \
@@ -148,7 +150,7 @@ Makefile.SH: Jmakefile
 		fi; \
 		echo "	$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT)" ; \
 		$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT) ; \
-	else touch $@; exit 0; fi
+	else touch $@; fi
 
 Makefile: Makefile.SH
 	/bin/sh Makefile.SH
