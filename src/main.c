@@ -102,6 +102,7 @@ static volatile gchar *exit_step = "gtk_gnutella_exit";
  */
 static void sig_alarm(int n)
 {
+	(void) n;
 	if (from_atexit) {
 		g_warning("exit cleanup timed out -- forcing exit");
 		longjmp(atexit_env, 1);
@@ -217,7 +218,7 @@ void gtk_gnutella_exit(gint n)
 		if ((d = delta_time(now, exit_time)) >= exit_grace)
 			break;
 		main_gui_shutdown_tick(exit_grace - d);
-		usleep(200000);					/* 200 ms */
+		sleep(1);
 	}
 
 	hsep_close();
@@ -281,6 +282,8 @@ static void sig_ignore(int n)
 	gint saved_errno = errno;
 	signal(n, sig_ignore);
 	errno = saved_errno;
+#else
+	(void) n;
 #endif
 }
 
@@ -341,6 +344,7 @@ static gboolean main_timer(gpointer p)
 	void icon_timer(void);
 	time_t now = time((time_t *) NULL);
 
+	(void) p;
 	if (signal_received) {
 		g_warning("caught signal #%d, exiting...", signal_received);
 		gtk_gnutella_exit(1);
@@ -396,6 +400,7 @@ static gboolean callout_timer(gpointer p)
 	GTimeVal tv;
 	gint delay;
 
+	(void) p;
 	g_get_current_time(&tv);
 
 	/*
@@ -412,7 +417,7 @@ static gboolean callout_timer(gpointer p)
 	 * Assume a single period then.
 	 */
 
-	if (delay < 0 || delay > 10*CALLOUT_PERIOD)
+	if (delay < 0 || delay > 10 * CALLOUT_PERIOD)
 		delay = CALLOUT_PERIOD;
 
 	cq_clock(callout_queue, delay);
@@ -427,6 +432,7 @@ static gboolean callout_timer(gpointer p)
  */
 static gboolean scan_files_once(gpointer p)
 {
+	(void) p;
 	gui_allow_rescan_dir(FALSE);
 	share_scan();
 	gui_allow_rescan_dir(TRUE);
@@ -442,6 +448,8 @@ static void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 	const char *level;
 	gchar *safer;
 
+	(void) log_domain;
+	(void) user_data;
 	now = time(NULL);
 	ct = localtime(&now);
 
