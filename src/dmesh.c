@@ -79,7 +79,7 @@ struct dmesh_entry {
 
 #define MAX_LIFETIME	86400		/* 1 day */
 #define MAX_ENTRIES		64			/* Max amount of entries kept in list */
-#define MAX_STAMP		0xffffffff	/* Unsigned int, 32 bits */
+#define MAX_STAMP		0xffffffffU	/* Unsigned int, 32 bits */
 
 #define MIN_PFSP_SIZE	524288		/* 512K, min size for PFSP advertising */
 #define MIN_PFSP_PCT	10			/* 10%, min available data for PFSP */
@@ -1535,7 +1535,7 @@ static void dmesh_check_deferred_against_existing(
 		matches = 0;
 
 		if (dbg > 4)
-			printf("Checking deferred url 0x%p (str=0x%p:%s)\n",
+			printf("Checking deferred url %p (str=%p:%s)\n",
 				d, d->dmesh_url->name, d->dmesh_url->name);
 
 		for (ex = existing_urls; ex; ex = ex->next) {
@@ -2344,10 +2344,10 @@ static void dmesh_retrieve(void)
 	gboolean has_sha1 = FALSE;
 	gboolean skip = FALSE;
 	gint line = 0;
-	file_path_t fp;
+	file_path_t fp[1];
 
-	file_path_set(&fp, settings_config_dir(), dmesh_file);
-	in = file_config_open_read("download mesh", &fp, 1);
+	file_path_set(fp, settings_config_dir(), dmesh_file);
+	in = file_config_open_read("download mesh", fp, G_N_ELEMENTS(fp));
 
 	if (!in)
 		return;
