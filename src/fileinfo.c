@@ -2284,7 +2284,7 @@ void file_info_recreate(struct download *d)
 	new_fi = file_info_create(fi->file_name, fi->path, fi->size, fi->sha1);
 
 	/*
-	 * Copy old alises to new structure.
+	 * Copy old aliases to new structure.
 	 */
 
 	for (l = fi->alias; l; l = g_slist_next(l)) {
@@ -3518,22 +3518,36 @@ gnet_fi_info_t *fi_get_info(gnet_fi_t fih)
 {
     struct dl_file_info *fi = file_info_find_by_handle(fih); 
     gnet_fi_info_t *info;
+	GSList *l;
 
     info = walloc(sizeof(*info));
 
     info->file_name = fi->file_name ? atom_str_get(fi->file_name) : NULL;
     info->fi_handle = fi->fi_handle;
+	info->aliases   = NULL;
+
+	for (l = fi->alias; l; l = g_slist_next(l)) {
+		const gchar *alias = (const gchar *) l->data;
+		info->aliases = g_slist_prepend(info->aliases, atom_str_get(alias));
+	}
 
     return info;
-
 }
 
 void fi_free_info(gnet_fi_info_t *info)
 {
+	GSList *l;
+
     g_assert(info != NULL);
 
 	if (info->file_name)
 		atom_str_free(info->file_name);
+
+	for (l = info->aliases; l; l = g_slist_next(l)) {
+		const gchar *alias = (const gchar *) l->data;
+		atom_str_free(alias);
+	}
+	g_slist_free(info->aliases);
 
     wfree(info, sizeof(*info));
 }

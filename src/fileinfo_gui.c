@@ -61,8 +61,11 @@ static gnet_fi_info_t *last_fi = NULL;
  *
  * Fill in the cell data. Calling this will always break the data
  * it filled in last time!
+ *
+ * WARNING: returns pointer to global data: the gnet_fi_info_t structure
+ * filled from the given `fih'.
  */
-static void fi_gui_fill_info(
+static gnet_fi_info_t *fi_gui_fill_info(
     gnet_fi_t fih, gchar *titles[c_fi_num])
 {
     /* Clear info from last call. We keep this around so we don't
@@ -77,6 +80,8 @@ static void fi_gui_fill_info(
     g_assert(last_fi != NULL);
 
     titles[c_fi_filename] = last_fi->file_name;
+
+	return last_fi;
 }
 
 static void fi_gui_fill_status(
@@ -197,7 +202,7 @@ static void fi_gui_clear_details()
  * Returns TRUE if the given string matches with the currntly set
  * row filter. Returns FALSE otherwise.
  */
-static inline gboolean fi_gui_match_filter(gchar *s)
+static inline gboolean fi_gui_match_filter(const gchar *s)
 {
     gint n;
 
@@ -225,13 +230,26 @@ static void fi_gui_add_row(gnet_fi_t fih)
     gint row;
     gint n;
     gchar *titles[c_fi_num];
+	gnet_fi_info_t *info;
+	gboolean filter_match;
+	GSList *l;
 
     memset(titles, 0, sizeof(titles));
-    fi_gui_fill_info(fih, titles);
+    info = fi_gui_fill_info(fih, titles);
 
-    /* If the entry doesn't match the filter, register it as hidden and
-     * return. */
-    if (!fi_gui_match_filter(titles[c_fi_filename])) {
+    /*
+	 * If the entry doesn't match the filter, register it as hidden and
+     * return.
+	 */
+
+	filter_match = fi_gui_match_filter(info->file_name);
+
+	for (l = info->aliases; !filter_match && l; l = g_slist_next(l)) {
+		const gchar *alias = (const gchar *) l->data;
+		filter_match = fi_gui_match_filter(alias);
+	}
+
+    if (!filter_match) {
         if (!g_slist_find(hidden_fi, GUINT_TO_POINTER(fih))) {
             hidden_fi = g_slist_prepend(hidden_fi, GUINT_TO_POINTER(fih));
             visible_fi = g_slist_remove(visible_fi, GUINT_TO_POINTER(fih));

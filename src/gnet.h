@@ -718,7 +718,8 @@ typedef guint32 gnet_fi_t;
 
 typedef struct gnet_fi_info {
 	gnet_fi_t fi_handle;
-	gchar    *file_name;        /* Name of the file on disk */
+	gchar *file_name;			/* Name of the file on disk */
+	GSList *aliases;			/* List of aliases (NULL if none) */
 } gnet_fi_info_t;
 
 typedef struct gnet_fi_status {
