@@ -36,6 +36,7 @@
 
 RCSID("$Id$");
 
+#include "gtk/gtk-missing.h"
 #include "gtk/search_stats.h"
 #include "gtk/columns.h"
 
