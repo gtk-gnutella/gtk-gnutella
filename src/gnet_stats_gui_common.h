@@ -31,8 +31,10 @@
 
 #include <glib.h> 
 
-extern const gchar *msg_type_str[MSG_TYPE_COUNT];
-extern const gchar *msg_drop_str[MSG_DROP_REASON_COUNT];
-extern const gchar *general_type_str[GNR_TYPE_COUNT];
+extern const gchar *msg_type_str(int MSG_TYPE_COUNT);
+extern const gchar *msg_drop_str(int MSG_DROP_REASON_COUNT);
+extern const gchar *general_type_str(int GNR_TYPE_COUNT);
+
+int msg_type_str_size();
 
 #endif /* _gnet_stats_gui_common_h_ */

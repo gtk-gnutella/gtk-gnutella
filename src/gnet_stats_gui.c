@@ -296,7 +296,7 @@ void gnet_stats_gui_init(void)
         GList *l;
         gint row;
 
-        titles[0] = (gchar *) msg_type_str[n];
+        titles[0] = (gchar *) msg_type_str(n);
 
         row = gtk_clist_append(clist_stats_msg, titles);
         gtk_clist_set_selectable(clist_stats_msg, row, FALSE);
@@ -305,7 +305,7 @@ void gnet_stats_gui_init(void)
         row = gtk_clist_append(clist_stats_fc_hops, titles);
         gtk_clist_set_selectable(clist_stats_fc_hops, row, FALSE);
 
-        list_item = gtk_list_item_new_with_label(msg_type_str[n]);
+        list_item = gtk_list_item_new_with_label(msg_type_str(n));
 
         gtk_widget_show(list_item);
 
@@ -324,14 +324,14 @@ void gnet_stats_gui_init(void)
 
     for (n = 0; n < MSG_DROP_REASON_COUNT; n ++) {
         gint row;
-        titles[0] = (gchar *) msg_drop_str[n];
+        titles[0] = (gchar *) msg_drop_str(n);
         row = gtk_clist_append(clist_reason, titles);
         gtk_clist_set_selectable(clist_reason, row, FALSE);
     }
 
     for (n = 0; n < GNR_TYPE_COUNT; n ++) {
         gint row;
-        titles[0] = (gchar *) general_type_str[n];
+        titles[0] = (gchar *) general_type_str(n);
         row = gtk_clist_append(clist_general, titles);
         gtk_clist_set_selectable(clist_general, row, FALSE);
     }

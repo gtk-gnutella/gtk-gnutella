@@ -29,57 +29,94 @@
 
 RCSID("$Id$");
 
-const gchar *msg_type_str[MSG_TYPE_COUNT] = {
-    "Unknown",
-    "Ping",
-    "Pong",
-    "Bye",
-    "QRP",
-    "Vendor Spec.",
-    "Vendor Std.",
-    "Push",
-    "Query",
-    "Query Hit",
-    "Total"
+/*
+ * msg_type_str
+ *
+ * Gets the string associated with the message type.
+ */
+const gchar *msg_type_str(int value)
+{
+	switch (value) {
+		case 0: return _("Unknown");
+		case 1: return _("Ping");
+		case 2: return _("Pong");
+		case 3: return _("Bye");
+		case 4: return _("QRP");
+		case 5: return _("Vendor Spec.");
+		case 6: return _("Vendor Std.");
+		case 7: return _("Push");
+		case 8: return _("Query");
+		case 9: return _("Query Hit");
+		case 10: return _("Total");
+		default: 
+			g_warning("Requested general_type_str %d is invalid", value);
+			return "";
+	}
 };
 
-const gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
-    "Bad size",
-    "Too small",
-    "Too large",
-	"Way too large",
-    "Unknown message type",
-    "Unexpected message",
-    "Message sent with TTL = 0",
-    "Max TTL exceeded",
-    "Ping throttle",
-	"Unusable Pong",
-    "Hard TTL limit reached",
-    "Max hop count reached",
-    "Unrequested reply",
-    "Route lost",
-    "No route",
-    "Duplicate message",
-    "Message to banned GUID",
-    "Node shutting down",
-    "Flow control",
-    "Query text had no trailing NUL",
-    "Query text too short",
-    "Query had unnecessary overhead",
-    "Message with malformed SHA1",
-    "Message with malformed UTF-8",
-    "Malformed Query Hit",
-	"Hostile IP address",
-};
+int msg_type_str_size()
+{
+	return MSG_TYPE_COUNT;
+}
 
-const gchar *general_type_str[GNR_TYPE_COUNT] = {
-    "Routing errors",
-    "Searches to local DB",
-    "Hits on local DB",
-    "Compacted queries",
-    "Bytes saved by compacting",
-    "UTF8 queries",
-    "SHA1 queries",
-    "Broadcasted push messages",
-};
+/*
+ * msg_drop_str
+ *
+ * Gets the string associated with the drop reason.
+ */
+const gchar *msg_drop_str(int value)
+{
+	switch (value) {
+		case 0: return _("Bad size");
+		case 1: return _("Too small");
+		case 2: return _("Too large");
+		case 3: return _("Way too large");
+		case 4: return _("Unknown message type");
+		case 5: return _("Unexpected message");
+		case 6: return _("Message sent with TTL = 0");
+		case 7: return _("Max TTL exceeded");
+		case 8: return _("Ping throttle");
+		case 9: return _("Unusable Pong");
+		case 10: return _("Hard TTL limit reached");
+		case 11: return _("Max hop count reached");
+		case 12: return _("Unrequested reply");
+		case 13: return _("Route lost");
+		case 14: return _("No route");
+		case 15: return _("Duplicate message");
+		case 16: return _("Message to banned GUID");
+		case 17: return _("Node shutting down");
+		case 18: return _("Flow control");
+		case 19: return _("Query text had no trailing NUL");
+		case 20: return _("Query text too short");
+		case 21: return _("Query had unnecessary overhead");
+		case 22: return _("Message with malformed SHA1");
+		case 23: return _("Message with malformed UTF-8");
+		case 24: return _("Malformed Query Hit");
+		case 25: return _("Hostile IP address");
+		default: 
+			g_warning("Requested general_type_str %d is invalid", value);
+			return "";
+	}
+}
 
+/*
+ * general_type_str
+ *
+ * Gets the string associated with the general message
+ */
+const gchar *general_type_str(int value)
+{
+	switch (value) {
+		case 0: return _("Routing errors");
+		case 1: return _("Searches to local DB");
+		case 2: return _("Hits on local DB");
+		case 3: return _("Compacted queries");
+		case 4: return _("Bytes saved by compacting");
+		case 5: return _("UTF8 queries");
+		case 6: return _("SHA1 queries");
+		case 7: return _("Broadcasted push messages");
+		default: 
+			g_warning("Requested general_type_str %d is invalid", value);
+			return "";
+	}
+}
