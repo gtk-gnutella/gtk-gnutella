@@ -1584,9 +1584,9 @@ retry:
 	for (l = sl_outgoing; l; l = l->next) {
 		struct http_async *ha = (struct http_async *) l->data;
 		time_t elapsed = now - ha->last_update;
-		guint32 timeout = ha->bio ?
+		time_t timeout = (time_t) (ha->bio ?
 			download_connected_timeout :
-			download_connecting_timeout;
+			download_connecting_timeout);
 
 		if (ha->flags & HA_F_SUBREQ)
 			continue;
