@@ -232,6 +232,8 @@ set w_main_list {
     button_filter_add_rule_jump
     button_filter_clear
     button_filter_remove
+    button_filter_reset
+    button_filter_reset_all_rules
     checkbutton_filter_ip_invert_cond
     checkbutton_filter_size_invert_cond
     checkbutton_filter_text_case
@@ -244,13 +246,13 @@ set w_main_list {
     checkbutton_filter_ip_active
     checkbutton_filter_jump_active
     clist_filter_rules
+    ctree_filter_filters
     entry_filter_ip_address
     entry_filter_ip_mask
     entry_filter_new
     entry_filter_text_pattern
     notebook_filter_detail
     optionmenu_filter_ip_target
-    optionmenu_filter_filters
     optionmenu_filter_size_target
     optionmenu_filter_text_target
     optionmenu_filter_jump_target
@@ -258,6 +260,9 @@ set w_main_list {
     optionmenu_filter_default_policy
     spinbutton_filter_size_max
     spinbutton_filter_size_min
+    hpaned_filter_main
+    entry_filter_name
+    checkbutton_filter_enabled
 }
 
 # interface.h ----------------------------------------------------------------------------------------
