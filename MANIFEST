@@ -98,6 +98,8 @@ doc/public/bye_codes
 gtk-gnutella.desktop
 gtk-gnutella.glade
 gtk-gnutella.png
+gtk-gnutella.16.png
+gtk-gnutella.32.png
 gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
 gtk2-gnutella.glade
 gwcache.boot
