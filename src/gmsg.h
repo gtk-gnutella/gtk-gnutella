@@ -46,11 +46,9 @@ gchar *gmsg_name(gint function);
 
 void gmsg_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size);
 void gmsg_ctrl_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size);
-void gmsg_search_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size);
 void gmsg_split_sendto_one(struct gnutella_node *n,
 	guchar *head, guchar *data, guint32 size);
 void gmsg_sendto_all(GSList *l, guchar *msg, guint32 size);
-void gmsg_search_sendto_all(GSList *l, guchar *msg, guint32 size);
 void gmsg_split_sendto_all_but_one(GSList *l, struct gnutella_node *n,
 	guchar *head, guchar *data, guint32 size);
 void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt);
@@ -67,7 +65,13 @@ void gmsg_sendto_route_ggep(
 
 void gmsg_split_sendto_leaves(GSList *l,
 	guchar *head, guchar *data, guint32 size);
-void gmsg_search_sendto_all_nonleaf(GSList *l, guchar *msg, guint32 size);
+
+void gmsg_search_sendto_one(
+	struct gnutella_node *n, gnet_search_t sh, guchar *msg, guint32 size);
+void gmsg_search_sendto_all(
+	GSList *l, gnet_search_t sh, guchar *msg, guint32 size);
+void gmsg_search_sendto_all_nonleaf(
+	GSList *l, gnet_search_t sh, guchar *msg, guint32 size);
 
 #endif	/* _gmsg_h_ */
 

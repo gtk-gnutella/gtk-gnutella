@@ -74,6 +74,7 @@ typedef struct search_ctrl {
 	GHook *new_node_hook;
 	guint reissue_timeout_id;
 	guint reissue_timeout;		/* timeout per search, 0 = search stopped */
+	guint query_emitted;		/* Amount of queries emitted since last retry */
 } search_ctrl_t;
 
 /*
@@ -1009,18 +1010,36 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 
 	message_add(m->header.muid, GTA_MSG_SEARCH, NULL);
 
+	/*
+	 * All the gmsg_search_xxx() routines include the search handle.
+	 * In the search queue, we put entries pointing back to the search.
+	 * When the search is put in the MQ, we increment a counter in the
+	 * search if the target is not a leaf node.
+	 *
+	 * When the counter in the search reaches the node's outdegree, then we
+	 * stop sending the query on the network, even though we continue to feed
+	 * the SQ as usual when new connections are made.
+	 *
+	 * The "query emitted" counter is reset when the search retry timer expires.
+	 *
+	 *		--RAM, 04/04/2003
+	 */
+
 	if (n) {
 		mark_search_sent_to_node(sch, n);
-		gmsg_search_sendto_one(n, (guchar *) m, size);
+		gmsg_search_sendto_one(n, sch->search_handle, (guchar *) m, size);
 	} else {
 		mark_search_sent_to_connected_nodes(sch);
 		if (qhv != NULL) {
 			GSList *nodes = qrt_build_query_target(qhv, 0, NULL);
-			gmsg_search_sendto_all(nodes, (guchar *) m, size);
+			gmsg_search_sendto_all(
+				nodes, sch->search_handle, (guchar *) m, size);
 			g_slist_free(nodes);
-			gmsg_search_sendto_all_nonleaf(sl_nodes, (guchar *) m, size);
+			gmsg_search_sendto_all_nonleaf(
+				sl_nodes, sch->search_handle, (guchar *) m, size);
 		} else
-			gmsg_search_sendto_all(sl_nodes, (guchar *) m, size);
+			gmsg_search_sendto_all(
+				sl_nodes, sch->search_handle, (guchar *) m, size);
 	}
 
 	wfree(m, size);
@@ -1083,7 +1102,9 @@ static void search_send_packet(search_ctrl_t *sch)
  */
 static gboolean search_reissue_timeout_callback(gpointer data)
 {
-	search_reissue(((search_ctrl_t *)data)->search_handle);
+	search_ctrl_t *sch = (search_ctrl_t *) data;
+
+	search_reissue(sch->search_handle);
 	return TRUE;
 }
 
@@ -1125,9 +1146,9 @@ static void update_one_reissue_timeout(search_ctrl_t *sch)
 /*
  * search_dequeue_all_nodes
  *
- * Signal to all search queues that search for `qtext' was closed.
+ * Signal to all search queues that search was closed.
  */
-static void search_dequeue_all_nodes(gchar *qtext)
+static void search_dequeue_all_nodes(gnet_search_t sh)
 {
 	GSList *l;
 
@@ -1136,7 +1157,7 @@ static void search_dequeue_all_nodes(gchar *qtext)
 		squeue_t *sq = NODE_SQUEUE(n);
 
 		if (sq)
-			sq_search_closed(sq, qtext);
+			sq_search_closed(sq, sh);
 	}
 }
 
@@ -1278,8 +1299,33 @@ final_cleanup:
 	return drop_it;
 }
 
+/*
+ * search_query_allowed
+ *
+ * Check whether we can send another query for this search.
+ * Returns TRUE if we can send, with the emitted counter incremented, or FALSE
+ * if the query should just be ignored.
+ */
+gboolean search_query_allowed(gnet_search_t sh)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
 
+	g_assert(sch);
 
+	/*
+	 * We allow the query to be sent once more than our outdegree.
+	 *
+	 * This is because "sending" here means putting the message in
+	 * the message queue, not physically sending.  We might never get
+	 * a chance to send that message.
+	 */
+
+	if (sch->query_emitted > node_outdegree())
+		return FALSE;
+
+	sch->query_emitted++;
+	return TRUE;
+}
 
 /***
  *** Public functions accessible through gnet.h
@@ -1325,7 +1371,7 @@ void search_close(gnet_search_t sh)
 		g_hash_table_destroy(sch->h_muids);
 
 		search_free_sent_nodes(sch);
-		search_dequeue_all_nodes(sch->query);
+		search_dequeue_all_nodes(sh);
 	} else {
 		search_passive--;
 	}
@@ -1350,11 +1396,13 @@ void search_reissue(gnet_search_t sh)
     }
 
 	if (dbg)
-		printf("reissuing search %s.\n", sch->query);
+		printf("reissuing search \"%s\" (queries broadcasted: %d)\n",
+			sch->query, sch->query_emitted);
 
 	muid = (guchar *) walloc(MUID_SIZE);
 	guid_query_muid(muid, FALSE);
 
+	sch->query_emitted = 0;
 	search_add_new_muid(sch, muid);
 	search_send_packet(sch);
 	update_one_reissue_timeout(sch);

@@ -149,7 +149,8 @@ void gmsg_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
  *
  * Send our search message to one node.
  */
-void gmsg_search_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
+void gmsg_search_sendto_one(
+	struct gnutella_node *n, gnet_search_t sh, guchar *msg, guint32 size)
 {
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 	g_assert(((struct gnutella_header *) msg)->hops <= hops_random_factor);
@@ -160,7 +161,7 @@ void gmsg_search_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
 	if (dbg > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
-	sq_putq(n->searchq, gmsg_to_pmsg(PMSG_P_DATA, msg, size));
+	sq_putq(n->searchq, sh, gmsg_to_pmsg(PMSG_P_DATA, msg, size));
 }
 
 
@@ -231,7 +232,8 @@ void gmsg_sendto_all(GSList *l, guchar *msg, guint32 size)
  *
  * Broadcast our search message to all nodes in the list.
  */
-void gmsg_search_sendto_all(GSList *l, guchar *msg, guint32 size)
+void gmsg_search_sendto_all(
+	GSList *l, gnet_search_t sh, guchar *msg, guint32 size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(PMSG_P_DATA, msg, size);
 
@@ -245,7 +247,7 @@ void gmsg_search_sendto_all(GSList *l, guchar *msg, guint32 size)
 		struct gnutella_node *dn = (struct gnutella_node *) l->data;
 		if (!NODE_IS_WRITABLE(dn))
 			continue;
-		sq_putq(dn->searchq, pmsg_clone(mb));
+		sq_putq(dn->searchq, sh, pmsg_clone(mb));
 	}
 
 	pmsg_free(mb);
@@ -256,7 +258,8 @@ void gmsg_search_sendto_all(GSList *l, guchar *msg, guint32 size)
  *
  * Broadcast our search message to all non-leaf nodes in the list.
  */
-void gmsg_search_sendto_all_nonleaf(GSList *l, guchar *msg, guint32 size)
+void gmsg_search_sendto_all_nonleaf(
+	GSList *l, gnet_search_t sh, guchar *msg, guint32 size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(PMSG_P_DATA, msg, size);
 
@@ -270,7 +273,7 @@ void gmsg_search_sendto_all_nonleaf(GSList *l, guchar *msg, guint32 size)
 		struct gnutella_node *dn = (struct gnutella_node *) l->data;
 		if (!NODE_IS_WRITABLE(dn) || NODE_IS_LEAF(dn))
 			continue;
-		sq_putq(dn->searchq, pmsg_clone(mb));
+		sq_putq(dn->searchq, sh, pmsg_clone(mb));
 	}
 
 	pmsg_free(mb);

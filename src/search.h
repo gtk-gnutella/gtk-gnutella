@@ -43,6 +43,7 @@ void search_init(void);
 void search_shutdown(void);
 
 gboolean search_results(gnutella_node_t *n);
+gboolean search_query_allowed(gnet_search_t sh);
 
 #endif /* _search_h_ */
 

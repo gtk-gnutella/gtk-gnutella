@@ -551,6 +551,27 @@ gint node_missing(void)
 }
 
 /*
+ * node_outdegree
+ *
+ * Returns this node's outdegree, i.e. the maximum amount of peer connections
+ * that we can support.
+ */
+gint node_outdegree(void)
+{
+	switch (current_peermode) {
+	case NODE_P_LEAF:
+		return max_ultrapeers;
+	case NODE_P_NORMAL:
+	case NODE_P_ULTRA:
+		return max_connections;
+	default:
+		g_assert_not_reached();
+	}
+
+	return 0;
+}
+
+/*
  * get_protocol_version
  *
  * Parse the first handshake line to determine the protocol version.

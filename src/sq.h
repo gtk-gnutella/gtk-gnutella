@@ -61,9 +61,9 @@ typedef struct search_queue {
 squeue_t *sq_make(struct gnutella_node *node);
 void sq_clear(squeue_t *sq);
 void sq_free(squeue_t *sq);
-void sq_putq(squeue_t *sq, pmsg_t *mb);
+void sq_putq(squeue_t *sq, gnet_search_t sh, pmsg_t *mb);
 void sq_process(squeue_t *sq, time_t now);
-void sq_search_closed(squeue_t *sq, gchar *qtext);
+void sq_search_closed(squeue_t *sq, gnet_search_t sh);
 
 #endif /* _sq_h_ */
 

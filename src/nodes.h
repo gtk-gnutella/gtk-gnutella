@@ -327,6 +327,7 @@ gint32 connected_nodes(void);
 gint32 node_count(void);
 gint node_keep_missing(void);
 gint node_missing(void);
+gint node_outdegree(void);
 gboolean node_is_connected(guint32 ip, guint16 port, gboolean incoming);
 void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port);
 void node_remove(struct gnutella_node *, const gchar * reason, ...);
