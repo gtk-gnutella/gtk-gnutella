@@ -1229,6 +1229,13 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 		fi->file_size_known = TRUE;
 
 	/*
+	 * Enforce "size != 0 => file_size_known".
+	 */
+
+	if (fi->size)
+		fi->file_size_known = TRUE;
+
+	/*
 	 * If the fileinfo appendix was coherent sofar, we must have reached
 	 * the fixed-size trailer that we already parsed eariler.  However,
 	 * in case there was an application crash (kill -9) in the middle of
@@ -2006,6 +2013,13 @@ file_info_retrieve(void)
 
 			if (fi->ctime == 0)
 				fi->ctime = fi->ntime = time(NULL);
+
+			/*
+			 * Ensure "size != 0 => file_size_known".
+			 */
+
+			if (fi->size)
+				fi->file_size_known = TRUE;
 
 			/*
 			 * Allow reconstruction of missing information: if no CHNK

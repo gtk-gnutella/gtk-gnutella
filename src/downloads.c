@@ -3274,6 +3274,8 @@ create_download(gchar *file, gchar *uri, guint32 size, guint32 record_index,
 	struct dl_file_info *fi;
 	gboolean server_created = FALSE;		/* For assertions only */
 
+	g_assert(size == 0 || file_size_known);
+
 #if 0 /* This is helpful when you have a transparent proxy running */
     /*
      * Never try to download from ports 80 o 443.
