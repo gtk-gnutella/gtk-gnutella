@@ -321,7 +321,7 @@ gboolean search_gui_new_search_full(
 {
     search_t *sch;
     GList *glist;
-    gchar *titles[3];
+    gchar *titles[c_sl_num];
     gint row;
     gchar query[512];
 
@@ -675,7 +675,7 @@ void search_gui_add_record(
 	search_t *sch, record_t *rc, GString *vinfo, GdkColor *fg, GdkColor *bg)
 {
   	GString *info = g_string_sized_new(80);
-  	gchar *titles[5];
+  	gchar *titles[c_sr_num];
 	gint count;
 	gpointer key = NULL;
 	gboolean is_parent = FALSE;
