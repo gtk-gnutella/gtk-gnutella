@@ -1,7 +1,10 @@
 # since last version
 
-- (2004.94.15 - Jeroen)
+- (2004.04.15 - Jeroen)
  * Added cache.kicks-ass.net:8000 to the webcaches
+ * Check for new version now only checks for newer releases of the current
+   version if the current version is unstable. But will still look for newer
+   releases of stable versions
 
 - (2004.04.15 - Richard)
  * [Gtk1] Added toolbar style selection combo to gui config pane
