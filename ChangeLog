@@ -1,5 +1,14 @@
 # since last version
 
+- (2003.01.03 - cbiere)
+ * [Gtk2] Added multichoice for toolbar style
+ * [Gtk2] Added property for collapsed/expanded status of nodes in tree menu
+ * [Gtk2] Added multichoice for toolbar style
+ * [Gtk2] Several syncs with Gtk1 version
+ * [Gtk2] Moved "Freeze queue" button from toolbar to download pane
+ * Gtk2 version isn't marked as experimental any more
+ * Added check for 192.0.2/24 TEST-NET [RFC 3330] to host_is_valid()
+
 - (2003.01.02 - RAM)
  * New properties: "dl_queue_count", "dl_running_count", "dl_byte_count"
    and "ul_byte_count".
