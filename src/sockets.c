@@ -552,6 +552,7 @@ static void socket_accept(gpointer data, gint source,
 
 	if (is_firewalled) {
 		is_firewalled = FALSE;
+        gui_update_is_firewalled();
 		if (dbg) printf("Got evidence that we're not fully firewalled\n");
 	}
 }
