@@ -117,6 +117,8 @@ enum dl_file_info_field {
 };
 
 #define FI_STORE_DELAY		10	/* Max delay (secs) for flushing fileinfo */
+#define FI_TRAILER_INT		5	/* Amount of guint32 that make up the trailer */
+#define FI_TRAILER_SIZE		(FI_TRAILER_INT * sizeof(guint32))
 
 /*
  * The swarming trailer is built within a memory buffer first, to avoid having
@@ -702,7 +704,7 @@ static void fi_alias(struct dl_file_info *fi, gchar *name, gboolean record)
 static gboolean file_info_get_trailer(
 	gint fd, struct trailer *tb, const gchar *name)
 {
-	guint32 tr[5];
+	guint32 tr[FI_TRAILER_INT];
 	struct stat buf;
 	off_t offset;
 
@@ -921,6 +923,67 @@ static struct dl_file_info *file_info_lookup_dup(struct dl_file_info *fi)
 }
 
 /*
+ * looks_like_urn
+ *
+ * Check whether filename looks like an URN.
+ */
+static gboolean looks_like_urn(const gchar *filename)
+{
+	gint idx;
+	const gchar *p;
+	gchar c;
+
+	if (0 == strncasecmp(filename, "urn:", 4))
+		return TRUE;
+
+	if (0 == strncasecmp(filename, "sha1:", 4))
+		return TRUE;
+
+	if (0 == strncasecmp(filename, "bitprint:", 9))
+		return TRUE;
+
+	idx = 0;
+	p = filename;
+
+	while ((c = *p++)) {
+		idx++;
+		if (isspace(c))
+			break;
+		if (!isalpha(c))
+			break;
+		if (idx >= SHA1_BASE32_SIZE)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+/*
+ * file_info_readable_filename
+ *
+ * Determines a human-readable filename for the file, using heuristics to
+ * skip what looks like an URN.
+ *
+ * Returns a pointer to the information in the fileinfo, but this must be
+ * duplicated should it be perused later.
+ */
+gchar *file_info_readable_filename(struct dl_file_info *fi)
+{
+	GSList *l;
+
+	if (!looks_like_urn(fi->file_name))
+		return fi->file_name;
+
+	for (l = fi->alias; l; l = g_slist_next(l)) {
+		gchar *name = l->data;
+		if (!looks_like_urn(name))
+			return name;
+	}
+
+	return fi->file_name;
+}
+
+/*
  * file_info_shared_sha1
  *
  * Look whether we have a partially downloaded file bearing the given SHA1.
@@ -949,20 +1012,29 @@ shared_file_t *file_info_shared_sha1(const gchar *sha1)
 	if (fi->sf == NULL) {
 		shared_file_t *sf = walloc0(sizeof(*sf));
 		char *path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+		char *filename;
+
+		/*
+		 * Determine a proper human-readable name for the file.
+		 * If it is an URN, look through the aliases.
+		 */
+
+		filename = file_info_readable_filename(fi);
 
 		/*
 		 * In regular "shared_file" structures built for complete files,
 		 * the sf->file_name field points within the sf->file_path field.
 		 * Therefore, the sf->file_name field is not freed separately.
 		 * Here, since the lifecycle of the structure is tied to its holding
-		 * fileinfo, it is perfectly acceptable to reuse fi->file_name.
+		 * fileinfo, it is perfectly acceptable to reuse fi->file_name or
+		 * one of the aliases.
 		 */
 
 		fi->sf = sf;
 		sf->fi = fi;			/* Signals it's a partially downloaded file */
 
 		sf->file_path = atom_str_get(path);
-		sf->file_name = fi->file_name;
+		sf->file_name = filename;
 		sf->file_name_len = strlen(fi->file_name);
 		sf->file_size = fi->size;
 		sf->file_index = URN_INDEX;
@@ -998,6 +1070,8 @@ static struct dl_file_info *file_info_retrieve_binary(
 	gint fd;
 	guint32 version;
 	struct trailer trailer;
+	guint32 toffset;
+	struct stat buf;
 
 	pathname = g_strdup_printf("%s/%s", path, file);
 	g_return_val_if_fail(NULL != pathname, NULL);
@@ -1126,18 +1200,19 @@ static struct dl_file_info *file_info_retrieve_binary(
 	}
 
 	/*
-	 * Finally, read back the trailer fileds before the checksum
-	 * to get an accurate checksum recomputation.
+	 * If the fileinfo appendix was coherent sofar, we must have reached
+	 * the fixed-size trailer that we already parsed eariler.  However,
+	 * in case there was an application crash (kill -9) in the middle of
+	 * a write(), or a machine crash, some data can be non-consistent.
+	 *
+	 * Read back the trailer fileds before the checksum to get an accurate
+	 * checksum recomputation, but don't assert that what we read matches
+	 * the trailer we already parsed.
 	 */
 
 	READ_INT32(&tmpguint);			/* file size */
-	g_assert(tmpguint == trailer.filesize);
-
 	READ_INT32(&tmpguint);			/* generation number */
-	g_assert(tmpguint == trailer.generation);
-
 	READ_INT32(&tmpguint);			/* trailer length */
-	g_assert(tmpguint == trailer.length);
 
 	if (checksum != trailer.checksum) {
 		reason = "checksum mismatch";
@@ -2965,6 +3040,7 @@ enum dl_chunk_status file_info_find_hole(
 	guint32 chunksize;
 	guint busy = 0;
 	GSList *cklist;
+	gboolean cloned = FALSE;
 
 	g_assert(fi->refcount > 0);
 	g_assert(fi->lifecount > 0);
@@ -3012,7 +3088,12 @@ enum dl_chunk_status file_info_find_hole(
 	 *		--RAM, 11/10/2003
 	 */
 
-	cklist = pfsp_server ? list_clone_shift(fi) : fi->chunklist;
+	if (pfsp_server) {
+		cklist = list_clone_shift(fi);
+		if (cklist != fi->chunklist)
+			cloned = TRUE;
+	} else
+		cklist = fi->chunklist;
 
 	for (fclist = cklist; fclist; fclist = g_slist_next(fclist)) {
 		fc = fclist->data;
@@ -3082,14 +3163,14 @@ enum dl_chunk_status file_info_find_hole(
 	
 	/* No holes found. */
 
-	if (cklist != fi->chunklist)
+	if (cloned)
 		g_slist_free(cklist);
 
 	return (fi->done == fi->size) ? DL_CHUNK_DONE : DL_CHUNK_BUSY;
 
 selected:	/* Selected a hole to download */
 
-	if (cklist != fi->chunklist)
+	if (cloned)
 		g_slist_free(cklist);
 
 	return DL_CHUNK_EMPTY;
@@ -3111,6 +3192,7 @@ gboolean file_info_find_available_hole(struct download *d,
 	struct dl_file_info *fi;
 	guint32 chunksize;
 	GSList *cklist;
+	gboolean cloned = FALSE;
 
 	g_assert(d);
 	g_assert(ranges);
@@ -3137,7 +3219,12 @@ gboolean file_info_find_available_hole(struct download *d,
 	 *		--RAM, 11/10/2003
 	 */
 
-	cklist = pfsp_server ? list_clone_shift(fi) : fi->chunklist;
+	if (pfsp_server) {
+		cklist = list_clone_shift(fi);
+		if (cklist != fi->chunklist)
+			cloned = TRUE;
+	} else
+		cklist = fi->chunklist;
 
 	for (fclist = cklist; fclist; fclist = g_slist_next(fclist)) {
 		GSList *l;
@@ -3174,7 +3261,7 @@ gboolean file_info_find_available_hole(struct download *d,
 		}
 	}
 
-	if (cklist != fi->chunklist)
+	if (cloned)
 		g_slist_free(cklist);
 
 	return FALSE;
@@ -3190,7 +3277,7 @@ found:
 
 	file_info_update(d, *from, *to, DL_CHUNK_BUSY);
 
-	if (cklist != fi->chunklist)
+	if (cloned)
 		g_slist_free(cklist);
 
 	return TRUE;
@@ -3640,7 +3727,7 @@ gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 	 * Reference all the "done" chunks in `fc_ary'.
 	 */
 
-	fc_ary = walloc(sizeof(struct dl_file_chunk) * count);
+	fc_ary = g_malloc(sizeof(struct dl_file_chunk) * count);
 
 	for (i = 0, l = fi->chunklist; l != NULL; l = g_slist_next(l)) {
 		struct dl_file_chunk *fc = l->data;
@@ -3678,21 +3765,20 @@ gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 				(nleft - j - 1) * sizeof(fc_ary[0]));
 	}
 
-	wfree(fc_ary, sizeof(struct dl_file_chunk) * count);
+	g_free(fc_ary);
 
 emit:
 	length = 0;
 
-	if (is_first)
-		goto empty;		/* No chunk was emitted */
+	if (!is_first) {			/* Something was recorded */
+		header_fmt_end(fmt);
+		length = header_fmt_length(fmt);
+		g_assert(length < size);
+		strncpy(buf, header_fmt_string(fmt), length + 1);	/* with final NUL */
+	}
 
-	header_fmt_end(fmt);
-	length = header_fmt_length(fmt);
-	g_assert(length < size);
-	strncpy(buf, header_fmt_string(fmt), length + 1);	/* Include final NUL */
-
-empty:
 	header_fmt_free(fmt);
+
 	return length;
 }
 
