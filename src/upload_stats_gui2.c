@@ -110,17 +110,16 @@ static void upload_stats_cell_render_norm_func(
 	gpointer data)
 {
 	gfloat val = 0.0;
-	gchar *tmpstr = NULL;
-
+	gchar tmpstr[32];
+	
 	g_assert(column != NULL);
 	g_assert(cell != NULL);
 	g_assert(model != NULL);
 	g_assert(iter != NULL);
 
 	gtk_tree_model_get(model, iter, c_us_norm, &val, (-1));
-	tmpstr = g_strdup_printf("%1.3f", val);
+	gm_snprintf(tmpstr, sizeof tmpstr, "%1.3f", val);
 	g_object_set(cell, "text", tmpstr, NULL);
-	G_FREE_NULL(tmpstr);
 }
 
 /**
@@ -368,9 +367,11 @@ void upload_stats_gui_update(const gchar *name, guint64 size)
 void upload_stats_gui_clear_all(void)
 {
 	GtkListStore *store;
+
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(upload_stats_treeview));
 	g_assert(store != NULL);
 	gtk_list_store_clear(store);
 }
 
+/* vi: set ts=4: */
 #endif	/* USE_GTK2 */
