@@ -1346,30 +1346,43 @@ file_info_store_one(FILE *f, struct dl_file_info *fi)
 		fi->path,
 		fi->generation);
 
-	for (a = fi->alias; a; a = a->next)
-		fprintf(f, "ALIA %s\n", (gchar *)a->data);
-	fprintf(f, "SHA1 %s\n", fi->sha1 ? sha1_base32(fi->sha1) : "");
+	for (a = fi->alias; a; a = a->next) {
+		const gchar *alias = a->data;
+
+		g_assert(alias != NULL);
+		if (looks_like_urn(alias)) {
+			g_warning("Skipping fileinfo alias which looks like a urn: "
+				"\"%s\" (file_name=\"%s\")",
+				alias, fi->file_name);
+		} else {
+			fprintf(f, "ALIA %s\n", alias);
+		}
+	}
+
+	if (fi->sha1)
+		fprintf(f, "SHA1 %s\n", sha1_base32(fi->sha1));
 	if (fi->cha1)
 		fprintf(f, "CHA1 %s\n", sha1_base32(fi->cha1));
 	fprintf(f,
-		"SIZE %u\n"
+		"SIZE %" PRIu64 "\n"
 		"FSKN %d\n"
-		"DONE %u\n"
-		"TIME %lu\n"
-		"CTIM %lu\n"
-		"NTIM %lu\n"
+		"DONE %" PRIu64 "\n"
+		"TIME %" PRIu64 "\n"
+		"CTIM %" PRIu64 "\n"
+		"NTIM %" PRIu64 "\n"
 		"SWRM %d\n",
-		fi->size,
+		(guint64) fi->size,
 		fi->file_size_known ? 1 : 0,
-		fi->done,
-		(gulong) fi->stamp,
-		(gulong) fi->ctime,
-		(gulong) fi->ntime,
+		(guint64) fi->done,
+		(guint64) fi->stamp,
+		(guint64) fi->ctime,
+		(guint64) fi->ntime,
 		fi->use_swarming ? 1 : 0);
   
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		fc = fclist->data;
-		fprintf(f, "CHNK %u %u %u\n", fc->from, fc->to, fc->status);
+		fprintf(f, "CHNK %" PRIu64 " %" PRIu64 " %" PRIu64 "\n",
+			(guint64) fc->from, (guint64) fc->to, (guint64) fc->status);
 	}
 	fprintf(f, "\n");
 }
@@ -1940,19 +1953,72 @@ file_info_got_sha1(struct dl_file_info *fi, const gchar *sha1)
  * and return NULL if none or invalid, the SHA1 atom otherwise.
  */
 static gchar *
-extract_sha1(const gchar *line)
+extract_sha1(const gchar *s)
 {
-	gchar sha1_digest[SHA1_RAW_SIZE];
+	gchar sha1[SHA1_RAW_SIZE];
 
-	if (
-		line[5] &&
-		strlen(&line[5]) >= SHA1_BASE32_SIZE &&
-		base32_decode_into(line + 5, SHA1_BASE32_SIZE,
-			sha1_digest, sizeof(sha1_digest))
-	)
-		return atom_sha1_get(sha1_digest);
+	if (strlen(s) < SHA1_BASE32_SIZE)
+		return NULL;
 
-	return NULL;
+	if (!base32_decode_into(s, SHA1_BASE32_SIZE, sha1, sizeof sha1))
+		return NULL;
+
+	return atom_sha1_get(sha1);
+}
+
+typedef enum {
+	FI_TAG_UNKNOWN = 0,
+	FI_TAG_NAME,
+	FI_TAG_PATH,
+	FI_TAG_GENR,
+	FI_TAG_ALIA,
+	FI_TAG_SIZE,
+	FI_TAG_FSKN,
+	FI_TAG_SHA1,
+	FI_TAG_CHA1,
+	FI_TAG_DONE,
+	FI_TAG_TIME,
+	FI_TAG_CTIM,
+	FI_TAG_NTIM,
+	FI_TAG_SWRM,
+	FI_TAG_CHNK,
+
+	NUM_FI_TAGS
+} fi_tag_t;
+
+static const struct {
+	fi_tag_t	tag;
+	const gchar *str;	
+} fi_tag_map[] = {
+	{ FI_TAG_NAME, "NAME" },
+	{ FI_TAG_PATH, "PATH" },
+	{ FI_TAG_GENR, "GENR" },
+	{ FI_TAG_ALIA, "ALIA" },
+	{ FI_TAG_SIZE, "SIZE" },
+	{ FI_TAG_FSKN, "FSKN" },
+	{ FI_TAG_SHA1, "SHA1" },
+	{ FI_TAG_CHA1, "CHA1" },
+	{ FI_TAG_DONE, "DONE" },
+	{ FI_TAG_TIME, "TIME" },
+	{ FI_TAG_CTIM, "CTIM" },
+	{ FI_TAG_NTIM, "NTIM" },
+	{ FI_TAG_SWRM, "SWRM" },
+	{ FI_TAG_CHNK, "CHNK" },
+};
+
+static fi_tag_t
+file_info_string_to_tag(const gchar *s)
+{
+	size_t i;
+
+	STATIC_ASSERT(G_N_ELEMENTS(fi_tag_map) == (NUM_FI_TAGS - 1));
+	
+	g_assert(s != NULL);
+	for (i = 0; i < G_N_ELEMENTS(fi_tag_map); i++)
+		if (0 == strcmp(s, fi_tag_map[i].str))
+			return fi_tag_map[i].tag;
+
+	return FI_TAG_UNKNOWN;
 }
 
 /**
@@ -1966,7 +2032,6 @@ file_info_retrieve(void)
 	gchar line[1024];
 	guint32 from, to, status;
 	struct dl_file_info *fi = NULL;
-	struct stat buf;
 	gboolean empty = TRUE;
 	GSList *aliases = NULL;
 	gboolean last_was_truncated = FALSE;
@@ -1987,15 +2052,18 @@ file_info_retrieve(void)
 	can_swarm = TRUE;			/* Allows file_info_try_to_swarm_with() */
 
 	file_path_set(&fp, settings_config_dir(), file_info_file);
-	f = file_config_open_read("fileinfo file", &fp, 1);
+	f = file_config_open_read("fileinfo database", &fp, 1);
 	if (!f)
 		return;
 
 	line[sizeof(line)-1] = '\0';
 
 	while (fgets(line, sizeof(line), f)) {
-		gint len;
-		gboolean truncated = FALSE;
+		size_t len;
+		gint error;
+		gboolean truncated = FALSE, damaged;
+		gchar *value, *ep;
+		guint64 v;
 
 		if (*line == '#') continue;
 
@@ -2099,7 +2167,7 @@ file_info_retrieve(void)
 				gchar *pathname;
 
 				pathname = make_pathname(fi->path, fi->file_name);
-				if (-1 != stat(pathname, &buf)) {
+				if (!is_regular(pathname)) {
 					g_warning("got metainfo in fileinfo cache, "
 						"but none in \"%s\"", pathname);
 					file_info_store_binary(fi);			/* Create metainfo */
@@ -2186,36 +2254,124 @@ file_info_retrieve(void)
 			aliases = NULL;
 		}
 
-		if (!strncmp(line, "NAME ", 5))
-			fi->file_name = atom_str_get(line + 5);
-		else if (!strncmp(line, "PATH ", 5))
-			fi->path = atom_str_get(line + 5);
-		else if (!strncmp(line, "ALIA ", 5))
-			aliases = g_slist_append(aliases, atom_str_get(line + 5));
-		else if (!strncmp(line, "GENR ", 5))
-			fi->generation = atoi(line + 5);
-		else if (!strncmp(line, "SIZE ", 5)) {
-			fi->size = atoi(line + 5);
-			fi->size_atom = atom_int_get(&fi->size);
+		value = strchr(line, ' ');
+		if (!value) {
+			if (*line)
+				g_warning("ignoring fileinfo line: %s", line);
+			continue;
 		}
-		else if (!strncmp(line, "FSKN ", 5))
-			fi->file_size_known = atoi(line + 5) ? TRUE : FALSE;
-		else if (!strncmp(line, "TIME ", 5))
-			fi->stamp = atoi(line + 5);
-		else if (!strncmp(line, "CTIM ", 5))
-			fi->ctime = atoi(line + 5);
-		else if (!strncmp(line, "NTIM ", 5))
-			fi->ntime = atoi(line + 5);
-		else if (!strncmp(line, "DONE ", 5))
-			fi->done = atoi(line + 5);
-		else if (!strncmp(line, "SWRM ", 5))
-			fi->use_swarming = atoi(line + 5) ? TRUE : FALSE;
-		else if (!strncmp(line, "SHA1 ", 5))
+		*value++ = '\0'; /* Skip space and point to value */
+		if (value[0] == '\0') {
+			g_warning("Empty value in fileinfo line: %s %s", line, value);
+			continue;
+		}
+
+		damaged = FALSE;
+		switch (file_info_string_to_tag(line)) {
+		case FI_TAG_NAME:
+			{
+				gchar *s;
+
+				s = gm_sanitize_filename(value, convert_spaces);
+				fi->file_name = atom_str_get(s);
+				if (s != value) {
+					g_warning("fileinfo database contained an "
+						"unsanitized filename: \"%s\" -> \"%s\"", value, s);
+					G_FREE_NULL(s);
+				}
+			}
+			break;
+		case FI_TAG_PATH:
+			/* XXX: Check the pathname more thoroughly */
+			damaged = !is_absolute_path(value);
+			fi->path = damaged ? NULL : atom_str_get(value);
+			break;
+		case FI_TAG_ALIA:
+			if (looks_like_urn(value)) {
+				g_warning("Skipping alias which looks like a urn in "
+					"fileinfo database: \"%s\" (file_name=\"%s\")", value,
+					NULL_STRING(fi->file_name));
+			} else {
+				gchar *s;
+
+				s = gm_sanitize_filename(value, convert_spaces);
+				aliases = g_slist_append(aliases, atom_str_get(s));
+				if (s != value) {
+					g_warning("fileinfo database contained an "
+						"unsanitized alias: \"%s\" -> \"%s\"", value, s);
+					G_FREE_NULL(s);
+				}
+			}
+			break;
+		case FI_TAG_GENR:
+			v = parse_uint64(value, &ep, 10, &error);
+			damaged = error || *ep != '\0' || v > (guint64) INT_MAX;
+			fi->generation = v;
+			break;
+		case FI_TAG_SIZE:
+			v = parse_uint64(value, &ep, 10, &error);
+			damaged = error || *ep != '\0' || v >= ((guint64) 1UL << 63);
+			fi->size = v;
+			/* XXX: int is the wrong type */
+			fi->size_atom = atom_int_get(&fi->size);
+			break;	
+		case FI_TAG_FSKN:
+			v = parse_uint64(value, &ep, 10, &error);
+			damaged = error || *ep != '\0' || v > 1;
+			fi->file_size_known = v != 0;
+			break;
+		case FI_TAG_TIME:
+			v = parse_uint64(value, &ep, 10, &error);
+			damaged = error || *ep != '\0';
+			fi->stamp = v;
+			break;
+		case FI_TAG_CTIM:
+			v = parse_uint64(value, &ep, 10, &error);
+			damaged = error || *ep != '\0';
+			fi->ctime = v;
+			break;
+		case FI_TAG_NTIM:
+			v = parse_uint64(value, &ep, 10, &error);
+			damaged = error || *ep != '\0';
+			fi->ntime = v;
+			break;
+		case FI_TAG_DONE:
+			v = parse_uint64(value, &ep, 10, &error);
+			damaged = error || *ep != '\0' || v >= ((guint64) 1UL << 63);
+			fi->done = v;
+			break;
+		case FI_TAG_SWRM:
+			v = parse_uint64(value, &ep, 10, &error);
+			damaged = error || *ep != '\0' || v > 1;
+			fi->use_swarming = v;
+			break;
+		case FI_TAG_SHA1:
 			fi->sha1 = extract_sha1(line);
-		else if (!strncmp(line, "CHA1 ", 5))
+			damaged = fi->sha1 != NULL;
+			break;
+		case FI_TAG_CHA1:
 			fi->cha1 = extract_sha1(line);
-		else if (!strncmp(line, "CHNK ", 5)) {
-			if (sscanf(line + 5, "%u %u %u", &from, &to, &status)) {
+			damaged = fi->cha1 != NULL;
+			break;
+		case FI_TAG_CHNK:
+			from = v = parse_uint64(value, &ep, 10, &error);
+			damaged = error || *ep != ' ' || v >= ((guint64) 1UL << 63);
+			if (!damaged) {
+				const gchar *s = &ep[1];
+
+				to = v = parse_uint64(s, &ep, 10, &error);
+				damaged = error
+					|| *ep != ' '
+					|| v >= ((guint64) 1UL << 63)
+					|| v < from;
+			}
+			if (!damaged) {
+				const gchar *s = &ep[1];
+
+				status = v = parse_uint64(s, &ep, 10, &error);
+				damaged = error || *ep != '\0' || v > 2U;
+			}
+			if (!damaged) {
 				fc = walloc0(sizeof(struct dl_file_chunk));
 				fc->from = from;
 				fc->to = to;
@@ -2223,8 +2379,21 @@ file_info_retrieve(void)
 				fc->status = status;
 				fi->chunklist = g_slist_append(fi->chunklist, fc);
 			}
-		} else if (*line)
-			g_warning("ignoring fileinfo line: %s", line);
+			if (damaged) {
+				from = to = status = 0;
+			}
+			break;
+		case FI_TAG_UNKNOWN:
+			if (*line)
+				g_warning("ignoring fileinfo line: %s %s", line, value);
+			break;
+		case NUM_FI_TAGS:
+			g_assert_not_reached();
+		}
+
+		if (damaged) {
+			g_warning("Damaged entry in fileinfo line: %s %s", line, value);
+		}
 	}
 
 	if (fi) {
@@ -2348,13 +2517,12 @@ file_info_create(
 	fi->seenonnetwork = NULL;
 
 	pathname = make_pathname(fi->path, fi->file_name);
-	if (NULL != pathname && stat(pathname, &st) != -1) {
+	if (NULL != pathname && stat(pathname, &st) != -1 && S_ISREG(st.st_mode)) {
 		struct dl_file_chunk *fc;
 
 		g_warning("file_info_create(): "
 			"assuming file \"%s\" is complete up to %lu bytes",
 			pathname, (gulong) st.st_size);
-		G_FREE_NULL(pathname);
 		fc = walloc0(sizeof(struct dl_file_chunk));
 		fc->from = 0;
 		fi->size = fc->to = st.st_size;
@@ -2362,8 +2530,7 @@ file_info_create(
 		fi->chunklist = g_slist_append(fi->chunklist, fc);
 		fi->dirty = TRUE;
 	} 
-	if (NULL != pathname)
-		G_FREE_NULL(pathname);
+	G_FREE_NULL(pathname);
 
 	fi->size_atom = atom_int_get(&fi->size);	/* Set now, for fi_resize() */
 
@@ -3752,7 +3919,7 @@ fi_get_aliases(gnet_fi_t fih)
 
     len = g_slist_length(fi->alias);
 
-    a = g_new(gchar *, len+1);
+    a = g_malloc((len + 1) * sizeof a[0]);
     a[len] = NULL; /* terminate with NULL */;
 
     for (sl = fi->alias, n = 0; sl != NULL; sl = g_slist_next(sl), n++) {
