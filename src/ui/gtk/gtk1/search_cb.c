@@ -235,29 +235,9 @@ gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
 	gui_record_t *grc2;
 	record_t *rc;
 	record_t *rc2;
-    guint32 fuzzy_threshold;
-    gboolean search_autoselect;
-    gboolean search_autoselect_ident;
-    gboolean search_autoselect_fuzzy;
 	guint32 sel_files = 0;
     guint32 sel_sources = 0;
     gboolean frozen = FALSE;
-
-    gui_prop_get_boolean(
-        PROP_SEARCH_AUTOSELECT_SIMILAR, 
-        &search_autoselect, 0, 1);
-
-    gui_prop_get_boolean(
-        PROP_SEARCH_AUTOSELECT_SAMESIZE, 
-        &search_autoselect_ident, 0, 1);
-
-    gui_prop_get_boolean(
-        PROP_SEARCH_AUTOSELECT_FUZZY, 
-        &search_autoselect_fuzzy, 0, 1);
-
-	gnet_prop_get_guint32(
-        PROP_FUZZY_THRESHOLD, 
-        &fuzzy_threshold, 0, 1);
 
 	/* 
      * Rows with NULL data can appear when inserting new rows
@@ -319,11 +299,8 @@ gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
          *     -- Richard, 18/04/2004
          */
         if (
-            search_gui_autoselect_cmp(rc, rc2, 
-                search_autoselect,
-                search_autoselect_ident,
-                search_autoselect_fuzzy,
-                fuzzy_threshold)
+            (NULL != rc) && (NULL != rc2) &&
+			((rc == rc2) || ((rc->sha1 != NULL) && (rc->sha1 == rc2->sha1)))
         ) {
 			gtk_ctree_select(ctree, auto_node);
             sel_files ++;
@@ -350,10 +327,7 @@ gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
     if (sel_sources > 1) {
         statusbar_gui_message(15, 
             "%d files auto selected with %d sources %s",
-            sel_files, sel_sources, 
-            (search_autoselect) ? 
-                "by urn:sha1, filename and size." :
-                "by urn:sha1.");
+            sel_files, sel_sources, "by urn:sha1.");
     }
 
     /* The quest for reduced gui flickering...

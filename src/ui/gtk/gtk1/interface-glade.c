@@ -353,13 +353,6 @@ create_main_window (void)
   GtkWidget *empty_notebook_page;
   GtkWidget *label190;
   GtkWidget *frame_search_results_settings;
-  GtkWidget *hbox182;
-  GtkWidget *frame_expert_search_autoselect;
-  GtkWidget *vbox114;
-  GtkWidget *checkbutton_search_autoselect;
-  GtkWidget *checkbutton_search_autoselect_ident;
-  GtkWidget *checkbutton_search_autoselect_fuzzy;
-  GtkWidget *frame82;
   GtkWidget *table68;
   GtkWidget *label460;
   GtkWidget *label541;
@@ -3549,73 +3542,13 @@ create_main_window (void)
   gtk_widget_show (frame_search_results_settings);
   gtk_box_pack_start (GTK_BOX (vbox132), frame_search_results_settings, FALSE, TRUE, 0);
 
-  hbox182 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_set_name (hbox182, "hbox182");
-  gtk_widget_ref (hbox182);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox182", hbox182,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox182);
-  gtk_container_add (GTK_CONTAINER (frame_search_results_settings), hbox182);
-  gtk_container_set_border_width (GTK_CONTAINER (hbox182), 2);
-
-  frame_expert_search_autoselect = gtk_frame_new (_("Autoselection"));
-  gtk_widget_set_name (frame_expert_search_autoselect, "frame_expert_search_autoselect");
-  gtk_widget_ref (frame_expert_search_autoselect);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_expert_search_autoselect", frame_expert_search_autoselect,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame_expert_search_autoselect);
-  gtk_box_pack_start (GTK_BOX (hbox182), frame_expert_search_autoselect, FALSE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame_expert_search_autoselect), GTK_SHADOW_OUT);
-
-  vbox114 = gtk_vbox_new (FALSE, 2);
-  gtk_widget_set_name (vbox114, "vbox114");
-  gtk_widget_ref (vbox114);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox114", vbox114,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox114);
-  gtk_container_add (GTK_CONTAINER (frame_expert_search_autoselect), vbox114);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox114), 2);
-
-  checkbutton_search_autoselect = gtk_check_button_new_with_label (_("Enable autoselect"));
-  gtk_widget_set_name (checkbutton_search_autoselect, "checkbutton_search_autoselect");
-  gtk_widget_ref (checkbutton_search_autoselect);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_autoselect", checkbutton_search_autoselect,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_search_autoselect);
-  gtk_box_pack_start (GTK_BOX (vbox114), checkbutton_search_autoselect, FALSE, FALSE, 0);
-
-  checkbutton_search_autoselect_ident = gtk_check_button_new_with_label (_("Autoselect identical"));
-  gtk_widget_set_name (checkbutton_search_autoselect_ident, "checkbutton_search_autoselect_ident");
-  gtk_widget_ref (checkbutton_search_autoselect_ident);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_autoselect_ident", checkbutton_search_autoselect_ident,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_search_autoselect_ident);
-  gtk_box_pack_start (GTK_BOX (vbox114), checkbutton_search_autoselect_ident, FALSE, FALSE, 0);
-
-  checkbutton_search_autoselect_fuzzy = gtk_check_button_new_with_label (_("Use fuzzy matching"));
-  gtk_widget_set_name (checkbutton_search_autoselect_fuzzy, "checkbutton_search_autoselect_fuzzy");
-  gtk_widget_ref (checkbutton_search_autoselect_fuzzy);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_autoselect_fuzzy", checkbutton_search_autoselect_fuzzy,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_search_autoselect_fuzzy);
-  gtk_box_pack_start (GTK_BOX (vbox114), checkbutton_search_autoselect_fuzzy, FALSE, FALSE, 0);
-
-  frame82 = gtk_frame_new (_("Displaying"));
-  gtk_widget_set_name (frame82, "frame82");
-  gtk_widget_ref (frame82);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame82", frame82,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame82);
-  gtk_box_pack_start (GTK_BOX (hbox182), frame82, TRUE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame82), GTK_SHADOW_OUT);
-
   table68 = gtk_table_new (3, 3, FALSE);
   gtk_widget_set_name (table68, "table68");
   gtk_widget_ref (table68);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table68", table68,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (table68);
-  gtk_container_add (GTK_CONTAINER (frame82), table68);
+  gtk_container_add (GTK_CONTAINER (frame_search_results_settings), table68);
   gtk_container_set_border_width (GTK_CONTAINER (table68), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table68), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table68), 4);
@@ -9809,7 +9742,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label266), 1, 0.5);
 
-  label267 = gtk_label_new (_("Raphaël Manfredi"));
+  label267 = gtk_label_new (_("Rapha\353l Manfredi"));
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -9853,7 +9786,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label291), 1, 0.5);
 
-  label273 = gtk_label_new (_("Raphaël Manfredi"));
+  label273 = gtk_label_new (_("Rapha\353l Manfredi"));
   gtk_widget_set_name (label273, "label273");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,
