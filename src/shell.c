@@ -75,7 +75,8 @@ enum {
 	CMD_ADD,
 	CMD_HELP,
 	CMD_PRINT,
-	CMD_SET
+	CMD_SET,
+	CMD_WHATIS
 };
 
 static struct {
@@ -88,7 +89,8 @@ static struct {
 	{CMD_ADD,    "ADD"},
 	{CMD_HELP,   "HELP"},
 	{CMD_PRINT,  "PRINT"},
-	{CMD_SET,    "SET"}
+	{CMD_SET,    "SET"},
+	{CMD_WHATIS, "WHATIS"}
 };
 
 
@@ -496,6 +498,76 @@ error:
 }
 
 /*
+ * shell_exec_whatis
+ *
+ * Takes a whatis command and tries to execute it.
+ */
+static guint shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd) 
+{
+	gchar *tok_prop;
+	gint pos = 0;
+	guint reply_code = REPLY_ERROR;
+	prop_set_stub_t *stub = NULL;
+	property_t prop;
+	prop_set_get_stub_t stub_getter[] = {
+		gui_prop_get_stub,
+		gnet_prop_get_stub,
+		NULL
+	};
+	prop_def_t *prop_buf = NULL;
+	guint n;
+
+	g_assert(sh);
+	g_assert(cmd);
+	g_assert(!IS_PROCESSING(sh));
+
+	tok_prop = shell_get_token(cmd, &pos);
+	if (!tok_prop) {
+		sh->msg = "Property missing";
+		goto error;
+	}
+
+	n = 0; prop = NO_PROP;
+	while((stub_getter[n] != NULL) && (prop == NO_PROP)) {
+		G_FREE_NULL(stub);
+		stub = (stub_getter[n])();
+		prop = stub->get_by_name(tok_prop);
+		n ++;
+	}
+			
+	if (prop == NO_PROP) {
+		sh->msg = "Unknown property";
+		goto error;
+	}
+
+	prop_buf = stub->get_def (prop);
+
+	g_assert (prop_buf);
+
+	shell_write(sh, "Help: ");
+	shell_write(sh, prop_buf->desc);
+	shell_write(sh, "\n");
+
+	sh->msg = "";
+	reply_code = REPLY_READY;
+
+	G_FREE_NULL(stub);
+	G_FREE_NULL(tok_prop);
+	prop_free_def (prop_buf);
+	
+	return reply_code;
+
+error:
+	G_FREE_NULL(stub);
+	G_FREE_NULL(tok_prop);
+	if (sh->msg == NULL)
+		sh->msg = "Malformed command";
+	
+	return REPLY_ERROR;
+}
+
+
+/*
  * shell_exec:
  *
  * Takes a command string and tries to parse and execute it.
@@ -520,8 +592,9 @@ static guint shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 			"100-Help:\n"
 			"100-SEARCH ADD <query>\n"
 			"100-NODE ADD <ip> [port]\n"
-			"100-PRINT [property]\n"
+			"100-PRINT <property>\n"
 			"100-SET <property> <value>\n"
+			"100-WHATIS <property>\n"
 			"100-QUIT\n"
 			"100-HELP\n");
 		reply_code = REPLY_READY;
@@ -542,6 +615,9 @@ static guint shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 		break;
 	case CMD_SET:
 		reply_code = shell_exec_set(sh, cmd+pos);
+		break;
+	case CMD_WHATIS:
+		reply_code = shell_exec_whatis(sh, cmd+pos);
 		break;
 	default:
 		goto error;
