@@ -1,0 +1,3209 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: gtk-gnutella 0.92c\n"
+"POT-Creation-Date: 2003-06-07 21:33+0200\n"
+"PO-Revision-Date: 2003-06-08 22:29--100\n"
+"Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
+"Language-Team: nl <jeroen@asselman.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: downloads.c:389
+#: downloads.c:443
+msgid "No longer connected"
+msgstr "Niet langer verbonden"
+
+#: downloads.c:906
+msgid "Requeued by file info change"
+msgstr "Opnieuw in de wachtrij gezet doordat de bestandsinformatie is veranderd."
+
+#: downloads.c:979
+#: downloads.c:1986
+#: downloads.c:2679
+msgid "Suspended (SHA1 checking)"
+msgstr "Ingeslapen (SHA1 verifieren)"
+
+#: downloads.c:2219
+#: downloads.c:2688
+msgid "No download slot"
+msgstr "Geen download slot"
+
+#: downloads.c:2437
+msgid "Ignoring Push flag"
+msgstr "Push vlag wordt gengeerd"
+
+#: downloads.c:2670
+msgid "Dup SHA1 during creation"
+msgstr "Dubbele SHA1 tijdens creatie"
+
+#: downloads.c:3201
+#, fuzzy
+msgid "Explicitly requeued"
+msgstr "Uitdrukkelijk opnieuw in de wachtrij gezet"
+
+#: downloads.c:3622
+msgid "Requeued by competing download"
+msgstr "Opnieuw in de wachtrij gezet door een soortgelijke download"
+
+#: downloads.c:3686
+#, fuzzy
+msgid "Requeued after trimmed data"
+msgstr "Opnieuw in de wachtrij gezet na het afkappen van data"
+
+#: downloads.c:3688
+msgid "Chunk done, connection closed"
+msgstr "Fragment klaar, connectie gesloten"
+
+#: downloads.c:3854
+msgid "Weird HTTP status (protocol desync?)"
+msgstr "Afwijkende HTTP status (protocol asynchroon?)"
+
+#: downloads.c:4138
+msgid "URN fileinfo mismatch"
+msgstr "URN bestands informatie komt niet overeen"
+
+#: downloads.c:4158
+msgid "Discovered dup SHA1"
+msgstr "Dubbele SHA1 ontdekt"
+
+#: downloads.c:6108
+msgid "SHA1 mismatch detected"
+msgstr "SHA1 komt niet overeen"
+
+#: gnet_property.c:383
+msgid "Indicates whether the hostcache file is being read"
+msgstr "Geeft aan of het hostcache bestand word gelezen"
+
+#: gnet_property.c:400
+msgid "Indicates whether the ultracache file is being read"
+msgstr "Geeft aan of het ultracache bestand word gelezen"
+
+#: gnet_property.c:417
+msgid "Indicates that gtk-gnutella finds the version you run very very old"
+msgstr "Geeft aan dat de gtk-gnutella versie die je draait te oud is"
+
+#: gnet_property.c:434
+msgid "Gtk-gnutella found a newer version on the gNet and gives information about it here"
+msgstr "Gtk-gnutella heeft een nieuwere versie gevonden op het gNet en geeft deze informatie hier weer"
+
+#: gnet_property.c:455
+msgid "Try to keep at least this number of connections to other servents of the same kind as we are (normal or ultra nodes). This should be smaller than the maximum amount of connections to allow incoming connections."
+msgstr "Probeer tenminste dit aantal connecties te handhaven naar andere servents die van het zelfde type zijn (normale of ultra nodes). Om inkomende connecties te accepteren moet deze waarde lager zijn dat het maximaal aantal connecties."
+
+#: gnet_property.c:475
+msgid "When in ultrapeer mode, try to keep at least this number of connections to normal servents.  This should be smaller than the maximum amount of connections to allow incoming connections."
+msgstr "Probeer tenminste dit aantal connecties te behouden naar normale servents als gtk-gnutella in ultrapeer mode draait. Om inkomende verbindingen te accepteren moet dit aantal lager zijn dan het maximum aantal connecties"
+
+#: gnet_property.c:495
+msgid "Don't allow more than this number of connections to other servents.  As a rule of thumb you should reserve 1kb/s bandwidth per connection. Never use up all your bandwidth, leave a little space for TCP/IP overhead. It's not advisable that you set this to a value larger than 10."
+msgstr "Sta niet meer dan dit aantal connecties toe naar andere servents. Ter indicatie, er dient rekening te worden gehouden met 1kb/s aan bandbreedte per connectie. Gebruik nooit alle beschikbare bandbreedte, laat wat ruimte over voor de TCP/IP overhead. Het wordt afgeraden om deze waarde groter te zetten dan 10."
+
+#: gnet_property.c:515
+msgid "Number of leaf nodes currently connected."
+msgstr "Aantal momenteel verbonden leaf nodes"
+
+#: gnet_property.c:535
+msgid "Number of normal nodes currently connected."
+msgstr "Aantal momenteel verbonden normale nodes"
+
+#: gnet_property.c:555
+msgid "Number of ultra nodes currently connected."
+msgstr "Aantal momenteel verbonden ultra nodes"
+
+#: gnet_property.c:575
+msgid "Don't start more than this number of parallel downloads.  Others will remain in the queue waiting for a download slot."
+msgstr "Maximaal aantal gelijktijdige downloads. Andere blijven in de wachtrij totdat er een download slot beschikbaar komt."
+
+#: gnet_property.c:595
+msgid "Don't make more connections than given here to a single host to download a file.  Be nice to others, and leave it at the default value (1)."
+msgstr "Probeer niet meer dan dit aantal connecties te maken naar één host om een bestand te downloaden. Wees aardig voor anderen en laat het op de standaard waarde (1)."
+
+#: gnet_property.c:615
+msgid "Don't allow more than this number of uploads in total. This also defines the amount of PARQ queues that will be used. You should at least set it to 2."
+msgstr "Upload niet meer dan dit aantal bestanden tegelijk. Deze waarde bepaalt ook het aantal PARQ wachtrijen dat zal worden gebruikt. Het wordt aangeraden om deze waarde minimaal op 2 te zetten."
+
+#: gnet_property.c:635
+msgid "Don't upload more than this number of files in parallel to a single host"
+msgstr "Upload niet meer dan dit aantal bestanden tegelijk naar één host"
+
+#: gnet_property.c:655
+msgid "Local IP address last determined"
+msgstr "Lokaal IP adres laatst bepaald"
+
+#: gnet_property.c:675
+msgid "When the current IP address was determined"
+msgstr "Wanneer het hudige IP adres voor het laatst is vastgesteld"
+
+#: gnet_property.c:695
+msgid "Average uptime with the same IP address"
+msgstr "Gemiddelde uptime met hetzelfde IP adres"
+
+#: gnet_property.c:715
+msgid "Timestamp at which servent was started"
+msgstr "Tijd markering op het moment dat de servent werd gestart"
+
+#: gnet_property.c:735
+msgid "Average servent uptime, in seconds"
+msgstr "Gemiddelde servent uptime in seconden"
+
+#: gnet_property.c:755
+msgid "Local port gtk-gnutella is listening on"
+msgstr "Lokale poort waarop gtk-gnutella luisterd"
+
+#: gnet_property.c:775
+msgid "Use this IP address as source address if 'force local ip' is activated"
+msgstr "Gebruik dit IP adres als bron adres als 'forceer lokaal ip' is geactiveerd"
+
+#: gnet_property.c:795
+msgid "The connection bandwidth reported to other hosts"
+msgstr "De connectie bandbreedte die wordt gerapporteerd naar andere hosts"
+
+#: gnet_property.c:815
+#, fuzzy
+msgid "Return at most this number of results to a query, using as many query hit packets as necessary.  To avoid network flooding, keep this to a reasonable value."
+msgstr "Maximaal dit aantal resultaten terug sturen bij een query, door gebruik te maken van zoveel query hit pakketten als nodig is. Laat dit op een redelijke waarde om netwerk 'flooding' te voorkomen."
+
+#: gnet_property.c:835
+msgid "Unless this percentage or more of the upload bandwidth is used, allow additional upload slots"
+msgstr "Sta aanvullende uploads toe zolang dit percentage van de bandbreedte niet is gebruikt"
+
+#: gnet_property.c:855
+#, fuzzy
+msgid "Number of seconds before a download connect attempt times out"
+msgstr "Timeout in seconden voor een download connectie poging"
+
+#: gnet_property.c:875
+#, fuzzy
+msgid "Number of seconds before a push request times out"
+msgstr "Timeout in seconden voor een push aanvraag"
+
+#: gnet_property.c:895
+#, fuzzy
+msgid "Number of seconds before a download times out if no data is received"
+msgstr "Timeout in seconden voor een download als er geen data wordt ontvangen"
+
+#: gnet_property.c:915
+#, fuzzy
+msgid "Minimum number of seconds to wait on auto-retry timeouts"
+msgstr "Minimaal aantal seconden dat gewacht moet worden bij een timeout voor automatisch opnieuw proberen"
+
+#: gnet_property.c:935
+#, fuzzy
+msgid "Maximum number of seconds to wait on auto-retry timeouts"
+msgstr "Maximaal aantal seconden dat gewacht moet worden bij een timeout voor automatisch opnieuw proberen"
+
+#: gnet_property.c:955
+msgid "Maximum number of attempts to download a file not counting HTTP busy indications"
+msgstr "Maximaal aantal keren dat er opnieuw geprobeerd moet worden een bestand te downloaden. Hierbij worden de HTTP bezig indicaties niet meegeteld"
+
+#: gnet_property.c:975
+#, fuzzy
+msgid "Delay in seconds before retrying after a connection timed out"
+msgstr "Vertraging in seconden voordat een connectie timeout opnieuw wordt geprobeerd"
+
+#: gnet_property.c:995
+msgid "Delay in seconds before retrying after getting a 'busy' response from a host"
+msgstr "Vertraging in seconden voordat een download opnieuw wordt geprobeerd na een 'bezig' antwoord van een host"
+
+#: gnet_property.c:1015
+msgid "Delay in seconds before retrying after getting a 'connection refused' response from a host"
+msgstr "Vertraging in seconden voordat een download opnieuw wordt geprobeerd nadat er een 'verbinding geweigerd' antwoord kwam van een host"
+
+#: gnet_property.c:1035
+msgid "Delay in seconds before retrying after a retry stopped (timed out, connection reset by peer, etc...)"
+msgstr "Vertraging in seconden voordat een opnieuw proberen gestopped (time out, verbinding verbroken door peer, etc...) opnieuw wordt geprobeerd"
+
+#: gnet_property.c:1055
+msgid "Amount of bytes to overlap when resuming a download. It should be at least 64 bytes for safe resuming, otherwise gtk-gnutella will not accept to resume a file for which we had no SHA1 known, after a server gives one back."
+msgstr "Aantal bytes dat moet overlappen wanneer een download wordt hervat. Dit moet minsten 64 bytes zijn om zeker te zijn, anders zal gtk-gnutella geen bestand hervatten waarvan geen SHA1 bekend is nadat een server er één heeft teruggegeven."
+
+#: gnet_property.c:1075
+msgid "Number of seconds before an upload times out if no connection can be established during a push.  It is also the maximum amount of time we wait to get the whole HTTP request."
+msgstr "Aantal seconden dat gewacht moet worden als er geen connectie kan worden gecreëerd tijdens een push. Dit is tevens de maximale wachtijd om de volledige HTTP aanvraag te verkrijgen."
+
+#: gnet_property.c:1095
+msgid "Number of seconds after which an upload times out if no data is transmitted"
+msgstr "Aantal seconden dat gewacht moet voordat een verbinding wordt gesloten als er geen data wordt verstuurd"
+
+#: gnet_property.c:1115
+msgid "Amount of seconds to wait before a search is issued again to see if new results are available.  Be very careful with this parameter, and do not set it too low or you will damage the Gnutella network.  A delay of half an hour is fine."
+msgstr "Aantal seconden dat gewacht moet worden voordat een zoek opdracht opnieuw wordt gegenereerd om nieuwe resultaten te verkrijgen. Wees voorzichtig met deze instelling en zet deze waarde niet te laag, anders beschadig je het Gnutella netwerk. Een vertraging van een half uur is voldoende."
+
+#: gnet_property.c:1135
+#, fuzzy
+msgid "Maximum ratio of file descriptors reserved for banning. For instance, if your OS gives you 350 file descriptors, a ratio of 10 will reserve at most 35 file descriptors.  You should ensure you have around 100 file descriptors for efficient banning."
+msgstr "Maximum verhouding van \"file descriptors\" dat gereserveerd moet worden voor een ban. Bijvoorbeeld: als je OS beschikking heeft over 350 \"file descriptors\" dan zal een verhouding van 10 maximaal 35 \"file descriptors\" reserveren. Om efficient te bannen diennen er ongeveer 100 \"descriptors\" beschikbaar te zijn."
+
+#: gnet_property.c:1155
+#, fuzzy
+msgid "Maximum number of file descriptors reserved for banning"
+msgstr "Maximaal aantal \"file descriptors\" gereserveerd voor banning."
+
+#: gnet_property.c:1175
+#, fuzzy
+msgid "Number of file descriptors we'll actually be using for banning"
+msgstr "Aantal \"file descriptors\" dat werkelijk gebruikt zal worden voor banning."
+
+#: gnet_property.c:1195
+msgid "Number of seconds an incoming connection has to start sending out its request"
+msgstr "Hoe snel, in seconden, een inkomende connectie moet beginnen met het verzenden van zijn aanvraag."
+
+#: gnet_property.c:1215
+msgid "Number of seconds before a Gnet connect attempt times out if no connection can be established"
+msgstr "Tijd in seconden wanneer een Gnet connectie wordt verbroken als er geen connectie kon worden gecreëerd"
+
+#: gnet_property.c:1235
+msgid "Number of seconds before a Gnet connection times out if no data is transmitted"
+msgstr "Tijd in seconden voordat een Gnet connectie wordt verbroken als er geen data is verstuurd"
+
+#: gnet_property.c:1255
+#, c-format
+msgid "Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150% of the maximum message size"
+msgstr "Maximum grootte van de te zenden wachtrij voor nodes (in bytes). Moet tenminste 150% van de maximale bericht grootte zijn"
+
+#: gnet_property.c:1275
+msgid "Maximum number of seconds a node can remain in transmit flow control before being kicked out."
+msgstr "Tijd in seconden dat een node in 'verzenden bandbreedte beheer' kan blijven voordat deze wordt verwijderd."
+
+#: gnet_property.c:1295
+msgid "Maximum percentage of time over 5 minutes that our node can remain in flow control remotely before dropping the connection.  This only works with nodes that will send us an hops-flow message when they are flow-controlling us."
+msgstr ""
+
+#: gnet_property.c:1315
+msgid "Maximum TTL we allow in messages we broadcast.  If a message comes in with a TTL greater than that, it will be trimmed down to that value.  On Gnutella, the standard is TTL=7, so you cannot set a value lower than that."
+msgstr "Maximale TTL waardie die wordt toegestaan in berichten die worden gebroadcast. Als een bericht binnen komt met een TTL groter dan deze waarde, dan zal die waarde worden aangepast naar deze waarde. Op Gnutella is de TTL waarde standaard 7 en kan daar niet lager dan 7 worden gezet."
+
+#: gnet_property.c:1335
+msgid "The TTL we use in messages we generate.  The default on Gnutella is TTL=7.  If you set it to too large a value, you run the risk of being trimmed down by fellow gtk-gnutella nodes, or kicked out by some other servent."
+msgstr "De TTL waarde die gebruikt zal worden in berichten die verstuurd worden. De standaard op Gnutella is een TTL van 7. Als je deze waarde te hoog zet loop je het risico dat deze waarden naar beneden wordt bijgesteld door een andere gtk-gnutella node, of dat je wordt verwijderd door een andere servent."
+
+#: gnet_property.c:1355
+msgid "Maximum hard TTL limit (hops + TTL) on messages we relay.  This should be greater than the standard TTL=7, because it is also applied to routed-back messages (query hits) that could be re-routed in case a connection is lost.  Standard broadcasted messages have their TTL limited by the maximum TTL you configure, and that limit should be much lower than the value of this parameter."
+msgstr "Maximale harde TTL limiet (hops + TTL) voor berichten die we doorsturen. Deze moet groter zijn dan de standaard TTL waarde van 7, omdat deze ook van toepassing is op berichten die terug worden gestuurd (query hits). Standaard gebroadcaste berichten hebben hun TTL gelimiteerd met de maximum TTL die je hebt ingesteld, en die limiet moet een stuk lager zijn dan deze waarde."
+
+#: gnet_property.c:1375
+msgid "For development use: debug level"
+msgstr "Voor ontwikkeling: Debug level"
+
+#: gnet_property.c:1395
+msgid "Debug level for code shared between gui and core"
+msgstr "Debug level voor code die wordt gedeelt tussen de GUI en de core"
+
+#: gnet_property.c:1415
+msgid "For development use: track properties"
+msgstr "Voor ontwikkeling: Track properties"
+
+#: gnet_property.c:1435
+msgid "For development use: don't add new hosts to the hostcatcher"
+msgstr "Voor ontwikkeling: Voeg geen nieuwe hosts toe aan de hostcatcher"
+
+#: gnet_property.c:1452
+msgid "Enable bandwidth limitation for incoming HTTP traffic"
+msgstr "Activeer het limiteren van bandbreedte voor inkomend HTTP verkeer"
+
+#: gnet_property.c:1469
+msgid "Enable bandwidth limitation for outgoing HTTP traffic"
+msgstr "Activeer het limiteren van bandbreedte voor uitgaand HTTP verkeer"
+
+#: gnet_property.c:1486
+msgid "Enable bandwidth limitation for incoming Gnet traffic"
+msgstr "Activeer het limiteren van bandbreedte voor inkomend Gnet verkeer"
+
+#: gnet_property.c:1503
+msgid "Enable bandwidth limitation for incoming Gnet leaf traffic"
+msgstr "Activeer het limiteren van bandbreedte voor inkomend Gnet leaf verkeer"
+
+#: gnet_property.c:1520
+msgid "Enable bandwidth limitation for outgoing Gnet traffic"
+msgstr "Activeer het limiteren van bandbreedte voor uitgaand Gnet verkeer"
+
+#: gnet_property.c:1537
+msgid "Enable bandwidth limitation for outgoing Gnet leaf traffic"
+msgstr "Activeer het limiteren van bandbreedte voor uitgaand Gnet leaf verkeer"
+
+#: gnet_property.c:1554
+msgid "Enable dynamic upload slots allocation"
+msgstr "Activeer dynamische slot toewijzing"
+
+#: gnet_property.c:1571
+msgid "Allow HTTP and Gnutella to grab whatever bandwidth the other is not using.  If FALSE, unused bandwidth is lost."
+msgstr "Sta toe dat HTTP en Gnutella elkaars bandbreedte gebruiken dat de ander momenteel niet gebruikt. Als deze waarde FALSE is dan zal ongebruikte bandbreedte verloren gaan."
+
+#: gnet_property.c:1588
+#: interface-glade2.c:7376
+msgid "Auto clear completed downloads"
+msgstr "Automatisch opschonen: afgeronde downloads"
+
+#: gnet_property.c:1605
+#: interface-glade2.c:7369
+msgid "Auto clear failed downloads"
+msgstr "Automatisch opschonen: Gefaalde downloads"
+
+#: gnet_property.c:1622
+msgid "Remove downloaded files from the search result"
+msgstr "Verwijder gedownloade bestand van de zoekresultaten"
+
+#: gnet_property.c:1639
+msgid "Enable to use [forced_local_ip] as local ip"
+msgstr "Activeer het gebruik van [forced_local_ip] als lokaal ip"
+
+#: gnet_property.c:1656
+msgid "Try to connect to local networks first"
+msgstr "Probeer eerst te verbinden met een lokaal netwerk"
+
+#: gnet_property.c:1673
+#: interface-glade2.c:3019
+msgid "Check this button if you want to use GTK-Gnutella on your Local Area Network. RFC1918 will be ignored."
+msgstr "Activeer dit als je GTK-Gnutella wilt gebruiken op je Lokale Netwerk (LAN). De RFC1918 zal dan worden genegeerd"
+
+#: gnet_property.c:1690
+msgid "Check this button if you want GTK-Gnutella to use IP TOS to differentiate interactive, normal and bulk data. This is probably a good idea in most cases, and can particularly help with badly misconfigured hosts, LANs, and ISPs."
+msgstr "Activeer dit als je wilt dat GTK-Gnutella de IP TOS zal gebruiken zodat er onderscheid kan worden gemaakt tussen normaal en massief verkeer. Dit is over het algemeen een goed idee en kan met name helpen bij een fout gecondigureerde host, LAN of ISP."
+
+#: gnet_property.c:1707
+msgid "Remove files of aborted downloads from disk"
+msgstr "Verwijder de bestanden van afgebroken downloads van de schijf"
+
+#: gnet_property.c:1724
+msgid "DEPRECATED and automatically set to TRUE. Use a proxy to connect to the internet"
+msgstr "Afgeraden en wordt automatisch op TRUE gezet. Gebruik een proxy om een verbinding te maken met internet"
+
+#: gnet_property.c:1741
+msgid "Use username and password to authenticate to proxy"
+msgstr "Gebruik een gebruikersnaam en wachtwoord om te authenticeren bij een proxy"
+
+#: gnet_property.c:1758
+msgid "Username for proxy"
+msgstr "Gebruikersnaam voor de proxy"
+
+#: gnet_property.c:1779
+msgid "Password for proxy"
+msgstr "Wachtwoord voor de proxy"
+
+#: gnet_property.c:1800
+msgid "IP address of the proxy"
+msgstr "IP adres van de proxy"
+
+#: gnet_property.c:1820
+msgid "Port the proxy is listening on"
+msgstr "De poort waarop de proxy luistert"
+
+#: gnet_property.c:1840
+msgid "Protocol the proxy uses"
+msgstr "Protocol dat de proxy gebruikt"
+
+#: gnet_property.c:1860
+msgid "Maximum number of hosts in the regular node catcher"
+msgstr "Maximum aantal of hosts in de normale node catcher"
+
+#: gnet_property.c:1880
+msgid "Current number of hosts in regular node catcher"
+msgstr "Huidig aantal hosts in de regular node catcher"
+
+#: gnet_property.c:1900
+msgid "Current number of hosts in ultra node catcher"
+msgstr "Huidig aantal of hosts in de ultra node catcher"
+
+#: gnet_property.c:1920
+msgid "Maximum number of hosts in the ultra node catcher"
+msgstr "Maximum aantal hosts in de ultra node catcher"
+
+#: gnet_property.c:1940
+msgid "Amount of tolerable messages above hard TTL limit per node. See also MAX_HIGH_TTL_RADIUS"
+msgstr "Aantal getolereerde berichten met een TTL boven de hard TTL per node. Zie tevens MAX_HIGH_TTL_RADIUS"
+
+#: gnet_property.c:1960
+msgid "Hop radius for counting high TTL limit messages (# hops lower than...) See also MAX_HIGH_TTL_MSG"
+msgstr ""
+
+#: gnet_property.c:1980
+msgid "Bandwidth limit for incoming HTTP traffic in bytes/sec"
+msgstr "Bandbreedte limiet voor inkomend HTTP verkeer in bytes/sec"
+
+#: gnet_property.c:2000
+msgid "Bandwidth limit for outgoing HTTP traffic in bytes/sec"
+msgstr "Bandbreedte limiet voor uitgaand HTTP verkeer in bytes/sec"
+
+#: gnet_property.c:2020
+msgid "Bandwidth limit for incoming gNet traffic in bytes/sec"
+msgstr "Bandbreedte limiet voor inkomend gNet verkeer in bytes/sec"
+
+#: gnet_property.c:2040
+msgid "Bandwidth limit for outgoing gNet traffic in bytes/sec"
+msgstr "Bandbreedte limiet voor uitgaand gNet verkeer in bytes/sec"
+
+#: gnet_property.c:2060
+msgid "Bandwidth limit for incoming gNet leaf traffic in bytes/sec. When running as an ultra node, this bandwidth is stolen from the regular HTTP traffic if the shaper for leaves is enabled."
+msgstr "Bandbreedte limiet voor inkomend gNet leaf verkeer in bytes/sec. Als gtk-gnutella in ultra node modus draait, dan zal deze bandbreedte worden  gestolen van het HTTP verkeer als de bandbreedte limiet voor leaves is geactiveerd"
+
+#: gnet_property.c:2080
+msgid "Bandwidth limit for outgoing gNet leaf traffic in bytes/sec. When running as an ultra node, this bandwidth is stolen from the regular HTTP traffic, if the shaper for leaves is enabled."
+msgstr "Bandbreedte limiet voor uitgaand gNet leaf verkeer in bytes/sec. Als gtk-gnutella in ultra node modus draait, dan zal deze bandbreedte worden gestolen van het HTTP verkeer als de bandbreedte limiet voor leaves is geactiveerd."
+
+#: gnet_property.c:2100
+msgid "Maximum size of search queries messages we forward to others  (in bytes)"
+msgstr "Maximale grootte van zoek opdracht berichten die we doorsturen naar anderen (in bytes)"
+
+#: gnet_property.c:2120
+msgid "Maximum size of search queries messages we allow, otherwise close the connection (in bytes)"
+msgstr "Maximale grootte van zoek opdracht die we accepteren, anders wordt de verbinding gesloten (in bytes)"
+
+#: gnet_property.c:2140
+msgid "Maximum size of search answers messages we forward to others (in bytes)"
+msgstr "Maximale grootte van de antwoorden op zoek opdrachten die we doorsturen naar anderen (in bytes)"
+
+#: gnet_property.c:2160
+msgid "Maximum size of search answers messages we allow, otherwise close the connection (in bytes)"
+msgstr "Maximale grootte van de antwoorden op zoek opdrachten die we accepteren, anders wordt de verbinding gesloten (in bytes)"
+
+#: gnet_property.c:2180
+msgid "Maximum size of unknown messages we allow, otherwise close the connection (in bytes)"
+msgstr "Maximale grootte van onbekende bericht die we accepteren, anders wordt de verbinding gesloten (in bytes)"
+
+#: gnet_property.c:2200
+msgid "Random factor for the hops field in search packets we send between 0 and 3 inclusive)"
+msgstr "Willekeurige faktor voor de hops veld in de zoek pakketten die we sturen tussen 0 en 3."
+
+#: gnet_property.c:2220
+msgid "Whether or not to send push requests.  If you are firewalled, gtk-gnutella will never send push requests anyway.  If you don't let gtk-gnutella send pushes, it will not show search results that would require a push."
+msgstr "Of er wel of geen push aanvragen moeten worden verstuurd. Als je achter een firewall zit, dan zal gtk-gnutella zowieso nooit een push aanvraag versturen. Als je niet toestaat dat gtk-gnutella push aanvragen verstuurd, dan zullen er geen resultaten worden weergegeven waarbij een push vereist is."
+
+#: gnet_property.c:2237
+msgid "Minimum amount of dup messages to enable kicking, per node (also see [min_dup_ratio])"
+msgstr "Minimaal aantal duplicate berichten voordat een verbinding met een node wordt verbroken (zie ook [min_dup_ratio])"
+
+#: gnet_property.c:2257
+msgid "Minimum ratio of dups on received messages, per node (between 0.00 and 100.00) (also see [min_dup_msg]) Note: the value is stored between 0 (0.0) and 10000 (100.0) in the config file"
+msgstr "Minimaal aantal ontvangen duplicate berichten per node (tussen de 0.00 en de 100.00) (zie ook [min_dup_msg]) Opmerking: Deze waarde wordt in het configuratie bestand bewaard als een waarde tussen de 0 (0.0) en de 10000 (100.0))"
+
+#: gnet_property.c:2277
+msgid "Only files with the given extensions will be shared. The special --all-- extension matches all files, even if they don't have any extension.  Use with care."
+msgstr "Alleen de bestanden met deze extensie zullen worden gedeelt. De speciale --al-- extensie komt overeen met alle bestanden, ook als ze geen extensie hebben. Gebruik voorzichtig."
+
+#: gnet_property.c:2298
+msgid "Ignore symbolically linked directories when scanning files to share."
+msgstr ""
+
+#: gnet_property.c:2315
+msgid "Ignore symbolically linked regular files when scanning files to share."
+msgstr ""
+
+#: gnet_property.c:2332
+msgid "Store incomplete files in this directory"
+msgstr ""
+
+#: gnet_property.c:2353
+msgid "Move complete files to this directory. If this is set to the SAME directory as the incomplete or corrupted files, files will be renamed with a trailing .OK"
+msgstr ""
+
+#: gnet_property.c:2374
+msgid "Move corrupted, downloaded files to this directory. If this is set to the SAME directory as the incomplete or completed files, files will be renamed with a trailing .BAD"
+msgstr ""
+
+#: gnet_property.c:2395
+msgid "Directories which contain shared files"
+msgstr ""
+
+#: gnet_property.c:2416
+msgid "List of networks considered local.  This is a list of IP addresses, separated by ';'.  The IP address can be given out fully, as in 192.168.0.1, or be optionally followed by '/' and a network mask prefix length. For instance, 192.168.0.1/24 would represent the whole 192.168.0.* network."
+msgstr ""
+
+#: gnet_property.c:2437
+msgid "Total number of completed downloads in this session"
+msgstr ""
+
+#: gnet_property.c:2457
+msgid "Number of running uploads"
+msgstr ""
+
+#: gnet_property.c:2477
+msgid "Number of registered (pending) uploads"
+msgstr ""
+
+#: gnet_property.c:2497
+msgid "Total number of completed uploads in this session"
+msgstr ""
+
+#: gnet_property.c:2517
+msgid "Global Unique IDentifier of this node"
+msgstr ""
+
+#: gnet_property.c:2534
+msgid "Whether or not to use swarming (recommended = YES)"
+msgstr ""
+
+#: gnet_property.c:2551
+msgid "Whether or not to launch competing downloads when swarming and there are many sources available with a few chunks left."
+msgstr ""
+
+#: gnet_property.c:2568
+msgid "Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will download less if you only have a few bytes to get for a file..."
+msgstr ""
+
+#: gnet_property.c:2588
+msgid "Maximum chunk size when swarming"
+msgstr ""
+
+#: gnet_property.c:2608
+msgid "Whether or not to automatically queue search results that match a file in the download queue"
+msgstr ""
+
+#: gnet_property.c:2625
+msgid "When enabled, SHA1s must match. Otherwise, name and size will be sufficient"
+msgstr ""
+
+#: gnet_property.c:2642
+msgid "Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching to be safe)"
+msgstr ""
+
+#: gnet_property.c:2659
+msgid "Fuzziness threshold for filename matching (higher = stricter). A value of 100 means the filenames must be 100% identical.  A value of 0 means any two filenames will always be considered to be identical.  The minimum is 50%."
+msgstr ""
+
+#: gnet_property.c:2679
+msgid "Whether gtk-gnutella thinks we're currently firewalled"
+msgstr ""
+
+#: gnet_property.c:2696
+msgid "Whether gtk-gnutella thinks it's connected to the Internet"
+msgstr ""
+
+#: gnet_property.c:2713
+msgid "Remove unnecessary ballast from query string before processing or forwarding them. Reduces traffic at the cost of little CPU time"
+msgstr ""
+
+#: gnet_property.c:2730
+msgid "Also use sources that don't provide a SHA1 value for the first chunk of a file. This dramatically reduces the 'No URN on server' messages, but may result in overlap problems later if the first chunk was actually from a different file. Use with caution."
+msgstr ""
+
+#: gnet_property.c:2747
+msgid "Mark files that would be ignored when downloaded. This uses a little additional CPU power so it's off by default. If you don't have a very slow box, you might want to turn this on."
+msgstr ""
+
+#: gnet_property.c:2764
+msgid "Whether gtk-gnutella is currently rebuilding its library in the background"
+msgstr ""
+
+#: gnet_property.c:2781
+msgid "Whether gtk-gnutella is currently computing SHA1 of shared files in the background"
+msgstr ""
+
+#: gnet_property.c:2798
+msgid "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the background"
+msgstr ""
+
+#: gnet_property.c:2815
+msgid "Whether gtk-gnutella is currently moving files across filesystems or simply copying in the background"
+msgstr ""
+
+#: gnet_property.c:2832
+msgid "If active, only compressed incoming connections are allowed after the minimum number of connections has been established. Always allows for one non-compressed connection."
+msgstr ""
+
+#: gnet_property.c:2849
+msgid "If deactivated, only uploads and downloads will continue. All gNet connections are disabled/terminated."
+msgstr ""
+
+#: gnet_property.c:2866
+msgid "Whether gtk-gnutella should make sure the server confirms the URN of the file we're requesting when it is known locally and a traditional request by name is used (i.e. gtk-gnutella is not issuing a /uri-res/N2R? request).  When set, it supersedes the optimistic first chunk setting."
+msgstr ""
+
+#: gnet_property.c:2883
+msgid "Whether gtk-gnutella should make sure the server gives us back a non-empty identifying token."
+msgstr ""
+
+#: gnet_property.c:2900
+msgid "Maximum amount of Ultrapeers we should connect to as a leaf."
+msgstr ""
+
+#: gnet_property.c:2920
+msgid "Maximum amount of leaves we can accept."
+msgstr ""
+
+#: gnet_property.c:2940
+msgid "The peer mode you want to operate as for gtk-gnutella.  When auto is selected, gtk-gnutella will start as a leaf node and may be promoted to an ultra node if bandwidth and uptime permits, provided that you are not firewalled."
+msgstr ""
+
+#: gnet_property.c:2960
+msgid "Current peer mode for gtk-gnutella"
+msgstr ""
+
+#: gnet_property.c:2980
+msgid "How many file descriptors a process can open."
+msgstr ""
+
+#: gnet_property.c:3000
+msgid "How many KB of physical memory is available."
+msgstr ""
+
+#: gnet_property.c:3020
+msgid "How many downloads are currently held in the queue."
+msgstr ""
+
+#: gnet_property.c:3040
+msgid "How many downloads are currently running (downloading / connecting)."
+msgstr ""
+
+#: gnet_property.c:3060
+msgid "How many downloads are currently active."
+msgstr ""
+
+#: gnet_property.c:3080
+msgid "How many queued downloads are currently responsive (remote servent answering requests)."
+msgstr ""
+
+#: gnet_property.c:3100
+msgid "Amount of bytes downloaded so far, HTTP headers notwithstanding."
+msgstr ""
+
+#: gnet_property.c:3120
+msgid "Amount of bytes uploaded so far, HTTP headers notwithstanding."
+msgstr ""
+
+#: gnet_property.c:3140
+msgid "Whether gtk-gnutella should serve partial files whilst they are still incompletely downloaded.  Recommended for network's health unless you already share many files, in which case it does no harm to leave it in, but will not matter as much."
+msgstr ""
+
+#: gnet_property.c:3157
+msgid "When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to download chunks in a random order, to maximize the spreading of the file in the network.  However, this makes auditing (file type, pre-viewing, etc...) of the file impossible. This field sets the size in bytes of the first chunk of data that should be continuously downloaded at the beginning of the file.  Don't set it too large."
+msgstr ""
+
+#: gnet_property.c:3177
+msgid "Whether to apply a fuzzy filter on download mesh entries.  Thepurpose of this filtering is to remove entries whose names are too different to be sensibly part of the same mesh. When activated, your mesh will probably be more consistent at the cost of extra CPU time, and at the cost of losing some valid entries in the process."
+msgstr ""
+
+#: gnet_property.c:3194
+msgid "Number of crawler visits during this session"
+msgstr ""
+
+#: gnet_property.c:3214
+msgid "Whether the clock of this host is kept accurate via NTP. When you enable this, the computed clock skew is ignored."
+msgstr ""
+
+#: gnet_property.c:3231
+msgid "The signed clock skew of this host compared to absolute time. Adding this skew to the host clock should give the true time."
+msgstr ""
+
+#: gui.c:73
+#, c-format
+msgid "%u file shared (%s)"
+msgstr ""
+
+#: gui.c:73
+#, c-format
+msgid "%u files shared (%s)"
+msgstr ""
+
+#: gui.c:124
+msgid "in"
+msgstr ""
+
+#: gui.c:124
+msgid "out"
+msgstr ""
+
+#: gui.c:125
+msgid "(avg)"
+msgstr ""
+
+#: gui_property.c:224
+msgid "Search monitor enabled"
+msgstr ""
+
+#: gui_property.c:241
+msgid "Maximum number of queries visible in search monitor"
+msgstr ""
+
+#: gui_property.c:261
+msgid "Match queue selection by regexp case sensitive"
+msgstr ""
+
+#: gui_property.c:278
+msgid "Autoselect similar files in searches"
+msgstr ""
+
+#: gui_property.c:295
+msgid "Widths of the columns in the nodes table"
+msgstr ""
+
+#: gui_property.c:315
+msgid "Widths of the columns in the active downloads table"
+msgstr ""
+
+#: gui_property.c:335
+msgid "Widths of the columns in the queued downloads table"
+msgstr ""
+
+#: gui_property.c:355
+msgid "Widths of the columns in the file info table"
+msgstr ""
+
+#: gui_property.c:375
+msgid "Which columns are visible in the search results tables"
+msgstr ""
+
+#: gui_property.c:395
+msgid "Widths of the columns in the search list on the sidebar"
+msgstr ""
+
+#: gui_property.c:415
+msgid "Widths of the columns in the search results tables"
+msgstr ""
+
+#: gui_property.c:435
+msgid "Widths of the columns in the search stats table"
+msgstr ""
+
+#: gui_property.c:455
+msgid "Widths of the columns in the upload stats table"
+msgstr ""
+
+#: gui_property.c:475
+msgid "Widths of the columns in the uploads table"
+msgstr ""
+
+#: gui_property.c:495
+msgid "Widths of the columns in the rules table in the filter dialog"
+msgstr ""
+
+#: gui_property.c:515
+msgid "Widths of the columns in the filter table in the filter dialog"
+msgstr ""
+
+#: gui_property.c:535
+msgid "Widths of the columns in the gnet packet stats table"
+msgstr ""
+
+#: gui_property.c:555
+msgid "Widths of the columns in the gnet fc ttl stats table"
+msgstr ""
+
+#: gui_property.c:575
+#: gui_property.c:595
+msgid "Widths of the columns in the gnet fc hops stats table"
+msgstr ""
+
+#: gui_property.c:615
+#: gui_property.c:635
+msgid "Widths of the columns in the gnet stats drop reasons table"
+msgstr ""
+
+#: gui_property.c:655
+msgid "Position and size of the main window"
+msgstr ""
+
+#: gui_property.c:675
+msgid "Position and size of the filter dialog"
+msgstr ""
+
+#: gui_property.c:695
+msgid "Position of the divider in the downloads panel"
+msgstr ""
+
+#: gui_property.c:715
+msgid "Size of the sidebar"
+msgstr ""
+
+#: gui_property.c:735
+msgid "Position of the divider in the gnet stats pane"
+msgstr ""
+
+#: gui_property.c:755
+msgid "Size of the menu in the sidebar"
+msgstr ""
+
+#: gui_property.c:775
+msgid "Position of the divider in the search results pane"
+msgstr ""
+
+#: gui_property.c:795
+msgid "Maximum number of results to show in any search"
+msgstr ""
+
+#: gui_property.c:815
+msgid "Debug level for the gui"
+msgstr ""
+
+#: gui_property.c:835
+msgid "Size of the filter tree in the filter dialog"
+msgstr ""
+
+#: gui_property.c:855
+msgid "Show tabs or search list"
+msgstr ""
+
+#: gui_property.c:872
+msgid "Display toolbar"
+msgstr ""
+
+#: gui_property.c:889
+msgid "Display statusbar"
+msgstr ""
+
+#: gui_property.c:906
+msgid "Display upload statistics in sidebar"
+msgstr ""
+
+#: gui_property.c:923
+msgid "Display download statistics in sidebar"
+msgstr ""
+
+#: gui_property.c:940
+msgid "Display connection statistics in sidebar"
+msgstr ""
+
+#: gui_property.c:957
+msgid "Display incoming HTTP traffic bandwidth usage"
+msgstr ""
+
+#: gui_property.c:974
+msgid "Display outgoing HTTP traffic bandwidth usage"
+msgstr ""
+
+#: gui_property.c:991
+msgid "Display incoming gNet traffic bandwidth usage"
+msgstr ""
+
+#: gui_property.c:1008
+msgid "Display outgoing gNet traffic bandwidth usage"
+msgstr ""
+
+#: gui_property.c:1025
+msgid "Display incoming gNet leaf traffic bandwidth usage"
+msgstr ""
+
+#: gui_property.c:1042
+msgid "Display outgoing gNet leaf traffic bandwidth usage"
+msgstr ""
+
+#: gui_property.c:1059
+msgid "Display incoming HTTP traffic bandwidth average"
+msgstr ""
+
+#: gui_property.c:1076
+msgid "Display outgoing HTTP traffic bandwidth average"
+msgstr ""
+
+#: gui_property.c:1093
+msgid "Display incoming gNet traffic bandwidth average"
+msgstr ""
+
+#: gui_property.c:1110
+msgid "Display outgoing gNet traffic bandwidth average"
+msgstr ""
+
+#: gui_property.c:1127
+msgid "Display incoming gNet leaf traffic bandwidth average"
+msgstr ""
+
+#: gui_property.c:1144
+msgid "Display outgoing gNet leaf traffic bandwidth average"
+msgstr ""
+
+#: gui_property.c:1161
+msgid "When enabled autoselection only takes place if filesize matches exactly, otherwise it must be equal or greater"
+msgstr ""
+
+#: gui_property.c:1178
+msgid "Jump to downloads screen when downloading a file"
+msgstr ""
+
+#: gui_property.c:1195
+msgid "Display search settings"
+msgstr ""
+
+#: gui_property.c:1212
+msgid "Display download settings"
+msgstr ""
+
+#: gui_property.c:1229
+msgid "Use fuzzy name match for autoselection"
+msgstr ""
+
+#: gui_property.c:1246
+msgid "This is the default minimum speed for new searches in kbit/s"
+msgstr ""
+
+#: gui_property.c:1266
+msgid "Collect statistics about searches that go through this node"
+msgstr ""
+
+#: gui_property.c:1286
+msgid "Interval in which the search stats are updated"
+msgstr ""
+
+#: gui_property.c:1306
+msgid "A deletion coefficient, so that small non-significant results can be dropped.  The lower it is, the more search statistics will be kept in memory."
+msgstr ""
+
+#: gui_property.c:1326
+msgid "Show confirmation dialog when leaving gtk-gnutella"
+msgstr ""
+
+#: gui_property.c:1343
+msgid "Show a helpful message when the mouse pointer lingers over a widget"
+msgstr ""
+
+#: gui_property.c:1360
+msgid "Show a lot more settings to tweak. If you tamper with them be sure to read up on what they are doing"
+msgstr ""
+
+#: gui_property.c:1377
+msgid "Show percentages instead of absolute values in the gnet stats"
+msgstr ""
+
+#: gui_property.c:1394
+msgid "Show bytes instead of packages in the gnet stats"
+msgstr ""
+
+#: gui_property.c:1411
+msgid "Show stats per hops instead of per TTL"
+msgstr ""
+
+#: gui_property.c:1428
+msgid "Add the headers to the volume"
+msgstr ""
+
+#: gui_property.c:1445
+msgid "Show percentages instead of absolute values in the gnet stats (drop reasons)"
+msgstr ""
+
+#: gui_property.c:1462
+msgid "Widths of the columns in the gnet stats general table"
+msgstr ""
+
+#: gui_property.c:1482
+#: interface-glade2.c:6881
+msgid "Auto clear completed uploads"
+msgstr "Automatisch afgeronde uploads opschonen"
+
+#: gui_property.c:1499
+#: interface-glade2.c:6888
+msgid "Auto clear failed uploads"
+msgstr "Automatisch gefaalde uploads opschonen"
+
+#: gui_property.c:1516
+msgid "Expanded stati of the nodes in the treemenu"
+msgstr ""
+
+#: gui_property.c:1536
+msgid "Widths of the columns in the gnet packet stats table (pkg)[GTK2]"
+msgstr ""
+
+#: gui_property.c:1556
+msgid "Widths of the columns in the gnet packet stats table (byte) [GTK2]"
+msgstr ""
+
+#: gui_property.c:1576
+msgid "Configures the appearance of the toolbar"
+msgstr ""
+
+#: interface-glade2.c:57
+#: interface-glade2.c:247
+#: interface-glade2.c:9909
+#: interface-glade2.c:10190
+#: interface-glade2.c:10489
+#: interface-glade2.c:10724
+#: interface-glade2.c:10997
+#: interface-glade2.c:11634
+#: interface-glade2.c:12233
+msgid "Abort"
+msgstr "Afbreken"
+
+#: interface-glade2.c:67
+#: interface-glade2.c:257
+msgid "Abort all..."
+msgstr "Alles afbreken..."
+
+#: interface-glade2.c:76
+#: interface-glade2.c:266
+msgid "with name"
+msgstr "met als naam"
+
+#: interface-glade2.c:81
+#: interface-glade2.c:271
+msgid "from host"
+msgstr "van host"
+
+#: interface-glade2.c:86
+#: interface-glade2.c:276
+msgid "with urn:sha1"
+msgstr "met urn:sha1"
+
+#: interface-glade2.c:91
+msgid "Remove file"
+msgstr "Verwijder bestand"
+
+#: interface-glade2.c:101
+msgid "Resume"
+msgstr "Hervatten"
+
+#: interface-glade2.c:111
+msgid "Move back to queue"
+msgstr "Terug plaatsen in de wachtrij"
+
+#: interface-glade2.c:127
+msgid "Force push mode"
+msgstr "Forceer push modus"
+
+#: interface-glade2.c:138
+#: interface-glade2.c:287
+msgid "Copy url to clipboard"
+msgstr "Kopieer de url naar het klembord"
+
+#: interface-glade2.c:148
+#: interface-glade2.c:297
+msgid "Connect to host"
+msgstr "Verbinden met host"
+
+#: interface-glade2.c:242
+msgid "Start now"
+msgstr "Start nu"
+
+#: interface-glade2.c:398
+msgid "Edit filter"
+msgstr "Bewerk filter"
+
+#: interface-glade2.c:414
+msgid "Download selected files"
+msgstr "Download de geselecteerde bestanden"
+
+#: interface-glade2.c:424
+msgid "Drop..."
+msgstr "Negeer..."
+
+#: interface-glade2.c:438
+#: interface-glade2.c:467
+msgid "results with name"
+msgstr "resultaten met naam"
+
+#: interface-glade2.c:443
+#: interface-glade2.c:472
+msgid "results with urn:sha1"
+msgstr "resultaten met urn:sha1"
+
+#: interface-glade2.c:448
+#: interface-glade2.c:477
+msgid "results from host"
+msgstr "resultaten van host"
+
+#: interface-glade2.c:453
+msgid "Globally drop..."
+msgstr "Algemeen negeren..."
+
+#: interface-glade2.c:488
+msgid "Auto-download selected by"
+msgstr "Automatisch het geselecteerde item downloaden op"
+
+#: interface-glade2.c:502
+msgid "urn:sha1"
+msgstr "urn:sha1"
+
+#: interface-glade2.c:512
+msgid "name"
+msgstr "naam"
+
+#: interface-glade2.c:528
+msgid "New search from selected"
+msgstr "Nieuwe zoekopdracht van het geselecteerde item"
+
+#: interface-glade2.c:544
+msgid "Stop this search"
+msgstr "Stop deze zoekopdracht"
+
+#: interface-glade2.c:554
+msgid "Resume this search"
+msgstr "Hervat deze zoekopdracht"
+
+#: interface-glade2.c:564
+msgid "Restart this search"
+msgstr "Begin deze zoekopdracht opnieuw"
+
+#: interface-glade2.c:574
+msgid "Duplicate this search"
+msgstr "Dupliceer deze zoekopdracht"
+
+#: interface-glade2.c:590
+msgid "Show tabs"
+msgstr "Geef tabbladen weer"
+
+#: interface-glade2.c:600
+msgid "Configure columns"
+msgstr "Configureer kolommen"
+
+#: interface-glade2.c:719
+msgid "Add as search"
+msgstr "Voeg toe als een zoekopdracht"
+
+#: interface-glade2.c:744
+msgid "Nothing for now"
+msgstr "Momenteel nog niets"
+
+#: interface-glade2.c:813
+msgid "Ruleset editor"
+msgstr "Regelset editor"
+
+#: interface-glade2.c:843
+msgid "Create filter"
+msgstr "Creëer filter"
+
+#: interface-glade2.c:863
+#: interface-glade2.c:897
+msgid "Filter"
+msgstr "Filter"
+
+#: interface-glade2.c:869
+msgid "Rules"
+msgstr "Regels"
+
+#: interface-glade2.c:875
+#: interface-glade2.c:953
+msgid "Match"
+msgstr "Overeenkomst"
+
+#: interface-glade2.c:908
+msgid "enabled"
+msgstr "geactiveerd"
+
+#: interface-glade2.c:913
+msgid "Remove filter"
+msgstr "Verwijder filter"
+
+#: interface-glade2.c:917
+msgid "A filter can not be removed if it is bound to a search or if it is in use (used as a target in a rule)."
+msgstr ""
+
+#: interface-glade2.c:935
+msgid "!"
+msgstr ""
+
+#: interface-glade2.c:941
+msgid "Condition"
+msgstr "Voorwaarde"
+
+#: interface-glade2.c:947
+#: interface-glade2.c:9815
+#: interface-glade2.c:10137
+#: interface-glade2.c:10436
+#: interface-glade2.c:10671
+#: interface-glade2.c:10944
+#: interface-glade2.c:11540
+#: interface-glade2.c:12180
+msgid "Target"
+msgstr "Doel"
+
+#: interface-glade2.c:965
+msgid "Remove all rules\n"
+"from this filter"
+msgstr ""
+
+#: interface-glade2.c:970
+msgid "Reset all rule stats\n"
+"in this filter"
+msgstr ""
+
+#: interface-glade2.c:975
+msgid "Reset filter stats\n"
+"for this filter"
+msgstr ""
+
+#: interface-glade2.c:980
+msgid "Reset filter stats\n"
+"for all filters"
+msgstr ""
+
+#: interface-glade2.c:1044
+msgid "Revert"
+msgstr "Ongedaan maken"
+
+#: interface-glade2.c:1184
+msgid "gtk-gnutella shutdown"
+msgstr "gtk-gnutella afsluiten"
+
+#: interface-glade2.c:1199
+msgid ""
+"Gtk-gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+"Gtk-gnutella is bezig met afsluiten.\n"
+"Er wordt een 'bye' bericht verstuurd naar de verbonden peers.\n"
+"\n"
+"Tijd tot werkelijk afsluiten:"
+
+#: interface-glade2.c:1204
+msgid "[time]"
+msgstr "[tijd]"
+
+#: interface-glade2.c:1235
+msgid "Copy rule"
+msgstr "Kopieer regel"
+
+#: interface-glade2.c:1245
+msgid "Paste rule"
+msgstr "Plak regel"
+
+#: interface-glade2.c:1311
+msgid "About gtk-gnutella"
+msgstr "Over gtk-gnutella"
+
+#: interface-glade2.c:1336
+msgid "[name and version]"
+msgstr ""
+
+#: interface-glade2.c:1354
+msgid "Original author:"
+msgstr "Oorspronkelijke auteur:"
+
+#: interface-glade2.c:1362
+msgid "Project leader:"
+msgstr "Project leider:"
+
+#: interface-glade2.c:1370
+msgid "Core development:"
+msgstr "Core ontwikkeling:"
+
+#: interface-glade2.c:1378
+msgid "GUI development:"
+msgstr "GUI ontwikkeling:"
+
+#: interface-glade2.c:1386
+msgid "Swarming development:"
+msgstr "Swarming ontwikkeling:"
+
+#: interface-glade2.c:1394
+msgid "PARQ development:"
+msgstr "PARQ ontwikkeling:"
+
+#: interface-glade2.c:1407
+msgid "Yann Grossel"
+msgstr ""
+
+#: interface-glade2.c:1415
+#: interface-glade2.c:1423
+msgid "Raphal Manfredi"
+msgstr ""
+
+#: interface-glade2.c:1431
+msgid "Richard Eckart (GTK+ 1.2), Christian Biere (GTK+ 2.x)"
+msgstr ""
+
+#: interface-glade2.c:1439
+msgid "Vidar Madsen"
+msgstr ""
+
+#: interface-glade2.c:1447
+msgid "Jeroen Asselman"
+msgstr ""
+
+#: interface-glade2.c:1484
+msgid "Contributors"
+msgstr ""
+
+#: interface-glade2.c:1490
+msgid "==&gt; We are looking for people who want to contribute to this fine tool.&lt;=="
+msgstr "==&gt; We zijn op zoek naar mensen die een steentje bij willen dragen aan dit fijne programma.&lt;=="
+
+#: interface-glade2.c:1496
+msgid "Visit http://gtk-gnutella.sourceforge.net."
+msgstr "Bezoek http://gtk-gnutella.sourceforge.net."
+
+#: interface-glade2.c:1504
+msgid "Join the users or developers mailing lists."
+msgstr "Kom bij de gebruikers of de ontwikkelaars mailing lijsten."
+
+#: interface-glade2.c:1510
+msgid "Meet us on #gtk-gnutella at irc.freenode.net."
+msgstr "Ontmoet ons op #gtk-gnutella op irc.freenode.net."
+
+#: interface-glade2.c:1522
+msgid "_Close"
+msgstr "Sluiten"
+
+#: interface-glade2.c:1529
+msgid "@(#) $Id$"
+msgstr ""
+
+#: interface-glade2.c:1712
+msgid "gtk-gnutella"
+msgstr "gtk-gnutella"
+
+#: interface-glade2.c:1743
+msgid "_File"
+msgstr "Bestand"
+
+#: interface-glade2.c:1752
+#: interface-glade2.c:2069
+msgid "_Quit"
+msgstr "Afsluiten"
+
+#: interface-glade2.c:1765
+msgid "_View"
+msgstr "Beeld"
+
+#: interface-glade2.c:1774
+msgid "show _Toolbar"
+msgstr "Laat de werkbalk zien"
+
+#: interface-glade2.c:1780
+msgid "show _Statusbar"
+msgstr "Laat de _Statusbar zien"
+
+#: interface-glade2.c:1792
+msgid "show _Downloads"
+msgstr "Loaat _Downloads zien"
+
+#: interface-glade2.c:1798
+msgid "show _Uploads"
+msgstr "Laat _Uploads zien"
+
+#: interface-glade2.c:1804
+msgid "show _Connections"
+msgstr "Laat _Connecties zien"
+
+#: interface-glade2.c:1810
+msgid "HTTP traffic stats"
+msgstr "Statistieken voor HTTP verkeer"
+
+#: interface-glade2.c:1819
+msgid "show HTTP incoming traffic"
+msgstr "Geef inkomend HTTP verkeer weer"
+
+#: interface-glade2.c:1825
+msgid "show HTTP outgoing traffic"
+msgstr "Geef uitgaand HTTP verkeer weer"
+
+#: interface-glade2.c:1831
+msgid "gNet traffic stats"
+msgstr "Statistieken voor gNet verkeer"
+
+#: interface-glade2.c:1840
+msgid "show gNet incoming traffic"
+msgstr "Geef inkomend gNet verkeer weer"
+
+#: interface-glade2.c:1846
+msgid "show gNet outgoing traffic"
+msgstr "Geef uitgaand gNet verkeer weer"
+
+#: interface-glade2.c:1852
+msgid "gNet leaf traffic stats"
+msgstr "Statistieken voor gNet leaf verkeer "
+
+#: interface-glade2.c:1861
+msgid "show leaf incoming traffic"
+msgstr "Geef inkomend leaf verkeer weer"
+
+#: interface-glade2.c:1866
+msgid "show leaf outgoing traffic"
+msgstr "Geef uitgaand leaf verkeer weer"
+
+#: interface-glade2.c:1871
+msgid "Help"
+msgstr "Help"
+
+#: interface-glade2.c:1880
+msgid "_About"
+msgstr "Over"
+
+#: interface-glade2.c:1905
+msgid "Uptime: "
+msgstr "Uptime:"
+
+#: interface-glade2.c:1914
+msgid "[uptime]"
+msgstr "[uptime]"
+
+#: interface-glade2.c:1983
+msgid "Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results. "
+msgstr "Gtk-gnutella vermoed dat je achter een firewall zit. Niemand heeft tot nu toe een connectie kunnen maken. Er zullen geen push resultaten worden weergegeven, wat er toe kan leiden dat er een stuk minder resultaten weergegeven worden."
+
+#: interface-glade2.c:1996
+msgid "People can connect to you. Push should work."
+msgstr "Mensen kunnen met u verbinden. Push zou moeten werken."
+
+#: interface-glade2.c:2013
+msgid "Running in ultrapeer mode."
+msgstr "Draait in ultrapeer modus."
+
+#: interface-glade2.c:2025
+msgid "This node is in leaf mode."
+msgstr "Deze node is in leaf modus."
+
+#: interface-glade2.c:2037
+msgid "Legacy mode is active. (Make sure there's an IRQ left!)"
+msgstr ""
+
+#: interface-glade2.c:2045
+#: interface-glade2.c:12667
+#: interface-glade2.c:12676
+#: interface-glade2.c:12685
+msgid " "
+msgstr ""
+
+#: interface-glade2.c:2082
+msgid "Filters"
+msgstr "Filters"
+
+#: interface-glade2.c:2155
+msgid "label187"
+msgstr ""
+
+#: interface-glade2.c:2165
+msgid "label188"
+msgstr ""
+
+#: interface-glade2.c:2202
+msgid "gNet connections"
+msgstr "gNet connecties"
+
+#: interface-glade2.c:2224
+#: interface-glade2.c:6930
+#: main_gui.c:185
+#: main_gui.c:228
+msgid "Uploads"
+msgstr "Uploads"
+
+#: interface-glade2.c:2246
+#: interface-glade2.c:7752
+#: main_gui.c:193
+#: main_gui.c:224
+msgid "Downloads"
+msgstr "Downloads"
+
+#: interface-glade2.c:2275
+#: interface-glade2.c:2282
+#: interface-glade2.c:2307
+#: interface-glade2.c:2314
+#: interface-glade2.c:2339
+#: interface-glade2.c:2346
+msgid "Click to toggle display."
+msgstr "Klik om de display te wijzigen"
+
+#: interface-glade2.c:2285
+msgid "HTTP traffic"
+msgstr "HTTP verkeer"
+
+#: interface-glade2.c:2317
+msgid "gnutellaNet traffic"
+msgstr "gnutellaNet verkeer"
+
+#: interface-glade2.c:2349
+msgid "Leaf traffic"
+msgstr "Leaf verkeer"
+
+#: interface-glade2.c:2397
+msgid "You seem to be offline."
+msgstr "Het ziet er naar uit dat u offline bent."
+
+#: interface-glade2.c:2621
+msgid "gtk-gnutella: Quit?"
+msgstr "gtk-gnutella: Stoppen?"
+
+#: interface-glade2.c:2635
+msgid "Do you really want to quit?"
+msgstr "Weet u zeker dat u wilt stoppen?"
+
+#: interface-glade2.c:2642
+msgid "Please confirm"
+msgstr "SVP bevestigen"
+
+#: interface-glade2.c:2761
+#: interface-glade2.c:12382
+msgid "window1"
+msgstr "window1"
+
+#: interface-glade2.c:2797
+msgid "Current IP settings (Address:Port):"
+msgstr "Huidige IP instellingen (Adres:Poort):"
+
+#: interface-glade2.c:2802
+msgid "not yet determined"
+msgstr "nog niet bepaald"
+
+#: interface-glade2.c:2819
+msgid "_Listen port"
+msgstr "_Luisterende poort"
+
+#: interface-glade2.c:2834
+msgid "Default: 6346, Disable: 0"
+msgstr "Standaard: 6346, Uitschakelen: 0"
+
+#: interface-glade2.c:2850
+msgid "_Force local IP to"
+msgstr "_Forceer het lokale IP naar"
+
+#: interface-glade2.c:2857
+msgid "IP settings"
+msgstr "IP instellingen"
+
+#: interface-glade2.c:2902
+msgid "_Port:"
+msgstr "_Poort:"
+
+#: interface-glade2.c:2911
+msgid "Proxy _type:"
+msgstr "Proxy _type:"
+
+#: interface-glade2.c:2921
+msgid "H_ost:"
+msgstr "H_ost:"
+
+#: interface-glade2.c:2940
+msgid "                  "
+msgstr "                  "
+
+#: interface-glade2.c:2955
+msgid "Use username and password to _authenticate to proxy"
+msgstr "Gebruik een gebruikersnaam en watchwoord om te _authenticeren bij een proxy"
+
+#: interface-glade2.c:2965
+msgid "_Username"
+msgstr "Gebr_uikersnaam"
+
+#: interface-glade2.c:2977
+msgid "Pass_word"
+msgstr "Wacht_woord"
+
+#: interface-glade2.c:2987
+msgid "Proxy settings"
+msgstr "Proxy instellingen"
+
+#: interface-glade2.c:3009
+msgid "_Try to connect to local networks first"
+msgstr "Probeer eerst te verbinden met een lokaal netwerk"
+
+#: interface-glade2.c:3013
+msgid "This option can give peformance boosts to those on a large network with many peers by trying to locate files on the local networks first."
+msgstr "Degene die op een groot netwerk zitten met een groot aantal peers kunnen hier een snelheidswinst behalen door eerst te zoeken naar bestanden op het lokale netwerk."
+
+#: interface-glade2.c:3015
+msgid "Allow connections from and to LAN addresses"
+msgstr "Sta connecties van en naar LAN adressen toe"
+
+#: interface-glade2.c:3026
+msgid "A_ddresses of Local Network(s)"
+msgstr "A_dressen van (het) Lokale Netwerk(en)"
+
+#: interface-glade2.c:3035
+msgid "Enter a semicolon separated list of networks that are local to you in the form of ip/bits or ip/netmask (eg 192.168.1.0/24 or 192.168.1.0/255.255.255.0)"
+msgstr ""
+
+#: interface-glade2.c:3037
+msgid "Local Networks"
+msgstr "Lokale netwerken"
+
+#: interface-glade2.c:3079
+msgid "Max. file descriptors reserved for banning"
+msgstr ""
+
+#: interface-glade2.c:3088
+#, c-format
+msgid "Max. % of file descriptors used for banning"
+msgstr ""
+
+#: interface-glade2.c:3097
+msgid "Hard limit of file descriptors used"
+msgstr ""
+
+#: interface-glade2.c:3106
+msgid "Banning"
+msgstr ""
+
+#: interface-glade2.c:3138
+msgid "Host runs NTP"
+msgstr "Host draait NTP"
+
+#: interface-glade2.c:3145
+msgid "Clock skew:"
+msgstr ""
+
+#: interface-glade2.c:3154
+msgid "       "
+msgstr ""
+
+#: interface-glade2.c:3163
+#: interface-glade2.c:5644
+msgid "Miscellaneous"
+msgstr ""
+
+#: interface-glade2.c:3378
+msgid "window2"
+msgstr ""
+
+#: interface-glade2.c:3425
+msgid "Configured peermode"
+msgstr ""
+
+#: interface-glade2.c:3434
+msgid "Gnutella network mode"
+msgstr "Gnutella netwerk modus"
+
+#: interface-glade2.c:3469
+msgid "Maximum # of leaves"
+msgstr "Maximum aantal leaves"
+
+#: interface-glade2.c:3479
+msgid "Legacy connections"
+msgstr "Legacy verbindingen"
+
+#: interface-glade2.c:3489
+msgid "Ultrapeer mode settings"
+msgstr "Ultrapeer modus instellingen"
+
+#: interface-glade2.c:3508
+msgid "items"
+msgstr "items"
+
+#: interface-glade2.c:3516
+#: interface-glade2.c:8837
+msgid "kbit/s"
+msgstr "kbit/s"
+
+#: interface-glade2.c:3540
+msgid "This limits how many results gnutella returns to other people searching your files."
+msgstr "Dit limiteert het aantal zoek resultaten dat gtk-gnutella terug zal sturen als anderen zoeken naar jouw bestanden."
+
+#: interface-glade2.c:3543
+msgid "seconds (0 - disable)"
+msgstr "seconden (0 - uitschakelen)"
+
+#: interface-glade2.c:3561
+msgid "Limit search _results to "
+msgstr "Limiteer zoek resultaten op"
+
+#: interface-glade2.c:3569
+msgid "Default _minimum speed"
+msgstr ""
+
+#: interface-glade2.c:3577
+msgid "Default search _reissue timeout"
+msgstr ""
+
+#: interface-glade2.c:3586
+msgid "Searches"
+msgstr "Zoek opdrachten"
+
+#: interface-glade2.c:3605
+msgid "Connecting time_out"
+msgstr ""
+
+#: interface-glade2.c:3613
+msgid "T_X flow control timeout"
+msgstr ""
+
+#: interface-glade2.c:3621
+msgid "Connected time_out"
+msgstr ""
+
+#: interface-glade2.c:3629
+msgid "Incoming connecting timeout"
+msgstr ""
+
+#: interface-glade2.c:3674
+msgid "gnutellaNet timeouts (all values in seconds)"
+msgstr ""
+
+#: interface-glade2.c:3693
+msgid "hops radius"
+msgstr ""
+
+#: interface-glade2.c:3716
+msgid "Amount of tolerable messages above hard TTL limit per node"
+msgstr ""
+
+#: interface-glade2.c:3726
+msgid "Max hard TTL limit (hop+ttl) on message"
+msgstr ""
+
+#: interface-glade2.c:3745
+msgid "Hop radius for counting high TTL limit messages (#hops lower than...)"
+msgstr ""
+
+#: interface-glade2.c:3748
+msgid "Max _TTL"
+msgstr ""
+
+#: interface-glade2.c:3756
+msgid "Max # of _high TTL msg"
+msgstr ""
+
+#: interface-glade2.c:3764
+msgid "H_ard TTL limit"
+msgstr ""
+
+#: interface-glade2.c:3772
+msgid "M_y TTL"
+msgstr ""
+
+#: interface-glade2.c:3780
+msgid "from _nodes within a"
+msgstr ""
+
+#: interface-glade2.c:3788
+msgid "gnutellaNet _TTL settings"
+msgstr ""
+
+#: interface-glade2.c:3807
+msgid "messages"
+msgstr "berichten"
+
+#: interface-glade2.c:3816
+#: interface-glade2.c:3863
+#: interface-glade2.c:4368
+msgid "%"
+msgstr ""
+
+#: interface-glade2.c:3843
+msgid "Ratio of tolerable duplicate messages per node"
+msgstr ""
+
+#: interface-glade2.c:3853
+msgid "Number of tolerable _duplicate messages per node"
+msgstr ""
+
+#: interface-glade2.c:3881
+msgid "RX flow control ratio"
+msgstr ""
+
+#: interface-glade2.c:3891
+msgid "Quality management"
+msgstr "Kwaliteits beheer"
+
+#: interface-glade2.c:3917
+msgid "Hops random factor"
+msgstr "Willekeurige hops faktor"
+
+#: interface-glade2.c:3927
+msgid "Clean up queries before processing"
+msgstr "Schoon zoek opdrachten op voordat ze verder worden verwerkt"
+
+#: interface-glade2.c:3934
+msgid "Other"
+msgstr "Anders"
+
+#: interface-glade2.c:4095
+msgid "window3"
+msgstr ""
+
+#: interface-glade2.c:4127
+msgid "Use surplus bandwidth"
+msgstr "Gebruik 'surplus' bandbreedte"
+
+#: interface-glade2.c:4134
+msgid "Prefer compressed connections"
+msgstr "Geef voorkeur aan gecomprimeerde verbindingen"
+
+#: interface-glade2.c:4141
+msgid "Use IP Type of Service (TOS)"
+msgstr ""
+
+#: interface-glade2.c:4148
+#: interface-glade2.c:9315
+msgid "General"
+msgstr "Algemeen"
+
+#: interface-glade2.c:4173
+#: interface-glade2.c:4181
+#: interface-glade2.c:4242
+#: interface-glade2.c:4260
+#: interface-glade2.c:4314
+#: interface-glade2.c:4322
+msgid "K/s"
+msgstr ""
+
+#: interface-glade2.c:4207
+#: interface-glade2.c:4384
+msgid "Limit bandwidth for _incoming traffic to"
+msgstr ""
+
+#: interface-glade2.c:4214
+#: interface-glade2.c:4391
+msgid "Limit bandwidth for _outgoing traffic to"
+msgstr ""
+
+#: interface-glade2.c:4269
+msgid "Limit incoming bandwidth from leaves to"
+msgstr ""
+
+#: interface-glade2.c:4276
+msgid "Limit outgoing bandwidth to leaves to"
+msgstr ""
+
+#: interface-glade2.c:4283
+msgid "Ultrapeer mode"
+msgstr ""
+
+#: interface-glade2.c:4289
+msgid "Bandwidth control for gnutellaNet traffic"
+msgstr ""
+
+#: interface-glade2.c:4355
+#: interface-glade2.c:4404
+#, c-format
+msgid "Until xx% of outgoing HTTP bandwidth is in use, open additional upload slots on request."
+msgstr ""
+
+#: interface-glade2.c:4365
+msgid "What other people see as your connection speed."
+msgstr ""
+
+#: interface-glade2.c:4376
+msgid "kbits/s to peers"
+msgstr ""
+
+#: interface-glade2.c:4398
+msgid "Enable _dynamic upload slots allocation"
+msgstr ""
+
+#: interface-glade2.c:4406
+msgid "Report a connection _speed of"
+msgstr ""
+
+#: interface-glade2.c:4421
+msgid "Bandwidth control for HTTP traffic"
+msgstr ""
+
+#: interface-glade2.c:4589
+msgid "window4"
+msgstr ""
+
+#: interface-glade2.c:4646
+#: interface-glade2.c:4695
+#: interface-glade2.c:4744
+msgid "_Browse"
+msgstr ""
+
+#: interface-glade2.c:4652
+msgid "Keep downloading/incomplete files in"
+msgstr ""
+
+#: interface-glade2.c:4701
+msgid "Move completely downloaded files to"
+msgstr ""
+
+#: interface-glade2.c:4750
+msgid "Move corrupted downloaded files to"
+msgstr ""
+
+#: interface-glade2.c:4769
+msgid "_Overlap when resuming"
+msgstr ""
+
+#: interface-glade2.c:4778
+msgid "Maximum number of _retries"
+msgstr ""
+
+#: interface-glade2.c:4787
+#: interface-glade2.c:10393
+#: interface-glade2.c:10401
+msgid "bytes"
+msgstr ""
+
+#: interface-glade2.c:4801
+msgid "Amount of bytes to overlap when resuming download"
+msgstr ""
+
+#: interface-glade2.c:4811
+msgid "Maximum attempts to make, not counting HTTP busy indications"
+msgstr ""
+
+#: interface-glade2.c:4814
+msgid "Resume and retry"
+msgstr ""
+
+#: interface-glade2.c:4832
+msgid "Optimistic first _chunk"
+msgstr ""
+
+#: interface-glade2.c:4839
+msgid "Require _urn"
+msgstr ""
+
+#: interface-glade2.c:4846
+msgid "Require _server name"
+msgstr ""
+
+#: interface-glade2.c:4853
+msgid "Source quality"
+msgstr ""
+
+#: interface-glade2.c:4872
+msgid "Retry stopped delay"
+msgstr ""
+
+#: interface-glade2.c:4880
+msgid "Retry refused delay"
+msgstr ""
+
+#: interface-glade2.c:4888
+msgid "Retry busy delay"
+msgstr ""
+
+#: interface-glade2.c:4896
+msgid "Retry timeout delay"
+msgstr ""
+
+#: interface-glade2.c:4904
+msgid "Retry timeout max"
+msgstr ""
+
+#: interface-glade2.c:4912
+msgid "Retry timeout min"
+msgstr ""
+
+#: interface-glade2.c:4920
+msgid "Connecting timeout"
+msgstr ""
+
+#: interface-glade2.c:4928
+msgid "_Push sent timeout"
+msgstr ""
+
+#: interface-glade2.c:4936
+msgid "Connected timeout"
+msgstr ""
+
+#: interface-glade2.c:4951
+msgid "Delay in seconds to wait when running download stops"
+msgstr ""
+
+#: interface-glade2.c:4961
+msgid "Delay in seconds to wait if connection is refused"
+msgstr ""
+
+#: interface-glade2.c:4971
+msgid "Delay in seconds to wait after HTTP busy indication"
+msgstr ""
+
+#: interface-glade2.c:4981
+msgid "Delay in seconds to wait after connection failure"
+msgstr ""
+
+#: interface-glade2.c:4991
+msgid "Maximum seconds to wait on auto-retry timeouts"
+msgstr ""
+
+#: interface-glade2.c:5001
+msgid "Minimum seconds to wait on auto-retry timeouts"
+msgstr ""
+
+#: interface-glade2.c:5011
+msgid "Number of seconds before timeout for a connecting download"
+msgstr ""
+
+#: interface-glade2.c:5021
+msgid "Number of seconds before timeout for a 'push sent' download"
+msgstr ""
+
+#: interface-glade2.c:5031
+msgid "Number of seconds before timeout for a connected download"
+msgstr ""
+
+#: interface-glade2.c:5034
+msgid "Delays and timeouts (all values in seconds)"
+msgstr ""
+
+#: interface-glade2.c:5051
+msgid "Enable s_warming"
+msgstr ""
+
+#: interface-glade2.c:5068
+msgid "A_ggressive mode"
+msgstr ""
+
+#: interface-glade2.c:5075
+msgid "M_inimum chunk size"
+msgstr ""
+
+#: interface-glade2.c:5084
+msgid "Ma_ximum chunk size"
+msgstr ""
+
+#: interface-glade2.c:5130
+msgid "Strict SHA_1 matching"
+msgstr ""
+
+#: interface-glade2.c:5137
+#: interface-glade2.c:8341
+msgid "Use fu_zzy matching"
+msgstr ""
+
+#: interface-glade2.c:5144
+msgid "Fuzzy threshold"
+msgstr ""
+
+#: interface-glade2.c:5153
+msgid "Watch searches for _alternate sources"
+msgstr ""
+
+#: interface-glade2.c:5168
+msgid "Downloading from multiple sources (swarming)"
+msgstr ""
+
+#: interface-glade2.c:5319
+msgid "window5"
+msgstr ""
+
+#: interface-glade2.c:5381
+msgid "_Add"
+msgstr ""
+
+#: interface-glade2.c:5387
+msgid "Files scanned"
+msgstr ""
+
+#: interface-glade2.c:5413
+msgid "_Rescan"
+msgstr ""
+
+#: interface-glade2.c:5424
+msgid "Search _extensions"
+msgstr ""
+
+#: interface-glade2.c:5434
+msgid "_Path(s) to files"
+msgstr ""
+
+#: interface-glade2.c:5471
+msgid "_Connecting timeout"
+msgstr ""
+
+#: interface-glade2.c:5479
+msgid "C_onnected timeout"
+msgstr ""
+
+#: interface-glade2.c:5487
+msgid "Timeouts (all values in seconds)"
+msgstr ""
+
+#: interface-glade2.c:5573
+msgid "window6"
+msgstr ""
+
+#: interface-glade2.c:5606
+msgid "Toolbar style"
+msgstr ""
+
+#: interface-glade2.c:5616
+msgid "show _confirmation dialog when leaving gtk-gnutella"
+msgstr ""
+
+#: interface-glade2.c:5623
+msgid "show _tootips (does not affect all tooltips yet)"
+msgstr ""
+
+#: interface-glade2.c:5661
+msgid "_allow experimenting with low-level settings"
+msgstr ""
+
+#: interface-glade2.c:5668
+msgid "Expert mode"
+msgstr ""
+
+#: interface-glade2.c:5743
+msgid "window7"
+msgstr ""
+
+#: interface-glade2.c:5795
+msgid "_Core debug level"
+msgstr ""
+
+#: interface-glade2.c:5804
+msgid "_GUI debug level"
+msgstr ""
+
+#: interface-glade2.c:5813
+msgid "_Shared code debug level"
+msgstr ""
+
+#: interface-glade2.c:5831
+msgid "_stop collecting hosts in host catcher"
+msgstr ""
+
+#: interface-glade2.c:5838
+msgid "_Track properties"
+msgstr ""
+
+#: interface-glade2.c:5856
+msgid "Debug settings"
+msgstr "Debug instellingen"
+
+#: interface-glade2.c:5875
+#: interface-glade2.c:12694
+msgid "  "
+msgstr "  "
+
+#: interface-glade2.c:5885
+msgid "PROP_READING_ULTRAFILE"
+msgstr "PROP_READING_ULTRAFILE"
+
+#: interface-glade2.c:5902
+msgid "PROP_CURRENT_IP_STAMP"
+msgstr "PROP_CURRENT_IP_STAMP"
+
+#: interface-glade2.c:5911
+msgid "PROP_AVERAGE_IP_UPTIME"
+msgstr "PROP_AVERAGE_IP_UPTIME"
+
+#: interface-glade2.c:5920
+msgid "PROP_START_STAMP"
+msgstr "PROP_START_STAMP"
+
+#: interface-glade2.c:5929
+msgid "PROP_AVERAGE_SERVENT_UPTIME"
+msgstr "PROP_AVERAGE_SERVENT_UPTIME"
+
+#: interface-glade2.c:5938
+msgid "PROP_PROXY_CONNECTIONS"
+msgstr "PROP_PROXY_CONNECTIONS"
+
+#: interface-glade2.c:5987
+msgid "PROP_SYS_NOFILE"
+msgstr "PROP_SYS_NOFILE"
+
+#: interface-glade2.c:5996
+msgid "PROP_SYS_PHYSMEM"
+msgstr "PROP_SYS_PHYSMEM"
+
+#: interface-glade2.c:6005
+msgid "PROP_CRAWLER_VISIT_COUNT"
+msgstr "PROP_CRAWLER_VISIT_COUNT"
+
+#: interface-glade2.c:6038
+msgid "Unmapped stuff"
+msgstr ""
+
+#: interface-glade2.c:6172
+msgid "window8"
+msgstr "window8"
+
+#: interface-glade2.c:6233
+msgid "Try to connect to specified address"
+msgstr "Probeer te verbinden met dit adres"
+
+#: interface-glade2.c:6250
+msgid "Add"
+msgstr "Voeg toe"
+
+#: interface-glade2.c:6263
+msgid "Connect to"
+msgstr "Verbind met"
+
+#: interface-glade2.c:6276
+msgid "ultrapeers"
+msgstr "ultrapeers"
+
+#: interface-glade2.c:6296
+msgid "Disconnect from selected nodes"
+msgstr "Verbinding verbreken met geselecteerde nodes"
+
+#: interface-glade2.c:6313
+#: interface-glade2.c:10185
+#: interface-glade2.c:10484
+#: interface-glade2.c:10719
+#: interface-glade2.c:10992
+msgid "Remove"
+msgstr "Verwijder"
+
+#: interface-glade2.c:6324
+msgid "Try to keep at least"
+msgstr "Probeer tenminste"
+
+#: interface-glade2.c:6337
+msgid "connections up"
+msgstr "connecties beschikbaar"
+
+#: interface-glade2.c:6342
+msgid "Maximum of"
+msgstr "Maximaal aantal"
+
+#: interface-glade2.c:6355
+msgid "total connections"
+msgstr "totaal connecties"
+
+#: interface-glade2.c:6360
+msgid "gnutellaNet connections"
+msgstr "gnutellaNet connecties"
+
+#: interface-glade2.c:6394
+msgid "Max hosts cached"
+msgstr "Maximum hosts cached"
+
+#: interface-glade2.c:6403
+msgid "Hosts in cache"
+msgstr "Hosts in cache"
+
+#: interface-glade2.c:6419
+msgid "Ultrapeers"
+msgstr "Ultrapeers"
+
+#: interface-glade2.c:6426
+msgid "Normal hosts"
+msgstr "Normale hosts"
+
+#: interface-glade2.c:6451
+#: interface-glade2.c:6458
+msgid "Clear"
+msgstr "Leeg"
+
+#: interface-glade2.c:6465
+msgid "Host catcher"
+msgstr "Host vanger"
+
+#: interface-glade2.c:6480
+msgid "Uploaded"
+msgstr "Geupload"
+
+#: interface-glade2.c:6490
+msgid "Downloaded"
+msgstr "Gedownload"
+
+#: interface-glade2.c:6500
+msgid "Chunks/Files"
+msgstr "Fragmenten/Bestanden"
+
+#: interface-glade2.c:6507
+msgid "Volume"
+msgstr "Volume"
+
+#: interface-glade2.c:6554
+msgid "Transfers"
+msgstr "Overdrachten"
+
+#: interface-glade2.c:6577
+msgid "GUID:"
+msgstr "GUID:"
+
+#: interface-glade2.c:6587
+msgid "The Global Unique IDentifier associated with this node. It's used for routing packets in the Gnutella network."
+msgstr "De Globale Unieke IDentiteit geassocieerd met deze node. Deze wordt gebruikt om pakketjes over het Gnutella network te routen."
+
+#: interface-glade2.c:6598
+msgid "Address/Port:"
+msgstr "Adres/Poort:"
+
+#: interface-glade2.c:6608
+msgid "The current IP address and listening port for this node. To change these go to Config->Network."
+msgstr "Het huidge IP adres en de luisterende poort voor deze node. Om deze waarde te wijgen ga dan naar: Configuratie->Netwerk"
+
+#: interface-glade2.c:6619
+msgid "Local node"
+msgstr "Lokale node"
+
+#: interface-glade2.c:6756
+msgid "window9"
+msgstr "window9"
+
+#: interface-glade2.c:6793
+msgid "Abort and remove all selected uploads"
+msgstr "Breek de huidge geselecteerde uploads af en verwijder ze."
+
+#: interface-glade2.c:6810
+msgid " Kill selected "
+msgstr "Vernietig de geselecteerde"
+
+#: interface-glade2.c:6821
+msgid "Clear already completed uploads from list"
+msgstr "Verwijder de reeds afgeronde uploads van de lijst"
+
+#: interface-glade2.c:6838
+msgid " Clear completed "
+msgstr "Verwijderde afgeronde"
+
+#: interface-glade2.c:6865
+#: interface-glade2.c:12603
+msgid "Upload Settings"
+msgstr "Upload instellingen"
+
+#: interface-glade2.c:6895
+msgid "Max. uploads to single host"
+msgstr "Max. uploads naar één host"
+
+#: interface-glade2.c:6903
+msgid "Max. simultaneous uploads"
+msgstr "Max. gelijktijdige uploads"
+
+#: interface-glade2.c:7007
+msgid "window10"
+msgstr "window10"
+
+#: interface-glade2.c:7045
+msgid "Somebody tell me a sensible tooltip for this."
+msgstr "Is er een toepasselijke tooltip voor deze?"
+
+#: interface-glade2.c:7062
+msgid "Clear non-existent files"
+msgstr "Verwijder niet bestaande bestanden"
+
+#: interface-glade2.c:7088
+msgid "Clear all"
+msgstr "Opschonen"
+
+#: interface-glade2.c:7094
+msgid "Upload history"
+msgstr "Upload geschiedenis"
+
+#: interface-glade2.c:7244
+msgid "window11"
+msgstr "window11"
+
+#: interface-glade2.c:7293
+#: interface-glade2.c:7619
+msgid "Filename"
+msgstr "Bestandsnaam"
+
+#: interface-glade2.c:7300
+#: interface-glade2.c:7626
+#: search_gui.c:1877
+#: search_gui.c:1882
+msgid "Host"
+msgstr "Host"
+
+#: interface-glade2.c:7306
+#: interface-glade2.c:7632
+#: search_gui.c:1863
+#: search_gui.c:1868
+msgid "Size"
+msgstr "Grootte"
+
+#: interface-glade2.c:7312
+msgid "Range"
+msgstr "Bereik"
+
+#: interface-glade2.c:7318
+#: interface-glade2.c:7638
+msgid "Server"
+msgstr "Server"
+
+#: interface-glade2.c:7324
+#: interface-glade2.c:7644
+msgid "Status"
+msgstr "Status"
+
+#: interface-glade2.c:7362
+msgid "Max. downloads from single host"
+msgstr "Max. downloads van één host"
+
+#: interface-glade2.c:7383
+msgid "Max. simultaneous downloads"
+msgstr "Max. gelijktijdige downloads"
+
+#: interface-glade2.c:7413
+msgid "More Settings"
+msgstr "Meer instellingen."
+
+#: interface-glade2.c:7419
+msgid "Delete file on abort"
+msgstr "Verwijder bestand als deze word afgebroken"
+
+#: interface-glade2.c:7426
+msgid "Never send a push request"
+msgstr "Verstuur nooit een push verzoek"
+
+#: interface-glade2.c:7433
+msgid "Download settings"
+msgstr "Download instellingen"
+
+#: interface-glade2.c:7453
+msgid "Abort all selected downloads"
+msgstr "Breek alle geselecteerde downloads af"
+
+#: interface-glade2.c:7470
+msgid "_Abort selected"
+msgstr "Breek _af de geselecteerde"
+
+#: interface-glade2.c:7483
+msgid "Resume all selected downloads"
+msgstr "Hervat alle geselecteerde downloads"
+
+#: interface-glade2.c:7500
+msgid "_Resume selected"
+msgstr "He_rvat geselecteerde"
+
+#: interface-glade2.c:7513
+msgid "Remove completed downloads from list"
+msgstr "Verwijderde de afgeronde downloads van de lijst"
+
+#: interface-glade2.c:7530
+msgid "_Clear completed"
+msgstr "Verwijder afgeronde"
+
+#: interface-glade2.c:7543
+msgid "[running downloads]"
+msgstr "[draaiende downloads]"
+
+#: interface-glade2.c:7573
+msgid "Show _settings"
+msgstr "Geef in_stellingen weer"
+
+#: interface-glade2.c:7579
+msgid "Active downloads"
+msgstr "Actieve downloads"
+
+#: interface-glade2.c:7679
+msgid "Freeze queue"
+msgstr "Pauzeer de wachtrij"
+
+#: interface-glade2.c:7685
+#: interface-glade2.c:9781
+msgid "case sensitive"
+msgstr "hoofdletter gevoelig"
+
+#: interface-glade2.c:7692
+msgid "Select all matching regex from queue"
+msgstr "Selecteer alle overeenkomstige regex in de wachtrij"
+
+#: interface-glade2.c:7720
+msgid "[queued downloads]"
+msgstr "[wachtende downloads]"
+
+#: interface-glade2.c:7728
+msgid "queued ("
+msgstr "wachtende ("
+
+#: interface-glade2.c:7734
+msgid "[hosts alive]"
+msgstr "[host beschikbaar]"
+
+#: interface-glade2.c:7740
+msgid "alive)"
+msgstr "beschikbaar)"
+
+#: interface-glade2.c:7746
+msgid "Download queue"
+msgstr "Download wachtrij"
+
+#: interface-glade2.c:7783
+#: interface-glade2.c:7902
+msgid "Fileinfo"
+msgstr "Bestandsinformatie"
+
+#: interface-glade2.c:7817
+#: interface-glade2.c:8419
+msgid "Filename:"
+msgstr "Bestandsnaam:"
+
+#: interface-glade2.c:7826
+#: interface-glade2.c:8482
+msgid "Size:"
+msgstr "Grootte:"
+
+#: interface-glade2.c:7870
+msgid "Sources"
+msgstr "Bronnen"
+
+#: interface-glade2.c:7890
+msgid "Aliases"
+msgstr "Alias"
+
+#: interface-glade2.c:7896
+msgid "Detail information"
+msgstr "Gedetaileerde informatie"
+
+#: interface-glade2.c:8177
+msgid "window12"
+msgstr "window12"
+
+#: interface-glade2.c:8203
+msgid "_Search for"
+msgstr "Zoek naar"
+
+#: interface-glade2.c:8233
+msgid "_New search"
+msgstr "Nieuwe zoek opdracht"
+
+#: interface-glade2.c:8239
+msgid "New _passive search"
+msgstr "Nieuwe _passieve zoekopdracht"
+
+#: interface-glade2.c:8243
+msgid "A passive search matches any search results routed through this node"
+msgstr "Een passieve zoek opdracht geeft alle zoekopdrachten weer die langs deze node komen"
+
+#: interface-glade2.c:8248
+msgid "Add new search"
+msgstr "Voeg een nieuwe zoek opdracht toe"
+
+#: interface-glade2.c:8307
+#: search_gui.c:612
+#: search_gui.c:1549
+#: search_gui.c:1662
+msgid "(no search)"
+msgstr "(geen zoek opdrachten)"
+
+#: interface-glade2.c:8334
+msgid "_Remove files manually selected for download"
+msgstr "Verwijder bestanden die handmatige geselecteerd zijn om te downloaden"
+
+#: interface-glade2.c:8348
+msgid "_Mark ignored files"
+msgstr "_Markeer genegeerde bestanden"
+
+#: interface-glade2.c:8355
+msgid "Autoselect _identical"
+msgstr "_Identieke automatisch selecteren"
+
+#: interface-glade2.c:8361
+msgid "If on autoselection only takes place if filesize matches exactly, if off filesize must be equals or greater."
+msgstr "Als deze aan staat, dan zal de autoselectie alleen plaats vinden als de bestandsgrootte overeenkomt. Anders moet de bestands grootte even groot over groter zijn."
+
+#: interface-glade2.c:8363
+msgid "_Jump to downloads"
+msgstr "Spring naar downloads"
+
+#: interface-glade2.c:8370
+msgid "Max. _number of results"
+msgstr "Max. aantal resultaten"
+
+#: interface-glade2.c:8379
+msgid "Enable _autoselect"
+msgstr "Activeer _autoselectie"
+
+#: interface-glade2.c:8385
+msgid "Automatically select all other results with the same name or urn:sha1."
+msgstr "Selecteer automatisch andere resultaten met dezelfde naam of urn:sha1"
+
+#: interface-glade2.c:8387
+msgid "General search settings (affect all searches)"
+msgstr "Algemene zoek instellingen (heeft gevolgen voor alle zoekopdrachten)"
+
+#: interface-glade2.c:8428
+msgid "ServentID:"
+msgstr "ServentID:"
+
+#: interface-glade2.c:8437
+msgid "Vendor:"
+msgstr "Maker:"
+
+#: interface-glade2.c:8446
+msgid "Tag:"
+msgstr "Tag:"
+
+#: interface-glade2.c:8455
+msgid "Timestamp:"
+msgstr "Tijdindicator:"
+
+#: interface-glade2.c:8464
+msgid "Source:"
+msgstr "Bron:"
+
+#: interface-glade2.c:8473
+msgid "SHA1:"
+msgstr "SHA1:"
+
+#: interface-glade2.c:8491
+msgid "Index:"
+msgstr "Index:"
+
+#: interface-glade2.c:8500
+msgid "Speed:"
+msgstr "Snelheid:"
+
+#: interface-glade2.c:8663
+msgid "Information about selected file"
+msgstr "Informatie over het geselecteerde bestand"
+
+#: interface-glade2.c:8694
+msgid "Edit _Filters"
+msgstr "Bewerk _Filters"
+
+#: interface-glade2.c:8720
+msgid "Sho_w settings"
+msgstr "Geef instellingen _weer"
+
+#: interface-glade2.c:8726
+msgid "     "
+msgstr "     "
+
+#: interface-glade2.c:8756
+msgid "_Clear results"
+msgstr "Verwijder resultaten"
+
+#: interface-glade2.c:8783
+msgid "Cl_ose search"
+msgstr "Sluit zoekopdracht"
+
+#: interface-glade2.c:8799
+msgid "No items found"
+msgstr "Geen items gevonden"
+
+#: interface-glade2.c:8806
+msgid "Re_try search every"
+msgstr ""
+
+#: interface-glade2.c:8819
+msgid "secs   "
+msgstr ""
+
+#: interface-glade2.c:8825
+msgid "Minimum connection _speed (kbps)"
+msgstr ""
+
+#: interface-glade2.c:9001
+msgid "window13"
+msgstr ""
+
+#: interface-glade2.c:9015
+msgid "Search _monitor enabled"
+msgstr ""
+
+#: interface-glade2.c:9025
+msgid "Show _last"
+msgstr ""
+
+#: interface-glade2.c:9037
+msgid "searches"
+msgstr ""
+
+#: interface-glade2.c:9104
+msgid "window14"
+msgstr ""
+
+#: interface-glade2.c:9129
+msgid "_Update interval (sec)"
+msgstr ""
+
+#: interface-glade2.c:9141
+msgid "_Deletion coeff. (0-100)"
+msgstr ""
+
+#: interface-glade2.c:9192
+msgid "_Reset stats"
+msgstr ""
+
+#: interface-glade2.c:9203
+msgid "0 terms counted"
+msgstr ""
+
+#: interface-glade2.c:9280
+msgid "window15"
+msgstr ""
+
+#: interface-glade2.c:9346
+msgid "_Messages"
+msgstr ""
+
+#: interface-glade2.c:9367
+msgid "Flow _control"
+msgstr ""
+
+#: interface-glade2.c:9388
+msgid "_Received"
+msgstr ""
+
+#: interface-glade2.c:9401
+#: interface-glade2.c:9462
+msgid "Show percentages"
+msgstr ""
+
+#: interface-glade2.c:9408
+msgid "Show bytes"
+msgstr ""
+
+#: interface-glade2.c:9415
+msgid "Columns show hops"
+msgstr ""
+
+#: interface-glade2.c:9422
+msgid "Add headers"
+msgstr ""
+
+#: interface-glade2.c:9453
+msgid "Show reasons for"
+msgstr ""
+
+#: interface-glade2.c:9491
+msgid "Drop reasons"
+msgstr ""
+
+#: interface-glade2.c:9551
+msgid "window24"
+msgstr "window24"
+
+#: interface-glade2.c:9571
+msgid "Add jump rule"
+msgstr "Voeg 'spring' regel toe"
+
+#: interface-glade2.c:9578
+msgid "Add size rule"
+msgstr "Voeg grootte regel toe"
+
+#: interface-glade2.c:9585
+msgid "Add IP rule"
+msgstr "Voeg IP regel toe"
+
+#: interface-glade2.c:9592
+msgid "Add name rule"
+msgstr "Voeg naam regel toe"
+
+#: interface-glade2.c:9599
+msgid "Add flag rule"
+msgstr "Voeg vlag regel toe"
+
+#: interface-glade2.c:9606
+msgid "Add state rule"
+msgstr ""
+
+#: interface-glade2.c:9694
+msgid "window25"
+msgstr "window25"
+
+#: interface-glade2.c:9722
+#: interface-glade2.c:10041
+#: interface-glade2.c:10317
+#: interface-glade2.c:10843
+#: interface-glade2.c:11849
+msgid "invert condition"
+msgstr "inverteer voorwaarde"
+
+#: interface-glade2.c:9727
+#: interface-glade2.c:10046
+#: interface-glade2.c:10322
+#: interface-glade2.c:10609
+#: interface-glade2.c:10847
+#: interface-glade2.c:11175
+#: interface-glade2.c:11854
+msgid "active"
+msgstr "actief"
+
+#: interface-glade2.c:9732
+#: interface-glade2.c:10051
+#: interface-glade2.c:10327
+#: interface-glade2.c:10853
+#: interface-glade2.c:11180
+#: interface-glade2.c:11859
+msgid "mark only"
+msgstr "alleen markeren"
+
+#: interface-glade2.c:9737
+#: interface-glade2.c:10056
+#: interface-glade2.c:10332
+#: interface-glade2.c:10614
+#: interface-glade2.c:10857
+#: interface-glade2.c:11185
+#: interface-glade2.c:11864
+msgid "Flags"
+msgstr "Vlag"
+
+#: interface-glade2.c:9788
+msgid "Condition: If filename matches"
+msgstr "Voorwaarde: Als bestandsnaam overeenkomt"
+
+#: interface-glade2.c:9827
+#: interface-glade2.c:10149
+#: interface-glade2.c:10448
+#: interface-glade2.c:10683
+#: interface-glade2.c:10956
+#: interface-glade2.c:11552
+#: interface-glade2.c:12192
+msgid "Reset stats"
+msgstr "Reset statistieken"
+
+#: interface-glade2.c:9857
+#: interface-glade2.c:10179
+#: interface-glade2.c:10478
+#: interface-glade2.c:10713
+#: interface-glade2.c:10986
+#: interface-glade2.c:11582
+#: interface-glade2.c:12222
+msgid "New/replace"
+msgstr "Nieuw/vervang"
+
+#: interface-glade2.c:9883
+#: interface-glade2.c:11608
+#: interface-glade2.c:12228
+msgid "Delete"
+msgstr "Verwijder"
+
+#: interface-glade2.c:10013
+msgid "window26"
+msgstr "window26"
+
+#: interface-glade2.c:10081
+msgid "IP address"
+msgstr "IP adres"
+
+#: interface-glade2.c:10089
+msgid "network mask"
+msgstr "netwerk mask"
+
+#: interface-glade2.c:10110
+msgid "Condition: If IP address matches"
+msgstr "Voorwaarde: Als IP adres overeenkomt"
+
+#: interface-glade2.c:10289
+msgid "window27"
+msgstr "window27"
+
+#: interface-glade2.c:10357
+msgid "minimum size"
+msgstr "minimale grootte"
+
+#: interface-glade2.c:10365
+msgid "maximum size"
+msgstr "maximale grootte"
+
+#: interface-glade2.c:10409
+msgid "Condition: If file size matches"
+msgstr "Voorwaarde: Als de bestandsgrootte overeen komt"
+
+#: interface-glade2.c:10581
+msgid "window28"
+msgstr "window28"
+
+#: interface-glade2.c:10632
+#, fuzzy
+msgid "There is no condition. When this rule is reached, the matching will continue in the specified target filter. That's also why you can't invert this condition. If you could, this rule would just be ignored."
+msgstr "Er is geen voorwaarde. Als deze regel is bereikt, de vergelijking zal doorgaan in het aangegeven doel filter. Dat is tevens de reden waarom deze voorwaarde niet geinventeerd kan worden, daardoor zou deze regel gewoon genegeerd worden."
+
+#: interface-glade2.c:10639
+msgid "Condition: always"
+msgstr "Voorwaarde: altijd"
+
+#: interface-glade2.c:10815
+msgid "window29"
+msgstr "window29"
+
+#: interface-glade2.c:10882
+#, fuzzy
+msgid "SHA1 hash (not editable, add from search popup)"
+msgstr "SHA1 hash (niet bewerkbaar, voeg toe vanuit zoek popup)"
+
+#: interface-glade2.c:10905
+msgid "Originally obtained from"
+msgstr "Oorspronkelijk verkregen van"
+
+#: interface-glade2.c:10916
+msgid "Condition: If urn:sha1 matches"
+msgstr "Voorwaarde: Als urn:sha1 overeenkomt"
+
+#: interface-glade2.c:11147
+msgid "window30"
+msgstr "window30"
+
+#: interface-glade2.c:11210
+msgid "Busy"
+msgstr "Bezig"
+
+#: interface-glade2.c:11218
+msgid "Push"
+msgstr "Push"
+
+#: interface-glade2.c:11251
+#: interface-glade2.c:11282
+#: interface-glade2.c:11476
+msgid "ignored"
+msgstr "genegeerd"
+
+#: interface-glade2.c:11313
+#: interface-glade2.c:11445
+#: interface-glade2.c:11507
+msgid "unset"
+msgstr "niet zetten"
+
+#: interface-glade2.c:11344
+#: interface-glade2.c:11375
+#: interface-glade2.c:11414
+msgid "set"
+msgstr "zet"
+
+#: interface-glade2.c:11381
+msgid "Stable"
+msgstr "Stabiel"
+
+#: interface-glade2.c:11513
+#, fuzzy
+msgid "Condition: If result has flags"
+msgstr "Voorwaarde: Als resultaat de flag heeft"
+
+#: interface-glade2.c:11821
+msgid "window31"
+msgstr "window31"
+
+#: interface-glade2.c:11889
+msgid "DOWNLOAD"
+msgstr "DOWNLOAD"
+
+#: interface-glade2.c:11922
+#: interface-glade2.c:12054
+msgid "don't"
+msgstr "doe niet"
+
+#: interface-glade2.c:11953
+#: interface-glade2.c:12085
+msgid "undefined"
+msgstr "ongedefinieerd"
+
+#: interface-glade2.c:11959
+msgid "DISPLAY"
+msgstr "GEEF WEER"
+
+#: interface-glade2.c:11992
+#: interface-glade2.c:12023
+msgid "do"
+msgstr "doe"
+
+#: interface-glade2.c:12116
+#: interface-glade2.c:12147
+msgid "ignore"
+msgstr "negeer"
+
+#: interface-glade2.c:12153
+msgid "Condition: If current filter result properties match"
+msgstr ""
+
+#: interface-glade2.c:12399
+msgid "Configuration of IP address, Port,\n"
+"Proxy settings etc. "
+msgstr ""
+
+#: interface-glade2.c:12409
+msgid "Peer mode selection, timeout and TTL settings, quality management regarding GnutellaNet traffic"
+msgstr ""
+
+#: interface-glade2.c:12419
+msgid "Bandwidth limit configuration for HTTP, normal GnutellaNet and Ultrapeer traffic"
+msgstr ""
+
+#: interface-glade2.c:12429
+msgid "Choose directories for completed files and downloads in progress"
+msgstr "Kies directories voor afgeronde downloads, en downloads die nog bezig zijn"
+
+#: interface-glade2.c:12439
+msgid "Selection of directories and filetypes to share"
+msgstr "Selectie van directories en bestandstypes om te delen"
+
+#: interface-glade2.c:12448
+msgid "Settings for the User Interface like toolbar appereance, expert settings"
+msgstr "Instellingen voor de gebruikers interfaces zoals werkbalken, uiterlijk en geavanceerde instellingen"
+
+#: interface-glade2.c:12458
+msgid "Debug level configuration"
+msgstr "Debug level configuratie"
+
+#: interface-glade2.c:12489
+msgid "Network Settings"
+msgstr "Netwerk instellingen"
+
+#: interface-glade2.c:12517
+msgid "GnutellaNet Settings"
+msgstr "GnutellaNet instellingen"
+
+#: interface-glade2.c:12545
+msgid "Bandwidth Control"
+msgstr ""
+
+#: interface-glade2.c:12574
+msgid "Download Settings"
+msgstr "Download instellingen"
+
+#: interface-glade2.c:12633
+#: main_gui.c:232
+msgid "User Interface"
+msgstr "Gebruikers interface"
+
+#: interface-glade2.c:12661
+#: main_gui.c:236
+msgid "Debugging"
+msgstr ""
+
+#: main_gui.c:106
+msgid "can't find your home directory!"
+msgstr "kan uw thuis directory niet vinden!"
+
+#: main_gui.c:114
+msgid "no home directory: can't check legacy configuration!"
+msgstr ""
+
+#: main_gui.c:123
+msgid "No configuration found, trying legacy config file"
+msgstr "Geen configuratie bestand gevonden. Er wordt een standaard configuratie bestand geprobeerd."
+
+#: main_gui.c:178
+msgid "gnutellaNet"
+msgstr "gnutellaNet"
+
+#: main_gui.c:181
+#: main_gui.c:188
+#: main_gui.c:203
+msgid "Stats"
+msgstr "Statistieken"
+
+#: main_gui.c:197
+msgid "Search"
+msgstr "Zoek"
+
+#: main_gui.c:200
+msgid "Monitor"
+msgstr "Monitor"
+
+#: main_gui.c:208
+msgid "Config"
+msgstr "Configuratie"
+
+#: main_gui.c:212
+msgid "Network"
+msgstr "Netwerk"
+
+#: main_gui.c:216
+msgid "GnutellaNet"
+msgstr "GnutellaNet"
+
+#: main_gui.c:220
+msgid "Bandwidth"
+msgstr "Bandbreedte"
+
+#: search_gui.c:97
+msgid "busy"
+msgstr "bezig"
+
+#: search_gui.c:98
+msgid "stable"
+msgstr "stabiel"
+
+#: search_gui.c:99
+msgid "push"
+msgstr "push"
+
+#: search_gui.c:958
+msgid "<unparsed>"
+msgstr ""
+
+#: search_gui.c:1120
+msgid "# THIS FILE IS AUTOMATICALLY GENERATED -- DO NOT EDIT\n"
+msgstr ""
+
+#: search_gui.c:1121
+#, c-format
+msgid ""
+"#\n"
+"# Searches saved on %s#\n"
+"\n"
+msgstr ""
+
+#: search_gui.c:1157
+#, c-format
+msgid ""
+"Found old searches file. The search information has been\n"
+"stored in the new XML format and the old file is renamed to\n"
+"%s"
+msgstr ""
+
+#: search_gui.c:1161
+#, c-format
+msgid "could not rename %s as %s: %s\n"
+"The XML file will not be used unless this problem is resolved."
+msgstr ""
+
+#: search_gui.c:1577
+msgid ""
+"Found old searches file. Loaded it.\n"
+"On exit the searches will be saved in the new XML format\n"
+"and the old file will be renamed."
+msgstr ""
+
+#: search_gui.c:1855
+#: search_gui.c:1861
+msgid "File"
+msgstr "Bestand"
+
+#: search_gui.c:1870
+#: search_gui.c:1875
+msgid "Speed"
+msgstr "Snelheid"
+
+#: search_gui.c:1892
+#: search_gui.c:1898
+msgid "Info"
+msgstr "Informatie"
+
+#: search_gui.c:1928
+#, c-format
+msgid "%s%u item%s found"
+msgstr "%s%u item%s gevonden"
+
+#: search_gui.c:1931
+#, c-format
+msgid "%sNo items found"
+msgstr "%sGeen items gevonden"
+
+#: search_gui.c:1933
+msgid "No search"
+msgstr "Geen zoekopdrachten"
+
+#: settings.c:260
+msgid "Can't find your home directory!"
+msgstr ""
+
+#: settings.c:268
+msgid "No home directory: prefs will not be saved!"
+msgstr ""
+
+#: settings.c:275
+#, c-format
+msgid "creating configuration directory \"%s\""
+msgstr ""
+
+#: settings.c:327
+msgid "Cannot proceed without valid configuration directory"
+msgstr ""
+
+#: settings_gui.c:2798
+msgid "loading..."
+msgstr "bezig met laden..."
+
+#: settings_gui.c:2799
+msgid "Reading host cache..."
+msgstr ""
+
+#: settings_gui.c:2815
+msgid "*** RUNNING AN OLD VERSION! ***"
+msgstr "*** ER DRAAIT EEN OUDE VERSIE! ***"
+
+#: settings_gui.c:2902
+#, c-format
+msgid "%u/%u host%s (%u%%)"
+msgstr ""
+
+#: settings_gui.c:2904
+#, c-format
+msgid "%u/%u host%s (%u%%%%)"
+msgstr ""
+
+#: settings_gui.c:3484
+msgid "no sources active"
+msgstr ""
+
+#: settings_gui.c:3488
+#, c-format
+msgid "%u source%s active"
+msgstr ""
+
+#: settings_gui.c:3567
+#, c-format
+msgid "%u/%u connection%s"
+msgstr ""
+
+#: settings_gui.c:3601
+#, c-format
+msgid "%u/%u upload%s"
+msgstr ""
+
+#: settings_gui.c:3623
+#, c-format
+msgid "%u/%u download%s"
+msgstr ""
+
+#: support-glade2.c:90
+#: support-glade2.c:114
+#, c-format
+msgid "Couldn't find pixmap file: %s"
+msgstr ""
+
