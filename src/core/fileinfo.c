@@ -316,6 +316,7 @@ static void fi_free(struct dl_file_info *fi);
 static void file_info_hash_remove(struct dl_file_info *fi);
 static void fi_update_seen_on_network(gnet_src_t srcid);
 static gchar *file_info_new_outname(const gchar *name, const gchar *dir);
+static gboolean looks_like_urn(const gchar *filename);
 
 static idtable_t *fi_handle_map = NULL;
 
@@ -750,7 +751,7 @@ fi_alias(struct dl_file_info *fi, gchar *name, gboolean record)
 	GSList *list;
 
 	g_assert(fi);
-	g_assert(!record || fi->hashed);	/* record => fi->hahsed */
+	g_assert(!record || fi->hashed);	/* record => fi->hashed */
 
 	/*
 	 * The fastest way to know if this alias exists is to lookup the
@@ -766,7 +767,12 @@ fi_alias(struct dl_file_info *fi, gchar *name, gboolean record)
 	if (list != NULL && g_slist_find(list, fi) != NULL)
 		return;					/* Alias already known */
 
-	/*
+	if (looks_like_urn(name)) {
+		/* This is often caused by (URN entries in) the dmesh */
+		return;
+	}
+
+		/*
 	 * Insert new alias for `fi'.
 	 */
 
