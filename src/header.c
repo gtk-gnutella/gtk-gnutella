@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>		/* for atoi() */
+#include <string.h>
 
 #include "header.h"
 #include "getline.h"	/* for MAX_LINE_SIZE */
@@ -553,6 +554,9 @@ static gint parse_code_message(gchar *line, gchar **msg)
  * a non-null pointer), and the protocol major/minor (if `major' and `minor'
  * are non-null).
  *
+ * If `proto' is non-null, then when there is a leading protocol string in
+ * the reply, it must be equal to `proto'.
+ *
  * Returns -1 if it fails to parse the status line correctly, the status code
  * otherwise.
  *
@@ -562,9 +566,16 @@ static gint parse_code_message(gchar *line, gchar **msg)
  *     ZZZ/2.3 403 message                    (major=2, minor=3)
  *     403 message                            (major=-1, minor=-1)
  *
+ * We don't yet handle "SMTP-like continuations":
+ *
+ *     403-message line #1
+ *     403-message line #2
+ *     403 last message line
+ *
  * There is no way to return the value of "ZZZ" via this routine.
  */
-gint parse_status_line(gchar *line, gchar **msg, gint *major, gint *minor)
+gint parse_status_line(gchar *line,
+	gchar *proto, gchar **msg, gint *major, gint *minor)
 {
 	gint c;
 	gchar *p;
@@ -598,12 +609,34 @@ gint parse_status_line(gchar *line, gchar **msg, gint *major, gint *minor)
 	}
 
 	/*
-	 * Move along the string until we find a space or a "/".
+	 * Check protocol.
 	 */
 
-	for (/* empty */; c; c = *(++p)) {
-		if (c == '/' || isspace(c))
-			break;
+	if (proto) {
+		gint plen = strlen(proto);
+		if (0 == strncmp(proto, line, plen)) {
+			/*
+			 * Protocol string matches, make sure it ends with a space or
+			 * a "/" delimiter.
+			 */
+
+			p = &line[plen];
+			c = *p;					/* Can dereference, at worst it's a NUL */
+			if (c == '\0')			/* Only "protocol" name in status */
+				return -1;
+			if (!isspace(c) && c != '/')
+				return -1;
+		} else
+			return -1;
+	} else {
+		/*
+		 * Move along the string until we find a space or a "/".
+		 */
+
+		for (/* empty */; c; c = *(++p)) {
+			if (c == '/' || isspace(c))
+				break;
+		}
 	}
 
 	if (c == '\0')
