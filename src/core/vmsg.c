@@ -1062,8 +1062,8 @@ vmsg_build_oob_reply_ind(gchar *muid, guint8 hits)
 	memcpy(m->header.muid, muid, 16);
 	payload = vmsg_fill_type(&m->data, T_LIME, 12, 2);
 
-	*(guchar *) &payload[0] = hits;
-	*(guchar *) &payload[1] = is_udp_firewalled ? 0x0 : 0x1;
+	payload[0] = hits;
+	payload[1] = is_udp_firewalled ? 0x0 : 0x1;
 
 	return gmsg_to_pmsg(m, msgsize);
 }
