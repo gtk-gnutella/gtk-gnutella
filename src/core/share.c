@@ -1825,6 +1825,35 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 	tagged_speed = (req_speed & QUERY_SPEED_MARK) ? TRUE : FALSE;
 	oob = tagged_speed && (req_speed & QUERY_SPEED_OOB_REPLY);
+	use_ggep_h = tagged_speed && (req_speed & QUERY_SPEED_GGEP_H);
+
+	/*
+	 * If query comes from GTKG 0.91 or later, it understands GGEP "H".
+	 * Otherwise, it's an old servent or one unwilling to support this new
+	 * extension, so it will get its SHA1 URNs in ASCII form.
+	 *		--RAM, 17/11/2002
+	 */
+
+	{
+		guint8 major, minor;
+		gboolean release;
+
+		if (
+			guid_query_muid_is_gtkg(
+				n->header.muid, oob, &major, &minor, &release)
+		) {
+			/* Only supersede `use_ggep_h' if not indicated in "min speed" */
+			if (!use_ggep_h)
+				use_ggep_h =
+					major >= 1 || minor > 91 || (minor == 91 && release);
+
+			if (query_debug > 3)
+				printf("GTKG %s%squery from %d.%d%s\n",
+					oob ? "OOB " : "",
+					guid_is_requery(n->header.muid) ? "re-" : "",
+					major, minor, release ? "" : "u");
+		}
+	}
 
 	/*
 	 * If OOB reply is wanted, validate a few things.
@@ -1934,14 +1963,9 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		gnet_stats_count_general(n, GNR_OOB_PROXIED_QUERIES, 1);
 	}
 
-	use_ggep_h = FALSE;
-
 	if (tagged_speed) {
 		if ((req_speed & QUERY_SPEED_FIREWALLED) && is_firewalled)
 			return FALSE;			/* Both servents are firewalled */
-
-		if (req_speed & QUERY_SPEED_GGEP_H)
-			use_ggep_h = TRUE;
 	}
 
 	/*
@@ -1955,33 +1979,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 	if (files_scanned == 0 || !upload_is_enabled())
 		return FALSE;
-
-	/*
-	 * If query comes from GTKG 0.91 or later, it understands GGEP "H".
-	 * Otherwise, it's an old servent or one unwilling to support this new
-	 * extension, so it will get its SHA1 URNs in ASCII form.
-	 *		--RAM, 17/11/2002
-	 */
-
-	{
-		guint8 major, minor;
-		gboolean release;
-
-		if (
-			guid_query_muid_is_gtkg(
-				n->header.muid, oob, &major, &minor, &release)
-		) {
-			/* Only supersede `use_ggep_h' if not indicated in "min speed" */
-			if (!use_ggep_h)
-				use_ggep_h =
-					major >= 1 || minor > 91 || (minor == 91 && release);
-
-			if (dbg > 3)
-				printf("GTKG %squery from %d.%d%s\n",
-					guid_is_requery(n->header.muid) ? "re-" : "",
-					major, minor, release ? "" : "u");
-		}
-	}
 
 	/*
 	 * Perform search...
