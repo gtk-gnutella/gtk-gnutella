@@ -79,6 +79,7 @@ gboolean on_progressbar_bws_gin_button_press_event(GtkWidget *widget, GdkEventBu
 gboolean on_progressbar_bws_gout_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 
 
+
 /***
  *** gnutellaNet panel
  ***/
@@ -102,6 +103,7 @@ void on_clist_uploads_unselect_row (GtkCList *clist, gint row, gint column, GdkE
 void on_button_uploads_clear_completed_clicked (GtkButton *button, gpointer user_data);
 void on_spinbutton_uploads_max_ip_activate(GtkEditable *editable, gpointer user_data);
 gboolean on_spinbutton_uploads_max_ip_focus_out_event(GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
+
 
 
 /***
@@ -157,7 +159,7 @@ void on_entry_search_reissue_timeout_activate (GtkEditable *editable, gpointer u
 void on_search_notebook_switch(GtkNotebook * notebook, GtkNotebookPage * page, gint page_num, gpointer user_data);
 void on_search_popdown_switch(GtkWidget * w, gpointer data);
 void on_search_selected(GtkItem * i, gpointer data);
-void on_search_switch(struct search *sch);
+void on_button_search_filter_clicked(GtkButton * button, gpointer user_data);
 
 
 
@@ -231,6 +233,7 @@ SPINBUTTON_DECL(config_node_connecting_timeout)
 SPINBUTTON_DECL(config_node_connected_timeout)
 SPINBUTTON_DECL(config_upload_connecting_timeout)
 SPINBUTTON_DECL(config_upload_connected_timeout)
+SPINBUTTON_DECL(config_search_min_speed)
 
 
 
@@ -345,5 +348,25 @@ void on_menu_bws_gout_visible_activate(GtkMenuItem * menuitem, gpointer user_dat
  ***/
 void on_clist_search_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 
+
+
+/***
+ *** filter dialog
+ ***/
+gboolean on_dlg_filters_delete_event(GtkWidget *widget, gpointer user_data);
+void on_clist_filter_rules_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
+void on_clist_filter_rules_select_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
+void on_clist_filter_rules_unselect_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
+void on_clist_filter_rules_drag_end(GtkWidget *widget, GdkDragContext *drag_context, gpointer user_data);
+void on_button_filter_add_rule_text_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_add_rule_ip_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_add_rule_size_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_add_rule_jump_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_ok_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_cancel_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_clear_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_remove_rule_clicked(GtkButton *button, gpointer user_data);
+void on_entry_filter_new_activate (GtkEditable *editable, gpointer user_data); 
+void on_button_filter_remove_clicked(GtkButton *button, gpointer user_data);
 
 #endif	/* __callbacks_h__ */

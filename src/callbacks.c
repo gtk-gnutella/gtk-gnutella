@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2002, Raphael Manfredi
+ * Copyright (c) 2001-2002, Raphael Manfredi & Richard Eckart
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -38,11 +38,12 @@
 #include "downloads.h"
 #include "misc.h"
 #include "autodownload.h"
-#include "dialog-filters.h"
 #include "search_stats.h"
 #include "upload_stats.h"
 #include "regex.h"
 #include "gtkcolumnchooser.h"
+#include "filter.h"
+#include "gtk-missing.h"
 
 #define NO_FUNC
 
@@ -118,7 +119,6 @@ static gchar c_tmp[2048];
 static gint select_all_lock = 0;
 static GtkWidget *hosts_read_filesel = NULL;
 static GtkWidget *add_dir_filesel = NULL;
-static gboolean updating_search = FALSE;
 static gchar *selected_url = NULL; 
 
 /***
@@ -1385,10 +1385,9 @@ void on_entry_minimum_speed_activate(GtkEditable * editable,
 									 gpointer user_data)
 {
    	gint speed = atol(gtk_entry_get_text(GTK_ENTRY(entry_minimum_speed)));
-	if (speed >= 0 && speed < 65536)
-		minimum_speed = speed;
-	/* XXX The minimum speed is now on a per search basis */
-	gui_update_minimum_speed(minimum_speed);
+
+	if ((speed >= 0) && (speed < 65536) && current_search)
+        current_search->speed = speed;
 }
 FOCUS_TO_ACTIVATE(entry_minimum_speed)
 
@@ -1404,7 +1403,10 @@ void on_button_search_clicked(GtkButton * button, gpointer user_data)
 	 */
 
     g_strstrip(e);
-	if (*e) {
+    if (*e) {
+        filter_t *default_filter;
+        search_t *search;
+    
         /*
          * It's important gui_search_history_add is called before
          * new_search, otherwise the search entry will not be
@@ -1412,7 +1414,27 @@ void on_button_search_clicked(GtkButton * button, gpointer user_data)
          *      --BLUE, 04/05/2002
          */
         gui_search_history_add(e);
-		new_search(minimum_speed, e);
+		search = new_search(minimum_speed, e);
+
+        /*
+         * If we should set a default filter, we do that.
+         */
+        default_filter = option_menu_get_selected_data
+            (optionmenu_search_filter);
+
+        if (default_filter != NULL) {
+            rule_t *rule = filter_new_jump_rule(default_filter);
+            
+            /*
+             * Since we don't want to distrub the shadows and
+             * do a "force commit" without the user having pressed
+             * the "ok" button in the dialog, we add the rule
+             * manually.
+             */
+            search->filter->ruleset = 
+                g_list_append(search->filter->ruleset, rule);
+            rule->target->refcount ++;
+        }
     }
 
 	g_free(e);
@@ -1581,6 +1603,13 @@ void on_clist_search_stats_resize_column(GtkCList * clist, gint column,
 /***
  *** Config pane
  ***/ 
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_search_min_speed,
+    minimum_speed,
+    1,
+    NO_FUNC
+)
 
 BIND_SPINBUTTON_CALL(
     spinbutton_config_bws_in,
@@ -2098,7 +2127,7 @@ BIND_SPINBUTTON_CALL(
 void on_button_search_passive_clicked(GtkButton * button,
 									  gpointer user_data)
 {
-	struct search *sch;
+	search_t *sch;
 	sch = _new_search(minimum_speed, "Passive", SEARCH_PASSIVE);
 	gtk_widget_grab_focus(ctree_menu);
 }
@@ -2450,39 +2479,15 @@ void on_clist_search_select_row(GtkCList * clist, gint row,
 								 gpointer user_data)
 {
     gpointer sch;
-    GtkCTreeNode * node = NULL;
 
     g_assert(clist != NULL);
 
     sch = gtk_clist_get_row_data(clist, row);
 
-    if ((sch == NULL) && !updating_search)
+    if (sch == NULL)
         return;
 
-    updating_search = TRUE;
-
-    on_search_switch((struct search *)sch);
-   	gtk_list_item_select(GTK_LIST_ITEM(((struct search *)sch)->list_item));
-    gtk_notebook_set_page
-        (GTK_NOTEBOOK(notebook_search_results), 
-         gtk_notebook_page_num(GTK_NOTEBOOK(notebook_search_results),
-		 ((struct search *)sch)->scrolled_window));
-
-  	gtk_notebook_set_page(GTK_NOTEBOOK(notebook_main), 
-                          nb_main_page_search);
-
-    node = gtk_ctree_find_by_row_data(
-        GTK_CTREE(ctree_menu),
-        gtk_ctree_node_nth(GTK_CTREE(ctree_menu),0),
-        (gpointer) nb_main_page_search);
-
-    /*
-     * Can happen during initialistion.
-     */
-    if (node != NULL)
-        gtk_ctree_select(GTK_CTREE(ctree_menu),node);
-
-  	updating_search = FALSE;
+    gui_view_search((search_t *)sch);
 }
 
 
@@ -2493,7 +2498,7 @@ void on_clist_search_select_row(GtkCList * clist, gint row,
 void on_popup_search_filters_activate(GtkMenuItem * menuitem,
 									  gpointer user_data)
 {
-	filters_open_dialog();
+    filter_open_dialog();
 }
 
 void on_popup_search_close_activate(GtkMenuItem * menuitem,
@@ -2537,6 +2542,7 @@ void on_popup_search_restart_activate(GtkMenuItem * menuitem,
 void on_popup_search_duplicate_activate(GtkMenuItem * menuitem,
 										gpointer user_data)
 {
+    // FIXME: should also duplicate filters!
 	if (current_search)
 		new_search(current_search->speed, current_search->query);
 }
@@ -2662,7 +2668,7 @@ void on_clist_search_results_resize_column(GtkCList * clist, gint column,
 										   gint width, gpointer user_data)
 {
 	static gboolean resizing = FALSE;
-	GSList *l;
+	GList *l;
 
 	if (resizing)
 		return;
@@ -2675,9 +2681,8 @@ void on_clist_search_results_resize_column(GtkCList * clist, gint column,
 
     /* propagate the width change to all searches */
 	for (l = searches; l; l = l->next)
-		gtk_clist_set_column_width(GTK_CLIST
-								   (((struct search *) l->data)->clist),
-								   column, width);
+		gtk_clist_set_column_width
+            (GTK_CLIST(((search_t *) l->data)->clist), column, width);
 
     /* unlock this section */
 	resizing = FALSE;
@@ -2685,75 +2690,34 @@ void on_clist_search_results_resize_column(GtkCList * clist, gint column,
 
 void on_search_selected(GtkItem * i, gpointer data)
 {
-	search_selected = (struct search *) data;
+	search_selected = (search_t *) data;
 }
 
-void on_search_switch(struct search *sch)
+void on_button_search_filter_clicked(GtkButton * button,
+									 gpointer user_data)
 {
-	struct search *old_sch = current_search;
-	g_return_if_fail(sch);
-
-	current_search = sch;
-	sch->unseen_items = 0;
-
-	if (old_sch)
-		gui_search_force_update_tab_label(old_sch);
-	gui_search_force_update_tab_label(sch);
-
-	gui_search_update_items(sch);
-	gui_update_minimum_speed(sch->speed);
-	gtk_widget_set_sensitive(button_search_download,
-							 (gboolean) GTK_CLIST(sch->clist)->selection);
-
-	if (sch->items == 0) {
-		gtk_widget_set_sensitive(button_search_clear, FALSE);
-		gtk_widget_set_sensitive(popup_search_clear_results, FALSE);
-	} else {
-		gtk_widget_set_sensitive(button_search_clear, TRUE);
-		gtk_widget_set_sensitive(popup_search_clear_results, TRUE);
-	}
-
-	gtk_widget_set_sensitive(popup_search_restart, !sch->passive);
-	gtk_widget_set_sensitive(popup_search_duplicate, !sch->passive);
-	gtk_widget_set_sensitive(popup_search_stop, sch->passive ?
-							 !sch->frozen : sch->reissue_timeout);
-	gtk_widget_set_sensitive(popup_search_resume, sch->passive ?
-							 sch->frozen : sch->reissue_timeout);
+	filter_open_dialog();
 }
 
 void on_search_popdown_switch(GtkWidget * w, gpointer data)
 {
-	struct search *sch = search_selected;
-	if (!sch || updating_search)
+	search_t *sch = search_selected;
+	if (!sch)
 		return;
-	updating_search = TRUE;
-	on_search_switch(sch);
-	gtk_notebook_set_page(GTK_NOTEBOOK(notebook_search_results),
-						  gtk_notebook_page_num(GTK_NOTEBOOK
-												(notebook_search_results),
-												sch->scrolled_window));
-	updating_search = FALSE;
+
+	gui_view_search(sch);
 }
 
 void on_search_notebook_switch(GtkNotebook * notebook,
 							   GtkNotebookPage * page, gint page_num,
 							   gpointer user_data)
 {
-    gint row;
-	struct search *sch =
+	search_t *sch =
 		gtk_object_get_user_data((GtkObject *) page->child);
 
 	g_return_if_fail(sch);
 
-	if (updating_search)
-		return;
-
-	updating_search = TRUE;
-	on_search_switch(sch);
-	gtk_list_item_select(GTK_LIST_ITEM(sch->list_item));
-    row = gtk_clist_find_row_from_data(GTK_CLIST(clist_search), sch);
-    gtk_clist_select_row(GTK_CLIST(clist_search),row,0);
-	updating_search = FALSE;
+    gui_view_search(sch);
 }
 
 void on_button_search_clear_clicked(GtkButton * button, gpointer user_data)
@@ -2772,7 +2736,6 @@ void on_popup_search_clear_results_activate(GtkMenuItem * menuitem,
 
 	gtk_widget_set_sensitive(button_search_clear, FALSE);
 	gtk_widget_set_sensitive(popup_search_clear_results, FALSE);
-
 }
 
 
@@ -2888,6 +2851,8 @@ void on_menu_bws_gout_visible_activate(GtkMenuItem * menuitem,
     gui_update_stats_frames();
 }
 
+
+
 /***
  *** search list (sidebar)
  ***/
@@ -2898,5 +2863,191 @@ void on_clist_search_resize_column(GtkCList * clist, gint column,
     search_list_col_widths[column] = width;
 }
 
+
+
+/***
+ *** filter dialog
+ ***/
+
+void on_clist_filter_rules_resize_column(GtkCList * clist, gint column, 
+                                   gint width, gpointer user_data)
+{
+    filter_table_col_widths[column] = width;
+}
+
+gboolean on_dlg_filters_delete_event(GtkWidget *widget, gpointer user_data)
+{
+    filter_close_dialog();
+
+    return TRUE;
+}
+
+void on_clist_filter_rules_select_row(GtkCList * clist, gint row, gint column,
+							          GdkEvent * event, gpointer user_data)
+{
+    rule_t * r;
+
+    r = (rule_t *) gtk_clist_get_row_data(clist, row);
+    g_assert(r != NULL);
+   
+    filter_edit_rule(r);
+}
+
+void on_clist_filter_rules_unselect_row(GtkCList * clist, gint row, gint column,
+	  						            GdkEvent * event, gpointer user_data)
+{
+    if (clist->selection == NULL)
+        filter_edit_rule(NULL);
+}
+
+void on_clist_filter_rules_drag_end(GtkWidget *widget, 
+    GdkDragContext *drag_context, gpointer user_data)
+{
+    filter_adapt_order();
+}
+
+
+void on_button_filter_add_rule_text_clicked(GtkButton *button, gpointer user_data)
+{
+    gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
+    filter_edit_text_rule(NULL);
+}
+
+void on_button_filter_add_rule_ip_clicked(GtkButton *button, gpointer user_data)
+{
+    gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
+    filter_edit_ip_rule(NULL);
+}
+
+void on_button_filter_add_rule_size_clicked(GtkButton *button, gpointer user_data)
+{
+    gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
+    filter_edit_size_rule(NULL);
+}
+
+void on_button_filter_add_rule_jump_clicked(GtkButton *button, gpointer user_data)
+{
+    gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
+    filter_edit_jump_rule(NULL);
+}
+
+void on_button_filter_ok_clicked(GtkButton *button, gpointer user_data)
+{
+    rule_t * r = NULL;
+
+    gint page = gtk_notebook_get_current_page
+        (GTK_NOTEBOOK(notebook_filter_detail));
+
+    if (page == nb_filt_page_buttons) {
+        filter_close_dialog(TRUE);
+        return;
+    }
+
+    switch (page) {
+    case nb_filt_page_text:
+    case nb_filt_page_ip:
+    case nb_filt_page_size:
+    case nb_filt_page_jump:
+        r = filter_get_rule();
+        break;
+    case nb_filt_page_buttons:
+    default:
+        g_warning("Unknown page: %d", page);
+        g_assert_not_reached();
+    };
+
+    /*
+     *if a row is selected, we change the filter there
+     *else we add a new filter to the end of the list
+     */
+
+    if (GTK_CLIST(clist_filter_rules)->selection != NULL) {
+        GList *l = GTK_CLIST(clist_filter_rules)->selection;
+        rule_t *oldrule;
+
+        /* modify row */
+        oldrule = (rule_t *) gtk_clist_get_row_data(
+            GTK_CLIST(clist_filter_rules),
+            (gint)l->data);
+        g_assert(oldrule != NULL);
+        
+        filter_replace_rule(work_filter, oldrule, r);
+    } else {
+        filter_append_rule(work_filter, r);   
+    }
+}
+
+void on_button_filter_cancel_clicked(GtkButton *button, gpointer user_data)
+{
+    gint page = gtk_notebook_get_current_page
+        (GTK_NOTEBOOK(notebook_filter_detail));
+
+    if (page == nb_filt_page_buttons) {
+        filter_close_dialog(FALSE);
+        return;
+    }
+
+    filter_edit_rule(NULL);
+}
+
+void on_button_filter_clear_clicked(GtkButton *button, gpointer user_data)
+{
+    GtkCList *clist = GTK_CLIST(clist_filter_rules);
+
+    gtk_clist_freeze(clist);
+
+    while (clist->rows != 0) {
+        rule_t *r;
+
+        r = (rule_t *) gtk_clist_get_row_data(clist, 0);
+       
+        filter_remove_rule(work_filter, r);
+    }
+
+    gtk_clist_thaw(clist);
+    gtk_notebook_set_page
+        (GTK_NOTEBOOK(notebook_filter_detail), nb_filt_page_buttons);
+}
+
+void on_button_filter_remove_rule_clicked(GtkButton *button, gpointer user_data)
+{
+    GtkCList *clist = GTK_CLIST(clist_filter_rules);
+    rule_t *r;
+
+    if (!clist->selection)
+        return;
+
+    r = (rule_t *) 
+        gtk_clist_get_row_data(clist, (gint)clist->selection->data);
+       
+    filter_remove_rule(work_filter, r);
+
+    gtk_notebook_set_page
+        (GTK_NOTEBOOK(notebook_filter_detail), nb_filt_page_buttons);
+}
+
+void on_button_filter_remove_clicked
+    (GtkButton *button, gpointer user_data)
+{
+    if (work_filter != NULL) {
+        filter_free(work_filter);
+        filter_update_filters();
+    }
+}
+
+void on_entry_filter_new_activate 
+    (GtkEditable *editable, gpointer user_data)
+{
+    gchar *name = gtk_editable_get_chars(editable, 0, -1);
+    filter_t *filter;
+
+    g_strstrip(name);
+    if (*name) {
+        filter = filter_new(name);
+        gtk_entry_set_text(GTK_ENTRY(editable), "");
+        filter_set(filter);
+        filter_update_filters();
+    }
+}
 
 /* vi: set ts=4: */
