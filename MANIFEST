@@ -225,7 +225,7 @@ src/gnet.h
 src/gnet_downloads.h
 src/gnet_filters.h
 src/gnet_hcache.h
-src/gnet_net-stats.h
+src/gnet_net_stats.h
 src/gnet_nodes.h
 src/gnet_property.c
 src/gnet_property.h
