@@ -34,7 +34,6 @@ struct download {
 
 	gboolean visible;		/* The download is visible in the GUI */
 	gboolean push;			/* Always use the push method for this download */
-	gboolean ok;			/* We have got 200 OK */
 };
 
 /*
@@ -64,14 +63,19 @@ struct download {
 	|| (d)->status == GTA_DL_ERROR \
 	|| (d)->status == GTA_DL_COMPLETED	)
 
-#define DOWNLOAD_IS_RUNNING(d) \
+#define DOWNLOAD_IS_ACTIVE(d) \
+	((d)->status == GTA_DL_RECEIVING)
+
+#define DOWNLOAD_IS_ESTABLISHING(d) \
 	(  (d)->status == GTA_DL_CONNECTING \
 	|| (d)->status == GTA_DL_PUSH_SENT \
 	|| (d)->status == GTA_DL_FALLBACK \
 	|| (d)->status == GTA_DL_REQ_SENT \
 	|| (d)->status == GTA_DL_HEADERS \
-	|| (d)->status == GTA_DL_RECEIVING \
     || (d)->status == GTA_DL_TIMEOUT_WAIT  )
+
+#define DOWNLOAD_IS_RUNNING(d) \
+	(DOWNLOAD_IS_ACTIVE(d) || DOWNLOAD_IS_ESTABLISHING(d))
 
 #define DOWNLOAD_IS_IN_PUSH_MODE(d) (d->push)
 #define DOWNLOAD_IS_VISIBLE(d)		(d->visible)
@@ -95,7 +99,7 @@ void auto_download_new(gchar *, guint32, guint32, guint32, guint16, gchar *);
 void download_queue(struct download *);
 void download_stop(struct download *, guint32, const gchar *, ...);
 void download_free(struct download *);
-void download_read(gpointer, gint, GdkInputCondition);
+void download_push_read(gpointer, gint, GdkInputCondition);
 void download_push(struct download *);
 void download_fallback_to_push(struct download *, gboolean);
 void download_pickup_queued(void);
