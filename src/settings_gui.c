@@ -340,6 +340,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "clist_uploads"
     },
+#ifndef USE_GTK2
     {
         get_main_window,
         PROP_UL_STATS_COL_WIDTHS,
@@ -347,6 +348,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "clist_ul_stats"
     },
+#endif
 #ifdef USE_GTK2
     {
         get_main_window,
