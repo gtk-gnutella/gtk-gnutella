@@ -51,7 +51,6 @@ static GList *searches = NULL;		/* List of search structs */
 
 static GtkTreeView *tree_view_search = NULL;
 static GtkNotebook *notebook_search_results = NULL;
-static GtkCombo *combo_searches = NULL;
 static GtkButton *button_search_clear = NULL;
 static GtkLabel *label_items_found = NULL;
 
@@ -361,7 +360,8 @@ gboolean search_gui_new_search_full(
 	sch->list_item = gtk_list_item_new_with_label(sch->query);
 	gtk_widget_show(sch->list_item);
 	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
-	gtk_list_prepend_items(GTK_LIST(GTK_COMBO(combo_searches)->list), glist);
+	gtk_label_set_text(GTK_LABEL(
+			lookup_widget(main_window, "label_search_current_search")), query);
 
 	/* Create a new TreeView if needed, or use the default TreeView */
 
@@ -417,7 +417,6 @@ gboolean search_gui_new_search_full(
 	g_signal_connect(GTK_OBJECT(sch->list_item), "select",
 		G_CALLBACK(on_search_selected), (gpointer) sch);
 	search_gui_set_current_search(sch);
-	gtk_widget_set_sensitive(GTK_WIDGET(combo_searches), TRUE);
 	gtk_widget_set_sensitive(button_search_close, TRUE);
     gtk_entry_set_text(GTK_ENTRY(entry_search), "");
 	searches = g_list_append(searches, (gpointer) sch);
@@ -909,7 +908,6 @@ void search_gui_init(void)
 							"tree_view_search"));
     notebook_search_results = GTK_NOTEBOOK(lookup_widget(main_window,
 								"notebook_search_results"));
-    combo_searches = GTK_COMBO(lookup_widget(main_window, "combo_searches"));
     button_search_clear = GTK_BUTTON(lookup_widget(main_window,
 							"button_search_clear"));
 	label_items_found = GTK_LABEL(lookup_widget(main_window,
@@ -941,8 +939,6 @@ void search_gui_init(void)
   	gtk_notebook_set_tab_label_text
         (notebook_search_results, default_scrolled_window, _("(no search)"));
     
-	g_signal_connect(GTK_OBJECT(combo_searches->popwin), "hide", 
-		G_CALLBACK(on_search_popdown_switch), NULL);
 	g_signal_connect(GTK_OBJECT(notebook_search_results), "switch_page",
 		G_CALLBACK(on_search_notebook_switch), NULL);
 	g_signal_connect(GTK_OBJECT(notebook_search_results), "focus_tab",
@@ -1064,7 +1060,6 @@ void search_gui_remove_search(search_t *sch)
     g_assert(sch != NULL);
 
    	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
-	gtk_list_remove_items(GTK_LIST(combo_searches->list), glist);
 
 	model = gtk_tree_view_get_model(tree_view_search);
     gtk_tree_model_foreach(model, tree_view_search_remove, sch);
@@ -1087,8 +1082,8 @@ void search_gui_remove_search(search_t *sch)
 		search_gui_forget_current_search();
 		gui_search_update_items(NULL);
 
-		gtk_entry_set_text
-            (GTK_ENTRY(lookup_widget(main_window, "combo_entry_searches")), "");
+		gtk_label_set_text(GTK_LABEL(
+			lookup_widget(main_window, "label_search_current_search")), "");
 
         gtk_notebook_set_tab_label_text(notebook_search_results,
 			default_scrolled_window, _("(no search)"));
@@ -1097,7 +1092,6 @@ void search_gui_remove_search(search_t *sch)
 	}
     
     sensitive = searches != NULL;
-	gtk_widget_set_sensitive(GTK_WIDGET(combo_searches), sensitive);
 	gtk_widget_set_sensitive(
         lookup_widget(main_window, "button_search_close"), sensitive);
 
@@ -1217,6 +1211,11 @@ void search_gui_set_current_search(search_t *sch)
      */
 	gtk_notebook_set_current_page(notebook_search_results,
 		gtk_notebook_page_num(notebook_search_results, sch->scrolled_window));
+
+	/* Update the label showing the query string for this search */
+	gtk_label_set_text(GTK_LABEL(
+			lookup_widget(main_window, "label_search_current_search")),
+			sch->query);
 
 	search_gui_menu_select(nb_main_page_search);
     locked = FALSE;
