@@ -39,8 +39,11 @@ typedef struct mqueue {
  */
 
 #define MQ_FLOWC	0x00000001		/* In flow control */
+#define MQ_DISCARD	0x00000002		/* No writing, discard message */
 
 #define mq_is_flow_controlled(q)	((q)->flags & MQ_FLOWC)
+#define mq_size(q)					((q)->size)
+#define mq_count(q)					((q)->count)
 
 /*
  * Public interface
@@ -50,6 +53,8 @@ mqueue_t *mq_make(gint maxsize, struct gnutella_node *n);
 void mq_free(mqueue_t *q);
 void mq_service(mqueue_t *q);
 void mq_putq(mqueue_t *q, pmsg_t *mb);
+void mq_clear(mqueue_t *q);
+void mq_shutdown(mqueue_t *q);
 
 #endif	/* __mq_h__ */
 

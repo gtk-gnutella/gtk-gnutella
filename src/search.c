@@ -345,7 +345,7 @@ void mark_search_sent_to_connected_nodes(struct search *sch)
 	g_hash_table_freeze(sch->sent_nodes);
 	for (l = sl_nodes; l; l = l->next) {
 		n = (struct gnutella_node *) l->data;
-		if (!NODE_IS_PONGING_ONLY(n))
+		if (NODE_IS_WRITABLE(n))
 			mark_search_sent_to_node(sch, n);
 	}
 	g_hash_table_thaw(sch->sent_nodes);

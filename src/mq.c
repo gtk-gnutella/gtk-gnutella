@@ -79,9 +79,71 @@ static GList *mq_rmlink_prev(mqueue_t *q, GList *l, gint size)
 }
 
 /*
+ * mq_update_flowc
+ *
+ * Update flow-control indication for queue.
+ * Invoke node "callbacks" when crossing a watermark boundary.
+ */
+static void mq_update_flowc(mqueue_t *q)
+{
+	if (q->flags & MQ_FLOWC) {
+		if (q->size <= q->lowat) {
+			q->flags &= ~MQ_FLOWC;			/* Under low watermark, clear */
+			node_tx_leave_flowc(q->node);	/* Signal end flow control */
+			if (dbg > 4)
+				printf("leaving FLOWC for node %s (%d bytes queued)\n",
+					node_ip(q->node), q->size);
+		}
+	} else {
+		if (q->size >= q->hiwat) {
+			q->flags |= MQ_FLOWC;			/* Above wartermark, raise */
+			node_tx_enter_flowc(q->node);	/* Signal flow control */
+			if (dbg > 4)
+				printf("entering FLOWC for node %s (%d bytes queued)\n",
+					node_ip(q->node), q->size);
+		}
+	}
+}
+
+/*
+ * mq_clear
+ *
+ * Remove all unsent messages from the queue.
+ */
+void mq_clear(mqueue_t *q)
+{
+	GList *l;
+
+	g_assert(q);
+
+	while ((l = q->qhead)) {
+		pmsg_t *mb = (pmsg_t *) l->data;
+		if (mb->m_rptr != pmsg_start(mb))	/* Started to write this message */
+			break;
+		(void) mq_rmlink_prev(q, l, pmsg_size(mb));
+	}
+
+	g_assert(q->count >= 0 && q->count <= 1);	/* At most one message */
+
+	mq_update_flowc(q);
+}
+
+/*
+ * mq_shutdown
+ *
+ * Forbid further writes to the queue.
+ */
+void mq_shutdown(mqueue_t *q)
+{
+	g_assert(q);
+
+	q->flags |= MQ_DISCARD;
+}
+
+/*
  * qlink_cmp		-- qsort() callback
  *
- * Compare two pointer to links based on their held Gnutella messages.
+ * Compare two pointers to links based on their held Gnutella messages.
  */
 static gint qlink_cmp(const void *lp1, const void *lp2)
 {
@@ -230,7 +292,7 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 	needed = q->size + msize - q->maxsize;
 
 	if (needed > 0 && !make_room(q, mb, needed)) {
-		node_remove(q->node, "Send queue reached %d bytes", q->maxsize);
+		node_bye(q->node, 502, "Send queue reached %d bytes", q->maxsize);
 		return;
 	}
 
@@ -250,23 +312,7 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 	 * Check flow control indication.
 	 */
 
-	if (q->flags & MQ_FLOWC) {
-		if (q->size <= q->lowat) {
-			q->flags &= ~MQ_FLOWC;			/* Under low watermark, clear */
-			node_tx_leave_flowc(q->node);	/* Signal end flow control */
-			if (dbg > 4)
-				printf("leaving FLOWC for node %s (%d bytes queued)\n",
-					node_ip(q->node), q->size);
-		}
-	} else {
-		if (q->size >= q->hiwat) {
-			q->flags |= MQ_FLOWC;			/* Above wartermark, raise */
-			node_tx_enter_flowc(q->node);	/* Signal flow control */
-			if (dbg > 4)
-				printf("entering FLOWC for node %s (%d bytes queued)\n",
-					node_ip(q->node), q->size);
-		}
-	}
+	mq_update_flowc(q);
 
 	node_enableq(q->node);
 }
@@ -346,15 +392,7 @@ void mq_service(mqueue_t *q)
 	 * Update flow-control information.
 	 */
 
-	if (q->flags & MQ_FLOWC) {
-		if (q->size <= q->lowat) {
-			q->flags &= ~MQ_FLOWC;			/* Under low watermark, clear */
-			node_tx_leave_flowc(q->node);	/* Signal end flow control */
-			if (dbg > 4)
-				printf("leaving FLOWC for node %s (%d bytes queued)\n",
-					node_ip(q->node), q->size);
-		}
-	}
+	mq_update_flowc(q);
 
 	if (q->size == 0) {
 		g_assert(q->count == 0);
@@ -375,6 +413,12 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 
 	if (size == 0) {
 		g_warning("mq_putq: called with empty message");
+		pmsg_free(mb);
+		return;
+	}
+
+	if (q->flags & MQ_DISCARD) {
+		g_warning("mq_putq: called whilst queue shutdown");
 		pmsg_free(mb);
 		return;
 	}

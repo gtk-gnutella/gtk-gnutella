@@ -42,11 +42,12 @@
 #define GTA_VERSION 0
 #define GTA_SUBVERSION 85
 #define GTA_REVISION "unstable"
-#define GTA_RELEASE "02/02/2002"
+#define GTA_RELEASE "09/02/2002"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #define GTA_MSG_INIT					0x00
 #define GTA_MSG_INIT_RESPONSE			0x01
+#define GTA_MSG_BYE						0x02
 #define GTA_MSG_PUSH_REQUEST			0x40
 #define GTA_MSG_SEARCH					0x80
 #define GTA_MSG_SEARCH_RESULTS			0x81
@@ -91,6 +92,11 @@ struct gnutella_push_request {
 struct gnutella_msg_push_request {
 	struct gnutella_header header;
 	struct gnutella_push_request request;
+};
+
+struct gnutella_bye {
+	guchar code[2];
+	guchar message[0];
 };
 
 /* */

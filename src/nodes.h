@@ -39,6 +39,7 @@ struct gnutella_node {
 
 	guchar status;			/* See possible values below */
 	gint flags;				/* See possible values below */
+	gint attrs;				/* See possible values below */
 
 	guint32 sent;				/* Number of sent packets */
 	guint32 received;			/* Number of received packets */
@@ -104,13 +105,22 @@ struct gnutella_node {
  */
 
 #define NODE_F_HDSK_PING	0x00000001	/* Expecting handshake ping */
-#define NODE_F_PING_LIMIT	0x00000002	/* Flags a "NEW" ping limiting node */
-#define NODE_F_TMP			0x00000004	/* Temporary, until we send pongs */
-#define NODE_F_INCOMING		0x00000008	/* Incoming (permanent) connection */
-#define NODE_F_PING_ALIEN	0x00000010	/* We don't know the limiting algo */
-#define NODE_F_RETRY_04		0x00000020	/* Retry handshake at 0.4 on failure */
-#define NODE_F_VALID		0x00000040	/* We handshaked with a Gnutella node */
-#define NODE_F_ALIEN_IP		0x00000080	/* Pong-IP does not match TCP/IP addr */
+#define NODE_F_TMP			0x00000002	/* Temporary, until we send pongs */
+#define NODE_F_INCOMING		0x00000004	/* Incoming (permanent) connection */
+#define NODE_F_RETRY_04		0x00000008	/* Retry handshake at 0.4 on failure */
+#define NODE_F_VALID		0x00000010	/* We handshaked with a Gnutella node */
+#define NODE_F_ALIEN_IP		0x00000020	/* Pong-IP does not match TCP/IP addr */
+#define NODE_F_WRITABLE		0x00000040	/* Node is writable */
+#define NODE_F_READABLE		0x00000080	/* Node is readable, process queries */
+#define NODE_F_BYE_SENT		0x00000100	/* Bye message was sent */
+
+/*
+ * Node attributes.
+ */
+
+#define NODE_A_BYE_PACKET	0x00000001	/* Supports Bye-Packet */
+#define NODE_A_PONG_CACHING	0x00000002	/* Supports Pong-Caching */
+#define NODE_A_PONG_ALIEN	0x00000004	/* Alien Pong-Caching scheme */
 
 /*
  * Node states.
@@ -122,6 +132,7 @@ struct gnutella_node {
 #define GTA_NODE_CONNECTED			4	/* Connected at the Gnet level */
 #define GTA_NODE_REMOVING			5	/* Removing node */
 #define GTA_NODE_RECEIVING_HELLO	6	/* Receiving 0.6 headers */
+#define GTA_NODE_SHUTDOWN			7	/* Connection being shutdown */
 
 /*
  * State inspection macros.
@@ -133,8 +144,9 @@ struct gnutella_node {
 	||	(n)->status == GTA_NODE_WELCOME_SENT		\
 	||	(n)->status == GTA_NODE_RECEIVING_HELLO	)
 
-#define NODE_IS_CONNECTED(n) \
-	((n)->status == GTA_NODE_CONNECTED)
+#define NODE_IS_CONNECTED(n)						\
+	(	(n)->status == GTA_NODE_CONNECTED			\
+	||	(n)->status == GTA_NODE_SHUTDOWN )
 
 #define NODE_IS_PONGING_ONLY(n) \
 	((n)->flags & NODE_F_TMP)
@@ -147,6 +159,12 @@ struct gnutella_node {
 
 #define NODE_IN_TX_FLOW_CONTROL(n) \
 	((n)->outq && mq_is_flow_controlled((n)->outq))
+
+#define NODE_IS_WRITABLE(n) \
+	(((n)->flags & (NODE_F_TMP|NODE_F_WRITABLE)) == NODE_F_WRITABLE)
+
+#define NODE_IS_READABLE(n) \
+	((n)->flags & NODE_F_READABLE)
 
 /*
  * Macros.
@@ -197,6 +215,8 @@ gint32 node_count(void);
 void node_add(struct gnutella_socket *, guint32, guint16);
 void node_real_remove(struct gnutella_node *);
 void node_remove(struct gnutella_node *, const gchar * reason, ...);
+void node_shutdown(struct gnutella_node *n, const gchar * reason, ...);
+void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...);
 void node_init_outgoing(struct gnutella_node *);
 void node_read_connecting(gpointer, gint, GdkInputCondition);
 void node_read(gpointer, gint, GdkInputCondition);

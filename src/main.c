@@ -21,6 +21,7 @@
 #define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 #define HOST_CATCHER_DELAY		10	/* Delay between connections to same host */
+#define SHUTDOWN_GRACE_DELAY	300	/* Grace period for shutdowning nodes */
 
 /* */
 
@@ -196,13 +197,23 @@ gboolean main_timer(gpointer p)
 			now - n->last_update > node_connecting_timeout
 		)
 			node_remove(n, "Timeout");
-		else if (now - n->last_update > node_connected_timeout)
-			node_remove(n, "Activity Timeout");
 		else if (
+			n->status == GTA_NODE_SHUTDOWN &&
+			now - n->last_update > SHUTDOWN_GRACE_DELAY
+		) {
+			gchar *reason = g_strdup(n->error_str);
+			node_remove(n, "Shutdown Timeout (%s)", reason);
+			g_free(reason);
+		} else if (now - n->last_update > node_connected_timeout) {
+			if (NODE_IS_WRITABLE(n))
+				node_bye(n, 405, "Activity Timeout");
+			else
+				node_remove(n, "Activity Timeout");
+		} else if (
 			NODE_IN_TX_FLOW_CONTROL(n) &&
 			now - n->tx_flowc_date > node_tx_flowc_timeout
 		)
-			node_remove(n, "Transmit Timeout");
+			node_bye(n, 405, "Transmit Timeout");
 	}
 
 	/* The downloads */

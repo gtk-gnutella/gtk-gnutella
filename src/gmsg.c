@@ -32,6 +32,7 @@ void gmsg_init(void)
 
 	msg_name[GTA_MSG_INIT]				= "ping";
 	msg_name[GTA_MSG_INIT_RESPONSE]		= "pong";
+	msg_name[GTA_MSG_BYE]				= "bye";
 	msg_name[GTA_MSG_SEARCH]			= "query";
 	msg_name[GTA_MSG_SEARCH_RESULTS]	= "query hit";
 	msg_name[GTA_MSG_PUSH_REQUEST]		= "push";
@@ -124,7 +125,7 @@ void gmsg_sendto_all(GSList *l, guchar *msg, guint32 size)
 
 	for (/* empty */; l; l = l->next) {
 		struct gnutella_node *dn = (struct gnutella_node *) l->data;
-		if (NODE_IS_PONGING_ONLY(dn) || !NODE_IS_CONNECTED(dn))
+		if (!NODE_IS_WRITABLE(dn))
 			continue;
 		mq_putq(dn->outq, pmsg_clone(mb));
 	}
@@ -147,7 +148,7 @@ void gmsg_split_sendto_all_but_one(GSList *l, struct gnutella_node *n,
 		struct gnutella_node *dn = (struct gnutella_node *) l->data;
 		if (dn == n)
 			continue;
-		if (NODE_IS_PONGING_ONLY(dn) || !NODE_IS_CONNECTED(dn))
+		if (!NODE_IS_WRITABLE(dn))
 			continue;
 		mq_putq(dn->outq, pmsg_clone(mb));
 	}

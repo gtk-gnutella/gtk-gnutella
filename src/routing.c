@@ -326,7 +326,11 @@ void message_add(guchar * muid, guint8 function,
 				 struct gnutella_node *node)
 {
 	struct route_data *route;
-		
+	static time_t last_rotation = 0;
+
+	if (last_rotation == 0)
+		last_rotation = time((time_t) NULL);
+
 	if (!node)
 	{
 		struct message *m;
@@ -362,6 +366,14 @@ void message_add(guchar * muid, guint8 function,
 		decrement_message_counters(message_array[next_message_index].nodes);
 		g_slist_free(message_array[next_message_index].nodes);
 		message_array[next_message_index].nodes = NULL;
+
+		if (dbg && next_message_index == 0) {
+			time_t now = time((time_t) NULL);
+			int elapsed = now - last_rotation;
+
+			printf("Cycling through route table after %d seconds\n", elapsed);
+			last_rotation = now;
+		}
 	}
 
 	/* fill in that storage space */
@@ -474,8 +486,8 @@ static gboolean forward_message(struct gnutella_node **node,
 		if (sender->header.hops <= max_high_ttl_radius &&
 			sender->n_hard_ttl > max_high_ttl_msg
 		) {
-			node_remove(sender, "Kicked: relayed %d high TTL messages",
-				sender->n_hard_ttl);
+			node_bye(sender, 403, "relayed %d high TTL (>%d) messages",
+				sender->n_hard_ttl, max_high_ttl_msg);
 			(*node) = NULL;
 		}
 
@@ -510,8 +522,8 @@ static gboolean forward_message(struct gnutella_node **node,
 	if (!--sender->header.ttl) {
 		/* TTL expired, message stops here */
 		routing_log("(TTL expired)\n");
-		sender->rx_dropped++;
 		dropped_messages++;
+		/* don't increase rx_dropped, we'll handle this message */
 	} else {			/* Forward it to all others nodes */
 		if (target) {
 			routing_log("-> sendto_one(%s)\n", node_ip(target));
@@ -687,8 +699,8 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 		if (!--sender->header.ttl) {
 			/* TTL expired, message stops here */
 			routing_log("(TTL expired)\n");
-			sender->rx_dropped++;
 			dropped_messages++;
+			sender->rx_dropped++;
 			return handle_it;
 		}
 
@@ -738,7 +750,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 					sender->n_dups >
 						(guint16) (min_dup_ratio / 100.0 * sender->received)
 				) {
-					node_remove(sender, "Kicked: sent %d dups (%.1f%% of RX)",
+					node_bye(sender, 401, "sent %d dups (%.1f%% of RX)",
 						sender->n_dups, sender->received ?
 							100.0 * sender->n_dups / sender->received :
 							0.0);
@@ -809,8 +821,15 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 		} else {
 			/*
 			 * The message is a request to broadcast.
-			 *
-			 * If the node is flow-controlled on TX, then it is preferable
+			 */
+
+			if (!NODE_IS_READABLE(sender)) {		/* Being shutdown */
+				dropped_messages++;
+				sender->rx_dropped++;
+				return FALSE;
+			}
+
+			/* If the node is flow-controlled on TX, then it is preferable
 			 * to drop queries immediately: the traffic the replies may
 			 * generate could pile up and make the queue reach its maximum
 			 * size.  It is hoped that the flow control condition will not
@@ -841,7 +860,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 		}
 	}
 
-	g_warning("oops, fell through route_message");
+	g_warning("BUG: fell through route_message");
 
 	return FALSE;
 }

@@ -655,7 +655,7 @@ static void send_ping(struct gnutella_node *n, guint8 ttl)
 
 		for (l = sl_nodes; l; l = l->next) {
 			n = (struct gnutella_node *) l->data;
-			if (NODE_IS_PONGING_ONLY(n) || !NODE_IS_CONNECTED(n))
+			if (!NODE_IS_WRITABLE(n))
 				continue;
 			n->n_ping_sent++;
 		}
@@ -761,7 +761,7 @@ static void send_neighbouring_info(struct gnutella_node *n)
 	for (l = sl_nodes; l; l = l->next) {
 		struct gnutella_node *cn = (struct gnutella_node *) l->data;
 
-		if (NODE_IS_PONGING_ONLY(cn) || !NODE_IS_CONNECTED(cn))
+		if (!NODE_IS_WRITABLE(cn))
 			continue;
 
 		/*
@@ -1086,10 +1086,10 @@ static void ping_all_neighbours(time_t now)
 	for (l = sl_nodes; l; l = l->next) {
 		struct gnutella_node *n = (struct gnutella_node *) l->data;
 
-		if (NODE_IS_PONGING_ONLY(n) || !NODE_IS_CONNECTED(n))
+		if (!NODE_IS_WRITABLE(n))
 			continue;
 
-		if (n->flags & NODE_F_PING_LIMIT)
+		if (n->attrs & NODE_A_PONG_CACHING)
 			send_ping(n, my_ttl);
 		else if (now > n->next_ping) {
 			send_ping(n, my_ttl);
@@ -1290,7 +1290,7 @@ static void pong_all_neighbours_but_one(
 		if (cn == n)
 			continue;
 
-		if (NODE_IS_PONGING_ONLY(cn) || !NODE_IS_CONNECTED(cn))
+		if (!NODE_IS_WRITABLE(cn))
 			continue;
 
 		/*
@@ -1358,7 +1358,7 @@ static struct cached_pong *record_fresh_pong(struct gnutella_node *n,
  * + If current time is less than what `ping_accept' says, drop the ping.
  *   Otherwise, accept the ping and increment `ping_accept' by PING_THROTTLE.
  * + If cache expired, call pcache_expire() and broadcast a new ping to all
- *   the "new" clients (i.e. those flagged NODE_F_PING_LIMIT).  For "old"
+ *   the "new" clients (i.e. those flagged NODE_A_PONG_CACHING).  For "old"
  *   clients, do so only if "next_ping" time was reached.
  * + Handle "alive" pings (TTL=1) and "crawler" pings (TTL=2) immediately,
  *   then return.
@@ -1400,12 +1400,13 @@ void pcache_ping_received(struct gnutella_node *n)
 
 	if (
 		n->header.hops &&
-		(n->flags & (NODE_F_PING_LIMIT|NODE_F_PING_ALIEN)) == NODE_F_PING_LIMIT
+		(n->attrs & (NODE_A_PONG_CACHING|NODE_A_PONG_ALIEN)) ==
+			NODE_A_PONG_CACHING
 	) {
 		g_warning("node %s [%d.%d] claimed ping reduction, "
 			"got ping with hops=%d", node_ip(n),
 			n->proto_major, n->proto_minor, n->header.hops);
-		n->flags |= NODE_F_PING_ALIEN;		/* Warn only once */
+		n->attrs |= NODE_A_PONG_ALIEN;		/* Warn only once */
 	}
 
 	/*
@@ -1488,7 +1489,7 @@ void pcache_ping_received(struct gnutella_node *n)
  * Called when a pong is received from a node.
  *
  * + Record node in the main host catching list.
- * + If node is not a "new" client (i.e. flagged as NODE_F_PING_LIMIT),
+ * + If node is not a "new" client (i.e. flagged as NODE_A_PONG_CACHING),
  *   cache randomly OLD_CACHE_RATIO percent of those (older clients need
  *   to be able to get incoming connections as well).
  * + Cache pong in the pong.hops cache line, associated with the node ID (so we
@@ -1554,7 +1555,7 @@ void pcache_pong_received(struct gnutella_node *n)
 	 * cache it.
 	 */
 
-	if (!(n->flags & NODE_F_PING_LIMIT)) {
+	if (!(n->attrs & NODE_A_PONG_CACHING)) {
 		gint ratio = (int) (100.0 * rand() / (RAND_MAX + 1.0));
 		if (ratio >= OLD_CACHE_RATIO) {
 			if (dbg > 7)
@@ -1575,7 +1576,7 @@ void pcache_pong_received(struct gnutella_node *n)
 	if (dbg > 6)
 		printf("CACHED pong %s (hops=%d, TTL=%d) from %s %s\n",
 			ip_port_to_gchar(ip, port), n->header.hops, n->header.ttl,
-			(n->flags & NODE_F_PING_LIMIT) ? "NEW" : "OLD", node_ip(n));
+			(n->attrs & NODE_A_PONG_CACHING) ? "NEW" : "OLD", node_ip(n));
 
 	/*
 	 * Demultiplex pong: send it to all the connections but the one we

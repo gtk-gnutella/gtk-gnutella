@@ -6,6 +6,7 @@
 - Some download control hardwired constants were made config parameters.
 - Fixed downloading policy to avoid retrying ad infinitum when the connection
   cannot be made at the TCP/IP level (because there's nothing listening).
+- Added support for the Bye packet.
 
 # v 0.80   2002.01.31  [stable]
 # v 0.80   2002.01.22  [beta2]

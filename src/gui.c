@@ -362,13 +362,15 @@ void gui_update_node(struct gnutella_node *n, gboolean force)
 		break;
 
 	case GTA_NODE_CONNECTED:
+	case GTA_NODE_SHUTDOWN:
 		if (n->sent || n->received)
 			g_snprintf(gui_tmp, sizeof(gui_tmp),
-			   "[%d.%d] Connected: "
-			   "TX=%d RX=%d Drop(TX=%d, RX=%d) Bad=%d%s",
-			   n->proto_major, n->proto_minor,
-			   n->sent, n->received, n->tx_dropped, n->rx_dropped, n->n_bad,
-			   NODE_IN_TX_FLOW_CONTROL(n) ? " [FC]" : "");
+				"[%d.%d] %s: "
+				"TX=%d RX=%d Drop(TX=%d, RX=%d) Bad=%d%s",
+				n->proto_major, n->proto_minor,
+				n->status == GTA_NODE_SHUTDOWN ? "Shutdown" : "Connected",
+				n->sent, n->received, n->tx_dropped, n->rx_dropped, n->n_bad,
+				NODE_IN_TX_FLOW_CONTROL(n) ? " [FC]" : "");
 		else
 			g_snprintf(gui_tmp, sizeof(gui_tmp), "[%d.%d] Connected",
 			   n->proto_major, n->proto_minor);

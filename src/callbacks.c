@@ -121,6 +121,8 @@ void on_button_nodes_remove_clicked(GtkButton * button, gpointer user_data)
 				gtk_clist_get_row_data(GTK_CLIST(clist_nodes),
 									   (gint) l->data);
 			l = l->next;
+			if (NODE_IS_WRITABLE(n))
+				node_bye(n, 201, "User manual removal");
 			node_remove(n, NULL);
 			node_real_remove(n);
 		}
