@@ -755,13 +755,25 @@ GList *search_gui_insert_with_sort(GList *list, GtkCTreeNode *node,
  */
 void search_gui_quick_sort_array_swap(GArray *array, gint i1, gint i2)
 {
-	GtkCTreeNode *n1;
-	
-	n1 = g_array_index(array, GtkCTreeNode *, i1);
-	g_array_remove_index(array, i1);
-	g_array_insert_val(array, i1, g_array_index(array, GtkCTreeNode *, i2));	
-	g_array_remove_index(array, i2);
-	g_array_insert_val(array, i2, n1);	
+/*
+ *  This is the old version by Emile. I the one below seems to work fine
+ *  and should be faster because it does not remove/insert. Just in case
+ *  my version doesn't work I'll leave the old one in.
+ *    -- Richard, 6/2/2004
+ *
+ *	GtkCTreeNode *n1;
+ *	
+ *	n1 = g_array_index(array, GtkCTreeNode *, i1);
+ *	g_array_remove_index(array, i1);
+ *	g_array_insert_val(array, i1, g_array_index(array, GtkCTreeNode *, i2));	
+ *	g_array_remove_index(array, i2);
+ *	g_array_insert_val(array, i2, n1);	
+*/
+    GtkCTreeNode *buf;
+
+    buf = g_array_index(array, GtkCTreeNode *, i1);
+    g_array_index(array, GtkCTreeNode *, i1) = g_array_index(array, GtkCTreeNode *, i2);
+    g_array_index(array, GtkCTreeNode *, i2) = buf;
 }
 
 
@@ -775,46 +787,62 @@ void search_gui_quick_sort_array_swap(GArray *array, gint i1, gint i2)
 void search_gui_quick_sort(GArray *array, gint beg, gint end, 
 	GtkCTree *ctree, gboolean ascending, gint sort_col)
 {
-	gui_record_t *rbeg;
-	gui_record_t *ri;
-	gint i;
-	gint result;
-	gint pivot_index = (beg + end) / 2;		
+	gui_record_t *pivot_record;
+    GtkCTreeNode *pivot_node;
+    gint pivot_index;
 	
+    /* terminate recursion */
 	if (beg >= end) 
 		return;	
 
-	/* Choose the item in the middle for the pivot, shift it to the front */
-	search_gui_quick_sort_array_swap(array, beg, pivot_index);	
+	/* Choose the item in the middle for the pivot, swap it to the end */
+	search_gui_quick_sort_array_swap(array, end, (beg + end) / 2);	
 
-	rbeg = gtk_ctree_node_get_row_data(ctree, 
-		g_array_index(array, GtkCTreeNode *, beg));
+    /* Fetch the value of the pivot element for later comparison */
+    pivot_node   = g_array_index(array, GtkCTreeNode *, end);
+	pivot_record = gtk_ctree_node_get_row_data(ctree, pivot_node);
+
+    pivot_index = beg;
 
 	if (ascending) {
-	    for (pivot_index = beg, i = beg + 1; i <= end; i++) {
+        gint i;
+        gint result;
+        gui_record_t *ri;
+
+        /* only go up to the second last element as the last is the pivot */
+	    for (i = beg; i < end; i++) {
 		
 			ri = gtk_ctree_node_get_row_data(ctree, 
 				g_array_index(array, GtkCTreeNode *, i));
-			result = search_gui_compare_records(sort_col, rbeg, ri);
+			result = search_gui_compare_records(sort_col, pivot_record, ri);
 
-			if (result == 1)
-				search_gui_quick_sort_array_swap(array, ++pivot_index, i);
+            /* if current record value is greater then pivot value... */
+			if (result > 0) {
+				search_gui_quick_sort_array_swap(array, pivot_index, i);
+                pivot_index ++;
+            }
 		}
 	} else {
-	    for (pivot_index = beg, i = beg + 1; i <= end; i++) {
+        gint i;
+        gint result;
+        gui_record_t *ri;
+
+	    for (i = beg; i < end; i++) {
 		
 			ri = gtk_ctree_node_get_row_data(ctree, 
 				g_array_index(array, GtkCTreeNode *, i));
-			result = search_gui_compare_records(sort_col, rbeg, ri);
+			result = search_gui_compare_records(sort_col, pivot_record, ri);
 
-			if (result == -1) 
-				search_gui_quick_sort_array_swap(array, ++pivot_index, i);
+			if (result < 0) {
+				search_gui_quick_sort_array_swap(array, pivot_index, i);
+                pivot_index ++;
+            }
 		}
 	}
 
 	
-	/* put the pivot back where it belongs */
-	search_gui_quick_sort_array_swap(array, beg, pivot_index);
+	/* move pivot from end to its final place */
+	search_gui_quick_sort_array_swap(array, end, pivot_index);
 
 	search_gui_quick_sort(array, beg, pivot_index - 1, ctree, 
 		ascending, sort_col);
@@ -875,10 +903,10 @@ gint search_gui_analyze_col_data(GtkCTree *ctree, gint sort_col)
 		rcur = gtk_ctree_node_get_row_data(ctree, cur_node);
 		result = search_gui_compare_records(sort_col, rcur, rprev);
 
-		if (1 == result) 
+		if (0 < result) 
 			descending = FALSE;
 		
-		if (-1 == result) 
+		if (0 > result) 
 			ascending = FALSE;
 
 		if (!ascending && !descending) {
@@ -1054,7 +1082,7 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 		/* Sort the array O(nlogn) */
 		search_gui_quick_sort(
             array, 0, array->len - 1, ctree, ascending, sort_col);
-	
+
 		/* Use the sorted array to sort the ctree widget O(n) */
 		gtk_clist_freeze(GTK_CLIST(ctree));
 		prev_node = GTK_CTREE_NODE(GTK_CLIST(ctree)->row_list);
@@ -1069,7 +1097,7 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 		g_array_free(array, TRUE);
 		break; /* End of all cases using quicksort */
 	}	
-	
+
 #if 0
 	/* Use GTK's default sort functionality (a merge sort I think) */
 		
