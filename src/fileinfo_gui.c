@@ -96,9 +96,8 @@ static void fi_gui_fill_status(
 
     fi_get_status(fih, &s);
 
-    gm_snprintf(fi_sources, sizeof(fi_sources), "%d/%d/%d (%d)",
-        s.recvcount, s.aqueued_count+s.pqueued_count,
-	s.lifecount, s.refcount);
+    gm_snprintf(fi_sources, sizeof(fi_sources), "%d/%d/%d",
+        s.recvcount, s.aqueued_count+s.pqueued_count, s.lifecount);
     titles[c_fi_sources] = fi_sources;
 
     if (s.done) {
@@ -114,19 +113,19 @@ static void fi_gui_fill_status(
 
     if (s.recvcount) {
         gm_snprintf(fi_status, sizeof(fi_status), 
-            "Downloading (%.1f k/s)", s.recv_last_rate / 1024.0);
+            _("Downloading (%.1f k/s)"), s.recv_last_rate / 1024.0);
         titles[c_fi_status] = fi_status;
     } else if (s.done == s.size){
-        titles[c_fi_status] = "Finished";
+        titles[c_fi_status] = _("Finished");
     } else if (s.lifecount == 0) {
-        titles[c_fi_status] = "No sources";
+        titles[c_fi_status] = _("No sources");
     } else if (s.aqueued_count || s.pqueued_count) {
         gm_snprintf(fi_status, sizeof(fi_status), 
-            "Queued (%d active/ %d passive)",
+            _("Queued (%d active/ %d passive)"),
             s.aqueued_count, s.pqueued_count);
         titles[c_fi_status] = fi_status;
     } else {
-        titles[c_fi_status] = "Waiting";
+        titles[c_fi_status] = _("Waiting");
     }
 }
 
@@ -158,7 +157,7 @@ static void fi_gui_set_details(gnet_fi_t fih)
         fi->file_name);
     gtk_label_printf(
         GTK_LABEL(lookup_widget(main_window, "label_fi_size")),
-        "%s (%u bytes)", short_size(fis.size), fis.size);
+        _("%s (%u bytes)"), short_size(fis.size), fis.size);
 
     gtk_clist_freeze(cl_aliases);
     gtk_clist_clear(cl_aliases);

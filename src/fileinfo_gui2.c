@@ -110,8 +110,8 @@ static void fi_gui_clear_details(void)
     gtk_label_set_text(label_fi_size, "");
     gtk_tree_store_clear(store_aliases);
 
-    gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
-			     FALSE);
+    gtk_widget_set_sensitive(
+        lookup_widget(main_window, "button_fi_purge"), FALSE);
 
     vp_draw_fi_progress(last_shown_valid, last_shown);
 }
@@ -193,9 +193,8 @@ static void fi_gui_fill_status(
 
     fi_get_status(fih, &s);
 
-    gm_snprintf(fi_sources, sizeof(fi_sources), "%d/%d/%d (%d)",
-        s.recvcount, s.aqueued_count+s.pqueued_count,
-	s.lifecount, s.refcount);
+    gm_snprintf(fi_sources, sizeof(fi_sources), "%d/%d/%d",
+        s.recvcount, s.aqueued_count+s.pqueued_count, s.lifecount);
     titles[c_fi_sources] = fi_sources;
     titles[c_fi_isources] = GUINT_TO_POINTER(s.refcount);
 
