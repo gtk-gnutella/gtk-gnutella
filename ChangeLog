@@ -1,5 +1,19 @@
 # since last version
 
+- (2003.10.28 - RAM)
+ * When checking for an up-to-date SHA1 in a partial file, don't bother
+   verifying whether the file is still present on the disk.
+ * Got rid of obsolete file_info_filesize() routine.
+ * Added file_info_has_trailer() to check whether a file has a trailer,
+   indicating it is being downloaded but still incomplete.
+ * Don't share partial files, even if the "tmp" directory is shared.
+
+- (2003.10.27 - RAM)
+ * Handle '_' as a space in looks_like_urn().
+ * The download pane will now try to show a non-URN alias for filename.
+ * Must reparent all downloads to common server when there is an IP conflict
+   due to DNS resolution of the server name.
+
 - (2003.10.26 - RAM)
  * Fixed async DNS resolution to behave properly when pipe with ADNS fills up.
  * When creating downloads, one can optionally supply a hostname as well.
