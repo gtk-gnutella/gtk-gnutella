@@ -163,7 +163,7 @@ udp_connect_back(guint32 ip, guint16 port, const gchar *muid)
 	mq_udp_node_putq(n->outq, gmsg_to_pmsg(&m, sizeof(m)), n);
 
 	if (udp_debug > 19)
-		printf("UDP queeud connect-back PING %s to %s\n",
+		printf("UDP queued connect-back PING %s to %s\n",
 			guid_hex_str(muid), ip_port_to_gchar(ip, port));
 }
 

@@ -101,7 +101,7 @@ static gpointer tx_dgram_init(txdrv_t *tx, gpointer args)
 	 * the TX stack (i.e. upper layers detect that we were enable to comply
 	 * with the whole write and enable us), there is no I/O callback attached
 	 * to the I/O source: we only create it to benefit from bandwidth limiting
-	 * through calls to bio_write() and bio_writev().
+	 * through calls to bio_sendto().
 	 */
 
 	attr->wio = &s_udp_listen->wio;
