@@ -117,8 +117,10 @@ static void rx_link_destroy(rxdrv_t *rx)
 {
 	struct attr *attr = (struct attr *) rx->opaque;
 
-	if (attr->gdk_tag)
+	if (attr->gdk_tag) {
 		gdk_input_remove(attr->gdk_tag);
+		attr->gdk_tag = 0;					/* Paranoid */
+	}
 
 	g_free(rx->opaque);
 }
