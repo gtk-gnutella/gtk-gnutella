@@ -1735,16 +1735,14 @@ void parq_upload_timer(time_t now)
 
 				g_assert(parq_ul != NULL);
 
-				if (ban_is_banned(parq_ul->remote_ip))
-					continue;
-
 				/* Entry can't have a slot, and we know it expired! */
 
 				if (
 					!(parq_ul->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
 					now - parq_ul->last_queue_sent > QUEUE_PERIOD &&
 					parq_ul->queue_sent < MAX_QUEUE &&
-					parq_ul->queue_refused < MAX_QUEUE_REFUSED
+					parq_ul->queue_refused < MAX_QUEUE_REFUSED &&
+					!ban_is_banned(parq_ul->remote_ip)
 				)
 					parq_upload_send_queue(parq_ul);
 			}
