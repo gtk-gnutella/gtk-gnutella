@@ -441,6 +441,25 @@ void on_popup_uploads_title_activate (GtkMenuItem *menuitem, gpointer user_data)
  *** Upload Stats pane
  ***/
 
+void on_spinbutton_uploads_max_ip_activate(GtkEditable *editable, 
+                                           gpointer user_data)
+{
+    max_uploads_ip = 
+        gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(editable));
+}
+
+gboolean on_spinbutton_uploads_max_ip_focus_out_event(GtkWidget *widget, 
+                                                      GdkEventFocus *event,
+                                                      gpointer user_data)
+{
+    /*
+     * Delegate to: on_entry_max_downloads_activate.
+     *      --BLUE, 01/05/2002
+     */
+    on_spinbutton_uploads_max_ip_activate(GTK_EDITABLE(widget), NULL);
+	return TRUE;
+}
+
 void on_clist_ul_stats_click_column(GtkCList * clist, gint column,
 				    gpointer user_data)
 {
@@ -1000,7 +1019,7 @@ void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton,
 	if (gtk_toggle_button_get_active(togglebutton)) {
 		gtk_label_set_text(GTK_LABEL(GTK_BIN(togglebutton)->child),
 						   "Unfreeze queue");
-		gui_statusbar_push(scid_queue_freezed, "QUEUE FREEZED");
+		gui_statusbar_push(scid_queue_freezed, "QUEUE FROZEN");
     } else {
 		gtk_label_set_text(GTK_LABEL(GTK_BIN(togglebutton)->child),
 						   "Freeze queue");
@@ -1127,10 +1146,16 @@ void on_button_search_clicked(GtkButton * button, gpointer user_data)
 	 *		--patch from Mark Schreiber, 10/01/2002
 	 */
 
-	g_strstrip(e);
+    g_strstrip(e);
 	if (*e) {
-		new_search(minimum_speed, e);
+        /*
+         * It's important gui_search_history_add is called before
+         * new_search, otherwise the search entry will not be
+         * cleared.
+         *      --BLUE, 04/05/2002
+         */
         gui_search_history_add(e);
+		new_search(minimum_speed, e);
     }
 
 	g_free(e);

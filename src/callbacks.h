@@ -67,6 +67,8 @@ void on_clist_uploads_resize_column (GtkCList *clist, gint column, gint width, g
 void on_clist_uploads_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data); 
 void on_clist_uploads_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 void on_button_uploads_clear_completed_clicked (GtkButton *button, gpointer user_data);
+void on_spinbutton_uploads_max_ip_activate(GtkEditable *editable, gpointer user_data);
+gboolean on_spinbutton_uploads_max_ip_focus_out_event(GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 
 
 /***
