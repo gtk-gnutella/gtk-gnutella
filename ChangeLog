@@ -1,5 +1,14 @@
 # since last version
 
+- (2002.07.06 - RAM)
+  * In case there are unfreed atoms at exit time, dump their values.
+  * Don't forbid connections to local host on different port.
+  * Allocate only minimal amount of memory when simply validating query hits.
+  * When notifying for new versions, distinguish between releases and
+	development, and show their timestamps.
+  * Protected more warnings to show only in debugging mode.
+  * Default TX flow-control timeout of 300 was too much: reduced to 60.
+
 - (2002.07.05 - RAM)
   * Random cleanup: sanity checks in query hits and pongs, RX timeouts.
   * host_init() was spuriously declaring pcache_init() in its body.
