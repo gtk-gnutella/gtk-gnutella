@@ -385,7 +385,7 @@ gchar *short_size64(guint64 size)
 	static gchar b[SIZE_FIELD_MAX];
 
 	if (size < 1024)
-		gm_snprintf(b, sizeof(b), "%u Bytes", size);
+		gm_snprintf(b, sizeof(b), "%u Bytes", (guint32) size);
 	else if (size < 1048576)
 		gm_snprintf(b, sizeof(b), "%.1f KB", (float) size / 1024.0);
 	else if (size < 1073741824)

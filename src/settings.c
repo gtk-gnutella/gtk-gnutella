@@ -606,7 +606,6 @@ static void update_address_lifetime(void)
 	gboolean force_local_ip;
 	guint32 current_ip;
 	guint32 current_ip_stamp;
-	guint32 average_ip_uptime;
 	time_t now;
 
 	gnet_prop_get_boolean_val(PROP_FORCE_LOCAL_IP, &force_local_ip);

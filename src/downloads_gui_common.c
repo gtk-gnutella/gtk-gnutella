@@ -48,8 +48,6 @@ RCSID("$Id$");
 
 gchar *selected_url = NULL;
 
-static gchar tmpstr[4096];
-
 /*
  *	gui_update_download_clear
  *
