@@ -90,6 +90,9 @@ reuse your previous values you can delete them with:
 
 make clobber
 
+If you don't know how to answer a question, it is generally safe to use the 
+default.  
+
 For a list of command line switches use "Configure -h"
 
 Although "Configure" is intended to be run interactively, it can be run 
