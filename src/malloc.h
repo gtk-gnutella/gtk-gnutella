@@ -129,10 +129,16 @@
 	string_insert_track((s),(i),(p),__FILE__,__LINE__)
 #define g_string_insert_c(s,i,c) \
 	string_insert_c_track((s),(i),(c),__FILE__,__LINE__)
+
+#ifdef USE_GTK2 /* Those are defined in gstring.h of GLib2 */
+#undef g_string_sprintf
+#undef g_string_sprintfa
+#endif
 #define g_string_sprintf(s,fmt,...) \
 	string_sprintf_track((s),__FILE__,__LINE__,(fmt), __VA_ARGS__)
 #define g_string_sprintfa(s,fmt,...) \
 	string_sprintf_tracka((s),__FILE__,__LINE__,(fmt), __VA_ARGS__)
+
 
 /*
  * Use STRTRACK() to track an allocated string by some obscure routine that
