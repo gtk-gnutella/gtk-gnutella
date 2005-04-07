@@ -154,6 +154,10 @@
 216.169.118.81
 216.169.118.82
 
+# GWebCache polling, dubious horde behaviour
+204.9.117.0/24
+204.9.118.0/24
+
 # Overpeer, Inc
 64.89.41.0/24
 66.128.227.0/24
