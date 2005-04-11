@@ -133,6 +133,7 @@ static void qrt_compress_cancel_all(void);
 static void qrt_patch_compute(
 	struct routing_table *rt, struct routing_patch **rpp);
 static guint32 qrt_dump(FILE *f, struct routing_table *rt, gboolean full);
+void test_hash(void);
 
 static void qrp_monitor(cqueue_t *cq, gpointer obj);
 
@@ -179,11 +180,10 @@ install_merged_table(struct routing_table *rt)
  * Compute standard QRP hash code on 32 bits.
  */
 static inline guint32
-qrp_hashcode(const gchar *x)
+qrp_hashcode(const gchar *s)
 {
-	guint32 xor = 0;		/* The running total */
-	gint j = 0;  			/* The byte position in xor */
-	guchar c;
+	guint32 x = 0;		/* The running total */
+	size_t len, j;
 
 #define A_INT 0x4F1BBCDC
 
@@ -198,17 +198,27 @@ qrp_hashcode(const gchar *x)
 	 */
 
 
-	while ((c = *x++)) {
-		guint32 b = (c >= 'A' && c <= 'Z') ? (c + 'a' - 'A') : c;
-		xor ^= b << (j << 3);
-		j = (j + 1) & 0x3;
+	j = 0;	/* The byte position in xor */
+	for (len = 0; '\0' != *s; j += 8) {
+		guint32 uc;
+		gint retlen;
+
+		len = utf8_decode_lookahead(s, len);
+		uc = utf8_decode_char(s, len, &retlen, FALSE);
+		if (!uc) {
+			break;	/* Invalid encoding */
+		}
+
+		x ^= (utf32_lowercase(uc) & 0xFF) << (j & 24);
+		s += retlen;
+		len -= retlen;
 	}
 
 	/*
 	 * Multiplication-based hash function.  See Chapter 12.3.2. of CLR.
 	 */
 
-	return xor * A_INT;
+	return x * A_INT;
 }
 
 /**
@@ -3543,6 +3553,8 @@ qrp_init(char_map_t map)
 	g_assert(qrp_hash("NDFLalem", 16) == 37658);
 	g_assert(qrp_hash("7777a88a8a8a8", 10) == 342);
 
+	test_hash();
+
 	/*
 	 * Install the periodic monitoring callback.
 	 */
@@ -4059,6 +4071,10 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 	if (!(x)) printf("FAILED: %s\n", #x); \
 	else printf("OK: %s\n", #x); \
 } while (0)
+#else /* !TEST */
+
+#define CHECK(x) g_assert((x))
+#endif /* TEST */
 
 void
 test_hash(void)
@@ -4083,7 +4099,7 @@ test_hash(void)
 	CHECK(hash("ndflal", 16)==36910);
 	CHECK(hash("ndflale", 16)==34586);
 	CHECK(hash("ndflalem", 16)==37658);
-	CHECK(hash("FAIL", 16)==37458);	/* WILL FAIL */
+	CHECK(hash("FAIL", 16)!=37458);	/* Note the != */
 	CHECK(hash("ndflaleme", 16)==45559);
 	CHECK(hash("ol2j34lj", 10)==318);
 	CHECK(hash("asdfas23", 10)==503);
@@ -4102,5 +4118,4 @@ test_hash(void)
 	CHECK(hash("3nJa9", 10)==581);
 }
 
-#endif /* TEST */
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
