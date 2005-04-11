@@ -52,6 +52,28 @@ gchar *utf8_strlower_copy(const gchar *src);
 size_t utf8_strupper(gchar *dst, const gchar *src, size_t size);
 gchar *utf8_strupper_copy(const gchar *src);
 
+guint32 utf32_lowercase(guint32 uc);
+
+/**
+ * This is a highly specialized function (read: don't use it if you don't
+ * understand what it does and how it's used) to be used with
+ * utf8_decode_char().
+ * It's purpose is to determine the maximum possible length in bytes of
+ * current UTF-8 character that ``s'' points to.
+ *
+ * @param s a UTF-8 encoded string.
+ * @param len number of bytes pending to be decoded.
+ *
+ * @returns the maximum length in bytes of the current UTF-8 character.
+ */
+static inline size_t
+utf8_decode_lookahead(const gchar *s, size_t len)
+{
+	while (len < 6 && s[len] != '\0')
+		len++;
+	return len;
+}
+
 /*
  * Necessary for GTK+ 2.x version because it expects almost any string
  * to be encoded as UTF-8.
