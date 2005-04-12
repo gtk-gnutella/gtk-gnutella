@@ -82,6 +82,30 @@ strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 #endif /* HAS_STRLCPY */
 
 /**
+ * Checks whether ``prefix'' is a prefix of ``str''.
+ *
+ * @param str a NUL-terminated string
+ * @param prefix a NUL-terminated string
+ * @return TRUE if ``prefix'' is a prefix of ``str''.
+ */
+gboolean
+is_strprefix(const gchar *str, const gchar *prefix)
+{
+	const gchar *s, *p;
+	gint c;
+
+	g_assert(NULL != str);
+	g_assert(NULL != prefix);
+
+	for (s = str, p = prefix; '\0' != (c = *p); p++) {
+		if (c != *s++)
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
  * Checks whether the given string contains a valid IP address. If the
  * string is NULL returns FALSE.
  */
@@ -1792,8 +1816,8 @@ make_pathname(const gchar *dir, const gchar *file)
 gchar *
 short_filename(gchar *fullname)
 {
-	if (0 == strncmp(fullname, SRC_PREFIX, sizeof(SRC_PREFIX) - 1))
-		return fullname + (sizeof(SRC_PREFIX) - 1);
+	if (is_strprefix(fullname, SRC_PREFIX))
+		return &fullname[CONST_STRLEN(SRC_PREFIX)];
 
 	return fullname;
 }

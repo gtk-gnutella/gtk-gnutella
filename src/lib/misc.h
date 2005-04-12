@@ -348,6 +348,7 @@ gchar *data_hex_str(const gchar *data, size_t len);
 gint create_directory(const gchar *dir);
 gboolean filepath_exists(const gchar *dir, const gchar *file);
 guint64 parse_uint64(const gchar *, gchar const **, gint, gint *);
+gboolean is_strprefix(const gchar *str, const gchar *prefix);
 
 typedef void (*signal_handler_t)(gint signo);
 signal_handler_t set_signal(gint signo, signal_handler_t handler);
