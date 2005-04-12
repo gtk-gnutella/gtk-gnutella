@@ -92,6 +92,7 @@ RCSID("$Id$");
 #include "lib/header.h"
 #include "lib/idtable.h"
 #include "lib/listener.h"
+#include "lib/misc.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
 
