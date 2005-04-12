@@ -184,8 +184,7 @@ qrp_hashcode(const gchar *s)
 {
 	guint32 x = 0;		/* The running total */
 	size_t len, j;
-
-#define A_INT 0x4F1BBCDC
+	gint c;
 
 	/*
 	 * First turn x[0...end-1] into a number by treating all 4-byte
@@ -199,26 +198,43 @@ qrp_hashcode(const gchar *s)
 
 
 	j = 0;	/* The byte position in xor */
-	for (len = 0; '\0' != *s; j += 8) {
+	len = 0;
+	while ('\0' != (c = (guchar) *s)) {
 		guint32 uc;
 		gint retlen;
 
-		len = utf8_decode_lookahead(s, len);
-		uc = utf8_decode_char(s, len, &retlen, FALSE);
-		if (!uc) {
-			break;	/* Invalid encoding */
-		}
+		/* Optimize for ASCII as the most common encoding for searches */
+		if (c < 0x80) {
+			x ^= ((guint32) ascii_tolower(c)) << (j & 24);
+			j += 8;
+			s++;
+			len = 0;	/* Reset */
+		} else {
+			guint32 uc16; /* will hold 1-2 UTF-16 characters */
 
-		x ^= (utf32_lowercase(uc) & 0xFF) << (j & 24);
-		s += retlen;
-		len -= retlen;
+			len = utf8_decode_lookahead(s, len);
+			uc = utf8_decode_char(s, len, &retlen, FALSE);
+			if (!uc) {
+				break;	/* Invalid encoding */
+			}
+			s += retlen;
+			len -= retlen;
+
+			uc = utf32_lowercase(uc);
+
+			/* Skip bad characters completely */
+			for (uc16 = utf16_encode_char_compact(uc); uc16; uc16 >>= 16) { 
+				x ^= (uc16 & 0xff) << (j & 24);
+				j += 8;
+			}
+		}
 	}
 
 	/*
 	 * Multiplication-based hash function.  See Chapter 12.3.2. of CLR.
 	 */
 
-	return x * A_INT;
+	return x * 0x4F1BBCDC;
 }
 
 /**
@@ -234,9 +250,9 @@ qrp_hashcode(const gchar *s)
  * Naturally, everyone must use the SAME hashing function!
  */
 static inline guint32
-qrp_hash(gchar *x, gint bits)
+qrp_hash(const gchar *s, gint bits)
 {
-	return qrp_hashcode(x) >> (32 - bits);
+	return qrp_hashcode(s) >> (32 - bits);
 }
 
 /***
