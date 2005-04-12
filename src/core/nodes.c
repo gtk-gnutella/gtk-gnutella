@@ -1802,11 +1802,11 @@ node_avoid_monopoly(struct gnutella_node *n)
 static gboolean
 node_reserve_slot(struct gnutella_node *n)
 {
+	static const gchar gtkg_vendor[] = "gtk-gnutella";
 	guint up_cnt = 0;		/* GTKG UPs */
 	guint leaf_cnt = 0;		/* GTKG leafs */
 	guint normal_cnt = 0;	/* GTKG normal nodes */
 	GSList *sl;
-	const gchar gtkg_vendor[] = "gtk-gnutella";
 
 	g_assert((gint) reserve_gtkg_nodes >= 0 && reserve_gtkg_nodes <= 100);
 	if (!n->vendor || (n->flags & NODE_F_CRAWLER) || !reserve_gtkg_nodes)
@@ -3949,6 +3949,7 @@ node_query_routing_header(struct gnutella_node *n)
 static void
 node_process_handshake_header(struct gnutella_node *n, header_t *head)
 {
+	static const gchar gtkg_vendor[] = "gtk-gnutella/";
 	gchar gnet_response[10240];		/* Large in case Crawler info sent back */
 	size_t rw;
 	gint sent;
@@ -3996,11 +3997,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 */
 
 	if (n->vendor != NULL) {
-		const gchar gtkg_vendor[] = "gtk-gnutella/";
-		gint len = sizeof(gtkg_vendor) - 1;		/* Without trailing NUL */
 		if (
-			0 == strncmp(gtkg_vendor, n->vendor, len) ||
-			(*n->vendor == '!' && 0 == strncmp(gtkg_vendor, n->vendor + 1, len))
+			is_strprefix(n->vendor, gtkg_vendor) ||
+			(*n->vendor == '!' && is_strprefix(&n->vendor[1], gtkg_vendor))
 		)
 			n->flags |= NODE_F_GTKG;
 	}
@@ -4601,12 +4600,13 @@ allow_for_now:		/* XXX remove after 2005-01-31 */
 					"X-Max-TTL: %d\r\n",
 					(up_connections + max_connections - normal_connections) / 2,
 					max_ttl);
-			else if (0 == strncmp(node_vendor(n), "LimeWire", 8))
+			else if (!is_strprefix(node_vendor(n), gtkg_vendor))
 				gm_snprintf(degree, sizeof(degree),
 					"X-Dynamic-Querying: 0.1\r\n"
 					"X-Ultrapeer-Query-Routing: 0.1\r\n"
 					"X-Degree: 32\r\n"
-					"X-Max-TTL: 4\r\n");
+					"X-Max-TTL: %d\r\n",
+					max_ttl);
 			else
 				degree[0] = '\0';
 
