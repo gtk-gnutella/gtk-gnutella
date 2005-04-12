@@ -1091,7 +1091,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	}
 
  	/* ensured by socket_read() */
-	g_assert(0 == strncmp(queue, "QUEUE ", sizeof("QUEUE ") - 1));
+	g_assert(is_strprefix(queue, "QUEUE "));
 
 	id = queue + sizeof("QUEUE ") - 1;
 	id = skip_ascii_spaces(id);

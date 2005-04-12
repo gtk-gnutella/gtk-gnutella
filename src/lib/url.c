@@ -352,8 +352,8 @@ url_params_parse(gchar *query)
  * Get the value of a parameter, or NULL if the parameter is not present.
  * The value returned has already been URL-unescaped.
  */
-gchar *
-url_params_get(url_params_t *up, gchar *name)
+const gchar *
+url_params_get(url_params_t *up, const gchar *name)
 {
 	g_assert(up != NULL);
 	g_assert(up->params != NULL);
@@ -437,12 +437,12 @@ url_normalize(gchar *url, url_policy_t pol)
 
 	g_assert(url);
 
-	if (0 != strncmp(q, http_prefix, sizeof http_prefix - 1)) {
+	if (!is_strprefix(q, http_prefix)) {
 		if (url_debug)
 			g_warning("URL \"%s\" isn't preceded by \"%s\"", url, http_prefix);
 		return NULL;
 	}
-	q += sizeof http_prefix - 1;
+	q += CONST_STRLEN(http_prefix);
 
 	if (!isalnum((guchar) *q)) {
 		warn = "HTTP prefix MUST be followed by an alphanum";
@@ -566,11 +566,11 @@ url_normalize(gchar *url, url_policy_t pol)
 				if (url_debug)
 					g_message("trailing \"/..\" in URI; rejected");
 				return NULL;
-			} else if (0 == strncmp(p, "/./", sizeof "/./" - 1)) {
+			} else if (is_strprefix(p, "/./")) {
 				p += 2;
 				if (url_debug)
 					g_message("ignoring unnecessary \"/./\" in URI");
-			} else if (0 == strncmp(p, "/../", sizeof "/../" - 1)) {
+			} else if (is_strprefix(p, "/../")) {
 				p += 3;
 				if (url_debug)
 					g_message("ascending one component in URI");

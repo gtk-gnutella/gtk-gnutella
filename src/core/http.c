@@ -356,7 +356,8 @@ http_status_parse(const gchar *line,
 
 	if (proto) {
 		size_t plen = strlen(proto);
-		if (0 == strncmp(proto, line, plen)) {
+
+		if (is_strprefix(line, proto)) {
 			/*
 			 * Protocol string matches, make sure it ends with a space or
 			 * a "/" delimiter.
@@ -880,7 +881,7 @@ http_range_parse(
 
 	g_assert(size > 0);
 
-	if (0 == strncmp(str, unit, CONST_STRLEN(unit))) {
+	if (is_strprefix(str, unit)) {
 		c = str[CONST_STRLEN(unit)];
 		if (!is_ascii_space(c) && c != '=') {
 			g_warning("improper %s header from <%s>: %s", field, vendor, value);

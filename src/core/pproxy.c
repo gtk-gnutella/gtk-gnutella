@@ -305,12 +305,21 @@ static gboolean
 get_params(struct pproxy *pp, gchar *request,
 	gchar **guid_atom, guint32 *file_idx)
 {
+	static const struct {
+		const gchar *req;
+		const gchar *attr;
+	} req_types[] = {
+		{ "/gnutella/pushproxy?",	"ServerId" },
+		{ "/gnutella/push-proxy?",	"ServerId" },
+		{ "/gnet/push-proxy?",		"guid" },
+	};
 	gchar *uri;
-	gchar *attr;
+	const gchar *attr;
 	gchar *p;
-	gchar *value;
+	const gchar *value;
 	gint datalen;
 	url_params_t *up;
+	guint i;
 
 	/*
 	 * Move to the start of the requested path.  Note that sizeof("GET")
@@ -323,7 +332,7 @@ get_params(struct pproxy *pp, gchar *request,
 
 	/*
 	 * Go patch the first space we encounter before HTTP to be a NUL.
-	 * Indeed, the requesst shoud be "GET /get/12/foo.txt HTTP/1.0".
+	 * Indeed, the request should be "GET /get/12/foo.txt HTTP/1.0".
 	 *
 	 * Note that if we don't find HTTP/ after the space, it's not an
 	 * error: they're just sending an HTTP/0.9 request, which is awkward
@@ -342,16 +351,16 @@ get_params(struct pproxy *pp, gchar *request,
 	 *		--RAM, 18/07/2003
 	 */
 
-	if (0 == strncmp(uri, "/gnutella/pushproxy?", 20)) {
-		uri += 20;
-		attr = "ServerId";
-	} else if (0 == strncmp(uri, "/gnutella/push-proxy?", 21)) {
-		uri += 21;
-		attr = "ServerId";
-	} else if (0 == strncmp(uri, "/gnet/push-proxy?", 17)) {
-		uri += 17;
-		attr = "guid";
-	} else {
+	attr = NULL;
+	for (i = 0; i < G_N_ELEMENTS(req_types); i++) {
+		if (is_strprefix(req_types[i].req, uri)) {
+			attr = req_types[i].attr;
+			uri += strlen(req_types[i].req);
+			break;
+		}
+	}
+
+	if (!attr) {
 		pproxy_error_remove(pp, 400, "Request not understood");
 		return FALSE;
 	}

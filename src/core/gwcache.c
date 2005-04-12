@@ -759,7 +759,7 @@ gwc_url_line(struct parse_context *ctx, gchar *buf, gint len)
 	if (gwc_debug > 3)
 		printf("GWC URL line (%d bytes): %s\n", len, buf);
 
-	if (0 == strncmp(buf, "ERROR", 5)) {
+	if (is_strprefix(buf, "ERROR")) {
 		g_warning("GWC cache \"%s\" returned %s",
 			http_async_info(ctx->handle, NULL, NULL, NULL, NULL), buf);
 		http_async_cancel(ctx->handle);
@@ -897,7 +897,7 @@ gwc_host_line(struct parse_context *ctx, gchar *buf, gint len)
 	if (gwc_debug > 3)
 		printf("GWC host line (%d bytes): %s\n", len, buf);
 
-	if (0 == strncmp(buf, "ERROR", 5)) {
+	if (is_strprefix(buf, "ERROR")) {
 		g_warning("GWC cache \"%s\" returned %s",
 			http_async_info(ctx->handle, NULL, NULL, NULL, NULL), buf);
 		http_async_cancel(ctx->handle);
@@ -1058,13 +1058,13 @@ gwc_update_line(struct parse_context *ctx, gchar *buf, gint len)
 	if (gwc_debug > 3)
 		printf("GWC update line (%d bytes): %s\n", len, buf);
 
-	if (0 == strncmp(buf, "OK", 2)) {
+	if (is_strprefix(buf, "OK")) {
 		if (gwc_debug > 2)
 			printf("GWC update OK for \"%s\"\n",
 				http_async_info(ctx->handle, NULL, NULL, NULL, NULL));
 		http_async_close(ctx->handle);		/* OK, don't read more */
 		return FALSE;
-	} else if (0 == strncmp(buf, "ERROR", 5)) {
+	} else if (is_strprefix(buf, "ERROR")) {
 		g_warning("GWC cache \"%s\" returned %s",
 			http_async_info(ctx->handle, NULL, NULL, NULL, NULL), buf);
 		http_async_cancel(ctx->handle);

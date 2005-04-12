@@ -1478,7 +1478,7 @@ get_file_to_upload_from_index(
 	 * of the requested filename.
 	 */
 
-	buf = uri + sizeof("/get/");		/* Go after first index char */
+	buf = uri;
 	if (!url_unescape(buf, TRUE)) {		/* Index is escape-safe anyway */
 		upload_error_remove(u, NULL, 400, "Malformed Gnutella HTTP request");
 		return NULL;
@@ -1702,11 +1702,7 @@ sha1_recomputed:
 	return NULL;
 }
 
-static const char n2r_query[] = "/uri-res/N2R?";
-
-#define N2R_QUERY_LENGTH	(sizeof(n2r_query) - 1)
-
-/* *
+/**
  * Get the shared_file to upload from a given URN.
  * Return the shared_file if we have it, NULL otherwise
  */
@@ -1721,7 +1717,7 @@ get_file_to_upload_from_urn(
 	static const char urn_sha1[] = "urn:sha1:";
 	gchar hash[SHA1_BASE32_SIZE + 1];
 	gchar digest[SHA1_RAW_SIZE];
-	const gchar *urn = uri + N2R_QUERY_LENGTH;
+	const gchar *urn = uri;
 	struct shared_file *sf;
 	gint skip;
 
@@ -1794,9 +1790,13 @@ not_found:
 static struct shared_file *
 get_file_to_upload(gnutella_upload_t *u, header_t *header, gchar *request)
 {
+	static const char n2r_query[] = "/uri-res/N2R?";
+	static const char idx_query[] = "/get/";
 	guint idx = 0;
 	gchar *uri;
-	gchar s;
+	const gchar *endptr;
+	gint error;
+	guint64 v;
 
 	/*
 	 * We have either "GET uri" or "HEAD uri" at this point.  Since the
@@ -1812,15 +1812,20 @@ get_file_to_upload(gnutella_upload_t *u, header_t *header, gchar *request)
     if (u->name == NULL)
         u->name = atom_str_get(uri);
 
-	/*
-	 * Because of a bug in sscanf(), we must end the format with a parameter,
-	 * since sscanf() will ignore whatever lies afterwards.
-	 */
-
-	if (2 == sscanf(uri, "/get/%u%c", &idx, &s) && s == '/')
-		return get_file_to_upload_from_index(u, header, uri, idx);
-	else if (0 == strncmp(uri, n2r_query, N2R_QUERY_LENGTH))
-		return get_file_to_upload_from_urn(u, header, uri);
+	if (
+		is_strprefix(uri, idx_query) &&
+		(v = parse_uint64(uri + CONST_STRLEN(idx_query),
+							&endptr, 10, &error)) <= 0xffffffff &&
+		!error &&
+		*endptr == '/'
+	) {
+		idx = v;
+		return get_file_to_upload_from_index(u, header,
+				uri + CONST_STRLEN(idx_query), idx);
+	} else if (is_strprefix(uri, n2r_query)) {
+		return get_file_to_upload_from_urn(u, header,
+					uri + CONST_STRLEN(n2r_query));
+	}
 
 	upload_error_not_found(u, request);
 	return NULL;

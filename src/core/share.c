@@ -914,7 +914,7 @@ recurse_scan(gchar *dir, const gchar *basedir)
 				struct shared_file *found = NULL;
 
 				if (dbg > 5)
-					g_message("%s: full=\"%s\"", __func__, full);
+					g_message("recurse_scan: full=\"%s\"", full);
 
 				if (contains_control_chars(full)) {
 					g_warning("Not sharing filename with control characters: "
@@ -1473,19 +1473,19 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 * Drop the "QTRAX2_CONNECTION" queries as being "overhead".
 		 */
 
-#define QTRAX_STRLEN	(sizeof("QTRAX2_CONNECTION")-1)
+#define QTRAX2_CON	"QTRAX2_CONNECTION"
 
 		if (
-			search_len >= QTRAX_STRLEN &&
+			search_len >= CONST_STRLEN(QTRAX2_CON) &&
 			search[0] == 'Q' &&
 			search[1] == 'T' &&
-			0 == strncmp(search, "QTRAX2_CONNECTION", QTRAX_STRLEN)
+			is_strprefix(search, QTRAX2_CON)
 		) {
             gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
 			return TRUE;		/* Drop the message! */
 		}
 
-#undef QTRAX_STRLEN
+#undef QTRAX2_CON
 
     }
 

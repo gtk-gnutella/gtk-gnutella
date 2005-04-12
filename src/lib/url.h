@@ -55,11 +55,11 @@ gchar *url_escape_cntrl(gchar *url);
 gchar *url_unescape(gchar *url, gboolean inplace);
 
 url_params_t *url_params_parse(gchar *query);
-gchar *url_params_get(url_params_t *up, gchar *name);
+const gchar *url_params_get(url_params_t *up, const gchar *name);
 void url_params_free(url_params_t *up);
 gchar *url_normalize(gchar *url, url_policy_t pol);
 
 #endif	/* _url_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 

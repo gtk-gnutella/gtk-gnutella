@@ -611,10 +611,7 @@ ban_vendor(const gchar *vendor)
 	 * our tests here.
 	 */
 
-	if (
-		vendor[0] == '!' &&
-		0 == strncmp(vendor + 1, GTKG_NAME, GTKG_LEN)
-	) {
+	if (vendor[0] == '!' && is_strprefix(&vendor[1], GTKG_NAME)) {
 		vendor++;
 		is_gtkg = TRUE;
 	}
@@ -629,16 +626,18 @@ ban_vendor(const gchar *vendor)
 	 *		--RAM, 03/01/2002.
 	 */
 
-	if (
-		vendor[0] == 'g' &&
-		(is_gtkg || 0 == strncmp(vendor, GTKG_NAME, GTKG_LEN))
-	) {
-		if (
-			0 == strncmp(vendor + GTKG_LEN, "0.90", 4) ||
-			0 == strncmp(vendor + GTKG_LEN, "0.91u", 5) ||
-			0 == strncmp(vendor + GTKG_LEN, "0.92b ", 6)
-		)
-			return harmful;
+	if (vendor[0] == 'g' && (is_gtkg || is_strprefix(vendor, GTKG_NAME))) {
+		static const gchar * const versions[] = {
+			"0.90",
+			"0.91u",
+			"0.92b ",
+		};
+		guint i;
+
+		for (i = 0; i < G_N_ELEMENTS(versions); i++) {
+			if (is_strprefix(vendor + GTKG_LEN, versions[i]))
+				return harmful;
+		}
 
 		if (version_is_too_old(vendor))
 			return too_old;
@@ -650,16 +649,15 @@ ban_vendor(const gchar *vendor)
 #undef GTKG_LEN
 
 #define GTKG_NAME	"Gtk-Gnutella "
-#define GTKG_LEN	(sizeof(GTKG_NAME) - 1)
 
 #define GNUC_NAME	"Gnucleus "
 #define GNUC_LEN	(sizeof(GNUC_NAME) - 1)
 
 	if (vendor[0] == 'G') {
-		if (0 == strncmp(vendor, GNUC_NAME, GNUC_LEN)) {
-			if (0 == strncmp(vendor + GNUC_LEN, "1.6.0.0", 7))
+		if (is_strprefix(vendor, GNUC_NAME)) {
+			if (is_strprefix(&vendor[GNUC_LEN], "1.6.0.0"))
 				return harmful;
-		} else if (0 == strncmp(vendor, GTKG_NAME, GTKG_LEN))
+		} else if (is_strprefix(vendor, GTKG_NAME))
 			return refused;
 
 		return NULL;
@@ -669,9 +667,8 @@ ban_vendor(const gchar *vendor)
 #undef GNUC_LEN
 
 #undef GTKG_NAME
-#undef GTKG_LEN
 
 	return NULL;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

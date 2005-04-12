@@ -201,7 +201,7 @@ version_parse(const gchar *str, version_t *ver)
 	 * where the third number is the "patchlevel".
 	 */
 
-	if (0 != strncmp(str, "gtk-gnutella/", 13))
+	if (!is_strprefix(str, "gtk-gnutella/"))
 		return FALSE;
 
 	v = str + 13;

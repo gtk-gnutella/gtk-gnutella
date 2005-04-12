@@ -1204,7 +1204,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			/* Check whether the buffer contents match a known clear
 			 * text handshake. */
 			for (i = 0; i < G_N_ELEMENTS(shakes); i++) {
-				if (0 == strncmp(buf, shakes[i], strlen(shakes[i]))) {
+				if (is_strprefix(buf, shakes[i])) {
 					/* The socket doesn't use TLS. */
 					s->tls.enabled = FALSE;
 					break;
@@ -1271,8 +1271,8 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		dump_hex(stderr, "Leading Data",
 			getline_str(s->getline), MIN(getline_length(s->getline), 256));
 		if (
-			0 == strncmp(s->buffer, "GET ", 4) ||
-			0 == strncmp(s->buffer, "HEAD ", 5)
+			is_strprefix(s->buffer, "GET ") ||
+			is_strprefix(s->buffer, "HEAD ")
 		)
 			http_send_status(s, 414, FALSE, NULL, 0, "Requested URL Too Large");
 		socket_destroy(s, "Requested URL too large");
@@ -1310,12 +1310,12 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	 * Likewise for PARQ download resuming.
 	 */
 
-	if (0 == strncmp(first, "GIV ", 4)) {
+	if (is_strprefix(first, "GIV ")) {
 		download_push_ack(s);
 		return;
 	}
 
-	if (0 == strncmp(first, "QUEUE ", 6)) {
+	if (is_strprefix(first, "QUEUE ")) {
 		parq_download_queue_ack(s);
 		return;
 	}
@@ -1339,14 +1339,14 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
                     ip_to_gchar(s->ip), short_time(ban_delay(s->ip)), msg);
             }
 
-			if (0 == strncmp(first, GNUTELLA_HELLO, GNUTELLA_HELLO_LENGTH))
+			if (is_strprefix(first, GNUTELLA_HELLO))
 				send_node_error(s, 403, "%s", msg);
 			else
 				http_send_status(s, 403, FALSE, NULL, 0, "%s", msg);
 		}
 		goto cleanup;
 	case BAN_FIRST:				/* Connection refused, negative ack */
-		if (0 == strncmp(first, GNUTELLA_HELLO, GNUTELLA_HELLO_LENGTH))
+		if (is_strprefix(first, GNUTELLA_HELLO))
 			send_node_error(s, 550, "Banned for %s",
 				short_time(ban_delay(s->ip)));
 		else {
@@ -1395,7 +1395,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		if (dbg)
 			g_warning("denying connection from hostile %s: \"%s\"",
 				ip_to_gchar(s->ip), first);
-		if (0 == strncmp(first, GNUTELLA_HELLO, GNUTELLA_HELLO_LENGTH))
+		if (is_strprefix(first, GNUTELLA_HELLO))
 			send_node_error(s, 550, msg);
 		else
 			http_send_status(s, 550, FALSE, NULL, 0, msg);
@@ -1406,12 +1406,9 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	 * Dispatch request. Here we decide what kind of connection this is.
 	 */
 
-	if (0 == strncmp(first, GNUTELLA_HELLO, GNUTELLA_HELLO_LENGTH))
+	if (is_strprefix(first, GNUTELLA_HELLO))
 		node_add_socket(s, s->ip, s->port);	/* Incoming control connection */
-	else if (
-		0 == strncmp(first, "GET ", 4) ||
-		0 == strncmp(first, "HEAD ", 5)
-	) {
+	else if (is_strprefix(first, "GET ") || is_strprefix(first, "HEAD ")) {
 		gchar *uri;
 
 		/*
@@ -1426,16 +1423,13 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		while (*uri == ' ' || *uri == '\t')
 			uri++;
 
-		if (
-			0 == strncmp(uri, "/gnutella/", 10) ||
-			0 == strncmp(uri, "/gnet/", 6)
-		)
+		if (is_strprefix(uri, "/gnutella/") || is_strprefix(uri, "/gnet/"))
 			pproxy_add(s);
 		else
 			upload_add(s);
 	}
 #ifdef USE_REMOTE_CTRL
-	else if (0 == strncmp(first, "HELO ", 5))
+	else if (is_strprefix(first, "HELO "))
         shell_add(s);
 #endif
     else

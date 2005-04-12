@@ -1501,6 +1501,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 static struct gnutella_msg_search *
 build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 {
+	static const gchar urn_prefix[] = "urn:sha1:";
 	struct gnutella_msg_search *m;
 	guint32 size;
 	guint32 plen;			/* Length of payload */
@@ -1518,7 +1519,7 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 	 * Are we dealing with an URN search?
 	 */
 
-	is_urn_search = (0 == strncmp(sch->query, "urn:sha1:", 9));
+	is_urn_search = is_strprefix(sch->query, urn_prefix);
 
 	if (is_urn_search) {
 		/*
@@ -1526,7 +1527,8 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 		 * of the URN query, plus a trailing NUL.
 		 */
 		qlen = 0;
-		size = sizeof(struct gnutella_msg_search) + 9+32 + 2;	/* 2 NULs */
+		size = sizeof(*m) +
+			CONST_STRLEN(urn_prefix) + SHA1_BASE32_SIZE + 2;	/* 2 NULs */
 	} else {
 		/*
 		 * We're adding a trailing NUL after the query text.
@@ -1537,7 +1539,7 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 		 */
 
 		qlen = strlen(sch->query);
-		size = sizeof(struct gnutella_msg_search) + qlen + 1;	/* 1 NUL */
+		size = sizeof(*m) + qlen + 1;	/* 1 NUL */
 	}
 
 	m = (struct gnutella_msg_search *) walloc(size);
@@ -1651,7 +1653,7 @@ search_qhv_fill(search_ctrl_t *sch, query_hashvec_t *qhv)
 
 	qhvec_reset(qhv);
 
-	if (0 == strncmp(sch->query, "urn:sha1:", 9)) {		/* URN search */
+	if (is_strprefix(sch->query, "urn:sha1:")) {		/* URN search */
 		qhvec_add(qhv, sch->query, QUERY_H_URN);
 		return;
 	}
@@ -2586,9 +2588,9 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 
 	sch->query = atom_str_get(qdup);
 	sch->frozen = TRUE;
-
+	
 	G_FREE_NULL(qdup);
-
+	
 	if (flags & SEARCH_PASSIVE) {
 		sch->passive = TRUE;
 		search_passive++;

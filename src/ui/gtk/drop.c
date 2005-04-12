@@ -147,6 +147,7 @@ handle_magnet(gchar *url)
 		} else if (0 == strcmp(name, "xs")) {
 			/* eXact Source */
 			static const char n2r_query[] = "/uri-res/N2R?";
+			static const char http_prefix[] = "http://";
 			gchar *hash;
 			gchar digest[SHA1_RAW_SIZE];
 			guint32 addr;
@@ -165,14 +166,14 @@ handle_magnet(gchar *url)
 				continue;
 			}
 
-			if (0 != strncmp("http://", q, sizeof "http://" - 1)) {
+			if (!is_strprefix(q, http_prefix)) {
 				statusbar_gui_warning(10, _("MAGNET URI contained source URL "
 					"for an unsupported protocol"));
 				/* Skip this parameter */
 				continue;
 			}
 
-			p = q + sizeof "http://" - 1;
+			p = q + CONST_STRLEN(http_prefix);
 
 			if (gchar_to_ip_strict(p, &addr, (const gchar **) &ep)) {
 				p = ep;
@@ -213,7 +214,7 @@ handle_magnet(gchar *url)
 			}
 			g_assert(*p == '/');
 
-			if (0 != strncmp(p, n2r_query, sizeof n2r_query - 1)) {
+			if (!is_strprefix(p, n2r_query)) {
 				/* TODO:
 				 *			Support e.g., "http://example.com/example.txt"
 				 */
@@ -223,7 +224,7 @@ handle_magnet(gchar *url)
 
 			*p = '\0'; /* terminate hostname */
 			p += sizeof n2r_query - 1;
-			if (0 != strncmp(p, "urn:sha1:", sizeof "urn:sha1:" - 1)) {
+			if (!is_strprefix(p, "urn:sha1:")) {
 				g_message("Expected ``urn:sha1:''");
 				continue;
 			}
@@ -243,7 +244,7 @@ handle_magnet(gchar *url)
 				dl.file = hash;
 		} else if (0 == strcmp(name, "xt")) {
 			/* eXact Topic search (by urn:sha1) */
-			if (0 != strncmp("urn:sha1:", q, sizeof "urn:sha1:" - 1)) {
+			if (!is_strprefix(q, "urn:sha1:")) {
 				statusbar_gui_warning(10, _("MAGNET URI contained exact topic "
 					"search other than urn:sha1:"));
 				/* Skip this parameter */
@@ -290,14 +291,15 @@ drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 	(void) unused_udata;
 
 	if (gui_debug > 0)
-		g_message("%s: x=%d, y=%d, info=%u, t=%u", __func__, x, y, info, stamp);
+		g_message("drag_data_received: x=%d, y=%d, info=%u, t=%u",
+			x, y, info, stamp);
 	if (data->length > 0 && data->format == 8) {
 		guint i;
 		gchar *p, *url = (gchar *) data->data;
 		size_t len;
 
 		if (gui_debug > 0)
-			g_message("%s: url=\"%s\"", __func__, url);
+			g_message("drag_data_received: url=\"%s\"", url);
 
 
 		p = strchr(url, ':');
@@ -308,7 +310,7 @@ drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 		}
 
 		for (i = 0; i < G_N_ELEMENTS(proto_handlers); i++)
-			if (0 == strncmp(proto_handlers[i].proto, url, len)) {
+			if (is_strprefix(url, proto_handlers[i].proto)) {
 				succ = proto_handlers[i].handler(url);
 				break;
 			}

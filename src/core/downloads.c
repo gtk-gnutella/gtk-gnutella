@@ -5680,8 +5680,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			 */
 			if (
 				(
-					0 == strncmp(vendor, "gtk-gnutella/", 13) ||
-				 	0 == strncmp(vendor, "!gtk-gnutella/", 14)
+					is_strprefix(vendor, "gtk-gnutella/") ||
+				 	is_strprefix(vendor, "!gtk-gnutella/")
 				) &&
 				NULL != strstr(ack_message, "removed from PARQ")
 			) {
@@ -5777,7 +5777,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		 * looking as a fake GTKG due to a de-synchronized clock.
 		 */
 
-		if (0 == strncmp(download_vendor_str(d), "gtk-gnutella/", 13)) {
+		if (is_strprefix(download_vendor_str(d), "gtk-gnutella/")) {
 			gboolean was_banning = d->server->attrs & DLS_A_BANNING;
 
 			d->server->attrs &= ~DLS_A_BANNING;
@@ -5790,18 +5790,18 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		} else if (!(d->server->attrs & DLS_A_BANNING)) {
 			switch (ack_code) {
 			case 401:
-				if (0 != strncmp(download_vendor_str(d), "BearShare", 9))
+				if (!is_strprefix(download_vendor_str(d), "BearShare"))
 					d->server->attrs |= DLS_A_BANNING;	/* Probably */
 				break;
 			case 403:
-				if (0 == strncmp(ack_message, "Network Disabled", 16)) {
+				if (is_strprefix(ack_message, "Network Disabled")) {
 					d->server->attrs |= DLS_A_FAKE_G2;
 					hold = MAX(delay, 320);				/* To be safe */
 				}
 				d->server->attrs |= DLS_A_BANNING;		/* Probably */
 				break;
 			case 404:
-				if (0 == strncmp(ack_message, "Please Share", 12))
+				if (is_strprefix(ack_message, "Please Share"))
 					d->server->attrs |= DLS_A_BANNING;	/* Shareaza 1.8.0.0- */
 				break;
 			}

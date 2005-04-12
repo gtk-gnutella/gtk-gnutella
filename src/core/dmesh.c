@@ -447,8 +447,8 @@ ok:
 		 * (4294967295 is URN_INDEX in decimal).
 		 */
 
-		if (0 != strncmp(file, "/N2R?", 5)) {
-			dmesh_url_errno = DMESH_URL_RESERVED_INDEX;;
+		if (!is_strprefix(file, "/N2R?")) {
+			dmesh_url_errno = DMESH_URL_RESERVED_INDEX;
 			return FALSE;					/* Index 0xffffffff is our mark */
 		}
 
@@ -1166,14 +1166,14 @@ dmesh_alternate_location(const gchar *sha1,
 		/* We're sending the request: assume they can't read continuations */
 		if (
 			vendor == NULL || *vendor != 'g' ||
-			0 != strncmp(vendor, "gtk-gnutella/", 13)
+			!is_strprefix(vendor, "gtk-gnutella/")
 		)
 			maxlinelen = 100000;	/* In practice, no continuations! */
 	} else {
 		/* We're sending a reply: assume they can read continuations */
 		if (
-			vendor != NULL && *vendor == 'B'
-			&& 0 == strncmp(vendor, "BearShare ", 10)
+			vendor != NULL && *vendor == 'B' &&
+			is_strprefix(vendor, "BearShare ")
 		) {
 			/*
 			 * Only versions newer than (included) BS 4.3.4 and BS 4.4b25
