@@ -152,9 +152,10 @@ static const guint8 utf8len_mark[] = {
 	(v) <  0x80000000	? 6 : 7)
 
 #define UNI_SURROGATE_FIRST		0xd800
+#define UNI_SURROGATE_SECOND	0xdc00
 #define UNI_SURROGATE_LAST		0xdfff
 #define UNI_HANGUL_FIRST		0xac00
-#define UNI_HANGUL_LAST			0Xd7a3
+#define UNI_HANGUL_LAST			0xd7a3
 #define UNI_REPLACEMENT			0xfffd
 #define UNI_BYTE_ORDER_MARK		0xfffe
 #define UNI_ILLEGAL				0xffff
@@ -3715,6 +3716,32 @@ utf8_encode_char(guint32 uc, gchar *buf)
 		*p = uc | UTF8_LENGTH_MARK(len);
 	}
 	return len;
+}
+
+/**
+ * Encodes a single UTF-32 character as UTF-16 into a buffer.
+ * See also RFC 2781.
+ *
+ * @param uc the unicode character to encode.
+ * @param dst the destination buffer. MUST BE at least 4 bytes long.
+ * @returns 0 if the unicode character is invalid. Otherwise, the
+ *          amount of UTF-16 characters is returned i.e., 1 or 2.
+ */
+gint
+utf16_encode_char(guint32 uc, guint16 *dst)
+{
+	g_assert(dst != NULL);	
+	
+	if (uc <= 0xFFFF) {
+		*dst = uc;
+		return 1;
+	} else if (uc <= 0x10FFFF) {
+		uc -= 0x10000;
+		dst[0] = (uc >> 10) | UNI_SURROGATE_FIRST;
+		dst[1] = (uc & 0x3ff) | UNI_SURROGATE_SECOND;
+		return 2;
+	}
+	return 0;
 }
 
 /**

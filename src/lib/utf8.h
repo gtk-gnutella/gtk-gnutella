@@ -74,6 +74,34 @@ utf8_decode_lookahead(const gchar *s, size_t len)
 	return len;
 }
 
+/**
+ * Encodes a single UTF-32 character as UTF-16 and return the result
+ * compacted into a 32-bit integer.
+ * See also RFC 2781.
+ *
+ * @param uc the unicode character to encode.
+ * @returns 0 if the unicode character is invalid. Otherwise the
+ *         	UTF-16 encoded character is returned in a compact form:
+ *			The lower 16 bits are the first UTF-16 character, the
+ *			upper 16 bits are the second one. If the upper bits are
+ *			all zero, the unicode character fit into 16 bits.
+ */
+static inline guint32
+utf16_encode_char_compact(guint32 uc)
+{
+	if (uc <= 0xFFFF) {
+		return uc;
+	} else if (uc <= 0x10FFFF) {
+		guint16 w1, w2;
+
+		uc -= 0x10000;
+		w1 = (uc >> 10) | 0xd800;
+		w2 = (uc & 0x3ff) | 0xdc00;
+		return (w2 << 16) | w1;
+	}
+	return 0;
+}
+
 /*
  * Necessary for GTK+ 2.x version because it expects almost any string
  * to be encoded as UTF-8.
