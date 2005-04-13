@@ -201,7 +201,6 @@ qrp_hashcode(const gchar *s)
 	len = 0;
 	while ('\0' != (c = (guchar) *s)) {
 		guint32 uc;
-		gint retlen;
 
 		/* Optimize for ASCII as the most common encoding for searches */
 		if (c < 0x80) {
@@ -211,6 +210,7 @@ qrp_hashcode(const gchar *s)
 			len = 0;	/* Reset */
 		} else {
 			guint32 uc16; /* will hold 1-2 UTF-16 characters */
+			gint retlen;
 
 			len = utf8_decode_lookahead(s, len);
 			uc = utf8_decode_char(s, len, &retlen, FALSE);
