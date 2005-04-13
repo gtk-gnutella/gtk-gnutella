@@ -186,7 +186,7 @@ uhc_guid_reset(void)
  * Try a random host cache.
  */
 static void
-uhc_try_random()
+uhc_try_random(void)
 {
 	g_assert(uhc_connecting);
 	g_assert(uhc_ctx.timeout_ev == NULL);
