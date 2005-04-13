@@ -96,6 +96,7 @@ extern const guint32  my_ttl;
 extern const guint32  hard_ttl_limit;
 extern const guint32  dbg;
 extern const guint32  lib_debug;
+extern const guint32  bitzi_debug;
 extern const guint32  gwc_debug;
 extern const guint32  url_debug;
 extern const guint32  dh_debug;
