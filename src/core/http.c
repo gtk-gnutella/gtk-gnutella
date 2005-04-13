@@ -271,14 +271,14 @@ static gint
 code_message_parse(const gchar *line, const gchar **msg)
 {
 	const gchar *endptr;
-	guint64 v;
+	guint32 v;
 	gint error;
 
 	/*
 	 * We expect exactly 3 status digits.
 	 */
 
-	v = parse_uint64(line, &endptr, 10, &error);
+	v = parse_uint32(line, &endptr, 10, &error);
 	if (error || v > 999 || (*endptr != '\0' && !is_ascii_space(*endptr)))
 		return -1;
 
@@ -302,9 +302,9 @@ code_message_parse(const gchar *line, const gchar **msg)
  *
  * We recognize the following status lines:
  *
- *     ZZZ 403 message                        (major=-1, minor=-1)
+ *     ZZZ 403 message                        (major=0, minor=0)
  *     ZZZ/2.3 403 message                    (major=2, minor=3)
- *     403 message                            (major=-1, minor=-1)
+ *     403 message                            (major=0, minor=0)
  *
  * We don't yet handle "SMTP-like continuations":
  *
@@ -319,7 +319,7 @@ code_message_parse(const gchar *line, const gchar **msg)
  */
 gint
 http_status_parse(const gchar *line,
-	const gchar *proto, const gchar **msg, gint *major, gint *minor)
+	const gchar *proto, const gchar **msg, guint *major, guint *minor)
 {
 	guchar c;
 	const gchar *p;
@@ -344,9 +344,9 @@ http_status_parse(const gchar *line,
 
 	if (is_ascii_digit(c)) {
 		if (major)
-			*major = -1;
+			*major = 0;
 		if (minor)
-			*minor = -1;
+			*minor = 0;
 		return code_message_parse(p, msg);
 	}
 
@@ -355,15 +355,12 @@ http_status_parse(const gchar *line,
 	 */
 
 	if (proto) {
-		size_t plen = strlen(proto);
-
-		if (is_strprefix(line, proto)) {
+		if (NULL != (p = is_strprefix(line, proto))) {
 			/*
 			 * Protocol string matches, make sure it ends with a space or
 			 * a "/" delimiter.
 			 */
 
-			p = &line[plen];
 			c = *p;					/* Can dereference, at worst it's a NUL */
 			if (c == '\0')			/* Only "protocol" name in status */
 				return -1;
@@ -391,14 +388,8 @@ http_status_parse(const gchar *line,
 	 */
 
 	if (c == '/') {
-		gint maj, min;
 		if (major || minor) {
-			if (sscanf(p+1, "%d.%d", &maj, &min)) {
-				if (major)
-					*major = maj;
-				if (minor)
-					*minor = min;
-			} else
+			if (0 != parse_major_minor(&p[1], NULL, major, minor))
 				return -1;
 		}
 
@@ -436,7 +427,7 @@ http_status_parse(const gchar *line,
  */
 gboolean
 http_extract_version(
-	gchar *request, gint len, gint *major, gint *minor)
+	gchar *request, gint len, guint *major, guint *minor)
 {
 	gint limit;
 	gchar *p;
@@ -475,15 +466,19 @@ http_extract_version(
 	 */
 
 	g_assert(*p == ' ');
+	p++;
 
-	if (2 != sscanf(p+1, "HTTP/%d.%d", major, minor)) {
+	if (
+		NULL == (p = is_strprefix(p, "HTTP/")) ||
+		0 != parse_major_minor(p, NULL, major, minor)
+	) {
 		if (dbg > 1)
 			printf("HTTP req (%d bytes): no protocol tag: %s\n", len, request);
 		return FALSE;
 	}
 
 	if (dbg > 4)
-		printf("HTTP req OK (%d.%d)\n", *major, *minor);
+		printf("HTTP req OK (%u.%u)\n", *major, *minor);
 
 	/*
 	 * We don't check trailing chars after the HTTP/x.x indication.
@@ -881,8 +876,8 @@ http_range_parse(
 
 	g_assert(size > 0);
 
-	if (is_strprefix(str, unit)) {
-		c = str[CONST_STRLEN(unit)];
+	if (NULL != (str = is_strprefix(str, unit))) {
+		c = *str;
 		if (!is_ascii_space(c) && c != '=') {
 			g_warning("improper %s header from <%s>: %s", field, vendor, value);
 			return NULL;
@@ -892,8 +887,6 @@ http_range_parse(
 			field, vendor, value);
 		return NULL;
 	}
-
-	str += CONST_STRLEN(unit);
 
 	/*
 	 * Move to the first non-space char.
@@ -2161,7 +2154,7 @@ http_got_header(struct http_async *ha, header_t *header)
 	gint ack_code;
 	const gchar *ack_message = "";
 	gchar *buf;
-	gint http_major = 0, http_minor = 0;
+	guint http_major = 0, http_minor = 0;
 
 	if (dbg > 2) {
 		printf("----Got HTTP reply from %s:\n", ip_to_gchar(s->ip));

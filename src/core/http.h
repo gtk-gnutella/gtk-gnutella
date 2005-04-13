@@ -215,10 +215,10 @@ void http_hostname_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 
 gint http_status_parse(const gchar *line,
-	const gchar *proto, const gchar **msg, gint *major, gint *minor);
+	const gchar *proto, const gchar **msg, guint *major, guint *minor);
 
 gboolean http_extract_version(
-	gchar *request, gint len, gint *major, gint *minor);
+	gchar *request, gint len, guint *major, guint *minor);
 
 http_buffer_t *http_buffer_alloc(gchar *buf, size_t len, size_t written);
 void http_buffer_free(http_buffer_t *b);
