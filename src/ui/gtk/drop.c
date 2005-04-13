@@ -166,14 +166,12 @@ handle_magnet(gchar *url)
 				continue;
 			}
 
-			if (!is_strprefix(q, http_prefix)) {
+			if (NULL == (p = is_strprefix(q, http_prefix))) {
 				statusbar_gui_warning(10, _("MAGNET URI contained source URL "
 					"for an unsupported protocol"));
 				/* Skip this parameter */
 				continue;
 			}
-
-			p = q + CONST_STRLEN(http_prefix);
 
 			if (gchar_to_ip_strict(p, &addr, (const gchar **) &ep)) {
 				p = ep;

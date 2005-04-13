@@ -1519,8 +1519,7 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 	 * Are we dealing with an URN search?
 	 */
 
-	is_urn_search = is_strprefix(sch->query, urn_prefix);
-
+	is_urn_search = NULL != is_strprefix(sch->query, urn_prefix);
 	if (is_urn_search) {
 		/*
 		 * We're sending an empty search text (NUL only), then the 9+32 bytes

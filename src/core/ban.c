@@ -601,19 +601,18 @@ static const gchar too_old[] = "Outdated version, please upgrade";
 const gchar *
 ban_vendor(const gchar *vendor)
 {
-	gboolean is_gtkg = FALSE;
-
-#define GTKG_NAME	"gtk-gnutella/"
-#define GTKG_LEN	(sizeof(GTKG_NAME) - 1)
+	const gchar *gtkg_version;
 
 	/*
 	 * If vendor starts with "!gtk-gnutella", skip the leading '!' for
 	 * our tests here.
 	 */
 
-	if (vendor[0] == '!' && is_strprefix(&vendor[1], GTKG_NAME)) {
-		vendor++;
-		is_gtkg = TRUE;
+	if (vendor[0] == '!') {
+		if (NULL != (gtkg_version = is_strprefix(&vendor[1], "gtk-gnutella/")))
+			vendor++;
+	} else {
+		gtkg_version = is_strprefix(vendor, "gtk-gnutella/");
 	}
 
 	/*
@@ -626,7 +625,7 @@ ban_vendor(const gchar *vendor)
 	 *		--RAM, 03/01/2002.
 	 */
 
-	if (vendor[0] == 'g' && (is_gtkg || is_strprefix(vendor, GTKG_NAME))) {
+	if (gtkg_version) {
 		static const gchar * const versions[] = {
 			"0.90",
 			"0.91u",
@@ -635,7 +634,7 @@ ban_vendor(const gchar *vendor)
 		guint i;
 
 		for (i = 0; i < G_N_ELEMENTS(versions); i++) {
-			if (is_strprefix(vendor + GTKG_LEN, versions[i]))
+			if (is_strprefix(gtkg_version, versions[i]))
 				return harmful;
 		}
 
@@ -645,28 +644,17 @@ ban_vendor(const gchar *vendor)
 		return NULL;
 	}
 
-#undef GTKG_NAME
-#undef GTKG_LEN
-
-#define GTKG_NAME	"Gtk-Gnutella "
-
-#define GNUC_NAME	"Gnucleus "
-#define GNUC_LEN	(sizeof(GNUC_NAME) - 1)
-
 	if (vendor[0] == 'G') {
-		if (is_strprefix(vendor, GNUC_NAME)) {
-			if (is_strprefix(&vendor[GNUC_LEN], "1.6.0.0"))
+		const gchar *ver;
+		
+		if (NULL != (ver = is_strprefix(vendor, "Gnucleus "))) {
+			if (is_strprefix(ver, "1.6.0.0"))
 				return harmful;
-		} else if (is_strprefix(vendor, GTKG_NAME))
+		} else if (is_strprefix(vendor, "Gtk-Gnutella "))
 			return refused;
 
 		return NULL;
 	}
-
-#undef GNUC_NAME
-#undef GNUC_LEN
-
-#undef GTKG_NAME
 
 	return NULL;
 }

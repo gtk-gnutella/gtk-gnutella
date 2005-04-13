@@ -1790,41 +1790,33 @@ not_found:
 static struct shared_file *
 get_file_to_upload(gnutella_upload_t *u, header_t *header, gchar *request)
 {
-	static const char n2r_query[] = "/uri-res/N2R?";
-	static const char idx_query[] = "/get/";
-	guint idx = 0;
-	gchar *uri;
 	const gchar *endptr;
-	gint error;
-	guint64 v;
+	gchar *uri, *arg;
 
 	/*
-	 * We have either "GET uri" or "HEAD uri" at this point.  Since the
-	 * value sizeof("GET") accounts for the trailing NUL as well, the
-	 * following will skip the space as well and point to the beginning
-	 * of the requested URI.
+	 * We have either "GET uri" or "HEAD uri" at this point. The following
+	 * will skip the request along with trailing blanks * and point to the
+	 * beginning of the requested URI.
 	 */
 
-	uri = request + ((request[0] == 'G') ? sizeof("GET") : sizeof("HEAD"));
-	while (*uri == ' ' || *uri == '\t')
-		uri++;
+	uri = is_strprefix(request, "GET ");
+	if (!uri)
+		is_strprefix(request, "HEAD ");
+	g_assert(uri != NULL);
+	uri = skip_ascii_blanks(uri);
 
     if (u->name == NULL)
         u->name = atom_str_get(uri);
 
-	if (
-		is_strprefix(uri, idx_query) &&
-		(v = parse_uint64(uri + CONST_STRLEN(idx_query),
-							&endptr, 10, &error)) <= 0xffffffff &&
-		!error &&
-		*endptr == '/'
-	) {
-		idx = v;
-		return get_file_to_upload_from_index(u, header,
-				uri + CONST_STRLEN(idx_query), idx);
-	} else if (is_strprefix(uri, n2r_query)) {
-		return get_file_to_upload_from_urn(u, header,
-					uri + CONST_STRLEN(n2r_query));
+	if (NULL != (arg = is_strprefix(uri, "/get/"))) {
+		guint32 idx;
+		gint error;
+		
+		idx = parse_uint64(arg, &endptr, 10, &error);
+		if (!error && *endptr == '/')
+			return get_file_to_upload_from_index(u, header, arg, idx);
+	} else if (NULL != (arg = is_strprefix(uri, "/uri-res/N2R?"))) {
+		return get_file_to_upload_from_urn(u, header, arg);
 	}
 
 	upload_error_not_found(u, request);

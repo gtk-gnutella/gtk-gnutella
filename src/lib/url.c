@@ -437,14 +437,13 @@ url_normalize(gchar *url, url_policy_t pol)
 
 	g_assert(url);
 
-	if (!is_strprefix(q, http_prefix)) {
+	if (NULL == (q = is_strprefix(q, http_prefix))) {
 		if (url_debug)
 			g_warning("URL \"%s\" isn't preceded by \"%s\"", url, http_prefix);
 		return NULL;
 	}
-	q += CONST_STRLEN(http_prefix);
 
-	if (!isalnum((guchar) *q)) {
+	if (!is_ascii_alnum(*q)) {
 		warn = "HTTP prefix MUST be followed by an alphanum";
 		goto bad;
 	}
