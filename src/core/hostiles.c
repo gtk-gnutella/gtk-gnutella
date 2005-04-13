@@ -95,6 +95,7 @@ hostiles_load(FILE *f, hostiles_t which)
 	gint count = 0;
 	gint bits;
 	iprange_err_t error;
+	guint32 hosts = 0;
 
 	g_assert((gint) which >= 0 && which < NUM_HOSTILES);
 	g_assert(NULL == hostile_db[which]);
@@ -137,6 +138,7 @@ hostiles_load(FILE *f, hostiles_t which)
 
 		switch (error) {
 		case IPR_ERR_OK:
+			hosts += 1 << (32 - bits);
 			break;
 		case IPR_ERR_RANGE_OVERLAP:
 			error = iprange_add_cidr_force(hostile_db[which],
@@ -165,7 +167,8 @@ hostiles_load(FILE *f, hostiles_t which)
 
 		iprange_get_stats(hostile_db[which], &stats);
 
-		g_message("loaded %d hostile IP addresses/netmasks", count);
+		g_message("loaded %d hostile IP addresses/netmasks (%u hosts)",
+			count, hosts);
 		g_message("hostile stats: count=%d level2=%d heads=%d enlisted=%d",
 			stats.count, stats.level2, stats.heads, stats.enlisted);
 	}
