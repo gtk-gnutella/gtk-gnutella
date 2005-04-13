@@ -266,12 +266,12 @@ void parq_del_banned_source(guint32 ip);
  *        returned on success.
  *
  * @return a boolean which is true when parsing of the header version was
- * succesfull.
+ * successful.
  */
 static gboolean
-get_header_version(gchar const * const header, gint *major, gint *minor)
+get_header_version(gchar const * const header, guint *major, guint *minor)
 {
-	return sscanf(header, "%d.%d", major, minor) == 2;
+	return 0 == parse_major_minor(header, NULL, major, minor);
 }
 
 /**
@@ -646,15 +646,15 @@ parq_download_retry_active_queued(struct download *d)
 }
 
 /**
- * Convenience wrapper on top of parse_uint64().
+ * Convenience wrapper on top of parse_uint32().
  *
  * @return parsed integer (base 10), or 0 if none could be found.
  */
 static guint
 get_integer(const gchar *buf)
 {
-	guint64 val;
 	const gchar *endptr;
+	guint32 val;
 	gint error;
 
 	/* XXX This needs to get more parameters, so that we can log the
@@ -665,7 +665,7 @@ get_integer(const gchar *buf)
 	 */
 
 	buf = skip_ascii_spaces(buf);
-	val = parse_uint64(buf, &endptr, 10, &error);
+	val = parse_uint32(buf, &endptr, 10, &error);
 	if (endptr == buf)
 		return 0;
 
@@ -1090,10 +1090,9 @@ parq_download_queue_ack(struct gnutella_socket *s)
 		g_message("--- Got QUEUE from %s:\n%s\n---", ip_to_gchar(s->ip), queue);
 	}
 
+	id = is_strprefix(queue, "QUEUE ");
  	/* ensured by socket_read() */
-	g_assert(is_strprefix(queue, "QUEUE "));
-
-	id = queue + sizeof("QUEUE ") - 1;
+	g_assert(id != NULL);
 	id = skip_ascii_spaces(id);
 
 	/*
