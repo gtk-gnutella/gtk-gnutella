@@ -69,7 +69,6 @@ typedef struct {
 	 * xml related bits
 	 */
 	xmlParserCtxt *ctxt;   	/* libxml parser context */
-
 } bitzi_request_t;
 
 /*
@@ -133,6 +132,7 @@ bitzi_create(void)
 	data->size = 0;
 	data->goodness = 0;
 	data->judgement = UNKNOWN;
+	data->expiry = (time_t) -1;
 
 	return data;
 }
@@ -140,7 +140,7 @@ bitzi_create(void)
 static void
 bitzi_destroy(bitzi_data_t *data)
 {
-	if (dbg)
+	if (bitzi_debug)
 		g_message("bitzi_destory: %p", data);
 
 	if (data->urnsha1)
@@ -152,7 +152,7 @@ bitzi_destroy(bitzi_data_t *data)
 	if (data->mime_desc)
 		G_FREE_NULL(data->mime_desc);
 
-	if (dbg)
+	if (bitzi_debug)
 		g_message("bitzi_destory: freeing data");
 	wfree(data, sizeof *data);
 }
@@ -275,7 +275,7 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 	if (s) {
 		static const gchar urn_prefix[] = "urn:sha1:";
 		const gchar *sha1;
-		
+
 		if (!is_strprefix(s, urn_prefix)) {
 			sha1 = NULL;
 		} else {
@@ -287,7 +287,7 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 			 * but we need to ensure that buf contains at least
 			 * SHA1_BASE32_SIZE bytes because that's what base32_sha1()
 			 * assumes. We allow trailing characters. */
-			
+
 			len = g_strlcpy(buf, &s[CONST_STRLEN(urn_prefix)], sizeof buf);
 			sha1 = len < SHA1_BASE32_SIZE ? NULL : base32_sha1(buf);
 		}
@@ -300,7 +300,7 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 	} else {
 		g_warning("process_rdf_description: No urnsha!");
 	}
-	
+
 
 	/*
 	 * All tickets have a ticketExpires tag which we need for cache
@@ -311,6 +311,8 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 	s = xml_get_string(node, "ticketExpires");
 	if (s) {
 		data->expiry = date2time(s, time(NULL));
+		if ((time_t) -1 == data->expiry)
+			g_warning("process_rdf_description: Bad expiration date \"%s\"", s);
 	} else {
 		g_warning("process_rdf_description: No ticketExpires!");
 	}
@@ -322,18 +324,18 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 	s = xml_get_string(node, "fileGoodness");
 	if (s) {
 		data->goodness = g_strtod(s, NULL);
-		if (dbg)
+		if (bitzi_debug)
 			g_message("fileGoodness is %s/%f", s, data->goodness);
 	} else {
 		data->goodness = 0;
 	}
 
 	data->judgement = UNKNOWN;
-	
+
 	s = xml_get_string(node, "fileJudgement");
 	if (s) {
 		size_t i;
-		
+
 		for (i = 0; i < G_N_ELEMENTS(enum_fj_table); i++) {
 			if (xmlStrEqual(s, (const xmlChar *) enum_fj_table[i].string)) {
 				data->judgement = enum_fj_table[i].judgement;
@@ -398,7 +400,7 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 	 ** For debugging/development - dump all the attributes
 	 */
 
-	if (dbg) {
+	if (bitzi_debug) {
 		xmlAttr *cur_attr;
 
 		for (cur_attr = node->properties; cur_attr; cur_attr = cur_attr->next) {
@@ -422,7 +424,7 @@ process_bitzi_ticket(xmlNode *a_node, bitzi_data_t *data)
 
 	for (cur_node = a_node; cur_node; cur_node = cur_node->next) {
 		if (cur_node->type == XML_ELEMENT_NODE) {
-			if (dbg)
+			if (bitzi_debug)
 				g_message("node type: Element, name: %s, children %p",
 					cur_node->name, cur_node->children);
 
@@ -444,7 +446,7 @@ process_meta_data(bitzi_request_t *request)
 	xmlNode	*root;
 	gint result;
 
-	if (dbg)
+	if (bitzi_debug)
 		g_message("process_meta_data: %p", request);
 
 	g_assert(request != NULL);
@@ -457,7 +459,7 @@ process_meta_data(bitzi_request_t *request)
 	result = request->ctxt->wellFormed;
 	xmlFreeParserCtxt(request->ctxt);
 
-	if (dbg)
+	if (bitzi_debug)
 		g_message("process_meta_data: doc = %p, result = %d", doc, result);
 
 	/*
@@ -466,7 +468,6 @@ process_meta_data(bitzi_request_t *request)
 
 	if (result) {
 		bitzi_data_t *data;
-		time_t now;
 
 	   	data = bitzi_create();
 
@@ -475,25 +476,30 @@ process_meta_data(bitzi_request_t *request)
 		 */
 
 		root = xmlDocGetRootElement(doc);
-
 		process_bitzi_ticket(root, data);
-
-		/*
-		 * If the data has a valid date then we can cache the result
-		 * and re-echo the XML ticket to the file based cache.
-		 */
-
-		now = time(NULL);
-		
-		if (delta_time(data->expiry, now) > 0) {
-			if (bitzi_cache_file) {
-				xmlDocDump(bitzi_cache_file, doc);
-				fputs("\n", bitzi_cache_file);
-			}
-			bitzi_cache_add(data);
-			gcu_bitzi_result(data);
+		if (!data->urnsha1) {
+			g_warning("process_meta_data: missing urn:sha1");
 		} else {
-			g_warning("process_meta_data: stale bitzi data");
+
+			/*
+			 * If the data has a valid date then we can cache the result
+			 * and re-echo the XML ticket to the file based cache.
+			 */
+
+			if (
+				(time_t) -1 != data->expiry &&
+				delta_time(data->expiry, time(NULL)) > 0
+			) {
+				if (bitzi_cache_file) {
+					xmlDocDump(bitzi_cache_file, doc);
+					fputs("\n", bitzi_cache_file);
+				}
+
+				bitzi_cache_add(data);
+				gcu_bitzi_result(data);
+			} else {
+				g_warning("process_meta_data: stale bitzi data");
+			}
 		}
 
 		/* we are now finished with this XML doc */
@@ -506,7 +512,7 @@ process_meta_data(bitzi_request_t *request)
 
 	if (request->urnsha1)
 		atom_sha1_free(request->urnsha1);
-	
+
 	wfree(request, sizeof *request);
 }
 
@@ -518,7 +524,7 @@ process_meta_data(bitzi_request_t *request)
 static gboolean
 do_metadata_query(bitzi_request_t *req)
 {
-	if (dbg)
+	if (bitzi_debug)
 		g_message("do_metadata_query: %p", req);
 
 	/*
@@ -559,7 +565,7 @@ do_metadata_query(bitzi_request_t *req)
 					current_bitzi_request->bitzi_url,
 					http_async_strerror(http_async_errno));
 		} else {
-			if (dbg)
+			if (bitzi_debug)
 				g_message("do_metadata_query: request %s launched",
 					current_bitzi_request->bitzi_url);
 			return TRUE;
@@ -591,6 +597,9 @@ bitzi_date_compare(gconstpointer p, gconstpointer q)
 static void
 bitzi_cache_add(bitzi_data_t *data)
 {
+	g_assert(data);
+	g_assert(data->urnsha1);
+
 	if (g_hash_table_lookup(bitzi_cache_ht, data->urnsha1) != NULL) {
 		g_warning("bitzi_cache_add: duplicate entry!");
 		return;
@@ -599,7 +608,7 @@ bitzi_cache_add(bitzi_data_t *data)
 	g_hash_table_insert(bitzi_cache_ht, data->urnsha1, data);
 	bitzi_cache = g_list_insert_sorted(bitzi_cache, data, bitzi_date_compare);
 
-	if (dbg)
+	if (bitzi_debug)
 		g_message("bitzi_cache_add: data %p, now %d entries",
 			data, g_hash_table_size(bitzi_cache_ht));
 }
@@ -607,8 +616,11 @@ bitzi_cache_add(bitzi_data_t *data)
 static void
 bitzi_cache_remove(bitzi_data_t * data)
 {
-	if (dbg)
+	if (bitzi_debug)
 		g_message("bitzi_cache_remove: %p", data);
+
+	g_assert(data);
+	g_assert(data->urnsha1);
 
 	g_hash_table_remove(bitzi_cache_ht, data->urnsha1);
 	bitzi_cache = g_list_remove(bitzi_cache, data);
@@ -712,6 +724,7 @@ bitzi_query_byurnsha1(const gchar *urnsha1)
 	data = bitzi_querycache_byurnsha1(urnsha1);
 	if (data == NULL) {
 		size_t len;
+
 		request = walloc(sizeof *request);
 
 		/*
@@ -723,7 +736,7 @@ bitzi_query_byurnsha1(const gchar *urnsha1)
 		g_assert(len < sizeof request->bitzi_url);
 
 		bitzi_rq = g_slist_append(bitzi_rq, request);
-		if (dbg) {
+		if (bitzi_debug) {
 			g_message("bitzy_queryby_urnsha1: queued query, %d in queue",
 				g_slist_position(bitzi_rq, g_slist_last(bitzi_rq)) + 1);
 		}
@@ -732,7 +745,7 @@ bitzi_query_byurnsha1(const gchar *urnsha1)
 		 * the heartbeat will pick up the request
 		 */
 	} else {
-		if (dbg)
+		if (bitzi_debug)
 			g_message("bitzi_queryby_urnsha1: result already in cache");
 				gcu_bitzi_result(data);
 	}
@@ -749,7 +762,7 @@ bitzi_init(void)
 	FILE *old_data;
 	gchar *path, *oldpath;
 	gint ticket_count = 0;
-	
+
 	bitzi_cache_ht = g_hash_table_new(NULL, NULL);
 
 	/*
@@ -774,7 +787,7 @@ bitzi_init(void)
 		g_warning("bitzi_init: failed to open bitzi cache (%s) %s",
 				path, g_strerror(errno));
 	}
-	
+
 	/*
 	 * "play" the .orig file back through the XML parser and
 	 * repopulate our internal cache
@@ -792,7 +805,7 @@ bitzi_init(void)
 		for (;;) {
 			static const char xml_prefix[] = "<?xml";
 			gboolean eof, eot;
-	
+
 			eof = NULL == fgets(tmp, sizeof(tmp), old_data);
 			eot = !eof && !truncated && is_strprefix(tmp, xml_prefix);
 
@@ -801,10 +814,10 @@ bitzi_init(void)
 			 * time we submit the last piece of data and set up a new
 			 * context for the next ticket.
 			 */
-			
+
 			if ((eof || eot) && request) {
 				int result;
-					
+
 				/* finish parsing */
 				result = xmlParseChunk(request->ctxt, tmp, 0, 1);
 				if (0 == result)
@@ -812,7 +825,7 @@ bitzi_init(void)
 				else
 					g_warning("bitzi_init: "
 						"bad xml parsing cache result %d", result);
-				
+
 				process_meta_data(request);
 			}
 
@@ -836,11 +849,11 @@ bitzi_init(void)
 			 */
 			if (request) {
 		   		size_t len;
-				
+
 				len = strlen(tmp);
 				if (len > 0) {
 					int result;
-					
+
 					result = xmlParseChunk(request->ctxt, tmp, len, 0);
 					if (result != 0)
 						g_warning("bitzi_init: "
@@ -848,14 +861,14 @@ bitzi_init(void)
 
 				}
 			}
-		
+
 		} /* for (;;) */
 
 		fclose(old_data);
 	} /* if (old_data) */
 
 	g_message("Loaded %d bitzi ticket(s) from \"%s\"", ticket_count, oldpath);
-	
+
 	/* clean-up */
 	G_FREE_NULL(path);
 	G_FREE_NULL(oldpath);
@@ -864,7 +877,7 @@ bitzi_init(void)
 	 * Finally start the bitzi heart beat that will send requests when
 	 * we set them up.
 	 */
-	
+
 	g_timeout_add(1 * 10000, bitzi_heartbeat, NULL);
 }
 
