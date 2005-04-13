@@ -103,7 +103,7 @@ static gboolean do_metadata_query(bitzi_request_t * req);
 static void process_meta_data(bitzi_request_t * req);
 
 /* cache functions */
-static void bitzi_cache_add(bitzi_data_t * data);
+static gboolean bitzi_cache_add(bitzi_data_t * data);
 static void bitzi_cache_remove(bitzi_data_t * data);
 static void bitzi_cache_clean(void);
 
@@ -276,20 +276,17 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 		static const gchar urn_prefix[] = "urn:sha1:";
 		const gchar *sha1;
 
-		if (!is_strprefix(s, urn_prefix)) {
-			sha1 = NULL;
-		} else {
+		sha1 = is_strprefix(s, urn_prefix);
+		if (sha1) {
 			size_t len;
-			gchar buf[SHA1_BASE32_SIZE + 1];
 
-			/* Skip the "urn:sha1:" prefix and copy at most SHA1_BASE32_SIZE
-			 * to buf. base32_sha1() doesn't need a NUL-terminated buffer
-			 * but we need to ensure that buf contains at least
+			/* Skip the "urn:sha1:" prefix and check whether an SHA1
+			 * follows. We need to ensure that buf contains at least
 			 * SHA1_BASE32_SIZE bytes because that's what base32_sha1()
 			 * assumes. We allow trailing characters. */
 
-			len = g_strlcpy(buf, &s[CONST_STRLEN(urn_prefix)], sizeof buf);
-			sha1 = len < SHA1_BASE32_SIZE ? NULL : base32_sha1(buf);
+			len = strlen(sha1);
+			sha1 = len < SHA1_BASE32_SIZE ? NULL : base32_sha1(sha1);
 		}
 
 		if (!sha1) {
@@ -487,18 +484,17 @@ process_meta_data(bitzi_request_t *request)
 			 */
 
 			if (
-				(time_t) -1 != data->expiry &&
-				delta_time(data->expiry, time(NULL)) > 0
+				(time_t) -1 == data->expiry ||
+				delta_time(data->expiry, time(NULL)) <= 0
 			) {
+				g_warning("process_meta_data: stale bitzi data");
+			} else if (bitzi_cache_add(data)) {
 				if (bitzi_cache_file) {
 					xmlDocDump(bitzi_cache_file, doc);
 					fputs("\n", bitzi_cache_file);
 				}
 
-				bitzi_cache_add(data);
 				gcu_bitzi_result(data);
-			} else {
-				g_warning("process_meta_data: stale bitzi data");
 			}
 		}
 
@@ -594,7 +590,7 @@ bitzi_date_compare(gconstpointer p, gconstpointer q)
 	return delta_time(a->expiry, b->expiry);
 }
 
-static void
+static gboolean
 bitzi_cache_add(bitzi_data_t *data)
 {
 	g_assert(data);
@@ -602,7 +598,7 @@ bitzi_cache_add(bitzi_data_t *data)
 
 	if (g_hash_table_lookup(bitzi_cache_ht, data->urnsha1) != NULL) {
 		g_warning("bitzi_cache_add: duplicate entry!");
-		return;
+		return FALSE;
 	}
 
 	g_hash_table_insert(bitzi_cache_ht, data->urnsha1, data);
@@ -611,6 +607,8 @@ bitzi_cache_add(bitzi_data_t *data)
 	if (bitzi_debug)
 		g_message("bitzi_cache_add: data %p, now %d entries",
 			data, g_hash_table_size(bitzi_cache_ht));
+
+	return TRUE;
 }
 
 static void
