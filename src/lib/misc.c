@@ -2085,7 +2085,8 @@ parse_major_minor(const gchar *src, gchar const **endptr,
 		error = EINVAL;
 		min = 0;	/* dumb compiler */
 	} else {
-		min = parse_uint32(src, &ep, 10, &error);
+		ep++; /* Skip the '.' */
+		min = parse_uint32(ep, &ep, 10, &error);
 	}
 
 	if (endptr)
