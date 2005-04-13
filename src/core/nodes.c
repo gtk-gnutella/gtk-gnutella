@@ -1227,9 +1227,12 @@ node_outdegree(void)
  * The major and minor are returned in `major' and `minor' respectively.
  */
 static void
-get_protocol_version(gchar *handshake, gint *major, gint *minor)
+get_protocol_version(const gchar *handshake, guint *major, guint *minor)
 {
-	if (sscanf(&handshake[GNUTELLA_HELLO_LENGTH], "%d.%d", major, minor))
+	const gchar *s;
+
+	s = &handshake[GNUTELLA_HELLO_LENGTH];	
+	if (0 == parse_major_minor(s, NULL, major, minor))
 		return;
 
 	if (dbg)
@@ -3290,7 +3293,7 @@ analyse_status(struct gnutella_node *n, gint *code)
 	struct gnutella_socket *s = n->socket;
 	gchar *status;
 	gint ack_code;
-	gint major = 0, minor = 0;
+	guint major = 0, minor = 0;
 	const gchar *ack_message = "";
 	gboolean ack_ok = FALSE;
 	gboolean incoming = (n->flags & NODE_F_INCOMING) ? TRUE : FALSE;
@@ -3305,7 +3308,7 @@ analyse_status(struct gnutella_node *n, gint *code)
 		*code = ack_code;
 
 	if (dbg) {
-		printf("%s: code=%d, message=\"%s\", proto=%d.%d\n",
+		printf("%s: code=%d, message=\"%s\", proto=%u.%u\n",
 			incoming ? "ACK" : "REPLY",
 			ack_code, ack_message, major, minor);
 		fflush(stdout);
@@ -3811,8 +3814,9 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Query-Routing");
 	if (field) {
-		guint major = 0, minor = 0;
-		sscanf(field, "%u.%u", &major, &minor);
+		guint major, minor;
+		
+		parse_major_minor(field, NULL, &major, &minor);
 		if (major >= n->qrp_major || minor >= n->qrp_minor)
 			if (dbg) g_warning("node %s <%s> now claims QRP version %u.%u, "
 				"but advertised %u.%u earlier",
@@ -4010,8 +4014,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	field = header_get(head, "Pong-Caching");
 	if (field) {
 		guint major, minor;
-		sscanf(field, "%u.%u", &major, &minor);
-		if (major > 0 || minor > 1)
+
+		parse_major_minor(field, NULL, &major, &minor);
+		if (major != 0 && minor != 1)
 			if (dbg) g_warning("node %s claims Pong-Caching version %u.%u",
 				node_ip(n), major, minor);
 		n->attrs |= NODE_A_PONG_CACHING;
@@ -4105,8 +4110,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	field = header_get(head, "Bye-Packet");
 	if (field) {
 		guint major, minor;
-		sscanf(field, "%u.%u", &major, &minor);
-		if (major > 0 || minor > 1)
+
+		parse_major_minor(field, NULL, &major, &minor);
+		if (major != 0 || minor != 1)
 			if (dbg) g_warning("node %s <%s> claims Bye-Packet version %u.%u",
 				node_ip(n), node_vendor(n), major, minor);
 		n->attrs |= NODE_A_BYE_PACKET;
@@ -4117,7 +4123,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	field = header_get(head, "Ggep");
 	if (field) {
 		guint major, minor;
-		sscanf(field, "%u.%u", &major, &minor);
+
+		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || (major == 0 && minor >= 5))
 			n->attrs |= NODE_A_CAN_GGEP;
 	}
@@ -4125,10 +4132,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	/* Vendor-Message -- support for vendor-specific messages */
 
 	field = header_get(head, "Vendor-Message");
-
 	if (field) {
 		guint major, minor;
-		sscanf(field, "%u.%u", &major, &minor);
+
+		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || (major == 0 && minor > 1))
 			if (dbg) g_warning("node %s <%s> claims Vendor-Message "
 				"version %u.%u",
@@ -4145,8 +4152,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Live-Since");
 	if (field) {
-		time_t now = time(NULL);
-		time_t up = date2time(field, now);
+		time_t now = time(NULL), up = date2time(field, now);
 
 		/*
 		 * We'll be comparing the up_date we compute to our local timestamp
@@ -4317,8 +4323,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Query-Routing");
 	if (field) {
-		guint major = 0, minor = 0;
-		sscanf(field, "%u.%u", &major, &minor);
+		guint major, minor;
+
+		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || minor > 2)
 			if (dbg) g_warning("node %s <%s> claims QRP version %u.%u",
 				node_ip(n), node_vendor(n), major, minor);
@@ -4332,8 +4339,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Ultrapeer-Query-Routing");
 	if (field) {
-		guint major = 0, minor = 0;
-		sscanf(field, "%u.%u", &major, &minor);
+		guint major, minor;
+		
+		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || minor > 1)
 			if (dbg) g_warning("node %s <%s> claims Ultra QRP version %u.%u",
 				node_ip(n), node_vendor(n), major, minor);
@@ -4349,8 +4357,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Dynamic-Querying");
 	if (field) {
-		guint major = 0, minor = 0;
-		sscanf(field, "%u.%u", &major, &minor);
+		guint major, minor;
+		
+		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || minor > 1)
 			if (dbg)
 				g_warning("node %s <%s> claims dynamic querying version %u.%u",
@@ -4363,9 +4372,11 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Max-Ttl");		/* Needs normalized case */
 	if (field) {
-		guint value = 0;
-		sscanf(field, "%u", &value);
-		if (value < 1 || value > 255) {
+		guint32 value;
+		gint error;
+		
+		value = parse_uint32(field, NULL, 10, &error);
+		if (error || value < 1 || value > 255) {
 			value = max_ttl;
 			if (dbg) g_warning("node %s <%s> request bad Max-TTL %s, using %u",
 				node_ip(n), node_vendor(n), field, value);
@@ -4378,8 +4389,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Degree");
 	if (field) {
-		guint value = 0;
-		sscanf(field, "%u", &value);
+		guint32 value;
+		gint error;
+		
+		value = parse_uint32(field, NULL, 10, &error);
 		if (value < 1 || value > 200) {
 			if (dbg) g_warning("node %s <%s> advertises weird degree %s",
 				node_ip(n), node_vendor(n), field);
@@ -4453,15 +4466,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	) {
 		static const gchar msg[] = "Too ancient Gnutella protocol";
 
-		if ((n->flags & NODE_F_GTKG) && time(NULL) < 1107126000)
-			goto allow_for_now;		/* Up to Mon Jan 31 00:00:00 2005 */
-
 		node_send_error(n, 403, "%s", msg);
 		node_remove(n, "%s", msg);
 		return;
 	}
-allow_for_now:		/* XXX remove after 2005-01-31 */
-
 
 	/*
 	 * If this is an outgoing connection, we're processing the remote
