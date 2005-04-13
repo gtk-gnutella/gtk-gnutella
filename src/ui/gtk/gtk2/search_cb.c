@@ -42,6 +42,7 @@ RCSID("$Id$");
 #include "gtk/settings.h"
 
 #include "if/gui_property.h"
+#include "if/gnet_property.h"
 #include "if/bridge/ui2c.h"
 
 #include "lib/glib-missing.h"
@@ -1049,11 +1050,14 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	search_t *search;
 	GtkTreeSelection *selection;
 	GSList *sl, *sl_records;
+	guint32 bitzi_debug;
 
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	g_message("on_search_meta_data_active: called");
+    gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
+	if (bitzi_debug)
+		g_message("on_search_meta_data_active: called");
 
 	/* collect the list of files selected */
 
@@ -1064,7 +1068,8 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	sl_records = tree_selection_collect_data(selection, gui_record_sha1_eq);
 
 	/* Queue up our requests */
-	g_message("on_search_meta_data: %d items", g_slist_length(sl_records));
+	if (bitzi_debug)
+		g_message("on_search_meta_data: %d items", g_slist_length(sl_records));
 
 	for (sl = sl_records; sl; sl = g_slist_next(sl)) {
 		record_t *rec;

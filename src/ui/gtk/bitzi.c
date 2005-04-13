@@ -1,5 +1,4 @@
-/* -*- mode: cc-mode; tab-width:4; -*-
- *
+/*
  * $Id$
  *
  * Copyright (c) 2004, Alex Bennee <alex@bennee.com>
@@ -38,6 +37,7 @@ RCSID("$Id$");
 #include "gtk/misc.h"			/* gui_record_sha1_eq() */
 #include "gtk/gtk-missing.h"
 
+#include "if/gnet_property.h"
 #include "if/bridge/ui2c.h"
 #include "if/core/bitzi.h"    	/* bitzi_data_t */
 #include "lib/override.h"		/* Must be the last header included */
@@ -72,8 +72,13 @@ bitzi_fjtostring(bitzi_fj_t fj)
 void
 bitzi_gui_update(const bitzi_data_t *bitzi_data)
 {
+	guint32 bitzi_debug;
+	
 	g_assert(bitzi_data != NULL);
-    g_message("bitzi_gui_update: data %p, size %" PRIu64 "\n"
+
+    gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
+	if (bitzi_debug)
+    	g_message("bitzi_gui_update: data %p, size %" PRIu64 "\n"
 			  "goodness %f, judgement %d, type %s, details %s",
 			bitzi_data,
 			(guint64) bitzi_data->size,
@@ -111,13 +116,15 @@ bitzi_gui_get_metadata(const bitzi_data_t *data)
 		}
 	} else {
 		if (data->judgement != UNKNOWN) {
-			return g_strdup_printf("%s (%1.1f): No other data",
+			return g_strdup_printf("%s (%1.1f): %s",
 					bitzi_fjtostring(data->judgement),
-					data->goodness);
+					data->goodness,
+					_("No other data"));
 		}
 	}
 
 	return NULL;
 }
 
+/* -*- mode: cc-mode; tab-width:4; -*- */
 /* vi: set ts=4 sw=4 cindent: */

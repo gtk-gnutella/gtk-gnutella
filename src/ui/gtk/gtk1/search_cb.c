@@ -1247,6 +1247,7 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
     GList *node_list;
 	GSList *data_list;
     search_t *search;
+	guint32 bitzi_debug;
 
 	(void) unused_menuitem;
 	(void) unused_udata;
@@ -1261,7 +1262,9 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 					node_list, gui_record_sha1_eq);
 
 	/* Queue up our requests */
-	g_message("on_popup_search_metadata_activate: %d items, %p",
+    gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
+	if (bitzi_debug)
+		g_message("on_popup_search_metadata_activate: %d items, %p",
 			  g_slist_position(data_list, g_slist_last(data_list)) + 1,
 			  data_list);
 
