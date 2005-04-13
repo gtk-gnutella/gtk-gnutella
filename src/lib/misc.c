@@ -83,12 +83,14 @@ strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 
 /**
  * Checks whether ``prefix'' is a prefix of ``str''.
+ * Maybe skip_prefix() would be a better name.
  *
  * @param str a NUL-terminated string
  * @param prefix a NUL-terminated string
- * @return TRUE if ``prefix'' is a prefix of ``str''.
+ * @return	NULL, if ``prefix'' is not a prefix of ``str''. Otherwise, a
+ *			pointer to the first character in ``str'' after the prefix.
  */
-gboolean
+gchar *
 is_strprefix(const gchar *str, const gchar *prefix)
 {
 	const gchar *s, *p;
@@ -99,10 +101,10 @@ is_strprefix(const gchar *str, const gchar *prefix)
 
 	for (s = str, p = prefix; '\0' != (c = *p); p++) {
 		if (c != *s++)
-			return FALSE;
+			return NULL;
 	}
 
-	return TRUE;
+	return deconstify_gchar(s);
 }
 
 /**
@@ -1816,10 +1818,10 @@ make_pathname(const gchar *dir, const gchar *file)
 gchar *
 short_filename(gchar *fullname)
 {
-	if (is_strprefix(fullname, SRC_PREFIX))
-		return &fullname[CONST_STRLEN(SRC_PREFIX)];
-
-	return fullname;
+	gchar *s;
+	
+	s = is_strprefix(fullname, SRC_PREFIX);
+	return s ? s : fullname;
 }
 
 /**
@@ -1986,11 +1988,114 @@ parse_uint64(const gchar *src, gchar const **endptr, gint base, gint *errorptr)
 	if (!error && p == src)
 		error = EINVAL;
 
-	if (error)
-		v = 0;
 	*errorptr = error;
+	return error ? 0 : v;
+}
 
-	return v;
+/**
+ * Parses an unsigned 32-bit integer from an ASCII string.
+ *
+ * @param src
+ *    The string to parse.
+ * @param endptr
+ *    May be NULL. Otherwise, it will be set to address of the first invalid
+ *    character.
+ * @param base
+ *    The base system to be assumed e.g., 10 for decimal numbers 16 for
+ *    hexadecimal numbers. The value MUST be 2..36.
+ * @param errorptr
+ *    Indicates a parse error if not zero. EINVAL means there was no
+ *    number with respect to the used base at all. ERANGE means the
+ *    number would exceed (2^32)-1.
+ *
+ * @return
+ *    The parsed value or zero in case of an error. If zero is returned
+ *    error must be checked to determine whether there was an error
+ *    or whether the parsed value was zero.
+ */
+guint32
+parse_uint32(const gchar *src, gchar const **endptr, gint base, gint *errorptr)
+{
+	const gchar *p;
+	guint32 v = 0;
+	gint error = 0, c;
+
+	g_assert(src != NULL);
+	g_assert(errorptr != NULL);
+	g_assert(base >= 2 && base <= 36);
+
+	if (base < 2 || base > 36) {
+		*errorptr = EINVAL;
+		return 0;
+	}
+
+	for (p = src; (c = (guchar) *p) != '\0'; ++p) {
+		guint32 d, w;
+
+		if (!isascii(c))
+			break;
+
+		if (isdigit(c))
+			d = c - '0';
+		else if (isalpha(c)) {
+			c = ascii_tolower(c);
+			d = c - 'a' + 10;
+		} else
+			break;
+
+		if (d >= (guint) base)
+			break;
+
+		w = v * base;
+		if (w / base != v) {
+			error = ERANGE;
+			break;
+		}
+		v = w + d;
+		if (v < w) {
+			error = ERANGE;
+			break;
+		}
+	}
+
+	if (NULL != endptr)
+		*endptr = p;
+
+	if (!error && p == src)
+		error = EINVAL;
+
+	*errorptr = error;
+	return error ? 0 : v;
+}
+
+gint
+parse_major_minor(const gchar *src, gchar const **endptr,
+	guint *major, guint *minor)
+{
+	const gchar *ep;
+	gint error;
+	guint32 maj, min;
+	
+	g_assert(src);
+
+	maj = parse_uint32(src, &ep, 10, &error);
+	if (error) {
+		min = 0;	/* dumb compiler */
+	} else if (*ep != '.') {
+		error = EINVAL;
+		min = 0;	/* dumb compiler */
+	} else {
+		min = parse_uint32(src, &ep, 10, &error);
+	}
+
+	if (endptr)
+		*endptr = ep;
+	if (major)
+		*major = error ? 0 : maj;
+	if (minor)
+		*minor = error ? 0 : min;
+
+	return error;
 }
 
 /**

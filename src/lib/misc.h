@@ -347,8 +347,11 @@ gchar *short_filename(gchar *fullname);
 gchar *data_hex_str(const gchar *data, size_t len);
 gint create_directory(const gchar *dir);
 gboolean filepath_exists(const gchar *dir, const gchar *file);
+guint32 parse_uint32(const gchar *, gchar const **, gint, gint *);
 guint64 parse_uint64(const gchar *, gchar const **, gint, gint *);
-gboolean is_strprefix(const gchar *str, const gchar *prefix);
+gint parse_major_minor(const gchar *src, gchar const **endptr,
+	guint *major, guint *minor);
+gchar *is_strprefix(const gchar *str, const gchar *prefix);
 
 typedef void (*signal_handler_t)(gint signo);
 signal_handler_t set_signal(gint signo, signal_handler_t handler);
