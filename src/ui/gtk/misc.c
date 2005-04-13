@@ -337,17 +337,22 @@ gui_fix_coords(guint32 *coord)
 	
 	screen_w = gdk_screen_width();
 	screen_h = gdk_screen_height();
+	if (gui_debug)
+		g_message("screen: %dx%d", screen_w, screen_h);
+	
 	x = coord[0];
 	y = coord[1];
 	w = coord[2];
 	h = coord[3];
+	if (gui_debug)
+		g_message("before: %dx%d+%d+%d", w, h, x, y);
 
 	if (w < 200)
-		w = 200;
+		w = MAX(screen_w / 2, 200);
 	if (w > (screen_w / 10) * 15)
 		w = screen_w;
 	if (h < 200)
-		h = 200;
+		h = MAX(screen_h / 2, 200);
 	if (h > (screen_h / 10) * 15)
 		h = screen_h;
 	if (x > screen_w - 32 || x + w < 32)
@@ -359,6 +364,8 @@ gui_fix_coords(guint32 *coord)
 	coord[1] = y;
 	coord[2] = w;
 	coord[3] = h;
+	if (gui_debug)
+		g_message("after: %dx%d+%d+%d", w, h, x, y);
 }
 
 
