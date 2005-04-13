@@ -42,6 +42,7 @@
 #include "if/core/search.h"
 #include "if/core/share.h"
 #include "if/core/uploads.h"
+#include "if/core/bitzi.h"
 
 /* Property table includes */
 #include "if/gnet_property.h"
@@ -241,7 +242,7 @@ const gchar *guc_version_get_version_string(void);
 
 /* bitzi interface functions*/
 void guc_query_bitzi_by_urn(gchar *urnsha1);
-
+bitzi_data_t * guc_querycache_bitzi_by_urn(gchar *urnsha1);
 
 /* main functions */
 void guc_gtk_gnutella_exit(gint code);

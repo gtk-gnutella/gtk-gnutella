@@ -2573,8 +2573,6 @@ search_gui_queue_bitzi_by_sha1(record_t *rec, void *unused_nothing)
 	if (!rec->sha1)
 		return;
 
-	guc_query_bitzi_by_urn(rec->sha1);
-
 	/*
 	 * Add some feedback that a search has been kicked off.
 	 */
@@ -2587,6 +2585,11 @@ search_gui_queue_bitzi_by_sha1(record_t *rec, void *unused_nothing)
 		if (parent)
 			gtk_ctree_node_set_text(ctree, parent, c_sr_meta, "Query queued");
 	}
+
+	/* and then send the query... */
+
+	guc_query_bitzi_by_urn(rec->sha1);
+
 }
 
 /* vi: set ts=4 sw=4 cindent: */

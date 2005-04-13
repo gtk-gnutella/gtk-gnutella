@@ -76,6 +76,10 @@ void guc_query_bitzi_by_urn(gchar *urnsha1)
     bitzi_query_byurnsha1(urnsha1);
 }
 
+bitzi_data_t * guc_querycache_bitzi_by_urn(gchar *urnsha1)
+{
+    return bitzi_querycache_byurnsha1(urnsha1);
+}
 
 /*	download and src interface functions (UI -> Core)*/
 const gchar *guc_build_url_from_download(struct download *d)
@@ -707,4 +711,5 @@ void guc_gtk_gnutella_exit(gint code)
 	gtk_gnutella_exit(code);
 }
 
+/* -*- mode: cc-mode; tab-width:4; -*- */
 /* vi: set ts=4 sw=4 cindent:*/

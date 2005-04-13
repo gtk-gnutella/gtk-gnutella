@@ -1,4 +1,4 @@
-/* -*- mode: cc-mode; tab-width:4; -*-
+/*
  * $Id$
  *
  * Copyright (c) 2001-2003, Raphael Manfredi, Richard Eckart
@@ -573,6 +573,17 @@ search_gui_add_record(
 		      c_sr_bg, bg,
 		      c_sr_record, rc,
 		      (-1));
+
+	/*
+	 * There might be some metadata about this record already in the
+	 * cache. If so lets update the GUI to reflect this.
+	 */
+	if (NULL != rc->sha1) {
+		bitzi_data_t *data = guc_querycache_bitzi_by_urn(rc->sha1);
+
+		if (data)
+			search_gui_metadata_update(data);
+	}
 }
 
 void
@@ -1625,4 +1636,5 @@ search_gui_metadata_update(const bitzi_data_t *data)
 	G_FREE_NULL(text);
 }
 
+/* -*- mode: cc-mode; tab-width:4; -*- */
 /* vi: set ts=4 sw=4 cindent: */

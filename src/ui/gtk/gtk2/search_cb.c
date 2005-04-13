@@ -1,4 +1,4 @@
-/* -*- mode: cc-mode; tab-width:4; -*-
+/* 
  * $Id$
  *
  * Copyright (c) 2001-2003, Raphael Manfredi, Richard Eckart
@@ -1073,14 +1073,16 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 		if (rec->sha1) {
 			GtkTreeIter *parent;
 
-	    	guc_query_bitzi_by_urn(rec->sha1);
-
 			/* set the feedback */
 			parent = find_parent_with_sha1(search->parents, rec->sha1);
 			g_assert(parent != NULL);
 			gtk_tree_store_set(GTK_TREE_STORE(search->model), parent,
 				c_sr_meta, _("Query queued..."),
 				(-1));
+
+			/* then send the query... */
+	    	guc_query_bitzi_by_urn(rec->sha1);
+
 		}
     }
 
@@ -1097,4 +1099,5 @@ search_callbacks_shutdown(void)
  	 */
 }
 
+/* -*- mode: cc-mode; tab-width:4; -*- */
 /* vi: set ts=4 sw=4 cindent: */
