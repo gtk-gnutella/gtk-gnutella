@@ -1420,8 +1420,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		 */
 
 		uri = first + ((first[0] == 'G') ? sizeof("GET") : sizeof("HEAD"));
-		while (*uri == ' ' || *uri == '\t')
-			uri++;
+		uri = skip_ascii_blanks(uri);
 
 		if (is_strprefix(uri, "/gnutella/") || is_strprefix(uri, "/gnet/"))
 			pproxy_add(s);
