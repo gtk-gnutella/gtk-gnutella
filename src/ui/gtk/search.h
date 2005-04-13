@@ -1,4 +1,4 @@
-/* -*- mode: cc-mode; tab-width:4; -*-
+/*
  * $Id$
  *
  * Copyright (c) 2001-2003, Richard Eckart
@@ -168,8 +168,9 @@ void search_gui_metadata_update(const bitzi_data_t *data);
 gboolean search_gui_search_results_col_widths_changed(property_t prop);
 gboolean search_gui_search_results_col_visible_changed(property_t prop);
 
-void search_gui_queue_bitzi_by_sha1(record_t *rec, void *nothing);
+void search_gui_queue_bitzi_by_sha1(const record_t *rec, gpointer unused_udata);
 
 #endif /* _gtk_search_h_ */
 
-/* vi: set ts=4: */
+/* -*- mode: cc-mode; tab-width:4; -*- */
+/* vi: set ts=4 sw=4 cindent: */

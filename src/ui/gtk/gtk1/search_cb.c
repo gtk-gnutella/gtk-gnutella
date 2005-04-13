@@ -1268,11 +1268,12 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 			  g_slist_position(data_list, g_slist_last(data_list)) + 1,
 			  data_list);
 
-    g_slist_foreach(data_list, (GFunc) search_gui_queue_bitzi_by_sha1, NULL);
+	G_SLIST_FOREACH(data_list, search_gui_queue_bitzi_by_sha1, NULL);
 
 	gtk_clist_thaw(GTK_CLIST(search->ctree));
 	g_slist_free(data_list);
 	g_list_free(node_list);
 }
 
+/* -*- mode: cc-mode; tab-width:4; -*- */
 /* vi: set ts=4 sw=4 cindent: */

@@ -2562,12 +2562,12 @@ search_gui_metadata_update(const bitzi_data_t *data)
  * (called from seach_cb.c)
  */
 void
-search_gui_queue_bitzi_by_sha1(record_t *rec, void *unused_nothing)
+search_gui_queue_bitzi_by_sha1(const record_t *rec, gpointer unused_udata)
 {
-	GList *sr;
+	GList *l;
 	GtkCTreeNode *parent;
 
-	(void) unused_nothing;
+	(void) unused_udata;
 	g_assert(rec != NULL);
 
 	if (!rec->sha1)
@@ -2577,19 +2577,18 @@ search_gui_queue_bitzi_by_sha1(record_t *rec, void *unused_nothing)
 	 * Add some feedback that a search has been kicked off.
 	 */
 
-	for (sr = searches; sr; sr = g_list_next(sr)) {
-		search_t *search = sr->data;
+	for (l = searches; l; l = g_list_next(l)) {
+		search_t *search = l->data;
 		GtkCTree *ctree = GTK_CTREE(search->ctree);
 
 		parent = find_parent_with_sha1(search->parents, rec->sha1);
 		if (parent)
-			gtk_ctree_node_set_text(ctree, parent, c_sr_meta, "Query queued");
+			gtk_ctree_node_set_text(ctree, parent, c_sr_meta,
+					_("Query queued..."));
 	}
 
 	/* and then send the query... */
-
 	guc_query_bitzi_by_urn(rec->sha1);
-
 }
 
 /* vi: set ts=4 sw=4 cindent: */
