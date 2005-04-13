@@ -2565,8 +2565,8 @@ file_info_retrieve(void)
 			}
 			break;
 		case FI_TAG_GENR:
-			v = parse_uint64(value, &ep, 10, &error);
-			damaged = error || *ep != '\0' || v > (guint64) INT_MAX;
+			v = parse_uint32(value, &ep, 10, &error);
+			damaged = error || *ep != '\0' || v > (guint32) INT_MAX;
 			fi->generation = v;
 			break;
 		case FI_TAG_SIZE:
@@ -2579,7 +2579,7 @@ file_info_retrieve(void)
 			fi->size_atom = atom_uint64_get(&fi->size);
 			break;
 		case FI_TAG_FSKN:
-			v = parse_uint64(value, &ep, 10, &error);
+			v = parse_uint32(value, &ep, 10, &error);
 			damaged = error
 				|| *ep != '\0'
 				|| v > 1
@@ -2607,7 +2607,7 @@ file_info_retrieve(void)
 			fi->done = v;
 			break;
 		case FI_TAG_SWRM:
-			v = parse_uint64(value, &ep, 10, &error);
+			v = parse_uint32(value, &ep, 10, &error);
 			damaged = error || *ep != '\0' || v > 1;
 			fi->use_swarming = v;
 			break;
