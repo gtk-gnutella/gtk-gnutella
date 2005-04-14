@@ -68,7 +68,7 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
  * print a diagnostic message if you accidently try to deconstify an
  * incompatible type. A direct typecast would hide such a mistake.
  */
-static inline gchar *
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gchar *
 deconstify_gchar(const gchar *p)
 {
 	return (gchar *) p;
@@ -85,25 +85,25 @@ gint ascii_strncasecmp(const gchar *s1, const gchar *s2, size_t len);
  * GLib 2.x has similar macros/functions but defines only a subset.
  */
 
-static inline gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
 is_ascii_blank(gint c)
 {
 	return c == 32 || c == 9;	/* space, tab */
 }
 
-static inline gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
 is_ascii_cntrl(gint c)
 {
 	return (c >= 0 && c <= 31) || c == 127;
 }
 
-static inline gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
 is_ascii_digit(gint c)
 {
 	return c >= 48 && c <= 57;	/* 0-9 */
 }
 
-static inline gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
 is_ascii_xdigit(gint c)
 {
 	return is_ascii_digit(c) ||			/* 0-9 */
@@ -111,68 +111,68 @@ is_ascii_xdigit(gint c)
 			(c >= 97 && c <= 102);		/* a-f */
 }
 
-static inline gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
 is_ascii_upper(gint c)
 {
 	return c >= 65 && c <= 90;		/* A-Z */
 }
 
-static inline gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
 is_ascii_lower(gint c)
 {
 	return c >= 97 && c <= 122;		/* a-z */
 }
 
-static inline gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
 is_ascii_alpha(gint c)
 {
 	return is_ascii_upper(c) || is_ascii_lower(c);	/* A-Z, a-z */
 }
 
-static inline gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
 is_ascii_alnum(gint c)
 {
 	return is_ascii_alpha(c) || is_ascii_digit(c);	/* A-Z, a-z, 0-9 */
 }
 
-static inline gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
 is_ascii_space(gint c)
 {
 	return c == 32 || (c >= 9 && c <= 13);
 }
 
-static inline gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
 is_ascii_graph(gint c)
 {
 	return c >= 33 && c <= 126;
 }
 
-static inline gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
 is_ascii_print(gint c)
 {
 	return is_ascii_graph(c) || c == 32;
 }
 
-static inline gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
 is_ascii_punct(gint c)
 {
 	return c >= 33 && c <= 126 && !is_ascii_alnum(c);
 }
 
-static inline gint
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gint
 ascii_toupper(gint c)
 {
 	return is_ascii_lower(c) ? c - 32 : c;
 }
 
-static inline gint
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gint
 ascii_tolower(gint c)
 {
 	return is_ascii_upper(c) ? c + 32 : c;
 }
 
 #if !GLIB_CHECK_VERSION(2,4,0)
-static inline const gchar *
+static inline WARN_UNUSED_RESULT const gchar *
 g_strip_context(const gchar *id, const gchar *val)
 {
 	const gchar *s;
@@ -187,7 +187,7 @@ g_strip_context(const gchar *id, const gchar *val)
  *
  * @return a pointer to the first non-space character starting from s.
  */
-static inline gchar *
+static inline WARN_UNUSED_RESULT gchar *
 skip_ascii_spaces(const gchar *s)
 {
 	while (is_ascii_space(*s))
@@ -201,7 +201,7 @@ skip_ascii_spaces(const gchar *s)
  *
  * @return a pointer to the first non-blank character starting from s.
  */
-static inline gchar *
+static inline WARN_UNUSED_RESULT gchar *
 skip_ascii_blanks(const gchar *s)
 {
 	while (is_ascii_blank(*s))
@@ -324,7 +324,7 @@ static inline gboolean is_pow2(guint32 value)
  * Random numbers
  */
 void random_init(void);
-guint32 random_value(guint32 max);
+guint32 random_value(guint32 max) WARN_UNUSED_RESULT;
 void guid_random_fill(gchar *xuid);
 
 /*
@@ -351,7 +351,7 @@ guint32 parse_uint32(const gchar *, gchar const **, gint, gint *);
 guint64 parse_uint64(const gchar *, gchar const **, gint, gint *);
 gint parse_major_minor(const gchar *src, gchar const **endptr,
 	guint *major, guint *minor);
-gchar *is_strprefix(const gchar *str, const gchar *prefix);
+gchar *is_strprefix(const gchar *str, const gchar *prefix) WARN_UNUSED_RESULT;
 
 typedef void (*signal_handler_t)(gint signo);
 signal_handler_t set_signal(gint signo, signal_handler_t handler);

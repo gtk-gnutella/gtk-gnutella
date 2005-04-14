@@ -208,6 +208,20 @@ do {				\
 #define RCSID(x) static const char rcsid[] = "@(#) " x
 #endif
 
+/* Functions using this attribute cause a warning if the returned
+ * value is not used. */
+#if defined(__GNUC__) && defined(__GNUC_MINOR__)
+
+#if (__GNUC__ > 3) || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4)
+#define WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+#else /* GCC < 3.4 */
+#define WARN_UNUSED_RESULT
+#endif
+
+#else /* !GCC */
+#define WARN_UNUSED_RESULT
+#endif /* GCC */
+
 /* CMP() returns sign of a-b */
 #define CMP(a, b) ((a) == (b) ? 0 : (a) > (b) ? 1 : (-1))
 
