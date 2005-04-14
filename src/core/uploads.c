@@ -1801,7 +1801,7 @@ get_file_to_upload(gnutella_upload_t *u, header_t *header, gchar *request)
 
 	uri = is_strprefix(request, "GET ");
 	if (!uri)
-		is_strprefix(request, "HEAD ");
+		uri = is_strprefix(request, "HEAD ");
 	g_assert(uri != NULL);
 	uri = skip_ascii_blanks(uri);
 
