@@ -561,11 +561,11 @@ add_file(struct shared_file *sf)
 	 */
 
 	if (sha1_available && !found_ggep_h()) {
-		const gchar urnsha1[] = "urn:sha1";
-		gchar *b32 = sha1_base32(sf->sha1_digest);
+		static const gchar urnsha1[] = "urn:sha1:";
+		const gchar *b32 = sha1_base32(sf->sha1_digest);
 		/* Good old way: ASCII URN */
 
-		if (!found_write(urnsha1, sizeof urnsha1 - 1)) {
+		if (!found_write(urnsha1, CONST_STRLEN(urnsha1))) {
 			return FALSE;
 		}
 		if (!found_write(b32, SHA1_BASE32_SIZE)) {
