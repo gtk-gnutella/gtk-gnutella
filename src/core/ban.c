@@ -629,7 +629,9 @@ ban_vendor(const gchar *vendor)
 		static const gchar * const versions[] = {
 			"0.90",
 			"0.91u",
-			"0.92b ",
+			"0.92b",
+			"0.93",
+			"0.94",
 		};
 		guint i;
 
