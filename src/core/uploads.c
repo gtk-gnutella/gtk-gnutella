@@ -1812,7 +1812,7 @@ get_file_to_upload(gnutella_upload_t *u, header_t *header, gchar *request)
 		guint32 idx;
 		gint error;
 		
-		idx = parse_uint64(arg, &endptr, 10, &error);
+		idx = parse_uint32(arg, &endptr, 10, &error);
 		if (!error && *endptr == '/')
 			return get_file_to_upload_from_index(u, header, arg, idx);
 	} else if (NULL != (arg = is_strprefix(uri, "/uri-res/N2R?"))) {
