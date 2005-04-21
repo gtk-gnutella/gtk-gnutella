@@ -47,11 +47,16 @@ RCSID("$Id$");
 
 #define TSYNC_EXPIRE_MS		(60*1000)	/* Expiration time: 60 secs */
 
+typedef enum {
+	TSYNC_MAGIC = 0x781f372f
+} tsync_magic_t;
+
 /*
  * Records the time at which we sent a "Time Sync" to remote peers,
  * along with the event that will expire those entries.
  */
 struct tsync {
+	tsync_magic_t magic;	/* Magic of this structure for consistency checks */
 	tm_t sent;				/* Time at which we sent the synchronization */
 	guint32 node_id;		/* Node to which we sent the request */
 	gpointer expire_ev;		/* Expiration callout queue callback */
@@ -69,9 +74,13 @@ static GHashTable *tsync_by_time = NULL;	/* tm_t -> tsync */
 static void
 tsync_free(struct tsync *ts)
 {
+	g_assert(ts);
+	g_assert(ts->magic == TSYNC_MAGIC);
+	
 	if (ts->expire_ev)
 		cq_cancel(callout_queue, ts->expire_ev);
 
+	ts->magic = 0;
 	wfree(ts, sizeof(*ts));
 }
 
@@ -86,6 +95,9 @@ tsync_expire(cqueue_t *unused_cq, gpointer obj)
 
 	(void) unused_cq;
 
+	g_assert(ts);
+	g_assert(ts->magic == TSYNC_MAGIC);
+	
 	if (dbg > 1)
 		printf("TSYNC expiring time %d.%d\n",
 			(gint) ts->sent.tv_sec, (gint) ts->sent.tv_usec);
@@ -94,7 +106,7 @@ tsync_expire(cqueue_t *unused_cq, gpointer obj)
 	g_hash_table_remove(tsync_by_time, &ts->sent);
 
 	/*
-	 * If we sent the request via UDP, the ndoe is probanly UDP-firewalled:
+	 * If we sent the request via UDP, the node is probably UDP-firewalled:
 	 * use TCP next time...
 	 */
 
@@ -123,6 +135,7 @@ tsync_send(struct gnutella_node *n, guint32 node_id)
 		return;
 
 	ts = walloc(sizeof(*ts));
+	ts->magic = TSYNC_MAGIC;
 	tm_now(&ts->sent);
 	ts->sent.tv_sec = clock_loc2gmt(ts->sent.tv_sec);
 	ts->node_id = node_id;
@@ -171,6 +184,9 @@ tsync_send_timestamp(tm_t *orig, tm_t *final)
 		return;
 	}
 
+	g_assert(ts);
+	g_assert(ts->magic == TSYNC_MAGIC);
+	
 	g_hash_table_remove(tsync_by_time, orig);
 	ts->sent = *final;
 	g_hash_table_insert(tsync_by_time, &ts->sent, ts);
@@ -243,6 +259,9 @@ tsync_got_reply(struct gnutella_node *n,
 		double clock_offset;
 		struct gnutella_node *cn;
 
+		g_assert(ts);
+		g_assert(ts->magic == TSYNC_MAGIC);
+	
 		/*
 		 * Compute the clock offset: ((received - sent) + (replied - got)) / 2
 		 */
@@ -310,6 +329,10 @@ free_tsync_kv(gpointer unused_key, gpointer value, gpointer unused_udata)
 
 	(void) unused_key;
 	(void) unused_udata;
+	
+	g_assert(ts);
+	g_assert(ts->magic == TSYNC_MAGIC);
+	
 	tsync_free(ts);
 }
 
