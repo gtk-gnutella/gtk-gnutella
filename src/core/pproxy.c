@@ -792,12 +792,6 @@ static void cproxy_http_newstate(gpointer handle, http_state_t newstate);
 
 #define CPROXY_MAGIC	0xc8301U
 
-/*
- * Operating flags.
- */
-
-#define CP_F_SWAPPED_IP	0x00000001		/* Tried to swap IP address */
-
 /**
  * Free the structure and all its dependencies.
  */
@@ -830,63 +824,11 @@ static void
 cproxy_http_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 {
 	struct cproxy *cp = (struct cproxy *) http_async_get_opaque(handle);
-	guint32 new_ip;
 
 	g_assert(cp != NULL);
 	g_assert(cp->magic == CPROXY_MAGIC);
 
 	http_async_log_error(handle, type, v);
-
-	/*
-	 * Temporary hack.
-	 *
-	 * Old servents used little-endian for encoding IP addresses in PUSH.
-	 * If we were unable to connect, and we have not yet swapped the
-	 * IP address, try doing so now.
-	 *
-	 *	--RAM, 04/08/2003
-	 */
-
-	new_ip = swap_guint32(cp->ip);
-
-	if (
-		!(cp->flags & CP_F_SWAPPED_IP) &&
-		type == HTTP_ASYNC_ERROR &&
-		GPOINTER_TO_INT(v) == HTTP_ASYNC_CONN_TIMEOUT &&
-		host_is_valid(new_ip, cp->port)
-	) {
-		static gchar path[128];
-
-		(void) gm_snprintf(path, sizeof(path),
-			"/gnutella/push-proxy?ServerId=%s", guid_base32_str(cp->guid));
-
-		cp->flags |= CP_F_SWAPPED_IP;
-		cp->http_handle = http_async_get_ip(path, new_ip, cp->port,
-			cproxy_http_header_ind, NULL, cproxy_http_error_ind);
-
-		if (cp->http_handle != NULL) {
-			g_warning("retrying with swapped push-proxy address %s (was %s)",
-				ip_to_gchar(new_ip), ip_port_to_gchar(cp->ip, cp->port));
-			cp->ip = new_ip;
-
-			/*
-			 * Customize async HTTP layer.
-			 */
-
-			http_async_set_opaque(cp->http_handle, cp, NULL);
-			http_async_set_op_request(cp->http_handle, cproxy_build_request);
-			http_async_on_state_change(cp->http_handle, cproxy_http_newstate);
-
-			return;
-		}
-
-		cp->flags &= ~CP_F_SWAPPED_IP;
-
-		/* FALL THROUGH */
-	}
-
-	if (cp->flags & CP_F_SWAPPED_IP)
-		cp->ip = swap_guint32(cp->ip);		/* Restore original IP */
 
 	cp->http_handle = NULL;
 	cp->done = TRUE;
@@ -1042,7 +984,6 @@ cproxy_create(struct download *d, guint32 ip, guint16 port,
 	struct cproxy *cp;
 	gpointer handle;
 	static gchar path[128];
-	gboolean swapped = FALSE;
 
 	(void) gm_snprintf(path, sizeof(path),
 		"/gnutella/push-proxy?ServerId=%s", guid_base32_str(guid));
@@ -1053,34 +994,6 @@ cproxy_create(struct download *d, guint32 ip, guint16 port,
 
 	handle = http_async_get_ip(path, ip, port,
 		cproxy_http_header_ind, NULL, cproxy_http_error_ind);
-
-	/*
-	 * Temporary hack.
-	 *
-	 * Old servents used little-endian for encoding IP addresses in PUSH.
-	 * If we were unable to connect, try swapping the IP address.
-	 *
-	 *	--RAM, 04/08/2003
-	 */
-
-	if (handle == NULL) {
-		guint32 new_ip;
-
-		new_ip = swap_guint32(ip);
-		if (host_is_valid(new_ip, port)) {
-			g_warning("can't connect to push-proxy %s for GUID %s: %s "
-				"-- swapping to %s",
-				ip_port_to_gchar(ip, port), guid_hex_str(guid),
-				http_async_strerror(http_async_errno),
-				ip_to_gchar(new_ip));
-
-			ip = new_ip;
-			swapped = TRUE;
-
-			handle = http_async_get_ip(path, ip, port,
-				cproxy_http_header_ind, NULL, cproxy_http_error_ind);
-		}
-	}
 
 	if (handle == NULL) {
 		g_warning("can't connect to push-proxy %s for GUID %s: %s",
@@ -1098,7 +1011,7 @@ cproxy_create(struct download *d, guint32 ip, guint16 port,
 	cp->guid = atom_guid_get(guid);
 	cp->file_idx = file_idx;
 	cp->http_handle = handle;
-	cp->flags = swapped ? CP_F_SWAPPED_IP : 0;
+	cp->flags = 0;
 
 	/*
 	 * Customize async HTTP layer.
