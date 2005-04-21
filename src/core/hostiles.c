@@ -259,7 +259,7 @@ hostiles_retrieve(hostiles_t which)
 		{
 			FILE *f;
 			gint idx;
-			static const file_path_t const fp[] = {
+			static const file_path_t fp[] = {
 #ifndef OFFICIAL_BUILD
 				{ PACKAGE_SOURCE_DIR, hostiles_file },
 #endif
