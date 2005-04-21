@@ -63,6 +63,7 @@ typedef enum ext_token {
 	EXT_T_GGEP_GUE,			/* GUESS support */
 	EXT_T_GGEP_H,			/* GGEP binary hash value */
 	EXT_T_GGEP_HNAME,		/* Hostname info, in query hits */
+	EXT_T_GGEP_IP,			/* IP:Port, in ping and pongs (F2F) */
 	EXT_T_GGEP_IPP,			/* IP:Port, in pongs (UHC) */
 	EXT_T_GGEP_LF,			/* Large File, in query hits */
 	EXT_T_GGEP_LIME_XML,	/* LimeWire XML metadata, in query hits */

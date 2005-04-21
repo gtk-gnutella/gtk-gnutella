@@ -41,6 +41,9 @@ typedef struct pong_meta {
 	guchar language[2];		/* Node's preferred language, from GGEP "LOC" */
 	guchar country[2];		/* Node's country, from GGEP "LOC" */
 	guint8 guess;			/* Node supports GUESS, from GGEP "GUE" */
+	guint32 sender_ip;		/* For GGEP "IP" */
+	guint16 sender_port;		/* For GGEP "IP" */
+
 	guint32 daily_uptime;	/* Node's daily uptime, from GGEP "DU" */
 	guint8 up_slots;		/* Free UP slots, from GGEP "UP" */
 	guint8 leaf_slots;		/* Free leaf slots, from GGEP "UP" */

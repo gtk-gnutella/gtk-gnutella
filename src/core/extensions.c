@@ -148,7 +148,8 @@ static const struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
 	GGEP_ID(GUE),					/* GUESS support */
 	GGEP_ID(H),						/* Hashes in binary form */
 	GGEP_ID(HNAME),					/* Hostname */
-	GGEP_ID(IPP),					/* IP:port in pongs (UHC) */
+	GGEP_ID(IP),					/* Ip:Port in ping and pongs (F2F) */
+	GGEP_ID(IPP),					/* IP:Port in pongs (UHC) */
 	GGEP_ID(LF),					/* Large file size in qhits */
 	GGEP_ID(LOC),					/* Locale preferences, for clustering  */
 	GGEP_ID(PATH),					/* Shared file path, in query hits */
