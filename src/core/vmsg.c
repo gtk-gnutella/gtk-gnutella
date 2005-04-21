@@ -207,10 +207,10 @@ find_message(guint32 vendor, guint16 id, guint16 version)
  * a static string.
  */
 const gchar *
-vmsg_infostr(gpointer data, gint size)
+vmsg_infostr(gconstpointer data, gint size)
 {
 	static gchar msg[80];
-	struct gnutella_vendor *v = (struct gnutella_vendor *) data;
+	const struct gnutella_vendor *v = data;
 	guint32 vendor;
 	guint16 id;
 	guint16 version;

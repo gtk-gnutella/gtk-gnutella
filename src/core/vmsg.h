@@ -40,7 +40,7 @@ struct pmsg;
  */
 
 void vmsg_handle(struct gnutella_node *n);
-const gchar *vmsg_infostr(gpointer data, gint size);
+const gchar *vmsg_infostr(gconstpointer data, gint size);
 
 void vmsg_send_messages_supported(struct gnutella_node *n);
 void vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops);
