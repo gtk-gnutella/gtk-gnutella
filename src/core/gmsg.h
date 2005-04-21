@@ -69,20 +69,20 @@ void gmsg_split_sendto_all_but_one(const GSList *l, struct gnutella_node *n,
 	gpointer head, gpointer data, guint32 size);
 void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt);
 
-gboolean gmsg_can_drop(gpointer pdu, gint size);
-gboolean gmsg_is_oob_query(gpointer msg);
-gboolean gmsg_split_is_oob_query(gpointer head, gpointer data);
-gint gmsg_cmp(gpointer pdu1, gpointer pdu2);
-gchar *gmsg_infostr(gpointer head);
-gchar *gmsg_infostr_full(gpointer message);
-gchar *gmsg_infostr_full_split(gpointer head, gpointer data);
+gboolean gmsg_can_drop(gconstpointer pdu, gint size);
+gboolean gmsg_is_oob_query(gconstpointer msg);
+gboolean gmsg_split_is_oob_query(gconstpointer head, gconstpointer data);
+gint gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2);
+gchar *gmsg_infostr(gconstpointer head);
+gchar *gmsg_infostr_full(gconstpointer message);
+gchar *gmsg_infostr_full_split(gconstpointer head, gconstpointer data);
 
 void gmsg_install_presend(pmsg_t *mb);
 
-void gmsg_log_dropped(gpointer head,
-	gchar *reason, ...) G_GNUC_PRINTF(2, 3);
-void gmsg_log_bad(struct gnutella_node *n,
-	gchar *reason, ...) G_GNUC_PRINTF(2, 3);
+void gmsg_log_dropped(gconstpointer head,
+	const gchar *reason, ...) G_GNUC_PRINTF(2, 3);
+void gmsg_log_bad(const struct gnutella_node *n,
+	const gchar *reason, ...) G_GNUC_PRINTF(2, 3);
 
 void gmsg_sendto_route_ggep(
 	struct gnutella_node *n, struct route_dest *rt, gint regular_size);

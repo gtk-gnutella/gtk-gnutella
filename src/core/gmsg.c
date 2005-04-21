@@ -51,9 +51,34 @@ RCSID("$Id$");
 static const gchar *msg_name[256];
 static gint msg_weight[256];		/* For gmsg_cmp() */
 
-static void gmsg_dump(FILE *out, gpointer data, guint32 size);
-static void gmsg_split_dump(FILE *out, gpointer head, gpointer data,
-				guint32 size);
+/**
+ * Log an hexadecimal dump of the message `data', tagged with:
+ *
+ *     msg_type (payload length) [hops=x, TTL=x]
+ *
+ * to the specified file descriptor.
+ */
+static void
+gmsg_dump(FILE *out, gconstpointer data, guint32 size)
+{
+	g_assert(size >= GTA_HEADER_SIZE);
+
+	dump_hex(out, gmsg_infostr_full(data),
+		(gchar *) data + GTA_HEADER_SIZE, size - GTA_HEADER_SIZE);
+}
+
+/**
+ * Same as gmsg_dump(), but the header and the PDU data are separated.
+ */
+static void
+gmsg_split_dump(FILE *out, gconstpointer head, gconstpointer data,
+	guint32 size)
+{
+	g_assert(size >= GTA_HEADER_SIZE);
+
+	dump_hex(out, gmsg_infostr_full_split(head, data),
+		data, size - GTA_HEADER_SIZE);
+}
 
 /**
  * Initialization of the Gnutella message structures.
@@ -739,9 +764,9 @@ gmsg_install_presend(pmsg_t *mb)
  * and there's not enough room in the queue.
  */
 gboolean
-gmsg_can_drop(gpointer pdu, gint size)
+gmsg_can_drop(gconstpointer pdu, gint size)
 {
-	struct gnutella_header *head = (struct gnutella_header *) pdu;
+	const struct gnutella_header *head = (const struct gnutella_header *) pdu;
 
 	if ((size_t) size < sizeof(struct gnutella_header))
 		return TRUE;
@@ -762,10 +787,10 @@ gmsg_can_drop(gpointer pdu, gint size)
  * Return algebraic -1/0/+1 depending on relative order.
  */
 gint
-gmsg_cmp(gpointer pdu1, gpointer pdu2)
+gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2)
 {
-	struct gnutella_header *h1 = (struct gnutella_header *) pdu1;
-	struct gnutella_header *h2 = (struct gnutella_header *) pdu2;
+	const struct gnutella_header *h1 = (const struct gnutella_header *) pdu1;
+	const struct gnutella_header *h2 = (const struct gnutella_header *) pdu2;
 	gint w1 = msg_weight[h1->function];
 	gint w2 = msg_weight[h2->function];
 
@@ -819,12 +844,12 @@ gmsg_cmp(gpointer pdu1, gpointer pdu2)
  * payload of that message.
  */
 gchar *
-gmsg_infostr_full(gpointer message)
+gmsg_infostr_full(gconstpointer message)
 {
 	static gchar a[160];
-	struct gnutella_header *h = (struct gnutella_header *) message;
+	const struct gnutella_header *h = message;
 	guint32 size;
-	gpointer data;
+	const gchar *data;
 
 	READ_GUINT32_LE(h->size, size);
 	data = (gchar *) message + sizeof(*h);
@@ -855,10 +880,10 @@ gmsg_infostr_full(gpointer message)
  * and on the data of the message (which may not be consecutive in memory).
  */
 gchar *
-gmsg_infostr_full_split(gpointer head, gpointer data)
+gmsg_infostr_full_split(gconstpointer head, gconstpointer data)
 {
 	static gchar a[160];
-	struct gnutella_header *h = (struct gnutella_header *) head;
+	const struct gnutella_header *h = (const struct gnutella_header *) head;
 	guint32 size;
 
 	READ_GUINT32_LE(h->size, size);
@@ -886,10 +911,10 @@ gmsg_infostr_full_split(gpointer head, gpointer data)
  *     msg_type (payload length) [hops=x, TTL=x]
  */
 gchar *
-gmsg_infostr(gpointer head)
+gmsg_infostr(gconstpointer head)
 {
 	static gchar a[80];
-	struct gnutella_header *h = (struct gnutella_header *) head;
+	const struct gnutella_header *h = head;
 	guint32 size;
 
 	READ_GUINT32_LE(h->size, size);
@@ -904,10 +929,10 @@ gmsg_infostr(gpointer head)
  * Same as gmsg_infostr(), but different static buffer.
  */
 static gchar *
-gmsg_infostr2(gpointer head)
+gmsg_infostr2(gconstpointer head)
 {
 	static gchar a[80];
-	struct gnutella_header *h = (struct gnutella_header *) head;
+	const struct gnutella_header *h = head;
 	guint32 size;
 
 	READ_GUINT32_LE(h->size, size);
@@ -922,7 +947,7 @@ gmsg_infostr2(gpointer head)
  * Log dropped message, and reason.
  */
 void
-gmsg_log_dropped(gpointer head, gchar *reason, ...)
+gmsg_log_dropped(gconstpointer head, const gchar *reason, ...)
 {
 	fputs("DROP ", stdout);
 	fputs(gmsg_infostr2(head), stdout);	/* Allows gmsg_infostr() in arglist */
@@ -942,7 +967,7 @@ gmsg_log_dropped(gpointer head, gchar *reason, ...)
  * Log bad message, the node's vendor, and reason.
  */
 void
-gmsg_log_bad(struct gnutella_node *n, gchar *reason, ...)
+gmsg_log_bad(const struct gnutella_node *n, const gchar *reason, ...)
 {
 	printf("BAD <%s> ", node_vendor(n));
 
@@ -960,43 +985,14 @@ gmsg_log_bad(struct gnutella_node *n, gchar *reason, ...)
 }
 
 /**
- * Log an hexadecimal dump of the message `data', tagged with:
- *
- *     msg_type (payload length) [hops=x, TTL=x]
- *
- * to the specified file descriptor.
- */
-static void
-gmsg_dump(FILE *out, gpointer data, guint32 size)
-{
-	g_assert(size >= GTA_HEADER_SIZE);
-
-	dump_hex(out, gmsg_infostr_full(data),
-		(gchar *) data + GTA_HEADER_SIZE, size - GTA_HEADER_SIZE);
-}
-
-/**
- * Same as gmsg_dump(), but the header and the PDU data are separated.
- */
-static void
-gmsg_split_dump(FILE *out, gpointer head, gpointer data,
-	guint32 size)
-{
-	g_assert(size >= GTA_HEADER_SIZE);
-
-	dump_hex(out, gmsg_infostr_full_split(head, data),
-		data, size - GTA_HEADER_SIZE);
-}
-
-/**
  * Check whether query message starting at `msg' is flagged
  * for OOB hit delivery.
  */
 gboolean
-gmsg_is_oob_query(gpointer msg)
+gmsg_is_oob_query(gconstpointer msg)
 {
-	struct gnutella_header *h = (struct gnutella_header *) msg;
-	gpointer data = (gchar *) msg + GTA_HEADER_SIZE;
+	const struct gnutella_header *h = (const struct gnutella_header *) msg;
+	gconstpointer data = (const gchar *) msg + GTA_HEADER_SIZE;
 	guint16 req_speed;
 
 	g_assert(h->function == GTA_MSG_SEARCH);
@@ -1012,9 +1008,9 @@ gmsg_is_oob_query(gpointer msg)
  * for OOB hit delivery.
  */
 gboolean
-gmsg_split_is_oob_query(gpointer head, gpointer data)
+gmsg_split_is_oob_query(gconstpointer head, gconstpointer data)
 {
-	struct gnutella_header *h = (struct gnutella_header *) head;
+	const struct gnutella_header *h = (const struct gnutella_header *) head;
 	guint16 req_speed;
 
 	g_assert(h->function == GTA_MSG_SEARCH);
