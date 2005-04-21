@@ -940,20 +940,20 @@ file_info_has_trailer(const gchar *path)
 static gboolean
 file_info_has_filename(struct dl_file_info *fi, gchar *file)
 {
-	GSList *a;
+	GSList *sl;
 
-	for (a = fi->alias; a; a = a->next) {
+	for (sl = fi->alias; sl; sl = g_slist_next(sl)) {
 		/* XXX: UTF-8, locale, what's the proper encoding here? */
-		if (0 == ascii_strcasecmp((gchar *) a->data, file))
+		if (0 == ascii_strcasecmp((gchar *) sl->data, file))
 			return TRUE;
 	}
 
 	if (use_fuzzy_matching) {
-		for (a = fi->alias; a; a = a->next) {
-			gulong score = 100 * fuzzy_compare(a->data, file);
+		for (sl = fi->alias; sl; sl = g_slist_next(sl)) {
+			gulong score = 100 * fuzzy_compare(sl->data, file);
 			if (score >= (fuzzy_threshold << FUZZY_SHIFT)) {
 				g_warning("fuzzy: \"%s\"  ==  \"%s\" (score %f)",
-					(gchar *) a->data, file, score / 100.0);
+					(gchar *) sl->data, file, score / 100.0);
 				fi_alias(fi, file, TRUE);
 				return TRUE;
 			}
@@ -975,8 +975,7 @@ file_info_lookup(gchar *name, filesize_t size, const gchar *sha1)
 {
 	struct dl_file_info *fi;
 	struct namesize nsk;
-	GSList *list;
-	GSList *l;
+	GSList *list, *sl;
 
 	/*
 	 * If we have a SHA1, this is our unique key.
@@ -1024,8 +1023,8 @@ file_info_lookup(gchar *name, filesize_t size, const gchar *sha1)
 
 	list = g_hash_table_lookup(fi_by_size, &size);
 
-	for (l = list; l; l = l->next) {
-		fi = l->data;
+	for (sl = list; sl; sl = g_slist_next(sl)) {
+		fi = sl->data;
 
 		/* FIXME: FILE_SIZE_KNOWN: Should we provide another lookup?
 		 *	-- JA 2004-07-21
