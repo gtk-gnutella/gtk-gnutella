@@ -1406,7 +1406,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	 */
 	volatile size_t amount;
 	size_t available;
-	ssize_t r = (ssize_t) -1;
+	ssize_t r;
 	gint out_fd;
 	off_t start;
 
@@ -1417,8 +1417,8 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	g_assert(offset);
 	g_assert(len > 0);
 
-	out_fd = bio->wio->fd(bio->wio);
 	start = *offset;
+	out_fd = bio->wio->fd(bio->wio);
 	
 	/*
 	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN
@@ -1441,6 +1441,8 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 #ifndef HAS_SENDFILE
 	{
 		static gboolean first_call = TRUE;
+		const gchar *data;
+		gint n;
 
 		if (first_call) {
 			first_call = FALSE;
@@ -1468,47 +1470,48 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 				ctx->map = NULL;
 				ctx->map_start = 0;
 				ctx->map_end = 0;
-				r = (ssize_t) -1;
-			} else {
+				return (ssize_t) -1;
+			}
 #ifdef MADV_SEQUENTIAL
-				/* TODO:	Add _proper_ Configure check for madvise.
-				 *			No mere symbol check, please.
-				 */
-				madvise(ctx->map, len, MADV_SEQUENTIAL);
+			/* TODO:	Add _proper_ Configure check for madvise.
+			 *			No mere symbol check, please.
+			 */
+			madvise(ctx->map, len, MADV_SEQUENTIAL);
 #endif
-			}
 		}
-		if (ctx->map != NULL) {
-			const gchar *data;
-			gint n;
-		
-			if (0 != (n = sigsetjmp(mmap_env, 1))) {
-				switch (n) {
-				case SIGBUS:
-					g_warning("bio_sendfile(): Caught SIGBUS");
-					break;
-				case SIGSEGV:
-					g_warning("bio_sendfile(): Caught SIGSEGV");
-					break;
-				default:
-					g_assert_not_reached();
-				}
-				errno = EPIPE;
-				return -1;
+
+		g_assert(ctx->map != NULL);
+
+		if (0 != (n = sigsetjmp(mmap_env, 1))) {
+			switch (n) {
+			case SIGBUS:
+				g_warning("bio_sendfile(): Caught SIGBUS");
+				break;
+			case SIGSEGV:
+				g_warning("bio_sendfile(): Caught SIGSEGV");
+				break;
+			default:
+				g_assert_not_reached();
 			}
-
-			data = ctx->map;
-			g_assert(mmap_access == 0);
-			mmap_access = 1;
-			r = write(out_fd, &data[start - ctx->map_start], amount);
-			mmap_access = 0;
-
-			if (r > 0)
-				*offset = start + r;
+			errno = EPIPE;
+			return -1;
 		}
-		if (0 == r && ctx->map != NULL) {
-			munmap(ctx->map, amount);
+
+		data = ctx->map;
+		g_assert(mmap_access == 0);
+		mmap_access = 1;
+		r = write(out_fd, &data[start - ctx->map_start], amount);
+		mmap_access = 0;
+
+		switch (r) {
+		case (ssize_t) -1:
+			break;
+		case 0:
+			munmap(ctx->map, ctx->map_end - ctx->map_start);
 			ctx->map = NULL;
+			break;
+		default:
+			*offset = start + r;
 		}
 	}
 #else
@@ -1528,12 +1531,10 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	{
 		off_t written;
 
-		r = sendfile(in_fd, out_fd, start, amount, NULL,
-				&written, 0);
-
+		r = sendfile(in_fd, out_fd, start, amount, NULL, &written, 0);
 		if ((ssize_t) -1 == r) {
-			if (errno == EAGAIN)
-				r = (ssize_t) written;
+			if (errno == EAGAIN || errno == EINTR)
+				r = written > 0 ? (ssize_t) written : (ssize_t) -1;
 		} else {
 			r = amount;			/* Everything written, but returns 0 if OK */
 			if (r > 0)
