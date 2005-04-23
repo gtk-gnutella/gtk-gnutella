@@ -1537,9 +1537,9 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 				r = written > 0 ? (ssize_t) written : (ssize_t) -1;
 		} else {
 			r = amount;			/* Everything written, but returns 0 if OK */
-			if (r > 0)
-				*offset = start + r;
 		}
+		if (r > 0)
+			*offset = start + r;
 	}
 
 #else	/* !USE_BSD_SENDFILE */
