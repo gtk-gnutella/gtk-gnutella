@@ -365,7 +365,7 @@ gm_sanitize_filename(const gchar *filename,
 		}
 
 		g_assert(ext_size < FILENAME_MAXBYTES);
-		strlcpy_utf8(buf, s, FILENAME_MAXBYTES - ext_size);
+		utf8_strlcpy(buf, s, FILENAME_MAXBYTES - ext_size);
 
 		/* Append the filename extension */
 		if (ext) {
