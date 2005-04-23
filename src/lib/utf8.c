@@ -60,11 +60,10 @@ RCSID("$Id$");
 
 static guint32 common_dbg = 0;	/* XXX -- need to init lib's props --RAM */
 
+static void unicode_compose_init(void);
 static void unicode_decompose_init(void);
 size_t utf8_decompose_nfd(const gchar *in, gchar *out, size_t size);
-static inline const guint32 *utf32_decompose_nfd_char(guint32 uc, size_t *len);
 size_t utf8_decompose_nfkd(const gchar *in, gchar *out, size_t size);
-static inline const guint32 *utf32_decompose_nfkd_char(guint32 uc, size_t *len);
 size_t utf32_strmaxlen(const guint32 *s, size_t maxlen);
 size_t utf32_to_utf8(const guint32 *in, gchar *out, size_t size);
 size_t utf32_strlen(const guint32 *s);
@@ -87,30 +86,22 @@ static GIConv cd_locale_to_utf8	= (GIConv) -1;
 static GIConv cd_utf8_to_locale	= (GIConv) -1;
 static GIConv cd_latin_to_utf8	= (GIConv) -1;
 
-/*
- * How wide is an UTF-8 encoded char, depending on its first byte?
- */
-static guint8 utf8len[256] = {
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,		/* 000-015: ASCII */
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,		/* 016-031: ASCII */
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,		/* 032-047: ASCII */
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,		/* 048-063: ASCII */
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,		/* 064-079: ASCII */
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,		/* 080-095: ASCII */
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,		/* 096-111: ASCII */
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,		/* 112-127: ASCII */
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,		/* 128-143: invalid! */
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,		/* 128-159: invalid! */
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,		/* 160-175: invalid! */
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,		/* 176-191: invalid! */
-	2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,		/* 192-207 */
-	2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,		/* 208-223 */
-	3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,		/* 224-239 */
-	4,4,4,4,4,4,4,4,5,5,5,5,6,6,			/* 240-253 */
-	7,7										/* 254-255: special */
-};
+static inline G_GNUC_CONST guint
+utf8_skip(guchar c)
+{
+	/*
+	 * How wide is an UTF-8 encoded char, depending on its first byte?
+	 */
+	static const guint8 utf8len[64] = {
+		2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,		/* 192-207 */
+		2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,		/* 208-223 */
+		3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,		/* 224-239 */
+		4,4,4,4,4,4,4,4,5,5,5,5,6,6,			/* 240-253 */
+		7,7										/* 254-255: special */
+	};
 
-#define UTF8_SKIP(s)	utf8len[*((const guchar *) s)]
+	return 0xC0 ? utf8len[c & 63] : 1;
+}
 
 static const guint8 utf8len_mark[] = {
 	0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC
@@ -192,6 +183,23 @@ utf32_combining_class(guint32 uc)
 	return 0;
 }
 
+static inline gboolean
+utf32_composition_exclude(guint32 uc)
+{
+#define GET_ITEM(i) (utf32_composition_exclusions[(i)])
+#define FOUND(i) G_STMT_START { \
+	return TRUE; \
+} G_STMT_END
+	
+	/* Perform a binary search to find ``uc'' */
+	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_composition_exclusions), CMP,
+		GET_ITEM, FOUND);
+	
+#undef FOUND
+#undef GET_ITEM
+	return FALSE;
+}
+
 /**
  * Are the first bytes of string `s' forming a valid UTF-8 character?
  *
@@ -212,7 +220,7 @@ utf8_is_valid_char(const gchar *s)
 	if (!UTF8_IS_START(u))
 		return 0;
 
-	len = UTF8_SKIP(s);
+	len = utf8_skip(u);
 
 	if (len < 2 || !UTF8_IS_CONTINUATION(s[1]))
 		return 0;
@@ -274,7 +282,7 @@ utf8_is_valid_string(const gchar *s, size_t len)
  * @param dst_size the number of bytes ``dst'' can hold.
  */
 size_t
-strlcpy_utf8(gchar *dst, const gchar *src, size_t dst_size)
+utf8_strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 {
 	gchar *d = dst;
 	const gchar *s = src;
@@ -852,6 +860,7 @@ locale_init(void)
 	}
 #endif
 	
+	unicode_compose_init();
 	unicode_decompose_init();
 }
 
@@ -1188,7 +1197,7 @@ utf8_to_utf32(const gchar *in, guint32 *out, size_t size)
  *
  * @param in the UTF-32 input string.
  * @param out the target buffer for converted UTF-8 string.
- * @param size the length of the outbuf buffer - characters not bytes!
+ * @param size the length of the outbuf buffer in bytes.
  *        Whether the buffer was too small can be checked by comparing
  *        ``size'' with the return value. The value of ``size'' MUST NOT
  *        exceed INT_MAX.
@@ -1230,9 +1239,29 @@ utf32_to_utf8(const guint32 *in, gchar *out, size_t size)
 }
 
 /**
- * Looks up the decomposed string for a UTF-32 character.
+ * The equivalent of g_strdup() for UTF-32 strings.
+ */
+guint32 *
+utf32_strdup(const guint32 *s)
+{
+	guint32 *p;
+	size_t n;
+
+	if (!s)
+		return NULL; /* Just because g_strdup() does it like this */
+	
+	n = (1 + utf32_strlen(s)) * sizeof *p;
+	p = g_malloc(n);
+	memcpy(p, s, n);
+	return p;
+}
+
+/**
+ * Looks up the decomposed string for an UTF-32 character.
  *
  * @param uc the unicode character to look up.
+ * @param nfkd if TRUE, compatibility composition is used, otherwise
+ *			canonical composition.
  *
  * @returns NULL if the character is not in decomposition table. Otherwise,
  *          the returned pointer points to a possibly unterminated UTF-32
@@ -1240,70 +1269,16 @@ utf32_to_utf8(const guint32 *in, gchar *out, size_t size)
  *			is constant.
  */
 static const guint32 *
-utf32_nfd_lookup(guint32 uc)
-{
-	const guint16 *p = NULL;
-
-#define GET_ITEM(i) (utf32_nfd_lut_low[(i)].c)
-#define FOUND(i) G_STMT_START { p = utf32_nfd_lut_low[(i)].d; } G_STMT_END
-	
-	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_nfd_lut_low), CMP,
-		GET_ITEM, FOUND);
-	
-#undef FOUND
-#undef GET_ITEM
-
-	if (p) {
-		static guint32 buf[UTF32_NFD_REPLACE_MAXLEN];
-		size_t i;
-		
-		/*
-		 * utf32_nfd_lut_low contains 16-bit integers to reduce the
-		 * table size. Therefore, the characters are copied to a static
-		 * buffer expanding them to UTF-32.
-		 */
-		for (i = 0; i < G_N_ELEMENTS(buf); i++) {
-			guint16 c;
-
-			buf[i] = (c = *p++);
-			if (!c)
-				break;
-		}
-		return buf;
-	}
-	
-	/* utf32_nfd_lut_high contains UTF-32 strings, so we return a pointer
-	 * to the respective entry instead of copying the string */
-#define GET_ITEM(i) (utf32_nfd_lut_high[(i)].c)
-#define FOUND(i) G_STMT_START { return utf32_nfd_lut_high[(i)].d; } G_STMT_END
-	
-	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_nfd_lut_high), CMP,
-		GET_ITEM, FOUND);
-	
-#undef FOUND
-#undef GET_ITEM
-	return NULL;
-}
-
-/**
- * Looks up the partially decomposed (NFKD) string for an UTF-32 character.
- *
- * @param uc the unicode character to look up.
- *
- * @returns NULL if the character is not in decomposition table. Otherwise,
- *          the returned pointer points to a possibly unterminated UTF-32
- *			string of maximum UTF32_NFKD_REPLACE_MAXLEN characters. The result
- *			is constant.
- */
-static const guint32 *
-utf32_nfkd_lookup(guint32 uc)
+utf32_decompose_lookup(guint32 uc, gboolean nfkd)
 {
 	/* utf32_nfkd_lut contains UTF-32 strings, so we return a pointer
 	 * to the respective entry instead of copying the string */
-#define GET_ITEM(i) (utf32_nfkd_lut[(i)].c)
-#define FOUND(i) G_STMT_START { return utf32_nfkd_lut[(i)].d; } G_STMT_END
+#define GET_ITEM(i) (utf32_nfkd_lut[(i)].c & ~UTF32_F_MASK)
+#define FOUND(i) G_STMT_START { \
+	return utf32_nfkd_lut[(i)].c & (nfkd ? 0 : UTF32_F_NFKD) \
+		? NULL \
+		: utf32_nfkd_lut[(i)].d; \
+} G_STMT_END
 	
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_nfkd_lut), CMP,
@@ -1315,7 +1290,7 @@ utf32_nfkd_lookup(guint32 uc)
 }
 
 /**
- * Looks up the uppercase variant of an UTF-32 character.
+ * Looks up the simple uppercase variant of an UTF-32 character.
  *
  * @return the uppercase variant of ``uc'' or ``uc'' itself.
  */
@@ -1345,7 +1320,7 @@ utf32_uppercase(guint32 uc)
 }
 
 /**
- * Looks up the lowercase variant of an UTF-32 character.
+ * Looks up the simple lowercase variant of an UTF-32 character.
  *
  * @return the lowercase variant of ``uc'' or ``uc'' itself.
  */
@@ -1413,7 +1388,7 @@ utf32_sort_canonical(guint32 *src)
 				;
 
 			/* Use insertion sort because we need a stable sort algorithm */
-			for (p = &stable[2]; p != s; p++) {
+			for (p = &stable[1]; p != s; p++) {
 				guint32 *q;
 
 				uc = *p;
@@ -1514,7 +1489,7 @@ utf8_sort_canonical(gchar *src)
 /**
  * Decomposes a Hangul character.
  *
- * @param uc must be a Hanguel character
+ * @param uc must be a Hangul character
  * @param buf must be at least three elements large
  * @return a pointer to the last written character in buf
  */
@@ -1551,51 +1526,71 @@ utf32_decompose_hangul_char(guint32 uc, guint32 *buf)
 }
 
 /**
- * Decomposes (NFD) a single UTF-32 character.
- *
- * @param uc the UTF-32 to decompose.
- * @param len the variable ``len'' points to will be set to
- *        length in characters (not bytes!) of decomposed string. This is
- *        important because the decomposed string is not zero-terminated.
- *
- * @returns a pointer to a buffer holding the decomposed string.
- *			The buffer is unterminated. The maximum length is
- *			UTF32_NFD_REPLACE_MAXLEN characters. The returned pointer points
- *			to a static buffer which might get overwritten by subsequent
- *			calls to this function.
+ * Composes all Hangul characters in a string.
  */
-static inline const guint32 *
-utf32_decompose_nfd_char(guint32 uc, size_t *len)
+static inline void
+utf32_compose_hangul(guint32 *s)
 {
-	static guint32 buf[3];
-	guint32 *p = buf;
-	const guint32 *q;
+#define L_COUNT 19
+#define T_COUNT 28
+#define V_COUNT 21
+#define N_COUNT (T_COUNT * V_COUNT)
+#define S_COUNT (L_COUNT * N_COUNT)
+	static const guint32 l_base = 0x1100;
+	static const guint32 v_base = 0x1161;
+	static const guint32 t_base = 0x11A7;
+	static const guint32 s_base = 0xAC00;
+	guint32 uc, prev, *p;
 
-	if (UNICODE_IS_ASCII(uc)) {
-		*p++ = uc;
-	} else if (UNICODE_IS_HANGUL(uc)) {
-		p = utf32_decompose_hangul_char(uc, p);
-	} else if (NULL != (q = utf32_nfd_lookup(uc))) {
-		*len = utf32_strmaxlen(q, UTF32_NFD_REPLACE_MAXLEN);
-		return q;
-	} else {
+	if (0 == (prev = *s))
+		return;
+
+	for (p = ++s; 0 != (uc = *s); s++) {
+		gint l_index, s_index;
+	
+		l_index	= prev - l_base;
+		if (0 <= l_index && l_index < L_COUNT) {
+			gint v_index = uc - v_base;
+
+			if (0 <= v_index && v_index < V_COUNT) {
+				prev = s_base + (l_index * V_COUNT + v_index) * T_COUNT;
+				*(p - 1) = prev;
+				continue;
+			}
+		}
+
+		s_index = prev - s_base;
+		if (0 <= s_index && s_index < S_COUNT && 0 == (s_index % T_COUNT)) {
+			gint t_index = uc - t_base;
+
+			if (0 < t_index && t_index < T_COUNT) {
+				prev += t_index;
+				*(p - 1) = prev;
+				continue;
+			}
+		}
+
+		prev = uc;
 		*p++ = uc;
 	}
-
-	g_assert(p > buf && p < &buf[sizeof buf]);
-	*len = p - buf;
-	return buf;
+	*p = 0x0000;
+	
+#undef N_COUNT
+#undef V_COUNT
+#undef T_COUNT
+#undef L_COUNT
 }
 
 /**
- * Decomposes (NKFD) a single UTF-32 character partially. That means
- * each character of the resulting string must be decomposed again
- * until there no decomposable characters are left.
+ * Decomposes a single UTF-32 character. This must be used iteratively
+ * to gain the complete decomposition.
  *
  * @param uc the UTF-32 to decompose.
  * @param len the variable ``len'' points to will be set to
  *        length in characters (not bytes!) of decomposed string. This is
  *        important because the decomposed string is not zero-terminated.
+ * @param nfkd if TRUE, compatibility composition is used, otherwise
+ *			canonical composition.
  *
  * @returns a pointer to a buffer holding the decomposed string.
  *			The buffer is unterminated. The maximum length is
@@ -1604,7 +1599,7 @@ utf32_decompose_nfd_char(guint32 uc, size_t *len)
  *			calls to this function.
  */
 static inline const guint32 *
-utf32_decompose_nfkd_char_single(guint32 uc, size_t *len)
+utf32_decompose_single_char(guint32 uc, size_t *len, gboolean nfkd)
 {
 	static guint32 buf[3];
 	guint32 *p = buf;
@@ -1614,7 +1609,7 @@ utf32_decompose_nfkd_char_single(guint32 uc, size_t *len)
 		*p++ = uc;
 	} else if (UNICODE_IS_HANGUL(uc)) {
 		p = utf32_decompose_hangul_char(uc, p);
-	} else if (NULL != (q = utf32_nfkd_lookup(uc))) {
+	} else if (NULL != (q = utf32_decompose_lookup(uc, nfkd))) {
 		*len = utf32_strmaxlen(q, UTF32_NFKD_REPLACE_MAXLEN);
 		return q;
 	} else {
@@ -1627,12 +1622,14 @@ utf32_decompose_nfkd_char_single(guint32 uc, size_t *len)
 }
 
 /**
- * Decomposes (NKFD) an UTF-32 character.
+ * Decomposes an UTF-32 character completely.
  *
  * @param uc the UTF-32 to decompose.
  * @param len the variable ``len'' points to will be set to
  *        length in characters (not bytes!) of decomposed string. This is
  *        important because the decomposed string is not zero-terminated.
+ * @param nfkd if TRUE, compatibility composition is used, otherwise
+ *			canonical composition.
  *
  * @returns a pointer to a buffer holding the decomposed string.
  *			The buffer is unterminated. The maximum length is
@@ -1641,14 +1638,14 @@ utf32_decompose_nfkd_char_single(guint32 uc, size_t *len)
  *			calls to this function.
  */
 static inline const guint32 *
-utf32_decompose_nfkd_char(guint32 uc, size_t *len)
+utf32_decompose_char(guint32 uc, size_t *len, gboolean nfkd)
 {
 	static guint32 buf[2][256];
 	const guint32 *old;
 	guint32 *p, *cur;
 	size_t size, start;
 
-	old = utf32_decompose_nfkd_char_single(uc, &size);
+	old = utf32_decompose_single_char(uc, &size, nfkd);
 	if (1 == size && uc == old[0]) {
 		*len = 1;
 		return old;
@@ -1675,7 +1672,7 @@ utf32_decompose_nfkd_char(guint32 uc, size_t *len)
 			const guint32 *q;
 			size_t n;
 		
-			q = utf32_decompose_nfkd_char_single(old[i], &n);
+			q = utf32_decompose_single_char(old[i], &n, nfkd);
 			if (!mod && (n > 1 || *q != old[i]))
 				mod = &old[i];
 				   	
@@ -1701,9 +1698,9 @@ utf32_decompose_nfkd_char(guint32 uc, size_t *len)
 }
 
 /**
- * Determines the length of a UTF-32 string.
+ * Determines the length of an UTF-32 string.
  *
- * @param s a UTF-32 string.
+ * @param s a NUL-terminated UTF-32 string.
  * @returns the length in characters (not bytes!) of the string ``s''.
  */
 size_t
@@ -1729,7 +1726,7 @@ utf32_strlen(const guint32 *s)
  * value equals maxlen. Otherwise, the returned value is indeed the
  * complete length of the UTF-32 string.
  *
- * @param s a UTF-32 string.
+ * @param s an UTF-32 string.
  * @param maxlen the maximum number of characters to inspect.
  *
  * @returns the length in characters (not bytes!) of the string ``s''.
@@ -1749,8 +1746,6 @@ utf32_strmaxlen(const guint32 *s, size_t maxlen)
 	return p - s;
 }
 
-typedef const guint32 * (* utf32_decompose_func)(guint32 uc, size_t *len);
-
 /**
  * Decomposes an UTF-8 encoded string.
  *
@@ -1763,18 +1758,19 @@ typedef const guint32 * (* utf32_decompose_func)(guint32 uc, size_t *len);
  * @param src a UTF-8 encoded string.
  * @param dst a pointer to a buffer which will hold the decomposed string.
  * @param size the number of bytes ``dst'' can hold.
+ * @param nfkd if TRUE, compatibility composition is used, otherwise
+ *			canonical composition.
  *
  * @returns the length in bytes (not characters!) of completely decomposed
  *			string.
  */
 static inline size_t
-utf8_decompose(const gchar *src, gchar *out, size_t size,
-		utf32_decompose_func func)
+utf8_decompose(const gchar *src, gchar *out, size_t size, gboolean nfkd)
 {
 	const guint32 *d;
 	guint32 uc;
 	gint retlen;
-	size_t d_len, len = 0, nfd_len = 0;
+	size_t d_len, len = 0, new_len = 0;
 
 	g_assert(src != NULL);
 	g_assert(size == 0 || out != NULL);
@@ -1794,7 +1790,7 @@ utf8_decompose(const gchar *src, gchar *out, size_t size,
 
 			src += retlen;
 			len -= retlen;
-			d = func(uc, &d_len);
+			d = utf32_decompose_char(uc, &d_len, nfkd);
 			q = buf;
 			while (d_len-- > 0) {
 				utf8_len = utf8_encode_char(*d++, utf8_buf);
@@ -1804,8 +1800,8 @@ utf8_decompose(const gchar *src, gchar *out, size_t size,
 			}
 
 			utf8_len = q - buf;
-			nfd_len += utf8_len;
-			if (nfd_len > size)
+			new_len += utf8_len;
+			if (new_len > size)
 				break;
 
 			memcpy(dst, buf, utf8_len);
@@ -1826,12 +1822,12 @@ utf8_decompose(const gchar *src, gchar *out, size_t size,
 		
 		src += retlen;
 		len -= retlen;
-		d = func(uc, &d_len);
+		d = utf32_decompose_char(uc, &d_len, nfkd);
 		while (d_len-- > 0)
-			nfd_len += utf8_encoded_char_len(*d++);
+			new_len += utf8_encoded_char_len(*d++);
 	}
 
-	return nfd_len;
+	return new_len;
 }
 
 /**
@@ -1853,7 +1849,7 @@ utf8_decompose(const gchar *src, gchar *out, size_t size,
 size_t
 utf8_decompose_nfd(const gchar *src, gchar *out, size_t size)
 {
-	return utf8_decompose(src, out, size, utf32_decompose_nfd_char);
+	return utf8_decompose(src, out, size, FALSE);
 }
 
 /**
@@ -1875,7 +1871,7 @@ utf8_decompose_nfd(const gchar *src, gchar *out, size_t size)
 size_t
 utf8_decompose_nfkd(const gchar *src, gchar *out, size_t size)
 {
-	return utf8_decompose(src, out, size, utf32_decompose_nfkd_char);
+	return utf8_decompose(src, out, size, TRUE);
 }
 
 /**
@@ -1883,8 +1879,7 @@ utf8_decompose_nfkd(const gchar *src, gchar *out, size_t size)
  *
  */
 static inline size_t
-utf32_decompose(const guint32 *in, guint32 *out, size_t size,
-		utf32_decompose_func func)
+utf32_decompose(const guint32 *in, guint32 *out, size_t size, gboolean nfkd)
 {
 	const guint32 *d, *s = in;
 	guint32 *p = out;
@@ -1897,7 +1892,7 @@ utf32_decompose(const guint32 *in, guint32 *out, size_t size,
 
 	if (size-- > 0) {
 		while ((uc = *s) != 0x0000) {
-			d = func(uc, &d_len);
+			d = utf32_decompose_char(uc, &d_len, nfkd);
 			if (d_len > size)
 				break;
 			size -= d_len;
@@ -1912,7 +1907,7 @@ utf32_decompose(const guint32 *in, guint32 *out, size_t size,
 	}
 
 	while ((uc = *s++) != 0x0000) {
-		d = func(uc, &d_len);
+		d = utf32_decompose_char(uc, &d_len, nfkd);
 		p += d_len;
 	}
 
@@ -1926,7 +1921,7 @@ utf32_decompose(const guint32 *in, guint32 *out, size_t size,
 size_t
 utf32_decompose_nfd(const guint32 *in, guint32 *out, size_t size)
 {
-	return utf32_decompose(in, out, size, utf32_decompose_nfd_char);
+	return utf32_decompose(in, out, size, FALSE);
 }
 
 /**
@@ -1936,7 +1931,7 @@ utf32_decompose_nfd(const guint32 *in, guint32 *out, size_t size)
 size_t
 utf32_decompose_nfkd(const guint32 *in, guint32 *out, size_t size)
 {
-	return utf32_decompose(in, out, size, utf32_decompose_nfkd_char);
+	return utf32_decompose(in, out, size, TRUE);
 }
 
 typedef guint32 (* utf8_remap_func)(guint32 uc);
@@ -2166,6 +2161,21 @@ unicode_NFC(const UChar *source, gint32 len, UChar *result, gint32 rlen)
 
 	g_assert(use_icu);
 	r = unorm_normalize(source, len, UNORM_NFC, 0, result, rlen, &error);
+
+	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
+}
+
+/**
+ * Compact a string as specified in unicode
+ */
+int
+unicode_NFKC(const UChar *source, gint32 len, UChar *result, gint32 rlen)
+{
+	UErrorCode error = U_ZERO_ERROR;
+	int r;
+
+	g_assert(use_icu);
+	r = unorm_normalize(source, len, UNORM_NFKC, 0, result, rlen, &error);
 
 	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
 }
@@ -2427,6 +2437,333 @@ is_latin_locale(void)
 	return latin_locale;
 }
 
+static GHashTable *utf32_compose_roots;
+
+/**
+ * Finds the composition of two UTF-32 characters.
+ *
+ * @param a an UTF-32 character (should be a starter)
+ * @param b an UTF-32 character
+ *
+ * @return	zero if there's no composition for the characters. Otherwise,
+ *			the composed character is returned.
+ */
+static guint32
+utf32_compose_char(guint32 a, guint32 b)
+{
+	GSList *sl;
+	gpointer key;
+	
+	key = GUINT_TO_POINTER(a);
+	sl = g_hash_table_lookup(utf32_compose_roots, key);
+	for (/* NOTHING */; sl; sl = g_slist_next(sl)) {
+		guint i;
+		guint32 c;
+
+		i = GPOINTER_TO_UINT(sl->data);
+		c = utf32_nfkd_lut[i].d[1];
+		if (b == c) {
+			return utf32_nfkd_lut[i].c & ~UTF32_F_MASK;
+		} else if (b < c) {
+			/* The lists are sorted */
+			break;
+		}
+	}
+
+	return 0;
+}
+
+/**
+ * Finds the next ``starter'' character (combining class zero) in the
+ * string starting at ``s''. Note that NUL is also a ``starter''.
+ *
+ * @param s an NUL-terminated UTF-32 string.
+ * @return a pointer to the next ``starter'' character in ``s''.
+ */
+static inline guint32 *
+utf32_next_starter(const guint32 *s)
+{
+	while (0 != utf32_combining_class(*s))
+		s++;
+	return deconstify_guint32(s);
+}
+
+/**
+ * Composes an UTF-32 encoded string in-place. The modified string
+ * might be shorter but is never longer than the original string.
+ *
+ * NB:	We assume that a direct composition, eliminates at most one
+ *		character. Further, the string must be in canonical order.
+ *
+ * @param src an NUL-terminated UTF-32 string.
+ * @return	the length in characters (not bytes!) of the possibly
+ *			modified string.
+ */
+static size_t
+utf32_compose(guint32 *src)
+{
+	guint32 *s, *p, uc, *end;
+
+	g_assert(src != NULL);
+
+	s = utf32_next_starter(src);
+	if (0 == *s)
+		return s - src;
+
+	/* The end of the string is determined in advance because a composition
+	 * can cause a ``hole''. Instead of rejoining the string each time,
+	 * the erased composite character is replaced with a NUL which is then
+	 * skipped when scanning the same position again.
+     */	   
+	end = s + utf32_strlen(s);
+	p = s;
+		
+	while (s != end) {
+		guint32 *q = s;
+
+		uc = *s;
+		for (;;) {
+			guint32 c, uc2;
+
+			/* We must skip over previously erased characters but
+			 * not run over ``end''. */
+			do {	
+				uc2 = *++q;
+			} while (uc2 == 0 && q != end);
+		
+			c = utf32_compose_char(uc, uc2);
+			if (!c) {
+				guint cc = utf32_combining_class(uc2);
+				
+				if (
+					0 == cc ||
+					cc == utf32_combining_class(q[1])
+				) {
+					/* Record the final composition and go to the next
+					 * write position */
+					*p++ = uc;
+
+					/* Make sure we fill possibly created holes */
+					while (++s != q) {
+						if (0 != (c = *s))
+							*p++ = c;
+					}
+
+					break;
+				}
+			} else {
+				*q = 0;	/* Erase the composite character */
+				uc = c;	/* The preliminary composition */
+				
+				/* However, there might be a composition for this
+				 * character as well. Thus, restart. */
+				q = s;
+			}
+		}
+	}
+	*p = 0x0000;
+
+	return p - src;
+}
+
+/**
+ * Helper function to sort the lists of ``utf32_compose_roots''.
+ */
+static int
+compose_root_cmp(gconstpointer a, gconstpointer b)
+{
+	guint i = GPOINTER_TO_UINT(a), j = GPOINTER_TO_UINT(b);
+
+	g_assert(i < G_N_ELEMENTS(utf32_nfkd_lut));
+	g_assert(j < G_N_ELEMENTS(utf32_nfkd_lut));
+	return CMP(utf32_nfkd_lut[i].d[1], utf32_nfkd_lut[j].d[1]);
+}
+
+/**
+ * This is a helper for unicode_compose_init() to create the lookup
+ * table used by utf32_compose_char(). The first character of the
+ * decomposition sequence is used as key, the index into the
+ * ``utf32_nfkd_lut'' is used as value.
+ */
+static void 
+unicode_compose_add(guint index)
+{
+	GSList *sl, *new_sl;
+	gpointer key;
+
+	key = GUINT_TO_POINTER(utf32_nfkd_lut[index].d[0]);
+	sl = g_hash_table_lookup(utf32_compose_roots, key);
+	new_sl = g_slist_insert_sorted(sl,
+			GUINT_TO_POINTER(index), compose_root_cmp);
+	if (sl != new_sl)
+		g_hash_table_insert(utf32_compose_roots, key, new_sl);
+}
+
+static void
+unicode_compose_init(void)
+{
+	size_t i;
+
+	utf32_compose_roots = g_hash_table_new(NULL, NULL);
+
+	for (i = 0; i < G_N_ELEMENTS(utf32_nfkd_lut); i++) {
+		guint32 uc;
+		
+		uc = utf32_nfkd_lut[i].c;
+		
+		g_assert(i == 0 ||
+			(uc & ~UTF32_F_MASK) > (utf32_nfkd_lut[i - 1].c & ~UTF32_F_MASK));
+
+		if (!(uc & UTF32_F_NFKD)) {
+			const guint32 *s;
+			
+			uc &= ~UTF32_F_MASK;
+			s = utf32_decompose_lookup(uc, FALSE);
+			g_assert(s);
+			g_assert(s[0] != 0);
+			
+			/* Singletons are excluded from compositions */
+			if (0 == s[1])
+				continue;
+
+			/* Decomposed sequences beginning with a non-starter are excluded
+	 		 * from compositions */
+			if (0 != utf32_combining_class(s[0]))
+				continue;
+
+			/* Special exclusions */
+			if (utf32_composition_exclude(uc))
+				continue;
+
+			/* NB:	utf32_compose() assumes that each direct composition
+	 		 *		eliminates at most one character.
+			 */
+			g_assert(s[0] != 0 && s[1] != 0 && s[2] == 0);
+			
+			unicode_compose_add(i);
+		}
+	}
+
+#if 0 && defined(USE_GLIB2)	
+	for (;;) {	
+		guint32 test[32];
+		guint32 q[1024], *x, *y;
+		gchar s[1024], t[1024], *s_nfc;
+		size_t size;
+
+#if 1 
+		for (i = 0; i < G_N_ELEMENTS(test) - 1; i++) {
+			guint32 uc;
+			
+			do {
+				uc = random_value(0x10FFFF);
+			} while (
+				!uc ||
+				UNICODE_IS_SURROGATE(uc) ||
+				UNICODE_IS_BYTE_ORDER_MARK(uc) ||
+				UNICODE_IS_ILLEGAL(uc)
+			);
+			test[i] = uc;
+		}
+		test[i] = 0;
+#endif
+
+#if 0 
+		test[0] = 0x3271;
+		test[1] = 0x26531;
+		test[2] = 0;
+#endif
+	
+#if 0 
+		test[0] = 0x1ed;
+	   	test[1] = 0x945e4;
+		test[2] = 0;
+#endif
+
+#if 0 
+		test[0] = 0x00a8;
+	   	test[1] = 0x0711;
+		test[2] = 0x301;
+		test[3] = 0;
+#endif
+		
+#if 0 
+		test[0] = 0xef0b8;
+		test[1] = 0x56ecd;
+	   	test[2] = 0x6b325;
+	   	test[3] = 0x46fe6;
+	   	test[4] = 0;
+#endif
+		
+#if 0 
+		test[0] = 0x40d;
+		test[1] = 0x3d681;
+	   	test[2] = 0x1087ae;
+	   	test[3] = 0x61ba1;
+	   	test[4] = 0;
+#endif
+
+#if 0 
+		test[0] = 0x32b;
+		test[1] = 0x93c;
+	   	test[2] = 0x22f0;
+	   	test[3] = 0xcb90;
+	   	test[4] = 0;
+#endif
+
+#if 0
+		/* This fails with GLib 2.6.0 because g_utf8_normalize() 
+		 * eats the Hangul Jamo character when using G_NORMALIZE_NFC. */
+		test[0] = 0x5828;
+		test[1] = 0xd76c;
+	   	test[2] = 0x11a7;
+	   	test[3] = 0xd792;
+	   	test[4] = 0;
+#endif
+	
+		size = 1 + utf32_decompose_nfd(test, NULL, 0);
+		y = g_malloc(size * sizeof *y);
+		utf32_decompose_nfd(test, y, size);
+		x = utf32_strdup(y);
+		utf32_compose(x);
+		utf32_compose_hangul(x);
+		utf32_to_utf8(x, t, sizeof t);
+		
+		utf32_to_utf8(test, s, sizeof s);
+		
+#if !defined(USE_ICU)
+		s_nfc = g_utf8_normalize(s, (gssize) -1, G_NORMALIZE_NFC);
+#else
+		{
+			size_t len, maxlen;
+			UChar *qtmp1, *qtmp2;
+			
+			maxlen = strlen(s) * 6 + 1;
+			qtmp1 = (UChar *) g_malloc(maxlen * sizeof(UChar));
+			qtmp2 = (UChar *) g_malloc(maxlen * sizeof(UChar));
+			len = utf8_to_icu_conv(s, strlen(s), qtmp1, maxlen);
+			len = unicode_NFC(qtmp1, len, qtmp2, maxlen);
+			s_nfc = g_malloc0((len * 6) + 1);
+			len = icu_to_utf8_conv(qtmp2, len, s_nfc, len * 6);
+			s_nfc[len] = '\0';
+			G_FREE_NULL(qtmp2);
+			G_FREE_NULL(qtmp1);
+		}
+#endif
+
+		g_assert(s_nfc != NULL);
+		utf8_to_utf32(s_nfc, q, G_N_ELEMENTS(q));
+
+		if (0 != strcmp(s_nfc, t))
+			G_BREAKPOINT();
+
+		G_FREE_NULL(x);	
+		G_FREE_NULL(y);	
+		G_FREE_NULL(s_nfc);	
+	}
+#endif
+}
+
 static void
 unicode_decompose_init(void)
 {
@@ -2451,9 +2788,9 @@ unicode_decompose_init(void)
 		size = g_unichar_to_utf8(i, utf8_char);
 		g_assert((gint) size >= 0 && size < sizeof utf8_char);
 		utf8_char[size] = '\0';
-		utf8_decompose_nfkd(utf8_char, buf, G_N_ELEMENTS(buf));
+		utf8_decompose_nfd(utf8_char, buf, G_N_ELEMENTS(buf));
 #if !defined(USE_ICU)
-		s = g_utf8_normalize(utf8_char, -1, G_NORMALIZE_NFKD);
+		s = g_utf8_normalize(utf8_char, -1, G_NORMALIZE_NFD);
 #else
 		{
 			size_t len, maxlen;
@@ -2556,7 +2893,28 @@ unicode_decompose_init(void)
 
 		g_assert(!utf32_canonical_sorted(test));
 #endif
-		
+
+#if 0 
+		j = 0;	
+		test[j++] = 0x32b;
+		test[j++] = 0x93c;
+		test[j++] = 0x22f0;
+		test[j++] = 0xcb90;
+		test[j] = 0;
+		utf32_len = j;
+#endif
+
+#if 1
+		j = 0;	
+		test[j++] = 0x239f;
+		test[j++] = 0xcd5c;
+		test[j++] = 0x11a7;
+		test[j++] = 0x6d4c;
+		test[j] = 0;
+		utf32_len = j;
+#endif
+
+
 		utf8_len = utf32_to_utf8(test, buf, G_N_ELEMENTS(buf));
 		g_assert(utf8_len < sizeof buf);
 		g_assert(utf32_len <= utf8_len);

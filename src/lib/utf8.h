@@ -44,7 +44,7 @@ void locale_close(void);
 const gchar *locale_get_charset(void);
 gint utf8_is_valid_char(const gchar *s);
 size_t utf8_is_valid_string(const gchar *s, size_t len);
-size_t strlcpy_utf8(gchar *dst, const gchar *src, size_t dst_size);
+size_t utf8_strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 guint32 utf8_decode_char(const gchar *s, gint len, gint *retlen, gboolean warn);
 gint utf8_to_iso8859(gchar *s, gint len, gboolean space);
 size_t utf8_strlower(gchar *dst, const gchar *src, size_t size);
