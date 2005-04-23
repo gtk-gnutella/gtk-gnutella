@@ -74,6 +74,13 @@ deconstify_gchar(const gchar *p)
 	return (gchar *) p;
 }
 
+static inline G_GNUC_CONST WARN_UNUSED_RESULT guint32 *
+deconstify_guint32(const guint32 *p)
+{
+	return (guint32 *) p;
+}
+
+
 
 gint ascii_strcasecmp(const gchar *s1, const gchar *s2);
 gint ascii_strncasecmp(const gchar *s1, const gchar *s2, size_t len);
@@ -314,8 +321,8 @@ gboolean is_symlink(const gchar *);
 gboolean file_exists(const gchar *);
 guint32 next_pow2(guint32 n);
 
-static inline gboolean is_pow2(guint32 value) G_GNUC_CONST;
-static inline gboolean is_pow2(guint32 value)
+static inline G_GNUC_CONST gboolean
+is_pow2(guint32 value)
 {
 	return value && !(value & (value - 1));
 }
