@@ -207,7 +207,7 @@ enum node_bad {
 	NODE_BAD_OK = 0,		/* Node is fine */
 	NODE_BAD_IP,			/* Node has a bad (unstable) IP */
 	NODE_BAD_VENDOR,		/* Node has a bad vendor string */
-	NODE_BAD_NO_VENDOR,		/* Node has no vendor string */
+	NODE_BAD_NO_VENDOR		/* Node has no vendor string */
 };
 
 static guint connected_node_cnt = 0;
@@ -4976,9 +4976,8 @@ void
 node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 {
 	struct gnutella_node *n;
-    gchar *connection_type;
 	gboolean incoming = FALSE, already_connected = FALSE;
-	gint major = 0, minor = 0;
+	guint major = 0, minor = 0;
 
 	g_assert(s == NULL || s->resource.node == NULL);
 
@@ -5118,7 +5117,6 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 			n->flags |= NODE_F_TLS;
 
 		n->flags |= NODE_F_INCOMING;
-		connection_type = "Incoming";
 	} else {
 		/* We have to create an outgoing control connection for the node */
 
@@ -5145,7 +5143,6 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 				n->flags |= NODE_F_VALID;
 		}
 
-		connection_type = "Outgoing";
 	}
 
     node_fire_node_added(n);
