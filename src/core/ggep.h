@@ -40,7 +40,7 @@
  * GGEP Extension Header Flags.
  */
 
-#define GGEP_F_LAST		'\x80'		/* Last extension in GGEP block */
+#define GGEP_F_LAST		0x80U		/* Last extension in GGEP block */
 #define GGEP_F_COBS		'\x40'		/* Whether COBS was used on payload */
 #define GGEP_F_DEFLATE	'\x20'		/* Whether payload was deflated */
 #define GGEP_F_MBZ		'\x10'		/* Bits that Must Be Zero */
