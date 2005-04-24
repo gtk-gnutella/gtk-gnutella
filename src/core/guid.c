@@ -172,7 +172,7 @@ guid_flag_modern(gchar *muid)
 	 *				--RAM, 15/09/2001
 	 */
 
-	muid[8] = 0xff;
+	muid[8] = ~0;
 	muid[15] = GUID_PONG_CACHING | GUID_PERSISTENT;
 }
 
