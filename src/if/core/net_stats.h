@@ -43,6 +43,7 @@ enum {
 	MSG_SEARCH,
 	MSG_SEARCH_RESULTS,
 	MSG_TOTAL,     /* always counted (for all the above types) */
+	
 	MSG_TYPE_COUNT /* number of known message types */
 };
 
@@ -74,6 +75,7 @@ typedef enum msg_drop_reason {
 	MSG_DROP_BAD_RESULT,
 	MSG_DROP_BAD_RETURN_ADDRESS,
 	MSG_DROP_HOSTILE_IP,
+	
 	MSG_DROP_REASON_COUNT /* number of known reasons to drop a message */
 } msg_drop_reason_t;
 
@@ -116,6 +118,7 @@ typedef enum {
 	GNR_UDP_BOGUS_SOURCE_IP,
 	GNR_UDP_ALIEN_MESSAGE,
 	GNR_UDP_UNPROCESSED_MESSAGE,
+	
 	GNR_TYPE_COUNT /* number of general stats */
 } gnr_stats_t;
 
@@ -137,22 +140,7 @@ typedef struct gnet_stat {
 		guint64 received_ttl[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
 		guint64 flowc_hops[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
 		guint64 flowc_ttl[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
-	} pkg;
-
-	struct {
-		guint64 received[MSG_TYPE_COUNT];
-		guint64 expired[MSG_TYPE_COUNT];
-		guint64 dropped[MSG_TYPE_COUNT];
-		guint64 queued[MSG_TYPE_COUNT];
-		guint64 relayed[MSG_TYPE_COUNT];
-		guint64 gen_queued[MSG_TYPE_COUNT];
-		guint64 generated[MSG_TYPE_COUNT];
-		guint64 received_hops[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
-		guint64 received_ttl[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
-		guint64 flowc_hops[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
-		guint64 flowc_ttl[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
-	} byte;
-
+	} pkg, byte;
 
 	guint64 general[GNR_TYPE_COUNT];
 } gnet_stats_t;
@@ -165,7 +153,7 @@ typedef enum {
 	BW_LEAF_IN,
 	BW_LEAF_OUT,
 	BW_GNET_UDP_IN,
-	BW_GNET_UDP_OUT,
+	BW_GNET_UDP_OUT
 } gnet_bw_source;
 
 typedef struct gnet_bw_stats {
