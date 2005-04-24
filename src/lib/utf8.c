@@ -139,12 +139,12 @@ static const guint8 utf8len_mark[] = {
 	(((o) << UTF8_ACCU_SHIFT) | (CHAR(n) & UTF8_CONT_MASK))
 
 #define UNISKIP(v) (			\
-	(v) <  0x80 		? 1 :	\
-	(v) <  0x800 		? 2 :	\
-	(v) <  0x10000 		? 3 :	\
-	(v) <  0x200000		? 4 :	\
-	(v) <  0x4000000	? 5 :	\
-	(v) <  0x80000000	? 6 : 7)
+	(v) <  0x80U 		? 1 :	\
+	(v) <  0x800U 		? 2 :	\
+	(v) <  0x10000U 	? 3 :	\
+	(v) <  0x200000U	? 4 :	\
+	(v) <  0x4000000U	? 5 :	\
+	(v) <  0x80000000U	? 6 : 7)
 
 #define UNI_SURROGATE_FIRST		0xd800
 #define UNI_SURROGATE_SECOND	0xdc00
@@ -164,7 +164,8 @@ static const guint8 utf8len_mark[] = {
 #define UNICODE_IS_ASCII(x)				((x) < 0x0080U)
 #define UNICODE_IS_REPLACEMENT(x)		((x) == UNI_REPLACEMENT)
 #define UNICODE_IS_BYTE_ORDER_MARK(x)	((x) == UNI_BYTE_ORDER_MARK)
-#define UNICODE_IS_ILLEGAL(x)			((x) == UNI_ILLEGAL)
+#define UNICODE_IS_ILLEGAL(x) \
+	(((x) & UNI_ILLEGAL) == UNI_ILLEGAL || (x) > 0x10FFFFU)
 
 static inline guint
 utf32_combining_class(guint32 uc)
@@ -172,6 +173,7 @@ utf32_combining_class(guint32 uc)
 #define GET_ITEM(i) (utf32_comb_class_lut[(i)].uc)
 #define FOUND(i) G_STMT_START { \
 	return utf32_comb_class_lut[(i)].cc; \
+	/* NOTREACHED */ \
 } G_STMT_END
 	
 	/* Perform a binary search to find ``uc'' */
@@ -189,6 +191,7 @@ utf32_composition_exclude(guint32 uc)
 #define GET_ITEM(i) (utf32_composition_exclusions[(i)])
 #define FOUND(i) G_STMT_START { \
 	return TRUE; \
+	/* NOTREACHED */ \
 } G_STMT_END
 	
 	/* Perform a binary search to find ``uc'' */
@@ -209,8 +212,8 @@ gint
 utf8_is_valid_char(const gchar *s)
 {
 	const guchar u = (guchar) *s;
-	gint len;
-	gint slen;
+	guint len;
+	guint slen;
 	guint32 v;
 	guint32 ov;
 
@@ -426,7 +429,7 @@ utf8_decode_char(const gchar *s, gint len, gint *retlen, gboolean warn)
 #define UTF8_WARN_SURROGATE			6
 #define UTF8_WARN_BOM				7
 #define UTF8_WARN_LONG				8
-#define UTF8_WARN_FFFF				9
+#define UTF8_WARN_ILLEGAL			9
 
 	if (len == 0) {
 		warning = UTF8_WARN_EMPTY;
@@ -498,7 +501,7 @@ utf8_decode_char(const gchar *s, gint len, gint *retlen, gboolean warn)
 		warning = UTF8_WARN_LONG;
 		goto malformed;
 	} else if (UNICODE_IS_ILLEGAL(v)) {
-		warning = UTF8_WARN_FFFF;
+		warning = UTF8_WARN_ILLEGAL;
 		goto malformed;
 	}
 
@@ -546,7 +549,7 @@ malformed:
 		gm_snprintf(msg, sizeof(msg), "%d byte%s, need %d",
 			expectlen, expectlen == 1 ? "" : "s", UNISKIP(v));
 		break;
-	case UTF8_WARN_FFFF:
+	case UTF8_WARN_ILLEGAL:
 		gm_snprintf(msg, sizeof(msg), "character 0x%04lx", (gulong) v);
 		break;
 	default:
@@ -1015,7 +1018,7 @@ locale_to_utf8_full(const gchar *str)
 gchar *
 locale_to_utf8_nfd(const gchar *str, size_t len)
 {
-	char sbuf[4096];
+	gchar sbuf[4096];
 	const gchar *s;
 	gchar *ret;
 	size_t utf8_size;
@@ -1278,6 +1281,7 @@ utf32_decompose_lookup(guint32 uc, gboolean nfkd)
 	return utf32_nfkd_lut[(i)].c & (nfkd ? 0 : UTF32_F_NFKD) \
 		? NULL \
 		: utf32_nfkd_lut[(i)].d; \
+	/* NOTREACHED */ \
 } G_STMT_END
 	
 	/* Perform a binary search to find ``uc'' */
@@ -1302,8 +1306,10 @@ utf32_uppercase(guint32 uc)
 		return is_ascii_lower(uc) ? (guint32) ascii_toupper(uc) : uc;
 
 #define GET_ITEM(i) (utf32_uppercase_lut[(i)].lower)
-#define FOUND(i) \
-	G_STMT_START { return utf32_uppercase_lut[(i)].upper; } G_STMT_END
+#define FOUND(i) G_STMT_START { \
+	return utf32_uppercase_lut[(i)].upper; \
+	/* NOTREACHED */ \
+} G_STMT_END
 	
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_uppercase_lut), CMP,
@@ -1331,8 +1337,10 @@ utf32_lowercase(guint32 uc)
 		return is_ascii_upper(uc) ? (guint32) ascii_tolower(uc) : uc;
 
 #define GET_ITEM(i) (utf32_lowercase_lut[(i)].upper)
-#define FOUND(i) \
-	G_STMT_START { return utf32_lowercase_lut[(i)].lower; } G_STMT_END
+#define FOUND(i) G_STMT_START { \
+	return utf32_lowercase_lut[(i)].lower; \
+	/* NOTREACHED */ \
+} G_STMT_END
 	
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_lowercase_lut), CMP,
@@ -2711,19 +2719,18 @@ unicode_compose_init(void)
 	   	test[4] = 0;
 #endif
 
-#if 0
+#if 0 
 		/* This fails with GLib 2.6.0 because g_utf8_normalize() 
 		 * eats the Hangul Jamo character when using G_NORMALIZE_NFC. */
-		test[0] = 0x5828;
-		test[1] = 0xd76c;
+		test[0] = 0x1112;
+		test[1] = 0x1174;
 	   	test[2] = 0x11a7;
-	   	test[3] = 0xd792;
-	   	test[4] = 0;
+	   	test[3] = 0;
 #endif
 	
-		size = 1 + utf32_decompose_nfd(test, NULL, 0);
+		size = 1 + utf32_decompose_nfkd(test, NULL, 0);
 		y = g_malloc(size * sizeof *y);
-		utf32_decompose_nfd(test, y, size);
+		utf32_decompose_nfkd(test, y, size);
 		x = utf32_strdup(y);
 		utf32_compose(x);
 		utf32_compose_hangul(x);
@@ -2732,7 +2739,7 @@ unicode_compose_init(void)
 		utf32_to_utf8(test, s, sizeof s);
 		
 #if !defined(USE_ICU)
-		s_nfc = g_utf8_normalize(s, (gssize) -1, G_NORMALIZE_NFC);
+		s_nfc = g_utf8_normalize(s, (gssize) -1, G_NORMALIZE_NFKC);
 #else
 		{
 			size_t len, maxlen;
