@@ -69,7 +69,7 @@ dmesh_url_error_t dmesh_url_errno;		/* Error from dmesh_url_parse() */
 static GHashTable *mesh = NULL;
 
 struct dmesh {				/* A download mesh bucket */
-	time_t last_update;	/* Timestamp of last insertion in the mesh */
+	time_t last_update;		/* Timestamp of last insertion in the mesh */
 	gint count;				/* Amount of entries in list */
 	GSList *entries;		/* The download mesh entries, dmesh_entry data */
 };
@@ -82,7 +82,7 @@ struct dmesh_entry {
 
 #define MAX_LIFETIME	86400		/* 1 day */
 #define MAX_ENTRIES		64			/* Max amount of entries kept in list */
-#define MAX_STAMP		0xffffffffU	/* Unsigned int, 32 bits */
+#define MAX_STAMP		((time_t) -1)
 
 #define MIN_PFSP_SIZE	524288		/* 512K, min size for PFSP advertising */
 #define MIN_PFSP_PCT	10			/* 10%, min available data for PFSP */
@@ -588,7 +588,7 @@ dm_remove(struct dmesh *dm, guint32 ip, guint16 port, guint idx,
 			 * of an entry we already have.
 			 */
 
-			if (delta_time(dme->stamp, stamp) >= 0)
+			if (MAX_STAMP != stamp && delta_time(dme->stamp, stamp) >= 0)
 				return FALSE;
 
 			dm->entries = g_slist_remove(dm->entries, dme);
