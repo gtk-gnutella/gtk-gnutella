@@ -130,6 +130,8 @@ enum dl_file_info_field {
 	FILE_INFO_FIELD_CHUNK,
 	FILE_INFO_FIELD_END,		/* Marks end of field section */
 	FILE_INFO_FIELD_CHA1,
+
+	NUM_FILE_INFO_FIELDS
 };
 
 #define FI_STORE_DELAY		10	/* Max delay (secs) for flushing fileinfo */
@@ -543,7 +545,8 @@ file_info_fd_store_binary(struct dl_file_info *fi, int fd, gboolean force)
 	g_assert(file_info_check_chunklist(fi));
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		struct dl_file_chunk *fc = fclist->data;
-		guint64 from_hi = fc->from >> 32, to_hi = fc->to >> 32;
+		guint32 from_hi = (guint64) fc->from >> 32;
+		guint32 to_hi = (guint64) fc->to >> 32;
 		guint32 chunk[] = {
 			htonl(from_hi),
 			htonl((guint32) fc->from),
@@ -918,9 +921,8 @@ file_info_get_trailer(gint fd, struct trailer *tb, const gchar *name)
 gboolean
 file_info_has_trailer(const gchar *path)
 {
-	gint fd;
-	struct stat;
 	struct trailer trailer;
+	gint fd;
 	gboolean valid;
 
 	fd = file_open_missing(path, O_RDONLY);
@@ -1216,7 +1218,6 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	gint fd;
 	guint32 version;
 	struct trailer trailer;
-	struct stat;
 	gboolean t64;
 	GSList *chunklist = NULL;
 
@@ -1224,6 +1225,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 G_STMT_START {				\
 	reason = (x);			\
 	goto bailout;			\
+	/* NOTREACHED */		\
 } G_STMT_END 
 
 	g_assert(NULL != file);
@@ -2196,7 +2198,10 @@ file_info_string_to_tag(const gchar *s)
 	STATIC_ASSERT(G_N_ELEMENTS(fi_tag_map) == (NUM_FI_TAGS - 1));
 
 #define GET_KEY(i) (fi_tag_map[(i)].str)
-#define FOUND(i) do { return fi_tag_map[(i)].tag; } while (0)
+#define FOUND(i) G_STMT_START { \
+	return fi_tag_map[(i)].tag; \
+	/* NOTREACHED */ \
+} G_STMT_END
 	
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(const gchar *, s, G_N_ELEMENTS(fi_tag_map), strcmp,
@@ -3551,7 +3556,7 @@ list_clone_shift(struct dl_file_info *fi)
 	if (fc->status != DL_CHUNK_DONE || fc->to < pfsp_first_chunk)
 		return fi->chunklist;
 
-	offset = ((((guint64) random_value(~0)) << 32) | random_value(~0))
+	offset = ((((guint64) random_value(~0U)) << 32) | random_value(~0U))
 		% (fi->size - 1);
 
 	/*
