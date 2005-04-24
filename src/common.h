@@ -101,7 +101,23 @@
 #include <netinet/ip.h>
 #endif
 
+#ifdef USE_LINT
+#undef G_GNUC_INTERNAL
+#define G_GNUC_INTERNAL
+#undef G_INLINE_FUNC
+#define G_INLINE_FUNC
+#define inline
+#endif
+
 #include <glib.h>
+
+#ifdef USE_LINT
+#undef G_GNUC_INTERNAL
+#define G_GNUC_INTERNAL
+#undef G_INLINE_FUNC
+#define G_INLINE_FUNC
+#define inline
+#endif
 
 /*
  * Use filesize_t to hold filesizes
