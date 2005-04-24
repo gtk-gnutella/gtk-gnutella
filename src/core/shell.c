@@ -73,10 +73,10 @@ typedef struct gnutella_shell {
 
 static gchar auth_cookie[SHA1_RAW_SIZE];
 
+static void shell_shutdown(gnutella_shell_t *sh);
 static void shell_destroy(gnutella_shell_t *sh);
-void shell_shutdown(gnutella_shell_t *sh);
 static gboolean shell_write(gnutella_shell_t *sh, const gchar *s);
-void print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
+static void print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 	int triples, hsep_triple *nonhsep);
 
 enum {
@@ -232,7 +232,6 @@ shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 {
 	gchar *tok;
 	gint pos = 0;
-	guint reply_code = REPLY_ERROR;
 
 	g_assert(sh);
 	g_assert(cmd);
@@ -265,7 +264,6 @@ shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 		if (ip && port) {
 			node_add(ip, port);
 			sh->msg = _("Node added");
-			reply_code = REPLY_READY;
 		} else {
 			sh->msg = _("Invalid IP/Port");
 			goto error;
@@ -585,8 +583,7 @@ shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 	gchar *tok;
 	gint pos = 0;
 	hsep_triple globaltable[HSEP_N_MAX + 1];
-	hsep_triple nonhsep;
-	guint64 *globalt;
+	hsep_triple nonhsep[1];
 	gboolean all;
 
 	g_assert(sh);
@@ -610,20 +607,18 @@ shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 	sh->msg = "";
 
 	hsep_get_global_table(globaltable, G_N_ELEMENTS(globaltable));
-	hsep_get_non_hsep_triple(&nonhsep);
+	hsep_get_non_hsep_triple(nonhsep);
 
 	gm_snprintf(buf, sizeof(buf),
 		_("Total horizon size (%u/%u nodes support HSEP):"),
 		(unsigned int)globaltable[1][HSEP_IDX_NODES],
 		(unsigned int)(globaltable[1][HSEP_IDX_NODES] +
-		nonhsep[HSEP_IDX_NODES]));
+		nonhsep[0][HSEP_IDX_NODES]));
 
 	shell_write(sh, buf);
 	shell_write(sh, "\n\n");
 
-	globalt = &globaltable[1][0];
-
-	print_hsep_table(sh, globaltable, HSEP_N_MAX, &nonhsep);
+	print_hsep_table(sh, globaltable, HSEP_N_MAX, nonhsep);
 
 	if (all) {
 		GSList *sl;
@@ -662,7 +657,7 @@ error:
 	return REPLY_ERROR;
 }
 
-void
+static void
 print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 	int triples, hsep_triple *nonhsepptr)
 {
@@ -1106,7 +1101,7 @@ shell_destroy(gnutella_shell_t *s)
 	shell_free(s);
 }
 
-void
+static void
 shell_shutdown(gnutella_shell_t *sh)
 {
 	g_assert(sh);
@@ -1209,7 +1204,7 @@ shell_init(void)
 	gint n;
 
 	for (n = 0; n < SHA1_RAW_SIZE; n ++) {
-		guint32 v = random_value(~0);
+		guint32 v = random_value(~0U);
 
 		v ^= (v >> 24) ^ (v >> 16) ^ (v >> 8);
 		auth_cookie[n] = v & 0xff;
