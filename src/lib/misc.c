@@ -1668,7 +1668,7 @@ hex_escape(const gchar *name, gboolean strict)
 			need_escape++;
 
 	if (need_escape == 0)
-		return *(gchar **) &name; /* suppress compiler warning */
+		return deconstify_gchar(name);
 
 	new = g_malloc(p - name + 3 * need_escape);
 
