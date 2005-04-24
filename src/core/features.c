@@ -52,23 +52,20 @@ xfeatures_t xfeatures;
  *** X-Features header parsing utilities
  ***/
 
-/*
- * features_close
- */
-void features_close()
+void
+features_close(void)
 {
 	header_features_cleanup(&xfeatures.uploads);
 	header_features_cleanup(&xfeatures.downloads);
 	header_features_cleanup(&xfeatures.connections);
 }
 
-/*
- * header_features_add
- *
+/**
  * Add support for feature_name with the specified version to the X-Features
  * header.
  */
-void header_features_add(struct xfeature_t *xfeatures,
+void
+header_features_add(struct xfeature_t *xfeatures,
 	gchar *feature_name,
 	int feature_version_major,
 	int feature_version_minor)
@@ -82,12 +79,11 @@ void header_features_add(struct xfeature_t *xfeatures,
 	xfeatures->features = g_list_append(xfeatures->features, feature);
 }
 
-/*
- * header_features_cleanup
- *
+/**
  * Removes all memory used by the header_features_add.
  */
-void header_features_cleanup(struct xfeature_t *xfeatures)
+void
+header_features_cleanup(struct xfeature_t *xfeatures)
 {
 	GList *cur;
 	for(cur = g_list_first(xfeatures->features);
@@ -102,16 +98,15 @@ void header_features_cleanup(struct xfeature_t *xfeatures)
 	}
 }
 
-/*
- * header_features_generate
- *
+/**
  * Adds the X-Features header to a HTTP request.
  * buf should point to the beginning of the header, *rw should contain the
  * number of bytes that were allready written. type should be the type of which
  * we should include in the X-Features header.
  * *rw is changed too *rw + bytes written
  */
-void header_features_generate(struct xfeature_t *xfeatures,
+void
+header_features_generate(struct xfeature_t *xfeatures,
 	gchar *buf, size_t len, size_t *rw)
 {
 	static const char hdr[] = "X-Features";
@@ -153,24 +148,21 @@ void header_features_generate(struct xfeature_t *xfeatures,
 	header_fmt_free(fmt);
 }
 
-/*
- * header_get_feature
- *
+/**
  * Retrieves the major and minor version from a feature in the X-Features
  * header, if no support was found both major and minor are 0.
  */
-void header_get_feature(const gchar *feature_name, const header_t *header,
-	int *feature_version_major, int *feature_version_minor)
+void
+header_get_feature(const gchar *feature_name, const header_t *header,
+	guint *feature_version_major, guint *feature_version_minor)
 {
 	gchar *buf = NULL;
-	gchar *start, *ep;
-	gint error;
-	gulong val;
+	gchar *start;
 
 	*feature_version_major = 0;
 	*feature_version_minor = 0;
 
-	buf = header_get(header, (const gchar *) "X-Features");
+	buf = header_get(header, "X-Features");
 
 	/*
 	 * We could also try to scan for the header: feature_name, so this would
@@ -204,7 +196,7 @@ void header_get_feature(const gchar *feature_name, const header_t *header,
 		if (buf == start)
 			break;
 
-		pc = (gint) *(guchar *) (buf - 1);
+		pc = *(buf - 1);
 		if (is_ascii_space(pc) || pc == ',' || pc == ';')
 			break;			/* Found it! */
 
@@ -232,19 +224,7 @@ void header_get_feature(const gchar *feature_name, const header_t *header,
 	if (*buf == '\0')
 		return;
 
-	val = gm_atoul(buf, &ep, &error);
-	if (error || val > INT_MAX)
-		return;
-	*feature_version_major = (gint) val;
-
-	if (*ep != '.')
-		return;
-
-	buf = ++ep;
-	val = gm_atoul(buf, &ep, &error);
-	if (error || val > INT_MAX)
-		return;
-	*feature_version_minor = (gint) val;
+	parse_major_minor(buf, NULL, feature_version_major, feature_version_minor);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
