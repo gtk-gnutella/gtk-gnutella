@@ -48,8 +48,7 @@ RCSID("$Id$");
  * It assumes the enum's are in order
  */
 
-static const gchar * const bitzi_fj_table[] =
-{
+static const gchar * const bitzi_fj_table[] = {
 	N_("Bitzi|Unknown"),				/* UNKNOWN */
 	N_("Bitzi|Dangerous/Misleading"),	/* DANGEROUS_MISLEADING */
 	N_("Bitzi|Incomplete/Damaged"),		/* INCOMPLETE_DAMAGED */
@@ -63,8 +62,9 @@ static const gchar * const bitzi_fj_table[] =
 };
 
 const gchar *
-bitzi_fjtostring(bitzi_fj_t fj)
+bitzi_fj_to_string(bitzi_fj_t fj)
 {
+	STATIC_ASSERT(NUM_BITZI_FJ == G_N_ELEMENTS(bitzi_fj_table));
 	g_assert((gint) fj >= 0 && fj < G_N_ELEMENTS(bitzi_fj_table));
 	return Q_(bitzi_fj_table[fj]);
 }
@@ -104,20 +104,20 @@ bitzi_gui_get_metadata(const bitzi_data_t *data)
 	if (data->mime_type) {
 		if (data->mime_desc) {
 			return g_strdup_printf("%s (%1.1f): %s (%s)",
-					bitzi_fjtostring(data->judgement),
+					bitzi_fj_to_string(data->judgement),
 					data->goodness,
 					data->mime_type,
 					data->mime_desc);
 		} else {
 			return g_strdup_printf("%s (%1.1f): %s",
-					bitzi_fjtostring(data->judgement),
+					bitzi_fj_to_string(data->judgement),
 					data->goodness,
 					data->mime_type);
 		}
 	} else {
-		if (data->judgement != UNKNOWN) {
+		if (data->judgement != BITZI_FJ_UNKNOWN) {
 			return g_strdup_printf("%s (%1.1f): %s",
-					bitzi_fjtostring(data->judgement),
+					bitzi_fj_to_string(data->judgement),
 					data->goodness,
 					_("No other data"));
 		}

@@ -1,4 +1,4 @@
-/* -*- mode: cc-mode; tab-width:4; -*-
+/*
  * $Id$
  *
  * Copyright (c) 2004, Alex Bennee <alex@bennee.com>
@@ -34,20 +34,19 @@
  * Both Core and GUI have visibility of this data structure
  */
 
-/* XXX: Prefix these enums. It's likely that any of those clash with something
- *		(on weird systems) */
 typedef enum {
-	UNKNOWN = 0,
-	DANGEROUS_MISLEADING,
-	INCOMPLETE_DAMAGED,
-	SUBSTANDARD,
-	OVERRATED,
-	NORMAL,
-	UNDERRATED,
-	COMPLETE,
-	RECOMMENDED,
-	BEST_VERSION,
-	MAX_JUDGEMENT,
+	BITZI_FJ_UNKNOWN = 0,
+	BITZI_FJ_DANGEROUS_MISLEADING,
+	BITZI_FJ_INCOMPLETE_DAMAGED,
+	BITZI_FJ_SUBSTANDARD,
+	BITZI_FJ_OVERRATED,
+	BITZI_FJ_NORMAL,
+	BITZI_FJ_UNDERRATED,
+	BITZI_FJ_COMPLETE,
+	BITZI_FJ_RECOMMENDED,
+	BITZI_FJ_BEST_VERSION,
+
+	NUM_BITZI_FJ
 } bitzi_fj_t;
 
 /**
@@ -81,4 +80,5 @@ bitzi_data_t *bitzi_querycache_byurnsha1(const gchar *urnsha1);
 #endif /* CORE_SOURCES */
 
 #endif /* _core_bitzi_h_ */
+/* -*- mode: cc-mode; tab-width:4; -*- */
 /* vi: set ts=4 sw=4 cindent: */

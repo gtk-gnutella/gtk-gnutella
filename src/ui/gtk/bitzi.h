@@ -1,5 +1,4 @@
-/* -*- mode: cc-mode; tab-width:4; -*-
- *
+/*
  * $Id$
  *
  * Copyright (c) 2004, Alex Bennee <alex@bennee.com>
@@ -31,9 +30,10 @@
 
 #include "if/ui/gtk/bitzi.h"
 
-const gchar *bitzi_fjtostring(bitzi_fj_t fj);
+const gchar *bitzi_fj_to_string(bitzi_fj_t fj);
 gchar *bitzi_gui_get_metadata(const bitzi_data_t *bitzi_data);
 
 #endif /* _gtk_bitzi_h_ */
 
+/* -*- mode: cc-mode; tab-width:4; -*- */
 /* vi: set ts=4 sw=4 cindent: */

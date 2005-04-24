@@ -114,6 +114,19 @@ xml_get_string(xmlNode *node, const gchar *id)
 	return (gchar *) xmlGetProp(node, (const xmlChar *) id);
 }
 
+static inline const xmlChar *
+gchar_to_xmlChar(const gchar *s)
+{
+	/* If we were pedantic, we'd verify that ``s'' is UTF-8 encoded */
+	return (const xmlChar *) s;
+}
+
+static inline const gchar *
+xmlChar_to_gchar(const xmlChar *s)
+{
+	return (const gchar *) s;
+}
+
 /********************************************************************
  ** Bitzi Create and Destroy data structure
  ********************************************************************/
@@ -131,7 +144,7 @@ bitzi_create(void)
 	data->mime_desc = NULL;
 	data->size = 0;
 	data->goodness = 0;
-	data->judgement = UNKNOWN;
+	data->judgement = BITZI_FJ_UNKNOWN;
 	data->expiry = (time_t) -1;
 
 	return data;
@@ -245,16 +258,16 @@ struct efj_t {
 };
 
 static const struct efj_t enum_fj_table[] = {
-	{ "Unknown",				UNKNOWN },
-	{ "Dangerous/Misleading",	DANGEROUS_MISLEADING },
-	{ "Incomplete/Damaged",		INCOMPLETE_DAMAGED },
-	{ "Substandard",			SUBSTANDARD },
-	{ "Overrated",				OVERRATED },
-	{ "Normal",					NORMAL },
-	{ "Underrated",				UNDERRATED },
-	{ "Complete",				COMPLETE },
-	{ "Recommended",			RECOMMENDED },
-	{ "Best Version",			BEST_VERSION }
+	{ "Unknown",				BITZI_FJ_UNKNOWN },
+	{ "Dangerous/Misleading",	BITZI_FJ_DANGEROUS_MISLEADING },
+	{ "Incomplete/Damaged",		BITZI_FJ_INCOMPLETE_DAMAGED },
+	{ "Substandard",			BITZI_FJ_SUBSTANDARD },
+	{ "Overrated",				BITZI_FJ_OVERRATED },
+	{ "Normal",					BITZI_FJ_NORMAL },
+	{ "Underrated",				BITZI_FJ_UNDERRATED },
+	{ "Complete",				BITZI_FJ_COMPLETE },
+	{ "Recommended",			BITZI_FJ_RECOMMENDED },
+	{ "Best Version",			BITZI_FJ_BEST_VERSION }
 };
 
 /**
@@ -327,14 +340,19 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 		data->goodness = 0;
 	}
 
-	data->judgement = UNKNOWN;
+	data->judgement = BITZI_FJ_UNKNOWN;
 
 	s = xml_get_string(node, "fileJudgement");
 	if (s) {
 		size_t i;
 
+		STATIC_ASSERT(NUM_BITZI_FJ == G_N_ELEMENTS(enum_fj_table));
+
 		for (i = 0; i < G_N_ELEMENTS(enum_fj_table); i++) {
-			if (xmlStrEqual(s, (const xmlChar *) enum_fj_table[i].string)) {
+			if (
+				xmlStrEqual(gchar_to_xmlChar(s),
+					gchar_to_xmlChar(enum_fj_table[i].string))
+			) {
 				data->judgement = enum_fj_table[i].judgement;
 				break;
 			}
@@ -361,7 +379,7 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 
 	s = xml_get_string(node, "format");
 	if (s) {
-		if (xmlStrstr(s, "video")) {
+		if (xmlStrstr(gchar_to_xmlChar(s), gchar_to_xmlChar("video"))) {
 			gchar *xml_sizex = xml_get_string(node, "videoWidth");
 			gchar *xml_sizey = xml_get_string(node, "videoHeight");
 			gchar *xml_bitrate = xml_get_string(node, "videoBitrate");
@@ -388,7 +406,7 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 						(xml_fps != NULL) ? xml_fps : "?",
 						(xml_bitrate != NULL) ? xml_bitrate : "?");
 			}
-		} else if (xmlStrstr(s, "audio")) {
+		} else if (xmlStrstr(gchar_to_xmlChar(s), gchar_to_xmlChar("audio"))) {
 			data->mime_type = g_strdup(s);
 		}
 	}
@@ -401,8 +419,10 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 		xmlAttr *cur_attr;
 
 		for (cur_attr = node->properties; cur_attr; cur_attr = cur_attr->next) {
-			g_message("bitzi rdf attrib: %s, type %d = %s", cur_attr->name,
-				  cur_attr->type, xml_get_string(node, cur_attr->name));
+			const gchar *name = xmlChar_to_gchar(cur_attr->name);
+			
+			g_message("bitzi rdf attrib: %s, type %d = %s",
+				name, cur_attr->type, xml_get_string(node, name));
 		}
 	}
 }
