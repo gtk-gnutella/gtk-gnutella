@@ -1718,7 +1718,7 @@ bws_sock_connect(enum socket_type type)
 	 */
 
 	if (bs != NULL)
-		bsched_bw_update(bs, 1.5 * BW_TCP_MSG, 1.5 * BW_TCP_MSG);
+		bsched_bw_update(bs, (3 * BW_TCP_MSG) / 2, (3 * BW_TCP_MSG) / 2);
 }
 
 /**
