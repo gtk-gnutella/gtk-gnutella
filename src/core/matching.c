@@ -81,7 +81,8 @@ RCSID("$Id$");
 #define ST_MIN_BIN_SIZE		4
 
 
-static void destroy_entry(struct st_entry *entry)
+static void
+destroy_entry(struct st_entry *entry)
 {
 	g_assert(entry != NULL);
 
@@ -91,7 +92,8 @@ static void destroy_entry(struct st_entry *entry)
 }
 
 /* initialize a bin */
-static void bin_initialize(struct st_bin *bin, gint size)
+static void
+bin_initialize(struct st_bin *bin, gint size)
 {
 	gint i;
 
@@ -104,7 +106,8 @@ static void bin_initialize(struct st_bin *bin, gint size)
 }
 
 /* allocate a bin */
-static struct st_bin *bin_allocate(void)
+static struct st_bin *
+bin_allocate(void)
 {
 	struct st_bin *bin = (struct st_bin *) g_malloc(sizeof(struct st_bin));
 
@@ -114,14 +117,16 @@ static struct st_bin *bin_allocate(void)
 
 /* destroy a bin
  * NOTE: does NOT destroy the st_entry's, since they may be shared */
-static void bin_destroy(struct st_bin *bin)
+static void
+bin_destroy(struct st_bin *bin)
 {
 	G_FREE_NULL(bin->vals);
 	bin->vals = 0;
 }
 
 /* inserts an item into a bin */
-static void bin_insert_item(struct st_bin *bin, struct st_entry *entry)
+static void
+bin_insert_item(struct st_bin *bin, struct st_entry *entry)
 {
 	if (bin->nvals == bin->nslots) {
 		bin->nslots *= 2;
@@ -131,20 +136,20 @@ static void bin_insert_item(struct st_bin *bin, struct st_entry *entry)
 }
 
 /* makes a bin take as little memory as needed */
-static void bin_compact(struct st_bin *bin)
+static void
+bin_compact(struct st_bin *bin)
 {
 	g_assert(bin->vals != NULL);	/* Or it would not have been allocated */
 	bin->vals = g_realloc(bin->vals, bin->nvals * sizeof(bin->vals[0]));
 	bin->nslots = bin->nvals;
 }
 
-/*
- * match_map_string
- *
+/**
  * Apply a char map to a string, inplace.
  * Returns length of string.
  */
-guint match_map_string(char_map_t map, gchar *string)
+size_t
+match_map_string(char_map_t map, gchar *string)
 {
 	gchar *ptr = string;
 	guchar c;
@@ -327,7 +332,8 @@ st_insert_item(search_table_t *table, const gchar *s, struct shared_file *sf)
 /**
  * minimize space consumption
  */
-void st_compact(search_table_t *table)
+void
+st_compact(search_table_t *table)
 {
 	gint i;
 
@@ -374,7 +380,8 @@ entry_match(gchar *text, gint tlen,
 }
 
 /* do an actual search */
-void st_search(
+void
+st_search(
 	search_table_t *table,
 	gchar *search,
 	void (*callback)(gpointer, shared_file_t *),
@@ -544,4 +551,4 @@ void st_search(
 	word_vec_free(wovec, wocnt);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

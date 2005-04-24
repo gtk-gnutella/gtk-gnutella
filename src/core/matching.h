@@ -81,7 +81,7 @@ typedef struct _search_table {
 
 struct query_hashvec;
 
-guint match_map_string(char_map_t map, gchar *string);
+size_t match_map_string(char_map_t map, gchar *string);
 
 void st_initialize(search_table_t *, char_map_t);
 void st_create(search_table_t *table);
@@ -104,4 +104,4 @@ void st_search(
 
 #endif	/* _core_matching_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
