@@ -635,34 +635,37 @@ free_extensions(void)
  * Get the file extensions to scan.
  */
 void
-parse_extensions(const gchar * str)
+parse_extensions(const gchar *str)
 {
 	gchar **exts = g_strsplit(str, ";", 0);
 	gchar *x, *s;
-	guint i, e;
+	guint i;
 
 	free_extensions();
 
-	e = i = 0;
-
-	while (exts[i]) {
+	for (i = 0; exts[i]; i++) {
+		gchar c;
+		
 		s = exts[i];
-		while (*s == ' ' || *s == '\t' || *s == '.' || *s == '*'
-			   || *s == '?')
+		while ((c = *s) == '.' || c == '*' || c == '?' || is_ascii_blank(c))
 			s++;
-		if (*s) {
-			x = s + strlen(s);
-			while (--x > s
-				   && (*x == ' ' || *x == '\t' || *x == '*' || *x == '?'))
-				*x = 0;
+		
+		if (c) {
+
+			for (x = strchr(s, '\0'); x-- != s; /* NOTHING */) {
+				if ((c = *x) == '*' || c == '?' || is_ascii_blank(c))
+					*x = '\0';
+				else
+					break;
+			}
+			
 			if (*s) {
-				struct extension *e = (struct extension *) g_malloc(sizeof(*e));
+				struct extension *e = g_malloc(sizeof *e);
 				e->str = atom_str_get(s);
-				e->len = strlen(s);
+				e->len = strlen(e->str);
 				extensions = g_slist_prepend(extensions, e);
 			}
 		}
-		i++;
 	}
 
 	extensions = g_slist_reverse(extensions);
@@ -1124,7 +1127,7 @@ share_scan(void)
 	 *		--RAM, 23/10/2002
 	 */
 
-	file_table = g_malloc0((files_scanned + 1) * sizeof(*file_table[0]));
+	file_table = g_malloc0((files_scanned + 1) * sizeof *file_table);
 
 	for (i = 0, sl = shared_files; sl; i++, sl = g_slist_next(sl)) {
 		struct shared_file *sf = sl->data;
@@ -2010,7 +2013,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	}
 
 	if (!skip_file_search) {
-		gboolean is_utf8 = FALSE;
+		gboolean is_utf8;
 		gboolean ignore = FALSE;
 
 		/*
@@ -2043,10 +2046,11 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		search_len -= offset;
 		memcpy(stmp_1, search + offset, search_len + 1);
 
-#ifdef USE_ICU
-
 		if (!is_utf8)
 			ignore = TRUE;
+
+#ifdef USE_ICU
+
 
 /* XXX: Don't handle ISO-8859-1 encoded queries graciously any longer. UTF-8
  * is the _only_ valid encoding.
