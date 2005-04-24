@@ -2212,7 +2212,6 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
 filter_result_t *
 filter_record(search_t *sch, const struct record *rec)
 {
-    gboolean filtered;
     filter_result_t *result;
     gint i;
 
@@ -2226,15 +2225,6 @@ filter_record(search_t *sch, const struct record *rec)
      * the props_set count with 0;
      */
     result = walloc0(sizeof(*result));
-
-    filtered =
-        ((sch->filter->ruleset != NULL) &&
-            filter_is_active(sch->filter)) ||
-        ((filter_global_pre->ruleset != NULL) &&
-            filter_is_active(filter_global_pre)) ||
-        ((filter_global_post->ruleset != NULL) &&
-            filter_is_active(sch->filter));
-
     filter_apply(filter_global_pre, rec, result);
 
     /*
@@ -2248,14 +2238,6 @@ filter_record(search_t *sch, const struct record *rec)
      */
 	if (result->props_set < MAX_FILTER_PROP)
 		filter_apply(filter_global_post, rec, result);
-
-    /* FIXME: this does no longer give useful output
-    if (gui_debug >= 5) {
-        g_message("result %d for search \"%s\" matching \"%s\" (%s)",
-            r, sch->query, rec->name,
-            filtered ? "filtered" : "unfiltered");
-    }
-    */
 
     /*
      * Set the defaults for the props that are still in UNKNOWN state.
