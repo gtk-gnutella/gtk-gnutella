@@ -445,8 +445,8 @@ search_stats_gui_update(time_t now)
     last_update = now;
 
 	stat_count = 0;
-	g_object_freeze_notify(G_OBJECT(treeview_search_stats));
 	gtk_list_store_clear(store_search_stats);
+	g_object_freeze_notify(G_OBJECT(treeview_search_stats));
 	/* insert the hash table contents into the sorted treeview */
 	g_hash_table_foreach_remove(stat_hash, stats_hash_to_treeview, NULL);
 	g_object_thaw_notify(G_OBJECT(treeview_search_stats));
