@@ -46,8 +46,6 @@ RCSID("$Id$");
 
 #define UPDATE_MIN	300		/* Update screen every 5 minutes at least */
 
-static gchar gui_tmp[4096];
-
 /*
  * These hash tables record which information about which nodes has
  * changed. By using this the number of updates to the gui can be
@@ -61,7 +59,8 @@ static void nodes_gui_update_node_flags(
 	gnet_node_t n, gnet_node_flags_t *flags, gint row);
 
 
-static gboolean nodes_gui_is_visible(void)
+static gboolean
+nodes_gui_is_visible(void)
 {
 	static GtkNotebook *notebook = NULL;
 	gint current_page;
@@ -78,14 +77,13 @@ static gboolean nodes_gui_is_visible(void)
  *** Callbacks
  ***/
 
-/*
- * nodes_gui_node_removed:
- *
+/**
  * Callback: called when a node is removed from the backend.
  *
  * Removes all references to the node from the frontend.
  */
-static void nodes_gui_node_removed(gnet_node_t n)
+static void
+nodes_gui_node_removed(gnet_node_t n)
 {
     if (gui_debug >= 5)
         printf("nodes_gui_node_removed(%u)\n", n);
@@ -93,14 +91,13 @@ static void nodes_gui_node_removed(gnet_node_t n)
     nodes_gui_remove_node(n);
 }
 
-/*
- * nodes_gui_node_added:
- *
+/**
  * Callback: called when a node is added from the backend.
  *
  * Adds the node to the gui.
  */
-static void nodes_gui_node_added(gnet_node_t n)
+static void
+nodes_gui_node_added(gnet_node_t n)
 {
     gnet_node_info_t info;
 
@@ -112,29 +109,27 @@ static void nodes_gui_node_added(gnet_node_t n)
     guc_node_clear_info(&info);
 }
 
-/*
- * nodes_gui_node_info_changed:
- *
+/**
  * Callback: called when node information was changed by the backend.
  *
  * This schedules an update of the node information in the gui at the
  * next tick.
  */
-static void nodes_gui_node_info_changed(gnet_node_t n)
+static void
+nodes_gui_node_info_changed(gnet_node_t n)
 {
     g_hash_table_insert(ht_node_info_changed,
         GUINT_TO_POINTER(n), GUINT_TO_POINTER(1));
 }
 
-/*
- * nodes_gui_node_flags_changed
- *
+/**
  * Callback invoked when the node's user-visible flags are changed.
  *
  * This schedules an update of the node information in the gui at the
  * next tick.
  */
-static void nodes_gui_node_flags_changed(gnet_node_t n)
+static void
+nodes_gui_node_flags_changed(gnet_node_t n)
 {
     g_hash_table_insert(ht_node_flags_changed,
         GUINT_TO_POINTER(n), GUINT_TO_POINTER(1));
@@ -145,13 +140,12 @@ static void nodes_gui_node_flags_changed(gnet_node_t n)
  *** Private functions
  ***/
 
-/*
- * nodes_gui_update_node_info:
- *
+/**
  * Update the row with the given nodeinfo. If row is -1 the row number
  * is determined by the node_handle contained in the gnet_node_info_t.
  */
-static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
+static void
+nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
 {
     GtkCList *clist = GTK_CLIST
         (lookup_widget(main_window, "clist_nodes"));
@@ -164,6 +158,7 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
     }
 
     if (row != -1) {
+		gchar ver_buf[64];
         gnet_node_status_t status;
         time_t now = time((time_t *) NULL);
 
@@ -173,11 +168,11 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
 			n->vendor ? n->vendor : "...");
 
         gtk_clist_set_text(clist, row, c_gnet_loc,
-			(gchar *) iso3166_country_cc(n->country)); /* override const */
+			deconstify_gchar(iso3166_country_cc(n->country)));
 
-        gm_snprintf(gui_tmp, sizeof(gui_tmp), "%d.%d",
+        gm_snprintf(ver_buf, sizeof ver_buf, "%d.%d",
             n->proto_major, n->proto_minor);
-        gtk_clist_set_text(clist, row, c_gnet_version, gui_tmp);
+        gtk_clist_set_text(clist, row, c_gnet_version, ver_buf);
 
 		if (status.status == GTA_NODE_CONNECTED)
 	        gtk_clist_set_text(clist, row, c_gnet_connected,
@@ -195,11 +190,11 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
     }
 }
 
-/*
- * nodes_gui_update_node_flags
- *
+/**
+ * Updates the flags for given node and row.
  */
-static void nodes_gui_update_node_flags(
+static void
+nodes_gui_update_node_flags(
     gnet_node_t n, gnet_node_flags_t *flags, gint row)
 {
     GtkCList *clist = GTK_CLIST
@@ -226,24 +221,22 @@ static void nodes_gui_update_node_flags(
  *** Public functions
  ***/
 
-/*
- * nodes_gui_early_init:
- *
+/**
  * Initialized the widgets.
  */
-void nodes_gui_early_init(void)
+void
+nodes_gui_early_init(void)
 {
 	popup_nodes = create_popup_nodes();
     gtk_widget_set_sensitive(lookup_widget(popup_nodes, "popup_nodes_remove"),
 		FALSE);
 }
 
-/*
- * nodes_gui_init:
- *
+/**
  * Initialize the nodes controller. Register callbacks in the backend.
  */
-void nodes_gui_init(void)
+void
+nodes_gui_init(void)
 {
 	GtkCList *clist;
 
@@ -269,12 +262,11 @@ void nodes_gui_init(void)
     guc_node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);
 }
 
-/*
- * nodes_gui_shutdown:
- *
+/**
  * Unregister callbacks in the backend and clean up.
  */
-void nodes_gui_shutdown()
+void
+nodes_gui_shutdown(void)
 {
 	GtkCList *clist;
 
@@ -293,12 +285,11 @@ void nodes_gui_shutdown()
     ht_node_flags_changed = NULL;
 }
 
-/*
- * nodes_gui_remove_node:
- *
+/**
  * Removes all references to the given node handle in the gui.
  */
-void nodes_gui_remove_node(gnet_node_t n)
+void
+nodes_gui_remove_node(gnet_node_t n)
 {
     GtkWidget *clist_nodes;
     gint row;
@@ -323,12 +314,11 @@ void nodes_gui_remove_node(gnet_node_t n)
         g_warning("nodes_gui_remove_node: no matching row found");
 }
 
-/*
- * nodes_gui_add_node:
- *
+/**
  * Adds the given node to the gui.
  */
-void nodes_gui_add_node(gnet_node_info_t *n)
+void
+nodes_gui_add_node(gnet_node_info_t *n)
 {
     GtkCList *clist_nodes;
     gint row;
@@ -355,19 +345,17 @@ void nodes_gui_add_node(gnet_node_info_t *n)
     gtk_clist_set_row_data(clist_nodes, row, GUINT_TO_POINTER(n->node_handle));
 }
 
-/*
- * gui_update_nodes_display
- *
+/**
  * Update all the nodes at the same time.
- */
-
-/* FIXME: we should remember for every node when it was last
+ *
+ * FIXME: we should remember for every node when it was last
  *        updated and only refresh every node at most once every
  *        second. This information should be kept in a struct pointed
  *        to by the row user_data and should be automatically freed
  *        when removing the row (see upload stats code).
  */
-void nodes_gui_update_nodes_display(time_t now)
+void
+nodes_gui_update_nodes_display(time_t now)
 {
 	GtkCList *clist;
 	GList *l;
