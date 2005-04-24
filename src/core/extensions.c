@@ -185,6 +185,7 @@ rw_screen(gboolean case_sensitive,
 	G_STMT_START { \
 		*retkw = table[(i)].rw_name; \
 	   	return table[(i)].rw_token; \
+		/* NOTREACHED */ \
 	} G_STMT_END
 
 	if (case_sensitive)

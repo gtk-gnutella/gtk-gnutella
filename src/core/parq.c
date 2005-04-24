@@ -189,8 +189,8 @@ struct parq_ul_queued {
 	guint32 ip;				/* Contact IP:port, as read from X-Node: */
 	guint16 port;
 
-	gint major;
-	gint minor;
+	guint major;
+	guint minor;
 
 	struct parq_ul_queue *queue;	/* In which queue this entry is listed */
 	struct parq_ul_queued_by_ip *by_ip;
@@ -834,7 +834,7 @@ parq_download_parse_queue_status(struct download *d, header_t *header)
 	gchar *buf = NULL;
 	gchar *temp = NULL;
 	gchar *value = NULL;
-	gint major = 0, minor = 0;
+	guint major = 0, minor = 0;
 	size_t header_value_length;
 	gint retry;
 
@@ -848,7 +848,7 @@ parq_download_parse_queue_status(struct download *d, header_t *header)
 
 	header_get_feature("queue", header, &major, &minor);
 
-	if (major == 0 && minor == 0 &&!get_header_version(buf, &major, &minor)) {
+	if (major == 0 && minor == 0 && !get_header_version(buf, &major, &minor)) {
 		/*
 	 	* Could not retrieve queueing version. It could be 0.1 but there is
 		* no way to tell for certain
@@ -3459,7 +3459,10 @@ parq_string_to_tag(const gchar *s)
 	STATIC_ASSERT(G_N_ELEMENTS(parq_tag_map) == (NUM_PARQ_TAGS - 1));
 
 #define GET_ITEM(i) (parq_tag_map[(i)].str)
-#define FOUND(i) do { return parq_tag_map[(i)].tag; } while (0)
+#define FOUND(i) G_STMT_START { \
+	return parq_tag_map[(i)].tag; \
+	/* NOTREACHED */ \
+} G_STMT_END
 	
 	/* Perform a binary search to find ``s'' */
 	BINARY_SEARCH(const gchar *, s, G_N_ELEMENTS(parq_tag_map), strcmp,
