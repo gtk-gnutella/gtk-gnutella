@@ -280,7 +280,7 @@ void hsep_timer(time_t now)
 		if (upload_is_enabled())
 			hsep_notify_shared(shared_files_scanned(), shared_kbytes_scanned());
 		else
-			hsep_notify_shared(0, 0);
+			hsep_notify_shared(0UL, 0UL);
 	}
 
 	for (sl = (GSList *) node_all_nodes(); sl; sl = g_slist_next(sl)) {
@@ -526,7 +526,7 @@ void hsep_send_msg(struct gnutella_node *n,time_t now)
 	guint64 *messaget;
 	struct gnutella_msg_hsep_data *m;
 	hsep_triple tmp[HSEP_N_MAX];
-	hsep_triple other;
+	hsep_triple other[1];
 
 	g_assert(n);
 
@@ -567,19 +567,19 @@ void hsep_send_msg(struct gnutella_node *n,time_t now)
 
 	if (triples > 1) {
 		/* determine what we know about non-HSEP nodes in 1 hop distance */
-		hsep_get_non_hsep_triple(&other);
+		hsep_get_non_hsep_triple(other);
 	}
 
 	for (i = 0; i < triples; i++) {
 		guint64 val;
 		val = *ownt++ + *globalt++ - *connectiont++ +
-		    (i > 0 ? other[HSEP_IDX_NODES] : 0);
+		    (i > 0 ? other[0][HSEP_IDX_NODES] : 0);
 		*messaget++ = guint64_to_LE(val);
 		val = *ownt++ + *globalt++ - *connectiont++ +
-		    (i > 0 ? other[HSEP_IDX_FILES] : 0);
+		    (i > 0 ? other[0][HSEP_IDX_FILES] : 0);
 		*messaget++ = guint64_to_LE(val);
 		val = *ownt++ + *globalt++ - *connectiont++ +
-		    (i > 0 ? other[HSEP_IDX_KIB] : 0);
+		    (i > 0 ? other[0][HSEP_IDX_KIB] : 0);
 		*messaget++ = guint64_to_LE(val);
 		ownt -= 3;  /* back to start of own triple */
 	}
