@@ -46,7 +46,7 @@ typedef enum {
 	GTA_UL_QUEUE            = 9,    /* Send a queue (Similar to push) */
 	GTA_UL_QUEUE_WAITING    = 10,   /* Connect back with GTA_UL_QUEUE was
 									   success now waiting for a response */
-	GTA_UL_PFSP_WAITING     = 11,   /* Requested range unavailable, retry... */
+	GTA_UL_PFSP_WAITING     = 11    /* Requested range unavailable, retry... */
 } upload_stage_t;
 
 typedef struct gnet_upload_status {

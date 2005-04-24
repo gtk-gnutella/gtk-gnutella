@@ -34,7 +34,7 @@
 typedef enum {
 	INPUT_EVENT_READ		= 1 << 0,
 	INPUT_EVENT_WRITE		= 1 << 1,
-	INPUT_EVENT_EXCEPTION	= 1 << 2,
+	INPUT_EVENT_EXCEPTION	= 1 << 2
 } inputevt_cond_t;
 
 /*
@@ -62,4 +62,4 @@ guint inputevt_add(gint source, inputevt_cond_t condition,
 #define inputevt_remove(source) (g_source_remove(source))
 
 #endif  /* _inputevt_h_ */
-
+/* vi: set ts=4 sw=4 cindent: */

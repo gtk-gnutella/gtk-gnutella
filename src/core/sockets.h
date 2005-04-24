@@ -64,7 +64,7 @@ enum socket_direction {
 	SOCK_CONN_INCOMING,
 	SOCK_CONN_OUTGOING,
 	SOCK_CONN_LISTENING,
-	SOCK_CONN_PROXY_OUTGOING,
+	SOCK_CONN_PROXY_OUTGOING
 };
 
 /*
@@ -81,7 +81,7 @@ enum socket_type {
     SOCK_TYPE_CONNBACK,
     SOCK_TYPE_PPROXY,
     SOCK_TYPE_DESTROYING,
-	SOCK_TYPE_UDP,
+	SOCK_TYPE_UDP
 };
 
 struct gnutella_socket {

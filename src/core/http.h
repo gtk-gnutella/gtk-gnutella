@@ -38,7 +38,7 @@
 
 typedef enum {
 	HTTP_EXTRA_LINE,
-	HTTP_EXTRA_CALLBACK,
+	HTTP_EXTRA_CALLBACK
 } http_extra_type_t;
 
 /*
@@ -103,7 +103,7 @@ typedef enum {				/* Type of error reported by http_error_cb_t */
 	HTTP_ASYNC_SYSERR,		/* System error, value is errno */
 	HTTP_ASYNC_ERROR,		/* Internal error, value is error code */
 	HTTP_ASYNC_HEADER,		/* Internal header error, value is error code */
-	HTTP_ASYNC_HTTP,		/* HTTP error, value is http_error_t pointer */
+	HTTP_ASYNC_HTTP			/* HTTP error, value is http_error_t pointer */
 } http_errtype_t;
 
 typedef struct {
@@ -169,7 +169,7 @@ typedef enum {
 	HTTP_URL_BAD_PORT_PARSING,			/* Could not parse port */
 	HTTP_URL_BAD_PORT_RANGE,			/* Port value is out of range */
 	HTTP_URL_HOSTNAME_UNKNOWN,			/* Could not resolve host into IP */
-	HTTP_URL_MISSING_URI,				/* URL has no URI part */
+	HTTP_URL_MISSING_URI				/* URL has no URI part */
 } http_url_error_t;
 
 extern http_url_error_t http_url_errno;

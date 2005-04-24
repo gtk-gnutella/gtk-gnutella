@@ -77,7 +77,7 @@ struct pmsg_info {
 enum dh_drop {
 	DH_FORWARD = 0,			/* Don't drop */
 	DH_DROP_FC,				/* Drop because of flow-control */
-	DH_DROP_THROTTLE,		/* Drop because of hit throttling */
+	DH_DROP_THROTTLE		/* Drop because of hit throttling */
 };
 
 /*

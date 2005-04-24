@@ -29,7 +29,7 @@
 typedef enum gnet_stats_source {
 	GNET_STATS_FULL = 0,
 	GNET_STATS_TCP_ONLY = 1,
-	GNET_STATS_UDP_ONLY = 2,
+	GNET_STATS_UDP_ONLY = 2
 } gnet_stats_source_t;
 
 #endif /* _if_ui_gtk_gnet_stats_h_ */

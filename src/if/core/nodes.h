@@ -138,7 +138,7 @@ typedef enum {
 	NODE_P_NORMAL,						/* Normal legacy node */
 	NODE_P_CRAWLER,						/* Crawler node */
 	NODE_P_UDP,							/* UDP "fake" node */
-	NODE_P_UNKNOWN,						/* Unknown mode yet */
+	NODE_P_UNKNOWN						/* Unknown mode yet */
 } node_peer_t;
 
 /*
@@ -151,7 +151,7 @@ typedef enum {
 	QRT_S_SENT,							/* Sent QRT to ultrapeer */
 	QRT_S_RECEIVING,					/* Receiving initial QRT from leaf */
 	QRT_S_PATCHING,						/* Receiving QRT patch from leaf */
-	QRT_S_RECEIVED,						/* Received QRT from leaf */
+	QRT_S_RECEIVED						/* Received QRT from leaf */
 } qrt_state_t;
 
 typedef struct gnet_node_flags {

@@ -1390,10 +1390,11 @@ enum http_reqtype {
 	HTTP_HEAD = 0,
 	HTTP_GET,
 	HTTP_POST,
-	HTTP_MAX_REQTYPE,
+
+	NUM_HTTP_REQTYPES
 };
 
-static const gchar * const http_verb[HTTP_MAX_REQTYPE] = {
+static const gchar * const http_verb[NUM_HTTP_REQTYPES] = {
 	"HEAD",
 	"GET",
 	"POST",

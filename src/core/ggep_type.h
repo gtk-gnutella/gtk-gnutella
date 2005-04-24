@@ -38,7 +38,7 @@ typedef enum ggept_status {
 	GGEP_OK = 0,					/* OK, extracted what was asked */
 	GGEP_NOT_FOUND = 1,				/* OK, but did not find it */
 	GGEP_INVALID = 2,				/* Error, found something invalid */
-	GGEP_BAD_SIZE = 3,				/* Error, buffer not correctly sized */
+	GGEP_BAD_SIZE = 3				/* Error, buffer not correctly sized */
 } ggept_status_t;
 
 /*
@@ -75,4 +75,3 @@ gint ggept_du_encode(guint32 uptime, gchar *data);
 #endif	/* _core_ggep_type_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
-

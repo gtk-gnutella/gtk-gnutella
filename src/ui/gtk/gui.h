@@ -56,7 +56,7 @@ enum sorting_order {
 	SORT_DESC = -1,
 	SORT_NONE = 0,
 	SORT_ASC = 1,
-	SORT_NO_COL = 2,	/* No column chosen yet */
+	SORT_NO_COL = 2		/* No column chosen yet */
 };
 
 #endif /* _gtk_ui_h_ */

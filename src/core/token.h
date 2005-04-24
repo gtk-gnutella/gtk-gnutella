@@ -50,7 +50,7 @@ typedef enum {
 	TOK_BAD_LEVEL_LENGTH,		/* Bad level length */
 	TOK_SHORT_LEVEL,			/* Level too short */
 	TOK_INVALID_LEVEL,			/* Level mismatch */
-	TOK_MISSING_LEVEL,			/* Missing level */
+	TOK_MISSING_LEVEL			/* Missing level */
 } tok_error_t;
 
 /*
@@ -66,4 +66,4 @@ gboolean tok_is_ancient(time_t now);
 
 #endif	/* _core_token_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

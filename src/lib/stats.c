@@ -51,7 +51,7 @@ struct statx {
 
 typedef enum op {
 	STATS_OP_REMOVE = -1,
-	STATS_OP_ADD = +1,
+	STATS_OP_ADD = +1
 } stats_op_t;
 
 /**

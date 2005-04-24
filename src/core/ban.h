@@ -40,7 +40,7 @@ typedef enum {
 	BAN_OK		= 0,		/* OK, don't ban and accept the connection */
 	BAN_FIRST	= 1,		/* Initial banning, send polite denial */
 	BAN_FORCE	= 2,		/* Force banning, don't send back anything */
-	BAN_MSG		= 3,		/* Ban with explicit message */
+	BAN_MSG		= 3			/* Ban with explicit message */
 } ban_type_t;
 
 void ban_init(void);
@@ -57,5 +57,4 @@ const gchar *ban_vendor(const gchar *vendor);
 
 #endif	/* _core_ban_h_ */
 
-/* vi: set ts=4: */
-
+/* vi: set ts=4 sw=4 cindent: */

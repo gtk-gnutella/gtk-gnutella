@@ -41,7 +41,7 @@
 
 enum query_hsrc {
 	QUERY_H_WORD = 0,				/* Query word (AND-ed) */
-	QUERY_H_URN,					/* URN (OR-ed) */
+	QUERY_H_URN						/* URN (OR-ed) */
 };
 
 struct query_hash {

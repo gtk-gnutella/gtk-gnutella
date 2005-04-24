@@ -41,7 +41,7 @@ typedef enum http_state {
 	HTTP_AS_HEADERS,			/* Receiving headers */
 	HTTP_AS_RECEIVING,			/* Receiving data */
 	HTTP_AS_REDIRECTED,			/* Request redirected */
-	HTTP_AS_REMOVED,			/* Removed, pending free */
+	HTTP_AS_REMOVED				/* Removed, pending free */
 } http_state_t;
 
 /*

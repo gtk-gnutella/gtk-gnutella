@@ -69,7 +69,7 @@ enum dl_list {
 	DL_LIST_RUNNING	= 0,
 	DL_LIST_WAITING = 1,
 	DL_LIST_STOPPED = 2,
-	DL_LIST_SZ		= 3,
+	DL_LIST_SZ		= 3
 };
 
 struct vernum {
@@ -124,7 +124,7 @@ typedef enum {
     GTA_DL_SINKING          = 19,   /* Sinking HTML reply */
     GTA_DL_ACTIVE_QUEUED    = 20,   /* Actively queued */
     GTA_DL_PASSIVE_QUEUED   = 21,   /* Passively queued */
-    GTA_DL_REQ_SENDING      = 22,   /* Sending HTTP request */
+    GTA_DL_REQ_SENDING      = 22   	/* Sending HTTP request */
 } download_status_t;
 
 typedef struct download download_t;

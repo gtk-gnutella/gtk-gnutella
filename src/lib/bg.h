@@ -37,7 +37,7 @@ typedef enum {
 	BGR_NEXT = 0,					/* OK, move to next step */
 	BGR_MORE,						/* OK, still more work for this step */
 	BGR_DONE,						/* OK, end processing */
-	BGR_ERROR,						/* Error, abort processing */
+	BGR_ERROR						/* Error, abort processing */
 } bgret_t;
 
 /*
@@ -46,7 +46,7 @@ typedef enum {
 typedef enum {
 	BGS_OK = 0,						/* OK, terminated normally */
 	BGS_ERROR,						/* Terminated with error */
-	BGS_KILLED,						/* Was killed by signal */
+	BGS_KILLED						/* Was killed by signal */
 } bgstatus_t;
 
 /*
@@ -58,7 +58,7 @@ typedef enum {
 	BG_SIG_KILL,				/* Task is being killed (not trappable) */
 	BG_SIG_TERM,				/* Task is being terminated */
 	BG_SIG_USR,					/* User-defined signal */
-	BG_SIG_COUNT,
+	BG_SIG_COUNT
 } bgsig_t;
 
 /*
@@ -119,5 +119,4 @@ gpointer bg_task_context(gpointer h);
 
 #endif	/* _bg_h_ */
 
-/* vi: set ts=4: */
-
+/* vi: set ts=4 sw=4 cindent: */
