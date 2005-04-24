@@ -2576,7 +2576,7 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 	compact_query(qdup);
 	if ('\0' == *qdup) {
 		G_FREE_NULL(qdup);
-		return -1;
+		return (gnet_search_t) -1;
 	}
 
 	sch = g_new0(search_ctrl_t, 1);
