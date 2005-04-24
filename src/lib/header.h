@@ -52,8 +52,8 @@ typedef struct header {
 	gint lines;					/* Total header lines seen */
 } header_t;
 
-#define header_size(h)		((h)->size)
-#define header_lines(h)		((h)->lines)
+#define HEADER_SIZE(h)		((h)->size)
+#define HEADER_LINES(h)		((h)->lines)
 
 /*
  * A header field.
