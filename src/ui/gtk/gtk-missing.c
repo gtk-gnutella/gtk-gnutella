@@ -82,7 +82,7 @@ void
 gtk_clist_save_visibility(GtkCList *clist, property_t prop)
 {
 	gint i;
-	guint32 val;
+	gboolean val;
 
 	g_assert(clist);
 
@@ -871,7 +871,6 @@ gtk_ctree_fast_link(GtkCTree *ctree, GtkCTreeNode *node, GtkCTreeNode *sibling)
 	GList *list_end;
 	GList *list;
 	GList *work;
-	gboolean visible = FALSE;
 	gint rows = 1;
 
 	g_assert(NULL == GTK_CTREE_ROW(node)->parent); /* Not a child node */
@@ -885,7 +884,6 @@ gtk_ctree_fast_link(GtkCTree *ctree, GtkCTreeNode *node, GtkCTreeNode *sibling)
 	GTK_CTREE_ROW(node)->parent = NULL;
 	GTK_CTREE_ROW(node)->sibling = sibling;
 
-	visible = TRUE;
 	clist->rows += rows;
 	work = clist->row_list;
 
@@ -963,12 +961,10 @@ gtk_ctree_fast_move(GtkCTree *ctree, GtkCTreeNode *node,
 {
 	GtkCList *clist;
 	GtkCTreeNode *work;
-	gboolean visible = FALSE;
 
 	g_assert(NULL == GTK_CTREE_ROW(node)->parent); /* Not a child node */
 
 	clist = GTK_CLIST (ctree);
-	visible = gtk_ctree_is_viewable (ctree, node);
 
 	/* return if it's already the right place */
 	if (new_sibling == GTK_CTREE_ROW(node)->sibling || new_sibling == node) {
