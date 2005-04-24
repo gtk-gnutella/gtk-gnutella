@@ -222,7 +222,7 @@ iprange_free_each(gpointer db, gpointer udata)
 static iprange_err_t
 iprange_add_level1(
 	struct iprange_db *idb,
-	guint32 net, gint8 bits, gpointer udata, gboolean force)
+	guint32 net, guint bits, gpointer udata, gboolean force)
 {
 	guint8 first;
 	guint8 mask;
@@ -275,7 +275,7 @@ iprange_add_level1(
 static iprange_err_t
 iprange_add_level2(
 	struct iprange_db *idb,
-	guint32 net, gint8 bits, gpointer *lvl2, gpointer udata, gboolean force)
+	guint32 net, guint bits, gpointer *lvl2, gpointer udata, gboolean force)
 {
 	guint8 second;
 	guint8 mask;
@@ -337,7 +337,7 @@ iprange_add_level2(
  */
 static iprange_err_t
 iprange_add_cidr_internal(
-	gpointer db, guint32 net, gint8 bits, gpointer udata,
+	gpointer db, guint32 net, guint bits, gpointer udata,
 	gboolean force, gpointer cdata)
 {
 	struct iprange_db *idb = (struct iprange_db *) db;
@@ -524,7 +524,7 @@ iprange_add_cidr_internal(
  * @return IPR_ERR_OK if successful, an error code otherwise.
  */
 iprange_err_t
-iprange_add_cidr(gpointer db, guint32 net, gint8 bits, gpointer udata)
+iprange_add_cidr(gpointer db, guint32 net, guint bits, gpointer udata)
 {
 	return iprange_add_cidr_internal(db, net, bits, udata, FALSE, NULL);
 }
@@ -543,7 +543,7 @@ iprange_add_cidr(gpointer db, guint32 net, gint8 bits, gpointer udata)
  */
 iprange_err_t
 iprange_add_cidr_force(
-	gpointer db, guint32 net, gint8 bits, gpointer udata, gpointer cdata)
+	gpointer db, guint32 net, guint bits, gpointer udata, gpointer cdata)
 {
 	return iprange_add_cidr_internal(db, net, bits, udata, TRUE, cdata);
 }

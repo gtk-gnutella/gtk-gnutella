@@ -72,7 +72,7 @@ struct range_context {
  * Insert IP range in database, linking it to the proper country code.
  */
 static void
-gip_add_cidr(guint32 ip, guint8 bits, gpointer udata)
+gip_add_cidr(guint32 ip, guint bits, gpointer udata)
 {
 	struct range_context *ctx = (struct range_context *) udata;
 	iprange_err_t error;

@@ -374,7 +374,7 @@ gchar *ascii_strcasestr(const gchar *haystack, const gchar *needle);
  *
  * @returns the value of i after swapping its byte order.
  */
-static inline guint32
+static inline G_GNUC_CONST guint32
 swap_guint32(guint32 i)
 {
 	gint a = i & 0x000000ff;
@@ -399,7 +399,7 @@ gint do_stat(const gchar *path, struct stat *buf);
  * CIDR split of IP range.
  */
 
-typedef void (*cidr_split_t)(guint32 ip, guint8 bits, gpointer udata);
+typedef void (*cidr_split_t)(guint32 ip, guint bits, gpointer udata);
 
 void ip_range_split(
 	guint32 lower_ip, guint32 upper_ip, cidr_split_t cb, gpointer udata);

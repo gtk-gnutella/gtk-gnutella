@@ -63,13 +63,12 @@ const gchar *iprange_strerror(iprange_err_t errnum);
 gpointer iprange_make(iprange_free_t freecb, iprange_clone_t clonecb);
 void iprange_free_each(gpointer db, gpointer udata);
 iprange_err_t iprange_add_cidr(
-	gpointer db, guint32 net, gint8 bits, gpointer udata);
+	gpointer db, guint32 net, guint bits, gpointer udata);
 iprange_err_t iprange_add_cidr_force(
-	gpointer db, guint32 net, gint8 bits, gpointer udata, gpointer cdata);
+	gpointer db, guint32 net, guint bits, gpointer udata, gpointer cdata);
 gpointer iprange_get(gpointer db, guint32 ip);
 void iprange_get_stats(gpointer db, iprange_stats_t *stats);
 
 #endif	/* _iprange_h_ */
 
-/* vi: set ts=4: */
-
+/* vi: set ts=4 sw=4 cindent: */
