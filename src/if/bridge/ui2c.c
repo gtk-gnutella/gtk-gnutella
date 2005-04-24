@@ -700,7 +700,7 @@ void guc_upload_stats_clear_all(void)
 }
 
 /*	version interface functions (UI -> Core)*/
-const gchar *guc_version_get_version_string()
+const gchar *guc_version_get_version_string(void)
 {
 	return version_get_string();
 }
@@ -712,4 +712,4 @@ void guc_gtk_gnutella_exit(gint code)
 }
 
 /* -*- mode: cc-mode; tab-width:4; -*- */
-/* vi: set ts=4 sw=4 cindent:*/
+/* vi: set ts=4 sw=4 cindent: */
