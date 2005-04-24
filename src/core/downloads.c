@@ -139,7 +139,6 @@ static void download_retrieve(void);
 
 static GHashTable *dl_by_host = NULL;
 static GHashTable *dl_count_by_name = NULL;
-static GHashTable *dl_count_by_sha1 = NULL;
 
 #define DHASH_SIZE	1024			/* Hash list size, must be a power of 2 */
 #define DHASH_MASK 	(DHASH_SIZE - 1)
@@ -416,7 +415,6 @@ download_init(void)
 	dl_by_host = g_hash_table_new(dl_key_hash, dl_key_eq);
 	dl_by_ip = g_hash_table_new(dl_ip_hash, dl_ip_eq);
 	dl_count_by_name = g_hash_table_new(g_str_hash, g_str_equal);
-	dl_count_by_sha1 = g_hash_table_new(g_str_hash, g_str_equal);
 
 	src_init();
 }
@@ -827,7 +825,6 @@ change_server_ip(struct dl_server *server, guint32 new_ip)
 {
 	struct dl_key *key = server->key;
 	struct dl_server *dup;
-	guint32 old_ip;
 	GSList *l;
 
 	g_assert(key->ip != new_ip);
@@ -870,7 +867,6 @@ change_server_ip(struct dl_server *server, guint32 new_ip)
 	 * Perform the IP change.
 	 */
 
-	old_ip = key->ip;
 	key->ip = new_ip;
 
 	/*
@@ -4024,7 +4020,7 @@ err_header_read_eof(gpointer o)
 	struct download *d = DOWNLOAD(o);
 	header_t *header = io_header(d->io_opaque);
 
-	if (header_lines(header) == 0) {
+	if (HEADER_LINES(header) == 0) {
 		/*
 		 * Maybe we sent HTTP header continuations and the server does not
 		 * understand them, breaking the connection on "invalid" request.
@@ -5295,7 +5291,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	filesize_t check_content_range = 0, requested_size;
 	guint32 ip;
 	guint16 port;
-	gint http_major = 0, http_minor = 0;
+	guint http_major = 0, http_minor = 0;
 	gboolean is_followup = d->keep_alive;
 	struct dl_file_info *fi = d->file_info;
 	gchar short_read[80];
@@ -5427,7 +5423,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	if (ok)
 		short_read[0] = '\0';
 	else {
-		gint count = header_lines(header);
+		gint count = HEADER_LINES(header);
 		gm_snprintf(short_read, sizeof(short_read),
 			"[short %d line%s header] ", count, count == 1 ? "" : "s");
 	}
@@ -8030,7 +8026,8 @@ download_get_hostname(const struct download *d)
 	return buf;
 }
 
-gint download_get_http_req_percent(const struct download *d)
+gint
+download_get_http_req_percent(const struct download *d)
 {
 	http_buffer_t *r = d->req;
 
@@ -8044,13 +8041,14 @@ gint download_get_http_req_percent(const struct download *d)
  * Checks unqueued list to see if there are any downloads that are finished and
  * therefore ready to be cleared.
  */
-gboolean download_something_to_clear()
+gboolean
+download_something_to_clear(void)
 {
-	GSList *l;
+	GSList *sl;
 	gboolean clear = FALSE;
 
-	for (l = sl_unqueued; !clear && l; l = l->next) {
-		switch (((struct download *) l->data)->status) {
+	for (sl = sl_unqueued; !clear && sl; sl = g_slist_next(sl)) {
+		switch (((struct download *) sl->data)->status) {
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ERROR:
 		case GTA_DL_ABORTED:
