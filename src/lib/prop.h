@@ -92,9 +92,9 @@ typedef struct prop_def_guint32 {
 } prop_def_guint32_t;
 
 typedef void (*prop_set_guint32_t)
-    (property_t, const guint32 *, gsize, gsize);
+    (property_t, const guint32 *, size_t, size_t);
 typedef guint32 *(*prop_get_guint32_t)
-    (property_t, guint32 *, gsize, gsize);
+    (property_t, guint32 *, size_t, size_t);
 
 
 typedef struct prop_def_guint64 {
@@ -106,17 +106,17 @@ typedef struct prop_def_guint64 {
 } prop_def_guint64_t;
 
 typedef void (*prop_set_guint64_t)
-    (property_t, const guint64 *, gsize, gsize);
+    (property_t, const guint64 *, size_t, size_t);
 typedef guint64 *(*prop_get_guint64_t)
-    (property_t, guint64 *, gsize, gsize);
+    (property_t, guint64 *, size_t, size_t);
 
 
 typedef struct prop_def_storage {
     guint8 *value;   /* current data */
 } prop_def_storage_t;
 
-typedef void (*prop_set_storage_t)(property_t, const gchar *, gsize);
-typedef gchar *(*prop_get_storage_t)(property_t, gchar *, gsize);
+typedef void (*prop_set_storage_t)(property_t, const gchar *, size_t);
+typedef gchar *(*prop_get_storage_t)(property_t, gchar *, size_t);
 
 
 typedef struct prop_def_string {
@@ -125,7 +125,7 @@ typedef struct prop_def_string {
 } prop_def_string_t;
 
 typedef void (*prop_set_string_t)(property_t, const gchar *);
-typedef gchar *(*prop_get_string_t)(property_t, gchar *, gsize);
+typedef gchar *(*prop_get_string_t)(property_t, gchar *, size_t);
 
 
 typedef struct prop_def_boolean {
@@ -134,9 +134,9 @@ typedef struct prop_def_boolean {
 } prop_def_boolean_t;
 
 typedef void (*prop_set_boolean_t)
-    (property_t, const gboolean *, gsize, gsize);
+    (property_t, const gboolean *, size_t, size_t);
 typedef gboolean *(*prop_get_boolean_t)
-    (property_t, gboolean *, gsize, gsize);
+    (property_t, gboolean *, size_t, size_t);
 
 /*
  * Property definition
@@ -153,7 +153,7 @@ typedef struct prop_def {
         prop_def_storage_t  storage;
     } data;
     gboolean save; /* persist across sessions */
-    guint32  vector_size; /* number of items in array, 1 for non-vector */
+    size_t vector_size; /* number of items in array, 1 for non-vector */
     struct event *ev_changed;
 } prop_def_t;
 
@@ -161,8 +161,8 @@ typedef struct prop_def {
  * Property set stub to access property set.
  */
 typedef struct prop_set_stub {
-    guint32 size;
-    guint32 offset;
+    size_t size;
+    size_t offset;
     prop_def_t *(*get_def)(property_t);
     property_t (*get_by_name)(const char *);
     gchar *(*to_string)(property_t);
@@ -204,8 +204,8 @@ typedef prop_set_stub_t *(*prop_set_get_stub_t)(void);
 typedef struct prop_set {
     gchar *name;       /* name of the property set */
     gchar *desc;       /* description of what the set contains */
-    guint32 size;      /* number of properties in the set */
-    guint32 offset;    /* properties start numbering from here */
+    size_t size;      /* number of properties in the set */
+    size_t offset;    /* properties start numbering from here */
     prop_def_t *props; /* Pointer to first item in array of prop_def_t */
     GHashTable *byName;/* hashtable to quickly look up props by name */
     time_t mtime;      /* modification time of the associated file */
@@ -241,27 +241,28 @@ void prop_load_from_file(
  * get/set functions
  */
 void prop_set_boolean(
-    prop_set_t *, property_t, const gboolean *, guint32, guint32);
+    prop_set_t *, property_t, const gboolean *, size_t, size_t);
 gboolean *prop_get_boolean(
-    prop_set_t *, property_t, gboolean *, guint32, guint32);
+    prop_set_t *, property_t, gboolean *, size_t, size_t);
 
 void prop_set_string(prop_set_t *, property_t, const gchar *);
-gchar *prop_get_string(prop_set_t *, property_t, gchar *, guint32);
+gchar *prop_get_string(prop_set_t *, property_t, gchar *, size_t);
 
 void prop_set_guint32(
-    prop_set_t *, property_t, const guint32 *, guint32, guint32);
+    prop_set_t *, property_t, const guint32 *, size_t, size_t);
 guint32 *prop_get_guint32(
-    prop_set_t *, property_t, guint32 *, guint32, guint32);
+    prop_set_t *, property_t, guint32 *, size_t, size_t);
 
 void prop_set_guint64(
-    prop_set_t *, property_t, const guint64 *, guint64, guint64);
+    prop_set_t *, property_t, const guint64 *, size_t, size_t);
 guint64 *prop_get_guint64(
-    prop_set_t *, property_t, guint64 *, guint64, guint64);
+    prop_set_t *, property_t, guint64 *, size_t, size_t);
 
-void prop_set_storage(prop_set_t *, property_t, const gchar *, gsize);
-gchar *prop_get_storage(prop_set_t *, property_t, gchar *, gsize);
+void prop_set_storage(prop_set_t *, property_t, const gchar *, size_t);
+gchar *prop_get_storage(prop_set_t *, property_t, gchar *, size_t);
 
 gchar *prop_to_string(prop_set_t *ps, property_t prop);
 inline property_t prop_get_by_name(prop_set_t *ps, const char *name);
 
 #endif /* _prop_h_ */
+/* vi: set ts=4 sw=4 cindent: */

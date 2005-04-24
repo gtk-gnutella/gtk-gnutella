@@ -69,12 +69,12 @@ do {																\
  */
 static void
 prop_parse_ip_vector(const gchar *name,
-	const gchar *str, gsize size, guint32 *t)
+	const gchar *str, size_t size, guint32 *t)
 {
 	/* Parse comma delimited settings */
 
 	gchar **h;
-	gsize i;
+	size_t i;
 
 	g_assert(str != NULL);
 	g_assert(t != NULL);
@@ -100,12 +100,12 @@ prop_parse_ip_vector(const gchar *name,
  */
 static void
 prop_parse_guint64_vector(const gchar *name,
-	const gchar *str, gsize size, guint64 *t)
+	const gchar *str, size_t size, guint64 *t)
 {
 	/* Parse comma delimited settings */
 
 	gchar **h;
-	gsize i;
+	size_t i;
 
 	g_assert(str != NULL);
 	g_assert(t != NULL);
@@ -142,12 +142,12 @@ prop_parse_guint64_vector(const gchar *name,
  */
 static void
 prop_parse_guint32_vector(const gchar *name,
-	const gchar *str, gsize size, guint32 *t)
+	const gchar *str, size_t size, guint32 *t)
 {
 	/* Parse comma delimited settings */
 
 	gchar **h;
-	gsize i;
+	size_t i;
 
 	g_assert(str != NULL);
 	g_assert(t != NULL);
@@ -187,12 +187,12 @@ prop_parse_guint32_vector(const gchar *name,
  */
 static void
 prop_parse_boolean_vector(const gchar *name,
-	const gchar *str, gsize size, gboolean *t)
+	const gchar *str, size_t size, gboolean *t)
 {
 	/* Parse comma delimited settings */
 
 	const gchar *a, *b, *p = str;
-	gsize i;
+	size_t i;
 
 	g_assert(str != NULL);
 	g_assert(t != NULL);
@@ -255,9 +255,9 @@ prop_parse_boolean_vector(const gchar *name,
  * Parse a hex string into a guint8 array.
  */
 static void
-prop_parse_storage(const gchar *name, const gchar *str, gsize size, gchar *t)
+prop_parse_storage(const gchar *name, const gchar *str, size_t size, gchar *t)
 {
-	gsize i;
+	size_t i;
 
 	g_assert(size > 0);
 	if (size * 2 != strlen(str))
@@ -470,12 +470,12 @@ prop_emit_prop_changed(prop_set_t *ps, property_t prop)
 
 void
 prop_set_boolean(prop_set_t *ps, property_t prop, const gboolean *src,
-	guint32 offset, guint32 length)
+	size_t offset, size_t length)
 {
 	gboolean old;
 	gboolean new;
 	gboolean differ = FALSE;
-	guint32 n;
+	size_t n;
 
 	g_assert(ps != NULL);
 	g_assert(src != NULL);
@@ -506,10 +506,10 @@ prop_set_boolean(prop_set_t *ps, property_t prop, const gboolean *src,
 		return;
 
 	memcpy(&PROP(ps,prop).data.boolean.value[offset], src,
-		length * sizeof(gboolean));
+		length * sizeof *src);
 
 	if (debug >= 5) {
-		guint32 i;
+		size_t i;
 
 		printf("updated property [%s] = ( ", PROP(ps,prop).name);
 
@@ -526,9 +526,10 @@ prop_set_boolean(prop_set_t *ps, property_t prop, const gboolean *src,
 
 gboolean *
 prop_get_boolean(prop_set_t *ps, property_t prop, gboolean *t,
-	guint32 offset, guint32 length)
+	size_t offset, size_t length)
 {
 	gboolean *target;
+	size_t n;
 
 	g_assert(ps != NULL);
 
@@ -546,16 +547,16 @@ prop_get_boolean(prop_set_t *ps, property_t prop, gboolean *t,
 
 	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
 
-	target = t != NULL ? t : g_malloc(length * sizeof(gboolean));
-	memcpy(target, &PROP(ps,prop).data.boolean.value[offset],
-		sizeof(gboolean) * length);
+	n = length * sizeof *target;
+	target = t != NULL ? (gpointer) t : g_malloc(n);
+	memcpy(target, &PROP(ps,prop).data.boolean.value[offset], n);
 
 	return target;
 }
 
 void
 prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
-	guint64 offset, guint64 length)
+	size_t offset, size_t length)
 {
 	gboolean differ = FALSE;
 
@@ -576,8 +577,8 @@ prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
 
 	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
 
-	differ = (memcmp(&PROP(ps,prop).data.guint64.value[offset], src,
-		length * sizeof(guint64)) != 0);
+	differ = 0 != memcmp(&PROP(ps,prop).data.guint64.value[offset], src,
+					length * sizeof *src);
 
 	if (!differ)
 		return;
@@ -616,23 +617,17 @@ prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
 			}
 	} else {
 		memcpy(&PROP(ps,prop).data.guint64.value[offset], src,
-			sizeof(guint64) * length);
+			length * sizeof *src);
 	}
 
 	if (debug >= 5) {
-		guint64 n;
+		size_t n;
 
 		printf("updated property [%s] = ( ", PROP(ps,prop).name);
 
 		for (n = 0; n < PROP(ps,prop).vector_size; n++) {
-			if (PROP(ps,prop).type == PROP_TYPE_IP) {
-				printf("%s%s ", ip_to_gchar(
-					PROP(ps,prop).data.guint64.value[n]),
+			printf("%" PRIu64 "%s ", PROP(ps,prop).data.guint64.value[n],
 					(n < (PROP(ps,prop).vector_size-1)) ? "," : "");
-			} else {
-				printf("%" PRIu64 "%s ", PROP(ps,prop).data.guint64.value[n],
-					(n < (PROP(ps,prop).vector_size-1)) ? "," : "");
-			}
 		}
 
 		printf(")\n");
@@ -643,9 +638,10 @@ prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
 
 guint64 *
 prop_get_guint64(prop_set_t *ps, property_t prop, guint64 *t,
-	guint64 offset, guint64 length)
+	size_t offset, size_t length)
 {
 	guint64 *target;
+	size_t n;
 
 	g_assert(ps != NULL);
 
@@ -663,16 +659,16 @@ prop_get_guint64(prop_set_t *ps, property_t prop, guint64 *t,
 
 	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
 
-	target = t != NULL ? t : g_malloc(length * sizeof(guint64));
-	memcpy(target, &PROP(ps,prop).data.guint64.value[offset],
-		sizeof(guint64) * length);
+	n = length * sizeof *target;
+	target = t != NULL ? (gpointer) t : g_malloc(n);
+	memcpy(target, &PROP(ps,prop).data.guint64.value[offset], n);
 
 	return target;
 }
 
 void
 prop_set_guint32(prop_set_t *ps, property_t prop, const guint32 *src,
-	guint32 offset, guint32 length)
+	size_t offset, size_t length)
 {
 	gboolean differ = FALSE;
 
@@ -697,8 +693,8 @@ prop_set_guint32(prop_set_t *ps, property_t prop, const guint32 *src,
 
 	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
 
-	differ = (memcmp(&PROP(ps,prop).data.guint32.value[offset], src,
-		length * sizeof(guint32)) != 0);
+	differ = 0 != memcmp(&PROP(ps,prop).data.guint32.value[offset], src,
+					length * sizeof *src);
 
 	if (!differ)
 		return;
@@ -711,18 +707,17 @@ prop_set_guint32(prop_set_t *ps, property_t prop, const guint32 *src,
 		 * Either check multiple choices or min/max.
 		 */
 		if (PROP(ps,prop).type == PROP_TYPE_MULTICHOICE) {
-			guint n = 0;
+			guint n;
 			gboolean invalid = TRUE;
 			guint32 newval = *src;
 
 			prop_assert(ps, prop, PROP(ps,prop).data.guint32.choices != NULL);
 
-			while (PROP(ps,prop).data.guint32.choices[n].title != NULL) {
+			for (n = 0; PROP(ps,prop).data.guint32.choices[n].title; n++) {
 				if (PROP(ps,prop).data.guint32.choices[n].value == newval) {
 					invalid = FALSE;
 					break;
 				}
-				n++;
 			}
 
 			if (invalid) {
@@ -761,11 +756,11 @@ prop_set_guint32(prop_set_t *ps, property_t prop, const guint32 *src,
 		}
 	} else {
 		memcpy(&PROP(ps,prop).data.guint32.value[offset], src,
-			sizeof(guint32) * length);
+			length * sizeof *src);
 	}
 
 	if (debug >= 5) {
-		guint32 n;
+		size_t n;
 
 		printf("updated property [%s] = ( ", PROP(ps,prop).name);
 
@@ -788,9 +783,10 @@ prop_set_guint32(prop_set_t *ps, property_t prop, const guint32 *src,
 
 guint32 *
 prop_get_guint32(prop_set_t *ps, property_t prop, guint32 *t,
-	guint32 offset, guint32 length)
+	size_t offset, size_t length)
 {
 	guint32 *target;
+	size_t n;
 
 	g_assert(ps != NULL);
 
@@ -812,16 +808,16 @@ prop_get_guint32(prop_set_t *ps, property_t prop, guint32 *t,
 
 	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
 
-	target = t != NULL ? t : g_malloc(length * sizeof(guint32));
-	memcpy(target, &PROP(ps,prop).data.guint32.value[offset],
-		sizeof(guint32) * length);
+	n = length * sizeof *target;
+	target = t != NULL ? (gpointer) t : g_malloc(n);
+	memcpy(target, &PROP(ps,prop).data.guint32.value[offset], n);
 
 	return target;
 }
 
 void
 prop_set_storage(prop_set_t *ps, property_t prop, const gchar *src,
-	gsize length)
+	size_t length)
 {
 	gboolean differ = FALSE;
 
@@ -839,7 +835,7 @@ prop_set_storage(prop_set_t *ps, property_t prop, const gchar *src,
 
 	prop_assert(ps, prop, length == PROP(ps,prop).vector_size);
 
-	differ = (memcmp(PROP(ps,prop).data.storage.value, src, length) != 0);
+	differ = 0 != memcmp(PROP(ps,prop).data.storage.value, src, length);
 
 	if (!differ)
 		return;
@@ -857,7 +853,7 @@ prop_set_storage(prop_set_t *ps, property_t prop, const gchar *src,
 }
 
 gchar *
-prop_get_storage(prop_set_t *ps, property_t prop, gchar *t, gsize length)
+prop_get_storage(prop_set_t *ps, property_t prop, gchar *t, size_t length)
 {
 	gpointer target;
 
@@ -874,7 +870,7 @@ prop_get_storage(prop_set_t *ps, property_t prop, gchar *t, gsize length)
 
 	prop_assert(ps, prop, length == PROP(ps,prop).vector_size);
 
-	target = t != NULL ? t : g_malloc(length);
+	target = t != NULL ? (gpointer) t : g_malloc(length);
 	memcpy(target, PROP(ps,prop).data.storage.value, length);
 
 	return target;
@@ -941,7 +937,7 @@ prop_set_string(prop_set_t *ps, property_t prop, const gchar *val)
  * no effect in this case.
  */
 gchar *
-prop_get_string(prop_set_t *ps, property_t prop, gchar *t, guint32 size)
+prop_get_string(prop_set_t *ps, property_t prop, gchar *t, size_t size)
 {
 	gchar *target;
 	gchar *s;
