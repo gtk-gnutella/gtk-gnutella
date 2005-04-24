@@ -383,8 +383,7 @@ void hashtree_create_tree(node_t *start_node)
  */
 void hashtree_increase_depth(hashtree *tree)
 {
-	node_t *new_parent = NULL;
-	node_t *add_node = NULL;
+	node_t *new_parent;
 
 	tree->depth++;
 
@@ -396,7 +395,6 @@ void hashtree_increase_depth(hashtree *tree)
 
 	tree->parent->right_node = node_new();
 	tree->parent->right_node->level = tree->parent->level - 1;
-	add_node = tree->parent->right_node;
 
 	hashtree_create_tree(tree->parent->right_node);
 }
