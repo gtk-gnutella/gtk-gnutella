@@ -49,7 +49,7 @@ typedef struct xfeatures_t {
 extern xfeatures_t xfeatures;
 
 void header_get_feature(const gchar *feature_name, const header_t *header,
-	int *feature_version_major, int *feature_version_minor);
+	guint *feature_version_major, guint *feature_version_minor);
 void header_features_add(struct xfeature_t *xfeatures,
 	gchar *feature_name,
 	int feature_version_major,
@@ -61,4 +61,4 @@ void header_features_generate(struct xfeature_t *xfeatures,
 
 #endif	/* _core_features_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
