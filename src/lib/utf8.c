@@ -203,6 +203,39 @@ utf32_composition_exclude(guint32 uc)
 	return FALSE;
 }
 
+static inline gint
+general_category_cmp(size_t i, guint32 uc)
+{
+	guint32 uc2, uc3;
+	
+	uc2 = utf32_general_category_lut[i].uc;
+	if (uc == uc2)
+		return 0;
+	if (uc < uc2)
+		return 1;
+	
+	uc3 = uc2 + utf32_general_category_lut[i].len;
+	return uc < uc3 ? 0 : -1;
+}
+
+static inline uni_gc_t
+utf32_general_category(guint32 uc)
+{
+#define GET_ITEM(i) (i)
+#define FOUND(i) G_STMT_START { \
+	return utf32_general_category_lut[(i)].gc; \
+	/* NOTREACHED */ \
+} G_STMT_END
+
+	/* Perform a binary search to find ``uc'' */
+	BINARY_SEARCH(size_t, uc, G_N_ELEMENTS(utf32_general_category_lut),
+		general_category_cmp, GET_ITEM, FOUND);
+
+#undef FOUND
+#undef GET_ITEM
+	return UNI_GC_OTHER_NOT_ASSIGNED;
+}
+
 /**
  * Are the first bytes of string `s' forming a valid UTF-8 character?
  *
@@ -821,7 +854,7 @@ locale_init(void)
 			charset);
 	}
 
-	g_message("using charset \"%s\"", charset);
+	g_message("using locale charset \"%s\"", charset);
 	textdomain_init(charset);
 
 	for (i = 0; i < G_N_ELEMENTS(latin_sets); i++)
@@ -2110,6 +2143,195 @@ utf8_strupper_copy(const gchar *src)
 	return dst;
 }
 
+/**
+ * Filters characters that are ignorable for query strings. *space
+ * should be initialized to FALSE for the first character of a string.
+ *
+ * @param uc an UTF-32 character
+ * @param space pointer to a gboolean holding the current space state
+ * @return	zero if the character should be skipped, otherwise the
+ *			character itself or a replacement character.
+ */
+static inline guint32
+utf32_filter_char(guint32 uc, gboolean *space)
+{
+	uni_gc_t gc;
+
+	g_assert(space != NULL);
+
+	gc = utf32_general_category(uc);
+	switch (uc) {
+	case UNI_GC_LETTER_LOWERCASE:
+	case UNI_GC_LETTER_OTHER:
+	case UNI_GC_LETTER_MODIFIER:
+	case UNI_GC_NUMBER_DECIMAL:
+		*space = FALSE;
+		return uc;
+
+	case UNI_GC_OTHER_CONTROL:
+		if (uc == '\n')
+			return uc;
+		break;
+
+	case UNI_GC_MARK_NONSPACING:
+		/* Do not skip the japanese " and ° kana marks and so on */
+		switch (uc) {
+		/* Japanese voiced sound marks */
+		case 0x3099:
+		case 0x309A:
+			/* Virama signs */
+		case 0x0BCD:
+		case 0x094D:
+		case 0x09CD:
+		case 0x0A4D:
+		case 0x0ACD:
+		case 0x0B4D:
+		case 0x0CCD:
+		case 0x1039:
+		case 0x1714:
+		case 0x0C4D:
+			/* Nukta signs */
+		case 0x093C:
+		case 0x09BC:
+		case 0x0A3C:
+		case 0x0ABC:
+		case 0x0B3C:
+		case 0x0CBC:
+			/* Greek Ypogegrammeni */
+		case 0x0345:
+			/* Tibetan */
+		case 0x0F71:
+		case 0x0F72:
+		case 0x0F7A:
+		case 0x0F7B:
+		case 0x0F7C:
+		case 0x0F7D:
+		case 0x0F80:
+		case 0x0F74:
+		case 0x0F39:
+		case 0x0F18:
+		case 0x0F19:
+		case 0x0F35:
+		case 0x0F37:
+		case 0x0FC6:
+		case 0x0F82:
+		case 0x0F83:
+		case 0x0F84:
+		case 0x0F86:
+		case 0x0F87:
+
+			/* Others : not very sure we must keep them or not ... */
+
+			/* Myanmar */
+		case 0x1037:
+			/* Sinhala */
+		case 0x0DCA:
+			/* Thai */
+		case 0x0E3A:
+			/* Hanundo */
+		case 0x1734:
+			/* Devanagari */
+		case 0x0951:
+		case 0x0952:
+			/* Lao */
+		case 0x0EB8:
+		case 0x0EB9:
+			/* Limbu */
+		case 0x193B:
+		case 0x1939:
+		case 0x193A:
+			/* Mongolian */
+		case 0x18A9:
+			return uc;
+		}
+		break;
+
+	case UNI_GC_LETTER_UPPERCASE:
+	case UNI_GC_LETTER_TITLECASE:
+
+	case UNI_GC_MARK_SPACING_COMBINE:
+
+	case UNI_GC_SEPARATOR_PARAGRAPH:
+	case UNI_GC_SEPARATOR_LINE:
+	case UNI_GC_SEPARATOR_SPACE:
+
+	case UNI_GC_NUMBER_LETTER:
+	case UNI_GC_NUMBER_OTHER:
+
+	case UNI_GC_OTHER_FORMAT:
+	case UNI_GC_OTHER_PRIVATE_USE:
+	case UNI_GC_OTHER_SURROGATE:
+	case UNI_GC_OTHER_NOT_ASSIGNED:
+
+	case UNI_GC_PUNCT_DASH:
+	case UNI_GC_PUNCT_OPEN:
+	case UNI_GC_PUNCT_CLOSE:
+	case UNI_GC_PUNCT_CONNECTOR:
+	case UNI_GC_PUNCT_OTHER:
+	case UNI_GC_PUNCT_INIT_QUOTE:
+	case UNI_GC_PUNCT_FINAL_QUOTE:
+
+	case UNI_GC_SYMBOL_MATH:
+	case UNI_GC_SYMBOL_CURRENCY:
+	case UNI_GC_SYMBOL_MODIFIER:
+	case UNI_GC_SYMBOL_OTHER:
+
+		if (!*space)
+			return 0x0020;
+		*space = TRUE;
+		break;
+	}
+
+	return 0;
+}
+
+/**
+ * Remove all the non letter and non digit by looking the unicode symbol type
+ * all other characters will be reduce to normal space
+ * try to merge continues spaces in the same time
+ * keep the important non spacing marks
+ *
+ * @param src an NUL-terminated UTF-32 string.
+ * @param dst the output buffer to hold the modified UTF-32 string.
+ * @param size the number of characters (not bytes!) dst can hold.
+ * @return The length of the output string.
+ */
+size_t
+utf32_filter(const guint32 *src, guint32 *dst, size_t size)
+{
+	const guint32 *s;
+	guint32 uc, *p;
+	gboolean space = FALSE;
+
+	g_assert(src != NULL);
+	g_assert(size == 0 || dst != NULL);
+	g_assert(size <= INT_MAX);
+
+	s = src;
+	p = dst;
+	
+	if (size > 0) {
+		guint32 *end;
+		
+		end = &dst[size - 1];
+		while (p != end && 0x0000 != (uc = *s)) {
+			s++;
+			
+			if (0 != utf32_filter_char(uc, &space))
+				*p++ = uc;
+		}
+		*p = 0x0000;
+	}
+
+	while (0x0000 != (uc = *s++)) {
+		if (0 != utf32_filter_char(uc, &space))
+			p++;
+	}
+
+	return p - dst;
+}
+
+
 #ifdef USE_ICU
 
 /**
@@ -2507,7 +2729,7 @@ utf32_next_starter(const guint32 *s)
  * @return	the length in characters (not bytes!) of the possibly
  *			modified string.
  */
-static size_t
+size_t
 utf32_compose(guint32 *src)
 {
 	guint32 *s, *p, uc, *end;
@@ -2612,6 +2834,50 @@ unicode_compose_init(void)
 {
 	size_t i;
 
+	/* Check order and consistency of the general category lookup table */
+	for (i = 0; i < G_N_ELEMENTS(utf32_general_category_lut); i++) {
+		size_t len;
+		guint32 uc;
+		uni_gc_t gc;
+
+		uc = utf32_general_category_lut[i].uc;
+		gc = utf32_general_category_lut[i].gc;
+		len = utf32_general_category_lut[i].len;
+		
+		g_assert(len > 0); /* entries are at least one character large */
+
+		if (i > 0) {
+			size_t prev_len;
+			guint32 prev_uc;
+			uni_gc_t prev_gc;
+
+			prev_uc = utf32_general_category_lut[i - 1].uc;
+			prev_gc = utf32_general_category_lut[i - 1].gc;
+			prev_len = utf32_general_category_lut[i - 1].len;
+			
+			g_assert(prev_uc < uc);	/* ordered */
+			g_assert(prev_uc + prev_len <= uc); /* non-overlapping */
+			/* The category must changed with each entry, unless
+			 * there's a gap */
+			g_assert(prev_gc != gc || prev_uc + prev_len < uc);
+		}
+		
+		do {
+			g_assert(gc == utf32_general_category(uc));
+			uc++;
+		} while (--len != 0);
+	}
+	
+	/* Check order and consistency of the composition exclusions table */
+	for (i = 0; i < G_N_ELEMENTS(utf32_composition_exclusions); i++) {
+		guint32 uc;
+
+		uc = utf32_composition_exclusions[i];
+		g_assert(i == 0 || uc > utf32_composition_exclusions[i - 1]);
+		g_assert(utf32_composition_exclude(uc));
+	}
+	
+	/* Create the composition lookup table */
 	utf32_compose_roots = g_hash_table_new(NULL, NULL);
 
 	for (i = 0; i < G_N_ELEMENTS(utf32_nfkd_lut); i++) {
@@ -2651,6 +2917,108 @@ unicode_compose_init(void)
 			unicode_compose_add(i);
 		}
 	}
+
+#if 0 && defined(USE_GLIB2)	
+	for (i = 0; i <= 0x10FFFD; i++) {
+		guint32 uc;
+		GUnicodeType gt;
+
+		uc = i;
+		gt = g_unichar_type(uc);
+		switch (utf32_general_category(uc)) {
+		case UNI_GC_LETTER_UPPERCASE:
+			g_assert(G_UNICODE_UPPERCASE_LETTER == gt);
+			break;
+		case UNI_GC_LETTER_LOWERCASE:
+			g_assert(G_UNICODE_LOWERCASE_LETTER == gt);
+			break;
+		case UNI_GC_LETTER_TITLECASE:
+			g_assert(G_UNICODE_TITLECASE_LETTER == gt);
+			break;
+		case UNI_GC_LETTER_MODIFIER:
+			g_assert(G_UNICODE_MODIFIER_LETTER == gt);
+			break;
+		case UNI_GC_LETTER_OTHER:
+			g_assert(G_UNICODE_OTHER_LETTER == gt);
+			break;
+		case UNI_GC_MARK_NONSPACING:
+			g_assert(G_UNICODE_NON_SPACING_MARK == gt);
+			break;
+		case UNI_GC_MARK_SPACING_COMBINE:
+			g_assert(G_UNICODE_COMBINING_MARK == gt);
+			break;
+		case UNI_GC_MARK_ENCLOSING:
+			g_assert(G_UNICODE_ENCLOSING_MARK == gt);
+			break;
+		case UNI_GC_NUMBER_DECIMAL:
+			g_assert(G_UNICODE_DECIMAL_NUMBER == gt);
+			break;
+		case UNI_GC_NUMBER_LETTER:
+			g_assert(G_UNICODE_LETTER_NUMBER == gt);
+			break;
+		case UNI_GC_NUMBER_OTHER:
+			g_assert(G_UNICODE_OTHER_NUMBER == gt);
+			break;
+		case UNI_GC_PUNCT_CONNECTOR:
+			g_assert(G_UNICODE_CONNECT_PUNCTUATION == gt);
+			break;
+		case UNI_GC_PUNCT_DASH:
+			g_assert(G_UNICODE_DASH_PUNCTUATION == gt);
+			break;
+		case UNI_GC_PUNCT_OPEN:
+			g_assert(G_UNICODE_OPEN_PUNCTUATION == gt);
+			break;
+		case UNI_GC_PUNCT_CLOSE:
+			g_assert(G_UNICODE_CLOSE_PUNCTUATION == gt);
+			break;
+		case UNI_GC_PUNCT_INIT_QUOTE:
+			g_assert(G_UNICODE_INITIAL_PUNCTUATION == gt);
+			break;
+		case UNI_GC_PUNCT_FINAL_QUOTE:
+			g_assert(G_UNICODE_FINAL_PUNCTUATION == gt);
+			break;
+		case UNI_GC_PUNCT_OTHER:
+			g_assert(G_UNICODE_OTHER_PUNCTUATION == gt);
+			break;
+		case UNI_GC_SYMBOL_MATH:
+			g_assert(G_UNICODE_MATH_SYMBOL == gt);
+			break;
+		case UNI_GC_SYMBOL_CURRENCY:
+			g_assert(G_UNICODE_CURRENCY_SYMBOL == gt);
+			break;
+		case UNI_GC_SYMBOL_MODIFIER:
+			g_assert(G_UNICODE_MODIFIER_SYMBOL == gt);
+			break;
+		case UNI_GC_SYMBOL_OTHER:
+			g_assert(G_UNICODE_OTHER_SYMBOL == gt);
+			break;
+		case UNI_GC_SEPARATOR_SPACE:
+			g_assert(G_UNICODE_SPACE_SEPARATOR == gt);
+			break;
+		case UNI_GC_SEPARATOR_LINE:
+			g_assert(G_UNICODE_LINE_SEPARATOR == gt);
+			break;
+		case UNI_GC_SEPARATOR_PARAGRAPH:
+			g_assert(G_UNICODE_PARAGRAPH_SEPARATOR == gt);
+			break;
+		case UNI_GC_OTHER_CONTROL:
+			g_assert(G_UNICODE_CONTROL == gt);
+			break;
+		case UNI_GC_OTHER_FORMAT:
+			g_assert(G_UNICODE_FORMAT == gt);
+			break;
+		case UNI_GC_OTHER_SURROGATE:
+			g_assert(G_UNICODE_SURROGATE == gt);
+			break;
+		case UNI_GC_OTHER_PRIVATE_USE:
+			g_assert(G_UNICODE_PRIVATE_USE == gt);
+			break;
+		case UNI_GC_OTHER_NOT_ASSIGNED:
+			g_assert(G_UNICODE_UNASSIGNED == gt);
+			break;
+		}
+	}
+#endif
 
 #if 0 && defined(USE_GLIB2)	
 	for (;;) {	
