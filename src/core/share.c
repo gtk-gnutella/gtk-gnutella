@@ -2014,7 +2014,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 	if (!skip_file_search) {
 		gboolean is_utf8;
-		gboolean ignore = FALSE;
 
 		/*
 		 * Keep only UTF8 encoded queries (This includes ASCII)
@@ -2032,7 +2031,11 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		} else if (utf8_len)
 			gnet_stats_count_general(GNR_QUERY_UTF8, 1);
 
-		is_utf8 = utf8_len > 0;
+		/* NB:	If ``search'' contains only ASCII, utf8_len is zero.
+		 *  	Otherwise, utf8_len is greater than zero. See
+		 *		query_utf8_decode().
+		 */
+		g_assert(utf8_len >= 0);
 
 		/*
 		 * Because st_search() will apply a character map over the string,
@@ -2045,9 +2048,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 		search_len -= offset;
 		memcpy(stmp_1, search + offset, search_len + 1);
-
-		if (!is_utf8)
-			ignore = TRUE;
 
 #ifdef USE_ICU
 
@@ -2097,8 +2097,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 #endif
 
-		if (!ignore)
-			st_search(&search_table, stmp_1, got_match, qctx, max_replies, qhv);
+		st_search(&search_table, stmp_1, got_match, qctx, max_replies, qhv);
 	}
 
 finish:
