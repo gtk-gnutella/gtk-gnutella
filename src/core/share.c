@@ -2013,7 +2013,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	}
 
 	if (!skip_file_search) {
-		gboolean is_utf8;
 
 		/*
 		 * Keep only UTF8 encoded queries (This includes ASCII)
