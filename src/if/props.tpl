@@ -114,9 +114,9 @@ void [=(. func-prefix)=]_remove_prop_changed_listener(
  * The *_val macros are shortcuts for single scalar properties.
  */
 void [=(. func-prefix)=]_set_boolean(
-    property_t, const gboolean *, gsize, gsize);
+    property_t, const gboolean *, size_t, size_t);
 gboolean *[=(. func-prefix)=]_get_boolean(
-    property_t, gboolean *, gsize, gsize);
+    property_t, gboolean *, size_t, size_t);
 
 #define [=(. func-prefix)=]_set_boolean_val(p, v) do { \
 	gboolean value = v; \
@@ -129,12 +129,12 @@ gboolean *[=(. func-prefix)=]_get_boolean(
 
 
 void [=(. func-prefix)=]_set_string(property_t, const gchar *);
-gchar *[=(. func-prefix)=]_get_string(property_t, gchar *, gsize);
+gchar *[=(. func-prefix)=]_get_string(property_t, gchar *, size_t);
 
 void [=(. func-prefix)=]_set_guint32(
-    property_t, const guint32 *, gsize, gsize);
+    property_t, const guint32 *, size_t, size_t);
 guint32 *[=(. func-prefix)=]_get_guint32(
-    property_t, guint32 *, gsize, gsize);
+    property_t, guint32 *, size_t, size_t);
 
 #define [=(. func-prefix)=]_set_guint32_val(p, v) do { \
 	guint32 value = v; \
@@ -146,9 +146,9 @@ guint32 *[=(. func-prefix)=]_get_guint32(
 } while (0)
 
 void [=(. func-prefix)=]_set_guint64(
-    property_t, const guint64 *, gsize, gsize);
+    property_t, const guint64 *, size_t, size_t);
 guint64 *[=(. func-prefix)=]_get_guint64(
-    property_t, guint64 *, gsize, gsize);
+    property_t, guint64 *, size_t, size_t);
 
 #define [=(. func-prefix)=]_set_guint64_val(p, v) do { \
 	guint64 value = v; \
@@ -159,8 +159,8 @@ guint64 *[=(. func-prefix)=]_get_guint64(
 	[=(. func-prefix)=]_get_guint64(p, v, 0, 1); \
 } while (0)
 
-void [=(. func-prefix)=]_set_storage(property_t, const gchar *, gsize);
-gchar *[=(. func-prefix)=]_get_storage(property_t, gchar *, gsize);
+void [=(. func-prefix)=]_set_storage(property_t, const gchar *, size_t);
+gchar *[=(. func-prefix)=]_get_storage(property_t, gchar *, size_t);
 
 gchar *[=(. func-prefix)=]_to_string(property_t prop);
 
@@ -434,7 +434,7 @@ ENDFOR prop=]
  * Free memory allocated by the property set.
  */
 void [=(. func-prefix)=]_shutdown(void) {
-    gint n;
+    guint32 n;
 
     if ([=(. prop-set)=]->byName) {
         g_hash_table_destroy([=(. prop-set)=]->byName);
@@ -494,37 +494,37 @@ void [=(. func-prefix)=]_remove_prop_changed_listener(
 }
 
 void [=(. func-prefix)=]_set_boolean(
-    property_t prop, const gboolean *src, gsize offset, gsize length)
+    property_t prop, const gboolean *src, size_t offset, size_t length)
 {
     prop_set_boolean([=(. prop-set)=], prop, src, offset, length);
 }
 
 gboolean *[=(. func-prefix)=]_get_boolean(
-    property_t prop, gboolean *t, gsize offset, gsize length)
+    property_t prop, gboolean *t, size_t offset, size_t length)
 {
     return prop_get_boolean([=(. prop-set)=], prop, t, offset, length);
 }
 
 void [=(. func-prefix)=]_set_guint32(
-    property_t prop, const guint32 *src, gsize offset, gsize length)
+    property_t prop, const guint32 *src, size_t offset, size_t length)
 {
     prop_set_guint32([=(. prop-set)=], prop, src, offset, length);
 }
 
 guint32 *[=(. func-prefix)=]_get_guint32(
-    property_t prop, guint32 *t, gsize offset, gsize length)
+    property_t prop, guint32 *t, size_t offset, size_t length)
 {
     return prop_get_guint32([=(. prop-set)=], prop, t, offset, length);
 }
 
 void [=(. func-prefix)=]_set_guint64(
-    property_t prop, const guint64 *src, gsize offset, gsize length)
+    property_t prop, const guint64 *src, size_t offset, size_t length)
 {
     prop_set_guint64([=(. prop-set)=], prop, src, offset, length);
 }
 
 guint64 *[=(. func-prefix)=]_get_guint64(
-    property_t prop, guint64 *t, gsize offset, gsize length)
+    property_t prop, guint64 *t, size_t offset, size_t length)
 {
     return prop_get_guint64([=(. prop-set)=], prop, t, offset, length);
 }
@@ -534,17 +534,17 @@ void [=(. func-prefix)=]_set_string(property_t prop, const gchar *val)
     prop_set_string([=(. prop-set)=], prop, val);
 }
 
-gchar *[=(. func-prefix)=]_get_string(property_t prop, gchar *t, gsize size)
+gchar *[=(. func-prefix)=]_get_string(property_t prop, gchar *t, size_t size)
 {
     return prop_get_string([=(. prop-set)=], prop, t, size);
 }
 
-void [=(. func-prefix)=]_set_storage(property_t p, const gchar *v, gsize l)
+void [=(. func-prefix)=]_set_storage(property_t p, const gchar *v, size_t l)
 {
     prop_set_storage([=(. prop-set)=], p, v, l);
 }
 
-gchar *[=(. func-prefix)=]_get_storage(property_t p, gchar *t, gsize l)
+gchar *[=(. func-prefix)=]_get_storage(property_t p, gchar *t, size_t l)
 {
     return prop_get_storage([=(. prop-set)=], p, t, l);
 }
