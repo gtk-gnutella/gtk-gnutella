@@ -4438,7 +4438,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 * here.
 	 */
 	{
-		int major, minor;
+		guint major, minor;
 
  		header_get_feature("hsep", head, &major, &minor);
 
