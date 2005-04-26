@@ -323,7 +323,7 @@ vmsg_fill_header(struct gnutella_header *header, guint32 size, guint32 maxsize)
  *
  * Returns start of payload after that common part.
  */
-static guchar *
+static gchar *
 vmsg_fill_type(
 	struct gnutella_vendor *base, guint32 vendor, guint16 id, guint16 version)
 {
@@ -331,7 +331,7 @@ vmsg_fill_type(
 	WRITE_GUINT16_LE(id, base->selector_id);
 	WRITE_GUINT16_LE(version, base->version);
 
-	return (guchar *) (base + 1);
+	return (gchar *) (base + 1);
 }
 
 /**
@@ -456,7 +456,7 @@ vmsg_send_messages_supported(struct gnutella_node *n)
 	guint16 count = G_N_ELEMENTS(vmsg_map) - 1;
 	guint32 paysize = sizeof(count) + count * VMS_ITEM_SIZE;
 	guint32 msgsize;
-	guchar *payload;
+	gchar *payload;
 	guint i;
 
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
@@ -569,7 +569,7 @@ vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops)
 	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
 	guint32 paysize = sizeof(hops);
 	guint32 msgsize;
-	guchar *payload;
+	gchar *payload;
 
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
 	payload = vmsg_fill_type(&m->data, T_BEAR, 4, 1);
@@ -622,7 +622,7 @@ vmsg_send_tcp_connect_back(struct gnutella_node *n, guint16 port)
 	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
 	guint32 paysize = sizeof(port);
 	guint32 msgsize;
-	guchar *payload;
+	gchar *payload;
 
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
 	payload = vmsg_fill_type(&m->data, T_BEAR, 7, 1);
@@ -692,7 +692,7 @@ vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port)
 	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
 	guint32 paysize = sizeof(port) + 16;
 	guint32 msgsize;
-	guchar *payload;
+	gchar *payload;
 
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
 	payload = vmsg_fill_type(&m->data, T_GTKG, 7, 1);
@@ -820,7 +820,7 @@ vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid, gint version)
 	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
 	guint32 paysize = sizeof(guint32) + sizeof(guint16);
 	guint32 msgsize;
-	guchar *payload;
+	gchar *payload;
 
 	if (version == 1)
 		paysize -= sizeof(guint32);		/* No IP address for v1 */
@@ -1481,7 +1481,7 @@ vmsg_send_udp_crawler_ping(struct gnutella_node *n,
 	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
 	guint32 paysize = sizeof(ultras) + sizeof(leaves) + sizeof(features);
 	guint32 msgsize;
-	guchar *payload;
+	gchar *payload;
 
 	g_assert(NODE_IS_UDP(n));
 
@@ -1496,4 +1496,4 @@ vmsg_send_udp_crawler_ping(struct gnutella_node *n,
 }
 #endif
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
