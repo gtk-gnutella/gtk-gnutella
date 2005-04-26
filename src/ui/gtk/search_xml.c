@@ -326,7 +326,7 @@ target_to_string(filter_t *target)
 	
     gm_snprintf(buf, sizeof buf, "0x%x", GPOINTER_TO_UINT(value));
 	
-	return gchar_to_xmlChar(buf);
+	return buf;
 }
 
 /**
