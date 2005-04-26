@@ -308,11 +308,6 @@ do {				\
 typedef gboolean (*reclaim_fd_t)(void);
 
 /*
- * Variables
- */
-extern guint32 common_dbg;
-
-/*
  * Standard gettext macros.
  */
 
