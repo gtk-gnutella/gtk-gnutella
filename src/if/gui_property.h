@@ -169,9 +169,9 @@ void gui_prop_remove_prop_changed_listener(
  * The *_val macros are shortcuts for single scalar properties.
  */
 void gui_prop_set_boolean(
-    property_t, const gboolean *, gsize, gsize);
+    property_t, const gboolean *, size_t, size_t);
 gboolean *gui_prop_get_boolean(
-    property_t, gboolean *, gsize, gsize);
+    property_t, gboolean *, size_t, size_t);
 
 #define gui_prop_set_boolean_val(p, v) do { \
 	gboolean value = v; \
@@ -184,12 +184,12 @@ gboolean *gui_prop_get_boolean(
 
 
 void gui_prop_set_string(property_t, const gchar *);
-gchar *gui_prop_get_string(property_t, gchar *, gsize);
+gchar *gui_prop_get_string(property_t, gchar *, size_t);
 
 void gui_prop_set_guint32(
-    property_t, const guint32 *, gsize, gsize);
+    property_t, const guint32 *, size_t, size_t);
 guint32 *gui_prop_get_guint32(
-    property_t, guint32 *, gsize, gsize);
+    property_t, guint32 *, size_t, size_t);
 
 #define gui_prop_set_guint32_val(p, v) do { \
 	guint32 value = v; \
@@ -201,9 +201,9 @@ guint32 *gui_prop_get_guint32(
 } while (0)
 
 void gui_prop_set_guint64(
-    property_t, const guint64 *, gsize, gsize);
+    property_t, const guint64 *, size_t, size_t);
 guint64 *gui_prop_get_guint64(
-    property_t, guint64 *, gsize, gsize);
+    property_t, guint64 *, size_t, size_t);
 
 #define gui_prop_set_guint64_val(p, v) do { \
 	guint64 value = v; \
@@ -214,8 +214,8 @@ guint64 *gui_prop_get_guint64(
 	gui_prop_get_guint64(p, v, 0, 1); \
 } while (0)
 
-void gui_prop_set_storage(property_t, const gchar *, gsize);
-gchar *gui_prop_get_storage(property_t, gchar *, gsize);
+void gui_prop_set_storage(property_t, const gchar *, size_t);
+gchar *gui_prop_get_storage(property_t, gchar *, size_t);
 
 gchar *gui_prop_to_string(property_t prop);
 

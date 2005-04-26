@@ -2209,7 +2209,7 @@ prop_set_t *gui_prop_init(void) {
  * Free memory allocated by the property set.
  */
 void gui_prop_shutdown(void) {
-    gint n;
+    guint32 n;
 
     if (gui_property->byName) {
         g_hash_table_destroy(gui_property->byName);
@@ -2269,37 +2269,37 @@ void gui_prop_remove_prop_changed_listener(
 }
 
 void gui_prop_set_boolean(
-    property_t prop, const gboolean *src, gsize offset, gsize length)
+    property_t prop, const gboolean *src, size_t offset, size_t length)
 {
     prop_set_boolean(gui_property, prop, src, offset, length);
 }
 
 gboolean *gui_prop_get_boolean(
-    property_t prop, gboolean *t, gsize offset, gsize length)
+    property_t prop, gboolean *t, size_t offset, size_t length)
 {
     return prop_get_boolean(gui_property, prop, t, offset, length);
 }
 
 void gui_prop_set_guint32(
-    property_t prop, const guint32 *src, gsize offset, gsize length)
+    property_t prop, const guint32 *src, size_t offset, size_t length)
 {
     prop_set_guint32(gui_property, prop, src, offset, length);
 }
 
 guint32 *gui_prop_get_guint32(
-    property_t prop, guint32 *t, gsize offset, gsize length)
+    property_t prop, guint32 *t, size_t offset, size_t length)
 {
     return prop_get_guint32(gui_property, prop, t, offset, length);
 }
 
 void gui_prop_set_guint64(
-    property_t prop, const guint64 *src, gsize offset, gsize length)
+    property_t prop, const guint64 *src, size_t offset, size_t length)
 {
     prop_set_guint64(gui_property, prop, src, offset, length);
 }
 
 guint64 *gui_prop_get_guint64(
-    property_t prop, guint64 *t, gsize offset, gsize length)
+    property_t prop, guint64 *t, size_t offset, size_t length)
 {
     return prop_get_guint64(gui_property, prop, t, offset, length);
 }
@@ -2309,17 +2309,17 @@ void gui_prop_set_string(property_t prop, const gchar *val)
     prop_set_string(gui_property, prop, val);
 }
 
-gchar *gui_prop_get_string(property_t prop, gchar *t, gsize size)
+gchar *gui_prop_get_string(property_t prop, gchar *t, size_t size)
 {
     return prop_get_string(gui_property, prop, t, size);
 }
 
-void gui_prop_set_storage(property_t p, const gchar *v, gsize l)
+void gui_prop_set_storage(property_t p, const gchar *v, size_t l)
 {
     prop_set_storage(gui_property, p, v, l);
 }
 
-gchar *gui_prop_get_storage(property_t p, gchar *t, gsize l)
+gchar *gui_prop_get_storage(property_t p, gchar *t, size_t l)
 {
     return prop_get_storage(gui_property, p, t, l);
 }

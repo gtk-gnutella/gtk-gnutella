@@ -5147,7 +5147,7 @@ prop_set_t *gnet_prop_init(void) {
  * Free memory allocated by the property set.
  */
 void gnet_prop_shutdown(void) {
-    gint n;
+    guint32 n;
 
     if (gnet_property->byName) {
         g_hash_table_destroy(gnet_property->byName);
@@ -5207,37 +5207,37 @@ void gnet_prop_remove_prop_changed_listener(
 }
 
 void gnet_prop_set_boolean(
-    property_t prop, const gboolean *src, gsize offset, gsize length)
+    property_t prop, const gboolean *src, size_t offset, size_t length)
 {
     prop_set_boolean(gnet_property, prop, src, offset, length);
 }
 
 gboolean *gnet_prop_get_boolean(
-    property_t prop, gboolean *t, gsize offset, gsize length)
+    property_t prop, gboolean *t, size_t offset, size_t length)
 {
     return prop_get_boolean(gnet_property, prop, t, offset, length);
 }
 
 void gnet_prop_set_guint32(
-    property_t prop, const guint32 *src, gsize offset, gsize length)
+    property_t prop, const guint32 *src, size_t offset, size_t length)
 {
     prop_set_guint32(gnet_property, prop, src, offset, length);
 }
 
 guint32 *gnet_prop_get_guint32(
-    property_t prop, guint32 *t, gsize offset, gsize length)
+    property_t prop, guint32 *t, size_t offset, size_t length)
 {
     return prop_get_guint32(gnet_property, prop, t, offset, length);
 }
 
 void gnet_prop_set_guint64(
-    property_t prop, const guint64 *src, gsize offset, gsize length)
+    property_t prop, const guint64 *src, size_t offset, size_t length)
 {
     prop_set_guint64(gnet_property, prop, src, offset, length);
 }
 
 guint64 *gnet_prop_get_guint64(
-    property_t prop, guint64 *t, gsize offset, gsize length)
+    property_t prop, guint64 *t, size_t offset, size_t length)
 {
     return prop_get_guint64(gnet_property, prop, t, offset, length);
 }
@@ -5247,17 +5247,17 @@ void gnet_prop_set_string(property_t prop, const gchar *val)
     prop_set_string(gnet_property, prop, val);
 }
 
-gchar *gnet_prop_get_string(property_t prop, gchar *t, gsize size)
+gchar *gnet_prop_get_string(property_t prop, gchar *t, size_t size)
 {
     return prop_get_string(gnet_property, prop, t, size);
 }
 
-void gnet_prop_set_storage(property_t p, const gchar *v, gsize l)
+void gnet_prop_set_storage(property_t p, const gchar *v, size_t l)
 {
     prop_set_storage(gnet_property, p, v, l);
 }
 
-gchar *gnet_prop_get_storage(property_t p, gchar *t, gsize l)
+gchar *gnet_prop_get_storage(property_t p, gchar *t, size_t l)
 {
     return prop_get_storage(gnet_property, p, t, l);
 }
