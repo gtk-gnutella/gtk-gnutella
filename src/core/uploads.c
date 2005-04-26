@@ -1415,7 +1415,7 @@ upload_error_not_found(gnutella_upload_t *u, const gchar *request)
 static gboolean
 upload_http_version(gnutella_upload_t *u, gchar *request, gint len)
 {
-	gint http_major, http_minor;
+	guint http_major, http_minor;
 
 	/*
 	 * Check HTTP protocol version. --RAM, 11/04/2002
