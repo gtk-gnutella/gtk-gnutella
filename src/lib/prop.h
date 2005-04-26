@@ -112,7 +112,7 @@ typedef guint64 *(*prop_get_guint64_t)
 
 
 typedef struct prop_def_storage {
-    guint8 *value;   /* current data */
+    gchar *value;   /* current data */
 } prop_def_storage_t;
 
 typedef void (*prop_set_storage_t)(property_t, const gchar *, size_t);

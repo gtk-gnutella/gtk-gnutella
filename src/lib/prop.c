@@ -252,7 +252,7 @@ prop_parse_boolean_vector(const gchar *name,
 }
 
 /**
- * Parse a hex string into a guint8 array.
+ * Parse a hex string into a gchar array.
  */
 static void
 prop_parse_storage(const gchar *name, const gchar *str, size_t size, gchar *t)
@@ -1300,7 +1300,7 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 
 			for (i = 0; i < p->vector_size; i++) {
 				static const char hex_alphabet_lower[] = "0123456789abcdef";
-				guint8 c = p->data.storage.value[i];
+				gint c = (guchar) p->data.storage.value[i];
 
 				val[i * 2] = hex_alphabet_lower[c >> 4];
 				val[i * 2 + 1] = hex_alphabet_lower[c & 0x0f];
