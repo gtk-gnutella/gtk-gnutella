@@ -62,8 +62,6 @@ static GHashTable *upload_handles = NULL;
 /* list of all *removed* uploads; contains the handles */
 static GSList *sl_removed_uploads = NULL;
 
-static inline upload_row_data_t *find_upload(gnet_upload_t u);
-
 static void uploads_gui_update_upload_info(const gnet_upload_info_t *u);
 static void uploads_gui_add_upload(gnet_upload_info_t *u);
 
@@ -86,6 +84,30 @@ typedef struct remove_row_ctx {
 	GSList *sl_remaining;	/* Contains row data for not yet removed rows. */
 } remove_row_ctx_t;
 
+
+/**
+ * Tries to fetch upload_row_data associated with the given upload handle.
+ *
+ * @return a pointer the upload_row_data.
+ */
+static inline upload_row_data_t *
+find_upload(gnet_upload_t u)
+{
+	upload_row_data_t *rd;
+	gpointer key;
+	gboolean found;
+
+	found = g_hash_table_lookup_extended(upload_handles, GUINT_TO_POINTER(u),
+				NULL, &key);
+	g_assert(found);
+	rd = key;
+
+	g_assert(NULL != rd);
+	g_assert(rd->valid);
+	g_assert(rd->handle == u);
+
+	return rd;
+}
 
 /***
  *** Callbacks
@@ -207,30 +229,6 @@ COMPARE_FUNC_END
 /***
  *** Private functions
  ***/
-
-/**
- * Tries to fetch upload_row_data associated with the given upload handle.
- *
- * @return a pointer the upload_row_data.
- */
-static inline upload_row_data_t *
-find_upload(gnet_upload_t u)
-{
-	upload_row_data_t *rd;
-	gpointer key;
-	gboolean found;
-
-	found = g_hash_table_lookup_extended(upload_handles, GUINT_TO_POINTER(u),
-				NULL, &key);
-	g_assert(found);
-	rd = key;
-
-	g_assert(NULL != rd);
-	g_assert(rd->valid);
-	g_assert(rd->handle == u);
-
-	return rd;
-}
 
 static void
 uploads_gui_update_upload_info(const gnet_upload_info_t *u)
@@ -611,9 +609,7 @@ update_row(gpointer key, gpointer data, gpointer user_data)
 void
 uploads_gui_update_display(time_t now)
 {
-    static time_t last_update = 0;
-    static gboolean locked = FALSE;
-	remove_row_ctx_t ctx = { FALSE, now, NULL };
+    static time_t last_update;
 	gint current_page;
 	static GtkNotebook *notebook = NULL;
 
@@ -636,26 +632,31 @@ uploads_gui_update_display(time_t now)
 		return;
 	}
 
-    if (last_update == now)
-        return;
+    if (last_update != now) {
+    	static gboolean locked = FALSE;
+		remove_row_ctx_t ctx;
+		
+    	last_update = now;
+		ctx.force = FALSE;
+		ctx.now = now;
+		ctx.sl_remaining = NULL;
 
-    last_update = now;
+		g_return_if_fail(!locked);
+		locked = TRUE;
 
-    g_return_if_fail(!locked);
-    locked = TRUE;
+		/* Remove all rows with `removed' uploads. */
+		G_SLIST_FOREACH(sl_removed_uploads, remove_row, &ctx);
+		g_slist_free(sl_removed_uploads);
+		sl_removed_uploads = ctx.sl_remaining;
 
-	/* Remove all rows with `removed' uploads. */
-	G_SLIST_FOREACH(sl_removed_uploads, remove_row, &ctx);
-	g_slist_free(sl_removed_uploads);
-	sl_removed_uploads = ctx.sl_remaining;
+		/* Update the status column for all active uploads. */
+		g_hash_table_foreach(upload_handles, update_row, &now);
 
-	/* Update the status column for all active uploads. */
-	g_hash_table_foreach(upload_handles, update_row, &now);
+		if (NULL == sl_removed_uploads)
+			gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
 
-	if (NULL == sl_removed_uploads)
-		gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
-
-    locked = FALSE;
+		locked = FALSE;
+	}
 }
 
 static gboolean
