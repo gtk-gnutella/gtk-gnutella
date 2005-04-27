@@ -272,7 +272,7 @@ settings_init(void)
 	gnet_prop_set_guint32_val(PROP_SYS_NOFILE, maxfd);
 	gnet_prop_set_guint32_val(PROP_SYS_PHYSMEM, amount);
 
-	memset((gchar *) guid, 0, sizeof(guid));
+	memset(deconstify_gchar(servent_guid), 0, sizeof servent_guid);
 	config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
 	home_dir = g_strdup(eval_subst("~"));
 	if (!home_dir)
