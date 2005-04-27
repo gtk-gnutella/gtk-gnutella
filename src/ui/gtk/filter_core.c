@@ -124,7 +124,7 @@ dump_filter(filter_t *filter)
 		"       bound    : %p\n"
 		"       refcount : %d",
 		filter->name,
-		filter->search,
+		cast_to_gconstpointer(filter->search),
 		filter->refcount);
     dump_ruleset(filter->ruleset);
 }
@@ -140,7 +140,7 @@ dump_shadow(shadow_t *shadow)
 		"       flt. ref : %d\n"
 		"  Added:",
 		shadow->filter->name,
-		shadow->filter->search,
+		cast_to_gconstpointer(shadow->filter->search),
 		shadow->refcount,
 		shadow->filter->refcount);
 		
@@ -984,16 +984,14 @@ filter_rule_condition_to_gchar(const rule_t *r)
 		if (r->u.size.lower == 0) {
             gchar smax_64[32];
 
-			gm_snprintf(smax_64, sizeof(smax_64),
-				"%" PRIu64, (guint64) r->u.size.upper);
+			uint64_to_string_buf(smax_64, sizeof smax_64, r->u.size.upper);
 			gm_snprintf(tmp, sizeof(tmp),
 				_("If filesize is smaller than %s (%s)"),
 				smax_64, short_size(r->u.size.upper));
 		} else if (r->u.size.upper == r->u.size.lower) {
             gchar smax_64[32];
 
-			gm_snprintf(smax_64, sizeof(smax_64),
-				"%" PRIu64, (guint64) r->u.size.upper);
+			uint64_to_string_buf(smax_64, sizeof smax_64, r->u.size.upper);
 			gm_snprintf(tmp, sizeof(tmp),
 				_("If filesize is exactly %s (%s)"),
 				smax_64, short_size(r->u.size.upper));
@@ -1003,10 +1001,8 @@ filter_rule_condition_to_gchar(const rule_t *r)
 
             g_strlcpy(smin, short_size(r->u.size.lower), sizeof smin);
             g_strlcpy(smax, short_size(r->u.size.upper), sizeof smax);
-			gm_snprintf(smin_64, sizeof smin_64,
-				"%" PRIu64, (guint64) r->u.size.lower);
-			gm_snprintf(smax_64, sizeof smax_64,
-				"%" PRIu64, (guint64) r->u.size.upper);
+			uint64_to_string_buf(smin_64, sizeof smin_64, r->u.size.lower);
+			uint64_to_string_buf(smax_64, sizeof smax_64, r->u.size.upper);
 
 			gm_snprintf(tmp, sizeof(tmp),
 				_("If filesize is between %s and %s (%s - %s)"),
@@ -1019,11 +1015,12 @@ filter_rule_condition_to_gchar(const rule_t *r)
 				_("If urn:sha1 is same as for \"%s\""),
                 r->u.sha1.filename);
         } else {
-            gm_snprintf(tmp, sizeof(tmp), _("If urn:sha1 is not available"));
+            gm_snprintf(tmp, sizeof(tmp), "%s",
+				_("If urn:sha1 is not available"));
 		}
         break;
     case RULE_JUMP:
-       	gm_snprintf(tmp, sizeof(tmp), _("Always"));
+       	gm_snprintf(tmp, sizeof(tmp), "%s", _("Always"));
         break;
     case RULE_FLAG:
         {
@@ -1081,7 +1078,7 @@ filter_rule_condition_to_gchar(const rule_t *r)
                 gm_snprintf(tmp, sizeof(tmp), _("If flag %s%s%s%s%s"),
                     busy_str, s1, push_str, s2, stable_str);
 			} else {
-                 gm_snprintf(tmp, sizeof(tmp),
+                 gm_snprintf(tmp, sizeof(tmp), "%s",
 					_("Always (all flags ignored)"));
 			}
         }
@@ -1138,7 +1135,7 @@ filter_rule_condition_to_gchar(const rule_t *r)
                 gm_snprintf(tmp, sizeof(tmp), _("If flag %s%s%s"),
                     display_str, s1, download_str);
 			} else {
-                 gm_snprintf(tmp, sizeof(tmp),
+	             gm_snprintf(tmp, sizeof(tmp), "%s",
 					_("Always (all states ignored)"));
 			}
         }
@@ -1481,7 +1478,7 @@ filter_append_rule_to_session(filter_t *f, rule_t * const r)
 
     if (gui_debug >= 4)
         g_message("appending rule to filter: %s <- %s (%p)",
-            f->name, filter_rule_to_gchar(r), r->target);
+            f->name, filter_rule_to_gchar(r), cast_to_gconstpointer(r->target));
 
     /*
      * The rule is added to a session, so we set the shadow flag.
