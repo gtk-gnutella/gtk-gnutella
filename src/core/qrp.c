@@ -182,9 +182,9 @@ install_merged_table(struct routing_table *rt)
 static inline guint32
 qrp_hashcode(const gchar *s)
 {
-	guint32 x = 0;		/* The running total */
 	size_t len, j;
-	gint c;
+	guint32 uc;
+	guint32 x = 0;		/* The running total */
 
 	/*
 	 * First turn x[0...end-1] into a number by treating all 4-byte
@@ -199,12 +199,10 @@ qrp_hashcode(const gchar *s)
 
 	j = 0;	/* The byte position in xor */
 	len = 0;
-	while ('\0' != (c = (guchar) *s)) {
-		guint32 uc;
-
+	while ('\0' != (uc = (guchar) *s)) {
 		/* Optimize for ASCII as the most common encoding for searches */
-		if (c < 0x80) {
-			x ^= ((guint32) ascii_tolower(c)) << (j & 24);
+		if (uc < 0x80U) {
+			x ^= ((guint32) ascii_tolower(uc)) << (j & 24);
 			j += 8;
 			s++;
 			len = 0;	/* Reset */
@@ -385,10 +383,10 @@ qrt_sha1(struct routing_table *rt)
 		for (j = 0, mask = 0x80; j < 8; j++, mask >>= 1)
 			vector[j] = (value & mask) ? 1 : 0;		/* 1 for presence */
 
-		SHA1Input(&ctx, vector, sizeof(vector));
+		SHA1Input(&ctx, vector, sizeof vector);
 	}
 
-	SHA1Result(&ctx, (guint8 *) digest);
+	SHA1Result(&ctx, cast_to_gpointer(digest));
 
 	return digest;
 }
@@ -1058,7 +1056,7 @@ mrg_step_install_table(gpointer unused_h, gpointer u, gint unused_ticks)
 		struct routing_table *mt;
 		if (ctx->slots != 0)
 			mt = qrt_create("Merged table",
-				ctx->arena, ctx->slots, LOCAL_INFINITY);
+				cast_to_gpointer(ctx->arena), ctx->slots, LOCAL_INFINITY);
 		else {
 			g_assert(ctx->arena == NULL);
 			mt = qrt_empty_table("Empty merged table");
@@ -2227,13 +2225,13 @@ qrp_send_reset(struct gnutella_node *n, gint slots, gint infinity)
 	m.header.function = GTA_MSG_QRP;
 	m.header.ttl = 1;
 	m.header.hops = 0;
-	WRITE_GUINT32_LE(sizeof(m.data), m.header.size);
+	WRITE_GUINT32_LE(sizeof m.data, m.header.size);
 
 	m.data.variant = GTA_MSGV_QRP_RESET;
 	WRITE_GUINT32_LE(slots, m.data.table_length);
 	m.data.infinity = (guchar) infinity;
 
-	gmsg_sendto_one(n, (gchar *) &m, sizeof(m));
+	gmsg_sendto_one(n, &m, sizeof m);
 
 	if (qrp_debug > 4)
 		printf("QRP sent RESET slots=%d, infinity=%d to %s\n",
@@ -2285,9 +2283,9 @@ qrp_send_patch(struct gnutella_node *n,
 	m->data.compressor = compressed ? 0x1 : 0x0;
 	m->data.entry_bits = bits;
 
-	memcpy((gchar *) m + sizeof(*m), buf, len);
+	memcpy(&m[1], buf, len);
 
-	gmsg_sendto_one(n, (gchar *) m, msglen);
+	gmsg_sendto_one(n, m, msglen);
 
 	if ((gchar *) m != qrp_tmp)
 		G_FREE_NULL(m);
@@ -4071,7 +4069,7 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 	if (n->header.ttl == 0)
 		n->header.ttl++;
 
-	gmsg_split_sendto_all(nodes, (guchar *) &n->header, n->data,
+	gmsg_split_sendto_all(nodes, &n->header, n->data,
 		n->size + sizeof(struct gnutella_header));
 
 	g_slist_free(nodes);
@@ -4083,10 +4081,11 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 
 #ifdef TEST
 
-#define CHECK(x) do { \
-	if (!(x)) printf("FAILED: %s\n", #x); \
-	else printf("OK: %s\n", #x); \
-} while (0)
+#define CHECK(x)									\
+G_STMT_START {										\
+	if (!(x)) printf("FAILED: %s\n", STRINGIFY(x));	\
+	else printf("OK: %s\n", STRINGIFY(x));			\
+} G_STMT_END
 #else /* !TEST */
 
 #define CHECK(x) g_assert((x))
@@ -4095,43 +4094,41 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 void
 test_hash(void)
 {
-#define hash qrp_hash
+	CHECK(qrp_hash("", 13)==0);
+	CHECK(qrp_hash("eb", 13)==6791);
+	CHECK(qrp_hash("ebc", 13)==7082);
+	CHECK(qrp_hash("ebck", 13)==6698);
+	CHECK(qrp_hash("ebckl", 13)==3179);
+	CHECK(qrp_hash("ebcklm", 13)==3235);
+	CHECK(qrp_hash("ebcklme", 13)==6438);
+	CHECK(qrp_hash("ebcklmen", 13)==1062);
+	CHECK(qrp_hash("ebcklmenq", 13)==3527);
+	CHECK(qrp_hash("", 16)==0);
+	CHECK(qrp_hash("n", 16)==65003);
+	CHECK(qrp_hash("nd", 16)==54193);
+	CHECK(qrp_hash("ndf", 16)==4953);
+	CHECK(qrp_hash("ndfl", 16)==58201);
+	CHECK(qrp_hash("ndfla", 16)==34830);
+	CHECK(qrp_hash("ndflal", 16)==36910);
+	CHECK(qrp_hash("ndflale", 16)==34586);
+	CHECK(qrp_hash("ndflalem", 16)==37658);
+	CHECK(qrp_hash("FAIL", 16)!=37458);	/* Note the != */
+	CHECK(qrp_hash("ndflaleme", 16)==45559);
+	CHECK(qrp_hash("ol2j34lj", 10)==318);
+	CHECK(qrp_hash("asdfas23", 10)==503);
+	CHECK(qrp_hash("9um3o34fd", 10)==758);
+	CHECK(qrp_hash("a234d", 10)==281);
+	CHECK(qrp_hash("a3f", 10)==767);
+	CHECK(qrp_hash("3nja9", 10)==581);
+	CHECK(qrp_hash("2459345938032343", 10)==146);
+	CHECK(qrp_hash("7777a88a8a8a8", 10)==342);
+	CHECK(qrp_hash("asdfjklkj3k", 10)==861);
+	CHECK(qrp_hash("adfk32l", 10)==1011);
+	CHECK(qrp_hash("zzzzzzzzzzz", 10)==944);
 
-	CHECK(hash("", 13)==0);
-	CHECK(hash("eb", 13)==6791);
-	CHECK(hash("ebc", 13)==7082);
-	CHECK(hash("ebck", 13)==6698);
-	CHECK(hash("ebckl", 13)==3179);
-	CHECK(hash("ebcklm", 13)==3235);
-	CHECK(hash("ebcklme", 13)==6438);
-	CHECK(hash("ebcklmen", 13)==1062);
-	CHECK(hash("ebcklmenq", 13)==3527);
-	CHECK(hash("", 16)==0);
-	CHECK(hash("n", 16)==65003);
-	CHECK(hash("nd", 16)==54193);
-	CHECK(hash("ndf", 16)==4953);
-	CHECK(hash("ndfl", 16)==58201);
-	CHECK(hash("ndfla", 16)==34830);
-	CHECK(hash("ndflal", 16)==36910);
-	CHECK(hash("ndflale", 16)==34586);
-	CHECK(hash("ndflalem", 16)==37658);
-	CHECK(hash("FAIL", 16)!=37458);	/* Note the != */
-	CHECK(hash("ndflaleme", 16)==45559);
-	CHECK(hash("ol2j34lj", 10)==318);
-	CHECK(hash("asdfas23", 10)==503);
-	CHECK(hash("9um3o34fd", 10)==758);
-	CHECK(hash("a234d", 10)==281);
-	CHECK(hash("a3f", 10)==767);
-	CHECK(hash("3nja9", 10)==581);
-	CHECK(hash("2459345938032343", 10)==146);
-	CHECK(hash("7777a88a8a8a8", 10)==342);
-	CHECK(hash("asdfjklkj3k", 10)==861);
-	CHECK(hash("adfk32l", 10)==1011);
-	CHECK(hash("zzzzzzzzzzz", 10)==944);
-
-	CHECK(hash("3nja9", 10)==581);
-	CHECK(hash("3NJA9", 10)==581);
-	CHECK(hash("3nJa9", 10)==581);
+	CHECK(qrp_hash("3nja9", 10)==581);
+	CHECK(qrp_hash("3NJA9", 10)==581);
+	CHECK(qrp_hash("3nJa9", 10)==581);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
