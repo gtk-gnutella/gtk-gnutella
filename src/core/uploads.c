@@ -151,37 +151,37 @@ static listeners_t upload_info_changed_listeners = NULL;
 void
 upload_add_upload_added_listener(upload_added_listener_t l)
 {
-    LISTENER_ADD(upload_added, (gpointer) l);
+    LISTENER_ADD(upload_added, l);
 }
 
 void
 upload_remove_upload_added_listener(upload_added_listener_t l)
 {
-    LISTENER_REMOVE(upload_added, (gpointer) l);
+    LISTENER_REMOVE(upload_added, l);
 }
 
 void
 upload_add_upload_removed_listener(upload_removed_listener_t l)
 {
-    LISTENER_ADD(upload_removed, (gpointer) l);
+    LISTENER_ADD(upload_removed, l);
 }
 
 void
 upload_remove_upload_removed_listener(upload_removed_listener_t l)
 {
-    LISTENER_REMOVE(upload_removed, (gpointer) l);
+    LISTENER_REMOVE(upload_removed, l);
 }
 
 void
 upload_add_upload_info_changed_listener(upload_info_changed_listener_t l)
 {
-    LISTENER_ADD(upload_info_changed, (gpointer) l);
+    LISTENER_ADD(upload_info_changed, l);
 }
 
 void
 upload_remove_upload_info_changed_listener(upload_info_changed_listener_t l)
 {
-    LISTENER_REMOVE(upload_info_changed, (gpointer) l);
+    LISTENER_REMOVE(upload_info_changed, l);
 }
 
 static void
@@ -268,10 +268,10 @@ upload_timer(time_t now)
 				if (!skip) last_stalled = now;
 				u->flags |= UPLOAD_F_STALLED;
 				g_warning("connection to %s (%s) "
-					"stalled after %" PRIu64 " bytes sent,"
+					"stalled after %s bytes sent,"
 					" stall counter at %d%s",
 					ip_to_gchar(u->ip), upload_vendor_str(u),
-					(guint64) u->sent, stalled,
+					uint64_to_string(u->sent), stalled,
 					skip ? " (IGNORED)" : "");
 
 				/*
@@ -291,10 +291,9 @@ upload_timer(time_t now)
 				skip = TRUE;
 
 			if (u->flags & UPLOAD_F_STALLED) {
-				g_warning("connection to %s (%s) un-stalled, %" PRIu64
-					" bytes sent%s",
+				g_warning("connection to %s (%s) un-stalled, %s bytes sent%s",
 					ip_to_gchar(u->ip), upload_vendor_str(u),
-					(guint64) u->sent,
+					uint64_to_string(u->sent),
 					skip ? " (IGNORED)" : "");
 
 				if (
@@ -372,8 +371,8 @@ upload_timer(time_t now)
 			else
 				upload_error_remove(u, NULL, 408, _("Request timeout"));
 		} else if (UPLOAD_IS_SENDING(u))
-			upload_remove(u, "Data timeout after %" PRIu64 " byte%s",
-				(guint64) u->sent, u->sent == 1 ? "" : "s");
+			upload_remove(u, "Data timeout after %s byte%s",
+				uint64_to_string(u->sent), u->sent == 1 ? "" : "s");
 		else
 			upload_remove(u, _("Lifetime expired"));
 	}
@@ -484,7 +483,8 @@ handle_push_request(struct gnutella_node *n)
 	gboolean show_banning = FALSE;
 	const gchar *file_name = "<invalid file index>";
 
-	if (0 != memcmp(n->data, guid, 16))		/* Servent ID matches our GUID? */
+	/* Servent ID matches our GUID? */
+	if (0 != memcmp(n->data, servent_guid, 16))
 		return;								/* No: not for us */
 
 	/*
@@ -703,7 +703,7 @@ send_upload_error_v(
 	size_t slen = 0;
 	http_extra_desc_t hev[6];
 	guint hevcnt = 0;
-	struct upload_http_cb cb_arg;
+	struct upload_http_cb cb_parq_arg, cb_sha1_arg;
 
 	if (msg) {
 		gm_vsnprintf(reason, sizeof(reason), msg, ap);
@@ -746,12 +746,12 @@ send_upload_error_v(
 	 *		--JA, 07/02/2003
 	 */
 	if (parq_upload_queued(u)) {
-		cb_arg.u = u;
-		cb_arg.sf = sf;
+		cb_parq_arg.u = u;
+		cb_parq_arg.sf = sf;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = parq_upload_add_header;
-		hev[hevcnt++].he_arg = &cb_arg;
+		hev[hevcnt++].he_arg = &cb_parq_arg;
 	}
 
 	/*
@@ -787,12 +787,12 @@ send_upload_error_v(
 	 * as well as the download mesh.
 	 */
 	if (sf && sha1_hash_available(sf)) {
-		cb_arg.u = u;
-		cb_arg.sf = sf;
+		cb_sha1_arg.u = u;
+		cb_sha1_arg.sf = sf;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = upload_http_sha1_add;
-		hev[hevcnt++].he_arg = &cb_arg;
+		hev[hevcnt++].he_arg = &cb_sha1_arg;
 	}
 
 	g_assert(hevcnt <= G_N_ELEMENTS(hev));
@@ -1047,7 +1047,12 @@ void upload_stop_all(struct dl_file_info *fi, const gchar *reason)
  *** I/O header parsing callbacks.
  ***/
 
-#define UPLOAD(x)	((gnutella_upload_t *) (x))
+static inline gnutella_upload_t *
+cast_to_upload(gpointer p)
+{
+	return p;
+}
+#define UPLOAD(x)	cast_to_upload(x)
 
 static void
 err_line_too_long(gpointer obj)
@@ -1369,7 +1374,7 @@ upload_connect_conf(gnutella_upload_t *u)
 	 */
 
 	rw = gm_snprintf(giv, sizeof(giv), "GIV %u:%s/%s\n\n",
-		u->index, guid_hex_str((gchar *) guid), u->name);
+		u->index, guid_hex_str(servent_guid), u->name);
 
 	s = u->socket;
 	sent = bws_write(bws.out, &s->wio, giv, rw);
@@ -1986,6 +1991,9 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 	if (mesh_len > 0) {
 		gint maxlen = length - rw;
 
+		g_assert(length >= rw);
+		g_assert(maxlen >= 0);
+		
 		/*
 		 * If we're trying to limit the reply size, limit the size of the mesh.
 		 * When we send X-Alt: locations, this leaves room for quite a few
@@ -2017,11 +2025,12 @@ upload_416_extra(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 	size_t len = *retval;
 	const struct upload_http_cb *a = (const struct upload_http_cb *) arg;
 	const gnutella_upload_t *u = a->u;
+	gchar fsize[32];
 
 	(void) unused_flags;
 	g_assert(len <= INT_MAX);
-	rw = gm_snprintf(buf, len, "Content-Range: bytes */%" PRIu64 "\r\n",
-			(guint64) u->file_size);
+	rw = gm_snprintf(buf, len, "Content-Range: bytes */%s\r\n",
+			uint64_to_string_buf(fsize, sizeof fsize, u->file_size));
 	g_assert(rw < len);
 
 	*retval = rw;
@@ -2038,6 +2047,7 @@ upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 	gint length = *retval;
 	struct upload_http_cb *a = (struct upload_http_cb *) arg;
 	gnutella_upload_t *u = a->u;
+	gchar csize[32];
 
 	(void) unused_flags;
 
@@ -2047,16 +2057,21 @@ upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 	rw += gm_snprintf(&buf[rw], length - rw,
 		"Last-Modified: %s\r\n"
 		"Content-Type: application/binary\r\n"
-		"Content-Length: %" PRIu64 "\r\n",
+		"Content-Length: %s\r\n",
 			date_to_rfc1123_gchar(a->mtime),
-			(guint64) u->end - u->skip + 1);
+			uint64_to_string_buf(csize, sizeof csize, u->end - u->skip + 1));
 
 	g_assert(rw < length);
 
-	if (u->skip || u->end != (u->file_size - 1))
-	  rw += gm_snprintf(&buf[rw], length - rw,
-				"Content-Range: bytes %" PRIu64 "-%" PRIu64 "/%" PRIu64 "\r\n",
-				(guint64) u->skip, (guint64) u->end, (guint64) u->file_size);
+	if (u->skip || u->end != (u->file_size - 1)) {
+		gchar rsize[32], start_buf[32], end_buf[32];
+
+		rw += gm_snprintf(&buf[rw], length - rw,
+				"Content-Range: bytes %s-%s/%s\r\n",
+				uint64_to_string_buf(start_buf, sizeof start_buf, u->skip),
+				uint64_to_string_buf(end_buf, sizeof end_buf, u->end),
+				uint64_to_string_buf(rsize, sizeof rsize, u->file_size));
+	}
 
 	g_assert(rw < length);
 
@@ -2084,8 +2099,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean has_end = FALSE;
 	struct stat statbuf;
 	time_t mtime, now = time((time_t *) NULL);
-	struct upload_http_cb cb_arg;
-	struct upload_http_cb cb_parq_arg;
+	struct upload_http_cb cb_parq_arg, cb_sha1_arg, cb_status_arg, cb_416_arg;
 	gint http_code;
 	const gchar *http_msg;
 	http_extra_desc_t hev[7];
@@ -2392,12 +2406,12 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	if (skip >= u->file_size || end >= u->file_size) {
 		static const gchar msg[] = "Requested range not satisfiable";
 
-		cb_arg.u = u;
-		cb_arg.sf = reqfile;
+		cb_416_arg.u = u;
+		cb_416_arg.sf = reqfile;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = upload_416_extra;
-		hev[hevcnt++].he_arg = &cb_arg;
+		hev[hevcnt++].he_arg = &cb_416_arg;
 
 		g_assert(hevcnt <= G_N_ELEMENTS(hev));
 
@@ -2494,12 +2508,12 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		g_assert(sha1_hash_available(reqfile));
 		g_assert(pfsp_server);
 
-		cb_arg.u = u;
-		cb_arg.sf = reqfile;
+		cb_sha1_arg.u = u;
+		cb_sha1_arg.sf = reqfile;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = upload_http_sha1_add;
-		hev[hevcnt++].he_arg = &cb_arg;
+		hev[hevcnt++].he_arg = &cb_sha1_arg;
 
 		g_assert(hevcnt <= G_N_ELEMENTS(hev));
 
@@ -2580,9 +2594,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			g_assert(up);
 
 			g_warning("stalling connection to %s (%s) replaced "
-				"after %" PRIu64 " bytes sent, stall counter at %d",
+				"after %s bytes sent, stall counter at %d",
 				ip_to_gchar(up->ip), upload_vendor_str(up),
-				(guint64) up->sent, stalled);
+				uint64_to_string(up->sent), stalled);
 
 			upload_remove(up, "Stalling upload replaced");
 			replacing_stall = TRUE;
@@ -2879,14 +2893,14 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * Date, Content-Length, etc...
 	 */
 
-	cb_arg.u = u;
-	cb_arg.now = now;
-	cb_arg.mtime = mtime;
-	cb_arg.sf = reqfile;
+	cb_status_arg.u = u;
+	cb_status_arg.now = now;
+	cb_status_arg.mtime = mtime;
+	cb_status_arg.sf = reqfile;
 
 	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 	hev[hevcnt].he_cb = upload_http_status;
-	hev[hevcnt++].he_arg = &cb_arg;
+	hev[hevcnt++].he_arg = &cb_status_arg;
 
 	g_assert(hevcnt <= G_N_ELEMENTS(hev));
 	
@@ -2895,12 +2909,12 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	if (sha1) {	
-		cb_arg.u = u;
-		cb_arg.sf = reqfile;
+		cb_sha1_arg.u = u;
+		cb_sha1_arg.sf = reqfile;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = upload_http_sha1_add;
-		hev[hevcnt++].he_arg = &cb_arg;
+		hev[hevcnt++].he_arg = &cb_sha1_arg;
 		g_assert(hevcnt <= G_N_ELEMENTS(hev));
 	}
 
