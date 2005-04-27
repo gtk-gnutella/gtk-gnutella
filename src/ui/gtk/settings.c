@@ -101,8 +101,6 @@ typedef struct prop_map {
     gint *init_list;                  /* init_list for reverse lookup */
 } prop_map_t;
 
-static prop_map_t property_map[];
-
 #define NOT_IN_MAP	(-1)
 #define IGNORE		NULL
 
@@ -120,6 +118,8 @@ static const gchar date_fmt[] = "%Y-%m-%d %H:%M:%S";
 static gchar set_tmp[4096];
 
 static prop_set_t *properties = NULL;
+
+static prop_map_t * settings_gui_get_map_entry(property_t prop);
 
 /*
  * Callback declarations (only those whose pre-declaration is needed).
@@ -154,37 +154,6 @@ static GtkWidget *get_filter_dialog(void) {
 
 static GtkWidget *get_search_popup(void) {
     return popup_search;
-}
-
-/*
- * settings_gui_get_map_entry:
- *
- * Fetches a pointer to the map entry which handles the given
- * property. This can be use only when settings_gui_init_prop_map
- * has successfully been called before.
- */
-static prop_map_t *settings_gui_get_map_entry(property_t prop)
-{
-    gint entry = NOT_IN_MAP;
-
-    if (
-        (prop >= gui_prop_set_stub->offset) &&
-        (prop < gui_prop_set_stub->offset+gui_prop_set_stub->size)
-    ) {
-        entry = gui_init_list[prop-GUI_PROPERTY_MIN];
-    } else
-    if (
-        (prop >= gnet_prop_set_stub->offset) &&
-        (prop < gnet_prop_set_stub->offset+gnet_prop_set_stub->size)
-    ) {
-        entry = gnet_init_list[prop-GNET_PROPERTY_MIN];
-    } else
-        g_error("settings_gui_get_map_entry: "
-                "property does not belong to known set: %u", prop);
-
-    g_assert(entry != NOT_IN_MAP);
-
-    return &property_map[entry];
 }
 
 /*
@@ -2740,8 +2709,8 @@ settings_gui_config_dir(void)
 
 #define PROP_ENTRY(widget, prop, handler, init, name, freq, interval)		\
 	{																		\
-		(widget), (prop), (handler), (init), (name), (freq), (interval), 	\
-		0, NULL, NULL														\
+		(widget), (prop), (handler) , (init) , (name), (freq), (interval), 	\
+		0, NULL , NULL														\
 	}																		\
 
 /* FIXME:
@@ -4364,7 +4333,7 @@ static prop_map_t property_map[] = {
 #ifdef USE_GTK2
     PROP_ENTRY(
         get_main_window,
-        PROP_GUID,
+        PROP_SERVENT_GUID,
         guid_changed,
         TRUE,
         "label_nodes_guid",
@@ -4374,7 +4343,7 @@ static prop_map_t property_map[] = {
 #ifdef USE_GTK1
     PROP_ENTRY(
         get_main_window,
-        PROP_GUID,
+        PROP_SERVENT_GUID,
         guid_changed,
         TRUE,
         "entry_nodes_guid",
@@ -5384,6 +5353,39 @@ static prop_map_t property_map[] = {
 
 /* Not needed any longer */
 #undef PROP_ENTRY
+
+/*
+ * settings_gui_get_map_entry:
+ *
+ * Fetches a pointer to the map entry which handles the given
+ * property. This can be use only when settings_gui_init_prop_map
+ * has successfully been called before.
+ */
+static prop_map_t *
+settings_gui_get_map_entry(property_t prop)
+{
+    gint entry = NOT_IN_MAP;
+
+    if (
+        (prop >= gui_prop_set_stub->offset) &&
+        (prop < gui_prop_set_stub->offset+gui_prop_set_stub->size)
+    ) {
+        entry = gui_init_list[prop-GUI_PROPERTY_MIN];
+    } else
+    if (
+        (prop >= gnet_prop_set_stub->offset) &&
+        (prop < gnet_prop_set_stub->offset+gnet_prop_set_stub->size)
+    ) {
+        entry = gnet_init_list[prop-GNET_PROPERTY_MIN];
+    } else
+        g_error("settings_gui_get_map_entry: "
+                "property does not belong to known set: %u", prop);
+
+    g_assert(entry != NOT_IN_MAP);
+
+    return &property_map[entry];
+}
+
 
 /*
  * settings_gui_init_prop_map:

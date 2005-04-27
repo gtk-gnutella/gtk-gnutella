@@ -424,11 +424,12 @@ gui_merge_window_as_tab(GtkWidget *toplvl,
 	GtkWidget *notebook, GtkWidget *window)
 {
 	const gchar *title;
+	steal_dict_params_t params;
 	GList *children = NULL;
-	steal_dict_params_t params = {
-		toplvl, window
-	};
 
+	params.target = toplvl;
+	params.source = window;
+	
 	/*
 	 * First recursively steal widget dictionary.
 	 */

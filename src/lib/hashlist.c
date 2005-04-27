@@ -39,6 +39,7 @@
 RCSID("$Id$");
 
 #include "hashlist.h"
+#include "misc.h"
 #include "glib-missing.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
@@ -149,7 +150,8 @@ hash_list_free(hash_list_t *hl)
 
 	if (--hl->refcount != 0) {
 		g_warning("hash_list_free: hash list is still referenced! "
-			"(hl=%p, hl->refcount=%d)", hl, hl->refcount);
+			"(hl=%p, hl->refcount=%d)",
+			cast_to_gconstpointer(hl), hl->refcount);
 	}
 	g_hash_table_destroy(hl->ht);
 	g_list_free(hl->l);
@@ -521,3 +523,4 @@ hash_list_foreach(const hash_list_t *hl, GFunc func, gpointer user_data)
 	hash_list_regression(hl);
 }
 
+/* vi: set ts=4 sw=4 cindent: */

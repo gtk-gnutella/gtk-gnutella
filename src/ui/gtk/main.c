@@ -273,8 +273,9 @@ gui_init_menu(void)
 
 	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
 		GtkCTreeNode *node;
-		const gchar *title[] = { _(menu[i].title) };
-
+		const gchar *title[1];
+		
+		title[0] = _(menu[i].title);
     	node = gtk_ctree_insert_node(ctree_menu,
 					menu[i].parent ? NULL : parent_node, NULL,
 					(gchar **) title, /* Override const */

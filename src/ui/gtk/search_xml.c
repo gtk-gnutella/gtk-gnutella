@@ -49,7 +49,6 @@ RCSID("$Id$");
 #define GLOBAL_POST 1
 
 #define TO_BOOL(v) ((v) != 0 ? TRUE : FALSE)
-#define TO_TARGET(v) ((gpointer) (gulong) (v))
 
 typedef struct node_parser {
     const gchar *name;
@@ -580,7 +579,8 @@ search_retrieve_xml(void)
                 if (new_target == NULL) {
                     g_warning("Failed to resolve rule %d in \"%s\": "
 						"missing key %p",
-                        n, filter->name, filter_rule_to_gchar(rule));
+                        n, filter->name,
+						cast_to_gconstpointer(filter_rule_to_gchar(rule)));
 
 					/* Remove the corrupted filter, we can't handle it */
 					damaged = TRUE;
@@ -699,9 +699,9 @@ search_to_xml(xmlNodePtr parent, search_t *s)
 			"saving search: %s (%p enabled=%d)\n"
 			"  -- filter is bound to: %p\n"
 			"  -- search is         : %p",
-			s->query, s, s->enabled,
-			s->filter->search,
-			s);
+			s->query, cast_to_gconstpointer(s), s->enabled,
+			cast_to_gconstpointer(s->filter->search),
+			cast_to_gconstpointer(s));
     }
 
 	if (NULL == (query = locale_to_utf8_full(s->query))) {
@@ -752,7 +752,7 @@ filter_to_xml(xmlNodePtr parent, filter_t *f)
 			"saving filter: %s\n"
 			"  -- bound   : %p",
 			f->name,
-			f->search);
+			cast_to_gconstpointer(f->search));
     }
 
 	if (NULL == (name = locale_to_utf8_full(f->name))) {
@@ -835,11 +835,15 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
         xml_prop_set(newxml, TAG_RULE_IP_MASK, ip_to_gchar(r->u.ip.mask));
         break;
     case RULE_SIZE:
-        newxml = xml_new_empty_child(parent, NODE_RULE_SIZE);
-        xml_prop_printf(newxml, TAG_RULE_SIZE_LOWER,
-			"%" PRIu64, (guint64) r->u.size.lower);
-        xml_prop_printf(newxml, TAG_RULE_SIZE_UPPER,
-			"%" PRIu64, (guint64) r->u.size.upper);
+		{
+			gchar buf[32];
+			
+        	newxml = xml_new_empty_child(parent, NODE_RULE_SIZE);
+        	xml_prop_printf(newxml, TAG_RULE_SIZE_LOWER,
+				"%s", uint64_to_string_buf(buf, sizeof buf, r->u.size.lower));
+        	xml_prop_printf(newxml, TAG_RULE_SIZE_UPPER,
+				"%s", uint64_to_string_buf(buf, sizeof buf, r->u.size.upper));
+		}
         break;
     case RULE_JUMP:
         newxml = xml_new_empty_child(parent, NODE_RULE_JUMP);
@@ -1245,7 +1249,7 @@ xml_to_text_rule(xmlNodePtr xmlnode, gpointer data)
 
     if (gui_debug >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
-            filter->name, rule->target);
+            filter->name, cast_to_gconstpointer(rule->target));
 	}
 
     filter->ruleset = g_list_append(filter->ruleset, rule);
@@ -1300,7 +1304,7 @@ xml_to_ip_rule(xmlNodePtr xmlnode, gpointer data)
 
     if (gui_debug >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
-            filter->name, rule->target);
+            filter->name, cast_to_gconstpointer(rule->target));
 	}
 
     filter->ruleset = g_list_append(filter->ruleset, rule);
@@ -1349,7 +1353,8 @@ xml_to_size_rule(xmlNodePtr xmlnode, gpointer data)
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_TARGET));
     target = parse_target(buf, &error);
     if (error) {
-        g_warning("xml_to_size_rule: %s (%p)", g_strerror(error), target);
+        g_warning("xml_to_size_rule: %s (%p)",
+			g_strerror(error), cast_to_gconstpointer(target));
 		return;
 	}
     G_FREE_NULL(buf);
@@ -1360,7 +1365,7 @@ xml_to_size_rule(xmlNodePtr xmlnode, gpointer data)
 
     if (gui_debug >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
-            filter->name, rule->target);
+            filter->name, cast_to_gconstpointer(rule->target));
 	}
 
     filter->ruleset = g_list_append(filter->ruleset, rule);
@@ -1396,7 +1401,7 @@ xml_to_jump_rule(xmlNodePtr xmlnode, gpointer data)
 
     if (gui_debug >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
-            filter->name, rule->target);
+            filter->name, cast_to_gconstpointer(rule->target));
 	}
 
     filter->ruleset = g_list_append(filter->ruleset, rule);
@@ -1449,7 +1454,7 @@ xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer data)
 
     if (gui_debug >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
-            filter->name, rule->target);
+            filter->name, cast_to_gconstpointer(rule->target));
 	}
 
     filter->ruleset = g_list_append(filter->ruleset, rule);
@@ -1522,7 +1527,7 @@ xml_to_flag_rule(xmlNodePtr xmlnode, gpointer data)
 
     if (gui_debug >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
-            filter->name, rule->target);
+            filter->name, cast_to_gconstpointer(rule->target));
 	}
 
     filter->ruleset = g_list_append(filter->ruleset, rule);
@@ -1586,7 +1591,7 @@ xml_to_state_rule(xmlNodePtr xmlnode, gpointer data)
 
     if (gui_debug >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
-            filter->name, rule->target);
+            filter->name, cast_to_gconstpointer(rule->target));
 	}
 
     filter->ruleset = g_list_append(filter->ruleset, rule);

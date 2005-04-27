@@ -36,6 +36,7 @@ RCSID("$Id$");
 #include "if/gui_property_priv.h"
 
 #include "lib/glib-missing.h"
+#include "lib/misc.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -163,7 +164,8 @@ option_menu_select_item_by_data(GtkWidget *m, gpointer *d)
     }
 
     if (l == NULL)
-        g_warning("option_menu_select_item_by_data: no item with data %p", d);
+        g_warning("option_menu_select_item_by_data: no item with data %p",
+			cast_to_gconstpointer(d));
 }
 
 
