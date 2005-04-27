@@ -885,6 +885,7 @@ void bg_sched_timer(void)
 	volatile gint ticks;
 	bgret_t ret;
 
+	(void) &bt;	/* Shut up "clobbered by longjmp" warnings*/
 	g_assert(current_task == NULL);
 	g_assert(runcount >= 0);
 
