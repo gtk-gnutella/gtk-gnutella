@@ -190,10 +190,10 @@ pkt_stat_str(const guint64 *val_tbl, gint type)
         return gnet_stats_perc ? "-  " : "-";
 
     if (gnet_stats_perc)
-        gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%",
+        gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     else
-        gm_snprintf(strbuf, sizeof(strbuf), "%" PRIu64, val_tbl[type]);
+        uint64_to_string_buf(strbuf, sizeof strbuf, val_tbl[type]);
 
     return strbuf;
 }
@@ -232,11 +232,11 @@ drop_stat_str(const gnet_stats_t *stats, gint reason)
         return gnet_stats_drop_perc ? "-  " : "-";
 
     if (gnet_stats_drop_perc)
-        gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%",
+        gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) stats->drop_reason[reason][selected_type] / total * 100);
     else
-        gm_snprintf(strbuf, sizeof(strbuf), "%" PRIu64,
-            stats->drop_reason[reason][selected_type]);
+        uint64_to_string_buf(strbuf, sizeof strbuf,
+			stats->drop_reason[reason][selected_type]);
 
     return strbuf;
 }
@@ -252,7 +252,7 @@ general_stat_str(const gnet_stats_t *stats, gint type)
     if (type == GNR_QUERY_COMPACT_SIZE) {
         return compact_size(stats->general[type]);
     } else {
-        gm_snprintf(strbuf, sizeof(strbuf), "%" PRIu64, stats->general[type]);
+        uint64_to_string_buf(strbuf, sizeof strbuf, stats->general[type]);
         return strbuf;
     }
 }
@@ -266,10 +266,10 @@ flowc_stat_str_pkg(const guint64 *val_tbl, gint type)
         return gnet_stats_perc ? "-  " : "-";
 
 	if (gnet_stats_perc) {
-		gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%",
-            (gfloat) val_tbl[type]/val_tbl[MSG_TOTAL] * 100.0);
+		gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
+            (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     } else {
-       	gm_snprintf(strbuf, sizeof(strbuf), "%" PRIu64, val_tbl[type]);
+       	uint64_to_string_buf(strbuf, sizeof strbuf, val_tbl[type]);
     }
 
     return strbuf;

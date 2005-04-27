@@ -641,7 +641,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 					lookup_widget(main_window, "entry_result_info_source")),
 				ip_port_to_gchar(rc->results_set->ip, rc->results_set->port));
 
-	gm_snprintf(bytes, sizeof bytes, "%" PRIu64, (guint64) rc->size);
+	uint64_to_string_buf(bytes, sizeof bytes, rc->size);
 	gtk_entry_printf(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_size")),
 			_("%s (%s bytes)"), short_size(rc->size), bytes);

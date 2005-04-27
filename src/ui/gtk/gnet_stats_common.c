@@ -221,7 +221,6 @@ void
 gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
 {
 	const guint32 hops = 4U;      /* must be <= HSEP_N_MAX */
-	gchar buf[32];
 	guint64 val;
 	hsep_triple other;
 
@@ -237,16 +236,14 @@ gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
 	 */
 
 	val = table[hops][HSEP_IDX_NODES] + other[HSEP_IDX_NODES];
-	gm_snprintf(buf, sizeof buf, "%" PRIu64, val);
 	gtk_label_printf(GTK_LABEL(
 			lookup_widget(main_window, "label_statusbar_horizon_node_count")),
-		"%s %s", buf, NG_("node", "nodes", val));
+		"%s %s", uint64_to_string(val), NG_("node", "nodes", val));
 
 	val = table[hops][HSEP_IDX_FILES] + other[HSEP_IDX_FILES];
-	gm_snprintf(buf, sizeof buf, "%" PRIu64, val);
 	gtk_label_printf(GTK_LABEL(
 			lookup_widget(main_window, "label_statusbar_horizon_file_count")),
-		"%s %s", buf, NG_("file", "files", val));
+		"%s %s", uint64_to_string(val), NG_("file", "files", val));
 
 	val = table[hops][HSEP_IDX_KIB] + other[HSEP_IDX_KIB];
 	gtk_label_printf(GTK_LABEL(

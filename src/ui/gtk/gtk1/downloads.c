@@ -1299,7 +1299,7 @@ gui_update_download(struct download *d, gboolean force)
 		{
 			gchar buf[32];
 			
-			gm_snprintf(buf, sizeof buf, "%" PRIu64, (guint64) d->sinkleft);
+			uint64_to_string_buf(buf, sizeof buf, d->sinkleft);
 			gm_snprintf(tmpstr, sizeof(tmpstr),
 				_("Sinking (%s bytes left)"), buf);
 		}

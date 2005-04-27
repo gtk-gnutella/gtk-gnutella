@@ -1059,10 +1059,10 @@ void filter_gui_edit_size_rule(rule_t *r)
 
     gtk_entry_printf(
         GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_size_min")),
-		"%" PRIu64, (guint64) min);
+		"%s", uint64_to_string(min));
     gtk_entry_printf(
         GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_size_max")),
-		"%" PRIu64, (guint64) max);
+		"%s", uint64_to_string(max));
     option_menu_select_item_by_data(
         lookup_widget(filter_dialog, "optionmenu_filter_size_target"),
         target);
@@ -1611,7 +1611,7 @@ filter_update_size(GtkEntry *entry)
 		size = 0;
 	}
 
-	gm_snprintf(buf, sizeof buf, "%" PRIu64, size);
+	uint64_to_string_buf(buf, sizeof buf, size);
 	if (0 != strcmp(buf, text)) {
 		gtk_entry_set_text(entry, buf);
 	}

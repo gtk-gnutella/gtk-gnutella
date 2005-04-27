@@ -165,7 +165,7 @@ fi_gui_set_details(gnet_fi_t fih)
     gtk_label_set_text(
         GTK_LABEL(lookup_widget(main_window, "label_fi_filename")),
         fi->file_name);
-	gm_snprintf(bytes, sizeof bytes, "%" PRIu64, (guint64) fis.size);
+	uint64_to_string_buf(bytes, sizeof bytes, fis.size);
     gtk_label_printf(
         GTK_LABEL(lookup_widget(main_window, "label_fi_size")),
         _("%s (%s bytes)"), short_size(fis.size), bytes);

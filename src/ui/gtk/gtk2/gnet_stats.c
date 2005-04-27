@@ -118,16 +118,16 @@ hide_column_by_title(GtkTreeView *treeview, const gchar *header_title,
 }
 
 static gchar *
-pkt_stat_str(gchar *strbuf, gulong n, const guint64 *val_tbl,
+pkt_stat_str(gchar *strbuf, size_t size, const guint64 *val_tbl,
 	gint type, gboolean perc)
 {
 	if (val_tbl[type] == 0)
-		g_strlcpy(strbuf, "-", n);
+		g_strlcpy(strbuf, "-", size);
 	else {
 		if (!perc)
-			gm_snprintf(strbuf, n, "%" PRIu64, val_tbl[type]);
+			uint64_to_string_buf(strbuf, size, val_tbl[type]);
 		else
-			gm_snprintf(strbuf, n, "%.2f%%",
+			gm_snprintf(strbuf, size, "%.2f%%",
 			    (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
 	}
 
@@ -151,49 +151,49 @@ byte_stat_str(gchar *strbuf, gulong n, const guint64 *val_tbl,
 }
 
 static const gchar *
-drop_stat_str(gchar *str, gulong n, const gnet_stats_t *stats, gint reason,
+drop_stat_str(gchar *str, size_t size, const gnet_stats_t *stats, gint reason,
 	gint selected_type)
 {
 	guint32 total = stats->pkg.dropped[MSG_TOTAL];
 
 	if (stats->drop_reason[reason][selected_type] == 0)
-		g_strlcpy(str, "-", n);
+		g_strlcpy(str, "-", size);
 	else if (gnet_stats_drop_perc)
-		gm_snprintf(str, n, "%.2f%%",
+		gm_snprintf(str, size, "%.2f%%",
 		    (gfloat) stats->drop_reason[reason][selected_type] / total * 100);
 	else
-		gm_snprintf(str, n, "%" PRIu64,
+		uint64_to_string_buf(str, size,
 			stats->drop_reason[reason][selected_type]);
 
 	return str;
 }
 
 static const gchar *
-general_stat_str(gchar *str, gulong n, const gnet_stats_t *stats, gint type)
+general_stat_str(gchar *str, size_t size, const gnet_stats_t *stats, gint type)
 {
 	if (stats->general[type] == 0)
-		g_strlcpy(str, "-", n);
+		g_strlcpy(str, "-", size);
 	else if (type == GNR_QUERY_COMPACT_SIZE)
-		g_strlcpy(str, compact_size(stats->general[type]), n);
+		g_strlcpy(str, compact_size(stats->general[type]), size);
 	else
-		gm_snprintf(str, n, "%" PRIu64, stats->general[type]);
+		uint64_to_string_buf(str, size, stats->general[type]);
 
 	return str;
 }
 
 static const gchar *
-type_stat_str(gchar *strbuf, gulong n, gulong value, gulong total,
+type_stat_str(gchar *strbuf, size_t size, gulong value, gulong total,
 	gboolean perc, gboolean bytes)
 {
 	if (value == 0 || total == 0)
-		g_strlcpy(strbuf, "-", n);
+		g_strlcpy(strbuf, "-", size);
 	else if (perc)
-		gm_snprintf(strbuf, n, "%.2f%%", (gfloat) value / total * 100.0);
+		gm_snprintf(strbuf, size, "%.2f%%", (gfloat) value / total * 100.0);
 	else {
 		if (bytes)
-			g_strlcpy(strbuf, compact_size(value), n);
+			g_strlcpy(strbuf, compact_size(value), size);
 		else
-			gm_snprintf(strbuf, n, "%lu", (gulong) value);
+			gm_snprintf(strbuf, size, "%lu", (gulong) value);
 	}
 
 	return strbuf;

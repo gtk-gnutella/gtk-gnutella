@@ -421,12 +421,13 @@ static void
 vp_print_chunk(gnet_fi_chunks_t *c, gboolean show_old)
 {
 	if (show_old)
-		printf("%10" PRIu64 " - %10" PRIu64 " %d [%s]\n",
-			(guint64) c->from, (guint64) c->to,
+		printf("%10s - %10s %d [%s]\n",
+			uint64_to_string(c->from), uint64_to_string2(c->to),
 			(gint) c->status, c->old ? "O" : "N");
 	else
-		printf("%10" PRIu64 " - %10" PRIu64 " %d\n",
-			(guint64) c->from, (guint64) c->to, (gint) c->status);
+		printf("%10s - %10s %d\n",
+			uint64_to_string(c->from), uint64_to_string2(c->to),
+			(gint) c->status);
 }
 
 /*

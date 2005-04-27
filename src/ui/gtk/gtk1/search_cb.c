@@ -203,7 +203,7 @@ search_gui_set_details(record_t *rc)
 		iso3166_country_cc(rc->results_set->country));
 	gtk_entry_set_text(info_country, tmpstr);
 
-	gm_snprintf(bytes, sizeof bytes, "%" PRIu64, (guint64) rc->size);
+	uint64_to_string_buf(bytes, sizeof bytes, rc->size);
 	gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%s bytes)"),
 		short_size(rc->size), bytes);
 	gtk_entry_set_text(info_size, tmpstr);
@@ -1266,7 +1266,7 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	if (bitzi_debug)
 		g_message("on_popup_search_metadata_activate: %d items, %p",
 			  g_slist_position(data_list, g_slist_last(data_list)) + 1,
-			  data_list);
+			  cast_to_gconstpointer(data_list));
 
 	G_SLIST_FOREACH(data_list, search_gui_queue_bitzi_by_sha1, NULL);
 
