@@ -477,7 +477,8 @@ build_push(struct gnutella_msg_push_request *m,
 	m->header.ttl = max_ttl - 1;
 	m->header.hops = 1;
 
-	WRITE_GUINT32_LE(sizeof(struct gnutella_push_request), m->header.size);
+	STATIC_ASSERT(49 == sizeof *m);
+	WRITE_GUINT32_LE(sizeof *m, m->header.size);
 
 	memcpy(m->request.guid, guid, 16);
 
@@ -597,7 +598,8 @@ pproxy_request(struct pproxy *pp, header_t *header)
 		build_push(&m, pp->guid, pp->ip, pp->port, pp->file_idx);
 		message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
 
-		gmsg_sendto_one(n, (gchar *) &m, sizeof(m));
+		STATIC_ASSERT(49 == sizeof m);
+		gmsg_sendto_one(n, &m, sizeof m);
 		gnet_stats_count_general(GNR_PUSH_PROXY_RELAYED, 1);
 
 		http_send_status(pp->socket, 202, FALSE, NULL, 0,
@@ -622,7 +624,8 @@ pproxy_request(struct pproxy *pp, header_t *header)
 		build_push(&m, pp->guid, pp->ip, pp->port, pp->file_idx);
 		message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
 
-		gmsg_sendto_all(nodes, (gchar *) &m, sizeof(m));
+		STATIC_ASSERT(49 == sizeof m);
+		gmsg_sendto_all(nodes, &m, sizeof m);
 		gnet_stats_count_general(GNR_PUSH_PROXY_BROADCASTED, 1);
 
 		cnt = g_slist_length(nodes);
@@ -644,7 +647,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	 * sending a GIV back.
 	 */
 
-	if (guid_eq(pp->guid, guid)) {
+	if (guid_eq(pp->guid, servent_guid)) {
 		upload_send_giv(pp->ip, pp->port, 0, 1, 0, "<from push-proxy>", FALSE);
 
 		http_send_status(pp->socket, 202, FALSE, NULL, 0,
