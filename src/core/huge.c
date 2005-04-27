@@ -192,8 +192,8 @@ static void add_persistent_cache_entry(
 	if (0 == ftell(persistent_cache))
 		fputs(sha1_persistent_cache_file_header, persistent_cache);
 
-	fprintf(persistent_cache, "%s\t%" PRIu64 "\t%lu\t%s\n",
-		sha1_base32(digest), (guint64) size, (gulong) mtime, file_name);
+	fprintf(persistent_cache, "%s\t%s\t%lu\t%s\n",
+		sha1_base32(digest), uint64_to_string(size), (gulong) mtime, file_name);
 	fclose(persistent_cache);
 }
 
@@ -212,8 +212,8 @@ dump_cache_one_entry(gpointer unused_key, gpointer value, gpointer udata)
 	if (!e->shared)
 		return;
 
-	fprintf(persistent_cache, "%s\t%" PRIu64 "\t%ld\t%s\n",
-		sha1_base32(e->digest), (guint64) e->size, (glong) e->mtime,
+	fprintf(persistent_cache, "%s\t%s\t%ld\t%s\n",
+		sha1_base32(e->digest), uint64_to_string(e->size), (glong) e->mtime,
 			e->file_name);
 }
 
@@ -545,14 +545,14 @@ try_to_put_sha1_back_into_share_library(void)
 
 	while (waiting_for_library_build_complete) {
 		struct file_sha1 *f = waiting_for_library_build_complete;
-		struct shared_file *sf = shared_file(f->file_index);
+		struct shared_file *sf2 = shared_file(f->file_index);
 
 		if (dbg > 4)
 			printf("flushing file \"%s\" (idx=%u), %sfound in lib\n",
-				f->file_name, f->file_index, sf ? "" : "NOT ");
+				f->file_name, f->file_index, sf2 ? "" : "NOT ");
 
 		waiting_for_library_build_complete = f->next;
-		put_sha1_back_into_share_library(sf, f->file_name, f->sha1_digest);
+		put_sha1_back_into_share_library(sf2, f->file_name, f->sha1_digest);
 
 		free_cell(f);
 	}
@@ -576,8 +576,8 @@ close_current_file(struct sha1_computation_context *ctx)
 			gint delta = delta_time(time((time_t *) NULL), ctx->start);
 
 			if (delta && -1 != fstat(ctx->fd, &buf))
-				printf("SHA1 computation rate: %" PRIu64 "bytes/sec\n",
-					(guint64) buf.st_size / delta);
+				printf("SHA1 computation rate: %s bytes/sec\n",
+					uint64_to_string(buf.st_size / delta));
 		}
 		close(ctx->fd);
 		ctx->fd = -1;
