@@ -943,7 +943,7 @@ static inline char *g_iconv_complete(GIConv cd,
 	while (inbytes_left > 0 && outbytes_left > 1) {
 		size_t ret;
 
-		ret = g_iconv(cd, (gpointer) &inbuf, &inbytes_left,
+		ret = g_iconv(cd, cast_to_gpointer(&inbuf), &inbytes_left,
 		    &outbuf, &outbytes_left);
 
 		if ((size_t) -1 == ret) {
@@ -2816,15 +2816,15 @@ compose_root_cmp(gconstpointer a, gconstpointer b)
  * ``utf32_nfkd_lut'' is used as value.
  */
 static void 
-unicode_compose_add(guint index)
+unicode_compose_add(guint idx)
 {
 	GSList *sl, *new_sl;
 	gpointer key;
 
-	key = GUINT_TO_POINTER(utf32_nfkd_lut[index].d[0]);
+	key = GUINT_TO_POINTER(utf32_nfkd_lut[idx].d[0]);
 	sl = g_hash_table_lookup(utf32_compose_roots, key);
 	new_sl = g_slist_insert_sorted(sl,
-			GUINT_TO_POINTER(index), compose_root_cmp);
+			GUINT_TO_POINTER(idx), compose_root_cmp);
 	if (sl != new_sl)
 		g_hash_table_insert(utf32_compose_roots, key, new_sl);
 }
