@@ -70,7 +70,7 @@ void gcu_statusbar_warning(const gchar *message);
 void gcu_statusbar_message(const gchar *message);
 
 /* upload interface functions */
-void gcu_upload_stats_gui_add(struct ul_stats *stat);
+void gcu_upload_stats_gui_add(struct ul_stats *);
 void gcu_upload_stats_gui_update(const gchar *name, guint64 size);
 void gcu_upload_stats_gui_clear_all(void);
 
