@@ -182,13 +182,17 @@ bogons_retrieve(void)
 	FILE *f;
 	gint idx;
 	gchar *filename;
-	file_path_t fp[] = {
-		{ settings_config_dir(), bogons_file },
-		{ PRIVLIB_EXP, bogons_file },
 #ifndef OFFICIAL_BUILD
-		{ PACKAGE_SOURCE_DIR, bogons_file }
+	static file_path_t fp[3];
+#else
+	static file_path_t fp[2];
 #endif
-	};
+	
+	file_path_set(&fp[0], settings_config_dir(), bogons_file);
+	file_path_set(&fp[1], PRIVLIB_EXP, bogons_file);
+#ifndef OFFICIAL_BUILD
+	file_path_set(&fp[2], PACKAGE_SOURCE_DIR, bogons_file);
+#endif
 
 	f = file_config_open_read_norename_chosen(
 			bogons_what, fp, G_N_ELEMENTS(fp), &idx);

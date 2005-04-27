@@ -318,18 +318,22 @@ gwc_store_if_dirty(void)
 static void
 gwc_retrieve(void)
 {
-	file_path_t fpvec[] = {
-		{ settings_config_dir(), gwc_file },
-		{ PRIVLIB_EXP, gwc_bootfile },
 #ifndef OFFICIAL_BUILD
-		{ PACKAGE_SOURCE_DIR, gwc_bootfile }
+	static file_path_t fp[3];
+#else
+	static file_path_t fp[2];
 #endif
-	};
 	gint line;
 	FILE *in;
 	gchar tmp[1024];
 
-	in = file_config_open_read(gwc_what, fpvec, G_N_ELEMENTS(fpvec));
+	file_path_set(&fp[0], settings_config_dir(), gwc_bootfile);
+	file_path_set(&fp[1], PRIVLIB_EXP, gwc_bootfile);
+#ifndef OFFICIAL_BUILD
+	file_path_set(&fp[2], PACKAGE_SOURCE_DIR, gwc_bootfile);
+#endif
+
+	in = file_config_open_read(gwc_what, fp, G_N_ELEMENTS(fp));
 	if (!in)
 		return;
 

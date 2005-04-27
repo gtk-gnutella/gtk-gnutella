@@ -34,6 +34,7 @@
 RCSID("$Id$");
 
 #include "cq.h"
+#include "misc.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -235,7 +236,7 @@ cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
 	cevent_t *ev;				/* Event to insert */
 
 	g_assert(valid_ptr(cq));
-	g_assert(valid_ptr(fn));
+	g_assert(valid_ptr(cast_func_to_gpointer((GFunc) fn)));
 	g_assert(delay > 0);
 
 	ev = (cevent_t *) walloc(sizeof(*ev));
@@ -322,7 +323,7 @@ cq_expire(cqueue_t *cq, cevent_t *ev)
 
 	g_assert(valid_ptr(cq));
 	g_assert(ev->ce_magic == EV_MAGIC);
-	g_assert(valid_ptr(fn));
+	g_assert(valid_ptr(cast_func_to_gpointer((GFunc) fn)));
 
 	cq_cancel(cq, ev);			/* Remove event from queue before firing */
 

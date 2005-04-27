@@ -1520,7 +1520,9 @@ dmesh_check_deferred_against_existing(gchar *sha1,
 
 		if (dbg > 4)
 			printf("Checking deferred url %p (str=%p:%s)\n",
-				d, d->dmesh_url->name, d->dmesh_url->name);
+				cast_to_gconstpointer(d),
+				cast_to_gconstpointer(d->dmesh_url->name),
+				d->dmesh_url->name);
 
 		for (ex = existing_urls; ex; ex = ex->next) {
 			struct dmesh_entry *dme = ex->data;
