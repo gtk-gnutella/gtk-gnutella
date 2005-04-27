@@ -195,10 +195,10 @@ typedef void (*node_info_changed_listener_t) (gnet_node_t);
 typedef void (*node_flags_changed_listener_t) (gnet_node_t);
 
 #define node_add_listener(signal, callback) \
-    node_add_##signal##_listener(callback);
+    CAT3(node_add_,signal,_listener)(callback);
 
 #define node_remove_listener(signal, callback) \
-    node_remove_##signal##_listener(callback);
+    CAT3(node_remove_,signal,_listener)(callback);
 
 #ifdef CORE_SOURCES
 

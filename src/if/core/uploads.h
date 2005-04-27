@@ -121,10 +121,10 @@ typedef void (*upload_info_changed_listener_t) (
     gnet_upload_t, guint32, guint32);
 
 #define upload_add_listener(signal, callback) \
-    upload_add_##signal##_listener(callback);
+    CAT3(upload_add_,signal,_listener)(callback);
 
 #define upload_remove_listener(signal, callback) \
-    upload_remove_##signal##_listener(callback);
+    CAT3(upload_remove_,signal,_listener)(callback);
 
 /*
  * Public interface, visible from the bridge.
