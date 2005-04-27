@@ -61,6 +61,8 @@ struct gnutella_search_results_out {
 	guchar host_ip[4];
 	guchar host_speed[4];
 
+	/* record data follows */
+
 	/* Last 16 bytes = client_id */
 };
 
