@@ -32,27 +32,29 @@ RCSID("$Id$");
 #include "statusbar.h"
 
 #include "lib/glib-missing.h"
+#include "lib/misc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
+static const statusbar_msgid_t zero_msgid;
 
 /*
  * Timeout entry for statusbar messages.
  */
 typedef struct statusbar_timeout {
     statusbar_msgid_t id; /* message id of the message */
-	time_t timeout; /* time after which the message should be removed */
+	time_t stamp; /* time at which the message was added */
+	guint timeout; /* # of seconds after which the message should be removed */
 } statusbar_timeout_t;
 
 /*
  * statusbar context ids
  */
-guint scid_bottom              = (guint) -1;
-guint scid_hostsfile           = (guint) -1;
-guint scid_search_autoselected = (guint) -1;
-guint scid_queue_freezed       = (guint) -1;
-guint scid_info                = (guint) -1;
-guint scid_ip_changed          = (guint) -1;
-guint scid_warn                = (guint) -1;
+static guint scid_bottom              = (guint) -1;
+static guint scid_hostsfile           = (guint) -1;
+static guint scid_queue_freezed       = (guint) -1;
+static guint scid_info                = (guint) -1;
+static guint scid_ip_changed          = (guint) -1;
+static guint scid_warn                = (guint) -1;
 
 /*
  * List with timeout entries for statusbar messages
@@ -69,33 +71,128 @@ static void statusbar_gui_free_timeout(struct statusbar_timeout * t);
 static void statusbar_gui_free_timeout_list(void);
 static void statusbar_gui_add_timeout(statusbar_msgid_t, guint timeout);
 
-void statusbar_gui_init(void)
+static GtkStatusbar *
+statusbar_get(void)
 {
-    GtkStatusbar *statusbar;
+    static GtkStatusbar *sb;
 
-    statusbar = GTK_STATUSBAR
-        (lookup_widget(main_window, "statusbar"));
+	if (!sb)
+		sb = GTK_STATUSBAR(lookup_widget(main_window, "statusbar"));
+
+	return sb;
+}
+
+/**
+ * Put a message on the statusbar. The message will be displayed for
+ * the number of seconds given by timeout. If timeout is 0 the message
+ * will not be automatically removed.
+ *
+ * Returns: message id of the added message
+ */
+statusbar_msgid_t
+statusbar_gui_push_v(sb_types_t type, guint scid, guint timeout,
+	const gchar *format, va_list args)
+{
+    static gchar buf[1024];
+    statusbar_msgid_t id = zero_msgid;
+
+    if (format != NULL) {
+        switch (type) {
+        case SB_WARNING:
+            gdk_beep();
+			/* FALL THRU */
+        case SB_MESSAGE:
+            gm_vsnprintf(buf, sizeof(buf), format, args);
+            break;
+        }
+    } else {
+        buf[0] = '\0';
+    }
+
+    id.scid = scid;
+    id.msgid = gtk_statusbar_push(statusbar_get(), scid, buf);
+
+    if (timeout != 0)
+        statusbar_gui_add_timeout(id, timeout);
+
+    return id;
+}
+
+/**
+ * Put a message on the statusbar. The message will be displayed for
+ * the number of seconds given by timeout. If timeout is 0 the message
+ * will not be automatically removed.
+ *
+ * Returns: message id of the added message
+ */
+static statusbar_msgid_t
+statusbar_gui_push(sb_types_t type, guint scid, guint timeout,
+	const gchar *format, ...)
+{
+    va_list args;
+    statusbar_msgid_t id = zero_msgid;
+
+	va_start(args, format);
+	statusbar_gui_push_v(type, scid, timeout, format, args);
+    va_end(args);
+
+    return id;
+}
+
+/**
+ * Put an informational message on the statusbar. The message will be 
+ * displayed for the number of seconds given by timeout. If timeout is 0
+ * the message will not be automatically removed.
+ *
+ * Returns: message id of the added message
+ */
+statusbar_msgid_t
+statusbar_gui_message(guint timeout, const gchar *format, ...)
+{
+    va_list args;
+    statusbar_msgid_t id = zero_msgid;
+
+	va_start(args, format);
+	statusbar_gui_push_v(SB_MESSAGE, scid_info, timeout, format, args);
+    va_end(args);
+
+    return id;
+}
+
+/**
+ * Put a warning message on the statusbar. The message will be displayed for
+ * the number of seconds given by timeout. If timeout is 0 the message
+ * will not be automatically removed.
+ *
+ * Returns: message id of the added message
+ */
+statusbar_msgid_t
+statusbar_gui_warning(guint timeout, const gchar *format, ...)
+{
+    va_list args;
+    statusbar_msgid_t id = zero_msgid;
+
+	va_start(args, format);
+	statusbar_gui_push_v(SB_WARNING, scid_warn, timeout, format, args);
+    va_end(args);
+
+    return id;
+}
+
+void
+statusbar_gui_init(void)
+{
+    GtkStatusbar *sb;
+
+    sb = statusbar_get();
 
     /* statusbar stuff */
-	scid_bottom    =
-		gtk_statusbar_get_context_id(statusbar, "default");
-	scid_hostsfile =
-		gtk_statusbar_get_context_id(statusbar, "reading hosts file");
-#ifdef USE_GTK1
-	scid_search_autoselected =
-		gtk_statusbar_get_context_id(statusbar, "autoselected search items");
-#endif /* USE_GTK1 */
-	scid_queue_freezed =
-		gtk_statusbar_get_context_id(statusbar, "queue freezed");
-
-   	scid_info =
-		gtk_statusbar_get_context_id(statusbar, "information");
-
-    scid_ip_changed =
-        gtk_statusbar_get_context_id(statusbar, "ip changed");
-
-    scid_warn =
-        gtk_statusbar_get_context_id(statusbar, "warning");
+	scid_bottom = gtk_statusbar_get_context_id(sb, "default");
+	scid_hostsfile = gtk_statusbar_get_context_id(sb, "reading hosts file");
+	scid_queue_freezed = gtk_statusbar_get_context_id(sb, "queue freezed");
+   	scid_info = gtk_statusbar_get_context_id(sb, "information");
+    scid_ip_changed = gtk_statusbar_get_context_id(sb, "ip changed");
+    scid_warn = gtk_statusbar_get_context_id(sb, "warning");
 
    	/*
 	 * This message lies at the bottom of the statusbar, and is never removed,
@@ -112,18 +209,16 @@ void statusbar_gui_init(void)
 	statusbar_gui_push(SB_MESSAGE, scid_bottom, 0, "%s", statbar_botstr);
 }
 
-void statusbar_gui_shutdown(void)
+void
+statusbar_gui_shutdown(void)
 {
     statusbar_gui_free_timeout_list();
-
-	if (statbar_botstr_new)
-		G_FREE_NULL(statbar_botstr_new);
-	if (statbar_botstr)
-		G_FREE_NULL(statbar_botstr);
-
+	G_FREE_NULL(statbar_botstr_new);
+	G_FREE_NULL(statbar_botstr);
 }
 
-void statusbar_gui_set_default(const char *format, ...)
+void
+statusbar_gui_set_default(const char *format, ...)
 {
     static gchar buf[1024];
     va_list args;
@@ -143,127 +238,61 @@ void statusbar_gui_set_default(const char *format, ...)
     va_end(args);
 }
 
-/*
- * statusbar_gui_message:
- *
- * Put a message on the statusbar. The message will by displayed for
- * a number of seconds given by timeout. If timeout is 0 the message
- * will not be automatically removed.
- *
- * Returns: message id of the added message
- */
-statusbar_msgid_t statusbar_gui_push
-    (sb_types_t type, guint scid, guint timeout, const gchar *format , ...)
+void
+statusbar_gui_remove(statusbar_msgid_t id)
 {
-    static gchar buf[1024];
-    va_list args;
-    statusbar_msgid_t id = {0, 0};
-    GtkStatusbar *statusbar;
-
-    va_start(args, format);
-
-    if (format != NULL) {
-        switch (type) {
-        case SB_MESSAGE:
-            gm_vsnprintf(buf, sizeof(buf), format, args);
-            break;
-        case SB_WARNING:
-            gm_vsnprintf(buf, sizeof(buf), format, args);
-            gdk_beep();
-            break;
-        }
-    } else {
-        buf[0] = '\0';
-    }
-
-    statusbar = GTK_STATUSBAR
-        (lookup_widget(main_window, "statusbar"));
-
-    id.scid = scid;
-    id.msgid = gtk_statusbar_push(GTK_STATUSBAR(statusbar), scid, buf);
-
-    if (timeout != 0)
-        statusbar_gui_add_timeout(id, timeout);
-
-    va_end(args);
-
-    return id;
+    gtk_statusbar_remove(statusbar_get(), id.scid, id.msgid);
 }
 
-static void statusbar_gui_pop(guint scid)
-{
-    GtkStatusbar *statusbar;
-
-    statusbar = GTK_STATUSBAR
-        (lookup_widget(main_window, "statusbar"));
-
-    gtk_statusbar_pop(GTK_STATUSBAR(statusbar), scid);
-}
-
-void statusbar_gui_remove(statusbar_msgid_t id)
-{
-    GtkStatusbar *statusbar;
-
-    statusbar = GTK_STATUSBAR
-        (lookup_widget(main_window, "statusbar"));
-
-    gtk_statusbar_remove(GTK_STATUSBAR(statusbar), id.scid, id.msgid);
-}
-
-/*
- * statusbar_gui_add_timeout:
- *
+/**
  * Add a statusbar message id to the timeout list, so it will be removed
  * automatically after a number of seconds.
  */
-static void statusbar_gui_add_timeout(statusbar_msgid_t id, guint timeout)
+static void
+statusbar_gui_add_timeout(statusbar_msgid_t id, guint timeout)
 {
-	struct statusbar_timeout * t = NULL;
+	struct statusbar_timeout *t;
 
-    t = g_malloc0(sizeof(struct statusbar_timeout));
+    t = g_malloc0(sizeof *t);
 
 	t->id = id;
-	t->timeout = time((time_t *) NULL) + timeout;
+	t->stamp = time(NULL);
+	t->timeout = timeout;
 
 	sl_statusbar_timeouts = g_slist_prepend(sl_statusbar_timeouts, t);
 }
 
-/*
- * statusbar_gui_free_timeout:
- *
+/**
  * Remove the timeout from the timeout list and free allocated memory.
  */
-static void statusbar_gui_free_timeout(struct statusbar_timeout * t)
+static void
+statusbar_gui_free_timeout(struct statusbar_timeout *t)
 {
 	g_return_if_fail(t);
 
 	statusbar_gui_remove(t->id);
-
 	sl_statusbar_timeouts = g_slist_remove(sl_statusbar_timeouts, t);
-
-	g_free(t);
+	G_FREE_NULL(t);
 }
 
-/*
- * statusbar_gui_clear_timeouts
- *
+/**
  * Check whether statusbar items have expired and remove them from the
  * statusbar.
  */
-void statusbar_gui_clear_timeouts(time_t now)
+void
+statusbar_gui_clear_timeouts(time_t now)
 {
-	GSList *to_remove = NULL;
-	GSList *l;
+	GSList *sl, *to_remove = NULL;
 
-	for (l = sl_statusbar_timeouts; l; l = l->next) {
-		struct statusbar_timeout *t = (struct statusbar_timeout *) l->data;
+	for (sl = sl_statusbar_timeouts; sl; sl = g_slist_next(sl)) {
+		struct statusbar_timeout *t = sl->data;
 
-		if (now > t->timeout)
+		if (delta_time(now, t->stamp) > t->timeout)
 			to_remove = g_slist_prepend(to_remove, t);
 	}
 
-	for (l = to_remove; l; l = l->next)
-		statusbar_gui_free_timeout((struct statusbar_timeout *) l->data);
+	for (sl = to_remove; sl; sl = g_slist_next(sl))
+		statusbar_gui_free_timeout(sl->data);
 
 	g_slist_free(to_remove);
 
@@ -274,29 +303,25 @@ void statusbar_gui_clear_timeouts(time_t now)
 	 */
 
 	if (sl_statusbar_timeouts == NULL && statbar_botstr_new) {
-		statusbar_gui_pop(scid_bottom);
+    	gtk_statusbar_pop(statusbar_get(), scid_bottom);
 		G_FREE_NULL(statbar_botstr);
 		statbar_botstr = statbar_botstr_new;
 		statbar_botstr_new = NULL;
-		statusbar_gui_push(SB_MESSAGE, scid_bottom, 0, "%s",
-			statbar_botstr);
+		statusbar_gui_push(SB_MESSAGE, scid_bottom, 0, "%s", statbar_botstr);
 	}
 }
 
-/*
- * statusbar_gui_free_timeout_list:
- *
+/**
  * Clear the whole timeout list and free allocated memory.
  */
-static void statusbar_gui_free_timeout_list(void)
+static void
+statusbar_gui_free_timeout_list(void)
 {
-	GSList *l;
-
-	for (l = sl_statusbar_timeouts; l; l = sl_statusbar_timeouts) {
-		struct statusbar_timeout *t = (struct statusbar_timeout *) l->data;
+	while (NULL != sl_statusbar_timeouts) {
+		struct statusbar_timeout *t = sl_statusbar_timeouts->data;
 
 		statusbar_gui_free_timeout(t);
 	}
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

@@ -44,23 +44,13 @@ typedef struct {
 
 #ifdef GUI_SOURCES
 
-/*
- * Context ids for the status bar.
- */
+statusbar_msgid_t statusbar_gui_message(guint timeout,
+		const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
 
-extern guint scid_info;
-extern guint scid_warn;
-
-#define statusbar_gui_message(t, ...) \
-	statusbar_gui_push(SB_MESSAGE, scid_info, t, __VA_ARGS__)
-
-#define statusbar_gui_warning(t, ...) \
-	statusbar_gui_push(SB_WARNING, scid_warn, t, __VA_ARGS__)
-
-statusbar_msgid_t statusbar_gui_push
-    (sb_types_t, guint, guint, const gchar *, ...) G_GNUC_PRINTF(4, 5);
+statusbar_msgid_t statusbar_gui_warning(guint timeout,
+		const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
 
 #endif /* GUI_SOURCES */
 #endif /* _if_ui_gtk_statusbar_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
