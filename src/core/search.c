@@ -332,29 +332,38 @@ static listeners_t search_got_results_listeners = NULL;
 void
 search_add_got_results_listener(search_got_results_listener_t l)
 {
-    g_assert(l != NULL);
-
+	gpointer p;
+	
+	p = cast_func_to_gpointer((GFunc) l);
+    g_assert(NULL != p);
     search_got_results_listeners =
-        g_slist_append(search_got_results_listeners, (gpointer) l);
+        g_slist_append(search_got_results_listeners, p);
 }
 
 void
 search_remove_got_results_listener(search_got_results_listener_t l)
 {
-    g_assert(l != NULL);
+	gpointer p;
 
+	p = cast_func_to_gpointer((GFunc) l);
+    g_assert(NULL != p);
     search_got_results_listeners =
-        g_slist_remove(search_got_results_listeners, (gpointer) l);
+        g_slist_remove(search_got_results_listeners, p);
 }
 
-static
-void search_fire_got_results(GSList *sch_matched, const gnet_results_set_t *rs)
+static void
+search_fire_got_results(GSList *sch_matched, const gnet_results_set_t *rs)
 {
     GSList *sl;
     g_assert(rs != NULL);
 
-    for (sl = search_got_results_listeners; sl != NULL; sl = g_slist_next(sl))
-        (*(search_got_results_listener_t) sl->data)(sch_matched, rs);
+    for (sl = search_got_results_listeners; sl; sl = g_slist_next(sl)) {
+		search_got_results_listener_t l;
+		
+		g_assert(NULL != sl->data);
+		l = (search_got_results_listener_t) cast_gpointer_to_func(sl->data);
+        l(sch_matched, rs);
+	}
 }
 
 /***
@@ -602,7 +611,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 	rs->hostname  = NULL;
 	rs->country   = -1;
 
-	r = (struct gnutella_search_results *) n->data;
+	r = cast_to_gpointer(n->data);
 
 	/* Transfer the Query Hit info to our internal results_set struct */
 
@@ -659,7 +668,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 
 	/* Now come the result set, and the servent ID will close the packet */
 
-	s = (gchar *) r->records;	/* Start of the records */
+	STATIC_ASSERT(11 == sizeof *r);
+	s = cast_to_gpointer(&r[1]);	/* Start of the records */
 	e = s + n->size - 11 - 16;	/* End of the records, less header, GUID */
 
 	if (search_debug > 7)
@@ -1595,14 +1605,23 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 	WRITE_GUINT16_LE(speed, m->search.speed);
 
 	if (is_urn_search) {
-		*m->search.query = '\0';
-		strncpy(m->search.query + 1, sch->query, 9+32);	/* urn:sha1:32bytes */
-		m->search.query[1+9+32] = '\0';
+		gchar *query;
+		size_t hash_len;
+	   
+		STATIC_ASSERT(25 == sizeof *m);
+		query = cast_to_gpointer(&m[1]);
+		*query = '\0';
+		hash_len = CONST_STRLEN(urn_prefix) + SHA1_BASE32_SIZE;
+		strncpy(&query[1], sch->query, hash_len); /* urn:sha1:32bytes */
+		query[hash_len + 1] = '\0';
 	} else {
+		gchar *query;
 		gint new_len;
 
-		strcpy(m->search.query, sch->query);
-		new_len = compact_query(m->search.query);
+		STATIC_ASSERT(25 == sizeof *m);
+		query = cast_to_gpointer(&m[1]);
+		strcpy(query, sch->query);
+		new_len = compact_query(query);
 
 		g_assert(new_len <= qlen);
 
@@ -1610,9 +1629,10 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 			g_warning("dropping invalid local query \"%s\"", sch->query);
 			goto cleanup;
 		} else if (new_len < qlen) {
-			if (search_debug) g_warning("compacted query \"%s\" into \"%s\"",
-				sch->query, m->search.query);
 			size -= (qlen - new_len);
+			if (search_debug)
+				g_warning("compacted query \"%s\" into \"%s\"",
+					sch->query, query);
 		}
 	}
 
@@ -2595,8 +2615,9 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 		search_passive++;
 	} else {
 		sch->new_node_hook = g_hook_alloc(&node_added_hook_list);
-		sch->new_node_hook->data = (gpointer) sch;
-		sch->new_node_hook->func = (gpointer) node_added_callback;
+		sch->new_node_hook->data = sch;
+		sch->new_node_hook->func =
+			cast_func_to_gpointer((GFunc) node_added_callback);
 		g_hook_prepend(&node_added_hook_list, sch->new_node_hook);
 
 		/*
