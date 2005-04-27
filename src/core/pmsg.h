@@ -124,18 +124,19 @@ void pmsg_init(void);
 void pmsg_close(void);
 
 gint pmsg_size(pmsg_t *mb);
-pmsg_t *pmsg_new(gint prio, void *buf, gint len);
+pmsg_t *pmsg_new(gint prio, gconstpointer buf, gint len);
 pmsg_t * pmsg_new_extend(
-	gint prio, void *buf, gint len, pmsg_free_t free_func, gpointer arg);
+	gint prio, gconstpointer buf, gint len,
+	pmsg_free_t free_cb, gpointer arg);
 pmsg_t *pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff);
 pmsg_t *pmsg_clone(pmsg_t *mb);
-pmsg_t *pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_func, gpointer arg);
+pmsg_t *pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, gpointer arg);
 pmsg_free_t pmsg_replace_ext(
 	pmsg_t *mb, pmsg_free_t nfree, gpointer narg, gpointer *oarg);
 gpointer pmsg_get_metadata(pmsg_t *mb);
 pmsg_check_t pmsg_set_check(pmsg_t *mb, pmsg_check_t check);
 void pmsg_free(pmsg_t *mb);
-gint pmsg_write(pmsg_t *mb, gpointer data, gint len);
+gint pmsg_write(pmsg_t *mb, gconstpointer data, gint len);
 gint pmsg_read(pmsg_t *mb, gpointer data, gint len);
 
 pdata_t *pdata_new(gint len);
