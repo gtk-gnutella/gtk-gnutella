@@ -67,9 +67,14 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
+#ifdef USE_TLS
 #define TLS_DH_BITS 768
+#endif /* USE_TLS */
 
 #ifndef SHUT_WR
+/* XXX: This should be handled by Configure because SHUT_* are sometimes
+ *		enums instead of macro definitions.
+ */
 #define SHUT_WR 1		/* Shutdown TX side */
 #endif
 
