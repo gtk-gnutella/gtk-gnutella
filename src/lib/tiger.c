@@ -39,7 +39,7 @@ RCSID("$Id$");
  * for 64-bit CPUs is required. It is used only for
  * optimization of time. Otherwise it does nothing.
  */
-#if !(G_MAXULONG < 0xffffffffffffffffULL)
+#if !(G_MAXULONG > 0xffffffffUL)
 #define OPTIMIZE_FOR_64BIT
 #endif
 
@@ -58,7 +58,7 @@ RCSID("$Id$");
  */
 #define PASSES 3
 
-guint64 table[4 * 256];
+static guint64 table[4 * 256];
 
 #define t1 (table)
 #define t2 (table + 256)
@@ -110,7 +110,7 @@ guint64 table[4 * 256];
 	round(b, c, a, x7, mul)
 
 #define key_schedule \
-	x0 -= x7 ^ 0xA5A5A5A5A5A5A5A5LL; \
+	x0 -= x7 ^ (((guint64) 0xA5A5A5A5UL << 32) | 0xA5A5A5A5UL); \
 	x1 ^= x0; \
 	x2 += x1; \
 	x3 -= x2 ^ ((~x1) << 19); \
@@ -125,7 +125,7 @@ guint64 table[4 * 256];
 	x4 -= x3 ^ ((~x2) >> 23); \
 	x5 ^= x4; \
 	x6 += x5; \
-	x7 -= x6 ^ 0x0123456789ABCDEFLL;
+	x7 -= x6 ^ (((guint64) 0x01234567UL << 32) | 0x89ABCDEFUL);
 
 #define feedforward \
 	a ^= aa; \
@@ -183,9 +183,10 @@ guint64 table[4 * 256];
 }
 
 /* The compress function is a function. Requires smaller cache?    */
-void tiger_compress(guint64 *str, guint64 state[3])
+void
+tiger_compress(guint64 *str, guint64 state[3])
 {
-	tiger_compress_macro(((guint64 *) str), ((guint64 *) state));
+	tiger_compress_macro(str, state);
 }
 
 #ifdef OPTIMIZE_FOR_64BIT
@@ -200,15 +201,17 @@ void tiger_compress(guint64 *str, guint64 state[3])
 		tiger_compress_macro(((guint64 *) str), ((guint64 *) state))
 #endif
 
-void tiger(guint64 *str, guint64 length, guint64 res[3])
+void
+tiger(gpointer data, guint64 length, guint64 res[3])
 {
 	register guint64 i, j;
 	guint64 temp64[8];
-	unsigned char *temp = (unsigned char *) temp64;
+	guint8 *temp = (guint8 *) temp64;
+	guint8 *str = data;
 
-	res[0] = 0x0123456789ABCDEFLL;
-	res[1] = 0xFEDCBA9876543210LL;
-	res[2] = 0xF096A5B4C3B2E187LL;
+	res[0] = ((guint64) 0x01234567UL << 32) | 0x89ABCDEFUL;
+	res[1] = ((guint64) 0xFEDCBA98UL << 32) | 0x76543210UL;
+	res[2] = ((guint64) 0xF096A5B4UL << 32) | 0xC3B2E187UL;
 
 	for(i = length; i >= 64; i -= 64) {
 #if G_BYTE_ORDER == G_BIG_ENDIAN
