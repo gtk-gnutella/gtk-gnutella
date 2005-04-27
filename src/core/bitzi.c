@@ -154,7 +154,7 @@ static void
 bitzi_destroy(bitzi_data_t *data)
 {
 	if (bitzi_debug)
-		g_message("bitzi_destory: %p", data);
+		g_message("bitzi_destory: %p", cast_to_gconstpointer(data));
 
 	if (data->urnsha1)
 		atom_sha1_free(data->urnsha1);
@@ -443,7 +443,7 @@ process_bitzi_ticket(xmlNode *a_node, bitzi_data_t *data)
 		if (cur_node->type == XML_ELEMENT_NODE) {
 			if (bitzi_debug)
 				g_message("node type: Element, name: %s, children %p",
-					cur_node->name, cur_node->children);
+					cur_node->name, cast_to_gconstpointer(cur_node->children));
 
 			if (0 == xmlStrcmp(cur_node->name, (const xmlChar *) "Description"))
 				process_rdf_description(cur_node, data);
@@ -464,7 +464,7 @@ process_meta_data(bitzi_request_t *request)
 	gint result;
 
 	if (bitzi_debug)
-		g_message("process_meta_data: %p", request);
+		g_message("process_meta_data: %p", cast_to_gconstpointer(request));
 
 	g_assert(request != NULL);
 
@@ -477,7 +477,8 @@ process_meta_data(bitzi_request_t *request)
 	xmlFreeParserCtxt(request->ctxt);
 
 	if (bitzi_debug)
-		g_message("process_meta_data: doc = %p, result = %d", doc, result);
+		g_message("process_meta_data: doc = %p, result = %d",
+			cast_to_gconstpointer(doc), result);
 
 	/*
 	 * Now we can have a look at the data
@@ -541,7 +542,7 @@ static gboolean
 do_metadata_query(bitzi_request_t *req)
 {
 	if (bitzi_debug)
-		g_message("do_metadata_query: %p", req);
+		g_message("do_metadata_query: %p", cast_to_gconstpointer(req));
 
 	/*
 	 * always remove the request from the queue
@@ -625,8 +626,8 @@ bitzi_cache_add(bitzi_data_t *data)
 	bitzi_cache = g_list_insert_sorted(bitzi_cache, data, bitzi_date_compare);
 
 	if (bitzi_debug)
-		g_message("bitzi_cache_add: data %p, now %d entries",
-			data, g_hash_table_size(bitzi_cache_ht));
+		g_message("bitzi_cache_add: data %p, now %u entries",
+			cast_to_gconstpointer(data), g_hash_table_size(bitzi_cache_ht));
 
 	return TRUE;
 }
@@ -635,7 +636,7 @@ static void
 bitzi_cache_remove(bitzi_data_t * data)
 {
 	if (bitzi_debug)
-		g_message("bitzi_cache_remove: %p", data);
+		g_message("bitzi_cache_remove: %p", cast_to_gconstpointer(data));
 
 	g_assert(data);
 	g_assert(data->urnsha1);
