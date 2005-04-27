@@ -52,8 +52,8 @@ RCSID("$Id$");
 gpointer
 tt_internal_hash(gpointer hash1, gpointer hash2)
 {
-	gchar data[TIGERSIZE + TIGERSIZE + 1];
-	gchar *hash = g_malloc(TIGERSIZE);
+	gchar data[2 * TIGERSIZE + 1];
+	gpointer hash = g_malloc(TIGERSIZE);
 
 	data[0] = 0x01;		/* Tigertree specs, internal hash should be prefixed
 						 * with 0x01 before hashing */
@@ -62,7 +62,7 @@ tt_internal_hash(gpointer hash1, gpointer hash2)
 
 	g_assert(data[0] == 0x01);
 
-	tiger((gint64 *) data, TIGERSIZE + TIGERSIZE + 1, (gint64 *) hash);
+	tiger(data, 2 * TIGERSIZE + 1, hash);
 
 	return hash;
 }
@@ -133,7 +133,7 @@ tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 {
 	gint i;
 	ssize_t r;
-	gchar *hash;
+	gpointer hash;
 	tt_computation_context_t *ctx = (tt_computation_context_t *) u;
 
 	(void) ticks;
@@ -181,7 +181,7 @@ tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 		g_assert(ctx->buffer[0] == 0x00);
 
 		hash = g_malloc(TIGERSIZE + 1);
-		tiger((guint64*) ctx->buffer , (gint64) (r + 1), (gint64*)(hash));
+		tiger(ctx->buffer, (gint64) (r + 1), hash);
 
 		g_assert(*ctx->buffer == 0x00);
 
@@ -191,7 +191,7 @@ tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 
 	if (r < BLOCKSIZE) {
 		static gchar digest_b32[39 + 1];
-		guchar cur_hash[TIGERSIZE];
+		gchar cur_hash[TIGERSIZE];
 
 		printf("[tigertree] Done %d\n", r);
 
@@ -203,8 +203,8 @@ tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 			printf("%.2X", (guchar) cur_hash[i]);
 	  	}
 
-		printf("  TT blocks processed: %" PRId64 ", index: %d\n",
-			ctx->tt_ctx->count, ctx->tt_ctx->index);
+		printf("  TT blocks processed: %s, index: %d\n",
+			uint64_to_string(ctx->tt_ctx->count), ctx->tt_ctx->index);
 
 		hashtree_finish(ctx->tt_node);
 
