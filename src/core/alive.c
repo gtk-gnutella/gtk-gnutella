@@ -240,6 +240,7 @@ alive_send_ping(gpointer obj)
 	guint32 size;
 	pmsg_t *mb;
 
+	STATIC_ASSERT(23 == sizeof *m);
 	g_assert(a->count == 0 || a->pings != NULL);
 
 	if (a->count >= a->maxcount)
@@ -330,7 +331,7 @@ alive_trim_upto(struct alive *a, GSList *item)
 		}
 	}
 
-	g_assert(0);				/* Must have found the item */
+	g_assert_not_reached();				/* Must have found the item */
 }
 
 /**
