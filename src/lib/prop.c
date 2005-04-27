@@ -57,12 +57,12 @@ const gchar * const prop_type_str[] = {
  ***/
 
 #define prop_assert(ps, prop, x)									\
-do {																\
+G_STMT_START {														\
 	if (!(x)) {														\
 		g_error("assertion failed for property \"%s\": %s",			\
-			PROP(ps, prop).name, #x);								\
+			PROP(ps, prop).name, STRINGIFY(x));						\
 	}																\
-} while (0)
+} G_STMT_END
 
 /**
  * Parse comma delimited numeric vector.
@@ -598,6 +598,7 @@ prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
 			) {
 				*PROP(ps,prop).data.guint64.value = *src;
 			} else {
+				gchar buf[64];
 				guint64 newval = *src;
 
 				if (newval > PROP(ps,prop).data.guint64.max)
@@ -605,13 +606,12 @@ prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
 				if (newval < PROP(ps,prop).data.guint64.min)
 					newval = PROP(ps,prop).data.guint64.min;
 
+				gm_snprintf(buf, sizeof buf, "%s/%s",
+					uint64_to_string(PROP(ps,prop).data.guint64.min),
+					uint64_to_string2(PROP(ps,prop).data.guint64.max));
 				g_warning("prop_set_guint64: [%s] new value out of bounds "
-					"(%" PRIu64 "/%" PRIu64 "): %" PRIu64
-						" (adjusting to %" PRIu64 ")",
-					PROP(ps,prop).name,
-					PROP(ps,prop).data.guint64.min,
-					PROP(ps,prop).data.guint64.max,
-					*src, newval );
+					"(%s): %s (adjusting to %s)", PROP(ps,prop).name, buf,
+					uint64_to_string(*src), uint64_to_string2(newval));
 
 				*PROP(ps,prop).data.guint64.value = newval;
 			}
@@ -626,8 +626,9 @@ prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
 		printf("updated property [%s] = ( ", PROP(ps,prop).name);
 
 		for (n = 0; n < PROP(ps,prop).vector_size; n++) {
-			printf("%" PRIu64 "%s ", PROP(ps,prop).data.guint64.value[n],
-					(n < (PROP(ps,prop).vector_size-1)) ? "," : "");
+			printf("%s%s ",
+				uint64_to_string(PROP(ps,prop).data.guint64.value[n]),
+				n < (PROP(ps,prop).vector_size-1) ? "," : "");
 		}
 
 		printf(")\n");
@@ -1006,7 +1007,6 @@ prop_to_string(prop_set_t *ps, property_t prop)
 			guint32 val;
 
 			prop_get_guint32(ps, prop, &val, 0, 1);
-
 			gm_snprintf(s, sizeof(s), "%u", val);
 			break;
 		}
@@ -1014,8 +1014,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 			guint64 val;
 
 			prop_get_guint64(ps, prop, &val, 0, 1);
-
-			gm_snprintf(s, sizeof(s), "%" PRIu64, val);
+			uint64_to_string_buf(s, sizeof s, val);
 			break;
 		}
 		case PROP_TYPE_STRING: {
@@ -1237,11 +1236,12 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		switch (p->type) {
 		case PROP_TYPE_BOOLEAN:
 			for (i = 0; i < p->vector_size; i++) {
-				g_strlcpy(sbuf, config_boolean(p->data.boolean.value[i]),
-					sizeof(sbuf));
-				if (p->data.boolean.value[i] != p->data.boolean.def[i])
+				gboolean v;
+			
+				v = p->data.boolean.value[i];	
+				if (v != p->data.boolean.def[i])
 					defaultvalue = FALSE;
-				vbuf[i] = g_strdup(sbuf);
+				vbuf[i] = g_strdup(config_boolean(v));
 			}
 			vbuf[p->vector_size] = NULL;
 
@@ -1250,10 +1250,12 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		case PROP_TYPE_MULTICHOICE:
 		case PROP_TYPE_GUINT32:
 			for (i = 0; i < p->vector_size; i++) {
-				gm_snprintf(sbuf, sizeof(sbuf), "%u",
-						p->data.guint32.value[i]);
-				if (p->data.guint32.value[i] != p->data.guint32.def[i])
+				guint32 v;
+
+				v = p->data.guint32.value[i];
+				if (v != p->data.guint32.def[i])
 					defaultvalue = FALSE;
+				gm_snprintf(sbuf, sizeof(sbuf), "%u", v);
 				vbuf[i] = g_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
@@ -1262,11 +1264,12 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 			break;
 		case PROP_TYPE_GUINT64:
 			for (i = 0; i < p->vector_size; i++) {
-				gm_snprintf(sbuf, sizeof(sbuf), "%" PRIu64,
-						p->data.guint64.value[i]);
-				if (p->data.guint64.value[i] != p->data.guint64.def[i])
+				guint64 v;
+
+				v = p->data.guint64.value[i];
+				if (v != p->data.guint64.def[i])
 					defaultvalue = FALSE;
-				vbuf[i] = g_strdup(sbuf);
+				vbuf[i] = g_strdup(uint64_to_string_buf(sbuf, sizeof sbuf, v));
 			}
 			vbuf[p->vector_size] = NULL;
 
@@ -1284,11 +1287,12 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 			break;
 		case PROP_TYPE_IP:
 			for (i = 0; i < p->vector_size; i++) {
-				g_strlcpy(sbuf, ip_to_gchar(p->data.guint32.value[i]),
-					sizeof(sbuf));
-				if (p->data.guint32.value[i] != p->data.guint32.def[i])
+				guint32 v;
+
+				v = p->data.guint32.value[i];
+				if (v != p->data.guint32.def[i])
 					defaultvalue = FALSE;
-				vbuf[i] = g_strdup(sbuf);
+				vbuf[i] = g_strdup(ip_to_gchar(v));
 			}
 			vbuf[p->vector_size] = NULL;
 
@@ -1312,7 +1316,7 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 			/* No default values for storage type properties. */
 			defaultvalue = FALSE;
 			break;
-		};
+		}
 
 		g_assert(val != NULL);
 
