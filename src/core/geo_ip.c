@@ -135,10 +135,7 @@ gip_load(FILE *f)
 		 */
 
 		p = strchr(line, '\0');
-		while (--p >= line) {
-			guchar c = (guchar) *p;
-			if (!is_ascii_space(c))
-				break;
+		while (p-- != line && is_ascii_space(*p)) {
 			*p = '\0';
 		}
 		if ('\0' == *line)
@@ -289,9 +286,9 @@ gip_retrieve(void)
 	gint idx;
 	gchar *filename;
 #ifndef OFFICIAL_BUILD
-	file_path_t fp[3];
+	static file_path_t fp[3];
 #else
-	file_path_t fp[2];
+	static file_path_t fp[2];
 #endif
 
 	file_path_set(&fp[0], settings_config_dir(), gip_file);
