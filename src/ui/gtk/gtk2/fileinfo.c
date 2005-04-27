@@ -115,7 +115,7 @@ fi_gui_set_details(gnet_fi_t fih)
 
     gtk_entry_set_text(entry_fi_filename,
 		lazy_locale_to_utf8(fi->file_name, 0));
-	gm_snprintf(bytes, sizeof bytes, "%" PRIu64, (guint64) fis.size);
+	uint64_to_string_buf(bytes, sizeof bytes, fis.size);
     gtk_label_printf(label_fi_size, _("%s (%s bytes)"),
 		short_size(fis.size), bytes);
     gtk_label_printf(label_fi_sha1, "%s%s",
@@ -417,7 +417,7 @@ static void
 drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 {
 	GtkTreeView *tv;
-	GtkTreePath *path;
+	GtkTreePath *tpath;
 	GtkTreeIter iter;
 	GtkTreeModel *model;
 	gchar **url_ptr = udata;
@@ -431,12 +431,12 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 		G_FREE_NULL(*url_ptr);
 	
 	tv = GTK_TREE_VIEW(treeview_fileinfo);
-	gtk_tree_view_get_cursor(tv, &path, NULL);
-	if (!path)
+	gtk_tree_view_get_cursor(tv, &tpath, NULL);
+	if (!tpath)
 		return;
 
 	model = gtk_tree_view_get_model(tv);
-	if (gtk_tree_model_get_iter(model, &iter, path)) {
+	if (gtk_tree_model_get_iter(model, &iter, tpath)) {
 		gnet_fi_info_t *fi = NULL;
    		gnet_fi_t fih;
     	gnet_fi_status_t fis;
@@ -481,7 +481,7 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 		}
 	}
 
-	gtk_tree_path_free(path);
+	gtk_tree_path_free(tpath);
 }
 
 static void
