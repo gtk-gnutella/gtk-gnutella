@@ -365,7 +365,7 @@ ignore_add_filesize(const gchar *file, filesize_t size)
 		 * Note: _exactly_ one blank; the filename might contain leading
 		 * blanks too.
 		 */
-		fprintf(namesize_out, "%" PRIu64 " %s\n", size, file);
+		fprintf(namesize_out, "%s %s\n", uint64_to_string(size), file);
 		fflush(namesize_out);
 	}
 }
