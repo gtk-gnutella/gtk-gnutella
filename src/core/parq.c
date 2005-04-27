@@ -232,7 +232,6 @@ static gint parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b);
 static gboolean parq_upload_continue(
 		struct parq_ul_queued *uq, gint free_slots);
 static void parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul);
-static inline void parq_store(gpointer data, gpointer x);
 static void parq_upload_load_queue();
 static void parq_upload_update_relative_position(
 		struct parq_ul_queued *parq_ul);
@@ -453,36 +452,33 @@ parq_init(void)
 void
 parq_close(void)
 {
-	GList *queues;
-	GList *dl;
-	GSList *sl;
-	GSList *remove = NULL;
-	GSList *removeq = NULL;
+	GList *dl, *queues;
+	GSList *sl, *to_remove = NULL, *to_removeq = NULL;
 
 	parq_shutdown = TRUE;
 
 	parq_upload_save_queue();
 
-	for (dl = parq_banned_sources ; dl != NULL; dl = dl->next) {
+	for (dl = parq_banned_sources ; dl != NULL; dl = g_list_next(dl)) {
 		struct parq_banned *banned = (struct parq_banned *) dl->data;
 
-		remove = g_slist_prepend(remove, banned);
+		to_remove = g_slist_prepend(to_remove, banned);
 	}
 
-	for (sl = remove; sl != NULL; sl = sl->next) {
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
 		struct parq_banned *banned = (struct parq_banned *) sl->data;
 
 		parq_del_banned_source(banned->ip);
 	}
 
-	g_slist_free(remove);
-	remove = NULL;
+	g_slist_free(to_remove);
+	to_remove = NULL;
 
 	/*
 	 * First locate all queued items (dead or alive). And place them in the
 	 * 'to be removed' list.
 	 */
-	for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
+	for (queues = ul_parqs; queues != NULL; queues = queues->next) {
 		struct parq_ul_queue *queue = (struct parq_ul_queue *) queues->data;
 
 		for (dl = queue->by_position; dl != NULL; dl = dl->next) {
@@ -493,19 +489,20 @@ parq_close(void)
 
 			parq_ul->by_ip->uploading = 0;
 
-			remove = g_slist_prepend(remove, parq_ul);
+			to_remove = g_slist_prepend(to_remove, parq_ul);
 		}
 
-		removeq = g_slist_prepend(removeq, queue);
+		to_removeq = g_slist_prepend(to_removeq, queue);
 	}
 
 	/* Free all memory used by queued items */
-	for (sl = remove; sl != NULL; sl = g_slist_next(sl))
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
 		parq_upload_free((struct parq_ul_queued *) sl->data);
 
-	g_slist_free(remove);
+	g_slist_free(to_remove);
+	to_remove = NULL;
 
-	for (sl = removeq; sl != NULL; sl = g_slist_next(sl)) {
+	for (sl = to_removeq; sl != NULL; sl = g_slist_next(sl)) {
 		struct parq_ul_queue *queue = (struct parq_ul_queue *)sl->data;
 
 		/*
@@ -518,7 +515,8 @@ parq_close(void)
 		parq_upload_free_queue(queue);
 	}
 
-	g_slist_free(removeq);
+	g_slist_free(to_removeq);
+	to_removeq = NULL;
 
 	g_hash_table_destroy(ul_all_parq_by_ip_and_name);
 	g_hash_table_destroy(ul_all_parq_by_ip);
@@ -1756,12 +1754,10 @@ parq_upload_find(const gnutella_upload_t *u)
 void
 parq_upload_timer(time_t now)
 {
-	GList *queues;
-	GList *dl;
-	GSList *sl;
-	GSList *remove = NULL;
 	static guint print_q_size = 0;
 	static guint startup_delay = 0;
+	GList *queues, *dl;
+	GSList *sl, *to_remove = NULL;
 	guint	queue_selected = 0;
 	gboolean rebuilding = FALSE;
 
@@ -1782,18 +1778,18 @@ parq_upload_timer(time_t now)
 
 		if (now - banned->added > PARQ_MAX_UL_RETRY_DELAY ||
 			now - banned->expire > 0) {
-			remove = g_slist_prepend(remove, banned);
+			to_remove = g_slist_prepend(to_remove, banned);
 		}
 	}
 
-	for (sl = remove; sl != NULL; sl = sl->next) {
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
 		struct parq_banned *banned = (struct parq_banned *) sl->data;
 
 		parq_del_banned_source(banned->ip);
 	}
 
-	g_slist_free(remove);
-	remove = NULL;
+	g_slist_free(to_remove);
+	to_remove = NULL;
 
 	for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
 		struct parq_ul_queue *queue = (struct parq_ul_queue *) queues->data;
@@ -1869,7 +1865,7 @@ parq_upload_timer(time_t now)
 			 	 * ul_parq_by_position linked list. (prepend is probably the
 				 * fastest function
 			 	 */
-				remove = g_slist_prepend(remove, parq_ul);
+				to_remove = g_slist_prepend(to_remove, parq_ul);
 			}
 		}
 
@@ -1883,7 +1879,7 @@ parq_upload_timer(time_t now)
 	}
 
 
-	for (sl = remove; sl != NULL; sl = g_slist_next(sl)) {
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
 		struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) sl->data;
 
 		parq_ul->is_alive = FALSE;
@@ -1903,7 +1899,8 @@ parq_upload_timer(time_t now)
 			parq_upload_free((struct parq_ul_queued *) sl->data);
 	}
 
-	g_slist_free(remove);
+	g_slist_free(to_remove);
+	to_remove = NULL;
 
 	/* Save queue info every 60 seconds */
 	if (print_q_size++ >= 60) {
@@ -2268,10 +2265,9 @@ parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b)
 void
 parq_upload_upload_got_cloned(gnutella_upload_t *u, gnutella_upload_t *cu)
 {
-	struct parq_ul_queued *parq_ul = NULL;
+	struct parq_ul_queued *parq_ul;
 
 	if (u->parq_opaque == NULL) {
-		g_assert(u->parq_opaque == NULL);
 		g_assert(cu->parq_opaque == NULL);
 		return;
 	}
@@ -2969,6 +2965,7 @@ parq_upload_add_header_id(gchar *buf, gint *retval, gpointer arg,
 	g_assert(buf != NULL);
 	g_assert(retval != NULL);
 	g_assert(length <= INT_MAX);
+	g_assert(length > 0);
 	g_assert(a->u != NULL);
 
 	parq_ul = (struct parq_ul_queued *) parq_upload_find(a->u);
@@ -2984,7 +2981,7 @@ parq_upload_add_header_id(gchar *buf, gint *retval, gpointer arg,
 	 */
 
 	if (parq_ul->major >= 1) {
-		rw = gm_snprintf(buf, length,
+		rw += gm_snprintf(buf, length,
 			"X-Queue: %d.%d\r\n"
 			"X-Queued: ID=%s\r\n",
 			PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
@@ -3373,6 +3370,73 @@ parq_upload_send_queue_conf(gnutella_upload_t *u)
 }
 
 /**
+ * Saves an individual queued upload to disc. This is the callback function
+ * used by g_list_foreach in function parq_upload_save_queue
+ */
+static inline void
+parq_store(gpointer data, gpointer x)
+{
+	FILE *f = (FILE *)x;
+	time_t now = time((time_t *) NULL);
+	struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) data;
+	gint expire;
+
+	if (parq_ul->had_slot && !parq_ul->has_slot)
+		/* We are not saving uploads which already finished an upload */
+		return;
+
+	expire = delta_time(parq_ul->expire, now);
+	if (expire <= 0)
+		return;
+
+	g_assert(NULL != f);
+	if (dbg > 5)
+		g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): Saving ID: '%s' - %s '%s'",
+			  g_list_position(ul_parqs,
+				  g_list_find(ul_parqs, parq_ul->queue)) + 1,
+			  g_list_length(ul_parqs),
+			  parq_ul->position,
+			  parq_ul->relative_position,
+			  parq_ul->queue->size,
+			  parq_ul->id,
+			  ip_to_gchar(parq_ul->remote_ip),
+			  parq_ul->name);
+
+	/*
+	 * Save all needed parq information. The ip and port information gathered
+	 * from X-Node is saved as XIP and XPORT
+	 * The lifetime is saved as a relative value.
+	 */
+	fprintf(f,
+		  "QUEUE: %d\n"
+		  "POS: %d\n"
+		  "ENTERED: %d\n"
+		  "EXPIRE: %d\n"
+		  "ID: %s\n"
+		  "SIZE: %s\n"
+		  "IP: %s\n",
+		  g_list_position(ul_parqs, g_list_find(ul_parqs, parq_ul->queue)) + 1,
+		  parq_ul->position,
+		  (gint) parq_ul->enter,
+		  expire,
+		  parq_ul->id,
+		  uint64_to_string(parq_ul->file_size),
+		  ip_to_gchar(parq_ul->remote_ip));
+
+	if (parq_ul->sha1) {
+		fprintf(f, "SHA1: %s\n", sha1_base32(parq_ul->sha1));
+	}
+	if (parq_ul->ip) {
+		fprintf(f,
+			"XIP: %s\n"
+			"XPORT: %u\n",
+			ip_to_gchar(parq_ul->ip),
+		  	(unsigned) parq_ul->port);
+	}
+	fprintf(f, "NAME: %s\n\n", parq_ul->name);
+}
+
+/**
  * Saves all the current queues and their items so it can be restored when the
  * client starts up again.
  */
@@ -3473,73 +3537,6 @@ parq_string_to_tag(const gchar *s)
 	return PARQ_TAG_UNKNOWN;
 }
 
-
-/**
- * Saves an individual queued upload to disc. This is the callback function
- * used by g_list_foreach in function parq_upload_save_queue
- */
-static inline void
-parq_store(gpointer data, gpointer x)
-{
-	FILE *f = (FILE *)x;
-	time_t now = time((time_t *) NULL);
-	struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) data;
-	gint expire;
-
-	if (parq_ul->had_slot && !parq_ul->has_slot)
-		/* We are not saving uploads which already finished an upload */
-		return;
-
-	expire = delta_time(parq_ul->expire, now);
-	if (expire <= 0)
-		return;
-
-	g_assert(NULL != f);
-	if (dbg > 5)
-		g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): Saving ID: '%s' - %s '%s'",
-			  g_list_position(ul_parqs,
-				  g_list_find(ul_parqs, parq_ul->queue)) + 1,
-			  g_list_length(ul_parqs),
-			  parq_ul->position,
-			  parq_ul->relative_position,
-			  parq_ul->queue->size,
-			  parq_ul->id,
-			  ip_to_gchar(parq_ul->remote_ip),
-			  parq_ul->name);
-
-	/*
-	 * Save all needed parq information. The ip and port information gathered
-	 * from X-Node is saved as XIP and XPORT
-	 * The lifetime is saved as a relative value.
-	 */
-	fprintf(f,
-		  "QUEUE: %d\n"
-		  "POS: %d\n"
-		  "ENTERED: %d\n"
-		  "EXPIRE: %d\n"
-		  "ID: %s\n"
-		  "SIZE: %" PRIu64 "\n"
-		  "IP: %s\n",
-		  g_list_position(ul_parqs, g_list_find(ul_parqs, parq_ul->queue)) + 1,
-		  parq_ul->position,
-		  (gint) parq_ul->enter,
-		  expire,
-		  parq_ul->id,
-		  (guint64) parq_ul->file_size,
-		  ip_to_gchar(parq_ul->remote_ip));
-
-	if (parq_ul->sha1) {
-		fprintf(f, "SHA1: %s\n", sha1_base32(parq_ul->sha1));
-	}
-	if (parq_ul->ip) {
-		fprintf(f,
-			"XIP: %s\n"
-			"XPORT: %u\n",
-			ip_to_gchar(parq_ul->ip),
-		  	(unsigned) parq_ul->port);
-	}
-	fprintf(f, "NAME: %s\n\n", parq_ul->name);
-}
 
 typedef struct {
 	gchar *sha1;
