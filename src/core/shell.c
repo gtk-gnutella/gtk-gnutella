@@ -694,16 +694,14 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 
 		switch (m) {
 		case 0:
-			n = gm_snprintf(buf, sizeof(buf), "%d", i / 4 + 1);
+			n = strlen(uint64_to_string(i / 4 + 1));
 			break;
 		case 1:
-			n = gm_snprintf(buf, sizeof(buf), "%" PRIu64,
-					*t + nonhsep[HSEP_IDX_NODES]);
+			n = strlen(uint64_to_string(*t + nonhsep[HSEP_IDX_NODES]));
 			t++;
 			break;
 		case 2:
-			n = gm_snprintf(buf, sizeof(buf), "%" PRIu64,
-					*t + nonhsep[HSEP_IDX_FILES]);
+			n = strlen(uint64_to_string(*t + nonhsep[HSEP_IDX_FILES]));
 			t++;
 			break;
 		case 3:
@@ -732,12 +730,15 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 	t = (guint64 *) &table[1];
 
 	for (i = 0; i < triples; i++) {
-		gm_snprintf(buf, sizeof(buf), "%*d  %*" PRIu64 "  %*" PRIu64 "  %*s\n",
-			maxlen[0], i + 1,
-			maxlen[1], t[HSEP_IDX_NODES] + nonhsep[HSEP_IDX_NODES],
-			maxlen[2], t[HSEP_IDX_FILES] + nonhsep[HSEP_IDX_FILES],
-			maxlen[3], short_kb_size(t[HSEP_IDX_KIB] +
-			    nonhsep[HSEP_IDX_KIB]));
+		gm_snprintf(buf, sizeof(buf), "%*d  %*s  %*s  %*s\n",
+			maxlen[0],
+				i + 1,
+			maxlen[1],
+				uint64_to_string(t[HSEP_IDX_NODES] + nonhsep[HSEP_IDX_NODES]),
+			maxlen[2],
+				uint64_to_string2(t[HSEP_IDX_FILES] + nonhsep[HSEP_IDX_FILES]),
+			maxlen[3],
+				short_kb_size(t[HSEP_IDX_KIB] + nonhsep[HSEP_IDX_KIB]));
 
 		shell_write(sh, buf);
 		t += 3;
@@ -747,12 +748,11 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 
 
 
-/*
- * shell_exec:
- *
+/**
  * Takes a command string and tries to parse and execute it.
  */
-static guint shell_exec(gnutella_shell_t *sh, const gchar *cmd)
+static guint
+shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 {
 	gchar *tok;
 	gint pos = 0;
@@ -818,14 +818,13 @@ error:
 	return REPLY_ERROR;
 }
 
-/*
- * shell_write_data:
- *
+/**
  * Called when data can be written to the shell connection. If the
  * connection is in shutdown mode, it is destroyed when the output
  * buffer is empty.
  */
-static void shell_write_data(gnutella_shell_t *sh)
+static void
+shell_write_data(gnutella_shell_t *sh)
 {
 	struct gnutella_socket *s;
 	ssize_t written;
@@ -865,13 +864,12 @@ static void shell_write_data(gnutella_shell_t *sh)
 	}
 }
 
-/*
- * shell_read_data:
- *
+/**
  * Called when data is available on a shell connection. Uses getline to
  * read the available data line by line.
  */
-static void shell_read_data(gnutella_shell_t *sh)
+static void
+shell_read_data(gnutella_shell_t *sh)
 {
 	struct gnutella_socket *s;
 	gint parsed;
