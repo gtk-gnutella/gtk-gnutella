@@ -102,26 +102,19 @@ static gboolean
 uhc_get_host_port(const gchar *hp, const gchar **host, guint16 *port)
 {
 	static gchar hostname[MAX_HOSTLEN + 1];
-	gchar *q = hostname;
-	gchar *end = hostname + sizeof(hostname);
 	gchar *p;
-	gchar c;
-	gint iport;
+	guint32 iport;
+	gint error;
 
-	p = (gchar *) hp;
-	while ((c = *p++) && q < end) {
-		if (c == ':') {
-			*q++ = '\0';
-			break;
-		}
-		*q++ = c;
-	}
-	hostname[MAX_HOSTLEN] = '\0';
-
-	if (c != ':')
+	g_strlcpy(hostname, hp, sizeof hostname);
+	p = strchr(hostname, ':');
+	if (!p)
 		return FALSE;			/* No port! */
 
-	if (1 != sscanf(p, "%u", &iport))
+	*p++ = '\0';
+
+	iport = parse_uint32(p, NULL, 10, &error);
+	if (error || iport < 1 || iport > 0xffff)
 		return FALSE;
 
 	*host = hostname;			/* Static data! */
