@@ -137,7 +137,7 @@ static const struct rwtable urntable[] =	/* URN name table (sorted) */
 
 static const struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
 {
-#define GGEP_ID(x) { #x, EXT_T_GGEP_ ## x }
+#define GGEP_ID(x) { STRINGIFY(x), CAT2(EXT_T_GGEP_,x) }
 
 	{ "<", EXT_T_GGEP_LIME_XML },	/* '<' is less that 'A' */
 	GGEP_ID(ALT),					/* Alt-locs in qhits */
@@ -425,10 +425,10 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 		 */
 
 		if (flags & (GGEP_F_COBS|GGEP_F_DEFLATE)) {
-			gint len = data_length;
+			gint d_len = data_length;
 
 			if (flags & GGEP_F_COBS) {
-				if (len == 0 || !cobs_is_valid(p, len))
+				if (len == 0 || !cobs_is_valid(p, d_len))
 					goto abort;
 				len--;					/* One byte of overhead */
 			}
@@ -436,7 +436,7 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 			if (flags & GGEP_F_DEFLATE) {
 				gint offset = 0;
 
-				if (len < 6)
+				if (d_len < 6)
 					goto abort;
 
 				/*
@@ -455,7 +455,7 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 					offset = 1;			/* Skip leading byte */
 				}
 
-				if (!zlib_is_valid_header(p + offset, len))
+				if (!zlib_is_valid_header(p + offset, d_len))
 					goto abort;
 			}
 		}
