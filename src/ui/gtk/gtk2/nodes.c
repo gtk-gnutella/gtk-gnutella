@@ -644,6 +644,8 @@ void nodes_gui_update_nodes_display(time_t now)
     	model = gtk_tree_view_get_model(treeview_nodes);
     	g_object_ref(model);
     	gtk_tree_view_set_model(treeview_nodes, NULL);
+	} else {
+		model = NULL; /* dumb compiler */
 	}
 
 	g_hash_table_foreach(nodes_handles, update_row, &now);
