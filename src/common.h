@@ -124,44 +124,6 @@
  */
 typedef guint64 filesize_t;
 
-/*
- * Macro to print signed 64-bit integers
- */
-#ifndef PRId64
-/* Compiler doesn't support ISO C99  *sigh* */
-#ifdef G_GINT64_FORMAT
-/* GLib 2.x */
-#define PRId64 G_GINT64_FORMAT
-#elif G_MAXLONG > 0x7fffffff
-/* Assume long is a 64-bit integer */
-#define PRId64 "ld"
-#elif G_MAXLONG == 0x7fffffff
-/* long is 32-bit integer => assume long long is a 64-bit integer */
-#define PRId64 "lld"
-#else
-#error Cannot determine sequence to print signed 64-bit integers
-#endif /* !G_GUINT64_FORMAT */
-#endif /* !PRId64 */
-
-/*
- * Macro to print unsigned 64-bit integers
- */
-#ifndef PRIu64
-/* Compiler doesn't support ISO C99  *sigh* */
-#ifdef G_GUINT64_FORMAT
-/* GLib 2.x */
-#define PRIu64 G_GUINT64_FORMAT
-#elif G_MAXLONG > 0x7fffffff
-/* Assume long is a 64-bit integer */
-#define PRIu64 "lu"
-#elif G_MAXLONG == 0x7fffffff
-/* long is 32-bit integer => assume long long is a 64-bit integer */
-#define PRIu64 "llu"
-#else
-#error Cannot determine sequence to print unsigned 64-bit integers
-#endif /* !G_GUINT64_FORMAT */
-#endif /* !PRIu64 */
-
 #include <stdarg.h>
 #include <regex.h>
 
