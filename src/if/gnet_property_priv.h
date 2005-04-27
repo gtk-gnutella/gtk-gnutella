@@ -170,7 +170,7 @@ extern const guint32  total_downloads;
 extern const guint32  ul_running;
 extern const guint32  ul_registered;
 extern const guint32  total_uploads;
-extern const guint8   guid[16];
+extern const gchar    servent_guid[16];
 extern const gboolean use_swarming;
 extern const gboolean use_aggressive_swarming;
 extern const guint32  dl_minchunksize;

@@ -1539,7 +1539,8 @@ prop = {
 };
 
 prop = {
-    name = "guid";
+    name = "servent_guid";
+    cfgvar = "guid";
     desc = "Global Unique IDentifier of this node.";
     type = storage;
     vector_size = 16;

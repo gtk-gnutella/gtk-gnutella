@@ -302,7 +302,7 @@ guint32  ul_registered     = 0;
 guint32  ul_registered_def = 0;
 guint32  total_uploads     = 0;
 guint32  total_uploads_def = 0;
-guint8   guid[16];
+gchar   servent_guid[16];
 gboolean use_swarming     = TRUE;
 gboolean use_swarming_def = TRUE;
 gboolean use_aggressive_swarming     = TRUE;
@@ -3054,20 +3054,20 @@ prop_set_t *gnet_prop_init(void) {
 
 
     /*
-     * PROP_GUID:
+     * PROP_SERVENT_GUID:
      *
      * General data:
      */
     gnet_property->props[128].name = "guid";
     gnet_property->props[128].desc = _("Global Unique IDentifier of this node.");
-    gnet_property->props[128].ev_changed = event_new("guid_changed");
+    gnet_property->props[128].ev_changed = event_new("servent_guid_changed");
     gnet_property->props[128].save = TRUE;
     gnet_property->props[128].vector_size = 16;
 
     /* Type specific data: */
     gnet_property->props[128].type               = PROP_TYPE_STORAGE;
-    gnet_property->props[128].data.storage.value = guid;
-    memset(guid, 0, gnet_property->props[128].vector_size);
+    gnet_property->props[128].data.storage.value = servent_guid;
+    memset(servent_guid, 0, gnet_property->props[128].vector_size);
 
 
     /*
