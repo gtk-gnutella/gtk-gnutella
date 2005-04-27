@@ -478,7 +478,7 @@ build_push(struct gnutella_msg_push_request *m,
 	m->header.hops = 1;
 
 	STATIC_ASSERT(49 == sizeof *m);
-	WRITE_GUINT32_LE(sizeof *m, m->header.size);
+	WRITE_GUINT32_LE(sizeof m->request, m->header.size);
 
 	memcpy(m->request.guid, guid, 16);
 
