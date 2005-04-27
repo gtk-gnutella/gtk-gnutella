@@ -131,24 +131,6 @@ tree_view_motion_t *tree_view_motion_set_callback(GtkTreeView *tv,
 void tree_view_motion_clear_callback(GtkTreeView *tv, tree_view_motion_t *tm);
 #endif /* USE_GTK2 */
 
-/*
- * GtkListStore
- */
-#define GTK_LIST_STORE_SET(store, iter, ...) \
-	gtk_list_store_set(store, iter, ## __VA_ARGS__, (-1))
-
-/*
- * GtkTreeStore
- */
-#define GTK_TREE_STORE_SET(store, iter, ...) \
-	gtk_tree_store_set(store, iter, ## __VA_ARGS__, (-1))
-
-/*
- * GtkTreeModel
- */
-#define GTK_TREE_MODEL_GET(model, iter, ...) \
-	gtk_tree_model_get(model, iter, ## __VA_ARGS__, (-1))
-
 gint gtk_main_flush(void);
 GtkWidget *menu_new_item_with_data(GtkMenu *m, gchar *l, gpointer d );
 GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb);
