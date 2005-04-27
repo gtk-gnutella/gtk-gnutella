@@ -225,8 +225,11 @@ dl_action_select(const gchar *treeview_name, dl_action_type_t action)
 {
 	GtkTreeView *tree_view;
 	GtkTreeSelection *selection;
-	dl_action_t ctx = { action, NULL };
+	dl_action_t ctx;
 
+	ctx.action = action;
+	ctx.sl = NULL;
+	
 	g_assert((gint) action >= 0 && action <= NUM_DL_ACTION);
  	g_assert(treeview_name && treeview_name[0] != '\0');
 
