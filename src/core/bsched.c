@@ -1455,16 +1455,16 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 			start < ctx->map_start ||
 			start + amount > ctx->map_end
 		) {
-			size_t len;
+			size_t map_len;
 
 			if (ctx->map != NULL) {
 				munmap(ctx->map, ctx->map_end - ctx->map_start);
 				ctx->map = NULL;
 			}
-			len = MAX(amount, 256 * 1024U);
+			map_len = MAX(amount, 256 * 1024U);
 			ctx->map_start = start;
-			ctx->map_end = ctx->map_start + len;
-			ctx->map = mmap(NULL, len, PROT_READ, MAP_PRIVATE, in_fd,
+			ctx->map_end = ctx->map_start + map_len;
+			ctx->map = mmap(NULL, map_len, PROT_READ, MAP_PRIVATE, in_fd,
 							ctx->map_start);
 			if (MAP_FAILED == ctx->map) {
 				ctx->map = NULL;
@@ -1476,7 +1476,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 			/* TODO:	Add _proper_ Configure check for madvise.
 			 *			No mere symbol check, please.
 			 */
-			madvise(ctx->map, len, MADV_SEQUENTIAL);
+			madvise(ctx->map, map_len, MADV_SEQUENTIAL);
 #endif
 		}
 
@@ -1548,8 +1548,8 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 
 	if (r >= 0 && *offset != start + r) {		/* Paranoid, as usual */
 		g_warning("FIXED SENDFILE returned offset: "
-			"was set to %" PRIu64 " instead of %" PRIu64 " (%d byte%s written)",
-			(guint64) *offset, (guint64) (start + r),
+			"was set to %s instead of %s (%d byte%s written)",
+			uint64_to_string(*offset), uint64_to_string2(start + r),
 			(gint) r, r == 1 ? "" : "s");
 		*offset = start + r;
 	} else if ((ssize_t) -1 == r) {
