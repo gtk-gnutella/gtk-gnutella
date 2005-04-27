@@ -824,7 +824,7 @@ static void
 change_server_ip(struct dl_server *server, guint32 new_ip)
 {
 	struct dl_key *key = server->key;
-	struct dl_server *dup;
+	struct dl_server *duplicate;
 	GSList *l;
 
 	g_assert(key->ip != new_ip);
@@ -876,11 +876,11 @@ change_server_ip(struct dl_server *server, guint32 new_ip)
 	 * foo.example.com which we thought was 5.6.7.8 is at 1.2.3.4...
 	 */
 
-	dup = get_server(key->guid, new_ip, key->port);
+	duplicate = get_server(key->guid, new_ip, key->port);
 
-	if (dup != NULL) {
-		g_assert(dup->key->ip == key->ip);
-		g_assert(dup->key->port == key->port);
+	if (duplicate != NULL) {
+		g_assert(duplicate->key->ip == key->ip);
+		g_assert(duplicate->key->port == key->port);
 
 		if (dbg) {
             g_message(
@@ -889,24 +889,25 @@ change_server_ip(struct dl_server *server, guint32 new_ip)
                 server->vendor == NULL ? "UNKNOWN" : server->vendor,
                 server->hostname == NULL ? "NONAME" : server->hostname,
                 key->port,
-                dup->vendor == NULL ? "UNKNOWN" : dup->vendor,
-                dup->hostname == NULL ? "NONAME" : dup->hostname,
-                dup->key->port);
+                duplicate->vendor == NULL ? "UNKNOWN" : duplicate->vendor,
+                duplicate->hostname == NULL ? "NONAME" : duplicate->hostname,
+                duplicate->key->port);
         }
 
 		/*
-		 * If there was no GUID known for `server', copy the one from `dup'.
+		 * If there was no GUID known for `server', copy the one
+		 * from `duplicate'.
 		 */
 
 		if (
 			guid_eq(key->guid, blank_guid) &&
-			!guid_eq(dup->key->guid, blank_guid)
+			!guid_eq(duplicate->key->guid, blank_guid)
 		) {
 			atom_guid_free(key->guid);
-			key->guid = atom_guid_get(dup->key->guid);
+			key->guid = atom_guid_get(duplicate->key->guid);
 		} else if (
-			!guid_eq(key->guid, dup->key->guid) &&
-			!guid_eq(dup->key->guid, blank_guid)
+			!guid_eq(key->guid, duplicate->key->guid) &&
+			!guid_eq(duplicate->key->guid, blank_guid)
 		) {
 			g_message("Found two distinct GUID for <%s> at %s:%u, keeping %s",
 				server->vendor == NULL ? "UNKNOWN" : server->vendor,
@@ -915,7 +916,7 @@ change_server_ip(struct dl_server *server, guint32 new_ip)
         }
 
 		/*
-		 * All the downloads attached to the `dup' server need to be
+		 * All the downloads attached to the `duplicate' server need to be
 		 * reparented to `server' instead.
 		 */
 
@@ -926,7 +927,7 @@ change_server_ip(struct dl_server *server, guint32 new_ip)
 			if (d->status == GTA_DL_REMOVED)
 				continue;
 
-			if (d->server == dup)
+			if (d->server == duplicate)
 				download_reparent(d, server);
 		}
 	}
@@ -1151,7 +1152,7 @@ download_file_exists(struct download *d)
 /**
  * Remove temporary download file.
  *
- * Optionally reset the fileinfo if unlinking is successfull and `reset' is
+ * Optionally reset the fileinfo if unlinking is successful and `reset' is
  * TRUE.  The purpose of resetting on unlink is to prevent the fileinfo
  * from being discarded at the next relaunch (we discard non-reset fileinfos
  * when the file is missing).
@@ -1171,13 +1172,13 @@ download_remove_file(struct download *d, gboolean reset)
 	 */
 
 	for (l = sl_downloads; l; l = g_slist_next(l)) {
-		struct download *d = (struct download *) l->data;
-		g_assert(d != NULL);
+		struct download *dl = (struct download *) l->data;
+		g_assert(dl != NULL);
 
-		if (d->status == GTA_DL_REMOVED)
+		if (dl->status == GTA_DL_REMOVED)
 			continue;
 
-		if (d->file_info != fi)
+		if (dl->file_info != fi)
 			continue;
 
 		/*
@@ -1188,7 +1189,7 @@ download_remove_file(struct download *d, gboolean reset)
 		 *		--RAM, 17/05/2003
 		 */
 
-		switch (d->status) {
+		switch (dl->status) {
 		case GTA_DL_ACTIVE_QUEUED:
 		case GTA_DL_PUSH_SENT:
 		case GTA_DL_FALLBACK:
@@ -1199,9 +1200,9 @@ download_remove_file(struct download *d, gboolean reset)
 			break;		/* go on */
 		}
 
-		if (DOWNLOAD_IS_RUNNING(d)) {
-			download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
-			download_queue(d, "Requeued due to file removal");
+		if (DOWNLOAD_IS_RUNNING(dl)) {
+			download_stop(dl, GTA_DL_TIMEOUT_WAIT, NULL);
+			download_queue(dl, "Requeued due to file removal");
 		}
 	}
 }
@@ -2608,9 +2609,9 @@ download_pick_available(struct download *d)
 		d->overlap_size = download_overlap_range;
 
 	if (dbg > 3)
-		g_message("PFSP selected %" PRIu64 "-%" PRIu64 " (overlap=%u) "
+		g_message("PFSP selected %s-%s (overlap=%u) "
 			"from %s for \"%s\", available was: %s",
-			(guint64) from, (guint64) to - 1, d->overlap_size,
+			uint64_to_string(from), uint64_to_string2(to - 1), d->overlap_size,
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			download_outname(d), http_range_to_gchar(d->ranges));
 
@@ -3286,9 +3287,9 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	if (d->sha1 != NULL && fi->sha1 == NULL) {
 		gboolean success = file_info_got_sha1(fi, d->sha1);
 		if (success) {
-            g_message("Forced SHA1 %s after %" PRIu64 " byte%s "
+            g_message("Forced SHA1 %s after %s byte%s "
 				"downloaded for %s",
-				sha1_base32(d->sha1), (guint64) fi->done,
+				sha1_base32(d->sha1), uint64_to_string(fi->done),
 				fi->done == 1 ? "" : "s",
 				download_outname(d));
 			if (DOWNLOAD_IS_QUEUED(d))		/* file_info_got_sha1() can queue */
@@ -3951,7 +3952,8 @@ send_push_request(const gchar *guid, guint32 file_id, guint16 port)
 	m.header.ttl = hard_ttl_limit;
 	m.header.hops = 0;
 
-	WRITE_GUINT32_LE(sizeof(struct gnutella_push_request), m.header.size);
+	STATIC_ASSERT(49 == sizeof m);
+	WRITE_GUINT32_LE(sizeof m.request, m.header.size);
 
 	memcpy(m.request.guid, guid, 16);
 
@@ -3965,7 +3967,8 @@ send_push_request(const gchar *guid, guint32 file_id, guint16 port)
 	 */
 
 	message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
-	gmsg_sendto_all(nodes, (gchar *) &m, sizeof(m));
+	STATIC_ASSERT(49 == sizeof m);
+	gmsg_sendto_all(nodes, &m, sizeof m);
 
 	g_slist_free(nodes);
 
@@ -3976,7 +3979,13 @@ send_push_request(const gchar *guid, guint32 file_id, guint16 port)
  *** I/O header parsing callbacks
  ***/
 
-#define DOWNLOAD(x)		((struct download *) (x))
+static inline struct download *
+cast_to_download(gpointer p)
+{
+	return p;
+}
+
+#define DOWNLOAD(x)	cast_to_download(x)
 
 static void
 err_line_too_long(gpointer o)
@@ -4153,9 +4162,9 @@ download_overlap_check(struct download *d)
 	 */
 
 	if (!fi->use_swarming && d->skip != fi->done) {
-		g_message("File '%s' changed size "
-			"(now %" PRIu64 ", but was %" PRIu64 ")",
-			fi->file_name, (guint64) buf.st_size, (guint64) d->skip);
+		g_message("File '%s' changed size (now %s, but was %s)",
+			fi->file_name, uint64_to_string(buf.st_size),
+			uint64_to_string2(d->skip));
 		download_queue_delay(d, download_retry_stopped_delay,
 			_("Stopped (Output file size changed)"));
 		goto out;
@@ -4195,17 +4204,16 @@ download_overlap_check(struct download *d)
 
 	if (0 != memcmp(s->buffer, data, d->overlap_size)) {
 		if (dbg > 3) {
-			g_message("%d overlapping bytes UNMATCHED "
-				"at offset %" PRIu64 " for \"%s\"",
+			g_message("%d overlapping bytes UNMATCHED at offset %s for \"%s\"",
 				(gint) d->overlap_size,
-				(guint64) d->skip - d->overlap_size, d->file_name);
+				uint64_to_string(d->skip - d->overlap_size), d->file_name);
         }
 
 		download_bad_source(d);		/* Until proven otherwise if we resume it */
 
 		if (dl_remove_file_on_mismatch) {
-			download_queue(d, "Resuming data mismatch @ %" PRIu64,
-				(guint64) d->skip - d->overlap_size);
+			download_queue(d, "Resuming data mismatch @ %s",
+				uint64_to_string(d->skip - d->overlap_size));
 			download_remove_file(d, TRUE);
 		} else {
 			/*
@@ -4227,8 +4235,9 @@ download_overlap_check(struct download *d)
 				begin = 0;
 			file_info_update(d, begin, end, DL_CHUNK_EMPTY);
 			g_message("Resuming data mismatch on %s, backed out %d bytes block"
-				" from %" PRIu64 " to %" PRIu64,
-				 d->file_name, (gint) backout, (guint64) begin, (guint64) end);
+				" from %s to %s",
+				 d->file_name, (gint) backout,
+				 uint64_to_string(begin), uint64_to_string2(end));
 
 			/*
 			 * Don't always keep this source, and since there is doubt,
@@ -4237,12 +4246,12 @@ download_overlap_check(struct download *d)
 
 			if (random_value(99) >= 50)
 				download_stop(d, GTA_DL_ERROR,
-					"Resuming data mismatch @ %" PRIu64,
-					(guint64) (d->skip - d->overlap_size));
+					"Resuming data mismatch @ %s",
+					uint64_to_string(d->skip - d->overlap_size));
 			else
 				download_queue_delay(d, download_retry_busy_delay,
-					"Resuming data mismatch @ %" PRIu64,
-					(guint64) (d->skip - d->overlap_size));
+					"Resuming data mismatch @ %s",
+					uint64_to_string(d->skip - d->overlap_size));
 		}
 		goto out;
 	}
@@ -4261,8 +4270,9 @@ download_overlap_check(struct download *d)
 
 	if (dbg > 3)
 		g_message("%d overlapping bytes MATCHED "
-			"at offset %" PRIu64 " for \"%s\"",
-			d->overlap_size, (guint64) d->skip - d->overlap_size, d->file_name);
+			"at offset %s for \"%s\"",
+			d->overlap_size, uint64_to_string(d->skip - d->overlap_size),
+			d->file_name);
 
 	return TRUE;
 
@@ -4317,11 +4327,10 @@ download_write_data(struct download *d)
 		offset != lseek(d->file_desc, offset, SEEK_SET)
 	) {
 		const char *error = g_strerror(errno);
-		g_message("download_write_data(): failed to seek "
-			"at offset %" PRIu64 " (%s)",
-			(guint64) d->pos, error);
-		download_stop(d, GTA_DL_ERROR, "Can't seek to offset %" PRIu64 ": %s",
-			(guint64) d->pos, error);
+		g_message("download_write_data(): failed to seek at offset %s (%s)",
+			uint64_to_string(d->pos), error);
+		download_stop(d, GTA_DL_ERROR, "Can't seek to offset %s: %s",
+			uint64_to_string(d->pos), error);
 		return;
 	}
 
@@ -4334,11 +4343,11 @@ download_write_data(struct download *d)
 	if (d->pos + s->pos > d->range_end) {
 		filesize_t extra = (d->pos + s->pos) - d->range_end;
 
-		g_message("Server %s (%s) gave us %" PRIu64 " more byte%s "
-			"than requested for \"%s\"",
+		g_message(
+			"Server %s (%s) gave us %s more byte%s than requested for \"%s\"",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
-			download_vendor_str(d),
-			(guint64) extra, extra == 1 ? "" : "s", download_outname(d));
+			download_vendor_str(d), uint64_to_string(extra),
+			extra == 1 ? "" : "s", download_outname(d));
 		s->pos -= extra;
 		trimmed = TRUE;
 		g_assert(s->pos > 0);	/* We had not reached range_end previously */
@@ -4348,7 +4357,8 @@ download_write_data(struct download *d)
 		const char *error = g_strerror(errno);
 		g_message("Write to file failed (%s) !", error);
 		g_message("Tried to write(%d, %p, %d)",
-			  (int) d->file_desc, s->buffer, (int) s->pos);
+			  (int) d->file_desc, cast_to_gconstpointer(s->buffer),
+			  (int) s->pos);
 		download_queue_delay(d, download_retry_busy_delay,
 			_("Can't save data: %s"), error);
 		return;
@@ -4375,9 +4385,9 @@ download_write_data(struct download *d)
 	 */
 
 	if (fi->use_swarming) {
-		enum dl_chunk_status s = file_info_pos_status(fi, d->pos);
+		enum dl_chunk_status status = file_info_pos_status(fi, d->pos);
 
-		switch(s) {
+		switch (status) {
 		case DL_CHUNK_DONE:
 			/*
 			 * Reached a zone that is completed.  If the file is done,
@@ -5505,10 +5515,10 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 			if (http_range_contains(d->ranges, d->skip, d->range_end - 1)) {
 				if (dbg > 3)
-					g_message("PFSP currently requested chunk "
-						"%" PRIu64 "-%" PRIu64 " from %s "
+					g_message("PFSP currently requested chunk %s-%s from %s "
 						"for \"%s\" already in the available ranges: %s",
-						(guint64) d->skip, (guint64) d->range_end - 1,
+						uint64_to_string(d->skip),
+						uint64_to_string2(d->range_end - 1),
 						ip_port_to_gchar(download_ip(d), download_port(d)),
 						download_outname(d), http_range_to_gchar(d->ranges));
 
@@ -5572,18 +5582,16 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				d->sinkleft = v;
 
 				if (d->sinkleft > DOWNLOAD_MAX_SINK) {
-					g_message("Too much data to sink "
-						"(%" PRIu64 " bytes) on reply "
-						"%d \"%s\" from %s <%s>", (guint64) d->sinkleft,
-						ack_code, ack_message,
+					g_message("Too much data to sink (%s bytes) on reply "
+						"%d \"%s\" from %s <%s>",
+						uint64_to_string(d->sinkleft), ack_code, ack_message,
 						ip_port_to_gchar(download_ip(d), download_port(d)),
 						download_vendor_str(d));
 
 					download_queue_delay(d,
 						MAX(delay, download_retry_refused_delay),
-						"Partial file, too much data to sink "
-						"(%" PRIu64 " bytes)",
-						(guint64) d->sinkleft);
+						"Partial file, too much data to sink (%s bytes)",
+						uint64_to_string(d->sinkleft));
 					return;
 				}
 
@@ -5924,10 +5932,10 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		} else if (content_size != requested_size) {
 			if (content_size == fi->size) {
 				g_message("File '%s': server seems to have "
-					"ignored our range request of %" PRIu64 "-%" PRIu64 ".",
+					"ignored our range request of %s-%s.",
 					d->file_name,
-					(guint64) d->skip - d->overlap_size,
-					(guint64) d->range_end - 1);
+					uint64_to_string(d->skip - d->overlap_size),
+					uint64_to_string2(d->range_end - 1));
 				download_bad_source(d);
 				download_stop(d, GTA_DL_ERROR,
 					"Server can't handle resume request");
@@ -5953,13 +5961,14 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 			if (check_content_range > total) {
                 if (dbg)
-                    g_message("File '%s' on %s (%s): "
-                        "total size mismatch: got %" PRIu64
-						", for a served content of %" PRIu64,
+                    g_message(
+						"File '%s' on %s (%s): total size mismatch: got %s, "
+						"for a served content of %s",
                         d->file_name,
                         ip_port_to_gchar(download_ip(d), download_port(d)),
                         download_vendor_str(d),
-                        (guint64) check_content_range, (guint64) total);
+                        uint64_to_string(check_content_range),
+						uint64_to_string2(total));
 
 				download_bad_source(d);
 				download_stop(d, GTA_DL_ERROR, "Total/served sizes mismatch");
@@ -5968,12 +5977,13 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 			if (start != d->skip - d->overlap_size) {
                 if (dbg)
-                    g_message("File '%s' on %s (%s): "
-                        "start byte mismatch: wanted %" PRIu64 ", got %" PRIu64,
+                    g_message("File '%s' on %s (%s): start byte mismatch: "
+						"wanted %s, got %s",
                         d->file_name,
                         ip_port_to_gchar(download_ip(d), download_port(d)),
                         download_vendor_str(d),
-                        (guint64) (d->skip - d->overlap_size), (guint64) start);
+                        uint64_to_string(d->skip - d->overlap_size),
+						uint64_to_string2(start));
 
 				download_bad_source(d);
 				download_stop(d, GTA_DL_ERROR, "Range start mismatch");
@@ -5981,13 +5991,12 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			}
 			if (total != fi->size) {
                 if (dbg) {
-                        g_message("File '%s' on %s (%s): "
-                        "file size mismatch: "
-						"expected %" PRIu64 ", got %" PRIu64,
+                        g_message("File '%s' on %s (%s): file size mismatch: "
+						"expected %s, got %s",
                         d->file_name,
                         ip_port_to_gchar(download_ip(d), download_port(d)),
                         download_vendor_str(d),
-                        (guint64) fi->size, (guint64) total);
+                        uint64_to_string(fi->size), uint64_to_string2(total));
                 }
 				download_bad_source(d);
 				download_stop(d, GTA_DL_ERROR, "File size mismatch");
@@ -5995,45 +6004,51 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			}
 			if (end > d->range_end - 1) {
                 if (dbg) {
-                    g_message("File '%s' on %s (%s): "
-                        "end byte too large: "
-						"expected %" PRIu64 ", got %" PRIu64,
+                    g_message("File '%s' on %s (%s): end byte too large: "
+						"expected %s, got %s",
                         d->file_name,
                         ip_port_to_gchar(download_ip(d), download_port(d)),
                         download_vendor_str(d),
-                        (guint64) d->range_end - 1, (guint64) end);
+                        uint64_to_string(d->range_end - 1),
+						uint64_to_string2(end));
                 }
 				download_bad_source(d);
 				download_stop(d, GTA_DL_ERROR, "Range end too large");
 				return;
 			}
 			if (end <= d->skip || start >= d->range_end) {
+				gchar got[64];
+
+				gm_snprintf(got, sizeof got, "got %s - %s",
+					uint64_to_string(start), uint64_to_string2(end));
+					
 				/* XXX: Should we check whether we can use this range
 				 *		nonetheless? This addresses the problem described
 				 *		here:
 				 *
 				 * 		http://sf.net/mailarchive/message.php?msg_id=10454795
 				 */
-				g_message("File '%s' on %s (%s): "
-					"Range mismatch: wanted %" PRIu64 "- %" PRIu64
-					", got %" PRIu64 "- %" PRIu64,
+					
+				g_message(
+					"File '%s' on %s (%s): Range mismatch: wanted %s - %s, %s",
 					d->file_name,
 					ip_port_to_gchar(download_ip(d), download_port(d)),
 					download_vendor_str(d),
-					(guint64) d->skip, (guint64) d->range_end,
-					(guint64) start, (guint64) end);
+					uint64_to_string(d->skip), uint64_to_string2(d->range_end),
+					got);
 				download_stop(d, GTA_DL_ERROR, "Range mismatch");
 				return;
 			}
 			if (end < d->range_end - 1) {
                 if (dbg)
-                    g_message("File '%s' on %s (%s): "
-                        "end byte short: wanted %" PRIu64
-							", got %" PRIu64 " (continuing anyway)",
+                    g_message(
+						"File '%s' on %s (%s): end byte short: wanted %s, "
+						"got %s (continuing anyway)",
                         d->file_name,
                         ip_port_to_gchar(download_ip(d), download_port(d)),
                         download_vendor_str(d),
-                        (guint64) d->range_end - 1, (guint64) end);
+                        uint64_to_string(d->range_end - 1),
+						uint64_to_string2(end));
 
 				/*
 				 * Since we're getting less than we asked for, we need to
@@ -6070,12 +6085,11 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	 */
 
 	if (check_content_range != 0) {
-		g_message("File '%s': expected content of %" PRIu64
-			", server %s (%s) said %" PRIu64,
-			d->file_name, (guint64) requested_size,
+		g_message("File '%s': expected content of %s, server %s (%s) said %s",
+			d->file_name, uint64_to_string(requested_size),
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			download_vendor_str(d),
-			(guint64) check_content_range);
+			uint64_to_string2(check_content_range));
 		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, "Content-Length mismatch");
 		return;
@@ -6134,9 +6148,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	if (stat(path, &st) != -1) {
 		/* File exists, we'll append the data to it */
 		if (!fi->use_swarming && (fi->done != d->skip)) {
-			g_message("File '%s' changed size (now %" PRIu64
-				", but was %" PRIu64 ")",
-					fi->file_name, (guint64) fi->done, (guint64) d->skip);
+			g_message("File '%s' changed size (now %s, but was %s)",
+				fi->file_name, uint64_to_string(fi->done),
+				uint64_to_string2(d->skip));
 			download_queue_delay(d, download_retry_stopped_delay,
 				_("Stopped (Output file size changed)"));
 			G_FREE_NULL(path);
@@ -6646,16 +6660,16 @@ picked:
 			d->range_end = d->skip + d->size;
 
 			rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
-				"Range: bytes=%" PRIu64 "-%" PRIu64 "\r\n",
-				(guint64) start, (guint64) d->range_end - 1);
+				"Range: bytes=%s-%s\r\n",
+				uint64_to_string(start), uint64_to_string2(d->range_end - 1));
 		}
 	} else {
 		/* Request only a lower-bounded range, if needed */
 
 		if (d->skip)
 			rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
-				"Range: bytes=%" PRIu64 "-\r\n",
-				(guint64) d->skip - d->overlap_size);
+				"Range: bytes=%s-\r\n",
+				uint64_to_string(d->skip - d->overlap_size));
 	}
 
 	g_assert(rw + 3U < sizeof(dl_tmp));		/* Should not have filled yet! */
@@ -7152,12 +7166,12 @@ download_store(void)
 
 		fprintf(out,
 			"%s\n" /* File name */
-			"%" PRIu64 ", %u%s%s, %s%s%s\n" /* size,index,ip:port[,hostname] */
+			"%s, %u%s%s, %s%s%s\n" /* size,index,ip:port[,hostname] */
 			"%s\n" /* SHA1 */
 			"%s\n" /* PARQ id */
 			"\n\n",
 			d->escaped_name,
-			(guint64) d->file_info->size, d->record_index,
+			uint64_to_string(d->file_info->size), d->record_index,
 			guid == NULL ? "" : ":", guid == NULL ? "" : guid_hex_str(guid),
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			hostname == NULL ? "" : ", ", hostname == NULL ? "" : hostname,
