@@ -136,7 +136,6 @@ enum dl_file_info_field {
 
 #define FI_STORE_DELAY		10	/* Max delay (secs) for flushing fileinfo */
 #define FI_TRAILER_INT		6	/* Amount of guint32 that make up the trailer */
-#define FI_TRAILER_SIZE		(FI_TRAILER_INT * sizeof(guint32))
 
 /*
  * The swarming trailer is built within a memory buffer first, to avoid having
@@ -509,8 +508,8 @@ file_info_fd_store_binary(struct dl_file_info *fi, int fd, gboolean force)
 
 	if (fi->size != (guint64) lseek(fd, fi->size, SEEK_SET)) {
 		g_warning("file_info_store_binary(): "
-			"lseek() to offset %" PRIu64 " in \"%s\" failed: %s",
-			(guint64) fi->size, fi->file_name, g_strerror(errno));
+			"lseek() to offset %s in \"%s\" failed: %s",
+			uint64_to_string(fi->size), fi->file_name, g_strerror(errno));
 		return;
 	}
 
@@ -547,13 +546,13 @@ file_info_fd_store_binary(struct dl_file_info *fi, int fd, gboolean force)
 		struct dl_file_chunk *fc = fclist->data;
 		guint32 from_hi = (guint64) fc->from >> 32;
 		guint32 to_hi = (guint64) fc->to >> 32;
-		guint32 chunk[] = {
-			htonl(from_hi),
-			htonl((guint32) fc->from),
-			htonl(to_hi),
-			htonl((guint32) fc->to),
-			htonl(fc->status)
-		};
+		guint32 chunk[5];
+
+		chunk[0] = htonl(from_hi),
+		chunk[1] = htonl((guint32) fc->from),
+		chunk[2] = htonl(to_hi),
+		chunk[3] = htonl((guint32) fc->to),
+		chunk[4] = htonl(fc->status);
 		FIELD_ADD(FILE_INFO_FIELD_CHUNK, sizeof(chunk), chunk);
 	}
 
@@ -654,11 +653,13 @@ file_info_strip_binary_from_file(struct dl_file_info *fi, const gchar *file)
 	}
 
 	if (dfi->size != fi->size || dfi->done != fi->done) {
+		gchar buf[64];
+
+		gm_snprintf(buf, sizeof buf, "%s/%s",
+			uint64_to_string(dfi->done), uint64_to_string2(dfi->size));
 		g_warning("could not chop fileinfo trailer off \"%s\": file was "
-			"different than expected (%" PRIu64 "/%" PRIu64 " bytes done "
-			"instead of %" PRIu64 "/%" PRIu64 ")",
-			file, (guint64) dfi->done, (guint64) dfi->size,
-			(guint64) fi->done, (guint64) fi->size);
+			"different than expected (%s bytes done instead of %s/%s)",
+			file, buf, uint64_to_string(fi->done), uint64_to_string2(fi->size));
 	} else if (-1 == truncate(file, fi->size))
 		g_warning("could not chop fileinfo trailer off \"%s\": %s",
 			file, g_strerror(errno));
@@ -1247,8 +1248,8 @@ G_STMT_START {				\
 	t64 = trailer_is_64bit(&trailer);
 
 	if (trailer.filesize != (guint64) lseek(fd, trailer.filesize, SEEK_SET)) {
-		g_warning("seek to position %" PRIu64 " within \"%s\" failed: %s",
-			(guint64) trailer.filesize, pathname, g_strerror(errno));
+		g_warning("seek to position %s within \"%s\" failed: %s",
+			uint64_to_string(trailer.filesize), pathname, g_strerror(errno));
 		goto eof;
 	}
 
@@ -1258,8 +1259,8 @@ G_STMT_START {				\
 
 	if (-1 == tbuf_read(fd, trailer.length)) {
 		g_warning("file_info_retrieve_binary(): "
-			"unable to read whole trailer (%" PRIu64 " bytes) from \"%s\": %s",
-			(guint64) trailer.filesize, pathname, g_strerror(errno));
+			"unable to read whole trailer %s bytes) from \"%s\": %s",
+			uint64_to_string(trailer.filesize), pathname, g_strerror(errno));
 		goto eof;
 	}
 
@@ -1270,7 +1271,7 @@ G_STMT_START {				\
 		goto eof;
 	}
 
-	fi = walloc0(sizeof(struct dl_file_info));
+	fi = walloc0(sizeof *fi);
 
 	fi->file_name = atom_str_get(file);
 	fi->path = atom_str_get(path);
@@ -1452,8 +1453,8 @@ G_STMT_START {				\
 
 	if (dbg > 3)
 		g_message("FILEINFO: "
-			"good trailer info (v%u, %" PRIu64 "bytes) in \"%s\"",
-			version, (guint64) trailer.length, pathname);
+			"good trailer info (v%u, %s bytes) in \"%s\"",
+			version, uint64_to_string(trailer.length), pathname);
 
 	G_FREE_NULL(pathname);
 	return fi;
@@ -1531,27 +1532,21 @@ file_info_store_one(FILE *f, struct dl_file_info *fi)
 		fprintf(f, "SHA1 %s\n", sha1_base32(fi->sha1));
 	if (fi->cha1)
 		fprintf(f, "CHA1 %s\n", sha1_base32(fi->cha1));
-	fprintf(f,
-		"SIZE %" PRIu64 "\n"
-		"FSKN %d\n"
-		"DONE %" PRIu64 "\n"
-		"TIME %" PRIu64 "\n"
-		"CTIM %" PRIu64 "\n"
-		"NTIM %" PRIu64 "\n"
-		"SWRM %d\n",
-		(guint64) fi->size,
-		fi->file_size_known ? 1 : 0,
-		(guint64) fi->done,
-		(guint64) fi->stamp,
-		(guint64) fi->ctime,
-		(guint64) fi->ntime,
-		fi->use_swarming ? 1 : 0);
+	
+	fprintf(f, "SIZE %s\n", uint64_to_string(fi->size));
+	fprintf(f, "FSKN %d\n", fi->file_size_known ? 1 : 0);
+	fprintf(f, "DONE %s\n", uint64_to_string(fi->done));
+	fprintf(f, "TIME %s\n", uint64_to_string(fi->stamp));
+	fprintf(f, "CTIM %s\n", uint64_to_string(fi->ctime));
+	fprintf(f, "NTIM %s\n", uint64_to_string(fi->ntime));
+	fprintf(f, "SWRM %d\n", fi->use_swarming ? 1 : 0);
 
 	g_assert(file_info_check_chunklist(fi));
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		fc = fclist->data;
-		fprintf(f, "CHNK %" PRIu64 " %" PRIu64 " %" PRIu64 "\n",
-			(guint64) fc->from, (guint64) fc->to, (guint64) fc->status);
+		fprintf(f, "CHNK %s %s %u\n",
+			uint64_to_string(fc->from), uint64_to_string2(fc->to),
+			(guint) fc->status);
 	}
 	fprintf(f, "\n");
 }
@@ -1787,8 +1782,9 @@ file_info_hash_insert(struct dl_file_info *fi)
 
 	if (dbg > 4) {
 		printf("FILEINFO insert 0x%p \"%s\" "
-			"(%" PRIu64 "/%" PRIu64 " bytes done) sha1=%s\n",
-			fi, fi->file_name, (guint64) fi->done, (guint64) fi->size,
+			"(%s/%s bytes done) sha1=%s\n",
+			cast_to_gconstpointer(fi), fi->file_name,
+			uint64_to_string(fi->done), uint64_to_string2(fi->size),
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
 		fflush(stdout);
 	}
@@ -1895,8 +1891,9 @@ file_info_hash_remove(struct dl_file_info *fi)
 
 	if (dbg > 4) {
 		g_message("FILEINFO remove 0x%lx \"%s\" "
-			"(%" PRIu64 "/%" PRIu64 " bytes done) sha1=%s\n",
-			(gulong) fi, fi->file_name, (guint64) fi->done, (guint64) fi->size,
+			"(%s/%s bytes done) sha1=%s\n",
+			(gulong) fi, fi->file_name,
+			uint64_to_string(fi->done), uint64_to_string2(fi->size),
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
 	}
 
@@ -2010,9 +2007,9 @@ file_info_unlink(struct dl_file_info *fi)
 				fi->path, G_DIR_SEPARATOR_S, fi->file_name,
 				NULL == path ?  "Out of memory" : g_strerror(errno));
 	} else {
-		g_warning("unlinked \"%s\" (%" PRIu64 "/%" PRIu64
-			" bytes or %d%% done, %s SHA1%s%s)",
-			fi->file_name, (guint64) fi->done, (guint64) fi->size,
+		g_warning("unlinked \"%s\" (%s/%s bytes or %d%% done, %s SHA1%s%s)",
+			fi->file_name,
+			uint64_to_string(fi->done), uint64_to_string2(fi->size),
 			(gint) (fi->done * 100 / (fi->size == 0 ? 1 : fi->size)),
 			fi->sha1 ? "with" : "no",
 			fi->sha1 ? ": " : "",
@@ -2094,21 +2091,26 @@ file_info_got_sha1(struct dl_file_info *fi, const gchar *sha1)
 	 * XXX		--RAM, 05/09/2002
 	 */
 
-	if (dbg > 3)
-		g_message("CONFLICT found same SHA1 %s in "
-			"\"%s\" (%" PRIu64 "/%" PRIu64 " bytes done) and \"%s\" "
-			"(%" PRIu64 "/%" PRIu64 " bytes done)\n",
-			sha1_base32(sha1),
-			xfi->file_name, (guint64) xfi->done, (guint64) xfi->size,
-			fi->file_name, (guint64) fi->done, (guint64) fi->size);
+	if (dbg > 3) {
+		gchar buf[64];
+
+		gm_snprintf(buf, sizeof buf, "%s/%s",
+			uint64_to_string(xfi->done), uint64_to_string2(xfi->size));
+		g_message("CONFLICT found same SHA1 %s in \"%s\" "
+			"(%s bytes done) and \"%s\" (%s/%s bytes done)\n",
+			sha1_base32(sha1), xfi->file_name, buf, fi->file_name,
+			uint64_to_string(fi->done), uint64_to_string2(fi->size));
+	}
 
 	if (fi->done && xfi->done) {
-		g_warning("found same SHA1 %s in "
-			"\"%s\" (%" PRIu64 "/%" PRIu64 " bytes done) and \"%s\" "
-			"(%" PRIu64 "/%" PRIu64 " bytes done) -- aborting last one",
-			sha1_base32(sha1),
-			xfi->file_name, (guint64) xfi->done, (guint64) xfi->size,
-			fi->file_name, (guint64) fi->done, (guint64) fi->size);
+		gchar buf[64];
+
+		gm_snprintf(buf, sizeof buf, "%s/%s",
+			uint64_to_string(xfi->done), uint64_to_string2(xfi->size));
+		g_warning("found same SHA1 %s in \"%s\" (%s bytes done) and \"%s\" "
+			"(%s/%s bytes done) -- aborting last one",
+			sha1_base32(sha1), xfi->file_name, buf, fi->file_name,
+			uint64_to_string(fi->done), uint64_to_string2(fi->size));
 		return FALSE;
 	}
 
@@ -2343,7 +2345,7 @@ file_info_retrieve(void)
 
 					g_warning("no CHNK info for \"%s\" -- assuming empty file",
 						fi->file_name);
-					fc = walloc0(sizeof(struct dl_file_chunk));
+					fc = walloc0(sizeof *fc);
 					fc->from = 0;
 					fc->to = fi->size;
 					fc->status = DL_CHUNK_EMPTY;
@@ -2420,8 +2422,9 @@ file_info_retrieve(void)
 					file_info_merge_adjacent(fi);		/* Compute fi->done */
 					if (fi->done > 0) {
 						g_warning("discarding cached metainfo for \"%s\": "
-							"file had %" PRIu64 " bytes downloaded "
-							"but is now gone!", pathname, (guint64) fi->done);
+							"file had %s bytes downloaded "
+							"but is now gone!", pathname,
+							uint64_to_string(fi->done));
 						G_FREE_NULL(pathname);
 						fi_free(fi);
 						fi = NULL;
@@ -2452,9 +2455,9 @@ file_info_retrieve(void)
 
 			if (dfi != NULL) {
 				g_warning("found DUPLICATE entry for \"%s\" "
-					"(%" PRIu64 " bytes) with \"%s\" (%" PRIu64 " bytes)",
-					fi->file_name, (guint64) fi->size,
-					dfi->file_name, (guint64) dfi->size);
+					"(%s bytes) with \"%s\" (%s bytes)",
+					fi->file_name, uint64_to_string(fi->size),
+					dfi->file_name, uint64_to_string2(dfi->size));
 				fi_free(fi);
 				fi = NULL;
 				continue;
@@ -2494,7 +2497,7 @@ file_info_retrieve(void)
 		}
 
 		if (!fi) {
-			fi = walloc0(sizeof(struct dl_file_info));
+			fi = walloc0(sizeof *fi);
 			fi->refcount = 0;
 			fi->seen_on_network = NULL;
 			fi->file_size_known = TRUE;		/* Unless stated otherwise below */
@@ -2653,7 +2656,7 @@ file_info_retrieve(void)
 				if (!damaged) {
 					struct dl_file_chunk *fc, *prev;
 
-					fc = walloc0(sizeof(struct dl_file_chunk));
+					fc = walloc0(sizeof *fc);
 					fc->from = from;
 					fc->to = to;
 					if (status == DL_CHUNK_BUSY)
@@ -2661,9 +2664,9 @@ file_info_retrieve(void)
 					fc->status = status;
 					prev = fi->chunklist
 						? g_slist_last(fi->chunklist)->data : NULL;
-					if (prev && prev->to != fc->from) {
-						g_warning("Chunklist is inconsistent "
-							"(fi->size=%" PRIu64 ")", (guint64) fi->size);
+					if (fc->from != (prev ? prev->to : 0)) {
+						g_warning("Chunklist is inconsistent (fi->size=%s)",
+							uint64_to_string(fi->size));
 						damaged = TRUE;
 					} else {
 						fi->chunklist = g_slist_append(fi->chunklist, fc);
@@ -2819,9 +2822,10 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
 		struct dl_file_chunk *fc;
 
 		g_warning("file_info_create(): "
-			"assuming file \"%s\" is complete up to %" PRIu64 " bytes",
-			pathname, (guint64) st.st_size);
-		fc = walloc0(sizeof(struct dl_file_chunk));
+			"assuming file \"%s\" is complete up to %s bytes",
+			pathname, uint64_to_string(st.st_size));
+
+		fc = walloc0(sizeof *fc);
 		fc->from = 0;
 		fi->size = fc->to = st.st_size;
 		fc->status = DL_CHUNK_DONE;
@@ -2874,10 +2878,9 @@ file_info_get(gchar *file, const gchar *path, filesize_t size, gchar *sha1,
 			g_assert(fi->sha1);
 			g_assert(sha1);
 
-			g_warning("file \"%s\" (SHA1 %s) was %" PRIu64
-				" bytes, resizing to %" PRIu64,
+			g_warning("file \"%s\" (SHA1 %s) was %s bytes, resizing to %s",
 				fi->file_name, sha1_base32(fi->sha1),
-				(guint64) fi->size, (guint64) size);
+				uint64_to_string(fi->size), uint64_to_string2(size));
 
 			file_info_hash_remove(fi);
 			fi_resize(fi, size);
@@ -2950,9 +2953,8 @@ file_info_get(gchar *file, const gchar *path, filesize_t size, gchar *sha1,
 			 * NB: if we have a SHA1, we know it's matching at this point.
 			 */
 
-			g_warning("found existing file \"%s\" size=%" PRIu64
-				", increasing to %" PRIu64,
-				outname, (guint64) fi->size, (guint64) size);
+			g_warning("found existing file \"%s\" size=%s, increasing to %s",
+				outname, uint64_to_string(fi->size), uint64_to_string2(size));
 
 			fi_resize(fi, size);
 		}
@@ -3167,9 +3169,10 @@ again:
 	/* I think the algorithm is safe now, but hey... */
 	if (++againcount > 10) {
 		g_error("Eek! Internal error! "
-			"file_info_update(%" PRIu64 ", %" PRIu64 ", %d) "
+			"file_info_update(%s, %s, %d) "
 			"is looping for \"%s\"! Man battle stations!",
-			(guint64) from, (guint64) to, status, d->file_name);
+			uint64_to_string(from), uint64_to_string2(to),
+			status, d->file_name);
 		return;
 	}
 
@@ -3318,13 +3321,14 @@ again:
 	if (!found) {
 		/* Should never happen. */
 		g_warning("file_info_update(): "
-			"(%s) Didn't find matching chunk for "
-			"<%" PRIu64 "-%" PRIu64 "> (%u)",
-			fi->file_name, (guint64) from, (guint64) to, status);
+			"(%s) Didn't find matching chunk for <%s-%s> (%u)",
+			fi->file_name, uint64_to_string(from),
+			uint64_to_string2(to), status);
+		
 		for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 			fc = fclist->data;
-			g_warning("... %" PRIu64 " %" PRIu64 " %u",
-					(guint64) fc->from, (guint64) fc->to, fc->status);
+			g_warning("... %s %s %u", uint64_to_string(fc->from),
+				uint64_to_string2(fc->to), fc->status);
 		}
 	}
 
@@ -3684,8 +3688,9 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 #endif /* 0 */
 
 	if (fi->size < d->file_size) {
-		g_warning("fi->size=%" PRIu64 " < d->file_size=%" PRIu64 " for \"%s\"",
-			(guint64) fi->size, (guint64) d->file_size, fi->file_name);
+		g_warning("fi->size=%s < d->file_size=%s for \"%s\"",
+			uint64_to_string(fi->size), uint64_to_string2(d->file_size),
+			fi->file_name);
 	}
 
 	g_assert(fi->lifecount > 0);
@@ -4473,8 +4478,9 @@ file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 		if (fc->status != DL_CHUNK_DONE)
 			continue;
 
-		rw = gm_snprintf(range, sizeof(range), "%s%" PRIu64 "-%" PRIu64,
-			is_first ? "bytes " : "", (guint64) fc->from, (guint64) fc->to - 1);
+		rw = gm_snprintf(range, sizeof(range), "%s%s-%s",
+			is_first ? "bytes " : "",
+			uint64_to_string(fc->from), uint64_to_string2(fc->to - 1));
 
 		if (!header_fmt_value_fits(fmt, rw, maxfmt))
 			break;			/* Will not fit, cannot emit all of it */
@@ -4534,8 +4540,9 @@ file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 		g_assert(j >= 0 && j < nleft);
 		g_assert(fc->status == DL_CHUNK_DONE);
 
-		rw = gm_snprintf(range, sizeof(range), "%s%" PRIu64 "-%" PRIu64,
-			is_first ? "bytes " : "", (guint64) fc->from, (guint64) fc->to - 1);
+		rw = gm_snprintf(range, sizeof(range), "%s%s-%s",
+			is_first ? "bytes " : "",
+			uint64_to_string(fc->from), uint64_to_string2(fc->to - 1));
 
 		len = header_fmt_length(fmt);
 
