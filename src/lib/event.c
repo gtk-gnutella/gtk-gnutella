@@ -30,6 +30,7 @@
 RCSID("$Id$");
 
 #include "event.h"
+#include "misc.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -79,39 +80,40 @@ void
 event_add_subscriber(struct event *evt, GCallback cb,
 	enum frequency_type t, guint32 interval)
 {
-    struct subscriber * s;
+    struct subscriber *s;
+	GSList *sl;
 
     g_assert(evt != NULL);
     g_assert(cb != NULL);
-    g_assert(g_slist_find(evt->subscribers, (gpointer) cb) == NULL);
+
+	for (sl = evt->subscribers; sl; sl = g_slist_next(sl)) {
+		s = sl->data;
+		g_assert(s->cb != cb);
+	}
 
     s = subscriber_new(cb, t, interval);
-
     evt->subscribers = g_slist_append(evt->subscribers, s);
-}
-
-static gint
-cmp_subscriber_callback(struct subscriber *s, GCallback cb)
-{
-    return (s->cb == cb) ? 0 : 1;
 }
 
 void
 event_remove_subscriber(struct event *evt, GCallback cb)
 {
     GSList *sl;
-	struct subscriber *s;
+	struct subscriber *s = NULL;
 
     g_assert(evt != NULL);
     g_assert(cb != NULL);
 
-    sl = g_slist_find_custom(evt->subscribers, (gpointer) cb,
-        (GCompareFunc) cmp_subscriber_callback);
+	for (sl = evt->subscribers; sl; sl = g_slist_next(sl)) {
+			s = sl->data;
+			if (s->cb == cb)
+				break;
+	}
 
-    g_assert(sl != NULL);
-    g_assert(sl->data != NULL);
+	g_assert(sl != NULL);
+    g_assert(s != NULL);
+	g_assert(s->cb == cb);
 
-	s = sl->data;
     evt->subscribers = g_slist_remove(evt->subscribers, s);
 	subscriber_destroy(s);
 }
