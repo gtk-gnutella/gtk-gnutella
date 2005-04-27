@@ -1589,7 +1589,7 @@ unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	sep = sep[1] != '\0' ? G_DIR_SEPARATOR_S : "";
 
 	/* Use extra_bytes so we can easily append a few chars later */
-	filename = GM_STRCONCAT_NULL(path, sep, file, ext, extra_bytes);
+	filename = g_strconcat(path, sep, file, ext, extra_bytes, NULL);
 	size = strlen(filename);
 	g_assert(size > sizeof extra_bytes);
 	len = size - (sizeof extra_bytes - 1);
@@ -1808,7 +1808,7 @@ make_pathname(const gchar *dir, const gchar *file)
 	else
 		 sep = G_DIR_SEPARATOR_S;
 
-	return GM_STRCONCAT_NULL(dir, sep, file);
+	return g_strconcat(dir, sep, file, NULL);
 }
 
 /**
@@ -1914,6 +1914,48 @@ filepath_exists(const gchar *dir, const gchar *file)
 	G_FREE_NULL(path);
 
 	return exists;
+}
+
+gchar *
+uint64_to_string_buf(gchar *dst, size_t size, guint64 v)
+{
+	g_assert(dst != NULL);
+	g_assert(size <= INT_MAX);
+
+  	if (size > 0) {
+		gchar buf[22], *end = &buf[sizeof buf], *p = buf, *q;
+  
+		do {
+			*p++ = v % 10 + '0';
+			if (v < 10)
+				break;
+			v /= 10;
+		} while (p != end);
+
+		end = &dst[size - 1];
+		for (q = dst; q != end && p != buf; q++) {
+			*q = *--p;
+		}
+		*q = '\0';
+	}
+
+	return dst;
+}
+
+const gchar *
+uint64_to_string(guint64 v)
+{
+	static gchar buf[22];
+
+	return uint64_to_string_buf(buf, sizeof buf, v);
+}
+
+const gchar *
+uint64_to_string2(guint64 v)
+{
+	static gchar buf[22];
+
+	return uint64_to_string_buf(buf, sizeof buf, v);
 }
 
 /**
