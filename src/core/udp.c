@@ -230,5 +230,4 @@ udp_send_ping(guint32 ip, guint16 port)
 	udp_send_msg(n, m, size);
 }
 
-/* vi: set ts=4: */
-
+/* vi: set ts=4 sw=4 cindent: */
