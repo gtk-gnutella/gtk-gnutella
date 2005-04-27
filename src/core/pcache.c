@@ -99,7 +99,7 @@ send_ping(struct gnutella_node *n, guint8 ttl)
 	struct gnutella_msg_init *m;
 	guint32 size;
 
-
+	STATIC_ASSERT(23 == sizeof *m);	
 	m = build_ping_msg(NULL, ttl, FALSE, &size);
 
 	if (n) {
@@ -107,7 +107,7 @@ send_ping(struct gnutella_node *n, guint8 ttl)
 
 		if (NODE_IS_WRITABLE(n)) {
 			n->n_ping_sent++;
-			gmsg_sendto_one_ggep(n, (gchar *) m, size, sizeof(*m));
+			gmsg_sendto_one_ggep(n, m, size, sizeof *m);
 		}
 	} else {
 		const GSList *sl_nodes = node_all_nodes();
@@ -125,7 +125,7 @@ send_ping(struct gnutella_node *n, guint8 ttl)
 			n->n_ping_sent++;
 		}
 
-		gmsg_sendto_all_ggep(sl_nodes, (gchar *) m, size, sizeof(*m));
+		gmsg_sendto_all_ggep(sl_nodes, m, size, sizeof *m);
 	}
 }
 
@@ -143,15 +143,19 @@ send_ping(struct gnutella_node *n, guint8 ttl)
 struct gnutella_msg_init *
 build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 {
-	static gchar buf[256];
-	struct gnutella_msg_init *m = (struct gnutella_msg_init *) buf;
+	static union {
+		struct gnutella_msg_init s;
+		gchar buf[256];
+	} msg_init;
+	struct gnutella_msg_init *m = &msg_init.s;
+	guchar *ggep;
 	ggep_stream_t gs;
 	guint32 sz;
 
 	g_assert(ttl);
-	STATIC_ASSERT(sizeof(*m) <= sizeof(buf));
-	STATIC_ASSERT(
-		G_STRUCT_OFFSET(struct gnutella_msg_init, ggep) == sizeof(*m));
+	STATIC_ASSERT(sizeof *m <= sizeof msg_init.buf);
+	STATIC_ASSERT(23 == sizeof *m);
+	ggep = cast_to_gpointer(&m[1]);
 
 	if (muid)
 		memcpy(&m->header, muid, 16);
@@ -164,7 +168,7 @@ build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 
 	sz = 0;			/* Payload size if no extensions */
 
-	ggep_stream_init(&gs, &m->ggep, sizeof(buf) - sizeof(*m));
+	ggep_stream_init(&gs, ggep, sizeof msg_init.buf - sizeof *m);
 
 	/*
 	 * If we're not sending an "alive" ping (TTL=1), then tell them we
@@ -176,7 +180,7 @@ build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 		gchar spp;
 
 		spp = (current_peermode == NODE_P_LEAF) ? 0x0 : 0x1;
-		ggep_stream_pack(&gs, "SCP", &spp, sizeof(spp), 0);
+		ggep_stream_pack(&gs, "SCP", &spp, sizeof spp, 0);
 	}
 
 	/*
@@ -189,7 +193,7 @@ build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 		gboolean ok;
 
 		ok = ggep_stream_begin(&gs, "VC", 0) &&
-		ggep_stream_write(&gs, meta->vendor, sizeof(meta->vendor)) &&
+		ggep_stream_write(&gs, meta->vendor, sizeof meta->vendor) &&
 		ggep_stream_write(&gs, &meta->version_ua, 1) &&
 		ggep_stream_end(&gs);
 	}
@@ -215,15 +219,17 @@ build_pong_msg(guint32 sender_ip, guint16 sender_port,
 	struct pong_info *info, pong_meta_t *meta, enum ping_flag flags,
 	guint32 *size)
 {
-	static gchar buf[1024];
-	struct gnutella_msg_init_response *pong =
-		(struct gnutella_msg_init_response *) buf;
+	static union {
+		struct gnutella_msg_init_response s;
+		gchar buf[1024];
+	} msg_pong;
+	struct gnutella_msg_init_response *pong = &msg_pong.s;
 	guint32 sz;
+	guchar *ggep;
 	ggep_stream_t gs;
 
-	STATIC_ASSERT(
-		G_STRUCT_OFFSET(struct gnutella_msg_init_response, ggep)
-		== sizeof(*pong));
+	STATIC_ASSERT(37 == sizeof *pong);
+	ggep = cast_to_gpointer(&pong[1]);
 
 	pong->header.function = GTA_MSG_INIT_RESPONSE;
 	pong->header.hops = hops;
@@ -235,13 +241,13 @@ build_pong_msg(guint32 sender_ip, guint16 sender_port,
 	WRITE_GUINT32_LE(info->files_count, pong->response.files_count);
 	WRITE_GUINT32_LE(info->kbytes_count, pong->response.kbytes_count);
 
-	sz = sizeof(struct gnutella_init_response);
+	sz = sizeof *pong;
 
 	/*
 	 * Add GGEP meta-data if we have some to propagate.
 	 */
 
-	ggep_stream_init(&gs, &pong->ggep, sizeof(buf) - sizeof(*pong));
+	ggep_stream_init(&gs, ggep, sizeof msg_pong.buf - sizeof *pong);
 
 	/*
 	 * First, start with metadata about our host.
@@ -252,13 +258,13 @@ build_pong_msg(guint32 sender_ip, guint16 sender_port,
 			gboolean ok;
 
 			ok = ggep_stream_begin(&gs, "VC", 0) &&
-			ggep_stream_write(&gs, meta->vendor, sizeof(meta->vendor)) &&
+			ggep_stream_write(&gs, meta->vendor, sizeof meta->vendor) &&
 			ggep_stream_write(&gs, &meta->version_ua, 1) &&
 			ggep_stream_end(&gs);
 		}
 
 		if (meta->flags & PONG_META_HAS_GUE)	/* GUESS support */
-			ggep_stream_pack(&gs, "GUE", &meta->guess, 1, 0);
+			ggep_stream_pack(&gs, "GUE", cast_to_gpointer(&meta->guess), 1, 0);
 
 		if (meta->flags & PONG_META_HAS_UP) {	/* Ultrapeer info */
 			gboolean ok;
@@ -284,7 +290,7 @@ build_pong_msg(guint32 sender_ip, guint16 sender_port,
 		}
 
 		if (meta->flags & PONG_META_HAS_DU) {	/* Daily average uptime */
-			gchar uptime[sizeof(meta->daily_uptime)];
+			gchar uptime[sizeof meta->daily_uptime];
 			gint len;
 			guint32 value = MIN(meta->daily_uptime, 86400);
 
@@ -328,7 +334,7 @@ build_pong_msg(guint32 sender_ip, guint16 sender_port,
 			for (i = 0; ok && i < hcount; i++) {
 				WRITE_GUINT32_BE(host[i].ip, &addr[0]);
 				WRITE_GUINT16_LE(host[i].port, &addr[4]);
-				ok = ggep_stream_write(&gs, addr, sizeof(addr));
+				ok = ggep_stream_write(&gs, addr, sizeof addr);
 			}
 
 			ok = ok && ggep_stream_end(&gs);
@@ -350,7 +356,7 @@ build_pong_msg(guint32 sender_ip, guint16 sender_port,
 	WRITE_GUINT32_LE(sz, pong->header.size);
 
 	if (size)
-		*size = sz + GTA_HEADER_SIZE;
+		*size = sz;
 
 	return pong;
 }
@@ -383,14 +389,14 @@ send_pong(
 			control ? NULL : meta, flags, &size);
 	n->n_pong_sent++;
 
-	g_assert(!control || size == sizeof(*r));	/* control => no extensions */
+	g_assert(!control || size == sizeof *r);	/* control => no extensions */
 
 	if (NODE_IS_UDP(n))
 		udp_send_msg(n, r, size);
 	else if (control)
-		gmsg_ctrl_sendto_one(n, (gchar *) r, sizeof(*r));
+		gmsg_ctrl_sendto_one(n, r, sizeof *r);
 	else
-		gmsg_sendto_one_ggep(n, (gchar *) r, size, sizeof(*r));
+		gmsg_sendto_one_ggep(n, r, size, sizeof *r);
 }
 
 /**
@@ -713,15 +719,16 @@ pcache_init(void)
 	 * Derive the locale if we can.
 	 */
 
-#define GET_LANG(x) do {			\
-	if (lang == NULL) {				\
-		lang = getenv(#x);			\
-		if (lang != NULL) {			\
+#define GET_LANG(x)										\
+G_STMT_START {											\
+	if (lang == NULL) {									\
+		lang = getenv(STRINGIFY(x));					\
+		if (lang != NULL) {								\
 			if (strlen(lang) >= 3 && lang[2] != '_')	\
-				lang = NULL;		\
-		}							\
-	}								\
-} while (0)
+				lang = NULL;							\
+		}												\
+	}													\
+} G_STMT_END
 
 	GET_LANG(LANG);
 	GET_LANG(LC_CTYPE);				/* E.g. "fr_FR.iso-8859-1" */
@@ -887,21 +894,21 @@ add_recent_pong(host_type_t type, struct cached_pong *cp)
 
 	if (rec->recent_pong_count == RECENT_PING_SIZE) {		/* Full */
 		GList *lnk = g_list_last(rec->recent_pongs);
-		struct cached_pong *cp = (struct cached_pong *) lnk->data;
+		struct cached_pong *p = (struct cached_pong *) lnk->data;
 
 		rec->recent_pongs = g_list_remove_link(rec->recent_pongs, lnk);
-		g_hash_table_remove(rec->ht_recent_pongs, cp);
+		g_hash_table_remove(rec->ht_recent_pongs, p);
 
 		if (lnk == rec->last_returned_pong)
 			rec->last_returned_pong = g_list_previous(rec->last_returned_pong);
 
-		free_cached_pong(cp);
+		free_cached_pong(p);
 		g_list_free_1(lnk);
 	} else
 		rec->recent_pong_count++;
 
 	rec->recent_pongs = g_list_prepend(rec->recent_pongs, cp);
-	g_hash_table_insert(rec->ht_recent_pongs, cp, (gpointer) 1);
+	g_hash_table_insert(rec->ht_recent_pongs, cp, GUINT_TO_POINTER(1));
 	cp->refcount++;		/* We don't refcount insertion in the hash table */
 }
 
@@ -1649,7 +1656,7 @@ pcache_udp_ping_received(struct gnutella_node *n)
 	 * noticed that we got an unsolicited UDP message.
 	 */
 
-	if (guid_eq(guid, n->header.muid)) {
+	if (guid_eq(servent_guid, n->header.muid)) {
 		if (udp_debug > 19)
 			printf("UDP got unsolicited PING matching our GUID!\n");
 		return;
