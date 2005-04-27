@@ -341,12 +341,9 @@ uint64_len(gconstpointer unused_v)
 static const gchar *
 uint64_str(gconstpointer v)
 {
-	static gchar fmt[64];
-
-	gm_snprintf(fmt, sizeof(fmt), "%" PRId64 "/%" PRIu64,
-		*(const gint64 *) v, *(const guint64 *) v);
-
-	return fmt;
+	static gchar buf[22];
+	
+	return uint64_to_string_buf(buf, sizeof buf, *(const guint64 *) v);
 }
 
 /**
