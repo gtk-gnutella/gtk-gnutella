@@ -45,21 +45,31 @@
 
 typedef GSList *listeners_t;
 
-#define LISTENER_ADD(signal, callback)                                 \
-    g_assert(callback != NULL);                                        \
-    signal##_listeners = g_slist_append(signal##_listeners, callback);
+#define LISTENER_ADD(signal, callback) 										\
+G_STMT_START {																\
+	gpointer p = cast_func_to_gpointer((GFunc) callback);					\
+	g_assert(NULL != p);				 									\
+	CAT2(signal,_listeners) = g_slist_append(CAT2(signal,_listeners), p);	\
+} G_STMT_END
 
-#define LISTENER_REMOVE(signal, callback)                              \
-    g_assert(callback != NULL);                                        \
-    signal##_listeners = g_slist_remove(signal##_listeners, callback);
+#define LISTENER_REMOVE(signal, callback)									\
+G_STMT_START {																\
+	gpointer p = cast_func_to_gpointer((GFunc) callback);					\
+	g_assert(NULL != p);													\
+	CAT2(signal,_listeners) = g_slist_remove(CAT2(signal,_listeners), p);	\
+} G_STMT_END
 
-#define LISTENER_EMIT(signal, ...)                                     \
-    {                                                                  \
-        GSList *l;                                                     \
-        for (l = signal##_listeners; l != NULL; l = g_slist_next(l)) { \
-            signal##_listener_t fn = (signal##_listener_t) l->data;    \
-            (*fn)(__VA_ARGS__);                                        \
-        }                                                              \
-    }
+#define LISTENER_EMIT(signal, ...)											\
+G_STMT_START {																\
+	GSList *sl;													 			\
+	for (sl = CAT2(signal,_listeners); sl != NULL; sl = g_slist_next(sl)) { \
+		CAT2(signal,_listener_t) fn;										\
+		g_assert(NULL != sl->data);	  										\
+		fn = (CAT2(signal,_listener_t)) cast_gpointer_to_func(sl->data);	\
+		fn(__VA_ARGS__);													\
+	}																		\
+} G_STMT_END
 
 #endif /* _listener_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */
