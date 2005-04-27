@@ -61,8 +61,6 @@ unsigned long gm_atoul(const char *str, char **endptr, int *errorcode);
 gchar *gm_sanitize_filename(const gchar *filename,
 	gboolean no_spaces, gboolean no_evil);
 
-#define GM_STRCONCAT_NULL(x, ...) g_strconcat(x, ## __VA_ARGS__, NULL)
-
 /*
  * The G_*LIST_FOREACH_* macros are supposed to be used with ``func'' being
  * a function declared ``static inline'' whereas the protoype MUST match
