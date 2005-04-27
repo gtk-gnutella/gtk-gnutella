@@ -80,7 +80,41 @@ deconstify_guint32(const guint32 *p)
 	return (guint32 *) p;
 }
 
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gconstpointer
+cast_to_gconstpointer(gconstpointer p)
+{
+	return p; 
+}
 
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gpointer
+cast_to_gpointer(gpointer p)
+{
+	return p; 
+}
+
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gpointer
+cast_func_to_gpointer(GFunc f)
+{
+	union {
+		GFunc f;
+		gpointer p;
+	} u;
+
+	u.f = f;
+	return u.p;
+}
+
+static inline G_GNUC_CONST WARN_UNUSED_RESULT GFunc
+cast_gpointer_to_func(gconstpointer p)
+{
+	union {
+		GFunc f;
+		gconstpointer p;
+	} u;
+
+	u.p = p;
+	return u.f;
+}
 
 gint ascii_strcasecmp(const gchar *s1, const gchar *s2);
 gint ascii_strncasecmp(const gchar *s1, const gchar *s2, size_t len);
@@ -356,6 +390,9 @@ gint create_directory(const gchar *dir);
 gboolean filepath_exists(const gchar *dir, const gchar *file);
 guint32 parse_uint32(const gchar *, gchar const **, gint, gint *);
 guint64 parse_uint64(const gchar *, gchar const **, gint, gint *);
+gchar * uint64_to_string_buf(gchar *dst, size_t size, guint64 v);
+const gchar * uint64_to_string(guint64 v);
+const gchar * uint64_to_string2(guint64 v);
 gint parse_major_minor(const gchar *src, gchar const **endptr,
 	guint *major, guint *minor);
 gchar *is_strprefix(const gchar *str, const gchar *prefix) WARN_UNUSED_RESULT;
