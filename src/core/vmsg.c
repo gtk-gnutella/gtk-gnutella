@@ -487,7 +487,7 @@ vmsg_send_messages_supported(struct gnutella_node *n)
 		payload += 2;
 	}
 
-	gmsg_sendto_one(n, (gchar *) m, msgsize);
+	gmsg_sendto_one(n, m, msgsize);
 }
 
 /**
@@ -580,7 +580,7 @@ vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops)
 	 * Send the message as a control message, so that it gets sent ASAP.
 	 */
 
-	gmsg_ctrl_sendto_one(n, (gchar *) m, msgsize);
+	gmsg_ctrl_sendto_one(n, m, msgsize);
 }
 
 /**
@@ -629,7 +629,7 @@ vmsg_send_tcp_connect_back(struct gnutella_node *n, guint16 port)
 
 	WRITE_GUINT16_LE(port, payload);
 
-	gmsg_sendto_one(n, (gchar *) m, msgsize);
+	gmsg_sendto_one(n, m, msgsize);
 }
 
 /**
@@ -698,9 +698,9 @@ vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port)
 	payload = vmsg_fill_type(&m->data, T_GTKG, 7, 1);
 
 	WRITE_GUINT16_LE(port, payload);
-	memcpy(payload + 2, guid, 16);
+	memcpy(payload + 2, servent_guid, 16);
 
-	gmsg_sendto_one(n, (gchar *) m, msgsize);
+	gmsg_sendto_one(n, m, msgsize);
 }
 
 /**
@@ -754,7 +754,7 @@ vmsg_send_proxy_req(struct gnutella_node *n, const gchar *muid)
 	memcpy(m->header.muid, muid, 16);
 	(void) vmsg_fill_type(&m->data, T_LIME, 21, 2);
 
-	gmsg_sendto_one(n, (gchar *) m, msgsize);
+	gmsg_sendto_one(n, m, msgsize);
 
 	if (vmsg_debug > 2)
 		g_warning("sent proxy REQ to %s <%s>", node_ip(n), node_vendor(n));
@@ -841,7 +841,7 @@ vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid, gint version)
 	 * proxyfy pushes to it ASAP.
 	 */
 
-	gmsg_ctrl_sendto_one(n, (gchar *) m, msgsize);
+	gmsg_ctrl_sendto_one(n, m, msgsize);
 }
 
 /**
@@ -887,7 +887,7 @@ vmsg_send_qstat_req(struct gnutella_node *n, gchar *muid)
 	memcpy(m->header.muid, muid, 16);
 	(void) vmsg_fill_type(&m->data, T_BEAR, 11, 1);
 
-	gmsg_ctrl_sendto_one(n, (gchar *) m, msgsize);	/* Send ASAP */
+	gmsg_ctrl_sendto_one(n, m, msgsize);	/* Send ASAP */
 }
 
 /**
@@ -941,7 +941,7 @@ vmsg_send_qstat_answer(struct gnutella_node *n, gchar *muid, guint16 hits)
 		printf("VMSG sending %s with hits=%d to %s <%s>\n",
 			gmsg_infostr_full(m), hits, node_ip(n), node_vendor(n));
 
-	gmsg_ctrl_sendto_one(n, (gchar *) m, msgsize);	/* Send it ASAP */
+	gmsg_ctrl_sendto_one(n, m, msgsize);	/* Send it ASAP */
 }
 
 /**
@@ -983,7 +983,7 @@ vmsg_send_proxy_cancel(struct gnutella_node *n)
 	memcpy(m->header.muid, blank_guid, 16);
 	(void) vmsg_fill_type(&m->data, T_GTKG, 21, 1);
 
-	gmsg_sendto_one(n, (gchar *) m, msgsize);
+	gmsg_sendto_one(n, m, msgsize);
 
 	if (vmsg_debug > 2)
 		g_message("sent proxy CANCEL to %s <%s>", node_ip(n), node_vendor(n));
