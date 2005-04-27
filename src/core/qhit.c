@@ -454,7 +454,7 @@ flush_match(void)
 	 * Store the GUID in the last 16 bytes of the query hit.
 	 */
 
-	if (!found_write(guid, 16))
+	if (!found_write(servent_guid, 16))
 		goto failure;
 
 	found_set_header();
