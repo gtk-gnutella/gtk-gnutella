@@ -74,22 +74,30 @@
 
 RCSID("$Id$");
 
+#include "endian.h"
 #include "misc.h"
 #include "tigertree.h"
 #include "override.h"		/* Must be the last header included */
 
-#if G_BYTE_ORDER == G_BIG_ENDIAN
-#   define USE_BIG_ENDIAN		1
-#elif G_BYTE_ORDER == G_LITTLE_ENDIAN
-#	define USE_LITTLE_ENDIAN	0
+static inline void
+tt_endian(gchar *s)
+{
+#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+	(void) s;
 #else
-#error Byteorder not supported!
-#endif
+	guint64 *p;
 
-void tt_endian(gint8 *s);
+	p = (guint64 *) s;
+	
+	p[0] = guint64_to_LE(p[0]);
+	p[1] = guint64_to_LE(p[1]);
+	p[2] = guint64_to_LE(p[2]);
+#endif /* G_LITTLE_ENDIAN */
+}
 
 /* Initialize the tigertree context */
-void tt_init(TT_CONTEXT *ctx)
+void
+tt_init(TT_CONTEXT *ctx)
 {
 	ctx->count = 0;
 	ctx->leaf[0] = 0;	/* flag for leaf  calculation -- never changed */
@@ -99,31 +107,27 @@ void tt_init(TT_CONTEXT *ctx)
 	ctx->top = ctx->nodes;
 }
 
-static void tt_compose(TT_CONTEXT *ctx)
+static inline void
+tt_compose(TT_CONTEXT *ctx)
 {
-	gint8 *node = ctx->top - NODESIZE;
-	memmove((ctx->node) + 1, node, NODESIZE);	/* copy to scratch area */
-	tiger((gint64 *) (ctx->node),
-		  (gint64) (NODESIZE + 1),
-		  (gint64 *) (ctx->top)); 				/* combine two nodes */
+	gchar *node = ctx->top - NODESIZE;
+	memmove(ctx->node + 1, node, NODESIZE);	/* copy to scratch area */
+	tiger(ctx->node, NODESIZE + 1, (guint64 *) ctx->top); /* combine 2 nodes */
 
-#if USE_BIG_ENDIAN
-	tt_endian((gint8 *) ctx->top);
-#endif
+	tt_endian(ctx->top);
 
 	memmove(node, ctx->top, TIGERSIZE);	/* move up result */
 	ctx->top -= TIGERSIZE;				/* update top ptr */
 }
 
-static void tt_block(TT_CONTEXT *ctx)
+static inline void
+tt_block(TT_CONTEXT *ctx)
 {
 	gint64 b;
 
-	tiger((gint64 *) ctx->leaf, (gint64) ctx->index + 1, (gint64 *) ctx->top);
+	tiger(ctx->leaf, ctx->index + 1, (guint64 *) ctx->top);
 
-#if USE_BIG_ENDIAN
-	tt_endian((gint8 *) ctx->top);
-#endif
+	tt_endian(ctx->top);
 
 	ctx->top += TIGERSIZE;
 	++ctx->count;
@@ -131,11 +135,12 @@ static void tt_block(TT_CONTEXT *ctx)
 
 	while (!(b & 1)) { /* while evenly divisible by 2... */
 		tt_compose(ctx);
-		b = b >> 1;
+		b >>= 1;
 	}
 }
 
-void tt_update(TT_CONTEXT *ctx, gint8 *buffer, gint32 len)
+void
+tt_update(TT_CONTEXT *ctx, gchar *buffer, gint32 len)
 {
 	/* Try to fill partial block */
 	if (ctx->index) {
@@ -162,75 +167,45 @@ void tt_update(TT_CONTEXT *ctx, gint8 *buffer, gint32 len)
 		len -= BLOCKSIZE;
 	}
 
-	/* This assignment is intended */
-	if ((ctx->index = len))	{
+	if (0 != (ctx->index = len)) {
 		/* Buffer leftovers */
 		memmove(ctx->block, buffer, len);
 	}
 }
 
 /* no need to call this directly; tt_digest calls it for you */
-static void tt_final(TT_CONTEXT *ctx)
+static inline void
+tt_final(TT_CONTEXT *ctx)
 {
 	/*
 	 * Do last partial block, unless index is 1 (empty leaf)
   	 * AND we're past the first block
 	 */
-	if((ctx->index > 0) || (ctx->top == ctx->nodes))
+	if (ctx->index > 0 || ctx->top == ctx->nodes)
 		tt_block(ctx);
 }
 
-void tt_digest(TT_CONTEXT *ctx, gint8 *s)
+void
+tt_digest(TT_CONTEXT *ctx, gchar *s)
 {
 	tt_final(ctx);
 
-	while( (ctx->top-TIGERSIZE) > ctx->nodes ) {
+	while ((ctx->top - TIGERSIZE) > ctx->nodes) {
 		tt_compose(ctx);
 	}
 
-	memmove(s,ctx->nodes,TIGERSIZE);
-}
-
-void tt_endian(gint8 *s)
-{
-	gint64 *i;
-	gint8  *b, btemp;
-	gint16 *w, wtemp;
-
-	for(w = (gint16 *)s; w < ((gint16 *)s) + 12; w++) {
-		b = (gint8 *) w;
-		btemp = *b;
-		*b = *(b + 1);
-		*(b + 1) = btemp;
-	}
-
-	for(i = (gint64 *)s; i < ((gint64 *)s) + 3; i++) {
-		w = (gint16 *)i;
-
-		wtemp = *w;
-		*w = *(w + 3);
-		*(w + 3) = wtemp;
-
-		wtemp = *(w + 1);
-		*(w + 1) = *(w + 2);
-		*(w + 2) = wtemp;
-  	}
+	memmove(s, ctx->nodes, TIGERSIZE);
 }
 
 /* this code untested; use at own risk	*/
-void tt_copy(TT_CONTEXT *dest, TT_CONTEXT *src)
+void
+tt_copy(TT_CONTEXT *dest, TT_CONTEXT *src)
 {
-	int i;
-
 	dest->count = src->count;
-
-	for(i = 0; i < BLOCKSIZE; i++)
-		dest->block[i] = src->block[i];
-
+	memcpy(dest->block, src->block, BLOCKSIZE);
 	dest->index = src->index;
-
-	for(i = 0; i < STACKSIZE; i++)
-		dest->nodes[i] = src->nodes[i];
-
+	memcpy(dest->nodes, src->nodes, STACKSIZE);
 	dest->top = src->top;
 }
+
+/* vi: set ts=4 sw=4 cindent: */
