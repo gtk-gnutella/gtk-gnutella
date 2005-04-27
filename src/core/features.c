@@ -115,6 +115,7 @@ header_features_generate(struct xfeature_t *xfeatures,
 
 	g_assert(len <= INT_MAX);
 	g_assert(*rw <= INT_MAX);
+	g_assert(len >= *rw);
 
 	if (len - *rw < (sizeof(hdr) + sizeof(": \r\n") - 1))
 		return;
