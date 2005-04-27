@@ -245,53 +245,53 @@ static listeners_t node_flags_changed_listeners = NULL;
 void
 node_add_node_added_listener(node_added_listener_t l)
 {
-    LISTENER_ADD(node_added, (gpointer) l);
+    LISTENER_ADD(node_added, l);
 }
 
 void
 node_remove_node_added_listener(node_added_listener_t l)
 {
-    LISTENER_REMOVE(node_added, (gpointer) l);
+    LISTENER_REMOVE(node_added, l);
 }
 
 void
 node_add_node_removed_listener(node_removed_listener_t l)
 {
-    LISTENER_ADD(node_removed, (gpointer) l);
+    LISTENER_ADD(node_removed, l);
 }
 
 void
 node_remove_node_removed_listener(node_removed_listener_t l)
 {
-    LISTENER_REMOVE(node_removed, (gpointer) l);
+    LISTENER_REMOVE(node_removed, l);
 }
 
 void
 node_add_node_info_changed_listener(node_info_changed_listener_t l)
 {
-    LISTENER_ADD(node_info_changed, (gpointer) l);
+    LISTENER_ADD(node_info_changed, l);
 }
 
 void
 node_remove_node_info_changed_listener(node_info_changed_listener_t l)
 {
-    LISTENER_REMOVE(node_info_changed, (gpointer) l);
+    LISTENER_REMOVE(node_info_changed, l);
 }
 
 void
 node_add_node_flags_changed_listener(node_flags_changed_listener_t l)
 {
-    LISTENER_ADD(node_flags_changed, (gpointer) l);
+    LISTENER_ADD(node_flags_changed, l);
 }
 
 void
 node_remove_node_flags_changed_listener(node_flags_changed_listener_t l)
 {
-    LISTENER_REMOVE(node_flags_changed, (gpointer) l);
+    LISTENER_REMOVE(node_flags_changed, l);
 }
 
-static
-void node_fire_node_added(gnutella_node_t *n)
+static void
+node_fire_node_added(gnutella_node_t *n)
 {
     n->last_update = time((time_t *)NULL);
     LISTENER_EMIT(node_added, n->node_handle);
@@ -574,8 +574,7 @@ node_extract_host(const struct gnutella_node *n, guint32 *ip, guint16 *port)
 {
 	guint32 hip;
 	guint16 hport;
-	const struct gnutella_search_results *r =
-		(const struct gnutella_search_results *) n->data;
+	const struct gnutella_search_results *r = cast_to_gpointer(n->data);
 
 	/* Read Query Hit info */
 
@@ -2615,7 +2614,7 @@ send_proxy_request(gnutella_node_t *n)
 	g_assert(n->proxy_ip == 0);		/* Not proxying us yet */
 
 	n->flags |= NODE_F_PROXY;
-	vmsg_send_proxy_req(n, guid);	/* XXX: guid is a property */
+	vmsg_send_proxy_req(n, servent_guid); /* XXX: servent_guid is a property */
 }
 
 /**
@@ -7567,8 +7566,7 @@ node_crawl_fill(pmsg_t *mb,
 	gnutella_node_t **ary, gint start, gint len, gint want,
 	guint8 features, time_t now, GString *ua, gboolean gtkg)
 {
-	gint i;
-	gint n;
+	gint i, j;
 	gint written = 0;
 
 	g_assert(ary != NULL);
@@ -7576,7 +7574,7 @@ node_crawl_fill(pmsg_t *mb,
 	g_assert(len > 0);
 	g_assert(start < len);
 
-	for (i = start, n = 0; written < want && n < len; n++) {
+	for (i = start, j = 0; written < want && j < len; j++) {
 		gnutella_node_t *n = ary[i];
 		gchar addr[6];
 
