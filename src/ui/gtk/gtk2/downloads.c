@@ -103,7 +103,8 @@ check_iter_fi_handle(gpointer key, gpointer value, gpointer unused_udata)
 	g_assert(iter);
 
 	if (!iter_is_valid(iter)) {
-		g_warning("key=%p, iter=%p", key, iter);
+		g_warning("key=%p, iter=%p",
+			cast_to_gconstpointer(key), cast_to_gconstpointer(iter));
 		g_assert_not_reached();
 	}
 }
@@ -119,7 +120,8 @@ check_iter_download(gpointer key, gpointer value, gpointer unused_udata)
 	g_assert(iter);
 
 	if (!iter_is_valid(iter)) {
-		g_warning("d=%p, iter=%p", d, iter);
+		g_warning("d=%p, iter=%p",
+			cast_to_gconstpointer(d), cast_to_gconstpointer(iter));
 		g_assert_not_reached();
 	}
 }
@@ -392,13 +394,16 @@ compare_size_func(GtkTreeModel *model,
 	GtkTreeIter *a, GtkTreeIter *b, gpointer user_data)
 {
    	download_t *rec[2] = { NULL, NULL };
-   	GtkTreeIter *iter[2] = { a, b };
+   	GtkTreeIter *iter[2];
 	GtkTreeIter child;
 	guint i;
 	gint column = GPOINTER_TO_INT(user_data);
 
 	g_assert(column == c_queue_record || column == c_dl_record);
 
+	iter[0] = a;
+	iter[1] = b;
+	
 	for (i = 0; i < G_N_ELEMENTS(rec); i++) {
     	gtk_tree_model_get(model, iter[i], column, &rec[i], (-1));
 		if (DL_GUI_IS_HEADER == rec[i]) {
@@ -917,7 +922,9 @@ download_gui_add(download_t *d)
 
 	REGRESSION(
 		g_message("add: ht=%p, d=%p, child=%p, parent=%p, fi_handle=%u",
-			ht, d, child, parent, d->file_info->fi_handle);
+			cast_to_gconstpointer(ht), cast_to_gconstpointer(d),
+			cast_to_gconstpointer(child), cast_to_gconstpointer(parent),
+			d->file_info->fi_handle);
 		g_assert(find_download(d) == NULL);
 	)
 	g_hash_table_insert(ht_dl_iters, d, child);
@@ -1097,7 +1104,9 @@ download_gui_remove(download_t *d)
 		g_assert(find_download(d) == NULL);
 		check_iter_download(d, iter, NULL);
 		g_message("del: ht=%p, d=%p, iter=%p,  parent=%p, fi_handle=%u",
-			ht, d, iter, parent, d->file_info->fi_handle);
+			cast_to_gconstpointer(ht), cast_to_gconstpointer(d),
+			cast_to_gconstpointer(iter), cast_to_gconstpointer(parent),
+			d->file_info->fi_handle);
 	)
 	gtk_tree_store_remove(store, iter);
 	tree_iter_free(iter);
@@ -1630,7 +1639,7 @@ gui_update_download(download_t *d, gboolean force)
 		{
 			gchar bytes[32];
 
-			gm_snprintf(bytes, sizeof bytes, "%" PRIu64, (guint64) d->sinkleft);
+			uint64_to_string_buf(bytes, sizeof bytes, d->sinkleft);
 			gm_snprintf(tmpstr, sizeof(tmpstr),
 				_("Sinking (%s bytes left)"), bytes);
 		}
@@ -1660,8 +1669,8 @@ gui_update_download(download_t *d, gboolean force)
 			break;
 		case GTA_DL_VERIFYING:
 			{
-				guint64 div = fi->size / 100;
-				progress = div ? fi->cha1_hashed / div : 0;
+				guint64 q = fi->size / 100;
+				progress = q ? fi->cha1_hashed / q : 0;
 			}
 			break;
 		case GTA_DL_CONNECTING:
