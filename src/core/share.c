@@ -350,13 +350,13 @@ static listeners_t search_request_listeners = NULL;
 void
 share_add_search_request_listener(search_request_listener_t l)
 {
-    LISTENER_ADD(search_request, (gpointer) l);
+    LISTENER_ADD(search_request, l);
 }
 
 void
 share_remove_search_request_listener(search_request_listener_t l)
 {
-    LISTENER_REMOVE(search_request, (gpointer) l);
+    LISTENER_REMOVE(search_request, l);
 }
 
 static void
