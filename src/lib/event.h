@@ -69,47 +69,45 @@ gboolean event_subscriber_active(struct event *evt);
  * T_NORMAL: will call all subscribers in the chain. Use for
  *           callbacks with a void return type.
  */
-#define T_VETO(sig, ...) if((*((sig)s->cb))(__VA_ARGS__)) break;
-#define T_NORMAL(sig, ...) (*((sig)s->cb))(__VA_ARGS__);
+#define T_VETO(sig, ...)	if (((sig) vars_.s->cb)(__VA_ARGS__)) break;
+#define T_NORMAL(sig, ...)	((sig) vars_.s->cb)(__VA_ARGS__);
 
-#define event_trigger(ev, type) G_STMT_START {                     \
-    GSList *sl;                                                    \
-    time_t now = time(NULL);                                       \
-	event_t *evt = (ev);										   \
-                                                                   \
-    for (                                                          \
-        sl = evt->subscribers;                                     \
-        sl != NULL;                                                \
-        sl = g_slist_next(sl)                                      \
-    ) {                                                            \
-        gboolean t;                                                \
-        struct subscriber *s = (struct subscriber *) sl->data;     \
-                                                                   \
-        t = s->f_interval == 0;                                    \
-        if (!t) {                                                  \
-            switch (s->f_type) {                                   \
-            case FREQ_UPDATES:                                     \
-                t = (evt->triggered_count % s->f_interval) == 0;   \
-                break;                                             \
-            case FREQ_SECS:                                        \
-                t = (guint32) delta_time(now, s->last_call)		   \
-						> s->f_interval;   						   \
-                break;                                             \
-            default:                                               \
-                g_assert_not_reached();                            \
-            }                                                      \
-        }                                                          \
-                                                                   \
-        if (t) {                                                   \
-           s->last_call = now;                                     \
-           type                                                    \
-        }                                                          \
-    }                                                              \
-                                                                   \
-    evt->triggered_count ++;                                       \
+#define event_trigger(ev, callback) G_STMT_START {				  		 	\
+	struct {																\
+		GSList *sl;											 			 	\
+		event_t *evt;										   				\
+		struct subscriber *s;												\
+		time_t now;									   					 	\
+		gboolean t;															\
+	} vars_;																\
+																			\
+	vars_.evt = (ev);														\
+	vars_.now = time(NULL);													\
+	vars_.sl = vars_.evt->subscribers;										\
+	for (/* NOTHING */; vars_.sl; vars_.sl = g_slist_next(vars_.sl)) {		\
+		vars_.s = vars_.sl->data;											\
+		vars_.t = 0 == vars_.s->f_interval;									\
+		if (!vars_.t) {														\
+			switch (vars_.s->f_type) {							 			\
+			case FREQ_UPDATES:									 			\
+				vars_.t = 0 == (vars_.evt->triggered_count %				\
+									vars_.s->f_interval);					\
+				break;											 			\
+			case FREQ_SECS:													\
+				vars_.t = vars_.s->f_interval <=							\
+						(guint32) delta_time(vars_.now, vars_.s->last_call);\
+				break;														\
+			default:														\
+				g_assert_not_reached();										\
+			}													  			\
+		}																	\
+		if (vars_.t) {														\
+			vars_.s->last_call = vars_.now;									\
+			callback														\
+		}																	\
+	}																		\
+	vars_.evt->triggered_count++;											\
 } G_STMT_END
-
-
 
 struct event_table {
     GHashTable *events;
@@ -128,7 +126,8 @@ void event_table_add_event(struct event_table *t, struct event *evt);
 
 void event_table_remove_event(struct event_table *t, struct event *evt);
 
-inline void event_table_remove_all(struct event_table *t);
+void event_table_remove_all(struct event_table *t);
 
-/* vi: set ts=4: */
 #endif	/* _event_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */
