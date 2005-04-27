@@ -432,7 +432,6 @@ url_normalize(gchar *url, url_policy_t pol)
 	gchar *p, *q = url;
 	const gchar *uri;
 	static const char http_prefix[] = "http://";
-	static gboolean url_debug = FALSE;
 	gchar *warn = NULL;
 
 	g_assert(url);
@@ -459,7 +458,6 @@ url_normalize(gchar *url, url_policy_t pol)
 		/* The ``host'' part is not an IP address */
 
 		for (/* NOTHING */; *q != '\0'; q++) {
-			gint c;
 
 		    for (/* NOTHING */; (c = (guchar) *q) != '\0'; q++) {
         		if (is_ascii_alnum(c)) {
