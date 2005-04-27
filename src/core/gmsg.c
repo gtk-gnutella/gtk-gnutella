@@ -130,7 +130,7 @@ gmsg_name(guint function)
  * its memory.
  */
 pmsg_t *
-gmsg_to_pmsg(gpointer msg, guint32 size)
+gmsg_to_pmsg(gconstpointer msg, guint32 size)
 {
 	pmsg_t *mb;
 
@@ -143,7 +143,7 @@ gmsg_to_pmsg(gpointer msg, guint32 size)
  * Construct control PDU descriptor from message.
  */
 pmsg_t *
-gmsg_to_ctrl_pmsg(gpointer msg, guint32 size)
+gmsg_to_ctrl_pmsg(gconstpointer msg, guint32 size)
 {
 	pmsg_t *mb;
 
@@ -157,11 +157,11 @@ gmsg_to_ctrl_pmsg(gpointer msg, guint32 size)
  */
 pmsg_t *
 gmsg_to_ctrl_pmsg_extend(
-	gpointer msg, guint32 size, pmsg_free_t free, gpointer arg)
+	gconstpointer msg, guint32 size, pmsg_free_t free_cb, gpointer arg)
 {
 	pmsg_t *mb;
 
-	mb = pmsg_new_extend(PMSG_P_CONTROL, msg, size, free, arg);
+	mb = pmsg_new_extend(PMSG_P_CONTROL, msg, size, free_cb, arg);
 	gmsg_install_presend(mb);
 
 	return mb;
@@ -171,7 +171,7 @@ gmsg_to_ctrl_pmsg_extend(
  * Write message data into new empty message buffer.
  */
 static void
-write_message(pmsg_t *mb, gpointer head, gpointer data, guint32 size)
+write_message(pmsg_t *mb, gconstpointer head, gconstpointer data, guint32 size)
 {
 	gint written;
 
@@ -185,7 +185,7 @@ write_message(pmsg_t *mb, gpointer head, gpointer data, guint32 size)
  * Construct PDU from header and data.
  */
 pmsg_t *
-gmsg_split_to_pmsg(gpointer head, gpointer data, guint32 size)
+gmsg_split_to_pmsg(gconstpointer head, gconstpointer data, guint32 size)
 {
 	pmsg_t *mb;
 
@@ -200,12 +200,12 @@ gmsg_split_to_pmsg(gpointer head, gpointer data, guint32 size)
  * Construct extended PDU (with free routine) from header and data.
  */
 pmsg_t *
-gmsg_split_to_pmsg_extend(
-	gpointer head, gpointer data, guint32 size, pmsg_free_t free, gpointer arg)
+gmsg_split_to_pmsg_extend(gconstpointer head, gconstpointer data,
+	guint32 size, pmsg_free_t free_cb, gpointer arg)
 {
 	pmsg_t *mb;
 
-	mb = pmsg_new_extend(PMSG_P_DATA, NULL, size, free, arg);
+	mb = pmsg_new_extend(PMSG_P_DATA, NULL, size, free_cb, arg);
 	write_message(mb, head, data, size);
 	gmsg_install_presend(mb);
 
@@ -270,7 +270,7 @@ gmsg_mb_sendto_one(struct gnutella_node *n, pmsg_t *mb)
  * Send message to one node.
  */
 void
-gmsg_sendto_one(struct gnutella_node *n, gchar *msg, guint32 size)
+gmsg_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size)
 {
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 
@@ -289,7 +289,7 @@ gmsg_sendto_one(struct gnutella_node *n, gchar *msg, guint32 size)
  */
 void
 gmsg_sendto_one_ggep(struct gnutella_node *n,
-	gchar *msg, guint32 size, guint32 regular_size)
+	gconstpointer msg, guint32 size, guint32 regular_size)
 {
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 
@@ -310,7 +310,7 @@ gmsg_sendto_one_ggep(struct gnutella_node *n,
  * A control message is inserted ahead any other queued regular data.
  */
 void
-gmsg_ctrl_sendto_one(struct gnutella_node *n, gchar *msg, guint32 size)
+gmsg_ctrl_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size)
 {
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 
@@ -329,7 +329,7 @@ gmsg_ctrl_sendto_one(struct gnutella_node *n, gchar *msg, guint32 size)
  */
 void
 gmsg_ctrl_sendto_one_ggep(struct gnutella_node *n,
-	gchar *msg, guint32 size, guint32 regular_size)
+	gconstpointer msg, guint32 size, guint32 regular_size)
 {
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 
@@ -350,7 +350,7 @@ gmsg_ctrl_sendto_one_ggep(struct gnutella_node *n,
  */
 void
 gmsg_search_sendto_one(
-	struct gnutella_node *n, gnet_search_t sh, gchar *msg, guint32 size)
+	struct gnutella_node *n, gnet_search_t sh, gconstpointer msg, guint32 size)
 {
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 	g_assert(((struct gnutella_header *) msg)->hops <= hops_random_factor);
@@ -368,8 +368,8 @@ gmsg_search_sendto_one(
  * Send message consisting of header and data to one node.
  */
 void
-gmsg_split_sendto_one(
-	struct gnutella_node *n, gpointer head, gpointer data, guint32 size)
+gmsg_split_sendto_one(struct gnutella_node *n,
+	gconstpointer head, gconstpointer data, guint32 size)
 {
 	g_assert(((struct gnutella_header *) head)->ttl > 0);
 
@@ -386,7 +386,7 @@ gmsg_split_sendto_one(
  * Broadcast message to all nodes in the list.
  */
 void
-gmsg_sendto_all(const GSList *sl, gchar *msg, guint32 size)
+gmsg_sendto_all(const GSList *sl, gconstpointer msg, guint32 size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(msg, size);
 
@@ -412,7 +412,7 @@ gmsg_sendto_all(const GSList *sl, gchar *msg, guint32 size)
  */
 void
 gmsg_sendto_all_ggep(const GSList *sl,
-	gchar *msg, guint32 size, guint32 regular_size)
+	gconstpointer msg, guint32 size, guint32 regular_size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(msg, size);
 	pmsg_t *mb_stripped = NULL;
@@ -445,7 +445,7 @@ gmsg_sendto_all_ggep(const GSList *sl,
  */
 void
 gmsg_search_sendto_all(
-	const GSList *sl, gnet_search_t sh, gchar *msg, guint32 size)
+	const GSList *sl, gnet_search_t sh, gconstpointer msg, guint32 size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(msg, size);
 
@@ -480,7 +480,7 @@ gmsg_search_sendto_all(
  */
 void
 gmsg_split_sendto_all_but_one(const GSList *sl, struct gnutella_node *n,
-	gpointer head, gpointer data, guint32 size)
+	gconstpointer head, gconstpointer data, guint32 size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
 	gboolean skip_up_with_qrp = FALSE;
@@ -519,7 +519,7 @@ gmsg_split_sendto_all_but_one(const GSList *sl, struct gnutella_node *n,
  */
 void
 gmsg_split_sendto_all(
-	const GSList *sl, gpointer head, gpointer data, guint32 size)
+	const GSList *sl, gconstpointer head, gconstpointer data, guint32 size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
 
@@ -556,7 +556,7 @@ static void
 gmsg_split_sendto_all_but_one_ggep(
 	const GSList *sl,
 	struct gnutella_node *n,
-	gpointer head, gpointer data, guint32 size, gint regular_size)
+	gconstpointer head, gconstpointer data, guint32 size, gint regular_size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
 	pmsg_t *mb_stripped = NULL;
