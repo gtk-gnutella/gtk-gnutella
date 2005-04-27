@@ -199,7 +199,7 @@ CASE type=][=
 = ip     =]extern const guint32  [=(. item)=][=
 = multichoice=]extern const guint32  [=(. item)=][=
 = string =]extern const gchar   *[=(. item)=][=
-= storage=]extern const guint8   [=(. item)=][=
+= storage=]extern const gchar    [=(. item)=][=
 ESAC =][=
 IF (exist? "vector_size") =][[=vector_size=]][=ENDIF=];
 [= ENDFOR prop =]
@@ -233,7 +233,7 @@ FOR prop =][=
         (define item (get "data.value"))
         (define item (string-downcase (get "name"))))=][=
     IF (= (get "type") "storage")=]
-guint8   [=(. item)=][[=vector_size=]];[=
+gchar   [=(. item)=][[=vector_size=]];[=
     ELSE=][=
         (cond
             ((= (get "type") "boolean")
