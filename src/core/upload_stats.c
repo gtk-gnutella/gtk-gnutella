@@ -193,8 +193,8 @@ upload_stats_dump_history(const gchar *ul_history_file_name)
 		stat = l->data;
 		g_assert(NULL != stat);
 		escaped = url_escape_cntrl(stat->filename);
-		fprintf(out, "%s\t%" PRIu64 "\t%u\t%u\t%u\t%u\n", escaped,
-			(guint64) stat->size, stat->attempts, stat->complete,
+		fprintf(out, "%s\t%s\t%u\t%u\t%u\t%u\n", escaped,
+			uint64_to_string(stat->size), stat->attempts, stat->complete,
 				(guint32) (stat->bytes_sent >> 32),
 				(guint32) stat->bytes_sent);
 
