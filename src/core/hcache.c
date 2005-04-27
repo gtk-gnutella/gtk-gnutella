@@ -1433,9 +1433,7 @@ hcache_store(hcache_type_t type, const gchar *filename, hcache_type_t extra)
 	g_assert(caches[type] != NULL);
 	g_assert(extra == HCACHE_NONE || caches[extra] != NULL);
 
-	fp.dir = settings_config_dir();
-	fp.name = filename;
-
+	file_path_set(&fp, settings_config_dir(), filename);
 	f = file_config_open_write(filename, &fp);
 
 	if (!f)
@@ -1455,17 +1453,17 @@ hcache_store(hcache_type_t type, const gchar *filename, hcache_type_t extra)
  * @param stats must point to an hcache_stats_t[HCACHE_MAX] array.
  */
 void
-hcache_get_stats(hcache_stats_t *stats)
+hcache_get_stats(hcache_stats_t *s)
 {
     guint n;
 
     for (n = 0; n < HCACHE_MAX; n++) {
 		if (n == HCACHE_NONE)
 			continue;
-        stats[n].host_count = caches[n]->host_count;
-        stats[n].hits       = caches[n]->hits;
-        stats[n].misses     = caches[n]->misses;
-        stats[n].reading    = FALSE;
+        s[n].host_count = caches[n]->host_count;
+        s[n].hits       = caches[n]->hits;
+        s[n].misses     = caches[n]->misses;
+        s[n].reading    = FALSE;
     }
 }
 
