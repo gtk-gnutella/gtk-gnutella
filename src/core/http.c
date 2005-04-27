@@ -102,7 +102,7 @@ http_send_status(
 	gint cb_flags = 0;
 
 	va_start(args, reason);
-	gm_vsnprintf(status_msg, sizeof(status_msg)-1,  reason, args);
+	gm_vsnprintf(status_msg, sizeof(status_msg)-1, reason, args);
 	va_end(args);
 
 	/*
@@ -187,17 +187,18 @@ http_send_status(
 
 		switch (type) {
 		case HTTP_EXTRA_LINE:
-			rw += gm_snprintf(&header[rw], header_size - rw,
-				"%s", he->he_msg);
+			rw += gm_snprintf(&header[rw], header_size - rw, "%s", he->he_msg);
 			break;
 		case HTTP_EXTRA_CALLBACK:
 			{
 				gint len = header_size - rw;
 
-				g_assert(len > 0 );
+				g_assert(header_size > rw);
+				g_assert(len > 0);
 
 				(*he->he_cb)(&header[rw], &len, he->he_arg, cb_flags);
 
+				g_assert(len >= 0);
 				g_assert(len + rw <= header_size);
 
 				rw += len;
@@ -785,12 +786,19 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 			/* Ensure range is not overlapping with previous */
 			if (prev != NULL) {
 				http_range_t *pr = (http_range_t *) prev->data;
+				
 				if (pr->end >= start) {
-					g_warning("vendor <%s> sent us overlapping range %" PRIu64
-						"-%" PRIu64 " (with previous %" PRIu64 "-%" PRIu64
-						") in the %s header -- ignoring",
-						vendor, (guint64) start, (guint64) end,
-						(guint64) pr->start, (guint64) pr->end, field);
+					gchar start_buf[32], end_buf[32];
+
+					uint64_to_string_buf(start_buf, sizeof start_buf, start);
+					uint64_to_string_buf(end_buf, sizeof end_buf, end);
+					
+					g_warning("vendor <%s> sent us overlapping range %s-%s "
+						"(with previous %s-%s) in the %s header -- ignoring",
+						vendor, start_buf, end_buf,
+						uint64_to_string(pr->start),
+						uint64_to_string2(pr->end),
+						field);
 					goto ignored;
 				}
 			}
@@ -800,12 +808,17 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 			if (next != NULL) {
 				http_range_t *nr = (http_range_t *) next->data;
 				if (nr->start <= end) {
-					g_warning("vendor <%s> sent us overlapping range %" PRIu64
-						"-%" PRIu64
-						" (with next %" PRIu64 "-%" PRIu64
-						") in the %s header -- ignoring",
-						vendor, (guint64) start, (guint64) end,
-						(guint64) nr->start, (guint64) nr->end, field);
+					gchar start_buf[32], end_buf[32];
+					
+					uint64_to_string_buf(start_buf, sizeof start_buf, start);
+					uint64_to_string_buf(end_buf, sizeof end_buf, end);
+					
+					g_warning("vendor <%s> sent us overlapping range %s-%s "
+						"(with next %s-%s) in the %s header -- ignoring",
+						vendor, start_buf, end_buf,
+						uint64_to_string(nr->start),
+						uint64_to_string2(nr->end),
+						field);
 					goto ignored;
 				}
 			}
@@ -815,11 +828,15 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 		}
 
 		if (r->end >= start) {
-			g_warning("vendor <%s> sent us overlapping range %" PRIu64
-				"-%" PRIu64 " (with %" PRIu64 "-%" PRIu64 ") "
-				"in the %s header -- ignoring",
-				vendor, (guint64) start, (guint64) end, (guint64) r->start,
-				(guint64) r->end, field);
+			gchar start_buf[32], end_buf[32];
+			
+			uint64_to_string_buf(start_buf, sizeof start_buf, start);
+			uint64_to_string_buf(end_buf, sizeof end_buf, end);
+			
+			g_warning("vendor <%s> sent us overlapping range %s-%s "
+				"(with %s-%s) in the %s header -- ignoring",
+				vendor, start_buf, end_buf, uint64_to_string(r->start),
+				uint64_to_string2(r->end), field);
 			goto ignored;
 		}
 	}
@@ -1003,26 +1020,27 @@ http_range_parse(
 
 			if (has_end) {
 				if (dbg) g_warning("weird %s header from <%s>, offset %d "
-					"(spurious boundary %" PRIu64 "): %s",
-					field, vendor, (gint) (str - value) - 1, val,
-					value);
+					"(spurious boundary %s): %s",
+					field, vendor, (gint) (str - value) - 1,
+					uint64_to_string(val), value);
 				goto resync;
 			}
 
 			if (val >= size) {
 				if (dbg) g_warning("weird %s header from <%s>, offset %d "
-					"(%s boundary %" PRIu64 " outside resource range "
-					"0-%" PRIu64 "): %s",
-					field, vendor, (gint) (str - value) - 1,
-					has_start ? "end" : "start", val, size - 1, value);
+					"(%s boundary %s outside resource range "
+					"0-%s): %s", field, vendor, (gint) (str - value) - 1,
+					has_start ? "end" : "start",
+					uint64_to_string(val), uint64_to_string2(size - 1), value);
 				goto resync;
 			}
 
 			if (has_start) {
 				if (!minus_seen) {
 					if (dbg) g_warning("weird %s header from <%s>, offset %d "
-						"(no '-' before boundary %" PRIu64 "): %s",
-						field, vendor, (gint) (str - value) - 1, val, value);
+						"(no '-' before boundary %s): %s",
+						field, vendor, (gint) (str - value) - 1,
+						uint64_to_string(val), value);
 					goto resync;
 				}
 				if (start == HTTP_OFFSET_MAX) {			/* Negative range */
@@ -1093,7 +1111,8 @@ final:
 			printf("...retained:\n");
 		for (l = ranges; l; l = g_slist_next(l)) {
 			http_range_t *r = (http_range_t *) l->data;
-			printf("...  %" PRIu64 "-%" PRIu64 "\n", r->start, r->end);
+			printf("...  %s-%s\n",
+				uint64_to_string(r->start), uint64_to_string2(r->end));
 		}
 	}
 
@@ -1147,9 +1166,11 @@ http_range_to_gchar(const GSList *list)
 
 	for (rw = 0; sl && (size_t) rw < sizeof(str); sl = g_slist_next(sl)) {
 		const http_range_t *r = (const http_range_t *) sl->data;
+		gchar start_buf[32], end_buf[32];
 
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%" PRIu64 "-%" PRIu64,
-					r->start, r->end);
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%s-%s",
+				uint64_to_string_buf(start_buf, sizeof start_buf, r->start),
+				uint64_to_string_buf(end_buf, sizeof end_buf, r->end));
 
 		if (g_slist_next(sl) != NULL)
 			rw += gm_snprintf(&str[rw], sizeof(str)-rw, ", ");
