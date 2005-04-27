@@ -31,14 +31,6 @@
 #include "if/ui/gtk/statusbar.h"
 
 /*
- * Context ids for the status bar
- */
-extern guint scid_hostsfile;
-extern guint scid_search_autoselected;
-extern guint scid_queue_freezed;
-extern guint scid_ip_changed;
-
-/*
  * Public interface.
  */
 
@@ -52,4 +44,4 @@ void statusbar_gui_remove(statusbar_msgid_t);
 
 #endif /* _gtk_statusbar_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
