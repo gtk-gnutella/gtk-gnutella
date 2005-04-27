@@ -43,20 +43,11 @@
 #define __attribute__(p)
 #endif
 
-/* Use zero-length arrays either by C95 or GNU C extension. */
-#if defined(__GNUC__)
-#define ZERO_LENGTH 0
-#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199409L)
-#define ZERO_LENGTH
-#else
-#define ZERO_LENGTH 0
-#endif /* C95 */
-
 /* Messages structures */
 
 struct gnutella_msg_init {
 	struct gnutella_header header;
-	gchar ggep[ZERO_LENGTH];
+	/* GGEP data may follow */
 } __attribute__((__packed__));
 
 struct gnutella_init_response {
@@ -69,12 +60,12 @@ struct gnutella_init_response {
 struct gnutella_msg_init_response {
 	struct gnutella_header header;
 	struct gnutella_init_response response;
-	gchar ggep[ZERO_LENGTH];
+	/* GGEP data may follow */
 } __attribute__((__packed__));
 
 struct gnutella_search {
 	guchar speed[2];
-	gchar query[ZERO_LENGTH];
+	/* query string follows */
 } __attribute__((__packed__));
 
 struct gnutella_search_results {
@@ -82,7 +73,7 @@ struct gnutella_search_results {
 	guchar host_port[2];
 	guchar host_ip[4];
 	guchar host_speed[4];
-	guchar records[ZERO_LENGTH];
+	/* record data follows */
 
 	/* Last 16 bytes = client_id */
 } __attribute__((__packed__));
@@ -102,12 +93,12 @@ struct gnutella_push_request {
 struct gnutella_msg_push_request {
 	struct gnutella_header header;
 	struct gnutella_push_request request;
-	gchar ggep[ZERO_LENGTH];
+	/* GGEP data may follow */
 } __attribute__((__packed__));
 
 struct gnutella_bye {
 	guchar code[2];
-	guchar message[ZERO_LENGTH];
+	/* message string follows */
 } __attribute__((__packed__));
 
 struct gnutella_qrp_reset {
@@ -151,9 +142,6 @@ struct gnutella_msg_hsep_data {
 	guint64 triple[3];
 } __attribute__((__packed__));
 
-
-#undef ZERO_LENGTH
-
 #endif /* _core_gnutella_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
