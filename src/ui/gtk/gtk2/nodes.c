@@ -107,16 +107,45 @@ static void add_column(
     gtk_tree_view_append_column(GTK_TREE_VIEW (tree), column);
 }
 
-/*
- * nodes_gui_create_treeview_nodes
- *
+static GtkListStore *
+create_nodes_model(void)
+{
+	GType columns[c_gnet_num];
+	GtkListStore *store;
+	guint i;
+
+	STATIC_ASSERT(c_gnet_num == G_N_ELEMENTS(columns));
+#define SET(c, x) case (c): columns[i] = (x); break
+	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+		switch (i) {
+		SET(c_gnet_host, G_TYPE_STRING);
+		SET(c_gnet_loc, G_TYPE_STRING);
+		SET(c_gnet_flags, G_TYPE_STRING);
+		SET(c_gnet_user_agent, G_TYPE_STRING);
+		SET(c_gnet_version, G_TYPE_STRING);
+		SET(c_gnet_connected, G_TYPE_STRING);
+		SET(c_gnet_uptime, G_TYPE_STRING);
+		SET(c_gnet_info, G_TYPE_STRING);
+		SET(c_gnet_handle, G_TYPE_UINT);
+		SET(c_gnet_fg, GDK_TYPE_COLOR);
+		}
+	}
+#undef SET
+
+	store = gtk_list_store_newv(G_N_ELEMENTS(columns), columns);
+	return GTK_LIST_STORE(store);
+}
+
+
+/**
  * Sets up the treeview_nodes object for use by
  * settings_gui. (Uses a default width of one; actual
  * widths are set during nodes_gui_init. This
  * component must be able to be initialized before
  * width settings are initialized.)
  */
-static void nodes_gui_create_treeview_nodes(void)
+static void
+nodes_gui_create_treeview_nodes(void)
 {
 	static const struct {
 		const gchar * const title;
@@ -132,29 +161,16 @@ static void nodes_gui_create_treeview_nodes(void)
 		{ N_("Uptime"),			c_gnet_uptime,		"text" },
 		{ N_("Info"),			c_gnet_info,		"text" }
 	};
-	GType types[] = {
-        G_TYPE_STRING,   /* c_gnet_host */
-        G_TYPE_STRING,   /* c_gnet_loc */
-        G_TYPE_STRING,   /* c_gnet_flags */
-        G_TYPE_STRING,   /* c_gnet_user_agent */
-        G_TYPE_STRING,   /* c_gnet_version */
-        G_TYPE_STRING,   /* c_gnet_connected */
-        G_TYPE_STRING,   /* c_gnet_uptime */
-        G_TYPE_STRING,   /* c_gnet_info */
-        G_TYPE_UINT,     /* c_gnet_handle */
-        GDK_TYPE_COLOR	 /* c_gnet_fg */
-	};
 	GtkTreeView *tree;
 	guint i;
 
 	STATIC_ASSERT(NODES_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
-	STATIC_ASSERT(c_gnet_num == G_N_ELEMENTS(types));
 
     /*
      * Create a model.  We are using the store model for now, though we
      * could use any other GtkTreeModel
      */
-    nodes_model = gtk_list_store_newv(G_N_ELEMENTS(types), types);
+    nodes_model = create_nodes_model();
 
     /*
      * Get the monitor widget

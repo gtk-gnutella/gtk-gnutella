@@ -427,23 +427,18 @@ add_active_downloads_columns(GtkTreeView *treeview)
 {
 	static const struct {
 		const gchar * const title;
-		const guint renderer;
 		const guint id;
 		const gfloat align;
 		const GtkTreeIterCompareFunc func;
 	} columns[] = {
-		{ N_("Filename"), 0, c_dl_filename, 0.0, NULL },
-		{ N_("Size"),	  0, c_dl_size,	    1.0, compare_size_func },
-		{ N_("Host"),	  0, c_dl_host,	    0.0, NULL },
-		{ N_("Loc"),	  0, c_dl_loc,	    0.0, NULL },
-		{ N_("Range"),	  0, c_dl_range,	0.0, NULL },
-		{ N_("Server"),	  0, c_dl_server,	0.0, NULL },
-		{ N_("Progress"), 1, c_dl_progress, 0.0, NULL },
-		{ N_("Status"),	  0, c_dl_status,   0.0, NULL }
-	};
-	GtkType renderer_types[] = {
-		GTK_TYPE_CELL_RENDERER_TEXT,
-		GTK_TYPE_CELL_RENDERER_PROGRESS
+		{ N_("Filename"), c_dl_filename, 0.0, NULL },
+		{ N_("Size"),	  c_dl_size,	 1.0, compare_size_func },
+		{ N_("Host"),	  c_dl_host,	 0.0, NULL },
+		{ N_("Loc"),	  c_dl_loc,	     0.0, NULL },
+		{ N_("Range"),	  c_dl_range,	 0.0, NULL },
+		{ N_("Server"),	  c_dl_server,	 0.0, NULL },
+		{ N_("Progress"), c_dl_progress, 0.0, NULL },
+		{ N_("Status"),	  c_dl_status,   0.0, NULL }
 	};
 	guint i;
 
@@ -451,7 +446,9 @@ add_active_downloads_columns(GtkTreeView *treeview)
 
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
 		add_active_downloads_column(treeview,
-			renderer_types[columns[i].renderer],
+			c_dl_progress == columns[i].id
+				? GTK_TYPE_CELL_RENDERER_PROGRESS
+				: GTK_TYPE_CELL_RENDERER_TEXT,
 			_(columns[i].title),
 			columns[i].id,
 			columns[i].align,
@@ -502,7 +499,63 @@ add_queue_downloads_columns(GtkTreeView *treeview)
 	tree_view_restore_visibility(treeview, PROP_DL_QUEUED_COL_VISIBLE);
 }
 
+static GtkTreeModel *
+create_downloads_model(void)
+{
+	GType columns[c_dl_num];
+	GtkTreeStore *store;
+	guint i;
+	
+	STATIC_ASSERT(c_dl_num == G_N_ELEMENTS(columns));
+#define SET(c, x) case (c): columns[i] = (x); break
+	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+		switch (i) {
+		SET(c_dl_filename, G_TYPE_STRING);
+		SET(c_dl_size, G_TYPE_STRING);
+		SET(c_dl_host, G_TYPE_STRING);
+		SET(c_dl_loc, G_TYPE_STRING);
+		SET(c_dl_range, G_TYPE_STRING);
+		SET(c_dl_server, G_TYPE_STRING);
+		SET(c_dl_progress, G_TYPE_INT);
+		SET(c_dl_status, G_TYPE_STRING);
+		SET(c_dl_fg, GDK_TYPE_COLOR);
+		SET(c_dl_bg, GDK_TYPE_COLOR);
+		SET(c_dl_record, G_TYPE_POINTER);
+		}
+	}
+#undef SET
 
+	store = gtk_tree_store_newv(G_N_ELEMENTS(columns), columns);
+	return GTK_TREE_MODEL(store);
+}
+
+static GtkTreeModel *
+create_queue_model(void)
+{
+	GType columns[c_queue_num];
+	GtkTreeStore *store;
+	guint i;
+
+	STATIC_ASSERT(c_queue_num == G_N_ELEMENTS(columns));
+#define SET(c, x) case (c): columns[i] = (x); break
+	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+		switch (i) {
+		SET(c_dl_filename, G_TYPE_STRING);
+		SET(c_dl_size, G_TYPE_STRING);
+		SET(c_dl_host, G_TYPE_STRING);
+		SET(c_dl_loc, G_TYPE_STRING);
+		SET(c_dl_server, G_TYPE_STRING);
+		SET(c_dl_status, G_TYPE_STRING);
+		SET(c_dl_fg, GDK_TYPE_COLOR);
+		SET(c_dl_bg, GDK_TYPE_COLOR);
+		SET(c_dl_record, G_TYPE_POINTER);
+		}
+	}
+#undef SET
+	
+	store = gtk_tree_store_newv(G_N_ELEMENTS(columns), columns);
+	return GTK_TREE_MODEL(store);
+}
 
 /***
  *** Public functions
@@ -519,44 +572,17 @@ add_queue_downloads_columns(GtkTreeView *treeview)
 void
 downloads_gui_init(void)
 {
-	GtkTreeStore *model;
 	GtkTreeSelection *selection;
 	GtkTreeView	*treeview;
-	GType dl_cols[] = {
-		G_TYPE_STRING,		/* File */
-		G_TYPE_STRING,		/* Size */
-		G_TYPE_STRING,		/* Host */
-		G_TYPE_STRING,		/* Loc */
-		G_TYPE_STRING,		/* Range */
-		G_TYPE_STRING,		/* Server */
-		G_TYPE_INT,			/* Progress [0 - 100] */
-		G_TYPE_STRING,		/* Status */
-		GDK_TYPE_COLOR,		/* Foreground */
-		GDK_TYPE_COLOR,		/* Background */
-		G_TYPE_POINTER		/* (record_t *) */
-	};
-	GType queue_cols[] = {
-		G_TYPE_STRING,		/* File */
-		G_TYPE_STRING,		/* Size */
-		G_TYPE_STRING,		/* Host */
-		G_TYPE_STRING,		/* Loc */
-		G_TYPE_STRING,		/* Server */
-		G_TYPE_STRING,		/* Status */
-		GDK_TYPE_COLOR,		/* Foreground */
-		GDK_TYPE_COLOR,		/* Background */
-		G_TYPE_POINTER		/* (record_t *) */
-	};
-
+	
 	parents = g_hash_table_new(NULL, NULL);
 	parents_queue = g_hash_table_new(NULL, NULL);
 	ht_dl_iters = g_hash_table_new(NULL, NULL);
 
 	/* Create and setup the active downloads treeview */
-	STATIC_ASSERT(c_dl_num == G_N_ELEMENTS(dl_cols));
-	model = gtk_tree_store_newv(G_N_ELEMENTS(dl_cols), dl_cols);
 
 	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_downloads"));
-	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(model));
+	gtk_tree_view_set_model(treeview, create_downloads_model());
 	treeview_downloads = treeview;
 
 	selection = gtk_tree_view_get_selection(treeview);
@@ -588,12 +614,10 @@ downloads_gui_init(void)
 		G_CALLBACK(on_treeview_downloads_button_press_event), NULL);
 
 	/* Create and setup the queued downloads treeview */
-	STATIC_ASSERT(c_queue_num == G_N_ELEMENTS(queue_cols));
-	model = gtk_tree_store_newv(G_N_ELEMENTS(queue_cols), queue_cols);
 
 	treeview = GTK_TREE_VIEW(lookup_widget
 		(main_window, "treeview_downloads_queue"));
-	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(model));
+	gtk_tree_view_set_model(treeview, create_queue_model());
 	treeview_downloads_queue = treeview;
 
 	selection = gtk_tree_view_get_selection(treeview);

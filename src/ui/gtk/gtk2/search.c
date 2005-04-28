@@ -911,6 +911,31 @@ add_results_column(
 		GINT_TO_POINTER(id));
 }
 
+static GtkTreeModel *
+create_searches_model(void)
+{
+	GType columns[c_sl_num];
+	GtkListStore *store;
+	guint i;
+
+	STATIC_ASSERT(c_sl_num == G_N_ELEMENTS(columns));
+#define SET(c, x) case (c): columns[i] = (x); break
+	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+		switch (i) {
+		SET(c_sl_name, G_TYPE_STRING);
+		SET(c_sl_hit, G_TYPE_INT);
+		SET(c_sl_new, G_TYPE_INT);
+		SET(c_sl_fg, GDK_TYPE_COLOR);
+		SET(c_sl_bg, GDK_TYPE_COLOR);
+		SET(c_sl_sch, G_TYPE_POINTER);
+		}
+	}
+#undef SET
+
+	store = gtk_list_store_newv(G_N_ELEMENTS(columns), columns);
+	return GTK_TREE_MODEL(store);
+}
+
 
 /***
  *** Public functions
@@ -919,15 +944,6 @@ add_results_column(
 void
 search_gui_init(void)
 {
-	GType types[] = {
-		G_TYPE_STRING,
-		G_TYPE_INT,
-		G_TYPE_INT,
-		GDK_TYPE_COLOR,
-		GDK_TYPE_COLOR,
-		G_TYPE_POINTER
-	};
-    GtkListStore *store;
     GtkTreeView *tv;
 	search_t *current_search;
 
@@ -943,9 +959,7 @@ search_gui_init(void)
 	g_signal_connect(GTK_OBJECT(tree_view_search), "button_press_event",
 		G_CALLBACK(on_tree_view_search_button_press_event), NULL);
 
-	STATIC_ASSERT(c_sl_num == G_N_ELEMENTS(types));
-	store = gtk_list_store_newv(G_N_ELEMENTS(types), types);
-	gtk_tree_view_set_model(tree_view_search, GTK_TREE_MODEL(store));
+	gtk_tree_view_set_model(tree_view_search, create_searches_model());
 	add_list_columns(tree_view_search);
 	g_signal_connect(G_OBJECT(tree_view_search),
 		"cursor-changed",
@@ -1235,31 +1249,33 @@ search_gui_set_current_search(search_t *sch)
 }
 
 static GtkTreeModel *
-create_model(void)
+create_results_model(void)
 {
-	GType columns[] = {
-		G_TYPE_STRING,		/* File */
-		G_TYPE_STRING,		/* Extension */
-		G_TYPE_STRING,		/* Size */
-		G_TYPE_STRING,		/* Source counter */
-		G_TYPE_STRING,		/* Location */
-		G_TYPE_STRING,		/* Metadata */
-		G_TYPE_STRING,		/* Info */
-		/* The following columns are invisible */
-		GDK_TYPE_COLOR,		/* Foreground */
-		GDK_TYPE_COLOR,		/* Background */
-		G_TYPE_POINTER		/* (record_t *) */
-	};
-	GtkTreeStore *model;
+	GType columns[c_sr_num];
+	GtkTreeStore *store;
+	guint i;
 
 	STATIC_ASSERT(c_sr_num == G_N_ELEMENTS(columns));
+#define SET(c, x) case (c): columns[i] = (x); break
+	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+		switch (i) {
+		SET(c_sr_filename, G_TYPE_STRING);
+		SET(c_sr_ext, G_TYPE_STRING);
+		SET(c_sr_size, G_TYPE_STRING);
+		SET(c_sr_count, G_TYPE_STRING);
+		SET(c_sr_loc, G_TYPE_STRING);
+		SET(c_sr_meta, G_TYPE_STRING);
+		SET(c_sr_info, G_TYPE_STRING);
+		SET(c_sr_fg, GDK_TYPE_COLOR);
+		SET(c_sr_bg, GDK_TYPE_COLOR);
+		SET(c_sr_record, G_TYPE_POINTER);
+		}
+	}
+#undef SET
 
-	/* create tree store */
-	model = gtk_tree_store_newv(G_N_ELEMENTS(columns), columns);
-
-	return (GtkTreeModel *) model;
+	store = gtk_tree_store_newv(G_N_ELEMENTS(columns), columns);
+	return GTK_TREE_MODEL(store);
 }
-
 
 static GtkTreeViewColumn *
 add_column(
@@ -1337,7 +1353,7 @@ add_results_columns(GtkTreeView *treeview)
 void
 gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 {
-	GtkTreeModel *model = create_model();
+	GtkTreeModel *model = create_results_model();
 	GtkTreeSelection *selection;
 	GtkTreeView	*treeview;
 

@@ -473,6 +473,36 @@ add_column(gint column_id, GtkTreeIterCompareFunc sortfunc, GtkType column_type)
 			column_id, sortfunc, GINT_TO_POINTER(column_id), NULL);
 }
 
+static GtkListStore *
+create_uploads_model(void)
+{
+	GType columns[c_ul_num];
+	GtkListStore *store;
+	guint i;
+
+	STATIC_ASSERT(c_ul_num == G_N_ELEMENTS(columns));
+#define SET(c, x) case (c): columns[i] = (x); break
+	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+		switch (i) {
+		SET(c_ul_filename, G_TYPE_STRING);
+		SET(c_ul_host, G_TYPE_STRING);
+		SET(c_ul_loc, G_TYPE_STRING);
+		SET(c_ul_size, G_TYPE_STRING);
+		SET(c_ul_range, G_TYPE_STRING);
+		SET(c_ul_agent, G_TYPE_STRING);
+		SET(c_ul_progress, G_TYPE_INT);
+		SET(c_ul_status, G_TYPE_STRING);
+		SET(c_ul_fg, GDK_TYPE_COLOR);
+		SET(c_ul_data, G_TYPE_POINTER);
+		}
+	}
+#undef SET
+	
+	store = gtk_list_store_newv(G_N_ELEMENTS(columns), columns);
+	return GTK_LIST_STORE(store);
+}
+
+
 /***
  *** Public functions
  ***/
@@ -486,18 +516,6 @@ uploads_gui_early_init(void)
 void
 uploads_gui_init(void)
 {
-	GType types[] = {
-		G_TYPE_STRING,
-		G_TYPE_STRING,
-		G_TYPE_STRING,
-		G_TYPE_STRING,
-		G_TYPE_STRING,
-		G_TYPE_STRING,
-		G_TYPE_INT,
-		G_TYPE_STRING,
-		GDK_TYPE_COLOR,
-		G_TYPE_POINTER
-	};
 	static const struct {
 		gint id;
 		GtkTreeIterCompareFunc sortfunc;
@@ -514,9 +532,8 @@ uploads_gui_init(void)
 	GtkTreeView *treeview;
 	size_t i;
 
-	STATIC_ASSERT(G_N_ELEMENTS(types) == c_ul_num);
 	STATIC_ASSERT(G_N_ELEMENTS(cols) == UPLOADS_GUI_VISIBLE_COLUMNS);
-	store_uploads = gtk_list_store_newv(G_N_ELEMENTS(types), types);
+	store_uploads = create_uploads_model();
 
 	button_uploads_clear_completed = lookup_widget(main_window,
 		"button_uploads_clear_completed");
