@@ -4483,7 +4483,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[205].name = "node_requery_threshold";
-    gnet_property->props[205].desc = _("The minimum amount of seconds to enforce between two identical queries coming from leaf nodes.  If the requery happens before the amount specified, it is dropped and accounted for in the 'Message throttle' counter.  Too frequent requeries are harmful for the network, yet we must allow some amount of requerying given the dynamic nature of Gnutella connections.  You can't disable this checking, but you can lower the constraint significantly. Deviations from the default of 1700 have exponential effects on the network traffic.");
+    gnet_property->props[205].desc = _("The minimum amount of seconds to enforce between two identical queries from leaf nodes.  If the requery too early, it is dropped and accounted for in the 'Message throttle' counter.  Too frequent requeries are harmful for the network, yet we must allow some amount of requerying given the dynamic nature of Gnutella connections.  You can't disable this checking, but you can lower the constraint significantly. Deviations from the default of 1700 have exponential effects on the network traffic.");
     gnet_property->props[205].ev_changed = event_new("node_requery_threshold_changed");
     gnet_property->props[205].save = TRUE;
     gnet_property->props[205].vector_size = 1;
@@ -5037,7 +5037,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[234].name = "process_oob_queries";
-    gnet_property->props[234].desc = _("Whether gtk-gnutella should honour the request for out-of-band delivery of query hits via UDP, provided UDP listening is enabled.  It should not be necessary to open a port on your firewall to enable this as your node will be the origin of the UDP traffic and should therefore be able to receive replies sent to the transient UDP port opened by a masquerading firewall.  It is enabled by default because it is deemed safe, as your node controls the bulk of the emitted traffic and honours the bandwidth limitation you have put in place.");
+    gnet_property->props[234].desc = _("Whether gtk-gnutella should honour the request for out-of-band delivery of query hits via UDP, provided UDP support is enabled.  It should not be necessary to add a port forwarding to enable this as your node will be the origin of the UDP traffic and can therefore receive replies sent to the transient UDP port opened by a masquerading firewall.  It is enabled by default because it is deemed safe, as your node controls the bulk of the emitted traffic and honours the bandwidth limitations.");
     gnet_property->props[234].ev_changed = event_new("process_oob_queries_changed");
     gnet_property->props[234].save = TRUE;
     gnet_property->props[234].vector_size = 1;
@@ -5054,7 +5054,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[235].name = "send_oob_queries";
-    gnet_property->props[235].desc = _("Whether gtk-gnutella should send queries requesting out-of-band delivery of query hits via UDP.  This setting is ignored if you appear to be UDP-firewalled, i.e. cannot receive unsolicited UDP traffic.  You need to enable UDP support first.  This can cause the reception of vast quantities of UDP replies (negotiated normally by your node, but still), so you may choose to disable this feature.  If you do however, your hits will travel through the Gnutella network and can be dropped by any flow-controlled relaying node, severely limiting the results you can get for rare queries.");
+    gnet_property->props[235].desc = _("Whether gtk-gnutella should send queries requesting out-of-band delivery of query hits via UDP.  The setting is ignored if you seem to be UDP-firewalled, i.e. cannot receive unsolicited UDP traffic.  You need to enable UDP support first.  This can cause the reception of vast quantities of UDP replies, so you may choose to disable this feature.  If disabled, your hits will travel through the Gnutella network and can be dropped by any flow-controlled relaying node, limiting the results you can get.");
     gnet_property->props[235].ev_changed = event_new("send_oob_queries_changed");
     gnet_property->props[235].save = TRUE;
     gnet_property->props[235].vector_size = 1;
@@ -5071,7 +5071,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[236].name = "proxy_oob_queries";
-    gnet_property->props[236].desc = _("Whether gtk-gnutella should, when running as ultra node, act as a proxy for leaf queries that are not requesting out-of-band delivery of query hits: gtk-gnutella will claim the hits from the remote nodes and forward the hits to the proper leaf.  This is extremely beneficial for the leaves, but can cause huge bursts of UDP traffic coming back to your ultra node.  You may choose to disable this, but all the ultra nodes you are connected to will have to support the burden of relaying the hits, possibly dropping other query messages and lowering the efficiency of the search network.");
+    gnet_property->props[236].desc = _("Whether gtk-gnutella should, when running as ultrapeer, act as proxy for leaf queries that are not requesting OOB delivery of query hits: gtk-gnutella will claim the hits from the remote nodes and forward the hits to the proper leaf.  This is very beneficial for the leaves, but can cause huge bursts of UDP traffic coming back to you.  If you disable it all ultrapeers connected to you will have to relay the hits, possibly dropping other query messages and lowering the efficiency of the search network.");
     gnet_property->props[236].ev_changed = event_new("proxy_oob_queries_changed");
     gnet_property->props[236].save = TRUE;
     gnet_property->props[236].vector_size = 1;
