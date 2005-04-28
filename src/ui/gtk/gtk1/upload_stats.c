@@ -61,8 +61,8 @@ static gint ul_rows = 0;
 /*
  * this is me, dreaming of gtk 2.0...
  */
-static gint ul_find_row_by_upload(
-	const gchar *name, guint64 size, struct ul_stats **s)
+static gint
+ul_find_row_by_upload(const gchar *name, guint64 size, struct ul_stats **s)
 {
 	gint i;
     GtkCList *clist =
@@ -92,15 +92,18 @@ static gint ul_find_row_by_upload(
 }
 
 /* Public functions */
-void upload_stats_gui_init(void)
+void
+upload_stats_gui_init(void)
 {
 }
 
-void upload_stats_gui_shutdown(void)
+void
+upload_stats_gui_shutdown(void)
 {
 }
 
-void upload_stats_gui_add(struct ul_stats *stat)
+void
+upload_stats_gui_add(struct ul_stats *s)
 {
 	gchar *rowdata[5];
 	gint row;
@@ -110,12 +113,12 @@ void upload_stats_gui_add(struct ul_stats *stat)
 	gchar norm_tmp[16];
     GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
 
-	g_strlcpy(size_tmp, short_size(stat->size), sizeof(size_tmp));
-	gm_snprintf(attempts_tmp, sizeof(attempts_tmp), "%u", stat->attempts);
-	gm_snprintf(complete_tmp, sizeof(complete_tmp), "%u", stat->complete);
-	gm_snprintf(norm_tmp, sizeof(norm_tmp), "%.3f", stat->norm);
+	g_strlcpy(size_tmp, short_size(s->size), sizeof(size_tmp));
+	gm_snprintf(attempts_tmp, sizeof(attempts_tmp), "%u", s->attempts);
+	gm_snprintf(complete_tmp, sizeof(complete_tmp), "%u", s->complete);
+	gm_snprintf(norm_tmp, sizeof(norm_tmp), "%.3f", s->norm);
 
-	rowdata[c_us_filename] = stat->filename;
+	rowdata[c_us_filename] = s->filename;
 	rowdata[c_us_size] = size_tmp;
 	rowdata[c_us_attempts] = attempts_tmp;
 	rowdata[c_us_complete] = complete_tmp;
@@ -124,7 +127,7 @@ void upload_stats_gui_add(struct ul_stats *stat)
     row = gtk_clist_insert(clist, 0, rowdata);
 	ul_rows++;
 
-	gtk_clist_set_row_data_full(clist, row, stat, NULL);
+	gtk_clist_set_row_data_full(clist, row, s, NULL);
 
     /* FIXME: should use auto_sort? */
 	gtk_clist_sort(clist);
@@ -134,33 +137,38 @@ void upload_stats_gui_add(struct ul_stats *stat)
 /*
  * Called when a row of the upload stats should be updated
  */
-void upload_stats_gui_update(const gchar *name, guint64 size)
+void
+upload_stats_gui_update(const gchar *name, guint64 size)
 {
 	GtkCList *clist;
 	gint row;
-	struct ul_stats *stat;
+	struct ul_stats *s;
 	static gchar tmpstr[16];
 
 	/* find this file in the clist_ul_stats */
-	row = ul_find_row_by_upload(name, size, &stat);
-	g_assert(-1 != row);
+	row = ul_find_row_by_upload(name, size, &s);
+	if (-1 == row) {
+		g_assert_not_reached();
+		return;
+	}
 
 	clist = GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
 
 	/* set attempt cell contents */
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%d", stat->attempts);
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%d", s->attempts);
 	gtk_clist_set_text(clist, row, c_us_attempts, tmpstr);
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%d", stat->complete);
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%d", s->complete);
 	gtk_clist_set_text(clist, row, c_us_complete, tmpstr);
-	stat->norm = (gfloat) stat->bytes_sent / (gfloat) stat->size;
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%.3f", stat->norm);
+	s->norm = (gfloat) s->bytes_sent / (gfloat) s->size;
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%.3f", s->norm);
 	gtk_clist_set_text(clist, row, c_us_norm, tmpstr);
 
 	/* FIXME: use auto-sort? */
 	gtk_clist_sort(clist);
 }
 
-void upload_stats_gui_clear_all(void)
+void
+upload_stats_gui_clear_all(void)
 {
     GtkCList *clist =
         GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
@@ -169,4 +177,4 @@ void upload_stats_gui_clear_all(void)
 	ul_rows = 0;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
