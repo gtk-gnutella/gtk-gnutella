@@ -69,8 +69,8 @@ gboolean event_subscriber_active(struct event *evt);
  * T_NORMAL: will call all subscribers in the chain. Use for
  *           callbacks with a void return type.
  */
-#define T_VETO(sig, ...)	if (((sig) vars_.s->cb)(__VA_ARGS__)) break;
-#define T_NORMAL(sig, ...)	((sig) vars_.s->cb)(__VA_ARGS__);
+#define T_VETO(sig, params)	if (((sig) vars_.s->cb) params ) break;
+#define T_NORMAL(sig, params)	((sig) vars_.s->cb) params ;
 
 #define event_trigger(ev, callback) G_STMT_START {				  		 	\
 	struct {																\
@@ -123,9 +123,7 @@ void real_event_table_destroy(struct event_table *t, gboolean cleanup);
 
 
 void event_table_add_event(struct event_table *t, struct event *evt);
-
 void event_table_remove_event(struct event_table *t, struct event *evt);
-
 void event_table_remove_all(struct event_table *t);
 
 #endif	/* _event_h_ */

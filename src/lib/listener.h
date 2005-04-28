@@ -59,14 +59,14 @@ G_STMT_START {																\
 	CAT2(signal,_listeners) = g_slist_remove(CAT2(signal,_listeners), p);	\
 } G_STMT_END
 
-#define LISTENER_EMIT(signal, ...)											\
+#define LISTENER_EMIT(signal, params)										\
 G_STMT_START {																\
 	GSList *sl;													 			\
 	for (sl = CAT2(signal,_listeners); sl != NULL; sl = g_slist_next(sl)) { \
 		CAT2(signal,_listener_t) fn;										\
 		g_assert(NULL != sl->data);	  										\
 		fn = (CAT2(signal,_listener_t)) cast_gpointer_to_func(sl->data);	\
-		fn(__VA_ARGS__);													\
+		fn params;															\
 	}																		\
 } G_STMT_END
 

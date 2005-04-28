@@ -187,8 +187,8 @@ upload_remove_upload_info_changed_listener(upload_info_changed_listener_t l)
 static void
 upload_fire_upload_added(gnutella_upload_t *n)
 {
-    LISTENER_EMIT(upload_added, n->upload_handle,
-        running_uploads, registered_uploads);
+    LISTENER_EMIT(upload_added,
+		(n->upload_handle, running_uploads, registered_uploads));
 	gnet_prop_set_guint32_val(PROP_UL_RUNNING, running_uploads);
 	gnet_prop_set_guint32_val(PROP_UL_REGISTERED, registered_uploads);
 }
@@ -196,8 +196,8 @@ upload_fire_upload_added(gnutella_upload_t *n)
 static void
 upload_fire_upload_removed(gnutella_upload_t *n, const gchar *reason)
 {
-    LISTENER_EMIT(upload_removed, n->upload_handle, reason,
-        running_uploads, registered_uploads);
+    LISTENER_EMIT(upload_removed,
+		(n->upload_handle, reason, running_uploads, registered_uploads));
 	gnet_prop_set_guint32_val(PROP_UL_RUNNING, running_uploads);
 	gnet_prop_set_guint32_val(PROP_UL_REGISTERED, registered_uploads);
 }
@@ -205,8 +205,8 @@ upload_fire_upload_removed(gnutella_upload_t *n, const gchar *reason)
 void
 upload_fire_upload_info_changed(gnutella_upload_t *n)
 {
-    LISTENER_EMIT(upload_info_changed, n->upload_handle,
-        running_uploads, registered_uploads);
+    LISTENER_EMIT(upload_info_changed,
+		(n->upload_handle, running_uploads, registered_uploads));
 }
 
 /***

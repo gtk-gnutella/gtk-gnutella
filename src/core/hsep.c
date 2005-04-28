@@ -966,7 +966,7 @@ hsep_fire_global_table_changed(time_t now)
 		hsep_get_global_table(table, G_N_ELEMENTS(table));
 
 		event_trigger(hsep_global_table_changed_event,
-		    T_NORMAL(hsep_global_listener_t, table, G_N_ELEMENTS(table)));
+		    T_NORMAL(hsep_global_listener_t, (table, G_N_ELEMENTS(table))));
 	}
 }
 

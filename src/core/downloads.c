@@ -5192,7 +5192,7 @@ update_available_ranges(struct download *d, header_t *header)
 	 */
  send_event:
 	event_trigger(src_events[EV_SRC_RANGES_CHANGED],
-				  T_NORMAL(src_listener_t, d->src_handle));
+				  T_NORMAL(src_listener_t, (d->src_handle)));
 }
 
 /**

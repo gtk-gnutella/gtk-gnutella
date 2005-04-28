@@ -363,7 +363,7 @@ static void
 share_emit_search_request(
 	query_type_t type, const gchar *query, guint32 ip, guint16 port)
 {
-    LISTENER_EMIT(search_request, type, query, ip, port);
+    LISTENER_EMIT(search_request, (type, query, ip, port));
 }
 
 /* ----------------------------------------- */

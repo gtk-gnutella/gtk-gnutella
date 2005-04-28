@@ -1705,9 +1705,8 @@ file_info_free_outname_kv(gpointer key, gpointer val, gpointer unused_x)
      * it's handle.
      */
 
-    event_trigger(
-        fi_events[EV_FI_REMOVED],
-        T_NORMAL(fi_listener_t, fi->fi_handle));
+    event_trigger(fi_events[EV_FI_REMOVED],
+        T_NORMAL(fi_listener_t, (fi->fi_handle)));
     file_info_drop_handle(fi->fi_handle);
 
 	fi->hashed = FALSE;
@@ -1869,9 +1868,8 @@ file_info_hash_insert(struct dl_file_info *fi)
 
 	gnet_prop_set_guint32_val(PROP_FI_ALL_COUNT, fi_all_count + 1);
 
-    event_trigger(
-        fi_events[EV_FI_ADDED],
-        T_NORMAL(fi_listener_t, fi->fi_handle));
+    event_trigger(fi_events[EV_FI_ADDED],
+        T_NORMAL(fi_listener_t, (fi->fi_handle)));
 }
 
 /**
@@ -1902,9 +1900,8 @@ file_info_hash_remove(struct dl_file_info *fi)
 	 * free its handle.
      */
 
-    event_trigger(
-        fi_events[EV_FI_REMOVED],
-        T_NORMAL(fi_listener_t, fi->fi_handle));
+    event_trigger(fi_events[EV_FI_REMOVED],
+        T_NORMAL(fi_listener_t, (fi->fi_handle)));
 
     file_info_drop_handle(fi->fi_handle);
 
@@ -3347,9 +3344,8 @@ again:
 	else if (fi->dirty)
 		file_info_store_binary(d->file_info);
 
-    event_trigger(
-        fi_events[EV_FI_STATUS_CHANGED],
-        T_NORMAL(fi_listener_t, fi->fi_handle));
+    event_trigger(fi_events[EV_FI_STATUS_CHANGED],
+        T_NORMAL(fi_listener_t, (fi->fi_handle)));
 }
 
 /**
@@ -3389,7 +3385,7 @@ file_info_clear_download(struct download *d, gboolean lifecount)
 	 * needs to know about them.
 	 */
 	event_trigger(fi_events[EV_FI_STATUS_CHANGED_TRANSIENT],
-		      T_NORMAL(fi_listener_t, fi->fi_handle));
+	      T_NORMAL(fi_listener_t, (fi->fi_handle)));
 }
 
 /**
@@ -4303,9 +4299,8 @@ file_info_add_source(struct dl_file_info *fi, struct download *dl)
 		g_assert(fi_with_source_count <= fi_all_count);
 	}
 
-    event_trigger(
-        fi_events[EV_FI_SRC_ADDED],
-        T_NORMAL(fi_src_listener_t, fi->fi_handle, dl->src_handle));
+    event_trigger(fi_events[EV_FI_SRC_ADDED],
+        T_NORMAL(fi_src_listener_t, (fi->fi_handle, dl->src_handle)));
 }
 
 /**
@@ -4322,9 +4317,8 @@ file_info_remove_source(
     g_assert(fi->refcount > 0);
 	g_assert(fi->hashed);
 
-    event_trigger(
-        fi_events[EV_FI_SRC_REMOVED],
-        T_NORMAL(fi_src_listener_t, fi->fi_handle, dl->src_handle));
+    event_trigger(fi_events[EV_FI_SRC_REMOVED],
+        T_NORMAL(fi_src_listener_t, (fi->fi_handle, dl->src_handle)));
 
     fi->refcount--;
     fi->dirty_status = TRUE;
@@ -4365,9 +4359,8 @@ fi_notify_helper(gpointer unused_key, gpointer value, gpointer unused_udata)
 
     fi->dirty_status = FALSE;
 
-    event_trigger(
-        fi_events[EV_FI_STATUS_CHANGED],
-        T_NORMAL(fi_listener_t, fi->fi_handle));
+    event_trigger(fi_events[EV_FI_STATUS_CHANGED],
+        T_NORMAL(fi_listener_t, (fi->fi_handle)));
 }
 
 void
@@ -4744,9 +4737,8 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	/*
 	 * Trigger a changed ranges event so that others can use the updated info.
 	 */
-	event_trigger(
-        fi_events[EV_FI_RANGES_CHANGED],
-        T_NORMAL(fi_listener_t, d->file_info->fi_handle));
+	event_trigger(fi_events[EV_FI_RANGES_CHANGED],
+        T_NORMAL(fi_listener_t, (d->file_info->fi_handle)));
 }
 
 

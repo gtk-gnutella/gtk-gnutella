@@ -294,26 +294,26 @@ static void
 node_fire_node_added(gnutella_node_t *n)
 {
     n->last_update = time((time_t *)NULL);
-    LISTENER_EMIT(node_added, n->node_handle);
+    LISTENER_EMIT(node_added, (n->node_handle));
 }
 
 static void
 node_fire_node_removed(gnutella_node_t *n)
 {
     n->last_update = time((time_t *)NULL);
-    LISTENER_EMIT(node_removed, n->node_handle);
+    LISTENER_EMIT(node_removed, (n->node_handle));
 }
 
 static void
 node_fire_node_info_changed(gnutella_node_t *n)
 {
-    LISTENER_EMIT(node_info_changed, n->node_handle);
+    LISTENER_EMIT(node_info_changed, (n->node_handle));
 }
 
 static void
 node_fire_node_flags_changed(gnutella_node_t *n)
 {
-    LISTENER_EMIT(node_flags_changed, n->node_handle);
+    LISTENER_EMIT(node_flags_changed, (n->node_handle));
 }
 
 /***

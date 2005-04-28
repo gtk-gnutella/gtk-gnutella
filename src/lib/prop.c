@@ -460,9 +460,8 @@ prop_emit_prop_changed(prop_set_t *ps, property_t prop)
 {
 	g_assert(ps != NULL);
 
-	event_trigger(
-		PROP(ps,prop).ev_changed,
-		T_VETO(prop_changed_listener_t, prop));
+	event_trigger(PROP(ps,prop).ev_changed,
+		T_VETO(prop_changed_listener_t, (prop)));
 
 	if (PROP(ps,prop).save)
 		ps->dirty = TRUE;
