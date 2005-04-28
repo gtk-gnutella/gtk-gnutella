@@ -136,6 +136,7 @@ typedef enum {
 	EV_FI_SRC_ADDED,       /* fi_src_listener */
 	EV_FI_SRC_REMOVED,     /* fi_src_listener */
 	EV_FI_RANGES_CHANGED,  /* fi_listener */
+
 	EV_FI_EVENTS           /* Number of events in this domain */
 } gnet_fi_ev_t;
 

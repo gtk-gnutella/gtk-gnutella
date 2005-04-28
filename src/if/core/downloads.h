@@ -44,6 +44,7 @@ typedef enum {
 	EV_SRC_INFO_CHANGED,
 	EV_SRC_STATUS_CHANGED,
 	EV_SRC_RANGES_CHANGED,
+
 	EV_SRC_EVENTS /* Number of events in this domain */
 } gnet_src_ev_t;
 
