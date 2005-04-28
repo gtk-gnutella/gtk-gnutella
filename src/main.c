@@ -512,8 +512,10 @@ static void log_init(void)
 	}
 }
 
+extern char **environ;
 
-gint main(gint argc, gchar **argv, gchar **env)
+int
+main(int argc, char **argv)
 {
 	gint i;
 
@@ -533,7 +535,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	set_signal(SIGUSR2, sig_malloc);
 #endif
 
-	gm_savemain(argc, argv, env);	/* For gm_setproctitle() */
+	gm_savemain(argc, argv, environ);	/* For gm_setproctitle() */
 
 	/* Our inits */
 	log_init();
