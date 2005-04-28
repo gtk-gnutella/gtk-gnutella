@@ -879,13 +879,12 @@ static void bg_task_ended(struct bgtask *bt)
  */
 void bg_sched_timer(void)
 {
-	struct bgtask *bt;
+	struct bgtask * volatile bt;
 	volatile gint remain = MAX_LIFE;
 	gint target;
 	volatile gint ticks;
 	bgret_t ret;
 
-	(void) &bt;	/* Shut up "clobbered by longjmp" warnings*/
 	g_assert(current_task == NULL);
 	g_assert(runcount >= 0);
 
