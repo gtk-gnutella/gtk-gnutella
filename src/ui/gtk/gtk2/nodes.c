@@ -110,7 +110,7 @@ static void add_column(
 static GtkListStore *
 create_nodes_model(void)
 {
-	GType columns[c_gnet_num];
+	static GType columns[c_gnet_num];
 	GtkListStore *store;
 	guint i;
 
@@ -128,6 +128,8 @@ create_nodes_model(void)
 		SET(c_gnet_info, G_TYPE_STRING);
 		SET(c_gnet_handle, G_TYPE_UINT);
 		SET(c_gnet_fg, GDK_TYPE_COLOR);
+		default:
+			g_assert_not_reached();
 		}
 	}
 #undef SET

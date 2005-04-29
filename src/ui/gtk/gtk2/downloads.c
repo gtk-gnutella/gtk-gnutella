@@ -502,7 +502,7 @@ add_queue_downloads_columns(GtkTreeView *treeview)
 static GtkTreeModel *
 create_downloads_model(void)
 {
-	GType columns[c_dl_num];
+	static GType columns[c_dl_num];
 	GtkTreeStore *store;
 	guint i;
 	
@@ -521,6 +521,8 @@ create_downloads_model(void)
 		SET(c_dl_fg, GDK_TYPE_COLOR);
 		SET(c_dl_bg, GDK_TYPE_COLOR);
 		SET(c_dl_record, G_TYPE_POINTER);
+		default:
+			g_assert_not_reached();
 		}
 	}
 #undef SET
@@ -532,7 +534,7 @@ create_downloads_model(void)
 static GtkTreeModel *
 create_queue_model(void)
 {
-	GType columns[c_queue_num];
+	static GType columns[c_queue_num];
 	GtkTreeStore *store;
 	guint i;
 
@@ -540,15 +542,17 @@ create_queue_model(void)
 #define SET(c, x) case (c): columns[i] = (x); break
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
 		switch (i) {
-		SET(c_dl_filename, G_TYPE_STRING);
-		SET(c_dl_size, G_TYPE_STRING);
-		SET(c_dl_host, G_TYPE_STRING);
-		SET(c_dl_loc, G_TYPE_STRING);
-		SET(c_dl_server, G_TYPE_STRING);
-		SET(c_dl_status, G_TYPE_STRING);
-		SET(c_dl_fg, GDK_TYPE_COLOR);
-		SET(c_dl_bg, GDK_TYPE_COLOR);
-		SET(c_dl_record, G_TYPE_POINTER);
+		SET(c_queue_filename, G_TYPE_STRING);
+		SET(c_queue_size, G_TYPE_STRING);
+		SET(c_queue_host, G_TYPE_STRING);
+		SET(c_queue_loc, G_TYPE_STRING);
+		SET(c_queue_server, G_TYPE_STRING);
+		SET(c_queue_status, G_TYPE_STRING);
+		SET(c_queue_fg, GDK_TYPE_COLOR);
+		SET(c_queue_bg, GDK_TYPE_COLOR);
+		SET(c_queue_record, G_TYPE_POINTER);
+		default:
+			g_assert_not_reached();
 		}
 	}
 #undef SET

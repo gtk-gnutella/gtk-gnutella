@@ -914,7 +914,7 @@ add_results_column(
 static GtkTreeModel *
 create_searches_model(void)
 {
-	GType columns[c_sl_num];
+	static GType columns[c_sl_num];
 	GtkListStore *store;
 	guint i;
 
@@ -928,6 +928,8 @@ create_searches_model(void)
 		SET(c_sl_fg, GDK_TYPE_COLOR);
 		SET(c_sl_bg, GDK_TYPE_COLOR);
 		SET(c_sl_sch, G_TYPE_POINTER);
+		default:
+			g_assert_not_reached();
 		}
 	}
 #undef SET
@@ -1251,7 +1253,7 @@ search_gui_set_current_search(search_t *sch)
 static GtkTreeModel *
 create_results_model(void)
 {
-	GType columns[c_sr_num];
+	static GType columns[c_sr_num];
 	GtkTreeStore *store;
 	guint i;
 
@@ -1269,6 +1271,8 @@ create_results_model(void)
 		SET(c_sr_fg, GDK_TYPE_COLOR);
 		SET(c_sr_bg, GDK_TYPE_COLOR);
 		SET(c_sr_record, G_TYPE_POINTER);
+		default:
+			g_assert_not_reached();
 		}
 	}
 #undef SET

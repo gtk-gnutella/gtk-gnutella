@@ -476,7 +476,7 @@ add_column(gint column_id, GtkTreeIterCompareFunc sortfunc, GtkType column_type)
 static GtkListStore *
 create_uploads_model(void)
 {
-	GType columns[c_ul_num];
+	static GType columns[c_ul_num];
 	GtkListStore *store;
 	guint i;
 
@@ -494,6 +494,8 @@ create_uploads_model(void)
 		SET(c_ul_status, G_TYPE_STRING);
 		SET(c_ul_fg, GDK_TYPE_COLOR);
 		SET(c_ul_data, G_TYPE_POINTER);
+		default:
+			g_assert_not_reached();
 		}
 	}
 #undef SET
