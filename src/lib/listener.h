@@ -47,14 +47,14 @@ typedef GSList *listeners_t;
 
 #define LISTENER_ADD(signal, callback) 										\
 G_STMT_START {																\
-	gpointer p = cast_func_to_gpointer((GFunc) callback);					\
+	gpointer p = cast_func_to_gpointer((func_ptr_t) (callback));			\
 	g_assert(NULL != p);				 									\
 	CAT2(signal,_listeners) = g_slist_append(CAT2(signal,_listeners), p);	\
 } G_STMT_END
 
 #define LISTENER_REMOVE(signal, callback)									\
 G_STMT_START {																\
-	gpointer p = cast_func_to_gpointer((GFunc) callback);					\
+	gpointer p = cast_func_to_gpointer((func_ptr_t) (callback));			\
 	g_assert(NULL != p);													\
 	CAT2(signal,_listeners) = g_slist_remove(CAT2(signal,_listeners), p);	\
 } G_STMT_END
