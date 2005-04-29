@@ -1152,7 +1152,7 @@ random_init(void)
 	struct tms ticks;
 	guint32 seed;
 	guint8 digest[SHA1HashSize];
-	guint32 sys[7];
+	guint32 sys[17];
 	gint i;
 	gint j;
 	gboolean is_pipe = TRUE;
@@ -1211,18 +1211,34 @@ random_init(void)
 	 * Add timing entropy.
 	 */
 
-	sys[0] = start.tv_sec;
-	sys[1] = start.tv_usec;
+	i = 0;
+	sys[i++] = start.tv_sec;
+	sys[i++] = start.tv_usec;
 
-	sys[2] = times(&ticks);
-	sys[3] = ticks.tms_utime;
-	sys[4] = ticks.tms_stime;
+	sys[i++] = times(&ticks);
+	sys[i++] = ticks.tms_utime;
+	sys[i++] = ticks.tms_stime;
 
 	g_get_current_time(&end);
 
-	sys[5] = end.tv_sec - start.tv_sec;
-	sys[6] = end.tv_usec - start.tv_usec;
+	sys[i++] = end.tv_sec - start.tv_sec;
+	sys[i++] = end.tv_usec - start.tv_usec;
 
+	/* Add some host/user dependent noise */	
+	sys[i++] = getuid();
+	sys[i++] = getgid();
+	sys[i++] = getpid();
+	sys[i++] = getppid();
+
+	sys[i++] = g_str_hash(__DATE__);
+	sys[i++] = g_str_hash(__TIME__);
+	sys[i++] = g_str_hash(g_get_user_name());
+	sys[i++] = g_str_hash(g_get_real_name());
+	sys[i++] = g_str_hash(g_get_home_dir());
+
+	sys[i++] = GPOINTER_TO_UINT(&sys);
+
+	g_assert(i == G_N_ELEMENTS(sys));	
 	SHA1Input(&ctx, (guint8 *) sys, sizeof(sys));
 
 	/*
