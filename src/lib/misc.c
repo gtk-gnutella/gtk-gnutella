@@ -82,6 +82,60 @@ strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 #endif /* HAS_STRLCPY */
 
 /**
+ * Concatenates a variable number of NUL-terminated strings into ``dst''.
+ * The resulting string will be NUL-terminated unless ``size'' is zero. The
+ * returned value is the length of the resulting string if ``dst'' had been
+ * large enough. If the returned value is equal to or greater than ``size''
+ * the string is truncated. If ``size'' is zero, ``dst'' may be NULL to
+ * calculate the resulting string length.
+ *
+ * The list of strings must be terminated by a NULL pointer. The first
+ * list element may be NULL in which case zero is returned.
+ *
+ * @param dst the destination buffer.
+ * @param size the number of bytes ``dst'' can hold.
+ * @param s the first source string or NULL.
+ * @return the sum of the lengths of all passed strings.
+ */
+size_t
+concat_strings(gchar *dst, size_t size, const gchar *s, ...)
+{
+	va_list ap;
+	gchar *p = dst;
+
+	g_assert(0 == size || NULL != dst);
+	
+	va_start(ap, s);
+
+	if (size > 0) {
+		if (!s)
+			*p = '\0';
+		
+		while (NULL != s) {	
+			size_t len;
+
+			len = g_strlcpy(p, s, size);
+			s = va_arg(ap, const gchar *);
+			p += len;
+			if (len >= size) {
+				size = 0;
+				break;
+			}
+			size -= len;
+		}
+	}
+	
+	while (NULL != s) {	
+		p += strlen(s);
+		s = va_arg(ap, const gchar *);
+	}
+	
+	va_end(ap);
+
+	return p - dst;
+}
+
+/**
  * Checks whether ``prefix'' is a prefix of ``str''.
  * Maybe skip_prefix() would be a better name.
  *

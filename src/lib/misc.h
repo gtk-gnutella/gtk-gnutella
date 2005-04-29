@@ -63,6 +63,9 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 #define g_strlcpy strlcpy
 #endif
 
+size_t concat_strings(gchar *dst, size_t size,
+	const gchar *s, ...) WARN_NEED_SENTINEL;
+
 /**
  * Cast a ``const gchar *'' to ``gchar *''. This allows the compiler to
  * print a diagnostic message if you accidently try to deconstify an
@@ -92,11 +95,13 @@ cast_to_gpointer(gpointer p)
 	return p; 
 }
 
+typedef void (*func_ptr_t)(void);
+		
 static inline G_GNUC_CONST WARN_UNUSED_RESULT gpointer
-cast_func_to_gpointer(GFunc f)
+cast_func_to_gpointer(func_ptr_t f)
 {
 	union {
-		GFunc f;
+		func_ptr_t f;
 		gpointer p;
 	} u;
 
@@ -104,11 +109,11 @@ cast_func_to_gpointer(GFunc f)
 	return u.p;
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT GFunc
+static inline G_GNUC_CONST WARN_UNUSED_RESULT func_ptr_t
 cast_gpointer_to_func(gconstpointer p)
 {
 	union {
-		GFunc f;
+		func_ptr_t f;
 		gconstpointer p;
 	} u;
 
