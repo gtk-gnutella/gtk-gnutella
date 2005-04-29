@@ -196,8 +196,16 @@ do {				\
 #define WARN_UNUSED_RESULT
 #endif
 
+#if (__GNUC__ > 3)
+#define WARN_NEED_SENTINEL __attribute__((__sentinel__))
+#else /* GCC < 4 */
+#define WARN_NEED_SENTINEL 
+#endif
+
+
 #else /* !GCC */
 #define WARN_UNUSED_RESULT
+#define WARN_NEED_SENTINEL
 #endif /* GCC */
 
 /* CMP() returns sign of a-b */
