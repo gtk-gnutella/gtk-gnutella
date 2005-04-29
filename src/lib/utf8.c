@@ -269,7 +269,7 @@ utf8_is_valid_char(const gchar *s)
 			return 0;
 	}
 
-	if (UNISKIP(v) < len)
+	if ((guint) UNISKIP(v) < len)
 		return 0;
 
 	return len;
