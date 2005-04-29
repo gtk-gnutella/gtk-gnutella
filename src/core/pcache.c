@@ -241,7 +241,7 @@ build_pong_msg(guint32 sender_ip, guint16 sender_port,
 	WRITE_GUINT32_LE(info->files_count, pong->response.files_count);
 	WRITE_GUINT32_LE(info->kbytes_count, pong->response.kbytes_count);
 
-	sz = sizeof *pong;
+	sz = sizeof pong->response;
 
 	/*
 	 * Add GGEP meta-data if we have some to propagate.
@@ -356,7 +356,7 @@ build_pong_msg(guint32 sender_ip, guint16 sender_port,
 	WRITE_GUINT32_LE(sz, pong->header.size);
 
 	if (size)
-		*size = sz;
+		*size = sz + sizeof pong->header;
 
 	return pong;
 }
