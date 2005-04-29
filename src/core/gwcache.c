@@ -1107,12 +1107,13 @@ gwc_update_this(gchar *cache_url)
 	gchar *url = NULL;
 	gboolean found_alternate = FALSE;
 	gboolean has_data = FALSE;
-	gint rw;
+	size_t rw;
 	gint i;
 
 	g_assert(cache_url != NULL);
 
-	rw = gm_snprintf(gwc_tmp, sizeof(gwc_tmp), "%s?", cache_url);
+	rw = concat_strings(gwc_tmp, sizeof gwc_tmp, cache_url, "?", NULL);
+	g_return_if_fail(rw < sizeof gwc_tmp);
 
 	/*
 	 * Choose another URL randomly.
@@ -1196,7 +1197,8 @@ gwc_update_this(gchar *cache_url)
 	 * Provide GUI feedback in the statusbar.
 	 */
 
-	gm_snprintf(gwc_tmp, sizeof(gwc_tmp), _("Updated web cache %s"), cache_url);
+	concat_strings(gwc_tmp, sizeof(gwc_tmp),
+		_("Updated web cache "), cache_url, NULL);
 	gcu_statusbar_message(gwc_tmp);
 
 	parse_context_set(handle, MAX_OK_LINES);
