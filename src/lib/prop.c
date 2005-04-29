@@ -605,9 +605,9 @@ prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
 				if (newval < PROP(ps,prop).data.guint64.min)
 					newval = PROP(ps,prop).data.guint64.min;
 
-				gm_snprintf(buf, sizeof buf, "%s/%s",
-					uint64_to_string(PROP(ps,prop).data.guint64.min),
-					uint64_to_string2(PROP(ps,prop).data.guint64.max));
+				concat_strings(buf, sizeof buf,
+					uint64_to_string(PROP(ps,prop).data.guint64.min), "/",
+					uint64_to_string2(PROP(ps,prop).data.guint64.max), NULL);
 				g_warning("prop_set_guint64: [%s] new value out of bounds "
 					"(%s): %s (adjusting to %s)", PROP(ps,prop).name, buf,
 					uint64_to_string(*src), uint64_to_string2(newval));

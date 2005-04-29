@@ -1259,8 +1259,8 @@ qrp_add_file(struct shared_file *sf)
 	if (sha1_hash_available(sf)) {
 		gchar key[256];
 
-		gm_snprintf(key, sizeof key, "urn:sha1:%s",
-			sha1_base32(sf->sha1_digest));
+		concat_strings(key, sizeof key,
+			"urn:sha1:", sha1_base32(sf->sha1_digest), NULL);
 		if (NULL == g_hash_table_lookup(ht_seen_words, key)) {
 			g_hash_table_insert(ht_seen_words, g_strdup(key),
 				GINT_TO_POINTER(1));

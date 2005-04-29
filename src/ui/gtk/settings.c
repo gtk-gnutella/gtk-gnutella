@@ -2025,7 +2025,8 @@ guid_changed(property_t prop)
 										"label_nodes_guid"));
 		gchar buf[64];
 
-		gm_snprintf(buf, sizeof buf, "<tt>%s</tt>", guid_hex_str(guid_buf));
+		concat_strings(buf, sizeof buf,
+			"<tt>", guid_hex_str(guid_buf), "</tt>", NULL);
 		gtk_label_set_use_markup(label, TRUE);
 		gtk_label_set_markup(label, buf);
 	}
