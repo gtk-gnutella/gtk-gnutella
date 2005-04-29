@@ -332,38 +332,21 @@ static listeners_t search_got_results_listeners = NULL;
 void
 search_add_got_results_listener(search_got_results_listener_t l)
 {
-	gpointer p;
-	
-	p = cast_func_to_gpointer((GFunc) l);
-    g_assert(NULL != p);
-    search_got_results_listeners =
-        g_slist_append(search_got_results_listeners, p);
+	LISTENER_ADD(search_got_results, l);
 }
 
 void
 search_remove_got_results_listener(search_got_results_listener_t l)
 {
-	gpointer p;
-
-	p = cast_func_to_gpointer((GFunc) l);
-    g_assert(NULL != p);
-    search_got_results_listeners =
-        g_slist_remove(search_got_results_listeners, p);
+	LISTENER_REMOVE(search_got_results, l);
 }
 
 static void
 search_fire_got_results(GSList *sch_matched, const gnet_results_set_t *rs)
 {
-    GSList *sl;
     g_assert(rs != NULL);
 
-    for (sl = search_got_results_listeners; sl; sl = g_slist_next(sl)) {
-		search_got_results_listener_t l;
-		
-		g_assert(NULL != sl->data);
-		l = (search_got_results_listener_t) cast_gpointer_to_func(sl->data);
-        l(sch_matched, rs);
-	}
+	LISTENER_EMIT(search_got_results, (sch_matched, rs));
 }
 
 /***
@@ -2617,7 +2600,7 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 		sch->new_node_hook = g_hook_alloc(&node_added_hook_list);
 		sch->new_node_hook->data = sch;
 		sch->new_node_hook->func =
-			cast_func_to_gpointer((GFunc) node_added_callback);
+			cast_func_to_gpointer((func_ptr_t) node_added_callback);
 		g_hook_prepend(&node_added_hook_list, sch->new_node_hook);
 
 		/*
