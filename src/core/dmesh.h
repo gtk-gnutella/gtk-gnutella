@@ -45,10 +45,10 @@
  * it's an URN.
  */
 typedef struct {
+	gchar *name;			/* File name or URN string (atom) */
+	guint idx;				/* File index (URN_INDEX means URN access) */
 	guint32 ip;				/* Host IP */
 	guint16 port;			/* Host port */
-	guint idx;				/* File index (URN_INDEX means URN access) */
-	gchar *name;			/* File name or URN string (atom) */
 } dmesh_urlinfo_t;
 
 /*
