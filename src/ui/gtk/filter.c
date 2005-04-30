@@ -1579,22 +1579,22 @@ filter_update_size(GtkEntry *entry)
 		
 		for (i = 0; i < G_N_ELEMENTS(suffixes); i++) {
 			gboolean base2 = 0 != (i & 1);
-			const gchar *suffix = suffixes[i];
-			size_t len = strlen(suffix);
+			const gchar *q;
 			
 			if (base2) {
 				m2 *= 1024;
 			} else {
 				m10 *= 1000;
 			}
-			if (0 == ascii_strncasecmp(suffix, p, len)) {
+			q = is_strcaseprefix(p, suffixes[i]);
+			if (NULL != q) {
 				guint64 v, mp = base2 ? m2 : m10;
 				
 				v = size * mp;
 				if ((size == 0 || v > size) && size == v / mp) {
 					size = v;
 					error = 0;
-					p += len;
+					p = q;
 				} else {
 					error = ERANGE;
 				}
