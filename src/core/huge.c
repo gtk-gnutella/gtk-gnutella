@@ -621,8 +621,7 @@ get_next_file_from_list(void)
 
 		waiting_for_sha1_computation = waiting_for_sha1_computation->next;
 
-		cached = (struct sha1_cache_entry *)
-			g_hash_table_lookup(sha1_cache, (gconstpointer) l->file_name);
+		cached = g_hash_table_lookup(sha1_cache, l->file_name);
 
 		if (cached) {
 			struct stat buf;
@@ -896,8 +895,8 @@ queue_shared_file_for_sha1_computation(guint32 file_index,
  *
  * @return true (in the C sense) if it is, or false otherwise.
  */
-static gboolean cached_entry_up_to_date(
-	const struct sha1_cache_entry *cache_entry,
+static gboolean
+cached_entry_up_to_date(const struct sha1_cache_entry *cache_entry,
 	const struct shared_file *sf)
 {
 	return cache_entry->size == sf->file_size
@@ -911,8 +910,7 @@ gboolean sha1_is_cached(const struct shared_file *sf)
 {
 	const struct sha1_cache_entry *cached_sha1;
 
-	cached_sha1 = (const struct sha1_cache_entry *)
-		g_hash_table_lookup(sha1_cache, (gconstpointer) sf->file_path);
+	cached_sha1 = g_hash_table_lookup(sha1_cache, sf->file_path);
 
 	return cached_sha1 && cached_entry_up_to_date(cached_sha1, sf);
 }
@@ -926,8 +924,7 @@ request_sha1(struct shared_file *sf)
 {
 	struct sha1_cache_entry *cached_sha1;
 
-	cached_sha1 = (struct sha1_cache_entry *)
-		g_hash_table_lookup(sha1_cache, (gconstpointer) sf->file_path);
+	cached_sha1 = g_hash_table_lookup(sha1_cache, sf->file_path);
 
 	if (cached_sha1 && cached_entry_up_to_date(cached_sha1, sf)) {
 		set_sha1(sf, cached_sha1->digest);
