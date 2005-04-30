@@ -69,9 +69,9 @@ dmesh_url_error_t dmesh_url_errno;		/* Error from dmesh_url_parse() */
 static GHashTable *mesh = NULL;
 
 struct dmesh {				/* A download mesh bucket */
+	GSList *entries;		/* The download mesh entries, dmesh_entry data */
 	time_t last_update;		/* Timestamp of last insertion in the mesh */
 	gint count;				/* Amount of entries in list */
-	GSList *entries;		/* The download mesh entries, dmesh_entry data */
 };
 
 struct dmesh_entry {
@@ -112,9 +112,9 @@ static GHashTable *ban_mesh = NULL;
 
 struct dmesh_banned {
 	dmesh_urlinfo_t *info;	/* The banned URL (same as key) */
-	time_t ctime;			/* Last time we saw this banned URL */
 	gpointer cq_ev;			/* Scheduled callout event */
 	const gchar *sha1;		/* The SHA1, if any */
+	time_t ctime;			/* Last time we saw this banned URL */
 };
 
 /*
@@ -136,7 +136,7 @@ static gchar *dmesh_urlinfo_to_gchar(const dmesh_urlinfo_t *info);
 static guint
 urlinfo_hash(gconstpointer key)
 {
-	const dmesh_urlinfo_t *info = (const dmesh_urlinfo_t *) key;
+	const dmesh_urlinfo_t *info = key;
 	guint hash = 0;
 
 	WRITE_GUINT32_LE(info->ip, &hash);	/* Reverse IP, 192.x.y.z -> z.y.x.192 */
@@ -153,8 +153,7 @@ urlinfo_hash(gconstpointer key)
 static gint
 urlinfo_eq(gconstpointer a, gconstpointer b)
 {
-	const dmesh_urlinfo_t *ia = (const dmesh_urlinfo_t *) a;
-	const dmesh_urlinfo_t *ib = (const dmesh_urlinfo_t *) b;
+	const dmesh_urlinfo_t *ia = a, *ib = b;
 
 	return ia->ip == ib->ip		&&
 		ia->port == ib->port	&&
@@ -182,38 +181,35 @@ dmesh_init(void)
 static gint
 dmesh_entry_cmp(gconstpointer a, gconstpointer b)
 {
-	const struct dmesh_entry *ae = (const struct dmesh_entry *) a;
-	const struct dmesh_entry *be = (const struct dmesh_entry *) b;
+	const struct dmesh_entry *ae = a, *be = b;
 
 	return delta_time(be->stamp, ae->stamp);
 }
 
-/*
- * dmesh_entry_free
- *
+/**
  * Free download mesh entry.
  */
-static void dmesh_entry_free(struct dmesh_entry *dme)
+static void
+dmesh_entry_free(struct dmesh_entry *dme)
 {
 	g_assert(dme);
 
 	if (dme->url.name)
 		atom_str_free(dme->url.name);
 
-	wfree(dme, sizeof(*dme));
+	wfree(dme, sizeof *dme);
 }
 
-/*
- * dmesh_urlinfo_free
- *
+/**
  * Free a dmesh_urlinfo_t structure.
  */
-static void dmesh_urlinfo_free(dmesh_urlinfo_t *info)
+static void
+dmesh_urlinfo_free(dmesh_urlinfo_t *info)
 {
 	g_assert(info);
 
 	atom_str_free(info->name);
-	wfree(info, sizeof(*info));
+	wfree(info, sizeof *info);
 }
 
 /**
@@ -222,11 +218,11 @@ static void dmesh_urlinfo_free(dmesh_urlinfo_t *info)
 static void
 dmesh_ban_expire(cqueue_t *unused_cq, gpointer obj)
 {
-	struct dmesh_banned *dmb = (struct dmesh_banned *) obj;
+	struct dmesh_banned *dmb = obj;
 
 	(void) unused_cq;
 	g_assert(dmb);
-	g_assert((gpointer) dmb == g_hash_table_lookup(ban_mesh, dmb->info));
+	g_assert(dmb == g_hash_table_lookup(ban_mesh, dmb->info));
 
 	/*
 	 * Also remove the banned entry from the IP list by SHA1 which is ussed
@@ -257,7 +253,7 @@ dmesh_ban_expire(cqueue_t *unused_cq, gpointer obj)
 
 	g_hash_table_remove(ban_mesh, dmb->info);
 	dmesh_urlinfo_free(dmb->info);
-	wfree(dmb, sizeof(*dmb));
+	wfree(dmb, sizeof *dmb);
 }
 
 /**
@@ -292,13 +288,13 @@ dmesh_ban_add(const gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	if (dmb == NULL) {
 		dmesh_urlinfo_t *ui;
 
-		ui = walloc(sizeof(*info));
+		ui = walloc(sizeof *ui);
 		ui->ip = info->ip;
 		ui->port = info->port;
 		ui->idx = info->idx;
 		ui->name = atom_str_get(info->name);
 
-		dmb = walloc(sizeof(*dmb));
+		dmb = walloc(sizeof *dmb);
 		dmb->info = ui;
 		dmb->ctime = stamp;
 		dmb->cq_ev = cq_insert(callout_queue,
@@ -368,14 +364,15 @@ static const gchar * const parse_errstr[] = {
 const gchar *
 dmesh_url_strerror(dmesh_url_error_t errnum)
 {
-	static gchar http_error_str[128];
-
 	if ((gint) errnum < 0 || errnum >= G_N_ELEMENTS(parse_errstr))
 		return "Invalid error code";
 
 	if (errnum == DMESH_URL_HTTP_PARSER) {
-		gm_snprintf(http_error_str, sizeof(http_error_str),
-			"%s: %s", parse_errstr[errnum], http_url_strerror(http_url_errno));
+		static gchar http_error_str[128];
+
+		concat_strings(http_error_str, sizeof http_error_str,
+			parse_errstr[errnum], ": ", http_url_strerror(http_url_errno),
+			NULL);
 		return http_error_str;
 	}
 
@@ -394,11 +391,10 @@ dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
 	guint32 ip;
 	guint16 port;
 	guint idx;
-	guchar q;
-	gchar *file = NULL;
-	gchar *host = NULL;
+	const gchar *endptr, *file;
+    gchar *path = NULL, *host = NULL;
 
-	if (!http_url_parse(url, &port, &host, &file)) {
+	if (!http_url_parse(url, &port, &host, &path)) {
 		dmesh_url_errno = DMESH_URL_HTTP_PARSER;
 		return FALSE;
 	}
@@ -411,71 +407,39 @@ dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
 	 *    /get/1/name.txt
 	 */
 
-	if (1 == sscanf(file, "/get/%u", &idx))
-		goto ok;
+	if (NULL != (endptr = is_strprefix(path, "/get/"))) {
+		gint error;
 
-	/*
-	 * Test the second form of resource naming:
-	 *
-	 *    /uri-res/N2R?urn:sha1:ABCDEFGHIJKLMN....
-	 *
-	 * Because of a bug in sscanf(), we have to end with a %c, otherwise
-	 * the trailing text after the last parameter is NOT tested.
-	 */
-
-	idx = URN_INDEX;		/* Identifies second form */
-
-	if (1 == sscanf(file, "/uri-res/N2R%c", &q) && q == '?')
-		goto ok;
-
-	dmesh_url_errno = DMESH_URL_BAD_FILE_PREFIX;
-	return FALSE;
-
-ok:
-	/*
-	 * Now extract the filename or the URL.
-	 */
-
-	if (idx == URN_INDEX) {
-		file = strrchr(url, '/');
-		g_assert(file);					/* Or we'd have not parsed above */
-
-		/*
-		 * Verify we're right on the "/N2R?" part, i.e. that we're facing
-		 * an URL with an urn query, and not a get with an index:
-		 * Should they send us a "/get/4294967295/name.txt", we refuse it.
-		 * (4294967295 is URN_INDEX in decimal).
-		 */
-
-		if (!is_strprefix(file, "/N2R?")) {
+		idx = parse_uint32(endptr, &endptr, 10, &error);
+		if (!error && URN_INDEX == idx) {
 			dmesh_url_errno = DMESH_URL_RESERVED_INDEX;
 			return FALSE;					/* Index 0xffffffff is our mark */
 		}
-
-		file += 5;							/* Skip "/N2R?" */
-	} else {
-		guchar c;
-
-		file = strstr(url, "/get/");
-		g_assert(file);					/* Or we'd have not parsed above */
-
-		file += sizeof("/get/") - 1;	/* Go at first index char */
-
-		/*
-		 * We have to go past the index and make sure there's a "/" after it.
-		 */
-
-		while ((c = *file++) && isdigit(c))
-			/* empty */;
-
-		if (c != '/') {
+		
+		if (error || *endptr != '/') {
 			dmesh_url_errno = DMESH_URL_NO_FILENAME;
 			return FALSE;				/* Did not have "/get/234/" */
 		}
 
 		/* Ok, `file' points after the "/", at beginning of filename */
+		file = ++endptr;
+	} else if (NULL != (endptr = is_strprefix(path, "/uri-res/N2R?"))) {
+
+		/*
+		 * Test the second form of resource naming:
+		 *
+		 *    /uri-res/N2R?urn:sha1:ABCDEFGHIJKLMN....
+		 */
+
+		idx = URN_INDEX;		/* Identifies second form */
+		file = endptr;
+	} else {
+		dmesh_url_errno = DMESH_URL_BAD_FILE_PREFIX;
+		return FALSE;
 	}
 
+	g_assert(file != NULL);
+	
 	info->ip = ip;
 	info->port = port;
 	info->idx = idx;
@@ -490,7 +454,7 @@ ok:
 	 */
 
 	if (idx != URN_INDEX) {
-		gchar *unescaped = url_unescape(file, FALSE);
+		gchar *unescaped = url_unescape(deconstify_gchar(file), FALSE);
 		if (!unescaped) {
 			dmesh_url_errno = DMESH_URL_BAD_ENCODING;
 			return FALSE;
@@ -610,17 +574,20 @@ dmesh_dispose(const gchar *sha1)
 	gpointer key;
 	gpointer value;
 	gboolean found;
+	struct dmesh *dm;
 
 	found = g_hash_table_lookup_extended(mesh, sha1, &key, &value);
 
+	dm = value;
 	g_assert(found);
-	g_assert(((struct dmesh *) value)->count == 0);
-	g_assert(((struct dmesh *) value)->entries == NULL);
+	g_assert(dm->count == 0);
+	g_assert(dm->entries == NULL);
 
-	atom_sha1_free(key);
-	wfree(value, sizeof(struct dmesh));
-
+	/* Remove it from the hashtable before freeing key, just in case
+	 * that sha1 == key. */
 	g_hash_table_remove(mesh, sha1);
+	atom_sha1_free(key);
+	wfree(dm, sizeof *dm);
 }
 
 /**
@@ -633,16 +600,15 @@ dmesh_fill_info(dmesh_urlinfo_t *info,
 	const gchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name)
 {
 	static const gchar urnsha1[] = "urn:sha1:";
-	static gchar sha1_urn[SHA1_BASE32_SIZE + sizeof urnsha1];
+	static gchar urn[SHA1_BASE32_SIZE + sizeof urnsha1];
 
 	info->ip = ip;
 	info->port = port;
 	info->idx = idx;
 
 	if (idx == URN_INDEX) {
-		gm_snprintf(sha1_urn, sizeof(sha1_urn), "%s%s",
-			urnsha1, sha1_base32(sha1));
-		info->name = sha1_urn;
+		concat_strings(urn, sizeof urn, urnsha1, sha1_base32(sha1), NULL);
+		info->name = urn;
 	} else
 		info->name = name;
 }
@@ -748,7 +714,7 @@ dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
 
 	if (dm == NULL) {
-		dm = walloc(sizeof(*dm));
+		dm = walloc(sizeof *dm);
 
 		dm->count = 0;
 		dm->entries = NULL;
@@ -773,7 +739,7 @@ dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	 * Allocate new entry.
 	 */
 
-	dme = (struct dmesh_entry *) walloc(sizeof(*dme));
+	dme = (struct dmesh_entry *) walloc(sizeof *dme);
 
 	dme->inserted = now;
 	dme->stamp = stamp;
@@ -847,25 +813,24 @@ dmesh_add(gchar *sha1, guint32 ip, guint16 port, guint idx,
  * formatted URL should be quoted if emitted in a header, because it
  * contains a "," character.
  */
-static gint
+static size_t
 dmesh_urlinfo(const dmesh_urlinfo_t *info, gchar *buf,
 	size_t len, gboolean *quoting)
 {
 	size_t rw;
 	size_t maxslen = len - 1;			/* Account for trailing NUL */
+	const gchar *host;
 
 	g_assert(len > 0);
 	g_assert(len <= INT_MAX);
 	g_assert(info->name != NULL);
 
-	if (info->port == HTTP_PORT)
-		rw = gm_snprintf(buf, len, "http://%s", ip_to_gchar(info->ip));
-	else
-		rw = gm_snprintf(buf, len, "http://%s",
-			ip_port_to_gchar(info->ip, info->port));
-
+	host = info->port == HTTP_PORT
+			? ip_to_gchar(info->ip)
+			: ip_port_to_gchar(info->ip, info->port);
+	rw = concat_strings(buf, len, "http://", host, NULL);
 	if (rw >= maxslen)
-		return -1;
+		return (size_t) -1;
 
 	if (info->idx == URN_INDEX) {
 		rw += gm_snprintf(&buf[rw], len - rw, "/uri-res/N2R?%s", info->name);
@@ -882,7 +847,7 @@ dmesh_urlinfo(const dmesh_urlinfo_t *info, gchar *buf,
 			gint re = url_escape_into(info->name, &buf[rw], len - rw);
 
 			if (re < 0)
-				return -1;
+				return (size_t) -1;
 
 			rw += re;
 			if (rw < len)
@@ -899,7 +864,7 @@ dmesh_urlinfo(const dmesh_urlinfo_t *info, gchar *buf,
 			*quoting = NULL != strchr(info->name, ',');
 	}
 
-	return (rw >= maxslen) ? -1 : (gint) rw;
+	return rw < maxslen ? rw : (size_t) -1;
 }
 
 /**
@@ -910,44 +875,38 @@ dmesh_urlinfo_to_gchar(const dmesh_urlinfo_t *info)
 {
 	static gchar urlstr[1024];
 
-	(void) dmesh_urlinfo(info, urlstr, sizeof(urlstr) - 1, NULL);
-	urlstr[sizeof(urlstr) - 1] = '\0';
+	(void) dmesh_urlinfo(info, urlstr, sizeof urlstr, NULL);
 
 	return urlstr;
 }
 
 /**
  * Format mesh_entry in the provided buffer, as a compact ip:port address.
- * The port is even ommitted if it is the standard Gnutella one.
+ * The port is even omitted if it is the standard Gnutella one.
  *
  * Returns length of formatted entry, -1 if the address would be larger than
  * the buffer, or if no compact form can be derived for this entry (not an
  * URN_INDEX kind).
  */
-static gint
-dmesh_entry_compact(const struct dmesh_entry *dme, gchar *buf, size_t len)
+static size_t
+dmesh_entry_compact(const struct dmesh_entry *dme, gchar *buf, size_t size)
 {
-	size_t rw;
-	size_t maxslen = len - 1;				/* Account for trailing NUL */
 	const dmesh_urlinfo_t *info = &dme->url;
-	gchar *str;
+	const gchar *host;
+	size_t rw;
 
-	g_assert(len > 0);
-	g_assert(len <= INT_MAX);
+	g_assert(size > 0);
+	g_assert(size <= INT_MAX);
 
 	if (info->idx != URN_INDEX)
-		return -1;
+		return (size_t) -1;
 
-	str = (info->port == GTA_PORT) ?
-		ip_to_gchar(info->ip) :
-		ip_port_to_gchar(info->ip, info->port);
+	host = info->port == GTA_PORT
+		? ip_to_gchar(info->ip)
+		: ip_port_to_gchar(info->ip, info->port);
 
-	if (((rw = strlen(str))) >= maxslen)
-		return -1;
-
-	strncpy(buf, str, len);
-
-	return rw;
+	rw = g_strlcpy(buf, host, size);
+	return rw < size ? rw : (size_t) -1;
 }
 
 /**
@@ -957,23 +916,22 @@ dmesh_entry_compact(const struct dmesh_entry *dme, gchar *buf, size_t len)
  * @return length of formatted entry, -1 if the URL would be larger than
  * the buffer.
  */
-static gint
-dmesh_entry_url_stamp(const struct dmesh_entry *dme, gchar *buf, size_t len)
+static size_t
+dmesh_entry_url_stamp(const struct dmesh_entry *dme, gchar *buf, size_t size)
 {
 	size_t rw;
-	size_t maxslen = len - 1;			/* Account for trailing NUL */
 	gboolean quoting;
 
-	g_assert(len > 0);
-	g_assert(len <= INT_MAX);
+	g_assert(size > 0);
+	g_assert(size <= INT_MAX);
 
 	/*
 	 * Format the URL info first.
 	 */
 
-	rw = dmesh_urlinfo((const dmesh_urlinfo_t *) &dme->url, buf, len, &quoting);
-	if (-1 == (gint) rw)
-		return -1;
+	rw = dmesh_urlinfo(&dme->url, buf, size, &quoting);
+	if ((size_t) -1 == rw)
+		return (size_t) -1;
 
 	/*
 	 * If quoting is required, we need to surround the already formatted
@@ -981,8 +939,8 @@ dmesh_entry_url_stamp(const struct dmesh_entry *dme, gchar *buf, size_t len)
 	 */
 
 	if (quoting) {
-		if (rw + 2 >= maxslen)		/* Not enough room for 2 quotes */
-			return -1;
+		if (rw + 2 >= size)		/* Not enough room for 2 quotes */
+			return (size_t) -1;
 
 		g_memmove(buf + 1, buf, rw);
 		buf[0] = '"';
@@ -994,10 +952,10 @@ dmesh_entry_url_stamp(const struct dmesh_entry *dme, gchar *buf, size_t len)
 	 * Append timestamp.
 	 */
 
-	rw += gm_snprintf(&buf[rw], len - rw,
-		" %s", date_to_iso_gchar((time_t) dme->stamp));
+	rw += concat_strings(&buf[rw], size - rw,
+			" ", date_to_iso_gchar(dme->stamp), NULL);
 
-	return (rw >= maxslen) ? -1 : (gint) rw;
+	return rw < size ? rw : (size_t) -1;
 }
 
 /**
@@ -1009,9 +967,7 @@ dmesh_entry_to_gchar(const struct dmesh_entry *dme)
 {
 	static gchar urlstr[1024];
 
-	(void) dmesh_entry_url_stamp(dme, urlstr, sizeof(urlstr) - 1);
-	urlstr[sizeof(urlstr) - 1] = '\0';
-
+	(void) dmesh_entry_url_stamp(dme, urlstr, sizeof urlstr);
 	return urlstr;
 }
 
@@ -1271,7 +1227,8 @@ dmesh_alternate_location(const gchar *sha1,
 		ourselves.url.idx = URN_INDEX;
 		ourselves.url.name = NULL;
 
-		url_len = dmesh_entry_compact(&ourselves, url, sizeof(url));
+		url_len = dmesh_entry_compact(&ourselves, url, sizeof url);
+		g_assert((size_t) -1 != url_len && url_len < sizeof url);
 
 		if (!header_fmt_value_fits(fmt, url_len, maxslen))
 			goto nomore;
@@ -1349,7 +1306,7 @@ dmesh_alternate_location(const gchar *sha1,
 		gint npick = random_value(nleft - 1);
 		gint j;
 		gint n;
-		gint url_len;
+		size_t url_len;
 
 		/*
 		 * The `npick' variable is the index of the selected entry, all
@@ -1372,9 +1329,10 @@ dmesh_alternate_location(const gchar *sha1,
 
 		g_assert(delta_time(dme->inserted, last_sent) > 0);
 
-		url_len = dmesh_entry_compact(dme, url, sizeof(url));
+		url_len = dmesh_entry_compact(dme, url, sizeof url);
 
-		g_assert(url_len >= 0);			/* Buffer was large enough */
+		/* Buffer was large enough */
+		g_assert((size_t) -1 != url_len && url_len < sizeof url);
 
 		if (!header_fmt_value_fits(fmt, url_len, maxslen))
 			continue;
@@ -1420,18 +1378,16 @@ static GSList *
 dmesh_get_nonurn_altlocs(const gchar *sha1)
 {
     struct dmesh *dm;
-    GSList *l;
-	GSList *nonurn_altlocs = NULL;
+    GSList *sl, *nonurn_altlocs = NULL;
 
     g_assert(sha1);
 
-    dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
-
+    dm = g_hash_table_lookup(mesh, sha1);
     if (dm == NULL)				/* SHA1 unknown */
 		return NULL;
 
-	for (l = dm->entries; l ; l = l->next) {
-		struct dmesh_entry *dme = (struct dmesh_entry *) l->data;
+	for (sl = dm->entries; sl; sl = g_slist_next(sl)) {
+		struct dmesh_entry *dme = sl->data;
 
 		if (dme->url.idx != URN_INDEX)
 			nonurn_altlocs = g_slist_append(nonurn_altlocs, dme);
@@ -1451,16 +1407,18 @@ dmesh_get_nonurn_altlocs(const gchar *sha1)
 static GSList *
 dmesh_defer_nonurn_altloc(GSList *list, dmesh_urlinfo_t *url, time_t stamp)
 {
+    static const dmesh_deferred_url_t zero_defer;
     dmesh_deferred_url_t *defer;
 
     /* Allocate a structure */
-    defer = walloc0(sizeof(dmesh_deferred_url_t));
+    defer = walloc(sizeof *defer);
+	*defer = zero_defer;
 
     /*
 	 * Copy the structure, beware of atoms.
 	 */
 
-    defer->dmesh_url = walloc(sizeof(dmesh_urlinfo_t));
+    defer->dmesh_url = walloc(sizeof *defer->dmesh_url);
 	*defer->dmesh_url = *url;		/* struct copy */
     defer->dmesh_url->name = atom_str_get(url->name);
     defer->stamp = stamp;
@@ -1478,13 +1436,13 @@ dmesh_defer_nonurn_altloc(GSList *list, dmesh_urlinfo_t *url, time_t stamp)
  * from the GSList. Intended to be called from a g_slist_foreach. The
  * list itself needs to be freed afterwards
  */
-static void
+static inline void
 dmesh_free_deferred_altloc(dmesh_deferred_url_t *info, gpointer unused_udata)
 {
 	(void) unused_udata;
 	atom_str_free(info->dmesh_url->name);
-	wfree(info->dmesh_url, sizeof(dmesh_urlinfo_t));
-	wfree(info, sizeof(*info));
+	wfree(info->dmesh_url, sizeof *info->dmesh_url);
+	wfree(info, sizeof *info);
 }
 
 /**
@@ -1581,23 +1539,23 @@ dmesh_check_deferred_against_existing(gchar *sha1,
 static void
 dmesh_check_deferred_against_themselves(gchar *sha1, GSList *deferred_urls)
 {
-    GSList *l = deferred_urls;
-    gulong score;
     dmesh_deferred_url_t *first;
-	dmesh_deferred_url_t *current;
+    GSList *sl = deferred_urls;
 
-    first = l->data;
-    l = g_slist_next(l);
+    first = sl->data;
+    sl = g_slist_next(sl);
 
-	if (NULL == l) { /* Its probably correct, should we bin it? */
+	if (NULL == sl) { /* It's probably correct, should we bin it? */
 		if (dbg > 4)
 			printf("Only one altloc to check, currently dumping:\n%s\n",
 				first->dmesh_url->name);
 		return;
 	}
 
-	for (/*empty */; l; l = g_slist_next(l)) {
-		current = l->data;
+	for (/* NOTHING */; sl; sl = g_slist_next(sl)) {
+    	dmesh_deferred_url_t *current = sl->data;
+    	gulong score;
+
 		score = fuzzy_compare(first->dmesh_url->name, current->dmesh_url->name);
 		if (score < FUZZY_DROP) {
 			/* When anything fails, it's all over */
@@ -1606,26 +1564,25 @@ dmesh_check_deferred_against_themselves(gchar *sha1, GSList *deferred_urls)
 					"%s\n\t"
 					"(only scoring %lu against:\n\t"
 					"%s\n",
-				current->dmesh_url->name, score, first->dmesh_url->name);
+					current->dmesh_url->name, score, first->dmesh_url->name);
 			return;
 		}
 	}
 
     /* We made it this far, they must all match, lets add them to the dmesh */
-	for (l = deferred_urls; l; l = l->next) {
-		dmesh_deferred_url_t *def = l->data;
+	for (sl = deferred_urls; sl; sl = g_slist_next(sl)) {
+		dmesh_deferred_url_t *def = sl->data;
 		dmesh_urlinfo_t *url = def->dmesh_url;
 		gboolean ok;
 
 		ok = dmesh_raw_add(sha1, url, def->stamp);
 
 		if (dbg > 4) {
-			time_t now = time(NULL);
 			printf("MESH %s: %s consistent deferred \"%s\", stamp=%u age=%d\n",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
 				dmesh_urlinfo_to_gchar(url), (guint32) def->stamp,
-				(gint) delta_time(now, def->stamp));
+				(gint) delta_time(time(NULL), def->stamp));
 		}
 	}
 
@@ -1666,7 +1623,7 @@ dmesh_check_deferred_altlocs(gchar *sha1, GSList *deferred_urls)
 	} else
 		dmesh_check_deferred_against_themselves(sha1, deferred_urls);
 
-    g_slist_foreach(deferred_urls, (GFunc) dmesh_free_deferred_altloc, NULL);
+	G_SLIST_FOREACH(deferred_urls, dmesh_free_deferred_altloc, NULL);
     g_slist_free(deferred_urls);
 }
 
@@ -1680,18 +1637,15 @@ dmesh_check_deferred_altlocs(gchar *sha1, GSList *deferred_urls)
 gboolean
 dmesh_collect_sha1(gchar *value, gchar *digest)
 {
-	gchar *p = value;
+	gchar *p;
 
-	for (;;) {
-		guchar c;
+	for (p = value; NULL != p && '\0' != *p; /* NOTHING */) {
 
 		/*
 		 * Skip leading spaces, if any.
 		 */
 
 		p = skip_ascii_spaces(p);
-		c = *p;
-
 		if (urn_get_sha1(p, digest))
 			return TRUE;
 
@@ -1699,13 +1653,9 @@ dmesh_collect_sha1(gchar *value, gchar *digest)
 		 * Advance past the next ',', if any.
 		 */
 
-		while ((c = *p++)) {
-			if (c == ',')
-				break;
-		}
-
-		if (c == '\0')			/* Reached end of string w/o finding a SHA1 */
-			break;
+		p = strchr(p, ',');
+		if (p)
+			p++;
 	}
 
 	return FALSE;
@@ -1859,14 +1809,10 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 			 */
 
 			if (c == ',') {
-				if (
-					(p[1] == 'h' || p[1] == 'H') &&
-					0 == ascii_strncasecmp(&p[1], "http://", 7)
-
-				)
-					break;
-				if (p[1] != ' ')
+				if (p[1] == ' ')
 					goto next;
+				else if (is_strcaseprefix(&p[1], "http://"))
+					break;
 			}
 
 			if (c == ' ' || c == ',')
@@ -1940,22 +1886,15 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 		date = ++p;
 
 	more_date:
-		while ((c = *p)) {
+		for (/* NOTHING */; '\0' != (c = *p); p++) {
             /*
              * Limewire has a bug not to use the ',' separator, so
              * we assume a new urn is starting with "http://"
              *      -Richard 23/11/2002
              */
 
-            if (
-				(c == 'h' || c == 'H') &&
-				0 == ascii_strncasecmp(p, "http://", 7)
-			)
+            if (c == ',' || is_strcaseprefix(p, "http://"))
 				break;
-
-            if (c == ',')
-				break;
-			p++;
 		}
 
 		/*
@@ -2093,20 +2032,19 @@ static gint
 dmesh_alt_loc_fill(const gchar *sha1, dmesh_urlinfo_t *buf, gint count)
 {
 	struct dmesh *dm;
-	GSList *l;
+	GSList *sl;
 	gint i;
 
 	g_assert(sha1);
 	g_assert(buf);
 	g_assert(count > 0);
 
-	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
-
+	dm = g_hash_table_lookup(mesh, sha1);
 	if (dm == NULL)					/* SHA1 unknown */
 		return 0;
 
-	for (i = 0, l = dm->entries; l && i < count; l = l->next) {
-		struct dmesh_entry *dme = (struct dmesh_entry *) l->data;
+	for (i = 0, sl = dm->entries; sl && i < count; sl = g_slist_next(sl)) {
+		struct dmesh_entry *dme = sl->data;
 		dmesh_urlinfo_t *from, *to;
 
 		g_assert(i < MAX_ENTRIES);
@@ -2130,11 +2068,11 @@ dmesh_alt_loc_fill(const gchar *sha1, dmesh_urlinfo_t *buf, gint count)
 void
 dmesh_check_results_set(gnet_results_set_t *rs)
 {
-	GSList *l;
+	GSList *sl;
 	time_t now = time(NULL);
 
-	for (l = rs->records; l; l = l->next) {
-		gnet_record_t *rc = (gnet_record_t *) l->data;
+	for (sl = rs->records; sl; sl = g_slist_next(sl)) {
+		gnet_record_t *rc = sl->data;
 		dmesh_urlinfo_t info;
 		gboolean has = FALSE;
 
@@ -2149,7 +2087,7 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 		 * sharing this SHA1.
 		 */
 
-		has = (NULL != g_hash_table_lookup(mesh, rc->sha1));
+		has = NULL != g_hash_table_lookup(mesh, rc->sha1);
 
 		if (!has) {
 			struct shared_file *sf = shared_file_by_sha1(rc->sha1);
@@ -2199,8 +2137,7 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 void
 dmesh_multiple_downloads(gchar *sha1, filesize_t size, struct dl_file_info *fi)
 {
-	dmesh_urlinfo_t buffer[DMESH_MAX];
-	dmesh_urlinfo_t *p;
+	dmesh_urlinfo_t buffer[DMESH_MAX], *p;
 	gint n;
 	time_t now;
 
@@ -2210,7 +2147,7 @@ dmesh_multiple_downloads(gchar *sha1, filesize_t size, struct dl_file_info *fi)
 
 	now = time(NULL);
 
-	for (p = buffer; n; n--, p++) {
+	for (p = buffer; n > 0; n--, p++) {
 		if (dbg > 2)
 			printf("ALT-LOC queuing from MESH: %s\n",
 				dmesh_urlinfo_to_gchar(p));
@@ -2227,14 +2164,14 @@ dmesh_multiple_downloads(gchar *sha1, filesize_t size, struct dl_file_info *fi)
 static void
 dmesh_store_kv(gpointer key, gpointer value, gpointer udata)
 {
-	const struct dmesh *dm = (const struct dmesh *) value;
-	GSList *l;
-	FILE *out = (FILE *) udata;
+	const struct dmesh *dm = value;
+	FILE *out = udata;
+	GSList *sl;
 
-	fprintf(out, "%s\n", sha1_base32((const gchar *) key));
+	fprintf(out, "%s\n", sha1_base32(key));
 
-	for (l = dm->entries; l; l = l->next) {
-		const struct dmesh_entry *dme = (struct dmesh_entry *) l->data;
+	for (sl = dm->entries; sl; sl = g_slist_next(sl)) {
+		const struct dmesh_entry *dme = sl->data;
 		fprintf(out, "%s\n", dmesh_entry_to_gchar(dme));
 	}
 
@@ -2263,7 +2200,7 @@ dmesh_store_hash(const gchar *what, GHashTable *hash, const gchar *file,
 	if (!out)
 		return;
 
-	(*header_cb)(out);
+	header_cb(out);
 	g_hash_table_foreach(hash, store_cb, out);
 
 	file_config_close(out, &fp);
@@ -2370,13 +2307,13 @@ dmesh_retrieve(void)
 static void
 dmesh_ban_store_kv(gpointer key, gpointer value, gpointer udata)
 {
-	const struct dmesh_banned *dmb = (const struct dmesh_banned *) value;
-	FILE *out = (FILE *) udata;
+	const struct dmesh_banned *dmb = value;
+	FILE *out = udata;
 
-	g_assert(key == (gpointer) dmb->info);
+	g_assert(key == dmb->info);
 
-	fprintf(out, "%d %s\n",
-		(gint) dmb->ctime, dmesh_urlinfo_to_gchar(dmb->info));
+	fprintf(out, "%lu %s\n",
+		(gulong) dmb->ctime, dmesh_urlinfo_to_gchar(dmb->info));
 }
 
 /**
@@ -2481,7 +2418,7 @@ dmesh_free_kv(gpointer key, gpointer value, gpointer unused_udata)
 		dmesh_entry_free((struct dmesh_entry *) sl->data);
 
 	g_slist_free(dm->entries);
-	wfree(dm, sizeof(*dm));
+	wfree(dm, sizeof *dm);
 
 	return TRUE;
 }
@@ -2492,10 +2429,10 @@ dmesh_free_kv(gpointer key, gpointer value, gpointer unused_udata)
 static void
 dmesh_ban_prepend_list(gpointer key, gpointer value, gpointer user)
 {
-	struct dmesh_banned *dmb = (struct dmesh_banned *) value;
-	GSList **listref = (GSList **) user;
+	struct dmesh_banned *dmb = value;
+	GSList **listref = user;
 
-	g_assert(key == (gpointer) dmb->info);
+	g_assert(key == dmb->info);
 
 	*listref = g_slist_prepend(*listref, dmb);
 }
