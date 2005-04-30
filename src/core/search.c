@@ -2549,41 +2549,30 @@ gnet_search_t
 search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 {
 	search_ctrl_t *sch;
-	gchar *qdup, *s;
+	gchar *qdup;
 
 	/*
 	 * Canonicalize the query we're sending.
 	 */
 
-	qdup = g_strdup(query);
-	if (!utf8_is_valid_string(qdup, 0)) {
-		if (is_latin_locale()) {
-			/* Suppress accents, graphics, ... */
-			use_map_on_query(qdup, strlen(qdup));
-		}
-		
-		s = locale_to_utf8(qdup, 0);
-		if (s != qdup) {
-			G_FREE_NULL(qdup);
-			qdup = g_strdup(s);
-		}
-	}
-	g_assert(*qdup == '\0' || utf8_is_valid_string(qdup, 0));
-
-#ifdef USE_ICU
-	if (icu_enabled()) {
-		s = unicode_canonize(qdup);
-	} else
-#endif
 	{
-		s = utf8_strlower_copy(qdup);
+		const gchar *s;
+		
+		s = utf8_is_valid_string(query, 0)
+			? query
+			: locale_to_utf8_full(query);
+		
+		g_assert(*s == '\0' || utf8_is_valid_string(s, 0));
+		qdup = UNICODE_CANONIZE(s);
+		g_assert(qdup != s);
+		if (s != query)
+			g_free(deconstify_gchar(s));
 	}
-	G_FREE_NULL(qdup);
-	qdup = s;
 
 	compact_query(qdup);
 	if ('\0' == *qdup) {
 		G_FREE_NULL(qdup);
+		g_warning("Rejected empty string as search");
 		return (gnet_search_t) -1;
 	}
 
@@ -2623,7 +2612,7 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 		sch->sent_node_ids = g_hash_table_new(NULL, NULL);
 	}
 
-	sl_search_ctrl = g_slist_prepend(sl_search_ctrl, (gpointer) sch);
+	sl_search_ctrl = g_slist_prepend(sl_search_ctrl, sch);
 
 	if (sch->passive)
 		sl_passive_ctrl = g_slist_prepend(sl_passive_ctrl, (gpointer) sch);
