@@ -123,24 +123,24 @@ word_vec_make(const gchar *query_str, word_vec_t **wovec)
 	g_assert(wovec != NULL);
 
 	for (query = query_dup; /* empty */; query++) {
-		gboolean is_alpha;
+		gboolean is_separator;
 
 		c = *(guchar *) query;
-		if (icu_enabled()) {
-			/*
-		 	 * We can't meet other non alpha than space, because the
-		 	 * string is normalised.
-		 	 */
-			is_alpha = (c != ' ' && c != '\0');
-		} else {
-			is_alpha = isalnum(c);
-		}
+		/*
+	 	 * We can't meet other separators than space, because the
+	 	 * string is normalised.
+	 	 */
+		is_separator = c == ' ' || c == '\0';
 
 		if (start == NULL) {				/* Not in a word yet */
-			if (is_alpha) start = query;
+			if (!is_separator)
+				start = query;
 		} else {
 			guint np1;
-			if (is_alpha) continue;
+
+			if (!is_separator)
+				continue;
+
 			*query = '\0';
 
 			/* Only create a hash table if there is more than one word. */
@@ -158,8 +158,7 @@ word_vec_make(const gchar *query_str, word_vec_t **wovec)
 		 	 	 * The associated value is the index in the vector plus 1.
 		 	 	 */
 
-				np1 = GPOINTER_TO_UINT(
-					g_hash_table_lookup(seen_word, (gconstpointer) start));
+				np1 = GPOINTER_TO_UINT(g_hash_table_lookup(seen_word, start));
 			}
 
 			if (np1--) {
@@ -212,7 +211,7 @@ word_vec_make(const gchar *query_str, word_vec_t **wovec)
 }
 
 /**
- * Relase a word vector, containing `n' items.
+ * Release a word vector, containing `n' items.
  */
 void
 word_vec_free(word_vec_t *wovec, guint n)
@@ -228,4 +227,4 @@ word_vec_free(word_vec_t *wovec, guint n)
 		zfree(wovec_zone, wovec);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
