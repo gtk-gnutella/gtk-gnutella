@@ -201,10 +201,10 @@ prop_parse_boolean_vector(const gchar *name,
 		size_t l;
 		gboolean valid;
 
-		while (is_ascii_space(*p))
-			p++;
+		p = skip_ascii_spaces(p);
 		if (*p == '\0')
 			break;
+
 		a = p;
 		b = strchr(p, ',');
 		if (!b)
@@ -219,19 +219,19 @@ prop_parse_boolean_vector(const gchar *name,
 		l = (b - a) + 1;
 		valid = FALSE;
 		switch (l) {
-		case sizeof "TRUE" - 1:
+		case CONST_STRLEN("TRUE"):
 			if (0 == ascii_strncasecmp(a, "TRUE", l)) {
 				t[i] = TRUE;
 				valid = TRUE;
 			}
 			break;
-		case sizeof "FALSE" - 1:
+		case CONST_STRLEN("FALSE"):
 			if (0 == ascii_strncasecmp(a, "FALSE", l)) {
 				t[i] = FALSE;
 				valid = TRUE;
 			}
 			break;
-		case sizeof "1" - 1:
+		case CONST_STRLEN("1"):
 			if (*a == '1') {
 				t[i] = TRUE;
 				valid = TRUE;
