@@ -249,18 +249,18 @@ st_destroy(search_table_t *table)
  * Compute character mask "hash", using one bit per letter of the alphabet,
  * plus one for any digit.
  */
-static
-guint32 mask_hash(gchar *s) {
+static guint32
+mask_hash(const gchar *s) {
 	guchar c;
 	guint32 mask = 0;
 
 	while ((c = (guchar) *s++)) {
-		if (isspace(c))
+		if (is_ascii_space(c))
 			continue;
-		else if (isdigit(c))
+		else if (is_ascii_digit(c))
 			mask |= MASK_DIGIT;
 		else {
-			gint idx = tolower(c) - 'a';
+			gint idx = ascii_tolower(c) - 97;
 			if (idx >= 0 && idx < 26)
 				mask |= MASK_LETTER(idx);
 		}
@@ -286,32 +286,38 @@ st_key(search_table_t *table, gchar k[2])
 void
 st_insert_item(search_table_t *table, const gchar *s, struct shared_file *sf)
 {
-	guint i;
-	guint len;
+	size_t i, len;
 	struct st_entry *entry;
 	GHashTable *seen_keys;
 	gchar *string;
 
+	len = utf8_is_valid_string(s, 0);
+	if (len < 2)
+		return;
+	
 	string = g_strdup(s);
 
+#if 0
 	len = match_map_string(table->fold_map, string);
 	if (len < 2) {
 		G_FREE_NULL(string);
 		return;
 	}
+#endif
 
-	seen_keys = g_hash_table_new(g_direct_hash, 0);
+	seen_keys = g_hash_table_new(NULL, NULL);
 
-	entry = walloc(sizeof(*entry));
+	entry = walloc(sizeof *entry);
 	entry->string = string;
 	entry->data = shared_file_ref(sf);
 	entry->mask = mask_hash(string);
 
+	len = strlen(string);
 	for (i = 0; i < len - 1; i++) {
-		gint key = st_key(table, string + i);
+		gint key = st_key(table, &string[i]);
 
 		/* don't insert item into same bin twice */
-		if (g_hash_table_lookup(seen_keys, (gconstpointer)GINT_TO_POINTER(key)))
+		if (g_hash_table_lookup(seen_keys, GINT_TO_POINTER(key)))
 			continue;
 
 		g_hash_table_insert(seen_keys, GINT_TO_POINTER(key),
@@ -402,12 +408,8 @@ st_search(
 	guint32 search_mask;
 	size_t minlen;
 
-	if (icu_enabled()) {
-		/* We don't need of the map because the strings are normalized */
-		len = strlen(search);
-	} else {
-		len = match_map_string(table->fold_map, search);
-	}
+	/* We don't need of the map because the strings are normalized */
+	len = strlen(search);
 
 	/*
 	 * Find smallest bin
@@ -480,7 +482,7 @@ st_search(
 	g_assert(best_bin_size > 0);	/* Allocated bin, it must hold something */
 
 
-	pattern = (cpattern_t **) g_malloc0(wocnt * sizeof(cpattern_t *));
+	pattern = g_malloc0(wocnt * sizeof *pattern);
 
 	/*
 	 * Prepare matching optimization, an idea from Mike Green.
@@ -526,15 +528,17 @@ st_search(
 		if ((e->mask & search_mask) != search_mask)
 			continue;		/* Can't match */
 
-		if (sf->file_name_len < minlen)
+		if (sf->name_canonic_len < minlen)
 			continue;		/* Can't match */
 
 		scanned++;
 
-		if (entry_match(e->string, sf->file_name_len, pattern, wovec, wocnt)) {
+		if (
+			entry_match(e->string, sf->name_canonic_len, pattern, wovec, wocnt)
+		) {
 			if (dbg > 5)
-				printf("MATCH: %s\n", sf->file_name);
-			(*callback)(ctx, sf);
+				printf("MATCH: %s\n", sf->name_nfc);
+			callback(ctx, sf);
 			nres++;
 		}
 	}
