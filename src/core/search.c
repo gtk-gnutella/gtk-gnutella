@@ -787,13 +787,14 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 					} else
 						sha1_errors++;
 					break;
-				case EXT_T_GGEP_u:			/* HUGE URN, without leading urn: */
+				case EXT_T_GGEP_u:		/* HUGE URN, without leading urn: */
 					paylen = ext_paylen(e);
 					payload = ext_payload(e);
 					if (
-						paylen >= 9 &&
-						(0 == ascii_strncasecmp(payload, "sha1:", 5) ||
-						 0 == ascii_strncasecmp(payload, "bitprint:", 9))
+						paylen > 9 && (
+							is_strcaseprefix(payload, "sha1:") ||
+							is_strcaseprefix(payload, "bitprint:")
+						)
 					) {
 						gchar *buf;
 
@@ -804,9 +805,14 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 						memcpy(buf, payload, paylen);
 						buf[paylen] = '\0';
 
-						if (urn_get_sha1_no_prefix(buf, sha1_digest)) {
+						if (!urn_get_sha1_no_prefix(buf, sha1_digest)) {
+							sha1_errors++;
+						} else {
 							count_sha1(sha1_digest);
-							if (huge_improbable_sha1(sha1_digest, SHA1_RAW_SIZE))
+							if (
+								huge_improbable_sha1(sha1_digest,
+									SHA1_RAW_SIZE)
+							)
 								sha1_errors++;
 							else if (!validate_only) {
 								if (rc->sha1 != NULL) {
@@ -815,8 +821,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 								}
 								rc->sha1 = atom_sha1_get(sha1_digest);
 							}
-						} else
-							sha1_errors++;
+						}
 						wfree(buf, paylen + 1);
 					}
 					break;
