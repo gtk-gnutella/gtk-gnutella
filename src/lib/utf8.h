@@ -51,6 +51,8 @@ size_t utf8_strlower(gchar *dst, const gchar *src, size_t size);
 gchar *utf8_strlower_copy(const gchar *src);
 size_t utf8_strupper(gchar *dst, const gchar *src, size_t size);
 gchar *utf8_strupper_copy(const gchar *src);
+gchar *utf8_canonize(const gchar *src);
+gchar *utf8_compose_nfc(const gchar *src);
 
 guint32 utf32_lowercase(guint32 uc);
 
@@ -132,6 +134,9 @@ gboolean is_latin_locale(void);
 
 #ifdef USE_ICU
 
+#define UNICODE_CANONIZE(x) \
+	(icu_enabled() ? unicode_canonize(x) : utf8_canonize(x))
+
 int locale_to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout);
 int utf8_to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout);
 int icu_to_utf8_conv(const UChar *in, int lenin, gchar *out, int lenout);
@@ -143,9 +148,12 @@ int unicode_upper(const UChar *source, gint32 len, UChar *result, gint32 rlen);
 int unicode_filters(const UChar *source, gint32 len, UChar *result);
 gchar* unicode_canonize(const gchar *in);
 
+#else /* !USE_ICU */
+
+#define UNICODE_CANONIZE(x) utf8_canonize(x)
+
 #endif	/* USE_ICU */
 
 #endif	/* _utf8_h_ */
 
 /* vi: set sw=4 ts=4 cindent: */
-

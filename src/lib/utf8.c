@@ -897,12 +897,11 @@ locale_init(void)
 	unicode_decompose_init();
 }
 
-/*
- * locale_close
- *
+/**
  * Called at shutdown time.
  */
-void locale_close(void)
+void
+locale_close(void)
 {
 #ifdef USE_ICU
 	if (conv_icu_locale) {
@@ -916,8 +915,8 @@ void locale_close(void)
 #endif
 }
 
-static inline char *g_iconv_complete(GIConv cd,
-	const char *inbuf, size_t inbytes_left,
+static inline char *
+g_iconv_complete(GIConv cd, const char *inbuf, size_t inbytes_left,
 	char *outbuf, size_t outbytes_left)
 {
 #if 0
@@ -973,9 +972,7 @@ static inline char *g_iconv_complete(GIConv cd,
 	return result;
 }
 
-/*
- * locale_to_utf8
- *
+/**
  * If ``len'' is 0 the length will be calculated using strlen(), otherwise
  * only ``len'' characters will be converted.
  * If the string is already valid UTF-8 it will be returned "as-is".
@@ -990,7 +987,8 @@ static inline char *g_iconv_complete(GIConv cd,
  *				strings	e.g., to view strings in the GUI. The conversion
  *				MAY be inappropriate!
  */
-gchar *locale_to_utf8(const gchar *str, size_t len)
+gchar *
+locale_to_utf8(const gchar *str, size_t len)
 {
 	static gchar outbuf[4096 + 6]; /* an UTF-8 char is max. 6 bytes large */
 
@@ -1107,7 +1105,7 @@ is_ascii_string(const gchar *str)
 	gint c;
 
 	while ((c = (guchar) *str++))
-		if (c & 0x80)
+		if (c & ~0x7f)
 	        return FALSE;
 
     return TRUE;
@@ -1264,9 +1262,8 @@ utf32_to_utf8(const guint32 *in, gchar *out, size_t size)
 		*p = '\0';
 	}
 
-	while ((uc = *s++) != 0x0000) {
+	while (0x0000 != (uc = *s++))
 		p += utf8_encoded_char_len(uc);
-	}
 
 	return p - out;
 }
@@ -1566,8 +1563,8 @@ utf32_decompose_hangul_char(guint32 uc, guint32 *buf)
 /**
  * Composes all Hangul characters in a string.
  */
-static inline void
-utf32_compose_hangul(guint32 *s)
+static inline size_t
+utf32_compose_hangul(guint32 *src)
 {
 #define L_COUNT 19
 #define T_COUNT 28
@@ -1578,10 +1575,10 @@ utf32_compose_hangul(guint32 *s)
 	static const guint32 v_base = 0x1161;
 	static const guint32 t_base = 0x11A7;
 	static const guint32 s_base = 0xAC00;
-	guint32 uc, prev, *p;
+	guint32 uc, prev, *p, *s = src;
 
 	if (0 == (prev = *s))
-		return;
+		return 0;
 
 	for (p = ++s; 0 != (uc = *s); s++) {
 		gint l_index, s_index;
@@ -1611,12 +1608,14 @@ utf32_compose_hangul(guint32 *s)
 		prev = uc;
 		*p++ = uc;
 	}
-	*p = 0x0000;
 	
 #undef N_COUNT
 #undef V_COUNT
 #undef T_COUNT
 #undef L_COUNT
+	
+	*p = 0x0000;
+	return p - src;
 }
 
 /**
@@ -1929,7 +1928,7 @@ utf32_decompose(const guint32 *in, guint32 *out, size_t size, gboolean nfkd)
 	g_assert(size <= INT_MAX);
 
 	if (size-- > 0) {
-		while ((uc = *s) != 0x0000) {
+		for (/* NOTHING */; 0x0000 != (uc = *s); s++) {
 			d = utf32_decompose_char(uc, &d_len, nfkd);
 			if (d_len > size)
 				break;
@@ -1937,14 +1936,13 @@ utf32_decompose(const guint32 *in, guint32 *out, size_t size, gboolean nfkd)
 			while (d_len-- > 0) {
 				*p++ = *d++;
 			}
-			s++;
 		}
 		*p = 0x0000;
 
 		utf32_sort_canonical(out);
 	}
 
-	while ((uc = *s++) != 0x0000) {
+	while (0x0000 != (uc = *s++)) {
 		d = utf32_decompose_char(uc, &d_len, nfkd);
 		p += d_len;
 	}
@@ -1972,7 +1970,7 @@ utf32_decompose_nfkd(const guint32 *in, guint32 *out, size_t size)
 	return utf32_decompose(in, out, size, TRUE);
 }
 
-typedef guint32 (* utf8_remap_func)(guint32 uc);
+typedef guint32 (* utf32_remap_func)(guint32 uc);
 	
 /**
  * Copies the UTF-8 string ``src'' to ``dst'' remapping all characters
@@ -1992,7 +1990,7 @@ typedef guint32 (* utf8_remap_func)(guint32 uc);
  * @return the length in bytes of the converted string ``src''.
  */
 static size_t
-utf8_remap(gchar *dst, const gchar *src, size_t size, utf8_remap_func remap)
+utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 {
 	guint32 uc;
 	gint retlen;
@@ -2041,6 +2039,95 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf8_remap_func remap)
 
 	return new_len;
 }
+
+/**
+ * Copies the UTF-32 string ``src'' to ``dst'' remapping all characters
+ * using ``remap''.
+ * If the created string is as long as ``size'' or larger, the string in
+ * ``dst'' will be truncated. ``dst'' is always NUL-terminated unless ``size''
+ * is zero.
+ * The returned value is the length of the converted string ``src''
+ * regardless of the ``size'' parameter. ``src'' must be validly UTF-8
+ * encoded, otherwise the string will be truncated.
+ *
+ * @param dst the target buffer
+ * @param src an UTF-8 string
+ * @param size the size of dst in bytes 
+ * @param remap a function that takes a single UTF-32 character and returns
+ *        a single UTF-32 character.
+ * @return the length in bytes of the converted string ``src''.
+ */
+static size_t
+utf32_remap(guint32 *dst, const guint32 *src, size_t size,
+	utf32_remap_func remap)
+{
+	const guint32 *s = src;
+	guint32 *p = dst;
+
+	g_assert(dst != NULL);
+	g_assert(src != NULL);
+	g_assert(remap != NULL);
+	g_assert(size <= INT_MAX);
+
+	if (size > 0) {
+		guint32 *end, uc;
+		
+		end = &dst[size - 1];
+		for (p = dst; p != end && 0x0000 != (uc = *s); p++, s++) {
+			*p = remap(uc);
+		}
+		*p = 0x0000;
+	}
+
+	if (0x0000 != *s)
+		p += utf32_strlen(s);
+
+	return p - dst;
+}
+
+/**
+ * Copies ``src'' to ``dst'' converting all characters to lowercase. If
+ * the string is as long as ``size'' or larger, the string in ``dst'' will
+ * be truncated. ``dst'' is always NUL-terminated unless ``size'' is zero.
+ * The returned value is the length of the converted string ``src''
+ * regardless of the ``size'' parameter.
+ *
+ * @param dst the target buffer
+ * @param src an UTF-32 string
+ * @param size the size of dst in bytes 
+ * @return the length in characters of the converted string ``src''.
+ */
+size_t
+utf32_strlower(guint32 *dst, const guint32 *src, size_t size)
+{
+	g_assert(dst != NULL);
+	g_assert(src != NULL);
+	g_assert(size <= INT_MAX);
+
+	return utf32_remap(dst, src, size, utf32_lowercase);
+}	
+
+/**
+ * Copies ``src'' to ``dst'' converting all characters to uppercase. If
+ * the string is as long as ``size'' or larger, the string in ``dst'' will
+ * be truncated. ``dst'' is always NUL-terminated unless ``size'' is zero.
+ * The returned value is the length of the converted string ``src''
+ * regardless of the ``size'' parameter.
+ *
+ * @param dst the target buffer
+ * @param src an UTF-32 string
+ * @param size the size of dst in bytes 
+ * @return the length in characters of the converted string ``src''.
+ */
+size_t
+utf32_strupper(guint32 *dst, const guint32 *src, size_t size)
+{
+	g_assert(dst != NULL);
+	g_assert(src != NULL);
+	g_assert(size <= INT_MAX);
+
+	return utf32_remap(dst, src, size, utf32_uppercase);
+}	
 
 /**
  * Copies ``src'' to ``dst'' converting all characters to lowercase. If
@@ -2142,26 +2229,30 @@ utf8_strupper_copy(const gchar *src)
 
 /**
  * Filters characters that are ignorable for query strings. *space
- * should be initialized to FALSE for the first character of a string.
+ * should be initialized to TRUE for the first character of a string.
+ * ``space'' is used to prevent adding multiple space characters i.e.,
+ * a space should not be followed by a space.
  *
  * @param uc an UTF-32 character
  * @param space pointer to a gboolean holding the current space state
+ * @param last should be TRUE if ``uc'' is the last character of the string.
  * @return	zero if the character should be skipped, otherwise the
  *			character itself or a replacement character.
  */
 static inline guint32
-utf32_filter_char(guint32 uc, gboolean *space)
+utf32_filter_char(guint32 uc, gboolean *space, gboolean last)
 {
 	uni_gc_t gc;
 
 	g_assert(space != NULL);
 
 	gc = utf32_general_category(uc);
-	switch (uc) {
+	switch (gc) {
 	case UNI_GC_LETTER_LOWERCASE:
 	case UNI_GC_LETTER_OTHER:
 	case UNI_GC_LETTER_MODIFIER:
 	case UNI_GC_NUMBER_DECIMAL:
+	case UNI_GC_OTHER_NOT_ASSIGNED:
 		*space = FALSE;
 		return uc;
 
@@ -2243,10 +2334,22 @@ utf32_filter_char(guint32 uc, gboolean *space)
 		}
 		break;
 
+	case UNI_GC_PUNCT_OTHER:
+	/* XXX: Disabled for backwards compatibility. Especially '.' is
+	 *		problematic because filename extensions are not separated
+	 *		from the rest of the name otherwise. Also, some people use
+	 *		dots instead of spaces in filenames. */
+#if 0
+		if ('\'' == uc || '*' == uc || '.' == uc)
+			return uc;
+		/* FALLTHRU */
+#endif
+		
 	case UNI_GC_LETTER_UPPERCASE:
 	case UNI_GC_LETTER_TITLECASE:
 
 	case UNI_GC_MARK_SPACING_COMBINE:
+	case UNI_GC_MARK_ENCLOSING:
 
 	case UNI_GC_SEPARATOR_PARAGRAPH:
 	case UNI_GC_SEPARATOR_LINE:
@@ -2258,13 +2361,11 @@ utf32_filter_char(guint32 uc, gboolean *space)
 	case UNI_GC_OTHER_FORMAT:
 	case UNI_GC_OTHER_PRIVATE_USE:
 	case UNI_GC_OTHER_SURROGATE:
-	case UNI_GC_OTHER_NOT_ASSIGNED:
 
 	case UNI_GC_PUNCT_DASH:
 	case UNI_GC_PUNCT_OPEN:
 	case UNI_GC_PUNCT_CLOSE:
 	case UNI_GC_PUNCT_CONNECTOR:
-	case UNI_GC_PUNCT_OTHER:
 	case UNI_GC_PUNCT_INIT_QUOTE:
 	case UNI_GC_PUNCT_FINAL_QUOTE:
 
@@ -2272,11 +2373,12 @@ utf32_filter_char(guint32 uc, gboolean *space)
 	case UNI_GC_SYMBOL_CURRENCY:
 	case UNI_GC_SYMBOL_MODIFIER:
 	case UNI_GC_SYMBOL_OTHER:
-
-		if (!*space)
-			return 0x0020;
-		*space = TRUE;
-		break;
+		{
+			gboolean prev = *space;
+			
+			*space = TRUE;
+			return prev || last ? 0 : 0x0020;
+		}
 	}
 
 	return 0;
@@ -2298,7 +2400,7 @@ utf32_filter(const guint32 *src, guint32 *dst, size_t size)
 {
 	const guint32 *s;
 	guint32 uc, *p;
-	gboolean space = FALSE;
+	gboolean space = TRUE; /* prevent adding leading space */
 
 	g_assert(src != NULL);
 	g_assert(size == 0 || dst != NULL);
@@ -2310,24 +2412,20 @@ utf32_filter(const guint32 *src, guint32 *dst, size_t size)
 	if (size > 0) {
 		guint32 *end;
 		
-		end = &dst[size - 1];
-		while (p != end && 0x0000 != (uc = *s)) {
-			s++;
-			
-			if (0 != utf32_filter_char(uc, &space))
+		for (end = &dst[size - 1]; p != end && 0x0000 != (uc = *s); s++) {
+			if (0 != (uc = utf32_filter_char(uc, &space, 0x0000 == s[1])))
 				*p++ = uc;
 		}
 		*p = 0x0000;
 	}
 
 	while (0x0000 != (uc = *s++)) {
-		if (0 != utf32_filter_char(uc, &space))
+		if (0 != utf32_filter_char(uc, &space, 0x0000 == *s))
 			p++;
 	}
 
 	return p - dst;
 }
-
 
 #ifdef USE_ICU
 
@@ -2478,29 +2576,32 @@ int
 unicode_filters(const UChar *source, gint32 len, UChar *result)
 {
 	int i, j;
-	int space = 0;
+	int space = 1;
 
 	g_assert(use_icu);
 
 	for (i = 0, j = 0; i < len; i++) {
-		switch (u_charType(source[i])) {
+		UChar uc = source[i];
+		
+		switch (u_charType(uc)) {
 		case U_LOWERCASE_LETTER :
 		case U_OTHER_LETTER :
 		case U_MODIFIER_LETTER :
 		case U_DECIMAL_DIGIT_NUMBER :
-			result[j++] = source[i];
+		case U_UNASSIGNED :
+			result[j++] = uc;
 			space = 0;
 			break;
 
 		case U_CONTROL_CHAR :
-			if (source[i] == '\n')
-				result[j++] = source[i];
+			if (uc == '\n')
+				result[j++] = uc;
 			break;
 
 		case U_NON_SPACING_MARK :
 			/* Do not skip the japanese " and ° kana marks and so on */
 
-			switch (source[i]) {
+			switch (uc) {
 				/* Japanese voiced sound marks */
 			case 0x3099:
 			case 0x309A:
@@ -2567,14 +2668,26 @@ unicode_filters(const UChar *source, gint32 len, UChar *result)
 			case 0x193A:
 				/* Mongolian */
 			case 0x18A9:
-				result[j++] = source[i];
+				result[j++] = uc;
 			}
 			break;
+
+		case U_OTHER_PUNCTUATION :
+	/* XXX: Disabled for backwards compatibility. Especially '.' is
+	 *		problematic because filename extensions are not separated
+	 *		from the rest of the name otherwise. Also, some people use
+	 *		dots instead of spaces in filenames. */
+#if 0
+			if ('\'' == uc || '*' == uc || '.' == uc) {
+				result[j++] = uc;
+				break;
+			}
+			/* FALLTHRU */
+#endif
 
 		case U_UPPERCASE_LETTER :
 		case U_TITLECASE_LETTER :
 		case U_PARAGRAPH_SEPARATOR :
-		case U_UNASSIGNED :
 		case U_COMBINING_SPACING_MARK :
 		case U_LINE_SEPARATOR :
 		case U_LETTER_NUMBER :
@@ -2587,7 +2700,6 @@ unicode_filters(const UChar *source, gint32 len, UChar *result)
 		case U_START_PUNCTUATION :
 		case U_END_PUNCTUATION :
 		case U_CONNECTOR_PUNCTUATION :
-		case U_OTHER_PUNCTUATION :
 		case U_MATH_SYMBOL :
 		case U_CURRENCY_SYMBOL :
 		case U_MODIFIER_SYMBOL :
@@ -2595,7 +2707,7 @@ unicode_filters(const UChar *source, gint32 len, UChar *result)
 		case U_INITIAL_PUNCTUATION :
 		case U_FINAL_PUNCTUATION :
 		case U_CHAR_CATEGORY_COUNT :
-			if (0 == space)
+			if (0 == space && 0x0000 != source[i + 1])
 				result[j++] = 0x0020;
 			space = 1;
 			break;
@@ -2791,6 +2903,143 @@ utf32_compose(guint32 *src)
 	*p = 0x0000;
 
 	return p - src;
+}
+
+/**
+ */
+guint32 *
+utf32_compose_nfc(const guint32 *src)
+{
+	guint32 *nfd;
+	size_t size, n;
+	
+	/* Convert to NFKD */
+	size = 1 + utf32_decompose(src, NULL, 0, FALSE);
+	nfd = g_malloc(size * sizeof *nfd);
+	n = utf32_decompose(src, nfd, size, FALSE);
+	g_assert(size - 1 == n);
+
+	/* Convert to NFC */
+	n = utf32_compose(nfd);
+	n = utf32_compose_hangul(nfd);
+
+	return nfd;
+}
+
+/**
+ */
+gchar *
+utf8_compose_nfc(const gchar *src)
+{
+	guint32 *dst32;
+
+	g_assert(utf8_is_valid_string(src, 0));
+	
+	{	
+		size_t size, n;
+		guint32 *s;
+		
+		size = 1 + utf8_to_utf32(src, NULL, 0);
+		s = g_malloc(size * sizeof *s);
+		n = 1 + utf8_to_utf32(src, s, size);
+		g_assert(n == size);
+		
+		dst32 = utf32_compose_nfc(s);
+		if (dst32 != s)
+			G_FREE_NULL(s);
+	}
+
+	{
+		size_t size, n;
+		gchar *dst;
+		
+		size = 1 + utf32_to_utf8(dst32, NULL, 0);
+		dst = g_malloc(size * sizeof *dst);
+		n = 1 + utf32_to_utf8(dst32, dst, size);
+		g_assert(n == size);
+
+		G_FREE_NULL(dst32);
+		return dst;
+	}
+}
+
+
+/**
+ * Apply the NFKD/NFC algo to have nomalized keywords
+ */
+guint32 *
+utf32_canonize(const guint32 *src)
+{
+	guint32 *nfkd, *nfd;
+	size_t size, n;
+	
+	/* Convert to NFKD */
+	size = 1 + utf32_decompose(src, NULL, 0, TRUE);
+	nfkd = g_malloc(size * sizeof *nfkd);
+	n = utf32_decompose(src, nfkd, size, TRUE);
+	g_assert(size - 1 == n);
+
+	/* FIXME: Must convert 'szett' to "ss" */
+	n = utf32_strlower(nfkd, nfkd, size);
+	g_assert(size - 1 == n);
+
+	n = utf32_filter(nfkd, nfkd, size);
+	g_assert(size - 1 >= n);
+
+	/* Convert to NFD; this might be unnecessary if the previous
+	 * operations did not destroy the NFKD */
+	size = 1 + utf32_decompose(nfkd, NULL, 0, FALSE);
+	nfd = g_malloc(size * sizeof *nfd);
+	n = utf32_decompose(nfkd, nfd, size, FALSE);
+	g_assert(size - 1 == n);
+
+	G_FREE_NULL(nfkd);
+
+	/* Convert to NFC */
+	n = utf32_compose(nfd);
+	n = utf32_compose_hangul(nfd);
+
+	return nfd;
+}
+
+/**
+ * Apply the NFKD/NFC algo to have nomalized keywords
+ */
+gchar *
+utf8_canonize(const gchar *src)
+{
+	guint32 *dst32;
+
+	g_assert(utf8_is_valid_string(src, 0));
+	
+	{	
+		size_t size, n;
+		guint32 *s;
+		
+		size = 1 + utf8_to_utf32(src, NULL, 0);
+		s = g_malloc(size * sizeof *s);
+		n = 1 + utf8_to_utf32(src, s, size);
+		g_assert(n == size);
+		
+		dst32 = utf32_canonize(s);
+		if (dst32 != s)
+			G_FREE_NULL(s);
+	}
+
+	{
+		size_t size, n;
+		gchar *dst;
+		
+		size = 1 + utf32_to_utf8(dst32, NULL, 0);
+		dst = g_malloc(size * sizeof *dst);
+		n = 1 + utf32_to_utf8(dst32, dst, size);
+		g_assert(n == size);
+
+		G_FREE_NULL(dst32);
+
+		g_message("\nsrc=\"%s\"\ndst=\"%s\"\n", src, dst);
+		return dst;
+	}
 }
 
 /**
