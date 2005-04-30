@@ -162,6 +162,34 @@ is_strprefix(const gchar *str, const gchar *prefix)
 }
 
 /**
+ * Checks whether ``prefix'' is a prefix of ``str'' performing an
+ * case-insensitive (ASCII only) check.
+ * Maybe skip_caseprefix() would be a better name.
+ *
+ * @param str a NUL-terminated string
+ * @param prefix a NUL-terminated string
+ * @return	NULL, if ``prefix'' is not a prefix of ``str''. Otherwise, a
+ *			pointer to the first character in ``str'' after the prefix.
+ */
+gchar *
+is_strcaseprefix(const gchar *str, const gchar *prefix)
+{
+	const gchar *s, *p;
+	gint a;
+
+	g_assert(NULL != str);
+	g_assert(NULL != prefix);
+
+	for (s = str, p = prefix; '\0' != (a = *p); p++) {
+		gint b = *s++;
+		if (a != b && ascii_tolower(a) != ascii_tolower(b))
+			return NULL;
+	}
+
+	return deconstify_gchar(s);
+}
+
+/**
  * Checks whether the given string contains a valid IP address. If the
  * string is NULL returns FALSE.
  */

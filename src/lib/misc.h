@@ -400,7 +400,8 @@ const gchar * uint64_to_string(guint64 v);
 const gchar * uint64_to_string2(guint64 v);
 gint parse_major_minor(const gchar *src, gchar const **endptr,
 	guint *major, guint *minor);
-gchar *is_strprefix(const gchar *str, const gchar *prefix) WARN_UNUSED_RESULT;
+gchar *is_strprefix(const gchar *s, const gchar *prefix) WARN_UNUSED_RESULT;
+gchar *is_strcaseprefix(const gchar *s, const gchar *prefix) WARN_UNUSED_RESULT;
 
 typedef void (*signal_handler_t)(gint signo);
 signal_handler_t set_signal(gint signo, signal_handler_t handler);
