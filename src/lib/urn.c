@@ -48,7 +48,7 @@ RCSID("$Id$");
  * Returns TRUE if the SHA1 was valid and properly decoded, FALSE on error.
  */
 gboolean
-urn_get_http_sha1(gchar *buf, gchar *retval)
+urn_get_http_sha1(const gchar *buf, gchar *retval)
 {
 	gint i;
 	const gchar *p;
@@ -58,11 +58,10 @@ urn_get_http_sha1(gchar *buf, gchar *retval)
 	 * end of the string.
 	 */
 
-	for (p = buf, i = 0; *p && i < SHA1_BASE32_SIZE; p++, i++)
-		/* empty */;
-
-	if (i < SHA1_BASE32_SIZE)
-		goto invalid;
+	for (p = buf, i = 0; i < SHA1_BASE32_SIZE; p++, i++) {
+		if ('\0' == *p)
+			goto invalid;
+	}
 
 	if (base32_decode_into(buf, SHA1_BASE32_SIZE, retval, SHA1_RAW_SIZE))
 		return TRUE;
@@ -97,32 +96,22 @@ invalid:
  * Returns whether we successfully extracted the SHA1.
  */
 gboolean
-urn_get_sha1(gchar *buf, gchar *digest)
+urn_get_sha1(const gchar *buf, gchar *digest)
 {
-	gchar *sha1;
+	const gchar *sha1;
 
 	/*
 	 * We handle both "urn:sha1:" and "urn:bitprint:".  In the latter case,
 	 * the first 32 bytes of the bitprint is the SHA1.
 	 */
 
-	sha1 = ascii_strcasestr(buf, "urn:sha1:");		/* Case-insensitive */
+	if (
+		NULL == (sha1 = is_strcaseprefix(buf, "urn:sha1:")) &&
+		NULL == (sha1 = is_strcaseprefix(buf, "urn:bitprint:"))
+	)
+		return TRUE;
 
-	if (sha1) {
-		sha1 += 9;		/* Skip "urn:sha1:" */
-		if (urn_get_http_sha1(sha1, digest))
-			return TRUE;
-	}
-
-	sha1 = ascii_strcasestr(buf, "urn:bitprint:");	/* Case-insensitive */
-
-	if (sha1) {
-		sha1 += 13;		/* Skip "urn:bitprint:" */
-		if (urn_get_http_sha1(sha1, digest))
-			return TRUE;
-	}
-
-	return FALSE;
+	return urn_get_http_sha1(sha1, digest);
 }
 
 /**
@@ -137,32 +126,22 @@ urn_get_sha1(gchar *buf, gchar *digest)
  * Returns whether we successfully extracted the SHA1.
  */
 gboolean
-urn_get_sha1_no_prefix(gchar *buf, gchar *digest)
+urn_get_sha1_no_prefix(const gchar *buf, gchar *digest)
 {
-	gchar *sha1;
+	const gchar *sha1;
 
 	/*
 	 * We handle both "sha1:" and "bitprint:".  In the latter case,
 	 * the first 32 bytes of the bitprint is the SHA1.
 	 */
 
-	sha1 = ascii_strcasestr(buf, "sha1:");			/* Case-insensitive */
+	if (
+		NULL == (sha1 = is_strcaseprefix(buf, "sha1:")) &&
+		NULL == (sha1 = is_strcaseprefix(buf, "bitprint:"))
+	)
+		return FALSE;
 
-	if (sha1 && sha1 == buf) {
-		sha1 += 5;		/* Skip "sha1:" */
-		if (urn_get_http_sha1(sha1, digest))
-			return TRUE;
-	}
-
-	sha1 = ascii_strcasestr(buf, "bitprint:");		/* Case-insensitive */
-
-	if (sha1 && sha1 == buf) {
-		sha1 += 9;		/* Skip "bitprint:" */
-		if (urn_get_http_sha1(sha1, digest))
-			return TRUE;
-	}
-
-	return FALSE;
+	return urn_get_http_sha1(sha1, digest);
 }
 
 /*
@@ -173,6 +152,5 @@ urn_get_sha1_no_prefix(gchar *buf, gchar *digest)
  * tab-width: 4 ***
  * indent-tabs-mode: nil ***
  * End: ***
- * vi: set ts=4:
+ * vi: set ts=4 sw=4 cindent:
  */
-

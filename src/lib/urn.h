@@ -32,11 +32,10 @@
  * Public interface.
  */
 
-gboolean urn_get_http_sha1(gchar *buf, gchar *retval);
-gboolean urn_get_sha1(gchar *buf, gchar *digest);
-gboolean urn_get_sha1_no_prefix(gchar *buf, gchar *digest);
+gboolean urn_get_http_sha1(const gchar *buf, gchar *retval);
+gboolean urn_get_sha1(const gchar *buf, gchar *digest);
+gboolean urn_get_sha1_no_prefix(const gchar *buf, gchar *digest);
 
 #endif	/* _urn_h_ */
 
-/* vi: set ts=4: */
-
+/* vi: set ts=4 sw=4 cindent: */
