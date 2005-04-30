@@ -1076,27 +1076,24 @@ file_info_lookup_dup(struct dl_file_info *fi)
 static gboolean
 looks_like_urn(const gchar *filename)
 {
-	gint idx;
+	static const gchar * const prefixes[] = {
+		"urn:", 
+		"sha1:", 
+		"bitprint:", 
+	};
 	const gchar *p;
 	gint c;
+	guint i;
 
-	if (0 == ascii_strncasecmp(filename, "urn:", 4))
-		return TRUE;
+	for (i = 0; i < G_N_ELEMENTS(prefixes); i++) {
+		if (is_strcaseprefix(filename, prefixes[i]))
+			return TRUE;
+	}
 
-	if (0 == ascii_strncasecmp(filename, "sha1:", 4))
-		return TRUE;
-
-	if (0 == ascii_strncasecmp(filename, "bitprint:", 9))
-		return TRUE;
-
-	idx = 0;
-	p = filename;
-
-	while ((c = *(guchar *) p++)) {
-		idx++;
+	for (p = filename; '\0' != (c = *p++); /* NOTHING */) {
 		if (!is_ascii_alnum(c))
 			break;
-		if (idx >= SHA1_BASE32_SIZE)
+		if (p - filename >= SHA1_BASE32_SIZE)
 			return TRUE;
 	}
 
