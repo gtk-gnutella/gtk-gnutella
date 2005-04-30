@@ -756,13 +756,10 @@ get_locale_charset(void)
 	const char *cs;
 	const char *start = codesets[0];
 	const char *first_end = NULL;
-	size_t cs_len;
 
 	cs = nl_langinfo(CODESET);
 	if (NULL == cs || '\0' == *cs)
 		return NULL;
-
-	cs_len = strlen(cs);
 
 	while (NULL != codesets[i]) {
 		static char buf[64];
@@ -776,7 +773,7 @@ get_locale_charset(void)
 			first_end = end;
 
  		len = end - start;
-		if (len > 0 && 0 == ascii_strncasecmp(cs, start, cs_len)) {
+		if (len > 0 && is_strcaseprefix(start, cs)) {
 			len = first_end - codesets[i] + 1;
 			g_strlcpy(buf, codesets[i], MIN(len, sizeof(buf)));
 			return buf;
