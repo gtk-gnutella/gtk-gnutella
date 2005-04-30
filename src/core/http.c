@@ -528,7 +528,6 @@ http_url_strerror(http_url_error_t errnum)
 gboolean
 http_url_parse(const gchar *url, guint16 *port, gchar **host, gchar **path)
 {
-	static const gchar prefix[] = "http://";
 	static gchar hostname[MAX_HOSTLEN + 1];
 	const gchar *host_start;
 	const gchar *port_start;
@@ -545,13 +544,6 @@ http_url_parse(const gchar *url, guint16 *port, gchar **host, gchar **path)
 	if (!path) path = &tmp_path;
 	if (!port) port = &tmp_port;
 
-	if (0 != ascii_strncasecmp(url, prefix, CONST_STRLEN(prefix))) {
-		http_url_errno = HTTP_URL_NOT_HTTP;
-		return FALSE;
-	}
-
-	url += CONST_STRLEN(prefix);
-
 	/*
 	 * The general URL syntax is (RFC-1738):
 	 *
@@ -564,9 +556,15 @@ http_url_parse(const gchar *url, guint16 *port, gchar **host, gchar **path)
 	 * skip them if they are present.
 	 */
 
-	host_start = url;		/* Assume there's no <user>:<password> */
+	/* Assume there's no <user>:<password> */
+	host_start = is_strcaseprefix(url, "http://");
+	if (!host_start) {
+		http_url_errno = HTTP_URL_NOT_HTTP;
+		return FALSE;
+	}
+
 	port_start = NULL;		/* Port not seen yet */
-	p = &url[1];
+	p = &host_start[1];
 
 	while ((c = *p++)) {
 		if (c == '@') {
@@ -635,7 +633,7 @@ http_url_parse(const gchar *url, guint16 *port, gchar **host, gchar **path)
 
 	if (dbg > 4) {
 		printf("URL \"%s\" -> host=\"%s\", port=%u, path=\"%s\"\n",
-			url - CONST_STRLEN(prefix), *host, (unsigned) *port, *path);
+			url, *host, (unsigned) *port, *path);
 	}
 
 	http_url_errno = HTTP_URL_OK;
@@ -696,7 +694,6 @@ gint
 http_content_range_parse(const gchar *buf,
 		filesize_t *start, filesize_t *end, filesize_t *total)
 {
-	static const gchar unit[] = "bytes";
 	const gchar *s = buf, *endptr;
 	gint error;
 
@@ -712,10 +709,10 @@ http_content_range_parse(const gchar *buf,
 	 *		bytes '=' start '-' end '/' total
 	 */
 
-	if (0 != ascii_strncasecmp(s, unit, CONST_STRLEN(unit)))
+	s = is_strcaseprefix(s, "bytes");
+	if (!s)
 		return -1;
 
-	s += CONST_STRLEN(unit);
 	if (*s != ' ' && *s != '=')
 		return -1;
 
