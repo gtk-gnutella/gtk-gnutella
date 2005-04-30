@@ -229,7 +229,10 @@ qrp_hashcode(const gchar *s)
 	}
 
 	/*
-	 * Multiplication-based hash function.  See Chapter 12.3.2. of CLR.
+	 * Multiplication-based hash function.
+	 *
+	 * See Chapter 12.3.2. of "Introduction to Algorithms" by 
+	 * (Cormen, Leiserson, and Rivest) [CLR]
 	 */
 
 	return x * 0x4F1BBCDC;
@@ -688,7 +691,7 @@ qrt_patch_compress(
  * The value used for infinity is given as `max'.
  */
 static struct routing_table *
-qrt_create(gchar *name, gchar *arena, gint slots, gint max)
+qrt_create(const gchar *name, gchar *arena, gint slots, gint max)
 {
 	struct routing_table *rt;
 
@@ -725,7 +728,7 @@ qrt_create(gchar *name, gchar *arena, gint slots, gint max)
  * Create small empty table.
  */
 static struct routing_table *
-qrt_empty_table(gchar *name)
+qrt_empty_table(const gchar *name)
 {
 	gchar *arena;
 
@@ -750,7 +753,7 @@ qrt_free(struct routing_table *rt)
 	G_FREE_NULL(rt->arena);
 	G_FREE_NULL(rt->name);
 
-	wfree(rt, sizeof(*rt));
+	wfree(rt, sizeof *rt);
 }
 
 /**
@@ -1181,18 +1184,14 @@ qrp_add_file(struct shared_file *sf)
 	 * Copy filename to buffer, since we're going to map it inplace.
 	 */
 
-#ifdef USE_ICU
-	if (
-		icu_enabled() &&
-		utf8_is_valid_string(sf->file_name, sf->file_name_len)
-	) {
-		gchar *normalised_filename;
-		normalised_filename = unicode_canonize(sf->file_name);
-		wocnt = word_vec_make(normalised_filename, &wovec);
-		G_FREE_NULL(normalised_filename);
-	} else
-#endif
-	{
+	g_assert(utf8_is_valid_string(sf->name_nfc, sf->name_nfc_len));
+	g_assert(utf8_is_valid_string(sf->name_canonic, sf->name_canonic_len));
+		
+	wocnt = word_vec_make(sf->name_canonic, &wovec);
+
+#if 0	
+	else {
+
 		if (sf->file_name_len >= (size_t) buffer.len) {
 			gint grow = MAX(MIN_BUF_GROW, sf->file_name_len - buffer.len + 1);
 
@@ -1212,6 +1211,7 @@ qrp_add_file(struct shared_file *sf)
 		(void) match_map_string(qrp_map, buffer.arena);
 		wocnt = word_vec_make(buffer.arena, &wovec);
 	}
+#endif
 
 	if (wocnt == 0)
 		return;
@@ -1221,7 +1221,7 @@ qrp_add_file(struct shared_file *sf)
 	 */
 
 	for (i = 0; i < wocnt; i++) {
-		gchar *word = wovec[i].word;
+		const gchar *word = wovec[i].word;
 
 		g_assert(word[0] != '\0');
 
@@ -1241,13 +1241,13 @@ qrp_add_file(struct shared_file *sf)
 		 * Record word if we haven't seen it yet.
 		 */
 
-		if (g_hash_table_lookup(ht_seen_words, (gconstpointer) word))
+		if (g_hash_table_lookup(ht_seen_words, word))
 			continue;
 
 		g_hash_table_insert(ht_seen_words, g_strdup(word), GINT_TO_POINTER(1));
 
 		if (qrp_debug > 8)
-			printf("new QRP word \"%s\" [from %s]\n", word, sf->file_name);
+			printf("new QRP word \"%s\" [from %s]\n", word, sf->name_nfc);
 	}
 
 	word_vec_free(wovec, wocnt);
@@ -3144,7 +3144,7 @@ qrt_handle_reset(
 	if (qrcv->expansion)
 		wfree(qrcv->expansion, qrcv->shrink_factor);
 
-	rt = qrcv->table = walloc(sizeof(*rt));
+	rt = qrcv->table = walloc(sizeof *rt);
 
 	rt->magic = QRP_ROUTE_MAGIC;
 	rt->name = g_strdup_printf("QRT node %s", node_ip(n));
