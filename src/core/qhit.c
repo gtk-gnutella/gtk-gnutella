@@ -476,7 +476,7 @@ failure:
 static gboolean
 add_file(struct shared_file *sf)
 {
-	guint32 needed = 8 + 2 + sf->file_name_len;		/* size of hit entry */
+	size_t needed = 8 + 2 + sf->name_nfc_len;		/* size of hit entry */
 	gboolean sha1_available;
 	gnet_host_t hvec[QHIT_MAX_ALT];
 	gint hcnt = 0;
@@ -542,7 +542,7 @@ add_file(struct shared_file *sf)
 	if (!found_write(&fs32_le, sizeof fs32_le)) {
 		return FALSE;
 	}
-	if (!found_write(sf->file_name, sf->file_name_len)) {
+	if (!found_write(sf->name_nfc, sf->name_nfc_len)) {
 		return FALSE;
 	}
 
