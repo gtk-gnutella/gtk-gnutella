@@ -375,7 +375,7 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 
 		for (i = 0; i < id_len; i++) {
 			gint c = *p++;
-			if (c == '\0' || !isascii(c) || iscntrl(c))
+			if (c == '\0' || !isascii(c) || is_ascii_cntrl(c))
 				goto abort;
 			*ip++ = c;
 		}
@@ -563,10 +563,9 @@ ext_huge_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	 * Recognize "urn:".
 	 */
 
-	if (0 != ascii_strncasecmp(p, "urn:", 4))
+	p = is_strcaseprefix(p, "urn:");
+	if (!p)
 		return 0;
-
-	p += 4;
 
 	/*
 	 * Maybe it's simply a "urn:" empty specification?
@@ -614,7 +613,7 @@ ext_huge_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 
 	while (p < end) {
 		guchar c = *p++;
-		if (!isalnum(c) || c == (guchar) GGEP_MAGIC) {
+		if (!is_ascii_alnum(c) || c == (guchar) GGEP_MAGIC) {
 			p--;
 			break;
 		}
@@ -722,9 +721,9 @@ ext_unknown_parse(gchar **retp, gint len, extvec_t *exv,
 			(
 				(c == 'u' || c == 'U') &&
 				(end - p) >= 3 &&
-				0 == ascii_strncasecmp(p, "rn:", 3)
+				is_strcaseprefix(p, "rn:")
 			) ||
-			(c == '<' && (p < end) && isalpha((guchar) *p))
+			(c == '<' && (p < end) && is_ascii_alpha((guchar) *p))
 		) {
 			if (skip) {
 				skip = FALSE;
@@ -1387,7 +1386,7 @@ ext_has_ascii_word(const extvec_t *e)
 		guchar c = *p++;
 		if (!isascii(c))
 			return FALSE;
-		if (!has_alnum && isalnum(c))
+		if (!has_alnum && is_ascii_alnum(c))
 			has_alnum = TRUE;
 	}
 
