@@ -1717,14 +1717,15 @@ get_file_to_upload_from_urn(
 	header_t *header,
 	const gchar *uri)
 {
-	static const char urn_prefix[] = "urn:";
-	static const char urn_bitprint[] = "urn:bitprint:";
-	static const char urn_sha1[] = "urn:sha1:";
+	static const gchar * const urn_prefixes[] = {
+		"urn:sha1:",
+		"urn:bitprint:",
+	};
 	gchar hash[SHA1_BASE32_SIZE + 1];
 	gchar digest[SHA1_RAW_SIZE];
-	const gchar *urn = uri;
+	const gchar *p, *urn = uri;
 	struct shared_file *sf;
-	gint skip;
+	guint i;
 
 	/*
 	 * We currently only support SHA1, but this allows us to process
@@ -1732,21 +1733,18 @@ get_file_to_upload_from_urn(
 	 *		--RAM, 16/11/2002
 	 */
 
-	if (0 != ascii_strncasecmp(urn, urn_prefix, CONST_STRLEN(urn_prefix)))
-		goto not_found;
+	p = NULL; /* dumb compiler */
+	for (i = 0; i < G_N_ELEMENTS(urn_prefixes); i++) {
+		if (NULL != (p = is_strcaseprefix(urn, urn_prefixes[i])))
+			break;
+	}	
 
-	if (0 == ascii_strncasecmp(urn, urn_sha1, CONST_STRLEN(urn_sha1)))
-		skip = CONST_STRLEN(urn_sha1);
-	else if (
-		0 == ascii_strncasecmp(urn, urn_bitprint, CONST_STRLEN(urn_bitprint))
-	)
-		skip = CONST_STRLEN(urn_bitprint);
-	else
+	if (!p)
 		goto not_found;
 
 	u->n2r = TRUE;		/* Remember we saw an N2R request */
 
-	if (g_strlcpy(hash, urn + skip, sizeof hash) < SHA1_BASE32_SIZE)
+	if (g_strlcpy(hash, p, sizeof hash) < SHA1_BASE32_SIZE)
 		goto malformed;
 
 	if (!urn_get_http_sha1(hash, digest))
