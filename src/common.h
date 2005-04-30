@@ -186,27 +186,29 @@ do {				\
 #define RCSID(x) static const char rcsid[] = "@(#) " x
 #endif
 
+#if defined(__GNUC__) && defined(__GNUC_MINOR__)
+#define HAVE_GCC(major, minor) \
+	((__GNUC__ > (major)) || \
+	 (__GNUC__ == (major) && __GNUC_MINOR__ >= (minor)))
+#else
+#define HAVE_GCC(major, minor) 0
+#endif
+
 /* Functions using this attribute cause a warning if the returned
  * value is not used. */
-#if defined(__GNUC__) && defined(__GNUC_MINOR__)
-
-#if (__GNUC__ > 3) || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4)
+#if HAVE_GCC(3, 4)
 #define WARN_UNUSED_RESULT __attribute__((warn_unused_result))
 #else /* GCC < 3.4 */
 #define WARN_UNUSED_RESULT
 #endif
 
-#if (__GNUC__ > 3)
+/* Functions using this attribute cause a warning if the variable
+ * argument list does not contain a NULL pointer. */
+#if HAVE_GCC(4, 0)
 #define WARN_NEED_SENTINEL __attribute__((__sentinel__))
 #else /* GCC < 4 */
 #define WARN_NEED_SENTINEL 
-#endif
-
-
-#else /* !GCC */
-#define WARN_UNUSED_RESULT
-#define WARN_NEED_SENTINEL
-#endif /* GCC */
+#endif /* GCC >= 4 */
 
 /* CMP() returns sign of a-b */
 #define CMP(a, b) ((a) == (b) ? 0 : (a) > (b) ? 1 : (-1))
