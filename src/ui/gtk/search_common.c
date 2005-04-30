@@ -1337,7 +1337,6 @@ const gchar *
 search_gui_parse_query(const gchar *querystr, GList **rules,
 	const gchar **error)
 {
-	static const gchar magnet[] = "magnet:";
 	static const gchar urnsha1[] = "urn:sha1:";
 	static gchar query[512];
 	size_t len;
@@ -1363,28 +1362,36 @@ search_gui_parse_query(const gchar *querystr, GList **rules,
 		return NULL;
 	}
 
-	if (0 == ascii_strncasecmp(query, magnet, CONST_STRLEN(magnet))) {
-		gchar raw[SHA1_RAW_SIZE];
+	if (is_strcaseprefix(query, "magnet:")) {
+		const gchar *s;
 
-		if (urn_get_sha1(query, raw)) {
-			gm_snprintf(query, sizeof query, "%s%s", urnsha1, sha1_base32(raw));
-			return query;
+		/* FIXME: strcasestr() is a hack, parse this properly */
+		s = ascii_strcasestr(query, urnsha1);
+		if (NULL != s) {
+			gchar raw[SHA1_RAW_SIZE];
+
+			if (urn_get_sha1(s, raw)) {
+				concat_strings(query, sizeof query,
+					urnsha1, sha1_base32(raw), NULL);
+				return query;
+			} else {
+				*error = _("The SHA1 of the magnet is not validly encoded");
+				return NULL;		/* Entry refused */
+			}
 		}
 
-		*error = _("The SHA1 of the magnet is not validly encoded");
-		return NULL;		/* Entry refused */
-	}
-
-	/*
-	 * If string begins with "urn:sha1:", then it's an URN search.
-	 * Validate the base32 representation, and if not valid, beep
-	 * and refuse the entry.
-	 *		--RAM, 28/06/2002
-	 */
-
-	if (0 == ascii_strncasecmp(query, urnsha1, CONST_STRLEN(urnsha1))) {
+		*error = _("Cannot parse magnet");
+		return NULL;
+	} else if (is_strcaseprefix(query, urnsha1)) {
 		gchar raw[SHA1_RAW_SIZE];
-		gchar *b = &query[CONST_STRLEN(urnsha1)];
+		gchar *b = is_strcaseprefix(query, urnsha1);
+
+		/*
+		 * If string begins with "urn:sha1:", then it's an URN search.
+		 * Validate the base32 representation, and if not valid, beep
+		 * and refuse the entry.
+		 *		--RAM, 28/06/2002
+		 */
 
 		if (strlen(b) >= SHA1_BASE32_SIZE) {
 
@@ -1398,9 +1405,9 @@ search_gui_parse_query(const gchar *querystr, GList **rules,
 			if (base32_decode_old_into(b, SHA1_BASE32_SIZE, raw, sizeof raw)) {
 				gchar b32[SHA1_BASE32_SIZE + 1];
 
-				base32_encode_into(raw, sizeof(raw), b32, sizeof(b32));
+				base32_encode_into(raw, sizeof raw, b32, sizeof b32);
 				b32[sizeof b32 - 1] = '\0';
-				gm_snprintf(query, sizeof query, "%s%s", urnsha1, b32);
+				concat_strings(query, sizeof query, urnsha1, b32, NULL);
 				return query;
 			}
 
