@@ -1292,8 +1292,7 @@ struct unique_substrings {		/* User data for unique_subtr() callback */
 static void
 unique_substr(gpointer key, gpointer unused_value, gpointer udata)
 {
-	static const gchar urnsha1[] = "urn:sha1:";
-	struct unique_substrings *u = (struct unique_substrings *) udata;
+	struct unique_substrings *u = udata;
 	gchar *word = key;
 	gint len;
 
@@ -1312,10 +1311,7 @@ unique_substr(gpointer key, gpointer unused_value, gpointer udata)
 	 * Special-case urn:sha1 entries: we insert them as a whole!
 	 */
 
-	if (
-		word[0] == 'u' &&
-		0 == ascii_strncasecmp(word, urnsha1, CONST_STRLEN(urnsha1))
-	) {
+	if (word[0] == 'u' && is_strcaseprefix(word, "urn:sha1:")) {
 		INSERT;
 		return;
 	}
