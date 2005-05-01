@@ -51,7 +51,6 @@ gboolean
 urn_get_http_sha1(const gchar *buf, gchar *retval)
 {
 	gint i;
-	const gchar *p;
 	gchar raw[SHA1_RAW_SIZE];
 
 	if (!retval)
@@ -62,8 +61,8 @@ urn_get_http_sha1(const gchar *buf, gchar *retval)
 	 * end of the string.
 	 */
 
-	for (p = buf, i = 0; i < SHA1_BASE32_SIZE; p++, i++) {
-		if ('\0' == *p)
+	for (i = 0; i < SHA1_BASE32_SIZE; i++) {
+		if ('\0' == buf[i])
 			goto invalid;
 	}
 
