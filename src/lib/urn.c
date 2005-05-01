@@ -52,6 +52,10 @@ urn_get_http_sha1(const gchar *buf, gchar *retval)
 {
 	gint i;
 	const gchar *p;
+	gchar raw[SHA1_RAW_SIZE];
+
+	if (!retval)
+		retval = raw;
 
 	/*
 	 * Make sure we have at least SHA1_BASE32_SIZE characters before the
