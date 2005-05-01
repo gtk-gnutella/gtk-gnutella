@@ -121,6 +121,7 @@ typedef struct tree_view_motion tree_view_motion_t;
 GtkTreeIter *w_tree_iter_new(void);
 GtkTreeIter *w_tree_iter_copy(GtkTreeIter *iter);
 void w_tree_iter_free(GtkTreeIter *iter);
+void ht_w_tree_iter_free(gpointer);
 GSList *tree_selection_collect_data(GtkTreeSelection *tsel, GCompareFunc cfn);
 void tree_view_save_widths(GtkTreeView *treeview, property_t prop);
 void tree_view_save_visibility(GtkTreeView *treeview, property_t prop);

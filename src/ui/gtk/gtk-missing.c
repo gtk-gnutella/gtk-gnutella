@@ -367,7 +367,10 @@ clist_collect_data(GtkCList *clist, gboolean allow_null, GCompareFunc cfn)
 GtkTreeIter *
 w_tree_iter_new(void)
 {
-	return walloc(sizeof(GtkTreeIter));
+	GtkTreeIter *iter;
+	
+	iter = walloc(sizeof *iter);
+	return iter;
 }
 
 /**
@@ -379,7 +382,7 @@ w_tree_iter_copy(GtkTreeIter *iter)
 {
 	GtkTreeIter *copy;
 
-	copy = walloc(sizeof(*copy));
+	copy = walloc(sizeof *copy);
 	*copy = *iter;
 	return copy;
 }
@@ -390,8 +393,19 @@ w_tree_iter_copy(GtkTreeIter *iter)
 void
 w_tree_iter_free(GtkTreeIter *iter)
 {
-	wfree(iter, sizeof(*iter));
+	wfree(iter, sizeof *iter);
 }
+
+/**
+ * For use as GDestroyNotify function.
+ */
+void
+ht_w_tree_iter_free(gpointer p)
+{
+	GtkTreeIter *iter = p;
+	wfree(iter, sizeof *iter);
+}
+
 
 typedef struct collect_data_struct {
     GSList *results;
@@ -456,9 +470,11 @@ tree_selection_collect_data_helper(GtkTreeModel *model,
 static void
 tree_selection_unselect_helper(gpointer data, gpointer user_data)
 {
-	gtk_tree_selection_unselect_iter((GtkTreeSelection *) user_data,
-		(GtkTreeIter *) data);
-	w_tree_iter_free((GtkTreeIter *) data);
+	GtkTreeSelection *s = user_data;
+	GtkTreeIter *iter = data;
+	
+	gtk_tree_selection_unselect_iter(s, iter);
+	w_tree_iter_free(iter);
 }
 
 /**
