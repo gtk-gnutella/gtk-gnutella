@@ -595,8 +595,9 @@ upload_free_resources(gnutella_upload_t *u)
 	}
 #ifdef USE_MMAP
 	if (u->sendfile_ctx.map != NULL) {
-		size_t len = u->sendfile_ctx.map_end - u->sendfile_ctx.map_end;
+		size_t len = u->sendfile_ctx.map_end - u->sendfile_ctx.map_start;
 
+		g_assert(len > 0 && len <= INT_MAX);
 		munmap(u->sendfile_ctx.map, len);
 		u->sendfile_ctx.map = NULL;
 	}
