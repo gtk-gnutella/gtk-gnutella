@@ -161,7 +161,7 @@ gchar **fi_get_aliases(gnet_fi_t fih);
 void fi_purge_by_handle_list(GSList *list);
 gboolean fi_purge(gnet_fi_t fih);
 
-const gchar *file_info_readable_filename(struct dl_file_info *fi);
+const gchar *file_info_readable_filename(const struct dl_file_info *fi);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_fileinfo_h_ */

@@ -60,6 +60,7 @@ RCSID("$Id$");
 #include "lib/fuzzy.h"
 #include "lib/header.h"
 #include "lib/idtable.h"
+#include "lib/utf8.h"
 #include "lib/walloc.h"
 #include "lib/glib-missing.h"
 
@@ -1108,15 +1109,15 @@ looks_like_urn(const gchar *filename)
  * duplicated should it be perused later.
  */
 const gchar *
-file_info_readable_filename(struct dl_file_info *fi)
+file_info_readable_filename(const struct dl_file_info *fi)
 {
-	GSList *l;
+	const GSList *sl;
 
 	if (!looks_like_urn(fi->file_name))
 		return fi->file_name;
 
-	for (l = fi->alias; l; l = g_slist_next(l)) {
-		gchar *name = l->data;
+	for (sl = fi->alias; sl; sl = g_slist_next(sl)) {
+		const gchar *name = sl->data;
 		if (!looks_like_urn(name))
 			return name;
 	}
@@ -1150,12 +1151,13 @@ file_info_shared_sha1(const gchar *sha1)
 	 */
 
 	if (fi->sf == NULL) {
-		shared_file_t *sf = walloc0(sizeof(*sf));
-		char *path = make_pathname(fi->path, fi->file_name);
-		const char *filename;
+		shared_file_t *sf = walloc0(sizeof *sf);
+		gchar *path = make_pathname(fi->path, fi->file_name);
+		gchar *name_utf8, *q;
+		const gchar *filename;
 
 		if (NULL == path) {
-			wfree(sf, sizeof(*sf));
+			wfree(sf, sizeof *sf);
 			return NULL;
 		}
 
@@ -1165,22 +1167,28 @@ file_info_shared_sha1(const gchar *sha1)
 		 */
 
 		filename = file_info_readable_filename(fi);
-
-		/*
-		 * In regular "shared_file" structures built for complete files,
-		 * the sf->file_name field points within the sf->file_path field.
-		 * Therefore, the sf->file_name field is not freed separately.
-		 * Here, since the lifecycle of the structure is tied to its holding
-		 * fileinfo, it is perfectly acceptable to reuse fi->file_name or
-		 * one of the aliases.
-		 */
+		name_utf8 = locale_to_utf8_full(filename);
 
 		fi->sf = shared_file_ref(sf);
 		sf->fi = fi;			/* Signals it's a partially downloaded file */
 
 		sf->file_path = atom_str_get(path);
-		sf->file_name = filename;
-		sf->file_name_len = strlen(fi->file_name);
+
+		q = utf8_compose_nfc(name_utf8);
+		sf->name_nfc = atom_str_get(q);
+		if (q != name_utf8)
+			G_FREE_NULL(q);
+
+		q = UNICODE_CANONIZE(name_utf8);
+		sf->name_canonic = atom_str_get(q);
+		if (q != name_utf8)
+			G_FREE_NULL(q);
+		
+		sf->name_nfc_len = strlen(sf->name_nfc);
+		sf->name_canonic_len = strlen(sf->name_canonic);
+
+		if (filename != name_utf8)
+			G_FREE_NULL(name_utf8);
 
 		/* FIXME: DOWNLOAD_SIZE:
 		 * Do we need to add anything here now that fileinfos can have an
