@@ -605,7 +605,7 @@ can_become_ultra(time_t now)
 	/* Uptime requirements */
 	avg_servent_uptime = get_average_servent_uptime(now) >= NODE_MIN_AVG_UPTIME;
 	avg_ip_uptime = get_average_ip_lifetime(now) >= NODE_MIN_AVG_UPTIME;
-	node_uptime = now - start_stamp > NODE_MIN_UPTIME;
+	node_uptime = delta_time(now, start_stamp) > NODE_MIN_UPTIME;
 
 	/* Connectivity requirements */
 	not_firewalled = !is_firewalled;
@@ -1338,7 +1338,7 @@ node_real_remove(gnutella_node_t *node)
 /**
  * The vectorized (message-wise) version of node_remove().
  */
-static void
+static G_GNUC_PRINTF(2, 0) void
 node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 {
 	g_assert(n->magic == NODE_MAGIC);
@@ -1929,6 +1929,7 @@ void
 node_eof(struct gnutella_node *n, const gchar *reason, ...)
 {
 	va_list args;
+	const gchar *format;
 
 	g_assert(n);
 
@@ -1965,11 +1966,12 @@ node_eof(struct gnutella_node *n, const gchar *reason, ...)
 
 	socket_eof(n->socket);
 
-	if (n->flags & NODE_F_CLOSING)			/* Bye sent or explicit shutdown */
-		node_remove_v(n, NULL, args);		/* Reuse existing reason */
+	if (n->flags & NODE_F_CLOSING)		/* Bye sent or explicit shutdown */
+		format = NULL;					/* Reuse existing reason */
 	else
-		node_remove_v(n, reason, args);
+		format = reason;
 
+	node_remove_v(n, format, args);
 	va_end(args);
 }
 
@@ -4504,7 +4506,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 					current_peermode == NODE_P_ULTRA &&
 					configured_peermode != NODE_P_ULTRA &&
 					node_leaf_count == 0 &&
-					n->up_date != 0 && delta_time(n->up_date, start_stamp) < 0
+					n->up_date != 0 &&
+					delta_time(n->up_date, (time_t) start_stamp) < 0
 				) {
 					g_warning("accepting request from %s <%s> to become a leaf",
 						node_ip(n), node_vendor(n));
@@ -6825,7 +6828,7 @@ node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 		g_strlcpy(&buf[1], vendor, sizeof buf - 1);
 		n->vendor = atom_str_get(buf);
 	} else {
-		static const char prefix[] = "morph", full[] = "Morpheus";
+		static const char full[] = "Morpheus";
 
 		/*
 		 * Morpheus names its servents as "morph350" or "morph461" and
@@ -6835,7 +6838,7 @@ node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 		 */
 
 		if (
-			0 == ascii_strncasecmp(vendor, prefix, sizeof prefix - 1) &&
+			is_strcaseprefix(vendor, "morph") &&
 			0 != strcmp_delimit(vendor, full, " /")
 		) {
 			gm_snprintf(buf, sizeof buf, "%s (%s)", full, vendor);
