@@ -515,7 +515,7 @@ handle_push_request(struct gnutella_node *n)
 		g_warning("PUSH request (hops=%d, ttl=%d) for invalid file index %u",
 			n->header.hops, n->header.ttl, file_index);
 	} else
-		file_name = req_file->file_name;
+		file_name = req_file->name_nfc;
 
 	/*
 	 * XXX might be run inside corporations (private IPs), must be smarter.
@@ -1036,7 +1036,7 @@ void upload_stop_all(struct dl_file_info *fi, const gchar *reason)
 			count, fi->file_name, reason);
 
 	for (sl = to_stop; sl; sl = g_slist_next(sl)) {
-		gnutella_upload_t *up = (gnutella_upload_t *) (sl->data);
+		gnutella_upload_t *up = sl->data;
 		upload_remove(up, "%s", reason);
 	}
 
@@ -1616,7 +1616,7 @@ get_file_to_upload_from_index(
 				goto found;
 			}
 
-			escaped = url_escape(sfn->file_name);
+			escaped = url_escape(sfn->name_nfc);
 
 			gm_snprintf(location, sizeof(location),
 				"Location: http://%s/get/%u/%s\r\n",
@@ -1626,7 +1626,7 @@ get_file_to_upload_from_index(
 			upload_error_remove_ext(u, sfn, location,
 				301, "Moved Permanently");
 
-			if (escaped != sfn->file_name) {
+			if (escaped != sfn->name_nfc) {
 				g_free(deconstify_gchar(escaped));
 				escaped = NULL;	/* Don't use G_FREE_NULL b/c of lvalue cast */
 			}
@@ -1665,7 +1665,7 @@ get_file_to_upload_from_index(
 					idx, basename);
 		}
 
-	} else if (0 != strncmp(basename, sf->file_name, sf->file_name_len)) {
+	} else if (0 != strcmp(basename, sf->name_nfc)) {
 		struct shared_file *sfn = shared_file_by_name(basename);
 
 		g_assert(sfn != SHARE_REBUILDING);	/* Or we'd have trapped above */
@@ -1676,7 +1676,7 @@ get_file_to_upload_from_index(
 					idx, sfn->file_index, sfn->file_path);
 			else
 				printf("INDEX MISMATCH: requested %u: %s (has %s)\n",
-					idx, basename, sf->file_name);
+					idx, basename, sf->name_nfc);
 		}
 
 		if (sfn == NULL) {
@@ -2255,7 +2255,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	if (u->push && idx != u->index)
 		g_warning("Host %s sent PUSH for %u (%s), now requesting %u (%s)",
-			ip_to_gchar(u->ip), u->index, u->name, idx, reqfile->file_name);
+			ip_to_gchar(u->ip), u->index, u->name, idx, reqfile->name_nfc);
 
 	/*
 	 * We already have a non-NULL u->name in the structure, because we
@@ -2271,7 +2271,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
     if (u->name != NULL)
         atom_str_free(u->name);
 
-    u->name = atom_str_get(reqfile->file_name);
+    u->name = atom_str_get(reqfile->name_nfc);
 	u->file_info = reqfile->fi;
 
 	/*
@@ -2299,7 +2299,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		if (g_slist_next(ranges) != NULL) {
 			if (dbg) g_warning("client %s <%s> requested several ranges "
 				"for \"%s\": %s", ip_to_gchar(u->ip),
-				u->user_agent ? u->user_agent : "", reqfile->file_name,
+				u->user_agent ? u->user_agent : "", reqfile->name_nfc,
 				http_range_to_gchar(ranges));
 		}
 
@@ -2470,7 +2470,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		g_warning("Host %s sent initial request for %u (%s), "
 			"now requesting %u (%s)",
 			ip_to_gchar(s->ip),
-			u->index, u->name, idx, reqfile->file_name);
+			u->index, u->name, idx, reqfile->name_nfc);
 		upload_error_remove(u, NULL, 400, "Change of Resource Forbidden");
 		return;
 	}
