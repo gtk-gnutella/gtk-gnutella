@@ -400,7 +400,7 @@ search_reset_sent_nodes(search_ctrl_t *sch)
 static void
 mark_search_sent_to_node(search_ctrl_t *sch, gnutella_node_t *n)
 {
-	gnet_host_t *sd = walloc(sizeof(*sd));
+	gnet_host_t *sd = walloc(sizeof *sd);
 	sd->ip = n->ip;
 	sd->port = n->port;
 	g_hash_table_insert(sch->sent_nodes, sd, GUINT_TO_POINTER(1));
@@ -414,7 +414,7 @@ mark_search_sent_to_connected_nodes(search_ctrl_t *sch)
 
 	g_hash_table_freeze(sch->sent_nodes);
 	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
-		n = (struct gnutella_node *) sl->data;
+		n = sl->data;
 		if (NODE_IS_WRITABLE(n))
 			mark_search_sent_to_node(sch, n);
 	}
@@ -471,8 +471,8 @@ search_free_alt_locs(gnet_record_t *rc)
 
 	g_assert(alt != NULL);
 
-	wfree(alt->hvec, alt->hvcnt * sizeof(*alt->hvec));
-	wfree(alt, sizeof(*alt));
+	wfree(alt->hvec, alt->hvcnt * sizeof *alt->hvec);
+	wfree(alt, sizeof *alt);
 
 	rc->alt_locs = NULL;
 }
@@ -487,8 +487,8 @@ search_free_proxies(gnet_results_set_t *rs)
 
 	g_assert(v != NULL);
 
-	wfree(v->hvec, v->hvcnt * sizeof(*v->hvec));
-	wfree(v, sizeof(*v));
+	wfree(v->hvec, v->hvcnt * sizeof *v->hvec);
+	wfree(v, sizeof *v);
 
 	rs->proxies = NULL;
 }
@@ -583,7 +583,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 	if (!validate_only)
 		info = g_string_sized_new(80);
 
-	rs = (gnet_results_set_t *) zalloc(rs_zone);
+	rs = zalloc(rs_zone);
 
 	rs->vendor[0] = '\0';
 	rs->records   = NULL;
@@ -719,7 +719,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 		nr++;
 
 		if (!validate_only) {
-			rc = (gnet_record_t *) zalloc(rc_zone);
+			rc = zalloc(rc_zone);
 
 			rc->sha1  = rc->tag = NULL;
 			rc->index = idx;
@@ -1524,8 +1524,7 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 		 * of the URN query, plus a trailing NUL.
 		 */
 		qlen = 0;
-		size = sizeof(*m) +
-			CONST_STRLEN(urn_prefix) + SHA1_BASE32_SIZE + 2;	/* 2 NULs */
+		size = CONST_STRLEN(urn_prefix) + SHA1_BASE32_SIZE + 2;	/* 2 NULs */
 	} else {
 		/*
 		 * We're adding a trailing NUL after the query text.
@@ -1536,10 +1535,11 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 		 */
 
 		qlen = strlen(sch->query);
-		size = sizeof(*m) + qlen + 1;	/* 1 NUL */
+		size = qlen + 1;	/* 1 NUL */
 	}
 
-	m = (struct gnutella_msg_search *) walloc(size);
+	size += sizeof *m;
+	m = walloc(size);
 	*len = size;	/* What we allocated */
 
 	/* Use the first MUID on the list (the last one allocated) */
@@ -2548,6 +2548,8 @@ search_get_reissue_timeout(gnet_search_t sh)
 gnet_search_t
 search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 {
+	static const search_ctrl_t zero_sch;
+	const gchar *endptr;
 	search_ctrl_t *sch;
 	gchar *qdup;
 
@@ -2555,7 +2557,13 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 	 * Canonicalize the query we're sending.
 	 */
 
-	{
+	if (NULL != (endptr = is_strprefix(query, "urn:sha1:"))) {
+		if (SHA1_BASE32_SIZE != strlen(endptr) || !urn_get_sha1(query, NULL)) {
+			g_warning("Rejected invalid urn:sha1 search");
+			return (gnet_search_t) -1;
+		}
+		qdup = g_strdup(query);
+	} else {
 		const gchar *s;
 		
 		s = utf8_is_valid_string(query, 0)
@@ -2576,7 +2584,9 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 		return (gnet_search_t) -1;
 	}
 
-	sch = g_new0(search_ctrl_t, 1);
+	sch = g_malloc(sizeof *sch);
+	*sch = zero_sch;
+
 	sch->search_handle = search_request_handle(sch);
 	sch->id = search_id++;
 
@@ -2615,7 +2625,7 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 	sl_search_ctrl = g_slist_prepend(sl_search_ctrl, sch);
 
 	if (sch->passive)
-		sl_passive_ctrl = g_slist_prepend(sl_passive_ctrl, (gpointer) sch);
+		sl_passive_ctrl = g_slist_prepend(sl_passive_ctrl, sch);
 
 	return sch->search_handle;
 }
@@ -2719,7 +2729,7 @@ search_get_kept_results(gchar *muid, guint32 *kept)
 {
 	search_ctrl_t *sch;
 
-	sch = (search_ctrl_t *) g_hash_table_lookup(search_by_muid, muid);
+	sch = g_hash_table_lookup(search_by_muid, muid);
 
 	g_assert(sch == NULL || !sch->passive);		/* No MUID if passive */
 
