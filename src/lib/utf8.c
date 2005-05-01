@@ -3037,7 +3037,6 @@ utf8_canonize(const gchar *src)
 
 		G_FREE_NULL(dst32);
 
-		g_message("\nsrc=\"%s\"\ndst=\"%s\"\n", src, dst);
 		return dst;
 	}
 }
