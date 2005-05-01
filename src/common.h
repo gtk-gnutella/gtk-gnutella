@@ -89,10 +89,15 @@
 #ifdef HAS_SENDFILE
 #define USE_BSD_SENDFILE	/* No <sys/sendfile.h>, assume BSD version */
 #else
+
+#if defined(__STDC_VERSION__)
+#define USE_MMAP 1
 #include <sys/mman.h>
 #ifndef MAP_FAILED
 #define MAP_FAILED ((void *) -1)
-#endif
+#endif	/* !MMAP_FAILED */
+#endif	/* ISO C */
+
 #endif	/* HAS_SENDFILE */
 #endif	/* I_SYS_SENDFILE_H */
 

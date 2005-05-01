@@ -593,14 +593,14 @@ upload_free_resources(gnutella_upload_t *u)
 		close(u->file_desc);
 		u->file_desc = -1;
 	}
-#ifndef HAS_SENDFILE
+#ifdef USE_MMAP
 	if (u->sendfile_ctx.map != NULL) {
 		size_t len = u->sendfile_ctx.map_end - u->sendfile_ctx.map_end;
 
 		munmap(u->sendfile_ctx.map, len);
 		u->sendfile_ctx.map = NULL;
 	}
-#endif /* !HAS_SENDFILE */
+#endif /* USE_MMAP */
 	if (u->socket != NULL) {
 		g_assert(u->socket->resource.upload == u);
 		socket_free(u->socket);
@@ -2799,7 +2799,12 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		return;
 	}
 
+#if defined(USE_MMAP) || defined(HAVE_SENDFILE)
 	use_sendfile = !sendfile_failed && !SOCKET_USES_TLS(u->socket);
+#else
+	use_sendfile = FALSE;
+#endif /* USE_MMAP || HAVE_SENDFILE */
+	
 	if (!use_sendfile) {
 		
 		/* If we got a valid skip amount then jump ahead to that position */
@@ -2988,7 +2993,12 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 	amount = u->end - u->pos + 1;
 	g_assert(amount > 0);
 
+#if defined(USE_MMAP) || defined(HAVE_SENDFILE)
 	use_sendfile = !sendfile_failed && !SOCKET_USES_TLS(u->socket);
+#else
+	use_sendfile = FALSE; 
+#endif /* USE_MMAP || HAVE_SENDFILE */
+	
 	if (use_sendfile) {
 		off_t pos, before;			/* For sendfile() sanity checks */
 		/*

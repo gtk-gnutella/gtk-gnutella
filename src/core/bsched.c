@@ -1368,7 +1368,7 @@ bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, size_t len)
 	return r;
 }
 
-#ifndef HAS_SENDFILE
+#ifdef USE_MMAP
 static sigjmp_buf mmap_env;
 static sig_atomic_t mmap_access;
 
@@ -1385,7 +1385,7 @@ signal_handler(int n)
 	set_signal(n, SIG_DFL);
 	raise(n);
 }
-#endif /* !HAVE_SENDFILE */
+#endif /* !USE_MMAP */
 
 /**
  * Write at most `len' bytes to source's fd, as bandwidth permits.
@@ -1399,6 +1399,21 @@ ssize_t
 bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	size_t len)
 {
+#if !defined(USE_MMAP) && !defined(HAVE_SENDFILE)
+
+	(void) ctx;
+	(void) bio;
+	(void) in_fd;
+	(void) offset;
+	(void) len;
+	
+	g_assert_not_reached();
+	/* NOTREACHED */
+	errno = ENOTSUP;
+	return (ssize_t) -1;
+	
+#else /* USE_MMAP || HAVE_SENDFILE */
+	
 	/*
 	 * amount is only declared volatile to shut up the bogus warning by GCC
 	 * 2.95.x that ``amount'' *might* be clobbered by sigsetjmp - which is
@@ -1438,7 +1453,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 		printf("bsched_write(fd=%d, len=%d) available=%d\n",
 			bio->wio->fd(bio->wio), (gint) len, (gint) available);
 
-#ifndef HAS_SENDFILE
+#ifdef USE_MMAP
 	{
 		static gboolean first_call = TRUE;
 		const gchar *data;
@@ -1477,7 +1492,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 			 *			No mere symbol check, please.
 			 */
 			madvise(ctx->map, map_len, MADV_SEQUENTIAL);
-#endif
+#endif /* MADV_SEQUENTIAL */
 		}
 
 		g_assert(ctx->map != NULL);
@@ -1514,7 +1529,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 			*offset = start + r;
 		}
 	}
-#else
+#else /* !USE_MMAP */
 #ifdef USE_BSD_SENDFILE
 	/*
 	 * The BSD semantics for sendfile() differ from the Linux one:
@@ -1557,7 +1572,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	}
 
 #endif	/* USE_BSD_SENDFILE */
-#endif	/* HAVE_SENDFILE */
+#endif	/* USE_MMAP */
 
 	if (r > 0) {
 		bsched_bw_update(bio->bs, r, amount);
@@ -1565,6 +1580,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	}
 
 	return r;
+#endif /* !USE_MMAP && !HAVE_SENDFILE */
 }
 
 /**
