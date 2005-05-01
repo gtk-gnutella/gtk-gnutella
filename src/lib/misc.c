@@ -454,11 +454,14 @@ host_to_ip(const gchar *host)
 	}
 #endif
 
+#ifdef USE_IPV6_HACK
 	if (AF_INET6 == he->h_addrtype && he->h_length == 16) {
 		guint32 ip;
 		memcpy(&ip, &he->h_addr_list[0][12], 4);
 		return ip;
-	}	
+	}
+#endif /* USE_IPV6_HACK */
+
 	if (AF_INET != he->h_addrtype) {
 		g_warning("host_to_ip: Wrong address type %d (host=%s).",
 			he->h_addrtype, host);
