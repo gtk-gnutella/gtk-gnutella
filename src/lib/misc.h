@@ -308,14 +308,21 @@ gchar *date_to_rfc1123_gchar(time_t date);
 gchar *short_time(gint s);
 gchar *short_uptime(gint s);
 
+/* Use the direct difference instead of difftime() for systems that are
+ * known to use a flat time_t encoding. */
+#if !defined(LINUX_SYSTEM) && \
+	!defined(__FreeBSD__) && \
+	!defined(__NetBSD__) && \
+	!defined(__OpenBSD__)
+#define USE_DIFFTIME
+#endif
+
 /* Use a macro so that's possible to not use difftime where it's not
- * necessary because time_t is flat encoded
- */
-/* XXX: Hardcoded to difftime because there's no Configure check yet */
-#if 1 || defined(USE_DIFFTIME)
+ * necessary because time_t is flat encoded */
+#if defined(USE_DIFFTIME)
 #define delta_time(a, b) ((gint64) difftime((a), (b)))
 #else
-#define ((gint64) ((a) - (b)))
+#define delta_time(a, b) ((gint64) ((a) - (b)))
 #endif
 
 /*
