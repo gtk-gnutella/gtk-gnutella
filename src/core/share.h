@@ -36,16 +36,23 @@ struct extension {
 };
 
 typedef struct shared_file {
-	gint refcnt;			/* Reference count */
-	gchar *file_path;		/* The full path of the file */
-	const gchar *file_name;	/* Pointer within file_path at start of filename */
-	guint32 file_index;		/* the files index within our local DB */
-	filesize_t file_size;	/* File size in Bytes */
-	guint32 flags;			/* See below for definition */
-	size_t file_name_len;
+	const gchar *file_path;		/* The full path of the file (atom!) */
+	const gchar *name_nfc;		/* UTF-8 NFC version of filename (atom!) */
+	const gchar *name_canonic;	/* UTF-8 canonized ver. of filename (atom)! */
+	
+	struct dl_file_info *fi;	/* PFSP-server: the holding fileinfo */
+	
+	filesize_t file_size;		/* File size in Bytes */
+	guint32 file_index;			/* the files index within our local DB */
+	
+	gint refcnt;				/* Reference count */
+	guint32 flags;				/* See below for definition */
+	
+	size_t name_nfc_len;		/* strlen(name_nfc) */
+	size_t name_canonic_len;	/* strlen(name_canonic) */
+	
 	time_t mtime;			/* Last modification time, for SHA1 computation */
 	gchar sha1_digest[SHA1_RAW_SIZE];	/* SHA1 digest, binary form */
-	struct dl_file_info *fi;			/* PFSP-server: the holding fileinfo */
 } shared_file_t;
 
 /*
