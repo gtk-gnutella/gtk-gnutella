@@ -205,7 +205,7 @@ do {				\
 /* Functions using this attribute cause a warning if the variable
  * argument list does not contain a NULL pointer. */
 #if HAVE_GCC(4, 0)
-#define WARN_NEED_SENTINEL __attribute__((__sentinel__))
+#define WARN_NEED_SENTINEL __attribute__((sentinel))
 #else /* GCC < 4 */
 #define WARN_NEED_SENTINEL 
 #endif /* GCC >= 4 */
