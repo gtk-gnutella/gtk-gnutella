@@ -1131,8 +1131,7 @@ lazy_utf8_to_locale(const gchar *str, size_t len)
 
 /**
  * Converts the supplied string ``str'' from the current locale encoding
- * to a UTF-8 string.  If compiled for GTK+ 2.x this function does also
- * enforce NFC.
+ * to an UTF-8 NFC string.
  *
  * @param str the string to convert.
  * @param len the length of ``str''. May be set to zero if ``str'' is
@@ -1140,38 +1139,33 @@ lazy_utf8_to_locale(const gchar *str, size_t len)
  *
  * @returns the converted string or ``str'' if no conversion was necessary.
  */
-gchar *
+const gchar *
 lazy_locale_to_utf8(const gchar *str, size_t len)
 {
 	const gchar *s;
 
 	/* Let's assume that most of the supplied strings are pure ASCII. */
 	if (is_ascii_string(str))
-		return deconstify_gchar(str);
+		return str;
 
 	s = locale_to_utf8(str, len);
-	if (!s)
-		return "<Cannot convert to UTF-8>";
-
-#ifdef USE_GLIB2
-	{
-		static gchar buf[4096 + 6];
-		gchar *s_nfc;
+	if (NULL != s) {
+		static gchar buf[4096];
+		gchar *nfc;
 
 		/* Enforce UTF-8 NFC because GTK+ would render a decomposed string
 		 * otherwise (if the string is not in NFC). This is a known GTK+ bug.
 		 */
 
-		s_nfc = g_utf8_normalize(s, (gssize) -1, G_NORMALIZE_NFC);
-		if (0 != strcmp(s, s_nfc)) {
-			g_strlcpy(buf, s_nfc, sizeof buf);
-			s = buf;
-		}
-		G_FREE_NULL(s_nfc);
-	}
-#endif	/* USE_GLIB2 */
+		nfc = utf8_compose_nfc(s);
+		utf8_strlcpy(buf, nfc, sizeof buf);
+		if (nfc != s)
+			G_FREE_NULL(nfc);
 
-	return deconstify_gchar(s);
+		return buf;
+	}
+	
+	return "<Cannot convert to UTF-8>";
 }
 
 /**
@@ -2970,14 +2964,20 @@ utf8_compose_nfc(const gchar *src)
 guint32 *
 utf32_canonize(const guint32 *src)
 {
-	guint32 *nfkd, *nfd;
+	guint32 nfkd_buf[1024], nfd_buf[1024];
+	guint32 *nfkd, *nfd, *nfc;
 	size_t size, n;
 	
 	/* Convert to NFKD */
-	size = 1 + utf32_decompose(src, NULL, 0, TRUE);
-	nfkd = g_malloc(size * sizeof *nfkd);
-	n = utf32_decompose(src, nfkd, size, TRUE);
-	g_assert(size - 1 == n);
+	n = utf32_decompose(src, nfkd_buf, G_N_ELEMENTS(nfkd_buf), TRUE);
+	size = n + 1;
+	if (n < G_N_ELEMENTS(nfkd_buf)) {
+		nfkd = nfkd_buf;
+	} else {
+		nfkd = g_malloc(size * sizeof *nfkd);
+		n = utf32_decompose(src, nfkd, size, TRUE);
+		g_assert(size - 1 == n);
+	}
 
 	/* FIXME: Must convert 'szett' to "ss" */
 	n = utf32_strlower(nfkd, nfkd, size);
@@ -2988,18 +2988,28 @@ utf32_canonize(const guint32 *src)
 
 	/* Convert to NFD; this might be unnecessary if the previous
 	 * operations did not destroy the NFKD */
-	size = 1 + utf32_decompose(nfkd, NULL, 0, FALSE);
-	nfd = g_malloc(size * sizeof *nfd);
-	n = utf32_decompose(nfkd, nfd, size, FALSE);
-	g_assert(size - 1 == n);
+	n = utf32_decompose(nfkd, nfd_buf, G_N_ELEMENTS(nfd_buf), FALSE);
+	size = n + 1;
+	if (n < G_N_ELEMENTS(nfd_buf)) {
+		nfd = nfd_buf;
+	} else {
+		nfd = g_malloc(size * sizeof *nfd);
+		n = utf32_decompose(nfkd, nfd, size, FALSE);
+		g_assert(size - 1 == n);
+	}
 
-	G_FREE_NULL(nfkd);
+	if (nfkd_buf != nfkd)
+		G_FREE_NULL(nfkd);
 
 	/* Convert to NFC */
 	n = utf32_compose(nfd);
 	n = utf32_compose_hangul(nfd);
+	nfc = utf32_strdup(nfd);
 
-	return nfd;
+	if (nfd_buf != nfd)
+		G_FREE_NULL(nfd);
+	
+	return nfc;
 }
 
 /**
@@ -3013,16 +3023,24 @@ utf8_canonize(const gchar *src)
 	g_assert(utf8_is_valid_string(src, 0));
 	
 	{	
-		size_t size, n;
+		size_t n;
+		guint32 buf[1024];
 		guint32 *s;
 		
-		size = 1 + utf8_to_utf32(src, NULL, 0);
-		s = g_malloc(size * sizeof *s);
-		n = 1 + utf8_to_utf32(src, s, size);
-		g_assert(n == size);
+		n = utf8_to_utf32(src, buf, G_N_ELEMENTS(buf));
+		if (n < G_N_ELEMENTS(buf)) {
+			s = buf;
+		} else {
+			size_t size = n + 1;
+			
+			s = g_malloc(size * sizeof *s);
+			n = utf8_to_utf32(src, s, size);
+			g_assert(size - 1 == n);
+		}
 		
 		dst32 = utf32_canonize(s);
-		if (dst32 != s)
+		g_assert(dst32 != s);
+		if (s != buf)
 			G_FREE_NULL(s);
 	}
 
@@ -3032,11 +3050,12 @@ utf8_canonize(const gchar *src)
 		
 		size = 1 + utf32_to_utf8(dst32, NULL, 0);
 		dst = g_malloc(size * sizeof *dst);
-		n = 1 + utf32_to_utf8(dst32, dst, size);
-		g_assert(n == size);
+		n = utf32_to_utf8(dst32, dst, size);
+		g_assert(size - 1 == n);
 
 		G_FREE_NULL(dst32);
 
+		g_message("\nsrc=\"%s\"\ndst=\"%s\"\n", src, dst);
 		return dst;
 	}
 }
