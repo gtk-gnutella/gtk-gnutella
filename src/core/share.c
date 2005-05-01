@@ -762,7 +762,9 @@ shared_file_free(shared_file_t *sf)
 	g_assert(sf->refcnt == 0);
 
 	atom_str_free(sf->file_path);
-	wfree(sf, sizeof(*sf));
+	atom_str_free(sf->name_nfc);
+	atom_str_free(sf->name_canonic);
+	wfree(sf, sizeof *sf);
 }
 
 /**
@@ -879,9 +881,8 @@ recurse_scan(gchar *dir, const gchar *basedir)
 
 	for (i = 0, sl = files; sl; i++, sl = g_slist_next(sl)) {
 		const gchar *name;
-		gint name_len;
 
-		full = (gchar *) sl->data;
+		full = sl->data;
 
 		/*
 		 * In the "tmp" directory, don't share files that have a trailer.
@@ -891,11 +892,10 @@ recurse_scan(gchar *dir, const gchar *basedir)
 		 */
 
 		name = strrchr(full, G_DIR_SEPARATOR);
-		g_assert(name);
+		g_assert(name && G_DIR_SEPARATOR == name[0]);
 		name++;						/* Start of file name */
 
-		name_len = strlen(name);
-		entry_end = name + name_len;
+		entry_end = &name[strlen(name)];
 
 		for (exts = extensions; exts; exts = exts->next) {
 			struct extension *e = (struct extension *) exts->data;
@@ -915,6 +915,7 @@ recurse_scan(gchar *dir, const gchar *basedir)
 					0 == ascii_strcasecmp(start + 1, e->str))
 			) {
 				struct shared_file *found = NULL;
+				gchar *name_utf8, *q;
 
 				if (dbg > 5)
 					g_message("recurse_scan: full=\"%s\"", full);
@@ -946,11 +947,32 @@ recurse_scan(gchar *dir, const gchar *basedir)
 					break;
 				}
 
-				found = (struct shared_file *) walloc0(sizeof(*found));
+				name_utf8 = locale_to_utf8_full(name);
+				if (!name_utf8) {
+					g_warning("Cannot convert filename to UTF-8: \"%s\"", full);
+					break;
+				}
+			
+				found = walloc0(sizeof *found);
 
 				found->file_path = atom_str_get(full);
-				found->file_name = found->file_path + (name - full);
-				found->file_name_len = name_len;
+				
+				q = utf8_compose_nfc(name_utf8);
+				found->name_nfc = atom_str_get(q);
+				if (q != name_utf8)
+					G_FREE_NULL(q);
+				
+				q = UNICODE_CANONIZE(name_utf8);
+				found->name_canonic = atom_str_get(q);
+				if (q != name_utf8)
+					G_FREE_NULL(q);
+
+				if (name_utf8 != name)
+					G_FREE_NULL(name_utf8);
+
+				found->name_nfc_len = strlen(found->name_nfc);
+				found->name_canonic_len = strlen(found->name_canonic);
+
 				found->file_size = file_stat.st_size;
 				found->file_index = ++files_scanned;
 				found->mtime = file_stat.st_mtime;
@@ -970,7 +992,7 @@ recurse_scan(gchar *dir, const gchar *basedir)
 				}
 
 				request_sha1(found);
-				st_insert_item(&search_table, found->file_name, found);
+				st_insert_item(&search_table, found->name_canonic, found);
 				shared_files = g_slist_prepend(shared_files,
 					shared_file_ref(found));
 
@@ -999,7 +1021,7 @@ recurse_scan(gchar *dir, const gchar *basedir)
 	 */
 
 	for (sl = directories; sl; sl = g_slist_next(sl)) {
-		gchar *path = (gchar *) sl->data;
+		gchar *path = sl->data;
 		recurse_scan(path, basedir);
 		G_FREE_NULL(path);
 	}
@@ -1147,14 +1169,14 @@ share_scan(void)
 		 */
 
 		val = GPOINTER_TO_UINT(
-			g_hash_table_lookup(file_basenames, sf->file_name));
+			g_hash_table_lookup(file_basenames, sf->name_nfc));
 
 		/*
 		 * The following works because 0 cannot be a valid file index.
 		 */
 
 		val = (val != 0) ? FILENAME_CLASH : sf->file_index;
-		g_hash_table_insert(file_basenames, deconstify_gchar(sf->file_name),
+		g_hash_table_insert(file_basenames, deconstify_gchar(sf->name_nfc),
 			GUINT_TO_POINTER(val));
 
 		if (0 == (i & 0x7ff))
