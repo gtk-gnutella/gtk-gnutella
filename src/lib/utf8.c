@@ -2904,20 +2904,29 @@ utf32_compose(guint32 *src)
 guint32 *
 utf32_compose_nfc(const guint32 *src)
 {
-	guint32 *nfd;
+	guint32 buf[1024], *nfd, *nfc;
 	size_t size, n;
 	
 	/* Convert to NFKD */
-	size = 1 + utf32_decompose(src, NULL, 0, FALSE);
-	nfd = g_malloc(size * sizeof *nfd);
-	n = utf32_decompose(src, nfd, size, FALSE);
-	g_assert(size - 1 == n);
+	n = utf32_decompose(src, buf, G_N_ELEMENTS(buf), FALSE);
+	size = n + 1;
+	if (n < G_N_ELEMENTS(buf)) {
+		nfd = buf;
+	} else {
+		nfd = g_malloc(size * sizeof *nfd);
+		n = utf32_decompose(src, nfd, size, FALSE);
+		g_assert(size - 1 == n);
+	}
 
 	/* Convert to NFC */
 	n = utf32_compose(nfd);
 	n = utf32_compose_hangul(nfd);
+	nfc = utf32_strdup(nfd);
 
-	return nfd;
+	if (buf != nfd)
+		G_FREE_NULL(nfd);
+
+	return nfc;
 }
 
 /**
@@ -2930,16 +2939,24 @@ utf8_compose_nfc(const gchar *src)
 	g_assert(utf8_is_valid_string(src, 0));
 	
 	{	
-		size_t size, n;
+		size_t n;
+		guint32 buf[1024];
 		guint32 *s;
 		
-		size = 1 + utf8_to_utf32(src, NULL, 0);
-		s = g_malloc(size * sizeof *s);
-		n = 1 + utf8_to_utf32(src, s, size);
-		g_assert(n == size);
+		n = utf8_to_utf32(src, buf, G_N_ELEMENTS(buf));
+		if (n < G_N_ELEMENTS(buf)) {
+			s = buf;
+		} else {
+			size_t size = n + 1;
+			
+			s = g_malloc(size * sizeof *s);
+			n = utf8_to_utf32(src, s, size);
+			g_assert(size - 1 == n);
+		}
 		
 		dst32 = utf32_compose_nfc(s);
-		if (dst32 != s)
+		g_assert(dst32 != s);
+		if (s != buf)
 			G_FREE_NULL(s);
 	}
 
@@ -2949,8 +2966,8 @@ utf8_compose_nfc(const gchar *src)
 		
 		size = 1 + utf32_to_utf8(dst32, NULL, 0);
 		dst = g_malloc(size * sizeof *dst);
-		n = 1 + utf32_to_utf8(dst32, dst, size);
-		g_assert(n == size);
+		n = utf32_to_utf8(dst32, dst, size);
+		g_assert(size - 1 == n);
 
 		G_FREE_NULL(dst32);
 		return dst;
@@ -3055,7 +3072,9 @@ utf8_canonize(const gchar *src)
 
 		G_FREE_NULL(dst32);
 
+#if 0
 		g_message("\nsrc=\"%s\"\ndst=\"%s\"\n", src, dst);
+#endif
 		return dst;
 	}
 }
