@@ -463,7 +463,7 @@ static gint search_gui_compare_records(
 
         switch (sort_col) {
         case c_sr_filename:
-            result = (search_sort_casesense ? strcmp : strcasecmp)
+            result = (search_sort_casesense ? strcmp : ascii_strcasecmp)
                 (r1->name, r2->name);
             break;
 
