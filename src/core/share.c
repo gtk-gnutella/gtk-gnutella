@@ -978,6 +978,14 @@ recurse_scan(gchar *dir, const gchar *basedir)
 				found->mtime = file_stat.st_mtime;
 				found->flags = 0;
 
+				if (0 == found->name_nfc_len || 0 == found->name_canonic_len) {
+					g_warning("Normalized filename is an empty string \"%s\"",
+						full);
+					shared_file_free(found);
+					found = NULL;
+					break;
+				}
+					
 				if (!sha1_is_cached(found) && file_info_has_trailer(full)) {
 					/*
 	 		 	 	 * It's probably a file being downloaded, and which is
