@@ -1809,10 +1809,10 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 			 */
 
 			if (c == ',') {
-				if (p[1] == ' ')
-					goto next;
-				else if (is_strcaseprefix(&p[1], "http://"))
+				if (is_strcaseprefix(&p[1], "http://"))
 					break;
+				if (p[1] != ' ')
+					goto next;
 			}
 
 			if (c == ' ' || c == ',')
