@@ -2512,7 +2512,7 @@ socket_plain_sendto(
 
 	socket_addr_set(&addr, to->ip, to->port);
 
-	return sendto(s->file_desc, buf, size, MSG_DONTWAIT,
+	return sendto(s->file_desc, buf, size, 0,
 		(const struct sockaddr *) &addr, sizeof addr);
 }
 
