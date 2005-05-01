@@ -380,8 +380,10 @@ search_gui_free_r_sets(search_t *sch)
 }
 
 guint
-search_gui_hash_func(const record_t *rc)
+search_gui_hash_func(gconstpointer p)
 {
+	const record_t *rc = p;
+	
 	g_assert(rc->magic == RECORD_MAGIC);
 	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
 
@@ -396,8 +398,10 @@ search_gui_hash_func(const record_t *rc)
 }
 
 gint
-search_gui_hash_key_compare(const record_t *rc1, const record_t *rc2)
+search_gui_hash_key_compare(gconstpointer a, gconstpointer b)
 {
+	const record_t *rc1 = a, *rc2 = b;
+	
 	/* Must compare same fields as search_hash_func() --RAM */
 	return rc1->size == rc2->size
 		&& rc1->results_set->ip == rc2->results_set->ip
