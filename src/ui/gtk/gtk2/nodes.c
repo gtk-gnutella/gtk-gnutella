@@ -450,7 +450,7 @@ nodes_gui_init(void)
 #endif /* GTK+ >= 2.4.0 */
 
 	nodes_handles = g_hash_table_new_full(
-		NULL, NULL, NULL, (GDestroyNotify) w_tree_iter_free);
+		NULL, NULL, NULL, ht_w_tree_iter_free);
 
     ht_node_info_changed = g_hash_table_new(NULL, NULL);
     ht_node_flags_changed = g_hash_table_new(NULL, NULL);

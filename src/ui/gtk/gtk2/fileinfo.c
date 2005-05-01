@@ -568,7 +568,7 @@ fi_gui_init(void)
 	STATIC_ASSERT(c_fi_num == G_N_ELEMENTS(types));
 
 	fi_gui_handles = g_hash_table_new_full(NULL, NULL,
-						NULL, (GDestroyNotify) w_tree_iter_free);
+						NULL, ht_w_tree_iter_free);
 
 	fi_updates = g_hash_table_new(NULL, NULL);
 
