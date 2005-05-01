@@ -197,7 +197,7 @@ pattern_qsearch(
 			if (tp == text) {					/* At beginning of text */
 				if (word == qs_begin) return tp;
 				else at_begin = TRUE;
-			} else if (!isalnum((guchar) *(tp-1))) {	/* At word boundary */
+			} else if (0x20 == *(tp-1)) {	/* At word boundary */
 				if (word == qs_begin) return tp;
 				else at_begin = TRUE;
 			}
@@ -205,7 +205,7 @@ pattern_qsearch(
 			if (at_begin && word == qs_whole) {
 				if (tp + plen == end)			/* At end of string */
 					return tp;
-				else if (!isalnum((guchar) *(tp+plen)))
+				else if (0x20 == *(tp+plen))
 					return tp; /* At word boundary after */
 			}
 
@@ -218,4 +218,4 @@ pattern_qsearch(
 	return NULL;		/* Not found */
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
