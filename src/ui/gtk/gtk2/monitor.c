@@ -78,9 +78,8 @@ monitor_gui_append(query_type_t type, const gchar *item,
 
 	if (monitor_max_items > 0) {
 		GtkTreeIter iter;
-		static gchar tmpstr[100];
-		gchar *str;
-		size_t len;
+		gchar buf[128];
+		const gchar *s;
 
     	/* Aquire an iterator */
     	gtk_list_store_append(monitor_model, &iter);
@@ -88,13 +87,11 @@ monitor_gui_append(query_type_t type, const gchar *item,
 
 		/* If the query is empty and we have a SHA1 extension,
 	 	 * we print a urn:sha1-query instead. */
-		if (type == QUERY_SHA1)
-			len = gm_snprintf(tmpstr, sizeof(tmpstr), "urn:sha1:%s", item);
-		else
-			len = g_strlcpy(tmpstr, item, sizeof(tmpstr));
+		concat_strings(buf, sizeof buf,
+			QUERY_SHA1 == type ? "urn:sha1:" : "", item, NULL);
 
-		str = lazy_locale_to_utf8(tmpstr, MIN(len, sizeof(tmpstr)));
-   		gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN, str, (-1));
+		s = lazy_locale_to_utf8(buf, 0);
+   		gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN, s, (-1));
 	}
 }
 

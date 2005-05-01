@@ -383,11 +383,11 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 
 	if (NULL != u->user_agent) {
 		static gchar str[256];	/* MUST be static! */
-		gchar *agent;
+		const gchar *agent;
 
 		agent = lazy_locale_to_utf8(u->user_agent, 0);
 		if (u->user_agent != agent) {
-			g_strlcpy(str, agent, sizeof(str));
+			utf8_strlcpy(str, agent, sizeof str);
 			agent = str;
 		}
     	titles[c_ul_agent] = agent;
