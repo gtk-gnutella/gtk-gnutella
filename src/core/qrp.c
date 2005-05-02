@@ -207,7 +207,6 @@ qrp_hashcode(const gchar *s)
 			s++;
 			len = 0;	/* Reset */
 		} else {
-			guint32 uc16; /* will hold 1-2 UTF-16 characters */
 			gint retlen;
 
 			len = utf8_decode_lookahead(s, len);
@@ -218,13 +217,19 @@ qrp_hashcode(const gchar *s)
 			s += retlen;
 			len -= retlen;
 
-			uc = utf32_lowercase(uc);
-
-			/* Skip bad characters completely */
-			for (uc16 = utf16_encode_char_compact(uc); uc16; uc16 >>= 16) { 
-				x ^= (uc16 & 0xff) << (j & 24);
+			/* ``uc'' will hold a single UTF-16 char or two surrogates */
+			uc = utf16_encode_char_compact(uc);
+			if (0 == (uc & 0xffff0000U)) {
+				/* It's a BMP character */
+				uc = utf32_lowercase(uc);
+			} else {
+				/* Surrogates don't need to be lowercased */
+				x ^= (uc & 0xff) << (j & 24);
 				j += 8;
+				uc >>= 16;	/* move to the second surrogate */
 			}
+			x ^= (uc & 0xff) << (j & 24);
+			j += 8;
 		}
 	}
 
@@ -4097,6 +4102,8 @@ test_hash(void)
 		{ { 0x30a2, 0x30cb, 0x30e1, 0 }, 46 }, /* a-ni-me */
 		{ { 0x30e9, 0 }, 0 }, /* ra */
 		{ { 0x58f0, 0x512a, 0 }, 731 }, /* voice actor */
+		{ { 0x10400, 0 }, 316 }, /* DESERET CAPITAL LETTER LONG I */
+		{ { 0x10428, 0 }, 658 }, /* DESERET SMALL LETTER LONG I */
 	};
 	guint i;
 
@@ -4151,6 +4158,8 @@ test_hash(void)
 			g_assert_not_reached();
 		}
 	}
+
+	exit(0);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
