@@ -4159,7 +4159,6 @@ test_hash(void)
 		}
 	}
 
-	exit(0);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
