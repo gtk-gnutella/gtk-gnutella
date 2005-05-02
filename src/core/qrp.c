@@ -4090,6 +4090,16 @@ G_STMT_START {										\
 void
 test_hash(void)
 {
+	static const struct {
+		const guint32 s[16];
+		const guint32 hash;
+	} tests[] = {
+		{ { 0x30a2, 0x30cb, 0x30e1, 0 }, 46 }, /* a-ni-me */
+		{ { 0x30e9, 0 }, 0 }, /* ra */
+		{ { 0x58f0, 0x512a, 0 }, 731 }, /* voice actor */
+	};
+	guint i;
+
 	CHECK(qrp_hash("", 13)==0);
 	CHECK(qrp_hash("eb", 13)==6791);
 	CHECK(qrp_hash("ebc", 13)==7082);
@@ -4125,6 +4135,22 @@ test_hash(void)
 	CHECK(qrp_hash("3nja9", 10)==581);
 	CHECK(qrp_hash("3NJA9", 10)==581);
 	CHECK(qrp_hash("3nJa9", 10)==581);
+
+	/* Non-ASCII test cases */
+	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
+		gchar buf[1024];
+		size_t n;
+		guint32 h;
+		
+		n = utf32_to_utf8(tests[i].s, buf, G_N_ELEMENTS(buf));
+		g_assert(n < G_N_ELEMENTS(buf));
+		
+		h = qrp_hash(buf, 10);
+		if (h != tests[i].hash) {
+			g_warning("qrp_hash() failed: i=%d, h=%u, buf=\"%s\"", i, h, buf);
+			g_assert_not_reached();
+		}
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
