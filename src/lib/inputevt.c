@@ -58,14 +58,14 @@ typedef struct {
 	gpointer data;
 } inputevt_relay_t;
 
-/*
- * inputevt_relay_destroy
- *
+/**
  * Frees the relay structure when its time comes.
  */
-static void inputevt_relay_destroy(gpointer data)
+static void
+inputevt_relay_destroy(gpointer data)
 {
-	wfree(data, sizeof(inputevt_relay_t));
+	inputevt_relay_t *relay = data;
+	wfree(relay, sizeof *relay);
 }
 
 /*
@@ -74,12 +74,11 @@ static void inputevt_relay_destroy(gpointer data)
  * Relays the event to the registered handler function.
  * The input condition flags are properly mapped before being passed on.
  */
-static gboolean inputevt_dispatch(GIOChannel *source,
-								  GIOCondition condition,
-								  gpointer data)
+static gboolean
+inputevt_dispatch(GIOChannel *source, GIOCondition condition, gpointer data)
 {
 	inputevt_cond_t cond = 0;
-	inputevt_relay_t *relay = (inputevt_relay_t *) data;
+	inputevt_relay_t *relay = data;
 
 	if (condition & READ_CONDITION)
 		cond |= INPUT_EVENT_READ;
@@ -94,23 +93,21 @@ static gboolean inputevt_dispatch(GIOChannel *source,
 	return TRUE;
 }
 
-/*
- * inputevt_add
- *
+/**
  * Adds an event source to the main GLIB monitor queue.
  *
  * A replacement for gdk_input_add().
  * Behaves exactly the same, except destroy notification has
  * been removed (since gtkg does not use it).
  */
-guint inputevt_add(gint source, inputevt_cond_t condition,
+guint
+inputevt_add(gint source, inputevt_cond_t condition,
 	inputevt_handler_t handler, gpointer data)
 {
 	guint result;
 	GIOChannel *chan;
 	GIOCondition cond = 0;
-
-	inputevt_relay_t *relay = walloc(sizeof(inputevt_relay_t));
+	inputevt_relay_t *relay = walloc(sizeof *relay);
 
 	relay->condition = condition;
 	relay->handler = handler;
@@ -134,23 +131,22 @@ guint inputevt_add(gint source, inputevt_cond_t condition,
 	return result;
 }
 
-/*
- * inputevt_init
- *
+/**
  * Performs module initialization.
  */
-void inputevt_init(void)
+void
+inputevt_init(void)
 {
 	/* no initialization required */
 }
 
-/*
- * inputevt_close
- *
+/**
  * Performs module cleanup.
  */
-void inputevt_close(void)
+void
+inputevt_close(void)
 {
 	/* no cleanup required */
 }
 
+/* vi: set ts=4 sw=4 cindent: */
