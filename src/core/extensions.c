@@ -335,11 +335,8 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 
 	for (count = 0; count < exvcnt && p < end; /* empty */) {
 		guchar flags;
-		gchar id[16];
-		gint id_len;
-		gint data_length;
-		gint i;
-		gchar *ip = id;
+		gchar id[GGEP_F_IDLEN + 1];
+		guint id_len, data_length, i;
 		gboolean length_ended = FALSE;
 		const gchar *name;
 		extdesc_t *d;
@@ -356,11 +353,12 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 			goto abort;
 
 		id_len = flags & GGEP_F_IDLEN;
+		g_assert(id_len < sizeof id);
 
 		if (id_len == 0)
 			goto abort;
 
-		if (end - p < id_len)		/* Not enough bytes to store the ID! */
+		if ((size_t) (end - p) < id_len) /* Not enough bytes to store the ID! */
 			goto abort;
 
 		/*
@@ -377,10 +375,9 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 			gint c = *p++;
 			if (c == '\0' || !isascii(c) || is_ascii_cntrl(c))
 				goto abort;
-			*ip++ = c;
+			id[i] = c; 
 		}
-
-		*ip++ = '\0';
+		id[i] = '\0';
 
 		/*
 		 * Read the payload length (maximum of 3 bytes).
@@ -414,7 +411,8 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 		 * means the length is garbage.
 		 */
 
-		if (end - p < data_length)		/* Not enough bytes for the payload */
+		/* Check whether there are enough bytes for the payload */
+		if ((size_t) (end - p) < data_length)
 			goto abort;
 
 		/*
@@ -425,16 +423,16 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 		 */
 
 		if (flags & (GGEP_F_COBS|GGEP_F_DEFLATE)) {
-			gint d_len = data_length;
+			guint d_len = data_length;
 
 			if (flags & GGEP_F_COBS) {
-				if (len == 0 || !cobs_is_valid(p, d_len))
+				if (d_len == 0 || !cobs_is_valid(p, d_len))
 					goto abort;
-				len--;					/* One byte of overhead */
+				d_len--;					/* One byte of overhead */
 			}
 
 			if (flags & GGEP_F_DEFLATE) {
-				gint offset = 0;
+				guint offset = 0;
 
 				if (d_len < 6)
 					goto abort;
@@ -450,7 +448,7 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 				 */
 
 				if (flags & GGEP_F_COBS) {
-					if ((guint) *p < 3)
+					if ((guchar) *p < 3)
 						goto abort;
 					offset = 1;			/* Skip leading byte */
 				}
@@ -464,7 +462,7 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 		 * OK, at this point we have validated the GGEP header.
 		 */
 
-		d = walloc(sizeof(*d));
+		d = walloc(sizeof *d);
 
 		d->ext_phys_payload = p;
 		d->ext_phys_paylen = data_length;
