@@ -225,7 +225,7 @@ find_node(gnet_node_t n)
 static inline void
 nodes_gui_update_node_info(gnet_node_info_t *n, GtkTreeIter *iter)
 {
-	static gchar version[32];
+	gchar version[32];
     gnet_node_status_t status;
 
     g_assert(n != NULL);
