@@ -82,7 +82,7 @@ gboolean event_subscriber_active(struct event *evt);
 	} vars_;																\
 																			\
 	vars_.evt = (ev);														\
-	vars_.now = time(NULL);													\
+	vars_.now = (time_t) -1;												\
 	vars_.sl = vars_.evt->subscribers;										\
 	for (/* NOTHING */; vars_.sl; vars_.sl = g_slist_next(vars_.sl)) {		\
 		vars_.s = vars_.sl->data;											\
@@ -94,6 +94,8 @@ gboolean event_subscriber_active(struct event *evt);
 									vars_.s->f_interval);					\
 				break;											 			\
 			case FREQ_SECS:													\
+				if ((time_t) -1 == vars_.now)								\
+					vars_.now = time(NULL);									\
 				vars_.t = vars_.s->f_interval <=							\
 						(guint32) delta_time(vars_.now, vars_.s->last_call);\
 				break;														\
@@ -102,7 +104,11 @@ gboolean event_subscriber_active(struct event *evt);
 			}													  			\
 		}																	\
 		if (vars_.t) {														\
-			vars_.s->last_call = vars_.now;									\
+			if (FREQ_SECS == vars_.s->f_type) {								\
+				if ((time_t) -1 == vars_.now)								\
+					vars_.now = time(NULL);									\
+				vars_.s->last_call = vars_.now;								\
+			}																\
 			callback														\
 		}																	\
 	}																		\
