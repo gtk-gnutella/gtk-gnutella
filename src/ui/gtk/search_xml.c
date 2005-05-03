@@ -1428,13 +1428,15 @@ xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer data)
     filename = buf != NULL ? buf : g_strdup("[Unknown]");
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_SHA1_HASH));
-    if (buf != NULL && strlen(buf) == SHA1_BASE32_SIZE) {
-        hash = base32_sha1(buf);
-	}
-    G_FREE_NULL(buf);
-	if (!hash) {
-        g_warning("xml_to_sha1_rule: Invalidly encoded SHA1");
-		return;
+    if (buf != NULL) {
+		hash = strlen(buf) == SHA1_BASE32_SIZE ? base32_sha1(buf) : NULL;
+    	G_FREE_NULL(buf);
+		if (!hash) {
+        	g_warning("xml_to_sha1_rule: Invalidly encoded SHA1");
+			return;
+		}
+	} else {
+		hash = NULL;
 	}
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_TARGET));
