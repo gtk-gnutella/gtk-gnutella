@@ -543,6 +543,8 @@ gboolean allow_auto_requeries     = TRUE;
 gboolean allow_auto_requeries_def = TRUE;
 gboolean use_global_hostiles_txt     = TRUE;
 gboolean use_global_hostiles_txt_def = TRUE;
+gboolean use_so_linger     = FALSE;
+gboolean use_so_linger_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -5131,6 +5133,23 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[239].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[239].data.boolean.def   = &use_global_hostiles_txt_def;
     gnet_property->props[239].data.boolean.value = &use_global_hostiles_txt;
+
+
+    /*
+     * PROP_USE_SO_LINGER:
+     *
+     * General data:
+     */
+    gnet_property->props[240].name = "use_so_linger";
+    gnet_property->props[240].desc = _("If set to TRUE, SO_LINGER is used for sockets.");
+    gnet_property->props[240].ev_changed = event_new("use_so_linger_changed");
+    gnet_property->props[240].save = TRUE;
+    gnet_property->props[240].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[240].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[240].data.boolean.def   = &use_so_linger_def;
+    gnet_property->props[240].data.boolean.value = &use_so_linger;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

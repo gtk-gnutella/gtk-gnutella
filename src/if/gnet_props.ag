@@ -2845,5 +2845,14 @@ prop = {
 	};
 };
 
+prop = {
+	name = "use_so_linger";
+	desc = "If set to TRUE, SO_LINGER is used for sockets.";
+	save = TRUE;
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
 
 /* vi: set ts=4: */
