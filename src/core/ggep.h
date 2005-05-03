@@ -41,10 +41,10 @@
  */
 
 #define GGEP_F_LAST		0x80U		/* Last extension in GGEP block */
-#define GGEP_F_COBS		'\x40'		/* Whether COBS was used on payload */
-#define GGEP_F_DEFLATE	'\x20'		/* Whether payload was deflated */
-#define GGEP_F_MBZ		'\x10'		/* Bits that Must Be Zero */
-#define GGEP_F_IDLEN	'\x0f'		/* Where ID length is stored */
+#define GGEP_F_COBS		0x40U		/* Whether COBS was used on payload */
+#define GGEP_F_DEFLATE	0x20U		/* Whether payload was deflated */
+#define GGEP_F_MBZ		0x10U		/* Bits that Must Be Zero */
+#define GGEP_F_IDLEN	0x0fU		/* Where ID length is stored */
 
 /*
  * GGEP Length Encoding.
