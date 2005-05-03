@@ -135,15 +135,13 @@ static void update_volatile_cache(
  *
  * Add a new entry to the in-memory cache.
  */
-static void add_volatile_cache_entry(
-	const char *file_name,
-	filesize_t size,
-	time_t mtime,
-	const char *digest,
-	gboolean known_to_be_shared)
+static void
+add_volatile_cache_entry(const char *filename, filesize_t size, time_t mtime,
+	const char *digest, gboolean known_to_be_shared)
 {
-	struct sha1_cache_entry *new_entry = g_new(struct sha1_cache_entry, 1);
-	new_entry->file_name = atom_str_get(file_name);
+	struct sha1_cache_entry *new_entry = g_malloc(sizeof *new_entry);
+	
+	new_entry->file_name = atom_str_get(filename);
 	new_entry->size = size;
 	new_entry->mtime = mtime;
 	copy_sha1(new_entry->digest, digest);
@@ -164,37 +162,55 @@ static const char sha1_persistent_cache_file_header[] =
 
 static char *persistent_cache_file_name = NULL;
 
-/*
- * add_persistent_cache_entry
- *
+static void
+cache_entry_print(FILE *f, const char *filename, const gchar *digest,
+	filesize_t size, time_t mtime)
+{
+	const gchar *sha1;
+	gchar size_buf[32], time_buf[32];
+	
+	uint64_to_string_buf(size_buf, sizeof size_buf, size);
+	uint64_to_string_buf(time_buf, sizeof time_buf, mtime);
+
+	sha1 = sha1_base32(digest);
+	g_assert(NULL != sha1);
+	
+	fprintf(f, "%s\t%s\t%s\t%s\n", sha1, size_buf, time_buf, filename);
+}
+
+/**
  * Add an entry to the persistent cache.
  */
-static void add_persistent_cache_entry(
-	const char *file_name,
-	filesize_t size,
-	time_t mtime,
-	const char *digest)
+static void
+add_persistent_cache_entry(const char *filename, filesize_t size,
+	time_t mtime, const char *digest)
 {
-	FILE *persistent_cache;
+	FILE *f;
+	struct stat sb;
 
-	if (!persistent_cache_file_name)
+	g_return_if_fail(NULL != persistent_cache_file_name);
+
+	if (NULL == (f = file_fopen(persistent_cache_file_name, "a"))) {
+		g_warning("add_persistent_cache_entry: could not open \"%s\"",
+			persistent_cache_file_name);
 		return;
-
-	persistent_cache = file_fopen(persistent_cache_file_name, "a");
-
-	if (persistent_cache == NULL)
-		return;
+	}
 
 	/*
 	 * If we're adding the very first entry (file empty), then emit header.
 	 */
 
-	if (0 == ftell(persistent_cache))
-		fputs(sha1_persistent_cache_file_header, persistent_cache);
+	if (fstat(fileno(f), &sb)) {
+		g_warning("add_persistent_cache_entry: could not stat \"%s\"",
+			persistent_cache_file_name);
+		return;
+	}
+	
+	if (0 == sb.st_size)
+		fputs(sha1_persistent_cache_file_header, f);
 
-	fprintf(persistent_cache, "%s\t%s\t%lu\t%s\n",
-		sha1_base32(digest), uint64_to_string(size), (gulong) mtime, file_name);
-	fclose(persistent_cache);
+	cache_entry_print(f, filename, digest, size, mtime);
+	fclose(f);
 }
 
 /**
@@ -205,16 +221,14 @@ static void
 dump_cache_one_entry(gpointer unused_key, gpointer value, gpointer udata)
 {
 	struct sha1_cache_entry *e = value;
-	FILE *persistent_cache = udata;
+	FILE *f = udata;
 
 	(void) unused_key;
 
 	if (!e->shared)
 		return;
 
-	fprintf(persistent_cache, "%s\t%s\t%ld\t%s\n",
-		sha1_base32(e->digest), uint64_to_string(e->size), (glong) e->mtime,
-			e->file_name);
+	cache_entry_print(f, e->file_name, e->digest, e->size, e->mtime);
 }
 
 /**
@@ -223,16 +237,17 @@ dump_cache_one_entry(gpointer unused_key, gpointer value, gpointer udata)
 static void
 dump_cache(void)
 {
-	FILE *persistent_cache;
+	FILE *f;
 
-	persistent_cache = file_fopen(persistent_cache_file_name, "w");
-
-	if (persistent_cache == NULL)
+	if (NULL == (f = file_fopen(persistent_cache_file_name, "w"))) {
+		g_warning("dump_cache: could not open \"%s\"",
+			persistent_cache_file_name);
 		return;
+	}
 
-	fputs(sha1_persistent_cache_file_header, persistent_cache);
-	g_hash_table_foreach(sha1_cache, dump_cache_one_entry, persistent_cache);
-	fclose(persistent_cache);
+	fputs(sha1_persistent_cache_file_header, f);
+	g_hash_table_foreach(sha1_cache, dump_cache_one_entry, f);
+	fclose(f);
 
 	cache_dirty = FALSE;
 }
@@ -326,9 +341,11 @@ parse_and_append_cache_entry(char *line)
 /**
  * Read the whole persistent cache into memory.
  */
-static void sha1_read_cache(void)
+static void
+sha1_read_cache(void)
 {
-	FILE *persistent_cache_file;
+	FILE *f;
+	gboolean truncated = FALSE;
 
 	if (!settings_config_dir()) {
 		g_warning("sha1_read_cache: No config dir");
@@ -338,8 +355,7 @@ static void sha1_read_cache(void)
 	persistent_cache_file_name = make_pathname(settings_config_dir(),
 									"sha1_cache");
 
-	persistent_cache_file = file_fopen(persistent_cache_file_name, "r");
-	if (persistent_cache_file == NULL) {
+	if (NULL == (f = file_fopen(persistent_cache_file_name, "r"))) {
 		cache_dirty = TRUE;
 		return;
 	}
@@ -347,12 +363,19 @@ static void sha1_read_cache(void)
 	for (;;) {
 		char buffer[4096];
 
-		if (NULL == fgets(buffer, sizeof(buffer), persistent_cache_file))
+		if (NULL == fgets(buffer, sizeof buffer, f))
 			break;
-		parse_and_append_cache_entry(buffer);
+
+		if (NULL == strchr(buffer, '\n')) {
+			truncated = TRUE;
+		} else if (truncated) {
+			truncated = FALSE;
+		} else {
+			parse_and_append_cache_entry(buffer);
+		}
 	}
 
-	fclose(persistent_cache_file);
+	fclose(f);
 }
 
 /**
