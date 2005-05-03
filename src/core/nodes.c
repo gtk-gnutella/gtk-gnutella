@@ -2007,7 +2007,7 @@ node_shutdown_mode(struct gnutella_node *n, guint32 delay)
 
 	n->status = GTA_NODE_SHUTDOWN;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE);
-	n->shutdown_date = time((time_t) NULL);
+	n->shutdown_date = time(NULL);
 	mq_shutdown(n->outq);
 	node_flushq(n);							/* Fast queue flushing */
 
@@ -2710,7 +2710,7 @@ node_is_now_connected(struct gnutella_node *n)
 
 	n->status = GTA_NODE_CONNECTED;
 	n->flags |= NODE_F_VALID;
-	n->last_update = n->connect_date = time((time_t *) NULL);
+	n->last_update = n->connect_date = time(NULL);
 
 	connected_node_cnt++;
 
@@ -4709,7 +4709,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 * Now that we got all the headers, we may update the `last_update' field.
 	 */
 
-	n->last_update = time((time_t *) 0);
+	n->last_update = time(NULL);
 
 	/*
 	 * If this is an incoming connection, we need to wait for the final ack.
@@ -4832,7 +4832,7 @@ node_udp_create(void)
 {
 	gnutella_node_t *n;
 
-	n = (struct gnutella_node *) walloc0(sizeof(struct gnutella_node));
+	n = walloc0(sizeof *n);
 
 	n->magic = NODE_MAGIC;
     n->node_handle = node_request_handle(n);
@@ -5253,7 +5253,6 @@ node_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
 static void
 node_parse(struct gnutella_node *node)
 {
-	time_t now = time(NULL);
 	struct gnutella_node *n;
 	gboolean drop = FALSE;
 	gboolean has_ggep = FALSE;
@@ -5502,7 +5501,7 @@ node_parse(struct gnutella_node *node)
 		}
 		break;
 	case GTA_MSG_HSEP_DATA:
-		hsep_process_msg(n, now);
+		hsep_process_msg(n, time(NULL));
 		goto reset_header;
 	default:
 		break;
@@ -5884,7 +5883,7 @@ node_init_outgoing(struct gnutella_node *n)
 	}
 
 	n->status = GTA_NODE_HELLO_SENT;
-	n->last_update = time((time_t *)NULL);
+	n->last_update = time(NULL);
 	node_fire_node_info_changed(n);
 
 	if (dbg > 2) {
@@ -5975,7 +5974,7 @@ node_tx_leave_warnzone(struct gnutella_node *n)
 void
 node_tx_enter_flowc(struct gnutella_node *n)
 {
-	n->tx_flowc_date = time((time_t *) NULL);
+	n->tx_flowc_date = time(NULL);
 
 	if ((n->attrs & NODE_A_CAN_VENDOR) && !NODE_IS_UDP(n))
 		vmsg_send_hops_flow(n, 0);			/* Disable all query traffic */
@@ -5990,7 +5989,7 @@ void
 node_tx_leave_flowc(struct gnutella_node *n)
 {
 	if (dbg > 4) {
-		gint spent = time((time_t *) NULL) - n->tx_flowc_date;
+		gint spent = delta_time(time(NULL), n->tx_flowc_date);
 
 		printf("node %s spent %d second%s in TX FLOWC\n",
 			node_ip(n), spent, spent == 1 ? "" : "s");
@@ -6354,11 +6353,11 @@ node_remove_useless_leaf(void)
     GSList *sl;
 	struct gnutella_node *worst = NULL;
 	gint greatest = 0;
-	time_t now = time(NULL);
+	time_t now = (time_t) -1;
 
     for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
-		time_t target = 0;
+		time_t target = (time_t) -1;
 		gint diff;
 
 		if (!NODE_IS_ESTABLISHED(n))
@@ -6382,8 +6381,11 @@ node_remove_useless_leaf(void)
 		if (n->leaf_flowc_start != 0)
 			target = n->leaf_flowc_start;
 
-		if (target == 0)
+		if ((time_t) -1 == target)
 			continue;
+
+		if ((time_t) -1 == now)
+			now = time(NULL);
 
 		diff = delta_time(now, target);
 
@@ -6797,21 +6799,21 @@ node_close(void)
 inline void
 node_add_sent(gnutella_node_t *n, gint x)
 {
-    n->last_update = n->last_tx = time((time_t *)NULL);
+    n->last_update = n->last_tx = time(NULL);
 	n->sent += x;
 }
 
 inline void
 node_add_txdrop(gnutella_node_t *n, gint x)
 {
-    n->last_update = time((time_t *)NULL);
+    n->last_update = time(NULL);
 	n->tx_dropped += x;
 }
 
 inline void
 node_add_rxdrop(gnutella_node_t *n, gint x)
 {
-    n->last_update = time((time_t *)NULL);
+    n->last_update = time(NULL);
 	n->rx_dropped += x;
 }
 
@@ -7050,8 +7052,7 @@ node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
 void
 node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 {
-    gnutella_node_t  *node = node_find_by_handle(n);
-    time_t now = time((time_t *) NULL);
+    const gnutella_node_t  *node = node_find_by_handle(n);
 
     g_assert(status != NULL);
 
@@ -7133,10 +7134,14 @@ node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 	status->rx_qhits   = node->rx_qhits;
 	status->tx_qhits   = node->tx_qhits;
 
-    status->shutdown_remain =
-        node->shutdown_delay - (now - node->shutdown_date);
-    if (status->shutdown_remain < 0)
-        status->shutdown_remain = 0;
+	if (node->shutdown_delay) {
+		gint d = delta_time(time(NULL), node->shutdown_date);
+		
+   		status->shutdown_remain = node->shutdown_delay > d
+			? node->shutdown_delay - d : 0;
+	} else {
+		status->shutdown_remain = 0;
+	}
 
     if (node->error_str != NULL)
         g_strlcpy(status->message, node->error_str, sizeof(status->message));
