@@ -7137,7 +7137,7 @@ node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 	if (node->shutdown_delay) {
 		gint d = delta_time(time(NULL), node->shutdown_date);
 		
-   		status->shutdown_remain = node->shutdown_delay > d
+   		status->shutdown_remain = (gint) node->shutdown_delay > d
 			? node->shutdown_delay - d : 0;
 	} else {
 		status->shutdown_remain = 0;
