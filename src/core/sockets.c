@@ -283,10 +283,7 @@ socket_tos(struct gnutella_socket *s, gint tos)
 	if (!use_ip_tos)
 		return;
 
-	if (
-		-1 == setsockopt(s->file_desc, sol_ip(),
-				IP_TOS, (gpointer) &tos, sizeof(tos))
-	) {
+	if (-1 == setsockopt(s->file_desc, sol_ip(), IP_TOS, &tos, sizeof tos)) {
 		const gchar *tosname = "default";
 
 		switch (tos) {
@@ -964,6 +961,52 @@ socket_destroy(struct gnutella_socket *s, const gchar *reason)
 	socket_free(s);
 }
 
+struct socket_linger {
+	guint tag;	/* Holds the result of inputevt_add() */	
+};
+
+static void
+socket_linger_cb(gpointer data, gint fd, inputevt_cond_t unused_cond)
+{
+	struct socket_linger *ctx = data;
+
+	(void) unused_cond;
+	g_assert(fd >= 0);
+	g_assert(NULL != data);
+	g_assert(0 != ctx->tag);
+
+	if (close(fd)) {
+		gint e = errno;
+		
+		if (EAGAIN != e && EINTR != e)
+			g_warning("close(%d) failed: %s", fd, g_strerror(e));
+
+		/* remove the handler in case of EBADF because it would
+		 * cause looping otherwise */
+		if (EBADF != e)
+			return;
+	} else {
+		g_message("socket_linger_cb: close() succeeded");
+	}
+
+	g_source_remove(ctx->tag);
+	wfree(ctx, sizeof *ctx);
+}
+
+static void
+socket_linger_close(gint fd)
+{
+	struct socket_linger *ctx;
+
+	g_assert(fd >= 0);
+
+	ctx = walloc(sizeof *ctx);
+	ctx->tag = inputevt_add(fd,
+		INPUT_EVENT_READ | INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
+		socket_linger_cb, ctx);
+	g_assert(0 != ctx->tag);
+}
+
 /**
  * Dispose of socket, closing connection, removing input callback, and
  * reclaiming attached getline buffer.
@@ -1016,10 +1059,18 @@ socket_free(struct gnutella_socket *s)
 	if (s->file_desc != -1) {
 		if (s->corked)
 			sock_cork(s, FALSE);
-		close(s->file_desc);
+		if (close(s->file_desc)) {
+			gint e = errno;
+			
+			if (EAGAIN != e && EINTR != e)
+				g_warning("close(%d) failed: %s", s->file_desc, g_strerror(e));
+
+			if (EBADF != e) /* just in case, as it would cause looping */
+				socket_linger_close(s->file_desc);
+		}
 		s->file_desc = -1;
 	}
-	wfree(s, sizeof(*s));
+	wfree(s, sizeof *s);
 }
 
 #ifdef USE_TLS
@@ -1911,6 +1962,24 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	udp_received(s);
 }
 
+static inline void
+socket_set_linger(gint fd)
+{
+	static const struct linger zero_linger;
+	struct linger lb;
+
+	g_assert(fd >= 0);
+
+	if (!use_so_linger)
+		return;
+		
+	lb = zero_linger;
+	lb.l_onoff = 1;
+	lb.l_linger = 60;	/* linger for 60 seconds */
+	if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &lb, sizeof lb))
+		g_warning("setsockopt() for SO_LINGER failed: %s", g_strerror(errno));
+}
+
 /*
  * Sockets creation
  */
@@ -1923,7 +1992,7 @@ static struct gnutella_socket *
 socket_connect_prepare(guint16 port, enum socket_type type)
 {
 	struct gnutella_socket *s;
-	gint sd, option = 1;
+	gint sd, option;
 
 	sd = socket(SOCKET_AF, SOCK_STREAM, 0);
 
@@ -1949,7 +2018,7 @@ socket_connect_prepare(guint16 port, enum socket_type type)
 	}
 
 created:
-	s = (struct gnutella_socket *) walloc0(sizeof *s);
+	s = walloc0(sizeof *s);
 
 	s->type = type;
 	s->direction = SOCK_CONN_OUTGOING;
@@ -1966,10 +2035,12 @@ created:
 
 	socket_wio_link(s);
 
-	setsockopt(s->file_desc, SOL_SOCKET, SO_KEEPALIVE, (void *) &option,
-			   sizeof(option));
-	setsockopt(s->file_desc, SOL_SOCKET, SO_REUSEADDR, (void *) &option,
-			   sizeof(option));
+	option = 1;
+	setsockopt(s->file_desc, SOL_SOCKET, SO_KEEPALIVE, &option, sizeof option);
+	option = 1;
+	setsockopt(s->file_desc, SOL_SOCKET, SO_REUSEADDR, &option, sizeof option);
+
+	socket_set_linger(s->file_desc);
 
 	/* Set the file descriptor non blocking */
 	fcntl(s->file_desc, F_SETFL, O_NONBLOCK);
@@ -2157,7 +2228,7 @@ socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
 {
 	/* Create a socket, then bind() and listen() it */
 
-	int sd, option = 1;
+	int sd, option;
 	socket_addr_t addr;
 	struct gnutella_socket *s;
 
@@ -2178,10 +2249,12 @@ socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
 	s->pos = 0;
 	s->flags |= SOCK_F_TCP;
 
-	setsockopt(sd, SOL_SOCKET, SO_KEEPALIVE, (void *) &option,
-			   sizeof(option));
-	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (void *) &option,
-			   sizeof(option));
+	option = 1;
+	setsockopt(sd, SOL_SOCKET, SO_KEEPALIVE, &option, sizeof option);
+	option = 1;
+	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof option);
+
+	socket_set_linger(s->file_desc);
 
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
 
@@ -2238,7 +2311,7 @@ socket_udp_listen(guint32 ip, guint16 port)
 {
 	/* Create a socket, then bind() it */
 
-	int sd, option = 1;
+	int sd, option;
 	socket_addr_t addr;
 	struct gnutella_socket *s;
 
@@ -2258,7 +2331,8 @@ socket_udp_listen(guint32 ip, guint16 port)
 
 	socket_wio_link(s);				/* Link to the I/O functions */
 
-	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (void *) &option, sizeof(option));
+	option = 1;
+	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof option);
 
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
 
@@ -2422,8 +2496,7 @@ sock_nodelay(struct gnutella_socket *s, gboolean on)
 	gint arg = on ? 1 : 0;
 
 	if (
-		-1 == setsockopt(s->file_desc, sol_tcp(), TCP_NODELAY,
-				&arg, sizeof(arg))
+		-1 == setsockopt(s->file_desc, sol_tcp(), TCP_NODELAY, &arg, sizeof arg)
 	) {
 		if (errno != ECONNRESET)
 			g_warning("unable to %s TCP_NODELAY on fd#%d: %s",
