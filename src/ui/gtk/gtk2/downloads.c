@@ -317,11 +317,11 @@ add_column(GtkTreeView *treeview, GtkType column_type, const gchar *name,
 			"background-gdk", bg_column,
 			"foreground-gdk", fg_column,
 			"text", id,
-			NULL);
+			(void *) 0);
 		g_object_set(G_OBJECT(renderer),
 			"background-set", TRUE,
 			"foreground-set", TRUE,
-			NULL);
+			(void *) 0);
 	}
 
 	g_object_set(G_OBJECT(renderer),
@@ -329,7 +329,7 @@ add_column(GtkTreeView *treeview, GtkType column_type, const gchar *name,
 		"xpad", xpad,
 		"xalign", xalign,
 		"ypad", GUI_CELL_RENDERER_YPAD,
-		NULL);
+		(void *) 0);
 
 	g_object_set(G_OBJECT(column),
 		"fixed-width", 1,
@@ -337,7 +337,7 @@ add_column(GtkTreeView *treeview, GtkType column_type, const gchar *name,
 		"reorderable", TRUE,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
-		NULL);
+		(void *) 0);
 
 	gtk_tree_view_column_set_sort_column_id(column, id);
     gtk_tree_view_append_column(treeview, column);

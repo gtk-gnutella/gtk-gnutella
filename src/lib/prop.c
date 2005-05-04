@@ -607,7 +607,8 @@ prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
 
 				concat_strings(buf, sizeof buf,
 					uint64_to_string(PROP(ps,prop).data.guint64.min), "/",
-					uint64_to_string2(PROP(ps,prop).data.guint64.max), NULL);
+					uint64_to_string2(PROP(ps,prop).data.guint64.max),
+					(void *) 0);
 				g_warning("prop_set_guint64: [%s] new value out of bounds "
 					"(%s): %s (adjusting to %s)", PROP(ps,prop).name, buf,
 					uint64_to_string(*src), uint64_to_string2(newval));
@@ -1180,7 +1181,7 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 	 */
 
 	if (ps->mtime && mtime > ps->mtime) {
-		gchar *old = g_strconcat(pathname, ".old", NULL);
+		gchar *old = g_strconcat(pathname, ".old", (void *) 0);
 		g_warning("config file \"%s\" changed whilst I was running", pathname);
 		if (-1 == rename(pathname, old))
 			g_warning("unable to rename as \"%s\": %s", old, g_strerror(errno));
@@ -1194,7 +1195,7 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 	 * clobber a good configuration file should we fail abruptly.
 	 */
 
-	newfile = g_strconcat(pathname, ".new", NULL);
+	newfile = g_strconcat(pathname, ".new", (void *) 0);
 	config = file_fopen(newfile, "w");
 
 	if (config == NULL)

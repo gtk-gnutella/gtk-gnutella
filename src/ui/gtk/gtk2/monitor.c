@@ -88,7 +88,7 @@ monitor_gui_append(query_type_t type, const gchar *item,
 		/* If the query is empty and we have a SHA1 extension,
 	 	 * we print a urn:sha1-query instead. */
 		concat_strings(buf, sizeof buf,
-			QUERY_SHA1 == type ? "urn:sha1:" : "", item, NULL);
+			QUERY_SHA1 == type ? "urn:sha1:" : "", item, (void *) 0);
 
 		s = lazy_locale_to_utf8(buf, 0);
    		gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN, s, (-1));
@@ -123,9 +123,9 @@ monitor_gui_init(void)
     /* Create a column, associating the "text" attribute of the
      * cell_renderer to the first column of the model */
     renderer = gtk_cell_renderer_text_new();
-	g_object_set(renderer, "ypad", GUI_CELL_RENDERER_YPAD, NULL);
+	g_object_set(renderer, "ypad", GUI_CELL_RENDERER_YPAD, (void *) 0);
     column = gtk_tree_view_column_new_with_attributes
-        (_("Query"), renderer, "text", QUERY_COLUMN, NULL);
+        (_("Query"), renderer, "text", QUERY_COLUMN, (void *) 0);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
 
     /* Add the column to the view. */

@@ -96,14 +96,14 @@ static void add_column(
 		title, nodes_gui_cell_renderer,
 		attr, column_id,
 		"foreground-gdk", c_gnet_fg,
-		NULL);
+		(void *) 0);
 	g_object_set(G_OBJECT(column),
 		"fixed-width", 1,
 		"min-width", 1,
 		"reorderable", TRUE,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
-		NULL);
+		(void *) 0);
     gtk_tree_view_append_column(GTK_TREE_VIEW (tree), column);
 }
 
@@ -190,7 +190,7 @@ nodes_gui_create_treeview_nodes(void)
 	     "foreground-set", TRUE,
 	     "xpad", GUI_CELL_RENDERER_XPAD,
 	     "ypad", GUI_CELL_RENDERER_YPAD,
-	     NULL);
+	     (void *) 0);
 
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
 		add_column(tree, columns[i].id, _(columns[i].title), columns[i].attr);
@@ -446,7 +446,7 @@ nodes_gui_init(void)
 	tree_view_restore_visibility(treeview_nodes, PROP_NODES_COL_VISIBLE);
 
 #if GTK_CHECK_VERSION(2, 4, 0)
-    g_object_set(treeview_nodes, "fixed_height_mode", TRUE, NULL);
+    g_object_set(treeview_nodes, "fixed_height_mode", TRUE, (void *) 0);
 #endif /* GTK+ >= 2.4.0 */
 
 	nodes_handles = g_hash_table_new_full(

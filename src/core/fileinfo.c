@@ -658,7 +658,7 @@ file_info_strip_binary_from_file(struct dl_file_info *fi, const gchar *file)
 
 		concat_strings(buf, sizeof buf,
 			uint64_to_string(dfi->done), "/",
-			uint64_to_string2(dfi->size), NULL);
+			uint64_to_string2(dfi->size), (void *) 0);
 		g_warning("could not chop fileinfo trailer off \"%s\": file was "
 			"different than expected (%s bytes done instead of %s/%s)",
 			file, buf, uint64_to_string(fi->done), uint64_to_string2(fi->size));
@@ -2099,7 +2099,7 @@ file_info_got_sha1(struct dl_file_info *fi, const gchar *sha1)
 
 		concat_strings(buf, sizeof buf,
 			uint64_to_string(xfi->done), "/",
-			uint64_to_string2(xfi->size), NULL);
+			uint64_to_string2(xfi->size), (void *) 0);
 		g_message("CONFLICT found same SHA1 %s in \"%s\" "
 			"(%s bytes done) and \"%s\" (%s/%s bytes done)\n",
 			sha1_base32(sha1), xfi->file_name, buf, fi->file_name,
@@ -2111,7 +2111,7 @@ file_info_got_sha1(struct dl_file_info *fi, const gchar *sha1)
 
 		concat_strings(buf, sizeof buf,
 			uint64_to_string(xfi->done), "/",
-			uint64_to_string2(xfi->size), NULL);
+			uint64_to_string2(xfi->size), (void *) 0);
 		g_warning("found same SHA1 %s in \"%s\" (%s bytes done) and \"%s\" "
 			"(%s/%s bytes done) -- aborting last one",
 			sha1_base32(sha1), xfi->file_name, buf, fi->file_name,
@@ -2930,7 +2930,7 @@ file_info_get(gchar *file, const gchar *path, filesize_t size, gchar *sha1,
 				outname, sha1_base32(fi->sha1));
 
 			pathname = make_pathname(path, outname);
-			dead = g_strconcat(pathname, ".DEAD", NULL);
+			dead = g_strconcat(pathname, ".DEAD", (void *) 0);
 
 			if (
 				NULL != pathname &&

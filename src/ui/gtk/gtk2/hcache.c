@@ -66,17 +66,17 @@ static void add_column(
 	g_object_set(renderer,
 		"xalign", xalign,
 		"ypad", GUI_CELL_RENDERER_YPAD,
-		NULL);
+		(void *) 0);
 	column = gtk_tree_view_column_new_with_attributes(label, renderer,
 		"text", column_id,
-		NULL);
+		(void *) 0);
 	g_object_set(column,
 		"fixed-width", 1,
 		"min-width", 1,
 		"reorderable", TRUE,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
-		NULL);
+		(void *) 0);
 	gtk_tree_view_append_column(treeview, column);
 }
 

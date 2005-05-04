@@ -855,14 +855,14 @@ recurse_scan(gchar *dir, const gchar *basedir)
 	if (dir[strlen(dir) - 1] == G_DIR_SEPARATOR)
 		dir_slash = dir;
 	else
-		dir_slash = g_strconcat(dir, G_DIR_SEPARATOR_S, NULL);
+		dir_slash = g_strconcat(dir, G_DIR_SEPARATOR_S, (void *) 0);
 
 	while ((dir_entry = readdir(directory))) {
 
 		if (dir_entry->d_name[0] == '.')	/* Hidden file, or "." or ".." */
 			continue;
 
-		full = g_strconcat(dir_slash, dir_entry->d_name, NULL);
+		full = g_strconcat(dir_slash, dir_entry->d_name, (void *) 0);
 
 		if (!is_directory(full)) {
 			if (scan_ignore_symlink_regfiles && is_symlink(full)) {

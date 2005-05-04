@@ -2026,7 +2026,7 @@ guid_changed(property_t prop)
 		gchar buf[64];
 
 		concat_strings(buf, sizeof buf,
-			"<tt>", guid_hex_str(guid_buf), "</tt>", NULL);
+			"<tt>", guid_hex_str(guid_buf), "</tt>", (void *) 0);
 		gtk_label_set_use_markup(label, TRUE);
 		gtk_label_set_markup(label, buf);
 	}
@@ -2080,7 +2080,6 @@ expert_mode_changed(property_t prop)
     static const gchar *expert_widgets_main[] = {
         "button_search_passive",
         "frame_expert_node_info",
-		NULL
 	};
 	static const gchar *expert_widgets_prefs[] = {
         "frame_expert_nw_local",
@@ -2099,18 +2098,17 @@ expert_mode_changed(property_t prop)
         "frame_expert_search_queue",
         "frame_expert_share_statistics",
         "frame_expert_oob_queries",
-        NULL
     };
-    gint n;
     gboolean expert, override;
 	GtkWidget *w;
+    guint i;
 
     update_togglebutton(prop);
     gui_prop_get_boolean_val(prop, &expert);
 
 	/* Enable/Disable main_window expert widgets */
-    for (n = 0; expert_widgets_main[n] != NULL; n++) {
-       w = lookup_widget(main_window, expert_widgets_main[n]);
+    for (i = 0; i < G_N_ELEMENTS(expert_widgets_main); i++) {
+       w = lookup_widget(main_window, expert_widgets_main[i]);
        if (w == NULL)
 			continue;
 
@@ -2121,8 +2119,8 @@ expert_mode_changed(property_t prop)
     }
 
 	/* Enable/Disable preferences dialog expert widgets */
-    for (n = 0; expert_widgets_prefs[n] != NULL; n++) {
-       w = lookup_widget(dlg_prefs, expert_widgets_prefs[n]);
+    for (i = 0; i < G_N_ELEMENTS(expert_widgets_prefs); i++) {
+       w = lookup_widget(dlg_prefs, expert_widgets_prefs[i]);
        if (w == NULL)
 			continue;
 
@@ -4671,7 +4669,7 @@ static prop_map_t property_map[] = {
         hosts_in_catcher_changed,
         TRUE,
         "progressbar_hosts_in_catcher",
-        FREQ_SECS, 0
+        FREQ_SECS, 5
     ),
     PROP_ENTRY(
         get_main_window,
@@ -4679,7 +4677,7 @@ static prop_map_t property_map[] = {
         hosts_in_ultra_catcher_changed,
         TRUE,
         "progressbar_hosts_in_ultra_catcher",
-        FREQ_SECS, 0
+        FREQ_SECS, 5 
     ),
     PROP_ENTRY(
         get_main_window,
@@ -4687,7 +4685,7 @@ static prop_map_t property_map[] = {
         hosts_in_bad_catcher_changed,
         TRUE,
         "progressbar_hosts_in_bad_catcher",
-        FREQ_SECS, 0
+        FREQ_SECS, 5
     ),
     PROP_ENTRY(
         get_main_window,

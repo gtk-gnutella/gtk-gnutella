@@ -1690,7 +1690,7 @@ unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	sep = sep[1] != '\0' ? G_DIR_SEPARATOR_S : "";
 
 	/* Use extra_bytes so we can easily append a few chars later */
-	filename = g_strconcat(path, sep, file, ext, extra_bytes, NULL);
+	filename = g_strconcat(path, sep, file, ext, extra_bytes, (void *) 0);
 	size = strlen(filename);
 	g_assert(size > sizeof extra_bytes);
 	len = size - (sizeof extra_bytes - 1);

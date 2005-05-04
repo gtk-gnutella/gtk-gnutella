@@ -1112,7 +1112,7 @@ gwc_update_this(gchar *cache_url)
 
 	g_assert(cache_url != NULL);
 
-	rw = concat_strings(gwc_tmp, sizeof gwc_tmp, cache_url, "?", NULL);
+	rw = concat_strings(gwc_tmp, sizeof gwc_tmp, cache_url, "?", (void *) 0);
 	g_return_if_fail(rw < sizeof gwc_tmp);
 
 	/*
@@ -1198,7 +1198,7 @@ gwc_update_this(gchar *cache_url)
 	 */
 
 	concat_strings(gwc_tmp, sizeof(gwc_tmp),
-		_("Updated web cache "), cache_url, NULL);
+		_("Updated web cache "), cache_url, (void *) 0);
 	gcu_statusbar_message(gwc_tmp);
 
 	parse_context_set(handle, MAX_OK_LINES);

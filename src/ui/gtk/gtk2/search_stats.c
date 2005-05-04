@@ -318,10 +318,10 @@ add_column(GtkTreeView *treeview, gint id, gint width, gfloat xalign,
     g_object_set(renderer,
         "xalign", xalign,
         "ypad", GUI_CELL_RENDERER_YPAD,
-        NULL);
+        (void *) 0);
 
     column = gtk_tree_view_column_new_with_attributes(
-                label, renderer, "text", id, NULL);
+                label, renderer, "text", id, (void *) 0);
 
 	g_object_set(G_OBJECT(column),
 		"fixed-width", MAX(1, width),
@@ -330,7 +330,7 @@ add_column(GtkTreeView *treeview, gint id, gint width, gfloat xalign,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		"visible", TRUE,
-		NULL);
+		(void *) 0);
 
     gtk_tree_view_append_column(treeview, column);
 	gtk_tree_view_column_set_sort_column_id(column, id);

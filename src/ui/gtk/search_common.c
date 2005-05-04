@@ -1376,7 +1376,7 @@ search_gui_parse_query(const gchar *querystr, GList **rules,
 
 			if (urn_get_sha1(s, raw)) {
 				concat_strings(query, sizeof query,
-					urnsha1, sha1_base32(raw), NULL);
+					urnsha1, sha1_base32(raw), (void *) 0);
 				return query;
 			} else {
 				*error = _("The SHA1 of the magnet is not validly encoded");
@@ -1411,7 +1411,7 @@ search_gui_parse_query(const gchar *querystr, GList **rules,
 
 				base32_encode_into(raw, sizeof raw, b32, sizeof b32);
 				b32[sizeof b32 - 1] = '\0';
-				concat_strings(query, sizeof query, urnsha1, b32, NULL);
+				concat_strings(query, sizeof query, urnsha1, b32, (void *) 0);
 				return query;
 			}
 

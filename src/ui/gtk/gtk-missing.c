@@ -556,7 +556,9 @@ tree_view_restore_widths(GtkTreeView *treeview, property_t prop)
 		if (!c)
 			break;
 		gui_prop_get_guint32(prop, &width, i, 1);
-		g_object_set(G_OBJECT(c), "fixed-width", MAX(1, (gint32) width), NULL);
+		g_object_set(G_OBJECT(c),
+			"fixed-width", MAX(1, (gint32) width),
+			(void *) 0);
 	}
 }
 

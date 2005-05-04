@@ -398,7 +398,7 @@ static void add_column(
         "mode", GTK_CELL_RENDERER_MODE_INERT,
         "xalign", xalign,
         "ypad", GUI_CELL_RENDERER_YPAD,
-        NULL);
+        (void *) 0);
     column = gtk_tree_view_column_new_with_attributes(
         title, renderer, "text", column_id, NULL);
 	g_object_set(G_OBJECT(column),
@@ -407,7 +407,7 @@ static void add_column(
 		"reorderable", FALSE,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
-		NULL);
+		(void *) 0);
 
 	gtk_tree_view_column_set_sort_column_id(column, column_id);
     gtk_tree_view_append_column(GTK_TREE_VIEW (tree), column);

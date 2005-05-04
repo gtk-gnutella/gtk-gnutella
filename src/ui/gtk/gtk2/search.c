@@ -1309,21 +1309,21 @@ add_column(
 		"background-gdk", bg_column,
 		"foreground-gdk", fg_column,
 		"text", id,
-		NULL);
+		(void *) 0);
 	g_object_set(G_OBJECT(renderer),
 		"background-set", TRUE,
 		"foreground-set", TRUE,
 		"mode", GTK_CELL_RENDERER_MODE_INERT,
 		"xalign", xalign,
 		"ypad", (guint) GUI_CELL_RENDERER_YPAD,
-		NULL);
+		(void *) 0);
 	g_object_set(G_OBJECT(column),
 		"fixed-width", MAX(1, width),
 		"min-width", 1,
 		"reorderable", TRUE,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
-		NULL);
+		(void *) 0);
     gtk_tree_view_column_set_sort_column_id(column, id);
     gtk_tree_view_append_column(treeview, column);
 

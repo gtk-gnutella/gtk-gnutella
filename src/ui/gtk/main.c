@@ -160,7 +160,7 @@ gui_init_menu(void)
 	guint i;
 
     renderer = gtk_cell_renderer_text_new();
-    g_object_set(renderer, "ypad", GUI_CELL_RENDERER_YPAD, NULL);
+    g_object_set(renderer, "ypad", GUI_CELL_RENDERER_YPAD, (void *) 0);
 	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_menu"));
 	store = gtk_tree_store_newv(G_N_ELEMENTS(types), types);
 
@@ -182,7 +182,7 @@ gui_init_menu(void)
 	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
 
 	column = gtk_tree_view_column_new_with_attributes(
-		NULL, renderer, "text", 0, NULL);
+				NULL, renderer, "text", 0, (void *) 0);
     gtk_tree_view_column_set_resizable(column, TRUE);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
     gtk_tree_view_append_column(treeview, column);
@@ -391,7 +391,6 @@ gui_create_dlg_about(void)
         "Globuz",
 		"Daichi Kawahata <daichik@users.sourceforge.net>",
 		"Dave Rutherford <polymath69@users.sourceforge.net>",
-        NULL
     };
     GtkWidget *dlg = create_dlg_about();
     guint i;
@@ -401,7 +400,7 @@ gui_create_dlg_about(void)
     textbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(
         lookup_widget(dlg, "textview_about_contributors")));
 
-    for (i = 0; NULL != contributors[i]; i++) {
+    for (i = 0; i < G_N_ELEMENTS(contributors[i]); i++) {
         if (i > 0)
             gtk_text_buffer_insert_at_cursor(textbuf, "\n", (-1));
         gtk_text_buffer_insert_at_cursor(textbuf, contributors[i], (-1));
@@ -410,7 +409,7 @@ gui_create_dlg_about(void)
     GtkText *text = GTK_TEXT(lookup_widget(dlg, "text_about_contributors"));
     static char s[256];
 
-    for (i = 0; NULL != contributors[i]; i++) {
+    for (i = 0; i < G_N_ELEMENTS(contributors[i]); i++) {
         if (i > 0)
             gtk_text_insert(text, NULL, NULL, NULL, "\n", (-1));
         g_strlcpy(s, contributors[i], sizeof(s));
@@ -453,16 +452,16 @@ main_gui_gtkrc_init(void)
 	G_FREE_NULL(userrc);
 
 	userrc = g_strconcat(guc_settings_home_dir(),
-		G_DIR_SEPARATOR_S, ".gtk", G_DIR_SEPARATOR_S, "gtkrc", NULL);
+		G_DIR_SEPARATOR_S, ".gtk", G_DIR_SEPARATOR_S, "gtkrc", (void *) 0);
 	gtk_rc_parse(userrc);
 	G_FREE_NULL(userrc);
 
 #ifdef USE_GTK2
 	userrc = g_strconcat(guc_settings_home_dir(),
-		G_DIR_SEPARATOR_S, ".gtk2", G_DIR_SEPARATOR_S, "gtkrc", NULL);
+		G_DIR_SEPARATOR_S, ".gtk2", G_DIR_SEPARATOR_S, "gtkrc", (void *) 0);
 #else
 	userrc = g_strconcat(guc_settings_home_dir(),
-		G_DIR_SEPARATOR_S, ".gtk1", G_DIR_SEPARATOR_S, "gtkrc", NULL);
+		G_DIR_SEPARATOR_S, ".gtk1", G_DIR_SEPARATOR_S, "gtkrc", (void *) 0);
 #endif
 	gtk_rc_parse(userrc);
 	G_FREE_NULL(userrc);

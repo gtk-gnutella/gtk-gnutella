@@ -372,7 +372,7 @@ dmesh_url_strerror(dmesh_url_error_t errnum)
 
 		concat_strings(http_error_str, sizeof http_error_str,
 			parse_errstr[errnum], ": ", http_url_strerror(http_url_errno),
-			NULL);
+			(void *) 0);
 		return http_error_str;
 	}
 
@@ -607,7 +607,7 @@ dmesh_fill_info(dmesh_urlinfo_t *info,
 	info->idx = idx;
 
 	if (idx == URN_INDEX) {
-		concat_strings(urn, sizeof urn, urnsha1, sha1_base32(sha1), NULL);
+		concat_strings(urn, sizeof urn, urnsha1, sha1_base32(sha1), (void *) 0);
 		info->name = urn;
 	} else
 		info->name = name;
@@ -828,7 +828,7 @@ dmesh_urlinfo(const dmesh_urlinfo_t *info, gchar *buf,
 	host = info->port == HTTP_PORT
 			? ip_to_gchar(info->ip)
 			: ip_port_to_gchar(info->ip, info->port);
-	rw = concat_strings(buf, len, "http://", host, NULL);
+	rw = concat_strings(buf, len, "http://", host, (void *) 0);
 	if (rw >= maxslen)
 		return (size_t) -1;
 
@@ -953,7 +953,7 @@ dmesh_entry_url_stamp(const struct dmesh_entry *dme, gchar *buf, size_t size)
 	 */
 
 	rw += concat_strings(&buf[rw], size - rw,
-			" ", date_to_iso_gchar(dme->stamp), NULL);
+			" ", date_to_iso_gchar(dme->stamp), (void *) 0);
 
 	return rw < size ? rw : (size_t) -1;
 }
