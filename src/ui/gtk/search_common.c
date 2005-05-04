@@ -161,6 +161,37 @@ search_gui_free_record(record_t *rc)
 }
 
 /**
+ * Tries to extract the extenstion of a file from the filename.
+ * The return value is only valid until the function is called again.
+ */
+const gchar *
+search_gui_extract_ext(const gchar *filename)
+{
+    static gchar ext[32];
+	const gchar *p;
+	size_t rw = 0;
+
+    g_assert(NULL != filename);
+
+    ext[0] = '\0';
+    p = strrchr(filename, '.');
+
+	rw = g_strlcpy(ext, p ? ++p : "", sizeof ext);
+	if (rw >= sizeof ext) {
+		/* If the guessed extension is really this long, assume the
+		 * part after the dot isn't an extension at all. */
+		ext[0] = '\0';
+	} else {
+		/* Using g_utf8_strdown() (for GTK2) would be cleaner but it
+         * allocates a new string which is ugly. Nobody uses such file
+         * extensions anyway. */
+		ascii_strlower(ext, ext);
+	}
+
+    return ext;
+}
+
+/**
  * This routine must be called when the results_set has been dispatched to
  * all the opened searches.
  *
@@ -504,6 +535,7 @@ search_gui_find(gnet_search_t sh)
 record_t *
 search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 {
+	const gchar *filename;
     record_t *rc;
 
     g_assert(r != NULL);
@@ -515,22 +547,20 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     rc->results_set = rs;
     rc->refcount = 0;
 
+    filename = r->name;
 #ifdef USE_GTK2
-    rc->name = atom_str_get(r->name);
     /* Gtk2 extracts this in search_gui2.c because of UTF8 issues. */
     rc->ext  = NULL;
 #else
-	rc->name = NULL;
-	if (!is_ascii_string(r->name)) {
-		size_t len;
-
-		len = strlen(r->name);
-		if (utf8_is_valid_string(r->name, len))
-    		rc->name = utf8_to_locale(r->name, len);
+	if (!is_ascii_string(filename)) {
+		if (utf8_is_valid_string(filename, 0))
+    		filename = utf8_to_locale(filename, 0);
+		if (!filename)
+			filename = r->name;
 	}
-	rc->name = atom_str_get(rc->name ? rc->name : r->name);
-    rc->ext  = atom_str_get(search_gui_extract_ext(rc->name));
+    rc->ext  = atom_str_get(search_gui_extract_ext(filename));
 #endif
+	rc->name = atom_str_get(filename);
     rc->size = r->size;
     rc->index = r->index;
     rc->sha1 = r->sha1 != NULL ? atom_sha1_get(r->sha1) : NULL;
@@ -1181,37 +1211,6 @@ search_gui_flush(time_t now)
 
     g_slist_free(accumulated_rs);
     accumulated_rs = NULL;
-}
-
-/**
- * Tries to extract the extenstion of a file from the filename.
- * The return value is only valid until the function is called again.
- */
-gchar *
-search_gui_extract_ext(gchar *filename)
-{
-    static gchar ext[32];
-	const gchar *p;
-	size_t rw = 0;
-
-    g_assert(NULL != filename);
-
-    ext[0] = '\0';
-    p = strrchr(filename, '.');
-
-	rw = g_strlcpy(ext, p ? ++p : "", sizeof ext);
-	if (rw >= sizeof ext) {
-		/* If the guessed extension is really this long, assume the
-		 * part after the dot isn't an extension at all. */
-		ext[0] = '\0';
-	} else {
-		/* Using g_utf8_strdown() (for GTK2) would be cleaner but it
-         * allocates a new string which is ugly. Nobody uses such file
-         * extensions anyway. */
-		ascii_strlower(ext, ext);
-	}
-
-    return ext;
 }
 
 /**
