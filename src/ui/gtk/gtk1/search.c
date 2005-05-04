@@ -43,6 +43,7 @@
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/urn.h"
+#include "lib/utf8.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -309,7 +310,7 @@ search_gui_new_search_full(const gchar *querystr,
     search_t *sch;
 	gnet_search_t sch_id;
     GList *rules;
-    gchar *titles[c_sl_num];
+    const gchar *titles[c_sl_num];
     gint row;
     const gchar *query, *error;
     GtkWidget *combo_searches = lookup_widget(main_window, "combo_searches");
@@ -336,13 +337,10 @@ search_gui_new_search_full(const gchar *querystr,
 	sch->sort_order = sort_order;
 	sch->query = atom_str_get(query);
 	sch->enabled = (flags & SEARCH_ENABLED) ? TRUE : FALSE;
-    sch->search_handle = guc_search_new(query, reissue_timeout, flags);
+    sch->search_handle = sch_id;
     sch->passive = (flags & SEARCH_PASSIVE) ? TRUE : FALSE;
-	sch->dups = g_hash_table_new((GHashFunc) search_gui_hash_func,
-					(GCompareFunc) search_gui_hash_key_compare);
-	if (!sch->dups) {
-		g_error("new_search: unable to allocate hash table.\n");
-	}
+	sch->dups = g_hash_table_new(search_gui_hash_func,
+					search_gui_hash_key_compare);
 
 	sch->parents = g_hash_table_new(NULL, NULL);
 
@@ -352,15 +350,23 @@ search_gui_new_search_full(const gchar *querystr,
 
 	/* Create the list item */
 
-	sch->list_item = gtk_list_item_new_with_label(sch->query);
+	if (utf8_is_valid_string(query, 0)) {
+		const gchar *q;
+		
+		q = utf8_to_locale(query, 0);
+		if (NULL != q && *q != '\0')
+			query = q;
+	}
+
+	sch->list_item = gtk_list_item_new_with_label(query);
 	gtk_widget_show(sch->list_item);
 	gtk_list_prepend_items(GTK_LIST(GTK_COMBO(combo_searches)->list),
 		g_list_prepend(NULL, sch->list_item));
 
-    titles[c_sl_name] = sch->query;
+    titles[c_sl_name] = query;
     titles[c_sl_hit] = "0";
     titles[c_sl_new] = "0";
-    row = gtk_clist_append(GTK_CLIST(clist_search), titles);
+    row = gtk_clist_append(GTK_CLIST(clist_search), (gchar **) titles);
     gtk_clist_set_row_data(GTK_CLIST(clist_search), row, sch);
 
 	/* Create a new ctree if needed, or use the default ctree */
@@ -2286,18 +2292,27 @@ void gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
  */
 void gui_search_force_update_tab_label(struct search *sch)
 {
-    gint row;
     GtkNotebook *notebook_search_results = GTK_NOTEBOOK
         (lookup_widget(main_window, "notebook_search_results"));
     GtkCList *clist_search = GTK_CLIST
         (lookup_widget(main_window, "clist_search"));
 	search_t *current_search = search_gui_get_current_search();
+	const gchar *query = sch->query;
+    gint row;
+	
+	if (utf8_is_valid_string(query, 0)) {
+		const gchar *q;
+		
+		q = utf8_to_locale(query, 0);
+		if (NULL != q && *q != '\0')
+			query = q;
+	}
 
 	if (sch == current_search || sch->unseen_items == 0)
-		gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d)", sch->query,
+		gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d)", query,
 				   sch->items);
 	else
-		gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d, %d)", sch->query,
+		gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d, %d)", query,
 				   sch->items, sch->unseen_items);
 	sch->last_update_items = sch->items;
 	gtk_notebook_set_tab_label_text
