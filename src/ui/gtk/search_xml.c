@@ -1028,19 +1028,7 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
         g_warning("Ignored search without query");
         return;
     }
-#ifndef USE_GTK2
-	if (!is_ascii_string(buf)) {
-    	query = g_strdup(utf8_to_locale(buf, 0));
-		if (NULL == query) {
-			g_warning("xml_to_search: Cannot convert search string to UTF-8"
-                "Discarding search. buf=\"%s\"", buf);
-			G_FREE_NULL(buf);
-			return;
-		}
-		G_FREE_NULL(buf);
-	} else
-#endif
-		query = buf;
+	query = buf;
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_SEARCH_ENABLED));
     if (buf) {
