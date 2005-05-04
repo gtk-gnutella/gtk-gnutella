@@ -335,17 +335,20 @@ gchar *
 gm_sanitize_filename(const gchar *filename,
 		gboolean no_spaces, gboolean no_evil)
 {
+	static const uni_norm_t norm = 
+#if defined(__APPLE__) && defined(__MACH__) /* Darwin */
+		UNI_NORM_NFD;
+#else /* !Darwin */
+		UNI_NORM_NFC;
+#endif /* Darwin */
 	gint c;
 	gchar *q = NULL;
 	const gchar *p, *s = filename;
 
 	g_assert(filename != NULL);
 
-#if defined(__APPLE__) && defined(__MACH__) /* Mac OS X */
-	/* XXX: What about Darwin? */
-	q = locale_to_utf8_nfd(filename, 0);
+	q = locale_to_utf8_normalized(filename, norm);
 	s = q;
-#endif /* Mac OS X */
 
 /* Maximum bytes in filename i.e., including NUL */
 #define	FILENAME_MAXBYTES 256
