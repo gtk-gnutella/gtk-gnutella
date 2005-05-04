@@ -743,9 +743,7 @@ static const char *codesets[] = {
  NULL
 };
 
-/*
- * locale_charset:
- *
+/**
  * Returns a string representing the current locale as an alias which is
  * understood by GNU iconv. The returned pointer points to a static buffer.
  */
@@ -1038,46 +1036,35 @@ locale_to_utf8_full(const gchar *str)
  * with all characters decomposed.
  *
  * @param str the string to convert.
- * @param len the length of ``str''. May be set to zero if ``str'' is
- *		  NUL-terminated.
  *
  * @returns a newly allocated string.
  */
 gchar *
-locale_to_utf8_nfd(const gchar *str, size_t len)
+locale_to_utf8_normalized(const gchar *str, uni_norm_t norm)
 {
 	gchar sbuf[4096];
 	const gchar *s;
 	gchar *ret;
-	size_t utf8_size;
 
 	g_assert(NULL != str);
 
-	if (0 == len)
-		len = strlen(str);
-	if (0 == len)
+	if ('\0' == str[0])
 		return g_strdup("");
 
-   	utf8_size = len * 6 + 1;
-	if (utf8_is_valid_string(str, len)) {
+	if (utf8_is_valid_string(str, 0)) {
 		s = str;
 	} else {
+		size_t size, len;
 		gchar *p;
 
-		g_assert((utf8_size - 1) / 6 == len);
-		p = len < sizeof sbuf ? sbuf : g_malloc(utf8_size);
-		s = g_iconv_complete(cd_locale_to_utf8, str, len, p, utf8_size);
+		len = strlen(str);
+   		size = len * 6 + 1;
+		g_assert((size - 1) / 6 == len);
+		p = len < sizeof sbuf ? sbuf : g_malloc(size);
+		s = g_iconv_complete(cd_locale_to_utf8, str, len, p, size);
 	}
 
-	/*
-	 * Do a dry run first to determine the length. The output buffer won't
-	 * be touched, but it must be valid. So just pass ``s'' not NULL.
-	 */
-	len = utf8_decompose_nfd(s, NULL, 0);
-	utf8_size = len + 1;
-	ret = g_malloc(utf8_size);
-	len = utf8_decompose_nfd(s, ret, utf8_size);
-	g_assert(len == utf8_size - 1);
+	ret = utf8_normalize(s, norm);
 
 	if (s != str && s != sbuf) {
 		g_free(deconstify_gchar(s));
@@ -1088,13 +1075,17 @@ locale_to_utf8_nfd(const gchar *str, size_t len)
 }
 
 
-gchar *
+const gchar *
 utf8_to_locale(const gchar *str, size_t len)
 {
 	static gchar outbuf[4096 + 6]; /* a multibyte char is max. 6 bytes large */
 
 	g_assert(NULL != str);
 
+	/* No need to convert from UTF-8 to UTF-8 */
+	if (0 == strcmp(charset, "UTF-8"))
+		return str;
+		
 	return g_iconv_complete(cd_utf8_to_locale,
 				str, len != 0 ? len : strlen(str), outbuf, sizeof(outbuf) - 7);
 }
@@ -1111,7 +1102,7 @@ is_ascii_string(const gchar *str)
     return TRUE;
 }
 
-gchar *
+const gchar *
 iso_8859_1_to_utf8(const gchar *fromstr)
 {
 	static gchar outbuf[4096 + 6]; /* a multibyte char is max. 6 bytes large */
@@ -1122,10 +1113,10 @@ iso_8859_1_to_utf8(const gchar *fromstr)
 				fromstr, strlen(fromstr), outbuf, sizeof(outbuf) - 7);
 }
 
-gchar *
+const gchar *
 lazy_utf8_to_locale(const gchar *str, size_t len)
 {
-	gchar *t = utf8_to_locale(str, len);
+	const gchar *t = utf8_to_locale(str, len);
 	return NULL != t ? t : "<Cannot convert to locale>";
 }
 
@@ -1157,7 +1148,7 @@ lazy_locale_to_utf8(const gchar *str, size_t len)
 		 * otherwise (if the string is not in NFC). This is a known GTK+ bug.
 		 */
 
-		nfc = utf8_compose_nfc(s);
+		nfc = utf8_normalize(s, UNI_NORM_NFC);
 		utf8_strlcpy(buf, nfc, sizeof buf);
 		if (nfc != s)
 			G_FREE_NULL(nfc);
@@ -1853,63 +1844,63 @@ utf8_decompose(const gchar *src, gchar *out, size_t size, gboolean nfkd)
 		
 		src += retlen;
 		len -= retlen;
-		d = utf32_decompose_char(uc, &d_len, nfkd);
-		while (d_len-- > 0)
-			new_len += utf8_encoded_char_len(*d++);
+			d = utf32_decompose_char(uc, &d_len, nfkd);
+			while (d_len-- > 0)
+				new_len += utf8_encoded_char_len(*d++);
+		}
+
+		return new_len;
 	}
 
-	return new_len;
-}
+	/**
+	 * Decomposes (NFD) an UTF-8 encoded string.
+	 *
+	 * The UTF-8 string written to ``dst'' is always NUL-terminated unless
+	 * ``size'' is zero. If the size of ``dst'' is too small to hold the
+	 * complete decomposed string, the resulting string will be truncated but
+	 * the validity of the UTF-8 encoding will be preserved. Truncation is
+	 * indicated by the return value being equal to or greater than ``size''.
+	 *
+	 * @param src a UTF-8 encoded string.
+	 * @param dst a pointer to a buffer which will hold the decomposed string.
+	 * @param size the number of bytes ``dst'' can hold.
+	 *
+	 * @returns the length in bytes (not characters!) of completely decomposed
+	 *			string.
+	 */
+	size_t
+	utf8_decompose_nfd(const gchar *src, gchar *out, size_t size)
+	{
+		return utf8_decompose(src, out, size, FALSE);
+	}
 
-/**
- * Decomposes (NFD) an UTF-8 encoded string.
- *
- * The UTF-8 string written to ``dst'' is always NUL-terminated unless
- * ``size'' is zero. If the size of ``dst'' is too small to hold the
- * complete decomposed string, the resulting string will be truncated but
- * the validity of the UTF-8 encoding will be preserved. Truncation is
- * indicated by the return value being equal to or greater than ``size''.
- *
- * @param src a UTF-8 encoded string.
- * @param dst a pointer to a buffer which will hold the decomposed string.
- * @param size the number of bytes ``dst'' can hold.
- *
- * @returns the length in bytes (not characters!) of completely decomposed
- *			string.
- */
-size_t
-utf8_decompose_nfd(const gchar *src, gchar *out, size_t size)
-{
-	return utf8_decompose(src, out, size, FALSE);
-}
+	/**
+	 * Decomposes (NFKD) an UTF-8 encoded string.
+	 *
+	 * The UTF-8 string written to ``dst'' is always NUL-terminated unless
+	 * ``size'' is zero. If the size of ``dst'' is too small to hold the
+	 * complete decomposed string, the resulting string will be truncated but
+	 * the validity of the UTF-8 encoding will be preserved. Truncation is
+	 * indicated by the return value being equal to or greater than ``size''.
+	 *
+	 * @param src a UTF-8 encoded string.
+	 * @param dst a pointer to a buffer which will hold the decomposed string.
+	 * @param size the number of bytes ``dst'' can hold.
+	 *
+	 * @returns the length in bytes (not characters!) of completely decomposed
+	 *			string.
+	 */
+	size_t
+	utf8_decompose_nfkd(const gchar *src, gchar *out, size_t size)
+	{
+		return utf8_decompose(src, out, size, TRUE);
+	}
 
-/**
- * Decomposes (NFKD) an UTF-8 encoded string.
- *
- * The UTF-8 string written to ``dst'' is always NUL-terminated unless
- * ``size'' is zero. If the size of ``dst'' is too small to hold the
- * complete decomposed string, the resulting string will be truncated but
- * the validity of the UTF-8 encoding will be preserved. Truncation is
- * indicated by the return value being equal to or greater than ``size''.
- *
- * @param src a UTF-8 encoded string.
- * @param dst a pointer to a buffer which will hold the decomposed string.
- * @param size the number of bytes ``dst'' can hold.
- *
- * @returns the length in bytes (not characters!) of completely decomposed
- *			string.
- */
-size_t
-utf8_decompose_nfkd(const gchar *src, gchar *out, size_t size)
-{
-	return utf8_decompose(src, out, size, TRUE);
-}
-
-/**
- * Decomposes an UTF-32 encoded string.
- *
- */
-static inline size_t
+	/**
+	 * Decomposes an UTF-32 encoded string.
+	 *
+	 */
+	static inline size_t
 utf32_decompose(const guint32 *in, guint32 *out, size_t size, gboolean nfkd)
 {
 	const guint32 *d, *s = in;
@@ -2902,40 +2893,81 @@ utf32_compose(guint32 *src)
 /**
  */
 guint32 *
-utf32_compose_nfc(const guint32 *src)
+utf32_normalize(const guint32 *src, uni_norm_t norm)
 {
-	guint32 buf[1024], *nfd, *nfc;
+	guint32 buf[1024], *dst;
 	size_t size, n;
+	gboolean compat = FALSE;
 	
-	/* Convert to NFKD */
-	n = utf32_decompose(src, buf, G_N_ELEMENTS(buf), FALSE);
+	g_assert((gint) norm >= 0 && norm < NUM_UNI_NORM);
+	
+	switch (norm) {
+	case UNI_NORM_NFKC:
+	case UNI_NORM_NFKD:
+		compat = TRUE;
+		/* FALLTHRU */
+	case UNI_NORM_NFC:
+	case UNI_NORM_NFD:
+		break;
+
+	case NUM_UNI_NORM:
+		g_assert_not_reached();
+	}
+	
+	/* Decompose string to NFD or NFKD  */
+	n = utf32_decompose(src, buf, G_N_ELEMENTS(buf), compat);
 	size = n + 1;
 	if (n < G_N_ELEMENTS(buf)) {
-		nfd = buf;
+		dst = buf;
 	} else {
-		nfd = g_malloc(size * sizeof *nfd);
-		n = utf32_decompose(src, nfd, size, FALSE);
+		dst = g_malloc(size * sizeof *dst);
+		n = utf32_decompose(src, dst, size, compat);
 		g_assert(size - 1 == n);
 	}
 
-	/* Convert to NFC */
-	n = utf32_compose(nfd);
-	n = utf32_compose_hangul(nfd);
-	nfc = utf32_strdup(nfd);
+	switch (norm) {
+	case UNI_NORM_NFC:
+	case UNI_NORM_NFKC:
+		{
+			guint32 *ret;
+			
+			/* Compose string */
+			n = utf32_compose(dst);
+			n = utf32_compose_hangul(dst);
+			ret = utf32_strdup(dst);
+			if (buf != dst)
+				G_FREE_NULL(dst);
+			
+			return ret;
+		}
+		
+	case UNI_NORM_NFD:
+	case UNI_NORM_NFKD:
+		return dst;
+		
+	case NUM_UNI_NORM:
+		g_assert_not_reached();
+	}
 
-	if (buf != nfd)
-		G_FREE_NULL(nfd);
-
-	return nfc;
+	/* NOTREACHED */
+	return NULL;
 }
 
 /**
+ * Normalizes an UTF-8 string to the request normal form and returns
+ * it as a newly allocated string.
+ *
+ * @param src the string to normalize, must be valid UTF-8.
+ * @param norm one of UNI_NORM_NFC, UNI_NORM_NFD, UNI_NORM_NFKC, UNI_NORM_NFKD.
+ *
+ * @return a newly allocated string
  */
 gchar *
-utf8_compose_nfc(const gchar *src)
+utf8_normalize(const gchar *src, uni_norm_t norm)
 {
 	guint32 *dst32;
 
+	g_assert((gint) norm >= 0 && norm < NUM_UNI_NORM);
 	g_assert(utf8_is_valid_string(src, 0));
 	
 	{	
@@ -2953,8 +2985,9 @@ utf8_compose_nfc(const gchar *src)
 			n = utf8_to_utf32(src, s, size);
 			g_assert(size - 1 == n);
 		}
-		
-		dst32 = utf32_compose_nfc(s);
+
+		dst32 = utf32_normalize(s, norm);
+
 		g_assert(dst32 != s);
 		if (s != buf)
 			G_FREE_NULL(s);
@@ -2973,7 +3006,6 @@ utf8_compose_nfc(const gchar *src)
 		return dst;
 	}
 }
-
 
 /**
  * Apply the NFKD/NFC algo to have nomalized keywords

@@ -39,6 +39,15 @@
 #include "unicode/unorm.h"
 #endif
 
+typedef enum {
+	UNI_NORM_NFC = 0,
+	UNI_NORM_NFKC,
+	UNI_NORM_NFD,
+	UNI_NORM_NFKD,
+
+	NUM_UNI_NORM
+} uni_norm_t;
+
 void locale_init(void);
 void locale_close(void);
 const gchar *locale_get_charset(void);
@@ -52,7 +61,7 @@ gchar *utf8_strlower_copy(const gchar *src);
 size_t utf8_strupper(gchar *dst, const gchar *src, size_t size);
 gchar *utf8_strupper_copy(const gchar *src);
 gchar *utf8_canonize(const gchar *src);
-gchar *utf8_compose_nfc(const gchar *src);
+gchar *utf8_normalize(const gchar *src, uni_norm_t norm);
 
 size_t utf32_to_utf8(const guint32 *in, gchar *out, size_t size);
 guint32 utf32_lowercase(guint32 uc);
@@ -109,15 +118,15 @@ utf16_encode_char_compact(guint32 uc)
  * Necessary for GTK+ 2.x version because it expects almost any string
  * to be encoded as UTF-8.
  */
-gchar *iso_8859_1_to_utf8(const gchar *fromstr);
+const gchar *iso_8859_1_to_utf8(const gchar *fromstr);
 gchar *locale_to_utf8(const gchar *str, size_t len);
 const gchar *lazy_locale_to_utf8(const gchar *str, size_t len);
 gchar *locale_to_utf8_full(const gchar *str);
 
 /* Necessary for Mac OS X, as it requires filenames to be UTF-8 encoded
- * with all characters decomposed.
+ * with all characters decomposed (NFD).
  */
-gchar *locale_to_utf8_nfd(const gchar *str, size_t len);
+gchar *locale_to_utf8_normalized(const gchar *str, uni_norm_t norm);
 
 
 /*
@@ -126,8 +135,8 @@ gchar *locale_to_utf8_nfd(const gchar *str, size_t len);
  */
 
 gboolean is_ascii_string(const gchar *str);
-gchar *utf8_to_locale(const gchar *str, size_t len);
-gchar *lazy_utf8_to_locale(const gchar *str, size_t len);
+const gchar *utf8_to_locale(const gchar *str, size_t len);
+const gchar *lazy_utf8_to_locale(const gchar *str, size_t len);
 
 gboolean icu_enabled(void);
 gboolean is_latin_locale(void);
