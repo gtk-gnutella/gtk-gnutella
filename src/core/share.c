@@ -916,7 +916,7 @@ recurse_scan(gchar *dir, const gchar *basedir)
 					0 == ascii_strcasecmp(start + 1, e->str))
 			) {
 				struct shared_file *found = NULL;
-				gchar *name_utf8, *q;
+				gchar *q;
 
 				if (dbg > 5)
 					g_message("recurse_scan: full=\"%s\"", full);
@@ -948,28 +948,19 @@ recurse_scan(gchar *dir, const gchar *basedir)
 					break;
 				}
 
-				name_utf8 = locale_to_utf8_full(name);
-				if (!name_utf8) {
-					g_warning("Cannot convert filename to UTF-8: \"%s\"", full);
-					break;
-				}
-			
 				found = walloc0(sizeof *found);
 
 				found->file_path = atom_str_get(full);
 				
-				q = utf8_compose_nfc(name_utf8);
+				q = locale_to_utf8_normalized(name, UNI_NORM_NFC);
 				found->name_nfc = atom_str_get(q);
-				if (q != name_utf8)
+				if (q != name)
 					G_FREE_NULL(q);
 				
-				q = UNICODE_CANONIZE(name_utf8);
+				q = UNICODE_CANONIZE(found->name_nfc);
 				found->name_canonic = atom_str_get(q);
-				if (q != name_utf8)
+				if (q != found->name_nfc)
 					G_FREE_NULL(q);
-
-				if (name_utf8 != name)
-					G_FREE_NULL(name_utf8);
 
 				found->name_nfc_len = strlen(found->name_nfc);
 				found->name_canonic_len = strlen(found->name_canonic);
