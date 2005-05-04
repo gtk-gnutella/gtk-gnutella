@@ -24,6 +24,7 @@
  */
 
 /**
+ * @ingroup core
  * @file
  *
  * Globally Unique ID (GUID) manager.

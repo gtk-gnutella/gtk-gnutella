@@ -44,14 +44,14 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-/*
+/**
  * Hash tables where we collect SHA1 we already own or wish to ignore and
  * filename/filesizes we likewise wish to ignore.
  */
 static GHashTable *by_sha1;			/* SHA1s to ignore */
 static GHashTable *by_namesize;		/* By filename + filesize */
 
-/*
+/**
  * We expect the initial ignore_sha1 and ignore_namesize files to be in
  * the startup directory.  We'll monitor them and reload them should they
  * change during our runtime.

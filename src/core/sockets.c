@@ -25,6 +25,7 @@
  */
 
 /**
+ * @ingroup core
  * @file
  *
  * Socket management.

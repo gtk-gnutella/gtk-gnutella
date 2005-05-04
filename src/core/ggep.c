@@ -24,6 +24,7 @@
  */
 
 /**
+ * @ingroup core
  * @file
  *
  * Gnutella Generic Extension Protocol (GGEP).

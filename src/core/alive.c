@@ -24,6 +24,7 @@
  */
 
 /**
+ * @ingroup core
  * @file
  *
  * Alive status checking ping/pongs.
@@ -47,7 +48,7 @@ RCSID("$Id$");
 
 #define INFINITY	0xffffffff
 
-/*
+/**
  * Structure used to keep track of the alive pings we sent, and stats.
  */
 struct alive {

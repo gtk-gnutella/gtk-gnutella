@@ -24,14 +24,16 @@
  */
 
 /**
+ * @ingroup core
  * @file
  *
- * Bitzi Core search code
+ * Bitzi Core search code.
  *
  * This code makes searches to the Bitzi (bitzi.com) meta-data
  * service. It is independant from any GUI functions and part of the
  * core of GTKG.
  *
+ * @note
  * The code requires libxml to parse the XML responses
  */
 

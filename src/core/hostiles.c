@@ -27,9 +27,10 @@
  */
 
 /**
+ * @ingroup core
  * @file
  *
- * Support for the hostiles.txt of BearShare
+ * Support for the hostiles.txt of BearShare.
  */
 
 #include "common.h"

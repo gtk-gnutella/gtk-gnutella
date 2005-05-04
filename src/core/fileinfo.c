@@ -24,6 +24,7 @@
  */
 
 /**
+ * @ingroup core
  * @file
  *
  * Structure for storing meta-information about files being

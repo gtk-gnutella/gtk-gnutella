@@ -37,16 +37,36 @@
  *  The following sections are the broad categories into which the
  *  various modules belong.
  *
- *  - @ref core
- *  - @ref lib
- *  - @ref gui
+ * @section Core
+ *	- @ref core
+ *
+ * @section Libraries
+ *	- @ref lib
+ *
+ * @section Interface
+ *	- @ref gtk
  *
  * @section Miscellaneous
- *  - @ref undoc
+ *	- @ref undoc
  */
 
-/** @defgroup core Core Module */
-/** @defgroup lib Common Library */
-/** @defgroup gui User Interface */
+/**
+ * @defgroup core Core Module
+ */
 
-/** @defgroup undoc Undocumented */
+/**
+ * @defgroup lib Common Libraries
+ */
+
+/**
+ * @defgroup ui User Interface
+ */
+
+/**
+ * @defgroup gtk GTK+
+ * @ingroup ui
+ */
+
+/**
+ * @defgroup undoc Undocumented
+ */

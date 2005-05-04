@@ -23,7 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-/*
+/**
+ * @ingroup core
  * @file
  *
  * Maintain an accurate clock skew of our host's clock with respect

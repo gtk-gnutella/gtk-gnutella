@@ -30,7 +30,10 @@
 
 #include <glib.h>
 
-/*
+/**
+ * @ingroup core
+ * @file
+ *
  * A data buffer, can be shared by several message blocks.
  *
  * There are two incarnations of a message data block: one where the buffer's

@@ -24,6 +24,7 @@
  */
 
 /**
+ * @ingroup core
  * @file
  *
  * Detection of a local NTP server.

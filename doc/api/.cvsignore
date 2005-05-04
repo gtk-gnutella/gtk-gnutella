@@ -1,2 +1,5 @@
 gtkg-apidoc.warn
 html
+latex
+man
+rtf

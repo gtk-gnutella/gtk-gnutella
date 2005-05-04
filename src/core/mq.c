@@ -24,6 +24,7 @@
  */
 
 /**
+ * @ingroup core
  * @file
  *
  * Message queues, common code between TCP and UDP sending stacks.

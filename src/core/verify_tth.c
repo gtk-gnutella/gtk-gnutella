@@ -25,9 +25,13 @@
  *----------------------------------------------------------------------
  */
 
-/*
+/**
+ * @ingroup undoc
+ * @file
+ *
  * This is not ready yet at all, do not try to use it yet. It is included
  * for compilation reasons only
+ *
  * -- Jeroen
  */
 

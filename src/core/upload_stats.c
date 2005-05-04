@@ -21,8 +21,13 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
  *
- * upload_stats.c - keep track of which files we send away, and how often.
+ * Keep track of which files we send away, and how often.
  *
  *		Statistics are kept by _FILENAME_ and file size,
  *		not by actual path, so two files with the same
@@ -39,7 +44,11 @@
  *			grey them out if they dont, optionally remove them from the
  *			stats list (when 'Clear Non-existent Files' is clicked)
  *
- *		(C) 2002 Michael Tesch, released with gtk-gnutella & its license
+ * @author Michael Tesch
+ * @version 1.6
+ * @date 2002
+ *
+ * Released by Michael Tesch with gtk-gnutella & its license
  */
 
 #include "common.h"

@@ -38,7 +38,8 @@
  */
 
 /**
- *  @file
+ * @ingroup core
+ * @file
  *
  * Hashtree can be used to build any hashtree. This could be a SHA1 tree or a
  * tigertree for example.
@@ -52,7 +53,10 @@
  * Look at the function header description for a more detailed information about
  * the arguments and the returned values.
  *
- *			-- Jeroen Asselman <jeroen@asselman.com>
+ * @author Jeroen Asselman <jeroen@asselman.com>
+ * @version 1.5
+ * @date 2003-2004
+ *
  */
 
 #include "common.h"

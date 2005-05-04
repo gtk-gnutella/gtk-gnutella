@@ -25,6 +25,7 @@
  */
 
 /**
+ * @ingroup core
  * @file
  *
  * Handle sharing of our own files and answers to remote queries.

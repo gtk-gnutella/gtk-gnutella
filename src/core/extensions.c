@@ -44,7 +44,10 @@ RCSID("$Id$");
 #define GGEP_MAXLEN	65535		/* Maximum decompressed length */
 #define GGEP_GROW	512			/* Minimum chunk growth when resizing */
 
-/*
+/**
+ * @ingroup core
+ * @file
+ *
  * An extension descriptor.
  *
  * The extension block is structured thustly:

@@ -37,7 +37,10 @@ RCSID("$Id$");
 #include "rx.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-/*
+/**
+ * @ingroup core
+ * @file
+ *
  * Dynamic dispatch of polymorphic routines.
  */
 

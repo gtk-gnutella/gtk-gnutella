@@ -26,7 +26,12 @@
 #ifndef _core_matching_h_
 #define _core_matching_h_
 
-/*
+/**
+ * @ingroup core
+ * @file
+ *
+ * Search table searching routines.
+ *
  * Basic explanation of how search table works:
  *
  *    A search_table is a global object.  Only one of these is expected to
@@ -53,7 +58,8 @@
  *  reasonably self-explanatory, but if you find it confusing, email the
  *  gtk-gnutella-devel mailing list and I'll try to respond...
  *
- *    -- KBH, 2001-10-03
+ * @author KBH
+ * @date 2001-10-03
  */
 
 struct shared_file;

@@ -51,7 +51,10 @@ struct mq_cops {
 	void (*update_flowc)(mqueue_t *q);
 };
 
-/*
+/**
+ * @ingroup core
+ * @file
+ *
  * A message queue.
  *
  * The queue itself is a two-way list, whose head is kept in `qhead' and the

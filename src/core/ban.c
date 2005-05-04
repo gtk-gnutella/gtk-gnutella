@@ -24,6 +24,7 @@
  */
 
 /**
+ * @ingroup core
  * @file
  *
  * Banning control.
@@ -73,7 +74,7 @@ static zone_t *ipf_zone;		/* Zone for ip_info allocation */
  *** Hammering-specific banning.
  ***/
 
-/*
+/**
  * Information kept in the info table, per IP address.
  */
 struct ip_info {

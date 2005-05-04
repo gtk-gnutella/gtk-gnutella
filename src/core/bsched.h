@@ -35,23 +35,26 @@
 #include "if/core/nodes.h"	/* For node_peer_t */
 #include "if/core/bsched.h"
 
-/*
+/**
+ * @ingroup core
+ * @file
+ *
  * Bandwidth scheduler.
  *
  * A bandwidth scheduler (`B-sched' for short) is made of:
  *
- * . A set of I/O sources.
- * . A set of I/O callbacks to trigger when I/O sources are ready.
- * . A bandwidth limit per scheduling perdiod.
- * . A scheduling period.
+ * - A set of I/O sources.
+ * - A set of I/O callbacks to trigger when I/O sources are ready.
+ * - A bandwidth limit per scheduling perdiod.
+ * - A scheduling period.
  *
  * It operates in cooperation with the I/O sources:
  *
- * 1. Each I/O source registers its I/O callback through the B-sched, so
+ * -# Each I/O source registers its I/O callback through the B-sched, so
  *    that it is possible to temporarily disable them should we run out of
  *    bandwidth for the period.
- * 2. Each I/O source requests an amount of bandwidth to use.
- * 3. After use, each I/O source tells the B-sched how much of the allocated
+ * -# Each I/O source requests an amount of bandwidth to use.
+ * -# After use, each I/O source tells the B-sched how much of the allocated
  *    bandwidth it really used.
  *
  * Periodically, the scheduler runs to compute the amount available for the

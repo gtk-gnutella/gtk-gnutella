@@ -24,6 +24,7 @@
  */
 
 /**
+ * @ingroup core
  * @file
  *
  * Pong caching (LimeWire's ping/pong reducing scheme).
