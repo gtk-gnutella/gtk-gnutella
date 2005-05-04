@@ -220,10 +220,10 @@ do {				\
 
 /*
  * STATIC_ASSERT() can be used to verify conditions at compile-time e.g., that
- * an array has a minimum size. This is better than a run-time * assertion
+ * an array has a minimum size. This is better than a run-time assertion
  * because the condition is checked even if the code would seldomly or never
  * reached at run-time. However, this can only be used for static conditions
- * which can verified at compile-time.
+ * which can be verified at compile-time.
  *
  * N.B.: The trick is using a switch case, if the term is false
  *	 there are two cases for zero - which is invalid C. This cannot be
@@ -241,7 +241,7 @@ do {				\
 #define GTA_PATCHLEVEL 0
 #define GTA_REVISION "unstable"
 #define GTA_REVCHAR "u"				/* u - unstable, b - beta, none - stable */
-#define GTA_RELEASE "2005-05-02"	/* ISO 8601 format YYYY-MM-DD */
+#define GTA_RELEASE "2005-05-04"	/* ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)
