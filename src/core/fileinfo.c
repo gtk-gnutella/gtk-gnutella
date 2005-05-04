@@ -1152,15 +1152,13 @@ file_info_shared_sha1(const gchar *sha1)
 	 */
 
 	if (fi->sf == NULL) {
-		shared_file_t *sf = walloc0(sizeof *sf);
-		gchar *path = make_pathname(fi->path, fi->file_name);
-		gchar *name_utf8, *q;
+		static const shared_file_t zero_sf;
+		shared_file_t *sf;
 		const gchar *filename;
+		gchar *path, *q;
 
-		if (NULL == path) {
-			wfree(sf, sizeof *sf);
-			return NULL;
-		}
+		sf = walloc(sizeof *sf);
+		*sf = zero_sf;
 
 		/*
 		 * Determine a proper human-readable name for the file.
@@ -1168,28 +1166,32 @@ file_info_shared_sha1(const gchar *sha1)
 		 */
 
 		filename = file_info_readable_filename(fi);
-		name_utf8 = locale_to_utf8_full(filename);
 
-		fi->sf = shared_file_ref(sf);
-		sf->fi = fi;			/* Signals it's a partially downloaded file */
-
-		sf->file_path = atom_str_get(path);
-
-		q = utf8_compose_nfc(name_utf8);
+		q = locale_to_utf8_normalized(filename, UNI_NORM_NFC);
 		sf->name_nfc = atom_str_get(q);
-		if (q != name_utf8)
+		if (q != filename)
 			G_FREE_NULL(q);
 
-		q = UNICODE_CANONIZE(name_utf8);
+		q = UNICODE_CANONIZE(sf->name_nfc);
 		sf->name_canonic = atom_str_get(q);
-		if (q != name_utf8)
+		if (q != sf->name_nfc)
 			G_FREE_NULL(q);
 		
 		sf->name_nfc_len = strlen(sf->name_nfc);
 		sf->name_canonic_len = strlen(sf->name_canonic);
 
-		if (filename != name_utf8)
-			G_FREE_NULL(name_utf8);
+		if (0 == sf->name_nfc_len || 0 == sf->name_canonic_len) {
+			atom_str_free(sf->name_nfc);
+			atom_str_free(sf->name_canonic);
+			wfree(sf, sizeof *sf);
+			return NULL;
+		}
+		
+		path = make_pathname(fi->path, fi->file_name);
+		g_assert(NULL != path);
+
+		fi->sf = shared_file_ref(sf);
+		sf->fi = fi;		/* Signals it's a partially downloaded file */
 
 		/* FIXME: DOWNLOAD_SIZE:
 		 * Do we need to add anything here now that fileinfos can have an
@@ -1202,6 +1204,7 @@ file_info_shared_sha1(const gchar *sha1)
 
 		memcpy(sf->sha1_digest, fi->sha1, SHA1_RAW_SIZE);
 
+		sf->file_path = atom_str_get(path);
 		G_FREE_NULL(path);
 	}
 
@@ -2532,17 +2535,21 @@ file_info_retrieve(void)
 					convert_spaces, convert_evil_chars);
 				fi->file_name = atom_str_get(s);
 				if (s != value) {
-					g_warning("fileinfo database contained an "
+					
+					if (0 != strcmp(s, value)) {
+						g_warning("fileinfo database contained an "
 						"unsanitized filename: \"%s\" -> \"%s\"", value, s);
+
+						/*
+						 * Record old filename, before sanitization.
+						 * We'll have to rename that file later, when we
+						 * have parsed the whole fileinfo.
+						 */
+
+						old_filename = atom_str_get(value);
+					}
+
 					G_FREE_NULL(s);
-
-					/*
-					 * Record old filename, before sanitization.
-					 * We'll have to rename that file later, when we
-					 * have parsed the whole fileinfo.
-					 */
-
-					old_filename = atom_str_get(value);
 				}
 			} else
 				fi->file_name = atom_str_get(value);
@@ -2571,8 +2578,10 @@ file_info_retrieve(void)
 				 */
 				fi->alias = g_slist_prepend(fi->alias, atom_str_get(s));
 				if (s != value) {
-					g_warning("fileinfo database contained an "
-						"unsanitized alias: \"%s\" -> \"%s\"", value, s);
+					if (strcmp(s, value)) {
+						g_warning("fileinfo database contained an "
+							"unsanitized alias: \"%s\" -> \"%s\"", value, s);
+					}
 					G_FREE_NULL(s);
 				}
 			}
