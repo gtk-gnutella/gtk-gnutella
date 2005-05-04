@@ -51,13 +51,13 @@
  */
 #define tm2ms(t)	((t)->tv_sec * 1000 + (t)->tv_usec / 1000)
 
-typedef struct timeval tm_t;
+typedef GTimeVal tm_t;
 
-void f2tm(double t, struct timeval *tm);
-void tm_elapsed(tm_t *elapsed, tm_t *last, tm_t *old);
-void tm_sub(tm_t *tm, tm_t *dec);
-void tm_add(tm_t *tm, tm_t *inc);
-int tm_cmp(tm_t *a, tm_t *b);
+void f2tm(double t, tm_t *tm);
+void tm_elapsed(tm_t *elapsed, const tm_t *last, const tm_t *old);
+void tm_sub(tm_t *tm, const tm_t *dec);
+void tm_add(tm_t *tm, const tm_t *inc);
+int tm_cmp(const tm_t *a, const tm_t *b);
 void tm_now(tm_t *tm);
 
 guint tm_hash(gconstpointer key);

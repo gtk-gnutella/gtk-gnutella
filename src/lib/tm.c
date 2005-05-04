@@ -51,7 +51,7 @@ f2tm(double t, tm_t *tm)
  * Computes the elapsed time (last - old) in the supplied structure.
  */
 void
-tm_elapsed(tm_t *elapsed, tm_t *last, tm_t *old)
+tm_elapsed(tm_t *elapsed, const tm_t *last, const tm_t *old)
 {
 	elapsed->tv_sec = last->tv_sec - old->tv_sec;
 	elapsed->tv_usec = last->tv_usec - old->tv_usec;
@@ -65,7 +65,7 @@ tm_elapsed(tm_t *elapsed, tm_t *last, tm_t *old)
  * In-place substract dec from tm.
  */
 void
-tm_sub(tm_t *tm, tm_t *dec)
+tm_sub(tm_t *tm, const tm_t *dec)
 {
 	tm->tv_sec -= dec->tv_sec;
 	tm->tv_usec -= dec->tv_usec;
@@ -79,7 +79,7 @@ tm_sub(tm_t *tm, tm_t *dec)
  * In-place add inc to tm.
  */
 void
-tm_add(tm_t *tm, tm_t *inc)
+tm_add(tm_t *tm, const tm_t *inc)
 {
 	tm->tv_sec += inc->tv_sec;
 	tm->tv_usec += inc->tv_usec;
@@ -93,7 +93,7 @@ tm_add(tm_t *tm, tm_t *inc)
  * Compare two times and return -1, 0 or +1 depending on their relative order.
  */
 int
-tm_cmp(tm_t *a, tm_t *b)
+tm_cmp(const tm_t *a, const tm_t *b)
 {
 	if (a->tv_sec != b->tv_sec)
 		return (a->tv_sec > b->tv_sec) ? +1 : -1;
@@ -108,9 +108,7 @@ tm_cmp(tm_t *a, tm_t *b)
 void
 tm_now(tm_t *tm)
 {
-	struct timezone tzp;
-
-	gettimeofday(tm, &tzp);
+	g_get_current_time(tm);
 }
 
 /**
@@ -119,7 +117,7 @@ tm_now(tm_t *tm)
 guint
 tm_hash(gconstpointer key)
 {
-	tm_t *tm = (tm_t *) key;
+	const tm_t *tm = key;
 
 	return tm->tv_sec ^ (tm->tv_usec << 10) ^ (tm->tv_usec & 0x3ff);
 }
@@ -130,8 +128,7 @@ tm_hash(gconstpointer key)
 gint
 tm_equal(gconstpointer a, gconstpointer b)
 {
-	tm_t *ta = (tm_t *) a;
-	tm_t *tb = (tm_t *) b;
+	const tm_t *ta = a, *tb = b;
 
 	return ta->tv_sec == tb->tv_sec && ta->tv_usec == tb->tv_usec;
 }
