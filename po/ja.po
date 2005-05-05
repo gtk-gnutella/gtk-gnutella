@@ -36,10 +36,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.95.1\n"
+"Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-05-05 09:20+0200\n"
-"PO-Revision-Date: 2005-05-04 07:47+0900\n"
+"POT-Creation-Date: 2005-05-05 23:02+0900\n"
+"PO-Revision-Date: 2005-05-05 23:03+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -2148,10 +2148,6 @@ msgstr ""
 "有効にすると、広域 hostiles.txt が個人の $GTK_GNUTELLA_DIR/hostiles.txt と同"
 "様に使用されます。これにより個人の禁止リストと Gtk-Gnutella と共に配布される"
 "広域禁止リストを分ける事が可能になります。"
-
-#: src/if/gnet_property.c:5144
-msgid "If set to TRUE, SO_LINGER is used for sockets."
-msgstr ""
 
 #: src/if/gnet_property.c:5144
 msgid "If set to TRUE, SO_LINGER is used for sockets."
