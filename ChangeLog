@@ -1,5 +1,26 @@
 # since last version
 
+# v 0.96	2005.05.06	[stable]
+	
+- Searches are now only emitted once when starting GTKG. In previous
+  versions the searches would be resent at a specific interval. This
+  behavior was changed because automatic requering harms the network
+  and because more search results are returned through Gnutella network
+  improvements such as OOB query hits and high outdegree, reducing the
+  need for automatic requerying.
+- Bitzi tickets are now persistently cached so that tickets are
+  available again after restarting GTKG.
+- Updated UTF-8 support using built-in code, matching the use of UTF-8
+  in other Gnutella clients. This will make it easier to search for
+  files with non-ASCII filenames. We no longer depend on the ICU
+  library to do this.
+- Compatibility fixes to allow compilation on more architectures,
+  including 64 bit architectures.
+- Updated listings for geographic information, bogus addresses and
+  spam sites.
+- Numerous small bugfixes.
+- German, Japanese, and Spanish translation updated.
+	
 - (2004-12-23 - RAM)
  * Reject HTTP ranges for which start > end.
  * If server gives us an inconsistent Content-Length compared to the total
