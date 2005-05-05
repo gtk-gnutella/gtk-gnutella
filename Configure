@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Mon Feb  7 12:33:42 MET 2005 [metaconfig 3.0 PL70]
+# Generated on Thu May  5 16:15:32 CEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -176,7 +176,6 @@ d_linux=''
 d_os2=''
 d_xenix=''
 eunicefix=''
-Mcc=''
 ar=''
 awk=''
 bash=''
@@ -312,12 +311,10 @@ d_portable=''
 d_random=''
 d_sendfile=''
 d_srandom=''
-d_strcasestr=''
 d_index=''
 d_strchr=''
 d_strlcpy=''
 d_sysctl=''
-d_ucnv_open_2_6=''
 d_volatile=''
 d_vsnprintf=''
 d_enablenls=''
@@ -358,11 +355,8 @@ i_systime=''
 i_systimek=''
 i_time=''
 timeincl=''
-i_uni_putil=''
 i_unistd=''
 i_zlib=''
-d_icu=''
-icu=''
 install=''
 installdir=''
 issymlink=''
@@ -509,7 +503,7 @@ usesocks=''
 : full support for void wanted by default
 defvoidused=15
 
-libswanted='sendfile z icuuc intl resolv iconv'
+libswanted='sendfile z intl resolv iconv'
 
 : Find the basic shell for Bourne shell scripts
 case "$sh" in
@@ -1886,7 +1880,8 @@ ABYZ)
 	    *C9D1*|*c9d1*)
 		echo "Hey, this might be EBCDIC." >&4
 		if test "X$up" = X -o "X$low" = X; then
-		    case "`echo IJ | LC_ALL=C $tr '[A-IJ-RS-Z]' '[a-ij-rs-z]' 2>/dev/null`" in
+		    case "`echo IJ | \
+				LC_ALL=C $tr '[A-IJ-RS-Z]' '[a-ij-rs-z]' 2>/dev/null`" in
 		    ij) up='[A-IJ-RS-Z]'
 		        low='[a-ij-rs-z]'
 			;;
@@ -4671,65 +4666,6 @@ eval $inlibc
 set hstrerror d_hstrerror
 eval $inlibc
 
-: see if this is a unicode/putil.h system
-set unicode/putil.h i_uni_putil
-eval $inhdr
-
-: check to ensire unicode/putil.h compiles if present
-case "$i_uni_putil" in
-"$define") 
-	echo "#include <unicode/putil.h>" >t.c
-	if $cc -c $ccflags t.c >/dev/null 2>&1; then
-		: ok
-	else
-		echo "But it does not compile, sorry."
-		i_uni_putil="$undef"
-	fi
-	;;
-esac
-$rm -f t.c
-
-: see if ucnv_open_2_6 exists
-set ucnv_open_2_6 d_ucnv_open_2_6
-eval $inlibc
-
-: check whether we have a working ICU library
-echo " "
-has_icu=n
-case " $libs " in
-*" -licuuc "*)
-	has_icu=y
-	case "$i_uni_putil$d_ucnv_open_2_6" in
-	"$define$define")
-		echo "Your ICU library is workable." >&4
-		val="$define"
-		;;
-	*)
-		echo "Your ICU library is present, but unworkable." >&4
-		val="$undef"
-		;;
-	esac
-	;;
-*)
-	echo "You have no ICU library installed." >&4
-	val="$undef"
-	;;
-esac
-set d_icu
-eval $setvar
-case "$d_icu" in
-"$define") icu=true;;
-*)
-	icu=false
-	case "$has_icu" in
-	y)
-		echo "(Removing unneeded -licuuc from the list of libraries.)"
-		libs=`echo "$libs " | $sed -e 's/-licuuc //'`
-		;;
-	esac
-	;;
-esac
-
 : check whether inet_aton exists
 set inet_aton d_inetaton
 eval $inlibc
@@ -4924,10 +4860,6 @@ eval $inlibc
 
 : see if srandom exists
 set srandom d_srandom
-eval $inlibc
-
-: see if strcasestr exists
-set strcasestr d_strcasestr
 eval $inlibc
 
 : see which of string.h or strings.h is needed
@@ -6164,7 +6096,6 @@ esac
 remote=no
 if $remotectrl; then remote=yes; fi
 unicode=no
-if $icu; then unicode=yes; fi
 iptos=no
 case "$d_iptos" in
 "$define") iptos=yes;;
@@ -6183,7 +6114,6 @@ Persistent filters                 : $persistent
 Gnutella traffic compression       : $zlib
 IP TOS (Type of Service)           : $iptos
 NLS (Native Language Support)      : $nls
-Extended non-roman charset support : $unicode
 Experimental remote control        : $remote
 -------------------------------------------------
 EOM
@@ -6255,7 +6185,6 @@ Header='$Header'
 Id='$Id'
 Locker='$Locker'
 Log='$Log'
-Mcc='$Mcc'
 RCSfile='$RCSfile'
 Revision='$Revision'
 Source='$Source'
@@ -6313,7 +6242,6 @@ d_gettext='$d_gettext'
 d_gnulibc='$d_gnulibc'
 d_herror='$d_herror'
 d_hstrerror='$d_hstrerror'
-d_icu='$d_icu'
 d_index='$d_index'
 d_inetaton='$d_inetaton'
 d_inflate='$d_inflate'
@@ -6331,11 +6259,9 @@ d_random='$d_random'
 d_remotectrl='$d_remotectrl'
 d_sendfile='$d_sendfile'
 d_srandom='$d_srandom'
-d_strcasestr='$d_strcasestr'
 d_strchr='$d_strchr'
 d_strlcpy='$d_strlcpy'
 d_sysctl='$d_sysctl'
-d_ucnv_open_2_6='$d_ucnv_open_2_6'
 d_useglib1='$d_useglib1'
 d_useglib2='$d_useglib2'
 d_usegtk1='$d_usegtk1'
@@ -6393,10 +6319,8 @@ i_syssysctl='$i_syssysctl'
 i_systime='$i_systime'
 i_systimek='$i_systimek'
 i_time='$i_time'
-i_uni_putil='$i_uni_putil'
 i_unistd='$i_unistd'
 i_zlib='$i_zlib'
-icu='$icu'
 incpath='$incpath'
 inews='$inews'
 install='$install'

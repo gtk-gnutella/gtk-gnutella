@@ -279,12 +279,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_srandom HAS_SRANDOM		/**/
 
-/* HAS_STRCASESTR:
- *	This symbol, if defined, indicates that the strcasestr routine is
- *	available.
- */
-#$d_strcasestr HAS_STRCASESTR		/**/
-
 /* HAS_STRLCPY:
  *	This symbol, if defined, indicates that the chown routine is
  *	available.
@@ -338,11 +332,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	include <sys/sysctl.h>.
  */
 #$i_syssysctl I_SYS_SYSCTL		/**/
-
-/* USE_ICU:
- * This symbol is defined when we have a working ICU library.
- */
-#$d_icu USE_ICU
 
 /* LOCALE_EXP:
  *	This symbol holds the possibly ~name expanded place where localization
