@@ -12,7 +12,7 @@
 ?X: and add the name of the unit desired to the ?MAKE: dependency line.
 ?X: 
 ?MAKE:End: $W cat gtkversion d_libxml2 libs d_iptos remotectrl \
-	d_deflate d_inflate i_zlib icu gtkgversion glibversion d_enablenls \
+	d_deflate d_inflate i_zlib gtkgversion glibversion d_enablenls \
 	Sendfile64
 ?MAKE:	-pick add $@ %<
 ?LINT:use $W
@@ -40,7 +40,6 @@ esac
 remote=no
 if $remotectrl; then remote=yes; fi
 unicode=no
-if $icu; then unicode=yes; fi
 iptos=no
 case "$d_iptos" in
 "$define") iptos=yes;;
@@ -59,7 +58,6 @@ Persistent filters                 : $persistent
 Gnutella traffic compression       : $zlib
 IP TOS (Type of Service)           : $iptos
 NLS (Native Language Support)      : $nls
-Extended non-roman charset support : $unicode
 Experimental remote control        : $remote
 -------------------------------------------------
 EOM
