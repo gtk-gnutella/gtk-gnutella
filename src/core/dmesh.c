@@ -2241,18 +2241,17 @@ dmesh_store(void)
 static void
 dmesh_retrieve(void)
 {
-	FILE *in;
-	gchar tmp[1024];
+	FILE *f;
+	gchar tmp[4096];
 	gchar sha1[SHA1_RAW_SIZE];
 	gboolean has_sha1 = FALSE;
-	gboolean skip = FALSE;
+	gboolean skip = FALSE, truncated = FALSE;
 	gint line = 0;
 	file_path_t fp[1];
 
 	file_path_set(fp, settings_config_dir(), dmesh_file);
-	in = file_config_open_read("download mesh", fp, G_N_ELEMENTS(fp));
-
-	if (!in)
+	f = file_config_open_read("download mesh", fp, G_N_ELEMENTS(fp));
+	if (!f)
 		return;
 
 	/*
@@ -2264,8 +2263,16 @@ dmesh_retrieve(void)
 	 * blank line are attached sources for this SHA1.
 	 */
 
-	while (fgets(tmp, sizeof(tmp), in)) {
+	while (fgets(tmp, sizeof tmp, f)) {
+		if (NULL == strchr(tmp, '\n')) {
+			truncated = TRUE;
+			continue;
+		}
 		line++;
+		if (truncated) {
+			truncated = FALSE;
+			continue;
+		}
 
 		if (tmp[0] == '#')
 			continue;			/* Skip comments */
@@ -2290,14 +2297,14 @@ dmesh_retrieve(void)
 				!base32_decode_into(tmp, SHA1_BASE32_SIZE, sha1, sizeof sha1)
 			) {
 				g_warning("dmesh_retrieve: "
-					"bad base32 SHA1 '%32s' at line #%d, ignoring", tmp, line);
+					"bad base32 SHA1 '%.32s' at line #%d, ignoring", tmp, line);
 				skip = TRUE;
 			} else
 				has_sha1 = TRUE;
 		}
 	}
 
-	fclose(in);
+	fclose(f);
 	dmesh_store();			/* Persist what we have retrieved */
 }
 
