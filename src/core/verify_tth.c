@@ -197,7 +197,7 @@ tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 		static gchar digest_b32[39 + 1];
 		gchar cur_hash[TIGERSIZE];
 
-		printf("[tigertree] Done %d\n", r);
+		printf("[tigertree] Done %d\n", (gint) r);
 
 		tt_digest(ctx->tt_ctx, cur_hash);
 
