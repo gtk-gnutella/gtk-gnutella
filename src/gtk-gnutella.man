@@ -139,7 +139,7 @@ This is where the download queue is persisted.  Only the direct downloads
 .RS
 This is the list of known other Gnutella web caches, which.
 .B gtk-gnutella
-refreshes regularily.
+refreshes regularly.
 .RE
 .TP
 .I $GTK_GNUTELLA_DIR/hosts
