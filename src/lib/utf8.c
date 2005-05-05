@@ -75,10 +75,10 @@ static gboolean use_icu = FALSE;
 /* Used by is_latin_locale(). It is initialized by locale_init(). */
 static gboolean latin_locale = FALSE;
 
-#ifdef USE_ICU
+#if 0  /*  xxxUSE_ICU */
 static UConverter *conv_icu_locale = NULL;
 static UConverter *conv_icu_utf8 = NULL;
-#endif /* USE_ICU */
+#endif /* xxxUSE_ICU */
 
 static const gchar *charset = NULL;
 
@@ -869,7 +869,7 @@ locale_init(void)
 	if ((GIConv)-1 == (cd_utf8_to_locale = g_iconv_open(charset, "UTF-8")))
 		g_warning("g_iconv_open(\"%s\", \"UTF-8\") failed.", charset);
 
-#ifdef USE_ICU
+#if 0  /* xxxUSE_ICU */
 	{
 		UErrorCode errorCode = U_ZERO_ERROR;
 
@@ -901,7 +901,7 @@ locale_init(void)
 void
 locale_close(void)
 {
-#ifdef USE_ICU
+#if 0   /* xxxUSE_ICU */
 	if (conv_icu_locale) {
 	  ucnv_close(conv_icu_locale);
 	  conv_icu_locale = NULL;
@@ -2412,7 +2412,7 @@ utf32_filter(const guint32 *src, guint32 *dst, size_t size)
 	return p - dst;
 }
 
-#ifdef USE_ICU
+#if 0  /* xxxUSE_ICU */
 
 /**
  * Convert a string from the locale encoding to internal ICU encoding (UTF-16)
@@ -2740,7 +2740,7 @@ unicode_canonize(const gchar *in)
 	return out;
 }
 
-#endif	/* USE_ICU */
+#endif	/* xxxUSE_ICU */
 
 /**
  * @return	TRUE if ICU was successfully initialized. If FALSE is returned
@@ -3421,7 +3421,7 @@ unicode_compose_init(void)
 		
 		utf32_to_utf8(test, s, sizeof s);
 		
-#if !defined(USE_ICU)
+#if 1  /* !defined(xxxUSE_ICU) */
 		s_nfc = g_utf8_normalize(s, (gssize) -1, G_NORMALIZE_NFKC);
 #else
 		{
@@ -3479,7 +3479,7 @@ unicode_decompose_init(void)
 		g_assert((gint) size >= 0 && size < sizeof utf8_char);
 		utf8_char[size] = '\0';
 		utf8_decompose_nfd(utf8_char, buf, G_N_ELEMENTS(buf));
-#if !defined(USE_ICU)
+#if 1  /* !defined(xxxUSE_ICU) */
 		s = g_utf8_normalize(utf8_char, -1, G_NORMALIZE_NFD);
 #else
 		{
@@ -3624,7 +3624,7 @@ unicode_decompose_init(void)
 		g_assert(m == n - 1);
 		g_assert(utf8_canonical_sorted(t));
 	
-#if !defined(USE_ICU)
+#if 1  /* !defined(xxxUSE_ICU) */
 		s = g_utf8_normalize(buf, -1, G_NORMALIZE_NFKD);
 #else
 		{

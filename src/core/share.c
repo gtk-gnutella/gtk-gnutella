@@ -2070,8 +2070,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		search_len -= offset;
 		memcpy(stmp_1, search + offset, search_len + 1);
 
-#ifdef USE_ICU
-
+#if 0   /* xxxUSE_ICU */
 
 /* XXX: Don't handle ISO-8859-1 encoded queries graciously any longer. UTF-8
  * is the _only_ valid encoding.

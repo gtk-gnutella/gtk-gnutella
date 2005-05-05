@@ -31,7 +31,7 @@
 #include <glib.h>
 
 
-#ifdef USE_ICU
+#if 0  /* xxxUSE_ICU */
 #include "unicode/uchar.h"
 #include "unicode/ustring.h"
 #include "unicode/utypes.h"
@@ -141,7 +141,7 @@ const gchar *lazy_utf8_to_locale(const gchar *str, size_t len);
 gboolean icu_enabled(void);
 gboolean is_latin_locale(void);
 
-#ifdef USE_ICU
+#if 0  /* xxxUSE_ICU */
 
 #define UNICODE_CANONIZE(x) \
 	(icu_enabled() ? unicode_canonize(x) : utf8_canonize(x))
@@ -157,11 +157,11 @@ int unicode_upper(const UChar *source, gint32 len, UChar *result, gint32 rlen);
 int unicode_filters(const UChar *source, gint32 len, UChar *result);
 gchar* unicode_canonize(const gchar *in);
 
-#else /* !USE_ICU */
+#else /* !xxxUSE_ICU */
 
 #define UNICODE_CANONIZE(x) utf8_canonize(x)
 
-#endif	/* USE_ICU */
+#endif	/* xxxUSE_ICU */
 
 #endif	/* _utf8_h_ */
 
