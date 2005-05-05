@@ -120,6 +120,8 @@ static void results_destroy(cqueue_t *cq, gpointer obj);
 static void servent_free(struct servent *s);
 static void oob_send_reply_ind(struct oob_results *r);
 
+static gint num_oob_records;	/* Leak and duplicate free detector */
+
 /**
  * Create new "struct oob_results" to handle the initial negotiation of
  * results delivery via the sent LIME/12v2 and the expected LIME/11v2 reply.
@@ -140,6 +142,15 @@ results_make(
 
 	r->ev_expire = cq_insert(callout_queue, OOB_EXPIRE_MS, results_destroy, r);
 
+	g_assert(!g_hash_table_lookup(results_by_muid, r->muid));
+	g_hash_table_insert(results_by_muid, r->muid, r);
+	r->refcount++;
+
+	g_assert(num_oob_records >= 0);
+	num_oob_records++;
+	if (query_debug > 1)
+		g_message("results_make: num_oob_records=%d", num_oob_records);
+	
 	return r;
 }
 
@@ -152,18 +163,27 @@ results_free(struct oob_results *r)
 	GSList *sl;
 
 	g_assert(r->refcount > 0);
-	if (--(r->refcount) > 0)
-		return;
+
+	/**
+	 *	All members are freed on the first call. However, ``r'' itself
+	 *	is not freed until all references are removed.
+	 */
 	
-	atom_guid_free(r->muid);
-	r->muid = NULL;
 	if (r->ev_expire) {
 		cq_cancel(callout_queue, r->ev_expire);
 		r->ev_expire = NULL;
+		g_assert(r->refcount > 0);
+		r->refcount--;
 	}
 	if (r->ev_timeout) {
 		cq_cancel(callout_queue, r->ev_timeout);
 		r->ev_timeout = NULL;
+		g_assert(r->refcount > 0);
+		r->refcount--;
+	}
+	if (r->muid) {
+		atom_guid_free(r->muid);
+		r->muid = NULL;
 	}
 
 	for (sl = r->files; sl; sl = g_slist_next(sl)) {
@@ -172,6 +192,15 @@ results_free(struct oob_results *r)
 	}
 	g_slist_free(r->files);
 	r->files = NULL;
+
+	g_assert(r->refcount > 0);
+	if (--(r->refcount) > 0)
+		return;
+
+	g_assert(num_oob_records > 0);
+	num_oob_records--;
+	if (query_debug > 2)
+		g_message("results_free: num_oob_records=%d", num_oob_records);
 
 	wfree(r, sizeof(*r));
 }
@@ -183,11 +212,15 @@ static void
 results_free_remove(struct oob_results *r)
 {
 	g_assert(r->refcount > 0);
-	if (g_hash_table_lookup(results_by_muid, r->muid)) {
+
+	g_assert(r->muid);
+	if (results_by_muid) {
+		g_assert(r == g_hash_table_lookup(results_by_muid, r->muid));
 		g_hash_table_remove(results_by_muid, r->muid);
 		r->refcount--;
+		g_assert(r->refcount > 0);
 	}
-	g_assert(r->refcount > 0);
+
 	results_free(r);
 }
 
@@ -492,6 +525,7 @@ oob_pmsg_free(pmsg_t *mb, gpointer arg)
 		 * If we don't get any ACK back, we'll discard the results.
 		 */
 
+		r->refcount++;
 		r->ev_timeout = cq_insert(callout_queue, OOB_TIMEOUT_MS,
 			results_timeout, r);
 
@@ -565,10 +599,6 @@ oob_got_results(
 
 	r = results_make(n->header.muid, files, count, &to, use_ggep_h);
 	g_assert(r->refcount > 0);
-	r->refcount++;
-	g_assert(r->refcount > 0);
-	g_assert(!g_hash_table_lookup(results_by_muid, r->muid));
-	g_hash_table_insert(results_by_muid, r->muid, r);
 
 	oob_send_reply_ind(r);
 }
@@ -594,8 +624,20 @@ free_oob_kv(gpointer key, gpointer value, gpointer unused_udata)
 
 	(void) unused_udata;
 	g_assert(r->refcount > 0);
+	g_assert(muid != NULL);
 	g_assert(muid == r->muid);		/* Key is same as results's MUID */
 
+	/*
+	 * Free the r->muid first so that results_free() doesn't remove
+	 * it from ``results_by_muid'' while iterating over it.
+	 */
+	atom_guid_free(r->muid);
+	r->muid = NULL;
+	r->refcount--; /* Reference by ``results_by_muid'' */
+
+	if (!r->ev_expire && !r->ev_timeout)
+		g_message("Leaked");
+	
 	results_free(r);
 }
 
@@ -627,6 +669,10 @@ oob_shutdown(void)
 	g_hash_table_foreach(servent_by_host, free_servent_kv, NULL);
 	g_hash_table_destroy(servent_by_host);
 	servent_by_host = NULL;
+
+	g_assert(num_oob_records >= 0);
+	if (num_oob_records > 0)
+		g_warning("%d OOB reply records possibly leaked", num_oob_records);
 }
 
 /**
