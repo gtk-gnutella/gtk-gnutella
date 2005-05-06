@@ -400,7 +400,7 @@ gui_create_dlg_about(void)
     textbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(
         lookup_widget(dlg, "textview_about_contributors")));
 
-    for (i = 0; i < G_N_ELEMENTS(contributors[i]); i++) {
+    for (i = 0; i < G_N_ELEMENTS(contributors); i++) {
         if (i > 0)
             gtk_text_buffer_insert_at_cursor(textbuf, "\n", (-1));
         gtk_text_buffer_insert_at_cursor(textbuf, contributors[i], (-1));
@@ -409,7 +409,7 @@ gui_create_dlg_about(void)
     GtkText *text = GTK_TEXT(lookup_widget(dlg, "text_about_contributors"));
     static char s[256];
 
-    for (i = 0; i < G_N_ELEMENTS(contributors[i]); i++) {
+    for (i = 0; i < G_N_ELEMENTS(contributors); i++) {
         if (i > 0)
             gtk_text_insert(text, NULL, NULL, NULL, "\n", (-1));
         g_strlcpy(s, contributors[i], sizeof(s));
