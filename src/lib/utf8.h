@@ -119,7 +119,7 @@ utf16_encode_char_compact(guint32 uc)
  * to be encoded as UTF-8.
  */
 const gchar *iso_8859_1_to_utf8(const gchar *fromstr);
-gchar *locale_to_utf8(const gchar *str, size_t len);
+const gchar *locale_to_utf8(const gchar *str, size_t len);
 const gchar *lazy_locale_to_utf8(const gchar *str, size_t len);
 gchar *locale_to_utf8_full(const gchar *str);
 
