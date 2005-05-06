@@ -4,7 +4,7 @@
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96u\n"
+"Project-Id-Version: gtk-gnutella 0.95.1\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-05-05 09:20+0200\n"
 "PO-Revision-Date: 2004-07-09 19:41+0100\n"
