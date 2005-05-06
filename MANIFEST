@@ -466,6 +466,7 @@ src/lib/urn.c
 src/lib/urn.h
 src/lib/utf8.c
 src/lib/utf8.h
+src/lib/utf8_tables.h
 src/lib/vendors.c
 src/lib/vendors.h
 src/lib/walloc.c
