@@ -35,7 +35,7 @@
 RCSID("$Id$");
 
 #include "inet.h"
-#include "nodes.h"				/* For node_beaome_firewalled() */
+#include "nodes.h"				/* For node_become_firewalled() */
 #include "settings.h"
 
 #include "if/gnet_property.h"
@@ -228,6 +228,8 @@ inet_udp_firewalled(void)
 		cq_cancel(callout_queue, incoming_udp_ev);
 		incoming_udp_ev = NULL;
 	}
+	
+	node_became_udp_firewalled();
 }
 
 /**
