@@ -118,7 +118,10 @@
 66.186.39.0/26
 
 # Share dozens or hundreds of completely corrupted WMVs
+67.18.128.248/29
 67.18.213.0/24
+67.19.6.0/26
+67.19.8.152/29
 205.177.73.0/24
 
 # sBoOb.net, pr0n spammer
