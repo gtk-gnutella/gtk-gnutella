@@ -120,7 +120,7 @@ ip_record_make(guint32 ip)
 {
 	struct ip_record *ipr;
 
-	ipr = walloc(sizeof(*ipr));
+	ipr = walloc(sizeof *ipr);
 
 	ipr->ip = ip;
 	ipr->timeout_ev = NULL;
@@ -136,7 +136,7 @@ ip_record_free(struct ip_record *ipr)
 {
 	if (ipr->timeout_ev)
 		cq_cancel(callout_queue, ipr->timeout_ev);
-	wfree(ipr, sizeof(*ipr));
+	wfree(ipr, sizeof *ipr);
 }
 
 /**
@@ -166,7 +166,7 @@ ip_record_touch(struct ip_record *ipr)
 static void
 ip_record_destroy(cqueue_t *unused_cq, gpointer obj)
 {
-	struct ip_record *ipr = (struct ip_record *) obj;
+	struct ip_record *ipr = obj;
 
 	(void) unused_cq;
 	ipr->timeout_ev = NULL;			/* The event that fired */
@@ -465,7 +465,7 @@ gboolean
 inet_can_answer_ping(void)
 {
 	guint32 ip;
-	time_t elapsed;
+	gint elapsed;
 
 	if (!is_firewalled)
 		return current_peermode != NODE_P_LEAF;	/* Leaves don't send pongs */
@@ -478,7 +478,7 @@ inet_can_answer_ping(void)
 	if (is_private_ip(ip))
 		return FALSE;
 
-	elapsed = time(NULL) - fw_time;		/* Since last status change */
+	elapsed = delta_time(time(NULL), fw_time);	/* Since last status change */
 
 	/*
 	 * If we're close to a status change, send pongs.
@@ -638,7 +638,7 @@ inet_init(void)
 static void
 free_ip_record(gpointer key, gpointer value, gpointer unused_udata)
 {
-	struct ip_record *ipr = (struct ip_record *) value;
+	struct ip_record *ipr = value;
 
 	(void) unused_udata;
 	g_assert(ipr->ip == GPOINTER_TO_UINT(key));
@@ -662,5 +662,4 @@ inet_close(void)
 		cq_cancel(callout_queue, solicited_udp_ev);
 }
 
-/* vi: set ts=4: */
-
+/* vi: set ts=4 sw=4 cindent: */
