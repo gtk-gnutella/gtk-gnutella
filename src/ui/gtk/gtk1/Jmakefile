@@ -97,9 +97,15 @@ GLADEFILE = gtk-gnutella.glade
 
 ;# We allow the target to fail since we're distribute the generated files
 ;# with the sources, so even if they don't have glade, it will work.
-$(GLADE_GEN): $(GLADEFILE) $(REMOTE_GLADE)
-	-$(GLADE) --write-source $(GLADEFILE)
-	touch $(GLADE_GEN)
+
+;# Unfortunately there are problems with generating the sources from
+;# the glade file. If the user does not have the right setup then the
+;# compilation will fail, and most users won't be able to correct this
+;# by using the distributed sources instead. Thus: commented out until
+;# better times.
+;#$(GLADE_GEN): $(GLADEFILE) $(REMOTE_GLADE)
+;#	-$(GLADE) --write-source $(GLADEFILE)
+;#	touch $(GLADE_GEN)
 
 GTK_SHARED = ../gtk-shared
 
