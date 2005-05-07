@@ -218,12 +218,13 @@ qrp_hashcode(const gchar *s)
 			s += retlen;
 			len -= retlen;
 
-			/* ``uc'' will hold a single UTF-16 char or two surrogates */
-			uc = utf16_encode_char_compact(uc);
-			if (0 == (uc & 0xffff0000U)) {
+			if (uc <= 0xffffU) {
 				/* It's a BMP character */
 				uc = utf32_lowercase(uc);
 			} else {
+				/* ``uc'' will hold two surrogates */
+				uc = utf16_encode_char_compact(uc);
+				
 				/* Surrogates don't need to be lowercased */
 				x ^= (uc & 0xff) << (j & 24);
 				j += 8;
@@ -4105,6 +4106,9 @@ test_hash(void)
 		{ { 0x58f0, 0x512a, 0 }, 731 }, /* voice actor */
 		{ { 0x10400, 0 }, 316 }, /* DESERET CAPITAL LETTER LONG I */
 		{ { 0x10428, 0 }, 658 }, /* DESERET SMALL LETTER LONG I */
+		{ { 0x0001, 0x0028, 0 }, 658 }, /* Same as above because "& 0xff" */
+		{ { 0xff01, 0x9428, 0 }, 658 }, /* Same as above because "& 0xff" */
+		{ { 0x1001, 0x2000, 0 }, 316 },
 	};
 	guint i;
 
