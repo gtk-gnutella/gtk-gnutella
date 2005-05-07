@@ -569,6 +569,7 @@ const GSList *node_all_nodes(void);
 gnutella_node_t *node_active_by_id(guint32 id);
 
 void node_became_firewalled(void);
+void node_became_udp_firewalled(void);
 void node_set_socket_rx_size(gint rx_size);
 
 mqueue_t *node_udp_get_outq(void);

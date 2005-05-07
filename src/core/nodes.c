@@ -2628,11 +2628,20 @@ void
 node_became_firewalled(void)
 {
 	GSList *sl;
+	guint sent = 0;
 
 	g_assert(is_firewalled);
 
 	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node * n = (struct gnutella_node *) sl->data;
+		struct gnutella_node *n = sl->data;
+
+		if (sent < 3 && n->attrs & NODE_A_CAN_VENDOR) {
+			vmsg_send_tcp_connect_back(n, listen_port);
+			sent++;
+
+			g_message("sent TCP connect back request to %s",
+				ip_port_to_gchar(n->ip, n->port));
+		}
 
 		if (NODE_IS_LEAF(n))
 			continue;
@@ -2641,6 +2650,34 @@ node_became_firewalled(void)
 			send_proxy_request(n);
 	}
 }
+
+/**
+ * Called when we were not firewalled and suddenly become UDP firewalled.
+ * Send UDP connect back requests to our current connections.
+ */
+void
+node_became_udp_firewalled(void)
+{
+	GSList *sl;
+	guint sent = 0;
+
+	g_assert(is_udp_firewalled);
+
+	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *n = sl->data;
+
+		if (n->attrs & NODE_A_CAN_VENDOR) {
+			vmsg_send_udp_connect_back(n, listen_port);
+		
+			g_message("sent UDP connect back request to %s",
+				ip_port_to_gchar(n->ip, n->port));
+			
+			if (3 == ++sent)
+				break;
+		}
+	}
+}
+
 
 /**
  * Called when we know that we're connected to the node, at the end of
@@ -6800,21 +6837,21 @@ node_close(void)
 inline void
 node_add_sent(gnutella_node_t *n, gint x)
 {
-    n->last_update = n->last_tx = time(NULL);
+   	n->last_update = n->last_tx = time(NULL);
 	n->sent += x;
 }
 
 inline void
 node_add_txdrop(gnutella_node_t *n, gint x)
 {
-    n->last_update = time(NULL);
+	n->last_update = time(NULL);
 	n->tx_dropped += x;
 }
 
 inline void
 node_add_rxdrop(gnutella_node_t *n, gint x)
 {
-    n->last_update = time(NULL);
+   	n->last_update = time(NULL);
 	n->rx_dropped += x;
 }
 
