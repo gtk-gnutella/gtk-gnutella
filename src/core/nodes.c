@@ -839,7 +839,7 @@ node_timer(time_t now)
 				current_peermode == NODE_P_ULTRA &&
 				NODE_IS_ULTRA(n)
 			) {
-				gulong quiet = delta_time(now, n->last_tx);
+				glong quiet = delta_time(now, n->last_tx);
 
 				/*
 				 * Ultra node connected to another ultra node.
@@ -851,7 +851,7 @@ node_timer(time_t now)
 				 */
 
 				if (
-					quiet > node_connected_timeout &&
+					quiet > (glong) node_connected_timeout &&
 					NODE_MQUEUE_COUNT(n)
 				) {
                     hcache_add(HCACHE_TIMEOUT, n->ip, 0,
@@ -878,8 +878,8 @@ node_timer(time_t now)
 		 */
 
 		if (n->status == GTA_NODE_CONNECTED) {
-			gulong tx_quiet = delta_time(now, n->last_tx);
-			gulong rx_quiet = delta_time(now, n->last_rx);
+			glong tx_quiet = delta_time(now, n->last_tx);
+			glong rx_quiet = delta_time(now, n->last_rx);
 
 			if (n->n_weird >= MAX_WEIRD_MSG) {
 				node_bye_if_writable(n, 412, "Security violation");
@@ -903,7 +903,7 @@ node_timer(time_t now)
 			if (
 				node_connected_timeout > 2*NODE_TSYNC_CHECK &&
 				MAX(tx_quiet, rx_quiet) >
-					node_connected_timeout - NODE_TSYNC_CHECK &&
+					(glong) node_connected_timeout - NODE_TSYNC_CHECK &&
 				(n->attrs & NODE_A_TIME_SYNC) &&
 				!(n->flags & NODE_F_TSYNC_WAIT)
 			) {
@@ -3129,6 +3129,9 @@ node_set_current_peermode(node_peer_t mode)
 	const gchar *msg = NULL;
 	static node_peer_t old_mode = NODE_P_UNKNOWN;
 
+	if (NODE_P_UNKNOWN == old_mode)
+		old_mode = configured_peermode;
+
 	switch (mode) {
 	case NODE_P_NORMAL:
 		msg = "normal";
@@ -3143,7 +3146,8 @@ node_set_current_peermode(node_peer_t mode)
 		break;
 	case NODE_P_LEAF:
 		msg = "leaf";
-		node_bye_flags(0xffffffff, 203, "Becoming a leaf node");
+		if (old_mode != NODE_P_LEAF)
+			node_bye_flags(0xffffffff, 203, "Becoming a leaf node");
 		break;
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
@@ -7643,8 +7647,8 @@ node_crawl_fill(pmsg_t *mb,
 		 */
 
 		if (features & NODE_CR_CONNECTION) {
-			guint32 connected = delta_time(now, n->connect_date);
-			guint32 minutes = connected / 60;
+			glong connected = delta_time(now, n->connect_date);
+			guint32 minutes = connected > 0 ? connected / 60 : 0;
 			gchar value[2];
 
 			minutes = MIN(minutes, 0xffffU);
