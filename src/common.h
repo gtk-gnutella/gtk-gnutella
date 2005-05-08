@@ -248,6 +248,8 @@ do {				\
 #define GTA_INTERFACE "GTK1"
 #elif defined(USE_GTK2)
 #define GTA_INTERFACE "GTK2"
+#elif defined(USE_TOPLESS)
+#define GTA_INTERFACE "Topless"
 #else
 #define GTA_INTERFACE "X11"
 #endif

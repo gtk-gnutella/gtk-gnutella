@@ -86,6 +86,12 @@
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 #include "lib/wordvec.h"
+
+#if defined(USE_TOPLESS)
+#include "ui/gtk/gui.h"	/* XXX: Fix path */
+#endif
+
+#if defined(USE_GTK1) || defined(USE_GTK2)
 #include "ui/gtk/drop.h"
 #include "ui/gtk/gui.h"
 #include "ui/gtk/icon.h"
@@ -93,6 +99,9 @@
 #include "ui/gtk/settings.h"
 #include "ui/gtk/upload_stats.h"
 #include "if/ui/gtk/search.h"
+#endif /* GTK */
+
+
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
 
@@ -117,12 +126,11 @@ static volatile gchar *exit_step = "gtk_gnutella_exit";
 
 void gtk_gnutella_exit(gint n);
 
-/*
- * sig_alarm
- *
+/**
  * Force immediate shutdown of SIGALRM reception.
  */
-static void sig_alarm(int n)
+static void
+sig_alarm(int n)
 {
 	(void) n;
 	if (from_atexit) {
@@ -134,12 +142,11 @@ static void sig_alarm(int n)
 #ifdef MALLOC_STATS
 static gint signal_malloc = 0;
 
-/*
- * sig_malloc
- *
+/**
  * Record USR1 or USR2 signal in `signal_malloc'.
  */
-static void sig_malloc(int n)
+static void
+sig_malloc(int n)
 {
 	switch (n) {
 	case SIGUSR1: signal_malloc = 1; break;
@@ -149,12 +156,11 @@ static void sig_malloc(int n)
 }
 #endif /* MALLOC_STATS */
 
-/*
- * gtk_gnutella_atexit
- *
+/**
  * Invoked as an atexit() callback when someone does an exit().
  */
-static void gtk_gnutella_atexit()
+static void
+gtk_gnutella_atexit(void)
 {
 	/*
 	 * There's no way the gtk_gnutella_exit() routine can have its signature
@@ -178,17 +184,16 @@ static void gtk_gnutella_atexit()
 	}
 }
 
-/*
- * gtk_gnutella_exit
- *
+/**
  * Exit program, return status `n' to parent process.
  *
  * Shutdown systems, so we can track memory leaks, and wait for EXIT_GRACE
  * seconds so that BYE messages can be sent to other nodes.
  */
-void gtk_gnutella_exit(gint n)
+void
+gtk_gnutella_exit(gint n)
 {
-	time_t exit_time = time((time_t *) NULL);
+	time_t exit_time = time(NULL);
 	gint exit_grace = EXIT_GRACE;
 
 	if (exiting)
@@ -238,6 +243,7 @@ void gtk_gnutella_exit(gint n)
 	socket_shutdown();
 	search_shutdown();
 	bsched_shutdown();
+
 	settings_gui_shutdown();
 
 	/*
@@ -307,10 +313,15 @@ void gtk_gnutella_exit(gint n)
 	if (dbg)
 		printf("gtk-gnutella shut down cleanly.\n\n");
 
+#if defined(USE_GTK1) || defined(USE_GTK2)
 	gtk_exit(n);
+#else
+	exit(n);
+#endif
 }
 
-static void sig_terminate(int n)
+static void
+sig_terminate(int n)
 {
 	signal_received = n;		/* Terminate asynchronously in main_timer() */
 
@@ -318,13 +329,17 @@ static void sig_terminate(int n)
 		exit(1);				/* Terminate ASAP */
 }
 
+#if !defined(USE_TOPLESS)
 /* FIXME: this is declared in search_gui.c and should be called in the
  *        main timer loop of the gui.
  */
 void search_gui_store_searches(void);
-static void slow_main_timer(time_t now)
+#endif /* USE_TOPLESS */
+
+static void
+slow_main_timer(time_t now)
 {
-	static gint i = 0;
+	static guint i = 0;
 	static time_t last_warn = 0;
 
 	switch (i) {
@@ -349,13 +364,12 @@ static void slow_main_timer(time_t now)
 	default:
 		g_assert(0);
 	}
-
-	if (++i > 4)
-		i = 0;
+	i = (i + 1) % 5;
 
 	download_store_if_dirty();		/* Important, so always attempt it */
 	settings_save_if_dirty();		/* Nice to have, and file is small */
 	settings_gui_save_if_dirty();	/* Ditto */
+
 	node_slow_timer(now);
 	ignore_timer(now);
 
@@ -365,10 +379,14 @@ static void slow_main_timer(time_t now)
 	}
 }
 
-static gboolean main_timer(gpointer p)
+#if !defined(USE_TOPLESS)
+void icon_timer(void);
+#endif /* USE_TOPLESS */
+
+static gboolean
+main_timer(gpointer p)
 {
-	void icon_timer(void);
-	time_t now = time((time_t *) NULL);
+	time_t now = time(NULL);
 
 	(void) p;
 	if (signal_received) {
@@ -426,12 +444,11 @@ static gboolean main_timer(gpointer p)
 	return TRUE;
 }
 
-/*
- * scan_files_once
- *
+/**
  * Scan files when the GUI is up.
  */
-static gboolean scan_files_once(gpointer p)
+static gboolean
+scan_files_once(gpointer p)
 {
 	(void) p;
 	guc_allow_rescan_dir(FALSE);
@@ -441,7 +458,8 @@ static gboolean scan_files_once(gpointer p)
 	return FALSE;
 }
 
-static void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
+static void
+log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 	const gchar *message, gpointer user_data)
 {
 	gint saved_errno = errno;
@@ -499,7 +517,8 @@ static void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 	errno = saved_errno;
 }
 
-static void log_init(void)
+static void
+log_init(void)
 {
 	const gchar *domains[] = { G_LOG_DOMAIN, "Gtk", "GLib" };
 	guint i;
@@ -555,7 +574,9 @@ main(int argc, char **argv)
 	socket_init();
 	gnet_stats_init();
 	iso3166_init();
+
 	main_gui_early_init(argc, argv);
+
 	cq_init();
 	tsync_init();
 	watcher_init();
@@ -606,6 +627,7 @@ main(int argc, char **argv)
 	node_post_init();
 
 	drop_init();
+
 	download_restore_state();
 	ntp_init();
 
@@ -631,9 +653,10 @@ main(int argc, char **argv)
 
 	bsched_enable_all();
 	version_ancient_warn();
+
 	main_gui_run();
 
 	return 0;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

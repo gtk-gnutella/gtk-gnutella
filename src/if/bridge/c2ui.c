@@ -37,112 +37,159 @@
 
 #define GUI_SOURCES
 
+#if defined(USE_TOPLESS)
+#define gui_download_enable_start_now(running_downloads, max_downloads) \
+	((void) running_downloads, (void) max_downloads)
+#define gui_update_download(d, force) ((void) d, (void) force)
+#define gui_update_download_server(d) ((void) d)
+#define gui_update_download_range(d) ((void) d)
+#define gui_update_download_host(d) ((void) d)
+#define gui_update_download_abort_resume()
+#define gui_update_download_clear()
+#define	gui_update_download_clear_now()
+#define gui_update_queue_frozen()
+#define	download_gui_add(d) ((void) d)
+#define	download_gui_remove(d) ((void) d)
+#define	gui_update_files_scanned()
+#define	gui_allow_rescan_dir(flag) ((void) flag)
+#define search_gui_new_search(query, flags, x) (query && flags) ? FALSE : FALSE
+#define upload_stats_gui_add(stat) ((void) stat)
+#define upload_stats_gui_update(name, size) ((void) name, (void) size)
+#define	upload_stats_gui_clear_all()
+#define statusbar_gui_warning(sec, fmt, message) g_message((fmt), (message))
+#define statusbar_gui_message(sec, fmt, message) g_message((fmt), (message))
+#define bitzi_gui_update(bitzi_data) ((void) bitzi_data)
+#endif /* USE_TOPLESS */
+
+#if defined(USE_GTK1) || defined(USE_GTK2)
 #include "if/ui/gtk/bitzi.h"
 #include "if/ui/gtk/downloads.h"
 #include "if/ui/gtk/misc.h"
 #include "if/ui/gtk/search.h"
 #include "if/ui/gtk/statusbar.h"
 #include "if/ui/gtk/upload_stats.h"
+#endif /* GTK */
 
 /*
  * Functions the CORE uses to access the UI
  */
 
 /*	download interface functions (CORE -> UI)*/
-void gcu_download_enable_start_now(guint32 running_downloads,
-	guint32 max_downloads)
+void
+gcu_download_enable_start_now(guint32 running_downloads, guint32 max_downloads)
 {
 	gui_download_enable_start_now(running_downloads, max_downloads);
 }
 
-void gcu_gui_update_download(download_t *d, gboolean force)
+void
+gcu_gui_update_download(download_t *d, gboolean force)
 {
 	gui_update_download(d, force);
 }
 
-void gcu_gui_update_download_server(struct download *d)
+void
+gcu_gui_update_download_server(struct download *d)
 {
 	gui_update_download_server(d);
 }
 
-void gcu_gui_update_download_range(struct download *d)
+void
+gcu_gui_update_download_range(struct download *d)
 {
 	gui_update_download_range(d);
 }
 
-void gcu_gui_update_download_host(struct download *d)
+void
+gcu_gui_update_download_host(struct download *d)
 {
 	gui_update_download_host(d);
 }
 
-void gcu_gui_update_download_abort_resume(void)
+void
+gcu_gui_update_download_abort_resume(void)
 {
 	gui_update_download_abort_resume();
 }
 
-void gcu_gui_update_download_clear(void)
+void
+gcu_gui_update_download_clear(void)
 {
 	gui_update_download_clear();
 }
 
-void gcu_gui_update_download_clear_now(void)
+void
+gcu_gui_update_download_clear_now(void)
 {
 	gui_update_download_clear_now();
 }
 
-void gcu_gui_update_queue_frozen(void)
+void
+gcu_gui_update_queue_frozen(void)
 {
 	gui_update_queue_frozen();
 }
 
-void gcu_download_gui_add(struct download *d)
+void
+gcu_download_gui_add(struct download *d)
 {
 	download_gui_add(d);
 }
 
-void gcu_download_gui_remove(struct download *d)
+void
+gcu_download_gui_remove(struct download *d)
 {
 	download_gui_remove(d);
 }
 
 
 /*	misc. interface functions (CORE -> UI)*/
-void gcu_gui_update_files_scanned(void)
+void
+gcu_gui_update_files_scanned(void)
 {
 	gui_update_files_scanned();
 }
 
-void guc_allow_rescan_dir(gboolean flag)
+void
+guc_allow_rescan_dir(gboolean flag)
 {
 	gui_allow_rescan_dir(flag);
 }
 
-gint gcu_gtk_main_flush(void)
+gint
+gcu_gtk_main_flush(void)
 {
+#if defined(USE_GTK1) || defined(USE_GTK2)
 	extern gint gtk_main_flush();	/* Don't include any GTK-related header */
 	return gtk_main_flush();
+#else
+	return 0;
+#endif /* GTK */
 }
 
 
 /*	dearch interface functions (CORE -> UI)*/
-gboolean gcu_search_gui_new_search(const gchar *query, flag_t flags)
+gboolean
+gcu_search_gui_new_search(const gchar *query, flag_t flags)
 {
 	return search_gui_new_search(query, flags, NULL);
 }
 
 
 /*	upload interface functions (CORE -> UI)*/
-void gcu_upload_stats_gui_add(struct ul_stats *stat)
+void
+gcu_upload_stats_gui_add(struct ul_stats *stat)
 {
 	upload_stats_gui_add(stat);
 }
 
-void gcu_upload_stats_gui_update(const gchar *name, guint64 size)
+void
+gcu_upload_stats_gui_update(const gchar *name, guint64 size)
 {
 	upload_stats_gui_update(name, size);
 }
 
-void gcu_upload_stats_gui_clear_all(void)
+void
+gcu_upload_stats_gui_clear_all(void)
 {
 	upload_stats_gui_clear_all();
 }
@@ -154,19 +201,23 @@ void gcu_upload_stats_gui_clear_all(void)
  * across. For the time being we just pass the pointer.
  */
 
-void gcu_bitzi_result(bitzi_data_t *bitzi_data)
+void
+gcu_bitzi_result(bitzi_data_t *bitzi_data)
 {
     bitzi_gui_update(bitzi_data);
 }
 
 /*	statusbar interface functions (CORE -> UI)*/
-void gcu_statusbar_warning(const gchar *message)
+void
+gcu_statusbar_warning(const gchar *message)
 {
 	statusbar_gui_warning(15, "%s", message);
 }
 
-void gcu_statusbar_message(const gchar *message)
+void
+gcu_statusbar_message(const gchar *message)
 {
 	statusbar_gui_message(10, "%s", message);
 }
 
+/* vi: set ts=4 sw=4 cindent: */

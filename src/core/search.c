@@ -63,7 +63,11 @@ RCSID("$Id$");
 #include "geo_ip.h"
 
 #include "if/gnet_property_priv.h"
+
+#if !defined(USE_TOPLESS)
 #include "if/gui_property.h"
+#endif /* USE_TOPLESS */
+
 #include "if/core/hosts.h"
 
 #include "lib/atoms.h"
@@ -1869,8 +1873,12 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	 * Look at the amount of items we got for this search already.
 	 * The more we have, the less often we retry to save network resources.
 	 */
-
+#if defined(USE_TOPLESS)
+	max_items = 1;
+#else
 	gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_items);
+#endif
+
 	percent = sch->items * 100 / max_items;
 	factor = (percent < 10) ? 1.0 :
 		1.0 + (percent - 10) * (percent - 10) / 550.0;
@@ -2819,7 +2827,11 @@ search_oob_pending_results(
 	 * to get more results, ignore.
 	 */
 
+#if defined(USE_TOPLESS)
+	max_items = 1;
+#else
 	gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_items);
+#endif
 
 	if (kept > max_items * 0.15) {
 		if (search_debug)

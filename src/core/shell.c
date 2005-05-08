@@ -335,6 +335,37 @@ error:
 	return REPLY_ERROR;
 }
 
+static property_t
+get_prop_stub_by_name(const gchar *tok_prop, prop_set_stub_t **stub_ptr)
+{
+	prop_set_get_stub_t stub_getter[] = {
+#if !defined(USE_TOPLESS)
+		gui_prop_get_stub,
+#endif
+		gnet_prop_get_stub,
+	};
+	guint i;
+
+	g_return_val_if_fail(NULL != tok_prop, NO_PROP);
+	g_return_val_if_fail(NULL != stub_ptr, NO_PROP);
+	
+	for (i = 0; i < G_N_ELEMENTS(stub_getter); i++) {
+		property_t prop;
+		prop_set_stub_t *stub;
+
+		stub = (stub_getter[i])();
+		if (NO_PROP != (prop = stub->get_by_name(tok_prop))) {
+			*stub_ptr = stub;
+			return prop;
+		}
+		G_FREE_NULL(stub);
+	}
+
+	*stub_ptr = NULL;
+	return NO_PROP;
+}
+
+
 static guint
 shell_exec_print(gnutella_shell_t *sh, const gchar *cmd)
 {
@@ -343,12 +374,6 @@ shell_exec_print(gnutella_shell_t *sh, const gchar *cmd)
 	guint reply_code = REPLY_ERROR;
 	prop_set_stub_t *stub = NULL;
 	property_t prop;
-	prop_set_get_stub_t stub_getter[] = {
-		gui_prop_get_stub,
-		gnet_prop_get_stub,
-		NULL
-	};
-	guint n;
 
 	g_assert(sh);
 	g_assert(cmd);
@@ -359,14 +384,7 @@ shell_exec_print(gnutella_shell_t *sh, const gchar *cmd)
 		goto error;
 	}
 
-	n = 0; prop = NO_PROP;
-	while((stub_getter[n] != NULL) && (prop == NO_PROP)) {
-		G_FREE_NULL(stub);
-		stub = (stub_getter[n])();
-		prop = stub->get_by_name(tok_prop);
-		n ++;
-	}
-
+	prop = get_prop_stub_by_name(tok_prop, &stub);
 	if (prop == NO_PROP) {
 		sh->msg = _("Unknown property");
 		goto error;
@@ -402,13 +420,7 @@ shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 	guint reply_code = REPLY_ERROR;
 	prop_set_stub_t *stub = NULL;
 	property_t prop;
-	prop_set_get_stub_t stub_getter[] = {
-		gui_prop_get_stub,
-		gnet_prop_get_stub,
-		NULL
-	};
 	prop_def_t *prop_buf = NULL;
-	guint n;
 
 	g_assert(sh);
 	g_assert(cmd);
@@ -419,14 +431,7 @@ shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 		goto error;
 	}
 
-	n = 0; prop = NO_PROP;
-	while ((stub_getter[n] != NULL) && (prop == NO_PROP)) {
-		G_FREE_NULL(stub);
-		stub = (stub_getter[n])();
-		prop = stub->get_by_name(tok_prop);
-		n ++;
-	}
-
+	prop = get_prop_stub_by_name(tok_prop, &stub);
 	if (prop == NO_PROP) {
 		sh->msg = _("Unknown property");
 		goto error;
@@ -516,14 +521,8 @@ shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd)
 	gint pos = 0;
 	guint reply_code = REPLY_ERROR;
 	prop_set_stub_t *stub = NULL;
-	property_t prop;
-	prop_set_get_stub_t stub_getter[] = {
-		gui_prop_get_stub,
-		gnet_prop_get_stub,
-		NULL
-	};
 	prop_def_t *prop_buf = NULL;
-	guint n;
+	property_t prop;
 
 	g_assert(sh);
 	g_assert(cmd);
@@ -534,14 +533,7 @@ shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd)
 		goto error;
 	}
 
-	n = 0; prop = NO_PROP;
-	while ((stub_getter[n] != NULL) && (prop == NO_PROP)) {
-		G_FREE_NULL(stub);
-		stub = (stub_getter[n])();
-		prop = stub->get_by_name(tok_prop);
-		n ++;
-	}
-
+	prop = get_prop_stub_by_name(tok_prop, &stub);
 	if (prop == NO_PROP) {
 		sh->msg = _("Unknown property");
 		goto error;
