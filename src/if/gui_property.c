@@ -25,6 +25,10 @@
  *----------------------------------------------------------------------
  */
 
+#include "common.h"
+
+#if !defined(USE_TOPLESS)
+
 #include "lib/prop.h"
 #include "lib/eval.h"
 #include "gui_property.h"
@@ -2382,3 +2386,5 @@ prop_set_stub_t *gui_prop_get_stub(void)
 
     return stub;
 }
+
+#endif /* !defined(USE_TOPLESS) */
