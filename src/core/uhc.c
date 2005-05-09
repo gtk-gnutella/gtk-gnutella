@@ -84,6 +84,7 @@ static const gchar * const boot_hosts[] = {
 	"krill.shacknet.nu:20095",
 	"secondary.udp-host-cache.com:9999",
 	"plankton.merseine.nu:20098",
+	"cache.kicks-ass.net:8000",
 };
 
 static gboolean uhc_connecting = FALSE;

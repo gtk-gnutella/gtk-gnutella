@@ -141,6 +141,7 @@ static const gchar * const boot_url[] = {
 	"http://kisama.ath.cx:8080/",
 	"http://krill.shacknet.nu:20095/gwc",
 	"http://overbeer.ghostwhitecrab.de/",
+	"http://cache.kicks-ass.net:8000/",
 };
 
 /**
@@ -168,7 +169,7 @@ gwc_add(const gchar *new_url)
 			url = ret;
 		}
 	} else {
-		/* This is superfluous with GLib but this way the above ``ret'' is
+		/* This is superfluous with GLib but this way the above ``ret''
 		 * is local and quitting isn't really appropriate anyway. */
 		g_warning("Out of memory");
 		return;
