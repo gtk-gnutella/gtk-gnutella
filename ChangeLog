@@ -1,5 +1,12 @@
 # since last version
 
+# v 0.95.2	2005.05.10	[stable]
+
+- GTKG generated up to four times more traffic than was needed between
+  GTKG Ultrapeer and GTKG leafs.
+- Fix a build problem for some versions of Glade
+- A few minor bugs fixed
+	
 # v 0.95.1	2005.05.06	[stable]
 	
 - Bitzi tickets are now persistently cached so that tickets are

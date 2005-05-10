@@ -237,10 +237,10 @@ do {				\
  */
 
 #define GTA_VERSION 0
-#define GTA_SUBVERSION 96
-#define GTA_PATCHLEVEL 0
-#define GTA_REVISION "unstable"
-#define GTA_REVCHAR "u"				/* u - unstable, b - beta, none - stable */
+#define GTA_SUBVERSION 95
+#define GTA_PATCHLEVEL 2
+#define GTA_REVISION "stable"
+#define GTA_REVCHAR ""				/* u - unstable, b - beta, none - stable */
 #define GTA_RELEASE "2005-05-10"	/* ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
