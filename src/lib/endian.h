@@ -51,6 +51,7 @@
  */
 
 #define READ_GUINT16_LE(a,v) G_STMT_START { \
+	STATIC_ASSERT(2 == sizeof (v));		\
     memcpy(&v, a, 2); v = GUINT16_FROM_LE(v); \
 } G_STMT_END
 
@@ -59,6 +60,7 @@
 } G_STMT_END
 
 #define READ_GUINT16_BE(a,v) G_STMT_START { \
+	STATIC_ASSERT(2 == sizeof (v));		\
     memcpy(&v, a, 2); v = ntohs(v); \
 } G_STMT_END
 
@@ -71,10 +73,12 @@
  */
 
 #define READ_GUINT32_LE(a,v) G_STMT_START { \
+	STATIC_ASSERT(4 == sizeof (v));		\
     memcpy(&v, a, 4); v = GUINT32_FROM_LE(v); \
 } G_STMT_END
 
 #define READ_GUINT32_BE(a,v) G_STMT_START { \
+	STATIC_ASSERT(4 == sizeof (v));		\
     memcpy(&v, a, 4); v = ntohl(v); \
 } G_STMT_END
 
@@ -91,11 +95,13 @@
  */
 
 #define READ_GUINT64_BE(a,v) G_STMT_START { \
-    memcpy(&v, a, sizeof v); v = guint64_to_BE(v); \
+	STATIC_ASSERT(8 == sizeof (v));		\
+    memcpy(&v, a, 8); v = guint64_to_BE(v); \
 } G_STMT_END
 
 #define READ_GUINT64_LE(a,v) G_STMT_START { \
-    memcpy(&v, a, sizeof v); v = guint64_to_LE(v); \
+	STATIC_ASSERT(8 == sizeof (v));		\
+    memcpy(&v, a, 8); v = guint64_to_LE(v); \
 } G_STMT_END
 
 #define WRITE_GUINT64_BE(v,a) G_STMT_START { \
@@ -107,3 +113,4 @@
 } G_STMT_END
 
 #endif /* _endian_h_ */
+/* vi: set ts=4 sw=4 cindent: */
