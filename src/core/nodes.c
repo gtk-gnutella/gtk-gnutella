@@ -533,7 +533,7 @@ static void
 message_dump(const struct gnutella_node *n)
 {
 	guint32 size, ip, idx, count, total;
-	guint16 port, speed;
+	guint16 port;
 
 	printf("Node %s: ", node_ip(n));
 	printf("Func 0x%.2x ", n->header.function);
