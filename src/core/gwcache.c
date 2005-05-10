@@ -137,11 +137,12 @@ static void gwc_seed_cache(gchar *cache_url);
  */
 
 static const gchar * const boot_url[] = {
-	"http://gwebcache.bearshare.net/gcache.php",
+	"http://cache.kicks-ass.net:8000/",
+	"http://gwc.nonamer.ath.cx:8080/",
 	"http://kisama.ath.cx:8080/",
 	"http://krill.shacknet.nu:20095/gwc",
 	"http://overbeer.ghostwhitecrab.de/",
-	"http://cache.kicks-ass.net:8000/",
+	"http://starscream.dynalias.com/",
 };
 
 /**
