@@ -4,6 +4,8 @@
 
 - GTKG generated up to four times more traffic than was needed between
   GTKG Ultrapeer and GTKG leafs.
+- Improved firewall status detection: if you are not firewalled then GTKG
+  is now less likely to claim that you are.
 - Fix a build problem for some versions of Glade
 - A few minor bugs fixed
 	
