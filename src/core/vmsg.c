@@ -388,8 +388,7 @@ handle_messages_supported(struct gnutella_node *n,
 
 	for (i = 0; i < count; i++) {
 		guint32 vendor;
-		gint id;
-		gint version;
+		guint16 id, version;
 		struct vmsg *vm;
 
 		READ_GUINT32_BE(description, vendor);
@@ -525,7 +524,7 @@ handle_features_supported(struct gnutella_node *n,
 
 	for (i = 0; i < count; i++) {
 		guint32 vendor;
-		gint version;
+		guint16 version;
 
 		READ_GUINT32_BE(description, vendor);
 		description += 4;
