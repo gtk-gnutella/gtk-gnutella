@@ -46,6 +46,18 @@ enum {
 
 #ifdef CORE_SOURCES
 
+typedef struct {
+	hsep_triple table[HSEP_N_MAX + 1];        /* Connection's HSEP table */
+	hsep_triple sent_table[HSEP_N_MAX];     /* Previous table sent */
+	time_t last_sent;                       /* When last msg was sent */
+	time_t last_received;                   /* When last msg was rcvd */
+	guint32 msgs_received;                  /* # of msgs received */
+	guint32 triples_received;               /* # of triples received */
+	guint32 msgs_sent;                      /* # of msgs sent */
+	guint32 triples_sent;                   /* # of triples sent */
+	gint random_skew;		 /* additonal random delay for next exchange */
+} hsep_ctx_t;
+
 const gchar *hsep_get_static_str(gint row, gint column);
 gint hsep_get_table_size(void);
 void hsep_get_non_hsep_triple(hsep_triple *tripledest);
