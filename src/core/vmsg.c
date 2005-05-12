@@ -445,27 +445,26 @@ handle_messages_supported(struct gnutella_node *n,
 /**
  * Send a "Messages Supported" message to specified node, telling it which
  * subset of the vendor messages we can understand.  We don't send information
- * about the "Messages Supported" message itself, since this one is guarateeed
+ * about the "Messages Supported" message itself, since this one is guaranteed
  * to be always understood
  */
 void
 vmsg_send_messages_supported(struct gnutella_node *n)
 {
 	struct gnutella_msg_vendor *m = cast_to_gpointer(v_tmp);
-	guint16 count = G_N_ELEMENTS(vmsg_map) - 1;
-	guint32 paysize = sizeof(count) + count * VMS_ITEM_SIZE;
+	guint16 count = 0;
+	guint32 paysize;
 	guint32 msgsize;
-	gchar *payload;
+	gchar *payload, *count_ptr;
 	guint i;
 
-	msgsize = vmsg_fill_header(&m->header, paysize, sizeof v_tmp);
 	payload = vmsg_fill_type(&m->data, T_0000, 0, 0);
 
 	/*
 	 * First 2 bytes is the number of entries in the vector.
 	 */
 
-	WRITE_GUINT16_LE(count, payload);
+	count_ptr = payload;	/* Record offset for later correction */
 	payload += 2;
 
 	/*
@@ -484,8 +483,16 @@ vmsg_send_messages_supported(struct gnutella_node *n)
 		payload += 2;
 		WRITE_GUINT16_LE(msg->version, payload);
 		payload += 2;
+
+		count++;
 	}
 
+	/* Update the size */
+	WRITE_GUINT16_LE(count, count_ptr);
+
+	paysize = count * VMS_ITEM_SIZE	+ sizeof count;
+	msgsize = vmsg_fill_header(&m->header, paysize, sizeof v_tmp);
+	
 	gmsg_sendto_one(n, m, msgsize);
 }
 
