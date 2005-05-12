@@ -866,10 +866,12 @@ handle_qstat_req(struct gnutella_node *n,
 		 * side goofed, or they closed the search.
 		 */
 
-		kept = 0xffff;		/* Magic value telling them to stop the search */
+		kept = 0xffffU;		/* Magic value telling them to stop the search */
+	} else {
+		kept = MIN(kept, 0xfffeU);
 	}
 
-	vmsg_send_qstat_answer(n, n->header.muid, (guint16) MIN(kept, 0xfffe));
+	vmsg_send_qstat_answer(n, n->header.muid, kept);
 }
 
 /**
@@ -937,7 +939,7 @@ vmsg_send_qstat_answer(struct gnutella_node *n, gchar *muid, guint16 hits)
 	WRITE_GUINT16_LE(hits, payload);
 
 	if (vmsg_debug > 1)
-		printf("VMSG sending %s with hits=%d to %s <%s>\n",
+		printf("VMSG sending %s with hits=%u to %s <%s>\n",
 			gmsg_infostr_full(m), hits, node_ip(n), node_vendor(n));
 
 	gmsg_ctrl_sendto_one(n, m, msgsize);	/* Send it ASAP */
