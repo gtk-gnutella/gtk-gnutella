@@ -92,6 +92,7 @@ struct gnutella_socket {
 	enum socket_direction direction;
 	enum socket_type type;
 	gboolean corked;
+	gboolean was_shutdown;	/* Set if shutdown() was used */
 	gint adns;				/* status of ADNS resolution */
 	gchar *adns_msg;		/* ADNS error message */
 

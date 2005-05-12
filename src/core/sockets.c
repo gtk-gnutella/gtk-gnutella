@@ -1060,6 +1060,7 @@ socket_free(struct gnutella_socket *s)
 	if (s->file_desc != -1) {
 		if (s->corked)
 			sock_cork(s, FALSE);
+		sock_tx_shutdown(s);
 		if (close(s->file_desc)) {
 			gint e = errno;
 			
@@ -1314,7 +1315,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		return;
 	}
 
-	s->last_update = time((time_t *) 0);
+	s->last_update = time(NULL);
 	s->pos += r;
 
 	/*
@@ -1892,7 +1893,7 @@ accepted:
 		 */
 
 		sl_incoming = g_slist_prepend(sl_incoming, t);
-		t->last_update = time((time_t *) 0);
+		t->last_update = time(NULL);
 		break;
 
 	default:
@@ -1976,7 +1977,7 @@ socket_set_linger(gint fd)
 		
 	lb = zero_linger;
 	lb.l_onoff = 1;
-	lb.l_linger = 60;	/* linger for 60 seconds */
+	lb.l_linger = 0;	/* closes connections with RST */
 	if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &lb, sizeof lb))
 		g_warning("setsockopt() for SO_LINGER failed: %s", g_strerror(errno));
 }
@@ -2512,10 +2513,15 @@ void
 sock_tx_shutdown(struct gnutella_socket *s)
 {
 	g_assert(-1 != s->file_desc);
-	if (-1 == shutdown(s->file_desc, SHUT_WR)) {
+	
+	if (s->was_shutdown)
+		return;
+
+	if (-1 == shutdown(s->file_desc, SHUT_WR) && EINVAL != errno) {
 		g_warning("unable to shutdown TX on fd#%d: %s",
 			s->file_desc, g_strerror(errno));
 	}
+	s->was_shutdown = TRUE;
 }
 
 static int
