@@ -118,6 +118,198 @@ static event_t *hsep_global_table_changed_event;
 static time_t hsep_last_global_table_change = 0;
 
 /**
+ * Fires a change event for the global HSEP table.
+ */
+
+static void
+hsep_fire_global_table_changed(time_t now)
+{
+	/* store global table change time */
+	hsep_last_global_table_change = now;
+
+	/* do nothing if we don't have any listeners */
+
+	if (event_subscriber_active(hsep_global_table_changed_event)) {
+		hsep_triple table[G_N_ELEMENTS(hsep_global_table)];
+
+		/*
+		 * Make a copy of the global HSEP table and give that
+		 * copy and the number of included triples to the
+		 * listeners.
+		 */
+
+		hsep_get_global_table(table, G_N_ELEMENTS(table));
+
+		event_trigger(hsep_global_table_changed_event,
+		    T_NORMAL(hsep_global_listener_t, (table, G_N_ELEMENTS(table))));
+	}
+}
+
+/**
+ * Checks the monotony of the given triples. TRUE is returned if 0 or 1
+ * triple is given. Returns TRUE if monotony is ok, FALSE otherwise.
+ */
+
+static gboolean
+hsep_check_monotony(hsep_triple *table, unsigned int triples)
+{
+	gboolean error = FALSE;
+	guint i, j;
+
+	g_assert(table);
+
+	for (i = 1; i < triples; i++) {
+		
+		/* if any triple is not >= the previous one, error will be TRUE */
+		for (j = 0; j < G_N_ELEMENTS(table[0]); j++)
+			error |= table[i - 1][j] > table[i][j];
+
+		if (error)
+			break;
+	}
+
+	return !error;
+}
+
+/**
+ * Sanity check for the global and per-connection HSEP tables.
+ * Assertions are made for all these checks. If HSEP is implemented
+ * and used correctly, the sanity check will succed.
+ *
+ * Performed checks (* stands for an arbitrary value):
+ *
+ * - own triple must be (1, *, *)
+ * - global triple for 0 hops must be (0, 0, 0)
+ * - per-connection triple for 0 hops must be (0, 0, 0)
+ * - per-connection triple for 1 hops must be (1, *, *)
+ * - per-connection triples must be monotonically increasing
+ * - the sum of the n'th triple of each connection must match the
+ *   n'th global table triple for all n
+ */
+
+static void
+hsep_sanity_check(void)
+{
+	const GSList *sl;
+	hsep_triple sum[G_N_ELEMENTS(hsep_global_table)];
+	unsigned int i, j;
+
+	memset(sum, 0, sizeof sum);
+
+	g_assert(1 == hsep_own[HSEP_IDX_NODES]);
+
+	/*
+	 * Iterate over all HSEP-capable nodes, and for each triple index
+	 * sum up all the connections' triple values.
+	 */
+
+	for (sl = node_all_nodes() ; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *n = sl->data;
+
+		/* also consider unestablished connections here */
+
+		if (!(n->attrs & NODE_A_CAN_HSEP))
+			continue;
+
+		g_assert(0 == n->hsep->table[0][HSEP_IDX_NODES]);      /* check nodes */
+		g_assert(0 == n->hsep->table[0][HSEP_IDX_FILES]);      /* check files */
+		g_assert(0 == n->hsep->table[0][HSEP_IDX_KIB]);        /* check KiB */
+		g_assert(1 == n->hsep->table[1][HSEP_IDX_NODES]);  	/* check nodes */
+
+		/* check if values are monotonously increasing (skip first) */
+		g_assert(
+			hsep_check_monotony(cast_to_gpointer(n->hsep->table[1]),
+				G_N_ELEMENTS(n->hsep->table[1]) - 1)
+		);
+
+		/* sum up the values */
+
+		for (i = 0; i < G_N_ELEMENTS(sum); i++) {
+			for (j = 0; j < G_N_ELEMENTS(sum[0]); j++)
+				sum[i][j] += n->hsep->table[i][j];
+		}
+	}
+
+	/* check sums */
+
+	for (i = 0; i < G_N_ELEMENTS(sum); i++) {
+		for (j = 0; j < G_N_ELEMENTS(sum[0]); j++)
+			g_assert(hsep_global_table[i][j] == sum[i][j]);
+	}
+}
+
+/**
+ * Outputs the global HSEP table to the console.
+ */
+
+static void
+hsep_dump_table(void)
+{
+	unsigned int i;
+
+	printf("HSEP: Reachable nodes (1-%d hops): ", HSEP_N_MAX);
+
+	for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++)
+		printf("%s ", uint64_to_string(hsep_global_table[i][HSEP_IDX_NODES]));
+
+	printf("\nHSEP: Reachable files (1-%d hops): ", HSEP_N_MAX);
+
+	for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++)
+		printf("%s ", uint64_to_string(hsep_global_table[i][HSEP_IDX_FILES]));
+
+	printf("\nHSEP:   Reachable KiB (1-%d hops): ", HSEP_N_MAX);
+
+	for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++)
+		printf("%s ", uint64_to_string(hsep_global_table[i][HSEP_IDX_KIB]));
+
+	printf("\n");
+
+	hsep_sanity_check();
+}
+
+/**
+ * Takes a list of triples and returns the optimal number of triples
+ * to send in a HSEP message. The number of triples to send
+ * is n_opt, defined as (triple indices counted from 0):
+ *
+ * n_opt := 1 + min {n | triple[n] = triple[k] for all k in [n+1,triples-1]}
+ *
+ * If there is no such n_opt, n_opt := triples.
+ * If all triples are equal, 1 is returned, which is correct.
+ *
+ * NOTE: this algorithm works regardless of the byte order of the triple data,
+ * because only equality tests are used.
+ */
+
+static unsigned int
+hsep_triples_to_send(const hsep_triple *table, unsigned int triples)
+{
+	guint i, j, last;
+	gboolean changed = FALSE;
+
+	g_assert(table);
+
+	last = triples > 0 ? triples - 1 : 0; /* handle special case */
+
+	/*
+	 * We go backwards until we find a triple where at least one of its
+	 * components is different from the previously checked triple.
+	 */
+
+	for (i = last; i-- > 0; triples--) {
+			
+		for (j = 0; j < G_N_ELEMENTS(table[0]); j++)
+	   		changed |= table[i][j] != table[last][j];
+
+		if (changed)
+			break;
+	}
+
+	return triples;
+}
+
+
+/**
  * Initializes HSEP.
  */
 
@@ -192,13 +384,15 @@ hsep_reset(void)
 		if (!(n->attrs & NODE_A_CAN_HSEP))
 			continue;
 
-		memset(n->hsep_table, 0, sizeof n->hsep_table);
-		memset(n->hsep_sent_table, 0, sizeof n->hsep_sent_table);
+		g_assert(n->hsep);
+
+		memset(n->hsep->table, 0, sizeof n->hsep->table);
+		memset(n->hsep->sent_table, 0, sizeof n->hsep->sent_table);
 
 		/* this is what we know before receiving the first message */
 
 		for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++) {
-			n->hsep_table[i][HSEP_IDX_NODES] = 1;
+			n->hsep->table[i][HSEP_IDX_NODES] = 1;
 			hsep_global_table[i][HSEP_IDX_NODES]++;
 		}
 
@@ -218,35 +412,26 @@ hsep_reset(void)
 void
 hsep_connection_init(struct gnutella_node *n)
 {
-	guint i;
+	static const hsep_ctx_t zero_hsep;
 	time_t now = time(NULL);
+	guint i;
 
 	g_assert(n);
 
 	if (hsep_debug > 1)
 		printf("HSEP: Initializing node %p\n", cast_to_gconstpointer(n));
 
-	memset(n->hsep_table, 0, sizeof n->hsep_table);
-	memset(n->hsep_sent_table, 0, sizeof n->hsep_sent_table);
+	n->hsep = walloc(sizeof *n->hsep);
+	*n->hsep = zero_hsep; /* Initializes everything to 0 */
+	n->hsep->last_sent = now;
 
 	/* this is what we know before receiving the first message */
 
 	for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++) {
-		n->hsep_table[i][HSEP_IDX_NODES] = 1;
+		n->hsep->table[i][HSEP_IDX_NODES] = 1;
 		hsep_global_table[i][HSEP_IDX_NODES]++;
 	}
 
-	/*
-	 * Initialize counters and timestamps.
-	 */
-
-	n->hsep_msgs_received = 0;
-	n->hsep_triples_received = 0;
-	n->hsep_last_received = 0;
-	n->hsep_msgs_sent = 0;
-	n->hsep_triples_sent = 0;
-	n->hsep_last_sent = now;
-	n->hsep_random_skew = 0;
 
 	hsep_sanity_check();
 
@@ -289,7 +474,7 @@ hsep_timer(time_t now)
 			continue;
 
 		/* check how many seconds ago the last message was sent */
-		diff = n->hsep_random_skew + delta_time(now, n->hsep_last_sent);
+		diff = n->hsep->random_skew + delta_time(now, n->hsep->last_sent);
 
 		/* the -900 is used to react to changes in system time */
 		if (diff >= HSEP_MSG_INTERVAL || diff < -900)
@@ -322,6 +507,7 @@ hsep_connection_close(struct gnutella_node *n)
 	unsigned int i, j;
 
 	g_assert(n);
+	g_assert(n->hsep);
 
 	if (hsep_debug > 1)
 		printf("HSEP: Deinitializing node %p\n", cast_to_gconstpointer(n));
@@ -329,8 +515,8 @@ hsep_connection_close(struct gnutella_node *n)
 	for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++) {
 
 		for (j = 0; j < G_N_ELEMENTS(hsep_global_table[0]); j++) {
-			hsep_global_table[i][j] -= n->hsep_table[i][j];
-			n->hsep_table[i][j] = 0;
+			hsep_global_table[i][j] -= n->hsep->table[i][j];
+			n->hsep->table[i][j] = 0;
 		}
 	}
 
@@ -340,6 +526,8 @@ hsep_connection_close(struct gnutella_node *n)
 	 */
 
 	n->attrs &= ~NODE_A_CAN_HSEP;
+	wfree(n->hsep, sizeof *n->hsep);
+	n->hsep = NULL;
 
 	if (hsep_debug > 1)
 		hsep_dump_table();
@@ -357,9 +545,12 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 {
 	unsigned int i, j, k, max, msgmax, length;
 	hsep_triple *messaget;
+	hsep_ctx_t *hsep;
 
 	g_assert(n);
+	g_assert(n->hsep);
 
+	hsep = n->hsep;
 	length = n->size;
 
 	/* note the offset between message and local data by 1 triple */
@@ -430,7 +621,7 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 	if (hsep_debug > 1) {
 		printf("HSEP: Received %d %s from node %p (msg #%u): ", max,
 		    max == 1 ? "triple" : "triples", cast_to_gconstpointer(n),
-			n->hsep_msgs_received + 1);
+			hsep->msgs_received + 1);
 	}
 
 	/*
@@ -450,8 +641,8 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 		}
 		
 		for (j = 0; j < G_N_ELEMENTS(hsep_global_table[0]); j++) {
-			hsep_global_table[i][j] += messaget[k][j] - n->hsep_table[i][j];
-			n->hsep_table[i][j] = messaget[k][j];
+			hsep_global_table[i][j] += messaget[k][j] - hsep->table[i][j];
+			hsep->table[i][j] = messaget[k][j];
 		}
 	}
 
@@ -470,8 +661,8 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 	for (/* NOTHING */; i < G_N_ELEMENTS(hsep_global_table); i++) {
 		
 		for (j = 0; j < G_N_ELEMENTS(hsep_global_table[0]); j++) {
-			hsep_global_table[i][j] += messaget[k][j] - n->hsep_table[i][j];
-			n->hsep_table[i][j] = messaget[k][j];
+			hsep_global_table[i][j] += messaget[k][j] - hsep->table[i][j];
+			hsep->table[i][j] = messaget[k][j];
 		}
 	}
 
@@ -479,10 +670,10 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 	 * Update counters and timestamps.
 	 */
 
-	n->hsep_msgs_received++;
-	n->hsep_triples_received += msgmax;
+	hsep->msgs_received++;
+	hsep->triples_received += msgmax;
 
-	n->hsep_last_received = now;
+	hsep->last_received = now;
 
 	if (hsep_debug > 1)
 		hsep_dump_table();
@@ -501,11 +692,15 @@ void
 hsep_send_msg(struct gnutella_node *n, time_t now)
 {
 	static const hsep_triple zero_triple;
-	hsep_triple tmp[G_N_ELEMENTS(n->hsep_sent_table)], other;
+	hsep_triple tmp[G_N_ELEMENTS(n->hsep->sent_table)], other;
 	unsigned int i, j, msglen, triples, opttriples;
 	struct gnutella_msg_hsep_data *m;
+	hsep_ctx_t *hsep;
 
 	g_assert(n);
+	g_assert(n->hsep);
+
+	hsep = n->hsep;
 
 	/*
 	 * If we are a leaf, we just need to send one triple,
@@ -549,15 +744,15 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 			guint64 val;
 
 			val = hsep_own[j] + other[j] +
-				hsep_global_table[i][j] - n->hsep_table[i][j];
+				hsep_global_table[i][j] - hsep->table[i][j];
 			tmp[i][j] = guint64_to_LE(val);
 		}
 	}
 
-	STATIC_ASSERT(n->hsep_sent_table);
+	STATIC_ASSERT(sizeof hsep->sent_table == sizeof tmp);
 	/* check if the table differs from the previously sent table */
 	if (
-		0 == memcmp(tmp, n->hsep_sent_table, sizeof tmp)
+		0 == memcmp(tmp, hsep->sent_table, sizeof tmp)
 	) {
 		G_FREE_NULL(m);
 		goto charge_timer;
@@ -566,7 +761,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 	memcpy(m->triple, tmp, triples * sizeof tmp[0]);
 
 	/* store the table for later comparison */
-	memcpy(n->hsep_sent_table, tmp, triples * sizeof tmp[0]);
+	memcpy(hsep->sent_table, tmp, triples * sizeof tmp[0]);
 
 	/*
 	 * Note that on big endian architectures the message data is now in
@@ -580,7 +775,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 	if (hsep_debug > 1) {
 		printf("HSEP: Sending %d %s to node %p (msg #%u): ", opttriples,
 		    opttriples == 1 ? "triple" : "triples", cast_to_gconstpointer(n),
-			n->hsep_msgs_sent + 1);
+			hsep->msgs_sent + 1);
 	}
 
 	for (i = 0; i < opttriples; i++) {
@@ -590,7 +785,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 			for (j = 0; j < G_N_ELEMENTS(buf); j++) {
 				guint64 v;
 
-				v = hsep_own[j] + hsep_global_table[i][j] - n->hsep_table[i][j];
+				v = hsep_own[j] + hsep_global_table[i][j] - hsep->table[i][j];
 				uint64_to_string_buf(buf[j], sizeof buf[0], v);
 			}
 		
@@ -618,13 +813,13 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 	 * Update counters.
 	 */
 
-	n->hsep_msgs_sent++;
-	n->hsep_triples_sent += opttriples;
+	hsep->msgs_sent++;
+	hsep->triples_sent += opttriples;
 
 charge_timer:
 
-	n->hsep_last_sent = now;
-	n->hsep_random_skew = random_value(2 * HSEP_MSG_SKEW) - HSEP_MSG_SKEW;
+	hsep->last_sent = now;
+	hsep->random_skew = random_value(2 * HSEP_MSG_SKEW) - HSEP_MSG_SKEW;
 }
 
 /**
@@ -657,169 +852,6 @@ hsep_notify_shared(guint64 own_files, guint64 own_kibibytes)
 		 * seconds anyway.
 		 */
 	}
-}
-
-/**
- * Sanity check for the global and per-connection HSEP tables.
- * Assertions are made for all these checks. If HSEP is implemented
- * and used correctly, the sanity check will succed.
- *
- * Performed checks (* stands for an arbitrary value):
- *
- * - own triple must be (1, *, *)
- * - global triple for 0 hops must be (0, 0, 0)
- * - per-connection triple for 0 hops must be (0, 0, 0)
- * - per-connection triple for 1 hops must be (1, *, *)
- * - per-connection triples must be monotonically increasing
- * - the sum of the n'th triple of each connection must match the
- *   n'th global table triple for all n
- */
-
-void
-hsep_sanity_check(void)
-{
-	const GSList *sl;
-	hsep_triple sum[G_N_ELEMENTS(hsep_global_table)];
-	unsigned int i, j;
-
-	memset(sum, 0, sizeof sum);
-
-	g_assert(1 == hsep_own[HSEP_IDX_NODES]);
-
-	/*
-	 * Iterate over all HSEP-capable nodes, and for each triple index
-	 * sum up all the connections' triple values.
-	 */
-
-	for (sl = node_all_nodes() ; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *n = sl->data;
-
-		/* also consider unestablished connections here */
-
-		if (!(n->attrs & NODE_A_CAN_HSEP))
-			continue;
-
-		g_assert(0 == n->hsep_table[0][HSEP_IDX_NODES]);      /* check nodes */
-		g_assert(0 == n->hsep_table[0][HSEP_IDX_FILES]);      /* check files */
-		g_assert(0 == n->hsep_table[0][HSEP_IDX_KIB]);        /* check KiB */
-		g_assert(1 == n->hsep_table[1][HSEP_IDX_NODES]);  	/* check nodes */
-
-		/* check if values are monotonously increasing (skip first) */
-		g_assert(
-			hsep_check_monotony(cast_to_gpointer(n->hsep_table[1]),
-				G_N_ELEMENTS(n->hsep_table[1]) - 1)
-		);
-
-		/* sum up the values */
-
-		for (i = 0; i < G_N_ELEMENTS(sum); i++) {
-			for (j = 0; j < G_N_ELEMENTS(sum[0]); j++)
-				sum[i][j] += n->hsep_table[i][j];
-		}
-	}
-
-	/* check sums */
-
-	for (i = 0; i < G_N_ELEMENTS(sum); i++) {
-		for (j = 0; j < G_N_ELEMENTS(sum[0]); j++)
-			g_assert(hsep_global_table[i][j] == sum[i][j]);
-	}
-}
-
-/**
- * Outputs the global HSEP table to the console.
- */
-
-void
-hsep_dump_table(void)
-{
-	unsigned int i;
-
-	printf("HSEP: Reachable nodes (1-%d hops): ", HSEP_N_MAX);
-
-	for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++)
-		printf("%s ", uint64_to_string(hsep_global_table[i][HSEP_IDX_NODES]));
-
-	printf("\nHSEP: Reachable files (1-%d hops): ", HSEP_N_MAX);
-
-	for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++)
-		printf("%s ", uint64_to_string(hsep_global_table[i][HSEP_IDX_FILES]));
-
-	printf("\nHSEP:   Reachable KiB (1-%d hops): ", HSEP_N_MAX);
-
-	for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++)
-		printf("%s ", uint64_to_string(hsep_global_table[i][HSEP_IDX_KIB]));
-
-	printf("\n");
-
-	hsep_sanity_check();
-}
-
-/**
- * Checks the monotony of the given triples. TRUE is returned if 0 or 1
- * triple is given. Returns TRUE if monotony is ok, FALSE otherwise.
- */
-
-gboolean
-hsep_check_monotony(hsep_triple *table, unsigned int triples)
-{
-	gboolean error = FALSE;
-	guint i, j;
-
-	g_assert(table);
-
-	for (i = 1; i < triples; i++) {
-		
-		/* if any triple is not >= the previous one, error will be TRUE */
-		for (j = 0; j < G_N_ELEMENTS(table[0]); j++)
-			error |= table[i - 1][j] > table[i][j];
-
-		if (error)
-			break;
-	}
-
-	return !error;
-}
-
-/**
- * Takes a list of triples and returns the optimal number of triples
- * to send in a HSEP message. The number of triples to send
- * is n_opt, defined as (triple indices counted from 0):
- *
- * n_opt := 1 + min {n | triple[n] = triple[k] for all k in [n+1,triples-1]}
- *
- * If there is no such n_opt, n_opt := triples.
- * If all triples are equal, 1 is returned, which is correct.
- *
- * NOTE: this algorithm works regardless of the byte order of the triple data,
- * because only equality tests are used.
- */
-
-unsigned int
-hsep_triples_to_send(const hsep_triple *table, unsigned int triples)
-{
-	guint i, j, last;
-	gboolean changed = FALSE;
-
-	g_assert(table);
-
-	last = triples > 0 ? triples - 1 : 0; /* handle special case */
-
-	/*
-	 * We go backwards until we find a triple where at least one of its
-	 * components is different from the previously checked triple.
-	 */
-
-	for (i = last; i-- > 0; triples--) {
-			
-		for (j = 0; j < G_N_ELEMENTS(table[0]); j++)
-	   		changed |= table[i][j] != table[last][j];
-
-		if (changed)
-			break;
-	}
-
-	return triples;
 }
 
 /**
@@ -856,10 +888,11 @@ hsep_get_connection_table(struct gnutella_node *n,
     hsep_triple *buffer, unsigned int maxtriples)
 {
 	g_assert(n);
+	g_assert(n->hsep);
 	g_assert(buffer);
 
-	maxtriples = MIN(maxtriples, G_N_ELEMENTS(n->hsep_table));
-	memcpy(buffer, n->hsep_table, maxtriples * sizeof buffer[0]);
+	maxtriples = MIN(maxtriples, G_N_ELEMENTS(n->hsep->table));
+	memcpy(buffer, n->hsep->table, maxtriples * sizeof buffer[0]);
 	
 	return maxtriples;
 }
@@ -872,34 +905,6 @@ void
 hsep_close(void)
 {
 	event_destroy(hsep_global_table_changed_event);
-}
-
-/**
- * Fires a change event for the global HSEP table.
- */
-
-void
-hsep_fire_global_table_changed(time_t now)
-{
-	/* store global table change time */
-	hsep_last_global_table_change = now;
-
-	/* do nothing if we don't have any listeners */
-
-	if (event_subscriber_active(hsep_global_table_changed_event)) {
-		hsep_triple table[G_N_ELEMENTS(hsep_global_table)];
-
-		/*
-		 * Make a copy of the global HSEP table and give that
-		 * copy and the number of included triples to the
-		 * listeners.
-		 */
-
-		hsep_get_global_table(table, G_N_ELEMENTS(table));
-
-		event_trigger(hsep_global_table_changed_event,
-		    T_NORMAL(hsep_global_listener_t, (table, G_N_ELEMENTS(table))));
-	}
 }
 
 /**

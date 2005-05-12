@@ -57,15 +57,8 @@ void hsep_connection_init(struct gnutella_node *n);
 void hsep_connection_close(struct gnutella_node *n);
 void hsep_send_msg(struct gnutella_node *, time_t now);
 void hsep_process_msg(struct gnutella_node *, time_t now);
-void hsep_dump_table(void);
 void hsep_timer(time_t now);
 void hsep_notify_shared(guint64 ownfiles, guint64 ownkibibytes);
-void hsep_sanity_check(void);
-void hsep_fire_global_table_changed(time_t now);
-gboolean hsep_has_global_table_changed(time_t since);
-gboolean hsep_check_monotony(hsep_triple *table, unsigned int triples);
-unsigned int hsep_triples_to_send(const hsep_triple *table,
-	unsigned int triples);
 unsigned int hsep_get_global_table(hsep_triple *buffer,
 	unsigned int maxtriples);
 unsigned int hsep_get_connection_table(struct gnutella_node *n,
