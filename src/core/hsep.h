@@ -74,4 +74,4 @@ const gchar *hsep_get_static_str(gint row, gint column);
 
 #endif /* _core_hsep_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

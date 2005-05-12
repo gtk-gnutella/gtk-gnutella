@@ -139,7 +139,7 @@ struct gnutella_msg_vendor {
 
 struct gnutella_msg_hsep_data {
 	struct gnutella_header header;
-	guint64 triple[3];
+	guchar triple[3 * sizeof(guint64)];
 } __attribute__((__packed__));
 
 #endif /* _core_gnutella_h_ */
