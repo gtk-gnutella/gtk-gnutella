@@ -1258,6 +1258,15 @@ configured_peermode_changed(property_t prop)
 
     gnet_prop_get_guint32_val(prop, &val);
 
+	/* XXX: The following is disabled because it is too restrictive and
+	 *		annoying in LAN. If a user doesn't use the default "auto"
+	 *		mode, it can be assumed that he knows what he's doing. Also,
+	 *		while it's sub-optimal it's not absolutely required for an
+	 *		ultrapeer to accept incoming connections (from external hosts).
+	 * 
+	 *		--cbiere, 2005-05-14
+	 */
+#if 0
 	/*
 	 * We don't allow them to be anything but a leaf node if they are
 	 * firewalled.  We even restrict the "normal" mode, which is to be
@@ -1279,6 +1288,7 @@ configured_peermode_changed(property_t prop)
 	default:
 		break;
 	}
+#endif
 
 	if (val == NODE_P_AUTO) {
 		if (connected_nodes() > 0)		/* Already connected */
