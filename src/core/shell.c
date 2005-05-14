@@ -77,7 +77,7 @@ static void shell_shutdown(gnutella_shell_t *sh);
 static void shell_destroy(gnutella_shell_t *sh);
 static gboolean shell_write(gnutella_shell_t *sh, const gchar *s);
 static void print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
-	int triples, hsep_triple *nonhsep);
+	int triples, hsep_triple *non_hsep);
 
 enum {
 	CMD_UNKNOWN,
@@ -575,7 +575,7 @@ shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 	gchar *tok;
 	gint pos = 0;
 	hsep_triple globaltable[HSEP_N_MAX + 1];
-	hsep_triple nonhsep[1];
+	hsep_triple non_hsep[1];
 	gboolean all;
 
 	g_assert(sh);
@@ -599,18 +599,17 @@ shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 	sh->msg = "";
 
 	hsep_get_global_table(globaltable, G_N_ELEMENTS(globaltable));
-	hsep_get_non_hsep_triple(nonhsep);
+	hsep_get_non_hsep_triple(non_hsep);
 
 	gm_snprintf(buf, sizeof(buf),
 		_("Total horizon size (%u/%u nodes support HSEP):"),
-		(unsigned int)globaltable[1][HSEP_IDX_NODES],
-		(unsigned int)(globaltable[1][HSEP_IDX_NODES] +
-		nonhsep[0][HSEP_IDX_NODES]));
+		(guint)globaltable[1][HSEP_IDX_NODES],
+		(guint)(globaltable[1][HSEP_IDX_NODES] + non_hsep[0][HSEP_IDX_NODES]));
 
 	shell_write(sh, buf);
 	shell_write(sh, "\n\n");
 
-	print_hsep_table(sh, globaltable, HSEP_N_MAX, nonhsep);
+	print_hsep_table(sh, globaltable, HSEP_N_MAX, non_hsep);
 
 	if (all) {
 		GSList *sl;
@@ -651,34 +650,32 @@ error:
 
 static void
 print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
-	int triples, hsep_triple *nonhsepptr)
+	int triples, hsep_triple *non_hsep_ptr)
 {
-	gint i;
-	char *hopsstr = _("Hops");
-	char *nodesstr = _("Nodes");
-	char *filesstr = _("Files");
-	char *sizestr = _("Size");
-	guint64 *t;
-	hsep_triple nonhsep;
-	static hsep_triple emptynonhsep = {0, 0, 0};
+	static const hsep_triple empty_non_hsep = {0, 0, 0};
+	const gchar *hops_str = _("Hops");
+	const gchar *nodes_str = _("Nodes");
+	const gchar *files_str = _("Files");
+	const gchar *size_str = _("Size");
+	hsep_triple non_hsep, *t;
 	gchar buf[200];
 	guint maxlen[4];
+	gint i;
 
-	if (nonhsepptr != NULL)
-		memcpy(nonhsep, *nonhsepptr, sizeof(nonhsep));
+	if (NULL != non_hsep_ptr)
+		memcpy(non_hsep, non_hsep_ptr, sizeof non_hsep);
 	else
-		memcpy(nonhsep, emptynonhsep, sizeof(nonhsep));
-
-	t = (guint64 *) &table[1];
+		memcpy(non_hsep, empty_non_hsep, sizeof non_hsep);
+	t = &table[1];
 
 	/*
 	 * Determine maximum width of each column.
 	 */
 
-	maxlen[0] = strlen(hopsstr);   /* length of Hops */
-	maxlen[1] = strlen(nodesstr);  /* length of Nodes */
-	maxlen[2] = strlen(filesstr);  /* length of Files */
-	maxlen[3] = strlen(sizestr);   /* length of Size */
+	maxlen[0] = strlen(hops_str);   /* length of Hops */
+	maxlen[1] = strlen(nodes_str);  /* length of Nodes */
+	maxlen[2] = strlen(files_str);  /* length of Files */
+	maxlen[3] = strlen(size_str);   /* length of Size */
 
 	for (i = 0; i < triples * 4; i++) {
 		size_t n;
@@ -688,18 +685,23 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 		case 0:
 			n = strlen(uint64_to_string(i / 4 + 1));
 			break;
+
 		case 1:
-			n = strlen(uint64_to_string(*t + nonhsep[HSEP_IDX_NODES]));
-			t++;
-			break;
 		case 2:
-			n = strlen(uint64_to_string(*t + nonhsep[HSEP_IDX_FILES]));
-			t++;
-			break;
 		case 3:
-			n = strlen(short_kb_size(*t + nonhsep[HSEP_IDX_KIB]));
-			t++;
+			{
+				guint j = 0;
+				
+				switch (m) {
+				case 1: j = HSEP_IDX_NODES; break;
+				case 2: j = HSEP_IDX_FILES; break;
+				case 3: j = HSEP_IDX_KIB; break;
+				}
+				
+				n = strlen(uint64_to_string(t[i][j] + non_hsep[j]));
+			}
 			break;
+			
 		default:
 			n = 0;
 			g_assert_not_reached();
@@ -709,8 +711,11 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 			maxlen[m] = n;
 	}
 
-	gm_snprintf(buf, sizeof(buf), "%*s  %*s  %*s  %*s\n", maxlen[0], hopsstr,
-		maxlen[1], nodesstr, maxlen[2], filesstr, maxlen[3], sizestr);
+	gm_snprintf(buf, sizeof(buf), "%*s  %*s  %*s  %*s\n",
+		maxlen[0], hops_str,
+		maxlen[1], nodes_str,
+		maxlen[2], files_str,
+		maxlen[3], size_str);
 
 	shell_write(sh, buf);
 
@@ -719,21 +724,22 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 
 	shell_write(sh, "\n");
 
-	t = (guint64 *) &table[1];
+	t = &table[1];
 
 	for (i = 0; i < triples; i++) {
+		const gchar *s1, *s2, *s3;
+		
+		s1 = uint64_to_string(t[i][HSEP_IDX_NODES] + non_hsep[HSEP_IDX_NODES]);
+		s2 = uint64_to_string2(t[i][HSEP_IDX_FILES] + non_hsep[HSEP_IDX_FILES]);
+		s3 = short_kb_size(t[i][HSEP_IDX_KIB] + non_hsep[HSEP_IDX_KIB]);
+		
 		gm_snprintf(buf, sizeof(buf), "%*d  %*s  %*s  %*s\n",
-			maxlen[0],
-				i + 1,
-			maxlen[1],
-				uint64_to_string(t[HSEP_IDX_NODES] + nonhsep[HSEP_IDX_NODES]),
-			maxlen[2],
-				uint64_to_string2(t[HSEP_IDX_FILES] + nonhsep[HSEP_IDX_FILES]),
-			maxlen[3],
-				short_kb_size(t[HSEP_IDX_KIB] + nonhsep[HSEP_IDX_KIB]));
+			maxlen[0], i + 1,
+			maxlen[1], s1,
+			maxlen[2], s2,
+			maxlen[3], s3);
 
 		shell_write(sh, buf);
-		t += 3;
 	}
 
 }
