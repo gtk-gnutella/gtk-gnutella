@@ -2585,6 +2585,7 @@ socket_plain_sendto(
 {
 	struct gnutella_socket *s = wio->ctx;
 	socket_addr_t addr;
+	ssize_t ret;
 
 #ifdef USE_TLS
 	g_assert(!SOCKET_USES_TLS(s));
@@ -2592,8 +2593,16 @@ socket_plain_sendto(
 
 	socket_addr_set(&addr, to->ip, to->port);
 
-	return sendto(s->file_desc, buf, size, 0,
+	ret = sendto(s->file_desc, buf, size, 0,
 		(const struct sockaddr *) &addr, sizeof addr);
+	
+	if ((ssize_t) -1 == ret && udp_debug) {
+		gint e = errno;
+
+		g_warning("sendto() failed: %s", g_strerror(e));
+		errno = e;
+	}
+	return ret;
 }
 
 static ssize_t
