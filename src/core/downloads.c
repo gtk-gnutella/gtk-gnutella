@@ -5780,7 +5780,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		 * our user-agent.  So clear the DLS_A_BANNING flag, which could
 		 * have been activated previously because the remote host was
 		 * looking as a fake GTKG due to a de-synchronized clock.
-		 *//
+		 */
 
 		if (is_strprefix(download_vendor_str(d), "gtk-gnutella/")) {
 			gboolean was_banning = d->server->attrs & DLS_A_BANNING;
