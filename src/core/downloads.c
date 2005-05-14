@@ -2656,7 +2656,7 @@ download_connect(struct download *d)
 	if (
 		(server->attrs & DLS_A_DNS_LOOKUP) ||
 		(server->hostname != NULL &&
-			time(NULL) - server->dns_lookup > DOWNLOAD_DNS_LOOKUP)
+			delta_time(time(NULL), server->dns_lookup) > DOWNLOAD_DNS_LOOKUP)
 	) {
 		g_assert(server->hostname != NULL);
 
@@ -5637,7 +5637,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 					gcu_gui_update_download(d, TRUE);
 				}
 			} else {
-				/* Host might support queueing. If so, retreive queue status */
+				/* Host might support queueing. If so, retrieve queue status */
 				/* Server has nothing for us yet, give it time */
 				download_queue_delay(d,
 					MAX(delay, download_retry_refused_delay),
@@ -5780,7 +5780,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		 * our user-agent.  So clear the DLS_A_BANNING flag, which could
 		 * have been activated previously because the remote host was
 		 * looking as a fake GTKG due to a de-synchronized clock.
-		 */
+		 *//
 
 		if (is_strprefix(download_vendor_str(d), "gtk-gnutella/")) {
 			gboolean was_banning = d->server->attrs & DLS_A_BANNING;
@@ -6473,7 +6473,7 @@ download_send_request(struct download *d)
 	struct gnutella_socket *s = d->socket;
 	struct dl_file_info *fi;
 	size_t rw;
-	gint sent;
+	ssize_t sent;
 	gboolean n2r = FALSE;
 	const gchar *sha1;
 
@@ -6656,7 +6656,7 @@ picked:
 		/* Request exact range, unless we're asking for the full file */
 
 		if (d->size != download_filesize(d)) {
-			guint32 start = d->skip - d->overlap_size;
+			filesize_t start = d->skip - d->overlap_size;
 
 			d->range_end = d->skip + d->size;
 
@@ -6748,7 +6748,7 @@ picked:
 
 	socket_tos_normal(s);
 
-	if (-1 == (sent = bws_write(bws.out, &s->wio, dl_tmp, rw))) {
+	if ((ssize_t) -1 == (sent = bws_write(bws.out, &s->wio, dl_tmp, rw))) {
 		/*
 		 * If download is queued with PARQ, don't stop the download on a write
 		 * error or we'd loose the PARQ ID, and the download entry.  If the
