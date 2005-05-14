@@ -726,11 +726,14 @@ node_slow_timer(time_t now)
 	 * If we're running in ultra node and we are TCP-firewalled, then
 	 * switch to leaf mode.
 	 */
-	if (current_peermode == NODE_P_ULTRA && is_firewalled) {
+	if (
+		configured_peermode == NODE_P_AUTO &&
+		current_peermode == NODE_P_ULTRA &&
+		is_firewalled
+	) {
 		g_warning("firewalled node being demoted from Ultrapeer status");
 		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
 		gnet_prop_set_guint32_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
-		gnet_prop_set_guint32_val(PROP_CONFIGURED_PEERMODE, NODE_P_AUTO);
 		return;
 	}
 }
