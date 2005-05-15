@@ -112,5 +112,90 @@
     guint64 _v = guint64_to_LE(v); memcpy(a, &_v, sizeof _v); \
 } G_STMT_END
 
+/*
+ * Alternate inline functions
+ */
+
+static inline guint16
+peek_be16(gconstpointer p)
+{
+	const guint8 *q = p;
+	return q[1] | (q[0] << 8);
+}
+
+static inline guint32
+peek_be32(gconstpointer p)
+{
+	const guint8 *q = p;
+	return q[3] | (q[2] << 8) | (q[1] << 16) | (q[0] << 24);
+}
+
+static inline guint16
+peek_le16(gconstpointer p)
+{
+	const guint8 *q = p;
+	return q[0] | (q[1] << 8);
+}
+
+static inline guint32
+peek_le32(gconstpointer p)
+{
+	const guint8 *q = p;
+	return q[0] | (q[1] << 8) | (q[2] << 16) | (q[3] << 24);
+}
+
+/*
+ * The poke_* functions return a pointer to the next byte after the
+ * written bytes.
+ */
+
+static inline gpointer
+poke_be16(gpointer p, guint16 v)
+{
+	guint8 *q = p;
+	
+	q[0] = v >> 8;
+	q[1] = v;
+
+	return &q[2];
+}
+
+static inline gpointer
+poke_be32(gpointer p, guint32 v)
+{
+	guint8 *q = p;
+	
+	q[0] = v >> 24;
+	q[1] = v >> 16;
+	q[2] = v >> 8;
+	q[3] = v;
+
+	return &q[4];
+}
+
+static inline gpointer
+poke_le16(gpointer p, guint16 v)
+{
+	guint8 *q = p;
+	
+	q[0] = v;
+	q[1] = v >> 8;
+
+	return &q[2];
+}
+
+static inline gpointer
+poke_le32(gpointer p, guint32 v)
+{
+	guint8 *q = p;
+	
+	q[0] = v;
+	q[1] = v >> 8;
+	q[2] = v >> 16;
+	q[3] = v >> 24;
+
+	return &q[4];
+}
+
 #endif /* _endian_h_ */
 /* vi: set ts=4 sw=4 cindent: */
