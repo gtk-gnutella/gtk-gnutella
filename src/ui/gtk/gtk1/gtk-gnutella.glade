@@ -9345,7 +9345,6 @@
 	      <class>GtkHBox</class>
 	      <name>hbox97</name>
 	      <border_width>2</border_width>
-	      <visible>False</visible>
 	      <homogeneous>False</homogeneous>
 	      <spacing>4</spacing>
 	      <child>

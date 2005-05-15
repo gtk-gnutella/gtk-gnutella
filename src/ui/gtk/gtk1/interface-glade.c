@@ -7418,6 +7418,7 @@ create_dlg_filters (void)
   gtk_widget_ref (hbox97);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "hbox97", hbox97,
                             (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox97);
   gtk_box_pack_start (GTK_BOX (vbox32), hbox97, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (hbox97), 2);
 
