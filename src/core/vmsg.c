@@ -217,20 +217,20 @@ vmsg_infostr(gconstpointer data, gint size)
 	guint16 version;
 	const struct vmsg *vm;
 
-	if ((size_t) size < sizeof(*v))
+	if ((size_t) size < sizeof *v)
 		return "????";
 
-	READ_GUINT32_BE(v->vendor, vendor);
-	READ_GUINT16_LE(v->selector_id, id);
-	READ_GUINT16_LE(v->version, version);
+	vendor = peek_be32(v->vendor);
+	id = peek_le16(v->selector_id);
+	version = peek_le16(v->version);
 
 	vm = find_message(vendor, id, version);
 
 	if (vm == NULL)
-		gm_snprintf(msg, sizeof(msg), "%s/%uv%u",
+		gm_snprintf(msg, sizeof msg , "%s/%uv%u",
 			vendor_code_str(vendor), id, version);
 	else
-		gm_snprintf(msg, sizeof(msg), "%s/%uv%u '%s'",
+		gm_snprintf(msg, sizeof msg, "%s/%uv%u '%s'",
 			vendor_code_str(vendor), id, version, vm->name);
 
 	return msg;
@@ -255,9 +255,9 @@ vmsg_handle(struct gnutella_node *n)
 		return;
 	}
 
-	READ_GUINT32_BE(v->vendor, vendor);
-	READ_GUINT16_LE(v->selector_id, id);
-	READ_GUINT16_LE(v->version, version);
+	vendor = peek_be32(v->vendor);
+	id = peek_le16(v->selector_id);
+	version = peek_le16(v->version);
 
 	vm = find_message(vendor, id, version);
 
@@ -306,7 +306,7 @@ vmsg_fill_header(struct gnutella_header *header, guint32 size, guint32 maxsize)
 
 	msize = size + sizeof(struct gnutella_vendor);
 
-	WRITE_GUINT32_LE(msize, header->size);
+	poke_le32(&header->size, msize);
 
 	msize += sizeof(struct gnutella_header);
 
@@ -327,9 +327,9 @@ static gchar *
 vmsg_fill_type(
 	struct gnutella_vendor *base, guint32 vendor, guint16 id, guint16 version)
 {
-	WRITE_GUINT32_BE(vendor, base->vendor);
-	WRITE_GUINT16_LE(id, base->selector_id);
-	WRITE_GUINT16_LE(version, base->version);
+	poke_be32(base->vendor, vendor);
+	poke_le16(base->selector_id, id);
+	poke_le16(base->version, version);
 
 	return (gchar *) &base[1];
 }
@@ -365,7 +365,7 @@ handle_messages_supported(struct gnutella_node *n,
 	if (NODE_IS_UDP(n))			/* Don't waste time if we get this via UDP */
 		return;
 
-	READ_GUINT16_LE(payload, count);
+	count = peek_le16(payload);
 
 	if (vmsg_debug)
 		printf("VMSG node %s <%s> supports %u vendor message%s\n",
@@ -390,12 +390,10 @@ handle_messages_supported(struct gnutella_node *n,
 		guint32 vendor;
 		guint16 id, version;
 
-		READ_GUINT32_BE(description, vendor);
-		description += 4;
-		READ_GUINT16_LE(description, id);
-		description += 2;
-		READ_GUINT16_LE(description, version);
-		description += 2;
+		vendor = peek_be32(&description[0]);
+		id = peek_le16(&description[4]);
+		version = peek_le16(&description[6]);
+		description += 8;
 
 		vm = find_message(vendor, id, version);
 
@@ -477,18 +475,15 @@ vmsg_send_messages_supported(struct gnutella_node *n)
 		if (msg->vendor == T_0000)		/* Don't send info about ourselves */
 			continue;
 
-		WRITE_GUINT32_BE(msg->vendor, payload);
-		payload += 4;
-		WRITE_GUINT16_LE(msg->id, payload);
-		payload += 2;
-		WRITE_GUINT16_LE(msg->version, payload);
-		payload += 2;
+		payload = poke_be32(payload, msg->vendor);
+		payload = poke_le16(payload, msg->id);
+		payload = poke_le16(payload, msg->version);
 
 		count++;
 	}
 
 	/* Update the size */
-	WRITE_GUINT16_LE(count, count_ptr);
+	poke_le16(count_ptr, count);
 
 	paysize = count * VMS_ITEM_SIZE	+ sizeof count;
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof v_tmp);
@@ -508,7 +503,7 @@ handle_features_supported(struct gnutella_node *n,
 	gchar *description;
 	gint expected;
 
-	READ_GUINT16_LE(payload, count);
+	count = peek_le16(payload);
 
 	if (vmsg_debug)
 		printf("VMSG node %s <%s> supports %u extra feature%s\n",
@@ -532,10 +527,9 @@ handle_features_supported(struct gnutella_node *n,
 		guint32 vendor;
 		guint16 version;
 
-		READ_GUINT32_BE(description, vendor);
-		description += 4;
-		READ_GUINT16_LE(description, version);
-		description += 2;
+		vendor = peek_be32(&description[0]);
+		version = peek_le16(&description[4]);
+		description += 6;
 
 		if (vmsg_debug > 1)
 			printf("VMSG node %s <%s> supports feature %s/%u\n",
@@ -605,7 +599,7 @@ handle_tcp_connect_back(struct gnutella_node *n,
 		return;
 	}
 
-	READ_GUINT16_LE(payload, port);
+	port = peek_le16(payload);
 
 	if (port == 0) {
 		g_warning("got improper port #%d in %s from %s <%s>",
@@ -633,7 +627,7 @@ vmsg_send_tcp_connect_back(struct gnutella_node *n, guint16 port)
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof v_tmp);
 	payload = vmsg_fill_type(&m->data, T_BEAR, 7, 1);
 
-	WRITE_GUINT16_LE(port, payload);
+	poke_le16(payload, port);
 
 	gmsg_sendto_one(n, m, msgsize);
 }
@@ -675,7 +669,7 @@ handle_udp_connect_back(struct gnutella_node *n,
 		g_assert_not_reached();
 	}
 
-	READ_GUINT16_LE(payload, port);
+	port = peek_le16(payload);
 
 	if (port == 0) {
 		g_warning("got improper port #%d in %s from %s <%s>",
@@ -703,8 +697,8 @@ vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port)
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof v_tmp);
 	payload = vmsg_fill_type(&m->data, T_GTKG, 7, 1);
 
-	WRITE_GUINT16_LE(port, payload);
-	memcpy(payload + 2, servent_guid, 16);
+	payload = poke_le16(payload, port);
+	memcpy(payload, servent_guid, 16);
 
 	gmsg_sendto_one(n, m, msgsize);
 }
@@ -788,12 +782,12 @@ handle_proxy_ack(struct gnutella_node *n,
 	}
 
 	if (vmsg->version >= 2) {
-		READ_GUINT32_BE(payload, ip);
+		ip = peek_be32(payload);
 		payload += 4;
 	} else
 		ip = n->ip;
 
-	READ_GUINT16_LE(payload, port);
+	port = peek_le16(payload);
 
 	if (vmsg_debug > 2)
 		g_message("got proxy ACK from %s <%s>: proxy at %s",
@@ -836,11 +830,10 @@ vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid, gint version)
 	payload = vmsg_fill_type(&m->data, T_LIME, 22, version);
 
 	if (version >= 2) {
-		WRITE_GUINT32_BE(listen_ip(), payload);
-		payload += 4;
+		payload = poke_be32(payload, listen_ip());
 	}
 
-	WRITE_GUINT16_LE(listen_port, payload);
+	poke_le16(payload, listen_port);
 
 	/*
 	 * Reply with a control message, so that the issuer knows that we can
@@ -918,8 +911,7 @@ handle_qstat_answer(struct gnutella_node *n,
 	 * Let the dynamic querying side about the reply.
 	 */
 
-	READ_GUINT16_LE(payload, kept);
-
+	kept = peek_le16(payload);
 	if (kept)
 		dq_got_query_status(n->header.muid, NODE_ID(n), kept);
 }
@@ -943,7 +935,7 @@ vmsg_send_qstat_answer(struct gnutella_node *n, gchar *muid, guint16 hits)
 	memcpy(m->header.muid, muid, 16);
 	payload = vmsg_fill_type(&m->data, T_BEAR, 12, 1);
 
-	WRITE_GUINT16_LE(hits, payload);
+	poke_le16(payload, hits);
 
 	if (vmsg_debug > 1)
 		printf("VMSG sending %s with hits=%u to %s <%s>\n",
@@ -1198,27 +1190,23 @@ handle_time_sync_reply(struct gnutella_node *n,
 	STATIC_ASSERT(sizeof(sent) >= 2 * sizeof(guint32));
 
 	muid = n->header.muid;
-	READ_GUINT32_BE(muid, sent.tv_sec);
-	muid += 4;
-	READ_GUINT32_BE(muid, sent.tv_usec);
-	muid += 4;
+	sent.tv_sec = peek_be32(&muid[0]);
+	sent.tv_usec = peek_be32(&muid[4]);
 
 	/*
 	 * Decompile replied time.
 	 */
 
-	READ_GUINT32_BE(muid, replied.tv_sec);
-	muid += 4;
-	READ_GUINT32_BE(muid, replied.tv_usec);
+	replied.tv_sec = peek_be32(&muid[8]);
+	replied.tv_usec = peek_be32(&muid[12]);
 
 	/*
 	 * Decompile the time at which they got the message.
 	 */
 
 	data = payload + 1;
-	READ_GUINT32_BE(data, received.tv_sec);
-	data += 4;
-	READ_GUINT32_BE(data, received.tv_usec);
+	received.tv_sec = peek_be32(&data[0]);
+	received.tv_usec = peek_be32(&data[4]);
 
 	tsync_got_reply(n, &sent, &received, &replied, &got, ntp);
 }
@@ -1242,18 +1230,15 @@ vmsg_time_sync_req_stamp(pmsg_t *mb, struct mqueue *unused_q)
 	 * Read the old timestamp.
 	 */
 
-	READ_GUINT32_BE(muid, old.tv_sec);
-	muid += 4;
-	READ_GUINT32_BE(muid, old.tv_usec);
+	old.tv_sec = peek_be32(&muid[0]);
+	old.tv_usec = peek_be32(&muid[4]);
 
 	tm_now(&now);
 	now.tv_sec = clock_loc2gmt(now.tv_sec);
 
-	muid -= 4;								/* Rewind */
-	WRITE_GUINT32_BE(now.tv_sec, muid);		/* First half of MUID */
-	muid += 4;
-	WRITE_GUINT32_BE(now.tv_usec, muid);
-
+	muid = poke_be32(muid, now.tv_sec);
+	muid = poke_be32(muid, now.tv_usec);
+	
 	/*
 	 * Inform the tsync layer that the "T1" timestamp is not the one
 	 * we registered in vmsg_send_time_sync_req().  Tagging via the
@@ -1308,9 +1293,8 @@ vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *sent)
 
 	pmsg_set_check(mb, vmsg_time_sync_req_stamp);
 
-	WRITE_GUINT32_BE(sent->tv_sec, muid);
-	muid += 4;
-	WRITE_GUINT32_BE(sent->tv_usec, muid);
+	muid = poke_be32(muid, sent->tv_sec);
+	muid = poke_be32(muid, sent->tv_usec);
 
 	if (NODE_IS_UDP(n))
 		mq_udp_node_putq(n->outq, mb, n);
@@ -1337,9 +1321,8 @@ vmsg_time_sync_reply_stamp(pmsg_t *mb, struct mqueue *unused_q)
 	tm_now(&now);
 	now.tv_sec = clock_loc2gmt(now.tv_sec);
 
-	WRITE_GUINT32_BE(now.tv_sec, muid);		/* Second half of MUID */
-	muid += 4;
-	WRITE_GUINT32_BE(now.tv_usec, muid);
+	muid = poke_be32(muid, now.tv_sec);	/* Second half of MUID */
+	muid = poke_be32(muid, now.tv_usec);
 
 	return TRUE;
 }
@@ -1373,9 +1356,8 @@ vmsg_send_time_sync_reply(struct gnutella_node *n, gboolean ntp, tm_t *got)
 	 * the processing time from the computation of the round-trip time.
 	 */
 
-	WRITE_GUINT32_BE(got->tv_sec, payload);
-	payload += 4;
-	WRITE_GUINT32_BE(got->tv_usec, payload);
+	payload = poke_be32(payload, got->tv_sec);
+	payload = poke_be32(payload, got->tv_usec);
 
 	mb = gmsg_to_ctrl_pmsg(m, msgsize);		/* Send as quickly as possible */
 	muid = pmsg_start(mb);					/* MUID of the reply */
