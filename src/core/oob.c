@@ -66,15 +66,16 @@ RCSID("$Id$");
  * A set of hits awaiting delivery.
  */
 struct oob_results {
-	gchar *muid;			/* (atom) MUID of the query that generated hits */
-	GSList *files;			/* List of shared_file_t */
-	gint count;				/* Amount of hits to deliver */
-	gnet_host_t dest;		/* The host to which we must deliver */
-	gint notify_requeued;	/* Amount of LIME/12v2 requeued after dropping */
 	gpointer ev_expire;		/* Global expiration event */
 	gpointer ev_timeout;	/* Reply waiting timeout */
+	gchar *muid;			/* (atom) MUID of the query that generated hits */
+	GSList *files;			/* List of shared_file_t */
+	gnet_host_t dest;		/* The host to which we must deliver */
+	gint count;				/* Amount of hits to deliver */
+	gint notify_requeued;	/* Amount of LIME/12v2 requeued after dropping */
 	gboolean use_ggep_h;	/* Whether GGEP "H" can be used for SHA1 coding */
 	gint refcount;
+	gboolean expired;		/* Set when ev_expire triggered */
 };
 
 /*
@@ -132,19 +133,19 @@ results_make(
 {
 	struct oob_results *r;
 
-	r = walloc0(sizeof(*r));
+	r = walloc0(sizeof *r);
 	r->muid = atom_guid_get(muid);
 	r->files = files;
 	r->count = count;
 	r->dest = *to;			/* Struct copy */
 	r->use_ggep_h = ggep_h;
 	r->refcount = 1;
+	r->expired = FALSE;
 
 	r->ev_expire = cq_insert(callout_queue, OOB_EXPIRE_MS, results_destroy, r);
 
 	g_assert(!g_hash_table_lookup(results_by_muid, r->muid));
 	g_hash_table_insert(results_by_muid, r->muid, r);
-	r->refcount++;
 
 	g_assert(num_oob_records >= 0);
 	num_oob_records++;
@@ -158,43 +159,33 @@ results_make(
  * Dispose of results.
  */
 static void
-results_free(struct oob_results *r)
+results_free_remove(struct oob_results *r)
 {
 	GSList *sl;
 
 	g_assert(r->refcount > 0);
+	g_assert(!r->expired ^ (NULL == r->ev_expire));
 
-	/**
-	 *	All members are freed on the first call. However, ``r'' itself
-	 *	is not freed until all references are removed.
-	 */
+	r->refcount--;
 	
-	if (r->ev_expire) {
-		cq_cancel(callout_queue, r->ev_expire);
-		r->ev_expire = NULL;
-		g_assert(r->refcount > 0);
-		r->refcount--;
-	}
-	if (r->ev_timeout) {
-		cq_cancel(callout_queue, r->ev_timeout);
-		r->ev_timeout = NULL;
-		g_assert(r->refcount > 0);
-		r->refcount--;
-	}
-	if (r->muid) {
-		atom_guid_free(r->muid);
-		r->muid = NULL;
+	if (r->expired || 0 == r->refcount) {
+		if (r->muid) {
+			g_assert(r == g_hash_table_lookup(results_by_muid, r->muid));
+			g_hash_table_remove(results_by_muid, r->muid);
+		
+			atom_guid_free(r->muid);
+			r->muid = NULL;
+		}
+
+		for (sl = r->files; sl; sl = g_slist_next(sl)) {
+			shared_file_t *sf = sl->data;
+			shared_file_unref(sf);
+		}
+		g_slist_free(r->files);
+		r->files = NULL;
 	}
 
-	for (sl = r->files; sl; sl = g_slist_next(sl)) {
-		shared_file_t *sf = (shared_file_t *) sl->data;
-		shared_file_unref(sf);
-	}
-	g_slist_free(r->files);
-	r->files = NULL;
-
-	g_assert(r->refcount > 0);
-	if (--(r->refcount) > 0)
+	if (r->refcount > 0)
 		return;
 
 	g_assert(num_oob_records > 0);
@@ -202,26 +193,17 @@ results_free(struct oob_results *r)
 	if (query_debug > 2)
 		g_message("results_free: num_oob_records=%d", num_oob_records);
 
-	wfree(r, sizeof(*r));
-}
-
-/**
- * Dispose of results, removing entry from the `results_by_muid' table.
- */
-static void
-results_free_remove(struct oob_results *r)
-{
-	g_assert(r->refcount > 0);
-
-	g_assert(r->muid);
-	if (results_by_muid) {
-		g_assert(r == g_hash_table_lookup(results_by_muid, r->muid));
-		g_hash_table_remove(results_by_muid, r->muid);
-		r->refcount--;
-		g_assert(r->refcount > 0);
+	if (r->ev_expire) {
+		g_assert(!r->expired);
+		cq_cancel(callout_queue, r->ev_expire);
+		r->ev_expire = NULL;
+	}
+	if (r->ev_timeout) {
+		cq_cancel(callout_queue, r->ev_timeout);
+		r->ev_timeout = NULL;
 	}
 
-	results_free(r);
+	wfree(r, sizeof *r);
 }
 
 /**
@@ -230,11 +212,11 @@ results_free_remove(struct oob_results *r)
 static void
 results_destroy(cqueue_t *unused_cq, gpointer obj)
 {
-	struct oob_results *r = (struct oob_results *) obj;
+	struct oob_results *r = obj;
 
 	(void) unused_cq;
+	g_assert(!r->expired && NULL != r->ev_expire);
 
-	g_assert(r->refcount > 0);
 	if (query_debug)
 		printf("OOB query %s from %s expired with unclaimed %d hit%s\n",
 			guid_hex_str(r->muid), ip_port_to_gchar(r->dest.ip, r->dest.port),
@@ -243,6 +225,7 @@ results_destroy(cqueue_t *unused_cq, gpointer obj)
 	gnet_stats_count_general(GNR_UNCLAIMED_OOB_HITS, 1);
 
 	r->ev_expire = NULL;		/* The timer which just triggered */
+	r->expired = TRUE;
 	results_free_remove(r);
 }
 
@@ -252,11 +235,10 @@ results_destroy(cqueue_t *unused_cq, gpointer obj)
 static void
 results_timeout(cqueue_t *unused_cq, gpointer obj)
 {
-	struct oob_results *r = (struct oob_results *) obj;
+	struct oob_results *r = obj;
 
 	(void) unused_cq;
 
-	g_assert(r->refcount > 0);
 	if (query_debug)
 		printf("OOB query %s, no ACK from %s to claim %d hit%s\n",
 			guid_hex_str(r->muid), ip_port_to_gchar(r->dest.ip, r->dest.port),
@@ -285,13 +267,13 @@ servent_free_remove(struct servent *s)
 static void
 servent_service(cqueue_t *cq, gpointer obj)
 {
-	struct servent *s = (struct servent *) obj;
+	struct servent *s = obj;
 	pmsg_t *mb;
 	mqueue_t *q;
 
 	s->ev_service = NULL;		/* The callback that just triggered */
 
-	mb = (pmsg_t *) fifo_remove(s->fifo);
+	mb = fifo_remove(s->fifo);
 	if (mb == NULL)
 		goto remove;
 
@@ -332,8 +314,8 @@ servent_make(gnet_host_t *host)
 {
 	struct servent *s;
 
-	s = walloc(sizeof(*s));
-	s->host = walloc(sizeof(gnet_host_t));
+	s = walloc(sizeof *s);
+	s->host = walloc(sizeof *s->host);
 	*s->host = *host;		/* Struct copy */
 	s->fifo = fifo_make();
 	s->ev_service = NULL;
@@ -362,9 +344,9 @@ servent_free(struct servent *s)
 {
 	if (s->ev_service)
 		cq_cancel(callout_queue, s->ev_service);
-	wfree(s->host, sizeof(gnet_host_t));
+	wfree(s->host, sizeof *s->host);
 	fifo_free_all(s->fifo, free_pmsg, NULL);
-	wfree(s, sizeof(*s));
+	wfree(s, sizeof *s);
 }
 
 /**
@@ -407,8 +389,6 @@ oob_deliver_hits(struct gnutella_node *n, gchar *muid, guint8 wanted)
 				node_ip(n), guid_hex_str(muid), wanted, wanted == 1 ? "" : "s");
 		return;
 	}
-
-	g_assert(r->refcount > 0);
 
 	/*
 	 * Here's what could happen with proxied OOB queries:
@@ -502,10 +482,9 @@ oob_deliver_hits(struct gnutella_node *n, gchar *muid, guint8 wanted)
 static void
 oob_pmsg_free(pmsg_t *mb, gpointer arg)
 {
-	struct oob_results *r = (struct oob_results *) arg;
+	struct oob_results *r = arg;
 
 	g_assert(pmsg_is_extended(mb));
-	g_assert(r->refcount > 0);
 
 	/*
 	 * If we sent the message, great!  Arm a timer to ensure we get a
@@ -513,21 +492,28 @@ oob_pmsg_free(pmsg_t *mb, gpointer arg)
 	 */
 
 	if (pmsg_was_sent(mb)) {
-		g_assert(r->ev_timeout == NULL);
-
-		if (query_debug || udp_debug)
-			printf("OOB query %s, notified %s about %d hit%s\n",
-				guid_hex_str(r->muid),
-				ip_port_to_gchar(r->dest.ip, r->dest.port), r->count,
-				r->count == 1 ? "" : "s");
-
-		/*
-		 * If we don't get any ACK back, we'll discard the results.
+	
+		/* There may have been up to OOB_MAX_RETRY in the queue, ``r''
+		 * is shared between all of them. So r->ev_timeout may have been
+		 * set already.
 		 */
+		if (r->ev_timeout) {
+			results_free_remove(r);
+		} else {
+			
+			if (query_debug || udp_debug)
+				printf("OOB query %s, notified %s about %d hit%s\n",
+						guid_hex_str(r->muid),
+						ip_port_to_gchar(r->dest.ip, r->dest.port), r->count,
+						r->count == 1 ? "" : "s");
 
-		r->refcount++;
-		r->ev_timeout = cq_insert(callout_queue, OOB_TIMEOUT_MS,
-			results_timeout, r);
+			/*
+			 * If we don't get any ACK back, we'll discard the results.
+			 */
+
+			r->ev_timeout = cq_insert(callout_queue, OOB_TIMEOUT_MS,
+					results_timeout, r);
+		}
 
 		return;
 	}
@@ -555,12 +541,9 @@ oob_send_reply_ind(struct oob_results *r)
 	pmsg_t *mb;
 	pmsg_t *emb;
 
-	g_assert(r->refcount > 0);
-	r->refcount++;
-	g_assert(r->refcount > 0);
-
 	mb = vmsg_build_oob_reply_ind(r->muid, MIN(r->count, 255));
 	emb = pmsg_clone_extend(mb, oob_pmsg_free, r);
+	r->refcount++;
 	pmsg_free(mb);
 
 	if (query_debug || udp_debug)
@@ -598,7 +581,6 @@ oob_got_results(
 	to.port = port;
 
 	r = results_make(n->header.muid, files, count, &to, use_ggep_h);
-	g_assert(r->refcount > 0);
 
 	oob_send_reply_ind(r);
 }
@@ -619,26 +601,21 @@ oob_init(void)
 static void
 free_oob_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
-	gchar *muid = (gchar *) key;
-	struct oob_results *r = (struct oob_results *) value;
+	gchar *muid = key;
+	struct oob_results *r = value;
 
 	(void) unused_udata;
 	g_assert(r->refcount > 0);
-	g_assert(muid != NULL);
+	g_assert(NULL != r->muid);
 	g_assert(muid == r->muid);		/* Key is same as results's MUID */
 
-	/*
-	 * Free the r->muid first so that results_free() doesn't remove
-	 * it from ``results_by_muid'' while iterating over it.
-	 */
+	/* Must be freed here to prevent that results_free_remove() tries
+	 * to remove it from the hash table whilst iterating over it. */
 	atom_guid_free(r->muid);
 	r->muid = NULL;
-	r->refcount--; /* Reference by ``results_by_muid'' */
 
-	if (!r->ev_expire && !r->ev_timeout)
-		g_message("Leaked");
-	
-	results_free(r);
+	r->refcount = 1; /* Enforce release */	
+	results_free_remove(r);
 }
 
 /**
