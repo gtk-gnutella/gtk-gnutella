@@ -143,21 +143,27 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 	 * robust against bugs in the components we rely on. --RAM, 09/10/2003
 	 */
 	case EINPROGRESS:		/* Weird, but seen it -- RAM, 07/10/2003 */
-	{
-		struct attr *attr = (struct attr *) tx->opaque;
-		g_warning("%s(fd=%d) failed with weird errno = %d (%s), "
-			"assuming EAGAIN", func, attr->wio->fd(attr->wio), errno,
-			g_strerror(errno));
-	}
+		{
+			struct attr *attr = tx->opaque;
+			g_warning("%s(fd=%d) failed with weird errno = %d (%s), "
+					"assuming EAGAIN", func, attr->wio->fd(attr->wio), errno,
+					g_strerror(errno));
+		}
 		return 0;
+		
 	case EPIPE:
+	case ECONNRESET:
+		socket_eof(tx->node->socket);
+		/* In these cases a graceful shutdown should be unnecessary */
+		node_remove(tx->node, "Write failed: %s", g_strerror(errno));
+		return -1;
+		
 	case ENOSPC:
 #ifdef EDQUOT
 	case EDQUOT:
 #endif /* EDQUOT */
 	case EFBIG:
 	case EIO:
-	case ECONNRESET:
 	case ENETDOWN:
 	case ENETUNREACH:
 	case EHOSTUNREACH:
@@ -166,6 +172,7 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 		socket_eof(tx->node->socket);
 		node_shutdown(tx->node, "Write failed: %s", g_strerror(errno));
 		return -1;
+
 	default:
 		{
 			int terr = errno;
