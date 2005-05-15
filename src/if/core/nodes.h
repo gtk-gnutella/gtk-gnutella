@@ -176,13 +176,16 @@ typedef struct gnet_node_flags {
 /*
  * Node states.
  */
-#define GTA_NODE_CONNECTING			1	/* Making outgoing connection */
-#define GTA_NODE_HELLO_SENT			2	/* Sent 0.4 hello */
-#define GTA_NODE_WELCOME_SENT		3	/* Hello accepted, remote welcomed */
-#define GTA_NODE_CONNECTED			4	/* Connected at the Gnet level */
-#define GTA_NODE_REMOVING			5	/* Removing node */
-#define GTA_NODE_RECEIVING_HELLO	6	/* Receiving 0.6 headers */
-#define GTA_NODE_SHUTDOWN			7	/* Connection being shutdown */
+typedef enum {
+	GTA_NODE_CONNECTING			= 1,	/* Making outgoing connection */
+	GTA_NODE_HELLO_SENT			= 2,	/* Sent 0.4 hello */
+	GTA_NODE_WELCOME_SENT		= 3,	/* Hello accepted, remote welcomed */
+	GTA_NODE_CONNECTED			= 4,	/* Connected at the Gnet level */
+	GTA_NODE_REMOVING			= 5,	/* Removing node */
+	GTA_NODE_RECEIVING_HELLO	= 6,	/* Receiving 0.6 headers */
+	GTA_NODE_SHUTDOWN			= 7	/* Connection being shutdown */
+	
+} gnet_node_state_t;
 
 #define GTA_NORMAL_TTL				4	/* Regular TTL, for hops-flow */
 

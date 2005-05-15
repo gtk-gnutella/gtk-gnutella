@@ -118,9 +118,9 @@ typedef struct gnutella_node {
 	gchar *data;			/* data of the current message */
 	guint32 pos;			/* write position in data */
 
-	guchar status;			/* See possible values below */
-	guint32 flags;			/* See possible values below */
-	guint32 attrs;			/* See possible values below */
+	gnet_node_state_t status;	/* See possible values below */
+	guint32 flags;				/* See possible values below */
+	guint32 attrs;				/* See possible values below */
 
 	guint8 hops_flow;		/* Don't send queries with a >= hop count */
 	guint8 max_ttl;			/* Value of their advertised X-Max-TTL */
