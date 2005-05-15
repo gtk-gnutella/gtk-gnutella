@@ -154,8 +154,10 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 	case EPIPE:
 	case ECONNRESET:
 		socket_eof(tx->node->socket);
-		/* In these cases a graceful shutdown should be unnecessary */
-		node_remove(tx->node, "Write failed: %s", g_strerror(errno));
+		/*
+		 * FIXME: In these cases a graceful shutdown should be unnecessary
+		 */
+		node_shutdown(tx->node, "Write failed: %s", g_strerror(errno));
 		return -1;
 		
 	case ENOSPC:
