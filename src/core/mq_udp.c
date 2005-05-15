@@ -272,7 +272,7 @@ mq_udp_service(gpointer data)
 void
 mq_udp_putq(mqueue_t *q, pmsg_t *mb, gnet_host_t *to)
 {
-	gint size = pmsg_size(mb);
+	size_t size = pmsg_size(mb);
 	gchar *mbs = pmsg_start(mb);
 	guint8 function = gmsg_function(mbs);
 	guint8 hops = gmsg_hops(mbs);
@@ -300,22 +300,22 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, gnet_host_t *to)
 	 */
 
 	if (q->qhead == NULL) {
-		gint written;
+		ssize_t written;
 
-		if (pmsg_check(mb, q))
+		if (pmsg_check(mb, q)) {
 			written = tx_sendto(q->tx_drv, to, mbs, size);
-		else {
+		} else {
 			gnet_stats_count_flowc(mbs);
 			node_inc_txdrop(q->node);		/* Dropped during TX */
-			written = -1;
+			written = (ssize_t) -1;
 		}
 
-		if (written < 0)
+		if ((ssize_t) -1 == written)
 			goto cleanup;
 
 		node_add_tx_given(q->node, written);
 
-		if (written == size) {
+		if ((size_t) written == size) {
 			pmsg_mark_sent(mb);
 			node_inc_sent(q->node);
 			gnet_stats_count_sent(q->node, function, hops, size);
@@ -340,7 +340,8 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, gnet_host_t *to)
 
 		if (written > 0) {
 			g_warning("partial UDP write (%d bytes) to %s for %d-byte datagram",
-				written, ip_port_to_gchar(to->ip, to->port), size);
+				(gint) written, ip_port_to_gchar(to->ip, to->port),
+				(gint) size);
 			goto cleanup;
 		}
 
@@ -363,7 +364,7 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, gnet_host_t *to)
 
 cleanup:
 
-#if 1
+#if 0 
 	/* XXX: This is a temporary additional check for debugging purposes */
 	{
 		gint i;
