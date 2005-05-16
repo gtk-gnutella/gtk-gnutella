@@ -163,6 +163,7 @@ tx_dgram_write_error(txdrv_t *tx, gnet_host_t *to, const char *func)
 #endif /* EDQUOT */
 	case EFBIG:
 	case EIO:
+	case EADDRNOTAVAIL:
 	case ECONNABORTED:
 	case ECONNRESET:
 	case ECONNREFUSED:
