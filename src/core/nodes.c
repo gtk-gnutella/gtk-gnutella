@@ -377,12 +377,14 @@ string_table_free(GHashTable *ht)
 static void
 node_tsync_udp(cqueue_t *unused_cq, gpointer obj)
 {
-	gnutella_node_t *n = (gnutella_node_t *) obj;
+	gnutella_node_t *n = obj;
 	gnutella_node_t *udp = NULL, *tn;
 
 	(void) unused_cq;
 	g_assert(!NODE_IS_UDP(n));
 	g_assert(n->attrs & NODE_A_TIME_SYNC);
+
+	n->tsync_ev = NULL;	/* has been freed before calling this function */
 
 	/*
 	 * If we did not get replies within the reasonable time period, we
@@ -393,8 +395,8 @@ node_tsync_udp(cqueue_t *unused_cq, gpointer obj)
 		udp = node_udp_get_ip_port(n->gnet_ip, n->gnet_port);
 
 	tn = udp == NULL ? n : udp;
-	g_return_if_fail(tn->ip != 0);
-	g_return_if_fail(tn->port != 0);
+	if (!host_is_valid(tn->ip, tn->port))
+		return;
 
 	tsync_send(tn, n->id);
 
@@ -2635,7 +2637,7 @@ node_became_firewalled(void)
 	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 
-		if (sent < 3 && n->attrs & NODE_A_CAN_VENDOR) {
+		if (0 != listen_port && sent < 3 && n->attrs & NODE_A_CAN_VENDOR) {
 			vmsg_send_tcp_connect_back(n, listen_port);
 			sent++;
 
@@ -2663,18 +2665,21 @@ node_became_udp_firewalled(void)
 
 	g_assert(is_udp_firewalled);
 
+	if (0 == listen_port)
+		return;
+
 	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 
-		if (n->attrs & NODE_A_CAN_VENDOR) {
-			vmsg_send_udp_connect_back(n, listen_port);
+		if (0 == (n->attrs & NODE_A_CAN_VENDOR))
+			continue;
 		
-			g_message("sent UDP connect back request to %s",
+		vmsg_send_udp_connect_back(n, listen_port);
+		g_message("sent UDP connect back request to %s",
 				ip_port_to_gchar(n->ip, n->port));
 			
-			if (3 == ++sent)
-				break;
-		}
+		if (3 == ++sent)
+			break;
 	}
 }
 
@@ -2932,14 +2937,15 @@ node_is_now_connected(struct gnutella_node *n)
 	if (n->attrs & NODE_A_CAN_VENDOR) {
 		vmsg_send_messages_supported(n);
 		if (is_firewalled) {
-			vmsg_send_tcp_connect_back(n, listen_port);
+			if (0 != listen_port)
+				vmsg_send_tcp_connect_back(n, listen_port);
 			if (!NODE_IS_LEAF(n))
 				send_proxy_request(n);
 		}
 		if (udp_active()) {
 			if (!recv_solicited_udp)
 				udp_send_ping(n->ip, n->port);
-			else if (is_udp_firewalled)
+			else if (is_udp_firewalled && 0 != listen_port)
 				vmsg_send_udp_connect_back(n, listen_port);
 		}
 	}
