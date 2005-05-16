@@ -131,6 +131,8 @@
 
 # goudkov.com, spammer
 66.98.252.210
+207.44.144.3
+207.44.144.148
 
 # isaveclub.com AKA esaveclub.com
 69.44.155.0/24
