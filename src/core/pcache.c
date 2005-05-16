@@ -345,8 +345,9 @@ build_pong_msg(guint32 sender_ip, guint16 sender_port,
 	if (0 != (flags & PING_F_IP)) {	/* Ip Port (not UHC IPP!)*/
 		gchar ip_port[6];
 
-		g_message("Adding GGEP IP for %s",
-			ip_port_to_gchar(sender_ip, sender_port));
+		if (pcache_debug || ggep_debug )
+			g_message("Adding GGEP IP for %s",
+				ip_port_to_gchar(sender_ip, sender_port));
 		WRITE_GUINT32_BE(sender_ip, &ip_port[0]);
 		WRITE_GUINT16_LE(sender_port, &ip_port[4]);
 		ggep_stream_pack(&gs, "IP", ip_port, sizeof ip_port, 0);
