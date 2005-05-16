@@ -624,6 +624,8 @@ vmsg_send_tcp_connect_back(struct gnutella_node *n, guint16 port)
 	guint32 msgsize;
 	gchar *payload;
 
+	g_return_if_fail(0 != port);
+
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof v_tmp);
 	payload = vmsg_fill_type(&m->data, T_BEAR, 7, 1);
 
@@ -694,6 +696,8 @@ vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port)
 	guint32 msgsize;
 	gchar *payload;
 
+	g_return_if_fail(0 != port);
+	
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof v_tmp);
 	payload = vmsg_fill_type(&m->data, T_GTKG, 7, 1);
 
@@ -701,6 +705,45 @@ vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port)
 	memcpy(payload, servent_guid, 16);
 
 	gmsg_sendto_one(n, m, msgsize);
+}
+
+/**
+ * Send a "Push Proxy Acknowledgment" message to specified node, using
+ * supplied `muid' as the message ID (which is the target node's GUID).
+ *
+ * The version 1 of this message did not have the listening IP, only the
+ * port: the recipient was supposed to gather the IP address from the
+ * connected socket.
+ *
+ * The version 2 includes both our IP and port.
+ */
+static void
+vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid, gint version)
+{
+	struct gnutella_msg_vendor *m = cast_to_gpointer(v_tmp);
+	guint32 paysize = sizeof(guint32) + sizeof(guint16);
+	guint32 msgsize;
+	gchar *payload;
+
+	if (version == 1)
+		paysize -= sizeof(guint32);		/* No IP address for v1 */
+
+	msgsize = vmsg_fill_header(&m->header, paysize, sizeof v_tmp);
+	memcpy(m->header.muid, muid, 16);
+	payload = vmsg_fill_type(&m->data, T_LIME, 22, version);
+
+	if (version >= 2) {
+		payload = poke_be32(payload, listen_ip());
+	}
+
+	poke_le16(payload, listen_port);
+
+	/*
+	 * Reply with a control message, so that the issuer knows that we can
+	 * proxyfy pushes to it ASAP.
+	 */
+
+	gmsg_ctrl_sendto_one(n, m, msgsize);
 }
 
 /**
@@ -802,45 +845,6 @@ handle_proxy_ack(struct gnutella_node *n,
 	}
 
 	node_proxy_add(n, ip, port);
-}
-
-/**
- * Send a "Push Proxy Acknowledgment" message to specified node, using
- * supplied `muid' as the message ID (which is the target node's GUID).
- *
- * The version 1 of this message did not have the listening IP, only the
- * port: the recipient was supposed to gather the IP address from the
- * connected socket.
- *
- * The version 2 includes both our IP and port.
- */
-void
-vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid, gint version)
-{
-	struct gnutella_msg_vendor *m = cast_to_gpointer(v_tmp);
-	guint32 paysize = sizeof(guint32) + sizeof(guint16);
-	guint32 msgsize;
-	gchar *payload;
-
-	if (version == 1)
-		paysize -= sizeof(guint32);		/* No IP address for v1 */
-
-	msgsize = vmsg_fill_header(&m->header, paysize, sizeof v_tmp);
-	memcpy(m->header.muid, muid, 16);
-	payload = vmsg_fill_type(&m->data, T_LIME, 22, version);
-
-	if (version >= 2) {
-		payload = poke_be32(payload, listen_ip());
-	}
-
-	poke_le16(payload, listen_port);
-
-	/*
-	 * Reply with a control message, so that the issuer knows that we can
-	 * proxyfy pushes to it ASAP.
-	 */
-
-	gmsg_ctrl_sendto_one(n, m, msgsize);
 }
 
 /**
