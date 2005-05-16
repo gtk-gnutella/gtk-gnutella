@@ -75,7 +75,6 @@ struct oob_results {
 	gint notify_requeued;	/* Amount of LIME/12v2 requeued after dropping */
 	gboolean use_ggep_h;	/* Whether GGEP "H" can be used for SHA1 coding */
 	gint refcount;
-	gboolean expired;		/* Set when ev_expire triggered */
 };
 
 /*
@@ -131,16 +130,18 @@ static struct oob_results *
 results_make(
 	gchar *muid, GSList *files, gint count, gnet_host_t *to, gboolean ggep_h)
 {
+	static const struct oob_results zero_results;
 	struct oob_results *r;
 
-	r = walloc0(sizeof *r);
+	r = walloc(sizeof *r);
+	*r = zero_results;
+
 	r->muid = atom_guid_get(muid);
 	r->files = files;
 	r->count = count;
 	r->dest = *to;			/* Struct copy */
 	r->use_ggep_h = ggep_h;
 	r->refcount = 1;
-	r->expired = FALSE;
 
 	r->ev_expire = cq_insert(callout_queue, OOB_EXPIRE_MS, results_destroy, r);
 
@@ -164,11 +165,10 @@ results_free_remove(struct oob_results *r)
 	GSList *sl;
 
 	g_assert(r->refcount > 0);
-	g_assert(!r->expired ^ (NULL == r->ev_expire));
 
 	r->refcount--;
 	
-	if (r->expired || 0 == r->refcount) {
+	if (NULL == r->ev_expire || 0 == r->refcount) {
 		if (r->muid) {
 			g_assert(r == g_hash_table_lookup(results_by_muid, r->muid));
 			g_hash_table_remove(results_by_muid, r->muid);
@@ -194,7 +194,6 @@ results_free_remove(struct oob_results *r)
 		g_message("results_free: num_oob_records=%d", num_oob_records);
 
 	if (r->ev_expire) {
-		g_assert(!r->expired);
 		cq_cancel(callout_queue, r->ev_expire);
 		r->ev_expire = NULL;
 	}
@@ -215,7 +214,6 @@ results_destroy(cqueue_t *unused_cq, gpointer obj)
 	struct oob_results *r = obj;
 
 	(void) unused_cq;
-	g_assert(!r->expired && NULL != r->ev_expire);
 
 	if (query_debug)
 		printf("OOB query %s from %s expired with unclaimed %d hit%s\n",
@@ -225,7 +223,6 @@ results_destroy(cqueue_t *unused_cq, gpointer obj)
 	gnet_stats_count_general(GNR_UNCLAIMED_OOB_HITS, 1);
 
 	r->ev_expire = NULL;		/* The timer which just triggered */
-	r->expired = TRUE;
 	results_free_remove(r);
 }
 
