@@ -220,7 +220,8 @@ typedef struct prop_set {
 prop_def_t *prop_get_def(prop_set_t *, property_t);
 void prop_free_def(prop_def_t *);
 
-gchar *prop_name(prop_set_t *ps, property_t prop);
+const gchar *prop_name(prop_set_t *ps, property_t prop);
+const gchar *prop_description(prop_set_t *ps, property_t prop);
 
 void prop_add_prop_changed_listener(
     prop_set_t *, property_t, prop_changed_listener_t, gboolean);
@@ -261,8 +262,11 @@ guint64 *prop_get_guint64(
 void prop_set_storage(prop_set_t *, property_t, const gchar *, size_t);
 gchar *prop_get_storage(prop_set_t *, property_t, gchar *, size_t);
 
-gchar *prop_to_string(prop_set_t *ps, property_t prop);
-inline property_t prop_get_by_name(prop_set_t *ps, const char *name);
+const gchar *prop_to_string(prop_set_t *ps, property_t prop);
+property_t prop_get_by_name(prop_set_t *ps, const char *name);
+GSList *prop_get_by_regex(prop_set_t *ps, const gchar *pattern, gint *error);
+void prop_set_from_string(prop_set_t *ps, property_t prop, const gchar *val,
+	gboolean saved_only);
 
 #endif /* _prop_h_ */
 /* vi: set ts=4 sw=4 cindent: */

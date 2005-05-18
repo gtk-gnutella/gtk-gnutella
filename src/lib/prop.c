@@ -983,16 +983,25 @@ prop_get_string(prop_set_t *ps, property_t prop, gchar *t, size_t size)
 /**
  * Fetch the property name in the config files.
  */
-gchar *
+const gchar *
 prop_name(prop_set_t *ps, property_t prop)
 {
 	return PROP(ps,prop).name;
 }
 
 /**
+ * Fetch the property description in the config files.
+ */
+const gchar *
+prop_description(prop_set_t *ps, property_t prop)
+{
+	return PROP(ps,prop).desc;
+}
+
+/**
  * Helper function for update_label() and update_entry()
  */
-gchar *
+const gchar *
 prop_to_string(prop_set_t *ps, property_t prop)
 {
 	static gchar s[4096];
@@ -1019,7 +1028,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 		}
 		case PROP_TYPE_STRING: {
 			gchar *buf = prop_get_string(ps, prop, NULL, 0);
-			g_strlcpy(s, buf, sizeof(s));
+			g_strlcpy(s, buf ? buf : "", sizeof(s));
 			G_FREE_NULL(buf);
 			break;
 		}
@@ -1350,10 +1359,11 @@ end:
 /**
  * Called by prop_load_from_file to actually set the properties.
  */
-static void
-load_helper(prop_set_t *ps, property_t prop, const gchar *val)
+void
+prop_set_from_string(prop_set_t *ps, property_t prop, const gchar *val,
+	gboolean saved_only)
 {
-	prop_def_t *p = &PROP(ps,prop);
+	prop_def_t *p;
 	prop_set_stub_t *stub;
 	static union {
 		gboolean	boolean[100];
@@ -1361,7 +1371,14 @@ load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 		guint64		uint64[100];
 	} vecbuf;
 
-	if (!p->save) {
+	g_assert(NULL != ps);
+	g_assert(NULL != val);
+	g_return_if_fail(prop >= ps->offset && prop < ps->offset + ps->size);
+	
+	p = &PROP(ps, prop);
+	g_return_if_fail(NULL != p);
+	
+	if (!p->save && saved_only) {
 		g_warning("Refusing to load run-time only property \"%s\"", p->name);
 		return;
 	}
@@ -1430,6 +1447,14 @@ load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 	}
 
 	G_FREE_NULL(stub);
+}
+/**
+ * Called by prop_load_from_file to actually set the properties.
+ */
+static void
+load_helper(prop_set_t *ps, property_t prop, const gchar *val)
+{
+	prop_set_from_string(ps, prop, val, TRUE);
 }
 
 void
@@ -1567,12 +1592,41 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 	fclose(config);
 }
 
-inline property_t
+property_t
 prop_get_by_name(prop_set_t *ps, const gchar *name)
 {
 	g_assert(ps != NULL);
 
 	return GPOINTER_TO_UINT(g_hash_table_lookup(ps->byName, name));
 }
+
+GSList *
+prop_get_by_regex(prop_set_t *ps, const gchar *pattern, gint *error)
+{
+	GSList *sl = NULL;
+	size_t i;
+	regex_t re;
+	gint ret;
+
+	g_assert(NULL != ps);
+	g_assert(NULL != pattern);
+
+	ret = regcomp(&re, pattern, REG_EXTENDED | REG_NOSUB);
+	if (0 != ret) {
+		if (error)
+			*error = ret;
+		return NULL;
+	}
+	
+	for (i = 0; i < ps->size; i++) {
+		if (0 == regexec(&re, ps->props[i].name, 0, NULL, 0))
+			sl = g_slist_prepend(sl, GUINT_TO_POINTER(ps->offset + i));
+	}
+
+	regfree(&re);
+
+	return g_slist_reverse(sl);
+}
+
 
 /* vi: set ts=4 sw=4 cindent: */
