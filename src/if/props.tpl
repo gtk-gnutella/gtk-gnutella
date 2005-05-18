@@ -98,7 +98,10 @@ prop_set_stub_t *[=(. func-prefix)=]_get_stub(void);
  */
 prop_def_t *[=(. func-prefix)=]_get_def(property_t);
 property_t [=(. func-prefix)=]_get_by_name(const gchar *);
-gchar *[=(. func-prefix)=]_name(property_t);
+GSList *[=(. func-prefix)=]_get_by_regex(const gchar *, gint *);
+const gchar *[=(. func-prefix)=]_name(property_t);
+const gchar *[=(. func-prefix)=]_description(property_t);
+void [=(. func-prefix)=]_set_from_string(property_t, const gchar *);
 
 /*
  * Property-change listeners
@@ -277,7 +280,8 @@ ENDFOR prop =]
 
 static prop_set_t *[=(. prop-set)=] = NULL;
 
-prop_set_t *[=(. func-prefix)=]_init(void) {
+prop_set_t *
+[=(. func-prefix)=]_init(void) {
     guint32 n;
 
     [=(. prop-set)=] = g_new(prop_set_t, 1);
@@ -428,12 +432,11 @@ ENDFOR prop=]
     return [=(. prop-set)=];
 }
 
-/*
- * [=(. func-prefix)=]_shutdown:
- *
+/**
  * Free memory allocated by the property set.
  */
-void [=(. func-prefix)=]_shutdown(void) {
+void
+[=(. func-prefix)=]_shutdown(void) {
     guint32 n;
 
     if ([=(. prop-set)=]->byName) {
@@ -456,30 +459,29 @@ void [=(. func-prefix)=]_shutdown(void) {
     G_FREE_NULL([=(. prop-set)=]);
 }
 
-prop_def_t *[=(. func-prefix)=]_get_def(property_t p)
+prop_def_t *
+[=(. func-prefix)=]_get_def(property_t p)
 {
     return prop_get_def([=(. prop-set)=], p);
 }
 
-/*
- * [=(. func-prefix)=]_add_prop_changed_listener:
- *
+/**
  * Add a change listener to a given property. If init is TRUE then
  * the listener is immediately called.
  */
-void [=(. func-prefix)=]_add_prop_changed_listener(
+void
+[=(. func-prefix)=]_add_prop_changed_listener(
     property_t prop, prop_changed_listener_t l, gboolean init)
 {
     prop_add_prop_changed_listener([=(. prop-set)=], prop, l, init);
 }
 
-/*
- * [=(. func-prefix)=]_add_prop_changed_listener_full:
- *
+/**
  * Add a change listener to a given property. If init is TRUE then
  * the listener is immediately called.
  */
-void [=(. func-prefix)=]_add_prop_changed_listener_full(
+void
+[=(. func-prefix)=]_add_prop_changed_listener_full(
     property_t prop, prop_changed_listener_t l, gboolean init,
     enum frequency_type freq, guint32 interval)
 {
@@ -487,92 +489,122 @@ void [=(. func-prefix)=]_add_prop_changed_listener_full(
         freq, interval);
 }
 
-void [=(. func-prefix)=]_remove_prop_changed_listener(
+void
+[=(. func-prefix)=]_remove_prop_changed_listener(
     property_t prop, prop_changed_listener_t l)
 {
     prop_remove_prop_changed_listener([=(. prop-set)=], prop, l);
 }
 
-void [=(. func-prefix)=]_set_boolean(
+void
+[=(. func-prefix)=]_set_boolean(
     property_t prop, const gboolean *src, size_t offset, size_t length)
 {
     prop_set_boolean([=(. prop-set)=], prop, src, offset, length);
 }
 
-gboolean *[=(. func-prefix)=]_get_boolean(
+gboolean *
+[=(. func-prefix)=]_get_boolean(
     property_t prop, gboolean *t, size_t offset, size_t length)
 {
     return prop_get_boolean([=(. prop-set)=], prop, t, offset, length);
 }
 
-void [=(. func-prefix)=]_set_guint32(
+void
+[=(. func-prefix)=]_set_guint32(
     property_t prop, const guint32 *src, size_t offset, size_t length)
 {
     prop_set_guint32([=(. prop-set)=], prop, src, offset, length);
 }
 
-guint32 *[=(. func-prefix)=]_get_guint32(
+guint32 *
+[=(. func-prefix)=]_get_guint32(
     property_t prop, guint32 *t, size_t offset, size_t length)
 {
     return prop_get_guint32([=(. prop-set)=], prop, t, offset, length);
 }
 
-void [=(. func-prefix)=]_set_guint64(
+void
+[=(. func-prefix)=]_set_guint64(
     property_t prop, const guint64 *src, size_t offset, size_t length)
 {
     prop_set_guint64([=(. prop-set)=], prop, src, offset, length);
 }
 
-guint64 *[=(. func-prefix)=]_get_guint64(
+guint64 *
+[=(. func-prefix)=]_get_guint64(
     property_t prop, guint64 *t, size_t offset, size_t length)
 {
     return prop_get_guint64([=(. prop-set)=], prop, t, offset, length);
 }
 
-void [=(. func-prefix)=]_set_string(property_t prop, const gchar *val)
+void
+[=(. func-prefix)=]_set_string(property_t prop, const gchar *val)
 {
     prop_set_string([=(. prop-set)=], prop, val);
 }
 
-gchar *[=(. func-prefix)=]_get_string(property_t prop, gchar *t, size_t size)
+gchar *
+[=(. func-prefix)=]_get_string(property_t prop, gchar *t, size_t size)
 {
     return prop_get_string([=(. prop-set)=], prop, t, size);
 }
 
-void [=(. func-prefix)=]_set_storage(property_t p, const gchar *v, size_t l)
+void
+[=(. func-prefix)=]_set_storage(property_t p, const gchar *v, size_t l)
 {
     prop_set_storage([=(. prop-set)=], p, v, l);
 }
 
-gchar *[=(. func-prefix)=]_get_storage(property_t p, gchar *t, size_t l)
+gchar *
+[=(. func-prefix)=]_get_storage(property_t p, gchar *t, size_t l)
 {
     return prop_get_storage([=(. prop-set)=], p, t, l);
 }
 
-gchar *[=(. func-prefix)=]_to_string(property_t prop)
+gchar *
+[=(. func-prefix)=]_to_string(property_t prop)
 {
     return prop_to_string([=(. prop-set)=], prop);
 }
 
-gchar *[=(. func-prefix)=]_name(property_t p)
+const gchar *
+[=(. func-prefix)=]_name(property_t p)
 {
     return prop_name([=(. prop-set)=], p);
 }
 
-property_t [=(. func-prefix)=]_get_by_name(const gchar *name)
+const gchar *
+[=(. func-prefix)=]_description(property_t p)
+{
+    return prop_description([=(. prop-set)=], p);
+}
+
+property_t
+[=(. func-prefix)=]_get_by_name(const gchar *name)
 {
     return GPOINTER_TO_UINT(
         g_hash_table_lookup([=(. prop-set)=]->byName, name));
 }
 
+GSList *
+[=(. func-prefix)=]_get_by_regex(const gchar *pattern, gint *error)
+{
+    return prop_get_by_regex([=(. prop-set)=], pattern, error);
+}
 
-/*
- * [=(. func-prefix)=]_get_stub:
- *
+void
+[=(. func-prefix)=]_set_from_string(property_t prop, const gchar *val)
+{
+	prop_set_from_string([=(. prop-set)=], prop, val, FALSE);	
+}
+
+/**
  * Returns a new stub struct for this property set. Just g_free it
  * when it is no longer needed. All fields are read only!
  */
-prop_set_stub_t *[=(. func-prefix)=]_get_stub(void)
+prop_set_stub_t *
+[=(. func-prefix)=]_get_stub(void)
 {
     prop_set_stub_t *stub;
 

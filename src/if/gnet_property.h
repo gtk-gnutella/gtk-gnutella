@@ -290,7 +290,10 @@ prop_set_stub_t *gnet_prop_get_stub(void);
  */
 prop_def_t *gnet_prop_get_def(property_t);
 property_t gnet_prop_get_by_name(const gchar *);
-gchar *gnet_prop_name(property_t);
+GSList *gnet_prop_get_by_regex(const gchar *, gint *);
+const gchar *gnet_prop_name(property_t);
+const gchar *gnet_prop_description(property_t);
+void gnet_prop_set_from_string(property_t, const gchar *);
 
 /*
  * Property-change listeners

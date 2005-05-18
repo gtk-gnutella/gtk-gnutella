@@ -25,10 +25,6 @@
  *----------------------------------------------------------------------
  */
 
-#include "common.h"
-
-#if !defined(USE_TOPLESS)
-
 #include "lib/prop.h"
 #include "lib/eval.h"
 #include "gui_property.h"
@@ -276,7 +272,8 @@ prop_def_choice_t config_toolbar_style_choices[] = {
 
 static prop_set_t *gui_property = NULL;
 
-prop_set_t *gui_prop_init(void) {
+prop_set_t *
+gui_prop_init(void) {
     guint32 n;
 
     gui_property = g_new(prop_set_t, 1);
@@ -2207,12 +2204,11 @@ prop_set_t *gui_prop_init(void) {
     return gui_property;
 }
 
-/*
- * gui_prop_shutdown:
- *
+/**
  * Free memory allocated by the property set.
  */
-void gui_prop_shutdown(void) {
+void
+gui_prop_shutdown(void) {
     guint32 n;
 
     if (gui_property->byName) {
@@ -2235,30 +2231,29 @@ void gui_prop_shutdown(void) {
     G_FREE_NULL(gui_property);
 }
 
-prop_def_t *gui_prop_get_def(property_t p)
+prop_def_t *
+gui_prop_get_def(property_t p)
 {
     return prop_get_def(gui_property, p);
 }
 
-/*
- * gui_prop_add_prop_changed_listener:
- *
+/**
  * Add a change listener to a given property. If init is TRUE then
  * the listener is immediately called.
  */
-void gui_prop_add_prop_changed_listener(
+void
+gui_prop_add_prop_changed_listener(
     property_t prop, prop_changed_listener_t l, gboolean init)
 {
     prop_add_prop_changed_listener(gui_property, prop, l, init);
 }
 
-/*
- * gui_prop_add_prop_changed_listener_full:
- *
+/**
  * Add a change listener to a given property. If init is TRUE then
  * the listener is immediately called.
  */
-void gui_prop_add_prop_changed_listener_full(
+void
+gui_prop_add_prop_changed_listener_full(
     property_t prop, prop_changed_listener_t l, gboolean init,
     enum frequency_type freq, guint32 interval)
 {
@@ -2266,92 +2261,122 @@ void gui_prop_add_prop_changed_listener_full(
         freq, interval);
 }
 
-void gui_prop_remove_prop_changed_listener(
+void
+gui_prop_remove_prop_changed_listener(
     property_t prop, prop_changed_listener_t l)
 {
     prop_remove_prop_changed_listener(gui_property, prop, l);
 }
 
-void gui_prop_set_boolean(
+void
+gui_prop_set_boolean(
     property_t prop, const gboolean *src, size_t offset, size_t length)
 {
     prop_set_boolean(gui_property, prop, src, offset, length);
 }
 
-gboolean *gui_prop_get_boolean(
+gboolean *
+gui_prop_get_boolean(
     property_t prop, gboolean *t, size_t offset, size_t length)
 {
     return prop_get_boolean(gui_property, prop, t, offset, length);
 }
 
-void gui_prop_set_guint32(
+void
+gui_prop_set_guint32(
     property_t prop, const guint32 *src, size_t offset, size_t length)
 {
     prop_set_guint32(gui_property, prop, src, offset, length);
 }
 
-guint32 *gui_prop_get_guint32(
+guint32 *
+gui_prop_get_guint32(
     property_t prop, guint32 *t, size_t offset, size_t length)
 {
     return prop_get_guint32(gui_property, prop, t, offset, length);
 }
 
-void gui_prop_set_guint64(
+void
+gui_prop_set_guint64(
     property_t prop, const guint64 *src, size_t offset, size_t length)
 {
     prop_set_guint64(gui_property, prop, src, offset, length);
 }
 
-guint64 *gui_prop_get_guint64(
+guint64 *
+gui_prop_get_guint64(
     property_t prop, guint64 *t, size_t offset, size_t length)
 {
     return prop_get_guint64(gui_property, prop, t, offset, length);
 }
 
-void gui_prop_set_string(property_t prop, const gchar *val)
+void
+gui_prop_set_string(property_t prop, const gchar *val)
 {
     prop_set_string(gui_property, prop, val);
 }
 
-gchar *gui_prop_get_string(property_t prop, gchar *t, size_t size)
+gchar *
+gui_prop_get_string(property_t prop, gchar *t, size_t size)
 {
     return prop_get_string(gui_property, prop, t, size);
 }
 
-void gui_prop_set_storage(property_t p, const gchar *v, size_t l)
+void
+gui_prop_set_storage(property_t p, const gchar *v, size_t l)
 {
     prop_set_storage(gui_property, p, v, l);
 }
 
-gchar *gui_prop_get_storage(property_t p, gchar *t, size_t l)
+gchar *
+gui_prop_get_storage(property_t p, gchar *t, size_t l)
 {
     return prop_get_storage(gui_property, p, t, l);
 }
 
-gchar *gui_prop_to_string(property_t prop)
+gchar *
+gui_prop_to_string(property_t prop)
 {
     return prop_to_string(gui_property, prop);
 }
 
-gchar *gui_prop_name(property_t p)
+const gchar *
+gui_prop_name(property_t p)
 {
     return prop_name(gui_property, p);
 }
 
-property_t gui_prop_get_by_name(const gchar *name)
+const gchar *
+gui_prop_description(property_t p)
+{
+    return prop_description(gui_property, p);
+}
+
+property_t
+gui_prop_get_by_name(const gchar *name)
 {
     return GPOINTER_TO_UINT(
         g_hash_table_lookup(gui_property->byName, name));
 }
 
+GSList *
+gui_prop_get_by_regex(const gchar *pattern, gint *error)
+{
+    return prop_get_by_regex(gui_property, pattern, error);
+}
 
-/*
- * gui_prop_get_stub:
- *
+void
+gui_prop_set_from_string(property_t prop, const gchar *val)
+{
+	prop_set_from_string(gui_property, prop, val, FALSE);	
+}
+
+/**
  * Returns a new stub struct for this property set. Just g_free it
  * when it is no longer needed. All fields are read only!
  */
-prop_set_stub_t *gui_prop_get_stub(void)
+prop_set_stub_t *
+gui_prop_get_stub(void)
 {
     prop_set_stub_t *stub;
 
@@ -2386,5 +2411,3 @@ prop_set_stub_t *gui_prop_get_stub(void)
 
     return stub;
 }
-
-#endif /* !defined(USE_TOPLESS) */

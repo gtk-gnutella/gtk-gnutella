@@ -550,7 +550,8 @@ gboolean use_so_linger_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
-prop_set_t *gnet_prop_init(void) {
+prop_set_t *
+gnet_prop_init(void) {
     guint32 n;
 
     gnet_property = g_new(prop_set_t, 1);
@@ -5182,12 +5183,11 @@ prop_set_t *gnet_prop_init(void) {
     return gnet_property;
 }
 
-/*
- * gnet_prop_shutdown:
- *
+/**
  * Free memory allocated by the property set.
  */
-void gnet_prop_shutdown(void) {
+void
+gnet_prop_shutdown(void) {
     guint32 n;
 
     if (gnet_property->byName) {
@@ -5210,30 +5210,29 @@ void gnet_prop_shutdown(void) {
     G_FREE_NULL(gnet_property);
 }
 
-prop_def_t *gnet_prop_get_def(property_t p)
+prop_def_t *
+gnet_prop_get_def(property_t p)
 {
     return prop_get_def(gnet_property, p);
 }
 
-/*
- * gnet_prop_add_prop_changed_listener:
- *
+/**
  * Add a change listener to a given property. If init is TRUE then
  * the listener is immediately called.
  */
-void gnet_prop_add_prop_changed_listener(
+void
+gnet_prop_add_prop_changed_listener(
     property_t prop, prop_changed_listener_t l, gboolean init)
 {
     prop_add_prop_changed_listener(gnet_property, prop, l, init);
 }
 
-/*
- * gnet_prop_add_prop_changed_listener_full:
- *
+/**
  * Add a change listener to a given property. If init is TRUE then
  * the listener is immediately called.
  */
-void gnet_prop_add_prop_changed_listener_full(
+void
+gnet_prop_add_prop_changed_listener_full(
     property_t prop, prop_changed_listener_t l, gboolean init,
     enum frequency_type freq, guint32 interval)
 {
@@ -5241,92 +5240,122 @@ void gnet_prop_add_prop_changed_listener_full(
         freq, interval);
 }
 
-void gnet_prop_remove_prop_changed_listener(
+void
+gnet_prop_remove_prop_changed_listener(
     property_t prop, prop_changed_listener_t l)
 {
     prop_remove_prop_changed_listener(gnet_property, prop, l);
 }
 
-void gnet_prop_set_boolean(
+void
+gnet_prop_set_boolean(
     property_t prop, const gboolean *src, size_t offset, size_t length)
 {
     prop_set_boolean(gnet_property, prop, src, offset, length);
 }
 
-gboolean *gnet_prop_get_boolean(
+gboolean *
+gnet_prop_get_boolean(
     property_t prop, gboolean *t, size_t offset, size_t length)
 {
     return prop_get_boolean(gnet_property, prop, t, offset, length);
 }
 
-void gnet_prop_set_guint32(
+void
+gnet_prop_set_guint32(
     property_t prop, const guint32 *src, size_t offset, size_t length)
 {
     prop_set_guint32(gnet_property, prop, src, offset, length);
 }
 
-guint32 *gnet_prop_get_guint32(
+guint32 *
+gnet_prop_get_guint32(
     property_t prop, guint32 *t, size_t offset, size_t length)
 {
     return prop_get_guint32(gnet_property, prop, t, offset, length);
 }
 
-void gnet_prop_set_guint64(
+void
+gnet_prop_set_guint64(
     property_t prop, const guint64 *src, size_t offset, size_t length)
 {
     prop_set_guint64(gnet_property, prop, src, offset, length);
 }
 
-guint64 *gnet_prop_get_guint64(
+guint64 *
+gnet_prop_get_guint64(
     property_t prop, guint64 *t, size_t offset, size_t length)
 {
     return prop_get_guint64(gnet_property, prop, t, offset, length);
 }
 
-void gnet_prop_set_string(property_t prop, const gchar *val)
+void
+gnet_prop_set_string(property_t prop, const gchar *val)
 {
     prop_set_string(gnet_property, prop, val);
 }
 
-gchar *gnet_prop_get_string(property_t prop, gchar *t, size_t size)
+gchar *
+gnet_prop_get_string(property_t prop, gchar *t, size_t size)
 {
     return prop_get_string(gnet_property, prop, t, size);
 }
 
-void gnet_prop_set_storage(property_t p, const gchar *v, size_t l)
+void
+gnet_prop_set_storage(property_t p, const gchar *v, size_t l)
 {
     prop_set_storage(gnet_property, p, v, l);
 }
 
-gchar *gnet_prop_get_storage(property_t p, gchar *t, size_t l)
+gchar *
+gnet_prop_get_storage(property_t p, gchar *t, size_t l)
 {
     return prop_get_storage(gnet_property, p, t, l);
 }
 
-gchar *gnet_prop_to_string(property_t prop)
+gchar *
+gnet_prop_to_string(property_t prop)
 {
     return prop_to_string(gnet_property, prop);
 }
 
-gchar *gnet_prop_name(property_t p)
+const gchar *
+gnet_prop_name(property_t p)
 {
     return prop_name(gnet_property, p);
 }
 
-property_t gnet_prop_get_by_name(const gchar *name)
+const gchar *
+gnet_prop_description(property_t p)
+{
+    return prop_description(gnet_property, p);
+}
+
+property_t
+gnet_prop_get_by_name(const gchar *name)
 {
     return GPOINTER_TO_UINT(
         g_hash_table_lookup(gnet_property->byName, name));
 }
 
+GSList *
+gnet_prop_get_by_regex(const gchar *pattern, gint *error)
+{
+    return prop_get_by_regex(gnet_property, pattern, error);
+}
 
-/*
- * gnet_prop_get_stub:
- *
+void
+gnet_prop_set_from_string(property_t prop, const gchar *val)
+{
+	prop_set_from_string(gnet_property, prop, val, FALSE);	
+}
+
+/**
  * Returns a new stub struct for this property set. Just g_free it
  * when it is no longer needed. All fields are read only!
  */
-prop_set_stub_t *gnet_prop_get_stub(void)
+prop_set_stub_t *
+gnet_prop_get_stub(void)
 {
     prop_set_stub_t *stub;
 
