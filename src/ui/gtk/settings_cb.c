@@ -228,6 +228,226 @@ on_entry_server_hostname_changed(GtkEditable *editable, gpointer unused_udata)
 	g_free(e);
 }
 
+#ifdef USE_GTK2
+static tree_view_motion_t *tvm_dbg_property;
+
+static void
+update_tooltip(GtkTreeView *tv, GtkTreePath *path)
+{
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	property_t prop;
+	guint u;
+	
+	g_assert(tv != NULL);
+	
+	if (!path) {
+		GtkWidget *w;
+		
+		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
+			_("Move the cursor over a row to see details."), NULL);
+		w = settings_gui_tooltips()->tip_window;
+		if (w)
+			gtk_widget_hide(w);
+		
+		return;
+	}
+	
+	model = gtk_tree_view_get_model(tv);
+	if (!gtk_tree_model_get_iter(model, &iter, path)) {
+		g_warning("gtk_tree_model_get_iter() failed");
+		return;
+	}
+
+	u = 0;
+	gtk_tree_model_get(model, &iter, 3, &u, (-1));
+	g_assert(0 != u);
+
+	prop = (property_t) u;	
+	gtk_tooltips_set_tip(settings_gui_tooltips(),
+		GTK_WIDGET(tv), gnet_prop_description(prop), NULL);
+}
+
+static gboolean
+on_enter_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
+	gpointer data)
+{
+	GtkTreeView *tv;
+	
+	(void) unused_event;
+
+	tv = GTK_TREE_VIEW(data);
+	update_tooltip(GTK_TREE_VIEW(widget), NULL);
+	tvm_dbg_property = tree_view_motion_set_callback(tv, update_tooltip);
+	return FALSE;
+}
+
+static gboolean
+on_leave_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
+	gpointer data)
+{
+	GtkTreeView *tv;
+	
+	(void) unused_event;
+
+	tv = GTK_TREE_VIEW(data);
+	update_tooltip(GTK_TREE_VIEW(widget), NULL);
+	if (tvm_dbg_property) {
+		tree_view_motion_clear_callback(tv, tvm_dbg_property);
+		tvm_dbg_property = NULL;
+	}
+	return FALSE;
+}
+
+static void
+on_cell_edited(GtkCellRendererText *unused_renderer, const gchar *path_str,
+	const gchar *text, gpointer unused_data)
+{
+	GtkTreeView *tv;
+	GtkTreeModel *model;
+	GtkTreePath *path;
+	GtkTreeIter iter;
+	property_t prop;
+	guint u;
+
+	(void) unused_renderer;
+	(void) unused_data;
+
+	tv = GTK_TREE_VIEW(lookup_widget(dlg_prefs, "treeview_dbg_property"));
+	g_return_if_fail(NULL != tv);
+	model = gtk_tree_view_get_model(tv);
+	g_return_if_fail(NULL != model);
+
+	path = gtk_tree_path_new_from_string(path_str);
+	gtk_tree_model_get_iter(model, &iter, path);
+	
+	u = 0;
+	gtk_tree_model_get(model, &iter, 3, &u, (-1));
+	g_assert(0 != u);
+	prop = (property_t) u;
+	gnet_prop_set_from_string(prop,	text);
+	gtk_list_store_set(GTK_LIST_STORE(model), &iter,
+		1, gnet_prop_to_string(prop),
+		(-1));
+}
+
+void
+on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
+	gpointer unused_udata)
+{
+	static gchar old_pattern[1024];
+   	gchar *e;
+	GSList *sl, *props;
+	GtkTreeView *tv;
+	GtkListStore *store;
+
+	(void) unused_editable;
+	(void) unused_udata;
+	
+	tv = GTK_TREE_VIEW(lookup_widget(dlg_prefs, "treeview_dbg_property"));
+	store = GTK_LIST_STORE(gtk_tree_view_get_model(tv));
+	if (!store) {
+		static const struct {
+			const gchar *title;
+			gboolean editable;
+		} columns[] = {
+			{ N_("Property"),		FALSE },
+			{ N_("Value"),			TRUE  },
+			{ N_("Description"),	FALSE },
+			{ NULL,					FALSE },
+		};
+		guint i;
+
+		store = GTK_LIST_STORE(gtk_list_store_new(G_N_ELEMENTS(columns),
+					G_TYPE_STRING,
+					G_TYPE_STRING,
+					G_TYPE_STRING,
+					G_TYPE_UINT));
+
+		gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store));
+		g_object_unref(store);
+		
+		for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+	    	GtkTreeViewColumn *column;
+			GtkCellRenderer *renderer;
+			
+			if (!columns[i].title)
+				continue;
+
+			renderer = gtk_cell_renderer_text_new();
+
+			if (columns[i].editable) {
+				g_signal_connect(renderer, "edited",
+					G_CALLBACK(on_cell_edited), NULL);
+				g_object_set(renderer,
+					"editable", TRUE,
+					(void *) 0);
+			}
+		
+			column = gtk_tree_view_column_new_with_attributes(
+				_(columns[i].title), renderer,
+				"text", i,
+				(void *) 0);
+			
+			g_object_set(renderer,
+					"xalign", 0.0,
+					"xpad", GUI_CELL_RENDERER_XPAD,
+					"ypad", GUI_CELL_RENDERER_YPAD,
+					(void *) 0);
+			g_object_set(column,
+					"fixed-width", 200,
+					"min-width", 1,
+					"resizable", TRUE,
+					"reorderable", FALSE,
+					"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
+					(void *) 0);
+
+   			gtk_tree_view_column_set_sort_column_id(column, i);
+    		gtk_tree_view_append_column(tv, column);
+		}
+
+		g_signal_connect(GTK_OBJECT(tv),
+			"enter-notify-event", G_CALLBACK(on_enter_notify), tv);
+		g_signal_connect(GTK_OBJECT(tv),
+			"leave-notify-event", G_CALLBACK(on_leave_notify), tv);
+	}
+	
+	e = STRTRACK(gtk_editable_get_chars(
+        GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_dbg_property_pattern")),
+        0, -1));
+	g_strstrip(e);
+
+	if (0 == strcmp(e, old_pattern))
+		return;
+
+	g_strlcpy(old_pattern, e, sizeof old_pattern);	
+	gtk_list_store_clear(store);
+	
+	props = gnet_prop_get_by_regex(e, NULL);
+	if (!props)
+		g_message("nothing matched \"%s\"", e);
+
+	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
+		GtkTreeIter iter;
+		property_t prop;
+		
+		prop = GPOINTER_TO_UINT(sl->data);
+		
+		gtk_list_store_append(store, &iter);
+		gtk_list_store_set(store, &iter,
+			0, gnet_prop_name(prop),
+			1, gnet_prop_to_string(prop),
+			2, gnet_prop_description(prop),
+			3, (guint) prop,
+			(-1));
+	}
+	g_slist_free(props);
+	props = NULL;
+		
+	G_FREE_NULL(e);
+}
+FOCUS_TO_ACTIVATE(entry_dbg_property_pattern)
+#endif /* USE_GTK2 */
 
 void
 on_menu_toolbar_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
