@@ -2781,13 +2781,13 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	/*
 	 * Ensure that a given persistent connection never requests more than
-	 * the total file length.  Add 0.5% to account for partial overlapping
+	 * the total file length.  Add 10% to account for partial overlapping
 	 * ranges.
 	 */
 
 	u->total_requested += end - skip + 1;
 
-	if (u->total_requested > u->file_size * 1.005) {
+	if ((u->total_requested / 11) * 10 > u->file_size) {
 		g_warning("host %s (%s) requesting more than there is to %u (%s)",
 			ip_to_gchar(s->ip), upload_vendor_str(u), u->index, u->name);
 		upload_error_remove(u, NULL, 400, "Requesting Too Much");
