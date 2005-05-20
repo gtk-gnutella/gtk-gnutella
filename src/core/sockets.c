@@ -1967,19 +1967,32 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 static inline void
 socket_set_linger(gint fd)
 {
-	static const struct linger zero_linger;
-	struct linger lb;
-
 	g_assert(fd >= 0);
 
 	if (!use_so_linger)
 		return;
+	
+#ifdef TCP_LINGER2
+	{
+		gint timeout = 20;	/* timeout in seconds for FIN_WAIT_2 */
 		
-	lb = zero_linger;
-	lb.l_onoff = 1;
-	lb.l_linger = 0;	/* closes connections with RST */
-	if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &lb, sizeof lb))
-		g_warning("setsockopt() for SO_LINGER failed: %s", g_strerror(errno));
+		if (setsockopt(fd, SOL_TCP, TCP_LINGER2, &timeout, sizeof timeout))
+			g_warning("setsockopt() for TCP_LINGER2 failed: %s",
+				g_strerror(errno));
+	}
+#else
+	{
+		static const struct linger zero_linger;
+		struct linger lb;
+
+		lb = zero_linger;
+		lb.l_onoff = 1;
+		lb.l_linger = 0;	/* closes connections with RST */
+		if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &lb, sizeof lb))
+			g_warning("setsockopt() for SO_LINGER failed: %s",
+				g_strerror(errno));
+	}	
+#endif /* TCP_LINGER */
 }
 
 /*
