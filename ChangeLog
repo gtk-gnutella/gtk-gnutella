@@ -1,5 +1,14 @@
 # since last version
 
+# v 0.95.3  2005.05.22  [stable]
+
+- Fixed a potential denial-of-service problem.
+- Fixed OOB reply code which would lead to failed assertions.
+- [GTK1] Show Enable option and Remove button in Filter editor again.
+- Fixed inadvertent truncation of large files (> 4 GB).
+- Compatibility fixes for 64-bit platforms.
+
+
 # v 0.95.2	2005.05.10	[stable]
 
 - GTKG generated up to four times more traffic than was needed between
