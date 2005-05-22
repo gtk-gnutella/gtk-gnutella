@@ -53,12 +53,12 @@ AMD64, PowerPC, SPARC, MIPS.
 It is released under the GNU General Public License (GPL).  
 
 For further information on Gnutella, try:
-    http://gnutella.wego.com
+    http://www.the-gdf.com/ 
     http://www.infoanarchy.org/wiki/wiki.pl?Gnutella
     http://rfc-gnutella.sourceforge.net/
 
 The Gtk-Gnutella Home Page is:
-    http://gtk-gnutella.sourceforge.net
+    http://gtk-gnutella.sourceforge.net/
 
 The Project Page is:
     http://sourceforge.net/projects/gtk-gnutella/
@@ -319,4 +319,4 @@ patches, you should include them also.  Before starting a big project, you may
 want to ask the list if anyone else is working on that fix so you don't 
 duplicate work.
 
-/* vi: set et: */
+/* vi: set et ts=4: */

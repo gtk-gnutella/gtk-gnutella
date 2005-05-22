@@ -195,7 +195,9 @@ available at
 .B http://gtk-gnutella.sourceforge.net/
 .PP
 Additional information about gnutella is available at
-.B http://gnutella.wego.com/
+.B  http://www.the-gdf.com/
+.B  http://www.infoanarchy.org/wiki/wiki.pl?Gnutella
+.B  http://rfc-gnutella.sourceforge.net/
 .SH AUTHORS
 Yann Grossel wrote the original
 .B Gtk-Gnutella .
