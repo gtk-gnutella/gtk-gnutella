@@ -92,7 +92,7 @@ Release steps
 	ftp> cd incoming
 	ftp> binary
 	ftp> passive
-	ftp> put gtk-gnutella-0.91.tar.gz
+	ftp> put gtk-gnutella-0.91.tar.bz2
 	ftp> put gtk-gnutella_0.91.0-0_i386.deb
 	ftp> put gtk-gnutella-0.91.0-0.i386.rpm
 	ftp> quit
@@ -125,8 +125,8 @@ Release steps
 
 25. Change status to "Hidden" and "Submit/Refresh".
 
-26. Go back to the home page of the project and click on "View ALL project
-    files".  Make sure only the latest release is available.
+26. Go back to the Summary page of the project and click on "View ALL
+    project files".  Make sure only the latest release is available.
 
 27. Update sourceforge's website: Create a news entry in htdocs/files/en using 
     news_template as a guide and submit it.
