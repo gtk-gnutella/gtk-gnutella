@@ -48,4 +48,5 @@ src/ui/gtk/misc.c
 src/ui/gtk/nodes_common.c
 src/ui/gtk/search_common.c
 src/ui/gtk/settings.c
+src/ui/gtk/settings_cb.c
 src/ui/gtk/uploads_common.c
