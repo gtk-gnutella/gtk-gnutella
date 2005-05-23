@@ -43,4 +43,5 @@ INSTALLFLAGS = -m 444
 
 MakeInstallDirectories($(PRIVLIB))
 InstallMultiple($(EXTRA_FILES), $(PRIVLIB))
-
+MakeInstallDirectories($(DESKTOP))
+InstallNonExec(gtk-gnutella.desktop, $(DESKTOP))

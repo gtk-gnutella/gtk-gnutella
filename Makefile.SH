@@ -41,6 +41,7 @@ INSTALLDIR = $INSTALLDIR
 # Parameters set by Configure -- edit config.sh if changes are needed
 
 CTAGS = ctags
+DESKTOP = $installdesktop
 MV = $mv
 PRIVLIB = $installprivlib
 RM = $rm -f
@@ -85,7 +86,7 @@ INSTALLFLAGS = -m 444
 local_install::
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
 	for dir in $(PRIVLIB); do	\
-	(set -x; test -d $(INSTALL_PREFIX)$$dir || \
+		(set -x; test -d $(INSTALL_PREFIX)$$dir || \
 		$(INSTALLDIR) $(INSTALL_PREFIX)$$dir);	\
 	done
 
@@ -96,7 +97,7 @@ local_deinstall::
 	done
 
 local_install:: $(EXTRA_FILES)
-	case '${MFLAGS}' in *[i]*) set +e;; esac;		\
+	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
 	(set -x; test -d $(INSTALL_PREFIX)$(PRIVLIB) || \
 		$(INSTALLDIR) $(INSTALL_PREFIX)$(PRIVLIB)); \
 	for i in $(EXTRA_FILES); do \
@@ -109,6 +110,28 @@ local_deinstall::
 	for i in $(EXTRA_FILES); do \
 		(set -x; $(RM) $(INSTALL_PREFIX)$(PRIVLIB)/$$i); \
 	done
+
+local_install::
+	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
+	for dir in $(DESKTOP); do	\
+		(set -x; test -d $(INSTALL_PREFIX)$$dir || \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$$dir);	\
+	done
+
+local_deinstall::
+	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
+	for dir in $(DESKTOP); do \
+		(set -x; test -d $$dir && $(RM) -r $(INSTALL_PREFIX)$$dir); \
+	done
+
+local_install:: gtk-gnutella.desktop
+	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
+	(set -x; test -d $(INSTALL_PREFIX)$(DESKTOP) || \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$(DESKTOP)); \
+	$(INSTALL) -c -m 444 gtk-gnutella.desktop $(INSTALL_PREFIX)$(DESKTOP)
+
+local_deinstall::
+	$(RM) $(INSTALL_PREFIX)$(DESKTOP)/gtk-gnutella.desktop
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit
