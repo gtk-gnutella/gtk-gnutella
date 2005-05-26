@@ -1765,7 +1765,7 @@ download_move_to_list(struct download *d, enum dl_list idx)
  * from this server before the next `hold' seconds.
  */
 static void
-download_server_retry_after(struct dl_server *server, time_t now, time_t hold)
+download_server_retry_after(struct dl_server *server, time_t now, gint hold)
 {
 	struct download *d;
 	time_t after;
@@ -1797,7 +1797,7 @@ download_server_retry_after(struct dl_server *server, time_t now, time_t hold)
 	 *		--RAM, 17/07/2003
 	 */
 
-	if (after < now + DOWNLOAD_SERVER_HOLD)
+	if (delta_time(after, now) < DOWNLOAD_SERVER_HOLD)
 		after = now + DOWNLOAD_SERVER_HOLD;
 
 	/*
@@ -2230,7 +2230,7 @@ download_queue_is_frozen(void)
  */
 static void
 download_queue_hold_delay_v(struct download *d,
-	time_t delay, time_t hold,
+	gint delay, time_t hold,
 	const gchar *fmt, va_list ap)
 {
 	time_t now = time((time_t *) NULL);
@@ -4386,7 +4386,10 @@ download_write_data(struct download *d)
 	 */
 
 	if (fi->use_swarming) {
-		enum dl_chunk_status status = file_info_pos_status(fi, d->pos);
+		enum dl_chunk_status status;
+		filesize_t fc_end;
+	   
+		status = file_info_pos_status(fi, d->pos, NULL, &fc_end);
 
 		switch (status) {
 		case DL_CHUNK_DONE:
@@ -4444,7 +4447,8 @@ download_write_data(struct download *d)
 			if (d->pos == d->range_end)
 				goto partial_done;
 
-			d->range_end = download_filesize(d);	/* New upper boundary */
+			//d->range_end = download_filesize(d);	/* New upper boundary */
+			d->range_end = fc_end;	/* New upper boundary */
 
 			break;					/* Go on... */
 		}
@@ -6017,7 +6021,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				download_stop(d, GTA_DL_ERROR, "Range end too large");
 				return;
 			}
-			if (end <= d->skip || start >= d->range_end) {
+			if (end <= d->skip || start > d->range_end) {
 				gchar got[64];
 
 				gm_snprintf(got, sizeof got, "got %s - %s",
