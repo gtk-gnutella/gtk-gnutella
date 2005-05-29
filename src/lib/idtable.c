@@ -120,7 +120,7 @@ static void idtable_extend(idtable_t *tbl)
  *** Public functions
  ***/
 
-/*
+/**
  * idtable_new
  *
  * Allocate new id table. Sizes will be rounded up to multiples of
@@ -152,7 +152,7 @@ idtable_t *idtable_new(guint32 isize, guint32 esize)
     return tbl;
 }
 
-/*
+/**
  * idtable_destroy:
  *
  * Free all memory occupied by this table. The table must not be used
@@ -175,7 +175,7 @@ void idtable_destroy(idtable_t *tbl)
     G_FREE_NULL(tbl);
 }
 
-/*
+/**
  * idtable_new_id:
  *
  * Get a id for the given value. The id can be used to look up the
@@ -208,7 +208,7 @@ guint32 idtable_new_id(idtable_t *tbl, gpointer value)
     return id;
 }
 
-/*
+/**
  * idtable_new_id_value
  *
  * Request a special id for a given value. If the id must not be already in
@@ -230,7 +230,7 @@ void idtable_new_id_value(idtable_t *tbl, guint32 id, gpointer value)
     tbl->data[id] = value;
 }
 
-/*
+/**
  * idtable_set_value:
  *
  * Replace the value of a give id. The id must already be in use.
@@ -245,7 +245,7 @@ void idtable_set_value(idtable_t *tbl, guint32 id, gpointer value)
     tbl->data[id] = value;
 }
 
-/*
+/**
  * idtable_get_value:
  *
  * Fetch the value associated with the given id. The id must have been
@@ -262,7 +262,7 @@ gpointer idtable_get_value(idtable_t *tbl, guint32 id)
     return tbl->data[id];
 }
 
-/*
+/**
  * idtable_is_id_used:
  *
  * Returns TRUE if a id is already in use, returns FALSE if the id is
@@ -277,7 +277,7 @@ G_INLINE_FUNC gboolean idtable_is_id_used(idtable_t *tbl, guint32 id)
     return (id >= tbl->size) ? FALSE : IS_ID_TAKEN(tbl, id);
 }
 
-/*
+/**
  * idtable_free_id:
  *
  * Mark this id as unused. If will eventually be reissued.

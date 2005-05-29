@@ -24,9 +24,13 @@
  */
 
 /**
+ * @ingroup lib
  * @file
  *
  * Zlib wrapper functions.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -39,7 +43,7 @@ RCSID("$Id$");
 
 #define OUT_GROW	1024		/* To grow output buffer if it's to short */
 
-/*
+/**
  * zlib_strerror
  *
  * Return human-readable error string corresponding to error code `errnum'.

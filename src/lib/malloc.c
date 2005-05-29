@@ -36,7 +36,7 @@
 #if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
 RCSID("$Id$");
 
-/*
+/**
  * When MALLOC_FRAMES is supplied, we keep information about the allocation
  * stack frame and free stack frames.
  *
@@ -74,7 +74,7 @@ RCSID("$Id$");
 static time_t init_time = 0;
 static time_t reset_time = 0;
 
-/*
+/**
  * Structure keeping track of allocated blocks.
  *
  * Each block is inserted into a hash table, the key being the block's
@@ -94,7 +94,7 @@ static void free_record(gpointer o, gchar *file, gint line);
 
 #ifdef MALLOC_FRAMES
 
-/*
+/**
  * Structure keeping track of the allocation/free stack frames.
  *
  * Counts are signed because for realloc() frames, we count algebric
@@ -190,7 +190,7 @@ stats_eq(gconstpointer a, gconstpointer b)
 }
 #endif /* MALLOC_STATS */
 
-/*
+/**
  * malloc_init
  *
  * Called at first allocation to initialize tracking structures.
@@ -206,7 +206,7 @@ static void malloc_init(void)
 	init_time = reset_time = time(NULL);
 }
 
-/*
+/**
  * malloc_log_block		-- hash table iterator callback
  *
  * Log used block, and record it among the `leaksort' set for future summary.
@@ -229,7 +229,7 @@ static void malloc_log_block(gpointer k, gpointer v, gpointer leaksort)
 	}
 }
 
-/*
+/**
  * malloc_close
  *
  * Dump all the blocks that are still used.
@@ -254,7 +254,7 @@ void malloc_close(void)
 	leak_close(leaksort);
 }
 
-/*
+/**
  * malloc_record
  *
  * Record object `o' allocated at `file' and `line' of size `s'.
@@ -355,7 +355,7 @@ gpointer malloc_record(gpointer o, guint32 sz, gchar *file, gint line)
 	return o;
 }
 
-/*
+/**
  * malloc_track
  *
  * Allocate `s' bytes.
@@ -371,7 +371,7 @@ gpointer malloc_track(guint32 s, gchar *file, gint line)
 	return malloc_record(o, s, file, line);
 }
 
-/*
+/**
  * malloc0_track
  *
  * Allocate `s' bytes, zero the allocated zone.
@@ -386,7 +386,7 @@ gpointer malloc0_track(guint32 s, gchar *file, gint line)
 	return o;
 }
 
-/*
+/**
  * free_record
  *
  * Record freeing of allocated block.
@@ -474,7 +474,7 @@ static void free_record(gpointer o, gchar *file, gint line)
 	free(b);
 }
 
-/*
+/**
  * free_track
  *
  * Free allocated block.
@@ -487,7 +487,7 @@ void free_track(gpointer o, gchar *file, gint line)
 	free(o);
 }
 
-/*
+/**
  * strfreev_track
  *
  * Free NULL-terminated vector of strings, and the vector.
@@ -503,7 +503,7 @@ void strfreev_track(gchar **v, gchar *file, gint line)
 	free_track(v, file, line);
 }
 
-/*
+/**
  * realloc_record
  *
  * Update data structures to record that block `o' was re-alloced into
@@ -609,7 +609,7 @@ gpointer realloc_track(gpointer o, guint32 s, gchar *file, gint line)
 	return realloc_record(o, n, s, file, line);
 }
 
-/*
+/**
  * memdup_track
  *
  * Duplicate buffer `p' of length `size'.
@@ -627,7 +627,7 @@ gpointer memdup_track(gconstpointer p, guint size, gchar *file, gint line)
 	return o;
 }
 
-/*
+/**
  * strdup_track
  *
  * Duplicate string `s'.
@@ -647,7 +647,7 @@ gchar *strdup_track(const gchar *s, gchar *file, gint line)
 	return o;
 }
 
-/*
+/**
  * strndup_track
  *
  * Duplicate string `s', on at most `n' chars.
@@ -672,7 +672,7 @@ gchar *strndup_track(const gchar *s, gint n, gchar *file, gint line)
 	return o;
 }
 
-/*
+/**
  * strjoinv_track
  *
  * Join items in `vec' with `s' in-between.
@@ -686,7 +686,7 @@ gchar *strjoinv_track(const gchar *s, gchar **vec, gchar *file, gint line)
 	return malloc_record(o, strlen(o) + 1, file, line);
 }
 
-/*
+/**
  * m_strconcatv
  *
  * The internal implementation of a vectorized g_strconcat().
@@ -711,7 +711,7 @@ static gchar *m_strconcatv(const gchar *s, va_list args)
 	return res;
 }
 
-/*
+/**
  * strconcat_track
  *
  * Perform string concatenation, returning newly allocated string.
@@ -728,7 +728,7 @@ gchar *strconcat_track(gchar *file, gint line, const gchar *s, ...)
 	return malloc_record(o, strlen(o) + 1, file, line);
 }
 
-/*
+/**
  * strdup_printf_track
  *
  * Perform printf into newly allocated string.
@@ -745,7 +745,7 @@ gchar *strdup_printf_track(gchar *file, gint line, const gchar *fmt, ...)
 	return malloc_record(o, strlen(o) + 1, file, line);
 }
 
-/*
+/**
  * strsplit_track
  *
  * Perform a g_strplit() operation, tracking all returned strings.
@@ -767,7 +767,7 @@ gchar **strsplit_track(
 	return v;
 }
 
-/*
+/**
  * string_record
  *
  * Record string `s' allocated at `file' and `line'.
@@ -781,7 +781,7 @@ gpointer string_record(const gchar *s, gchar *file, gint line)
 	return malloc_record((gpointer) s, strlen(s) + 1, file, line);
 }
 
-/*
+/**
  * hashtable_new_track
  *
  * Wrapper over g_hash_table_new() to track allocation of hash tables.
@@ -795,7 +795,7 @@ GHashTable *hashtable_new_track(
 	return malloc_record(o, 24, file, line);	/* Size not right, don't care */
 }
 
-/*
+/**
  * hashtable_destroy_track
  *
  * Wrapper over g_hash_Table_destroy() to track destruction of hash tables.
@@ -806,7 +806,7 @@ void hashtable_destroy_track(GHashTable *h, gchar *file, gint line)
 	g_hash_table_destroy(h);
 }
 
-/*
+/**
  * hash_list_new_track
  *
  * Wrapper over hash_list_new().
@@ -816,7 +816,7 @@ hash_list_t *hash_list_new_track(gchar *file, gint line)
 	return malloc_record(hash_list_new(), 28, file, line);	/* Approx. size */
 }
 
-/*
+/**
  * hash_list_free_track
  *
  * Wrapper over hash_list_free().
@@ -1155,7 +1155,7 @@ GList *list_delete_link_track(GList *l, GList *lk, gchar *file, gint line)
 
 #define GSTRING_OBJ_SIZE	8		/* Random size */
 
-/*
+/**
  * string_str_track
  *
  * Track changes to the internal string object.
@@ -1314,7 +1314,7 @@ struct leak_set {
 	GHashTable *places;		/* Maps "file:4" -> leak_record */
 };
 
-/*
+/**
  * leak_init
  *
  * Initialize the leak accumulator by "file:line"
@@ -1329,7 +1329,7 @@ gpointer leak_init(void)
 	return ls;
 }
 
-/*
+/**
  * leak_free_kv
  *
  * Get rid of the key/value tupple in the leak table.
@@ -1342,7 +1342,7 @@ static gboolean leak_free_kv(gpointer key, gpointer value, gpointer unused_user)
 	return TRUE;
 }
 
-/*
+/**
  * leak_close
  *
  * Dispose of the leaks accumulated.
@@ -1357,7 +1357,7 @@ void leak_close(gpointer o)
 	free(ls);
 }
 
-/*
+/**
  * leak_add
  *
  * Record a new leak of `size' bytes allocated at `file', line `line'.
@@ -1393,7 +1393,7 @@ struct leak {			/* A memory leak, for sorting purposes */
 	struct leak_record *lr;
 };
 
-/*
+/**
  * leak_size_cmp		-- qsort() callback
  *
  * Compare two pointers to "struct leak" based on their size value,
@@ -1415,7 +1415,7 @@ struct filler {			/* Used by hash table iterator to fill leak array */
 	gint idx;			/* Next index to be filled */
 };
 
-/*
+/**
  * fill_array			-- hash table iterator
  *
  * Append current hash table entry at the end of the "leaks" array.
@@ -1433,7 +1433,7 @@ static void fill_array(gpointer key, gpointer value, gpointer user)
 	l->lr = lr;
 }
 
-/*
+/**
  * leak_dump
  *
  * Dump the links sorted by decreasing leak size.

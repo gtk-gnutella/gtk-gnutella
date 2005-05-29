@@ -25,6 +25,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Zone allocator.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -68,7 +78,7 @@ RCSID("$Id$");
 #define DEFAULT_HINT		128		/* Default amount of blocks in a zone */
 #define MAX_ZONE_SIZE		16384	/* Maximum zone size */
 
-/*
+/**
  * Extra allocated zones.
  */
 struct subzone {
@@ -87,7 +97,7 @@ static struct zone *zn_create(zone_t *, gint, gint);
 
 static gchar **zn_extend(zone_t *);
 
-/*
+/**
  * zalloc
  *
  * Allcate memory with fixed size blocks (zone allocation).
@@ -168,7 +178,7 @@ gpointer zalloc(zone_t *zone)
 }
 
 #ifdef TRACK_ZALLOC
-/*
+/**
  * zalloc_track
  *
  * Tracking version of zalloc().
@@ -186,7 +196,7 @@ gpointer zalloc_track(zone_t *zone, gchar *file, gint line)
 	return blk;
 }
 
-/*
+/**
  * zblock_log
  *
  * Log information about block, `p' being the physical start of the block, not
@@ -210,7 +220,7 @@ static void zblock_log(gchar *p, gint size, gpointer leakset)
 	leak_add(leakset, size, file, line);
 }
 
-/*
+/**
  * zdump_used
  *
  * Go through the whole zone and dump all the used blocks.
@@ -252,7 +262,7 @@ static void zdump_used(zone_t *zone)
 }
 #endif	/* TRACK_ZALLOC */
 
-/*
+/**
  * zfree
  *
  * Return block to its zone, hence freeing it. Previous content of the
@@ -290,7 +300,7 @@ void zfree(zone_t *zone, gpointer ptr)
 }
 #endif	/* !REMAP_ZALLOC */
 
-/*
+/**
  * zcreate
  *
  * Create a new zone able to hold items of 'size' bytes. Returns
@@ -310,7 +320,7 @@ zone_t *zcreate(gint size, gint hint)
 	return zn_create(zone, size, hint);
 }
 
-/*
+/**
  * zn_create
  *
  * Create a new zone able to hold items of 'size' bytes.
@@ -391,7 +401,7 @@ static zone_t *zn_create(zone_t *zone, gint size, gint hint)
 	return zone;
 }
 
-/*
+/**
  * zdestroy
  *
  * Destroy a zone chunk by releasing its memory to the system if possible,
@@ -431,7 +441,7 @@ void zdestroy(zone_t *zone)
 	g_free(zone);
 }
 
-/*
+/**
  * zget
  *
  * Get a zone suitable for allocating blocks of 'size' bytes.
@@ -494,7 +504,7 @@ zone_t *zget(gint size, gint hint)
 	return zone;
 }
 
-/*
+/**
  * zn_cram
  *
  * Cram a new zone in chunk.
@@ -514,7 +524,7 @@ static void zn_cram(zone_t *zone, gchar *arena, gint size)
 }
 
 #ifndef REMAP_ZALLOC
-/*
+/**
  * zn_extend
  *
  * Extend zone by allocating a new zone chunk. Returns the address of the

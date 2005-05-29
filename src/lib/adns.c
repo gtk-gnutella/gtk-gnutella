@@ -25,6 +25,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Asynchronous DNS lookup.
+ *
+ * @author Christian Biere
+ * @date 2004
+ */
+
 #include "common.h"
 
 RCSID("$Id$");

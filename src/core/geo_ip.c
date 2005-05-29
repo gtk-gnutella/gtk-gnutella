@@ -28,6 +28,9 @@
  * @file
  *
  * Support for geographic (country-level) IP mapping.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #include "common.h"

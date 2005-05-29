@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Raphael Manfredi
  *
- * Support for IP bogons detection.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Support for IP bogons detection.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #ifndef _core_bogons_h_

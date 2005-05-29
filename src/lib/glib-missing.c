@@ -40,7 +40,7 @@ RCSID("$Id$");
 
 #ifndef TRACK_MALLOC
 
-/*
+/**
  * gm_slist_insert_after
  *
  * Insert `item' after `lnk' in list `list'.
@@ -66,7 +66,7 @@ GSList *gm_slist_insert_after(GSList *list, GSList *lnk, gpointer data)
 	return list;
 }
 
-/*
+/**
  * gm_list_insert_after
  *
  * Insert `item' after `lnk' in list `list'.
@@ -152,7 +152,7 @@ g_list_delete_link(GList *l, GList *lnk)
 #endif	/* HAVE_VSNPRINTF */
 
 
-/*
+/**
  * gm_vsnprintf
  *
  * This version implements the correct FIXED semantics of the 1.2.10 glib:
@@ -173,7 +173,7 @@ size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args)
 	return retval;
 }
 
-/*
+/**
  * gm_snprintf
  *
  * This version implements the correct FIXED semantics of the 1.2.10 glib:
@@ -203,7 +203,7 @@ static gint orig_argc;
 static gchar **orig_argv;
 static gchar **orig_env;
 
-/*
+/**
  * gm_savemain
  *
  * Save the original main() arguments.
@@ -215,7 +215,7 @@ void gm_savemain(gint argc, gchar **argv, gchar **env)
 	orig_env = env;
 }
 
-/*
+/**
  * gm_setproctitle
  *
  * Change the process title as seen by "ps".
@@ -281,7 +281,7 @@ void gm_setproctitle(gchar *title)
 		orig_argv[i] = NULL;
 }
 
-/*
+/**
  * gm_atoul
  *
  * Returns the nul-terminated string `str' converted to an unsigned long.

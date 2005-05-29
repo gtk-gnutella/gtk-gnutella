@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2001-2003, Raphael Manfredi, Richard Eckart
  *
- * gtk-gnutella configuration.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,17 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * gtk-gnutella configuration.
+ *
+ * @author Raphael Manfredi
+ * @author Richard Eckart
+ * @date 2001-2003
  */
 
 #include "common.h"
@@ -89,7 +98,7 @@ static void update_uptimes(void);
 
 /* ----------------------------------------- */
 
-/*
+/**
  * ensure_unicity
  *
  * Look for any existing PID file. If found, look at the pid recorded

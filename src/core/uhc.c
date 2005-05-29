@@ -28,6 +28,9 @@
  * @file
  *
  * UDP Host Cache.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #include "common.h"

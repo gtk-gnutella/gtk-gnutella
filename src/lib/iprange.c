@@ -24,10 +24,16 @@
  */
 
 /**
+ * @ingroup lib
  * @file
+ *
+ * Needs short description here.
  *
  * Load, parse and lookup IP addresses from a set of IP ranges defined
  * by a list of addresses in CIDR (Classless Internet Domain Routing) format.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #include "common.h"
@@ -39,7 +45,7 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-/*
+/**
  * The "database" of IP ranges is made of several data structures:
  *
  * A level-1 index, a 256-entry wide array, indexed by the first byte of the
@@ -80,7 +86,7 @@ struct iprange_db {
 	gint list_count;		/* Amount of items held in lists */
 };
 
-/*
+/**
  * A CIDR network description.  Note that the network IP is already masked,
  * so to determine whether some IP falls within that network, one needs
  * to compare (IP & netmask) with the ip_masked field.
@@ -91,7 +97,7 @@ struct iprange_net {
 	gpointer value;		/* Value held */
 };
 
-/*
+/**
  * Error code stings.
  */
 static const gchar *iprange_errstr[] = {

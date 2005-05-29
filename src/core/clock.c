@@ -29,6 +29,9 @@
  *
  * Maintain an accurate clock skew of our host's clock with respect
  * to the absolute time.
+ *
+ * @author Raphael Manfredi
+ * @date 2003
  */
 
 #include "common.h"

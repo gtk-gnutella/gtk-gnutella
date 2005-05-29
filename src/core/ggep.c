@@ -28,6 +28,9 @@
  * @file
  *
  * Gnutella Generic Extension Protocol (GGEP).
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2004
  */
 
 #include "common.h"

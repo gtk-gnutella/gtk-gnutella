@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Needs short description here.
+ *
+ * @author Richard Eckart
+ * @date 2001-2003
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -94,7 +104,7 @@ void gnet_stats_init(void)
     memset(&gnet_udp_stats, 0, sizeof(gnet_udp_stats));
 }
 
-/*
+/**
  * gnet_stats_count_received_header
  *
  * Called when Gnutella header has been read.
@@ -128,7 +138,7 @@ void gnet_stats_count_received_header(gnutella_node_t *n)
     stats->pkg.received_hops[i][t]++;
 }
 
-/*
+/**
  * gnet_stats_count_received_payload
  *
  * Called when Gnutella payload has been read.

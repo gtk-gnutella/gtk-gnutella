@@ -24,6 +24,7 @@
  */
 
 /**
+ * @ingroup gtk
  * @file
  *
  * Common GUI search routines.
@@ -1331,7 +1332,7 @@ search_gui_parse_text_query(const gchar *s, struct query *query)
  * Parses a query string as entered by the user.
  *
  * @param	querystr must point to the query string.
- * @param	rule
+ * @param	**rules
  * @param	*error will point to an descriptive error message on failure.
  * @return	NULL if the query was not valid. Otherwise, the decoded query
  *			is returned.

@@ -32,6 +32,9 @@
  * HEC generation code is courtesy of Charles Michael Heard (initially
  * written for ATM, but adapted for GTKG, with leading coset leader
  * changed).
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"

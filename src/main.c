@@ -23,6 +23,13 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Main function for Gtk-Gnutella.
+ */
+
 #include "common.h"
 
 #include <setjmp.h>

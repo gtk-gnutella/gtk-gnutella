@@ -1,8 +1,6 @@
 /*
  * Copyright (c) 2004, Jeroen Asselman
  *
- * Dime parser / creator
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -27,8 +25,13 @@
  * @ingroup core
  * @file
  *
- * Dime message parsing.
+ * Dime parser / creator.
+ *
+ * @author Jeroen Asselman
+ * @date 2004
  */
+
+/* Dime message parsing. */
 
 #include "common.h"
 

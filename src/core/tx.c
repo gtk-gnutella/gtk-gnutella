@@ -33,6 +33,9 @@
  * implements general routines that are mostly common, as well as provides
  * type-checked entry points for dynamically dispatched routines, such
  * as tx_write().
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"

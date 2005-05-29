@@ -28,6 +28,9 @@
  * @file
  *
  * Gnutella Network Messages routing.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
  */
 
 #include "common.h"

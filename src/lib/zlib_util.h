@@ -28,7 +28,7 @@
 
 #include <glib.h>
 
-/*
+/**
  * Incremental deflater stream.
  */
 typedef struct  {

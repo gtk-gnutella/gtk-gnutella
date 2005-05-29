@@ -42,7 +42,7 @@ static const gchar whitelist_file[] = "whitelist";
 static time_t whitelist_mtime, whitelist_checked;
 static gchar *whitelist_path = NULL;
 
-/*
+/**
  * whitelist_retrieve
  *
  * Loads the whitelist into memory.
@@ -147,7 +147,7 @@ static void whitelist_retrieve(void)
 	fclose(f);
 }
 
-/*
+/**
  * whitelist_connect
  *
  * Attempts to connect to the nodes we have whitelisted.
@@ -177,7 +177,7 @@ guint whitelist_connect(void)
     return num;
 }
 
-/*
+/**
  * whitelist_init
  *
  * Called on startup. Loads the whitelist into memory.
@@ -188,7 +188,7 @@ void whitelist_init(void)
     whitelist_retrieve();
 }
 
-/*
+/**
  * whitelist_close
  *
  * Frees all entries in the whitelist.
@@ -205,7 +205,7 @@ void whitelist_close(void)
 	G_FREE_NULL(whitelist_path);
 }
 
-/*
+/**
  * whitelist_reload
  *
  * Reloads the whitelist.
@@ -216,7 +216,7 @@ void whitelist_reload(void)
     whitelist_retrieve();
 }
 
-/*
+/**
  * whitelist_check
  *
  * Check the given IP agains the entries in the whitelist.

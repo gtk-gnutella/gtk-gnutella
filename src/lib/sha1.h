@@ -52,7 +52,7 @@ enum
 #endif
 #define SHA1HashSize 20
 
-/*
+/**
  *  This structure will hold context information for the SHA-1
  *  hashing operation
  */

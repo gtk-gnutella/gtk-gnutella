@@ -28,7 +28,7 @@
 #ifndef _fuzzy_h_
 #define _fuzzy_h_
 
-/*
+/**
  * FUZZY_SHIFT is used to shift the real score to gain extra precision
  * in favour of using float
  */

@@ -24,6 +24,7 @@
  */
 
 /**
+ * @ingroup lib
  * @file
  *
  * Word vector.

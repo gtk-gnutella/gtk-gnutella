@@ -38,6 +38,10 @@
  * this system of having one search queue per node is not used.  Instead,
  * we have one global search queue, which is used to space launching
  * of dynamic queries.
+ *
+ * @author Alex Bennee <alex@bennee.com>
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"

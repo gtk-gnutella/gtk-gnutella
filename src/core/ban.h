@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Banning control.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Banning control.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _core_ban_h_
 #define _core_ban_h_
 
@@ -32,7 +40,7 @@
 
 struct gnutella_socket;
 
-/*
+/**
  * Return codes for ban_allow().
  */
 

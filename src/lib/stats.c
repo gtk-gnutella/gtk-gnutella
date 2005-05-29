@@ -24,9 +24,13 @@
  */
 
 /**
+ * @ingroup lib
  * @file
  *
  * Statistics routines.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #include "common.h"

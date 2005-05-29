@@ -91,7 +91,9 @@ destroy_entry(struct st_entry *entry)
 	wfree(entry, sizeof(*entry));
 }
 
-/* initialize a bin */
+/**
+ * initialize a bin
+ */
 static void
 bin_initialize(struct st_bin *bin, gint size)
 {

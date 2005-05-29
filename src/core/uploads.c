@@ -98,7 +98,7 @@ static idtable_t *upload_handle_map = NULL;
 static gint running_uploads = 0;
 static gint registered_uploads = 0;
 
-/*
+/**
  * This structure is the key used in the mesh_info hash table to record
  * when we last sent mesh information to some IP about a given file
  * (identified by its SHA1).

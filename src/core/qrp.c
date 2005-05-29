@@ -28,6 +28,9 @@
  * @file
  *
  * Query Routing Protocol (LimeWire's scheme).
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -85,7 +88,7 @@ RCSID("$Id$");
 
 #define QRP_ROUTE_MAGIC		0x30011ab1
 
-/*
+/**
  * A routing table.
  *
  * If we are a leaf node, we send our routing table to neighbours.  We keep

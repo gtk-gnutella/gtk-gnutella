@@ -28,6 +28,9 @@
  * @file
  *
  * Asynchronous I/O header parsing.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -50,7 +53,7 @@ RCSID("$Id$");
 
 #define DFLT_SIZE	2048	/* Expected headers should not be larger */
 
-/*
+/**
  * This structure is used to encapsulate the various arguments required
  * by the header parsing I/O callbacks.
  */

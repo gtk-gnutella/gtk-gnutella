@@ -42,6 +42,10 @@
  *	- make sure hosts we are currently connected too are also saved
  *		to disk on exit!
  *	- save more metadata if we can make use of it.
+ *
+ * @author Raphael Manfredi
+ * @author Richard Eckart
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -1453,7 +1457,7 @@ hcache_store(hcache_type_t type, const gchar *filename, hcache_type_t extra)
 /**
  * Get statistical information about the caches.
  *
- * @param stats must point to an hcache_stats_t[HCACHE_MAX] array.
+ * @param s must point to an hcache_stats_t[HCACHE_MAX] array.
  */
 void
 hcache_get_stats(hcache_stats_t *s)

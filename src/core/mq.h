@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Message queues.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Message queues.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #ifndef _core_mq_h_
@@ -52,9 +60,6 @@ struct mq_cops {
 };
 
 /**
- * @ingroup core
- * @file
- *
  * A message queue.
  *
  * The queue itself is a two-way list, whose head is kept in `qhead' and the

@@ -24,9 +24,13 @@
  */
 
 /**
+ * @ingroup gtk
  * @file
  *
  * Bitzi GTK interface code
+ *
+ * @author Alex Bennee <alex@bennee.com>
+ * @date 2004
  */
 
 #include "gtk/gui.h"
@@ -42,7 +46,7 @@ RCSID("$Id$");
 #include "if/core/bitzi.h"    	/* bitzi_data_t */
 #include "lib/override.h"		/* Must be the last header included */
 
-/*
+/**
  * This table should match the encoding one in core/bitzi.c
  *
  * It assumes the enum's are in order

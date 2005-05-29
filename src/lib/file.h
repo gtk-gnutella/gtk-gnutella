@@ -30,7 +30,7 @@
 
 #include "common.h"
 
-/*
+/**
  * This structure is used to identify a file to be saved/restored.
  */
 typedef struct {

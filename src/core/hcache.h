@@ -28,6 +28,10 @@
  * @file
  *
  * Host cache management.
+ *
+ * @author Raphael Manfredi
+ * @author Richard Eckart
+ * @date 2002-2003
  */
 
 #ifndef _core_hcache_h_

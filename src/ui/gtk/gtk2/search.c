@@ -24,6 +24,7 @@
  */
 
 /**
+ * @ingroup gtk
  * @file
  *
  * GUI filtering functions.

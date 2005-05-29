@@ -29,7 +29,7 @@
 typedef void (*iprange_free_t)(gpointer value, gpointer udata);
 typedef gpointer (*iprange_clone_t)(gpointer value);
 
-/*
+/**
  * Statistics.
  */
 typedef struct {
@@ -39,7 +39,7 @@ typedef struct {
 	gint enlisted;				/* Items held in lists */
 } iprange_stats_t;
 
-/*
+/**
  * Error codes.
  */
 

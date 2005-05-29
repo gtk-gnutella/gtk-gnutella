@@ -41,6 +41,8 @@
  * @ingroup core
  * @file
  *
+ * Merkle Hash tree implementation, not yet memory and speed optimized yet.
+ *
  * Hashtree can be used to build any hashtree. This could be a SHA1 tree or a
  * tigertree for example.
  *

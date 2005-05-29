@@ -26,7 +26,7 @@
  *----------------------------------------------------------------------
  */
 
- /* (PD) 2003 The Bitzi Corporation
+/* (PD) 2003 The Bitzi Corporation
  *
  * Copyright (C) 2001 Bitzi (aka Bitcollider) Inc. & Gordon Mohr
  * Released into the public domain by same; permission is explicitly
@@ -95,7 +95,9 @@ tt_endian(gchar *s)
 #endif /* G_LITTLE_ENDIAN */
 }
 
-/* Initialize the tigertree context */
+/**
+ * Initialize the tigertree context
+ */
 void
 tt_init(TT_CONTEXT *ctx)
 {

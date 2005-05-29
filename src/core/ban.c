@@ -28,6 +28,9 @@
  * @file
  *
  * Banning control.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -51,7 +54,7 @@ RCSID("$Id$");
 
 #include "lib/override.h"	/* Must be the last header included */
 
-/*
+/**
  * We keep a hash table, indexed by IP address, which records all the
  * requests we have from the various IPs.  When hammering is detected,
  * the IP address is banned for some time.
@@ -584,7 +587,7 @@ ban_close(void)
  *** Vendor-specific banning.
  ***/
 
-/*
+/**
  * These messages are sent to the remote site. Don't localize them.
  */
 static const gchar harmful[] = "Harmful version banned, upgrade required";

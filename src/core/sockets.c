@@ -29,6 +29,11 @@
  * @file
  *
  * Socket management.
+ *
+ * @author Daniel Walker (dwalker@cats.ucsc.edu)
+ * @date 2000
+ * @author Raphael Manfredi
+ * @date 2001-2003
  */
 
 #include "common.h"

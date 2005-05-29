@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Management of download ignoring list.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Management of download ignoring list.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -44,14 +52,14 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-/**
+/*
  * Hash tables where we collect SHA1 we already own or wish to ignore and
  * filename/filesizes we likewise wish to ignore.
  */
 static GHashTable *by_sha1;			/* SHA1s to ignore */
 static GHashTable *by_namesize;		/* By filename + filesize */
 
-/**
+/*
  * We expect the initial ignore_sha1 and ignore_namesize files to be in
  * the startup directory.  We'll monitor them and reload them should they
  * change during our runtime.

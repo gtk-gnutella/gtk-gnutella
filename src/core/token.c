@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003, Raphael Manfredi
  *
- * Token management.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Token management.
+ *
+ * @author Raphael Manfredi
+ * @date 2003
  */
 
 #include "common.h"
@@ -92,7 +100,7 @@ static const gchar *keys_095[] = {
 	"5f9f 1935 9e39 495d 0873 9036 c6ff eaae",
 };
 
-/*
+/**
  * Describes the keys to use depending on the version.
  */
 struct tokkey {
@@ -132,7 +140,7 @@ static const gchar *tok_errstr[] = {
 	"Missing level",				/* TOK_MISSING_LEVEL */
 };
 
-/*
+/**
  * tok_strerror
  *
  * Return human-readable error string corresponding to error code `errnum'.
@@ -145,7 +153,7 @@ const gchar *tok_strerror(tok_error_t errnum)
 	return tok_errstr[errnum];
 }
 
-/*
+/**
  * find_tokkey
  *
  * Based on the timestamp, determine the proper token keys to use.
@@ -166,7 +174,7 @@ static const struct tokkey *find_tokkey(time_t now)
 	return NULL;
 }
 
-/*
+/**
  * random_key
  *
  * Pickup a key randomly.
@@ -198,7 +206,7 @@ static const gchar *random_key(
 	return tk->keys[random_idx];
 }
 
-/*
+/**
  * tok_generate
  *
  * Generate new token for given version string.
@@ -275,13 +283,14 @@ static gchar *tok_generate(time_t now, const gchar *version)
 	return g_strconcat(token, "; ", lvlbase64, (void *) 0);
 }
 
-/*
+/**
  * tok_version
  *
  * Get a version token, base64-encoded.
  * Returns a pointer to static data.
  *
- * NOTE: token versions are only used to identify GTKG servents as such with
+ * @note
+ * Token versions are only used to identify GTKG servents as such with
  * a higher level of confidence than just reading the version string alone.
  * It is not meant to be used for strict authentication management, since
  * the algorithm and the keys are exposed publicly.
@@ -313,7 +322,7 @@ gchar *tok_version(void)
 	return toklevel;
 }
 
-/*
+/**
  * tok_short_version
  *
  * Get a version token for the short version string, base64-encoded.
@@ -346,7 +355,7 @@ gchar *tok_short_version(void)
 	return toklevel;
 }
 
-/*
+/**
  * tok_version_valid
  *
  * Validate a base64-encoded version token `tokenb64' of `len' bytes.
@@ -497,7 +506,7 @@ tok_error_t tok_version_valid(
 	return TOK_OK;
 }
 
-/*
+/**
  * tok_is_ancient
  *
  * Check whether the version is too ancient to be able to generate a proper

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * PDU Messages.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,15 +23,22 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * PDU Messages.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _core_pmsg_h_
 #define _core_pmsg_h_
 
 #include <glib.h>
 
-/**
- * @ingroup core
- * @file
- *
+/*
  * A data buffer, can be shared by several message blocks.
  *
  * There are two incarnations of a message data block: one where the buffer's

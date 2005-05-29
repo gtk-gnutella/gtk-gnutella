@@ -36,7 +36,7 @@ struct cqueue;
 
 typedef void (*cq_service_t)(struct cqueue *cq, gpointer obj);
 
-/*
+/**
  * Callout queue event.
  */
 typedef struct cevent {
@@ -48,7 +48,7 @@ typedef struct cevent {
 	guint ce_magic;				/* Magic number */
 } cevent_t;
 
-/*
+/**
  * Callout queue descriptor.
  *
  * A callout queue is really a sorted linked list of events that are to

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003 Jeroen Asselman.
  *
- * Hash tree implementation, not yet memory and speed optimized yet.
- *
  *----------------------------------------------------------------------
  *   The contents of this file are subject to the Mozilla Public License
  *   Version 1.1 (the "License"); you may not use this file except in
@@ -35,6 +33,16 @@
  *   the provisions above, a recipient may use your version of this file
  *   under either the MPL or the GPL License.
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Hash tree implementation, not yet memory and speed optimized yet.
+ *
+ * @author Jeroen Asselman
+ * @date 2003
  */
 
 #ifndef _core_hashtree_h_

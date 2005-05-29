@@ -28,6 +28,9 @@
  * @file
  *
  * Time synchronization between two peers.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #include "common.h"
@@ -52,7 +55,7 @@ typedef enum {
 	TSYNC_MAGIC = 0x781f372f
 } tsync_magic_t;
 
-/*
+/**
  * Records the time at which we sent a "Time Sync" to remote peers,
  * along with the event that will expire those entries.
  */

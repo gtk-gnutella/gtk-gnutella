@@ -28,6 +28,9 @@
  * @file
  *
  * Support for IP bogons detection.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #include "common.h"

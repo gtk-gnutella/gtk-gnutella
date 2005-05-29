@@ -28,6 +28,9 @@
  * @file
  *
  * Query hit packet management.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #include "common.h"

@@ -1,9 +1,7 @@
 /*
  * $Id$
  *
- *   Copyright (c) 2003, Jeroen Asselman
- *
- * Tigertree hash verification
+ * Copyright (c) 2003, Jeroen Asselman
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,10 +27,13 @@
  * @ingroup undoc
  * @file
  *
+ * Tigertree hash verification.
+ *
  * This is not ready yet at all, do not try to use it yet. It is included
  * for compilation reasons only
  *
- * -- Jeroen
+ * @author Jeroen Asselman
+ * @date 2003
  */
 
 #include "common.h"

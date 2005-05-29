@@ -24,10 +24,14 @@
  */
 
 /**
+ * @ingroup lib
  * @file
  *
  * Hash table with aging values, removed automatically after
  * some time has elapsed.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #include "common.h"
@@ -40,7 +44,7 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-/*
+/**
  * The hash table is the central piece, but we also have a `value freeing'
  * callback, since the values can expire automatically.
  */
@@ -57,7 +61,7 @@ struct aging {
 	gint delay;				/* Initial aging delay, in seconds */
 };
 
-/*
+/**
  * We wrap the values we insert in the table, since each value must keep
  * track of its insertion time, and cleanup event.
  */

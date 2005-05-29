@@ -24,10 +24,16 @@
  */
 
 /**
+ * @ingroup lib
  * @file
  *
- * File watcher: periodically monitors file and invoke processing callback
+ * File watcher.
+ *
+ * Periodically monitors file and invoke processing callback
  * should the file change.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #include "common.h"

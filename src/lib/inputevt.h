@@ -28,7 +28,7 @@
 
 #include <glib.h>
 
-/*
+/**
  * This mimics the GDK input condition type.
  */
 typedef enum {
@@ -37,7 +37,7 @@ typedef enum {
 	INPUT_EVENT_EXCEPTION	= 1 << 2
 } inputevt_cond_t;
 
-/*
+/**
  * And the handler function type.
  */
 typedef void (*inputevt_handler_t) (

@@ -30,7 +30,7 @@
 
 #include <glib.h>
 
-/*
+/**
  * A COBS stream is used to fill a buffer space with COBS-ed data where
  * the input data is not known beforehand but gathered a piece at a time.
  */

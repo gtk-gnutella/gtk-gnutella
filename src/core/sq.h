@@ -33,10 +33,7 @@
 
 #include "if/core/search.h"
 
-/**
- * @ingroup core
- * @file
- *
+/*
  * A search queue.
  *
  * There is one search queue per node, placed above the message queue.

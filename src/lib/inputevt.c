@@ -37,7 +37,7 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-/*
+/**
  * The following defines map the GDK-compatible input condition flags
  * to those used by GLIB.
  *
@@ -48,7 +48,7 @@ RCSID("$Id$");
 #define WRITE_CONDITION		(G_IO_OUT)
 #define EXCEPTION_CONDITION	(G_IO_ERR | G_IO_HUP | G_IO_NVAL)
 
-/*
+/**
  * The relay structure is used as a bridge to provide GDK-compatible
  * input condition flags.
  */
@@ -68,7 +68,7 @@ inputevt_relay_destroy(gpointer data)
 	wfree(relay, sizeof *relay);
 }
 
-/*
+/**
  * inputevt_dispatch
  *
  * Relays the event to the registered handler function.

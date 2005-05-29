@@ -32,7 +32,7 @@ RCSID("$Id$");
 #include "crc.h"
 #include "override.h"		/* Must be the last header included */
 
-/*
+/**
  *  The generator polynomial used for this version of the package is
  *  X^32+X^26+X^23+X^22+X^16+X^12+X^11+X^10+X^8+X^7+X^5+X^4+X^2+X^1+X^0
  *  as specified in the Autodin/Ethernet/ADCCP protocol standards.
@@ -56,7 +56,7 @@ RCSID("$Id$");
 
 static guint32 crc_table[256];
 
-/*
+/**
  * crc32_gen_crc_table
  *
  * Generates a 256-word table containing all CRC remainders for every
@@ -79,10 +79,15 @@ static void crc32_gen_crc_table(void)
 	}
 }
 
-/*
+/**
  * crc32_update_crc
  *
  * Update the CRC on the data block one byte at a time
+ *
+ * @param crc_accum	no document.
+ * @param data		no document.
+ * @param len		no document.
+ *
  */
 guint32 crc32_update_crc(guint32 crc_accum, const gchar *data, gint len)
 {
@@ -97,7 +102,7 @@ guint32 crc32_update_crc(guint32 crc_accum, const gchar *data, gint len)
 	return crc_accum;
 }
 
-/*
+/**
  * crc_init
  *
  * Initialize the CRC computations.

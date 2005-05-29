@@ -24,9 +24,13 @@
  */
 
 /**
+ * @ingroup lib
  * @file
  *
  * Support for mapping ISO 3166 2-letter codes and country names.
+ *
+ * @author Christian Biere
+ * @date 2004
  */
 
 #include "common.h"
@@ -42,7 +46,7 @@ typedef struct {
 	gchar country[1 /* Adjusted as necessary*/];
 } iso3166_entry_t;
 
-/*
+/**
  * Suggestion for translators: Translate only the name the of country in
  * which the language is spoken - if the native name is different.
  */
@@ -317,7 +321,7 @@ iso3166_decode_cc(gint code)
 
     if (NULL == iso3166_countries[code])
         return NULL;
-	
+
     i = code / 36;
     g_assert(i < 36);
     s[0] = i + (i < 10 ? '0' : 'a' - 10);
@@ -404,11 +408,11 @@ const gchar *
 iso3166_country_name(gint code)
 {
 	iso3166_entry_t *e;
-	
+
 	g_assert(code >= -1 && code < (gint) G_N_ELEMENTS(iso3166_countries));
 	if (-1 == code)
 		return "??";
-	
+
 	e = iso3166_countries[code];
 	return e ? e->country : "(null)";
 }
@@ -424,11 +428,11 @@ const gchar *
 iso3166_country_cc(gint code)
 {
 	iso3166_entry_t *e;
-	
+
 	g_assert(code >= -1 && code < (gint) G_N_ELEMENTS(iso3166_countries));
 	if (-1 == code)
 		return "??";
-	
+
 	e = iso3166_countries[code];
 	return e ? e->cc : "(null)";
 }

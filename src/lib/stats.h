@@ -30,7 +30,10 @@
 
 #endif /* _stats_h_ */
 
-/*
+/**
+ * @ingroup lib
+ * @file
+ *
  * One dimension statistics.
  */
 

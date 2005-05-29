@@ -27,6 +27,17 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * HUGE support (Hash/URN Gnutella Extension).
+ *
+ * @author Ch. Tronche
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #include "common.h"
 
 RCSID("$Id$");

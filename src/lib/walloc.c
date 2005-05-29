@@ -184,7 +184,7 @@ gpointer wrealloc(gpointer old, gint old_size, gint new_size)
  ***/
 
 #ifdef TRACK_ZALLOC
-/*
+/**
  * walloc_track
  *
  * Allocate memory from a zone suitable for the given size.
@@ -230,7 +230,7 @@ gpointer walloc_track(int size, gchar *file, gint line)
 	return zalloc_track(zone, file, line);
 }
 
-/*
+/**
  * walloc0_track
  *
  * Same as walloc_track(), but zeroes the allocated memory before returning.
@@ -245,7 +245,7 @@ gpointer walloc0_track(int size, gchar *file, gint line)
 	return p;
 }
 
-/*
+/**
  * wrealloc_track
  *
  * Reallocate a block allocated via walloc().
@@ -268,7 +268,7 @@ gpointer wrealloc_track(gpointer old, gint old_size, gint new_size,
 }
 #endif	/* TRACK_ZALLOC */
 
-/*
+/**
  * wdestroy
  *
  * Destroy all the zones we allocated so far.

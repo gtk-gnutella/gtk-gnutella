@@ -30,7 +30,7 @@
 
 #include <glib.h>
 
-/*
+/**
  * Under REMAP_ZALLOC control, those routines are remapped to malloc/free.
  * Under TRACK_ZALLOC, we keep tack of the allocation places.
  */

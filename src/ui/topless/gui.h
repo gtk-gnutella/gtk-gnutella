@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup console
+ * @file
+ *
+ * Remote shell interface.
+ *
+ * @author Christian Biere
+ * @date 2005
+ */
+
 #ifndef _gui_gui_h_
 #define _gui_gui_h_
 

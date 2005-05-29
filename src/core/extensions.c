@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Gnutella message extension handling.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Gnutella message extension handling.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -45,9 +53,6 @@ RCSID("$Id$");
 #define GGEP_GROW	512			/* Minimum chunk growth when resizing */
 
 /**
- * @ingroup core
- * @file
- *
  * An extension descriptor.
  *
  * The extension block is structured thustly:

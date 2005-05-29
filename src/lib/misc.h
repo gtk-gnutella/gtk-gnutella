@@ -21,6 +21,13 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Misc functions.
  *
  * This misc.[ch] provides several miscellaneous small routines & macros for:
  *
@@ -124,7 +131,8 @@ cast_gpointer_to_func(gconstpointer p)
 gint ascii_strcasecmp(const gchar *s1, const gchar *s2);
 gint ascii_strncasecmp(const gchar *s1, const gchar *s2, size_t len);
 
-/* ctype-like functions that allow only ASCII characters whereas the locale
+/**
+ * ctype-like functions that allow only ASCII characters whereas the locale
  * would allow others. The parameter doesn't have to be casted to (unsigned
  * char) because these functions return false for everything out of [0..127].
  *
@@ -275,7 +283,7 @@ typedef guint16 flag_t;
 #define set_flags(r,f) (r |= (f))
 #define clear_flags(r,f) (r &= ~(f))
 
-/*
+/**
  * Network related string routines
  */
 guint32  gchar_to_ip(const gchar *);
@@ -294,7 +302,7 @@ gchar *  host_name(void);
 #define port_is_valid(port) (port != 0)
 gboolean ip_is_valid(guint32);
 
-/*
+/**
  * Date string conversions
  */
 gchar *date_to_iso_gchar(time_t date);
@@ -302,7 +310,7 @@ gchar *date_to_rfc822_gchar(time_t date);
 gchar *date_to_rfc822_gchar2(time_t date);
 gchar *date_to_rfc1123_gchar(time_t date);
 
-/*
+/**
  * Time string conversions
  */
 gchar *short_time(gint s);
@@ -337,25 +345,25 @@ const gchar *compact_kb_size(guint32 size);
 gchar *short_value(gchar *buf, size_t size, guint64 v);
 gchar *compact_value(gchar *buf, size_t size, guint64 v);
 
-/*
+/**
  * SHA1<->base32 string conversion
  */
 gchar *sha1_base32(const gchar *sha1);
 gchar *base32_sha1(const gchar *base32);
 
-/*
+/**
  * GUID<->hex string conversion
  */
 gchar *guid_hex_str(const gchar *guid);
 gboolean hex_to_guid(const gchar *hexguid, gchar *guid);
 
-/*
+/**
  * GUID<->base32 string conversion
  */
 gchar *guid_base32_str(const gchar *guid);
 gchar *base32_to_guid(const gchar *base32);
 
-/*
+/**
  * Tests
  */
 gboolean is_string_ip(const gchar *);
@@ -373,14 +381,14 @@ is_pow2(guint32 value)
 	return value && !(value & (value - 1));
 }
 
-/*
+/**
  * Random numbers
  */
 void random_init(void);
 guint32 random_value(guint32 max) WARN_UNUSED_RESULT;
 void guid_random_fill(gchar *xuid);
 
-/*
+/**
  * Stuff
  */
 gint str_chomp(gchar *str, gint len);

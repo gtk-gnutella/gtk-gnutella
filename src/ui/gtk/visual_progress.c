@@ -26,6 +26,7 @@
  */
 
 /**
+ * @ingroup gtk
  * @file
  *
  * Visual progress indicator for files in the download queue.
@@ -41,6 +42,8 @@
  * Do not redraw the bar too often, only on event for actual file and
  * perhaps max once a second.
  *
+ * @author Hans de Graaff
+ * @date 2003-2004
  */
 
 #include "gui.h"

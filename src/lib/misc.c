@@ -24,6 +24,7 @@
  */
 
 /**
+ * @ingroup lib
  * @file
  *
  * Misc functions.

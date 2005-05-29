@@ -45,7 +45,7 @@ RCSID("$Id$");
 
 static guint32 common_dbg = 0;	/* XXX -- need to init lib's props --RAM */
 
-/*
+/**
  * Internal representation of a user-defined task.
  *
  * `step' is the current processing step.  Several processing steps can be
@@ -122,7 +122,7 @@ static GSList *sleepq = NULL;
 static gint runcount = 0;
 static GSList *dead_tasks = NULL;
 
-/*
+/**
  * bg_sched_add
  *
  * Add new task to the scheduler (run queue).
@@ -140,7 +140,7 @@ static void bg_sched_add(struct bgtask *bt)
 	runq = g_slist_append(runq, bt);
 }
 
-/*
+/**
  * bg_sched_remove
  *
  * Remove task from the scheduler (run queue).
@@ -155,7 +155,7 @@ static void bg_sched_remove(struct bgtask *bt)
 	bt->flags &= ~TASK_F_RUNNABLE;
 }
 
-/*
+/**
  * bg_sched_pick
  *
  * Pick next task to schedule.
@@ -169,7 +169,7 @@ static struct bgtask *bg_sched_pick(void)
 	return (runq != NULL) ? (struct bgtask *) runq->data : NULL;
 }
 
-/*
+/**
  * bg_task_suspend
  *
  * Suspend task.
@@ -230,7 +230,7 @@ static void bg_task_suspend(struct bgtask *bt)
 	}
 }
 
-/*
+/**
  * bg_task_resume
  *
  * Suspend task.
@@ -245,7 +245,7 @@ static void bg_task_resume(struct bgtask *bt)
 	g_get_current_time(&bt->start);
 }
 
-/*
+/**
  * bg_sched_sleep
  *
  * Add task to the sleep queue.
@@ -262,7 +262,7 @@ static void bg_sched_sleep(struct bgtask *bt)
 	sleepq = g_slist_prepend(sleepq, bt);
 }
 
-/*
+/**
  * bg_sched_wakeup
  *
  * Remove task from the sleep queue and insert it to the runqueue.
@@ -281,7 +281,7 @@ static void bg_sched_wakeup(struct bgtask *bt)
 
 static struct bgtask *current_task = NULL;
 
-/*
+/**
  * bg_task_switch
  *
  * Switch to new task `bt'.
@@ -309,7 +309,7 @@ static struct bgtask *bg_task_switch(struct bgtask *bt)
 	return old;
 }
 
-/*
+/**
  * bg_task_create
  *
  * Create a new background task.
@@ -360,7 +360,7 @@ gpointer bg_task_create(
 	return bt;
 }
 
-/*
+/**
  * bg_daemon_create
  *
  * A "daemon" is a task equipped with a work queue.
@@ -420,7 +420,7 @@ gpointer bg_daemon_create(
 	return bt;
 }
 
-/*
+/**
  * bg_daemon_enqueue
  *
  * Enqueue work item to the daemon task.
@@ -446,7 +446,7 @@ void bg_daemon_enqueue(gpointer h, gpointer item)
 	}
 }
 
-/*
+/**
  * bg_task_free
  *
  * Free task structure.
@@ -477,7 +477,7 @@ static void bg_task_free(struct bgtask *bt)
 	wfree(bt, sizeof(*bt));
 }
 
-/*
+/**
  * bg_task_terminate
  *
  * Terminate the task, invoking the completion callback if defined.
@@ -569,7 +569,7 @@ static void bg_task_terminate(struct bgtask *bt)
 	dead_tasks = g_slist_prepend(dead_tasks, bt);
 }
 
-/*
+/**
  * bg_task_exit
  *
  * Called by user code to "exit" the task.
@@ -593,7 +593,7 @@ void bg_task_exit(gpointer h, gint code)
 	longjmp(bt->env, 1);		/* Will call bg_task_terminate() */
 }
 
-/*
+/**
  * bg_task_sendsig
  *
  * Deliver signal via the user's signal handler.
@@ -611,7 +611,7 @@ static void bg_task_sendsig(struct bgtask *bt, bgsig_t sig, bgsig_cb_t handler)
 	bt->signal = BG_SIG_ZERO;
 }
 
-/*
+/**
  * bg_task_kill
  *
  * Send a signal to the given task.
@@ -673,7 +673,7 @@ static gint bg_task_kill(gpointer h, bgsig_t sig)
 	return 1;
 }
 
-/*
+/**
  * bg_task_signal
  *
  * Install user-level signal handler for a task signal.
@@ -693,7 +693,7 @@ bgsig_cb_t bg_task_signal(gpointer h, bgsig_t sig, bgsig_cb_t handler)
 	return oldhandler;
 }
 
-/*
+/**
  * bg_task_deliver_signals
  *
  * Deliver all the signals queued so far for the task.
@@ -725,7 +725,7 @@ static void bg_task_deliver_signals(struct bgtask *bt)
 	}
 }
 
-/*
+/**
  * bg_task_cancel
  *
  * Cancel a given task.
@@ -777,7 +777,7 @@ void bg_task_cancel(gpointer h)
 	g_assert(bt->flags & TASK_F_EXITED);	/* Task is now terminated */
 }
 
-/*
+/**
  * bg_task_ticks_used
  *
  * This routine can be called by the task when a single step is not using
@@ -799,7 +799,7 @@ void bg_task_ticks_used(gpointer h, gint used)
 		bt->flags |= TASK_F_NOTICK;			/* Won't update tick info */
 }
 
-/*
+/**
  * bg_reclaim_dead
  *
  * Reclaim all dead tasks
@@ -815,7 +815,7 @@ static void bg_reclaim_dead(void)
 	dead_tasks = NULL;
 }
 
-/*
+/**
  * bg_task_ended
  *
  * Called when a task has ended its processing.
@@ -872,7 +872,7 @@ static void bg_task_ended(struct bgtask *bt)
 	}
 }
 
-/*
+/**
  * bg_sched_timer
  *
  * Main task scheduling timer, called once per second.
@@ -1029,7 +1029,7 @@ void bg_sched_timer(void)
 		bg_reclaim_dead();			/* Free dead tasks */
 }
 
-/*
+/**
  * bg_close
  *
  * Called at shutdown time.

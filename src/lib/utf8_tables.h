@@ -32,7 +32,10 @@
  *	Current Unicode version: 4.1.0
  */
 
-/*
+/**
+ * @ingroup lib
+ * @file
+ *
  * This is the lookup table for normalization/decomposition.
  *
  * The table is extracted from UnicodeData.txt - the
@@ -150,7 +153,8 @@ typedef enum {
 	' UnicodeData.txt
  */
 
-/* The upper 8 bit of c are reserved for flags. The character value is, thus,
+/**
+ * The upper 8 bit of c are reserved for flags. The character value is, thus,
  * only the lower 24 bits.
  */
 static const struct {

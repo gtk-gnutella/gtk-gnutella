@@ -24,8 +24,6 @@
  */
 
 /**
- * @file
- *
  * A FIFO: items are put on one end and retrieved on the other, in the
  * order they were put.
  */
@@ -38,7 +36,7 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-/*
+/**
  * The real FIFO structure (the advertised fifo_t is just a facade).
  */
 typedef struct fifo_real {

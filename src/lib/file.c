@@ -24,6 +24,7 @@
  */
 
 /**
+ * @ingroup lib
  * @file
  *
  * Miscellaneous common file routines.

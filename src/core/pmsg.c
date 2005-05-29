@@ -28,6 +28,9 @@
  * @file
  *
  * PDU Messages.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -45,7 +48,7 @@ RCSID("$Id$");
 
 #define EMBEDDED_OFFSET	G_STRUCT_OFFSET(pdata_t, d_embedded)
 
-/*
+/**
  * An extended message block.
  *
  * Relies on C's structural equivalence for the first 4 fields.

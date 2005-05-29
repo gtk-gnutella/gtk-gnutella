@@ -31,6 +31,9 @@
  *
  * The whole HTTP logic is not contained here.  Only generic supporting
  * routines are here.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"

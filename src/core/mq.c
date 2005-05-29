@@ -28,6 +28,9 @@
  * @file
  *
  * Message queues, common code between TCP and UDP sending stacks.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"

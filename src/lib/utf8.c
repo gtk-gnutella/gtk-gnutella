@@ -1052,6 +1052,7 @@ locale_to_utf8_full(const gchar *str)
  * with all characters decomposed.
  *
  * @param str the string to convert.
+ * @param norm no document.
  *
  * @returns a newly allocated string.
  */
@@ -1939,7 +1940,7 @@ utf32_strmaxlen(const guint32 *s, size_t maxlen)
  * indicated by the return value being equal to or greater than ``size''.
  *
  * @param src a UTF-8 encoded string.
- * @param dst a pointer to a buffer which will hold the decomposed string.
+ * @param out a pointer to a buffer which will hold the decomposed string.
  * @param size the number of bytes ``dst'' can hold.
  * @param nfkd if TRUE, compatibility composition is used, otherwise
  *			canonical composition.
@@ -2023,7 +2024,7 @@ utf8_decompose(const gchar *src, gchar *out, size_t size, gboolean nfkd)
  * indicated by the return value being equal to or greater than ``size''.
  *
  * @param src a UTF-8 encoded string.
- * @param dst a pointer to a buffer which will hold the decomposed string.
+ * @param out a pointer to a buffer which will hold the decomposed string.
  * @param size the number of bytes ``dst'' can hold.
  *
  * @returns the length in bytes (not characters!) of completely decomposed
@@ -2045,7 +2046,7 @@ utf8_decompose_nfd(const gchar *src, gchar *out, size_t size)
  * indicated by the return value being equal to or greater than ``size''.
  *
  * @param src a UTF-8 encoded string.
- * @param dst a pointer to a buffer which will hold the decomposed string.
+ * @param out a pointer to a buffer which will hold the decomposed string.
  * @param size the number of bytes ``dst'' can hold.
  *
  * @returns the length in bytes (not characters!) of completely decomposed

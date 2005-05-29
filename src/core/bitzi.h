@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Bitzi Core search code.
+ *
+ * @author Alex Bennee <alex@bennee.com>
+ * @date 2004
+ */
+
 #ifndef _core_bitzi_h_
 #define _core_bitzi_h_
 

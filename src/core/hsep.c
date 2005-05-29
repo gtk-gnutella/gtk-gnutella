@@ -1,10 +1,6 @@
 /*
  * Copyright (c) 2004, Thomas Schuerger & Jeroen Asselman
  *
- * Horizon Size Estimation Protocol 0.2
- *
- * Protocol is defined here: http://www.menden.org/gnutella/hsep.html
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +19,19 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Horizon Size Estimation Protocol 0.2.
+ *
+ * Protocol is defined here: http://www.menden.org/gnutella/hsep.html
+ *
+ * @author Thomas Schuerger
+ * @author Jeroen Asselman
+ * @date 2004
  */
 
 /*

@@ -35,6 +35,9 @@
  *
  * @note
  * The code requires libxml to parse the XML responses
+ *
+ * @author Alex Bennee <alex@bennee.com>
+ * @date 2004
  */
 
 #include "common.h"

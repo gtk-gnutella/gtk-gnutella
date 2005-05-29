@@ -124,7 +124,7 @@ static const gint8 old_values[256] = {
     -1,-1,-1,-1,-1,						/*            - 251 -> 255 */
 };
 
-/*
+/**
  * encode_pad_length
  *
  * Compute the number of base32 digits and amount of padding necessary
@@ -167,7 +167,7 @@ static gint encode_pad_length(gint len, gint *pad)
 	return ndigits;
 }
 
-/*
+/**
  * base32_encode_exactly
  *
  * Encode `len' bytes from `buf' into `enclen' bytes starting from `encbuf'.
@@ -244,7 +244,7 @@ static void base32_encode_exactly(const gchar *buf, guint len,
 	}
 }
 
-/*
+/**
  * base32_encode_into
  *
  * Encode `len' bytes from `buf' into `enclen' bytes starting from `encbuf'.
@@ -266,7 +266,7 @@ void base32_encode_into(const gchar *buf, gint len,
 		memset(encbuf + exactlen, '=', pad);
 }
 
-/*
+/**
  * base32_encode_str_into
  *
  * Encode `len' bytes from `buf' into `enclen' bytes starting from `encbuf'.
@@ -292,7 +292,7 @@ void base32_encode_str_into(const gchar *buf, gint len,
 	encbuf[exactlen + pad] = '\0';
 }
 
-/*
+/**
  * base32_encode
  *
  * Encode `len' bytes starting at `buf' into new allocated buffer.
@@ -323,7 +323,7 @@ gchar *base32_encode(const gchar *buf, gint len, gint *retpad, gboolean padding)
 	return encbuf;
 }
 
-/*
+/**
  * base32_decode_alphabet
  *
  * Decode `len' bytes from `buf' into `declen' bytes starting from `decbuf'.
@@ -473,7 +473,7 @@ static gint base32_decode_alphabet(const gint8 valmap[256],
 	return bytes;
 }
 
-/*
+/**
  * base32_decode_into
  *
  * Decode `len' bytes from `buf' into `declen' bytes starting from `decbuf',
@@ -495,7 +495,7 @@ gint base32_decode_into(const gchar *buf, gint len,
 		buf, len + padding, decbuf, declen, padding);
 }
 
-/*
+/**
  * base32_decode_old_into
  *
  * Decode `len' bytes from `buf' into `declen' bytes starting from `decbuf'.
@@ -518,7 +518,7 @@ gint base32_decode_old_into(const gchar *buf, gint len,
 		buf, len + padding, decbuf, declen, padding);
 }
 
-/*
+/**
  * base32_decode
  *
  * Decode `len' bytes starting at `buf' into new allocated buffer.

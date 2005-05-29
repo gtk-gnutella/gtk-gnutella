@@ -26,7 +26,10 @@
 #ifndef _pattern_h_
 #define _pattern_h_
 
-/*
+/**
+ * @ingroup lib
+ * @file
+ *
  * Sunday pattern search data structures.
  */
 

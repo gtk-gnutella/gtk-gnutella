@@ -28,6 +28,9 @@
  * @file
  *
  * Message queues, writing to a UDP stack.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -51,7 +54,7 @@ RCSID("$Id$");
 static void mq_udp_service(gpointer data);
 static const struct mq_ops mq_udp_ops;
 
-/*
+/**
  * The "meta data" attached to each message block enqueued yields routing
  * information, perused by the queue to route messages.
  */

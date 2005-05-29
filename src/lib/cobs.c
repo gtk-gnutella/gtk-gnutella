@@ -24,9 +24,10 @@
  */
 
 /**
+ * @ingroup lib
  * @file
  *
- *  Consistant Overhead Byte Stuffing (COBS).
+ * Consistant Overhead Byte Stuffing (COBS).
  *
  * COBS is an escaping algorithm, taking input in the [0,255] range and
  * producing output in the [1,255] range.  In other words, it escapes all

@@ -93,7 +93,7 @@ static const gint8 values[256] = {
 static const gchar b64_alphabet[] =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-/*
+/**
  * encode_pad_length
  *
  * Compute the number of base64 digits and amount of padding necessary
@@ -134,7 +134,7 @@ static guint encode_pad_length(guint len, guint *pad)
 	return ndigits;
 }
 
-/*
+/**
  * base64_encode_exactly
  *
  * Encode `len' bytes from `buf' into `enclen' bytes starting from `encbuf'.
@@ -197,7 +197,7 @@ static void base64_encode_exactly(const gchar *buf, guint len,
 	}
 }
 
-/*
+/**
  * base64_encode_into
  *
  * Encode `len' bytes from `buf' into `enclen' bytes starting from `encbuf'.
@@ -219,7 +219,7 @@ void base64_encode_into(const gchar *buf, guint len,
 		memset(encbuf + exactlen, '=', pad);
 }
 
-/*
+/**
  * base64_encode
  *
  * Encode `len' bytes starting at `buf' into new allocated buffer.
@@ -245,7 +245,7 @@ gchar *base64_encode(const gchar *buf, guint len, guint *retpad)
 	return encbuf;
 }
 
-/*
+/**
  * base64_decode_alphabet
  *
  * Decode `len' bytes from `buf' into `declen' bytes starting from `decbuf'.
@@ -358,7 +358,7 @@ static guint base64_decode_alphabet(const gint8 valmap[256],
 	return bytes;
 }
 
-/*
+/**
  * base64_decode_into
  *
  * Decode `len' bytes from `buf' into `declen' bytes starting from `decbuf'.
@@ -373,7 +373,7 @@ guint base64_decode_into(const gchar *buf, guint len,
 	return base64_decode_alphabet(values, buf, len, decbuf, declen);
 }
 
-/*
+/**
  * base64_decode
  *
  * Decode `len' bytes starting at `buf' into new allocated buffer.

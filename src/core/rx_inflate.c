@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Network RX -- decompressing stage.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Network RX -- decompressing stage.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -51,7 +59,7 @@ struct attr {
 
 #define IF_ENABLED	0x00000001		/* Reception enabled */
 
-/*
+/**
  * inflate_data
  *
  * Decompress more data from the input buffer `mb'.
@@ -125,7 +133,7 @@ cleanup:
  *** Polymorphic routines.
  ***/
 
-/*
+/**
  * rx_inflate_init
  *
  * Initialize the driver.
@@ -164,7 +172,7 @@ static gpointer rx_inflate_init(rxdrv_t *rx, gpointer unused_args)
 	return rx;		/* OK */
 }
 
-/*
+/**
  * rx_inflate_destroy
  *
  * Get rid of the driver's private data.
@@ -185,7 +193,7 @@ static void rx_inflate_destroy(rxdrv_t *rx)
 	wfree(attr, sizeof(*attr));
 }
 
-/*
+/**
  * rx_inflate_recv
  *
  * Got data from lower layer.

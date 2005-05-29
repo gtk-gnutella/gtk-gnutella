@@ -4,8 +4,6 @@
  * Copyright (c) 2004, Raphael Manfredi
  * Copyright (c) 2003, Markus Goetz
  *
- * This file is based a lot on the whitelist stuff by vidar.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -31,6 +29,13 @@
  * @file
  *
  * Support for the hostiles.txt of BearShare.
+ *
+ * This file is based a lot on the whitelist stuff by vidar.
+ *
+ * @author Markus Goetz
+ * @date 2003
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #include "common.h"

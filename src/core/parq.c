@@ -1,8 +1,6 @@
 /*
  * Copyright (c) 2003 - 2004, Jeroen Asselman & Raphael Manfredi
  *
- * Passive/Active Remote Queuing.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -21,6 +19,17 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Passive/Active Remote Queuing.
+ *
+ * @author Jeroen Asselman
+ * @author Raphael Manfredi
+ * @date 2003-2004
  */
 
 #include "common.h"
@@ -84,7 +93,8 @@ static GHashTable *dl_all_parq_by_id = NULL;
 static guint parq_max_upload_size = MAX_UPLOAD_QSIZE;
 
 
-/* parq_upload_active_size is the maximum number of active upload slots per
+/**
+ * parq_upload_active_size is the maximum number of active upload slots per
  * queue. This limit will only be reached when all requests are QUEUE, push or
  * the number of upload slots is also large
  */
@@ -99,7 +109,8 @@ static GHashTable *ul_all_parq_by_ip_and_name = NULL;
 static GHashTable *ul_all_parq_by_ip = NULL;
 static GHashTable *ul_all_parq_by_id = NULL;
 
-/* If enable_real_passive is TRUE, a dead upload is only marked dead, if FALSE,
+/**
+ * If enable_real_passive is TRUE, a dead upload is only marked dead, if FALSE,
  * a dead upload is really removed and cannot reclaim its position */
 static gboolean enable_real_passive = TRUE;
 
@@ -116,7 +127,7 @@ struct parq_banned {
 
 static gboolean parq_shutdown = FALSE;
 
-/*
+/**
  * Holds status of current queue.
  */
 struct parq_ul_queue {
@@ -147,7 +158,9 @@ struct parq_ul_queued_by_ip {
 	GList	*list;			/* List or queued items for this ip */
 };
 
-/* Contains the queued upload */
+/**
+ * Contains the queued upload
+ */
 struct parq_ul_queued {
 	guint32 magic;			/* Magic number */
 	guint32 flags;			/* Operating flags */
@@ -199,7 +212,7 @@ struct parq_ul_queued {
 							   available */
 };
 
-/*
+/**
  * Flags for parq_ul_queued
  */
 
@@ -1055,7 +1068,7 @@ parq_download_add_header(
 			  ip_port_to_gchar(listen_ip(), listen_port));
 }
 
-/*
+/**
  * parq_download_queue_ack
  *
  * PARQ enabled servers send a 'QUEUE' command when the lifetime of the download

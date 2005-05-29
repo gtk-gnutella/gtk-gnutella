@@ -28,6 +28,9 @@
  * @file
  *
  * Host management.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2004
  */
 
 #include "common.h"

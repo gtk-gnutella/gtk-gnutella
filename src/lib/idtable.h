@@ -26,7 +26,12 @@
 #ifndef _idtable_h_
 #define _idtable_h_
 
-/*
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Needs short description here.
+ *
  * The idtable provides a automatically growing table which can resolve
  * ids to values very fast. The ids are issues by the table and internally
  * refer to an array row in the table. The table starts with an initial size
@@ -34,15 +39,20 @@
  * extend size are internally rounded up to a multiple of 32. There is no
  * limitation to the value and is can be queried whether a given id is in
  * use.
+ *
  * You can also request special id/value combinations, but you need to keep
  * in mind that the ids are row numbers. The table is then automatically
  * grown to contain the requested id, but you can't shrink it later, because
  * that would mean that the row numbers change and the ids already issued
  * would become invalid.
+ *
  * If the application needs to shrink a table, I suggest creating a new
  * table and request the needed number of ids from that. Of course all
  * ids currently in use by the application must be updated. Once that is
  * done, flush and destroy the old table.
+ *
+ * @author Richard Eckart
+ * @date 2001-2003
  */
 
 #include <glib.h>

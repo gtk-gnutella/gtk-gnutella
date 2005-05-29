@@ -28,6 +28,9 @@
  * @file
  *
  * Detection of a local NTP server.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #include "common.h"

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * HTTP routines.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * HTTP routines.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _core_http_h_
 #define _core_http_h_
 
@@ -41,15 +49,15 @@ typedef enum {
 	HTTP_EXTRA_CALLBACK
 } http_extra_type_t;
 
-/*
+/**
  * http_status_cb_t
  *
  * The callback used to generate custom headers.
  *
- * `buf' is where the callback can generate extra data.
- * `retlen' is initially filled with the room available in `buf'.
- * `arg' is user-supplied data.
- * `flags' are extra flags passed by callback invoker
+ * @param `buf' is where the callback can generate extra data.
+ * @param `retlen' is initially filled with the room available in `buf'.
+ * @param `arg' is user-supplied data.
+ * @param `flags' are extra flags passed by callback invoker
  *
  * The callback is expected to fill `buf' and return the length of written
  * data into `retlen'.
@@ -83,7 +91,7 @@ typedef struct {
 
 struct header;
 
-/*
+/**
  * http_header_cb_t
  *
  * Callback used from asynchronous request to indicate that we got headers.
@@ -92,7 +100,7 @@ struct header;
 typedef gboolean (*http_header_cb_t)(
 	gpointer h, struct header *header, gint code, const gchar *message);
 
-/*
+/**
  * http_data_cb_t
  *
  * Callback used from asynchronous request to indicate that data is available.
@@ -112,7 +120,7 @@ typedef struct {
 	const gchar *message;	/* HTTP status message */
 } http_error_t;
 
-/*
+/**
  * http_error_cb_t
  *
  * Callback used from asynchronous request to indicate that an error occurred.
@@ -120,14 +128,14 @@ typedef struct {
  */
 typedef void (*http_error_cb_t)(gpointer h, http_errtype_t error, gpointer val);
 
-/*
+/**
  * http_user_free_t
  *
  * Callabck to free user opaque data.
  */
 typedef void (*http_user_free_t)(gpointer data);
 
-/*
+/**
  * Asynchronous operations that the user may redefine.
  */
 
@@ -174,7 +182,7 @@ typedef enum {
 
 extern http_url_error_t http_url_errno;
 
-/*
+/**
  * http_state_change_t
  *
  * Callabck to notify about state changes in HTTP request.

@@ -24,6 +24,7 @@
  */
 
 /**
+ * @ingroup lib
  * @file
  *
  * Line-oriented parsing from memory buffer.
@@ -40,7 +41,7 @@ RCSID("$Id$");
 #include "misc.h"		/* For RCSID */
 #include "override.h"		/* Must be the last header included */
 
-/*
+/**
  * Those govern the allocation policy for the getline buffer.
  * We start at START_LENGTH, and we grow the buffer each time we need
  * more room by chunks of at least GROW_LENGTH.

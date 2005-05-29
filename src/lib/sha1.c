@@ -25,8 +25,11 @@
  *----------------------------------------------------------------------
  */
 
-/*
- *  sha1.c
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Secure Hashing Algorithm 1 implementation.
  *
  *  Description:
  *      This file implements the Secure Hashing Algorithm 1 as
@@ -73,7 +76,7 @@ RCSID("$Id$");
 void SHA1PadMessage(SHA1Context *);
 void SHA1ProcessMessageBlock(SHA1Context *);
 
-/*
+/**
  *  SHA1Reset
  *
  *  Description:
@@ -111,7 +114,7 @@ int SHA1Reset(SHA1Context *context)
     return shaSuccess;
 }
 
-/*
+/**
  *  SHA1Result
  *
  *  Description:
@@ -167,7 +170,7 @@ int SHA1Result( SHA1Context *context,
     return shaSuccess;
 }
 
-/*
+/**
  *  SHA1Input
  *
  *  Description:
@@ -238,7 +241,7 @@ int SHA1Input(    SHA1Context    *context,
     return shaSuccess;
 }
 
-/*
+/**
  *  SHA1ProcessMessageBlock
  *
  *  Description:
@@ -421,7 +424,7 @@ void SHA1ProcessMessageBlock(SHA1Context *context)
 }
 
 
-/*
+/**
  *  SHA1PadMessage
  *
  *  Description:

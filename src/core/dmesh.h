@@ -25,6 +25,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Download mesh.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _core_dmesh_h_
 #define _core_dmesh_h_
 

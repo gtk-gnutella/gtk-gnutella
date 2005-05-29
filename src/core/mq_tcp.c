@@ -28,6 +28,9 @@
  * @file
  *
  * Message queues, writing to a TCP stack.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -79,7 +82,7 @@ mqueue_t *mq_tcp_make(
 	return q;
 }
 
-/*
+/**
  * mq_tcp_service
  *
  * Service routine for TCP message queue.

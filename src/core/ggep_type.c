@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2004, Raphael Manfredi
  *
- * GGEP type-specific routines.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * GGEP type-specific routines.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2004
  */
 
 #include "common.h"

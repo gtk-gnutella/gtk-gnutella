@@ -5,10 +5,6 @@
  *
  * Atom management.
  *
- * An atom is a single piece of information that is likely to be shared
- * and which is therefore only allocated once: all other instances point
- * to the common object.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -27,6 +23,20 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Atom management.
+ *
+ * An atom is a single piece of information that is likely to be shared
+ * and which is therefore only allocated once: all other instances point
+ * to the common object.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include <string.h>

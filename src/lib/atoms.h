@@ -25,6 +25,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Atom management.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _atoms_h_
 #define _atoms_h_
 

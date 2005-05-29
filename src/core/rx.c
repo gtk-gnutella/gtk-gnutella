@@ -3,13 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Network RX drivers.
- *
- * This file is the "ancestor" class of all RX drivers, and therefore only
- * implements general routines that are mostly common, as well as provides
- * type-checked entry points for dynamically dispatched routines, such
- * as rx_free().
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -30,6 +23,21 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Network RX drivers.
+ *
+ * This file is the "ancestor" class of all RX drivers, and therefore only
+ * implements general routines that are mostly common, as well as provides
+ * type-checked entry points for dynamically dispatched routines, such
+ * as rx_free().
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -37,10 +45,7 @@ RCSID("$Id$");
 #include "rx.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-/**
- * @ingroup core
- * @file
- *
+/*
  * Dynamic dispatch of polymorphic routines.
  */
 
@@ -51,7 +56,7 @@ RCSID("$Id$");
 #define RX_DISABLE(o)		((o)->ops->disable((o)))
 #define RX_BIO_SOURCE(o)	((o)->ops->bio_source((o)))
 
-/*
+/**
  * rx_make
  *
  * Create a new network driver, equipped with the `ops' operations and
@@ -93,7 +98,7 @@ rxdrv_t *rx_make(
 	return rx;
 }
 
-/*
+/**
  * rx_attached
  *
  * Called when a lower driver (lrx) is attached underneath us.
@@ -107,7 +112,7 @@ static void rx_attached(rxdrv_t *rx, rxdrv_t *lrx)
 	rx->lower = lrx;
 }
 
-/*
+/**
  * rx_data_ind
  *
  * Tell upper layer that it got new data from us.
@@ -120,7 +125,7 @@ static void rx_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	rx_recv(rx->upper, mb);
 }
 
-/*
+/**
  * rx_make_under
  *
  * Creation routine for a driver to be stacked under specified upper `urx'.
@@ -152,7 +157,7 @@ rxdrv_t *rx_make_under(rxdrv_t *urx, const struct rxdrv_ops *ops, gpointer args)
 	return rx;
 }
 
-/*
+/**
  * rx_free
  *
  * Dispose of the driver resources, recursively.
@@ -169,7 +174,7 @@ void rx_free(rxdrv_t *rx)
 	G_FREE_NULL(rx);
 }
 
-/*
+/**
  * rx_recv
  *
  * Inject data into driver, from lower layer.
@@ -182,7 +187,7 @@ void rx_recv(rxdrv_t *rx, pmsg_t *mb)
 	RX_RECV(rx, mb);
 }
 
-/*
+/**
  * rx_enable
  *
  * Enable reception, recursively.
@@ -224,7 +229,7 @@ rxdrv_t *rx_bottom(rxdrv_t *rx)
 	return rx;
 }
 
-/*
+/**
  * rx_bio_source
  *
  * Returns the I/O source from the bottom of the stack (link layer).

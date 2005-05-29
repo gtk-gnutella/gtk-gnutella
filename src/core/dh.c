@@ -28,6 +28,9 @@
  * @file
  *
  * Dynamic query hits.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #include "common.h"
@@ -54,7 +57,7 @@ RCSID("$Id$");
 #define DH_MAX_HITS		1000	/* Maximum hits after which we heavily drop */
 #define DH_THRESH_HITS	10		/* Consider we have no hits if less than that */
 
-/*
+/**
  * Information about query hits received.
  */
 typedef struct dqhit {
@@ -65,14 +68,14 @@ typedef struct dqhit {
 	guint32 hits_queued;	/* Amount of hits queued */
 } dqhit_t;
 
-/*
+/**
  * Meta-information about the query hit message.
  */
 struct pmsg_info {
 	guint32 hits;			/* Amount of query hits held in message */
 };
 
-/*
+/**
  * Drop reasons.
  */
 enum dh_drop {

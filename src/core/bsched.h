@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Bandwidth scheduling.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Bandwidth scheduling.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _core_bsched_h_
 #define _core_bsched_h_
 
@@ -35,10 +43,7 @@
 #include "if/core/nodes.h"	/* For node_peer_t */
 #include "if/core/bsched.h"
 
-/**
- * @ingroup core
- * @file
- *
+/*
  * Bandwidth scheduler.
  *
  * A bandwidth scheduler (`B-sched' for short) is made of:

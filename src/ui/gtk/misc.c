@@ -24,9 +24,14 @@
  */
 
 /**
+ * @ingroup gtk
  * @file
  *
  * General GUI functions and stuff which doesn't fit in anywhere else.
+ *
+ * @author Raphael Manfredi
+ * @author Richard Eckart
+ * @date 2001-2003,
  */
 
 #include "gui.h"

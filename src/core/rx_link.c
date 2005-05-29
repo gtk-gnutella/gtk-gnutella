@@ -3,11 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Network driver -- link level.
- *
- * This driver reads data from the network and builds messages that are given
- * to the upper layer on the "interrupt stack".
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -26,6 +21,19 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Network driver -- link level.
+ *
+ * This driver reads data from the network and builds messages that are
+ * given to the upper layer on the "interrupt stack".
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"

@@ -29,6 +29,10 @@
  *
  * Structure for storing meta-information about files being
  * downloaded.
+ *
+ * @author Vidar Madsen
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"

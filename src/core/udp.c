@@ -214,7 +214,7 @@ udp_connect_back(guint32 ip, guint16 port, const gchar *muid)
 			guid_hex_str(muid), size, ip_port_to_gchar(ip, port));
 }
 
-/*
+/**
  * Send a Gnutella ping to the specified host.
  */
 void

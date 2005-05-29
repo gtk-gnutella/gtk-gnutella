@@ -28,6 +28,9 @@
  * @file
  *
  * Out of band query hits.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #include "common.h"

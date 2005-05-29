@@ -32,13 +32,13 @@
 #define HSEP_VERSION_MAJOR 0
 #define HSEP_VERSION_MINOR 2
 
-/*
+/**
  * average time in seconds before resending a HSEP message to a node
  * (can be increased to 60)
  */
 #define HSEP_MSG_INTERVAL 30
 
-/*
+/**
  * random skew in seconds for message interval
  * time is in the interval msg_interval +/- msg_skew
  */

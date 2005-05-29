@@ -31,7 +31,7 @@
 #include <stdio.h>
 #include <glib.h>
 
-/*
+/**
  * Header parsing and holding data structures.
  *
  * The `headers' field is a hash table indexed by field name (normalized).

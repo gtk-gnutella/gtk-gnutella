@@ -3,9 +3,6 @@
  *
  * Copyright (c) 2003, Raphael Manfredi
  *
- * Maintain an accurate clock skew of our host's clock with respect
- * to the absolute time.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -26,11 +23,21 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Maintain an accurate clock skew of our host's clock with respect
+ * to the absolute time.
+ *
+ * @author Raphael Manfredi
+ * @date 2003
+ */
+
 #ifndef _core_clock_h_
 #define _core_clock_h_
 
 #include "common.h"
-
 
 /*
  * Public interface.
