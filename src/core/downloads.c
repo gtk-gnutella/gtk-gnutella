@@ -4392,7 +4392,7 @@ download_write_data(struct download *d)
 		enum dl_chunk_status status;
 		filesize_t fc_end;
 	   
-		status = file_info_pos_status(fi, d->pos, NULL, &fc_end);
+		status = file_info_pos_status(fi, d->pos);
 
 		switch (status) {
 		case DL_CHUNK_DONE:
@@ -4450,8 +4450,7 @@ download_write_data(struct download *d)
 			if (d->pos == d->range_end)
 				goto partial_done;
 
-			//d->range_end = download_filesize(d);	/* New upper boundary */
-			d->range_end = fc_end;	/* New upper boundary */
+			d->range_end = download_filesize(d);	/* New upper boundary */
 
 			break;					/* Go on... */
 		}
