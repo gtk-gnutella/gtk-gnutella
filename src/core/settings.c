@@ -485,7 +485,7 @@ settings_max_msg_size(void)
  * Ask them to set a property to be able to run.
  */
 void
-settings_ask_for_property(gchar *name, gchar *value)
+settings_ask_for_property(const gchar *name, const gchar *value)
 {
 	fprintf(stderr, "\n*** ANCIENT VERSION DETECTED! ***\n\n");
 	fprintf(stderr,

@@ -2334,7 +2334,7 @@ gui_prop_get_storage(property_t p, gchar *t, size_t l)
     return prop_get_storage(gui_property, p, t, l);
 }
 
-gchar *
+const gchar *
 gui_prop_to_string(property_t prop)
 {
     return prop_to_string(gui_property, prop);

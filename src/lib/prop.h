@@ -165,7 +165,7 @@ typedef struct prop_set_stub {
     size_t offset;
     prop_def_t *(*get_def)(property_t);
     property_t (*get_by_name)(const char *);
-    gchar *(*to_string)(property_t);
+    const gchar *(*to_string)(property_t);
     struct {
         prop_add_prop_changed_listener_t add;
         prop_add_prop_changed_listener_full_t add_full;

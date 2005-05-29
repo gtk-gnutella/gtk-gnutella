@@ -220,7 +220,7 @@ guint64 *gui_prop_get_guint64(
 void gui_prop_set_storage(property_t, const gchar *, size_t);
 gchar *gui_prop_get_storage(property_t, gchar *, size_t);
 
-gchar *gui_prop_to_string(property_t prop);
+const gchar *gui_prop_to_string(property_t prop);
 
 #endif /* _gui_property_h_ */
 

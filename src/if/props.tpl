@@ -165,7 +165,7 @@ guint64 *[=(. func-prefix)=]_get_guint64(
 void [=(. func-prefix)=]_set_storage(property_t, const gchar *, size_t);
 gchar *[=(. func-prefix)=]_get_storage(property_t, gchar *, size_t);
 
-gchar *[=(. func-prefix)=]_to_string(property_t prop);
+const gchar *[=(. func-prefix)=]_to_string(property_t prop);
 
 #endif /* _[=(. set-name-down)=]_h_ */
 
@@ -562,7 +562,7 @@ gchar *
     return prop_get_storage([=(. prop-set)=], p, t, l);
 }
 
-gchar *
+const gchar *
 [=(. func-prefix)=]_to_string(property_t prop)
 {
     return prop_to_string([=(. prop-set)=], prop);

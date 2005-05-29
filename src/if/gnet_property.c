@@ -5313,7 +5313,7 @@ gnet_prop_get_storage(property_t p, gchar *t, size_t l)
     return prop_get_storage(gnet_property, p, t, l);
 }
 
-gchar *
+const gchar *
 gnet_prop_to_string(property_t prop)
 {
     return prop_to_string(gnet_property, prop);

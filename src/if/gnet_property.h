@@ -357,7 +357,7 @@ guint64 *gnet_prop_get_guint64(
 void gnet_prop_set_storage(property_t, const gchar *, size_t);
 gchar *gnet_prop_get_storage(property_t, gchar *, size_t);
 
-gchar *gnet_prop_to_string(property_t prop);
+const gchar *gnet_prop_to_string(property_t prop);
 
 #endif /* _gnet_property_h_ */
 
