@@ -981,20 +981,20 @@ filter_rule_condition_to_gchar(const rule_t *r)
         }
         break;
     case RULE_SIZE:
-		if (r->u.size.lower == 0) {
-            gchar smax_64[32];
-
-			uint64_to_string_buf(smax_64, sizeof smax_64, r->u.size.upper);
-			gm_snprintf(tmp, sizeof(tmp),
-				_("If filesize is smaller than %s (%s)"),
-				smax_64, short_size(r->u.size.upper));
-		} else if (r->u.size.upper == r->u.size.lower) {
+		if (r->u.size.upper == r->u.size.lower) {
             gchar smax_64[32];
 
 			uint64_to_string_buf(smax_64, sizeof smax_64, r->u.size.upper);
 			gm_snprintf(tmp, sizeof(tmp),
 				_("If filesize is exactly %s (%s)"),
 				smax_64, short_size(r->u.size.upper));
+		} else if (r->u.size.lower == 0) {
+            gchar smax_64[32];
+
+			uint64_to_string_buf(smax_64, sizeof smax_64, r->u.size.upper + 1);
+			gm_snprintf(tmp, sizeof(tmp),
+				_("If filesize is smaller than %s (%s)"),
+				smax_64, short_size(r->u.size.upper + 1));
 		} else {
             gchar smin[256], smax[256];
             gchar smin_64[32], smax_64[32];
