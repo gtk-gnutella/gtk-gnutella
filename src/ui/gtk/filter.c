@@ -1665,7 +1665,14 @@ static rule_t *filter_gui_get_size_rule(void)
         (active ? RULE_FLAG_ACTIVE : 0) |
         (soft   ? RULE_FLAG_SOFT   : 0);
 
-   return filter_new_size_rule(lower, upper, target, flags);
+	if (!upper && lower > 0) {
+		/* Special fixup for "minimum size" filters */
+		upper = lower - 1;
+		lower = 0;
+		flags |= RULE_FLAG_NEGATE;
+	}
+
+	return filter_new_size_rule(lower, upper, target, flags);
 }
 
 
