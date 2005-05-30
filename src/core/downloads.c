@@ -4390,10 +4390,8 @@ download_write_data(struct download *d)
 
 	if (fi->use_swarming) {
 		enum dl_chunk_status status;
-		filesize_t fc_end;
 	   
 		status = file_info_pos_status(fi, d->pos);
-
 		switch (status) {
 		case DL_CHUNK_DONE:
 			/*
