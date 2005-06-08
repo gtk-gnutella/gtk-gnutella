@@ -6021,7 +6021,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				download_stop(d, GTA_DL_ERROR, "Range end too large");
 				return;
 			}
-			if (end <= d->skip || start > d->range_end) {
+			if (end < d->skip || start >= d->range_end) {
 				gchar got[64];
 
 				gm_snprintf(got, sizeof got, "got %s - %s",
