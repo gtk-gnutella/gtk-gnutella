@@ -6039,7 +6039,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 					d->file_name,
 					ip_port_to_gchar(download_ip(d), download_port(d)),
 					download_vendor_str(d),
-					uint64_to_string(d->skip), uint64_to_string2(d->range_end),
+					uint64_to_string(d->skip),
+					uint64_to_string2(d->range_end - 1),
 					got);
 				download_stop(d, GTA_DL_ERROR, "Range mismatch");
 				return;
