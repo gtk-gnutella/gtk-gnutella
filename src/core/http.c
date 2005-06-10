@@ -686,7 +686,7 @@ http_buffer_free(http_buffer_t *b)
 }
 
 /**
- * Parses the value of a Content-Range header.
+ * Parses the content of a Content-Range header.
  *
  * @param buf should point the payload of a Content-Range header
  * @param start will be set to the ``start'' offset
@@ -734,10 +734,13 @@ http_content_range_parse(const gchar *buf,
 	s = skip_ascii_spaces(endptr);
 	*total = parse_uint64(s, &endptr, 10, &error);
 
-	if (start > end)
+	// according to the HTTP/1.1 specs, start <= end < total
+	// must be true, otherwise the range is invalid
+	
+	if (error || *start > *end || *end >= *total)
 		return -1;
 
-	return error ? -1 : 0;
+	return 0;
 }
 
 /***
