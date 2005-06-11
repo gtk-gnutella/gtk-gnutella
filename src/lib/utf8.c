@@ -1077,7 +1077,7 @@ locale_to_utf8_normalized(const gchar *str, uni_norm_t norm)
 		len = strlen(str);
    		size = len * 6 + 1;
 		g_assert((size - 1) / 6 == len);
-		p = len < sizeof sbuf ? sbuf : g_malloc(size);
+		p = size < sizeof sbuf ? sbuf : g_malloc(size);
 		s = g_iconv_complete(cd_locale_to_utf8, str, len, p, size);
 	}
 
