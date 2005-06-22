@@ -3,13 +3,14 @@
  * @section intro Introduction
  *
  * Gtk-Gnutella is a GUI based Gnutella servent, which features:
+ *
  *  - Share files on the gnutella network (LimeWire, BearShare, Xolox,
  *    Gnucleus, Shareaza, Morpheus ...)
  *  - Compressed Gnet connections
  *  - Simultaneous downloading of files from multiple hosts (swarming)
  *  - Passive searches
  *  - Searching by urn:sha1: and magnet:
- *  - Automatic aquisition of additional sources via download mesh and
+ *  - Automatic acquisition of additional sources via download mesh and
  *    watching searches
  *  - Powerful filtering engine
  *  - Bandwidth management/limiting
@@ -45,6 +46,7 @@
  *
  * @section Interface
  *	- @ref gtk
+ *	- @ref console
  *
  * @section Miscellaneous
  *	- @ref undoc
@@ -52,21 +54,38 @@
 
 /**
  * @defgroup core Core Module
+ *
+ * This group contains functions of core part.
  */
 
 /**
  * @defgroup lib Common Libraries
+ *
+ * This group contains functions used in common libraries.
  */
 
 /**
  * @defgroup ui User Interface
+ *
+ * This group contains user interface related functions.
  */
 
 /**
- * @defgroup gtk GTK+
+ * @defgroup gtk GTK+ Interface
  * @ingroup ui
+ *
+ * GTK+ Interface for Gtk-Gnutella.
+ */
+
+/**
+ * @defgroup console Console Interface
+ * @ingroup ui
+ *
+ * Console Interface for Gtk-Gnutella.
  */
 
 /**
  * @defgroup undoc Undocumented
+ *
+ * This group contains undocumented functions.
  */
