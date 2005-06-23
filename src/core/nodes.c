@@ -2715,7 +2715,7 @@ node_is_now_connected(struct gnutella_node *n)
 	 */
 
 	if (n->flags & NODE_F_CRAWLER) {
-		node_remove(n, "Sent crawling info");
+		node_remove(n, _("Sent crawling info"));
 		return;
 	}
 
@@ -2858,7 +2858,7 @@ node_is_now_connected(struct gnutella_node *n)
 		ctx = tx_make(n, tx_deflate_get_ops(), &args);
 		if (ctx == NULL) {
 			tx_free(tx);
-			node_remove(n, "Cannot setup compressing TX stack");
+			node_remove(n, _("Cannot setup compressing TX stack"));
 			return;
 		}
 
@@ -3072,7 +3072,7 @@ node_got_bye(struct gnutella_node *n)
 			node_ip(n), node_vendor(n), code, (int) MIN(80, message_len),
 				message);
 
-	node_remove(n, "Got BYE %d %.*s", code, (int) MIN(80, message_len),
+	node_remove(n, _("Got BYE %d %.*s"), code, (int) MIN(80, message_len),
 		message);
 }
 
@@ -3402,7 +3402,7 @@ analyse_status(struct gnutella_node *n, gint *code)
 	 */
 
 	if (!ack_ok)
-		node_remove(n, "Weird HELLO %s", what);
+		node_remove(n, _("Weird HELLO %s"), what);
 	else if (ack_code < 200 || ack_code >= 300) {
 		if (ack_code == 401) {
             /* Unauthorized */
@@ -3414,11 +3414,11 @@ analyse_status(struct gnutella_node *n, gint *code)
             hcache_add(HCACHE_BUSY, n->ip, 0, "ack_code 503");
         }
 
-		node_remove(n, "HELLO %s error %d (%s)", what, ack_code, ack_message);
+		node_remove(n, _("HELLO %s error %d (%s)"), what, ack_code, ack_message);
 		ack_ok = FALSE;
 	}
 	else if (!incoming && ack_code == 204) {
-		node_remove(n, "Shielded node");
+		node_remove(n, _("Shielded node"));
 		ack_ok = FALSE;
 	}
 
@@ -3449,7 +3449,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 	if (handshaking && !allow_gnet_connections) {
 		node_send_error(n, 403,
 			"Gnet connections currently disabled");
-		node_remove(n, "Gnet connections disabled");
+		node_remove(n, _("Gnet connections disabled"));
 		return FALSE;
 	}
 
@@ -3474,18 +3474,18 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			g_error("logic error");
 			break;
 		case NODE_BAD_IP:
-			msg = "Unstable IP address";
+			msg = _("Unstable IP address");
 			break;
 		case NODE_BAD_VENDOR:
-			msg = "Servent version appears unstable";
+			msg = _("Servent version appears unstable");
 			break;
 		case NODE_BAD_NO_VENDOR:
-			msg = "No vendor string supplied";
+			msg = _("No vendor string supplied");
 			break;
 		}
 
 		node_send_error(n, 403, "%s", msg);
-		node_remove(n, "Not connecting: %s", msg);
+		node_remove(n, _("Not connecting: %s"), msg);
 		return FALSE;
 	}
 
@@ -3517,7 +3517,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			) {
 				node_send_error(n, 403,
 					"Compressed connection prefered");
-				node_remove(n, "Connection not compressed");
+				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}
 
@@ -3532,7 +3532,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			if (handshaking && node_leaf_count >= max_leaves) {
 				node_send_error(n, 503,
 					"Too many leaf connections (%d max)", max_leaves);
-				node_remove(n, "Too many leaves (%d max)", max_leaves);
+				node_remove(n, _("Too many leaves (%d max)"), max_leaves);
 				return FALSE;
 			}
 			if (!handshaking && node_leaf_count > max_leaves) {
@@ -3555,7 +3555,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			) {
 				node_send_error(n, 403,
 					"Compressed connection prefered");
-				node_remove(n, "Connection not compressed");
+				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}
 
@@ -3569,7 +3569,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			) {
 				node_send_error(n, 503,
 					"Too many ultra connections (%d max)", ultra_max);
-				node_remove(n, "Too many ultra nodes (%d max)", ultra_max);
+				node_remove(n, _("Too many ultra nodes (%d max)"), ultra_max);
 				return FALSE;
 			}
 			if (!handshaking && node_ultra_count > ultra_max) {
@@ -3599,7 +3599,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			) {
 				node_send_error(n, 403,
 					"Gnet connection not compressed");
-				node_remove(n, "Connection not compressed");
+				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}
 		}
@@ -3618,7 +3618,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 					"Too many normal nodes (%d max)", normal_connections);
 			else
 				node_send_error(n, 403, "Normal nodes refused");
-			node_remove(n, "Rejected normal node (%d max)", normal_connections);
+			node_remove(n, _("Rejected normal node (%d max)"), normal_connections);
 			return FALSE;
 		}
 
@@ -3630,13 +3630,13 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				(n->attrs & (NODE_A_CAN_ULTRA|NODE_A_ULTRA)) == NODE_A_CAN_ULTRA
 			) {
 				node_send_error(n, 503, "Cannot accept leaf node");
-				node_remove(n, "Rejected leaf node");
+				node_remove(n, _("Rejected leaf node"));
 				return FALSE;
 			}
 			if (connected >= max_connections) {
 				node_send_error(n, 503,
 					"Too many Gnet connections (%d max)", max_connections);
-				node_remove(n, "Too many nodes (%d max)", max_connections);
+				node_remove(n, _("Too many nodes (%d max)"), max_connections);
 				return FALSE;
 			}
 			if (
@@ -3648,7 +3648,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			) {
 				node_send_error(n, 403,
 					"Gnet connection not compressed");
-				node_remove(n, "Connection not compressed");
+				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}
 		} else if (node_normal_count + node_ultra_count > max_connections) {
@@ -3672,20 +3672,20 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			if (!(n->attrs & NODE_A_ULTRA)) {
 				node_send_error(n, 204,
 					"Shielded leaf node (%d peers max)", max_ultrapeers);
-				node_remove(n, "Sent shielded indication");
+				node_remove(n, _("Sent shielded indication"));
 				return FALSE;
 			}
 
 			if (!(n->attrs & NODE_A_ULTRA)) {
 				node_send_error(n, 503, "Looking for an ultra node");
-				node_remove(n, "Not an ultra node");
+				node_remove(n, _("Not an ultra node"));
 				return FALSE;
 			}
 
 			if (node_ultra_count >= max_ultrapeers) {
 				node_send_error(n, 503,
 					"Too many ultra connections (%d max)", max_ultrapeers);
-				node_remove(n, "Too many ultra nodes (%d max)", max_ultrapeers);
+				node_remove(n, _("Too many ultra nodes (%d max)"), max_ultrapeers);
 				return FALSE;
 			}
 
@@ -3701,7 +3701,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			) {
 				node_send_error(n, 403,
 					"Compressed connection prefered");
-				node_remove(n, "Connection not compressed");
+				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}
 		} else if (node_ultra_count > max_ultrapeers) {
@@ -3751,7 +3751,7 @@ node_can_accept_protocol(struct gnutella_node *n, header_t *head)
 			!(n->flags & NODE_F_LEAF) &&
 			strstr(field, "application/x-gnutella2") /* XXX parse the "," */
 		) {
-			static const gchar msg[] = "Protocol not acceptable";
+			static const gchar msg[] = N_("Protocol not acceptable");
 
 			node_send_error(n, 406, msg);
 			node_remove(n, msg);
@@ -4031,7 +4031,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	if (in_shutdown) {
 		node_send_error(n, 503, "Servent Shutdown");
-		node_remove(n, "Servent Shutdown");
+		node_remove(n, _("Servent Shutdown"));
 		return;					/* node_remove() has freed s->getline */
 	}
 
@@ -4469,7 +4469,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	if (node_avoid_monopoly(n)) {
 		node_send_error(n, 409,
 			"Vendor would exceed %d%% of our slots", unique_nodes);
-		node_remove(n, "Vendor would exceed %d%% of our slots", unique_nodes);
+		node_remove(n, _("Vendor would exceed %d%% of our slots"), unique_nodes);
 		return;
 	}
 
@@ -4479,7 +4479,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	if (node_reserve_slot(n)) {
 		node_send_error(n, 409, "Reserved slot");
-		node_remove(n, "Reserved slot");
+		node_remove(n, _("Reserved slot"));
 		return;
 	}
 
@@ -4741,14 +4741,14 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		int errcode = errno;
 		if (dbg) g_warning("Unable to send back %s to node %s: %s",
 			what, ip_to_gchar(n->ip), g_strerror(errcode));
-		node_remove(n, "Failed (Cannot send %s: %s)",
+		node_remove(n, _("Failed (Cannot send %s: %s)"),
 			what, g_strerror(errcode));
 		return;
 	} else if ((size_t) sent < rw) {
 		if (dbg) g_warning(
 			"Could only send %d out of %d bytes of %s to node %s",
 			(int) sent, (int) rw, what, ip_to_gchar(n->ip));
-		node_remove(n, "Failed (Cannot send %s atomically)", what);
+		node_remove(n, _("Failed (Cannot send %s atomically)"), what);
 		return;
 	} else if (dbg > 2) {
 		printf("----Sent OK %s to %s (%d bytes):\n%.*s----\n",
@@ -4795,7 +4795,7 @@ static void
 err_line_too_long(gpointer obj)
 {
 	node_send_error(NODE(obj), 413, "Header line too long");
-	node_remove(NODE(obj), "Failed (Header line too long)");
+	node_remove(NODE(obj), _("Failed (Header line too long)"));
 }
 
 static void
@@ -4807,7 +4807,7 @@ err_header_error_tell(gpointer obj, gint error)
 static void
 err_header_error(gpointer obj, gint error)
 {
-	node_remove(NODE(obj), "Failed (%s)", header_strerror(error));
+	node_remove(NODE(obj), _("Failed (%s)"), header_strerror(error));
 }
 
 static void
@@ -4816,19 +4816,19 @@ err_input_exception(gpointer obj)
 	struct gnutella_node *n = NODE(obj);
 
 	node_remove(n, (n->flags & NODE_F_CRAWLER) ?
-		"Sent crawling info" : "Failed (Input Exception)");
+		_("Sent crawling info") : _("Failed (Input Exception)"));
 }
 
 static void
 err_input_buffer_full(gpointer obj)
 {
-	node_remove(NODE(obj), "Failed (Input buffer full)");
+	node_remove(NODE(obj), _("Failed (Input buffer full)"));
 }
 
 static void
 err_header_read_error(gpointer obj, gint error)
 {
-	node_remove(NODE(obj), "Failed (Input error: %s)", g_strerror(error));
+	node_remove(NODE(obj), _("Failed (Input error: %s)"), g_strerror(error));
 }
 
 static void
@@ -4840,13 +4840,13 @@ err_header_read_eof(gpointer obj)
 		node_mark_bad_vendor(n);
 
 	node_remove(n, (n->flags & NODE_F_CRAWLER) ?
-		"Sent crawling info" : "Failed (EOF)");
+		_("Sent crawling info") : _("Failed (EOF)"));
 }
 
 static void
 err_header_extra_data(gpointer obj)
 {
-	node_remove(NODE(obj), "Failed (Extra HELLO data)");
+	node_remove(NODE(obj), _("Failed (Extra HELLO data)"));
 }
 
 static struct io_error node_io_error = {
@@ -4896,7 +4896,7 @@ node_udp_create(void)
 	n->hops_flow = MAX_HOP_COUNT;
 	n->last_update = n->last_tx = n->last_rx = time(NULL);
 	n->routing_data = NULL;
-	n->vendor = atom_str_get("Pseudo UDP node");
+	n->vendor = atom_str_get(_("Pseudo UDP node"));
 	n->status = GTA_NODE_CONNECTED;
 	n->flags = NODE_F_ESTABLISHED | \
 		NODE_F_READABLE | NODE_F_WRITABLE | NODE_F_VALID;
@@ -5216,7 +5216,7 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	if (already_connected) {
 		if (incoming && (n->proto_major > 0 || n->proto_minor > 4))
 			node_send_error(n, 409, "Already connected");
-		node_remove(n, "Already connected");
+		node_remove(n, _("Already connected"));
 		return;
 	}
 
@@ -5729,7 +5729,7 @@ node_drain_hello(gpointer data, gint source, inputevt_cond_t cond)
 		socklen_t error_len = sizeof error;
 
 		getsockopt(source, SOL_SOCKET, SO_ERROR, &error, &error_len);
-		node_remove(n, "Write error during HELLO: %s", g_strerror(error));
+		node_remove(n, _("Write error during HELLO: %s"), g_strerror(error));
 		return;
 	}
 
@@ -5824,7 +5824,7 @@ node_init_outgoing(struct gnutella_node *n)
 		n->hello.len = 0;
 		n->hello.ptr = walloc((n->hello.size = MAX_LINE_SIZE));
 		if (!n->hello.ptr) {
-			node_remove(n, "Out of memory");
+			node_remove(n, _("Out of memory"));
 			return;
 		}
 
@@ -5914,12 +5914,12 @@ node_init_outgoing(struct gnutella_node *n)
 	if ((ssize_t) -1 == sent) {
 		g_message("bws_write() failed: %s", g_strerror(errno));
 		if (errno != EAGAIN) {
-			node_remove(n, "Write error during HELLO: %s",
+			node_remove(n, _("Write error during HELLO: %s"),
 				g_strerror(errno));
 			return;
 		}
 	} else if (sent == 0) {
-			node_remove(n, "Connection reset during HELLO");
+			node_remove(n, _("Connection reset during HELLO"));
 			return;
 	} else {
 		n->hello.pos += sent;
@@ -6157,7 +6157,7 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 		case GTA_MSG_BYE:
 			if (n->size > BYE_MAX_SIZE) {
 				gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
-				node_remove(n, "Kicked: %s message too big (%d bytes)",
+				node_remove(n, _("Kicked: %s message too big (%d bytes)"),
 							gmsg_name(n->header.function), n->size);
 				return FALSE;
 			}

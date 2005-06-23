@@ -369,7 +369,7 @@ upload_timer(time_t now)
 			if (u->status == GTA_UL_PUSH_RECEIVED || u->status == GTA_UL_QUEUE)
 				upload_remove(u, _("Connect back timeout"));
 			else
-				upload_error_remove(u, NULL, 408, _("Request timeout"));
+				upload_error_remove(u, NULL, 408, "Request timeout");
 		} else if (UPLOAD_IS_SENDING(u))
 			upload_remove(u, "Data timeout after %s byte%s",
 				uint64_to_string(u->sent), u->sent == 1 ? "" : "s");
@@ -1070,13 +1070,13 @@ err_header_error_tell(gpointer obj, gint error)
 static void
 err_header_error(gpointer obj, gint error)
 {
-	upload_remove(UPLOAD(obj), "Failed (%s)", header_strerror(error));
+	upload_remove(UPLOAD(obj), _("Failed (%s)"), header_strerror(error));
 }
 
 static void
 err_input_exception(gpointer obj)
 {
-	upload_remove(UPLOAD(obj), "Failed (Input Exception)");
+	upload_remove(UPLOAD(obj), _("Failed (Input Exception)"));
 }
 
 static void
@@ -1088,7 +1088,7 @@ err_input_buffer_full(gpointer obj)
 static void
 err_header_read_error(gpointer obj, gint error)
 {
-	upload_remove(UPLOAD(obj), "Failed (Input error: %s)", g_strerror(error));
+	upload_remove(UPLOAD(obj), _("Failed (Input error: %s)"), g_strerror(error));
 }
 
 static void
@@ -1096,7 +1096,7 @@ err_header_read_eof(gpointer obj)
 {
 	gnutella_upload_t * u = UPLOAD(obj);
 	u->error_sent = 999;		/* No need to send anything on EOF condition */
-	upload_remove(u, "Failed (EOF)");
+	upload_remove(u, _("Failed (EOF)"));
 }
 
 static void
@@ -1392,7 +1392,7 @@ upload_connect_conf(gnutella_upload_t *u)
 	}
 
 	if ((size_t) sent != rw) {
-		upload_remove(u, "Unable to send GIV");
+		upload_remove(u, _("Unable to send GIV"));
 		return;
 	}
 
@@ -2597,7 +2597,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				ip_to_gchar(up->ip), upload_vendor_str(up),
 				uint64_to_string(up->sent), stalled);
 
-			upload_remove(up, "Stalling upload replaced");
+			upload_remove(up, _("Stalling upload replaced"));
 			replacing_stall = TRUE;
 		}
 		g_slist_free(to_remove);
@@ -2746,7 +2746,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 					upload_error_remove(u, reqfile, 503, "Queue full");
 				} else {
 					upload_error_remove(u, reqfile,	503,
-						"Queued (slot %d, ETA: %s)",
+						_("Queued (slot %d, ETA: %s)"),
 						parq_upload_lookup_position(u),
 						short_time(parq_upload_lookup_eta(u)));
 				}
@@ -2766,8 +2766,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		if (!is_followup && !parq_upload_ip_can_proceed(u)) {
 			upload_error_remove(u, reqfile, 503,
-				"Only %d upload%s per IP address",
-				max_uploads_ip, max_uploads_ip == 1 ? "" : "s");
+				NG_("Only %d upload per IP address",
+					"Only %d uploads per IP address", max_uploads_ip),
+					 max_uploads_ip);
 			return;
 		}
 
@@ -2927,7 +2928,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		!http_send_status(u->socket, http_code, u->keep_alive,
 			hev, hevcnt, "%s", http_msg)
 	) {
-		upload_remove(u, "Cannot send whole HTTP status");
+		upload_remove(u, _("Cannot send whole HTTP status"));
 		return;
 	}
 
@@ -2983,7 +2984,7 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		/* If we can't write then we don't want it, kill the socket */
 		socket_eof(u->socket);
-		upload_remove(u, "Write exception");
+		upload_remove(u, _("Write exception"));
 		return;
 	}
 
@@ -3038,7 +3039,7 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 			g_assert(u->buf_size > 0);
 			u->bsize = ret = read(u->file_desc, u->buffer, u->buf_size);
 			if ((ssize_t) -1 == ret) {
-				upload_remove(u, "File read error: %s", g_strerror(errno));
+				upload_remove(u, _("File read error: %s"), g_strerror(errno));
 				return;
 			}
 			if (0 == ret) {
@@ -3075,7 +3076,7 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 		}
 		if (e != EAGAIN && e != EINTR) {
 			socket_eof(u->socket);
-			upload_remove(u, "Data write error: %s", g_strerror(e));
+			upload_remove(u, _("Data write error: %s"), g_strerror(e));
 		}
 		return;
 	} else if (written == 0) {

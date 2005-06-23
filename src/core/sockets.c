@@ -1316,7 +1316,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		return;
 	} else if ((ssize_t) -1 == r) {
 		if (errno != EAGAIN)
-			socket_destroy(s, "Read error");
+			socket_destroy(s, _("Read error"));
 		return;
 	}
 
@@ -1540,7 +1540,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 		if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download)
 			download_fallback_to_push(s->resource.download, FALSE, FALSE);
 		else
-			socket_destroy(s, "Connection failed");
+			socket_destroy(s, _("Connection failed"));
 		return;
 	}
 
@@ -1644,7 +1644,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 			)
 				download_fallback_to_push(s->resource.download, FALSE, FALSE);
 			else
-				socket_destroy(s, "Connection failed");
+				socket_destroy(s, _("Connection failed"));
 			return;
 		}
 
@@ -2131,7 +2131,7 @@ socket_connect_finalize(struct gnutella_socket *s, guint32 ip_addr)
 		if (s->adns & SOCK_ADNS_PENDING)
 			s->adns_msg = "Connection failed";
 		else
-			socket_destroy(s, "Connection failed");
+			socket_destroy(s, _("Connection failed"));
 		return NULL;
 	}
 

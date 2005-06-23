@@ -77,7 +77,7 @@ is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 	g_assert(attr->bio);			/* Input enabled */
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
-		node_eof(n, "Read failed (Input Exception)");
+		node_eof(n, _("Read failed (Input Exception)"));
 		return;
 	}
 
@@ -90,14 +90,15 @@ is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 	r = bio_read(attr->bio, pdata_start(db), pdata_len(db));
 	if (r == 0) {
 		if (n->n_ping_sent <= 2 && n->n_pong_received)
-			node_eof(n, "Got %d connection pong%s",
-				n->n_pong_received, n->n_pong_received == 1 ? "" : "s");
+			node_eof(n, NG_("Got %d connection pong",
+                            "Got %d connection pongs", n->n_pong_received),
+                     n->n_pong_received);
 		else
 			node_eof(n, "Failed (EOF)");
 		goto error;
 	} else if ((ssize_t) -1 == r) {
 		if (errno != EAGAIN)
-			node_eof(n, "Read error: %s", g_strerror(errno));
+			node_eof(n, _("Read error: %s"), g_strerror(errno));
 		goto error;
 	}
 

@@ -542,7 +542,7 @@ download_timer(time_t now)
 						 * queued for that host as well.
 						 */
 
-						download_unavailable(d, GTA_DL_ERROR, "Timeout");
+						download_unavailable(d, GTA_DL_ERROR, _("Timeout"));
 						download_remove_all_from_peer(
 							download_guid(d), download_ip(d), download_port(d),
 							TRUE);
@@ -2995,26 +2995,29 @@ attempt_retry:
 				download_guid(d), download_ip(d), download_port(d), TRUE);
 		} else
 			download_queue_hold(d, download_retry_refused_delay,
-				"No direct connection yet (%d retr%s)",
-				d->retries, d->retries == 1 ? "y" : "ies");
+				NG_("No direct connection yet (%d retry)",
+					"No direct connection yet (%d retries)", d->retries),
+					 d->retries);
 	} else if (d->retries < download_max_retries) {
 		d->retries++;
 		if (on_timeout)
 			download_queue_hold(d, download_retry_timeout_delay,
-				"Timeout (%d retr%s)",
-				d->retries, d->retries == 1 ? "y" : "ies");
+				NG_("Timeout (%d retry)",
+					"Timeout (%d retries)", d->retries), d->retries);
 		else
 			download_queue_hold(d, download_retry_refused_delay,
-				"Connection refused (%d retr%s)",
-				d->retries, d->retries == 1 ? "y" : "ies");
+				NG_("Connection refused (%d retry)",
+					"Connection refused (%d retries)", d->retries),
+					 d->retries);
 	} else {
 		/*
 		 * Looks like this host is down.  Abort the download, and remove all
 		 * the ones queued for the same host.
 		 */
 
-		download_unavailable(d, GTA_DL_ERROR, "Timeout (%d retr%s)",
-				d->retries, d->retries == 1 ? "y" : "ies");
+		download_unavailable(d, GTA_DL_ERROR,
+				NG_("Timeout (%d retry)",
+					"Timeout (%d retries)", d->retries), d->retries);
 
 		download_remove_all_from_peer(
 			download_guid(d), download_ip(d), download_port(d), TRUE);
@@ -4023,7 +4026,7 @@ err_header_read_error(gpointer o, gint error)
 			download_unavailable(d, GTA_DL_ERROR,
 				_("Too many attempts (%d)"), d->retries - 1);
 	} else
-		download_stop(d, GTA_DL_ERROR, "Failed (Read error: %s)",
+		download_stop(d, GTA_DL_ERROR, _("Failed (Read error: %s)"),
 			g_strerror(error));
 }
 
@@ -5274,7 +5277,7 @@ download_sink_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 					"Stopped data (%s)", g_strerror(errno));
 			else
 				download_stop(d, GTA_DL_ERROR,
-					"Failed (Read error: %s)", g_strerror(errno));
+					_("Failed (Read error: %s)"), g_strerror(errno));
 		}
 		return;
 	}

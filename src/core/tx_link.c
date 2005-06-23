@@ -64,7 +64,7 @@ is_writable(gpointer data, gint unused_source, inputevt_cond_t cond)
 	g_assert(n);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
-		node_remove(n, "Write failed (Input Exception)");
+		node_remove(n, _("Write failed (Input Exception)"));
 		return;
 	}
 
@@ -157,7 +157,7 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 		/*
 		 * FIXME: In these cases a graceful shutdown should be unnecessary
 		 */
-		node_shutdown(tx->node, "Write failed: %s", g_strerror(errno));
+		node_shutdown(tx->node, _("Write failed: %s"), g_strerror(errno));
 		return -1;
 		
 	case ENOSPC:
@@ -172,7 +172,7 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 	case ETIMEDOUT:
 	case EACCES:
 		socket_eof(tx->node->socket);
-		node_shutdown(tx->node, "Write failed: %s", g_strerror(errno));
+		node_shutdown(tx->node, _("Write failed: %s"), g_strerror(errno));
 		return -1;
 
 	default:
