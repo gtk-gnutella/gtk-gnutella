@@ -1,6 +1,6 @@
 # Japanese translations for gtk-gnutella package.
-# Copyright (C) 2000-2001 Yann Grossel
-# Copyright (C) 2001-2005 Raphael Manfredi
+# Copyright (C) 2000-2001 Yann Grossel.
+# Copyright (C) 2001-2005 Raphael Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # Daichi Kawahata <daichik@users.sourceforge.net>, 2004-2005.
 #
@@ -13,6 +13,7 @@
 # banning         禁止処理
 # deactivated     無効にする・非活生化
 # directory       フォルダ
+# global          大域・全般・システム用
 # inactive        非稼働・無効
 # invalid         不適切な
 # matching        一致
@@ -24,6 +25,7 @@
 # requeued        再び待機
 # route           経路
 # routing         経路作成
+# shutdown        停止
 # slot            受口
 # swarming        分封 (スワーミングの方が良い?)
 # timeout         タイムアウト
@@ -38,8 +40,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-05-21 13:13+0900\n"
-"PO-Revision-Date: 2005-05-22 00:38+0900\n"
+"POT-Creation-Date: 2005-06-23 21:22+0900\n"
+"PO-Revision-Date: 2005-06-23 10:41+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -50,284 +52,488 @@ msgstr ""
 "X-Poedit-Country: JAPAN\n"
 "X-Poedit-SourceCharset: utf-8\n"
 
-#: src/core/downloads.c:495 src/core/downloads.c:553
+#: src/core/downloads.c:498 src/core/downloads.c:556
 msgid "No longer connected"
 msgstr "もう接続していません"
 
-#: src/core/downloads.c:1284
+# FIXME: needs separated
+#: src/core/downloads.c:545 src/core/nodes.c:833 src/ui/gtk/hcache_common.c:43
+msgid "Timeout"
+msgstr "タイムアウト"
+
+#: src/core/downloads.c:1287
 msgid "Requeued by file info change"
 msgstr "待機列に戻されました (ファイル情報変更)"
 
-#: src/core/downloads.c:1364 src/core/downloads.c:2418
-#: src/core/downloads.c:3309
+#: src/core/downloads.c:1367 src/core/downloads.c:2421
+#: src/core/downloads.c:3315
 msgid "Suspended (SHA1 checking)"
 msgstr "一時休止 (SHA1 確認中)"
 
-#: src/core/downloads.c:2546
+#: src/core/downloads.c:2549
 msgid "Waiting for a free chunk"
 msgstr "空きチャンクを待受中"
 
-#: src/core/downloads.c:2701 src/core/downloads.c:3319
+#: src/core/downloads.c:2704 src/core/downloads.c:3325
 msgid "No download slot"
 msgstr "ダウンロード受口がありません"
 
-#: src/core/downloads.c:2747
+#: src/core/downloads.c:2750
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "接続失敗 (ファイル記述子は足りていますか？)"
 
-#: src/core/downloads.c:2964
+#: src/core/downloads.c:2967
 msgid "Ignoring Push flag"
 msgstr "PUSH フラグを無視します"
 
-#: src/core/downloads.c:3300
+#: src/core/downloads.c:2998
+#, c-format
+msgid "No direct connection yet (%d retry)"
+msgid_plural "No direct connection yet (%d retries)"
+msgstr[0] "まだ直接接続していません (%d 回目)"
+
+#: src/core/downloads.c:3005 src/core/downloads.c:3019
+#, c-format
+msgid "Timeout (%d retry)"
+msgid_plural "Timeout (%d retries)"
+msgstr[0] "タイムアウトしました (%d 回目)"
+
+#: src/core/downloads.c:3009
+#, c-format
+msgid "Connection refused (%d retry)"
+msgid_plural "Connection refused (%d retries)"
+msgstr[0] "接続が拒否されました (%d 回目)"
+
+#: src/core/downloads.c:3306
 msgid "Dup SHA1 during creation"
 msgstr "作成中に SHA1 を複製します"
 
-#: src/core/downloads.c:3535
+#: src/core/downloads.c:3541
 msgid "Stopped (Index changed)"
 msgstr "中止 (インデックス変更)"
 
-#: src/core/downloads.c:3842
+#: src/core/downloads.c:3848
 msgid "Explicitly requeued"
 msgstr "待機列に戻されました (手動)"
 
-#: src/core/downloads.c:4018
+#: src/core/downloads.c:4024
 #, c-format
 msgid "Stopped (%s)"
-msgstr "中止 (%s)"
+msgstr "中止されました (%s)"
 
-#: src/core/downloads.c:4021 src/core/downloads.c:4056
+# FIXME: needs 'times' in the original string
+#: src/core/downloads.c:4027 src/core/downloads.c:4062
 #, c-format
 msgid "Too many attempts (%d)"
 msgstr "要求回数が多すぎます (%d 回)"
 
-#: src/core/downloads.c:4052
+#: src/core/downloads.c:4029 src/core/downloads.c:5280
+#: src/core/downloads.c:6345
+#, c-format
+msgid "Failed (Read error: %s)"
+msgstr "失敗しました (読込エラー: %s)"
+
+#: src/core/downloads.c:4058
 msgid "Connection not kept-alive (EOF)"
 msgstr "接続が Keep-Alive ではありません (EOF)"
 
-#: src/core/downloads.c:4053
+#: src/core/downloads.c:4059
 msgid "Stopped (EOF)"
-msgstr "中止 (EOF)"
+msgstr "中止されました (EOF)"
 
-#: src/core/downloads.c:4170 src/core/downloads.c:6156
+#: src/core/downloads.c:4176 src/core/downloads.c:6164
 msgid "Stopped (Output file size changed)"
-msgstr "中止 (出力ファイルサイズ変更)"
+msgstr "中止されました (出力ファイルサイズ変更)"
 
-#: src/core/downloads.c:4364
+#: src/core/downloads.c:4370
 #, c-format
 msgid "Can't save data: %s"
 msgstr "データを保存できません: %s"
 
-#: src/core/downloads.c:4419
+#: src/core/downloads.c:4426
 msgid "Requeued by competing download"
 msgstr "待機列に戻されました (競合ダウンロード)"
 
-#: src/core/downloads.c:4483
+#: src/core/downloads.c:4490
 msgid "Requeued after trimmed data"
 msgstr "待機列に戻されました (データ整理後)"
 
-#: src/core/downloads.c:4485
+#: src/core/downloads.c:4492
 msgid "Chunk done, connection closed"
 msgstr "チャンク完了、接続を閉じます"
 
-#: src/core/downloads.c:4650
+#: src/core/downloads.c:4657
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "おかしな HTTP ステータス (プロトコルが非同期？)"
 
-#: src/core/downloads.c:4975
+#: src/core/downloads.c:4982
 msgid "No URN on server, waiting for overlap"
 msgstr "サーバに URN がありません、オーバーラップ待受中"
 
-#: src/core/downloads.c:4981
+#: src/core/downloads.c:4988
 msgid "No URN on server to validate"
 msgstr "サーバに確認するための URN がありません"
 
-#: src/core/downloads.c:5027
+#: src/core/downloads.c:5034
 msgid "URN fileinfo mismatch"
 msgstr "URN ファイル情報が一致しません"
 
-#: src/core/downloads.c:5047
+#: src/core/downloads.c:5054
 msgid "Discovered dup SHA1"
 msgstr "重複する SHA1 を発見しました"
 
-#: src/core/downloads.c:5255 src/core/downloads.c:5263
-#: src/core/downloads.c:6287 src/core/downloads.c:6327
+#: src/core/downloads.c:5262 src/core/downloads.c:5270
+#: src/core/downloads.c:6295 src/core/downloads.c:6335
 msgid "Stopped data (EOF)"
 msgstr "データ転送中止 (EOF)"
 
-#: src/core/downloads.c:5644 src/core/downloads.c:6136
+#: src/core/downloads.c:5651 src/core/downloads.c:6144
 msgid "Partial file on server, waiting"
 msgstr "相手サーバの断片ファイルを待受中"
 
-#: src/core/downloads.c:5744
+#: src/core/downloads.c:5751
 #, c-format
 msgid "Queued (slot %d/%d) ETA: %s"
 msgstr "待機中 (受口 %d/%d) 残り時間: %s"
 
-#: src/core/downloads.c:6295
+#: src/core/downloads.c:6303
 msgid "Stopped (Read buffer full)"
-msgstr "中止 (読込バッファが一杯です)"
+msgstr "中止されました (読込バッファが一杯です)"
 
-#: src/core/downloads.c:6334
+#: src/core/downloads.c:6342
 #, c-format
 msgid "Stopped data (%s)"
 msgstr "データ転送中止 (%s)"
 
-#: src/core/downloads.c:6337
-#, c-format
-msgid "Failed (Read error: %s)"
-msgstr "失敗 (読込エラー: %s)"
-
-#: src/core/downloads.c:7483
+#: src/core/downloads.c:7491
 msgid "SHA1 mismatch detected"
 msgstr "SHA1 の不一致を検出しました"
 
-#: src/core/gnet_stats.c:46 src/ui/gtk/gnet_stats_common.c:83
+#: src/core/gnet_stats.c:56 src/ui/gtk/gnet_stats_common.c:83
 msgid "Bad size"
 msgstr "不正な大きさ"
 
-#: src/core/gnet_stats.c:47 src/ui/gtk/gnet_stats_common.c:84
+#: src/core/gnet_stats.c:57 src/ui/gtk/gnet_stats_common.c:84
 msgid "Too small"
 msgstr "小さ過ぎる"
 
-#: src/core/gnet_stats.c:48 src/ui/gtk/gnet_stats_common.c:85
+#: src/core/gnet_stats.c:58 src/ui/gtk/gnet_stats_common.c:85
 msgid "Too large"
 msgstr "大き過ぎる"
 
-#: src/core/gnet_stats.c:49 src/ui/gtk/gnet_stats_common.c:86
+#: src/core/gnet_stats.c:59 src/ui/gtk/gnet_stats_common.c:86
 msgid "Way too large"
 msgstr "経路が長過ぎる"
 
-#: src/core/gnet_stats.c:50 src/ui/gtk/gnet_stats_common.c:87
+#: src/core/gnet_stats.c:60 src/ui/gtk/gnet_stats_common.c:87
 msgid "Unknown message type"
 msgstr "種類不明のメッセージ"
 
-#: src/core/gnet_stats.c:51 src/ui/gtk/gnet_stats_common.c:88
+#: src/core/gnet_stats.c:61 src/ui/gtk/gnet_stats_common.c:88
 msgid "Unexpected message"
 msgstr "想定外のメッセージ"
 
-#: src/core/gnet_stats.c:52 src/ui/gtk/gnet_stats_common.c:89
+#: src/core/gnet_stats.c:62 src/ui/gtk/gnet_stats_common.c:89
 msgid "Message sent with TTL = 0"
 msgstr "TTL がゼロの送信メッセージ"
 
-#: src/core/gnet_stats.c:53
+#: src/core/gnet_stats.c:63
 msgid "Improper hops/ttl combination"
 msgstr "ホップ数/TTL の組合せが不適切"
 
-#: src/core/gnet_stats.c:54 src/ui/gtk/gnet_stats_common.c:91
+#: src/core/gnet_stats.c:64 src/ui/gtk/gnet_stats_common.c:91
 msgid "Max TTL exceeded"
 msgstr "最大 TTL を超過"
 
-#: src/core/gnet_stats.c:55 src/ui/gtk/gnet_stats_common.c:92
+#: src/core/gnet_stats.c:65 src/ui/gtk/gnet_stats_common.c:92
 msgid "Message throttle"
 msgstr "メッセージスロットル"
 
-#: src/core/gnet_stats.c:56 src/ui/gtk/gnet_stats_common.c:93
+#: src/core/gnet_stats.c:66 src/ui/gtk/gnet_stats_common.c:93
 msgid "Unusable Pong"
 msgstr "無効な Pong"
 
-#: src/core/gnet_stats.c:57 src/ui/gtk/gnet_stats_common.c:94
+#: src/core/gnet_stats.c:67 src/ui/gtk/gnet_stats_common.c:94
 msgid "Hard TTL limit reached"
 msgstr "TTL の固定上限に到達"
 
-#: src/core/gnet_stats.c:58 src/ui/gtk/gnet_stats_common.c:95
+#: src/core/gnet_stats.c:68 src/ui/gtk/gnet_stats_common.c:95
 msgid "Max hop count reached"
 msgstr "最大ホップ数に到達"
 
-#: src/core/gnet_stats.c:59 src/ui/gtk/gnet_stats_common.c:96
+#: src/core/gnet_stats.c:69 src/ui/gtk/gnet_stats_common.c:96
 msgid "Route lost"
 msgstr "経路を喪失"
 
-#: src/core/gnet_stats.c:60 src/ui/gtk/gnet_stats_common.c:97
+#: src/core/gnet_stats.c:70 src/ui/gtk/gnet_stats_common.c:97
 msgid "No route"
 msgstr "経路が無い"
 
-#: src/core/gnet_stats.c:61 src/ui/gtk/gnet_stats_common.c:98
+#: src/core/gnet_stats.c:71 src/ui/gtk/gnet_stats_common.c:98
 msgid "Duplicate message"
 msgstr "重複メッセージ"
 
-#: src/core/gnet_stats.c:62 src/ui/gtk/gnet_stats_common.c:99
+#: src/core/gnet_stats.c:72 src/ui/gtk/gnet_stats_common.c:99
 msgid "Message to banned GUID"
 msgstr "禁止 GUID へのメッセージ"
 
-#: src/core/gnet_stats.c:63 src/ui/gtk/gnet_stats_common.c:100
+#: src/core/gnet_stats.c:73 src/ui/gtk/gnet_stats_common.c:100
 msgid "Node shutting down"
-msgstr "ノードがシャットダウン中"
+msgstr "ノードが停止中"
 
-#: src/core/gnet_stats.c:64
+#: src/core/gnet_stats.c:74
 msgid "TX flow control"
 msgstr "送信フロー制御"
 
-#: src/core/gnet_stats.c:65 src/ui/gtk/gnet_stats_common.c:102
+#: src/core/gnet_stats.c:75 src/ui/gtk/gnet_stats_common.c:102
 msgid "Query text had no trailing NUL"
 msgstr "NULL で終わらない検索式テキスト"
 
-#: src/core/gnet_stats.c:66 src/ui/gtk/gnet_stats_common.c:103
+#: src/core/gnet_stats.c:76 src/ui/gtk/gnet_stats_common.c:103
 msgid "Query text too short"
 msgstr "短過ぎる検索式テキスト"
 
-#: src/core/gnet_stats.c:67 src/ui/gtk/gnet_stats_common.c:104
+#: src/core/gnet_stats.c:77 src/ui/gtk/gnet_stats_common.c:104
 msgid "Query had unnecessary overhead"
 msgstr "不要オーバーへッドがある検索式"
 
-#: src/core/gnet_stats.c:68 src/ui/gtk/gnet_stats_common.c:105
+#: src/core/gnet_stats.c:78 src/ui/gtk/gnet_stats_common.c:105
 msgid "Message with malformed SHA1"
 msgstr "おかしな SHA1 があるメッセージ"
 
-#: src/core/gnet_stats.c:69 src/ui/gtk/gnet_stats_common.c:106
+#: src/core/gnet_stats.c:79 src/ui/gtk/gnet_stats_common.c:106
 msgid "Message with malformed UTF-8"
 msgstr "おかしな UTF-8 があるメッセージ"
 
-#: src/core/gnet_stats.c:70 src/ui/gtk/gnet_stats_common.c:107
+#: src/core/gnet_stats.c:80 src/ui/gtk/gnet_stats_common.c:107
 msgid "Malformed Query Hit"
 msgstr "おかしな検索式ヒット"
 
-#: src/core/gnet_stats.c:71 src/ui/gtk/gnet_stats_common.c:108
+#: src/core/gnet_stats.c:81 src/ui/gtk/gnet_stats_common.c:108
 msgid "Bad return address"
 msgstr "不正な返却アドレス"
 
-#: src/core/gnet_stats.c:72 src/ui/gtk/gnet_stats_common.c:109
+#: src/core/gnet_stats.c:82 src/ui/gtk/gnet_stats_common.c:109
 msgid "Hostile IP address"
 msgstr "敵対 IP アドレス"
 
-#: src/core/gwcache.c:941
+#: src/core/gwcache.c:949
 #, c-format
 msgid "Got %d host from %s"
 msgid_plural "Got %d hosts from %s"
 msgstr[0] "%2$s から %1$d 基のホストを取得しました。"
 
-#: src/core/gwcache.c:1024
+#: src/core/gwcache.c:1032
 #, c-format
 msgid "Connecting to web cache %s"
 msgstr "ウェブキャッシュ %s に接続しています。"
 
-#: src/core/gwcache.c:1203
+#: src/core/gwcache.c:1211
 msgid "Updated web cache "
 msgstr "ウェブキャッシュを更新しました"
 
-#: src/core/nodes.c:830 src/ui/gtk/hcache_common.c:43
-msgid "Timeout"
-msgstr "タイムアウト"
-
-#: src/core/nodes.c:838
+#: src/core/nodes.c:841
 #, c-format
 msgid "Shutdown (%s)"
-msgstr "シャットダウン (%s)"
+msgstr "停止 (%s)"
 
-#: src/core/settings.c:279
+#: src/core/nodes.c:2718 src/core/nodes.c:4819 src/core/nodes.c:4843
+msgid "Sent crawling info"
+msgstr "クローリング情報を送信しました"
+
+#: src/core/nodes.c:2861
+msgid "Cannot setup compressing TX stack"
+msgstr "圧縮送信スタックを準備できません"
+
+#: src/core/nodes.c:3075
+#, c-format
+msgid "Got BYE %d %.*s"
+msgstr "BYE %d %.*s を受信しました"
+
+#: src/core/nodes.c:3405
+#, c-format
+msgid "Weird HELLO %s"
+msgstr "おかしな HELLO %s"
+
+#: src/core/nodes.c:3417
+#, c-format
+msgid "HELLO %s error %d (%s)"
+msgstr "HELLO %s エラー %d (%s)"
+
+#: src/core/nodes.c:3421
+msgid "Shielded node"
+msgstr "保護ノードです"
+
+#: src/core/nodes.c:3452
+msgid "Gnet connections disabled"
+msgstr "Gnet 接続が無効になっています"
+
+#: src/core/nodes.c:3477
+msgid "Unstable IP address"
+msgstr "動的 IP アドレスです"
+
+#: src/core/nodes.c:3480
+msgid "Servent version appears unstable"
+msgstr "このサーバントは不安定です"
+
+#: src/core/nodes.c:3483
+msgid "No vendor string supplied"
+msgstr "ベンダ文字列を送ってきません"
+
+#: src/core/nodes.c:3488
+#, c-format
+msgid "Not connecting: %s"
+msgstr "接続しません: %s"
+
+#: src/core/nodes.c:3520 src/core/nodes.c:3558 src/core/nodes.c:3602
+#: src/core/nodes.c:3651 src/core/nodes.c:3704
+msgid "Connection not compressed"
+msgstr "接続が圧縮されていません"
+
+#: src/core/nodes.c:3535
+#, c-format
+msgid "Too many leaves (%d max)"
+msgstr "リーフノード数が多すぎます (最大 %d 基)"
+
+#: src/core/nodes.c:3572 src/core/nodes.c:3688
+#, c-format
+msgid "Too many ultra nodes (%d max)"
+msgstr "ウルトラノード数が多すぎます (最大 %d 基)"
+
+#: src/core/nodes.c:3621
+#, c-format
+msgid "Rejected normal node (%d max)"
+msgstr "通常ノードを拒否しました (最大 %d 基)"
+
+#: src/core/nodes.c:3633
+msgid "Rejected leaf node"
+msgstr "リーフノードを拒否しました"
+
+#: src/core/nodes.c:3639
+#, c-format
+msgid "Too many nodes (%d max)"
+msgstr "ノード数が多すぎます (最大 %d 基)"
+
+#: src/core/nodes.c:3675
+msgid "Sent shielded indication"
+msgstr "保護表示を送信しました"
+
+#: src/core/nodes.c:3681
+msgid "Not an ultra node"
+msgstr "ウルトラノードではありません"
+
+#: src/core/nodes.c:3754
+msgid "Protocol not acceptable"
+msgstr "このプロトコルは受け付けられません"
+
+#: src/core/nodes.c:4034
+msgid "Servent Shutdown"
+msgstr "サーバントが停止します"
+
+#: src/core/nodes.c:4472
+#, c-format
+msgid "Vendor would exceed %d%% of our slots"
+msgstr "このベンダはスロットの %d%% を越えます"
+
+#: src/core/nodes.c:4482
+msgid "Reserved slot"
+msgstr "スロットは予約されています"
+
+#: src/core/nodes.c:4744
+#, c-format
+msgid "Failed (Cannot send %s: %s)"
+msgstr "失敗しました (%s: %s を送信できません)"
+
+#: src/core/nodes.c:4751
+#, c-format
+msgid "Failed (Cannot send %s atomically)"
+msgstr "失敗しました (%s を自動送信できません)"
+
+#: src/core/nodes.c:4798
+msgid "Failed (Header line too long)"
+msgstr "失敗しました (ヘッダ行が長すぎます)"
+
+#: src/core/nodes.c:4810 src/core/uploads.c:1073
+#, c-format
+msgid "Failed (%s)"
+msgstr "失敗しました (%s)"
+
+#: src/core/nodes.c:4819 src/core/uploads.c:1079
+msgid "Failed (Input Exception)"
+msgstr "失敗しました (入力例外が発生)"
+
+#: src/core/nodes.c:4825
+msgid "Failed (Input buffer full)"
+msgstr "失敗しました (入力バッファが一杯です)"
+
+#: src/core/nodes.c:4831 src/core/uploads.c:1091
+#, c-format
+msgid "Failed (Input error: %s)"
+msgstr "失敗しました (入力エラー: %s)"
+
+#: src/core/nodes.c:4843 src/core/uploads.c:1099
+msgid "Failed (EOF)"
+msgstr "失敗しました (EOF)"
+
+#: src/core/nodes.c:4849
+msgid "Failed (Extra HELLO data)"
+msgstr "失敗しました (余計な HELLO データがあります)"
+
+#: src/core/nodes.c:4899
+msgid "Pseudo UDP node"
+msgstr "擬似 UDP ノード"
+
+#: src/core/nodes.c:5219
+msgid "Already connected"
+msgstr "既に接続しています"
+
+#: src/core/nodes.c:5732 src/core/nodes.c:5917
+#, c-format
+msgid "Write error during HELLO: %s"
+msgstr "HELLO の最中に書込エラー: %s"
+
+#: src/core/nodes.c:5827
+msgid "Out of memory"
+msgstr "メモリが足りません"
+
+#: src/core/nodes.c:5922
+msgid "Connection reset during HELLO"
+msgstr "HELLO の最中に接続がリセットされました"
+
+#: src/core/nodes.c:6160
+#, c-format
+msgid "Kicked: %s message too big (%d bytes)"
+msgstr "除外されました: メッセージ %s は大きすぎます (%d バイト)"
+
+#: src/core/rx_link.c:80
+msgid "Read failed (Input Exception)"
+msgstr "読込み失敗 (入力例外が発生しました)"
+
+#: src/core/rx_link.c:93
+#, c-format
+msgid "Got %d connection pong"
+msgid_plural "Got %d connection pongs"
+msgstr[0] "%d の接続 Pong を受信しました。"
+
+#: src/core/rx_link.c:101
+#, c-format
+msgid "Read error: %s"
+msgstr "読込エラー: %s"
+
+#: src/core/settings.c:288
 msgid "Can't find your home directory!"
 msgstr "ホームフォルダが見つかりません!"
 
-#: src/core/settings.c:288
+#: src/core/settings.c:297
 #, c-format
 msgid "creating configuration directory \"%s\""
 msgstr "設定フォルダ \"%s\" を作成しています"
 
-#: src/core/settings.c:333
+#: src/core/settings.c:342
 msgid "Cannot proceed without valid configuration directory"
 msgstr "適当な設定フォルダが無いと先に進めません"
 
-#: src/core/settings.c:1285
+#: src/core/settings.c:1276
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "TCP防火壁内にある場合はリーフとしてのみ動作します"
 
@@ -442,7 +648,7 @@ msgstr "ファイル"
 #: src/ui/gtk/gtk1/search.c:2229 src/ui/gtk/gtk2/downloads.c:435
 #: src/ui/gtk/gtk2/downloads.c:480 src/ui/gtk/gtk2/fileinfo.c:544
 #: src/ui/gtk/gtk2/gnet_stats.c:474 src/ui/gtk/gtk2/interface-glade.c:11205
-#: src/ui/gtk/gtk2/search.c:1344 src/ui/gtk/gtk2/upload_stats.c:256
+#: src/ui/gtk/gtk2/search.c:1345 src/ui/gtk/gtk2/upload_stats.c:256
 #: src/ui/gtk/gtk2/uploads.c:72
 msgid "Size"
 msgstr "大きさ"
@@ -455,17 +661,34 @@ msgstr "Good bye"
 msgid "Unknown command"
 msgstr "不明なコマンドエラーです"
 
-#: src/core/uhc.c:152
+#: src/core/sockets.c:1319
+msgid "Read error"
+msgstr "読込エラー"
+
+#: src/core/sockets.c:1543 src/core/sockets.c:1647 src/core/sockets.c:2134
+msgid "Connection failed"
+msgstr "接続に失敗しました"
+
+#: src/core/tx_link.c:67
+msgid "Write failed (Input Exception)"
+msgstr "書込み失敗 (入力例外が発生しました)"
+
+#: src/core/tx_link.c:160 src/core/tx_link.c:175
+#, c-format
+msgid "Write failed: %s"
+msgstr "書込み失敗: %s"
+
+#: src/core/uhc.c:155
 #, c-format
 msgid "Looking for UDP host cache %s"
 msgstr "UDP ホストキャッシュ %s を探しています。"
 
-#: src/core/uhc.c:256
+#: src/core/uhc.c:259
 #, c-format
 msgid "Sent ping to UDP host cache %s:%u"
 msgstr "UDP ホストキャッシュ %s:%u に ping を送信しました。"
 
-#: src/core/uhc.c:419
+#: src/core/uhc.c:422
 #, c-format
 msgid "Got %d host from UDP host cache %s:%u"
 msgid_plural "Got %d hosts from UDP host cache %s:%u"
@@ -473,11 +696,7 @@ msgstr[0] "UDP ホストキャッシュ %2$s:%3$u から %1$d 基のホストを
 
 #: src/core/uploads.c:370
 msgid "Connect back timeout"
-msgstr "折り返し接続のタイムアウト"
-
-#: src/core/uploads.c:372
-msgid "Request timeout"
-msgstr "リクエストのタイムアウト"
+msgstr "折り返し接続がタイムアウトしました"
 
 #: src/core/uploads.c:377
 msgid "Lifetime expired"
@@ -493,11 +712,48 @@ msgstr "禁止されました: %s"
 msgid "Banned for %s"
 msgstr "%s を禁止します"
 
-#: src/core/uploads.c:3150
+#: src/core/uploads.c:1395
+msgid "Unable to send GIV"
+msgstr "GIV を送信できません"
+
+#: src/core/uploads.c:2600
+msgid "Stalling upload replaced"
+msgstr "停滞アップロードを置換えます"
+
+#: src/core/uploads.c:2749
+#, c-format
+msgid "Queued (slot %d, ETA: %s)"
+msgstr "待機中 (受口 %d, 予定時間: %s)"
+
+#: src/core/uploads.c:2769
+#, c-format
+msgid "Only %d upload per IP address"
+msgid_plural "Only %d uploads per IP address"
+msgstr[0] "IP アドレス毎に %d 件のアップロードのみが可能です"
+
+#: src/core/uploads.c:2931
+msgid "Cannot send whole HTTP status"
+msgstr "全 HTTP ステータスを送信できません"
+
+#: src/core/uploads.c:2987
+msgid "Write exception"
+msgstr "書込み例外が発生しました"
+
+#: src/core/uploads.c:3042
+#, c-format
+msgid "File read error: %s"
+msgstr "ファイル読込エラー: %s"
+
+#: src/core/uploads.c:3079
+#, c-format
+msgid "Data write error: %s"
+msgstr "データ書込エラー: %s"
+
+#: src/core/uploads.c:3151
 msgid "Explicitly killed"
 msgstr "明示的に中断されました"
 
-#: src/core/uploads.c:3176
+#: src/core/uploads.c:3177
 msgid "IP denying uploads"
 msgstr "IP がアップロードを拒否します"
 
@@ -1514,7 +1770,7 @@ msgstr "サーバが返す空ではない識別字句を確認するかどうか
 
 #: src/if/gnet_property.c:3504
 msgid "Maximum amount of Ultrapeers we should connect to as a leaf."
-msgstr "リーフとして接続するウルトラピアの最大数です。"
+msgstr "リーフノードとして接続するウルトラピアの最大数です。"
 
 #: src/if/gnet_property.c:3524
 msgid ""
@@ -2012,9 +2268,9 @@ msgid ""
 "operations are still possible. The condition automatically clears itself "
 "after 10 minutes without any more shortage."
 msgstr ""
-"有効にすると、ファイル記述子が不足しても通常の操作が可能な場合は gtk-"
-"gnutella を実行し続けます。不足が解消されると 10 分後に自動的に条件がクリアさ"
-"れます。"
+"Gtk-Gnutella を動作し続けるのに必要なファイル記述子が不足していますが、通常の"
+"操作は已然として可能です。これ以上の不足がない場合は、10 分経過後にこの状態自"
+"体を自動的にクリアします。"
 
 #: src/if/gnet_property.c:4929
 msgid ""
@@ -2022,13 +2278,13 @@ msgid ""
 "necessarily degraded, if not impossible. The condition automatically clears "
 "itself after 10 minutes past the last occurance."
 msgstr ""
-"有効にすると、gtk-gnutella はファイル記述子を使い果たし、不可能ではなくても操"
-"作のグレードを下げる必要に迫られます。この条件は最後に発生してから 10 分経過"
-"後に自動的に消去されます。"
+"Gtk-Gnutella がファイル記述子を使いきっていますので、無理でなければ、操作のグ"
+"レードを下げる必要があります。最後に発生してから 10 分経過後に、この状態自体"
+"を自動的にクリアします。"
 
 #: src/if/gnet_property.c:4946
 msgid "When set, gtk-gnutella will accept and handle G2 connections. "
-msgstr "有効にすると、G2 接続を受け付けて扱うようになります。"
+msgstr "Gtk-Gnutella は G2 接続を受け入れて取り扱います。"
 
 #: src/if/gnet_property.c:4963
 msgid "If set, spaces in filenames are replaced with underscores."
@@ -2124,12 +2380,12 @@ msgid ""
 msgstr ""
 "ウルトラノードとして動作している時に、検索式ヒットの帯域外 (Out-Of-Band) 配送"
 "を要求していないリーフ検索式に対して代理サーバとして振る舞うかどうかを選択し"
-"ます: gtk-gnutella は遠隔ノードからのヒットを催促して、適切なリーフにヒットを"
-"回送します。これはリーフノードに対してとても有益ですが、あなたのウルトラノー"
-"ドに折り返される UDP トラフィックの爆発を引き起こす可能性があります。これを無"
-"効にしても構いませんが、その場合あなたが接続している全てのウルトラノードがこ"
-"のヒットの中継を引き受けなければいけなくなり、他の問い合わせを破棄してしまう"
-"かもしれません。"
+"ます: Gtk-Gnutella は遠隔ノードからのヒットを催促して、適切なリーフに回送しま"
+"す。これは各リーフノードに対して有利に働きますが、あなたのウルトラノードに折"
+"り返される UDP トラフィックの大渋滞を引き起こす可能性があります。これを無効に"
+"すると、あなたに接続している全てのウルトラノードがこのヒットを中継しなければ"
+"いけなくなり、その他の問合わせメッセージを破棄して検索ネットワークの効率を下"
+"げてしまうかもしれません。"
 
 #: src/if/gnet_property.c:5116
 msgid ""
@@ -2149,9 +2405,9 @@ msgid ""
 "$GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban "
 "list from the global one distributed with Gtk-Gnutella."
 msgstr ""
-"有効にすると、広域 hostiles.txt が個人の $GTK_GNUTELLA_DIR/hostiles.txt と同"
-"様に使用されます。これにより個人の禁止リストと Gtk-Gnutella と共に配布される"
-"広域禁止リストを分ける事が可能になります。"
+"有効にすると、システム用の hostiles.txt が個人用の $GTK_GNUTELLA_DIR/"
+"hostiles.txt と同様に使用されます。これにより個人用の禁止リストと Gtk-"
+"Gnutella と共に配布されるシステム用の禁止リストを分ける事が可能になります。"
 
 #: src/if/gnet_property.c:5167
 msgid "If set to TRUE, SO_LINGER is used for sockets."
@@ -2674,987 +2930,987 @@ msgstr "Gnet パケット状態一覧表 (バイト) の欄幅です。[GTK2]"
 msgid "Configures the appearance of the toolbar."
 msgstr "ツールバーの外見を設定します。"
 
-#: src/lib/iso3166.c:54
+#: src/lib/iso3166.c:58
 msgid "Anonymizing proxies"
 msgstr "匿名代理サーバ"
 
-#: src/lib/iso3166.c:55
+#: src/lib/iso3166.c:59
 msgid "Satellite providers"
 msgstr "衛星プロバイダ"
 
-#: src/lib/iso3166.c:56
+#: src/lib/iso3166.c:60
 msgid "Afghanistan"
 msgstr "アフガニスタン"
 
-#: src/lib/iso3166.c:57
+#: src/lib/iso3166.c:61
 msgid "Albania, People's Socialist Republic of"
 msgstr "アルバニア共和国"
 
-#: src/lib/iso3166.c:58
+#: src/lib/iso3166.c:62
 msgid "Algeria, People's Democratic Republic of"
 msgstr "アルジェリア民主人民共和国"
 
-#: src/lib/iso3166.c:59
+#: src/lib/iso3166.c:63
 msgid "American Samoa"
 msgstr "米領サモア"
 
-#: src/lib/iso3166.c:60
+#: src/lib/iso3166.c:64
 msgid "Andorra, Principality of"
 msgstr "アンドラ公国"
 
-#: src/lib/iso3166.c:61
+#: src/lib/iso3166.c:65
 msgid "Angola, Republic of"
 msgstr "アンゴラ共和国"
 
-#: src/lib/iso3166.c:62
+#: src/lib/iso3166.c:66
 msgid "Anguilla"
 msgstr "英領アンギラ島"
 
-#: src/lib/iso3166.c:63
+#: src/lib/iso3166.c:67
 msgid "Antarctica (the territory South of 60 deg S)"
 msgstr "南極 (南緯60度以南の地域)"
 
-#: src/lib/iso3166.c:64
+#: src/lib/iso3166.c:68
 msgid "Antigua and Barbuda"
 msgstr "アンティグア・バーブーダ"
 
-#: src/lib/iso3166.c:65
+#: src/lib/iso3166.c:69
 msgid "Argentina, Argentine Republic"
 msgstr "アルゼンチン共和国"
 
-#: src/lib/iso3166.c:66
+#: src/lib/iso3166.c:70
 msgid "Armenia"
 msgstr "アルメニア共和国"
 
-#: src/lib/iso3166.c:67
+#: src/lib/iso3166.c:71
 msgid "Aruba"
 msgstr "蘭領アルバ"
 
-#: src/lib/iso3166.c:68
+#: src/lib/iso3166.c:72
 msgid "Asia/Pacific Region"
 msgstr "アジア/太平洋地域"
 
-#: src/lib/iso3166.c:69
+#: src/lib/iso3166.c:73
 msgid "Australia, Commonwealth of"
 msgstr "オーストラリア連邦"
 
-#: src/lib/iso3166.c:70
+#: src/lib/iso3166.c:74
 msgid "Austria, Republic of"
 msgstr "オーストリア共和国"
 
-#: src/lib/iso3166.c:71
+#: src/lib/iso3166.c:75
 msgid "Azerbaijan, Republic of"
 msgstr "アゼルバイジャン共和国"
 
-#: src/lib/iso3166.c:72
+#: src/lib/iso3166.c:76
 msgid "Bahamas, Commonwealth of the"
 msgstr "バハマ国"
 
-#: src/lib/iso3166.c:73
+#: src/lib/iso3166.c:77
 msgid "Bahrain, Kingdom of"
 msgstr "バーレーン王国"
 
-#: src/lib/iso3166.c:74
+#: src/lib/iso3166.c:78
 msgid "Bangladesh, People's Republic of"
 msgstr "バングラデシュ人民共和国"
 
-#: src/lib/iso3166.c:75
+#: src/lib/iso3166.c:79
 msgid "Barbados"
 msgstr "バルバドス"
 
-#: src/lib/iso3166.c:76
+#: src/lib/iso3166.c:80
 msgid "Belarus"
 msgstr "ベラルーシ共和国"
 
-#: src/lib/iso3166.c:77
+#: src/lib/iso3166.c:81
 msgid "Belgium, Kingdom of"
 msgstr "ベルギー王国"
 
-#: src/lib/iso3166.c:78
+#: src/lib/iso3166.c:82
 msgid "Belize"
 msgstr "ベリーズ"
 
-#: src/lib/iso3166.c:79
+#: src/lib/iso3166.c:83
 msgid "Benin, People's Republic of"
 msgstr "ベニン共和国"
 
-#: src/lib/iso3166.c:80
+#: src/lib/iso3166.c:84
 msgid "Bermuda"
 msgstr "英領バミューダ諸島"
 
-#: src/lib/iso3166.c:81
+#: src/lib/iso3166.c:85
 msgid "Bhutan, Kingdom of"
 msgstr "ブータン王国"
 
-#: src/lib/iso3166.c:82
+#: src/lib/iso3166.c:86
 msgid "Bolivia, Republic of"
 msgstr "ボリビア共和国"
 
-#: src/lib/iso3166.c:83
+#: src/lib/iso3166.c:87
 msgid "Bosnia and Herzegovina"
 msgstr "ボスニア・ヘルツェゴビナ"
 
-#: src/lib/iso3166.c:84
+#: src/lib/iso3166.c:88
 msgid "Botswana, Republic of"
 msgstr "ボツワナ共和国"
 
-#: src/lib/iso3166.c:85
+#: src/lib/iso3166.c:89
 msgid "Bouvet Island (Bouvetoya)"
 msgstr "諾領ブーヴェ島"
 
-#: src/lib/iso3166.c:86
+#: src/lib/iso3166.c:90
 msgid "Brazil, Federative Republic of"
 msgstr "ブラジル連邦共和国"
 
-#: src/lib/iso3166.c:87
+#: src/lib/iso3166.c:91
 msgid "British Indian Ocean Territory (Chagos Archipelago)"
 msgstr "英領インド洋地域 (チャゴス諸島)"
 
-#: src/lib/iso3166.c:88
+#: src/lib/iso3166.c:92
 msgid "British Virgin Islands"
 msgstr "英領バージン諸島"
 
-#: src/lib/iso3166.c:89
+#: src/lib/iso3166.c:93
 msgid "Brunei Darussalam"
 msgstr "ブルネイ・ダルサラーム国"
 
-#: src/lib/iso3166.c:90
+#: src/lib/iso3166.c:94
 msgid "Bulgaria, People's Republic of"
 msgstr "ブルガリア共和国"
 
-#: src/lib/iso3166.c:91
+#: src/lib/iso3166.c:95
 msgid "Burkina Faso"
 msgstr "ブルキナファソ"
 
-#: src/lib/iso3166.c:92
+#: src/lib/iso3166.c:96
 msgid "Burundi, Republic of"
 msgstr "ブルンジ共和国"
 
-#: src/lib/iso3166.c:93
+#: src/lib/iso3166.c:97
 msgid "Cambodia, Kingdom of"
 msgstr "カンボジア王国"
 
-#: src/lib/iso3166.c:94
+#: src/lib/iso3166.c:98
 msgid "Cameroon, United Republic of"
 msgstr "カメルーン共和国"
 
-#: src/lib/iso3166.c:95
+#: src/lib/iso3166.c:99
 msgid "Canada"
 msgstr "カナダ"
 
-#: src/lib/iso3166.c:96
+#: src/lib/iso3166.c:100
 msgid "Cape Verde, Republic of"
 msgstr "カーボヴェルデ共和国"
 
-#: src/lib/iso3166.c:97
+#: src/lib/iso3166.c:101
 msgid "Cayman Islands"
 msgstr "英領ケイマン諸島"
 
-#: src/lib/iso3166.c:98
+#: src/lib/iso3166.c:102
 msgid "Central African Republic"
 msgstr "中央アフリカ共和国"
 
-#: src/lib/iso3166.c:99
+#: src/lib/iso3166.c:103
 msgid "Chad, Republic of"
 msgstr "チャド共和国"
 
-#: src/lib/iso3166.c:100
+#: src/lib/iso3166.c:104
 msgid "Chile, Republic of"
 msgstr "チリ共和国"
 
-#: src/lib/iso3166.c:101
+#: src/lib/iso3166.c:105
 msgid "China, People's Republic of"
 msgstr "中華人民共和国"
 
-#: src/lib/iso3166.c:102
+#: src/lib/iso3166.c:106
 msgid "Christmas Island"
 msgstr "豪領クリスマス諸島"
 
-#: src/lib/iso3166.c:103
+#: src/lib/iso3166.c:107
 msgid "Cocos (Keeling) Islands"
 msgstr "ココス (キーリング) 諸島"
 
-#: src/lib/iso3166.c:104
+#: src/lib/iso3166.c:108
 msgid "Colombia, Republic of"
 msgstr "コロンビア共和国"
 
-#: src/lib/iso3166.c:105
+#: src/lib/iso3166.c:109
 msgid "Comoros, Union of the"
 msgstr "コモロ連合"
 
-#: src/lib/iso3166.c:106
+#: src/lib/iso3166.c:110
 msgid "Congo, Democratic Republic of"
 msgstr "コンゴ民主共和国"
 
-#: src/lib/iso3166.c:107
+#: src/lib/iso3166.c:111
 msgid "Congo, People's Republic of"
 msgstr "コンゴ民主共和国"
 
-#: src/lib/iso3166.c:108
+#: src/lib/iso3166.c:112
 msgid "Cook Islands"
 msgstr "クック諸島"
 
-#: src/lib/iso3166.c:109
+#: src/lib/iso3166.c:113
 msgid "Costa Rica, Republic of"
 msgstr "コスタリカ共和国"
 
-#: src/lib/iso3166.c:110
+#: src/lib/iso3166.c:114
 msgid "Cote D'Ivoire, Ivory Coast, Republic of the"
 msgstr "コートジボワール (象牙海岸) 共和国"
 
-#: src/lib/iso3166.c:111
+#: src/lib/iso3166.c:115
 msgid "Cuba, Republic of"
 msgstr "キューバ共和国"
 
-#: src/lib/iso3166.c:112
+#: src/lib/iso3166.c:116
 msgid "Cyprus, Republic of"
 msgstr "キプロス共和国"
 
-#: src/lib/iso3166.c:113
+#: src/lib/iso3166.c:117
 msgid "Czech Republic"
 msgstr "チェコ共和国"
 
-#: src/lib/iso3166.c:114
+#: src/lib/iso3166.c:118
 msgid "Denmark, Kingdom of"
 msgstr "デンマーク王国"
 
-#: src/lib/iso3166.c:115
+#: src/lib/iso3166.c:119
 msgid "Djibouti, Republic of"
 msgstr "ジブチ共和国"
 
-#: src/lib/iso3166.c:116
+#: src/lib/iso3166.c:120
 msgid "Dominica, Commonwealth of"
 msgstr "ドミニカ国"
 
-#: src/lib/iso3166.c:117
+#: src/lib/iso3166.c:121
 msgid "Dominican Republic"
 msgstr "ドミニカ共和国"
 
-#: src/lib/iso3166.c:118
+#: src/lib/iso3166.c:122
 msgid "Ecuador, Republic of"
 msgstr "エクアドル共和国"
 
-#: src/lib/iso3166.c:119
+#: src/lib/iso3166.c:123
 msgid "Egypt, Arab Republic of"
 msgstr "エジプト・アラブ共和国"
 
-#: src/lib/iso3166.c:120
+#: src/lib/iso3166.c:124
 msgid "El Salvador, Republic of"
 msgstr "エルサルバドル共和国"
 
-#: src/lib/iso3166.c:121
+#: src/lib/iso3166.c:125
 msgid "Equatorial Guinea, Republic of"
 msgstr "赤道ギニア共和国"
 
-#: src/lib/iso3166.c:122
+#: src/lib/iso3166.c:126
 msgid "Eritrea"
 msgstr "エリトリア国"
 
-#: src/lib/iso3166.c:123
+#: src/lib/iso3166.c:127
 msgid "Estonia"
 msgstr "エストニア共和国"
 
-#: src/lib/iso3166.c:124
+#: src/lib/iso3166.c:128
 msgid "Ethiopia"
 msgstr "エチオピア連邦民主共和国"
 
-#: src/lib/iso3166.c:125
+#: src/lib/iso3166.c:129
 msgid "Europe"
 msgstr "ヨーロッパ"
 
-#: src/lib/iso3166.c:126
+#: src/lib/iso3166.c:130
 msgid "Faeroe Islands"
 msgstr "丁領フェロー諸島"
 
-#: src/lib/iso3166.c:127
+#: src/lib/iso3166.c:131
 msgid "Falkland Islands (Malvinas)"
 msgstr "英領フォークランド諸島 (マルビーナス諸島)"
 
-#: src/lib/iso3166.c:128
+#: src/lib/iso3166.c:132
 msgid "Fiji, Republic of the Fiji Islands"
 msgstr "フィジー諸島共和国"
 
-#: src/lib/iso3166.c:129
+#: src/lib/iso3166.c:133
 msgid "Finland, Republic of"
 msgstr "フィンランド共和国"
 
-#: src/lib/iso3166.c:130
+#: src/lib/iso3166.c:134
 msgid "France, French Republic"
 msgstr "フランス共和国"
 
-#: src/lib/iso3166.c:131
+#: src/lib/iso3166.c:135
 msgid "French Guiana"
 msgstr "仏領ギアナ"
 
-#: src/lib/iso3166.c:132
+#: src/lib/iso3166.c:136
 msgid "French Polynesia"
 msgstr "仏領ポリネシア"
 
-#: src/lib/iso3166.c:133
+#: src/lib/iso3166.c:137
 msgid "French Southern Territories"
 msgstr "仏南方領"
 
-#: src/lib/iso3166.c:134
+#: src/lib/iso3166.c:138
 msgid "Gabon, Gabonese Republic"
 msgstr "ガボン共和国"
 
-#: src/lib/iso3166.c:135
+#: src/lib/iso3166.c:139
 msgid "Gambia, Republic of the"
 msgstr "ガンビア共和国"
 
-#: src/lib/iso3166.c:136
+#: src/lib/iso3166.c:140
 msgid "Georgia"
 msgstr "グルジア"
 
-#: src/lib/iso3166.c:137
+#: src/lib/iso3166.c:141
 msgid "Germany"
 msgstr "ドイツ連邦共和国"
 
-#: src/lib/iso3166.c:138
+#: src/lib/iso3166.c:142
 msgid "Ghana, Republic of"
 msgstr "ガーナ共和国"
 
-#: src/lib/iso3166.c:139
+#: src/lib/iso3166.c:143
 msgid "Gibraltar"
 msgstr "英領ジブラルタル"
 
-#: src/lib/iso3166.c:140
+#: src/lib/iso3166.c:144
 msgid "Greece, Hellenic Republic"
 msgstr "ギリシャ共和国"
 
-#: src/lib/iso3166.c:141
+#: src/lib/iso3166.c:145
 msgid "Greenland"
 msgstr "丁領グリーンランド"
 
-#: src/lib/iso3166.c:142
+#: src/lib/iso3166.c:146
 msgid "Grenada"
 msgstr "グレナダ"
 
-#: src/lib/iso3166.c:143
+#: src/lib/iso3166.c:147
 msgid "Guadaloupe"
 msgstr "仏領グアドループ島"
 
-#: src/lib/iso3166.c:144
+#: src/lib/iso3166.c:148
 msgid "Guam"
 msgstr "グアム"
 
-#: src/lib/iso3166.c:145
+#: src/lib/iso3166.c:149
 msgid "Guatemala, Republic of"
 msgstr "ガテマラ共和国"
 
-#: src/lib/iso3166.c:146
+#: src/lib/iso3166.c:150
 msgid "Guinea, Revolutionary People's Rep'c of"
 msgstr "ギニア共和国"
 
-#: src/lib/iso3166.c:147
+#: src/lib/iso3166.c:151
 msgid "Guinea-Bissau, Republic of"
 msgstr "ギニアビサウ共和国"
 
-#: src/lib/iso3166.c:148
+#: src/lib/iso3166.c:152
 msgid "Guyana, Republic of"
 msgstr "ガイアナ協同共和国"
 
-#: src/lib/iso3166.c:149
+#: src/lib/iso3166.c:153
 msgid "Haiti, Republic of"
 msgstr "ハイチ共和国"
 
-#: src/lib/iso3166.c:150
+#: src/lib/iso3166.c:154
 msgid "Heard and McDonald Islands"
 msgstr "豪領ハード・マクドナルド諸島"
 
-#: src/lib/iso3166.c:151
+#: src/lib/iso3166.c:155
 msgid "Holy See (Vatican City State)"
 msgstr "法王聖座 (バチカン市国)"
 
-#: src/lib/iso3166.c:152
+#: src/lib/iso3166.c:156
 msgid "Honduras, Republic of"
 msgstr "ホンジュラス共和国"
 
-#: src/lib/iso3166.c:153
+#: src/lib/iso3166.c:157
 msgid "Hong Kong, Special Administrative Region of China"
 msgstr "香港特別行政区"
 
-#: src/lib/iso3166.c:154
+#: src/lib/iso3166.c:158
 msgid "Hrvatska (Croatia)"
 msgstr "クロアチア共和国"
 
-#: src/lib/iso3166.c:155
+#: src/lib/iso3166.c:159
 msgid "Hungary, Hungarian People's Republic"
 msgstr "ハンガリー共和国"
 
-#: src/lib/iso3166.c:156
+#: src/lib/iso3166.c:160
 msgid "Iceland, Republic of"
 msgstr "アイスランド共和国"
 
-#: src/lib/iso3166.c:157
+#: src/lib/iso3166.c:161
 msgid "India, Republic of"
 msgstr "インド共和国"
 
-#: src/lib/iso3166.c:158
+#: src/lib/iso3166.c:162
 msgid "Indonesia, Republic of"
 msgstr "インドネシア共和国"
 
-#: src/lib/iso3166.c:159
+#: src/lib/iso3166.c:163
 msgid "Iran, Islamic Republic of"
 msgstr "イラン・イスラム共和国"
 
-#: src/lib/iso3166.c:160
+#: src/lib/iso3166.c:164
 msgid "Iraq, Republic of"
 msgstr "イラク共和国"
 
-#: src/lib/iso3166.c:161
+#: src/lib/iso3166.c:165
 msgid "Ireland"
 msgstr "アイルランド"
 
-#: src/lib/iso3166.c:162
+#: src/lib/iso3166.c:166
 msgid "Israel, State of"
 msgstr "イスラエル国"
 
-#: src/lib/iso3166.c:163
+#: src/lib/iso3166.c:167
 msgid "Italy, Italian Republic"
 msgstr "イタリア共和国"
 
-#: src/lib/iso3166.c:164
+#: src/lib/iso3166.c:168
 msgid "Jamaica"
 msgstr "ジャマイカ"
 
-#: src/lib/iso3166.c:165
+#: src/lib/iso3166.c:169
 msgid "Japan"
 msgstr "日本"
 
-#: src/lib/iso3166.c:166
+#: src/lib/iso3166.c:170
 msgid "Jordan, Hashemite Kingdom of"
 msgstr "ヨルダン・ハシェミット王国"
 
-#: src/lib/iso3166.c:167
+#: src/lib/iso3166.c:171
 msgid "Kazakhstan, Republic of"
 msgstr "カザフスタン共和国"
 
-#: src/lib/iso3166.c:168
+#: src/lib/iso3166.c:172
 msgid "Kenya, Republic of"
 msgstr "ケニア共和国"
 
-#: src/lib/iso3166.c:169
+#: src/lib/iso3166.c:173
 msgid "Kiribati, Republic of"
 msgstr "キリバス共和国"
 
-#: src/lib/iso3166.c:170
+#: src/lib/iso3166.c:174
 msgid "Korea, Democratic People's Republic of"
 msgstr "朝鮮民主主義人民共和国"
 
-#: src/lib/iso3166.c:171
+#: src/lib/iso3166.c:175
 msgid "Korea, Republic of"
 msgstr "大韓民国"
 
-#: src/lib/iso3166.c:172
+#: src/lib/iso3166.c:176
 msgid "Kuwait, State of"
 msgstr "クウェート国"
 
-#: src/lib/iso3166.c:173
+#: src/lib/iso3166.c:177
 msgid "Kyrgyz Republic"
 msgstr "キルギス共和国"
 
-#: src/lib/iso3166.c:174
+#: src/lib/iso3166.c:178
 msgid "Lao People's Democratic Republic"
 msgstr "ラオス人民民主共和国"
 
-#: src/lib/iso3166.c:175
+#: src/lib/iso3166.c:179
 msgid "Latvia"
 msgstr "ラトビア共和国"
 
-#: src/lib/iso3166.c:176
+#: src/lib/iso3166.c:180
 msgid "Lebanon, Lebanese Republic"
 msgstr "レバノン共和国"
 
-#: src/lib/iso3166.c:177
+#: src/lib/iso3166.c:181
 msgid "Lesotho, Kingdom of"
 msgstr "レソト王国"
 
-#: src/lib/iso3166.c:178
+#: src/lib/iso3166.c:182
 msgid "Liberia, Republic of"
 msgstr "リベリア共和国"
 
-#: src/lib/iso3166.c:179
+#: src/lib/iso3166.c:183
 msgid "Libyan Arab Jamahiriya"
 msgstr "大リビア・アラブ社会主義人民ジャマーヒリーヤ国"
 
-#: src/lib/iso3166.c:180
+#: src/lib/iso3166.c:184
 msgid "Liechtenstein, Principality of"
 msgstr "リヒテンシュタイン公国"
 
-#: src/lib/iso3166.c:181
+#: src/lib/iso3166.c:185
 msgid "Lithuania"
 msgstr "リトアニア共和国"
 
-#: src/lib/iso3166.c:182
+#: src/lib/iso3166.c:186
 msgid "Luxembourg, Grand Duchy of"
 msgstr "ルクセンブルグ大公国"
 
-#: src/lib/iso3166.c:183
+#: src/lib/iso3166.c:187
 msgid "Macao, Special Administrative Region of China"
 msgstr "澳門特別行政区"
 
-#: src/lib/iso3166.c:184
+#: src/lib/iso3166.c:188
 msgid "Macedonia, the former Yugoslav Republic of"
 msgstr "マケドニア旧ユーゴスラビア共和国"
 
-#: src/lib/iso3166.c:185
+#: src/lib/iso3166.c:189
 msgid "Madagascar, Republic of"
 msgstr "マダガスカル共和国"
 
-#: src/lib/iso3166.c:186
+#: src/lib/iso3166.c:190
 msgid "Malawi, Republic of"
 msgstr "マラウイ共和国"
 
-#: src/lib/iso3166.c:187
+#: src/lib/iso3166.c:191
 msgid "Malaysia"
 msgstr "マレーシア"
 
-#: src/lib/iso3166.c:188
+#: src/lib/iso3166.c:192
 msgid "Maldives, Republic of"
 msgstr "モルディブ共和国"
 
-#: src/lib/iso3166.c:189
+#: src/lib/iso3166.c:193
 msgid "Mali, Republic of"
 msgstr "マリ共和国"
 
-#: src/lib/iso3166.c:190
+#: src/lib/iso3166.c:194
 msgid "Malta, Republic of"
 msgstr "マルタ共和国"
 
-#: src/lib/iso3166.c:191
+#: src/lib/iso3166.c:195
 msgid "Marshall Islands"
 msgstr "マーシャル諸島共和国"
 
-#: src/lib/iso3166.c:192
+#: src/lib/iso3166.c:196
 msgid "Martinique"
 msgstr "仏領マルチニーク島"
 
-#: src/lib/iso3166.c:193
+#: src/lib/iso3166.c:197
 msgid "Mauritania, Islamic Republic of"
 msgstr "モーリタニア・イスラム共和国"
 
-#: src/lib/iso3166.c:194
+#: src/lib/iso3166.c:198
 msgid "Mauritius"
 msgstr "モーリシャス共和国"
 
-#: src/lib/iso3166.c:195
+#: src/lib/iso3166.c:199
 msgid "Mayotte"
 msgstr "仏領マヨット島"
 
-#: src/lib/iso3166.c:196
+#: src/lib/iso3166.c:200
 msgid "Mexico, United Mexican States"
 msgstr "メキシコ合衆国"
 
-#: src/lib/iso3166.c:197
+#: src/lib/iso3166.c:201
 msgid "Micronesia, Federated States of"
 msgstr "ミクロネシア連邦"
 
-#: src/lib/iso3166.c:198
+#: src/lib/iso3166.c:202
 msgid "Moldova, Republic of"
 msgstr "モルドバ共和国"
 
-#: src/lib/iso3166.c:199
+#: src/lib/iso3166.c:203
 msgid "Monaco, Principality of"
 msgstr "モナコ公国"
 
-#: src/lib/iso3166.c:200
+#: src/lib/iso3166.c:204
 msgid "Mongolia, Mongolian People's Republic"
 msgstr "モンゴル国"
 
-#: src/lib/iso3166.c:201
+#: src/lib/iso3166.c:205
 msgid "Montserrat"
 msgstr "英領モントセラト島"
 
-#: src/lib/iso3166.c:202
+#: src/lib/iso3166.c:206
 msgid "Morocco, Kingdom of"
 msgstr "モロッコ王国"
 
-#: src/lib/iso3166.c:203
+#: src/lib/iso3166.c:207
 msgid "Mozambique, People's Republic of"
 msgstr "モザンビーク共和国"
 
-#: src/lib/iso3166.c:204
+#: src/lib/iso3166.c:208
 msgid "Myanmar"
 msgstr "ミャンマー連邦"
 
-#: src/lib/iso3166.c:205
+#: src/lib/iso3166.c:209
 msgid "Namibia"
 msgstr "ナミビア共和国"
 
-#: src/lib/iso3166.c:206
+#: src/lib/iso3166.c:210
 msgid "Nauru, Republic of"
 msgstr "ナウル共和国"
 
-#: src/lib/iso3166.c:207
+#: src/lib/iso3166.c:211
 msgid "Nepal, Kingdom of"
 msgstr "ネパール王国"
 
-#: src/lib/iso3166.c:208
+#: src/lib/iso3166.c:212
 msgid "Netherlands Antilles"
 msgstr "蘭領アンティル"
 
-#: src/lib/iso3166.c:209
+#: src/lib/iso3166.c:213
 msgid "Netherlands, Kingdom of the"
 msgstr "オランダ王国"
 
-#: src/lib/iso3166.c:210
+#: src/lib/iso3166.c:214
 msgid "New Caledonia"
 msgstr "仏領ニューカレドニア"
 
-#: src/lib/iso3166.c:211
+#: src/lib/iso3166.c:215
 msgid "New Zealand"
 msgstr "ニュージーランド"
 
-#: src/lib/iso3166.c:212
+#: src/lib/iso3166.c:216
 msgid "Nicaragua, Republic of"
 msgstr "ニカラグア共和国"
 
-#: src/lib/iso3166.c:213
+#: src/lib/iso3166.c:217
 msgid "Niger, Republic of the"
 msgstr "ニジェール共和国"
 
-#: src/lib/iso3166.c:214
+#: src/lib/iso3166.c:218
 msgid "Nigeria, Federal Republic of"
 msgstr "ナイジェリア連邦共和国"
 
-#: src/lib/iso3166.c:215
+#: src/lib/iso3166.c:219
 msgid "Niue, Republic of"
 msgstr "新領ニウエ島"
 
-#: src/lib/iso3166.c:216
+#: src/lib/iso3166.c:220
 msgid "Norfolk Island"
 msgstr "豪領ノーフォーク島"
 
-#: src/lib/iso3166.c:217
+#: src/lib/iso3166.c:221
 msgid "Northern Mariana Islands"
 msgstr "米自治領北マリアナ諸島"
 
-#: src/lib/iso3166.c:218
+#: src/lib/iso3166.c:222
 msgid "Norway, Kingdom of"
 msgstr "ノルウェー王国"
 
-#: src/lib/iso3166.c:219
+#: src/lib/iso3166.c:223
 msgid "Oman, Sultanate of"
 msgstr "オマーン国"
 
-#: src/lib/iso3166.c:220
+#: src/lib/iso3166.c:224
 msgid "Pakistan, Islamic Republic of"
 msgstr "パキスタン・イスラム共和国"
 
-#: src/lib/iso3166.c:221
+#: src/lib/iso3166.c:225
 msgid "Palau"
 msgstr "パラオ共和国"
 
-#: src/lib/iso3166.c:222
+#: src/lib/iso3166.c:226
 msgid "Palestinian Territory, Occupied"
 msgstr "パレスチナ自治区"
 
-#: src/lib/iso3166.c:223
+#: src/lib/iso3166.c:227
 msgid "Panama, Republic of"
 msgstr "パナマ共和国"
 
-#: src/lib/iso3166.c:224
+#: src/lib/iso3166.c:228
 msgid "Papua New Guinea"
 msgstr "パプアニューギニア独立国"
 
-#: src/lib/iso3166.c:225
+#: src/lib/iso3166.c:229
 msgid "Paraguay, Republic of"
 msgstr "パラグアイ共和国"
 
-#: src/lib/iso3166.c:226
+#: src/lib/iso3166.c:230
 msgid "Peru, Republic of"
 msgstr "ペルー共和国"
 
-#: src/lib/iso3166.c:227
+#: src/lib/iso3166.c:231
 msgid "Philippines, Republic of the"
 msgstr "フィリピン共和国"
 
-#: src/lib/iso3166.c:228
+#: src/lib/iso3166.c:232
 msgid "Pitcairn Island"
 msgstr "英領ピトケアン島"
 
-#: src/lib/iso3166.c:229
+#: src/lib/iso3166.c:233
 msgid "Poland, Polish People's Republic"
 msgstr "ポーランド共和国"
 
-#: src/lib/iso3166.c:230
+#: src/lib/iso3166.c:234
 msgid "Portugal, Portuguese Republic"
 msgstr "ポルトガル共和国"
 
-#: src/lib/iso3166.c:231
+#: src/lib/iso3166.c:235
 msgid "Puerto Rico"
 msgstr "米領プエルトリコ"
 
-#: src/lib/iso3166.c:232
+#: src/lib/iso3166.c:236
 msgid "Qatar, State of"
 msgstr "カタール国"
 
-#: src/lib/iso3166.c:233
+#: src/lib/iso3166.c:237
 msgid "Reunion"
 msgstr "仏領レユニオン島"
 
-#: src/lib/iso3166.c:234
+#: src/lib/iso3166.c:238
 msgid "Romania, Socialist Republic of"
 msgstr "ルーマニア"
 
-#: src/lib/iso3166.c:235
+#: src/lib/iso3166.c:239
 msgid "Russian Federation"
 msgstr "ロシア連邦"
 
-#: src/lib/iso3166.c:236
+#: src/lib/iso3166.c:240
 msgid "Rwanda, Rwandese Republic"
 msgstr "ルワンダ共和国"
 
-#: src/lib/iso3166.c:237
+#: src/lib/iso3166.c:241
 msgid "St. Helena"
 msgstr "英領セントヘレナ島"
 
-#: src/lib/iso3166.c:238
+#: src/lib/iso3166.c:242
 msgid "St. Kitts and Nevis"
 msgstr "セントクリストファー・ネイビス連邦"
 
-#: src/lib/iso3166.c:239
+#: src/lib/iso3166.c:243
 msgid "St. Lucia"
 msgstr "セントルシア"
 
-#: src/lib/iso3166.c:240
+#: src/lib/iso3166.c:244
 msgid "St. Pierre and Miquelon"
 msgstr "仏領サンピエール及びミクロン島"
 
-#: src/lib/iso3166.c:241
+#: src/lib/iso3166.c:245
 msgid "St. Vincent and the Grenadines"
 msgstr "セントビンセント及びグレナディーン諸島"
 
-#: src/lib/iso3166.c:242
+#: src/lib/iso3166.c:246
 msgid "Samoa, Independent State of"
 msgstr "サモア独立国"
 
-#: src/lib/iso3166.c:243
+#: src/lib/iso3166.c:247
 msgid "San Marino, Republic of"
 msgstr "サンマリノ共和国"
 
-#: src/lib/iso3166.c:244
+#: src/lib/iso3166.c:248
 msgid "Sao Tome and Principe, Democratic Republic of"
 msgstr "サントメ・プリンシペ民主共和国"
 
-#: src/lib/iso3166.c:245
+#: src/lib/iso3166.c:249
 msgid "Saudi Arabia, Kingdom of"
 msgstr "サウジアラビア王国"
 
-#: src/lib/iso3166.c:246
+#: src/lib/iso3166.c:250
 msgid "Senegal, Republic of"
 msgstr "セネガル共和国"
 
-#: src/lib/iso3166.c:247
+#: src/lib/iso3166.c:251
 msgid "Serbia and Montenegro"
 msgstr "セルビア・モンテネグロ"
 
-#: src/lib/iso3166.c:248
+#: src/lib/iso3166.c:252
 msgid "Seychelles, Republic of"
 msgstr "セーシェル共和国"
 
-#: src/lib/iso3166.c:249
+#: src/lib/iso3166.c:253
 msgid "Sierra Leone, Republic of"
 msgstr "シエラレオネ共和国"
 
-#: src/lib/iso3166.c:250
+#: src/lib/iso3166.c:254
 msgid "Singapore, Republic of"
 msgstr "シンガポール共和国"
 
-#: src/lib/iso3166.c:251
+#: src/lib/iso3166.c:255
 msgid "Slovakia (Slovak Republic)"
 msgstr "スロバキア共和国"
 
-#: src/lib/iso3166.c:252
+#: src/lib/iso3166.c:256
 msgid "Slovenia"
 msgstr "スロベニア共和国"
 
-#: src/lib/iso3166.c:253
+#: src/lib/iso3166.c:257
 msgid "Solomon Islands"
 msgstr "ソロモン"
 
-#: src/lib/iso3166.c:254
+#: src/lib/iso3166.c:258
 msgid "Somalia, Somali Republic"
 msgstr "ソマリア民主共和国"
 
-#: src/lib/iso3166.c:255
+#: src/lib/iso3166.c:259
 msgid "South Africa, Republic of"
 msgstr "南アフリカ共和国"
 
-#: src/lib/iso3166.c:256
+#: src/lib/iso3166.c:260
 msgid "South Georgia and the South Sandwich Islands"
 msgstr "英領南ジョージア・南サンドイッチ諸島"
 
-#: src/lib/iso3166.c:257
+#: src/lib/iso3166.c:261
 msgid "Spain, Kingdom of"
 msgstr "スペイン王国"
 
-#: src/lib/iso3166.c:258
+#: src/lib/iso3166.c:262
 msgid "Sri Lanka, Democratic Socialist Republic of"
 msgstr "スリランカ民主社会主義共和国"
 
-#: src/lib/iso3166.c:259
+#: src/lib/iso3166.c:263
 msgid "Sudan, Democratic Republic of the"
 msgstr "スーダン共和国"
 
-#: src/lib/iso3166.c:260
+#: src/lib/iso3166.c:264
 msgid "Suriname, Republic of"
 msgstr "スリナム共和国"
 
-#: src/lib/iso3166.c:261
+#: src/lib/iso3166.c:265
 msgid "Svalbard & Jan Mayen Islands"
 msgstr "諾領スバルバール・ヤンメイヤン諸島"
 
-#: src/lib/iso3166.c:262
+#: src/lib/iso3166.c:266
 msgid "Swaziland, Kingdom of"
 msgstr "スワジランド王国"
 
-#: src/lib/iso3166.c:263
+#: src/lib/iso3166.c:267
 msgid "Sweden, Kingdom of"
 msgstr "スウェーデン王国"
 
-#: src/lib/iso3166.c:264
+#: src/lib/iso3166.c:268
 msgid "Switzerland, Swiss Confederation"
 msgstr "スイス連邦"
 
-#: src/lib/iso3166.c:265
+#: src/lib/iso3166.c:269
 msgid "Syrian Arab Republic"
 msgstr "シリア・アラブ共和国"
 
-#: src/lib/iso3166.c:266
+#: src/lib/iso3166.c:270
 msgid "Taiwan, Province of China"
 msgstr "中華民国台湾"
 
-#: src/lib/iso3166.c:267
+#: src/lib/iso3166.c:271
 msgid "Tajikistan"
 msgstr "タジキスタン共和国"
 
-#: src/lib/iso3166.c:268
+#: src/lib/iso3166.c:272
 msgid "Tanzania, United Republic of"
 msgstr "タンザニア連合共和国"
 
-#: src/lib/iso3166.c:269
+#: src/lib/iso3166.c:273
 msgid "Thailand, Kingdom of"
 msgstr "タイ王国"
 
-#: src/lib/iso3166.c:270
+#: src/lib/iso3166.c:274
 msgid "Timor-Leste, Democratic Republic of"
 msgstr "東ティモール民主共和国"
 
-#: src/lib/iso3166.c:271
+#: src/lib/iso3166.c:275
 msgid "Togo, Togolese Republic"
 msgstr "トーゴ共和国"
 
-#: src/lib/iso3166.c:272
+#: src/lib/iso3166.c:276
 msgid "Tokelau (Tokelau Islands)"
 msgstr "トケラウ (トケラウ諸島)"
 
-#: src/lib/iso3166.c:273
+#: src/lib/iso3166.c:277
 msgid "Tonga, Kingdom of"
 msgstr "トンガ王国"
 
-#: src/lib/iso3166.c:274
+#: src/lib/iso3166.c:278
 msgid "Trinidad and Tobago, Republic of"
 msgstr "トリニダード・トバゴ共和国"
 
-#: src/lib/iso3166.c:275
+#: src/lib/iso3166.c:279
 msgid "Tunisia, Republic of"
 msgstr "チュニジア共和国"
 
-#: src/lib/iso3166.c:276
+#: src/lib/iso3166.c:280
 msgid "Turkey, Republic of"
 msgstr "トルコ共和国"
 
-#: src/lib/iso3166.c:277
+#: src/lib/iso3166.c:281
 msgid "Turkmenistan"
 msgstr "トルクメニスタン"
 
-#: src/lib/iso3166.c:278
+#: src/lib/iso3166.c:282
 msgid "Turks and Caicos Islands"
 msgstr "英領タークス諸島・カイコス諸島"
 
-#: src/lib/iso3166.c:279
+#: src/lib/iso3166.c:283
 msgid "Tuvalu"
 msgstr "ツバル"
 
-#: src/lib/iso3166.c:280
+#: src/lib/iso3166.c:284
 msgid "US Virgin Islands"
 msgstr "英領バージン諸島"
 
-#: src/lib/iso3166.c:281
+#: src/lib/iso3166.c:285
 msgid "Uganda, Republic of"
 msgstr "ウガンダ共和国"
 
-#: src/lib/iso3166.c:282
+#: src/lib/iso3166.c:286
 msgid "Ukraine"
 msgstr "ウクライナ"
 
-#: src/lib/iso3166.c:283
+#: src/lib/iso3166.c:287
 msgid "United Arab Emirates"
 msgstr "アラブ首長国連邦"
 
-#: src/lib/iso3166.c:284
+#: src/lib/iso3166.c:288
 msgid "United Kingdom of Great Britain & N. Ireland"
 msgstr "グレートブリテン及び北アイルランド連合王国"
 
-#: src/lib/iso3166.c:285
+#: src/lib/iso3166.c:289
 msgid "United States Minor Outlying Islands"
 msgstr "アメリカ辺境諸島"
 
-#: src/lib/iso3166.c:286
+#: src/lib/iso3166.c:290
 msgid "United States of America"
 msgstr "アメリカ合衆国"
 
-#: src/lib/iso3166.c:287
+#: src/lib/iso3166.c:291
 msgid "Uruguay, Eastern Republic of"
 msgstr "ウルグアイ東方共和国"
 
-#: src/lib/iso3166.c:288
+#: src/lib/iso3166.c:292
 msgid "Uzbekistan"
 msgstr "ウズベキスタン共和国"
 
-#: src/lib/iso3166.c:289
+#: src/lib/iso3166.c:293
 msgid "Vanuatu"
 msgstr "バヌアツ共和国"
 
-#: src/lib/iso3166.c:290
+#: src/lib/iso3166.c:294
 msgid "Venezuela, Bolivarian Republic of"
 msgstr "ベネズエラ・ボリバル共和国"
 
-#: src/lib/iso3166.c:291
+#: src/lib/iso3166.c:295
 msgid "Viet Nam, Socialist Republic of"
 msgstr "ベトナム社会主義共和国"
 
-#: src/lib/iso3166.c:292
+#: src/lib/iso3166.c:296
 msgid "Wallis and Futuna Islands"
 msgstr "仏領ワリス・フツナ諸島"
 
-#: src/lib/iso3166.c:293
+#: src/lib/iso3166.c:297
 msgid "Western Sahara"
 msgstr "西サハラ"
 
-#: src/lib/iso3166.c:294
+#: src/lib/iso3166.c:298
 msgid "Yemen"
 msgstr "イエメン共和国"
 
-#: src/lib/iso3166.c:295
+#: src/lib/iso3166.c:299
 msgid "Yugoslavia"
 msgstr "ユーゴスラビア"
 
-#: src/lib/iso3166.c:296
+#: src/lib/iso3166.c:300
 msgid "Zambia, Republic of"
 msgstr "ザンビア共和国"
 
-#: src/lib/iso3166.c:297
+#: src/lib/iso3166.c:301
 msgid "Zimbabwe"
 msgstr "ジンバブエ共和国"
 
-#: src/main.c:563
+#: src/main.c:570
 msgid "This is an unofficial build which accesses files in this directory:"
 msgstr "これは非公式ビルドです、このフォルダのファイルにアクセスします:"
 
-#: src/ui/gtk/bitzi.c:52
+#: src/ui/gtk/bitzi.c:56
 msgid "Bitzi|Unknown"
 msgstr "不明です"
 
@@ -3664,7 +3920,7 @@ msgstr "不明です"
 # or purposefully misleading (e.g., music files containing advertisements
 # or noise after the first 30 seconds).
 #
-#: src/ui/gtk/bitzi.c:53
+#: src/ui/gtk/bitzi.c:57
 msgid "Bitzi|Dangerous/Misleading"
 msgstr "危険/誤解を招きます"
 
@@ -3673,7 +3929,7 @@ msgstr "危険/誤解を招きます"
 # The file is truncated or otherwise incomplete or contains serious
 # errors (e.g., skips in the case of an audio file).
 #
-#: src/ui/gtk/bitzi.c:54
+#: src/ui/gtk/bitzi.c:58
 msgid "Bitzi|Incomplete/Damaged"
 msgstr "不完全/欠損があります"
 
@@ -3682,7 +3938,7 @@ msgstr "不完全/欠損があります"
 # The file's overall quality is low (e.g., obvious pixelization in the
 # case of a video file).
 #
-#: src/ui/gtk/bitzi.c:55
+#: src/ui/gtk/bitzi.c:59
 msgid "Bitzi|Substandard"
 msgstr "標準以下です"
 
@@ -3690,7 +3946,7 @@ msgstr "標準以下です"
 #
 # You believe others have incorrectly judged the file positively.
 #
-#: src/ui/gtk/bitzi.c:56
+#: src/ui/gtk/bitzi.c:60
 msgid "Bitzi|Overrated"
 msgstr "評価が高すぎます"
 
@@ -3699,7 +3955,7 @@ msgstr "評価が高すぎます"
 # You can't vouch for the file's quality, but can't find anything to
 # complain about either.
 #
-#: src/ui/gtk/bitzi.c:57
+#: src/ui/gtk/bitzi.c:61
 msgid "Bitzi|Normal"
 msgstr "普通です"
 
@@ -3707,7 +3963,7 @@ msgstr "普通です"
 #
 # You believe others have incorrectly judged the file negatively.
 #
-#: src/ui/gtk/bitzi.c:58
+#: src/ui/gtk/bitzi.c:62
 msgid "Bitzi|Underrated"
 msgstr "評価が低すぎます"
 
@@ -3715,7 +3971,7 @@ msgstr "評価が低すぎます"
 #
 # The file in question isn't truncated or otherwise damaged.
 #
-#: src/ui/gtk/bitzi.c:59
+#: src/ui/gtk/bitzi.c:63
 msgid "Bitzi|Complete"
 msgstr "完全です"
 
@@ -3726,7 +3982,7 @@ msgstr "完全です"
 # This is a good judgement to use if you wholeheartedly endorse a file,
 # but aren't so sure that better versions aren't likely to exist.
 #
-#: src/ui/gtk/bitzi.c:60
+#: src/ui/gtk/bitzi.c:64
 msgid "Bitzi|Recommended"
 msgstr "お推めです"
 
@@ -3739,11 +3995,11 @@ msgstr "お推めです"
 # important, the second where small filesize is most important. This is
 # a very fuzzy area - use your best bitizen judgement!
 #
-#: src/ui/gtk/bitzi.c:61
+#: src/ui/gtk/bitzi.c:65
 msgid "Bitzi|Best Version"
 msgstr "最良版です"
 
-#: src/ui/gtk/bitzi.c:122
+#: src/ui/gtk/bitzi.c:126
 msgid "No other data"
 msgstr "他のデータはありません"
 
@@ -3797,7 +4053,7 @@ msgstr "組込ターゲット (編集不可)"
 
 #: src/ui/gtk/filter.c:319
 msgid "Global filters"
-msgstr "広域フィルタ"
+msgstr "大域フィルタ"
 
 #: src/ui/gtk/filter.c:324
 msgid "Search filters"
@@ -3866,13 +4122,13 @@ msgstr "IP アドレスが %s/%s に一致する"
 
 #: src/ui/gtk/filter_core.c:989
 #, c-format
-msgid "If filesize is smaller than %s (%s)"
-msgstr "大きさが %s バイト (%s) より小さい"
+msgid "If filesize is exactly %s (%s)"
+msgstr "大きさが正確に %s バイト (%s)"
 
 #: src/ui/gtk/filter_core.c:996
 #, c-format
-msgid "If filesize is exactly %s (%s)"
-msgstr "大きさが正確に %s バイト (%s)"
+msgid "If filesize is smaller than %s (%s)"
+msgstr "大きさが %s バイト (%s) より小さい"
 
 #: src/ui/gtk/filter_core.c:1008
 #, c-format
@@ -3981,11 +4237,11 @@ msgstr "(不適切)"
 
 #: src/ui/gtk/filter_core.c:2323
 msgid "Global (pre)"
-msgstr "全般 (前)"
+msgstr "全般 (前処理)"
 
 #: src/ui/gtk/filter_core.c:2324
 msgid "Global (post)"
-msgstr "全般 (後)"
+msgstr "全般 (後処理)"
 
 #: src/ui/gtk/filter_core.c:2329
 msgid "RETURN"
@@ -4272,7 +4528,7 @@ msgstr " %d 秒後に再試行"
 #: src/ui/gtk/gtk1/downloads.c:1039 src/ui/gtk/gtk1/downloads.c:1045
 #: src/ui/gtk/gtk2/downloads.c:1420 src/ui/gtk/nodes_common.c:58
 msgid "Connecting..."
-msgstr "接続中..."
+msgstr "接続しています..."
 
 #: src/ui/gtk/gtk1/downloads.c:1058 src/ui/gtk/gtk2/downloads.c:1433
 msgid "Push sent directly"
@@ -4299,7 +4555,7 @@ msgstr " %s 経由"
 
 #: src/ui/gtk/gtk1/downloads.c:1072 src/ui/gtk/gtk2/downloads.c:1446
 msgid "Connecting"
-msgstr "接続中"
+msgstr "接続しています"
 
 #: src/ui/gtk/gtk1/downloads.c:1073 src/ui/gtk/gtk1/downloads.c:1114
 #: src/ui/gtk/gtk2/downloads.c:1447 src/ui/gtk/gtk2/downloads.c:1479
@@ -4330,12 +4586,12 @@ msgstr "ヘッダ受信中"
 
 #: src/ui/gtk/gtk1/downloads.c:1126 src/ui/gtk/gtk2/downloads.c:1491
 msgid "Aborted (Server down)"
-msgstr "中止 (サーバダウン)"
+msgstr "中止しました (サーバダウン)"
 
 #: src/ui/gtk/gtk1/downloads.c:1126 src/ui/gtk/gtk1/downloads.c:1134
 #: src/ui/gtk/gtk2/downloads.c:1491 src/ui/gtk/gtk2/downloads.c:1496
 msgid "Aborted"
-msgstr "中止"
+msgstr "中止しました"
 
 #: src/ui/gtk/gtk1/downloads.c:1143 src/ui/gtk/gtk1/downloads.c:1148
 #: src/ui/gtk/gtk1/interface-glade.c:2610 src/ui/gtk/gtk2/downloads.c:1505
@@ -4379,7 +4635,7 @@ msgstr "(停止状態)"
 #: src/ui/gtk/gtk1/downloads.c:1283 src/ui/gtk/gtk1/nodes.c:251
 #: src/ui/gtk/gtk2/downloads.c:1651 src/ui/gtk/nodes_common.c:268
 msgid "Connected"
-msgstr "接続完了"
+msgstr "接続しました"
 
 #: src/ui/gtk/gtk1/downloads.c:1287 src/ui/gtk/gtk2/downloads.c:1655
 msgid "Unknown error"
@@ -4395,7 +4651,7 @@ msgstr "%d 秒後に再試行"
 msgid "Sinking (%s bytes left)"
 msgstr "Sinking (%s バイト残存)"
 
-# FIXME: it might need to be separated
+# FIXME: needs separated
 #: src/ui/gtk/gtk1/downloads.c:1347 src/ui/gtk/gtk1/downloads.c:1420
 #: src/ui/gtk/gtk1/interface-glade.c:2263 src/ui/gtk/gtk2/downloads.c:1316
 #: src/ui/gtk/gtk2/upload_stats.c:258
@@ -4566,18 +4822,18 @@ msgstr "ナビゲータ"
 #: src/ui/gtk/gtk1/interface-glade.c:1089
 #: src/ui/gtk/gtk1/interface-glade.c:1163
 #: src/ui/gtk/gtk1/interface-glade.c:3117
-#: src/ui/gtk/gtk1/interface-glade.c:4236 src/ui/gtk/gtk2/search.c:881
+#: src/ui/gtk/gtk1/interface-glade.c:4236 src/ui/gtk/gtk2/search.c:882
 #: src/ui/gtk/main.c:125
 msgid "Search"
 msgstr "検索"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1098
 #: src/ui/gtk/gtk1/interface-glade.c:5192 src/ui/gtk/gtk2/hcache.c:46
-#: src/ui/gtk/gtk2/search.c:882
+#: src/ui/gtk/gtk2/search.c:883
 msgid "Hits"
 msgstr "ヒット件数"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1106 src/ui/gtk/gtk2/search.c:883
+#: src/ui/gtk/gtk1/interface-glade.c:1106 src/ui/gtk/gtk2/search.c:884
 msgid "New"
 msgstr "新規"
 
@@ -4639,7 +4895,7 @@ msgstr "クリックで表示を切替えます。"
 #
 #: src/ui/gtk/gtk1/interface-glade.c:1391
 #: src/ui/gtk/gtk1/interface-glade.c:1432
-#: src/ui/gtk/gtk1/interface-glade.c:1472 src/ui/gtk/misc.c:130
+#: src/ui/gtk/gtk1/interface-glade.c:1472 src/ui/gtk/misc.c:135
 msgid "in"
 msgstr "でノード内へ"
 
@@ -4649,7 +4905,7 @@ msgstr "でノード内へ"
 #
 #: src/ui/gtk/gtk1/interface-glade.c:1403
 #: src/ui/gtk/gtk1/interface-glade.c:1443
-#: src/ui/gtk/gtk1/interface-glade.c:1483 src/ui/gtk/misc.c:130
+#: src/ui/gtk/gtk1/interface-glade.c:1483 src/ui/gtk/misc.c:135
 msgid "out"
 msgstr "でノード外へ"
 
@@ -4683,7 +4939,7 @@ msgstr "ホスト"
 #: src/ui/gtk/gtk1/interface-glade.c:2887 src/ui/gtk/gtk1/nodes.c:247
 #: src/ui/gtk/gtk1/search.c:2239 src/ui/gtk/gtk1/search.c:2245
 #: src/ui/gtk/gtk2/downloads.c:437 src/ui/gtk/gtk2/downloads.c:482
-#: src/ui/gtk/gtk2/nodes.c:158 src/ui/gtk/gtk2/search.c:1346
+#: src/ui/gtk/gtk2/nodes.c:158 src/ui/gtk/gtk2/search.c:1347
 #: src/ui/gtk/gtk2/uploads.c:71
 msgid "Loc"
 msgstr "場所"
@@ -4729,7 +4985,7 @@ msgstr "稼動時間"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1613 src/ui/gtk/gtk1/nodes.c:253
 #: src/ui/gtk/gtk1/search.c:2256 src/ui/gtk/gtk1/search.c:2262
-#: src/ui/gtk/gtk2/nodes.c:164 src/ui/gtk/gtk2/search.c:1348
+#: src/ui/gtk/gtk2/nodes.c:164 src/ui/gtk/gtk2/search.c:1349
 msgid "Info"
 msgstr "情報"
 
@@ -4766,12 +5022,12 @@ msgstr "追加"
 msgid "Try to connect to specified address"
 msgstr "指定アドレスへの接続を試みます。"
 
-# FIXME: it seems like not enough even in the gui
+# FIXME: seems like not enough
 #: src/ui/gtk/gtk1/interface-glade.c:1676
 msgid "Minimum"
 msgstr "最小"
 
-# FIXME: it seems like not enough even in the gui
+# FIXME: seems like not enough
 #: src/ui/gtk/gtk1/interface-glade.c:1687
 msgid "Maximum"
 msgstr "最大"
@@ -5154,7 +5410,7 @@ msgstr "取得ファイル"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3165 src/ui/gtk/gtk1/search.c:2207
 #: src/ui/gtk/gtk1/search.c:2213 src/ui/gtk/gtk2/fileinfo.c:543
-#: src/ui/gtk/gtk2/search.c:1342
+#: src/ui/gtk/gtk2/search.c:1343
 msgid "File"
 msgstr "ファイル"
 
@@ -5254,8 +5510,8 @@ msgstr "検索を閉じる(_O)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3562 src/ui/gtk/gtk1/search.c:409
 #: src/ui/gtk/gtk1/search.c:1884 src/ui/gtk/gtk1/search.c:2002
-#: src/ui/gtk/gtk2/interface-glade.c:4792 src/ui/gtk/gtk2/search.c:399
-#: src/ui/gtk/gtk2/search.c:986 src/ui/gtk/gtk2/search.c:1118
+#: src/ui/gtk/gtk2/interface-glade.c:4792 src/ui/gtk/gtk2/search.c:400
+#: src/ui/gtk/gtk2/search.c:987 src/ui/gtk/gtk2/search.c:1119
 msgid "(no search)"
 msgstr "(検索無し)"
 
@@ -5653,7 +5909,7 @@ msgstr "喪失数"
 #: src/ui/gtk/gtk1/interface-glade.c:5208
 #: src/ui/gtk/gtk2/interface-glade.c:9116
 msgid "Hostcache capacity"
-msgstr "ホストキャッシュ容量"
+msgstr "ホストキャッシュの内容"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5241
 #: src/ui/gtk/gtk1/interface-glade.c:5294
@@ -5673,7 +5929,7 @@ msgstr "通常のホスト"
 #: src/ui/gtk/gtk2/interface-glade.c:9077
 #: src/ui/gtk/gtk2/interface-glade.c:9111
 msgid "Clear"
-msgstr "消去"
+msgstr "クリア"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5304
 #: src/ui/gtk/gtk2/interface-glade.c:9063
@@ -5683,7 +5939,7 @@ msgstr "ウルトラピア"
 #: src/ui/gtk/gtk1/interface-glade.c:5356
 #: src/ui/gtk/gtk2/interface-glade.c:9097
 msgid "Bad hosts"
-msgstr "不正ホスト"
+msgstr "不正なホスト"
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
 #: src/ui/gtk/gtk1/interface-glade.c:5383
@@ -5871,7 +6127,7 @@ msgstr "強制 PUSH モード"
 #: src/ui/gtk/gtk1/interface-glade.c:6435
 #: src/ui/gtk/gtk2/interface-glade.c:145 src/ui/gtk/gtk2/interface-glade.c:347
 msgid "Copy URL to clipboard"
-msgstr "URL をクリップボードへ複写"
+msgstr "URL をコピー"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6266
 #: src/ui/gtk/gtk1/interface-glade.c:6443
@@ -6397,7 +6653,7 @@ msgstr "キャンセル"
 #: src/ui/gtk/gtk1/interface-glade.c:9778
 #: src/ui/gtk/gtk2/interface-glade.c:1269
 msgid "gtk-gnutella shutdown"
-msgstr "Gtk-Gnutella シャットダウン"
+msgstr "Gtk-Gnutella の停止"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9800
 #: src/ui/gtk/gtk2/interface-glade.c:1290
@@ -6407,7 +6663,7 @@ msgid ""
 "\n"
 "Grace time remaining:"
 msgstr ""
-"Gtk-Gnutella はシャットダウン中です。\n"
+"Gtk-Gnutella を停止中です。\n"
 "各ピアに Bye メッセージを送信しています。\n"
 "\n"
 "終了までの残り時間:"
@@ -6646,7 +6902,7 @@ msgstr "ローカルネット"
 #: src/ui/gtk/gtk1/interface-glade.c:11529
 #: src/ui/gtk/gtk2/interface-glade.c:10010
 msgid "_Try to connect to local networks first"
-msgstr "最初にローカルネットへ接続(_T)"
+msgstr "最初にローカルネットへ接続する(_T)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11541
 #: src/ui/gtk/gtk2/interface-glade.c:10016
@@ -6733,7 +6989,7 @@ msgstr "[place holder]"
 #: src/ui/gtk/gtk1/interface-glade.c:11703
 #: src/ui/gtk/gtk2/interface-glade.c:10137
 msgid "Use global hostiles.txt"
-msgstr "全域 hostiles.txt を使用する"
+msgstr "システム用の hostiles.txt を使用する"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11713
 #: src/ui/gtk/gtk2/interface-glade.c:10202
@@ -7887,7 +8143,7 @@ msgstr "経路情報(_T)"
 #: src/ui/gtk/gtk1/interface-glade.c:16586
 #: src/ui/gtk/gtk2/interface-glade.c:15521
 msgid "_Stop collecting hosts"
-msgstr "ホストの収集を中止"
+msgstr "ホストの収集を中止(_S)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16598
 #: src/ui/gtk/gtk2/interface-glade.c:15752
@@ -8004,7 +8260,7 @@ msgstr "UDP クローラが訪れた回数:"
 msgid "Debugging"
 msgstr "バグ解析"
 
-#: src/ui/gtk/gtk1/search.c:331 src/ui/gtk/gtk2/search.c:322
+#: src/ui/gtk/gtk1/search.c:331 src/ui/gtk/gtk2/search.c:323
 msgid "Failed to create the search"
 msgstr "検索の作成に失敗しました。"
 
@@ -8036,21 +8292,21 @@ msgid_plural "Discarded %u results"
 msgstr[0] "%u 件の結果を破棄しました。"
 
 #: src/ui/gtk/gtk1/search.c:2215 src/ui/gtk/gtk1/search.c:2221
-#: src/ui/gtk/gtk2/search.c:1343
+#: src/ui/gtk/gtk2/search.c:1344
 msgid "Extension"
 msgstr "拡張子"
 
 #: src/ui/gtk/gtk1/search.c:2231 src/ui/gtk/gtk1/search.c:2237
-#: src/ui/gtk/gtk2/search.c:1345
+#: src/ui/gtk/gtk2/search.c:1346
 msgid "#"
 msgstr "数"
 
 #: src/ui/gtk/gtk1/search.c:2248 src/ui/gtk/gtk1/search.c:2254
-#: src/ui/gtk/gtk2/search.c:1347
+#: src/ui/gtk/gtk2/search.c:1348
 msgid "Metadata"
 msgstr "メタデータ"
 
-#: src/ui/gtk/gtk1/search.c:2569 src/ui/gtk/gtk2/search.c:1659
+#: src/ui/gtk/gtk1/search.c:2569 src/ui/gtk/gtk2/search.c:1660
 msgid "Not in database"
 msgstr "データベースにありません"
 
@@ -8140,12 +8396,12 @@ msgstr "検索(_S)"
 #
 #: src/ui/gtk/gtk2/interface-glade.c:3248
 msgid "Connect to"
-msgstr " "
+msgstr "リーフ時には"
 
 # NOTE: see above
 #: src/ui/gtk/gtk2/interface-glade.c:3260
 msgid "ultrapeers"
-msgstr "基のウルトラピアに接続"
+msgstr "基のウルトラピアに接続する。"
 
 # NOTE: this string is used as follows
 #
@@ -8153,12 +8409,12 @@ msgstr "基のウルトラピアに接続"
 #
 #: src/ui/gtk/gtk2/interface-glade.c:3306
 msgid "Try to keep at least"
-msgstr "最低限"
+msgstr "ウルトラノード時に、最低"
 
 # NOTE: see above
 #: src/ui/gtk/gtk2/interface-glade.c:3320
 msgid "and allow at most"
-msgstr "件の接続を確保し多くても"
+msgstr "件の接続を確保し、多くても"
 
 # NOTE: see above
 #: src/ui/gtk/gtk2/interface-glade.c:3333
@@ -8480,7 +8736,7 @@ msgid "%d second"
 msgid_plural "%d seconds"
 msgstr[0] "%d 秒"
 
-#: src/ui/gtk/misc.c:64
+#: src/ui/gtk/misc.c:69
 #, c-format
 msgid "%lu file shared (%s)"
 msgid_plural "%lu files shared (%s)"
@@ -8490,7 +8746,7 @@ msgstr[0] "%lu 個のファイルを共有 (%s)"
 #
 # '17KiB/s in/out (avg)'
 #
-#: src/ui/gtk/misc.c:131
+#: src/ui/gtk/misc.c:136
 msgid "(avg)"
 msgstr "(平均)"
 
@@ -8505,7 +8761,7 @@ msgstr "Welcome 送信"
 #: src/ui/gtk/nodes_common.c:274
 #, c-format
 msgid "Closing: %s [Stop in %ds] RX=%d Q=%d,%d%%"
-msgstr "遮断中: %s [%d 秒後に中止] RX=%d Q=%d,%d%%"
+msgstr "停止中: %s [%d 秒後に中止] RX=%d Q=%d,%d%%"
 
 #: src/ui/gtk/nodes_common.c:282
 msgid "Removing"
@@ -8523,27 +8779,27 @@ msgstr "状態不明"
 msgid "Port must be between 1 and 65535"
 msgstr "ポートは 1 から 65535 の間にして下さい"
 
-#: src/ui/gtk/search_common.c:81
+#: src/ui/gtk/search_common.c:82
 msgid "busy"
 msgstr "使用中"
 
-#: src/ui/gtk/search_common.c:82
+#: src/ui/gtk/search_common.c:83
 msgid "stable"
 msgstr "安定"
 
-#: src/ui/gtk/search_common.c:83
+#: src/ui/gtk/search_common.c:84
 msgid "push"
 msgstr "プッシュ"
 
-#: src/ui/gtk/search_common.c:84
+#: src/ui/gtk/search_common.c:85
 msgid "proxy"
 msgstr "プロキシ"
 
-#: src/ui/gtk/search_common.c:85
+#: src/ui/gtk/search_common.c:86
 msgid "bogus"
 msgstr "偽IP"
 
-#: src/ui/gtk/search_common.c:709
+#: src/ui/gtk/search_common.c:710
 #, c-format
 msgid ""
 "Found old searches file. The search information has been\n"
@@ -8553,7 +8809,7 @@ msgstr ""
 "古い検索ファイルがあります。検索情報は新しい XML 形式で保管\n"
 "されますので、この古いファイルは %s に名前変更されます。"
 
-#: src/ui/gtk/search_common.c:713
+#: src/ui/gtk/search_common.c:714
 #, c-format
 msgid ""
 "could not rename %s as %s: %s\n"
@@ -8562,7 +8818,7 @@ msgstr ""
 "%s を %s に名前変更できませんでした: %s \n"
 "XML ファイルはこの問題が解決されるまで使用されません。"
 
-#: src/ui/gtk/search_common.c:775
+#: src/ui/gtk/search_common.c:776
 msgid ""
 "Found old searches file. Loaded it.\n"
 "On exit the searches will be saved in the new XML format\n"
@@ -8572,15 +8828,15 @@ msgstr ""
 "終了の際には検索は新しい XML 形式で保存されます。\n"
 "\"searches.orig\" は削除しても構いません。"
 
-#: src/ui/gtk/search_common.c:828
+#: src/ui/gtk/search_common.c:829
 msgid "<unparsed>"
 msgstr "<未解析>"
 
-#: src/ui/gtk/search_common.c:1053
+#: src/ui/gtk/search_common.c:1054
 msgid "(passive search) "
 msgstr "(受動検索) "
 
-#: src/ui/gtk/search_common.c:1055
+#: src/ui/gtk/search_common.c:1056
 #, c-format
 msgid ""
 "%s%s%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%"
@@ -8589,37 +8845,37 @@ msgstr ""
 "%s%s%u %s (割愛 %u, 無視 %u, 隠匿 %u, 自動 D/L %u, %u %s) がヒット: %u (%u "
 "TCP, %u UDP)"
 
-#: src/ui/gtk/search_common.c:1058
+#: src/ui/gtk/search_common.c:1059
 msgid "[stopped] "
 msgstr "[中止] "
 
-#: src/ui/gtk/search_common.c:1060
+#: src/ui/gtk/search_common.c:1061
 msgid "item"
 msgid_plural "items"
 msgstr[0] "個のアイテム"
 
-#: src/ui/gtk/search_common.c:1062
+#: src/ui/gtk/search_common.c:1063
 msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] "個の重複"
 
-#: src/ui/gtk/search_common.c:1065
+#: src/ui/gtk/search_common.c:1066
 msgid "No search"
 msgstr "検索無し"
 
-#: src/ui/gtk/search_common.c:1364
+#: src/ui/gtk/search_common.c:1365
 msgid "The entered query is too long"
 msgstr "入力した検索式は長すぎます"
 
-#: src/ui/gtk/search_common.c:1381
+#: src/ui/gtk/search_common.c:1382
 msgid "The SHA1 of the magnet is not validly encoded"
 msgstr "このマグネットの SHA1 は適切にエンコードされていません"
 
-#: src/ui/gtk/search_common.c:1386
+#: src/ui/gtk/search_common.c:1387
 msgid "Cannot parse magnet"
 msgstr "マグネットを解析できません"
 
-#: src/ui/gtk/search_common.c:1422
+#: src/ui/gtk/search_common.c:1423
 msgid "The SHA1 query is not validly encoded"
 msgstr "この SHA1 検索式は適切にエンコードされていません"
 
@@ -8788,3 +9044,25 @@ msgstr "QUEUE 送信、折り返し接続中..."
 #: src/ui/gtk/uploads_common.c:202
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE 送信完了、ヘッダ待受中..."
+
+#~ msgid "Data timeout after %s byte"
+#~ msgid_plural "Data timeout after %s bytes"
+#~ msgstr[0] "%s バイト後にデータ送信がタイムアウトします"
+
+#~ msgid "User going offline"
+#~ msgstr "ユーザはオフラインになります"
+
+#~ msgid "Request timeout"
+#~ msgstr "リクエストがタイムアウトしました"
+
+#~ msgid "No reply to alive pings"
+#~ msgstr "有効な ping が返って来ません"
+
+#~ msgid "Too many leaf connections (%d max)"
+#~ msgstr "リーフ接続件数が多すぎます (最大 %d 件)"
+
+#~ msgid "Too many ultra connections (%d max)"
+#~ msgstr "ウルトラ接続件数が多すぎます (最大 %d 件)"
+
+#~ msgid "Too many Gnet connections (%d max)"
+#~ msgstr "Gnet 接続件数が多すぎます (最大 %d 件)"
