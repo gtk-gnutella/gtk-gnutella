@@ -2142,7 +2142,7 @@ gui_prop_init(void) {
      * General data:
      */
     gui_property->props[102].name = "widths_gnet_stats_pkg";
-    gui_property->props[102].desc = _("Widths of the columns in the Gnet packet stats table (pkg).[GTK2]");
+    gui_property->props[102].desc = _("Widths of the columns in the Gnet packet stats table (pkg). [GTK2]");
     gui_property->props[102].ev_changed = event_new("gnet_stats_pkg_col_widths_changed");
     gui_property->props[102].save = TRUE;
     gui_property->props[102].vector_size = 6;

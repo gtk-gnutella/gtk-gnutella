@@ -1074,7 +1074,7 @@ prop = {
 prop = {
     name = "gnet_stats_pkg_col_widths";
     cfgvar = "widths_gnet_stats_pkg";
-    desc = "Widths of the columns in the Gnet packet stats table (pkg)."
+    desc = "Widths of the columns in the Gnet packet stats table (pkg). "
            "[GTK2]";
     type = guint32;
     vector_size = 6;
