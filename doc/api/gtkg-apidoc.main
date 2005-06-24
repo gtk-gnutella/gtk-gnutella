@@ -31,9 +31,9 @@
  *       - QRP (Query Routing Proposal)
  *       - Push Proxies
  *
- * These pages document the source code of gtk-gnutella.
+ * These pages document the source code of Gtk-Gnutella.
  *
- * @section sects Main sections of the gtk-gnutella code
+ * @section sects Main sections of the Gtk-Gnutella code
  *
  *  The following sections are the broad categories into which the
  *  various modules belong.
