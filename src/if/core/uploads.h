@@ -108,7 +108,7 @@ struct ul_stats {
 	guint32 complete;
 	guint64 bytes_sent;
 	gfloat  norm;		/* bytes sent / file size */
-} ul_stats_t;
+};
 
 /*
  * Uploads callback definitions
