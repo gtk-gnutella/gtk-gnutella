@@ -34,7 +34,7 @@
  * core of GTKG.
  *
  * @note
- * The code requires libxml to parse the XML responses
+ * The code requires libxml to parse the XML responses.
  *
  * @author Alex Bennee <alex@bennee.com>
  * @date 2004
@@ -47,7 +47,7 @@
 
 #include "http.h"			/* http async stuff */
 #include "bitzi.h"			/* bitzi metadata */
-#include "settings.h"			/* settings_config_dir() */
+#include "settings.h"		/* settings_config_dir() */
 
 #include "if/bridge/c2ui.h"
 #include "if/gnet_property_priv.h"
@@ -58,7 +58,9 @@
 #include "lib/walloc.h"
 #include "lib/override.h"	/* This file MUST be the last one included */
 
-/*
+/**
+ * @struct bitzi_request_t
+ *
  * The bitzi_request_t structure ties together each Bitzi request
  * which are stored in the request queue.
  *
@@ -67,13 +69,13 @@
 static const gchar bitzi_url_fmt[] = "http://ticket.bitzi.com/rdf/urn:sha1:%s";
 
 typedef struct {
-	gchar *urnsha1;		/* urnsha1, atom */
-	gchar bitzi_url[SHA1_BASE32_SIZE + sizeof bitzi_url_fmt]; /* request URL */
+	gchar *urnsha1;			/**< urnsha1, atom */
+	gchar bitzi_url[SHA1_BASE32_SIZE + sizeof bitzi_url_fmt]; /**< request URL */
 
 	/*
 	 * xml related bits
 	 */
-	xmlParserCtxt *ctxt;   	/* libxml parser context */
+	xmlParserCtxt *ctxt;   	/**< libxml parser context */
 } bitzi_request_t;
 
 /*

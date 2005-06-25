@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Query Routing Protocol (LimeWire's scheme).
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Query Routing Protocol (LimeWire's scheme).
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _core_qrp_h_
 #define _core_qrp_h_
 
@@ -32,7 +40,7 @@
 
 #include "matching.h"		/* For char_map_t */
 
-#define QRP_MIN_WORD_LENGTH		3		/* Minimal word length */
+#define QRP_MIN_WORD_LENGTH		3	/**< Minimal word length */
 
 /*
  * Query routing: structures to keep track of all the query hashes,
@@ -40,8 +48,8 @@
  */
 
 enum query_hsrc {
-	QUERY_H_WORD = 0,				/* Query word (AND-ed) */
-	QUERY_H_URN						/* URN (OR-ed) */
+	QUERY_H_WORD = 0,		/**< Query word (AND-ed) */
+	QUERY_H_URN				/**< URN (OR-ed) */
 };
 
 struct query_hash {
@@ -50,16 +58,16 @@ struct query_hash {
 };
 
 typedef struct query_hashvec {
-	gint count;				/* Amount of slots actually taken */
-	gint size;				/* Amount of slots in vector */
-	struct query_hash *vec;	/* Vector of at most `size' entries */
+	gint count;				/**< Amount of slots actually taken */
+	gint size;				/**< Amount of slots in vector */
+	struct query_hash *vec;	/**< Vector of at most `size' entries */
 } query_hashvec_t;
 
 typedef struct qrt_info {
-	gint slots;				/* Amount of slots */
-	gint generation;		/* Generation number */
-	gint fill_ratio;		/* Percentage of slots used */
-	gint pass_throw;		/* Passing throw, on a d100 */
+	gint slots;				/**< Amount of slots */
+	gint generation;		/**< Generation number */
+	gint fill_ratio;		/**< Percentage of slots used */
+	gint pass_throw;		/**< Passing throw, on a d100 */
 } qrt_info_t;
 
 

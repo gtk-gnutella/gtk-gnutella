@@ -3,9 +3,6 @@
  *
  * Copyright (c) 2004, Raphael Manfredi
  *
- * Debugging malloc, to supplant dmalloc which is not satisfactory for
- * leak detection.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -24,6 +21,19 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Needs short description here.
+ *
+ * Debugging malloc, to supplant dmalloc which is not satisfactory for
+ * leak detection.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #ifndef _malloc_h_
@@ -53,7 +63,7 @@
 
 #include "hashlist.h"
 
-#undef strdup			/* Defined in <bits/string2.h> */
+#undef strdup			/**< Defined in <bits/string2.h> */
 
 #define malloc(s)		malloc_track((s), _WHERE_, __LINE__)
 #define calloc(n,s)		malloc0_track((n)*(s), _WHERE_, __LINE__)

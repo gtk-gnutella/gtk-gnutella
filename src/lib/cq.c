@@ -28,6 +28,9 @@
  * @file
  *
  * Callout queue.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -39,9 +42,9 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-#define HASH_SIZE	1024			/* Hash list size, must be power of 2 */
+#define HASH_SIZE	1024			/**< Hash list size, must be power of 2 */
 #define HASH_MASK	(HASH_SIZE - 1)
-#define EV_MAGIC	0xc0110172U		/* Magic number for event marking */
+#define EV_MAGIC	0xc0110172U		/**< Magic number for event marking */
 
 /*
  * The hashing function divides the time by 2^5 or 32, to avoid cq_clock()
@@ -110,9 +113,9 @@ cq_free(cqueue_t *cq)
 static void
 ev_link(cqueue_t *cq, cevent_t *ev)
 {
-	struct chash *ch;			/* Hashing bucket */
-	time_t trigger;			/* Trigger time */
-	cevent_t *hev;				/* To loop through the hash bucket */
+	struct chash *ch;		/**< Hashing bucket */
+	time_t trigger;			/**< Trigger time */
+	cevent_t *hev;			/**< To loop through the hash bucket */
 
 	g_assert(valid_ptr(cq));
 	g_assert(valid_ptr(ev));
@@ -229,7 +232,7 @@ ev_unlink(cqueue_t *cq, cevent_t *ev)
  * time we shall call fn(cq, arg), where cq is the callout queue from
  * where we triggered, and arg is an additional argument.
  *
- * Returns the handle, or NULL on error.
+ * @returns the handle, or NULL on error.
  */
 gpointer
 cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)

@@ -3,11 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Unicode Transformation Format 8 bits.
- *
- * This code has been heavily inspired by utf8.c/utf8.h from Perl 5.6.1,
- * written by Larry Wall et al.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -26,6 +21,19 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Unicode Transformation Format 8 bits.
+ *
+ * This code has been heavily inspired by utf8.c/utf8.h from Perl 5.6.1,
+ * written by Larry Wall et al.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -255,7 +263,7 @@ utf32_general_category(guint32 uc)
 /**
  * Are the first bytes of string `s' forming a valid UTF-8 character?
  *
- * @returns amount of bytes used to encode that character, or 0 if invalid.
+ * @return amount of bytes used to encode that character, or 0 if invalid.
  */
 gint
 utf8_is_valid_char(const gchar *s)
@@ -292,9 +300,10 @@ utf8_is_valid_char(const gchar *s)
 }
 
 /**
- * Returns amount of UTF-8 chars when first `len' bytes of the given string
+ * @return amount of UTF-8 chars when first `len' bytes of the given string
  * `s' form valid a UTF-8 string, 0 meaning the string is not valid UTF-8.
  *
+ * @note
  * If `len' is 0, the string must be NUL-terminated.
  */
 size_t
@@ -448,7 +457,7 @@ utf16_encode_char(guint32 uc, guint16 *dst)
 }
 
 /**
- * Returns the character value of the first character in the string `s',
+ * @returns the character value of the first character in the string `s',
  * which is assumed to be in UTF-8 encoding and no longer than `len'.
  * `retlen' will be set to the length, in bytes, of that character.
  *
@@ -623,7 +632,7 @@ malformed:
  *
  * If `len' is 0, the length of the string is computed with strlen().
  *
- * Returns length of decoded string.
+ * @returns length of decoded string.
  */
 gint
 utf8_to_iso8859(gchar *s, gint len, gboolean space)
@@ -760,7 +769,7 @@ static const char *codesets[] = {
 };
 
 /**
- * Returns a string representing the current locale as an alias which is
+ * @returns a string representing the current locale as an alias which is
  * understood by GNU iconv. The returned pointer points to a static buffer.
  */
 const char *

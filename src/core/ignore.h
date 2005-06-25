@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Management of download ignoring list.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Management of download ignoring list.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _core_ignore_h_
 #define _core_ignore_h_
 
@@ -34,12 +42,12 @@ void ignore_init(void);
 void ignore_close(void);
 
 enum ignore_val {
-	IGNORE_FALSE = 0,		/* Do not ignore */
-	IGNORE_SHA1 = 1,		/* Ignore because of SHA1 */
-	IGNORE_NAMESIZE = 2,	/* Ignore because of Name & Size */
-	IGNORE_LIBRARY = 3,		/* Ignore because SHA1 present in library */
-	IGNORE_HOSTILE = 4,		/* Ignore because IP address is hostile */
-	IGNORE_OURSELVES = 5	/* Ignore because IP:port points to ourselves */
+	IGNORE_FALSE = 0,		/**< Do not ignore */
+	IGNORE_SHA1 = 1,		/**< Ignore because of SHA1 */
+	IGNORE_NAMESIZE = 2,	/**< Ignore because of Name & Size */
+	IGNORE_LIBRARY = 3,		/**< Ignore because SHA1 present in library */
+	IGNORE_HOSTILE = 4,		/**< Ignore because IP address is hostile */
+	IGNORE_OURSELVES = 5	/**< Ignore because IP:port points to ourselves */
 };
 
 void ignore_timer(time_t now);

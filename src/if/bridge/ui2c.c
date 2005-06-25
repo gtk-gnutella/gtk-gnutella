@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Emile Roberts
  *
- * Interface UI -> core
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,11 +23,18 @@
  *----------------------------------------------------------------------
  */
 
-
-/*
- *	At this point the interface basically redirects function calls from the ui
- *	to the core and vice-versa.  We may wish to split this file into multiple
- *	files at some point.
+/**
+ * @ingroup ui
+ * @file
+ *
+ * Interface UI -> core.
+ *
+ * At this point the interface basically redirects function calls from
+ * the ui to the core and vice-versa.  We may wish to split this file into
+ * multiple files at some point.
+ *
+ * @author Emile Roberts
+ * @date 2004
  */
 
 /*
@@ -699,13 +704,13 @@ void guc_upload_stats_clear_all(void)
 	upload_stats_clear_all();
 }
 
-/*	version interface functions (UI -> Core)*/
+/**	version interface functions (UI -> Core)*/
 const gchar *guc_version_get_version_string(void)
 {
 	return version_get_string();
 }
 
-/*	main interface functions (UI -> Core)*/
+/**	main interface functions (UI -> Core)*/
 void guc_gtk_gnutella_exit(gint code)
 {
 	gtk_gnutella_exit(code);

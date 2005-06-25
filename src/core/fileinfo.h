@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002, Vidar Madsen
  *
- * Structure for storing meta-information about files being downloaded.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Structure for storing meta-information about files being downloaded.
+ *
+ * @author Vidar Madsen
+ * @date 2002
+ */
+
 #ifndef _core_fileinfo_h_
 #define _core_fileinfo_h_
 
@@ -35,9 +43,9 @@
  * Operating flags.
  */
 
-#define FI_F_SUSPEND		0x00000001U	/* Marked "suspended" new downloads */
-#define FI_F_DISCARD		0x00000002U	/* Discard fileinfo when refcount = 0 */
-#define FI_F_MARK			0x80000000U	/* Marked during traversal */
+#define FI_F_SUSPEND		0x00000001U	/**< Marked "suspended" new downloads */
+#define FI_F_DISCARD		0x00000002U	/**< Discard fileinfo when refcount = 0 */
+#define FI_F_MARK			0x80000000U	/**< Marked during traversal */
 
 /*
  * Public interface.
@@ -95,4 +103,5 @@ struct dl_file_info *file_info_has_identical(
 	gchar *file, filesize_t size, gchar *sha1);
 
 #endif /* _core_fileinfo_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */

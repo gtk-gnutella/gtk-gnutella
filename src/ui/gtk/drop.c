@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Christian Biere
  *
- * Drop support - no dragging, just dropping.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * Drop support - no dragging, just dropping.
+ *
+ * @author Christian Biere
+ * @date 2004
  */
 
 #include "gui.h"

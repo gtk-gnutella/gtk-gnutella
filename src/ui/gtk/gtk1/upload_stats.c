@@ -2,6 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2001-2003, Richard Eckart
+ * Copyright (c) 2002, Michael Tesch
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -21,25 +22,37 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup gtk
+ * @file
  *
- * upload_stats.c - keep track of which files we send away, and how often.
+ * Keep track of which files we send away, and how often.
  *
- *		Statistics are kept by _FILENAME_ and file size,
- *		not by actual path, so two files with the same
- *		name and size will be counted in the same bin.
- *		I dont see this as a limitation because the
- *		user wouldn't be able to differentiate the files anyway.
- *		This could be extended to keep the entire path to
- *		each file and optionally show the entire path, but..
+ * Statistics are kept by _FILENAME_ and file size, not by actual path,
+ * so two files with the same name and size will be counted in the same
+ * bin. I dont see this as a limitation because the user wouldn't be able
+ * to differentiate the files anyway.
  *
- *		the 'upload_history' file has the following format:
- *		<url-escaped filename> <file size> <attempts> <completions>
+ * This could be extended to keep the entire path to each file and
+ * optionally show the entire path, but..
  *
- *		TODO: add a check to make sure that all of the files still exist(?)
- *			grey them out if they dont, optionally remove them from the
- *			stats list (when 'Clear Non-existant Files' is clicked)
+ * The 'upload_history' file has the following format:
  *
- *		(C) 2002 Michael Tesch, released with gtk-gnutella & its license
+ *		"<url-escaped filename> <file size> <attempts> <completions>"
+ *
+ * @todo
+ * TODO: Add a check to make sure that all of the files still exist(?)
+ *       grey them out if they dont, optionally remove them from the stats
+ *       list (when 'Clear Non-existant Files' is clicked).
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2004
+ * @author Michael Tesch
+ * @date 2002
+ *
+ * Released with gtk-gnutella & its license
  */
 
 #include "gtk/gui.h"
@@ -58,8 +71,8 @@ static gint ul_rows = 0;
 
 /* Private functions */
 
-/*
- * this is me, dreaming of gtk 2.0...
+/**
+ * This is me, dreaming of gtk 2.0...
  */
 static gint
 ul_find_row_by_upload(const gchar *name, guint64 size, struct ul_stats **s)
@@ -134,7 +147,7 @@ upload_stats_gui_add(struct ul_stats *s)
 }
 
 
-/*
+/**
  * Called when a row of the upload stats should be updated
  */
 void

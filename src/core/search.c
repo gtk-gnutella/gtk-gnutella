@@ -88,56 +88,56 @@ RCSID("$Id$");
 
 #ifdef USE_GTK2
 #ifndef g_hash_table_freeze
-#define g_hash_table_freeze(x) /* The function is deprecated. It does nothing */
+#define g_hash_table_freeze(x)	/**< The function is deprecated. It does nothing */
 #endif
 #ifndef g_hash_table_thaw
-#define g_hash_table_thaw(x) /* The function is deprecated. It does nothing */
+#define g_hash_table_thaw(x)	/**< The function is deprecated. It does nothing */
 #endif
 #endif
 
 #define MUID_SIZE			16
-#define MUID_MAX			4		/* Max amount of MUID we keep per search */
-#define SEARCH_MIN_RETRY	1800	/* Minimum search retry timeout */
+#define MUID_MAX			4		/**< Max amount of MUID we keep per search */
+#define SEARCH_MIN_RETRY	1800	/**< Minimum search retry timeout */
 
-static guint32 search_id = 0;			/* Unique search counter */
-static GHashTable *searches = NULL;		/* All alive searches */
+static guint32 search_id = 0;			/**< Unique search counter */
+static GHashTable *searches = NULL;		/**< All alive searches */
 
-/*
+/**
  * Structure for search results
  */
 typedef struct search_ctrl {
-    gnet_search_t search_handle;	/* Search handle */
-	guint32 id;						/* Unique ID */
+    gnet_search_t search_handle;	/**< Search handle */
+	guint32 id;						/**< Unique ID */
 
 	/* no more "speed" field -- use marked field now --RAM, 06/07/2003 */
 
-	gchar  *query;				/* The search query */
-	time_t  time;				/* Time when this search was started */
-	GSList *muids;				/* Message UIDs of this search */
+	gchar  *query;				/**< The search query */
+	time_t  time;				/**< Time when this search was started */
+	GSList *muids;				/**< Message UIDs of this search */
 
-	gboolean passive;			/* Is this a passive search? */
-	gboolean frozen;			/* True => don't update window */
+	gboolean passive;			/**< Is this a passive search? */
+	gboolean frozen;			/**< True => don't update window */
 
 	/*
 	 * Keep a record of nodes we've sent this search w/ this muid to.
 	 */
 
-	GHashTable *sent_nodes;		/* Sent node by ip:port */
-	GHashTable *sent_node_ids;	/* IDs of nodes to which we sent query */
+	GHashTable *sent_nodes;		/**< Sent node by ip:port */
+	GHashTable *sent_node_ids;	/**< IDs of nodes to which we sent query */
 
 	GHook *new_node_hook;
 	guint reissue_timeout_id;
-	guint reissue_timeout;		/* timeout per search, 0 = search stopped */
-	guint query_emitted;		/* Amount of queries emitted since last retry */
-	guint32 items;				/* Items displayed in the GUI */
-	guint32 kept_results;		/* Results we kept for last query */
+	guint reissue_timeout;		/**< timeout per search, 0 = search stopped */
+	guint query_emitted;		/**< Amount of queries emitted since last retry */
+	guint32 items;				/**< Items displayed in the GUI */
+	guint32 kept_results;		/**< Results we kept for last query */
 } search_ctrl_t;
 
 /*
  * List of all searches, and of passive searches only.
  */
-static GSList *sl_search_ctrl = NULL;		/* All searches */
-static GSList *sl_passive_ctrl = NULL;		/* Only passive searches */
+static GSList *sl_search_ctrl = NULL;		/**< All searches */
+static GSList *sl_passive_ctrl = NULL;		/**< Only passive searches */
 
 /*
  * Table holding all the active MUIDs for all the searches, pointing back
@@ -147,8 +147,8 @@ static GSList *sl_passive_ctrl = NULL;		/* Only passive searches */
  */
 static GHashTable *search_by_muid = NULL;
 
-static zone_t *rs_zone = NULL;		/* Allocation of results_set */
-static zone_t *rc_zone = NULL;		/* Allocation of record */
+static zone_t *rs_zone = NULL;		/**< Allocation of results_set */
+static zone_t *rc_zone = NULL;		/**< Allocation of record */
 
 static idtable_t *search_handle_map = NULL;
 static query_hashvec_t *query_hashvec = NULL;
@@ -554,7 +554,7 @@ search_free_r_set(gnet_results_set_t *rs)
  * to permanently use the results, so don't allocate any memory for each
  * record.
  *
- * Returns a structure describing the whole result set, or NULL if we
+ * @returns a structure describing the whole result set, or NULL if we
  * were unable to parse it properly.
  */
 static gnet_results_set_t *
@@ -1501,7 +1501,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
  * query string.  Don't use the reported length as an indicator of the
  * message size.  Use the value returned in `sizep' instead.
  *
- * Returns NULL if we cannot build a suitable message (bad query string
+ * @returns NULL if we cannot build a suitable message (bad query string
  * containing only whitespaces, for instance).
  */
 static struct gnutella_msg_search *
@@ -2081,7 +2081,7 @@ search_shutdown(void)
 /**
  * This routine is called for each Query Hit packet we receive.
  *
- * Returns whether the message should be dropped, i.e. FALSE if OK.
+ * @returns whether the message should be dropped, i.e. FALSE if OK.
  * If the message should not be dropped, `results' is filled with the
  * amount of results contained in the query hit.
  */
@@ -2246,7 +2246,7 @@ final_cleanup:
 
 /**
  * Check whether we can send another query for this search.
- * Returns TRUE if we can send, with the emitted counter incremented, or FALSE
+ * @returns TRUE if we can send, with the emitted counter incremented, or FALSE
  * if the query should just be ignored.
  */
 gboolean
@@ -2272,7 +2272,7 @@ search_query_allowed(gnet_search_t sh)
 }
 
 /**
- * Returns unique ID associated with search with given handle, and return
+ * @returns unique ID associated with search with given handle, and return
  * the address of the search object as well.
  */
 guint32
@@ -2757,7 +2757,7 @@ search_get_kept_results(gchar *muid, guint32 *kept)
 }
 
 /**
- * Returns amount of hits kept by the search, identified by its handle
+ * @returns amount of hits kept by the search, identified by its handle
  */
 guint32
 search_get_kept_results_by_handle(gnet_search_t sh)

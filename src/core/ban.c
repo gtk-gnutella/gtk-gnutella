@@ -54,7 +54,7 @@ RCSID("$Id$");
 
 #include "lib/override.h"	/* Must be the last header included */
 
-/**
+/*
  * We keep a hash table, indexed by IP address, which records all the
  * requests we have from the various IPs.  When hammering is detected,
  * the IP address is banned for some time.
@@ -63,15 +63,15 @@ RCSID("$Id$");
  * over time.
  */
 
-#define BAN_DELAY		300		/* Initial ban delay: 5 minutes */
-#define MAX_REQUEST		5		/* Maximum of 5 requests... */
-#define MAX_PERIOD		60		/* ...per minute */
-#define MAX_BAN			10800	/* 3 hours */
-#define BAN_REMIND		5		/* Every so many attemps, tell them about it */
+#define BAN_DELAY		300		/**< Initial ban delay: 5 minutes */
+#define MAX_REQUEST		5		/**< Maximum of 5 requests... */
+#define MAX_PERIOD		60		/**< ...per minute */
+#define MAX_BAN			10800	/**< 3 hours */
+#define BAN_REMIND		5		/**< Every so many attemps, tell them about it */
 
-static GHashTable *info;		/* Info by IP address */
-static gfloat decay_coeff;		/* Decay coefficient, per second */
-static zone_t *ipf_zone;		/* Zone for ip_info allocation */
+static GHashTable *info;		/**< Info by IP address */
+static gfloat decay_coeff;		/**< Decay coefficient, per second */
+static zone_t *ipf_zone;		/**< Zone for ip_info allocation */
 
 /***
  *** Hammering-specific banning.
@@ -81,14 +81,14 @@ static zone_t *ipf_zone;		/* Zone for ip_info allocation */
  * Information kept in the info table, per IP address.
  */
 struct ip_info {
-	gfloat counter;				/* Counts connection, decayed linearily */
-	guint32 ip;					/* IP address */
-	time_t ctime;				/* When did last connection occur? */
-	gpointer cq_ev;				/* Scheduled callout event */
-	gint ban_delay;				/* Banning delay, in seconds */
-	gint ban_count;				/* Amount of time we banned this source */
-	gchar *ban_msg;				/* Banning message (atom) */
-	gboolean banned;			/* Is this IP currently banned? */
+	gfloat counter;				/**< Counts connection, decayed linearily */
+	guint32 ip;					/**< IP address */
+	time_t ctime;				/**< When did last connection occur? */
+	gpointer cq_ev;				/**< Scheduled callout event */
+	gint ban_delay;				/**< Banning delay, in seconds */
+	gint ban_count;				/**< Amount of time we banned this source */
+	gchar *ban_msg;				/**< Banning message (atom) */
+	gboolean banned;			/**< Is this IP currently banned? */
 };
 
 static void ipf_destroy(cqueue_t *cq, gpointer obj);
@@ -192,13 +192,13 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 		printf("removing BAN for %s, counter = %.3f\n",
 			ip_to_gchar(ipf->ip), ipf->counter);
 
-	/*
+	/**
 	 * Compute new scheduling delay.
 	 */
 
 	delay = (gint) (1000.0 * ipf->counter / decay_coeff);
 
-	/*
+	/**
 	 * If counter is negative or null, we can remove the entry.
 	 * Since we round to an integer, we must consider `delay' and
 	 * not the original counter.
@@ -236,7 +236,7 @@ ban_allow(guint32 ip)
 
 	ipf = (struct ip_info *) g_hash_table_lookup(info, GUINT_TO_POINTER(ip));
 
-	/*
+	/**
 	 * First time we see this IP?  It's OK then.
 	 */
 
@@ -274,7 +274,7 @@ ban_allow(guint32 ip)
 
 	g_assert(ipf->cq_ev);
 
-	/*
+	/**
 	 * If the IP is already banned, it already has an "unban" callback.
 	 *
 	 * When there is a message recorded, return BAN_MSG to signal that
@@ -286,7 +286,7 @@ ban_allow(guint32 ip)
 		if (ipf->ban_msg != NULL)
 			return BAN_MSG;
 
-		/*
+		/**
 		 * Every BAN_REMIND attempts, return BAN_FIRST to let them know
 		 * that they have been banned, in case they "missed" our previous
 		 * indications or did not get the Retry-After right.
@@ -299,7 +299,7 @@ ban_allow(guint32 ip)
 		return BAN_FORCE;
 	}
 
-	/*
+	/**
 	 * Ban the IP if it crossed the request limit.
 	 */
 
@@ -374,7 +374,7 @@ ban_record(guint32 ip, const gchar *msg)
  * have `max_banned_fd' entries in the FIFO, start closing the oldest one.
  */
 
-#define SOCK_BUFFER		512				/* Reduced socket buffer */
+#define SOCK_BUFFER		512				/**< Reduced socket buffer */
 
 static GList *banned_head = NULL;
 static GList *banned_tail = NULL;
@@ -383,7 +383,8 @@ static GList *banned_tail = NULL;
  * Internal version of ban_reclaim_fd().
  *
  * Reclaim a file descriptor used for banning.
- * Returns TRUE if we did reclaim something, FALSE if there was nothing.
+ *
+ * @returns TRUE if we did reclaim something, FALSE if there was nothing.
  */
 static gboolean
 reclaim_fd(void)
@@ -424,7 +425,7 @@ reclaim_fd(void)
  * nothing to reclaim, we activate the "file_descriptor_runout" property
  * instead, which signifies that processing will be degraded.
  *
- * Returns TRUE if we did reclaim something, FALSE if there was nothing.
+ * @returns TRUE if we did reclaim something, FALSE if there was nothing.
  */
 static gboolean
 ban_reclaim_fd(void)
@@ -497,7 +498,7 @@ ban_is_banned(guint32 ip)
 }
 
 /**
- * Return banning delay for banned IP.
+ * @return banning delay for banned IP.
  */
 gint
 ban_delay(guint32 ip)
@@ -511,7 +512,7 @@ ban_delay(guint32 ip)
 }
 
 /**
- * Return banning message for banned IP.
+ * @return banning message for banned IP.
  */
 gchar *
 ban_message(guint32 ip)
@@ -587,7 +588,7 @@ ban_close(void)
  *** Vendor-specific banning.
  ***/
 
-/**
+/*
  * These messages are sent to the remote site. Don't localize them.
  */
 static const gchar harmful[] = "Harmful version banned, upgrade required";
@@ -600,14 +601,14 @@ static const gchar too_old[] = "Outdated version, please upgrade";
  * is exceptional, usually restricted to some versions and the servent's author
  * is informed about the banning.
  *
- * Returns NULL if we shall not ban, a banning reason string otherwise.
+ * @returns NULL if we shall not ban, a banning reason string otherwise.
  */
 const gchar *
 ban_vendor(const gchar *vendor)
 {
 	const gchar *gtkg_version;
 
-	/*
+	/**
 	 * If vendor starts with "!gtk-gnutella", skip the leading '!' for
 	 * our tests here.
 	 */
@@ -619,7 +620,7 @@ ban_vendor(const gchar *vendor)
 		gtkg_version = is_strprefix(vendor, "gtk-gnutella/");
 	}
 
-	/*
+	/**
 	 * Ban gtk-gnutella/0.90 from the network.  This servent had
 	 * bugs that could corrupt the traffic.  Also ban 0.91u.
 	 *

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2001-2003, Raphael Manfredi, Richard Eckart
  *
- * GUI filtering functions.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * GUI filtering functions.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
+ */
+
 #include "gui.h"
 
 RCSID("$Id$");
@@ -40,12 +48,12 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-/*
+/**
  * Private variables
  */
 static rule_t *rule_clipboard = NULL;
 
-/*
+/**
  * Private functions
  */
 
@@ -57,7 +65,7 @@ static void clear_clipboard(void)
     }
 }
 
-/*
+/**
  * Public functions
  */
 

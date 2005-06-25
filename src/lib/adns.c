@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Christian Biere
  *
- * Asynchronous DNS lookup.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -48,7 +46,7 @@ RCSID("$Id$");
 
 #include "override.h"		/* Must be the last header included */
 
-static guint32 common_dbg = 0;	/* XXX -- need to init lib's props --RAM */
+static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
 
 /* private data types */
 
@@ -61,20 +59,20 @@ typedef struct adns_query {
 } adns_query_t;
 
 typedef struct adns_async_write {
-	adns_query_t *query;	/* Original query */
-	gchar *buf;				/* Remaining data to write */
-	gint n;					/* Amount to write still */
+	adns_query_t *query;	/**< Original query */
+	gchar *buf;				/**< Remaining data to write */
+	gint n;					/**< Amount to write still */
 } adns_async_write_t;
 
 typedef struct adns_cache_entry {
-	gchar *hostname; /* atom */
+	gchar *hostname; /**< atom */
     guint32 ip;
 	time_t timestamp;
 } adns_cache_entry_t;
 
-/* Cache entries will expire after ADNS_CACHE_TIMEOUT seconds */
+/** Cache entries will expire after ADNS_CACHE_TIMEOUT seconds */
 #define ADNS_CACHE_TIMEOUT (5 * 60)
-/* Cache max. ADNS_CACHED_NUM of adns_cache_entry_t entries */
+/** Cache max. ADNS_CACHED_NUM of adns_cache_entry_t entries */
 #define ADNS_CACHED_NUM (1024)
 
 #define ADNS_PROCESS_TITLE "DNS helper for gtk-gnutella"
@@ -94,7 +92,7 @@ static adns_cache_t *adns_cache = NULL;
 static gint adns_query_fd = -1;
 static guint adns_query_event_id = 0;
 static guint adns_reply_event_id = 0;
-static gboolean is_helper = FALSE;		/* Are we the DNS helper process? */
+static gboolean is_helper = FALSE;		/**< Are we the DNS helper process? */
 
 static gboolean adns_helper_alive = TRUE;
 
@@ -612,7 +610,6 @@ prefork_failure:
 }
 
 /**
- *
  * @return TRUE on success, FALSE on failure.
  */
 static gboolean

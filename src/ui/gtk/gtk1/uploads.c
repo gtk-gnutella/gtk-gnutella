@@ -37,9 +37,9 @@ RCSID("$Id$");
 
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
-#include "lib/override.h"		/* Must be the last header included */
+#include "lib/override.h"	/* Must be the last header included */
 
-#define UPDATE_MIN	300		/* Update screen every 5 minutes at least */
+#define UPDATE_MIN	300		/**< Update screen every 5 minutes at least */
 
 static gboolean uploads_remove_lock = FALSE;
 static guint uploads_rows_done = 0;

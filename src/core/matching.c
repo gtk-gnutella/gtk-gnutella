@@ -44,13 +44,13 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define WOVEC_DFLT	10				/* Default size of word-vectors */
+#define WOVEC_DFLT	10			/**< Default size of word-vectors */
 
 /*
  * Masks for mask_hash().
  */
 
-#define MASK_LETTER(x)		(1 << (x))		/* bits 0 to 25 */
+#define MASK_LETTER(x)		(1 << (x))		/**< bits 0 to 25 */
 #define MASK_DIGIT			0x80000000
 
 /*
@@ -92,7 +92,7 @@ destroy_entry(struct st_entry *entry)
 }
 
 /**
- * initialize a bin
+ * Initialize a bin
  */
 static void
 bin_initialize(struct st_bin *bin, gint size)
@@ -107,7 +107,9 @@ bin_initialize(struct st_bin *bin, gint size)
 		bin->vals[i] = NULL;
 }
 
-/* allocate a bin */
+/**
+ * Allocate a bin
+ */
 static struct st_bin *
 bin_allocate(void)
 {
@@ -117,8 +119,12 @@ bin_allocate(void)
 	return bin;
 }
 
-/* destroy a bin
- * NOTE: does NOT destroy the st_entry's, since they may be shared */
+/**
+ * Destroy a bin
+ *
+ * @note
+ * Does NOT destroy the st_entry's, since they may be shared
+ */
 static void
 bin_destroy(struct st_bin *bin)
 {
@@ -126,7 +132,9 @@ bin_destroy(struct st_bin *bin)
 	bin->vals = 0;
 }
 
-/* inserts an item into a bin */
+/**
+ * Inserts an item into a bin
+ */
 static void
 bin_insert_item(struct st_bin *bin, struct st_entry *entry)
 {
@@ -137,7 +145,9 @@ bin_insert_item(struct st_bin *bin, struct st_entry *entry)
 	bin->vals[bin->nvals++] = entry;
 }
 
-/* makes a bin take as little memory as needed */
+/**
+ * Makes a bin take as little memory as needed
+ */
 static void
 bin_compact(struct st_bin *bin)
 {
@@ -148,7 +158,7 @@ bin_compact(struct st_bin *bin)
 
 /**
  * Apply a char map to a string, inplace.
- * Returns length of string.
+ * @returns length of string.
  */
 size_t
 match_map_string(char_map_t map, gchar *string)
@@ -338,7 +348,7 @@ st_insert_item(search_table_t *table, const gchar *s, struct shared_file *sf)
 }
 
 /**
- * minimize space consumption
+ * Minimize space consumption
  */
 void
 st_compact(search_table_t *table)

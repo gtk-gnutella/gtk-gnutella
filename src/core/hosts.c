@@ -40,7 +40,7 @@ RCSID("$Id$");
 #include "sockets.h"
 #include "hosts.h"
 #include "nodes.h"
-#include "share.h"		/* For files_scanned and kbytes_scanned. */
+#include "share.h"			/* For files_scanned and kbytes_scanned. */
 #include "routing.h"
 #include "gmsg.h"
 #include "pcache.h"
@@ -53,7 +53,7 @@ RCSID("$Id$");
 #include "if/gnet_property_priv.h"
 
 #include "lib/endian.h"
-#include "lib/override.h"		/* Must be the last header included */
+#include "lib/override.h"	/* Must be the last header included */
 
 gboolean host_low_on_pongs = FALSE;			/* True when less than 12% full */
 
@@ -397,7 +397,7 @@ parse_netmasks(gchar * str)
 }
 
 /**
- * Returns true if the ip is inside one of the local networks
+ * @returns true if the ip is inside one of the local networks
  */
 gboolean
 host_is_nearby(guint32 ip)

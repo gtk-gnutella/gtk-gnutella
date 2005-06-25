@@ -41,7 +41,7 @@ RCSID("$Id$");
 
 #include "lib/zalloc.h"
 #include "lib/walloc.h"
-#include "lib/override.h"		/* Must be the last header included */
+#include "lib/override.h"			/* Must be the last header included */
 
 #define implies(a,b)	(!(a) || (b))
 #define valid_ptr(a)	(((gulong) (a)) > 100L)
@@ -57,14 +57,14 @@ RCSID("$Id$");
  */
 typedef struct pmsg_ext {
 	/* First four fields like "stuct pmsg" */
-	gchar *m_rptr;					/* First unread byte in buffer */
-	gchar *m_wptr;					/* First unwritten byte in buffer */
-	pdata_t *m_data;				/* Data buffer */
-	guint m_prio;					/* Message priority (0 = normal) */
-	pmsg_check_t m_check;			/* Optional check before sending */
+	gchar *m_rptr;					/**< First unread byte in buffer */
+	gchar *m_wptr;					/**< First unwritten byte in buffer */
+	pdata_t *m_data;				/**< Data buffer */
+	guint m_prio;					/**< Message priority (0 = normal) */
+	pmsg_check_t m_check;			/**< Optional check before sending */
 	/* Additional fields */
-	pmsg_free_t m_free;				/* Free routine */
-	gpointer m_arg;					/* Argument to pass to free routine */
+	pmsg_free_t m_free;				/**< Free routine */
+	gpointer m_arg;					/**< Argument to pass to free routine */
 } pmsg_ext_t;
 
 static zone_t *mb_zone = NULL;

@@ -23,9 +23,6 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _core_matching_h_
-#define _core_matching_h_
-
 /**
  * @ingroup core
  * @file
@@ -58,9 +55,14 @@
  *  reasonably self-explanatory, but if you find it confusing, email the
  *  gtk-gnutella-devel mailing list and I'll try to respond...
  *
+ * @author Raphael Manfredi
+ * @date 2001-2003
  * @author KBH
  * @date 2001-10-03
  */
+
+#ifndef _core_matching_h_
+#define _core_matching_h_
 
 struct shared_file;
 
@@ -75,7 +77,7 @@ struct st_bin {
 	struct st_entry **vals;
 };
 
-typedef	guint8 char_map_t[256];		/* Maps one char to another */
+typedef	guint8 char_map_t[256];		/**< Maps one char to another */
 
 typedef struct _search_table {
 	gint nentries, nchars, nbins;
@@ -97,7 +99,10 @@ void st_compact(search_table_t *);
 
 struct shared_file;
 
-/* FIXME: The type of this callback is too specific. */
+/**
+ * @todo
+ * FIXME: The type of this callback is too specific.
+ */
 typedef void (*st_search_callback)(gpointer ctx, struct shared_file *sf);
 
 void st_search(

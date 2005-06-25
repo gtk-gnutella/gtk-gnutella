@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Network driver -- compressing layer.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Network driver -- compressing layer.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _core_tx_deflate_h_
 #define _core_tx_deflate_h_
 
@@ -33,12 +41,12 @@
 
 const struct txdrv_ops *tx_deflate_get_ops(void);
 
-/*
+/**
  * Arguments to be passed when the layer is intantiated.
  */
 struct tx_deflate_args {
-	txdrv_t *nd;				/* Network driver underneath us (link) */
-	cqueue_t *cq;				/* Callout queue to use */
+	txdrv_t *nd;				/**< Network driver underneath us (link) */
+	cqueue_t *cq;				/**< Callout queue to use */
 };
 
 #endif	/* _core_tx_deflate_h_ */

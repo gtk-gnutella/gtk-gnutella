@@ -43,8 +43,8 @@ RCSID("$Id$");
 #include "lib/override.h"	/* Must be the last header included */
 
 static gchar tmpstr[4096];
-static GHashTable *parents;			/* table of parent download iterators */
-static GHashTable *parents_queue;	/* table of parent queued dl iterators */
+static GHashTable *parents;			/**< table of parent download iterators */
+static GHashTable *parents_queue;	/**< table of parent queued dl iterators */
 
 /*
  * parents_gui_time
@@ -56,7 +56,7 @@ static GHashTable *parents_queue;	/* table of parent queued dl iterators */
  *
  *		--RAM, 03/01/2004.
  */
-static GHashTable *parents_gui_time;	/* Time at which parent was updated */
+static GHashTable *parents_gui_time;	/**< Time at which parent was updated */
 
 /*
  * parents_children
@@ -71,8 +71,8 @@ static GHashTable *parents_queue_children;
 static GtkCTree *ctree_downloads = NULL;
 static GtkCTree *ctree_downloads_queue = NULL;
 
-#define IO_STALLED		60		/* If nothing exchanged after that many secs */
-#define DL_GUI_TREE_SPACE 5	 /* The space between a child node and a parent */
+#define IO_STALLED			60	/**< If nothing exchanged after that many secs */
+#define DL_GUI_TREE_SPACE	5	/**< The space between a child node and a parent */
 
 /***
  *** Private functions

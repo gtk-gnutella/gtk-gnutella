@@ -52,13 +52,13 @@ RCSID("$Id$");
 #define AGING_MAGIC	0xa9179
 
 struct aging {
-	guint32 magic;			/* Magic number */
-	GHashTable *table;		/* The table holding values */
-	aging_free_t kfree;		/* The freeing callback for keys */
-	aging_free_t vfree;		/* The freeing callback for values */
-	gpointer kdata;			/* User data to give to key-freeing callback */
-	gpointer vdata;			/* User data to give to value-freeing callback */
-	gint delay;				/* Initial aging delay, in seconds */
+	guint32 magic;			/**< Magic number */
+	GHashTable *table;		/**< The table holding values */
+	aging_free_t kfree;		/**< The freeing callback for keys */
+	aging_free_t vfree;		/**< The freeing callback for values */
+	gpointer kdata;			/**< User data to give to key-freeing callback */
+	gpointer vdata;			/**< User data to give to value-freeing callback */
+	gint delay;				/**< Initial aging delay, in seconds */
 };
 
 /**
@@ -66,12 +66,12 @@ struct aging {
  * track of its insertion time, and cleanup event.
  */
 struct aging_value {
-	gpointer value;			/* The value they inserted in the table */
-	gpointer key;			/* The associated key object */
-	gpointer cq_ev;			/* Scheduled cleanup event */
-	struct aging *ag;		/* Holding container */
-	gint ttl;				/* Time to live */
-	time_t last_insert;		/* Last insertion time */
+	gpointer value;			/**< The value they inserted in the table */
+	gpointer key;			/**< The associated key object */
+	gpointer cq_ev;			/**< Scheduled cleanup event */
+	struct aging *ag;		/**< Holding container */
+	gint ttl;				/**< Time to live */
+	time_t last_insert;		/**< Last insertion time */
 };
 
 /**

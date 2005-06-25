@@ -57,23 +57,23 @@ RCSID("$Id$");
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/walloc.h"
-#include "lib/override.h"		/* Must be the last header included */
+#include "lib/override.h"			/* Must be the last header included */
 
 #define PARQ_VERSION_MAJOR	1
 #define PARQ_VERSION_MINOR	0
 
 #define AGGRESSIVE 0
 
-#define PARQ_RETRY_SAFETY	40		/* 40 seconds before lifetime */
-#define PARQ_TIMER_BY_POS	30		/* 30 seconds for each queue position */
-#define GUARDING_TIME		45		/* Time we keep a slot after disconnect */
+#define PARQ_RETRY_SAFETY	40		/**< 40 seconds before lifetime */
+#define PARQ_TIMER_BY_POS	30		/**< 30 seconds for each queue position */
+#define GUARDING_TIME		45		/**< Time we keep a slot after disconnect */
 #define MIN_LIFE_TIME		90
-#define QUEUE_PERIOD		600		/* Try to resend a queue every 10 minutes */
-#define MAX_QUEUE			144		/* Max amount of QUEUE we can send */
-#define MAX_QUEUE_REFUSED	2		/* Max QUEUE they can refuse in a row */
+#define QUEUE_PERIOD		600		/**< Try to resend a queue every 10 minutes */
+#define MAX_QUEUE			144		/**< Max amount of QUEUE we can send */
+#define MAX_QUEUE_REFUSED	2		/**< Max QUEUE they can refuse in a row */
 
-#define MAX_UPLOADS			100		/* Avoid more than that many uploads */
-#define MAX_UPLOAD_QSIZE	4000	/* Size of the PARQ queue */
+#define MAX_UPLOADS			100		/**< Avoid more than that many uploads */
+#define MAX_UPLOAD_QSIZE	4000	/**< Size of the PARQ queue */
 
 #define MEBI (1024 * 1024)
 /*
@@ -103,8 +103,8 @@ static guint parq_upload_active_size = 20;
 static guint parq_upload_ban_window = 600;
 static const gchar file_parq_file[] = "parq";
 
-static GList *ul_parqs = NULL;			/* List of all queued uploads */
-static GList *ul_parq_queue = NULL;	/* To whom we need to send a QUEUE */
+static GList *ul_parqs = NULL;			/**< List of all queued uploads */
+static GList *ul_parq_queue = NULL;		/**< To whom we need to send a QUEUE */
 static GHashTable *ul_all_parq_by_ip_and_name = NULL;
 static GHashTable *ul_all_parq_by_ip = NULL;
 static GHashTable *ul_all_parq_by_id = NULL;
@@ -166,7 +166,7 @@ struct parq_ul_queued {
 	guint32 flags;			/* Operating flags */
 	guint position;			/* Current position in the queue */
 	guint relative_position; /* Relative position in the queue, if 'not alive'
-							  uploads are taken into account */
+							    uploads are taken into account */
 	gboolean active_queued;	/* Whether the current upload is actively queued */
 	gboolean has_slot;		/* Whether the items is currently uploading */
 	gboolean had_slot;		/* If an upload had an upload slot it is not allowed
@@ -212,23 +212,25 @@ struct parq_ul_queued {
 							   available */
 };
 
-/**
+/*
  * Flags for parq_ul_queued
  */
 
-#define PARQ_UL_QUEUE		0x00000001	/* Scheduled for QUEUE sending */
-#define PARQ_UL_NOQUEUE		0x00000002	/* No IP:port, don't send QUEUE */
-#define PARQ_UL_QUEUE_SENT	0x00000004	/* QUEUE message sent */
-#define PARQ_UL_ID_SENT		0x00000008	/* We already sent an ID */
+#define PARQ_UL_QUEUE		0x00000001	/**< Scheduled for QUEUE sending */
+#define PARQ_UL_NOQUEUE		0x00000002	/**< No IP:port, don't send QUEUE */
+#define PARQ_UL_QUEUE_SENT	0x00000004	/**< QUEUE message sent */
+#define PARQ_UL_ID_SENT		0x00000008	/**< We already sent an ID */
 
-/* Contains the queued download status */
+/**
+ * Contains the queued download status
+ */
 struct parq_dl_queued {
-	guint position;			/* Current position in the queue */
-	guint length;			/* Current queue length */
-	time_t eta;				/* Estimated time till upload slot retrieved */
-	guint lifetime;			/* Max interval before loosing queue position */
-	guint retry_delay;		/* Interval between new attempt */
-	gchar *id;				/* PARQ Queue ID, +1 for trailing NUL */
+	guint position;			/**< Current position in the queue */
+	guint length;			/**< Current queue length */
+	time_t eta;				/**< Estimated time till upload slot retrieved */
+	guint lifetime;			/**< Max interval before loosing queue position */
+	guint retry_delay;		/**< Interval between new attempt */
+	gchar *id;				/**< PARQ Queue ID, +1 for trailing NUL */
 };
 
 
@@ -562,7 +564,7 @@ get_parq_dl_id(const struct download *d)
 
 /**
  * Retrieves the remote queued position associated with an download.
- * Returns the remote queued position or 0 if download is not queued or queuing
+ * @returns the remote queued position or 0 if download is not queued or queuing
  * status is unknown
  */
 gint
@@ -3900,7 +3902,7 @@ parq_banned_source_expire(guint32 ip)
 	return (banned == NULL) ? 0 : banned->expire;
 }
 
-/*
+/**
  * parq_still_sharing
  *
  * Determine if we are still sharing this file, so that PARQ can
@@ -3947,7 +3949,7 @@ parq_still_sharing(struct parq_ul_queued *parq_ul)
 		}
 	}
 
-	/* Return TRUE by default because this is the safest condition */
+	/* @return TRUE by default because this is the safest condition */
 	return TRUE;
 }
 

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Richard Eckart
  *
- * Functions that should be in gtk+-1.2 or gtk+-2.x but are not.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,18 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * Missing functions in the GTK+.
+ *
+ * Functions that should be in GTK+ 1.2 or GTK+ 2.x but are not.
+ *
+ * @author Richard Eckart
+ * @date 2002-2003
  */
 
 #include "gui.h"
@@ -61,7 +71,8 @@ gtk_paned_get_position(GtkPaned *paned)
  * Set the internal name of the column without changing the
  * column header widget. (Copy paste internal column_title_new
  * from gtkclist.c)
- * BEWARE: EVIL HACK
+ *
+ * @warning EVIL HACK
  */
 void
 gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t)
@@ -113,11 +124,12 @@ gtk_clist_restore_visibility(GtkCList *clist, property_t prop)
 #endif /* USE_GTK1 */
 
 
-/*
+/**
  * gtk_main_flush:
  *
  * Process all pending gtk events (i.e. draw now!)
- * Returns TRUE if gtk_main_quit has been called
+ *
+ * @returns TRUE if gtk_main_quit has been called
  * for the innermost mainloop. Aborts flush if
  * gtk_main_quit has been called.
  */
@@ -210,7 +222,8 @@ option_menu_get_selected_data(GtkWidget *m)
 /**
  * Given a radio button it returns a pointer to the active radio
  * button in the group the given button is in.
- * Returns NULL if there is no active button.
+ *
+ * @returns NULL if there is no active button.
  */
 GtkWidget *
 radiobutton_get_active_in_group(GtkRadioButton *rb)

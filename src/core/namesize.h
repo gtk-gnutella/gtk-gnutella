@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Handling of the (name, size) tuples.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,18 +23,28 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Handling of the (name, size) tuples.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _core_namesize_h_
 #define _core_namesize_h_
 
 #include <glib.h>
 
-/*
+/**
  * The (name, size) tuple.
  */
 
 typedef struct namesize {
-	gchar *name;		/* Filename (atom) */
-	filesize_t size;	/* File size */
+	gchar *name;		/**< Filename (atom) */
+	filesize_t size;	/**< File size */
 } namesize_t;
 
 /*

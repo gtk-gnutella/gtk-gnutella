@@ -23,30 +23,40 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Line-oriented parsing from memory buffer.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
+ */
+
 #ifndef _getline_h_
 #define _getline_h_
 
 #include <glib.h>
 
-#define MAX_LINE_SIZE	1024	/* Maximum length for regular line */
+#define MAX_LINE_SIZE	1024	/**< Maximum length for regular line */
 
 /*
  * getline() return codes.
  */
 
-#define READ_MORE		0		/* OK, expecting more */
-#define READ_DONE		1		/* OK, got whole line */
-#define READ_OVERFLOW	2		/* Reached max line size */
+#define READ_MORE		0		/**< OK, expecting more */
+#define READ_DONE		1		/**< OK, got whole line */
+#define READ_OVERFLOW	2		/**< Reached max line size */
 
-/*
+/**
  * A getline "object".
  */
 
 typedef struct getline {
-	guint maxlen;					/* Maximum authorized length */
-	guint size;						/* Current allocated size for `line' */
-	gchar *line;					/* Accumulator, NUL terminated when done */
-	guint pos;						/* Next writing position in line[] */
+	guint maxlen;				/**< Maximum authorized length */
+	guint size;					/**< Current allocated size for `line' */
+	gchar *line;				/**< Accumulator, NUL terminated when done */
+	guint pos;					/**< Next writing position in line[] */
 } getline_t;
 
 #define getline_maxlen(o)	((o)->maxlen)

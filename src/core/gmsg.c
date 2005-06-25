@@ -53,7 +53,7 @@ RCSID("$Id$");
 #include "lib/override.h"		/* Must be the last header included */
 
 static const gchar *msg_name[256];
-static gint msg_weight[256];		/* For gmsg_cmp() */
+static gint msg_weight[256];	/**< For gmsg_cmp() */
 
 /**
  * Log an hexadecimal dump of the message `data', tagged with:
@@ -788,7 +788,7 @@ gmsg_can_drop(gconstpointer pdu, gint size)
 /**
  * Perform a priority comparison between two messages, given as the whole PDU.
  *
- * Return algebraic -1/0/+1 depending on relative order.
+ * @return algebraic -1/0/+1 depending on relative order.
  */
 gint
 gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2)
@@ -839,7 +839,7 @@ gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2)
 }
 
 /**
- * Returns formatted static string:
+ * @returns formatted static string:
  *
  *     msg_type (payload length) [hops=x, TTL=x]
  *
@@ -876,7 +876,7 @@ gmsg_infostr_full(gconstpointer message)
 }
 
 /**
- * Returns formatted static string:
+ * @returns formatted static string:
  *
  *     msg_type (payload length) [hops=x, TTL=x]
  *
@@ -910,7 +910,7 @@ gmsg_infostr_full_split(gconstpointer head, gconstpointer data)
 }
 
 /**
- * Returns formatted static string:
+ * @returns formatted static string:
  *
  *     msg_type (payload length) [hops=x, TTL=x]
  */

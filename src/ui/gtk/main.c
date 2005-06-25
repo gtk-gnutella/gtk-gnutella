@@ -23,6 +23,17 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * Main functions for GTK+ interface.
+ *
+ * @author Raphael Manfredi
+ * @author Richard Eckart
+ * @date 2001-2003
+ */
+
 #include "gui.h"
 
 RCSID("$Id$");
@@ -104,13 +115,13 @@ gui_init_window_title(void)
 	gtk_window_set_title(GTK_WINDOW(main_window), title);
 }
 
-/*
+/**
  * The contents of the navigation tree menu in exact order
  */
 static const struct {
-	gboolean	parent;	/* Children have the last "TRUE" node as parent */
-	const gchar *title; /* Translatable title for the node */
-	gint		page;	/* Page reference ("the target") for the node */
+	gboolean	parent;	/**< Children have the last "TRUE" node as parent */
+	const gchar *title; /**< Translatable title for the node */
+	gint		page;	/**< Page reference ("the target") for the node */
 } menu[] = {
 	{ TRUE,	 N_("GnutellaNet"),		nb_main_page_gnet },
 	{ FALSE, N_("Stats"),			nb_main_page_gnet_stats },
@@ -148,9 +159,9 @@ static void
 gui_init_menu(void)
 {
 	static GType types[] = {
-		G_TYPE_STRING,	/* Label */
-		G_TYPE_INT,		/* Notebook page */
-		G_TYPE_INT		/* Menu entry ID (persistent between releases) */
+		G_TYPE_STRING,	/**< Label */
+		G_TYPE_INT,		/**< Notebook page */
+		G_TYPE_INT		/**< Menu entry ID (persistent between releases) */
 	};
 	GtkTreeView	*treeview;
 	GtkTreeIter	parent;

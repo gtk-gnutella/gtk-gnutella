@@ -34,8 +34,8 @@ RCSID("$Id$");
 #include "override.h"		/* Must be the last header included */
 
 #define debug track_props
-static guint32 track_props = 0;	/* XXX need to init lib's props--RAM */
-static guint32 common_dbg = 0;	/* XXX -- need to init lib's props --RAM */
+static guint32 track_props = 0;	/**< XXX need to init lib's props--RAM */
+static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
 
 /*
  * Checks if a property is part of a property set.
@@ -290,6 +290,7 @@ prop_parse_storage(const gchar *name, const gchar *str, size_t size, gchar *t)
  * Use the prop_free_def call to free the memory again. A simple g_free
  * won't do, since there are lot's of pointers to allocated memory
  * in the definition structure.
+ *
  * The prop_changed_listeners field will always be NULL in the copy.
  */
 prop_def_t *
@@ -933,6 +934,7 @@ prop_set_string(prop_set_t *ps, property_t prop, const gchar *val)
  * (t != NULL), then this is used. The size indicates the size of the given
  * string buffer and may not be 0 in this case. The pointer which is
  * returned will point to the given buffer.
+ *
  * If no string buffer is given (t == NULL), new memory is allocated and
  * returned. This memory must be free'ed later. The size parameter has
  * no effect in this case.
@@ -1084,7 +1086,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 
 
 /**
- * Returns "TRUE" or "FALSE" depending on the given boolean value.
+ * @return "TRUE" or "FALSE" depending on the given boolean value.
  */
 static const gchar *
 config_boolean(gboolean b)

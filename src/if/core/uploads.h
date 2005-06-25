@@ -30,30 +30,30 @@
 
 typedef guint32 gnet_upload_t;
 
-/*
+/**
  * Upload states.
  */
 
 typedef enum {
-	GTA_UL_PUSH_RECEIVED    = 1,    /* We got a push request */
-	GTA_UL_COMPLETE         = 2,    /* The file has been sent completely */
-	GTA_UL_SENDING          = 3,    /* We are sending data */
-	GTA_UL_HEADERS          = 4,    /* Receiving the HTTP request headers */
-	GTA_UL_WAITING          = 5,    /* Waiting new HTTP request */
-	GTA_UL_ABORTED          = 6,    /* Upload removed during operation */
-	GTA_UL_CLOSED           = 7,    /* Upload removed while waiting */
-	GTA_UL_QUEUED           = 8,    /* Upload is queued */
-	GTA_UL_QUEUE            = 9,    /* Send a queue (Similar to push) */
-	GTA_UL_QUEUE_WAITING    = 10,   /* Connect back with GTA_UL_QUEUE was
-									   success now waiting for a response */
-	GTA_UL_PFSP_WAITING     = 11    /* Requested range unavailable, retry... */
+	GTA_UL_PUSH_RECEIVED    = 1,    /**< We got a push request */
+	GTA_UL_COMPLETE         = 2,    /**< The file has been sent completely */
+	GTA_UL_SENDING          = 3,    /**< We are sending data */
+	GTA_UL_HEADERS          = 4,    /**< Receiving the HTTP request headers */
+	GTA_UL_WAITING          = 5,    /**< Waiting new HTTP request */
+	GTA_UL_ABORTED          = 6,    /**< Upload removed during operation */
+	GTA_UL_CLOSED           = 7,    /**< Upload removed while waiting */
+	GTA_UL_QUEUED           = 8,    /**< Upload is queued */
+	GTA_UL_QUEUE            = 9,    /**< Send a queue (Similar to push) */
+	GTA_UL_QUEUE_WAITING    = 10,   /**< Connect back with GTA_UL_QUEUE was
+									     success now waiting for a response */
+	GTA_UL_PFSP_WAITING     = 11    /**< Requested range unavailable, retry... */
 } upload_stage_t;
 
 typedef struct gnet_upload_status {
 	upload_stage_t status;
-	filesize_t  pos;	 /* Read position in file we're sending */
-	guint32 bps;         /* Current transfer rate */
-	guint32 avg_bps;     /* Average transfer rate */
+	filesize_t  pos;	 /**< Read position in file we're sending */
+	guint32 bps;         /**< Current transfer rate */
+	guint32 avg_bps;     /**< Average transfer rate */
 	time_t  last_update;
 
 	guint	parq_position;
@@ -66,20 +66,20 @@ typedef struct gnet_upload_status {
 typedef struct gnet_upload_info {
 	gnet_upload_t upload_handle;
 
-	gchar  *name;        /* Name of requested file */
+	gchar  *name;        /**< Name of requested file */
 
-	guint32 ip;          /* remote IP address */
+	guint32 ip;          /**< remote IP address */
 
-	filesize_t file_size;	/* Size of requested file */
-	filesize_t range_start;	/* First byte to send, inclusive */
-	filesize_t range_end;	/* Last byte to send, inclusive */
+	filesize_t file_size;	/**< Size of requested file */
+	filesize_t range_start;	/**< First byte to send, inclusive */
+	filesize_t range_end;	/**< Last byte to send, inclusive */
 
 	time_t  start_date;
 
-	gchar  *user_agent;	/* Remote user agent */
-	gint   country;  	/* Contry of origin */
-	gboolean push;		/* Whether we're pushing or not */
-	gboolean partial;	/* Whether it's a partial file */
+	gchar  *user_agent;	/**< Remote user agent */
+	gint   country;  	/**< Contry of origin */
+	gboolean push;		/**< Whether we're pushing or not */
+	gboolean partial;	/**< Whether it's a partial file */
 } gnet_upload_info_t;
 
 /*
@@ -107,7 +107,7 @@ struct ul_stats {
 	guint32 attempts;
 	guint32 complete;
 	guint64 bytes_sent;
-	gfloat  norm;		/* bytes sent / file size */
+	gfloat  norm;		/**< bytes sent / file size */
 };
 
 /*

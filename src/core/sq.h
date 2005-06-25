@@ -24,6 +24,17 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Search queue.
+ *
+ * @author Alex Bennee <alex@bennee.com>
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _core_sq_h_
 #define _core_sq_h_
 
@@ -33,7 +44,7 @@
 
 #include "if/core/search.h"
 
-/*
+/**
  * A search queue.
  *
  * There is one search queue per node, placed above the message queue.
@@ -41,14 +52,14 @@
  * delay queries to avoid flooding a single connection.
  */
 typedef struct search_queue {
-	GList *searches;			/* A pointer to the GList */
-	GHashTable *handles;		/* Keeps track of search handles in queue */
-	struct gnutella_node *node;	/* Node owning this search queue, or NULL */
-	time_t last_sent;    		/* Time last msg was sent */
-	guint count;				/* Count of number in queue */
+	GList *searches;			/**< A pointer to the GList */
+	GHashTable *handles;		/**< Keeps track of search handles in queue */
+	struct gnutella_node *node;	/**< Node owning this search queue, or NULL */
+	time_t last_sent;    		/**< Time last msg was sent */
+	guint count;				/**< Count of number in queue */
 	/* stats */
-	gint n_sent;				/* Number of searches sent */
-	gint n_dropped;				/* Number dropped due to flow control */
+	gint n_sent;				/**< Number of searches sent */
+	gint n_dropped;				/**< Number dropped due to flow control */
 } squeue_t;
 
 #define sq_count(q)			((q)->count)

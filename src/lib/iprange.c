@@ -45,7 +45,7 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-/**
+/*
  * The "database" of IP ranges is made of several data structures:
  *
  * A level-1 index, a 256-entry wide array, indexed by the first byte of the
@@ -64,7 +64,7 @@ RCSID("$Id$");
  * the time the range was added to the database.
  */
 
-#define IPRANGE_MARK	1		/* Magic tagging of user values */
+#define IPRANGE_MARK	1		/**< Magic tagging of user values */
 
 /*
  * A "database" descriptor, holding the CIDR networks and their attached value.
@@ -74,16 +74,16 @@ RCSID("$Id$");
 #define IPAGESZ			256
 
 struct iprange_db {
-	guint32 magic;			/* Magic number */
-	gpointer lvl1[IPAGESZ];	/* Level-1 index */
+	guint32 magic;			/**< Magic number */
+	gpointer lvl1[IPAGESZ];	/**< Level-1 index */
 	/* Allocation */
-	iprange_clone_t clone;	/* Cloning callback for values */
-	iprange_free_t free;	/* Freeing callback for values */
+	iprange_clone_t clone;	/**< Cloning callback for values */
+	iprange_free_t free;	/**< Freeing callback for values */
 	/* Statistics */
-	gint range_count;		/* Amount of network ranges registered */
-	gint lvl2_count;		/* Amount of level-2 pages, for stats */
-	gint head_count;		/* Amount of heads in level-2 pages, for stats */
-	gint list_count;		/* Amount of items held in lists */
+	gint range_count;		/**< Amount of network ranges registered */
+	gint lvl2_count;		/**< Amount of level-2 pages, for stats */
+	gint head_count;		/**< Amount of heads in level-2 pages, for stats */
+	gint list_count;		/**< Amount of items held in lists */
 };
 
 /**
@@ -92,25 +92,25 @@ struct iprange_db {
  * to compare (IP & netmask) with the ip_masked field.
  */
 struct iprange_net {
-	guint32 ip_masked;	/* The IP of the network (meaningful bits) */
-	guint32 netmask;	/* The network bit mask, selecting meaningful bits */
-	gpointer value;		/* Value held */
+	guint32 ip_masked;	/**< The IP of the network (meaningful bits) */
+	guint32 netmask;	/**< The network bit mask, selecting meaningful bits */
+	gpointer value;		/**< Value held */
 };
 
 /**
  * Error code stings.
  */
 static const gchar *iprange_errstr[] = {
-	"OK",									/* IPR_ERR_OK */
-	"Incorrect network prefix",				/* IPR_ERR_BAD_PREFIX */
-	"CIDR range clash",						/* IPR_ERR_RANGE_CLASH */
-	"Duplicate range",						/* IPR_ERR_RANGE_DUP */
-	"Range is subnet of existing range",	/* IPR_ERR_RANGE_SUBNET */
-	"Range is overlapping existing range",	/* IPR_ERR_RANGE_OVERLAP */
+	"OK",									/**< IPR_ERR_OK */
+	"Incorrect network prefix",				/**< IPR_ERR_BAD_PREFIX */
+	"CIDR range clash",						/**< IPR_ERR_RANGE_CLASH */
+	"Duplicate range",						/**< IPR_ERR_RANGE_DUP */
+	"Range is subnet of existing range",	/**< IPR_ERR_RANGE_SUBNET */
+	"Range is overlapping existing range",	/**< IPR_ERR_RANGE_OVERLAP */
 };
 
 /**
- * Returns human-readable error string for given error code.
+ * @return human-readable error string for given error code.
  */
 const gchar *
 iprange_strerror(iprange_err_t errnum)

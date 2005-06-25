@@ -28,6 +28,9 @@
  * @file
  *
  * Version management.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -90,7 +93,7 @@ version_dump(const gchar *str, const version_t *ver, const gchar *cmptag)
 }
 
 /**
- * Return a user-friendly description of the version.
+ * @return a user-friendly description of the version.
  * NB: returns pointer to static data.
  */
 const gchar *
@@ -175,7 +178,7 @@ version_stamp(const gchar *str, version_t *ver)
  * Parse gtk-gnutella's version number in User-Agent/Server string `str'
  * and extract relevant information into `ver'.
  *
- * Returns TRUE if we parsed a gtk-gnutella version correctly, FALSE if we
+ * @returns TRUE if we parsed a gtk-gnutella version correctly, FALSE if we
  * were not facing a gtk-gnutella version, or if we did not recognize it.
  */
 static gboolean
@@ -263,7 +266,7 @@ ok:
 
 /**
  * Compare two tag chars, assuming version numbers are equal.
- * Returns -1, 0 or +1 depending on the sign of "a - b".
+ * @returns -1, 0 or +1 depending on the sign of "a - b".
  */
 static gint
 version_tagcmp(guchar a, guchar b)
@@ -288,7 +291,7 @@ version_tagcmp(guchar a, guchar b)
 
 /**
  * Compare two gtk-gnutella versions, timestamp not withstanding.
- * Returns -1, 0 or +1 depending on the sign of "a - b".
+ * @returns -1, 0 or +1 depending on the sign of "a - b".
  */
 gint
 version_cmp(const version_t *a, const version_t *b)
@@ -312,7 +315,7 @@ version_cmp(const version_t *a, const version_t *b)
 
 /**
  * Parse vendor string and fill supplied version structure `vs'.
- * Returns OK if we were able to parse correctly.
+ * @returns OK if we were able to parse correctly.
  */
 gboolean
 version_fill(const gchar *version, version_t *vs)
@@ -375,7 +378,7 @@ version_newer(const gchar *str, time_t stamp)
  *
  * The `ip' is being passed solely for the tok_version_valid() call.
  *
- * Returns TRUE if we properly checked the version, FALSE if we got something
+ * @returns TRUE if we properly checked the version, FALSE if we got something
  * looking as gtk-gnutella but which failed the token-based sanity checks.
  */
 gboolean

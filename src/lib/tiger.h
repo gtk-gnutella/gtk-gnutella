@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003, Jeroen Asselman
  *
- * Tiger hash.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,15 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Tiger hash.
+ *
+ * @author Jeroen Asselman
+ * @date 2003
+ */
 
 #ifndef _tiger_h_
 #define _tiger_h_

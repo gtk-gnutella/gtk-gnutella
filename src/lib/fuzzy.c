@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002, Vidar Madsen
  *
- * Functions to compute likelihood of two file names being the same file.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Functions to compute likelihood of two file names being the same file.
+ *
+ * @author Vidar Madsen
+ * @date 2002
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -35,8 +43,8 @@ RCSID("$Id$");
 #include "override.h"		/* Must be the last header included */
 
 typedef struct word_entry {
-	size_t len;  /* length of the whole struct, used for wfree() */
-	gchar s[1]; /* dynamically resized */
+	size_t len;	/**< length of the whole struct, used for wfree() */
+	gchar s[1];	/**< dynamically resized */
 } word_entry_t;
 
 
@@ -114,10 +122,10 @@ static gulong fuzzy_find_score(GSList *a, GSList *b)
 	return n > 0 ? score / n : 0;
 }
 
-/*
+/**
  * fuzzy_compare
  *
- * Returns the similarity of both strings as a value
+ * @return the similarity of both strings as a value
  * between 0 and (1 << FUZZY_SHIFT).
  *
  * NB: The result will be bogus for strings larger than

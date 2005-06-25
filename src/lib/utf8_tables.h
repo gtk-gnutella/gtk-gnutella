@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Unicode Lookup Tables 
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Unicode Lookup Tables.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _utf8_tables_h_
 #define _utf8_tables_h_
 
@@ -32,10 +40,7 @@
  *	Current Unicode version: 4.1.0
  */
 
-/**
- * @ingroup lib
- * @file
- *
+/*
  * This is the lookup table for normalization/decomposition.
  *
  * The table is extracted from UnicodeData.txt - the
@@ -54,7 +59,7 @@
 
 #define UTF32_NFKD_REPLACE_MAXLEN 18
 #define UTF32_F_MASK 0xff000000U
-#define UTF32_F_NFKD 0x80000000U	/* Set for compatibility compositions */
+#define UTF32_F_NFKD 0x80000000U	/**< Set for compatibility compositions */
 
 #define UTF32_NFD(x)  (x)
 #define UTF32_NFKD(x) (UTF32_F_NFKD | (x))
@@ -7655,7 +7660,7 @@ static const struct {
 	{ 0x1D244, 230 },
 };
 
-/*
+/**
  * These are special exlusions which cannot be derived from
  * UnicodeData.txt but are listed in CompositionExclusions.txt.
  * Note that the entries in that file are not completely sorted.
@@ -7774,9 +7779,9 @@ static const guint32 utf32_composition_exclusions[] = {
  * table is UNI_GC_CN ("Cn", "Other, Not Assigned").
  */
 static const struct {
-	guint32 uc;		/* The first unicode character in the array */
-	guint16 len;	/* The array length */
-	guint8  gc;		/* general category */
+	guint32 uc;		/**< The first unicode character in the array */
+	guint16 len;	/**< The array length */
+	guint8  gc;		/**< general category */
 } utf32_general_category_lut[] = {
 	{ 0x0000,   32, UNI_GC_CC },
 	{ 0x0020,    1, UNI_GC_ZS },

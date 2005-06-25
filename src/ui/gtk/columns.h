@@ -114,9 +114,9 @@ enum {
     c_dl_progress,
     c_dl_status,
 #define DOWNLOADS_VISIBLE_COLUMNS ((guint) c_dl_status + 1)
-    c_dl_fg, /* invisible, holds the foreground color for the row */
-    c_dl_bg, /* invisible, holds the background color for the row */
-    c_dl_record, /* invisible, pointer to the record_t of this entry */
+    c_dl_fg,	/**< invisible, holds the foreground color for the row */
+    c_dl_bg,	/**< invisible, holds the background color for the row */
+    c_dl_record, /**< invisible, pointer to the record_t of this entry */
     c_dl_num
 };
 #endif
@@ -147,9 +147,9 @@ enum {
     c_queue_server,
     c_queue_status,
 #define DOWNLOAD_QUEUE_VISIBLE_COLUMNS ((guint) c_queue_status + 1)
-	c_queue_fg, /* invisible, holds the foreground color for the row */
-	c_queue_bg, /* invisible, holds the background color for the row */
-	c_queue_record, /* invisible, pointer to the record_t of this entry */
+	c_queue_fg,	/**< invisible, holds the foreground color for the row */
+	c_queue_bg,	/**< invisible, holds the background color for the row */
+	c_queue_record, /**< invisible, pointer to the record_t of this entry */
 	c_queue_num
 };
 #endif
@@ -184,18 +184,18 @@ enum {
     c_sr_size,
 	c_sr_count,
     c_sr_loc,
-    c_sr_meta,		/* meta-data info column */
+    c_sr_meta,	/**< meta-data info column */
     c_sr_info,
 #define SEARCH_RESULTS_VISIBLE_COLUMNS ((guint) c_sr_info + 1)
 #ifdef USE_GTK2
-	c_sr_fg, /* invisible, holds the foreground color for the row */
-	c_sr_bg, /* invisible, holds the background color for the row */
-	c_sr_record, /* invisible, pointer to the record_t of this entry */
+	c_sr_fg, /**< invisible, holds the foreground color for the row */
+	c_sr_bg, /**< invisible, holds the background color for the row */
+	c_sr_record, /**< invisible, pointer to the record_t of this entry */
 #endif
 	c_sr_num
 };
 
-/*
+/**
  * Gnet stats table columns
  */
 typedef enum {
@@ -220,7 +220,7 @@ typedef enum {
     num_c_horizon
 } c_horizon_t;
 
-/*
+/**
  * Hostcache stats table columns
  */
 enum {
@@ -232,7 +232,7 @@ enum {
 };
 
 
-/*
+/**
  * Searches overview table columns
  */
 enum {
@@ -243,12 +243,12 @@ enum {
 #ifdef USE_GTK2
     c_sl_fg,
     c_sl_bg,
-	c_sl_sch, /* invisible, pointer to the search_t for this entry */
+	c_sl_sch, /**< invisible, pointer to the search_t for this entry */
 #endif
 	c_sl_num
 };
 
-/*
+/**
  * Search stats table columns
  */
 enum {

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003, Raphael Manfredi
  *
- * Vendor-specific messages.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Vendor-specific messages.
+ *
+ * @author Raphael Manfredi
+ * @date 2003
  */
 
 #ifndef _core_vmsg_h_

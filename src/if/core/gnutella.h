@@ -34,8 +34,8 @@
 #define GTA_MSG_INIT_RESPONSE			0x01
 #define GTA_MSG_BYE						0x02
 #define GTA_MSG_QRP						0x30
-#define GTA_MSG_VENDOR					0x31	/* Vendor-specific */
-#define GTA_MSG_STANDARD				0x32	/* Standard vendor-specific */
+#define GTA_MSG_VENDOR					0x31	/**< Vendor-specific */
+#define GTA_MSG_STANDARD				0x32	/**< Standard vendor-specific */
 #define GTA_MSG_PUSH_REQUEST			0x40
 #define GTA_MSG_SEARCH					0x80
 #define GTA_MSG_SEARCH_RESULTS			0x81
@@ -49,7 +49,9 @@
 #define __attribute__(p)
 #endif
 
-/* Header structure */
+/**
+ * Header structure
+ */
 
 struct gnutella_header {
 	gchar muid[16];

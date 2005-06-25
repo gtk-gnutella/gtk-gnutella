@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Atom management.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -44,10 +42,10 @@
  * Atom types.
  */
 
-#define ATOM_STRING		0		/* Strings */
-#define ATOM_GUID		1		/* GUIDs (binary, 16 bytes) */
-#define ATOM_SHA1		2		/* SHA1 (binary, 20 bytes) */
-#define ATOM_UINT64		3		/* integers (binary, 8 bytes) */
+#define ATOM_STRING		0		/**< Strings */
+#define ATOM_GUID		1		/**< GUIDs (binary, 16 bytes) */
+#define ATOM_SHA1		2		/**< SHA1 (binary, 20 bytes) */
+#define ATOM_UINT64		3		/**< integers (binary, 8 bytes) */
 
 /*
  * Convenience macros.

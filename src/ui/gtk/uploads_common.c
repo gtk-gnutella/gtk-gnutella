@@ -37,12 +37,12 @@ RCSID("$Id$");
 #include "lib/glib-missing.h"	/* For gm_snprintf() */
 #include "lib/override.h"		/* Must be the last header included */
 
-#define IO_STALLED		60		/* If nothing exchanged after that many secs */
+#define IO_STALLED		60		/**< If nothing exchanged after that many secs */
 
-/*
+/**
  * uploads_gui_progress
  *
- * Returns a floating point value from [0:1] which indicates
+ * @returns a floating point value from [0:1] which indicates
  * the total progress of the upload.
  */
 gfloat uploads_gui_progress(

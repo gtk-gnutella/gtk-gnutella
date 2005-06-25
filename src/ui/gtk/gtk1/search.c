@@ -25,6 +25,17 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * GUI filtering functions.
+ *
+ * @author Raphael Manfredi
+ * @author Richard Eckart
+ * @date 2001-2003
+ */
+
 #include "gtk/gui.h"
 #include "gtk/bitzi.h"
 #include "gtk/search.h"
@@ -49,7 +60,7 @@
 
 RCSID("$Id$");
 
-#define MAX_TAG_SHOWN	60		/* Show only first chars of tag */
+#define MAX_TAG_SHOWN	60		/**< Show only first chars of tag */
 
 static gchar tmpstr[4096];
 
@@ -57,14 +68,16 @@ GList *searches = NULL;		/* List of search structs */
 search_t *search_selected = NULL;
 static GList *list_search_history = NULL;
 
-/* Characteristics of data in search results columns, used for sorting */
+/**
+ * Characteristics of data in search results columns, used for sorting.
+ */
 enum {
-	SEARCH_COL_SORT_DATA_RANDOM = 0,	/* Randomly distributed */
-	SEARCH_COL_SORT_DATA_SORTED_ASC,	/* Already sorted or almost sorted */
-	SEARCH_COL_SORT_DATA_SORTED_DES,	/* Same as above but descending */
-	SEARCH_COL_SORT_DATA_COUNT,			/* Sorting by "count" column */
-	SEARCH_COL_SORT_DATA_INFO,			/* Sorting by Info column */
-	SEARCH_COL_SORT_DATA_DEFAULT		/* Catch all case */
+	SEARCH_COL_SORT_DATA_RANDOM = 0,	/**< Randomly distributed */
+	SEARCH_COL_SORT_DATA_SORTED_ASC,	/**< Already sorted or almost sorted */
+	SEARCH_COL_SORT_DATA_SORTED_DES,	/**< Same as above but descending */
+	SEARCH_COL_SORT_DATA_COUNT,			/**< Sorting by "count" column */
+	SEARCH_COL_SORT_DATA_INFO,			/**< Sorting by Info column */
+	SEARCH_COL_SORT_DATA_DEFAULT		/**< Catch all case */
 };
 
 
@@ -92,6 +105,7 @@ static GtkWidget *default_scrolled_window = NULL;
  *	Add the given tree node to the hashtable.
  *  The key is an atomized sha1 of the search result.
  *
+ *  @todo
  *	FIXME: The "key" is an atom of the record's SHA1, why don't we create that
  * 	atom here, as we free it in "remove_parent_with_sha1"?  Emile 02/15/2004
  */
@@ -131,7 +145,7 @@ remove_parent_with_sha1(GHashTable *ht, const gchar *sha1)
 
 
 /**
- *	Returns the tree node corresponding to the given key, an atomized
+ *	@returns the tree node corresponding to the given key, an atomized
  *	sha1.
  */
 GtkCTreeNode *find_parent_with_sha1(GHashTable *ht, gpointer key)
@@ -298,7 +312,8 @@ gboolean search_gui_new_search(
 
 /**
  * Create a new search and start it.
- * Returns TRUE if search was sucessfully created and FALSE if an error
+ *
+ * @returns TRUE if search was sucessfully created and FALSE if an error
  * happened. If the "search" argument is not NULL a pointer to the new
  * search is stored there.
  */
@@ -668,8 +683,11 @@ search_gui_quick_sort_array_swap(GArray *array, gint i1, gint i2)
 
 
 /**
- * Performs a recursive quick sort on the given array between indicies beg and
- * end.  Note: this is extremely time critical code, some code duplication is
+ * Performs a recursive quick sort on the given array between indicies
+ * beg and end.
+ *
+ * @note
+ * This is extremely time critical code, some code duplication is
  * intentional.
  */
 void
@@ -684,7 +702,7 @@ search_gui_quick_sort(GArray *array, gint beg, gint end,
 	if (beg >= end)
 		return;
 
-	/* Choose the item in the middle for the pivot, swap it to the end */
+	/** Choose the item in the middle for the pivot, swap it to the end */
 	search_gui_quick_sort_array_swap(array, end, (beg + end) / 2);
 
     /* Fetch the value of the pivot element for later comparison */
@@ -730,7 +748,7 @@ search_gui_quick_sort(GArray *array, gint beg, gint end,
 	}
 
 
-	/* move pivot from end to its final place */
+	/** move pivot from end to its final place */
 	search_gui_quick_sort_array_swap(array, end, pivot_index);
 
 	search_gui_quick_sort(array, beg, pivot_index - 1, ctree,
@@ -1460,7 +1478,8 @@ search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 
 /**
  * Create downloads for all the search results selected in the ctree.
- * Returns the amount of downloads actually created, and the amount of
+ *
+ * @returns the amount of downloads actually created, and the amount of
  * items in the selection within `selected'.
  */
 static guint
@@ -1603,7 +1622,8 @@ download_selection_of_ctree(
 
 /**
  * Discard all the search results selected in the ctree.
- * Returns the amount of discarded results.
+ *
+ * @returns the amount of discarded results.
  */
 static guint
 discard_selection_of_ctree(
@@ -1705,7 +1725,7 @@ discard_selection_of_ctree(
 	return discarded;
 }
 
-/*
+/**
  *	search_gui_download_files
  *
  *	Download selected files
@@ -1741,7 +1761,7 @@ void search_gui_download_files(void)
 	}
 }
 
-/*
+/**
  *	search_gui_discard_files
  *
  *	Discard selected files
@@ -1940,7 +1960,7 @@ const GList *search_gui_get_searches(void)
 	return (const GList *) searches;
 }
 
-/*
+/**
  * search_gui_remove_search:
  *
  * Remove the search from the gui and update all widgets accordingly.
@@ -2168,10 +2188,10 @@ void search_gui_set_current_search(search_t *sch)
 }
 
 
-/*
+/**
  *	gui_search_create_ctree
  *
- * Create a new GtkCTree for search results
+ *	Create a new GtkCTree for search results
  */
 void gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 {
@@ -2284,7 +2304,7 @@ void gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 }
 
 
-/*
+/**
  *	gui_search_force_update_tab_label
  *
  *	Like search_update_tab_label but always update the label

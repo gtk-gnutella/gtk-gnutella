@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Download mesh.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -43,35 +41,35 @@
 #include <glib.h>
 #include <errno.h>
 
-/*
+/**
  * A download mesh info (describes an URL).
  *
  * It can describe URLs like:
  *
- *   http://1.2.3.4:5678/get/1/name.txt
- *   http://1.2.3.4:5678/uri-res/N2R?urn:sha1:ABCDEFGHIJKLMNOPQRSTUVWXYZ234567
+ *  - http://1.2.3.4:5678/get/1/name.txt
+ *  - http://1.2.3.4:5678/uri-res/N2R?urn:sha1:ABCDEFGHIJKLMNOPQRSTUVWXYZ234567
  *
  * We use the `idx' to discriminate between the two forms, URN_INDEX meaning
  * it's an URN.
  */
 typedef struct {
-	gchar *name;			/* File name or URN string (atom) */
-	guint idx;				/* File index (URN_INDEX means URN access) */
-	guint32 ip;				/* Host IP */
-	guint16 port;			/* Host port */
+	gchar *name;				/**< File name or URN string (atom) */
+	guint idx;					/**< File index (URN_INDEX means URN access) */
+	guint32 ip;					/**< Host IP */
+	guint16 port;				/**< Host port */
 } dmesh_urlinfo_t;
 
-/*
+/**
  * Error codes from dmesh_url_parse().
  */
 
 typedef enum {
-	DMESH_URL_OK = 0,			/* All OK */
-	DMESH_URL_HTTP_PARSER,		/* Error from http_url_parse() */
-	DMESH_URL_BAD_FILE_PREFIX,	/* File prefix neither /uri-res nor /get */
-	DMESH_URL_RESERVED_INDEX,	/* Index in /get/index is reserved */
-	DMESH_URL_NO_FILENAME,		/* No filename after /get/index */
-	DMESH_URL_BAD_ENCODING		/* Bad URL encoding */
+	DMESH_URL_OK = 0,			/**< All OK */
+	DMESH_URL_HTTP_PARSER,		/**< Error from http_url_parse() */
+	DMESH_URL_BAD_FILE_PREFIX,	/**< File prefix neither /uri-res nor /get */
+	DMESH_URL_RESERVED_INDEX,	/**< Index in /get/index is reserved */
+	DMESH_URL_NO_FILENAME,		/**< No filename after /get/index */
+	DMESH_URL_BAD_ENCODING		/**< Bad URL encoding */
 } dmesh_url_error_t;
 
 extern dmesh_url_error_t dmesh_url_errno;

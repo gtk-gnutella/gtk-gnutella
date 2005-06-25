@@ -24,8 +24,16 @@
  */
 
 /**
- * A FIFO: items are put on one end and retrieved on the other, in the
- * order they were put.
+ * @ingroup lib
+ * @file
+ *
+ * A FIFO.
+ *
+ * Items are put on one end and retrieved on the other, in the order
+ * they were put.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #include "common.h"
@@ -40,9 +48,9 @@ RCSID("$Id$");
  * The real FIFO structure (the advertised fifo_t is just a facade).
  */
 typedef struct fifo_real {
-	GList *head;			/* Head of FIFO, where data is prepended */
-	GList *tail;			/* Tail of FIFO, where data is removed from */
-	gint count;				/* Amount of entries in FIFO */
+	GList *head;			/**< Head of FIFO, where data is prepended */
+	GList *tail;			/**< Tail of FIFO, where data is removed from */
+	gint count;				/**< Amount of entries in FIFO */
 } fifo_real_t;
 
 /**

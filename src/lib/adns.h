@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Asynchronous DNS lookup.
+ *
+ * @author Christian Biere
+ * @date 2003
+ */
+
 #ifndef _adns_h_
 #define _adns_h_
 

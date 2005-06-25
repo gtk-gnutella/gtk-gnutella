@@ -50,8 +50,8 @@ RCSID("$Id$");
  * is held into a list.  Each pdata_t is equipped with a suitable free routine.
  */
 
-#define BUF_COUNT	1		/* Initial amount of buffers in pool */
-#define BUF_SIZE	4096	/* Size of each buffer */
+#define BUF_COUNT	1		/**< Initial amount of buffers in pool */
+#define BUF_SIZE	4096	/**< Size of each buffer */
 
 static GSList *sl_buffers = NULL;
 static gint allocated = 0;

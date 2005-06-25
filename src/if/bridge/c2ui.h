@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Emile Roberts
  *
- * Interface core -> UI
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup ui
+ * @file
+ *
+ * Interface core -> UI.
+ *
+ * @author Emile Roberts
+ * @date 2004
  */
 
 #ifndef _if_bridge_c2ui_h_
@@ -62,7 +70,7 @@ void guc_allow_rescan_dir(gboolean flag);
 void gcu_gui_update_files_scanned(void);
 gint gcu_gtk_main_flush(void);
 
-/* search interface functions */
+/** search interface functions */
 gboolean gcu_search_gui_new_search(const gchar *query, flag_t flags);
 
 /* statusbar interface functions */
@@ -74,7 +82,7 @@ void gcu_upload_stats_gui_add(struct ul_stats *);
 void gcu_upload_stats_gui_update(const gchar *name, guint64 size);
 void gcu_upload_stats_gui_clear_all(void);
 
-/* bitzi results */
+/** bitzi results */
 void gcu_bitzi_result(bitzi_data_t *bitzi_data);
 
 #endif /* _if_bridge_c2ui_h_ */

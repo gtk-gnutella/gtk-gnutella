@@ -70,7 +70,7 @@ RCSID("$Id$");
  *
  * It is expected that the stack will be dismantled when an error is reported.
  *
- * Return NULL if there is an initialization problem.
+ * @return NULL if there is an initialization problem.
  */
 rxdrv_t *rx_make(
 	struct gnutella_node *n,
@@ -132,7 +132,7 @@ static void rx_data_ind(rxdrv_t *rx, pmsg_t *mb)
  * The difference with rx_make() is that the data_ind is the internal receive
  * routine from `urx'.
  *
- * Return NULL if there is an initialization problem.
+ * @return NULL if there is an initialization problem.
  */
 rxdrv_t *rx_make_under(rxdrv_t *urx, const struct rxdrv_ops *ops, gpointer args)
 {
@@ -201,7 +201,7 @@ void rx_enable(rxdrv_t *rx)
 		rx_enable(rx->lower);
 }
 
-/*
+/**
  * rx_disable
  *
  * Disable reception, recursively.
@@ -215,10 +215,10 @@ void rx_disable(rxdrv_t *rx)
 		rx_disable(rx->lower);
 }
 
-/*
+/**
  * rx_bottom
  *
- * Returns the driver at the bottom of the stack.
+ * @returns the driver at the bottom of the stack.
  * From the outside, it must be called on the top layer only.
  */
 rxdrv_t *rx_bottom(rxdrv_t *rx)
@@ -232,7 +232,7 @@ rxdrv_t *rx_bottom(rxdrv_t *rx)
 /**
  * rx_bio_source
  *
- * Returns the I/O source from the bottom of the stack (link layer).
+ * @returns the I/O source from the bottom of the stack (link layer).
  */
 struct bio_source *rx_bio_source(rxdrv_t *rx)
 {

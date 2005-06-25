@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003-2004, Hans de Graaff
  *
- * Displaying the visual progress of downloading graphically.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -29,18 +27,21 @@
  * @ingroup gtk
  * @file
  *
+ * Displaying the visual progress of downloading graphically.
+ *
  * Visual progress indicator for files in the download queue.
  *
- * TODO and other ideas to be implemented.
+ * @todo
+ * TODO: and other ideas to be implemented.
  *
- * make colors into properties so that they can be stored in config,
- * should keep hardcoded backups.
+ * - Make colors into properties so that they can be stored in config,
+ *   should keep hardcoded backups.
  *
- * Add progress data also to fileinfo table, so that the info is shown for
- * all current files.
+ * - Add progress data also to fileinfo table, so that the info is shown for
+ *   all current files.
  *
- * Do not redraw the bar too often, only on event for actual file and
- * perhaps max once a second.
+ * - Do not redraw the bar too often, only on event for actual file and
+ *   perhaps max once a second.
  *
  * @author Hans de Graaff
  * @date 2003-2004
@@ -59,18 +60,18 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-/* The height of the indicator arrows in visual progress */
+/** The height of the indicator arrows in visual progress */
 #define VP_ARROW_HEIGHT 7 
 
 /**
  * The context for drawing, including location to draw
  */
 typedef struct vp_context {
-	GtkWidget *widget;     /** The widget containing the drawing area */
-    GdkDrawable *drawable; /** The drawable inside the widget */
-    GdkGC *gc;             /** The Graphics Context used in this vp context */
-    gnet_fi_t fih;         /** The most recently used fileinfo handle */
-	gboolean fih_valid;    /** Whether fih is still a valid handle */
+	GtkWidget *widget;      /** The widget containing the drawing area */
+    GdkDrawable *drawable;  /** The drawable inside the widget */
+    GdkGC *gc;              /** The Graphics Context used in this vp context */
+    gnet_fi_t fih;          /** The most recently used fileinfo handle */
+	gboolean fih_valid;	    /** Whether fih is still a valid handle */
 } vp_context_t;
 
 /**
@@ -89,18 +90,18 @@ typedef struct vp_info {
 
 static GHashTable *vp_info_hash; /* Hash table with our cached fileinfo info */
 
-static GdkColor done;       /* Pre-filled color (green) for DONE chunks */
-static GdkColor done_old;	/* Pre-filled color (dull green) for DONE
-							 * chunks from previous sessions */
-static GdkColor busy;       /* Pre-filled color (yellow) for BUSY chunks */
-static GdkColor arrow;      /* Pre-filled color (blue) for start of BUSY */
-static GdkColor empty;      /* Pre-filled color (red) for EMPTY chunks */
-static GdkColor black;      /* Pre-filled color (black) for general drawing */
-static GdkColor available;  /* Pre-filled color (blue) available on network */
-static GdkColor nosize;     /* Pre-filled color (gray) indicates
+static GdkColor done;       /**< Pre-filled color (green) for DONE chunks */
+static GdkColor done_old;	/**< Pre-filled color (dull green) for DONE
+								 chunks from previous sessions */
+static GdkColor busy;       /**< Pre-filled color (yellow) for BUSY chunks */
+static GdkColor arrow;      /**< Pre-filled color (blue) for start of BUSY */
+static GdkColor empty;      /**< Pre-filled color (red) for EMPTY chunks */
+static GdkColor black;      /**< Pre-filled color (black) for general drawing */
+static GdkColor available;  /**< Pre-filled color (blue) available on network */
+static GdkColor nosize;     /**< Pre-filled color (gray) indicates
 								 chunk information is not available
 								 (e.g. file size == 0 */
-static GdkColor *base;      /* Theme-defined background color */
+static GdkColor *base;      /**< Theme-defined background color */
 
 /**
  * The visual progress context for drawing fileinfo information
@@ -759,7 +760,7 @@ vp_free_key_value (gpointer key, gpointer value, gpointer user_data)
 
 /**
  * Initialize the use of visual progress.
-
+ *
  * Register listeners into the fileinfo structure so that we are
  * notified of fileinfo events, and get a permanent handle to the
  * drawing area for later reuse.

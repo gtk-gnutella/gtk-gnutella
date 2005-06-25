@@ -28,6 +28,9 @@
  * @file
  *
  * Miscellaneous common file routines.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -187,7 +190,7 @@ out:
  *
  * NB: the supplied `fv' argument is a vector of `fvcnt' elements.
  *
- * Returns opened FILE, or NULL if we were unable to open any.
+ * @returns opened FILE, or NULL if we were unable to open any.
  */
 FILE *
 file_config_open_read(const gchar *what, const file_path_t *fv, gint fvcnt)
@@ -202,7 +205,7 @@ file_config_open_read(const gchar *what, const file_path_t *fv, gint fvcnt)
  *
  * NB: the supplied `fv' argument is a vector of `fvcnt' elements.
  *
- * Returns opened FILE, or NULL if we were unable to open any.
+ * @returns opened FILE, or NULL if we were unable to open any.
  */
 FILE *
 file_config_open_read_norename(
@@ -227,7 +230,7 @@ file_config_open_read_norename_chosen(
  * yet and open a ".new" instead.  Renaming will occur afterwards, when
  * file_config_close() is called.
  *
- * Returns opened FILE if success, NULL on error.
+ * @returns opened FILE if success, NULL on error.
  */
 static FILE *
 file_config_open(const gchar *what, const file_path_t *fv)
@@ -259,7 +262,8 @@ file_config_open_write(const gchar *what, const file_path_t *fv)
 
 /**
  * Close configuration file opened for writing, and rename it.
- * Returns TRUE on success.
+ *
+ * @returns TRUE on success.
  */
 gboolean
 file_config_close(FILE *out, const file_path_t *fv)

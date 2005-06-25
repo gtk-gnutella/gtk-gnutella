@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Raphael Manfredi
  *
- * UDP Host Cache.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * UDP Host Cache.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #ifndef _core_uhc_h_

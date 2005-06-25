@@ -28,6 +28,9 @@
  * @file
  *
  * Pattern matching.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2004
  */
 
 #include "common.h"
@@ -38,7 +41,7 @@ RCSID("$Id$");
 #include "zalloc.h"
 #include "override.h"		/* Must be the last header included */
 
-static zone_t *pat_zone = NULL;		/* Compiled patterns */
+static zone_t *pat_zone = NULL;		/**< Compiled patterns */
 
 /**
  * Initialize pattern data structures.
@@ -75,7 +78,7 @@ void pattern_close(void)
  * Compile given string pattern by computing the delta shift table.
  * The pattern string given is duplicated.
  *
- * Returns a compiled pattern structure.
+ * @return a compiled pattern structure.
  */
 cpattern_t *
 pattern_compile(gchar *pattern)
@@ -107,7 +110,7 @@ pattern_compile(gchar *pattern)
  * Same as pattern_compile(), but the pattern string is NOT duplicated,
  * and its length is known upon entry.
  *
- * NB: there is no pattern_free_fast(), just call zfree() on the result.
+ * NB: There is no pattern_free_fast(), just call zfree() on the result.
  */
 cpattern_t *
 pattern_compile_fast(gchar *pattern, guint32 plen)
@@ -150,22 +153,22 @@ pattern_free(cpattern_t *cpat)
  * with `text', from left to right.  The `tlen' argument is the length
  * of the text, and can left to 0, in which case it will be computed.
  *
- * Return pointer to beginning of matching substring, NULL if not found.
+ * @return pointer to beginning of matching substring, NULL if not found.
  */
 gchar *
 pattern_qsearch(
-	cpattern_t *cpat,		/* Compiled pattern */
-	gchar *text,			/* Text we're scanning */
-	guint32 tlen,			/* Text length, 0 = compute strlen(text) */
-	guint32 toffset,		/* Offset within text for search start */
-	qsearch_mode_t word)	/* Beginning/whole word matching? */
+	cpattern_t *cpat,		/**< Compiled pattern */
+	gchar *text,			/**< Text we're scanning */
+	guint32 tlen,			/**< Text length, 0 = compute strlen(text) */
+	guint32 toffset,		/**< Offset within text for search start */
+	qsearch_mode_t word)	/**< Beginning/whole word matching? */
 {
-	gchar *p;			/* Pointer within string pattern */
-	gchar *t;			/* Pointer within text */
-	gchar *tp;			/* Initial local search text pointer */
-	guint32 i;			/* Position within pattern string */
-	gchar *start;		/* Start of matching */
-	gchar *end;			/* End of text (first byte after physical end) */
+	gchar *p;			/**< Pointer within string pattern */
+	gchar *t;			/**< Pointer within text */
+	gchar *tp;			/**< Initial local search text pointer */
+	guint32 i;			/**< Position within pattern string */
+	gchar *start;		/**< Start of matching */
+	gchar *end;			/**< End of text (first byte after physical end) */
 	guint32 plen;
 
 	if (!tlen)

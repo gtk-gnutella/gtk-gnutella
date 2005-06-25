@@ -52,13 +52,13 @@ RCSID("$Id$");
 #include "lib/override.h"		/* Must be the last header included */
 
 static gchar tmpstr[4096];
-static GHashTable *parents;			/* table of parent download iterators */
-static GHashTable *parents_queue;	/* table of parent queued dl iterators */
-static GHashTable *ht_dl_iters;		/* table of iters to find downloads */
+static GHashTable *parents;			/**< table of parent download iterators */
+static GHashTable *parents_queue;	/**< table of parent queued dl iterators */
+static GHashTable *ht_dl_iters;		/**< table of iters to find downloads */
 static GtkTreeView *treeview_downloads;
 static GtkTreeView *treeview_downloads_queue;
 
-#define IO_STALLED		60		/* If nothing exchanged after that many secs */
+#define IO_STALLED		60		/**< If nothing exchanged after that many secs */
 
 
 #if 0
@@ -348,7 +348,7 @@ add_column(GtkTreeView *treeview, GtkType column_type, const gchar *name,
 
 /**
  *	Add one column to the treeview
- *	Note: Usable only for active downloads treeview.
+ *	@note Usable only for active downloads treeview.
  */
 static void
 add_active_downloads_column(GtkTreeView *treeview,
@@ -370,7 +370,7 @@ add_active_downloads_column(GtkTreeView *treeview,
 
 /**
  *	Add one column to the treeview
- *	Note: Usable only for downloads queue treeview.
+ *	@note Usable only for downloads queue treeview.
  */
 static void
 add_queue_downloads_column(GtkTreeView *treeview,
@@ -419,8 +419,7 @@ compare_size_func(GtkTreeModel *model,
 /**
  *	Add all columns to the treeview
  * 	Set titles, alignment, width, etc. here
- *
- *	Note: Usable only for active downloads treeview.
+ *	@note Usable only for active downloads treeview.
  */
 static void
 add_active_downloads_columns(GtkTreeView *treeview)
@@ -463,8 +462,7 @@ add_active_downloads_columns(GtkTreeView *treeview)
 /**
  *	Add all columns to the treeview
  * 	Set titles, alignment, width, etc. here
- *
- *	Note: Usable only for downloads queue treeview.
+ *	@note Usable only for downloads queue treeview.
  */
 static void
 add_queue_downloads_columns(GtkTreeView *treeview)

@@ -3,12 +3,6 @@
  *
  * Copyright (c) 2003, Raphael Manfredi
  *
- * Functions that should be in glib-1.2 but are not.
- * They are all prefixed with "gm_" as in "Glib Missing".
- *
- * We also include FIXED versions of glib-1.2 routines that are broken
- * and make sure those glib versions are never called directly.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -27,6 +21,22 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Missing functions in the Glib 1.2.
+ *
+ * Functions that should be in glib-1.2 but are not.
+ * They are all prefixed with "gm_" as in "Glib Missing".
+ *
+ * We also include FIXED versions of glib-1.2 routines that are broken
+ * and make sure those glib versions are never called directly.
+ *
+ * @author Raphael Manfredi
+ * @date 2003
  */
 
 #ifndef _glib_missing_h_

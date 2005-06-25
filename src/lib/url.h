@@ -28,12 +28,12 @@
 
 #include <glib.h>
 
-/*
+/**
  * Parsed URL parameters (from query string).
  */
 typedef struct {
-	GHashTable *params;		/* parameter => value (malloc'ed) */
-	gint count;				/* Amount of parameters */
+	GHashTable *params;		/**< parameter => value (malloc'ed) */
+	gint count;				/**< Amount of parameters */
 } url_params_t;
 
 #define url_params_count(x)	((x)->count)

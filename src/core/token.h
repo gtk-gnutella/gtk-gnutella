@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003, Raphael Manfredi
  *
- * Token management.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,32 +23,42 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Token management.
+ *
+ * @author Raphael Manfredi
+ * @date 2003
+ */
+
 #ifndef _core_token_h_
 #define _core_token_h_
 
 #include <glib.h>
 
-#define TOKEN_VERSION_SIZE	(4 + 3 + 20)	/* stamp + seed + SHA1 */
-#define TOKEN_START_DATE	1045868400		/* When we started using tokens */
+#define TOKEN_VERSION_SIZE	(4 + 3 + 20)	/**< stamp + seed + SHA1 */
+#define TOKEN_START_DATE	1045868400		/**< When we started using tokens */
 
-/*
+/**
  * Error codes for token validation.
  */
 typedef enum {
-	TOK_OK = 0,					/* OK */
-	TOK_BAD_LENGTH,				/* Bad length */
-	TOK_BAD_STAMP,				/* Bad timestamp */
-	TOK_BAD_INDEX,				/* Bad key index */
-	TOK_INVALID,				/* Invalid */
-	TOK_BAD_ENCODING,			/* Not base64-encoded */
-	TOK_BAD_KEYS,				/* Keys not found */
-	TOK_BAD_VERSION,			/* Bad version string */
-	TOK_OLD_VERSION,			/* Version older than expected */
-	TOK_BAD_LEVEL_ENCODING,		/* Level not base64-encoded */
-	TOK_BAD_LEVEL_LENGTH,		/* Bad level length */
-	TOK_SHORT_LEVEL,			/* Level too short */
-	TOK_INVALID_LEVEL,			/* Level mismatch */
-	TOK_MISSING_LEVEL			/* Missing level */
+	TOK_OK = 0,					/**< OK */
+	TOK_BAD_LENGTH,				/**< Bad length */
+	TOK_BAD_STAMP,				/**< Bad timestamp */
+	TOK_BAD_INDEX,				/**< Bad key index */
+	TOK_INVALID,				/**< Invalid */
+	TOK_BAD_ENCODING,			/**< Not base64-encoded */
+	TOK_BAD_KEYS,				/**< Keys not found */
+	TOK_BAD_VERSION,			/**< Bad version string */
+	TOK_OLD_VERSION,			/**< Version older than expected */
+	TOK_BAD_LEVEL_ENCODING,		/**< Level not base64-encoded */
+	TOK_BAD_LEVEL_LENGTH,		/**< Bad level length */
+	TOK_SHORT_LEVEL,			/**< Level too short */
+	TOK_INVALID_LEVEL,			/**< Level mismatch */
+	TOK_MISSING_LEVEL			/**< Missing level */
 } tok_error_t;
 
 /*

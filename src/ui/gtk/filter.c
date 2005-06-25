@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2001-2003, Raphael Manfredi, Richard Eckart
  *
- * GUI filtering functions.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,17 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * GUI filtering functions.
+ *
+ * @author Raphael Manfredi
+ * @author Richard Eckart
+ * @date 2001-2003
  */
 
 #include "gui.h"
@@ -88,7 +97,7 @@ static GtkCTreeNode *getFilterRoot(filter_t *f);
 
 
 
-/*
+/**
  * getFilterRoot:
  *
  * Fetch the proper root node for a given filter in the filter tree.
@@ -106,7 +115,7 @@ static GtkCTreeNode *getFilterRoot(filter_t *f)
     }
 }
 
-/*
+/**
  * filter_gui_init:
  *
  * Initialize the contents of the dialog editor and some
@@ -246,7 +255,7 @@ void filter_gui_init(void)
 
 }
 
-/*
+/**
  * filter_gui_show_dialog:
  *
  * Show the dialog on screen and set position.
@@ -275,7 +284,7 @@ void filter_gui_show_dialog(void)
 
 
 
-/*
+/**
  * filter_gui_filter_clear_list:
  *
  * Remove all entries from the filter tree.
@@ -352,7 +361,7 @@ void filter_gui_filter_clear_list(void)
 
 
 
-/*
+/**
  * filter_gui_filter_add:
  *
  * Adds a filter to the filter list in the dialog. If the filter has a
@@ -412,7 +421,7 @@ void filter_gui_filter_add(filter_t *f, GList *ruleset)
 
 
 
-/*
+/**
  * filter_gui_update_rule_count:
  *
  * Update the rule count of a filter in the filter table.
@@ -443,7 +452,7 @@ void filter_gui_update_rule_count(filter_t *f, GList *ruleset)
 
 
 
-/*
+/**
  * filter_gui_filter_remove:
  *
  * Removes a filter from the list in the dialog.
@@ -470,14 +479,16 @@ void filter_gui_filter_remove(filter_t *f)
 
 
 
-/*
+/**
  * filter_gui_set_filter:
  *
  * Don't use this directly. Better use filter_set from filter.c.
  * Tell the gui to set itself up to work on the given filter.
  * The information about removeable/active state and ruleset are not
  * taken from the filter!
- * Note: this does not rebuild the target combos.
+ *
+ * @note
+ * This does not rebuild the target combos.
  */
 void filter_gui_filter_set
     (filter_t *f, gboolean removable, gboolean active, GList *ruleset)
@@ -554,7 +565,7 @@ void filter_gui_filter_set
 
 
 
-/*
+/**
  * filter_gui_filter_set_enabled:
  *
  * Tell the gui a given filter is enabled/disabled. If the filter given
@@ -601,7 +612,7 @@ void filter_gui_filter_set_enabled(filter_t *f, gboolean active)
 
 
 
-/*
+/**
  * filter_gui_update_filters_stats:
  *
  * Update the filter list with the current stats data from the filters
@@ -660,7 +671,7 @@ void filter_gui_update_filter_stats(void)
 
 
 
-/*
+/**
  * filter_gui_update_rules_stats:
  *
  * Update the rules list with the current stats data from the rules
@@ -792,7 +803,7 @@ void filter_gui_rebuild_target_combos(GList *filters)
 
 
 
-/*
+/**
  * filter_gui_edit_rule:
  *
  * Load the given rule into the detail view.
@@ -840,7 +851,7 @@ void filter_gui_edit_rule(rule_t *r)
 
 
 
-/*
+/**
  * filter_gui_edit_ip_rule:
  *
  * Load a ip rule into the rule edtior or clear it if the rule is NULL.
@@ -904,7 +915,7 @@ void filter_gui_edit_ip_rule(rule_t *r)
 
 
 
-/*
+/**
  * filter_gui_edit_sha1_rule:
  *
  * Load a sha1 rule into the rule edtior or clear it if the rule is NULL.
@@ -963,7 +974,7 @@ void filter_gui_edit_sha1_rule(rule_t *r)
 
 
 
-/*
+/**
  * filter_gui_edit_text_rule:
  *
  * Load a ip rule into the rule edtior or clear it if the rule is NULL.
@@ -1029,7 +1040,7 @@ void filter_gui_edit_text_rule(rule_t *r)
 
 
 
-/*
+/**
  * filter_gui_edit_size_rule:
  *
  * Load a ip rule into the rule edtior or clear it if the rule is NULL.
@@ -1087,7 +1098,7 @@ void filter_gui_edit_size_rule(rule_t *r)
 
 
 
-/*
+/**
  * filter_gui_edit_jump_rule:
  *
  * Load a ip rule into the rule edtior or clear it if the rule is NULL.
@@ -1125,7 +1136,7 @@ void filter_gui_edit_jump_rule(rule_t *r)
 
 
 
-/*
+/**
  * filter_gui_edit_flag_rule:
  *
  * Load a flag rule into the rule edtior or clear it if the rule is NULL.
@@ -1223,7 +1234,7 @@ void filter_gui_edit_flag_rule(rule_t *r)
 
 
 
-/*
+/**
  * filter_gui_edit_state_rule:
  *
  * Load a state rule into the rule edtior or clear it if the rule is NULL.
@@ -1314,7 +1325,7 @@ void filter_gui_edit_state_rule(rule_t *r)
 
 
 
-/*
+/**
  * filter_gui_set_ruleset:
  *
  * Display the given ruleset in the table.
@@ -1372,11 +1383,12 @@ void filter_gui_set_ruleset(GList *ruleset)
 
 
 
-/*
+/**
  * filter_gui_get_rule:
  *
- * Fetch the rule which is currently edited. This
- * returns a completely new rule_t item in new memory.
+ * Fetch the rule which is currently edited.
+ *
+ * @returns a completely new rule_t item in new memory.
  */
 rule_t *filter_gui_get_rule(void)
 {
@@ -1424,11 +1436,11 @@ rule_t *filter_gui_get_rule(void)
 
 
 
-/*
+/**
  * filter_gui_get_text_rule:
  *
  * Extract information about a text rule.
- * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
+ * @warning NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
 static rule_t *filter_gui_get_text_rule(void)
 {
@@ -1487,11 +1499,11 @@ static rule_t *filter_gui_get_text_rule(void)
 
 
 
-/*
+/**
  * filter_gui_get_ip_rule:
  *
  * Extract information about a ip rule.
- * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
+ * @warning NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
 static rule_t *filter_gui_get_ip_rule(void)
 {
@@ -1619,11 +1631,11 @@ filter_update_size(GtkEntry *entry)
 	return size;
 }
 
-/*
+/**
  * filter_gui_get_size_rule:
  *
  * Extract information about a size rule.
- * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
+ * @warning NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
 static rule_t *filter_gui_get_size_rule(void)
 {
@@ -1677,11 +1689,11 @@ static rule_t *filter_gui_get_size_rule(void)
 
 
 
-/*
+/**
  * filter_gui_get_jump_rule:
  *
  * Extract information about a size rule.
- * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
+ * @warning NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
 static rule_t *filter_gui_get_jump_rule(void)
 {
@@ -1706,11 +1718,11 @@ static rule_t *filter_gui_get_jump_rule(void)
 
 
 
-/*
+/**
  * filter_gui_get_flag_rule:
  *
  * Extract information about a flag rule.
- * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
+ * @warning NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
 static rule_t *filter_gui_get_flag_rule(void)
 {
@@ -1763,11 +1775,11 @@ static rule_t *filter_gui_get_flag_rule(void)
 
 
 
-/*
+/**
  * filter_gui_get_state_rule:
  *
  * Extract information about a state rule.
- * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
+ * @warning NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
 static rule_t *filter_gui_get_state_rule(void)
 {
@@ -1854,7 +1866,7 @@ void filter_gui_thaw_filters(void)
 }
 
 #ifdef USE_GTK2
-/*
+/**
  * filter_gui_create_dlg_filters:
  *
  * Handles filter dialog UI joining.

@@ -30,20 +30,20 @@
 #include "if/core/uploads.h"
 
 typedef struct upload_row_data {
-    gnet_upload_t handle;      /* upload handle in backend */
-    gboolean      valid;       /* handle still valid in backend */
+    gnet_upload_t handle;       /**< upload handle in backend */
+    gboolean      valid;        /**< handle still valid in backend */
     time_t        start_date;
-    time_t        last_update; /* last time the gui updated */
+    time_t        last_update;  /**< last time the gui updated */
     filesize_t    range_start;
     filesize_t    range_end;
-    upload_stage_t status;      /* last known status */
+    upload_stage_t status;      /**< last known status */
 #ifdef USE_GTK2
     GtkTreeIter   iter;
 	guint32       ip;
 	filesize_t    size;
 	gboolean      push;
-	gchar         *user_agent;	/* atom */
-	gchar         *name;		/* atom */
+	gchar         *user_agent;	/**< atom */
+	gchar         *name;		/**< atom */
 	gint          country;
 #endif
 } upload_row_data_t;

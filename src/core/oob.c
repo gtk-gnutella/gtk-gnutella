@@ -58,35 +58,35 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-#define OOB_EXPIRE_MS		(2*60*1000)		/* 2 minutes at most */
-#define OOB_TIMEOUT_MS		(45*1000)		/* 45 secs for them to reply */
-#define OOB_DELIVER_MS		(5*1000)		/* 1 message queued every 5 secs */
+#define OOB_EXPIRE_MS		(2*60*1000)		/**< 2 minutes at most */
+#define OOB_TIMEOUT_MS		(45*1000)		/**< 45 secs for them to reply */
+#define OOB_DELIVER_MS		(5*1000)		/**< 1 message queued every 5 secs */
 
-#define OOB_MAX_QUEUED		50				/* Max # of messages per host */
-#define OOB_MAX_RETRY		3				/* Retry # if LIME/12v2 dropped */
+#define OOB_MAX_QUEUED		50				/**< Max # of messages per host */
+#define OOB_MAX_RETRY		3				/**< Retry # if LIME/12v2 dropped */
 
-/*
+/**
  * A set of hits awaiting delivery.
  */
 struct oob_results {
-	gpointer ev_expire;		/* Global expiration event */
-	gpointer ev_timeout;	/* Reply waiting timeout */
-	gchar *muid;			/* (atom) MUID of the query that generated hits */
-	GSList *files;			/* List of shared_file_t */
-	gnet_host_t dest;		/* The host to which we must deliver */
-	gint count;				/* Amount of hits to deliver */
-	gint notify_requeued;	/* Amount of LIME/12v2 requeued after dropping */
-	gboolean use_ggep_h;	/* Whether GGEP "H" can be used for SHA1 coding */
+	gpointer ev_expire;		/**< Global expiration event */
+	gpointer ev_timeout;	/**< Reply waiting timeout */
+	gchar *muid;			/**< (atom) MUID of the query that generated hits */
+	GSList *files;			/**< List of shared_file_t */
+	gnet_host_t dest;		/**< The host to which we must deliver */
+	gint count;				/**< Amount of hits to deliver */
+	gint notify_requeued;	/**< Amount of LIME/12v2 requeued after dropping */
+	gboolean use_ggep_h;	/**< Whether GGEP "H" can be used for SHA1 coding */
 	gint refcount;
 };
 
-/*
+/**
  * Indexes all OOB queries by MUID.
  * This hash table records MUID => "struct oob_results"
  */
 static GHashTable *results_by_muid = NULL;
 
-/*
+/**
  * Each servent, as identified by its IP:port, is given a FIFO for queuing
  * messages and sending them at a rate of 1 message every OOB_DELIVER_MS, to
  * avoid UDP flooding on the remote side.
@@ -95,13 +95,13 @@ static GHashTable *results_by_muid = NULL;
  */
 static GHashTable *servent_by_host = NULL;
 
-/*
+/**
  * A servent entry, used as values in the `servent_by_host' table.
  */
 struct servent {
-	gpointer ev_service;	/* Callout event for servicing FIFO */
-	gnet_host_t *host;		/* The servent host (also used as key for table) */
-	fifo_t *fifo;			/* The servent's FIFO, holding pmsg_t items */
+	gpointer ev_service;	/**< Callout event for servicing FIFO */
+	gnet_host_t *host;		/**< The servent host (also used as key for table) */
+	fifo_t *fifo;			/**< The servent's FIFO, holding pmsg_t items */
 };
 
 /*
@@ -123,7 +123,7 @@ static void results_destroy(cqueue_t *cq, gpointer obj);
 static void servent_free(struct servent *s);
 static void oob_send_reply_ind(struct oob_results *r);
 
-static gint num_oob_records;	/* Leak and duplicate free detector */
+static gint num_oob_records;	/**< Leak and duplicate free detector */
 
 /**
  * Create new "struct oob_results" to handle the initial negotiation of

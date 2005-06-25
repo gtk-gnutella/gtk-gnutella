@@ -114,7 +114,8 @@ struct vendor {
 
 /**
  * Find vendor name, given vendor code.
- * Returns vendor string if found, NULL otherwise.
+ *
+ * @returns vendor string if found, NULL otherwise.
  */
 static gchar *
 find_vendor(guchar raw[4])
@@ -138,7 +139,7 @@ find_vendor(guchar raw[4])
 }
 
 /**
- * Return true is gtk-gnutella knows the given 4-byte vendor code.
+ * @return true is gtk-gnutella knows the given 4-byte vendor code.
  */
 gboolean
 is_vendor_known(guchar raw[4])
@@ -151,7 +152,7 @@ is_vendor_known(guchar raw[4])
 
 /**
  * Make up a printable version of the vendor code.
- * Returns pointer to static data.
+ * @return pointer to static data.
  */
 gchar *
 vendor_code_str(guint32 code)

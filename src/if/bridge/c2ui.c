@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Emile Roberts
  *
- * Interface core -> UI
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,10 +23,17 @@
  *----------------------------------------------------------------------
  */
 
-
-/*
- *	At this point the interface basically redirects function calls from the ui
- *	to the core and vice-versa.
+/**
+ * @ingroup ui
+ * @file
+ *
+ * Interface core -> UI.
+ *
+ * At this point the interface basically redirects function calls from
+ * the ui to the core and vice-versa.
+ *
+ * @author Emile Roberts
+ * @date 2004
  */
 
 #include "c2ui.h"
@@ -74,7 +79,7 @@
  * Functions the CORE uses to access the UI
  */
 
-/*	download interface functions (CORE -> UI)*/
+/*	download interface functions (CORE -> UI) */
 void
 gcu_download_enable_start_now(guint32 running_downloads, guint32 max_downloads)
 {
@@ -142,7 +147,7 @@ gcu_download_gui_remove(struct download *d)
 }
 
 
-/*	misc. interface functions (CORE -> UI)*/
+/** misc. interface functions (CORE -> UI) */
 void
 gcu_gui_update_files_scanned(void)
 {
@@ -167,7 +172,7 @@ gcu_gtk_main_flush(void)
 }
 
 
-/*	dearch interface functions (CORE -> UI)*/
+/**	dearch interface functions (CORE -> UI) */
 gboolean
 gcu_search_gui_new_search(const gchar *query, flag_t flags)
 {
@@ -194,7 +199,7 @@ gcu_upload_stats_gui_clear_all(void)
 	upload_stats_gui_clear_all();
 }
 
-/*
+/**
  * Bitzi result notification (Core->UI)
  *
  * If the IPC split goes ahead then the data will need to be copied
@@ -207,7 +212,7 @@ gcu_bitzi_result(bitzi_data_t *bitzi_data)
     bitzi_gui_update(bitzi_data);
 }
 
-/*	statusbar interface functions (CORE -> UI)*/
+/*	statusbar interface functions (CORE -> UI) */
 void
 gcu_statusbar_warning(const gchar *message)
 {

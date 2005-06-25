@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003, Raphael Manfredi
  *
- * String evaluation.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * String evaluation.
+ *
+ * @author Raphael Manfredi
+ * @date 2003
  */
 
 #ifndef _eval_h_

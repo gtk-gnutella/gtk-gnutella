@@ -34,17 +34,17 @@
 
 typedef enum {
 	HCACHE_FRESH_ANY = 0, /**< Fresh hosts to which we did not
-                           *   yet try to connect. */
+                               yet try to connect. */
     HCACHE_VALID_ANY,     /**< All the Gnet nodes to which we were able to
-                           *   connect and transmit at least one packet
-                           *   (indicating a successful handshake). */
+                               connect and transmit at least one packet
+                               (indicating a successful handshake). */
 	HCACHE_FRESH_ULTRA,	  /**< Fresh ultra nodes to which we did not
-                           *   yet try to connect. (X-Try-Ultrapeer)*/
+                               yet try to connect. (X-Try-Ultrapeer)*/
     HCACHE_VALID_ULTRA,   /**< Valid ultra nodes */
     HCACHE_TIMEOUT,       /**< We put in this list all the Gnet nodes which
-                           *   gave us a timeout during connection. */
+                               gave us a timeout during connection. */
     HCACHE_BUSY,          /**< We put in this list all the Gnet nodes which
-                           *   gave us a 503 (busy) during connection. */
+                               gave us a 503 (busy) during connection. */
     HCACHE_UNSTABLE,
 	HCACHE_NONE,
     HCACHE_MAX

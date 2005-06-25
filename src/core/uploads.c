@@ -4,8 +4,6 @@
  * Copyright (c) 2001-2003, Raphael Manfredi
  * Copyright (c) 2000 Daniel Walker (dwalker@cats.ucsc.edu)
  *
- * Handles upload of our files to others users.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -24,6 +22,18 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Handles upload of our files to others users.
+ *
+ * @author Daniel Walker (dwalker@cats.ucsc.edu)
+ * @date 2000
+ * @author Raphael Manfredi
+ * @date 2001-2003
  */
 
 #include "common.h"
@@ -65,22 +75,22 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-#define READ_BUF_SIZE	4096		/* Read buffer size, if no sendfile(2) */
-#define BW_OUT_MIN		256			/* Minimum bandwidth to enable uploads */
-#define IO_PRE_STALL	30			/* Pre-stalling warning */
-#define IO_STALLED		60			/* Stalling condition */
-#define IO_LONG_TIMEOUT	160			/* Longer timeouting condition */
-#define UP_SEND_BUFSIZE	8192		/* Socket write buffer, when stalling */
-#define STALL_CLEAR		600			/* Decrease stall counter every 10 min */
-#define STALL_THRESH	3			/* If more stalls than that, workaround */
+#define READ_BUF_SIZE	4096		/**< Read buffer size, if no sendfile(2) */
+#define BW_OUT_MIN		256			/**< Minimum bandwidth to enable uploads */
+#define IO_PRE_STALL	30			/**< Pre-stalling warning */
+#define IO_STALLED		60			/**< Stalling condition */
+#define IO_LONG_TIMEOUT	160			/**< Longer timeouting condition */
+#define UP_SEND_BUFSIZE	8192		/**< Socket write buffer, when stalling */
+#define STALL_CLEAR		600			/**< Decrease stall counter every 10 min */
+#define STALL_THRESH	3			/**< If more stalls than that, workaround */
 
-#define RQST_LINE_LENGTH	256		/* Reasonable estimate for request line */
+#define RQST_LINE_LENGTH	256		/**< Reasonable estimate for request line */
 
 static GSList *list_uploads = NULL;
-static gint stalled = 0;			/* Counts stalled connections */
-static time_t last_stalled;			/* Time at which last stall occurred */
+static gint stalled = 0;			/**< Counts stalled connections */
+static time_t last_stalled;			/**< Time at which last stall occurred */
 
-/* Used to fall back to write() if sendfile() failed */
+/** Used to fall back to write() if sendfile() failed */
 static gboolean sendfile_failed = FALSE;
 
 static idtable_t *upload_handle_map = NULL;
@@ -104,13 +114,13 @@ static gint registered_uploads = 0;
  * (identified by its SHA1).
  */
 struct mesh_info_key {
-	guint32 ip;						/* Remote host IP address */
-	const gchar *sha1;				/* SHA1 atom */
+	guint32 ip;						/**< Remote host IP address */
+	const gchar *sha1;				/**< SHA1 atom */
 };
 
 struct mesh_info_val {
-	guint32 stamp;					/* When we last sent the mesh */
-	gpointer cq_ev;					/* Scheduled cleanup callout event */
+	guint32 stamp;					/**< When we last sent the mesh */
+	gpointer cq_ev;					/**< Scheduled cleanup callout event */
 };
 
 /* Keep mesh info about uploaders for that long (unit: ms) */
@@ -1438,7 +1448,7 @@ upload_http_version(gnutella_upload_t *u, gchar *request, gint len)
 	return TRUE;
 }
 
-/* *
+/**
  * Get the shared_file to upload. Request has been extracted already, and is
  * passed as request. The same holds for the file index, which is passed as
  * index.
@@ -1710,7 +1720,7 @@ sha1_recomputed:
 
 /**
  * Get the shared_file to upload from a given URN.
- * Return the shared_file if we have it, NULL otherwise
+ * @return the shared_file if we have it, NULL otherwise
  */
 static struct shared_file *
 get_file_to_upload_from_urn(
@@ -3002,7 +3012,7 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 #endif /* USE_MMAP || HAVE_SENDFILE */
 	
 	if (use_sendfile) {
-		off_t pos, before;			/* For sendfile() sanity checks */
+		off_t pos, before;			/**< For sendfile() sanity checks */
 		/*
 	 	 * Compute the amount of bytes to send.
 	 	 * Use the two variables to avoid warnings about unused vars by

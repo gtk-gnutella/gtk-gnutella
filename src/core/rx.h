@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Network driver.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Network driver.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _core_rx_h_
 #define _core_rx_h_
 
@@ -35,18 +43,18 @@ struct rxdriver;
 
 typedef void (*rx_data_t)(struct rxdriver *, pmsg_t *mb);
 
-/*
- * A network driver
- *
+/**
+ * A network driver.
  */
+
 typedef struct rxdriver {
-	struct gnutella_node *node;		/* Node to which this driver belongs */
-	const struct rxdrv_ops *ops;	/* Dynamically dispatched operations */
-	struct rxdriver *upper;			/* Layer above, NULL if none */
-	struct rxdriver *lower;			/* Layer underneath, NULL if none */
-	gint flags;						/* Driver flags */
-	rx_data_t data_ind;				/* Data indication routine */
-	gpointer opaque;				/* Used by heirs to store specific info */
+	struct gnutella_node *node;		/**< Node to which this driver belongs */
+	const struct rxdrv_ops *ops;	/**< Dynamically dispatched operations */
+	struct rxdriver *upper;			/**< Layer above, NULL if none */
+	struct rxdriver *lower;			/**< Layer underneath, NULL if none */
+	gint flags;						/**< Driver flags */
+	rx_data_t data_ind;				/**< Data indication routine */
+	gpointer opaque;				/**< Used by heirs to store specific info */
 } rxdrv_t;
 
 #define rx_node(r)	((r)->node)
@@ -55,7 +63,7 @@ typedef struct rxdriver {
  * Driver flags.
  */
 
-/*
+/**
  * Operations defined on all drivers.
  */
 

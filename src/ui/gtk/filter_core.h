@@ -49,13 +49,13 @@ typedef struct filter {
 } filter_t;
 
 #define RULE_FLAG_NEGATE (1 << 0)
-#define RULE_FLAG_VALID  (1 << 1) /* rule has valid target */
+#define RULE_FLAG_VALID  (1 << 1)	/**< rule has valid target */
 #define RULE_FLAG_ACTIVE (1 << 2)
 #define RULE_FLAG_SOFT   (1 << 3)
-#define RULE_FLAG_SHADOW (1 << 4) /* rule is not yet committed */
+#define RULE_FLAG_SHADOW (1 << 4)	/**< rule is not yet committed */
 
 #define FILTER_FLAG_ACTIVE (1 << 0)
-#define FILTER_FLAG_SHADOW (1 << 4) /* filter is not yet committed */
+#define FILTER_FLAG_SHADOW (1 << 4)	/**< filter is not yet committed */
 
 #define RULE_IS_VALID(r) ((r != NULL) && (r->flags & RULE_FLAG_VALID))
 #define RULE_IS_NEGATED(r) ((r != NULL) && (r->flags & RULE_FLAG_NEGATE))
@@ -68,12 +68,12 @@ typedef struct filter {
 #define filter_is_shadowed(f) ((f != NULL) && (f->flags & FILTER_FLAG_SHADOW))
 
 
-/*
+/**
  * Some error codes (0 means 'no error')
  */
 #define FILTER_EXISTS 1
 
-/*
+/**
  * The following struct is used to hold the state information of filter
  * properties. A rule can set one or more of those properties to define
  * how the record should be processed (displayed, downloaded, etc).
@@ -83,7 +83,7 @@ typedef struct filter_property {
     gpointer user_data;
 } filter_property_t;
 
-/*
+/**
  * This is used to hold the result of a filter. The props_set attribute
  * holds the number of properties which have a state != UNKNOWN and the
  * prop array holds the actual property informations.
@@ -95,38 +95,38 @@ typedef struct filter_result {
 
 
 
-/*
- * Definition of a filter rule
+/**
+ * Definition of a filter rule.
  */
 typedef struct rule {
-    enum rule_type type;	            /* type of rule, see above */
+    enum rule_type type;	            /**< type of rule, see above */
     flag_t flags;
     guint32 match_count;
     guint32 fail_count;
     filter_t *target;
     union {
         struct _f_text {
-            int case_sensitive:1;	    /* case sensitive (true) or not */
-            enum rule_text_type type;	/* type of match, see above */
-            char *match; 	            /* match string */
-			gint matchlen;				/* length of match string */
+            int case_sensitive:1;	    /**< case sensitive (true) or not */
+            enum rule_text_type type;	/**< type of match, see above */
+            char *match; 	            /**< match string */
+			gint matchlen;				/**< length of match string */
             union {
-                cpattern_t *pattern;	/* substring pattern */
-                GList *words;		    /* a list of substring patterns */
-                regex_t *re;		    /* regular expression match */
+                cpattern_t *pattern;	/**< substring pattern */
+                GList *words;		    /**< a list of substring patterns */
+                regex_t *re;		    /**< regular expression match */
             } u;
         } text;
         struct _f_ip {
-            guint32 addr;		        /* IP address */
-            guint32 mask;		        /* netmask */
+            guint32 addr;		        /**< IP address */
+            guint32 mask;               /**< netmask */
         } ip;
         struct _f_size {
-            filesize_t lower;		        /* lower limit or 0 */
-            filesize_t upper;		        /* upper limit or ~0 */
+            filesize_t lower;           /**< lower limit or 0 */
+            filesize_t upper;           /**< upper limit or ~0 */
         } size;
         struct _f_sha1 {
-            gchar *hash;                /* sha1 hash */
-            gchar *filename;            /* filename sha1 comes from */
+            gchar *hash;                /**< sha1 hash */
+            gchar *filename;            /**< filename sha1 comes from */
         } sha1;
         struct _f_flag {
             enum rule_flag_action busy;
@@ -142,7 +142,7 @@ typedef struct rule {
 
 
 
-/*
+/**
  * Public variables.
  */
 extern filter_t *work_filter;
@@ -214,5 +214,6 @@ void filter_add_drop_host_rule(const struct record *rec, filter_t *filter);
 void filter_add_download_sha1_rule(const struct record *rec, filter_t *filter);
 void filter_add_download_name_rule(const struct record *rec, filter_t *filter);
 
-/* vi: set ts=4 sw=4 cindent: */
 #endif /* _gtk_filter_core_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

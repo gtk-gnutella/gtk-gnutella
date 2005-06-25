@@ -23,29 +23,32 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _pattern_h_
-#define _pattern_h_
-
 /**
  * @ingroup lib
  * @file
  *
  * Sunday pattern search data structures.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
  */
 
-#define ALPHA_SIZE	256			/* Alphabet size */
+#ifndef _pattern_h_
+#define _pattern_h_
 
-typedef struct {				/* Compiled pattern */
-	gchar *pattern;				/* The pattern */
-	guint32 len;				/* Pattern length */
-	gboolean duped;				/* Was `pattern' strdup()'ed? */
-	guint32 delta[ALPHA_SIZE];	/* Shifting deltas */
+#define ALPHA_SIZE	256			/**< Alphabet size */
+
+typedef struct {				/**< Compiled pattern */
+	gchar *pattern;				/**< The pattern */
+	guint32 len;				/**< Pattern length */
+	gboolean duped;				/**< Was `pattern' strdup()'ed? */
+	guint32 delta[ALPHA_SIZE];	/**< Shifting deltas */
 } cpattern_t;
 
 typedef enum {
-	qs_any = 0,					/* Match anywhere */
-	qs_begin,					/* Match beginning of words */
-	qs_whole					/* Match whole words only */
+	qs_any = 0,					/**< Match anywhere */
+	qs_begin,					/**< Match beginning of words */
+	qs_whole					/**< Match whole words only */
 } qsearch_mode_t;
 
 void pattern_init(void);

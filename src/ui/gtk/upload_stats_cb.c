@@ -4,8 +4,6 @@
  * Copyright (c) 2003, Raphael Manfredi
  * Copyright (c) 2001-2003, Richard Eckart
  *
- * Handles common GUI operations for upload stats.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -24,6 +22,18 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * Handles common GUI operations for upload stats.
+ *
+ * @author Raphael Manfredi
+ * @date 2003
+ * @author Richard Eckart
+ * @date 2001-2003
  */
 
 #include "gui.h"
@@ -78,7 +88,7 @@ compare_ul_size(GtkCList *unused_clist, gconstpointer ptr1, gconstpointer ptr2)
 	return (s1 == s2) ? 0 : (s1 > s2) ? 1 : -1;
 }
 
-/*
+/**
  * first by complete, then by attempts
  */
 static gint
@@ -99,7 +109,7 @@ compare_ul_complete(GtkCList *unused_clist,
 		(a1 == a2) ? 0 : (a1 > a2) ? 1 : -1;
 }
 
-/*
+/**
  * first by normalized, then by complete
  */
 gint
@@ -115,7 +125,7 @@ compare_ul_norm(GtkCList *clist, gconstpointer ptr1, gconstpointer ptr2)
 		compare_ul_complete(clist, ptr1, ptr2);
 }
 
-/*
+/**
  * first by attempts, then by complete
  */
 static gint

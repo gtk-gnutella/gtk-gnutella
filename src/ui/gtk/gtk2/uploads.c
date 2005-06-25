@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * Needs short description here.
+ *
+ * @author Richard Eckart
+ * @date 2001-2003
+ */
+
 #include "gtk/gui.h"
 
 #include "interface-glade.h"
@@ -48,7 +58,7 @@
 
 RCSID("$Id$");
 
-#define UPDATE_MIN	300		/* Update screen every 5 minutes at least */
+#define UPDATE_MIN	300		/**< Update screen every 5 minutes at least */
 
 static gboolean uploads_remove_lock = FALSE;
 static gboolean uploads_shutting_down = FALSE;
@@ -57,9 +67,9 @@ static GtkTreeView *treeview_uploads = NULL;
 static GtkListStore *store_uploads = NULL;
 static GtkWidget *button_uploads_clear_completed = NULL;
 
-/* hash table for fast handle -> GtkTreeIter mapping */
+/** hash table for fast handle -> GtkTreeIter mapping */
 static GHashTable *upload_handles = NULL;
-/* list of all *removed* uploads; contains the handles */
+/** list of all *removed* uploads; contains the handles */
 static GSList *sl_removed_uploads = NULL;
 
 static void uploads_gui_update_upload_info(const gnet_upload_info_t *u);
@@ -77,11 +87,11 @@ static const char * const column_titles[UPLOADS_GUI_VISIBLE_COLUMNS] = {
 };
 
 typedef struct remove_row_ctx {
-	gboolean force;			/* If false, rows will only be removed, if
-							 * their `entry_removal_timeout' has expired. */
-	time_t now; 			/* Current time, used to decide whether row
-							 * should be finally removed. */
-	GSList *sl_remaining;	/* Contains row data for not yet removed rows. */
+	gboolean force;			/**< If false, rows will only be removed, if
+							 **  their `entry_removal_timeout' has expired. */
+	time_t now; 			/**< Current time, used to decide whether row
+							 **  should be finally removed. */
+	GSList *sl_remaining;	/**< Contains row data for not yet removed rows. */
 } remove_row_ctx_t;
 
 

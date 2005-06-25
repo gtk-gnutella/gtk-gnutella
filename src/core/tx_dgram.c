@@ -3,10 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Network driver -- datagram level.
- *
- * This driver sends datagrams to specified hosts.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +21,18 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Network driver -- datagram level.
+ *
+ * This driver sends datagrams to specified hosts.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -48,8 +56,8 @@ RCSID("$Id$");
  * Private attributes for the layer.
  */
 struct attr {
-	wrap_io_t 	 *wio;	/* Cached wrapped IO object */
-	bio_source_t *bio;	/* Bandwidth-limited I/O source */
+	wrap_io_t 	 *wio;	/**< Cached wrapped IO object */
+	bio_source_t *bio;	/**< Bandwidth-limited I/O source */
 };
 
 /**
@@ -196,7 +204,7 @@ tx_dgram_write_error(txdrv_t *tx, gnet_host_t *to, const char *func)
 
 /**
  * Send buffer datagram to specified destination `to'.
- * Returns amount of bytes written, or -1 on error with errno set.
+ * @returns amount of bytes written, or -1 on error with errno set.
  */
 static ssize_t
 tx_dgram_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len)
@@ -273,16 +281,16 @@ tx_dgram_bio_source(txdrv_t *tx)
 }
 
 static const struct txdrv_ops tx_dgram_ops = {
-	tx_dgram_init,			/* init */
-	tx_dgram_destroy,		/* destroy */
-	tx_no_write,			/* write */
-	tx_no_writev,			/* writev */
-	tx_dgram_sendto,		/* sendto */
-	tx_dgram_enable,		/* enable */
-	tx_dgram_disable,		/* disable */
-	tx_dgram_pending,		/* pending */
-	tx_dgram_flush,			/* flush */
-	tx_dgram_bio_source,	/* bio_source */
+	tx_dgram_init,			/**< init */
+	tx_dgram_destroy,		/**< destroy */
+	tx_no_write,			/**< write */
+	tx_no_writev,			/**< writev */
+	tx_dgram_sendto,		/**< sendto */
+	tx_dgram_enable,		/**< enable */
+	tx_dgram_disable,		/**< disable */
+	tx_dgram_pending,		/**< pending */
+	tx_dgram_flush,			/**< flush */
+	tx_dgram_bio_source,	/**< bio_source */
 };
 
 const struct txdrv_ops *

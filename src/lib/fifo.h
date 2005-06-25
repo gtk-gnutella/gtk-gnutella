@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * A FIFO.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
+ */
+
 #ifndef _fifo_h_
 #define _fifo_h_
 

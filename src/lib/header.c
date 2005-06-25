@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2001-2003, Raphael Manfredi
  *
- * Header parsing routines.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Header parsing routines.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -40,23 +48,23 @@ RCSID("$Id$");
  *** Operating flags
  ***/
 
-#define HEAD_F_EOH		0x00000001			/* EOH reached */
-#define HEAD_F_SKIP		0x00000002			/* Skip continuations */
+#define HEAD_F_EOH		0x00000001			/**< EOH reached */
+#define HEAD_F_SKIP		0x00000002			/**< Skip continuations */
 
 /***
  *** Error code management
  ***/
 
 static const char *error_str[] = {
-	"OK",									/* HEAD_OK */
-	"Unexpected continuation line",			/* HEAD_CONTINUATION */
-	"Malformed header line",				/* HEAD_MALFORMED */
-	"Invalid characters in field name",		/* HEAD_BAD_CHARS */
-	"End of header already reached",		/* HEAD_EOH_REACHED */
-	"Skipped continuation line",			/* HEAD_SKIPPED */
-	"Header too large",						/* HEAD_TOO_LARGE */
-	"Header has too many lines",			/* HEAD_MANY_LINES */
-	"End of header",						/* HEAD_EOH */
+	"OK",									/**< HEAD_OK */
+	"Unexpected continuation line",			/**< HEAD_CONTINUATION */
+	"Malformed header line",				/**< HEAD_MALFORMED */
+	"Invalid characters in field name",		/**< HEAD_BAD_CHARS */
+	"End of header already reached",		/**< HEAD_EOH_REACHED */
+	"Skipped continuation line",			/**< HEAD_SKIPPED */
+	"Header too large",						/**< HEAD_TOO_LARGE */
+	"Header has too many lines",			/**< HEAD_MANY_LINES */
+	"End of header",						/**< HEAD_EOH */
 };
 
 /**
@@ -124,7 +132,7 @@ hfield_make(const gchar *name)
 	return h;
 }
 
-/*
+/**
  * hfield_free
  *
  * Dispose of the header field.
@@ -519,23 +527,23 @@ header_dump(const header_t *o, FILE *out)
  ***/
 
 #define HEADER_FMT_MAGIC		0xf7a91c
-#define HEADER_FMT_DFLT_LEN		256		/* Default field length if no hint */
-#define HEADER_FMT_LINE_LEN		78		/* Try to never emit longer lines */
-#define HEADER_FMT_MAX_SIZE		1024	/* Max line size for header */
+#define HEADER_FMT_DFLT_LEN		256		/**< Default field length if no hint */
+#define HEADER_FMT_LINE_LEN		78		/**< Try to never emit longer lines */
+#define HEADER_FMT_MAX_SIZE		1024	/**< Max line size for header */
 
 /*
  * Header formatting context
  */
 struct header_fmt {
 	guint32 magic;
-	gint maxlen;				/* Maximum line length before continuation */
-	GString *header;			/* Header being built */
-	gchar sep[257];				/* Optional separator */
-	gint seplen;				/* Length of separator string */
-	gint stripped_seplen;		/* Length of separator without trailing space */
-	gint current_len;			/* Length of currently built line */
-	gboolean data_emitted;		/* Whether data was ever emitted */
-	gboolean frozen;			/* Header terminated */
+	gint maxlen;				/**< Maximum line length before continuation */
+	GString *header;			/**< Header being built */
+	gchar sep[257];				/**< Optional separator */
+	gint seplen;				/**< Length of separator string */
+	gint stripped_seplen;		/**< Length of separator without trailing space */
+	gint current_len;			/**< Length of currently built line */
+	gboolean data_emitted;		/**< Whether data was ever emitted */
+	gboolean frozen;			/**< Header terminated */
 };
 
 /**
@@ -561,7 +569,7 @@ stripped_strlen(const gchar *s, gint len)
 	return 0;
 }
 
-/*
+/**
  * header_fmt_make
  *
  * Create a new formatting context for a header line.
@@ -668,10 +676,13 @@ header_fmt_value_fits(gpointer o, gint len, gint maxlen)
 /**
  * Append data `str' to the header line, atomically.
  *
- * `separator' is an optional separator string that will be emitted BEFORE
- * outputting the data, and only when nothing has been emitted already.
- * `slen' is the separator length, 0 if empty.
- * `sslen' is the stripped separator length, -1 if unknown yet.
+ * @param `hf' no document.
+ * @param `str' no document.
+ * @param `separator' is an optional separator string that will be emitted
+ *         BEFORE outputting the data, and only when nothing has been emitted
+ *         already.
+ * @param `slen' is the separator length, 0 if empty.
+ * @param `sslen' is the stripped separator length, -1 if unknown yet.
  */
 static void
 header_fmt_append_full(struct header_fmt *hf, const gchar *str,
@@ -753,7 +764,7 @@ header_fmt_append_value(gpointer o, const gchar *str)
 }
 
 /**
- * Returns length of currently formatted header.
+ * @return length of currently formatted header.
  */
 gint
 header_fmt_length(gpointer o)

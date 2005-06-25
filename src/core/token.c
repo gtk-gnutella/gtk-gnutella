@@ -47,11 +47,11 @@ RCSID("$Id$");
 #include "lib/crc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-#define TOKEN_CLOCK_SKEW	3600		/* +/- 1 hour */
-#define TOKEN_LIFE			60			/* lifetime of our tokens */
-#define TOKEN_BASE64_SIZE	(TOKEN_VERSION_SIZE * 4 / 3)	/* base64 size */
-#define LEVEL_SIZE			(2 * G_N_ELEMENTS(token_keys))	/* at most */
-#define LEVEL_BASE64_SIZE	(LEVEL_SIZE * 4 / 3 + 3)		/* +2 for == tail */
+#define TOKEN_CLOCK_SKEW	3600		/**< +/- 1 hour */
+#define TOKEN_LIFE			60			/**< lifetime of our tokens */
+#define TOKEN_BASE64_SIZE	(TOKEN_VERSION_SIZE * 4 / 3)	/**< base64 size */
+#define LEVEL_SIZE			(2 * G_N_ELEMENTS(token_keys))	/**< at most */
+#define LEVEL_BASE64_SIZE	(LEVEL_SIZE * 4 / 3 + 3)		/**< +2 for == tail */
 
 /*
  * Keys are generated through "od -x /dev/random".
@@ -124,26 +124,26 @@ struct tokkey {
  */
 
 static const gchar *tok_errstr[] = {
-	"OK",							/* TOK_OK */
-	"Bad length",					/* TOK_BAD_LENGTH */
-	"Bad timestamp",				/* TOK_BAD_STAMP */
-	"Bad key index",				/* TOK_BAD_INDEX */
-	"Failed checking",				/* TOK_INVALID */
-	"Not base64-encoded",			/* TOK_BAD_ENCODING */
-	"Keys not found",				/* TOK_BAD_KEYS */
-	"Bad version string",			/* TOK_BAD_VERSION */
-	"Version older than expected",	/* TOK_OLD_VERSION */
-	"Level not base64-encoded",		/* TOK_BAD_LEVEL_ENCODING */
-	"Bad level length",				/* TOK_BAD_LEVEL_LENGTH */
-	"Level too short",				/* TOK_SHORT_LEVEL */
-	"Level mismatch",				/* TOK_INVALID_LEVEL */
-	"Missing level",				/* TOK_MISSING_LEVEL */
+	"OK",							/**< TOK_OK */
+	"Bad length",					/**< TOK_BAD_LENGTH */
+	"Bad timestamp",				/**< TOK_BAD_STAMP */
+	"Bad key index",				/**< TOK_BAD_INDEX */
+	"Failed checking",				/**< TOK_INVALID */
+	"Not base64-encoded",			/**< TOK_BAD_ENCODING */
+	"Keys not found",				/**< TOK_BAD_KEYS */
+	"Bad version string",			/**< TOK_BAD_VERSION */
+	"Version older than expected",	/**< TOK_OLD_VERSION */
+	"Level not base64-encoded",		/**< TOK_BAD_LEVEL_ENCODING */
+	"Bad level length",				/**< TOK_BAD_LEVEL_LENGTH */
+	"Level too short",				/**< TOK_SHORT_LEVEL */
+	"Level mismatch",				/**< TOK_INVALID_LEVEL */
+	"Missing level",				/**< TOK_MISSING_LEVEL */
 };
 
 /**
  * tok_strerror
  *
- * Return human-readable error string corresponding to error code `errnum'.
+ * @return human-readable error string corresponding to error code `errnum'.
  */
 const gchar *tok_strerror(tok_error_t errnum)
 {
@@ -157,7 +157,7 @@ const gchar *tok_strerror(tok_error_t errnum)
  * find_tokkey
  *
  * Based on the timestamp, determine the proper token keys to use.
- * Returns NULL if we cannot locate any suitable keys.
+ * @returns NULL if we cannot locate any suitable keys.
  */
 static const struct tokkey *find_tokkey(time_t now)
 {
@@ -178,7 +178,7 @@ static const struct tokkey *find_tokkey(time_t now)
  * random_key
  *
  * Pickup a key randomly.
- * Returns the key string and the index within the key array into `idx'
+ * @returns the key string and the index within the key array into `idx'
  * and the token key structure used in `tkused'.
  */
 static const gchar *random_key(
@@ -287,7 +287,7 @@ static gchar *tok_generate(time_t now, const gchar *version)
  * tok_version
  *
  * Get a version token, base64-encoded.
- * Returns a pointer to static data.
+ * @returns a pointer to static data.
  *
  * @note
  * Token versions are only used to identify GTKG servents as such with
@@ -326,7 +326,7 @@ gchar *tok_version(void)
  * tok_short_version
  *
  * Get a version token for the short version string, base64-encoded.
- * Returns a pointer to static data.
+ * @returns a pointer to static data.
  */
 gchar *tok_short_version(void)
 {
@@ -361,7 +361,7 @@ gchar *tok_short_version(void)
  * Validate a base64-encoded version token `tokenb64' of `len' bytes.
  * The `ip' is given only for clock update operations.
  *
- * Returns error code, or TOK_OK if token is valid.
+ * @returns error code, or TOK_OK if token is valid.
  */
 tok_error_t tok_version_valid(
 	const gchar *version, const gchar *tokenb64, gint len, guint32 ip)
@@ -416,7 +416,7 @@ tok_error_t tok_version_valid(
 	if (tk == NULL)
 		return TOK_BAD_KEYS;
 
-	idx = (guchar) token[6] & 0x1f;					/* 5 bits for the index */
+	idx = (guchar) token[6] & 0x1f;			/* 5 bits for the index */
 	if (idx >= tk->count)
 		return TOK_BAD_INDEX;
 

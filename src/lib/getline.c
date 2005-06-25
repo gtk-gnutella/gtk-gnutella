@@ -28,6 +28,9 @@
  * @file
  *
  * Line-oriented parsing from memory buffer.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
  */
 
 #include "common.h"
@@ -39,9 +42,9 @@ RCSID("$Id$");
 #include "getline.h"
 #include "walloc.h"
 #include "misc.h"		/* For RCSID */
-#include "override.h"		/* Must be the last header included */
+#include "override.h"	/* Must be the last header included */
 
-/**
+/*
  * Those govern the allocation policy for the getline buffer.
  * We start at START_LENGTH, and we grow the buffer each time we need
  * more room by chunks of at least GROW_LENGTH.
@@ -174,7 +177,7 @@ getline_read(getline_t *o, gchar *data, gint len, gint *used)
 }
 
 /**
- * Returns a C string (NUL-terminated) corresponding to the line we currently
+ * @return a C string (NUL-terminated) corresponding to the line we currently
  * have in the buffer.
  */
 gchar *
@@ -187,7 +190,7 @@ getline_str(getline_t *o)
 }
 
 /**
- * Return the length of the currently accumulated line.
+ * @return the length of the currently accumulated line.
  */
 gint
 getline_length(getline_t *o)

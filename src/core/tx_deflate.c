@@ -3,10 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Network driver -- compressing level.
- *
- * This driver compresses its data stream before sending it to the link layer.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +21,18 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Network driver -- compressing level.
+ *
+ * This driver compresses its data stream before sending it to the link layer.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -56,14 +64,14 @@ RCSID("$Id$");
 
 #define BUFFER_COUNT	2
 #define BUFFER_SIZE		1024
-#define BUFFER_FLUSH	4096	/* Try to flush every 4K */
-#define BUFFER_NAGLE	200		/* 200 ms */
+#define BUFFER_FLUSH	4096	/**< Try to flush every 4K */
+#define BUFFER_NAGLE	200		/**< 200 ms */
 
 struct buffer {
-	gchar *arena;				/* Buffer arena */
-	gchar *end;					/* First byte outside buffer */
-	gchar *wptr;				/* Write pointer (first byte to write) */
-	gchar *rptr;				/* Read pointer (first byte to read) */
+	gchar *arena;				/**< Buffer arena */
+	gchar *end;					/**< First byte outside buffer */
+	gchar *wptr;				/**< Write pointer (first byte to write) */
+	gchar *rptr;				/**< Read pointer (first byte to read) */
 };
 
 /*
@@ -71,24 +79,24 @@ struct buffer {
  */
 struct attr {
 	struct buffer buf[BUFFER_COUNT];
-	gint fill_idx;				/* Filled buffer index */
-	gint send_idx;				/* Buffer to be sent */
-	z_streamp outz;				/* Compressing stream */
-	txdrv_t *nd;				/* Network driver, underneath us */
-	gint unflushed;				/* Amount of bytes written since last flush */
-	gint flags;					/* Operating flags */
-	cqueue_t *cq;				/* The callout queue to use for Nagle */
-	gpointer tm_ev;				/* The timer event */
+	gint fill_idx;				/**< Filled buffer index */
+	gint send_idx;				/**< Buffer to be sent */
+	z_streamp outz;				/**< Compressing stream */
+	txdrv_t *nd;				/**< Network driver, underneath us */
+	gint unflushed;				/**< Amount of bytes written since last flush */
+	gint flags;					/**< Operating flags */
+	cqueue_t *cq;				/**< The callout queue to use for Nagle */
+	gpointer tm_ev;				/**< The timer event */
 };
 
 /*
  * Operating flags.
  */
 
-#define DF_FLOWC		0x00000001	/* We flow-controlled the upper layer */
-#define DF_NAGLE		0x00000002	/* Nagle timer started */
-#define DF_FLUSH		0x00000004	/* Flushing started */
-#define DF_SHUTDOWN		0x00000008	/* Stack has shut down */
+#define DF_FLOWC		0x00000001	/**< We flow-controlled the upper layer */
+#define DF_NAGLE		0x00000002	/**< Nagle timer started */
+#define DF_FLUSH		0x00000004	/**< Flushing started */
+#define DF_SHUTDOWN		0x00000008	/**< Stack has shut down */
 
 static void deflate_nagle_timeout(cqueue_t *cq, gpointer arg);
 
@@ -100,7 +108,7 @@ deflate_send(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 	struct buffer *b;
-	size_t len;					/* Amount of bytes to send */
+	size_t len;					/**< Amount of bytes to send */
 	ssize_t r;
 
 	g_assert(attr->send_idx >= 0);	/* We have something to send */
@@ -313,7 +321,7 @@ deflate_service(gpointer data)
 
 /**
  * Flush compression within filling buffer.
- * Return success status, failure meaning we shutdown.
+ * @return success status, failure meaning we shutdown.
  */
 static gboolean
 deflate_flush(txdrv_t *tx)
@@ -829,16 +837,16 @@ tx_deflate_bio_source(txdrv_t *tx)
 }
 
 static const struct txdrv_ops tx_deflate_ops = {
-	tx_deflate_init,		/* init */
-	tx_deflate_destroy,		/* destroy */
-	tx_deflate_write,		/* write */
-	tx_deflate_writev,		/* writev */
-	tx_no_sendto,			/* sendto */
-	tx_deflate_enable,		/* enable */
-	tx_deflate_disable,		/* disable */
-	tx_deflate_pending,		/* pending */
-	tx_deflate_flush,		/* flush */
-	tx_deflate_bio_source,	/* bio_source */
+	tx_deflate_init,		/**< init */
+	tx_deflate_destroy,		/**< destroy */
+	tx_deflate_write,		/**< write */
+	tx_deflate_writev,		/**< writev */
+	tx_no_sendto,			/**< sendto */
+	tx_deflate_enable,		/**< enable */
+	tx_deflate_disable,		/**< disable */
+	tx_deflate_pending,		/**< pending */
+	tx_deflate_flush,		/**< flush */
+	tx_deflate_bio_source,	/**< bio_source */
 };
 
 const struct txdrv_ops *

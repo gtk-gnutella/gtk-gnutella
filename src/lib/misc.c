@@ -28,14 +28,17 @@
  * @file
  *
  * Misc functions.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
  */
 
 #include "common.h"
 
 RCSID("$Id$");
 
-#include <netdb.h>			/* For gethostbyname() */
-#include <sys/times.h>		/* For times() */
+#include <netdb.h>				/* For gethostbyname() */
+#include <sys/times.h>			/* For times() */
 
 #include "base32.h"
 #include "misc.h"
@@ -96,6 +99,7 @@ strlcpy(gchar *dst, const gchar *src, size_t dst_size)
  * @param dst the destination buffer.
  * @param size the number of bytes ``dst'' can hold.
  * @param s the first source string or NULL.
+ *
  * @return the sum of the lengths of all passed strings.
  */
 size_t
@@ -142,6 +146,7 @@ concat_strings(gchar *dst, size_t size, const gchar *s, ...)
  *
  * @param str a NUL-terminated string
  * @param prefix a NUL-terminated string
+ *
  * @return	NULL, if ``prefix'' is not a prefix of ``str''. Otherwise, a
  *			pointer to the first character in ``str'' after the prefix.
  */
@@ -169,6 +174,7 @@ is_strprefix(const gchar *str, const gchar *prefix)
  *
  * @param str a NUL-terminated string
  * @param prefix a NUL-terminated string
+ *
  * @return	NULL, if ``prefix'' is not a prefix of ``str''. Otherwise, a
  *			pointer to the first character in ``str'' after the prefix.
  */
@@ -317,8 +323,9 @@ gchar_to_ip(const gchar *str)
  * A strict string to IP address conversion; when other stuff from misc.[ch]
  * is not sufficient.
  *
- * Returns TRUE if ``s'' pointed to a string representation of an IPv4
+ * @return TRUE if ``s'' pointed to a string representation of an IPv4
  * address, otherwise FALSE.
+ *
  * If successful, ``*addr'' will be set to the IPv4 address in NATIVE
  * byte order and ``*endptr'' will point to the character after the
  * IPv4 address. ``addr'' and ``endptr'' may be NULL.
@@ -366,7 +373,8 @@ gchar_to_ip_strict(const gchar *s, guint32 *addr, gchar const **endptr)
 
 /**
  * Decompiles ip:port into ip and port.  Leading spaces are ignored.
- * Returns TRUE if it parsed correctly, FALSE otherwise.
+ *
+ * @return TRUE if it parsed correctly, FALSE otherwise.
  */
 gboolean
 gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port)
@@ -477,7 +485,7 @@ host_to_ip(const gchar *host)
 }
 
 /**
- * Returns local host name, as pointer to static data.
+ * @returns local host name, as pointer to static data.
  */
 gchar *
 host_name(void)
@@ -520,7 +528,7 @@ ip_is_valid(guint32 ip)
  * Remove final char of string if it is a "\n" or "\r".
  * If len is 0, compute it.
  *
- * Returns new string length.
+ * @returns new string length.
  */
 gint
 str_chomp(gchar *str, gint len)
@@ -791,7 +799,7 @@ compact_kb_size(guint32 size)
 }
 
 /**
- * Return time spent in seconds in a consise short readable form
+ * @return time spent in seconds in a consise short readable form
  */
 gchar *
 short_time(gint t)
@@ -833,7 +841,7 @@ short_uptime(gint uptime)
 }
 
 /**
- * Returns hexadecimal string representing given GUID.
+ * @return hexadecimal string representing given GUID.
  */
 gchar *
 guid_hex_str(const gchar *guid)
@@ -852,7 +860,9 @@ guid_hex_str(const gchar *guid)
 }
 
 /**
- * Returns hexadecimal string representation of "small" binary buffer.
+ * @return hexadecimal string representation of "small" binary buffer.
+ *
+ * @note
  * Buffer must be less than 40 chars, or only the first 40 chars are
  * represented with a trailing "..." added to show it is incomplete.
  */
@@ -912,7 +922,8 @@ hex2dec(guchar c)
 
 /**
  * Converts hexadecimal string into a GUID.
- * Returns true if OK.
+ *
+ * @return true if OK.
  */
 gboolean
 hex_to_guid(const gchar *hexguid, gchar *guid)
@@ -934,7 +945,8 @@ hex_to_guid(const gchar *hexguid, gchar *guid)
 
 /**
  * Converts GUID into its base32 representation, without the trailing padding.
- * Returns pointer to static data.
+ *
+ * @return pointer to static data.
  */
 gchar *
 guid_base32_str(const gchar *guid)
@@ -948,7 +960,8 @@ guid_base32_str(const gchar *guid)
 
 /**
  * Decode the base32 representation of a GUID.
- * Returns pointer to static data, or NULL if the input was not valid base32.
+ *
+ * @return pointer to static data, or NULL if the input was not valid base32.
  */
 gchar *
 base32_to_guid(const gchar *base32)
@@ -966,7 +979,8 @@ base32_to_guid(const gchar *base32)
 
 /**
  * Convert binary SHA1 into a base32 string.
- * Returns pointer to static data.
+ *
+ * @return pointer to static data.
  */
 gchar *
 sha1_base32(const gchar *sha1)
@@ -983,6 +997,7 @@ sha1_base32(const gchar *sha1)
  * Convert base32 string into binary SHA1.
  *
  * @param base32 a buffer holding SHA1_BASE32_SIZE or more bytes.
+ *
  * @return	Returns pointer to static data or NULL if the input wasn't a
  *			validly base32 encoded SHA1.
  */
@@ -1000,7 +1015,8 @@ base32_sha1(const gchar *base32)
 
 /**
  * Convert time to ISO style date, e.g. "2002-06-09T14:54:42Z".
- * Returns pointer to static data.
+ *
+ * @return pointer to static data.
  */
 gchar *
 date_to_iso_gchar(time_t date)
@@ -1106,7 +1122,8 @@ date_to_rfc822(time_t date, gchar *buf, gint len)
 
 /**
  * Convert time to RFC-822 style date.
- * Returns pointer to static data.
+ *
+ * @return pointer to static data.
  */
 gchar *
 date_to_rfc822_gchar(time_t date)
@@ -1147,7 +1164,8 @@ date_to_rfc1123(time_t date, gchar *buf, gint len)
 
 /**
  * Convert time to RFC-1123 style date.
- * Returns pointer to static data.
+ *
+ * @returns pointer to static data.
  */
 gchar *
 date_to_rfc1123_gchar(time_t date)
@@ -1159,7 +1177,7 @@ date_to_rfc1123_gchar(time_t date)
 }
 
 /**
- * Returns the closest power of two greater or equal to `n'.
+ * @returns the closest power of two greater or equal to `n'.
  * next_pow2(0) and next_pow2(0x8.......) return 0.
  */
 guint32
@@ -1201,6 +1219,7 @@ highest_bit_set(guint32 n)
  * @param val The value to force within the range.
  * @param min The minimum value which val can be.
  * @param max The maximum value with val can be.
+ *
  * @return The new value of val which will be between
  *         min and max.
  */
@@ -1216,7 +1235,7 @@ force_range(gfloat val, gfloat min, gfloat max)
 }
 
 /**
- * Return random value between (0..max).
+ * @return random value between (0..max).
  */
 guint32
 random_value(guint32 max)
@@ -1666,7 +1685,7 @@ guid_random_fill(gchar *xuid)
  * Determine unique filename for `file' in `path', with optional trailing
  * extension `ext'.  If no `ext' is wanted, one must supply an empty string.
  *
- * Returns the chosen unique complete filename as a pointer which must be
+ * @returns the chosen unique complete filename as a pointer which must be
  * freed.
  */
 gchar *
@@ -1754,7 +1773,8 @@ unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 
 /**
  * Escape all non-printable chars into the hexadecimal "\xhh" form.
- * Returns new escaped string, or the original string if no escaping occurred.
+ *
+ * @returns new escaped string, or the original string if no escaping occurred.
  */
 gchar *
 hex_escape(const gchar *name, gboolean strict)
@@ -1791,7 +1811,8 @@ hex_escape(const gchar *name, gboolean strict)
 
 /**
  * Extracts the IP address into `ip' and the netmask into `netmask'.
- * Returns whether the supplied string represents a valid ip/mask combination.
+ *
+ * @returns whether the supplied string represents a valid ip/mask combination.
  *
  * Accepted forms:
  * "a.b.c.d"			implies /32
@@ -1915,7 +1936,8 @@ make_pathname(const gchar *dir, const gchar *file)
 
 /**
  * Determine stripped down path, removing SRC_PREFIX if present.
- * Returns pointer within supplied string.
+ *
+ * @returns pointer within supplied string.
  */
 gchar *
 short_filename(gchar *fullname)
@@ -2361,9 +2383,11 @@ ip_range_split(
  *
  * @param signo the signal number.
  * @param handler the signal handler to install.
+ *
  * @return the previous signal handler or SIG_ERR on failure.
  *
- * TODO: Add Configure check for SA_INTERRUPT
+ * @todo
+ * TODO: Add Configure check for SA_INTERRUPT.
  *
  */
 signal_handler_t

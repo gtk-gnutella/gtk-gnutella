@@ -63,9 +63,9 @@ typedef struct gnutella_shell {
 	gchar  outbuf[OUTPUT_BUFFER_SIZE];
 	gint32 outpos;
 	guint  write_tag;
-	time_t last_update; /* Last update (needed for timeout) */
-	gchar *msg;         /* Additional information to reply code */
-	gboolean shutdown;  /* In shutdown mode? */
+	time_t last_update; /**< Last update (needed for timeout) */
+	gchar *msg;         /**< Additional information to reply code */
+	gboolean shutdown;  /**< In shutdown mode? */
 } gnutella_shell_t;
 
 /* Don't refer to OUTPUT_BUFFER_SIZE, use sizeof */
@@ -122,7 +122,7 @@ get_command(const gchar *cmd)
 }
 
 /**
- * Returns a pointer to the end of the first token within s. If
+ * @returns a pointer to the end of the first token within s. If
  * s only consists of a single token, it returns a pointer to the
  * terminating \0 in the string.
  */
@@ -191,7 +191,7 @@ shell_unescape(gchar *s)
 }
 
 /**
- * Return the next token from s starting from position pos. Make sure
+ * @return the next token from s starting from position pos. Make sure
  * that pos is 0 or something sensible when calling this the first time!.
  * The returned string needs to be g_free-ed when no longer needed.
  */

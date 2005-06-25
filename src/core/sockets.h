@@ -24,12 +24,24 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Socket management.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
+ * @author Daniel Walker (dwalker@cats.ucsc.edu)
+ * @date 2000
+ */
+
 #ifndef _core_sockets_h_
 #define _core_sockets_h_
 
 #include "common.h"
 
-#include "if/core/wrap.h"			/* wrap_io_t */
+#include "if/core/wrap.h"			/* For wrap_io_t */
 #include "if/core/sockets.h"
 
 #ifdef USE_TLS
@@ -85,23 +97,23 @@ enum socket_type {
 };
 
 struct gnutella_socket {
-	gint file_desc;			/* file descriptor */
-	guint32 flags;			/* operating flags */
-	guint gdk_tag;			/* gdk tag */
+	gint file_desc;			/**< file descriptor */
+	guint32 flags;			/**< operating flags */
+	guint gdk_tag;			/**< gdk tag */
 
 	enum socket_direction direction;
 	enum socket_type type;
 	gboolean corked;
-	gboolean was_shutdown;	/* Set if shutdown() was used */
-	gint adns;				/* status of ADNS resolution */
-	gchar *adns_msg;		/* ADNS error message */
+	gboolean was_shutdown;	/**< Set if shutdown() was used */
+	gint adns;				/**< status of ADNS resolution */
+	gchar *adns_msg;		/**< ADNS error message */
 
-	guint32 ip;				/* IP	of our partner */
-	guint16 port;			/* Port of our partner */
+	guint32 ip;				/**< IP   of our partner */
+	guint16 port;			/**< Port of our partner */
 
-	guint16 local_port;		/* Port on our side */
+	guint16 local_port;		/**< Port on our side */
 
-	time_t last_update;		/* Timestamp of last activity on socket */
+	time_t last_update;		/**< Timestamp of last activity on socket */
 
 	struct wrap_io wio;		/**< Wrapped IO object */
 
@@ -118,28 +130,28 @@ struct gnutella_socket {
 		gpointer handle;
 	} resource;
 
-	struct getline *getline;	/* Line reader object */
+	struct getline *getline;	/**< Line reader object */
 
-	gchar buffer[SOCK_BUFSZ];	/* buffer to put in the data read */
-	size_t pos;			/* write position in the buffer */
+	gchar buffer[SOCK_BUFSZ];	/**< buffer to put in the data read */
+	size_t pos;					/**< write position in the buffer */
 };
 
 /*
  * Operating flags
  */
 
-#define SOCK_F_ESTABLISHED		0x00000001 /* Connection was established */
-#define SOCK_F_EOF				0x00000002 /* Got an EOF condition */
-#define SOCK_F_UDP				0x40000000 /* Is a UDP socket */
-#define SOCK_F_TCP				0x80000000 /* Is a TCP socket */
+#define SOCK_F_ESTABLISHED		0x00000001 /**< Connection was established */
+#define SOCK_F_EOF				0x00000002 /**< Got an EOF condition */
+#define SOCK_F_UDP				0x40000000 /**< Is a UDP socket */
+#define SOCK_F_TCP				0x80000000 /**< Is a TCP socket */
 
-/*
+/**
  * Access macros
  */
 
 #define sock_is_corked(x)		((x)->corked)
 
-/*
+/**
  * This macro verifies whether UDP support is enabled and if the UDP socket
  * has been initialized.
  */

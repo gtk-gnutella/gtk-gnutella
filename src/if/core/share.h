@@ -26,16 +26,16 @@
 #ifndef _if_core_share_h_
 #define _if_core_share_h_
 
-/*
- * Search query types
+/**
+ * Search query types.
  */
 typedef enum {
     QUERY_STRING,
     QUERY_SHA1
 } query_type_t;
 
-/*
- * Sharing callbacks
+/**
+ * Sharing callbacks.
  */
 
 typedef void (*search_request_listener_t) (

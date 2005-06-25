@@ -63,7 +63,7 @@ enum rule_flag_action {
 	RULE_FLAG_IGNORE = 2
 };
 
-/*
+/**
  * MAX_FILTER_PROP is used to know how many FILTER_PROPS there are.
  */
 typedef enum filter_prop {
@@ -72,7 +72,7 @@ typedef enum filter_prop {
 	MAX_FILTER_PROP
 } filter_prop_t;
 
-/*
+/**
  * The states a filter_property. I chose 0 for UNKNOWN because that
  * makes it easy to initialize the property array with g_new0 and
  * it's easy to check if the state is still unset by !.

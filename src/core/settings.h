@@ -23,6 +23,17 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Gtk-Gnutella configuration.
+ *
+ * @author Raphael Manfredi
+ * @author Richard Eckart
+ * @date 2001-2003
+ */
+
 #ifndef _core_settings_h_
 #define _core_settings_h_
 
@@ -30,13 +41,13 @@
 
 #include "if/core/settings.h"
 
-/*
- * Global Data
+/**
+ * Global Data.
  */
 
 extern struct in_addr *local_netmasks;
 
-/*
+/**
  * Global macros.
  */
 

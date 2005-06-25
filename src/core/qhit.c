@@ -54,19 +54,19 @@ RCSID("$Id$");
 #include "lib/getdate.h"
 #include "lib/endian.h"
 #include "lib/misc.h"
-#include "lib/override.h"		/* Must be the last header included */
+#include "lib/override.h"			/* Must be the last header included */
 
-#define QHIT_SIZE_THRESHOLD	2016	/* Flush query hits larger than this */
-#define QHIT_SIZE_OOB		645		/* Flush OOB query hits larger than this */
-#define QHIT_MAX_RESULTS	255		/* Maximum amount of hits in a query hit */
-#define QHIT_MAX_ALT		10		/* Send out 10 alt-locs per entry, max */
-#define QHIT_MAX_PROXIES	5		/* Send out 5 push-proxies at most */
-#define QHIT_MAX_GGEP		512		/* Allocated room for trailing GGEP */
+#define QHIT_SIZE_THRESHOLD	2016	/**< Flush query hits larger than this */
+#define QHIT_SIZE_OOB		645		/**< Flush OOB query hits larger than this */
+#define QHIT_MAX_RESULTS	255		/**< Maximum amount of hits in a query hit */
+#define QHIT_MAX_ALT		10		/**< Send out 10 alt-locs per entry, max */
+#define QHIT_MAX_PROXIES	5		/**< Send out 5 push-proxies at most */
+#define QHIT_MAX_GGEP		512		/**< Allocated room for trailing GGEP */
 
 /*
  * Minimal trailer length is our code NAME, the open flags, and the GUID.
  */
-#define QHIT_MIN_TRAILER_LEN	(4+3+16)	/* NAME + open flags + GUID */
+#define QHIT_MIN_TRAILER_LEN	(4+3+16)	/**< NAME + open flags + GUID */
 
 /*
  * Buffer where query hit packet is built.
@@ -78,15 +78,15 @@ RCSID("$Id$");
  */
 
 struct found_struct {
-	gchar data[64 * 1024];		/* data */
-	size_t pos;					/* current write position */
-	size_t files;				/* amount of file entries */
-	size_t max_size;			/* max query hit size */
-	gboolean use_ggep_h;		/* whether to use GGEP "H" to send SHA1 */
-	gchar *muid;				/* the MUID to put in all query hits */
-	qhit_process_t process;		/* processor once query hit is built */
-	gpointer udata;				/* processor argument */
-	gboolean open;				/* Set if found_open() was used */
+	gchar data[64 * 1024];		/**< data */
+	size_t pos;					/**< current write position */
+	size_t files;				/**< amount of file entries */
+	size_t max_size;			/**< max query hit size */
+	gboolean use_ggep_h;		/**< whether to use GGEP "H" to send SHA1 */
+	gchar *muid;				/**< the MUID to put in all query hits */
+	qhit_process_t process;		/**< processor once query hit is built */
+	gpointer udata;				/**< processor argument */
+	gboolean open;				/**< Set if found_open() was used */
 };
 
 static struct found_struct *
@@ -474,7 +474,7 @@ failure:
 /**
  * Add file to current query hit.
  *
- * Returns TRUE if we inserted the record, FALSE if we refused it due to
+ * @returns TRUE if we inserted the record, FALSE if we refused it due to
  * lack of space.
  */
 static gboolean

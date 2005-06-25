@@ -21,12 +21,22 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Needs short description here.
+ *
+ * @author Richard Eckart
+ * @date 2001-2003
+ */
+
 #ifndef _listener_h_
 #define _listener_h_
 
 #include <glib.h>
 
-/*
+/**
  * To use the macros below with a "node_added" signal for example,
  * you need to have a storage stucture to hold the listeners list
  * This needs to be defined in the following fashion. The name is

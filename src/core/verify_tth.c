@@ -107,8 +107,8 @@ struct tt_file_to_hash_s {
 
 typedef struct tt_computation_context_s tt_computation_context_t;
 struct tt_computation_context_s {
-	gint fd;					/* Handle to the file we are computing. */
-	tt_file_to_hash_t *file;	/* The file we are computing */
+	gint fd;					/**< Handle to the file we are computing. */
+	tt_file_to_hash_t *file;	/**< The file we are computing */
 
 	TT_CONTEXT *tt_ctx;
 	gchar *buffer;

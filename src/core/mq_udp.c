@@ -59,7 +59,7 @@ static const struct mq_ops mq_udp_ops;
  * information, perused by the queue to route messages.
  */
 struct mq_udp_info {
-	gnet_host_t to;		/* Destination */
+	gnet_host_t to;		/**< Destination */
 };
 
 /*

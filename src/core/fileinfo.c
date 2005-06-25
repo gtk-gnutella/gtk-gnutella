@@ -56,7 +56,7 @@ RCSID("$Id$");
 #include "settings.h"
 #include "nodes.h"
 #include "namesize.h"
-#include "http.h"				/* For http_range_t */
+#include "http.h"					/* For http_range_t */
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
@@ -72,16 +72,16 @@ RCSID("$Id$");
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
-#include "lib/override.h"		/* Must be the last header included */
+#include "lib/override.h"			/* Must be the last header included */
 
-#define FI_MIN_CHUNK_SPLIT	512		/* Smallest chunk we can split */
-#define FI_MAX_FIELD_LEN	1024	/* Max field length we accept to save */
+#define FI_MIN_CHUNK_SPLIT	512		/**< Smallest chunk we can split */
+#define FI_MAX_FIELD_LEN	1024	/**< Max field length we accept to save */
 
 struct dl_file_chunk {
-	filesize_t from;				/* Range offset start (byte included) */
-	filesize_t to;					/* Range offset end (byte EXCLUDED) */
-	enum dl_chunk_status status;	/* Status of range */
-	struct download *download;		/* Download that "reserved" the range */
+	filesize_t from;				/**< Range offset start (byte included) */
+	filesize_t to;					/**< Range offset end (byte EXCLUDED) */
+	enum dl_chunk_status status;	/**< Status of range */
+	struct download *download;		/**< Download that "reserved" the range */
 };
 
 /*
@@ -118,7 +118,7 @@ static GHashTable *fi_by_outname = NULL;
 static const gchar file_info_file[] = "fileinfo";
 static const gchar file_info_what[] = "the fileinfo database";
 static gboolean fileinfo_dirty = FALSE;
-static gboolean can_swarm = FALSE;		/* Set by file_info_retrieve() */
+static gboolean can_swarm = FALSE;		/**< Set by file_info_retrieve() */
 
 static gchar fi_tmp[4096];
 
@@ -130,34 +130,34 @@ typedef guint32 fi_magic_t;
 #define FILE_INFO_VERSION	6
 
 enum dl_file_info_field {
-	FILE_INFO_FIELD_NAME = 1,	/* No longer used in 32-bit version >= 3 */
+	FILE_INFO_FIELD_NAME = 1,	/**< No longer used in 32-bit version >= 3 */
 	FILE_INFO_FIELD_ALIAS,
 	FILE_INFO_FIELD_SHA1,
 	FILE_INFO_FIELD_CHUNK,
-	FILE_INFO_FIELD_END,		/* Marks end of field section */
+	FILE_INFO_FIELD_END,		/**< Marks end of field section */
 	FILE_INFO_FIELD_CHA1,
 
 	NUM_FILE_INFO_FIELDS
 };
 
-#define FI_STORE_DELAY		10	/* Max delay (secs) for flushing fileinfo */
-#define FI_TRAILER_INT		6	/* Amount of guint32 that make up the trailer */
+#define FI_STORE_DELAY		10	/**< Max delay (secs) for flushing fileinfo */
+#define FI_TRAILER_INT		6	/**< Amount of guint32 that make up the trailer */
 
-/*
+/**
  * The swarming trailer is built within a memory buffer first, to avoid having
  * to issue mutliple write() system calls.	We can't use stdio's buffering
  * since we can sometime reuse the download's file descriptor.
  */
 static struct {
-	gchar *arena;			/* Base arena */
-	gchar *wptr;			/* Write pointer */
-	gchar *rptr;			/* Read pointer */
-	gchar *end;				/* First byte off arena */
-	guint32 size;			/* Current size of arena */
+	gchar *arena;			/**< Base arena */
+	gchar *wptr;			/**< Write pointer */
+	gchar *rptr;			/**< Read pointer */
+	gchar *end;				/**< First byte off arena */
+	guint32 size;			/**< Current size of arena */
 } tbuf;
 
-#define TBUF_SIZE			512		/* Initial trailing buffer size */
-#define TBUF_GROW_BITS		9		/* Growing chunks */
+#define TBUF_SIZE			512		/**< Initial trailing buffer size */
+#define TBUF_GROW_BITS		9		/**< Growing chunks */
 
 #define TBUF_GROW			(1 << TBUF_GROW_BITS)
 #define TBUF_GROW_MASK		(TBUF_GROW - 1)
@@ -310,11 +310,11 @@ static struct {
  */
 
 struct trailer {
-	guint64 filesize;		/* Real file size */
-	guint32 generation;		/* Generation number */
-	guint32 length;			/* Total trailer length */
-	guint32 checksum;		/* Trailer checksum */
-	fi_magic_t magic;		/* Magic number */
+	guint64 filesize;		/**< Real file size */
+	guint32 generation;		/**< Generation number */
+	guint32 length;			/**< Total trailer length */
+	guint32 checksum;		/**< Trailer checksum */
+	fi_magic_t magic;		/**< Magic number */
 };
 
 static struct dl_file_info *file_info_retrieve_binary(
@@ -390,7 +390,7 @@ tbuf_write(gint fd, gchar *name)
 
 /**
  * Read trailer buffer at current position from `fd'.
- * Returns -1 on error.
+ * @returns -1 on error.
  */
 static gint
 tbuf_read(gint fd, gint len)
@@ -822,7 +822,7 @@ fi_alias(struct dl_file_info *fi, gchar *name, gboolean record)
  * Extract fixed trailer at the end of the file `name', already opened as `fd'.
  * The supplied trailer buffer `tb' is filled.
  *
- * Returns TRUE if the trailer is "validated", FALSE otherwise.
+ * @returns TRUE if the trailer is "validated", FALSE otherwise.
  */
 static gboolean
 file_info_get_trailer(gint fd, struct trailer *tb, const gchar *name)
@@ -944,7 +944,7 @@ file_info_has_trailer(const gchar *path)
 }
 
 /**
- * Returns TRUE if a file_info struct has a matching file name or alias,
+ * @returns TRUE if a file_info struct has a matching file name or alias,
  * and FALSE if not.
  */
 static gboolean
@@ -978,7 +978,7 @@ file_info_has_filename(struct dl_file_info *fi, gchar *file)
  * referencing the supplied file `name' and `size', as well as the
  * optional `sha1' hash.
  *
- * Returns the fileinfo structure if found, NULL otherwise.
+ * @returns the fileinfo structure if found, NULL otherwise.
  */
 static struct dl_file_info *
 file_info_lookup(gchar *name, filesize_t size, const gchar *sha1)
@@ -1051,7 +1051,7 @@ file_info_lookup(gchar *name, filesize_t size, const gchar *sha1)
 
 /**
  * Given a fileinfo structure, look for any other known duplicate.
- * Returns the duplicate found, or NULL if no duplicate was found.
+ * @returns the duplicate found, or NULL if no duplicate was found.
  */
 static struct dl_file_info *
 file_info_lookup_dup(struct dl_file_info *fi)
@@ -1110,7 +1110,7 @@ looks_like_urn(const gchar *filename)
  * Determines a human-readable filename for the file, using heuristics to
  * skip what looks like an URN.
  *
- * Returns a pointer to the information in the fileinfo, but this must be
+ * @returns a pointer to the information in the fileinfo, but this must be
  * duplicated should it be perused later.
  */
 const gchar *
@@ -1135,7 +1135,7 @@ file_info_readable_filename(const struct dl_file_info *fi)
  * If we do, return a "shared_file" structure suitable for uploading the
  * parts of the file we have (will happen only when PFSP-server is enabled).
  *
- * Return NULL if don't have any download with this SHA1, otherwise return
+ * @return NULL if don't have any download with this SHA1, otherwise return
  * a "shared_file" structure suitable for uploading the parts of the file
  * we have (which will happen only when PFSP-server is enabled).
  */
@@ -1217,7 +1217,7 @@ file_info_shared_sha1(const gchar *sha1)
 
 /**
  * Reads the file metainfo from the trailer of a file, if it exists.
- * Returns a pointer to the info structure if found, and NULL otherwise.
+ * @returns a pointer to the info structure if found, and NULL otherwise.
  */
 static struct dl_file_info *
 file_info_retrieve_binary(const gchar *file, const gchar *path)
@@ -2069,7 +2069,7 @@ file_info_reparent_all(
  * Make sure there is no other entry already bearing that SHA1, and record
  * the information.
  *
- * Returns TRUE if OK, FALSE if a duplicate record with the same SHA1 exists.
+ * @returns TRUE if OK, FALSE if a duplicate record with the same SHA1 exists.
  */
 gboolean
 file_info_got_sha1(struct dl_file_info *fi, const gchar *sha1)
@@ -2716,7 +2716,7 @@ file_info_retrieve(void)
 
 /**
  * Allocate unique output name for file `name', stored in `dir'.
- * Returns filename atom.
+ * @returns filename atom.
  */
 static gchar *
 file_info_new_outname(const gchar *name, const gchar *dir)
@@ -2865,7 +2865,7 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
 }
 
 /**
- * Returns a pointer to file_info struct that matches the given file
+ * @returns a pointer to file_info struct that matches the given file
  * name, size and/or SHA1. A new struct will be allocated if necessary.
  *
  * `file' is the file name on the server.
@@ -3008,7 +3008,7 @@ file_info_get(gchar *file, const gchar *path, filesize_t size, gchar *sha1,
 }
 
 /**
- * Returns a pointer to the file info struct if we have a file
+ * @returns a pointer to the file info struct if we have a file
  * identical to the given properties in the download queue already,
  * and NULL otherwise.
  */
@@ -3383,7 +3383,7 @@ file_info_clear_download(struct download *d, gboolean lifecount)
 	GSList *fclist;
 	struct dl_file_chunk *fc;
 	struct dl_file_info *fi = d->file_info;
-	gint busy;			/* For assertions only */
+	gint busy;			/**< For assertions only */
 
 	g_assert(file_info_check_chunklist(fi));
 	for (fclist = fi->chunklist, busy = 0; fclist; fclist = fclist->next) {
@@ -3452,7 +3452,7 @@ restart:
 }
 
 /**
- * Returns DONE if the range requested is marked as complete,
+ * @returns DONE if the range requested is marked as complete,
  * or BUSY if not. Used to determine if we can do overlap
  * checking.
  */
@@ -3480,7 +3480,7 @@ file_info_chunk_status(struct dl_file_info *fi, filesize_t from, filesize_t to)
 }
 
 /**
- * Returns the status (EMPTY, BUSY or DONE) of the byte requested.
+ * @returns the status (EMPTY, BUSY or DONE) of the byte requested.
  * Used to detect if a download is crashing with another.
  */
 enum dl_chunk_status
@@ -3819,7 +3819,7 @@ selected:	/* Selected a hole to download */
  * Find free chunk that also fully belongs to the `ranges' list.  If found,
  * the returned chunk is marked BUSY and linked to the download `d'.
  *
- * Returns TRUE if one was found, with `from' and `to' set, FALSE otherwise.
+ * @returns TRUE if one was found, with `from' and `to' set, FALSE otherwise.
  * NB: In accordance with other fileinfo semantics, `to' is NOT the last byte
  * of the range but one byte AFTER the end.
  */
@@ -3924,7 +3924,7 @@ found:
 }
 
 /**
- * Return a dl_file_info if there's an active one with the same sha1.
+ * @return a dl_file_info if there's an active one with the same sha1.
  */
 static struct dl_file_info *
 file_info_active(const gchar *sha1)
@@ -4265,7 +4265,7 @@ fi_free_ranges(GSList *ranges)
 
 
 /**
- * Return NULL terminated array of gchar * pointing to the aliases.
+ * @return NULL terminated array of gchar * pointing to the aliases.
  * You can easily free the returned array with g_strfreev().
  *
  * O(2n) - n: number of aliases
@@ -4463,7 +4463,7 @@ fi_purge(gnet_fi_t fih)
  * If there is not enough room to emit all the ranges, emit a random subset
  * of the ranges.
  *
- * Returns the size of the generated header.
+ * @returns the size of the generated header.
  */
 gint
 file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
@@ -4601,7 +4601,7 @@ emit:
  * satisfy it, even partially, without touching `start' but only only by
  * possibly moving `end' down.
  *
- * Returns TRUE if the request is satisfiable, with `end' possibly adjusted,
+ * @returns TRUE if the request is satisfiable, with `end' possibly adjusted,
  * FALSE is the request cannot be satisfied because `start' is not within
  * an available chunk.
  */

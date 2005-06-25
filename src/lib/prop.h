@@ -31,7 +31,7 @@
 
 #define NO_PROP (0)
 
-/*
+/**
  * Use this macro access a property instead of ps->props[prop]. It will
  * hide the offset of the properties, so the property array can be
  * accessed.
@@ -39,13 +39,13 @@
 #define PROP(ps, p) (ps->props[p-ps->offset])
 
 /*
- * Handle types
+ * Handle types.
  */
 typedef guint32 property_t;
 typedef guint32 property_set_t;
 
-/*
- * Available property types
+/**
+ * Available property types.
  */
 typedef enum {
     PROP_TYPE_BOOLEAN,
@@ -59,8 +59,8 @@ typedef enum {
 
 extern const gchar * const prop_type_str[];
 
-/*
- * Callback signature definition
+/**
+ * Callback signature definition.
  */
 typedef gboolean (*prop_changed_listener_t) (property_t);
 
@@ -74,7 +74,7 @@ typedef void (*prop_add_prop_changed_listener_full_t)
 typedef void (*prop_remove_prop_changed_listener_t)
     (property_t, prop_changed_listener_t);
 
-/*
+/**
  * Container struct definitions for the different property types
  */
 typedef struct prop_def_choice {
@@ -84,10 +84,10 @@ typedef struct prop_def_choice {
 
 
 typedef struct prop_def_guint32 {
-    guint32 *def;    /* default value */
-    guint32 *value;  /* current value */
-    guint32 min;     /* minimal value */
-    guint32 max;     /* maximal value */
+    guint32 *def;		/**< default value */
+    guint32 *value;		/**< current value */
+    guint32 min;		/**< minimal value */
+    guint32 max;		/**< maximal value */
     prop_def_choice_t *choices;
 } prop_def_guint32_t;
 
@@ -98,10 +98,10 @@ typedef guint32 *(*prop_get_guint32_t)
 
 
 typedef struct prop_def_guint64 {
-    guint64 *def;    /* default value */
-    guint64 *value;  /* current value */
-    guint64 min;     /* minimal value */
-    guint64 max;     /* maximal value */
+    guint64 *def;		/**< default value */
+    guint64 *value;		/**< current value */
+    guint64 min;		/**< minimal value */
+    guint64 max;		/**< maximal value */
     prop_def_choice_t *choices;
 } prop_def_guint64_t;
 
@@ -112,7 +112,7 @@ typedef guint64 *(*prop_get_guint64_t)
 
 
 typedef struct prop_def_storage {
-    gchar *value;   /* current data */
+    gchar *value;		/**< current data */
 } prop_def_storage_t;
 
 typedef void (*prop_set_storage_t)(property_t, const gchar *, size_t);
@@ -120,8 +120,8 @@ typedef gchar *(*prop_get_storage_t)(property_t, gchar *, size_t);
 
 
 typedef struct prop_def_string {
-    gchar **def;     /* default value */
-    gchar **value;   /* current value */
+    gchar **def;		/**< default value */
+    gchar **value;		/**< current value */
 } prop_def_string_t;
 
 typedef void (*prop_set_string_t)(property_t, const gchar *);
@@ -129,8 +129,8 @@ typedef gchar *(*prop_get_string_t)(property_t, gchar *, size_t);
 
 
 typedef struct prop_def_boolean {
-    gboolean *def;   /* default value */
-    gboolean *value; /* current value */
+    gboolean *def;		/**< default value */
+    gboolean *value;	/**< current value */
 } prop_def_boolean_t;
 
 typedef void (*prop_set_boolean_t)
@@ -138,12 +138,12 @@ typedef void (*prop_set_boolean_t)
 typedef gboolean *(*prop_get_boolean_t)
     (property_t, gboolean *, size_t, size_t);
 
-/*
- * Property definition
+/**
+ * Property definition.
  */
 typedef struct prop_def {
-    gchar *name; /* key used in the config file */
-    gchar *desc; /* description of the property */
+    gchar *name;		/**< key used in the config file */
+    gchar *desc;		/**< description of the property */
     prop_type_t type;
     union {
         prop_def_guint32_t  guint32;
@@ -157,7 +157,7 @@ typedef struct prop_def {
     struct event *ev_changed;
 } prop_def_t;
 
-/*
+/**
  * Property set stub to access property set.
  */
 typedef struct prop_set_stub {
@@ -193,23 +193,23 @@ typedef struct prop_set_stub {
     } string;
 } prop_set_stub_t;
 
-/*
- * Stub-fetcher signature
+/**
+ * Stub-fetcher signature.
  */
 typedef prop_set_stub_t *(*prop_set_get_stub_t)(void);
 
-/*
- * Property set definition
+/**
+ * Property set definition.
  */
 typedef struct prop_set {
-    gchar *name;       /* name of the property set */
-    gchar *desc;       /* description of what the set contains */
-    size_t size;      /* number of properties in the set */
-    size_t offset;    /* properties start numbering from here */
-    prop_def_t *props; /* Pointer to first item in array of prop_def_t */
-    GHashTable *byName;/* hashtable to quickly look up props by name */
-    time_t mtime;      /* modification time of the associated file */
-	gboolean dirty;    /* property set needs flushing to disk */
+    gchar *name;		/**< name of the property set */
+    gchar *desc;		/**< description of what the set contains */
+    size_t size;		/**< number of properties in the set */
+    size_t offset;		/**< properties start numbering from here */
+    prop_def_t *props;	/**< Pointer to first item in array of prop_def_t */
+    GHashTable *byName;	/**< hashtable to quickly look up props by name */
+    time_t mtime;		/**< modification time of the associated file */
+	gboolean dirty;		/**< property set needs flushing to disk */
     prop_set_get_stub_t get_stub;
 } prop_set_t;
 

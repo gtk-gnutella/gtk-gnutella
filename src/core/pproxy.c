@@ -55,7 +55,7 @@ RCSID("$Id$");
 
 /* Following extra needed for the client-side */
 
-#include "settings.h"		/* For listen_ip() */
+#include "settings.h"			/* For listen_ip() */
 #include "token.h"
 #include "downloads.h"
 
@@ -75,7 +75,7 @@ RCSID("$Id$");
  *** Server-side of push-proxy
  ***/
 
-static GSList *pproxies = NULL;	/* Currently active push-proxy requests */
+static GSList *pproxies = NULL;	/**< Currently active push-proxy requests */
 
 static void send_pproxy_error(struct pproxy *pp, int code,
 	const gchar *msg, ...) G_GNUC_PRINTF(3, 4);
@@ -306,7 +306,7 @@ pproxy_create(struct gnutella_socket *s)
  *
  * Fills the GUID atom into `guid_atom' and the file index into `file_idx'.
  *
- * Returns TRUE if OK, FALSE if we could not figure it out, in which case
+ * @returns TRUE if OK, FALSE if we could not figure it out, in which case
  * we also return an error to the calling party.
  */
 static gboolean
@@ -855,7 +855,7 @@ cproxy_http_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 
 /**
  * HTTP async callback for header reception notification.
- * Returns whether processing can continue.
+ * @returns whether processing can continue.
  */
 static gboolean
 cproxy_http_header_ind(gpointer handle, header_t *header,

@@ -42,9 +42,9 @@ enum {
 	MSG_PUSH_REQUEST,
 	MSG_SEARCH,
 	MSG_SEARCH_RESULTS,
-	MSG_TOTAL,     /* always counted (for all the above types) */
+	MSG_TOTAL,     /**< always counted (for all the above types) */
 	
-	MSG_TYPE_COUNT /* number of known message types */
+	MSG_TYPE_COUNT /**< number of known message types */
 };
 
 typedef enum msg_drop_reason {
@@ -76,7 +76,7 @@ typedef enum msg_drop_reason {
 	MSG_DROP_BAD_RETURN_ADDRESS,
 	MSG_DROP_HOSTILE_IP,
 	
-	MSG_DROP_REASON_COUNT /* number of known reasons to drop a message */
+	MSG_DROP_REASON_COUNT /**< number of known reasons to drop a message */
 } msg_drop_reason_t;
 
 typedef enum {
@@ -122,8 +122,8 @@ typedef enum {
 	GNR_TYPE_COUNT /* number of general stats */
 } gnr_stats_t;
 
-#define STATS_FLOWC_COLUMNS 10 /* Type, 0..7, 8+ */
-#define STATS_RECV_COLUMNS 10 /* -"- */
+#define STATS_FLOWC_COLUMNS 10	/**< Type, 0..7, 8+ */
+#define STATS_RECV_COLUMNS 10	/**< -"- */
 
 typedef struct gnet_stat {
 	guint64 drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];

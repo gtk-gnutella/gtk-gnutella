@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Ch. Tronche & Raphael Manfredi
  *
- * HUGE support (Hash/URN Gnutella Extension).
- *
  * Started by Ch. Tronche (http://tronche.com/) 28/04/2002
  *
  *----------------------------------------------------------------------
@@ -27,6 +25,18 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * HUGE support (Hash/URN Gnutella Extension).
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ * @author Ch. Tronche (http://tronche.com/)
+ * @date 2002-04-28
+ */
+
 #ifndef _core_huge_h_
 #define _core_huge_h_
 
@@ -35,8 +45,8 @@
 struct shared_file;
 struct header;
 
-void huge_init(void);		/* Call this function at the beginning */
-void huge_close(void);		/* Call this when servent is shutdown */
+void huge_init(void);		/**< Call this function at the beginning */
+void huge_close(void);		/**< Call this when servent is shutdown */
 
 /*
  * Set the sha1_digest field in a newly created shared_file.

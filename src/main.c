@@ -27,7 +27,10 @@
  * @ingroup core
  * @file
  *
- * Main function for Gtk-Gnutella.
+ * Main functions for Gtk-Gnutella.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
  */
 
 #include "common.h"
@@ -120,9 +123,9 @@
 
 RCSID("$Id$");
 
-#define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
-#define EXIT_GRACE				30	/* Seconds to wait before exiting */
-#define ATEXIT_TIMEOUT			20	/* Final cleanup must not take longer */
+#define SLOW_UPDATE_PERIOD		20	/**< Updating period for `main_slow_update' */
+#define EXIT_GRACE				30	/**< Seconds to wait before exiting */
+#define ATEXIT_TIMEOUT			20	/**< Final cleanup must not take longer */
 
 static guint main_slow_update = 0;
 static gboolean exiting = FALSE;

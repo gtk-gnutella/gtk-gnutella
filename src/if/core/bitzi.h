@@ -28,7 +28,7 @@
 
 #include "common.h"
 
-/*
+/**
  * Bitzi Meta-data structure
  *
  * Both Core and GUI have visibility of this data structure
@@ -50,16 +50,16 @@ typedef enum {
 } bitzi_fj_t;
 
 /**
- * @struct bitzi_data_t
+ * bitzi_data_t
  */
 typedef struct {
-	gchar		*urnsha1;		/* pointer to urnsha1 atom */
-	gchar		*mime_type;		/* mime type */
-	gchar		*mime_desc;		/* mime details (fps, bitrate etc) */
-	filesize_t	size;			/* size of file */
+	gchar		*urnsha1;		/**< pointer to urnsha1 atom */
+	gchar		*mime_type;		/**< mime type */
+	gchar		*mime_desc;		/**< mime details (fps, bitrate etc) */
+	filesize_t	size;			/**< size of file */
 	bitzi_fj_t	judgement;
 	gfloat		goodness;
-	time_t		expiry;			/* expiry date of meta-data */
+	time_t		expiry;			/**< expiry date of meta-data */
 } bitzi_data_t;
 
 #ifdef CORE_SOURCES

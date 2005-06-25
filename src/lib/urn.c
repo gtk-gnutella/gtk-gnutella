@@ -28,6 +28,9 @@
  * @file
  *
  * URN handling of specific formats.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2004
  */
 
 #include "common.h"
@@ -46,7 +49,7 @@ RCSID("$Id$");
  * The SHA1 typically comes from HTTP, in a X-Gnutella-Content-URN header.
  * Therefore, we unconditionally accept both old and new encodings.
  *
- * Returns TRUE if the SHA1 was valid and properly decoded, FALSE on error.
+ * @return TRUE if the SHA1 was valid and properly decoded, FALSE on error.
  */
 gboolean
 urn_get_http_sha1(const gchar *buf, gchar *retval)
@@ -97,7 +100,7 @@ invalid:
  * Locate the start of "urn:sha1:" or "urn:bitprint:" indications and extract
  * the SHA1 out of it, placing it in the supplied `digest' buffer.
  *
- * Returns whether we successfully extracted the SHA1.
+ * @return whether we successfully extracted the SHA1.
  */
 gboolean
 urn_get_sha1(const gchar *buf, gchar *digest)
@@ -127,7 +130,7 @@ urn_get_sha1(const gchar *buf, gchar *digest)
  *
  * Extract the SHA1 out of it, placing it in the supplied `digest' buffer.
  *
- * Returns whether we successfully extracted the SHA1.
+ * @return whether we successfully extracted the SHA1.
  */
 gboolean
 urn_get_sha1_no_prefix(const gchar *buf, gchar *digest)

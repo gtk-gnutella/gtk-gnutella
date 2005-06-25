@@ -1,8 +1,6 @@
 /*
  * Copyright (c) 2004, Jeroen Asselman
  *
- * Glue between gtk-gnutella and the G2 'lib'
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,7 +21,24 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup undoc
+ * @file
+ *
+ * Glue between Gtk-Gnutella and the G2 'lib'
+ *
+ * @author Jeroen Asselman
+ * @date 2004
+ */
+
+#ifndef _g2node_h_
+#define _g2node_h_
+
 #include "gnutella.h"
 #include "pmsg.h"
 
 gboolean g2_node_read(struct gnutella_node *n, pmsg_t *mb);
+
+#endif /* _g2node_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

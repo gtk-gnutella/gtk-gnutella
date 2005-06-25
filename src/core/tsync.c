@@ -49,7 +49,7 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-#define TSYNC_EXPIRE_MS		(60*1000)	/* Expiration time: 60 secs */
+#define TSYNC_EXPIRE_MS		(60*1000)	/**< Expiration time: 60 secs */
 
 typedef enum {
 	TSYNC_MAGIC = 0x781f372f
@@ -60,17 +60,17 @@ typedef enum {
  * along with the event that will expire those entries.
  */
 struct tsync {
-	tsync_magic_t magic;	/* Magic of this structure for consistency checks */
-	tm_t sent;				/* Time at which we sent the synchronization */
-	guint32 node_id;		/* Node to which we sent the request */
-	gpointer expire_ev;		/* Expiration callout queue callback */
-	gboolean udp;			/* Whether request was sent using UDP */
+	tsync_magic_t magic;	/**< Magic of this structure for consistency checks */
+	tm_t sent;				/**< Time at which we sent the synchronization */
+	guint32 node_id;		/**< Node to which we sent the request */
+	gpointer expire_ev;		/**< Expiration callout queue callback */
+	gboolean udp;			/**< Whether request was sent using UDP */
 };
 
 /*
  * Table recording the "tsync" structures, indexed by sent time.
  */
-static GHashTable *tsync_by_time = NULL;	/* tm_t -> tsync */
+static GHashTable *tsync_by_time = NULL;	/**< tm_t -> tsync */
 
 /**
  * Free a tsync structure.

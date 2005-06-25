@@ -41,14 +41,14 @@
 struct gnutella_socket;
 
 /**
- * Return codes for ban_allow().
+ * @return codes for ban_allow().
  */
 
 typedef enum {
-	BAN_OK		= 0,		/* OK, don't ban and accept the connection */
-	BAN_FIRST	= 1,		/* Initial banning, send polite denial */
-	BAN_FORCE	= 2,		/* Force banning, don't send back anything */
-	BAN_MSG		= 3			/* Ban with explicit message */
+	BAN_OK		= 0,		/**< OK, don't ban and accept the connection */
+	BAN_FIRST	= 1,		/**< Initial banning, send polite denial */
+	BAN_FORCE	= 2,		/**< Force banning, don't send back anything */
+	BAN_MSG		= 3			/**< Ban with explicit message */
 } ban_type_t;
 
 void ban_init(void);

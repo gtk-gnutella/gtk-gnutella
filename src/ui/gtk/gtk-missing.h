@@ -79,34 +79,34 @@ gint gtk_ctree_count_node_children(GtkCTree *ctree, GtkCTreeNode *parent);
     ((n) ? (GTK_CTREE_ROW(n)->parent) : NULL)
 #endif /* USE_GTK1 */
 
-/*
+/**
  * GtkLabel
  */
 void gtk_label_printf(GtkLabel *, const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
 
-/*
+/**
  * GtkEntry
  */
 void gtk_entry_printf(GtkEntry *, const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
 
-/*
+/**
  * GtkEditable
  */
 guint32 gtk_editable_get_value_as_uint(GtkEditable *editable);
 
-/*
+/**
  * GtkCombo
  */
 void gtk_combo_init_choices(
     GtkCombo* combo, GtkSignalFunc func, prop_def_t *def, gpointer user_data);
 
-/*
+/**
  * GtkOptionMenu
  */
 void option_menu_select_item_by_data(GtkWidget *m, gpointer *d);
 gpointer option_menu_get_selected_data(GtkWidget *m);
 
-/*
+/**
  * GtkWidget
  */
 void gtk_mass_widget_set_sensitive(GtkWidget *tl, gchar *list[], gboolean b);
@@ -139,4 +139,5 @@ GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb);
 void gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra);
 
 #endif	/* _gtk_gtk_missing_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */

@@ -66,26 +66,26 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-#define PCACHE_MAX_FILES	10000000	/* Arbitrarily large file count */
-#define PCACHE_UHC_MAX_IP	30			/* Max amount of IP:port returned */
+#define PCACHE_MAX_FILES	10000000	/**< Arbitrarily large file count */
+#define PCACHE_UHC_MAX_IP	30			/**< Max amount of IP:port returned */
 
-/*
+/**
  * Basic pong information.
  */
 struct pong_info {
-	guint32 ip;				/* Values from the pong message */
+	guint32 ip;				/**< Values from the pong message */
 	guint32 port;
 	guint32 files_count;
 	guint32 kbytes_count;
 };
 
 enum ping_flag {
-	PING_F_NONE			= 0,		/* No special ping */
-	PING_F_UHC			= (1 << 0),	/* UHC ping */
-	PING_F_UHC_LEAF		= (1 << 1),	/* UHC ping, wants leaf slots */
-	PING_F_UHC_ULTRA	= (1 << 2),	/* UHC ping, wants ultra slots */
+	PING_F_NONE			= 0,		/**< No special ping */
+	PING_F_UHC			= (1 << 0),	/**< UHC ping */
+	PING_F_UHC_LEAF		= (1 << 1),	/**< UHC ping, wants leaf slots */
+	PING_F_UHC_ULTRA	= (1 << 2),	/**< UHC ping, wants ultra slots */
 	PING_F_UHC_ANY		= (PING_F_UHC_LEAF | PING_F_UHC_ULTRA),
-	PING_F_IP			= (1 << 3)	/* GGEP IP */
+	PING_F_IP			= (1 << 3)	/**< GGEP IP */
 };
 
 static pong_meta_t local_meta;
@@ -620,25 +620,25 @@ send_neighbouring_info(struct gnutella_node *n)
 static time_t pcache_expire_time = 0;
 static gpointer udp_pings = NULL;
 
-struct cached_pong {		/* A cached pong */
-	gint refcount;			/* How many lists reference us? */
-	guint32 node_id;		/* The node ID from which we got that pong */
-	guint32 last_sent_id;	/* Node ID to which we last sent this pong */
-	struct pong_info info;	/* Values from the pong message */
-	pong_meta_t *meta;		/* Optional meta data */
+struct cached_pong {		/**< A cached pong */
+	gint refcount;			/**< How many lists reference us? */
+	guint32 node_id;		/**< The node ID from which we got that pong */
+	guint32 last_sent_id;	/**< Node ID to which we last sent this pong */
+	struct pong_info info;	/**< Values from the pong message */
+	pong_meta_t *meta;		/**< Optional meta data */
 };
 
-struct cache_line {			/* A cache line for a given hop value */
-	gint hops;				/* Hop count of this cache line */
-	GSList *pongs;			/* List of cached_pong */
-	GSList *cursor;			/* Cursor within list: last item traversed */
+struct cache_line {			/**< A cache line for a given hop value */
+	gint hops;				/**< Hop count of this cache line */
+	GSList *pongs;			/**< List of cached_pong */
+	GSList *cursor;			/**< Cursor within list: last item traversed */
 };
 
 struct recent {
-	GHashTable *ht_recent_pongs;	/* Recent pongs we know about */
-	GList *recent_pongs;			/* Recent pongs we got */
-	GList *last_returned_pong;		/* Last returned from list */
-	gint recent_pong_count;			/* # of pongs in recent list */
+	GHashTable *ht_recent_pongs;	/**< Recent pongs we know about */
+	GList *recent_pongs;			/**< Recent pongs we got */
+	GList *last_returned_pong;		/**< Last returned from list */
+	gint recent_pong_count;			/**< # of pongs in recent list */
 };
 
 #define PONG_CACHE_SIZE		(MAX_CACHE_HOPS+1)
@@ -646,16 +646,16 @@ struct recent {
 static struct cache_line pong_cache[PONG_CACHE_SIZE];
 static struct recent recent_pongs[HOST_MAX];
 
-#define CACHE_UP_LIFESPAN	20		/* seconds -- ultra/normal mode */
-#define CACHE_LEAF_LIFESPAN	120		/* seconds -- leaf mode */
-#define MAX_PONGS			10		/* Max pongs returned per ping */
-#define OLD_PING_PERIOD		45		/* Pinging period for "old" clients */
-#define OLD_CACHE_RATIO		20		/* % of pongs from "old" clients we cache */
-#define RECENT_PING_SIZE	50		/* remember last 50 pongs we saw */
-#define MIN_UP_PING			3		/* ping at least 3 neighbours */
-#define UP_PING_RATIO		20		/* ping 20% of UP, at random */
+#define CACHE_UP_LIFESPAN	20		/**< seconds -- ultra/normal mode */
+#define CACHE_LEAF_LIFESPAN	120		/**< seconds -- leaf mode */
+#define MAX_PONGS			10		/**< Max pongs returned per ping */
+#define OLD_PING_PERIOD		45		/**< Pinging period for "old" clients */
+#define OLD_CACHE_RATIO		20		/**< % of pongs from "old" clients we cache */
+#define RECENT_PING_SIZE	50		/**< remember last 50 pongs we saw */
+#define MIN_UP_PING			3		/**< ping at least 3 neighbours */
+#define UP_PING_RATIO		20		/**< ping 20% of UP, at random */
 
-#define UDP_PING_FREQ		60		/* answer to 1 ping per minute per IP */
+#define UDP_PING_FREQ		60		/**< answer to 1 ping per minute per IP */
 
 #define cache_lifespan(m)	\
 	((m) == NODE_P_LEAF ? CACHE_LEAF_LIFESPAN : CACHE_UP_LIFESPAN)
@@ -1190,7 +1190,7 @@ setup_pong_demultiplexing(struct gnutella_node *n, guint8 ttl)
  * that did not originate from it.  Update `cursor' in the cached line
  * to be the address of the last traversed item.
  *
- * Return FALSE if we're definitely done, TRUE if we can still iterate.
+ * @return FALSE if we're definitely done, TRUE if we can still iterate.
  */
 static gboolean
 iterate_on_cached_line(
@@ -1329,7 +1329,7 @@ send_demultiplexed_pongs(gnutella_node_t *n)
 		return;
 
 	/*
-	 * Return cached pongs if we have some and they are needed.
+	 * @return cached pongs if we have some and they are needed.
 	 * We first try to send pongs on a per-hop basis, based on pong_needed[].
 	 *
 	 * NB: if we can send IPs in a single IPP extension, then we supply a
@@ -1612,7 +1612,7 @@ pong_extract_metadata(struct gnutella_node *n)
 
 /**
  * Add pong from node `n' to our cache of recent pongs.
- * Returns the cached pong object.
+ * @returns the cached pong object.
  */
 static struct cached_pong *
 record_fresh_pong(

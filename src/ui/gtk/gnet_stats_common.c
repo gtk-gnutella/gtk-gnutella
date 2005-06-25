@@ -177,7 +177,7 @@ general_type_str(gint value)
 }
 
 /**
- * Returns the cell contents for the horizon stats table.
+ * @returns the cell contents for the horizon stats table.
  * NB: The static buffers for each column are disjunct.
  */
 const gchar *

@@ -28,11 +28,11 @@
 
 #include <glib.h>
 
-#include "lib/event.h"			/* For frequency_t */
+#include "lib/event.h"		/* For frequency_t */
 
 typedef guint64 hsep_triple[3];
 
-#define HSEP_N_MAX 7		/* number of hops to consider */
+#define HSEP_N_MAX 7		/**< number of hops to consider */
 
 enum {
 	HSEP_IDX_NODES = 0,
@@ -47,15 +47,15 @@ enum {
 #ifdef CORE_SOURCES
 
 typedef struct {
-	hsep_triple table[HSEP_N_MAX + 1];        /* Connection's HSEP table */
-	hsep_triple sent_table[HSEP_N_MAX];     /* Previous table sent */
-	time_t last_sent;                       /* When last msg was sent */
-	time_t last_received;                   /* When last msg was rcvd */
-	guint32 msgs_received;                  /* # of msgs received */
-	guint32 triples_received;               /* # of triples received */
-	guint32 msgs_sent;                      /* # of msgs sent */
-	guint32 triples_sent;                   /* # of triples sent */
-	gint random_skew;		 /* additonal random delay for next exchange */
+	hsep_triple table[HSEP_N_MAX + 1];      /**< Connection's HSEP table */
+	hsep_triple sent_table[HSEP_N_MAX];     /**< Previous table sent */
+	time_t last_sent;                       /**< When last msg was sent */
+	time_t last_received;                   /**< When last msg was rcvd */
+	guint32 msgs_received;                  /**< # of msgs received */
+	guint32 triples_received;               /**< # of triples received */
+	guint32 msgs_sent;                      /**< # of msgs sent */
+	guint32 triples_sent;                   /**< # of triples sent */
+	gint random_skew;		/**< additonal random delay for next exchange */
 } hsep_ctx_t;
 
 const gchar *hsep_get_static_str(gint row, gint column);

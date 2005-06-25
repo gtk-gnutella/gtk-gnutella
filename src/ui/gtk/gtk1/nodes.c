@@ -42,9 +42,9 @@ RCSID("$Id$");
 
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
-#include "lib/override.h"		/* Must be the last header included */
+#include "lib/override.h"	/* Must be the last header included */
 
-#define UPDATE_MIN	300		/* Update screen every 5 minutes at least */
+#define UPDATE_MIN	300		/**< Update screen every 5 minutes at least */
 
 /*
  * These hash tables record which information about which nodes has
@@ -348,6 +348,7 @@ nodes_gui_add_node(gnet_node_info_t *n)
 /**
  * Update all the nodes at the same time.
  *
+ * @todo
  * FIXME: we should remember for every node when it was last
  *        updated and only refresh every node at most once every
  *        second. This information should be kept in a struct pointed

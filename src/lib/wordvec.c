@@ -28,6 +28,9 @@
  * @file
  *
  * Word vector.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
  */
 
 #include "common.h"
@@ -40,9 +43,9 @@ RCSID("$Id$");
 #include "zalloc.h"
 #include "override.h"		/* Must be the last header included */
 
-#define WOVEC_DFLT	10		/* Default size of word-vectors */
+#define WOVEC_DFLT	10		/**< Default size of word-vectors */
 
-static zone_t *wovec_zone = NULL;	/* Word-vectors of WOVEC_DFLT entries */
+static zone_t *wovec_zone = NULL;	/**< Word-vectors of WOVEC_DFLT entries */
 
 /**
  * Initialize matching data structures.
@@ -104,7 +107,7 @@ word_vec_zrealloc(word_vec_t *wv, gint ncount)
  * with the amount of items held into that vector.
  * Words are broken on non-alphanumeric boundaries.
  *
- * Returns the amount of valid items in the built vector, and fill `wovec'
+ * @returns the amount of valid items in the built vector, and fill `wovec'
  * with the pointer to the allocated vector.  If there are no items, there
  * is no vector returned.
  */

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003, Richard Eckart
  *
- * Displaying of file information in the gui.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * Displaying of file information in the GUI.
+ *
+ * @author Richard Eckart
+ * @date 2003
  */
 
 #include "gtk/gui.h"
@@ -547,15 +555,15 @@ fi_gui_init(void)
     	{ c_fi_status,   N_("Status"),	0.0, NULL, -1 }
 	};
 	static GType types[] = {
-		G_TYPE_STRING,	/* Filename */
-		G_TYPE_STRING,	/* Size		*/
-		G_TYPE_STRING,	/* Done		*/
-		G_TYPE_STRING,	/* Sources	*/
-		G_TYPE_STRING,	/* Status	*/
-		G_TYPE_UINT,	/* Fileinfo handle		*/
-		G_TYPE_UINT64,	/* Size (for sorting)	*/
-		G_TYPE_UINT,	/* Done (for sorting)	*/
-		G_TYPE_UINT		/* Sources (for sorting */
+		G_TYPE_STRING,	/**< Filename	*/
+		G_TYPE_STRING,	/**< Size		*/
+		G_TYPE_STRING,	/**< Done		*/
+		G_TYPE_STRING,	/**< Sources	*/
+		G_TYPE_STRING,	/**< Status		*/
+		G_TYPE_UINT,	/**< Fileinfo handle		*/
+		G_TYPE_UINT64,	/**< Size (for sorting)		*/
+		G_TYPE_UINT,	/**< Done (for sorting)		*/
+		G_TYPE_UINT		/**< Sources (for sorting	*/
 	};
     static const GtkTargetEntry targets[] = {
         { "STRING", 0, 23 },

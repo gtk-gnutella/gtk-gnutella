@@ -2,6 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2002, Michael Tesch
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -21,15 +22,30 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup gtk
+ * @file
  *
- * search_stats.c - keep track of what search terms we have seen, and
- *					how frequently each has been seen.
+ * Needs short description here.
  *
- *		this uses the glib hash tables and lists, but a much more efficient
- *		implementation could be done with a specialized hash table /
- *		re-keyable binary tree. (TODO?)	would be easy in c++.
+ * Keep track of what search terms we have seen, and how frequently
+ * each has been seen.
  *
- *		(C) 2002 Michael Tesch, released with gtk-gnutella & its license
+ * @note
+ * This uses the glib hash tables and lists, but a much more efficient
+ * implementation could be done with a specialized hash table /
+ * re-keyable binary tree.
+ *
+ * @todo Would be easy in C++.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
+ * @author Michael Tesch
+ * @date 2002
+ *
+ * Released with gtk-gnutella & its license.
  */
 
 #include "gtk/gui.h"
@@ -49,7 +65,9 @@ RCSID("$Id$");
 #include "lib/wordvec.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-/* this is what the stat_hash's 'val' points to */
+/**
+ * This is what the stat_hash's 'val' points to.
+ */
 struct term_counts {
 	guint32 period_cnt;
 	guint32 total_cnt;
@@ -169,8 +187,9 @@ empty_hash_table(void)
 /**
  * helper func for stats_display -
  *  does two things:
- *  1. clears out aged / infrequent search terms
- *  2. sticks the rest of the search terms in clist_search_stats
+ *
+ *  - clears out aged / infrequent search terms
+ *  - sticks the rest of the search terms in clist_search_stats
  *
  */
 static gboolean

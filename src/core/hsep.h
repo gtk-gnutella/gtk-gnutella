@@ -1,8 +1,6 @@
 /*
  * Copyright (c) 2004, Thomas Schuerger & Jeroen Asselman
  *
- * Horizon Size Estimation Protocol 0.2
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,17 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Horizon Size Estimation Protocol 0.2.
+ *
+ * @author Thomas Schuerger
+ * @author Jeroen Asselman
+ * @date 2004
+ */
+
 #ifndef _core_hsep_h_
 #define _core_hsep_h_
 
@@ -33,13 +42,13 @@
 #define HSEP_VERSION_MINOR 2
 
 /**
- * average time in seconds before resending a HSEP message to a node
+ * Average time in seconds before resending a HSEP message to a node
  * (can be increased to 60)
  */
 #define HSEP_MSG_INTERVAL 30
 
 /**
- * random skew in seconds for message interval
+ * Random skew in seconds for message interval
  * time is in the interval msg_interval +/- msg_skew
  */
 #define HSEP_MSG_SKEW 10

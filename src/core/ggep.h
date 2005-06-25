@@ -42,25 +42,25 @@
 
 #include <glib.h>
 
-#define GGEP_MAGIC		'\xc3'		/* GGEP extension prefix */
+#define GGEP_MAGIC		'\xc3'		/**< GGEP extension prefix */
 
 /*
  * GGEP Extension Header Flags.
  */
 
-#define GGEP_F_LAST		0x80U		/* Last extension in GGEP block */
-#define GGEP_F_COBS		0x40U		/* Whether COBS was used on payload */
-#define GGEP_F_DEFLATE	0x20U		/* Whether payload was deflated */
-#define GGEP_F_MBZ		0x10U		/* Bits that Must Be Zero */
-#define GGEP_F_IDLEN	0x0fU		/* Where ID length is stored */
+#define GGEP_F_LAST		0x80U		/**< Last extension in GGEP block */
+#define GGEP_F_COBS		0x40U		/**< Whether COBS was used on payload */
+#define GGEP_F_DEFLATE	0x20U		/**< Whether payload was deflated */
+#define GGEP_F_MBZ		0x10U		/**< Bits that Must Be Zero */
+#define GGEP_F_IDLEN	0x0fU		/**< Where ID length is stored */
 
 /*
  * GGEP Length Encoding.
  */
 
-#define GGEP_L_CONT		'\x80'		/* Continuation present */
-#define GGEP_L_LAST		'\x40'		/* Last byte */
-#define GGEP_L_VALUE	'\x3f'		/* Value */
+#define GGEP_L_CONT		'\x80'		/**< Continuation present */
+#define GGEP_L_LAST		'\x40'		/**< Last byte */
+#define GGEP_L_VALUE	'\x3f'		/**< Value */
 #define GGEP_L_VSHIFT	6
 
 #define GGEP_L_XFLAGS	(GGEP_L_CONT | GGEP_L_LAST)
@@ -69,37 +69,37 @@
  * The "H" extension
  */
 
-#define GGEP_H_SHA1		0x01		/* Binary SHA1 */
-#define GGEP_H_BITPRINT	0x02		/* Bitprint (SHA1 + Tiger tree root) */
-#define GGEP_H_MD5		0x03		/* Binary MD5 */
-#define GGEP_H_UUID		0x04		/* Binary UUID (GUID-like) */
-#define GGEP_H_MD4		0x05		/* Binary MD4 */
+#define GGEP_H_SHA1		0x01		/**< Binary SHA1 */
+#define GGEP_H_BITPRINT	0x02		/**< Bitprint (SHA1 + Tiger tree root) */
+#define GGEP_H_MD5		0x03		/**< Binary MD5 */
+#define GGEP_H_UUID		0x04		/**< Binary UUID (GUID-like) */
+#define GGEP_H_MD4		0x05		/**< Binary MD4 */
 
 /*
  * Flags for ggep_ext_write() and friends.
  */
 
-#define GGEP_W_LAST		0x00000001	/* This is the last extension */
-#define GGEP_W_COBS		0x00000002	/* Attempt COBS encoding, if needed */
-#define GGEP_W_DEFLATE	0x00000004	/* Attempt payload compression */
-#define GGEP_W_FIRST	0x00000008	/* First extension, write GGEP_MAGIC */
+#define GGEP_W_LAST		0x00000001	/**< This is the last extension */
+#define GGEP_W_COBS		0x00000002	/**< Attempt COBS encoding, if needed */
+#define GGEP_W_DEFLATE	0x00000004	/**< Attempt payload compression */
+#define GGEP_W_FIRST	0x00000008	/**< First extension, write GGEP_MAGIC */
 
-/*
+/**
  * Structure keeping track of incremental GGEP writes.
  */
 typedef struct ggep_stream {
-	gchar *outbuf;				/* Base address of output buffer */
-	gchar *end;					/* First address beyond output buffer */
-	gchar *o;					/* Where next output should go */
-	gchar *fp;					/* Where flags for current extension are */
-	gchar *lp;					/* Where length should be written when known */
-	gchar *last_fp;				/* Flags of last successfully written ext. */
-	size_t size;				/* Size of the outbuf buffer */
-	guint8 flags;				/* Extension flags (COBS / DEFLATE) */
-	gboolean magic_emitted;		/* Whether leading magic was emitted */
-	gboolean begun;				/* Whether extension was correctly begun */
-	cobs_stream_t cs;			/* Used if COBS needed */
-	zlib_deflater_t *zd;		/* Allocated and used if deflation needed */
+	gchar *outbuf;				/**< Base address of output buffer */
+	gchar *end;					/**< First address beyond output buffer */
+	gchar *o;					/**< Where next output should go */
+	gchar *fp;					/**< Where flags for current extension are */
+	gchar *lp;					/**< Where length should be written when known */
+	gchar *last_fp;				/**< Flags of last successfully written ext. */
+	size_t size;				/**< Size of the outbuf buffer */
+	guint8 flags;				/**< Extension flags (COBS / DEFLATE) */
+	gboolean magic_emitted;		/**< Whether leading magic was emitted */
+	gboolean begun;				/**< Whether extension was correctly begun */
+	cobs_stream_t cs;			/**< Used if COBS needed */
+	zlib_deflater_t *zd;		/**< Allocated and used if deflation needed */
 } ggep_stream_t;
 
 /*

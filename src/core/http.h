@@ -38,9 +38,9 @@
 
 #include "if/core/http.h"
 
-#define HTTP_PORT		80		/* Registered HTTP port */
+#define HTTP_PORT		80		/**< Registered HTTP port */
 
-/*
+/**
  * http_send_status() additional header description:
  */
 
@@ -66,12 +66,12 @@ typedef void (*http_status_cb_t)(
 	gchar *buf, gint *retlen, gpointer arg, guint32 flags);
 
 typedef struct {
-	http_extra_type_t he_type;		/* Union discriminent */
+	http_extra_type_t he_type;		/**< Union discriminent */
 	union {
-		gchar *u_msg;				/* Single header line */
+		gchar *u_msg;				/**< Single header line */
 		struct {
-			http_status_cb_t u_cb;	/* Callback to compute header field */
-			gpointer u_arg;			/* Callback context argument */
+			http_status_cb_t u_cb;	/**< Callback to compute header field */
+			gpointer u_arg;			/**< Callback context argument */
 		} u_cbk;
 	} u;
 } http_extra_desc_t;
@@ -84,10 +84,10 @@ typedef struct {
  * Flags used during callback invocation.
  */
 
-#define HTTP_CBF_SMALL_REPLY	0x00000001	/* Try to emit smallest reply */
-#define HTTP_CBF_BW_SATURATED	0x00000002	/* Bandwidth is saturated */
-#define HTTP_CBF_BUSY_SIGNAL	0x00000004	/* Sending back a 503 "busy" */
-#define HTTP_CBF_SHOW_RANGES	0x00000008	/* Show available ranges */
+#define HTTP_CBF_SMALL_REPLY	0x00000001	/**< Try to emit smallest reply */
+#define HTTP_CBF_BW_SATURATED	0x00000002	/**< Bandwidth is saturated */
+#define HTTP_CBF_BUSY_SIGNAL	0x00000004	/**< Sending back a 503 "busy" */
+#define HTTP_CBF_SHOW_RANGES	0x00000008	/**< Show available ranges */
 
 struct header;
 
@@ -107,17 +107,17 @@ typedef gboolean (*http_header_cb_t)(
  */
 typedef void (*http_data_cb_t)(gpointer h, gchar *data, gint len);
 
-typedef enum {				/* Type of error reported by http_error_cb_t */
-	HTTP_ASYNC_SYSERR,		/* System error, value is errno */
-	HTTP_ASYNC_ERROR,		/* Internal error, value is error code */
-	HTTP_ASYNC_HEADER,		/* Internal header error, value is error code */
-	HTTP_ASYNC_HTTP			/* HTTP error, value is http_error_t pointer */
+typedef enum {				/**< Type of error reported by http_error_cb_t */
+	HTTP_ASYNC_SYSERR,		/**< System error, value is errno */
+	HTTP_ASYNC_ERROR,		/**< Internal error, value is error code */
+	HTTP_ASYNC_HEADER,		/**< Internal header error, value is error code */
+	HTTP_ASYNC_HTTP			/**< HTTP error, value is http_error_t pointer */
 } http_errtype_t;
 
 typedef struct {
-	struct header *header;	/* Parsed HTTP header */
-	gint code;				/* HTTP status code */
-	const gchar *message;	/* HTTP status message */
+	struct header *header;	/**< Parsed HTTP header */
+	gint code;				/**< HTTP status code */
+	const gchar *message;	/**< HTTP status message */
 } http_error_t;
 
 /**
@@ -126,6 +126,7 @@ typedef struct {
  * Callback used from asynchronous request to indicate that an error occurred.
  * The type of `val' depends on the `error'.
  */
+
 typedef void (*http_error_cb_t)(gpointer h, http_errtype_t error, gpointer val);
 
 /**
@@ -133,9 +134,12 @@ typedef void (*http_error_cb_t)(gpointer h, http_errtype_t error, gpointer val);
  *
  * Callabck to free user opaque data.
  */
+
 typedef void (*http_user_free_t)(gpointer data);
 
 /**
+ * http_op_request_t
+ *
  * Asynchronous operations that the user may redefine.
  */
 
@@ -146,58 +150,57 @@ typedef size_t (*http_op_request_t)(gpointer handle, gchar *buf, size_t len,
  * Asynchronous request error codes.
  */
 
-#define HTTP_ASYNC_OK				0	/* OK */
-#define HTTP_ASYNC_BAD_URL			1	/* Invalid HTTP URL */
-#define HTTP_ASYNC_CONN_FAILED		2	/* Connection failed */
-#define HTTP_ASYNC_IO_ERROR			3	/* I/O error */
-#define HTTP_ASYNC_REQ2BIG			4	/* Request too big */
-#define HTTP_ASYNC_HEAD2BIG			5	/* Header too big */
-#define HTTP_ASYNC_CANCELLED		6	/* User cancel */
-#define HTTP_ASYNC_EOF				7	/* Got EOF */
-#define HTTP_ASYNC_BAD_STATUS		8	/* Unparseable HTTP status */
-#define HTTP_ASYNC_NO_LOCATION		9	/* Got moved status, but no location */
-#define HTTP_ASYNC_CONN_TIMEOUT		10	/* Connection timeout */
-#define HTTP_ASYNC_TIMEOUT			11	/* Data timeout */
-#define HTTP_ASYNC_NESTED			12	/* Nested redirections */
-#define HTTP_ASYNC_BAD_LOCATION_URI	13	/* Invalid URI in Location header */
-#define HTTP_ASYNC_CLOSED			14	/* Connection was closed, all OK */
-#define HTTP_ASYNC_REDIRECTED		15	/* Redirected, following disabled */
+#define HTTP_ASYNC_OK				0	/**< OK */
+#define HTTP_ASYNC_BAD_URL			1	/**< Invalid HTTP URL */
+#define HTTP_ASYNC_CONN_FAILED		2	/**< Connection failed */
+#define HTTP_ASYNC_IO_ERROR			3	/**< I/O error */
+#define HTTP_ASYNC_REQ2BIG			4	/**< Request too big */
+#define HTTP_ASYNC_HEAD2BIG			5	/**< Header too big */
+#define HTTP_ASYNC_CANCELLED		6	/**< User cancel */
+#define HTTP_ASYNC_EOF				7	/**< Got EOF */
+#define HTTP_ASYNC_BAD_STATUS		8	/**< Unparseable HTTP status */
+#define HTTP_ASYNC_NO_LOCATION		9	/**< Got moved status, but no location */
+#define HTTP_ASYNC_CONN_TIMEOUT		10	/**< Connection timeout */
+#define HTTP_ASYNC_TIMEOUT			11	/**< Data timeout */
+#define HTTP_ASYNC_NESTED			12	/**< Nested redirections */
+#define HTTP_ASYNC_BAD_LOCATION_URI	13	/**< Invalid URI in Location header */
+#define HTTP_ASYNC_CLOSED			14	/**< Connection was closed, all OK */
+#define HTTP_ASYNC_REDIRECTED		15	/**< Redirected, following disabled */
 
 extern guint http_async_errno;
 
-/*
+/**
  * Error codes from http_url_parse().
  */
 
 typedef enum {
-	HTTP_URL_OK = 0,					/* All OK */
-	HTTP_URL_NOT_HTTP,					/* Not an http URI */
-	HTTP_URL_MULTIPLE_CREDENTIALS,		/* More than one <user>:<password> */
-	HTTP_URL_BAD_CREDENTIALS,			/* Truncated <user>:<password> */
-	HTTP_URL_BAD_PORT_PARSING,			/* Could not parse port */
-	HTTP_URL_BAD_PORT_RANGE,			/* Port value is out of range */
-	HTTP_URL_HOSTNAME_UNKNOWN,			/* Could not resolve host into IP */
-	HTTP_URL_MISSING_URI				/* URL has no URI part */
+	HTTP_URL_OK = 0,					/**< All OK */
+	HTTP_URL_NOT_HTTP,					/**< Not an http URI */
+	HTTP_URL_MULTIPLE_CREDENTIALS,		/**< More than one "<user>:<password>" */
+	HTTP_URL_BAD_CREDENTIALS,			/**< Truncated "<user>:<password>" */
+	HTTP_URL_BAD_PORT_PARSING,			/**< Could not parse port */
+	HTTP_URL_BAD_PORT_RANGE,			/**< Port value is out of range */
+	HTTP_URL_HOSTNAME_UNKNOWN,			/**< Could not resolve host into IP */
+	HTTP_URL_MISSING_URI				/**< URL has no URI part */
 } http_url_error_t;
 
 extern http_url_error_t http_url_errno;
 
 /**
- * http_state_change_t
- *
  * Callabck to notify about state changes in HTTP request.
  */
+
 typedef void (*http_state_change_t)(gpointer handle, http_state_t newstate);
 
-/*
+/**
  * HTTP data buffered when it cannot be sent out immediately.
  */
 
 typedef struct http_buffer {
-	gchar *hb_arena;		/* The whole thing */
-	gchar *hb_rptr;			/* Reading pointer within arena */
-	gchar *hb_end;			/* First char after buffer */
-	gint hb_len;			/* Total arena length */
+	gchar *hb_arena;				/**< The whole thing */
+	gchar *hb_rptr;					/**< Reading pointer within arena */
+	gchar *hb_end;					/**< First char after buffer */
+	gint hb_len;					/**< Total arena length */
 } http_buffer_t;
 
 #define http_buffer_base(hb)		((hb)->hb_arena)

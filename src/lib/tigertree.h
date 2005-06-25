@@ -1,10 +1,7 @@
 /*
  * $Id$
  *
- * This file comes from http://sourceforge.net/projects/tigertree/
- * Inclusion in gtk-gnutella is:
- *
- *   Copyright (c) 2003, Jeroen Asselman
+ * Copyright (c) 2003, Jeroen Asselman
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -26,7 +23,18 @@
  *----------------------------------------------------------------------
  */
 
-/* tigertree.h
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Implementation of the TigerTree algorithm.
+ *
+ * This file comes from http://sourceforge.net/projects/tigertree/
+ * Inclusion in gtk-gnutella is:
+ *
+ * @author Jeroen Asselman
+ * @date 2003
+ *
  * Copyright (C) 2001 Bitzi (aka Bitcollider) Inc. and Gordon Mohr
  * Released into the public domain by same; permission is explicitly
  * granted to copy, modify, and use freely.
@@ -46,28 +54,29 @@
 
 #include "tiger.h"
 
-/* tiger hash result size, in bytes */
+/** tiger hash result size, in bytes */
 #define TIGERSIZE 24
 
-/* size of each block independently hashed, not counting leaf 0x00 prefix */
+/** size of each block independently hashed, not counting leaf 0x00 prefix */
 #define BLOCKSIZE 1024
 
-/* size of input to each non-leaf tree node, not counting node 0x01 prefix */
+/** size of input to each non-leaf tree node, not counting node 0x01 prefix */
 #define NODESIZE (TIGERSIZE * 2)
 
-/* default size of interim values stack, in TIGERSIZE
+/**
+ * default size of interim values stack, in TIGERSIZE
  * blocks. If this overflows (as it will for input
  * longer than 2^64 in size), havoc may ensue. */
 #define STACKSIZE (TIGERSIZE * 56)
 
 typedef struct tt_context {
-	gchar *top;					/* top (next empty) stack slot */
-	gchar *block;				/* leaf data */
-	gint64 count;				/* total blocks processed */
-	int index;					/* index into block */
-	gchar leaf[1 + BLOCKSIZE];	/* leaf in progress */
-	gchar node[1 + NODESIZE];	/* node scratch space */
-	gchar nodes[STACKSIZE];		/* stack of interim node values */
+	gchar *top;					/**< top (next empty) stack slot */
+	gchar *block;				/**< leaf data */
+	gint64 count;				/**< total blocks processed */
+	int index;					/**< index into block */
+	gchar leaf[1 + BLOCKSIZE];	/**< leaf in progress */
+	gchar node[1 + NODESIZE];	/**< node scratch space */
+	gchar nodes[STACKSIZE];		/**< stack of interim node values */
 } TT_CONTEXT;
 
 void tt_init(TT_CONTEXT *ctx);

@@ -56,18 +56,18 @@ RCSID("$Id$");
  */
 struct alive {
 	struct gnutella_node *node;
-	GSList *pings;				/* Pings we sent (struct alive_ping) */
-	gint count;					/* Amount of pings in list */
-	gint maxcount;				/* Maximum amount of pings we remember */
-	guint32 min_rt;				/* Minimum roundtrip time (ms) */
-	guint32 max_rt;				/* Maximim roundtrip time (ms) */
-	guint32 avg_rt;				/* Average (EMA) roundtrip time (ms) */
-	guint32 last_rt;			/* Last roundtrip time (ms) */
+	GSList *pings;				/**< Pings we sent (struct alive_ping) */
+	gint count;					/**< Amount of pings in list */
+	gint maxcount;				/**< Maximum amount of pings we remember */
+	guint32 min_rt;				/**< Minimum roundtrip time (ms) */
+	guint32 max_rt;				/**< Maximim roundtrip time (ms) */
+	guint32 avg_rt;				/**< Average (EMA) roundtrip time (ms) */
+	guint32 last_rt;			/**< Last roundtrip time (ms) */
 };
 
 struct alive_ping {
-	gchar *muid;				/* The GUID of the message */
-	GTimeVal sent;				/* Time at which we sent the message */
+	gchar *muid;				/**< The GUID of the message */
+	GTimeVal sent;				/**< Time at which we sent the message */
 };
 
 static void alive_trim_upto(struct alive *a, GSList *item);
@@ -232,7 +232,8 @@ alive_pmsg_free(pmsg_t *mb, gpointer arg)
 
 /**
  * Send new "alive" ping to node.
- * Returns TRUE if we sent it, FALSE if there are too many ACK-pending pings.
+ *
+ * @return TRUE if we sent it, FALSE if there are too many ACK-pending pings.
  */
 gboolean
 alive_send_ping(gpointer obj)
@@ -281,7 +282,7 @@ static void
 ap_ack(struct alive_ping *ap, struct alive *a)
 {
 	GTimeVal now;
-	gint delay;					/* Between sending and reception, in ms */
+	gint delay;					/**< Between sending and reception, in ms */
 
 	g_get_current_time(&now);
 
@@ -340,7 +341,8 @@ alive_trim_upto(struct alive *a, GSList *item)
 
 /**
  * Got a pong that could be an acknowledge to one of our alive pings.
- * Return TRUE if it was indeed an ACK for a ping we sent.
+ *
+ * @return TRUE if it was indeed an ACK for a ping we sent.
  */
 gboolean
 alive_ack_ping(gpointer obj, gchar *muid)
@@ -406,7 +408,7 @@ alive_ack_first(gpointer obj, gchar *muid)
 }
 
 /**
- * Returns the average/last ping/pong roundtrip time into supplied pointers.
+ * @returns the average/last ping/pong roundtrip time into supplied pointers.
  * Values are expressed in milliseconds.
  */
 void

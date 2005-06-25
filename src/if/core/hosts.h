@@ -26,7 +26,7 @@
 #ifndef _if_core_hosts_h_
 #define _if_core_hosts_h_
 
-/*
+/**
  * A gnutella host.
  */
 typedef struct gnutella_host {

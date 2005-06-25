@@ -1,9 +1,6 @@
 /*
  * Copyright (c) 2002, Vidar Madsen
  *
- * Functions for keeping a whitelist of nodes we always allow in,
- * and whom we try to keep a connection to.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -22,6 +19,19 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Needs short description here.
+ *
+ * Functions for keeping a whitelist of nodes we always allow in,
+ * and whom we try to keep a connection to.
+ *
+ * @author Vidar Madsen
+ * @date 2002
  */
 
 #include "common.h"
@@ -152,7 +162,7 @@ static void whitelist_retrieve(void)
  *
  * Attempts to connect to the nodes we have whitelisted.
  * Only entries with a specified port will be tried.
- * Returns the number of new nodes that are connected to.
+ * @returns the number of new nodes that are connected to.
  */
 guint whitelist_connect(void)
 {
@@ -220,7 +230,7 @@ void whitelist_reload(void)
  * whitelist_check
  *
  * Check the given IP agains the entries in the whitelist.
- * Returns TRUE if found, and FALSE if not.
+ * @returns TRUE if found, and FALSE if not.
  *
  * Also, it will peridically check the whitelist file for
  * updates, and reload it if it has changed.

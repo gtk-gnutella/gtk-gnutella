@@ -3,9 +3,6 @@
  *
  * Copyright (c) 2003, Raphael Manfredi
  *
- * Interface definition file.  One of the files that defines structures,
- * macros, etc. as part of the gui/core interface.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -26,6 +23,19 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup ui
+ * @file
+ *
+ * Needs short description here.
+ *
+ * Interface definition file.  One of the files that defines structures,
+ * macros, etc. as part of the gui/core interface.
+ *
+ * @author Raphael Manfredi
+ * @date 2003
+ */
+
 #ifndef _if_core_pproxy_h_
 #define _if_core_pproxy_h_
 
@@ -33,29 +43,29 @@
 
 struct download;
 
-/*
+/**
  * A client push proxy request.
  */
 struct cproxy {
 	guint32 magic;
-	struct download *d;		/* Which download triggered us */
+	struct download *d;		/**< Which download triggered us */
 
-	guint32 ip;				/* IP of the proxy servent */
-	guint16 port;			/* Port of the proxy servent */
-	gchar *server;			/* Server string */
-	gchar *guid;			/* GUID (atom) to which push should be sent */
-	guint32 file_idx;		/* File index to request */
-	gpointer http_handle;	/* Asynchronous HTTP request handle */
-	guint32 flags;			/* Operating flags */
+	guint32 ip;				/**< IP of the proxy servent */
+	guint16 port;			/**< Port of the proxy servent */
+	gchar *server;			/**< Server string */
+	gchar *guid;			/**< GUID (atom) to which push should be sent */
+	guint32 file_idx;		/**< File index to request */
+	gpointer http_handle;	/**< Asynchronous HTTP request handle */
+	guint32 flags;			/**< Operating flags */
 
 	/*
 	 * For GUI.
 	 */
 
-	http_state_t state;		/* State of the HTTP request */
-	gboolean done;			/* We're done with request */
-	gboolean sent;			/* Whether push was sent */
-	gboolean directly;		/* Whether push was sent directly or via Gnet */
+	http_state_t state;		/**< State of the HTTP request */
+	gboolean done;			/**< We're done with request */
+	gboolean sent;			/**< Whether push was sent */
+	gboolean directly;		/**< Whether push was sent directly or via Gnet */
 };
 
 #define cproxy_vendor_str(c)	((c)->server ? (c)->server : "")

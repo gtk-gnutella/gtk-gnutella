@@ -1,8 +1,6 @@
 /*
  * Copyright (c) 2004, Jeroen Asselman
  *
- * Glue between gtk-gnutella and the G2 'lib'
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -22,6 +20,17 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
+
+/**
+ * @ingroup undoc
+ * @file
+ *
+ * Glue between Gtk-Gnutella and the G2 'lib'.
+ *
+ * @author Jeroen Asselman
+ * @date 2004
+ */
+
 #ifdef ENABLE_G2
 
 #include "pmsg.h"
@@ -75,4 +84,6 @@ g2_node_disconnected(struct gnutella_node *n)
 		g2_packetstream_free((gpointer) n);
 }
 
-#endif
+#endif /* ENABLE_G2 */
+
+/* vi: set ts=4 sw=4 cindent: */

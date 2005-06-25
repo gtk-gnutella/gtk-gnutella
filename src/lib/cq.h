@@ -3,10 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Callout queue.
- *
- * Copyright (c) 2001-2003, Raphael Manfredi
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -27,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Callout queue.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
+ */
+
 #ifndef _cq_h_
 #define _cq_h_
 
@@ -40,15 +46,17 @@ typedef void (*cq_service_t)(struct cqueue *cq, gpointer obj);
  * Callout queue event.
  */
 typedef struct cevent {
-	struct cevent *ce_bnext;	/* Next item in hash bucket */
-	struct cevent *ce_bprev;	/* Prev item in hash bucket */
-	cq_service_t ce_fn;			/* Callback routine */
-	gpointer ce_arg;			/* Argument to pass to said callback */
-	time_t ce_time;				/* Absolute trigger time */
-	guint ce_magic;				/* Magic number */
+	struct cevent *ce_bnext;	/**< Next item in hash bucket */
+	struct cevent *ce_bprev;	/**< Prev item in hash bucket */
+	cq_service_t ce_fn;			/**< Callback routine */
+	gpointer ce_arg;			/**< Argument to pass to said callback */
+	time_t ce_time;				/**< Absolute trigger time */
+	guint ce_magic;				/**< Magic number */
 } cevent_t;
 
 /**
+ * @struct cqueue
+ *
  * Callout queue descriptor.
  *
  * A callout queue is really a sorted linked list of events that are to
@@ -72,16 +80,16 @@ typedef struct cevent {
  */
 
 struct chash {
-	cevent_t *ch_head;			/* Bucket list head */
-	cevent_t *ch_tail;			/* Bucket list tail */
+	cevent_t *ch_head;			/**< Bucket list head */
+	cevent_t *ch_tail;			/**< Bucket list tail */
 };
 
 typedef struct cqueue {
-	struct chash *cq_hash;		/* Array of buckets for hash list */
-	time_t cq_time;				/* "current time" */
-	gint cq_items;				/* Amount of recorded events */
-	gint cq_last_bucket;		/* Last bucket slot we were at */
-	struct chash *cq_current;	/* Current bucket being scanned in cq_clock() */
+	struct chash *cq_hash;		/**< Array of buckets for hash list */
+	time_t cq_time;				/**< "current time" */
+	gint cq_items;				/**< Amount of recorded events */
+	gint cq_last_bucket;		/**< Last bucket slot we were at */
+	struct chash *cq_current;	/**< Current bucket being scanned in cq_clock() */
 } cqueue_t;
 
 /*

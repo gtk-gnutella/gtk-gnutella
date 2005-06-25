@@ -32,6 +32,9 @@
  * COBS is an escaping algorithm, taking input in the [0,255] range and
  * producing output in the [1,255] range.  In other words, it escapes all
  * NUL bytes.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2004
  */
 
 #include "common.h"
@@ -44,7 +47,8 @@ RCSID("$Id$");
 
 /**
  * Encode vector `iov' of `iovcnt' elements, whose size is held in `retlen'.
- * Returns the new encoded buffer, and its length in `retlen'.
+ *
+ * @returns the new encoded buffer, and its length in `retlen'.
  *
  * NB: the output is a linear buffer, not a vector.
  */
@@ -53,8 +57,8 @@ cobs_encodev(struct iovec *iov, gint iovcnt, gint *retlen)
 {
 	gint maxsize;
 	gchar *out;
-	gchar *o;						/* Iterates over output */
-	gchar *cp;						/* Where we'll write the code length */
+	gchar *o;						/**< Iterates over output */
+	gchar *cp;						/**< Where we'll write the code length */
 	gint code;
 	gint last_code = 0;
 	gint len;
@@ -127,7 +131,8 @@ cobs_encodev(struct iovec *iov, gint iovcnt, gint *retlen)
 
 /**
  * Encode `len' bytes starting at `buf' into new allocated buffer.
- * Returns the new encoded buffer, and its length in `retlen'.
+ *
+ * @returns the new encoded buffer, and its length in `retlen'.
  */
 gchar *
 cobs_encode(gchar *buf, gint len, gint *retlen)
@@ -145,7 +150,7 @@ cobs_encode(gchar *buf, gint len, gint *retlen)
  * Decode `len' bytes starting at `buf' into decoding buffer `out', which
  * is `outlen' bytes long.
  *
- * Returns whether the input was valid COBS encoding.
+ * @returns whether the input was valid COBS encoding.
  * The length of the decoded buffer is returned in `retlen'.
  */
 gboolean
@@ -158,7 +163,7 @@ cobs_decode_into(gchar *buf, gint len, gchar *out, gint outlen, gint *retlen)
 	gint last_code = 0;
 
 	g_assert(len > 0);
-	g_assert(outlen > 0);		/* Must be large enough */
+	g_assert(outlen > 0);			/* Must be large enough */
 
 	/*
 	 * The following was adapted from the Listing 2, in the COBS paper.
@@ -237,7 +242,7 @@ cobs_is_valid(gchar *buf, gint len)
  * Decode `len' bytes starting at `buf' into new allocated buffer, unless
  * `inplace' is true in which case decoding is done inplace.
  *
- * Returns the new decoded buffer, or NULL if the input was not valid COBS
+ * @returns the new decoded buffer, or NULL if the input was not valid COBS
  * encoding.  The length of the decoded buffer is in `retlen'.
  */
 gchar *

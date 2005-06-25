@@ -1,8 +1,6 @@
 /*
  * Copyright (c) 2004, Jeroen Asselman
  *
- * G2 packet parser / constructor
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -21,6 +19,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup undoc
+ * @file
+ *
+ * G2 packet parser / constructor.
+ *
+ * @author Jeroen Asselman
+ * @date 2004
  */
 
 #include <glib.h>
@@ -423,3 +431,4 @@ g2_packet2buf(g2packet_t *packet, char *destination)
 	memcpy(destination, packet->orig_payload, packet->payload_length);
 }
 
+/* vi: set ts=4 sw=4 cindent: */

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Ch. Tronche & Raphael Manfredi
  *
- * HUGE support (Hash/URN Gnutella Extension).
- *
  * Started by Ch. Tronche (http://tronche.com/) 28/04/2002
  *
  *----------------------------------------------------------------------
@@ -33,9 +31,10 @@
  *
  * HUGE support (Hash/URN Gnutella Extension).
  *
- * @author Ch. Tronche
  * @author Raphael Manfredi
  * @date 2002-2003
+ * @author Ch. Tronche (http://tronche.com/)
+ * @date 2002-04-28
  */
 
 #include "common.h"
@@ -68,7 +67,7 @@ RCSID("$Id$");
  *** SHA1 is defined in RFC 3174.
  ***/
 
-/*
+/**
  * There's an in-core cache (the GHashTable sha1_cache), and a
  * persistent copy (normally in ~/.gtk-gnutella/sha1_cache). The
  * in-core cache is filled with the persistent one at launch. When the
@@ -88,18 +87,18 @@ RCSID("$Id$");
  */
 
 struct sha1_cache_entry {
-    gchar *file_name;                     /* Full path name                 */
-    filesize_t  size;                     /* File size                      */
-    time_t mtime;                         /* Last modification time         */
-    gchar digest[SHA1_RAW_SIZE];          /* SHA1 digest as a binary string */
-    gboolean shared;                      /* There's a known entry for this
-                                           * file in the share library
-                                           */
+    gchar *file_name;				/**< Full path name                 */
+    filesize_t  size;				/**< File size                      */
+    time_t mtime;					/**< Last modification time         */
+    gchar digest[SHA1_RAW_SIZE];	/**< SHA1 digest as a binary string */
+    gboolean shared;				/**< There's a known entry for this
+                                     *   file in the share library
+                                     */
 };
 
 static GHashTable *sha1_cache = NULL;
 
-/*
+/**
  * cache_dirty means that in-core cache is different from the one on disk when
  * TRUE.
  */
@@ -109,7 +108,7 @@ static gboolean cache_dirty = FALSE;
  ** Elementary operations on SHA1 values
  **/
 
-/*
+/**
  * copy_sha1
  *
  * Copy the ASCII representation of a SHA1 digest from source to dest.
@@ -125,7 +124,7 @@ static void copy_sha1(char *dest, const char *source)
 
 /* In-memory cache */
 
-/*
+/**
  * update_volatile_cache
  *
  * Takes an in-memory cached entry, and update its content.
@@ -142,7 +141,8 @@ static void update_volatile_cache(
 	sha1_cached_entry->shared = TRUE;
 }
 
-/* add_volatile_cache_entry
+/**
+ * add_volatile_cache_entry
  *
  * Add a new entry to the in-memory cache.
  */
@@ -393,8 +393,8 @@ sha1_read_cache(void)
  ** Asynchronous computation of hash value
  **/
 
-#define HASH_BLOCK_SHIFT	12			/* Power of two of hash unit credit */
-#define HASH_BUF_SIZE		65536		/* Size of a the reading buffer */
+#define HASH_BLOCK_SHIFT	12			/**< Power of two of hash unit credit */
+#define HASH_BUF_SIZE		65536		/**< Size of a the reading buffer */
 
 static gpointer sha1_task = NULL;
 
@@ -463,9 +463,9 @@ struct sha1_computation_context {
 	guint magic;
 	SHA1Context context;
 	struct file_sha1 *file;
-	gchar *buffer;				/* Large buffer where data is read */
+	gchar *buffer;				/**< Large buffer where data is read */
 	gint fd;
-	time_t start;				/* Debugging, show computation rate */
+	time_t start;				/**< Debugging, show computation rate */
 };
 
 static void
@@ -1065,7 +1065,7 @@ huge_improbable_sha1(const gchar *buf, size_t len)
 	return (longest >= len / 2) ? TRUE : FALSE;
 }
 
-/*
+/**
  * huge_sha1_extract32
  *
  * Validate `len' bytes starting from `buf' as a proper base32 encoding

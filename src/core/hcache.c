@@ -29,23 +29,25 @@
  *
  * Host cache management.
  *
+ * @author Raphael Manfredi
+ * @author Richard Eckart
+ * @date 2002-2003
+ *
+ * @todo
  * TODO:
  *
  *	- finer grained stats:
- *		- hits/misses while adding,
- *		- hits/misses while bad checking
- *		- how many hosts were tried to connect to?
+ *		-# hits/misses while adding,
+ *		-# hits/misses while bad checking
+ *		-# how many hosts were tried to connect to?
  *	- display stats about gwcache usage:
- *		- how often
- *		- how many hosts got
+ *		-# how often
+ *		-# how many hosts got
  *	- move unstable servant code from nodes.c to hcache.c
  *	- make sure hosts we are currently connected too are also saved
  *		to disk on exit!
  *	- save more metadata if we can make use of it.
  *
- * @author Raphael Manfredi
- * @author Richard Eckart
- * @date 2002-2003
  */
 
 #include "common.h"
@@ -68,9 +70,9 @@ RCSID("$Id$");
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
-#include "lib/override.h"		/* Must be the last header included */
+#include "lib/override.h"			/* Must be the last header included */
 
-#define MIN_RESERVE_SIZE	1024	/* we'd like that many pongs in reserve */
+#define MIN_RESERVE_SIZE	1024	/**< we'd like that many pongs in reserve */
 
 /**
  * An entry within the hostcache.
@@ -80,11 +82,11 @@ RCSID("$Id$");
  * the host.
  */
 typedef struct hostcache_entry {
-    hcache_type_t type;        /**< Hostcache which contains this host */
-    time_t        time_added;  /**< Time when entry was added */
+    hcache_type_t type;					/**< Hostcache which contains this host */
+    time_t        time_added;			/**< Time when entry was added */
 #if 0
-	guint32       avg_uptime;  /**< Reported average uptime (seconds) */
-	gchar *       vendor;	   /**< Latest known vendor name (atom) */
+	guint32       avg_uptime;			/**< Reported average uptime (seconds) */
+	gchar *       vendor;				/**< Latest known vendor name (atom) */
 #endif
 } hostcache_entry_t;
 
@@ -118,8 +120,9 @@ static gboolean hcache_close_running = FALSE;
 /**
  * Names of the host caches.
  *
- * @note has to be in the same order as in the hcache_type_t definition
- *       in gnet_nodes.h.
+ * @note
+ * Has to be in the same order as in the hcache_type_t definition
+ * in gnet_nodes.h.
  */
 static const gchar * const names[HCACHE_MAX] = {
     "fresh regular",
@@ -249,8 +252,8 @@ hcache_dump_info(const struct hostcache *hc, const gchar *what)
 /**
  * Get information about the host entry, both the host and the metadata.
  *
- * @param ip		the IPv4 address of the host
- * @param port		the port used by the host
+ * @param ip	the IPv4 address of the host
+ * @param port	the port used by the host
  * @param h		filled with the host entry in the table
  * @param e		filled with the meta data of the host, as held in table
  *
@@ -498,8 +501,9 @@ host_type_to_gchar(host_type_t type)
 /**
  * @return the number of slots which can be added to the given type.
  *
- * @note Several types share common pools. Adding a host of one type
- *       may affect the number of slots left on other types.
+ * @note
+ * Several types share common pools. Adding a host of one type may
+ * affect the number of slots left on other types.
  */
 static gint32
 hcache_slots_left(hcache_type_t type)
@@ -1265,12 +1269,12 @@ hcache_free(hostcache_t *hc)
  */
 
 #define READ_MAGIC		0x3d00003d
-#define HOST_READ_CNT	20			/* Amount of hosts to read each tick */
+#define HOST_READ_CNT	20			/**< Amount of hosts to read each tick */
 
 struct read_ctx {
-	gint magic;						/* Magic number */
-	FILE *fd;						/* File descriptor to read from */
-	hostcache_t *hc;				/* Hostcache to fill */
+	gint magic;						/**< Magic number */
+	FILE *fd;						/**< File descriptor to read from */
+	hostcache_t *hc;				/**< Hostcache to fill */
 };
 
 /**

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Russell Francis
  *
- * GTK cell renderer.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,7 +23,18 @@
  *----------------------------------------------------------------------
  */
 
-/* cellrenderer.h
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * GTK+ cell renderer.
+ *
+ * @author Russell Francis
+ * @date 2004
+ *
+ * @note
+ * cellrenderer.h
+ *
  * Copyright (C) 2002 Naba Kumar <kh_naba@users.sourceforge.net>
  * modified by Jörgen Scheibengruber <mfcn@gmx.de>
  * modified more by Russell Francis <rf358197@ohio.edu>

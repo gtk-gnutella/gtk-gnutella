@@ -28,6 +28,9 @@
  * @file
  *
  * Handling UDP datagrams.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #include "common.h"
@@ -63,7 +66,7 @@ udp_is_valid_gnet(struct gnutella_socket *s)
 	struct gnutella_node *n = node_udp_get_ip_port(s->ip, s->port);
 	struct gnutella_header *head;
 	gchar *msg;
-	guint32 size;				/* Payload size, from the Gnutella message */
+	guint32 size;				/**< Payload size, from the Gnutella message */
 
 	if (s->pos < GTA_HEADER_SIZE) {
 		msg = "Too short";

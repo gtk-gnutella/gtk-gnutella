@@ -23,9 +23,6 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _idtable_h_
-#define _idtable_h_
-
 /**
  * @ingroup lib
  * @file
@@ -55,18 +52,21 @@
  * @date 2001-2003
  */
 
+#ifndef _idtable_h_
+#define _idtable_h_
+
 #include <glib.h>
 
 #define idtable_ids(tbl) (tbl->ids)
 #define idtable_size(tbl) (tbl->size)
 
 typedef struct idtable {
-    guint32   size;      /* numbers of slots available */
-    guint32   esize;     /* number of slots to add if table is full */
-    guint32   ids;       /* numbers of slots currently used */
-    guint32   last_id;   /* last issued id */
-    guint32  *used_ids;  /* binary array of used ids */
-    gpointer *data;      /* actual table array */
+    guint32   size;      /**< numbers of slots available */
+    guint32   esize;     /**< number of slots to add if table is full */
+    guint32   ids;       /**< numbers of slots currently used */
+    guint32   last_id;   /**< last issued id */
+    guint32  *used_ids;  /**< binary array of used ids */
+    gpointer *data;      /**< actual table array */
 } idtable_t;
 
 idtable_t *idtable_new(guint32 isize, guint32 esize);

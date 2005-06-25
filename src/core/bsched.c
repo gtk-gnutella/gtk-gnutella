@@ -41,7 +41,7 @@ RCSID("$Id$");
 #include "inet.h"
 #include "uploads.h"
 
-#include "if/core/wrap.h"		/* wrapped_io_t */
+#include "if/core/wrap.h"		/* For wrapped_io_t */
 #include "if/gnet_property_priv.h"
 
 #include "lib/glib-missing.h"
@@ -62,29 +62,29 @@ static GSList *bws_in_list = NULL;
 static gint bws_out_ema = 0;
 static gint bws_in_ema = 0;
 
-#define BW_SLOT_MIN		64		/* Minimum bandwidth/slot for realloc */
+#define BW_SLOT_MIN		64		/**< Minimum bandwidth/slot for realloc */
 
-#define BW_OUT_UP_MIN	8192	/* Minimum out bandwidth for becoming ultra */
-#define BW_OUT_GNET_MIN	128		/* Minimum out bandwidth per Gnet connection */
-#define BW_OUT_LEAF_MIN	32		/* Minimum out bandwidth per leaf connection */
+#define BW_OUT_UP_MIN	8192	/**< Minimum out bandwidth for becoming ultra */
+#define BW_OUT_GNET_MIN	128		/**< Minimum out bandwidth per Gnet connection */
+#define BW_OUT_LEAF_MIN	32		/**< Minimum out bandwidth per leaf connection */
 
-#define BW_TCP_MSG		40		/* Smallest size of a TCP message */
-#define BW_UDP_MSG		20		/* Minimal IP overhead for a UDP message */
+#define BW_TCP_MSG		40		/**< Smallest size of a TCP message */
+#define BW_UDP_MSG		20		/**< Minimal IP overhead for a UDP message */
 
-#define BW_UDP_OVERSIZE	512		/* Allow that many bytes over available b/w */
+#define BW_UDP_OVERSIZE	512		/**< Allow that many bytes over available b/w */
 
 /*
  * Determine how large an I/O vector the kernel can accept.
  */
 
 #if defined(MAXIOV)
-#define MAX_IOV_COUNT	MAXIOV			/* Regular */
+#define MAX_IOV_COUNT	MAXIOV			/**< Regular */
 #elif defined(UIO_MAXIOV)
-#define MAX_IOV_COUNT	UIO_MAXIOV		/* Linux */
+#define MAX_IOV_COUNT	UIO_MAXIOV		/**< Linux */
 #elif defined(IOV_MAX)
-#define MAX_IOV_COUNT	IOV_MAX			/* Solaris */
+#define MAX_IOV_COUNT	IOV_MAX			/**< Solaris */
 #else
-#define MAX_IOV_COUNT	16				/* Unknown, use required minimum */
+#define MAX_IOV_COUNT	16				/**< Unknown, use required minimum */
 #endif
 
 /**
@@ -140,10 +140,11 @@ safe_writev(wrap_io_t *wio, struct iovec *iov, gint iovcnt)
 /**
  * Create a new bandwidth scheduler.
  *
- * `type' refers to the scheduling model.  Only BS_T_STREAM for now.
- * `mode' refers to the nature of the sources: either reading or writing.
- * `bandwidth' is the expected bandwidth in bytes per second.
- * `period' is the scheduling period in ms.
+ * @param `name' no document.
+ * @param `type' refers to the scheduling model.  Only BS_T_STREAM for now.
+ * @param `mode' refers to the nature of the sources: either reading or writing.
+ * @param `bandwidth' is the expected bandwidth in bytes per second.
+ * @param `period' is the scheduling period in ms.
  */
 bsched_t *
 bsched_make(gchar *name, gint type, guint32 mode, gint bandwidth, gint period)
@@ -157,8 +158,8 @@ bsched_make(gchar *name, gint type, guint32 mode, gint bandwidth, gint period)
 
 	g_assert(bandwidth >= 0);
 	g_assert(period > 0);
-	g_assert(type == BS_T_STREAM);		/* XXX only mode supported for now */
-	g_assert(bandwidth <= BS_BW_MAX);	/* Signed, and multiplied by 1000 */
+	g_assert(type == BS_T_STREAM);		/**< XXX only mode supported for now */
+	g_assert(bandwidth <= BS_BW_MAX);	/**< Signed, and multiplied by 1000 */
 
 	bs = (bsched_t *) g_malloc0(sizeof(*bs));
 
@@ -166,8 +167,8 @@ bsched_make(gchar *name, gint type, guint32 mode, gint bandwidth, gint period)
 	bs->flags = mode;
 	bs->type = type;
 	bs->period = period;
-	bs->min_period = period >> 1;		/* 50% of nominal period */
-	bs->max_period = period << 1;		/* 200% of nominal period */
+	bs->min_period = period >> 1;		/**< 50% of nominal period */
+	bs->max_period = period << 1;		/**< 200% of nominal period */
 	bs->period_ema = period;
 	bs->bw_per_second = bandwidth;
 	bs->bw_max = (gint) (bandwidth / 1000.0 * period);
@@ -190,7 +191,7 @@ bsched_free(bsched_t *bs)
 		bio_source_t *bio = (bio_source_t *) l->data;
 
 		g_assert(bio->bs == bs);
-		bio->bs = NULL;				/* Mark orphan source */
+		bio->bs = NULL;				/**< Mark orphan source */
 	}
 
 	g_list_free(bs->sources);
@@ -718,7 +719,7 @@ bsched_begin_timeslice(bsched_t *bs)
 	 * and the amount of capped bandwidth for the period.
 	 */
 
-	bs->bw_unwritten = 0;			/* Even if `bs' is for read sources... */
+	bs->bw_unwritten = 0;			/**< Even if `bs' is for read sources... */
 	bs->bw_capped = 0;
 
 	bs->current_used = 0;
@@ -772,7 +773,7 @@ bsched_bio_remove(bsched_t *bs, bio_source_t *bio)
  * whether the source can accept those calls without blocking will have to
  * be determined explicitly.
  *
- * Returns new bio_source object.
+ * @returns new bio_source object.
  */
 bio_source_t *
 bsched_source_add(
@@ -788,8 +789,8 @@ bsched_source_add(
 
 	g_assert(!(bs->flags & BS_F_READ) == !(flags & BIO_F_READ));
 	g_assert(flags & BIO_F_RW);
-	g_assert((flags & BIO_F_RW) != BIO_F_RW);	/* Either reading or writing */
-	g_assert(!(flags & ~BIO_F_RW));				/* Can only specify r/w flags */
+	g_assert((flags & BIO_F_RW) != BIO_F_RW);	/**< Either reading or writing */
+	g_assert(!(flags & ~BIO_F_RW));				/**< Can only specify r/w flags */
 
 	bio = (bio_source_t *) walloc0(sizeof(*bio));
 
@@ -839,7 +840,7 @@ bsched_set_bandwidth(bsched_t *bs, gint bandwidth)
 {
 	g_assert(bs);
 	g_assert(bandwidth >= 0);
-	g_assert(bandwidth <= BS_BW_MAX);	/* Signed, and multiplied by 1000 */
+	g_assert(bandwidth <= BS_BW_MAX);	/**< Signed, and multiplied by 1000 */
 
 	bs->bw_per_second = bandwidth;
 	bs->bw_max = (gint) (bandwidth / 1000.0 * bs->period);
@@ -869,8 +870,10 @@ bsched_set_bandwidth(bsched_t *bs, gint bandwidth)
 
 
 /**
- * Returns the bandwidth available for a given source.
- * `len' is the amount of bytes requested by the application.
+ * @param `bio' no document.
+ * @param `len' is the amount of bytes requested by the application.
+ *
+ * @returns the bandwidth available for a given source.
  */
 static gint
 bw_available(bio_source_t *bio, gint len)
@@ -1089,8 +1092,9 @@ bw_available(bio_source_t *bio, gint len)
  * Update bandwidth used, and scheduler statistics.
  * If no more bandwidth is available, disable all sources.
  *
- * `used' is the amount of bytes used by the I/O.
- * `requested' is the amount of bytes requested for the I/O.
+ * @param `bs' no document.
+ * @param `used' is the amount of bytes used by the I/O.
+ * @param `requested' is the amount of bytes requested for the I/O.
  */
 static void
 bsched_bw_update(bsched_t *bs, gint used, gint requested)
@@ -1694,8 +1698,9 @@ bws_udp_count_written(gint len)
 }
 
 /**
- * Returns adequate b/w shaper depending on the socket type.
- * Returns NULL if there is no b/w shaper to consider.
+ * @returns adequate b/w shaper depending on the socket type.
+ *
+ * @returns NULL if there is no b/w shaper to consider.
  */
 static bsched_t *
 bs_socket(enum socket_direction dir, enum socket_type type)
@@ -2078,21 +2083,21 @@ static void
 bsched_stealbeat(bsched_t *bs)
 {
 	GSList *l;
-	GSList *all_used = NULL;		/* List of bsched_t that used all b/w */
-	gint all_used_count = 0;		/* Amount of bsched_t that used all b/w */
-	guint all_bw_count = 0;			/* Sum of configured bandwidth */
+	GSList *all_used = NULL;		/**< List of bsched_t that used all b/w */
+	gint all_used_count = 0;		/**< Amount of bsched_t that used all b/w */
+	guint all_bw_count = 0;			/**< Sum of configured bandwidth */
 	gint steal_count = 0;
 	gint underused;
 
-	g_assert(bs->bw_actual == 0);	/* Heartbeat step must have been done */
+	g_assert(bs->bw_actual == 0);	/**< Heartbeat step must have been done */
 
-	if (bs->stealers == NULL)		/* No stealers */
+	if (bs->stealers == NULL)		/**< No stealers */
 		return;
 
-	if (!(bs->flags & BS_F_ENABLED))	/* Scheduler disabled */
+	if (!(bs->flags & BS_F_ENABLED))	/**< Scheduler disabled */
 		return;
 
-	/*
+	/**
 	 * Note that we do not use the theoric bandwidth, but bs->bw_max to
 	 * estimate the amount of underused bandwidth.  The reason is that
 	 * bs->bw_max can be corrected due to traffic spikes.
@@ -2100,7 +2105,7 @@ bsched_stealbeat(bsched_t *bs)
 
 	underused = bs->bw_max - bs->bw_last_period;
 
-	/*
+	/**
 	 * If `bs' holds reading sources, there is no further correction needed.
 	 *
 	 * Howewever, for writing sources, we need to pay attention to possible
@@ -2114,7 +2119,7 @@ bsched_stealbeat(bsched_t *bs)
 	 *		had anything to write or not. -- RAM, 11/05/2003 */
 
 #if 0
-	/*
+	/**
 	 * That's not enough for writing schedulers: some sources have no
 	 * triggering callback (i.e. we write to them when we have more data),
 	 * but others have triggering callbacks invoked only when there is room
@@ -2263,16 +2268,19 @@ bsched_timer(void)
 }
 
 /**
+ * Needs short description so that doxygen can parse the following
+ * list properly.
+ *
  * Determine whether we have enough bandwidth to possibly become an
  * ultra node:
  *
- * 1. There must be more than BW_OUT_UP_MIN outgoing bandwidth available.
- * 2. If bandwidth schedulers are enabled, leaf nodes must not be configured
- *    to steal all the HTTP outgoing bandwidth, unless they disabled uploads.
- * 3. If Gnet out scheduler is enabled, there must be at least BW_OUT_GNET_MIN
- *    bytes per gnet connection.
- * 4. Overall, there must be BW_OUT_LEAF_MIN bytes per configured leaf plus
- *    BW_OUT_GNET_MIN bytes per gnet connection available.
+ *  -# There must be more than BW_OUT_UP_MIN outgoing bandwidth available.
+ *  -# If bandwidth schedulers are enabled, leaf nodes must not be configured
+ *     to steal all the HTTP outgoing bandwidth, unless they disabled uploads.
+ *  -# If Gnet out scheduler is enabled, there must be at least BW_OUT_GNET_MIN
+ *     bytes per gnet connection.
+ *  -# Overall, there must be BW_OUT_LEAF_MIN bytes per configured leaf plus
+ *     BW_OUT_GNET_MIN bytes per gnet connection available.
  */
 gboolean
 bsched_enough_up_bandwidth(void)
@@ -2298,7 +2306,7 @@ bsched_enough_up_bandwidth(void)
 		total += bw_gnet_out;
 
 	if (bws_out_enabled)
-		total += bw_http_out;		/* Leaf b/w stolen from HTTP traffic */
+		total += bw_http_out;		/**< Leaf b/w stolen from HTTP traffic */
 	else if (bws_glout_enabled)
 		total += bw_gnet_lout;
 

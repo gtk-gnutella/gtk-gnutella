@@ -36,7 +36,7 @@
 #include "gnutella.h"
 #include "extensions.h"
 
-#include "if/core/wrap.h"			/* wrap_io_t */
+#include "if/core/wrap.h"			/* For wrap_io_t */
 #include "if/core/hsep.h"
 #include "if/core/nodes.h"
 
@@ -51,7 +51,9 @@ typedef enum {
 	NODE_MAGIC = 0x67f8e02f
 } node_magic_t;
 
-/*
+/**
+ * @struct node_rxfc_mon
+ *
  * This structure keeps tracks of remote flow-control indications and
  * measures the time spent in flow-control over a period of time.  Every
  * half period we monitor the time we spend against a ratio.
@@ -60,23 +62,27 @@ typedef enum {
  * is disposed of.
  */
 
-#define NODE_RX_FC_HALF_PERIOD	300		/* 5 minutes */
+#define NODE_RX_FC_HALF_PERIOD	300		/**< 5 minutes */
 
 struct node_rxfc_mon {
-	time_t start_half_period;	/* When half period started */
-	time_t fc_last_half;		/* Time spent in FC last half period */
-	time_t fc_accumulator;		/* Time spent in FC this period */
-	time_t fc_start;			/* Time when FC started, 0 if not in FC */
+	time_t start_half_period;	/**< When half period started */
+	time_t fc_last_half;		/**< Time spent in FC last half period */
+	time_t fc_accumulator;		/**< Time spent in FC this period */
+	time_t fc_start;			/**< Time when FC started, 0 if not in FC */
 };
 
-/*
- * MAX_CACHE_HOPS defines the maximum hop count we handle for the ping/pong
- * caching scheme.  Any hop count greater than that is thresholded to that
+/**
+ * @def MAX_CACHE_HOPS
+ * defines the maximum hop count we handle for the ping/pong caching
+ * scheme.  Any hop count greater than that is thresholded to that
  * value.
- *
- * CACHE_HOP_IDX is the macro returning the array index in the
- * (0 .. MAX_CACHE_HOPS) range, based on the hop count.
  */
+/**
+ * @def CACHE_HOP_IDX
+ * The macro returning the array index in the (0 .. MAX_CACHE_HOPS)
+ * range, based on the hop count.
+ */
+
 #define MAX_CACHE_HOPS	6		/* We won't handle anything larger */
 
 #define CACHE_HOP_IDX(h)	(((h) > MAX_CACHE_HOPS) ? MAX_CACHE_HOPS : (h))
@@ -85,101 +91,101 @@ struct node_rxfc_mon {
  * Throttle periods for ping reception, depending on the peer mode.
  * This is applicable for regular pings, not alive pings.
  */
-#define PING_REG_THROTTLE		3		/* seconds, regular peer */
-#define PING_LEAF_THROTTLE		60		/* seconds, peer is leaf node */
+#define PING_REG_THROTTLE		3		/**< seconds, regular peer */
+#define PING_LEAF_THROTTLE		60		/**< seconds, peer is leaf node */
 
 typedef struct gnutella_node {
-	node_magic_t magic;			/* Magic value for consistency checks */
-    gnet_node_t node_handle;    /* Handle of this node */
-	node_peer_t peermode;		/* Operating mode (leaf, ultra, normal) */
-	node_peer_t start_peermode;	/* Operating mode when handshaking begun */
+	node_magic_t magic;			/**< Magic value for consistency checks */
+    gnet_node_t node_handle;    /**< Handle of this node */
+	node_peer_t peermode;		/**< Operating mode (leaf, ultra, normal) */
+	node_peer_t start_peermode;	/**< Operating mode when handshaking begun */
 
-	gchar error_str[256];		/* To sprintf() error strings with vars */
-	struct gnutella_socket *socket;		/* Socket of the node */
-	guint8 proto_major;			/* Handshaking protocol major number */
-	guint8 proto_minor;			/* Handshaking protocol minor number */
+	gchar error_str[256];		/**< To sprintf() error strings with vars */
+	struct gnutella_socket *socket;		/**< Socket of the node */
+	guint8 proto_major;			/**< Handshaking protocol major number */
+	guint8 proto_minor;			/**< Handshaking protocol minor number */
 	node_protocol_types_t protocol_type;
 
-	guint8 qrp_major;			/* Query routing protocol major number */
-	guint8 qrp_minor;			/* Query routing protocol minor number */
-	guint8 uqrp_major;			/* UP Query routing protocol major number */
-	guint8 uqrp_minor;			/* UP Query routing protocol minor number */
-	gchar *vendor;				/* Vendor information */
-	gint country;				/* Country of origin -- encoded ISO3166 */
-	guchar vcode[4];			/* Vendor code (vcode[0] == NUL when unknown) */
-	gpointer io_opaque;			/* Opaque I/O callback information */
+	guint8 qrp_major;			/**< Query routing protocol major number */
+	guint8 qrp_minor;			/**< Query routing protocol minor number */
+	guint8 uqrp_major;			/**< UP Query routing protocol major number */
+	guint8 uqrp_minor;			/**< UP Query routing protocol minor number */
+	gchar *vendor;				/**< Vendor information */
+	gint country;				/**< Country of origin -- encoded ISO3166 */
+	guchar vcode[4];			/**< Vendor code (vcode[0] == NUL when unknown) */
+	gpointer io_opaque;			/**< Opaque I/O callback information */
 
-	struct gnutella_header header;	/* Header of the current message */
-	extvec_t extvec[MAX_EXTVEC];	/* GGEP extensions in "fat" messages */
-	gint extcount;					/* Amount of extensions held */
+	struct gnutella_header header;	/**< Header of the current message */
+	extvec_t extvec[MAX_EXTVEC];	/**< GGEP extensions in "fat" messages */
+	gint extcount;					/**< Amount of extensions held */
 
-	guint32 size;	/* How many bytes we need to read for the current message */
+	guint32 size;	/**< How many bytes we need to read for the current message */
 
-	gchar *data;			/* data of the current message */
-	guint32 pos;			/* write position in data */
+	gchar *data;				/**< data of the current message */
+	guint32 pos;				/**< write position in data */
 
-	gnet_node_state_t status;	/* See possible values below */
-	guint32 flags;				/* See possible values below */
-	guint32 attrs;				/* See possible values below */
+	gnet_node_state_t status;	/**< See possible values below */
+	guint32 flags;				/**< See possible values below */
+	guint32 attrs;				/**< See possible values below */
 
-	guint8 hops_flow;		/* Don't send queries with a >= hop count */
-	guint8 max_ttl;			/* Value of their advertised X-Max-TTL */
-	guint16 degree;			/* Value of their advertised X-Degree */
+	guint8 hops_flow;			/**< Don't send queries with a >= hop count */
+	guint8 max_ttl;				/**< Value of their advertised X-Max-TTL */
+	guint16 degree;				/**< Value of their advertised X-Degree */
 
-	GHashTable *qseen;			/* Queries seen from this leaf node */
-	GHashTable *qrelayed;		/* Queries relayed from this node */
-	GHashTable *qrelayed_old;	/* Older version of the `qrelayed' table */
-	time_t qrelayed_created;	/* When `qrelayed' was created */
+	GHashTable *qseen;			/**< Queries seen from this leaf node */
+	GHashTable *qrelayed;		/**< Queries relayed from this node */
+	GHashTable *qrelayed_old;	/**< Older version of the `qrelayed' table */
+	time_t qrelayed_created;	/**< When `qrelayed' was created */
 
-	guint32 sent;				/* Number of sent packets */
-	guint32 received;			/* Number of received packets */
-	guint32 tx_dropped;			/* Number of packets dropped at TX time */
-	guint32 rx_dropped;			/* Number of packets dropped at RX time */
-	guint32 n_bad;				/* Number of bad packets received */
-	guint16 n_dups;				/* Number of dup messages received (bad) */
-	guint16 n_hard_ttl;			/* Number of hard_ttl exceeded (bad) */
-	guint32 n_weird;			/* Number of weird messages from that node */
-	guint32 n_hostile;			/* Number of messages from hostile IP */
+	guint32 sent;				/**< Number of sent packets */
+	guint32 received;			/**< Number of received packets */
+	guint32 tx_dropped;			/**< Number of packets dropped at TX time */
+	guint32 rx_dropped;			/**< Number of packets dropped at RX time */
+	guint32 n_bad;				/**< Number of bad packets received */
+	guint16 n_dups;				/**< Number of dup messages received (bad) */
+	guint16 n_hard_ttl;			/**< Number of hard_ttl exceeded (bad) */
+	guint32 n_weird;			/**< Number of weird messages from that node */
+	guint32 n_hostile;			/**< Number of messages from hostile IP */
 
-	guint32 allocated;			/* Size of allocated buffer data, 0 for none */
-	gboolean have_header;		/* TRUE if we have got a full message header */
+	guint32 allocated;			/**< Size of allocated buffer data, 0 for none */
+	gboolean have_header;		/**< TRUE if we have got a full message header */
 
-	time_t last_update;			/* Last update of the node */
-	time_t last_tx;				/* Last time we transmitted to the node */
-	time_t last_rx;				/* Last time we received from the node */
-	time_t connect_date;		/* When we got connected (after handshake) */
-	time_t tx_flowc_date;		/* When we entered in TX flow control */
-	struct node_rxfc_mon *rxfc;	/* Optional, time spent in RX flow control */
-	time_t shutdown_date;		/* When we entered in shutdown mode */
-	time_t up_date;				/* When remote server started (0 if unknown) */
-	time_t leaf_flowc_start;	/* Time when leaf flow-controlled queries */
-	guint32 shutdown_delay;		/* How long we can stay in shutdown mode */
+	time_t last_update;			/**< Last update of the node */
+	time_t last_tx;				/**< Last time we transmitted to the node */
+	time_t last_rx;				/**< Last time we received from the node */
+	time_t connect_date;		/**< When we got connected (after handshake) */
+	time_t tx_flowc_date;		/**< When we entered in TX flow control */
+	struct node_rxfc_mon *rxfc;	/**< Optional, time spent in RX flow control */
+	time_t shutdown_date;		/**< When we entered in shutdown mode */
+	time_t up_date;				/**< When remote server started (0 if unknown) */
+	time_t leaf_flowc_start;	/**< Time when leaf flow-controlled queries */
+	guint32 shutdown_delay;		/**< How long we can stay in shutdown mode */
 
-	const gchar *remove_msg;	/* Reason of removing */
+	const gchar *remove_msg;	/**< Reason of removing */
 
-	guint32 ip;					/* ip of the node */
-	guint16 port;				/* port of the node */
+	guint32 ip;					/**< ip of the node */
+	guint16 port;				/**< port of the node */
 
-	gchar *guid;				/* GUID of node (atom) for push-proxying */
-	guint32 proxy_ip;			/* ip of the node for push proxyfication */
-	guint16 proxy_port;			/* port of the node for push proxyfication */
+	gchar *guid;				/**< GUID of node (atom) for push-proxying */
+	guint32 proxy_ip;			/**< ip of the node for push proxyfication */
+	guint16 proxy_port;			/**< port of the node for push proxyfication */
 
-	mqueue_t *outq;				/* TX Output queue */
-	squeue_t *searchq;			/* TX Search queue */
-	rxdrv_t *rx;				/* RX stack top */
+	mqueue_t *outq;				/**< TX Output queue */
+	squeue_t *searchq;			/**< TX Search queue */
+	rxdrv_t *rx;				/**< RX stack top */
 
-	gpointer routing_data;		/* Opaque info, for gnet message routing */
-	gpointer sent_query_table;	/* Opaque info, query table sent to node */
-	gpointer recv_query_table;	/* Opaque info, query table recved from node */
-	gpointer qrt_update;		/* Opaque info, query routing update handle */
-	gpointer qrt_receive;		/* Opaque info, query routing reception */
-	qrt_info_t *qrt_info;		/* Info about received query table */
+	gpointer routing_data;		/**< Opaque info, for gnet message routing */
+	gpointer sent_query_table;	/**< Opaque info, query table sent to node */
+	gpointer recv_query_table;	/**< Opaque info, query table recved from node */
+	gpointer qrt_update;		/**< Opaque info, query routing update handle */
+	gpointer qrt_receive;		/**< Opaque info, query routing reception */
+	qrt_info_t *qrt_info;		/**< Info about received query table */
 
-	gpointer alive_pings;		/* Opaque info, for alive ping checks */
-	time_t last_alive_ping;		/* Last time we sent an alive ping */
-	guint alive_period;			/* Period for sending alive pings (secs) */
+	gpointer alive_pings;		/**< Opaque info, for alive ping checks */
+	time_t last_alive_ping;		/**< Last time we sent an alive ping */
+	guint alive_period;			/**< Period for sending alive pings (secs) */
 
-	wrap_buf_t hello;			/* Spill buffer for GNUTELLA HELLO */
+	wrap_buf_t hello;			/**< Spill buffer for GNUTELLA HELLO */
 
 	/*
 	 * Round-trip time (RTT) measurements operated via Time Sync
@@ -187,49 +193,49 @@ typedef struct gnutella_node {
 	 * Figures are in ms.
 	 */
 
-	guint32 tcp_rtt;			/* RTT when exchange takes place over TCP */
-	guint32 udp_rtt;			/* RTT when exchange takes place over UDP  */
-	gpointer tsync_ev;			/* Time sync event */
+	guint32 tcp_rtt;			/**< RTT when exchange takes place over TCP */
+	guint32 udp_rtt;			/**< RTT when exchange takes place over UDP  */
+	gpointer tsync_ev;			/**< Time sync event */
 
 	/*
 	 * Data structures used by the ping/pong reduction scheme.
 	 *		--RAM, 02/02/2002
 	 */
 
-	guint32 id;					/* Unique internal ID */
-	guint ping_throttle;		/* Period for accepting new pings (secs) */
-	time_t ping_accept;			/* Time after which we accept new pings */
-	time_t next_ping;			/* When to send a ping, for "OLD" clients */
-	gchar ping_guid[16];		/* The GUID of the last accepted ping */
-	guchar pong_needed[MAX_CACHE_HOPS+1];	/* Pongs needed, by hop value */
-	guchar pong_missing;		/* Sum(pong_needed[i]), i = 0..MAX_CACHE_HOPS */
+	guint32 id;					/**< Unique internal ID */
+	guint ping_throttle;		/**< Period for accepting new pings (secs) */
+	time_t ping_accept;			/**< Time after which we accept new pings */
+	time_t next_ping;			/**< When to send a ping, for "OLD" clients */
+	gchar ping_guid[16];		/**< The GUID of the last accepted ping */
+	guchar pong_needed[MAX_CACHE_HOPS+1];	/**< Pongs needed, by hop value */
+	guchar pong_missing;		/**< Sum(pong_needed[i]), i = 0..MAX_CACHE_HOPS */
 
-	guint32 gnet_ip;			/* When != 0, we know the remote IP/port */
-	guint16 gnet_port;			/* (listening port, that is ) */
-	guint32 gnet_files_count;	/* Used to answer "Crawling" pings */
-	guint32 gnet_kbytes_count;	/* Used to answer "Crawling" pings */
-	guint32 gnet_pong_ip;		/* When != 0, last IP we got in pong */
-	guint32 gnet_qhit_ip;		/* When != 0, last IP we got in query hit */
-	gchar *gnet_guid;			/* GUID of node (atom) seen on the network */
+	guint32 gnet_ip;			/**< When != 0, we know the remote IP/port */
+	guint16 gnet_port;			/**< (listening port, that is ) */
+	guint32 gnet_files_count;	/**< Used to answer "Crawling" pings */
+	guint32 gnet_kbytes_count;	/**< Used to answer "Crawling" pings */
+	guint32 gnet_pong_ip;		/**< When != 0, last IP we got in pong */
+	guint32 gnet_qhit_ip;		/**< When != 0, last IP we got in query hit */
+	gchar *gnet_guid;			/**< GUID of node (atom) seen on the network */
 
-	guint32 n_ping_throttle;	/* Number of pings we throttled */
-	guint32 n_ping_accepted;	/* Number of pings we accepted */
-	guint32 n_ping_special;		/* Number of special pings we received */
-	guint32 n_ping_sent;		/* Number of pings we sent to this node */
-	guint32 n_pong_received;	/* Number of pongs we received from this node */
-	guint32 n_pong_sent;		/* Number of pongs we sent to this node */
+	guint32 n_ping_throttle;	/**< Number of pings we throttled */
+	guint32 n_ping_accepted;	/**< Number of pings we accepted */
+	guint32 n_ping_special;		/**< Number of special pings we received */
+	guint32 n_ping_sent;		/**< Number of pings we sent to this node */
+	guint32 n_pong_received;	/**< Number of pongs we received from this node */
+	guint32 n_pong_sent;		/**< Number of pongs we sent to this node */
 
 	/*
 	 * Traffic statistics -- RAM, 13/05/2002.
 	 */
 
-	gint32 tx_given;			/* Bytes fed to the TX stack (from top) */
-	gint32 tx_deflated;			/* Bytes deflated by the TX stack */
-	gint32 tx_written;			/* Bytes written by the TX stack */
+	gint32 tx_given;			/**< Bytes fed to the TX stack (from top) */
+	gint32 tx_deflated;			/**< Bytes deflated by the TX stack */
+	gint32 tx_written;			/**< Bytes written by the TX stack */
 
-	gint32 rx_given;			/* Bytes fed to the RX stack (from bottom) */
-	gint32 rx_inflated;			/* Bytes inflated by the RX stack */
-	gint32 rx_read;				/* Bytes read from the RX stack */
+	gint32 rx_given;			/**< Bytes fed to the RX stack (from bottom) */
+	gint32 rx_inflated;			/**< Bytes inflated by the RX stack */
+	gint32 rx_read;				/**< Bytes read from the RX stack */
 
 	/*
 	 * Various Gnutella statistics -- RAM, 10/12/2003.
@@ -242,14 +248,14 @@ typedef struct gnutella_node {
 	 *   that really caused a match to one of our files.
 	 */
 
-	guint32 qrp_queries;		/* Queries received under QRP control */
-	guint32 qrp_matches;		/* Queries received that incurred a match */
-	guint32 rx_queries;			/* Total amount of queries received */
-	guint32 tx_queries;			/* Total amount of queries sent */
-	guint32 rx_qhits;			/* Total amount of hits received */
-	guint32 tx_qhits;			/* Total amount of hits sent */
+	guint32 qrp_queries;		/**< Queries received under QRP control */
+	guint32 qrp_matches;		/**< Queries received that incurred a match */
+	guint32 rx_queries;			/**< Total amount of queries received */
+	guint32 tx_queries;			/**< Total amount of queries sent */
+	guint32 rx_qhits;			/**< Total amount of hits received */
+	guint32 tx_qhits;			/**< Total amount of hits sent */
 
-	hsep_ctx_t *hsep;	/* Horizon size estimation (HSEP) -- TSC, 11/02/2004. */
+	hsep_ctx_t *hsep;	/**< Horizon size estimation (HSEP) -- TSC, 11/02/2004. */
 
 } gnutella_node_t;
 
@@ -257,65 +263,65 @@ typedef struct gnutella_node {
  * Node flags.
  */
 
-#define NODE_F_HDSK_PING	0x00000001	/* Expecting handshake ping */
-#define NODE_F_STALE_QRP	0x00000002	/* Is sending a stale QRP patch */
-#define NODE_F_INCOMING		0x00000004	/* Incoming (permanent) connection */
-#define NODE_F_ESTABLISHED	0x00000008	/* Gnutella connection established */
-#define NODE_F_VALID		0x00000010	/* We handshaked with a Gnutella node */
-#define NODE_F_ALIEN_IP		0x00000020	/* Pong-IP does not match TCP/IP addr */
-#define NODE_F_WRITABLE		0x00000040	/* Node is writable */
-#define NODE_F_READABLE		0x00000080	/* Node is readable, process queries */
-#define NODE_F_BYE_SENT		0x00000100	/* Bye message was queued */
-#define NODE_F_NODELAY		0x00000200	/* TCP_NODELAY was activated */
-#define NODE_F_NOREAD		0x00000400	/* Prevent further reading from node */
-#define NODE_F_EOF_WAIT		0x00000800	/* During final shutdown, waiting EOF */
-#define NODE_F_CLOSING		0x00001000	/* Initiated bye or shutdown */
-#define NODE_F_ULTRA		0x00002000	/* Is one of our ultra nodes */
-#define NODE_F_LEAF			0x00004000	/* Is one of our leaves */
-#define NODE_F_CRAWLER		0x00008000	/* Is a Gnutella Crawler */
-#define NODE_F_FAKE_NAME	0x00010000	/* Was unable to validate GTKG name */
-#define NODE_F_PROXY		0x00020000	/* We sent a push-proxy request to it */
-#define NODE_F_PROXIED		0x00040000	/* We are the push-proxy of that node */
-#define NODE_F_QRP_SENT		0x00080000	/* Undergone one complete QRP sending */
-#define NODE_F_TLS			0x00100000	/* TLS-tunneled */
-#define NODE_F_TSYNC_WAIT	0x00200000	/* Time sync pending via TCP */
-#define NODE_F_TSYNC_TCP	0x00400000	/* No replies via UDP, use TCP */
-#define NODE_F_GTKG			0x00800000	/* Node is another gtk-gnutella */
+#define NODE_F_HDSK_PING	0x00000001	/**< Expecting handshake ping */
+#define NODE_F_STALE_QRP	0x00000002	/**< Is sending a stale QRP patch */
+#define NODE_F_INCOMING		0x00000004	/**< Incoming (permanent) connection */
+#define NODE_F_ESTABLISHED	0x00000008	/**< Gnutella connection established */
+#define NODE_F_VALID		0x00000010	/**< We handshaked with a Gnutella node */
+#define NODE_F_ALIEN_IP		0x00000020	/**< Pong-IP does not match TCP/IP addr */
+#define NODE_F_WRITABLE		0x00000040	/**< Node is writable */
+#define NODE_F_READABLE		0x00000080	/**< Node is readable, process queries */
+#define NODE_F_BYE_SENT		0x00000100	/**< Bye message was queued */
+#define NODE_F_NODELAY		0x00000200	/**< TCP_NODELAY was activated */
+#define NODE_F_NOREAD		0x00000400	/**< Prevent further reading from node */
+#define NODE_F_EOF_WAIT		0x00000800	/**< During final shutdown, waiting EOF */
+#define NODE_F_CLOSING		0x00001000	/**< Initiated bye or shutdown */
+#define NODE_F_ULTRA		0x00002000	/**< Is one of our ultra nodes */
+#define NODE_F_LEAF			0x00004000	/**< Is one of our leaves */
+#define NODE_F_CRAWLER		0x00008000	/**< Is a Gnutella Crawler */
+#define NODE_F_FAKE_NAME	0x00010000	/**< Was unable to validate GTKG name */
+#define NODE_F_PROXY		0x00020000	/**< We sent a push-proxy request to it */
+#define NODE_F_PROXIED		0x00040000	/**< We are the push-proxy of that node */
+#define NODE_F_QRP_SENT		0x00080000	/**< Undergone one complete QRP sending */
+#define NODE_F_TLS			0x00100000	/**< TLS-tunneled */
+#define NODE_F_TSYNC_WAIT	0x00200000	/**< Time sync pending via TCP */
+#define NODE_F_TSYNC_TCP	0x00400000	/**< No replies via UDP, use TCP */
+#define NODE_F_GTKG			0x00800000	/**< Node is another gtk-gnutella */
 
 /*
  * Node attributes.
  */
 
-#define NODE_A_BYE_PACKET	0x00000001	/* Supports Bye-Packet */
-#define NODE_A_PONG_CACHING	0x00000002	/* Supports Pong-Caching */
-#define NODE_A_PONG_ALIEN	0x00000004	/* Alien Pong-Caching scheme */
-#define NODE_A_QHD_NO_VTAG	0x00000008	/* Servent has no vendor tag in QHD */
-#define NODE_A_RX_INFLATE	0x00000010	/* Reading compressed data */
-#define NODE_A_TX_DEFLATE	0x00000020	/* Sending compressed data */
-#define NODE_A_ULTRA		0x00000040	/* Node wants to be an Ultrapeer */
-#define NODE_A_NO_ULTRA		0x00000080	/* Node is NOT ultra capable */
-#define NODE_A_UP_QRP		0x00000100	/* Supports intra-UP QRP */
-#define NODE_A_LEAF_GUIDE	0x00000200	/* Supports leaf-guided dyn queries */
-#define NODE_A_TIME_SYNC	0x00000400	/* Supports time sync */
-#define NODE_A_CRAWLABLE	0x00000800	/* Node can be UDP-crawled */
-#define NODE_A_DYN_QUERY	0x00001000	/* Node can perform dynamic queries */
+#define NODE_A_BYE_PACKET	0x00000001	/**< Supports Bye-Packet */
+#define NODE_A_PONG_CACHING	0x00000002	/**< Supports Pong-Caching */
+#define NODE_A_PONG_ALIEN	0x00000004	/**< Alien Pong-Caching scheme */
+#define NODE_A_QHD_NO_VTAG	0x00000008	/**< Servent has no vendor tag in QHD */
+#define NODE_A_RX_INFLATE	0x00000010	/**< Reading compressed data */
+#define NODE_A_TX_DEFLATE	0x00000020	/**< Sending compressed data */
+#define NODE_A_ULTRA		0x00000040	/**< Node wants to be an Ultrapeer */
+#define NODE_A_NO_ULTRA		0x00000080	/**< Node is NOT ultra capable */
+#define NODE_A_UP_QRP		0x00000100	/**< Supports intra-UP QRP */
+#define NODE_A_LEAF_GUIDE	0x00000200	/**< Supports leaf-guided dyn queries */
+#define NODE_A_TIME_SYNC	0x00000400	/**< Supports time sync */
+#define NODE_A_CRAWLABLE	0x00000800	/**< Node can be UDP-crawled */
+#define NODE_A_DYN_QUERY	0x00001000	/**< Node can perform dynamic queries */
 
-#define NODE_A_CAN_HSEP		0x04000000	/* Node supports HSEP */
-#define NODE_A_CAN_QRP		0x08000000	/* Node supports query routing */
-#define NODE_A_CAN_VENDOR	0x10000000	/* Node supports vendor messages */
-#define NODE_A_CAN_GGEP		0x20000000	/* Node supports big pongs, etc.. */
-#define NODE_A_CAN_ULTRA	0x40000000	/* Node is ultra capable */
-#define NODE_A_CAN_INFLATE	0x80000000	/* Node capable of inflating */
+#define NODE_A_CAN_HSEP		0x04000000	/**< Node supports HSEP */
+#define NODE_A_CAN_QRP		0x08000000	/**< Node supports query routing */
+#define NODE_A_CAN_VENDOR	0x10000000	/**< Node supports vendor messages */
+#define NODE_A_CAN_GGEP		0x20000000	/**< Node supports big pongs, etc.. */
+#define NODE_A_CAN_ULTRA	0x40000000	/**< Node is ultra capable */
+#define NODE_A_CAN_INFLATE	0x80000000	/**< Node capable of inflating */
 
 /*
  * UDP crawling "feature" flags.
  */
 
-#define NODE_CR_CONNECTION	0x01		/* Include connection times */
-#define NODE_CR_LOCALE		0x02		/* Include locale information */
-#define NODE_CR_CRAWLABLE	0x04		/* Include crawlable peers only */
-#define NODE_CR_USER_AGENT	0x08		/* Include user-agent strings */
-#define NODE_CR_MASK		0x0f		/* Mask for supported features */
+#define NODE_CR_CONNECTION	0x01		/**< Include connection times */
+#define NODE_CR_LOCALE		0x02		/**< Include locale information */
+#define NODE_CR_CRAWLABLE	0x04		/**< Include crawlable peers only */
+#define NODE_CR_USER_AGENT	0x08		/**< Include user-agent strings */
+#define NODE_CR_MASK		0x0f		/**< Mask for supported features */
 
 #define NODE_CR_SEPARATOR	';'
 #define NODE_CR_ESCAPE_CHAR	'\\'
@@ -442,19 +448,21 @@ typedef struct gnutella_node {
 	(NODE_IS_LEAF(n) && \
 	(n)->qrt_receive == NULL && (n)->recv_query_table != NULL)
 
-/*
+/**
  * Can we send query with hop count `h' according to node's hops-flow value?
  */
 #define node_query_hops_ok(n, h)	((h) < (n)->hops_flow)
 
-/*
- * node_flowc_swift_grace
- * node_flowc_swift_period
+/**
+ * @def node_flowc_swift_grace
  *
  * The grace period between the time the node enters flow-control and the
  * time we want to speed up things and drop traffic, entering "swift" mode.
  * For a leaf node, we allow more time before we start to aggressively drop
  * traffic, but for a peer, we need to respond quickly, to avoid long clogging.
+ */
+/**
+ * @def node_flowc_swift_period
  *
  * In "swift" mode, a callback is periodically invoked to drop more traffic
  * if we don't see much progress in the queue backlog.  For a leaf node, it
@@ -471,7 +479,7 @@ typedef struct gnutella_node {
 #define GNUTELLA_HELLO "GNUTELLA CONNECT/"
 #define GNUTELLA_HELLO_LENGTH	(sizeof(GNUTELLA_HELLO) - 1)
 
-#define NODE_ID_LOCAL	0x0U		/* ID for "local node" (ourselves) */
+#define NODE_ID_LOCAL	0x0U		/**< ID for "local node" (ourselves) */
 
 extern gchar *start_rfc822_date;
 

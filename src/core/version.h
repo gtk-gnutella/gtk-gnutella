@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Version management.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,22 +23,32 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Version management.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _core_version_h_
 #define _core_version_h_
 
 #include "common.h"
 #include "if/core/version.h"
 
-/*
+/**
  * A decompiled version descriptor.
  * In our comments below, we are assuming a value of "0.90.3b2".
  */
 typedef struct version {
-	guint major;				/* Major version number (0) */
-	guint minor;				/* Minor version number (90) */
-	guint patchlevel;			/* Patch level (3) */
-	guchar tag;					/* Code letter after version number (b) */
-	guint taglevel;				/* Value after code letter (2) */
+	guint major;				/**< Major version number (0) */
+	guint minor;				/**< Minor version number (90) */
+	guint patchlevel;			/**< Patch level (3) */
+	guchar tag;					/**< Code letter after version number (b) */
+	guint taglevel;				/**< Value after code letter (2) */
 	time_t timestamp;
 } version_t;
 
@@ -48,14 +56,14 @@ typedef struct version {
  * Banning periods for our versions.
  */
 
-#define VERSION_ANCIENT_WARN	(86400*365)		/* 1 year */
-#define VERSION_ANCIENT_BAN		(86400*365)		/* 1 year */
+#define VERSION_ANCIENT_WARN	(86400*365)		/**< 1 year */
+#define VERSION_ANCIENT_BAN		(86400*365)		/**< 1 year */
 
-#define VERSION_UNSTABLE_WARN	(86400*60)		/* 2 months - 60 days */
-#define VERSION_UNSTABLE_BAN	(86400*90)		/* 3 months - 90 days */
+#define VERSION_UNSTABLE_WARN	(86400*60)		/**< 2 months - 60 days */
+#define VERSION_UNSTABLE_BAN	(86400*90)		/**< 3 months - 90 days */
 
-#define VERSION_ANCIENT_REMIND	(86400*30)		/* 30 days */
-#define VERSION_ANCIENT_GRACE	(86400*20)		/* 20 days */
+#define VERSION_ANCIENT_REMIND	(86400*30)		/**< 30 days */
+#define VERSION_ANCIENT_GRACE	(86400*20)		/**< 20 days */
 
 /*
  * Public interface.

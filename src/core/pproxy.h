@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Push proxy HTTP management.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Push proxy HTTP management.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _core_pproxy_h_
 #define _core_pproxy_h_
 
@@ -36,20 +44,20 @@
  *** Server side
  ***/
 
-/*
+/**
  * A push proxy request we received.
  */
 struct pproxy {
 	struct gnutella_socket *socket;
-	gint error_sent;		/* HTTP error code sent back */
+	gint error_sent;		/**< HTTP error code sent back */
 	time_t last_update;
 
-	guint32 ip;				/* IP of the requesting servent */
-	guint16 port;			/* Port where GIV should be sent back */
-	gchar *user_agent;		/* User-Agent string */
-	gchar *guid;			/* GUID (atom) to which push should be sent */
-	guint32 file_idx;		/* File index to request (0 if none supplied) */
-	gpointer io_opaque;		/* Opaque I/O callback information */
+	guint32 ip;				/**< IP of the requesting servent */
+	guint16 port;			/**< Port where GIV should be sent back */
+	gchar *user_agent;		/**< User-Agent string */
+	gchar *guid;			/**< GUID (atom) to which push should be sent */
+	guint32 file_idx;		/**< File index to request (0 if none supplied) */
+	gpointer io_opaque;		/**< Opaque I/O callback information */
 };
 
 #define pproxy_vendor_str(p)	((p)->user_agent ? (p)->user_agent : "")

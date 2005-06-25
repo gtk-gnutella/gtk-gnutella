@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2001-2003, Raphael Manfredi, Richard Eckart
  *
- * GUI filtering functions.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,17 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * GUI filtering functions.
+ *
+ * @author Raphael Manfredi
+ * @author Richard Eckart
+ * @date 2001-2003
  */
 
 #include "gtk/gui.h"
@@ -46,9 +55,9 @@ RCSID("$Id$");
 #include "lib/utf8.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
-#include "lib/override.h"		/* Must be the last header included */
+#include "lib/override.h"	/* Must be the last header included */
 
-#define UPDATE_MIN	300		/* Update screen every 5 minutes at least */
+#define UPDATE_MIN	300		/**< Update screen every 5 minutes at least */
 
 /*
  * These hash tables record which information about which nodes has
@@ -79,7 +88,7 @@ static void nodes_gui_node_added(gnet_node_t);
 static void nodes_gui_node_info_changed(gnet_node_t);
 static void nodes_gui_node_flags_changed(gnet_node_t);
 
-/*
+/**
  * add_column
  *
  * Create a column, associating the attribute ``attr'' (usually "text") of the
@@ -609,9 +618,9 @@ update_row(gpointer key, gpointer value, gpointer user_data)
 
 /**
  * Update all the nodes at the same time.
- */
-
-/* FIXME: we should remember for every node when it was last
+ *
+ * @todo
+ * FIXME: we should remember for every node when it was last
  *       updated and only refresh every node at most once every
  *       second. This information should be kept in a struct pointed
  *       to by the row user_data and should be automatically freed

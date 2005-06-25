@@ -81,15 +81,15 @@ RCSID("$Id$");
 /* XXX: This should be handled by Configure because SHUT_* are sometimes
  *		enums instead of macro definitions.
  */
-#define SHUT_WR 1		/* Shutdown TX side */
+#define SHUT_WR 1					/**< Shutdown TX side */
 #endif
 
-#define RQST_LINE_LENGTH	256		/* Reasonable estimate for request line */
-#define SOCK_UDP_RECV_BUF	131072	/* 128K -- Large to avoid loosing dgrams */
+#define RQST_LINE_LENGTH	256		/**< Reasonable estimate for request line */
+#define SOCK_UDP_RECV_BUF	131072	/**< 128K -- Large to avoid loosing dgrams */
 
-#define SOCK_ADNS_PENDING	0x01	/* Don't free() the socket too early */
-#define SOCK_ADNS_FAILED	0x02	/* Signals error in the ADNS callback */
-#define SOCK_ADNS_BADNAME	0x04	/* Signals bad host name */
+#define SOCK_ADNS_PENDING	0x01	/**< Don't free() the socket too early */
+#define SOCK_ADNS_FAILED	0x02	/**< Signals error in the ADNS callback */
+#define SOCK_ADNS_BADNAME	0x04	/**< Signals bad host name */
 
 struct gnutella_socket *s_tcp_listen = NULL;
 struct gnutella_socket *s_udp_listen = NULL;
@@ -258,7 +258,7 @@ get_sol(void)
 }
 
 /**
- * Returns SOL_TCP.
+ * @returns SOL_TCP.
  */
 static gint
 sol_tcp(void)
@@ -268,7 +268,7 @@ sol_tcp(void)
 }
 
 /**
- * Returns SOL_IP.
+ * @returns SOL_IP.
  */
 static gint
 sol_ip(void)
@@ -1775,7 +1775,7 @@ guess_local_ip(int sd)
 }
 
 /**
- * Return socket's local port, or -1 on error.
+ * @return socket's local port, or -1 on error.
  */
 static int
 socket_local_port(struct gnutella_socket *s)
@@ -2006,7 +2006,7 @@ socket_set_linger(gint fd)
 
 /**
  * Called to prepare the creation of the socket connection.
- * Returns NULL in case of failure.
+ * @returns NULL in case of failure.
  */
 static struct gnutella_socket *
 socket_connect_prepare(guint16 port, enum socket_type type)
@@ -2175,7 +2175,7 @@ socket_connect(guint32 ip_addr, guint16 port, enum socket_type type)
 }
 
 /**
- * Returns whether bad hostname was reported after a DNS lookup.
+ * @returns whether bad hostname was reported after a DNS lookup.
  */
 gboolean
 socket_bad_hostname(struct gnutella_socket *s)

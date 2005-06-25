@@ -43,7 +43,7 @@
 #include "if/core/nodes.h"	/* For node_peer_t */
 #include "if/core/bsched.h"
 
-/*
+/**
  * Bandwidth scheduler.
  *
  * A bandwidth scheduler (`B-sched' for short) is made of:
@@ -70,53 +70,54 @@
  * given as "stolem" bandwidth to some of the schedulers stealing from us.
  * Priority is given to schedulers that used up all their bandwidth.
  */
+
 struct bsched {
-	GTimeVal last_period;				/* Last time we ran our period */
-	GList *sources;						/* List of bio_source_t */
-	GSList *stealers;					/* List of bsched_t stealing bw */
-	gchar *name;						/* Name, for tracing purposes */
-	gint count;							/* Amount of sources */
-	gint type;							/* Scheduling type */
-	gint flags;							/* Processing flags */
-	gint period;						/* Fixed scheduling period, in ms */
-	gint min_period;					/* Minimal period without correction */
-	gint max_period;					/* Maximal period without correction */
-	gint period_ema;					/* EMA of period, in ms */
-	gint bw_per_second;					/* Configure bandwidth in bytes/sec */
-	gint bw_max;						/* Max bandwidth per period */
-	gint bw_actual;						/* Bandwidth used so far in period */
-	gint bw_last_period;				/* Bandwidth used last period */
-	gint bw_last_capped;				/* Bandwidth capped last period */
-	gint bw_slot;						/* Basic per-source bandwidth lot */
-	gint bw_ema;						/* EMA of bandwidth really used */
-	gint bw_stolen;						/* Amount we stole this period */
-	gint bw_stolen_ema;					/* EMA of stolen bandwidth */
-	gint bw_delta;						/* Running diff of actual vs. theoric */
-	gint bw_unwritten;					/* Data that we could not write */
-	gint bw_capped;						/* Bandwidth we refused to sources */
-	gint last_used;						/* Nb of active sources last period */
-	gint current_used;					/* Nb of active sources this period */
-	gboolean looped;					/* True when looped once over sources */
+	GTimeVal last_period;				/**< Last time we ran our period */
+	GList *sources;						/**< List of bio_source_t */
+	GSList *stealers;					/**< List of bsched_t stealing bw */
+	gchar *name;						/**< Name, for tracing purposes */
+	gint count;							/**< Amount of sources */
+	gint type;							/**< Scheduling type */
+	gint flags;							/**< Processing flags */
+	gint period;						/**< Fixed scheduling period, in ms */
+	gint min_period;					/**< Minimal period without correction */
+	gint max_period;					/**< Maximal period without correction */
+	gint period_ema;					/**< EMA of period, in ms */
+	gint bw_per_second;					/**< Configure bandwidth in bytes/sec */
+	gint bw_max;						/**< Max bandwidth per period */
+	gint bw_actual;						/**< Bandwidth used so far in period */
+	gint bw_last_period;				/**< Bandwidth used last period */
+	gint bw_last_capped;				/**< Bandwidth capped last period */
+	gint bw_slot;						/**< Basic per-source bandwidth lot */
+	gint bw_ema;						/**< EMA of bandwidth really used */
+	gint bw_stolen;						/**< Amount we stole this period */
+	gint bw_stolen_ema;					/**< EMA of stolen bandwidth */
+	gint bw_delta;						/**< Running diff of actual vs. theoric */
+	gint bw_unwritten;					/**< Data that we could not write */
+	gint bw_capped;						/**< Bandwidth we refused to sources */
+	gint last_used;						/**< Nb of active sources last period */
+	gint current_used;					/**< Nb of active sources this period */
+	gboolean looped;					/**< True when looped once over sources */
 };
 
 /*
  * Scheduling types.
  */
 
-#define BS_T_STREAM		1				/* Streaming */
-#define BS_T_RANDOM		2				/* Random (unsupported) */
+#define BS_T_STREAM		1				/**< Streaming */
+#define BS_T_RANDOM		2				/**< Random (unsupported) */
 
 /*
  * Scheduling flags.
  */
 
-#define BS_F_ENABLED		0x00000001	/* Scheduler enabled */
-#define BS_F_READ			0x00000002	/* Reading sources */
-#define BS_F_WRITE			0x00000004	/* Writing sources */
-#define BS_F_NOBW			0x00000008	/* No more bandwidth */
-#define BS_F_FROZEN_SLOT	0x00000010	/* Value of `bw_slot' is frozen */
-#define BS_F_CHANGED_BW		0x00000020	/* Bandwidth limit changed */
-#define BS_F_CLEARED		0x00000040	/* Ran clear_active once on scheduler */
+#define BS_F_ENABLED		0x00000001	/**< Scheduler enabled */
+#define BS_F_READ			0x00000002	/**< Reading sources */
+#define BS_F_WRITE			0x00000004	/**< Writing sources */
+#define BS_F_NOBW			0x00000008	/**< No more bandwidth */
+#define BS_F_FROZEN_SLOT	0x00000010	/**< Value of `bw_slot' is frozen */
+#define BS_F_CHANGED_BW		0x00000020	/**< Bandwidth limit changed */
+#define BS_F_CLEARED		0x00000040	/**< Ran clear_active once on scheduler */
 
 #define BS_F_RW				(BS_F_READ|BS_F_WRITE)
 
@@ -130,19 +131,19 @@ struct bsched {
 
 #define bsched_enabled(b)	((b)->flags & BS_F_ENABLED)
 
-/*
+/**
  * Global bandwidth schedulers.
  */
 
 struct bws_set {
-	bsched_t *out;			/* Output (uploads) */
-	bsched_t *in;			/* Input (downloads) */
-	bsched_t *gout;			/* Gnet TCP output */
-	bsched_t *gin;			/* Gnet TCP input */
-	bsched_t *gout_udp;		/* Gnet UDP output */
-	bsched_t *gin_udp;		/* Gnet UDP input */
-	bsched_t *glout;		/* Gnet leaf output */
-	bsched_t *glin;			/* Gnet leaf input */
+	bsched_t *out;			/**< Output (uploads) */
+	bsched_t *in;			/**< Input (downloads) */
+	bsched_t *gout;			/**< Gnet TCP output */
+	bsched_t *gin;			/**< Gnet TCP input */
+	bsched_t *gout_udp;		/**< Gnet UDP output */
+	bsched_t *gin_udp;		/**< Gnet UDP input */
+	bsched_t *glout;		/**< Gnet leaf output */
+	bsched_t *glin;			/**< Gnet leaf input */
 };
 
 typedef struct sendfile_ctx {

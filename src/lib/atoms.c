@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Atom management.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -89,14 +87,14 @@ typedef enum {
  */
 typedef struct atom {
 #ifdef TRACK_ATOMS
-	GHashTable *get;		/* Allocation spots */
-	GHashTable *free;		/* Free spots */
+	GHashTable *get;		/**< Allocation spots */
+	GHashTable *free;		/**< Free spots */
 #endif
-	gint refcnt;			/* Amount of references */
+	gint refcnt;			/**< Amount of references */
 #ifdef PROTECT_ATOMS
 	union {
 		struct {
-			guint len;				/* Length of user arena */
+			guint len;				/**< Length of user arena */
 			atom_prot_magic_t magic;
 		} attr;
 		gchar padding[PAGESIZE - sizeof(guint)];
@@ -153,16 +151,16 @@ atom_protect(atom_t *a, guint len)
 typedef gint (*len_func_t)(gconstpointer v);
 typedef const gchar *(*str_func_t)(gconstpointer v);
 
-/*
+/**
  * Description of atom types.
  */
 typedef struct table_desc {
-	const gchar *type;			/* Type of atoms */
-	GHashTable *table;			/* Table of atoms: "atom value" => 1 */
-	GHashFunc hash_func;		/* Hashing function for atoms */
-	GCompareFunc eq_func;		/* Atom equality function */
-	len_func_t len_func;		/* Atom length function */
-	str_func_t str_func;		/* Atom to human-readable string */
+	const gchar *type;			/**< Type of atoms */
+	GHashTable *table;			/**< Table of atoms: "atom value" => 1 */
+	GHashFunc hash_func;		/**< Hashing function for atoms */
+	GCompareFunc eq_func;		/**< Atom equality function */
+	len_func_t len_func;		/**< Atom length function */
+	str_func_t str_func;		/**< Atom to human-readable string */
 } table_desc_t;
 
 static gint str_len(gconstpointer v);
@@ -174,7 +172,7 @@ static const gchar *sha1_str(gconstpointer v);
 static gint uint64_len(gconstpointer v);
 static const gchar *uint64_str(gconstpointer v);
 
-/*
+/**
  * The set of all atom types we know about.
  */
 static table_desc_t atoms[] = {

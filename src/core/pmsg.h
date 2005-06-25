@@ -38,7 +38,7 @@
 
 #include <glib.h>
 
-/*
+/**
  * A data buffer, can be shared by several message blocks.
  *
  * There are two incarnations of a message data block: one where the buffer's
@@ -61,12 +61,12 @@
 typedef void (*pdata_free_t)(gpointer p, gpointer arg);
 
 typedef struct pdata {
-	pdata_free_t d_free;			/* Free routine */
-	gpointer d_arg;					/* Argument to free routine */
-	gint d_refcnt;					/* Reference count */
-	gchar *d_arena;					/* First byte in buffer */
-	gchar *d_end;					/* First byte after buffer */
-	gchar d_embedded[1];			/* Start of embedded arena */
+	pdata_free_t d_free;			/**< Free routine */
+	gpointer d_arg;					/**< Argument to free routine */
+	gint d_refcnt;					/**< Reference count */
+	gchar *d_arena;					/**< First byte in buffer */
+	gchar *d_end;					/**< First byte after buffer */
+	gchar d_embedded[1];			/**< Start of embedded arena */
 } pdata_t;
 
 #define pdata_start(x)		((x)->d_arena)
@@ -83,16 +83,16 @@ typedef struct pmsg pmsg_t;
 typedef gboolean (*pmsg_check_t)(pmsg_t *mb, struct mqueue *q);
 
 struct pmsg {
-	gchar *m_rptr;					/* First unread byte in buffer */
-	gchar *m_wptr;					/* First unwritten byte in buffer */
-	pdata_t *m_data;				/* Data buffer */
-	guint m_prio;					/* Message priority (0 = normal) */
-	pmsg_check_t m_check;			/* Optional check before sending */
+	gchar *m_rptr;					/**< First unread byte in buffer */
+	gchar *m_wptr;					/**< First unwritten byte in buffer */
+	pdata_t *m_data;				/**< Data buffer */
+	guint m_prio;					/**< Message priority (0 = normal) */
+	pmsg_check_t m_check;			/**< Optional check before sending */
 };
 
 typedef void (*pmsg_free_t)(pmsg_t *mb, gpointer arg);
 
-#define PMSG_PRIO_MASK		0x00ffffff	/* Only lower bits are relevant */
+#define PMSG_PRIO_MASK		0x00ffffff	/**< Only lower bits are relevant */
 
 #define pmsg_start(x)		((x)->m_data->d_arena)
 #define pmsg_phys_len(x)	pdata_len((x)->m_data)
@@ -108,17 +108,17 @@ typedef void (*pmsg_free_t)(pmsg_t *mb, gpointer arg);
  * Message priorities.
  */
 
-#define PMSG_P_DATA		0			/* Regular data, lowest priority */
-#define PMSG_P_CONTROL	1			/* Control message */
-#define PMSG_P_URGENT	2			/* Urgent message */
-#define PMSG_P_HIGHEST	3			/* Highest priority */
+#define PMSG_P_DATA		0			/**< Regular data, lowest priority */
+#define PMSG_P_CONTROL	1			/**< Control message */
+#define PMSG_P_URGENT	2			/**< Urgent message */
+#define PMSG_P_HIGHEST	3			/**< Highest priority */
 
 /*
  * Flags defined in highest bits of `m_prio'.
  */
 
-#define PMSG_PF_EXT		0x80000000	/* Message block uses extended form */
-#define PMSG_PF_SENT	0x40000000	/* Message was successfully sent */
+#define PMSG_PF_EXT		0x80000000	/**< Message block uses extended form */
+#define PMSG_PF_SENT	0x40000000	/**< Message was successfully sent */
 
 #define pmsg_is_extended(x)	((x)->m_prio & PMSG_PF_EXT)
 #define pmsg_was_sent(x)	((x)->m_prio & PMSG_PF_SENT)

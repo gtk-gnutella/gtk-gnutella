@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003, Richard Eckart
  *
- * Displaying of file information in the gui.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * Displaying of file information in the GUI.
+ *
+ * @author Richard Eckart
+ * @date 2003
  */
 
 #include "gtk/gui.h"
@@ -66,13 +74,14 @@ on_clist_fileinfo_resize_column(GtkCList *unused_clist,
  * when fi_gui_shutdown is called. */
 static gnet_fi_info_t *last_fi = NULL;
 
-/*
+/**
  * fi_gui_fill_info:
  *
  * Fill in the cell data. Calling this will always break the data
  * it filled in last time!
  *
- * WARNING: returns pointer to global data: the gnet_fi_info_t structure
+ * @warning
+ * Returns pointer to global data: the gnet_fi_info_t structure
  * filled from the given `fih'.
  */
 static gnet_fi_info_t *
@@ -538,7 +547,9 @@ fi_gui_shutdown(void)
  * Update all the fileinfo at the same time.
  */
 
-/* FIXME: we should remember for every node when it was last
+/**
+ * @todo
+ * FIXME: we should remember for every node when it was last
  *        updated and only refresh every node at most once every
  *        second. This information should be kept in a struct pointed
  *        to by the row user_data and should be automatically freed

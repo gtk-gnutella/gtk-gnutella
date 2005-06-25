@@ -280,7 +280,7 @@ hash_list_remove(hash_list_t *hl, gpointer data)
 }
 
 /**
- * Returns the last item of the list, or NULL if none.
+ * @returns the last item of the list, or NULL if none.
  */
 gpointer
 hash_list_last(const hash_list_t *hl)
@@ -295,7 +295,7 @@ hash_list_last(const hash_list_t *hl)
 }
 
 /**
- * Returns the first item of the list, or NULL if none.
+ * @returns the first item of the list, or NULL if none.
  */
 gpointer
 hash_list_first(const hash_list_t *hl)
@@ -310,7 +310,7 @@ hash_list_first(const hash_list_t *hl)
 }
 
 /**
- * Returns the length of the list.
+ * @returns the length of the list.
  */
 gint
 hash_list_length(const hash_list_t *hl)

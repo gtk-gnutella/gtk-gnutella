@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Raphael Manfredi
  *
- * Statistics routines.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,15 +23,20 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _stats_h_
-#define _stats_h_
-
-#endif /* _stats_h_ */
-
 /**
  * @ingroup lib
  * @file
  *
+ * Statistics routines.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
+ */
+
+#ifndef _stats_h_
+#define _stats_h_
+
+/*
  * One dimension statistics.
  */
 
@@ -47,5 +50,7 @@ gdouble statx_avg(gpointer ox);
 gdouble statx_sdev(gpointer ox);
 gdouble statx_var(gpointer ox);
 gdouble *statx_data(gpointer ox);
+
+#endif /* _stats_h_ */
 
 /* vi: set ts=4: */

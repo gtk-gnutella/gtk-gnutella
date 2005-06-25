@@ -39,38 +39,38 @@ typedef guint32 gnet_search_t;
 /*
  * Flags for search_new()
  */
-#define SEARCH_PASSIVE	 0x01 /* start a passive ssearch */
-#define SEARCH_ENABLED	 0x02 /* start an enabled search */
+#define SEARCH_PASSIVE	 0x01 /**< start a passive ssearch */
+#define SEARCH_ENABLED	 0x02 /**< start an enabled search */
 
 /*
  * Host vectors held in query hits.
  */
 typedef struct gnet_host_vec {
-	gnet_host_t *hvec;		/* Vector of alternate locations */
-	gint hvcnt;				/* Amount of hosts in vector */
+	gnet_host_t *hvec;		/**< Vector of alternate locations */
+	gint hvcnt;				/**< Amount of hosts in vector */
 } gnet_host_vec_t;
 
 /*
  * Result sets `status' flags.
  */
-#define ST_KNOWN_VENDOR			0x8000		/* Found known vendor code */
-#define ST_PARSED_TRAILER		0x4000		/* Was able to parse trailer */
-#define ST_UDP					0x2000		/* Got hit via UDP */
-#define ST_BOGUS				0x1000		/* Bogus IP address */
-#define ST_PUSH_PROXY			0x0010		/* Listed some push proxies */
-#define ST_GGEP					0x0008		/* Trailer has a GGEP extension */
-#define ST_UPLOADED				0x0004		/* Is "stable", people downloaded */
-#define ST_BUSY					0x0002		/* Has currently no slots */
-#define ST_FIREWALL				0x0001		/* Is behind a firewall */
+#define ST_KNOWN_VENDOR			0x8000		/**< Found known vendor code */
+#define ST_PARSED_TRAILER		0x4000		/**< Was able to parse trailer */
+#define ST_UDP					0x2000		/**< Got hit via UDP */
+#define ST_BOGUS				0x1000		/**< Bogus IP address */
+#define ST_PUSH_PROXY			0x0010		/**< Listed some push proxies */
+#define ST_GGEP					0x0008		/**< Trailer has a GGEP extension */
+#define ST_UPLOADED				0x0004		/**< Is "stable", people downloaded */
+#define ST_BUSY					0x0002		/**< Has currently no slots */
+#define ST_FIREWALL				0x0001		/**< Is behind a firewall */
 
 /*
  * Processing of ignored files.
  */
-#define SEARCH_IGN_DISPLAY_AS_IS	0		/* Display normally */
-#define SEARCH_IGN_DISPLAY_MARKED	1		/* Display marked (lighter color) */
-#define SEARCH_IGN_NO_DISPLAY		2		/* Don't display */
+#define SEARCH_IGN_DISPLAY_AS_IS	0		/**< Display normally */
+#define SEARCH_IGN_DISPLAY_MARKED	1		/**< Display marked (lighter color) */
+#define SEARCH_IGN_NO_DISPLAY		2		/**< Don't display */
 
-/*
+/**
  * A results_set structure factorizes the common information from a Query Hit
  * packet, and then has a list of individual records, one for each hit.
  *
@@ -79,19 +79,19 @@ typedef struct gnet_host_vec {
  * various searches in presence.
  */
 typedef struct gnet_results_set {
-	gchar *guid;				/* Servent's GUID (atom) */
+	gchar *guid;				/**< Servent's GUID (atom) */
 	guint32 ip;
 	guint16 port;
-	guint16 status;				/* Parsed status bits from trailer */
+	guint16 status;				/**< Parsed status bits from trailer */
 	guint32 speed;
-	time_t  stamp;				/* Reception time of the hit */
-	guchar  vendor[4];			/* Vendor code */
-	gchar *version;				/* Version information (atom) */
-	gint country;				/* Country code -- encoded ISO3166 */
+	time_t  stamp;				/**< Reception time of the hit */
+	guchar  vendor[4];			/**< Vendor code */
+	gchar *version;				/**< Version information (atom) */
+	gint country;				/**< Country code -- encoded ISO3166 */
     flag_t  flags;
-	gnet_host_vec_t *proxies;	/* Optional: known push proxies */
-	gchar *hostname;			/* Optional: server's hostname */
-	guint32 udp_ip;				/* IP of delivering node, if hit from UDP */
+	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
+	gchar *hostname;			/**< Optional: server's hostname */
+	guint32 udp_ip;				/**< IP of delivering node, if hit from UDP */
 
 	GSList *records;
 	guint32 num_recs;
@@ -104,23 +104,23 @@ typedef struct gnet_results_set {
 #define SR_IGNORED		0x0002
 #define SR_DONT_SHOW	0x0004
 
-/*
+/**
  * An individual hit.  It referes to a file entry on the remote servent,
  * as identified by the parent results_set structure that contains this hit.
  */
 typedef struct gnet_record {
-	gchar  *name;				/* File name */
-	filesize_t size;			/* Size of file, in bytes */
-	guint32 index;				/* Index for GET command */
-	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
-	gchar  *tag;				/* Optional tag data string (atom) */
-	gchar  *xml;				/* Optional XML data string (atom) */
-	gnet_host_vec_t *alt_locs;	/* Optional: known alternate locations */
+	gchar  *name;				/**< File name */
+	filesize_t size;			/**< Size of file, in bytes */
+	guint32 index;				/**< Index for GET command */
+	gchar  *sha1;				/**< SHA1 URN (binary form, atom) */
+	gchar  *tag;				/**< Optional tag data string (atom) */
+	gchar  *xml;				/**< Optional XML data string (atom) */
+	gnet_host_vec_t *alt_locs;	/**< Optional: known alternate locations */
     flag_t  flags;
 } gnet_record_t;
 
 
-/*
+/**
  * Search callbacks
  */
 typedef void (*search_got_results_listener_t)

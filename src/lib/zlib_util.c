@@ -41,12 +41,12 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-#define OUT_GROW	1024		/* To grow output buffer if it's to short */
+#define OUT_GROW	1024		/**< To grow output buffer if it's to short */
 
 /**
  * zlib_strerror
  *
- * Return human-readable error string corresponding to error code `errnum'.
+ * @return human-readable error string corresponding to error code `errnum'.
  */
 gchar *zlib_strerror(gint errnum)
 {
@@ -76,7 +76,7 @@ gchar *zlib_strerror(gint errnum)
  * @param destlen	length of supplied output buffer, if dest != NULL
  * @param level		compression level, between 0 and 9.
  *
- * Returns new deflater, or NULL if error.
+ * @return new deflater, or NULL if error.
  */
 static zlib_deflater_t *
 zlib_deflater_alloc(
@@ -350,7 +350,8 @@ void zlib_deflater_free(zlib_deflater_t *zd, gboolean output)
 
 /**
  * Inflate data, whose final uncompressed size is known.
- * Return allocated uncompressed data if OK, NULL on error.
+ *
+ * @return allocated uncompressed data if OK, NULL on error.
  */
 gpointer zlib_uncompress(gpointer data, gint len, gint uncompressed_len)
 {

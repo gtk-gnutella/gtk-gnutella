@@ -33,7 +33,7 @@
 struct shared_file;
 struct download;
 
-/*
+/**
  * These used to be in fileinfo.h, but we need them now at several places.
  */
 enum dl_chunk_status {
@@ -46,10 +46,10 @@ typedef guint32 gnet_fi_t;
 
 typedef struct gnet_fi_info {
 	gnet_fi_t fi_handle;
-	gchar *path;				/* Path of the directory of the file on disk */
-	gchar *file_name;			/* Name of the file on disk */
-	gchar *sha1;				/* SHA1 (binary) of the file or NULL */
-	GSList *aliases;			/* List of aliases (NULL if none) */
+	gchar *path;				/**< Path of the directory of the file on disk */
+	gchar *file_name;			/**< Name of the file on disk */
+	gchar *sha1;				/**< SHA1 (binary) of the file or NULL */
+	GSList *aliases;			/**< List of aliases (NULL if none) */
 } gnet_fi_info_t;
 
 typedef struct gnet_fi_status {
@@ -71,55 +71,55 @@ typedef struct gnet_fi_chunks {
 } gnet_fi_chunks_t;
 
 struct dl_file_info {
-    gnet_fi_t fi_handle;    /* Handle */
+    gnet_fi_t fi_handle;    /**< Handle */
 
-	guint32 flags;			/* Operating flags */
-	gchar *file_name;		/* Output file name (atom) */
-	gchar *path;			/* Output file path (atom) */
-	GSList *alias;			/* List of file name aliases (atoms) */
-	filesize_t size;		/* File size */
-	guint64 *size_atom;		/* File size (atom -- points to value in memory) */
-	gchar *sha1;			/* server SHA1 (atom) if known, NULL if not. */
-	gchar *cha1;			/* computed SHA1 (atom) if known, NULL if not. */
-	gint32 refcount;		/* Reference count of file (number of sources)*/
-	GSList *sources;        /* list of sources (struct download *) */
-	gint32 lifecount;		/* Amount of "alive" downloads referencing us */
-	time_t stamp;			/* Time stamp */
-	time_t ctime;			/* Creation time stamp */
-	time_t ntime;			/* Last time a new source was added */
-	time_t last_flush;		/* When last flush to disk occurred */
-	time_t last_dmesh;		/* When last dmesh query was used */
-	filesize_t done;		/* Total number of bytes completed */
-	GSList *chunklist;		/* List of ranges within file */
-	GSList *seen_on_network;  /* List of ranges available on network */
-	guint32 generation;		/* Generation number, incremented on disk update */
-	struct shared_file *sf;	/* When PFSP-server is enabled, share this file */
-	gboolean file_size_known; /* File size known? */
-	gboolean use_swarming;	/* Use swarming? */
-	gboolean dirty;			/* Does it need saving? */
-	gboolean dirty_status;  /* Notify about status change on next interval */
-	gboolean hashed;		/* In hash tables? */
-	guint32  aqueued_count; /* Actively queued sources */
-	guint32  pqueued_count; /* Passively queued sources */
+	guint32 flags;			/**< Operating flags */
+	gchar *file_name;		/**< Output file name (atom) */
+	gchar *path;			/**< Output file path (atom) */
+	GSList *alias;			/**< List of file name aliases (atoms) */
+	filesize_t size;		/**< File size */
+	guint64 *size_atom;		/**< File size (atom -- points to value in memory) */
+	gchar *sha1;			/**< server SHA1 (atom) if known, NULL if not. */
+	gchar *cha1;			/**< computed SHA1 (atom) if known, NULL if not. */
+	gint32 refcount;		/**< Reference count of file (number of sources)*/
+	GSList *sources;        /**< list of sources (struct download *) */
+	gint32 lifecount;		/**< Amount of "alive" downloads referencing us */
+	time_t stamp;			/**< Time stamp */
+	time_t ctime;			/**< Creation time stamp */
+	time_t ntime;			/**< Last time a new source was added */
+	time_t last_flush;		/**< When last flush to disk occurred */
+	time_t last_dmesh;		/**< When last dmesh query was used */
+	filesize_t done;		/**< Total number of bytes completed */
+	GSList *chunklist;		/**< List of ranges within file */
+	GSList *seen_on_network;  /**< List of ranges available on network */
+	guint32 generation;		/**< Generation number, incremented on disk update */
+	struct shared_file *sf;	/**< When PFSP-server is enabled, share this file */
+	gboolean file_size_known; /**< File size known? */
+	gboolean use_swarming;	/**< Use swarming? */
+	gboolean dirty;			/**< Does it need saving? */
+	gboolean dirty_status;  /**< Notify about status change on next interval */
+	gboolean hashed;		/**< In hash tables? */
+	guint32  aqueued_count; /**< Actively queued sources */
+	guint32  pqueued_count; /**< Passively queued sources */
 
 
 	/*
 	 * The following group is used to compute the aggregated reception rate.
 	 */
 
-	gint32 recvcount;		/* Amount of "receiving" downloads referencing us */
-	guint32 recv_last_rate;	/* Last amount of bytes/sec received */
-	guint32 recv_amount;	/* Amount of bytes received this period */
-	time_t recv_last_time;	/* When did we last compute recv_last_rate? */
+	gint32 recvcount;		/**< Amount of "receiving" downloads referencing us */
+	guint32 recv_last_rate;	/**< Last amount of bytes/sec received */
+	guint32 recv_amount;	/**< Amount of bytes received this period */
+	time_t recv_last_time;	/**< When did we last compute recv_last_rate? */
 
 	/*
 	 * This group of fields is used by the background SHA1 and moving daemons.
 	 */
 
-	guint cha1_elapsed;		/* Time spent to compute the SHA1 */
-	filesize_t cha1_hashed;	/* Amount of bytes hashed so far */
-	guint copy_elapsed;		/* Time spent to copy the file */
-	filesize_t copied;		/* Amount of bytes copied so far */
+	guint cha1_elapsed;		/**< Time spent to compute the SHA1 */
+	filesize_t cha1_hashed;	/**< Amount of bytes hashed so far */
+	guint copy_elapsed;		/**< Time spent to copy the file */
+	filesize_t copied;		/**< Amount of bytes copied so far */
 };
 
 #define FILE_INFO_COMPLETE(x)	((x)->done == (x)->size && (x)->file_size_known)
@@ -128,16 +128,16 @@ typedef void (*fi_listener_t) (gnet_fi_t);
 typedef void (*fi_src_listener_t) (gnet_fi_t, gnet_src_t);
 
 typedef enum {
-	EV_FI_ADDED = 0,       /* fi_listener */
-	EV_FI_REMOVED,         /* fi_listener */
-	EV_FI_INFO_CHANGED,    /* fi_listener */
-	EV_FI_STATUS_CHANGED,  /* fi_listener */
-	EV_FI_STATUS_CHANGED_TRANSIENT, /* fi_listener */
-	EV_FI_SRC_ADDED,       /* fi_src_listener */
-	EV_FI_SRC_REMOVED,     /* fi_src_listener */
-	EV_FI_RANGES_CHANGED,  /* fi_listener */
+	EV_FI_ADDED = 0,       /**< fi_listener */
+	EV_FI_REMOVED,         /**< fi_listener */
+	EV_FI_INFO_CHANGED,    /**< fi_listener */
+	EV_FI_STATUS_CHANGED,  /**< fi_listener */
+	EV_FI_STATUS_CHANGED_TRANSIENT, /**< fi_listener */
+	EV_FI_SRC_ADDED,       /**< fi_src_listener */
+	EV_FI_SRC_REMOVED,     /**< fi_src_listener */
+	EV_FI_RANGES_CHANGED,  /**< fi_listener */
 
-	EV_FI_EVENTS           /* Number of events in this domain */
+	EV_FI_EVENTS           /**< Number of events in this domain */
 } gnet_fi_ev_t;
 
 /*

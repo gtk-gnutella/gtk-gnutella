@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003, Raphael Manfredi
  *
- * Base64 encoding/decoding.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Base64 encoding/decoding.
+ *
+ * @author Raphael Manfredi
+ * @date 2003
  */
 
 #include "common.h"
@@ -99,16 +107,16 @@ static const gchar b64_alphabet[] =
  * Compute the number of base64 digits and amount of padding necessary
  * to encode `len' bytes.
  *
- * Returns the number of base64 digits necessary.
+ * @returns the number of base64 digits necessary.
  * Furthermore, if `pad' is a non-NULL pointer, it is filled with the amount
  * of padding chars that would be necessary.
  */
 static guint encode_pad_length(guint len, guint *pad)
 {
-	guint ndigits;			/* Base64 digits necessary */
-	guint npad = 0;			/* Final padding chars necessary */
-	guint tcount;			/* Amount of full triplets */
-	guint remainder;		/* Amount of input bytes in final triplet */
+	guint ndigits;			/**< Base64 digits necessary */
+	guint npad = 0;			/**< Final padding chars necessary */
+	guint tcount;			/**< Amount of full triplets */
+	guint remainder;		/**< Amount of input bytes in final triplet */
 
 	g_assert(len > 0);
 
@@ -225,7 +233,7 @@ void base64_encode_into(const gchar *buf, guint len,
  * Encode `len' bytes starting at `buf' into new allocated buffer.
  * Trailing padding chars are emitted.
  *
- * Returns the new encoded buffer, NUL-terminated, and the added amount
+ * @returns the new encoded buffer, NUL-terminated, and the added amount
  * of padding chars in `retpad' if it is a non-NULL pointer.
  */
 gchar *base64_encode(const gchar *buf, guint len, guint *retpad)
@@ -252,16 +260,16 @@ gchar *base64_encode(const gchar *buf, guint len, guint *retpad)
  * Caller must have ensured that there was sufficient room in decbuf.
  * Uses the specified decoding alphabet.
  *
- * Return decoded bytes if successful, 0 if the input was not valid base64.
+ * @return decoded bytes if successful, 0 if the input was not valid base64.
  */
 static guint base64_decode_alphabet(const gint8 valmap[256],
 	const gchar *buf, guint len, gchar *decbuf, guint declen)
 {
-	guint32 i = 0;					/* Input accumulator, 0 for trailing pad */
-	gchar const *ip = buf + len;	/* Input pointer, one byte off end */
-	guint dlen = (len >> 2) * 3;	/* Exact decoded length */
-	gchar *op;						/* Output pointer, one byte off end */
-	guint bytes;					/* Bytes decoded without padding */
+	guint32 i = 0;					/**< Input accumulator, 0 for trailing pad */
+	gchar const *ip = buf + len;	/**< Input pointer, one byte off end */
+	guint dlen = (len >> 2) * 3;	/**< Exact decoded length */
+	gchar *op;						/**< Output pointer, one byte off end */
+	guint bytes;					/**< Bytes decoded without padding */
 	gint8 v;
 
 	g_assert(buf);
@@ -364,7 +372,7 @@ static guint base64_decode_alphabet(const gint8 valmap[256],
  * Decode `len' bytes from `buf' into `declen' bytes starting from `decbuf'.
  * Caller must have ensured that there was sufficient room in decbuf.
  *
- * Returns the amount of bytes decoded (without trailing padding) if successful,
+ * @returns the amount of bytes decoded (without trailing padding) if successful,
  * 0 if the input was not valid base64.
  */
 guint base64_decode_into(const gchar *buf, guint len,
@@ -378,7 +386,7 @@ guint base64_decode_into(const gchar *buf, guint len,
  *
  * Decode `len' bytes starting at `buf' into new allocated buffer.
  *
- * Returns the new decoded buffer, or NULL if the input was not valid base64
+ * @returns the new decoded buffer, or NULL if the input was not valid base64
  * encoding.  The caller knows the length of the returned buffer: it's the
  * size of the input divided by 4 and multiplied by 3.  If `outlen' is non-NULL,
  * it is filled with the amount of bytes decoded into the buffer (without

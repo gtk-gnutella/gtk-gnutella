@@ -57,11 +57,11 @@ RCSID("$Id$");
 
 #include "if/gnet_property_priv.h"
 
-#include "lib/override.h"		/* Must be the last header included */
+#include "lib/override.h"			/* Must be the last header included */
 
-http_url_error_t http_url_errno;		/* Error from http_url_parse() */
+http_url_error_t http_url_errno;	/**< Error from http_url_parse() */
 
-static GSList *sl_outgoing = NULL;		/* To spot reply timeouts */
+static GSList *sl_outgoing = NULL;	/**< To spot reply timeouts */
 
 /**
  * Send HTTP status on socket, with code and reason.
@@ -80,7 +80,7 @@ static GSList *sl_outgoing = NULL;		/* To spot reply timeouts */
  * the generated headers.  We reduce the size of the generated header
  * to about 512 bytes, and remove non-essential things.
  *
- * Returns TRUE if we were able to send everything, FALSE otherwise.
+ * @returns TRUE if we were able to send everything, FALSE otherwise.
  */
 gboolean
 http_send_status(
@@ -302,7 +302,7 @@ code_message_parse(const gchar *line, const gchar **msg)
  * If `proto' is non-null, then when there is a leading protocol string in
  * the reply, it must be equal to `proto'.
  *
- * Returns -1 if it fails to parse the status line correctly, the status code
+ * @returns -1 if it fails to parse the status line correctly, the status code
  * otherwise.
  *
  * We recognize the following status lines:
@@ -427,7 +427,7 @@ http_status_parse(const gchar *line,
  * Extract HTTP version major/minor out of the given request, whose string
  * length is `len' bytes.
  *
- * Returns TRUE when we identified the "HTTP/x.x" trailing string, filling
+ * @returns TRUE when we identified the "HTTP/x.x" trailing string, filling
  * major and minor accordingly.
  */
 gboolean
@@ -498,18 +498,18 @@ http_extract_version(
  ***/
 
 static gchar *parse_errstr[] = {
-	"OK",									/* HTTP_URL_OK */
-	"Not an http URI",						/* HTTP_URL_NOT_HTTP */
-	"More than one <user>:<password>",		/* HTTP_URL_MULTIPLE_CREDENTIALS */
-	"Truncated <user>:<password>",			/* HTTP_URL_BAD_CREDENTIALS */
-	"Could not parse port",					/* HTTP_URL_BAD_PORT_PARSING */
-	"Port value is out of range",			/* HTTP_URL_BAD_PORT_RANGE */
-	"Could not resolve host into IP",		/* HTTP_URL_HOSTNAME_UNKNOWN */
-	"URL has no URI part",					/* HTTP_URL_MISSING_URI */
+	"OK",									/**< HTTP_URL_OK */
+	"Not an http URI",						/**< HTTP_URL_NOT_HTTP */
+	"More than one <user>:<password>",		/**< HTTP_URL_MULTIPLE_CREDENTIALS */
+	"Truncated <user>:<password>",			/**< HTTP_URL_BAD_CREDENTIALS */
+	"Could not parse port",					/**< HTTP_URL_BAD_PORT_PARSING */
+	"Port value is out of range",			/**< HTTP_URL_BAD_PORT_RANGE */
+	"Could not resolve host into IP",		/**< HTTP_URL_HOSTNAME_UNKNOWN */
+	"URL has no URI part",					/**< HTTP_URL_MISSING_URI */
 };
 
 /**
- * Return human-readable error string corresponding to error code `errnum'.
+ * @return human-readable error string corresponding to error code `errnum'.
  */
 const gchar *
 http_url_strerror(http_url_error_t errnum)
@@ -524,7 +524,7 @@ http_url_strerror(http_url_error_t errnum)
  * Parse HTTP url and extract the IP/port we need to connect to.
  * Also identifies the start of the path to request on the server.
  *
- * Returns TRUE if the URL was correctly parsed, with `port', 'host'
+ * @returns TRUE if the URL was correctly parsed, with `port', 'host'
  * and `path' filled if they are non-NULL, FALSE otherwise.
  * The variable `http_url_errno' is set accordingly.
  *
@@ -875,7 +875,7 @@ ignored:
  *
  * The `field' and `vendor' arguments are only there to log errors, if any.
  *
- * Returns a sorted list of http_range_t objects.
+ * @returns a sorted list of http_range_t objects.
  */
 GSList *
 http_range_parse(
@@ -1142,7 +1142,7 @@ http_range_free(GSList *list)
 }
 
 /**
- * Returns total size of all the ranges.
+ * @returns total size of all the ranges.
  */
 filesize_t
 http_range_size(const GSList *list)
@@ -1159,7 +1159,7 @@ http_range_size(const GSList *list)
 }
 
 /**
- * Returns a pointer to static data, containing the available ranges.
+ * @returns a pointer to static data, containing the available ranges.
  */
 const gchar *
 http_range_to_gchar(const GSList *list)
@@ -1217,7 +1217,7 @@ http_range_contains(GSList *ranges, filesize_t from, filesize_t to)
 }
 
 /**
- * Returns a new copy of the given HTTP range.
+ * @returns a new copy of the given HTTP range.
  */
 static http_range_t *
 http_range_clone(http_range_t *range)
@@ -1232,7 +1232,7 @@ http_range_clone(http_range_t *range)
 }
 
 /**
- * Returns a new list based on the merged ranges in the other lists given.
+ * @returns a new list based on the merged ranges in the other lists given.
  */
 GSList *
 http_range_merge(GSList *old_list, GSList *new_list)
@@ -1396,7 +1396,7 @@ static const gchar * const error_str[] = {
 guint http_async_errno;		/* Used to return error codes during setup */
 
 /**
- * Return human-readable error string corresponding to error code `errnum'.
+ * @return human-readable error string corresponding to error code `errnum'.
  */
 const gchar *
 http_async_strerror(guint errnum)
@@ -1427,44 +1427,47 @@ static const gchar * const http_verb[NUM_HTTP_REQTYPES] = {
 
 #define HTTP_ASYNC_MAGIC 0xa91cf3eeU
 
-struct http_async {					/* An asynchronous HTTP request */
-	guint magic;					/* Magic number */
-	enum http_reqtype type;			/* Type of request */
-	http_state_t state;				/* Current request state */
-	guint32 flags;					/* Operational flags */
-	gchar *url;						/* Initial URL request (atom) */
-	gchar *path;					/* Path to request (atom) */
-	gchar *host;					/* Hostname, if not a numeric IP (atom) */
-	struct gnutella_socket *socket;	/* Attached socket */
-	http_header_cb_t header_ind;	/* Callback for headers */
-	http_data_cb_t data_ind;		/* Callback for data */
-	http_error_cb_t error_ind;		/* Callback for errors */
-	http_state_change_t state_chg;	/* Optional: callback for state changes */
-	time_t last_update;				/* Time of last activity */
-	gpointer io_opaque;				/* Opaque I/O callback information */
-	bio_source_t *bio;				/* Bandwidth-limited source */
-	gpointer user_opaque;			/* User opaque data */
-	http_user_free_t user_free;		/* Free routine for opaque data */
-	struct http_async *parent;		/* Parent request, for redirections */
-	http_buffer_t *delayed;			/* Delayed data that could not be sent */
-	gboolean allow_redirects;		/* Whether we can follow HTTP redirects */
-	GSList *children;				/* Child requests */
+/**
+ * An asynchronous HTTP request
+ */
+struct http_async {
+	guint magic;					/**< Magic number */
+	enum http_reqtype type;			/**< Type of request */
+	http_state_t state;				/**< Current request state */
+	guint32 flags;					/**< Operational flags */
+	gchar *url;						/**< Initial URL request (atom) */
+	gchar *path;					/**< Path to request (atom) */
+	gchar *host;					/**< Hostname, if not a numeric IP (atom) */
+	struct gnutella_socket *socket;	/**< Attached socket */
+	http_header_cb_t header_ind;	/**< Callback for headers */
+	http_data_cb_t data_ind;		/**< Callback for data */
+	http_error_cb_t error_ind;		/**< Callback for errors */
+	http_state_change_t state_chg;	/**< Optional: callback for state changes */
+	time_t last_update;				/**< Time of last activity */
+	gpointer io_opaque;				/**< Opaque I/O callback information */
+	bio_source_t *bio;				/**< Bandwidth-limited source */
+	gpointer user_opaque;			/**< User opaque data */
+	http_user_free_t user_free;		/**< Free routine for opaque data */
+	struct http_async *parent;		/**< Parent request, for redirections */
+	http_buffer_t *delayed;			/**< Delayed data that could not be sent */
+	gboolean allow_redirects;		/**< Whether we can follow HTTP redirects */
+	GSList *children;				/**< Child requests */
 
 	/*
 	 * Operations that may be redefined by user.
 	 */
 
-	http_op_request_t op_request;	/* Creates HTTP request */
+	http_op_request_t op_request;	/**< Creates HTTP request */
 };
 
 /*
  * Operational flags.
  */
 
-#define HA_F_FREED		0x00000001	/* Structure has been logically freed */
-#define HA_F_SUBREQ		0x00000002	/* Children request now has control */
+#define HA_F_FREED		0x00000001	/**< Structure has been logically freed */
+#define HA_F_SUBREQ		0x00000002	/**< Children request now has control */
 
-/*
+/**
  * In order to allow detection of logically freed structures when we return
  * from user callbacks, we delay the physical removal of the http_async
  * structure to the clock timer.  A freed structure is marked HA_F_FREED
@@ -1479,7 +1482,7 @@ static GSList *sl_ha_freed = NULL;		/* Pending physical removal */
  * Get URL and request information, given opaque handle.
  * This can be used by client code to log request parameters.
  *
- * Returns URL and fills `req' with the request type string (GET, POST, ...)
+ * @returns URL and fills `req' with the request type string (GET, POST, ...)
  * if it is a non-NULL pointer, `path' with the request path, `ip' and `port'
  * with the server address/port.
  */
@@ -1570,8 +1573,8 @@ http_async_free_recursive(struct http_async *ha)
 		http_async_free_recursive(cha);
 	}
 
-	ha->magic = 0;				/* Prevent accidental reuse */
-	ha->flags |= HA_F_FREED;	/* Will be freed later */
+	ha->magic = 0;					/* Prevent accidental reuse */
+	ha->flags |= HA_F_FREED;		/* Will be freed later */
 	ha->state = HTTP_AS_REMOVED;	/* Don't notify about state change! */
 
 	sl_ha_freed = g_slist_prepend(sl_ha_freed, ha);
@@ -1761,9 +1764,9 @@ http_async_build_request(gpointer unused_handle, gchar *buf, size_t len,
  */
 static struct http_async *
 http_async_create(
-	gchar *url,						/* Either full URL or path */
-	guint32 ip,						/* Optional: 0 means grab from url */
-	guint16 port,					/* Optional, must be given when IP given */
+	gchar *url,						/**< Either full URL or path */
+	guint32 ip,						/**< Optional: 0 means grab from url */
+	guint16 port,					/**< Optional, must be given when IP given */
 	enum http_reqtype type,
 	http_header_cb_t header_ind,
 	http_data_cb_t data_ind,
@@ -1867,7 +1870,7 @@ http_async_newstate(struct http_async *ha, http_state_t state)
 
 /**
  * Starts an asynchronous HTTP GET request on the specified path.
- * Returns a handle on the request if OK, NULL on error with the
+ * @returns a handle on the request if OK, NULL on error with the
  * http_async_errno variable set before returning.
  *
  * When data is available, `data_ind' will be called.  When all data have been
@@ -2005,7 +2008,7 @@ http_subreq_error_ind(
  * All callbacks will be rerouted to the parent request, as if they came
  * from the original parent.
  *
- * Returns whether we succeeded in creating the subrequest.
+ * @returns whether we succeeded in creating the subrequest.
  */
 static gboolean
 http_async_subrequest(
@@ -2309,7 +2312,7 @@ http_async_state(gpointer handle)
 
 	/*
 	 * Special-case redirected request: they have at least one child.
-	 * Return the state of the first active child we get.
+	 * @return the state of the first active child we get.
 	 */
 
 	if (ha->state == HTTP_AS_REDIRECTED) {

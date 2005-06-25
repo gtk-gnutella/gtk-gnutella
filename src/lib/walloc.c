@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Explicit-width block allocator, based on zalloc().
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Explicit-width block allocator, based on zalloc().
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -49,9 +57,9 @@ RCSID("$Id$");
 #undef wrealloc
 #endif
 
-#define WALLOC_MAX		4096	/* Passed this size, use malloc() */
-#define WALLOC_CHUNK	4096	/* Target chunk size for small structs */
-#define WALLOC_MINCOUNT	8		/* Minimum amount of structs in a chunk */
+#define WALLOC_MAX		4096	/**< Passed this size, use malloc() */
+#define WALLOC_CHUNK	4096	/**< Target chunk size for small structs */
+#define WALLOC_MINCOUNT	8		/**< Minimum amount of structs in a chunk */
 
 #define WZONE_SIZE	(WALLOC_MAX / ZALLOC_ALIGNBYTES)
 
@@ -62,7 +70,7 @@ static struct zone *wzone[WZONE_SIZE];
  */
 
 #ifndef REMAP_ZALLOC
-/*
+/**
  * walloc
  *
  * Allocate memory from a zone suitable for the given size.
@@ -72,7 +80,7 @@ static struct zone *wzone[WZONE_SIZE];
  * and to malloc() if size is greater or equal to WALLOC_MAX.
  * Naturally, zones are allocated on demand only.
  *
- * Returns a pointer to the start of the allocated block.
+ * @return a pointer to the start of the allocated block.
  */
 gpointer walloc(int size)
 {
@@ -110,7 +118,7 @@ gpointer walloc(int size)
 	return zalloc(zone);
 }
 
-/*
+/**
  * walloc0
  *
  * Same as walloc(), but zeroes the allocated memory before returning.
@@ -125,7 +133,7 @@ gpointer walloc0(int size)
 	return p;
 }
 
-/*
+/**
  * wfree
  *
  * Free a block allocated via walloc().
@@ -157,11 +165,12 @@ void wfree(gpointer ptr, gint size)
 	zfree(zone, ptr);
 }
 
-/*
+/**
  * wrealloc
  *
  * Reallocate a block allocated via walloc().
- * Returns new block address.
+ *
+ * @return new block address.
  */
 gpointer wrealloc(gpointer old, gint old_size, gint new_size)
 {
@@ -188,7 +197,8 @@ gpointer wrealloc(gpointer old, gint old_size, gint new_size)
  * walloc_track
  *
  * Allocate memory from a zone suitable for the given size.
- * Returns a pointer to the start of the allocated block.
+ *
+ * @returns a pointer to the start of the allocated block.
  */
 gpointer walloc_track(int size, gchar *file, gint line)
 {
@@ -249,7 +259,8 @@ gpointer walloc0_track(int size, gchar *file, gint line)
  * wrealloc_track
  *
  * Reallocate a block allocated via walloc().
- * Returns new block address.
+ *
+ * @return new block address.
  */
 gpointer wrealloc_track(gpointer old, gint old_size, gint new_size,
 	gchar *file, gint line)

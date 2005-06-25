@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Common header for Gtk-Gnutella.
+ *
+ * @author Richard Eckart
+ * @date 2001-2003
+ */
+
 #ifndef _common_h_
 #define _common_h_
 
@@ -55,7 +65,7 @@
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/uio.h>		/* writev(), readv(), struct iovec */
+#include <sys/uio.h>		/* For writev(), readv(), struct iovec */
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>		/* For ntohl(), htonl() */
@@ -87,7 +97,7 @@
 #include <sys/sendfile.h>
 #else	/* !I_SYS_SENDFILE */
 #ifdef HAS_SENDFILE
-#define USE_BSD_SENDFILE	/* No <sys/sendfile.h>, assume BSD version */
+#define USE_BSD_SENDFILE	/**< No <sys/sendfile.h>, assume BSD version */
 #else
 
 #if defined(__STDC_VERSION__)
@@ -162,7 +172,7 @@ typedef void (*GCallback) (void);
  * Other common macros.
  */
 
-#define SRC_PREFIX	"src/"		/* Common prefix to remove in filenames */
+#define SRC_PREFIX	"src/"		/**< Common prefix to remove in filenames */
 
 /*
  * Sources should use _WHERE_ instead of __FILE__ and call short_filename()
@@ -218,7 +228,7 @@ do {				\
 /* CMP() returns sign of a-b */
 #define CMP(a, b) ((a) == (b) ? 0 : (a) > (b) ? 1 : (-1))
 
-/*
+/**
  * STATIC_ASSERT() can be used to verify conditions at compile-time e.g., that
  * an array has a minimum size. This is better than a run-time assertion
  * because the condition is checked even if the code would seldomly or never
@@ -239,9 +249,9 @@ do {				\
 #define GTA_VERSION 0
 #define GTA_SUBVERSION 96
 #define GTA_PATCHLEVEL 0
-#define GTA_REVISION "unstable"		/* unstable, beta, stable */
-#define GTA_REVCHAR "u"				/* u - unstable, b - beta, none - stable */
-#define GTA_RELEASE "2005-06-09"	/* ISO 8601 format YYYY-MM-DD */
+#define GTA_REVISION "unstable"		/**< unstable, beta, stable */
+#define GTA_REVCHAR "u"				/**< u - unstable, b - beta, none - stable */
+#define GTA_RELEASE "2005-06-09"	/**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)
@@ -265,12 +275,12 @@ do {				\
 	xstr(GTA_VERSION) "." xstr(GTA_SUBVERSION) GTA_REVCHAR
 #endif
 
-#define GTA_PORT		6346	/* Default "standard" port */
-#define MAX_HOSTLEN		256		/* Max length for FQDN host */
+#define GTA_PORT			6346	/**< Default "standard" port */
+#define MAX_HOSTLEN			256		/**< Max length for FQDN host */
 
 /* The next two defines came from huge.h --- Emile */
-#define SHA1_BASE32_SIZE 	32		/* 160 bits in base32 representation */
-#define SHA1_RAW_SIZE		20		/* 160 bits in binary representation */
+#define SHA1_BASE32_SIZE 	32		/**< 160 bits in base32 representation */
+#define SHA1_RAW_SIZE		20		/**< 160 bits in binary representation */
 
 
 /*

@@ -47,20 +47,20 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-#define MONITOR_PERIOD_MS	(30*1000)	/* 30 seconds */
+#define MONITOR_PERIOD_MS	(30*1000)	/**< 30 seconds */
 
-/*
- * A monitored file
+/**
+ * A monitored file.
  */
 struct monitored {
-	gchar *filename;		/* Filename to monitor */
-	time_t mtime;			/* Last known modified time */
-	watcher_cb_t cb;		/* Callback to invoke on change */
-	gpointer udata;			/* User supplied data to hand-out to callback */
+	gchar *filename;		/**< Filename to monitor */
+	time_t mtime;			/**< Last known modified time */
+	watcher_cb_t cb;		/**< Callback to invoke on change */
+	gpointer udata;			/**< User supplied data to hand-out to callback */
 };
 
-static gpointer monitor_ev = NULL;		/* Monitoring event */
-static GHashTable *monitored = NULL;	/* filename -> struct monitored */
+static gpointer monitor_ev = NULL;		/**< Monitoring event */
+static GHashTable *monitored = NULL;	/**< filename -> struct monitored */
 
 /**
  * Compute the modified time of the file on disk.

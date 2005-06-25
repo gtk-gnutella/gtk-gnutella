@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Raphael Manfredi
  *
- * Debugging malloc, to supplant dmalloc which is not satisfactory.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,18 +23,28 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Debugging malloc, to supplant dmalloc which is not satisfactory.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
+ */
 
 #include "common.h"		/* For RCSID */
 
 #include "atoms.h"		/* For binary_hash() */
-/*
+
+/**
  * Routines in this file are defined either for TRACK_MALLOC or TRACK_ZALLOC
  */
 
 #if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
 RCSID("$Id$");
 
-/**
+/*
  * When MALLOC_FRAMES is supplied, we keep information about the allocation
  * stack frame and free stack frames.
  *
@@ -54,7 +62,7 @@ RCSID("$Id$");
 #define MALLOC_STATS
 #endif
 
-#define FRAME_DEPTH		8	/* Size of allocation frame we keep around */
+#define FRAME_DEPTH		8	/**< Size of allocation frame we keep around */
 
 #endif /* MALLOC_FRAMES */
 #endif /* TRACK_MALLOC || TRACK_ZALLOC */
@@ -101,10 +109,10 @@ static void free_record(gpointer o, gchar *file, gint line);
  * quantities (in case the blocks are shrunk).
  */
 struct frame {
-	void *stack[FRAME_DEPTH];	/* PC of callers */
-	gint len;					/* Number of valid entries in stack */
-	gint32 count;				/* Bytes allocated/freed since reset */
-	gint32 total_count;			/* Grand total for this stack frame */
+	void *stack[FRAME_DEPTH];	/**< PC of callers */
+	gint len;					/**< Number of valid entries in stack */
+	gint32 count;				/**< Bytes allocated/freed since reset */
+	gint32 total_count;			/**< Grand total for this stack frame */
 };
 
 /**
@@ -133,7 +141,9 @@ frame_eq(gconstpointer a, gconstpointer b)
 
 #endif /* MALLOC_FRAMES */
 
-/*
+/**
+ * @struct stats
+ *
  * When MALLOC_STATS is supplied, we keep information about the amount
  * of bytes allocated from a single point in the code, and the amount
  * of it that has been freed.
@@ -145,24 +155,24 @@ frame_eq(gconstpointer a, gconstpointer b)
 #ifdef MALLOC_STATS
 
 struct stats {
-	gchar *file;				/* Place where allocation took place */
-	gint line;					/* Line number */
-	gint blocks;				/* Live blocks since last "reset" */
-	gint total_blocks;			/* Total live blocks */
-	guint32 allocated;			/* Total allocated since last "reset" */
-	guint32 freed;				/* Total freed since last "reset" */
-	guint32 total_allocated;	/* Total allocated overall */
-	guint32 total_freed;		/* Total freed overall */
-	gint32 reallocated;			/* Total reallocated since last "reset" */
-	gint32 total_reallocated;	/* Total reallocated overall (algebric!) */
+	gchar *file;				/**< Place where allocation took place */
+	gint line;					/**< Line number */
+	gint blocks;				/**< Live blocks since last "reset" */
+	gint total_blocks;			/**< Total live blocks */
+	guint32 allocated;			/**< Total allocated since last "reset" */
+	guint32 freed;				/**< Total freed since last "reset" */
+	guint32 total_allocated;	/**< Total allocated overall */
+	guint32 total_freed;		/**< Total freed overall */
+	gint32 reallocated;			/**< Total reallocated since last "reset" */
+	gint32 total_reallocated;	/**< Total reallocated overall (algebric!) */
 #ifdef MALLOC_FRAMES
-	GHashTable *alloc_frames;	/* The frames where allocation took place */
-	GHashTable *free_frames;	/* The frames where free took place */
-	GHashTable *realloc_frames;	/* The frames where realloc took place */
+	GHashTable *alloc_frames;	/**< The frames where allocation took place */
+	GHashTable *free_frames;	/**< The frames where free took place */
+	GHashTable *realloc_frames;	/**< The frames where realloc took place */
 #endif /* MALLOC_FRAMES */
 };
 
-static GHashTable *stats = NULL; /* maps stats(file, line) -> stats */
+static GHashTable *stats = NULL; /**< maps stats(file, line) -> stats */
 
 /**
  * Hashing routine for "struct stats".
@@ -258,7 +268,7 @@ void malloc_close(void)
  * malloc_record
  *
  * Record object `o' allocated at `file' and `line' of size `s'.
- * Returns argument `o'.
+ * @return argument `o'.
  */
 gpointer malloc_record(gpointer o, guint32 sz, gchar *file, gint line)
 {
@@ -287,7 +297,7 @@ gpointer malloc_record(gpointer o, guint32 sz, gchar *file, gint line)
 	b->size = sz;
 	b->realloc = NULL;
 
-	/*
+	/**
 	 * It can happen that we track the allocation of a block somewhere
 	 * but the freeing happens somewhere we either we forgot to include
 	 * "override.h", or happens in some library (e.g. in GTK+) where we
@@ -771,7 +781,7 @@ gchar **strsplit_track(
  * string_record
  *
  * Record string `s' allocated at `file' and `line'.
- * Returns argument `s'.
+ * @return argument `s'.
  */
 gpointer string_record(const gchar *s, gchar *file, gint line)
 {
@@ -1159,7 +1169,7 @@ GList *list_delete_link_track(GList *l, GList *lk, gchar *file, gint line)
  * string_str_track
  *
  * Track changes to the internal string object.
- * Returns GString object.
+ * @return GString object.
  */
 static GString *string_str_track(GString *s, gchar *old, gchar *file, gint line)
 {

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Raphael Manfredi
  *
- * Dynamic querying.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Dynamic querying.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #ifndef _core_dq_h_
@@ -54,7 +62,6 @@ void dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv);
 void dq_search_closed(gnet_search_t handle);
 gboolean dq_get_results_wanted(gchar *muid, guint32 *wanted);
 
-/* vi: set ts=4 sw=4 cindent: */
-
 #endif	/* _core_dq_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

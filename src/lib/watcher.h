@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Raphael Manfredi
  *
- * File watcher.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * File watcher.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
+ */
+
 #ifndef _watcher_h_
 #define _watcher_h_
 
@@ -32,7 +40,7 @@
 
 #include "file.h"
 
-/*
+/**
  * The callback invoked when a monitored file changes.
  */
 typedef void (*watcher_cb_t)(const gchar *filename, gpointer udata);

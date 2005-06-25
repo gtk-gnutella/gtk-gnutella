@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Zlib wrapper functions.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _zlib_util_h_
 #define _zlib_util_h_
 
@@ -32,13 +42,13 @@
  * Incremental deflater stream.
  */
 typedef struct  {
-	gpointer in;			/* Buffer being compressed */
-	gint inlen;				/* Length of input buffer */
-	gpointer out;			/* Compressed data */
-	gint outlen;			/* Length of ouput buffer */
-	gint inlen_total;		/* Total input length seen */
-	gpointer opaque;		/* Internal data structures */
-	gboolean allocated;		/* Whether output buffer was allocated or static */
+	gpointer in;			/**< Buffer being compressed */
+	gint inlen;				/**< Length of input buffer */
+	gpointer out;			/**< Compressed data */
+	gint outlen;			/**< Length of ouput buffer */
+	gint inlen_total;		/**< Total input length seen */
+	gpointer opaque;		/**< Internal data structures */
+	gboolean allocated;		/**< Whether output buffer was allocated or static */
 } zlib_deflater_t;
 
 #define zlib_deflater_out(z)	((z)->out)

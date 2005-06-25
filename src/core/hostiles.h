@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003, Markus Goetz & Raphael Manfredi
  *
- * Support for the hostiles.txt of bearshare
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,17 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Support for the hostiles.txt of BearShare.
+ *
+ * @author Markus Goetz
+ * @author Raphael Manfredi
+ * @date 2003
  */
 
 #ifndef _core_hostiles_h_

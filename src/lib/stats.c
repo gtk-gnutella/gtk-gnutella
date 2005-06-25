@@ -43,14 +43,14 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-/*
+/**
  * A one-dimension container (x).
  */
 struct statx {
-	GSList *data;			/* Data points (value = gdouble *) */
-	gint n;					/* Amount of points */
-	gdouble sx;				/* Sx: sum of all points */
-	gdouble sx2;			/* Sx2: sum of the square of all points */
+	GSList *data;			/**< Data points (value = gdouble *) */
+	gint n;					/**< Amount of points */
+	gdouble sx;				/**< Sx: sum of all points */
+	gdouble sx2;			/**< Sx2: sum of the square of all points */
 };
 
 typedef enum op {
@@ -166,7 +166,7 @@ statx_remove(gpointer ox, gdouble val)
 }
 
 /**
- * Returns amount of data points.
+ * @return amount of data points.
  */
 gint
 statx_n(gpointer ox)
@@ -176,7 +176,7 @@ statx_n(gpointer ox)
 }
 
 /**
- * Returns average of data points.
+ * @return average of data points.
  */
 gdouble
 statx_avg(gpointer ox)
@@ -189,7 +189,7 @@ statx_avg(gpointer ox)
 }
 
 /**
- * Returns the standard deviation of the data points.
+ * @return the standard deviation of the data points.
  */
 gdouble
 statx_sdev(gpointer ox)
@@ -198,7 +198,7 @@ statx_sdev(gpointer ox)
 }
 
 /**
- * Returns the variance of the data points.
+ * @return the variance of the data points.
  */
 gdouble
 statx_var(gpointer ox)
@@ -211,7 +211,7 @@ statx_var(gpointer ox)
 }
 
 /**
- * Returns an array of datapoints which can be freed when done.
+ * @return an array of datapoints which can be freed when done.
  */
 gdouble *
 statx_data(gpointer ox)

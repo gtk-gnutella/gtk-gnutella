@@ -73,13 +73,13 @@ static gchar gwc_tmp[1024];
  * to prevent insertion of duplicates in our cache.
  */
 
-#define MAX_GWC_URLS	200					/* Max URLs we store */
-#define MAX_GWC_REUSE	1					/* Max amount of uses for one URL */
+#define MAX_GWC_URLS	200		/**< Max URLs we store */
+#define MAX_GWC_REUSE	1		/**< Max amount of uses for one URL */
 
 struct gwc {
-	gchar *url;			/* atom */
-	time_t stamp;		/* time of last access */	
-} gwc_url[MAX_GWC_URLS];		/* Holds string atoms */
+	gchar *url;					/**< atom */
+	time_t stamp;				/**< time of last access */	
+} gwc_url[MAX_GWC_URLS];		/**< Holds string atoms */
 
 static gint gwc_url_slot = -1;
 static GHashTable *gwc_known_url = NULL;
@@ -112,18 +112,18 @@ static GHashTable *gwc_failed_url = NULL;
  * . All requests include "client=GTKG" and "version" information.
  */
 
-static gchar *current_url = NULL;			/* Cache we're currently using */
-static gint current_reused = 0;				/* Amount of times we reused it */
+static gchar *current_url = NULL;			/**< Cache we're currently using */
+static gint current_reused = 0;				/**< Amount of times we reused it */
 
-#define MAX_URL_LINES	50					/* Max lines on a urlfile req */
-#define MAX_IP_LINES	150					/* Max lines on a hostfile req */
-#define MAX_OK_LINES	3					/* Max lines when expecting OK */
-#define MIN_IP_LINES	5					/* Min lines expected */
-#define MIN_URL_LINES	5					/* Min lines expected */
-#define HOUR_MS			(3600 * 1000)		/* Callout queue time in ms */
-#define URL_RETRY_MS	(20 * 1000)			/* Retry timer for urlfile, in ms */
-#define REFRESH_MS		(8 * HOUR_MS)		/* Refresh every 8 hours */
-#define REUSE_PERIOD	3600				/* Period between GET hostfile */
+#define MAX_URL_LINES	50					/**< Max lines on a urlfile req */
+#define MAX_IP_LINES	150					/**< Max lines on a hostfile req */
+#define MAX_OK_LINES	3					/**< Max lines when expecting OK */
+#define MIN_IP_LINES	5					/**< Min lines expected */
+#define MIN_URL_LINES	5					/**< Min lines expected */
+#define HOUR_MS			(3600 * 1000)		/**< Callout queue time in ms */
+#define URL_RETRY_MS	(20 * 1000)			/**< Retry timer for urlfile, in ms */
+#define REFRESH_MS		(8 * HOUR_MS)		/**< Refresh every 8 hours */
+#define REUSE_PERIOD	3600				/**< Period between GET hostfile */
 
 #define CLIENT_INFO "client=GTKG&version=" GTA_VERSION_NUMBER
 
@@ -140,7 +140,7 @@ static void gwc_get_urls(void);
 static void gwc_update_ip_url(void);
 static void gwc_seed_cache(gchar *cache_url);
 
-/*
+/**
  * The following URLs are there for bootstrapping purposes only.
  */
 
@@ -630,11 +630,11 @@ gwc_close(void)
  ***/
 
 struct parse_context {
-	getline_t *getline;			/* Used to hold partially read line */
-	gpointer handle;			/* Request handle */
-	gint maxlines;				/* Maximum number of lines we want to process */
-	gint lines;					/* Amount of lines so far */
-	gint processed;				/* User callback can count retained lines */
+	getline_t *getline;			/**< Used to hold partially read line */
+	gpointer handle;			/**< Request handle */
+	gint maxlines;				/**< Maximum number of lines we want to process */
+	gint lines;					/**< Amount of lines so far */
+	gint processed;				/**< User callback can count retained lines */
 };
 
 typedef gboolean (parse_dispatch_t)

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002, Vidar Madsen
  *
- * Functions to compute likelihood of two file names being the same file.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Functions to compute likelihood of two file names being the same file.
+ *
+ * @author Vidar Madsen
+ * @date 2002
  */
 
 #ifndef _fuzzy_h_

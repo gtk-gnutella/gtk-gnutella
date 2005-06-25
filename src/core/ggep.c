@@ -532,8 +532,8 @@ ggep_stream_end(ggep_stream_t *gs)
 	 * Copy the length and terminate extension.
 	 */
 
-	memcpy(gs->lp, hlen, slen);			/* Size of extension */
-	gs->last_fp = gs->fp;				/* Last successfully written ext. */
+	memcpy(gs->lp, hlen, slen);		/* Size of extension */
+	gs->last_fp = gs->fp;			/* Last successfully written ext. */
 
 	gs->fp = gs->lp = NULL;
 	gs->begun = FALSE;

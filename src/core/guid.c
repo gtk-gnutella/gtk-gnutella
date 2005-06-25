@@ -60,14 +60,14 @@ RCSID("$Id$");
  * Flags for GUID[15] query tagging.
  */
 
-#define GUID_REQUERY		0x01	/* Cleared means initial query */
+#define GUID_REQUERY		0x01	/**< Cleared means initial query */
 
 /*
  * HEC constants.
  */
 
-#define HEC_GENERATOR	0x107		/* x^8 + x^2 + x + 1 */
-#define HEC_GTKG_MASK	0x0c3		/* HEC GTKG's mask */
+#define HEC_GENERATOR	0x107		/**< x^8 + x^2 + x + 1 */
+#define HEC_GTKG_MASK	0x0c3		/**< HEC GTKG's mask */
 
 gchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 

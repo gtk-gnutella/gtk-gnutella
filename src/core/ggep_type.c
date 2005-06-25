@@ -50,7 +50,7 @@ RCSID("$Id$");
 /**
  * Extract the SHA1 hash of the "H" extension into the supplied buffer.
  *
- * Returns extraction status: only when GGEP_OK is returned will we have
+ * @returns extraction status: only when GGEP_OK is returned will we have
  * the SHA1 in buf.
  */
 ggept_status_t
@@ -71,7 +71,7 @@ ggept_h_sha1_extract(extvec_t *exv, gchar *buf, gint len)
 
 	tlen = ext_paylen(exv);
 
-#define TIGER_RAW_SIZE	24		/* XXX temporary, until we implement tiger */
+#define TIGER_RAW_SIZE	24		/**< XXX temporary, until we implement tiger */
 
 	if (tlen == -1)
 		return GGEP_NOT_FOUND;			/* Don't know what this is */
@@ -228,7 +228,7 @@ ggept_push_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
 
 /**
  * Extract hostname of the "HNAME" extension into the supplied buffer.
- * Returns extraction status: only when GGEP_OK is returned will we have
+ * @returns extraction status: only when GGEP_OK is returned will we have
  * extracted something in the supplied buffer.
  */
 ggept_status_t
@@ -303,7 +303,7 @@ ggept_lf_extract(extvec_t *exv, guint64 *filesize)
  *
  * @param v the value to encode.
  * @param data must point to a sufficiently large buffer.
- * @return Returns the length in bytes of the encoded variable-length integer.
+ * @return the length in bytes of the encoded variable-length integer.
  */
 static inline gint
 ggep_vlint_encode(guint64 v, gchar *data)

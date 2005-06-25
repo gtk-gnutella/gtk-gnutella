@@ -56,18 +56,18 @@ RCSID("$Id$");
 static const gchar gip_file[] = "geo-ip.txt";
 static const gchar gip_what[] = "Geographic IP mappings";
 
-static gpointer geo_db;		/* The database of bogus CIDR ranges */
+static gpointer geo_db;			/**< The database of bogus CIDR ranges */
 
-/*
+/**
  * Context used during ip_range_split() calls.
  */
 struct range_context {
-	guint32 ip1;				/* Original lower IP in global range */
-	guint32 ip2;				/* Original upper IP in global range */
-	gint country;				/* Country code (numerical encoded) */
-	gint count;					/* Amount of ranges we added, for stats */
-	gchar *line;				/* The line from the input file */
-	gint linenum;				/* Line number in input file, for errors */
+	guint32 ip1;				/**< Original lower IP in global range */
+	guint32 ip2;				/**< Original upper IP in global range */
+	gint country;				/**< Country code (numerical encoded) */
+	gint count;					/**< Amount of ranges we added, for stats */
+	gchar *line;				/**< The line from the input file */
+	gint linenum;				/**< Line number in input file, for errors */
 };
 
 /**
@@ -113,7 +113,7 @@ gip_add_cidr(guint32 ip, guint bits, gpointer udata)
 
 /**
  * Load geographic IP data from the supplied FILE.
- * Returns the amount of entries loaded.
+ * @returns the amount of entries loaded.
  */
 static gint
 gip_load(FILE *f)

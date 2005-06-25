@@ -60,92 +60,92 @@ RCSID("$Id$");
 #include "lib/misc.h"
 #include "lib/walloc.h"
 
-#include "lib/override.h"		/* Must be the last header included */
+#include "lib/override.h"			/* Must be the last header included */
 
-#define DQ_MAX_LIFETIME		300000	/* 5 minutes, in ms */
-#define DQ_PROBE_TIMEOUT  	1500	/* 1.5 s extra per connection */
-#define DQ_PENDING_TIMEOUT 	1200	/* 1.2 s extra per pending message */
-#define DQ_QUERY_TIMEOUT	3700	/* 3.7 s */
-#define DQ_TIMEOUT_ADJUST	100		/* 100 ms at each connection */
-#define DQ_MIN_TIMEOUT		1500	/* 1.5 s at least between queries */
-#define DQ_LINGER_TIMEOUT	120000	/* 2 minutes, in ms */
-#define DQ_STATUS_TIMEOUT	30000	/* 30 s, in ms, to reply to query status */
-#define DQ_MAX_PENDING		3		/* Max pending queries we allow */
+#define DQ_MAX_LIFETIME		300000	/**< 5 minutes, in ms */
+#define DQ_PROBE_TIMEOUT  	1500	/**< 1.5 s extra per connection */
+#define DQ_PENDING_TIMEOUT 	1200	/**< 1.2 s extra per pending message */
+#define DQ_QUERY_TIMEOUT	3700	/**< 3.7 s */
+#define DQ_TIMEOUT_ADJUST	100		/**< 100 ms at each connection */
+#define DQ_MIN_TIMEOUT		1500	/**< 1.5 s at least between queries */
+#define DQ_LINGER_TIMEOUT	120000	/**< 2 minutes, in ms */
+#define DQ_STATUS_TIMEOUT	30000	/**< 30 s, in ms, to reply to query status */
+#define DQ_MAX_PENDING		3		/**< Max pending queries we allow */
 
-#define DQ_LEAF_RESULTS		50		/* # of results targetted for leaves */
-#define DQ_LOCAL_RESULTS	150		/* # of results for local queries */
-#define DQ_SHA1_DECIMATOR	25		/* Divide expected by that much for SHA1 */
-#define DQ_PROBE_UP			3		/* Amount of UPs for initial probe */
-#define DQ_MAX_HORIZON		500000	/* Stop search after that many UP queried */
-#define DQ_MIN_HORIZON		3000	/* Min horizon before timeout adjustment */
-#define DQ_LOW_RESULTS		10		/* After DQ_MIN_HORIZON queried for adj. */
-#define DQ_PERCENT_KEPT		5		/* Assume 5% of results kept, worst case */
+#define DQ_LEAF_RESULTS		50		/**< # of results targetted for leaves */
+#define DQ_LOCAL_RESULTS	150		/**< # of results for local queries */
+#define DQ_SHA1_DECIMATOR	25		/**< Divide expected by that much for SHA1 */
+#define DQ_PROBE_UP			3		/**< Amount of UPs for initial probe */
+#define DQ_MAX_HORIZON		500000	/**< Stop search after that many UP queried */
+#define DQ_MIN_HORIZON		3000	/**< Min horizon before timeout adjustment */
+#define DQ_LOW_RESULTS		10		/**< After DQ_MIN_HORIZON queried for adj. */
+#define DQ_PERCENT_KEPT		5		/**< Assume 5% of results kept, worst case */
 
-#define DQ_MAX_TTL			5		/* Max TTL we can use */
-#define DQ_AVG_ULTRA_NODES	2		/* Average # of ultranodes a leaf queries */
+#define DQ_MAX_TTL			5		/**< Max TTL we can use */
+#define DQ_AVG_ULTRA_NODES	2		/**< Average # of ultranodes a leaf queries */
 
-#define DQ_MQ_EPSILON		2048	/* Queues identical at +/- 2K */
-#define DQ_FUZZY_FACTOR		0.80	/* Corrector for theoretical horizon */
+#define DQ_MQ_EPSILON		2048	/**< Queues identical at +/- 2K */
+#define DQ_FUZZY_FACTOR		0.80	/**< Corrector for theoretical horizon */
 
-/*
+/**
  * Compute start of search string (which is NUL terminated) in query.
  * The "+2" skips the "speed" field in the query.
  */
 #define QUERY_TEXT(m)	((m) + sizeof(struct gnutella_header) + 2)
 
-/*
+/**
  * The dynamic query.
  */
 typedef struct dquery {
-	guint32 qid;			/* Unique query ID, to detect ghosts */
-	guint32 node_id;		/* ID of the node that originated the query */
-	guint32 flags;			/* Operational flags */
-	gnet_search_t sh;		/* Search handle, if node ID = NODE_ID_LOCAL */
-	pmsg_t *mb;				/* The search messsage "template" */
-	query_hashvec_t *qhv;	/* Query hash vector for QRP filtering */
-	GHashTable *queried;	/* Contains node IDs that we queried so far */
-	guint8 ttl;				/* Initial query TTL */
-	guint32 horizon;		/* Theoretical horizon reached thus far */
-	guint32 up_sent;		/* # of UPs to which we really sent our query */
-	guint32 pending;		/* Pending query messages not ACK'ed yet by mq */
-	guint32 max_results;	/* Max results we're targetting for */
-	guint32 fin_results;	/* # of results terminating leaf-guided query */
-	guint32 oob_results;	/* Amount of unclaimed OOB results reported */
-	guint32 results;		/* Results we got so far for the query */
-	guint32 linger_results;	/* Results we got whilst lingering */
-	guint32 new_results;	/* New we got since last query status request */
-	guint32 kept_results;	/* Results they say they kept after filtering */
-	guint32 result_timeout;	/* The current timeout for getting results */
-	gpointer expire_ev;		/* Callout queue global expiration event */
-	gpointer results_ev;	/* Callout queue results expiration event */
-	gpointer alive;			/* Alive ping stats for computing timeouts */
-	time_t start;			/* Time at which it started */
-	time_t stop;			/* Time at which it was terminated */
-	pmsg_t *by_ttl[DQ_MAX_TTL];	/* Copied mesages, one for each TTL */
+	guint32 qid;				/**< Unique query ID, to detect ghosts */
+	guint32 node_id;			/**< ID of the node that originated the query */
+	guint32 flags;				/**< Operational flags */
+	gnet_search_t sh;			/**< Search handle, if node ID = NODE_ID_LOCAL */
+	pmsg_t *mb;					/**< The search messsage "template" */
+	query_hashvec_t *qhv;		/**< Query hash vector for QRP filtering */
+	GHashTable *queried;		/**< Contains node IDs that we queried so far */
+	guint8 ttl;					/**< Initial query TTL */
+	guint32 horizon;			/**< Theoretical horizon reached thus far */
+	guint32 up_sent;			/**< # of UPs to which we really sent our query */
+	guint32 pending;			/**< Pending query messages not ACK'ed yet by mq */
+	guint32 max_results;		/**< Max results we're targetting for */
+	guint32 fin_results;		/**< # of results terminating leaf-guided query */
+	guint32 oob_results;		/**< Amount of unclaimed OOB results reported */
+	guint32 results;			/**< Results we got so far for the query */
+	guint32 linger_results;		/**< Results we got whilst lingering */
+	guint32 new_results;		/**< New we got since last query status request */
+	guint32 kept_results;		/**< Results they say they kept after filtering */
+	guint32 result_timeout;		/**< The current timeout for getting results */
+	gpointer expire_ev;			/**< Callout queue global expiration event */
+	gpointer results_ev;		/**< Callout queue results expiration event */
+	gpointer alive;				/**< Alive ping stats for computing timeouts */
+	time_t start;				/**< Time at which it started */
+	time_t stop;				/**< Time at which it was terminated */
+	pmsg_t *by_ttl[DQ_MAX_TTL];	/**< Copied mesages, one for each TTL */
 } dquery_t;
 
-#define DQ_F_ID_CLEANING	0x00000001	/* Cleaning the `by_node_id' table */
-#define DQ_F_LINGER			0x00000002	/* Lingering to monitor extra results */
-#define DQ_F_LEAF_GUIDED	0x00000004	/* Leaf-guided query */
-#define DQ_F_WAITING		0x00000008	/* Waiting guidance reply from leaf */
-#define DQ_F_GOT_GUIDANCE	0x00000010	/* Got unsolicited leaf guidance */
-#define DQ_F_USR_CANCELLED	0x00000020	/* Explicitely cancelled by user */
-#define DQ_F_EXITING		0x80000000	/* Final cleanup at exit time */
+#define DQ_F_ID_CLEANING	0x00000001	/**< Cleaning the `by_node_id' table */
+#define DQ_F_LINGER			0x00000002	/**< Lingering to monitor extra results */
+#define DQ_F_LEAF_GUIDED	0x00000004	/**< Leaf-guided query */
+#define DQ_F_WAITING		0x00000008	/**< Waiting guidance reply from leaf */
+#define DQ_F_GOT_GUIDANCE	0x00000010	/**< Got unsolicited leaf guidance */
+#define DQ_F_USR_CANCELLED	0x00000020	/**< Explicitely cancelled by user */
+#define DQ_F_EXITING		0x80000000	/**< Final cleanup at exit time */
 
-/*
+/**
  * This table keeps track of all the dynamic query objects that we have
  * created and which are alive.
  */
 static GHashTable *dqueries = NULL;
 
-/*
+/**
  * This table keeps track of all the dynamic query objects created
  * for a given node ID.  The key is the node ID (converted to a pointer) and
  * the value is a GSList containing all the queries for that node.
  */
 static GHashTable *by_node_id = NULL;
 
-/*
+/**
  * This table keeps track of the association between a MUID and the
  * dynamic query, so that when results come back, we may account them
  * for the relevant query.
@@ -154,7 +154,7 @@ static GHashTable *by_node_id = NULL;
  */
 static GHashTable *by_muid = NULL;
 
-/*
+/**
  * Information about query messages sent.
  *
  * We can't really add too many fields to the pmsg_t blocks we enqueue.
@@ -169,23 +169,23 @@ static GHashTable *by_muid = NULL;
  * meta-information about it.
  */
 struct pmsg_info {
-	dquery_t *dq;			/* The dynamic query that sent the query */
-	guint32 qid;			/* Query ID of the dynamic query */
-	guint32 node_id;		/* The ID of the node we sent it to */
-	guint16 degree;			/* The advertised degree of the destination node */
-	guint8 ttl;				/* The TTL used for that query */
+	dquery_t *dq;			/**< The dynamic query that sent the query */
+	guint32 qid;			/**< Query ID of the dynamic query */
+	guint32 node_id;		/**< The ID of the node we sent it to */
+	guint16 degree;			/**< The advertised degree of the destination node */
+	guint8 ttl;				/**< The TTL used for that query */
 };
 
-/*
+/**
  * Structure produced by dq_fill_next_up, representing the nodes to which
  * we could send the query, along with routing information to be able to favor
  * UPs that report a QRP match early in the querying process.
  */
 struct next_up {
-	gnutella_node_t *node;	/* Selected node */
-	query_hashvec_t *qhv;	/* Query hash vector for the query */
-	gint can_route;			/* -1 = unknown, otherwise TRUE / FALSE */
-	gint queue_pending;		/* -1 = unknown, otherwise cached queue size */
+	gnutella_node_t *node;	/**< Selected node */
+	query_hashvec_t *qhv;	/**< Query hash vector for the query */
+	gint can_route;			/**< -1 = unknown, otherwise TRUE / FALSE */
+	gint queue_pending;		/**< -1 = unknown, otherwise cached queue size */
 };
 
 /*
@@ -199,7 +199,7 @@ struct next_up {
 #define MAX_DEGREE		50
 #define MAX_TTL			5
 
-static guint32 hosts[MAX_DEGREE][MAX_TTL];	/* Pre-computed horizon */
+static guint32 hosts[MAX_DEGREE][MAX_TTL];	/**< Pre-computed horizon */
 
 static guint32 dyn_query_id = 0;
 

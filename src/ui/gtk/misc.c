@@ -31,7 +31,7 @@
  *
  * @author Raphael Manfredi
  * @author Richard Eckart
- * @date 2001-2003,
+ * @date 2001-2003
  */
 
 #include "gui.h"
@@ -375,12 +375,13 @@ gui_fix_coords(guint32 *coord)
 
 
 #ifdef USE_GTK2
-/*
+/**
  * The following handles UI joining since the glade code is now
  * splitted into several files. Prevents huge UI creation functions
  * and allows GTK2 compilation on some platforms.
  *
- * 2003-02-08 ko [junkpile@free.fr]
+ * @author ko (junkpile@free.fr)
+ * @date 2003-02-08
  *
  */
 typedef struct steal_dict_params {
@@ -418,11 +419,12 @@ gui_steal_widget_dict_recursive(GtkWidget *widget, gpointer user_data)
 }
 
 /**
- * @author 2003-02-08 ko [junkpile@free.fr]
- *
  * Reparents children of specified window into a new notebook tab.
  * Also transfers the widget dictionary to specified toplevel
  * window so lookup_widget() is not broken afterwards.
+ *
+ * @author ko (junkpile@free.fr)
+ * @date 2003-02-08
  */
 void
 gui_merge_window_as_tab(GtkWidget *toplvl,

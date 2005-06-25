@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Zone allocator.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Zone allocator.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _zalloc_h_
 #define _zalloc_h_
 
@@ -39,7 +47,9 @@
 #define zalloc_round(s) \
 	((gulong) (((gulong) (s) + ZALLOC_MASK) & ~ZALLOC_MASK))
 
-/*
+/**
+ * @struct zone
+ *
  * Zone structure.
  *
  * Zone structures can be linked together to form one big happy chain.
@@ -50,17 +60,17 @@
 
 struct subzone;
 
-typedef struct zone {			/* Zone descriptor */
-	gchar **zn_free;			/* Pointer to first free block */
-	struct subzone *zn_next;	/* Next allocated zone chunk, null if none */
-	gpointer zn_arena;			/* Base address of zone arena */
-	gint zn_refcnt;				/* How many references to that zone? */
-	gint zn_size;				/* Size of blocks in zone */
-	gint zn_hint;				/* Hint size, for next zone extension */
-	gint zn_cnt;				/* Amount of used blocks in zone */
+typedef struct zone {			/**< Zone descriptor */
+	gchar **zn_free;			/**< Pointer to first free block */
+	struct subzone *zn_next;	/**< Next allocated zone chunk, null if none */
+	gpointer zn_arena;			/**< Base address of zone arena */
+	gint zn_refcnt;				/**< How many references to that zone? */
+	gint zn_size;				/**< Size of blocks in zone */
+	gint zn_hint;				/**< Hint size, for next zone extension */
+	gint zn_cnt;				/**< Amount of used blocks in zone */
 } zone_t;
 
-#define zcount(z)	((z)->zn_cnt)	/* Amount of allocated blocks */
+#define zcount(z)	((z)->zn_cnt)	/**< Amount of allocated blocks */
 
 /*
  * Memory allocation routines.

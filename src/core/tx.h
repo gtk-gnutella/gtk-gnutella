@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Network driver.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Network driver.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _core_tx_h_
 #define _core_tx_h_
 
@@ -38,26 +46,26 @@ struct bio_source;
 
 typedef void (*tx_service_t)(gpointer obj);
 
-/*
- * A network driver
- *
+/**
+ * A network driver.
  */
+
 typedef struct txdriver {
-	struct gnutella_node *node;		/* Node to which this driver belongs */
-	const struct txdrv_ops *ops;	/* Dynamically dispatched operations */
-	gint flags;						/* Driver flags */
-	tx_service_t srv_routine;		/* Service routine of upper TX layer */
-	gpointer srv_arg;				/* Service routine argument */
-	gpointer opaque;				/* Used by heirs to store specific info */
+	struct gnutella_node *node;		/**< Node to which this driver belongs */
+	const struct txdrv_ops *ops;	/**< Dynamically dispatched operations */
+	gint flags;						/**< Driver flags */
+	tx_service_t srv_routine;		/**< Service routine of upper TX layer */
+	gpointer srv_arg;				/**< Service routine argument */
+	gpointer opaque;				/**< Used by heirs to store specific info */
 } txdrv_t;
 
 /*
  * Driver flags.
  */
 
-#define TX_SERVICE		0x00000001	/* Servicing of upper layer needed */
+#define TX_SERVICE		0x00000001	/**< Servicing of upper layer needed */
 
-/*
+/**
  * Operations defined on all drivers.
  */
 

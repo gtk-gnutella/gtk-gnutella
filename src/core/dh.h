@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Raphael Manfredi
  *
- * Dynamic hits.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Dynamic hits.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #ifndef _core_dh_h_
@@ -45,7 +53,6 @@ void dh_route(
 	struct gnutella_node *src, struct gnutella_node *dest, gint count);
 gboolean dh_would_route(const gchar *muid, struct gnutella_node *dest);
 
-/* vi: set ts=4 sw=4 cindent: */
-
 #endif	/* _core_dh_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

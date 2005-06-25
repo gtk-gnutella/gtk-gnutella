@@ -1,8 +1,6 @@
 /*
  * Copyright (c) 2004, Jeroen Asselman
  *
- * G2 packet parser / constructor
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -22,6 +20,19 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
+
+/**
+ * @ingroup undoc
+ * @file
+ *
+ * G2 packet parser / constructor.
+ *
+ * @author Jeroen Asselman
+ * @date 2004
+ */
+
+#ifndef _packet_h_
+#define _packet_h_
 
 #include <glib.h>
 
@@ -48,3 +59,7 @@ char *g2_packet_get_payload(g2packet_t *packet, int *length);
 void g2_packet_add_child(g2packet_t *packet, g2packet_t *child);
 void g2_packet_add_payload(g2packet_t *packet, char *payload, int length);
 char *g2_packet_pack(g2packet_t *packet, int *length);
+
+#endif /* _packet_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

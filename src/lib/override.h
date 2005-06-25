@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Raphael Manfredi
  *
- * Additional overrides -- this file should be the LAST one included.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,19 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Additional overrides.
+ *
+ * @note
+ * This file should be the LAST one included.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
  */
 
 #ifndef _override_h_

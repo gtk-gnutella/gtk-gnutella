@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Christian Biere
  *
- * Drop support - no dragging, just dropping.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * Drop support - no dragging, just dropping.
+ *
+ * @author Christian Biere
+ * @date 2004
+ */
+
 #ifndef _drop_init_h_
 #define _drop_init_h_
 
@@ -32,4 +40,5 @@ void drop_init(void);
 void drop_close(void);
 
 #endif /* _drop_init_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */

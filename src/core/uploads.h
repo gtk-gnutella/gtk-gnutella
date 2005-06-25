@@ -24,6 +24,18 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Handles upload of our files to others users.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
+ * @author Daniel Walker (dwalker@cats.ucsc.edu)
+ * @date 2000
+ */
+
 #ifndef _core_uploads_h_
 #define _core_uploads_h_
 
@@ -37,15 +49,15 @@ struct dl_file_info;
 
 typedef struct upload {
     gnet_upload_t upload_handle;
-	guint32 flags;					/* Operating flags */
+	guint32 flags;					/**< Operating flags */
 	upload_stage_t status;
 	struct gnutella_socket *socket;
-	gint error_sent;				/* HTTP error code sent back */
-	gpointer io_opaque;				/* Opaque I/O callback information */
-	gpointer parq_opaque;			/* Opaque parq information */
+	gint error_sent;				/**< HTTP error code sent back */
+	gpointer io_opaque;				/**< Opaque I/O callback information */
+	gpointer parq_opaque;			/**< Opaque parq information */
 
 	gint file_desc;
-	bio_source_t *bio;				/* Bandwidth-limited source */
+	bio_source_t *bio;				/**< Bandwidth-limited source */
 	sendfile_ctx_t sendfile_ctx;
 
 	gchar *buffer;
@@ -60,29 +72,29 @@ typedef struct upload {
 	time_t start_date;
 	time_t last_update;
 
-	struct dl_file_info *file_info;	/* For PFSP: only set when partial file */
+	struct dl_file_info *file_info;	/**< For PFSP: only set when partial file */
 
-	guint32 ip;						/* Remote IP address */
-	gchar *user_agent;				/* Remote user agent */
-	gint country;					/* Country of origin, ISO3166 code */
-	filesize_t skip;				/* First byte to send, inclusive */
-	filesize_t end;					/* Last byte to send, inclusive */
-	filesize_t pos;					/* Read position in file we're sending */
-	filesize_t sent;				/* Bytes sent in this request */
+	guint32 ip;						/**< Remote IP address */
+	gchar *user_agent;				/**< Remote user agent */
+	gint country;					/**< Country of origin, ISO3166 code */
+	filesize_t skip;				/**< First byte to send, inclusive */
+	filesize_t end;					/**< Last byte to send, inclusive */
+	filesize_t pos;					/**< Read position in file we're sending */
+	filesize_t sent;				/**< Bytes sent in this request */
 
-	guint32 last_dmesh;				/* Time when last download mesh was sent */
-	gchar *sha1;					/* SHA1 of requested file */
-	filesize_t total_requested;		/* Total amount of bytes requested */
-	gint http_major;				/* HTTP major version */
-	gint http_minor;				/* HTTP minor version */
+	guint32 last_dmesh;				/**< Time when last download mesh was sent */
+	gchar *sha1;					/**< SHA1 of requested file */
+	filesize_t total_requested;		/**< Total amount of bytes requested */
+	gint http_major;				/**< HTTP major version */
+	gint http_minor;				/**< HTTP minor version */
 
-	gboolean keep_alive;			/* Keep HTTP connection? */
+	gboolean keep_alive;			/**< Keep HTTP connection? */
 	gboolean push;
-	gboolean queue;					/* Similar to PUSH, but this time it is due
-				                       to parq */
-	gboolean accounted;				/* True when upload was accounted for */
-	gboolean unavailable_range;		/* True when last request ended with 416 */
-	gboolean n2r;					/* True when they sent an N2R request */
+	gboolean queue;					/**< Similar to PUSH, but this time it is due
+				                         to parq */
+	gboolean accounted;				/**< True when upload was accounted for */
+	gboolean unavailable_range;		/**< True when last request ended with 416 */
+	gboolean n2r;					/**< True when they sent an N2R request */
 
 	gboolean parq_status;
 } gnutella_upload_t;
@@ -93,16 +105,16 @@ typedef struct upload {
  * Operating flags
  */
 
-#define UPLOAD_F_STALLED		0x00000001	/* Stall condition present */
-#define UPLOAD_F_EARLY_STALL	0x00000002	/* Pre-stalling condition */
+#define UPLOAD_F_STALLED		0x00000001	/**< Stall condition present */
+#define UPLOAD_F_EARLY_STALL	0x00000002	/**< Pre-stalling condition */
 
-/*
+/**
  * This structure is used for HTTP status printing callbacks.
  */
 struct upload_http_cb {
-	gnutella_upload_t *u;			/* Upload being ACK'ed */
-	time_t now;						/* Current time */
-	time_t mtime;					/* File modification time */
+	gnutella_upload_t *u;			/**< Upload being ACK'ed */
+	time_t now;						/**< Current time */
+	time_t mtime;					/**< File modification time */
 	struct shared_file *sf;
 };
 

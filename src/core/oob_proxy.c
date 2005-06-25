@@ -55,20 +55,20 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-#define PROXY_EXPIRE_MS		(10*60*1000)	/* 10 minutes at most */
+#define PROXY_EXPIRE_MS		(10*60*1000)	/**< 10 minutes at most */
 
-/*
+/**
  * Record keeping track of the MUID remappings happening for the proxied
  * OOB queries.
  */
 struct oob_proxy_rec {
-	const gchar *leaf_muid;		/* Original MUID, set by leaf (atom) */
-	const gchar *proxied_muid;	/* Proxied MUID (atom) */
-	guint32 node_id;			/* The ID of the node leaf */
-	gpointer expire_ev;			/* Expire event, to clear this record */
+	const gchar *leaf_muid;		/**< Original MUID, set by leaf (atom) */
+	const gchar *proxied_muid;	/**< Proxied MUID (atom) */
+	guint32 node_id;			/**< The ID of the node leaf */
+	gpointer expire_ev;			/**< Expire event, to clear this record */
 };
 
-/*
+/**
  * Table recording the proxied OOB query MUID.
  */
 static GHashTable *proxied_queries = NULL;	/* New MUID => oob_proxy_rec */

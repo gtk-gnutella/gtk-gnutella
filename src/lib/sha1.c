@@ -3,7 +3,7 @@
  *
  * This file comes from RFC 3174. Inclusion in gtk-gnutella is:
  *
- *   Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -57,6 +57,8 @@
  *      implementation only works with messages with a length that is
  *      a multiple of the size of an 8-bit character.
  *
+ * @author Raphael Manfredi
+ * @date 2002-2003
  */
 
 #include "common.h"
@@ -66,7 +68,7 @@
 
 RCSID("$Id$");
 
-/*
+/**
  *  Define the SHA1 circular left shift macro
  */
 #define SHA1CircularShift(bits,word) \
@@ -269,11 +271,11 @@ void SHA1ProcessMessageBlock(SHA1Context *context)
                             0x8F1BBCDC,
                             0xCA62C1D6
                             };
-    int           t;                /* Loop counter                */
-    guint32      temp;              /* Temporary word value        */
-    guint32      W[80];             /* Word sequence               */
-    guint32      A, B, C, D, E;     /* Word buffers                */
-    guint32      *wp;               /* Pointer in word sequence    */
+    int           t;                /**< Loop counter              */
+    guint32      temp;              /**< Temporary word value      */
+    guint32      W[80];             /**< Word sequence             */
+    guint32      A, B, C, D, E;     /**< Word buffers              */
+    guint32      *wp;               /**< Pointer in word sequence  */
 
     /*
      *  Initialize the first 16 words in the array W

@@ -59,28 +59,27 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define UHC_MAX_ATTEMPTS	3	/* Maximum connection / resolution attempts */
-#define UHC_TIMEOUT			20	/* Host cache timeout, in seconds */
+#define UHC_MAX_ATTEMPTS	3	/**< Maximum connection / resolution attempts */
+#define UHC_TIMEOUT			20	/**< Host cache timeout, in seconds */
 
-/*
+/**
  * Request context, used when we decide to get hosts via the UDP host caches.
  *
  * It keeps track of the amount of messages we sent, and which GUID we used
  * in the pings.
  */
 static struct uhc_context {
-	GHashTable *guids;			/* GUIDs we sent */
-	gint attempts;				/* Connection / resolution attempts */
-	const gchar *host;			/* Last selected host */
-	guint32 ip;					/* Resolved IP address for host */
-	guint16 port;				/* Port of selected host cache */
-	gpointer timeout_ev;		/* Ping timeout */
+	GHashTable *guids;			/**< GUIDs we sent */
+	gint attempts;				/**< Connection / resolution attempts */
+	const gchar *host;			/**< Last selected host */
+	guint32 ip;					/**< Resolved IP address for host */
+	guint16 port;				/**< Port of selected host cache */
+	gpointer timeout_ev;		/**< Ping timeout */
 } uhc_ctx;
 
-/*
+/**
  * The following hosts are there for bootstrapping purposes only.
  */
-
 static const gchar * const boot_hosts[] = {
 	"uhc.udp-host-cache.com:9999",
 	"kisama.ath.cx:8080",

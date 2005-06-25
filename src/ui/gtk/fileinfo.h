@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003, Richard Eckart
  *
- * Displaying of file information in the gui.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * Displaying of file information in the GUI.
+ *
+ * @author Richard Eckart
+ * @date 2003
  */
 
 #ifndef _gtk_fileinfo_h_

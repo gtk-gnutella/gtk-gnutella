@@ -49,41 +49,41 @@ RCSID("$Id$");
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
-#include "lib/override.h"		/* Must be the last header included */
+#include "lib/override.h"	/* Must be the last header included */
 
-#define COPY_BLOCK_SHIFT	12			/* Power of two of copy unit credit */
-#define COPY_BUF_SIZE		65536		/* Size of the reading buffer */
+#define COPY_BLOCK_SHIFT	12			/**< Power of two of copy unit credit */
+#define COPY_BUF_SIZE		65536		/**< Size of the reading buffer */
 
 static gpointer move_daemon = NULL;
 
 #define MOVED_MAGIC	0x00c0b100
 
-/*
+/**
  * Moving daemon context.
  */
 struct moved {
-	gint magic;				/* Magic number */
-	struct download *d;		/* Download for which we're moving file */
-	gint rd;				/* Opened file descriptor for read, -1 if none */
-	gint wd;				/* Opened file descriptor for write, -1 if none */
-	time_t start;			/* Start time, to determine copying rate */
-	filesize_t size;		/* Size of file */
-	filesize_t copied;		/* Amount of data copied so far */
-	gchar *buffer;			/* Large buffer, where data is read */
-	gchar *target;			/* Target file name, in case an error occurs */
-	gint error;				/* Error code */
+	gint magic;				/**< Magic number */
+	struct download *d;		/**< Download for which we're moving file */
+	gint rd;				/**< Opened file descriptor for read, -1 if none */
+	gint wd;				/**< Opened file descriptor for write, -1 if none */
+	time_t start;			/**< Start time, to determine copying rate */
+	filesize_t size;		/**< Size of file */
+	filesize_t copied;		/**< Amount of data copied so far */
+	gchar *buffer;			/**< Large buffer, where data is read */
+	gchar *target;			/**< Target file name, in case an error occurs */
+	gint error;				/**< Error code */
 };
 
-/*
+/**
  * Work queue entry.
  */
 struct work {
-	struct download *d;		/* Download to move */
-	gchar *dest;			/* Target directory (atom) */
-	gchar *ext;				/* Trailing extension (atom) */
+	struct download *d;		/**< Download to move */
+	gchar *dest;			/**< Target directory (atom) */
+	gchar *ext;				/**< Trailing extension (atom) */
 };
 
-/*
+/**
  * we_alloc
  *
  * Allocate work queue entry.
@@ -101,7 +101,7 @@ we_alloc(struct download *d, const gchar *dest, const gchar *ext)
 	return we;
 }
 
-/*
+/**
  * we_free
  *
  * Freeing of work queue entry.
@@ -143,7 +143,7 @@ d_sighandler(gpointer unused_h, gpointer u, bgsig_t sig)
 	}
 }
 
-/*
+/**
  * d_free
  *
  * Freeing of computation context.

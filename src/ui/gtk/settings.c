@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2001-2003, Richard Eckart
  *
- * Reflection of changes in backend or gui properties in the GUI.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * Reflection of changes in backend or gui properties in the GUI.
+ *
+ * @author Richard Eckart
+ * @date 2001-2003
  */
 
 #include "gui.h"
@@ -80,25 +88,25 @@ RCSID("$Id$");
 
 typedef GtkWidget *(*fn_toplevel_t)(void);
 
-/*
+/**
  * The property maps contain informaiton about which widget should reflect
  * which property.
  */
 typedef struct prop_map {
-    const fn_toplevel_t fn_toplevel;  /* get toplevel widget */
-    const property_t prop;            /* property handle */
-    const prop_changed_listener_t cb; /* callback function */
-    const gboolean init;              /* init widget with current value */
-    const gchar *wid;                 /* name of the widget for tooltip */
+    const fn_toplevel_t fn_toplevel;  /**< get toplevel widget */
+    const property_t prop;            /**< property handle */
+    const prop_changed_listener_t cb; /**< callback function */
+    const gboolean init;              /**< init widget with current value */
+    const gchar *wid;                 /**< name of the widget for tooltip */
     enum frequency_type f_type;
     guint32 f_interval;
 
     /*
      * Automatic field filled in by settings_gui_init_prop_map
      */
-    prop_type_t type;                 /* property type */
-    prop_set_stub_t *stub;            /* property set stub */
-    gint *init_list;                  /* init_list for reverse lookup */
+    prop_type_t type;                 /**< property type */
+    prop_set_stub_t *stub;            /**< property set stub */
+    gint *init_list;                  /**< init_list for reverse lookup */
 } prop_map_t;
 
 #define NOT_IN_MAP	(-1)
@@ -135,7 +143,7 @@ static void update_input_bw_display(void);
  *** II. Simple default callbacks
  ***/
 
-/*
+/**
  * These functions can fetch the toplevel widget necessary for the
  * stock-callbacks to work. Even if you use no stock callback, they
  * are needed for setting the tooltip.
@@ -5353,7 +5361,7 @@ static prop_map_t property_map[] = {
 /* Not needed any longer */
 #undef PROP_ENTRY
 
-/*
+/**
  * settings_gui_get_map_entry:
  *
  * Fetches a pointer to the map entry which handles the given
@@ -5386,7 +5394,7 @@ settings_gui_get_map_entry(property_t prop)
 }
 
 
-/*
+/**
  * settings_gui_init_prop_map:
  *
  * Use information from property_map to connect callbacks to
@@ -5507,7 +5515,7 @@ settings_gui_init_prop_map(void)
     }
 }
 
-/*
+/**
  * settings_gui_init_prop_map_late:
  *
  * Must be called after settings_gui_init_prop_map() and initializes

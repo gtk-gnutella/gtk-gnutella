@@ -49,23 +49,23 @@ RCSID("$Id$");
 #include "lib/endian.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
-#include "lib/override.h"		/* Must be the last header included */
+#include "lib/override.h"				/* Must be the last header included */
 
-#define OFFSET_1900		2208988800U		/* secs between 1900 and the Epoch */
-#define NTP_FP_SCALE	4294967296.0	/* NTP fixed-point scaling base */
+#define OFFSET_1900		2208988800U		/**< secs between 1900 and the Epoch */
+#define NTP_FP_SCALE	4294967296.0	/**< NTP fixed-point scaling base */
 
-#define NTP_WAIT_MS		(5*1000)		/* Wait at most 5 secs for reply */
-#define NTP_VERSION		3				/* Say we're version 3 */
-#define NTP_CLIENT		3				/* Mode for unicast request */
-#define NTP_SERVER		4				/* Mode for server reply */
-#define NTP_AUTHSIZE	20				/* Size of NTP auth, when present */
+#define NTP_WAIT_MS		(5*1000)		/**< Wait at most 5 secs for reply */
+#define NTP_VERSION		3				/**< Say we're version 3 */
+#define NTP_CLIENT		3				/**< Mode for unicast request */
+#define NTP_SERVER		4				/**< Mode for server reply */
+#define NTP_AUTHSIZE	20				/**< Size of NTP auth, when present */
 
 #define NTP_MINSIZE		sizeof(struct ntp_msg)
 #define NTP_MAXSIZE		(NTP_MINSIZE + NTP_AUTHSIZE)
 
-static gpointer wait_ev = NULL;			/* Callout queue waiting event */
+static gpointer wait_ev = NULL;			/**< Callout queue waiting event */
 
-/*
+/**
  * An NTP message, as described in RFC2030 (trailing auth-data ignored).
  */
 struct ntp_msg {

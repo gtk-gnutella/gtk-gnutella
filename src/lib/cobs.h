@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Consistant Overhead Byte Stuffing (COBS).
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Consistant Overhead Byte Stuffing (COBS).
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _cobs_h_
 #define _cobs_h_
 
@@ -35,13 +43,13 @@
  * the input data is not known beforehand but gathered a piece at a time.
  */
 typedef struct cobs_stream {
-	gchar *outbuf;			/* Output buffer start */
-	gchar *end;				/* First char beyond output buffer */
-	gchar *o;				/* Where next non-NUL data will be written */
-	gchar *cp;				/* Where we'll write the code length */
-	gint code;				/* Current code length */
-	gint last_code;			/* Last code we emitted */
-	gboolean saw_nul;		/* True if we saw a NUL in the input */
+	gchar *outbuf;			/**< Output buffer start */
+	gchar *end;				/**< First char beyond output buffer */
+	gchar *o;				/**< Where next non-NUL data will be written */
+	gchar *cp;				/**< Where we'll write the code length */
+	gint code;				/**< Current code length */
+	gint last_code;			/**< Last code we emitted */
+	gboolean saw_nul;		/**< True if we saw a NUL in the input */
 } cobs_stream_t;
 
 /*

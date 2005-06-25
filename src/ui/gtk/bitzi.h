@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Alex Bennee <alex@bennee.com>
  *
- * Bitzi GTK Headers
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * Bitzi GTK+ Headers.
+ *
+ * @author Alex Bennee <alex@bennee.com>
+ * @date 2004
  */
 
 #ifndef _gtk_bitzi_h_

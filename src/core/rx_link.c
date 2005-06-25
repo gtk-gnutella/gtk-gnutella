@@ -51,13 +51,13 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-/*
+/**
  * Private attributes for the link.
  */
 struct attr {
-	wrap_io_t 	 *wio;	/* Cached wrapped IO object */
-	bio_source_t *bio;	/* Bandwidth-limited I/O source */
-	bsched_t *bs;		/* Scheduler to attach I/O source to */
+	wrap_io_t 	 *wio;	/**< Cached wrapped IO object */
+	bio_source_t *bio;	/**< Bandwidth-limited I/O source */
+	bsched_t *bs;		/**< Scheduler to attach I/O source to */
 };
 
 /**
@@ -229,12 +229,12 @@ bio_source *rx_link_bio_source(rxdrv_t *rx)
 }
 
 static const struct rxdrv_ops rx_link_ops = {
-	rx_link_init,		/* init */
-	rx_link_destroy,	/* destroy */
-	rx_link_recv,		/* recv */
-	rx_link_enable,		/* enable */
-	rx_link_disable,	/* disable */
-	rx_link_bio_source,	/* bio_source */
+	rx_link_init,		/**< init */
+	rx_link_destroy,	/**< destroy */
+	rx_link_recv,		/**< recv */
+	rx_link_enable,		/**< enable */
+	rx_link_disable,	/**< disable */
+	rx_link_bio_source,	/**< bio_source */
 };
 
 const struct rxdrv_ops *

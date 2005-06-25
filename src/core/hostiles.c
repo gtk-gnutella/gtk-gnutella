@@ -89,7 +89,7 @@ hostiles_close_one(hostiles_t which)
 
 /**
  * Load hostile data from the supplied FILE.
- * Returns the amount of entries loaded.
+ * @returns the amount of entries loaded.
  */
 static gint
 hostiles_load(FILE *f, hostiles_t which)
@@ -333,7 +333,7 @@ hostiles_close(void)
 
 /**
  * Check the given IP against the entries in the hostiles.
- * Returns TRUE if found, and FALSE if not.
+ * @returns TRUE if found, and FALSE if not.
  */
 gboolean
 hostiles_check(guint32 ip)

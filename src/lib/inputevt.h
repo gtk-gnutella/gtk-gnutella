@@ -1,8 +1,6 @@
 /*
  * Copyright (c) 2002, ko (ko-@wanadoo.fr)
  *
- * Input I/O notification.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -21,6 +19,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Input I/O notification.
+ *
+ * @author ko (ko-@wanadoo.fr)
+ * @date 2002
  */
 
 #ifndef _inputevt_h_
@@ -53,7 +61,7 @@ typedef void (*inputevt_handler_t) (
 void inputevt_init(void);
 void inputevt_close(void);
 
-/*
+/**
  * This emulates the GDK input interface.
  */
 guint inputevt_add(gint source, inputevt_cond_t condition,

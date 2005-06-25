@@ -66,7 +66,7 @@ RCSID("$Id$");
  */
 #define QUERY_TEXT(m)	((m) + sizeof(struct gnutella_header) + 2)
 
-/*
+/**
  * A search queue entry.
  *
  * Each entry references the search that issued the query.  Before sending
@@ -74,21 +74,21 @@ RCSID("$Id$");
  * over-querying for that particular search.
  */
 typedef struct smsg {
-	pmsg_t *mb;					/* The message block for the query */
-	gnet_search_t shandle;		/* Handle to search that originated query */
-	query_hashvec_t *qhv;		/* The query hash vector for QRP matching */
+	pmsg_t *mb;					/**< The message block for the query */
+	gnet_search_t shandle;		/**< Handle to search that originated query */
+	query_hashvec_t *qhv;		/**< The query hash vector for QRP matching */
 } smsg_t;
 
-/*
+/**
  * Message information for mutated blocks.
  *
  * Records meta-information about the message being queued so that we may
  * react when the message queue informs us it has processed it.
  */
 struct smsg_info {
-	gpointer search;			/* The search object which sends the query */
-	guint32 id;					/* The unique search ID */
-	guint32 node_id;			/* The unique node ID to which we're sending */
+	gpointer search;			/**< The search object which sends the query */
+	guint32 id;					/**< The unique search ID */
+	guint32 node_id;			/**< The unique node ID to which we're sending */
 };
 
 static squeue_t *global_sq = NULL;
@@ -578,7 +578,7 @@ sq_set_peermode(node_peer_t mode)
 }
 
 /**
- * Returns global queue.
+ * @returns global queue.
  */
 squeue_t *
 sq_global_queue(void)

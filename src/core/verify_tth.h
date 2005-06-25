@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Tigertree hash verification.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
+ */
+
 #ifndef _core_verify_tth_h_
 #define _core_verify_tth_h_
 

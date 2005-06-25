@@ -33,31 +33,32 @@
 
 typedef struct bsched bsched_t;
 
-/*
+/**
  * Source under bandwidth control.
  */
+
 typedef struct bio_source {
-	bsched_t *bs;						/* B/w scheduler for this source */
-	wrap_io_t *wio;						/* Wrapped I/O object */
-	gint io_tag;						/* Recorded I/O callback tag */
-	guint io_flags;						/* Flags for I/O callback */
-	inputevt_handler_t io_callback;		/* I/O callback routine */
-	gpointer io_arg;					/* I/O callback argument */
-	guint32 flags;						/* Source flags */
-	guint bw_actual;					/* Actual bandwidth used in period */
-	guint bw_last_bps;					/* B/w used last period (bps) */
-	guint bw_fast_ema;					/* Fast EMA of actual bandwidth used */
-	guint bw_slow_ema;					/* Slow EMA of actual bandwidth used */
+	bsched_t *bs;						/**< B/w scheduler for this source */
+	wrap_io_t *wio;						/**< Wrapped I/O object */
+	gint io_tag;						/**< Recorded I/O callback tag */
+	guint io_flags;						/**< Flags for I/O callback */
+	inputevt_handler_t io_callback;		/**< I/O callback routine */
+	gpointer io_arg;					/**< I/O callback argument */
+	guint32 flags;						/**< Source flags */
+	guint bw_actual;					/**< Actual bandwidth used in period */
+	guint bw_last_bps;					/**< B/w used last period (bps) */
+	guint bw_fast_ema;					/**< Fast EMA of actual bandwidth used */
+	guint bw_slow_ema;					/**< Slow EMA of actual bandwidth used */
 } bio_source_t;
 
 /*
  * Source flags.
  */
 
-#define BIO_F_READ			0x00000001	/* Reading source */
-#define BIO_F_WRITE			0x00000002	/* Writing source */
-#define BIO_F_ACTIVE		0x00000004	/* Source active since b/w scheduled */
-#define BIO_F_USED			0x00000008	/* Source used this period */
+#define BIO_F_READ			0x00000001	/**< Reading source */
+#define BIO_F_WRITE			0x00000002	/**< Writing source */
+#define BIO_F_ACTIVE		0x00000004	/**< Source active since b/w scheduled */
+#define BIO_F_USED			0x00000008	/**< Source used this period */
 
 #define BIO_F_RW			(BIO_F_READ|BIO_F_WRITE)
 

@@ -47,10 +47,10 @@ RCSID("$Id$");
 
 #include "if/gnet_property_priv.h"
 
-#define HUGE_FS		'\x1c'		/* Field separator (HUGE) */
+#define HUGE_FS		'\x1c'		/**< Field separator (HUGE) */
 
-#define GGEP_MAXLEN	65535		/* Maximum decompressed length */
-#define GGEP_GROW	512			/* Minimum chunk growth when resizing */
+#define GGEP_MAXLEN	65535		/**< Maximum decompressed length */
+#define GGEP_GROW	512			/**< Minimum chunk growth when resizing */
 
 /**
  * An extension descriptor.
@@ -65,7 +65,7 @@ RCSID("$Id$");
  *    ^           ^
  *    base        payload
  *
- * The <headlen> part is simply <len> - <paylen> so it is not stored.
+ * The "<headlen>" part is simply "<len>" - "<paylen>" so it is not stored.
  * Likewise, we store only the beginning of the payload, the base can be
  * computed if needed.
  *
@@ -92,18 +92,18 @@ RCSID("$Id$");
  * each time a new extension is found.
  */
 typedef struct extdesc {
-	gchar *ext_phys_payload;	/* Start of payload buffer */
-	gchar *ext_payload;			/* "virtual" payload */
-	guint16 ext_phys_len;		/* Extension length (header + payload) */
-	guint16 ext_phys_paylen;	/* Extension payload length */
-	guint16 ext_paylen;			/* "virtual" payload length */
-	guint16 ext_rpaylen;		/* Length of buffer for "virtual" payload */
+	gchar *ext_phys_payload;	/**< Start of payload buffer */
+	gchar *ext_payload;			/**< "virtual" payload */
+	guint16 ext_phys_len;		/**< Extension length (header + payload) */
+	guint16 ext_phys_paylen;	/**< Extension payload length */
+	guint16 ext_paylen;			/**< "virtual" payload length */
+	guint16 ext_rpaylen;		/**< Length of buffer for "virtual" payload */
 
 	union {
 		struct {
-			gboolean extu_cobs;			/* Payload is COBS-encoded */
-			gboolean extu_deflate;		/* Payload is deflated */
-			const gchar *extu_id;		/* Extension ID */
+			gboolean extu_cobs;			/**< Payload is COBS-encoded */
+			gboolean extu_deflate;		/**< Payload is deflated */
+			const gchar *extu_id;		/**< Extension ID */
 		} extu_ggep;
 	} ext_u;
 
@@ -121,20 +121,23 @@ typedef struct extdesc {
 #define ext_ggep_id			ext_u.extu_ggep.extu_id
 
 static const gchar * const extype[] = {
-	"UNKNOWN",					/* EXT_UNKNOWN */
-	"XML",						/* EXT_XML */
-	"HUGE",						/* EXT_HUGE */
-	"GGEP",						/* EXT_GGEP */
-	"NONE",						/* EXT_NONE */
+	"UNKNOWN",					/**< EXT_UNKNOWN */
+	"XML",						/**< EXT_XML */
+	"HUGE",						/**< EXT_HUGE */
+	"GGEP",						/**< EXT_GGEP */
+	"NONE",						/**< EXT_NONE */
 };
 
 /***
  *** Extension name screener.
  ***/
 
-struct rwtable {			/* Reserved word description */
-	const gchar *rw_name;	/* Representation */
-	ext_token_t rw_token;	/* Token value */
+/**
+ * Reserved word description
+ */
+struct rwtable {
+	const gchar *rw_name;	/**< Representation */
+	ext_token_t rw_token;	/**< Token value */
 };
 
 static const struct rwtable urntable[] =	/* URN name table (sorted) */
@@ -147,28 +150,28 @@ static const struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
 {
 #define GGEP_ID(x) { STRINGIFY(x), CAT2(EXT_T_GGEP_,x) }
 
-	{ "<", EXT_T_GGEP_LIME_XML },	/* '<' is less that 'A' */
-	GGEP_ID(ALT),					/* Alt-locs in qhits */
-	GGEP_ID(BH),					/* Browseable host indication */
-	GGEP_ID(CT),					/* Resource creation time */
-	GGEP_ID(DU),					/* Average servent uptime */
-	GGEP_ID(GTKGV1),				/* GTKG complete version number (binary) */
-	GGEP_ID(GUE),					/* GUESS support */
-	GGEP_ID(H),						/* Hashes in binary form */
-	GGEP_ID(HNAME),					/* Hostname */
-	GGEP_ID(IP),					/* Ip:Port in ping and pongs (F2F) */
-	GGEP_ID(IPP),					/* IP:Port in pongs (UHC) */
-	GGEP_ID(LF),					/* Large file size in qhits */
-	GGEP_ID(LOC),					/* Locale preferences, for clustering  */
-	GGEP_ID(PATH),					/* Shared file path, in query hits */
-	GGEP_ID(PHC),					/* Packed host caches (UHC) in pongs */
-	GGEP_ID(PUSH),					/* Push proxy info, in qhits */
-	GGEP_ID(SCP),					/* Supports cached pongs, in pings (UHC) */
-	GGEP_ID(T),						/* Textual information in qhits */
-	GGEP_ID(UDPHC),					/* Is an UDP hostcache (UHC) , in pongs */
-	GGEP_ID(UP),					/* Ultrapeer information about free slots */
-	GGEP_ID(VC),					/* Vendor code, in pongs */
-	GGEP_ID(u),						/* HUGE URN in ASCII */
+	{ "<", EXT_T_GGEP_LIME_XML },	/**< '<' is less that 'A' */
+	GGEP_ID(ALT),					/**< Alt-locs in qhits */
+	GGEP_ID(BH),					/**< Browseable host indication */
+	GGEP_ID(CT),					/**< Resource creation time */
+	GGEP_ID(DU),					/**< Average servent uptime */
+	GGEP_ID(GTKGV1),				/**< GTKG complete version number (binary) */
+	GGEP_ID(GUE),					/**< GUESS support */
+	GGEP_ID(H),						/**< Hashes in binary form */
+	GGEP_ID(HNAME),					/**< Hostname */
+	GGEP_ID(IP),					/**< Ip:Port in ping and pongs (F2F) */
+	GGEP_ID(IPP),					/**< IP:Port in pongs (UHC) */
+	GGEP_ID(LF),					/**< Large file size in qhits */
+	GGEP_ID(LOC),					/**< Locale preferences, for clustering  */
+	GGEP_ID(PATH),					/**< Shared file path, in query hits */
+	GGEP_ID(PHC),					/**< Packed host caches (UHC) in pongs */
+	GGEP_ID(PUSH),					/**< Push proxy info, in qhits */
+	GGEP_ID(SCP),					/**< Supports cached pongs, in pings (UHC) */
+	GGEP_ID(T),						/**< Textual information in qhits */
+	GGEP_ID(UDPHC),					/**< Is an UDP hostcache (UHC) , in pongs */
+	GGEP_ID(UP),					/**< Ultrapeer information about free slots */
+	GGEP_ID(VC),					/**< Vendor code, in pongs */
+	GGEP_ID(u),						/**< HUGE URN in ASCII */
 
 #undef GGEP_ID
 };
@@ -321,14 +324,14 @@ ext_names_kv_free(gpointer key, gpointer value, gpointer unused_udata)
  *** is structured and can therefore grab more than one extension in one call).
  ***
  *** Upon entry, `*retp' points to the start of the extension, and there are
- ** `len' bytes to parse.  There are `exvcnt' slots available in the extension
+ *** `len' bytes to parse.  There are `exvcnt' slots available in the extension
  *** vector, starting at `exv'.
  ***
  *** On exit, `p' is updated to the first byte following the last successfully
  *** parsed byte.  If the returned value is 0, then `p' is not updated.
  ***/
 
-/*
+/**
  * ext_ggep_parse
  *
  * Parses a GGEP block (can hold several extensions).
@@ -1000,8 +1003,8 @@ out:
  * Inflate `len' bytes starting at `buf', up to GGEP_MAXLEN bytes.
  * The payload `name' is given only in case there is an error to report.
  *
- * Returns the allocated inflated buffer, and its inflated length in `retlen'.
- * Returns NULL on error.
+ * @returns the allocated inflated buffer, and its inflated length in `retlen'.
+ * @returns NULL on error.
  */
 static gchar *
 ext_ggep_inflate(gchar *buf, gint len, guint16 *retlen, const gchar *name)
@@ -1106,7 +1109,7 @@ ext_ggep_inflate(gchar *buf, gint len, guint16 *retlen, const gchar *name)
 	wfree(inz, sizeof(*inz));
 
 	/*
-	 * Return NULL on error, fill `retlen' if OK.
+	 * @return NULL on error, fill `retlen' if OK.
 	 */
 
 	if (failed) {
@@ -1131,11 +1134,11 @@ ext_ggep_inflate(gchar *buf, gint len, guint16 *retlen, const gchar *name)
 static void
 ext_ggep_decode(const extvec_t *e)
 {
-	gchar *pbase;					/* Current payload base */
-	gint plen;						/* Curernt payload length */
-	gchar *uncobs = NULL;			/* COBS-decoded buffer */
-	gint uncobs_len = 0;			/* Length of walloc()'ed buffer */
-	gint result;					/* Decoded length */
+	gchar *pbase;					/**< Current payload base */
+	gint plen;						/**< Curernt payload length */
+	gchar *uncobs = NULL;			/**< COBS-decoded buffer */
+	gint uncobs_len = 0;			/**< Length of walloc()'ed buffer */
+	gint result;					/**< Decoded length */
 	extdesc_t *d;
 
 	g_assert(e);
@@ -1231,7 +1234,7 @@ out:
 }
 
 /**
- * Returns a pointer to the extension's payload.
+ * @returns a pointer to the extension's payload.
  */
 const gchar *
 ext_payload(const extvec_t *e)
@@ -1253,7 +1256,7 @@ ext_payload(const extvec_t *e)
 }
 
 /**
- * Returns a pointer to the extension's payload length.
+ * @returns a pointer to the extension's payload length.
  */
 guint16
 ext_paylen(const extvec_t *e)
@@ -1275,7 +1278,7 @@ ext_paylen(const extvec_t *e)
 }
 
 /**
- * Returns a pointer to the extension's header.
+ * @returns a pointer to the extension's header.
  *
  * WARNING: the actual "virtual" payload may not be contiguous to the end
  * of the header: don't read past the ext_headlen() first bytes of the
@@ -1292,7 +1295,7 @@ ext_base(const extvec_t *e)
 }
 
 /**
- * Returns the length of the extensions's header.
+ * @returns the length of the extensions's header.
  */
 guint16
 ext_headlen(const extvec_t *e)
@@ -1305,7 +1308,7 @@ ext_headlen(const extvec_t *e)
 }
 
 /**
- * Returns the total length of the extension (payload + extension header).
+ * @returns the total length of the extension (payload + extension header).
  */
 guint16
 ext_len(const extvec_t *e)
@@ -1324,7 +1327,7 @@ ext_len(const extvec_t *e)
 }
 
 /**
- * Returns extension's GGEP ID, or "" if not a GGEP one.
+ * @returns extension's GGEP ID, or "" if not a GGEP one.
  */
 const gchar *
 ext_ggep_id_str(const extvec_t *e)

@@ -62,7 +62,7 @@ RCSID("$Id$");
 #include "http.h"
 #include "version.h"
 #include "alive.h"
-#include "uploads.h" /* for handle_push_request() */
+#include "uploads.h"			/* For handle_push_request() */
 #include "whitelist.h"
 #include "gnet_stats.h"
 #include "ban.h"
@@ -105,46 +105,46 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
-#define CONNECT_PONGS_LOW		5		/* Amoung of pongs sent if saturated */
-#define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
-#define NODE_SEND_BUFSIZE		4096	/* TCP send buffer size - 4K */
-#define NODE_SEND_LEAF_BUFSIZE	1024	/* TCP send buffer size for leaves */
-#define MAX_GGEP_PAYLOAD		1536	/* In ping, pong, push */
-#define MAX_MSG_SIZE			65536	/* Absolute maximum message length */
-#define MAX_HOP_COUNT			255		/* Architecturally defined maximum */
-#define NODE_LEGACY_DEGREE		8		/* Older node without X-Degree */
-#define NODE_LEGACY_TTL			7		/* Older node without X-Max-TTL */
-#define NODE_USELESS_GRACE		20		/* Don't kick if condition too recent */
+#define CONNECT_PONGS_COUNT		10		/**< Amoung of pongs to send */
+#define CONNECT_PONGS_LOW		5		/**< Amoung of pongs sent if saturated */
+#define BYE_MAX_SIZE			4096	/**< Maximum size for the Bye message */
+#define NODE_SEND_BUFSIZE		4096	/**< TCP send buffer size - 4K */
+#define NODE_SEND_LEAF_BUFSIZE	1024	/**< TCP send buffer size for leaves */
+#define MAX_GGEP_PAYLOAD		1536	/**< In ping, pong, push */
+#define MAX_MSG_SIZE			65536	/**< Absolute maximum message length */
+#define MAX_HOP_COUNT			255		/**< Architecturally defined maximum */
+#define NODE_LEGACY_DEGREE		8		/**< Older node without X-Degree */
+#define NODE_LEGACY_TTL			7		/**< Older node without X-Max-TTL */
+#define NODE_USELESS_GRACE		20		/**< Don't kick if condition too recent */
 
-#define SHUTDOWN_GRACE_DELAY	120	/* Grace period for shutdowning nodes */
-#define BYE_GRACE_DELAY			30	/* Bye sent, give time to propagate */
-#define MAX_WEIRD_MSG			5	/* Close connection after so much weirds */
-#define MAX_TX_RX_RATIO			70	/* Max TX/RX ratio for shortage */
-#define MIN_TX_FOR_RATIO		500	/* TX packets before enforcing ratio */
-#define ALIVE_PERIOD			20	/* Seconds between each alive ping */
-#define ALIVE_PERIOD_LEAF		120	/* Idem, for leaf nodes <-> ultrapeers */
-#define ALIVE_MAX_PENDING		6	/* Max unanswered pings in a row */
-#define ALIVE_MAX_PENDING_LEAF	4	/* Max unanswered pings in a row (leaves) */
+#define SHUTDOWN_GRACE_DELAY	120		/**< Grace period for shutdowning nodes */
+#define BYE_GRACE_DELAY			30		/**< Bye sent, give time to propagate */
+#define MAX_WEIRD_MSG			5		/**< Close connection after so much weirds */
+#define MAX_TX_RX_RATIO			70		/**< Max TX/RX ratio for shortage */
+#define MIN_TX_FOR_RATIO		500		/**< TX packets before enforcing ratio */
+#define ALIVE_PERIOD			20		/**< Seconds between each alive ping */
+#define ALIVE_PERIOD_LEAF		120		/**< Idem, for leaf nodes <-> ultrapeers */
+#define ALIVE_MAX_PENDING		6		/**< Max unanswered pings in a row */
+#define ALIVE_MAX_PENDING_LEAF	4		/**< Max unanswered pings in a row (leaves) */
 
-#define NODE_MIN_UP_CONNECTIONS	25		/* Require 25 peer connections for UP */
-#define NODE_MIN_UPTIME			3600	/* Minumum uptime to become an UP */
-#define NODE_MIN_AVG_UPTIME		10800	/* Average uptime to become an UP */
-#define NODE_AVG_LEAF_MEM		262144	/* Average memory used by leaf */
-#define NODE_CASUAL_FD			10		/* # of fds we might use casually */
-#define NODE_UPLOAD_QUEUE_FD	5		/* # of fds/upload slot we can queue */
+#define NODE_MIN_UP_CONNECTIONS	25		/**< Require 25 peer connections for UP */
+#define NODE_MIN_UPTIME			3600	/**< Minumum uptime to become an UP */
+#define NODE_MIN_AVG_UPTIME		10800	/**< Average uptime to become an UP */
+#define NODE_AVG_LEAF_MEM		262144	/**< Average memory used by leaf */
+#define NODE_CASUAL_FD			10		/**< # of fds we might use casually */
+#define NODE_UPLOAD_QUEUE_FD	5		/**< # of fds/upload slot we can queue */
 
-#define NODE_AUTO_SWITCH_MIN	1800	/* Don't switch too often UP <-> leaf */
-#define NODE_AUTO_SWITCH_MAX	61200	/* Max between switches (17 hours) */
+#define NODE_AUTO_SWITCH_MIN	1800	/**< Don't switch too often UP <-> leaf */
+#define NODE_AUTO_SWITCH_MAX	61200	/**< Max between switches (17 hours) */
 
-#define NODE_TSYNC_WAIT_MS		5000	/* Wait time after connecting (5s) */
-#define NODE_TSYNC_PERIOD_MS	300000	/* Synchronize every 5 minutes */
-#define NODE_TSYNC_CHECK		15		/* 15 secs before a timeout */
+#define NODE_TSYNC_WAIT_MS		5000	/**< Wait time after connecting (5s) */
+#define NODE_TSYNC_PERIOD_MS	300000	/**< Synchronize every 5 minutes */
+#define NODE_TSYNC_CHECK		15		/**< 15 secs before a timeout */
 
-#define TCP_CRAWLER_FREQ		300		/* once every 5 minutes */
-#define UDP_CRAWLER_FREQ		120		/* once every 2 minutes */
+#define TCP_CRAWLER_FREQ		300		/**< once every 5 minutes */
+#define UDP_CRAWLER_FREQ		120		/**< once every 2 minutes */
 
-gchar *start_rfc822_date = NULL;		/* RFC822 format of start_time */
+gchar *start_rfc822_date = NULL;		/**< RFC822 format of start_time */
 
 static GSList *sl_nodes = NULL;
 static GHashTable *nodes_by_id = NULL;
@@ -154,7 +154,7 @@ static gnutella_node_t *udp_node = NULL;
 static GHashTable *ht_connected_nodes   = NULL;
 static guint32     connected_node_count = 0;
 
-#define NO_METADATA		GUINT_TO_POINTER(1)	/* No metadata for host */
+#define NO_METADATA		GUINT_TO_POINTER(1)	/**< No metadata for host */
 
 static GHashTable *unstable_servent = NULL;
 static GSList *unstable_servents = NULL;
@@ -167,9 +167,9 @@ typedef struct node_bad_client {
 	char *vendor;
 } node_bad_client_t;
 
-static int node_error_threshold = 6;	/* This requires an average uptime of
-										 * 1 hour for an ultrapeer */
-static time_t node_error_cleanup_timer = 6 * 3600;	/* 6 hours */
+static int node_error_threshold = 6;	/**< This requires an average uptime of
+										     1 hour for an ultrapeer */
+static time_t node_error_cleanup_timer = 6 * 3600;	/**< 6 hours */
 
 static GSList *sl_proxies = NULL;	/* Our push proxies */
 static idtable_t *node_handle_map = NULL;
@@ -185,18 +185,18 @@ static idtable_t *node_handle_map = NULL;
 
 
 static guint32 shutdown_nodes = 0;
-static guint32 node_id = 1;				/* Reserve 0 for the local node */
+static guint32 node_id = 1;				/**< Reserve 0 for the local node */
 
 static gboolean allow_gnet_connections = FALSE;
 
 GHookList node_added_hook_list;
-/*
+/**
  * For use by node_added_hook_list hooks, since we can't add a parameter
  * at list invoke time.
  */
 struct gnutella_node *node_added;
 
-/*
+/**
  * Structure used for asynchronous reaction to peer mode changes.
  */
 static struct {
@@ -204,14 +204,14 @@ static struct {
 	node_peer_t new;
 } peermode = { FALSE, NODE_P_UNKNOWN };
 
-/*
+/**
  * Types of bad nodes for node_is_bad().
  */
 enum node_bad {
-	NODE_BAD_OK = 0,		/* Node is fine */
-	NODE_BAD_IP,			/* Node has a bad (unstable) IP */
-	NODE_BAD_VENDOR,		/* Node has a bad vendor string */
-	NODE_BAD_NO_VENDOR		/* Node has no vendor string */
+	NODE_BAD_OK = 0,		/**< Node is fine */
+	NODE_BAD_IP,			/**< Node has a bad (unstable) IP */
+	NODE_BAD_VENDOR,		/**< Node has a bad vendor string */
+	NODE_BAD_NO_VENDOR		/**< Node has no vendor string */
 };
 
 static guint connected_node_cnt = 0;
@@ -581,8 +581,8 @@ node_extract_host(const struct gnutella_node *n, guint32 *ip, guint16 *port)
 
 	/* Read Query Hit info */
 
-	READ_GUINT32_BE(r->host_ip, hip);		/* IP address */
-	READ_GUINT16_LE(r->host_port, hport);	/* Port */
+	READ_GUINT32_BE(r->host_ip, hip);		/**< IP address */
+	READ_GUINT16_LE(r->host_port, hport);	/**< Port */
 
 	*ip = hip;
 	*port = hport;
@@ -610,7 +610,7 @@ can_become_ultra(time_t now)
 	avg_ip_uptime = get_average_ip_lifetime(now) >= NODE_MIN_AVG_UPTIME;
 	node_uptime = delta_time(now, start_stamp) > NODE_MIN_UPTIME;
 
-	/* Connectivity requirements */
+	/**< Connectivity requirements */
 	not_firewalled = !is_firewalled;
 
 	/*
@@ -635,10 +635,10 @@ can_become_ultra(time_t now)
 		(max_leaves + max_connections) * node_sendqueue_size)
 		< 1024 / 2 * sys_physmem;
 
-	/* Bandwidth requirements */
+	/**< Bandwidth requirements */
 	enough_bw = bsched_enough_up_bandwidth() && !uploads_stalling;
 
-	/* Connection requirements */
+	/**< Connection requirements */
 	enough_conn = up_connections >= NODE_MIN_UP_CONNECTIONS;
 
 #define OK(b)	((b) ? ok : no)
@@ -1161,7 +1161,8 @@ node_keep_missing(void)
 
 /**
  * Amount of node connections we would like to have.
- * Returns 0 if none.
+ *
+ * @return 0 if none.
  */
 guint
 node_missing(void)
@@ -1572,7 +1573,8 @@ node_remove_by_handle(gnet_node_t n)
 
 /**
  * Check whether node has been identified as having a bad IP or vendor string.
- * Returns NODE_BAD_OK if node is OK, the reason why the node is bad otherwise.
+ *
+ * @return NODE_BAD_OK if node is OK, the reason why the node is bad otherwise.
  */
 static enum
 node_bad node_is_bad(struct gnutella_node *n)
@@ -1714,7 +1716,7 @@ node_mark_bad_vendor(struct gnutella_node *n)
  * Make sure that the vendor of the connecting node does not already use
  * more than "unique_nodes" percent of the slots of its kind.
  *
- * Returns TRUE if accepting the node would make the uses more slot that
+ * @return TRUE if accepting the node would make the uses more slot that
  */
 static gboolean
 node_avoid_monopoly(struct gnutella_node *n)
@@ -1806,15 +1808,15 @@ node_avoid_monopoly(struct gnutella_node *n)
  * When we only have "reserve_gtkg_nodes" percent slots left, make sure the
  * connecting node is a GTKG node or refuse the connection.
  *
- * Returns TRUE if we should reserve the slot for GTKG, i.e. refuse `n'.
+ * @return TRUE if we should reserve the slot for GTKG, i.e. refuse `n'.
  */
 static gboolean
 node_reserve_slot(struct gnutella_node *n)
 {
 	static const gchar gtkg_vendor[] = "gtk-gnutella";
-	guint up_cnt = 0;		/* GTKG UPs */
-	guint leaf_cnt = 0;		/* GTKG leafs */
-	guint normal_cnt = 0;	/* GTKG normal nodes */
+	guint up_cnt = 0;		/**< GTKG UPs */
+	guint leaf_cnt = 0;		/**< GTKG leafs */
+	guint normal_cnt = 0;	/**< GTKG normal nodes */
 	GSList *sl;
 
 	g_assert((gint) reserve_gtkg_nodes >= 0 && reserve_gtkg_nodes <= 100);
@@ -2276,7 +2278,7 @@ node_host_is_connected(guint32 ip, guint16 port)
  * Build CONNECT_PONGS_COUNT pongs to emit as an X-Try header.
  * We stick to strict formatting rules: no line of more than 76 chars.
  *
- * Returns a pointer to static data.
+ * @return a pointer to static data.
  *
  * XXX Refactoring note: there is a need for generic header formatting
  * routines, and especially the dumping routing, which could be taught
@@ -2334,20 +2336,21 @@ node_gtkg_cmp(const void *np1, const void *np2)
 
 /**
  * Generate the "Peers:" and "Leaves:" headers in a static buffer.
- * Returns ready-to-insert header chunk, with all lines ending with "\r\n".
+ *
+ * @return ready-to-insert header chunk, with all lines ending with "\r\n".
  */
 static gchar *
 node_crawler_headers(struct gnutella_node *n)
 {
-	static gchar buf[8192];		/* 8 KB */
-	gnutella_node_t **ultras = NULL;	/* Array of ultra nodes */
-	gnutella_node_t **leaves = NULL;	/* Array of leaves */
-	gint ultras_len = 0;				/* Size of `ultras' */
-	gint leaves_len = 0;				/* Size of `leaves' */
-	gint ux = 0;						/* Index in `ultras' */
-	gint lx = 0;						/* Index in `leaves' */
-	gint uw = 0;						/* Amount of ultras written */
-	gint lw = 0;						/* Amount of leaves written */
+	static gchar buf[8192];				/**< 8 KB */
+	gnutella_node_t **ultras = NULL;	/**< Array of ultra nodes */
+	gnutella_node_t **leaves = NULL;	/**< Array of `leaves' */
+	gint ultras_len = 0;				/**< Size of `ultras' */
+	gint leaves_len = 0;				/**< Size of `leaves' */
+	gint ux = 0;						/**< Index in `ultras' */
+	gint lx = 0;						/**< Index in `leaves' */
+	gint uw = 0;						/**< Amount of ultras written */
+	gint lw = 0;						/**< Amount of leaves written */
 	GSList *sl;
 	gint maxsize;
 	gint rw;
@@ -2586,6 +2589,7 @@ send_error(
 
 /**
  * Send error message to remote end, a node presumably.
+ *
  * NB: We don't need a node to call this routine, only a socket.
  */
 void
@@ -2987,7 +2991,7 @@ node_is_now_connected(struct gnutella_node *n)
 }
 
 /**
- * Received a Bye message from remote node.
+ * Received a Bye message from remote node.
  */
 static void
 node_got_bye(struct gnutella_node *n)
@@ -3184,7 +3188,7 @@ node_set_current_peermode(node_peer_t mode)
  * Extract host:port information out of a header field and add those to our
  * pong cache.
  *
- * Returns the amount of valid pongs we parsed.
+ * @return the amount of valid pongs we parsed.
  *
  * The syntax we expect is:
  *
@@ -3264,7 +3268,8 @@ extract_header_pongs(header_t *header, struct gnutella_node *n)
 
 /**
  * Try to determine whether headers contain an indication of our own IP.
- * Return 0 if none found, or the indicated IP address.
+ *
+ * @return 0 if none found, or the indicated IP address.
  */
 static guint32
 extract_my_ip(header_t *header)
@@ -3333,7 +3338,7 @@ node_check_remote_ip_header(guint32 peer, header_t *head)
  * Analyses status lines we get from incoming handshakes (final ACK) or
  * outgoing handshakes (inital REPLY, after our HELLO)
  *
- * Returns TRUE if acknowledgment was OK, FALSE if an error occurred, in
+ * @return TRUE if acknowledgment was OK, FALSE if an error occurred, in
  * which case the node was removed with proper status.
  *
  * If `code' is not NULL, it is filled with the returned code, or -1 if
@@ -3431,7 +3436,7 @@ analyse_status(struct gnutella_node *n, gint *code)
  * If `handshaking' is true, we're still in the handshaking phase, otherwise
  * we're already connected and can send a BYE.
  *
- * Returns TRUE if we can accept the connection, FALSE otherwise, with
+ * @return TRUE if we can accept the connection, FALSE otherwise, with
  * the node being removed.
  */
 static gboolean
@@ -3725,7 +3730,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
  * Check whether we can accept a servent supporting a foreign protocol.
  * Must be called during handshaking.
  *
- * Returns TRUE if OK, FALSE if connection was denied.
+ * @return TRUE if OK, FALSE if connection was denied.
  */
 static gboolean
 node_can_accept_protocol(struct gnutella_node *n, header_t *head)
@@ -3977,7 +3982,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 }
 
 /**
- * Returns the header string that should be used to advertise our QRP version
+ * @return the header string that should be used to advertise our QRP version
  * in the reply to their handshake, as a pointer to static data.
  */
 static gchar *
@@ -5238,7 +5243,8 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
  * whose total size is not exceeding `maxsize'.  The `regsize' value is the
  * normal payload length of the message (e.g. 0 for a ping).
  *
- * NOTE: parsed extensions are left in the node's `extensions' structure.
+ * @note
+ * parsed extensions are left in the node's `extensions' structure.
  *
  * @return TRUE if there is a GGEP extension block, and only that after the
  * regular payload, with a size no greater than `maxsize'.
@@ -6101,7 +6107,8 @@ node_bye_sent(struct gnutella_node *n)
 
 /**
  * Read data from the message buffer we just received.
- * Returns TRUE whilst we think there is more data to read in the buffer.
+ *
+ * @return TRUE whilst we think there is more data to read in the buffer.
  */
 static gboolean
 node_read(struct gnutella_node *n, pmsg_t *mb)
@@ -6276,8 +6283,9 @@ node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 }
 
 /**
- * Called when a node sends a message with TTL=0
- * Returns TRUE if node was removed (due to a duplicate bye, probably),
+ * Called when a node sends a message with TTL=0.
+ *
+ * @return TRUE if node was removed (due to a duplicate bye, probably),
  * FALSE otherwise.
  */
 void
@@ -6380,7 +6388,7 @@ node_bye_all(void)
 }
 
 /**
- * Returns true whilst there are some connections with a pending BYE.
+ * @return true whilst there are some connections with a pending BYE.
  */
 gboolean
 node_bye_pending(void)
@@ -7224,7 +7232,7 @@ node_remove_nodes_by_handle(GSList *node_list)
  ***/
 
 /**
- * Returns the ip:port of a node
+ * @return the ip:port of a node
  */
 gchar *
 node_ip(const gnutella_node_t *n)
@@ -7240,7 +7248,7 @@ node_ip(const gnutella_node_t *n)
 }
 
 /**
- * Returns the advertised Gnutella ip:port of a node
+ * @return the advertised Gnutella ip:port of a node
  */
 gchar *
 node_gnet_ip(const gnutella_node_t *n)
@@ -7321,7 +7329,8 @@ node_proxying_remove(gnutella_node_t *n, gboolean discard)
 
 /**
  * Record that node wants us to be his push proxy.
- * Returns TRUE if we can act as this node's proxy.
+ *
+ * @return TRUE if we can act as this node's proxy.
  */
 gboolean
 node_proxying_add(gnutella_node_t *n, gchar *guid)
@@ -7508,7 +7517,7 @@ node_http_proxies_add(gchar *buf, gint *retval,
 }
 
 /**
- * Returns list of our push-proxies.
+ * @return list of our push-proxies.
  */
 GSList *
 node_push_proxies(void)
@@ -7517,7 +7526,7 @@ node_push_proxies(void)
 }
 
 /**
- * Returns list of all nodes.
+ * @return list of all nodes.
  */
 const GSList *
 node_all_nodes(void)
@@ -7526,7 +7535,7 @@ node_all_nodes(void)
 }
 
 /**
- * Returns writable node given its ID, or NULL if we can't reach that node.
+ * @return writable node given its ID, or NULL if we can't reach that node.
  */
 gnutella_node_t *
 node_active_by_id(guint32 id)
@@ -7693,23 +7702,23 @@ node_crawl_fill(pmsg_t *mb,
 void
 node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 {
-	gnutella_node_t **ultras = NULL;	/* Array of ultra nodes */
-	gnutella_node_t **leaves = NULL;	/* Array of leaves */
-	gint ultras_len = 0;				/* Size of `ultras' */
-	gint leaves_len = 0;				/* Size of `leaves' */
-	gint ux = 0;						/* Index in `ultras' */
-	gint lx = 0;						/* Index in `leaves' */
-	gint ui;							/* Iterating index in `ultras' */
-	gint li;							/* Iterating index in `leaves' */
-	gint un;							/* Amount of ultras to send */
-	gint ln;							/* Amount of leaves to send */
+	gnutella_node_t **ultras = NULL;	/**< Array of ultra nodes */
+	gnutella_node_t **leaves = NULL;	/**< Array of leaves */
+	gint ultras_len = 0;				/**< Size of `ultras' */
+	gint leaves_len = 0;				/**< Size of `leaves' */
+	gint ux = 0;						/**< Index in `ultras' */
+	gint lx = 0;						/**< Index in `leaves' */
+	gint ui;							/**< Iterating index in `ultras' */
+	gint li;							/**< Iterating index in `leaves' */
+	gint un;							/**< Amount of ultras to send */
+	gint ln;							/**< Amount of leaves to send */
 	GSList *sl;
 	gboolean crawlable_only = (features & NODE_CR_CRAWLABLE) ? TRUE : FALSE;
 	gboolean wants_ua = (features & NODE_CR_USER_AGENT) ? TRUE : FALSE;
 	pmsg_t *mb = NULL;
 	pdata_t *db;
-	guchar *payload;					/* Start of constructed payload */
-	GString *agents = NULL;				/* The string holding user-agents */
+	guchar *payload;					/**< Start of constructed payload */
+	GString *agents = NULL;				/**< The string holding user-agents */
 	time_t now;
 
 	g_assert(NODE_IS_UDP(n));

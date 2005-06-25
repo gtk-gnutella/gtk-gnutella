@@ -2,6 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2002, Michael Tesch
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -21,25 +22,36 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup gtk
+ * @file
  *
- * upload_stats.c - keep track of which files we send away, and how often.
+ * Keep track of which files we send away, and how often.
  *
- *		Statistics are kept by _FILENAME_ and file size,
- *		not by actual path, so two files with the same
- *		name and size will be counted in the same bin.
- *		I dont see this as a limitation because the
- *		user wouldn't be able to differentiate the files anyway.
- *		This could be extended to keep the entire path to
- *		each file and optionally show the entire path, but..
+ * Statistics are kept by _FILENAME_ and file size, not by actual
+ * path, so two files with the same name and size will be counted
+ * in the same bin.
  *
- *		the 'upload_history' file has the following format:
- *		<url-escaped filename> <file size> <attempts> <completions>
+ * I dont see this as a limitation because the user wouldn't be able
+ * to differentiate the files anyway. This could be extended to keep
+ * the entire path to each file and optionally show the entire path,
+ * but..
  *
- *		TODO: add a check to make sure that all of the files still exist(?)
- *			grey them out if they dont, optionally remove them from the
- *			stats list (when 'Clear Non-existent Files' is clicked)
+ * The 'upload_history' file has the following format:
  *
- *		(C) 2002 Michael Tesch, released with gtk-gnutella & its license
+ *		"<url-escaped filename> <file size> <attempts> <completions>"
+ *
+ * @todo
+ * TODO: Add a check to make sure that all of the files still exist(?)
+ *       grey them out if they dont, optionally remove them from the
+ *       stats list (when 'Clear Non-existent Files' is clicked).
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
+ * @author Michael Tesch
+ * @date 2002
  */
 
 #include "gtk/gui.h"
@@ -62,8 +74,9 @@ RCSID("$Id$");
 static GtkTreeView *upload_stats_treeview = NULL;
 static GtkWidget *popup_upload_stats = NULL;
 
-/* Private callbacks */
-
+/**
+ * Private callbacks
+ */
 static gboolean
 on_button_press_event(GtkWidget *unused_widget, GdkEventButton *event,
 	gpointer unused_udata)
@@ -267,12 +280,12 @@ upload_stats_gui_init_intern(gboolean intern)
 	if (!initialized) {
     	popup_upload_stats = create_popup_upload_stats();
 		model = GTK_TREE_MODEL(gtk_list_store_new(c_us_num,
-			G_TYPE_STRING,		/* Filename (UTF-8 encoded) */
-			G_TYPE_UINT,		/* Size */
-			G_TYPE_UINT,		/* Attempts */
-			G_TYPE_UINT,		/* Completed */
-			G_TYPE_FLOAT,		/* Normalized */
-			G_TYPE_POINTER)); 	/* struct ul_stats */
+			G_TYPE_STRING,		/**< Filename (UTF-8 encoded) */
+			G_TYPE_UINT,		/**< Size */
+			G_TYPE_UINT,		/**< Attempts */
+			G_TYPE_UINT,		/**< Completed */
+			G_TYPE_FLOAT,		/**< Normalized */
+			G_TYPE_POINTER)); 	/**< struct ul_stats */
 		upload_stats_treeview = GTK_TREE_VIEW(
 			lookup_widget(main_window, "treeview_ul_stats"));
 		gtk_tree_view_set_model(upload_stats_treeview, model);

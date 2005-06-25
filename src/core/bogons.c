@@ -57,11 +57,12 @@ RCSID("$Id$");
 static const gchar bogons_file[] = "bogons.txt";
 static const gchar bogons_what[] = "Bogus IP addresses";
 
-static gpointer bogons_db;		/* The database of bogus CIDR ranges */
+static gpointer bogons_db;		/**< The database of bogus CIDR ranges */
 
 /**
  * Load bogons data from the supplied FILE.
- * Returns the amount of entries loaded.
+ *
+ * @returns the amount of entries loaded.
  */
 static gint
 bogons_load(FILE *f)
@@ -235,7 +236,8 @@ bogons_close(void)
 
 /**
  * Check the given IP against the entries in the bogus IP database.
- * Returns TRUE if found, and FALSE if not.
+ *
+ * @returns TRUE if found, and FALSE if not.
  */
 gboolean
 bogons_check(guint32 ip)

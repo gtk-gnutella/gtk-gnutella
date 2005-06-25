@@ -30,8 +30,8 @@
 
 #include "if/core/hosts.h"
 
-/*
- * Gnet node specific types
+/**
+ * Gnet node specific types.
  */
 typedef guint32 gnet_node_t;
 
@@ -41,26 +41,26 @@ typedef guint32 gnet_node_t;
  */
 
 typedef struct gnet_node_status {
-	guchar status;			    /* See possible values below */
+	guchar status;			    /**< See possible values below */
 
 	/* FIXME: the variables below should go to gnet_node_info since they
 	 *        only change very seldom
      */
-	time_t connect_date;		/* When we got connected (after handshake) */
-	time_t up_date;				/* When remote server started (0 if unknown) */
-	guint32 gnet_files_count;	/* Amount of files shared */
-	guint32 gnet_kbytes_count;	/* Size of the library, in Kbytes */
-	gboolean gnet_info_known;	/* Whether previous two values are known */
+	time_t connect_date;		/**< When we got connected (after handshake) */
+	time_t up_date;				/**< When remote server started (0 if unknown) */
+	guint32 gnet_files_count;	/**< Amount of files shared */
+	guint32 gnet_kbytes_count;	/**< Size of the library, in Kbytes */
+	gboolean gnet_info_known;	/**< Whether previous two values are known */
 
-	guint32  sent;				/* Number of sent packets */
-	guint32  received;			/* Number of received packets */
-	guint32  tx_dropped;		/* Number of packets dropped at TX time */
-	guint32  rx_dropped;		/* Number of packets dropped at RX time */
-	guint32  n_bad;				/* Number of bad packets received */
-	guint16  n_dups;			/* Number of dup messages received (bad) */
-	guint16  n_hard_ttl;		/* Number of hard_ttl exceeded (bad) */
-	guint32  n_weird;			/* Number of weird messages from that node */
-	guint32  n_hostile;			/* Number of messages from hostile IP */
+	guint32  sent;				/**< Number of sent packets */
+	guint32  received;			/**< Number of received packets */
+	guint32  tx_dropped;		/**< Number of packets dropped at TX time */
+	guint32  rx_dropped;		/**< Number of packets dropped at RX time */
+	guint32  n_bad;				/**< Number of bad packets received */
+	guint16  n_dups;			/**< Number of dup messages received (bad) */
+	guint16  n_hard_ttl;		/**< Number of hard_ttl exceeded (bad) */
+	guint32  n_weird;			/**< Number of weird messages from that node */
+	guint32  n_hostile;			/**< Number of messages from hostile IP */
 
     gint     squeue_sent;
     gint     squeue_count;
@@ -73,58 +73,58 @@ typedef struct gnet_node_status {
 	 * Traffic statistics -- RAM, 13/05/2002.
 	 */
 
-	gint32   tx_given;			/* Bytes fed to the TX stack (from top) */
-	gint32   tx_deflated;		/* Bytes deflated by the TX stack */
-	gint32   tx_written;		/* Bytes written by the TX stack */
-    gboolean tx_compressed;     /* Is TX traffic compressed */
-    gfloat   tx_compression_ratio; /* TX compression ratio */
-    guint32  tx_bps;			/* TX traffic rate */
+	gint32   tx_given;			/**< Bytes fed to the TX stack (from top) */
+	gint32   tx_deflated;		/**< Bytes deflated by the TX stack */
+	gint32   tx_written;		/**< Bytes written by the TX stack */
+    gboolean tx_compressed;     /**< Is TX traffic compressed */
+    gfloat   tx_compression_ratio; /**< TX compression ratio */
+    guint32  tx_bps;			/**< TX traffic rate */
 
-	gint32   rx_given;			/* Bytes fed to the RX stack (from bottom) */
-	gint32   rx_inflated;		/* Bytes inflated by the RX stack */
-	gint32   rx_read;			/* Bytes read from the RX stack */
-    gboolean rx_compressed;     /* Is RX traffic compressed */
-    gfloat   rx_compression_ratio;/* RX compression ratio */
-    gfloat   rx_bps;			/* RX traffic rate */
+	gint32   rx_given;			/**< Bytes fed to the RX stack (from bottom) */
+	gint32   rx_inflated;		/**< Bytes inflated by the RX stack */
+	gint32   rx_read;			/**< Bytes read from the RX stack */
+    gboolean rx_compressed;     /**< Is RX traffic compressed */
+    gfloat   rx_compression_ratio;/**< RX compression ratio */
+    gfloat   rx_bps;			/**< RX traffic rate */
 
 	/*
 	 * Gnutella statistics -- RAM, 10/12/2003.
 	 */
 
-	gboolean has_qrp;			/* Whether node is under QRP control */
-	gfloat qrp_efficiency;		/* Queries matched / received on QRP control */
-	guint32 rx_queries;			/* Total amount of queries received */
-	guint32 tx_queries;			/* Total amount of queries sent */
-	guint32 rx_qhits;			/* Total amount of hits received */
-	guint32 tx_qhits;			/* Total amount of hits sent */
+	gboolean has_qrp;			/**< Whether node is under QRP control */
+	gfloat qrp_efficiency;		/**< Queries matched / received on QRP control */
+	guint32 rx_queries;			/**< Total amount of queries received */
+	guint32 tx_queries;			/**< Total amount of queries sent */
+	guint32 rx_qhits;			/**< Total amount of hits received */
+	guint32 tx_qhits;			/**< Total amount of hits sent */
 
-	gint qrt_slots;				/* Amount of slots in leaf's QRT */
-	gint qrt_generation;		/* Generation number */
-	gint qrt_fill_ratio;		/* % of filling */
-	gint qrt_pass_throw;		/* Query limiter pass throw when table filled */
+	gint qrt_slots;				/**< Amount of slots in leaf's QRT */
+	gint qrt_generation;		/**< Generation number */
+	gint qrt_fill_ratio;		/**< % of filling */
+	gint qrt_pass_throw;		/**< Query limiter pass throw when table filled */
 
-	guint32  rt_avg;			/* Average ping/pong roundtrip time */
-	guint32  rt_last;			/* Last ping/pong roundtrip time */
+	guint32  rt_avg;			/**< Average ping/pong roundtrip time */
+	guint32  rt_last;			/**< Last ping/pong roundtrip time */
 
-	guint32 tcp_rtt;			/* RTT in ms over TCP */
-	guint32 udp_rtt;			/* RTT in ms over UDP */
+	guint32 tcp_rtt;			/**< RTT in ms over TCP */
+	guint32 udp_rtt;			/**< RTT in ms over UDP */
 
-    gint     shutdown_remain;   /* Number of seconds before shutdown */
-    gchar    message[128];       /* Additional information */
+    gint     shutdown_remain;   /**< Number of seconds before shutdown */
+    gchar    message[128];		/**< Additional information */
 } gnet_node_status_t;
 
 typedef struct gnet_node_info {
-    gnet_node_t node_handle;    /* Internal node handle */
+    gnet_node_t node_handle;    /**< Internal node handle */
 
-    gchar *error_str;           /* To sprintf() error strings with vars */
-	gint proto_major;			/* Protocol major number */
-	gint proto_minor;			/* Protocol minor number */
-	gchar *vendor;				/* Vendor information */
-	gint country;				/* Country information */
-	guchar vcode[4];			/* Vendor code (vcode[0] == NUL when unknown) */
+    gchar *error_str;           /**< To sprintf() error strings with vars */
+	gint proto_major;			/**< Protocol major number */
+	gint proto_minor;			/**< Protocol minor number */
+	gchar *vendor;				/**< Vendor information */
+	gint country;				/**< Country information */
+	guchar vcode[4];			/**< Vendor code (vcode[0] == NUL when unknown) */
 
-	guint32 ip;					/* ip of the node */
-	guint16 port;				/* port of the node */
+	guint32 ip;					/**< ip of the node */
+	guint16 port;				/**< port of the node */
 } gnet_node_info_t;
 
 /*
@@ -132,13 +132,13 @@ typedef struct gnet_node_info {
  */
 
 typedef enum {
-	NODE_P_LEAF = 0,					/* Leaf node */
-	NODE_P_AUTO,						/* Automatic mode */
-	NODE_P_ULTRA,						/* Ultra node */
-	NODE_P_NORMAL,						/* Normal legacy node */
-	NODE_P_CRAWLER,						/* Crawler node */
-	NODE_P_UDP,							/* UDP "fake" node */
-	NODE_P_UNKNOWN						/* Unknown mode yet */
+	NODE_P_LEAF = 0,			/**< Leaf node */
+	NODE_P_AUTO,				/**< Automatic mode */
+	NODE_P_ULTRA,				/**< Ultra node */
+	NODE_P_NORMAL,				/**< Normal legacy node */
+	NODE_P_CRAWLER,				/**< Crawler node */
+	NODE_P_UDP,					/**< UDP "fake" node */
+	NODE_P_UNKNOWN				/**< Unknown mode yet */
 } node_peer_t;
 
 /*
@@ -146,12 +146,12 @@ typedef enum {
  */
 
 typedef enum {
-	QRT_S_NONE = 0,						/* Nothing */
-	QRT_S_SENDING,						/* Sending QRT to ultrapeer */
-	QRT_S_SENT,							/* Sent QRT to ultrapeer */
-	QRT_S_RECEIVING,					/* Receiving initial QRT from leaf */
-	QRT_S_PATCHING,						/* Receiving QRT patch from leaf */
-	QRT_S_RECEIVED						/* Received QRT from leaf */
+	QRT_S_NONE = 0,				/**< Nothing */
+	QRT_S_SENDING,				/**< Sending QRT to ultrapeer */
+	QRT_S_SENT,					/**< Sent QRT to ultrapeer */
+	QRT_S_RECEIVING,			/**< Receiving initial QRT from leaf */
+	QRT_S_PATCHING,				/**< Receiving QRT patch from leaf */
+	QRT_S_RECEIVED				/**< Received QRT from leaf */
 } qrt_state_t;
 
 typedef struct gnet_node_flags {
@@ -177,17 +177,17 @@ typedef struct gnet_node_flags {
  * Node states.
  */
 typedef enum {
-	GTA_NODE_CONNECTING			= 1,	/* Making outgoing connection */
-	GTA_NODE_HELLO_SENT			= 2,	/* Sent 0.4 hello */
-	GTA_NODE_WELCOME_SENT		= 3,	/* Hello accepted, remote welcomed */
-	GTA_NODE_CONNECTED			= 4,	/* Connected at the Gnet level */
-	GTA_NODE_REMOVING			= 5,	/* Removing node */
-	GTA_NODE_RECEIVING_HELLO	= 6,	/* Receiving 0.6 headers */
-	GTA_NODE_SHUTDOWN			= 7	/* Connection being shutdown */
+	GTA_NODE_CONNECTING			= 1,	/**< Making outgoing connection */
+	GTA_NODE_HELLO_SENT			= 2,	/**< Sent 0.4 hello */
+	GTA_NODE_WELCOME_SENT		= 3,	/**< Hello accepted, remote welcomed */
+	GTA_NODE_CONNECTED			= 4,	/**< Connected at the Gnet level */
+	GTA_NODE_REMOVING			= 5,	/**< Removing node */
+	GTA_NODE_RECEIVING_HELLO	= 6,	/**< Receiving 0.6 headers */
+	GTA_NODE_SHUTDOWN			= 7		/**< Connection being shutdown */
 	
 } gnet_node_state_t;
 
-#define GTA_NORMAL_TTL				4	/* Regular TTL, for hops-flow */
+#define GTA_NORMAL_TTL				4	/**< Regular TTL, for hops-flow */
 
 /*
  * Nodes callback definitions

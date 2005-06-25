@@ -24,6 +24,18 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Handle sharing of our own files and answers to remote queries.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
+ * @author Daniel Walker (dwalker@cats.ucsc.edu)
+ * @date 2000
+ */
+
 #ifndef _core_share_h_
 #define _core_share_h_
 
@@ -31,36 +43,36 @@
 #include "if/core/share.h"
 
 struct extension {
-	gchar *str;			/* Extension string (e.g. "html") */
-	size_t len;			/* Extension length (e.g. 4) */
+	gchar *str;					/**< Extension string (e.g. "html") */
+	size_t len;					/**< Extension length (e.g. 4) */
 };
 
 typedef struct shared_file {
-	const gchar *file_path;		/* The full path of the file (atom!) */
-	const gchar *name_nfc;		/* UTF-8 NFC version of filename (atom!) */
-	const gchar *name_canonic;	/* UTF-8 canonized ver. of filename (atom)! */
+	const gchar *file_path;		/**< The full path of the file (atom!) */
+	const gchar *name_nfc;		/**< UTF-8 NFC version of filename (atom!) */
+	const gchar *name_canonic;	/**< UTF-8 canonized ver. of filename (atom)! */
 	
-	struct dl_file_info *fi;	/* PFSP-server: the holding fileinfo */
+	struct dl_file_info *fi;	/**< PFSP-server: the holding fileinfo */
 	
-	filesize_t file_size;		/* File size in Bytes */
-	guint32 file_index;			/* the files index within our local DB */
+	filesize_t file_size;		/**< File size in Bytes */
+	guint32 file_index;			/**< the files index within our local DB */
 	
-	gint refcnt;				/* Reference count */
-	guint32 flags;				/* See below for definition */
+	gint refcnt;				/**< Reference count */
+	guint32 flags;				/**< See below for definition */
 	
-	size_t name_nfc_len;		/* strlen(name_nfc) */
-	size_t name_canonic_len;	/* strlen(name_canonic) */
+	size_t name_nfc_len;		/**< strlen(name_nfc) */
+	size_t name_canonic_len;	/**< strlen(name_canonic) */
 	
-	time_t mtime;			/* Last modification time, for SHA1 computation */
-	gchar sha1_digest[SHA1_RAW_SIZE];	/* SHA1 digest, binary form */
+	time_t mtime;				/**< Last modification time, for SHA1 computation */
+	gchar sha1_digest[SHA1_RAW_SIZE];	/**< SHA1 digest, binary form */
 } shared_file_t;
 
 /*
  * shared_file flags
  */
 
-#define SHARE_F_HAS_DIGEST	0x00000001		/* Digest is set */
-#define SHARE_F_RECOMPUTING	0x00000002		/* Digest being recomputed */
+#define SHARE_F_HAS_DIGEST	0x00000001		/**< Digest is set */
+#define SHARE_F_RECOMPUTING	0x00000002		/**< Digest being recomputed */
 
 struct gnutella_search_results_out {
 	guchar num_recs;
@@ -78,8 +90,8 @@ struct gnutella_search_results_out {
 struct gnutella_node;
 struct query_hashvec;
 
-/*
- * Global Data
+/**
+ * Global Data.
  */
 
 extern GSList *extensions, *shared_dirs;

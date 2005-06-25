@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Richard Eckart
  *
- * Functions that should be in gtk+-1.2 or gtk+-2.x but are not.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Functions that should be in GTK+ 1.2 or GTK+ 2.x but are not.
+ *
+ * @author Richard Eckart
+ * @date 2002-2003
  */
 
 #include "common.h"

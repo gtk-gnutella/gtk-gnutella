@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003, Raphael Manfredi
  *
- * Time manipulation routines.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,26 +23,36 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Time manipulation routines.
+ *
+ * @author Raphael Manfredi
+ * @date 2003
+ */
+
 #ifndef _tm_h_
 #define _tm_h_
 
 #include "common.h"
 
-/*
+/**
  * tm_zero
  *
  * Returns true if time is zero.
  */
 #define tm_zero(t)	((t)->tv_sec == 0 && (t)->tv_usec == 0)
 
-/*
+/**
  * tm2f
  *
  * Convert timeval description into floating point representatiion.
  */
 #define tm2f(t)		((double) (t)->tv_sec + (t)->tv_usec / 1000000.0)
 
-/*
+/**
  * tm2ms
  *
  * Convert timeval description into milliseconds.

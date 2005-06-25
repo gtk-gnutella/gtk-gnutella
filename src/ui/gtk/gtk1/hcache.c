@@ -54,7 +54,7 @@ void on_clist_hcache_resize_column(
 
     lock = TRUE;
 
-    /* remember the width for storing it to the config file later */
+    /** remember the width for storing it to the config file later */
     gui_prop_set_guint32(PROP_HCACHE_COL_WIDTHS, &buf, column, 1);
 
     lock = FALSE;

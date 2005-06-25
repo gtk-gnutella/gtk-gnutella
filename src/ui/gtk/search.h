@@ -38,67 +38,71 @@
  * Structure for search results
  */
 struct search {
-    gnet_search_t search_handle; /* Search handle */
+    gnet_search_t search_handle;	/**< Search handle */
 
-	gchar      *query;			   /* The search query */
+	gchar      *query;				/**< The search query */
 	gboolean    enabled;
 
 #ifdef USE_GTK2
-	GtkWidget  *tree_view;			/* GtkTreeView for this search */
-	GtkTreeModel	*model;			/* GtkTreeModel for the GtkTreeView
-									 * so it can be detached from it */
+	GtkWidget  *tree_view;			/**< GtkTreeView for this search */
+	GtkTreeModel	*model;			/**< GtkTreeModel for the GtkTreeView
+										 so it can be detached from it */
 #else
-	GtkCTree   *ctree;			   	/* GtkCTree for this search */
+	GtkCTree   *ctree;			   	/**< GtkCTree for this search */
 #endif
 
-	GHashTable *parents;	/* table of mount iterators for any seen SHA1 */
-	GtkWidget  *scrolled_window;   /* GtkScrolledWindow, contains the GtkCList */
-	GtkWidget  *list_item;		   /* The GtkListItem in combo for this search */
-    GtkWidget  *arrow;             /* The arrow displaying sort order  */
+	GHashTable *parents;			/**< table of mount iterators for
+										 any seen SHA1 */
+	GtkWidget  *scrolled_window;	/**< GtkScrolledWindow, contains
+										 the GtkCList */
+	GtkWidget  *list_item;			/**< The GtkListItem in combo for
+										 this search */
+    GtkWidget  *arrow;				/**< The arrow displaying sort order */
 
     gint        sort_col;
     gint        sort_order;
     gboolean    sort;
 
-	time_t      last_update_time;  /* last time the notebook tab was updated */
-	guint32     last_update_items; /* Number of items included in last update */
-	gint        tab_updating;	   /* token for timeout func. to be cancelled */
-	guint32     unseen_items;	   /* How many items haven't been seen yet. */
+	time_t      last_update_time;	/**< last time the notebook tab was updated */
+	guint32     last_update_items;	/**< Number of items included in last update */
+	gint        tab_updating;		/**< token for timeout func. to be cancelled */
+	guint32     unseen_items;		/**< How many items haven't been seen yet. */
 
-	gboolean    passive;		   /* Is this a passive search? */
-	gboolean    massive_update;	   /* massive update in process */
+	gboolean    passive;			/**< Is this a passive search? */
+	gboolean    massive_update;		/**< massive update in process */
 
-	hash_list_t *r_sets;		   /* The results sets of this search */
+	hash_list_t *r_sets;			/**< The results sets of this search */
 
-	GHashTable *dups;			   /* keep a record of dups. */
+	GHashTable *dups;				/**< keep a record of dups. */
 
-    filter_t   *filter;				/* filter ruleset bound to this search */
+    filter_t   *filter;				/**< filter ruleset bound to this search */
 
 	/*
 	 * Search stats.
 	 */
 
-	guint32     items;				/* Total number of items for this search */
-	guint32		tcp_qhits;			/* Query hits received from TCP */
-	guint32		udp_qhits;			/* Query hits received from UDP */
-	guint32		skipped;			/* Ignored hits (skipped over) */
-	guint32		ignored;			/* Filtered out hits */
-	guint32		hidden;				/* Hidden hits, never shown */
-	guint32		auto_downloaded;	/* Auto-downloaded hits */
-	guint32		duplicates;			/* Duplicate hits ignored */
+	guint32     items;				/**< Total number of items for this search */
+	guint32		tcp_qhits;			/**< Query hits received from TCP */
+	guint32		udp_qhits;			/**< Query hits received from UDP */
+	guint32		skipped;			/**< Ignored hits (skipped over) */
+	guint32		ignored;			/**< Filtered out hits */
+	guint32		hidden;				/**< Hidden hits, never shown */
+	guint32		auto_downloaded;	/**< Auto-downloaded hits */
+	guint32		duplicates;			/**< Duplicate hits ignored */
 };
 
 #include "search_common.h"
 
 #ifdef USE_GTK1
 
-/*
+/**
  *	Record associated with each gui node in the search results ctree.
  */
 typedef struct gui_record {
-	record_t *shared_record;	/* Common record data, shared between searches*/
+	record_t *shared_record;		/**< Common record data, shared between
+										 searches */
 
-	gint num_children;			/* Number of children under this node */
+	gint num_children;				/**< Number of children under this node */
 } gui_record_t;
 
 #endif

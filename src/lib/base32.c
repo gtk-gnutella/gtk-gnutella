@@ -3,11 +3,6 @@
  *
  * Copyright (c) 2001-2003, Raphael Manfredi
  *
- * Base32 encoding/decoding.
- *
- * We decode case insentively but encode using the specified alphabet,
- * which is upper-cased only.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -26,6 +21,19 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Base32 encoding/decoding.
+ *
+ * We decode case insentively but encode using the specified alphabet,
+ * which is upper-cased only.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
  */
 
 #include "common.h"
@@ -130,16 +138,16 @@ static const gint8 old_values[256] = {
  * Compute the number of base32 digits and amount of padding necessary
  * to encode `len' bytes.
  *
- * Returns the number of base32 digits necessary.
+ * @returns the number of base32 digits necessary.
  * Furthermore, if `pad' is a non-NULL pointer, it is filled with the amount
  * of padding chars that would be necessary.
  */
 static gint encode_pad_length(gint len, gint *pad)
 {
-	gint ndigits;			/* Base32 digits necessary */
-	gint npad = 0;			/* Final padding chars necessary */
-	gint qcount;			/* Amount of full quintets */
-	gint remainder;			/* Amount of input bytes in final quintet */
+	gint ndigits;			/**< Base32 digits necessary */
+	gint npad = 0;			/**< Final padding chars necessary */
+	gint qcount;			/**< Amount of full quintets */
+	gint remainder;			/**< Amount of input bytes in final quintet */
 
 	g_assert(len > 0);
 
@@ -176,9 +184,9 @@ static gint encode_pad_length(gint len, gint *pad)
 static void base32_encode_exactly(const gchar *buf, guint len,
 	gchar *encbuf, gint enclen)
 {
-	guint32 i = 0;					/* Input accumulator, 0 for trailing pad */
-	gchar const *ip = buf + len;	/* Input pointer, one byte off end */
-	gchar *op = encbuf + enclen;	/* Output pointer, one byte off end */
+	guint32 i = 0;					/**< Input accumulator, 0 for trailing pad */
+	gchar const *ip = buf + len;	/**< Input pointer, one byte off end */
+	gchar *op = encbuf + enclen;	/**< Output pointer, one byte off end */
 
 	g_assert(buf);
 	g_assert(encbuf);
@@ -298,7 +306,7 @@ void base32_encode_str_into(const gchar *buf, gint len,
  * Encode `len' bytes starting at `buf' into new allocated buffer.
  * Trailing padding chars are emitted when `padding' is TRUE.
  *
- * Returns the new encoded buffer, NUL-terminated, and the added amount
+ * @returns the new encoded buffer, NUL-terminated, and the added amount
  * of padding chars in `retpad' if it is a non-NULL pointer.
  */
 gchar *base32_encode(const gchar *buf, gint len, gint *retpad, gboolean padding)
@@ -333,16 +341,16 @@ gchar *base32_encode(const gchar *buf, gint len, gint *retpad, gboolean padding)
  * `padding', when non-zero, is the amount of padding that is missing from
  * the input buffer and which we must assume.
  *
- * Return decoded bytes if successful, 0 if the input was not valid base32.
+ * @return decoded bytes if successful, 0 if the input was not valid base32.
  */
 static gint base32_decode_alphabet(const gint8 valmap[256],
 	const gchar *buf, gint len, gchar *decbuf, gint declen, gint padding)
 {
-	guint32 i = 0;					/* Input accumulator, 0 for trailing pad */
-	gchar const *ip = buf + len;	/* Input pointer, one byte off end */
-	gint dlen = (len >> 3) * 5;		/* Exact decoded length */
-	gchar *op;						/* Output pointer, one byte off end */
-	gint bytes;						/* bytes decoded without padding */
+	guint32 i = 0;					/**< Input accumulator, 0 for trailing pad */
+	gchar const *ip = buf + len;	/**< Input pointer, one byte off end */
+	gint dlen = (len >> 3) * 5;		/**< Exact decoded length */
+	gchar *op;						/**< Output pointer, one byte off end */
+	gint bytes;						/**< bytes decoded without padding */
 	gint8 v;
 
 	g_assert(padding >= 0);
@@ -480,7 +488,7 @@ static gint base32_decode_alphabet(const gint8 valmap[256],
  * faking the necessary amount of padding if necessary.
  * Caller must have ensured that there was sufficient room in decbuf.
  *
- * Returns the amount of bytes decoded (without trailing padding) if successful,
+ * @returns the amount of bytes decoded (without trailing padding) if successful,
  * 0 if the input was not valid base32.
  */
 gint base32_decode_into(const gchar *buf, gint len,
@@ -503,7 +511,7 @@ gint base32_decode_into(const gchar *buf, gint len,
  * Caller must have ensured that there was sufficient room in decbuf.
  * The "old" base32 alphabet is used for decoding.
  *
- * Returns the amount of bytes decoded (without trailing padding) if successful,
+ * @returns the amount of bytes decoded (without trailing padding) if successful,
  * 0 if the input was not valid base32.
  */
 gint base32_decode_old_into(const gchar *buf, gint len,
@@ -523,7 +531,7 @@ gint base32_decode_old_into(const gchar *buf, gint len,
  *
  * Decode `len' bytes starting at `buf' into new allocated buffer.
  *
- * Returns the new decoded buffer, or NULL if the input was not valid base32
+ * @returns the new decoded buffer, or NULL if the input was not valid base32
  * encoding.  The caller knows the length of the returned buffer: it's the
  * size of the input divided by 8 and multiplied by 5.  If `outlen' is non-NULL,
  * it is filled with the amount of bytes decoded into the buffer (without

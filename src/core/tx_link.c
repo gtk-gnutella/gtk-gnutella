@@ -3,12 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Network driver -- link level.
- *
- * This driver writes to the remote node the data that are passed to it, and
- * will flow control as soon as the kernel refuses to write any more data
- * or when the bandwidth devoted to Gnet has reached its limit.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -29,6 +23,20 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Network driver -- link level.
+ *
+ * This driver writes to the remote node the data that are passed to it,
+ * and will flow control as soon as the kernel refuses to write any more
+ * data or when the bandwidth devoted to Gnet has reached its limit.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -46,8 +54,8 @@ RCSID("$Id$");
  * Private attributes for the link.
  */
 struct attr {
-	wrap_io_t 	 *wio;	/* Cached wrapped IO object */
-	bio_source_t *bio;	/* Bandwidth-limited I/O source */
+	wrap_io_t 	 *wio;	/**< Cached wrapped IO object */
+	bio_source_t *bio;	/**< Bandwidth-limited I/O source */
 };
 
 /**
@@ -297,16 +305,16 @@ tx_link_bio_source(txdrv_t *tx)
 }
 
 static const struct txdrv_ops tx_link_ops = {
-	tx_link_init,		/* init */
-	tx_link_destroy,	/* destroy */
-	tx_link_write,		/* write */
-	tx_link_writev,		/* writev */
-	tx_no_sendto,		/* sendto */
-	tx_link_enable,		/* enable */
-	tx_link_disable,	/* disable */
-	tx_link_pending,	/* pending */
-	tx_link_flush,		/* flush */
-	tx_link_bio_source,	/* bio_source */
+	tx_link_init,		/**< init */
+	tx_link_destroy,	/**< destroy */
+	tx_link_write,		/**< write */
+	tx_link_writev,		/**< writev */
+	tx_no_sendto,		/**< sendto */
+	tx_link_enable,		/**< enable */
+	tx_link_disable,	/**< disable */
+	tx_link_pending,	/**< pending */
+	tx_link_flush,		/**< flush */
+	tx_link_bio_source,	/**< bio_source */
 };
 
 const struct txdrv_ops *

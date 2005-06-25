@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Miscellaneous common file routines.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Miscellaneous common file routines.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _file_h_
 #define _file_h_
 
@@ -34,8 +42,8 @@
  * This structure is used to identify a file to be saved/restored.
  */
 typedef struct {
-	const gchar *dir;				/* File's directory */
-	const gchar *name;				/* File's basename */
+	const gchar *dir;				/**< File's directory */
+	const gchar *name;				/**< File's basename */
 } file_path_t;
 
 /*

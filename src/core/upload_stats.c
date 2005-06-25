@@ -29,26 +29,28 @@
  *
  * Keep track of which files we send away, and how often.
  *
- *		Statistics are kept by _FILENAME_ and file size,
- *		not by actual path, so two files with the same
- *		name and size will be counted in the same bin.
- *		I dont see this as a limitation because the
- *		user wouldn't be able to differentiate the files anyway.
- *		This could be extended to keep the entire path to
- *		each file and optionally show the entire path, but..
+ * Statistics are kept by _FILENAME_ and file size,
+ * not by actual path, so two files with the same
+ * name and size will be counted in the same bin.
+ * I don't see this as a limitation because the
+ * user wouldn't be able to differentiate the files anyway.
+ * This could be extended to keep the entire path to
+ * each file and optionally show the entire path, but..
  *
- *		the 'upload_history' file has the following format:
- *		<url-escaped filename> <file size> <attempts> <completions>
+ * The 'upload_history' file has the following format:
  *
- *		TODO: add a check to make sure that all of the files still exist(?)
- *			grey them out if they dont, optionally remove them from the
- *			stats list (when 'Clear Non-existent Files' is clicked)
+ *	"<url-escaped filename> <file size> <attempts> <completions>"
+ *
+ * @todo
+ * TODO: Add a check to make sure that all of the files still exist(?)
+ *       grey them out if they dont, optionally remove them from the
+ *       stats list (when 'Clear Non-existent Files' is clicked).
  *
  * @author Michael Tesch
- * @version 1.6
  * @date 2002
- *
- * Released by Michael Tesch with gtk-gnutella & its license
+ * @author Raphael Manfredi
+ * @date 2001-2003
+ * @version 1.6
  */
 
 #include "common.h"

@@ -1,8 +1,6 @@
 /*
  * Copyright (c) 2004, Jeroen Asselman
  *
- * G2 packet stream parser
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -21,6 +19,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup undoc
+ * @file
+ *
+ * G2 packet stream parser.
+ *
+ * @author Jeroen Asselman
+ * @date 2004
  */
 
 #include <stdlib.h>
@@ -278,3 +286,5 @@ g2_packetstream_get_error(g2packetstream_t *stream, char **errormessage)
 
 	return 0;
 }
+
+/* vi: set ts=4 sw=4 cindent: */

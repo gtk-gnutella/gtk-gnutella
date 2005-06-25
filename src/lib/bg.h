@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Background task management.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,28 +23,38 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Background task management.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _bg_h_
 #define _bg_h_
 
 #include <glib.h>
 
-/*
+/**
  * Return values for processing steps.
  */
 typedef enum {
-	BGR_NEXT = 0,					/* OK, move to next step */
-	BGR_MORE,						/* OK, still more work for this step */
-	BGR_DONE,						/* OK, end processing */
-	BGR_ERROR						/* Error, abort processing */
+	BGR_NEXT = 0,					/**< OK, move to next step */
+	BGR_MORE,						/**< OK, still more work for this step */
+	BGR_DONE,						/**< OK, end processing */
+	BGR_ERROR						/**< Error, abort processing */
 } bgret_t;
 
-/*
+/**
  * Status codes for final "done" callback.
  */
 typedef enum {
-	BGS_OK = 0,						/* OK, terminated normally */
-	BGS_ERROR,						/* Terminated with error */
-	BGS_KILLED						/* Was killed by signal */
+	BGS_OK = 0,						/**< OK, terminated normally */
+	BGS_ERROR,						/**< Terminated with error */
+	BGS_KILLED						/**< Was killed by signal */
 } bgstatus_t;
 
 /*
@@ -54,10 +62,10 @@ typedef enum {
  */
 
 typedef enum {
-	BG_SIG_ZERO = 0,			/* No signal actually delivered */
-	BG_SIG_KILL,				/* Task is being killed (not trappable) */
-	BG_SIG_TERM,				/* Task is being terminated */
-	BG_SIG_USR,					/* User-defined signal */
+	BG_SIG_ZERO = 0,				/**< No signal actually delivered */
+	BG_SIG_KILL,					/**< Task is being killed (not trappable) */
+	BG_SIG_TERM,					/**< Task is being terminated */
+	BG_SIG_USR,						/**< User-defined signal */
 	BG_SIG_COUNT
 } bgsig_t;
 
@@ -90,22 +98,22 @@ void bg_close(void);
 void bg_sched_timer(void);
 
 gpointer bg_task_create(
-	gchar *name,						/* Task name (for tracing) */
-	bgstep_cb_t *steps, gint stepcnt,	/* Work to perform (copied) */
-	gpointer ucontext,					/* User context */
-	bgclean_cb_t ucontext_free,			/* Free routine for context */
-	bgdone_cb_t done_cb,				/* Notification callback when done */
-	gpointer done_arg);					/* Callback argument */
+	gchar *name,						/**< Task name (for tracing) */
+	bgstep_cb_t *steps, gint stepcnt,	/**< Work to perform (copied) */
+	gpointer ucontext,					/**< User context */
+	bgclean_cb_t ucontext_free,			/**< Free routine for context */
+	bgdone_cb_t done_cb,				/**< Notification callback when done */
+	gpointer done_arg);					/**< Callback argument */
 
 gpointer bg_daemon_create(
-	gchar *name,						/* Task name (for tracing) */
-	bgstep_cb_t *steps, gint stepcnt,	/* Work to perform (copied) */
-	gpointer ucontext,					/* User context */
-	bgclean_cb_t ucontext_free,			/* Free routine for context */
-	bgstart_cb_t start_cb,				/* Starting working on an item */
-	bgend_cb_t end_cb,					/* Done working on an item */
-	bgclean_cb_t item_free,				/* Free routine for work queue items */
-	bgnotify_cb_t notify);				/* Start/Stop notify (optional) */
+	gchar *name,						/**< Task name (for tracing) */
+	bgstep_cb_t *steps, gint stepcnt,	/**< Work to perform (copied) */
+	gpointer ucontext,					/**< User context */
+	bgclean_cb_t ucontext_free,			/**< Free routine for context */
+	bgstart_cb_t start_cb,				/**< Starting working on an item */
+	bgend_cb_t end_cb,					/**< Done working on an item */
+	bgclean_cb_t item_free,				/**< Free routine for work queue items */
+	bgnotify_cb_t notify);				/**< Start/Stop notify (optional) */
 
 void bg_daemon_enqueue(gpointer h, gpointer item);
 

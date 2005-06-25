@@ -28,6 +28,9 @@
  * @file
  *
  * Common GUI search routines.
+ *
+ * @author Raphael Manfredi
+ * @date 2003
  */
 
 #include "gui.h"
@@ -58,12 +61,12 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-static search_t *current_search  = NULL; /* The search currently displayed */
+static search_t *current_search  = NULL; /**< The search currently displayed */
 
-static zone_t *rs_zone;		/* Allocation of results_set */
-static zone_t *rc_zone;		/* Allocation of record */
+static zone_t *rs_zone;		/**< Allocation of results_set */
+static zone_t *rc_zone;		/**< Allocation of record */
 
-static const gchar search_file[] = "searches"; /* "old" file to searches */
+static const gchar search_file[] = "searches"; /**< "old" file to searches */
 
 static gchar tmpstr[1024];
 
@@ -80,10 +83,10 @@ static struct {
 	const gchar *status;
 } open_flags[] = {
 	{ ST_BUSY,			N_("busy") },
-	{ ST_UPLOADED,		N_("stable") },		/* Allows uploads -> stable */
+	{ ST_UPLOADED,		N_("stable") },		/**< Allows uploads -> stable */
 	{ ST_FIREWALL,		N_("push") },
 	{ ST_PUSH_PROXY,	N_("proxy") },
-	{ ST_BOGUS,			N_("bogus") },		/* Bogus IP address */
+	{ ST_BOGUS,			N_("bogus") },		/**< Bogus IP address */
 };
 
 search_t *search_gui_get_current_search(void)	{ return current_search; }
@@ -459,7 +462,7 @@ search_gui_remove_r_set(search_t *sch, results_set_t *rs)
  * If we do, make sure that the index is still accurate,
  * otherwise inform the interested parties about the change.
  *
- * Returns true if the record is a duplicate.
+ * @returns true if the record is a duplicate.
  */
 gboolean
 search_gui_result_is_dup(search_t *sch, record_t *rc)
@@ -508,7 +511,7 @@ search_gui_result_is_dup(search_t *sch, record_t *rc)
 }
 
 /**
- * Returns a pointer to gui_search_t from gui_searches which has
+ * @returns a pointer to gui_search_t from gui_searches which has
  * sh as search_handle. If none is found, return NULL.
  */
 search_t *

@@ -29,28 +29,28 @@
 #ifndef _if_core_http_h_
 #define _if_core_http_h_
 
-/*
+/**
  * HTTP request states.
  */
 
 typedef enum http_state {
-	HTTP_AS_UNKNOWN = 0,		/* No defined state */
-	HTTP_AS_CONNECTING,			/* Connecting to server */
-	HTTP_AS_REQ_SENDING,		/* Sending request to server */
-	HTTP_AS_REQ_SENT,			/* Request sent, waiting for reply */
-	HTTP_AS_HEADERS,			/* Receiving headers */
-	HTTP_AS_RECEIVING,			/* Receiving data */
-	HTTP_AS_REDIRECTED,			/* Request redirected */
-	HTTP_AS_REMOVED				/* Removed, pending free */
+	HTTP_AS_UNKNOWN = 0,		/**< No defined state */
+	HTTP_AS_CONNECTING,			/**< Connecting to server */
+	HTTP_AS_REQ_SENDING,		/**< Sending request to server */
+	HTTP_AS_REQ_SENT,			/**< Request sent, waiting for reply */
+	HTTP_AS_HEADERS,			/**< Receiving headers */
+	HTTP_AS_RECEIVING,			/**< Receiving data */
+	HTTP_AS_REDIRECTED,			/**< Request redirected */
+	HTTP_AS_REMOVED				/**< Removed, pending free */
 } http_state_t;
 
-/*
+/**
  * HTTP range description.
  */
 
 typedef struct http_range {
 	filesize_t start;
-	filesize_t end;						/* HTTP_OFFSET_MAX if unbounded */
+	filesize_t end;				/**< HTTP_OFFSET_MAX if unbounded */
 } http_range_t;
 
 #define HTTP_OFFSET_MAX	(~((filesize_t) 0U))

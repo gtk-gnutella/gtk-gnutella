@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2001-2003, Raphael Manfredi
  *
- * Pong caching (LimeWire's ping/pong reducing scheme).
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Pong caching (LimeWire's ping/pong reducing scheme).
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
+ */
+
 #ifndef _core_pcache_h_
 #define _core_pcache_h_
 
@@ -33,30 +41,30 @@
 
 struct gnutella_node;
 
-/*
+/**
  * Pong metadata that we try to preserve when present.
  */
 typedef struct pong_meta {
-	guchar vendor[4];		/* Vendor code, from GGEP "VC" */
-	guchar language[2];		/* Node's preferred language, from GGEP "LOC" */
-	guchar country[2];		/* Node's country, from GGEP "LOC" */
-	guint8 guess;			/* Node supports GUESS, from GGEP "GUE" */
-	guint32 sender_ip;		/* For GGEP "IP" */
-	guint16 sender_port;		/* For GGEP "IP" */
+	guchar vendor[4];		/**< Vendor code, from GGEP "VC" */
+	guchar language[2];		/**< Node's preferred language, from GGEP "LOC" */
+	guchar country[2];		/**< Node's country, from GGEP "LOC" */
+	guint8 guess;			/**< Node supports GUESS, from GGEP "GUE" */
+	guint32 sender_ip;		/**< For GGEP "IP" */
+	guint16 sender_port;	/**< For GGEP "IP" */
 
-	guint32 daily_uptime;	/* Node's daily uptime, from GGEP "DU" */
-	guint8 up_slots;		/* Free UP slots, from GGEP "UP" */
-	guint8 leaf_slots;		/* Free leaf slots, from GGEP "UP" */
-	guint8 version_up;		/* Ultrapeer version protocol, from GGEP "UP" */
-	guint8 version_ua;		/* Servent version, from GGEP "VC" */
-	guint8 flags;			/* Validation flags */
+	guint32 daily_uptime;	/**< Node's daily uptime, from GGEP "DU" */
+	guint8 up_slots;		/**< Free UP slots, from GGEP "UP" */
+	guint8 leaf_slots;		/**< Free leaf slots, from GGEP "UP" */
+	guint8 version_up;		/**< Ultrapeer version protocol, from GGEP "UP" */
+	guint8 version_ua;		/**< Servent version, from GGEP "VC" */
+	guint8 flags;			/**< Validation flags */
 } pong_meta_t;
 
-#define PONG_META_HAS_VC	0x01		/* The "VC" fields are valid */
-#define PONG_META_HAS_GUE	0x02		/* The "GUE" fields are valid */
-#define PONG_META_HAS_UP	0x04		/* The "UP" fields are valid */
-#define PONG_META_HAS_LOC	0x08		/* The "LOC" fields are valid */
-#define PONG_META_HAS_DU	0x10		/* The "DU" fields are valid */
+#define PONG_META_HAS_VC	0x01		/**< The "VC" fields are valid */
+#define PONG_META_HAS_GUE	0x02		/**< The "GUE" fields are valid */
+#define PONG_META_HAS_UP	0x04		/**< The "UP" fields are valid */
+#define PONG_META_HAS_LOC	0x08		/**< The "LOC" fields are valid */
+#define PONG_META_HAS_DU	0x10		/**< The "DU" fields are valid */
 
 /*
  * Global Functions

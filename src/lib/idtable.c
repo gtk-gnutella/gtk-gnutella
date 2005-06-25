@@ -265,7 +265,7 @@ gpointer idtable_get_value(idtable_t *tbl, guint32 id)
 /**
  * idtable_is_id_used:
  *
- * Returns TRUE if a id is already in use, returns FALSE if the id is
+ * @returns TRUE if a id is already in use, returns FALSE if the id is
  * not in use. If the id is outside the current table range it also returns
  * FALSE. The table is not modified by this call.
  */

@@ -59,13 +59,13 @@ RCSID("$Id$");
  * prove us we're not firewalled.
  */
 
-#define FW_STARTUP_GRACE		300		/* Startup period where we send pongs */
-#define FW_GRACE_INTERVAL		3600	/* Every hour, new grace period */
-#define FW_PERIODIC_GRACE		120		/* We send pongs for 2 minutes */
-#define FW_INCOMING_WINDOW		3600	/* Incoming monitoring window */
-#define FW_SOLICITED_WINDOW		3600	/* Solicited UDP monitoring window */
+#define FW_STARTUP_GRACE		300		/**< Startup period where we send pongs */
+#define FW_GRACE_INTERVAL		3600	/**< Every hour, new grace period */
+#define FW_PERIODIC_GRACE		120		/**< We send pongs for 2 minutes */
+#define FW_INCOMING_WINDOW		3600	/**< Incoming monitoring window */
+#define FW_SOLICITED_WINDOW		3600	/**< Solicited UDP monitoring window */
 
-static time_t fw_time = 0;				/* When we last became firewalled */
+static time_t fw_time = 0;				/**< When we last became firewalled */
 
 /*
  * To detect switching from firewalled -> non-firewalled, we use incoming
@@ -77,9 +77,9 @@ static time_t fw_time = 0;				/* When we last became firewalled */
  * mode.
  */
 
-static gpointer incoming_ev = NULL;			/* Callout queue timer */
-static gpointer incoming_udp_ev = NULL;		/* Idem */
-static gpointer solicited_udp_ev = NULL;	/* Idem */
+static gpointer incoming_ev = NULL;			/**< Callout queue timer */
+static gpointer incoming_udp_ev = NULL;		/**< Idem */
+static gpointer solicited_udp_ev = NULL;	/**< Idem */
 
 /*
  * Unfortunately, to accurately detect true unsolicited UDP traffic, we have
@@ -88,13 +88,13 @@ static gpointer solicited_udp_ev = NULL;	/* Idem */
  * only IPs.
  */
 
-#define FW_UDP_WINDOW			120		/* 2 minutes, in most firewalls */
+#define FW_UDP_WINDOW			120		/**< 2 minutes, in most firewalls */
 
-static GHashTable *outgoing_udp = NULL;		/* Maps "IP" => "ip_record" */
+static GHashTable *outgoing_udp = NULL;		/**< Maps "IP" => "ip_record" */
 
 struct ip_record {
-	guint32 ip;					/* The IP address to which we sent data */
-	gpointer timeout_ev;		/* The expiration time for the fw breach */
+	guint32 ip;					/**< The IP address to which we sent data */
+	gpointer timeout_ev;		/**< The expiration time for the fw breach */
 };
 
 /***
@@ -108,10 +108,10 @@ struct ip_record {
  * longer connected.
  */
 
-#define OUTGOING_WINDOW		150			/* Outgoing monitoring window */
+#define OUTGOING_WINDOW		150			/**< Outgoing monitoring window */
 
-static guint32 activity_seen = 0;		/* Activity recorded in period */
-static gpointer outgoing_ev = NULL;		/* Callout queue timer */
+static guint32 activity_seen = 0;		/**< Activity recorded in period */
+static gpointer outgoing_ev = NULL;		/**< Callout queue timer */
 
 static void inet_set_is_connected(gboolean val);
 
@@ -177,7 +177,7 @@ ip_record_destroy(cqueue_t *unused_cq, gpointer obj)
 }
 
 /**
- * Returns whether ip is that of the local machine of in the same local
+ * @returns whether ip is that of the local machine of in the same local
  * network area.
  */
 static gboolean

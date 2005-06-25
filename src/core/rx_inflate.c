@@ -53,23 +53,23 @@ RCSID("$Id$");
  * Private attributes for the decompressing layer.
  */
 struct attr {
-	z_streamp inz;					/* Decompressing stream */
+	z_streamp inz;					/**< Decompressing stream */
 	gint flags;
 };
 
-#define IF_ENABLED	0x00000001		/* Reception enabled */
+#define IF_ENABLED	0x00000001		/**< Reception enabled */
 
 /**
  * inflate_data
  *
  * Decompress more data from the input buffer `mb'.
- * Returns decompressed data in a new buffer, or NULL if no more data.
+ * @returns decompressed data in a new buffer, or NULL if no more data.
  */
 static pmsg_t *inflate_data(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct attr *attr = (struct attr *) rx->opaque;
 	gint ret;
-	pdata_t *db;					/* Inflated buffer */
+	pdata_t *db;					/**< Inflated buffer */
 	z_streamp inz = attr->inz;
 	gint old_size;
 	gint old_avail;
@@ -201,7 +201,7 @@ static void rx_inflate_destroy(rxdrv_t *rx)
 static void rx_inflate_recv(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct attr *attr = (struct attr *) rx->opaque;
-	pmsg_t *imb;		/* Inflated message */
+	pmsg_t *imb;		/**< Inflated message */
 
 	g_assert(rx);
 	g_assert(mb);
@@ -218,7 +218,7 @@ static void rx_inflate_recv(rxdrv_t *rx, pmsg_t *mb)
 	pmsg_free(mb);
 }
 
-/*
+/**
  * rx_inflate_enable
  *
  * Enable reception of data.
@@ -230,7 +230,7 @@ static void rx_inflate_enable(rxdrv_t *rx)
 	attr->flags |= IF_ENABLED;
 }
 
-/*
+/**
  * rx_inflate_disable
  *
  * Disable reception of data.
@@ -242,10 +242,10 @@ static void rx_inflate_disable(rxdrv_t *rx)
 	attr->flags &= ~IF_ENABLED;
 }
 
-/*
+/**
  * rx_inflate_bio_source
  *
- * Return I/O source of the lower level.
+ * @return I/O source of the lower level.
  */
 static struct bio_source *rx_inflate_bio_source(rxdrv_t *rx)
 {
@@ -253,12 +253,12 @@ static struct bio_source *rx_inflate_bio_source(rxdrv_t *rx)
 }
 
 static const struct rxdrv_ops rx_inflate_ops = {
-	rx_inflate_init,		/* init */
-	rx_inflate_destroy,		/* destroy */
-	rx_inflate_recv,		/* recv */
-	rx_inflate_enable,		/* enable */
-	rx_inflate_disable,		/* disable */
-	rx_inflate_bio_source,	/* bio_source */
+	rx_inflate_init,		/**< init */
+	rx_inflate_destroy,		/**< destroy */
+	rx_inflate_recv,		/**< recv */
+	rx_inflate_enable,		/**< enable */
+	rx_inflate_disable,		/**< disable */
+	rx_inflate_bio_source,	/**< bio_source */
 };
 
 const struct rxdrv_ops *

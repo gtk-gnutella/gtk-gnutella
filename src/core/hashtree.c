@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003 - 2004 Jeroen Asselman.
  *
- * Merkle Hash tree implementation, not yet memory and speed optimized yet.
- *
  *----------------------------------------------------------------------
  *   The contents of this file are subject to the Mozilla Public License
  *   Version 1.1 (the "License"); you may not use this file except in
@@ -58,7 +56,6 @@
  * @author Jeroen Asselman <jeroen@asselman.com>
  * @version 1.5
  * @date 2003-2004
- *
  */
 
 #include "common.h"

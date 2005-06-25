@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Explicit-width block allocator, based on zalloc().
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,12 +23,22 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Explicit-width block allocator, based on zalloc().
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _walloc_h_
 #define _walloc_h_
 
 #include <glib.h>
 
-/**
+/*
  * Under REMAP_ZALLOC control, those routines are remapped to malloc/free.
  * Under TRACK_ZALLOC, we keep tack of the allocation places.
  */

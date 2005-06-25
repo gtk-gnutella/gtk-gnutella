@@ -1,14 +1,6 @@
 /*
  * Copyright (c) 2002, ko (ko-@wanadoo.fr)
  *
- * Input I/O notification.
- *
- * Basically this is a duplicate of the GDK input facilities,
- * without the features gtkg does not use.
- *
- * The intent here is to break the GDK dependency but retain
- * the same behavior, to avoid disturbing too much of the existing code.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -29,6 +21,22 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Input I/O notification.
+ *
+ * Basically this is a duplicate of the GDK input facilities,
+ * without the features gtkg does not use.
+ *
+ * The intent here is to break the GDK dependency but retain
+ * the same behavior, to avoid disturbing too much of the existing code.
+ *
+ * @author ko (ko-@wanadoo.fr)
+ * @date 2002
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -37,7 +45,7 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-/**
+/*
  * The following defines map the GDK-compatible input condition flags
  * to those used by GLIB.
  *

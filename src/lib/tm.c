@@ -28,6 +28,9 @@
  * @file
  *
  * Time manipulation routines.
+ *
+ * @author Raphael Manfredi
+ * @date 2003-2004
  */
 
 #include "common.h"

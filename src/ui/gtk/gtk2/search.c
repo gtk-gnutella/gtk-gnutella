@@ -29,6 +29,9 @@
  *
  * GUI filtering functions.
  *
+ * @author Raphael Manfredi
+ * @author Richard Eckart
+ * @date 2001-2003
  */
 
 #include "gtk/gui.h"
@@ -57,11 +60,11 @@
 
 RCSID("$Id$");
 
-#define MAX_TAG_SHOWN	60		/* Show only first chars of tag */
+#define MAX_TAG_SHOWN	60		/**< Show only first chars of tag */
 
 static gchar tmpstr[4096];
 
-static GList *searches = NULL;		/* List of search structs */
+static GList *searches = NULL;	/**< List of search structs */
 
 static GtkTreeView *tree_view_search = NULL;
 static GtkNotebook *notebook_search_results = NULL;
@@ -70,7 +73,7 @@ static GtkButton *button_search_clear = NULL;
 static GList *list_search_history = NULL;
 static gboolean search_gui_shutting_down = FALSE;
 
-/*
+/**
  * Private function prototypes
  */
 static GtkTreeViewColumn *add_column(GtkTreeView *treeview, const gchar *name,
@@ -231,7 +234,7 @@ search_gui_clear_search(search_t *sch)
 	guc_search_update_items(sch->search_handle, sch->items);
 }
 
-/* *
+/**
  * Remove the search from the list of searches and free all
  * associated ressources (including filter and gui stuff).
  */

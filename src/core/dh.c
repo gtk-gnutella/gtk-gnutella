@@ -51,37 +51,37 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define DH_HALF_LIFE	300		/* 5 minutes */
-#define DH_MIN_HITS		250		/* Minimum amount of hits we try to relay */
-#define DH_POPULAR_HITS	500		/* Query deemed popular after that many hits */
-#define DH_MAX_HITS		1000	/* Maximum hits after which we heavily drop */
-#define DH_THRESH_HITS	10		/* Consider we have no hits if less than that */
+#define DH_HALF_LIFE	300		/**< 5 minutes */
+#define DH_MIN_HITS		250		/**< Minimum amount of hits we try to relay */
+#define DH_POPULAR_HITS	500		/**< Query deemed popular after that many hits */
+#define DH_MAX_HITS		1000	/**< Maximum hits after which we heavily drop */
+#define DH_THRESH_HITS	10		/**< Consider we have no hits if less than that */
 
 /**
  * Information about query hits received.
  */
 typedef struct dqhit {
-	guint32 msg_recv;		/* Amount of individual messages we got */
-	guint32 msg_queued;		/* # of messages queued */
-	guint32 hits_recv;		/* Total amount of results we saw */
-	guint32 hits_sent;		/* Total amount of results we sent back */
-	guint32 hits_queued;	/* Amount of hits queued */
+	guint32 msg_recv;		/**< Amount of individual messages we got */
+	guint32 msg_queued;		/**< # of messages queued */
+	guint32 hits_recv;		/**< Total amount of results we saw */
+	guint32 hits_sent;		/**< Total amount of results we sent back */
+	guint32 hits_queued;	/**< Amount of hits queued */
 } dqhit_t;
 
-/**
+/*
  * Meta-information about the query hit message.
  */
 struct pmsg_info {
-	guint32 hits;			/* Amount of query hits held in message */
+	guint32 hits;			/**< Amount of query hits held in message */
 };
 
 /**
  * Drop reasons.
  */
 enum dh_drop {
-	DH_FORWARD = 0,			/* Don't drop */
-	DH_DROP_FC,				/* Drop because of flow-control */
-	DH_DROP_THROTTLE		/* Drop because of hit throttling */
+	DH_FORWARD = 0,			/**< Don't drop */
+	DH_DROP_FC,				/**< Drop because of flow-control */
+	DH_DROP_THROTTLE		/**< Drop because of hit throttling */
 };
 
 /*

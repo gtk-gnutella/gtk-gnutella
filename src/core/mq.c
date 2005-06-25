@@ -741,7 +741,7 @@ qlink_remove(mqueue_t *q, GList *l)
  * up to the caller to initialize it with -1 and check whether it has been
  * set.
  *
- * Returns TRUE if we were able to make enough room.
+ * @returns TRUE if we were able to make enough room.
  */
 static gboolean
 make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
@@ -1111,10 +1111,10 @@ mq_putq(mqueue_t *q, pmsg_t *mb)
 }
 
 static const struct mq_cops mq_cops = {
-	mq_puthere,				/* puthere */
-	qlink_remove,			/* qlink_remove */
-	mq_rmlink_prev,			/* rmlink_prev */
-	mq_update_flowc,		/* update_flowc */
+	mq_puthere,				/**< puthere */
+	qlink_remove,			/**< qlink_remove */
+	mq_rmlink_prev,			/**< rmlink_prev */
+	mq_update_flowc,		/**< update_flowc */
 };
 
 /**

@@ -49,8 +49,8 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-#define HASH_BLOCK_SHIFT	12			/* Power of two of hash unit credit */
-#define HASH_BUF_SIZE		65536		/* Size of the reading buffer */
+#define HASH_BLOCK_SHIFT	12			/**< Power of two of hash unit credit */
+#define HASH_BUF_SIZE		65536		/**< Size of the reading buffer */
 
 static gpointer verify_daemon = NULL;
 
@@ -60,15 +60,15 @@ static gpointer verify_daemon = NULL;
  * Verification daemon context.
  */
 struct verifyd {
-	gint magic;				/* Magic number */
-	struct download *d;		/* Current download */
-	gint fd;				/* Opened file descriptor, -1 if none */
-	time_t start;			/* Start time, to determine computation rate */
-	filesize_t size;		/* Size of file */
-	filesize_t hashed;		/* Amount of data hashed so far */
-	SHA1Context context;	/* SHA1 computation context */
-	gchar *buffer;			/* Large buffer, where data is read */
-	gint error;				/* Error code */
+	gint magic;				/**< Magic number */
+	struct download *d;		/**< Current download */
+	gint fd;				/**< Opened file descriptor, -1 if none */
+	time_t start;			/**< Start time, to determine computation rate */
+	filesize_t size;		/**< Size of file */
+	filesize_t hashed;		/**< Amount of data hashed so far */
+	SHA1Context context;	/**< SHA1 computation context */
+	gchar *buffer;			/**< Large buffer, where data is read */
+	gint error;				/**< Error code */
 };
 
 /**

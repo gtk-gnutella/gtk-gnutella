@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003, Raphael Manfredi
  *
- * String evaluation.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * String evaluation.
+ *
+ * @author Raphael Manfredi
+ * @date 2003
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -36,7 +44,7 @@ RCSID("$Id$");
 #include "misc.h"			/* For g_strlcpy() */
 #include "override.h"		/* Must be the last header included */
 
-#define MAX_STRING	1024	/* Max length for substitution */
+#define MAX_STRING	1024	/**< Max length for substitution */
 
 static guint32 common_dbg = 0;	/* XXX -- need to init lib's props --RAM */
 

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Richard Eckart
  *
- * Persistance for searches and filters in XML format.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * Persistance for searches and filters in XML format.
+ *
+ * @author Richard Eckart
+ * @date 2002-2003
  */
 
 #ifndef _gtk_search_xml_h_

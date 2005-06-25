@@ -32,9 +32,7 @@
  * @author Thomas Schuerger
  * @author Jeroen Asselman
  * @date 2004
- */
-
-/*
+ *
  * General API information:
  *
  * - hsep_init() should be called once on startup of GtkG
@@ -86,7 +84,8 @@
  * to a copy of the HSEP table and the number of provided triples. You must
  * remove the listener later using hsep_remove_global_table_listener(...).
  *
- * Note: To support exchanging information about clients that don't support
+ * @note
+ * To support exchanging information about clients that don't support
  * HSEP, these clients' library sizes (from PONG messages) are taken into
  * account when HSEP messages are sent (that info is added to what we see
  * in a distance of >= 1 hop).
@@ -112,7 +111,7 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"
 
-/* global HSEP table */
+/** global HSEP table */
 static hsep_triple hsep_global_table[HSEP_N_MAX + 1];
 
 /*
@@ -220,10 +219,10 @@ hsep_sanity_check(void)
 		if (!(n->attrs & NODE_A_CAN_HSEP))
 			continue;
 
-		g_assert(0 == n->hsep->table[0][HSEP_IDX_NODES]);      /* check nodes */
-		g_assert(0 == n->hsep->table[0][HSEP_IDX_FILES]);      /* check files */
-		g_assert(0 == n->hsep->table[0][HSEP_IDX_KIB]);        /* check KiB */
-		g_assert(1 == n->hsep->table[1][HSEP_IDX_NODES]);  	/* check nodes */
+		g_assert(0 == n->hsep->table[0][HSEP_IDX_NODES]);	/* check nodes */
+		g_assert(0 == n->hsep->table[0][HSEP_IDX_FILES]);	/* check files */
+		g_assert(0 == n->hsep->table[0][HSEP_IDX_KIB]);		/* check KiB */
+		g_assert(1 == n->hsep->table[1][HSEP_IDX_NODES]);	/* check nodes */
 
 		/* check if values are monotonously increasing (skip first) */
 		g_assert(
@@ -286,7 +285,8 @@ hsep_dump_table(void)
  * If there is no such n_opt, n_opt := triples.
  * If all triples are equal, 1 is returned, which is correct.
  *
- * NOTE: this algorithm works regardless of the byte order of the triple data,
+ * @note
+ * This algorithm works regardless of the byte order of the triple data,
  * because only equality tests are used.
  */
 
@@ -978,7 +978,7 @@ hsep_get_non_hsep_triple(hsep_triple *tripledest)
 
 
 /**
- * Returns a static string of the cell contents of the given row and column.
+ * @returns a static string of the cell contents of the given row and column.
  * NB: The static buffers for each column are disjunct.
  */
 const gchar *
@@ -1029,7 +1029,7 @@ hsep_get_static_str(gint row, gint column)
 }
 
 /**
- * Returns the size of the global hsep table
+ * @returns the size of the global hsep table
  *
  */
 gint

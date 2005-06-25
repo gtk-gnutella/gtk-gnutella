@@ -102,8 +102,8 @@ struct gnutella_bye {
 } __attribute__((__packed__));
 
 struct gnutella_qrp_reset {
-	guchar variant;			/* 0x00 */
-	guchar table_length[4];	/* little endian */
+	guchar variant;			/**< 0x00 */
+	guchar table_length[4];	/**< little endian */
 	guchar infinity;
 } __attribute__((__packed__));
 
@@ -113,7 +113,7 @@ struct gnutella_msg_qrp_reset {
 } __attribute__((__packed__));
 
 struct gnutella_qrp_patch {
-	guchar variant;			/* 0x01 */
+	guchar variant;			/**< 0x01 */
 	guchar seq_no;
 	guchar seq_size;
 	guchar compressor;
@@ -126,9 +126,9 @@ struct gnutella_msg_qrp_patch {
 } __attribute__((__packed__));
 
 struct gnutella_vendor {
-	guchar vendor[4];		/* E.g. "GTKG" */
-	guchar selector_id[2];	/* Message selector ID, little endian */
-	guchar version[2];		/* Message version number, little endian */
+	guchar vendor[4];		/**< E.g. "GTKG" */
+	guchar selector_id[2];	/**< Message selector ID, little endian */
+	guchar version[2];		/**< Message version number, little endian */
 	/* payload follows */
 } __attribute__((__packed__));
 

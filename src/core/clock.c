@@ -50,19 +50,19 @@ RCSID("$Id$");
 #include "lib/stats.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-#define REUSE_DELAY	10800		/* 3 hours */
-#define ENOUGH_DATA	30			/* Update skew when we have enough data */
-#define MIN_DATA	15			/* Minimum amount of points for update */
-#define MAX_SDEV	60.0		/* Maximum dispersion we tolerate */
-#define CLEAN_STEPS	3			/* Amount of steps to remove off-track data */
+#define REUSE_DELAY	10800		/**< 3 hours */
+#define ENOUGH_DATA	30			/**< Update skew when we have enough data */
+#define MIN_DATA	15			/**< Minimum amount of points for update */
+#define MAX_SDEV	60.0		/**< Maximum dispersion we tolerate */
+#define CLEAN_STEPS	3			/**< Amount of steps to remove off-track data */
 
 struct used_val {
-	guint32 ip;					/* The IP address */
-	gint precision;				/* The precision used for the last update */
-	gpointer cq_ev;				/* Scheduled cleanup event */
+	guint32 ip;					/**< The IP address */
+	gint precision;				/**< The precision used for the last update */
+	gpointer cq_ev;				/**< Scheduled cleanup event */
 };
 
-static GHashTable *used;		/* Records the IP address used */
+static GHashTable *used;		/**< Records the IP address used */
 
 /*
  * This container holds the data points (clock offset between the real UTC

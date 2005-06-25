@@ -23,17 +23,27 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Word vector.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
+ */
+
 #ifndef _wordvec_h_
 #define _wordvec_h_
 
-/*
+/**
  * Search query splitting.
  */
 
-typedef struct {				/* Query word vector */
-	gchar *word;				/* The word to search */
-	gint len;					/* The word's length */
-	guint amount;				/* Amount of expected occurrences */
+typedef struct {				/**< Query word vector */
+	gchar *word;				/**< The word to search */
+	gint len;					/**< The word's length */
+	guint amount;				/**< Amount of expected occurrences */
 } word_vec_t;
 
 void word_vec_init(void);

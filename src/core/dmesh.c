@@ -67,7 +67,7 @@ RCSID("$Id$");
 
 #include "lib/override.h"	/* Must be the last header included */
 
-dmesh_url_error_t dmesh_url_errno;		/* Error from dmesh_url_parse() */
+dmesh_url_error_t dmesh_url_errno;	/**< Error from dmesh_url_parse() */
 
 /*
  * The download mesh records all the known sources for a given SHA1.
@@ -76,28 +76,28 @@ dmesh_url_error_t dmesh_url_errno;		/* Error from dmesh_url_parse() */
  */
 static GHashTable *mesh = NULL;
 
-struct dmesh {				/* A download mesh bucket */
-	GSList *entries;		/* The download mesh entries, dmesh_entry data */
-	time_t last_update;		/* Timestamp of last insertion in the mesh */
-	gint count;				/* Amount of entries in list */
+struct dmesh {				/**< A download mesh bucket */
+	GSList *entries;		/**< The download mesh entries, dmesh_entry data */
+	time_t last_update;		/**< Timestamp of last insertion in the mesh */
+	gint count;				/**< Amount of entries in list */
 };
 
 struct dmesh_entry {
-	time_t inserted;		/* When entry was inserted in mesh */
-	time_t stamp;			/* When entry was last seen */
-	dmesh_urlinfo_t url;	/* URL info */
+	time_t inserted;		/**< When entry was inserted in mesh */
+	time_t stamp;			/**< When entry was last seen */
+	dmesh_urlinfo_t url;	/**< URL info */
 };
 
-#define MAX_LIFETIME	86400		/* 1 day */
-#define MAX_ENTRIES		64			/* Max amount of entries kept in list */
+#define MAX_LIFETIME	86400		/**< 1 day */
+#define MAX_ENTRIES		64			/**< Max amount of entries kept in list */
 #define MAX_STAMP		((time_t) -1)
 
-#define MIN_PFSP_SIZE	524288		/* 512K, min size for PFSP advertising */
-#define MIN_PFSP_PCT	10			/* 10%, min available data for PFSP */
+#define MIN_PFSP_SIZE	524288		/**< 512K, min size for PFSP advertising */
+#define MIN_PFSP_PCT	10			/**< 10%, min available data for PFSP */
 
-/* If not at least 60% alike, dump! */
+/** If not at least 60% alike, dump! */
 #define FUZZY_DROP		((60 << FUZZY_SHIFT) / 100)
-/* If more than 80% alike, equal! */
+/** If more than 80% alike, equal! */
 #define FUZZY_MATCH		((80 << FUZZY_SHIFT) / 100)
 
 static const gchar dmesh_file[] = "dmesh";
@@ -119,18 +119,18 @@ static const gchar dmesh_file[] = "dmesh";
 static GHashTable *ban_mesh = NULL;
 
 struct dmesh_banned {
-	dmesh_urlinfo_t *info;	/* The banned URL (same as key) */
-	gpointer cq_ev;			/* Scheduled callout event */
-	const gchar *sha1;		/* The SHA1, if any */
-	time_t ctime;			/* Last time we saw this banned URL */
+	dmesh_urlinfo_t *info;	/**< The banned URL (same as key) */
+	gpointer cq_ev;			/**< Scheduled callout event */
+	const gchar *sha1;		/**< The SHA1, if any */
+	time_t ctime;			/**< Last time we saw this banned URL */
 };
 
-/*
+/**
  * This table stores the banned entries by SHA1.
  */
 static GHashTable *ban_mesh_by_sha1 = NULL;
 
-#define BAN_LIFETIME	7200		/* 2 hours */
+#define BAN_LIFETIME	7200		/**< 2 hours */
 
 static const gchar dmesh_ban_file[] = "dmesh_ban";
 
@@ -358,16 +358,16 @@ dmesh_is_banned(dmesh_urlinfo_t *info)
  ***/
 
 static const gchar * const parse_errstr[] = {
-	"OK",									/* DMESH_URL_OK */
-	"HTTP parsing error",					/* DMESH_URL_HTTP_PARSER */
-	"File prefix neither /uri-res nor /get",/* DMESH_URL_BAD_FILE_PREFIX */
-	"Index in /get/index is reserved",		/* DMESH_URL_RESERVED_INDEX */
-	"No filename after /get/index",			/* DMESH_URL_NO_FILENAME */
-	"Bad URL encoding",						/* DMESH_URL_BAD_ENCODING */
+	"OK",									/**< DMESH_URL_OK */
+	"HTTP parsing error",					/**< DMESH_URL_HTTP_PARSER */
+	"File prefix neither /uri-res nor /get",/**< DMESH_URL_BAD_FILE_PREFIX */
+	"Index in /get/index is reserved",		/**< DMESH_URL_RESERVED_INDEX */
+	"No filename after /get/index",			/**< DMESH_URL_NO_FILENAME */
+	"Bad URL encoding",						/**< DMESH_URL_BAD_ENCODING */
 };
 
 /**
- * Return human-readable error string corresponding to error code `errnum'.
+ * @return human-readable error string corresponding to error code `errnum'.
  */
 const gchar *
 dmesh_url_strerror(dmesh_url_error_t errnum)
@@ -421,7 +421,7 @@ dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
 		idx = parse_uint32(endptr, &endptr, 10, &error);
 		if (!error && URN_INDEX == idx) {
 			dmesh_url_errno = DMESH_URL_RESERVED_INDEX;
-			return FALSE;					/* Index 0xffffffff is our mark */
+			return FALSE;				/* Index 0xffffffff is our mark */
 		}
 		
 		if (error || *endptr != '/') {
@@ -816,7 +816,7 @@ dmesh_add(gchar *sha1, guint32 ip, guint16 port, guint idx,
  * Format the URL described by `info' into the provided buffer `buf', which
  * can hold `len' bytes.
  *
- * Returns length of formatted entry, -1 if the URL would be larger than
+ * @returns length of formatted entry, -1 if the URL would be larger than
  * the buffer.  If `quoting' is non-NULL, set it to indicate whether the
  * formatted URL should be quoted if emitted in a header, because it
  * contains a "," character.
@@ -892,7 +892,7 @@ dmesh_urlinfo_to_gchar(const dmesh_urlinfo_t *info)
  * Format mesh_entry in the provided buffer, as a compact ip:port address.
  * The port is even omitted if it is the standard Gnutella one.
  *
- * Returns length of formatted entry, -1 if the address would be larger than
+ * @returns length of formatted entry, -1 if the address would be larger than
  * the buffer, or if no compact form can be derived for this entry (not an
  * URN_INDEX kind).
  */
@@ -1069,22 +1069,27 @@ dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt)
  * Build alternate location header for a given SHA1 key.  We generate at
  * most `size' bytes of data into `alt'.
  *
- * `ip' is the host to which those alternate locations are meant: we skip
- * any data pertaining to that host.
+ * @param `sha1'	no document.
+ * @param `buf'		no document.
+ * @param 'size'	no document.
  *
- * `last_sent' is the time at which we sent some previous alternate locations.
- * If there has been no change to the mesh since then, we'll return an empty
- * string.  Otherwise we return entries inserted after `last_sent'.
+ * @param `ip' is the host to which those alternate locations are meant:
+ * we skip any data pertaining to that host.
  *
- * The `vendor' is given to determine whether it is apt to read our
+ * @param `last_sent' is the time at which we sent some previous alternate
+ * locations. If there has been no change to the mesh since then, we'll
+ * return an empty string.  Otherwise we return entries inserted after
+ * `last_sent'.
+ *
+ * @param `vendor' is given to determine whether it is apt to read our
  * X-Alt and X-Nalt fields formatted with continuations or not.
  *
- * When `fi' is non-NULL, it means we're sharing that file and we're sending
- * alternate locations to remote servers: include ourselves in the list of
- * alternate locations if PFSP-server is enabled.
+ * @param `fi' when it is non-NULL, it means we're sharing that file and
+ * we're sending alternate locations to remote servers: include ourselves
+ * in the list of alternate locations if PFSP-server is enabled.
  *
- * If `request' is true, then the mesh entries are generated in an HTTP
- * request; otherwise it's for an HTTP reply.
+ * @param `request' if it is true, then the mesh entries are generated in
+ * an HTTP request; otherwise it's for an HTTP reply.
  *
  * unless the `vendor' is GTKG, don't use continuation: most
  * servent authors don't bother with a proper HTTP header parsing layer.
@@ -1365,7 +1370,7 @@ nomore:
 	return len;
 }
 
-/*
+/**
  * A simple container for the dmesh info that the deferred checking
  * code needs, although to be honest it may be worth refactoring the
  * dmesh code so it all works on dmesh_entries?
@@ -1463,7 +1468,8 @@ dmesh_free_deferred_altloc(dmesh_deferred_url_t *info, gpointer unused_udata)
  *
  * These factors are currently semi-empirical guesses and hardwired
  *
- * NOTE: this is an O(m*n) process, when `m' is the amount of new entries
+ * @note
+ * This is an O(m*n) process, when `m' is the amount of new entries
  * and `n' the amount of existing entries.
  */
 static void
@@ -1604,8 +1610,9 @@ dmesh_check_deferred_against_themselves(gchar *sha1, GSList *deferred_urls)
  * for the given sha1.
  *
  * A couple of approaches are taken:
+ *
  * a) if any non-urn urls already exist compare against them and add
- * the ones that match
+ *    the ones that match
  * a) otherwise only add urls if they are all the same(ish)
  *
  * Another possible algorithm (majority wins) has been tried but
@@ -2034,7 +2041,8 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 
 /**
  * Fill buffer with at most `count' alternative locations for sha1.
- * Returns the amount of locations inserted.
+ *
+ * @returns the amount of locations inserted.
  */
 static gint
 dmesh_alt_loc_fill(const gchar *sha1, dmesh_urlinfo_t *buf, gint count)
@@ -2139,8 +2147,9 @@ dmesh_check_results_set(gnet_results_set_t *rs)
  * servers with the requested file known by dmesh.
  * It creates a new download for every server found.
  *
- * `sha1': (atom) the SHA1 of the file
- * `size': the original file size
+ * @param `sha1' (atom) the SHA1 of the file.
+ * @param `size' the original file size.
+ * @param `fi' no document.
  */
 void
 dmesh_multiple_downloads(gchar *sha1, filesize_t size, struct dl_file_info *fi)

@@ -28,18 +28,18 @@
 
 #include <glib.h>
 
-/*
+/**
  * Route destination types.
  */
 
 typedef enum {
-	ROUTE_NONE = 0,		/* No route, message stops here */
-	ROUTE_ONE,			/* Route to single node */
-	ROUTE_ALL_BUT_ONE,	/* Route to all nodes but one */
-	ROUTE_MULTI			/* Route to list of nodes */
+	ROUTE_NONE = 0,			/**< No route, message stops here */
+	ROUTE_ONE,				/**< Route to single node */
+	ROUTE_ALL_BUT_ONE,		/**< Route to all nodes but one */
+	ROUTE_MULTI				/**< Route to list of nodes */
 } route_type_t;
 
-/*
+/**
  * Routing destination, as determined by route_message().
  */
 
@@ -47,7 +47,7 @@ struct route_dest {
 	route_type_t type;
 	union {
 		struct gnutella_node *u_node;
-		GSList *u_nodes;				/* For ROUTE_MULTI */
+		GSList *u_nodes;	/**< For ROUTE_MULTI */
 	} ur;
 };
 

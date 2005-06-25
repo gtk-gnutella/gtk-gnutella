@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Christian Biere
  *
- * Wraping structures for I/O.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup ui
+ * @file
+ *
+ * Wraping structures for I/O.
+ *
+ * @author Christian Biere
+ * @date 2004
  */
 
 #ifndef _if_core_wrap_h_

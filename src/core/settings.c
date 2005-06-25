@@ -27,7 +27,7 @@
  * @ingroup core
  * @file
  *
- * gtk-gnutella configuration.
+ * Gtk-Gnutella configuration.
  *
  * @author Raphael Manfredi
  * @author Richard Eckart
@@ -812,7 +812,7 @@ listen_port_changed(property_t prop)
 	gboolean random_port = FALSE;
     guint32 listen_port;
 	guint num_tried = 0;
-	guint32 tried[65536 / (8 * sizeof(guint32))]; /* Use bits as bool flags */
+	guint32 tried[65536 / (8 * sizeof(guint32))]; /**< Use bits as bool flags */
 
     gnet_prop_get_guint32_val(prop, &listen_port);
 
@@ -824,13 +824,13 @@ listen_port_changed(property_t prop)
 		return FALSE;
 
 	if (old_listen_port != (guint32) -1) {
-		inet_firewalled();			/* Assume we're firewalled on port change */
+		inet_firewalled();			/**< Assume we're firewalled on port change */
 		inet_udp_firewalled();
 	}
 
 	random_port = listen_port == 1;
 	memset(tried, 0, sizeof tried);
-	memset(tried, 0xff, 1024 / 8); /* Mark ports below 1024 as already tried */
+	memset(tried, 0xff, 1024 / 8); /**< Mark ports below 1024 as already tried */
 
 	do {
 		if (random_port) {
@@ -1336,7 +1336,7 @@ node_rx_size_changed(property_t prop)
 static gpointer ev_file_descriptor_shortage = NULL;
 static gpointer ev_file_descriptor_runout = NULL;
 
-#define RESET_PROP_TM	(10*60*1000)	/* 10 minutes in ms */
+#define RESET_PROP_TM	(10*60*1000)	/**< 10 minutes in ms */
 
 /**
  * callout queue callback
@@ -1427,9 +1427,9 @@ proxy_ip_changed(property_t prop)
  ***/
 
 typedef struct prop_map {
-    property_t prop;            /* property handle */
-    prop_changed_listener_t cb; /* callback function */
-    gboolean init;              /* init widget with current value */
+    property_t prop;            /**< property handle */
+    prop_changed_listener_t cb; /**< callback function */
+    gboolean init;              /**< init widget with current value */
 } prop_map_t;
 
 #define IGNORE NULL

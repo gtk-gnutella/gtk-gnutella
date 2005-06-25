@@ -1,9 +1,6 @@
 /*
  * Copyright (c) 2002, Vidar Madsen
  *
- * Functions for keeping a whitelist of nodes we always allow in,
- * and whom we try to keep a connection to.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -24,13 +21,30 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Needs short description here.
+ *
+ * Functions for keeping a whitelist of nodes we always allow in,
+ * and whom we try to keep a connection to.
+ *
+ * @author Vidar Madsen
+ * @date 2002
+ */
+
 #ifndef _core_whitelist_h_
 #define _core_whitelist_h_
 
-/* Number of seconds between each connection attempt to a whitelisted node. */
+/**
+ * Number of seconds between each connection attempt to a whitelisted node.
+ */
 #define WHITELIST_RETRY_DELAY 30
 
-/* Number of seconds between checking the whitelist file for updates. */
+/**
+ * Number of seconds between checking the whitelist file for updates.
+ */
 #define WHITELIST_CHECK_INTERVAL 60
 
 struct whitelist {

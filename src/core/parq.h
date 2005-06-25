@@ -1,8 +1,6 @@
 /*
  * Copyright (c) 2003, Jeroen Asselman
  *
- * Passive/Active Remote Queuing.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Passive/Active Remote Queuing.
+ *
+ * @author Jeroen Asselman
+ * @date 2003
+ */
+
 #ifndef _core_parq_h_
 #define _core_parq_h_
 
@@ -32,8 +40,8 @@
 
 #include "if/core/parq.h"
 
-#define PARQ_MAX_UL_RETRY_DELAY 1200	/* 20 minutes retry rate max. */
-#define PARQ_GRACE_TIME			90		/* Grace period after life expired */
+#define PARQ_MAX_UL_RETRY_DELAY 1200	/**< 20 minutes retry rate max. */
+#define PARQ_GRACE_TIME			90		/**< Grace period after life expired */
 
 /*
  * Public interface.

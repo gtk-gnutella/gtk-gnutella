@@ -3,12 +3,6 @@
  *
  * Copyright (c) 2003, Raphael Manfredi
  *
- * Functions that should be in glib-1.2 but are not.
- * They are all prefixed with "gm_" as in "Glib Missing".
- *
- * We also include FIXED versions of glib-1.2 routines that are broken
- * and make sure those glib versions are never called directly.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -29,6 +23,22 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Missing functions in the Glib 1.2.
+ *
+ * Functions that should be in glib-1.2 but are not.
+ * They are all prefixed with "gm_" as in "Glib Missing".
+ *
+ * We also include FIXED versions of glib-1.2 routines that are broken
+ * and make sure those glib versions are never called directly.
+ *
+ * @author Raphael Manfredi
+ * @date 2003
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -46,7 +56,7 @@ RCSID("$Id$");
  * Insert `item' after `lnk' in list `list'.
  * If `lnk' is NULL, insertion happens at the head.
  *
- * Returns new list head.
+ * @return new list head.
  */
 GSList *gm_slist_insert_after(GSList *list, GSList *lnk, gpointer data)
 {
@@ -72,7 +82,7 @@ GSList *gm_slist_insert_after(GSList *list, GSList *lnk, gpointer data)
  * Insert `item' after `lnk' in list `list'.
  * If `lnk' is NULL, insertion happens at the head.
  *
- * Returns new list head.
+ * @return new list head.
  */
 GList *gm_list_insert_after(GList *list, GList *lnk, gpointer data)
 {
@@ -284,7 +294,7 @@ void gm_setproctitle(gchar *title)
 /**
  * gm_atoul
  *
- * Returns the nul-terminated string `str' converted to an unsigned long.
+ * @returns the nul-terminated string `str' converted to an unsigned long.
  * If successful `errorcode' will be set to 0 (zero), otherwise it will
  * contain an errno(2) code and the function returns 0 (zero).
  * If endptr is not NULL it will point to the first invalid character.

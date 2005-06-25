@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Asynchronous I/O header parsing routines.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Asynchronous I/O header parsing routines.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #ifndef _core_ioheader_h_
 #define _core_ioheader_h_
 
@@ -36,13 +44,13 @@ struct getline;
 struct bsched;
 struct gnutella_socket;
 
-/*
+/**
  * This structure holds all the per-resource callbacks that can be used
  * during header processing in case something goes wrong.
  */
 struct io_error {
 	void (*line_too_long)(gpointer resource);
-	void (*header_error_tell)(gpointer resource, gint error);	/* Optional */
+	void (*header_error_tell)(gpointer resource, gint error);	/**< Optional */
 	void (*header_error)(gpointer resource, gint error);
 	void (*input_exception)(gpointer resource);
 	void (*input_buffer_full)(gpointer resource);
@@ -58,11 +66,11 @@ typedef void (*io_start_cb_t)(gpointer resource);
  * Parsing flags.
  */
 
-#define IO_HEAD_ONLY		0x00000001	/* No data expected after EOH */
-#define IO_SAVE_FIRST		0x00000002	/* Save 1st line in socket's getline */
-#define IO_SINGLE_LINE		0x00000004	/* Get one line only, then process */
-#define IO_3_WAY			0x00000008	/* In 3-way handshaking */
-#define IO_SAVE_HEADER		0x00000010	/* Save header text for later perusal */
+#define IO_HEAD_ONLY		0x00000001	/**< No data expected after EOH */
+#define IO_SAVE_FIRST		0x00000002	/**< Save 1st line in socket's getline */
+#define IO_SINGLE_LINE		0x00000004	/**< Get one line only, then process */
+#define IO_3_WAY			0x00000008	/**< In 3-way handshaking */
+#define IO_SAVE_HEADER		0x00000010	/**< Save header text for later perusal */
 
 /*
  * Public interface
@@ -74,20 +82,20 @@ struct getline *io_getline(gpointer opaque);
 gchar *io_gettext(gpointer opaque);
 
 void io_get_header(
-	gpointer resource,			/* Resource for which we're reading headers */
-	gpointer *io_opaque,		/* Field address in resource's structure */
-	struct bsched *bs,			/* B/w scheduler from which we read */
-	struct gnutella_socket *s,	/* Socket from which we're reading */
-	gint flags,					/* I/O parsing flags */
-	io_done_cb_t done,			/* Mandatory: final callback when all done */
-	io_start_cb_t start,		/* Optional: called when reading 1st byte */
-	const struct io_error *error); /* Mandatory: error callbacks for resource */
+	gpointer resource,				/**< Resource for which we're reading headers */
+	gpointer *io_opaque,			/**< Field address in resource's structure */
+	struct bsched *bs,				/**< B/w scheduler from which we read */
+	struct gnutella_socket *s,		/**< Socket from which we're reading */
+	gint flags,						/**< I/O parsing flags */
+	io_done_cb_t done,				/**< Mandatory: final callback when all done */
+	io_start_cb_t start,			/**< Optional: called when reading 1st byte */
+	const struct io_error *error);	/**< Mandatory: error callbacks for resource */
 
 void io_continue_header(
-	gpointer opaque,			/* Existing header parsing context */
-	gint flags,					/* New I/O parsing flags */
-	io_done_cb_t done,			/* Mandatory: final callback when all done */
-	io_start_cb_t start);		/* Optional: called when reading 1st byte */
+	gpointer opaque,				/**< Existing header parsing context */
+	gint flags,						/**< New I/O parsing flags */
+	io_done_cb_t done,				/**< Mandatory: final callback when all done */
+	io_start_cb_t start);			/**< Optional: called when reading 1st byte */
 
 #endif	/* _core_ioheader_h_ */
 

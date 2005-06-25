@@ -27,7 +27,7 @@
  * @ingroup gtk
  * @file
  *
- * Bitzi GTK interface code
+ * Bitzi GTK+ interface code.
  *
  * @author Alex Bennee <alex@bennee.com>
  * @date 2004
@@ -53,16 +53,16 @@ RCSID("$Id$");
  */
 
 static const gchar * const bitzi_fj_table[] = {
-	N_("Bitzi|Unknown"),				/* UNKNOWN */
-	N_("Bitzi|Dangerous/Misleading"),	/* DANGEROUS_MISLEADING */
-	N_("Bitzi|Incomplete/Damaged"),		/* INCOMPLETE_DAMAGED */
-	N_("Bitzi|Substandard"),			/* SUBSTANDARD */
-	N_("Bitzi|Overrated"),				/* OVERRATED */
-	N_("Bitzi|Normal"),					/* NORMAL */
-	N_("Bitzi|Underrated"),				/* UNDERRATED */
-	N_("Bitzi|Complete"),				/* COMPLETE */
-	N_("Bitzi|Recommended"),			/* RECOMMENDED */
-	N_("Bitzi|Best Version"),			/* BEST_VERSION*/
+	N_("Bitzi|Unknown"),				/**< UNKNOWN */
+	N_("Bitzi|Dangerous/Misleading"),	/**< DANGEROUS_MISLEADING */
+	N_("Bitzi|Incomplete/Damaged"),		/**< INCOMPLETE_DAMAGED */
+	N_("Bitzi|Substandard"),			/**< SUBSTANDARD */
+	N_("Bitzi|Overrated"),				/**< OVERRATED */
+	N_("Bitzi|Normal"),					/**< NORMAL */
+	N_("Bitzi|Underrated"),				/**< UNDERRATED */
+	N_("Bitzi|Complete"),				/**< COMPLETE */
+	N_("Bitzi|Recommended"),			/**< RECOMMENDED */
+	N_("Bitzi|Best Version"),			/**< BEST_VERSION*/
 };
 
 const gchar *

@@ -28,6 +28,9 @@
  * @file
  *
  * Vendor-specific messages.
+ *
+ * @author Raphael Manfredi
+ * @date 2003
  */
 
 #include "common.h"
@@ -176,7 +179,7 @@ struct vms_feature {
 /**
  * Find message, given vendor code, and id, version.
  *
- * Returns handler callback if found, NULL otherwise.
+ * @returns handler callback if found, NULL otherwise.
  */
 static const struct vmsg *
 find_message(guint32 vendor, guint16 id, guint16 version)
@@ -292,7 +295,7 @@ vmsg_handle(struct gnutella_node *n)
  * `size' is only the size of the payload we filled so far.
  * `maxsize' is the size of the already allocated vendor messsage.
  *
- * Returns the total size of the whole Gnutella message.
+ * @returns the total size of the whole Gnutella message.
  */
 static guint32
 vmsg_fill_header(struct gnutella_header *header, guint32 size, guint32 maxsize)
@@ -321,7 +324,7 @@ vmsg_fill_header(struct gnutella_header *header, guint32 size, guint32 maxsize)
  * Fill leading part of the payload data, containing the common part for
  * all vendor-specific messages.
  *
- * Returns start of payload after that common part.
+ * @returns start of payload after that common part.
  */
 static gchar *
 vmsg_fill_type(

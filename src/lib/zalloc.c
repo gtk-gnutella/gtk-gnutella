@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Zone allocator.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -72,18 +70,18 @@ RCSID("$Id$");
 #endif	/* TRACK_ZALLOC */
 
 #ifdef ZONE_SAFE
-#define BLOCK_USED			((gchar *) 0xff12aa35)	/* Tagging of used blocks */
+#define BLOCK_USED			((gchar *) 0xff12aa35)	/**< Tagging of used blocks */
 #endif
 
-#define DEFAULT_HINT		128		/* Default amount of blocks in a zone */
-#define MAX_ZONE_SIZE		16384	/* Maximum zone size */
+#define DEFAULT_HINT		128		/**< Default amount of blocks in a zone */
+#define MAX_ZONE_SIZE		16384	/**< Maximum zone size */
 
 /**
  * Extra allocated zones.
  */
 struct subzone {
-	struct subzone *zn_next;	/* Next allocated zone chunk, null if last */
-	gpointer zn_arena;			/* Base address of zone arena */
+	struct subzone *zn_next;	/**< Next allocated zone chunk, null if last */
+	gpointer zn_arena;			/**< Base address of zone arena */
 };
 
 static void zn_cram(zone_t *, gchar *, gint);
@@ -129,7 +127,7 @@ static gchar **zn_extend(zone_t *);
  */
 gpointer zalloc(zone_t *zone)
 {
-	gchar **blk;		/* Allocated block */
+	gchar **blk;		/**< Allocated block */
 
 	/*
 	 * Grab first available free block and update free list pointer. If we

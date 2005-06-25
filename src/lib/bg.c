@@ -3,12 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Background task management.
- *
- * A background task is some CPU or I/O intensive operation that needs to
- * be split up in small chunks of processing because it would block the
- * process for too long if executed atomically.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -29,6 +23,20 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Background task management.
+ *
+ * A background task is some CPU or I/O intensive operation that needs to
+ * be split up in small chunks of processing because it would block the
+ * process for too long if executed atomically.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -37,11 +45,11 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-#define BT_MAGIC		0xbacc931dU		/* Internal bgtask magic number */
+#define BT_MAGIC		0xbacc931dU		/**< Internal bgtask magic number */
 
-#define MAX_LIFE		150000			/* In useconds, MUST be << 1 sec */
-#define MIN_LIFE		40000			/* Min lifetime per task, in usecs */
-#define DELTA_FACTOR	4				/* Max variations are 400% */
+#define MAX_LIFE		150000			/**< In useconds, MUST be << 1 sec */
+#define MIN_LIFE		40000			/**< Min lifetime per task, in usecs */
+#define DELTA_FACTOR	4				/**< Max variations are 400% */
 
 static guint32 common_dbg = 0;	/* XXX -- need to init lib's props --RAM */
 
@@ -59,54 +67,54 @@ static guint32 common_dbg = 0;	/* XXX -- need to init lib's props --RAM */
  * `stepvec' is the set of steps we have to run (normally in sequence).
  */
 struct bgtask {
-	guint magic;			/* Magic number */
-	guint32 flags;			/* Operating flags */
-	gchar *name;			/* Task name */
-	gint step;				/* Current processing step */
-	gint seqno;				/* Number of calls at same step */
-	bgstep_cb_t *stepvec;	/* Set of steps to run in sequence */
-	gint stepcnt;			/* Amount of steps in the `stepvec' array */
-	gpointer ucontext;		/* User context */
-	time_t ctime;			/* Creation time */
-	gint wtime;				/* Wall-clock run time sofar, in ms */
-	bgclean_cb_t uctx_free;	/* Free routine for context */
-	bgdone_cb_t done_cb;	/* Called when done */
-	gpointer done_arg;		/* "done" callback argument */
-	gint exitcode;			/* Final "exit" code */
-	bgsig_t signal;			/* Last signal delivered */
-	GSList *signals;		/* List of signals pending delivery */
-	jmp_buf env;			/* Only valid when TASK_F_RUNNING */
-	GTimeVal start;			/* Start time of scheduling "tick" */
-	gint ticks;				/* Scheduling ticks for time slice */
-	gint ticks_used;		/* Amount of ticks used by processing step */
-	gint prev_ticks;		/* Ticks used when measuring `elapsed' below */
-	gint elapsed;			/* Elapsed during last run, in usec */
-	gdouble tick_cost;		/* Time in ms. spent by each tick */
-	bgsig_cb_t sigh[BG_SIG_COUNT];	/* Signal handlers */
+	guint magic;			/**< Magic number */
+	guint32 flags;			/**< Operating flags */
+	gchar *name;			/**< Task name */
+	gint step;				/**< Current processing step */
+	gint seqno;				/**< Number of calls at same step */
+	bgstep_cb_t *stepvec;	/**< Set of steps to run in sequence */
+	gint stepcnt;			/**< Amount of steps in the `stepvec' array */
+	gpointer ucontext;		/**< User context */
+	time_t ctime;			/**< Creation time */
+	gint wtime;				/**< Wall-clock run time sofar, in ms */
+	bgclean_cb_t uctx_free;	/**< Free routine for context */
+	bgdone_cb_t done_cb;	/**< Called when done */
+	gpointer done_arg;		/**< "done" callback argument */
+	gint exitcode;			/**< Final "exit" code */
+	bgsig_t signal;			/**< Last signal delivered */
+	GSList *signals;		/**< List of signals pending delivery */
+	jmp_buf env;			/**< Only valid when TASK_F_RUNNING */
+	GTimeVal start;			/**< Start time of scheduling "tick" */
+	gint ticks;				/**< Scheduling ticks for time slice */
+	gint ticks_used;		/**< Amount of ticks used by processing step */
+	gint prev_ticks;		/**< Ticks used when measuring `elapsed' below */
+	gint elapsed;			/**< Elapsed during last run, in usec */
+	gdouble tick_cost;		/**< Time in ms. spent by each tick */
+	bgsig_cb_t sigh[BG_SIG_COUNT];	/**< Signal handlers */
 
 	/*
 	 * Daemon tasks.
 	 */
 
-	GSList *wq;				/* Work queue (daemon task only) */
-	bgstart_cb_t start_cb;	/* Called when starting working on an item */
-	bgend_cb_t end_cb;		/* Called when finished working on an item */
-	bgclean_cb_t item_free;	/* Free routine for work queue items */
-	bgnotify_cb_t notify;	/* Start/Stop notification (optional) */
+	GSList *wq;				/**< Work queue (daemon task only) */
+	bgstart_cb_t start_cb;	/**< Called when starting working on an item */
+	bgend_cb_t end_cb;		/**< Called when finished working on an item */
+	bgclean_cb_t item_free;	/**< Free routine for work queue items */
+	bgnotify_cb_t notify;	/**< Start/Stop notification (optional) */
 };
 
 /*
  * Operating flags.
  */
 
-#define TASK_F_EXITED		0x00000001	/* Exited */
-#define TASK_F_SIGNAL		0x00000002	/* Signal received */
-#define TASK_F_RUNNING		0x00000004	/* Task is running */
-#define TASK_F_ZOMBIE		0x00000008	/* Task waiting status collect */
-#define TASK_F_NOTICK		0x00000010	/* Do no recompute tick info */
-#define TASK_F_SLEEPING		0x00000020	/* Task is sleeping */
-#define TASK_F_RUNNABLE		0x00000040	/* Task is runnable */
-#define TASK_F_DAEMON		0x80000000	/* Task is a daemon */
+#define TASK_F_EXITED		0x00000001	/**< Exited */
+#define TASK_F_SIGNAL		0x00000002	/**< Signal received */
+#define TASK_F_RUNNING		0x00000004	/**< Task is running */
+#define TASK_F_ZOMBIE		0x00000008	/**< Task waiting status collect */
+#define TASK_F_NOTICK		0x00000010	/**< Do no recompute tick info */
+#define TASK_F_SLEEPING		0x00000020	/**< Task is sleeping */
+#define TASK_F_RUNNABLE		0x00000040	/**< Task is runnable */
+#define TASK_F_DAEMON		0x80000000	/**< Task is a daemon */
 
 /*
  * Access routines to internal fields.
@@ -287,7 +295,7 @@ static struct bgtask *current_task = NULL;
  * Switch to new task `bt'.
  * If argument is NULL, suspends current task.
  *
- * Returns previously scheduled task, if any.
+ * @returns previously scheduled task, if any.
  */
 static struct bgtask *bg_task_switch(struct bgtask *bt)
 {
@@ -324,15 +332,15 @@ static struct bgtask *bg_task_switch(struct bgtask *bt)
  * The user-supplied argument `done_arg' will also be given to that callback.
  * Note that "done" does not necessarily mean success.
  *
- * Returns an opaque handle.
+ * @returns an opaque handle.
  */
 gpointer bg_task_create(
-	gchar *name,						/* Task name (for tracing) */
-	bgstep_cb_t *steps, gint stepcnt,	/* Work to perform (copied) */
-	gpointer ucontext,					/* User context */
-	bgclean_cb_t ucontext_free,			/* Free routine for context */
-	bgdone_cb_t done_cb,				/* Notification callback when done */
-	gpointer done_arg)					/* Callback argument */
+	gchar *name,						/**< Task name (for tracing) */
+	bgstep_cb_t *steps, gint stepcnt,	/**< Work to perform (copied) */
+	gpointer ucontext,					/**< User context */
+	bgclean_cb_t ucontext_free,			/**< Free routine for context */
+	bgdone_cb_t done_cb,				/**< Notification callback when done */
+	gpointer done_arg)					/**< Callback argument */
 {
 	struct bgtask *bt;
 	gint stepsize;
@@ -382,14 +390,14 @@ gpointer bg_task_create(
  * Use bg_daemon_enqueue() to enqueue more work to the daemon.
  */
 gpointer bg_daemon_create(
-	gchar *name,						/* Task name (for tracing) */
-	bgstep_cb_t *steps, gint stepcnt,	/* Work to perform (copied) */
-	gpointer ucontext,					/* User context */
-	bgclean_cb_t ucontext_free,			/* Free routine for context */
-	bgstart_cb_t start_cb,				/* Starting working on an item */
-	bgend_cb_t end_cb,					/* Done working on an item */
-	bgclean_cb_t item_free,				/* Free routine for work queue items */
-	bgnotify_cb_t notify)				/* Start/Stop notify (optional) */
+	gchar *name,						/**< Task name (for tracing) */
+	bgstep_cb_t *steps, gint stepcnt,	/**< Work to perform (copied) */
+	gpointer ucontext,					/**< User context */
+	bgclean_cb_t ucontext_free,			/**< Free routine for context */
+	bgstart_cb_t start_cb,				/**< Starting working on an item */
+	bgend_cb_t end_cb,					/**< Done working on an item */
+	bgclean_cb_t item_free,				/**< Free routine for work queue items */
+	bgnotify_cb_t notify)				/**< Start/Stop notify (optional) */
 {
 	struct bgtask *bt;
 	gint stepsize;
@@ -615,7 +623,8 @@ static void bg_task_sendsig(struct bgtask *bt, bgsig_t sig, bgsig_cb_t handler)
  * bg_task_kill
  *
  * Send a signal to the given task.
- * Returns -1 if the task could not be signalled.
+ *
+ * @returns -1 if the task could not be signalled.
  */
 static gint bg_task_kill(gpointer h, bgsig_t sig)
 {
@@ -677,7 +686,8 @@ static gint bg_task_kill(gpointer h, bgsig_t sig)
  * bg_task_signal
  *
  * Install user-level signal handler for a task signal.
- * Returns previously installed signal handler.
+ *
+ * @returns previously installed signal handler.
  */
 bgsig_cb_t bg_task_signal(gpointer h, bgsig_t sig, bgsig_cb_t handler)
 {

@@ -1,3 +1,36 @@
+/*
+ * Copyright (c) 2004, Jeroen Asselman
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup undoc
+ * @file
+ *
+ * Needs short description here.
+ *
+ * @author Jeroen Asselman
+ * @date 2004
+ */
+
 #include "../common.h"		/* For -DUSE_DMALLOC */
 
 #include <math.h>
@@ -7,9 +40,9 @@ int sequencenumber = 0;
 
 static int header_length = 8;
 static int MTU = 1500;
-int transmit_retransmit_interval = 10;  /* seconds */
-int transmit_packet_timeout = 26;       /* seconds */
-int receive_packet_expiry = 30; /* seconds */
+int transmit_retransmit_interval = 10;	/**< seconds */
+int transmit_packet_timeout = 26;		/**< seconds */
+int receive_packet_expiry = 30;			/**< seconds */
 
 GSList *receiving_fragments_list;
 GSList *received_fragments_list;
@@ -235,7 +268,7 @@ udp_transceiver_put_received_fragment(fragment_t *fragment)
  */
 static gboolean
 udp_transceiver_put_received_datagram(char *buf, int length,
-                                                                                                  guint32 ip, guint16 port)
+                                      guint32 ip, guint16 port)
 {
 	fragment_t *fragment_received;
 
@@ -258,9 +291,10 @@ udp_transceiver_put_received_datagram(char *buf, int length,
 gboolean
 udp_transceiver_receive(char **buffer, int *length)
 {
-    /* FIXME: for bla in fragments_received
+    /* FIXME: for bla in fragments_received */
 	/* *length += fragment->fragment_length - header_length */
 
 	return FALSE;
 }
 
+/* vi: set ts=4 sw=4 cindent: */

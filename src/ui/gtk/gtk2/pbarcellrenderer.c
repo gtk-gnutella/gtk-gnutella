@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2004, Russell Francis
  *
- * GTK cell renderer.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,7 +23,17 @@
  *----------------------------------------------------------------------
  */
 
-/* gtkcellrenderer.c
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * GTK+ cell renderer.
+ *
+ * @author Russell Francis
+ * @date 2004
+ *
+ * @note
+ * gtkcellrenderer.c
  *
  * Copyright (C) 2002 Naba Kumar <kh_naba@users.sourceforge.net>
  * heavily modified by Jörgen Scheibengruber <mfcn@gmx.de>
@@ -88,26 +96,26 @@ static void gtk_cell_renderer_progress_get_size(
 	GtkCellRenderer *,
 	GtkWidget *,
 	GdkRectangle *,
-	gint *,		/* x_offset */
-	gint *,		/* y_offset */
-	gint *,		/* width */
-    gint *);	/* height */
+	gint *,					/* x_offset */
+	gint *,					/* y_offset */
+	gint *,					/* width */
+    gint *);				/* height */
 
 static void gtk_cell_renderer_progress_render(
 	GtkCellRenderer *,
 	GdkWindow *,
 	GtkWidget *,
-	GdkRectangle *,	/* background area */
-	GdkRectangle *,	/* cell area */
-	GdkRectangle *, /* expose area */
-	GtkCellRendererState);			/* flags */
+	GdkRectangle *,			/* background area */
+	GdkRectangle *,			/* cell area */
+	GdkRectangle *,			/* expose area */
+	GtkCellRendererState);	/* flags */
 
 /*
  * Properties that this widget can have manipulated.
  */
 enum {
-  PROP_0,		/* Placeholder, empty property */
-  PROP_VALUE	/* The position of the progress bar [0:100] */
+  PROP_0,		/**< Placeholder, empty property */
+  PROP_VALUE	/**< The position of the progress bar [0:100] */
 };
 
 struct _GtkCellRendererProgressPriv {
@@ -163,6 +171,7 @@ gtk_cell_renderer_progress_get_type(void)
  * Initialize the progress bar private data.
  *
  * @param cellprogress The GtkCellRendererProgress to init.
+ *
  * @return nothing
  */
 static void
@@ -180,6 +189,7 @@ gtk_cell_renderer_progress_init(GtkCellRendererProgress *cellprogress)
  * Initialize the progress bar class data.
  *
  * @param class The GtkCellRendererProgressClass - internal
+ *
  * @return nothing
  */
 static void
@@ -220,6 +230,7 @@ gtk_cell_renderer_progress_class_init (GtkCellRendererProgressClass *class)
  * @param param_id The id of the property we wish to get.
  * @param value Where we should store the value of the property.
  * @param pspec The Param Specification of the property.
+ *
  * @return nothing
  */
 static void
@@ -241,7 +252,7 @@ gtk_cell_renderer_progress_get_property(
 }
 
 
-/*
+/**
  * gtk_cell_renderer_progress_set_property
  *
  * Set a property of the given gtk_cell_renderer_progress
@@ -251,6 +262,7 @@ gtk_cell_renderer_progress_get_property(
  * @param param_id The parameter id we wish to change.
  * @param value The value we should assign to the property.
  * @param pspec The GParamSpec for this property.
+ *
  * @return nothing
  */
 static void
@@ -273,18 +285,19 @@ gtk_cell_renderer_progress_set_property(
 }
 
 
-/*
+/**
  * gtk_cell_renderer_progress_get_size
  *
  * Get the size of the cell here.
  *
- * @param cell The GtkCellRenderer we are getting the size of.
- * @param widget
- * @param cell_area The cell area that we have.
- * @param x_offset The xoffset for the packed widget.
- * @param y_offset The yoffset for the packed widget.
+ * @param unused_cell The GtkCellRenderer we are getting the size of.
+ * @param unused_widget
+ * @param unused_cell_area The cell area that we have.
+ * @param unused_x_offset The xoffset for the packed widget.
+ * @param unused_y_offset The yoffset for the packed widget.
  * @param width The minimum width of the widget.
  * @param height The minimum height of the widget.
+ *
  * @return nothing
  */
 static void
@@ -315,14 +328,13 @@ gtk_cell_renderer_progress_get_size(
 }
 
 
-/*
+/**
  * gtk_cell_renderer_progress_new
  *
  * Create a new cell renderer progress bar ready to
  * stuff in a treeview.
  *
  * @return a GtkCellRenderer * for your use.
- *
  */
 GtkCellRenderer* gtk_cell_renderer_progress_new(void)
 {
@@ -331,7 +343,7 @@ GtkCellRenderer* gtk_cell_renderer_progress_new(void)
 }
 
 
-/*
+/**
  * gtk_cell_renderer_progress_render
  *
  * Physically draw the progress bar in our
@@ -340,10 +352,11 @@ GtkCellRenderer* gtk_cell_renderer_progress_new(void)
  * @param cell The cell renderer we wish to draw.
  * @param window The GdkWindow we will draw in.
  * @param widget The widget that we derive style attr. from.
- * @param background_area The background rectangle.
+ * @param unused_background_area The background rectangle.
  * @param cell_area The rectange for the cell.
- * @param expose_area The area which received an expose event.
+ * @param unused_expose_area The area which received an expose event.
  * @param unused_flags flags...
+ *
  * @return nothing
  */
 static void
@@ -416,12 +429,13 @@ gtk_cell_renderer_progress_render(
 	g_object_unref(G_OBJECT(gc));
 }
 
-/*
+/**
  * gtk_cell_renderer_progress_finalize
  *
  * Finalize the object.
  *
  * @param object The object which we will finalize.
+ *
  * @return nothing
  */
 static void
@@ -433,4 +447,5 @@ gtk_cell_renderer_progress_finalize(GObject *object)
 }
 
 #endif /* !USING_CUSTOM_TYPE_CELL_RENDERER_PROGRESS */
+
 /* vi: set ts=4 sw=4 cindent: */

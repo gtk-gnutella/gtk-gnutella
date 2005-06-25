@@ -33,9 +33,9 @@
 void search_add_got_results_listener(search_got_results_listener_t l);
 void search_remove_got_results_listener(search_got_results_listener_t l);
 
-#define TAB_UPDATE_TIME	5		/* Update search tabs after 5 seconds */
+#define TAB_UPDATE_TIME	5		/**< Update search tabs after 5 seconds */
 
-/*
+/**
  * A results_set structure factorizes the common information from a Query Hit
  * packet, and then has a list of individual records, one for each hit.
  *
@@ -49,20 +49,20 @@ void search_remove_got_results_listener(search_got_results_listener_t l);
  *     is purely descriptive anyway.
  */
 typedef struct results_set {
-	gint refcount;				/* Number of "struct search" this belongs to */
+	gint refcount;				/**< Number of "struct search" this belongs to */
 
-	gchar *guid;				/* Servent's GUID (atom) */
+	gchar *guid;				/**< Servent's GUID (atom) */
 	guint32 ip;
 	guint16 port;
-	guint16 status;				/* Parsed status bits from trailer */
+	guint16 status;				/**< Parsed status bits from trailer */
 	guint16 speed;
-	time_t  stamp;				/* Reception time of the hit */
-	guchar  vendor[4];			/* Vendor code */
-	gchar *version;				/* Version information (atom) */
-	gint country;				/* Country code -- encoded ISO3166 */
-	gnet_host_vec_t *proxies;	/* Optional: known push proxies */
-	gchar *hostname;			/* Optional: server's hostname */
-	guint32 udp_ip;				/* IP of delivering node, if hit from UDP */
+	time_t  stamp;				/**< Reception time of the hit */
+	guchar  vendor[4];			/**< Vendor code */
+	gchar *version;				/**< Version information (atom) */
+	gint country;				/**< Country code -- encoded ISO3166 */
+	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
+	gchar *hostname;			/**< Optional: server's hostname */
+	guint32 udp_ip;				/**< IP of delivering node, if hit from UDP */
 
 	guint32 num_recs;
 	GSList *records;
@@ -73,15 +73,15 @@ typedef struct results_set {
  * Host vector held in query hits.
  */
 typedef struct host_vec {
-	gnet_host_t *hvec;				/* Vector of alternate locations */
-	gint hvcnt;					/* Amount of hosts in vector */
+	gnet_host_t *hvec;			/**< Vector of alternate locations */
+	gint hvcnt;					/**< Amount of hosts in vector */
 } host_vec_t;
 
 typedef enum {
 	RECORD_MAGIC = 0x3fb9c04e
 } record_magic_t;
 
-/*
+/**
  * An individual hit.  It referes to a file entry on the remote servent,
  * as identified by the parent results_set structure that contains this hit.
  *
@@ -91,20 +91,20 @@ typedef enum {
  * many different hash tables (one per search).
  */
 typedef struct record {
-	results_set_t *results_set;	/* Parent, containing record */
-	gint refcount;				/* Number of hash tables it has been put to */
-	record_magic_t magic;		/* Magic ID */
+	results_set_t *results_set;	/**< Parent, containing record */
+	gint refcount;				/**< Number of hash tables it has been put to */
+	record_magic_t magic;		/**< Magic ID */
 
-	gchar  *name;				/* File name */
-	gchar  *ext;				/* File extension */
-	filesize_t size;			/* Size of file, in bytes */
-	guint32 index;				/* Index for GET command */
-	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
-	gchar  *xml;				/* Optional XML data string (atom) */
-	gchar  *tag;				/* Optional tag data string (atom) */
-	gchar  *info;				/* Short version of tag (atom) */
-	gnet_host_vec_t *alt_locs;	/* Optional alternate locations for record */
-    flag_t  flags;              /* same flags as in gnet_record_t */
+	gchar  *name;				/**< File name */
+	gchar  *ext;				/**< File extension */
+	filesize_t size;			/**< Size of file, in bytes */
+	guint32 index;				/**< Index for GET command */
+	gchar  *sha1;				/**< SHA1 URN (binary form, atom) */
+	gchar  *xml;				/**< Optional XML data string (atom) */
+	gchar  *tag;				/**< Optional tag data string (atom) */
+	gchar  *info;				/**< Short version of tag (atom) */
+	gnet_host_vec_t *alt_locs;	/**< Optional alternate locations for record */
+    flag_t  flags;              /**< same flags as in gnet_record_t */
 } record_t;
 
 /*
@@ -151,4 +151,5 @@ void search_gui_add_targetted_search(
 void search_gui_update_items(struct search *);
 
 #endif /* _gtk_search_common_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */

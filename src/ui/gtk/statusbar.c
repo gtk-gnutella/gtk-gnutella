@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2001-2003, Raphael Manfredi, Richard Eckart
  *
- * GUI stuff used by share.c
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,18 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * GUI stuff used by share.c.
+ *
+ * @author Raphael Manfredi
+ * @author Richard Eckart
+ *
+ * @date 2001-2003
+ */
+
 #include "gui.h"
 
 RCSID("$Id$");
@@ -33,17 +43,18 @@ RCSID("$Id$");
 
 #include "lib/glib-missing.h"
 #include "lib/misc.h"
-#include "lib/override.h"		/* Must be the last header included */
+#include "lib/override.h"	/* Must be the last header included */
 
 static const statusbar_msgid_t zero_msgid;
 
-/*
+/**
  * Timeout entry for statusbar messages.
  */
 typedef struct statusbar_timeout {
-    statusbar_msgid_t id; /* message id of the message */
-	time_t stamp; /* time at which the message was added */
-	guint timeout; /* # of seconds after which the message should be removed */
+    statusbar_msgid_t id;	/**< message id of the message */
+	time_t stamp;			/**< time at which the message was added */
+	guint timeout;			/**< # of seconds after which the message
+								 should be removed */
 } statusbar_timeout_t;
 
 /*
@@ -56,7 +67,7 @@ static guint scid_info                = (guint) -1;
 static guint scid_ip_changed          = (guint) -1;
 static guint scid_warn                = (guint) -1;
 
-/*
+/**
  * List with timeout entries for statusbar messages
  */
 static GSList *sl_statusbar_timeouts = NULL;
@@ -87,7 +98,7 @@ statusbar_get(void)
  * the number of seconds given by timeout. If timeout is 0 the message
  * will not be automatically removed.
  *
- * Returns: message id of the added message
+ * @returns message id of the added message
  */
 statusbar_msgid_t
 statusbar_gui_push_v(sb_types_t type, guint scid, guint timeout,
@@ -123,7 +134,7 @@ statusbar_gui_push_v(sb_types_t type, guint scid, guint timeout,
  * the number of seconds given by timeout. If timeout is 0 the message
  * will not be automatically removed.
  *
- * Returns: message id of the added message
+ * @returns message id of the added message
  */
 static statusbar_msgid_t
 statusbar_gui_push(sb_types_t type, guint scid, guint timeout,
@@ -144,7 +155,7 @@ statusbar_gui_push(sb_types_t type, guint scid, guint timeout,
  * displayed for the number of seconds given by timeout. If timeout is 0
  * the message will not be automatically removed.
  *
- * Returns: message id of the added message
+ * @returns message id of the added message
  */
 statusbar_msgid_t
 statusbar_gui_message(guint timeout, const gchar *format, ...)
@@ -164,7 +175,7 @@ statusbar_gui_message(guint timeout, const gchar *format, ...)
  * the number of seconds given by timeout. If timeout is 0 the message
  * will not be automatically removed.
  *
- * Returns: message id of the added message
+ * @returns message id of the added message
  */
 statusbar_msgid_t
 statusbar_gui_warning(guint timeout, const gchar *format, ...)

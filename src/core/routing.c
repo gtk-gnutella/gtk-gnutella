@@ -37,7 +37,7 @@
 
 RCSID("$Id$");
 
-#include "search.h"		/* For search_passive. */
+#include "search.h"			/* For search_passive. */
 #include "routing.h"
 #include "hosts.h"
 #include "gmsg.h"
@@ -56,9 +56,9 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-static struct gnutella_node *fake_node;		/* Our fake node */
+static struct gnutella_node *fake_node;		/**< Our fake node */
 
-/*
+/**
  * An entry in the routing table.
  *
  * Each entry is stored in the "message_array[]", to keep track of the
@@ -70,14 +70,14 @@ static struct gnutella_node *fake_node;		/* Our fake node */
  * their liftime.
  */
 struct message {
-	gchar muid[16];				/* Message UID */
-	struct message **slot;		/* Place where we're referenced from */
-	GSList *routes;	            /* route_data from where the message came */
-	guint8 function;			/* Type of the message */
-	guint8 ttl;					/* Max TTL we saw for this message */
+	gchar muid[16];				/**< Message UID */
+	struct message **slot;		/**< Place where we're referenced from */
+	GSList *routes;	            /**< route_data from where the message came */
+	guint8 function;			/**< Type of the message */
+	guint8 ttl;					/**< Max TTL we saw for this message */
 };
 
-/*
+/**
  * We don't store a list of nodes in the message structure, but a list of
  * route_data: the reason is that nodes can go away, but we don't want to
  * traverse the whole routing table to reclaim all the places where they
@@ -90,10 +90,10 @@ struct message {
  */
 struct route_data {
 	struct gnutella_node *node;
-	gint32 saved_messages; 		/* # msg from this host in routing table */
+	gint32 saved_messages; 		/**< # msg from this host in routing table */
 };
 
-static struct route_data fake_route;		/* Our fake route_data */
+static struct route_data fake_route;		/**< Our fake route_data */
 
 static const gchar *debug_msg[256];
 
@@ -105,7 +105,7 @@ static const gchar *debug_msg[256];
  * round-robin fashion, it is not really appropriate.
  *		--RAM, 06/01/2002
  */
-#define QUERY_HIT_ROUTE_SAVE	0	/* Function used to store QHit GUIDs */
+#define QUERY_HIT_ROUTE_SAVE	0	/**< Function used to store QHit GUIDs */
 
 /*
  * Routing table data structures.
@@ -122,9 +122,9 @@ static const gchar *debug_msg[256];
  * the "entry".
  */
 
-#define CHUNK_BITS			14 		/* log2 of # messages stored  in a chunk */
-#define MAX_CHUNKS			32		/* Max # of chunks */
-#define TABLE_MIN_CYCLE		1800	/* 30 minutes at least */
+#define CHUNK_BITS			14 		/**< log2 of # messages stored  in a chunk */
+#define MAX_CHUNKS			32		/**< Max # of chunks */
+#define TABLE_MIN_CYCLE		1800	/**< 30 minutes at least */
 
 #define CHUNK_MESSAGES		(1 << CHUNK_BITS)
 #define CHUNK_INDEX(x)		(((x) & ~(CHUNK_MESSAGES - 1)) >> CHUNK_BITS)
@@ -132,11 +132,11 @@ static const gchar *debug_msg[256];
 
 static struct {
 	struct message **chunks[MAX_CHUNKS];
-	gint next_idx;					/* Next slot to use in "message_array[]" */
-	gint capacity;					/* Capacity in terms of messages */
-	gint count;						/* Amount really stored */
-	GHashTable *messages_hashed;	/* All messages (key = struct message) */
-	time_t last_rotation;			/* Last time we restarted from idx=0 */
+	gint next_idx;					/**< Next slot to use in "message_array[]" */
+	gint capacity;					/**< Capacity in terms of messages */
+	gint count;						/**< Amount really stored */
+	GHashTable *messages_hashed;	/**< All messages (key = struct message) */
+	time_t last_rotation;			/**< Last time we restarted from idx=0 */
 } routing;
 
 static gboolean find_message(
@@ -149,7 +149,7 @@ static gboolean find_message(
  * route pushes to them (i.e. they are are NOT unique on the network!).
  */
 static const gchar * const banned_push[] = {
-	"20d262ff0e6fd6119734004005a207b1",		/* Morpheus, 29/06/2002 */
+	"20d262ff0e6fd6119734004005a207b1",		/**< Morpheus, 29/06/2002 */
 };
 GHashTable *ht_banned_push = NULL;
 
@@ -163,21 +163,21 @@ GHashTable *ht_banned_push = NULL;
  */
 GHashTable *ht_proxyfied = NULL;
 
-/*
+/**
  * Routing logging.
  */
 struct route_log {
-	guint32 ip;					/* Sender's IP */
-	guint16 port;				/* Sender's port */
-	gchar muid[16];				/* Message ID */
-	guint8 function;			/* Message function */
-	guint8 hops;				/* Message hops */
-	guint8 ttl;					/* Message ttl */
-	gboolean handle;			/* Whether message will be handled */
-	gboolean local;				/* Whether message originated locally */
-	gboolean new;				/* Whether message is a new message */
-	gchar extra[80];			/* Extra text for logging */
-	struct route_dest dest;		/* Message destination */
+	guint32 ip;					/**< Sender's IP */
+	guint16 port;				/**< Sender's port */
+	gchar muid[16];				/**< Message ID */
+	guint8 function;			/**< Message function */
+	guint8 hops;				/**< Message hops */
+	guint8 ttl;					/**< Message ttl */
+	gboolean handle;			/**< Whether message will be handled */
+	gboolean local;				/**< Whether message originated locally */
+	gboolean new;				/**< Whether message is a new message */
+	gchar extra[80];			/**< Extra text for logging */
+	struct route_dest dest;		/**< Message destination */
 };
 
 static void free_route_list(struct message *m);
@@ -284,7 +284,7 @@ routing_log_extra(struct route_log *log, const gchar *fmt, ...)
 }
 
 /**
- * Return string representation of message route, as pointer to static data.
+ * @return string representation of message route, as pointer to static data.
  */
 static gchar *
 route_string(struct route_dest *dest, guint32 origin_ip)
@@ -990,7 +990,7 @@ purge_dangling_references(struct message *m)
 static gboolean
 find_message(const gchar *muid, guint8 function, struct message **m)
 {
-	/* Returns TRUE if the message is found */
+	/* @returns TRUE if the message is found */
 	/* Set *node to node if there is a connected node associated
 	   with the message found */
 	struct message dummyMessage;
@@ -1061,7 +1061,7 @@ check_hops_ttl(struct route_log *log, struct gnutella_node *sender)
  * NB: we're just *recording* routing information for the message into `dest',
  * we are not physically forwarding the message on the wire.
  *
- * Returns whether we should handle the message after routing.
+ * @returns whether we should handle the message after routing.
  */
 static gboolean
 forward_message(
@@ -1726,7 +1726,7 @@ final:
  * not physically sent.  The gmsg_sendto_route() will have to be called
  * for that.
  *
- * Returns whether the message is to be handled locally.
+ * @returns whether the message is to be handled locally.
  */
 gboolean
 route_message(struct gnutella_node **node, struct route_dest *dest)
@@ -1838,7 +1838,7 @@ done:
  * Check whether we have a route for the reply that would be generated
  * for this request.
  *
- * Returns boolean indicating whether we have such a route.
+ * @returns boolean indicating whether we have such a route.
  */
 gboolean
 route_exists_for_reply(gchar *muid, guint8 function)
@@ -1855,7 +1855,7 @@ route_exists_for_reply(gchar *muid, guint8 function)
  * Check whether we have a route to the given GUID, in order to send
  * pushes.
  *
- * Returns NULL if we have no such route, or a list of  node to which we should
+ * @returns NULL if we have no such route, or a list of  node to which we should
  * send the packet otherwise.  It is up to the caller to free that list.
  */
 GSList *
@@ -1897,7 +1897,7 @@ route_proxy_remove(gchar *guid)
 
 /**
  * Add push-proxy route to GUID `guid', which is node `n'.
- * Returns TRUE on success, FALSE if there is a GUID conflict.
+ * @returns TRUE on success, FALSE if there is a GUID conflict.
  *
  * NB: assumes `guid' is already an atom linked somehow to `n'.
  */
@@ -1915,7 +1915,7 @@ route_proxy_add(gchar *guid, struct gnutella_node *n)
  * Find node to which we are connected with supplied GUID and who requested
  * that we act as its push-proxy.
  *
- * Returns node address if we found it, or NULL if we aren't connected to
+ * @returns node address if we found it, or NULL if we aren't connected to
  * that node directly.
  */
 struct gnutella_node *

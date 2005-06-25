@@ -51,9 +51,9 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define MQ_MAXIOV		256		/* Our limit on the I/O vectors we build */
-#define MQ_MINIOV		2		/* Minimum amount of I/O vectors in service */
-#define MQ_MINSEND		256		/* Minimum size we try to send */
+#define MQ_MAXIOV		256		/**< Our limit on the I/O vectors we build */
+#define MQ_MINIOV		2		/**< Minimum amount of I/O vectors in service */
+#define MQ_MINSEND		256		/**< Minimum size we try to send */
 
 static void mq_tcp_service(gpointer data);
 static struct mq_ops mq_tcp_ops;
