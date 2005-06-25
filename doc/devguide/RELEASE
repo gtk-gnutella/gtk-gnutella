@@ -112,7 +112,7 @@ Release steps
 20. For each file, set the proper processor release type and file type,
     being sure to "Update/Refresh" each change separately.
 
-	(source is "platform independent"/"Source.gz" and the others are
+	(source is "Platform-Independent"/"Source.bz2" and the others are
 	"i386"/".deb" and "i386"/".rpm".
 
 21. Once all is set, click on "I'm sure" and "Send notice".

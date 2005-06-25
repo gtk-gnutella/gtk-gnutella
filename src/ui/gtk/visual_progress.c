@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2003-2004, Hans de Graaff
+ * Copyright (c) 2003-2005, Hans de Graaff
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,20 +31,15 @@
  *
  * Visual progress indicator for files in the download queue.
  *
- * @todo
- * TODO: and other ideas to be implemented.
- *
- * - Make colors into properties so that they can be stored in config,
- *   should keep hardcoded backups.
- *
- * - Add progress data also to fileinfo table, so that the info is shown for
- *   all current files.
- *
- * - Do not redraw the bar too often, only on event for actual file and
- *   perhaps max once a second.
+ * @todo Make colors into properties so that they can be stored in config,
+ *       should keep hardcoded backups.
+ * @todo Add progress data also to fileinfo table, so that the info is shown 
+ *       for all current files.
+ * @todo Do not redraw the bar too often, only on event for actual file and
+ *       perhaps max once a second.
  *
  * @author Hans de Graaff
- * @date 2003-2004
+ * @date 2003-2005
  */
 
 #include "gui.h"
@@ -67,11 +62,11 @@ RCSID("$Id$");
  * The context for drawing, including location to draw
  */
 typedef struct vp_context {
-	GtkWidget *widget;      /** The widget containing the drawing area */
-    GdkDrawable *drawable;  /** The drawable inside the widget */
-    GdkGC *gc;              /** The Graphics Context used in this vp context */
-    gnet_fi_t fih;          /** The most recently used fileinfo handle */
-	gboolean fih_valid;	    /** Whether fih is still a valid handle */
+	GtkWidget *widget;      /**< The widget containing the drawing area */
+    GdkDrawable *drawable;  /**< The drawable inside the widget */
+    GdkGC *gc;              /**< The Graphics Context used in this vp context */
+    gnet_fi_t fih;          /**< The most recently used fileinfo handle */
+	gboolean fih_valid;	    /**< Whether fih is still a valid handle */
 } vp_context_t;
 
 /**
