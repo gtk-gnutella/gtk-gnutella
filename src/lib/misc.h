@@ -378,6 +378,12 @@ gboolean is_symlink(const gchar *);
 gboolean file_exists(const gchar *);
 guint32 next_pow2(guint32 n);
 
+/**
+ * Checks whether the given value is a power of 2.
+ *
+ * @param value a 32-bit integer
+ * @return TRUE if ``value'' is a power of 2. Otherwise FALSE.
+ */
 static inline G_GNUC_CONST gboolean
 is_pow2(guint32 value)
 {
