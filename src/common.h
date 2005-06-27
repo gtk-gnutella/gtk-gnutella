@@ -100,6 +100,7 @@
 #define USE_BSD_SENDFILE	/**< No <sys/sendfile.h>, assume BSD version */
 #else
 
+/* mmap() support requires ISO C functions like sigsetjmp(). */
 #if defined(__STDC_VERSION__)
 #define USE_MMAP 1
 #include <sys/mman.h>
@@ -116,6 +117,8 @@
 #include <netinet/ip.h>
 #endif
 
+/* For pedantic lint checks, define USE_LINT. We override some definitions
+ * and hide ``inline'' to prevent certain useless warnings. */
 #ifdef USE_LINT
 #undef G_GNUC_INTERNAL
 #define G_GNUC_INTERNAL
@@ -134,10 +137,7 @@
 #define inline
 #endif
 
-/*
- * Use filesize_t to hold filesizes
- */
-typedef guint64 filesize_t;
+typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
 
 #include <stdarg.h>
 #include <regex.h>
@@ -185,6 +185,11 @@ typedef void (*GCallback) (void);
 #define _WHERE_	__FILE__
 #endif
 
+/**
+ * Calls g_free() and sets the pointer to NULL afterwards. You should use
+ * this instead of a bare g_free() to prevent double-free bugs and dangling
+ * pointers.
+ */
 #define G_FREE_NULL(p)		\
 do {				\
 	if (p) {		\
@@ -193,7 +198,13 @@ do {				\
 	}			\
 } while (0)
 
-/* The RCS IDs can be looked up from the compiled binary with e.g. `what'  */
+/**
+ * Stores a RCS ID tag inside the object file. Every .c source file should
+ * use this macro once as `RCSID("$Id$")' on top. The ID tag is automagically
+ * updated each time the file is committed to the CVS repository. The RCS IDs
+ * can be looked up from the compiled binary with e.g. `what', `ident' or
+ * `strings'. See also rcs(1) and ident(1).
+ */
 #ifdef __GNUC__
 #define RCSID(x) \
 	static const char rcsid[] __attribute__((__unused__)) = "@(#) " x
@@ -225,7 +236,9 @@ do {				\
 #define WARN_NEED_SENTINEL 
 #endif /* GCC >= 4 */
 
-/* CMP() returns sign of a-b */
+/**
+ * CMP() returns the sign of a-b, that means -1, 0, or 1.
+ */
 #define CMP(a, b) ((a) == (b) ? 0 : (a) > (b) ? 1 : (-1))
 
 /**
@@ -247,11 +260,11 @@ do {				\
  * Constants
  */
 
-#define GTA_VERSION 0
-#define GTA_SUBVERSION 96
-#define GTA_PATCHLEVEL 0
+#define GTA_VERSION 0				/**< major version */
+#define GTA_SUBVERSION 96			/**< minor version */
+#define GTA_PATCHLEVEL 0			/**< patch level or teeny version */
 #define GTA_REVISION "unstable"		/**< unstable, beta, stable */
-#define GTA_REVCHAR "u"				/**< u - unstable, b - beta, none - stable */
+#define GTA_REVCHAR "u"			/**< u - unstable, b - beta, none - stable */
 #define GTA_RELEASE "2005-06-09"	/**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
@@ -288,8 +301,8 @@ do {				\
  * Forbidden glib calls.
  */
 
-#define g_snprintf	DONT_CALL_g_snprintf
-#define g_vsnprintf	DONT_CALL_g_vsnprintf
+#define g_snprintf	DONT_CALL_g_snprintf /**< Use gm_snprintf instead */
+#define g_vsnprintf	DONT_CALL_g_vsnprintf /**< Use gm_vsnprintf instead */
 
 /*
  * Typedefs
@@ -335,6 +348,9 @@ ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
 	return ngettext(msg1, msg2, n);
 }
 
+/**
+ * Short-hand for ngettext().
+ */
 #define NG_(Single, Plural, Number) ngettext_((Single), (Plural), (Number))
 																		
 #endif /* _common_h_ */
