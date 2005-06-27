@@ -82,7 +82,7 @@ Ladies and gentleman, here's the
          * @date [year]
          */
 
-    The tag $Id is expanded by CVS when the file is committed.
+    The tag $Id$ is expanded by CVS when the file is committed.
 
     The bracketed sections "[...]" have to be replaced by the respective
     things they describe. "(...)" sections are optional, also you can use
@@ -95,10 +95,11 @@ Ladies and gentleman, here's the
     as shown above and please fill [Detailed description ...] if possible.
 
     "@ingroup" is used for grouping at the generated documents, it will be
-    added to the group or groups identified by given groupname (core, lib,
-    etc.). See also doc/api/gtkg-apidoc.main, a groupname is defined here.
+    added to the group or groups identified by the given group name (core,
+    lib, etc.). See also doc/api/gtkg-apidoc.main, a group name is defined
+    here.
 
-    The following is a example from actuall source code:
+    The following is a example from the actual source code:
 
         /**
          * @ingroup core
@@ -117,8 +118,7 @@ Ladies and gentleman, here's the
          * @date 2004
          */
 
-    Note that don't forget to punctuate at a headline and a detailed
-    description.
+    Don't forget to punctuate the headline and add a detailed description.
 
 2.2  All functions must be consistently commented as:
 
@@ -139,8 +139,8 @@ Ladies and gentleman, here's the
     description. It is welcome if additional tags like @param or
     @returns are used to further enhance the documentation. These 
     tags are documented in the manual of the Doxygen software package
-    (see http://www.doxygen.org). The format is largely compatible to Javadoc.
-    Do not try to use HTML.
+    (see http://www.doxygen.org). The format is largely compatible to
+    Javadoc. HTML tags should not be used.
 
     Since the function name does not appear in the leading comment, it
     is important to make it standout by moving it at the very beginning
