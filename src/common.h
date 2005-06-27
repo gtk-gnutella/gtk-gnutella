@@ -229,11 +229,12 @@ do {				\
 #define CMP(a, b) ((a) == (b) ? 0 : (a) > (b) ? 1 : (-1))
 
 /**
- * STATIC_ASSERT() can be used to verify conditions at compile-time e.g., that
- * an array has a minimum size. This is better than a run-time assertion
- * because the condition is checked even if the code would seldomly or never
- * reached at run-time. However, this can only be used for static conditions
- * which can be verified at compile-time.
+ * STATIC_ASSERT() can be used to verify conditions at compile-time. For
+ * example, it can be used to ensure that an array has a minimum or exact
+ * size. This is better than a run-time assertion because the condition is
+ * checked even if the code would seldomly or never reached at run-time.
+ * However, this can only be used for static conditions which can be verified
+ * at compile-time.
  *
  * N.B.: The trick is using a switch case, if the term is false
  *	 there are two cases for zero - which is invalid C. This cannot be
