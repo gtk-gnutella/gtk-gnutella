@@ -1,6 +1,19 @@
 SHORT GUIDE ABOUT TRANSLATING MESSAGES
 $Id$
 
+0. LICENSE AND AUTHORS 
+======================
+
+This document is provided under the Creative Commons Public License
+2.5 (http://creativecommons.org/licenses/by/2.5/). It is based on
+the contributions by the following authors:
+
+Christian Biere (cbiere at users.sourceforge.net)
+Thomas Schuerger (trancetip at users.sourceforge.net)
+Murphy (eqom14 at users.sourceforge.net)
+Daichi Kawahata (daichik at users.sourceforge.net)
+
+
 1. INTRO
 ========
 
@@ -169,7 +182,7 @@ example, if you are from the Netherlands:
 
 The messages may be changed from release to release and with growing
 functionality there will be more messages that should be translated.
-Thus, translation isn't something static. Every few month there will
+Thus, translation isn't something static. Every few months there will
 be a few more sentences to be translated.
 
 To update the PO files to reflect any changes to translatable strings
@@ -218,3 +231,4 @@ http://ftp.ics.uci.edu/pub/websoft/wwwstat/country-codes.txt
 
 Freedesktop.org desktop entry spec:
 http://www.freedesktop.org/standards/desktop-entry-spec/
+
