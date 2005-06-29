@@ -72,32 +72,32 @@
  */
 
 struct bsched {
-	GTimeVal last_period;				/**< Last time we ran our period */
-	GList *sources;						/**< List of bio_source_t */
-	GSList *stealers;					/**< List of bsched_t stealing bw */
-	gchar *name;						/**< Name, for tracing purposes */
-	gint count;							/**< Amount of sources */
-	gint type;							/**< Scheduling type */
-	gint flags;							/**< Processing flags */
-	gint period;						/**< Fixed scheduling period, in ms */
-	gint min_period;					/**< Minimal period without correction */
-	gint max_period;					/**< Maximal period without correction */
-	gint period_ema;					/**< EMA of period, in ms */
-	gint bw_per_second;					/**< Configure bandwidth in bytes/sec */
-	gint bw_max;						/**< Max bandwidth per period */
-	gint bw_actual;						/**< Bandwidth used so far in period */
-	gint bw_last_period;				/**< Bandwidth used last period */
-	gint bw_last_capped;				/**< Bandwidth capped last period */
-	gint bw_slot;						/**< Basic per-source bandwidth lot */
-	gint bw_ema;						/**< EMA of bandwidth really used */
-	gint bw_stolen;						/**< Amount we stole this period */
-	gint bw_stolen_ema;					/**< EMA of stolen bandwidth */
-	gint bw_delta;						/**< Running diff of actual vs. theoric */
-	gint bw_unwritten;					/**< Data that we could not write */
-	gint bw_capped;						/**< Bandwidth we refused to sources */
-	gint last_used;						/**< Nb of active sources last period */
-	gint current_used;					/**< Nb of active sources this period */
-	gboolean looped;					/**< True when looped once over sources */
+	GTimeVal last_period;			/**< Last time we ran our period */
+	GList *sources;					/**< List of bio_source_t */
+	GSList *stealers;				/**< List of bsched_t stealing bw */
+	gchar *name;					/**< Name, for tracing purposes */
+	gint count;						/**< Amount of sources */
+	gint type;						/**< Scheduling type */
+	gint flags;						/**< Processing flags */
+	gint period;					/**< Fixed scheduling period, in ms */
+	gint min_period;				/**< Minimal period without correction */
+	gint max_period;				/**< Maximal period without correction */
+	gint period_ema;				/**< EMA of period, in ms */
+	gint bw_per_second;				/**< Configure bandwidth in bytes/sec */
+	gint bw_max;					/**< Max bandwidth per period */
+	gint bw_actual;					/**< Bandwidth used so far in period */
+	gint bw_last_period;			/**< Bandwidth used last period */
+	gint bw_last_capped;			/**< Bandwidth capped last period */
+	gint bw_slot;					/**< Basic per-source bandwidth lot */
+	gint bw_ema;					/**< EMA of bandwidth really used */
+	gint bw_stolen;					/**< Amount we stole this period */
+	gint bw_stolen_ema;				/**< EMA of stolen bandwidth */
+	gint bw_delta;					/**< Running diff of actual vs. theoric */
+	gint bw_unwritten;				/**< Data that we could not write */
+	gint bw_capped;					/**< Bandwidth we refused to sources */
+	gint last_used;					/**< Nb of active sources last period */
+	gint current_used;				/**< Nb of active sources this period */
+	gboolean looped;				/**< True when looped once over sources */
 };
 
 /*
@@ -117,7 +117,8 @@ struct bsched {
 #define BS_F_NOBW			0x00000008	/**< No more bandwidth */
 #define BS_F_FROZEN_SLOT	0x00000010	/**< Value of `bw_slot' is frozen */
 #define BS_F_CHANGED_BW		0x00000020	/**< Bandwidth limit changed */
-#define BS_F_CLEARED		0x00000040	/**< Ran clear_active once on scheduler */
+#define BS_F_CLEARED		0x00000040	/**< Ran clear_active once on sched. */
+#define BS_F_DATA_READ		0x00000080	/**< Data read from one source */
 
 #define BS_F_RW				(BS_F_READ|BS_F_WRITE)
 
