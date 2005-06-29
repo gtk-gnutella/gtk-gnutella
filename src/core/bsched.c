@@ -1630,6 +1630,7 @@ bio_read(bio_source_t *bio, gpointer data, size_t len)
 	if (r > 0) {
 		bsched_bw_update(bio->bs, r, amount);
 		bio->bw_actual += r;
+		bio->bs->flags |= BS_F_DATA_READ;
 	}
 
 	return r;
@@ -1673,8 +1674,10 @@ bws_read(bsched_t *bs, wrap_io_t *wio, gpointer data, size_t len)
 
 	g_assert(len <= INT_MAX);
 	r = wio->read(wio, data, len);
-	if (r > 0)
+	if (r > 0) {
 		bsched_bw_update(bs, r, len);
+		bs->flags |= BS_F_DATA_READ;
+	}
 
 	return r;
 }
@@ -1688,6 +1691,7 @@ bws_udp_count_read(gint len)
 	gint count = BW_UDP_MSG + len;
 
 	bsched_bw_update(bws.gin_udp, count, count);
+	bws.gin_udp->flags |= BS_F_DATA_READ;
 }
 
 /**
@@ -2218,6 +2222,7 @@ bsched_timer(void)
 	GSList *l;
 	gint out_used = 0;
 	gint in_used = 0;
+	gboolean read_data = FALSE;
 
 	g_get_current_time(&tv);
 
@@ -2259,7 +2264,13 @@ bsched_timer(void)
 
 	for (l = bws_in_list; l; l = g_slist_next(l)) {
 		bsched_t *bs = (bsched_t *) l->data;
+
 		in_used += (gint) (bs->bw_last_period * 1000.0 / bs->period_ema);
+
+		if (bs->flags & BS_F_DATA_READ) {
+			read_data = TRUE;
+			bs->flags &= ~BS_F_DATA_READ;
+		}
 	}
 
 	bws_in_ema += (in_used >> 6) - (bws_in_ema >> 6);		/* Slow EMA */
@@ -2267,7 +2278,14 @@ bsched_timer(void)
 	if (dbg > 4)
 		printf("Incoming b/w EMA = %d bytes/s\n", bws_in_ema);
 
-	if (in_used)
+	/*
+	 * Don't simply rely on in_used > 0 since we fake input data when
+	 * sockets are closed or timeout on connection.  We really want to know
+	 * whether there has been actual data read.
+	 *		--RAM, 2005-06-29
+	 */
+
+	if (read_data)
 		inet_read_activity();
 }
 
