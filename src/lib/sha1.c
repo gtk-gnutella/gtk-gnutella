@@ -57,19 +57,22 @@
  *      implementation only works with messages with a length that is
  *      a multiple of the size of an 8-bit character.
  *
+ * @note
+ * This file comes from RFC 3174. Inclusion in gtk-gnutella is:
+ *
  * @author Raphael Manfredi
  * @date 2002-2003
  */
 
 #include "common.h"
 #include "sha1.h"
-#include "misc.h"		/* For RCSID */
+#include "misc.h"			/* For RCSID */
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
 /**
- *  Define the SHA1 circular left shift macro
+ *  Define the SHA1 circular left shift macro.
  */
 #define SHA1CircularShift(bits,word) \
                 (((word) << (bits)) | ((word) >> (32-(bits))))
@@ -265,17 +268,17 @@ int SHA1Input(    SHA1Context    *context,
  */
 void SHA1ProcessMessageBlock(SHA1Context *context)
 {
-    const guint32 K[] =    {       /* Constants defined in SHA-1   */
+    const guint32 K[] =    {       /* Constants defined in SHA-1 */
                             0x5A827999,
                             0x6ED9EBA1,
                             0x8F1BBCDC,
                             0xCA62C1D6
                             };
-    int           t;                /**< Loop counter              */
-    guint32      temp;              /**< Temporary word value      */
-    guint32      W[80];             /**< Word sequence             */
-    guint32      A, B, C, D, E;     /**< Word buffers              */
-    guint32      *wp;               /**< Pointer in word sequence  */
+    int          t;                 /* Loop counter              */
+    guint32      temp;              /* Temporary word value      */
+    guint32      W[80];             /* Word sequence             */
+    guint32      A, B, C, D, E;     /* Word buffers              */
+    guint32      *wp;               /* Pointer in word sequence	 */
 
     /*
      *  Initialize the first 16 words in the array W

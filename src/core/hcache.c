@@ -280,6 +280,7 @@ hcache_ht_get(guint32 ip, guint16 port, gnet_host_t **h, hostcache_entry_t **e)
 
 /**
  * Add host to the hash table host cache.
+ *
  * Also creates a metadata struct unless the host was added to HL_CAUGHT
  * in which case we cannot know anything about the host. Yet we cannot
  * assert that HL_CAUGHT never contains a host with metadata because when

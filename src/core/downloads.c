@@ -153,7 +153,7 @@ static struct {
 	gint change[DHASH_SIZE];		/**< Counts changes to the list */
 } dl_by_time;
 
-/*
+/**
  * To handle download meshes, where we only know the IP/port of the host and
  * not its GUID, we need to be able to locate the server.  We know that the
  * IP will not be a private one.
@@ -436,11 +436,11 @@ download_restore_state(void)
 	 * The order of the following calls matters.
 	 */
 
-	file_info_retrieve();					/**< Get all fileinfos */
-	file_info_scandir(save_file_path);		/**< Pick up orphaned files */
-	download_retrieve();					/**< Restore downloads */
-	file_info_spot_completed_orphans();		/**< 100% done orphans => fake dl. */
-	download_resume_bg_tasks();				/**< Reschedule SHA1 and moving */
+	file_info_retrieve();					/* Get all fileinfos */
+	file_info_scandir(save_file_path);		/* Pick up orphaned files */
+	download_retrieve();					/* Restore downloads */
+	file_info_spot_completed_orphans();		/* 100% done orphans => fake dl. */
+	download_resume_bg_tasks();				/* Reschedule SHA1 and moving */
 	file_info_store();
 }
 
@@ -995,7 +995,7 @@ download_server_nopush(gchar *guid, guint32 ip, guint16 port)
 		return FALSE;
 
 	/*
-	 * @returns true if we already made a direct connection to this server.
+	 * Rreturns true if we already made a direct connection to this server.
 	 */
 
 	return server->attrs & DLS_A_PUSH_IGN;
@@ -1315,12 +1315,12 @@ download_info_reget(struct download *d)
 	if (DOWNLOAD_IS_VISIBLE(d))
 		gcu_download_gui_remove(d);
 
-	downloads_with_name_dec(fi->file_name);		/**< File name can change! */
-	file_info_clear_download(d, TRUE);			/**< `d' might be running */
-	file_size_known = fi->file_size_known;		/**< This should not change */
+	downloads_with_name_dec(fi->file_name);		/* File name can change! */
+	file_info_clear_download(d, TRUE);			/* `d' might be running */
+	file_size_known = fi->file_size_known;		/* This should not change */
 
 	fi->lifecount--;
-	file_info_remove_source(fi, d, FALSE);		/**< Keep it around for others */
+	file_info_remove_source(fi, d, FALSE);		/* Keep it around for others */
 
 	fi = file_info_get(
 		d->file_name, save_file_path, d->file_size, d->sha1,
@@ -2312,6 +2312,7 @@ download_push_remove(struct download *d)
 
 /**
  * Check whether download should be ignored, and stop it immediately if it is.
+ *
  * @returns whether download was stopped (i.e. if it must be ignored).
  */
 static gboolean
@@ -2440,12 +2441,12 @@ download_start_prepare_running(struct download *d)
 	 *		--RAM, 12/01/2002
 	 */
 
-	d->skip = 0;			/**< We're setting it here only if not swarming */
-	d->keep_alive = FALSE;	/**< Until proven otherwise by server's reply */
-	d->got_giv = FALSE;		/**< Don't know yet, assume no GIV */
+	d->skip = 0;			/* We're setting it here only if not swarming */
+	d->keep_alive = FALSE;	/* Until proven otherwise by server's reply */
+	d->got_giv = FALSE;		/* Don't know yet, assume no GIV */
 
-	d->flags &= ~DL_F_OVERLAPPED;		/**< Clear overlapping indication */
-	d->flags &= ~DL_F_SHRUNK_REPLY;		/**< Clear server shrinking indication */
+	d->flags &= ~DL_F_OVERLAPPED;		/* Clear overlapping indication */
+	d->flags &= ~DL_F_SHRUNK_REPLY;		/* Clear server shrinking indication */
 
 	/*
 	 * If this file is swarming, the overlapping size and skipping offset
@@ -2647,6 +2648,7 @@ download_bad_source(struct download *d)
 
 /**
  * Establish asynchronous connection to remote server.
+ *
  * @returns connecting socket.
  */
 static struct gnutella_socket *
@@ -2682,7 +2684,7 @@ download_connect(struct download *d)
 }
 
 /**
- * (Re)start a stopped or queued download
+ * (Re)start a stopped or queued download.
  */
 void
 download_start(struct download *d, gboolean check_allowed)
@@ -2797,7 +2799,7 @@ download_start(struct download *d, gboolean check_allowed)
 }
 
 /**
- * Pick up new downloads from the queue as needed
+ * Pick up new downloads from the queue as needed.
  */
 void
 download_pickup_queued(void)
@@ -3041,7 +3043,7 @@ attempt_retry:
 }
 
 /**
- * Direct download failed, let's try it with a push request
+ * Direct download failed, let's try it with a push request.
  */
 void
 download_fallback_to_push(struct download *d,
@@ -3116,11 +3118,12 @@ download_fallback_to_push(struct download *d,
  */
 
 /**
- * Create a new download
+ * Create a new download.
  *
  * When `interactive' is false, we assume that `file' was already duped,
  * and take ownership of the pointer.
  *
+ * @attention
  * NB: If `record_index' == URN_INDEX, and a `sha1' is also supplied, then
  * this is our convention for expressing a /uri-res/N2R? download URL.
  * However, we don't forbid 0 as a valid record index if it does not
@@ -3140,7 +3143,7 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	gchar *file_name;
 	gchar *file_uri = NULL;
 	struct dl_file_info *fi;
-	gboolean server_created = FALSE;		/**< For assertions only */
+	gboolean server_created = FALSE;		/* For assertions only */
 
 	g_assert(size == 0 || file_size_known);
 
@@ -3339,7 +3342,7 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 
 
 /**
- * Automatic download request
+ * Automatic download request.
  */
 void
 download_auto_new(gchar *file, filesize_t size, guint32 record_index,
@@ -3477,7 +3480,7 @@ download_clone(struct download *d)
 }
 
 /**
- * Search has detected index change in queued download
+ * Search has detected index change in queued download.
  */
 void
 download_index_changed(guint32 ip, guint16 port, gchar *guid,
@@ -3563,6 +3566,7 @@ download_index_changed(guint32 ip, guint16 port, gchar *guid,
 
 /**
  * Create a new download, usually called from an interactive user action.
+ *
  * @return whether download was created.
  */
 gboolean
@@ -3859,6 +3863,7 @@ download_requeue(struct download *d)
 
 /**
  * Try to setup the download to use the push proxies available on the server.
+ *
  * @returns TRUE is we can use a push proxy.
  */
 static gboolean
@@ -4603,6 +4608,7 @@ download_moved_permanently(struct download *d, header_t *header)
 
 /**
  * Extract server name from headers.
+ *
  * @returns whether new server name was found.
  */
 static gboolean
@@ -4642,6 +4648,7 @@ download_get_server_name(struct download *d, header_t *header)
 
 /**
  * Check status code from status line.
+ *
  * @return TRUE if we can continue.
  */
 static gboolean
@@ -4782,7 +4789,7 @@ extract_retry_after(const header_t *header)
 	return delay;
 }
 
-/*
+/**
  * check_date
  *
  * Look for a Date: header in the reply and use it to update our skew.
@@ -4920,6 +4927,7 @@ check_xhost(struct download *d, const header_t *header)
 
 /**
  * Check for X-Gnutella-Content-URN.
+ *
  * @returns FALSE if we cannot continue with the download.
  */
 static gboolean
@@ -5161,7 +5169,7 @@ check_push_proxies(struct download *d, header_t *header)
 }
 
 /**
- * Partial File Sharing Protocol (PFSP) -- client-side
+ * Partial File Sharing Protocol (PFSP) -- client-side.
  *
  * If there is an X-Available-Range header, parse it to know
  * whether we can spot a range that is available and which we
@@ -6482,6 +6490,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
  * Send the HTTP request for a download, then prepare I/O reading callbacks
  * to read the incoming status line and following headers.
  *
+ * @attention
  * NB: can stop the download, but does not return anything.
  */
 void
@@ -8067,7 +8076,7 @@ download_get_http_req_percent(const struct download *d)
 				* 100 / http_buffer_length(r);
 }
 
-/*
+/**
  * download_something_to_clear
  *
  * Checks unqueued list to see if there are any downloads that are finished and

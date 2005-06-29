@@ -25,7 +25,7 @@
  * @ingroup core
  * @file
  *
- * Needs short description here.
+ * Needs brief description here.
  *
  * Functions for keeping a whitelist of nodes we always allow in,
  * and whom we try to keep a connection to.

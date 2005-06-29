@@ -51,7 +51,7 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-/**
+/*
  * Private attributes for the link.
  */
 struct attr {
@@ -124,6 +124,7 @@ error:
 
 /**
  * Initialize the driver.
+ *
  * Always succeeds, so never returns NULL.
  */
 static gpointer

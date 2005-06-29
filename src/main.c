@@ -554,7 +554,7 @@ main(int argc, char **argv)
 	}
 
 	for (i = 3; i < 256; i++)
-		close(i);				/* Just in case */
+		close(i);					/* Just in case */
 
 	set_signal(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
 	set_signal(SIGPIPE, SIG_IGN);
@@ -590,9 +590,9 @@ main(int argc, char **argv)
 	cq_init();
 	tsync_init();
 	watcher_init();
-	hcache_init(); /* before settings_init() */
+	hcache_init();			/* before settings_init() */
 	settings_init();
-    hcache_retrieve_all(); /* after settings_init() */
+    hcache_retrieve_all();	/* after settings_init() */
 	hostiles_init();
 	bogons_init();
 	gip_init();

@@ -121,8 +121,8 @@ g_list_delete_link(GList *l, GList *lnk)
 
 #endif /* !TRACK_MALLOC */
 
-/*
- * DO_VSNPRINTF
+/**
+ * @def DO_VSNPRINTF
  *
  * Perform the vsnprintf() operation for the gm_vsnprintf() and gm_snprintf()
  * routines.
@@ -360,7 +360,7 @@ gm_sanitize_filename(const gchar *filename,
 	q = locale_to_utf8_normalized(filename, norm);
 	s = q;
 
-/* Maximum bytes in filename i.e., including NUL */
+/** Maximum bytes in filename i.e., including NUL */
 #define	FILENAME_MAXBYTES 256
 
 	/* Make sure the filename isn't too long */

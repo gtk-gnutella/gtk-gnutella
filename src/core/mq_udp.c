@@ -62,12 +62,12 @@ struct mq_udp_info {
 	gnet_host_t to;		/**< Destination */
 };
 
-/*
+/**
  * The extended meta data are used when the enqueued message is already
  * extended.  The structural equivalence with `mq_udp_info' is critical.
  */
 struct mq_udp_info_extended {
-	gnet_host_t to;		/* Destination */
+	gnet_host_t to;		/**< Destination */
 	/* Original free routine info */
 	pmsg_free_t orig_free;
 	gpointer orig_arg;

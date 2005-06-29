@@ -27,7 +27,7 @@
  * @ingroup core
  * @file
  *
- * Needs short description here.
+ * Needs brief description here.
  *
  * @author Richard Eckart
  * @date 2001-2003

@@ -113,7 +113,8 @@ gip_add_cidr(guint32 ip, guint bits, gpointer udata)
 
 /**
  * Load geographic IP data from the supplied FILE.
- * @returns the amount of entries loaded.
+ *
+ * @return The amount of entries loaded.
  */
 static gint
 gip_load(FILE *f)
@@ -273,12 +274,14 @@ gip_changed(const gchar *filename, gpointer unused)
 }
 
 /**
- * Loads the geo-ip.txt into memory, choosing the first file we find
- * among the several places we look at, typically:
+ * Loads the geo-ip.txt into memory.
  *
- *    ~/.gtk-gnutella/geo-ip.txt
- *    /usr/share/gtk-gnutella/geo-ip.txt
- *    /home/src/gtk-gnutella/geo-ip.txt
+ * Choosing the first file we find among the several places we look at,
+ * typically:
+ *
+ *		-# ~/.gtk-gnutella/geo-ip.txt
+ *		-# /usr/share/gtk-gnutella/geo-ip.txt
+ *		-# /home/src/gtk-gnutella/geo-ip.txt
  *
  * The selected file will then be monitored and a reloading will occur
  * shortly after a modification.

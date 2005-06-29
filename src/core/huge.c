@@ -92,8 +92,7 @@ struct sha1_cache_entry {
     time_t mtime;					/**< Last modification time         */
     gchar digest[SHA1_RAW_SIZE];	/**< SHA1 digest as a binary string */
     gboolean shared;				/**< There's a known entry for this
-                                     *   file in the share library
-                                     */
+                                         file in the share library      */
 };
 
 static GHashTable *sha1_cache = NULL;
@@ -160,7 +159,7 @@ add_volatile_cache_entry(const char *filename, filesize_t size, time_t mtime,
 	g_hash_table_insert(sha1_cache, new_entry->file_name, new_entry);
 }
 
-/* Disk cache */
+/** Disk cache */
 
 static const char sha1_persistent_cache_file_header[] =
 "#\n"
@@ -264,10 +263,12 @@ dump_cache(void)
 }
 
 /**
- * This function is used to read the disk cache into memory. It must be passed
- * one line from the cache (ending with '\n'). It performs all the
- * syntactic processing to extract the fields from the line and calls
- * add_volatile_cache_entry to append the record to the in-memory cache.
+ * This function is used to read the disk cache into memory.
+ *
+ * It must be passed one line from the cache (ending with '\n'). It
+ * performs all the syntactic processing to extract the fields from
+ * the line and calls add_volatile_cache_entry() to append the record
+ * to the in-memory cache.
  */
 static void
 parse_and_append_cache_entry(char *line)
@@ -398,7 +399,8 @@ sha1_read_cache(void)
 
 static gpointer sha1_task = NULL;
 
-/* This is a file waiting either for the digest to be computer, or
+/**
+ * This is a file waiting either for the digest to be computer, or
  * when computed to be retrofit into the share record.
  */
 
@@ -417,14 +419,14 @@ struct file_sha1 {
 
 /* Two useful lists */
 
-/*
+/**
  * When a hash is requested for a file and is unknown, it is first stored onto
  * this stack, waiting to be processed.
  */
 
 static struct file_sha1 *waiting_for_sha1_computation = NULL;
 
-/*
+/**
  * When the hash for a file has been computed but cannot be set into the struct
  * shared_file because the function shared_file returned SHARE_REBUILDING (for
  * example), the corresponding struct file_hash is stored into this stack, until
@@ -983,7 +985,7 @@ request_sha1(struct shared_file *sf)
  **/
 
 /**
- * Initialize SHA1 module
+ * Initialize SHA1 module.
  */
 void
 huge_init(void)
@@ -1037,6 +1039,7 @@ huge_close(void)
 
 /**
  * Test whether the SHA1 in its base32/binary form is improbable.
+ *
  * This is used to detect "urn:sha1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" and
  * things using the same pattern with other letters, as being rather
  * improbable hashes.

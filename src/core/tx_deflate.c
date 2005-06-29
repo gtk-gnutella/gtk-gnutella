@@ -234,6 +234,7 @@ deflate_rotate_and_send(txdrv_t *tx)
 
 /**
  * Service routine for the compressing stage.
+ *
  * Called by lower layer when it is ready to process more data.
  */
 static void
@@ -321,6 +322,7 @@ deflate_service(gpointer data)
 
 /**
  * Flush compression within filling buffer.
+ *
  * @return success status, failure meaning we shutdown.
  */
 static gboolean
@@ -404,6 +406,7 @@ retry:
 
 /**
  * Called from the callout queue when the Nagle timer expires.
+ *
  * If we can send the buffer, flush it and send it.  Otherwise, reschedule.
  */
 static void

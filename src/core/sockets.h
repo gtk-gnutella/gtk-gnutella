@@ -79,7 +79,7 @@ enum socket_direction {
 	SOCK_CONN_PROXY_OUTGOING
 };
 
-/*
+/**
  * Connection types.
  */
 
@@ -146,7 +146,7 @@ struct gnutella_socket {
 #define SOCK_F_TCP				0x80000000 /**< Is a TCP socket */
 
 /**
- * Access macros
+ * Access macros.
  */
 
 #define sock_is_corked(x)		((x)->corked)

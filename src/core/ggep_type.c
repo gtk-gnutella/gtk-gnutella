@@ -133,9 +133,10 @@ ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
 /**
  * Extract vector of IP:port alternate locations.
  *
- * The `hvec' pointer is filled with a dynamically allocated vector, and
- * the `hvcnt' is filled with the size of the allocated vector (number of
- * items).
+ * @param `exv'		no brief description.
+ * @param `hvec'	pointer is filled with a dynamically allocated vector.
+ * @param `hvcnt'	is filled with the size of the allocated vector (number
+ *					of items).
  *
  * Unless GGEP_OK is returned, no memory allocation takes place.
  */
@@ -228,6 +229,7 @@ ggept_push_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
 
 /**
  * Extract hostname of the "HNAME" extension into the supplied buffer.
+ *
  * @returns extraction status: only when GGEP_OK is returned will we have
  * extracted something in the supplied buffer.
  */
@@ -303,6 +305,7 @@ ggept_lf_extract(extvec_t *exv, guint64 *filesize)
  *
  * @param v the value to encode.
  * @param data must point to a sufficiently large buffer.
+ *
  * @return the length in bytes of the encoded variable-length integer.
  */
 static inline gint
@@ -319,6 +322,7 @@ ggep_vlint_encode(guint64 v, gchar *data)
 
 /**
  * Encode `filesize' for the GGEP "LF" extension into `data'.
+ *
  * @return the amount of chars written.
  */
 gint
@@ -362,6 +366,7 @@ ggept_du_extract(extvec_t *exv, guint32 *uptime)
 
 /**
  * Encode `uptime' for the GGEP "DU" extension into `data'.
+ *
  * @return the amount of chars written.
  */
 gint

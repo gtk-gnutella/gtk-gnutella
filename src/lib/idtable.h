@@ -27,7 +27,7 @@
  * @ingroup lib
  * @file
  *
- * Needs short description here.
+ * Needs brief description here.
  *
  * The idtable provides a automatically growing table which can resolve
  * ids to values very fast. The ids are issues by the table and internally

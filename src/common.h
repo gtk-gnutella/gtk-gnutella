@@ -249,6 +249,7 @@ do {				\
  * However, this can only be used for static conditions which can be verified
  * at compile-time.
  *
+ * @attention
  * N.B.: The trick is using a switch case, if the term is false
  *	 there are two cases for zero - which is invalid C. This cannot be
  *	 used outside a function.

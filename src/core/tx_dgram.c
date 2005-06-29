@@ -93,6 +93,7 @@ is_writable(gpointer data, gint unused_source, inputevt_cond_t cond)
 
 /**
  * Initialize the driver.
+ *
  * Always succeeds, so never returns NULL.
  */
 static gpointer
@@ -204,6 +205,7 @@ tx_dgram_write_error(txdrv_t *tx, gnet_host_t *to, const char *func)
 
 /**
  * Send buffer datagram to specified destination `to'.
+ *
  * @returns amount of bytes written, or -1 on error with errno set.
  */
 static ssize_t

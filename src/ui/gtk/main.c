@@ -116,7 +116,7 @@ gui_init_window_title(void)
 }
 
 /**
- * The contents of the navigation tree menu in exact order
+ * The contents of the navigation tree menu in exact order.
  */
 static const struct {
 	gboolean	parent;	/**< Children have the last "TRUE" node as parent */
@@ -159,9 +159,9 @@ static void
 gui_init_menu(void)
 {
 	static GType types[] = {
-		G_TYPE_STRING,	/**< Label */
-		G_TYPE_INT,		/**< Notebook page */
-		G_TYPE_INT		/**< Menu entry ID (persistent between releases) */
+		G_TYPE_STRING,	/* Label */
+		G_TYPE_INT,		/* Notebook page */
+		G_TYPE_INT		/* Menu entry ID (persistent between releases) */
 	};
 	GtkTreeView	*treeview;
 	GtkTreeIter	parent;
@@ -213,6 +213,7 @@ gui_init_menu(void)
 
 /**
  * Handles main window UI joining.
+ *
  * Creates all dependent "tab" windows and merges them into
  * the main notebook.
  */
@@ -438,11 +439,13 @@ gui_create_dlg_about(void)
 
 /**
  * Searches for the gktrc file to use. Order in which they are scanned:
- * - $HOME/.gtkrc
- * - $HOME/.gtk/gtkrc
- * - $HOME/.gtk1/gtkrc ($HOME/.gtk2/gtkrc if GTK2 interface is used)
- * - $GTK_GNUTELLA_DIR/gtkrc
- * - ./gtkrc
+ *
+ *	- $HOME/.gtkrc
+ *	- $HOME/.gtk/gtkrc
+ *	- $HOME/.gtk1/gtkrc ($HOME/.gtk2/gtkrc if GTK2 interface is used)
+ *	- $GTK_GNUTELLA_DIR/gtkrc
+ *	- ./gtkrc
+ *
  * Where the last one can overrule settings from earlier resource files.
  */
 void

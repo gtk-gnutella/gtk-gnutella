@@ -604,6 +604,7 @@ ggep_stream_packv(ggep_stream_t *gs,
 
 /**
  * Pack extension data in initialized stream.
+ *
  * The extension's name is `id' and its payload is represented by `plen'
  * bytes starting at `payload'.
  *

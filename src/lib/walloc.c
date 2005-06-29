@@ -52,7 +52,7 @@ RCSID("$Id$");
 #endif
 
 #ifdef TRACK_ZALLOC
-#undef walloc					/* We want to define the real routines */
+#undef walloc				/* We want to define the real routines */
 #undef walloc0
 #undef wrealloc
 #endif

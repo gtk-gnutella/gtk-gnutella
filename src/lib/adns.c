@@ -46,7 +46,7 @@ RCSID("$Id$");
 
 #include "override.h"		/* Must be the last header included */
 
-static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
+static guint32 common_dbg = 0;	/**< @bug XXX -- need to init lib's props --RAM */
 
 /* private data types */
 
@@ -65,14 +65,18 @@ typedef struct adns_async_write {
 } adns_async_write_t;
 
 typedef struct adns_cache_entry {
-	gchar *hostname; /**< atom */
+	gchar *hostname;		/**< atom */
     guint32 ip;
 	time_t timestamp;
 } adns_cache_entry_t;
 
-/** Cache entries will expire after ADNS_CACHE_TIMEOUT seconds */
+/**
+ * Cache entries will expire after ADNS_CACHE_TIMEOUT seconds.
+ */
 #define ADNS_CACHE_TIMEOUT (5 * 60)
-/** Cache max. ADNS_CACHED_NUM of adns_cache_entry_t entries */
+/**
+ * Cache max. ADNS_CACHED_NUM of adns_cache_entry_t entries.
+ */
 #define ADNS_CACHED_NUM (1024)
 
 #define ADNS_PROCESS_TITLE "DNS helper for gtk-gnutella"
@@ -96,7 +100,9 @@ static gboolean is_helper = FALSE;		/**< Are we the DNS helper process? */
 
 static gboolean adns_helper_alive = TRUE;
 
-/* private macros */
+/**
+ * Private macros.
+ */
 
 #define CLOSE_IF_VALID(fd)	\
 do {						\
@@ -106,7 +112,9 @@ do {						\
 	} 						\
 } while(0)
 
-/* private functions */
+/**
+ * Private functions.
+ */
 
 static adns_cache_t *
 adns_cache_init(void)
@@ -125,7 +133,7 @@ adns_cache_init(void)
 }
 
 /**
- *	Frees all memory allocated by the cache and returns NULL.
+ * Frees all memory allocated by the cache and returns NULL.
  */
 adns_cache_t *
 adns_cache_free(adns_cache_t *cache)
@@ -281,7 +289,7 @@ adns_do_transfer(gint fd, gpointer buf, size_t len, gboolean do_write)
 }
 
 /**
- * read the complete buffer ``buf'' of size ``len'' from file descriptor ``fd''
+ * Read the complete buffer ``buf'' of size ``len'' from file descriptor ``fd''
  *
  * @return TRUE on success, FALSE if the operation failed
  */
@@ -292,7 +300,7 @@ adns_do_read(gint fd, gpointer buf, size_t len)
 }
 
 /**
- * write the complete buffer ``buf'' of size ``len'' to file descriptor ``fd''
+ * Write the complete buffer ``buf'' of size ``len'' to file descriptor ``fd''
  *
  * @return TRUE on success, FALSE if the operation failed
  */
@@ -303,7 +311,7 @@ adns_do_write(gint fd, gpointer buf, size_t len)
 }
 
 /**
- * copies user_callback and user_data from the query buffer to the
+ * Copies user_callback and user_data from the query buffer to the
  * reply buffer. This function won't fail. However, if gethostbyname()
  * fails ``reply->ip'' will be set to zero.
  */
@@ -330,6 +338,7 @@ adns_gethostbyname(const adns_query_t *query, adns_query_t *reply)
 
 /**
  * The ``main'' function of the adns helper process (server).
+ *
  * Simply reads requests (queries) from fd_in, performs a DNS lookup for it
  * and writes the result to fd_out. All operations should be blocking. Exits
  * in case of non-recoverable error during read or write.
@@ -660,14 +669,15 @@ adns_send_query(const adns_query_t *query)
 }
 
 /**
- * Creates a DNS resolve query for ``hostname''. The given function
- * ``user_callback'' (which MUST NOT be NULL) will be invoked with
- * the resolved IP address and ``user_data'' as its parameters. The
- * IP address 0.0.0.0 i.e., ``(guint32) 0'' is used to indicate a
- * failure. In case the hostname is given as an IP string, it will
- * be directly converted and the callback immediately invoked. If
- * the adns helper process is ``out of service'' the query will be
- * resolved synchronously.
+ * Creates a DNS resolve query for ``hostname''.
+ *
+ * The given function ``user_callback'' (which MUST NOT be NULL)
+ * will be invoked with the resolved IP address and ``user_data''
+ * as its parameters. The IP address 0.0.0.0 i.e., ``(guint32) 0''
+ * is used to indicate a failure. In case the hostname is given as
+ * an IP string, it will be directly converted and the callback
+ * immediately invoked. If the adns helper process is ``out of service''
+ * the query will be resolved synchronously.
  *
  * @return TRUE if the resolution is asynchronous i.e., the callback
  * will be called AFTER adns_resolve() returned. If the resolution is

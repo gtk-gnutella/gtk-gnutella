@@ -92,9 +92,9 @@ static void crc32_gen_crc_table(void)
  *
  * Update the CRC on the data block one byte at a time
  *
- * @param crc_accum	no document.
- * @param data		no document.
- * @param len		no document.
+ * @param crc_accum	no brief description.
+ * @param data		no brief description.
+ * @param len		no brief description.
  *
  */
 guint32 crc32_update_crc(guint32 crc_accum, const gchar *data, gint len)

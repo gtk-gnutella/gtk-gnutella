@@ -142,7 +142,7 @@ static struct {
 static gboolean find_message(
 	const gchar *muid, guint8 function, struct message **m);
 
-/*
+/**
  * "banned" GUIDs for push routing.
  *
  * The following GUIDs are so common that it does not make sense to
@@ -155,7 +155,7 @@ GHashTable *ht_banned_push = NULL;
 
 #define BANNED_PUSH_COUNT	G_N_ELEMENTS(banned_push)
 
-/*
+/**
  * Push-proxy table.
  *
  * It maps a GUID to a node, so that we can easily send a push message
@@ -637,7 +637,7 @@ message_compare_func(gconstpointer a, gconstpointer b)
 }
 
 /**
- * Hashes message structures for storage in a hash table
+ * Hashes message structures for storage in a hash table.
  */
 static guint
 message_hash_func(gconstpointer key)
@@ -661,7 +661,7 @@ message_hash_func(gconstpointer key)
 }
 
 /**
- * Init function
+ * Init function.
  */
 void
 routing_init(void)
@@ -834,7 +834,7 @@ free_route_list(struct message *m)
 }
 
 /**
- * Erase a node from the routing tables
+ * Erase a node from the routing tables.
  */
 void
 routing_node_remove(struct gnutella_node *node)
@@ -1058,6 +1058,7 @@ check_hops_ttl(struct route_log *log, struct gnutella_node *sender)
  * case, it must be sent to the whole list of routes we have, and `target' will
  * be NULL.
  *
+ * @attention
  * NB: we're just *recording* routing information for the message into `dest',
  * we are not physically forwarding the message on the wire.
  *
@@ -1897,8 +1898,10 @@ route_proxy_remove(gchar *guid)
 
 /**
  * Add push-proxy route to GUID `guid', which is node `n'.
+ *
  * @returns TRUE on success, FALSE if there is a GUID conflict.
  *
+ * @attention
  * NB: assumes `guid' is already an atom linked somehow to `n'.
  */
 gboolean

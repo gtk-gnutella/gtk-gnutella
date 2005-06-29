@@ -46,7 +46,7 @@ RCSID("$Id$");
 
 #define MAX_STRING	1024	/**< Max length for substitution */
 
-static guint32 common_dbg = 0;	/* XXX -- need to init lib's props --RAM */
+static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
 
 static GHashTable *constants;
 static gchar *home;
@@ -135,10 +135,12 @@ insert_value(gchar *val, gchar *start, gint off,
 }
 
 /**
+ * Needs brief description here.
+ *
  * Substitutes variables from string:
  *
- * . The leading "~" is replaced by the home directory.
- * . Variables like "$PATH" or "${PATH}" are replaced by their value, as
+ * - The leading "~" is replaced by the home directory.
+ * - Variables like "$PATH" or "${PATH}" are replaced by their value, as
  *   fetched from the environment, or the empty string if not found.
  *
  * If given a NULL input, we return NULL.

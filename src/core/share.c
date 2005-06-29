@@ -2346,7 +2346,8 @@ shared_file_complete_by_sha1(gchar *sha1_digest)
  * Take a given binary SHA1 digest, and return the corresponding
  * shared_file if we have it.
  *
- * NOTA BENE: if the returned "shared_file" structure holds a non-NULL `fi',
+ * @attention
+ * NB: if the returned "shared_file" structure holds a non-NULL `fi',
  * then it means it is a partially shared file.
  */
 shared_file_t *

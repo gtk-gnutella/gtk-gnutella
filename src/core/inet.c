@@ -381,9 +381,11 @@ inet_got_incoming(guint32 ip)
 
 /**
  * Called when we got an incoming unsolicited datagram from another
- * computer at `ip', i.e. the datagram was sent directly to our listening
- * socket port, and not to a masqueraded port on the firewall opened because
- * we previously sent out an UDP datagram to a host and got its reply.
+ * computer at `ip'.
+ *
+ * i.e. the datagram was sent directly to our listening socket port,
+ * and not to a masqueraded port on the firewall opened because we
+ * previously sent out an UDP datagram to a host and got its reply.
  */
 static void
 inet_udp_got_unsolicited_incoming(void)
@@ -650,7 +652,7 @@ free_ip_record(gpointer key, gpointer value, gpointer unused_udata)
 	ip_record_free(ipr);
 }
 
-/*
+/**
  * Shutdown cleanup.
  */
 void

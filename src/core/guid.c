@@ -130,7 +130,7 @@ guid_gtkg_encode_version(guint major, guint minor, gboolean rel)
 }
 
 /**
- * Compute GUID's HEC over bytes 1..15
+ * Compute GUID's HEC over bytes 1..15.
  */
 static guint8
 guid_hec(const gchar *xuid)

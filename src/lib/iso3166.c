@@ -43,7 +43,7 @@ RCSID("$Id$");
 
 typedef struct {
 	gchar cc[3];
-	gchar country[1 /* Adjusted as necessary*/];
+	gchar country[1	/* Adjusted as necessary */];
 } iso3166_entry_t;
 
 /**
@@ -306,6 +306,7 @@ static iso3166_entry_t *iso3166_countries[NUM_CODES];
 
 /**
  * Decodes a valid 2-letter country code into an integer.
+ *
  * @return NULL integer isn't a validly encoded country code. If the country
  *		   is valid, a string pointing two the 2-letter code is returned. The
  *		   string is in a static buffer.
@@ -333,6 +334,7 @@ iso3166_decode_cc(gint code)
 
 /**
  * Encodes a valid 2-letter country code into an integer.
+ *
  * @return -1 if the given string is obviously not a 2-letter country code.
  */
 gint

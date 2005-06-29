@@ -87,9 +87,7 @@ struct subzone {
 static void zn_cram(zone_t *, gchar *, gint);
 static struct zone *zn_create(zone_t *, gint, gint);
 
-/*
- * Under REMAP_ZALLOC, do not define zalloc() and zfree().
- */
+/* Under REMAP_ZALLOC, do not define zalloc() and zfree(). */
 
 #ifndef REMAP_ZALLOC
 

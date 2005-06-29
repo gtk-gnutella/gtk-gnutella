@@ -45,6 +45,7 @@ void search_remove_got_results_listener(search_got_results_listener_t l);
  * the `refcount' is incremented, so that we don't free it and its content
  * until it has been "forgotten" that many times.
  *
+ * @attention
  * NB: we reuse the pure data structure gnet_host_vec_t from the core.  It
  *     is purely descriptive anyway.
  */
@@ -69,7 +70,7 @@ typedef struct results_set {
     GSList *schl;
 } results_set_t;
 
-/*
+/**
  * Host vector held in query hits.
  */
 typedef struct host_vec {

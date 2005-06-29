@@ -113,9 +113,9 @@ cq_free(cqueue_t *cq)
 static void
 ev_link(cqueue_t *cq, cevent_t *ev)
 {
-	struct chash *ch;		/**< Hashing bucket */
-	time_t trigger;			/**< Trigger time */
-	cevent_t *hev;			/**< To loop through the hash bucket */
+	struct chash *ch;		/* Hashing bucket */
+	time_t trigger;			/* Trigger time */
+	cevent_t *hev;			/* To loop through the hash bucket */
 
 	g_assert(valid_ptr(cq));
 	g_assert(valid_ptr(ev));
@@ -257,9 +257,11 @@ cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
 
 /**
  * Cancel a recorded timeout.
+ *
  * They give us the opaque handle we returned via cq_insert().
  *
- * NOTE: this routine is also used internally to remove an expired event from
+ * @note
+ * This routine is also used internally to remove an expired event from
  * the list before firing it off.
  */
 void

@@ -66,8 +66,8 @@ typedef struct pong_meta {
 #define PONG_META_HAS_LOC	0x08		/**< The "LOC" fields are valid */
 #define PONG_META_HAS_DU	0x10		/**< The "DU" fields are valid */
 
-/*
- * Global Functions
+/**
+ * Global Functions.
  */
 
 struct gnutella_msg_init *build_ping_msg(

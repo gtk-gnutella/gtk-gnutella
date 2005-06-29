@@ -1,10 +1,7 @@
 /*
  * $Id$
  *
- * This file comes from http://sourceforge.net/projects/tigertree/
- * Inclusion in gtk-gnutella is:
- *
- *   Copyright (c) 2003 - 2004, Jeroen Asselman
+ * Copyright (c) 2003-2004, Jeroen Asselman
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -26,9 +23,45 @@
  *----------------------------------------------------------------------
  */
 
-/* (PD) 2003 The Bitzi Corporation
+/**
+ * @ingroup lib
+ * @file
  *
- * Copyright (C) 2001 Bitzi (aka Bitcollider) Inc. & Gordon Mohr
+ * Implementation of the TigerTree algorithm.
+ *
+ * Patterned after sha.c by A.M. Kuchling and others.
+ *
+ * To use:
+ *    -# allocate a TT_CONTEXT in your own code;
+ *    -# tt_init(ttctx);
+ *    -# tt_update(ttctx, buffer, length); as many times as necessary
+ *    -# tt_digest(ttctx,resultptr);
+ *
+ * Requires the tiger() function as defined in the reference
+ * implementation provided by the creators of the Tiger
+ * algorithm. See
+ *
+ *    http://www.cs.technion.ac.il/~biham/Reports/Tiger/
+ *
+ * @note
+ * The TigerTree hash value cannot be calculated using a constant
+ * amount of memory; rather, the memory required grows with the
+ * (binary log of the) size of input. (Roughly, one more interim
+ * value must be remembered for each doubling of the input size.)
+ * This code reserves a counter and stack for input up to about 2^72
+ * bytes in length. PASSING IN LONGER INPUT WILL LEAD TO A BUFFER
+ * OVERRUN AND UNDEFINED RESULTS. Of course, that would be over 4.7
+ * trillion gigabytes of data, so problems are unlikely in practice
+ * anytime soon. :)
+ *
+ * This file comes from http://sourceforge.net/projects/tigertree/
+ *
+ * Inclusion in gtk-gnutella is:
+ *
+ * @author Jeroen Asselman
+ * @date 2003
+ *
+ * Copyright (C) 2001 Bitzi (aka Bitcollider) Inc. and Gordon Mohr
  * Released into the public domain by same; permission is explicitly
  * granted to copy, modify, and use freely.
  *
@@ -37,37 +70,9 @@
  * INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY
  * OR FITNESS FOR A PARTICULAR PURPOSE.
  *
+ * (PD) 2001 The Bitzi Corporation
  * Please see file COPYING or http://bitzi.com/publicdomain
  * for more info.
- *
- * tigertree.c - Implementation of the TigerTree algorithm
- *
- * Patterned after sha.c by A.M. Kuchling and others.
- *
- * To use:
- *    (1) allocate a TT_CONTEXT in your own code;
- *    (2) tt_init(ttctx);
- *    (3) tt_update(ttctx, buffer, length); as many times as necessary
- *    (4) tt_digest(ttctx,resultptr);
- *
- * NOTE: The TigerTree hash value cannot be calculated using a
- * constant amount of memory; rather, the memory required grows
- * with the (binary log of the) size of input. (Roughly, one more
- * interim value must be remembered for each doubling of the
- * input size.) This code reserves a counter and stack for input
- * up to about 2^72 bytes in length. PASSING IN LONGER INPUT WILL
- * LEAD TO A BUFFER OVERRUN AND UNDEFINED RESULTS. Of course,
- * that would be over 4.7 trillion gigabytes of data, so problems
- * are unlikely in practice anytime soon. :)
- *
- * Requires the tiger() function as defined in the reference
- * implementation provided by the creators of the Tiger
- * algorithm. See
- *
- *    http://www.cs.technion.ac.il/~biham/Reports/Tiger/
- *
- * $Id$
- *
  */
 
 #include "common.h"
@@ -96,7 +101,7 @@ tt_endian(gchar *s)
 }
 
 /**
- * Initialize the tigertree context
+ * Initialize the tigertree context.
  */
 void
 tt_init(TT_CONTEXT *ctx)
@@ -175,7 +180,9 @@ tt_update(TT_CONTEXT *ctx, gchar *buffer, gint32 len)
 	}
 }
 
-/* no need to call this directly; tt_digest calls it for you */
+/**
+ * No need to call this directly; tt_digest calls it for you.
+ */
 static inline void
 tt_final(TT_CONTEXT *ctx)
 {
@@ -199,7 +206,9 @@ tt_digest(TT_CONTEXT *ctx, gchar *s)
 	memmove(s, ctx->nodes, TIGERSIZE);
 }
 
-/* this code untested; use at own risk	*/
+/**
+ * This code untested; use at own risk.
+ */
 void
 tt_copy(TT_CONTEXT *dest, TT_CONTEXT *src)
 {

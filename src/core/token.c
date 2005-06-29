@@ -104,9 +104,9 @@ static const gchar *keys_095[] = {
  * Describes the keys to use depending on the version.
  */
 struct tokkey {
-	version_t ver;		/* Version number */
-	const gchar **keys;	/* Keys to use */
-	guint count;		/* Amount of keys defined */
+	version_t ver;		/**< Version number */
+	const gchar **keys;	/**< Keys to use */
+	guint count;		/**< Amount of keys defined */
 } token_keys[] = {
 	/* Keep this array sorted by increasing timestamp */
 	{
@@ -119,7 +119,7 @@ struct tokkey {
 	},
 };
 
-/*
+/**
  * Token validation errors.
  */
 
@@ -178,6 +178,7 @@ static const struct tokkey *find_tokkey(time_t now)
  * random_key
  *
  * Pickup a key randomly.
+ *
  * @returns the key string and the index within the key array into `idx'
  * and the token key structure used in `tkused'.
  */
@@ -287,6 +288,7 @@ static gchar *tok_generate(time_t now, const gchar *version)
  * tok_version
  *
  * Get a version token, base64-encoded.
+ *
  * @returns a pointer to static data.
  *
  * @note
@@ -326,6 +328,7 @@ gchar *tok_version(void)
  * tok_short_version
  *
  * Get a version token for the short version string, base64-encoded.
+ *
  * @returns a pointer to static data.
  */
 gchar *tok_short_version(void)

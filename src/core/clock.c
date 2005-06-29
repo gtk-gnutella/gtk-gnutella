@@ -64,7 +64,7 @@ struct used_val {
 
 static GHashTable *used;		/**< Records the IP address used */
 
-/*
+/**
  * This container holds the data points (clock offset between the real UTC
  * time and our local clock time) collected.  For each update, there are
  * two data points entered: u+d and u-d, where u is the update point and

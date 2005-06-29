@@ -56,7 +56,9 @@ static const gchar *msg_name[256];
 static gint msg_weight[256];	/**< For gmsg_cmp() */
 
 /**
- * Log an hexadecimal dump of the message `data', tagged with:
+ * Log an hexadecimal dump of the message `data'.
+ *
+ * Tagged with:
  *
  *     msg_type (payload length) [hops=x, TTL=x]
  *
@@ -130,6 +132,7 @@ gmsg_name(guint function)
 
 /**
  * Construct regular PDU descriptor from message.
+ *
  * Message data is copied into the new data buffer, so caller may release
  * its memory.
  */
@@ -311,6 +314,7 @@ gmsg_sendto_one_ggep(struct gnutella_node *n,
 
 /**
  * Send control message to one node.
+ *
  * A control message is inserted ahead any other queued regular data.
  */
 void
@@ -329,6 +333,7 @@ gmsg_ctrl_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size)
 
 /**
  * Send control message to one node.
+ *
  * A control message is inserted ahead any other queued regular data.
  */
 void
@@ -712,7 +717,7 @@ gmsg_sendto_route_ggep(
  * if it is a non-OOB query: no need to forward the request if the reply
  * will be dropped.
  *
- * Note that queries with hops=0 are not necessarily ours, since the queries
+ * @note Queries with hops=0 are not necessarily ours, since the queries
  * from our leaves are propagated as if they were coming from ourselves.
  * Therefore, unless the OOB flag is set, we always check for an existing
  * route.

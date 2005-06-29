@@ -381,15 +381,19 @@ settings_remove_pidfile(void)
 
 /**
  * This routine is called when we determined that our IP was no longer the
- * one we computed.  We base this on some headers sent back when we handshake
- * with other nodes, and as a result, cannot trust the information.
+ * one we computed.
+ *
+ * We base this on some headers sent back when we handshake with other nodes,
+ * and as a result, cannot trust the information.
  *
  * What we do henceforth is trust 3 successive indication that our IP changed,
  * provided we get the same information each time.
  *
  *		--RAM, 13/01/2002
  *
- * ``peer_ip'' is the IP address of peer which reported the new IP address.
+ * @param `new_ip'	no brief description.
+ * @param `peer_ip' the IP address of peer which reported the new IP address.
+ *
  * There must be 3 peers from 3 different /16 networks before a change is
  * accepted. Otherwise, it would be very easy to confuse GTKG by connecting
  * 3 times in a row and submitting a *wrong* IP address.
@@ -812,7 +816,7 @@ listen_port_changed(property_t prop)
 	gboolean random_port = FALSE;
     guint32 listen_port;
 	guint num_tried = 0;
-	guint32 tried[65536 / (8 * sizeof(guint32))]; /**< Use bits as bool flags */
+	guint32 tried[65536 / (8 * sizeof(guint32))]; /* Use bits as bool flags */
 
     gnet_prop_get_guint32_val(prop, &listen_port);
 
@@ -824,13 +828,13 @@ listen_port_changed(property_t prop)
 		return FALSE;
 
 	if (old_listen_port != (guint32) -1) {
-		inet_firewalled();			/**< Assume we're firewalled on port change */
+		inet_firewalled();			/* Assume we're firewalled on port change */
 		inet_udp_firewalled();
 	}
 
 	random_port = listen_port == 1;
 	memset(tried, 0, sizeof tried);
-	memset(tried, 0xff, 1024 / 8); /**< Mark ports below 1024 as already tried */
+	memset(tried, 0xff, 1024 / 8);	/* Mark ports below 1024 as already tried */
 
 	do {
 		if (random_port) {

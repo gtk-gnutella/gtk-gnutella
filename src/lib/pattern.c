@@ -110,6 +110,7 @@ pattern_compile(gchar *pattern)
  * Same as pattern_compile(), but the pattern string is NOT duplicated,
  * and its length is known upon entry.
  *
+ * @attention
  * NB: There is no pattern_free_fast(), just call zfree() on the result.
  */
 cpattern_t *
@@ -163,12 +164,12 @@ pattern_qsearch(
 	guint32 toffset,		/**< Offset within text for search start */
 	qsearch_mode_t word)	/**< Beginning/whole word matching? */
 {
-	gchar *p;			/**< Pointer within string pattern */
-	gchar *t;			/**< Pointer within text */
-	gchar *tp;			/**< Initial local search text pointer */
-	guint32 i;			/**< Position within pattern string */
-	gchar *start;		/**< Start of matching */
-	gchar *end;			/**< End of text (first byte after physical end) */
+	gchar *p;			/* Pointer within string pattern */
+	gchar *t;			/* Pointer within text */
+	gchar *tp;			/* Initial local search text pointer */
+	guint32 i;			/* Position within pattern string */
+	gchar *start;		/* Start of matching */
+	gchar *end;			/* End of text (first byte after physical end) */
 	guint32 plen;
 
 	if (!tlen)

@@ -58,7 +58,7 @@ RCSID("$Id$");
 #include "lib/glib-missing.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-/*
+/**
  * If FILTER_HIDE_ON_CLOSE is defined, the filter dialog is only hidden
  * when the dialog is close instead the of the dialog being destroyed.
  */
@@ -83,8 +83,8 @@ typedef struct shadow {
 void filter_remove_rule(filter_t *f, rule_t *r);
 static void filter_free(filter_t *f);
 
-/*
- * Public variables
+/**
+ * Public variables.
  */
 filter_t *work_filter = NULL;
 
@@ -233,6 +233,7 @@ shadow_new(filter_t *f)
 
 /**
  * Forgets all about a given shadow and free's ressourcs for it.
+ *
  * At this point we can no longer assume that the shadow->current
  * field contains a valid pointer. We may have been called to
  * clean up a shadow for a filter whose ruleset has already been
@@ -399,9 +400,7 @@ filter_open_dialog(void)
 
 
 
-/*
- * filter_close_dialog:
- *
+/**
  * Close the filter dialog. If commit is TRUE the changes
  * are committed, otherwise dropped.
  */
@@ -2364,7 +2363,7 @@ filter_update_targets(void)
 
 
 /**
- * Periodically update the filter display with current data
+ * Periodically update the filter display with current data.
  */
 void
 filter_timer(void)

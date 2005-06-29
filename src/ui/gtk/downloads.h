@@ -31,7 +31,7 @@
 
 struct download;
 
-/* Indicates that a dl node is a header node */
+/** Indicates that a dl node is a header node */
 #define DL_GUI_IS_HEADER GINT_TO_POINTER(0x1)
 
 /*

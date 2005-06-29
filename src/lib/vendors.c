@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Vendor code management.
+ *
+ * @author Richard Eckart
+ * @date 2001-2003
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -152,6 +162,7 @@ is_vendor_known(guchar raw[4])
 
 /**
  * Make up a printable version of the vendor code.
+ *
  * @return pointer to static data.
  */
 gchar *

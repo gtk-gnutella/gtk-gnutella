@@ -305,7 +305,7 @@ static struct {
 	WRITE_STR(c, l);				\
 } while(0)
 
-/*
+/**
  * The trailer fields of the fileinfo trailer.
  */
 
@@ -390,6 +390,7 @@ tbuf_write(gint fd, gchar *name)
 
 /**
  * Read trailer buffer at current position from `fd'.
+ *
  * @returns -1 on error.
  */
 static gint
@@ -1051,6 +1052,7 @@ file_info_lookup(gchar *name, filesize_t size, const gchar *sha1)
 
 /**
  * Given a fileinfo structure, look for any other known duplicate.
+ *
  * @returns the duplicate found, or NULL if no duplicate was found.
  */
 static struct dl_file_info *
@@ -1217,6 +1219,7 @@ file_info_shared_sha1(const gchar *sha1)
 
 /**
  * Reads the file metainfo from the trailer of a file, if it exists.
+ *
  * @returns a pointer to the info structure if found, and NULL otherwise.
  */
 static struct dl_file_info *
@@ -2716,6 +2719,7 @@ file_info_retrieve(void)
 
 /**
  * Allocate unique output name for file `name', stored in `dir'.
+ *
  * @returns filename atom.
  */
 static gchar *
@@ -2865,10 +2869,14 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
 }
 
 /**
+ * @param `file' is the file name on the server.
+ * @param `path' no brief description.
+ * @param `size' no brief description.
+ * @param `sha1' no brief description.
+ * @param `file_size_known' no brief description.
+ *
  * @returns a pointer to file_info struct that matches the given file
  * name, size and/or SHA1. A new struct will be allocated if necessary.
- *
- * `file' is the file name on the server.
  */
 struct dl_file_info *
 file_info_get(gchar *file, const gchar *path, filesize_t size, gchar *sha1,
@@ -3820,6 +3828,8 @@ selected:	/* Selected a hole to download */
  * the returned chunk is marked BUSY and linked to the download `d'.
  *
  * @returns TRUE if one was found, with `from' and `to' set, FALSE otherwise.
+ *
+ * @attention
  * NB: In accordance with other fileinfo semantics, `to' is NOT the last byte
  * of the range but one byte AFTER the end.
  */
@@ -3933,14 +3943,16 @@ file_info_active(const gchar *sha1)
 }
 
 /**
- * Called when we add something to the dmesh. Add the corresponding file to the
- * download list if we're swarming on it.
+ * Called when we add something to the dmesh.
  *
- * file_name: the remote file name (as in the GET query).
- * idx: the remote file index (as in the GET query)
- * ip: the remote servent ip
- * port: the remote servent port
- * sha1: the SHA1 of the file
+ * Add the corresponding file to the download list if we're swarming
+ * on it.
+ *
+ * @param file_name	the remote file name (as in the GET query).
+ * @param idx	the remote file index (as in the GET query).
+ * @param ip	the remote servent ip.
+ * @param port	the remote servent port.
+ * @param sha1	the SHA1 of the file.
  */
 void
 file_info_try_to_swarm_with(
@@ -4669,16 +4681,17 @@ fi_range_for_complete_file(filesize_t size)
  * from a download source, but we should also remove sets of ranges when
  * a download source is no longer available.
  *
- * FIXME: also remove ranges when a download source is no longer available.
- *
  * @param[in] srcid  The abstract id of the source that had its ranges updated.
+ *
+ * @bug
+ * FIXME: also remove ranges when a download source is no longer available.
  */
 static void
 fi_update_seen_on_network(gnet_src_t srcid)
 {
 	struct download *d;
-	GSList *old_list;    /** The previous list of ranges, no longer needed */
-	GSList *l;           /** Temporary pointer to help remove old_list */
+	GSList *old_list;    /* The previous list of ranges, no longer needed */
+	GSList *l;           /* Temporary pointer to help remove old_list */
 	GSList *r = NULL;
 	GSList *new_r = NULL;
 	GSList *full_r = NULL;

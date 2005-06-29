@@ -868,7 +868,7 @@ hsep_notify_shared(guint64 own_files, guint64 own_kibibytes)
  * triples in the table, it is truncated appropriately. Note that also
  * the 0'th triple is copied, which is always zero.
  *
- * The number of copied triples is returned.
+ * @return The number of copied triples.
  */
 
 unsigned int
@@ -888,7 +888,7 @@ hsep_get_global_table(hsep_triple *buffer, unsigned int maxtriples)
  * triples in the table, it is truncated appropriately. Note that also
  * the 0'th triple is copied, which is always zero.
  *
- * The number of copied triples is returned.
+ * @return The number of copied triples.
  */
 
 unsigned int
@@ -979,6 +979,8 @@ hsep_get_non_hsep_triple(hsep_triple *tripledest)
 
 /**
  * @returns a static string of the cell contents of the given row and column.
+ *
+ * @attention
  * NB: The static buffers for each column are disjunct.
  */
 const gchar *
@@ -1030,7 +1032,6 @@ hsep_get_static_str(gint row, gint column)
 
 /**
  * @returns the size of the global hsep table
- *
  */
 gint
 hsep_get_table_size(void)

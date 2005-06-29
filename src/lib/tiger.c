@@ -1,10 +1,7 @@
 /*
  * $Id$
  *
- * This file comes from http://sourceforge.net/projects/tigertree/
- * Inclusion in gtk-gnutella is:
- *
- *   Copyright (c) 2003, Jeroen Asselman
+ * Copyright (c) 2003, Jeroen Asselman
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -24,6 +21,20 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Tiger hash.
+ *
+ * This file comes from http://sourceforge.net/projects/tigertree/
+ *
+ * Inclusion in gtk-gnutella is:
+ *
+ * @author Jeroen Asselman
+ * @date 2003
  */
 
 #include "common.h"

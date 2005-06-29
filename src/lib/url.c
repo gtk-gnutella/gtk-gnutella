@@ -39,7 +39,7 @@ static gboolean url_debug = FALSE;
 #define TRANSPARENT_CHAR(x,m) \
 	((x) >= 32 && (x) < 128 && (is_transparent[(x)-32] & (m)))
 
-/*
+/**
  * Reserved chars: ";", "/", "?", ":", "@", "=" and "&"
  * Unsafe chars  : " ", '"', "<", ">", "#", and "%"
  * Misc chars    : "{", "}", "|", "\", "^", "~", "[", "]" and "`"
@@ -411,11 +411,13 @@ url_safe_char(gint c, url_policy_t p)
 }
 
 /**
+ * @attention
  * NB: May modify ``url'' in all cased; pass a copy if necessary!
  *
  * Returns NULL if ``url'' isn't a valid resp. allowed URL. Otherwise,
  * it returns either a pointer to the original URL or a g_malloc()ed
  * modified copy which has to be g_free()ed.
+ *
  * The URL is validated according to the specified policy. Unnecessary
  * parts such as ":80" (for the port) and "/./" are removed: the hostname
  * is forced to lowercase; a base URI "/" is appended if missing.

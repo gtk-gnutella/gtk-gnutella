@@ -133,6 +133,7 @@ io_getline(gpointer opaque)
 
 /**
  * Fetch header text as C string from opaque I/O data.
+ *
  * It is up to the caller to strdup the data if needed.
  * The returned data will be freed when io_free() is called.
  */

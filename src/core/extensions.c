@@ -57,13 +57,13 @@ RCSID("$Id$");
  *
  * The extension block is structured thustly:
  *
- *    <.................len.......................>
- *    <..headlen.><..........paylen...............>
- *    +-----------+-------------------------------+
- *    |   header  |      extension payload        |
- *    +-----------+-------------------------------+
- *    ^           ^
- *    base        payload
+ *    - <.................len.......................>
+ *    - <..headlen.><..........paylen...............>
+ *    - +-----------+-------------------------------+
+ *    - |   header  |      extension payload        |
+ *    - +-----------+-------------------------------+
+ *    - ^           ^
+ *    - base        payload
  *
  * The "<headlen>" part is simply "<len>" - "<paylen>" so it is not stored.
  * Likewise, we store only the beginning of the payload, the base can be
@@ -133,20 +133,22 @@ static const gchar * const extype[] = {
  ***/
 
 /**
- * Reserved word description
+ * Reserved word description.
  */
 struct rwtable {
 	const gchar *rw_name;	/**< Representation */
 	ext_token_t rw_token;	/**< Token value */
 };
 
-static const struct rwtable urntable[] =	/* URN name table (sorted) */
+/** URN name table (sorted) */
+static const struct rwtable urntable[] =
 {
 	{ "bitprint",		EXT_T_URN_BITPRINT },
 	{ "sha1",			EXT_T_URN_SHA1 },
 };
 
-static const struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
+/** GGEP extension table (sorted) */
+static const struct rwtable ggeptable[] =
 {
 #define GGEP_ID(x) { STRINGIFY(x), CAT2(EXT_T_GGEP_,x) }
 
@@ -263,8 +265,9 @@ rw_urn_screen(gchar *word, const gchar **retkw)
 static GHashTable *ext_names = NULL;
 
 /**
- * Transform the name into a printable form, and return an atom string
- * of that printable form.
+ * Transform the name into a printable form.
+ *
+ * @return an atom string of that printable form.
  */
 static gchar *
 ext_name_atom(const gchar *name)
@@ -332,8 +335,6 @@ ext_names_kv_free(gpointer key, gpointer value, gpointer unused_udata)
  ***/
 
 /**
- * ext_ggep_parse
- *
  * Parses a GGEP block (can hold several extensions).
  */
 static gint
@@ -1121,7 +1122,7 @@ ext_ggep_inflate(gchar *buf, gint len, guint16 *retlen, const gchar *name)
 
 	g_assert(*retlen == inflated);	/* Make sure it was not truncated */
 
-	return result;				/* OK, successfully inflated */
+	return result;					/* OK, successfully inflated */
 }
 
 /**
@@ -1134,11 +1135,11 @@ ext_ggep_inflate(gchar *buf, gint len, guint16 *retlen, const gchar *name)
 static void
 ext_ggep_decode(const extvec_t *e)
 {
-	gchar *pbase;					/**< Current payload base */
-	gint plen;						/**< Curernt payload length */
-	gchar *uncobs = NULL;			/**< COBS-decoded buffer */
-	gint uncobs_len = 0;			/**< Length of walloc()'ed buffer */
-	gint result;					/**< Decoded length */
+	gchar *pbase;					/* Current payload base */
+	gint plen;						/* Curernt payload length */
+	gchar *uncobs = NULL;			/* COBS-decoded buffer */
+	gint uncobs_len = 0;			/* Length of walloc()'ed buffer */
+	gint result;					/* Decoded length */
 	extdesc_t *d;
 
 	g_assert(e);
@@ -1280,7 +1281,7 @@ ext_paylen(const extvec_t *e)
 /**
  * @returns a pointer to the extension's header.
  *
- * WARNING: the actual "virtual" payload may not be contiguous to the end
+ * @warning the actual "virtual" payload may not be contiguous to the end
  * of the header: don't read past the ext_headlen() first bytes of the
  * header.
  */

@@ -49,12 +49,12 @@ RCSID("$Id$");
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
- * Private variables
+ * Private variables.
  */
 static rule_t *rule_clipboard = NULL;
 
 /**
- * Private functions
+ * Private functions.
  */
 
 static void clear_clipboard(void)
@@ -66,7 +66,7 @@ static void clear_clipboard(void)
 }
 
 /**
- * Public functions
+ * Public functions.
  */
 
 void filter_cb_close(void)

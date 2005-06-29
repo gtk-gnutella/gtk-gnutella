@@ -171,12 +171,14 @@ bogons_changed(const gchar *filename, gpointer unused_udata)
 }
 
 /**
- * Loads the bogons.txt into memory, choosing the first file we find
- * among the several places we look at, typically:
+ * Loads the bogons.txt into memory.
  *
- *    ~/.gtk-gnutella/bogons.txt
- *    /usr/share/gtk-gnutella/bogons.txt
- *    PACKAGE_SOURCE_DIR/bogons.txt
+ * Choosing the first file we find among the several places we look at,
+ * typically:
+ *
+ *	-# ~/.gtk-gnutella/bogons.txt
+ *	-# /usr/share/gtk-gnutella/bogons.txt
+ *	-# PACKAGE_SOURCE_DIR/bogons.txt
  *
  * The selected file will then be monitored and a reloading will occur
  * shortly after a modification.
@@ -223,7 +225,7 @@ bogons_init(void)
 }
 
 /**
- * Frees all entries in the hostiles
+ * Frees all entries in the hostiles.
  */
 void
 bogons_close(void)

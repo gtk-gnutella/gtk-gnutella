@@ -41,7 +41,7 @@
  *
  * The 'upload_history' file has the following format:
  *
- *		"<url-escaped filename> <file size> <attempts> <completions>"
+ *		- "<url-escaped filename> <file size> <attempts> <completions>"
  *
  * @todo
  * TODO: Add a check to make sure that all of the files still exist(?)
@@ -280,12 +280,12 @@ upload_stats_gui_init_intern(gboolean intern)
 	if (!initialized) {
     	popup_upload_stats = create_popup_upload_stats();
 		model = GTK_TREE_MODEL(gtk_list_store_new(c_us_num,
-			G_TYPE_STRING,		/**< Filename (UTF-8 encoded) */
-			G_TYPE_UINT,		/**< Size */
-			G_TYPE_UINT,		/**< Attempts */
-			G_TYPE_UINT,		/**< Completed */
-			G_TYPE_FLOAT,		/**< Normalized */
-			G_TYPE_POINTER)); 	/**< struct ul_stats */
+			G_TYPE_STRING,		/* Filename (UTF-8 encoded) */
+			G_TYPE_UINT,		/* Size */
+			G_TYPE_UINT,		/* Attempts */
+			G_TYPE_UINT,		/* Completed */
+			G_TYPE_FLOAT,		/* Normalized */
+			G_TYPE_POINTER)); 	/* struct ul_stats */
 		upload_stats_treeview = GTK_TREE_VIEW(
 			lookup_widget(main_window, "treeview_ul_stats"));
 		gtk_tree_view_set_model(upload_stats_treeview, model);

@@ -2,6 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2002, Michael Tesch
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,17 +30,15 @@
  *
  * Keep track of which files we send away, and how often.
  *
- * Statistics are kept by _FILENAME_ and file size,
- * not by actual path, so two files with the same
- * name and size will be counted in the same bin.
- * I don't see this as a limitation because the
- * user wouldn't be able to differentiate the files anyway.
- * This could be extended to keep the entire path to
- * each file and optionally show the entire path, but..
+ * Statistics are kept by _FILENAME_ and file size, not by actual path,
+ * so two files with the same name and size will be counted in the same
+ * bin. I don't see this as a limitation because the user wouldn't be able
+ * to differentiate the files anyway. This could be extended to keep the
+ * entire path to each file and optionally show the entire path, but..
  *
  * The 'upload_history' file has the following format:
  *
- *	"<url-escaped filename> <file size> <attempts> <completions>"
+ *	- "<url-escaped filename> <file size> <attempts> <completions>"
  *
  * @todo
  * TODO: Add a check to make sure that all of the files still exist(?)
@@ -252,7 +251,7 @@ upload_stats_find(const gchar *name, guint64 size)
 }
 
 /**
- * Called when an upload starts
+ * Called when an upload starts.
  */
 void
 upload_stats_file_begin(const struct upload *u)
@@ -318,7 +317,7 @@ upload_stats_file_aborted(const struct upload *u)
 }
 
 /**
- * Called when an upload completes
+ * Called when an upload completes.
  */
 void
 upload_stats_file_complete(const struct upload *u)
@@ -335,7 +334,7 @@ upload_stats_prune_nonexistent(void)
 }
 
 /**
- * Clear all the upload stats data structure
+ * Clear all the upload stats data structure.
  */
 static void upload_stats_free_all(void)
 {

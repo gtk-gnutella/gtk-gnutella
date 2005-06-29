@@ -92,7 +92,7 @@ destroy_entry(struct st_entry *entry)
 }
 
 /**
- * Initialize a bin
+ * Initialize a bin.
  */
 static void
 bin_initialize(struct st_bin *bin, gint size)
@@ -108,7 +108,7 @@ bin_initialize(struct st_bin *bin, gint size)
 }
 
 /**
- * Allocate a bin
+ * Allocate a bin.
  */
 static struct st_bin *
 bin_allocate(void)
@@ -120,10 +120,9 @@ bin_allocate(void)
 }
 
 /**
- * Destroy a bin
+ * Destroy a bin.
  *
- * @note
- * Does NOT destroy the st_entry's, since they may be shared
+ * @note Do NOT destroy the st_entry's, since they may be shared.
  */
 static void
 bin_destroy(struct st_bin *bin)
@@ -133,7 +132,7 @@ bin_destroy(struct st_bin *bin)
 }
 
 /**
- * Inserts an item into a bin
+ * Inserts an item into a bin.
  */
 static void
 bin_insert_item(struct st_bin *bin, struct st_entry *entry)
@@ -146,7 +145,7 @@ bin_insert_item(struct st_bin *bin, struct st_entry *entry)
 }
 
 /**
- * Makes a bin take as little memory as needed
+ * Makes a bin take as little memory as needed.
  */
 static void
 bin_compact(struct st_bin *bin)
@@ -158,6 +157,7 @@ bin_compact(struct st_bin *bin)
 
 /**
  * Apply a char map to a string, inplace.
+ *
  * @returns length of string.
  */
 size_t
@@ -173,7 +173,7 @@ match_map_string(char_map_t map, gchar *string)
 }
 
 /**
- * Initialize permanent data in search table
+ * Initialize permanent data in search table.
  */
 void
 st_initialize(search_table_t *table, char_map_t map)
@@ -215,7 +215,7 @@ st_initialize(search_table_t *table, char_map_t map)
 }
 
 /**
- * Recreate variable parts of the search table
+ * Recreate variable parts of the search table.
  */
 void
 st_create(search_table_t *table)
@@ -230,7 +230,7 @@ st_create(search_table_t *table)
 }
 
 /**
- * Destroy a search table
+ * Destroy a search table.
  */
 void
 st_destroy(search_table_t *table)
@@ -282,7 +282,7 @@ mask_hash(const gchar *s) {
 }
 
 /**
- * Get key of two-char pair
+ * Get key of two-char pair.
  */
 static inline gint
 st_key(search_table_t *table, gchar k[2])
@@ -293,7 +293,7 @@ st_key(search_table_t *table, gchar k[2])
 
 /**
  * Insert an item into the search_table
- * one-char strings are silently ignored
+ * one-char strings are silently ignored.
  */
 void
 st_insert_item(search_table_t *table, const gchar *s, struct shared_file *sf)
@@ -348,7 +348,7 @@ st_insert_item(search_table_t *table, const gchar *s, struct shared_file *sf)
 }
 
 /**
- * Minimize space consumption
+ * Minimize space consumption.
  */
 void
 st_compact(search_table_t *table)
@@ -397,7 +397,9 @@ entry_match(gchar *text, gint tlen,
 	return TRUE;
 }
 
-/* do an actual search */
+/**
+ * Do an actual search.
+ */
 void
 st_search(
 	search_table_t *table,

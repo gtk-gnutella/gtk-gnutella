@@ -90,6 +90,7 @@ is_writable(gpointer data, gint unused_source, inputevt_cond_t cond)
 
 /**
  * Initialize the driver.
+ *
  * Always succeeds, so never returns NULL.
  */
 static gpointer

@@ -50,8 +50,8 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-/*
- * gtk_paned_get_position:
+/**
+ * @fn gtk_paned_get_position(GtkPaned *paned)
  *
  * Get position of divider in a GtkPaned. (in GTK2)
  */
@@ -125,9 +125,7 @@ gtk_clist_restore_visibility(GtkCList *clist, property_t prop)
 
 
 /**
- * gtk_main_flush:
- *
- * Process all pending gtk events (i.e. draw now!)
+ * Process all pending gtk events (id est draw now!).
  *
  * @returns TRUE if gtk_main_quit has been called
  * for the innermost mainloop. Aborts flush if

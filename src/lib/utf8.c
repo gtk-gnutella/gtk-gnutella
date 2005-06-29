@@ -66,7 +66,7 @@ RCSID("$Id$");
 #include "glib-missing.h"
 #include "override.h"		/* Must be the last header included */
 
-static guint32 common_dbg = 0;	/* XXX -- need to init lib's props --RAM */
+static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
 
 static void unicode_compose_init(void);
 static void unicode_decompose_init(void);
@@ -76,11 +76,13 @@ size_t utf32_strmaxlen(const guint32 *s, size_t maxlen);
 size_t utf32_to_utf8(const guint32 *in, gchar *out, size_t size);
 size_t utf32_strlen(const guint32 *s);
 
-/* use_icu is set to TRUE if the initialization of ICU succeeded. If it
- * fails, we'll fall back to the non-ICU behaviour. */
+/**
+ * use_icu is set to TRUE if the initialization of ICU succeeded.
+ * If it fails, we'll fall back to the non-ICU behaviour.
+ */
 static gboolean use_icu = FALSE;
 
-/* Used by is_latin_locale(). It is initialized by locale_init(). */
+/** Used by is_latin_locale(). It is initialized by locale_init(). */
 static gboolean latin_locale = FALSE;
 
 #if 0  /*  xxxUSE_ICU */
@@ -1061,7 +1063,7 @@ locale_to_utf8_full(const gchar *str)
  * with all characters decomposed.
  *
  * @param str the string to convert.
- * @param norm no document.
+ * @param norm no brief description.
  *
  * @returns a newly allocated string.
  */

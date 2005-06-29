@@ -103,7 +103,7 @@ static guint32 search_id = 0;			/**< Unique search counter */
 static GHashTable *searches = NULL;		/**< All alive searches */
 
 /**
- * Structure for search results
+ * Structure for search results.
  */
 typedef struct search_ctrl {
     gnet_search_t search_handle;	/**< Search handle */
@@ -162,7 +162,7 @@ static query_hashvec_t *query_hashvec = NULL;
 #define search_drop_handle(n) \
     idtable_free_id(search_handle_map, n);
 
-static guint32   search_passive  = 0;		/* Amount of passive searches */
+static guint32   search_passive  = 0;		/**< Amount of passive searches */
 
 static void search_check_results_set(gnet_results_set_t *rs);
 
@@ -1758,6 +1758,8 @@ cleanup:
 
 /**
  * Called when we connect to a new node and thus can send it our searches.
+ *
+ * @bug
  * FIXME: uses node_added which is a global variable in nodes.c. This
  *        should instead be contained with the argument to this call.
  */
@@ -1792,6 +1794,7 @@ node_added_callback(gpointer data)
 
 /**
  * Create a new muid and add it to the search's list of muids.
+ *
  * Also record the direct mapping between this muid and the search into
  * the `search_by_muid' table.
  */
@@ -1836,8 +1839,9 @@ search_send_packet_all(search_ctrl_t *sch)
 }
 
 /**
- * Called when the reissue timer for any search is triggered. The
- * data given is the search to be reissued.
+ * Called when the reissue timer for any search is triggered.
+ *
+ * The data given is the search to be reissued.
  */
 static gboolean
 search_reissue_timeout_callback(gpointer data)
@@ -2246,6 +2250,7 @@ final_cleanup:
 
 /**
  * Check whether we can send another query for this search.
+ *
  * @returns TRUE if we can send, with the emitted counter incremented, or FALSE
  * if the query should just be ignored.
  */

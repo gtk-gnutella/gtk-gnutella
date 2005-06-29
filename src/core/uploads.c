@@ -30,10 +30,10 @@
  *
  * Handles upload of our files to others users.
  *
- * @author Daniel Walker (dwalker@cats.ucsc.edu)
- * @date 2000
  * @author Raphael Manfredi
  * @date 2001-2003
+ * @author Daniel Walker (dwalker@cats.ucsc.edu)
+ * @date 2000
  */
 
 #include "common.h"
@@ -824,6 +824,7 @@ send_upload_error_v(
 
 /**
  * Send error message to requestor.
+ *
  * This can only be done once per connection.
  */
 static void

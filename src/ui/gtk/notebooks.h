@@ -44,7 +44,7 @@ enum {
 };
 
 
-/*
+/**
  * Notebook tabs in the preferences dialog.
  */
 enum {
@@ -59,7 +59,7 @@ enum {
     nb_prefs_num
 };
 
-/*
+/**
  * Notebook tabs in the downloads page.
  */
 enum {

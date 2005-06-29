@@ -207,7 +207,7 @@ oob_proxy_create(gnutella_node_t *n)
  * whether it needs results still, and claim the pending results if
  * necessary.
  *
- * @param n the remote node which has results for us
+ * @param n	the remote node which has results for us
  * @param muid the MUID of the search
  * @param hits the amount of hits available (255 mean 255+ hits).
  * @param uu_udp_firewalled the remote host is UDP-firewalled and cannot
@@ -321,8 +321,9 @@ ignore:
 
 /**
  * Called when we parsed successfully a query hit packet.
- * Look whether the MUID of hit is actually the one of an OOB-proxied query.
- * If it is, then route the hit directly to the leaf.
+ *
+ * Look whether the MUID of hit is actually the one of an OOB-proxied
+ * query. If it is, then route the hit directly to the leaf.
  *
  * @param n the node from which the message came, and where it is held
  * @param results the amount of results in the hit.

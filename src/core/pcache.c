@@ -135,6 +135,7 @@ send_ping(struct gnutella_node *n, guint8 ttl)
 
 /**
  * Build ping message, bearing given TTL and MUID.
+ *
  * By construction, hops=0 for all pings.
  *
  * @param muid	the MUID to use.  If NULL, a random one will be assigned.
@@ -368,6 +369,7 @@ build_pong_msg(guint32 sender_ip, guint16 sender_port,
 
 /**
  * Send pong message back to node.
+ *
  * If `control' is true, send it as a higher priority message.
  * If `uhc' is true, this is an UDP host cache reply.
  */

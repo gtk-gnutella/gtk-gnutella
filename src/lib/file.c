@@ -46,7 +46,7 @@ static const gchar new_ext[] = "new";
 static const gchar instead_str[] = " instead";
 static const gchar empty_str[] = "";
 
-/*
+/**
  * In order to avoid having a dependency between file.c and ban.c,
  * we have ban.c register a callback to reclaim file descriptors
  * at init time.
@@ -70,6 +70,7 @@ file_register_fd_reclaimer(reclaim_fd_t callback)
  * if already present and `renaming' is TRUE.
  * If not found, try with successive alternatives, if supplied.
  *
+ * @attention
  * NB: the supplied `fv' argument is a vector of `fvcnt' elements.
  *
  * @param what is what is being opened, for logging purposes.
@@ -188,6 +189,7 @@ out:
  * cannot be found, try opening the ".orig" variant if already present.
  * If not found, try with successive alternatives, if supplied.
  *
+ * @attention
  * NB: the supplied `fv' argument is a vector of `fvcnt' elements.
  *
  * @returns opened FILE, or NULL if we were unable to open any.
@@ -203,6 +205,7 @@ file_config_open_read(const gchar *what, const file_path_t *fv, gint fvcnt)
  * cannot be found, try opening the ".orig" variant if already present.
  * If not found, try with successive alternatives, if supplied.
  *
+ * @attention
  * NB: the supplied `fv' argument is a vector of `fvcnt' elements.
  *
  * @returns opened FILE, or NULL if we were unable to open any.

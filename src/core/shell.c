@@ -1011,8 +1011,9 @@ shell_write(gnutella_shell_t *sh, const gchar *s)
 
 /**
  * Takes a HELO command string and checks whether the connection
- * is allowed using the specified credentials. Returns true if
- * the connection is allowed.
+ * is allowed using the specified credentials.
+ *
+ * @return TRUE if the connection is allowed.
  */
 static gboolean
 shell_auth(const gchar *str)

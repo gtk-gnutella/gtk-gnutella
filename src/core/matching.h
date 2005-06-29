@@ -100,7 +100,9 @@ void st_compact(search_table_t *);
 struct shared_file;
 
 /**
- * @todo
+ * Needs brief description here.
+ *
+ * @bug
  * FIXME: The type of this callback is too specific.
  */
 typedef void (*st_search_callback)(gpointer ctx, struct shared_file *sf);

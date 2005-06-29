@@ -24,13 +24,13 @@
  */
 
 /**
- * @ingroup undoc
+ * @ingroup core
  * @file
  *
  * Tigertree hash verification.
  *
  * This is not ready yet at all, do not try to use it yet. It is included
- * for compilation reasons only
+ * for compilation reasons only.
  *
  * @author Jeroen Asselman
  * @date 2003
@@ -73,7 +73,7 @@ tt_internal_hash(gpointer hash1, gpointer hash2)
 }
 
 /**
- * Initialises the background task for tigertree verification
+ * Initialises the background task for tigertree verification.
  */
 void
 tt_verify_init(void)
@@ -81,7 +81,7 @@ tt_verify_init(void)
 }
 
 /**
- * Stops the background task for tigertree verification
+ * Stops the background task for tigertree verification.
  */
 void
 tt_verify_close(void)

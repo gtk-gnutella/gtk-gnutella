@@ -555,15 +555,15 @@ fi_gui_init(void)
     	{ c_fi_status,   N_("Status"),	0.0, NULL, -1 }
 	};
 	static GType types[] = {
-		G_TYPE_STRING,	/**< Filename	*/
-		G_TYPE_STRING,	/**< Size		*/
-		G_TYPE_STRING,	/**< Done		*/
-		G_TYPE_STRING,	/**< Sources	*/
-		G_TYPE_STRING,	/**< Status		*/
-		G_TYPE_UINT,	/**< Fileinfo handle		*/
-		G_TYPE_UINT64,	/**< Size (for sorting)		*/
-		G_TYPE_UINT,	/**< Done (for sorting)		*/
-		G_TYPE_UINT		/**< Sources (for sorting	*/
+		G_TYPE_STRING,	/* Filename				*/
+		G_TYPE_STRING,	/* Size					*/
+		G_TYPE_STRING,	/* Done					*/
+		G_TYPE_STRING,	/* Sources				*/
+		G_TYPE_STRING,	/* Status				*/
+		G_TYPE_UINT,	/* Fileinfo handle		*/
+		G_TYPE_UINT64,	/* Size (for sorting)	*/
+		G_TYPE_UINT,	/* Done (for sorting)	*/
+		G_TYPE_UINT		/* Sources (for sorting	*/
 	};
     static const GtkTargetEntry targets[] = {
         { "STRING", 0, 23 },

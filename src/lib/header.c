@@ -531,8 +531,8 @@ header_dump(const header_t *o, FILE *out)
 #define HEADER_FMT_LINE_LEN		78		/**< Try to never emit longer lines */
 #define HEADER_FMT_MAX_SIZE		1024	/**< Max line size for header */
 
-/*
- * Header formatting context
+/**
+ * Header formatting context.
  */
 struct header_fmt {
 	guint32 magic;
@@ -574,18 +574,19 @@ stripped_strlen(const gchar *s, gint len)
  *
  * Create a new formatting context for a header line.
  *
- * `field' is the header field name, without trailing ':'.
+ * @param `field' is the header field name, without trailing ':'.
  *
- * `separator' is the optional default separator to emit between the values
- * added via header_fmd_append_value().  To supersede the default separator,
- * use header_fmd_append() and specify another separator explicitly.  If
- * set to NULL, there will be no default separator and values will be simply
- * concatenated together.  The value given must NOT be freed before
- * the header_fmt_end() call (usually it will just be a static string).
- * Trailing spaces in the separator will be stripped if it is emitted at
- * the end of a line before a continuation.
+ * @param `separator' is the optional default separator to emit between
+ * the values added via header_fmd_append_value().  To supersede the
+ * default separator, use header_fmd_append() and specify another separator
+ * explicitly.  If set to NULL, there will be no default separator and
+ * values will be simply concatenated together.  The value given must
+ * NOT be freed before the header_fmt_end() call (usually it will just
+ * be a static string).  Trailing spaces in the separator will be stripped
+ * if it is emitted at the end of a line before a continuation.
  *
- * `len_hint' is the expected line size, for pre-sizing purposes. (0 to guess).
+ * @param `len_hint' is the expected line size, for pre-sizing purposes.
+ * (0 to guess).
  *
  * @return opaque pointer.
  */
@@ -648,6 +649,7 @@ header_fmt_free(gpointer o)
  * within the `maxlen' total header size requirement in case a continuation
  * is emitted, and using the configured separator.
  *
+ * @attention
  * NB: The `maxlen' parameter is the amount of data that can be generated for
  * the header string, not counting the final "\r\n" + the trailing NUL byte.
  */
@@ -676,8 +678,8 @@ header_fmt_value_fits(gpointer o, gint len, gint maxlen)
 /**
  * Append data `str' to the header line, atomically.
  *
- * @param `hf' no document.
- * @param `str' no document.
+ * @param `hf' no brief description.
+ * @param `str' no brief description.
  * @param `separator' is an optional separator string that will be emitted
  *         BEFORE outputting the data, and only when nothing has been emitted
  *         already.
@@ -807,6 +809,8 @@ header_fmt_string(gpointer o)
 
 /**
  * Convert current header to a string.
+ *
+ * @attention
  * NB: returns pointer to static data!
  */
 gchar *

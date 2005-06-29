@@ -2266,7 +2266,7 @@ parse_major_minor(const gchar *src, gchar const **endptr,
 }
 
 /**
- * Find amount of common leading bits between two IP addresses
+ * Find amount of common leading bits between two IP addresses.
  */
 static guint8
 find_common_leading(guint32 ip1, guint32 ip2)

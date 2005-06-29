@@ -71,10 +71,10 @@ typedef enum {
 static const gchar hostiles_file[] = "hostiles.txt";
 static const gchar hostiles_what[] = "hostile IP addresses";
 
-static gpointer hostile_db[NUM_HOSTILES];		/* The hostile database */
+static gpointer hostile_db[NUM_HOSTILES];		/**< The hostile database */
 
 /**
- * Frees all entries in the given hostiles
+ * Frees all entries in the given hostiles.
  */
 static void
 hostiles_close_one(hostiles_t which)
@@ -89,6 +89,7 @@ hostiles_close_one(hostiles_t which)
 
 /**
  * Load hostile data from the supplied FILE.
+ *
  * @returns the amount of entries loaded.
  */
 static gint
@@ -227,12 +228,14 @@ hostiles_retrieve_from_file(FILE *f, hostiles_t which,
 }
 
 /**
- * Loads the hostiles.txt into memory, choosing the first file we find
- * among the several places we look at, typically:
+ * Loads the hostiles.txt into memory.
  *
- *    ~/.gtk-gnutella/hostiles.txt
- *    /usr/share/gtk-gnutella/hostiles.txt
- *    /home/src/gtk-gnutella/hostiles.txt
+ * Choosing the first file we find among the several places we look at,
+ * typically:
+ *
+ *	-# ~/.gtk-gnutella/hostiles.txt
+ *	-# /usr/share/gtk-gnutella/hostiles.txt
+ *	-# /home/src/gtk-gnutella/hostiles.txt
  *
  * The selected file will then be monitored and a reloading will occur
  * shortly after a modification.
@@ -319,7 +322,7 @@ hostiles_init(void)
 }
 
 /**
- * Frees all entries in all the hostiles
+ * Frees all entries in all the hostiles.
  */
 void
 hostiles_close(void)
@@ -333,6 +336,7 @@ hostiles_close(void)
 
 /**
  * Check the given IP against the entries in the hostiles.
+ *
  * @returns TRUE if found, and FALSE if not.
  */
 gboolean

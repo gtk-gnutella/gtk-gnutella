@@ -27,7 +27,7 @@
  * @ingroup lib
  * @file
  *
- * Needs short description here.
+ * Needs brief description here.
  *
  * @author Raphael Manfredi
  * @date 2004

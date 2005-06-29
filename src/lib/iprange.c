@@ -27,7 +27,7 @@
  * @ingroup lib
  * @file
  *
- * Needs short description here.
+ * Needs brief description here.
  *
  * Load, parse and lookup IP addresses from a set of IP ranges defined
  * by a list of addresses in CIDR (Classless Internet Domain Routing) format.

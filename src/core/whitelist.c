@@ -25,7 +25,7 @@
  * @ingroup core
  * @file
  *
- * Needs short description here.
+ * Needs brief description here.
  *
  * Functions for keeping a whitelist of nodes we always allow in,
  * and whom we try to keep a connection to.
@@ -162,6 +162,7 @@ static void whitelist_retrieve(void)
  *
  * Attempts to connect to the nodes we have whitelisted.
  * Only entries with a specified port will be tried.
+ *
  * @returns the number of new nodes that are connected to.
  */
 guint whitelist_connect(void)

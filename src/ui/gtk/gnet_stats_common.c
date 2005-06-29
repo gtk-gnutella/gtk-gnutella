@@ -120,7 +120,7 @@ msg_drop_str(gint value)
 }
 
 /**
- * Gets the string associated with the general message
+ * Gets the string associated with the general message.
  */
 const gchar *
 general_type_str(gint value)
@@ -178,6 +178,8 @@ general_type_str(gint value)
 
 /**
  * @returns the cell contents for the horizon stats table.
+ *
+ * @warning
  * NB: The static buffers for each column are disjunct.
  */
 const gchar *
@@ -212,6 +214,7 @@ horizon_stat_str(gint row, c_horizon_t column)
 
 /**
  * Updates the horizon statistics in the statusbar.
+ *
  * This is an event-driven callback called from the HSEP code
  * using the event listener framework. In addition to taking into account
  * the HSEP information, the number of established non-HSEP nodes and

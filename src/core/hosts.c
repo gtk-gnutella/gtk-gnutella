@@ -55,7 +55,7 @@ RCSID("$Id$");
 #include "lib/endian.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-gboolean host_low_on_pongs = FALSE;			/* True when less than 12% full */
+gboolean host_low_on_pongs = FALSE;			/**< True when less than 12% full */
 
 static gboolean in_shutdown = FALSE;
 
@@ -77,7 +77,7 @@ host_hash(gconstpointer key)
 /**
  * Compare function which returns TRUE if the hosts are equal.
  *
- * @note For use in g_hash_table_new
+ * @note For use in g_hash_table_new.
  */
 gint
 host_eq(gconstpointer v1, gconstpointer v2)
@@ -91,7 +91,7 @@ host_eq(gconstpointer v1, gconstpointer v2)
 /**
  * Compare function which returns 0 if the hosts are equal, otherwise 1.
  *
- * @note For use in g_list_find_custom
+ * @note For use in g_list_find_custom.
  */
 gint
 host_cmp(gconstpointer v1, gconstpointer v2)
@@ -243,8 +243,10 @@ void host_init(void)
 }
 
 /**
- * Check whether host is connectible, i.e. that it has a valid port and that
- * its IP address is not private not bogus.
+ * Check whether host is connectible.
+ *
+ * i.e. that it has a valid port and that its IP address is not private
+ * not bogus.
  */
 gboolean
 host_is_valid(guint32 ip, guint16 port)
@@ -263,6 +265,7 @@ host_is_valid(guint32 ip, guint16 port)
 
 /**
  * Add a new host to our pong reserve.
+ *
  * When `connect' is true, attempt to connect if we are low in Gnet links.
  */
 void

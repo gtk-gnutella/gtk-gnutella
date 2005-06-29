@@ -302,25 +302,25 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 	return a;
 }
 
-/*
- * nodes_gui_common_flags_str
+/**
+ * Display a summary of the node flags.
  *
- * Display a summary of the node flags:
+ * The stuff in the Flags column means:
  *
- *    012345678AB (offset)
- *    NIrwqxZPFhT
- *    ^^^^^^^^^^^
- *    ||||||||||+ T indicates a TLS-tunneled connection
- *    |||||||||+  hops flow triggerd (h), or total query flow control (f)
- *    ||||||||+   flow control (F), or pending data in queue (d)
- *    |||||||+    indicates whether we're a push proxy (P) / node is proxy (p)
- *    ||||||+     indicates whether Rx, Tx or both (Z) are compressed
- *    |||||+      indicates whether we sent our last-hop QRT to remote UP
- *    ||||+       indicates whether we sent/received a QRT, or send/receive one
- *    |||+        indicates whether node is writable
- *    ||+         indicates whether node is readable
- *    |+          indicates connection type (Incoming, Outgoing, Ponging)
- *    +           indicates peer mode (Normal, Ultra, Leaf)
+ *  - 012345678AB (offset)
+ *  - NIrwqxZPFhT
+ *  - ^^^^^^^^^^^
+ *  - ||||||||||+ T indicates a TLS-tunneled connection
+ *  - |||||||||+  hops flow triggerd (h), or total query flow control (f)
+ *  - ||||||||+   flow control (F), or pending data in queue (d)
+ *  - |||||||+    indicates whether we're a push proxy (P) / node is proxy (p)
+ *  - ||||||+     indicates whether RX, TX or both (Z) are compressed
+ *  - |||||+      indicates whether we sent our last-hop QRT to remote UP
+ *  - ||||+       indicates whether we sent/received a QRT, or send/receive one
+ *  - |||+        indicates whether node is writable
+ *  - ||+         indicates whether node is readable
+ *  - |+          indicates connection type (Incoming, Outgoing, Ponging)
+ *  - +           indicates peer mode (Normal, Ultra, Leaf)
  */
 const gchar *
 nodes_gui_common_flags_str(const gnet_node_flags_t *flags)

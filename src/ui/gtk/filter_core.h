@@ -69,7 +69,7 @@ typedef struct filter {
 
 
 /**
- * Some error codes (0 means 'no error')
+ * Some error codes (0 means 'no error').
  */
 #define FILTER_EXISTS 1
 

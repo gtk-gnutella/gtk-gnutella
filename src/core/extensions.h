@@ -95,13 +95,13 @@ typedef enum ext_token {
  *
  * An extension block is structured thustly:
  *
- *    <.................len.......................>
- *    <..headlen.><..........paylen...............>
- *    +-----------+-------------------------------+
- *    |   header  |      extension payload        |
- *    +-----------+-------------------------------+
- *    ^           ^
- *    base        payload
+ *    - <.................len.......................>
+ *    - <..headlen.><..........paylen...............>
+ *    - +-----------+-------------------------------+
+ *    - |   header  |      extension payload        |
+ *    - +-----------+-------------------------------+
+ *    - ^           ^
+ *    - base        payload
  *
  * To be able to transparently handle decompression and COBS decoding of GGEP
  * extensions, the public structure exposes no data fields.  Everything must

@@ -524,14 +524,14 @@ qrt_diff_4(struct routing_table *old, struct routing_table *new)
  */
 
 #define QRT_COMPRESS_MAGIC	0x45afbb01
-#define QRT_TICK_CHUNK		256			/* Chunk size per tick */
+#define QRT_TICK_CHUNK		256			/**< Chunk size per tick */
 
 struct qrt_compress_context {
-	gint magic;						/* Magic number */
-	struct routing_patch *rp;		/* Routing table being compressed */
-	zlib_deflater_t *zd;			/* Incremental deflater */
-	bgdone_cb_t usr_done;			/* User-defined callback */
-	gpointer usr_arg;				/* Arg for user-defined callback */
+	gint magic;						/**< Magic number */
+	struct routing_patch *rp;		/**< Routing table being compressed */
+	zlib_deflater_t *zd;			/**< Incremental deflater */
+	bgdone_cb_t usr_done;			/**< User-defined callback */
+	gpointer usr_arg;				/**< Arg for user-defined callback */
 };
 
 static GSList *sl_compress_tasks = NULL;
@@ -1114,28 +1114,28 @@ mrg_compute(bgdone_cb_t done_cb)
  *** Management of per-connection routing table.
  ***/
 
-/*
+/**
  * This structure is opaque for nodes, and is installed as `query_routing'
  * information in the node structure.
  */
 struct query_routing {
-	struct routing_table *qrt;		/* Current routing table */
-	gchar *patch;					/* Patching arena */
-	gchar *patch_end;				/* One byte of end of patching arena */
-	gint state;						/* State of the QRT propagation */
-	gint bits_per_entry;			/* Amount of bits per entry in patch */
-	gint payload_size;				/* Size of the PATCH message payload */
-	gint seqno;						/* Sequence number of next packet */
-	gint max_seqno;					/* Last sequence number to send */
+	struct routing_table *qrt;		/**< Current routing table */
+	gchar *patch;					/**< Patching arena */
+	gchar *patch_end;				/**< One byte of end of patching arena */
+	gint state;						/**< State of the QRT propagation */
+	gint bits_per_entry;			/**< Amount of bits per entry in patch */
+	gint payload_size;				/**< Size of the PATCH message payload */
+	gint seqno;						/**< Sequence number of next packet */
+	gint max_seqno;					/**< Last sequence number to send */
 };
 
 /*
  * States.
  */
 
-#define QRT_NONE			0		/* No QRT sent yet */
-#define QRT_SENDING			1		/* Sending patches */
-#define QRT_IDLE			2		/* Finished send patches */
+#define QRT_NONE			0		/**< No QRT sent yet */
+#define QRT_SENDING			1		/**< Sending patches */
+#define QRT_IDLE			2		/**< Finished send patches */
 
 /***
  *** Construction of our own routing table.
@@ -2245,8 +2245,9 @@ qrp_send_reset(struct gnutella_node *n, gint slots, gint infinity)
 }
 
 /**
- * Send the PATCH message.  The patch payload data is made of the `len' bytes
- * starting at `buf'.
+ * Send the PATCH message.
+ *
+ * The patch payload data is made of the `len' bytes starting at `buf'.
  */
 static void
 qrp_send_patch(struct gnutella_node *n,
@@ -2315,12 +2316,13 @@ struct qrp_patch {
 	guint8 seq_size;
 	guint8 compressor;
 	guint8 entry_bits;
-	guchar *data;			/* Points into node's message buffer */
-	gint len;				/* Length of data pointed at by `data' */
+	guchar *data;			/**< Points into node's message buffer */
+	gint len;				/**< Length of data pointed at by `data' */
 };
 
 /**
  * Receive a RESET message and fill the `reset' structure with its payload.
+ *
  * @returns TRUE if we read the message OK.
  */
 static gboolean
@@ -2752,32 +2754,34 @@ qrt_update_was_ok(gpointer handle)
  */
 
 #define QRT_RECEIVE_MAGIC	0x15efbb04
-#define QRT_RECEIVE_BUFSIZE	4096		/* Size of decompressing buffer */
+#define QRT_RECEIVE_BUFSIZE	4096		/**< Size of decompressing buffer */
 
 struct qrt_receive {
 	guint32 magic;
-	struct gnutella_node *node;		/* Node for which we're receiving */
-	struct routing_table *table;	/* Table being built / updated */
-	gint shrink_factor;		/* 1 means none, `n' means coalesce `n' entries */
-	gint seqsize;			/* Amount of patch messages to expect */
-	gint seqno;				/* Sequence number of next message we expect */
-	gint entry_bits;		/* Amount of bits used by PATCH */
-	z_streamp inz;			/* Data inflater */
-	gchar *data;			/* Where inflated data is written */
-	gint len;				/* Length of the `data' buffer */
-	gint current_slot;		/* Current slot processed in patch */
-	gint current_index;		/* Current index (after shrinking) in QR table */
-	gchar *expansion;		/* Temporary expansion arena before shrinking */
-	gboolean deflated;		/* Is data deflated? */
+	struct gnutella_node *node;		/**< Node for which we're receiving */
+	struct routing_table *table;	/**< Table being built / updated */
+	gint shrink_factor;		/**< 1 means none, `n' means coalesce `n' entries */
+	gint seqsize;			/**< Amount of patch messages to expect */
+	gint seqno;				/**< Sequence number of next message we expect */
+	gint entry_bits;		/**< Amount of bits used by PATCH */
+	z_streamp inz;			/**< Data inflater */
+	gchar *data;			/**< Where inflated data is written */
+	gint len;				/**< Length of the `data' buffer */
+	gint current_slot;		/**< Current slot processed in patch */
+	gint current_index;		/**< Current index (after shrinking) in QR table */
+	gchar *expansion;		/**< Temporary expansion arena before shrinking */
+	gboolean deflated;		/**< Is data deflated? */
 };
 
 /**
  * Create a new QRT receiving handler, to process all incoming QRP messages
  * from the leaf node.
  *
- * `query_table' is the existing query table we have for the node.  If it
- * is NULL, it means we have no query table yet, and the first QRP message
- * will have to be a RESET.
+ * @param `n'			no brief description.
+ * @param `query_table' The existing query table we have for the node.
+ *
+ * If `query_table' is NULL, it means we have no query table yet, and the
+ * first QRP message will have to be a RESET.
  *
  * @returns pointer to handler.
  */
@@ -2877,6 +2881,7 @@ qrt_receive_free(gpointer handle)
 
 /**
  * Apply raw patch data (uncompressed) to the current routing table.
+ *
  * @returns TRUE on sucess, FALSE on error with the node being BYE-ed.
  */
 static gboolean
@@ -3092,6 +3097,7 @@ qrt_apply_patch(struct qrt_receive *qrcv, guchar *data, gint len)
 
 /**
  * Handle reception of QRP RESET.
+ *
  * @returns TRUE if we handled the message correctly, FALSE if an error
  * was found and the node BYE-ed.
  */
@@ -3616,6 +3622,7 @@ qrp_close(void)
 
 /**
  * Used by qrt_dump().
+ *
  * @returns whether a slot in the table is present or not.
  */
 static gboolean
@@ -3890,6 +3897,7 @@ qrp_node_can_route(gnutella_node_t *n, query_hashvec_t *qhv)
  * and by its source node (so we don't send back the query where it
  * came from).
  *
+ * @attention
  * NB: it is allowed to call this with TTL=0, in which case we won't
  * consider UPs for forwarding.  If TTL=1, we forward to all normal nodes
  * or UPs that don't support last-hop QRP, plus those whose QRP table says

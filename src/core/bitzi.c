@@ -30,7 +30,7 @@
  * Bitzi Core search code.
  *
  * This code makes searches to the Bitzi (bitzi.com) meta-data
- * service. It is independant from any GUI functions and part of the
+ * service. It is independent from any GUI functions and part of the
  * core of GTKG.
  *
  * @note
@@ -279,7 +279,7 @@ static const struct efj_t enum_fj_table[] = {
 
 /**
  * Read all the attributes we may want from the rdf ticket, some
- * atributes will not be there in which case xmlGetProp will return a null
+ * atributes will not be there in which case xmlGetProp will return a null.
  */
 static void
 process_rdf_description(xmlNode *node, bitzi_data_t *data)
@@ -461,7 +461,7 @@ process_bitzi_ticket(xmlNode *a_node, bitzi_data_t *data)
 }
 
 /**
- * Walk the parsed document tree and free up the data
+ * Walk the parsed document tree and free up the data.
  */
 static void
 process_meta_data(bitzi_request_t *request)
@@ -694,7 +694,7 @@ bitzi_cache_clean(void)
 /**
  * The heartbeat function is a repeating glib timeout that is used to
  * pace queries to the bitzi metadata service. It also periodically
- * runs the bitzi_cache_clean routine to clean the cache
+ * runs the bitzi_cache_clean routine to clean the cache.
  */
 static gboolean
 bitzi_heartbeat(gpointer unused_data)
@@ -780,7 +780,7 @@ bitzi_query_byurnsha1(const gchar *urnsha1)
 }
 
 /**
- * Initialise any bitzi specific stuff we want to here
+ * Initialise any bitzi specific stuff we want to here.
  */
 void
 bitzi_init(void)

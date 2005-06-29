@@ -56,4 +56,5 @@ void uploads_gui_update_display(time_t now);
 void uploads_gui_clear_completed(void);
 
 #endif /* _gtk_uploads_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */

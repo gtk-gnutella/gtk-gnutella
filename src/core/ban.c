@@ -236,7 +236,7 @@ ban_allow(guint32 ip)
 
 	ipf = (struct ip_info *) g_hash_table_lookup(info, GUINT_TO_POINTER(ip));
 
-	/**
+	/*
 	 * First time we see this IP?  It's OK then.
 	 */
 
@@ -274,7 +274,7 @@ ban_allow(guint32 ip)
 
 	g_assert(ipf->cq_ev);
 
-	/**
+	/*
 	 * If the IP is already banned, it already has an "unban" callback.
 	 *
 	 * When there is a message recorded, return BAN_MSG to signal that
@@ -299,7 +299,7 @@ ban_allow(guint32 ip)
 		return BAN_FORCE;
 	}
 
-	/**
+	/*
 	 * Ban the IP if it crossed the request limit.
 	 */
 
@@ -608,7 +608,7 @@ ban_vendor(const gchar *vendor)
 {
 	const gchar *gtkg_version;
 
-	/**
+	/*
 	 * If vendor starts with "!gtk-gnutella", skip the leading '!' for
 	 * our tests here.
 	 */
@@ -620,7 +620,7 @@ ban_vendor(const gchar *vendor)
 		gtkg_version = is_strprefix(vendor, "gtk-gnutella/");
 	}
 
-	/**
+	/*
 	 * Ban gtk-gnutella/0.90 from the network.  This servent had
 	 * bugs that could corrupt the traffic.  Also ban 0.91u.
 	 *

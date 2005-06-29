@@ -50,6 +50,7 @@ RCSID("$Id$");
  *
  * @returns the new encoded buffer, and its length in `retlen'.
  *
+ * @attention
  * NB: the output is a linear buffer, not a vector.
  */
 gchar *
@@ -57,8 +58,8 @@ cobs_encodev(struct iovec *iov, gint iovcnt, gint *retlen)
 {
 	gint maxsize;
 	gchar *out;
-	gchar *o;						/**< Iterates over output */
-	gchar *cp;						/**< Where we'll write the code length */
+	gchar *o;						/* Iterates over output */
+	gchar *cp;						/* Where we'll write the code length */
 	gint code;
 	gint last_code = 0;
 	gint len;

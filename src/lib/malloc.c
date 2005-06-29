@@ -72,11 +72,11 @@ RCSID("$Id$");
 #include "hashlist.h"
 #include "misc.h"
 #include "glib-missing.h"
-#define MALLOC_SOURCE	/* Avoid nasty remappings, but include signatures */
+#define MALLOC_SOURCE	/**< Avoid nasty remappings, but include signatures */
 #include "override.h"
 
 #if 0
-#define TRANSPARENT	/* To make sure our macros have no side effect */
+#define TRANSPARENT		/**< To make sure our macros have no side effect */
 #endif
 
 static time_t init_time = 0;

@@ -23,10 +23,21 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup gtk
+ * @file
+ *
+ * Columns in the panes.
+ *
+ * @author Raphael Manfredi
+ * @author Richard Eckart
+ * @date 2001-2004
+ */
+
 #ifndef _gtk_columns_h_
 #define _gtk_columns_h_
 
-/*
+/**
  * Gnet table columns.
  */
 
@@ -47,9 +58,10 @@ enum {
 	c_gnet_num
 };
 
-/*
- * Uploads table columns
+/**
+ * Uploads table columns.
  */
+
 enum {
     c_ul_filename = 0,
     c_ul_host,
@@ -70,9 +82,10 @@ enum {
 	c_ul_num
 };
 
-/*
- * Upload stats columns
+/**
+ * Upload stats columns.
  */
+
 enum {
     c_us_filename = 0,
     c_us_size,
@@ -86,7 +99,7 @@ enum {
 };
 
 /*
- * Downloads table columns
+ * Downloads table columns.
  */
 
 #ifdef USE_GTK1
@@ -122,7 +135,7 @@ enum {
 #endif
 
 /*
- * Queue table columns
+ * Queue table columns.
  */
 
 #ifdef USE_GTK1
@@ -155,7 +168,7 @@ enum {
 #endif
 
 
-/*
+/**
  * Fileinfo table columns.
  */
 
@@ -175,9 +188,10 @@ enum {
 	c_fi_num
 };
 
-/*
- * Searches table columns
+/**
+ * Searches table columns.
  */
+
 enum {
     c_sr_filename = 0,
 	c_sr_ext,
@@ -196,8 +210,9 @@ enum {
 };
 
 /**
- * Gnet stats table columns
+ * Gnet stats table columns.
  */
+
 typedef enum {
     c_gs_type = 0,
     c_gs_received,
@@ -221,7 +236,7 @@ typedef enum {
 } c_horizon_t;
 
 /**
- * Hostcache stats table columns
+ * Hostcache stats table columns.
  */
 enum {
     c_hcs_name = 0,
@@ -233,8 +248,9 @@ enum {
 
 
 /**
- * Searches overview table columns
+ * Searches overview table columns.
  */
+
 enum {
     c_sl_name = 0,
     c_sl_hit,
@@ -249,8 +265,9 @@ enum {
 };
 
 /**
- * Search stats table columns
+ * Search stats table columns.
  */
+
 enum {
     c_st_term = 0,
     c_st_period,

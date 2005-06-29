@@ -68,7 +68,7 @@ static guint scid_ip_changed          = (guint) -1;
 static guint scid_warn                = (guint) -1;
 
 /**
- * List with timeout entries for statusbar messages
+ * List with timeout entries for statusbar messages.
  */
 static GSList *sl_statusbar_timeouts = NULL;
 

@@ -417,6 +417,7 @@ ignore_timer(time_t unused_now)
 
 /**
  * Remove iterator callback.
+ *
  * Free a key/value pair from the by_sha1 hash.
  */
 static gboolean
@@ -431,6 +432,7 @@ free_sha1_kv(gpointer key, gpointer unused_value, gpointer unused_udata)
 
 /**
  * Remove iterator callback.
+ *
  * Free a key/value pair from the by_namesize hash.
  */
 static gboolean

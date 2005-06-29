@@ -54,7 +54,7 @@ static guint32 up_cnt, up_max;
 static guint32 down_cnt, down_max;
 
 #if GTK_CHECK_VERSION(2, 0, 0) && !GTK_CHECK_VERSION(2, 2, 0)
-/* gdk_pixbuf_render_to_drawable is deprecated since GTK+ 2.2.0 */
+/** gdk_pixbuf_render_to_drawable is deprecated since GTK+ 2.2.0 */
 static void gdk_draw_pixbuf(GdkDrawable *drawable, GdkGC *gc, GdkPixbuf *pixbuf,
 	gint src_x, gint src_y, gint dest_x, gint dest_y, gint width, gint height,
 	GdkRgbDither dither, gint x_dither, gint y_dither)
@@ -339,7 +339,9 @@ icon_timer(void)
 
 /**
  * For details of what is expected from an icon window and what it
- * should expect, see --
+ * should expect.
+ *
+ * See --
  *    http://tronche.com/gui/x/icccm/sec-4.html#s-4.1.9
  */
 void

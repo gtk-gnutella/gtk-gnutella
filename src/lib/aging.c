@@ -204,6 +204,7 @@ aging_remove(gpointer obj, gpointer key)
 
 /**
  * Add value to the table.
+ *
  * If it was already present, its lifetime is augmented by the aging delay.
  *
  * The key argument is freed immediately if there is a free routine for

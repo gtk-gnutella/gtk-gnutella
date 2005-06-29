@@ -69,7 +69,7 @@ RCSID("$Id$");
 
 dmesh_url_error_t dmesh_url_errno;	/**< Error from dmesh_url_parse() */
 
-/*
+/**
  * The download mesh records all the known sources for a given SHA1.
  * It is implemented as a big hash table, where SHA1 are keys, each value
  * being a struct dmesh pointer.
@@ -102,7 +102,7 @@ struct dmesh_entry {
 
 static const gchar dmesh_file[] = "dmesh";
 
-/*
+/**
  * If we get a "bad" URL into the mesh ("bad" = gives 404 or other error when
  * trying to download it), we must remember it for some time and prevent it
  * from re-entering the mesh again within that period to prevent rescheduling
@@ -967,8 +967,9 @@ dmesh_entry_url_stamp(const struct dmesh_entry *dme, gchar *buf, size_t size)
 }
 
 /**
- * Format the `dme' mesh entry as "URL timestamp" and return pointer to
- * static string.
+ * Format the `dme' mesh entry as "URL timestamp".
+ *
+ * @return pointer to static string.
  */
 static const gchar *
 dmesh_entry_to_gchar(const struct dmesh_entry *dme)
@@ -1069,9 +1070,9 @@ dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt)
  * Build alternate location header for a given SHA1 key.  We generate at
  * most `size' bytes of data into `alt'.
  *
- * @param `sha1'	no document.
- * @param `buf'		no document.
- * @param 'size'	no document.
+ * @param `sha1'	no brief description.
+ * @param `buf'		no brief description.
+ * @param 'size'	no brief description.
  *
  * @param `ip' is the host to which those alternate locations are meant:
  * we skip any data pertaining to that host.
@@ -1108,7 +1109,7 @@ dmesh_alternate_location(const gchar *sha1,
 	gint nselected = 0;
 	struct dmesh_entry *selected[MAX_ENTRIES];
 	gint i;
-	size_t maxslen;		/* Account for trailing NUL + "\r\n" */
+	size_t maxslen;			/* Account for trailing NUL + "\r\n" */
 	GSList *by_ip;
 	size_t maxlinelen = 0;
 	gpointer fmt;
@@ -1377,8 +1378,8 @@ nomore:
  */
 
 typedef struct {
-    dmesh_urlinfo_t *dmesh_url;	/* The URL details */
-    time_t stamp;				/* Timestamp */
+    dmesh_urlinfo_t *dmesh_url;	/**< The URL details */
+    time_t stamp;				/**< Timestamp */
 } dmesh_deferred_url_t;
 
 /**
@@ -1466,7 +1467,7 @@ dmesh_free_deferred_altloc(dmesh_deferred_url_t *info, gpointer unused_udata)
  * a) Fuzzy factor of compares
  * b) Number of the altlocs they have to match (threshold)
  *
- * These factors are currently semi-empirical guesses and hardwired
+ * These factors are currently semi-empirical guesses and hardwired.
  *
  * @note
  * This is an O(m*n) process, when `m' is the amount of new entries
@@ -2149,7 +2150,7 @@ dmesh_check_results_set(gnet_results_set_t *rs)
  *
  * @param `sha1' (atom) the SHA1 of the file.
  * @param `size' the original file size.
- * @param `fi' no document.
+ * @param `fi' no brief description.
  */
 void
 dmesh_multiple_downloads(gchar *sha1, filesize_t size, struct dl_file_info *fi)

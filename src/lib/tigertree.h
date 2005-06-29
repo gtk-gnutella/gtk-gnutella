@@ -30,6 +30,7 @@
  * Implementation of the TigerTree algorithm.
  *
  * This file comes from http://sourceforge.net/projects/tigertree/
+ *
  * Inclusion in gtk-gnutella is:
  *
  * @author Jeroen Asselman

@@ -78,7 +78,7 @@ typedef enum {
 
 #include "override.h"		/* Must be the last header included */
 
-/*
+/**
  * Atoms are ref-counted.
  *
  * The reference count is held at the beginning of the data arena.
@@ -280,6 +280,7 @@ guid_str(gconstpointer v)
 /**
  * Hash a SHA1 (20 bytes).
  *
+ * @attention
  * NB: This routine is visible for the download mesh.
  */
 guint
@@ -291,6 +292,7 @@ sha1_hash(gconstpointer key)
 /**
  * Test two SHA1s for equality.
  *
+ * @attention
  * NB: This routine is visible for the download mesh.
  */
 gint
@@ -493,8 +495,9 @@ atom_free(gint type, gconstpointer key)
 
 #ifdef TRACK_ATOMS
 
-struct spot {			/* Information about given spot */
-	gint count;			/* Amount of allocation/free performed at spot */
+/** Information about given spot. */
+struct spot {
+	gint count;			/**< Amount of allocation/free performed at spot */
 };
 
 /**

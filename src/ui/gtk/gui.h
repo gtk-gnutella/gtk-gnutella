@@ -48,8 +48,8 @@
 #define GUI_CELL_RENDERER_XPAD ((guint) 4U)
 #define GUI_CELL_RENDERER_YPAD ((guint) 0U)
 
-/*
- * Sorting constants
+/**
+ * Sorting constants.
  */
 
 enum sorting_order {

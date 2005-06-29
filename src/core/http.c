@@ -241,6 +241,7 @@ http_send_status(
 
 /**
  * HTTP status callback.
+ *
  * Add an X-Hostname line bearing the fully qualified hostname.
  */
 void
@@ -307,18 +308,19 @@ code_message_parse(const gchar *line, const gchar **msg)
  *
  * We recognize the following status lines:
  *
- *     ZZZ 403 message                        (major=0, minor=0)
- *     ZZZ/2.3 403 message                    (major=2, minor=3)
- *     403 message                            (major=0, minor=0)
+ *     - ZZZ 403 message                        (major=0, minor=0)
+ *     - ZZZ/2.3 403 message                    (major=2, minor=3)
+ *     - 403 message                            (major=0, minor=0)
  *
  * We don't yet handle "SMTP-like continuations":
  *
- *     403-message line #1
- *     403-message line #2
- *     403 last message line
+ *     - 403-message line #1
+ *     - 403-message line #2
+ *     - 403 last message line
  *
  * There is no way to return the value of "ZZZ" via this routine.
  *
+ * @attention
  * NB: this routine is also used to parse GNUTELLA status codes, since
  * they follow the same pattern as HTTP status codes.
  */
@@ -692,6 +694,7 @@ http_buffer_free(http_buffer_t *b)
  * @param start will be set to the ``start'' offset
  * @param end will be set to the ``end'' offset
  * @param total will be set to the ``total'' size of the requested object.
+ *
  * @return -1 on error, zero on success.
  */
 gint
@@ -749,6 +752,7 @@ http_content_range_parse(const gchar *buf,
 
 /**
  * Add a new http_range_t object within the sorted list.
+ *
  * Refuse to add the range if it is overlapping existing ranges.
  *
  * @param `list' must be sorted if not NULL.
@@ -757,6 +761,7 @@ http_content_range_parse(const gchar *buf,
  * @param `field' arguments are only there to log errors, if any.
  * @param `vendor' is same as `field'.
  * @param `ignored' is set to TRUE if range was ignored.
+ *
  * @return the new head of the list.
  */
 static GSList *
@@ -1375,25 +1380,25 @@ http_range_merge(GSList *old_list, GSList *new_list)
  ***/
 
 static const gchar * const error_str[] = {
-	"OK",									/* HTTP_ASYNC_OK */
-	"Invalid HTTP URL",						/* HTTP_ASYNC_BAD_URL */
-	"Connection failed",					/* HTTP_ASYNC_CONN_FAILED */
-	"I/O error",							/* HTTP_ASYNC_IO_ERROR */
-	"Request too large",					/* HTTP_ASYNC_REQ2BIG */
-	"Header too large",						/* HTTP_ASYNC_HEAD2BIG */
-	"User cancel",							/* HTTP_ASYNC_CANCELLED */
-	"Got EOF",								/* HTTP_ASYNC_EOF */
-	"Unparseable HTTP status",				/* HTTP_ASYNC_BAD_STATUS */
-	"Got moved status, but no location",	/* HTTP_ASYNC_NO_LOCATION */
-	"Connection timeout",					/* HTTP_ASYNC_CONN_TIMEOUT */
-	"Data timeout",							/* HTTP_ASYNC_TIMEOUT */
-	"Nested redirection",					/* HTTP_ASYNC_NESTED */
-	"Invalid URI in Location header",		/* HTTP_ASYNC_BAD_LOCATION_URI */
-	"Connection was closed, all OK",		/* HTTP_ASYNC_CLOSED */
-	"Redirected, following disabled",		/* HTTP_ASYNC_REDIRECTED */
+	"OK",									/**< HTTP_ASYNC_OK */
+	"Invalid HTTP URL",						/**< HTTP_ASYNC_BAD_URL */
+	"Connection failed",					/**< HTTP_ASYNC_CONN_FAILED */
+	"I/O error",							/**< HTTP_ASYNC_IO_ERROR */
+	"Request too large",					/**< HTTP_ASYNC_REQ2BIG */
+	"Header too large",						/**< HTTP_ASYNC_HEAD2BIG */
+	"User cancel",							/**< HTTP_ASYNC_CANCELLED */
+	"Got EOF",								/**< HTTP_ASYNC_EOF */
+	"Unparseable HTTP status",				/**< HTTP_ASYNC_BAD_STATUS */
+	"Got moved status, but no location",	/**< HTTP_ASYNC_NO_LOCATION */
+	"Connection timeout",					/**< HTTP_ASYNC_CONN_TIMEOUT */
+	"Data timeout",							/**< HTTP_ASYNC_TIMEOUT */
+	"Nested redirection",					/**< HTTP_ASYNC_NESTED */
+	"Invalid URI in Location header",		/**< HTTP_ASYNC_BAD_LOCATION_URI */
+	"Connection was closed, all OK",		/**< HTTP_ASYNC_CLOSED */
+	"Redirected, following disabled",		/**< HTTP_ASYNC_REDIRECTED */
 };
 
-guint http_async_errno;		/* Used to return error codes during setup */
+guint http_async_errno;		/**< Used to return error codes during setup */
 
 /**
  * @return human-readable error string corresponding to error code `errnum'.
@@ -1428,7 +1433,7 @@ static const gchar * const http_verb[NUM_HTTP_REQTYPES] = {
 #define HTTP_ASYNC_MAGIC 0xa91cf3eeU
 
 /**
- * An asynchronous HTTP request
+ * An asynchronous HTTP request.
  */
 struct http_async {
 	guint magic;					/**< Magic number */
@@ -1764,9 +1769,9 @@ http_async_build_request(gpointer unused_handle, gchar *buf, size_t len,
  */
 static struct http_async *
 http_async_create(
-	gchar *url,						/**< Either full URL or path */
-	guint32 ip,						/**< Optional: 0 means grab from url */
-	guint16 port,					/**< Optional, must be given when IP given */
+	gchar *url,						/* Either full URL or path */
+	guint32 ip,						/* Optional: 0 means grab from url */
+	guint16 port,					/* Optional, must be given when IP given */
 	enum http_reqtype type,
 	http_header_cb_t header_ind,
 	http_data_cb_t data_ind,
@@ -1870,6 +1875,7 @@ http_async_newstate(struct http_async *ha, http_state_t state)
 
 /**
  * Starts an asynchronous HTTP GET request on the specified path.
+ *
  * @returns a handle on the request if OK, NULL on error with the
  * http_async_errno variable set before returning.
  *
@@ -2005,6 +2011,7 @@ http_subreq_error_ind(
 
 /**
  * Create a child request, to follow redirection transparently.
+ *
  * All callbacks will be rerouted to the parent request, as if they came
  * from the original parent.
  *

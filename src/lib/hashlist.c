@@ -27,7 +27,7 @@
  * @ingroup lib
  * @file
  *
- * Needs short description here.
+ * Needs brief description here.
  *
  * An hashlist is a dual structure where data are both stored in a two-way
  * list, preserving ordering, and indexed in a hash table.

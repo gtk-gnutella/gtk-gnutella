@@ -656,8 +656,8 @@ parse_context_free(gpointer obj)
 /**
  * Allocate new parsing context for handle and record it.
  *
- * `handle' is the asynchronous HTTP request handle.
- * `maxlines' is the max number of lines we want to parse.
+ * @param `handle'		the asynchronous HTTP request handle.
+ * @param `maxlines'	the max number of lines we want to parse.
  */
 static void
 parse_context_set(gpointer handle, gint maxlines)

@@ -28,8 +28,8 @@
 
 #include "common.h"
 
-/*
- * Stats types for search_stats_gui_set_type()
+/**
+ * Stats types for search_stats_gui_set_type().
  */
 enum {
     NO_SEARCH_STATS,

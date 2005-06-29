@@ -64,7 +64,7 @@ RCSID("$Id$");
 #include "lib/vendors.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-static gchar v_tmp[4128];	/* Large enough for a payload of 4K */
+static gchar v_tmp[4128];	/**< Large enough for a payload of 4K */
 
 /*
  * Vendor message handler.
@@ -75,8 +75,8 @@ struct vmsg;
 typedef void (*vmsg_handler_t)(struct gnutella_node *n,
 	const struct vmsg *vmsg, gchar *payload, gint size);
 
-/*
- * Definition of vendor messages
+/**
+ * Definition of vendor messages.
  */
 struct vmsg {
 	guint32 vendor;
@@ -117,7 +117,7 @@ static void handle_time_sync_reply(struct gnutella_node *n,
 static void handle_udp_crawler_ping(struct gnutella_node *n,
 	const struct vmsg *vmsg, gchar *payload, gint size);
 
-/*
+/**
  * Known vendor-specific messages.
  */
 static const struct vmsg vmsg_map[] = {
@@ -146,7 +146,7 @@ static const struct vmsg vmsg_map[] = {
 	/* Above line intentionally left blank (for "!}sort" in vi) */
 };
 
-/*
+/**
  * Items in the "Messages Supported" vector.
  */
 struct vms_item {
@@ -155,9 +155,9 @@ struct vms_item {
 	guint16 version;
 };
 
-#define VMS_ITEM_SIZE		8		/* Each entry is 8 bytes (4+2+2) */
+#define VMS_ITEM_SIZE		8		/**< Each entry is 8 bytes (4+2+2) */
 
-/*
+/**
  * Items in the "Features Supported" vector.
  */
 struct vms_feature {
@@ -165,7 +165,7 @@ struct vms_feature {
 	guint16 version;
 };
 
-#define VMS_FEATURE_SIZE	6		/* Each entry is 6 bytes (4+2) */
+#define VMS_FEATURE_SIZE	6		/**< Each entry is 6 bytes (4+2) */
 
 #define PAIR_CMP(x, y, a0, a1, b0, b1) \
 ( \

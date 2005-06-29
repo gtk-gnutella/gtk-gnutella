@@ -315,6 +315,7 @@ version_cmp(const version_t *a, const version_t *b)
 
 /**
  * Parse vendor string and fill supplied version structure `vs'.
+ *
  * @returns OK if we were able to parse correctly.
  */
 gboolean

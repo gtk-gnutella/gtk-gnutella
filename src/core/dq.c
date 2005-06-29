@@ -616,6 +616,7 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
  * Forward message to all the leaves but the one originating this query,
  * according to their QRP tables.
  *
+ * @attention
  * NB: In order to avoid qrt_build_query_target() selecting neighbouring
  * ultra nodes that support last-hop QRP, we ensure the TTL is NOT 1.
  * This is why we somehow duplicate qrt_route_query() here.

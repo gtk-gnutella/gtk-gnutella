@@ -57,7 +57,8 @@ struct gnutella_host;
 
 ggept_status_t ggept_h_sha1_extract(extvec_t *exv, gchar *buf, gint len);
 
-struct ggep_gtkgv1 {				/* Decompiled payload of "GTKGV1" */
+/** Decompiled payload of "GTKGV1" */
+struct ggep_gtkgv1 {
 	guint8 major;
 	guint8 minor;
 	guint8 patch;

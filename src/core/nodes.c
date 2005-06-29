@@ -532,7 +532,7 @@ node_ht_connected_nodes_remove(guint32 ip, guint16 port)
 }
 
 /**
- * Dumps a gnutella message (debug)
+ * Dumps a gnutella message (debug).
  */
 static void
 message_dump(const struct gnutella_node *n)
@@ -581,8 +581,8 @@ node_extract_host(const struct gnutella_node *n, guint32 *ip, guint16 *port)
 
 	/* Read Query Hit info */
 
-	READ_GUINT32_BE(r->host_ip, hip);		/**< IP address */
-	READ_GUINT16_LE(r->host_port, hport);	/**< Port */
+	READ_GUINT32_BE(r->host_ip, hip);		/* IP address */
+	READ_GUINT16_LE(r->host_port, hport);	/* Port */
 
 	*ip = hip;
 	*port = hport;
@@ -610,7 +610,7 @@ can_become_ultra(time_t now)
 	avg_ip_uptime = get_average_ip_lifetime(now) >= NODE_MIN_AVG_UPTIME;
 	node_uptime = delta_time(now, start_stamp) > NODE_MIN_UPTIME;
 
-	/**< Connectivity requirements */
+	/* Connectivity requirements */
 	not_firewalled = !is_firewalled;
 
 	/*
@@ -635,10 +635,10 @@ can_become_ultra(time_t now)
 		(max_leaves + max_connections) * node_sendqueue_size)
 		< 1024 / 2 * sys_physmem;
 
-	/**< Bandwidth requirements */
+	/* Bandwidth requirements */
 	enough_bw = bsched_enough_up_bandwidth() && !uploads_stalling;
 
-	/**< Connection requirements */
+	/* Connection requirements */
 	enough_conn = up_connections >= NODE_MIN_UP_CONNECTIONS;
 
 #define OK(b)	((b) ? ok : no)
@@ -1045,7 +1045,7 @@ node_timer(time_t now)
 }
 
 /**
- * Network init
+ * Network init.
  */
 void
 node_init(void)
@@ -1814,9 +1814,9 @@ static gboolean
 node_reserve_slot(struct gnutella_node *n)
 {
 	static const gchar gtkg_vendor[] = "gtk-gnutella";
-	guint up_cnt = 0;		/**< GTKG UPs */
-	guint leaf_cnt = 0;		/**< GTKG leafs */
-	guint normal_cnt = 0;	/**< GTKG normal nodes */
+	guint up_cnt = 0;		/* GTKG UPs */
+	guint leaf_cnt = 0;		/* GTKG leafs */
+	guint normal_cnt = 0;	/* GTKG normal nodes */
 	GSList *sl;
 
 	g_assert((gint) reserve_gtkg_nodes >= 0 && reserve_gtkg_nodes <= 100);
@@ -2280,6 +2280,7 @@ node_host_is_connected(guint32 ip, guint16 port)
  *
  * @return a pointer to static data.
  *
+ * @bug
  * XXX Refactoring note: there is a need for generic header formatting
  * routines, and especially the dumping routing, which could be taught
  * basic formatting and splitting so that very long lines are dumped using
@@ -2342,15 +2343,15 @@ node_gtkg_cmp(const void *np1, const void *np2)
 static gchar *
 node_crawler_headers(struct gnutella_node *n)
 {
-	static gchar buf[8192];				/**< 8 KB */
-	gnutella_node_t **ultras = NULL;	/**< Array of ultra nodes */
-	gnutella_node_t **leaves = NULL;	/**< Array of `leaves' */
-	gint ultras_len = 0;				/**< Size of `ultras' */
-	gint leaves_len = 0;				/**< Size of `leaves' */
-	gint ux = 0;						/**< Index in `ultras' */
-	gint lx = 0;						/**< Index in `leaves' */
-	gint uw = 0;						/**< Amount of ultras written */
-	gint lw = 0;						/**< Amount of leaves written */
+	static gchar buf[8192];				/* 8 KB */
+	gnutella_node_t **ultras = NULL;	/* Array of ultra nodes */
+	gnutella_node_t **leaves = NULL;	/* Array of `leaves' */
+	gint ultras_len = 0;				/* Size of `ultras' */
+	gint leaves_len = 0;				/* Size of `leaves' */
+	gint ux = 0;						/* Index in `ultras' */
+	gint lx = 0;						/* Index in `leaves' */
+	gint uw = 0;						/* Amount of ultras written */
+	gint lw = 0;						/* Amount of leaves written */
 	GSList *sl;
 	gint maxsize;
 	gint rw;
@@ -2590,6 +2591,7 @@ send_error(
 /**
  * Send error message to remote end, a node presumably.
  *
+ * @attention
  * NB: We don't need a node to call this routine, only a socket.
  */
 void
@@ -3192,7 +3194,7 @@ node_set_current_peermode(node_peer_t mode)
  *
  * The syntax we expect is:
  *
- *   X-Try: host1:port1, host2:port2; host3:port3
+ *   - X-Try: host1:port1, host2:port2; host3:port3
  *
  * i.e. we're very flexible about the separators which can be "," or ";".
  */
@@ -4003,7 +4005,8 @@ node_query_routing_header(struct gnutella_node *n)
 }
 
 /**
- * This routine is called to process a 0.6+ handshake header
+ * This routine is called to process a 0.6+ handshake header.
+ *
  * It is either called to process the reply to our sending a 0.6 handshake
  * (outgoing connections) or to parse the initial 0.6 headers (incoming
  * connections).
@@ -4975,6 +4978,7 @@ node_udp_get(struct gnutella_socket *s)
 
 /**
  * Get the message queue attached to the UDP node.
+ *
  * @return the UDP message queue, or NULL if UDP has been disabled.
  */
 mqueue_t *
@@ -5239,15 +5243,18 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 }
 
 /**
- * Check that current message has an extra payload made of GGEP only, and
- * whose total size is not exceeding `maxsize'.  The `regsize' value is the
- * normal payload length of the message (e.g. 0 for a ping).
+ * Check that current message has an extra payload made of GGEP only,
+ * and whose total size is not exceeding `maxsize'.
  *
- * @note
- * parsed extensions are left in the node's `extensions' structure.
+ * @param `n'		no brief description.
+ * @param `maxsize'	no brief description.
+ * @param `regsize' value is the normal payload length of the message
+ *					(e.g. 0 for a ping).
  *
- * @return TRUE if there is a GGEP extension block, and only that after the
- * regular payload, with a size no greater than `maxsize'.
+ * @return TRUE if there is a GGEP extension block, and only that after
+ *		   the regular payload, with a size no greater than `maxsize'.
+ *
+ * @note parsed extensions are left in the node's `extensions' structure.
  */
 static gboolean
 node_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
@@ -5304,6 +5311,7 @@ node_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
 /**
  * Processing of messages.
  *
+ * @attention
  * NB: callers of this routine must not use the node structure upon return,
  * since we may invalidate that node during the processing.
  */
@@ -6399,10 +6407,12 @@ node_bye_pending(void)
 }
 
 /**
- * Try to spot a "useless" leaf node, i.e. one that is either not sharing
- * anything or which is preventing us from sending queries via hops-flow.
- * We remove the ones flow-controlling for the greatest amount of time,
- * or which are not sharing anything, based on the QRP.
+ * Try to spot a "useless" leaf node.
+ *
+ * i.e. one that is either not sharing anything or which is preventing us
+ * from sending queries via hops-flow. We remove the ones flow-controlling
+ * for the greatest amount of time, or which are not sharing anything, based
+ * on the QRP.
  *
  * @return TRUE if we were able to remove one connection.
  */
@@ -6466,8 +6476,8 @@ node_remove_useless_leaf(void)
 }
 
 /**
- * Removes the node with the worst stats, considering the
- * number of weird, bad and duplicate packets.
+ * Removes the node with the worst stats, considering the number of
+ * weird, bad and duplicate packets.
  *
  * If `non_local' is TRUE, we're removing this node because it is not
  * a local node, and we're having a connection from the local LAN.
@@ -6637,8 +6647,8 @@ node_qrt_install(struct gnutella_node *n, gpointer query_table)
 }
 
 /**
- * Invoked for ultra nodes when the Query Routing Table of remote node was
- * fully patched (i.e. we got a new generation).
+ * Invoked for ultra nodes when the Query Routing Table of remote node
+ * was fully patched (i.e. we got a new generation).
  */
 void
 node_qrt_patched(struct gnutella_node *n, gpointer query_table)
@@ -6973,15 +6983,17 @@ fire:
 }
 
 /**
- * Fetches information about a given node. The returned information must
- * be freed manually by the caller using the node_free_info call.
+ * Fetches information about a given node.
+ *
+ * The returned information must be freed manually by the caller using
+ * the node_free_info call.
  *
  * O(1):
  * Since the gnet_node_t is actually a pointer to the gnutella_node
  * struct, this call is O(1). It would be safer to have gnet_node be
  * an index in a list or a number, but depending on the underlying
- * container structure of sl_nodes, that would have O(log(n)) (balanced tree)
- * or O(n) (list) runtime.
+ * container structure of sl_nodes, that would have O(log(n)) (balanced
+ * tree) or O(n) (list) runtime.
  */
 gnet_node_info_t *
 node_get_info(const gnet_node_t n)
@@ -7702,23 +7714,23 @@ node_crawl_fill(pmsg_t *mb,
 void
 node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 {
-	gnutella_node_t **ultras = NULL;	/**< Array of ultra nodes */
-	gnutella_node_t **leaves = NULL;	/**< Array of leaves */
-	gint ultras_len = 0;				/**< Size of `ultras' */
-	gint leaves_len = 0;				/**< Size of `leaves' */
-	gint ux = 0;						/**< Index in `ultras' */
-	gint lx = 0;						/**< Index in `leaves' */
-	gint ui;							/**< Iterating index in `ultras' */
-	gint li;							/**< Iterating index in `leaves' */
-	gint un;							/**< Amount of ultras to send */
-	gint ln;							/**< Amount of leaves to send */
+	gnutella_node_t **ultras = NULL;	/* Array  of ultra nodes		*/
+	gnutella_node_t **leaves = NULL;	/* Array  of `leaves'			*/
+	gint ultras_len = 0;				/* Size   of `ultras'			*/
+	gint leaves_len = 0;				/* Size   of `leaves'			*/
+	gint ux = 0;						/* Index  in `ultras'			*/
+	gint lx = 0;						/* Index  in `leaves'			*/
+	gint ui;							/* Iterating index in `ultras'	*/
+	gint li;							/* Iterating index in `leaves'	*/
+	gint un;							/* Amount of `ultras' to send	*/
+	gint ln;							/* Amount of `leaves' to send	*/
 	GSList *sl;
 	gboolean crawlable_only = (features & NODE_CR_CRAWLABLE) ? TRUE : FALSE;
 	gboolean wants_ua = (features & NODE_CR_USER_AGENT) ? TRUE : FALSE;
 	pmsg_t *mb = NULL;
 	pdata_t *db;
-	guchar *payload;					/**< Start of constructed payload */
-	GString *agents = NULL;				/**< The string holding user-agents */
+	guchar *payload;					/* Start of constructed payload */
+	GString *agents = NULL;				/* The string holding user-agents */
 	time_t now;
 
 	g_assert(NODE_IS_UDP(n));

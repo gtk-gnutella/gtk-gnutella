@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Vendor code management.
+ *
+ * @author Richard Eckart
+ * @date 2001-2003
+ */
+
 #ifndef _vendors_h_
 #define _vendors_h_
 
@@ -112,7 +122,8 @@
 #define T_0000	0x00000000
 
 /**
- * Compare two codes, alphanumerically (i.e. "ACQX" < "GTKG").
+ * Compare two codes, alphanumerically (id est "ACQX" < "GTKG").
+ *
  * Returns -1/0/+1 depending on comparison's sign.
  * Note that this comparison is case-sensitive.
  */

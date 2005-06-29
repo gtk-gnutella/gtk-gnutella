@@ -29,7 +29,7 @@
 #include "gui.h"
 #include "filter_core.h"
 
-/*
+/**
  * Notebook tabs in the filter detail notebook.
  */
 enum {

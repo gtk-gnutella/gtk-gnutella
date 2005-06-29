@@ -40,7 +40,7 @@
  *
  * The 'upload_history' file has the following format:
  *
- *		"<url-escaped filename> <file size> <attempts> <completions>"
+ *		- "<url-escaped filename> <file size> <attempts> <completions>"
  *
  * @todo
  * TODO: Add a check to make sure that all of the files still exist(?)

@@ -128,6 +128,7 @@ static gulong fuzzy_find_score(GSList *a, GSList *b)
  * @return the similarity of both strings as a value
  * between 0 and (1 << FUZZY_SHIFT).
  *
+ * @attention
  * NB: The result will be bogus for strings larger than
  *     1 << (BIT_LENGTH_OF_GULONG - (FUZZY_SHIFT + 2)) chars.
  */

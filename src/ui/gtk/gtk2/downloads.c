@@ -347,7 +347,8 @@ add_column(GtkTreeView *treeview, GtkType column_type, const gchar *name,
 
 
 /**
- *	Add one column to the treeview
+ *	Add one column to the treeview.
+ *
  *	@note Usable only for active downloads treeview.
  */
 static void
@@ -369,7 +370,8 @@ add_active_downloads_column(GtkTreeView *treeview,
 }
 
 /**
- *	Add one column to the treeview
+ *	Add one column to the treeview.
+ *
  *	@note Usable only for downloads queue treeview.
  */
 static void
@@ -417,8 +419,9 @@ compare_size_func(GtkTreeModel *model,
 }
 
 /**
- *	Add all columns to the treeview
- * 	Set titles, alignment, width, etc. here
+ *	Add all columns to the treeview.
+ * 	Set titles, alignment, width, etc. here.
+ *
  *	@note Usable only for active downloads treeview.
  */
 static void
@@ -460,8 +463,9 @@ add_active_downloads_columns(GtkTreeView *treeview)
 
 
 /**
- *	Add all columns to the treeview
- * 	Set titles, alignment, width, etc. here
+ *	Add all columns to the treeview.
+ * 	Set titles, alignment, width, etc. here.
+ *
  *	@note Usable only for downloads queue treeview.
  */
 static void
@@ -565,7 +569,7 @@ create_queue_model(void)
 
 
 /**
- *	Initalize the download gui
+ *	Initalize the download gui.
  *
  *	Important things in here:  initialization of hash tables, adding columns
  * 	to the treeviews, creating treeview model (what the columns mean and their
@@ -650,7 +654,7 @@ downloads_gui_init(void)
 }
 
 /**
- * Shutdown procedures
+ * Shutdown procedures.
  */
 void
 downloads_gui_shutdown(void)

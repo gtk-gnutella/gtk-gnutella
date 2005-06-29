@@ -34,8 +34,8 @@
 #include "lib/hashlist.h"
 #include "lib/prop.h"
 
-/*
- * Structure for search results
+/**
+ * Structure for search results.
  */
 struct search {
     gnet_search_t search_handle;	/**< Search handle */
@@ -160,8 +160,8 @@ void gui_search_get_colors(
 void search_gui_start_massive_update(search_t *sch);
 void search_gui_end_massive_update(search_t *sch);
 
-/*
- * Metadata Update
+/**
+ * Metadata Update.
  */
 
 void search_gui_metadata_update(const bitzi_data_t *data);

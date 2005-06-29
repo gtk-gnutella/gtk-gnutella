@@ -59,7 +59,7 @@ RCSID("$Id$");
 #define VP_ARROW_HEIGHT 7 
 
 /**
- * The context for drawing, including location to draw
+ * The context for drawing, including location to draw.
  */
 typedef struct vp_context {
 	GtkWidget *widget;      /**< The widget containing the drawing area */
@@ -70,7 +70,7 @@ typedef struct vp_context {
 } vp_context_t;
 
 /**
- * Locally cached information from fileinfo needed for drawing the graphics
+ * Locally cached information from fileinfo needed for drawing the graphics.
  */
 typedef struct vp_info {
     gnet_fi_t fi_handle;
@@ -83,7 +83,7 @@ typedef struct vp_info {
     vp_context_t *context;
 } vp_info_t;
 
-static GHashTable *vp_info_hash; /* Hash table with our cached fileinfo info */
+static GHashTable *vp_info_hash; /**< Hash table with our cached fileinfo info */
 
 static GdkColor done;       /**< Pre-filled color (green) for DONE chunks */
 static GdkColor done_old;	/**< Pre-filled color (dull green) for DONE
@@ -99,13 +99,13 @@ static GdkColor nosize;     /**< Pre-filled color (gray) indicates
 static GdkColor *base;      /**< Theme-defined background color */
 
 /**
- * The visual progress context for drawing fileinfo information
+ * The visual progress context for drawing fileinfo information.
  */
 static vp_context_t fi_context;
 
 
 /**
- * Draw a rectangle for visual progress
+ * Draw a rectangle for visual progress.
  */
 void
 vp_draw_rectangle(vp_info_t *v, filesize_t from, filesize_t to,
@@ -140,7 +140,7 @@ vp_draw_rectangle(vp_info_t *v, filesize_t from, filesize_t to,
 }
 
 /**
- * Draw a chunk for visual progress
+ * Draw a chunk for visual progress.
  */
 void
 vp_draw_chunk (gpointer data, gpointer user_data)
@@ -165,7 +165,7 @@ vp_draw_chunk (gpointer data, gpointer user_data)
 }
 
 /**
- * Draw an downward arrow starting at the top
+ * Draw an downward arrow starting at the top.
  */
 void
 vp_draw_arrow(vp_info_t *v, filesize_t at)
@@ -285,7 +285,7 @@ vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 }
 
 /**
- * Callback for the fileinfo pane GtkDrawingArea
+ * Callback for the fileinfo pane GtkDrawingArea.
  */
 void
 on_drawingarea_fi_progress_realize(GtkWidget *widget, gpointer user_data)
@@ -304,7 +304,7 @@ on_drawingarea_fi_progress_realize(GtkWidget *widget, gpointer user_data)
 }
 
 /**
- * Callback for the fileinfo pane GtkDrawingArea
+ * Callback for the fileinfo pane GtkDrawingArea.
  */
 gboolean
 on_drawingarea_fi_progress_expose_event(
@@ -383,7 +383,7 @@ vp_gui_fi_added(gnet_fi_t fih)
 }
 
 /**
- * Handle the event that a fileinfo entry has been removed
+ * Handle the event that a fileinfo entry has been removed.
  *
  * @param fih The fileinfo handle of the entry to be removed
  */
@@ -429,7 +429,7 @@ vp_print_chunk(gnet_fi_chunks_t *c, gboolean show_old)
 			(gint) c->status);
 }
 
-/*
+/**
  * For debugging: print chunk list.
  */
 static void
@@ -739,7 +739,7 @@ vp_gui_fi_ranges_changed(gnet_fi_t fih)
 
 
 /**
- * Free the vp_info_t structs in the vp_info_hash
+ * Free the vp_info_t structs in the vp_info_hash.
  */
 void
 vp_free_key_value (gpointer key, gpointer value, gpointer user_data)
@@ -804,7 +804,7 @@ vp_gui_init(void)
 }
 
 /**
- * Undo everything set up in vp_gui_init
+ * Undo everything set up in vp_gui_init.
  */
 void
 vp_gui_shutdown(void)
