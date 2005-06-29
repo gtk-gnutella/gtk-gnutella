@@ -38,17 +38,17 @@ typedef struct bsched bsched_t;
  */
 
 typedef struct bio_source {
-	bsched_t *bs;						/**< B/w scheduler for this source */
-	wrap_io_t *wio;						/**< Wrapped I/O object */
-	gint io_tag;						/**< Recorded I/O callback tag */
-	guint io_flags;						/**< Flags for I/O callback */
+	bsched_t *bs;					/**< B/w scheduler for this source */
+	wrap_io_t *wio;					/**< Wrapped I/O object */
+	gint io_tag;					/**< Recorded I/O callback tag */
+	guint io_flags;					/**< Flags for I/O callback */
 	inputevt_handler_t io_callback;		/**< I/O callback routine */
-	gpointer io_arg;					/**< I/O callback argument */
-	guint32 flags;						/**< Source flags */
-	guint bw_actual;					/**< Actual bandwidth used in period */
-	guint bw_last_bps;					/**< B/w used last period (bps) */
-	guint bw_fast_ema;					/**< Fast EMA of actual bandwidth used */
-	guint bw_slow_ema;					/**< Slow EMA of actual bandwidth used */
+	gpointer io_arg;				/**< I/O callback argument */
+	guint32 flags;					/**< Source flags */
+	guint bw_actual;				/**< Actual bandwidth used in period */
+	guint bw_last_bps;				/**< B/w used last period (bps) */
+	guint bw_fast_ema;				/**< Fast EMA of actual bandwidth used */
+	guint bw_slow_ema;				/**< Slow EMA of actual bandwidth used */
 } bio_source_t;
 
 /*
