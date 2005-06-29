@@ -1,5 +1,10 @@
 # since last version
 
+- (2005-06-29 - RAM)
+ * Was mistakenly thinking it was reading data from the network whereas it
+   simply had socket connections timeouting.  Therefore, the "offline" status
+   was never activated after an Internet connection breakdown (fixes #1144460).
+
 # v 0.95.3  2005.05.22  [stable]
 
 - Fixed a potential denial-of-service problem.
