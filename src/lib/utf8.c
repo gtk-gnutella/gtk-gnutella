@@ -1102,6 +1102,17 @@ locale_to_utf8_normalized(const gchar *str, uni_norm_t norm)
 	return ret;
 }
 
+static inline gboolean
+locale_is_utf8(void)
+{
+	static gboolean initialized, is_utf8;
+
+	if (!initialized) {
+		is_utf8 = 0 == strcmp(charset, "UTF-8");
+		initialized = TRUE;
+	}
+	return is_utf8;
+}
 
 const gchar *
 utf8_to_locale(const gchar *str, size_t len)
@@ -1111,10 +1122,10 @@ utf8_to_locale(const gchar *str, size_t len)
 	g_assert(NULL != str);
 
 	/* No need to convert from UTF-8 to UTF-8 */
-	if (0 == strcmp(charset, "UTF-8"))
+	if (locale_is_utf8())
 		return str;
-		
-	return g_iconv_complete(cd_utf8_to_locale,
+	else		
+		return g_iconv_complete(cd_utf8_to_locale,
 				str, len != 0 ? len : strlen(str), outbuf, sizeof(outbuf) - 7);
 }
 
