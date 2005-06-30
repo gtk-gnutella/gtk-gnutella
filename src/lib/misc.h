@@ -105,6 +105,12 @@ cast_to_gpointer(gpointer p)
 	return p; 
 }
 
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gchar *
+cast_to_gchar_ptr(gpointer p)
+{
+	return p; 
+}
+
 typedef void (*func_ptr_t)(void);
 		
 static inline G_GNUC_CONST WARN_UNUSED_RESULT gpointer
