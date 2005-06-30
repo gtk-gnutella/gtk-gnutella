@@ -547,6 +547,8 @@ gboolean use_global_hostiles_txt     = TRUE;
 gboolean use_global_hostiles_txt_def = TRUE;
 gboolean use_so_linger     = FALSE;
 gboolean use_so_linger_def = FALSE;
+gboolean browse_host_enabled     = FALSE;
+gboolean browse_host_enabled_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -5173,6 +5175,23 @@ gnet_prop_init(void) {
     gnet_property->props[241].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[241].data.boolean.def   = &use_so_linger_def;
     gnet_property->props[241].data.boolean.value = &use_so_linger;
+
+
+    /*
+     * PROP_BROWSE_HOST_ENABLED:
+     *
+     * General data:
+     */
+    gnet_property->props[242].name = "browse_host_enabled";
+    gnet_property->props[242].desc = _("If TRUE, other hosts can request a complete list of all shared files.");
+    gnet_property->props[242].ev_changed = event_new("browse_host_enabled_changed");
+    gnet_property->props[242].save = TRUE;
+    gnet_property->props[242].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[242].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[242].data.boolean.def   = &browse_host_enabled_def;
+    gnet_property->props[242].data.boolean.value = &browse_host_enabled;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

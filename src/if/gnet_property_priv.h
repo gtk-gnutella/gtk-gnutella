@@ -284,6 +284,7 @@ extern const gboolean uploads_stalling;
 extern const gboolean allow_auto_requeries;
 extern const gboolean use_global_hostiles_txt;
 extern const gboolean use_so_linger;
+extern const gboolean browse_host_enabled;
 
 
 prop_set_t *gnet_prop_init(void);

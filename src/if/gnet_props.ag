@@ -2866,4 +2866,16 @@ prop = {
 	};
 };
 
+prop = {
+	name = "browse_host_enabled";
+	desc = "If TRUE, other hosts can request a complete list of all "
+		   "shared files.";
+	save = TRUE;
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
+
+
 /* vi: set ts=4: */
