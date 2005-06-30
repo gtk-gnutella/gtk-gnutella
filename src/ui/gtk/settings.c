@@ -55,6 +55,7 @@ RCSID("$Id$");
 
 #include "lib/prop.h"
 #include "lib/glib-missing.h"
+#include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 /* Uncomment to override debug level for this file. */
@@ -4215,6 +4216,14 @@ static prop_map_t property_map[] = {
         update_label_yes_or_no,
         TRUE,
         "label_up_req_enough_bw",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_BROWSE_HOST_ENABLED,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_enable_browse_host",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
