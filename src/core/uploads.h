@@ -47,6 +47,11 @@
 struct gnutella_node;
 struct dl_file_info;
 
+struct special_read_ctx {
+	ssize_t (* read)(gpointer ctx, gpointer dest, size_t size);
+	void (* close)(gpointer ctx);
+};
+
 typedef struct upload {
     gnet_upload_t upload_handle;
 	guint32 flags;					/**< Operating flags */
@@ -59,6 +64,7 @@ typedef struct upload {
 	gint file_desc;
 	bio_source_t *bio;				/**< Bandwidth-limited source */
 	sendfile_ctx_t sendfile_ctx;
+	struct special_read_ctx *special_read;
 
 	gchar *buffer;
 	gint bpos;
@@ -74,27 +80,28 @@ typedef struct upload {
 
 	struct dl_file_info *file_info;	/**< For PFSP: only set when partial file */
 
-	guint32 ip;						/**< Remote IP address */
-	gchar *user_agent;				/**< Remote user agent */
-	gint country;					/**< Country of origin, ISO3166 code */
-	filesize_t skip;				/**< First byte to send, inclusive */
-	filesize_t end;					/**< Last byte to send, inclusive */
-	filesize_t pos;					/**< Read position in file we're sending */
-	filesize_t sent;				/**< Bytes sent in this request */
+	guint32 ip;					/**< Remote IP address */
+	gchar *user_agent;			/**< Remote user agent */
+	gint country;				/**< Country of origin, ISO3166 code */
+	filesize_t skip;			/**< First byte to send, inclusive */
+	filesize_t end;				/**< Last byte to send, inclusive */
+	filesize_t pos;				/**< Read position in file we're sending */
+	filesize_t sent;			/**< Bytes sent in this request */
 
-	guint32 last_dmesh;				/**< Time when last download mesh was sent */
-	gchar *sha1;					/**< SHA1 of requested file */
-	filesize_t total_requested;		/**< Total amount of bytes requested */
-	gint http_major;				/**< HTTP major version */
-	gint http_minor;				/**< HTTP minor version */
+	guint32 last_dmesh;			/**< Time when last download mesh was sent */
+	gchar *sha1;				/**< SHA1 of requested file */
+	filesize_t total_requested;	/**< Total amount of bytes requested */
+	gint http_major;			/**< HTTP major version */
+	gint http_minor;			/**< HTTP minor version */
 
-	gboolean keep_alive;			/**< Keep HTTP connection? */
+	gboolean keep_alive;		/**< Keep HTTP connection? */
 	gboolean push;
-	gboolean queue;					/**< Similar to PUSH, but this time it is due
+	gboolean queue;				/**< Similar to PUSH, but this time it is due
 				                         to parq */
-	gboolean accounted;				/**< True when upload was accounted for */
-	gboolean unavailable_range;		/**< True when last request ended with 416 */
-	gboolean n2r;					/**< True when they sent an N2R request */
+	gboolean accounted;			/**< True when upload was accounted for */
+	gboolean unavailable_range;	/**< True when last request ended with 416 */
+	gboolean n2r;				/**< True when they sent an N2R request */
+	gboolean browse_host;		/**< True when they sent a Browse Host req. */
 
 	gboolean parq_status;
 } gnutella_upload_t;

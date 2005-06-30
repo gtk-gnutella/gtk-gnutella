@@ -147,6 +147,7 @@ static void upload_http_xhost_add(
 static void upload_xfeatures_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 static void upload_write(gpointer up, gint source, inputevt_cond_t cond);
+static void upload_special_write(gpointer up, gint source, inputevt_cond_t cond);
 static void send_upload_error(gnutella_upload_t *u, struct shared_file *sf,
 	int code, const gchar *msg, ...) G_GNUC_PRINTF(4, 5);
 
@@ -395,9 +396,11 @@ upload_timer(time_t now)
 gnutella_upload_t *
 upload_create(struct gnutella_socket *s, gboolean push)
 {
+	static const gnutella_upload_t zero_upload;
 	gnutella_upload_t *u;
 
-	u = (gnutella_upload_t *) walloc0(sizeof(gnutella_upload_t));
+	u = walloc(sizeof *u);
+	*u = zero_upload;
     u->upload_handle = upload_new_handle(u);
 
 	u->socket = s;
@@ -407,7 +410,7 @@ upload_create(struct gnutella_socket *s, gboolean push)
 
 	u->push = push;
 	u->status = push ? GTA_UL_PUSH_RECEIVED : GTA_UL_HEADERS;
-	u->last_update = time((time_t *) 0);
+	u->last_update = time(NULL);
 	u->file_desc = -1;
 	u->sendfile_ctx.map = NULL;
 
@@ -636,6 +639,10 @@ upload_free_resources(gnutella_upload_t *u)
 	if (u->sha1) {
 		atom_sha1_free(u->sha1);
 		u->sha1 = NULL;
+	}
+	if (u->special_read) {
+		u->special_read->close(u->special_read);
+		u->special_read = NULL;
 	}
 
     upload_free_handle(u->upload_handle);
@@ -935,7 +942,7 @@ upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
 	 * then update the stats, not marking the upload as completed.
 	 */
 
-	if (UPLOAD_IS_SENDING(u) && !u->accounted)
+	if (UPLOAD_IS_SENDING(u) && !u->browse_host && !u->accounted)
 		upload_stats_file_aborted(u);
 
     if (!UPLOAD_IS_COMPLETE(u)) {
@@ -950,7 +957,7 @@ upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
     upload_fire_upload_removed(u, reason ? errbuf : NULL);
 
 	upload_free_resources(u);
-	wfree(u, sizeof(*u));
+	wfree(u, sizeof *u);
 	list_uploads = g_slist_remove(list_uploads, u);
 }
 
@@ -2088,6 +2095,218 @@ upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 	*retval = rw;
 }
 
+enum bh_state {
+	BH_STATE_HEADER = 0,	/* Sending header */
+	BH_STATE_FILES,			/* Sending file data (URI, Hash, Size etc.) */
+	BH_STATE_TRAILER,		/* Sending trailer data */
+	BH_STATE_EOF,			/* All data sent (End Of File) */
+	
+	NUM_BH_STATES,
+};
+
+struct browse_host_ctx {
+	struct special_read_ctx special;	/**< vtable for special functions */
+	gpointer d_buf;			/**< Used for dynamically allocated buffer */
+	const gchar *b_data;	/**< Current data block */
+	size_t b_offset;		/**< Offset in data block */
+	size_t b_size;			/**< Size of the data block */
+	enum bh_state state;	/**< Current state of the state machine */
+	guint file_index;		/**< Current file index (iterator) */
+};
+
+/**
+ * Copies up to ``*size'' bytes from current data block
+ * (bh->b_data + bh->b_offset) to the buffer ``dest''.
+ *
+ * @param bh an initialized browse host context.
+ * @param dest the destination buffer.
+ * @param size must point to a ``size_t'' variable and initialized to the
+ *			   number of bytes that ``dest'' can hold. It's value is
+ *			   automagically decreased by the amount of bytes copied.
+ * @return The amount of bytes copied. Use this to advance ``dest''.
+ */
+static inline size_t
+browse_host_read_data(struct browse_host_ctx *bh, gchar *dest, size_t *size)
+{
+	size_t len;
+
+	g_assert(NULL != size);
+	g_assert((ssize_t) bh->b_offset >= 0 && bh->b_offset <= bh->b_size);
+	g_assert(bh->b_data != NULL);
+	g_assert(*size <= INT_MAX);
+
+	len = bh->b_size - bh->b_offset;
+	len = MIN(*size, len);
+	memcpy(dest, &bh->b_data[bh->b_offset], len);
+	bh->b_offset += len;
+	*size -= len;
+
+	return len;
+}
+
+/**
+ * Sets the state of the browse host context to ``state'' and resets the
+ * data block variables.
+ */
+static inline void
+browse_host_next_state(struct browse_host_ctx *bh, enum bh_state state)
+{
+	g_assert(NULL != bh);
+	g_assert((gint) state >= 0 && state < NUM_BH_STATES);
+	bh->d_buf = NULL;
+	bh->b_data = NULL;
+	bh->b_size = 0;
+	bh->b_offset = 0;
+	bh->state = state;
+}
+
+/**
+ * Writes the browse host data of the context ``ctx'' to the buffer
+ * ``dest''. This must be called multiple times to retrieve the complete
+ * data until zero is returned i.e., the end of file is reached.
+ *
+ * @param ctx an initialized browse host context.
+ * @param dest the destination buffer.
+ * @param size the amount of bytes ``dest'' can hold.
+ *
+ * @return -1 on failure, zero at the end-of-file condition or if size
+ *         was zero. On success, the amount of bytes copied to ``dest''
+ *         is returned.
+ */
+static ssize_t 
+browse_host_read(gpointer ctx, gpointer const dest, size_t size)
+{
+	static const gchar header[] =
+		"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
+		"<html><head><title>Browse Host</title></head><body><ul>";
+	static const gchar trailer[] = "</ul></body></html>";
+	struct browse_host_ctx *bh = ctx;
+	gchar *p = dest; 
+
+	g_assert(NULL != bh);
+	g_assert(NULL != dest);
+	g_assert(size <= INT_MAX);
+	
+	g_assert((gint) bh->state >= 0 && bh->state < NUM_BH_STATES);
+	g_assert(bh->b_size <= INT_MAX);
+	g_assert(bh->b_offset <= bh->b_size);
+
+	do {	
+		switch (bh->state) {
+		case BH_STATE_HEADER:
+			if (!bh->b_data) {
+				bh->b_data = header;
+				bh->b_size = sizeof header;
+			}
+			p += browse_host_read_data(bh, p, &size);
+			if (bh->b_size == bh->b_offset) {
+				browse_host_next_state(bh, BH_STATE_FILES);
+				bh->file_index = 0;
+			}
+			break;
+			
+		case BH_STATE_TRAILER:
+			if (!bh->b_data) {
+				bh->b_data = trailer;
+				bh->b_size = sizeof trailer;
+			}
+			p += browse_host_read_data(bh, p, &size);
+			if (bh->b_size == bh->b_offset)
+				browse_host_next_state(bh, BH_STATE_EOF);
+			break;
+
+		case BH_STATE_FILES:
+			if (bh->b_data && bh->b_size == bh->b_offset) {
+				g_assert(bh->d_buf == bh->b_data);
+				G_FREE_NULL(bh->d_buf);
+				bh->b_data = NULL;
+			}
+		
+			if (!bh->b_data) {
+				shared_file_t *sf;
+
+				bh->file_index++;
+				sf = shared_file(bh->file_index);
+				if (!sf) {
+				   	if (bh->file_index > shared_files_scanned())
+						browse_host_next_state(bh, BH_STATE_TRAILER);
+					/* Skip holes in the file_index table */
+				} else {
+					/*
+					 * @todo FIXME: In HTML (especially anchors) certain
+					 * characters must be escaped, at least these: [<>&"].
+					 */
+					if (sf->sha1_digest) {
+						bh->d_buf = g_strconcat("<li>",
+								"<a href=\"/uri-res/N2R?urn:sha1:",
+								sha1_base32(sf->sha1_digest),
+								"\">", sf->name_nfc, "</a></li>", (void *) 0);
+					} else {
+						gchar *escaped;
+
+						escaped = url_escape(sf->name_nfc);
+						bh->d_buf = g_strdup_printf(
+								"<li><a href=\"/get/%u/%s\">%s</a></li>",
+								sf->file_index, escaped, sf->name_nfc);
+						if (escaped != sf->name_nfc)
+							G_FREE_NULL(escaped);
+					}
+					bh->b_data = bh->d_buf;
+					bh->b_size = strlen(bh->b_data);
+					bh->b_offset = 0;
+				}
+			}
+
+			if (bh->b_data)
+				p += browse_host_read_data(bh, p, &size);
+
+			break;
+			
+		case BH_STATE_EOF:
+			return p - cast_to_gchar_ptr(dest);
+			
+		case NUM_BH_STATES:
+			g_assert_not_reached();
+		}
+	} while (size > 0);
+
+	return p - cast_to_gchar_ptr(dest);
+}
+
+/**
+ * Closes the browse host context and releases its memory.
+ *
+ * @param an initialized browse host context.
+ */
+void
+browse_host_close(gpointer ctx)
+{
+	struct browse_host_ctx *bh = cast_to_gpointer(ctx);
+
+	if (bh && bh->d_buf) 
+		G_FREE_NULL(bh->d_buf);
+	G_FREE_NULL(bh);
+}
+
+/**
+ * Creates a new browse host context. The context must be freed with
+ * browse_host_close().
+ *
+ * @return An initialized browse host context.
+ */
+struct special_read_ctx *
+browse_host_open(void)
+{
+	struct browse_host_ctx *bh;
+
+	bh = g_malloc(sizeof *bh);
+	bh->special.read = browse_host_read;
+	bh->special.close = browse_host_close;
+	browse_host_next_state(bh, BH_STATE_HEADER);
+	return &bh->special;
+}
+
+
 /**
  * Called to initiate the upload once all the HTTP headers have been
  * read.  Validate the request, and begin processing it if all OK.
@@ -2112,9 +2331,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	struct upload_http_cb cb_parq_arg, cb_sha1_arg, cb_status_arg, cb_416_arg;
 	gint http_code;
 	const gchar *http_msg;
-	http_extra_desc_t hev[7];
+	http_extra_desc_t hev[8];
 	guint hevcnt = 0;
-	gchar *sha1;
+	gchar *sha1 = NULL;
 	gboolean is_followup =
 		(u->status == GTA_UL_WAITING || u->status == GTA_UL_PFSP_WAITING);
 	gboolean was_actively_queued = u->status == GTA_UL_QUEUED;
@@ -2232,11 +2451,40 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 *				--RAM, 09/09/2001
 	 */
 
-	reqfile = get_file_to_upload(u, header, request);
-	if (!reqfile) {
-		/* get_file_to_upload() has signaled the error already */
-		return;
+	if (
+		NULL != is_strprefix(request, "GET / HTTP/") ||
+		NULL != is_strprefix(request, "HEAD / HTTP/")
+	) {
+		u->browse_host = TRUE;
+		u->name = atom_str_get(_("<Browse Host Request>"));
+		
+		if (!browse_host_enabled) {
+			upload_error_remove(u, NULL, 403, "Browse Host Disabled");
+			return;
+		}
+
+	    g_assert(hevcnt < G_N_ELEMENTS(hev));
+		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
+		hev[hevcnt].he_msg = "Content-Type: text/html; charset=utf-8\r\n";
+		hev[hevcnt++].he_arg = NULL;
+		
+		if (NULL != is_strprefix(request, "HEAD ")) {
+			static const gchar msg[] = N_("Browse Host Enabled");
+			http_send_status(u->socket, 200, FALSE, hev, hevcnt, msg);
+			upload_remove(u, _(msg));
+			return;
+		}
+
+	} else {
+		u->browse_host = FALSE;
+		
+		reqfile = get_file_to_upload(u, header, request);
+		if (!reqfile) {
+			/* get_file_to_upload() has signaled the error already */
+			return;
+		}
 	}
+	
 
 	/*
 	 * Check vendor-specific banning.
@@ -2255,110 +2503,114 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	/* Pick up the X-Remote-IP or Remote-IP header */
 	node_check_remote_ip_header(u->ip, header);
 
-	idx = reqfile->file_index;
-	sha1 = sha1_hash_available(reqfile) ? reqfile->sha1_digest : NULL;
+	if (reqfile) {
+		idx = reqfile->file_index;
+		sha1 = sha1_hash_available(reqfile) ? reqfile->sha1_digest : NULL;
 
 
-	/*
-	 * If we pushed this upload, and they are not requesting the same
-	 * file, that's OK, but warn.
-	 *		--RAM, 31/12/2001
-	 */
+		/*
+		 * If we pushed this upload, and they are not requesting the same
+		 * file, that's OK, but warn.
+		 *		--RAM, 31/12/2001
+		 */
 
-	if (u->push && idx != u->index)
-		g_warning("Host %s sent PUSH for %u (%s), now requesting %u (%s)",
-			ip_to_gchar(u->ip), u->index, u->name, idx, reqfile->name_nfc);
+		if (u->push && idx != u->index)
+			g_warning("Host %s sent PUSH for %u (%s), now requesting %u (%s)",
+				ip_to_gchar(u->ip), u->index, u->name, idx, reqfile->name_nfc);
 
-	/*
-	 * We already have a non-NULL u->name in the structure, because we
-     * saved the uri there or the name from a push request.
-     * However, we want to display the actual name of the shared file.
-	 *		--Richard, 20/11/2002
-	 */
+		/*
+		 * We already have a non-NULL u->name in the structure, because we
+		 * saved the uri there or the name from a push request.
+		 * However, we want to display the actual name of the shared file.
+		 *		--Richard, 20/11/2002
+		 */
 
-	u->index = idx;
-	if (!u->sha1 && sha1)
-		u->sha1 = atom_sha1_get(sha1);	/* Identify file for followup reqs */
+		u->index = idx;
+		/* Identify file for follow-up reqs */
+		if (!u->sha1 && sha1)
+			u->sha1 = atom_sha1_get(sha1);
 
-    if (u->name != NULL)
-        atom_str_free(u->name);
+		if (u->name != NULL)
+			atom_str_free(u->name);
 
-    u->name = atom_str_get(reqfile->name_nfc);
-	u->file_info = reqfile->fi;
+		u->name = atom_str_get(reqfile->name_nfc);
+		u->file_info = reqfile->fi;
 
-	/*
-	 * Range: bytes=10453-23456
-	 */
+		/*
+		 * Range: bytes=10453-23456
+		 */
 
-	buf = header_get(header, "Range");
-	if (buf && reqfile->file_size != 0) {
-		http_range_t *r;
-		GSList *ranges =
-			http_range_parse("Range", buf,  reqfile->file_size, user_agent);
+		buf = header_get(header, "Range");
+		if (buf && reqfile->file_size != 0) {
+			http_range_t *r;
+			GSList *ranges =
+				http_range_parse("Range", buf,  reqfile->file_size, user_agent);
 
-		if (ranges == NULL) {
-			upload_error_remove(u, NULL, 400, "Malformed Range request");
-			return;
+			if (ranges == NULL) {
+				upload_error_remove(u, NULL, 400, "Malformed Range request");
+				return;
+			}
+
+			/*
+			 * We don't properly support multiple ranges yet.
+			 * Just pick the first one, but warn so we know when people start
+			 * requesting multiple ranges at once.
+			 *		--RAM, 27/01/2003
+			 */
+
+			if (g_slist_next(ranges) != NULL) {
+				if (dbg) g_warning("client %s <%s> requested several ranges "
+						"for \"%s\": %s", ip_to_gchar(u->ip),
+						u->user_agent ? u->user_agent : "", reqfile->name_nfc,
+						http_range_to_gchar(ranges));
+			}
+
+			r = (http_range_t *) ranges->data;
+
+			g_assert(r->start <= r->end);
+			g_assert(r->end < reqfile->file_size);
+
+			skip = r->start;
+			end = r->end;
+			has_end = TRUE;
+
+			http_range_free(ranges);
 		}
 
 		/*
-		 * We don't properly support multiple ranges yet.
-		 * Just pick the first one, but warn so we know when people start
-		 * requesting multiple ranges at once.
-		 *		--RAM, 27/01/2003
+		 * Validate the requested range.
 		 */
 
-		if (g_slist_next(ranges) != NULL) {
-			if (dbg) g_warning("client %s <%s> requested several ranges "
-				"for \"%s\": %s", ip_to_gchar(u->ip),
-				u->user_agent ? u->user_agent : "", reqfile->name_nfc,
-				http_range_to_gchar(ranges));
+		fpath = reqfile->file_path;
+		u->file_size = reqfile->file_size;
+
+		if (!has_end)
+			end = u->file_size - 1;
+
+		/*
+		 * PFSP-server: restrict the end of the requested range if the file
+		 * we're about to upload is only partially available.  If the range
+		 * is not yet available, signal it but don't break the connection.
+		 *		--RAM, 11/10/2003
+		 */
+
+		if (
+				reqfile->fi != NULL &&
+				!file_info_restrict_range(reqfile->fi, skip, &end)
+		   ) {
+			g_assert(pfsp_server);
+			range_unavailable = TRUE;
+		} else {
+			if (u->unavailable_range)	/* Previous request was for bad chunk */
+				is_followup = FALSE;		/* Perform as if original request */
+			u->unavailable_range = FALSE;
 		}
 
-		r = (http_range_t *) ranges->data;
+		u->skip = skip;
+		u->end = end;
+		u->pos = skip;
 
-		g_assert(r->start <= r->end);
-		g_assert(r->end < reqfile->file_size);
-
-		skip = r->start;
-		end = r->end;
-		has_end = TRUE;
-
-		http_range_free(ranges);
-	}
-
-	/*
-	 * Validate the requested range.
-	 */
-
-	fpath = reqfile->file_path;
-	u->file_size = reqfile->file_size;
-
-	if (!has_end)
-		end = u->file_size - 1;
-
-	/*
-	 * PFSP-server: restrict the end of the requested range if the file
-	 * we're about to upload is only partially available.  If the range
-	 * is not yet available, signal it but don't break the connection.
-	 *		--RAM, 11/10/2003
-	 */
-
-	if (
-		reqfile->fi != NULL &&
-		!file_info_restrict_range(reqfile->fi, skip, &end)
-	) {
-		g_assert(pfsp_server);
-		range_unavailable = TRUE;
-	} else {
-		if (u->unavailable_range)		/* Previous request was for bad chunk */
-			is_followup = FALSE;		/* Perform as if original request */
-		u->unavailable_range = FALSE;
-	}
-
-	u->skip = skip;
-	u->end = end;
-	u->pos = skip;
+	} /* reqfile */
 
 	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 	hev[hevcnt].he_cb = upload_xfeatures_add;
@@ -2413,7 +2665,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * XXX here.  Hence I'm not removing this code.  --RAM, 11/10/2003
 	 */
 
-	if (skip >= u->file_size || end >= u->file_size) {
+	if (reqfile && (skip >= u->file_size || end >= u->file_size)) {
 		static const gchar msg[] = "Requested range not satisfiable";
 
 		cb_416_arg.u = u;
@@ -2506,13 +2758,26 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	}
 
 	/*
+	 * FIXME: Implement Tranfer-Encoding "chunked" to allow keep-alive
+	 *        connections with unknown content-lengths. This is a
+	 *        required feature of HTTP/1.1 - HTTP/1.0 doesn't support it.
+	 *
+	 * We don't want to determine the content-length in advance and we
+	 * do not support chunked transfers either. Thus, the only way to
+	 * indicate the end-of-message is an EOF which means we keep-alive
+	 * connections must be disabled for this purpose.
+	 */
+	if (u->browse_host)
+		u->keep_alive = FALSE;
+	
+	/*
 	 * If the requested range was determined to be unavailable, signal it
 	 * to them.  Break the connection if it was a HEAD request, but allow
 	 * them an extra request if the last one was for a valid range.
 	 *		--RAM, 11/10/2003
 	 */
 
-	if (range_unavailable) {
+	if (reqfile && range_unavailable) {
 		static const gchar msg[] = "Requested range not available yet";
 
 		g_assert(sha1_hash_available(reqfile));
@@ -2621,7 +2886,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * Follow-up requests already have their slots.
 	 */
 
-	if (!head_only) {
+	if (reqfile && !head_only) {
 		if (is_followup && parq_upload_lookup_position(u) == (guint) -1) {
 			/*
 			 * Allthough the request is an follow up request, the last time the
@@ -2648,7 +2913,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		}
 	}
 
-	if (!(head_only || is_followup)) {
+	if (reqfile && !(head_only || is_followup)) {
 		/*
 		 * Even though this test is less costly than the previous ones, doing
 		 * it afterwards allows them to be notified of a mismatch whilst they
@@ -2766,7 +3031,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		}
 	}
 
-	if (!head_only) {
+	if (reqfile && !head_only) {
 		/*
 		 * Avoid race conditions in case of QUEUE callback answer: they might
 		 * already have got an upload slot since we sent the QUEUE and they
@@ -2786,34 +3051,37 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		parq_upload_busy(u, u->parq_opaque);
 	}
 
-	if (-1 == stat(fpath, &statbuf)) {
-		upload_error_not_found(u, request);
-		return;
-	}
+	if (reqfile) {
 
-	/*
-	 * Ensure that a given persistent connection never requests more than
-	 * the total file length.  Add 10% to account for partial overlapping
-	 * ranges.
-	 */
+		if (-1 == stat(fpath, &statbuf)) {
+			upload_error_not_found(u, request);
+			return;
+		}
 
-	u->total_requested += end - skip + 1;
+		/*
+		 * Ensure that a given persistent connection never requests more than
+		 * the total file length.  Add 10% to account for partial overlapping
+		 * ranges.
+		 */
 
-	if ((u->total_requested / 11) * 10 > u->file_size) {
-		g_warning("host %s (%s) requesting more than there is to %u (%s)",
-			ip_to_gchar(s->ip), upload_vendor_str(u), u->index, u->name);
-		upload_error_remove(u, NULL, 400, "Requesting Too Much");
-		return;
-	}
+		u->total_requested += end - skip + 1;
 
-	/* Open the file for reading , READONLY just in case. */
-	if ((u->file_desc = file_open(fpath, O_RDONLY)) < 0) {
-		upload_error_not_found(u, request);
-		return;
+		if ((u->total_requested / 11) * 10 > u->file_size) {
+			g_warning("host %s (%s) requesting more than there is to %u (%s)",
+				ip_to_gchar(s->ip), upload_vendor_str(u), u->index, u->name);
+			upload_error_remove(u, NULL, 400, "Requesting Too Much");
+			return;
+		}
+
+		/* Open the file for reading , READONLY just in case. */
+		if ((u->file_desc = file_open(fpath, O_RDONLY)) < 0) {
+			upload_error_not_found(u, request);
+			return;
+		}
 	}
 
 #if defined(USE_MMAP) || defined(HAVE_SENDFILE)
-	use_sendfile = !sendfile_failed && !SOCKET_USES_TLS(u->socket);
+	use_sendfile = !sendfile_failed && !SOCKET_USES_TLS(u->socket) && reqfile;
 #else
 	use_sendfile = FALSE;
 #endif /* USE_MMAP || HAVE_SENDFILE */
@@ -2878,7 +3146,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * Send back HTTP status.
 	 */
 
-	if (u->skip || u->end != (u->file_size - 1)) {
+	if (reqfile && (u->skip || u->end != (u->file_size - 1))) {
 		http_code = 206;
 		http_msg = "Partial Content";
 	} else {
@@ -2897,7 +3165,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * arlready sent for those).
 	 */
 
-	if (!head_only && !is_followup && !parq_ul_id_sent(u)) {
+	if (reqfile && !head_only && !is_followup && !parq_ul_id_sent(u)) {
 		cb_parq_arg.u = u;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
@@ -2905,18 +3173,20 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		hev[hevcnt++].he_arg = &cb_parq_arg;
 	}
 
-	/*
-	 * Date, Content-Length, etc...
-	 */
+	if (reqfile) {
+		/*
+		 * Date, Content-Length, etc...
+		 */
 
-	cb_status_arg.u = u;
-	cb_status_arg.now = now;
-	cb_status_arg.mtime = mtime;
-	cb_status_arg.sf = reqfile;
+		cb_status_arg.u = u;
+		cb_status_arg.now = now;
+		cb_status_arg.mtime = mtime;
+		cb_status_arg.sf = reqfile;
 
-	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-	hev[hevcnt].he_cb = upload_http_status;
-	hev[hevcnt++].he_arg = &cb_status_arg;
+		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+		hev[hevcnt].he_cb = upload_http_status;
+		hev[hevcnt++].he_arg = &cb_status_arg;
+	}
 
 	g_assert(hevcnt <= G_N_ELEMENTS(hev));
 	
@@ -2972,10 +3242,65 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	g_assert(s->gdk_tag == 0);
 	g_assert(u->bio == NULL);
 
+	if (u->browse_host)
+		u->special_read = browse_host_open();
+	
 	u->bio = bsched_source_add(bws.out, &s->wio,
-		BIO_F_WRITE, upload_write, (gpointer) u);
+		BIO_F_WRITE,
+		u->browse_host ? upload_special_write : upload_write,
+		u);
 
-	upload_stats_file_begin(u);
+	if (reqfile)
+		upload_stats_file_begin(u);
+}
+
+static void
+upload_completed(gnutella_upload_t *u)
+{
+	/*
+	 * We do the following before cloning, since this will reset most
+	 * of the information, including the upload name.  If they chose
+	 * to clear uploads immediately, they will incur a small overhead...
+	 */
+	u->status = GTA_UL_COMPLETE;
+
+	gnet_prop_set_guint32_val(PROP_TOTAL_UPLOADS, total_uploads + 1);
+	upload_fire_upload_info_changed(u); /* gui must update last state */
+
+	/*
+	 * If we're going to keep the connection, we must clone the upload
+	 * structure, since it is associated to the GUI entry.
+	 */
+
+	if (u->keep_alive) {
+		gnutella_upload_t *cu = upload_clone(u);
+		upload_wait_new_request(cu);
+		/*
+		 * Don't decrement counters, we're still using the same slot.
+		 */
+	} else {
+		registered_uploads--;
+		running_uploads--;
+	}
+
+	upload_remove(u, NULL);
+}
+
+/**
+ * @return TRUE if an exception occured, the upload has been removed
+ *         in this case. FALSE if everything is OK.
+ */
+static gboolean 
+upload_handle_exception(gnutella_upload_t *u, inputevt_cond_t cond)
+{
+	if (cond & INPUT_EVENT_EXCEPTION) {
+		/* If we can't write then we don't want it, kill the socket */
+		socket_eof(u->socket);
+		upload_remove(u, _("Write exception"));
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 /**
@@ -2984,7 +3309,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 static void
 upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 {
-	gnutella_upload_t *u = (gnutella_upload_t *) up;
+	gnutella_upload_t *u = up;
 	ssize_t written;
 	filesize_t amount;
 	size_t available;
@@ -2992,12 +3317,8 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 
 	(void) unused_source;
 
-	if (cond & INPUT_EVENT_EXCEPTION) {
-		/* If we can't write then we don't want it, kill the socket */
-		socket_eof(u->socket);
-		upload_remove(u, _("Write exception"));
+	if (upload_handle_exception(u, cond))
 		return;
-	}
 
    /*
  	* Compute the amount of bytes to send.
@@ -3113,40 +3434,87 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 
 	/* This upload is complete */
 	if (u->pos > u->end) {
-		/*
-		 * We do the following before cloning, since this will reset most
-		 * of the information, including the upload name.  If they chose
-		 * to clear uploads immediately, they will incur a small overhead...
-		 */
-		u->status = GTA_UL_COMPLETE;
-
-        gnet_prop_set_guint32_val(PROP_TOTAL_UPLOADS, total_uploads + 1);
+		
 		upload_stats_file_complete(u);
-        upload_fire_upload_info_changed(u); /* gui must update last state */
 		u->accounted = TRUE;		/* Called upload_stats_file_complete() */
-
-		/*
-		 * If we're going to keep the connection, we must clone the upload
-		 * structure, since it is associated to the GUI entry.
-		 */
-
-		if (u->keep_alive) {
-			gnutella_upload_t *cu = upload_clone(u);
-			upload_wait_new_request(cu);
-			/*
-			 * Don't decrement counters, we're still using the same slot.
-			 */
-		} else {
-			registered_uploads--;
-			running_uploads--;
-		}
-
-		upload_remove(u, NULL);
-
+		upload_completed(u);
+		
 		return;
 	}
 }
 
+static inline ssize_t
+upload_special_read(gnutella_upload_t *u)
+{
+	g_assert(NULL != u->special_read);
+	g_assert(NULL != u->special_read->read);
+	return u->special_read->read(u->special_read, u->buffer, u->buf_size);
+}
+
+/**
+ * Called when output source can accept more data.
+ */
+static void
+upload_special_write(gpointer up, gint unused_source, inputevt_cond_t cond)
+{
+	gnutella_upload_t *u = up;
+	ssize_t written;
+	size_t available;
+
+	(void) unused_source;
+
+	if (upload_handle_exception(u, cond))
+		return;
+
+	/*
+ 	 * If the buffer position reached the size, then we need to read
+ 	 * more data from the file.
+ 	 */
+
+	if (u->bpos == u->bsize) {
+		ssize_t ret;
+
+		g_assert(u->buffer != NULL);
+		g_assert(u->buf_size > 0);
+		ret = u->bsize = upload_special_read(u);
+		if ((ssize_t) -1 == ret) {
+			upload_remove(u, _("File read error: %s"), g_strerror(errno));
+			return;
+		}
+		if (0 == ret) {
+			upload_completed(u);
+			return;
+		}
+		u->bpos = 0;
+	}
+
+	available = u->bsize - u->bpos;
+	g_assert(available > 0 && available <= INT_MAX);
+
+	written = bio_write(u->bio, &u->buffer[u->bpos], available);
+
+	if ((ssize_t) -1 == written) {
+		gint e = errno;
+
+		if (e != EAGAIN && e != EINTR) {
+			socket_eof(u->socket);
+			upload_remove(u, _("Data write error: %s"), g_strerror(e));
+		}
+		return;
+	} else if (written == 0) {
+		upload_remove(u, "No bytes written, source may be gone");
+		return;
+	}
+
+	u->pos += written;
+	u->bpos += written;
+
+	gnet_prop_set_guint64_val(PROP_UL_BYTE_COUNT, ul_byte_count + written);
+
+	u->last_update = time(NULL);
+	u->sent += written;
+}
+	
 /**
  * Kill a running upload.
  */
@@ -3224,12 +3592,12 @@ upload_close(void)
 		to_remove = g_slist_prepend(to_remove, sl->data);
 
 	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
-		gnutella_upload_t *u = (gnutella_upload_t *) (sl->data);
+		gnutella_upload_t *u = sl->data;
 
-		if (UPLOAD_IS_SENDING(u) && !u->accounted)
+		if (UPLOAD_IS_SENDING(u) && !u->browse_host && !u->accounted)
 			upload_stats_file_aborted(u);
 		upload_free_resources(u);
-		wfree(u, sizeof(*u));
+		wfree(u, sizeof *u);
 	}
 	g_slist_free(to_remove);
 
