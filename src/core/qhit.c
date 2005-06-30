@@ -447,6 +447,16 @@ flush_match(void)
 				"in query hit");
 	}
 
+	/*
+	 * Advertise the Browse Host extension in the results if the feature is
+	 * enabled.
+     */
+	
+	if (browse_host_enabled) {
+		if (!ggep_stream_pack(&gs, "BH", NULL, 0, 0))
+			g_warning("could not write GGEP \"BH\" extension into query hit");
+	}
+
 	ggep_len = ggep_stream_close(&gs);
 	found_close(ggep_len);
 
