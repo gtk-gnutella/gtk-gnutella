@@ -10459,6 +10459,8 @@ create_dlg_prefs (void)
   GtkWidget *vbox120;
   guint checkbutton_enable_shell_key;
   GtkWidget *checkbutton_enable_shell;
+  guint checkbutton_enable_browse_host_key;
+  GtkWidget *checkbutton_enable_browse_host;
   GtkWidget *frame_expert_rx_buffers;
   GtkWidget *table67;
   guint label553_key;
@@ -11802,6 +11804,18 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_enable_shell);
   gtk_box_pack_start (GTK_BOX (vbox120), checkbutton_enable_shell, FALSE, FALSE, 0);
+
+  checkbutton_enable_browse_host = gtk_check_button_new_with_label ("");
+  checkbutton_enable_browse_host_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_enable_browse_host)->child),
+                                   _("Enable \"_Browse Host\" feature"));
+  gtk_widget_add_accelerator (checkbutton_enable_browse_host, "clicked", accel_group,
+                              checkbutton_enable_browse_host_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_set_name (checkbutton_enable_browse_host, "checkbutton_enable_browse_host");
+  gtk_widget_ref (checkbutton_enable_browse_host);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_enable_browse_host", checkbutton_enable_browse_host,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_enable_browse_host);
+  gtk_box_pack_start (GTK_BOX (vbox120), checkbutton_enable_browse_host, FALSE, FALSE, 0);
 
   frame_expert_rx_buffers = gtk_frame_new (_("Socket receive buffer size"));
   gtk_widget_set_name (frame_expert_rx_buffers, "frame_expert_rx_buffers");

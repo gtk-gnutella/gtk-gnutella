@@ -9704,6 +9704,7 @@ create_dlg_prefs_net_tab (void)
   GtkWidget *frame99;
   GtkWidget *vbox118;
   GtkWidget *checkbutton_enable_shell;
+  GtkWidget *checkbutton_enable_browse_host;
   GtkWidget *label783;
   GtkWidget *frame_expert_rx_buffers;
   GtkWidget *table77;
@@ -10222,6 +10223,11 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_show (checkbutton_enable_shell);
   gtk_box_pack_start (GTK_BOX (vbox118), checkbutton_enable_shell, FALSE, FALSE, 0);
 
+  checkbutton_enable_browse_host = gtk_check_button_new_with_mnemonic (_("Enable \"_Browse Host\" feature"));
+  gtk_widget_set_name (checkbutton_enable_browse_host, "checkbutton_enable_browse_host");
+  gtk_widget_show (checkbutton_enable_browse_host);
+  gtk_box_pack_start (GTK_BOX (vbox118), checkbutton_enable_browse_host, FALSE, FALSE, 0);
+
   label783 = gtk_label_new (_("Miscellaneous"));
   gtk_widget_set_name (label783, "label783");
   gtk_widget_show (label783);
@@ -10425,6 +10431,7 @@ create_dlg_prefs_net_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame99, "frame99");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, vbox118, "vbox118");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_enable_shell, "checkbutton_enable_shell");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_enable_browse_host, "checkbutton_enable_browse_host");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label783, "label783");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame_expert_rx_buffers, "frame_expert_rx_buffers");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, table77, "table77");
