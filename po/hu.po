@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-07-01 18:57+0900\n"
+"POT-Creation-Date: 2005-07-01 23:09+0900\n"
 "PO-Revision-Date: 2005-07-01 19:06+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: NONE \n"
@@ -4416,26 +4416,6 @@ msgstr "Bájt"
 #: src/lib/misc.c:759 src/lib/misc.c:771
 #, c-format
 msgid "%sB/s"
-msgstr ""
-
-#: src/lib/misc.c:816
-#, c-format
-msgid "%dd %dh"
-msgstr ""
-
-#: src/lib/misc.c:818
-#, c-format
-msgid "%dh %dm"
-msgstr ""
-
-#: src/lib/misc.c:820
-#, c-format
-msgid "%dm %ds"
-msgstr ""
-
-#: src/lib/misc.c:822
-#, c-format
-msgid "%ds"
 msgstr ""
 
 #: src/main.c:573
