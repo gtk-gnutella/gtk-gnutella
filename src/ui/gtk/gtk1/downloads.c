@@ -1006,7 +1006,7 @@ gui_update_download(struct download *d, gboolean force)
 
 				if (guc_get_parq_dl_queue_length(d) > 0) {
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-						" / %d", guc_get_parq_dl_queue_length(d));
+						"/%d", guc_get_parq_dl_queue_length(d));
 				}
 
 				if (guc_get_parq_dl_eta(d)  > 0) {

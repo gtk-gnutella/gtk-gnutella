@@ -1394,7 +1394,7 @@ gui_update_download(download_t *d, gboolean force)
 
 				if (guc_get_parq_dl_queue_length(d) > 0) {
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-						" / %d", guc_get_parq_dl_queue_length(d));
+						"/%d", guc_get_parq_dl_queue_length(d));
 				}
 
 				if (guc_get_parq_dl_eta(d)  > 0) {
@@ -1440,7 +1440,7 @@ gui_update_download(download_t *d, gboolean force)
 					rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s",
 							_("Sending push"));
 
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " via %s",
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, _(" via %s"),
 						ip_port_to_gchar(cproxy_ip(cp), cproxy_port(cp)));
 
 				if (!cp->done) {

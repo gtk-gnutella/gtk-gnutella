@@ -4038,7 +4038,7 @@ err_header_read_error(gpointer o, gint error)
 				_("Stopped (%s)"), g_strerror(error));
 		else
 			download_unavailable(d, GTA_DL_ERROR,
-				_("Too many attempts (%d)"), d->retries - 1);
+				_("Too many attempts (%d times)"), d->retries - 1);
 	} else
 		download_stop(d, GTA_DL_ERROR, _("Failed (Read error: %s)"),
 			g_strerror(error));
@@ -4073,7 +4073,7 @@ err_header_read_eof(gpointer o)
 			_("Stopped (EOF)"));
 	else
 		download_unavailable(d, GTA_DL_ERROR,
-			_("Too many attempts (%d)"), d->retries - 1);
+			_("Too many attempts (%d times)"), d->retries - 1);
 }
 
 static struct io_error download_io_error = {

@@ -629,9 +629,9 @@ short_size(guint64 size)
 
 	if (size < 1024) {
 		if (size == 1)
-			gm_snprintf(b, sizeof(b), "1 Byte");
+			gm_snprintf(b, sizeof(b), _("1 Byte"));
 		else
-			gm_snprintf(b, sizeof(b), "%u Bytes", (guint) size);
+			gm_snprintf(b, sizeof(b), _("%u Bytes"), (guint) size);
 	} else if (size < 1048576)
 		gm_snprintf(b, sizeof(b), "%.2f KiB", (gfloat) size / 1024.0);
 	else if (size < 1073741824)
@@ -752,7 +752,8 @@ compact_rate(guint64 rate)
 	static gchar buf[64];
 	gchar ratebuf[48];
 
-	gm_snprintf(buf, sizeof buf, "%sB/s",
+	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
+	gm_snprintf(buf, sizeof buf, _("%sB/s"),
 		compact_value(ratebuf, sizeof ratebuf, rate));
 	return buf;
 }
@@ -763,7 +764,8 @@ short_rate(guint64 rate)
 	static gchar buf[64];
 	gchar ratebuf[48];
 
-	gm_snprintf(buf, sizeof buf, "%sB/s",
+	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
+	gm_snprintf(buf, sizeof buf, _("%sB/s"),
 		short_value(ratebuf, sizeof ratebuf, rate));
 	return buf;
 }
@@ -808,13 +810,13 @@ short_time(gint t)
 	gint s = MAX(t, 0);
 
 	if (s > 86400)
-		gm_snprintf(b, sizeof(b), "%dd %dh", s / 86400, (s % 86400) / 3600);
+		gm_snprintf(b, sizeof(b), _("%dd %dh"), s / 86400, (s % 86400) / 3600);
 	else if (s > 3600)
-		gm_snprintf(b, sizeof(b), "%dh %dm", s / 3600, (s % 3600) / 60);
+		gm_snprintf(b, sizeof(b), _("%dh %dm"), s / 3600, (s % 3600) / 60);
 	else if (s > 60)
-		gm_snprintf(b, sizeof(b), "%dm %ds", s / 60, s % 60);
+		gm_snprintf(b, sizeof(b), _("%dm %ds"), s / 60, s % 60);
 	else
-		gm_snprintf(b, sizeof(b), "%ds", s);
+		gm_snprintf(b, sizeof(b), _("%ds"), s);
 
 	return b;
 }

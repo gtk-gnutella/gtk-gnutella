@@ -167,7 +167,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			queued = u->parq_position > max_up - cur_up;
 				
 			slen += gm_snprintf(tmpstr, sizeof(tmpstr),
-						_("%s [%d] (slot %d / %d)"),
+						_("%s [%d] (slot %d/%d)"),
 						queued ? _("Queued") : _("Waiting"),
 						u->parq_queue_no,
 						u->parq_position,
