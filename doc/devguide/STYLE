@@ -99,7 +99,7 @@ Ladies and gentleman, here's the
     lib, etc.). See also doc/api/gtkg-apidoc.main, a group name is defined
     here.
 
-    The following is a example from the actual source code:
+    The following is an example from the actual source code:
 
         /**
          * @ingroup core
