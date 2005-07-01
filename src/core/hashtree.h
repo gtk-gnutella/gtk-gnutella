@@ -73,3 +73,5 @@ void		 hashtree_finish(hashtree *parent);
 void		 hashtree_destroy(hashtree *tree);
 
 #endif	/* _core_hashtree_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

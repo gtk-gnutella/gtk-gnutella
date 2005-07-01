@@ -2276,7 +2276,7 @@ browse_host_read(gpointer ctx, gpointer const dest, size_t size)
 /**
  * Closes the browse host context and releases its memory.
  *
- * @param an initialized browse host context.
+ * @return An initialized browse host context.
  */
 void
 browse_host_close(gpointer ctx)

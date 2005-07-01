@@ -27,7 +27,7 @@
  * @ingroup lib
  * @file
  *
- * Misc functions.
+ * Miscellaneous functions.
  *
  * @author Raphael Manfredi
  * @date 2001-2003
@@ -197,8 +197,9 @@ is_strcaseprefix(const gchar *str, const gchar *prefix)
 }
 
 /**
- * Checks whether the given string contains a valid IP address. If the
- * string is NULL returns FALSE.
+ * Checks whether the given string contains a valid IP address.
+ *
+ * @return FALSE if the string is NULL.
  */
 gboolean
 is_string_ip(const gchar *s)
@@ -552,7 +553,9 @@ str_chomp(gchar *str, gint len)
 }
 
 /**
- * Checks for RFC1918 private addresses; returns TRUE if is a private address.
+ * Checks for RFC1918 private addresses.
+ *
+ * @return TRUE if is a private address.
  */
 gboolean
 is_private_ip(guint32 ip)
@@ -577,7 +580,7 @@ is_private_ip(guint32 ip)
 }
 
 /**
- * Check whether path is an absolute path
+ * Check whether path is an absolute path.
  */
 gboolean
 is_absolute_path(const char *path)
@@ -587,7 +590,7 @@ is_absolute_path(const char *path)
 }
 
 /**
- * Check whether path is a directory
+ * Check whether path is a directory.
  */
 gboolean
 is_directory(const gchar *path)
@@ -599,7 +602,7 @@ is_directory(const gchar *path)
 }
 
 /**
- * Check whether path points to a regular file
+ * Check whether path points to a regular file.
  */
 gboolean
 is_regular(const gchar *path)
@@ -611,7 +614,7 @@ is_regular(const gchar *path)
 }
 
 /**
- * Check whether path is a symbolic link
+ * Check whether path is a symbolic link.
  */
 gboolean
 is_symlink(const gchar *path)

@@ -94,7 +94,7 @@ typedef struct atom {
 #ifdef PROTECT_ATOMS
 	union {
 		struct {
-			guint len;				/**< Length of user arena */
+			guint len;		/**< Length of user arena */
 			atom_prot_magic_t magic;
 		} attr;
 		gchar padding[PAGESIZE - sizeof(guint)];

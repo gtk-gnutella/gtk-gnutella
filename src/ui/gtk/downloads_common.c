@@ -156,7 +156,7 @@ gui_download_enable_start_now(guint32 running_downloads, guint32 max_downloads)
 
 
 /**
- *	clear all stopped, complete, and unavailable downloads
+ *	Clear all stopped, complete, and unavailable downloads.
  */
 void
 on_button_downloads_clear_stopped_clicked(GtkButton *unused_button,
@@ -169,7 +169,7 @@ on_button_downloads_clear_stopped_clicked(GtkButton *unused_button,
 
 
 /**
- *	Freeze the downloads queue
+ *	Freeze the downloads queue.
  */
 void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton,
 	gpointer unused_udata)

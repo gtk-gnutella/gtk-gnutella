@@ -966,9 +966,11 @@ pcache_clear_recent(host_type_t type)
 /**
  * Called when a new outgoing connection has been made.
  *
- * + If we need a connection, or have less than MAX_PONGS entries in our caught
+ * Here needs brief description for the following list:
+ *
+ * - If we need a connection, or have less than MAX_PONGS entries in our caught
  *   list, send a ping at normal TTL value.
- * + Otherwise, send a handshaking ping with TTL=1
+ * - Otherwise, send a handshaking ping with TTL=1
  */
 void
 pcache_outgoing_connection(struct gnutella_node *n)
@@ -1686,17 +1688,19 @@ pcache_udp_ping_received(struct gnutella_node *n)
 /**
  * Called when a ping is received from a node.
  *
- * + If current time is less than what `ping_accept' says, drop the ping.
+ * Here needs brief description for the following list:
+ *
+ * - If current time is less than what `ping_accept' says, drop the ping.
  *   Otherwise, accept the ping and increment `ping_accept' by n->ping_throttle.
- * + If cache expired, call pcache_expire() and broadcast a new ping to all
+ * - If cache expired, call pcache_expire() and broadcast a new ping to all
  *   the "new" clients (i.e. those flagged NODE_A_PONG_CACHING).  For "old"
  *   clients, do so only if "next_ping" time was reached.
- * + Handle "alive" pings (TTL=1) and "crawler" pings (TTL=2) immediately,
+ * - Handle "alive" pings (TTL=1) and "crawler" pings (TTL=2) immediately,
  *   then return.
- * + Setup pong demultiplexing tables, recording the fact that  the node needs
+ * - Setup pong demultiplexing tables, recording the fact that  the node needs
  *   to be sent pongs as we receive them.
- * + Return a pong for us if we accept incoming connections right now.
- * + Return cached pongs, avoiding to resend a pong coming from that node ID.
+ * - Return a pong for us if we accept incoming connections right now.
+ * - Return cached pongs, avoiding to resend a pong coming from that node ID.
  */
 void
 pcache_ping_received(struct gnutella_node *n)
@@ -1858,13 +1862,15 @@ pcache_udp_pong_received(struct gnutella_node *n)
 /**
  * Called when a pong is received from a node.
  *
- * + Record node in the main host catching list.
- * + If node is not a "new" client (i.e. flagged as NODE_A_PONG_CACHING),
+ * Here needs brief description for the fllowing list:
+ *
+ * - Record node in the main host catching list.
+ * - If node is not a "new" client (i.e. flagged as NODE_A_PONG_CACHING),
  *   cache randomly OLD_CACHE_RATIO percent of those (older clients need
  *   to be able to get incoming connections as well).
- * + Cache pong in the pong.hops cache line, associated with the node ID (so we
+ * - Cache pong in the pong.hops cache line, associated with the node ID (so we
  *   never send back this entry to the node).
- * + For all nodes but `n', propagate pong if neeed, with demultiplexing.
+ * - For all nodes but `n', propagate pong if neeed, with demultiplexing.
  */
 void
 pcache_pong_received(struct gnutella_node *n)

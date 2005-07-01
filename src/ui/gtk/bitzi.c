@@ -47,7 +47,7 @@ RCSID("$Id$");
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
- * This table should match the encoding one in core/bitzi.c.
+ * This table should match the encoding one in 'core/bitzi.c'.
  *
  * It assumes the enum's are in order.
  */

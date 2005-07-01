@@ -47,7 +47,7 @@
 
 struct gnutella_msg_init {
 	struct gnutella_header header;
-	/* GGEP data may follow */
+	/**< GGEP data may follow */
 } __attribute__((__packed__));
 
 struct gnutella_init_response {
@@ -60,12 +60,12 @@ struct gnutella_init_response {
 struct gnutella_msg_init_response {
 	struct gnutella_header header;
 	struct gnutella_init_response response;
-	/* GGEP data may follow */
+	/**< GGEP data may follow */
 } __attribute__((__packed__));
 
 struct gnutella_search {
 	guchar speed[2];
-	/* query string follows */
+	/**< query string follows */
 } __attribute__((__packed__));
 
 struct gnutella_search_results {
@@ -93,12 +93,12 @@ struct gnutella_push_request {
 struct gnutella_msg_push_request {
 	struct gnutella_header header;
 	struct gnutella_push_request request;
-	/* GGEP data may follow */
+	/**< GGEP data may follow */
 } __attribute__((__packed__));
 
 struct gnutella_bye {
 	guchar code[2];
-	/* message string follows */
+	/**< message string follows */
 } __attribute__((__packed__));
 
 struct gnutella_qrp_reset {
@@ -126,7 +126,7 @@ struct gnutella_msg_qrp_patch {
 } __attribute__((__packed__));
 
 struct gnutella_vendor {
-	guchar vendor[4];		/**< E.g. "GTKG" */
+	guchar vendor[4];		/**< For example, "GTKG" */
 	guchar selector_id[2];	/**< Message selector ID, little endian */
 	guchar version[2];		/**< Message version number, little endian */
 	/* payload follows */

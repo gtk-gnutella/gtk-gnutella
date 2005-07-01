@@ -50,8 +50,6 @@ typedef enum {
 } http_extra_type_t;
 
 /**
- * http_status_cb_t
- *
  * The callback used to generate custom headers.
  *
  * @param `buf' is where the callback can generate extra data.
@@ -92,8 +90,6 @@ typedef struct {
 struct header;
 
 /**
- * http_header_cb_t
- *
  * Callback used from asynchronous request to indicate that we got headers.
  * Indicates whether we should continue or not, given the HTTP response code.
  */
@@ -101,8 +97,6 @@ typedef gboolean (*http_header_cb_t)(
 	gpointer h, struct header *header, gint code, const gchar *message);
 
 /**
- * http_data_cb_t
- *
  * Callback used from asynchronous request to indicate that data is available.
  */
 typedef void (*http_data_cb_t)(gpointer h, gchar *data, gint len);
@@ -121,8 +115,6 @@ typedef struct {
 } http_error_t;
 
 /**
- * http_error_cb_t
- *
  * Callback used from asynchronous request to indicate that an error occurred.
  * The type of `val' depends on the `error'.
  */
@@ -130,16 +122,12 @@ typedef struct {
 typedef void (*http_error_cb_t)(gpointer h, http_errtype_t error, gpointer val);
 
 /**
- * http_user_free_t
- *
  * Callabck to free user opaque data.
  */
 
 typedef void (*http_user_free_t)(gpointer data);
 
 /**
- * http_op_request_t
- *
  * Asynchronous operations that the user may redefine.
  */
 

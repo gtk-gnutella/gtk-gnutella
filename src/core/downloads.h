@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup core
+ * @file
+ *
+ * Needs brief description here.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
+ */
+
 #ifndef _core_downloads_h_
 #define _core_downloads_h_
 
@@ -95,4 +105,4 @@ void download_proxy_failed(struct download *d);
 
 #endif /* _core_downloads_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

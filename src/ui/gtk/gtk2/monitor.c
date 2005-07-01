@@ -27,7 +27,7 @@
  * @ingroup gtk
  * @file
  *
- * GUI stuff used by share.c.
+ * GUI stuff used by 'share.c'.
  *
  * @author Raphael Manfredi
  * @author Richard Eckart
