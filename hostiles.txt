@@ -147,6 +147,10 @@
 69.9.188.0/24
 69.9.189.0/24
 
+# hosted by net-sentry.net, suspicious GWebCache polling
+69.26.174.0/24
+69.26.191.0/24
+
 # weasel.net, diverse GWebCache spamming/trashing
 66.68.124.56
 
