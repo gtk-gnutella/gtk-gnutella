@@ -102,6 +102,7 @@ fi_gui_update_row(GtkTreeStore *store, GtkTreeIter *iter, gchar **titles)
 		c_fi_isize, *(guint64 *) titles[c_fi_isize],
 		c_fi_idone, GPOINTER_TO_UINT(titles[c_fi_idone]),
 		c_fi_isources, GPOINTER_TO_UINT(titles[c_fi_isources]),
+		c_fi_istatus, GPOINTER_TO_UINT(titles[c_fi_istatus]),
 		(-1));
 }
 
@@ -268,7 +269,7 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
     static gchar fi_done[SIZE_FIELD_MAX+10];
     static gchar fi_size[SIZE_FIELD_MAX];
     static guint64 isize;
-	guint idone;
+	guint idone, idone_percent;
 
     guc_fi_get_status(fih, &s);
 
@@ -284,31 +285,38 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
             short_size(s.done), done);
         titles[c_fi_done] = fi_done;
 		idone = done * ((1 << 30) / 101);
+		idone_percent = done;
     } else {
         titles[c_fi_done] = "-";
 		idone = 0;
+		idone_percent = 0;
     }
 
     g_strlcpy(fi_size, short_size(s.size), sizeof(fi_size));
 	titles[c_fi_size]  = fi_size;
 	isize = s.size;
-    titles[c_fi_isize] = (gpointer) &isize;
+    titles[c_fi_isize] = cast_to_gpointer(&isize);
     titles[c_fi_idone] = GUINT_TO_POINTER(idone);
 
     if (s.recvcount) {
+		titles[c_fi_istatus] = GUINT_TO_POINTER(3 * 100 + idone_percent);
 		gm_snprintf(fi_status, sizeof(fi_status),
             _("Downloading (%s)"), short_rate(s.recv_last_rate));
         titles[c_fi_status] = fi_status;
     } else if (s.done == s.size) {
+		titles[c_fi_istatus] = GUINT_TO_POINTER(4 * 100 + idone_percent);
         titles[c_fi_status] = _("Finished");
     } else if (s.lifecount == 0) {
+		titles[c_fi_istatus] = GUINT_TO_POINTER(0 * 100 + idone_percent);
         titles[c_fi_status] = _("No sources");
     } else if (s.aqueued_count || s.pqueued_count) {
+		titles[c_fi_istatus] = GUINT_TO_POINTER(2 * 100 + idone_percent);
         gm_snprintf(fi_status, sizeof(fi_status),
             _("Queued (%d active, %d passive)"),
             s.aqueued_count, s.pqueued_count);
         titles[c_fi_status] = fi_status;
     } else {
+		titles[c_fi_istatus] = GUINT_TO_POINTER(1 * 100 + idone_percent);
         titles[c_fi_status] = _("Waiting");
     }
     titles[c_fi_handle] = GUINT_TO_POINTER(fih);
@@ -552,7 +560,7 @@ fi_gui_init(void)
     	{ c_fi_size,	 N_("Size"),	1.0, compare_uint64_func, c_fi_isize },
     	{ c_fi_done,	 N_("Done"),	1.0, compare_uint_func, c_fi_idone },
     	{ c_fi_sources,  N_("Sources"), 1.0, compare_uint_func, c_fi_isources },
-    	{ c_fi_status,   N_("Status"),	0.0, NULL, -1 }
+    	{ c_fi_status,   N_("Status"),	0.0, compare_uint_func, c_fi_istatus }
 	};
 	static GType types[] = {
 		G_TYPE_STRING,	/* Filename				*/
@@ -563,7 +571,8 @@ fi_gui_init(void)
 		G_TYPE_UINT,	/* Fileinfo handle		*/
 		G_TYPE_UINT64,	/* Size (for sorting)	*/
 		G_TYPE_UINT,	/* Done (for sorting)	*/
-		G_TYPE_UINT		/* Sources (for sorting	*/
+		G_TYPE_UINT,	/* Sources (for sorting) */
+		G_TYPE_UINT		/* Status (for sorting) */
 	};
     static const GtkTargetEntry targets[] = {
         { "STRING", 0, 23 },

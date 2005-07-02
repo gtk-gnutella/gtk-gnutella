@@ -184,6 +184,7 @@ enum {
 	c_fi_isize,
 	c_fi_idone,
 	c_fi_isources,
+	c_fi_istatus,
 #endif
 	c_fi_num
 };
