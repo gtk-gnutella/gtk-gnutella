@@ -6,6 +6,8 @@
 #
 # 対訳一覧:
 #
+# Partial File Sharing    部分ファイル共有
+#
 # TX, RX          送信、受信
 # activated       有効にする
 # active          稼働・有効・アクティブ
@@ -41,8 +43,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-07-01 23:09+0900\n"
-"PO-Revision-Date: 2005-07-01 23:10+0900\n"
+"POT-Creation-Date: 2005-07-03 13:30+0900\n"
+"PO-Revision-Date: 2005-07-03 13:26+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -189,7 +191,7 @@ msgstr "データ転送中止 (EOF)"
 
 #: src/core/downloads.c:5668 src/core/downloads.c:6161
 msgid "Partial file on server, waiting"
-msgstr "相手サーバの断片ファイルを待受中"
+msgstr "サーバの部分ファイルを待受中"
 
 #: src/core/downloads.c:5768
 #, c-format
@@ -646,7 +648,7 @@ msgstr "ファイル"
 #: src/ui/gtk/gtk1/interface-glade.c:5504
 #: src/ui/gtk/gtk1/interface-glade.c:12666 src/ui/gtk/gtk1/search.c:2243
 #: src/ui/gtk/gtk1/search.c:2249 src/ui/gtk/gtk2/downloads.c:437
-#: src/ui/gtk/gtk2/downloads.c:482 src/ui/gtk/gtk2/fileinfo.c:552
+#: src/ui/gtk/gtk2/downloads.c:482 src/ui/gtk/gtk2/fileinfo.c:560
 #: src/ui/gtk/gtk2/gnet_stats.c:474 src/ui/gtk/gtk2/interface-glade.c:11212
 #: src/ui/gtk/gtk2/search.c:1348 src/ui/gtk/gtk2/upload_stats.c:269
 #: src/ui/gtk/gtk2/uploads.c:82
@@ -1874,7 +1876,7 @@ msgid ""
 "already share many files, in which case it does no harm to leave it in, but "
 "will not matter as much."
 msgstr ""
-"未だにダウンロード完了していないファイルを、断片ファイルとして供給するかどう"
+"未だにダウンロード完了していないファイルを、部分ファイルとして供給するかどう"
 "かを選択します。すでに多数のファイルを共有していない限り、ネットワークへの負"
 "担を軽減するためにもこれを推奨します。多数のファイルを共有している場合、その"
 "ままにしておいても有害ではありませんが、あまり意味を為さないでしょう。"
@@ -1888,7 +1890,7 @@ msgid ""
 "of data that should be continuously downloaded at the beginning of the "
 "file.  Don't set it too large."
 msgstr ""
-"断片ファイル共有プロトコル (PFSP - Partial File Sharing Protocol ) が使用され"
+"部分ファイル共有プロトコル (PFSP - Partial File Sharing Protocol ) が使用され"
 "ると、順序に捕らわれずにチャンクをダウンロードしたり、ネットワーク内でのファ"
 "イルの取得範囲を最大化されるようになります。しかし、これはファイルの監視(ファ"
 "イルタイプ、プレビュー等)を不可能にしてしまいます。ここには、ファイルの先頭で"
@@ -3920,12 +3922,12 @@ msgstr "ジンバブエ共和国"
 
 #: src/lib/misc.c:635
 msgid "1 Byte"
-msgstr "1 バイト"
+msgstr "1 Byte"
 
 #: src/lib/misc.c:637
 #, c-format
 msgid "%u Bytes"
-msgstr "%u バイト"
+msgstr "%u Bytes"
 
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
 #: src/lib/misc.c:759 src/lib/misc.c:771
@@ -4710,32 +4712,32 @@ msgid "Selected %u of %u queued download matching \"%s\"."
 msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
 msgstr[0] "選択された %u/%u 件の待機ダウンロードが \"%s\" に一致します。"
 
-#: src/ui/gtk/gtk1/fileinfo.c:134 src/ui/gtk/gtk2/fileinfo.c:300
+#: src/ui/gtk/gtk1/fileinfo.c:134 src/ui/gtk/gtk2/fileinfo.c:304
 #, c-format
 msgid "Downloading (%s)"
 msgstr "ダウンロード中 (%s)"
 
-#: src/ui/gtk/gtk1/fileinfo.c:137 src/ui/gtk/gtk2/fileinfo.c:303
+#: src/ui/gtk/gtk1/fileinfo.c:137 src/ui/gtk/gtk2/fileinfo.c:308
 msgid "Finished"
 msgstr "終了しました"
 
 # MERGEBLE: not yet reported
-#: src/ui/gtk/gtk1/fileinfo.c:139 src/ui/gtk/gtk2/fileinfo.c:305
+#: src/ui/gtk/gtk1/fileinfo.c:139 src/ui/gtk/gtk2/fileinfo.c:311
 msgid "No sources"
 msgstr "送信元はありません"
 
-#: src/ui/gtk/gtk1/fileinfo.c:142 src/ui/gtk/gtk2/fileinfo.c:308
+#: src/ui/gtk/gtk1/fileinfo.c:142 src/ui/gtk/gtk2/fileinfo.c:315
 #, c-format
 msgid "Queued (%d active, %d passive)"
 msgstr "待機中 (%d 件が稼働、%d 件が受動)"
 
-#: src/ui/gtk/gtk1/fileinfo.c:146 src/ui/gtk/gtk2/fileinfo.c:312
+#: src/ui/gtk/gtk1/fileinfo.c:146 src/ui/gtk/gtk2/fileinfo.c:320
 #: src/ui/gtk/uploads_common.c:171
 msgid "Waiting"
 msgstr "待受中"
 
 #: src/ui/gtk/gtk1/fileinfo.c:180 src/ui/gtk/gtk1/search_cb.c:216
-#: src/ui/gtk/gtk2/fileinfo.c:127 src/ui/gtk/gtk2/search_cb.c:656
+#: src/ui/gtk/gtk2/fileinfo.c:128 src/ui/gtk/gtk2/search_cb.c:656
 #, c-format
 msgid "%s (%s bytes)"
 msgstr "%s (%s バイト)"
@@ -5160,7 +5162,7 @@ msgstr "取得範囲"
 #: src/ui/gtk/gtk1/interface-glade.c:2440
 #: src/ui/gtk/gtk1/interface-glade.c:2911
 #: src/ui/gtk/gtk1/interface-glade.c:3198 src/ui/gtk/gtk2/downloads.c:443
-#: src/ui/gtk/gtk2/downloads.c:486 src/ui/gtk/gtk2/fileinfo.c:555
+#: src/ui/gtk/gtk2/downloads.c:486 src/ui/gtk/gtk2/fileinfo.c:563
 #: src/ui/gtk/gtk2/uploads.c:86
 msgid "Status"
 msgstr "ステータス"
@@ -5433,7 +5435,7 @@ msgid " passive)"
 msgstr " 件が受動状態)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3056
-#: src/ui/gtk/gtk1/interface-glade.c:3190 src/ui/gtk/gtk2/fileinfo.c:554
+#: src/ui/gtk/gtk1/interface-glade.c:3190 src/ui/gtk/gtk2/fileinfo.c:562
 msgid "Sources"
 msgstr "送信元"
 
@@ -5443,12 +5445,12 @@ msgid "Files to get"
 msgstr "取得ファイル"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3165 src/ui/gtk/gtk1/search.c:2227
-#: src/ui/gtk/gtk1/search.c:2233 src/ui/gtk/gtk2/fileinfo.c:551
+#: src/ui/gtk/gtk1/search.c:2233 src/ui/gtk/gtk2/fileinfo.c:559
 #: src/ui/gtk/gtk2/search.c:1346
 msgid "File"
 msgstr "ファイル"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3182 src/ui/gtk/gtk2/fileinfo.c:553
+#: src/ui/gtk/gtk1/interface-glade.c:3182 src/ui/gtk/gtk2/fileinfo.c:561
 #: src/ui/gtk/gtkcolumnchooser.c:171
 msgid "Done"
 msgstr "完了"
@@ -6719,7 +6721,6 @@ msgstr "[name and version]"
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
 #: src/ui/gtk/gtk1/interface-glade.c:9926
-#, fuzzy
 msgid "$Id$"
 msgstr "$Id$"
 
@@ -7885,7 +7886,7 @@ msgstr "タイムアウト (値は全て秒単位)"
 #: src/ui/gtk/gtk1/interface-glade.c:15193
 #: src/ui/gtk/gtk2/interface-glade.c:13881
 msgid "Partial File Sharing"
-msgstr "断片ファイル共有"
+msgstr "部分ファイル共有"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15214
 #: src/ui/gtk/gtk2/interface-glade.c:13858
@@ -7895,7 +7896,7 @@ msgstr "先頭のチャンクサイズ(_S)"
 #: src/ui/gtk/gtk1/interface-glade.c:15227
 #: src/ui/gtk/gtk2/interface-glade.c:13874
 msgid "Enable upload of _partially downloaded files"
-msgstr "断片ファイルのアップロードを有効にする(_P)"
+msgstr "部分ファイルのアップロードを有効にする(_P)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15251
 #: src/ui/gtk/gtk2/interface-glade.c:14508
@@ -8354,7 +8355,7 @@ msgstr "データベースにありません"
 msgid "Query queued..."
 msgstr "検索式を待機列に入れます..."
 
-#: src/ui/gtk/gtk1/search_cb.c:199 src/ui/gtk/gtk2/fileinfo.c:130
+#: src/ui/gtk/gtk1/search_cb.c:199 src/ui/gtk/gtk2/fileinfo.c:131
 #: src/ui/gtk/gtk2/search_cb.c:539 src/ui/gtk/gtk2/search_cb.c:640
 #: src/ui/gtk/gtk2/search_cb.c:677 src/ui/gtk/gtk2/search_cb.c:682
 msgid "<none>"
@@ -8410,7 +8411,7 @@ msgstr "失敗"
 msgid "Unknown status %u"
 msgstr "不明なステータス %u"
 
-#: src/ui/gtk/gtk2/fileinfo.c:631
+#: src/ui/gtk/gtk2/fileinfo.c:640
 msgid "Aliases"
 msgstr "別名"
 
