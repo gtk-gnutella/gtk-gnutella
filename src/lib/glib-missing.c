@@ -373,8 +373,16 @@ gm_sanitize_filename(const gchar *filename,
 		/* Try to preserve the filename extension */
 		ext = strrchr(s, '.');
 		if (ext) {
-			ext_size = strlen(ext) + 1;
-			ext_size = MIN(FILENAME_MAXBYTES - 1, ext_size);
+			ext_size = strlen(ext) + 1;	/* Include NUL */
+			if (ext_size >= FILENAME_MAXBYTES) {
+				/*
+				 * If it's too long, assume it's not extension at all.
+				 * We must truncate the "extension" anyway and also
+				 * preserve the UTF-8 encoding by all means.
+				 */
+				ext_size = 0;
+				ext = NULL;
+			}
 		}
 
 		g_assert(ext_size < FILENAME_MAXBYTES);
