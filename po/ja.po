@@ -44,7 +44,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-07-03 13:30+0900\n"
-"PO-Revision-Date: 2005-07-03 13:26+0900\n"
+"PO-Revision-Date: 2005-07-03 14:51+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -537,7 +537,7 @@ msgstr "適当な設定フォルダが無いと先に進めません"
 
 #: src/core/settings.c:1280
 msgid "Can only run as a leaf when TCP-firewalled"
-msgstr "TCP防火壁内にある場合はリーフとしてのみ動作します"
+msgstr "TCP がファイアウォール内にある場合はリーフとしてのみ動作します"
 
 #: src/core/shell.c:266
 msgid "Node added"
@@ -1681,7 +1681,7 @@ msgstr ""
 
 #: src/if/gnet_property.c:3268
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
-msgstr "現在、TCP に関して防火壁内にあるかどうかを表します。"
+msgstr "現在、TCP に関してファイアウォール内にあるかどうかを表します。"
 
 #: src/if/gnet_property.c:3285
 msgid "Whether gtk-gnutella thinks it's connected to the Internet."
@@ -1689,7 +1689,7 @@ msgstr "インターネットに接続しているかどうか表します。"
 
 #: src/if/gnet_property.c:3302
 msgid "Whether gtk-gnutella thinks you're currently firewalled, UDP-wise."
-msgstr "現在、UDP に関して防火壁内にあるかどうかを表します。"
+msgstr "現在、UDP に関してファイアウォール内にあるかどうかを表します。"
 
 #: src/if/gnet_property.c:3319
 msgid "Whether gtk-gnutella determined it could receive solicited UDP."
@@ -3922,12 +3922,12 @@ msgstr "ジンバブエ共和国"
 
 #: src/lib/misc.c:635
 msgid "1 Byte"
-msgstr "1 Byte"
+msgstr "1バイト"
 
 #: src/lib/misc.c:637
 #, c-format
 msgid "%u Bytes"
-msgstr "%u Bytes"
+msgstr "%uバイト"
 
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
 #: src/lib/misc.c:759 src/lib/misc.c:771
@@ -6008,9 +6008,9 @@ msgid ""
 "results. You will not be able to send queries requesting out-of-band "
 "delivery of query hits."
 msgstr ""
-"TCP と UDP の両方に関して防火壁内にあるようです。PUSH の結果を見られないの"
-"で、大量の検索結果を得る事はないでしょう。検索式ヒットの帯域外 (Out-Of-Band) "
-"配送を要求する問い合わせの送信もできません。"
+"TCP と UDP の両方に関してファイアウォール内にあるようです。PUSH の結果を見ら"
+"れないので、大量の検索結果を得る事はないでしょう。検索式ヒットの帯域外 (Out-"
+"Of-Band) 配送を要求する問い合わせの送信もできません。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5691
 #: src/ui/gtk/gtk2/interface-glade.c:2204
@@ -7145,7 +7145,7 @@ msgstr "十分な長期稼動時間"
 #: src/ui/gtk/gtk1/interface-glade.c:12241
 #: src/ui/gtk/gtk2/interface-glade.c:10905
 msgid "Not firewalled"
-msgstr "防火壁内にはない"
+msgstr "ファイアウォール内にはない"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12252
 #: src/ui/gtk/gtk2/interface-glade.c:10880
