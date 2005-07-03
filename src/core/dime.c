@@ -77,12 +77,10 @@ struct dime_record_header_s
 /**
  * Makes a value a multiple of 4.
  */
-int dime_ceil(int value)
+size_t
+dime_ceil(size_t value)
 {
-	if (value % 4 == 0)
-		return value;
-	else
-		return value + (4 - value % 4);
+	return (value + 3) & ~3;
 }
 
 /**
@@ -162,20 +160,21 @@ char *dime_create_record(dime_record_t *dime_record, gboolean firstrecord,
 /***
  *** Parsing
  ***/
-gboolean dime_parse_record_header(char *dime_record,
+gboolean
+dime_parse_record_header(char *dime_record,
 								  dime_record_header_t *dime_record_header)
 {
 	dime_record_header->version = dime_record[0] >> 3;
 
 	if (dime_record_header->version != DIME_VERSION) {
-		printf("Can not parse dime version %d, only version %d is supported\n",
+		printf("Cannot parse dime version %d, only version %d is supported\n",
 			  dime_record_header->version, DIME_VERSION);
 		return FALSE;
 	}
 
-	dime_record_header->MB = (dime_record[0] & 0x04) == 1;
-	dime_record_header->ME = (dime_record[0] & 0x02) == 1;
-	dime_record_header->CF = (dime_record[0] & 0x01) == 1;
+	dime_record_header->MB = (dime_record[0] & 0x04) != 0;
+	dime_record_header->ME = (dime_record[0] & 0x02) != 0;
+	dime_record_header->CF = (dime_record[0] & 0x01) != 0;
 
 	dime_record_header->type_t = dime_record[1] >> 4;
 	dime_record_header->resrvd = dime_record[1] & 0x0F;
