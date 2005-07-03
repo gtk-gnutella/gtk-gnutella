@@ -365,7 +365,7 @@ upload_timer(time_t now)
 		if (stalled > 0) {
 			stalled /= 2;			/* Exponential decrease */
 			last_stalled = now;
-			if (dbg)
+			if (upload_debug)
 				g_warning("stall counter downgraded to %d", stalled);
 			if (stalled == 0) {
 				g_warning("frequent stalling condition cleared");
@@ -560,9 +560,10 @@ handle_push_request(struct gnutella_node *n)
 		show_banning = TRUE;
 		/* FALL THROUGH */
 	case BAN_FORCE:				/* Refused, no ack */
-		if (dbg) g_warning("PUSH flood (hops=%d, ttl=%d) to %s [ban %s]: %s\n",
-			n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port),
-			short_time(ban_delay(ip)), file_name);
+		if (upload_debug)
+			g_warning("PUSH flood (hops=%d, ttl=%d) to %s [ban %s]: %s\n",
+				n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port),
+				short_time(ban_delay(ip)), file_name);
 		if (!show_banning)
 			return;
 		break;
@@ -574,8 +575,8 @@ handle_push_request(struct gnutella_node *n)
 	 * OK, start the upload by opening a connection to the remote host.
 	 */
 
-	if (dbg > 4)
-		printf("PUSH (hops=%d, ttl=%d) to %s: %s\n",
+	if (upload_debug > 4)
+		g_message("PUSH (hops=%d, ttl=%d) to %s: %s\n",
 			n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port),
 			file_name);
 
@@ -872,15 +873,15 @@ upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
 		}
 	}
 
-	if (!UPLOAD_IS_COMPLETE(u) && dbg > 1) {
+	if (!UPLOAD_IS_COMPLETE(u) && upload_debug > 1) {
 		if (u->name) {
-			printf("Cancelling upload for \"%s\" from %s (%s): %s\n",
+			g_message("Cancelling upload for \"%s\" from %s (%s): %s\n",
 				u->name,
 				u->socket ? ip_to_gchar(u->socket->ip) : "<no socket>",
 				upload_vendor_str(u),
 				logreason);
 		} else {
-			printf("Cancelling upload from %s (%s): %s\n",
+			g_message("Cancelling upload from %s (%s): %s\n",
 				u->socket ? ip_to_gchar(u->socket->ip) : "<no socket>",
 				upload_vendor_str(u),
 				logreason);
@@ -1050,7 +1051,7 @@ void upload_stop_all(struct dl_file_info *fi, const gchar *reason)
 	if (to_stop == NULL)
 		return;
 
-	if (dbg)
+	if (upload_debug)
 		g_warning("stopping %d uploads for \"%s\": %s",
 			count, fi->file_name, reason);
 
@@ -1237,8 +1238,8 @@ mi_clean(cqueue_t *unused_cq, gpointer obj)
 	g_assert(obj == key);
 	g_assert(((struct mesh_info_val *) value)->cq_ev);
 
-	if (dbg > 4)
-		printf("upload MESH info (%s/%s) discarded\n",
+	if (upload_debug > 4)
+		g_message("upload MESH info (%s/%s) discarded\n",
 			ip_to_gchar(mik->ip), sha1_base32(mik->sha1));
 
 	g_hash_table_remove(mesh_info, mik);
@@ -1277,8 +1278,8 @@ mi_get_stamp(guint32 ip, const gchar *sha1, time_t now)
 		oldstamp = miv->stamp;
 		miv->stamp = (guint32) now;
 
-		if (dbg > 4)
-			printf("upload MESH info (%s/%s) has stamp=%u\n",
+		if (upload_debug > 4)
+			g_message("upload MESH info (%s/%s) has stamp=%u\n",
 				ip_to_gchar(ip), sha1_base32(sha1), oldstamp);
 
 		return oldstamp;
@@ -1294,8 +1295,8 @@ mi_get_stamp(guint32 ip, const gchar *sha1, time_t now)
 
 	g_hash_table_insert(mesh_info, mik, miv);
 
-	if (dbg > 4)
-		printf("new upload MESH info (%s/%s) stamp=%u\n",
+	if (upload_debug > 4)
+		g_message("new upload MESH info (%s/%s) stamp=%u\n",
 			ip_to_gchar(ip), sha1_base32(sha1), (guint32) now);
 
 	return 0;			/* Don't remember sending info about this file */
@@ -1404,7 +1405,7 @@ upload_connect_conf(gnutella_upload_t *u)
 		g_warning("Only sent %d out of %d bytes of GIV for \"%s\" to %s: %s",
 			(gint) sent, (gint) rw, u->name, ip_to_gchar(s->ip),
 			g_strerror(errno));
-	} else if (dbg > 2) {
+	} else if (upload_debug > 2) {
 		g_message("----Sent GIV to %s:\n%.*s----\n", ip_to_gchar(s->ip),
 			(gint) rw, giv);
 	}
@@ -1611,10 +1612,11 @@ get_file_to_upload_from_index(
 			 */
 
 			if (u->push) {
-				if (dbg > 4) printf("INDEX FIXED (push, SHA1 = %s): "
-					"requested %u, serving %u: %s\n",
-					sha1_base32(digest), idx,
-					sfn->file_index, sfn->file_path);
+				if (upload_debug > 4)
+					g_message("INDEX FIXED (push, SHA1 = %s): "
+						"requested %u, serving %u: %s\n",
+						sha1_base32(digest), idx,
+						sfn->file_index, sfn->file_path);
 				sf = sfn;
 				goto found;
 			}
@@ -1627,10 +1629,11 @@ get_file_to_upload_from_index(
 			 */
 
 			if (sfn->fi != NULL) {
-				if (dbg > 4) printf("REQUEST FIXED (partial, SHA1 = %s): "
-					"requested \"%s\", serving \"%s\"\n",
-					sha1_base32(digest), basename,
-					sfn->file_path);
+				if (upload_debug > 4)
+					g_message("REQUEST FIXED (partial, SHA1 = %s): "
+						"requested \"%s\", serving \"%s\"\n",
+						sha1_base32(digest), basename,
+						sfn->file_path);
 				sf = sfn;
 				goto found;
 			}
@@ -1675,12 +1678,12 @@ get_file_to_upload_from_index(
 
 		g_assert(sf != SHARE_REBUILDING);	/* Or we'd have trapped above */
 
-		if (dbg > 4) {
+		if (upload_debug > 4) {
 			if (sf)
-				printf("BAD INDEX FIXED: requested %u, serving %u: %s\n",
+				g_message("BAD INDEX FIXED: requested %u, serving %u: %s\n",
 					idx, sf->file_index, sf->file_path);
 			else
-				printf("BAD INDEX NOT FIXED: requested %u: %s\n",
+				g_message("BAD INDEX NOT FIXED: requested %u: %s\n",
 					idx, basename);
 		}
 
@@ -1689,12 +1692,12 @@ get_file_to_upload_from_index(
 
 		g_assert(sfn != SHARE_REBUILDING);	/* Or we'd have trapped above */
 
-		if (dbg > 4) {
+		if (upload_debug > 4) {
 			if (sfn)
-				printf("INDEX FIXED: requested %u, serving %u: %s\n",
+				g_message("INDEX FIXED: requested %u, serving %u: %s\n",
 					idx, sfn->file_index, sfn->file_path);
 			else
-				printf("INDEX MISMATCH: requested %u: %s (has %s)\n",
+				g_message("INDEX MISMATCH: requested %u: %s (has %s)\n",
 					idx, basename, sf->name_nfc);
 		}
 
@@ -2343,7 +2346,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	gchar *token;
 	gboolean known_for_stalling;
 
-	if (dbg) {
+	if (upload_debug) {
 		g_message("----%s Request from %s:\n%s",
 			is_followup ? "Follow-up" : "Incoming",
 			ip_to_gchar(s->ip),
@@ -2559,7 +2562,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			 */
 
 			if (g_slist_next(ranges) != NULL) {
-				if (dbg) g_warning("client %s <%s> requested several ranges "
+				if (upload_debug)
+					g_warning("client %s <%s> requested several ranges "
 						"for \"%s\": %s", ip_to_gchar(u->ip),
 						u->user_agent ? u->user_agent : "", reqfile->name_nfc,
 						http_range_to_gchar(ranges));
@@ -2981,8 +2985,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				if (parq_upload_request_force(
 						u, u->parq_opaque, running_uploads - 1)) {
 					parq_allows = TRUE;
-					if (dbg > 4)
-						printf("Overriden slot limit because u/l b/w used at "
+					if (upload_debug > 4)
+						g_message(
+							"Overriden slot limit because u/l b/w used at "
 							"%d%% (minimum set to %d%%)\n",
 							bsched_avg_pct(bws.out), ul_usage_min_percentage);
 				}
@@ -3006,7 +3011,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 						  short_time(parq_upload_lookup_eta(u)));
 
 					u->error_sent = 0;	/* Any new request should be allowed
-										   to retreive an error code */
+										   to retrieve an error code */
 
 					/* Avoid data timeout */
 					u->last_update = parq_upload_lookup_lifetime(u) -

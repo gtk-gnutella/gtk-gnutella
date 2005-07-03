@@ -699,7 +699,7 @@ remove_proxy(struct dl_server *server, guint32 ip, guint16 port)
 	 * for a host after having selected a push-proxy from the old stale list.
 	 */
 
-	if (dbg) {
+	if (download_debug) {
 		g_message("Did not find push-proxy %s in server %s",
 			ip_port_to_gchar(ip, port), ip_to_gchar(server->key->ip));
     }
@@ -865,7 +865,7 @@ change_server_ip(struct dl_server *server, guint32 new_ip)
 	if (server->proxies)
 		free_proxies(server);
 
-	if (dbg) {
+	if (download_debug) {
 		g_message("Server <%s> at %s:%u changed its IP from %s to %s",
 			server->vendor == NULL ? "UNKNOWN" : server->vendor,
 			server->hostname == NULL ? "NONAME" : server->hostname,
@@ -891,7 +891,7 @@ change_server_ip(struct dl_server *server, guint32 new_ip)
 		g_assert(duplicate->key->ip == key->ip);
 		g_assert(duplicate->key->port == key->port);
 
-		if (dbg) {
+		if (download_debug) {
             g_message(
                 "New IP %s for server <%s> at %s:%u was used by <%s> at %s:%u",
                 ip_to_gchar(new_ip),
@@ -2592,7 +2592,7 @@ download_pick_available(struct download *d)
 	d->last_update = time((time_t *) NULL);
 
 	if (!file_info_find_available_hole(d, d->ranges, &from, &to)) {
-		if (dbg > 3)
+		if (download_debug > 3)
 			g_message("PFSP no interesting chunks from %s for \"%s\", "
 				"available was: %s",
 				ip_port_to_gchar(download_ip(d), download_port(d)),
@@ -2622,7 +2622,7 @@ download_pick_available(struct download *d)
 	)
 		d->overlap_size = download_overlap_range;
 
-	if (dbg > 3)
+	if (download_debug > 3)
 		g_message("PFSP selected %s-%s (overlap=%u) "
 			"from %s for \"%s\", available was: %s",
 			uint64_to_string(from), uint64_to_string2(to - 1), d->overlap_size,
@@ -2970,7 +2970,7 @@ download_push(struct download *d, gboolean on_timeout)
 
 			download_push_remove(d);
 
-			if (dbg > 2)
+			if (download_debug > 2)
 				g_message("PUSH trying to ignore them for %s",
 					ip_port_to_gchar(download_ip(d), download_port(d)));
 
@@ -3403,7 +3403,7 @@ download_auto_new(gchar *file, filesize_t size, guint32 record_index,
 	return;
 
 abort_download:
-	if (dbg > 4)
+	if (download_debug > 4)
 		g_message("ignoring auto download for \"%s\": %s", file, reason);
 	return;
 }
@@ -3538,7 +3538,7 @@ download_index_changed(guint32 ip, guint16 port, gchar *guid,
 				/*
 				 * Queued or other state not needing special notice
 				 */
-				if (dbg > 3) {
+				if (download_debug > 3) {
 					g_message("Noted index change from %u to %u at %s for %s",
 						from, to, guid_hex_str(guid), d->file_name);
                 }
@@ -4224,7 +4224,7 @@ download_overlap_check(struct download *d)
 	}
 
 	if (0 != memcmp(s->buffer, data, d->overlap_size)) {
-		if (dbg > 3) {
+		if (download_debug > 3) {
 			g_message("%d overlapping bytes UNMATCHED at offset %s for \"%s\"",
 				(gint) d->overlap_size,
 				uint64_to_string(d->skip - d->overlap_size), d->file_name);
@@ -4289,7 +4289,7 @@ download_overlap_check(struct download *d)
 	G_FREE_NULL(data);
 	close(fd);
 
-	if (dbg > 3)
+	if (download_debug > 3)
 		g_message("%d overlapping bytes MATCHED "
 			"at offset %s for \"%s\"",
 			d->overlap_size, uint64_to_string(d->skip - d->overlap_size),
@@ -4658,7 +4658,7 @@ download_check_status(struct download *d, getline_t *line, gint code)
 		g_message("Weird HTTP acknowledgment status line from %s (%s)",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			download_vendor_str(d));
-		if (dbg > 4) {
+		if (download_debug > 4) {
 			dump_hex(stderr, "Status Line", getline_str(line),
 				MIN(getline_length(line), 80));
 		}
@@ -4722,7 +4722,7 @@ download_convert_to_urires(struct download *d)
 	 */
 	name = atom_str_get(sha1_base32(d->sha1));
 
-	if (dbg > 2) {
+	if (download_debug > 2) {
 		g_message("Download at %s \"%u/%s\" becomes "
 			"\"/uri-res/N2R?urn:sha1:%s\"",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
@@ -4855,7 +4855,7 @@ check_xhostname(struct download *d, const header_t *header)
 		if (d->push)
 			download_push_remove(d);
 
-		if (dbg > 2)
+		if (download_debug > 2)
 			g_message("PUSH got X-Hostname, trying to ignore them for %s (%s)",
 				buf, ip_port_to_gchar(download_ip(d), download_port(d)));
 
@@ -4918,7 +4918,7 @@ check_xhost(struct download *d, const header_t *header)
 	if (d->push)
 		download_push_remove(d);
 
-	if (dbg > 2)
+	if (download_debug > 2)
 		g_message("PUSH got X-Host, trying to ignore them for %s",
 			ip_port_to_gchar(download_ip(d), download_port(d)));
 
@@ -5354,7 +5354,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	status = getline_str(s->getline);
 	d->last_update = time(NULL);		/* Done reading headers */
 
-	if (dbg > 2) {
+	if (download_debug > 2) {
 		const gchar *incomplete = ok ? "" : "INCOMPLETE ";
 		printf("----Got %sreply from %s:\n", incomplete, ip_to_gchar(s->ip));
 		printf("%s\n", status);
@@ -5539,7 +5539,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			 */
 
 			if (http_range_contains(d->ranges, d->skip, d->range_end - 1)) {
-				if (dbg > 3)
+				if (download_debug > 3)
 					g_message("PFSP currently requested chunk %s-%s from %s "
 						"for \"%s\" already in the available ranges: %s",
 						uint64_to_string(d->skip),
@@ -5842,9 +5842,12 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 			if (d->server->attrs & DLS_A_BANNING) {
 				d->server->attrs |= DLS_A_MINIMAL_HTTP;
-				g_message("Server \"%s\" at %s might be banning us",
-					download_vendor_str(d),
-					ip_port_to_gchar(download_ip(d), download_port(d)));
+
+				if (download_debug > 0) {
+					g_message("Server \"%s\" at %s might be banning us",
+						download_vendor_str(d),
+						ip_port_to_gchar(download_ip(d), download_port(d)));
+				}
 
 				if (hold)
 					download_queue_hold(d, hold,
@@ -5985,7 +5988,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			}
 
 			if (check_content_range > total) {
-                if (dbg)
+                if (download_debug)
                     g_message(
 						"File '%s' on %s (%s): total size mismatch: got %s, "
 						"for a served content of %s",
@@ -6001,7 +6004,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			}
 
 			if (start != d->skip - d->overlap_size) {
-                if (dbg)
+                if (download_debug)
                     g_message("File '%s' on %s (%s): start byte mismatch: "
 						"wanted %s, got %s",
                         d->file_name,
@@ -6015,7 +6018,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				return;
 			}
 			if (total != fi->size) {
-                if (dbg) {
+                if (download_debug) {
                         g_message("File '%s' on %s (%s): file size mismatch: "
 						"expected %s, got %s",
                         d->file_name,
@@ -6028,7 +6031,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				return;
 			}
 			if (end > d->range_end - 1) {
-                if (dbg) {
+                if (download_debug) {
                     g_message("File '%s' on %s (%s): end byte too large: "
 						"expected %s, got %s",
                         d->file_name,
@@ -6066,7 +6069,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				return;
 			}
 			if (end < d->range_end - 1) {
-                if (dbg)
+                if (download_debug)
                     g_message(
 						"File '%s' on %s (%s): end byte short: wanted %s, "
 						"got %s (continuing anyway)",
@@ -6096,7 +6099,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			got_content_length = TRUE;
 			check_content_range = 0;		/* We validated the served range */
 		} else {
-            if (dbg) {
+            if (download_debug) {
                 g_message("File '%s' on %s (%s): malformed Content-Range: %s",
                     d->file_name,
 					ip_port_to_gchar(download_ip(d), download_port(d)),
@@ -6133,7 +6136,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	if (!got_content_length) {
 		const char *ua = header_get(header, "Server");
 		ua = ua ? ua : header_get(header, "User-Agent");
-		if (ua && dbg)
+		if (ua && download_debug)
 			g_message("Server \"%s\" did not send any length indication", ua);
 		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, "No Content-Length header");
@@ -6459,7 +6462,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 	} else if (sent < rw) {
 		http_buffer_add_read(r, sent);
 		return;
-	} else if (dbg > 1) {
+	} else if (download_debug > 1) {
 		g_message(
 			"----Sent Request (%s) completely to %s (%d bytes):\n%.*s----\n",
 			d->keep_alive ? "follow-up" : "initial",
@@ -6471,7 +6474,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * HTTP request was completely sent.
 	 */
 
-	if (dbg) {
+	if (download_debug) {
 		g_message("Flushed partially written HTTP request to %s (%d bytes)",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			http_buffer_length(r));
@@ -6533,7 +6536,7 @@ download_send_request(struct download *d)
 	 */
 
 	if (d->always_push && !DOWNLOAD_IS_IN_PUSH_MODE(d)) {
-		if (dbg > 2)
+		if (download_debug > 2)
 			g_message("PUSH not necessary to reach %s",
 				ip_port_to_gchar(download_ip(d), download_port(d)));
 		d->server->attrs |= DLS_A_PUSH_IGN;
@@ -6611,7 +6614,7 @@ picked:
 	 */
 
 	if (d->uri) {
-		if (dbg)
+		if (download_debug)
 			g_message("GET %s HTTP/1.1\r\n", d->uri);
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
 			"GET %s HTTP/1.1\r\n",
@@ -6815,7 +6818,7 @@ picked:
 			download_write_request, (gpointer) d);
 
 		return;
-	} else if (dbg > 1) {
+	} else if (download_debug > 1) {
 		g_message("----Sent Request (%s) to %s (%d bytes):\n%.*s----\n",
 			d->keep_alive ? "follow-up" : "initial",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
@@ -6919,7 +6922,7 @@ select_push_download(const gchar *guid)
 				g_assert(DOWNLOAD_IS_RUNNING(d));
 
 				if (d->socket == NULL && DOWNLOAD_IS_EXPECTING_GIV(d)) {
-					if (dbg > 2)
+					if (download_debug > 2)
 						g_message("GIV: selected active download '%s' from %s",
 							d->file_name, guid_hex_str(guid));
 					return d;
@@ -6950,7 +6953,7 @@ select_push_download(const gchar *guid)
 				if (d->flags & DL_F_SUSPENDED)
 					continue;
 
-				if (dbg > 4)
+				if (download_debug > 4)
 					g_message(
 						"GIV: trying alternate download '%s' from %s at %s",
 						d->file_name, guid_hex_str(guid),
@@ -6975,7 +6978,7 @@ select_push_download(const gchar *guid)
 					gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT,
 						count_running_downloads());
 
-					if (dbg > 2)
+					if (download_debug > 2)
 						g_message(
 							"GIV: selected alternate download '%s' from %s",
 							d->file_name, guid_hex_str(guid));
@@ -7021,12 +7024,8 @@ download_push_ack(struct gnutella_socket *s)
 
 	gnet_stats_count_general(GNR_GIV_CALLBACKS, 1);
 
-	if (dbg > 4) {
-		printf("----Got GIV from %s:\n", ip_to_gchar(s->ip));
-		printf("%s\n", giv);
-		printf("----\n");
-		fflush(stdout);
-	}
+	if (download_debug > 4)
+		g_message("----Got GIV from %s:\n%s\n----", ip_to_gchar(s->ip), giv);
 
 	/*
 	 * To find out which download this is, we have to parse the incoming

@@ -231,7 +231,7 @@ http_send_status(
 		g_warning("Only sent %d out of %d bytes of status %d (%s) to %s: %s",
 			sent, rw, code, status_msg, ip_to_gchar(s->ip), g_strerror(errno));
 		return FALSE;
-	} else if (dbg > 2) {
+	} else if (http_debug > 2) {
 		g_message("----Sent HTTP Status to %s (%d bytes):\n%.*s----\n",
 			ip_to_gchar(s->ip), rw, rw, header);
 	}
@@ -446,7 +446,7 @@ http_extract_version(
 
 	limit = sizeof("GET / HTTP/1.0") - 1;
 
-	if (dbg > 4)
+	if (http_debug > 4)
 		printf("HTTP req (%d bytes): %s\n", len, request);
 
 	if (len < limit)
@@ -462,7 +462,7 @@ http_extract_version(
 			break;
 	}
 
-	if (dbg > 4)
+	if (http_debug > 4)
 		printf("HTTP i = %d, limit = %d\n", i, limit);
 
 	if (i == limit)
@@ -479,12 +479,12 @@ http_extract_version(
 		NULL == (p = is_strprefix(p, "HTTP/")) ||
 		0 != parse_major_minor(p, NULL, major, minor)
 	) {
-		if (dbg > 1)
+		if (http_debug > 1)
 			printf("HTTP req (%d bytes): no protocol tag: %s\n", len, request);
 		return FALSE;
 	}
 
-	if (dbg > 4)
+	if (http_debug > 4)
 		printf("HTTP req OK (%u.%u)\n", *major, *minor);
 
 	/*
@@ -637,7 +637,7 @@ http_url_parse(const gchar *url, guint16 *port, gchar **host, gchar **path)
 		*host = hostname;				/* Static data! */
 	}
 
-	if (dbg > 4) {
+	if (http_debug > 4) {
 		printf("URL \"%s\" -> host=\"%s\", port=%u, path=\"%s\"\n",
 			url, *host, (unsigned) *port, *path);
 	}
@@ -955,14 +955,14 @@ http_range_parse(
 			}
 
 			if (!minus_seen) {
-				if (dbg) g_warning(
+				if (http_debug) g_warning(
 					"weird %s header from <%s>, offset %d (no range?): "
 					"%s", field, vendor, (gint) (str - value) - 1, value);
 				goto reset;
 			}
 
 			if (start == HTTP_OFFSET_MAX && !has_end) {	/* Bad negative range */
-				if (dbg) g_warning(
+				if (http_debug) g_warning(
 					"weird %s header from <%s>, offset %d "
 					"(incomplete negative range): %s",
 					field, vendor, (gint) (str - value) - 1, value);
@@ -970,7 +970,7 @@ http_range_parse(
 			}
 
 			if (start > end) {
-				if (dbg) g_warning(
+				if (http_debug) g_warning(
 					"weird %s header from <%s>, offset %d "
 					"(swapped range?): %s", field, vendor,
 					(gint) (str - value) - 1, value);
@@ -982,7 +982,7 @@ http_range_parse(
 			count++;
 
 			if (ignored) {
-				if (dbg) g_warning(
+				if (http_debug) g_warning(
 					"weird %s header from <%s>, offset %d "
 					"(ignored range #%d): %s",
 					field, vendor, (gint) (str - value) - 1, count,
@@ -997,7 +997,7 @@ http_range_parse(
 
 		if (c == '-') {
 			if (minus_seen) {
-				if (dbg) g_warning(
+				if (http_debug) g_warning(
 					"weird %s header from <%s>, offset %d (spurious '-'): %s",
 					field, vendor, (gint) (str - value) - 1, value);
 				goto resync;
@@ -1005,10 +1005,10 @@ http_range_parse(
 			minus_seen = TRUE;
 			if (!has_start) {		/* Negative range */
 				if (!request) {
-					if (dbg) g_warning("weird %s header from <%s>, offset %d "
-						"(negative range in reply): %s",
-						field, vendor, (gint) (str - value) - 1,
-						value);
+					if (http_debug)
+						g_warning("weird %s header from <%s>, offset %d "
+							"(negative range in reply): %s",
+							field, vendor, (gint) (str - value) - 1, value);
 					goto resync;
 				}
 				start = HTTP_OFFSET_MAX;	/* Indicates negative range */
@@ -1028,28 +1028,32 @@ http_range_parse(
 			str = dend;		/* Skip number */
 
 			if (has_end) {
-				if (dbg) g_warning("weird %s header from <%s>, offset %d "
-					"(spurious boundary %s): %s",
-					field, vendor, (gint) (str - value) - 1,
-					uint64_to_string(val), value);
+				if (http_debug)
+					g_warning("weird %s header from <%s>, offset %d "
+						"(spurious boundary %s): %s",
+						field, vendor, (gint) (str - value) - 1,
+						uint64_to_string(val), value);
 				goto resync;
 			}
 
 			if (val >= size) {
-				if (dbg) g_warning("weird %s header from <%s>, offset %d "
-					"(%s boundary %s outside resource range "
-					"0-%s): %s", field, vendor, (gint) (str - value) - 1,
-					has_start ? "end" : "start",
-					uint64_to_string(val), uint64_to_string2(size - 1), value);
+				if (http_debug)
+					g_warning("weird %s header from <%s>, offset %d "
+						"(%s boundary %s outside resource range 0-%s): %s",
+						field, vendor, (gint) (str - value) - 1,
+						has_start ? "end" : "start",
+						uint64_to_string(val), uint64_to_string2(size - 1),
+						value);
 				goto resync;
 			}
 
 			if (has_start) {
 				if (!minus_seen) {
-					if (dbg) g_warning("weird %s header from <%s>, offset %d "
-						"(no '-' before boundary %s): %s",
-						field, vendor, (gint) (str - value) - 1,
-						uint64_to_string(val), value);
+					if (http_debug)
+						g_warning("weird %s header from <%s>, offset %d "
+							"(no '-' before boundary %s): %s",
+							field, vendor, (gint) (str - value) - 1,
+							uint64_to_string(val), value);
 					goto resync;
 				}
 				if (start == HTTP_OFFSET_MAX) {			/* Negative range */
@@ -1065,7 +1069,7 @@ http_range_parse(
 			continue;
 		}
 
-		if (dbg) g_warning("weird %s header from <%s>, offset %d "
+		if (http_debug) g_warning("weird %s header from <%s>, offset %d "
 			"(unexpected char '%c'): %s",
 			field, vendor, (gint) (str - value) - 1, c, value);
 
@@ -1087,14 +1091,14 @@ http_range_parse(
 
 	if (minus_seen) {
 		if (start == HTTP_OFFSET_MAX && !has_end) {	/* Bad negative range */
-			if (dbg) g_warning("weird %s header from <%s>, offset %d "
+			if (http_debug) g_warning("weird %s header from <%s>, offset %d "
 				"(incomplete trailing negative range): %s",
 				field, vendor, (gint) (str - value) - 1, value);
 			goto final;
 		}
 
 		if (start > end) {
-			if (dbg) g_warning("weird %s header from <%s>, offset %d "
+			if (http_debug) g_warning("weird %s header from <%s>, offset %d "
 				"(swapped trailing range?): %s", field, vendor,
 				(gint) (str - value) - 1, value);
 			goto final;
@@ -1104,7 +1108,7 @@ http_range_parse(
 		count++;
 
 		if (ignored)
-			if (dbg) g_warning("weird %s header from <%s>, offset %d "
+			if (http_debug) g_warning("weird %s header from <%s>, offset %d "
 				"(ignored final range #%d): %s",
 				field, vendor, (gint) (str - value) - 1, count,
 				value);
@@ -1112,7 +1116,7 @@ http_range_parse(
 
 final:
 
-	if (dbg > 4) {
+	if (http_debug > 4) {
 		GSList *l;
 		printf("Saw %d ranges in %s %s: %s\n",
 			count, request ? "request" : "reply", field, value);
@@ -1125,7 +1129,7 @@ final:
 		}
 	}
 
-	if (ranges == NULL && dbg)
+	if (ranges == NULL && http_debug)
 		g_warning("retained no ranges in %s header from <%s>: %s",
 			field, vendor, value);
 
@@ -2192,7 +2196,7 @@ http_got_header(struct http_async *ha, header_t *header)
 	gchar *buf;
 	guint http_major = 0, http_minor = 0;
 
-	if (dbg > 2) {
+	if (http_debug > 2) {
 		printf("----Got HTTP reply from %s:\n", ip_to_gchar(s->ip));
 		printf("%s\n", status);
 		header_dump(header, stdout);
@@ -2254,7 +2258,7 @@ http_got_header(struct http_async *ha, header_t *header)
 			ack_code != 302 ||
 			(ack_code == 302 && (ha->type == HTTP_GET || ha->type == HTTP_HEAD))
 		) {
-			if (dbg > 2)
+			if (http_debug > 2)
 				printf("HTTP %s redirect %d (%s): \"%s\" -> \"%s\"\n",
 					http_verb[ha->type], ack_code, ack_message, ha->url, buf);
 
@@ -2433,7 +2437,7 @@ http_async_write_request(gpointer data, gint unused_source,
 	} else if ((size_t) sent < rw) {
 		http_buffer_add_read(r, sent);
 		return;
-	} else if (dbg > 2) {
+	} else if (http_debug > 2) {
 		printf("----Sent HTTP request completely to %s (%d bytes):\n%.*s----\n",
 			ip_port_to_gchar(s->ip, s->port), http_buffer_length(r),
 			http_buffer_length(r), http_buffer_base(r));
@@ -2444,7 +2448,7 @@ http_async_write_request(gpointer data, gint unused_source,
 	 * HTTP request was completely sent.
 	 */
 
-	if (dbg)
+	if (http_debug)
 		g_warning("flushed partially written HTTP request to %s (%d bytes)",
 			ip_port_to_gchar(s->ip, s->port),
 			http_buffer_length(r));
@@ -2519,7 +2523,7 @@ http_async_connected(gpointer handle)
 			http_async_write_request, (gpointer) ha);
 
 		return;
-	} else if (dbg > 2) {
+	} else if (http_debug > 2) {
 		g_message("----Sent HTTP request to %s (%d bytes):\n%.*s----",
 			ip_port_to_gchar(s->ip, s->port), (int) rw, (int) rw, req);
 	}
@@ -2545,34 +2549,34 @@ http_async_log_error(gpointer handle, http_errtype_t type, gpointer v)
 
 	switch (type) {
 	case HTTP_ASYNC_SYSERR:
-        if (dbg) {
+        if (http_debug) {
             g_message("aborting \"%s %s\" at %s on system error: %s",
                 req, url, ip_port_to_gchar(ip, port), g_strerror(error));
         }
 		break;
 	case HTTP_ASYNC_ERROR:
 		if (error == HTTP_ASYNC_CANCELLED) {
-			if (dbg > 3)
+			if (http_debug > 3)
 				printf("explicitly cancelled \"%s %s\" at %s\n", req, url,
 					ip_port_to_gchar(ip, port));
 		} else if (error == HTTP_ASYNC_CLOSED) {
-			if (dbg > 3)
+			if (http_debug > 3)
 				printf("connection closed for \"%s %s\" at %s\n", req, url,
 					ip_port_to_gchar(ip, port));
 		} else
-            if (dbg) {
+            if (http_debug) {
                 g_message("aborting \"%s %s\" at %s on error: %s", req, url,
                     ip_port_to_gchar(ip, port), http_async_strerror(error));
             }
 		break;
 	case HTTP_ASYNC_HEADER:
-        if (dbg) {
+        if (http_debug) {
             g_message("aborting \"%s %s\" at %s on header parsing error: %s",
                 req, url, ip_port_to_gchar(ip, port), header_strerror(error));
         }
 		break;
 	case HTTP_ASYNC_HTTP:
-        if (dbg) {
+        if (http_debug) {
             g_message("stopping \"%s %s\" at %s: HTTP %d %s", req, url,
                 ip_port_to_gchar(ip, port), herror->code, herror->message);
         }

@@ -665,6 +665,33 @@ prop = {
 };
 
 prop = {
+    name = "http_debug";
+    desc = "Debug level for HTTP code.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "download_debug";
+    desc = "Debug level for downloads.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "upload_debug";
+    desc = "Debug level for uploads.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
     name = "lib_debug";
     desc = "Debug level for code shared between gui and core.";
     type = guint32;
