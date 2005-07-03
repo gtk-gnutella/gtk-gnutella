@@ -187,7 +187,11 @@ find_message(guint32 vendor, guint16 id, guint16 version)
   gint c_vendor, c_id, c_version;
 
 #define GET_KEY(i) (&vmsg_map[(i)])
-#define FOUND(i) do { return &vmsg_map[(i)]; } while (0)
+#define FOUND(i) G_STMT_START { \
+	return &vmsg_map[(i)];		\
+	/* NOTREACHED */ 			\
+} G_STMT_END
+
 #define COMPARE(item, key) \
 	0 != (c_vendor = VENDOR_CODE_CMP((item)->key, key)) \
 		? c_vendor \
@@ -638,7 +642,7 @@ vmsg_send_tcp_connect_back(struct gnutella_node *n, guint16 port)
 }
 
 /**
- * Handle the "UDP Connect Back" message.
+ * Handle the \"UDP Connect Back" message.
  */
 static void
 handle_udp_connect_back(struct gnutella_node *n,
