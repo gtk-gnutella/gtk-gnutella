@@ -103,7 +103,7 @@ features.
 	$RPM_BUILD_ROOT/%{_datadir}/applications/gtk-gnutella.desktop
 
 # icons
-%{__install} -D -d 755 $RPM_BUILD_ROOT/%{_datadir}/pixmaps
+%{__install} -D -d -m 755 $RPM_BUILD_ROOT/%{_datadir}/pixmaps
 %{__install} -D -m 644 gtk-gnutella.png \
 	$RPM_BUILD_ROOT/%{_datadir}/pixmaps/gtk-gnutella.png
 
