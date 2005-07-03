@@ -394,7 +394,8 @@ gm_sanitize_filename(const gchar *filename,
 
 			len = strlen(buf);
 			g_assert(len + ext_size <= FILENAME_MAXBYTES);
-			strncpy(&buf[len], ext, ext_size);
+			memcpy(&buf[len], ext, ext_size);
+			buf[len + ext_size - 1] = '\0';
 		}
 
 		g_assert(strlen(buf) < FILENAME_MAXBYTES);
