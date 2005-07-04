@@ -266,7 +266,7 @@ do {				\
 #define GTA_PATCHLEVEL 0			/**< patch level or teeny version */
 #define GTA_REVISION "unstable"		/**< unstable, beta, stable */
 #define GTA_REVCHAR "u"			/**< u - unstable, b - beta, none - stable */
-#define GTA_RELEASE "2005-06-29"	/**< ISO 8601 format YYYY-MM-DD */
+#define GTA_RELEASE "2005-07-04"	/**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)
@@ -353,7 +353,7 @@ ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
  * Short-hand for ngettext().
  */
 #define NG_(Single, Plural, Number) ngettext_((Single), (Plural), (Number))
-																		
+
 #endif /* _common_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
