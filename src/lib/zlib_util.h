@@ -42,13 +42,13 @@
  * Incremental deflater stream.
  */
 typedef struct  {
-	gpointer in;			/**< Buffer being compressed */
-	gint inlen;				/**< Length of input buffer */
-	gpointer out;			/**< Compressed data */
-	gint outlen;			/**< Length of ouput buffer */
-	gint inlen_total;		/**< Total input length seen */
-	gpointer opaque;		/**< Internal data structures */
-	gboolean allocated;		/**< Whether output buffer was allocated or static */
+	gconstpointer in;	/**< Buffer being compressed */
+	gint inlen;			/**< Length of input buffer */
+	gpointer out;		/**< Compressed data */
+	gint outlen;		/**< Length of ouput buffer */
+	gint inlen_total;	/**< Total input length seen */
+	gpointer opaque;	/**< Internal data structures */
+	gboolean allocated;	/**< Whether output buffer was allocated or static */
 } zlib_deflater_t;
 
 #define zlib_deflater_out(z)	((z)->out)
@@ -61,18 +61,18 @@ typedef struct  {
 
 gchar *zlib_strerror(gint errnum);
 
-zlib_deflater_t *zlib_deflater_make(gpointer data, gint len, gint level);
+zlib_deflater_t *zlib_deflater_make(gconstpointer data, gint len, gint level);
 zlib_deflater_t *zlib_deflater_make_into(
-	gpointer data, gint len, gpointer dest, gint destlen, gint level);
+	gconstpointer data, gint len, gpointer dest, gint destlen, gint level);
 gint zlib_deflate(zlib_deflater_t *zd, gint amount);
-gboolean zlib_deflate_data(zlib_deflater_t *zd, gpointer data, gint len);
+gboolean zlib_deflate_data(zlib_deflater_t *zd, gconstpointer data, gint len);
 gboolean zlib_deflate_close(zlib_deflater_t *zd);
 void zlib_deflater_free(zlib_deflater_t *zd, gboolean output);
 
-gpointer zlib_uncompress(gpointer data, gint len, gint uncompressed_len);
-gboolean zlib_is_valid_header(gpointer data, gint len);
+gpointer zlib_uncompress(gconstpointer data, gint len, gulong uncompressed_len);
+gboolean zlib_is_valid_header(gconstpointer data, gint len);
 
 #endif	/* _zlib_util_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 
