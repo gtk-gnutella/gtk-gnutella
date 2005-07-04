@@ -93,6 +93,12 @@ deconstify_guint32(const guint32 *p)
 	return (guint32 *) p;
 }
 
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gpointer
+deconstify_gpointer(gconstpointer p)
+{
+	return (gpointer) p;
+}
+
 static inline G_GNUC_CONST WARN_UNUSED_RESULT gconstpointer
 cast_to_gconstpointer(gconstpointer p)
 {
