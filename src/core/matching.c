@@ -369,22 +369,21 @@ st_compact(search_table_t *table)
  * Patterns are lazily compiled as needed, using pattern_compile_fast().
  */
 static gboolean
-entry_match(gchar *text, gint tlen,
-	cpattern_t **pw, word_vec_t *wovec, gint wn)
+entry_match(gchar *text, size_t tlen,
+	cpattern_t **pw, word_vec_t *wovec, size_t wn)
 {
-	gint i;
+	size_t i;
 
 	for (i = 0; i < wn; i++) {
-		gint amount = wovec[i].amount;
-		gint j;
-		guint32 offset = 0;
+		size_t j, offset = 0, amount = wovec[i].amount;
 
 		if (pw[i] == NULL)
 			pw[i] = pattern_compile_fast(wovec[i].word, wovec[i].len);
 
 		for (j = 0; j < amount; j++) {
-			char *pos =
-				pattern_qsearch(pw[i], text, tlen, offset, qs_begin);
+			const gchar *pos;
+			
+			pos = pattern_qsearch(pw[i], text, tlen, offset, qs_begin);
 			if (pos)
 				offset = (pos - text) + pw[i]->len;
 			else

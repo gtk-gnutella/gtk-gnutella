@@ -39,10 +39,10 @@
 #define ALPHA_SIZE	256			/**< Alphabet size */
 
 typedef struct {				/**< Compiled pattern */
-	gchar *pattern;				/**< The pattern */
-	guint32 len;				/**< Pattern length */
+	const gchar *pattern;		/**< The pattern */
+	size_t len;					/**< Pattern length */
+	size_t delta[ALPHA_SIZE];	/**< Shifting deltas */
 	gboolean duped;				/**< Was `pattern' strdup()'ed? */
-	guint32 delta[ALPHA_SIZE];	/**< Shifting deltas */
 } cpattern_t;
 
 typedef enum {
@@ -54,12 +54,12 @@ typedef enum {
 void pattern_init(void);
 void pattern_close(void);
 
-cpattern_t *pattern_compile(gchar *pattern);
-cpattern_t *pattern_compile_fast(gchar *pattern, guint32 plen);
+cpattern_t *pattern_compile(const gchar *pattern);
+cpattern_t *pattern_compile_fast(const gchar *pattern, size_t plen);
 void pattern_free(cpattern_t *cpat);
-gchar *pattern_qsearch(cpattern_t *cpat,
-	gchar *text, guint32 tlen, guint32 toffset, qsearch_mode_t word);
+const gchar *pattern_qsearch(cpattern_t *cpat,
+	const gchar *text, size_t tlen, size_t toffset, qsearch_mode_t word);
 
 #endif /* _pattern_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

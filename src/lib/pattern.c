@@ -37,6 +37,7 @@
 
 RCSID("$Id$");
 
+#include "misc.h"
 #include "pattern.h"
 #include "zalloc.h"
 #include "override.h"		/* Must be the last header included */
@@ -60,7 +61,8 @@ pattern_init(void)
 /**
  * Cleanup data structures.
  */
-void pattern_close(void)
+void
+pattern_close(void)
 {
 	zdestroy(pat_zone);
 }
@@ -81,15 +83,18 @@ void pattern_close(void)
  * @return a compiled pattern structure.
  */
 cpattern_t *
-pattern_compile(gchar *pattern)
+pattern_compile(const gchar *pattern)
 {
-	cpattern_t *p = (cpattern_t *) zalloc(pat_zone);
-	guint32 plen = strlen(pattern);
-	guint32 *pd = p->delta;
-	guint i;
-	guchar *c;
+	cpattern_t *p = zalloc(pat_zone);
+	size_t plen, i, *pd = p->delta;
+	const guchar *c;
 
-	p->pattern = g_strdup(pattern);
+	plen = strlen(pattern);
+	{
+		gchar *copy = g_malloc(1 + plen);
+		memcpy(copy, pattern, 1 + plen);
+		p->pattern = copy;
+	}
 	p->len = plen;
 	p->duped = TRUE;
 
@@ -100,7 +105,8 @@ pattern_compile(gchar *pattern)
 
 	plen--;			/* Restore original pattern length */
 
-	for (pd = p->delta, c = (guchar *) pattern, i = 0; i < plen; c++, i++)
+ 	c = cast_to_gconstpointer(pattern);
+	for (pd = p->delta, i = 0; i < plen; c++, i++)
 		pd[*c] = plen - i;
 
 	return p;
@@ -114,12 +120,11 @@ pattern_compile(gchar *pattern)
  * NB: There is no pattern_free_fast(), just call zfree() on the result.
  */
 cpattern_t *
-pattern_compile_fast(gchar *pattern, guint32 plen)
+pattern_compile_fast(const gchar *pattern, size_t plen)
 {
-	cpattern_t *p = (cpattern_t *) zalloc(pat_zone);
-	guint32 *pd = p->delta;
-	guint i;
-	guchar *c;
+	cpattern_t *p = zalloc(pat_zone);
+	size_t i, *pd = p->delta;
+	const guchar *c;
 
 	p->pattern = pattern;
 	p->len = plen;
@@ -131,8 +136,9 @@ pattern_compile_fast(gchar *pattern, guint32 plen)
 		*pd++ = plen;
 
 	plen--;			/* Restore original pattern length */
-
-	for (pd = p->delta, c = (guchar *) pattern, i = 0; i < plen; c++, i++)
+	
+ 	c = cast_to_gconstpointer(pattern);
+	for (pd = p->delta, i = 0; i < plen; c++, i++)
 		pd[*c] = plen - i;
 
 	return p;
@@ -144,8 +150,10 @@ pattern_compile_fast(gchar *pattern, guint32 plen)
 void
 pattern_free(cpattern_t *cpat)
 {
-	if (cpat->duped)
-		G_FREE_NULL(cpat->pattern);
+	if (cpat->duped) {
+		g_free(deconstify_gchar(cpat->pattern));
+		cpat->pattern = NULL;
+	}
 	zfree(pat_zone, cpat);
 }
 
@@ -156,21 +164,21 @@ pattern_free(cpattern_t *cpat)
  *
  * @return pointer to beginning of matching substring, NULL if not found.
  */
-gchar *
+const gchar *
 pattern_qsearch(
 	cpattern_t *cpat,		/**< Compiled pattern */
-	gchar *text,			/**< Text we're scanning */
-	guint32 tlen,			/**< Text length, 0 = compute strlen(text) */
-	guint32 toffset,		/**< Offset within text for search start */
+	const gchar *text,		/**< Text we're scanning */
+	size_t tlen,			/**< Text length, 0 = compute strlen(text) */
+	size_t toffset,			/**< Offset within text for search start */
 	qsearch_mode_t word)	/**< Beginning/whole word matching? */
 {
-	gchar *p;			/* Pointer within string pattern */
-	gchar *t;			/* Pointer within text */
-	gchar *tp;			/* Initial local search text pointer */
-	guint32 i;			/* Position within pattern string */
-	gchar *start;		/* Start of matching */
-	gchar *end;			/* End of text (first byte after physical end) */
-	guint32 plen;
+	const gchar *p;			/* Pointer within string pattern */
+	const gchar *t;			/* Pointer within text */
+	const gchar *tp;		/* Initial local search text pointer */
+	const gchar *start;		/* Start of matching */
+	const gchar *end;		/* End of text (first byte after physical end) */
+	size_t i;				/* Position within pattern string */
+	size_t plen;
 
 	if (!tlen)
 		tlen = strlen(text);
@@ -208,16 +216,16 @@ pattern_qsearch(
 			}
 
 			if (at_begin && word == qs_whole) {
-				if (tp + plen == end)			/* At end of string */
+				if (&tp[plen] == end)			/* At end of string */
 					return tp;
-				else if (0x20 == *(tp+plen))
+				else if (0x20 == tp[plen])
 					return tp; /* At word boundary after */
 			}
 
 			/* Fall through */
 		}
 
-		tp += cpat->delta[(guchar) *(tp + plen)]; /* Continue search there */
+		tp += cpat->delta[(guchar) tp[plen]]; /* Continue search there */
 	}
 
 	return NULL;		/* Not found */
