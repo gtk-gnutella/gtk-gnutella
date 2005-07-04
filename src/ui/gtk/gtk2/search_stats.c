@@ -321,7 +321,7 @@ search_stats_gui_set_type(gint type)
 
 /* FIXME: merge all `add_column' functions into one */
 static void
-add_column(GtkTreeView *treeview, gint id, gint width, gfloat xalign,
+add_column(GtkTreeView *treeview, gint id, gfloat xalign,
 	const gchar *label)
 {
     GtkTreeViewColumn *column;
@@ -339,7 +339,7 @@ add_column(GtkTreeView *treeview, gint id, gint width, gfloat xalign,
                 label, renderer, "text", id, (void *) 0);
 
 	g_object_set(G_OBJECT(column),
-		"fixed-width", MAX(1, width),
+		"fixed-width", 1,
 		"min-width", 1,
 		"reorderable", TRUE,
 		"resizable", TRUE,
@@ -361,13 +361,12 @@ search_stats_gui_init(void)
 	};
 	static const struct {
 		const gint id;
-		const guint width;
 		const gfloat align;
 		const gchar *title;
 	} cols[] = {
-		{ 0, 200, 0.0, N_("Search Term") },
-		{ 1,  60, 1.0, N_("This Interval") },
-		{ 2,  60, 1.0, N_("Total") },
+		{ 0, 0.0, N_("Search Term") },
+		{ 1, 1.0, N_("This Interval") },
+		{ 2, 1.0, N_("Total") },
 	};
 	size_t i;
     GtkCombo *combo_types;
@@ -429,9 +428,9 @@ search_stats_gui_init(void)
 	g_object_unref(model);
 
 	for (i = 0; i < G_N_ELEMENTS(cols); i++) {
-		add_column(treeview,
-			cols[i].id, cols[i].width, cols[i].align, _(cols[i].title));
+		add_column(treeview, cols[i].id, cols[i].align, _(cols[i].title));
 	}
+	tree_view_restore_widths(treeview, PROP_SEARCH_STATS_COL_WIDTHS);
 
 	stat_hash = g_hash_table_new(NULL, NULL);
 }
