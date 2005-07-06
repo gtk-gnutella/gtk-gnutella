@@ -234,10 +234,16 @@ stats_hash_to_treeview(gpointer key, gpointer value, gpointer unused_udata)
 static void
 search_stats_gui_enable(search_request_listener_t lst)
 {
+/** @bug FIXME:
+ *
+ * The search stats take too much CPU so that it causes the GUI to lock up.
+ */
+#if 0
     if (!callback_registered) {
         guc_share_add_search_request_listener(lst);
         callback_registered = TRUE;
     }
+#endif
 }
 
 static void
