@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * URN handling of specific formats.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2004
+ */
+
 #ifndef _urn_h_
 #define _urn_h_
 

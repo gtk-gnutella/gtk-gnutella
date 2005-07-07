@@ -74,7 +74,7 @@ static GList *list_search_history = NULL;
 static gboolean search_gui_shutting_down = FALSE;
 
 /**
- * Private function prototypes
+ * Private function prototypes.
  */
 static GtkTreeViewColumn *add_column(GtkTreeView *treeview, const gchar *name,
 	gint id, gint width, gfloat xalign, gint fg_column, gint bg_column);
@@ -86,7 +86,7 @@ static GtkWidget *default_search_tree_view = NULL;
 GtkWidget *default_scrolled_window = NULL;
 
 
-/* For cyclic updates of the tooltip */
+/** For cyclic updates of the tooltip. */
 static tree_view_motion_t *tvm_search;
 
 /* ----------------------------------------- */
@@ -418,7 +418,9 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	return TRUE;
 }
 
-/* Searches results */
+/**
+ * Searches results.
+ */
 static gint
 search_gui_compare_size_func(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data)
@@ -1364,8 +1366,9 @@ add_results_columns(GtkTreeView *treeview)
 	}
 }
 
-/* Create a new GtkTreeView for search results */
-
+/**
+ * Create a new GtkTreeView for search results.
+ */
 void
 gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 {
@@ -1445,7 +1448,9 @@ tree_view_search_update(
 	return FALSE;
 }
 
-/* Like search_update_tab_label but always update the label */
+/**
+ * Like search_update_tab_label but always update the label.
+ */
 void
 gui_search_force_update_tab_label(search_t *sch, time_t now)
 {
@@ -1498,9 +1503,7 @@ gui_search_clear_results(void)
 	search_gui_update_items(search);
 }
 
-/*
- * gui_search_get_colors
- *
+/**
  * Extract the mark/ignore/download color.
  */
 void
@@ -1584,7 +1587,7 @@ gui_search_set_enabled(struct search *sch, gboolean enabled)
 
 
 /**
- *	Expand all nodes in tree for current search
+ * Expand all nodes in tree for current search.
  */
 void
 search_gui_expand_all(void)
@@ -1595,7 +1598,7 @@ search_gui_expand_all(void)
 
 
 /**
- *	Collapse all nodes in tree for current search
+ * Collapse all nodes in tree for current search.
  */
 void
 search_gui_collapse_all(void)
@@ -1633,9 +1636,7 @@ search_gui_end_massive_update(search_t *sch)
 }
 
 /**
- *
- * Update the search displays with the correct meta-data
- *
+ * Update the search displays with the correct meta-data.
  */
 void
 search_gui_metadata_update(const bitzi_data_t *data)

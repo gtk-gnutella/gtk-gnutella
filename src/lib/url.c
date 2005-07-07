@@ -23,6 +23,16 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * URL handling of specific formats.
+ *
+ * @author Raphael Manfredi
+ * @date 2002-2003
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -32,7 +42,9 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-/* XXX -- needs to initialze the debug level of the lib functions -- RAM */
+/**
+ * @bug XXX -- needs to initialze the debug level of the lib functions -- RAM
+ */
 static gboolean url_debug = FALSE;
 
 #define ESCAPE_CHAR		'%'
@@ -40,12 +52,12 @@ static gboolean url_debug = FALSE;
 	((x) >= 32 && (x) < 128 && (is_transparent[(x)-32] & (m)))
 
 /**
- * Reserved chars: ";", "/", "?", ":", "@", "=" and "&"
- * Unsafe chars  : " ", '"', "<", ">", "#", and "%"
- * Misc chars    : "{", "}", "|", "\", "^", "~", "[", "]" and "`"
+ * - Reserved chars: ";", "/", "?", ":", "@", "=" and "&"
+ * - Unsafe chars  : " ", '"', "<", ">", "#", and "%"
+ * - Misc chars    : "{", "}", "|", "\", "^", "~", "[", "]" and "`"
  *
- * Bit 0 encodes regular transparent set (pathnames, '/' is transparent).
- * Bit 1 encodes regular transparent set minus '+' (query string).
+ * - Bit 0 encodes regular transparent set (pathnames, '/' is transparent).
+ * - Bit 1 encodes regular transparent set minus '+' (query string).
  */
 static const guint8 is_transparent[96] = {
 /*  0 1 2 3 4 5 6 7 8 9 a b c d e f */	/* 0123456789abcdef -            */
@@ -64,7 +76,9 @@ static const char hex_alphabet[] = "0123456789ABCDEF";
 
 /**
  * Escape undesirable characters using %xx, where xx is an hex code.
- * `mask' tells us whether we're escaping an URL path or a query string.
+ *
+ * @param `url' no brief description.
+ * @param `mask' tells us whether we're escaping an URL path or a query string.
  *
  * @return argument if no escaping is necessary, or a new string otherwise.
  */
@@ -414,7 +428,7 @@ url_safe_char(gint c, url_policy_t p)
  * @attention
  * NB: May modify ``url'' in all cased; pass a copy if necessary!
  *
- * Returns NULL if ``url'' isn't a valid resp. allowed URL. Otherwise,
+ * @returns NULL if ``url'' isn't a valid resp. allowed URL. Otherwise,
  * it returns either a pointer to the original URL or a g_malloc()ed
  * modified copy which has to be g_free()ed.
  *
