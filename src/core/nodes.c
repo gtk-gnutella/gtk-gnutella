@@ -4577,7 +4577,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 					gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE,
 						NODE_P_LEAF);
 				} else if (current_peermode != NODE_P_LEAF) {
-					static const gchar msg[] = _("Not becoming a leaf node");
+					static const gchar msg[] = N_("Not becoming a leaf node");
 
 					if (dbg > 2) g_warning(
 						"denying request from %s <%s> to become a leaf",
