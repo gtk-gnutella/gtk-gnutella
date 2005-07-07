@@ -3761,7 +3761,7 @@ node_can_accept_protocol(struct gnutella_node *n, header_t *head)
 			static const gchar msg[] = N_("Protocol not acceptable");
 
 			node_send_error(n, 406, msg);
-			node_remove(n, msg);
+			node_remove(n, _(msg));
 			return FALSE;
 		}
 	}
@@ -4527,7 +4527,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		static const gchar msg[] = N_("Too ancient Gnutella protocol");
 
 		node_send_error(n, 403, "%s", msg);
-		node_remove(n, "%s", msg);
+		node_remove(n, "%s", _(msg));
 		return;
 	}
 
