@@ -153,6 +153,7 @@
 
 # suspicious GWebCache polling
 63.218.20.0/24
+72.35.224.0/24
 
 # weasel.net, diverse GWebCache spamming/trashing
 66.68.124.56
