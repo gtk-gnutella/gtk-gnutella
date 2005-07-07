@@ -4311,12 +4311,12 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		 */
 
 		if (aging_lookup(tcp_crawls, GUINT_TO_POINTER(n->ip))) {
-			static const gchar msg[] = "Too frequent crawling";
+			static const gchar msg[] = N_("Too frequent crawling");
 
 			g_warning("rejecting TCP crawler request from %s", node_ip(n));
 
 			node_send_error(n, 403, "%s", msg);
-			node_remove(n, "%s", msg);
+			node_remove(n, "%s", _(msg));
 			return;
 		}
 
@@ -4542,10 +4542,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		/* Make sure we only receive incoming connections from crawlers */
 
 		if (n->flags & NODE_F_CRAWLER) {
-			static const gchar msg[] = "Cannot connect to a crawler";
+			static const gchar msg[] = N_("Cannot connect to a crawler");
 
 			node_send_error(n, 403, msg);
-			node_remove(n, msg);
+			node_remove(n, _(msg));
 			return;
 		}
 
@@ -4577,14 +4577,14 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 					gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE,
 						NODE_P_LEAF);
 				} else if (current_peermode != NODE_P_LEAF) {
-					static const gchar msg[] = "Not becoming a leaf node";
+					static const gchar msg[] = _("Not becoming a leaf node");
 
 					if (dbg > 2) g_warning(
 						"denying request from %s <%s> to become a leaf",
 						node_ip(n), node_vendor(n));
 
 					node_send_error(n, 403, msg);
-					node_remove(n, msg);
+					node_remove(n, _(msg));
 					return;
 				}
 			}
