@@ -348,7 +348,7 @@ nodes_gui_add_node(gnet_node_info_t *n)
 /**
  * Update all the nodes at the same time.
  *
- * @todo
+ * @bug
  * FIXME: we should remember for every node when it was last
  *        updated and only refresh every node at most once every
  *        second. This information should be kept in a struct pointed
