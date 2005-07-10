@@ -6,7 +6,8 @@
 #
 # 対訳一覧:
 #
-# Partial File Sharing    部分ファイル共有
+# Partial File Sharing Protocol 部分ファイル共有プロトコル
+# Passive/Active Remote Queuing 受動/能動遠隔キューイング
 #
 # TX, RX          送信、受信
 # activated       有効にする
@@ -15,11 +16,12 @@
 # banning         禁止処理
 # deactivated     無効にする・非活生化
 # directory       フォルダ
+# flag            フラッグ (フラグ、標識)
 # global          大域・全般・システム用
 # inactive        非稼働・無効
 # invalid         不適切な
 # matching        一致
-# query, queries  検索式・問合わせ (クエリの方が良い?)
+# query, queries  検索式・検索語・問合わせ (クエリ)
 # querying        問合わせ
 # queue, queues   待機列・キュー
 # queued          待機中・待機列入り
@@ -30,7 +32,7 @@
 # shutdown        停止
 # slot            受口
 # status, stats   ステータス
-# swarming        分封 (スワーミングの方が良い?)
+# swarming        分封 (スワーミング、多元ソース・ダウンロード)
 # timeout         タイムアウト
 #
 # 備考:
@@ -43,8 +45,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-07-07 23:07+0900\n"
-"PO-Revision-Date: 2005-07-07 23:11+0900\n"
+"POT-Creation-Date: 2005-07-10 08:11+0900\n"
+"PO-Revision-Date: 2005-07-11 02:11+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -1746,30 +1748,30 @@ msgstr ""
 #: src/if/gnet_property.c:3436
 msgid ""
 "Whether gtk-gnutella is currently rebuilding its library in the background."
-msgstr "ライブラリをバックグラウンドで再構築しているかどうかを表します。"
+msgstr ""
+"見えない所で Gtk-Gnutella のライブラリを再構築しているかどうかを表します。"
 
 #: src/if/gnet_property.c:3453
 msgid ""
 "Whether gtk-gnutella is currently computing SHA1 of shared files in the "
 "background."
-msgstr ""
-"共有ファイルの SHA1 をバックグラウンドで計算しているかどうかを表します。"
+msgstr "見えない所で共有ファイルの SHA1 を算出しているかどうかを表します。"
 
 #: src/if/gnet_property.c:3470
 msgid ""
 "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the "
 "background."
 msgstr ""
-"ダウンロードされたファイルの SHA1 をバックグラウンドで検証しているかどうかを"
-"表します。"
+"見えない所でダウンロードされたファイルの SHA1 を検証しているかどうかを表しま"
+"す。"
 
 #: src/if/gnet_property.c:3487
 msgid ""
 "Whether gtk-gnutella is currently moving files across filesystems or simply "
 "copying in the background."
 msgstr ""
-"ファイルシステムを横断するファイル移動あるいは単なる複製をバックグラウンドで"
-"行っているかどうかを表します。"
+"見えない所でファイルシステムを横断するファイル移動あるいは単にコピーを行って"
+"いるかどうかを表します。"
 
 #: src/if/gnet_property.c:3504
 msgid ""
@@ -2459,19 +2461,19 @@ msgstr ""
 
 #: src/if/gui_property.c:171
 msgid "disable"
-msgstr "検索用語は表示しない"
+msgstr "表示しない"
 
 #: src/if/gui_property.c:172
 msgid "by words"
-msgstr "単語を表示する"
+msgstr "単語に別けて表示"
 
 #: src/if/gui_property.c:173
 msgid "by whole query"
-msgstr "検索式全体を表示する"
+msgstr "完全なクエリで表示"
 
 #: src/if/gui_property.c:174
 msgid "by router"
-msgstr "ルーターを表示する"
+msgstr "接続ノードからのクエリを表示"
 
 #: src/if/gui_property.c:196
 msgid "TCP & UDP"
@@ -4333,11 +4335,11 @@ msgstr "HSEP"
 
 #: src/ui/gtk/gnet_stats_common.c:52
 msgid "Vendor spec."
-msgstr "特殊ベンダ"
+msgstr "ベンダ特定"
 
 #: src/ui/gtk/gnet_stats_common.c:53
 msgid "Vendor std."
-msgstr "標準ベンダ"
+msgstr "ベンダ標準"
 
 #: src/ui/gtk/gnet_stats_common.c:54 src/ui/gtk/gtk1/interface-glade.c:8872
 #: src/ui/gtk/gtk2/interface-glade.c:7783
@@ -4355,7 +4357,7 @@ msgid "Query hit"
 msgstr "検索式ヒット"
 
 #: src/ui/gtk/gnet_stats_common.c:57 src/ui/gtk/gtk1/interface-glade.c:4365
-#: src/ui/gtk/gtk2/search_stats.c:375
+#: src/ui/gtk/gtk2/search_stats.c:374
 msgid "Total"
 msgstr "合計"
 
@@ -5755,11 +5757,11 @@ msgstr "更新する間隔(_U) (秒)"
 msgid "_Deletion coeff. (0-100)"
 msgstr "削除係数(_D) (0-100) "
 
-#: src/ui/gtk/gtk1/interface-glade.c:4348 src/ui/gtk/gtk2/search_stats.c:373
+#: src/ui/gtk/gtk1/interface-glade.c:4348 src/ui/gtk/gtk2/search_stats.c:372
 msgid "Search Term"
 msgstr "検索用語"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4357 src/ui/gtk/gtk2/search_stats.c:374
+#: src/ui/gtk/gtk1/interface-glade.c:4357 src/ui/gtk/gtk2/search_stats.c:373
 msgid "This Interval"
 msgstr "このモニタ間"
 
@@ -7812,7 +7814,7 @@ msgstr "接続されているダウンロードがタイムアウトになるま
 #: src/ui/gtk/gtk1/interface-glade.c:14703
 #: src/ui/gtk/gtk2/interface-glade.c:13453
 msgid "Downloading from multiple sources (swarming)"
-msgstr "複数の送信元からのダウンロード (分封 - Swarming)"
+msgstr "多数の送信元からのダウンロード (分封 - Swarming)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14722
 #: src/ui/gtk/gtk2/interface-glade.c:13363
@@ -8389,7 +8391,7 @@ msgstr "検索式を待機列に入れます..."
 msgid "<none>"
 msgstr "<無し>"
 
-#: src/ui/gtk/gtk1/search_stats.c:439 src/ui/gtk/gtk2/search_stats.c:476
+#: src/ui/gtk/gtk1/search_stats.c:439 src/ui/gtk/gtk2/search_stats.c:475
 #, c-format
 msgid "%u term counted"
 msgid_plural "%u terms counted"
