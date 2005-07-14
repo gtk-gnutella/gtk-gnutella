@@ -16,10 +16,13 @@
 # banning         禁止処理
 # deactivated     無効にする・非活生化
 # directory       フォルダ
+# filter          フィルター (フィルタ)
+# filtering       フィルター処理
 # flag            フラッグ (フラグ、標識)
 # global          大域・全般・システム用
 # inactive        非稼働・無効
 # invalid         不適切な
+# jump            分岐
 # matching        一致
 # query, queries  検索式・検索語・問合わせ (クエリ)
 # querying        問合わせ
@@ -35,18 +38,25 @@
 # swarming        分封 (スワーミング、多元ソース・ダウンロード)
 # timeout         タイムアウト
 #
-# 備考:
+# TODO:
+#
+# フィルターに関する訳がきわめて不明瞭なので、これを何とかする。
+#
+# NOTE:
 #
 # 可読性を増すために英字との間にはスペースを入れています。
 # GTK1で使用する場合、ツールチップが不適切に改行されます。
 # アクセラレータキーの割り当てに関して改善の余地があります。
+#
+# 誤訳の指摘・P2P用語のより正確な訳 (より分かり易い訳)・パッチの
+# 送付は Last-Translator: にあるアドレスまでお願いします。
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-07-10 08:11+0900\n"
-"PO-Revision-Date: 2005-07-11 02:11+0900\n"
+"PO-Revision-Date: 2005-07-14 17:19+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -89,7 +99,7 @@ msgstr "接続失敗 (ファイル記述子は足りていますか？)"
 
 #: src/core/downloads.c:2978
 msgid "Ignoring Push flag"
-msgstr "PUSH フラグを無視します"
+msgstr "PUSH フラッグを無視します"
 
 #: src/core/downloads.c:3009
 #, c-format
@@ -107,7 +117,7 @@ msgstr[0] "タイムアウトしました (%d 回目)"
 #, c-format
 msgid "Connection refused (%d retry)"
 msgid_plural "Connection refused (%d retries)"
-msgstr[0] "接続が拒否されました (%d 回目)"
+msgstr[0] "接続を拒否されました (%d 回目)"
 
 #: src/core/downloads.c:3318
 msgid "Dup SHA1 during creation"
@@ -189,7 +199,7 @@ msgstr "重複する SHA1 を発見しました"
 #: src/core/downloads.c:5279 src/core/downloads.c:5287
 #: src/core/downloads.c:6315 src/core/downloads.c:6355
 msgid "Stopped data (EOF)"
-msgstr "データ転送中止 (EOF)"
+msgstr "データ転送が中止されました (EOF)"
 
 #: src/core/downloads.c:5668 src/core/downloads.c:6164
 msgid "Partial file on server, waiting"
@@ -198,7 +208,7 @@ msgstr "サーバの部分ファイルを待受中"
 #: src/core/downloads.c:5768
 #, c-format
 msgid "Queued (slot %d/%d) ETA: %s"
-msgstr "待機中 (受口 %d/%d) 残り時間: %s"
+msgstr "待機中 (受口 %d/%d) 予定時間: %s"
 
 #: src/core/downloads.c:6323
 msgid "Stopped (Read buffer full)"
@@ -207,7 +217,7 @@ msgstr "中止されました (読込バッファが一杯です)"
 #: src/core/downloads.c:6362
 #, c-format
 msgid "Stopped data (%s)"
-msgstr "データ転送中止 (%s)"
+msgstr "データ転送が中止されました (%s)"
 
 #: src/core/downloads.c:7508
 msgid "SHA1 mismatch detected"
@@ -1247,7 +1257,7 @@ msgstr "URL ハンドリング関連のバグ解析メッセージの冗長度�
 
 #: src/if/gnet_property.c:1772
 msgid "Debug level for dynamic query hit routing."
-msgstr "動的検索式ヒット経路作成のバグ解析レベルです。"
+msgstr "動的検索式ヒット経路設定のバグ解析レベルです。"
 
 #: src/if/gnet_property.c:1792
 msgid "Debug level for dynamic queries."
@@ -1271,11 +1281,11 @@ msgstr "UDP トラフィックレイヤのバグ解析レベルです。"
 
 #: src/if/gnet_property.c:1892
 msgid "Debug level for the Query Routing Protocol."
-msgstr "検索式経路作成プロトコル (QRP) のバグ解析レベルです。"
+msgstr "検索式経路設定プロトコル (QRP) のバグ解析レベルです。"
 
 #: src/if/gnet_property.c:1912
 msgid "Debug level for message routing."
-msgstr "メッセージ経路作成のバグ解析レベルです。"
+msgstr "メッセージ経路設定のバグ解析レベルです。"
 
 #: src/if/gnet_property.c:1932
 msgid "Debug level for GGEP."
@@ -1935,11 +1945,11 @@ msgid ""
 "more consistent at the cost of extra CPU time, and at the cost of losing "
 "some valid entries in the process."
 msgstr ""
-"ダウンロードメッシュ項目に曖昧フィルタを適用するかどうかを選択します。この"
-"フィルタを適用すると、同メッシュの重要な部分であまりにも異なりすぎる名前を持"
-"つ項目を削除する事ができます。有効にすると、余計な CPU 時間を使用し、処理の最"
-"中にいくつかのまともな項目が損失を受けますが、それと引き替えに恐らくメッシュ"
-"がより一貫性のあるものになります。"
+"ダウンロードメッシュ項目に曖昧フィルターを適用するかどうかを選択します。この"
+"フィルターを適用すると、同メッシュの重要な部分であまりにも異なりすぎる名前を"
+"持つ項目を削除する事ができます。有効にすると、余計な CPU 時間を使用し、処理の"
+"最中にいくつかのまともな項目が損失を受けますが、それと引き替えに恐らくメッ"
+"シュがより一貫性のあるものになります。"
 
 #: src/if/gnet_property.c:3986
 msgid "Number of crawler visits during this session."
@@ -2223,11 +2233,11 @@ msgstr ""
 
 #: src/if/gnet_property.c:4599
 msgid "Time at which we started the last scan of the library."
-msgstr "ライブラリの走査を最後に開始した時間です。"
+msgstr "ライブラリのスキャンを最後に開始した時間です。"
 
 #: src/if/gnet_property.c:4619
 msgid "Time spent scanning the library, in seconds."
-msgstr "ライブラリを走査するのに費やした時間を秒で表します。"
+msgstr "ライブラリをスキャンするのに費やした時間を秒で表します。"
 
 #: src/if/gnet_property.c:4639
 msgid "Time at which we started shared file indexing."
@@ -2239,7 +2249,7 @@ msgstr "共有ファイルの索引作成に費やした時間です。"
 
 #: src/if/gnet_property.c:4679
 msgid "Time at which we started query routing table generation."
-msgstr "検索式経路作成テーブルの生成を開始した時間です。"
+msgstr "検索式経路設定テーブルの生成を開始した時間です。"
 
 #: src/if/gnet_property.c:4699
 msgid "Time spent computing the QRP table, in seconds."
@@ -2255,7 +2265,7 @@ msgstr "QRP テーブルパッチの算出に費やした時間を秒で表し�
 
 #: src/if/gnet_property.c:4759
 msgid "Query routing table generation number."
-msgstr "検索式経路作成テーブルの生成番号です。"
+msgstr "検索式経路設定テーブルの生成番号です。"
 
 #: src/if/gnet_property.c:4779
 msgid "Amount of slots used by our QRP table."
@@ -2524,8 +2534,8 @@ msgid ""
 "Whether to hide hits that have been considered for auto-downloading based on "
 "the SHA1 or your filters."
 msgstr ""
-"SHA1 やフィルタを基にした自動ダウンロードと思われるものはヒットしても表示しな"
-"いようにします。"
+"SHA1 やフィルターを基にした自動ダウンロードと思われるものはヒットしても表示し"
+"ないようにします。"
 
 #: src/if/gui_property.c:385
 msgid "Widths of the columns in the nodes table."
@@ -2589,11 +2599,11 @@ msgstr "アップロード一覧表でどの欄を表示するのかを指定し
 
 #: src/if/gui_property.c:667
 msgid "Widths of the columns in the rules table in the filter dialog."
-msgstr "フィルタダイアログでのルール一覧表の欄幅です。"
+msgstr "フィルターダイアログでのルール一覧表の欄幅です。"
 
 #: src/if/gui_property.c:687
 msgid "Widths of the columns in the filter table in the filter dialog."
-msgstr "フィルタダイアログでのフィルタ一覧表の欄幅です。"
+msgstr "フィルターダイアログでのフィルター一覧表の欄幅です。"
 
 #: src/if/gui_property.c:707
 msgid "Widths of the columns in the Gnet packet stats table."
@@ -2625,7 +2635,7 @@ msgstr "メインウィンドウの位置と大きさです。"
 
 #: src/if/gui_property.c:887
 msgid "Position and size of the filter dialog."
-msgstr "フィルタダイアログの位置と大きさです。"
+msgstr "フィルターダイアログの位置と大きさです。"
 
 #: src/if/gui_property.c:907
 msgid "Position of the divider in the downloads panel."
@@ -2910,11 +2920,11 @@ msgid ""
 "the passing threshold and 'e' the efficiency, i.e. the proportion of "
 "received queries that are sent to the node after QRP table filtering."
 msgstr ""
-"検索式経路プロトコル (QRP) の統計を表示するかどうかを選択します。リーフノード"
-"において、これは単に受信した検索式の量を越える検索式ヒットの比率です。ウルト"
-"ラピアにおいては、QRP テーブルでの受口の量を表示し、'g' は生成数、'f' は充足"
-"比率、't' は通過の閾値、そして 'e' は効率です。この効率とは、リーフノードに送"
-"信される検索式の受信率です。"
+"検索式経路設定プロトコル (QRP) の統計を表示するかどうかを選択します。リーフ"
+"ノードにおいて、これは単に受信した検索式の量を越える検索式ヒットの比率です。"
+"ウルトラピアにおいては、QRP テーブルでの受口の量を表示し、'g' は生成数、'f' "
+"は充足比率、't' は通過の閾値、そして 'e' は効率です。この効率とは、QRP テーブ"
+"ルのフィルター処理の後にリーフノードに送信される検索式の受信率です。"
 
 #: src/if/gui_property.c:2037
 msgid ""
@@ -4112,15 +4122,15 @@ msgstr "組込ターゲット (編集不可)"
 
 #: src/ui/gtk/filter.c:320
 msgid "Global filters"
-msgstr "大域フィルタ"
+msgstr "大域フィルター"
 
 #: src/ui/gtk/filter.c:325
 msgid "Search filters"
-msgstr "検索フィルタ"
+msgstr "検索フィルター"
 
 #: src/ui/gtk/filter.c:330
 msgid "Free filters"
-msgstr "任意フィルタ"
+msgstr "任意フィルター"
 
 #: src/ui/gtk/filter.c:627 src/ui/gtk/filter.c:682
 msgid "new"
@@ -4132,7 +4142,7 @@ msgstr "該当無し"
 
 #: src/ui/gtk/filter.c:762
 msgid "no default filter"
-msgstr "標準フィルタ無し"
+msgstr "標準フィルター無し"
 
 #: src/ui/gtk/filter.c:911
 msgid "[no hash]"
@@ -4234,21 +4244,21 @@ msgstr "stable は設定されていません"
 #: src/ui/gtk/filter_core.c:1086
 #, c-format
 msgid "If flag %s%s%s%s%s"
-msgstr "フラグが %s%s%s%s%s"
+msgstr "フラッグが %s%s%s%s%s"
 
 #: src/ui/gtk/filter_core.c:1090
 msgid "Always (all flags ignored)"
-msgstr "常に (全てのフラグを無視)"
+msgstr "常に (全てのフラッグを無視)"
 
 #: src/ui/gtk/filter_core.c:1103
 msgid "DISPLAY is undefined"
-msgstr "表示が未定義です"
+msgstr "\"表示\" が未定義です"
 
 #: src/ui/gtk/filter_core.c:1107 src/ui/gtk/filter_core.c:2333
 #: src/ui/gtk/gtk1/interface-glade.c:9309
 #: src/ui/gtk/gtk2/interface-glade.c:8509
 msgid "DISPLAY"
-msgstr "表示する"
+msgstr "表示"
 
 #: src/ui/gtk/filter_core.c:1111 src/ui/gtk/filter_core.c:2334
 msgid "DON'T DISPLAY"
@@ -4256,13 +4266,13 @@ msgstr "表示しない"
 
 #: src/ui/gtk/filter_core.c:1123
 msgid "DOWNLOAD is undefined"
-msgstr "ダウンロードが未定義です"
+msgstr "\"ダウンロード\" が未定義です"
 
 #: src/ui/gtk/filter_core.c:1128 src/ui/gtk/filter_core.c:2335
 #: src/ui/gtk/gtk1/interface-glade.c:9258
 #: src/ui/gtk/gtk2/interface-glade.c:8440
 msgid "DOWNLOAD"
-msgstr "ダウンロードする"
+msgstr "ダウンロード"
 
 #: src/ui/gtk/filter_core.c:1133 src/ui/gtk/filter_core.c:2336
 msgid "DON'T DOWNLOAD"
@@ -4271,7 +4281,7 @@ msgstr "ダウンロードしない"
 #: src/ui/gtk/filter_core.c:1143
 #, c-format
 msgid "If flag %s%s%s"
-msgstr "フラグが %s%s%s"
+msgstr "フラッグが %s%s%s"
 
 #: src/ui/gtk/filter_core.c:1147
 msgid "Always (all states ignored)"
@@ -4280,7 +4290,7 @@ msgstr "常に (全ての状態値は無視)"
 #: src/ui/gtk/filter_core.c:1172
 #, c-format
 msgid "%s%s %s jump to \"%s\""
-msgstr "%s%s %s は \"%s\" に移動"
+msgstr "%s%s %s は \"%s\" に分岐"
 
 #: src/ui/gtk/filter_core.c:1173
 msgid "(Negated) "
@@ -4371,7 +4381,7 @@ msgstr "フロー制御"
 
 #: src/ui/gtk/gnet_stats_common.c:129
 msgid "Routing errors"
-msgstr "経路作成エラー"
+msgstr "経路設定エラー"
 
 #: src/ui/gtk/gnet_stats_common.c:130
 msgid "Searches to local DB"
@@ -4395,7 +4405,7 @@ msgstr "OOB ヒット配送を要求する検索式"
 
 #: src/ui/gtk/gnet_stats_common.c:135
 msgid "Stripped OOB flag on queries"
-msgstr "検索式の削除済 OOB フラグ"
+msgstr "検索式の削除済 OOB フラッグ"
 
 #: src/ui/gtk/gnet_stats_common.c:136
 msgid "Duplicates with higher TTL"
@@ -5026,7 +5036,7 @@ msgstr "場所"
 #: src/ui/gtk/gtk2/interface-glade.c:7750
 #: src/ui/gtk/gtk2/interface-glade.c:8416 src/ui/gtk/gtk2/nodes.c:168
 msgid "Flags"
-msgstr "フラグ"
+msgstr "フラッグ"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1581
 #: src/ui/gtk/gtk1/interface-glade.c:2070 src/ui/gtk/gtk1/nodes.c:249
@@ -5689,7 +5699,7 @@ msgstr "ダウンロード(_D)"
 #: src/ui/gtk/gtk1/interface-glade.c:17388
 #: src/ui/gtk/gtk2/interface-glade.c:5270
 msgid "_Edit filters"
-msgstr "フィルタ編集(_E)"
+msgstr "フィルター編集(_E)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4101
 #: src/ui/gtk/gtk1/interface-glade.c:6283
@@ -6216,7 +6226,7 @@ msgid ""
 "Adds \"don't display\" rules matching the selected files names to the search "
 "filter."
 msgstr ""
-"選択したファイル名に一致する \"表示しない\" ルールを検索フィルタに追加しま"
+"選択したファイル名に一致する \"表示しない\" ルールを検索フィルターに追加しま"
 "す。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6610
@@ -6224,8 +6234,8 @@ msgid ""
 "Adds \"don't display\" rules matching the selected files urn:sha1 to the "
 "search filter."
 msgstr ""
-"選択したファイルの URN:SHA1 に一致する \"表示しない\" ルールを検索フィルタに"
-"追加します。"
+"選択したファイルの URN:SHA1 に一致する \"表示しない\" ルールを検索フィルター"
+"に追加します。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6620
 #: src/ui/gtk/gtk2/interface-glade.c:545
@@ -6237,8 +6247,8 @@ msgid ""
 "Adds \"don't display\" rules matching the selected files names to the global "
 "pre-filter."
 msgstr ""
-"選択したファイル名に一致する \"表示しない\" ルールを広域プリフィルタに追加し"
-"ます。"
+"選択したファイル名に一致する \"表示しない\" ルールを広域プリフィルターに追加"
+"します。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6652
 msgid ""
@@ -6329,13 +6339,13 @@ msgstr "ルールセット編集"
 #: src/ui/gtk/gtk1/interface-glade.c:7334
 #: src/ui/gtk/gtk2/interface-glade.c:935
 msgid "_Create filter"
-msgstr "フィルタ作成(_C)"
+msgstr "フィルター作成(_C)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7366
 #: src/ui/gtk/gtk1/interface-glade.c:7425
 #: src/ui/gtk/gtk2/interface-glade.c:955 src/ui/gtk/gtk2/interface-glade.c:986
 msgid "Filter"
-msgstr "フィルタ"
+msgstr "フィルター"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7374
 #: src/ui/gtk/gtk2/interface-glade.c:960
@@ -6357,7 +6367,7 @@ msgstr "有効にする"
 #: src/ui/gtk/gtk1/interface-glade.c:7450
 #: src/ui/gtk/gtk2/interface-glade.c:1003
 msgid "Remove filter"
-msgstr "フィルタを削除"
+msgstr "フィルターを削除"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7457
 #: src/ui/gtk/gtk2/interface-glade.c:1007
@@ -6365,8 +6375,8 @@ msgid ""
 "A filter cannot be removed if it is bound to a search or if it is in use "
 "(used as a target in a rule)."
 msgstr ""
-"検索と一意化していたり、現在使用中のフィルタ (ルール内でターゲットとして利用"
-"されているもの) は削除できません。"
+"検索と一意化していたり、現在使用中のフィルター (ルール内でターゲットとして利"
+"用されているもの) は削除できません。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7490
 #: src/ui/gtk/gtk2/interface-glade.c:1025
@@ -6403,7 +6413,7 @@ msgid ""
 "Remove all rules\n"
 "from this filter"
 msgstr ""
-"このフィルタから\n"
+"このフィルターから\n"
 "全ルールを削除"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7539
@@ -6412,7 +6422,7 @@ msgid ""
 "Reset all rule stats\n"
 "in this filter"
 msgstr ""
-"このフィルタの全ルール\n"
+"このフィルターの全ルール\n"
 "ステータスを削除"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7547
@@ -6421,7 +6431,7 @@ msgid ""
 "Reset filter stats\n"
 "for this filter"
 msgstr ""
-"このフィルタのフィルタ\n"
+"このフィルターのフィルター\n"
 "ステータスをリセット"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7555
@@ -6430,7 +6440,7 @@ msgid ""
 "Reset filter stats\n"
 "for all filters"
 msgstr ""
-"全フィルタのフィルタ\n"
+"全フィルターのフィルター\n"
 "ステータスをリセット"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7614
@@ -6446,12 +6456,12 @@ msgstr "大きさルールの追加"
 #: src/ui/gtk/gtk1/interface-glade.c:7630
 #: src/ui/gtk/gtk2/interface-glade.c:6165
 msgid "Add flag rule"
-msgstr "フラグルールの追加"
+msgstr "フラッグルールの追加"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7646
 #: src/ui/gtk/gtk2/interface-glade.c:6137
 msgid "Add jump rule"
-msgstr "移動ルールの追加"
+msgstr "分岐ルールの追加"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7654
 #: src/ui/gtk/gtk2/interface-glade.c:6151
@@ -6581,9 +6591,9 @@ msgid ""
 "in the specified target filter. That's also why you can't invert this "
 "condition. If you could, this rule would just be ignored."
 msgstr ""
-"条件はありません。このルールが渡される時は、指定したターゲットフィルタで適合"
-"が続行されます。これはさらに、何故条件を反転させる事が出来ないかを物語ってい"
-"ます。有効にした場合、このルールは無視されます。"
+"条件はありません。このルールが渡される時は、指定したターゲットフィルターで適"
+"合が続行されます。これはさらに、何故条件を反転させる事が出来ないかを物語って"
+"います。有効にした場合、このルールは無視されます。"
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
 #: src/ui/gtk/gtk1/interface-glade.c:8535
@@ -6613,7 +6623,7 @@ msgstr "#|SHA1"
 #: src/ui/gtk/gtk1/interface-glade.c:8833
 #: src/ui/gtk/gtk2/interface-glade.c:8071
 msgid "Condition: If result has flags"
-msgstr "条件: 検索結果にフラグがあるかどうか"
+msgstr "条件: 検索結果にフラッグがあるかどうか"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8861
 #: src/ui/gtk/gtk2/interface-glade.c:7774 src/ui/gtk/hcache_common.c:44
@@ -6660,7 +6670,7 @@ msgstr "#|Flags"
 #: src/ui/gtk/gtk1/interface-glade.c:9230
 #: src/ui/gtk/gtk2/interface-glade.c:8698
 msgid "Condition: If current filter result properties match"
-msgstr "条件: 現フィルタの検索結果のプロパティが一致するかどうか"
+msgstr "条件: 現フィルターの検索結果のプロパティが一致するかどうか"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9281
 #: src/ui/gtk/gtk1/interface-glade.c:9372
@@ -7257,7 +7267,7 @@ msgstr "帯域外結果を要求する検索式"
 #: src/ui/gtk/gtk1/interface-glade.c:12623
 #: src/ui/gtk/gtk2/interface-glade.c:11181
 msgid "Honour OOB flag in queries"
-msgstr "検索式では帯域外フラグを遵守する"
+msgstr "検索式では帯域外フラッグを遵守する"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12631
 #: src/ui/gtk/gtk2/interface-glade.c:11189
@@ -7854,7 +7864,7 @@ msgstr "曖昧さの閾値"
 #: src/ui/gtk/gtk1/interface-glade.c:14918
 #: src/ui/gtk/gtk2/interface-glade.c:13432
 msgid "_Apply fuzzy filter on download mesh entries"
-msgstr "ダウンロードメッシュ項目に曖昧フィルタを適用する(_A)"
+msgstr "ダウンロードメッシュ項目に曖昧フィルターを適用する(_A)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14932
 #: src/ui/gtk/gtk2/interface-glade.c:13045
@@ -7881,17 +7891,17 @@ msgstr "各ファイルへのパス(_P)"
 #: src/ui/gtk/gtk1/interface-glade.c:15027
 #: src/ui/gtk/gtk2/interface-glade.c:13767
 msgid "_Add directory"
-msgstr "フォルダを追加する(_A)"
+msgstr "フォルダを追加(_A)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15039
 #: src/ui/gtk/gtk2/interface-glade.c:13792
 msgid "_Rescan"
-msgstr "再走査(_R)"
+msgstr "再スキャン(_R)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15049
 #: src/ui/gtk/gtk2/interface-glade.c:13797
 msgid "Files scanned"
-msgstr "各ファイルが走査されています"
+msgstr "各ファイルがスキャンされています。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15076
 #: src/ui/gtk/gtk2/interface-glade.c:13825
@@ -7951,7 +7961,7 @@ msgstr "ファイル走査時間:"
 #: src/ui/gtk/gtk1/interface-glade.c:15368
 #: src/ui/gtk/gtk2/interface-glade.c:14399
 msgid "Query Routing Protocol:"
-msgstr "検索式経路作成プロトコル (QRP):"
+msgstr "検索式経路設定プロトコル (QRP):"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15388
 #: src/ui/gtk/gtk2/interface-glade.c:14252
@@ -7980,7 +7990,7 @@ msgstr "パッチ生成の開始時間:"
 #: src/ui/gtk/gtk1/interface-glade.c:15596
 #: src/ui/gtk/gtk2/interface-glade.c:14223
 msgid "Query routing table information:"
-msgstr "検索式の経路作成テーブル情報:"
+msgstr "検索式の経路設定テーブル情報:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15615
 #: src/ui/gtk/gtk2/interface-glade.c:14101
@@ -8015,7 +8025,7 @@ msgstr "競合比率:"
 #: src/ui/gtk/gtk1/interface-glade.c:15839
 #: src/ui/gtk/gtk2/interface-glade.c:14503
 msgid "Query routing patch information:"
-msgstr "検索式の経路作成パッチ情報:"
+msgstr "検索式の経路設定パッチ情報:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15858
 #: src/ui/gtk/gtk2/interface-glade.c:14423
@@ -8269,7 +8279,7 @@ msgstr "検索式管理"
 #: src/ui/gtk/gtk1/interface-glade.c:16845
 #: src/ui/gtk/gtk2/interface-glade.c:15695
 msgid "Message routing"
-msgstr "メッセージ経路作成"
+msgstr "メッセージ経路設定"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16867
 #: src/ui/gtk/gtk2/interface-glade.c:15751
@@ -8511,7 +8521,7 @@ msgid ""
 "routing packets in the Gnutella network."
 msgstr ""
 "このノードに関係付けられた識別子 (GUID - Global Unique IDentifier) です。これ"
-"は Gnutella ネットワーク上のパケット経路作成に用いられます。"
+"は Gnutella ネットワーク上のパケット経路設定に用いられます。"
 
 #: src/ui/gtk/gtk2/interface-glade.c:3410
 msgid "Address/Port:"
@@ -8693,7 +8703,7 @@ msgstr "プロパティの参照"
 
 #: src/ui/gtk/gtk2/interface-glade.c:15891
 msgid "Edit filters"
-msgstr "フィルタ編集"
+msgstr "フィルター編集"
 
 #: src/ui/gtk/gtk2/interface-glade.c:15942
 msgid "Close this search"
