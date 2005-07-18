@@ -737,8 +737,10 @@ http_content_range_parse(const gchar *buf,
 	s = skip_ascii_spaces(endptr);
 	*total = parse_uint64(s, &endptr, 10, &error);
 
-	// according to the HTTP/1.1 specs, start <= end < total
-	// must be true, otherwise the range is invalid
+	/*
+	 * According to the HTTP/1.1 specs, start <= end < total
+	 * must be true, otherwise the range is invalid.
+	 */
 	
 	if (error || *start > *end || *end >= *total)
 		return -1;
