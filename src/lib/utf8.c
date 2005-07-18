@@ -96,6 +96,19 @@ static GIConv cd_locale_to_utf8	= (GIConv) -1;
 static GIConv cd_utf8_to_locale	= (GIConv) -1;
 static GIConv cd_latin_to_utf8	= (GIConv) -1;
 
+static inline gboolean
+locale_is_utf8(void)
+{
+	static gboolean initialized, is_utf8;
+
+	if (!initialized) {
+		g_assert(NULL != charset);
+		is_utf8 = 0 == strcmp(charset, "UTF-8");
+		initialized = TRUE;
+	}
+	return is_utf8;
+}
+
 static inline G_GNUC_CONST guint
 utf8_skip(guchar c)
 {
@@ -941,7 +954,7 @@ locale_close(void)
 }
 
 static inline char *
-g_iconv_complete(GIConv cd, const char *inbuf, size_t inbytes_left,
+complete_iconv(GIConv cd, const char *inbuf, size_t inbytes_left,
 	char *outbuf, size_t outbytes_left)
 {
 #if 0
@@ -961,6 +974,8 @@ g_iconv_complete(GIConv cd, const char *inbuf, size_t inbytes_left,
 	if (outbytes_left > 0)
 		outbuf[0] = '\0';
 
+	g_iconv(cd, NULL, NULL, NULL, NULL);	/* reset state*/
+	
 	while (inbytes_left > 0 && outbytes_left > 1) {
 		size_t ret;
 
@@ -972,7 +987,7 @@ g_iconv_complete(GIConv cd, const char *inbuf, size_t inbytes_left,
 			case EILSEQ:
 			case EINVAL:
 				if (common_dbg > 1)
-					g_warning("g_iconv_complete: g_iconv() failed soft: %s",
+					g_warning("complete_iconv: g_iconv() failed soft: %s",
 						g_strerror(errno));
 
 				if (outbytes_left > sizeof replacement) {
@@ -987,14 +1002,73 @@ g_iconv_complete(GIConv cd, const char *inbuf, size_t inbytes_left,
 				break;
 			default:
 				if (common_dbg > 1)
-					g_warning("g_iconv_complete(): g_iconv() failed hard: %s",
+					g_warning("complete_iconv(): g_iconv() failed hard: %s",
 						g_strerror(errno));
 				return NULL;
 			}
+			g_iconv(cd, NULL, NULL, NULL, NULL);	/* reset state*/
 		}
 	}
 	*outbuf = '\0';
 	return result;
+}
+
+/**
+ * Copies the NUL-terminated string ``src'' to ``dst'' replacing all invalid
+ * characters (non-UTF-8) with underscores. ``src'' and ``dst'' may be identical
+ * but must not overlap otherwise. If ``dst'' is to small, the resulting string
+ * will be truncated but the UTF-8 encoding is preserved in any case.
+ *
+ * @param dst the destination buffer.
+ * @param size the size in bytes of the destination buffer.
+ * @param src a NUL-terminated string.
+ * @return the length in bytes of resulting string assuming size was sufficiently
+ *         large.
+ */
+size_t
+utf8_enforce(gchar *dst, size_t size, const gchar *src)
+{
+	const gchar *s = src;
+	gchar *d = dst;
+	
+	g_assert(0 == size || NULL != dst);
+	g_assert(NULL != src);
+	g_assert(size <= INT_MAX);
+	/** TODO: Add overlap check */
+
+	if (size-- > 0) {
+		while ('\0' != *s) {
+			size_t clen;
+			gchar c;
+
+			clen = utf8_is_valid_char(s);
+			if (0 == clen) {
+				c = '_';
+				clen = 1;
+			} else {
+				c = *s;
+			}
+			if (clen > size)
+				break;
+
+			if (clen == 1) {
+				*d++ = c;
+				s++;
+				size--;
+			} else {
+				memmove(d, s, clen);
+				d += clen;
+				s += clen;
+				size -= clen;
+			}
+		}
+		*d = '\0';
+	}
+
+ 	while ('\0' != *s)
+		s++;
+
+	return d - dst;
 }
 
 /**
@@ -1015,17 +1089,21 @@ g_iconv_complete(GIConv cd, const char *inbuf, size_t inbytes_left,
 const gchar *
 locale_to_utf8(const gchar *str, size_t len)
 {
-	static gchar outbuf[4096 + 6]; /* an UTF-8 char is max. 6 bytes large */
+	static gchar outbuf[4096]; /* an UTF-8 char is max. 6 bytes large */
 
 	g_assert(NULL != str);
 
 	if (0 == len)
 		len = strlen(str);
 	if (0 == len || utf8_is_valid_string(str, len))
-		return deconstify_gchar(str);
-	else
-		return g_iconv_complete(cd_locale_to_utf8,
-				str, len, outbuf, sizeof(outbuf) - 7);
+		return str;
+
+	if (locale_is_utf8()) {
+		utf8_enforce(outbuf, sizeof outbuf, str);
+		return outbuf;
+	}
+
+	return complete_iconv(cd_locale_to_utf8, str, len, outbuf, sizeof outbuf);
 }
 
 /**
@@ -1042,20 +1120,32 @@ locale_to_utf8(const gchar *str, size_t len)
 gchar *
 locale_to_utf8_full(const gchar *str)
 {
-	gchar *s;
-	size_t utf8_len, len;
-	
+	size_t len;
+
 	g_assert(NULL != str);
 
 	len = strlen(str);
 	if (0 == len || utf8_is_valid_string(str, len))
 		return deconstify_gchar(str);
 	
-   	utf8_len = len * 6 + 1;
-	g_assert((utf8_len - 1) / 6 == len);
-	s = g_malloc(utf8_len);
+	if (locale_is_utf8()) {
+		size_t size;
+		gchar *s;
+	
+		size = 1 + utf8_enforce(NULL, 0, str);
+		s = g_malloc(size);
+		utf8_enforce(s, size, str);
+		return s;
+	} else {
+		size_t utf8_len;
+		gchar *s;
+	
+   		utf8_len = len * 6 + 1;
+		g_assert((utf8_len - 1) / 6 == len);
+		s = g_malloc(utf8_len);
 
-	return g_iconv_complete(cd_locale_to_utf8, str, len, s, utf8_len);
+		return complete_iconv(cd_locale_to_utf8, str, len, s, utf8_len);
+	}
 }
 
 /**
@@ -1081,6 +1171,14 @@ locale_to_utf8_normalized(const gchar *str, uni_norm_t norm)
 
 	if (utf8_is_valid_string(str, 0)) {
 		s = str;
+	} else if (locale_is_utf8()) {
+		size_t size;
+		gchar *p;
+	
+		size = 1 + utf8_enforce(NULL, 0, str);
+		p = size < sizeof sbuf ? sbuf : g_malloc(size);
+		utf8_enforce(p, size, str);
+		s = p;
 	} else {
 		size_t size, len;
 		gchar *p;
@@ -1089,7 +1187,7 @@ locale_to_utf8_normalized(const gchar *str, uni_norm_t norm)
    		size = len * 6 + 1;
 		g_assert((size - 1) / 6 == len);
 		p = size < sizeof sbuf ? sbuf : g_malloc(size);
-		s = g_iconv_complete(cd_locale_to_utf8, str, len, p, size);
+		s = complete_iconv(cd_locale_to_utf8, str, len, p, size);
 	}
 
 	ret = utf8_normalize(s, norm);
@@ -1100,18 +1198,6 @@ locale_to_utf8_normalized(const gchar *str, uni_norm_t norm)
 	}
 
 	return ret;
-}
-
-static inline gboolean
-locale_is_utf8(void)
-{
-	static gboolean initialized, is_utf8;
-
-	if (!initialized) {
-		is_utf8 = 0 == strcmp(charset, "UTF-8");
-		initialized = TRUE;
-	}
-	return is_utf8;
 }
 
 const gchar *
@@ -1125,7 +1211,7 @@ utf8_to_locale(const gchar *str, size_t len)
 	if (locale_is_utf8())
 		return str;
 	else		
-		return g_iconv_complete(cd_utf8_to_locale,
+		return complete_iconv(cd_utf8_to_locale,
 				str, len != 0 ? len : strlen(str), outbuf, sizeof(outbuf) - 7);
 }
 
@@ -1148,7 +1234,7 @@ iso_8859_1_to_utf8(const gchar *fromstr)
 
 	g_assert(NULL != fromstr);
 
-	return g_iconv_complete(cd_latin_to_utf8,
+	return complete_iconv(cd_latin_to_utf8,
 				fromstr, strlen(fromstr), outbuf, sizeof(outbuf) - 7);
 }
 
@@ -3633,6 +3719,28 @@ unicode_compose_init(void)
 static void
 unicode_decompose_init(void)
 {
+	/* The following code is supposed to reproduce bug #1211413. */
+	{
+		static const char bad[] = "\201y\223\220\216B\201znaniwa "
+			"\224\xfc\217\217\227\202\xcc\220\xab "
+			"\202\xb5\202\xcc"
+			"18\215\xce\201@\202d\203J\203b\203v.mpg";
+		const char *s;
+		size_t len, chars;
+		guint32 *u;
+	
+		s = lazy_locale_to_utf8(bad, 0);
+		len = strlen(s);
+		chars = utf8_is_valid_string(s, 0);
+		g_assert(len != 0);
+		g_assert(len >= chars);
+		len = utf8_to_utf32(s, NULL, 0);
+		g_assert(len == chars);
+		u = g_malloc0((len + 1) * sizeof *u);
+		utf8_to_utf32(s, u, len + 1);
+		G_FREE_NULL(u);
+	}
+		
 #if 0 && defined(USE_GLIB2)
 	size_t i;
 
