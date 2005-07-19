@@ -36,7 +36,7 @@
  * gtkcellrenderer.c
  *
  * Copyright (C) 2002 Naba Kumar <kh_naba@users.sourceforge.net>
- * heavily modified by Jörgen Scheibengruber <mfcn@gmx.de>
+ * heavily modified by Joergen Scheibengruber <mfcn@gmx.de>
  * and yet more modifications by Russell Francis <rf358197@ohiou.edu>
  *
  * Originally found in gnome-system-monitor and imported Jan 2004. It

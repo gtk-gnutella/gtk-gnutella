@@ -36,7 +36,7 @@
  * cellrenderer.h
  *
  * Copyright (C) 2002 Naba Kumar <kh_naba@users.sourceforge.net>
- * modified by Jörgen Scheibengruber <mfcn@gmx.de>
+ * modified by Joergen Scheibengruber <mfcn@gmx.de>
  * modified more by Russell Francis <rf358197@ohio.edu>
  *
  * This library is free software; you can redistribute it and/or
