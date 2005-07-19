@@ -137,14 +137,13 @@ static const guint8 utf8len_mark[] = {
  *
  * Code Points           1st Byte    2nd Byte    3rd Byte    4th Byte
  *
- *    U+0000..U+007F      00..7F   
- *    U+0080..U+07FF      C2..DF      80..BF   
- *    U+0800..U+0FFF      E0          A0..BF      80..BF  
- *    U+1000..U+FFFF      E1..EF      80..BF      80..BF  
+ *    U+0000..U+007F      00..7F
+ *    U+0080..U+07FF      C2..DF      80..BF
+ *    U+0800..U+0FFF      E0          A0..BF      80..BF
+ *    U+1000..U+FFFF      E1..EF      80..BF      80..BF
  *   U+10000..U+3FFFF     F0          90..BF      80..BF      80..BF
  *   U+40000..U+FFFFF     F1..F3      80..BF      80..BF      80..BF
  *  U+100000..U+10FFFF    F4          80..8F      80..BF      80..BF
-
  */
 
 #define CHAR(x)					((guchar) (x))
@@ -2521,7 +2520,9 @@ utf32_filter_char(guint32 uc, gboolean *space, gboolean last)
 		break;
 
 	case UNI_GC_MARK_NONSPACING:
-		/* Do not skip the japanese " and ° kana marks and so on */
+		/*
+		 * Do not skip the japanese (U+3099) and (U+309A) kana marks and so on
+		 */
 		switch (uc) {
 		/* Japanese voiced sound marks */
 		case 0x3099:
