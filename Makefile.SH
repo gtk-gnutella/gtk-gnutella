@@ -41,7 +41,7 @@ INSTALLDIR = $INSTALLDIR
 # Parameters set by Configure -- edit config.sh if changes are needed
 
 CTAGS = ctags
-DESKTOP = $installdesktop
+INSTALLPREFIX = $prefix
 MV = $mv
 PRIVLIB = $installprivlib
 RM = $rm -f
@@ -60,13 +60,17 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.8 2004/10/16 20:36:23 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.9 2005/05/23 14:59:39 graaff Exp $
 
 EXTRA_FILES = \
 	bogons.txt \
 	gwcache.boot \
 	geo-ip.txt \
 	hostiles.txt
+
+PIXMAP_FILES = \
+	gtk-gnutella.png	\
+	gtk-gnutella.svg
 
 all::
 
@@ -126,12 +130,33 @@ local_deinstall::
 
 local_install:: gtk-gnutella.desktop
 	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
-	(set -x; test -d $(INSTALL_PREFIX)$(DESKTOP) || \
-		$(INSTALLDIR) $(INSTALL_PREFIX)$(DESKTOP)); \
-	$(INSTALL) -c -m 444 gtk-gnutella.desktop $(INSTALL_PREFIX)$(DESKTOP)
+	(set -x; test -d $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/applications || \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/applications); \
+	for i in gtk-gnutella.desktop; do \
+		(set -x; $(INSTALL) -c $(INSTALLFLAGS) \
+			$$i $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/applications) || exit 1;\
+	done
 
 local_deinstall::
-	$(RM) $(INSTALL_PREFIX)$(DESKTOP)/gtk-gnutella.desktop
+	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
+	for i in gtk-gnutella.desktop; do \
+		(set -x; $(RM) $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/applications/$$i); \
+	done
+
+local_install:: $(PIXMAP_FILES)
+	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
+	(set -x; test -d $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/pixmaps || \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/pixmaps); \
+	for i in $(PIXMAP_FILES); do \
+		(set -x; $(INSTALL) -c $(INSTALLFLAGS) \
+			$$i $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/pixmaps) || exit 1;\
+	done
+
+local_deinstall::
+	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
+	for i in $(PIXMAP_FILES); do \
+		(set -x; $(RM) $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/pixmaps/$$i); \
+	done
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

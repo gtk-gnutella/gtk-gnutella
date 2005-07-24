@@ -33,6 +33,10 @@ EXTRA_FILES = \
 	geo-ip.txt \
 	hostiles.txt
 
+PIXMAP_FILES = \
+	gtk-gnutella.png	\
+	gtk-gnutella.svg
+
 all::		/* So that default target is not clobber! */
 
 SetSubdirs(src pixmaps po)
@@ -44,4 +48,5 @@ INSTALLFLAGS = -m 444
 MakeInstallDirectories($(PRIVLIB))
 InstallMultiple($(EXTRA_FILES), $(PRIVLIB))
 MakeInstallDirectories($(DESKTOP))
-InstallNonExec(gtk-gnutella.desktop, $(DESKTOP))
+InstallMultiple(gtk-gnutella.desktop, $(INSTALLPREFIX)/share/applications)
+InstallMultiple($(PIXMAP_FILES), $(INSTALLPREFIX)/share/pixmaps)
