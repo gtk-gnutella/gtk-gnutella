@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Mon May 23 16:53:56 CEST 2005 [metaconfig 3.0 PL70]
+# Generated on Sun Jul 24 20:31:55 CEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -317,9 +317,6 @@ d_strlcpy=''
 d_sysctl=''
 d_volatile=''
 d_vsnprintf=''
-desktop=''
-desktopexp=''
-installdesktop=''
 d_enablenls=''
 enablenls=''
 gccosandvers=''
@@ -2887,43 +2884,6 @@ EOM
 	installbin="$ans"
 else
 	installbin="$binexp"
-fi
-
-: determine where .desktop files go
-set dflt desktop share/applications
-eval $prefixit
-$cat <<EOM
-
-The .desktop file holds the menu entry to be installed in your desktop
-menus. This setting indicates in which directory they should be placed.
-
-EOM
-fn=d~+
-rp='Pathname where the private library files will reside?'
-. ./getfile
-if $test "X$desktopexp" != "X$ansexp"; then
-	installdesktop=''
-fi
-desktop="$ans"
-desktopexp="$ansexp"
-if $afs; then
-	$cat <<EOM
-
-Since you are running AFS, I need to distinguish the directory in which
-.desktop files reside from the directory in which they are installed (and from
-which they are presumably copied to the former directory by occult means).
-
-EOM
-	case "$installdesktop" in
-	'') dflt=`echo $desktopexp | sed 's#^/afs/#/afs/.#'`;;
-	*) dflt="$installdesktop";;
-	esac
-	fn=de~
-	rp='Where will .desktop files be installed?'
-	. ./getfile
-	installdesktop="$ans"
-else
-	installdesktop="$desktopexp"
 fi
 
 : determine where manual pages are on this system
@@ -6311,8 +6271,6 @@ d_vsnprintf='$d_vsnprintf'
 d_xenix='$d_xenix'
 date='$date'
 defvoidused='$defvoidused'
-desktop='$desktop'
-desktopexp='$desktopexp'
 echo='$echo'
 egrep='$egrep'
 emacs='$emacs'
@@ -6367,7 +6325,6 @@ incpath='$incpath'
 inews='$inews'
 install='$install'
 installbin='$installbin'
-installdesktop='$installdesktop'
 installdir='$installdir'
 installmansrc='$installmansrc'
 installprivlib='$installprivlib'
