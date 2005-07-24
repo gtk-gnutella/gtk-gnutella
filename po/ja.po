@@ -8,28 +8,29 @@
 #
 # Partial File Sharing Protocol 部分ファイル共有プロトコル
 # Passive/Active Remote Queuing 受動/能動遠隔キューイング
+# Swarming                      多元ダウンロード
 #
 # TX, RX          送信、受信
 # activated       有効にする
-# active          稼働・有効・アクティブ
+# active          稼働、有効、アクティブ
 # alternate       別の (代わりの)
 # bandwidth       帯域幅
 # banning         禁止処理
-# deactivated     無効にする・非活生化
+# deactivated     無効にする、非活生化
 # directory       フォルダ
 # filter          フィルター (フィルタ)
 # filtering       フィルタ処理
 # flag            フラッグ (フラグ、標識)
 # forwarding      転送
-# global          大域・全般・システム用
-# inactive        非稼働・無効
+# global          大域、全般、システム用
+# inactive        非稼働、無効
 # invalid         不適切な
 # jump            分岐
 # matching        一致
-# query, queries  検索式・検索語・問合わせ (クエリ)
+# query, queries  検索式、検索語、問合わせ (クエリ)
 # querying        問合わせ
-# queue, queues   待機列・キュー
-# queued          待機中・待機列入り
+# queue, queues   待機列、キュー
+# queued          待機中、待機列入り
 # requery         再問合わせ
 # requeued        再び待機
 # route           経路 (ルート)
@@ -37,7 +38,6 @@
 # shutdown        停止
 # slot            受口
 # status, stats   ステータス
-# swarming        分封 (スワーミング、多元ソース・ダウンロード)
 # timeout         タイムアウト
 #
 # TODO:
@@ -55,10 +55,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96u\n"
+"Project-Id-Version: gtk-gnutella 0.95.4\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-07-20 15:30+0900\n"
-"PO-Revision-Date: 2005-07-20 15:29+0900\n"
+"POT-Creation-Date: 2005-07-25 02:16+0900\n"
+"PO-Revision-Date: 2005-07-25 05:07+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -98,6 +98,10 @@ msgstr "ダウンロード受口がありません"
 #: src/core/downloads.c:2761
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "接続失敗 (ファイル記述子は足りていますか？)"
+
+#: src/core/downloads.c:2960
+msgid "Push route lost"
+msgstr "PUSH 経路を失いました"
 
 #: src/core/downloads.c:2978
 msgid "Ignoring Push flag"
@@ -1171,8 +1175,8 @@ msgid ""
 "Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150 "
 "percent of the maximum message size."
 msgstr ""
-"ノードへの送信キューの最大サイズ(バイト)です。少なくとも最大メッセージサイズ"
-"の 150 パーセントでなければなりません。"
+"ノードへの送信キューの最大サイズ (バイト単位) です。少なくとも最大メッセージ"
+"サイズの 150 パーセントでなければなりません。"
 
 #: src/if/gnet_property.c:1512
 msgid ""
@@ -1508,7 +1512,8 @@ msgstr ""
 msgid ""
 "Maximum size of search queries messages we forward to others  (in bytes)."
 msgstr ""
-"他のホストへ転送する検索問い合わせメッセージの大きさの最大値です。 (バイト)"
+"他のホストへ転送する検索問い合わせメッセージの大きさの最大値です。 (バイト単"
+"位)"
 
 #: src/if/gnet_property.c:2758
 msgid ""
@@ -1516,12 +1521,12 @@ msgid ""
 "connection (in bytes)."
 msgstr ""
 "許可する検索問い合わせメッセージの最大の大きさです、これを越えると接続を閉じ"
-"ます。(バイト)"
+"ます。(バイト単位)"
 
 #: src/if/gnet_property.c:2778
 msgid ""
 "Maximum size of search answers messages we forward to others (in bytes)."
-msgstr "他のサーバントへ送り出す検索回答メッセージの最大数です。(バイト)"
+msgstr "他のサーバントへ転送する検索回答メッセージの最大数です。(バイト単位)"
 
 #: src/if/gnet_property.c:2798
 msgid ""
@@ -1529,7 +1534,7 @@ msgid ""
 "connection (in bytes)."
 msgstr ""
 "受取りを許可する検索回答メッセージの最大数です、これを越えると接続を閉じま"
-"す。(バイト)"
+"す。(バイト単位)"
 
 #: src/if/gnet_property.c:2818
 msgid ""
@@ -1537,7 +1542,7 @@ msgid ""
 "(in bytes)."
 msgstr ""
 "受取りを許可する不明メッセージの最大数です、これを越えると接続を閉じます。(バ"
-"イト)"
+"イト単位)"
 
 #: src/if/gnet_property.c:2838
 msgid ""
@@ -1656,27 +1661,29 @@ msgstr "このノードの識別子 (GUID) です。"
 
 #: src/if/gnet_property.c:3172
 msgid "Whether or not to use swarming (recommended = YES)."
-msgstr "分封を使うかどうかを選択します。(有効にする事を推奨します)"
+msgstr ""
+"多元ダウンロードを利用するかどうかを選択します。(有効にする事を推奨します)"
 
 #: src/if/gnet_property.c:3189
 msgid ""
 "Whether or not to launch competing downloads when swarming and there are "
 "many sources available with a few chunks left."
 msgstr ""
-"分封の使用時に僅かなチャンクが残っていて、そこに多数の送信元が利用可能な場"
-"合、競合するダウンロードを実行するかどうかを選択します。"
+"多元ダウンロードを行っていて、残っている僅かなチャンクに対して多数の送信元が"
+"利用可能な場合、競合するダウンロードを実行するかどうかを選択します。"
 
 #: src/if/gnet_property.c:3206
 msgid ""
 "Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will "
 "download less if you only have a few bytes to get for a file..."
 msgstr ""
-"分封時の最小チャンクサイズです。これはあるファイルを取得するのにほんの僅かば"
-"かりのバイトで済む、より少ないダウンロードをする時にのみ有用です..."
+"多元ダウンロードする時の最小チャンクサイズです。これはあるファイルを取得する"
+"のにほんの僅かばかりのバイトで済む、より少ないダウンロードをする時にのみ有用"
+"です..."
 
 #: src/if/gnet_property.c:3226
 msgid "Maximum chunk size when swarming."
-msgstr "分封時の最大チャンクサイズです。"
+msgstr "多元ダウンロードする時の最大チャンクサイズです。"
 
 #: src/if/gnet_property.c:3246
 msgid ""
@@ -2980,7 +2987,7 @@ msgstr "Gnet パケット・ステータス一覧表 (pkg) の欄幅です。[GT
 
 #: src/if/gui_property.c:2165
 msgid "Widths of the columns in the Gnet packet stats table (byte). [GTK2]"
-msgstr "Gnet パケット・ステータス一覧表 (バイト) の欄幅です。[GTK2]"
+msgstr "Gnet パケット・ステータス一覧表 (バイト単位) の欄幅です。[GTK2]"
 
 #: src/if/gui_property.c:2185
 msgid "Configures the appearance of the toolbar."
@@ -6761,11 +6768,6 @@ msgstr "Gtk-Gnutella について"
 msgid "[name and version]"
 msgstr "[name and version]"
 
-# NOTE: it shouldn't be translated, you can simply copy & paste
-#: src/ui/gtk/gtk1/interface-glade.c:9926
-msgid "$Id$"
-msgstr "$Id$"
-
 #: src/ui/gtk/gtk1/interface-glade.c:9959
 #: src/ui/gtk/gtk2/interface-glade.c:1454
 msgid "Original author:"
@@ -6774,12 +6776,12 @@ msgstr "原著作者:"
 #: src/ui/gtk/gtk1/interface-glade.c:9971
 #: src/ui/gtk/gtk2/interface-glade.c:1473
 msgid "Core development:"
-msgstr "中心開発者:"
+msgstr "中心部分の開発:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9983
 #: src/ui/gtk/gtk2/interface-glade.c:1492
 msgid "PARQ development:"
-msgstr "PARQ の開発者:"
+msgstr "PARQ の開発:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9995
 #: src/ui/gtk/gtk2/interface-glade.c:1537
@@ -6789,12 +6791,12 @@ msgstr "プロジェクトリーダー:"
 #: src/ui/gtk/gtk1/interface-glade.c:10006
 #: src/ui/gtk/gtk2/interface-glade.c:1547
 msgid "GUI development:"
-msgstr "GUI の開発者:"
+msgstr "インターフェイスの開発:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10017
 #: src/ui/gtk/gtk2/interface-glade.c:1557
 msgid "Swarming development:"
-msgstr "分封の開発者:"
+msgstr "多元ダウンロードの開発:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10038
 msgid "Vidar Madsen"
@@ -7826,12 +7828,12 @@ msgstr "接続されているダウンロードがタイムアウトになるま
 #: src/ui/gtk/gtk1/interface-glade.c:14703
 #: src/ui/gtk/gtk2/interface-glade.c:13453
 msgid "Downloading from multiple sources (swarming)"
-msgstr "多数の送信元からのダウンロード (分封 - Swarming)"
+msgstr "多数の送信元からのダウンロード (Swarming)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14722
 #: src/ui/gtk/gtk2/interface-glade.c:13363
 msgid "Enable s_warming"
-msgstr "分封を有効にする(_W)"
+msgstr "有効にする(_W)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14752
 #: src/ui/gtk/gtk2/interface-glade.c:13356
@@ -8925,7 +8927,7 @@ msgid ""
 "%s%s%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%"
 "u TCP, %u UDP)"
 msgstr ""
-"%s%s%u %s (割愛 %u, 無視 %u, 隠匿 %u, 自動 D/L %u, %u %s) がヒット: %u (%u "
+"%s%s%u %s (%u 省略, %u 無視, %u 隠す, %u 自動D/L, %u %s) がヒット: %u (%u "
 "TCP, %u UDP)"
 
 #: src/ui/gtk/search_common.c:1062
@@ -8940,7 +8942,7 @@ msgstr[0] "個のアイテム"
 #: src/ui/gtk/search_common.c:1066
 msgid "dupe"
 msgid_plural "dupes"
-msgstr[0] "個の重複"
+msgstr[0] "重複"
 
 #: src/ui/gtk/search_common.c:1069
 msgid "No search"
