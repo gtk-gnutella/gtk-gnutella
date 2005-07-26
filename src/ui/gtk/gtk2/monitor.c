@@ -99,7 +99,7 @@ monitor_gui_append(query_type_t type, const gchar *item,
 		concat_strings(buf, sizeof buf,
 			QUERY_SHA1 == type ? "urn:sha1:" : "", item, (void *) 0);
 
-		s = lazy_locale_to_utf8(buf, 0);
+		s = lazy_locale_to_utf8(buf);
    		gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN, s, (-1));
 	}
 }

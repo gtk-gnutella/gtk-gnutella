@@ -632,7 +632,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 
 	gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename")),
-			lazy_locale_to_utf8(rc->name, 0));
+			lazy_locale_to_utf8(rc->name));
 
 	gtk_entry_printf(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1")),
@@ -674,7 +674,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 
 	gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag")),
-			rc->tag ? lazy_locale_to_utf8(rc->tag, 0) : _("<none>"));
+			rc->tag ? lazy_locale_to_utf8(rc->tag) : _("<none>"));
 
 	txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget(main_window,
 					"textview_result_info_xml"))); 

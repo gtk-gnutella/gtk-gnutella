@@ -736,7 +736,7 @@ download_gui_add(download_t *d)
 		if (!parent) {
 			host_count = 1;
 			d_file_name = guc_file_info_readable_filename(d->file_info);
-			d_file_name = lazy_locale_to_utf8(deconstify_gchar(d_file_name), 0);
+			d_file_name = lazy_locale_to_utf8(d_file_name);
 
 			if (d->file_info->file_size_known)
 				d_file_size = short_size(d->file_info->size);
@@ -823,7 +823,7 @@ download_gui_add(download_t *d)
 		  	c_queue_host, guc_download_get_hostname(d),
 		  	c_queue_loc, guc_download_get_country(d),
 	      	c_queue_size, d_file_size,
-	      	c_queue_server, lazy_locale_to_utf8(vendor, 0),
+	      	c_queue_server, lazy_iso8859_1_to_utf8(vendor),
 	      	c_queue_status, NULL,
 		  	c_queue_record, d,
    	      	(-1));
@@ -837,7 +837,7 @@ download_gui_add(download_t *d)
 		if (!parent) {
 			host_count = 1;
 			d_file_name = guc_file_info_readable_filename(d->file_info);
-			d_file_name = lazy_locale_to_utf8(deconstify_gchar(d_file_name), 0);
+			d_file_name = lazy_locale_to_utf8(d_file_name);
 
 			if (d->file_info->file_size_known)
 				d_file_size = short_size(d->file_info->size);
@@ -943,7 +943,7 @@ download_gui_add(download_t *d)
 			c_dl_loc, guc_download_get_country(d),
 			c_dl_size, d_file_size,
 			c_dl_range, NULL,
-			c_dl_server, lazy_locale_to_utf8(vendor, 0),
+			c_dl_server, lazy_iso8859_1_to_utf8(vendor),
 			c_dl_progress, CLAMP(progress, 0, 100),
 			c_dl_status, NULL,
 			c_dl_record, d,
@@ -1172,7 +1172,7 @@ gui_update_download_column(download_t *d, GtkTreeView *tree_view,
 		return;
 	}
 
-	gtk_tree_store_set(model, iter, column, lazy_locale_to_utf8(value, 0), (-1));
+	gtk_tree_store_set(model, iter, column, lazy_locale_to_utf8(value), (-1));
 }
 
 

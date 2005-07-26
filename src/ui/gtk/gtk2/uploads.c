@@ -299,7 +299,7 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 			atom_str_free(rd->name);
 		rd->name = atom_str_get(u->name);
 		gtk_list_store_set(store_uploads, &rd->iter,
-			c_ul_filename, lazy_locale_to_utf8(rd->name, 0),
+			c_ul_filename, lazy_locale_to_utf8(rd->name),
 			(-1));
 	}
 
@@ -310,7 +310,7 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 			atom_str_free(rd->user_agent);
 		rd->user_agent = atom_str_get(u->user_agent);
 		gtk_list_store_set(store_uploads, &rd->iter,
-			c_ul_agent, lazy_locale_to_utf8(rd->user_agent, 0),
+			c_ul_agent, lazy_iso8859_1_to_utf8(rd->user_agent),
 			(-1));
 	}
 
@@ -395,7 +395,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 		static gchar str[256];	/* MUST be static! */
 		const gchar *agent;
 
-		agent = lazy_locale_to_utf8(u->user_agent, 0);
+		agent = lazy_iso8859_1_to_utf8(u->user_agent);
 		if (u->user_agent != agent) {
 			utf8_strlcpy(str, agent, sizeof str);
 			agent = str;
@@ -407,7 +407,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 	titles[c_ul_loc] = iso3166_country_cc(u->country);
 
 	titles[c_ul_filename] = NULL != u->name
-								? lazy_locale_to_utf8(u->name, 0) : "...";
+								? lazy_locale_to_utf8(u->name) : "...";
 	titles[c_ul_host]     = ip_to_gchar(u->ip);
 	titles[c_ul_status] = uploads_gui_status_str(&status, rd);
 

@@ -249,7 +249,8 @@ nodes_gui_update_node_info(gnet_node_info_t *n, GtkTreeIter *iter)
 		n->proto_major, n->proto_minor);
 
 	gtk_list_store_set(nodes_model, iter,
-		c_gnet_user_agent, n->vendor ? lazy_locale_to_utf8(n->vendor, 0) : NULL,
+		c_gnet_user_agent, n->vendor
+							? lazy_iso8859_1_to_utf8(n->vendor) : NULL,
 		c_gnet_loc, iso3166_country_cc(n->country),
 		c_gnet_version, version,
 		c_gnet_info, nodes_gui_common_status_str(&status),
@@ -351,7 +352,7 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			iso3166_country_name(info.country),
 			iso3166_country_cc(info.country),
 			_("Vendor:"),
-			info.vendor ? lazy_locale_to_utf8(info.vendor, 0) : _("Unknown"));
+			info.vendor ? lazy_iso8859_1_to_utf8(info.vendor) : _("Unknown"));
 
 		guc_node_clear_info(&info);
 		gtk_tooltips_set_tip(settings_gui_tooltips(),
@@ -401,7 +402,7 @@ host_lookup_callback(const gchar *hostname, gpointer data)
 
 	if (hostname) {
 		gm_snprintf(buf, sizeof buf, "%s (%s)",
-			lazy_locale_to_utf8(hostname, 0), ip_port_to_gchar(ip, port));
+			lazy_locale_to_utf8(hostname), ip_port_to_gchar(ip, port));
 	} else {
 		statusbar_gui_warning(10,
 			_("Reverse lookup for %s failed"), ip_to_gchar(ip));
@@ -554,7 +555,8 @@ nodes_gui_add_node(gnet_node_info_t *n)
     gtk_list_store_set(nodes_model, iter,
         c_gnet_host,    ip_port_to_gchar(n->ip, n->port),
         c_gnet_flags,    NULL,
-        c_gnet_user_agent, n->vendor ? lazy_locale_to_utf8(n->vendor, 0) : NULL,
+        c_gnet_user_agent, n->vendor
+							? lazy_iso8859_1_to_utf8(n->vendor) : NULL,
         c_gnet_loc, 	iso3166_country_cc(n->country),
         c_gnet_version, proto_tmp,
         c_gnet_connected, NULL,

@@ -525,9 +525,9 @@ search_gui_add_record(
 		const gchar *s;
 
 		g_assert(rw < sizeof info);
-		s = lazy_locale_to_utf8(info, rw);
+		s = lazy_locale_to_utf8(info);
 		if (s != info) {
-			g_strlcpy(info, s, sizeof info);
+			utf8_strlcpy(info, s, sizeof info);
 		}
 	}
 
@@ -558,7 +558,7 @@ search_gui_add_record(
 
 	g_assert(rc->refcount >= 2);
 
-	name_utf8 = lazy_locale_to_utf8(rc->name, 0);
+	name_utf8 = lazy_locale_to_utf8(rc->name);
 	if (name_utf8) {
 		const gchar *p = strrchr(name_utf8, '.');
 

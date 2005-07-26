@@ -91,7 +91,7 @@ fi_gui_update_row(GtkTreeStore *store, GtkTreeIter *iter, gchar **titles)
 {
 	if (NULL != titles[c_fi_filename]) {
 		gtk_tree_store_set(store, iter,
-			c_fi_filename, lazy_locale_to_utf8(titles[c_fi_filename], 0),
+			c_fi_filename, lazy_locale_to_utf8(titles[c_fi_filename]),
 			(-1));
 	}
 	gtk_tree_store_set(store, iter,
@@ -123,7 +123,7 @@ fi_gui_set_details(gnet_fi_t fih)
     aliases = guc_fi_get_aliases(fih);
 
     gtk_entry_set_text(entry_fi_filename,
-		lazy_locale_to_utf8(fi->file_name, 0));
+		lazy_locale_to_utf8(fi->file_name));
 	uint64_to_string_buf(bytes, sizeof bytes, fis.size);
     gtk_label_printf(label_fi_size, _("%s (%s bytes)"),
 		short_size(fis.size), bytes);
@@ -135,7 +135,7 @@ fi_gui_set_details(gnet_fi_t fih)
 	for (i = 0; NULL != aliases[i]; i++) {
 		gtk_tree_store_append(store_aliases, &iter, NULL);
 		gtk_tree_store_set(store_aliases, &iter, 0,
-			lazy_locale_to_utf8(aliases[i], 0), (-1));
+			lazy_locale_to_utf8(aliases[i]), (-1));
 	}
     g_strfreev(aliases);
     guc_fi_free_info(fi);
