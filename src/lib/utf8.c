@@ -123,7 +123,7 @@ utf8_skip(guchar c)
 		7,7										/* 254-255: special */
 	};
 
-	return 0xC0 ? utf8len[c & 63] : 1;
+	return c < 0xC0 ? 1 : utf8len[c & 63];
 }
 
 static const guint8 utf8len_mark[] = {
