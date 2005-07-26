@@ -282,35 +282,15 @@ utf32_general_category(guint32 uc)
 gint
 utf8_is_valid_char(const gchar *s)
 {
-	const guchar u = (guchar) *s;
-	guint len;
-	guint slen;
-	guint32 v;
-	guint32 ov;
-
-	if (UTF8_IS_ASCII(u))
+	if (UTF8_IS_ASCII((guchar) *s)) {
 		return 1;
+	} else {
+		size_t len;
+		gint clen;
 
-	if (!UTF8_IS_START(u))
-		return 0;
-
-	len = utf8_skip(u);
-
-	if (len < 2 || !UTF8_IS_CONTINUATION(s[1]))
-		return 0;
-
-	for (slen = len - 1, s++, ov = v = u; slen; slen--, s++, ov = v) {
-		if (!UTF8_IS_CONTINUATION(*s))
-			return 0;
-		v = UTF8_ACCUMULATE(v, *s);
-		if (v < ov)
-			return 0;
+		len = utf8_decode_lookahead(s, 1);
+		return 0 != utf8_decode_char(s, len, &clen, FALSE) ? clen : 0;
 	}
-
-	if ((guint) UNISKIP(v) < len)
-		return 0;
-
-	return len;
 }
 
 /**
@@ -1021,8 +1001,8 @@ complete_iconv(GIConv cd, const char *inbuf, size_t inbytes_left,
  * @param dst the destination buffer.
  * @param size the size in bytes of the destination buffer.
  * @param src a NUL-terminated string.
- * @return the length in bytes of resulting string assuming size was sufficiently
- *         large.
+ * @return the length in bytes of resulting string assuming size was
+ *         sufficiently large.
  */
 size_t
 utf8_enforce(gchar *dst, size_t size, const gchar *src)
