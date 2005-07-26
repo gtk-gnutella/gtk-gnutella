@@ -252,9 +252,8 @@ button_fs_save_path_clicked(GtkButton *unused_button, gpointer user_data)
 
 		if (is_directory(name)) {
             gnet_prop_set_string(PROP_SAVE_FILE_PATH, name);
-        } else {
-            G_FREE_NULL(name);
-        }
+		}
+        G_FREE_NULL(name);
 	}
 
 	gtk_widget_destroy(save_path_filesel);
@@ -320,13 +319,12 @@ button_fs_move_path_clicked(GtkButton *unused_button, gpointer user_data)
 
 		if (is_directory(name)) {
             gnet_prop_set_string(PROP_MOVE_FILE_PATH, name);
-        } else {
-            G_FREE_NULL(name);
         }
+        G_FREE_NULL(name);
 	}
 
 	gtk_widget_destroy(move_path_filesel);
-	move_path_filesel = (GtkWidget *) NULL;
+	move_path_filesel = NULL;
 }
 
 void
@@ -387,13 +385,12 @@ button_fs_bad_path_clicked(GtkButton *unused_button, gpointer user_data)
 
 		if (is_directory(name)) {
             gnet_prop_set_string(PROP_BAD_FILE_PATH, name);
-        } else {
-            G_FREE_NULL(name);
         }
+        G_FREE_NULL(name);
 	}
 
 	gtk_widget_destroy(bad_path_filesel);
-	bad_path_filesel = (GtkWidget *) NULL;
+	bad_path_filesel = NULL;
 }
 
 void
