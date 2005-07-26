@@ -1207,20 +1207,28 @@ is_ascii_string(const gchar *str)
 }
 
 const gchar *
-iso_8859_1_to_utf8(const gchar *fromstr)
+lazy_iso8859_1_to_utf8(const gchar *s)
 {
-	static gchar outbuf[4096 + 6]; /* a multibyte char is max. 6 bytes large */
+	static gchar outbuf[4096]; /* a multibyte char is max. 6 bytes large */
+	const gchar *t;
 
-	g_assert(NULL != fromstr);
+	g_assert(NULL != s);
 
-	return complete_iconv(cd_latin_to_utf8,
-				fromstr, strlen(fromstr), outbuf, sizeof(outbuf) - 7);
+	if ('\0' == *s || utf8_is_valid_string(s, 0))
+		return s;
+	
+	t = complete_iconv(cd_latin_to_utf8, s, strlen(s), outbuf, sizeof outbuf);
+	if (!t) {
+		utf8_enforce(outbuf, sizeof outbuf, s);
+		t = outbuf;
+	}
+	return t;
 }
 
 const gchar *
-lazy_utf8_to_locale(const gchar *str, size_t len)
+lazy_utf8_to_locale(const gchar *str)
 {
-	const gchar *t = utf8_to_locale(str, len);
+	const gchar *t = utf8_to_locale(str, 0);
 	return NULL != t ? t : "<Cannot convert to locale>";
 }
 
@@ -1229,13 +1237,10 @@ lazy_utf8_to_locale(const gchar *str, size_t len)
  * to an UTF-8 NFC string.
  *
  * @param str the string to convert.
- * @param len the length of ``str''. May be set to zero if ``str'' is
- *		  NUL-terminated.
- *
  * @returns the converted string or ``str'' if no conversion was necessary.
  */
 const gchar *
-lazy_locale_to_utf8(const gchar *str, size_t len)
+lazy_locale_to_utf8(const gchar *str)
 {
 	const gchar *s;
 
@@ -1243,7 +1248,7 @@ lazy_locale_to_utf8(const gchar *str, size_t len)
 	if (is_ascii_string(str))
 		return str;
 
-	s = locale_to_utf8(str, len);
+	s = locale_to_utf8(str, 0);
 	if (NULL != s) {
 		static gchar buf[4096];
 		gchar *nfc;
@@ -3710,7 +3715,7 @@ unicode_decompose_init(void)
 		size_t len, chars;
 		guint32 *u;
 	
-		s = lazy_locale_to_utf8(bad, 0);
+		s = lazy_locale_to_utf8(bad);
 		len = strlen(s);
 		chars = utf8_is_valid_string(s, 0);
 		g_assert(len != 0);

@@ -126,9 +126,9 @@ utf16_encode_char_compact(guint32 uc)
  * Necessary for GTK+ 2.x version because it expects almost any string
  * to be encoded as UTF-8.
  */
-const gchar *iso_8859_1_to_utf8(const gchar *fromstr);
+const gchar *lazy_iso8859_1_to_utf8(const gchar *s);
+const gchar *lazy_locale_to_utf8(const gchar *str);
 const gchar *locale_to_utf8(const gchar *str, size_t len);
-const gchar *lazy_locale_to_utf8(const gchar *str, size_t len);
 gchar *locale_to_utf8_full(const gchar *str);
 
 /* Necessary for Mac OS X, as it requires filenames to be UTF-8 encoded
@@ -144,7 +144,7 @@ gchar *locale_to_utf8_normalized(const gchar *str, uni_norm_t norm);
 
 gboolean is_ascii_string(const gchar *str);
 const gchar *utf8_to_locale(const gchar *str, size_t len);
-const gchar *lazy_utf8_to_locale(const gchar *str, size_t len);
+const gchar *lazy_utf8_to_locale(const gchar *str);
 
 gboolean icu_enabled(void);
 gboolean is_latin_locale(void);
