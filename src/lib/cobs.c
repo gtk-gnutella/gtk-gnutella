@@ -54,17 +54,15 @@ RCSID("$Id$");
  * NB: the output is a linear buffer, not a vector.
  */
 gchar *
-cobs_encodev(struct iovec *iov, gint iovcnt, gint *retlen)
+cobs_encodev(struct iovec *iov, gint iovcnt, size_t *retlen)
 {
-	gint maxsize;
+	size_t maxsize, len;
 	gchar *out;
 	gchar *o;						/* Iterates over output */
 	gchar *cp;						/* Where we'll write the code length */
-	gint code;
-	gint last_code = 0;
-	gint len;
-	gint i;
+	guchar code, last_code = 0;
 	struct iovec *xiov;
+	gint i;
 
 	g_assert(iov);
 	g_assert(iovcnt > 0);
@@ -96,9 +94,9 @@ cobs_encodev(struct iovec *iov, gint iovcnt, gint *retlen)
 
 	for (i = iovcnt, xiov = iov; i--; xiov++) {
 		const gchar *p = xiov->iov_base;		/* Iterates over buffer */
-		const gchar *end = p + xiov->iov_len;	/* First byte off buffer */
+		const gchar *end = &p[xiov->iov_len];	/* First byte off buffer */
 
-		while (p < end) {
+		while (p != end) {
 			const gchar c = *p++;
 			if (c == 0)
 				FINISH(code);
@@ -123,7 +121,7 @@ cobs_encodev(struct iovec *iov, gint iovcnt, gint *retlen)
 
 #undef FINISH
 
-	g_assert(cp - out <= maxsize);	/* We did not overflow */
+	g_assert((size_t) (cp - out) <= maxsize);	/* We did not overflow */
 
 	*retlen = cp - out;
 
@@ -136,7 +134,7 @@ cobs_encodev(struct iovec *iov, gint iovcnt, gint *retlen)
  * @returns the new encoded buffer, and its length in `retlen'.
  */
 gchar *
-cobs_encode(gchar *buf, gint len, gint *retlen)
+cobs_encode(gchar *buf, size_t len, size_t *retlen)
 {
 	struct iovec iov;
 
@@ -155,38 +153,44 @@ cobs_encode(gchar *buf, gint len, gint *retlen)
  * The length of the decoded buffer is returned in `retlen'.
  */
 gboolean
-cobs_decode_into(gchar *buf, gint len, gchar *out, gint outlen, gint *retlen)
+cobs_decode_into(const gchar *buf, size_t len, gchar *out,
+	size_t outlen, size_t *retlen)
 {
-	const gchar *end = buf + len;		/* First byte off buffer */
-	const gchar *oend = out + outlen;	/* First byte off buffer */
-	gchar *p;
+	const gchar *end = &buf[len];		/* First byte off buffer */
+	const gchar *oend = &out[outlen];	/* First byte off buffer */
+	const gchar *p;
 	gchar *o;
-	gint last_code = 0;
+	guchar last_code = 0;
 
+	g_assert(NULL != buf);
 	g_assert(len > 0);
+	g_assert(NULL != out);
 	g_assert(outlen > 0);			/* Must be large enough */
+	g_assert(NULL != retlen);
 
 	/*
 	 * The following was adapted from the Listing 2, in the COBS paper.
 	 */
 
-	for (p = buf, o = out; p < end && o < oend; /* empty */) {
-		gint i;
-		gint code;
+	for (p = buf, o = out; p != end && o != oend; /* empty */) {
+		guchar code;
 
-		last_code = code = (guchar) *p++;
+		last_code = code = *p++;
 
-		if (code == 0)
-			return FALSE;			/* There cannot by any NUL */
+		if (0 == code)
+			return FALSE;			/* There cannot be any NUL */
 
-		for (i = 1; i < code && p < end && o < oend; i++)
-			*o++ = *p++;
-
-		if (i < code)
+		code--;
+		if (code > end - p || code > oend - o)
 			return FALSE;			/* Reached end of some buffer */
+		
+		while (code-- > 0) {
+			if (0 == (*o++ = *p++))
+				return FALSE;		/* There must not be any NUL */
+		}
 
-		if (code < 0xFF) {
-			if (o < oend)
+		if (last_code < 0xFF) {
+			if (o != oend)
 				*o++ = '\0';
 			else
 				return FALSE;		/* Reached end of output buffer! */
@@ -199,10 +203,11 @@ cobs_decode_into(gchar *buf, gint len, gchar *out, gint outlen, gint *retlen)
 
 	g_assert(last_code != 0);		/* We at least entered the loop once! */
 
-	if (last_code != 0xFF)
-		*retlen = (o - out) - 1;
-	else
-		*retlen = o - out;
+	/* The last trailing NUL is stripped from data */
+	if (0xFF != last_code)
+		o--;
+	
+	*retlen = o - out;
 
 	g_assert(*retlen <= outlen);
 
@@ -213,27 +218,26 @@ cobs_decode_into(gchar *buf, gint len, gchar *out, gint outlen, gint *retlen)
  * Check whether supplied buffer forms a valid COBS encoding.
  */
 gboolean
-cobs_is_valid(gchar *buf, gint len)
+cobs_is_valid(const gchar *buf, size_t len)
 {
-	const gchar *end = buf + len;		/* First byte off buffer */
-	gchar *p;
+	const gchar *p, *end = &buf[len];		/* First byte off buffer */
 
+	g_assert(NULL != buf);
 	g_assert(len > 0);
 
-	for (p = buf; p < end; /* empty */) {
-		gint i;
-		gint code;
+	for (p = buf; p != end; /* empty */) {
+		guchar code;
 
-		code = (guchar) *p++;
+		if (0 == (code = *p++))
+			return FALSE;			/* There cannot be any NUL */
 
-		if (code == 0)
-			return FALSE;			/* There cannot by any NUL */
+		if (--code > end - p)
+			return FALSE;			/* Not enough bytes in buffer */
 
-		for (i = 1; i < code && p < end; i++)
-			p++;
-
-		if (i < code)
-			return FALSE;			/* Reached end of buffer too soon */
+		while (code-- > 0) {
+			if (0 == *p++)
+				return FALSE; /* There must not be any NUL */
+		}
 	}
 
 	return TRUE;					/* Valid COBS encoding */
@@ -247,11 +251,13 @@ cobs_is_valid(gchar *buf, gint len)
  * encoding.  The length of the decoded buffer is in `retlen'.
  */
 gchar *
-cobs_decode(gchar *buf, gint len, gint *retlen, gboolean inplace)
+cobs_decode(gchar *buf, size_t len, size_t *retlen, gboolean inplace)
 {
 	gchar *out;
 
+	g_assert(NULL != buf);
 	g_assert(len > 0);
+	g_assert(NULL != retlen);
 
 	if (inplace)
 		out = buf;
@@ -271,8 +277,6 @@ cobs_decode(gchar *buf, gint len, gint *retlen, gboolean inplace)
  *** Streaming interface.
  ***/
 
-#define COBS_CLOSED	0x100
-
 /**
  * Initialize an incremental COBS context, where data will be written in the
  * supplied buffer.
@@ -282,19 +286,20 @@ cobs_decode(gchar *buf, gint len, gint *retlen, gboolean inplace)
  * @param len		length of supplied buffer
  */
 void
-cobs_stream_init(cobs_stream_t *cs, gpointer data, gint len)
+cobs_stream_init(cobs_stream_t *cs, gpointer data, size_t len)
 {
 	if (len < 2) {
-		cs->last_code = COBS_CLOSED;	/* Too short to write anything */
+		cs->closed = TRUE;	/* Too short to write anything */
 		return;
 	}
 
 	cs->o = cs->outbuf = data;
-	cs->end = cs->outbuf + len;
+	cs->end = &cs->outbuf[len];
 	cs->cp = cs->o++;
 	cs->code = 0x1;
 	cs->last_code = 0;
 	cs->saw_nul = FALSE;
+	cs->closed = FALSE;
 }
 
 /**
@@ -303,12 +308,12 @@ cobs_stream_init(cobs_stream_t *cs, gpointer data, gint len)
  * @return TRUE if OK, FALSE if we cannot put the data any more.
  */
 gboolean
-cobs_stream_write(cobs_stream_t *cs, gpointer data, gint len)
+cobs_stream_write(cobs_stream_t *cs, gpointer data, size_t len)
 {
 	gchar *p = data;
-	gchar *end = p + len;
+	const gchar *end = &p[len];
 
-	if (cs->last_code == COBS_CLOSED)
+	if (cs->closed)
 		return FALSE;	/* Stream closed */
 
 #define FINISH() do {					\
@@ -318,7 +323,7 @@ cobs_stream_write(cobs_stream_t *cs, gpointer data, gint len)
 	cs->code = 0x1;						\
 } while (0)
 
-	while (p < end) {
+	while (p != end) {
 		const gchar c = *p++;
 		if (cs->cp >= cs->end)
 			return FALSE;
@@ -330,7 +335,7 @@ cobs_stream_write(cobs_stream_t *cs, gpointer data, gint len)
 				return FALSE;
 			*(cs->o++) = c;
 			cs->code++;				/* One more non-NUL byte */
-			if (cs->code == 0xff)
+			if (0xff == cs->code)
 				FINISH();
 		}
 	}
@@ -346,13 +351,13 @@ cobs_stream_write(cobs_stream_t *cs, gpointer data, gint len)
  * @param cs		the stream to close
  * @param saw_nul	if non-NULL, writes whether we saw a NUL in the input
  *
- * @return the final length of the stream on success, -1 on error.
+ * @return the final length of the stream on success, 0 on error.
  */
-gint
+size_t
 cobs_stream_close(cobs_stream_t *cs, gboolean *saw_nul)
 {
-	if (cs->last_code == COBS_CLOSED)
-		return -1;	/* Stream closed */
+	if (cs->closed)
+		return 0;	/* Stream closed */
 
 	/*
 	 * If `last_code' is 0xff, then optimize: we don't need to finish if
@@ -365,13 +370,13 @@ cobs_stream_close(cobs_stream_t *cs, gboolean *saw_nul)
 		goto closed;
 
 	if (cs->cp >= cs->end)
-		return -1;
+		return 0;
 
 	*cs->cp = cs->code;
 	cs->cp = cs->o++;
 
 closed:
-	cs->last_code = COBS_CLOSED;
+	cs->closed = TRUE;
 
 	if (saw_nul != NULL)
 		*saw_nul = cs->saw_nul;
