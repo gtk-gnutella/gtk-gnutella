@@ -1136,10 +1136,10 @@ static void
 ext_ggep_decode(const extvec_t *e)
 {
 	gchar *pbase;					/* Current payload base */
-	gint plen;						/* Curernt payload length */
+	size_t plen;					/* Curernt payload length */
 	gchar *uncobs = NULL;			/* COBS-decoded buffer */
-	gint uncobs_len = 0;			/* Length of walloc()'ed buffer */
-	gint result;					/* Decoded length */
+	size_t uncobs_len = 0;			/* Length of walloc()'ed buffer */
+	size_t result;					/* Decoded length */
 	extdesc_t *d;
 
 	g_assert(e);

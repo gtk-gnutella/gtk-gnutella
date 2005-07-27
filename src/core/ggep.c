@@ -336,9 +336,9 @@ ggep_stream_write(ggep_stream_t *gs, gpointer data, size_t len)
 gboolean
 ggep_stream_end(ggep_stream_t *gs)
 {
-	gint plen = 0;
+	size_t plen = 0;
 	gint8 hlen[3];
-	gint slen;
+	size_t slen;
 
 	g_assert(gs->begun);
 
@@ -347,7 +347,7 @@ ggep_stream_end(ggep_stream_t *gs)
 	 */
 
 	if (gs->flags & GGEP_F_DEFLATE) {
-		gint ilen;
+		size_t ilen;
 
 		g_assert(gs->zd);
 
@@ -370,7 +370,8 @@ ggep_stream_end(ggep_stream_t *gs)
 
 			if (ggep_debug)
 				g_warning("GGEP \"%.*s\" not compressing %d bytes into %d",
-					*gs->fp & GGEP_F_IDLEN, gs->fp + 1, ilen, plen);
+					*gs->fp & GGEP_F_IDLEN, gs->fp + 1,
+					(gint) ilen, (gint) plen);
 
 			data = zlib_uncompress(zlib_deflater_out(gs->zd), plen, ilen);
 			if (data == NULL)
@@ -402,7 +403,7 @@ ggep_stream_end(ggep_stream_t *gs)
 				goto cleanup;
 		} else if (ggep_debug > 1)
 			g_warning("GGEP \"%.*s\" compressed %d bytes into %d",
-				*gs->fp & GGEP_F_IDLEN, gs->fp + 1, ilen, plen);
+				*gs->fp & GGEP_F_IDLEN, gs->fp + 1, (gint) ilen, (gint) plen);
 	}
 
 	/*
@@ -435,7 +436,7 @@ ggep_stream_end(ggep_stream_t *gs)
 		gboolean saw_nul;
 
 		plen = cobs_stream_close(&gs->cs, &saw_nul);
-		if (plen == -1)
+		if (0 == plen)
 			goto cleanup;
 
 		/*
@@ -443,14 +444,15 @@ ggep_stream_end(ggep_stream_t *gs)
 		 */
 
 		if (!saw_nul) {
-			gint ilen;
+			size_t ilen;
 
 			if (NULL == cobs_decode(gs->lp + 1, plen, &ilen, TRUE))
 				goto cleanup;
 
 			if (ggep_debug)
 				g_warning("GGEP \"%.*s\" no need to COBS %d bytes into %d",
-					*gs->fp & GGEP_F_IDLEN, gs->fp + 1, ilen, plen);
+					*gs->fp & GGEP_F_IDLEN, gs->fp + 1,
+					(gint) ilen, (gint) plen);
 
 			/*
 			 * Remove any COBS indication.
@@ -470,7 +472,7 @@ ggep_stream_end(ggep_stream_t *gs)
 			g_assert((size_t) (gs->end - gs->o) <= gs->size);
 		} else if (ggep_debug > 1)
 			g_message("GGEP \"%.*s\" COBS-ed into %d bytes",
-				*gs->fp & GGEP_F_IDLEN, gs->fp + 1, plen);
+				*gs->fp & GGEP_F_IDLEN, gs->fp + 1, (gint) plen);
 	}
 
 	/*
@@ -480,7 +482,7 @@ ggep_stream_end(ggep_stream_t *gs)
 
 	if (!(gs->flags & (GGEP_F_COBS|GGEP_F_DEFLATE)))
 		plen = (gs->o - gs->lp) - 1;		/* -1 to skip NUL "length" byte */
-		g_assert(plen >= 0 && (size_t) plen <= gs->size);
+		g_assert((size_t) plen <= gs->size);
 
 	/*
 	 * Now that we have the final payload data in the buffer, we may have
@@ -490,7 +492,8 @@ ggep_stream_end(ggep_stream_t *gs)
 
 	if (ggep_debug > 2)
 		g_message("GGEP \"%.*s\" payload holds %d byte%s",
-			*gs->fp & GGEP_F_IDLEN, gs->fp + 1, plen, plen == 1 ? "" : "s");
+			*gs->fp & GGEP_F_IDLEN, gs->fp + 1,
+			(gint) plen, plen == 1 ? "" : "s");
 
 	if (plen <= 63) {
 		slen = 1;
@@ -506,7 +509,7 @@ ggep_stream_end(ggep_stream_t *gs)
 		hlen[2] = GGEP_L_LAST | (plen & GGEP_L_VALUE);
 	} else {
 		g_warning("too large GGEP payload length (%d bytes) for \"%.*s\"",
-			plen, *gs->fp & GGEP_F_IDLEN, gs->fp + 1);
+			(gint) plen, *gs->fp & GGEP_F_IDLEN, gs->fp + 1);
 		goto cleanup;
 	}
 
