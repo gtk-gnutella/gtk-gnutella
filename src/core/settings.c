@@ -207,11 +207,26 @@ settings_getphysmemsize(void)
 	}
 	return (pagesize >> 10) * (gulong) pages;
 
+#elif defined (HAS_SYSCTL) && defined (CTL_HW) && defined (HW_USERMEM64)
+/* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
+	int mib[2] = { CTL_HW, HW_USERMEM64 };
+	guint64 amount = 0;
+	size_t len = sizeof amount;
+
+	if (-1 == sysctl(mib, 2, &amount, &len, NULL, 0)) {
+		g_warning(
+			"settings_getphysmemsize: sysctl() for HW_USERMEM64 failed: %s",
+			g_strerror(errno));
+		return 0;
+	}
+
+	return amount / 1024;
+	
 #elif defined (HAS_SYSCTL) && defined (CTL_HW) && defined (HW_USERMEM)
 /* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
 	int mib[2] = { CTL_HW, HW_USERMEM };
-	int amount = 0;
-	size_t len = sizeof(amount);
+	guint32 amount = 0;
+	size_t len = sizeof amount;
 
 	if (-1 == sysctl(mib, 2, &amount, &len, NULL, 0)) {
 		g_warning(
@@ -221,6 +236,7 @@ settings_getphysmemsize(void)
 	}
 
 	return amount / 1024;
+
 
 #elif defined (HAS_GETINVENT)
 	inventory_t *inv;
