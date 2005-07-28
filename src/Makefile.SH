@@ -120,71 +120,71 @@ LDFLAGS = \
 .FORCE:
 
 lib/libshared.a: .FORCE
-	@echo "Checking "libshared.a" in "lib"..."
-	cd lib; $(MAKE) libshared.a
+	@echo "Checking "libshared.a" in "lib"..."; \
+	cd lib; $(MAKE) libshared.a; \
 	@echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  lib/libshared.a
 
 core/libcore.a: .FORCE
-	@echo "Checking "libcore.a" in "core"..."
-	cd core; $(MAKE) libcore.a
+	@echo "Checking "libcore.a" in "core"..."; \
+	cd core; $(MAKE) libcore.a; \
 	@echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  core/libcore.a
 
 ui/gtk/libgtk-common.a: .FORCE
-	@echo "Checking "libgtk-common.a" in "ui/gtk"..."
-	cd ui/gtk; $(MAKE) libgtk-common.a
+	@echo "Checking "libgtk-common.a" in "ui/gtk"..."; \
+	cd ui/gtk; $(MAKE) libgtk-common.a; \
 	@echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  ui/gtk/libgtk-common.a
 
 ui/gtk/libgtkx.a: .FORCE
-	@echo "Checking "libgtkx.a" in "ui/gtk"..."
-	cd ui/gtk; $(MAKE) libgtkx.a
+	@echo "Checking "libgtkx.a" in "ui/gtk"..."; \
+	cd ui/gtk; $(MAKE) libgtkx.a; \
 	@echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  ui/gtk/libgtkx.a
 
 if/bridge/ui2c.o: .FORCE
-	@echo "Checking "ui2c.o" in "if/bridge"..."
-	cd if/bridge; $(MAKE) ui2c.o
+	@echo "Checking "ui2c.o" in "if/bridge"..."; \
+	cd if/bridge; $(MAKE) ui2c.o; \
 	@echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  if/bridge/ui2c.o
 
 if/bridge/c2ui.o: .FORCE
-	@echo "Checking "c2ui.o" in "if/bridge"..."
-	cd if/bridge; $(MAKE) c2ui.o
+	@echo "Checking "c2ui.o" in "if/bridge"..."; \
+	cd if/bridge; $(MAKE) c2ui.o; \
 	@echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  if/bridge/c2ui.o
 
 if/gnet_property.o: .FORCE
-	@echo "Checking "gnet_property.o" in "if"..."
-	cd if; $(MAKE) gnet_property.o
+	@echo "Checking "gnet_property.o" in "if"..."; \
+	cd if; $(MAKE) gnet_property.o; \
 	@echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  if/gnet_property.o
 
 if/gui_property.o: .FORCE
-	@echo "Checking "gui_property.o" in "if"..."
-	cd if; $(MAKE) gui_property.o
+	@echo "Checking "gui_property.o" in "if"..."; \
+	cd if; $(MAKE) gui_property.o; \
 	@echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  if/gui_property.o
 
 if/gnet_property.h: .FORCE
-	@echo "Checking "gnet_property.h" in "if"..."
-	cd if; $(MAKE) gnet_property.h
+	@echo "Checking "gnet_property.h" in "if"..."; \
+	cd if; $(MAKE) gnet_property.h; \
 	@echo "Continuing in $(CURRENT)..."
 
 main.o:  if/gnet_property.h
 
 if/gui_property.h: .FORCE
-	@echo "Checking "gui_property.h" in "if"..."
-	cd if; $(MAKE) gui_property.h
+	@echo "Checking "gui_property.h" in "if"..."; \
+	cd if; $(MAKE) gui_property.h; \
 	@echo "Continuing in $(CURRENT)..."
 
 main.o:  if/gui_property.h
@@ -200,9 +200,9 @@ depend::
 	$(SED) -e 's:/usr/lib[^ ]*::g; s:$(USRINC)[^ ]*::g; ' \
 		-e '/: / b print' -e '$$ b print' -e 'H; d; n; : print' \
 		-e 'x; s/\\$$//; s/\\\n//g; s/  */ /g; s/ :/:/;' -e '/: *$$/d' \
-	) > Makefile.new
-	cp Makefile Makefile.bak
-	cp Makefile.new Makefile
+	) > Makefile.new; \
+	cp Makefile Makefile.bak; \
+	cp Makefile.new Makefile; \
 	$(RM) Makefile.new
 
 all:: gtk-gnutella
@@ -211,8 +211,8 @@ local_realclean::
 	$(RM) gtk-gnutella
 
 gtk-gnutella:  $(OBJ) $(EXTRA)
-	$(RM) $@
-	if test -f $@; then $(MV) $@ $@~; fi
+	$(RM) $@; \
+	if test -f $@; then $(MV) $@ $@~; fi; \
 	$(CC) -o $@  $(OBJ) $(EXTRA) $(JLDFLAGS) $(LIBS)
 
 local_install:: gtk-gnutella
@@ -243,7 +243,7 @@ realclean: sub_realclean local_realclean
 clobber: sub_clobber local_clobber
 
 local_clean::
-	if test -f core; then $(RM) core; fi
+	if test -f core; then $(RM) core; fi; \
 	$(RM) *~ *.o
 
 local_realclean:: local_clean
@@ -286,7 +286,7 @@ Makefile: Makefile.SH
 	/bin/sh Makefile.SH
 
 tags::
-	$(CTAGS) -w *.[ch]
+	$(CTAGS) -w *.[ch]; \
 	$(CTAGS) -xw *.[ch] > tags
 
 local_clobber::
@@ -307,26 +307,26 @@ sub_install::
 	@$(MAKE) subdirs TARGET=install VERB="Installing" FLAGS=
 
 sub_deinstall::
-	@$(MAKE) subdirs TARGET=deinstall VERB="Deinstalling" FLAGS=
+	@$(MAKE) subdirs TARGET=deinstall VERB="Deinstalling" FLAGS=; \
 	@echo "Back to $(CURRENT) for "deinstall...
 
 sub_install.man::
 	@$(MAKE) subdirs TARGET=install.man VERB="Installing man pages" FLAGS=
 
 sub_deinstall.man::
-	@$(MAKE) subdirs TARGET=deinstall.man VERB="Deinstalling man pages" FLAGS=
+	@$(MAKE) subdirs TARGET=deinstall.man VERB="Deinstalling man pages" FLAGS=; \
 	@echo "Back to $(CURRENT) for "deinstall.man...
 
 sub_clean::
-	@$(MAKE) subdirs TARGET=clean VERB="Cleaning" FLAGS=
+	@$(MAKE) subdirs TARGET=clean VERB="Cleaning" FLAGS=; \
 	@echo "Back to $(CURRENT) for "clean...
 
 sub_realclean::
-	@$(MAKE) subdirs TARGET=realclean VERB="Real cleaning" FLAGS=
+	@$(MAKE) subdirs TARGET=realclean VERB="Real cleaning" FLAGS=; \
 	@echo "Back to $(CURRENT) for "realclean...
 
 sub_clobber::
-	@$(MAKE) subdirs TARGET=clobber VERB="Clobbering" FLAGS=
+	@$(MAKE) subdirs TARGET=clobber VERB="Clobbering" FLAGS=; \
 	@echo "Back to $(CURRENT) for "clobber...
 
 tag::
