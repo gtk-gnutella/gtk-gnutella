@@ -122,70 +122,70 @@ LDFLAGS = \
 lib/libshared.a: .FORCE
 	@echo "Checking "libshared.a" in "lib"..."; \
 	cd lib; $(MAKE) libshared.a; \
-	@echo "Continuing in $(CURRENT)..."
+	echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  lib/libshared.a
 
 core/libcore.a: .FORCE
 	@echo "Checking "libcore.a" in "core"..."; \
 	cd core; $(MAKE) libcore.a; \
-	@echo "Continuing in $(CURRENT)..."
+	echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  core/libcore.a
 
 ui/gtk/libgtk-common.a: .FORCE
 	@echo "Checking "libgtk-common.a" in "ui/gtk"..."; \
 	cd ui/gtk; $(MAKE) libgtk-common.a; \
-	@echo "Continuing in $(CURRENT)..."
+	echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  ui/gtk/libgtk-common.a
 
 ui/gtk/libgtkx.a: .FORCE
 	@echo "Checking "libgtkx.a" in "ui/gtk"..."; \
 	cd ui/gtk; $(MAKE) libgtkx.a; \
-	@echo "Continuing in $(CURRENT)..."
+	echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  ui/gtk/libgtkx.a
 
 if/bridge/ui2c.o: .FORCE
 	@echo "Checking "ui2c.o" in "if/bridge"..."; \
 	cd if/bridge; $(MAKE) ui2c.o; \
-	@echo "Continuing in $(CURRENT)..."
+	echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  if/bridge/ui2c.o
 
 if/bridge/c2ui.o: .FORCE
 	@echo "Checking "c2ui.o" in "if/bridge"..."; \
 	cd if/bridge; $(MAKE) c2ui.o; \
-	@echo "Continuing in $(CURRENT)..."
+	echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  if/bridge/c2ui.o
 
 if/gnet_property.o: .FORCE
 	@echo "Checking "gnet_property.o" in "if"..."; \
 	cd if; $(MAKE) gnet_property.o; \
-	@echo "Continuing in $(CURRENT)..."
+	echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  if/gnet_property.o
 
 if/gui_property.o: .FORCE
 	@echo "Checking "gui_property.o" in "if"..."; \
 	cd if; $(MAKE) gui_property.o; \
-	@echo "Continuing in $(CURRENT)..."
+	echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  if/gui_property.o
 
 if/gnet_property.h: .FORCE
 	@echo "Checking "gnet_property.h" in "if"..."; \
 	cd if; $(MAKE) gnet_property.h; \
-	@echo "Continuing in $(CURRENT)..."
+	echo "Continuing in $(CURRENT)..."
 
 main.o:  if/gnet_property.h
 
 if/gui_property.h: .FORCE
 	@echo "Checking "gui_property.h" in "if"..."; \
 	cd if; $(MAKE) gui_property.h; \
-	@echo "Continuing in $(CURRENT)..."
+	echo "Continuing in $(CURRENT)..."
 
 main.o:  if/gui_property.h
 
@@ -308,26 +308,26 @@ sub_install::
 
 sub_deinstall::
 	@$(MAKE) subdirs TARGET=deinstall VERB="Deinstalling" FLAGS=; \
-	@echo "Back to $(CURRENT) for "deinstall...
+	echo "Back to $(CURRENT) for "deinstall...
 
 sub_install.man::
 	@$(MAKE) subdirs TARGET=install.man VERB="Installing man pages" FLAGS=
 
 sub_deinstall.man::
 	@$(MAKE) subdirs TARGET=deinstall.man VERB="Deinstalling man pages" FLAGS=; \
-	@echo "Back to $(CURRENT) for "deinstall.man...
+	echo "Back to $(CURRENT) for "deinstall.man...
 
 sub_clean::
 	@$(MAKE) subdirs TARGET=clean VERB="Cleaning" FLAGS=; \
-	@echo "Back to $(CURRENT) for "clean...
+	echo "Back to $(CURRENT) for "clean...
 
 sub_realclean::
 	@$(MAKE) subdirs TARGET=realclean VERB="Real cleaning" FLAGS=; \
-	@echo "Back to $(CURRENT) for "realclean...
+	echo "Back to $(CURRENT) for "realclean...
 
 sub_clobber::
 	@$(MAKE) subdirs TARGET=clobber VERB="Clobbering" FLAGS=; \
-	@echo "Back to $(CURRENT) for "clobber...
+	echo "Back to $(CURRENT) for "clobber...
 
 tag::
 	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
