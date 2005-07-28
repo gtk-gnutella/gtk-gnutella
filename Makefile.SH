@@ -168,16 +168,15 @@ realclean: sub_realclean local_realclean
 clobber: sub_clobber local_clobber
 
 local_clean::
-	if test -f core; then $(RM) core; fi
+	if test -f core; then $(RM) core; fi; \
 	$(RM) *~ *.o
 
 local_realclean:: local_clean
 	$(RM) -r UU
 
 local_clobber:: local_realclean
-	$(RM) config.sh config.h
+	$(RM) config.sh config.h Makefile; \
 	$(RM) -r .config
-	$(RM) Makefile
 
 install: local_install sub_install
 install.man: maybe_install.man sub_install.man
