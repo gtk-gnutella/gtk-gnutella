@@ -524,7 +524,7 @@ ggep_stream_end(ggep_stream_t *gs)
 	if (slen > 1) {
 		gchar *start = gs->lp + 1;
 
-		if (gs->end - gs->o < (slen - 1))
+		if ((size_t) (gs->end - gs->o) < (slen - 1))
 			goto cleanup;
 
 		memmove(start + (slen - 1), start, plen);
