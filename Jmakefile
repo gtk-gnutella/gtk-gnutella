@@ -47,6 +47,5 @@ INSTALLFLAGS = -m 444
 
 MakeInstallDirectories($(PRIVLIB))
 InstallMultiple($(EXTRA_FILES), $(PRIVLIB))
-MakeInstallDirectories($(DESKTOP))
 InstallMultiple(gtk-gnutella.desktop, $(INSTALLPREFIX)/share/applications)
 InstallMultiple($(PIXMAP_FILES), $(INSTALLPREFIX)/share/pixmaps)

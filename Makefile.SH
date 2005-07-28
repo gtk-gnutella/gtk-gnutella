@@ -60,7 +60,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.9 2005/05/23 14:59:39 graaff Exp $
+# $X-Id: Jmakefile,v 1.10 2005/07/24 18:50:10 graaff Exp $
 
 EXTRA_FILES = \
 	bogons.txt \
@@ -115,19 +115,6 @@ local_deinstall::
 		(set -x; $(RM) $(INSTALL_PREFIX)$(PRIVLIB)/$$i); \
 	done
 
-local_install::
-	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
-	for dir in $(DESKTOP); do	\
-		(set -x; test -d $(INSTALL_PREFIX)$$dir || \
-		$(INSTALLDIR) $(INSTALL_PREFIX)$$dir);	\
-	done
-
-local_deinstall::
-	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
-	for dir in $(DESKTOP); do \
-		(set -x; test -d $$dir && $(RM) -r $(INSTALL_PREFIX)$$dir); \
-	done
-
 local_install:: gtk-gnutella.desktop
 	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
 	(set -x; test -d $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/applications || \
@@ -168,15 +155,16 @@ realclean: sub_realclean local_realclean
 clobber: sub_clobber local_clobber
 
 local_clean::
-	if test -f core; then $(RM) core; fi; \
+	if test -f core; then $(RM) core; fi
 	$(RM) *~ *.o
 
 local_realclean:: local_clean
 	$(RM) -r UU
 
 local_clobber:: local_realclean
-	$(RM) config.sh config.h Makefile; \
+	$(RM) config.sh config.h
 	$(RM) -r .config
+	$(RM) Makefile
 
 install: local_install sub_install
 install.man: maybe_install.man sub_install.man
