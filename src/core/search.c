@@ -1028,8 +1028,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 			g_warning(
 				"UNKNOWN %d-byte trailer at offset %d in %s from %s "
 				"(%u/%u records parsed)",
-				tlen, s - n->data, gmsg_infostr(&n->header),
-				node_ip(n), nr, rs->num_recs);
+				(gint) tlen, (gint) (s - n->data), gmsg_infostr(&n->header),
+				node_ip(n), (guint) nr, (guint) rs->num_recs);
 			if (search_debug > 1) {
 				dump_hex(stderr, "Query Hit Data (non-empty UNKNOWN trailer?)",
 					n->data, n->size);

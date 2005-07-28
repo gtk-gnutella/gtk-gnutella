@@ -222,7 +222,7 @@ sqh_remove(squeue_t *sq, gnet_search_t sh)
 				GUINT_TO_POINTER(sh), &key, &value);
 
 	g_assert(found);
-	g_assert((gnet_search_t) key == sh);
+	g_assert((gnet_search_t) GPOINTER_TO_UINT(key) == sh);
 
 	g_hash_table_remove(sq->handles, GUINT_TO_POINTER(sh));
 }

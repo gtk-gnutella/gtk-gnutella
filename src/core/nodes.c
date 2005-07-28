@@ -7932,7 +7932,7 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 
 			if (dbg) g_message(
 				"crawler compressed %d bytes user-agent string into %d",
-				agents->len - 1, dlen);
+				(gint) (agents->len - 1), dlen);
 
 			/*
 			 * If we have room to include it, do so.
