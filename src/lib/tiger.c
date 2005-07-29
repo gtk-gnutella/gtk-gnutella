@@ -234,7 +234,7 @@ tiger(gconstpointer data, guint64 length, guint64 res[3])
 	for (i = length; i >= 64; i -= 64) {
 #if G_BYTE_ORDER == G_BIG_ENDIAN
 		for (j = 0; j < 64; j++)
-			temp[j ^ 7] = ((const guint8 *) src)[j];
+			temp.u8[j ^ 7] = ((const guint8 *) src)[j];
 		tiger_compress(temp.u64, res);
 #elif G_BYTE_ORDER == G_LITTLE_ENDIAN
 		tiger_compress(src, res);
