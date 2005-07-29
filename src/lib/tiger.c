@@ -42,6 +42,7 @@
 RCSID("$Id$");
 
 #include "misc.h"
+#include "base32.h"
 #include "tiger.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -50,7 +51,7 @@ RCSID("$Id$");
  * for 64-bit CPUs is required. It is used only for
  * optimization of time. Otherwise it does nothing.
  */
-#if !(G_MAXULONG > 0xffffffffUL)
+#if (G_MAXULONG > 0xffffffffUL)
 #define OPTIMIZE_FOR_64BIT
 #endif
 
@@ -69,12 +70,12 @@ RCSID("$Id$");
  */
 #define PASSES 3
 
-static guint64 table[4 * 256];
+#include "tiger_sboxes.h"	/* For table */
 
-#define t1 (table)
-#define t2 (table + 256)
-#define t3 (table + 256 * 2)
-#define t4 (table + 256 * 3)
+#define t1 (tiger_sboxes)
+#define t2 (tiger_sboxes + 256)
+#define t3 (tiger_sboxes + 256 * 2)
+#define t4 (tiger_sboxes + 256 * 3)
 
 #define save_abc \
 	aa = a; \
@@ -84,7 +85,7 @@ static guint64 table[4 * 256];
 #ifdef OPTIMIZE_FOR_64BIT
 	/* This is the official definition of round */
 
-#	define round(a, b, c, x, mul) \
+#define round(a, b, c, x, mul) \
 		c ^= x; \
 		a -= t1[((c) >> (0 * 8)) & 0xFF] ^ t2[((c) >> (2 * 8)) & 0xFF] ^ \
 			 t3[((c) >> (4 * 8)) & 0xFF] ^ t4[((c) >> (6 * 8)) & 0xFF] ; \
@@ -97,16 +98,16 @@ static guint64 table[4 * 256];
 	 * This code works faster when compiled on 32-bit machines
 	 * (but works slower on Alpha)
 	 */
-#	define round(a,b,c,x,mul) \
+#define round(a, b, c, x, mul) \
 		c ^= x; \
-		a -= t1[(gint8) (c)] ^ \
-			 t2[(gint8) (((gint32)(c)) >> (2 * 8))] ^ \
-			 t3[(gint8) ((c) >> (4 * 8))] ^ \
-			 t4[(gint8) (((gint32)((c) >> (4 * 8))) >> (2 * 8))] ; \
-		b += t4[(gint8) (((gint32)(c)) >> (1 * 8))] ^ \
-			 t3[(gint8) (((gint32)(c)) >> (3 * 8))] ^ \
-			 t2[(gint8) (((gint32)((c) >> (4 * 8))) >> (1 * 8))] ^ \
-			 t1[(gint8) (((gint32)((c) >> (4 * 8))) >> (3 * 8))]; \
+		a -= t1[(guint8) (c)] ^ \
+			 t2[(guint8) (((guint32) (c)) >> (2 * 8))] ^ \
+			 t3[(guint8) ((c) >> (4 * 8))] ^ \
+			 t4[(guint8) (((guint32) ((c) >> (4 * 8))) >> (2 * 8))] ; \
+		b += t4[(guint8) (((guint32) (c)) >> (1 * 8))] ^ \
+			 t3[(guint8) (((guint32) (c)) >> (3 * 8))] ^ \
+			 t2[(guint8) (((guint32) ((c) >> (4 * 8))) >> (1 * 8))] ^ \
+			 t1[(guint8) (((guint32) ((c) >> (4 * 8))) >> (3 * 8))]; \
 		b *= mul;
 #endif
 
@@ -146,14 +147,14 @@ static guint64 table[4 * 256];
 #ifdef OPTIMIZE_FOR_64BIT
 
 	/* The loop is unrolled: works better on Alpha */
-#	define compress \
+#define compress \
 		save_abc \
 		pass(a, b, c, 5) \
 		key_schedule \
 		pass(c, a, b, 7) \
 		key_schedule \
 		pass(b, c, a, 9) \
-		for(pass_no = 3; pass_no < PASSES; pass_no++) { \
+		for (pass_no = 3; pass_no < PASSES; pass_no++) { \
 			key_schedule \
 			pass(a, b, c, 9) \
 			tmpa = a; a = c; c = b; b = tmpa; \
@@ -162,10 +163,10 @@ static guint64 table[4 * 256];
 #else
 
 	/* loop: works better on PC and Sun (smaller cache?) */
-#	define compress \
+#define compress \
 		save_abc \
-		for(pass_no = 0; pass_no < PASSES; pass_no++) { \
-			if(pass_no != 0) { key_schedule } \
+		for (pass_no = 0; pass_no < PASSES; pass_no++) { \
+			if (pass_no != 0) { key_schedule } \
 			pass(a, b, c, (pass_no == 0 ? 5 : pass_no == 1 ? 7 : 9)); \
 			tmpa = a; a = c; c = b; b = tmpa;\
 		} \
@@ -174,10 +175,10 @@ static guint64 table[4 * 256];
 
 #define tiger_compress_macro(str, state) \
 { \
-	register guint64 a, b, c, tmpa; \
+	guint64 a, b, c, tmpa; \
 	guint64 aa, bb, cc; \
-	register guint64 x0, x1, x2, x3, x4, x5, x6, x7; \
-	long pass_no; \
+	guint64 x0, x1, x2, x3, x4, x5, x6, x7; \
+	int pass_no; \
 \
 	a = state[0]; \
 	b = state[1]; \
@@ -193,13 +194,6 @@ static guint64 table[4 * 256];
 	state[2] = c; \
 }
 
-/* The compress function is a function. Requires smaller cache?    */
-void
-tiger_compress(guint64 *str, guint64 state[3])
-{
-	tiger_compress_macro(str, state);
-}
-
 #ifdef OPTIMIZE_FOR_64BIT
 
 	/*
@@ -210,67 +204,119 @@ tiger_compress(guint64 *str, guint64 state[3])
 
 #define tiger_compress(str, state) \
 		tiger_compress_macro(((guint64 *) str), ((guint64 *) state))
+
+#else
+
+/* The compress function is a function. Requires smaller cache?    */
+static void
+tiger_compress(const guint64 *str, guint64 state[3])
+{
+	tiger_compress_macro(str, state);
+}
+
 #endif
 
 void
-tiger(gpointer data, guint64 length, guint64 res[3])
+tiger(gconstpointer data, guint64 length, guint64 res[3])
 {
-	register guint64 i, j;
-	guint64 temp64[8];
-	guint8 *temp = (guint8 *) temp64;
-	guint8 *str = data;
+	const guint64 *src;
+	guint64 i, j;
+	union {
+		guint8 u8[64];
+		guint64 u64[8];
+	} temp;
 
+	src = data;
 	res[0] = ((guint64) 0x01234567UL << 32) | 0x89ABCDEFUL;
 	res[1] = ((guint64) 0xFEDCBA98UL << 32) | 0x76543210UL;
 	res[2] = ((guint64) 0xF096A5B4UL << 32) | 0xC3B2E187UL;
 
-	for(i = length; i >= 64; i -= 64) {
+	for (i = length; i >= 64; i -= 64) {
 #if G_BYTE_ORDER == G_BIG_ENDIAN
-		for(j = 0; j < 64; j++)
-			temp[j ^ 7] = ((gint8 *) str) [j];
-		tiger_compress(temp64, res);
+		for (j = 0; j < 64; j++)
+			temp[j ^ 7] = ((const guint8 *) src)[j];
+		tiger_compress(temp.u64, res);
 #elif G_BYTE_ORDER == G_LITTLE_ENDIAN
-		tiger_compress(str, res);
+		tiger_compress(src, res);
 #else
 #error Byteorder not supported!
 #endif
-		str += 8;
+		src += 8;
 	}
 
 #if G_BYTE_ORDER == G_BIG_ENDIAN
+	for (j = 0; j < i; j++)
+		temp.u8[j ^ 7] = ((const guint8 *) src)[j];
 
-	for(j = 0; j < i; j++)
-		temp[j ^ 7] = ((gint8 *) str) [j];
-
-	temp[j ^ 7] = 0x01;
+	temp.u8[j ^ 7] = 0x01;
 	j++;
-
-	for(; j & 7; j++)
-		temp[j^7] = 0;
+	for (/* NOTHING */; j & 7; j++)
+		temp.u8[j ^ 7] = 0;
 #elif G_BYTE_ORDER == G_LITTLE_ENDIAN
+	for (j = 0; j < i; j++)
+		temp.u8[j] = ((const guint8 *) src)[j];
 
-	for(j = 0; j < i; j++)
-		temp[j] = ((gint8 *) str) [j];
-
-	temp[j++] = 0x01;
-
-	for(; j & 7; j++)
-		temp[j] = 0;
+	temp.u8[j++] = 0x01;
+	for (/* NOTHING */; j & 7; j++)
+		temp.u8[j] = 0;
 #else
 #error Byteorder not supported!
 #endif
 
-	if(j>56) {
-		for(; j < 64; j++)
-			temp[j] = 0;
-		tiger_compress(temp64, res);
-		j=0;
+	if (j > 56) {
+		for (/* NOTHING */; j < 64; j++)
+			temp.u8[j] = 0;
+		tiger_compress(temp.u64, res);
+		j = 0;
 	}
 
-	for(; j < 56; j++)
-		temp[j] = 0;
-	temp64[7] = length << 3;
-	tiger_compress(temp64, res);
+	for (/* NOTHING */; j < 56; j++)
+		temp.u8[j] = 0;
+
+	temp.u64[7] = length << 3;
+	tiger_compress(temp.u64, res);
+}
+
+/**
+ * Runs some test cases to check whether the implementation of the tiger
+ * hash algorithm is alright.
+ */
+void
+tiger_init(void)
+{
+	static const gchar zeros[1025];
+    static const struct {
+		const char *r;
+		const char *s;
+		size_t len;
+	} tests[] = {
+		{ "QMLU34VTTAIWJQM5RVN4RIQKRM2JWIFZQFDYY3Y", "\0" "1", 2 },
+		{ "LWPNACQDBZRYXW3VHJVCJ64QBZNGHOHHHZWCLNQ", zeros, 1 },
+		{ "VK54ZIEEVTWNAUI5D5RDFIL37LX2IQNSTAXFKSA", zeros, 2 },
+		{ "KIU5YUNESS4RH6HAJRGHFHETZOFSMDFE52HKTVY", zeros, 8 },
+		{ "Z5PUAX6MEZB6EWYXFCSLMMUMZEFIQPOEWX3BA6Q", zeros, 255 },
+		{ "D6UXHPOSAGHITCD4VVRHJQ4PCKIWY2WEHPJOUWY", zeros, 1024 },
+		{ "CMKDYROZKSC6VTM4I7LSMMHPAE4UG3FXPXZGGKY", zeros, sizeof zeros },
+	};
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
+		guint64 res[3];
+		gchar buf[64];
+		gboolean ok;
+		gconstpointer src = &res[0];
+
+		memset(buf, 0, sizeof buf);	
+		tiger(tests[i].s, tests[i].len, res);
+		base32_encode_into(src, sizeof res, buf, sizeof buf);
+		buf[39] = '\0';
+
+		ok = 0 == strcmp(tests[i].r, buf);
+		if (!ok) {
+			g_warning("i=%u, buf=\"%s\"", i, buf);
+			g_assert_not_reached();
+		}
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
