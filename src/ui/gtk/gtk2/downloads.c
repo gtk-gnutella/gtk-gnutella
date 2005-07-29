@@ -693,7 +693,6 @@ download_gui_add(download_t *d)
 	GtkTreeIter *parent;
 	GtkTreeIter *child;
 	GtkTreeStore *model;
-	gint host_count;
 
 	g_return_if_fail(d);
 	g_return_if_fail(d->file_info);
@@ -734,7 +733,6 @@ download_gui_add(download_t *d)
 		 *  download d into a new child node.
 		 */
 		if (!parent) {
-			host_count = 1;
 			d_file_name = guc_file_info_readable_filename(d->file_info);
 			d_file_name = lazy_locale_to_utf8(d_file_name);
 
@@ -752,11 +750,7 @@ download_gui_add(download_t *d)
 				c_queue_record, &drecord,
 				(-1));
 
-			if (DL_GUI_IS_HEADER == drecord) {
-				host_count = gtk_tree_model_iter_n_children(
-					(GtkTreeModel *) model, parent);
-				g_assert(host_count > 0);
-			} else {
+			if (DL_GUI_IS_HEADER != drecord) {
 				gchar *filename, *host, *country, *size, *server, *status;
 				GtkTreeIter *iter;
 
@@ -774,7 +768,6 @@ download_gui_add(download_t *d)
 				/* No header entry so we will create one */
 				iter = tree_iter_new();
 				gtk_tree_store_append(model, iter, parent);
-				host_count = 2;
 
 				/* Copy the old parents info into the new node */
 				gtk_tree_store_set(model, iter,
@@ -835,7 +828,6 @@ download_gui_add(download_t *d)
 		/* This is an active download */
 
 		if (!parent) {
-			host_count = 1;
 			d_file_name = guc_file_info_readable_filename(d->file_info);
 			d_file_name = lazy_locale_to_utf8(d_file_name);
 
@@ -853,11 +845,7 @@ download_gui_add(download_t *d)
 				c_dl_record, &drecord,
 				(-1));
 
-			if (DL_GUI_IS_HEADER == drecord) {
-				host_count = gtk_tree_model_iter_n_children(
-								(GtkTreeModel *) model, parent);
-				g_assert(host_count > 0);
-			} else {
+			if (DL_GUI_IS_HEADER != drecord) {
 				gchar *filename, *host, *size, *range, *status,
 					*server, *country;
 				gfloat percent_done;
@@ -867,7 +855,6 @@ download_gui_add(download_t *d)
 
 				/* No header entry so we will create one */
 				iter = tree_iter_new();
-				host_count = 2;
 
 				/* Copy the old parents info into a new node */
 				gtk_tree_store_append(model, iter, parent);
@@ -965,9 +952,10 @@ download_gui_add(download_t *d)
 		 * hash table */
 		add_parent_with_fi_handle(ht, d->file_info->fi_handle, child);
 	} else {
-		g_assert(host_count > 0);
-		gm_snprintf(tmpstr, sizeof(tmpstr),
-			NG_("%u host", "%u hosts", host_count), host_count);
+		guint hosts = d->file_info->lifecount;
+		
+		gm_snprintf(tmpstr, sizeof tmpstr,
+			NG_("%u host", "%u hosts", hosts), hosts);
 		gtk_tree_store_set(model, parent, c_dl_host, tmpstr, (-1));
 	}
 
@@ -1028,10 +1016,10 @@ download_gui_remove(download_t *d)
 		g_assert(iter == parent);
 		remove_parent_with_fi_handle(ht, d->file_info->fi_handle);
 	} else if (n > 2) {
-		guint count = n - 1;
+		guint hosts = d->file_info->lifecount;
 		g_assert(iter != parent);
-		gm_snprintf(tmpstr, sizeof(tmpstr),
-			NG_("%u host", "%u hosts", count), count);
+		gm_snprintf(tmpstr, sizeof tmpstr,
+			NG_("%u host", "%u hosts", hosts), hosts);
 		gtk_tree_store_set(store, parent, host_column, tmpstr, (-1));
 	} else if (2 == n) {
 		GtkTreeIter *child_iter;
