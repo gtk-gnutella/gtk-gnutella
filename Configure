@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Fri Jul 29 16:09:20 CEST 2005 [metaconfig 3.0 PL70]
+# Generated on Fri Jul 29 16:36:26 CEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -5193,6 +5193,7 @@ echo " "
 echo "Figuring out my version number..." >&4
 $grep '^#define GTA' $rsrc/src/common.h | $grep -v GTA_INTERFACE >ver.c
 $cat >>ver.c <<'EOM'
+#include <stdio.h>
 int main()
 {
 #if defined(GTA_PATCHLEVEL) && (GTA_PATCHLEVEL != 0)

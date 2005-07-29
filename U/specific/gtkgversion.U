@@ -14,6 +14,7 @@ echo " "
 echo "Figuring out my version number..." >&4
 $grep '^#define GTA' $rsrc/src/common.h | $grep -v GTA_INTERFACE >ver.c
 $cat >>ver.c <<'EOM'
+#include <stdio.h>
 int main()
 {
 #if defined(GTA_PATCHLEVEL) && (GTA_PATCHLEVEL != 0)
