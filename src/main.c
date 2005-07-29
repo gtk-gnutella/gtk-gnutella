@@ -92,6 +92,7 @@
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/pattern.h"
+#include "lib/tiger.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
@@ -575,6 +576,7 @@ main(int argc, char **argv)
 		PACKAGE_SOURCE_DIR);
 #endif
 
+	tiger_init();
 	random_init();
 	locale_init();
 	adns_init();

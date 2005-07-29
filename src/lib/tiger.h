@@ -38,7 +38,8 @@
 
 #include <glib.h>
 
-void tiger(gpointer data, guint64 length, guint64 res[3]);
+void tiger_init(void);
+void tiger(gconstpointer data, guint64 length, guint64 res[3]);
 
 #endif /* _tiger_h_ */
 
