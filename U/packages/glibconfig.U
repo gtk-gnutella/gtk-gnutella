@@ -36,6 +36,32 @@ glibldflags=`$glibconfig --libs`
 
 ?X: check that we've got the version they asked for
 version=`$glibconfig $modver`
+
 echo " "
-echo "We'll be using glib version $version."
+echo "Checking whether glib.h can be compiled against..."
+$cat >try.c <<EOC
+#include <glib.h>
+#ifndef GLIB_MAJOR_VERSION
+#error "glib.h not found?"
+#else
+#if GLIB_MAJOR_VERSION != $gtkversion
+#error "Wrong glib.h?"
+#endif
+#endif
+int main(void)
+{
+  (void) g_malloc(23);
+  return 0;
+}
+EOC
+
+if $cc $ccflags $ldflags $glibcflags $glibldflags -o try try.c >/dev/null 2>&1;
+then
+  echo "We'll be using glib version $version."
+else 
+  echo "Cannot compile against glib version '$version'"
+  echo exit 1
+fi
+$rm -f try try.c
+echo " "
 

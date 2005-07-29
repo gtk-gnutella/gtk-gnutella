@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Jul 24 20:31:55 CEST 2005 [metaconfig 3.0 PL70]
+# Generated on Fri Jul 29 16:09:20 CEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -5104,8 +5104,34 @@ glibcflags=`$glibconfig --cflags`
 glibldflags=`$glibconfig --libs`
 
 version=`$glibconfig $modver`
+
 echo " "
-echo "We'll be using glib version $version."
+echo "Checking whether glib.h can be compiled against..."
+$cat >try.c <<EOC
+#include <glib.h>
+#ifndef GLIB_MAJOR_VERSION
+#error "glib.h not found?"
+#else
+#if GLIB_MAJOR_VERSION != $gtkversion
+#error "Wrong glib.h?"
+#endif
+#endif
+int main(void)
+{
+  (void) g_malloc(23);
+  return 0;
+}
+EOC
+
+if $cc $ccflags $ldflags $glibcflags $glibldflags -o try try.c >/dev/null 2>&1;
+then
+  echo "We'll be using glib version $version."
+else 
+  echo "Cannot compile against glib version '$version'"
+  echo exit 1
+fi
+$rm -f try try.c
+echo " "
 
 : how can we find information about GTK?
 echo " "
