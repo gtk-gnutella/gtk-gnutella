@@ -70,7 +70,7 @@ RCSID("$Id$");
  */
 #define PASSES 3
 
-#include "tiger_sboxes.h"	/* For table */
+#include "tiger_sboxes.h"
 
 #define t1 (tiger_sboxes)
 #define t2 (tiger_sboxes + 256)
