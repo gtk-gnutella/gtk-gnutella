@@ -424,9 +424,8 @@ gui_create_dlg_about(void)
     for (i = 0; i < G_N_ELEMENTS(contributors); i++) {
         if (i > 0)
             gtk_text_insert(text, NULL, NULL, NULL, "\n", (-1));
-        g_strlcpy(s, contributors[i], sizeof(s));
-        gtk_text_insert(text, NULL, NULL, NULL,
-            lazy_utf8_to_locale(s, 0), (-1));
+        utf8_strlcpy(s, contributors[i], sizeof s);
+        gtk_text_insert(text, NULL, NULL, NULL, lazy_utf8_to_locale(s), (-1));
     }
 #endif
 
