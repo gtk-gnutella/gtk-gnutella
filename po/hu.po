@@ -6,9 +6,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96u\n"
+"Project-Id-Version: gtk-gnutella 0.95.4\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-07-07 23:07+0900\n"
+"POT-Creation-Date: 2005-07-31 01:20+0900\n"
 "PO-Revision-Date: 2005-07-01 19:06+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: NONE \n"
@@ -554,20 +554,20 @@ msgstr[0] "élő kapcsolatot."
 msgid "Read error: %s"
 msgstr ""
 
-#: src/core/settings.c:288
+#: src/core/settings.c:304
 msgid "Can't find your home directory!"
 msgstr "Saját mappa nem található!"
 
-#: src/core/settings.c:297
+#: src/core/settings.c:313
 #, c-format
 msgid "creating configuration directory \"%s\""
 msgstr "„%s” beállításmappa teremtése"
 
-#: src/core/settings.c:342
+#: src/core/settings.c:358
 msgid "Cannot proceed without valid configuration directory"
 msgstr "Nem lehet továbblépni érvényes beállításmappa nélkül"
 
-#: src/core/settings.c:1280
+#: src/core/settings.c:1296
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr ""
 
@@ -4454,7 +4454,7 @@ msgstr "Bájt"
 msgid "%sB/s"
 msgstr ""
 
-#: src/main.c:573
+#: src/main.c:574
 msgid "This is an unofficial build which accesses files in this directory:"
 msgstr ""
 
@@ -4789,8 +4789,8 @@ msgstr ""
 
 #: src/ui/gtk/gnet_stats_common.c:46 src/ui/gtk/gtk1/interface-glade.c:13391
 #: src/ui/gtk/gtk2/interface-glade.c:9411
-#: src/ui/gtk/gtk2/interface-glade.c:11831 src/ui/gtk/gtk2/nodes.c:301
-#: src/ui/gtk/gtk2/nodes.c:354 src/ui/gtk/gtk2/search_cb.c:481
+#: src/ui/gtk/gtk2/interface-glade.c:11831 src/ui/gtk/gtk2/nodes.c:302
+#: src/ui/gtk/gtk2/nodes.c:355 src/ui/gtk/gtk2/search_cb.c:481
 msgid "Unknown"
 msgstr "Ismeretlen"
 
@@ -4845,7 +4845,7 @@ msgid "Query hit"
 msgstr "Találat"
 
 #: src/ui/gtk/gnet_stats_common.c:57 src/ui/gtk/gtk1/interface-glade.c:4365
-#: src/ui/gtk/gtk2/search_stats.c:375
+#: src/ui/gtk/gtk2/search_stats.c:378
 msgid "Total"
 msgstr "Összesen"
 
@@ -5028,23 +5028,23 @@ msgid "file"
 msgid_plural "files"
 msgstr[0] "fájl"
 
-#: src/ui/gtk/gtk-shared/callbacks.c:274 src/ui/gtk/gtk1/callbacks.c:274
-#: src/ui/gtk/gtk2/callbacks.c:274
+#: src/ui/gtk/gtk-shared/callbacks.c:273 src/ui/gtk/gtk1/callbacks.c:273
+#: src/ui/gtk/gtk2/callbacks.c:273
 msgid "Please choose where to store files while downloading"
 msgstr ""
 
-#: src/ui/gtk/gtk-shared/callbacks.c:341 src/ui/gtk/gtk1/callbacks.c:341
-#: src/ui/gtk/gtk2/callbacks.c:341
+#: src/ui/gtk/gtk-shared/callbacks.c:339 src/ui/gtk/gtk1/callbacks.c:339
+#: src/ui/gtk/gtk2/callbacks.c:339
 msgid "Please choose where to move files after successful download"
 msgstr ""
 
-#: src/ui/gtk/gtk-shared/callbacks.c:409 src/ui/gtk/gtk1/callbacks.c:409
-#: src/ui/gtk/gtk2/callbacks.c:409
+#: src/ui/gtk/gtk-shared/callbacks.c:406 src/ui/gtk/gtk1/callbacks.c:406
+#: src/ui/gtk/gtk2/callbacks.c:406
 msgid "Please choose where to move corrupted files"
 msgstr ""
 
-#: src/ui/gtk/gtk-shared/callbacks.c:473 src/ui/gtk/gtk1/callbacks.c:473
-#: src/ui/gtk/gtk2/callbacks.c:473
+#: src/ui/gtk/gtk-shared/callbacks.c:470 src/ui/gtk/gtk1/callbacks.c:470
+#: src/ui/gtk/gtk2/callbacks.c:470
 msgid "Please choose a directory to share"
 msgstr ""
 
@@ -5057,7 +5057,7 @@ msgstr "Rossz méret"
 #
 #: src/ui/gtk/gtk1/downloads.c:666 src/ui/gtk/gtk1/downloads.c:803
 #: src/ui/gtk/gtk1/downloads.c:1663 src/ui/gtk/gtk1/downloads.c:1754
-#: src/ui/gtk/gtk2/downloads.c:970 src/ui/gtk/gtk2/downloads.c:1034
+#: src/ui/gtk/gtk2/downloads.c:958 src/ui/gtk/gtk2/downloads.c:1022
 #, fuzzy, c-format
 msgid "%u host"
 msgid_plural "%u hosts"
@@ -5065,167 +5065,167 @@ msgstr[0] "%u gazda"
 
 #
 #: src/ui/gtk/gtk1/downloads.c:999 src/ui/gtk/gtk1/downloads.c:1030
-#: src/ui/gtk/gtk1/interface-glade.c:4708 src/ui/gtk/gtk2/downloads.c:1387
+#: src/ui/gtk/gtk1/interface-glade.c:4708 src/ui/gtk/gtk2/downloads.c:1375
 #: src/ui/gtk/gtk2/gnet_stats.c:56 src/ui/gtk/uploads_common.c:171
 msgid "Queued"
 msgstr "Sorban"
 
-#: src/ui/gtk/gtk1/downloads.c:1004 src/ui/gtk/gtk2/downloads.c:1392
+#: src/ui/gtk/gtk1/downloads.c:1004 src/ui/gtk/gtk2/downloads.c:1380
 #, c-format
 msgid " (slot %d"
 msgstr ""
 
-#: src/ui/gtk/gtk1/downloads.c:1014 src/ui/gtk/gtk2/downloads.c:1402
+#: src/ui/gtk/gtk1/downloads.c:1014 src/ui/gtk/gtk2/downloads.c:1390
 #, c-format
 msgid ", ETA: %s"
 msgstr ""
 
-#: src/ui/gtk/gtk1/downloads.c:1023 src/ui/gtk/gtk2/downloads.c:1411
+#: src/ui/gtk/gtk1/downloads.c:1023 src/ui/gtk/gtk2/downloads.c:1399
 #, c-format
 msgid " retry in %ds"
 msgstr " %d után újra"
 
 #
 #: src/ui/gtk/gtk1/downloads.c:1039 src/ui/gtk/gtk1/downloads.c:1045
-#: src/ui/gtk/gtk2/downloads.c:1422 src/ui/gtk/nodes_common.c:67
+#: src/ui/gtk/gtk2/downloads.c:1410 src/ui/gtk/nodes_common.c:67
 msgid "Connecting..."
 msgstr "Kapcsolódás…"
 
 #
-#: src/ui/gtk/gtk1/downloads.c:1058 src/ui/gtk/gtk2/downloads.c:1435
+#: src/ui/gtk/gtk1/downloads.c:1058 src/ui/gtk/gtk2/downloads.c:1423
 msgid "Push sent directly"
 msgstr "Nyomás elküldve közvetlenül"
 
 #
 #: src/ui/gtk/gtk1/downloads.c:1059 src/ui/gtk/gtk1/downloads.c:1087
-#: src/ui/gtk/gtk1/downloads.c:1095 src/ui/gtk/gtk2/downloads.c:1435
-#: src/ui/gtk/gtk2/downloads.c:1463
+#: src/ui/gtk/gtk1/downloads.c:1095 src/ui/gtk/gtk2/downloads.c:1423
+#: src/ui/gtk/gtk2/downloads.c:1451
 msgid "Push sent"
 msgstr "Nyomás elküldve"
 
-#: src/ui/gtk/gtk1/downloads.c:1062 src/ui/gtk/gtk2/downloads.c:1438
+#: src/ui/gtk/gtk1/downloads.c:1062 src/ui/gtk/gtk2/downloads.c:1426
 msgid "Failed to send push"
 msgstr "Nyomás elküldése sikertelen"
 
-#: src/ui/gtk/gtk1/downloads.c:1065 src/ui/gtk/gtk2/downloads.c:1441
+#: src/ui/gtk/gtk1/downloads.c:1065 src/ui/gtk/gtk2/downloads.c:1429
 msgid "Sending push"
 msgstr "Nyomás elküldése"
 
-#: src/ui/gtk/gtk1/downloads.c:1067 src/ui/gtk/gtk2/downloads.c:1443
+#: src/ui/gtk/gtk1/downloads.c:1067 src/ui/gtk/gtk2/downloads.c:1431
 #, c-format
 msgid " via %s"
 msgstr ""
 
 #
-#: src/ui/gtk/gtk1/downloads.c:1072 src/ui/gtk/gtk2/downloads.c:1448
+#: src/ui/gtk/gtk1/downloads.c:1072 src/ui/gtk/gtk2/downloads.c:1436
 msgid "Connecting"
 msgstr "Kapcsolódás"
 
 #: src/ui/gtk/gtk1/downloads.c:1073 src/ui/gtk/gtk1/downloads.c:1114
-#: src/ui/gtk/gtk2/downloads.c:1449 src/ui/gtk/gtk2/downloads.c:1481
+#: src/ui/gtk/gtk2/downloads.c:1437 src/ui/gtk/gtk2/downloads.c:1469
 msgid "Sending request"
 msgstr "Kérelem elküldése"
 
 #
 #: src/ui/gtk/gtk1/downloads.c:1074 src/ui/gtk/gtk1/downloads.c:1118
-#: src/ui/gtk/gtk2/downloads.c:1450 src/ui/gtk/gtk2/downloads.c:1485
+#: src/ui/gtk/gtk2/downloads.c:1438 src/ui/gtk/gtk2/downloads.c:1473
 msgid "Request sent"
 msgstr "Kérelem elküldve"
 
 #
-#: src/ui/gtk/gtk1/downloads.c:1075 src/ui/gtk/gtk2/downloads.c:1451
+#: src/ui/gtk/gtk1/downloads.c:1075 src/ui/gtk/gtk2/downloads.c:1439
 msgid "Reading headers"
 msgstr "Fejlécek olvasása"
 
-#: src/ui/gtk/gtk1/downloads.c:1098 src/ui/gtk/gtk2/downloads.c:1466
+#: src/ui/gtk/gtk1/downloads.c:1098 src/ui/gtk/gtk2/downloads.c:1454
 msgid "Falling back to push"
 msgstr "Visszaállás nyomásra"
 
-#: src/ui/gtk/gtk1/downloads.c:1110 src/ui/gtk/gtk2/downloads.c:1477
+#: src/ui/gtk/gtk1/downloads.c:1110 src/ui/gtk/gtk2/downloads.c:1465
 #, c-format
 msgid "Sending request (%d%%)"
 msgstr "(%d%%) kérelem elküldése"
 
 #
-#: src/ui/gtk/gtk1/downloads.c:1122 src/ui/gtk/gtk2/downloads.c:1489
+#: src/ui/gtk/gtk1/downloads.c:1122 src/ui/gtk/gtk2/downloads.c:1477
 msgid "Receiving headers"
 msgstr "Fejlécek fogadása"
 
-#: src/ui/gtk/gtk1/downloads.c:1126 src/ui/gtk/gtk2/downloads.c:1493
+#: src/ui/gtk/gtk1/downloads.c:1126 src/ui/gtk/gtk2/downloads.c:1481
 msgid "Aborted (Server down)"
 msgstr "Abbahagyva (kiszolgáló ki)"
 
 #
 #: src/ui/gtk/gtk1/downloads.c:1126 src/ui/gtk/gtk1/downloads.c:1134
-#: src/ui/gtk/gtk2/downloads.c:1493 src/ui/gtk/gtk2/downloads.c:1498
+#: src/ui/gtk/gtk2/downloads.c:1481 src/ui/gtk/gtk2/downloads.c:1486
 msgid "Aborted"
 msgstr "Abbahagyva"
 
 #
 #: src/ui/gtk/gtk1/downloads.c:1143 src/ui/gtk/gtk1/downloads.c:1148
-#: src/ui/gtk/gtk1/interface-glade.c:2610 src/ui/gtk/gtk2/downloads.c:1507
-#: src/ui/gtk/gtk2/downloads.c:1512 src/ui/gtk/gtk2/interface-glade.c:4252
+#: src/ui/gtk/gtk1/interface-glade.c:2610 src/ui/gtk/gtk2/downloads.c:1495
+#: src/ui/gtk/gtk2/downloads.c:1500 src/ui/gtk/gtk2/interface-glade.c:4252
 msgid "Completed"
 msgstr "Befejezve"
 
 #: src/ui/gtk/gtk1/downloads.c:1143 src/ui/gtk/gtk1/downloads.c:1148
-#: src/ui/gtk/gtk2/downloads.c:1507 src/ui/gtk/gtk2/downloads.c:1512
+#: src/ui/gtk/gtk2/downloads.c:1495 src/ui/gtk/gtk2/downloads.c:1500
 msgid "Chunk done"
 msgstr "Darab kész"
 
-#: src/ui/gtk/gtk1/downloads.c:1155 src/ui/gtk/gtk2/downloads.c:1520
+#: src/ui/gtk/gtk1/downloads.c:1155 src/ui/gtk/gtk2/downloads.c:1508
 msgid "Waiting for SHA1 checking..."
 msgstr "SHA1 ellenőrzésre várakozás…"
 
-#: src/ui/gtk/gtk1/downloads.c:1162 src/ui/gtk/gtk2/downloads.c:1527
+#: src/ui/gtk/gtk1/downloads.c:1162 src/ui/gtk/gtk2/downloads.c:1515
 #, c-format
 msgid "Computing SHA1 (%.02f%%)"
 msgstr "SHA1 számítása (%.02f%%)"
 
-#: src/ui/gtk/gtk1/downloads.c:1192 src/ui/gtk/gtk2/downloads.c:1556
+#: src/ui/gtk/gtk1/downloads.c:1192 src/ui/gtk/gtk2/downloads.c:1544
 msgid "; Waiting for moving..."
 msgstr "; Áthelyezésre várakozás…"
 
-#: src/ui/gtk/gtk1/downloads.c:1197 src/ui/gtk/gtk2/downloads.c:1561
+#: src/ui/gtk/gtk1/downloads.c:1197 src/ui/gtk/gtk2/downloads.c:1549
 #, c-format
 msgid "; Moving (%.02f%%)"
 msgstr "; Áthelyezés (%.02f%%)"
 
-#: src/ui/gtk/gtk1/downloads.c:1202 src/ui/gtk/gtk2/downloads.c:1566
+#: src/ui/gtk/gtk1/downloads.c:1202 src/ui/gtk/gtk2/downloads.c:1554
 #, fuzzy, c-format
 msgid "; Moved (%s) %s"
 msgstr "; Áthelyezve (%.1f k/s) %s"
 
 #: src/ui/gtk/gtk1/downloads.c:1247 src/ui/gtk/gtk1/downloads.c:1269
-#: src/ui/gtk/gtk2/downloads.c:1612 src/ui/gtk/gtk2/downloads.c:1640
+#: src/ui/gtk/gtk2/downloads.c:1600 src/ui/gtk/gtk2/downloads.c:1628
 #, fuzzy
 msgid "(stalled)"
 msgstr " (elakadva)"
 
 #
 #: src/ui/gtk/gtk1/downloads.c:1283 src/ui/gtk/gtk1/nodes.c:251
-#: src/ui/gtk/gtk2/downloads.c:1653 src/ui/gtk/nodes_common.c:277
+#: src/ui/gtk/gtk2/downloads.c:1641 src/ui/gtk/nodes_common.c:277
 msgid "Connected"
 msgstr "Összekapcsolva"
 
-#: src/ui/gtk/gtk1/downloads.c:1287 src/ui/gtk/gtk2/downloads.c:1657
+#: src/ui/gtk/gtk1/downloads.c:1287 src/ui/gtk/gtk2/downloads.c:1645
 #, fuzzy
 msgid "Unknown error"
 msgstr "Ismeretlen hiba"
 
-#: src/ui/gtk/gtk1/downloads.c:1294 src/ui/gtk/gtk2/downloads.c:1663
+#: src/ui/gtk/gtk1/downloads.c:1294 src/ui/gtk/gtk2/downloads.c:1651
 #, c-format
 msgid "Retry in %ds"
 msgstr "%d után újra"
 
-#: src/ui/gtk/gtk1/downloads.c:1304 src/ui/gtk/gtk2/downloads.c:1674
+#: src/ui/gtk/gtk1/downloads.c:1304 src/ui/gtk/gtk2/downloads.c:1662
 #, fuzzy, c-format
 msgid "Sinking (%s bytes left)"
 msgstr "Sűllyedés (%u bájt maradt)"
 
 #
 #: src/ui/gtk/gtk1/downloads.c:1347 src/ui/gtk/gtk1/downloads.c:1420
-#: src/ui/gtk/gtk1/interface-glade.c:2263 src/ui/gtk/gtk2/downloads.c:1318
+#: src/ui/gtk/gtk1/interface-glade.c:2263 src/ui/gtk/gtk2/downloads.c:1306
 #: src/ui/gtk/gtk2/upload_stats.c:271
 msgid "Complete"
 msgstr "Kész"
@@ -6283,13 +6283,13 @@ msgstr "Fogadott"
 
 #
 #: src/ui/gtk/gtk1/interface-glade.c:3805
-#: src/ui/gtk/gtk2/interface-glade.c:4947 src/ui/gtk/gtk2/nodes.c:353
+#: src/ui/gtk/gtk2/interface-glade.c:4947 src/ui/gtk/gtk2/nodes.c:354
 #: src/ui/gtk/gtk2/search_cb.c:536
 msgid "Vendor:"
 msgstr "Eladó:"
 
 #
-#: src/ui/gtk/gtk1/interface-glade.c:3827 src/ui/gtk/gtk2/nodes.c:350
+#: src/ui/gtk/gtk1/interface-glade.c:3827 src/ui/gtk/gtk2/nodes.c:351
 #: src/ui/gtk/gtk2/search_cb.c:533
 #, fuzzy
 msgid "Country:"
@@ -6409,11 +6409,11 @@ msgid "_Deletion coeff. (0-100)"
 msgstr "_Törlési együttható (1-100)"
 
 #
-#: src/ui/gtk/gtk1/interface-glade.c:4348 src/ui/gtk/gtk2/search_stats.c:373
+#: src/ui/gtk/gtk1/interface-glade.c:4348 src/ui/gtk/gtk2/search_stats.c:376
 msgid "Search Term"
 msgstr "Keresés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4357 src/ui/gtk/gtk2/search_stats.c:374
+#: src/ui/gtk/gtk1/interface-glade.c:4357 src/ui/gtk/gtk2/search_stats.c:377
 msgid "This Interval"
 msgstr "Ez időtartam"
 
@@ -9427,14 +9427,14 @@ msgid "<none>"
 msgstr "<semmi>"
 
 #
-#: src/ui/gtk/gtk1/search_stats.c:439 src/ui/gtk/gtk2/search_stats.c:476
+#: src/ui/gtk/gtk1/search_stats.c:439 src/ui/gtk/gtk2/search_stats.c:479
 #, fuzzy, c-format
 msgid "%u term counted"
 msgid_plural "%u terms counted"
 msgstr[0] "0 szó számlálva"
 
-#: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:90
-#: src/ui/gtk/gtk2/support-glade.c:114
+#: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:92
+#: src/ui/gtk/gtk2/support-glade.c:116
 #, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "%s képfájl betöltése sikertelen!"
@@ -9448,31 +9448,31 @@ msgstr "Hiba %s képfájl betöltése közben!"
 msgid "Progress"
 msgstr "Helyzet"
 
-#: src/ui/gtk/gtk2/downloads.c:1513 src/ui/gtk/uploads_common.c:113
+#: src/ui/gtk/gtk2/downloads.c:1501 src/ui/gtk/uploads_common.c:113
 msgid "< 1s"
 msgstr ""
 
-#: src/ui/gtk/gtk2/downloads.c:1542
+#: src/ui/gtk/gtk2/downloads.c:1530
 msgid "SHA1 figure"
 msgstr "SHA1 érték"
 
-#: src/ui/gtk/gtk2/downloads.c:1542
+#: src/ui/gtk/gtk2/downloads.c:1530
 msgid "SHA1 check"
 msgstr "SHA1 ellenőrzés"
 
-#: src/ui/gtk/gtk2/downloads.c:1543
+#: src/ui/gtk/gtk2/downloads.c:1531
 msgid "ERROR"
 msgstr "HIBA"
 
-#: src/ui/gtk/gtk2/downloads.c:1544
+#: src/ui/gtk/gtk2/downloads.c:1532
 msgid "OK"
 msgstr "JÓ"
 
-#: src/ui/gtk/gtk2/downloads.c:1545
+#: src/ui/gtk/gtk2/downloads.c:1533
 msgid "FAILED"
 msgstr "ROSSZ"
 
-#: src/ui/gtk/gtk2/downloads.c:1679
+#: src/ui/gtk/gtk2/downloads.c:1667
 #, c-format
 msgid "Unknown status %u"
 msgstr ""
@@ -9769,62 +9769,62 @@ msgid "Select all matching regex from queue"
 msgstr "Minden illeszkedő reg.kif. törlése a sorból"
 
 #
-#: src/ui/gtk/gtk2/nodes.c:287
+#: src/ui/gtk/gtk2/nodes.c:288
 #, fuzzy
 msgid "Leaf"
 msgstr "Törlés"
 
 #
-#: src/ui/gtk/gtk2/nodes.c:289
+#: src/ui/gtk/gtk2/nodes.c:290
 #, fuzzy
 msgid "Ultrapeer"
 msgstr "Átjátszók"
 
-#: src/ui/gtk/gtk2/nodes.c:291
+#: src/ui/gtk/gtk2/nodes.c:292
 msgid "Legacy"
 msgstr ""
 
 #
-#: src/ui/gtk/gtk2/nodes.c:293
+#: src/ui/gtk/gtk2/nodes.c:294
 #, fuzzy
 msgid "Crawler"
 msgstr "Törlés"
 
-#: src/ui/gtk/gtk2/nodes.c:295
+#: src/ui/gtk/gtk2/nodes.c:296
 msgid "UDP"
 msgstr ""
 
-#: src/ui/gtk/gtk2/nodes.c:328 src/ui/gtk/gtk2/search_cb.c:517
+#: src/ui/gtk/gtk2/nodes.c:329 src/ui/gtk/gtk2/search_cb.c:517
 #: src/ui/gtk/settings_cb.c:257
 msgid "Move the cursor over a row to see details."
 msgstr ""
 
 #
-#: src/ui/gtk/gtk2/nodes.c:345 src/ui/gtk/gtk2/search_cb.c:531
+#: src/ui/gtk/gtk2/nodes.c:346 src/ui/gtk/gtk2/search_cb.c:531
 #, fuzzy
 msgid "Peer:"
 msgstr "Soha"
 
 #
-#: src/ui/gtk/gtk2/nodes.c:347
+#: src/ui/gtk/gtk2/nodes.c:348
 #, fuzzy
 msgid "Peermode:"
 msgstr "Átjátszó üzemmód"
 
-#: src/ui/gtk/gtk2/nodes.c:349
+#: src/ui/gtk/gtk2/nodes.c:350
 msgid "incoming"
 msgstr ""
 
-#: src/ui/gtk/gtk2/nodes.c:349
+#: src/ui/gtk/gtk2/nodes.c:350
 msgid "outgoing"
 msgstr ""
 
-#: src/ui/gtk/gtk2/nodes.c:407
+#: src/ui/gtk/gtk2/nodes.c:408
 #, c-format
 msgid "Reverse lookup for %s failed"
 msgstr ""
 
-#: src/ui/gtk/gtk2/nodes.c:785
+#: src/ui/gtk/gtk2/nodes.c:787
 msgid "Reverse lookup in progress..."
 msgstr ""
 
@@ -9884,7 +9884,7 @@ msgstr "Sorban"
 msgid "Monitor"
 msgstr "Figyelő"
 
-#: src/ui/gtk/main.c:803
+#: src/ui/gtk/main.c:802
 #, fuzzy, c-format
 msgid "%d second"
 msgid_plural "%d seconds"
@@ -10237,6 +10237,10 @@ msgstr ""
 #: src/ui/gtk/uploads_common.c:202
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#, fuzzy
+#~ msgid "Push route lost"
+#~ msgstr "Út elveszett"
 
 #
 #, fuzzy
