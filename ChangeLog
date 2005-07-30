@@ -1,10 +1,28 @@
 # since last version
 
+# v 0.95.4  2005.07.31  [stable]
+
+- The last-byte download bug, where a download would not complete if
+  only the last byte needed to be downloaded, has been fixed.
+- Preliminary browse-host support, allowing other servents to browse
+  the files that are shared. This is disabled by default.
+- Will detect online status again after temporary network failure.
+- The .desktop file and icons are now properly installed.
+- Proper sorting of downloads 
+- Bug fixes in UTF-8 support.
+- Doxygen documentation updates.
+- Japanese translation updates.
+
+
 - (2005-06-29 - RAM)
  * Was mistakenly thinking it was reading data from the network whereas it
    simply had socket connections timeouting.  Therefore, the "offline" status
    was never activated after an Internet connection breakdown (fixes #1144460).
 
+- (2005-05-23 - Hans)
+ * The gtk-gnutella.desktop file is now properly installed so that
+   GTKG can be started from the desktop menus.	
+	
 # v 0.95.3  2005.05.22  [stable]
 
 - Fixed a potential denial-of-service problem.
