@@ -60,7 +60,10 @@
 
 struct subzone;
 
-typedef struct zone {			/**< Zone descriptor */
+/**
+ * Zone descriptor.
+ */
+typedef struct zone {
 	gchar **zn_free;			/**< Pointer to first free block */
 	struct subzone *zn_next;	/**< Next allocated zone chunk, null if none */
 	gpointer zn_arena;			/**< Base address of zone arena */
