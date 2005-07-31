@@ -41,6 +41,7 @@ INSTALLDIR = $INSTALLDIR
 # Parameters set by Configure -- edit config.sh if changes are needed
 
 CTAGS = ctags
+INSTALLPREFIX = $prefix
 MV = $mv
 PRIVLIB = $installprivlib
 RM = $rm -f
@@ -113,15 +114,6 @@ local_deinstall::
 	for i in $(EXTRA_FILES); do \
 		(set -x; $(RM) $(INSTALL_PREFIX)$(PRIVLIB)/$$i); \
 	done
-
-local_install:: gtk-gnutella.desktop
-	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
-	(set -x; test -d $(INSTALL_PREFIX)$(DESKTOP) || \
-		$(INSTALLDIR) $(INSTALL_PREFIX)$(DESKTOP)); \
-	$(INSTALL) -c -m 444 gtk-gnutella.desktop $(INSTALL_PREFIX)$(DESKTOP)
-
-local_deinstall::
-	$(RM) $(INSTALL_PREFIX)$(DESKTOP)/gtk-gnutella.desktop
 
 local_install:: gtk-gnutella.desktop
 	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
