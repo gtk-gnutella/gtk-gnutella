@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-07-31 01:20+0900\n"
+"POT-Creation-Date: 2005-07-31 20:13+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -436,12 +436,12 @@ msgstr ""
 msgid "Failed (Header line too long)"
 msgstr ""
 
-#: src/core/nodes.c:4818 src/core/uploads.c:1092
+#: src/core/nodes.c:4818 src/core/uploads.c:1095
 #, c-format
 msgid "Failed (%s)"
 msgstr ""
 
-#: src/core/nodes.c:4827 src/core/uploads.c:1098
+#: src/core/nodes.c:4827 src/core/uploads.c:1101
 msgid "Failed (Input Exception)"
 msgstr ""
 
@@ -449,12 +449,12 @@ msgstr ""
 msgid "Failed (Input buffer full)"
 msgstr ""
 
-#: src/core/nodes.c:4839 src/core/uploads.c:1110
+#: src/core/nodes.c:4839 src/core/uploads.c:1113
 #, c-format
 msgid "Failed (Input error: %s)"
 msgstr ""
 
-#: src/core/nodes.c:4851 src/core/uploads.c:1118
+#: src/core/nodes.c:4851 src/core/uploads.c:1121
 msgid "Failed (EOF)"
 msgstr ""
 
@@ -697,57 +697,50 @@ msgstr ""
 msgid "Banned for %s"
 msgstr ""
 
-#: src/core/uploads.c:1414
+#: src/core/uploads.c:1417
 msgid "Unable to send GIV"
 msgstr ""
 
-#: src/core/uploads.c:2462
+#: src/core/uploads.c:2465
 msgid "<Browse Host Request>"
 msgstr ""
 
-#: src/core/uploads.c:2475
+#: src/core/uploads.c:2478
 msgid "Browse Host Enabled"
 msgstr ""
 
-#: src/core/uploads.c:2880
+#: src/core/uploads.c:2883
 msgid "Stalling upload replaced"
 msgstr ""
 
-#: src/core/uploads.c:3030
+#: src/core/uploads.c:3033
 #, c-format
 msgid "Queued (slot %d, ETA: %s)"
 msgstr ""
 
-#: src/core/uploads.c:3050
-#, c-format
-msgid "Only %d upload per IP address"
-msgid_plural "Only %d uploads per IP address"
-msgstr[0] ""
-msgstr[1] ""
-
-#: src/core/uploads.c:3217
+#: src/core/uploads.c:3219
 msgid "Cannot send whole HTTP status"
 msgstr ""
 
-#: src/core/uploads.c:3304
+#: src/core/uploads.c:3306
 msgid "Write exception"
 msgstr ""
 
-#: src/core/uploads.c:3379 src/core/uploads.c:3486
+#: src/core/uploads.c:3381 src/core/uploads.c:3488
 #, c-format
 msgid "File read error: %s"
 msgstr ""
 
-#: src/core/uploads.c:3416 src/core/uploads.c:3506
+#: src/core/uploads.c:3418 src/core/uploads.c:3508
 #, c-format
 msgid "Data write error: %s"
 msgstr ""
 
-#: src/core/uploads.c:3535
+#: src/core/uploads.c:3537
 msgid "Explicitly killed"
 msgstr ""
 
-#: src/core/uploads.c:3561
+#: src/core/uploads.c:3563
 msgid "IP denying uploads"
 msgstr ""
 
@@ -6187,10 +6180,6 @@ msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:9918
 msgid "[name and version]"
-msgstr ""
-
-#: src/ui/gtk/gtk1/interface-glade.c:9926
-msgid "$Id$"
 msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:9959
