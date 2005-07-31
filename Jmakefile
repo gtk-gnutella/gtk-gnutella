@@ -47,5 +47,19 @@ INSTALLFLAGS = -m 444
 
 MakeInstallDirectories($(PRIVLIB))
 InstallMultiple($(EXTRA_FILES), $(PRIVLIB))
+InstallNonExec(gtk-gnutella.desktop, $(DESKTOP))
 InstallMultiple(gtk-gnutella.desktop, $(INSTALLPREFIX)/share/applications)
 InstallMultiple($(PIXMAP_FILES), $(INSTALLPREFIX)/share/pixmaps)
+
+;#
+;# Update the bogons and GeoIp databases
+;#
+
+update:
+	wget http://www.completewhois.com/bogons/data/bogons-cidr-all.txt \
+		-O bogons.txt
+	wget http://www.maxmind.com/download/geoip/database/GeoIPCountryCSV.zip
+	rm -f GeoIPCountryWhois.csv
+	unzip GeoIPCountryCSV.zip
+	./geo-to-db.pl -c GeoIPCountryWhois.csv >geo-ip.txt
+
