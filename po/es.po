@@ -1,4 +1,3 @@
-# $Id$
 # Spanish translation for gtk-gnutella package.
 # Copyright (c) 2000-2001, Yann Grossel.
 # Copyright (c) 2001-2005, Raphael Manfredi.
@@ -8,10 +7,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96u\n"
+"Project-Id-Version: gtk-gnutella 0.95.4\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-07-25 23:48+0200\n"
-"PO-Revision-Date: 2005-07-30 01:59+0200\n"
+"POT-Creation-Date: 2005-07-31 20:13+0900\n"
+"PO-Revision-Date: 2005-07-31 18:33+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -86,10 +85,12 @@ msgid "Explicitly requeued"
 msgstr "Reencolado explícitamente"
 
 #: src/core/downloads.c:4038
+#, c-format
 msgid "Stopped (%s)"
 msgstr "Parado (%s)"
 
 #: src/core/downloads.c:4041 src/core/downloads.c:4076
+#, c-format
 msgid "Too many attempts (%d times)"
 msgstr "Demasiados intentos (%d veces)"
 
@@ -310,8 +311,7 @@ msgstr ""
 
 #: src/core/nodes.c:2867
 msgid "Cannot setup compressing TX stack"
-msgstr ""
-"Imposible configurar la pila de TX comprimida"
+msgstr "Imposible configurar la pila de TX comprimida"
 
 #: src/core/nodes.c:3081
 #, c-format
@@ -349,6 +349,7 @@ msgid "No vendor string supplied"
 msgstr "Texto del servidor no suministrado"
 
 #: src/core/nodes.c:3495
+#, c-format
 msgid "Not connecting: %s"
 msgstr "No conectando: %s"
 
@@ -358,10 +359,12 @@ msgid "Connection not compressed"
 msgstr "Conexión sin comprimir"
 
 #: src/core/nodes.c:3542
+#, c-format
 msgid "Too many leaves (%d max)"
 msgstr "Demasiadas hojas (%d max)"
 
 #: src/core/nodes.c:3579 src/core/nodes.c:3695
+#, c-format
 msgid "Too many ultra nodes (%d max)"
 msgstr "Demasiados nodos ultra (%d max)"
 
@@ -375,6 +378,7 @@ msgid "Rejected leaf node"
 msgstr "Nodo hoja rechazado"
 
 #: src/core/nodes.c:3646
+#, c-format
 msgid "Too many nodes (%d max)"
 msgstr "Demasiados nodos (%d max)"
 
@@ -421,6 +425,7 @@ msgid "Not becoming a leaf node"
 msgstr "ultra nodo"
 
 #: src/core/nodes.c:4752
+#, c-format
 msgid "Failed (Cannot send %s: %s)"
 msgstr "Fracasado (Imposible enviar %s: %s)"
 
@@ -433,11 +438,12 @@ msgstr "Fracasado (Imposible enviar %s atómicamente)"
 msgid "Failed (Header line too long)"
 msgstr "Fracasado (Línea de cabecera demasiado larga)"
 
-#: src/core/nodes.c:4818 src/core/uploads.c:1092
+#: src/core/nodes.c:4818 src/core/uploads.c:1095
+#, c-format
 msgid "Failed (%s)"
 msgstr "Fracasado (%s)"
 
-#: src/core/nodes.c:4827 src/core/uploads.c:1098
+#: src/core/nodes.c:4827 src/core/uploads.c:1101
 msgid "Failed (Input Exception)"
 msgstr "Fracasado (Excepción de entrada)"
 
@@ -445,11 +451,12 @@ msgstr "Fracasado (Excepción de entrada)"
 msgid "Failed (Input buffer full)"
 msgstr "Fracasado (Búfer de entrada lleno)"
 
-#: src/core/nodes.c:4839 src/core/uploads.c:1110
+#: src/core/nodes.c:4839 src/core/uploads.c:1113
+#, c-format
 msgid "Failed (Input error: %s)"
 msgstr "Fracasado (Error de entrada: %s)"
 
-#: src/core/nodes.c:4851 src/core/uploads.c:1118
+#: src/core/nodes.c:4851 src/core/uploads.c:1121
 msgid "Failed (EOF)"
 msgstr "Fracasado (EOF)"
 
@@ -488,33 +495,34 @@ msgid "Read failed (Input Exception)"
 msgstr "Lectura fallida (Excepción de entrada)"
 
 #: src/core/rx_link.c:93
+#, c-format
 msgid "Got %d connection pong"
 msgid_plural "Got %d connection pongs"
 msgstr[0] "Recibido %d pong de conexión"
 msgstr[1] "Recibidos %d pongs de conexiones"
 
 #: src/core/rx_link.c:101
+#, c-format
 msgid "Read error: %s"
 msgstr "Error de lectura: %s"
 
-#: src/core/settings.c:288
+#: src/core/settings.c:304
 msgid "Can't find your home directory!"
 msgstr "¡Directorio de usuario no encontrado!"
 
-#: src/core/settings.c:297
+#: src/core/settings.c:313
 #, c-format
 msgid "creating configuration directory \"%s\""
 msgstr "creando directorio de configuración \"%s\""
 
-#: src/core/settings.c:342
+#: src/core/settings.c:358
 msgid "Cannot proceed without valid configuration directory"
 msgstr "No se puede continuar sin una configuración de directorio válida"
 
-#: src/core/settings.c:1280
+#: src/core/settings.c:1296
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr ""
-"Sólo se puede ejecutar en modo hoja cuando se está tras un"
-"cortafuegos TCP"
+"Sólo se puede ejecutar en modo hoja cuando se está tras uncortafuegos TCP"
 
 #: src/core/shell.c:266
 msgid "Node added"
@@ -693,53 +701,50 @@ msgstr "Baneado: %s"
 msgid "Banned for %s"
 msgstr "Baneado por %s"
 
-#: src/core/uploads.c:1414
+#: src/core/uploads.c:1417
 msgid "Unable to send GIV"
 msgstr "Incapaz de enviar GIV"
 
-#: src/core/uploads.c:2462
+#: src/core/uploads.c:2465
 msgid "<Browse Host Request>"
 msgstr "<Petición de Consultar Nodo>"
 
-#: src/core/uploads.c:2475
+#: src/core/uploads.c:2478
 msgid "Browse Host Enabled"
 msgstr "Consultar Nodo Activado"
 
-#: src/core/uploads.c:2880
+#: src/core/uploads.c:2883
 msgid "Stalling upload replaced"
 msgstr "Subida atascándose reemplazada"
 
-#: src/core/uploads.c:3030
+#: src/core/uploads.c:3033
+#, c-format
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "Encolado (ranura %d, ETA: %s)"
 
-#: src/core/uploads.c:3050
-msgid "Only %d upload per IP address"
-msgid_plural "Only %d uploads per IP address"
-msgstr[0] "Sólo %d subida por dirección IP"
-msgstr[1] "Sólo %d subidas por dirección IP"
-
-#: src/core/uploads.c:3217
+#: src/core/uploads.c:3219
 msgid "Cannot send whole HTTP status"
 msgstr "Imposible enviar el estado completo HTTP"
 
-#: src/core/uploads.c:3304
+#: src/core/uploads.c:3306
 msgid "Write exception"
 msgstr "Excepción de escritura"
 
-#: src/core/uploads.c:3379 src/core/uploads.c:3486
+#: src/core/uploads.c:3381 src/core/uploads.c:3488
+#, c-format
 msgid "File read error: %s"
 msgstr "Error de lectura de archivo: %s"
 
-#: src/core/uploads.c:3416 src/core/uploads.c:3506
+#: src/core/uploads.c:3418 src/core/uploads.c:3508
+#, c-format
 msgid "Data write error: %s"
 msgstr "Error de lectura de datos: %s"
 
-#: src/core/uploads.c:3535
+#: src/core/uploads.c:3537
 msgid "Explicitly killed"
 msgstr "Matado explícitamente"
 
-#: src/core/uploads.c:3561
+#: src/core/uploads.c:3563
 msgid "IP denying uploads"
 msgstr "IP denegando subidas"
 
@@ -1005,8 +1010,8 @@ msgstr ""
 #: src/if/gnet_property.c:1192
 msgid "Delay in seconds before retrying after a connection timed out."
 msgstr ""
-"Demora en segundos antes de reintentar después de que el tiempo de una conexión "
-"haya expirado."
+"Demora en segundos antes de reintentar después de que el tiempo de una "
+"conexión haya expirado."
 
 #: src/if/gnet_property.c:1212
 msgid ""
@@ -1161,9 +1166,8 @@ msgid ""
 "by fellow gtk-gnutella nodes, or kicked out by some other servent."
 msgstr ""
 "El TTL que se usa en mensajes generados. El valor por defecto en Gnutella es "
-"TTL=4. Un valor demasiado alto podría ser cortado por otros nodos "
-"gtk-gnutella o "
-"ser pateado por otros nodos."
+"TTL=4. Un valor demasiado alto podría ser cortado por otros nodos gtk-"
+"gnutella o ser pateado por otros nodos."
 
 #: src/if/gnet_property.c:1592
 msgid ""
@@ -1200,7 +1204,6 @@ msgstr ""
 #: src/if/gnet_property.c:1712
 msgid "Verbosity of Bitzi related debug messages."
 msgstr ""
-""
 
 #: src/if/gnet_property.c:1732
 msgid "Verbosity of GWebCache related debug messages."
@@ -1228,8 +1231,7 @@ msgstr "Nivel de depurado para peticiones."
 
 #: src/if/gnet_property.c:1852
 msgid "Debug level for searches and search results management."
-msgstr ""
-"Nivel de depurado para búsquedas y gestión de resultados de búsquedas."
+msgstr "Nivel de depurado para búsquedas y gestión de resultados de búsquedas."
 
 #: src/if/gnet_property.c:1872
 msgid "Debug level for the UDP traffic layer."
@@ -1349,9 +1351,9 @@ msgid ""
 "ISPs."
 msgstr ""
 "Active esta opción para que GTK-Gnutella use IP TOS para diferenciar entre "
-"los distintos tipos de datos. Probablemente sea una buena idea en la "
-"mayoría de los casos, y puede ser particularmente útil en nodos, LANs ó ISPs "
-"mal configurados."
+"los distintos tipos de datos. Probablemente sea una buena idea en la mayoría "
+"de los casos, y puede ser particularmente útil en nodos, LANs ó ISPs mal "
+"configurados."
 
 #: src/if/gnet_property.c:2301
 msgid "Remove files of aborted downloads from disk."
@@ -1615,8 +1617,8 @@ msgid ""
 "Whether or not to launch competing downloads when swarming and there are "
 "many sources available with a few chunks left."
 msgstr ""
-"Si debe haber competencia en las descargas distribuidas cuando hayan muchas"
-"fuentes disponibles y pocos bloques restantes."
+"Si debe haber competencia en las descargas distribuidas cuando hayan "
+"muchasfuentes disponibles y pocos bloques restantes."
 
 #: src/if/gnet_property.c:3206
 msgid ""
@@ -1674,9 +1676,7 @@ msgstr ""
 
 #: src/if/gnet_property.c:3334
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
-msgstr ""
-"Si gtk-gnutella cree que está tras un cortafuegos "
-"TCP."
+msgstr "Si gtk-gnutella cree que está tras un cortafuegos TCP."
 
 #: src/if/gnet_property.c:3351
 msgid "Whether gtk-gnutella thinks it's connected to the Internet."
@@ -1684,9 +1684,7 @@ msgstr "Si gtk-gnutella cree que está conectado a Internet."
 
 #: src/if/gnet_property.c:3368
 msgid "Whether gtk-gnutella thinks you're currently firewalled, UDP-wise."
-msgstr ""
-"Si gtk-gnutella cree que está tras un cortafuegos "
-"UDP."
+msgstr "Si gtk-gnutella cree que está tras un cortafuegos UDP."
 
 #: src/if/gnet_property.c:3385
 msgid "Whether gtk-gnutella determined it could receive solicited UDP."
@@ -1730,8 +1728,7 @@ msgid ""
 "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the "
 "background."
 msgstr ""
-"Si gtk-gnutella está actualmente verificando el SHA1 de archivos "
-"descargados."
+"Si gtk-gnutella está actualmente verificando el SHA1 de archivos descargados."
 
 #: src/if/gnet_property.c:3487
 msgid ""
@@ -1756,8 +1753,8 @@ msgid ""
 "If deactivated, only uploads and downloads will continue. All Gnet "
 "connections are disabled/terminated."
 msgstr ""
-"Si está deshabilitado, sólo continuarán las descargas y las subidas. Todas las "
-"conexiones Gnet se cerrarán."
+"Si está deshabilitado, sólo continuarán las descargas y las subidas. Todas "
+"las conexiones Gnet se cerrarán."
 
 #: src/if/gnet_property.c:3538
 msgid ""
@@ -1768,9 +1765,9 @@ msgid ""
 msgstr ""
 "Si gtk-gnutella debe asegurarse de que el servidor confirma el URN del "
 "archivo que estamos solicitando cuando es conocido localmente y se usa una "
-"petición tradicional por nombre (p. ej. "
-"gtk-gnutella no hace una petición /uri-res/"
-"N2R?). Cuando está activado, se ignora la opción de primer bloque optimista."
+"petición tradicional por nombre (p. ej. gtk-gnutella no hace una petición /"
+"uri-res/N2R?). Cuando está activado, se ignora la opción de primer bloque "
+"optimista."
 
 #: src/if/gnet_property.c:3555
 msgid ""
@@ -1929,16 +1926,15 @@ msgid ""
 "ntpdate, for instance."
 msgstr ""
 "Si el reloj de este nodo se ajusta de forma precisa con NTP. Cuando está "
-"habilitado, el sesgo computado del reloj serña ignorado. Normalmente "
-"gtk-gnutella determina automáticamente si se está ejecutando NTP localmente, "
+"habilitado, el sesgo computado del reloj serña ignorado. Normalmente gtk-"
+"gnutella determina automáticamente si se está ejecutando NTP localmente, "
 "pero no será capaz de determinar si está sincronizado con llamadas regulares "
 "a ntpdate, por ejemplo. "
 
 # skew - sesgo
 #: src/if/gnet_property.c:4043
 msgid "Whether a running NTP daemon was detected locally."
-msgstr ""
-"Si se ha detectado un demonio NTP localmente."
+msgstr "Si se ha detectado un demonio NTP localmente."
 
 #: src/if/gnet_property.c:4060
 msgid ""
@@ -2241,13 +2237,11 @@ msgstr "Porcentaje de ranuras usadas en nuestra tabla QRP."
 
 #: src/if/gnet_property.c:4839
 msgid "Percentage of hashing conflicts whilst inserting data in our QRP table."
-msgstr ""
-"Porcentaje de conflictos tipo hash al insertar datos en la tabla QRP."
+msgstr "Porcentaje de conflictos tipo hash al insertar datos en la tabla QRP."
 
 #: src/if/gnet_property.c:4859
 msgid "Amount of hashed keywords in our QRP table."
-msgstr ""
-"Número de claves, tipo hash, en la tabla QRP."
+msgstr "Número de claves, tipo hash, en la tabla QRP."
 
 #: src/if/gnet_property.c:4879
 msgid "Total raw size of the QRP table patch, in bytes."
@@ -2261,8 +2255,7 @@ msgstr ""
 #: src/if/gnet_property.c:4919
 msgid "QRP table patch compression ratio, in percent, 0 means none."
 msgstr ""
-"Porcentaje de compresión del parche de la tabla QRP, 0 indica sin "
-"compresión."
+"Porcentaje de compresión del parche de la tabla QRP, 0 indica sin compresión."
 
 #: src/if/gnet_property.c:4939
 msgid ""
@@ -2292,10 +2285,10 @@ msgid ""
 "necessarily degraded, if not impossible. The condition automatically clears "
 "itself after 10 minutes past the last occurance."
 msgstr ""
-"Cuando está habilitado, gtk-gnutella tiene escasez de descriptores de archivo, "
-"y las operaciones se habrán degradado necesariamente, si no se han hecho "
-"imposibles. La condición se limpia "
-"automáticamente pasados 10 minutos si no hay más escasez."
+"Cuando está habilitado, gtk-gnutella tiene escasez de descriptores de "
+"archivo, y las operaciones se habrán degradado necesariamente, si no se han "
+"hecho imposibles. La condición se limpia automáticamente pasados 10 minutos "
+"si no hay más escasez."
 
 #: src/if/gnet_property.c:5014
 msgid "When set, gtk-gnutella will accept and handle G2 connections. "
@@ -2305,8 +2298,8 @@ msgstr ""
 #: src/if/gnet_property.c:5031
 msgid "If set, spaces in filenames are replaced with underscores."
 msgstr ""
-"Si está habilitado, los espacios encontrados en los nombres de los "
-"archivos se interpretarán como caracteres de subrayado."
+"Si está habilitado, los espacios encontrados en los nombres de los archivos "
+"se interpretarán como caracteres de subrayado."
 
 #: src/if/gnet_property.c:5048
 msgid ""
@@ -2314,8 +2307,8 @@ msgid ""
 "(This must also be enabled for FAT partitions.)"
 msgstr ""
 "Si está habilitado, metacaracteres de terminal en nombres de archivo serán "
-"reemplazados por caracteres de subrayado. (Esto también debe estar habilitado "
-"en particiones FAT.)"
+"reemplazados por caracteres de subrayado. (Esto también debe estar "
+"habilitado en particiones FAT.)"
 
 #: src/if/gnet_property.c:5065
 msgid ""
@@ -2328,8 +2321,7 @@ msgstr ""
 #: src/if/gnet_property.c:5082
 msgid "If set, all outgoing connections are tunneled over TLS."
 msgstr ""
-"Si está habilitado, todas las conexiones salientes serán encauzadas por "
-"TLS."
+"Si está habilitado, todas las conexiones salientes serán encauzadas por TLS."
 
 #: src/if/gnet_property.c:5099
 msgid "If not set, support for Gnutella connection compression is disabled."
@@ -2345,11 +2337,11 @@ msgid ""
 "received via TCP.  It is safe to leave this set, which is the default "
 "behaviour."
 msgstr ""
-"Si UDP debe ser usado como complemento a TCP. Cuando esté activado, "
-"gtk-gnutella también escuchará tráfico UDP en el mismo puerto que el "
-"configurado para TCP y procesará este tráfico prácticamente igual que si "
-"hubiese sido recibido por TCP. Es seguro tenerlo habilitado, que es el "
-"comportamiento por defecto."
+"Si UDP debe ser usado como complemento a TCP. Cuando esté activado, gtk-"
+"gnutella también escuchará tráfico UDP en el mismo puerto que el configurado "
+"para TCP y procesará este tráfico prácticamente igual que si hubiese sido "
+"recibido por TCP. Es seguro tenerlo habilitado, que es el comportamiento por "
+"defecto."
 
 #: src/if/gnet_property.c:5133
 msgid ""
@@ -2404,13 +2396,12 @@ msgid ""
 "list from the global one distributed with Gtk-Gnutella."
 msgstr ""
 "Si se habilita, el arhivo global hostiles.txt se usará además del archivo "
-"privado $GTK_GNUTELLA_DIR/hostiles.txt. Esto permita separar la lista privada "
-"de nodos baneados de la lista que se distribuye con Gtk-Gnutella."
+"privado $GTK_GNUTELLA_DIR/hostiles.txt. Esto permita separar la lista "
+"privada de nodos baneados de la lista que se distribuye con Gtk-Gnutella."
 
 #: src/if/gnet_property.c:5235
 msgid "If set to TRUE, SO_LINGER is used for sockets."
-msgstr ""
-"Si se habilita, se usará SO_LINGER para los sockets."
+msgstr "Si se habilita, se usará SO_LINGER para los sockets."
 
 #: src/if/gnet_property.c:5252
 msgid "If TRUE, other hosts can request a complete list of all shared files."
@@ -2524,8 +2515,7 @@ msgstr "Ancho de las columnas en la lista de búsquedas de la barra lateral."
 #: src/if/gui_property.c:536
 msgid "Which columns are visible in the search results tables."
 msgstr ""
-"Qué columnas son visibles en las tablas de los resultados de "
-"búsquedas."
+"Qué columnas son visibles en las tablas de los resultados de búsquedas."
 
 #: src/if/gui_property.c:553
 msgid "Widths of the columns in the search results tables."
@@ -2570,14 +2560,12 @@ msgstr "Ancho de las columnas en la tabla de estadísticas Gnet fc ttl."
 #: src/if/gui_property.c:747 src/if/gui_property.c:767
 msgid "Widths of the columns in the Gnet fc hops stats table."
 msgstr ""
-"Ancho de las columnas en la tabla de estadísticas de saltos fc de "
-"Gnet."
+"Ancho de las columnas en la tabla de estadísticas de saltos fc de Gnet."
 
 #: src/if/gui_property.c:787
 msgid "Widths of the columns in the Gnet horizon stats table."
 msgstr ""
-"Ancho de las columnas en la tabla de estadísticas de horizonte de "
-"Gnet."
+"Ancho de las columnas en la tabla de estadísticas de horizonte de Gnet."
 
 #: src/if/gui_property.c:807 src/if/gui_property.c:827
 msgid "Widths of the columns in the Gnet stats drop reasons table."
@@ -2778,9 +2766,7 @@ msgstr "Seleccióne el origen de las estadísticas para mostrar."
 
 #: src/if/gui_property.c:1643
 msgid "Include Gnutella packet header size to the volume."
-msgstr ""
-"Incluir el tamaño de la cabecera de los paquetes Gnutella al "
-"volumen."
+msgstr "Incluir el tamaño de la cabecera de los paquetes Gnutella al volumen."
 
 #: src/if/gui_property.c:1660
 msgid ""
@@ -2833,13 +2819,11 @@ msgstr "Si el grado de compresión del tráfico entrante debe mostrarse."
 
 #: src/if/gui_property.c:1816
 msgid "Whether to display the amount of bytes sent on the TX wire."
-msgstr ""
-"Si se debe mostrar la cantidad de bytes enviados."
+msgstr "Si se debe mostrar la cantidad de bytes enviados."
 
 #: src/if/gui_property.c:1833
 msgid "Whether to display the amount of bytes received on the RX wire."
-msgstr ""
-"Si se debe mostrar la cantidad de bytes recibidos."
+msgstr "Si se debe mostrar la cantidad de bytes recibidos."
 
 #: src/if/gui_property.c:1850
 msgid "Whether TX instantaneous transmission speed should be displayed."
@@ -2944,14 +2928,12 @@ msgstr ""
 #: src/if/gui_property.c:2145
 msgid "Widths of the columns in the Gnet packet stats table (pkg). [GTK2]"
 msgstr ""
-"Ancho de las columnas en la tabla de estadísticas de paquetes Gnet "
-"(pkg)."
+"Ancho de las columnas en la tabla de estadísticas de paquetes Gnet (pkg)."
 
 #: src/if/gui_property.c:2165
 msgid "Widths of the columns in the Gnet packet stats table (byte). [GTK2]"
 msgstr ""
-"Ancho de las columnas en la tabla de estadísticas de paquetes Gnet "
-"(byte)."
+"Ancho de las columnas en la tabla de estadísticas de paquetes Gnet (byte)."
 
 #: src/if/gui_property.c:2185
 msgid "Configures the appearance of the toolbar."
@@ -3940,15 +3922,17 @@ msgid "1 Byte"
 msgstr "1 Byte"
 
 #: src/lib/misc.c:637
+#, c-format
 msgid "%u Bytes"
 msgstr "%u Bytes"
 
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
 #: src/lib/misc.c:759 src/lib/misc.c:771
+#, c-format
 msgid "%sB/s"
 msgstr "%sB/s"
 
-#: src/main.c:573
+#: src/main.c:574
 msgid "This is an unofficial build which accesses files in this directory:"
 msgstr ""
 "Este ejecutable ha sido compilado de forma no oficial y accede a los "
@@ -4014,8 +3998,7 @@ msgstr ""
 
 #: src/ui/gtk/drop.c:314
 msgid "Cannot handle the dropped data"
-msgstr ""
-"No se pudo gestionar los datos abandonados"
+msgstr "No se pudo gestionar los datos abandonados"
 
 #: src/ui/gtk/drop.c:325
 msgid "Protocol is not supported"
@@ -4247,8 +4230,8 @@ msgstr ""
 
 #: src/ui/gtk/gnet_stats_common.c:46 src/ui/gtk/gtk1/interface-glade.c:13391
 #: src/ui/gtk/gtk2/interface-glade.c:9411
-#: src/ui/gtk/gtk2/interface-glade.c:11831 src/ui/gtk/gtk2/nodes.c:301
-#: src/ui/gtk/gtk2/nodes.c:354 src/ui/gtk/gtk2/search_cb.c:481
+#: src/ui/gtk/gtk2/interface-glade.c:11831 src/ui/gtk/gtk2/nodes.c:302
+#: src/ui/gtk/gtk2/nodes.c:355 src/ui/gtk/gtk2/search_cb.c:481
 msgid "Unknown"
 msgstr "Desconocido"
 
@@ -4419,34 +4402,27 @@ msgstr "Peticiones dinámicas terminaron sin resultados"
 #: src/ui/gtk/gnet_stats_common.c:156
 msgid "Fully completed dynamic queries getting late results"
 msgstr ""
-"Peticiones dinámicas totalmente completadas recibiendo resultados "
-"tardíos"
+"Peticiones dinámicas totalmente completadas recibiendo resultados tardíos"
 
 #: src/ui/gtk/gnet_stats_common.c:157
 msgid "Dynamic queries with partial late results"
-msgstr ""
-"Peticiones dinámicas parcialmente recibiendo resultados "
-"tardíos"
+msgstr "Peticiones dinámicas parcialmente recibiendo resultados tardíos"
 
 #: src/ui/gtk/gnet_stats_common.c:158
 msgid "Dynamic queries completed by late results"
-msgstr ""
-"Peticiones dinámicas completadas por resultados tardíos"
+msgstr "Peticiones dinámicas completadas por resultados tardíos"
 
 #: src/ui/gtk/gnet_stats_common.c:159
 msgid "Queries seen from GTKG"
-msgstr ""
-"Peticiones vistas desde GTKG"
+msgstr "Peticiones vistas desde GTKG"
 
 #: src/ui/gtk/gnet_stats_common.c:160
 msgid "Queries seen from GTKG that were re-queries"
-msgstr ""
-"Peticiones vistas desde GTKG que eran repetidas"
+msgstr "Peticiones vistas desde GTKG que eran repetidas"
 
 #: src/ui/gtk/gnet_stats_common.c:161
 msgid "Queries advertising support of GGEP \"H\""
-msgstr ""
-"Peticiones anunciando soporte de GGEP \"H\""
+msgstr "Peticiones anunciando soporte de GGEP \"H\""
 
 #: src/ui/gtk/gnet_stats_common.c:162
 msgid "GIV callbacks received"
@@ -4458,13 +4434,11 @@ msgstr ""
 
 #: src/ui/gtk/gnet_stats_common.c:164
 msgid "UDP messages with bogus source IP"
-msgstr ""
-"Mensajes UDP con IP de origen erróneo"
+msgstr "Mensajes UDP con IP de origen erróneo"
 
 #: src/ui/gtk/gnet_stats_common.c:165
 msgid "Alien UDP messages (non-Gnutella)"
-msgstr ""
-"Mensajes UDP alienígenas (externos a Gnutella)"
+msgstr "Mensajes UDP alienígenas (externos a Gnutella)"
 
 #: src/ui/gtk/gnet_stats_common.c:166
 msgid "Unprocessed UDP Gnutella messages"
@@ -4482,23 +4456,23 @@ msgid_plural "files"
 msgstr[0] "archivo"
 msgstr[1] "archivos"
 
-#: src/ui/gtk/gtk-shared/callbacks.c:274 src/ui/gtk/gtk1/callbacks.c:274
-#: src/ui/gtk/gtk2/callbacks.c:274
+#: src/ui/gtk/gtk-shared/callbacks.c:273 src/ui/gtk/gtk1/callbacks.c:273
+#: src/ui/gtk/gtk2/callbacks.c:273
 msgid "Please choose where to store files while downloading"
 msgstr "Directorio donde se almacenarán los archivos temporales"
 
-#: src/ui/gtk/gtk-shared/callbacks.c:341 src/ui/gtk/gtk1/callbacks.c:341
-#: src/ui/gtk/gtk2/callbacks.c:341
+#: src/ui/gtk/gtk-shared/callbacks.c:339 src/ui/gtk/gtk1/callbacks.c:339
+#: src/ui/gtk/gtk2/callbacks.c:339
 msgid "Please choose where to move files after successful download"
 msgstr "Directorio donde se moverán los archivos completados"
 
-#: src/ui/gtk/gtk-shared/callbacks.c:409 src/ui/gtk/gtk1/callbacks.c:409
-#: src/ui/gtk/gtk2/callbacks.c:409
+#: src/ui/gtk/gtk-shared/callbacks.c:406 src/ui/gtk/gtk1/callbacks.c:406
+#: src/ui/gtk/gtk2/callbacks.c:406
 msgid "Please choose where to move corrupted files"
 msgstr "Directorio donde se moverán los archivos corruptos"
 
-#: src/ui/gtk/gtk-shared/callbacks.c:473 src/ui/gtk/gtk1/callbacks.c:473
-#: src/ui/gtk/gtk2/callbacks.c:473
+#: src/ui/gtk/gtk-shared/callbacks.c:470 src/ui/gtk/gtk1/callbacks.c:470
+#: src/ui/gtk/gtk2/callbacks.c:470
 msgid "Please choose a directory to share"
 msgstr "Elija un directorio para compartir"
 
@@ -4508,7 +4482,7 @@ msgstr "no hay tamaño"
 
 #: src/ui/gtk/gtk1/downloads.c:666 src/ui/gtk/gtk1/downloads.c:803
 #: src/ui/gtk/gtk1/downloads.c:1663 src/ui/gtk/gtk1/downloads.c:1754
-#: src/ui/gtk/gtk2/downloads.c:970 src/ui/gtk/gtk2/downloads.c:1034
+#: src/ui/gtk/gtk2/downloads.c:958 src/ui/gtk/gtk2/downloads.c:1022
 #, c-format
 msgid "%u host"
 msgid_plural "%u hosts"
@@ -4516,165 +4490,167 @@ msgstr[0] "%u nodo"
 msgstr[1] "%u nodos"
 
 #: src/ui/gtk/gtk1/downloads.c:999 src/ui/gtk/gtk1/downloads.c:1030
-#: src/ui/gtk/gtk1/interface-glade.c:4708 src/ui/gtk/gtk2/downloads.c:1387
+#: src/ui/gtk/gtk1/interface-glade.c:4708 src/ui/gtk/gtk2/downloads.c:1375
 #: src/ui/gtk/gtk2/gnet_stats.c:56 src/ui/gtk/uploads_common.c:171
 msgid "Queued"
 msgstr "Encolado"
 
-#: src/ui/gtk/gtk1/downloads.c:1004 src/ui/gtk/gtk2/downloads.c:1392
+#: src/ui/gtk/gtk1/downloads.c:1004 src/ui/gtk/gtk2/downloads.c:1380
 #, c-format
 msgid " (slot %d"
 msgstr " (ranura %d"
 
-#: src/ui/gtk/gtk1/downloads.c:1014 src/ui/gtk/gtk2/downloads.c:1402
+#: src/ui/gtk/gtk1/downloads.c:1014 src/ui/gtk/gtk2/downloads.c:1390
 #, c-format
 msgid ", ETA: %s"
 msgstr ", ETA: %s"
 
-#: src/ui/gtk/gtk1/downloads.c:1023 src/ui/gtk/gtk2/downloads.c:1411
+#: src/ui/gtk/gtk1/downloads.c:1023 src/ui/gtk/gtk2/downloads.c:1399
 #, c-format
 msgid " retry in %ds"
 msgstr " reintento en %ds"
 
 #: src/ui/gtk/gtk1/downloads.c:1039 src/ui/gtk/gtk1/downloads.c:1045
-#: src/ui/gtk/gtk2/downloads.c:1422 src/ui/gtk/nodes_common.c:67
+#: src/ui/gtk/gtk2/downloads.c:1410 src/ui/gtk/nodes_common.c:67
 msgid "Connecting..."
 msgstr "Conectando "
 
-#: src/ui/gtk/gtk1/downloads.c:1058 src/ui/gtk/gtk2/downloads.c:1435
+#: src/ui/gtk/gtk1/downloads.c:1058 src/ui/gtk/gtk2/downloads.c:1423
 msgid "Push sent directly"
 msgstr "'Push' enviado directamente"
 
 #: src/ui/gtk/gtk1/downloads.c:1059 src/ui/gtk/gtk1/downloads.c:1087
-#: src/ui/gtk/gtk1/downloads.c:1095 src/ui/gtk/gtk2/downloads.c:1435
-#: src/ui/gtk/gtk2/downloads.c:1463
+#: src/ui/gtk/gtk1/downloads.c:1095 src/ui/gtk/gtk2/downloads.c:1423
+#: src/ui/gtk/gtk2/downloads.c:1451
 msgid "Push sent"
 msgstr "'Push' enviado"
 
-#: src/ui/gtk/gtk1/downloads.c:1062 src/ui/gtk/gtk2/downloads.c:1438
+#: src/ui/gtk/gtk1/downloads.c:1062 src/ui/gtk/gtk2/downloads.c:1426
 msgid "Failed to send push"
 msgstr "Envío de 'push' fallido"
 
-#: src/ui/gtk/gtk1/downloads.c:1065 src/ui/gtk/gtk2/downloads.c:1441
+#: src/ui/gtk/gtk1/downloads.c:1065 src/ui/gtk/gtk2/downloads.c:1429
 msgid "Sending push"
 msgstr "Enviando 'push'"
 
-#: src/ui/gtk/gtk1/downloads.c:1067 src/ui/gtk/gtk2/downloads.c:1443
+#: src/ui/gtk/gtk1/downloads.c:1067 src/ui/gtk/gtk2/downloads.c:1431
 #, c-format
 msgid " via %s"
 msgstr " a través de %s"
 
-#: src/ui/gtk/gtk1/downloads.c:1072 src/ui/gtk/gtk2/downloads.c:1448
+#: src/ui/gtk/gtk1/downloads.c:1072 src/ui/gtk/gtk2/downloads.c:1436
 msgid "Connecting"
 msgstr "Conectando"
 
 #: src/ui/gtk/gtk1/downloads.c:1073 src/ui/gtk/gtk1/downloads.c:1114
-#: src/ui/gtk/gtk2/downloads.c:1449 src/ui/gtk/gtk2/downloads.c:1481
+#: src/ui/gtk/gtk2/downloads.c:1437 src/ui/gtk/gtk2/downloads.c:1469
 msgid "Sending request"
 msgstr "Enviando petición"
 
 #: src/ui/gtk/gtk1/downloads.c:1074 src/ui/gtk/gtk1/downloads.c:1118
-#: src/ui/gtk/gtk2/downloads.c:1450 src/ui/gtk/gtk2/downloads.c:1485
+#: src/ui/gtk/gtk2/downloads.c:1438 src/ui/gtk/gtk2/downloads.c:1473
 msgid "Request sent"
 msgstr "Petición enviada"
 
-#: src/ui/gtk/gtk1/downloads.c:1075 src/ui/gtk/gtk2/downloads.c:1451
+#: src/ui/gtk/gtk1/downloads.c:1075 src/ui/gtk/gtk2/downloads.c:1439
 msgid "Reading headers"
 msgstr "Leyendo cabaceras"
 
-#: src/ui/gtk/gtk1/downloads.c:1098 src/ui/gtk/gtk2/downloads.c:1466
+#: src/ui/gtk/gtk1/downloads.c:1098 src/ui/gtk/gtk2/downloads.c:1454
 msgid "Falling back to push"
 msgstr "Plan B: Intentando 'push'"
 
-#: src/ui/gtk/gtk1/downloads.c:1110 src/ui/gtk/gtk2/downloads.c:1477
+#: src/ui/gtk/gtk1/downloads.c:1110 src/ui/gtk/gtk2/downloads.c:1465
 #, c-format
 msgid "Sending request (%d%%)"
 msgstr "Enviando petición (%d%%)"
 
-#: src/ui/gtk/gtk1/downloads.c:1122 src/ui/gtk/gtk2/downloads.c:1489
+#: src/ui/gtk/gtk1/downloads.c:1122 src/ui/gtk/gtk2/downloads.c:1477
 msgid "Receiving headers"
 msgstr "Recibiendo cabeceras"
 
-#: src/ui/gtk/gtk1/downloads.c:1126 src/ui/gtk/gtk2/downloads.c:1493
+#: src/ui/gtk/gtk1/downloads.c:1126 src/ui/gtk/gtk2/downloads.c:1481
 msgid "Aborted (Server down)"
 msgstr "Abortado (Servidor caído)"
 
 #: src/ui/gtk/gtk1/downloads.c:1126 src/ui/gtk/gtk1/downloads.c:1134
-#: src/ui/gtk/gtk2/downloads.c:1493 src/ui/gtk/gtk2/downloads.c:1498
+#: src/ui/gtk/gtk2/downloads.c:1481 src/ui/gtk/gtk2/downloads.c:1486
 msgid "Aborted"
 msgstr "Abortado"
 
 #: src/ui/gtk/gtk1/downloads.c:1143 src/ui/gtk/gtk1/downloads.c:1148
-#: src/ui/gtk/gtk1/interface-glade.c:2610 src/ui/gtk/gtk2/downloads.c:1507
-#: src/ui/gtk/gtk2/downloads.c:1512 src/ui/gtk/gtk2/interface-glade.c:4252
+#: src/ui/gtk/gtk1/interface-glade.c:2610 src/ui/gtk/gtk2/downloads.c:1495
+#: src/ui/gtk/gtk2/downloads.c:1500 src/ui/gtk/gtk2/interface-glade.c:4252
 msgid "Completed"
 msgstr "Completadas"
 
 #: src/ui/gtk/gtk1/downloads.c:1143 src/ui/gtk/gtk1/downloads.c:1148
-#: src/ui/gtk/gtk2/downloads.c:1507 src/ui/gtk/gtk2/downloads.c:1512
+#: src/ui/gtk/gtk2/downloads.c:1495 src/ui/gtk/gtk2/downloads.c:1500
 msgid "Chunk done"
 msgstr "Bloque completado"
 
-#: src/ui/gtk/gtk1/downloads.c:1155 src/ui/gtk/gtk2/downloads.c:1520
+#: src/ui/gtk/gtk1/downloads.c:1155 src/ui/gtk/gtk2/downloads.c:1508
 msgid "Waiting for SHA1 checking..."
 msgstr "Esperando la comprobación de SHA1..."
 
-#: src/ui/gtk/gtk1/downloads.c:1162 src/ui/gtk/gtk2/downloads.c:1527
+#: src/ui/gtk/gtk1/downloads.c:1162 src/ui/gtk/gtk2/downloads.c:1515
 #, c-format
 msgid "Computing SHA1 (%.02f%%)"
 msgstr "Calculando SHA1 (%.02f%%)"
 
-#: src/ui/gtk/gtk1/downloads.c:1192 src/ui/gtk/gtk2/downloads.c:1556
+#: src/ui/gtk/gtk1/downloads.c:1192 src/ui/gtk/gtk2/downloads.c:1544
 msgid "; Waiting for moving..."
 msgstr "; Esparando para mover..."
 
-#: src/ui/gtk/gtk1/downloads.c:1197 src/ui/gtk/gtk2/downloads.c:1561
+#: src/ui/gtk/gtk1/downloads.c:1197 src/ui/gtk/gtk2/downloads.c:1549
 #, c-format
 msgid "; Moving (%.02f%%)"
 msgstr "; Moviendo (%.02f%%)"
 
-#: src/ui/gtk/gtk1/downloads.c:1202 src/ui/gtk/gtk2/downloads.c:1566
+#: src/ui/gtk/gtk1/downloads.c:1202 src/ui/gtk/gtk2/downloads.c:1554
 #, c-format
 msgid "; Moved (%s) %s"
 msgstr "; Movidos (%s) %s"
 
 #: src/ui/gtk/gtk1/downloads.c:1247 src/ui/gtk/gtk1/downloads.c:1269
-#: src/ui/gtk/gtk2/downloads.c:1612 src/ui/gtk/gtk2/downloads.c:1640
+#: src/ui/gtk/gtk2/downloads.c:1600 src/ui/gtk/gtk2/downloads.c:1628
 msgid "(stalled)"
 msgstr "(atascado)"
 
 #: src/ui/gtk/gtk1/downloads.c:1283 src/ui/gtk/gtk1/nodes.c:251
-#: src/ui/gtk/gtk2/downloads.c:1653 src/ui/gtk/nodes_common.c:277
+#: src/ui/gtk/gtk2/downloads.c:1641 src/ui/gtk/nodes_common.c:277
 msgid "Connected"
 msgstr "Conectado"
 
-#: src/ui/gtk/gtk1/downloads.c:1287 src/ui/gtk/gtk2/downloads.c:1657
+#: src/ui/gtk/gtk1/downloads.c:1287 src/ui/gtk/gtk2/downloads.c:1645
 msgid "Unknown error"
 msgstr "Error desconocido"
 
-#: src/ui/gtk/gtk1/downloads.c:1294 src/ui/gtk/gtk2/downloads.c:1663
+#: src/ui/gtk/gtk1/downloads.c:1294 src/ui/gtk/gtk2/downloads.c:1651
 #, c-format
 msgid "Retry in %ds"
 msgstr "Reintento en %ds"
 
-#: src/ui/gtk/gtk1/downloads.c:1304 src/ui/gtk/gtk2/downloads.c:1674
+#: src/ui/gtk/gtk1/downloads.c:1304 src/ui/gtk/gtk2/downloads.c:1662
 #, c-format
 msgid "Sinking (%s bytes left)"
 msgstr "Vaciando (%s bytes left)"
 
 #: src/ui/gtk/gtk1/downloads.c:1347 src/ui/gtk/gtk1/downloads.c:1420
-#: src/ui/gtk/gtk1/interface-glade.c:2263 src/ui/gtk/gtk2/downloads.c:1318
+#: src/ui/gtk/gtk1/interface-glade.c:2263 src/ui/gtk/gtk2/downloads.c:1306
 #: src/ui/gtk/gtk2/upload_stats.c:271
 msgid "Complete"
 msgstr "Completados"
 
 #: src/ui/gtk/gtk1/downloads_cb.c:52 src/ui/gtk/gtk2/downloads_cb.c:254
+#, c-format
 msgid "Removed %u download"
 msgid_plural "Removed %u downloads"
 msgstr[0] "Quitada %u bajada"
 msgstr[1] "Quitadas %u bajadas"
 
 #: src/ui/gtk/gtk1/downloads_cb.c:309 src/ui/gtk/gtk2/downloads_cb.c:343
+#, c-format
 msgid "Forgot %u download"
 msgid_plural "Forgot %u downloads"
 msgstr[0] "Olvidada %u bajada"
@@ -5553,12 +5529,12 @@ msgid "Received:"
 msgstr "Recibido:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3805
-#: src/ui/gtk/gtk2/interface-glade.c:4947 src/ui/gtk/gtk2/nodes.c:353
+#: src/ui/gtk/gtk2/interface-glade.c:4947 src/ui/gtk/gtk2/nodes.c:354
 #: src/ui/gtk/gtk2/search_cb.c:536
 msgid "Vendor:"
 msgstr "Cliente:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3827 src/ui/gtk/gtk2/nodes.c:350
+#: src/ui/gtk/gtk1/interface-glade.c:3827 src/ui/gtk/gtk2/nodes.c:351
 #: src/ui/gtk/gtk2/search_cb.c:533
 msgid "Country:"
 msgstr "País:"
@@ -5912,9 +5888,10 @@ msgid ""
 "both your incoming and outgoing paths."
 msgstr ""
 "Las subidas se están atascando con una frecuencia anormal, indicando que el "
-"ancho de banda esté probablemente saturado. No se debería ejecutar como ultra "
-"nodo, y sería buena idea reducir el ancho de banda másimo reservado para "
-"gtk-gnutella para evitar saturar ambos canales de entrada y salida de datos."
+"ancho de banda esté probablemente saturado. No se debería ejecutar como "
+"ultra nodo, y sería buena idea reducir el ancho de banda másimo reservado "
+"para gtk-gnutella para evitar saturar ambos canales de entrada y salida de "
+"datos."
 
 #: src/ui/gtk/gtk1/interface-glade.c:5672
 #: src/ui/gtk/gtk2/interface-glade.c:2191
@@ -5925,8 +5902,8 @@ msgid ""
 "results. You will not be able to send queries requesting out-of-band "
 "delivery of query hits."
 msgstr ""
-"Parece que hay un cortafuegos TCP y UDP. No aparecerán resultados 'push',"
-"que son una cantidad considerable sobre el total."
+"Parece que hay un cortafuegos TCP y UDP. No aparecerán resultados 'push',que "
+"son una cantidad considerable sobre el total."
 
 #: src/ui/gtk/gtk1/interface-glade.c:5691
 #: src/ui/gtk/gtk2/interface-glade.c:2204
@@ -5946,8 +5923,8 @@ msgid ""
 "seeing a large amount of results."
 msgstr ""
 "Parece que hay un cortafuegos TCP, otros no se podrán conectar a este nodo "
-"para iniciar una descarga. No aparecerán resultados 'push', "
-"que son una cantidad considerable sobre el total."
+"para iniciar una descarga. No aparecerán resultados 'push', que son una "
+"cantidad considerable sobre el total."
 
 #: src/ui/gtk/gtk1/interface-glade.c:5727
 #: src/ui/gtk/gtk2/interface-glade.c:2228
@@ -5981,8 +5958,7 @@ msgstr "Ejecutando en modo hoja."
 #: src/ui/gtk/gtk1/interface-glade.c:5800
 #: src/ui/gtk/gtk2/interface-glade.c:2294
 msgid "Running in legacy mode. Consider switching to auto mode."
-msgstr ""
-"Ejecutando en modo antiguo. Considere cambiar al modo automático."
+msgstr "Ejecutando en modo antiguo. Considere cambiar al modo automático."
 
 #: src/ui/gtk/gtk1/interface-glade.c:5818
 #: src/ui/gtk/gtk2/interface-glade.c:2270
@@ -6088,8 +6064,7 @@ msgstr "Resultados del abandono..."
 msgid ""
 "Adds \"don't display\" rules matching the selected files names to the search "
 "filter."
-msgstr ""
-"Añade \"NO MOSTRAR\""
+msgstr "Añade \"NO MOSTRAR\""
 
 #: src/ui/gtk/gtk1/interface-glade.c:6610
 msgid ""
@@ -6601,10 +6576,6 @@ msgstr "Acerca de gtk-gnutella"
 msgid "[name and version]"
 msgstr "[nombre y versión]"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9926
-msgid "$Id$"
-msgstr "$Id$"
-
 #: src/ui/gtk/gtk1/interface-glade.c:9959
 #: src/ui/gtk/gtk2/interface-glade.c:1454
 msgid "Original author:"
@@ -6835,8 +6806,7 @@ msgid ""
 "192.168.1.0/255.255.255.0)"
 msgstr ""
 "Introduzca una lista separada por comas de redes locales en la forma ip/bits "
-"o ip/máscara de red (ej. 192.168.1.0/24 or "
-"192.168.1.0/255.255.255.0)"
+"o ip/máscara de red (ej. 192.168.1.0/24 or 192.168.1.0/255.255.255.0)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11578
 #: src/ui/gtk/gtk2/interface-glade.c:10145
@@ -6987,8 +6957,7 @@ msgstr "Monitorear direcciones IP con nodos incorrectos"
 #: src/ui/gtk/gtk1/interface-glade.c:12001
 #: src/ui/gtk/gtk2/interface-glade.c:10746
 msgid "Monitor and auto-ban unstable servent types"
-msgstr ""
-"Monorizar y banear automáticamente tipos de nodos inestables"
+msgstr "Monorizar y banear automáticamente tipos de nodos inestables"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12039
 #: src/ui/gtk/gtk2/interface-glade.c:10733
@@ -7087,8 +7056,7 @@ msgstr ""
 #: src/ui/gtk/gtk1/interface-glade.c:12564
 #: src/ui/gtk/gtk2/interface-glade.c:11141
 msgid "Default search _reissue timeout"
-msgstr ""
-"Tiempo por defeecto entre repeticiones de búsquedas"
+msgstr "Tiempo por defeecto entre repeticiones de búsquedas"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12587
 #: src/ui/gtk/gtk1/interface-glade.c:16068
@@ -7894,8 +7862,7 @@ msgstr "Mostrar _ayudas (Aún no afecta a todos los controles)"
 #: src/ui/gtk/gtk1/interface-glade.c:16046
 #: src/ui/gtk/gtk2/interface-glade.c:14756
 msgid "Try to keep 'dead' entries around for"
-msgstr ""
-"Tratar de mantener registros 'muertos' durante"
+msgstr "Tratar de mantener registros 'muertos' durante"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16079
 #: src/ui/gtk/gtk2/interface-glade.c:14793
@@ -8240,13 +8207,14 @@ msgid "<none>"
 msgstr "<nada>"
 
 #: src/ui/gtk/gtk1/search_stats.c:439 src/ui/gtk/gtk2/search_stats.c:479
+#, c-format
 msgid "%u term counted"
 msgid_plural "%u terms counted"
 msgstr[0] "%u término contado"
 msgstr[1] "%u términos contados"
 
-#: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:90
-#: src/ui/gtk/gtk2/support-glade.c:114
+#: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:92
+#: src/ui/gtk/gtk2/support-glade.c:116
 #, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "No se pùdo encontrar la imagen: %s"
@@ -8260,31 +8228,31 @@ msgstr "Error durante la carga de la imagen: %s"
 msgid "Progress"
 msgstr "Progreso"
 
-#: src/ui/gtk/gtk2/downloads.c:1513 src/ui/gtk/uploads_common.c:113
+#: src/ui/gtk/gtk2/downloads.c:1501 src/ui/gtk/uploads_common.c:113
 msgid "< 1s"
 msgstr "< 1º"
 
-#: src/ui/gtk/gtk2/downloads.c:1542
+#: src/ui/gtk/gtk2/downloads.c:1530
 msgid "SHA1 figure"
 msgstr "Figura SHA1"
 
-#: src/ui/gtk/gtk2/downloads.c:1542
+#: src/ui/gtk/gtk2/downloads.c:1530
 msgid "SHA1 check"
 msgstr "Comprobación SHA1"
 
-#: src/ui/gtk/gtk2/downloads.c:1543
+#: src/ui/gtk/gtk2/downloads.c:1531
 msgid "ERROR"
 msgstr "ERROR"
 
-#: src/ui/gtk/gtk2/downloads.c:1544
+#: src/ui/gtk/gtk2/downloads.c:1532
 msgid "OK"
 msgstr "CORRECTO"
 
-#: src/ui/gtk/gtk2/downloads.c:1545
+#: src/ui/gtk/gtk2/downloads.c:1533
 msgid "FAILED"
 msgstr "FALLIDO"
 
-#: src/ui/gtk/gtk2/downloads.c:1679
+#: src/ui/gtk/gtk2/downloads.c:1667
 #, c-format
 msgid "Unknown status %u"
 msgstr "Estado desconocido %u"
@@ -8537,54 +8505,54 @@ msgstr "Cerrar esta búsqueda"
 msgid "Select all matching regex from queue"
 msgstr "Selecionar de la cola los que coinciden con la expresión regular"
 
-#: src/ui/gtk/gtk2/nodes.c:287
+#: src/ui/gtk/gtk2/nodes.c:288
 msgid "Leaf"
 msgstr "Hoja"
 
-#: src/ui/gtk/gtk2/nodes.c:289
+#: src/ui/gtk/gtk2/nodes.c:290
 msgid "Ultrapeer"
 msgstr "Ultranodo"
 
-#: src/ui/gtk/gtk2/nodes.c:291
+#: src/ui/gtk/gtk2/nodes.c:292
 msgid "Legacy"
 msgstr "Antiguo"
 
-#: src/ui/gtk/gtk2/nodes.c:293
+#: src/ui/gtk/gtk2/nodes.c:294
 #, fuzzy
 msgid "Crawler"
 msgstr "Limpiar"
 
-#: src/ui/gtk/gtk2/nodes.c:295
+#: src/ui/gtk/gtk2/nodes.c:296
 msgid "UDP"
 msgstr "UDP"
 
-#: src/ui/gtk/gtk2/nodes.c:328 src/ui/gtk/gtk2/search_cb.c:517
+#: src/ui/gtk/gtk2/nodes.c:329 src/ui/gtk/gtk2/search_cb.c:517
 #: src/ui/gtk/settings_cb.c:257
 msgid "Move the cursor over a row to see details."
 msgstr "Mueve el cursor sobre una fila para ver detalles."
 
-#: src/ui/gtk/gtk2/nodes.c:345 src/ui/gtk/gtk2/search_cb.c:531
+#: src/ui/gtk/gtk2/nodes.c:346 src/ui/gtk/gtk2/search_cb.c:531
 msgid "Peer:"
 msgstr "Nodo:"
 
-#: src/ui/gtk/gtk2/nodes.c:347
+#: src/ui/gtk/gtk2/nodes.c:348
 msgid "Peermode:"
 msgstr "Modo:"
 
-#: src/ui/gtk/gtk2/nodes.c:349
+#: src/ui/gtk/gtk2/nodes.c:350
 msgid "incoming"
 msgstr "entrada"
 
-#: src/ui/gtk/gtk2/nodes.c:349
+#: src/ui/gtk/gtk2/nodes.c:350
 msgid "outgoing"
 msgstr "salida"
 
-#: src/ui/gtk/gtk2/nodes.c:407
+#: src/ui/gtk/gtk2/nodes.c:408
 #, c-format
 msgid "Reverse lookup for %s failed"
 msgstr "Resolución inversa de nombre para %s fracasada"
 
-#: src/ui/gtk/gtk2/nodes.c:785
+#: src/ui/gtk/gtk2/nodes.c:787
 msgid "Reverse lookup in progress..."
 msgstr "Resolución inversa de nombre en progreso..."
 
@@ -8636,7 +8604,7 @@ msgstr "Cola"
 msgid "Monitor"
 msgstr "Monitor"
 
-#: src/ui/gtk/main.c:803
+#: src/ui/gtk/main.c:802
 #, c-format
 msgid "%d second"
 msgid_plural "%d seconds"
@@ -8785,8 +8753,7 @@ msgstr ""
 
 #: src/ui/gtk/search_common.c:1426
 msgid "The SHA1 query is not validly encoded"
-msgstr ""
-"La petición SHA1 no está codificada correctamente"
+msgstr "La petición SHA1 no está codificada correctamente"
 
 #: src/ui/gtk/settings.c:995
 msgid "Never"
@@ -8943,6 +8910,7 @@ msgid "Transmission complete"
 msgstr "Transmisión abortada"
 
 #: src/ui/gtk/uploads_common.c:170
+#, c-format
 msgid "%s [%d] (slot %d/%d)"
 msgstr "%s [%d] (ranura %d/%d)"
 
@@ -8957,4 +8925,3 @@ msgstr "Enviando QUEUE, reconectando..."
 #: src/ui/gtk/uploads_common.c:202
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
-
