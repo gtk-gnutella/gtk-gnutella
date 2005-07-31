@@ -58,6 +58,7 @@ InstallMultiple($(PIXMAP_FILES), $(INSTALLPREFIX)/share/pixmaps)
 update:
 	wget http://www.completewhois.com/bogons/data/bogons-cidr-all.txt \
 		-O bogons.txt
+	rm -f GeoIPCountryCSV.zip
 	wget http://www.maxmind.com/download/geoip/database/GeoIPCountryCSV.zip
 	rm -f GeoIPCountryWhois.csv
 	unzip GeoIPCountryCSV.zip
