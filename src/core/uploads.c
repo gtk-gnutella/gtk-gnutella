@@ -982,6 +982,9 @@ upload_remove(gnutella_upload_t *u, const gchar *reason, ...)
 
 /**
  * Utility routine.  Cancel the upload, sending back the HTTP error message.
+ *
+ * @note The parameter "msg" is passed to gettext(). Do not pass already
+ *       translated strings because it's send as HTTP response message.
  */
 static void
 upload_error_remove(
@@ -1000,7 +1003,7 @@ upload_error_remove(
 	send_upload_error_v(u, sf, NULL, code, msg, errargs);
 	va_end(errargs);
 
-	upload_remove_v(u, msg, args);
+	upload_remove_v(u, msg ? _(msg) : NULL, args);
 	va_end(args);
 }
 
@@ -3027,7 +3030,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 					upload_error_remove(u, reqfile, 503, "Queue full");
 				} else {
 					upload_error_remove(u, reqfile,	503,
-						_("Queued (slot %d, ETA: %s)"),
+						N_("Queued (slot %d, ETA: %s)"),
 						parq_upload_lookup_position(u),
 						short_time(parq_upload_lookup_eta(u)));
 				}
@@ -3047,9 +3050,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		if (!is_followup && !parq_upload_ip_can_proceed(u)) {
 			upload_error_remove(u, reqfile, 503,
-				NG_("Only %d upload per IP address",
-					"Only %d uploads per IP address", max_uploads_ip),
-					 max_uploads_ip);
+				"Too many uploads to this IP address (limit=%d)",
+				max_uploads_ip);
 			return;
 		}
 
