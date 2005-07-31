@@ -1,12 +1,5 @@
 # since last version
 
-- (2005-07-31 - RAM)
- * Added the "update" target to update the bogons and GeoIP database.
-   Requires wget and perl to be installed. (meant for developers only)
- * Updated the bogons.txt and geo-ip.txt files by running "make update".
- * Mention the "make update" step in the RELEASE guide.
- * Re-instantiated step #7 in t he RELEASE guide.
-
 
 # v 0.95.4  2005.07.31  [stable]
 
@@ -14,14 +7,20 @@
   only the last byte needed to be downloaded, has been fixed.
 - Preliminary browse-host support, allowing other servents to browse
   the files that are shared. This is disabled by default.
-- Will detect online status again after temporary network failure.
-- The .desktop file and icons are now properly installed.
-- Proper sorting of downloads 
+- GTKG will detect online status again after temporary network failure.
+- The .desktop file and application icons are now properly installed.
+- Downloads are now sorting in a more logical way.
 - Bug fixes in UTF-8 support.
 - Doxygen documentation updates.
-- Japanese translation updates.
-- Spanish translation updates.
+- Japanese and Spanish translation updates.
 
+	
+- (2005-07-31 - RAM)
+ * Added the "update" target to update the bogons and GeoIP database.
+   Requires wget and perl to be installed. (meant for developers only)
+ * Updated the bogons.txt and geo-ip.txt files by running "make update".
+ * Mention the "make update" step in the RELEASE guide.
+ * Re-instantiated step #7 in the RELEASE guide.
 
 - (2005-06-29 - RAM)
  * Was mistakenly thinking it was reading data from the network whereas it
