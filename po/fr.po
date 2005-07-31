@@ -1,4 +1,3 @@
-# $Id$
 # French translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
 # Copyright (C) 2001-2005 Raphael Manfredi.
@@ -9,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.95.4\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-07-31 01:20+0900\n"
-"PO-Revision-Date: 2005-07-01 19:03+0900\n"
+"POT-Creation-Date: 2005-07-31 20:13+0900\n"
+"PO-Revision-Date: 2005-07-31 18:36+0900\n"
 "Last-Translator: T'aZ <tazdev@punkass.com>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -450,12 +449,12 @@ msgstr ""
 msgid "Failed (Header line too long)"
 msgstr ""
 
-#: src/core/nodes.c:4818 src/core/uploads.c:1092
+#: src/core/nodes.c:4818 src/core/uploads.c:1095
 #, fuzzy, c-format
 msgid "Failed (%s)"
 msgstr "Échoué"
 
-#: src/core/nodes.c:4827 src/core/uploads.c:1098
+#: src/core/nodes.c:4827 src/core/uploads.c:1101
 msgid "Failed (Input Exception)"
 msgstr ""
 
@@ -463,12 +462,12 @@ msgstr ""
 msgid "Failed (Input buffer full)"
 msgstr ""
 
-#: src/core/nodes.c:4839 src/core/uploads.c:1110
+#: src/core/nodes.c:4839 src/core/uploads.c:1113
 #, c-format
 msgid "Failed (Input error: %s)"
 msgstr ""
 
-#: src/core/nodes.c:4851 src/core/uploads.c:1118
+#: src/core/nodes.c:4851 src/core/uploads.c:1121
 #, fuzzy
 msgid "Failed (EOF)"
 msgstr "Échoué"
@@ -717,59 +716,52 @@ msgstr ""
 msgid "Banned for %s"
 msgstr ""
 
-#: src/core/uploads.c:1414
+#: src/core/uploads.c:1417
 #, fuzzy
 msgid "Unable to send GIV"
 msgstr "N'a pu envoyer de push"
 
-#: src/core/uploads.c:2462
+#: src/core/uploads.c:2465
 msgid "<Browse Host Request>"
 msgstr ""
 
-#: src/core/uploads.c:2475
+#: src/core/uploads.c:2478
 msgid "Browse Host Enabled"
 msgstr ""
 
-#: src/core/uploads.c:2880
+#: src/core/uploads.c:2883
 msgid "Stalling upload replaced"
 msgstr ""
 
-#: src/core/uploads.c:3030
+#: src/core/uploads.c:3033
 #, fuzzy, c-format
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "Dans la file [%d] (slot %d / %d) temps de vie: %s"
 
-#: src/core/uploads.c:3050
-#, fuzzy, c-format
-msgid "Only %d upload per IP address"
-msgid_plural "Only %d uploads per IP address"
-msgstr[0] "Monitorer les adresses IP des mauvais noeuds"
-msgstr[1] "Monitorer les adresses IP des mauvais noeuds"
-
-#: src/core/uploads.c:3217
+#: src/core/uploads.c:3219
 msgid "Cannot send whole HTTP status"
 msgstr ""
 
-#: src/core/uploads.c:3304
+#: src/core/uploads.c:3306
 msgid "Write exception"
 msgstr ""
 
-#: src/core/uploads.c:3379 src/core/uploads.c:3486
+#: src/core/uploads.c:3381 src/core/uploads.c:3488
 #, c-format
 msgid "File read error: %s"
 msgstr ""
 
-#: src/core/uploads.c:3416 src/core/uploads.c:3506
+#: src/core/uploads.c:3418 src/core/uploads.c:3508
 #, c-format
 msgid "Data write error: %s"
 msgstr ""
 
-#: src/core/uploads.c:3535
+#: src/core/uploads.c:3537
 #, fuzzy
 msgid "Explicitly killed"
 msgstr "Remis dans la file explicitement"
 
-#: src/core/uploads.c:3561
+#: src/core/uploads.c:3563
 #, fuzzy
 msgid "IP denying uploads"
 msgstr "Nombre d'envois en cours"
@@ -7072,10 +7064,6 @@ msgstr "À propos de gtk-gnutella"
 msgid "[name and version]"
 msgstr "[nom et version]"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9926
-msgid "$Id$"
-msgstr ""
-
 #: src/ui/gtk/gtk1/interface-glade.c:9959
 #: src/ui/gtk/gtk2/interface-glade.c:1454
 msgid "Original author:"
@@ -9537,612 +9525,3 @@ msgstr "Envoi de QUEUE, se connecte..."
 #: src/ui/gtk/uploads_common.c:202
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
-
-#, fuzzy
-#~ msgid "Push route lost"
-#~ msgstr "Route perdue"
-
-#, fuzzy
-#~ msgid "Request timeout"
-#~ msgstr "Demande envoyée"
-
-#~ msgid "Got %d hosts from %s"
-#~ msgstr "Reçu %d hôtes depuis %s"
-
-#~ msgid "No home directory: prefs will not be saved!"
-#~ msgstr "Pas de répertoire home: Les préférences ne seront pas sauvées!"
-
-#~ msgid "Got %d hosts from UDP host cache %s:%u"
-#~ msgstr "Reçu %d hôtes du cache UDP %s:%u"
-
-#~ msgid "nodes"
-#~ msgstr "noeuds"
-
-#~ msgid "files"
-#~ msgstr "fichiers"
-
-#~ msgid "Removed %u downloads"
-#~ msgstr "Enlevé %u téléchargements"
-
-#~ msgid "Forgot %u downloads"
-#~ msgstr "Oublié %u téléchargements"
-
-#~ msgid "Selected %u of %u queued downloads matching \"%s\"."
-#~ msgstr ""
-#~ " %u de %u téléchargements en file d'attente sélectionné correspondant à "
-#~ "\"%s\"."
-
-#, fuzzy
-#~ msgid "Queued (%d active/ %d passive)"
-#~ msgstr "Mis dans la file (%d active/ %d passive)"
-
-#~ msgid "auto-hide leaf traffc stats"
-#~ msgstr "Cacher automatiquement les stats du trafic leaf"
-
-#~ msgid "Quit"
-#~ msgstr "Quitter"
-
-#~ msgid "Filters"
-#~ msgstr "Filtres"
-
-#~ msgid "New search:"
-#~ msgstr "Nouvelle recherche:"
-
-#~ msgid "leaf traffic"
-#~ msgstr "Trafic leaf"
-
-#~ msgid "Maximum simultaneous uploads"
-#~ msgstr "Maximum d'envois simultanés"
-
-#~ msgid "Download settings "
-#~ msgstr "Paramètres de téléchargement"
-
-#~ msgid "Maximum concurrent requests"
-#~ msgstr "Nombre maximum de requêtes simultanées"
-
-#~ msgid "Max requests from single host"
-#~ msgstr "Max de requêtes vers un seul hôte"
-
-#~ msgid "Abort selected"
-#~ msgstr "Arrêter ceux sélectionnés"
-
-#~ msgid "Resume selected"
-#~ msgstr "Reprendre ceux sélectionnés"
-
-#~ msgid "[active]"
-#~ msgstr "[actif]"
-
-#~ msgid "Maximum results"
-#~ msgstr "Résultats maximum"
-
-#~ msgid "Remove manually downloaded files"
-#~ msgstr "Enlèver manuellemnt les fichiers téléchargés"
-
-#~ msgid "Hide downloaded files"
-#~ msgstr "Cacher les fichiers téléchargés"
-
-#~ msgid "No items found"
-#~ msgstr "Pas d'élément trouvé"
-
-#~ msgid "Retry search every"
-#~ msgstr "Réessayer la recherche toutes les"
-
-#~ msgid "Download selected"
-#~ msgstr "Télécharger ceux sélectionnés"
-
-#~ msgid "Clear results"
-#~ msgstr "Efface les résultats"
-
-#~ msgid "Show last"
-#~ msgstr "Affiche le dernier"
-
-#~ msgid "Update interval (sec)"
-#~ msgstr "Intervalle de lise à jour (sec)"
-
-#~ msgid "Deletion coeff. (0-100)"
-#~ msgstr "Coeff. de suppression (0-100)"
-
-#~ msgid "Reset stats"
-#~ msgstr "Remise à zéro des stats"
-
-#~ msgid "count"
-#~ msgstr "compte"
-
-#~ msgid "show percentages"
-#~ msgstr "Affiche les pourcentages"
-
-#~ msgid "received"
-#~ msgstr "Reçu"
-
-#~ msgid "relayed"
-#~ msgstr "relayé"
-
-#, fuzzy
-#~ msgid "gen. queued"
-#~ msgstr "%u dans la file"
-
-#~ msgid "show bytes"
-#~ msgstr "Affiche les octets"
-
-#, fuzzy
-#~ msgid "with headers"
-#~ msgstr "Ajouter les en-têtes"
-
-#~ msgid "Not connected to the internet."
-#~ msgstr "Pas connecté à internet"
-
-#~ msgid "Running in ultrapeer mode"
-#~ msgstr "Tourne en mode ultrapeer."
-
-#~ msgid "Abort all with name"
-#~ msgstr "Annuler tous ceux avec nom"
-
-#~ msgid "Abort all with urn:sha1"
-#~ msgstr "Annuler tous ceux avec cet urn:sha1"
-
-#~ msgid "Forget all from host"
-#~ msgstr "Oublier tous ceux de cet hôte"
-
-#~ msgid "Dequeue selected downloads"
-#~ msgstr "Enlever de la file les téléchargements sélectionnés"
-
-#~ msgid "Abort and dequeue all downloads with selected names"
-#~ msgstr ""
-#~ "Annuler et enlever tous les téléchargements avec les noms sélectionnés"
-
-#~ msgid "Abort all from host"
-#~ msgstr "Annuler tous ceux de cet hôte"
-
-#~ msgid "Abort and dequeue all downloads from selected hosts"
-#~ msgstr ""
-#~ "Annuler et enlever tous les téléchargements venant des hôtes sélectionnés"
-
-#~ msgid "Edit filter"
-#~ msgstr "Éditer le filtre"
-
-#~ msgid "Drop..."
-#~ msgstr "Jeter..."
-
-#~ msgid "results with name"
-#~ msgstr "les résultats avec ce nom"
-
-#~ msgid "results with urn:sha1"
-#~ msgstr "les résultats avec cet urn:sha1"
-
-#~ msgid "results from host"
-#~ msgstr "les résultats de cet hôte"
-
-#~ msgid "Auto-download selected by name"
-#~ msgstr "Téléchargement automatique sélectionné par nom"
-
-#~ msgid "Auto-download selected by urn:sha1"
-#~ msgstr "Téléchargement automatique sélectionné par urn:sha1"
-
-#~ msgid "Create a new filter"
-#~ msgstr "Créer un nouveau filtre"
-
-#~ msgid "Create"
-#~ msgstr "Créer"
-
-#~ msgid ""
-#~ "==> We are looking for people who want to contribute to this fine tool. "
-#~ "<==\n"
-#~ "Visit http://gtk-gnutella.sourceforge.net.\n"
-#~ "Join the users or developers mailing lists.\n"
-#~ "Meet us on #gtk-gnutella at irc.freenode.net."
-#~ msgstr ""
-#~ "==> Nous recherchons des gens qui veulent contribuer à cet outil "
-#~ "fabuleux. <==\n"
-#~ "Visitez http://gtk-gnutella.sourceforge.net.\n"
-#~ "Rejoignez la mailing list des utilisateurs ou des développeurs.\n"
-#~ "Rencontrez nous sur #gtk-gnutella sur irc.freenode.net."
-
-#~ msgid "Close"
-#~ msgstr "Fermer"
-
-#~ msgid "Force local IP to"
-#~ msgstr "Forcer l'IP locale à"
-
-#~ msgid "Listen port"
-#~ msgstr "Port d'écoute"
-
-#~ msgid "Public hostname"
-#~ msgstr "Nom d'hôte public"
-
-#, fuzzy
-#~ msgid "Enable UDP"
-#~ msgstr "Active"
-
-#~ msgid "Host:"
-#~ msgstr "Hôte:"
-
-#~ msgid "TCP Port:"
-#~ msgstr "Port TCP:"
-
-#~ msgid "Proxy type:"
-#~ msgstr "Type de proxy:"
-
-#~ msgid "Username"
-#~ msgstr "Nom d'utilisateur"
-
-#~ msgid "Password"
-#~ msgstr "Mot de passe"
-
-#~ msgid "Allow connections from and to LAN addresses"
-#~ msgstr "Permet les connexions de et vers les adresses LAN"
-
-#~ msgid "Local network(s)"
-#~ msgstr "Réseau(x) local(aux)"
-
-#~ msgid "Hardlimit of file descriptors used"
-#~ msgstr "Limite dure des descripteurs de fichiers utilisés"
-
-#~ msgid "Host runs NTP"
-#~ msgstr "L'hôte utilise NTP"
-
-#~ msgid "[clock skew]"
-#~ msgstr "[décalage de l'heure]"
-
-#~ msgid "Enable \"shell\" control interface"
-#~ msgstr "Active le contrôle de l'interface via un \"shell\" "
-
-#~ msgid "Socket Receive Buffer Size"
-#~ msgstr "Taille du tampon de Réception du socket"
-
-#~ msgid "Gnutella RX buffer"
-#~ msgstr "tampon RX Gnutella"
-
-#~ msgid "Kbytes"
-#~ msgstr "Koctets"
-
-#~ msgid "Download RX buffer"
-#~ msgstr "tampon RX de téléchargement"
-
-#~ msgid "Current peermode"
-#~ msgstr "Peermode actuel"
-
-#~ msgid "Limit search results to "
-#~ msgstr "Limiter les résultats de la recherche à"
-
-#~ msgid "Default search reissue timeout"
-#~ msgstr "Timeout pour la réémission de la recherche par défaut"
-
-#~ msgid "TX flow control timeout"
-#~ msgstr "Timeout du contrôle de flux TX"
-
-#~ msgid "Max TTL"
-#~ msgstr "TTL max"
-
-#~ msgid "My TTL"
-#~ msgstr "Mon TTL"
-
-#~ msgid "from nodes within a"
-#~ msgstr "des noeuds dans un"
-
-#~ msgid "Max # of high TTL msg"
-#~ msgstr "# max de msg avec un TTL haut"
-
-#~ msgid "Hard TTL limit"
-#~ msgstr "Limite TTL dure"
-
-#~ msgid "Number of tolerable duplicate messages per node"
-#~ msgstr "Nombre de messages en doubles tolérés par noeud"
-
-#~ msgid "messages"
-#~ msgstr "messages"
-
-#~ msgid "Use surplus bandwidth"
-#~ msgstr "Utilise la bande passante en excès"
-
-#~ msgid "Prefer compressed connections"
-#~ msgstr "Préférer les connexions compressées"
-
-#~ msgid "Use IP Type of Service (TOS)"
-#~ msgstr "Utilise le Type de Service (TOS) IP"
-
-#~ msgid "Total output bandwidth limit: "
-#~ msgstr "Limite totale de la bande passante sortante:"
-
-#~ msgid "Measured HTTP latency: "
-#~ msgstr "Latence HTTP mesurée:"
-
-#, fuzzy
-#~ msgid " secs"
-#~ msgstr "secondes"
-
-#~ msgid "Bandwidth control for gnutellaNet traffic"
-#~ msgstr "Contrôle de la bande passante pour le trafic gnutellaNet"
-
-#~ msgid "Limit bandwidth for incoming traffic to"
-#~ msgstr "Limiter la bande passante pour le trafic entrant à"
-
-#~ msgid "Limit bandwidth for outgoing traffic to"
-#~ msgstr "Limiter la bande passante pour le trafic sortant à"
-
-#~ msgid "Limit incoming bandwidth from leaves to"
-#~ msgstr "Limiter la bande passante entrante des leaves à"
-
-#~ msgid "Limit outgoing bandwidth to leaves to"
-#~ msgstr "Limiter la bande passante sortante des leaves à"
-
-#~ msgid "Bandwidth control for HTTP traffic"
-#~ msgstr "Contrôle de la bande passante pour le trafic HTTP"
-
-#~ msgid "Report an upload connection speed of"
-#~ msgstr "Rapporter une vitesse de connexion d'envoi de"
-
-#~ msgid "Compute upload connection speed"
-#~ msgstr "Calculer la vitesse de connexion d'envoi"
-
-#~ msgid "Browse"
-#~ msgstr "Parcourir"
-
-#~ msgid "Convert spaces to \"__\"  in generated file names"
-#~ msgstr "Convertis les espaces en \"__\" dans les noms de fichiers"
-
-#~ msgid ""
-#~ "Convert \"evil\" characters (like shell meta characters) to \"__\" in "
-#~ "filenames"
-#~ msgstr ""
-#~ "Convertis les caractères spéciaux (comme ceux réservés aux shells) en \"__"
-#~ "\" dans les noms de fichiers"
-
-#~ msgid "Overlap when resuming"
-#~ msgstr "Recouvrir lors de la reprise"
-
-#~ msgid "Maximum number of retries"
-#~ msgstr "Nombre maximum de réessais"
-
-#~ msgid "Optimistic first chunk"
-#~ msgstr "Premier bloc optimiste"
-
-#~ msgid "Require urn"
-#~ msgstr "Exige l'urn"
-
-#~ msgid "Require server name"
-#~ msgstr "Exige le nom du serveur"
-
-#~ msgid "Enable swarming"
-#~ msgstr "Activer le swarming"
-
-#~ msgid "Aggressive mode"
-#~ msgstr "Mode agressif"
-
-#~ msgid "Minimum chunk size"
-#~ msgstr "Taille minimum des blocs"
-
-#~ msgid "Maximum chunk size"
-#~ msgstr "Taille maximale des blocs"
-
-#~ msgid "Strict SHA1 matching"
-#~ msgstr "Correspondance stricte SHA1"
-
-#~ msgid "Use fuzzy matching"
-#~ msgstr "Utiliser la correspondance floue"
-
-#, fuzzy
-#~ msgid "Apply fuzzy filter on download mesh entries"
-#~ msgstr ""
-#~ "Appliquer le filtre flou sur les entrées du maillage du téléchargement"
-
-#~ msgid "Watch hits for alternate download sources"
-#~ msgstr "Examine les résultats pour trouver des sources alternatives"
-
-#~ msgid "Feed mesh from hits"
-#~ msgstr "Compléter le maillage avec les hits"
-
-#~ msgid "Path(s) to files"
-#~ msgstr "Chemin(s) vers les fichiers"
-
-#~ msgid " Add directory "
-#~ msgstr "Ajouter un répertoire"
-
-#~ msgid " Rescan "
-#~ msgstr "Rescanner"
-
-#~ msgid "Search extensions"
-#~ msgstr "Extensions à rechercher"
-
-#, fuzzy
-#~ msgid "First chunk size "
-#~ msgstr "Taille du premier bloc"
-
-#~ msgid "Enable"
-#~ msgstr "Active"
-
-#~ msgid "and lasted "
-#~ msgstr "et a duré"
-
-#~ msgid "Query Routing table information"
-#~ msgstr "Informations de la table de routage des demandes"
-
-#~ msgid "Query Routing patch information"
-#~ msgstr "Information du patch du routage des requêtes"
-
-#~ msgid "Show tooltips (does not affect all tooltips yet)"
-#~ msgstr ""
-#~ "Affiche les tooltips (n'affecte pas tous les tooltips pour l'instant)"
-
-#~ msgid ""
-#~ "Show additional information and settings for advanced and expert users"
-#~ msgstr ""
-#~ "Affiche des informations et des paramètres supplémentaires pour les "
-#~ "utilisateurs avancés et experts"
-
-#~ msgid "Core debug level"
-#~ msgstr "Niveau de debug du core"
-
-#~ msgid "GUI debug level"
-#~ msgstr "Niveau de debug du GUI"
-
-#, fuzzy
-#~ msgid "Lib debug level"
-#~ msgstr "Niveau de debug du GUI"
-
-#, fuzzy
-#~ msgid "Search management"
-#~ msgstr "Gestion de la qualité"
-
-#, fuzzy
-#~ msgid "UDP traffic"
-#~ msgstr "trafic HTTP"
-
-#, fuzzy
-#~ msgid "QRP management"
-#~ msgstr "Gestion de la qualité"
-
-#~ msgid "Unmapped stuff"
-#~ msgstr "Trucs non mappés"
-
-#, fuzzy
-#~ msgid "%u terms counted"
-#~ msgstr "0 termes comptés"
-
-#, fuzzy
-#~ msgid "Forgot %d download"
-#~ msgstr "Oublié %d téléchargements"
-
-#~ msgid "Forgot %d downloads"
-#~ msgstr "Oublié %d téléchargements"
-
-#~ msgid "Contributors"
-#~ msgstr "Contribueurs"
-
-#~ msgid "This node is in leaf mode."
-#~ msgstr "Ce noeud est en mode leaf."
-
-#~ msgid "Legacy mode is active. (Make sure there's an IRQ left!)"
-#~ msgstr "Mode legacy est actif. (soyez sur qu'il y a un IRQ libre!)"
-
-#~ msgid "_New"
-#~ msgstr "_Nouveau"
-
-#~ msgid "Please confirm"
-#~ msgstr "Veuillez confirmer"
-
-#~ msgid "Max. uploads to single host"
-#~ msgstr "Max d'envois vers un seul hôte"
-
-#~ msgid "Show _settings"
-#~ msgstr "Affiche les paramètre_s"
-
-#, fuzzy
-#~ msgid "Active Downloads"
-#~ msgstr "Téléchargements"
-
-#~ msgid "_Purge"
-#~ msgstr "_Purger"
-
-#, fuzzy
-#~ msgid " with sources "
-#~ msgstr " avec sources"
-
-#~ msgid ""
-#~ "No items "
-#~ "found                                                                          "
-#~ msgstr "Pas d'item trouvés"
-
-#~ msgid "Edit _Filters"
-#~ msgstr "Éditer les _filtres"
-
-#~ msgid "Headers"
-#~ msgstr "En-têtes"
-
-#~ msgid "Hostcache capacities"
-#~ msgstr "Capacité du cache des hôtes"
-
-#~ msgid "Local Networks"
-#~ msgstr "Réseaux locaux"
-
-#, fuzzy
-#~ msgid "Max. file descriptors reserved for _banning"
-#~ msgstr "Nombre max de decripteurs de fichiers réservé pour le ban"
-
-#, fuzzy
-#~ msgid "_Max. percentage of file descriptors used for banning"
-#~ msgstr "Pourcentaage max de descripteurs de fichiers utilisés pour bannir"
-
-#~ msgid "Connecting time_out"
-#~ msgstr "Time_out lors de la connexion"
-
-#~ msgid "gnutellaNet _TTL settings"
-#~ msgstr "paramètres _TTL gnutellaNet"
-
-#~ msgid "kbits/s to peers"
-#~ msgstr "kbits/sec vers les autres peers"
-
-#~ msgid "_Connecting timeout"
-#~ msgstr "Timeout lors d'une _connexion"
-
-#~ msgid "C_onnected timeout"
-#~ msgstr "timeout quand connecté"
-
-#~ msgid "Compressed ratio"
-#~ msgstr "Rapport de la compression"
-
-#, fuzzy
-#~ msgid "_stop collecting hosts"
-#~ msgstr "arrête de collectionner les hôte_s dans la liste"
-
-#, fuzzy
-#~ msgid "Dynamic Query _Hits"
-#~ msgstr "Query Hit malformé"
-
-#, fuzzy
-#~ msgid "_Vendor Messages"
-#~ msgstr "Messages"
-
-#~ msgid "(Press Control-F1 to toggle view)"
-#~ msgstr "(Pressez Control-F1 pour changer de vue)"
-
-#~ msgid "%lu files shared (%s)"
-#~ msgstr "%lu fichiers partagés (%s)"
-
-#, fuzzy
-#~ msgid "%u/%u hosts (%u%%)"
-#~ msgstr "%u/%u hôte%s (%u%%)"
-
-#~ msgid "*** VERSION WILL BECOME OLD IN 1 DAY! ***"
-#~ msgstr "*** CETTE VERSION SERA ANCIENNE DANS 1 JOUR! ***"
-
-#, fuzzy
-#~ msgid "1 source"
-#~ msgstr "Pas de source"
-
-#~ msgid "%u/%u connections"
-#~ msgstr "%u/%u connexions"
-
-#~ msgid "%u/%u uploads"
-#~ msgstr "%u/%u envois"
-
-#~ msgid "%u/%u downloads"
-#~ msgstr "%u/%u téléchargements"
-
-#~ msgid "Completed (< 1s)"
-#~ msgstr "Terminé (< 1s)"
-
-#~ msgid "Waiting [%d] (slot %d / %d) %ds, lifetime: %s"
-#~ msgstr "En attente [%d] (slot %d / %d) %ds, temps de vie: %s"
-
-#~ msgid "Waiting [%d] (slot %d / %d) lifetime: %s"
-#~ msgstr "En attente [%d] (slot %d / %d) temps de vie: %s"
-
-#~ msgid "Queued [%d] (slot %d / %d) %ds, lifetime: %s"
-#~ msgstr "Dans la file [%d] (slot %d / %d) %ds, temps de vie: %s"
-
-#~ msgid "Indicates that gtk-gnutella finds the version you run very very old"
-#~ msgstr "Indique que gtk-gnutella trouve votre version très très ancienne"
-
-#~ msgid ""
-#~ "Shows visual information on the download progress. Green chunks have been "
-#~ "downloaded, with the brighter green chunks touched during this session. "
-#~ "Yellow chunks are active right now. Red chunks have not been downloaded "
-#~ "yet. The blue line indicates which parts of the file have been seen on "
-#~ "the network in this session."
-#~ msgstr ""
-#~ "Affiche des informations visuelles sur la progression du téléchargement. "
-#~ "Les blocs verts représentent les parties téléchargées, avec les parties "
-#~ "vertes claires représentant celles finis lors de cette session. Les blocs "
-#~ "jaunes sont ceux actifs actuellement. Les rouges n'ont pas encore été "
-#~ "téléchargés. La ligne bleu indique quel sont les parties disponibles vues "
-#~ "sur le réseau lors de cette session."
