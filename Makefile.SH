@@ -59,7 +59,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.12 2005/07/31 06:58:11 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.13 2005/07/31 07:02:55 rmanfredi Exp $
 
 EXTRA_FILES = \
 	bogons.txt \
@@ -160,6 +160,7 @@ local_deinstall::
 update:
 	wget http://www.completewhois.com/bogons/data/bogons-cidr-all.txt \
 		-O bogons.txt
+	rm -f GeoIPCountryCSV.zip
 	wget http://www.maxmind.com/download/geoip/database/GeoIPCountryCSV.zip
 	rm -f GeoIPCountryWhois.csv
 	unzip GeoIPCountryCSV.zip
