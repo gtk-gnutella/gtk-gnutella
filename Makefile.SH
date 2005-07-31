@@ -41,7 +41,6 @@ INSTALLDIR = $INSTALLDIR
 # Parameters set by Configure -- edit config.sh if changes are needed
 
 CTAGS = ctags
-INSTALLPREFIX = $prefix
 MV = $mv
 PRIVLIB = $installprivlib
 RM = $rm -f
@@ -60,7 +59,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.10 2005/07/24 18:50:10 graaff Exp $
+# $X-Id: Jmakefile,v 1.12 2005/07/31 06:58:11 rmanfredi Exp $
 
 EXTRA_FILES = \
 	bogons.txt \
@@ -117,6 +116,15 @@ local_deinstall::
 
 local_install:: gtk-gnutella.desktop
 	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
+	(set -x; test -d $(INSTALL_PREFIX)$(DESKTOP) || \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$(DESKTOP)); \
+	$(INSTALL) -c -m 444 gtk-gnutella.desktop $(INSTALL_PREFIX)$(DESKTOP)
+
+local_deinstall::
+	$(RM) $(INSTALL_PREFIX)$(DESKTOP)/gtk-gnutella.desktop
+
+local_install:: gtk-gnutella.desktop
+	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
 	(set -x; test -d $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/applications || \
 		$(INSTALLDIR) $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/applications); \
 	for i in gtk-gnutella.desktop; do \
@@ -144,6 +152,18 @@ local_deinstall::
 	for i in $(PIXMAP_FILES); do \
 		(set -x; $(RM) $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/pixmaps/$$i); \
 	done
+
+#
+# Update the bogons and GeoIp databases
+#
+
+update:
+	wget http://www.completewhois.com/bogons/data/bogons-cidr-all.txt \
+		-O bogons.txt
+	wget http://www.maxmind.com/download/geoip/database/GeoIPCountryCSV.zip
+	rm -f GeoIPCountryWhois.csv
+	unzip GeoIPCountryCSV.zip
+	./geo-to-db.pl -c GeoIPCountryWhois.csv >geo-ip.txt
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit
