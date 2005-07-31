@@ -57,8 +57,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.95.4\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-07-31 01:20+0900\n"
-"PO-Revision-Date: 2005-07-30 19:00+0900\n"
+"POT-Creation-Date: 2005-07-31 20:13+0900\n"
+"PO-Revision-Date: 2005-07-31 18:30+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -485,12 +485,12 @@ msgstr "失敗しました (%s を自動送信できません)"
 msgid "Failed (Header line too long)"
 msgstr "失敗しました (ヘッダ行が長すぎます)"
 
-#: src/core/nodes.c:4818 src/core/uploads.c:1092
+#: src/core/nodes.c:4818 src/core/uploads.c:1095
 #, c-format
 msgid "Failed (%s)"
 msgstr "失敗しました (%s)"
 
-#: src/core/nodes.c:4827 src/core/uploads.c:1098
+#: src/core/nodes.c:4827 src/core/uploads.c:1101
 msgid "Failed (Input Exception)"
 msgstr "失敗しました (入力例外が発生)"
 
@@ -498,12 +498,12 @@ msgstr "失敗しました (入力例外が発生)"
 msgid "Failed (Input buffer full)"
 msgstr "失敗しました (入力バッファが一杯です)"
 
-#: src/core/nodes.c:4839 src/core/uploads.c:1110
+#: src/core/nodes.c:4839 src/core/uploads.c:1113
 #, c-format
 msgid "Failed (Input error: %s)"
 msgstr "失敗しました (入力エラー: %s)"
 
-#: src/core/nodes.c:4851 src/core/uploads.c:1118
+#: src/core/nodes.c:4851 src/core/uploads.c:1121
 msgid "Failed (EOF)"
 msgstr "失敗しました (EOF)"
 
@@ -744,56 +744,50 @@ msgstr "禁止されました: %s"
 msgid "Banned for %s"
 msgstr "%s を禁止します"
 
-#: src/core/uploads.c:1414
+#: src/core/uploads.c:1417
 msgid "Unable to send GIV"
 msgstr "GIV を送信できません"
 
-#: src/core/uploads.c:2462
+#: src/core/uploads.c:2465
 msgid "<Browse Host Request>"
 msgstr "<ホスト参照リクエスト>"
 
-#: src/core/uploads.c:2475
+#: src/core/uploads.c:2478
 msgid "Browse Host Enabled"
 msgstr "ホストを参照できます"
 
-#: src/core/uploads.c:2880
+#: src/core/uploads.c:2883
 msgid "Stalling upload replaced"
 msgstr "停滞アップロードを置換えます"
 
-#: src/core/uploads.c:3030
+#: src/core/uploads.c:3033
 #, c-format
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "待機中 (受口 %d, 予定時間: %s)"
 
-#: src/core/uploads.c:3050
-#, c-format
-msgid "Only %d upload per IP address"
-msgid_plural "Only %d uploads per IP address"
-msgstr[0] "IP アドレス毎に %d 件のアップロードのみが可能です"
-
-#: src/core/uploads.c:3217
+#: src/core/uploads.c:3219
 msgid "Cannot send whole HTTP status"
 msgstr "全 HTTP ステータスを送信できません"
 
-#: src/core/uploads.c:3304
+#: src/core/uploads.c:3306
 msgid "Write exception"
 msgstr "書込み例外が発生しました"
 
-#: src/core/uploads.c:3379 src/core/uploads.c:3486
+#: src/core/uploads.c:3381 src/core/uploads.c:3488
 #, c-format
 msgid "File read error: %s"
 msgstr "ファイル読込エラー: %s"
 
-#: src/core/uploads.c:3416 src/core/uploads.c:3506
+#: src/core/uploads.c:3418 src/core/uploads.c:3508
 #, c-format
 msgid "Data write error: %s"
 msgstr "データ書込エラー: %s"
 
-#: src/core/uploads.c:3535
+#: src/core/uploads.c:3537
 msgid "Explicitly killed"
 msgstr "明示的に中断されました"
 
-#: src/core/uploads.c:3561
+#: src/core/uploads.c:3563
 msgid "IP denying uploads"
 msgstr "IP がアップロードを拒否します"
 
@@ -6764,10 +6758,6 @@ msgstr "Gtk-Gnutella について"
 msgid "[name and version]"
 msgstr "[name and version]"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9926
-msgid "$Id$"
-msgstr ""
-
 #: src/ui/gtk/gtk1/interface-glade.c:9959
 #: src/ui/gtk/gtk2/interface-glade.c:1454
 msgid "Original author:"
@@ -9129,6 +9119,3 @@ msgstr "QUEUE 送信、折り返し接続中..."
 #: src/ui/gtk/uploads_common.c:202
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE 送信完了、ヘッダ待受中..."
-
-#~ msgid "Push route lost"
-#~ msgstr "PUSH 経路を失いました"
