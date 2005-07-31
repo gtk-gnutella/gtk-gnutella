@@ -1,5 +1,13 @@
 # since last version
 
+- (2005-07-31 - RAM)
+ * Added the "update" target to update the bogons and GeoIP database.
+   Requires wget and perl to be installed. (meant for developers only)
+ * Updated the bogons.txt and geo-ip.txt files by running "make update".
+ * Mention the "make update" step in the RELEASE guide.
+ * Re-instantiated step #7 in t he RELEASE guide.
+
+
 # v 0.95.4  2005.07.31  [stable]
 
 - The last-byte download bug, where a download would not complete if
