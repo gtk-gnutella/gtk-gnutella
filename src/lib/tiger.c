@@ -29,7 +29,7 @@
  *
  * Tiger hash.
  *
- * This file comes from http://sourceforge.net/projects/tigertree/
+ * This file comes from http://www.cs.technion.ac.il/~biham/Reports/Tiger/
  *
  * Inclusion in gtk-gnutella is:
  *
