@@ -241,7 +241,7 @@ static void bg_task_suspend(struct bgtask *bt)
 /**
  * bg_task_resume
  *
- * Suspend task.
+ * Resume task execution.
  */
 static void bg_task_resume(struct bgtask *bt)
 {
