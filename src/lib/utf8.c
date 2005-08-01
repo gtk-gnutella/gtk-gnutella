@@ -52,12 +52,7 @@ RCSID("$Id$");
 #include <langinfo.h>
 #endif /* I_LIBCHARSET */
 
-#ifndef USE_GLIB2
 #include <iconv.h>
-#define GIConv iconv_t
-#define g_iconv_open(t, f) iconv_open(t, f)
-#define g_iconv(c, i, n, o, m) iconv(c, i, n, o, m)
-#endif /* !USE_GLIB2 */
 
 #include "utf8_tables.h"
 
@@ -92,9 +87,9 @@ static UConverter *conv_icu_utf8 = NULL;
 
 static const gchar *charset = NULL;
 
-static GIConv cd_locale_to_utf8	= (GIConv) -1;
-static GIConv cd_utf8_to_locale	= (GIConv) -1;
-static GIConv cd_latin_to_utf8	= (GIConv) -1;
+static iconv_t cd_locale_to_utf8 = (iconv_t) -1;
+static iconv_t cd_utf8_to_locale = (iconv_t) -1;
+static iconv_t cd_latin_to_utf8	= (iconv_t) -1;
 
 static inline gboolean
 locale_is_utf8(void)
@@ -877,16 +872,16 @@ locale_init(void)
 			break;
 		}
 
-	if ((GIConv)-1 == (cd_latin_to_utf8 = g_iconv_open("UTF-8", "ISO-8859-1")))
-		g_warning("g_iconv_open(\"UTF-8\", \"ISO-8859-1\") failed.");
+	if ((iconv_t) -1 == (cd_latin_to_utf8 = iconv_open("UTF-8", "ISO-8859-1")))
+		g_warning("iconv_open(\"UTF-8\", \"ISO-8859-1\") failed.");
 	if (0 != strcmp("ISO-8859-1", charset)) {
-		if ((GIConv)-1 == (cd_locale_to_utf8 = g_iconv_open("UTF-8", charset)))
-			g_warning("g_iconv_open(\"UTF-8\", \"%s\") failed.", charset);
+		if ((iconv_t) -1 == (cd_locale_to_utf8 = iconv_open("UTF-8", charset)))
+			g_warning("iconv_open(\"UTF-8\", \"%s\") failed.", charset);
 	} else {
 		cd_locale_to_utf8 = cd_latin_to_utf8;
 	}
-	if ((GIConv)-1 == (cd_utf8_to_locale = g_iconv_open(charset, "UTF-8")))
-		g_warning("g_iconv_open(\"%s\", \"UTF-8\") failed.", charset);
+	if ((iconv_t)-1 == (cd_utf8_to_locale = iconv_open(charset, "UTF-8")))
+		g_warning("iconv_open(\"%s\", \"UTF-8\") failed.", charset);
 
 #if 0  /* xxxUSE_ICU */
 	{
@@ -933,7 +928,7 @@ locale_close(void)
 }
 
 static inline char *
-complete_iconv(GIConv cd, const char *inbuf, size_t inbytes_left,
+complete_iconv(iconv_t cd, const char *inbuf, size_t inbytes_left,
 	char *outbuf, size_t outbytes_left)
 {
 #if 0
@@ -947,18 +942,18 @@ complete_iconv(GIConv cd, const char *inbuf, size_t inbytes_left,
 #endif
 	gchar *result = outbuf;
 
-	if ((GIConv) -1 == cd)
+	if ((iconv_t) -1 == cd)
 		return NULL;
 
 	if (outbytes_left > 0)
 		outbuf[0] = '\0';
 
-	g_iconv(cd, NULL, NULL, NULL, NULL);	/* reset state*/
+	iconv(cd, NULL, NULL, NULL, NULL);	/* reset state*/
 	
 	while (inbytes_left > 0 && outbytes_left > 1) {
 		size_t ret;
 
-		ret = g_iconv(cd, cast_to_gpointer(&inbuf), &inbytes_left,
+		ret = iconv(cd, cast_to_gpointer(&inbuf), &inbytes_left,
 		    &outbuf, &outbytes_left);
 
 		if ((size_t) -1 == ret) {
@@ -966,7 +961,7 @@ complete_iconv(GIConv cd, const char *inbuf, size_t inbytes_left,
 			case EILSEQ:
 			case EINVAL:
 				if (common_dbg > 1)
-					g_warning("complete_iconv: g_iconv() failed soft: %s",
+					g_warning("complete_iconv: iconv() failed soft: %s",
 						g_strerror(errno));
 
 				if (outbytes_left > sizeof replacement) {
@@ -981,11 +976,11 @@ complete_iconv(GIConv cd, const char *inbuf, size_t inbytes_left,
 				break;
 			default:
 				if (common_dbg > 1)
-					g_warning("complete_iconv(): g_iconv() failed hard: %s",
+					g_warning("complete_iconv(): iconv() failed hard: %s",
 						g_strerror(errno));
 				return NULL;
 			}
-			g_iconv(cd, NULL, NULL, NULL, NULL);	/* reset state*/
+			iconv(cd, NULL, NULL, NULL, NULL);	/* reset state*/
 		}
 	}
 	*outbuf = '\0';
