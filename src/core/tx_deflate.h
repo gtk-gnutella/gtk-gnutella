@@ -42,9 +42,18 @@
 const struct txdrv_ops *tx_deflate_get_ops(void);
 
 /**
+ * Callbacks used by the deflating layer.
+ */
+struct tx_deflate_cb {
+	void (*add_tx_deflated)(gpointer owner, gint amount);
+	void (*shutdown)(gpointer owner, const gchar *reason, ...);
+};
+
+/**
  * Arguments to be passed when the layer is intantiated.
  */
 struct tx_deflate_args {
+	struct tx_deflate_cb *cb;	/**< Callbacks */
 	cqueue_t *cq;				/**< Callout queue to use */
 };
 

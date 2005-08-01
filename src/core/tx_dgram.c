@@ -56,8 +56,9 @@ RCSID("$Id$");
  * Private attributes for the layer.
  */
 struct attr {
-	wrap_io_t 	 *wio;	/**< Cached wrapped IO object */
-	bio_source_t *bio;	/**< Bandwidth-limited I/O source */
+	wrap_io_t 	 *wio;			/**< Cached wrapped IO object */
+	bio_source_t *bio;			/**< Bandwidth-limited I/O source */
+	struct tx_dgram_cb *cb;		/**< Layer-specific callbacks */
 };
 
 /**
@@ -67,12 +68,9 @@ static void
 is_writable(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	txdrv_t *tx = (txdrv_t *) data;
-	struct gnutella_node *n = tx->node;
 
 	(void) unused_source;
 	g_assert(tx->flags & TX_SERVICE);		/* Servicing enabled */
-	g_assert(n);
-	g_assert(NODE_IS_UDP(n));
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		g_warning("input exception on UDP socket");
@@ -97,12 +95,13 @@ is_writable(gpointer data, gint unused_source, inputevt_cond_t cond)
  * Always succeeds, so never returns NULL.
  */
 static gpointer
-tx_dgram_init(txdrv_t *tx, gpointer unused_args)
+tx_dgram_init(txdrv_t *tx, gpointer args)
 {
 	struct attr *attr;
+	struct tx_dgram_args *targs = (struct tx_dgram_args *) args;
 
-	(void) unused_args;
 	g_assert(tx);
+	g_assert(targs->cb != NULL);
 	g_assert(s_udp_listen != NULL);
 
 	attr = walloc(sizeof(*attr));
@@ -115,8 +114,9 @@ tx_dgram_init(txdrv_t *tx, gpointer unused_args)
 	 * through calls to bio_sendto().
 	 */
 
-	attr->wio = &s_udp_listen->wio;
-	attr->bio = bsched_source_add(bws.gout_udp, attr->wio, BIO_F_WRITE,
+	attr->cb = targs->cb;
+	attr->wio = targs->wio;
+	attr->bio = bsched_source_add(targs->bs, attr->wio, BIO_F_WRITE,
 		NULL, NULL);
 
 	tx->opaque = attr;
@@ -212,9 +212,9 @@ static ssize_t
 tx_dgram_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len)
 {
 	ssize_t r;
-	bio_source_t *bio = ((struct attr *) tx->opaque)->bio;
+	struct attr *attr = (struct attr *) tx->opaque;
 
-	r = bio_sendto(bio, to, data, len);
+	r = bio_sendto(attr->bio, to, data, len);
 	if ((ssize_t) -1 == r) {
 		/*
 	 	 * Special
@@ -223,8 +223,11 @@ tx_dgram_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len)
 		return tx_dgram_write_error(tx, to, "tx_dgram_sendto");
 	}
 
-	node_add_tx_written(tx->node, r);
+	if (attr->cb->add_tx_written != NULL)
+		attr->cb->add_tx_written(tx->owner, r);
+
 	inet_udp_record_sent(to->ip);
+
 	return r;
 }
 
@@ -235,9 +238,6 @@ static void
 tx_dgram_enable(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
-	struct gnutella_node *n = tx->node;
-
-	g_assert(n->socket->file_desc == attr->wio->fd(attr->wio));
 
 	bio_add_callback(attr->bio, is_writable, (gpointer) tx);
 }

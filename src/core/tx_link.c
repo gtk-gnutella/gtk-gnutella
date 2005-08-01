@@ -54,8 +54,9 @@ RCSID("$Id$");
  * Private attributes for the link.
  */
 struct attr {
-	wrap_io_t 	 *wio;	/**< Cached wrapped IO object */
-	bio_source_t *bio;	/**< Bandwidth-limited I/O source */
+	wrap_io_t 	 *wio;			/**< Cached wrapped IO object */
+	bio_source_t *bio;			/**< Bandwidth-limited I/O source */
+	struct tx_link_cb *cb;		/**< Layer-specific callbacks */
 };
 
 /**
@@ -65,14 +66,13 @@ static void
 is_writable(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	txdrv_t *tx = (txdrv_t *) data;
-	struct gnutella_node *n = tx->node;
+	struct attr *attr = (struct attr *) tx->opaque;
 
 	(void) unused_source;
 	g_assert(tx->flags & TX_SERVICE);		/* Servicing enabled */
-	g_assert(n);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
-		node_remove(n, _("Write failed (Input Exception)"));
+		attr->cb->eof_remove(tx->owner, _("Write failed (Input Exception)"));
 		return;
 	}
 
@@ -94,13 +94,14 @@ is_writable(gpointer data, gint unused_source, inputevt_cond_t cond)
  * Always succeeds, so never returns NULL.
  */
 static gpointer
-tx_link_init(txdrv_t *tx, gpointer unused_args)
+tx_link_init(txdrv_t *tx, gpointer args)
 {
+	struct tx_link_args *targs = (struct tx_link_args *) args;
 	struct attr *attr;
 	bsched_t *bs;
 
-	(void) unused_args;
 	g_assert(tx);
+	g_assert(targs->cb != NULL);
 
 	attr = walloc(sizeof(*attr));
 
@@ -112,9 +113,9 @@ tx_link_init(txdrv_t *tx, gpointer unused_args)
 	 * through calls to bio_write() and bio_writev().
 	 */
 
-	bs = tx->node->peermode == NODE_P_LEAF ? bws.glout : bws.gout;
-
-	attr->wio = &tx->node->socket->wio;
+	bs = targs->bs;
+	attr->cb = targs->cb;
+	attr->wio = targs->wio;
 	attr->bio = bsched_source_add(bs, attr->wio, BIO_F_WRITE, NULL, NULL);
 
 	tx->opaque = attr;
@@ -141,6 +142,8 @@ tx_link_destroy(txdrv_t *tx)
 static inline gint
 tx_link_write_error(txdrv_t *tx, const char *func)
 {
+	struct attr *attr = tx->opaque;
+
 	switch (errno) {
 	case EAGAIN:
 	case EINTR:
@@ -152,21 +155,15 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 	 * robust against bugs in the components we rely on. --RAM, 09/10/2003
 	 */
 	case EINPROGRESS:		/* Weird, but seen it -- RAM, 07/10/2003 */
-		{
-			struct attr *attr = tx->opaque;
-			g_warning("%s(fd=%d) failed with weird errno = %d (%s), "
-					"assuming EAGAIN", func, attr->wio->fd(attr->wio), errno,
-					g_strerror(errno));
-		}
+		g_warning("%s(fd=%d) failed with weird errno = %d (%s), "
+			"assuming EAGAIN", func, attr->wio->fd(attr->wio), errno,
+			g_strerror(errno));
 		return 0;
 		
 	case EPIPE:
 	case ECONNRESET:
-		socket_eof(tx->node->socket);
-		/*
-		 * FIXME: In these cases a graceful shutdown should be unnecessary
-		 */
-		node_shutdown(tx->node, _("Write failed: %s"), g_strerror(errno));
+		attr->cb->eof_remove(tx->owner,
+			_("Write failed: %s"), g_strerror(errno));
 		return -1;
 		
 	case ENOSPC:
@@ -180,8 +177,8 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 	case EHOSTUNREACH:
 	case ETIMEDOUT:
 	case EACCES:
-		socket_eof(tx->node->socket);
-		node_shutdown(tx->node, _("Write failed: %s"), g_strerror(errno));
+		attr->cb->eof_shutdown(tx->owner,
+			_("Write failed: %s"), g_strerror(errno));
 		return -1;
 
 	default:
@@ -207,15 +204,17 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 static ssize_t
 tx_link_write(txdrv_t *tx, gpointer data, size_t len)
 {
-	bio_source_t *bio = ((struct attr *) tx->opaque)->bio;
+	struct attr *attr = tx->opaque;
 	ssize_t r;
 
-	r = bio_write(bio, data, len);
+	r = bio_write(attr->bio, data, len);
 	if ((ssize_t) -1 == r) {
 		return tx_link_write_error(tx, "tx_link_write");
 	}
 
-	node_add_tx_written(tx->node, r);
+	if (attr->cb->add_tx_written != NULL)
+		attr->cb->add_tx_written(tx->owner, r);
+
 	return r;
 }
 
@@ -227,15 +226,17 @@ tx_link_write(txdrv_t *tx, gpointer data, size_t len)
 static ssize_t
 tx_link_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 {
+	struct attr *attr = tx->opaque;
 	ssize_t r;
-	bio_source_t *bio = ((struct attr *) tx->opaque)->bio;
 
-	r = bio_writev(bio, iov, iovcnt);
+	r = bio_writev(attr->bio, iov, iovcnt);
 	if ((ssize_t) -1 == r) {
 		return tx_link_write_error(tx, "tx_link_writev");
 	}
 
-	node_add_tx_written(tx->node, r);
+	if (attr->cb->add_tx_written != NULL)
+		attr->cb->add_tx_written(tx->owner, r);
+
 	return r;
 }
 
@@ -246,9 +247,6 @@ static void
 tx_link_enable(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
-	struct gnutella_node *n = tx->node;
-
-	g_assert(n->socket->file_desc == attr->wio->fd(attr->wio));
 
 	bio_add_callback(attr->bio, is_writable, (gpointer) tx);
 }
@@ -260,7 +258,6 @@ static void
 tx_link_disable(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
-	struct gnutella_node *n = tx->node;
 
 	bio_remove_callback(attr->bio);
 
@@ -272,7 +269,8 @@ tx_link_disable(txdrv_t *tx)
 	 *		--RAM, 15/03/2002
 	 */
 
-	node_unflushq(n);
+	if (attr->cb->unflushq != NULL)
+		attr->cb->unflushq(tx->owner);
 }
 
 /**

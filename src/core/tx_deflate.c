@@ -41,7 +41,6 @@ RCSID("$Id$");
 
 #include "sockets.h"
 #include "hosts.h"
-#include "nodes.h"		/* XXX -- only for node_add_tx_deflated() */
 #include "tx.h"
 #include "tx_deflate.h"
 
@@ -88,6 +87,7 @@ struct attr {
 	gint flags;					/**< Operating flags */
 	cqueue_t *cq;				/**< The callout queue to use for Nagle */
 	gpointer tm_ev;				/**< The timer event */
+	struct tx_deflate_cb *cb;	/**< Layer-specific callbacks */
 };
 
 /*
@@ -368,22 +368,15 @@ retry:
 		break;
 	default:
 		attr->flags |= DF_SHUTDOWN;
-		tx->shutdown(tx->shutdown_target, "Compression flush failed: %s",
+		attr->cb->shutdown(tx->owner, "Compression flush failed: %s",
 				zlib_strerror(ret));
 		return FALSE;
 	}
 
 	b->wptr += old_avail - outz->avail_out;
 
-	/*
-	 * The TX deflating driver can be used with something other than nodes.
-	 * To avoid the bulk of another indirection routine, only call this macro
-	 * when we're dealing with a Gnutella node.  FIXME some day.
-	 *		--RAM, 2005-07-31
-	 */
-
-	if (tx->node != NULL)
-		node_add_tx_deflated(tx->node, old_avail - outz->avail_out);
+	if (attr->cb->add_tx_deflated != NULL)
+		attr->cb->add_tx_deflated(tx->owner, old_avail - outz->avail_out);
 
 	/*
 	 * Check whether avail_out is 0.
@@ -518,7 +511,7 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 
 		if (ret != Z_OK) {
 			attr->flags |= DF_SHUTDOWN;
-			tx->shutdown(tx->shutdown_target, "Compression failed: %s",
+			attr->cb->shutdown(tx->owner, "Compression failed: %s",
 				zlib_strerror(ret));
 			return -1;
 		}
@@ -533,8 +526,9 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 		g_assert(added >= old_added);
 
 		attr->unflushed += added - old_added;
-		if (tx->node != NULL)		/* XXX cf. comment for similar test */
-			node_add_tx_deflated(tx->node, old_avail - outz->avail_out);
+
+		if (attr->cb->add_tx_deflated != NULL)
+			attr->cb->add_tx_deflated(tx->owner, old_avail - outz->avail_out);
 
 		/*
 		 * If we filled the output buffer, check whether we have a pending
@@ -611,6 +605,7 @@ static gpointer tx_deflate_init(txdrv_t *tx, gpointer args)
 	gint i;
 
 	g_assert(tx);
+	g_assert(targs->cb != NULL);
 
 	outz = walloc(sizeof(*outz));
 
@@ -630,6 +625,8 @@ static gpointer tx_deflate_init(txdrv_t *tx, gpointer args)
 	attr = walloc(sizeof(*attr));
 
 	attr->cq = targs->cq;
+	attr->cb = targs->cb;
+
 	attr->outz = outz;
 	attr->flags = 0;
 	attr->tm_ev = NULL;

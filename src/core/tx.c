@@ -78,14 +78,12 @@ tx_make_node(struct gnutella_node *n,
 
 	tx = g_malloc0(sizeof(*tx));
 
-	tx->node = n;
+	tx->owner = n;
 	tx->ops = ops;
 	tx->host.ip = n->ip;
 	tx->host.port = n->port;
 	tx->upper = NULL;
 	tx->lower = NULL;
-	tx->shutdown = (tx_shutdown_t) node_shutdown;	/* Target is a node */
-	tx->shutdown_target = n;
 
 	if (NULL == TX_INIT(tx, args))		/* Let the heir class initialize */
 		return NULL;
@@ -122,13 +120,11 @@ tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops, gpointer args)
 
 	tx = g_malloc0(sizeof(*tx));
 
-	tx->node = ltx->node;
+	tx->owner = ltx->owner;
 	tx->host = ltx->host;				/* Struct copy */
 	tx->ops = ops;
 	tx->upper = NULL;
 	tx->lower = ltx;
-	tx->shutdown = ltx->shutdown;
-	tx->shutdown_target = ltx->shutdown_target;
 
 	if (NULL == TX_INIT(tx, args))		/* Let the heir class initialize */
 		return NULL;

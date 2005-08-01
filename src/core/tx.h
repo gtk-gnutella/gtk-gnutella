@@ -43,17 +43,16 @@
 struct txdrv_ops;
 struct iovec;
 struct bio_source;
-struct txdriver;
+struct gnutella_node;
 
 typedef void (*tx_service_t)(gpointer obj);
-typedef void (*tx_shutdown_t)(gpointer target, const gchar *reason, ...);
 
 /**
  * A network driver.
  */
 
 typedef struct txdriver {
-	struct gnutella_node *node;		/**< Node to which this driver belongs */
+	gpointer owner;					/**< Object owning the stack */
 	gnet_host_t host;				/**< Host information (ip, port) */
 	const struct txdrv_ops *ops;	/**< Dynamically dispatched operations */
 	struct txdriver *upper;			/**< Layer above, NULL if none */
@@ -62,8 +61,6 @@ typedef struct txdriver {
 	tx_service_t srv_routine;		/**< Service routine of upper TX layer */
 	gpointer srv_arg;				/**< Service routine argument */
 	gpointer opaque;				/**< Used by heirs to store specific info */
-	tx_shutdown_t shutdown;			/**< Shutdown routine to disconnect TX */
-	gpointer shutdown_target;		/**< Target for shutdown routine */
 } txdrv_t;
 
 /*

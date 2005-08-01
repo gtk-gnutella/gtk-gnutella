@@ -422,8 +422,6 @@ typedef struct gnutella_node {
 #define node_inc_rxdrop(n)          node_add_rxdrop(n, 1)
 
 #define node_add_tx_given(n,x)		do { (n)->tx_given += (x); } while (0)
-#define node_add_tx_written(n,x)	do { (n)->tx_written += (x); } while (0)
-#define node_add_tx_deflated(n,x)	do { (n)->tx_deflated += (x); } while (0)
 
 #define node_add_rx_given(n,x)		do { (n)->rx_given += (x); } while (0)
 #define node_add_rx_inflated(n,x)	do { (n)->rx_inflated += (x); } while (0)

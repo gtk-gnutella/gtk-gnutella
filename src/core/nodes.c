@@ -115,26 +115,26 @@ RCSID("$Id$");
 #define MAX_HOP_COUNT			255		/**< Architecturally defined maximum */
 #define NODE_LEGACY_DEGREE		8		/**< Older node without X-Degree */
 #define NODE_LEGACY_TTL			7		/**< Older node without X-Max-TTL */
-#define NODE_USELESS_GRACE		20		/**< Don't kick if condition too recent */
+#define NODE_USELESS_GRACE		20		/**< No kick if condition too recent */
 
-#define SHUTDOWN_GRACE_DELAY	120		/**< Grace period for shutdowning nodes */
+#define SHUTDOWN_GRACE_DELAY	120		/**< Grace time for shutdowning nodes */
 #define BYE_GRACE_DELAY			30		/**< Bye sent, give time to propagate */
-#define MAX_WEIRD_MSG			5		/**< Close connection after so much weirds */
+#define MAX_WEIRD_MSG			5		/**< End link after so much weirds */
 #define MAX_TX_RX_RATIO			70		/**< Max TX/RX ratio for shortage */
 #define MIN_TX_FOR_RATIO		500		/**< TX packets before enforcing ratio */
 #define ALIVE_PERIOD			20		/**< Seconds between each alive ping */
-#define ALIVE_PERIOD_LEAF		120		/**< Idem, for leaf nodes <-> ultrapeers */
+#define ALIVE_PERIOD_LEAF		120		/**< Idem, for leaves <-> ultrapeers */
 #define ALIVE_MAX_PENDING		6		/**< Max unanswered pings in a row */
 #define ALIVE_MAX_PENDING_LEAF	4		/**< Max unanswered pings in a row (leaves) */
 
-#define NODE_MIN_UP_CONNECTIONS	25		/**< Require 25 peer connections for UP */
+#define NODE_MIN_UP_CONNECTIONS	25		/**< Min 25 peer connections for UP */
 #define NODE_MIN_UPTIME			3600	/**< Minumum uptime to become an UP */
 #define NODE_MIN_AVG_UPTIME		10800	/**< Average uptime to become an UP */
 #define NODE_AVG_LEAF_MEM		262144	/**< Average memory used by leaf */
 #define NODE_CASUAL_FD			10		/**< # of fds we might use casually */
 #define NODE_UPLOAD_QUEUE_FD	5		/**< # of fds/upload slot we can queue */
 
-#define NODE_AUTO_SWITCH_MIN	1800	/**< Don't switch too often UP <-> leaf */
+#define NODE_AUTO_SWITCH_MIN	1800	/**< Don't switch too often UP - leaf */
 #define NODE_AUTO_SWITCH_MAX	61200	/**< Max between switches (17 hours) */
 
 #define NODE_TSYNC_WAIT_MS		5000	/**< Wait time after connecting (5s) */
@@ -190,6 +190,7 @@ static guint32 node_id = 1;				/**< Reserve 0 for the local node */
 static gboolean allow_gnet_connections = FALSE;
 
 GHookList node_added_hook_list;
+
 /**
  * For use by node_added_hook_list hooks, since we can't add a parameter
  * at list invoke time.
@@ -2026,25 +2027,16 @@ node_shutdown_mode(struct gnutella_node *n, guint32 delay)
 }
 
 /**
- * Stop sending data to node, but keep reading buffered data from it, until
- * we hit a Bye packet or EOF.  In that mode, we don't relay Queries we may
- * read, but replies and pushes are still routed back to other nodes.
- *
- * This is mostly called when a fatal write error happens, but we want to
- * see whether the node did not send us a Bye we haven't read yet.
+ * The vectorized version of node_shutdown().
  */
-void
-node_shutdown(struct gnutella_node *n, const gchar *reason, ...)
+static void
+node_shutdown_v(struct gnutella_node *n, const gchar *reason, va_list args)
 {
-	va_list args;
-
 	g_assert(n);
-
-	va_start(args, reason);
 
 	if (n->status == GTA_NODE_SHUTDOWN) {
 		node_recursive_shutdown_v(n, "Shutdown", reason, args);
-		goto end;
+		return;
 	}
 
 	n->flags |= NODE_F_CLOSING;
@@ -2059,8 +2051,23 @@ node_shutdown(struct gnutella_node *n, const gchar *reason, ...)
 	}
 
 	node_shutdown_mode(n, SHUTDOWN_GRACE_DELAY);
+}
 
-end:
+/**
+ * Stop sending data to node, but keep reading buffered data from it, until
+ * we hit a Bye packet or EOF.  In that mode, we don't relay Queries we may
+ * read, but replies and pushes are still routed back to other nodes.
+ *
+ * This is mostly called when a fatal write error happens, but we want to
+ * see whether the node did not send us a Bye we haven't read yet.
+ */
+void
+node_shutdown(struct gnutella_node *n, const gchar *reason, ...)
+{
+	va_list args;
+
+	va_start(args, reason);
+	node_shutdown_v(n, reason, args);
 	va_end(args);
 }
 
@@ -2692,6 +2699,92 @@ node_became_udp_firewalled(void)
 	}
 }
 
+/***
+ *** TX deflate callbacks
+ ***/
+
+static void
+node_add_tx_deflated(gpointer o, gint amount)
+{
+	gnutella_node_t *n = o;
+
+	n->tx_deflated += amount;
+}
+
+static void
+node_tx_shutdown(gpointer o, const gchar *reason, ...)
+{
+	gnutella_node_t *n = o;
+	va_list args;
+
+	va_start(args, reason);
+	node_shutdown_v(n, reason, args);
+	va_end(args);
+}
+
+static struct tx_deflate_cb node_tx_deflate_cb = {
+	node_add_tx_deflated,		/* add_tx_deflated */
+	node_tx_shutdown,			/* shutdown */
+};
+
+/***
+ *** TX link callbacks
+ ***/
+
+static void
+node_add_tx_written(gpointer o, gint amount)
+{
+	gnutella_node_t *n = o;
+
+	n->tx_written += amount;
+}
+
+static void
+node_tx_eof_remove(gpointer o, const gchar *reason, ...)
+{
+	gnutella_node_t *n = o;
+	va_list args;
+
+	va_start(args, reason);
+	socket_eof(n->socket);
+	node_remove_v(n, reason, args);
+	va_end(args);
+}
+
+static void
+node_tx_eof_shutdown(gpointer o, const gchar *reason, ...)
+{
+	gnutella_node_t *n = o;
+	va_list args;
+
+	va_start(args, reason);
+	socket_eof(n->socket);
+	node_shutdown_v(n, reason, args);
+	va_end(args);
+}
+
+static void
+node_tx_unflushq(gpointer o)
+{
+	gnutella_node_t *n = o;
+
+	node_unflushq(n);
+}
+
+static struct tx_link_cb node_tx_link_cb = {
+	node_add_tx_written,		/* add_tx_written */
+	node_tx_eof_remove,			/* eof_remove */
+	node_tx_eof_shutdown,		/* eof_shutdown */
+	node_tx_unflushq,			/* unflushq */
+};
+
+/***
+ *** TX datagram callbacks
+ ***/
+
+static struct tx_dgram_cb node_tx_dgram_cb = {
+	node_add_tx_written,		/* add_tx_written */
+};
 
 /**
  * Called when we know that we're connected to the node, at the end of
@@ -2844,7 +2937,15 @@ node_is_now_connected(struct gnutella_node *n)
 	 * Create the TX stack, as we're going to tranmit Gnet messages.
 	 */
 
-	tx = tx_make_node(n, tx_link_get_ops(), 0);		/* Cannot fail */
+	{
+		struct tx_link_args args;
+
+		args.cb = &node_tx_link_cb;
+		args.bs = n->peermode == NODE_P_LEAF ? bws.glout : bws.gout;
+		args.wio = &n->socket->wio;
+
+		tx = tx_make_node(n, tx_link_get_ops(), &args);		/* Cannot fail */
+	}
 
 	/*
 	 * If we committed on compressing traffic, install layer.
@@ -2858,6 +2959,7 @@ node_is_now_connected(struct gnutella_node *n)
 			printf("Sending compressed data to node %s\n", node_ip(n));
 
 		args.cq = callout_queue;
+		args.cb = &node_tx_deflate_cb;
 
 		ctx = tx_make_above(tx, tx_deflate_get_ops(), &args);
 		if (ctx == NULL) {
@@ -4922,6 +5024,7 @@ node_udp_enable(void)
 {
 	gnutella_node_t *n = udp_node;
 	txdrv_t *tx;
+	struct tx_dgram_args args;
 
 	g_assert(n != NULL);
 	g_assert(n->outq == NULL);
@@ -4929,7 +5032,12 @@ node_udp_enable(void)
 	g_assert(s_udp_listen != NULL);
 
 	n->socket = s_udp_listen;
-	tx = tx_make_node(n, tx_dgram_get_ops(), 0);		/* Cannot fail */
+
+	args.cb = &node_tx_dgram_cb;
+	args.bs = bws.gout_udp;
+	args.wio = &n->socket->wio;
+
+	tx = tx_make_node(n, tx_dgram_get_ops(), &args);	/* Cannot fail */
 	n->outq = mq_udp_make(node_sendqueue_size, n, tx);
 }
 

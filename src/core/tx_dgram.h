@@ -40,6 +40,22 @@
 
 const struct txdrv_ops *tx_dgram_get_ops(void);
 
+/**
+ * Callbacks used by the datagram layer.
+ */
+struct tx_dgram_cb {
+	void (*add_tx_written)(gpointer owner, gint amount);
+};
+
+/**
+ * Arguments to be passed when the layer is intantiated.
+ */
+struct tx_dgram_args {
+	struct tx_dgram_cb *cb;			/**< Callbacks */
+	struct bsched *bs;				/**< Bandwidth scheduler to use */
+	struct wrap_io *wio;			/**< I/O wrapping routines */
+};
+
 #endif	/* _core_tx_dgram_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

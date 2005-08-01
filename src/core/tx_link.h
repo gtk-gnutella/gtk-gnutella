@@ -40,6 +40,25 @@
 
 const struct txdrv_ops *tx_link_get_ops(void);
 
+/**
+ * Callbacks used by the link layer.
+ */
+struct tx_link_cb {
+	void (*add_tx_written)(gpointer owner, gint amount);
+	void (*eof_remove)(gpointer owner, const gchar *reason, ...);
+	void (*eof_shutdown)(gpointer owner, const gchar *reason, ...);
+	void (*unflushq)(gpointer owner);
+};
+
+/**
+ * Arguments to be passed when the layer is intantiated.
+ */
+struct tx_link_args {
+	struct tx_link_cb *cb;			/**< Callbacks */
+	struct bsched *bs;				/**< Bandwidth scheduler to use */
+	struct wrap_io *wio;			/**< I/O wrapping routines */
+};
+
 #endif	/* _core_tx_link_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
