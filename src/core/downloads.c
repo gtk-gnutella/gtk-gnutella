@@ -6527,6 +6527,7 @@ download_send_request(struct download *d)
 
 	if (d->server->hostname != NULL && download_ip(d) != s->ip) {
 		change_server_ip(d->server, s->ip);
+		g_assert(download_ip(d) == s->ip);
 		gcu_gui_update_download_host(d);
 	}
 
@@ -7075,6 +7076,8 @@ download_push_ack(struct gnutella_socket *s)
 
 	if (download_ip(d) != s->ip)
 		change_server_ip(d->server, s->ip);
+
+	g_assert(download_ip(d) == s->ip);
 
 	gcu_gui_update_download_host(d);
 
