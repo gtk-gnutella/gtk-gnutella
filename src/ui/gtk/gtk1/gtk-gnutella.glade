@@ -2129,6 +2129,1502 @@
 	  </widget>
 
 	  <widget>
+	    <class>GtkVBox</class>
+	    <name>vbox84</name>
+	    <homogeneous>False</homogeneous>
+	    <spacing>0</spacing>
+
+	    <widget>
+	      <class>GtkHPaned</class>
+	      <name>hpaned_gnet_stats</name>
+	      <handle_size>10</handle_size>
+	      <gutter_size>10</gutter_size>
+	      <position>300</position>
+	      <child>
+		<padding>0</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkVBox</class>
+		<name>vbox90</name>
+		<border_width>2</border_width>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
+		<child>
+		  <shrink>True</shrink>
+		  <resize>False</resize>
+		</child>
+
+		<widget>
+		  <class>GtkFrame</class>
+		  <name>frame65</name>
+		  <height>40</height>
+		  <label>General stats</label>
+		  <label_xalign>0</label_xalign>
+		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkVBox</class>
+		    <name>vbox94</name>
+		    <border_width>2</border_width>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
+
+		    <widget>
+		      <class>GtkScrolledWindow</class>
+		      <name>scrolledwindow31</name>
+		      <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+		      <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+		      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+		      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
+
+		      <widget>
+			<class>GtkCList</class>
+			<name>clist_gnet_stats_general</name>
+			<can_focus>True</can_focus>
+			<signal>
+			  <name>resize_column</name>
+			  <handler>on_clist_gnet_stats_general_resize_column</handler>
+			  <last_modification_time>Wed, 11 Sep 2002 11:56:33 GMT</last_modification_time>
+			</signal>
+			<columns>2</columns>
+			<column_widths>80,80</column_widths>
+			<selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+			<show_titles>True</show_titles>
+			<shadow_type>GTK_SHADOW_IN</shadow_type>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>CList:title</child_name>
+			  <name>label403</name>
+			  <label>Type</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>7.45058e-09</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>CList:title</child_name>
+			  <name>label404</name>
+			  <label>Count</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+		      </widget>
+		    </widget>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkFrame</class>
+		  <name>frame56</name>
+		  <height>200</height>
+		  <label>Drop reasons</label>
+		  <label_xalign>0</label_xalign>
+		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkVBox</class>
+		    <name>vbox82</name>
+		    <border_width>2</border_width>
+		    <homogeneous>False</homogeneous>
+		    <spacing>2</spacing>
+
+		    <widget>
+		      <class>GtkHBox</class>
+		      <name>hbox157</name>
+		      <homogeneous>False</homogeneous>
+		      <spacing>4</spacing>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>True</fill>
+		      </child>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label390</name>
+			<label>Show reasons for</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <padding>0</padding>
+			  <expand>False</expand>
+			  <fill>False</fill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkCombo</class>
+			<name>combo_gnet_stats_type</name>
+			<value_in_list>True</value_in_list>
+			<ok_if_empty>True</ok_if_empty>
+			<case_sensitive>False</case_sensitive>
+			<use_arrows>True</use_arrows>
+			<use_arrows_always>False</use_arrows_always>
+			<items></items>
+			<child>
+			  <padding>0</padding>
+			  <expand>True</expand>
+			  <fill>True</fill>
+			</child>
+
+			<widget>
+			  <class>GtkEntry</class>
+			  <child_name>GtkCombo:entry</child_name>
+			  <name>combo-entry_gnet_stats_type</name>
+			  <can_focus>True</can_focus>
+			  <editable>False</editable>
+			  <text_visible>True</text_visible>
+			  <text_max_length>0</text_max_length>
+			  <text></text>
+			</widget>
+		      </widget>
+		    </widget>
+
+		    <widget>
+		      <class>GtkScrolledWindow</class>
+		      <name>scrolledwindow26</name>
+		      <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+		      <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+		      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+		      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
+
+		      <widget>
+			<class>GtkCList</class>
+			<name>clist_gnet_stats_drop_reasons</name>
+			<can_focus>True</can_focus>
+			<signal>
+			  <name>resize_column</name>
+			  <handler>on_clist_gnet_stats_drop_reasons_resize_column</handler>
+			  <last_modification_time>Sun, 08 Sep 2002 01:16:42 GMT</last_modification_time>
+			</signal>
+			<columns>2</columns>
+			<column_widths>125,57</column_widths>
+			<selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+			<show_titles>True</show_titles>
+			<shadow_type>GTK_SHADOW_IN</shadow_type>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>CList:title</child_name>
+			  <name>label375</name>
+			  <label>Reason</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>7.45058e-09</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>CList:title</child_name>
+			  <name>label376</name>
+			  <label>Count</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+		      </widget>
+		    </widget>
+
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_gnet_stats_drop_perc</name>
+		      <can_focus>True</can_focus>
+		      <label>Show percentages</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+		  </widget>
+		</widget>
+	      </widget>
+
+	      <widget>
+		<class>GtkVBox</class>
+		<name>vbox93</name>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
+		<child>
+		  <shrink>True</shrink>
+		  <resize>True</resize>
+		</child>
+
+		<widget>
+		  <class>GtkFrame</class>
+		  <name>frame69</name>
+		  <height>210</height>
+		  <label>Message/flow control stats</label>
+		  <label_xalign>0</label_xalign>
+		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkVBox</class>
+		    <name>vbox97</name>
+		    <border_width>2</border_width>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
+
+		    <widget>
+		      <class>GtkNotebook</class>
+		      <name>notebook3</name>
+		      <height>157</height>
+		      <can_focus>True</can_focus>
+		      <show_tabs>True</show_tabs>
+		      <show_border>True</show_border>
+		      <tab_pos>GTK_POS_TOP</tab_pos>
+		      <scrollable>False</scrollable>
+		      <tab_hborder>2</tab_hborder>
+		      <tab_vborder>2</tab_vborder>
+		      <popup_enable>False</popup_enable>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
+
+		      <widget>
+			<class>GtkScrolledWindow</class>
+			<name>scrolledwindow29</name>
+			<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+			<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+			<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+			<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+
+			<widget>
+			  <class>GtkCList</class>
+			  <name>clist_gnet_stats_msg</name>
+			  <can_focus>True</can_focus>
+			  <signal>
+			    <name>resize_column</name>
+			    <handler>on_clist_gnet_stats_msg_resize_column</handler>
+			    <last_modification_time>Mon, 09 Dec 2002 15:22:25 GMT</last_modification_time>
+			  </signal>
+			  <columns>8</columns>
+			  <column_widths>80,80,80,79,80,80,80,80</column_widths>
+			  <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+			  <show_titles>True</show_titles>
+			  <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label391</name>
+			    <label>Type</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>7.45058e-09</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label392</name>
+			    <label>Received</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label393</name>
+			    <label>Expired</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label394</name>
+			    <label>Dropped</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label395</name>
+			    <label>Queued</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label500</name>
+			    <label>Relayed</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label501</name>
+			    <label>Gen. queued</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label396</name>
+			    <label>Gen. sent</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<child_name>Notebook:tab</child_name>
+			<name>label436</name>
+			<label>Messages</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+		      </widget>
+
+		      <widget>
+			<class>GtkScrolledWindow</class>
+			<name>scrolledwindow38</name>
+			<hscrollbar_policy>GTK_POLICY_ALWAYS</hscrollbar_policy>
+			<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+			<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+			<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+
+			<widget>
+			  <class>GtkCList</class>
+			  <name>clist_gnet_stats_fc_ttl</name>
+			  <can_focus>True</can_focus>
+			  <signal>
+			    <name>resize_column</name>
+			    <handler>on_clist_gnet_stats_fc_ttl_resize_column</handler>
+			    <last_modification_time>Sun, 08 Dec 2002 22:40:34 GMT</last_modification_time>
+			  </signal>
+			  <columns>10</columns>
+			  <column_widths>80,28,29,38,39,25,37,29,37,80</column_widths>
+			  <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+			  <show_titles>True</show_titles>
+			  <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label412</name>
+			    <label>Type</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label413</name>
+			    <label>0</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label414</name>
+			    <label>1</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label415</name>
+			    <label>2</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label416</name>
+			    <label>3</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label417</name>
+			    <label>4</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label418</name>
+			    <label>5</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label419</name>
+			    <label>6</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label420</name>
+			    <label>7</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label421</name>
+			    <label>8+</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<child_name>Notebook:tab</child_name>
+			<name>label437</name>
+			<label>FC/TTL</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+		      </widget>
+
+		      <widget>
+			<class>GtkScrolledWindow</class>
+			<name>scrolledwindow39</name>
+			<hscrollbar_policy>GTK_POLICY_ALWAYS</hscrollbar_policy>
+			<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+			<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+			<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+
+			<widget>
+			  <class>GtkCList</class>
+			  <name>clist_gnet_stats_fc_hops</name>
+			  <can_focus>True</can_focus>
+			  <signal>
+			    <name>resize_column</name>
+			    <handler>on_clist_gnet_stats_fc_hops_resize_column</handler>
+			    <last_modification_time>Sun, 08 Dec 2002 22:40:53 GMT</last_modification_time>
+			  </signal>
+			  <columns>10</columns>
+			  <column_widths>80,28,29,38,39,25,37,29,37,80</column_widths>
+			  <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+			  <show_titles>True</show_titles>
+			  <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label423</name>
+			    <label>Type</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label424</name>
+			    <label>0</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label425</name>
+			    <label>1</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label426</name>
+			    <label>2</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label427</name>
+			    <label>3</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label428</name>
+			    <label>4</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label429</name>
+			    <label>5</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label430</name>
+			    <label>6</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label431</name>
+			    <label>7</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label432</name>
+			    <label>8+</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<child_name>Notebook:tab</child_name>
+			<name>label438</name>
+			<label>FC/hops</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+		      </widget>
+		    </widget>
+
+		    <widget>
+		      <class>GtkTable</class>
+		      <name>table93</name>
+		      <rows>2</rows>
+		      <columns>3</columns>
+		      <homogeneous>False</homogeneous>
+		      <row_spacing>0</row_spacing>
+		      <column_spacing>0</column_spacing>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_gnet_stats_bytes</name>
+			<can_focus>True</can_focus>
+			<label>Show bytes</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_gnet_stats_perc</name>
+			<can_focus>True</can_focus>
+			<label>Show percentages</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_gnet_stats_with_headers</name>
+			<can_focus>True</can_focus>
+			<label>Include headers</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkHBox</class>
+			<name>hbox207</name>
+			<homogeneous>False</homogeneous>
+			<spacing>0</spacing>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>True</yfill>
+			</child>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label697</name>
+			  <label>Show protocol:</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>4</xpad>
+			  <ypad>0</ypad>
+			  <child>
+			    <padding>0</padding>
+			    <expand>False</expand>
+			    <fill>False</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkCombo</class>
+			  <name>combo_gnet_stats_source</name>
+			  <value_in_list>False</value_in_list>
+			  <ok_if_empty>True</ok_if_empty>
+			  <case_sensitive>False</case_sensitive>
+			  <use_arrows>True</use_arrows>
+			  <use_arrows_always>False</use_arrows_always>
+			  <items></items>
+			  <child>
+			    <padding>0</padding>
+			    <expand>False</expand>
+			    <fill>True</fill>
+			  </child>
+
+			  <widget>
+			    <class>GtkEntry</class>
+			    <child_name>GtkCombo:entry</child_name>
+			    <name>combo-entry6</name>
+			    <width>70</width>
+			    <can_focus>True</can_focus>
+			    <editable>False</editable>
+			    <text_visible>True</text_visible>
+			    <text_max_length>0</text_max_length>
+			    <text></text>
+			  </widget>
+			</widget>
+		      </widget>
+		    </widget>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkFrame</class>
+		  <name>frame125</name>
+		  <height>150</height>
+		  <label>Horizon stats</label>
+		  <label_xalign>0</label_xalign>
+		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkVBox</class>
+		    <name>vbox125</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
+
+		    <widget>
+		      <class>GtkScrolledWindow</class>
+		      <name>scrolledwindow45</name>
+		      <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+		      <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+		      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+		      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
+
+		      <widget>
+			<class>GtkCList</class>
+			<name>clist_gnet_stats_horizon</name>
+			<can_focus>True</can_focus>
+			<signal>
+			  <name>resize_column</name>
+			  <handler>on_clist_gnet_stats_horizon_resize_column</handler>
+			  <last_modification_time>Wed, 02 Jun 2004 18:50:52 GMT</last_modification_time>
+			</signal>
+			<columns>4</columns>
+			<column_widths>56,50,78,80</column_widths>
+			<selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+			<show_titles>True</show_titles>
+			<shadow_type>GTK_SHADOW_IN</shadow_type>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>CList:title</child_name>
+			  <name>label663</name>
+			  <width>30</width>
+			  <label>Hops</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>CList:title</child_name>
+			  <name>label664</name>
+			  <width>36</width>
+			  <label>Nodes</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>CList:title</child_name>
+			  <name>label665</name>
+			  <width>36</width>
+			  <label>Files</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>CList:title</child_name>
+			  <name>label666</name>
+			  <width>36</width>
+			  <label>Size</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+		      </widget>
+		    </widget>
+		  </widget>
+		</widget>
+	      </widget>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <child_name>Notebook:tab</child_name>
+	    <name>label_gnet_stats</name>
+	    <label>#|Gnet Stats</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0.5</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	  </widget>
+
+	  <widget>
+	    <class>GtkVBox</class>
+	    <name>vbox127</name>
+	    <border_width>2</border_width>
+	    <homogeneous>False</homogeneous>
+	    <spacing>4</spacing>
+
+	    <widget>
+	      <class>GtkFrame</class>
+	      <name>frame128</name>
+	      <label>Hostcache statistics</label>
+	      <label_xalign>0</label_xalign>
+	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	      <child>
+		<padding>0</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkScrolledWindow</class>
+		<name>scrolledwindow46</name>
+		<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+		<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+		<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+		<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+
+		<widget>
+		  <class>GtkCList</class>
+		  <name>clist_hcache</name>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>resize_column</name>
+		    <handler>on_clist_hcache_resize_column</handler>
+		    <last_modification_time>Sat, 05 Jun 2004 02:55:32 GMT</last_modification_time>
+		  </signal>
+		  <columns>4</columns>
+		  <column_widths>80,80,80,80</column_widths>
+		  <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+		  <show_titles>True</show_titles>
+		  <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CList:title</child_name>
+		    <name>label674</name>
+		    <label>Cache</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CList:title</child_name>
+		    <name>label675</name>
+		    <label>Hosts</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CList:title</child_name>
+		    <name>label676</name>
+		    <label>Hits</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CList:title</child_name>
+		    <name>label677</name>
+		    <label>Misses</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+		</widget>
+	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkFrame</class>
+	      <name>frame126</name>
+	      <label>Hostcache capacity</label>
+	      <label_xalign>0</label_xalign>
+	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkHBox</class>
+		<name>hbox201</name>
+		<border_width>2</border_width>
+		<homogeneous>True</homogeneous>
+		<spacing>4</spacing>
+
+		<widget>
+		  <class>GtkVBox</class>
+		  <name>vbox128</name>
+		  <homogeneous>False</homogeneous>
+		  <spacing>2</spacing>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkProgressBar</class>
+		    <name>progressbar_hosts_in_catcher</name>
+		    <value>0</value>
+		    <lower>0</lower>
+		    <upper>100</upper>
+		    <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		    <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		    <activity_mode>False</activity_mode>
+		    <show_text>True</show_text>
+		    <format>%v/%u (%P%%)</format>
+		    <text_xalign>0.5</text_xalign>
+		    <text_yalign>0.5</text_yalign>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkHBox</class>
+		    <name>hbox202</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>4</spacing>
+		    <child>
+		      <padding>0</padding>
+		      <expand>True</expand>
+		      <fill>True</fill>
+		    </child>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label95</name>
+		      <label>Regular hosts</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>7.45058e-09</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkSpinButton</class>
+		      <name>spinbutton_max_hosts_cached</name>
+		      <can_focus>True</can_focus>
+		      <climb_rate>1</climb_rate>
+		      <digits>0</digits>
+		      <numeric>True</numeric>
+		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		      <snap>False</snap>
+		      <wrap>False</wrap>
+		      <value>100</value>
+		      <lower>100</lower>
+		      <upper>500000</upper>
+		      <step>1</step>
+		      <page>100</page>
+		      <page_size>100</page_size>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkButton</class>
+		      <name>button_host_catcher_clear</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>clicked</name>
+			<handler>on_button_host_catcher_clear_clicked</handler>
+			<last_modification_time>Wed, 22 Mar 2000 07:10:32 GMT</last_modification_time>
+		      </signal>
+		      <label>Clear</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkVBox</class>
+		  <name>vbox129</name>
+		  <homogeneous>False</homogeneous>
+		  <spacing>2</spacing>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkProgressBar</class>
+		    <name>progressbar_hosts_in_ultra_catcher</name>
+		    <value>0</value>
+		    <lower>0</lower>
+		    <upper>100</upper>
+		    <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		    <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		    <activity_mode>False</activity_mode>
+		    <show_text>True</show_text>
+		    <format>%v/%u (%P%%)</format>
+		    <text_xalign>0.5</text_xalign>
+		    <text_yalign>0.5</text_yalign>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkHBox</class>
+		    <name>hbox203</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>4</spacing>
+		    <child>
+		      <padding>0</padding>
+		      <expand>True</expand>
+		      <fill>True</fill>
+		    </child>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label453</name>
+		      <label>Ultrapeers</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkSpinButton</class>
+		      <name>spinbutton_max_ultra_hosts_cached</name>
+		      <can_focus>True</can_focus>
+		      <climb_rate>1</climb_rate>
+		      <digits>0</digits>
+		      <numeric>True</numeric>
+		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		      <snap>False</snap>
+		      <wrap>False</wrap>
+		      <value>100</value>
+		      <lower>100</lower>
+		      <upper>500000</upper>
+		      <step>1</step>
+		      <page>100</page>
+		      <page_size>100</page_size>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkButton</class>
+		      <name>button_ultra_catcher_clear</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>clicked</name>
+			<handler>on_button_ultra_catcher_clear_clicked</handler>
+			<last_modification_time>Wed, 01 Jan 2003 22:23:25 GMT</last_modification_time>
+		      </signal>
+		      <label>Clear</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkVBox</class>
+		  <name>vbox130</name>
+		  <homogeneous>False</homogeneous>
+		  <spacing>2</spacing>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkProgressBar</class>
+		    <name>progressbar_hosts_in_bad_catcher</name>
+		    <value>0</value>
+		    <lower>0</lower>
+		    <upper>100</upper>
+		    <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		    <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		    <activity_mode>False</activity_mode>
+		    <show_text>True</show_text>
+		    <format>%v/%u (%P%%)</format>
+		    <text_xalign>0.5</text_xalign>
+		    <text_yalign>0.5</text_yalign>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkHBox</class>
+		    <name>hbox204</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>4</spacing>
+		    <child>
+		      <padding>0</padding>
+		      <expand>True</expand>
+		      <fill>True</fill>
+		    </child>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label678</name>
+		      <label>Bad hosts</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkSpinButton</class>
+		      <name>spinbutton_max_bad_hosts_cached</name>
+		      <can_focus>True</can_focus>
+		      <climb_rate>1</climb_rate>
+		      <digits>0</digits>
+		      <numeric>True</numeric>
+		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		      <snap>False</snap>
+		      <wrap>False</wrap>
+		      <value>100</value>
+		      <lower>100</lower>
+		      <upper>500000</upper>
+		      <step>1</step>
+		      <page>100</page>
+		      <page_size>100</page_size>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkButton</class>
+		      <name>button_hostcache_clear_bad</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>clicked</name>
+			<handler>on_button_hostcache_clear_bad_clicked</handler>
+			<last_modification_time>Mon, 07 Jun 2004 18:41:21 GMT</last_modification_time>
+		      </signal>
+		      <label>Clear</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+		  </widget>
+		</widget>
+	      </widget>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <child_name>Notebook:tab</child_name>
+	    <name>label_hostcache</name>
+	    <label>#|Hostcache</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0.5</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	  </widget>
+
+	  <widget>
 	    <class>GtkFrame</class>
 	    <name>frame6</name>
 	    <border_width>2</border_width>
@@ -2704,38 +4200,527 @@
 	  </widget>
 
 	  <widget>
-	    <class>GtkNotebook</class>
-	    <name>notebook_downloads</name>
-	    <can_focus>True</can_focus>
-	    <show_tabs>True</show_tabs>
-	    <show_border>True</show_border>
-	    <tab_pos>GTK_POS_TOP</tab_pos>
-	    <scrollable>False</scrollable>
-	    <tab_hborder>2</tab_hborder>
-	    <tab_vborder>2</tab_vborder>
-	    <popup_enable>False</popup_enable>
+	    <class>GtkFrame</class>
+	    <name>frame76</name>
+	    <border_width>2</border_width>
+	    <label>Files to get</label>
+	    <label_xalign>0</label_xalign>
+	    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 
 	    <widget>
-	      <class>GtkVPaned</class>
-	      <name>vpaned_downloads</name>
+	      <class>GtkVBox</class>
+	      <name>vbox109</name>
 	      <border_width>2</border_width>
-	      <handle_size>10</handle_size>
-	      <gutter_size>10</gutter_size>
-	      <position>230</position>
+	      <homogeneous>False</homogeneous>
+	      <spacing>2</spacing>
 
 	      <widget>
-		<class>GtkVBox</class>
-		<name>vbox36</name>
-		<homogeneous>False</homogeneous>
-		<spacing>0</spacing>
+		<class>GtkVPaned</class>
+		<name>vpaned_fileinfo</name>
+		<handle_size>10</handle_size>
+		<gutter_size>10</gutter_size>
+		<position>305</position>
 		<child>
-		  <shrink>True</shrink>
-		  <resize>False</resize>
+		  <padding>0</padding>
+		  <expand>True</expand>
+		  <fill>True</fill>
 		</child>
 
 		<widget>
 		  <class>GtkViewport</class>
-		  <name>viewport42</name>
+		  <name>viewport48</name>
+		  <shadow_type>GTK_SHADOW_NONE</shadow_type>
+		  <child>
+		    <shrink>True</shrink>
+		    <resize>False</resize>
+		  </child>
+
+		  <widget>
+		    <class>GtkVBox</class>
+		    <name>vbox111</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>2</spacing>
+
+		    <widget>
+		      <class>GtkHBox</class>
+		      <name>hbox196</name>
+		      <homogeneous>False</homogeneous>
+		      <spacing>4</spacing>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>True</fill>
+		      </child>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label656</name>
+			<label>Search</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <padding>0</padding>
+			  <expand>False</expand>
+			  <fill>False</fill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkEntry</class>
+			<name>entry_fi_regex</name>
+			<can_focus>True</can_focus>
+			<signal>
+			  <name>activate</name>
+			  <handler>on_entry_fi_regex_activate</handler>
+			  <last_modification_time>Sat, 13 Mar 2004 20:02:14 GMT</last_modification_time>
+			</signal>
+			<editable>True</editable>
+			<text_visible>True</text_visible>
+			<text_max_length>0</text_max_length>
+			<text></text>
+			<child>
+			  <padding>0</padding>
+			  <expand>True</expand>
+			  <fill>True</fill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_fi_regex_case</name>
+			<can_focus>True</can_focus>
+			<label>case sensitive</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <padding>0</padding>
+			  <expand>False</expand>
+			  <fill>False</fill>
+			</child>
+		      </widget>
+		    </widget>
+
+		    <widget>
+		      <class>GtkScrolledWindow</class>
+		      <name>scrolledwindow42</name>
+		      <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+		      <vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
+		      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+		      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
+
+		      <widget>
+			<class>GtkCList</class>
+			<name>clist_fileinfo</name>
+			<can_focus>True</can_focus>
+			<signal>
+			  <name>resize_column</name>
+			  <handler>on_clist_fileinfo_resize_column</handler>
+			  <last_modification_time>Mon, 10 Mar 2003 17:44:50 GMT</last_modification_time>
+			</signal>
+			<signal>
+			  <name>select_row</name>
+			  <handler>on_clist_fileinfo_select_row</handler>
+			  <last_modification_time>Wed, 12 Mar 2003 23:33:01 GMT</last_modification_time>
+			</signal>
+			<signal>
+			  <name>unselect_row</name>
+			  <handler>on_clist_fileinfo_unselect_row</handler>
+			  <last_modification_time>Wed, 12 Mar 2003 23:33:05 GMT</last_modification_time>
+			</signal>
+			<columns>5</columns>
+			<column_widths>80,80,80,80,80</column_widths>
+			<selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
+			<show_titles>True</show_titles>
+			<shadow_type>GTK_SHADOW_IN</shadow_type>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>CList:title</child_name>
+			  <name>label512</name>
+			  <label>File</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>7.45058e-09</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>CList:title</child_name>
+			  <name>label513</name>
+			  <label>Size</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>CList:title</child_name>
+			  <name>label514</name>
+			  <label>Done</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>CList:title</child_name>
+			  <name>label515</name>
+			  <label>Sources</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>CList:title</child_name>
+			  <name>label516</name>
+			  <label>Status</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+		      </widget>
+		    </widget>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkFrame</class>
+		  <name>frame78</name>
+		  <label>Detail information</label>
+		  <label_xalign>0</label_xalign>
+		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		  <child>
+		    <shrink>True</shrink>
+		    <resize>True</resize>
+		  </child>
+
+		  <widget>
+		    <class>GtkVBox</class>
+		    <name>vbox110</name>
+		    <border_width>2</border_width>
+		    <homogeneous>False</homogeneous>
+		    <spacing>2</spacing>
+
+		    <widget>
+		      <class>GtkTable</class>
+		      <name>table59</name>
+		      <border_width>2</border_width>
+		      <rows>3</rows>
+		      <columns>2</columns>
+		      <homogeneous>False</homogeneous>
+		      <row_spacing>2</row_spacing>
+		      <column_spacing>4</column_spacing>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>True</fill>
+		      </child>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label523</name>
+			<label>Filename:</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label524</name>
+			<label>Size:</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkFrame</class>
+			<name>frame118</name>
+			<label_xalign>0</label_xalign>
+			<shadow_type>GTK_SHADOW_IN</shadow_type>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>True</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>True</yfill>
+			</child>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label_fi_filename</name>
+			  <label></label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkFrame</class>
+			<name>frame119</name>
+			<label_xalign>0</label_xalign>
+			<shadow_type>GTK_SHADOW_IN</shadow_type>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>True</yfill>
+			</child>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label_fi_size</name>
+			  <label></label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label658</name>
+			<label>Progress:</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>2</top_attach>
+			  <bottom_attach>3</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkViewport</class>
+			<name>viewport44</name>
+			<shadow_type>GTK_SHADOW_IN</shadow_type>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>2</top_attach>
+			  <bottom_attach>3</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>True</yfill>
+			</child>
+
+			<widget>
+			  <class>GtkHBox</class>
+			  <name>hbox198</name>
+			  <homogeneous>False</homogeneous>
+			  <spacing>0</spacing>
+
+			  <widget>
+			    <class>GtkDrawingArea</class>
+			    <name>drawingarea_fi_progress</name>
+			    <height>16</height>
+			    <tooltip>Shows visual information on the download progress. Green chunks have been downloaded, with the brighter green chunks touched during this session. Yellow chunks are active right now; these active chunks are also marked with a triangle. Red chunks have not been downloaded yet. The blue line indicates which parts of the file have been seen on the network in this session.</tooltip>
+			    <events>GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK</events>
+			    <signal>
+			      <name>realize</name>
+			      <handler>on_drawingarea_fi_progress_realize</handler>
+			      <last_modification_time>Sat, 10 Apr 2004 15:41:00 GMT</last_modification_time>
+			    </signal>
+			    <signal>
+			      <name>expose_event</name>
+			      <handler>on_drawingarea_fi_progress_expose_event</handler>
+			      <last_modification_time>Sun, 11 Apr 2004 08:04:56 GMT</last_modification_time>
+			    </signal>
+			    <child>
+			      <padding>0</padding>
+			      <expand>True</expand>
+			      <fill>True</fill>
+			    </child>
+			  </widget>
+			</widget>
+		      </widget>
+		    </widget>
+
+		    <widget>
+		      <class>GtkFrame</class>
+		      <name>frame79</name>
+		      <label>Alternate filenames</label>
+		      <label_xalign>0</label_xalign>
+		      <shadow_type>GTK_SHADOW_OUT</shadow_type>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
+
+		      <widget>
+			<class>GtkScrolledWindow</class>
+			<name>scrolledwindow44</name>
+			<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+			<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+			<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+			<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+
+			<widget>
+			  <class>GtkCList</class>
+			  <name>clist_fi_aliases</name>
+			  <can_focus>True</can_focus>
+			  <columns>1</columns>
+			  <column_widths>80</column_widths>
+			  <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+			  <show_titles>False</show_titles>
+			  <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label526</name>
+			    <label></label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+			</widget>
+		      </widget>
+		    </widget>
+		  </widget>
+		</widget>
+	      </widget>
+
+	      <widget>
+		<class>GtkHBox</class>
+		<name>hbox197a</name>
+		<homogeneous>False</homogeneous>
+		<spacing>4</spacing>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkButton</class>
+		  <name>button_fi_purge</name>
+		  <sensitive>False</sensitive>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>clicked</name>
+		    <handler>on_button_fi_purge_clicked</handler>
+		    <last_modification_time>Wed, 07 May 2003 09:48:30 GMT</last_modification_time>
+		  </signal>
+		  <label>_Purge selected</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkViewport</class>
+		  <name>viewport43</name>
 		  <shadow_type>GTK_SHADOW_IN</shadow_type>
 		  <child>
 		    <padding>0</padding>
@@ -2744,784 +4729,287 @@
 		  </child>
 
 		  <widget>
-		    <class>GtkFrame</class>
-		    <name>frame3</name>
-		    <border_width>2</border_width>
-		    <label>Active sources</label>
-		    <label_xalign>0</label_xalign>
-		    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		    <class>GtkHBox</class>
+		    <name>hbox197</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
 
 		    <widget>
-		      <class>GtkVBox</class>
-		      <name>vbox16</name>
-		      <border_width>2</border_width>
+		      <class>GtkHBox</class>
+		      <name>hbox175</name>
 		      <homogeneous>False</homogeneous>
-		      <spacing>2</spacing>
+		      <spacing>0</spacing>
+		      <child>
+			<padding>3</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
 
 		      <widget>
-			<class>GtkScrolledWindow</class>
-			<name>scrolledwindow6</name>
-			<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-			<vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
-			<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-			<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+			<class>GtkLabel</class>
+			<name>label_fi_all_count</name>
+			<label>[all count]</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>1</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
 			<child>
 			  <padding>0</padding>
 			  <expand>True</expand>
 			  <fill>True</fill>
 			</child>
-
-			<widget>
-			  <class>GtkCTree</class>
-			  <name>ctree_downloads</name>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>tree_select_row</name>
-			    <handler>on_ctree_downloads_tree_select_row</handler>
-			    <last_modification_time>Fri, 02 Jan 2004 03:20:19 GMT</last_modification_time>
-			  </signal>
-			  <signal>
-			    <name>tree_unselect_row</name>
-			    <handler>on_ctree_downloads_tree_unselect_row</handler>
-			    <last_modification_time>Fri, 02 Jan 2004 03:20:23 GMT</last_modification_time>
-			  </signal>
-			  <signal>
-			    <name>button_press_event</name>
-			    <handler>on_ctree_downloads_button_press_event</handler>
-			    <last_modification_time>Fri, 02 Jan 2004 03:20:33 GMT</last_modification_time>
-			  </signal>
-			  <signal>
-			    <name>resize_column</name>
-			    <handler>on_ctree_downloads_resize_column</handler>
-			    <last_modification_time>Fri, 02 Jan 2004 03:20:38 GMT</last_modification_time>
-			  </signal>
-			  <columns>7</columns>
-			  <column_widths>80,80,36,80,80,80,80</column_widths>
-			  <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
-			  <show_titles>True</show_titles>
-			  <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CTree:title</child_name>
-			    <name>label639</name>
-			    <label>Filename</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CTree:title</child_name>
-			    <name>label640</name>
-			    <label>Host</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CTree:title</child_name>
-			    <name>label640b</name>
-			    <label>Loc</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CTree:title</child_name>
-			    <name>label641</name>
-			    <label>Size</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CTree:title</child_name>
-			    <name>label642</name>
-			    <label>Range</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CTree:title</child_name>
-			    <name>label643</name>
-			    <label>Server</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CTree:title</child_name>
-			    <name>label644</name>
-			    <label>Status</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-			</widget>
 		      </widget>
 
 		      <widget>
-			<class>GtkFrame</class>
-			<name>frame_dl_settings</name>
-			<label>Download settings</label>
-			<label_xalign>0</label_xalign>
-			<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+			<class>GtkLabel</class>
+			<name>label542</name>
+			<height>21</height>
+			<label> registered, </label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
 			<child>
 			  <padding>0</padding>
 			  <expand>False</expand>
-			  <fill>True</fill>
+			  <fill>False</fill>
 			</child>
-
-			<widget>
-			  <class>GtkHBox</class>
-			  <name>hbox189</name>
-			  <border_width>2</border_width>
-			  <homogeneous>False</homogeneous>
-			  <spacing>0</spacing>
-
-			  <widget>
-			    <class>GtkAlignment</class>
-			    <name>alignment32</name>
-			    <xalign>7.45058e-09</xalign>
-			    <yalign>0.5</yalign>
-			    <xscale>0</xscale>
-			    <yscale>1</yscale>
-			    <child>
-			      <padding>0</padding>
-			      <expand>True</expand>
-			      <fill>True</fill>
-			    </child>
-
-			    <widget>
-			      <class>GtkTable</class>
-			      <name>table85</name>
-			      <rows>3</rows>
-			      <columns>3</columns>
-			      <homogeneous>False</homogeneous>
-			      <row_spacing>2</row_spacing>
-			      <column_spacing>4</column_spacing>
-
-			      <widget>
-				<class>GtkLabel</class>
-				<name>label64</name>
-				<label>Max. simultaneous downloads</label>
-				<justify>GTK_JUSTIFY_CENTER</justify>
-				<wrap>False</wrap>
-				<xalign>7.45058e-09</xalign>
-				<yalign>0.5</yalign>
-				<xpad>0</xpad>
-				<ypad>0</ypad>
-				<child>
-				  <left_attach>0</left_attach>
-				  <right_attach>1</right_attach>
-				  <top_attach>0</top_attach>
-				  <bottom_attach>1</bottom_attach>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <xexpand>False</xexpand>
-				  <yexpand>False</yexpand>
-				  <xshrink>False</xshrink>
-				  <yshrink>False</yshrink>
-				  <xfill>True</xfill>
-				  <yfill>False</yfill>
-				</child>
-			      </widget>
-
-			      <widget>
-				<class>GtkSpinButton</class>
-				<name>spinbutton_max_downloads</name>
-				<can_focus>True</can_focus>
-				<climb_rate>1</climb_rate>
-				<digits>0</digits>
-				<numeric>True</numeric>
-				<update_policy>GTK_UPDATE_ALWAYS</update_policy>
-				<snap>False</snap>
-				<wrap>False</wrap>
-				<value>1</value>
-				<lower>0</lower>
-				<upper>100</upper>
-				<step>1</step>
-				<page>10</page>
-				<page_size>10</page_size>
-				<child>
-				  <left_attach>1</left_attach>
-				  <right_attach>2</right_attach>
-				  <top_attach>0</top_attach>
-				  <bottom_attach>1</bottom_attach>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <xexpand>True</xexpand>
-				  <yexpand>False</yexpand>
-				  <xshrink>False</xshrink>
-				  <yshrink>False</yshrink>
-				  <xfill>True</xfill>
-				  <yfill>False</yfill>
-				</child>
-			      </widget>
-
-			      <widget>
-				<class>GtkLabel</class>
-				<name>label80</name>
-				<label>Max. downloads from single host</label>
-				<justify>GTK_JUSTIFY_CENTER</justify>
-				<wrap>False</wrap>
-				<xalign>7.45058e-09</xalign>
-				<yalign>0.5</yalign>
-				<xpad>0</xpad>
-				<ypad>0</ypad>
-				<child>
-				  <left_attach>0</left_attach>
-				  <right_attach>1</right_attach>
-				  <top_attach>1</top_attach>
-				  <bottom_attach>2</bottom_attach>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <xexpand>False</xexpand>
-				  <yexpand>False</yexpand>
-				  <xshrink>False</xshrink>
-				  <yshrink>False</yshrink>
-				  <xfill>True</xfill>
-				  <yfill>False</yfill>
-				</child>
-			      </widget>
-
-			      <widget>
-				<class>GtkSpinButton</class>
-				<name>spinbutton_max_host_downloads</name>
-				<can_focus>True</can_focus>
-				<climb_rate>1</climb_rate>
-				<digits>0</digits>
-				<numeric>True</numeric>
-				<update_policy>GTK_UPDATE_ALWAYS</update_policy>
-				<snap>False</snap>
-				<wrap>False</wrap>
-				<value>1</value>
-				<lower>1</lower>
-				<upper>100</upper>
-				<step>1</step>
-				<page>10</page>
-				<page_size>10</page_size>
-				<child>
-				  <left_attach>1</left_attach>
-				  <right_attach>2</right_attach>
-				  <top_attach>1</top_attach>
-				  <bottom_attach>2</bottom_attach>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <xexpand>True</xexpand>
-				  <yexpand>False</yexpand>
-				  <xshrink>False</xshrink>
-				  <yshrink>False</yshrink>
-				  <xfill>True</xfill>
-				  <yfill>False</yfill>
-				</child>
-			      </widget>
-
-			      <widget>
-				<class>GtkLabel</class>
-				<name>label639a</name>
-				<label>Bytes to back off on mismatch</label>
-				<justify>GTK_JUSTIFY_RIGHT</justify>
-				<wrap>False</wrap>
-				<xalign>0</xalign>
-				<yalign>0.5</yalign>
-				<xpad>0</xpad>
-				<ypad>0</ypad>
-				<child>
-				  <left_attach>0</left_attach>
-				  <right_attach>1</right_attach>
-				  <top_attach>2</top_attach>
-				  <bottom_attach>3</bottom_attach>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <xexpand>False</xexpand>
-				  <yexpand>False</yexpand>
-				  <xshrink>False</xshrink>
-				  <yshrink>False</yshrink>
-				  <xfill>True</xfill>
-				  <yfill>False</yfill>
-				</child>
-			      </widget>
-
-			      <widget>
-				<class>GtkSpinButton</class>
-				<name>spinbutton_mismatch_backout</name>
-				<width>68</width>
-				<can_focus>True</can_focus>
-				<climb_rate>100</climb_rate>
-				<digits>0</digits>
-				<numeric>True</numeric>
-				<update_policy>GTK_UPDATE_ALWAYS</update_policy>
-				<snap>False</snap>
-				<wrap>False</wrap>
-				<value>50000</value>
-				<lower>0</lower>
-				<upper>250000</upper>
-				<step>1000</step>
-				<page>10000</page>
-				<page_size>10</page_size>
-				<child>
-				  <left_attach>1</left_attach>
-				  <right_attach>2</right_attach>
-				  <top_attach>2</top_attach>
-				  <bottom_attach>3</bottom_attach>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <xexpand>True</xexpand>
-				  <yexpand>False</yexpand>
-				  <xshrink>False</xshrink>
-				  <yshrink>False</yshrink>
-				  <xfill>True</xfill>
-				  <yfill>False</yfill>
-				</child>
-			      </widget>
-
-			      <widget>
-				<class>GtkCheckButton</class>
-				<name>checkbutton_downloads_never_push</name>
-				<can_focus>True</can_focus>
-				<label>Never send a push request</label>
-				<active>False</active>
-				<draw_indicator>True</draw_indicator>
-				<child>
-				  <left_attach>2</left_attach>
-				  <right_attach>3</right_attach>
-				  <top_attach>0</top_attach>
-				  <bottom_attach>1</bottom_attach>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <xexpand>False</xexpand>
-				  <yexpand>False</yexpand>
-				  <xshrink>False</xshrink>
-				  <yshrink>False</yshrink>
-				  <xfill>True</xfill>
-				  <yfill>False</yfill>
-				</child>
-			      </widget>
-
-			      <widget>
-				<class>GtkCheckButton</class>
-				<name>checkbutton_download_delete_aborted</name>
-				<can_focus>True</can_focus>
-				<label>Delete file on abort</label>
-				<active>False</active>
-				<draw_indicator>True</draw_indicator>
-				<child>
-				  <left_attach>2</left_attach>
-				  <right_attach>3</right_attach>
-				  <top_attach>1</top_attach>
-				  <bottom_attach>2</bottom_attach>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <xexpand>False</xexpand>
-				  <yexpand>False</yexpand>
-				  <xshrink>False</xshrink>
-				  <yshrink>False</yshrink>
-				  <xfill>True</xfill>
-				  <yfill>False</yfill>
-				</child>
-			      </widget>
-
-			      <widget>
-				<class>GtkCheckButton</class>
-				<name>checkbutton_dl_remove_file_on_mismatch</name>
-				<can_focus>True</can_focus>
-				<label>Remove file on mismatch</label>
-				<active>False</active>
-				<draw_indicator>True</draw_indicator>
-				<child>
-				  <left_attach>2</left_attach>
-				  <right_attach>3</right_attach>
-				  <top_attach>2</top_attach>
-				  <bottom_attach>3</bottom_attach>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <xexpand>False</xexpand>
-				  <yexpand>False</yexpand>
-				  <xshrink>False</xshrink>
-				  <yshrink>False</yshrink>
-				  <xfill>True</xfill>
-				  <yfill>False</yfill>
-				</child>
-			      </widget>
-			    </widget>
-			  </widget>
-
-			  <widget>
-			    <class>GtkVBox</class>
-			    <name>vbox124</name>
-			    <homogeneous>False</homogeneous>
-			    <spacing>0</spacing>
-			    <child>
-			      <padding>0</padding>
-			      <expand>False</expand>
-			      <fill>True</fill>
-			    </child>
-
-			    <widget>
-			      <class>GtkFrame</class>
-			      <name>frame_dl_autoclear</name>
-			      <label>Auto clear stopped downloads</label>
-			      <label_xalign>0</label_xalign>
-			      <shadow_type>GTK_SHADOW_OUT</shadow_type>
-			      <child>
-				<padding>0</padding>
-				<expand>False</expand>
-				<fill>True</fill>
-			      </child>
-
-			      <widget>
-				<class>GtkVBox</class>
-				<name>vbox118</name>
-				<border_width>2</border_width>
-				<homogeneous>False</homogeneous>
-				<spacing>2</spacing>
-
-				<widget>
-				  <class>GtkCheckButton</class>
-				  <name>checkbutton_dl_clear_complete</name>
-				  <can_focus>True</can_focus>
-				  <label>Completed</label>
-				  <active>False</active>
-				  <draw_indicator>True</draw_indicator>
-				  <child>
-				    <padding>0</padding>
-				    <expand>False</expand>
-				    <fill>False</fill>
-				  </child>
-				</widget>
-
-				<widget>
-				  <class>GtkCheckButton</class>
-				  <name>checkbutton_dl_clear_failed</name>
-				  <can_focus>True</can_focus>
-				  <label>Failed</label>
-				  <active>False</active>
-				  <draw_indicator>True</draw_indicator>
-				  <child>
-				    <padding>0</padding>
-				    <expand>False</expand>
-				    <fill>False</fill>
-				  </child>
-				</widget>
-
-				<widget>
-				  <class>GtkCheckButton</class>
-				  <name>checkbutton_dl_clear_unavailable</name>
-				  <can_focus>True</can_focus>
-				  <label>Unavailable</label>
-				  <active>False</active>
-				  <draw_indicator>True</draw_indicator>
-				  <child>
-				    <padding>0</padding>
-				    <expand>False</expand>
-				    <fill>False</fill>
-				  </child>
-				</widget>
-			      </widget>
-			    </widget>
-			  </widget>
-			</widget>
 		      </widget>
 
 		      <widget>
-			<class>GtkHBox</class>
-			<name>hbox41</name>
-			<homogeneous>False</homogeneous>
-			<spacing>4</spacing>
+			<class>GtkLabel</class>
+			<name>label_fi_with_source_count</name>
+			<label>[with source count]</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
 			<child>
 			  <padding>0</padding>
 			  <expand>False</expand>
-			  <fill>True</fill>
+			  <fill>False</fill>
 			</child>
+		      </widget>
 
-			<widget>
-			  <class>GtkButton</class>
-			  <name>button_downloads_abort</name>
-			  <sensitive>False</sensitive>
-			  <tooltip>Abort all selected downloads</tooltip>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>clicked</name>
-			    <handler>on_button_downloads_abort_clicked</handler>
-			    <last_modification_time>Fri, 29 Mar 2002 18:49:20 GMT</last_modification_time>
-			  </signal>
-			  <label>_Abort selected</label>
-			  <relief>GTK_RELIEF_NORMAL</relief>
-			  <child>
-			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkButton</class>
-			  <name>button_downloads_resume</name>
-			  <sensitive>False</sensitive>
-			  <tooltip>Resume all selected downloads</tooltip>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>clicked</name>
-			    <handler>on_button_downloads_resume_clicked</handler>
-			    <last_modification_time>Fri, 29 Mar 2002 19:25:57 GMT</last_modification_time>
-			  </signal>
-			  <label>_Resume selected</label>
-			  <relief>GTK_RELIEF_NORMAL</relief>
-			  <child>
-			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkButton</class>
-			  <name>button_downloads_clear_stopped</name>
-			  <sensitive>False</sensitive>
-			  <tooltip>Clear completed, failed and unavailable downloads from list</tooltip>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>clicked</name>
-			    <handler>on_button_downloads_clear_stopped_clicked</handler>
-			    <last_modification_time>Sat, 16 Aug 2003 15:21:26 GMT</last_modification_time>
-			  </signal>
-			  <label>Clear stopped</label>
-			  <relief>GTK_RELIEF_NORMAL</relief>
-			  <child>
-			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkScrolledWindow</class>
-			  <name>scrolledwindow41</name>
-			  <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
-			  <vscrollbar_policy>GTK_POLICY_NEVER</vscrollbar_policy>
-			  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-			  <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-			  <child>
-			    <padding>0</padding>
-			    <expand>True</expand>
-			    <fill>True</fill>
-			  </child>
-
-			  <widget>
-			    <class>GtkViewport</class>
-			    <name>viewport11</name>
-			    <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-			    <widget>
-			      <class>GtkHBox</class>
-			      <name>hbox195</name>
-			      <homogeneous>False</homogeneous>
-			      <spacing>0</spacing>
-
-			      <widget>
-				<class>GtkHBox</class>
-				<name>hbox166</name>
-				<homogeneous>False</homogeneous>
-				<spacing>0</spacing>
-				<child>
-				  <padding>5</padding>
-				  <expand>True</expand>
-				  <fill>True</fill>
-				</child>
-
-				<widget>
-				  <class>GtkLabel</class>
-				  <name>label_dl_running_count</name>
-				  <label>[running]</label>
-				  <justify>GTK_JUSTIFY_CENTER</justify>
-				  <wrap>False</wrap>
-				  <xalign>1</xalign>
-				  <yalign>0.5</yalign>
-				  <xpad>5</xpad>
-				  <ypad>0</ypad>
-				  <child>
-				    <padding>0</padding>
-				    <expand>True</expand>
-				    <fill>True</fill>
-				  </child>
-				</widget>
-
-				<widget>
-				  <class>GtkLabel</class>
-				  <name>label533</name>
-				  <label>(</label>
-				  <justify>GTK_JUSTIFY_CENTER</justify>
-				  <wrap>False</wrap>
-				  <xalign>0.5</xalign>
-				  <yalign>0.5</yalign>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <child>
-				    <padding>0</padding>
-				    <expand>False</expand>
-				    <fill>False</fill>
-				  </child>
-				</widget>
-
-				<widget>
-				  <class>GtkLabel</class>
-				  <name>label_dl_active_count</name>
-				  <label>active</label>
-				  <justify>GTK_JUSTIFY_CENTER</justify>
-				  <wrap>False</wrap>
-				  <xalign>0.5</xalign>
-				  <yalign>0.5</yalign>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <child>
-				    <padding>0</padding>
-				    <expand>False</expand>
-				    <fill>False</fill>
-				  </child>
-				</widget>
-
-				<widget>
-				  <class>GtkLabel</class>
-				  <name>label537</name>
-				  <label>, </label>
-				  <justify>GTK_JUSTIFY_CENTER</justify>
-				  <wrap>False</wrap>
-				  <xalign>0.5</xalign>
-				  <yalign>0.5</yalign>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <child>
-				    <padding>0</padding>
-				    <expand>False</expand>
-				    <fill>False</fill>
-				  </child>
-				</widget>
-
-				<widget>
-				  <class>GtkLabel</class>
-				  <name>label_dl_aqueued_count</name>
-				  <label>queued</label>
-				  <justify>GTK_JUSTIFY_CENTER</justify>
-				  <wrap>False</wrap>
-				  <xalign>0.5</xalign>
-				  <yalign>0.5</yalign>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <child>
-				    <padding>0</padding>
-				    <expand>False</expand>
-				    <fill>False</fill>
-				  </child>
-				</widget>
-
-				<widget>
-				  <class>GtkLabel</class>
-				  <name>label536</name>
-				  <label>)</label>
-				  <justify>GTK_JUSTIFY_CENTER</justify>
-				  <wrap>False</wrap>
-				  <xalign>0.5</xalign>
-				  <yalign>0.5</yalign>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <child>
-				    <padding>0</padding>
-				    <expand>False</expand>
-				    <fill>False</fill>
-				  </child>
-				</widget>
-			      </widget>
-			    </widget>
-			  </widget>
-			</widget>
-
-			<widget>
-			  <class>GtkCheckButton</class>
-			  <name>checkbutton_dl_show_settings</name>
-			  <can_focus>True</can_focus>
-			  <active>False</active>
-			  <draw_indicator>False</draw_indicator>
-			  <child>
-			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
-			  </child>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <name>label_dl_show_settings</name>
-			    <label>Show settings</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-			</widget>
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label545</name>
+			<label> with sources</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <padding>0</padding>
+			  <expand>False</expand>
+			  <fill>False</fill>
+			</child>
 		      </widget>
 		    </widget>
 		  </widget>
 		</widget>
 	      </widget>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <child_name>Notebook:tab</child_name>
+	    <name>label_downloads</name>
+	    <label>#|Downloads</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0.5</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	  </widget>
+
+	  <widget>
+	    <class>GtkFrame</class>
+	    <name>frame3</name>
+	    <border_width>2</border_width>
+	    <label>Active sources</label>
+	    <label_xalign>0</label_xalign>
+	    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+
+	    <widget>
+	      <class>GtkVBox</class>
+	      <name>vbox16</name>
+	      <border_width>2</border_width>
+	      <homogeneous>False</homogeneous>
+	      <spacing>2</spacing>
 
 	      <widget>
-		<class>GtkViewport</class>
-		<name>viewport1</name>
-		<shadow_type>GTK_SHADOW_IN</shadow_type>
+		<class>GtkScrolledWindow</class>
+		<name>scrolledwindow6</name>
+		<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+		<vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
+		<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+		<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 		<child>
-		  <shrink>True</shrink>
-		  <resize>True</resize>
+		  <padding>0</padding>
+		  <expand>True</expand>
+		  <fill>True</fill>
 		</child>
 
 		<widget>
-		  <class>GtkVBox</class>
-		  <name>vbox35</name>
+		  <class>GtkCTree</class>
+		  <name>ctree_downloads</name>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>tree_select_row</name>
+		    <handler>on_ctree_downloads_tree_select_row</handler>
+		    <last_modification_time>Fri, 02 Jan 2004 03:20:19 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>tree_unselect_row</name>
+		    <handler>on_ctree_downloads_tree_unselect_row</handler>
+		    <last_modification_time>Fri, 02 Jan 2004 03:20:23 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>button_press_event</name>
+		    <handler>on_ctree_downloads_button_press_event</handler>
+		    <last_modification_time>Fri, 02 Jan 2004 03:20:33 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>resize_column</name>
+		    <handler>on_ctree_downloads_resize_column</handler>
+		    <last_modification_time>Fri, 02 Jan 2004 03:20:38 GMT</last_modification_time>
+		  </signal>
+		  <columns>7</columns>
+		  <column_widths>80,80,36,80,80,80,80</column_widths>
+		  <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
+		  <show_titles>True</show_titles>
+		  <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CTree:title</child_name>
+		    <name>label639</name>
+		    <label>Filename</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CTree:title</child_name>
+		    <name>label640</name>
+		    <label>Host</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CTree:title</child_name>
+		    <name>label640b</name>
+		    <label>Loc</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CTree:title</child_name>
+		    <name>label641</name>
+		    <label>Size</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CTree:title</child_name>
+		    <name>label642</name>
+		    <label>Range</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CTree:title</child_name>
+		    <name>label643</name>
+		    <label>Server</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CTree:title</child_name>
+		    <name>label644</name>
+		    <label>Status</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+		</widget>
+	      </widget>
+
+	      <widget>
+		<class>GtkFrame</class>
+		<name>frame_dl_settings</name>
+		<label>Download settings</label>
+		<label_xalign>0</label_xalign>
+		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkHBox</class>
+		  <name>hbox189</name>
+		  <border_width>2</border_width>
 		  <homogeneous>False</homogeneous>
 		  <spacing>0</spacing>
 
 		  <widget>
-		    <class>GtkFrame</class>
-		    <name>frame4</name>
-		    <border_width>2</border_width>
-		    <label>Inactive sources</label>
-		    <label_xalign>0</label_xalign>
-		    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		    <class>GtkAlignment</class>
+		    <name>alignment32</name>
+		    <xalign>7.45058e-09</xalign>
+		    <yalign>0.5</yalign>
+		    <xscale>0</xscale>
+		    <yscale>1</yscale>
 		    <child>
 		      <padding>0</padding>
 		      <expand>True</expand>
@@ -3529,33 +5017,297 @@
 		    </child>
 
 		    <widget>
-		      <class>GtkVBox</class>
-		      <name>vbox15</name>
-		      <border_width>2</border_width>
+		      <class>GtkTable</class>
+		      <name>table85</name>
+		      <rows>3</rows>
+		      <columns>3</columns>
 		      <homogeneous>False</homogeneous>
-		      <spacing>2</spacing>
+		      <row_spacing>2</row_spacing>
+		      <column_spacing>4</column_spacing>
 
 		      <widget>
-			<class>GtkHBox</class>
-			<name>hbox86</name>
-			<homogeneous>False</homogeneous>
-			<spacing>4</spacing>
+			<class>GtkLabel</class>
+			<name>label64</name>
+			<label>Max. simultaneous downloads</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>7.45058e-09</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
 			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>True</fill>
-			</child>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <name>label149</name>
-			  <label>Select</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0.5</xalign>
-			  <yalign>0.5</yalign>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
 			  <xpad>0</xpad>
 			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkSpinButton</class>
+			<name>spinbutton_max_downloads</name>
+			<can_focus>True</can_focus>
+			<climb_rate>1</climb_rate>
+			<digits>0</digits>
+			<numeric>True</numeric>
+			<update_policy>GTK_UPDATE_ALWAYS</update_policy>
+			<snap>False</snap>
+			<wrap>False</wrap>
+			<value>1</value>
+			<lower>0</lower>
+			<upper>100</upper>
+			<step>1</step>
+			<page>10</page>
+			<page_size>10</page_size>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>True</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label80</name>
+			<label>Max. downloads from single host</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>7.45058e-09</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkSpinButton</class>
+			<name>spinbutton_max_host_downloads</name>
+			<can_focus>True</can_focus>
+			<climb_rate>1</climb_rate>
+			<digits>0</digits>
+			<numeric>True</numeric>
+			<update_policy>GTK_UPDATE_ALWAYS</update_policy>
+			<snap>False</snap>
+			<wrap>False</wrap>
+			<value>1</value>
+			<lower>1</lower>
+			<upper>100</upper>
+			<step>1</step>
+			<page>10</page>
+			<page_size>10</page_size>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>True</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label639a</name>
+			<label>Bytes to back off on mismatch</label>
+			<justify>GTK_JUSTIFY_RIGHT</justify>
+			<wrap>False</wrap>
+			<xalign>0</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>2</top_attach>
+			  <bottom_attach>3</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkSpinButton</class>
+			<name>spinbutton_mismatch_backout</name>
+			<width>68</width>
+			<can_focus>True</can_focus>
+			<climb_rate>100</climb_rate>
+			<digits>0</digits>
+			<numeric>True</numeric>
+			<update_policy>GTK_UPDATE_ALWAYS</update_policy>
+			<snap>False</snap>
+			<wrap>False</wrap>
+			<value>50000</value>
+			<lower>0</lower>
+			<upper>250000</upper>
+			<step>1000</step>
+			<page>10000</page>
+			<page_size>10</page_size>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>2</top_attach>
+			  <bottom_attach>3</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>True</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_downloads_never_push</name>
+			<can_focus>True</can_focus>
+			<label>Never send a push request</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <left_attach>2</left_attach>
+			  <right_attach>3</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_download_delete_aborted</name>
+			<can_focus>True</can_focus>
+			<label>Delete file on abort</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <left_attach>2</left_attach>
+			  <right_attach>3</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_dl_remove_file_on_mismatch</name>
+			<can_focus>True</can_focus>
+			<label>Remove file on mismatch</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <left_attach>2</left_attach>
+			  <right_attach>3</right_attach>
+			  <top_attach>2</top_attach>
+			  <bottom_attach>3</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+		    </widget>
+		  </widget>
+
+		  <widget>
+		    <class>GtkVBox</class>
+		    <name>vbox124</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>True</fill>
+		    </child>
+
+		    <widget>
+		      <class>GtkFrame</class>
+		      <name>frame_dl_autoclear</name>
+		      <label>Auto clear stopped downloads</label>
+		      <label_xalign>0</label_xalign>
+		      <shadow_type>GTK_SHADOW_OUT</shadow_type>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>True</fill>
+		      </child>
+
+		      <widget>
+			<class>GtkVBox</class>
+			<name>vbox118</name>
+			<border_width>2</border_width>
+			<homogeneous>False</homogeneous>
+			<spacing>2</spacing>
+
+			<widget>
+			  <class>GtkCheckButton</class>
+			  <name>checkbutton_dl_clear_complete</name>
+			  <can_focus>True</can_focus>
+			  <label>Completed</label>
+			  <active>False</active>
+			  <draw_indicator>True</draw_indicator>
 			  <child>
 			    <padding>0</padding>
 			    <expand>False</expand>
@@ -3564,30 +5316,24 @@
 			</widget>
 
 			<widget>
-			  <class>GtkEntry</class>
-			  <name>entry_queue_regex</name>
+			  <class>GtkCheckButton</class>
+			  <name>checkbutton_dl_clear_failed</name>
 			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>activate</name>
-			    <handler>on_entry_queue_regex_activate</handler>
-			    <last_modification_time>Sat, 11 May 2002 15:32:31 GMT</last_modification_time>
-			  </signal>
-			  <editable>True</editable>
-			  <text_visible>True</text_visible>
-			  <text_max_length>0</text_max_length>
-			  <text></text>
+			  <label>Failed</label>
+			  <active>False</active>
+			  <draw_indicator>True</draw_indicator>
 			  <child>
 			    <padding>0</padding>
-			    <expand>True</expand>
-			    <fill>True</fill>
+			    <expand>False</expand>
+			    <fill>False</fill>
 			  </child>
 			</widget>
 
 			<widget>
 			  <class>GtkCheckButton</class>
-			  <name>checkbutton_queue_regex_case</name>
+			  <name>checkbutton_dl_clear_unavailable</name>
 			  <can_focus>True</can_focus>
-			  <label>case sensitive</label>
+			  <label>Unavailable</label>
 			  <active>False</active>
 			  <draw_indicator>True</draw_indicator>
 			  <child>
@@ -3597,416 +5343,89 @@
 			  </child>
 			</widget>
 		      </widget>
-
-		      <widget>
-			<class>GtkScrolledWindow</class>
-			<name>scrolledwindow13</name>
-			<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-			<vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
-			<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-			<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-			<child>
-			  <padding>0</padding>
-			  <expand>True</expand>
-			  <fill>True</fill>
-			</child>
-
-			<widget>
-			  <class>GtkCTree</class>
-			  <name>ctree_downloads_queue</name>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>tree_select_row</name>
-			    <handler>on_ctree_downloads_queue_tree_select_row</handler>
-			    <last_modification_time>Fri, 02 Jan 2004 03:21:35 GMT</last_modification_time>
-			  </signal>
-			  <signal>
-			    <name>tree_unselect_row</name>
-			    <handler>on_ctree_downloads_queue_tree_unselect_row</handler>
-			    <last_modification_time>Fri, 02 Jan 2004 03:21:38 GMT</last_modification_time>
-			  </signal>
-			  <signal>
-			    <name>resize_column</name>
-			    <handler>on_ctree_downloads_queue_resize_column</handler>
-			    <last_modification_time>Fri, 02 Jan 2004 03:21:42 GMT</last_modification_time>
-			  </signal>
-			  <signal>
-			    <name>button_press_event</name>
-			    <handler>on_ctree_downloads_queue_button_press_event</handler>
-			    <last_modification_time>Fri, 02 Jan 2004 03:21:49 GMT</last_modification_time>
-			  </signal>
-			  <signal>
-			    <name>drag_begin</name>
-			    <handler>on_ctree_downloads_queue_drag_begin</handler>
-			    <last_modification_time>Fri, 02 Jan 2004 03:21:54 GMT</last_modification_time>
-			  </signal>
-			  <signal>
-			    <name>drag_end</name>
-			    <handler>on_ctree_downloads_queue_drag_end</handler>
-			    <last_modification_time>Fri, 02 Jan 2004 03:21:59 GMT</last_modification_time>
-			  </signal>
-			  <columns>6</columns>
-			  <column_widths>80,80,36,80,80,80</column_widths>
-			  <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
-			  <show_titles>True</show_titles>
-			  <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CTree:title</child_name>
-			    <name>label645</name>
-			    <label>Filename</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CTree:title</child_name>
-			    <name>label646</name>
-			    <label>Host</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CTree:title</child_name>
-			    <name>label646b</name>
-			    <label>Loc</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CTree:title</child_name>
-			    <name>label647</name>
-			    <label>Size</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CTree:title</child_name>
-			    <name>label648</name>
-			    <label>Server</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CTree:title</child_name>
-			    <name>label649</name>
-			    <label>Status</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-			</widget>
-		      </widget>
-
-		      <widget>
-			<class>GtkHBox</class>
-			<name>hbox162</name>
-			<homogeneous>False</homogeneous>
-			<spacing>4</spacing>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>True</fill>
-			</child>
-
-			<widget>
-			  <class>GtkToggleButton</class>
-			  <name>togglebutton_queue_freeze</name>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>toggled</name>
-			    <handler>on_togglebutton_queue_freeze_toggled</handler>
-			    <last_modification_time>Thu, 14 Nov 2002 12:23:14 GMT</last_modification_time>
-			  </signal>
-			  <relief>GTK_RELIEF_NORMAL</relief>
-			  <active>False</active>
-			  <child>
-			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
-			  </child>
-
-			  <widget>
-			    <class>GtkHBox</class>
-			    <name>hbox159</name>
-			    <homogeneous>False</homogeneous>
-			    <spacing>0</spacing>
-
-			    <widget>
-			      <class>GtkVBox</class>
-			      <name>vbox_queue_freeze</name>
-			      <homogeneous>False</homogeneous>
-			      <spacing>0</spacing>
-			      <child>
-				<padding>0</padding>
-				<expand>True</expand>
-				<fill>True</fill>
-			      </child>
-
-			      <widget>
-				<class>GtkLabel</class>
-				<name>label406</name>
-				<label>Freeze queue</label>
-				<justify>GTK_JUSTIFY_CENTER</justify>
-				<wrap>False</wrap>
-				<xalign>0.5</xalign>
-				<yalign>0.5</yalign>
-				<xpad>0</xpad>
-				<ypad>0</ypad>
-				<child>
-				  <padding>0</padding>
-				  <expand>True</expand>
-				  <fill>True</fill>
-				</child>
-			      </widget>
-			    </widget>
-
-			    <widget>
-			      <class>GtkVBox</class>
-			      <name>vbox_queue_thaw</name>
-			      <visible>False</visible>
-			      <homogeneous>False</homogeneous>
-			      <spacing>0</spacing>
-			      <child>
-				<padding>0</padding>
-				<expand>True</expand>
-				<fill>True</fill>
-			      </child>
-
-			      <widget>
-				<class>GtkLabel</class>
-				<name>label407</name>
-				<label>Thaw queue</label>
-				<justify>GTK_JUSTIFY_CENTER</justify>
-				<wrap>False</wrap>
-				<xalign>0.5</xalign>
-				<yalign>0.5</yalign>
-				<xpad>0</xpad>
-				<ypad>0</ypad>
-				<child>
-				  <padding>0</padding>
-				  <expand>True</expand>
-				  <fill>True</fill>
-				</child>
-			      </widget>
-			    </widget>
-			  </widget>
-			</widget>
-
-			<widget>
-			  <class>GtkScrolledWindow</class>
-			  <name>scrolledwindow40</name>
-			  <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
-			  <vscrollbar_policy>GTK_POLICY_NEVER</vscrollbar_policy>
-			  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-			  <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-			  <child>
-			    <padding>0</padding>
-			    <expand>True</expand>
-			    <fill>True</fill>
-			  </child>
-
-			  <widget>
-			    <class>GtkViewport</class>
-			    <name>viewport10</name>
-			    <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-			    <widget>
-			      <class>GtkHBox</class>
-			      <name>hbox194</name>
-			      <homogeneous>False</homogeneous>
-			      <spacing>0</spacing>
-
-			      <widget>
-				<class>GtkHBox</class>
-				<name>hbox169</name>
-				<homogeneous>False</homogeneous>
-				<spacing>0</spacing>
-				<child>
-				  <padding>5</padding>
-				  <expand>True</expand>
-				  <fill>True</fill>
-				</child>
-
-				<widget>
-				  <class>GtkLabel</class>
-				  <name>label_dl_queue_count</name>
-				  <label>[queued downloads]</label>
-				  <justify>GTK_JUSTIFY_CENTER</justify>
-				  <wrap>False</wrap>
-				  <xalign>1</xalign>
-				  <yalign>0.5</yalign>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <child>
-				    <padding>0</padding>
-				    <expand>True</expand>
-				    <fill>True</fill>
-				  </child>
-				</widget>
-
-				<widget>
-				  <class>GtkLabel</class>
-				  <name>label507</name>
-				  <label> queued (</label>
-				  <justify>GTK_JUSTIFY_CENTER</justify>
-				  <wrap>False</wrap>
-				  <xalign>0.5</xalign>
-				  <yalign>0.5</yalign>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <child>
-				    <padding>0</padding>
-				    <expand>False</expand>
-				    <fill>False</fill>
-				  </child>
-				</widget>
-
-				<widget>
-				  <class>GtkLabel</class>
-				  <name>label_dl_qalive_count</name>
-				  <label>[hosts alive]</label>
-				  <justify>GTK_JUSTIFY_CENTER</justify>
-				  <wrap>False</wrap>
-				  <xalign>0.5</xalign>
-				  <yalign>0.5</yalign>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <child>
-				    <padding>0</padding>
-				    <expand>False</expand>
-				    <fill>False</fill>
-				  </child>
-				</widget>
-
-				<widget>
-				  <class>GtkLabel</class>
-				  <name>label506</name>
-				  <label> alive with </label>
-				  <justify>GTK_JUSTIFY_CENTER</justify>
-				  <wrap>False</wrap>
-				  <xalign>0.5</xalign>
-				  <yalign>0.5</yalign>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <child>
-				    <padding>0</padding>
-				    <expand>False</expand>
-				    <fill>False</fill>
-				  </child>
-				</widget>
-
-				<widget>
-				  <class>GtkLabel</class>
-				  <name>label_dl_pqueued_count</name>
-				  <label>queued</label>
-				  <justify>GTK_JUSTIFY_CENTER</justify>
-				  <wrap>False</wrap>
-				  <xalign>0.5</xalign>
-				  <yalign>0.5</yalign>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <child>
-				    <padding>0</padding>
-				    <expand>False</expand>
-				    <fill>False</fill>
-				  </child>
-				</widget>
-
-				<widget>
-				  <class>GtkLabel</class>
-				  <name>label539</name>
-				  <label> passive)</label>
-				  <justify>GTK_JUSTIFY_CENTER</justify>
-				  <wrap>False</wrap>
-				  <xalign>0.5</xalign>
-				  <yalign>0.5</yalign>
-				  <xpad>0</xpad>
-				  <ypad>0</ypad>
-				  <child>
-				    <padding>0</padding>
-				    <expand>False</expand>
-				    <fill>False</fill>
-				  </child>
-				</widget>
-			      </widget>
-			    </widget>
-			  </widget>
-			</widget>
-		      </widget>
 		    </widget>
 		  </widget>
 		</widget>
 	      </widget>
-	    </widget>
-
-	    <widget>
-	      <class>GtkLabel</class>
-	      <child_name>Notebook:tab</child_name>
-	      <name>label510</name>
-	      <label>Sources</label>
-	      <justify>GTK_JUSTIFY_CENTER</justify>
-	      <wrap>False</wrap>
-	      <xalign>0.5</xalign>
-	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
-	      <ypad>0</ypad>
-	    </widget>
-
-	    <widget>
-	      <class>GtkFrame</class>
-	      <name>frame76</name>
-	      <border_width>2</border_width>
-	      <label>Files to get</label>
-	      <label_xalign>0</label_xalign>
-	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 
 	      <widget>
-		<class>GtkVBox</class>
-		<name>vbox109</name>
-		<border_width>2</border_width>
+		<class>GtkHBox</class>
+		<name>hbox41</name>
 		<homogeneous>False</homogeneous>
-		<spacing>2</spacing>
+		<spacing>4</spacing>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>True</fill>
+		</child>
 
 		<widget>
-		  <class>GtkVPaned</class>
-		  <name>vpaned_fileinfo</name>
-		  <handle_size>10</handle_size>
-		  <gutter_size>10</gutter_size>
-		  <position>305</position>
+		  <class>GtkButton</class>
+		  <name>button_downloads_abort</name>
+		  <sensitive>False</sensitive>
+		  <tooltip>Abort all selected downloads</tooltip>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>clicked</name>
+		    <handler>on_button_downloads_abort_clicked</handler>
+		    <last_modification_time>Fri, 29 Mar 2002 18:49:20 GMT</last_modification_time>
+		  </signal>
+		  <label>_Abort selected</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkButton</class>
+		  <name>button_downloads_resume</name>
+		  <sensitive>False</sensitive>
+		  <tooltip>Resume all selected downloads</tooltip>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>clicked</name>
+		    <handler>on_button_downloads_resume_clicked</handler>
+		    <last_modification_time>Fri, 29 Mar 2002 19:25:57 GMT</last_modification_time>
+		  </signal>
+		  <label>_Resume selected</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkButton</class>
+		  <name>button_downloads_clear_stopped</name>
+		  <sensitive>False</sensitive>
+		  <tooltip>Clear completed, failed and unavailable downloads from list</tooltip>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>clicked</name>
+		    <handler>on_button_downloads_clear_stopped_clicked</handler>
+		    <last_modification_time>Sat, 16 Aug 2003 15:21:26 GMT</last_modification_time>
+		  </signal>
+		  <label>Clear stopped</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkScrolledWindow</class>
+		  <name>scrolledwindow41</name>
+		  <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
+		  <vscrollbar_policy>GTK_POLICY_NEVER</vscrollbar_policy>
+		  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+		  <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 		  <child>
 		    <padding>0</padding>
 		    <expand>True</expand>
@@ -4015,34 +5434,47 @@
 
 		  <widget>
 		    <class>GtkViewport</class>
-		    <name>viewport48</name>
-		    <shadow_type>GTK_SHADOW_NONE</shadow_type>
-		    <child>
-		      <shrink>True</shrink>
-		      <resize>False</resize>
-		    </child>
+		    <name>viewport11</name>
+		    <shadow_type>GTK_SHADOW_IN</shadow_type>
 
 		    <widget>
-		      <class>GtkVBox</class>
-		      <name>vbox111</name>
+		      <class>GtkHBox</class>
+		      <name>hbox195</name>
 		      <homogeneous>False</homogeneous>
-		      <spacing>2</spacing>
+		      <spacing>0</spacing>
 
 		      <widget>
 			<class>GtkHBox</class>
-			<name>hbox196</name>
+			<name>hbox166</name>
 			<homogeneous>False</homogeneous>
-			<spacing>4</spacing>
+			<spacing>0</spacing>
 			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
+			  <padding>5</padding>
+			  <expand>True</expand>
 			  <fill>True</fill>
 			</child>
 
 			<widget>
 			  <class>GtkLabel</class>
-			  <name>label656</name>
-			  <label>Search</label>
+			  <name>label_dl_running_count</name>
+			  <label>[running]</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>1</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>5</xpad>
+			  <ypad>0</ypad>
+			  <child>
+			    <padding>0</padding>
+			    <expand>True</expand>
+			    <fill>True</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label533</name>
+			  <label>(</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>0.5</xalign>
@@ -4057,32 +5489,66 @@
 			</widget>
 
 			<widget>
-			  <class>GtkEntry</class>
-			  <name>entry_fi_regex</name>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>activate</name>
-			    <handler>on_entry_fi_regex_activate</handler>
-			    <last_modification_time>Sat, 13 Mar 2004 20:02:14 GMT</last_modification_time>
-			  </signal>
-			  <editable>True</editable>
-			  <text_visible>True</text_visible>
-			  <text_max_length>0</text_max_length>
-			  <text></text>
+			  <class>GtkLabel</class>
+			  <name>label_dl_active_count</name>
+			  <label>active</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
 			  <child>
 			    <padding>0</padding>
-			    <expand>True</expand>
-			    <fill>True</fill>
+			    <expand>False</expand>
+			    <fill>False</fill>
 			  </child>
 			</widget>
 
 			<widget>
-			  <class>GtkCheckButton</class>
-			  <name>checkbutton_fi_regex_case</name>
-			  <can_focus>True</can_focus>
-			  <label>case sensitive</label>
-			  <active>False</active>
-			  <draw_indicator>True</draw_indicator>
+			  <class>GtkLabel</class>
+			  <name>label537</name>
+			  <label>, </label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <child>
+			    <padding>0</padding>
+			    <expand>False</expand>
+			    <fill>False</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label_dl_aqueued_count</name>
+			  <label>queued</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <child>
+			    <padding>0</padding>
+			    <expand>False</expand>
+			    <fill>False</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label536</name>
+			  <label>)</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
 			  <child>
 			    <padding>0</padding>
 			    <expand>False</expand>
@@ -4090,452 +5556,396 @@
 			  </child>
 			</widget>
 		      </widget>
-
-		      <widget>
-			<class>GtkScrolledWindow</class>
-			<name>scrolledwindow42</name>
-			<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-			<vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
-			<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-			<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-			<child>
-			  <padding>0</padding>
-			  <expand>True</expand>
-			  <fill>True</fill>
-			</child>
-
-			<widget>
-			  <class>GtkCList</class>
-			  <name>clist_fileinfo</name>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>resize_column</name>
-			    <handler>on_clist_fileinfo_resize_column</handler>
-			    <last_modification_time>Mon, 10 Mar 2003 17:44:50 GMT</last_modification_time>
-			  </signal>
-			  <signal>
-			    <name>select_row</name>
-			    <handler>on_clist_fileinfo_select_row</handler>
-			    <last_modification_time>Wed, 12 Mar 2003 23:33:01 GMT</last_modification_time>
-			  </signal>
-			  <signal>
-			    <name>unselect_row</name>
-			    <handler>on_clist_fileinfo_unselect_row</handler>
-			    <last_modification_time>Wed, 12 Mar 2003 23:33:05 GMT</last_modification_time>
-			  </signal>
-			  <columns>5</columns>
-			  <column_widths>80,80,80,80,80</column_widths>
-			  <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
-			  <show_titles>True</show_titles>
-			  <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label512</name>
-			    <label>File</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>7.45058e-09</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label513</name>
-			    <label>Size</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label514</name>
-			    <label>Done</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label515</name>
-			    <label>Sources</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label516</name>
-			    <label>Status</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-			</widget>
-		      </widget>
 		    </widget>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_dl_show_settings</name>
+		  <can_focus>True</can_focus>
+		  <active>False</active>
+		  <draw_indicator>False</draw_indicator>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label_dl_show_settings</name>
+		    <label>Show settings</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+		</widget>
+	      </widget>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <child_name>Notebook:tab</child_name>
+	    <name>label734</name>
+	    <label>#|Active</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0.5</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	  </widget>
+
+	  <widget>
+	    <class>GtkFrame</class>
+	    <name>frame4</name>
+	    <border_width>2</border_width>
+	    <label>Inactive sources</label>
+	    <label_xalign>0</label_xalign>
+	    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+
+	    <widget>
+	      <class>GtkVBox</class>
+	      <name>vbox15</name>
+	      <border_width>2</border_width>
+	      <homogeneous>False</homogeneous>
+	      <spacing>2</spacing>
+
+	      <widget>
+		<class>GtkHBox</class>
+		<name>hbox86</name>
+		<homogeneous>False</homogeneous>
+		<spacing>4</spacing>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkLabel</class>
+		  <name>label149</name>
+		  <label>Select</label>
+		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <wrap>False</wrap>
+		  <xalign>0.5</xalign>
+		  <yalign>0.5</yalign>
+		  <xpad>0</xpad>
+		  <ypad>0</ypad>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkEntry</class>
+		  <name>entry_queue_regex</name>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_entry_queue_regex_activate</handler>
+		    <last_modification_time>Sat, 11 May 2002 15:32:31 GMT</last_modification_time>
+		  </signal>
+		  <editable>True</editable>
+		  <text_visible>True</text_visible>
+		  <text_max_length>0</text_max_length>
+		  <text></text>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_queue_regex_case</name>
+		  <can_focus>True</can_focus>
+		  <label>case sensitive</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+	      </widget>
+
+	      <widget>
+		<class>GtkScrolledWindow</class>
+		<name>scrolledwindow13</name>
+		<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+		<vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
+		<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+		<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+		<child>
+		  <padding>0</padding>
+		  <expand>True</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkCTree</class>
+		  <name>ctree_downloads_queue</name>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>tree_select_row</name>
+		    <handler>on_ctree_downloads_queue_tree_select_row</handler>
+		    <last_modification_time>Fri, 02 Jan 2004 03:21:35 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>tree_unselect_row</name>
+		    <handler>on_ctree_downloads_queue_tree_unselect_row</handler>
+		    <last_modification_time>Fri, 02 Jan 2004 03:21:38 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>resize_column</name>
+		    <handler>on_ctree_downloads_queue_resize_column</handler>
+		    <last_modification_time>Fri, 02 Jan 2004 03:21:42 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>button_press_event</name>
+		    <handler>on_ctree_downloads_queue_button_press_event</handler>
+		    <last_modification_time>Fri, 02 Jan 2004 03:21:49 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>drag_begin</name>
+		    <handler>on_ctree_downloads_queue_drag_begin</handler>
+		    <last_modification_time>Fri, 02 Jan 2004 03:21:54 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>drag_end</name>
+		    <handler>on_ctree_downloads_queue_drag_end</handler>
+		    <last_modification_time>Fri, 02 Jan 2004 03:21:59 GMT</last_modification_time>
+		  </signal>
+		  <columns>6</columns>
+		  <column_widths>80,80,36,80,80,80</column_widths>
+		  <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
+		  <show_titles>True</show_titles>
+		  <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CTree:title</child_name>
+		    <name>label645</name>
+		    <label>Filename</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
 		  </widget>
 
 		  <widget>
-		    <class>GtkFrame</class>
-		    <name>frame78</name>
-		    <label>Detail information</label>
-		    <label_xalign>0</label_xalign>
-		    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-		    <child>
-		      <shrink>True</shrink>
-		      <resize>True</resize>
-		    </child>
+		    <class>GtkLabel</class>
+		    <child_name>CTree:title</child_name>
+		    <name>label646</name>
+		    <label>Host</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CTree:title</child_name>
+		    <name>label646b</name>
+		    <label>Loc</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CTree:title</child_name>
+		    <name>label647</name>
+		    <label>Size</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CTree:title</child_name>
+		    <name>label648</name>
+		    <label>Server</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CTree:title</child_name>
+		    <name>label649</name>
+		    <label>Status</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+		</widget>
+	      </widget>
+
+	      <widget>
+		<class>GtkHBox</class>
+		<name>hbox162</name>
+		<homogeneous>False</homogeneous>
+		<spacing>4</spacing>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkToggleButton</class>
+		  <name>togglebutton_queue_freeze</name>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>toggled</name>
+		    <handler>on_togglebutton_queue_freeze_toggled</handler>
+		    <last_modification_time>Thu, 14 Nov 2002 12:23:14 GMT</last_modification_time>
+		  </signal>
+		  <relief>GTK_RELIEF_NORMAL</relief>
+		  <active>False</active>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkHBox</class>
+		    <name>hbox159</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
 
 		    <widget>
 		      <class>GtkVBox</class>
-		      <name>vbox110</name>
-		      <border_width>2</border_width>
+		      <name>vbox_queue_freeze</name>
 		      <homogeneous>False</homogeneous>
-		      <spacing>2</spacing>
+		      <spacing>0</spacing>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
 
 		      <widget>
-			<class>GtkTable</class>
-			<name>table59</name>
-			<border_width>2</border_width>
-			<rows>3</rows>
-			<columns>2</columns>
-			<homogeneous>False</homogeneous>
-			<row_spacing>2</row_spacing>
-			<column_spacing>4</column_spacing>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>True</fill>
-			</child>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <name>label523</name>
-			  <label>Filename:</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <child>
-			    <left_attach>0</left_attach>
-			    <right_attach>1</right_attach>
-			    <top_attach>0</top_attach>
-			    <bottom_attach>1</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <name>label524</name>
-			  <label>Size:</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <child>
-			    <left_attach>0</left_attach>
-			    <right_attach>1</right_attach>
-			    <top_attach>1</top_attach>
-			    <bottom_attach>2</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkFrame</class>
-			  <name>frame118</name>
-			  <label_xalign>0</label_xalign>
-			  <shadow_type>GTK_SHADOW_IN</shadow_type>
-			  <child>
-			    <left_attach>1</left_attach>
-			    <right_attach>2</right_attach>
-			    <top_attach>0</top_attach>
-			    <bottom_attach>1</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>True</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>True</yfill>
-			  </child>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <name>label_fi_filename</name>
-			    <label></label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-			</widget>
-
-			<widget>
-			  <class>GtkFrame</class>
-			  <name>frame119</name>
-			  <label_xalign>0</label_xalign>
-			  <shadow_type>GTK_SHADOW_IN</shadow_type>
-			  <child>
-			    <left_attach>1</left_attach>
-			    <right_attach>2</right_attach>
-			    <top_attach>1</top_attach>
-			    <bottom_attach>2</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>True</yfill>
-			  </child>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <name>label_fi_size</name>
-			    <label></label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-			</widget>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <name>label658</name>
-			  <label>Progress:</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <child>
-			    <left_attach>0</left_attach>
-			    <right_attach>1</right_attach>
-			    <top_attach>2</top_attach>
-			    <bottom_attach>3</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkViewport</class>
-			  <name>viewport44</name>
-			  <shadow_type>GTK_SHADOW_IN</shadow_type>
-			  <child>
-			    <left_attach>1</left_attach>
-			    <right_attach>2</right_attach>
-			    <top_attach>2</top_attach>
-			    <bottom_attach>3</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>True</yfill>
-			  </child>
-
-			  <widget>
-			    <class>GtkHBox</class>
-			    <name>hbox198</name>
-			    <homogeneous>False</homogeneous>
-			    <spacing>0</spacing>
-
-			    <widget>
-			      <class>GtkDrawingArea</class>
-			      <name>drawingarea_fi_progress</name>
-			      <height>16</height>
-			      <tooltip>Shows visual information on the download progress. Green chunks have been downloaded, with the brighter green chunks touched during this session. Yellow chunks are active right now; these active chunks are also marked with a triangle. Red chunks have not been downloaded yet. The blue line indicates which parts of the file have been seen on the network in this session.</tooltip>
-			      <events>GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK</events>
-			      <signal>
-				<name>realize</name>
-				<handler>on_drawingarea_fi_progress_realize</handler>
-				<last_modification_time>Sat, 10 Apr 2004 15:41:00 GMT</last_modification_time>
-			      </signal>
-			      <signal>
-				<name>expose_event</name>
-				<handler>on_drawingarea_fi_progress_expose_event</handler>
-				<last_modification_time>Sun, 11 Apr 2004 08:04:56 GMT</last_modification_time>
-			      </signal>
-			      <child>
-				<padding>0</padding>
-				<expand>True</expand>
-				<fill>True</fill>
-			      </child>
-			    </widget>
-			  </widget>
-			</widget>
-		      </widget>
-
-		      <widget>
-			<class>GtkFrame</class>
-			<name>frame79</name>
-			<label>Alternate filenames</label>
-			<label_xalign>0</label_xalign>
-			<shadow_type>GTK_SHADOW_OUT</shadow_type>
+			<class>GtkLabel</class>
+			<name>label406</name>
+			<label>Freeze queue</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
 			<child>
 			  <padding>0</padding>
 			  <expand>True</expand>
 			  <fill>True</fill>
 			</child>
+		      </widget>
+		    </widget>
 
-			<widget>
-			  <class>GtkScrolledWindow</class>
-			  <name>scrolledwindow44</name>
-			  <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-			  <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-			  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-			  <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+		    <widget>
+		      <class>GtkVBox</class>
+		      <name>vbox_queue_thaw</name>
+		      <visible>False</visible>
+		      <homogeneous>False</homogeneous>
+		      <spacing>0</spacing>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
 
-			  <widget>
-			    <class>GtkCList</class>
-			    <name>clist_fi_aliases</name>
-			    <can_focus>True</can_focus>
-			    <columns>1</columns>
-			    <column_widths>80</column_widths>
-			    <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
-			    <show_titles>False</show_titles>
-			    <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-			    <widget>
-			      <class>GtkLabel</class>
-			      <child_name>CList:title</child_name>
-			      <name>label526</name>
-			      <label></label>
-			      <justify>GTK_JUSTIFY_CENTER</justify>
-			      <wrap>False</wrap>
-			      <xalign>0.5</xalign>
-			      <yalign>0.5</yalign>
-			      <xpad>0</xpad>
-			      <ypad>0</ypad>
-			    </widget>
-			  </widget>
-			</widget>
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label407</name>
+			<label>Thaw queue</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <padding>0</padding>
+			  <expand>True</expand>
+			  <fill>True</fill>
+			</child>
 		      </widget>
 		    </widget>
 		  </widget>
 		</widget>
 
 		<widget>
-		  <class>GtkHBox</class>
-		  <name>hbox197a</name>
-		  <homogeneous>False</homogeneous>
-		  <spacing>4</spacing>
+		  <class>GtkScrolledWindow</class>
+		  <name>scrolledwindow40</name>
+		  <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
+		  <vscrollbar_policy>GTK_POLICY_NEVER</vscrollbar_policy>
+		  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+		  <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 		  <child>
 		    <padding>0</padding>
-		    <expand>False</expand>
+		    <expand>True</expand>
 		    <fill>True</fill>
 		  </child>
 
 		  <widget>
-		    <class>GtkButton</class>
-		    <name>button_fi_purge</name>
-		    <sensitive>False</sensitive>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>clicked</name>
-		      <handler>on_button_fi_purge_clicked</handler>
-		      <last_modification_time>Wed, 07 May 2003 09:48:30 GMT</last_modification_time>
-		    </signal>
-		    <label>_Purge selected</label>
-		    <relief>GTK_RELIEF_NORMAL</relief>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
-		  </widget>
-
-		  <widget>
 		    <class>GtkViewport</class>
-		    <name>viewport43</name>
+		    <name>viewport10</name>
 		    <shadow_type>GTK_SHADOW_IN</shadow_type>
-		    <child>
-		      <padding>0</padding>
-		      <expand>True</expand>
-		      <fill>True</fill>
-		    </child>
 
 		    <widget>
 		      <class>GtkHBox</class>
-		      <name>hbox197</name>
+		      <name>hbox194</name>
 		      <homogeneous>False</homogeneous>
 		      <spacing>0</spacing>
 
 		      <widget>
 			<class>GtkHBox</class>
-			<name>hbox175</name>
+			<name>hbox169</name>
 			<homogeneous>False</homogeneous>
 			<spacing>0</spacing>
 			<child>
-			  <padding>3</padding>
+			  <padding>5</padding>
 			  <expand>True</expand>
 			  <fill>True</fill>
 			</child>
 
 			<widget>
 			  <class>GtkLabel</class>
-			  <name>label_fi_all_count</name>
-			  <label>[all count]</label>
+			  <name>label_dl_queue_count</name>
+			  <label>[queued downloads]</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>1</xalign>
@@ -4551,9 +5961,8 @@
 
 			<widget>
 			  <class>GtkLabel</class>
-			  <name>label542</name>
-			  <height>21</height>
-			  <label> registered, </label>
+			  <name>label507</name>
+			  <label> queued (</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>0.5</xalign>
@@ -4569,8 +5978,8 @@
 
 			<widget>
 			  <class>GtkLabel</class>
-			  <name>label_fi_with_source_count</name>
-			  <label>[with source count]</label>
+			  <name>label_dl_qalive_count</name>
+			  <label>[hosts alive]</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>0.5</xalign>
@@ -4586,8 +5995,42 @@
 
 			<widget>
 			  <class>GtkLabel</class>
-			  <name>label545</name>
-			  <label> with sources</label>
+			  <name>label506</name>
+			  <label> alive with </label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <child>
+			    <padding>0</padding>
+			    <expand>False</expand>
+			    <fill>False</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label_dl_pqueued_count</name>
+			  <label>queued</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <child>
+			    <padding>0</padding>
+			    <expand>False</expand>
+			    <fill>False</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label539</name>
+			  <label> passive)</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>0.5</xalign>
@@ -4606,26 +6049,13 @@
 		</widget>
 	      </widget>
 	    </widget>
-
-	    <widget>
-	      <class>GtkLabel</class>
-	      <child_name>Notebook:tab</child_name>
-	      <name>label511</name>
-	      <label>Files</label>
-	      <justify>GTK_JUSTIFY_CENTER</justify>
-	      <wrap>False</wrap>
-	      <xalign>0.5</xalign>
-	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
-	      <ypad>0</ypad>
-	    </widget>
 	  </widget>
 
 	  <widget>
 	    <class>GtkLabel</class>
 	    <child_name>Notebook:tab</child_name>
-	    <name>label_downloads</name>
-	    <label>#|Downloads</label>
+	    <name>label735</name>
+	    <label>#|Queue</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -6353,1502 +7783,6 @@
 	    <child_name>Notebook:tab</child_name>
 	    <name>label_search_stats</name>
 	    <label>#|Search Stats</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	  </widget>
-
-	  <widget>
-	    <class>GtkVBox</class>
-	    <name>vbox84</name>
-	    <homogeneous>False</homogeneous>
-	    <spacing>0</spacing>
-
-	    <widget>
-	      <class>GtkHPaned</class>
-	      <name>hpaned_gnet_stats</name>
-	      <handle_size>10</handle_size>
-	      <gutter_size>10</gutter_size>
-	      <position>300</position>
-	      <child>
-		<padding>0</padding>
-		<expand>True</expand>
-		<fill>True</fill>
-	      </child>
-
-	      <widget>
-		<class>GtkVBox</class>
-		<name>vbox90</name>
-		<border_width>2</border_width>
-		<homogeneous>False</homogeneous>
-		<spacing>0</spacing>
-		<child>
-		  <shrink>True</shrink>
-		  <resize>False</resize>
-		</child>
-
-		<widget>
-		  <class>GtkFrame</class>
-		  <name>frame65</name>
-		  <height>40</height>
-		  <label>General stats</label>
-		  <label_xalign>0</label_xalign>
-		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-		  <child>
-		    <padding>0</padding>
-		    <expand>True</expand>
-		    <fill>True</fill>
-		  </child>
-
-		  <widget>
-		    <class>GtkVBox</class>
-		    <name>vbox94</name>
-		    <border_width>2</border_width>
-		    <homogeneous>False</homogeneous>
-		    <spacing>0</spacing>
-
-		    <widget>
-		      <class>GtkScrolledWindow</class>
-		      <name>scrolledwindow31</name>
-		      <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-		      <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-		      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-		      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-		      <child>
-			<padding>0</padding>
-			<expand>True</expand>
-			<fill>True</fill>
-		      </child>
-
-		      <widget>
-			<class>GtkCList</class>
-			<name>clist_gnet_stats_general</name>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>resize_column</name>
-			  <handler>on_clist_gnet_stats_general_resize_column</handler>
-			  <last_modification_time>Wed, 11 Sep 2002 11:56:33 GMT</last_modification_time>
-			</signal>
-			<columns>2</columns>
-			<column_widths>80,80</column_widths>
-			<selection_mode>GTK_SELECTION_SINGLE</selection_mode>
-			<show_titles>True</show_titles>
-			<shadow_type>GTK_SHADOW_IN</shadow_type>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <child_name>CList:title</child_name>
-			  <name>label403</name>
-			  <label>Type</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>7.45058e-09</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			</widget>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <child_name>CList:title</child_name>
-			  <name>label404</name>
-			  <label>Count</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0.5</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			</widget>
-		      </widget>
-		    </widget>
-		  </widget>
-		</widget>
-
-		<widget>
-		  <class>GtkFrame</class>
-		  <name>frame56</name>
-		  <height>200</height>
-		  <label>Drop reasons</label>
-		  <label_xalign>0</label_xalign>
-		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-		  <child>
-		    <padding>0</padding>
-		    <expand>True</expand>
-		    <fill>True</fill>
-		  </child>
-
-		  <widget>
-		    <class>GtkVBox</class>
-		    <name>vbox82</name>
-		    <border_width>2</border_width>
-		    <homogeneous>False</homogeneous>
-		    <spacing>2</spacing>
-
-		    <widget>
-		      <class>GtkHBox</class>
-		      <name>hbox157</name>
-		      <homogeneous>False</homogeneous>
-		      <spacing>4</spacing>
-		      <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>True</fill>
-		      </child>
-
-		      <widget>
-			<class>GtkLabel</class>
-			<name>label390</name>
-			<label>Show reasons for</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0.5</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkCombo</class>
-			<name>combo_gnet_stats_type</name>
-			<value_in_list>True</value_in_list>
-			<ok_if_empty>True</ok_if_empty>
-			<case_sensitive>False</case_sensitive>
-			<use_arrows>True</use_arrows>
-			<use_arrows_always>False</use_arrows_always>
-			<items></items>
-			<child>
-			  <padding>0</padding>
-			  <expand>True</expand>
-			  <fill>True</fill>
-			</child>
-
-			<widget>
-			  <class>GtkEntry</class>
-			  <child_name>GtkCombo:entry</child_name>
-			  <name>combo-entry_gnet_stats_type</name>
-			  <can_focus>True</can_focus>
-			  <editable>False</editable>
-			  <text_visible>True</text_visible>
-			  <text_max_length>0</text_max_length>
-			  <text></text>
-			</widget>
-		      </widget>
-		    </widget>
-
-		    <widget>
-		      <class>GtkScrolledWindow</class>
-		      <name>scrolledwindow26</name>
-		      <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-		      <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-		      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-		      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-		      <child>
-			<padding>0</padding>
-			<expand>True</expand>
-			<fill>True</fill>
-		      </child>
-
-		      <widget>
-			<class>GtkCList</class>
-			<name>clist_gnet_stats_drop_reasons</name>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>resize_column</name>
-			  <handler>on_clist_gnet_stats_drop_reasons_resize_column</handler>
-			  <last_modification_time>Sun, 08 Sep 2002 01:16:42 GMT</last_modification_time>
-			</signal>
-			<columns>2</columns>
-			<column_widths>125,57</column_widths>
-			<selection_mode>GTK_SELECTION_SINGLE</selection_mode>
-			<show_titles>True</show_titles>
-			<shadow_type>GTK_SHADOW_IN</shadow_type>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <child_name>CList:title</child_name>
-			  <name>label375</name>
-			  <label>Reason</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>7.45058e-09</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			</widget>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <child_name>CList:title</child_name>
-			  <name>label376</name>
-			  <label>Count</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0.5</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			</widget>
-		      </widget>
-		    </widget>
-
-		    <widget>
-		      <class>GtkCheckButton</class>
-		      <name>checkbutton_gnet_stats_drop_perc</name>
-		      <can_focus>True</can_focus>
-		      <label>Show percentages</label>
-		      <active>False</active>
-		      <draw_indicator>True</draw_indicator>
-		      <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
-		      </child>
-		    </widget>
-		  </widget>
-		</widget>
-	      </widget>
-
-	      <widget>
-		<class>GtkVBox</class>
-		<name>vbox93</name>
-		<homogeneous>False</homogeneous>
-		<spacing>0</spacing>
-		<child>
-		  <shrink>True</shrink>
-		  <resize>True</resize>
-		</child>
-
-		<widget>
-		  <class>GtkFrame</class>
-		  <name>frame69</name>
-		  <height>210</height>
-		  <label>Message/flow control stats</label>
-		  <label_xalign>0</label_xalign>
-		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-		  <child>
-		    <padding>0</padding>
-		    <expand>True</expand>
-		    <fill>True</fill>
-		  </child>
-
-		  <widget>
-		    <class>GtkVBox</class>
-		    <name>vbox97</name>
-		    <border_width>2</border_width>
-		    <homogeneous>False</homogeneous>
-		    <spacing>0</spacing>
-
-		    <widget>
-		      <class>GtkNotebook</class>
-		      <name>notebook3</name>
-		      <height>157</height>
-		      <can_focus>True</can_focus>
-		      <show_tabs>True</show_tabs>
-		      <show_border>True</show_border>
-		      <tab_pos>GTK_POS_TOP</tab_pos>
-		      <scrollable>False</scrollable>
-		      <tab_hborder>2</tab_hborder>
-		      <tab_vborder>2</tab_vborder>
-		      <popup_enable>False</popup_enable>
-		      <child>
-			<padding>0</padding>
-			<expand>True</expand>
-			<fill>True</fill>
-		      </child>
-
-		      <widget>
-			<class>GtkScrolledWindow</class>
-			<name>scrolledwindow29</name>
-			<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-			<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-			<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-			<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-
-			<widget>
-			  <class>GtkCList</class>
-			  <name>clist_gnet_stats_msg</name>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>resize_column</name>
-			    <handler>on_clist_gnet_stats_msg_resize_column</handler>
-			    <last_modification_time>Mon, 09 Dec 2002 15:22:25 GMT</last_modification_time>
-			  </signal>
-			  <columns>8</columns>
-			  <column_widths>80,80,80,79,80,80,80,80</column_widths>
-			  <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
-			  <show_titles>True</show_titles>
-			  <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label391</name>
-			    <label>Type</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>7.45058e-09</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label392</name>
-			    <label>Received</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label393</name>
-			    <label>Expired</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label394</name>
-			    <label>Dropped</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label395</name>
-			    <label>Queued</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label500</name>
-			    <label>Relayed</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label501</name>
-			    <label>Gen. queued</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label396</name>
-			    <label>Gen. sent</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-			</widget>
-		      </widget>
-
-		      <widget>
-			<class>GtkLabel</class>
-			<child_name>Notebook:tab</child_name>
-			<name>label436</name>
-			<label>Messages</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0.5</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-		      </widget>
-
-		      <widget>
-			<class>GtkScrolledWindow</class>
-			<name>scrolledwindow38</name>
-			<hscrollbar_policy>GTK_POLICY_ALWAYS</hscrollbar_policy>
-			<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-			<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-			<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-
-			<widget>
-			  <class>GtkCList</class>
-			  <name>clist_gnet_stats_fc_ttl</name>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>resize_column</name>
-			    <handler>on_clist_gnet_stats_fc_ttl_resize_column</handler>
-			    <last_modification_time>Sun, 08 Dec 2002 22:40:34 GMT</last_modification_time>
-			  </signal>
-			  <columns>10</columns>
-			  <column_widths>80,28,29,38,39,25,37,29,37,80</column_widths>
-			  <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
-			  <show_titles>True</show_titles>
-			  <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label412</name>
-			    <label>Type</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label413</name>
-			    <label>0</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label414</name>
-			    <label>1</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label415</name>
-			    <label>2</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label416</name>
-			    <label>3</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label417</name>
-			    <label>4</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label418</name>
-			    <label>5</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label419</name>
-			    <label>6</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label420</name>
-			    <label>7</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label421</name>
-			    <label>8+</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-			</widget>
-		      </widget>
-
-		      <widget>
-			<class>GtkLabel</class>
-			<child_name>Notebook:tab</child_name>
-			<name>label437</name>
-			<label>FC/TTL</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0.5</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-		      </widget>
-
-		      <widget>
-			<class>GtkScrolledWindow</class>
-			<name>scrolledwindow39</name>
-			<hscrollbar_policy>GTK_POLICY_ALWAYS</hscrollbar_policy>
-			<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-			<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-			<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-
-			<widget>
-			  <class>GtkCList</class>
-			  <name>clist_gnet_stats_fc_hops</name>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>resize_column</name>
-			    <handler>on_clist_gnet_stats_fc_hops_resize_column</handler>
-			    <last_modification_time>Sun, 08 Dec 2002 22:40:53 GMT</last_modification_time>
-			  </signal>
-			  <columns>10</columns>
-			  <column_widths>80,28,29,38,39,25,37,29,37,80</column_widths>
-			  <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
-			  <show_titles>True</show_titles>
-			  <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label423</name>
-			    <label>Type</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label424</name>
-			    <label>0</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label425</name>
-			    <label>1</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label426</name>
-			    <label>2</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label427</name>
-			    <label>3</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label428</name>
-			    <label>4</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label429</name>
-			    <label>5</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label430</name>
-			    <label>6</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label431</name>
-			    <label>7</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label432</name>
-			    <label>8+</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-			</widget>
-		      </widget>
-
-		      <widget>
-			<class>GtkLabel</class>
-			<child_name>Notebook:tab</child_name>
-			<name>label438</name>
-			<label>FC/hops</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0.5</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-		      </widget>
-		    </widget>
-
-		    <widget>
-		      <class>GtkTable</class>
-		      <name>table93</name>
-		      <rows>2</rows>
-		      <columns>3</columns>
-		      <homogeneous>False</homogeneous>
-		      <row_spacing>0</row_spacing>
-		      <column_spacing>0</column_spacing>
-		      <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
-		      </child>
-
-		      <widget>
-			<class>GtkCheckButton</class>
-			<name>checkbutton_gnet_stats_bytes</name>
-			<can_focus>True</can_focus>
-			<label>Show bytes</label>
-			<active>False</active>
-			<draw_indicator>True</draw_indicator>
-			<child>
-			  <left_attach>0</left_attach>
-			  <right_attach>1</right_attach>
-			  <top_attach>0</top_attach>
-			  <bottom_attach>1</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkCheckButton</class>
-			<name>checkbutton_gnet_stats_perc</name>
-			<can_focus>True</can_focus>
-			<label>Show percentages</label>
-			<active>False</active>
-			<draw_indicator>True</draw_indicator>
-			<child>
-			  <left_attach>0</left_attach>
-			  <right_attach>1</right_attach>
-			  <top_attach>1</top_attach>
-			  <bottom_attach>2</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkCheckButton</class>
-			<name>checkbutton_gnet_stats_with_headers</name>
-			<can_focus>True</can_focus>
-			<label>Include headers</label>
-			<active>False</active>
-			<draw_indicator>True</draw_indicator>
-			<child>
-			  <left_attach>1</left_attach>
-			  <right_attach>2</right_attach>
-			  <top_attach>0</top_attach>
-			  <bottom_attach>1</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkHBox</class>
-			<name>hbox207</name>
-			<homogeneous>False</homogeneous>
-			<spacing>0</spacing>
-			<child>
-			  <left_attach>1</left_attach>
-			  <right_attach>2</right_attach>
-			  <top_attach>1</top_attach>
-			  <bottom_attach>2</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>True</yfill>
-			</child>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <name>label697</name>
-			  <label>Show protocol:</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0.5</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>4</xpad>
-			  <ypad>0</ypad>
-			  <child>
-			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkCombo</class>
-			  <name>combo_gnet_stats_source</name>
-			  <value_in_list>False</value_in_list>
-			  <ok_if_empty>True</ok_if_empty>
-			  <case_sensitive>False</case_sensitive>
-			  <use_arrows>True</use_arrows>
-			  <use_arrows_always>False</use_arrows_always>
-			  <items></items>
-			  <child>
-			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>True</fill>
-			  </child>
-
-			  <widget>
-			    <class>GtkEntry</class>
-			    <child_name>GtkCombo:entry</child_name>
-			    <name>combo-entry6</name>
-			    <width>70</width>
-			    <can_focus>True</can_focus>
-			    <editable>False</editable>
-			    <text_visible>True</text_visible>
-			    <text_max_length>0</text_max_length>
-			    <text></text>
-			  </widget>
-			</widget>
-		      </widget>
-		    </widget>
-		  </widget>
-		</widget>
-
-		<widget>
-		  <class>GtkFrame</class>
-		  <name>frame125</name>
-		  <height>150</height>
-		  <label>Horizon stats</label>
-		  <label_xalign>0</label_xalign>
-		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-		  <child>
-		    <padding>0</padding>
-		    <expand>True</expand>
-		    <fill>True</fill>
-		  </child>
-
-		  <widget>
-		    <class>GtkVBox</class>
-		    <name>vbox125</name>
-		    <homogeneous>False</homogeneous>
-		    <spacing>0</spacing>
-
-		    <widget>
-		      <class>GtkScrolledWindow</class>
-		      <name>scrolledwindow45</name>
-		      <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-		      <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-		      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-		      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-		      <child>
-			<padding>0</padding>
-			<expand>True</expand>
-			<fill>True</fill>
-		      </child>
-
-		      <widget>
-			<class>GtkCList</class>
-			<name>clist_gnet_stats_horizon</name>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>resize_column</name>
-			  <handler>on_clist_gnet_stats_horizon_resize_column</handler>
-			  <last_modification_time>Wed, 02 Jun 2004 18:50:52 GMT</last_modification_time>
-			</signal>
-			<columns>4</columns>
-			<column_widths>56,50,78,80</column_widths>
-			<selection_mode>GTK_SELECTION_SINGLE</selection_mode>
-			<show_titles>True</show_titles>
-			<shadow_type>GTK_SHADOW_IN</shadow_type>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <child_name>CList:title</child_name>
-			  <name>label663</name>
-			  <width>30</width>
-			  <label>Hops</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0.5</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			</widget>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <child_name>CList:title</child_name>
-			  <name>label664</name>
-			  <width>36</width>
-			  <label>Nodes</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0.5</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			</widget>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <child_name>CList:title</child_name>
-			  <name>label665</name>
-			  <width>36</width>
-			  <label>Files</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0.5</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			</widget>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <child_name>CList:title</child_name>
-			  <name>label666</name>
-			  <width>36</width>
-			  <label>Size</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0.5</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			</widget>
-		      </widget>
-		    </widget>
-		  </widget>
-		</widget>
-	      </widget>
-	    </widget>
-	  </widget>
-
-	  <widget>
-	    <class>GtkLabel</class>
-	    <child_name>Notebook:tab</child_name>
-	    <name>label_gnet_stats</name>
-	    <label>#|Gnet Stats</label>
-	    <justify>GTK_JUSTIFY_CENTER</justify>
-	    <wrap>False</wrap>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	  </widget>
-
-	  <widget>
-	    <class>GtkVBox</class>
-	    <name>vbox127</name>
-	    <border_width>2</border_width>
-	    <homogeneous>False</homogeneous>
-	    <spacing>4</spacing>
-
-	    <widget>
-	      <class>GtkFrame</class>
-	      <name>frame128</name>
-	      <label>Hostcache statistics</label>
-	      <label_xalign>0</label_xalign>
-	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-	      <child>
-		<padding>0</padding>
-		<expand>True</expand>
-		<fill>True</fill>
-	      </child>
-
-	      <widget>
-		<class>GtkScrolledWindow</class>
-		<name>scrolledwindow46</name>
-		<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-		<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-		<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-		<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-
-		<widget>
-		  <class>GtkCList</class>
-		  <name>clist_hcache</name>
-		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>resize_column</name>
-		    <handler>on_clist_hcache_resize_column</handler>
-		    <last_modification_time>Sat, 05 Jun 2004 02:55:32 GMT</last_modification_time>
-		  </signal>
-		  <columns>4</columns>
-		  <column_widths>80,80,80,80</column_widths>
-		  <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
-		  <show_titles>True</show_titles>
-		  <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-		  <widget>
-		    <class>GtkLabel</class>
-		    <child_name>CList:title</child_name>
-		    <name>label674</name>
-		    <label>Cache</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		  </widget>
-
-		  <widget>
-		    <class>GtkLabel</class>
-		    <child_name>CList:title</child_name>
-		    <name>label675</name>
-		    <label>Hosts</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		  </widget>
-
-		  <widget>
-		    <class>GtkLabel</class>
-		    <child_name>CList:title</child_name>
-		    <name>label676</name>
-		    <label>Hits</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		  </widget>
-
-		  <widget>
-		    <class>GtkLabel</class>
-		    <child_name>CList:title</child_name>
-		    <name>label677</name>
-		    <label>Misses</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		  </widget>
-		</widget>
-	      </widget>
-	    </widget>
-
-	    <widget>
-	      <class>GtkFrame</class>
-	      <name>frame126</name>
-	      <label>Hostcache capacity</label>
-	      <label_xalign>0</label_xalign>
-	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-	      <child>
-		<padding>0</padding>
-		<expand>False</expand>
-		<fill>True</fill>
-	      </child>
-
-	      <widget>
-		<class>GtkHBox</class>
-		<name>hbox201</name>
-		<border_width>2</border_width>
-		<homogeneous>True</homogeneous>
-		<spacing>4</spacing>
-
-		<widget>
-		  <class>GtkVBox</class>
-		  <name>vbox128</name>
-		  <homogeneous>False</homogeneous>
-		  <spacing>2</spacing>
-		  <child>
-		    <padding>0</padding>
-		    <expand>True</expand>
-		    <fill>True</fill>
-		  </child>
-
-		  <widget>
-		    <class>GtkProgressBar</class>
-		    <name>progressbar_hosts_in_catcher</name>
-		    <value>0</value>
-		    <lower>0</lower>
-		    <upper>100</upper>
-		    <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-		    <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-		    <activity_mode>False</activity_mode>
-		    <show_text>True</show_text>
-		    <format>%v/%u (%P%%)</format>
-		    <text_xalign>0.5</text_xalign>
-		    <text_yalign>0.5</text_yalign>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
-		  </widget>
-
-		  <widget>
-		    <class>GtkHBox</class>
-		    <name>hbox202</name>
-		    <homogeneous>False</homogeneous>
-		    <spacing>4</spacing>
-		    <child>
-		      <padding>0</padding>
-		      <expand>True</expand>
-		      <fill>True</fill>
-		    </child>
-
-		    <widget>
-		      <class>GtkLabel</class>
-		      <name>label95</name>
-		      <label>Regular hosts</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>7.45058e-09</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
-		      </child>
-		    </widget>
-
-		    <widget>
-		      <class>GtkSpinButton</class>
-		      <name>spinbutton_max_hosts_cached</name>
-		      <can_focus>True</can_focus>
-		      <climb_rate>1</climb_rate>
-		      <digits>0</digits>
-		      <numeric>True</numeric>
-		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
-		      <snap>False</snap>
-		      <wrap>False</wrap>
-		      <value>100</value>
-		      <lower>100</lower>
-		      <upper>500000</upper>
-		      <step>1</step>
-		      <page>100</page>
-		      <page_size>100</page_size>
-		      <child>
-			<padding>0</padding>
-			<expand>True</expand>
-			<fill>True</fill>
-		      </child>
-		    </widget>
-
-		    <widget>
-		      <class>GtkButton</class>
-		      <name>button_host_catcher_clear</name>
-		      <can_focus>True</can_focus>
-		      <signal>
-			<name>clicked</name>
-			<handler>on_button_host_catcher_clear_clicked</handler>
-			<last_modification_time>Wed, 22 Mar 2000 07:10:32 GMT</last_modification_time>
-		      </signal>
-		      <label>Clear</label>
-		      <relief>GTK_RELIEF_NORMAL</relief>
-		      <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
-		      </child>
-		    </widget>
-		  </widget>
-		</widget>
-
-		<widget>
-		  <class>GtkVBox</class>
-		  <name>vbox129</name>
-		  <homogeneous>False</homogeneous>
-		  <spacing>2</spacing>
-		  <child>
-		    <padding>0</padding>
-		    <expand>True</expand>
-		    <fill>True</fill>
-		  </child>
-
-		  <widget>
-		    <class>GtkProgressBar</class>
-		    <name>progressbar_hosts_in_ultra_catcher</name>
-		    <value>0</value>
-		    <lower>0</lower>
-		    <upper>100</upper>
-		    <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-		    <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-		    <activity_mode>False</activity_mode>
-		    <show_text>True</show_text>
-		    <format>%v/%u (%P%%)</format>
-		    <text_xalign>0.5</text_xalign>
-		    <text_yalign>0.5</text_yalign>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
-		  </widget>
-
-		  <widget>
-		    <class>GtkHBox</class>
-		    <name>hbox203</name>
-		    <homogeneous>False</homogeneous>
-		    <spacing>4</spacing>
-		    <child>
-		      <padding>0</padding>
-		      <expand>True</expand>
-		      <fill>True</fill>
-		    </child>
-
-		    <widget>
-		      <class>GtkLabel</class>
-		      <name>label453</name>
-		      <label>Ultrapeers</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
-		      </child>
-		    </widget>
-
-		    <widget>
-		      <class>GtkSpinButton</class>
-		      <name>spinbutton_max_ultra_hosts_cached</name>
-		      <can_focus>True</can_focus>
-		      <climb_rate>1</climb_rate>
-		      <digits>0</digits>
-		      <numeric>True</numeric>
-		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
-		      <snap>False</snap>
-		      <wrap>False</wrap>
-		      <value>100</value>
-		      <lower>100</lower>
-		      <upper>500000</upper>
-		      <step>1</step>
-		      <page>100</page>
-		      <page_size>100</page_size>
-		      <child>
-			<padding>0</padding>
-			<expand>True</expand>
-			<fill>True</fill>
-		      </child>
-		    </widget>
-
-		    <widget>
-		      <class>GtkButton</class>
-		      <name>button_ultra_catcher_clear</name>
-		      <can_focus>True</can_focus>
-		      <signal>
-			<name>clicked</name>
-			<handler>on_button_ultra_catcher_clear_clicked</handler>
-			<last_modification_time>Wed, 01 Jan 2003 22:23:25 GMT</last_modification_time>
-		      </signal>
-		      <label>Clear</label>
-		      <relief>GTK_RELIEF_NORMAL</relief>
-		      <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
-		      </child>
-		    </widget>
-		  </widget>
-		</widget>
-
-		<widget>
-		  <class>GtkVBox</class>
-		  <name>vbox130</name>
-		  <homogeneous>False</homogeneous>
-		  <spacing>2</spacing>
-		  <child>
-		    <padding>0</padding>
-		    <expand>True</expand>
-		    <fill>True</fill>
-		  </child>
-
-		  <widget>
-		    <class>GtkProgressBar</class>
-		    <name>progressbar_hosts_in_bad_catcher</name>
-		    <value>0</value>
-		    <lower>0</lower>
-		    <upper>100</upper>
-		    <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-		    <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-		    <activity_mode>False</activity_mode>
-		    <show_text>True</show_text>
-		    <format>%v/%u (%P%%)</format>
-		    <text_xalign>0.5</text_xalign>
-		    <text_yalign>0.5</text_yalign>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
-		  </widget>
-
-		  <widget>
-		    <class>GtkHBox</class>
-		    <name>hbox204</name>
-		    <homogeneous>False</homogeneous>
-		    <spacing>4</spacing>
-		    <child>
-		      <padding>0</padding>
-		      <expand>True</expand>
-		      <fill>True</fill>
-		    </child>
-
-		    <widget>
-		      <class>GtkLabel</class>
-		      <name>label678</name>
-		      <label>Bad hosts</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
-		      </child>
-		    </widget>
-
-		    <widget>
-		      <class>GtkSpinButton</class>
-		      <name>spinbutton_max_bad_hosts_cached</name>
-		      <can_focus>True</can_focus>
-		      <climb_rate>1</climb_rate>
-		      <digits>0</digits>
-		      <numeric>True</numeric>
-		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
-		      <snap>False</snap>
-		      <wrap>False</wrap>
-		      <value>100</value>
-		      <lower>100</lower>
-		      <upper>500000</upper>
-		      <step>1</step>
-		      <page>100</page>
-		      <page_size>100</page_size>
-		      <child>
-			<padding>0</padding>
-			<expand>True</expand>
-			<fill>True</fill>
-		      </child>
-		    </widget>
-
-		    <widget>
-		      <class>GtkButton</class>
-		      <name>button_hostcache_clear_bad</name>
-		      <can_focus>True</can_focus>
-		      <signal>
-			<name>clicked</name>
-			<handler>on_button_hostcache_clear_bad_clicked</handler>
-			<last_modification_time>Mon, 07 Jun 2004 18:41:21 GMT</last_modification_time>
-		      </signal>
-		      <label>Clear</label>
-		      <relief>GTK_RELIEF_NORMAL</relief>
-		      <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
-		      </child>
-		    </widget>
-		  </widget>
-		</widget>
-	      </widget>
-	    </widget>
-	  </widget>
-
-	  <widget>
-	    <class>GtkLabel</class>
-	    <child_name>Notebook:tab</child_name>
-	    <name>label_hostcache</name>
-	    <label>#|Hostcache</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>

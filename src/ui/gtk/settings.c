@@ -2783,14 +2783,6 @@ static prop_map_t property_map[] = {
         "vpaned_sidebar",
         FREQ_UPDATES, 0
     ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_DOWNLOADS_DIVIDER_POS,
-        update_split_pane,
-        TRUE,
-        "vpaned_downloads",
-        FREQ_UPDATES, 0
-    ),
 #ifdef USE_GTK1
     PROP_ENTRY(
         get_main_window,
@@ -5617,9 +5609,6 @@ settings_gui_shutdown(void)
      * There are no Gtk signals to listen to, so we must set those
      * values on exit.
      */
-    *(guint32 *) &downloads_divider_pos =
-        gtk_paned_get_position(GTK_PANED
-            (lookup_widget(main_window, "vpaned_downloads")));
 	*(guint32 *) &fileinfo_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_fileinfo")));
