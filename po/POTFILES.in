@@ -15,6 +15,7 @@ src/lib/iso3166.c
 src/lib/misc.c
 src/main.c
 src/ui/gtk/bitzi.c
+src/ui/gtk/downloads_common.c
 src/ui/gtk/drop.c
 src/ui/gtk/filter.c
 src/ui/gtk/filter_core.c
