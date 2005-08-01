@@ -42,6 +42,7 @@
 #include "if/core/hosts.h"
 
 struct rxdriver;
+struct gnutella_node;
 
 typedef void (*rx_data_t)(struct rxdriver *, pmsg_t *mb);
 
@@ -50,7 +51,7 @@ typedef void (*rx_data_t)(struct rxdriver *, pmsg_t *mb);
  */
 
 typedef struct rxdriver {
-	struct gnutella_node *node;		/**< Node to which this driver belongs */
+	gpointer owner;					/**< Owner of the RX stack */
 	gnet_host_t host;				/**< Host information (ip, port) */
 	const struct rxdrv_ops *ops;	/**< Dynamically dispatched operations */
 	struct rxdriver *upper;			/**< Layer above, NULL if none */
@@ -60,7 +61,7 @@ typedef struct rxdriver {
 	gpointer opaque;				/**< Used by heirs to store specific info */
 } rxdrv_t;
 
-#define rx_node(r)	((r)->node)
+#define rx_owner(r)	((r)->owner)
 
 /*
  * Driver flags.

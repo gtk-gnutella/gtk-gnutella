@@ -39,7 +39,6 @@ RCSID("$Id$");
 
 #include <zlib.h>
 
-#include "nodes.h"
 #include "hosts.h"
 #include "pmsg.h"
 #include "rx.h"
@@ -54,6 +53,7 @@ RCSID("$Id$");
  * Private attributes for the decompressing layer.
  */
 struct attr {
+	struct rx_inflate_cb *cb;		/**< Layer-specific callbacks */
 	z_streamp inz;					/**< Decompressing stream */
 	gint flags;
 };
@@ -101,8 +101,7 @@ static pmsg_t *inflate_data(rxdrv_t *rx, pmsg_t *mb)
 	ret = inflate(inz, Z_SYNC_FLUSH);
 
 	if (ret != Z_OK) {
-		node_mark_bad_vendor(rx->node);
-		node_bye(rx->node, 501, "Decompression failed: %s",
+		attr->cb->inflate_error(rx->owner, "Decompression failed: %s",
 			zlib_strerror(ret));
 		goto cleanup;
 	}
@@ -121,7 +120,9 @@ static pmsg_t *inflate_data(rxdrv_t *rx, pmsg_t *mb)
 	 */
 
 	inflated = old_avail - inz->avail_out;
-	node_add_rx_inflated(rx->node, inflated);
+
+	if (attr->cb->add_rx_inflated != NULL)
+		attr->cb->add_rx_inflated(rx->owner, inflated);
 
 	return pmsg_alloc(PMSG_P_DATA, db, 0, inflated);
 
@@ -139,14 +140,15 @@ cleanup:
  *
  * Initialize the driver.
  */
-static gpointer rx_inflate_init(rxdrv_t *rx, gpointer unused_args)
+static gpointer rx_inflate_init(rxdrv_t *rx, gpointer args)
 {
 	struct attr *attr;
 	z_streamp inz;
 	gint ret;
+	struct rx_inflate_args *rargs = (struct rx_inflate_args *) args;
 
-	(void) unused_args;
 	g_assert(rx);
+	g_assert(rargs->cb != NULL);
 
 	inz = walloc(sizeof(*inz));
 
@@ -165,6 +167,7 @@ static gpointer rx_inflate_init(rxdrv_t *rx, gpointer unused_args)
 
 	attr = walloc(sizeof(*attr));
 
+	attr->cb = rargs->cb;
 	attr->inz = inz;
 	attr->flags = 0;
 

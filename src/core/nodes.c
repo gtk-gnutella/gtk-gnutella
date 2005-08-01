@@ -1929,15 +1929,11 @@ node_remove(struct gnutella_node *n, const gchar *reason, ...)
 }
 
 /**
- * Got an EOF condition, or a read error, whilst reading Gnet data from node.
- *
- * Terminate connection with remote node, but keep structure around for a
- * while, for displaying purposes.
+ * The vectorized version of node_eof().
  */
-void
-node_eof(struct gnutella_node *n, const gchar *reason, ...)
+static void
+node_eof_v(struct gnutella_node *n, const gchar *reason, va_list args)
 {
-	va_list args;
 	const gchar *format;
 
 	g_assert(n);
@@ -1949,8 +1945,6 @@ node_eof(struct gnutella_node *n, const gchar *reason, ...)
 
 	if (n->flags & NODE_F_ESTABLISHED)
 		node_mark_bad_vendor(n);
-
-	va_start(args, reason);
 
 	if (n->flags & NODE_F_BYE_SENT) {
 		g_assert(n->status == GTA_NODE_SHUTDOWN);
@@ -1981,6 +1975,23 @@ node_eof(struct gnutella_node *n, const gchar *reason, ...)
 		format = reason;
 
 	node_remove_v(n, format, args);
+}
+
+/**
+ * Got an EOF condition, or a read error, whilst reading Gnet data from node.
+ *
+ * Terminate connection with remote node, but keep structure around for a
+ * while, for displaying purposes.
+ */
+void
+node_eof(struct gnutella_node *n, const gchar *reason, ...)
+{
+	va_list args;
+
+	g_assert(n);
+
+	va_start(args, reason);
+	node_eof_v(n, reason, args);
 	va_end(args);
 }
 
@@ -2786,6 +2797,76 @@ static struct tx_dgram_cb node_tx_dgram_cb = {
 	node_add_tx_written,		/* add_tx_written */
 };
 
+/***
+ *** RX inflate callbacks
+ ***/
+
+static void 
+node_add_rx_inflated(gpointer o, gint amount)
+{
+	gnutella_node_t *n = o;
+
+	n->rx_inflated += amount;
+}
+
+static void 
+node_rx_inflate_error(gpointer o, const gchar *reason, ...)
+{
+	gnutella_node_t *n = o;
+	va_list args;
+
+	va_start(args, reason);
+	node_mark_bad_vendor(n);
+	node_bye_v(n, 501, reason, args);
+	va_end(args);
+}
+
+static struct rx_inflate_cb node_rx_inflate_cb = {
+	node_add_rx_inflated,		/* add_rx_inflated */
+	node_rx_inflate_error,		/* inflate_error */
+};
+
+/***
+ *** RX link callbacks
+ ***/
+
+static void
+node_add_rx_given(gpointer o, gint amount)
+{
+	gnutella_node_t *n = o;
+
+	n->rx_given += amount;
+}
+
+static void
+node_rx_read_error(gpointer o, const gchar *reason, ...)
+{
+	gnutella_node_t *n = o;
+	va_list args;
+
+	va_start(args, reason);
+	node_eof_v(n, reason, args);
+	va_end(args);
+}
+
+static void
+node_rx_got_eof(gpointer o)
+{
+	gnutella_node_t *n = o;
+
+	if (n->n_ping_sent <= 2 && n->n_pong_received)
+		node_eof(n, NG_("Got %d connection pong", "Got %d connection pongs",
+			n->n_pong_received), n->n_pong_received);
+	else
+		node_eof(n, "Failed (EOF)");
+}
+
+static struct rx_link_cb node_rx_link_cb = {
+	node_add_rx_given,			/* add_rx_given */
+	node_rx_read_error,			/* read_error */
+	node_rx_got_eof,			/* got_eof */
+};
+
 /**
  * Called when we know that we're connected to the node, at the end of
  * the handshaking (both for incoming and outgoing connections).
@@ -2916,13 +2997,25 @@ node_is_now_connected(struct gnutella_node *n)
 	 * Create the RX stack, and enable reception of data.
 	 */
 
-	n->rx = rx_make_node(n, rx_link_get_ops(), 0);
+	{
+		struct rx_link_args args;
+
+		args.cb = &node_rx_link_cb;
+		args.bs = n->peermode == NODE_P_LEAF ? bws.glin : bws.gin;
+		args.wio = &n->socket->wio;
+
+		n->rx = rx_make_node(n, rx_link_get_ops(), &args);
+	}
 
 	if (n->attrs & NODE_A_RX_INFLATE) {
+		struct rx_inflate_args args;
+
 		if (dbg > 4)
 			printf("Receiving compressed data from node %s\n", node_ip(n));
 
-		n->rx = rx_make_above(n->rx, rx_inflate_get_ops(), 0);
+		args.cb = &node_rx_inflate_cb;
+
+		n->rx = rx_make_above(n->rx, rx_inflate_get_ops(), &args);
 
 		if (n->flags & NODE_F_LEAF)
 			compressed_leaf_cnt++;
@@ -6370,7 +6463,7 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 static void
 node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
-	struct gnutella_node *n = rx_node(rx);
+	struct gnutella_node *n = rx_owner(rx);
 
 	g_assert(mb);
 	g_assert(NODE_IS_CONNECTED(n));

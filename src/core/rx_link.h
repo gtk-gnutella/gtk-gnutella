@@ -40,6 +40,24 @@
 
 const struct rxdrv_ops *rx_link_get_ops(void);
 
+/**
+ * Callbacks used by the link layer.
+ */
+struct rx_link_cb {
+	void (*add_rx_given)(gpointer owner, gint amount);
+	void (*read_error)(gpointer owner, const gchar *reason, ...);
+	void (*got_eof)(gpointer owner);
+};
+
+/**
+ * Arguments to be passed when the layer is intantiated.
+ */
+struct rx_link_args {
+	struct rx_link_cb *cb;		/**< Callbacks */
+	struct bsched *bs;			/**< Bandwidth scheduler to use */
+	struct wrap_io *wio;		/**< I/O wrapping routines */
+};
+
 #endif	/* _core_rx_link_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

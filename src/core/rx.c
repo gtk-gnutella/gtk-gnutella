@@ -97,7 +97,7 @@ rx_make_node(
 
 	rx = g_malloc0(sizeof(*rx));
 
-	rx->node = n;
+	rx->owner = n;
 	rx->ops = ops;
 	rx->host.ip = n->ip;
 	rx->host.port = n->port;
@@ -164,7 +164,7 @@ rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops, gpointer args)
 
 	rx = g_malloc0(sizeof(*rx));
 
-	rx->node = lrx->node;
+	rx->owner = lrx->owner;
 	rx->host = lrx->host;				/* Struct copy */
 	rx->ops = ops;
 	rx->upper = NULL;

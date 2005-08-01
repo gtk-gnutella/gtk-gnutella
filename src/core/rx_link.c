@@ -40,7 +40,6 @@
 
 RCSID("$Id$");
 
-#include "nodes.h"
 #include "sockets.h"
 #include "pmsg.h"
 #include "rx.h"
@@ -55,9 +54,10 @@ RCSID("$Id$");
  * Private attributes for the link.
  */
 struct attr {
-	wrap_io_t 	 *wio;	/**< Cached wrapped IO object */
-	bio_source_t *bio;	/**< Bandwidth-limited I/O source */
-	bsched_t *bs;		/**< Scheduler to attach I/O source to */
+	wrap_io_t *wio;				/**< Cached wrapped IO object */
+	bio_source_t *bio;			/**< Bandwidth-limited I/O source */
+	bsched_t *bs;				/**< Scheduler to attach I/O source to */
+	struct rx_link_cb *cb;		/**< Layer-specific callbacks */
 };
 
 /**
@@ -68,7 +68,6 @@ is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	rxdrv_t *rx = (rxdrv_t *) data;
 	struct attr *attr = (struct attr *) rx->opaque;
-	struct gnutella_node *n = rx->node;
 	pdata_t *db;
 	pmsg_t *mb;
 	ssize_t r;
@@ -77,7 +76,7 @@ is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 	g_assert(attr->bio);			/* Input enabled */
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
-		node_eof(n, _("Read failed (Input Exception)"));
+		attr->cb->read_error(rx->owner, _("Read failed (Input Exception)"));
 		return;
 	}
 
@@ -89,16 +88,12 @@ is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 
 	r = bio_read(attr->bio, pdata_start(db), pdata_len(db));
 	if (r == 0) {
-		if (n->n_ping_sent <= 2 && n->n_pong_received)
-			node_eof(n, NG_("Got %d connection pong",
-                            "Got %d connection pongs", n->n_pong_received),
-                     n->n_pong_received);
-		else
-			node_eof(n, "Failed (EOF)");
+		attr->cb->got_eof(rx->owner);
 		goto error;
 	} else if ((ssize_t) -1 == r) {
 		if (errno != EAGAIN)
-			node_eof(n, _("Read error: %s"), g_strerror(errno));
+			attr->cb->read_error(rx->owner, _("Read error: %s"),
+				g_strerror(errno));
 		goto error;
 	}
 
@@ -107,7 +102,8 @@ is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * NB: `mb' is expected to be freed by the last layer using it.
 	 */
 
-	node_add_rx_given(rx->node, r);
+	if (attr->cb->add_rx_given != NULL)
+		attr->cb->add_rx_given(rx->owner, r);
 
 	mb = pmsg_alloc(PMSG_P_DATA, db, 0, r);
 
@@ -128,18 +124,21 @@ error:
  * Always succeeds, so never returns NULL.
  */
 static gpointer
-rx_link_init(rxdrv_t *rx, gpointer unused_args)
+rx_link_init(rxdrv_t *rx, gpointer args)
 {
 	struct attr *attr;
+	struct rx_link_args *rargs = args;
 
-	(void) unused_args;
 	g_assert(rx);
+	g_assert(rargs);
+	g_assert(rargs->cb);
 
 	attr = walloc(sizeof(*attr));
 
-	attr->wio = &rx->node->socket->wio;
+	attr->cb = rargs->cb;
+	attr->wio = rargs->wio;
+	attr->bs = rargs->bs;
 	attr->bio = NULL;
-	attr->bs = rx->node->peermode == NODE_P_LEAF ? bws.glin : bws.gin;
 
 	rx->opaque = attr;
 
@@ -171,10 +170,13 @@ rx_link_destroy(rxdrv_t *rx)
 static void
 rx_link_recv(rxdrv_t *rx, pmsg_t *mb)
 {
+	struct attr *attr = rx->opaque;
+
 	g_assert(rx);
 	g_assert(mb);
 
-	node_add_rx_given(rx->node, pmsg_size(mb));
+	if (attr->cb->add_rx_given != NULL)
+		attr->cb->add_rx_given(rx->owner, pmsg_size(mb));
 
 	/*
 	 * Call the registered data_ind callback to feed the upper layer.
