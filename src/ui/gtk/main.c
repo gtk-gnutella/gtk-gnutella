@@ -291,7 +291,8 @@ gui_init_menu(void)
 		if (menu[i].parent)
 			parent_node = node;
 
-    	gtk_ctree_node_set_row_data(ctree_menu, node, GINT_TO_POINTER(i));
+    	gtk_ctree_node_set_row_data(ctree_menu, node,
+			GINT_TO_POINTER(menu[i].page));
 	}
 
 	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
