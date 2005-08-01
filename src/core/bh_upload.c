@@ -146,7 +146,7 @@ browse_host_read(gpointer ctx, gpointer const dest, size_t size)
 		case BH_STATE_HEADER:
 			if (!bh->b_data) {
 				bh->b_data = header;
-				bh->b_size = sizeof header;
+				bh->b_size = CONST_STRLEN(header);
 			}
 			p += browse_host_read_data(bh, p, &size);
 			if (bh->b_size == bh->b_offset) {
@@ -158,7 +158,7 @@ browse_host_read(gpointer ctx, gpointer const dest, size_t size)
 		case BH_STATE_TRAILER:
 			if (!bh->b_data) {
 				bh->b_data = trailer;
-				bh->b_size = sizeof trailer;
+				bh->b_size = CONST_STRLEN(trailer);
 			}
 			p += browse_host_read_data(bh, p, &size);
 			if (bh->b_size == bh->b_offset)
