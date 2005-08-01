@@ -2649,8 +2649,10 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			if (!UPLOAD_IS_SENDING(up) && up->status != GTA_UL_QUEUED)
 				continue;
 			if (
-				up->socket->ip == s->ip &&
-				(up->index == idx || (u->sha1 && up->sha1 == u->sha1))
+				up->socket->ip == s->ip && (
+					(up->index != URN_INDEX && up->index == idx) ||
+					(u->sha1 && up->sha1 == u->sha1)
+				)
 			) {
 				/*
 				 * If the duplicate upload we have is stalled or showed signs
