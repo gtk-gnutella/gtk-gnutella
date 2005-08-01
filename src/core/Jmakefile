@@ -30,6 +30,7 @@
 SRC = \
 	alive.c \
 	ban.c \
+	bh_upload.c \
 	bitzi.c \
 	bogons.c \
 	bsched.c \
