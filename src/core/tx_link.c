@@ -42,7 +42,6 @@
 RCSID("$Id$");
 
 #include "sockets.h"
-#include "nodes.h"
 #include "tx.h"
 #include "tx_link.h"
 #include "bsched.h"
