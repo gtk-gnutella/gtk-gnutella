@@ -523,6 +523,16 @@ on_clist_search_resize_column(GtkCList *unused_clist, gint column,
     *(gint *) &search_list_col_widths[column] = width;
 }
 
+void
+on_popup_search_browse_host_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	g_message("on_popup_search_browse_host_activate");
+}
+
 #ifdef USE_GTK2
 
 void

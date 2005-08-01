@@ -116,12 +116,9 @@ void on_clist_search_stats_resize_column(GtkCList * clist, gint column, gint wid
 void on_clist_search_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 #endif /* USE_GTK1 */
 
-#ifdef USE_GTK2
 void
-on_hb_searches_child_detached          (GtkHandleBox    *handlebox,
-                                        GtkWidget       *widget,
-                                        gpointer         user_data);
-#endif /* USE_GTK2 */
+on_popup_search_browse_host_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
 
 void
 on_menu_faq_activate                   (GtkMenuItem     *menuitem,
