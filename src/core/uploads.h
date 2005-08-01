@@ -41,16 +41,12 @@
 
 #include "common.h"
 #include "bsched.h"
+#include "bh_upload.h"
 
 #include "if/core/uploads.h"
 
 struct gnutella_node;
 struct dl_file_info;
-
-struct special_read_ctx {
-	ssize_t (* read)(gpointer ctx, gpointer dest, size_t size);
-	void (* close)(gpointer ctx);
-};
 
 typedef struct upload {
     gnet_upload_t upload_handle;
