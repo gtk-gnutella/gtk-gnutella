@@ -467,7 +467,7 @@
 	    <class>GtkVBox</class>
 	    <name>vbox46</name>
 	    <homogeneous>False</homogeneous>
-	    <spacing>4</spacing>
+	    <spacing>0</spacing>
 	    <child>
 	      <shrink>True</shrink>
 	      <resize>True</resize>
@@ -490,11 +490,9 @@
 	      </child>
 
 	      <widget>
-		<class>GtkHandleBox</class>
-		<name>hb_searches</name>
-		<shadow_type>GTK_SHADOW_OUT</shadow_type>
-		<handle_position>GTK_POS_TOP</handle_position>
-		<snap_edge>GTK_POS_LEFT</snap_edge>
+		<class>GtkViewport</class>
+		<name>viewport49</name>
+		<shadow_type>GTK_SHADOW_IN</shadow_type>
 
 		<widget>
 		  <class>GtkScrolledWindow</class>
@@ -610,8 +608,8 @@
 	</widget>
 
 	<widget>
-	  <class>GtkHBox</class>
-	  <name>hbox209</name>
+	  <class>GtkVBox</class>
+	  <name>vbox31</name>
 	  <homogeneous>False</homogeneous>
 	  <spacing>0</spacing>
 	  <child>
@@ -621,11 +619,338 @@
 	  </child>
 
 	  <widget>
-	    <class>GtkVBox</class>
-	    <name>vbox113</name>
-	    <border_width>2</border_width>
-	    <homogeneous>False</homogeneous>
-	    <spacing>2</spacing>
+	    <class>GtkFrame</class>
+	    <name>frame75</name>
+	    <label_xalign>0</label_xalign>
+	    <shadow_type>GTK_SHADOW_OUT</shadow_type>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkVBox</class>
+	      <name>vbox108</name>
+	      <homogeneous>False</homogeneous>
+	      <spacing>0</spacing>
+
+	      <widget>
+		<class>GtkHBox</class>
+		<name>hbox_stats_connections</name>
+		<homogeneous>False</homogeneous>
+		<spacing>1</spacing>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkEventBox</class>
+		  <name>eventbox6</name>
+		  <tooltip>Gnet connections</tooltip>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkPixmap</class>
+		    <name>pixmap1</name>
+		    <filename>smallserver.xpm</filename>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <build_insensitive>False</build_insensitive>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkProgressBar</class>
+		  <name>progressbar_connections</name>
+		  <value>0</value>
+		  <lower>0</lower>
+		  <upper>100</upper>
+		  <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		  <activity_mode>False</activity_mode>
+		  <show_text>True</show_text>
+		  <format>%v/%u Gnet nodes</format>
+		  <text_xalign>0.5</text_xalign>
+		  <text_yalign>0.5</text_yalign>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+		</widget>
+	      </widget>
+
+	      <widget>
+		<class>GtkHBox</class>
+		<name>hbox_stats_uploads</name>
+		<homogeneous>False</homogeneous>
+		<spacing>1</spacing>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkEventBox</class>
+		  <name>eventbox7</name>
+		  <tooltip>uploads</tooltip>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkPixmap</class>
+		    <name>pixmap2</name>
+		    <filename>upload.xpm</filename>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <build_insensitive>False</build_insensitive>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkProgressBar</class>
+		  <name>progressbar_uploads</name>
+		  <value>0</value>
+		  <lower>0</lower>
+		  <upper>100</upper>
+		  <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		  <activity_mode>False</activity_mode>
+		  <show_text>True</show_text>
+		  <format>%v/%u uploads</format>
+		  <text_xalign>0.5</text_xalign>
+		  <text_yalign>0.5</text_yalign>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+		</widget>
+	      </widget>
+
+	      <widget>
+		<class>GtkHBox</class>
+		<name>hbox_stats_downloads</name>
+		<homogeneous>False</homogeneous>
+		<spacing>1</spacing>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkEventBox</class>
+		  <name>eventbox8</name>
+		  <tooltip>downloads</tooltip>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkPixmap</class>
+		    <name>pixmap3</name>
+		    <filename>download.xpm</filename>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <build_insensitive>False</build_insensitive>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkProgressBar</class>
+		  <name>progressbar_downloads</name>
+		  <value>0</value>
+		  <lower>0</lower>
+		  <upper>100</upper>
+		  <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		  <activity_mode>False</activity_mode>
+		  <show_text>True</show_text>
+		  <format>%v/%u downloads</format>
+		  <text_xalign>0.5</text_xalign>
+		  <text_yalign>0.5</text_yalign>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+		</widget>
+	      </widget>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkFrame</class>
+	    <name>frame_bws_inout</name>
+	    <label>HTTP traffic</label>
+	    <label_xalign>0.5</label_xalign>
+	    <shadow_type>GTK_SHADOW_OUT</shadow_type>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkVBox</class>
+	      <name>vbox42</name>
+	      <homogeneous>False</homogeneous>
+	      <spacing>0</spacing>
+
+	      <widget>
+		<class>GtkProgressBar</class>
+		<name>progressbar_bws_in</name>
+		<tooltip>Click to toggle display.</tooltip>
+		<events>GDK_BUTTON_PRESS_MASK</events>
+		<signal>
+		  <name>button_press_event</name>
+		  <handler>on_progressbar_bws_in_button_press_event</handler>
+		  <last_modification_time>Wed, 15 May 2002 10:26:50 GMT</last_modification_time>
+		</signal>
+		<value>0</value>
+		<lower>0</lower>
+		<upper>100</upper>
+		<bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		<orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		<activity_mode>False</activity_mode>
+		<show_text>True</show_text>
+		<format>in</format>
+		<text_xalign>0.5</text_xalign>
+		<text_yalign>0.5</text_yalign>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>False</fill>
+		</child>
+	      </widget>
+
+	      <widget>
+		<class>GtkProgressBar</class>
+		<name>progressbar_bws_out</name>
+		<tooltip>Click to toggle display.</tooltip>
+		<events>GDK_BUTTON_PRESS_MASK</events>
+		<signal>
+		  <name>button_press_event</name>
+		  <handler>on_progressbar_bws_out_button_press_event</handler>
+		  <last_modification_time>Wed, 15 May 2002 10:26:55 GMT</last_modification_time>
+		</signal>
+		<value>0</value>
+		<lower>0</lower>
+		<upper>100</upper>
+		<bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		<orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		<activity_mode>False</activity_mode>
+		<show_text>True</show_text>
+		<format>out</format>
+		<text_xalign>0.5</text_xalign>
+		<text_yalign>0.5</text_yalign>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>False</fill>
+		</child>
+	      </widget>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkFrame</class>
+	    <name>frame_bws_ginout</name>
+	    <label>GnutellaNet traffic</label>
+	    <label_xalign>0.5</label_xalign>
+	    <shadow_type>GTK_SHADOW_OUT</shadow_type>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkVBox</class>
+	      <name>vbox43</name>
+	      <homogeneous>False</homogeneous>
+	      <spacing>0</spacing>
+
+	      <widget>
+		<class>GtkProgressBar</class>
+		<name>progressbar_bws_gin</name>
+		<events>GDK_BUTTON_PRESS_MASK</events>
+		<signal>
+		  <name>button_press_event</name>
+		  <handler>on_progressbar_bws_gin_button_press_event</handler>
+		  <last_modification_time>Wed, 15 May 2002 10:27:08 GMT</last_modification_time>
+		</signal>
+		<value>0</value>
+		<lower>0</lower>
+		<upper>100</upper>
+		<bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		<orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		<activity_mode>False</activity_mode>
+		<show_text>True</show_text>
+		<format>in</format>
+		<text_xalign>0.5</text_xalign>
+		<text_yalign>0.5</text_yalign>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>False</fill>
+		</child>
+	      </widget>
+
+	      <widget>
+		<class>GtkProgressBar</class>
+		<name>progressbar_bws_gout</name>
+		<events>GDK_BUTTON_PRESS_MASK</events>
+		<signal>
+		  <name>button_press_event</name>
+		  <handler>on_progressbar_bws_gout_button_press_event</handler>
+		  <last_modification_time>Wed, 15 May 2002 10:27:13 GMT</last_modification_time>
+		</signal>
+		<value>0</value>
+		<lower>0</lower>
+		<upper>100</upper>
+		<bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		<orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		<activity_mode>False</activity_mode>
+		<show_text>True</show_text>
+		<format>out</format>
+		<text_xalign>0.5</text_xalign>
+		<text_yalign>0.5</text_yalign>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>False</fill>
+		</child>
+	      </widget>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkFrame</class>
+	    <name>frame_bws_glinout</name>
+	    <label>Leaf traffic</label>
+	    <label_xalign>0.5</label_xalign>
+	    <shadow_type>GTK_SHADOW_OUT</shadow_type>
 	    <child>
 	      <padding>0</padding>
 	      <expand>True</expand>
@@ -633,534 +958,61 @@
 	    </child>
 
 	    <widget>
-	      <class>GtkHBox</class>
-	      <name>hbox179</name>
+	      <class>GtkVBox</class>
+	      <name>vbox107</name>
 	      <homogeneous>False</homogeneous>
-	      <spacing>4</spacing>
-	      <child>
-		<padding>0</padding>
-		<expand>True</expand>
-		<fill>True</fill>
-	      </child>
+	      <spacing>0</spacing>
 
 	      <widget>
-		<class>GtkButton</class>
-		<name>button_search</name>
-		<sensitive>False</sensitive>
-		<can_focus>True</can_focus>
+		<class>GtkProgressBar</class>
+		<name>progressbar_bws_lin</name>
+		<events>GDK_BUTTON_PRESS_MASK</events>
 		<signal>
-		  <name>clicked</name>
-		  <handler>on_button_search_clicked</handler>
-		  <last_modification_time>Sun, 26 Mar 2000 17:38:58 GMT</last_modification_time>
+		  <name>button_press_event</name>
+		  <handler>on_progressbar_bws_lin_button_press_event</handler>
+		  <last_modification_time>Thu, 06 Mar 2003 01:07:02 GMT</last_modification_time>
 		</signal>
-		<label>Search</label>
-		<relief>GTK_RELIEF_NORMAL</relief>
+		<value>0</value>
+		<lower>0</lower>
+		<upper>100</upper>
+		<bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		<orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		<activity_mode>False</activity_mode>
+		<show_text>True</show_text>
+		<format>in</format>
+		<text_xalign>0.5</text_xalign>
+		<text_yalign>0.5</text_yalign>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
-		  <fill>True</fill>
+		  <fill>False</fill>
 		</child>
 	      </widget>
 
 	      <widget>
-		<class>GtkCombo</class>
-		<name>combo_search</name>
-		<value_in_list>False</value_in_list>
-		<ok_if_empty>True</ok_if_empty>
-		<case_sensitive>False</case_sensitive>
-		<use_arrows>True</use_arrows>
-		<use_arrows_always>True</use_arrows_always>
-		<items></items>
-		<child>
-		  <padding>0</padding>
-		  <expand>True</expand>
-		  <fill>True</fill>
-		</child>
-
-		<widget>
-		  <class>GtkEntry</class>
-		  <child_name>GtkCombo:entry</child_name>
-		  <name>entry_search</name>
-		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>changed</name>
-		    <handler>on_entry_search_changed</handler>
-		    <last_modification_time>Mon, 29 Apr 2002 13:32:41 GMT</last_modification_time>
-		  </signal>
-		  <signal>
-		    <name>activate</name>
-		    <handler>on_entry_search_activate</handler>
-		    <last_modification_time>Mon, 29 Apr 2002 13:32:51 GMT</last_modification_time>
-		  </signal>
-		  <editable>True</editable>
-		  <text_visible>True</text_visible>
-		  <text_max_length>0</text_max_length>
-		  <text></text>
-		</widget>
-	      </widget>
-	    </widget>
-
-	    <widget>
-	      <class>GtkHBox</class>
-	      <name>hbox180</name>
-	      <homogeneous>False</homogeneous>
-	      <spacing>4</spacing>
-	      <child>
-		<padding>0</padding>
-		<expand>True</expand>
-		<fill>True</fill>
-	      </child>
-
-	      <widget>
-		<class>GtkOptionMenu</class>
-		<name>optionmenu_search_filter</name>
-		<can_focus>True</can_focus>
-		<items></items>
-		<initial_choice>0</initial_choice>
-		<child>
-		  <padding>0</padding>
-		  <expand>True</expand>
-		  <fill>True</fill>
-		</child>
-	      </widget>
-
-	      <widget>
-		<class>GtkButton</class>
-		<name>button_search_passive</name>
-		<tooltip>A passive search matches any search results routed through this node</tooltip>
-		<can_focus>True</can_focus>
+		<class>GtkProgressBar</class>
+		<name>progressbar_bws_lout</name>
+		<events>GDK_BUTTON_PRESS_MASK</events>
 		<signal>
-		  <name>clicked</name>
-		  <handler>on_button_search_passive_clicked</handler>
-		  <last_modification_time>Tue, 30 May 2000 06:59:17 GMT</last_modification_time>
+		  <name>button_press_event</name>
+		  <handler>on_progressbar_bws_lout_button_press_event</handler>
+		  <last_modification_time>Thu, 06 Mar 2003 01:07:08 GMT</last_modification_time>
 		</signal>
-		<label>_Passive</label>
-		<relief>GTK_RELIEF_NORMAL</relief>
+		<value>0</value>
+		<lower>0</lower>
+		<upper>100</upper>
+		<bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		<orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		<activity_mode>False</activity_mode>
+		<show_text>True</show_text>
+		<format>out</format>
+		<text_xalign>0.5</text_xalign>
+		<text_yalign>0.5</text_yalign>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
-		  <fill>True</fill>
+		  <fill>False</fill>
 		</child>
-	      </widget>
-	    </widget>
-	  </widget>
-	</widget>
-
-	<widget>
-	  <class>GtkHandleBox</class>
-	  <name>handlebox_traffic</name>
-	  <border_width>1</border_width>
-	  <shadow_type>GTK_SHADOW_OUT</shadow_type>
-	  <handle_position>GTK_POS_TOP</handle_position>
-	  <snap_edge>GTK_POS_LEFT</snap_edge>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>True</fill>
-	  </child>
-
-	  <widget>
-	    <class>GtkVBox</class>
-	    <name>vbox31</name>
-	    <homogeneous>False</homogeneous>
-	    <spacing>0</spacing>
-
-	    <widget>
-	      <class>GtkFrame</class>
-	      <name>frame75</name>
-	      <label_xalign>0</label_xalign>
-	      <shadow_type>GTK_SHADOW_NONE</shadow_type>
-	      <child>
-		<padding>0</padding>
-		<expand>False</expand>
-		<fill>False</fill>
-	      </child>
-
-	      <widget>
-		<class>GtkVBox</class>
-		<name>vbox108</name>
-		<homogeneous>False</homogeneous>
-		<spacing>0</spacing>
-
-		<widget>
-		  <class>GtkHBox</class>
-		  <name>hbox_stats_connections</name>
-		  <homogeneous>False</homogeneous>
-		  <spacing>1</spacing>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>True</fill>
-		  </child>
-
-		  <widget>
-		    <class>GtkEventBox</class>
-		    <name>eventbox6</name>
-		    <tooltip>Gnet connections</tooltip>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
-
-		    <widget>
-		      <class>GtkPixmap</class>
-		      <name>pixmap1</name>
-		      <filename>smallserver.xpm</filename>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <build_insensitive>False</build_insensitive>
-		    </widget>
-		  </widget>
-
-		  <widget>
-		    <class>GtkProgressBar</class>
-		    <name>progressbar_connections</name>
-		    <value>0</value>
-		    <lower>0</lower>
-		    <upper>100</upper>
-		    <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-		    <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-		    <activity_mode>False</activity_mode>
-		    <show_text>True</show_text>
-		    <format>%v/%u Gnet nodes</format>
-		    <text_xalign>0.5</text_xalign>
-		    <text_yalign>0.5</text_yalign>
-		    <child>
-		      <padding>0</padding>
-		      <expand>True</expand>
-		      <fill>True</fill>
-		    </child>
-		  </widget>
-		</widget>
-
-		<widget>
-		  <class>GtkHBox</class>
-		  <name>hbox_stats_uploads</name>
-		  <homogeneous>False</homogeneous>
-		  <spacing>1</spacing>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>True</fill>
-		  </child>
-
-		  <widget>
-		    <class>GtkEventBox</class>
-		    <name>eventbox7</name>
-		    <tooltip>uploads</tooltip>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
-
-		    <widget>
-		      <class>GtkPixmap</class>
-		      <name>pixmap2</name>
-		      <filename>upload.xpm</filename>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <build_insensitive>False</build_insensitive>
-		    </widget>
-		  </widget>
-
-		  <widget>
-		    <class>GtkProgressBar</class>
-		    <name>progressbar_uploads</name>
-		    <value>0</value>
-		    <lower>0</lower>
-		    <upper>100</upper>
-		    <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-		    <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-		    <activity_mode>False</activity_mode>
-		    <show_text>True</show_text>
-		    <format>%v/%u uploads</format>
-		    <text_xalign>0.5</text_xalign>
-		    <text_yalign>0.5</text_yalign>
-		    <child>
-		      <padding>0</padding>
-		      <expand>True</expand>
-		      <fill>True</fill>
-		    </child>
-		  </widget>
-		</widget>
-
-		<widget>
-		  <class>GtkHBox</class>
-		  <name>hbox_stats_downloads</name>
-		  <homogeneous>False</homogeneous>
-		  <spacing>1</spacing>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>True</fill>
-		  </child>
-
-		  <widget>
-		    <class>GtkEventBox</class>
-		    <name>eventbox8</name>
-		    <tooltip>downloads</tooltip>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
-
-		    <widget>
-		      <class>GtkPixmap</class>
-		      <name>pixmap3</name>
-		      <filename>download.xpm</filename>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <build_insensitive>False</build_insensitive>
-		    </widget>
-		  </widget>
-
-		  <widget>
-		    <class>GtkProgressBar</class>
-		    <name>progressbar_downloads</name>
-		    <value>0</value>
-		    <lower>0</lower>
-		    <upper>100</upper>
-		    <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-		    <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-		    <activity_mode>False</activity_mode>
-		    <show_text>True</show_text>
-		    <format>%v/%u downloads</format>
-		    <text_xalign>0.5</text_xalign>
-		    <text_yalign>0.5</text_yalign>
-		    <child>
-		      <padding>0</padding>
-		      <expand>True</expand>
-		      <fill>True</fill>
-		    </child>
-		  </widget>
-		</widget>
-	      </widget>
-	    </widget>
-
-	    <widget>
-	      <class>GtkFrame</class>
-	      <name>frame_bws_inout</name>
-	      <label>HTTP traffic</label>
-	      <label_xalign>0.5</label_xalign>
-	      <shadow_type>GTK_SHADOW_NONE</shadow_type>
-	      <child>
-		<padding>0</padding>
-		<expand>False</expand>
-		<fill>False</fill>
-	      </child>
-
-	      <widget>
-		<class>GtkVBox</class>
-		<name>vbox42</name>
-		<homogeneous>False</homogeneous>
-		<spacing>0</spacing>
-
-		<widget>
-		  <class>GtkProgressBar</class>
-		  <name>progressbar_bws_in</name>
-		  <tooltip>Click to toggle display.</tooltip>
-		  <events>GDK_BUTTON_PRESS_MASK</events>
-		  <signal>
-		    <name>button_press_event</name>
-		    <handler>on_progressbar_bws_in_button_press_event</handler>
-		    <last_modification_time>Wed, 15 May 2002 10:26:50 GMT</last_modification_time>
-		  </signal>
-		  <value>0</value>
-		  <lower>0</lower>
-		  <upper>100</upper>
-		  <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-		  <activity_mode>False</activity_mode>
-		  <show_text>True</show_text>
-		  <format>in</format>
-		  <text_xalign>0.5</text_xalign>
-		  <text_yalign>0.5</text_yalign>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkProgressBar</class>
-		  <name>progressbar_bws_out</name>
-		  <tooltip>Click to toggle display.</tooltip>
-		  <events>GDK_BUTTON_PRESS_MASK</events>
-		  <signal>
-		    <name>button_press_event</name>
-		    <handler>on_progressbar_bws_out_button_press_event</handler>
-		    <last_modification_time>Wed, 15 May 2002 10:26:55 GMT</last_modification_time>
-		  </signal>
-		  <value>0</value>
-		  <lower>0</lower>
-		  <upper>100</upper>
-		  <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-		  <activity_mode>False</activity_mode>
-		  <show_text>True</show_text>
-		  <format>out</format>
-		  <text_xalign>0.5</text_xalign>
-		  <text_yalign>0.5</text_yalign>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
-		</widget>
-	      </widget>
-	    </widget>
-
-	    <widget>
-	      <class>GtkFrame</class>
-	      <name>frame_bws_ginout</name>
-	      <label>GnutellaNet traffic</label>
-	      <label_xalign>0.5</label_xalign>
-	      <shadow_type>GTK_SHADOW_NONE</shadow_type>
-	      <child>
-		<padding>0</padding>
-		<expand>False</expand>
-		<fill>False</fill>
-	      </child>
-
-	      <widget>
-		<class>GtkVBox</class>
-		<name>vbox43</name>
-		<homogeneous>False</homogeneous>
-		<spacing>0</spacing>
-
-		<widget>
-		  <class>GtkProgressBar</class>
-		  <name>progressbar_bws_gin</name>
-		  <events>GDK_BUTTON_PRESS_MASK</events>
-		  <signal>
-		    <name>button_press_event</name>
-		    <handler>on_progressbar_bws_gin_button_press_event</handler>
-		    <last_modification_time>Wed, 15 May 2002 10:27:08 GMT</last_modification_time>
-		  </signal>
-		  <value>0</value>
-		  <lower>0</lower>
-		  <upper>100</upper>
-		  <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-		  <activity_mode>False</activity_mode>
-		  <show_text>True</show_text>
-		  <format>in</format>
-		  <text_xalign>0.5</text_xalign>
-		  <text_yalign>0.5</text_yalign>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkProgressBar</class>
-		  <name>progressbar_bws_gout</name>
-		  <events>GDK_BUTTON_PRESS_MASK</events>
-		  <signal>
-		    <name>button_press_event</name>
-		    <handler>on_progressbar_bws_gout_button_press_event</handler>
-		    <last_modification_time>Wed, 15 May 2002 10:27:13 GMT</last_modification_time>
-		  </signal>
-		  <value>0</value>
-		  <lower>0</lower>
-		  <upper>100</upper>
-		  <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-		  <activity_mode>False</activity_mode>
-		  <show_text>True</show_text>
-		  <format>out</format>
-		  <text_xalign>0.5</text_xalign>
-		  <text_yalign>0.5</text_yalign>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
-		</widget>
-	      </widget>
-	    </widget>
-
-	    <widget>
-	      <class>GtkFrame</class>
-	      <name>frame_bws_glinout</name>
-	      <label>Leaf traffic</label>
-	      <label_xalign>0.5</label_xalign>
-	      <shadow_type>GTK_SHADOW_NONE</shadow_type>
-	      <child>
-		<padding>0</padding>
-		<expand>True</expand>
-		<fill>True</fill>
-	      </child>
-
-	      <widget>
-		<class>GtkVBox</class>
-		<name>vbox107</name>
-		<homogeneous>False</homogeneous>
-		<spacing>0</spacing>
-
-		<widget>
-		  <class>GtkProgressBar</class>
-		  <name>progressbar_bws_lin</name>
-		  <events>GDK_BUTTON_PRESS_MASK</events>
-		  <signal>
-		    <name>button_press_event</name>
-		    <handler>on_progressbar_bws_lin_button_press_event</handler>
-		    <last_modification_time>Thu, 06 Mar 2003 01:07:02 GMT</last_modification_time>
-		  </signal>
-		  <value>0</value>
-		  <lower>0</lower>
-		  <upper>100</upper>
-		  <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-		  <activity_mode>False</activity_mode>
-		  <show_text>True</show_text>
-		  <format>in</format>
-		  <text_xalign>0.5</text_xalign>
-		  <text_yalign>0.5</text_yalign>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkProgressBar</class>
-		  <name>progressbar_bws_lout</name>
-		  <events>GDK_BUTTON_PRESS_MASK</events>
-		  <signal>
-		    <name>button_press_event</name>
-		    <handler>on_progressbar_bws_lout_button_press_event</handler>
-		    <last_modification_time>Thu, 06 Mar 2003 01:07:08 GMT</last_modification_time>
-		  </signal>
-		  <value>0</value>
-		  <lower>0</lower>
-		  <upper>100</upper>
-		  <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-		  <activity_mode>False</activity_mode>
-		  <show_text>True</show_text>
-		  <format>out</format>
-		  <text_xalign>0.5</text_xalign>
-		  <text_yalign>0.5</text_yalign>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
-		</widget>
 	      </widget>
 	    </widget>
 	  </widget>
@@ -1171,11 +1023,119 @@
 	<class>GtkVBox</class>
 	<name>vbox_right</name>
 	<homogeneous>False</homogeneous>
-	<spacing>4</spacing>
+	<spacing>0</spacing>
 	<child>
 	  <shrink>True</shrink>
 	  <resize>True</resize>
 	</child>
+
+	<widget>
+	  <class>GtkFrame</class>
+	  <name>frame139</name>
+	  <label_xalign>0</label_xalign>
+	  <shadow_type>GTK_SHADOW_OUT</shadow_type>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>True</fill>
+	  </child>
+
+	  <widget>
+	    <class>GtkHBox</class>
+	    <name>hbox179</name>
+	    <border_width>2</border_width>
+	    <homogeneous>False</homogeneous>
+	    <spacing>4</spacing>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <name>button_search</name>
+	      <sensitive>False</sensitive>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>clicked</name>
+		<handler>on_button_search_clicked</handler>
+		<last_modification_time>Sun, 26 Mar 2000 17:38:58 GMT</last_modification_time>
+	      </signal>
+	      <label>Search</label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>True</fill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkCombo</class>
+	      <name>combo_search</name>
+	      <value_in_list>False</value_in_list>
+	      <ok_if_empty>True</ok_if_empty>
+	      <case_sensitive>False</case_sensitive>
+	      <use_arrows>True</use_arrows>
+	      <use_arrows_always>True</use_arrows_always>
+	      <items></items>
+	      <child>
+		<padding>0</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkEntry</class>
+		<child_name>GtkCombo:entry</child_name>
+		<name>entry_search</name>
+		<can_focus>True</can_focus>
+		<signal>
+		  <name>changed</name>
+		  <handler>on_entry_search_changed</handler>
+		  <last_modification_time>Mon, 29 Apr 2002 13:32:41 GMT</last_modification_time>
+		</signal>
+		<signal>
+		  <name>activate</name>
+		  <handler>on_entry_search_activate</handler>
+		  <last_modification_time>Mon, 29 Apr 2002 13:32:51 GMT</last_modification_time>
+		</signal>
+		<editable>True</editable>
+		<text_visible>True</text_visible>
+		<text_max_length>0</text_max_length>
+		<text></text>
+	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkOptionMenu</class>
+	      <name>optionmenu_search_filter</name>
+	      <can_focus>True</can_focus>
+	      <items></items>
+	      <initial_choice>0</initial_choice>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <name>button_search_passive</name>
+	      <tooltip>A passive search matches any search results routed through this node</tooltip>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>clicked</name>
+		<handler>on_button_search_passive_clicked</handler>
+		<last_modification_time>Tue, 30 May 2000 06:59:17 GMT</last_modification_time>
+	      </signal>
+	      <label>_Passive</label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+	    </widget>
+	  </widget>
+	</widget>
 
 	<widget>
 	  <class>GtkNotebook</class>

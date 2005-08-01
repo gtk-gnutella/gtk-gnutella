@@ -216,10 +216,6 @@ gui_update_stats_frames(void)
         lookup_widget(main_window, "frame_bws_ginout");
     GtkWidget *frame_bws_glinout =
         lookup_widget(main_window, "frame_bws_glinout");
-#ifdef USE_GTK1
-    GtkWidget *handlebox_traffic =
-        lookup_widget(main_window, "handlebox_traffic");
-#endif
     guint32 peermode;
 
    	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &peermode);
@@ -237,16 +233,12 @@ gui_update_stats_frames(void)
     }
 
     if ((progressbar_bws_glin_visible || progressbar_bws_glout_visible) &&
-        (peermode == 2 || !autohide_bws_gleaf)) {
+        (peermode == NODE_P_ULTRA || !autohide_bws_gleaf)) {
         gtk_widget_show(frame_bws_glinout);
     } else {
         gtk_widget_hide(frame_bws_glinout);
     }
 
-#ifdef USE_GTK1
-    gtk_widget_hide(handlebox_traffic);
-    gtk_widget_show(handlebox_traffic);
-#endif
 }
 
 /**

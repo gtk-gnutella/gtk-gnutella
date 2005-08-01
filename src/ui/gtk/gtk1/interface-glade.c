@@ -68,7 +68,7 @@ create_main_window (void)
   GtkWidget *label117;
   GtkWidget *vbox46;
   GtkWidget *notebook_sidebar;
-  GtkWidget *hb_searches;
+  GtkWidget *viewport49;
   GtkWidget *sw_searches;
   GtkWidget *clist_search;
   GtkWidget *label185;
@@ -77,18 +77,6 @@ create_main_window (void)
   GtkWidget *label_nb_sb_1;
   GtkWidget *label189;
   GtkWidget *label188;
-  GtkWidget *hbox209;
-  GtkWidget *vbox113;
-  GtkWidget *hbox179;
-  GtkWidget *button_search;
-  GtkWidget *combo_search;
-  GtkWidget *entry_search;
-  GtkWidget *hbox180;
-  GtkWidget *optionmenu_search_filter;
-  GtkWidget *optionmenu_search_filter_menu;
-  guint button_search_passive_key;
-  GtkWidget *button_search_passive;
-  GtkWidget *handlebox_traffic;
   GtkWidget *vbox31;
   GtkWidget *frame75;
   GtkWidget *vbox108;
@@ -117,6 +105,15 @@ create_main_window (void)
   GtkWidget *progressbar_bws_lin;
   GtkWidget *progressbar_bws_lout;
   GtkWidget *vbox_right;
+  GtkWidget *frame139;
+  GtkWidget *hbox179;
+  GtkWidget *button_search;
+  GtkWidget *combo_search;
+  GtkWidget *entry_search;
+  GtkWidget *optionmenu_search_filter;
+  GtkWidget *optionmenu_search_filter_menu;
+  guint button_search_passive_key;
+  GtkWidget *button_search_passive;
   GtkWidget *notebook_main;
   GtkWidget *vbox_gnutellanet;
   GtkWidget *frame5;
@@ -1028,7 +1025,7 @@ create_main_window (void)
   gtk_clist_set_column_widget (GTK_CLIST (ctree_menu), 0, label117);
   gtk_misc_set_alignment (GTK_MISC (label117), 7.45058e-09, 0.5);
 
-  vbox46 = gtk_vbox_new (FALSE, 4);
+  vbox46 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox46, "vbox46");
   gtk_widget_ref (vbox46);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox46", vbox46,
@@ -1047,15 +1044,13 @@ create_main_window (void)
   gtk_notebook_set_show_tabs (GTK_NOTEBOOK (notebook_sidebar), FALSE);
   gtk_notebook_set_show_border (GTK_NOTEBOOK (notebook_sidebar), FALSE);
 
-  hb_searches = gtk_handle_box_new ();
-  gtk_widget_set_name (hb_searches, "hb_searches");
-  gtk_widget_ref (hb_searches);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hb_searches", hb_searches,
+  viewport49 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport49, "viewport49");
+  gtk_widget_ref (viewport49);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport49", viewport49,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hb_searches);
-  gtk_container_add (GTK_CONTAINER (notebook_sidebar), hb_searches);
-  gtk_handle_box_set_handle_position (GTK_HANDLE_BOX (hb_searches), GTK_POS_TOP);
-  gtk_handle_box_set_snap_edge (GTK_HANDLE_BOX (hb_searches), GTK_POS_LEFT);
+  gtk_widget_show (viewport49);
+  gtk_container_add (GTK_CONTAINER (notebook_sidebar), viewport49);
 
   sw_searches = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (sw_searches, "sw_searches");
@@ -1063,7 +1058,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "sw_searches", sw_searches,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (sw_searches);
-  gtk_container_add (GTK_CONTAINER (hb_searches), sw_searches);
+  gtk_container_add (GTK_CONTAINER (viewport49), sw_searches);
   gtk_widget_set_usize (sw_searches, 150, 200);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw_searches), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
@@ -1129,105 +1124,13 @@ create_main_window (void)
   gtk_widget_show (label188);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_sidebar), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_sidebar), 1), label188);
 
-  hbox209 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox209, "hbox209");
-  gtk_widget_ref (hbox209);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox209", hbox209,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox209);
-  gtk_box_pack_start (GTK_BOX (vbox136), hbox209, FALSE, TRUE, 0);
-
-  vbox113 = gtk_vbox_new (FALSE, 2);
-  gtk_widget_set_name (vbox113, "vbox113");
-  gtk_widget_ref (vbox113);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox113", vbox113,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox113);
-  gtk_box_pack_start (GTK_BOX (hbox209), vbox113, TRUE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox113), 2);
-
-  hbox179 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_set_name (hbox179, "hbox179");
-  gtk_widget_ref (hbox179);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox179", hbox179,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox179);
-  gtk_box_pack_start (GTK_BOX (vbox113), hbox179, TRUE, TRUE, 0);
-
-  button_search = gtk_button_new_with_label (_("Search"));
-  gtk_widget_set_name (button_search, "button_search");
-  gtk_widget_ref (button_search);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search", button_search,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_search);
-  gtk_box_pack_start (GTK_BOX (hbox179), button_search, FALSE, TRUE, 0);
-  gtk_widget_set_sensitive (button_search, FALSE);
-
-  combo_search = gtk_combo_new ();
-  gtk_widget_set_name (combo_search, "combo_search");
-  gtk_widget_ref (combo_search);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_search", combo_search,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_search);
-  gtk_box_pack_start (GTK_BOX (hbox179), combo_search, TRUE, TRUE, 0);
-  gtk_combo_set_use_arrows_always (GTK_COMBO (combo_search), TRUE);
-
-  entry_search = GTK_COMBO (combo_search)->entry;
-  gtk_widget_set_name (entry_search, "entry_search");
-  gtk_widget_ref (entry_search);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_search", entry_search,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_search);
-
-  hbox180 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_set_name (hbox180, "hbox180");
-  gtk_widget_ref (hbox180);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox180", hbox180,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox180);
-  gtk_box_pack_start (GTK_BOX (vbox113), hbox180, TRUE, TRUE, 0);
-
-  optionmenu_search_filter = gtk_option_menu_new ();
-  gtk_widget_set_name (optionmenu_search_filter, "optionmenu_search_filter");
-  gtk_widget_ref (optionmenu_search_filter);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "optionmenu_search_filter", optionmenu_search_filter,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (optionmenu_search_filter);
-  gtk_box_pack_start (GTK_BOX (hbox180), optionmenu_search_filter, TRUE, TRUE, 0);
-  optionmenu_search_filter_menu = gtk_menu_new ();
-  gtk_option_menu_set_menu (GTK_OPTION_MENU (optionmenu_search_filter), optionmenu_search_filter_menu);
-
-  button_search_passive = gtk_button_new_with_label ("");
-  button_search_passive_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (button_search_passive)->child),
-                                   _("_Passive"));
-  gtk_widget_add_accelerator (button_search_passive, "clicked", accel_group,
-                              button_search_passive_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_set_name (button_search_passive, "button_search_passive");
-  gtk_widget_ref (button_search_passive);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search_passive", button_search_passive,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_search_passive);
-  gtk_box_pack_start (GTK_BOX (hbox180), button_search_passive, FALSE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, button_search_passive, _("A passive search matches any search results routed through this node"), NULL);
-
-  handlebox_traffic = gtk_handle_box_new ();
-  gtk_widget_set_name (handlebox_traffic, "handlebox_traffic");
-  gtk_widget_ref (handlebox_traffic);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "handlebox_traffic", handlebox_traffic,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (handlebox_traffic);
-  gtk_box_pack_start (GTK_BOX (vbox136), handlebox_traffic, FALSE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (handlebox_traffic), 1);
-  gtk_handle_box_set_handle_position (GTK_HANDLE_BOX (handlebox_traffic), GTK_POS_TOP);
-  gtk_handle_box_set_snap_edge (GTK_HANDLE_BOX (handlebox_traffic), GTK_POS_LEFT);
-
   vbox31 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox31, "vbox31");
   gtk_widget_ref (vbox31);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox31", vbox31,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox31);
-  gtk_container_add (GTK_CONTAINER (handlebox_traffic), vbox31);
+  gtk_box_pack_start (GTK_BOX (vbox136), vbox31, FALSE, TRUE, 0);
 
   frame75 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame75, "frame75");
@@ -1236,7 +1139,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame75);
   gtk_box_pack_start (GTK_BOX (vbox31), frame75, FALSE, FALSE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame75), GTK_SHADOW_NONE);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame75), GTK_SHADOW_OUT);
 
   vbox108 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox108, "vbox108");
@@ -1362,7 +1265,7 @@ create_main_window (void)
   gtk_widget_show (frame_bws_inout);
   gtk_box_pack_start (GTK_BOX (vbox31), frame_bws_inout, FALSE, FALSE, 0);
   gtk_frame_set_label_align (GTK_FRAME (frame_bws_inout), 0.5, 0.5);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame_bws_inout), GTK_SHADOW_NONE);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame_bws_inout), GTK_SHADOW_OUT);
 
   vbox42 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox42, "vbox42");
@@ -1404,7 +1307,7 @@ create_main_window (void)
   gtk_widget_show (frame_bws_ginout);
   gtk_box_pack_start (GTK_BOX (vbox31), frame_bws_ginout, FALSE, FALSE, 0);
   gtk_frame_set_label_align (GTK_FRAME (frame_bws_ginout), 0.5, 0.5);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame_bws_ginout), GTK_SHADOW_NONE);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame_bws_ginout), GTK_SHADOW_OUT);
 
   vbox43 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox43, "vbox43");
@@ -1444,7 +1347,7 @@ create_main_window (void)
   gtk_widget_show (frame_bws_glinout);
   gtk_box_pack_start (GTK_BOX (vbox31), frame_bws_glinout, TRUE, TRUE, 0);
   gtk_frame_set_label_align (GTK_FRAME (frame_bws_glinout), 0.5, 0.5);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame_bws_glinout), GTK_SHADOW_NONE);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame_bws_glinout), GTK_SHADOW_OUT);
 
   vbox107 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox107, "vbox107");
@@ -1476,13 +1379,79 @@ create_main_window (void)
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bws_lout), TRUE);
   gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_lout), _("out"));
 
-  vbox_right = gtk_vbox_new (FALSE, 4);
+  vbox_right = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox_right, "vbox_right");
   gtk_widget_ref (vbox_right);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_right", vbox_right,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox_right);
   gtk_paned_pack2 (GTK_PANED (hpaned_main), vbox_right, TRUE, TRUE);
+
+  frame139 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame139, "frame139");
+  gtk_widget_ref (frame139);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame139", frame139,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame139);
+  gtk_box_pack_start (GTK_BOX (vbox_right), frame139, FALSE, TRUE, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame139), GTK_SHADOW_OUT);
+
+  hbox179 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox179, "hbox179");
+  gtk_widget_ref (hbox179);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox179", hbox179,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox179);
+  gtk_container_add (GTK_CONTAINER (frame139), hbox179);
+  gtk_container_set_border_width (GTK_CONTAINER (hbox179), 2);
+
+  button_search = gtk_button_new_with_label (_("Search"));
+  gtk_widget_set_name (button_search, "button_search");
+  gtk_widget_ref (button_search);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search", button_search,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_search);
+  gtk_box_pack_start (GTK_BOX (hbox179), button_search, FALSE, TRUE, 0);
+  gtk_widget_set_sensitive (button_search, FALSE);
+
+  combo_search = gtk_combo_new ();
+  gtk_widget_set_name (combo_search, "combo_search");
+  gtk_widget_ref (combo_search);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_search", combo_search,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (combo_search);
+  gtk_box_pack_start (GTK_BOX (hbox179), combo_search, TRUE, TRUE, 0);
+  gtk_combo_set_use_arrows_always (GTK_COMBO (combo_search), TRUE);
+
+  entry_search = GTK_COMBO (combo_search)->entry;
+  gtk_widget_set_name (entry_search, "entry_search");
+  gtk_widget_ref (entry_search);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_search", entry_search,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_search);
+
+  optionmenu_search_filter = gtk_option_menu_new ();
+  gtk_widget_set_name (optionmenu_search_filter, "optionmenu_search_filter");
+  gtk_widget_ref (optionmenu_search_filter);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "optionmenu_search_filter", optionmenu_search_filter,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (optionmenu_search_filter);
+  gtk_box_pack_start (GTK_BOX (hbox179), optionmenu_search_filter, FALSE, FALSE, 0);
+  optionmenu_search_filter_menu = gtk_menu_new ();
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (optionmenu_search_filter), optionmenu_search_filter_menu);
+
+  button_search_passive = gtk_button_new_with_label ("");
+  button_search_passive_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (button_search_passive)->child),
+                                   _("_Passive"));
+  gtk_widget_add_accelerator (button_search_passive, "clicked", accel_group,
+                              button_search_passive_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_set_name (button_search_passive, "button_search_passive");
+  gtk_widget_ref (button_search_passive);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search_passive", button_search_passive,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_search_passive);
+  gtk_box_pack_start (GTK_BOX (hbox179), button_search_passive, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, button_search_passive, _("A passive search matches any search results routed through this node"), NULL);
 
   notebook_main = gtk_notebook_new ();
   gtk_widget_set_name (notebook_main, "notebook_main");
@@ -5843,18 +5812,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (clist_search), "resize_column",
                       GTK_SIGNAL_FUNC (on_clist_search_resize_column),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_search), "changed",
-                      GTK_SIGNAL_FUNC (on_entry_search_changed),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_search), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_search_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_passive), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_passive_clicked),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (progressbar_bws_in), "button_press_event",
                       GTK_SIGNAL_FUNC (on_progressbar_bws_in_button_press_event),
                       NULL);
@@ -5872,6 +5829,18 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (progressbar_bws_lout), "button_press_event",
                       GTK_SIGNAL_FUNC (on_progressbar_bws_lout_button_press_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button_search), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_search_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_search), "changed",
+                      GTK_SIGNAL_FUNC (on_entry_search_changed),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_search), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_search_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button_search_passive), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_search_passive_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_nodes), "select_row",
                       GTK_SIGNAL_FUNC (on_clist_nodes_select_row),
