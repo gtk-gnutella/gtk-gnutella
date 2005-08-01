@@ -56,6 +56,7 @@ enum ignore_val ignore_is_requested(
 
 void ignore_add_filesize(const gchar *file, filesize_t size);
 void ignore_add_sha1(const gchar *file, const gchar *sha1);
+gchar *ignore_sha1_filename(const gchar *sha1);
 
 #endif	/* _core_ignore_h_ */
 

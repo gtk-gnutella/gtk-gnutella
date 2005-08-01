@@ -287,6 +287,15 @@ ignore_namesize_load(const gchar *file, time_t *stamp)
 }
 
 /**
+ * @return the filename associated with the digest if known, NULL otherwise.
+ */
+gchar *
+ignore_sha1_filename(const gchar *sha1)
+{
+	return g_hash_table_lookup(by_sha1, sha1);
+}
+
+/**
  * Is ignoring requested for `file' of size `size' and SHA1 `sha1'?
  * Priority is given to the SHA1, if supplied.
  *
