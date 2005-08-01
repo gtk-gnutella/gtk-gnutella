@@ -1735,14 +1735,9 @@ void search_gui_download_files(void)
     search_t *current_search = search_gui_get_current_search();
 
 	if (current_search) {
-        GtkWidget *notebook_main;
-        GtkWidget *ctree_menu;
         guint selected;
         guint created;
 		gchar buf[1024];
-
-        notebook_main = lookup_widget(main_window, "notebook_main");
-        ctree_menu = lookup_widget(main_window, "ctree_menu");
 
 		created = download_selection_of_ctree(
 			GTK_CTREE(current_search->ctree), &selected);
@@ -1771,12 +1766,7 @@ void search_gui_discard_files(void)
     search_t *current_search = search_gui_get_current_search();
 
 	if (current_search) {
-        GtkWidget *notebook_main;
-        GtkWidget *ctree_menu;
         guint discarded;
-
-        notebook_main = lookup_widget(main_window, "notebook_main");
-        ctree_menu = lookup_widget(main_window, "ctree_menu");
 
 		discarded = discard_selection_of_ctree(
 			GTK_CTREE(current_search->ctree));
