@@ -576,6 +576,10 @@ main(int argc, char **argv)
 		PACKAGE_SOURCE_DIR);
 #endif
 
+	/* If one of the two below fails, the GLib installation is broken. */
+	STATIC_ASSERT(sizeof(size_t) == sizeof(gsize));
+	STATIC_ASSERT(sizeof(ssize_t) == sizeof(gssize));
+	
 	tiger_init();
 	random_init();
 	locale_init();
