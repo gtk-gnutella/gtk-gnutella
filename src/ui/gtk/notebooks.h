@@ -30,13 +30,13 @@ enum {
     nb_main_page_gnet = 0,
     nb_main_page_uploads,
     nb_main_page_uploads_stats,
-    nb_main_page_downloads,
     nb_main_page_search,
     nb_main_page_monitor,
     nb_main_page_search_stats,
     nb_main_page_gnet_stats,
     nb_main_page_hostcache,
 
+    nb_main_page_dl_active,
     nb_main_page_dl_files,
     nb_main_page_dl_queue,
 
