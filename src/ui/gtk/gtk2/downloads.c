@@ -1241,6 +1241,8 @@ gui_update_download_host(download_t *d)
 
 	gui_update_download_column(d, treeview_downloads,
 		c_dl_host, guc_download_get_hostname(d));
+	gui_update_download_column(d, treeview_downloads,
+		c_dl_loc, guc_download_get_country(d));
 }
 
 

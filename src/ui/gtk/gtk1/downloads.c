@@ -909,9 +909,12 @@ gui_update_download_host(struct download *d)
 	g_assert(d->status != GTA_DL_QUEUED);
 
 	node = gtk_ctree_find_by_row_data(ctree_downloads, NULL, (gpointer) d);
-	if (NULL != node)
+	if (NULL != node) {
 		gtk_ctree_node_set_text(ctree_downloads, node,
 			c_dl_host, guc_download_get_hostname(d));
+		gtk_ctree_node_set_text(ctree_downloads, node,
+			c_dl_loc, guc_download_get_country(d));
+	}
 }
 
 void

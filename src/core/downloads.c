@@ -89,7 +89,7 @@ RCSID("$Id$");
 #define DOWNLOAD_SERVER_HOLD	15		/**< Space requests to same server */
 #define DOWNLOAD_DNS_LOOKUP		7200	/**< Period of server DNS lookups */
 
-#define IO_AVG_RATE		5				/**< Compute global recv rate every 5 secs */
+#define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
 
 static GSList *sl_downloads = NULL;		/**< All downloads (queued + unqueued) */
 GSList *sl_unqueued = NULL;				/**< Unqueued downloads only */
@@ -98,10 +98,10 @@ GSList *sl_removed_servers = NULL;		/**< Removed servers only */
 static gchar dl_tmp[4096];
 static gint queue_frozen = 0;
 
-static const gchar DL_OK_EXT[] = ".OK";			/**< Extension to mark OK files */
-static const gchar DL_BAD_EXT[] = ".BAD"; 		/**< "Bad" files (SHA1 mismatch) */
+static const gchar DL_OK_EXT[] = ".OK";		/**< Extension to mark OK files */
+static const gchar DL_BAD_EXT[] = ".BAD"; 	/**< "Bad" files (SHA1 mismatch) */
 static const gchar DL_UNKN_EXT[] = ".UNKN";		/**< For unchecked files */
-static const gchar file_what[] = "downloads";	/**< What we're persisting to file */
+static const gchar file_what[] = "downloads";	/**< What is persisted to file */
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
 static gboolean send_push_request(const gchar *, guint32, guint16);
@@ -877,6 +877,7 @@ change_server_ip(struct dl_server *server, guint32 new_ip)
 	 */
 
 	key->ip = new_ip;
+	server->country = gip_country(new_ip);
 
 	/*
 	 * Look for a duplicate.  It's quite possible that we saw some IP
@@ -7067,6 +7068,14 @@ download_push_ack(struct gnutella_socket *s)
 	d->last_update = time((time_t *) NULL);
 	d->socket = s;
 	s->resource.download = d;
+
+	/*
+	 * Since we got a GIV, we now know the remote IP of the host.
+	 */
+
+	if (download_ip(d) != s->ip)
+		change_server_ip(d->server, s->ip);
+
 	gcu_gui_update_download_host(d);
 
 	/*
