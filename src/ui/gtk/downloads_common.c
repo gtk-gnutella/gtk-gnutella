@@ -105,7 +105,7 @@ gui_update_queue_frozen(void)
 		*/
         if (!msg_displayed) {
             msg_displayed = TRUE;
-          	id = statusbar_gui_message(0, _("QUEUE FROZEN"));
+          	id = statusbar_gui_message(0, _("Queue frozen"));
         }
     } else {
 #ifdef USE_GTK1
