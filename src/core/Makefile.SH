@@ -78,11 +78,12 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.10 2004/11/14 21:30:01 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.11 2005/08/01 12:51:57 rmanfredi Exp $
 
 SRC = \
 	alive.c \
 	ban.c \
+	bh_upload.c \
 	bitzi.c \
 	bogons.c \
 	bsched.c \
@@ -157,6 +158,7 @@ SRC = \
 OBJ = \
 	alive.o \
 	ban.o \
+	bh_upload.o \
 	bitzi.o \
 	bogons.o \
 	bsched.o \
