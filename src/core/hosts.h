@@ -28,6 +28,8 @@
 
 #include <glib.h>
 
+#include "if/core/hosts.h"
+
 /*
  * Global Data
  */
@@ -45,6 +47,8 @@ void host_add(guint32, guint16, gboolean);
 void host_add_semi_pong(guint32 ip, guint16 port);
 void host_shutdown(void);
 void host_close(void);
+
+const gchar *host_ip(const gnet_host_t *h);
 
 void parse_netmasks(gchar *value);
 gboolean host_is_nearby(guint32 ip);

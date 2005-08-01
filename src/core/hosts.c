@@ -53,6 +53,7 @@ RCSID("$Id$");
 #include "if/gnet_property_priv.h"
 
 #include "lib/endian.h"
+#include "lib/glib-missing.h"
 #include "lib/override.h"	/* Must be the last header included */
 
 gboolean host_low_on_pongs = FALSE;			/**< True when less than 12% full */
@@ -240,6 +241,22 @@ host_timer(void)
 void host_init(void)
 {
 	pcache_init();
+}
+
+/**
+ * @return the ip:port of a host
+ */
+const gchar *
+host_ip(const gnet_host_t *h)
+{
+	static gchar a[32];
+	struct in_addr ia;
+
+	g_assert(h != NULL);
+
+	ia.s_addr = htonl(h->ip);
+	gm_snprintf(a, sizeof(a), "%s:%u", inet_ntoa(ia), h->port);
+	return a;
 }
 
 /**
