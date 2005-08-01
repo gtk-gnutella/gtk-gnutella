@@ -16,7 +16,7 @@ GtkWidget* create_dlg_quit (void);
 GtkWidget* create_main_window_gnet_tab (void);
 GtkWidget* create_main_window_uploads_tab (void);
 GtkWidget* create_main_window_upload_stats_tab (void);
-GtkWidget* create_main_window_downloads_tab (void);
+GtkWidget* create_main_window_dl_active_tab (void);
 GtkWidget* create_main_window_search_tab (void);
 GtkWidget* create_main_window_monitor_tab (void);
 GtkWidget* create_main_window_search_stats_tab (void);

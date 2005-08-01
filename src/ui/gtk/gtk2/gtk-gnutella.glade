@@ -5955,7 +5955,7 @@ http://maxmind.com/</property>
   </child>
 </widget>
 
-<widget class="GtkWindow" id="main_window_downloads_tab">
+<widget class="GtkWindow" id="main_window_dl_active_tab">
   <property name="visible">True</property>
   <property name="title" translatable="yes"></property>
   <property name="type">GTK_WINDOW_TOPLEVEL</property>

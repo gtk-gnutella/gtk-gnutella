@@ -1345,7 +1345,7 @@ gui_update_download(download_t *d, gboolean force)
 		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
 
     current_page = gtk_notebook_get_current_page(notebook);
-    if (current_page != nb_main_page_downloads)
+    if (current_page != nb_main_page_dl_active)
         looking = FALSE;
 
 	if (!looking) {

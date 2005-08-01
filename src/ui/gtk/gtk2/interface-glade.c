@@ -3953,9 +3953,9 @@ create_main_window_upload_stats_tab (void)
 }
 
 GtkWidget*
-create_main_window_downloads_tab (void)
+create_main_window_dl_active_tab (void)
 {
-  GtkWidget *main_window_downloads_tab;
+  GtkWidget *main_window_dl_active_tab;
   GtkWidget *scrolledwindow76;
   GtkWidget *viewport459;
   GtkWidget *vpaned_downloads;
@@ -4032,14 +4032,14 @@ create_main_window_downloads_tab (void)
 
   tooltips = gtk_tooltips_new ();
 
-  main_window_downloads_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-  gtk_widget_set_name (main_window_downloads_tab, "main_window_downloads_tab");
-  gtk_window_set_default_size (GTK_WINDOW (main_window_downloads_tab), 300, 200);
+  main_window_dl_active_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_widget_set_name (main_window_dl_active_tab, "main_window_dl_active_tab");
+  gtk_window_set_default_size (GTK_WINDOW (main_window_dl_active_tab), 300, 200);
 
   scrolledwindow76 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow76, "scrolledwindow76");
   gtk_widget_show (scrolledwindow76);
-  gtk_container_add (GTK_CONTAINER (main_window_downloads_tab), scrolledwindow76);
+  gtk_container_add (GTK_CONTAINER (main_window_dl_active_tab), scrolledwindow76);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow76), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
   viewport459 = gtk_viewport_new (NULL, NULL);
@@ -4489,79 +4489,79 @@ create_main_window_downloads_tab (void)
                     NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
-  GLADE_HOOKUP_OBJECT_NO_REF (main_window_downloads_tab, main_window_downloads_tab, "main_window_downloads_tab");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow76, "scrolledwindow76");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport459, "viewport459");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vpaned_downloads, "vpaned_downloads");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame3, "frame3");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox16, "vbox16");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow33, "scrolledwindow33");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, treeview_downloads, "treeview_downloads");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport29, "viewport29");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox234, "hbox234");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_running_count, "label_dl_running_count");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label910, "label910");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label708, "label708");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_active_count, "label_dl_active_count");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label710, "label710");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_aqueued_count, "label_dl_aqueued_count");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label712, "label712");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label909, "label909");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame_dl_settings, "frame_dl_settings");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox261, "hbox261");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, table95, "table95");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label80, "label80");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label64, "label64");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label831, "label831");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_download_delete_aborted, "checkbutton_download_delete_aborted");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_remove_file_on_mismatch, "checkbutton_dl_remove_file_on_mismatch");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_downloads_never_push, "checkbutton_downloads_never_push");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, spinbutton_max_host_downloads, "spinbutton_max_host_downloads");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, spinbutton_max_downloads, "spinbutton_max_downloads");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, spinbutton_mismatch_backout, "spinbutton_mismatch_backout");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox129, "vbox129");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame85, "frame85");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox130, "vbox130");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_clear_complete, "checkbutton_dl_clear_complete");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_clear_failed, "checkbutton_dl_clear_failed");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_clear_unavailable, "checkbutton_dl_clear_unavailable");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label724, "label724");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label723, "label723");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, table57, "table57");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, button_downloads_abort, "button_downloads_abort");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, alignment87, "alignment87");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox226, "hbox226");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image220, "image220");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label693, "label693");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, button_downloads_resume, "button_downloads_resume");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, alignment31, "alignment31");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox162, "hbox162");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image32, "image32");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label413, "label413");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, button_downloads_clear_stopped, "button_downloads_clear_stopped");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, alignment29, "alignment29");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox160, "hbox160");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image30, "image30");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label411, "label411");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label888, "label888");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_show_settings, "checkbutton_dl_show_settings");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, alignment77, "alignment77");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox216, "hbox216");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image138, "image138");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_show_settings, "label_dl_show_settings");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame115, "frame115");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, table55, "table55");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport467, "viewport467");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, entry_dl_byte_count, "entry_dl_byte_count");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport468, "viewport468");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, entry_count_downloads, "entry_count_downloads");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label551, "label551");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label552, "label552");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label844, "label844");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label285, "label285");
-  GLADE_HOOKUP_OBJECT_NO_REF (main_window_downloads_tab, tooltips, "tooltips");
+  GLADE_HOOKUP_OBJECT_NO_REF (main_window_dl_active_tab, main_window_dl_active_tab, "main_window_dl_active_tab");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, scrolledwindow76, "scrolledwindow76");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, viewport459, "viewport459");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, vpaned_downloads, "vpaned_downloads");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, frame3, "frame3");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, vbox16, "vbox16");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, scrolledwindow33, "scrolledwindow33");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, treeview_downloads, "treeview_downloads");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, viewport29, "viewport29");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, hbox234, "hbox234");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label_dl_running_count, "label_dl_running_count");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label910, "label910");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label708, "label708");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label_dl_active_count, "label_dl_active_count");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label710, "label710");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label_dl_aqueued_count, "label_dl_aqueued_count");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label712, "label712");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label909, "label909");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, frame_dl_settings, "frame_dl_settings");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, hbox261, "hbox261");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, table95, "table95");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label80, "label80");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label64, "label64");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label831, "label831");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, checkbutton_download_delete_aborted, "checkbutton_download_delete_aborted");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, checkbutton_dl_remove_file_on_mismatch, "checkbutton_dl_remove_file_on_mismatch");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, checkbutton_downloads_never_push, "checkbutton_downloads_never_push");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, spinbutton_max_host_downloads, "spinbutton_max_host_downloads");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, spinbutton_max_downloads, "spinbutton_max_downloads");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, spinbutton_mismatch_backout, "spinbutton_mismatch_backout");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, vbox129, "vbox129");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, frame85, "frame85");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, vbox130, "vbox130");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, checkbutton_dl_clear_complete, "checkbutton_dl_clear_complete");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, checkbutton_dl_clear_failed, "checkbutton_dl_clear_failed");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, checkbutton_dl_clear_unavailable, "checkbutton_dl_clear_unavailable");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label724, "label724");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label723, "label723");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, table57, "table57");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, button_downloads_abort, "button_downloads_abort");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, alignment87, "alignment87");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, hbox226, "hbox226");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, image220, "image220");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label693, "label693");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, button_downloads_resume, "button_downloads_resume");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, alignment31, "alignment31");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, hbox162, "hbox162");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, image32, "image32");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label413, "label413");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, button_downloads_clear_stopped, "button_downloads_clear_stopped");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, alignment29, "alignment29");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, hbox160, "hbox160");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, image30, "image30");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label411, "label411");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label888, "label888");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, checkbutton_dl_show_settings, "checkbutton_dl_show_settings");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, alignment77, "alignment77");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, hbox216, "hbox216");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, image138, "image138");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label_dl_show_settings, "label_dl_show_settings");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, frame115, "frame115");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, table55, "table55");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, viewport467, "viewport467");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, entry_dl_byte_count, "entry_dl_byte_count");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, viewport468, "viewport468");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, entry_count_downloads, "entry_count_downloads");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label551, "label551");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label552, "label552");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label844, "label844");
+  GLADE_HOOKUP_OBJECT (main_window_dl_active_tab, label285, "label285");
+  GLADE_HOOKUP_OBJECT_NO_REF (main_window_dl_active_tab, tooltips, "tooltips");
 
-  return main_window_downloads_tab;
+  return main_window_dl_active_tab;
 }
 
 GtkWidget*
