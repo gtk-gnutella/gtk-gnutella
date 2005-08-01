@@ -40,7 +40,8 @@
 RCSID("$Id$");
 
 #include "sockets.h"
-#include "nodes.h"
+#include "hosts.h"
+#include "nodes.h"		/* XXX -- only for node_add_tx_deflated() */
 #include "tx.h"
 #include "tx_deflate.h"
 
@@ -127,11 +128,11 @@ deflate_send(txdrv_t *tx)
 	 * Write as much as possible.
 	 */
 
-	r = tx_write(attr->nd, b->rptr, len);
+	r = tx_write(tx->lower, b->rptr, len);
 
 	if (dbg > 9)
 		printf("deflate_send: (%s) wrote %d bytes (buffer #%d) [%c%c]\n",
-			node_ip(tx->node), (gint) r, attr->send_idx,
+			host_ip(&tx->host), (gint) r, attr->send_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -145,7 +146,7 @@ deflate_send(txdrv_t *tx)
 	if ((size_t) r == len) {
 		if (dbg > 9)
 			printf("deflate_send: (%s) buffer #%d is empty\n",
-				node_ip(tx->node), attr->send_idx);
+				host_ip(&tx->host), attr->send_idx);
 
 		attr->send_idx = -1;			/* Signals: is now free */
 		b->wptr = b->rptr = b->arena;	/* Buffer is now empty */
@@ -161,7 +162,7 @@ deflate_send(txdrv_t *tx)
 
 	g_assert(b->rptr < b->wptr);		/* We haven't written everything */
 
-	tx_srv_enable(attr->nd);
+	tx_srv_enable(tx->lower);
 }
 
 /**
@@ -225,7 +226,7 @@ deflate_rotate_and_send(txdrv_t *tx)
 
 	if (dbg > 9)
 		printf("deflate_rotate_and_send: (%s) fill buffer now #%d [%c%c]\n",
-			node_ip(tx->node), attr->fill_idx,
+			host_ip(&tx->host), attr->fill_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -249,7 +250,7 @@ deflate_service(gpointer data)
 
 	if (dbg > 9)
 		printf("deflate_service: (%s) (buffer #%d, %d bytes held) [%c%c]\n",
-			node_ip(tx->node), attr->send_idx,
+			host_ip(&tx->host), attr->send_idx,
 			(gint) (attr->buf[attr->send_idx].wptr -
 					attr->buf[attr->send_idx].rptr),
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
@@ -278,7 +279,7 @@ deflate_service(gpointer data)
 	if (b->wptr >= b->end) {
 		if (dbg > 9)
 			printf("deflate_service: (%s) sending fill buffer #%d, %d bytes\n",
-				node_ip(tx->node), attr->fill_idx, (gint) (b->wptr - b->rptr));
+				host_ip(&tx->host), attr->fill_idx, (gint) (b->wptr - b->rptr));
 
 		deflate_rotate_and_send(tx);
 	}
@@ -288,7 +289,7 @@ deflate_service(gpointer data)
 	 */
 
 	if (attr->send_idx == -1)
-		tx_srv_disable(attr->nd);
+		tx_srv_disable(tx->lower);
 
 	/*
 	 * If we entered flow control, we can now safely leave it, since we
@@ -299,8 +300,8 @@ deflate_service(gpointer data)
 		attr->flags &= ~DF_FLOWC;	/* Leave flow control state */
 
 		if (dbg > 4)
-			printf("Compressing TX stack for node %s leaves FLOWC\n",
-				node_ip(tx->node));
+			printf("Compressing TX stack for peer %s leaves FLOWC\n",
+				host_ip(&tx->host));
 
 		/*
 		 * If upper layer wants servicing, do it now.
@@ -315,7 +316,7 @@ deflate_service(gpointer data)
 
 	if (dbg > 9)
 		printf("deflate_service: (%s) leaving [%c%c]\n",
-			node_ip(tx->node),
+			host_ip(&tx->host),
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 }
@@ -339,7 +340,7 @@ retry:
 
 	if (dbg > 9)
 		printf("deflate_flush: (%s) flushing (buffer #%d) [%c%c]\n",
-			node_ip(tx->node), attr->fill_idx,
+			host_ip(&tx->host), attr->fill_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -367,14 +368,22 @@ retry:
 		break;
 	default:
 		attr->flags |= DF_SHUTDOWN;
-		node_shutdown(tx->node, "Compression flush failed: %s",
-			zlib_strerror(ret));
+		tx->shutdown(tx->shutdown_target, "Compression flush failed: %s",
+				zlib_strerror(ret));
 		return FALSE;
 	}
 
 	b->wptr += old_avail - outz->avail_out;
 
-	node_add_tx_deflated(tx->node, old_avail - outz->avail_out);
+	/*
+	 * The TX deflating driver can be used with something other than nodes.
+	 * To avoid the bulk of another indirection routine, only call this macro
+	 * when we're dealing with a Gnutella node.  FIXME some day.
+	 *		--RAM, 2005-07-31
+	 */
+
+	if (tx->node != NULL)
+		node_add_tx_deflated(tx->node, old_avail - outz->avail_out);
 
 	/*
 	 * Check whether avail_out is 0.
@@ -388,8 +397,8 @@ retry:
 			attr->flags |= DF_FLOWC|DF_FLUSH;	/* Enter flow control */
 
 			if (dbg > 4)
-				printf("Compressing TX stack for node %s enters FLOWC/FLUSH\n",
-					node_ip(tx->node));
+				printf("Compressing TX stack for peer %s enters FLOWC/FLUSH\n",
+					host_ip(&tx->host));
 
 			return TRUE;
 		}
@@ -421,7 +430,7 @@ deflate_nagle_timeout(cqueue_t *unused_cq, gpointer arg)
 		if (dbg > 9)
 			printf("deflate_nagle_timeout: (%s) buffer #%d unsent,"
 				" exiting [%c%c]\n",
-				node_ip(tx->node), attr->send_idx,
+				host_ip(&tx->host), attr->send_idx,
 				(attr->flags & DF_FLOWC) ? 'C' : '-',
 				(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -436,7 +445,7 @@ deflate_nagle_timeout(cqueue_t *unused_cq, gpointer arg)
 
 	if (dbg > 9) {
 		printf("deflate_nagle_timeout: (%s) flushing (buffer #%d) [%c%c]\n",
-			node_ip(tx->node), attr->fill_idx,
+			host_ip(&tx->host), attr->fill_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 		fflush(stdout);
@@ -471,7 +480,7 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 	if (dbg > 9) {
 		printf("deflate_add: (%s) given %d bytes (buffer #%d, nagle %s, "
 			"unflushed %d) [%c%c]\n",
-			node_ip(tx->node), len, attr->fill_idx,
+			host_ip(&tx->host), len, attr->fill_idx,
 			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
@@ -509,7 +518,7 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 
 		if (ret != Z_OK) {
 			attr->flags |= DF_SHUTDOWN;
-			node_shutdown(tx->node, "Compression failed: %s",
+			tx->shutdown(tx->shutdown_target, "Compression failed: %s",
 				zlib_strerror(ret));
 			return -1;
 		}
@@ -524,7 +533,8 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 		g_assert(added >= old_added);
 
 		attr->unflushed += added - old_added;
-		node_add_tx_deflated(tx->node, old_avail - outz->avail_out);
+		if (tx->node != NULL)		/* XXX cf. comment for similar test */
+			node_add_tx_deflated(tx->node, old_avail - outz->avail_out);
 
 		/*
 		 * If we filled the output buffer, check whether we have a pending
@@ -537,8 +547,8 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 				attr->flags |= DF_FLOWC;	/* Enter flow control */
 
 				if (dbg > 4)
-					printf("Compressing TX stack for node %s enters FLOWC\n",
-						node_ip(tx->node));
+					printf("Compressing TX stack for peer %s enters FLOWC\n",
+						host_ip(&tx->host));
 
 				return added;
 			}
@@ -612,14 +622,13 @@ static gpointer tx_deflate_init(txdrv_t *tx, gpointer args)
 
 	if (ret != Z_OK) {
 		wfree(outz, sizeof(*outz));
-		g_warning("unable to initialize compressor for node %s: %s",
-			node_ip(tx->node), zlib_strerror(ret));
+		g_warning("unable to initialize compressor for peer %s: %s",
+			host_ip(&tx->host), zlib_strerror(ret));
 		return NULL;
 	}
 
 	attr = walloc(sizeof(*attr));
 
-	attr->nd = targs->nd;
 	attr->cq = targs->cq;
 	attr->outz = outz;
 	attr->flags = 0;
@@ -642,7 +651,7 @@ static gpointer tx_deflate_init(txdrv_t *tx, gpointer args)
 	 * Register our service routine to the lower layer.
 	 */
 
-	tx_srv_register(attr->nd, deflate_service, tx);
+	tx_srv_register(tx->lower, deflate_service, tx);
 
 	return tx;		/* OK */
 }
@@ -656,15 +665,6 @@ tx_deflate_destroy(txdrv_t *tx)
 	struct attr *attr = (struct attr *) tx->opaque;
 	gint i;
 	gint ret;
-
-	/*
-	 * XXX At some point, this will need to be refactored to do like it's
-	 * XXX done for the RX stack: the TX structure keeps track of the
-	 * XXX layers and this recursion is done from the upper level.
-	 *		-- RAM, 11/05/2002
-	 */
-
-	tx_free(attr->nd);			/* Free lower layer */
 
 	g_assert(attr->outz);
 
@@ -680,8 +680,8 @@ tx_deflate_destroy(txdrv_t *tx)
 	ret = deflateEnd(attr->outz);
 
 	if (ret != Z_OK && ret != Z_DATA_ERROR)
-		g_warning("while freeing compressor for node %s: %s",
-			node_ip(tx->node), zlib_strerror(ret));
+		g_warning("while freeing compressor for peer %s: %s",
+			host_ip(&tx->host), zlib_strerror(ret));
 
 	wfree(attr->outz, sizeof(*attr->outz));
 
@@ -704,7 +704,7 @@ tx_deflate_write(txdrv_t *tx, gpointer data, size_t len)
 	if (dbg > 9)
 		printf("tx_deflate_write: (%s) (buffer #%d, nagle %s, "
 			"unflushed %d) [%c%c]\n",
-			node_ip(tx->node), attr->fill_idx,
+			host_ip(&tx->host), attr->fill_idx,
 			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
@@ -733,7 +733,7 @@ tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 	if (dbg > 9)
 		printf("tx_deflate_writev: (%s) (buffer #%d, nagle %s, "
 			"unflushed %d) [%c%c]\n",
-			node_ip(tx->node), attr->fill_idx,
+			host_ip(&tx->host), attr->fill_idx,
 			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
@@ -764,7 +764,7 @@ tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 	if (dbg > 9)
 		printf("tx_deflate_writev: (%s) sent %d bytes (buffer #%d, nagle %s, "
 			"unflushed %d) [%c%c]\n",
-			node_ip(tx->node), sent, attr->fill_idx,
+			host_ip(&tx->host), sent, attr->fill_idx,
 			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
@@ -793,7 +793,7 @@ tx_deflate_disable(txdrv_t *unused_tx)
 }
 
 /**
- * @return the amount of data buffered locally and in the stack below.
+ * @return the amount of data buffered locally.
  */
 static size_t
 tx_deflate_pending(txdrv_t *tx)
@@ -811,7 +811,7 @@ tx_deflate_pending(txdrv_t *tx)
 		pending += b->wptr - b->rptr;
 	}
 
-	return pending + tx_pending(attr->nd);
+	return pending;
 }
 
 /**
@@ -828,17 +828,6 @@ tx_deflate_flush(txdrv_t *tx)
 	}
 }
 
-/**
- * Fetch the I/O source of the network driver.
- */
-static struct bio_source *
-tx_deflate_bio_source(txdrv_t *tx)
-{
-	struct attr *attr = (struct attr *) tx->opaque;
-
-	return tx_bio_source(attr->nd);
-}
-
 static const struct txdrv_ops tx_deflate_ops = {
 	tx_deflate_init,		/**< init */
 	tx_deflate_destroy,		/**< destroy */
@@ -849,7 +838,7 @@ static const struct txdrv_ops tx_deflate_ops = {
 	tx_deflate_disable,		/**< disable */
 	tx_deflate_pending,		/**< pending */
 	tx_deflate_flush,		/**< flush */
-	tx_deflate_bio_source,	/**< bio_source */
+	tx_no_source,			/**< bio_source */
 };
 
 const struct txdrv_ops *

@@ -273,6 +273,7 @@ tx_dgram_flush(txdrv_t *unused_tx)
 }
 
 /**
+ * @return the I/O source of this level.
  */
 static struct bio_source *
 tx_dgram_bio_source(txdrv_t *tx)

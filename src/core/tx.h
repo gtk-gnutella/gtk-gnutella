@@ -43,8 +43,10 @@
 struct txdrv_ops;
 struct iovec;
 struct bio_source;
+struct txdriver;
 
 typedef void (*tx_service_t)(gpointer obj);
+typedef void (*tx_shutdown_t)(gpointer target, const gchar *reason, ...);
 
 /**
  * A network driver.
@@ -52,11 +54,16 @@ typedef void (*tx_service_t)(gpointer obj);
 
 typedef struct txdriver {
 	struct gnutella_node *node;		/**< Node to which this driver belongs */
+	gnet_host_t host;				/**< Host information (ip, port) */
 	const struct txdrv_ops *ops;	/**< Dynamically dispatched operations */
+	struct txdriver *upper;			/**< Layer above, NULL if none */
+	struct txdriver *lower;			/**< Layer underneath, NULL if none */
 	gint flags;						/**< Driver flags */
 	tx_service_t srv_routine;		/**< Service routine of upper TX layer */
 	gpointer srv_arg;				/**< Service routine argument */
 	gpointer opaque;				/**< Used by heirs to store specific info */
+	tx_shutdown_t shutdown;			/**< Shutdown routine to disconnect TX */
+	gpointer shutdown_target;		/**< Target for shutdown routine */
 } txdrv_t;
 
 /*
@@ -86,8 +93,11 @@ struct txdrv_ops {
  * Public interface
  */
 
-txdrv_t *tx_make(struct gnutella_node *n, const struct txdrv_ops *ops,
+txdrv_t *tx_make_node(struct gnutella_node *n, const struct txdrv_ops *ops,
 	gpointer args);
+txdrv_t *tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops,
+	gpointer args);
+
 void tx_free(txdrv_t *d);
 ssize_t tx_write(txdrv_t *tx, gpointer data, size_t len);
 ssize_t tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt);
@@ -101,6 +111,8 @@ ssize_t tx_no_write(txdrv_t *tx, gpointer data, size_t len);
 ssize_t tx_no_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt);
 ssize_t tx_no_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len);
 void tx_flush(txdrv_t *d);
+
+struct bio_source *tx_no_source(txdrv_t *tx);
 
 #endif	/* _core_tx_h_ */
 

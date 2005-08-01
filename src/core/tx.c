@@ -35,7 +35,7 @@
  * as tx_write().
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2005
  */
 
 #include "common.h"
@@ -43,6 +43,7 @@
 RCSID("$Id$");
 
 #include "tx.h"
+#include "nodes.h"
 #include "lib/override.h"	/* Must be the last header included */
 
 /*
@@ -67,7 +68,8 @@ RCSID("$Id$");
  * @return NULL if there is an initialization problem.
  */
 txdrv_t *
-tx_make(struct gnutella_node *n, const struct txdrv_ops *ops, gpointer args)
+tx_make_node(struct gnutella_node *n,
+	const struct txdrv_ops *ops, gpointer args)
 {
 	txdrv_t *tx;
 
@@ -78,11 +80,77 @@ tx_make(struct gnutella_node *n, const struct txdrv_ops *ops, gpointer args)
 
 	tx->node = n;
 	tx->ops = ops;
+	tx->host.ip = n->ip;
+	tx->host.port = n->port;
+	tx->upper = NULL;
+	tx->lower = NULL;
+	tx->shutdown = (tx_shutdown_t) node_shutdown;	/* Target is a node */
+	tx->shutdown_target = n;
 
 	if (NULL == TX_INIT(tx, args))		/* Let the heir class initialize */
 		return NULL;
 
 	return tx;
+}
+
+/**
+ * Called when an upper driver (utx) is attached on top of us.
+ */
+static void
+tx_attached(txdrv_t *tx, txdrv_t *utx)
+{
+	g_assert(tx);
+	g_assert(utx);
+	g_assert(tx->upper == NULL);		/* Can only attach ONE layer */
+
+	tx->upper = utx;
+}
+
+/**
+ * Createion routine for a driver to be stacked above specified lower `ltx'.
+ *
+ * @return NULL if there is an initialization problem.
+ */
+txdrv_t *
+tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops, gpointer args)
+{
+	txdrv_t *tx;
+
+	g_assert(ltx);
+	g_assert(ltx->upper == NULL);		/* Nothing above yet */
+	g_assert(ops);
+
+	tx = g_malloc0(sizeof(*tx));
+
+	tx->node = ltx->node;
+	tx->host = ltx->host;				/* Struct copy */
+	tx->ops = ops;
+	tx->upper = NULL;
+	tx->lower = ltx;
+	tx->shutdown = ltx->shutdown;
+	tx->shutdown_target = ltx->shutdown_target;
+
+	if (NULL == TX_INIT(tx, args))		/* Let the heir class initialize */
+		return NULL;
+
+	tx_attached(tx->lower, tx);
+
+	return tx;
+}
+
+/**
+ * Dispose of the driver resources, recursively.
+ */
+static void
+tx_deep_free(txdrv_t *tx)
+{
+	g_assert(tx);
+
+	if (tx->lower)
+		tx_deep_free(tx->lower);
+
+	TX_DESTROY(tx);
+	g_free(tx);
 }
 
 /**
@@ -92,9 +160,9 @@ void
 tx_free(txdrv_t *tx)
 {
 	g_assert(tx);
+	g_assert(tx->upper == NULL);
 
-	TX_DESTROY(tx);
-	g_free(tx);
+	tx_deep_free(tx);
 }
 
 /**
@@ -174,9 +242,28 @@ tx_srv_disable(txdrv_t *tx)
 size_t
 tx_pending(txdrv_t *tx)
 {
-	g_assert(tx);
+	txdrv_t *t;
+	size_t pending = 0;
 
-	return TX_PENDING(tx);
+	g_assert(tx);
+	g_assert(tx->upper == NULL);		/* Called on top of the stack */
+
+	for (t = tx; t; t = t->lower)
+		pending += TX_PENDING(t);
+
+	return pending;
+}
+
+/*
+ * @return the driver at the bottom of the stack.
+ */
+static txdrv_t *
+tx_deep_bottom(txdrv_t *tx)
+{
+	if (tx->lower)
+		return tx_deep_bottom(tx->lower);
+
+	return tx;
 }
 
 /**
@@ -186,9 +273,14 @@ tx_pending(txdrv_t *tx)
 struct bio_source *
 tx_bio_source(txdrv_t *tx)
 {
-	g_assert(tx);
+	txdrv_t *bottom;
 
-	return TX_BIO_SOURCE(tx);
+	g_assert(tx);
+	g_assert(tx->upper == NULL);
+
+	bottom = tx_deep_bottom(tx);
+
+	return TX_BIO_SOURCE(bottom);
 }
 
 /**
@@ -244,6 +336,18 @@ tx_no_sendto(txdrv_t *unused_tx, gnet_host_t *unused_to,
 	g_error("no sendto() operation allowed");
 	errno = ENOENT;
 	return -1;
+}
+
+/**
+ * No I/O source can be fetched from this layer.
+ */
+struct bio_source *
+tx_no_source(txdrv_t *unused_tx)
+{
+	(void) unused_tx;
+
+	g_error("no I/O source available in the middle of the TX stack");
+	return NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

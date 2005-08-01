@@ -40,6 +40,7 @@ RCSID("$Id$");
 #include <zlib.h>
 
 #include "nodes.h"
+#include "hosts.h"
 #include "pmsg.h"
 #include "rx.h"
 #include "rx_inflate.h"
@@ -157,8 +158,8 @@ static gpointer rx_inflate_init(rxdrv_t *rx, gpointer unused_args)
 
 	if (ret != Z_OK) {
 		wfree(inz, sizeof(*inz));
-		g_warning("unable to initialize decompressor for node %s: %s",
-			node_ip(rx->node), zlib_strerror(ret));
+		g_warning("unable to initialize decompressor for peer %s: %s",
+			host_ip(&rx->host), zlib_strerror(ret));
 		return NULL;
 	}
 
@@ -186,8 +187,8 @@ static void rx_inflate_destroy(rxdrv_t *rx)
 
 	ret = inflateEnd(attr->inz);
 	if (ret != Z_OK)
-		g_warning("while freeing decompressor for node %s: %s",
-			node_ip(rx->node), zlib_strerror(ret));
+		g_warning("while freeing decompressor for peer %s: %s",
+			host_ip(&rx->host), zlib_strerror(ret));
 
 	wfree(attr->inz, sizeof(*attr->inz));
 	wfree(attr, sizeof(*attr));
@@ -242,23 +243,13 @@ static void rx_inflate_disable(rxdrv_t *rx)
 	attr->flags &= ~IF_ENABLED;
 }
 
-/**
- * rx_inflate_bio_source
- *
- * @return I/O source of the lower level.
- */
-static struct bio_source *rx_inflate_bio_source(rxdrv_t *rx)
-{
-	return rx_bio_source(rx->lower);
-}
-
 static const struct rxdrv_ops rx_inflate_ops = {
 	rx_inflate_init,		/**< init */
 	rx_inflate_destroy,		/**< destroy */
 	rx_inflate_recv,		/**< recv */
 	rx_inflate_enable,		/**< enable */
 	rx_inflate_disable,		/**< disable */
-	rx_inflate_bio_source,	/**< bio_source */
+	rx_no_source,			/**< bio_source */
 };
 
 const struct rxdrv_ops *

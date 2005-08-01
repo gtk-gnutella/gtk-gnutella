@@ -45,7 +45,6 @@ const struct txdrv_ops *tx_deflate_get_ops(void);
  * Arguments to be passed when the layer is intantiated.
  */
 struct tx_deflate_args {
-	txdrv_t *nd;				/**< Network driver underneath us (link) */
 	cqueue_t *cq;				/**< Callout queue to use */
 };
 

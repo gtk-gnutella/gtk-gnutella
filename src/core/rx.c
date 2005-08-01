@@ -35,7 +35,7 @@
  * as rx_free().
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2005
  */
 
 #include "common.h"
@@ -43,6 +43,7 @@
 RCSID("$Id$");
 
 #include "rx.h"
+#include "nodes.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 /*
@@ -57,40 +58,59 @@ RCSID("$Id$");
 #define RX_BIO_SOURCE(o)	((o)->ops->bio_source((o)))
 
 /**
- * rx_make
- *
+ * Tell upper layer that it got new data from us.
+ */
+static void
+rx_data_ind(rxdrv_t *rx, pmsg_t *mb)
+{
+	g_assert(rx);
+
+	if (rx->upper == NULL)
+		g_error("Forgot to call rx_set_data_ind() on the RX stack.");
+
+	rx_recv(rx->upper, mb);
+}
+
+/**
  * Create a new network driver, equipped with the `ops' operations and
  * initialize its specific parameters by calling the init routine with `args'.
  *
- * This routine is called only for the topmost stack layer.  Otherwise, call
- * rx_make_under() to create the driver (construction is done top-down).
- *
- * The `data_ind' callback is invoked when a new message has been received.
- * The first argument of the routine is the layer from which data come.
+ * This routine is called only for the lowest stack layer.  Otherwise, call
+ * rx_make_above() to create the driver (construction is done bottom-up).
+ * Once the stack if fully built, rx_set_data_ind() must be called on the
+ * top driver to set the data indication callback.
  *
  * It is expected that the stack will be dismantled when an error is reported.
  *
  * @return NULL if there is an initialization problem.
  */
-rxdrv_t *rx_make(
+rxdrv_t *
+rx_make_node(
 	struct gnutella_node *n,
 	const struct rxdrv_ops *ops,
-	rx_data_t data_ind,
 	gpointer args)
 {
 	rxdrv_t *rx;
 
 	g_assert(n);
 	g_assert(ops);
-	g_assert(data_ind);
 
 	rx = g_malloc0(sizeof(*rx));
 
 	rx->node = n;
 	rx->ops = ops;
+	rx->host.ip = n->ip;
+	rx->host.port = n->port;
 	rx->upper = NULL;
 	rx->lower = NULL;
-	rx->data_ind = data_ind;			/* Will be called with NULL `rx' */
+
+	/*
+	 * The internal data_ind callback is always set to call the upper layer.
+	 * If this driver ends-up being at the top of the RX stack, then the
+	 * default will be superseded by the mandatory call to rx_set_data_ind().
+	 */
+
+	rx->data_ind = rx_data_ind;
 
 	if (NULL == RX_INIT(rx, args))		/* Let the heir class initialize */
 		return NULL;
@@ -99,87 +119,106 @@ rxdrv_t *rx_make(
 }
 
 /**
- * rx_attached
- *
- * Called when a lower driver (lrx) is attached underneath us.
+ * Set the `data_ind' callback, invoked when a new message has been fully
+ * received by the RX stack. The first argument of the routine is the layer
+ * from which data come, which will be the topmost driver when calling the
+ * external routine.
  */
-static void rx_attached(rxdrv_t *rx, rxdrv_t *lrx)
+void
+rx_set_data_ind(rxdrv_t *rx, rx_data_t data_ind)
 {
 	g_assert(rx);
-	g_assert(lrx);
-	g_assert(rx->lower == NULL);		/* Can only attach ONE layer */
+	g_assert(rx->upper == NULL);			/* Called on topmost driver */
+	g_assert(data_ind != rx_data_ind);		/* Must not use internal routine */
+	g_assert(rx->data_ind == rx_data_ind);	/* No data_ind set already */
 
-	rx->lower = lrx;
+	rx->data_ind = data_ind;
 }
 
 /**
- * rx_data_ind
- *
- * Tell upper layer that it got new data from us.
+ * Called when an upper driver (urx) is attached on top of us.
  */
-static void rx_data_ind(rxdrv_t *rx, pmsg_t *mb)
+static void
+rx_attached(rxdrv_t *rx, rxdrv_t *urx)
 {
 	g_assert(rx);
-	g_assert(rx->upper);
+	g_assert(urx);
+	g_assert(rx->upper == NULL);			/* Can only attach ONE layer */
 
-	rx_recv(rx->upper, mb);
+	rx->upper = urx;
 }
 
 /**
- * rx_make_under
- *
- * Creation routine for a driver to be stacked under specified upper `urx'.
- * The difference with rx_make() is that the data_ind is the internal receive
- * routine from `urx'.
+ * Creation routine for a driver to be stacked above specified lower `lrx'.
  *
  * @return NULL if there is an initialization problem.
  */
-rxdrv_t *rx_make_under(rxdrv_t *urx, const struct rxdrv_ops *ops, gpointer args)
+rxdrv_t *
+rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops, gpointer args)
 {
 	rxdrv_t *rx;
 
-	g_assert(urx);
+	g_assert(lrx);
+	g_assert(lrx->upper == NULL);		/* Nothing above yet */
 	g_assert(ops);
 
 	rx = g_malloc0(sizeof(*rx));
 
-	rx->node = urx->node;
+	rx->node = lrx->node;
+	rx->host = lrx->host;				/* Struct copy */
 	rx->ops = ops;
-	rx->upper = urx;
-	rx->lower = NULL;
+	rx->upper = NULL;
+	rx->lower = lrx;
+
+	/*
+	 * The internal data_ind callback is always set to call the upper layer.
+	 * If this driver ends-up being at the top of the RX stack, then the
+	 * default will be superseded by the mandatory call to rx_set_data_ind().
+	 */
+
 	rx->data_ind = rx_data_ind;			/* Will call rx_recv() on upper layer */
 
 	if (NULL == RX_INIT(rx, args))		/* Let the heir class initialize */
 		return NULL;
 
-	rx_attached(rx->upper, rx);
+	rx_attached(rx->lower, rx);
 
 	return rx;
 }
 
 /**
- * rx_free
- *
  * Dispose of the driver resources, recursively.
- * From the outside, it must be called on the top layer only.
  */
-void rx_free(rxdrv_t *rx)
+static void
+rx_deep_free(rxdrv_t *rx)
 {
 	g_assert(rx);
 
 	if (rx->lower)
-		rx_free(rx->lower);
+		rx_deep_free(rx->lower);
 
 	RX_DESTROY(rx);
-	G_FREE_NULL(rx);
+	g_free(rx);
 }
 
 /**
- * rx_recv
- *
+ * Dispose of the driver resources, recursively.
+ * It must be called on the top layer only.
+ */
+void
+rx_free(rxdrv_t *rx)
+{
+	g_assert(rx);
+	g_assert(rx->upper == NULL);
+
+	rx_deep_free(rx);
+}
+
+/**
  * Inject data into driver, from lower layer.
  */
-void rx_recv(rxdrv_t *rx, pmsg_t *mb)
+void
+rx_recv(rxdrv_t *rx, pmsg_t *mb)
 {
 	g_assert(rx);
 	g_assert(mb);
@@ -188,57 +227,105 @@ void rx_recv(rxdrv_t *rx, pmsg_t *mb)
 }
 
 /**
- * rx_enable
- *
  * Enable reception, recursively.
- * From the outside, it must be called on the top layer only.
  */
-void rx_enable(rxdrv_t *rx)
+static void
+rx_deep_enable(rxdrv_t *rx)
 {
 	RX_ENABLE(rx);
 
 	if (rx->lower)
-		rx_enable(rx->lower);
+		rx_deep_enable(rx->lower);
 }
 
 /**
- * rx_disable
- *
- * Disable reception, recursively.
- * From the outside, it must be called on the top layer only.
+ * Enable reception, recursively.
+ * It must be called on the top layer only.
  */
-void rx_disable(rxdrv_t *rx)
+void
+rx_enable(rxdrv_t *rx)
+{
+	g_assert(rx);
+	g_assert(rx->upper == NULL);
+
+	rx_deep_enable(rx);
+}
+
+/**
+ * Disable reception, recursively.
+ */
+static void
+rx_deep_disable(rxdrv_t *rx)
 {
 	RX_DISABLE(rx);
 
 	if (rx->lower)
-		rx_disable(rx->lower);
+		rx_deep_disable(rx->lower);
 }
 
 /**
- * rx_bottom
- *
- * @returns the driver at the bottom of the stack.
- * From the outside, it must be called on the top layer only.
+ * Disable reception, recursively.
+ * It must be called on the top layer only.
  */
-rxdrv_t *rx_bottom(rxdrv_t *rx)
+void
+rx_disable(rxdrv_t *rx)
+{
+	g_assert(rx);
+	g_assert(rx->upper == NULL);
+
+	rx_deep_disable(rx);
+}
+
+/**
+ * @returns the driver at the bottom of the stack.
+ */
+static rxdrv_t *
+rx_deep_bottom(rxdrv_t *rx)
 {
 	if (rx->lower)
-		return rx_bottom(rx->lower);
+		return rx_deep_bottom(rx->lower);
 
 	return rx;
 }
 
 /**
- * rx_bio_source
- *
- * @returns the I/O source from the bottom of the stack (link layer).
+ * @return the driver at the bottom of the stack.
  */
-struct bio_source *rx_bio_source(rxdrv_t *rx)
+rxdrv_t *
+rx_bottom(rxdrv_t *rx)
 {
 	g_assert(rx);
+	g_assert(rx->upper == NULL);
 
-	return RX_BIO_SOURCE(rx);
+	return rx_deep_bottom(rx);
+}
+
+/**
+ * @return the I/O source from the bottom of the stack (link layer).
+ */
+struct bio_source *
+rx_bio_source(rxdrv_t *rx)
+{
+	rxdrv_t *bottom;
+
+	g_assert(rx);
+	g_assert(rx->upper == NULL);
+
+	bottom = rx_bottom(rx);
+
+	return RX_BIO_SOURCE(bottom);
+}
+
+/**
+ * No I/O source can be fetched from this layer.
+ */
+struct bio_source *
+rx_no_source(rxdrv_t *unused_rx)
+{
+	(void) unused_rx;
+
+	g_error("no I/O source available in the middle of the RX stack");
+	return NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
