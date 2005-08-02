@@ -44,6 +44,7 @@ RCSID("$Id$");
 
 #include "rx.h"
 #include "nodes.h"
+#include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 /*
@@ -95,7 +96,7 @@ rx_make_node(
 	g_assert(n);
 	g_assert(ops);
 
-	rx = g_malloc0(sizeof(*rx));
+	rx = walloc0(sizeof(*rx));
 
 	rx->owner = n;
 	rx->ops = ops;
@@ -162,7 +163,7 @@ rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops, gpointer args)
 	g_assert(lrx->upper == NULL);		/* Nothing above yet */
 	g_assert(ops);
 
-	rx = g_malloc0(sizeof(*rx));
+	rx = walloc0(sizeof(*rx));
 
 	rx->owner = lrx->owner;
 	rx->host = lrx->host;				/* Struct copy */
@@ -198,7 +199,7 @@ rx_deep_free(rxdrv_t *rx)
 		rx_deep_free(rx->lower);
 
 	RX_DESTROY(rx);
-	g_free(rx);
+	wfree(rx, sizeof(*rx));
 }
 
 /**
