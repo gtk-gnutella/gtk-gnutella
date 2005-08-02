@@ -1,0 +1,29 @@
+Version 0.95.4 stable has been released on sourceforge. You may get it at:
+
+http://prdownloads.sourceforge.net/gtk-gnutella/gtk-gnutella-0.95.4.tar.bz2
+
+You can also download this release from Gnutella using this link:
+magnet:?xt=urn:sha1:DILXHIUNLP2KVGEENCIR6SDYPIUFDGVA
+
+You can copy the link into the search box to locate the file so that
+it can be downloaded.
+
+
+Here are the changes since 0.95.3, as listed in the ChangeLog:
+
+- The last-byte download bug, where a download would not complete if
+  only the last byte needed to be downloaded, has been fixed.
+- Preliminary browse-host support, allowing other servents to browse
+  the files that are shared. This is disabled by default.
+- GTKG will detect online status again after temporary network failure.
+- The .desktop file and application icons are now properly installed.
+- Downloads are now sorting in a more logical way.
+- Bug fixes in UTF-8 support.
+- Doxygen documentation updates.
+- Japanese and Spanish translation updates.
+
+
+Enjoy!
+
+Hans de Graaff
+

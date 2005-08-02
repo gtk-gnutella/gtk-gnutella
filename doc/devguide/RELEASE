@@ -143,7 +143,8 @@ Release steps
 	ssh USER@projects.sourceforge.net \
 		"cd /home/groups/g/gt/gtk-gnutella && ./update_homepage.sh"
 
-30. Send a message to gtk-gnutella-announce telling about the release.
+30. Send a message to gtk-gnutella-announce telling about the release
+    using Announce-template.txt
 
 31. That's all folks!
 
