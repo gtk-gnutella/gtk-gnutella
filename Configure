@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Jul 30 08:44:52 CEST 2005 [metaconfig 3.0 PL70]
+# Generated on Wed Aug  3 00:11:40 CEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -317,6 +317,10 @@ d_strlcpy=''
 d_sysctl=''
 d_volatile=''
 d_vsnprintf=''
+d_dbus=''
+dbuscflags=''
+dbusconfig=''
+dbusldflags=''
 d_enablenls=''
 enablenls=''
 gccosandvers=''
@@ -4654,6 +4658,39 @@ set d_const
 eval $setvar
 $rm -f const.c const.o
 
+: how can we find information about dbus?
+echo " "
+d_dbus="$define"
+echo "Checking how we can gather information about dbus..." >&4
+if pkg-config dbus-1 --cflags >/dev/null 2>&1; then
+	dbusconfig="pkg-config dbus-1"
+	modver=--modversion
+else
+	echo "You've don't seem to have dbus installed?" >&4
+	d_dbus="$undef"
+	dbusconfig='false'
+	modver=''
+fi
+echo "(I'll use '$dbusconfig' to gather that information.)"
+
+dbuscflags=""
+dbusldflags=""
+d_dbus="$undef"
+version=`$dbusconfig $modver`
+case "$version" in
+'') ;;
+*)
+	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+	if test 0$vint -lt 03502; then
+		echo "Sorry, you have dbus $version, I need at least 0.35.2." >&4
+	else
+		echo "Good, you have dbus $version.  Enabling D-BUS notifications..."
+		dbuscflags=`$dbusconfig --cflags`
+		dbusldflags=`$dbusconfig --libs`
+		d_dbus="$define"
+	fi
+	;;
+esac
 : see if getinvent exists
 set getinvent d_getinvent
 eval $inlibc
@@ -6112,6 +6149,10 @@ persistent=no
 case "$d_libxml2" in
 "$define") persistent=yes;;
 esac
+dbus=no
+case "$d_dbus" in
+"$define") dbus=yes;;
+esac
 zlib=no
 case " $libs " in
 *" -lz "*)
@@ -6142,6 +6183,7 @@ Gnutella traffic compression       : $zlib
 IP TOS (Type of Service)           : $iptos
 NLS (Native Language Support)      : $nls
 Experimental remote control        : $remote
+DBus support                       : $dbus
 -------------------------------------------------
 EOM
 
@@ -6260,6 +6302,7 @@ d_bcopy='$d_bcopy'
 d_bindtxtcode='$d_bindtxtcode'
 d_bsd='$d_bsd'
 d_const='$d_const'
+d_dbus='$d_dbus'
 d_deflate='$d_deflate'
 d_dos='$d_dos'
 d_enablenls='$d_enablenls'
@@ -6297,6 +6340,9 @@ d_volatile='$d_volatile'
 d_vsnprintf='$d_vsnprintf'
 d_xenix='$d_xenix'
 date='$date'
+dbuscflags='$dbuscflags'
+dbusconfig='$dbusconfig'
+dbusldflags='$dbusldflags'
 defvoidused='$defvoidused'
 echo='$echo'
 egrep='$egrep'
