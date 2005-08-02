@@ -1,15 +1,15 @@
 # Dutch translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2005 Raphael Manfredi.
+# Copyright (C) 2001-2005 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # Jeroen Asselman <jeroen@asselman.com>, 2003-2004.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.95.4\n"
+"Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-08-02 08:40+0200\n"
-"PO-Revision-Date: 2005-07-01 19:11+0900\n"
+"POT-Creation-Date: 2005-08-02 19:45+0900\n"
+"PO-Revision-Date: 2005-08-02 20:43+0900\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
@@ -7020,10 +7020,6 @@ msgstr "Over gtk-gnutella"
 msgid "[name and version]"
 msgstr "[naam en versie]"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9871
-msgid "$Id$"
-msgstr ""
-
 #: src/ui/gtk/gtk1/interface-glade.c:9904
 #: src/ui/gtk/gtk2/interface-glade.c:1472
 msgid "Original author:"
@@ -8749,8 +8745,8 @@ msgid_plural "%u terms counted"
 msgstr[0] "0 termen geteld"
 msgstr[1] "0 termen geteld"
 
-#: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:90
-#: src/ui/gtk/gtk2/support-glade.c:114
+#: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:92
+#: src/ui/gtk/gtk2/support-glade.c:116
 #, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "Kon pixmap bestand \"%s\" niet vinden"
@@ -9159,11 +9155,11 @@ msgstr "Monitor"
 
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
-#: src/ui/gtk/main.c:435
+#: src/ui/gtk/main.c:436
 msgid "translation_credit|"
 msgstr ""
 
-#: src/ui/gtk/main.c:803
+#: src/ui/gtk/main.c:804
 #, fuzzy, c-format
 msgid "%d second"
 msgid_plural "%d seconds"
@@ -9488,7 +9484,3 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 #: src/ui/gtk/uploads_common.c:203
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
-
-#, fuzzy
-#~ msgid "Position of the divider in the downloads panel."
-#~ msgstr "Positie van de scheidingsmarkering in het download paneel"

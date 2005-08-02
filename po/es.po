@@ -1,16 +1,16 @@
 # Spanish translation for gtk-gnutella package.
 # Copyright (c) 2000-2001, Yann Grossel.
-# Copyright (c) 2001-2005, Raphael Manfredi.
+# Copyright (c) 2001-2005, Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # Nicolás Lichtmaier <nick@technisys.com.ar>, 2003.
 # Paco Arjonilla García <pacoarjonilla@yahoo.es>, 2004-2005.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.95.4\n"
+"Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-08-02 08:40+0200\n"
-"PO-Revision-Date: 2005-07-31 18:33+0900\n"
+"POT-Creation-Date: 2005-08-02 19:45+0900\n"
+"PO-Revision-Date: 2005-08-02 20:40+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -6596,10 +6596,6 @@ msgstr "Acerca de gtk-gnutella"
 msgid "[name and version]"
 msgstr "[nombre y versión]"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9871
-msgid "$Id$"
-msgstr ""
-
 #: src/ui/gtk/gtk1/interface-glade.c:9904
 #: src/ui/gtk/gtk2/interface-glade.c:1472
 msgid "Original author:"
@@ -8237,8 +8233,8 @@ msgid_plural "%u terms counted"
 msgstr[0] "%u término contado"
 msgstr[1] "%u términos contados"
 
-#: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:90
-#: src/ui/gtk/gtk2/support-glade.c:114
+#: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:92
+#: src/ui/gtk/gtk2/support-glade.c:116
 #, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "No se pùdo encontrar la imagen: %s"
@@ -8631,11 +8627,11 @@ msgstr "Monitor"
 
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
-#: src/ui/gtk/main.c:435
+#: src/ui/gtk/main.c:436
 msgid "translation_credit|"
 msgstr "Traducción al español: Paco Arjonilla"
 
-#: src/ui/gtk/main.c:803
+#: src/ui/gtk/main.c:804
 #, c-format
 msgid "%d second"
 msgid_plural "%d seconds"
@@ -8956,6 +8952,3 @@ msgstr "Enviando QUEUE, reconectando..."
 #: src/ui/gtk/uploads_common.c:203
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
-
-#~ msgid "Position of the divider in the downloads panel."
-#~ msgstr "Posición del divisor en el panel de descargas."

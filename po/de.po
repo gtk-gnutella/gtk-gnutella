@@ -1,16 +1,16 @@
 # German translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2005 Raphael Manfredi.
+# Copyright (C) 2001-2005 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
-# Thomas Schuerger <thomas@schuerger.com>, 2004-2005.
+# Thomas Schürger <thomas@schuerger.com>, 2004-2005.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.95.4\n"
+"Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-08-02 08:40+0200\n"
-"PO-Revision-Date: 2005-07-01 19:04+0900\n"
-"Last-Translator: Thomas Schuerger <thomas@schuerger.com>\n"
+"POT-Creation-Date: 2005-08-02 19:45+0900\n"
+"PO-Revision-Date: 2005-08-02 20:39+0900\n"
+"Last-Translator: Thomas Schürger <thomas@schuerger.com>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -6632,10 +6632,6 @@ msgstr "Über Gtk-Gnutella"
 msgid "[name and version]"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:9871
-msgid "$Id$"
-msgstr ""
-
 #: src/ui/gtk/gtk1/interface-glade.c:9904
 #: src/ui/gtk/gtk2/interface-glade.c:1472
 msgid "Original author:"
@@ -8260,8 +8256,8 @@ msgid_plural "%u terms counted"
 msgstr[0] "%u gezählter Begriff"
 msgstr[1] "%u gezählte Begriffe"
 
-#: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:90
-#: src/ui/gtk/gtk2/support-glade.c:114
+#: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:92
+#: src/ui/gtk/gtk2/support-glade.c:116
 #, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "Kann Pixmap-Datei nicht finden: %s"
@@ -8652,11 +8648,11 @@ msgstr "Monitor"
 
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
-#: src/ui/gtk/main.c:435
+#: src/ui/gtk/main.c:436
 msgid "translation_credit|"
 msgstr ""
 
-#: src/ui/gtk/main.c:803
+#: src/ui/gtk/main.c:804
 #, fuzzy, c-format
 msgid "%d second"
 msgid_plural "%d seconds"

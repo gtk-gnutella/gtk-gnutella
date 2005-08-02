@@ -1,6 +1,6 @@
 # Japanese translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2005 Raphael Manfredi.
+# Copyright (C) 2001-2005 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # Daichi Kawahata <daichik@users.sourceforge.net>, 2004-2005.
 #
@@ -12,7 +12,7 @@
 #
 # TX, RX          送信、受信
 # activated       有効にする
-# active          稼働、有効、アクティブ
+# active          動作、有効、アクティブ
 # alternate       別の (代わりの)
 # bandwidth       帯域幅
 # banning         禁止処理
@@ -23,7 +23,7 @@
 # flag            フラッグ (フラグ、標識)
 # forwarding      転送
 # global          大域、全般、システム用
-# inactive        非稼働、無効
+# inactive        動作していない、無効
 # invalid         不適切な
 # jump            分岐
 # matching        一致
@@ -55,10 +55,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.95.4\n"
+"Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-08-02 08:40+0200\n"
-"PO-Revision-Date: 2005-07-31 18:30+0900\n"
+"POT-Creation-Date: 2005-08-02 19:45+0900\n"
+"PO-Revision-Date: 2005-08-02 20:50+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -748,11 +748,11 @@ msgstr "GIV を送信できません"
 
 #: src/core/uploads.c:2270
 msgid "<Browse Host Request>"
-msgstr "<ホスト参照リクエスト>"
+msgstr "<ホスト閲覧リクエスト>"
 
 #: src/core/uploads.c:2283
 msgid "Browse Host Enabled"
-msgstr "ホストを参照できます"
+msgstr "ホスト閲覧が有効にされました"
 
 #: src/core/uploads.c:2690
 msgid "Stalling upload replaced"
@@ -1872,11 +1872,11 @@ msgstr "現在実行中 (ダウンロード中/接続中) のダウンロード�
 
 #: src/if/gnet_property.c:3772
 msgid "How many downloads are currently active."
-msgstr "現在稼働中のダウンロード数です。"
+msgstr "現在動作中のダウンロード数です。"
 
 #: src/if/gnet_property.c:3792
 msgid "How many downloads are currently actively queued."
-msgstr "現在稼動状態にある待機中のダウンロード数です。"
+msgstr "現在動作状態にある待機中のダウンロード数です。"
 
 #: src/if/gnet_property.c:3812
 msgid "How many downloads are currently passively queued."
@@ -2544,11 +2544,11 @@ msgstr "ノードペインでどの欄を表示するのかを指定します。
 
 #: src/if/gui_property.c:420
 msgid "Widths of the columns in the active downloads table."
-msgstr "稼働ダウンロード一覧表の欄幅です。"
+msgstr "アクティブ・ダウンロード一覧表の欄幅です。"
 
 #: src/if/gui_property.c:440
 msgid "Which columns are visible in the active downloads table."
-msgstr "稼働ダウンロード一覧表でどの欄を表示するのかを指定します。"
+msgstr "アクティブ・ダウンロード一覧表でどの欄を表示するのかを指定します。"
 
 #: src/if/gui_property.c:457
 msgid "Widths of the columns in the queued downloads table."
@@ -4067,7 +4067,7 @@ msgstr "他のデータはありません"
 
 #: src/ui/gtk/downloads_common.c:108
 msgid "Queue frozen"
-msgstr ""
+msgstr "キューが凍結されました"
 
 #: src/ui/gtk/drop.c:88
 msgid "Support for this protocol is not yet implemented"
@@ -4766,7 +4766,7 @@ msgstr "送信元はありません"
 #: src/ui/gtk/gtk1/fileinfo.c:142 src/ui/gtk/gtk2/fileinfo.c:315
 #, c-format
 msgid "Queued (%d active, %d passive)"
-msgstr "待機中 (%d 件が稼働、%d 件が受動)"
+msgstr "待機中 (%d 件が動作、%d 件が受動)"
 
 #: src/ui/gtk/gtk1/fileinfo.c:146 src/ui/gtk/gtk2/fileinfo.c:320
 #: src/ui/gtk/uploads_common.c:178
@@ -5607,7 +5607,7 @@ msgstr "#|Downloads"
 #: src/ui/gtk/gtk1/interface-glade.c:3637
 #: src/ui/gtk/gtk2/interface-glade.c:4500
 msgid "Active sources"
-msgstr "稼働中の送信元"
+msgstr "動作中の送信元"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3722
 #: src/ui/gtk/gtk1/interface-glade.c:4193 src/ui/gtk/gtk2/downloads.c:441
@@ -5747,14 +5747,13 @@ msgid "Show settings"
 msgstr "設定の表示"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4078
-#, fuzzy
 msgid "#|Active"
-msgstr "有効"
+msgstr "アクティブ"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4086
 #: src/ui/gtk/gtk2/interface-glade.c:16568
 msgid "Inactive sources"
-msgstr "非稼働の送信元"
+msgstr "動作していない送信元"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4112
 msgid "Select"
@@ -5763,11 +5762,11 @@ msgstr "選択"
 #: src/ui/gtk/gtk1/interface-glade.c:4241
 #: src/ui/gtk/gtk2/interface-glade.c:16497
 msgid "Freeze queue"
-msgstr "待機列の凍結"
+msgstr "キューの凍結"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4256
 msgid "Thaw queue"
-msgstr "待機列の解凍"
+msgstr "凍結の解除"
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
 #: src/ui/gtk/gtk1/interface-glade.c:4297
@@ -5795,7 +5794,6 @@ msgid " passive)"
 msgstr " 件が受動状態)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4346
-#, fuzzy
 msgid "#|Queue"
 msgstr "キュー"
 
@@ -6288,7 +6286,7 @@ msgstr "URN:SHA1 で"
 #: src/ui/gtk/gtk1/interface-glade.c:6645
 #: src/ui/gtk/gtk2/interface-glade.c:622
 msgid "New search from selected"
-msgstr "選択したもので新規の検索"
+msgstr "新規の検索"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6687
 #: src/ui/gtk/gtk2/interface-glade.c:15931
@@ -6331,9 +6329,8 @@ msgstr "Bitzi メタデータ検索"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6761
 #: src/ui/gtk/gtk2/interface-glade.c:700
-#, fuzzy
 msgid "Browse Host"
-msgstr "ホストを参照できます"
+msgstr "ホスト閲覧"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6847
 #: src/ui/gtk/gtk2/interface-glade.c:814
@@ -6778,10 +6775,6 @@ msgstr "Gtk-Gnutella について"
 msgid "[name and version]"
 msgstr "[name and version]"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9871
-msgid "$Id$"
-msgstr ""
-
 #: src/ui/gtk/gtk1/interface-glade.c:9904
 #: src/ui/gtk/gtk2/interface-glade.c:1472
 msgid "Original author:"
@@ -6842,7 +6835,7 @@ msgstr "貢献者:"
 #: src/ui/gtk/gtk2/interface-glade.c:1631
 msgid ""
 "==> We are looking for people who want to contribute to this fine tool. <=="
-msgstr "==> この有益なツールへ貢献したいという方を探しています。<=="
+msgstr "==> この素晴らしいツールの開発を手伝ってみたいという方を探しています。<=="
 
 #: src/ui/gtk/gtk1/interface-glade.c:10101
 #: src/ui/gtk/gtk2/interface-glade.c:1637
@@ -7117,7 +7110,7 @@ msgstr "\"シェル\" 管理インターフェイスを有効にする(_S)"
 #: src/ui/gtk/gtk1/interface-glade.c:11763
 #: src/ui/gtk/gtk2/interface-glade.c:10250
 msgid "Enable \"_Browse Host\" feature"
-msgstr "\"ホスト参照\" 機能を有効にする(_B)"
+msgstr "\"ホスト閲覧\" 機能を有効にする(_B)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11773
 #: src/ui/gtk/gtk2/interface-glade.c:10324
@@ -8425,8 +8418,8 @@ msgid "%u term counted"
 msgid_plural "%u terms counted"
 msgstr[0] "%u 語の検索用語数"
 
-#: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:90
-#: src/ui/gtk/gtk2/support-glade.c:114
+#: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:92
+#: src/ui/gtk/gtk2/support-glade.c:116
 #, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "Pixmap ファイルがありません: %s"
@@ -8475,7 +8468,7 @@ msgstr "キャッシュ内容"
 
 #: src/ui/gtk/gtk2/interface-glade.c:508
 msgid "Download selected files"
-msgstr "ファイルをダウンロード"
+msgstr "ダウンロード"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2075
 msgid "_Help"
@@ -8818,9 +8811,8 @@ msgid "History"
 msgstr "履歴"
 
 #: src/ui/gtk/main.c:132
-#, fuzzy
 msgid "Active"
-msgstr "有効"
+msgstr "アクティブ"
 
 #: src/ui/gtk/main.c:133
 msgid "Queue"
@@ -8832,11 +8824,21 @@ msgstr "モニタ"
 
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
-#: src/ui/gtk/main.c:435
+#: src/ui/gtk/main.c:436
 msgid "translation_credit|"
 msgstr ""
+"翻訳者:\n"
+"\n"
+"オランダ語訳:\tJeroen Asselman <jeroen@asselman.com>\n"
+"スペイン語訳:\tPaco Arjonilla García <pacoarjonilla@yahoo.es>\n"
+"ドイツ語訳:\t\tThomas Schürger <thomas@schuerger.com>\n"
+"ハンガリー語訳:\tSulyok Péter <sp@elte.hu>\n"
+"フランス語訳:\tT'aZ <tazdev@altern.org>\n"
+"日本語訳:\t\t川畑 大地 <daichik@users.sourceforge.net>\n"
+"\n"
+"翻訳に関する事柄は上記のアドレスにご連絡下さい。"
 
-#: src/ui/gtk/main.c:803
+#: src/ui/gtk/main.c:804
 #, c-format
 msgid "%d second"
 msgid_plural "%d seconds"
@@ -9060,7 +9062,7 @@ msgstr[0] "%u 基の送信元"
 #: src/ui/gtk/settings.c:2228
 #, c-format
 msgid "%u active"
-msgstr "%u 件が稼働中"
+msgstr "%u 件が動作中"
 
 #: src/ui/gtk/settings.c:2256
 #, c-format
@@ -9135,9 +9137,9 @@ msgid "Transmission complete"
 msgstr "転送が完了しました"
 
 #: src/ui/gtk/uploads_common.c:177
-#, fuzzy, c-format
+#, c-format
 msgid "%s [%d] (slot %d/%d)%s %s %s"
-msgstr "%s [%d] (受口 %d/%d)"
+msgstr "%s [%d] (受口 %d/%d)%s %s %s"
 
 #: src/ui/gtk/uploads_common.c:183
 msgid "lifetime:"
@@ -9150,6 +9152,3 @@ msgstr "QUEUE 送信、折り返し接続中..."
 #: src/ui/gtk/uploads_common.c:203
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE 送信完了、ヘッダ待受中..."
-
-#~ msgid "Position of the divider in the downloads panel."
-#~ msgstr "ダウンロードパネルの分割位置です。"
