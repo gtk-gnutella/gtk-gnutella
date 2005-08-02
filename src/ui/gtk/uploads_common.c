@@ -119,16 +119,16 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 		{
 			/* Time Remaining at the current rate, in seconds  */
 			filesize_t tr = (data->range_end + 1 - u->pos) / MAX(1, u->avg_bps);
-			gint slen = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%%",
-							uploads_gui_progress(u, data) * 100.0);
+			gdouble p = uploads_gui_progress(u, data);
 			time_t now = time(NULL);
 			gboolean stalled = delta_time(now, u->last_update) > IO_STALLED;
+			gchar pbuf[32];
 
-			slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen, " (%s)",
-							stalled ? _("stalled") : short_rate(u->bps));
-
-			gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-				" TR: %s", short_time(tr));
+			gm_snprintf(pbuf, sizeof pbuf, "%5.02f%% ", p * 100.0);
+			gm_snprintf(tmpstr, sizeof tmpstr, "%s(%s) TR: %s",
+				p > 1.0 ? pbuf : "",
+				stalled ? _("stalled") : short_rate(u->bps),
+				short_time(tr));
 		}
 		break;
 
@@ -151,7 +151,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 		{
 			guint32 max_up, cur_up;
 			gboolean queued;
-			size_t slen = 0;
+			gchar tbuf[64];
 
 			/*
 			 * Status: GTA_UL_QUEUED. When PARQ is enabled, and all upload
@@ -166,22 +166,23 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			gnet_prop_get_guint32_val(PROP_UL_RUNNING, &cur_up);
 			queued = u->parq_position > max_up - cur_up;
 				
-			slen += gm_snprintf(tmpstr, sizeof(tmpstr),
-						_("%s [%d] (slot %d/%d)"),
+			/* position 1 should always get an upload slot */
+			if (u->parq_retry > 0) {
+				gm_snprintf(tbuf, sizeof tbuf,
+							" %s,", short_time(u->parq_retry));
+			} else {
+				tbuf[0] = '\0';
+			}
+			gm_snprintf(tmpstr, sizeof tmpstr,
+						_("%s [%d] (slot %d/%d)%s %s %s"),
 						queued ? _("Queued") : _("Waiting"),
 						u->parq_queue_no,
 						u->parq_position,
-						u->parq_size);
+						u->parq_size,
+						tbuf,		
+						_("lifetime:"),
+						short_time(u->parq_lifetime));
 						
-			/* position 1 should always get an upload slot */
-			if (u->parq_retry > 0) {
-				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr) - slen,
-							" %s,", short_time(u->parq_retry));
-			}
-					
-			slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr) - slen,
-						" %s %s", _("lifetime:"), short_time(u->parq_lifetime));
-
 		}
 		break;
 
