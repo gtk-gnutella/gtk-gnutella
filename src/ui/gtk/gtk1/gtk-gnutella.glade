@@ -3636,8 +3636,8 @@
 		    <handler>on_clist_uploads_resize_column</handler>
 		    <last_modification_time>Tue, 09 May 2000 19:18:30 GMT</last_modification_time>
 		  </signal>
-		  <columns>7</columns>
-		  <column_widths>80,60,36,40,40,60,80</column_widths>
+		  <columns>8</columns>
+		  <column_widths>80,60,36,40,40,60,80,80</column_widths>
 		  <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
 		  <show_titles>True</show_titles>
 		  <shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -3712,6 +3712,19 @@
 		    <child_name>CList:title</child_name>
 		    <name>label_up_user_agent</name>
 		    <label>User-Agent</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CList:title</child_name>
+		    <name>label_up_progress</name>
+		    <label>Progress</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0.5</xalign>
@@ -4845,8 +4858,8 @@
 		    <handler>on_ctree_downloads_resize_column</handler>
 		    <last_modification_time>Fri, 02 Jan 2004 03:20:38 GMT</last_modification_time>
 		  </signal>
-		  <columns>7</columns>
-		  <column_widths>80,80,36,80,80,80,80</column_widths>
+		  <columns>8</columns>
+		  <column_widths>80,80,36,80,80,80,80,80</column_widths>
 		  <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
 		  <show_titles>True</show_titles>
 		  <shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -4921,6 +4934,19 @@
 		    <child_name>CTree:title</child_name>
 		    <name>label643</name>
 		    <label>Server</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CTree:title</child_name>
+		    <name>label643xx</name>
+		    <label>Progress</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0.5</xalign>

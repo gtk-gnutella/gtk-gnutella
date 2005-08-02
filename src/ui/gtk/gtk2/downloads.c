@@ -848,7 +848,6 @@ download_gui_add(download_t *d)
 			if (DL_GUI_IS_HEADER != drecord) {
 				gchar *filename, *host, *size, *range, *status,
 					*server, *country;
-				gfloat percent_done;
 				GtkTreeIter *iter;
 
 				g_assert(find_download(drecord) != NULL);
@@ -882,11 +881,9 @@ download_gui_add(download_t *d)
 	      			c_dl_record, drecord,
 		        	(-1));
 
-				percent_done = 100.0 * guc_download_total_progress(d);
-				progress = percent_done;
+				progress = 100.0 * guc_download_total_progress(d);
 				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"%.02f%% [%d/%d]  TR:  -",
-					percent_done,
+					"[%d/%d]  TR:  -",
 					d->file_info->recvcount, d->file_info->lifecount);
 
 				/* Clear the old info */
@@ -1307,21 +1304,20 @@ gui_update_download(download_t *d, gboolean force)
 			progress = 100;
 			status = _("Complete");
 		} else /* if (GTA_DL_RECEIVING == d->status && d->pos > d->skip)*/ {
-			gfloat percent_done = guc_download_total_progress(d);
 
 			if (fi->recvcount && fi->recv_last_rate) {
 				guint s = (fi->size - fi->done) / fi->recv_last_rate;
 
 				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"%.02f%%  (%s)  [%d/%d]  TR:  %s",
-					percent_done * 100.0, short_rate(fi->recv_last_rate),
+					"(%s)  [%d/%d]  TR:  %s",
+					short_rate(fi->recv_last_rate),
 					fi->recvcount, fi->lifecount, short_time(s));
 			} else {
-				gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% [%d/%d]",
-				percent_done * 100.0, fi->recvcount, fi->lifecount);
+				gm_snprintf(tmpstr, sizeof(tmpstr), "[%d/%d]",
+					fi->recvcount, fi->lifecount);
 			}
 
-			progress = percent_done * 100;
+			progress = guc_download_total_progress(d) * 100;
 			status = tmpstr;
 		}
 
@@ -1569,9 +1565,8 @@ gui_update_download(download_t *d, gboolean force)
 		if (d->pos > d->skip) {
 			gint bps;
 			guint32 avg_bps;
-			gfloat progress_source, progress_total;
+			gfloat progress_source;
 
-			progress_total = guc_download_total_progress(d);
 			progress_source = guc_download_source_progress(d);
 
 			bps = bio_bps(d->bio);
@@ -1593,9 +1588,10 @@ gui_update_download(download_t *d, gboolean force)
 
                 s = remain / avg_bps;
 
-				rw = gm_snprintf(tmpstr, sizeof(tmpstr),
-					"%.02f%% / %.02f%% ",
-					progress_source * 100.0, progress_total * 100.0);
+				if (progress_source > 1.0) {
+					rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ",
+						progress_source * 100.0);
+				}
 
 				if (delta_time(now, d->last_update) > IO_STALLED)
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr) - rw,

@@ -78,6 +78,26 @@ static GtkCTree *ctree_downloads_queue = NULL;
  *** Private functions
  ***/
 
+static inline const gchar *
+download_progress_to_string(const struct download *d)
+{
+	static gchar buf[32];
+
+	gm_snprintf(buf, sizeof buf, "%5.2f%%",
+		100.0 * guc_download_total_progress(d));
+	return buf;
+}
+
+static inline const gchar *
+source_progress_to_string(const struct download *d)
+{
+	static gchar buf[32];
+
+	gm_snprintf(buf, sizeof buf, "%5.2f%%",
+		100.0 * guc_download_source_progress(d));
+	return buf;
+}
+
 /**
  * Add the given tree node to the hashtable.
  * The key is an int ref on the fi_handle for a given download.
@@ -527,7 +547,7 @@ download_gui_add(struct download *d)
 	GdkColor *color;
 	gchar vendor[256];
 	const gchar *file_name, *filename;
-	gchar *size, *host, *range, *server, *status, *country;
+	gchar *size, *host, *range, *server, *status, *country, *progress;
 	struct download *drecord;
 	gpointer key;
 	gint n;
@@ -702,6 +722,7 @@ download_gui_add(struct download *d)
 		titles[c_dl_range] = "";
         titles[c_dl_host] = guc_download_get_hostname(d);
         titles[c_dl_loc] = guc_download_get_country(d);
+        titles[c_dl_progress] = download_progress_to_string(d);
 
 		if (NULL != d->file_info) {
 			key = GUINT_TO_POINTER(d->file_info->fi_handle);
@@ -731,6 +752,8 @@ download_gui_add(struct download *d)
 						c_dl_range, &range);
 					gtk_ctree_node_get_text(ctree_downloads, parent,
 						c_dl_loc, &country);
+					gtk_ctree_node_get_text(ctree_downloads, parent,
+						c_dl_progress, &progress);
 
 					titles_parent[c_dl_filename] = filename;
 			        titles_parent[c_dl_server] = server;
@@ -739,6 +762,7 @@ download_gui_add(struct download *d)
 					titles_parent[c_dl_host] = host;
 			        titles_parent[c_dl_loc] = country;
         			titles_parent[c_dl_range] = range;
+        			titles_parent[c_dl_progress] = progress;
 
 					new_node = gtk_ctree_insert_node(ctree_downloads,
 						parent, NULL,
@@ -768,6 +792,8 @@ download_gui_add(struct download *d)
 						c_dl_range, "");
 					gtk_ctree_node_set_text(ctree_downloads, parent,
 						c_dl_loc, "");
+					gtk_ctree_node_set_text(ctree_downloads, parent,
+						c_dl_progress, "");
 
 					gtk_ctree_node_set_row_data(ctree_downloads, parent,
 						DL_GUI_IS_HEADER);
@@ -928,7 +954,7 @@ gui_update_download(struct download *d, gboolean force)
 	struct dl_file_info *fi;
 	gpointer key;
 	gint active_src, tot_src;
-	gfloat percent_done =0;
+	gdouble percent_done = 0;
 	guint32 s = 0;
 
 	gint rw;
@@ -1205,14 +1231,11 @@ gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_RECEIVING:
 		if (d->pos - d->skip > 0) {
-			gfloat p = 0, pt = 0;
+			gdouble p = 0;
 			gint bps;
 			guint32 avg_bps;
 
-			if (d->size)
-                p = (d->pos - d->skip) * 100.0 / d->size;
-            if (download_filesize(d))
-                pt = download_filedone(d) * 100.0 / download_filesize(d);
+			p = guc_download_source_progress(d);
 
 			bps = bio_bps(d->bio);
 			avg_bps = bio_avg_bps(d->bio);
@@ -1230,9 +1253,6 @@ gui_update_download(struct download *d, gboolean force)
                     remain = d->size - (d->pos - d->skip);
 
                 s = remain / avg_bps;
-
-				rw = gm_snprintf(tmpstr, sizeof(tmpstr),
-					"%.02f%% / %.02f%%", p, pt);
 
 				if (now - d->last_update > IO_STALLED)
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " %s",
@@ -1257,7 +1277,7 @@ gui_update_download(struct download *d, gboolean force)
 					}
 				}
 			} else {
-				rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% %s", p,
+				rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%4.02f%% %s", p,
 					(now - d->last_update > IO_STALLED) ? _("(stalled)") : "");
 			}
 
@@ -1267,7 +1287,7 @@ gui_update_download(struct download *d, gboolean force)
 
 			if (d->ranges != NULL) {
 				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-					" <PFS %.02f%%>", d->ranges_size * 100.0 / fi->size);
+					" <PFS %4.02f%%>", d->ranges_size * 100.0 / fi->size);
 			}
 
 			a = tmpstr;
@@ -1344,13 +1364,9 @@ gui_update_download(struct download *d, gboolean force)
 						if ((GTA_DL_RECEIVING == d->status) &&
 							(d->pos - d->skip > 0)) {
 
-							percent_done = 0;
 							s = 0;
-
-	        			    if (download_filesize(d))
-		                		percent_done = ((download_filedone(d) * 100.0)
-									/ download_filesize(d));
-
+							percent_done = 100.0 *
+								guc_download_total_progress(d);
 							active_src = fi->recvcount;
 							tot_src = fi->lifecount;
 
@@ -1359,13 +1375,13 @@ gui_update_download(struct download *d, gboolean force)
 
 							if (s) {
 								gm_snprintf(tmpstr, sizeof(tmpstr),
-									"%.02f%%  (%s)  [%d/%d]  TR:  %s",
+									"%4.02f%%  (%s)  [%d/%d]  TR:  %s",
 									percent_done,
 									short_rate(fi->recv_last_rate),
 									active_src, tot_src, short_time(s));
 							} else {
 								gm_snprintf(tmpstr, sizeof(tmpstr),
-									"%.02f%%  (%s)  [%d/%d]  TR:  -",
+									"%4.02f%%  (%s)  [%d/%d]  TR:  -",
 									percent_done,
 									short_rate(fi->recv_last_rate),
 									active_src, tot_src);
@@ -1385,9 +1401,12 @@ gui_update_download(struct download *d, gboolean force)
 		/* Update status column */
 		if (NULL != node) {
 			gtk_ctree_node_set_text(ctree_downloads, node, c_dl_status, a);
+			gtk_ctree_node_set_text(ctree_downloads, node,
+				c_dl_progress, source_progress_to_string(d));
     	    if (DOWNLOAD_IS_IN_PUSH_MODE(d))
         	     gtk_ctree_node_set_foreground(ctree_downloads, node, color);
 		}
+
 
 		/*  Update header for downloads with multiple hosts */
 		if (NULL != d->file_info) {
@@ -1412,19 +1431,15 @@ gui_update_download(struct download *d, gboolean force)
 							_("Complete"));
 						gtk_ctree_node_set_text(ctree_downloads, parent,
 							c_dl_status, tmpstr);
+						gtk_ctree_node_set_text(ctree_downloads, parent,
+							c_dl_progress, "100.00%");
 						record_parent_gui_update(key, now);
 
 					} else {
 						if ((GTA_DL_RECEIVING == d->status) &&
 							(d->pos - d->skip > 0)) {
 
-							percent_done = 0;
 							s = 0;
-
-	        			    if (download_filesize(d))
-		                		percent_done = ((download_filedone(d) * 100.0)
-									/ download_filesize(d));
-
 							active_src = fi->recvcount;
 							tot_src = fi->lifecount;
 
@@ -1433,20 +1448,20 @@ gui_update_download(struct download *d, gboolean force)
 
 							if (s) {
 								gm_snprintf(tmpstr, sizeof(tmpstr),
-									"%.02f%%  (%s)  [%d/%d]  TR:  %s",
-									percent_done,
+									"(%s)  [%d/%d]  TR:  %s",
 									short_rate(fi->recv_last_rate),
 									active_src, tot_src, short_time(s));
 							} else {
 								gm_snprintf(tmpstr, sizeof(tmpstr),
-									"%.02f%%  (%s)  [%d/%d]  TR:  -",
-									percent_done,
+									"(%s)  [%d/%d]  TR:  -",
 									short_rate(fi->recv_last_rate),
 									active_src, tot_src);
 							}
 
 							gtk_ctree_node_set_text(ctree_downloads,
 								parent, c_dl_status, tmpstr);
+							gtk_ctree_node_set_text(ctree_downloads, parent,
+								c_dl_progress, download_progress_to_string(d));
 							record_parent_gui_update(key, now);
 						}
 					}

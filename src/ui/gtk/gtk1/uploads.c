@@ -283,6 +283,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 	titles[c_ul_host]     = ip_to_gchar(u->ip);
 	titles[c_ul_loc]      = iso3166_country_cc(u->country);
     titles[c_ul_agent]    = (u->user_agent != NULL) ? u->user_agent : "...";
+	titles[c_ul_progress]   = "...";
 	titles[c_ul_status]   = "...";
 
     data = g_new(upload_row_data_t, 1);

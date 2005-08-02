@@ -69,9 +69,7 @@ enum {
     c_ul_size,
     c_ul_range,
     c_ul_agent,
-#ifdef USE_GTK2
 	c_ul_progress,
-#endif /* USE_GTK2 */
     c_ul_status,
 #define UPLOADS_GUI_VISIBLE_COLUMNS ((guint) c_ul_status + 1)
 #ifdef USE_GTK2
@@ -102,37 +100,23 @@ enum {
  * Downloads table columns.
  */
 
-#ifdef USE_GTK1
 enum {
     c_dl_filename = 0,
     c_dl_host,
     c_dl_loc,
     c_dl_size,
-    c_dl_range,
-    c_dl_server,
-    c_dl_status,
-	c_dl_num
-#define DOWNLOADS_VISIBLE_COLUMNS ((guint) c_dl_num)
-};
-#endif
-
-#ifdef USE_GTK2
-enum {
-    c_dl_filename = 0,
-    c_dl_size,
-    c_dl_host,
-    c_dl_loc,
     c_dl_range,
     c_dl_server,
     c_dl_progress,
     c_dl_status,
 #define DOWNLOADS_VISIBLE_COLUMNS ((guint) c_dl_status + 1)
+#ifdef USE_GTK2
     c_dl_fg,	/**< invisible, holds the foreground color for the row */
     c_dl_bg,	/**< invisible, holds the background color for the row */
     c_dl_record, /**< invisible, pointer to the record_t of this entry */
+#endif /* USE_GTK2 */
     c_dl_num
 };
-#endif
 
 /*
  * Queue table columns.
@@ -277,4 +261,4 @@ enum {
 
 #endif /* _gtk_columns_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
