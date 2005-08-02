@@ -400,6 +400,9 @@ gui_create_dlg_about(void)
 		"Daichi Kawahata <daichik@users.sourceforge.net>",
 		"Dave Rutherford <polymath69@users.sourceforge.net>",
     };
+	/* TRANSLATORS: Translate this as "Translation provided by" or similar
+   	   and append your name to the list. */
+    static const gchar translators[] = N_("translation_credit|");
     GtkWidget *dlg = create_dlg_about();
     guint i;
 #ifdef USE_GTK2
@@ -428,6 +431,10 @@ gui_create_dlg_about(void)
     gtk_label_set_text(
         GTK_LABEL(lookup_widget(dlg, "label_about_title")),
         guc_version_get_version_string());
+
+  	gtk_label_set_text(
+		GTK_LABEL(lookup_widget(dlg, "label_about_translation")),
+		_(translators));
 
     return dlg;
 }

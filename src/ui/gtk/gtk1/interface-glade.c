@@ -9791,6 +9791,7 @@ create_dlg_about (void)
   GtkWidget *label265;
   GtkWidget *label273;
   GtkWidget *label528;
+  GtkWidget *label_about_translation;
   GtkWidget *frame46;
   GtkWidget *scrolledwindow18;
   GtkWidget *text_about_contributors;
@@ -10044,6 +10045,14 @@ create_dlg_about (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label528), 0, 0.5);
+
+  label_about_translation = gtk_label_new ("");
+  gtk_widget_set_name (label_about_translation, "label_about_translation");
+  gtk_widget_ref (label_about_translation);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label_about_translation", label_about_translation,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_about_translation);
+  gtk_box_pack_start (GTK_BOX (vbox67), label_about_translation, FALSE, FALSE, 0);
 
   frame46 = gtk_frame_new (_("Contributors:"));
   gtk_widget_set_name (frame46, "frame46");

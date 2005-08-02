@@ -1403,6 +1403,7 @@ create_dlg_about (void)
   GtkWidget *label499;
   GtkWidget *label500;
   GtkWidget *vseparator6;
+  GtkWidget *label_about_translation;
   GtkWidget *frame46;
   GtkWidget *scrolledwindow61;
   GtkWidget *viewport31;
@@ -1588,6 +1589,11 @@ create_dlg_about (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
 
+  label_about_translation = gtk_label_new ("");
+  gtk_widget_set_name (label_about_translation, "label_about_translation");
+  gtk_widget_show (label_about_translation);
+  gtk_box_pack_start (GTK_BOX (vbox67), label_about_translation, FALSE, FALSE, 0);
+
   frame46 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame46, "frame46");
   gtk_widget_show (frame46);
@@ -1704,6 +1710,7 @@ create_dlg_about (void)
   GLADE_HOOKUP_OBJECT (dlg_about, label499, "label499");
   GLADE_HOOKUP_OBJECT (dlg_about, label500, "label500");
   GLADE_HOOKUP_OBJECT (dlg_about, vseparator6, "vseparator6");
+  GLADE_HOOKUP_OBJECT (dlg_about, label_about_translation, "label_about_translation");
   GLADE_HOOKUP_OBJECT (dlg_about, frame46, "frame46");
   GLADE_HOOKUP_OBJECT (dlg_about, scrolledwindow61, "scrolledwindow61");
   GLADE_HOOKUP_OBJECT (dlg_about, viewport31, "viewport31");
