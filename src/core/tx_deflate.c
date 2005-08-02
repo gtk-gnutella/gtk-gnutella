@@ -821,8 +821,24 @@ tx_deflate_flush(txdrv_t *tx)
 
 	if (attr->flags & DF_NAGLE) {
 		g_assert(attr->tm_ev != NULL);
-		cq_expire(callout_queue, attr->tm_ev);
+		cq_expire(attr->cq, attr->tm_ev);
 	}
+}
+
+/**
+ * Disable all transmission.
+ */
+static void
+tx_deflate_shutdown(txdrv_t *tx)
+{
+	struct attr *attr = (struct attr *) tx->opaque;
+
+	/*
+	 * Disable firing of the Nagle callback, if registered.
+	 */
+
+	if (attr->flags & DF_NAGLE)
+		deflate_nagle_stop(tx);
 }
 
 static const struct txdrv_ops tx_deflate_ops = {
@@ -835,6 +851,7 @@ static const struct txdrv_ops tx_deflate_ops = {
 	tx_deflate_disable,		/**< disable */
 	tx_deflate_pending,		/**< pending */
 	tx_deflate_flush,		/**< flush */
+	tx_deflate_shutdown,	/**< shutdown */
 	tx_no_source,			/**< bio_source */
 };
 

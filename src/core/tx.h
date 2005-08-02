@@ -68,6 +68,8 @@ typedef struct txdriver {
  */
 
 #define TX_SERVICE		0x00000001	/**< Servicing of upper layer needed */
+#define TX_ERROR		0x00000002	/**< Fatal error detected */
+#define TX_DOWN			0x00000004	/**< No further writes allowed */
 
 /**
  * Operations defined on all drivers.
@@ -83,6 +85,7 @@ struct txdrv_ops {
 	void (*disable)(txdrv_t *tx);
 	size_t (*pending)(txdrv_t *tx);
 	void (*flush)(txdrv_t *tx);
+	void (*shutdown)(txdrv_t *tx);
 	struct bio_source *(*bio_source)(txdrv_t *tx);
 };
 
@@ -95,6 +98,7 @@ txdrv_t *tx_make_node(struct gnutella_node *n, const struct txdrv_ops *ops,
 txdrv_t *tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops,
 	gpointer args);
 
+void tx_shutdown(txdrv_t *d);
 void tx_free(txdrv_t *d);
 ssize_t tx_write(txdrv_t *tx, gpointer data, size_t len);
 ssize_t tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt);

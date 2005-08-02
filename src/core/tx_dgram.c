@@ -185,6 +185,9 @@ tx_dgram_write_error(txdrv_t *tx, gnet_host_t *to, const char *func)
 	case ETIMEDOUT:
 	case EACCES:
 	case EPERM:
+		/*
+		 * Don't set TX_ERROR here, we don't care about lost packets.
+		 */
 		g_warning("UDP write to %s failed: %s",
 			ip_port_to_gchar(to->ip, to->port), g_strerror(errno));
 		return -1;
@@ -192,6 +195,7 @@ tx_dgram_write_error(txdrv_t *tx, gnet_host_t *to, const char *func)
 		{
 			int terr = errno;
 			time_t t = time(NULL);
+			tx->flags |= TX_ERROR;				/* This should be fatal! */
 			g_error("%s  gtk-gnutella: %s: "
 				"UDP write to %s failed with unexpected errno: %d (%s)\n",
 				ctime(&t), func, ip_port_to_gchar(to->ip, to->port),
@@ -214,13 +218,8 @@ tx_dgram_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len)
 	struct attr *attr = (struct attr *) tx->opaque;
 
 	r = bio_sendto(attr->bio, to, data, len);
-	if ((ssize_t) -1 == r) {
-		/*
-	 	 * Special
-	 	 */
-
+	if ((ssize_t) -1 == r)
 		return tx_dgram_write_error(tx, to, "tx_dgram_sendto");
-	}
 
 	if (attr->cb->add_tx_written != NULL)
 		attr->cb->add_tx_written(tx->owner, r);
@@ -272,6 +271,15 @@ tx_dgram_flush(txdrv_t *unused_tx)
 }
 
 /**
+ * Nothing to do.
+ */
+static void
+tx_dgram_shutdown(txdrv_t *unused_tx)
+{
+	(void) unused_tx;
+}
+
+/**
  * @return the I/O source of this level.
  */
 static struct bio_source *
@@ -292,6 +300,7 @@ static const struct txdrv_ops tx_dgram_ops = {
 	tx_dgram_disable,		/**< disable */
 	tx_dgram_pending,		/**< pending */
 	tx_dgram_flush,			/**< flush */
+	tx_dgram_shutdown,		/**< shutdown */
 	tx_dgram_bio_source,	/**< bio_source */
 };
 

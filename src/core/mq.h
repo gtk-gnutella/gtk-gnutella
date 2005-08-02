@@ -127,6 +127,7 @@ struct mqueue {
 void mq_putq(mqueue_t *q, pmsg_t *mb);
 void mq_free(mqueue_t *q);
 void mq_clear(mqueue_t *q);
+void mq_discard(mqueue_t *q);
 void mq_shutdown(mqueue_t *q);
 void mq_fill_ops(struct mq_ops *ops);
 

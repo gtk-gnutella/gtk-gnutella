@@ -60,6 +60,7 @@ RCSID("$Id$");
 #define TX_PENDING(o)		((o)->ops->pending((o)))
 #define TX_BIO_SOURCE(o)	((o)->ops->bio_source((o)))
 #define TX_FLUSH(o)			((o)->ops->flush((o)))
+#define TX_SHUTDOWN(o)		((o)->ops->shutdown((o)))
 
 /**
  * Create a new network driver, equipped with the `ops' operations and
@@ -135,6 +136,33 @@ tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops, gpointer args)
 }
 
 /**
+ * Shutdown stack, disallowing further writes.
+ */
+void
+tx_shutdown(txdrv_t *tx)
+{
+	txdrv_t *t;
+
+	g_assert(tx);
+	g_assert(tx->upper == NULL);
+
+	for (t = tx; t; t = t->lower) {
+		/*
+		 * If we reach a stage where the service routine was enabled (the
+		 * lower driver was meant to call its upper layer service routine
+		 * when further writing was possible), disable it.  That way, the
+		 * layer-specific shutdown does not have to bother with that.
+		 */
+
+		if (t->flags & TX_SERVICE)
+			tx_srv_disable(t);
+
+		TX_SHUTDOWN(t);
+		t->flags |= TX_DOWN;
+	}
+}
+
+/**
  * Dispose of the driver resources, recursively.
  */
 static void
@@ -169,6 +197,11 @@ tx_free(txdrv_t *tx)
 ssize_t
 tx_write(txdrv_t *tx, gpointer data, size_t len)
 {
+	if (tx->flags & (TX_ERROR | TX_DOWN)) {
+		errno = EPIPE;
+		return -1;
+	}
+
 	return TX_WRITE(tx, data, len);
 }
 
@@ -180,6 +213,11 @@ tx_write(txdrv_t *tx, gpointer data, size_t len)
 ssize_t
 tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 {
+	if (tx->flags & (TX_ERROR | TX_DOWN)) {
+		errno = EPIPE;
+		return -1;
+	}
+
 	return TX_WRITEV(tx, iov, iovcnt);
 }
 
@@ -191,6 +229,11 @@ tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 ssize_t
 tx_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len)
 {
+	if (tx->flags & (TX_ERROR | TX_DOWN)) {
+		errno = EPIPE;
+		return -1;
+	}
+
 	return TX_SENDTO(tx, to, data, len);
 }
 

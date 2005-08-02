@@ -427,11 +427,22 @@ mq_clear(mqueue_t *q)
  * Forbid further writes to the queue.
  */
 void
-mq_shutdown(mqueue_t *q)
+mq_discard(mqueue_t *q)
 {
 	g_assert(q);
 
 	q->flags |= MQ_DISCARD;
+}
+
+/**
+ * Disable all further writes from the queue.
+ */
+void
+mq_shutdown(mqueue_t *q)
+{
+	g_assert(q);
+
+	tx_shutdown(q->tx_drv);		/* No further output will be made */
 }
 
 /**

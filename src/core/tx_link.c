@@ -71,6 +71,7 @@ is_writable(gpointer data, gint unused_source, inputevt_cond_t cond)
 	g_assert(tx->flags & TX_SERVICE);		/* Servicing enabled */
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
+		tx->flags |= TX_ERROR;
 		attr->cb->eof_remove(tx->owner, _("Write failed (Input Exception)"));
 		return;
 	}
@@ -161,6 +162,7 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 		
 	case EPIPE:
 	case ECONNRESET:
+		tx->flags |= TX_ERROR;
 		attr->cb->eof_remove(tx->owner,
 			_("Write failed: %s"), g_strerror(errno));
 		return -1;
@@ -176,6 +178,7 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 	case EHOSTUNREACH:
 	case ETIMEDOUT:
 	case EACCES:
+		tx->flags |= TX_ERROR;
 		attr->cb->eof_shutdown(tx->owner,
 			_("Write failed: %s"), g_strerror(errno));
 		return -1;
@@ -186,6 +189,7 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 			time_t t = time(NULL);
 			wrap_io_t *wio = ((struct attr *) tx->opaque)->wio;
 			gint fd = wio->fd(wio);
+			tx->flags |= TX_ERROR;
 			g_error("%s  gtk-gnutella: %s: "
 				"write failed on fd #%d with unexpected errno: %d (%s)\n",
 				ctime(&t), func, fd, terr, g_strerror(terr));
@@ -207,9 +211,8 @@ tx_link_write(txdrv_t *tx, gpointer data, size_t len)
 	ssize_t r;
 
 	r = bio_write(attr->bio, data, len);
-	if ((ssize_t) -1 == r) {
+	if ((ssize_t) -1 == r)
 		return tx_link_write_error(tx, "tx_link_write");
-	}
 
 	if (attr->cb->add_tx_written != NULL)
 		attr->cb->add_tx_written(tx->owner, r);
@@ -229,9 +232,8 @@ tx_link_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 	ssize_t r;
 
 	r = bio_writev(attr->bio, iov, iovcnt);
-	if ((ssize_t) -1 == r) {
+	if ((ssize_t) -1 == r)
 		return tx_link_write_error(tx, "tx_link_writev");
-	}
 
 	if (attr->cb->add_tx_written != NULL)
 		attr->cb->add_tx_written(tx->owner, r);
@@ -293,6 +295,16 @@ tx_link_flush(txdrv_t *unused_tx)
 }
 
 /**
+ * Nothing to do.
+ */
+static void
+tx_link_shutdown(txdrv_t *unused_tx)
+{
+	/* Servicing of upper layer, if any, is cancelled by tx_shutdown() */
+	(void) unused_tx;
+}
+
+/**
  */
 static struct bio_source *
 tx_link_bio_source(txdrv_t *tx)
@@ -312,6 +324,7 @@ static const struct txdrv_ops tx_link_ops = {
 	tx_link_disable,	/**< disable */
 	tx_link_pending,	/**< pending */
 	tx_link_flush,		/**< flush */
+	tx_link_shutdown,	/**< shutdown */
 	tx_link_bio_source,	/**< bio_source */
 };
 

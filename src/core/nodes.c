@@ -1339,6 +1339,14 @@ node_real_remove(gnutella_node_t *node)
 	if (node->rx)
 		rx_free(node->rx);
 
+	/*
+	 * The TX stack is dismantled asynchronously as well to be on the
+	 * safe side.
+	 */
+
+	if (node->outq)
+		mq_free(node->outq);
+
 	node->magic = 0;
 	wfree(node, sizeof(*node));
 }
@@ -1466,16 +1474,17 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 		G_FREE_NULL(n->data);
 		n->allocated = 0;
 	}
-	if (n->outq) {
-		mq_free(n->outq);
-		n->outq = NULL;
-	}
+
 	if (n->searchq) {
 		sq_free(n->searchq);
 		n->searchq = NULL;
 	}
+
 	if (n->rx)					/* RX stack freed by node_real_remove() */
 		node_disable_read(n);
+	if (n->outq)				/* TX stack freed by node_real_remove() */
+		mq_shutdown(n->outq);	/* Prevents any further output */
+
 	if (n->gnet_guid) {
 		atom_guid_free(n->gnet_guid);
 		n->gnet_guid = NULL;
@@ -2028,7 +2037,7 @@ node_shutdown_mode(struct gnutella_node *n, guint32 delay)
 	n->status = GTA_NODE_SHUTDOWN;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE);
 	n->shutdown_date = time(NULL);
-	mq_shutdown(n->outq);
+	mq_discard(n->outq);					/* Discard any further data */
 	node_flushq(n);							/* Fast queue flushing */
 
 	shutdown_nodes++;
