@@ -55,6 +55,7 @@ USRINC = $usrinc
 SOURCES =  \$(LSRC)
 OBJECTS =  \$(LOBJ)
 GLIB_CFLAGS =  $glibcflags
+DBUS_CFLAGS =  $dbuscflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -79,7 +80,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.10 2004/11/08 14:29:23 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.11 2005/08/02 22:19:16 graaff Exp $
 
 LSRC = \
 	adns.c \
@@ -91,6 +92,7 @@ LSRC = \
 	cobs.c \
 	cq.c \
 	crc.c \
+	dbus_util.c \
 	eval.c \
 	event.c \
 	fifo.c \
@@ -134,6 +136,7 @@ LOBJ = \
 	cobs.o \
 	cq.o \
 	crc.o \
+	dbus_util.o \
 	eval.o \
 	event.o \
 	fifo.o \
@@ -168,7 +171,7 @@ LOBJ = \
 	zlib_util.o 
 
 # Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCURDIR=$(CURRENT)
+CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(DBUS_CFLAGS) -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
 all:: libshared.a
