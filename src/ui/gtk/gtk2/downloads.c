@@ -693,6 +693,7 @@ download_gui_add(download_t *d)
 	GtkTreeIter *parent;
 	GtkTreeIter *child;
 	GtkTreeStore *model;
+	gint host_column;
 
 	g_return_if_fail(d);
 	g_return_if_fail(d->file_info);
@@ -712,10 +713,12 @@ download_gui_add(download_t *d)
 		/* This is a queued download */
 		treeview = treeview_downloads_queue;
 		ht = parents_queue;
+		host_column = c_queue_host;
 	} else {
 		/* This is an active download */
 		treeview = treeview_downloads;
 		ht = parents;
+		host_column = c_dl_host;
 	}
 
 	model = GTK_TREE_STORE(gtk_tree_view_get_model(treeview));
@@ -953,7 +956,7 @@ download_gui_add(download_t *d)
 		
 		gm_snprintf(tmpstr, sizeof tmpstr,
 			NG_("%u host", "%u hosts", hosts), hosts);
-		gtk_tree_store_set(model, parent, c_dl_host, tmpstr, (-1));
+		gtk_tree_store_set(model, parent, host_column, tmpstr, (-1));
 	}
 
 	/* Download was added to either the active or queued downloads treeview */
