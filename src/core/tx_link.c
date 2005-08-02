@@ -325,6 +325,7 @@ static const struct txdrv_ops tx_link_ops = {
 	tx_link_pending,	/**< pending */
 	tx_link_flush,		/**< flush */
 	tx_link_shutdown,	/**< shutdown */
+	tx_close_noop,		/**< close */
 	tx_link_bio_source,	/**< bio_source */
 };
 

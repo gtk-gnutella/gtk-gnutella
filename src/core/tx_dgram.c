@@ -301,6 +301,7 @@ static const struct txdrv_ops tx_dgram_ops = {
 	tx_dgram_pending,		/**< pending */
 	tx_dgram_flush,			/**< flush */
 	tx_dgram_shutdown,		/**< shutdown */
+	tx_close_noop,			/**< close */
 	tx_dgram_bio_source,	/**< bio_source */
 };
 

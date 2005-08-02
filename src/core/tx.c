@@ -44,6 +44,7 @@ RCSID("$Id$");
 
 #include "tx.h"
 #include "nodes.h"
+#include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
 /*
@@ -61,6 +62,7 @@ RCSID("$Id$");
 #define TX_BIO_SOURCE(o)	((o)->ops->bio_source((o)))
 #define TX_FLUSH(o)			((o)->ops->flush((o)))
 #define TX_SHUTDOWN(o)		((o)->ops->shutdown((o)))
+#define TX_CLOSE(o,c,a)		((o)->ops->close((o), (c), (a)))
 
 /**
  * Create a new network driver, equipped with the `ops' operations and
@@ -77,7 +79,7 @@ tx_make_node(struct gnutella_node *n,
 	g_assert(n);
 	g_assert(ops);
 
-	tx = g_malloc0(sizeof(*tx));
+	tx = walloc0(sizeof(*tx));
 
 	tx->owner = n;
 	tx->ops = ops;
@@ -119,7 +121,7 @@ tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops, gpointer args)
 	g_assert(ltx->upper == NULL);		/* Nothing above yet */
 	g_assert(ops);
 
-	tx = g_malloc0(sizeof(*tx));
+	tx = walloc0(sizeof(*tx));
 
 	tx->owner = ltx->owner;
 	tx->host = ltx->host;				/* Struct copy */
@@ -174,7 +176,7 @@ tx_deep_free(txdrv_t *tx)
 		tx_deep_free(tx->lower);
 
 	TX_DESTROY(tx);
-	g_free(tx);
+	wfree(tx, sizeof(*tx));
 }
 
 /**
@@ -197,8 +199,8 @@ tx_free(txdrv_t *tx)
 ssize_t
 tx_write(txdrv_t *tx, gpointer data, size_t len)
 {
-	if (tx->flags & (TX_ERROR | TX_DOWN)) {
-		errno = EPIPE;
+	if (tx->flags & (TX_ERROR | TX_DOWN | TX_CLOSING)) {
+		errno = EINVAL;
 		return -1;
 	}
 
@@ -213,8 +215,8 @@ tx_write(txdrv_t *tx, gpointer data, size_t len)
 ssize_t
 tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 {
-	if (tx->flags & (TX_ERROR | TX_DOWN)) {
-		errno = EPIPE;
+	if (tx->flags & (TX_ERROR | TX_DOWN | TX_CLOSING)) {
+		errno = EINVAL;
 		return -1;
 	}
 
@@ -229,8 +231,8 @@ tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 ssize_t
 tx_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len)
 {
-	if (tx->flags & (TX_ERROR | TX_DOWN)) {
-		errno = EPIPE;
+	if (tx->flags & (TX_ERROR | TX_DOWN | TX_CLOSING)) {
+		errno = EINVAL;
 		return -1;
 	}
 
@@ -256,6 +258,8 @@ tx_srv_register(txdrv_t *tx, tx_service_t srv_fn, gpointer srv_arg)
 void
 tx_srv_enable(txdrv_t *tx)
 {
+	g_assert(tx->srv_routine != NULL);
+
 	if (tx->flags & TX_SERVICE)		/* Already enabled */
 		return;
 
@@ -269,6 +273,7 @@ tx_srv_enable(txdrv_t *tx)
 void
 tx_srv_disable(txdrv_t *tx)
 {
+	g_assert(tx->srv_routine != NULL);
 	g_assert(tx->flags & TX_SERVICE);
 
 	TX_DISABLE(tx);
@@ -329,8 +334,109 @@ void
 tx_flush(txdrv_t *tx)
 {
 	g_assert(tx);
+	g_assert(tx->upper == NULL);
 
 	TX_FLUSH(tx);
+}
+
+/**
+ * @return TRUE if there is an error reported by any layer underneath.
+ */
+gboolean
+tx_has_error(txdrv_t *tx)
+{
+	txdrv_t *t;
+
+	g_assert(tx);
+
+	for (t = tx; t; t = t->lower) {
+		if (t->flags & TX_ERROR)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
+ * Argument for tx_close_next().
+ */
+struct tx_close_arg {
+	txdrv_t *top;			/**< Top of the stack */
+	tx_closed_t cb;			/**< User-supplied "close" callback */
+	gpointer arg;			/**< User-supplied argument */
+};
+
+/**
+ * Callback invoked when a layer in the TX stack was closed, i.e. has no
+ * longer any buffered data.  Proceed to the next layer if any, otherwise
+ * invoke the user callback.
+ */
+static void
+tx_close_next(txdrv_t *tx, gpointer arg)
+{
+	struct tx_close_arg *carg = arg;
+
+	g_assert(tx);
+
+	/*
+	 * If there is no lower driver attached to the layer we just closed,
+	 * then we're done and can invoke the user-supplied callback.
+	 *
+	 * If an error was registered whilst closing, abort since this means
+	 * we're unable to proceeed further.
+	 */
+
+	if (NULL == tx->lower || tx_has_error(tx)) {
+		txdrv_t *top;
+		tx_closed_t cb;
+		gpointer arg;
+
+		top = carg->top;
+		cb = carg->cb;
+		arg = carg->arg;
+
+		wfree(carg, sizeof(*carg));
+
+		(*cb)(top, arg);
+		return;
+	}
+
+	/*
+	 * Close the next layer.
+	 */
+
+	tx->lower->flags |= TX_CLOSING;		/* Forbid further writes */
+	TX_CLOSE(tx->lower, tx_close_next, carg);
+}
+
+/**
+ * Close the transmission by ensuring each layer properly finishes sending
+ * its data.  When the whole stack is done, invoke the specified callback.
+ */
+void
+tx_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
+{
+	struct tx_close_arg *carg;
+
+	g_assert(tx);
+	g_assert(tx->upper == NULL);
+
+	carg = walloc(sizeof(*carg));
+	carg->top = tx;
+	carg->cb = cb;
+	carg->arg = arg;
+
+	tx->flags |= TX_CLOSING;				/* Forbid further writes */
+	TX_CLOSE(tx, tx_close_next, carg);
+}
+
+/**
+ * No-operation closing routine for layers that don't need anything special.
+ */
+void
+tx_close_noop(txdrv_t *tx, tx_closed_t cb, gpointer arg)
+{
+	(*cb)(tx, arg);
 }
 
 /**

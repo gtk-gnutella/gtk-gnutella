@@ -70,10 +70,13 @@ typedef struct txdriver {
 #define TX_SERVICE		0x00000001	/**< Servicing of upper layer needed */
 #define TX_ERROR		0x00000002	/**< Fatal error detected */
 #define TX_DOWN			0x00000004	/**< No further writes allowed */
+#define TX_CLOSING		0x00000008	/**< Closing, no further writes allowed */
 
 /**
  * Operations defined on all drivers.
  */
+
+typedef void (*tx_closed_t)(txdrv_t *tx, gpointer arg);
 
 struct txdrv_ops {
 	gpointer (*init)(txdrv_t *tx, gpointer args);
@@ -86,6 +89,7 @@ struct txdrv_ops {
 	size_t (*pending)(txdrv_t *tx);
 	void (*flush)(txdrv_t *tx);
 	void (*shutdown)(txdrv_t *tx);
+	void (*close)(txdrv_t *tx, tx_closed_t cb, gpointer arg);
 	struct bio_source *(*bio_source)(txdrv_t *tx);
 };
 
@@ -98,8 +102,7 @@ txdrv_t *tx_make_node(struct gnutella_node *n, const struct txdrv_ops *ops,
 txdrv_t *tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops,
 	gpointer args);
 
-void tx_shutdown(txdrv_t *d);
-void tx_free(txdrv_t *d);
+void tx_free(txdrv_t *tx);
 ssize_t tx_write(txdrv_t *tx, gpointer data, size_t len);
 ssize_t tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt);
 ssize_t tx_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len);
@@ -111,7 +114,11 @@ struct bio_source *tx_bio_source(txdrv_t *tx);
 ssize_t tx_no_write(txdrv_t *tx, gpointer data, size_t len);
 ssize_t tx_no_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt);
 ssize_t tx_no_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len);
-void tx_flush(txdrv_t *d);
+void tx_flush(txdrv_t *tx);
+void tx_shutdown(txdrv_t *tx);
+void tx_close(txdrv_t *d, tx_closed_t cb, gpointer arg);
+void tx_close_noop(txdrv_t *tx, tx_closed_t cb, gpointer arg);
+gboolean tx_has_error(txdrv_t *tx);
 
 struct bio_source *tx_no_source(txdrv_t *tx);
 

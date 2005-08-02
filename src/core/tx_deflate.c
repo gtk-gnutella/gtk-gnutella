@@ -88,6 +88,8 @@ struct attr {
 	cqueue_t *cq;				/**< The callout queue to use for Nagle */
 	gpointer tm_ev;				/**< The timer event */
 	struct tx_deflate_cb *cb;	/**< Layer-specific callbacks */
+	tx_closed_t closed;			/**< Callback to invoke when layer closed */
+	gpointer closed_arg;		/**< Argument for closing routine */
 };
 
 /*
@@ -288,8 +290,20 @@ deflate_service(gpointer data)
 	 * If we were able to send the whole send buffer, disable servicing.
 	 */
 
-	if (attr->send_idx == -1)
+	if (attr->send_idx == -1) {
 		tx_srv_disable(tx->lower);
+
+		/*
+		 * If closing, we're done, we have flushed everything we could.
+		 * There's no need to even bother with the upper layer: if we're
+		 * closing, we won't accept any further data to write anyway.
+		 */
+
+		if (tx->flags & TX_CLOSING) {
+			(*attr->closed)(tx, attr->closed_arg);
+			return;
+		}
+	}
 
 	/*
 	 * If we entered flow control, we can now safely leave it, since we
@@ -368,6 +382,7 @@ retry:
 		break;
 	default:
 		attr->flags |= DF_SHUTDOWN;
+		tx->flags |= TX_ERROR;
 		attr->cb->shutdown(tx->owner, "Compression flush failed: %s",
 				zlib_strerror(ret));
 		return FALSE;
@@ -841,6 +856,36 @@ tx_deflate_shutdown(txdrv_t *tx)
 		deflate_nagle_stop(tx);
 }
 
+/**
+ * Close the layer, flushing all the data there is.
+ * Once this is done, invoke the supplied callback.
+ */
+static void
+tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
+{
+	struct attr *attr = (struct attr *) tx->opaque;
+
+	g_assert(tx->flags & TX_CLOSING);
+
+	/*
+	 * Flush whatever we can.
+	 */
+
+	tx_deflate_flush(tx);
+
+	if (0 == tx_deflate_pending(tx)) {
+		(*cb)(tx, arg);
+		return;
+	}
+		
+	/*
+	 * We were unable to flush everything.
+	 */
+
+	attr->closed = cb;
+	attr->closed_arg = arg;
+}
+
 static const struct txdrv_ops tx_deflate_ops = {
 	tx_deflate_init,		/**< init */
 	tx_deflate_destroy,		/**< destroy */
@@ -852,6 +897,7 @@ static const struct txdrv_ops tx_deflate_ops = {
 	tx_deflate_pending,		/**< pending */
 	tx_deflate_flush,		/**< flush */
 	tx_deflate_shutdown,	/**< shutdown */
+	tx_deflate_close,		/**< close */
 	tx_no_source,			/**< bio_source */
 };
 
