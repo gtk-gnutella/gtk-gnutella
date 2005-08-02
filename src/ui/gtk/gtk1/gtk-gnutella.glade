@@ -13459,6 +13459,23 @@ Grace time remaining:</label>
     </widget>
 
     <widget>
+      <class>GtkLabel</class>
+      <name>label_about_translation</name>
+      <label></label>
+      <justify>GTK_JUSTIFY_CENTER</justify>
+      <wrap>False</wrap>
+      <xalign>0.5</xalign>
+      <yalign>0.5</yalign>
+      <xpad>0</xpad>
+      <ypad>0</ypad>
+      <child>
+	<padding>0</padding>
+	<expand>False</expand>
+	<fill>False</fill>
+      </child>
+    </widget>
+
+    <widget>
       <class>GtkFrame</class>
       <name>frame46</name>
       <border_width>3</border_width>
