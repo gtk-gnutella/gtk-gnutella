@@ -89,6 +89,7 @@ SRC = \
 	token.c \
 	tsync.c \
 	tx.c \
+	tx_chunk.c \
 	tx_deflate.c \
 	tx_dgram.c \
 	tx_link.c \
