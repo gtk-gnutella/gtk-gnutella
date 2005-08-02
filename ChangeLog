@@ -1,5 +1,10 @@
 # since last version
 
+- (2005-08-02 - Hans)
+ * Initial optional D-BUS support. This code only supports D-BUS
+   0.35.2. Currently only 'started' and 'stopped' events are sent. The
+   gtkg-dbus-listener.py script listens for these events.
+	
 
 # v 0.95.4  2005.07.31  [stable]
 
