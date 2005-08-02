@@ -163,6 +163,9 @@ sha1_parse(FILE *f, const gchar *file)
 	gint line = 0;
 	gchar sha1_digest[SHA1_RAW_SIZE];
 	gchar *sha1;
+	gchar *p;
+	gchar *filename;
+	gint len;
 
 	g_assert(f);
 
@@ -172,12 +175,14 @@ sha1_parse(FILE *f, const gchar *file)
 		if (ign_tmp[0] == '#' || ign_tmp[0] == '\n')
 			continue;			/* Skip comments and blank lines */
 
+		len = str_chomp(ign_tmp, 0);		/* Remove final "\n" */
+
 		/*
-		 * We're only interested in the leading base32 encoded SHA1.
+		 * Decode leading base32 encoded SHA1.
 		 */
 
 		if (
-			strlen(ign_tmp) < SHA1_BASE32_SIZE ||
+			len < SHA1_BASE32_SIZE ||
 			!base32_decode_into(ign_tmp, SHA1_BASE32_SIZE,
 				sha1_digest, sizeof(sha1_digest))
 		) {
@@ -189,8 +194,22 @@ sha1_parse(FILE *f, const gchar *file)
 		if (g_hash_table_lookup(by_sha1, sha1_digest))
 			continue;
 
+		/*
+		 * Skip the 2 blanks after the SHA1 to reach the filename
+		 */
+
+		if (len < SHA1_BASE32_SIZE + 2) {
+			g_warning("no filename after SHA1 at \"%s\" line %d: %s",
+				file, line, ign_tmp);
+			continue;
+		}
+
+		p = &ign_tmp[SHA1_BASE32_SIZE + 2];
+
 		sha1 = atom_sha1_get(sha1_digest);
-		g_hash_table_insert(by_sha1, sha1, GUINT_TO_POINTER(1));
+		filename = atom_str_get(p);
+
+		g_hash_table_insert(by_sha1, sha1, filename);
 	}
 }
 
@@ -337,7 +356,7 @@ ignore_add_sha1(const gchar *file, const gchar *sha1)
 	g_assert(sha1);
 
 	if (!g_hash_table_lookup(by_sha1, sha1))
-		g_hash_table_insert(by_sha1, atom_sha1_get(sha1), GINT_TO_POINTER(1));
+		g_hash_table_insert(by_sha1, atom_sha1_get(sha1), atom_str_get(file));
 
 	/*
 	 * Write to file even if duplicate SHA1, in order to help us
@@ -430,12 +449,13 @@ ignore_timer(time_t unused_now)
  * Free a key/value pair from the by_sha1 hash.
  */
 static gboolean
-free_sha1_kv(gpointer key, gpointer unused_value, gpointer unused_udata)
+free_sha1_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
-	(void) unused_value;
 	(void) unused_udata;
 
 	atom_sha1_free((gchar *) key);
+	atom_str_free((gchar *) value);
+
 	return TRUE;
 }
 
