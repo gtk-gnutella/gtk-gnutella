@@ -205,6 +205,35 @@ utf32_combining_class(guint32 uc)
 	return 0;
 }
 
+static inline gint
+block_id_cmp(size_t i, guint32 uc)
+{
+	if (uc < utf32_block_id_lut[i].start)
+		return 1;
+	if (uc > utf32_block_id_lut[i].end)
+		return -1;
+	
+	return 0;
+}
+
+static inline guint
+utf32_block_id(guint32 uc)
+{
+#define GET_ITEM(i) (i)
+#define FOUND(i) G_STMT_START { \
+	return 1 + (i); \
+	/* NOTREACHED */ \
+} G_STMT_END
+
+	/* Perform a binary search to find ``uc'' */
+	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_block_id_lut), block_id_cmp,
+		GET_ITEM, FOUND);
+	
+#undef FOUND
+#undef GET_ITEM
+	return 0;
+}
+
 static inline gboolean
 utf32_composition_exclude(guint32 uc)
 {
@@ -2667,6 +2696,68 @@ utf32_filter(const guint32 *src, guint32 *dst, size_t size)
 	return p - dst;
 }
 
+/**
+ * Copies the NUL-terminated UTF-32 string ``src'' to ``dst'' inserting
+ * an ASCII whitespace (U+0020) at every Unicode block change. If the
+ * block change is caused by such a ASCII whitespace itself, no additional
+ * space is inserted.
+ *
+ * @param src an NUL-terminated UTF-32 string.
+ * @param dst the output buffer to hold the modified UTF-32 string.
+ * @param size the number of characters (not bytes!) dst can hold.
+ * @return The length of the output string.
+ */
+size_t
+utf32_split_blocks(const guint32 *src, guint32 *dst, size_t size)
+{
+	const guint32 *s;
+	guint32 uc, last_uc, *p;
+	guint last_id;
+
+	g_assert(src != NULL);
+	g_assert(size == 0 || dst != NULL);
+	g_assert(size <= INT_MAX);
+
+	s = src;
+	p = dst;
+	last_uc = s[0];
+	last_id = utf32_block_id(s[0]);
+	
+	if (size > 0) {
+		guint32 *end;
+		
+		for (end = &dst[size - 1]; p != end && 0x0000 != (uc = *s); s++) {
+			gboolean change;
+			guint id = utf32_block_id(uc);
+			
+			change = last_id != id && uc != 0x0020 && last_uc != 0x0020;
+			last_uc = uc;
+			last_id = id;
+		
+			if (change) {	
+				*p++ = 0x0020;
+				if (end == p) {
+					s++;
+					break;
+				}
+			}
+			*p++ = uc;
+		}
+		*p = 0x0000;
+	}
+
+	while (0x0000 != (uc = *s++)) {
+		guint id = utf32_block_id(uc);
+
+		p += (last_id != id && uc != 0x0020 && last_uc != 0x0020) ? 2 : 1;
+		last_uc = uc;
+		last_id = id;
+	}
+
+	return p - dst;
+}
+
+
 #if 0  /* xxxUSE_ICU */
 
 /**
@@ -3265,11 +3356,17 @@ utf32_canonize(const guint32 *src)
 	/* Convert to NFC */
 	n = utf32_compose(nfd);
 	n = utf32_compose_hangul(nfd);
-	nfc = utf32_strdup(nfd);
+
+	/* Insert an ASCII space at block changes, this keeps NFC */	
+	n = utf32_split_blocks(nfd, NULL, 0);
+	size = n + 1;
+	nfc = g_malloc(size * sizeof *nfc);
+	n = utf32_split_blocks(nfd, nfc, size);
+	g_assert(size - 1 == n);
 
 	if (nfd_buf != nfd)
 		G_FREE_NULL(nfd);
-	
+
 	return nfc;
 }
 
@@ -3316,7 +3413,7 @@ utf8_canonize(const gchar *src)
 
 		G_FREE_NULL(dst32);
 
-#if 0
+#if 0 
 		g_message("\nsrc=\"%s\"\ndst=\"%s\"\n", src, dst);
 #endif
 		return dst;
@@ -3404,6 +3501,18 @@ unicode_compose_init(void)
 		g_assert(utf32_composition_exclude(uc));
 	}
 	
+	/* Check order and consistency of the block ID lookup table */
+	for (i = 0; i < G_N_ELEMENTS(utf32_block_id_lut); i++) {
+		guint32 start, end;
+
+		start = utf32_block_id_lut[i].start;
+		end = utf32_block_id_lut[i].end;
+		g_assert(start <= end);
+		g_assert(0 == i || utf32_block_id_lut[i - 1].end < start);
+		g_assert(1 + i == utf32_block_id(start));
+		g_assert(1 + i == utf32_block_id(end));
+	}
+	
 	/* Create the composition lookup table */
 	utf32_compose_roots = g_hash_table_new(NULL, NULL);
 
@@ -3445,7 +3554,7 @@ unicode_compose_init(void)
 		}
 	}
 
-#if 0
+#if 1
 	{
 		/* 
 		 * See: http://www.unicode.org/review/pr-29.html
@@ -3476,13 +3585,16 @@ unicode_compose_init(void)
 	}
 #endif
 
-#if 0 && defined(USE_GLIB2)	
+	/* The following checks are broken as GLib does not implement Unicode 4.1.0
+	 * at the moment. --cbiere, 2005-08-02 */
+#if 0 && defined(USE_GLIB2)
 	for (i = 0; i <= 0x10FFFD; i++) {
 		guint32 uc;
 		GUnicodeType gt;
 
 		uc = i;
 		gt = g_unichar_type(uc);
+		g_message("uc=U+%04X", (guint) uc);
 		switch (utf32_general_category(uc)) {
 		case UNI_GC_LETTER_UPPERCASE:
 			g_assert(G_UNICODE_UPPERCASE_LETTER == gt);
