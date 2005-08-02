@@ -309,6 +309,8 @@ src/core/tsync.c
 src/core/tsync.h
 src/core/tx.c
 src/core/tx.h
+src/core/tx_chunk.c
+src/core/tx_chunk.h
 src/core/tx_deflate.c
 src/core/tx_deflate.h
 src/core/tx_dgram.c
