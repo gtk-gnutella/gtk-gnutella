@@ -13,7 +13,7 @@
 ?X: 
 ?MAKE:End: $W cat gtkversion d_libxml2 libs d_iptos remotectrl \
 	d_deflate d_inflate i_zlib gtkgversion glibversion d_enablenls \
-	Sendfile64
+	Sendfile64 d_dbus
 ?MAKE:	-pick add $@ %<
 ?LINT:use $W
 ?T:glib_used frontend persistent zlib remote iptos unicode nls
@@ -28,6 +28,10 @@ esac
 persistent=no
 case "$d_libxml2" in
 "$define") persistent=yes;;
+esac
+dbus=no
+case "$d_dbus" in
+"$define") dbus=yes;;
 esac
 zlib=no
 case " $libs " in
@@ -59,6 +63,7 @@ Gnutella traffic compression       : $zlib
 IP TOS (Type of Service)           : $iptos
 NLS (Native Language Support)      : $nls
 Experimental remote control        : $remote
+DBus support                       : $dbus
 -------------------------------------------------
 EOM
 

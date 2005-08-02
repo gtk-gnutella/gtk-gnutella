@@ -1,0 +1,56 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:dbusconfig dbuscflags dbusldflags d_dbus: 
+?MAKE:	-pick add $@ %<
+?S:dbusconfig:
+?S:	This variable holds the command to use to grab information about dbus.
+?S: Typically something like "pkg-config dbus+" or "dbus-config".
+?S:.
+?S:dbuscflags:
+?S:	This variable holds the compiler flags required to compile with dbus.
+?S:.
+?S:dbusldflags:
+?S:	This variable holds the linker flags required to link against dbus.
+?S:.
+?C:HAS_DBUS:
+?C: This symbol is defined when dbus is present
+?C:.
+?H:#$d_dbus HAS_DBUS  /**/
+?H:.
+?T:modver version
+: how can we find information about dbus?
+echo " "
+d_dbus="$define"
+echo "Checking how we can gather information about dbus..." >&4
+if pkg-config dbus-1 --cflags >/dev/null 2>&1; then
+	dbusconfig="pkg-config dbus-1"
+	modver=--modversion
+else
+	echo "You've don't seem to have dbus installed?" >&4
+	d_dbus="$undef"
+	dbusconfig='false'
+	modver=''
+fi
+echo "(I'll use '$dbusconfig' to gather that information.)"
+
+?X: Make sure we have a good enough version
+dbuscflags=""
+dbusldflags=""
+d_dbus="$undef"
+version=`$dbusconfig $modver`
+case "$version" in
+'') ;;
+*)
+	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+	if test 0$vint -lt 03502; then
+		echo "Sorry, you have dbus $version, I need at least 0.35.2." >&4
+	else
+		echo "Good, you have dbus $version.  Enabling D-BUS notifications..."
+		dbuscflags=`$dbusconfig --cflags`
+		dbusldflags=`$dbusconfig --libs`
+		d_dbus="$define"
+	fi
+	;;
+esac
