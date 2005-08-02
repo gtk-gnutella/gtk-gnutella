@@ -842,7 +842,12 @@ static void
 textdomain_init(const char *codeset)
 {
 #ifdef ENABLE_NLS
-	bindtextdomain(PACKAGE, LOCALE_EXP);
+	{
+		const gchar *nlspath;
+		
+		nlspath = getenv("NLSPATH");
+		bindtextdomain(PACKAGE, nlspath ? nlspath : LOCALE_EXP);
+	}
 
 #ifdef HAS_BIND_TEXTDOMAIN_CODESET
 
