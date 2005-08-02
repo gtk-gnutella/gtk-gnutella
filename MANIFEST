@@ -46,6 +46,7 @@ U/new/icu.U
 U/new/locale.U
 U/new/msgmerge_update.U
 U/new/official.U
+U/packages/dbusconfig.U
 U/packages/glade.U
 U/packages/glibconfig.U
 U/packages/glibversion.U
@@ -181,6 +182,7 @@ po/ja.po
 po/nl.po
 po/quot.sed
 po/remove-potcdate.sin
+scripts/gtkg-dbus-listener.py
 src/Jmakefile
 src/Makefile.SH
 src/common.h
@@ -414,6 +416,8 @@ src/lib/cq.c
 src/lib/cq.h
 src/lib/crc.c
 src/lib/crc.h
+src/lib/dbus_util.c
+src/lib/dbus_util.h
 src/lib/endian.h
 src/lib/eval.c
 src/lib/eval.h
