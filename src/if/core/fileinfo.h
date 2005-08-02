@@ -158,7 +158,7 @@ GSList *fi_get_ranges(gnet_fi_t);
 void fi_free_ranges(GSList *ranges);
 gchar **fi_get_aliases(gnet_fi_t fih);
 
-void fi_purge_by_handle_list(GSList *list);
+void fi_purge_by_handle_list(const GSList *list);
 gboolean fi_purge(gnet_fi_t fih);
 
 const gchar *file_info_readable_filename(const struct dl_file_info *fi);

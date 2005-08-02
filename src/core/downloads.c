@@ -91,17 +91,17 @@ RCSID("$Id$");
 
 #define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
 
-static GSList *sl_downloads = NULL;		/**< All downloads (queued + unqueued) */
-GSList *sl_unqueued = NULL;				/**< Unqueued downloads only */
-GSList *sl_removed = NULL;				/**< Removed downloads only */
-GSList *sl_removed_servers = NULL;		/**< Removed servers only */
+static GSList *sl_downloads = NULL;	/**< All downloads (queued + unqueued) */
+GSList *sl_unqueued = NULL;			/**< Unqueued downloads only */
+GSList *sl_removed = NULL;			/**< Removed downloads only */
+GSList *sl_removed_servers = NULL;	/**< Removed servers only */
 static gchar dl_tmp[4096];
 static gint queue_frozen = 0;
 
 static const gchar DL_OK_EXT[] = ".OK";		/**< Extension to mark OK files */
 static const gchar DL_BAD_EXT[] = ".BAD"; 	/**< "Bad" files (SHA1 mismatch) */
 static const gchar DL_UNKN_EXT[] = ".UNKN";		/**< For unchecked files */
-static const gchar file_what[] = "downloads";	/**< What is persisted to file */
+static const gchar file_what[] = "downloads"; /**< What is persisted to file */
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
 static gboolean send_push_request(const gchar *, guint32, guint16);
@@ -250,7 +250,7 @@ src_get_download(gnet_src_t src_handle)
 static guint
 dl_key_hash(gconstpointer key)
 {
-	const struct dl_key *k = (const struct dl_key *) key;
+	const struct dl_key *k = key;
 	guint hash;
 
 	hash = guid_hash(k->guid);
@@ -266,8 +266,8 @@ dl_key_hash(gconstpointer key)
 static gint
 dl_key_eq(gconstpointer a, gconstpointer b)
 {
-	const struct dl_key *ak = (const struct dl_key *) a;
-	const struct dl_key *bk = (const struct dl_key *) b;
+	const struct dl_key *ak = a;
+	const struct dl_key *bk = b;
 
 	return ak->ip == bk->ip &&
 		ak->port == bk->port &&
@@ -280,7 +280,7 @@ dl_key_eq(gconstpointer a, gconstpointer b)
 static guint
 dl_ip_hash(gconstpointer key)
 {
-	const struct dl_ip *k = (const struct dl_ip *) key;
+	const struct dl_ip *k = key;
 	guint32 hash;
 
 	WRITE_GUINT32_LE(k->ip, &hash); /* Reverse IP, 192.x.y.z -> z.y.x.192 */
@@ -295,8 +295,8 @@ dl_ip_hash(gconstpointer key)
 static gint
 dl_ip_eq(gconstpointer a, gconstpointer b)
 {
-	const struct dl_ip *ak = (const struct dl_ip *) a;
-	const struct dl_ip *bk = (const struct dl_ip *) b;
+	const struct dl_ip *ak = a;
+	const struct dl_ip *bk = b;
 
 	return ak->ip == bk->ip && ak->port == bk->port;
 }
@@ -308,8 +308,8 @@ dl_ip_eq(gconstpointer a, gconstpointer b)
 static gint
 dl_retry_cmp(gconstpointer a, gconstpointer b)
 {
-	const struct download *as = (const struct download *) a;
-	const struct download *bs = (const struct download *) b;
+	const struct download *as = a;
+	const struct download *bs = b;
 
 	if (as->retry_after == bs->retry_after)
 		return 0;
@@ -324,8 +324,8 @@ dl_retry_cmp(gconstpointer a, gconstpointer b)
 static gint
 dl_server_retry_cmp(gconstpointer a, gconstpointer b)
 {
-	const struct dl_server *as = (const struct dl_server *) a;
-	const struct dl_server *bs = (const struct dl_server *) b;
+	const struct dl_server *as = a;
+	const struct dl_server *bs = b;
 
 	if (as->retry_after == bs->retry_after)
 		return 0;
@@ -362,7 +362,7 @@ is_faked_download(const struct download *d)
  * Was downloaded file verified to have a SHA1 matching the advertised one?
  */
 static gboolean
-has_good_sha1(struct download *d)
+has_good_sha1(const struct download *d)
 {
 	struct dl_file_info *fi = d->file_info;
 
@@ -381,12 +381,12 @@ has_good_sha1(struct download *d)
  *
  * @return The total percent completed for this file.
  */
-gfloat
-download_total_progress(struct download *d)
+gdouble
+download_total_progress(const struct download *d)
 {
-	guint64 filesize = download_filesize(d);
+	filesize_t filesize = download_filesize(d);
 
-	return filesize < 1 ? 0.0 : (gfloat) download_filedone(d) / filesize;
+	return filesize < 1 ? 0.0 : (gdouble) download_filedone(d) / filesize;
 }
 
 /**
@@ -399,18 +399,12 @@ download_total_progress(struct download *d)
  *
  * @return The percent completed for this source.
  */
-gfloat
-download_source_progress(struct download *d)
+gdouble
+download_source_progress(const struct download *d)
 {
-	gfloat progress = 0.0;
-	gfloat size = (gfloat)d->size;
-	gfloat pos = (gfloat)d->pos;
-	gfloat skip = (gfloat)d->skip;
+	gdouble size = d->size;
 
-	if (size > 0.0)
-		progress = (pos - skip) / size;
-
-	return progress;
+	return size < 1 ? 0.0 : (d->pos - d->skip) / size;
 }
 
 /**
@@ -1144,7 +1138,7 @@ download_passively_queued(struct download *d, gboolean queued)
  * @returns whether the download file exists in the temporary directory.
  */
 gboolean
-download_file_exists(struct download *d)
+download_file_exists(const struct download *d)
 {
 	gboolean ret;
 	gchar *path;
@@ -8018,7 +8012,7 @@ download_close(void)
  * browser and download the file there with this URL).
  */
 const gchar *
-build_url_from_download(struct download *d)
+build_url_from_download(const struct download *d)
 {
 	static gchar url_tmp[1024];
 	const gchar *sha1;

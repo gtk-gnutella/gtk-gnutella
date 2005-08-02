@@ -63,7 +63,7 @@ gboolean guc_adns_resolve(
 	const gchar *hostname, adns_callback_t user_callback, gpointer user_data);
 
 /* download and src interface functions */
-const gchar *guc_build_url_from_download(struct download *d);
+const gchar *guc_build_url_from_download(const struct download *d);
 gint guc_download_get_http_req_percent(const struct download *d);
 void guc_download_fallback_to_push
 	(struct download *d, gboolean on_timeout, gboolean user_request);
@@ -73,7 +73,7 @@ gint guc_download_remove_all_named(const gchar *name);
 gint guc_download_remove_all_with_sha1(const gchar *sha1);
 void guc_download_remove_file
 	(struct download *d, gboolean reset);
-gboolean guc_download_file_exists(struct download *d);
+gboolean guc_download_file_exists(const struct download *d);
 void guc_download_requeue(struct download *d);
 void guc_download_start
 	(struct download *d, gboolean check_allowed);
@@ -100,8 +100,8 @@ gboolean guc_download_new_unknown_size(gchar *file,
 	struct dl_file_info *fi, gnet_host_vec_t *proxies);
 const gchar *guc_download_get_hostname(const struct download *d);
 const gchar *guc_download_get_country(const struct download *d);
-gfloat guc_download_source_progress(struct download *d);
-gfloat guc_download_total_progress(struct download *d);
+gdouble guc_download_source_progress(const struct download *d);
+gdouble guc_download_total_progress(const struct download *d);
 gboolean guc_download_something_to_clear(void);
 void guc_download_index_changed(guint32 ip, guint16 port,
 	gchar *guid, filesize_t from, filesize_t to);
@@ -249,8 +249,8 @@ void guc_upload_stats_clear_all(void);
 const gchar *guc_version_get_version_string(void);
 
 /* bitzi interface functions*/
-void guc_query_bitzi_by_urn(gchar *urnsha1);
-bitzi_data_t * guc_querycache_bitzi_by_urn(gchar *urnsha1);
+void guc_query_bitzi_by_urn(const gchar *urnsha1);
+bitzi_data_t * guc_querycache_bitzi_by_urn(const gchar *urnsha1);
 
 /** main functions */
 void guc_gtk_gnutella_exit(gint code);

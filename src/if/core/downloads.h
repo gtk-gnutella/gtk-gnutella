@@ -320,7 +320,7 @@ void src_add_listener(src_listener_t, gnet_src_ev_t, frequency_t, guint32);
 void src_remove_listener(src_listener_t, gnet_src_ev_t);
 struct download *src_get_download(gnet_src_t src_handle);
 
-const gchar *build_url_from_download(struct download *d);
+const gchar *build_url_from_download(const struct download *d);
 gint download_get_http_req_percent(const struct download *d);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
 gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port,
@@ -328,7 +328,7 @@ gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port,
 gint download_remove_all_named(const gchar *name);
 gint download_remove_all_with_sha1(const gchar *sha1);
 void download_remove_file(struct download *d, gboolean reset);
-gboolean download_file_exists(struct download *d);
+gboolean download_file_exists(const struct download *d);
 void download_requeue(struct download *);
 void download_start(struct download *, gboolean);
 gboolean download_remove(struct download *);
@@ -343,8 +343,8 @@ gboolean download_new_unknown_size(gchar *file, guint32 record_index,
 	gchar *sha1, time_t stamp, gboolean push,
 	struct dl_file_info *fi, gnet_host_vec_t *proxies);
 const gchar *download_get_hostname(const struct download *d);
-gfloat download_source_progress(struct download *);
-gfloat download_total_progress(struct download *);
+gdouble download_source_progress(const struct download *);
+gdouble download_total_progress(const struct download *);
 gboolean download_something_to_clear(void);
 struct download *src_get_download(gnet_src_t src_handle);
 void src_add_listener(src_listener_t cb, gnet_src_ev_t ev,
