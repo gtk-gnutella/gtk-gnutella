@@ -43,6 +43,9 @@ OBJ = main.o
 ++XML2_CFLAGS $xmlcflags
 ++XML2_LDFLAGS $xmlldflags
 
+/* Add the dbus linker flags */
+++DBUS_LDFLAGS $dbusldflags
+
 /*
  * Due to cross-referencing between the GUI and the core, libcore.a wraps
  * the GUI libraries and the libgtk-common.a library wraps the libgtkx.a
@@ -62,7 +65,7 @@ LDFLAGS = \
 	-Lui/gtk \
 	-lgtk-common -lgtkx -lgtk-common -lcore \
 	-Llib -lshared \
-	$(GTK_LDFLAGS) $(XML2_LDFLAGS)
+	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS)
 
 RemoteTargetDependency(gtk-gnutella, lib, libshared.a)
 RemoteTargetDependency(gtk-gnutella, core, libcore.a)

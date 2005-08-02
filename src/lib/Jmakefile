@@ -37,6 +37,7 @@ LSRC = \
 	cobs.c \
 	cq.c \
 	crc.c \
+	dbus_util.c \
 	eval.c \
 	event.c \
 	fifo.c \
@@ -79,8 +80,11 @@ LOBJ = \
 /* Additional flags for glib compilation, added in the substituted section */
 ++GLIB_CFLAGS $glibcflags
 
+/* Additional flags for dbus compilation, added in the substituted section */
+++DBUS_CFLAGS $dbuscflags
+
 ;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCURDIR=$(CURRENT)
+CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(DBUS_CFLAGS) -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
 NormalLibraryTarget(shared,$(LSRC),$(LOBJ))
