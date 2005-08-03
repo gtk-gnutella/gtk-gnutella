@@ -1,0 +1,90 @@
+
+-------------------------------------------------------------------------------
+                          Gtk-Gnutella D-Bus support
+-------------------------------------------------------------------------------
+Date: 3.8.2005
+Author: Hans de Graaff
+$Id$
+
+
+Introduction
+------------
+
+  Gtk-Gnutella D-Bus support aims to be an easy way to connect what it
+  going on inside Gtk-Gnutella with the outside world. Current use of
+  D-Bus is limited to Gtk-Gnutella sending notifications on the
+  session bus. Other applications can listen to these notifications
+  and possibly act on them.
+
+  Note that D-Bus is still experimental. It should be considered
+  unstable, and until a version 1.0 is released the support of
+  Gtk-Gnutella for D-Bus should be considered experimental and
+  unstable as well.
+
+
+What is D-Bus
+-------------
+
+  D-Bus is a message bus system, delivering a simple way for
+  applications to talk to each other.
+
+  D-BUS supplies both a system daemon (for events such as "new
+  hardware device added" or "printer queue changed") and a
+  per-user-login-session daemon (for general IPC needs among user
+  applications). Also, the message bus is built on top of a general
+  one-to-one message passing framework, which can be used by any two
+  apps to communicate directly (without going through the message bus
+  daemon).
+
+  More information on D-Bus can be found here:
+  http://www.freedesktop.org/Software/dbus
+
+
+What benefits does D-Bus integration bring?
+-------------------------------------------
+
+  D-Bus allows Gtk-Gnutella to send out notifications without having
+  prior knowledge about which application will listen for which
+  event. In addition, D-Bus allows multiple applications to listen
+  for the notifications that they want to receive, even if they both
+  want to receive the same notification. 
+
+  D-Bus is also available for several programming languages, so it
+  supports quick scripting in Python, rapid application development in
+  Mono, and integration with other applications in C, for example.
+
+  This flexibility will enable users and developers to quickly and
+  easily create tools to enable them to customize their experience
+  with Gtk-Gnutella. Examples of such tools are:
+
+  - create an audible alert when a download is completed.
+
+  - create a notification applet to show whether Gtk-Gnutella is
+    running and whether there are problems.
+
+  - process files automatically once they are correctly downloaded.
+
+
+Which events does Gtk-Gnutella currently support?
+-------------------------------------------------
+
+  Event support is still in its infancy. We expect this list to change
+  in the future as our thinking about notifications and events
+  matures. If you have ideas about specific events which Gtk-Gnutella
+  should generate, then please let us know about them. Tell us also
+  what you would like to use the events for!
+
+  All events are sent by the object /net/gtkg/events using the
+  net.gtkg.Events interface.
+
+  Signal name            Values           Description
+  -----------            ------           -----------
+
+  Events                 started          Gtk-Gnutella is started
+						 stopped		  Gtk-Gnutella is stopped
+
+
+
+
+  Note: this list may be out-of-date. If in doubt then check the
+  source code in src/lib/dbus_util.c
