@@ -39,12 +39,42 @@
 
 #include "common.h"
 
-struct special_read_ctx {
+#include "tx.h"
+#include "tx_link.h"
+#include "tx_deflate.h"
+
+#include "if/core/hosts.h"
+#include "if/core/wrap.h"
+
+/**
+ * Flags for browse_host_open().
+ */
+#define BH_DEFLATE	0x00000001		/**< Deflate output */
+#define BH_CHUNKED	0x00000002		/**< Emit chunked data */
+#define BH_HTML		0x00000004		/**< Emit HTML data */
+#define BH_QHITS	0x00000008		/**< Emit Gnutella query hits */
+
+struct gnutella_socket;
+struct bio_source;
+
+typedef void (*bh_closed_t)(gpointer arg);
+typedef void (*bh_writeable_t)(gpointer arg);
+
+struct special_ctx {
+	txdrv_t *tx;
 	ssize_t (*read)(gpointer ctx, gpointer dest, size_t size);
+	ssize_t (*write)(gpointer ctx, gpointer data, size_t size);
+	void (*flush)(gpointer ctx, bh_closed_t cb, gpointer arg);
 	void (*close)(gpointer ctx);
 };
 
-struct special_read_ctx *browse_host_open(void);
+struct special_ctx *browse_host_open(
+	gpointer owner, gnet_host_t *host,
+	bh_writeable_t writeable,
+	struct tx_deflate_cb *deflate_cb,
+	struct tx_link_cb *link_cb,
+	wrap_io_t *wio,
+	gint flags);
 
 #endif /* _core_bh_upload_h_ */
 

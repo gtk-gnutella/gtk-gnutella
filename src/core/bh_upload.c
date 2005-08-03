@@ -40,9 +40,16 @@ RCSID("$Id$");
 
 #include "bh_upload.h"
 #include "share.h"
+#include "bsched.h"
+#include "tx.h"
+#include "tx_link.h"
+#include "tx_chunk.h"
+#include "tx_deflate.h"
 
+#include "lib/header.h"
 #include "lib/misc.h"
 #include "lib/url.h"
+#include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
 enum bh_state {
@@ -54,14 +61,23 @@ enum bh_state {
 	NUM_BH_STATES,
 };
 
+enum bh_type {
+	BH_TYPE_HTML = 0,		/* Send back HTML */
+	BH_TYPE_QHIT,			/* Send back Gnutella query hits */
+};
+
 struct browse_host_ctx {
-	struct special_read_ctx special;	/**< vtable for special functions */
+	struct special_ctx special;	/**< vtable, MUST be first field */
+	txdrv_t *tx;			/**< The transmission stack */
 	gpointer d_buf;			/**< Used for dynamically allocated buffer */
 	const gchar *b_data;	/**< Current data block */
 	size_t b_offset;		/**< Offset in data block */
 	size_t b_size;			/**< Size of the data block */
 	enum bh_state state;	/**< Current state of the state machine */
+	enum bh_type type;		/**< Type of data to send back */
 	guint file_index;		/**< Current file index (iterator) */
+	bh_closed_t cb;			/**< Callback to invoke when TX fully flushed */
+	gpointer cb_arg;		/**< Callback argument */
 };
 
 /**
@@ -224,6 +240,57 @@ browse_host_read(gpointer ctx, gpointer const dest, size_t size)
 }
 
 /**
+ * Write data to the TX stack.
+ */
+ssize_t
+browse_host_write(gpointer ctx, gpointer data, size_t size)
+{
+	struct browse_host_ctx *bh = ctx;
+
+	g_assert(bh->tx);
+
+	return tx_write(bh->tx, data, size);
+}
+
+/**
+ * Callback invoked when the TX stack is fully flushed.
+ */
+static void
+browse_tx_flushed(txdrv_t *unused_tx, gpointer arg)
+{
+	struct browse_host_ctx *bh = arg;
+
+	(void) unused_tx;
+
+	/*
+	 * Bounce them to the callback they registered.
+	 */
+
+	(*bh->cb)(bh->cb_arg);
+}
+
+/**
+ * Flush the TX stack, invoking callback when it's done.
+ */
+static void
+browse_host_flush(gpointer ctx, bh_closed_t cb, gpointer arg)
+{
+	struct browse_host_ctx *bh = ctx;
+
+	g_assert(bh->tx);
+
+	/*
+	 * Intercept the closing notification since the client cannot be
+	 * told about the TX stack we're using.
+	 */
+
+	bh->cb = cb;
+	bh->cb_arg = arg;
+
+	tx_close(bh->tx, browse_tx_flushed, bh);
+}
+
+/**
  * Closes the browse host context and releases its memory.
  *
  * @return An initialized browse host context.
@@ -231,28 +298,94 @@ browse_host_read(gpointer ctx, gpointer const dest, size_t size)
 void
 browse_host_close(gpointer ctx)
 {
-	struct browse_host_ctx *bh = cast_to_gpointer(ctx);
+	struct browse_host_ctx *bh = ctx;
 
-	if (bh && bh->d_buf) 
+	g_assert(bh);
+
+	if (bh->d_buf) 
 		G_FREE_NULL(bh->d_buf);
-	G_FREE_NULL(bh);
+
+	wfree(bh, sizeof *bh);
 }
 
 /**
  * Creates a new browse host context. The context must be freed with
  * browse_host_close().
  *
+ * @param owner			the owner of the TX stack (the upload)
+ * @param host			the host to which we're talking to
+ * @param deflate_cb	callbacks for the deflate layer
+ * @param link_cb		callbacks for the link layer
+ * @param flags			opening flags
+ *
  * @return An initialized browse host context.
  */
-struct special_read_ctx *
-browse_host_open(void)
+struct special_ctx *
+browse_host_open(
+	gpointer owner,
+	gnet_host_t *host,
+	bh_writeable_t writeable,
+	struct tx_deflate_cb *deflate_cb,
+	struct tx_link_cb *link_cb,
+	wrap_io_t *wio,
+	gint flags)
 {
 	struct browse_host_ctx *bh;
 
-	bh = g_malloc(sizeof *bh);
+	/* BH_HTML xor BH_QHITS set */
+	g_assert(flags & (BH_HTML|BH_QHITS));
+	g_assert((flags & (BH_HTML|BH_QHITS)) != (BH_HTML|BH_QHITS));
+
+	bh = walloc(sizeof *bh);
 	bh->special.read = browse_host_read;
+	bh->special.write = browse_host_write;
+	bh->special.flush = browse_host_flush;
 	bh->special.close = browse_host_close;
 	browse_host_next_state(bh, BH_STATE_HEADER);
+
+	/*
+	 * Instantiate the TX stack.
+	 */
+
+	{
+		struct tx_link_args args;
+
+		args.cb = link_cb;
+		args.wio = wio;
+		args.bs = bws.out;
+
+		bh->tx = tx_make(owner, host, tx_link_get_ops(), &args);
+	}
+
+	if (flags & BH_CHUNKED)
+		bh->tx = tx_make_above(bh->tx, tx_chunk_get_ops(), 0);
+
+	if (flags & BH_DEFLATE) {
+		struct tx_deflate_args args;
+		txdrv_t *ctx;
+
+		args.cq = callout_queue;
+		args.cb = deflate_cb;
+
+		ctx = tx_make_above(bh->tx, tx_deflate_get_ops(), &args);
+		if (ctx == NULL) {
+			tx_free(bh->tx);
+			link_cb->eof_remove(owner, "Cannot setup compressing TX stack");
+			wfree(bh, sizeof *bh);
+			return NULL;
+		}
+
+		bh->tx = ctx;
+	}
+
+	/*
+	 * Put stack in "eager" mode: we want to be notified whenever
+	 * we can write something.
+	 */
+
+	tx_srv_register(bh->tx, writeable, owner);
+	tx_eager_mode(bh->tx, TRUE);
+
 	return &bh->special;
 }
 
