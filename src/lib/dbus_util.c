@@ -44,16 +44,18 @@ RCSID("$Id$");
 #define DBUS_API_SUBJECT_TO_CHANGE
 #include <dbus/dbus.h>
 
+/** The dbus path to the object serving the notifications. */
 #define DBUS_PATH "/net/gtkg/events"
+/** The interface that is sending the notifications. */
 #define DBUS_INTERFACE "net.gtkg.Events"
 
-static DBusConnection *bus = NULL; /**< DBus connection to the bus */
+static DBusConnection *bus = NULL; /**< D-Bus connection to the message bus */
 
 /** 
  * Initialize the bus connection
  */
-
-void dbus_util_init () {
+void 
+dbus_util_init() {
 
 	DBusError error;
 
@@ -85,7 +87,8 @@ void dbus_util_init () {
 /** 
  * Close down the D-BUS connection and send final event.
  */
-void dbus_util_close () {
+void 
+dbus_util_close() {
 	
 	dbus_util_send_message("stopped");
 	
@@ -104,7 +107,8 @@ void dbus_util_close () {
  * way to go about things, but this will be ok for testing.
  * @return void because this is a fire-and-forget interface
  */
-void dbus_util_send_message (const char *text) {
+void 
+dbus_util_send_message(const char *text) {
 
 	DBusMessage *message;
 
@@ -131,6 +135,13 @@ void dbus_util_send_message (const char *text) {
     }
 
 }
+
+#else 
+/* 
+ * Dummy function calls to avoid cluttering the rest of the code with ifdefs 
+ */ 
+void dbus_util_send_message(const char * text) {}
+
 
 #endif
 
