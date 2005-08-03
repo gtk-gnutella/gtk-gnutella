@@ -40,6 +40,7 @@ RCSID("$Id$");
 #include "dbus_util.h"
 
 #ifdef HAS_DBUS
+
 /** @todo DBus API is not stable yet, may need changes once 1.0 is released */
 #define DBUS_API_SUBJECT_TO_CHANGE
 #include <dbus/dbus.h>
@@ -54,16 +55,16 @@ static DBusConnection *bus = NULL; /**< D-Bus connection to the message bus */
 /** 
  * Initialize the bus connection
  */
-void 
-dbus_util_init() {
-
+void
+dbus_util_init(void)
+{
 	DBusError error;
 
 	dbus_error_init(&error);
 	bus = dbus_bus_get(DBUS_BUS_SESSION, &error);
 
-	if (bus == NULL) {
-		g_message("Could not open connection to DBus bus: %s\n", error.message);
+	if (NULL == bus) {
+		g_message("Could not open connection to DBus bus: %s", error.message);
 		dbus_error_free(&error);
 	} else {
 
@@ -76,20 +77,22 @@ dbus_util_init() {
 		doing this. It could also be a bug in D-BUS that may be fixed
 		in 1.0, so revisit then. */
 
-		/* dbus_connection_setup_with_g_main(bus, NULL); */
+#if 0
+		dbus_connection_setup_with_g_main(bus, NULL);
+#endif
 
 	}
 
-	g_message("D-BUS set up and ready for use.\n");
+	g_message("D-BUS set up and ready for use.");
 	dbus_util_send_message("started");
 }
 
 /** 
  * Close down the D-BUS connection and send final event.
  */
-void 
-dbus_util_close() {
-	
+void
+dbus_util_close(void)
+{
 	dbus_util_send_message("stopped");
 	
 	/**
@@ -107,17 +110,17 @@ dbus_util_close() {
  * way to go about things, but this will be ok for testing.
  * @return void because this is a fire-and-forget interface
  */
-void 
-dbus_util_send_message(const char *text) {
-
+void
+dbus_util_send_message(const char *text)
+{
 	DBusMessage *message;
 
 	if (bus) {
 		/* Create a new message on the DBUS_INTERFACE */
 		message = dbus_message_new_signal(DBUS_PATH, DBUS_INTERFACE, "Events");
 
-		if (message == NULL) {
-			g_message("Could not create D-BUS message!\n");
+		if (NULL == message) {
+			g_message("Could not create D-BUS message!");
 		} else {
 			
 			/* Add the message to the Events signal */
@@ -127,7 +130,7 @@ dbus_util_send_message(const char *text) {
 			/* Send the message */
 			dbus_connection_send(bus, message, NULL);
 		
-			g_message("Sent D-BUS message %s\n", text);
+			g_message("Sent D-BUS message %s", text);
 		
 			/* Free the message */
 			dbus_message_unref(message);
@@ -136,13 +139,15 @@ dbus_util_send_message(const char *text) {
 
 }
 
-#else 
+#else /* !HAS_DBUS */
+
 /* 
  * Dummy function calls to avoid cluttering the rest of the code with ifdefs 
  */ 
+void dbus_util_init(void) { }
+void dbus_util_close(void) { }
 void dbus_util_send_message(const char * text) {}
 
+#endif /* HAS_DBUS */
 
-#endif
-
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
