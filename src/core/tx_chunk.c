@@ -77,10 +77,11 @@ RCSID("$Id$");
  * Private attributes for the link.
  */
 struct attr {
-	gchar head[CHUNK_DIGITS+3];	/**< Chunk header: hexa size + CRLF + NUL */
+	gchar head[CHUNK_DIGITS+5];	/**< Chunk header: hexa size + 2CRLF + NUL */
 	ssize_t head_len;			/**< Length of chunk header */
 	ssize_t head_remain;		/**< Amount of unwritten header data */
 	ssize_t data_remain;		/**< Data required to complete chunk */
+	gboolean first;				/**< True for first chunk */
 	tx_closed_t closed;			/**< Callback to invoke when layer closed */
 	gpointer closed_arg;		/**< Argument for closing routine */
 };
@@ -133,7 +134,7 @@ static gboolean
 chunk_begin(txdrv_t *tx, size_t len, gboolean final)
 {
 	struct attr *attr = tx->opaque;
-	gint hlen;
+	gint hlen = 0;
 	
 	g_assert(0 == attr->data_remain);
 	g_assert(0 == attr->head_remain);
@@ -142,15 +143,24 @@ chunk_begin(txdrv_t *tx, size_t len, gboolean final)
 	/*
 	 * Build the chunk header, committing on sending `len' bytes of data.
 	 * The final chunk header is followed by a trailing CRLF.
+	 *
+	 * If it's not the first chunk emitted, we must end the previous
+	 * data with another CRLF.
 	 */
+
+	if (!attr->first)
+		hlen = gm_snprintf(attr->head, sizeof(attr->head), "\r\n");
 	
 	if (final)
-		hlen = gm_snprintf(attr->head, sizeof(attr->head), "0\r\n\r\n");
+		hlen += gm_snprintf(&attr->head[hlen], sizeof(attr->head) - hlen,
+			"0\r\n\r\n");
 	else
-		hlen = gm_snprintf(attr->head, sizeof(attr->head), "%x\r\n", len);
+		hlen += gm_snprintf(&attr->head[hlen], sizeof(attr->head) - hlen,
+			"%x\r\n", len);
 
 	attr->head_len = attr->head_remain = hlen;
 	attr->data_remain = len;
+	attr->first = FALSE;
 
 	/*
 	 * Flush the chunk header.
@@ -250,6 +260,7 @@ tx_chunk_init(txdrv_t *tx, gpointer unused_args)
 
 	attr->head_remain = 0;		/* No committed length yet */
 	attr->data_remain = 0;		/* No data yet */
+	attr->first = TRUE;
 
 	tx->opaque = attr;
 
