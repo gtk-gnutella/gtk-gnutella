@@ -292,7 +292,8 @@ tx_chunk_write(txdrv_t *tx, gpointer data, size_t len)
 		ssize_t acceptable = chunk_acceptable(tx, remain);
 		ssize_t r;
 
-		g_assert(acceptable > 0);
+		if (acceptable == 0)	/* Could not flush header probably */
+			break;
 		
 		r = tx_write(tx->lower, ptr, acceptable);
 
