@@ -101,7 +101,7 @@ chunk_flush_header(txdrv_t *tx)
 	g_assert(attr->head_remain > 0);
 
 	offset = attr->head_len - attr->head_remain;
-	g_assert(offset > 0);
+	g_assert(offset >= 0);
 
 	r = tx_write(tx->lower, &attr->head[offset], attr->head_remain);
 
