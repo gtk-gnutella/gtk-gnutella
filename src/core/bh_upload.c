@@ -197,6 +197,8 @@ browse_host_read(gpointer ctx, gpointer const dest, size_t size)
 				   	if (bh->file_index > shared_files_scanned())
 						browse_host_next_state(bh, BH_STATE_TRAILER);
 					/* Skip holes in the file_index table */
+				} else if (SHARE_REBUILDING == sf) {
+					browse_host_next_state(bh, BH_STATE_TRAILER);
 				} else {
 					/*
 					 * @todo FIXME: In HTML (especially anchors) certain
