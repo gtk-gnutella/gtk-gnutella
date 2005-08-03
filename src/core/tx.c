@@ -276,6 +276,14 @@ tx_srv_disable(txdrv_t *tx)
 	g_assert(tx->srv_routine != NULL);
 	g_assert(tx->flags & TX_SERVICE);
 
+	/*
+	 * In "eager mode", servicing is forced and cannot be disabled that way.
+	 * The "eager mode" must be turned off first.
+	 */
+
+	if (tx->flags & TX_EAGER)
+		return;
+
 	TX_DISABLE(tx);
 	tx->flags &= ~TX_SERVICE;
 }
@@ -298,7 +306,7 @@ tx_pending(txdrv_t *tx)
 	return pending;
 }
 
-/*
+/**
  * @return the driver at the bottom of the stack.
  */
 static txdrv_t *
@@ -308,6 +316,38 @@ tx_deep_bottom(txdrv_t *tx)
 		return tx_deep_bottom(tx->lower);
 
 	return tx;
+}
+
+/**
+ * Set stack in "eager" mode: in that mode, servicing is always enabled
+ * in the whole stack, meaning the bottom layer always invokes the queue
+ * service routines whenever it can accept more data.
+ *
+ * This mode is appropriate when the data to send is already generated or
+ * easily computed on demand and the limiting factor is the output bandwidth.
+ */
+void
+tx_eager_mode(txdrv_t *tx, gboolean on)
+{
+	txdrv_t *t;
+
+	g_assert(tx);
+	g_assert(tx->upper == NULL);
+
+	for (t = tx; t; t = t->lower) {
+		if (on) {
+			tx_srv_enable(t);
+			t->flags |= TX_EAGER;
+		} else {
+			/*
+			 * Don't disable.  Simply turning off "eager mode" will cause
+			 * each layer to disable servicing of the lower layers when it
+			 * has nothing more to transmit.
+			 */
+
+			t->flags &= ~TX_EAGER;
+		}
+	}
 }
 
 /**

@@ -71,6 +71,7 @@ typedef struct txdriver {
 #define TX_ERROR		0x00000002	/**< Fatal error detected */
 #define TX_DOWN			0x00000004	/**< No further writes allowed */
 #define TX_CLOSING		0x00000008	/**< Closing, no further writes allowed */
+#define TX_EAGER		0x00000010	/**< Always service the queue */
 
 /**
  * Operations defined on all drivers.
@@ -119,6 +120,7 @@ void tx_shutdown(txdrv_t *tx);
 void tx_close(txdrv_t *d, tx_closed_t cb, gpointer arg);
 void tx_close_noop(txdrv_t *tx, tx_closed_t cb, gpointer arg);
 gboolean tx_has_error(txdrv_t *tx);
+void tx_eager_mode(txdrv_t *tx, gboolean on);
 
 struct bio_source *tx_no_source(txdrv_t *tx);
 

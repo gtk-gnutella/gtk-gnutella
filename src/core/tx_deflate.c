@@ -247,7 +247,8 @@ deflate_service(gpointer data)
 	struct attr *attr = (struct attr *) tx->opaque;
 	struct buffer *b;
 
-	g_assert(attr->send_idx >= 0);	/* We have something to send */
+	/* We have something to send, unless in eager mode */
+	g_assert((tx->flags & TX_EAGER) || attr->send_idx >= 0);
 	g_assert(attr->send_idx < BUFFER_COUNT);
 
 	if (dbg > 9)
@@ -259,13 +260,14 @@ deflate_service(gpointer data)
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
 	/*
-	 * First, attempt to transmit the whole send buffer.
+	 * First, attempt to transmit the whole send buffer, if any pending.
 	 */
 
-	deflate_send(tx);				/* Send buffer `send_idx' */
+	if (attr->send_idx >= 0)
+		deflate_send(tx);			/* Send buffer `send_idx' */
 
 	if (attr->send_idx >= 0)		/* Could not send it entirely */
-		return;						/* Done, servicing still enabled */
+		goto done;					/* Done, servicing still enabled */
 
 	/*
 	 * NB: In the following operations, order matters.  In particular, we
@@ -301,7 +303,7 @@ deflate_service(gpointer data)
 
 		if (tx->flags & TX_CLOSING) {
 			(*attr->closed)(tx, attr->closed_arg);
-			return;
+			goto done;
 		}
 	}
 
@@ -316,18 +318,25 @@ deflate_service(gpointer data)
 		if (dbg > 4)
 			printf("Compressing TX stack for peer %s leaves FLOWC\n",
 				host_ip(&tx->host));
-
-		/*
-		 * If upper layer wants servicing, do it now.
-		 * Note that this can put us back into flow control.
-		 */
-
-		if (tx->flags & TX_SERVICE) {
-			g_assert(tx->srv_routine);
-			tx->srv_routine(tx->srv_arg);
-		}
 	}
 
+	if (dbg > 9)
+		printf("deflate_service: (%s) done locally [%c%c]\n",
+			host_ip(&tx->host),
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
+
+	/*
+	 * If upper layer wants servicing, do it now.
+	 * Note that this can put us back into flow control.
+	 */
+
+	if (tx->flags & TX_SERVICE) {
+		g_assert(tx->srv_routine);
+		tx->srv_routine(tx->srv_arg);
+	}
+
+done:
 	if (dbg > 9)
 		printf("deflate_service: (%s) leaving [%c%c]\n",
 			host_ip(&tx->host),
