@@ -324,7 +324,7 @@ struct special_ctx *
 browse_host_open(
 	gpointer owner,
 	gnet_host_t *host,
-	bh_writeable_t writeable,
+	bh_writable_t writable,
 	struct tx_deflate_cb *deflate_cb,
 	struct tx_link_cb *link_cb,
 	wrap_io_t *wio,
@@ -383,7 +383,7 @@ browse_host_open(
 	 * we can write something.
 	 */
 
-	tx_srv_register(bh->tx, writeable, owner);
+	tx_srv_register(bh->tx, writable, owner);
 	tx_eager_mode(bh->tx, TRUE);
 
 	return &bh->special;
