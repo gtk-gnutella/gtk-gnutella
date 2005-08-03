@@ -247,15 +247,14 @@ deflate_service(gpointer data)
 	struct attr *attr = (struct attr *) tx->opaque;
 	struct buffer *b;
 
-	/* We have something to send, unless in eager mode */
-	g_assert((tx->flags & TX_EAGER) || attr->send_idx >= 0);
 	g_assert(attr->send_idx < BUFFER_COUNT);
 
 	if (dbg > 9)
 		printf("deflate_service: (%s) (buffer #%d, %d bytes held) [%c%c]\n",
 			host_ip(&tx->host), attr->send_idx,
-			(gint) (attr->buf[attr->send_idx].wptr -
-					attr->buf[attr->send_idx].rptr),
+			attr->send_idx >= 0 ?
+				(gint) (attr->buf[attr->send_idx].wptr -
+						attr->buf[attr->send_idx].rptr) : 0,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -846,7 +845,8 @@ tx_deflate_flush(txdrv_t *tx)
 	if (attr->flags & DF_NAGLE) {
 		g_assert(attr->tm_ev != NULL);
 		cq_expire(attr->cq, attr->tm_ev);
-	}
+	} else
+		deflate_flush(tx);
 }
 
 /**
