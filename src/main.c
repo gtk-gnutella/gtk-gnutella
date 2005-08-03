@@ -314,9 +314,7 @@ gtk_gnutella_exit(gint n)
 	iso3166_close();
 	atom_str_free(start_rfc822_date);
 	adns_close();
-#ifdef HAS_DBUS
 	dbus_util_close();  /* After adns_close() to avoid strange crashes */
-#endif
 	atoms_close();
 	wdestroy();
 	locale_close();
@@ -594,9 +592,7 @@ main(int argc, char **argv)
 	socket_init();
 	gnet_stats_init();
 	iso3166_init();
-#ifdef HAS_DBUS
 	dbus_util_init();
-#endif
 
 	main_gui_early_init(argc, argv);
 
