@@ -2331,8 +2331,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				bh_flags |= BH_QHITS;
 			else if (strstr(buf, "text/html"))
 				bh_flags |= BH_HTML;
-			else if (strstr(buf, "*/*"))	/* A browser probably */
-				bh_flags |= BH_HTML;
+			else if (strstr(buf, "*/*") || strstr(buf, "text/*"))
+				bh_flags |= BH_HTML;	/* A browser probably */
 			else {
 				upload_error_remove(u, NULL, 406, "Not Acceptable");
 				return;
