@@ -60,7 +60,7 @@ typedef struct upload {
 	gint file_desc;
 	bio_source_t *bio;				/**< Bandwidth-limited source */
 	sendfile_ctx_t sendfile_ctx;
-	struct special_read_ctx *special_read;
+	struct special_ctx *special;	/**< For special ops like browsing */
 
 	gchar *buffer;
 	gint bpos;

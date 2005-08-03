@@ -40,6 +40,7 @@
 
 RCSID("$Id$");
 
+#include "uploads.h"
 #include "sockets.h"
 #include "share.h"
 #include "hosts.h"		/* for check_valid_host() */
@@ -57,6 +58,8 @@ RCSID("$Id$");
 #include "features.h"
 #include "geo_ip.h"
 #include "ignore.h"
+#include "tx_link.h"		/* for callback structures */
+#include "tx_deflate.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -147,8 +150,8 @@ static void upload_http_xhost_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 static void upload_xfeatures_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
-static void upload_write(gpointer up, gint source, inputevt_cond_t cond);
-static void upload_special_write(gpointer up, gint source, inputevt_cond_t cond);
+static void upload_writable(gpointer up, gint source, inputevt_cond_t cond);
+static void upload_special_writable(gpointer up);
 static void send_upload_error(gnutella_upload_t *u, struct shared_file *sf,
 	int code, const gchar *msg, ...) G_GNUC_PRINTF(4, 5);
 
@@ -642,9 +645,9 @@ upload_free_resources(gnutella_upload_t *u)
 		atom_sha1_free(u->sha1);
 		u->sha1 = NULL;
 	}
-	if (u->special_read) {
-		u->special_read->close(u->special_read);
-		u->special_read = NULL;
+	if (u->special) {
+		u->special->close(u->special);
+		u->special = NULL;
 	}
 
     upload_free_handle(u->upload_handle);
@@ -691,6 +694,7 @@ upload_clone(gnutella_upload_t *u)
 	u->user_agent = NULL;
 	u->country = -1;
 	u->sha1 = NULL;
+	u->special = NULL;
 
 	/*
 	 * Add the upload structure to the upload slist, so it's monitored
@@ -2118,6 +2122,34 @@ upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 	*retval = rw;
 }
 
+/***
+ *** TX deflate and link callbacks.
+ ***/
+
+static void
+upload_tx_error(gpointer o, const gchar *reason, ...)
+{
+	gnutella_upload_t *u = o;
+	va_list args;
+
+	va_start(args, reason);
+	socket_eof(u->socket);
+	upload_remove_v(u, reason, args);
+	va_end(args);
+}
+
+static struct tx_deflate_cb upload_tx_deflate_cb = {
+	NULL,				/* add_tx_deflated */
+	upload_tx_error,	/* shutdown */
+};
+
+static struct tx_link_cb upload_tx_link_cb = {
+	NULL,				/* add_tx_written */
+	upload_tx_error,	/* eof_remove */
+	upload_tx_error,	/* eof_shutdown */
+	NULL,				/* unflushq -- XXX rename that, it's node specific */
+};
+
 /**
  * Called to initiate the upload once all the HTTP headers have been
  * read.  Validate the request, and begin processing it if all OK.
@@ -2153,6 +2185,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean use_sendfile;
 	gchar *token;
 	gboolean known_for_stalling;
+	gint bh_flags = 0;
 
 	if (upload_debug) {
 		g_message("----%s Request from %s:\n%s",
@@ -2274,11 +2307,10 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			return;
 		}
 
-	    g_assert(hevcnt < G_N_ELEMENTS(hev));
-		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-		hev[hevcnt].he_msg = "Content-Type: text/html; charset=utf-8\r\n";
-		hev[hevcnt++].he_arg = NULL;
-		
+		/*
+		 * If it's a HEAD request, let them know we support Browse Host.
+		 */
+
 		if (NULL != is_strprefix(request, "HEAD ")) {
 			static const gchar msg[] = N_("Browse Host Enabled");
 			http_send_status(u->socket, 200, FALSE, hev, hevcnt, msg);
@@ -2286,6 +2318,61 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			return;
 		}
 
+		/*
+		 * Look at an Accept: line containing "application/x-gnutella-packets".
+		 * If we get that, then we can send query hits backs.  Otherwise,
+		 * we'll send HTML output.
+		 */
+
+		buf = header_get(header, "Accept");
+		if (buf) {
+			/* XXX needs more rigourous parsing */
+			if (strstr(buf, "application/x-gnutella-packets"))
+				bh_flags |= BH_QHITS;
+			else if (strstr(buf, "text/html"))
+				bh_flags |= BH_HTML;
+			else {
+				upload_error_remove(u, NULL, 406, "Not Acceptable");
+				return;
+			}
+		} else
+			bh_flags |= BH_HTML;		/* No Accept, default to HTML */
+
+	    g_assert(hevcnt < G_N_ELEMENTS(hev));
+		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
+// XXX	hev[hevcnt].he_msg = (bh_flags & BH_HTML) ?
+		hev[hevcnt].he_msg = (TRUE) ?
+			"Content-Type: text/html; charset=utf-8\r\n" :
+			"Content-Type: application/x-gnutella-packets\r\n";
+		hev[hevcnt++].he_arg = NULL;
+
+		/*
+		 * Accept-Encoding -- see whether they want compressed output.
+		 */
+
+		buf = header_get(header, "Accept-Encoding");
+		/* XXX needs more rigourous parsing */
+		if (NULL != buf && strstr(buf, "deflate")) {
+			bh_flags |= BH_DEFLATE;
+
+			g_assert(hevcnt < G_N_ELEMENTS(hev));
+			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
+			hev[hevcnt].he_msg = "Content-Encoding: deflate\r\n";
+			hev[hevcnt++].he_arg = NULL;
+		}
+
+		/*
+		 * Starting at HTTP/1.1, we can send chunked data back.
+		 */
+
+		if (u->http_major > 1 || (u->http_major == 1 && u->http_minor >= 1)) {
+			bh_flags |= BH_CHUNKED;
+
+			g_assert(hevcnt < G_N_ELEMENTS(hev));
+			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
+			hev[hevcnt].he_msg = "Transfer-Encoding: chunked\r\n";
+			hev[hevcnt++].he_arg = NULL;
+		}
 	} else {
 		u->browse_host = FALSE;
 		
@@ -2570,16 +2657,17 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	}
 
 	/*
-	 * FIXME: Implement Tranfer-Encoding "chunked" to allow keep-alive
-	 *        connections with unknown content-lengths. This is a
-	 *        required feature of HTTP/1.1 - HTTP/1.0 doesn't support it.
+	 * Implement Tranfer-Encoding "chunked" to allow keep-alive
+	 * connections with unknown content-lengths. This is a
+	 * required feature of HTTP/1.1 - HTTP/1.0 doesn't support it.
 	 *
 	 * We don't want to determine the content-length in advance and we
 	 * do not support chunked transfers either. Thus, the only way to
 	 * indicate the end-of-message is an EOF which means we keep-alive
 	 * connections must be disabled for this purpose.
 	 */
-	if (u->browse_host)
+
+	if (u->browse_host && !(bh_flags & BH_CHUNKED))
 		u->keep_alive = FALSE;
 	
 	/*
@@ -3056,13 +3144,19 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	g_assert(s->gdk_tag == 0);
 	g_assert(u->bio == NULL);
 
-	if (u->browse_host)
-		u->special_read = browse_host_open();
-	
-	u->bio = bsched_source_add(bws.out, &s->wio,
-		BIO_F_WRITE,
-		u->browse_host ? upload_special_write : upload_write,
-		u);
+	if (u->browse_host) {
+		gnet_host_t host;
+
+		host.ip = u->socket->ip;
+		host.port = u->socket->port;
+
+		u->special = browse_host_open(
+			u, &host, upload_special_writable,
+			&upload_tx_deflate_cb, &upload_tx_link_cb,
+			&u->socket->wio, bh_flags);
+	} else
+		u->bio = bsched_source_add(bws.out, &s->wio,
+			BIO_F_WRITE, upload_writable, u);
 
 	if (reqfile)
 		upload_stats_file_begin(u);
@@ -3121,7 +3215,7 @@ upload_handle_exception(gnutella_upload_t *u, inputevt_cond_t cond)
  * Called when output source can accept more data.
  */
 static void
-upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
+upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 {
 	gnutella_upload_t *u = up;
 	ssize_t written;
@@ -3189,7 +3283,7 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 				return;
 			}
 			if (0 == ret) {
-				upload_remove(u, "File EOF?");
+				upload_remove(u, _("File EOF?"));
 				return;
 			}
 			u->bpos = 0;
@@ -3226,7 +3320,7 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 		}
 		return;
 	} else if (written == 0) {
-		upload_remove(u, "No bytes written, source may be gone");
+		upload_remove(u, _("No bytes written, source may be gone"));
 		return;
 	}
 
@@ -3260,25 +3354,52 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 static inline ssize_t
 upload_special_read(gnutella_upload_t *u)
 {
-	g_assert(NULL != u->special_read);
-	g_assert(NULL != u->special_read->read);
-	return u->special_read->read(u->special_read, u->buffer, u->buf_size);
+	g_assert(NULL != u->special);
+	g_assert(NULL != u->special->read);
+
+	return u->special->read(u->special, u->buffer, u->buf_size);
+}
+
+static inline ssize_t
+upload_special_write(gnutella_upload_t *u, gpointer data, size_t len)
+{
+	g_assert(NULL != u->special);
+	g_assert(NULL != u->special->write);
+
+	return u->special->write(u->special, data, len);
+}
+
+/**
+ * Callback invoked when the special stack has been fully flushed.
+ */
+static void
+upload_special_flushed(gpointer arg)
+{
+	gnutella_upload_t *u = arg;
+
+	upload_completed(u);	/* We're done, wait for next request if any */
+}
+
+static inline void
+upload_special_flush(gnutella_upload_t *u)
+{
+	g_assert(NULL != u->special);
+	g_assert(NULL != u->special->flush);
+
+	u->special->flush(u->special, upload_special_flushed, u);
 }
 
 /**
  * Called when output source can accept more data.
  */
 static void
-upload_special_write(gpointer up, gint unused_source, inputevt_cond_t cond)
+upload_special_writable(gpointer up)
 {
 	gnutella_upload_t *u = up;
 	ssize_t written;
 	size_t available;
 
-	(void) unused_source;
-
-	if (upload_handle_exception(u, cond))
-		return;
+	g_assert(NULL != u->special);
 
 	/*
  	 * If the buffer position reached the size, then we need to read
@@ -3292,11 +3413,15 @@ upload_special_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 		g_assert(u->buf_size > 0);
 		ret = u->bsize = upload_special_read(u);
 		if ((ssize_t) -1 == ret) {
-			upload_remove(u, _("File read error: %s"), g_strerror(errno));
+			upload_remove(u, _("Special read error: %s"), g_strerror(errno));
 			return;
 		}
 		if (0 == ret) {
-			upload_completed(u);
+			/*
+			 * We're done.  Flush the stack asynchronously.
+			 */
+
+			upload_special_flush(u);
 			return;
 		}
 		u->bpos = 0;
@@ -3305,20 +3430,10 @@ upload_special_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 	available = u->bsize - u->bpos;
 	g_assert(available > 0 && available <= INT_MAX);
 
-	written = bio_write(u->bio, &u->buffer[u->bpos], available);
+	written = upload_special_write(u, &u->buffer[u->bpos], available);
 
-	if ((ssize_t) -1 == written) {
-		gint e = errno;
-
-		if (e != EAGAIN && e != EINTR) {
-			socket_eof(u->socket);
-			upload_remove(u, _("Data write error: %s"), g_strerror(e));
-		}
-		return;
-	} else if (written == 0) {
-		upload_remove(u, "No bytes written, source may be gone");
-		return;
-	}
+	if ((ssize_t) -1 == written)
+		return;		/* TX stack already removed the upload */
 
 	u->pos += written;
 	u->bpos += written;
@@ -3358,9 +3473,8 @@ upload_kill_ip(guint32 ip)
 
 		g_assert(u != NULL);
 
-		if (u->ip == ip && !UPLOAD_IS_COMPLETE(u)) {
+		if (u->ip == ip && !UPLOAD_IS_COMPLETE(u))
 			to_remove = g_slist_prepend(to_remove, u);
-		}
 	}
 
 	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
