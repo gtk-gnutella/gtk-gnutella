@@ -307,6 +307,7 @@ browse_host_close(gpointer ctx)
 	if (bh->d_buf) 
 		G_FREE_NULL(bh->d_buf);
 
+	tx_free(bh->tx);
 	wfree(bh, sizeof *bh);
 }
 
