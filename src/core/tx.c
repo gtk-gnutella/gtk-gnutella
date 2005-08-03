@@ -71,20 +71,20 @@ RCSID("$Id$");
  * @return NULL if there is an initialization problem.
  */
 txdrv_t *
-tx_make_node(struct gnutella_node *n,
+tx_make(gpointer owner, gnet_host_t *host,
 	const struct txdrv_ops *ops, gpointer args)
 {
 	txdrv_t *tx;
 
-	g_assert(n);
+	g_assert(owner);
 	g_assert(ops);
 
 	tx = walloc0(sizeof(*tx));
 
-	tx->owner = n;
+	tx->owner = owner;
+	tx->host = *host;					/* stuct copy */
+
 	tx->ops = ops;
-	tx->host.ip = n->ip;
-	tx->host.port = n->port;
 	tx->upper = NULL;
 	tx->lower = NULL;
 
@@ -340,9 +340,7 @@ tx_eager_mode(txdrv_t *tx, gboolean on)
 			t->flags |= TX_EAGER;
 		} else {
 			/*
-			 * Don't disable.  Simply turning off "eager mode" will cause
-			 * each layer to disable servicing of the lower layers when it
-			 * has nothing more to transmit.
+			 * Don't disable service routines, just turn off eager mode.
 			 */
 
 			t->flags &= ~TX_EAGER;
@@ -465,6 +463,21 @@ tx_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 	carg->top = tx;
 	carg->cb = cb;
 	carg->arg = arg;
+
+	/*
+	 * Turn off eager mode: we're going to flush layers top-down now.
+	 */
+
+	tx_eager_mode(tx, FALSE);
+
+	/*
+	 * Disable servicing from the upper layer: the user won't supply any
+	 * more data on this stack, so there's no need to invoke the outer
+	 * service routine.
+	 */
+
+	if (tx->flags & TX_SERVICE)
+		tx_srv_disable(tx);
 
 	tx->flags |= TX_CLOSING;				/* Forbid further writes */
 	TX_CLOSE(tx, tx_close_next, carg);
