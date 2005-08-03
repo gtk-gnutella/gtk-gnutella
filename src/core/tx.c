@@ -413,6 +413,7 @@ static void
 tx_close_next(txdrv_t *tx, gpointer arg)
 {
 	struct tx_close_arg *carg = arg;
+	txdrv_t *lower;
 
 	g_assert(tx);
 
@@ -443,8 +444,13 @@ tx_close_next(txdrv_t *tx, gpointer arg)
 	 * Close the next layer.
 	 */
 
-	tx->lower->flags |= TX_CLOSING;		/* Forbid further writes */
-	TX_CLOSE(tx->lower, tx_close_next, carg);
+	lower = tx->lower;
+
+	if (lower->flags & TX_SERVICE)
+		tx_srv_disable(lower);		/* Upper was flushed */
+
+	lower->flags |= TX_CLOSING;		/* Forbid further writes */
+	TX_CLOSE(lower, tx_close_next, carg);
 }
 
 /**
