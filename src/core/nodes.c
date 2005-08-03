@@ -2886,6 +2886,7 @@ node_is_now_connected(struct gnutella_node *n)
 	struct gnutella_socket *s = n->socket;
 	txdrv_t *tx;
 	gboolean peermode_changed = FALSE;
+	gnet_host_t host;
 
 	/*
 	 * Cleanup hanshaking objects.
@@ -3006,6 +3007,9 @@ node_is_now_connected(struct gnutella_node *n)
 	 * Create the RX stack, and enable reception of data.
 	 */
 
+	host.ip = n->ip;
+	host.port = n->port;
+
 	{
 		struct rx_link_args args;
 
@@ -3046,7 +3050,7 @@ node_is_now_connected(struct gnutella_node *n)
 		args.bs = n->peermode == NODE_P_LEAF ? bws.glout : bws.gout;
 		args.wio = &n->socket->wio;
 
-		tx = tx_make_node(n, tx_link_get_ops(), &args);		/* Cannot fail */
+		tx = tx_make(n, &host, tx_link_get_ops(), &args);	/* Cannot fail */
 	}
 
 	/*
@@ -5127,6 +5131,7 @@ node_udp_enable(void)
 	gnutella_node_t *n = udp_node;
 	txdrv_t *tx;
 	struct tx_dgram_args args;
+	gnet_host_t host;
 
 	g_assert(n != NULL);
 	g_assert(n->outq == NULL);
@@ -5139,7 +5144,10 @@ node_udp_enable(void)
 	args.bs = bws.gout_udp;
 	args.wio = &n->socket->wio;
 
-	tx = tx_make_node(n, tx_dgram_get_ops(), &args);	/* Cannot fail */
+	host.ip = n->ip;
+	host.port = n->port;
+
+	tx = tx_make(n, &host, tx_dgram_get_ops(), &args);	/* Cannot fail */
 	n->outq = mq_udp_make(node_sendqueue_size, n, tx);
 }
 
