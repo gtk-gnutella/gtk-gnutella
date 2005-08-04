@@ -29,6 +29,11 @@
  *
  * Interface to dbus messaging bus
  *
+ * Gtk-Gnutella will send notifications on the dbus message bus as
+ * signals with a string parameter. Depending on the signal the
+ * parameter will have a different meaning. Also see the documenation
+ * in doc/other/dbus-support.txt
+ *
  * @author Hans de Graaff
  * @date 2005
  */
@@ -69,31 +74,22 @@ dbus_util_init(void)
 	} else {
 
 		/* Set up this connection to work in a GLib event loop */
-
-		/** @todo Integrating the D-BUS connection in the GLib main
-		loop causes crashes for ADNS. I'm assuming that this is some
-		kind of signal or thread issue, but I'm not sure. Needs more
-		investigation, but for now I'll just try to use D-BUS without
-		doing this. It could also be a bug in D-BUS that may be fixed
-		in 1.0, so revisit then. */
-
-#if 0
 		dbus_connection_setup_with_g_main(bus, NULL);
-#endif
 
+		g_message("D-BUS set up and ready for use.");
+		/** @todo Include a timestamp or some other useful info */
+		dbus_util_send_message(DBUSEVENT, "started");
 	}
-
-	g_message("D-BUS set up and ready for use.");
-	dbus_util_send_message("started");
 }
 
 /** 
  * Close down the D-BUS connection and send final event.
  */
-void
-dbus_util_close(void)
+void 
+dbus_util_close(void) 
 {
-	dbus_util_send_message("stopped");
+	/** @todo Include a timestamp or some other useful info */
+	dbus_util_send_message(DBUSEVENT, "stopped");
 	
 	/**
 	 * @todo It's not really clear to me how I can free the bus that
@@ -104,39 +100,42 @@ dbus_util_close(void)
 }
 
 
-
-/** 
- * Send a notification string. I'm not sure if this is the practical
- * way to go about things, but this will be ok for testing.
- * @return void because this is a fire-and-forget interface
+/**
+ * Send a message on the bus.
+ * @param signal_name The name of the dbus signal to use
+ * @param text The text to append to the message, NULL if n/a
  */
 void
-dbus_util_send_message(const char *text)
+dbus_util_send_message(const char *signal_name, const char *text)
 {
-	DBusMessage *message;
+	DBusMessage *message = NULL;  /**< The dbus message to send */
 
-	if (bus) {
-		/* Create a new message on the DBUS_INTERFACE */
-		message = dbus_message_new_signal(DBUS_PATH, DBUS_INTERFACE, "Events");
-
-		if (NULL == message) {
-			g_message("Could not create D-BUS message!");
-		} else {
+	/* 
+	 * If the bus could not be initialized earlier then we should not
+	 * attempt to send a message now.
+	 */
+	if (bus == NULL) 
+		return;
+	
+	/* Create a new message on the DBUS_INTERFACE */
+	message = dbus_message_new_signal(DBUS_PATH, DBUS_INTERFACE, signal_name);
+	
+	if (message == NULL) {
+		g_message("Could not create D-BUS message!\n");
+	} else {
 			
-			/* Add the message to the Events signal */
-			dbus_message_append_args(message, DBUS_TYPE_STRING, &text, 
-									 DBUS_TYPE_INVALID);
+		/* Add the message to the Events signal */
+		dbus_message_append_args(message, DBUS_TYPE_STRING, &text, 
+								 DBUS_TYPE_INVALID);
 
-			/* Send the message */
-			dbus_connection_send(bus, message, NULL);
+		/* Send the message */
+		dbus_connection_send(bus, message, NULL);
 		
-			g_message("Sent D-BUS message %s", text);
+		g_message("Sent D-BUS signal '%s': %s\n", signal_name, text);
 		
-			/* Free the message */
-			dbus_message_unref(message);
-		}
+		/* Free the message */
+		dbus_message_unref(message);
     }
-
 }
 
 #else /* !HAS_DBUS */
@@ -146,7 +145,7 @@ dbus_util_send_message(const char *text)
  */ 
 void dbus_util_init(void) { }
 void dbus_util_close(void) { }
-void dbus_util_send_message(const char * text) {}
+void dbus_util_send_message(const char * signal_name, const char * text) { }
 
 #endif /* HAS_DBUS */
 

@@ -36,9 +36,17 @@
 #ifndef _dbus_h_
 #define _dbus_h_
 
+/** 
+ * Notification events. These should not be translated, they are part
+ * of the machine protocol on dbus.
+ */
+
+#define DBUSEVENT "Events"
+#define DBUSEVENT_DOWNLOADDONE "DownloadDone"
+
 void dbus_util_init (void);
 void dbus_util_close (void);
-void dbus_util_send_message (const char *);
+void dbus_util_send_message (const char *, const char *);
 
 #endif /* _dbus_h_ */
 
