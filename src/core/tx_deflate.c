@@ -611,6 +611,10 @@ deflate_service(gpointer data)
 
 	if (tx->flags & TX_CLOSING) {
 		deflate_flush_send(tx);
+
+		if (tx->flags & TX_ERROR)
+			goto done;
+
 		if (0 == tx_deflate_pending(tx)) {
 			(*attr->closed)(tx, attr->closed_arg);
 			goto done;
