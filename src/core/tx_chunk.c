@@ -60,6 +60,8 @@ RCSID("$Id$");
 #include "tx.h"
 #include "tx_chunk.h"
 
+#include "if/gnet_property_priv.h"
+
 #include "lib/cq.h"
 #include "lib/glib-missing.h"
 #include "lib/walloc.h"
@@ -139,6 +141,12 @@ chunk_begin(txdrv_t *tx, size_t len, gboolean final)
 	g_assert(0 == attr->data_remain);
 	g_assert(0 == attr->head_remain);
 	g_assert(final || len > 0);
+
+	if (dbg > 9)
+		printf("chunk_begin: %s chunk %d byte%s\n",
+			final ? "final" :
+			attr->first ? "first" :
+			"next", len, len == 1 ? "" : "s");
 
 	/*
 	 * Build the chunk header, committing on sending `len' bytes of data.
