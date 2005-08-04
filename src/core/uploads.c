@@ -1465,6 +1465,32 @@ upload_http_version(gnutella_upload_t *u, gchar *request, gint len)
 }
 
 /**
+ * Make sure file to upload is still present on disk.
+ *
+ * @return TRUE if OK, FALSE otherwise with the upload removed.
+ */
+static gboolean
+upload_file_present(
+	gnutella_upload_t *u, struct shared_file *sf, const gchar *uri)
+{
+	struct stat buf;
+
+	if (-1 == stat(sf->file_path, &buf)) {
+		/*
+		 * Probably a file shared via PFS, or they changed their library
+		 * and did not rescan yet.  It's important to detect this now in
+		 * case they are queued: no need to wait for them to get their
+		 * upload slot to discover the file is not there!
+		 *		--RAM, 2005-08-04
+		 */
+		upload_error_not_found(u, uri);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
  * Get the shared_file to upload. Request has been extracted already, and is
  * passed as request. The same holds for the file index, which is passed as
  * index.
@@ -1720,6 +1746,9 @@ get_file_to_upload_from_index(
 		return NULL;
 	}
 
+	if (!upload_file_present(u, sf, uri))
+		return NULL;
+
 found:
 	g_assert(sf != NULL);
 
@@ -1815,7 +1844,8 @@ get_file_to_upload_from_urn(
 	} else if (!sha1_hash_is_uptodate(sf)) {
 		upload_error_remove(u, NULL, 503, "SHA1 is being recomputed");
 		return NULL;
-	}
+	} else if (!upload_file_present(u, sf, uri))
+		return NULL;
 
 	return sf;
 
