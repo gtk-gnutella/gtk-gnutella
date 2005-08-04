@@ -1288,19 +1288,19 @@ node_type_count_dec(struct gnutella_node *n)
  * Physically dispose of node.
  */
 void
-node_real_remove(gnutella_node_t *node)
+node_real_remove(gnutella_node_t *n)
 {
-	g_return_if_fail(node);
-	g_assert(node->magic == NODE_MAGIC);
+	g_return_if_fail(n);
+	g_assert(n->magic == NODE_MAGIC);
 
     /*
      * Tell the frontend that the node was removed.
      */
-    node_fire_node_removed(node);
+    node_fire_node_removed(n);
 
-	sl_nodes = g_slist_remove(sl_nodes, node);
-	g_hash_table_remove(nodes_by_id, GUINT_TO_POINTER(node->id));
-    node_drop_handle(node->node_handle);
+	sl_nodes = g_slist_remove(sl_nodes, n);
+	g_hash_table_remove(nodes_by_id, GUINT_TO_POINTER(n->id));
+    node_drop_handle(n->node_handle);
 
 	/*
 	 * Now that the node was removed from the list of known nodes, we
@@ -1310,17 +1310,17 @@ node_real_remove(gnutella_node_t *node)
 	 *		--RAM, 13/01/2002
 	 */
 
-	if (!NODE_IS_LEAF(node) && node->gnet_ip && (node->flags & NODE_F_VALID))
-		hcache_add_valid((node->attrs & NODE_A_ULTRA) ? HOST_ULTRA : HOST_ANY,
-            node->gnet_ip, node->gnet_port, "save valid");
+	if (!NODE_IS_LEAF(n) && n->gnet_ip && (n->flags & NODE_F_VALID))
+		hcache_add_valid((n->attrs & NODE_A_ULTRA) ? HOST_ULTRA : HOST_ANY,
+            n->gnet_ip, n->gnet_port, "save valid");
 
 	/*
 	 * The io_opaque structure is not freed by node_remove(), so that code
 	 * can still peruse the headers after node_remove() has been called.
 	 */
 
-	if (node->io_opaque)				/* I/O data */
-		io_free(node->io_opaque);
+	if (n->io_opaque)				/* I/O data */
+		io_free(n->io_opaque);
 
 	/*
 	 * The freeing of the vendor string is delayed, because the GUI update
@@ -1328,27 +1328,30 @@ node_real_remove(gnutella_node_t *node)
 	 * removed, so it's safe to do it now.
 	 */
 
-	if (node->vendor)
-		atom_str_free(node->vendor);
+	if (n->vendor)
+		atom_str_free(n->vendor);
 
 	/*
 	 * The RX stack needs to be dismantled asynchronously, to not be freed
 	 * whilst on the "data reception" interrupt path.
 	 */
 
-	if (node->rx)
-		rx_free(node->rx);
+	if (n->rx)
+		rx_free(n->rx);
 
 	/*
 	 * The TX stack is dismantled asynchronously as well to be on the
 	 * safe side.
 	 */
 
-	if (node->outq)
-		mq_free(node->outq);
+	if (n->outq)
+		mq_free(n->outq);
 
-	node->magic = 0;
-	wfree(node, sizeof(*node));
+	if (n->alive_pings)			/* Must be freed after the TX stack */
+		alive_free(n->alive_pings);
+
+	n->magic = 0;
+	wfree(n, sizeof(*n));
 }
 
 /**
@@ -6995,10 +6998,6 @@ node_close(void)
 		if (n->gnet_guid) {
 			atom_guid_free(n->gnet_guid);
 			n->gnet_guid = NULL;
-		}
-		if (n->alive_pings) {
-			alive_free(n->alive_pings);
-			n->alive_pings = NULL;
 		}
 		if (n->routing_data) {
 			routing_node_remove(n);
