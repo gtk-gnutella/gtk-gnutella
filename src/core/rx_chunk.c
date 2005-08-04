@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2005, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,11 +29,8 @@
  *
  * Network RX -- chunked-encoding.
  *
- * @author Raphael Manfredi, Christian Biere
- * @date 2002-2003
- *
- * @attention XXX: This code completely untested. It's only an adaption
- *            of rx_inflate.c for the transfer-encoding "chunked".
+ * @author Christian Biere
+ * @date 2005
  */
 
 #include "common.h"
@@ -41,6 +38,7 @@
 RCSID("$Id$");
 
 #include "pmsg.h"
+#include "hosts.h"				/* For host_ip() */
 #include "rx.h"
 #include "rx_chunk.h"
 #include "rxbuf.h"
@@ -75,6 +73,7 @@ struct attr {
 };
 
 #define IF_ENABLED	0x00000001		/**< Reception enabled */
+#define IF_NO_CRLF	0x00000002		/**< Set when missing CRLF after data */
 
 struct dechunk {
 	const char *src;
@@ -84,18 +83,18 @@ struct dechunk {
 
 /**
  * Decodes "chunked" data.
- * 
  *
- * @param ctx an initialized ``struct buf''.
- * @param attr an initialized ``struct attr''.
+ * @param rx is the current RX driver.
+ * @param ctx an initialized ``struct dechunk''.
  * @param error_str if not NULL and dechunk() fails, it will point to
  *        an informational error message.
  *
  * @return 0 on success, -1 on failure.
  */
 static int
-dechunk(struct dechunk *ctx, struct attr *attr, const gchar **p_error_str)
+dechunk(rxdrv_t *rx, struct dechunk *ctx, const gchar **p_error_str)
 {
+	struct attr *attr = rx->opaque;
 	const gchar *error_str;
 
 	g_assert(ctx);
@@ -107,10 +106,8 @@ dechunk(struct dechunk *ctx, struct attr *attr, const gchar **p_error_str)
 	g_assert(ctx->dst_len > 0);
 
 	g_assert(attr->state < NUM_CHUNK_STATES);
-	g_assert(CHUNK_STATE_END != attr->state);
 
 	do {
-
 		switch (attr->state) {
 		case CHUNK_STATE_DATA:
 			g_assert(attr->data_remain > 0);
@@ -140,15 +137,35 @@ dechunk(struct dechunk *ctx, struct attr *attr, const gchar **p_error_str)
 				ctx->src_len--;
 				c = *ctx->src++;
 				if ('\r' == c) {
-				   /* This allows more than one CR but we must consume
-				 	* some data or keep state over this otherwise. */
+				   /*
+					* This allows more than one CR but we must consume
+				 	* some data or keep state over this otherwise.
+					*/
 					continue;
 				} else if ('\n' == c) {
 					attr->state = CHUNK_STATE_SIZE;
 					break;
 				} else {
-					error_str = "No CRLF after chunk data";
-					goto error;
+					/*
+					 * Normally it is an error, there should be CRLF after
+					 * the chunk data.  However, they might have forgotten
+					 * to send the '\n' or the whole sequence.
+					 *
+					 * If what follows looks like a valid chunk size, then
+					 * we should be able to resync properly: Unread the
+					 * character and move on to the chunk size decoding.
+					 */
+
+					if (!(attr->flags & IF_NO_CRLF)) {
+						attr->flags |= IF_NO_CRLF;
+						g_warning("Host %s forgot CRLF after data",
+							host_ip(&rx->host));
+					}
+
+					ctx->src_len++;
+					ctx->src--;
+					attr->state = CHUNK_STATE_SIZE;
+					break;
 				}
 			}
 			break;
@@ -168,18 +185,22 @@ dechunk(struct dechunk *ctx, struct attr *attr, const gchar **p_error_str)
 					/* Collect up to 16 hex characters */
 					attr->hex_buf[attr->hex_pos++] = c;
 				} else {
-
-					/* There might be a chunk-extension after the
+					/*
+					 * There might be a chunk-extension after the
 					 * hexadecimal chunk-size but there shouldn't
-					 * anything else. */
+					 * anything else.
+					 */
 
 					if (!is_ascii_space(c) && ';' != c) {
 						error_str = "Bad chunk-size";
 						goto error;
 					}
 
-					/* Pick up the collected hex digits and
-					 * calculate the chunk-size. */
+					/*
+					 * Pick up the collected hex digits and
+					 * calculate the chunk-size.
+					 */
+
 					{
 						guint64 v = 0;
 						guint i;
@@ -215,8 +236,10 @@ dechunk(struct dechunk *ctx, struct attr *attr, const gchar **p_error_str)
 			if (ctx->src_len < 1)
 				break;
 			if ('\r' == ctx->src[0]) {
-				/* This allows more than one CR but we must consume
-				 * some data or keep state over this otherwise. */
+				/*
+				 * This allows more than one CR but we must consume
+				 * some data or keep state over this otherwise.
+				 */
 				ctx->src++;
 				ctx->src_len--;
 			}
@@ -237,8 +260,11 @@ dechunk(struct dechunk *ctx, struct attr *attr, const gchar **p_error_str)
 			while (ctx->src_len > 0) {
 				ctx->src_len--;
 				if ('\n' == *ctx->src++) {
-					/* Now check whether there's another trailer
-					 * line or whether we've reached the end */
+					/*
+					 * Now check whether there's another trailer
+					 * line or whether we've reached the end
+					 */
+
 					attr->state = CHUNK_STATE_TRAILER_START;
 					break;
 				}
@@ -246,8 +272,15 @@ dechunk(struct dechunk *ctx, struct attr *attr, const gchar **p_error_str)
 			break;
 			
 		case CHUNK_STATE_END:
-			/* XXX: Does this require special handling? */
-			break;
+			/*
+			 * We're not supposed to receive data after the chunk stream
+			 * has been ended.  But if we do, it means either we
+			 * misinterpreted the chunk end stream or the other end is just
+			 * going berserk.
+			 */
+
+			error_str = "Remaining data after chunk end";
+			goto error;
 			
 		case CHUNK_STATE_ERROR:
 		case NUM_CHUNK_STATES:
@@ -276,7 +309,6 @@ error:
 }
 
 /**
- *
  * Dechunk more data from the input buffer `mb'.
  * @returns dechunked data in a new buffer, or NULL if no more data.
  */
@@ -312,11 +344,13 @@ dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 	 */
 
 	g_assert(attr->state != CHUNK_STATE_ERROR);
-	if (0 != dechunk(&ctx, attr, &error_str)) {
-		/* XXX: Is this correct or not? rx_inflate() doesn't disable it
-		 *      but we must not continue after a decoding error. */
-		attr->flags &= ~IF_ENABLED;
-		
+
+	if (0 != dechunk(rx, &ctx, &error_str)) {
+		/*
+		 * We can't continue if we meet a dechunking error.  Signal
+		 * our user so that the connection is terminated.
+		 */
+
 		attr->cb->chunk_error(rx->owner, "dechunk() failed: %s", error_str);
 		goto cleanup;
 	}
@@ -335,9 +369,6 @@ dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 		 */
 
 		n = old_avail - ctx.dst_len;
-
-		if (attr->cb->add_rx_chunk)
-			attr->cb->add_rx_chunk(rx->owner, n);
 
 		return pmsg_alloc(PMSG_P_DATA, db, 0, n);
 	}

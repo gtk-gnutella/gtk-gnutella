@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2005, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -27,10 +27,10 @@
  * @ingroup core
  * @file
  *
- * Network RX -- multiplexed decompressing stage.
+ * Network RX -- multiplexed dechunking stage.
  *
- * @author Raphael Manfredi, Christian Biere
- * @date 2002-2003
+ * @author Christian Biere
+ * @date 2005
  */
 
 #ifndef _core_rx_chunk_h_
@@ -44,7 +44,6 @@ const struct rxdrv_ops* rx_chunk_get_ops(void);
  * Callbacks used by the inflating layer.
  */
 struct rx_chunk_cb {
-	void (*add_rx_chunk)(gpointer owner, gint amount);
 	void (*chunk_error)(gpointer owner, const gchar *reason, ...);
 };
 
