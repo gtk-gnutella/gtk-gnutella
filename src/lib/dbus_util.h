@@ -45,9 +45,19 @@
 #define DBS_EVT_DOWNLOAD_DONE "DownloadDone"
 #define DBS_EVT_PEERMODE_CHANGE "PeermodeChange"
 
-void dbus_util_init (void);
-void dbus_util_close (void);
-void dbus_util_send_message (const char *, const char *);
+#ifdef HAS_DBUS
+
+void dbus_util_init(void);
+void dbus_util_close(void);
+void dbus_util_send_message(const char *, const char *);
+
+#else /* !HAS_DBUS */
+
+#define dbus_util_init(void) G_STMT_START { } G_STMT_END
+#define dbus_util_close(void) G_STMT_START { } G_STMT_END
+#define dbus_util_send_message(signal, txt) G_STMT_START { (void) signal; (void) txt; } G_STMT_END
+
+#endif /* HAS_DBUS */
 
 #endif /* _dbus_h_ */
 

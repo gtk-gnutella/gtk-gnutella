@@ -139,19 +139,6 @@ dbus_util_send_message(const char *signal_name, const char *text)
     }
 }
 
-#else /* !HAS_DBUS */
-
-/* 
- * Dummy function calls to avoid cluttering the rest of the code with ifdefs 
- */ 
-void dbus_util_init(void) { }
-void dbus_util_close(void) { }
-void dbus_util_send_message(const char *unused_signal, const char *unused_txt) 
-{ 
-	(void) unused_signal;
-	(void) unused_txt;
-}
-
 #endif /* HAS_DBUS */
 
 /* vi: set ts=4 sw=4 cindent: */
