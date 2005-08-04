@@ -45,12 +45,26 @@ RCSID("$Id$");
 #include "tx_link.h"
 #include "tx_chunk.h"
 #include "tx_deflate.h"
+#include "qhit.h"
+#include "gmsg.h"
+#include "guid.h"
 
 #include "lib/header.h"
 #include "lib/misc.h"
 #include "lib/url.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
+
+/**
+ * Modern servents are tailored to not generate too large query hits.
+ * Therefore, don't generate too large ones or they might be dropped
+ * by the recipient.  Still, we need a large size to avoid generating
+ * too many useless Gnutella headers and query hit trailers (like
+ * push proxies, our GUID, etc...).
+ */
+
+#define BH_MAX_QHIT_SIZE	3500	/**< Flush hits larger than this */
+#define BH_SCAN_AHEAD		100		/**< Amount of files scanned ahead */
 
 enum bh_state {
 	BH_STATE_HEADER = 0,	/* Sending header */
@@ -68,14 +82,15 @@ enum bh_type {
 
 struct browse_host_ctx {
 	struct special_ctx special;	/**< vtable, MUST be first field */
+	enum bh_type type;		/**< Type of data to send back */
 	txdrv_t *tx;			/**< The transmission stack */
 	gpointer d_buf;			/**< Used for dynamically allocated buffer */
 	const gchar *b_data;	/**< Current data block */
 	size_t b_offset;		/**< Offset in data block */
 	size_t b_size;			/**< Size of the data block */
-	enum bh_state state;	/**< Current state of the state machine */
-	enum bh_type type;		/**< Type of data to send back */
 	guint file_index;		/**< Current file index (iterator) */
+	enum bh_state state;	/**< Current state of the state machine */
+	GSList *hits;			/**< Pending query hits to send back */
 	bh_closed_t cb;			/**< Callback to invoke when TX fully flushed */
 	gpointer cb_arg;		/**< Callback argument */
 };
@@ -131,6 +146,8 @@ browse_host_next_state(struct browse_host_ctx *bh, enum bh_state state)
  * ``dest''. This must be called multiple times to retrieve the complete
  * data until zero is returned i.e., the end of file is reached.
  *
+ * This routine deals with HTML data generation.
+ *
  * @param ctx an initialized browse host context.
  * @param dest the destination buffer.
  * @param size the amount of bytes ``dest'' can hold.
@@ -140,11 +157,11 @@ browse_host_next_state(struct browse_host_ctx *bh, enum bh_state state)
  *         is returned.
  */
 static ssize_t 
-browse_host_read(gpointer ctx, gpointer const dest, size_t size)
+browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 {
 	static const gchar header[] =
 		"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
-		"<html><head><title>Browse Host</title></head><body><ul>";
+		"<html><head><title>Browse Host</title></head><body><ul>\n";
 	static const gchar trailer[] = "</ul></body></html>";
 	struct browse_host_ctx *bh = ctx;
 	gchar *p = dest; 
@@ -165,10 +182,8 @@ browse_host_read(gpointer ctx, gpointer const dest, size_t size)
 				bh->b_size = CONST_STRLEN(header);
 			}
 			p += browse_host_read_data(bh, p, &size);
-			if (bh->b_size == bh->b_offset) {
+			if (bh->b_size == bh->b_offset)
 				browse_host_next_state(bh, BH_STATE_FILES);
-				bh->file_index = 0;
-			}
 			break;
 			
 		case BH_STATE_TRAILER:
@@ -204,17 +219,17 @@ browse_host_read(gpointer ctx, gpointer const dest, size_t size)
 					 * @todo FIXME: In HTML (especially anchors) certain
 					 * characters must be escaped, at least these: [<>&"].
 					 */
-					if (sf->sha1_digest) {
+					if (sha1_hash_available(sf)) {
 						bh->d_buf = g_strconcat("<li>",
 								"<a href=\"/uri-res/N2R?urn:sha1:",
 								sha1_base32(sf->sha1_digest),
-								"\">", sf->name_nfc, "</a></li>", (void *) 0);
+								"\">", sf->name_nfc, "</a></li>\n", (void *) 0);
 					} else {
 						gchar *escaped;
 
 						escaped = url_escape(sf->name_nfc);
 						bh->d_buf = g_strdup_printf(
-								"<li><a href=\"/get/%u/%s\">%s</a></li>",
+								"<li><a href=\"/get/%u/%s\">%s</a></li>\n",
 								sf->file_index, escaped, sf->name_nfc);
 						if (escaped != sf->name_nfc)
 							G_FREE_NULL(escaped);
@@ -239,6 +254,104 @@ browse_host_read(gpointer ctx, gpointer const dest, size_t size)
 	} while (size > 0);
 
 	return p - cast_to_gchar_ptr(dest);
+}
+
+/**
+ * Enqueue query hit built by creating a message.
+ * Callback for qhit_build_results().
+ */
+static void
+browse_host_record_hit(gpointer data, size_t len, gpointer udata)
+{
+	struct browse_host_ctx *bh = udata;
+
+	bh->hits = g_slist_prepend(bh->hits, gmsg_to_pmsg(data, len));
+}
+
+/**
+ * Writes the browse host data of the context ``ctx'' to the buffer
+ * ``dest''. This must be called multiple times to retrieve the complete
+ * data until zero is returned i.e., the end of file is reached.
+ *
+ * This routine deals with query hit data generation.
+ *
+ * @param ctx an initialized browse host context.
+ * @param dest the destination buffer.
+ * @param size the amount of bytes ``dest'' can hold.
+ *
+ * @return -1 on failure, zero at the end-of-file condition or if size
+ *         was zero. On success, the amount of bytes copied to ``dest''
+ *         is returned.
+ */
+static ssize_t 
+browse_host_read_qhits(gpointer ctx, gpointer const dest, size_t size)
+{
+	struct browse_host_ctx *bh = ctx;
+	size_t remain = size;
+	gchar *p = dest;
+
+	/*
+	 * If we have no hit pending that we can send, build some more.
+	 */
+
+	if (NULL == bh->hits) {
+		GSList *files = NULL;
+		gint i;
+
+		for (i = 0; i < BH_SCAN_AHEAD; i++) {
+			shared_file_t *sf;
+
+		skip:
+			bh->file_index++;
+			sf = shared_file(bh->file_index);
+
+			if (NULL == sf) {
+				if (bh->file_index > shared_files_scanned())
+					break;
+				goto skip;		/* Skip holes in indices */
+			} else if (SHARE_REBUILDING == sf)
+				break;
+			else
+				files = g_slist_prepend(files, sf);
+		}
+
+		if (NULL == files)		/* Did not find any more file to include */
+			return 0;			/* We're done */
+
+		/*
+		 * Now build the query hits containing the files we selected.
+		 */
+
+		files = g_slist_reverse(files);			/* Preserve order */
+
+		qhit_build_results(files, i, BH_MAX_QHIT_SIZE,
+			browse_host_record_hit, bh,
+			blank_guid, TRUE);
+
+		g_assert(bh->hits != NULL);		/* At least 1 hit enqueued */
+
+		bh->hits = g_slist_reverse(bh->hits);	/* Preserve order */
+ 	}
+
+	/*
+	 * Read each query hit in turn.
+	 */
+
+	while (remain > 0 && NULL != bh->hits) {
+		pmsg_t *mb = bh->hits->data;
+		gint r;
+
+		r = pmsg_read(mb, p, remain);
+		p += r;
+		remain -= r;
+
+		if (r == 0 || 0 == pmsg_size(mb)) {
+			pmsg_free(mb);
+			bh->hits = g_slist_remove(bh->hits, mb);
+		}
+	}
+
+	return size - remain;
 }
 
 /**
@@ -301,12 +414,17 @@ void
 browse_host_close(gpointer ctx)
 {
 	struct browse_host_ctx *bh = ctx;
+	GSList *sl;
 
 	g_assert(bh);
 
-	if (bh->d_buf) 
-		G_FREE_NULL(bh->d_buf);
+	for (sl = bh->hits; sl; sl = g_slist_next(sl)) {
+		pmsg_t *mb = sl->data;
+		pmsg_free(mb);
+	}
+	g_slist_free(bh->hits);
 
+	G_FREE_NULL(bh->d_buf);
 	tx_free(bh->tx);
 	wfree(bh, sizeof *bh);
 }
@@ -340,11 +458,15 @@ browse_host_open(
 	g_assert((flags & (BH_HTML|BH_QHITS)) != (BH_HTML|BH_QHITS));
 
 	bh = walloc(sizeof *bh);
-	bh->special.read = browse_host_read;
+	bh->special.read =
+		(flags & BH_HTML) ? browse_host_read_html : browse_host_read_qhits;
 	bh->special.write = browse_host_write;
 	bh->special.flush = browse_host_flush;
 	bh->special.close = browse_host_close;
+
 	browse_host_next_state(bh, BH_STATE_HEADER);
+	bh->hits = NULL;
+	bh->file_index = 0;
 
 	/*
 	 * Instantiate the TX stack.

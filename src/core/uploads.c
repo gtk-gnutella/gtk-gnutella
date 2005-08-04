@@ -2328,6 +2328,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		NULL != is_strprefix(request, "GET / HTTP/") ||
 		NULL != is_strprefix(request, "HEAD / HTTP/")
 	) {
+		gchar name[80];
+
 		u->browse_host = TRUE;
 		u->name = atom_str_get(_("<Browse Host Request>"));
 		
@@ -2371,8 +2373,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	    g_assert(hevcnt < G_N_ELEMENTS(hev));
 		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-// XXX	hev[hevcnt].he_msg = (bh_flags & BH_HTML) ?
-		hev[hevcnt].he_msg = (TRUE) ?
+		hev[hevcnt].he_msg = (bh_flags & BH_HTML) ?
 			"Content-Type: text/html; charset=utf-8\r\n" :
 			"Content-Type: application/x-gnutella-packets\r\n";
 		hev[hevcnt++].he_arg = NULL;
@@ -2404,6 +2405,19 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			hev[hevcnt].he_msg = "Transfer-Encoding: chunked\r\n";
 			hev[hevcnt++].he_arg = NULL;
 		}
+
+		/*
+		 * Change the name of the upload for the GUI.
+		 */
+
+		gm_snprintf(name, sizeof(name),
+			_("<Browse Host Request> [%s%s%s]"),
+			(bh_flags & BH_HTML) ? "HTML" : _("query hits"),
+			(bh_flags & BH_DEFLATE) ? _(", deflated") : "",
+			(bh_flags & BH_CHUNKED) ? _(", chunked") : "");
+
+		atom_str_free(u->name);
+		u->name = atom_str_get(name);
 	} else {
 		/*
 		 * If previous request was a browse host, clear the name.
