@@ -94,20 +94,23 @@ struct dechunk {
  * @return 0 on success, -1 on failure.
  */
 static int
-dechunk(struct dechunk *ctx, struct attr *attr, const gchar **error_str)
+dechunk(struct dechunk *ctx, struct attr *attr, const gchar **p_error_str)
 {
+	const gchar *error_str;
+
 	g_assert(ctx);
 	g_assert(attr);
 	
 	g_assert(ctx->dst);
 	g_assert(ctx->src);
 	g_assert(ctx->src_len > 0);
+	g_assert(ctx->dst_len > 0);
 
 	g_assert(attr->state < NUM_CHUNK_STATES);
 	g_assert(CHUNK_STATE_END != attr->state);
 
 	do {
-	
+
 		switch (attr->state) {
 		case CHUNK_STATE_DATA:
 			g_assert(attr->data_remain > 0);
@@ -116,7 +119,8 @@ dechunk(struct dechunk *ctx, struct attr *attr, const gchar **error_str)
 			{
 				size_t n;
 
-				n = MIN(ctx->dst_len, attr->data_remain);
+				n = MIN(ctx->src_len, attr->data_remain);
+				n = MIN(n, ctx->dst_len);
 				memcpy(ctx->dst, ctx->src, n);
 				ctx->dst += n;
 				ctx->src += n;
@@ -139,11 +143,11 @@ dechunk(struct dechunk *ctx, struct attr *attr, const gchar **error_str)
 				   /* This allows more than one CR but we must consume
 				 	* some data or keep state over this otherwise. */
 					continue;
-				}
-
-				if ('\n' != c) {
-					if (error_str)
-						*error_str = "No CRLF after chunk data";
+				} else if ('\n' == c) {
+					attr->state = CHUNK_STATE_SIZE;
+					break;
+				} else {
+					error_str = "No CRLF after chunk data";
 					goto error;
 				}
 			}
@@ -154,11 +158,11 @@ dechunk(struct dechunk *ctx, struct attr *attr, const gchar **error_str)
 			while (ctx->src_len > 0) {
 				guchar c;
 
+				ctx->src_len--;
 				c = *ctx->src++;
 				if (is_ascii_xdigit(c)) {
 					if (attr->hex_pos >= sizeof attr->hex_buf) {
-						if (error_str)
-							*error_str = "Overflow in chunk-size";
+						error_str = "Overflow in chunk-size";
 						goto error;
 					}
 					/* Collect up to 16 hex characters */
@@ -170,8 +174,7 @@ dechunk(struct dechunk *ctx, struct attr *attr, const gchar **error_str)
 					 * anything else. */
 
 					if (!is_ascii_space(c) && ';' != c) {
-						if (error_str)
-							*error_str = "Bad chunk-size";
+						error_str = "Bad chunk-size";
 						goto error;
 					}
 
@@ -243,6 +246,9 @@ dechunk(struct dechunk *ctx, struct attr *attr, const gchar **error_str)
 			break;
 			
 		case CHUNK_STATE_END:
+			/* XXX: Does this require special handling? */
+			break;
+			
 		case CHUNK_STATE_ERROR:
 		case NUM_CHUNK_STATES:
 			g_assert_not_reached();
@@ -255,12 +261,16 @@ dechunk(struct dechunk *ctx, struct attr *attr, const gchar **error_str)
 
 	} while (ctx->src_len > 0 && CHUNK_STATE_END != attr->state);
 
-	if (error_str)
-		*error_str = NULL;
+	if (p_error_str)
+		*p_error_str = NULL;
 
 	return 0;
 	
 error:
+	
+	if (p_error_str)
+		*p_error_str = error_str;
+
 	attr->state = CHUNK_STATE_ERROR;
 	return -1;
 }
@@ -301,7 +311,12 @@ dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 	 * Dechunk data.
 	 */
 
+	g_assert(attr->state != CHUNK_STATE_ERROR);
 	if (0 != dechunk(&ctx, attr, &error_str)) {
+		/* XXX: Is this correct or not? rx_inflate() doesn't disable it
+		 *      but we must not continue after a decoding error. */
+		attr->flags &= ~IF_ENABLED;
+		
 		attr->cb->chunk_error(rx->owner, "dechunk() failed: %s", error_str);
 		goto cleanup;
 	}
