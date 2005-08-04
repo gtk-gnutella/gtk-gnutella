@@ -15,9 +15,11 @@ import gobject
 def my_events_handler(message):
         print "GTKG says '" + message + "'"
 
-def downloaddone_handler(message):
+def download_done_handler(message):
         print "GTKG says that '" + message + "' has been downloaded."
 
+def peermode_change_handler(message):
+        print "GTKG switched to peermode " + message + "."
 
 # Get access to the session bus.
 bus = dbus.Bus(dbus.Bus.TYPE_SESSION)
@@ -33,12 +35,12 @@ bus.add_signal_receiver(my_events_handler,
                         )
 
 # Attach the handler for the DownloadDone signal.
-bus.add_signal_receiver(downloaddone_handler,
-                        'DownloadDone',
-                        'net.gtkg.Events',
-                        None,
-                        None
-                        )
+bus.add_signal_receiver(download_done_handler,
+                        'DownloadDone', 'net.gtkg.Events', None, None )
+
+# Attach the handler for the PeermodeChange signal.
+bus.add_signal_receiver(peermode_change_handler,
+                        'PeermodeChange', 'net.gtkg.Events', None, None )
 
 # Indicate readyness and start the main loop which will call the
 # callback when the correct signal is received.

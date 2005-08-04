@@ -89,6 +89,7 @@ RCSID("$Id$");
 #include "lib/aging.h"
 #include "lib/atoms.h"
 #include "lib/cq.h"
+#include "lib/dbus_util.h"
 #include "lib/getdate.h"
 #include "lib/endian.h"
 #include "lib/getline.h"
@@ -3391,6 +3392,8 @@ node_set_current_peermode(node_peer_t mode)
 		qrp_peermode_changed();			/* Compute proper routing table */
 		sq_set_peermode(mode);			/* Possibly discard the global SQ */
 	}
+
+	dbus_util_send_message(DBS_EVT_PEERMODE_CHANGE, msg);
 
 	old_mode = mode;
 }
