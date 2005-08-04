@@ -114,6 +114,9 @@ chunk_flush_header(txdrv_t *tx)
 	 * able to accept more data from us.
 	 */
 
+	if (r == -1)
+		return FALSE;		/* XXX could cause problems */
+
 	if (r != attr->head_remain)
 		tx_srv_enable(tx->lower);
 
