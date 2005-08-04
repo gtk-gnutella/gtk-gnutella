@@ -209,7 +209,7 @@ dechunk(struct dechunk *ctx, struct attr *attr, const gchar **error_str)
 
 		case CHUNK_STATE_TRAILER_START:
 			/* We've reached another trailer line */
-			if (ctx->src_len < 0)
+			if (ctx->src_len < 1)
 				break;
 			if ('\r' == ctx->src[0]) {
 				/* This allows more than one CR but we must consume
@@ -217,7 +217,7 @@ dechunk(struct dechunk *ctx, struct attr *attr, const gchar **error_str)
 				ctx->src++;
 				ctx->src_len--;
 			}
-			if (ctx->src_len < 0)
+			if (ctx->src_len < 1)
 				break;
 			if ('\n' == ctx->src[0]) {
 				/* An empty line means the end of all trailers was reached */
