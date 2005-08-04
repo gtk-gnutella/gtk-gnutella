@@ -270,7 +270,7 @@ tx_link_disable(txdrv_t *tx)
 	 *		--RAM, 15/03/2002
 	 */
 
-	if (attr->cb->unflushq != NULL)
+	if (attr->cb->unflushq != NULL && !(tx->flags & TX_DOWN))
 		attr->cb->unflushq(tx->owner);
 }
 

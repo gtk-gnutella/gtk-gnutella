@@ -149,6 +149,8 @@ tx_shutdown(txdrv_t *tx)
 	g_assert(tx->upper == NULL);
 
 	for (t = tx; t; t = t->lower) {
+		t->flags |= TX_DOWN;		/* Signal we're going down */
+
 		/*
 		 * If we reach a stage where the service routine was enabled (the
 		 * lower driver was meant to call its upper layer service routine
@@ -160,7 +162,6 @@ tx_shutdown(txdrv_t *tx)
 			tx_srv_disable(t);
 
 		TX_SHUTDOWN(t);
-		t->flags |= TX_DOWN;
 	}
 }
 
