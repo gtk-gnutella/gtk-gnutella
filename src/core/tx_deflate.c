@@ -349,6 +349,7 @@ deflate_flush_send(txdrv_t *tx)
 
 			if (b->rptr != b->wptr)			/* Something to send */
 				deflate_rotate_and_send(tx);
+		}
 	}
 }
 
