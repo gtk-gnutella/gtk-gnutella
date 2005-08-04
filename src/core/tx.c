@@ -200,6 +200,8 @@ tx_free(txdrv_t *tx)
 ssize_t
 tx_write(txdrv_t *tx, gpointer data, size_t len)
 {
+	g_assert(tx);
+
 	if (tx->flags & (TX_ERROR | TX_DOWN | TX_CLOSING)) {
 		errno = EINVAL;
 		return -1;
@@ -216,6 +218,8 @@ tx_write(txdrv_t *tx, gpointer data, size_t len)
 ssize_t
 tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 {
+	g_assert(tx);
+
 	if (tx->flags & (TX_ERROR | TX_DOWN | TX_CLOSING)) {
 		errno = EINVAL;
 		return -1;
@@ -232,6 +236,8 @@ tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 ssize_t
 tx_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len)
 {
+	g_assert(tx);
+
 	if (tx->flags & (TX_ERROR | TX_DOWN | TX_CLOSING)) {
 		errno = EINVAL;
 		return -1;
@@ -259,6 +265,7 @@ tx_srv_register(txdrv_t *tx, tx_service_t srv_fn, gpointer srv_arg)
 void
 tx_srv_enable(txdrv_t *tx)
 {
+	g_assert(tx);
 	g_assert(tx->srv_routine != NULL);
 
 	if (tx->flags & TX_SERVICE)		/* Already enabled */
@@ -274,6 +281,7 @@ tx_srv_enable(txdrv_t *tx)
 void
 tx_srv_disable(txdrv_t *tx)
 {
+	g_assert(tx);
 	g_assert(tx->srv_routine != NULL);
 	g_assert(tx->flags & TX_SERVICE);
 
@@ -313,6 +321,8 @@ tx_pending(txdrv_t *tx)
 static txdrv_t *
 tx_deep_bottom(txdrv_t *tx)
 {
+	g_assert(tx);
+	
 	if (tx->lower)
 		return tx_deep_bottom(tx->lower);
 
