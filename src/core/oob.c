@@ -65,6 +65,8 @@ RCSID("$Id$");
 #define OOB_MAX_QUEUED		50				/**< Max # of messages per host */
 #define OOB_MAX_RETRY		3				/**< Retry # if LIME/12v2 dropped */
 
+#define OOB_MAX_QHIT_SIZE	645				/**< Flush hits larger than this */
+
 /**
  * A set of hits awaiting delivery.
  */
@@ -452,8 +454,12 @@ oob_deliver_hits(struct gnutella_node *n, gchar *muid, guint8 wanted)
 			deliver_count);
 
 	if (deliver_count)
-		qhit_build_results(oob_record_hit, s,
-			r->muid, r->files, deliver_count, r->use_ggep_h);
+		qhit_build_results(
+			r->files, deliver_count,
+			OOB_MAX_QHIT_SIZE,
+			oob_record_hit, s,
+			r->muid,
+			r->use_ggep_h);
 
 	if (wanted < r->count)
 		gnet_stats_count_general(GNR_PARTIALLY_CLAIMED_OOB_HITS, 1);

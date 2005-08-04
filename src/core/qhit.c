@@ -57,7 +57,6 @@ RCSID("$Id$");
 #include "lib/override.h"			/* Must be the last header included */
 
 #define QHIT_SIZE_THRESHOLD	2016	/**< Flush query hits larger than this */
-#define QHIT_SIZE_OOB		645		/**< Flush OOB query hits larger than this */
 #define QHIT_MAX_RESULTS	255		/**< Maximum amount of hits in a query hit */
 #define QHIT_MAX_ALT		10		/**< Send out 10 alt-locs per entry, max */
 #define QHIT_MAX_PROXIES	5		/**< Send out 5 push-proxies at most */
@@ -741,8 +740,8 @@ qhit_send_results(
 		shared_file_unref(sf);
 	}
 
-	if (0 != found_file_count())			/* Still some unflushed results */
-		flush_match();			/* Send last packet */
+	if (0 != found_file_count())	/* Still some unflushed results */
+		flush_match();				/* Send last packet */
 
 	g_slist_free(files);
 
@@ -751,25 +750,40 @@ qhit_send_results(
 }
 
 /**
- * Build query hit results for later out-of-band delivery.
+ * Build query hit results for later delivery.
  *
- * @param cb			the processor callback to invoke on each built hit
- * @param udata			argument to pass to callback (OOB recording strcuture)
- * @param muid			the MUID to use on each generated hit
+ * Results are held in the `files' list.  They are packed in hits until
+ * the message reaches the `max_msgsize' limit at which time the packet
+ * is flushed and given the the `cb' callback for processing (sending,
+ * queueing, whatever).
+ *
+ * The callback is invoked as
+ *
+ *		cb(data, len, udata)
+ *
+ * where the query hit message is held in the `len' bytes starting at `data'.
+ * The `udata' parameter is simply user-supplied data, opaque for us.
+ *
  * @param files			the list of shared_file_t entries that make up results
- * @param count			the amount of results
+ * @param count			the amount of results to deliver (first `count' files)
+ * @param max_msgsize	the targeted maximum hit size before flushing
+ * @param cb			the processor callback to invoke on each built hit
+ * @param udata			argument to pass to callback
+ * @param muid			the MUID to use on each generated hit
  * @param use_ggep_h	whether GGEP "H" can be used to send the SHA1 of files
  */
 void
 qhit_build_results(
+	GSList *files, gint count,
+	size_t max_msgsize,
 	qhit_process_t cb, gpointer udata,
-	gchar *muid, GSList *files, gint count, gboolean use_ggep_h)
+	gchar *muid, gboolean use_ggep_h)
 {
 	GSList *sl;
 	gint sent;
 
 	g_assert(cb != NULL);
-	found_reset(QHIT_SIZE_OOB, muid, use_ggep_h, cb, udata);
+	found_reset(max_msgsize, muid, use_ggep_h, cb, udata);
 
 	for (sl = files, sent = 0; sl && sent < count; sl = g_slist_next(sl)) {
 		shared_file_t *sf = (shared_file_t *) sl->data;
@@ -778,11 +792,11 @@ qhit_build_results(
 			sent++;
 	}
 
-	if (0 != found_file_count())			/* Still some unflushed results */
-		flush_match();			/* Send last packet */
+	if (0 != found_file_count())	/* Still some unflushed results */
+		flush_match();				/* Send last packet */
 
 	/*
-	 * Nothing to free, since everything is the property of the OOB module.
+	 * Nothing to free, since everything is the property of the calling module.
 	 */
 }
 
