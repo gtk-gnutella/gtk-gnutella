@@ -139,8 +139,10 @@ deflate_send(txdrv_t *tx)
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
-	if ((ssize_t) -1 == r)
+	if ((ssize_t) -1 == r) {
+		tx->flags |= TX_ERROR;
 		return;
+	}
 
 	/*
 	 * If we wrote everything, we're done.
@@ -312,7 +314,11 @@ retry:
 			return TRUE;
 		}
 
-		deflate_rotate_and_send(tx);
+		deflate_rotate_and_send(tx);		/* Can set TX_ERROR */
+
+		if (tx->flags & TX_ERROR)
+			return FALSE;
+
 		goto retry;
 	}
 
@@ -474,7 +480,10 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 				return added;
 			}
 
-			deflate_rotate_and_send(tx);
+			deflate_rotate_and_send(tx);	/* Can set TX_ERROR */
+
+			if (tx->flags & TX_ERROR)
+				return -1;
 		}
 
 		/*
@@ -529,8 +538,9 @@ deflate_service(gpointer data)
 	g_assert(attr->send_idx < BUFFER_COUNT);
 
 	if (dbg > 9)
-		printf("deflate_service: (%s) (buffer #%d, %d bytes held) [%c%c]\n",
-			host_ip(&tx->host), attr->send_idx,
+		printf("deflate_service: (%s) %s(buffer #%d, %d bytes held) [%c%c]\n",
+			host_ip(&tx->host), (tx->flags & TX_ERROR) ? "ERROR " : "",
+			attr->send_idx,
 			attr->send_idx >= 0 ?
 				(gint) (attr->buf[attr->send_idx].wptr -
 						attr->buf[attr->send_idx].rptr) : 0,
@@ -563,7 +573,10 @@ deflate_service(gpointer data)
 			printf("deflate_service: (%s) sending fill buffer #%d, %d bytes\n",
 				host_ip(&tx->host), attr->fill_idx, (gint) (b->wptr - b->rptr));
 
-		deflate_rotate_and_send(tx);
+		deflate_rotate_and_send(tx);	/* Can set TX_ERROR */
+
+		if (tx->flags & TX_ERROR)
+			goto done;
 	}
 
 	/*
@@ -602,8 +615,8 @@ deflate_service(gpointer data)
 
 
 	if (dbg > 9)
-		printf("deflate_service: (%s) done locally [%c%c]\n",
-			host_ip(&tx->host),
+		printf("deflate_service: (%s) %sdone locally [%c%c]\n",
+			host_ip(&tx->host), (tx->flags & TX_ERROR) ? "ERROR " : "",
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -619,8 +632,8 @@ deflate_service(gpointer data)
 
 done:
 	if (dbg > 9)
-		printf("deflate_service: (%s) leaving [%c%c]\n",
-			host_ip(&tx->host),
+		printf("deflate_service: (%s) %sleaving [%c%c]\n",
+			host_ip(&tx->host), (tx->flags & TX_ERROR) ? "ERROR " : "",
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 }
