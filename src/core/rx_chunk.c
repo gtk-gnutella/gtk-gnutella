@@ -191,7 +191,10 @@ dechunk(rxdrv_t *rx, struct dechunk *ctx, const gchar **p_error_str)
 					 * anything else.
 					 */
 
-					if (!is_ascii_space(c) && ';' != c) {
+					if (
+						0 == attr->hex_pos ||
+						(!is_ascii_space(c) && ';' != c)
+					) {
 						error_str = "Bad chunk-size";
 						goto error;
 					}
