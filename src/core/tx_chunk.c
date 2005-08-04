@@ -145,7 +145,7 @@ chunk_begin(txdrv_t *tx, size_t len, gboolean final)
 	
 	g_assert(0 == attr->data_remain);
 	g_assert(0 == attr->head_remain);
-	g_assert(final || len > 0);
+	g_assert(final || ((size_t) -1 != len && len > 0));
 
 	if (dbg > 9)
 		printf("chunk_begin: %s chunk %d byte%s\n",
@@ -194,7 +194,7 @@ chunk_acceptable(txdrv_t *tx, size_t len)
 
 	g_assert(attr->data_remain >= 0);
 	g_assert(attr->head_remain >= 0);
-	g_assert((ssize_t) len >= 0);
+	g_assert((size_t) -1 != len && len > 0);
 
 	/*
 	 * If we haven't committed any length yet, this begins a new chunk.
@@ -313,7 +313,7 @@ tx_chunk_write(txdrv_t *tx, gpointer data, size_t len)
 	gchar *ptr = data;
 	size_t written = 0;
 
-	g_assert(len > 0);
+	g_assert((size_t) -1 != len && len > 0);
 
 	while (remain > 0) {
 		ssize_t acceptable = chunk_acceptable(tx, remain);
