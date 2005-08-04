@@ -194,6 +194,7 @@ chunk_acceptable(txdrv_t *tx, size_t len)
 
 	g_assert(attr->data_remain >= 0);
 	g_assert(attr->head_remain >= 0);
+	g_assert((ssize_t) len >= 0);
 
 	/*
 	 * If we haven't committed any length yet, this begins a new chunk.
@@ -317,6 +318,9 @@ tx_chunk_write(txdrv_t *tx, gpointer data, size_t len)
 	while (remain > 0) {
 		ssize_t acceptable = chunk_acceptable(tx, remain);
 		ssize_t r;
+
+		if (acceptable < 0)
+			return -1;			/* Error detected by lower layer */
 
 		if (acceptable == 0)	/* Could not flush header probably */
 			break;
