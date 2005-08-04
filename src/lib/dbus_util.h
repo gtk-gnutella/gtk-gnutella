@@ -53,9 +53,10 @@ void dbus_util_send_message(const char *, const char *);
 
 #else /* !HAS_DBUS */
 
-#define dbus_util_init(void) G_STMT_START { } G_STMT_END
-#define dbus_util_close(void) G_STMT_START { } G_STMT_END
-#define dbus_util_send_message(signal, txt) G_STMT_START { (void) signal; (void) txt; } G_STMT_END
+#define dbus_util_init() G_STMT_START { } G_STMT_END
+#define dbus_util_close() G_STMT_START { } G_STMT_END
+#define dbus_util_send_message(signal, txt) \
+	G_STMT_START { (void) (signal); (void) (txt); } G_STMT_END
 
 #endif /* HAS_DBUS */
 
