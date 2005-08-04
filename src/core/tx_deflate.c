@@ -102,6 +102,7 @@ struct attr {
 #define DF_SHUTDOWN		0x00000008	/**< Stack has shut down */
 
 static void deflate_nagle_timeout(cqueue_t *cq, gpointer arg);
+static size_t tx_deflate_pending(txdrv_t *tx);
 
 /**
  * Write ready-to-be-sent buffer to the lower layer.
@@ -236,114 +237,6 @@ deflate_rotate_and_send(txdrv_t *tx)
 }
 
 /**
- * Service routine for the compressing stage.
- *
- * Called by lower layer when it is ready to process more data.
- */
-static void
-deflate_service(gpointer data)
-{
-	txdrv_t *tx = (txdrv_t *) data;
-	struct attr *attr = (struct attr *) tx->opaque;
-	struct buffer *b;
-
-	g_assert(attr->send_idx < BUFFER_COUNT);
-
-	if (dbg > 9)
-		printf("deflate_service: (%s) (buffer #%d, %d bytes held) [%c%c]\n",
-			host_ip(&tx->host), attr->send_idx,
-			attr->send_idx >= 0 ?
-				(gint) (attr->buf[attr->send_idx].wptr -
-						attr->buf[attr->send_idx].rptr) : 0,
-			(attr->flags & DF_FLOWC) ? 'C' : '-',
-			(attr->flags & DF_FLUSH) ? 'f' : '-');
-
-	/*
-	 * First, attempt to transmit the whole send buffer, if any pending.
-	 */
-
-	if (attr->send_idx >= 0)
-		deflate_send(tx);			/* Send buffer `send_idx' */
-
-	if (attr->send_idx >= 0)		/* Could not send it entirely */
-		goto done;					/* Done, servicing still enabled */
-
-	/*
-	 * NB: In the following operations, order matters.  In particular, we
-	 * must disable the servicing before attempting to service the upper
-	 * layer, since the data it will send us can cause us to flow control
-	 * and re-enable the servicing.
-	 *
-	 * If the `fill' buffer is full, try to send it now.
-	 */
-
-	b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
-
-	if (b->wptr >= b->end) {
-		if (dbg > 9)
-			printf("deflate_service: (%s) sending fill buffer #%d, %d bytes\n",
-				host_ip(&tx->host), attr->fill_idx, (gint) (b->wptr - b->rptr));
-
-		deflate_rotate_and_send(tx);
-	}
-
-	/*
-	 * If we were able to send the whole send buffer, disable servicing.
-	 */
-
-	if (attr->send_idx == -1) {
-		tx_srv_disable(tx->lower);
-
-		/*
-		 * If closing, we're done, we have flushed everything we could.
-		 * There's no need to even bother with the upper layer: if we're
-		 * closing, we won't accept any further data to write anyway.
-		 */
-
-		if (tx->flags & TX_CLOSING) {
-			(*attr->closed)(tx, attr->closed_arg);
-			goto done;
-		}
-	}
-
-	/*
-	 * If we entered flow control, we can now safely leave it, since we
-	 * have at least a free `fill' buffer.
-	 */
-
-	if (attr->flags & DF_FLOWC) {
-		attr->flags &= ~DF_FLOWC;	/* Leave flow control state */
-
-		if (dbg > 4)
-			printf("Compressing TX stack for peer %s leaves FLOWC\n",
-				host_ip(&tx->host));
-	}
-
-	if (dbg > 9)
-		printf("deflate_service: (%s) done locally [%c%c]\n",
-			host_ip(&tx->host),
-			(attr->flags & DF_FLOWC) ? 'C' : '-',
-			(attr->flags & DF_FLUSH) ? 'f' : '-');
-
-	/*
-	 * If upper layer wants servicing, do it now.
-	 * Note that this can put us back into flow control.
-	 */
-
-	if (tx->flags & TX_SERVICE) {
-		g_assert(tx->srv_routine);
-		tx->srv_routine(tx->srv_arg);
-	}
-
-done:
-	if (dbg > 9)
-		printf("deflate_service: (%s) leaving [%c%c]\n",
-			host_ip(&tx->host),
-			(attr->flags & DF_FLOWC) ? 'C' : '-',
-			(attr->flags & DF_FLUSH) ? 'f' : '-');
-}
-
-/**
  * Flush compression within filling buffer.
  *
  * @return success status, failure meaning we shutdown.
@@ -430,6 +323,27 @@ retry:
 }
 
 /**
+ * Flush compression and send whatever we got so far.
+ */
+static void
+deflate_flush_send(txdrv_t *tx)
+{
+	struct attr *attr = tx->opaque;
+
+	/*
+	 * During deflate_flush(), we can fill the current buffer, then call
+	 * deflate_rotate_and_send() and finish the flush.  But it is possible
+	 * that the whole send buffer does not get sent immediately.  Therefore,
+	 * we need to recheck for attr->send_idx.
+	 */
+
+	if (deflate_flush(tx)) {
+		if (attr->send_idx == -1)			/* No write pending */
+			deflate_rotate_and_send(tx);
+	}
+}
+
+/**
  * Called from the callout queue when the Nagle timer expires.
  *
  * If we can send the buffer, flush it and send it.  Otherwise, reschedule.
@@ -467,17 +381,7 @@ deflate_nagle_timeout(cqueue_t *unused_cq, gpointer arg)
 		fflush(stdout);
 	}
 
-	/*
-	 * During deflate_flush(), we can fill the current buffer, then call
-	 * deflate_rotate_and_send() and finish the flush.  But it is possible
-	 * that the whole send buffer does not get sent immediately.  Therefore,
-	 * we need to recheck for attr->send_idx.
-	 */
-
-	if (deflate_flush(tx)) {
-		if (attr->send_idx == -1)
-			deflate_rotate_and_send(tx);
-	}
+	deflate_flush_send(tx);
 }
 
 /**
@@ -610,6 +514,117 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 	return added;
 }
 
+/**
+ * Service routine for the compressing stage.
+ *
+ * Called by lower layer when it is ready to process more data.
+ */
+static void
+deflate_service(gpointer data)
+{
+	txdrv_t *tx = (txdrv_t *) data;
+	struct attr *attr = (struct attr *) tx->opaque;
+	struct buffer *b;
+
+	g_assert(attr->send_idx < BUFFER_COUNT);
+
+	if (dbg > 9)
+		printf("deflate_service: (%s) (buffer #%d, %d bytes held) [%c%c]\n",
+			host_ip(&tx->host), attr->send_idx,
+			attr->send_idx >= 0 ?
+				(gint) (attr->buf[attr->send_idx].wptr -
+						attr->buf[attr->send_idx].rptr) : 0,
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
+
+	/*
+	 * First, attempt to transmit the whole send buffer, if any pending.
+	 */
+
+	if (attr->send_idx >= 0)
+		deflate_send(tx);			/* Send buffer `send_idx' */
+
+	if (attr->send_idx >= 0)		/* Could not send it entirely */
+		goto done;					/* Done, servicing still enabled */
+
+	/*
+	 * NB: In the following operations, order matters.  In particular, we
+	 * must disable the servicing before attempting to service the upper
+	 * layer, since the data it will send us can cause us to flow control
+	 * and re-enable the servicing.
+	 *
+	 * If the `fill' buffer is full, try to send it now.
+	 */
+
+	b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
+
+	if (b->wptr >= b->end) {
+		if (dbg > 9)
+			printf("deflate_service: (%s) sending fill buffer #%d, %d bytes\n",
+				host_ip(&tx->host), attr->fill_idx, (gint) (b->wptr - b->rptr));
+
+		deflate_rotate_and_send(tx);
+	}
+
+	/*
+	 * If we were able to send the whole send buffer, disable servicing.
+	 */
+
+	if (attr->send_idx == -1)
+		tx_srv_disable(tx->lower);
+
+	/*
+	 * If we entered flow control, we can now safely leave it, since we
+	 * have at least a free `fill' buffer.
+	 */
+
+	if (attr->flags & DF_FLOWC) {
+		attr->flags &= ~DF_FLOWC;	/* Leave flow control state */
+
+		if (dbg > 4)
+			printf("Compressing TX stack for peer %s leaves FLOWC\n",
+				host_ip(&tx->host));
+	}
+
+	/*
+	 * If closing, we're done once we have flushed everything we could.
+	 * There's no need to even bother with the upper layer: if we're
+	 * closing, we won't accept any further data to write anyway.
+	 */
+
+	if (tx->flags & TX_CLOSING) {
+		deflate_flush_send(tx);
+		if (0 == tx_deflate_pending(tx)) {
+			(*attr->closed)(tx, attr->closed_arg);
+			goto done;
+		}
+	}
+
+
+	if (dbg > 9)
+		printf("deflate_service: (%s) done locally [%c%c]\n",
+			host_ip(&tx->host),
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
+
+	/*
+	 * If upper layer wants servicing, do it now.
+	 * Note that this can put us back into flow control.
+	 */
+
+	if (tx->flags & TX_SERVICE) {
+		g_assert(tx->srv_routine);
+		tx->srv_routine(tx->srv_arg);
+	}
+
+done:
+	if (dbg > 9)
+		printf("deflate_service: (%s) leaving [%c%c]\n",
+			host_ip(&tx->host),
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
+}
+
 /***
  *** Polymorphic routines.
  ***/
@@ -619,7 +634,8 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
  *
  * @return NULL if there is an initialization problem.
  */
-static gpointer tx_deflate_init(txdrv_t *tx, gpointer args)
+static gpointer
+tx_deflate_init(txdrv_t *tx, gpointer args)
 {
 	struct attr *attr;
 	struct tx_deflate_args *targs = (struct tx_deflate_args *) args;
@@ -846,7 +862,7 @@ tx_deflate_flush(txdrv_t *tx)
 		g_assert(attr->tm_ev != NULL);
 		cq_expire(attr->cq, attr->tm_ev);
 	} else
-		deflate_flush(tx);
+		deflate_flush_send(tx);
 }
 
 /**
@@ -876,6 +892,14 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 
 	g_assert(tx->flags & TX_CLOSING);
 
+	if (dbg > 9)
+		printf("tx_deflate_close: (%s) send=%d buffer #%d, nagle %s, "
+			"unflushed %d) [%c%c]\n",
+			host_ip(&tx->host), attr->send_idx, attr->fill_idx,
+			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
+
 	/*
 	 * Flush whatever we can.
 	 */
@@ -883,6 +907,9 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 	tx_deflate_flush(tx);
 
 	if (0 == tx_deflate_pending(tx)) {
+		if (dbg > 9)
+			printf("tx_deflate_close: flushed everything immediately\n");
+
 		(*cb)(tx, arg);
 		return;
 	}
@@ -893,6 +920,14 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 
 	attr->closed = cb;
 	attr->closed_arg = arg;
+
+	if (dbg > 9)
+		printf("tx_deflate_close: (%s) delayed! send=%d buffer #%d, nagle %s, "
+			"unflushed %d) [%c%c]\n",
+			host_ip(&tx->host), attr->send_idx, attr->fill_idx,
+			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
+			(attr->flags & DF_FLOWC) ? 'C' : '-',
+			(attr->flags & DF_FLUSH) ? 'f' : '-');
 }
 
 static const struct txdrv_ops tx_deflate_ops = {
