@@ -161,7 +161,7 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 {
 	static const gchar header[] =
 		"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
-		"<html><head><title>Browse Host</title></head><body><ul>\n";
+		"<html><head><title>Browse Host</title></head><body><ul>\r\n";
 	static const gchar trailer[] = "</ul></body></html>";
 	struct browse_host_ctx *bh = ctx;
 	gchar *p = dest; 
@@ -223,13 +223,14 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 						bh->d_buf = g_strconcat("<li>",
 								"<a href=\"/uri-res/N2R?urn:sha1:",
 								sha1_base32(sf->sha1_digest),
-								"\">", sf->name_nfc, "</a></li>\n", (void *) 0);
+								"\">", sf->name_nfc, "</a></li>\r\n",
+								(void *) 0);
 					} else {
 						gchar *escaped;
 
 						escaped = url_escape(sf->name_nfc);
 						bh->d_buf = g_strdup_printf(
-								"<li><a href=\"/get/%u/%s\">%s</a></li>\n",
+								"<li><a href=\"/get/%u/%s\">%s</a></li>\r\n",
 								sf->file_index, escaped, sf->name_nfc);
 						if (escaped != sf->name_nfc)
 							G_FREE_NULL(escaped);
