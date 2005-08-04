@@ -694,7 +694,6 @@ upload_clone(gnutella_upload_t *u)
 	u->user_agent = NULL;
 	u->country = -1;
 	u->sha1 = NULL;
-	u->special = NULL;
 
 	/*
 	 * Add the upload structure to the upload slist, so it's monitored
@@ -2376,8 +2375,17 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			hev[hevcnt++].he_arg = NULL;
 		}
 	} else {
+		/*
+		 * If previous request was a browse host, clear the name.
+		 */
+
+		if (u->browse_host && u->name) {
+			atom_str_free(u->name);
+			u->name = NULL;
+		}
+
 		u->browse_host = FALSE;
-		
+
 		reqfile = get_file_to_upload(u, header, request);
 		if (!reqfile) {
 			/* get_file_to_upload() has signaled the error already */
@@ -3378,6 +3386,17 @@ static void
 upload_special_flushed(gpointer arg)
 {
 	gnutella_upload_t *u = arg;
+
+	g_assert(u->special);
+	g_assert(u->special->close);
+
+	/*
+	 * Must get rid of the special reading hooks to reset the TX stack
+	 * for the next request.
+	 */
+
+	u->special->close(u->special);
+	u->special = NULL;
 
 	upload_completed(u);	/* We're done, wait for next request if any */
 }
