@@ -98,6 +98,7 @@ typedef struct upload {
 	gboolean unavailable_range;	/**< True when last request ended with 416 */
 	gboolean n2r;				/**< True when they sent an N2R request */
 	gboolean browse_host;		/**< True when they sent a Browse Host req. */
+	gboolean from_browser;		/**< True when request likely from browser */
 
 	gboolean parq_status;
 } gnutella_upload_t;

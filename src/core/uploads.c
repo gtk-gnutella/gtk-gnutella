@@ -711,6 +711,41 @@ upload_clone(gnutella_upload_t *u)
 }
 
 /**
+ * Check whether the request was likely made from a browser.
+ */
+static gboolean
+upload_likely_from_browser(header_t *header)
+{
+	gchar *buf;
+
+	buf = header_get(header, "X-Queue");
+	if (buf)
+		return FALSE;
+
+	buf = header_get(header, "X-Gnutella-Content-Urn");
+	if (buf)
+		return FALSE;
+
+	buf = header_get(header, "X-Alt");
+	if (buf)
+		return FALSE;
+
+	buf = header_get(header, "Accept");
+	if (buf && (strstr(buf, "text/html") || strstr(buf, "text/*")))
+		return TRUE;
+
+	buf = header_get(header, "Accept-Language");
+	if (buf)
+		return TRUE;
+
+	buf = header_get(header, "Referer");
+	if (buf)
+		return TRUE;
+
+	return FALSE;
+}
+
+/**
  * The vectorized (message-wise) version of send_upload_error().
  */
 static void
@@ -776,7 +811,13 @@ send_upload_error_v(
 		hev[hevcnt].he_cb = parq_upload_add_header;
 		hev[hevcnt++].he_arg = &cb_parq_arg;
 	
-		{
+		/*
+		 * If the request seems to come from a browser, send back a small
+		 * piece of body to automatically restart the download when we
+		 * want it to be re-emitted.
+		 */
+
+		if (u->from_browser) {
 			static gchar buf[1024];
 			glong retry;
 			
@@ -2239,10 +2280,13 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean known_for_stalling;
 	gint bh_flags = 0;
 
+	u->from_browser = upload_likely_from_browser(header);
+
 	if (upload_debug) {
-		g_message("----%s Request from %s:\n%s",
+		g_message("----%s Request from %s%s:\n%s",
 			is_followup ? "Follow-up" : "Incoming",
 			ip_to_gchar(s->ip),
+			u->from_browser ? " (via browser)" : "",
 			request);
 		header_dump(header, stdout);
 		g_message("----");
