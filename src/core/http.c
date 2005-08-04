@@ -101,6 +101,7 @@ http_send_status(
 	const gchar *version;
 	const gchar *date;
 	const gchar *token;
+	const gchar *body = NULL;
 	gint header_size = sizeof(header);
 	gboolean saturated = bsched_saturated(bws.out);
 	gint cb_flags = 0;
@@ -159,7 +160,17 @@ http_send_status(
 		token = tok_version();
 	}
 
-	if (code < 300 || !keep_alive)
+	for (i = 0; i < hevcnt; i++) {
+		http_extra_desc_t *he = &hev[i];
+		
+		if (HTTP_EXTRA_BODY == he->he_type) {
+			if ('\0' != he->he_msg[0])
+				body = he->he_msg;
+			break;
+		}
+	}
+	
+	if (code < 300 || !keep_alive || body)
 		no_content = "";
 
 	g_assert((size_t) header_size <= sizeof(header));
@@ -190,6 +201,9 @@ http_send_status(
 		http_extra_type_t type = he->he_type;
 
 		switch (type) {
+		case HTTP_EXTRA_BODY:
+			/* Already handled above */
+			break;
 		case HTTP_EXTRA_LINE:
 			rw += gm_snprintf(&header[rw], header_size - rw, "%s", he->he_msg);
 			break;
@@ -211,8 +225,15 @@ http_send_status(
 		}
 	}
 
+	if (body)
+		rw += gm_snprintf(&header[rw], header_size - rw,
+						"Content-Length: %lu\r\n", (gulong) strlen(body));
+
 	if (rw < header_size)
 		rw += gm_snprintf(&header[rw], header_size - rw, "\r\n");
+
+	if (body)	
+		rw += gm_snprintf(&header[rw], header_size - rw, "%s", body);
 
 	if (rw >= header_size && hev) {
 		g_warning("HTTP status %d (%s) too big, ignoring extra information",

@@ -46,7 +46,8 @@
 
 typedef enum {
 	HTTP_EXTRA_LINE,
-	HTTP_EXTRA_CALLBACK
+	HTTP_EXTRA_CALLBACK,
+	HTTP_EXTRA_BODY
 } http_extra_type_t;
 
 /**
