@@ -24,8 +24,8 @@
 echo " "
 d_dbus="$define"
 echo "Checking how we can gather information about dbus..." >&4
-if pkg-config dbus-1 --cflags >/dev/null 2>&1; then
-	dbusconfig="pkg-config dbus-1"
+if pkg-config dbus-glib-1 --cflags >/dev/null 2>&1; then
+	dbusconfig="pkg-config dbus-glib-1"
 	modver=--modversion
 else
 	echo "You've don't seem to have dbus installed?" >&4

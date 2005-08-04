@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Aug  3 00:11:40 CEST 2005 [metaconfig 3.0 PL70]
+# Generated on Thu Aug  4 17:51:32 CEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -4662,8 +4662,8 @@ $rm -f const.c const.o
 echo " "
 d_dbus="$define"
 echo "Checking how we can gather information about dbus..." >&4
-if pkg-config dbus-1 --cflags >/dev/null 2>&1; then
-	dbusconfig="pkg-config dbus-1"
+if pkg-config dbus-glib-1 --cflags >/dev/null 2>&1; then
+	dbusconfig="pkg-config dbus-glib-1"
 	modver=--modversion
 else
 	echo "You've don't seem to have dbus installed?" >&4
