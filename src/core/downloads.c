@@ -395,15 +395,21 @@ download_total_progress(const struct download *d)
  * range on the return value should be 0 -> 1 but there is
  * no guarantee.
  *
+ * Same as download_total_progress() if source is not receiving.
+ *
  * @param d The download structure which we are interested
  * in knowing the progress of.
  *
- * @return The percent completed for this source.
+ * @return The percent completed for this source, or for the whole file
+ * completion percentage if the source is not receiving at the moment.
  */
 gdouble
 download_source_progress(const struct download *d)
 {
 	gdouble size = d->size;
+
+	if (!DOWNLOAD_IS_ACTIVE(d))
+		return download_total_progress(d);
 
 	return size < 1 ? 0.0 : (d->pos - d->skip) / size;
 }
