@@ -724,7 +724,7 @@ send_upload_error_v(
 	gchar reason[1024];
 	gchar extra[1024];
 	size_t slen = 0;
-	http_extra_desc_t hev[6];
+	http_extra_desc_t hev[8];
 	guint hevcnt = 0;
 	struct upload_http_cb cb_parq_arg, cb_sha1_arg;
 
@@ -775,6 +775,29 @@ send_upload_error_v(
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = parq_upload_add_header;
 		hev[hevcnt++].he_arg = &cb_parq_arg;
+	
+		{
+			static gchar buf[1024];
+			glong retry;
+			
+			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
+			hev[hevcnt++].he_msg = "Content-Type: text/html\r\n";
+
+			hev[hevcnt].he_type = HTTP_EXTRA_BODY;
+			hev[hevcnt++].he_msg = buf;
+
+			retry = delta_time(parq_upload_lookup_retry(u), time(NULL));
+			retry = MAX(0, retry);
+			gm_snprintf(buf, sizeof buf,
+				"<html>"
+				"<head>"
+				"<meta http-equiv=\"Refresh\" content=\"%ld;\">"
+				"</head>"
+				"<body>Your download will start in %ld seconds.</body>"
+				"</html>"
+				"\r\n",
+				retry, retry);
+		}
 	}
 
 	/*
