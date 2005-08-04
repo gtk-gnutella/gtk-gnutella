@@ -91,9 +91,10 @@ struct attr {
 /**
  * Flush the chunk header by sending it to the wire.
  *
- * @return TRUE if we were able to flush the whole header.
+ * @return +1 if we were able to flush the whole header, 0 if we need
+ * to be called again and -1 on errors..
  */
-static gboolean
+static ssize_t
 chunk_flush_header(txdrv_t *tx)
 {
 	struct attr *attr = tx->opaque;
@@ -115,27 +116,28 @@ chunk_flush_header(txdrv_t *tx)
 	 */
 
 	if (r == -1)
-		return FALSE;		/* XXX could cause problems */
+		return -1;				/* Bail out, we're probably dead already */
 
 	if (r != attr->head_remain)
 		tx_srv_enable(tx->lower);
 
-	if (r <= 0)
-		return FALSE;
+	if (r == 0)
+		return 0;
 
 	attr->head_remain -= r;
 	g_assert(attr->head_remain >= 0);
 
-	return 0 == attr->head_remain;		/* TRUE if we sent everything */
+	return 0 == attr->head_remain ? +1 : 0;		/* +1 if we sent everything */
 }
 
 /**
  * Begin new chunk of said length, committing to write that much at least
  * until the new chunk header.
  *
- * @return TRUE if we were able to flush the whole header.
+ * @return +1 if we were able to flush the whole header, 0 if not and -1
+ * if we encountered an error.
  */
-static gboolean
+static ssize_t
 chunk_begin(txdrv_t *tx, size_t len, gboolean final)
 {
 	struct attr *attr = tx->opaque;
@@ -188,6 +190,7 @@ static ssize_t
 chunk_acceptable(txdrv_t *tx, size_t len)
 {
 	struct attr *attr = tx->opaque;
+	ssize_t r;
 
 	g_assert(attr->data_remain >= 0);
 	g_assert(attr->head_remain >= 0);
@@ -197,11 +200,12 @@ chunk_acceptable(txdrv_t *tx, size_t len)
 	 */
 
 	if (attr->data_remain + attr->head_remain == 0) {
-		if (!chunk_begin(tx, len, FALSE))
-			return 0;				/* Flow-controlled */
+		r = chunk_begin(tx, len, FALSE);
+		if (r <= 0)
+			return r;				/* Flow-controlled or error */
 	} else if (attr->head_remain) {
-		if (!chunk_flush_header(tx))
-			return 0;				/* Flow-controlled */
+		r = chunk_flush_header(tx);
+			return r;				/* Idem */
 	}
 
 	return MIN(attr->data_remain, (ssize_t) len);
@@ -222,7 +226,7 @@ chunk_service(gpointer data)
 	 * If we have a pending header to send, do it now.
 	 */
 
-	if (attr->head_remain && !chunk_flush_header(tx))
+	if (attr->head_remain && chunk_flush_header(tx) <= 0)
 		return;
 
 	/*
@@ -361,10 +365,12 @@ tx_chunk_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 
 	while (iovcnt--) {
 		ssize_t r = tx_chunk_write(tx, iov->iov_base, iov->iov_len);
+		if (-1 == r)
+			return -1;
 		if (r > 0)
 			written += r;
-		if ((size_t) r != iov->iov_len)
-			break;
+		if ((size_t) r != iov->iov_len)		/* Not able to write everything */
+			break;							/* Lower-level flow-controls us */
 		iov++;
 	}
 
@@ -457,7 +463,7 @@ tx_chunk_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 	 * Emit the last chunk header, indicating we're done with data.
 	 */
 
-	if (chunk_begin(tx, 0, TRUE)) {
+	if (chunk_begin(tx, 0, TRUE) > 0) {
 		(*cb)(tx, arg);
 		return;
 	}
