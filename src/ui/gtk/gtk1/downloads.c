@@ -547,7 +547,7 @@ download_gui_add(struct download *d)
 	GdkColor *color;
 	gchar vendor[256];
 	const gchar *file_name, *filename;
-	gchar *size, *host, *range, *server, *status, *country, *progress;
+	gchar *size, *host, *range, *server, *status, *country;
 	struct download *drecord;
 	gpointer key;
 	gint n;
@@ -722,7 +722,7 @@ download_gui_add(struct download *d)
 		titles[c_dl_range] = "";
         titles[c_dl_host] = guc_download_get_hostname(d);
         titles[c_dl_loc] = guc_download_get_country(d);
-        titles[c_dl_progress] = download_progress_to_string(d);
+        titles[c_dl_progress] = source_progress_to_string(d);
 
 		if (NULL != d->file_info) {
 			key = GUINT_TO_POINTER(d->file_info->fi_handle);
@@ -752,8 +752,6 @@ download_gui_add(struct download *d)
 						c_dl_range, &range);
 					gtk_ctree_node_get_text(ctree_downloads, parent,
 						c_dl_loc, &country);
-					gtk_ctree_node_get_text(ctree_downloads, parent,
-						c_dl_progress, &progress);
 
 					titles_parent[c_dl_filename] = filename;
 			        titles_parent[c_dl_server] = server;
@@ -762,7 +760,7 @@ download_gui_add(struct download *d)
 					titles_parent[c_dl_host] = host;
 			        titles_parent[c_dl_loc] = country;
         			titles_parent[c_dl_range] = range;
-        			titles_parent[c_dl_progress] = progress;
+        			titles_parent[c_dl_progress] = source_progress_to_string(d);
 
 					new_node = gtk_ctree_insert_node(ctree_downloads,
 						parent, NULL,
@@ -793,7 +791,7 @@ download_gui_add(struct download *d)
 					gtk_ctree_node_set_text(ctree_downloads, parent,
 						c_dl_loc, "");
 					gtk_ctree_node_set_text(ctree_downloads, parent,
-						c_dl_progress, "");
+						c_dl_progress, download_progress_to_string(d));
 
 					gtk_ctree_node_set_row_data(ctree_downloads, parent,
 						DL_GUI_IS_HEADER);
@@ -829,7 +827,7 @@ download_gui_add(struct download *d)
 					NG_("%u host", "%u hosts", n), n);
 
 				gtk_ctree_node_set_text(ctree_downloads, parent,
-					c_queue_host, tmpstr);
+					c_dl_host, tmpstr);
 
 			} else {
 				/*  There are no other downloads with the same file_info
@@ -1584,7 +1582,7 @@ download_gui_remove(struct download *d)
 	GtkCTreeNode *node, *parent;
 	GtkCTreeRow *parent_row;
 	struct download *drecord;
-	gchar *host, *range, *server, *status, *country;
+	gchar *host, *range, *server, *status, *country, *progress;
 	const gchar *filename;
 	gpointer key;
 	gint n;
@@ -1730,6 +1728,8 @@ download_gui_remove(struct download *d)
 						gtk_ctree_node_get_text(ctree_downloads, node,
 							c_dl_server, &server);
 						gtk_ctree_node_get_text(ctree_downloads, node,
+							c_dl_progress, &progress);
+						gtk_ctree_node_get_text(ctree_downloads, node,
 							c_dl_status, &status);
 						gtk_ctree_node_get_text(ctree_downloads, node,
 							c_dl_range, &range);
@@ -1744,6 +1744,8 @@ download_gui_remove(struct download *d)
 							c_dl_host, host);
 						gtk_ctree_node_set_text(ctree_downloads,  parent,
 							c_dl_server, server);
+						gtk_ctree_node_set_text(ctree_downloads,  parent,
+							c_dl_progress, progress);
 						gtk_ctree_node_set_text(ctree_downloads,  parent,
 							c_dl_status, status);
 						gtk_ctree_node_set_text(ctree_downloads,  parent,
