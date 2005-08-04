@@ -49,6 +49,7 @@ RCSID("$Id$");
 /** @todo DBus API is not stable yet, may need changes once 1.0 is released */
 #define DBUS_API_SUBJECT_TO_CHANGE
 #include <dbus/dbus.h>
+#include <dbus/dbus-glib-lowlevel.h>
 
 /** The dbus path to the object serving the notifications. */
 #define DBUS_PATH "/net/gtkg/events"
@@ -78,7 +79,7 @@ dbus_util_init(void)
 
 		g_message("D-BUS set up and ready for use.");
 		/** @todo Include a timestamp or some other useful info */
-		dbus_util_send_message(DBUSEVENT, "started");
+		dbus_util_send_message(DBS_EVT, "started");
 	}
 }
 
@@ -89,7 +90,7 @@ void
 dbus_util_close(void) 
 {
 	/** @todo Include a timestamp or some other useful info */
-	dbus_util_send_message(DBUSEVENT, "stopped");
+	dbus_util_send_message(DBS_EVT, "stopped");
 	
 	/**
 	 * @todo It's not really clear to me how I can free the bus that
@@ -145,7 +146,11 @@ dbus_util_send_message(const char *signal_name, const char *text)
  */ 
 void dbus_util_init(void) { }
 void dbus_util_close(void) { }
-void dbus_util_send_message(const char * signal_name, const char * text) { }
+void dbus_util_send_message(const char *unused_signal, const char *unused_txt) 
+{ 
+	(void) unused_signal;
+	(void) unused_txt;
+}
 
 #endif /* HAS_DBUS */
 

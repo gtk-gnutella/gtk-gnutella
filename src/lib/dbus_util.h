@@ -41,8 +41,9 @@
  * of the machine protocol on dbus.
  */
 
-#define DBUSEVENT "Events"
-#define DBUSEVENT_DOWNLOADDONE "DownloadDone"
+#define DBS_EVT "Events"
+#define DBS_EVT_DOWNLOAD_DONE "DownloadDone"
+#define DBS_EVT_PEERMODE_CHANGE "PeermodeChange"
 
 void dbus_util_init (void);
 void dbus_util_close (void);

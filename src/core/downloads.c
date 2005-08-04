@@ -7804,7 +7804,7 @@ download_verify_done(struct download *d, gchar *digest, guint elapsed)
 
 		/* Send a notification */
 		src = make_pathname(move_file_path, d->file_info->file_name);
-		dbus_util_send_message(DBUSEVENT_DOWNLOADDONE, src);
+		dbus_util_send_message(DBS_EVT_DOWNLOAD_DONE, src);
 		G_FREE_NULL(src);
 	} else {
 		download_move(d, bad_file_path, DL_BAD_EXT);
