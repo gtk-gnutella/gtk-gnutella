@@ -314,7 +314,7 @@ retry:
 			return TRUE;
 		}
 
-		deflate_rotate_and_send(tx);		/* Can set TX_ERROR */
+		deflate_rotate_and_send(tx);			/* Can set TX_ERROR */
 
 		if (tx->flags & TX_ERROR)
 			return FALSE;
@@ -344,8 +344,11 @@ deflate_flush_send(txdrv_t *tx)
 	 */
 
 	if (deflate_flush(tx)) {
-		if (attr->send_idx == -1)			/* No write pending */
-			deflate_rotate_and_send(tx);
+		if (attr->send_idx == -1) {			/* No write pending */
+			struct buffer *b = &attr->buf[attr->fill_idx];
+
+			if (b->rptr != b->wptr)			/* Something to send */
+				deflate_rotate_and_send(tx);
 	}
 }
 
