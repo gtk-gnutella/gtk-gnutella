@@ -227,6 +227,10 @@ uploads_gui_update_upload_info(gnet_upload_info_t *u)
 		gtk_clist_set_foreground(clist_uploads, row, color);
 	}
 
+	gm_snprintf(range_tmp, sizeof range_tmp, "%5.02f%%",
+		100.0 * uploads_gui_progress(&status, rd));
+	gtk_clist_set_text(clist_uploads, row, c_ul_progress, range_tmp);
+
 	gtk_clist_set_text(clist_uploads, row, c_ul_status,
 		uploads_gui_status_str(&status, rd));
 }
@@ -382,8 +386,15 @@ uploads_gui_update_display(time_t now)
             ((GtkCListRow *) l->data)->data;
 
         if (data->valid) {
+			gchar tmp[20];
+
             data->last_update = now;
             guc_upload_get_status(data->handle, &status);
+
+			gm_snprintf(tmp, sizeof tmp, "%5.02f%%",
+				100.0 * uploads_gui_progress(&status, data));
+			gtk_clist_set_text(clist, row, c_ul_progress, tmp);
+
             gtk_clist_set_text(clist, row, c_ul_status,
                 uploads_gui_status_str(&status, data));
         } else {
