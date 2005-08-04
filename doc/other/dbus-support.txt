@@ -80,6 +80,9 @@ Which events does Gtk-Gnutella currently support?
   Signal name            Values           Description
   -----------            ------           -----------
 
+  DownloadDone			 <filename>		  The file <filename> has been
+										  downloaded
+
   Events                 started          Gtk-Gnutella is started
 						 stopped		  Gtk-Gnutella is stopped
 

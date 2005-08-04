@@ -69,6 +69,7 @@
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
+#include "lib/dbus_util.h"
 #include "lib/endian.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
@@ -7776,6 +7777,7 @@ download_verify_done(struct download *d, gchar *digest, guint elapsed)
 {
 	struct dl_file_info *fi = d->file_info;
 	const gchar *name = file_info_readable_filename(fi);
+	gchar *src = NULL;
 
 	g_assert(d->status == GTA_DL_VERIFYING);
 	g_assert(d->list_idx == DL_LIST_STOPPED);
@@ -7793,6 +7795,11 @@ download_verify_done(struct download *d, gchar *digest, guint elapsed)
 		ignore_add_filesize(name, d->file_info->size);
 		queue_remove_downloads_with_file(d->file_info, d);
 		download_move(d, move_file_path, DL_OK_EXT);
+
+		/* Send a notification */
+		src = make_pathname(move_file_path, d->file_info->file_name);
+		dbus_util_send_message(DBUSEVENT_DOWNLOADDONE, src);
+		G_FREE_NULL(src);
 	} else {
 		download_move(d, bad_file_path, DL_BAD_EXT);
 		/* Will go to download_moved_with_bad_sha1() upon completion */

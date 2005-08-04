@@ -12,8 +12,12 @@ import gobject
 # The handler function for a signal. This function is trigger whenever
 # a signal is received. The argument of the function is the paylod of
 # the signal, in this case only a message string.
-def my_signal_handler(message):
+def my_events_handler(message):
         print "GTKG says '" + message + "'"
+
+def downloaddone_handler(message):
+        print "GTKG says that '" + message + "' has been downloaded."
+
 
 # Get access to the session bus.
 bus = dbus.Bus(dbus.Bus.TYPE_SESSION)
@@ -21,11 +25,19 @@ bus = dbus.Bus(dbus.Bus.TYPE_SESSION)
 # Attach the handler function as a callback to the bus. To keep things
 # simple this handler listens to all signals emitted by the
 # net.gtkg.Events interface.
-bus.add_signal_receiver(my_signal_handler,
-                        None,               # Signal name
+bus.add_signal_receiver(my_events_handler,
+                        'Events',           # Signal name
                         'net.gtkg.Events',  # Interface
                         None,               # Named service
                         None                # Path
+                        )
+
+# Attach the handler for the DownloadDone signal.
+bus.add_signal_receiver(downloaddone_handler,
+                        'DownloadDone',
+                        'net.gtkg.Events',
+                        None,
+                        None
                         )
 
 # Indicate readyness and start the main loop which will call the
