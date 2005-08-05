@@ -3260,7 +3260,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		hev[hevcnt++].he_arg = &cb_status_arg;
 	}
 
-	if (reqfile && !is_followup) {
+	if (reqfile) {
 		static gchar buf[1024];
 		size_t len, size = sizeof buf;
 		gchar *p = buf;
