@@ -438,6 +438,7 @@ gint parse_major_minor(const gchar *src, gchar const **endptr,
 	guint *major, guint *minor);
 gchar *is_strprefix(const gchar *s, const gchar *prefix) WARN_UNUSED_RESULT;
 gchar *is_strcaseprefix(const gchar *s, const gchar *prefix) WARN_UNUSED_RESULT;
+size_t html_escape(const gchar *src, gchar *dst, size_t dst_size);
 
 typedef void (*signal_handler_t)(gint signo);
 signal_handler_t set_signal(gint signo, signal_handler_t handler);

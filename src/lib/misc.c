@@ -2416,4 +2416,76 @@ set_signal(gint signo, signal_handler_t handler)
 	return sigaction(signo, &sa, &osa) ? SIG_ERR : osa.sa_handler;
 }
 
+static inline const gchar *
+html_escape_replacement(gchar c, size_t *len)
+{
+	static gchar r;
+
+#define REPLACE(x) { *len = CONST_STRLEN(x); return (x); }
+	
+	switch (c) {
+	case '&':
+		REPLACE("&amp;");
+	case '<':
+		REPLACE("&lt;");
+	case '>':
+		REPLACE("&gt;");
+	case '"':
+		REPLACE("&quot;");
+	case '\'':
+		REPLACE("&apos;");
+	}
+#undef REPLACE
+
+	r = c;
+	*len = 1;
+	return &r;
+}
+
+/**
+ * Copies the NUL-terminated string ``src'' to ``dst'' replacing all
+ * characters which are reserved in HTML with a replacement string.
+ *
+ * @param dst the destination buffer, may be NULL if ``size'' is zero.
+ * @param size the size in bytes of the destination buffer.
+ * @param src a NUL-terminated string.
+ * @return the length in bytes of resulting string assuming size was
+ *         sufficiently large.
+ */
+size_t
+html_escape(const gchar *src, gchar *dst, size_t dst_size)
+{
+	gchar *d = dst;
+	const gchar *s = src;
+	guchar c;
+
+	g_assert(0 == dst_size || NULL != dst);
+	g_assert(NULL != src);
+
+	if (dst_size-- > 0) {
+		const gchar * const end = &dst[dst_size];
+		
+		for (/* NOTHING*/; '\0' != (c = *s); s++) {
+			const gchar *r;
+			size_t len;
+		
+			r = html_escape_replacement(c, &len);
+			if (len > (size_t) (end - d))
+				break;
+
+			while (len-- > 0)
+				*d++ = *r++;
+		}
+		*d = '\0';
+	}
+	while ('\0' != (c = *s++)) {
+		size_t len;
+
+		html_escape_replacement(c, &len);
+		d += len;
+	}
+
+	return d - dst; 
+}
+
 /* vi: set ts=4 sw=4 cindent: */
