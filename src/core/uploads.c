@@ -811,7 +811,7 @@ send_upload_error_v(
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = parq_upload_add_header;
 		hev[hevcnt++].he_arg = &cb_parq_arg;
-	
+
 		/*
 		 * If the request seems to come from a browser, send back a small
 		 * piece of body to automatically restart the download when we
@@ -822,7 +822,7 @@ send_upload_error_v(
 			static gchar buf[2048];
 			gchar href[1024];
 			glong retry;
-			
+
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
 			hev[hevcnt++].he_msg = "Content-Type: text/html; charset=utf-8\r\n";
 
@@ -834,7 +834,7 @@ send_upload_error_v(
 
 			{
 				gchar *uri;
-				
+
 				uri = url_escape(u->name);
 				if (html_escape(uri, href, sizeof href) >= sizeof href) {
 					/* If the escaped href is too long, leave it out. They
@@ -1883,7 +1883,7 @@ get_file_to_upload_from_urn(
 	for (i = 0; i < G_N_ELEMENTS(urn_prefixes); i++) {
 		if (NULL != (p = is_strcaseprefix(urn, urn_prefixes[i])))
 			break;
-	}	
+	}
 
 	if (!p)
 		goto not_found;
@@ -1924,7 +1924,7 @@ get_file_to_upload_from_urn(
 		upload_error_remove(u, NULL, 503, "Library being rebuilt");
 		return NULL;
 	}
-	
+
 	if (sf == NULL) {
 		upload_error_not_found(u, uri);
 		return NULL;
@@ -1976,7 +1976,7 @@ get_file_to_upload(gnutella_upload_t *u, header_t *header, gchar *request)
 	if (NULL != (arg = is_strprefix(uri, "/get/"))) {
 		guint32 idx;
 		gint error;
-		
+
 		idx = parse_uint32(arg, &endptr, 10, &error);
 		if (!error && *endptr == '/')
 			return get_file_to_upload_from_index(u, header, arg, idx);
@@ -2153,7 +2153,7 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 
 		g_assert(length >= rw);
 		g_assert(maxlen >= 0);
-		
+
 		/*
 		 * If we're trying to limit the reply size, limit the size of the mesh.
 		 * When we send X-Alt: locations, this leaves room for quite a few
@@ -2290,7 +2290,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	struct upload_http_cb cb_parq_arg, cb_sha1_arg, cb_status_arg, cb_416_arg;
 	gint http_code;
 	const gchar *http_msg;
-	http_extra_desc_t hev[9];
+	http_extra_desc_t hev[10];
 	guint hevcnt = 0;
 	gchar *sha1 = NULL;
 	gboolean is_followup =
@@ -2420,7 +2420,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	) {
 		u->browse_host = TRUE;
 		u->name = atom_str_get(_("<Browse Host Request>"));
-		
+
 		if (!browse_host_enabled) {
 			upload_error_remove(u, NULL, 403, "Browse Host Disabled");
 			return;
@@ -2439,13 +2439,13 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				return;
 			}
 		}
-		
+
 		{
 			static gchar buf[64];
-			
+
 			gm_snprintf(buf, sizeof buf, "Last-Modified: %s\r\n",
 				date_to_rfc1123_gchar(library_rescan_timestamp));
-			
+
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
 			hev[hevcnt].he_msg = buf;
 			hev[hevcnt++].he_arg = NULL;
@@ -2552,7 +2552,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			return;
 		}
 	}
-	
+
 
 	/*
 	 * Check vendor-specific banning.
@@ -2839,7 +2839,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	if (u->browse_host && !(bh_flags & BH_CHUNKED))
 		u->keep_alive = FALSE;
-	
+
 	/*
 	 * If the requested range was determined to be unavailable, signal it
 	 * to them.  Break the connection if it was a HEAD request, but allow
@@ -3157,9 +3157,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 #else
 	use_sendfile = FALSE;
 #endif /* USE_MMAP || HAVE_SENDFILE */
-	
+
 	if (!use_sendfile) {
-		
+
 		/* If we got a valid skip amount then jump ahead to that position */
 		if (u->skip > 0) {
 			if (-1 == lseek(u->file_desc, u->skip, SEEK_SET)) {
@@ -3260,13 +3260,54 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		hev[hevcnt++].he_arg = &cb_status_arg;
 	}
 
+	if (reqfile && !is_followup) {
+		static gchar buf[1024];
+		size_t len, size = sizeof buf;
+		gchar *p = buf;
+
+		/*
+		 * This header tells the receiver our idea of the file's name.
+		 * It's especially - but not only - useful when downloading by
+		 * urn:sha1 or similar using a browser.
+		 *
+		 * See RFC 2183 and RFC 2184 for explanations. Basically,
+		 * the filename is URL-encoded and set character set is
+		 * declared as utf-8. The language is declared 'en' (English)
+		 * which is bogus but it's required.
+		 *
+		 * This works with Mozilla.
+		 */
+
+		len = g_strlcpy(p,
+				"Content-Disposition: inline; filename*=utf-8'en'", size);
+		g_assert(len < sizeof buf);
+
+		p += len;
+		size -= len;
+
+		len = url_escape_into(reqfile->name_nfc, p, size);
+		if ((size_t) -1 != len) {
+			static const gchar crlf[] = "\r\n";
+
+			p += len;
+			size -= len;
+			if (size > CONST_STRLEN(crlf)) {
+				len = g_strlcpy(p, crlf, size);
+
+				hev[hevcnt].he_type = HTTP_EXTRA_LINE;
+				hev[hevcnt].he_msg = buf;
+				hev[hevcnt++].he_arg = NULL;
+			}
+		}
+	}
+
 	g_assert(hevcnt <= G_N_ELEMENTS(hev));
-	
+
 	/*
 	 * Propagate the SHA1 information for the file, if we have it.
 	 */
 
-	if (sha1) {	
+	if (sha1) {
 		cb_sha1_arg.u = u;
 		cb_sha1_arg.sf = reqfile;
 
@@ -3368,7 +3409,7 @@ upload_completed(gnutella_upload_t *u)
  * @return TRUE if an exception occured, the upload has been removed
  *         in this case. FALSE if everything is OK.
  */
-static gboolean 
+static gboolean
 upload_handle_exception(gnutella_upload_t *u, inputevt_cond_t cond)
 {
 	if (cond & INPUT_EVENT_EXCEPTION) {
@@ -3408,9 +3449,9 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 #if defined(USE_MMAP) || defined(HAVE_SENDFILE)
 	use_sendfile = !sendfile_failed && !SOCKET_USES_TLS(u->socket);
 #else
-	use_sendfile = FALSE; 
+	use_sendfile = FALSE;
 #endif /* USE_MMAP || HAVE_SENDFILE */
-	
+
 	if (use_sendfile) {
 		off_t pos, before;			/**< For sendfile() sanity checks */
 		/*
@@ -3436,7 +3477,7 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 			u->buf_size = READ_BUF_SIZE;
 			u->buffer = (gchar *) g_malloc(u->buf_size);
 		}
-		
+
 		/*
 	 	 * If the buffer position reached the size, then we need to read
 	 	 * more data from the file.
@@ -3512,11 +3553,11 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 
 	/* This upload is complete */
 	if (u->pos > u->end) {
-		
+
 		upload_stats_file_complete(u);
 		u->accounted = TRUE;		/* Called upload_stats_file_complete() */
 		upload_completed(u);
-		
+
 		return;
 	}
 }
@@ -3624,7 +3665,7 @@ upload_special_writable(gpointer up)
 	u->last_update = time(NULL);
 	u->sent += written;
 }
-	
+
 /**
  * Kill a running upload.
  */
