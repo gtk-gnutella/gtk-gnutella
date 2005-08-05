@@ -75,67 +75,45 @@ struct attr {
 #define IF_ENABLED	0x00000001		/**< Reception enabled */
 #define IF_NO_CRLF	0x00000002		/**< Set when missing CRLF after data */
 
-struct dechunk {
-	const char *src;
-	char *dst;
-	size_t dst_len, src_len;
-};
-
 /**
- * Decodes "chunked" data.
+ * Decodes "chunked" data. The function returns as soon as it needs more
+ * data to proceed, on error, if the state CHUNK_STATE_END was reached,
+ * or if the state CHUNK_STATE_DATA was reached. In the latter case the
+ * chunk payload itself must be consumed and this function must not be
+ * called again until the state CHUNK_STATE_DATA_CRLF is reached.
  *
  * @param rx is the current RX driver.
- * @param ctx an initialized ``struct dechunk''.
- * @param error_str if not NULL and dechunk() fails, it will point to
+ * @param src the chunk data.
+ * @param error_str if not NULL and parse_chunk() fails, it will point to
  *        an informational error message.
  *
- * @return 0 on success, -1 on failure.
+ * @return 0 on failure; non-zero amount of consumed bytes on success.
  */
-static int
-dechunk(rxdrv_t *rx, struct dechunk *ctx, const gchar **p_error_str)
+static size_t
+parse_chunk(rxdrv_t *rx, const gchar *src, size_t size,
+	const gchar **p_error_str)
 {
 	struct attr *attr = rx->opaque;
 	const gchar *error_str;
+	size_t len;
 
-	g_assert(ctx);
 	g_assert(attr);
-	
-	g_assert(ctx->dst);
-	g_assert(ctx->src);
-	g_assert(ctx->src_len > 0);
-	g_assert(ctx->dst_len > 0);
-
+	g_assert(src);
+	g_assert(size > 0);
 	g_assert(attr->state < NUM_CHUNK_STATES);
+	g_assert(0 == attr->data_remain);
+
+	len = size;
 
 	do {
 		switch (attr->state) {
-		case CHUNK_STATE_DATA:
-			g_assert(attr->data_remain > 0);
-
-			/* Just copy the chunk-data to destination buffer */
-			{
-				size_t n;
-
-				n = MIN(ctx->src_len, attr->data_remain);
-				n = MIN(n, ctx->dst_len);
-				memcpy(ctx->dst, ctx->src, n);
-				ctx->dst += n;
-				ctx->src += n;
-				ctx->dst_len -= n;
-				ctx->src_len -= n;
-				attr->data_remain -= n;
-			}
-			if (0 == attr->data_remain)
-				attr->state = CHUNK_STATE_DATA_CRLF;
-			break;
-
 		case CHUNK_STATE_DATA_CRLF:
 			/* The chunk-data must be followed by a CRLF */
-			while (ctx->src_len > 0) {
+			while (len > 0) {
 				guchar c;
 
-				ctx->src_len--;
-				c = *ctx->src++;
+				len--;
+				c = *src++;
 				if ('\r' == c) {
 				   /*
 					* This allows more than one CR but we must consume
@@ -162,8 +140,8 @@ dechunk(rxdrv_t *rx, struct dechunk *ctx, const gchar **p_error_str)
 							host_ip(&rx->host));
 					}
 
-					ctx->src_len++;
-					ctx->src--;
+					len++;
+					src--;
 					attr->state = CHUNK_STATE_SIZE;
 					break;
 				}
@@ -172,11 +150,11 @@ dechunk(rxdrv_t *rx, struct dechunk *ctx, const gchar **p_error_str)
 
 		case CHUNK_STATE_SIZE:
 			g_assert(attr->hex_pos < sizeof attr->hex_buf);
-			while (ctx->src_len > 0) {
+			while (len > 0) {
 				guchar c;
 
-				ctx->src_len--;
-				c = *ctx->src++;
+				len--;
+				c = *src++;
 				if (is_ascii_xdigit(c)) {
 					if (attr->hex_pos >= sizeof attr->hex_buf) {
 						error_str = "Overflow in chunk-size";
@@ -198,11 +176,25 @@ dechunk(rxdrv_t *rx, struct dechunk *ctx, const gchar **p_error_str)
 						error_str = "Bad chunk-size";
 						goto error;
 					}
+					attr->state = CHUNK_STATE_EXT;
+					break;
+				}
+			}
+			break;
 
+		case CHUNK_STATE_EXT:
+			/* Just skip over the chunk-extension */
+			while (len > 0) {
+				len--;
+				if ('\n' == *src++) {
+					
 					/*
 					 * Pick up the collected hex digits and
 					 * calculate the chunk-size.
 					 */
+
+					g_assert(attr->hex_pos > 0);
+					g_assert(attr->hex_pos <= sizeof attr->hex_buf);
 
 					{
 						guint64 v = 0;
@@ -212,20 +204,9 @@ dechunk(rxdrv_t *rx, struct dechunk *ctx, const gchar **p_error_str)
 							v = (v << 4) | hex2dec(attr->hex_buf[i]);
 
 						attr->data_remain = v;
+						attr->hex_pos = 0;
 					}
 
-					attr->hex_pos = 0;
-					attr->state = CHUNK_STATE_EXT;
-					break;
-				}
-			}
-			break;
-
-		case CHUNK_STATE_EXT:
-			/* Just skip over the chunk-extension */
-			while (ctx->src_len > 0) {
-				ctx->src_len--;
-				if ('\n' == *ctx->src++) {
 					attr->state = 0 != attr->data_remain
 						? CHUNK_STATE_DATA
 						: CHUNK_STATE_TRAILER_START;
@@ -236,22 +217,22 @@ dechunk(rxdrv_t *rx, struct dechunk *ctx, const gchar **p_error_str)
 
 		case CHUNK_STATE_TRAILER_START:
 			/* We've reached another trailer line */
-			if (ctx->src_len < 1)
+			if (len < 1)
 				break;
-			if ('\r' == ctx->src[0]) {
+			if ('\r' == src[0]) {
 				/*
 				 * This allows more than one CR but we must consume
 				 * some data or keep state over this otherwise.
 				 */
-				ctx->src++;
-				ctx->src_len--;
+				src++;
+				len--;
 			}
-			if (ctx->src_len < 1)
+			if (len < 1)
 				break;
-			if ('\n' == ctx->src[0]) {
+			if ('\n' == src[0]) {
 				/* An empty line means the end of all trailers was reached */
-				ctx->src++;
-				ctx->src_len--;
+				src++;
+				len--;
 				attr->state = CHUNK_STATE_END;
 				break;
 			}
@@ -260,9 +241,9 @@ dechunk(rxdrv_t *rx, struct dechunk *ctx, const gchar **p_error_str)
 
 		case CHUNK_STATE_TRAILER:
 			/* Just skip over the trailer line */
-			while (ctx->src_len > 0) {
-				ctx->src_len--;
-				if ('\n' == *ctx->src++) {
+			while (len > 0) {
+				len--;
+				if ('\n' == *src++) {
 					/*
 					 * Now check whether there's another trailer
 					 * line or whether we've reached the end
@@ -285,6 +266,7 @@ dechunk(rxdrv_t *rx, struct dechunk *ctx, const gchar **p_error_str)
 			error_str = "Remaining data after chunk end";
 			goto error;
 			
+		case CHUNK_STATE_DATA:
 		case CHUNK_STATE_ERROR:
 		case NUM_CHUNK_STATES:
 			g_assert_not_reached();
@@ -295,12 +277,15 @@ dechunk(rxdrv_t *rx, struct dechunk *ctx, const gchar **p_error_str)
 		 *     infinite loop may occur.
 		 */
 
-	} while (ctx->src_len > 0 && CHUNK_STATE_END != attr->state);
+		if (CHUNK_STATE_DATA == attr->state)
+			break;
+
+	} while (len > 0 && CHUNK_STATE_END != attr->state);
 
 	if (p_error_str)
 		*p_error_str = NULL;
 
-	return 0;
+	return size - len;
 	
 error:
 	
@@ -308,7 +293,7 @@ error:
 		*p_error_str = error_str;
 
 	attr->state = CHUNK_STATE_ERROR;
-	return -1;
+	return 0;
 }
 
 /**
@@ -319,86 +304,70 @@ static pmsg_t *
 dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct attr *attr = rx->opaque;
-	pdata_t *db;					/**< Dechunked buffer */
-	size_t old_size, old_avail;
-	const gchar *error_str;
-	struct dechunk ctx;
+	const gchar *error_str, *src;
+	size_t size;
 
 	/*
-	 * Prepare call to dechunk().
+	 * Prepare call to parse_chunk().
 	 */
 
-	old_size = pmsg_size(mb);
-	
-	if (0 == old_size)
-		return NULL;				/* No more data */
+	size = pmsg_size(mb);
+	src = pmsg_read_base(mb);
 
-	/*
-	 * Copy avoidance: if the data we got fits into the current chunk size,
-	 * then we don't have to parse anything: all the data belong to the
-	 * current chunk, so we can simply pass them to the upper layer.
-	 */
-
-	if (CHUNK_STATE_DATA == attr->state && old_size <= attr->data_remain) {
-		pmsg_t *nmb;
-
-		attr->data_remain -= old_size;
-		if (0 == attr->data_remain)
-			attr->state = CHUNK_STATE_DATA_CRLF;
-
-		nmb = pmsg_clone(mb);
-		mb->m_rptr += old_size;		/* Read that far */
-		return nmb;
-	}
-
-	ctx.src = pmsg_read_base(mb);
-	ctx.src_len = old_size;
-
-	db = rxbuf_new();
-
-	ctx.dst = pdata_start(db);
-	ctx.dst_len = old_avail = pdata_len(db);
-
-	g_assert(ctx.dst_len > 0);
-	g_assert(ctx.src_len > 0);
-
-	/*
-	 * Dechunk data.
-	 */
-
-	g_assert(attr->state != CHUNK_STATE_ERROR);
-
-	if (0 != dechunk(rx, &ctx, &error_str)) {
-		/*
-		 * We can't continue if we meet a dechunking error.  Signal
-		 * our user so that the connection is terminated.
-		 */
-
-		attr->cb->chunk_error(rx->owner, "dechunk() failed: %s", error_str);
-		goto cleanup;
-	}
-
-	mb->m_rptr += old_size - ctx.src_len;		/* Read that far */
-
-	/*
-	 * Check whether some data was produced.
-	 */
-
-	if (ctx.dst_len != old_avail) {
-		size_t n;
+	while (size > 0) {
+		size_t ret;
+		
+		g_assert(CHUNK_STATE_ERROR != attr->state);
 
 		/*
-		 * Build message block with dechunked data.
+		 * Copy avoidance: if the data we got fits into the current chunk size,
+		 * then we don't have to parse anything: all the data belong to the
+		 * current chunk, so we can simply pass them to the upper layer.
 		 */
 
-		n = old_avail - ctx.dst_len;
+		if (CHUNK_STATE_DATA == attr->state) {
+			pmsg_t *nmb;
 
-		return pmsg_alloc(PMSG_P_DATA, db, 0, n);
+			nmb = pmsg_clone(mb);
+			if (size < attr->data_remain) {
+				/* The complete chunk data is forwarded to the upper layer */
+				mb->m_rptr += size;
+				attr->data_remain -= size;
+			} else {
+				/* Only the first ``data_remain'' bytes are forwarded */
+				mb->m_rptr += attr->data_remain;
+				nmb->m_wptr = nmb->m_rptr + attr->data_remain;
+				attr->data_remain = 0;
+				attr->state = CHUNK_STATE_DATA_CRLF;
+			}
+			return nmb;
+		}
+
+		g_assert(size > 0);
+		g_assert(CHUNK_STATE_DATA != attr->state);
+
+		/*
+		 * Parse chunk headers
+		 */
+
+		ret = parse_chunk(rx, src, size, &error_str);
+		if (0 == ret) {
+			/*
+			 * We can't continue if we meet a dechunking error.  Signal
+			 * our user so that the connection is terminated.
+			 */
+
+			attr->cb->chunk_error(rx->owner,
+					"dechunk() failed: %s", error_str);
+			g_message("%s: %s", __func__, error_str);
+			break;
+		}
+		g_assert(ret <= size);
+		size -= ret;
+		mb->m_rptr += ret;		/* Read that far */
 	}
 
-cleanup:
-	rxbuf_free(db, NULL);
-	return NULL;
+	return NULL;				/* No more data */
 }
 
 /***
