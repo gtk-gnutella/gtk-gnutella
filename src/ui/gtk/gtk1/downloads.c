@@ -509,7 +509,9 @@ void downloads_gui_init(void)
     gtk_clist_set_column_justification(
         clist_queue, c_queue_size, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
-        clist, c_queue_size, GTK_JUSTIFY_RIGHT);
+        clist, c_dl_size, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        clist, c_dl_progress, GTK_JUSTIFY_RIGHT);
 
 	parents = g_hash_table_new(NULL, NULL);
 	parents_queue = g_hash_table_new(NULL, NULL);
@@ -1416,12 +1418,14 @@ gui_update_download(struct download *d, gboolean force)
 				parent != NULL &&
 				now != get_last_parent_gui_update(key)
 			) {
-				drecord = gtk_ctree_node_get_row_data(ctree_downloads,
-					parent);
+				drecord = gtk_ctree_node_get_row_data(ctree_downloads, parent);
 
 				if (DL_GUI_IS_HEADER == drecord) {
 					/* There is a header entry, we need to update it */
 
+					gtk_ctree_node_set_text(ctree_downloads, parent,
+						c_dl_progress, download_progress_to_string(d));
+					
 					/* Download is done */
 					if (GTA_DL_DONE == d->status) {
 
@@ -1429,8 +1433,6 @@ gui_update_download(struct download *d, gboolean force)
 							_("Complete"));
 						gtk_ctree_node_set_text(ctree_downloads, parent,
 							c_dl_status, tmpstr);
-						gtk_ctree_node_set_text(ctree_downloads, parent,
-							c_dl_progress, "100.00%");
 						record_parent_gui_update(key, now);
 
 					} else {
@@ -1458,8 +1460,6 @@ gui_update_download(struct download *d, gboolean force)
 
 							gtk_ctree_node_set_text(ctree_downloads,
 								parent, c_dl_status, tmpstr);
-							gtk_ctree_node_set_text(ctree_downloads, parent,
-								c_dl_progress, download_progress_to_string(d));
 							record_parent_gui_update(key, now);
 						}
 					}
