@@ -3590,7 +3590,8 @@ upload_special_write(gnutella_upload_t *u, gpointer data, size_t len)
 	g_assert(NULL != u->special->write);
 
 	r = u->special->write(u->special, data, len);
-	upload_fire_upload_info_changed(u);		/* Update size info */
+	if (r > 0)
+		upload_fire_upload_info_changed(u);		/* Update size info */
 
 	return r;
 }
