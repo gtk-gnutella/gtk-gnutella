@@ -610,7 +610,7 @@ can_become_ultra(time_t now)
 	/* Uptime requirements */
 	avg_servent_uptime = get_average_servent_uptime(now) >= NODE_MIN_AVG_UPTIME;
 	avg_ip_uptime = get_average_ip_lifetime(now) >= NODE_MIN_AVG_UPTIME;
-	node_uptime = delta_time(now, start_stamp) > NODE_MIN_UPTIME;
+	node_uptime = delta_time(now, (time_t) start_stamp) > NODE_MIN_UPTIME;
 
 	/* Connectivity requirements */
 	not_firewalled = !is_firewalled;
@@ -672,7 +672,7 @@ can_become_ultra(time_t now)
 	gnet_prop_set_boolean_val(PROP_UP_REQ_ENOUGH_FD,      enough_fd);
 	gnet_prop_set_boolean_val(PROP_UP_REQ_ENOUGH_MEM,     enough_mem);
 	gnet_prop_set_boolean_val(PROP_UP_REQ_ENOUGH_BW,      enough_bw);
-	gnet_prop_set_guint32_val(PROP_NODE_LAST_ULTRA_CHECK, now);
+	gnet_prop_set_guint64_val(PROP_NODE_LAST_ULTRA_CHECK, now);
 
 	return avg_servent_uptime && avg_ip_uptime && node_uptime &&
 		not_firewalled && enough_fd && enough_mem && enough_bw;
@@ -725,7 +725,7 @@ node_slow_timer(time_t now)
 		g_warning("being demoted from Ultrapeer status (for %u secs)",
 			leaf_to_up_switch);
 		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
-		gnet_prop_set_guint32_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
+		gnet_prop_set_guint64_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
 		return;
 	}
 
@@ -740,7 +740,7 @@ node_slow_timer(time_t now)
 	) {
 		g_warning("firewalled node being demoted from Ultrapeer status");
 		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
-		gnet_prop_set_guint32_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
+		gnet_prop_set_guint64_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
 		return;
 	}
 }
@@ -1056,7 +1056,7 @@ node_init(void)
 
 	rxbuf_init();
 
-	g_assert(sizeof(struct gnutella_header) == 23);
+	g_assert(23 == sizeof(struct gnutella_header));
 
     node_handle_map = idtable_new(32, 32);
 
@@ -1071,7 +1071,7 @@ node_init(void)
 	nodes_by_id        = g_hash_table_new(NULL, NULL);
 
 	start_rfc822_date = atom_str_get(date_to_rfc822_gchar(now));
-	gnet_prop_set_guint32_val(PROP_START_STAMP, (guint32) now);
+	gnet_prop_set_guint64_val(PROP_START_STAMP, now);
 
 	udp_node = node_udp_create();
 

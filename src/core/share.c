@@ -968,6 +968,11 @@ recurse_scan(gchar *dir, const gchar *basedir)
 				if (q != found->name_nfc)
 					G_FREE_NULL(q);
 
+#if 0
+				printf("\npath=\"%s\"\nnfc=\"%s\"\ncanonic=\"%s\"\n",
+					found->file_path, found->name_nfc, found->name_canonic);
+#endif
+				
 				found->name_nfc_len = strlen(found->name_nfc);
 				found->name_canonic_len = strlen(found->name_canonic);
 
@@ -1080,8 +1085,8 @@ share_scan(void)
 	GSList *sl;
 	gint i;
 	static gboolean in_share_scan = FALSE;
-	time_t now;
-	guint32 elapsed;
+	time_t now, started;
+	glong elapsed;
 
 	/*
 	 * We normally disable the "Rescan" button, so we should not enter here
@@ -1096,11 +1101,10 @@ share_scan(void)
 	else
 		in_share_scan = TRUE;
 
-	now = time(NULL);
-	elapsed = delta_time(now, (time_t) 0);
+	started = now = time(NULL);
 
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, TRUE);
-	gnet_prop_set_guint32_val(PROP_LIBRARY_RESCAN_TIMESTAMP, elapsed);
+	gnet_prop_set_guint64_val(PROP_LIBRARY_RESCAN_STARTED, now);
 
 	files_scanned = 0;
 	bytes_scanned = 0;
@@ -1192,14 +1196,17 @@ share_scan(void)
 	gcu_gui_update_files_scanned();		/* Final view */
 
 	now = time(NULL);
-	elapsed = delta_time(now, (time_t) 0) - library_rescan_timestamp;
-	gnet_prop_set_guint32_val(PROP_LIBRARY_RESCAN_TIME, MAX(elapsed, 1));
+	elapsed = delta_time(now, started);
+	elapsed = MAX(0, elapsed);
+	gnet_prop_set_guint64_val(PROP_LIBRARY_RESCAN_FINISHED, now);
+	gnet_prop_set_guint32_val(PROP_LIBRARY_RESCAN_DURATION, elapsed);
 
 	/*
 	 * Query routing table update.
 	 */
 
-	gnet_prop_set_guint32_val(PROP_QRP_INDEXING_TIMESTAMP, (guint32) now);
+	started = now;
+	gnet_prop_set_guint64_val(PROP_QRP_INDEXING_STARTED, now);
 
 	qrp_prepare_computation();
 
@@ -1213,8 +1220,9 @@ share_scan(void)
 	qrp_finalize_computation();
 
 	now = time(NULL);
-	elapsed = delta_time(now, (time_t) 0) - qrp_indexing_timestamp;
-	gnet_prop_set_guint32_val(PROP_QRP_INDEXING_TIME, elapsed);
+	elapsed = delta_time(now, started);
+	elapsed = MAX(0, elapsed);
+	gnet_prop_set_guint32_val(PROP_QRP_INDEXING_DURATION, elapsed);
 
 	in_share_scan = FALSE;
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, FALSE);

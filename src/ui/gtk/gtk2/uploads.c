@@ -613,7 +613,7 @@ remove_row(upload_row_data_t *rd, remove_row_ctx_t *ctx)
 static inline void
 update_row(gpointer key, gpointer data, gpointer user_data)
 {
-	time_t now = *(time_t *) user_data;
+	time_t now = *(const time_t *) user_data;
 	upload_row_data_t *rd = data;
 	gnet_upload_status_t status;
 	gint progress;

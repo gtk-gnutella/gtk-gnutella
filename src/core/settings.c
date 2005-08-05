@@ -625,17 +625,16 @@ gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *s)
 guint32
 get_average_ip_lifetime(time_t now)
 {
-	guint32 current_ip_stamp;
+	guint64 current_ip_stamp;
 	guint32 average_ip_uptime;
-	gint32 lifetime;
+	glong lifetime;
 
-	gnet_prop_get_guint32_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
+	gnet_prop_get_guint64_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
 	gnet_prop_get_guint32_val(PROP_AVERAGE_IP_UPTIME, &average_ip_uptime);
 
 	if (current_ip_stamp) {
-		lifetime = delta_time(now, current_ip_stamp);
-		if (lifetime < 0)
-			lifetime = 0;
+		lifetime = delta_time(now, (time_t) current_ip_stamp);
+		lifetime = MAX(0, lifetime);
 	} else
 		lifetime = 0;
 
@@ -659,8 +658,7 @@ update_address_lifetime(void)
 	static guint32 old_ip = 0;
 	gboolean force_local_ip;
 	guint32 current_ip;
-	guint32 current_ip_stamp;
-	time_t now;
+	guint64 current_ip_stamp;
 
 	gnet_prop_get_boolean_val(PROP_FORCE_LOCAL_IP, &force_local_ip);
 	if (force_local_ip)
@@ -668,32 +666,31 @@ update_address_lifetime(void)
 	else
 		gnet_prop_get_guint32_val(PROP_LOCAL_IP, &current_ip);
 
-	if (old_ip == 0) {				/* First time */
+	if (0 == old_ip) {				/* First time */
 		old_ip = current_ip;
-		gnet_prop_get_guint32_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
-		if (current_ip_stamp == 0) {
-			now = time(NULL);
-			gnet_prop_set_guint32_val(PROP_CURRENT_IP_STAMP, (guint32) now);
-		}
+		gnet_prop_get_guint64_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
+		if (0 == current_ip_stamp)
+			gnet_prop_set_guint64_val(PROP_CURRENT_IP_STAMP, time(NULL));
 	}
 
-	if (old_ip == current_ip)
-		return;
+	if (old_ip != current_ip) {
+		time_t now;
 
-	/*
-	 * IP address changed, update lifetime information.
-	 */
+		/*
+		 * IP address changed, update lifetime information.
+		 */
 
-	now = time(NULL);
-	old_ip = current_ip;
+		now = time(NULL);
+		old_ip = current_ip;
 
-	gnet_prop_get_guint32_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
+		gnet_prop_get_guint64_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
 
-	if (current_ip_stamp)
-		gnet_prop_set_guint32_val(PROP_AVERAGE_IP_UPTIME,
-			get_average_ip_lifetime(now));
+		if (current_ip_stamp)
+			gnet_prop_set_guint32_val(PROP_AVERAGE_IP_UPTIME,
+					get_average_ip_lifetime(now));
 
-	gnet_prop_set_guint32_val(PROP_CURRENT_IP_STAMP, (guint32) now);
+		gnet_prop_set_guint64_val(PROP_CURRENT_IP_STAMP, now);
+	}
 }
 
 /**
@@ -703,17 +700,15 @@ update_address_lifetime(void)
 guint32
 get_average_servent_uptime(time_t now)
 {
-	time_t start_stamp;
-	gint32 uptime;
-	guint32 val, avg_servent_uptime;
+	guint32 avg_servent_uptime;
+	guint64 val;
+	glong uptime;
 
 	gnet_prop_get_guint32_val(PROP_AVERAGE_SERVENT_UPTIME, &avg_servent_uptime);
-	gnet_prop_get_guint32_val(PROP_START_STAMP, &val);
+	gnet_prop_get_guint64_val(PROP_START_STAMP, &val);
 
-	start_stamp = val;
-	uptime = delta_time(now, start_stamp);
-	if (uptime < 0)
-		uptime = 0;
+	uptime = delta_time(now, (time_t) val);
+	uptime = MAX(0, uptime);
 
 	/*
 	 * The average uptime is computed as an EMA on 7 terms.

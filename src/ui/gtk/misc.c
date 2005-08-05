@@ -83,26 +83,25 @@ gui_allow_rescan_dir(gboolean flag)
 void
 gui_general_timer(time_t now)
 {
-    time_t start_stamp;
-	guint32 val;
 	GtkLabel *label = GTK_LABEL(lookup_widget(
 				main_window, "label_statusbar_uptime"));
+	const gchar *uptime;
+	guint64 val;
 
-	gnet_prop_get_guint32_val(PROP_START_STAMP, &val);
-	start_stamp = val;
+	gnet_prop_get_guint64_val(PROP_START_STAMP, &val);
+	uptime = short_uptime(delta_time(now, (time_t) val));
 
 #ifdef USE_GTK2
 	{
 		gchar buf[128];
 		
-		gm_snprintf(buf, sizeof buf, "<tt> %s </tt>",
-			short_uptime(delta_time(now, start_stamp)));
+		gm_snprintf(buf, sizeof buf, "<tt> %s </tt>", uptime);
 		gtk_label_set_use_markup(label, TRUE);
 		gtk_label_set_markup(label, buf);
 	}
 #else
 
-	gtk_label_set_text(label, short_uptime(delta_time(now, start_stamp)));
+	gtk_label_set_text(label, uptime);
 #endif
 }
 

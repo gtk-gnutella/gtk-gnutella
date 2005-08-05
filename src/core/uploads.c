@@ -2443,7 +2443,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			t = date2time(buf, now);
 			if (
 				(time_t) -1 != t &&
-				delta_time(library_rescan_timestamp, t) <= 0
+				delta_time((time_t) library_rescan_finished, t) <= 0 
 			) {
 				upload_error_remove(u, NULL, 304, "Not Modified");
 				return;
@@ -2454,7 +2454,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			static gchar buf[64];
 
 			gm_snprintf(buf, sizeof buf, "Last-Modified: %s\r\n",
-				date_to_rfc1123_gchar(library_rescan_timestamp));
+				date_to_rfc1123_gchar(library_rescan_finished));
 
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
 			hev[hevcnt].he_msg = buf;
@@ -3016,7 +3016,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			if (parq_upload_lookup_position(u) == (guint) -1) {
 				time_t expire = parq_banned_source_expire(u->ip);
 				gchar retry_after[80];
-				gint delay = delta_time(expire, time(NULL));
+				gint delay = delta_time(expire, now);
 
 				if (delay <= 0)
 					delay = 60;		/* Let them retry in a minute, only */
@@ -3192,8 +3192,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * Set remaining upload information
 	 */
 
-	u->start_date = time((time_t *) NULL);
-	u->last_update = time((time_t *) 0);
+	u->start_date = now;
+	u->last_update = now;
 
 	/*
 	 * Prepare date and modification time of file.
@@ -3558,7 +3558,7 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 
 	gnet_prop_set_guint64_val(PROP_UL_BYTE_COUNT, ul_byte_count + written);
 
-	u->last_update = time((time_t *) NULL);
+	u->last_update = time(NULL);
 	u->sent += written;
 
 	/* This upload is complete */
@@ -3820,7 +3820,8 @@ void
 upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 {
     gnutella_upload_t *u = upload_find_by_handle(uh);
-	time_t now = time((time_t *) NULL);
+	time_t now = time(NULL);
+
     g_assert(si != NULL);
 
     si->status      = u->status;

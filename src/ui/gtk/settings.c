@@ -423,7 +423,8 @@ static gboolean update_split_pane(property_t prop)
     return FALSE;
 }
 
-static gboolean update_entry_date(property_t prop)
+static gboolean
+update_entry_date(property_t prop)
 {
     GtkWidget *w;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
@@ -443,7 +444,7 @@ static gboolean update_entry_date(property_t prop)
         return FALSE;
     }
 
-    t = *stub->guint32.get(prop, NULL, 0, 0);
+    t = *stub->guint64.get(prop, NULL, 0, 0);
 	strftime(buf, sizeof buf, date_fmt, localtime(&t));
     gtk_entry_set_text(GTK_ENTRY(w), buf);
 
@@ -970,13 +971,14 @@ static gboolean update_toggle_node_show_detailed_info(property_t prop)
 	return ret;
 }
 
-static gboolean update_label_date(property_t prop)
+static gboolean
+update_label_date(property_t prop)
 {
     GtkWidget *w;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
     prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
-	guint32 val;
+	guint64 val;
 
     if (!top)
         return FALSE;
@@ -990,7 +992,7 @@ static gboolean update_label_date(property_t prop)
         return FALSE;
     }
 
-	stub->guint32.get(prop, &val, 0, 1);
+	stub->guint64.get(prop, &val, 0, 1);
 	if (val == 0)
 		gtk_label_set_text(GTK_LABEL(w), _("Never"));
 	else {
@@ -1004,7 +1006,8 @@ static gboolean update_label_date(property_t prop)
     return FALSE;
 }
 
-static gboolean update_label_duration(property_t prop)
+static gboolean
+update_label_duration(property_t prop)
 {
     GtkWidget *w;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
@@ -1030,7 +1033,8 @@ static gboolean update_label_duration(property_t prop)
     return FALSE;
 }
 
-static gboolean update_label_yes_or_no(property_t prop)
+static gboolean
+update_label_yes_or_no(property_t prop)
 {
     GtkWidget *w;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
@@ -5034,7 +5038,7 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
-        PROP_LIBRARY_RESCAN_TIMESTAMP,
+        PROP_LIBRARY_RESCAN_STARTED,
         update_label_date,
         TRUE,
         "label_library_rescan_timestamp",
@@ -5042,7 +5046,7 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
-        PROP_LIBRARY_RESCAN_TIME,
+        PROP_LIBRARY_RESCAN_DURATION,
         update_label_duration,
         TRUE,
         "label_library_rescan_time",
@@ -5050,7 +5054,7 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
-        PROP_QRP_INDEXING_TIMESTAMP,
+        PROP_QRP_INDEXING_STARTED,
         update_label_date,
         TRUE,
         "label_qrp_indexing_timestamp",
@@ -5058,7 +5062,7 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
-        PROP_QRP_INDEXING_TIME,
+        PROP_QRP_INDEXING_DURATION,
         update_label_duration,
         TRUE,
         "label_qrp_indexing_time",

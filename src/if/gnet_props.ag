@@ -199,7 +199,7 @@ prop = {
 prop = {
     name = "current_ip_stamp";
     desc = "When the current IP address was determined.";
-    type = guint32;
+    type = guint64;
     data = {
         default = 0;
     };
@@ -218,7 +218,7 @@ prop = {
     name = "start_stamp";
     desc = "Timestamp at which servent was started.";
 	save = FALSE;
-    type = guint32;
+    type = guint64;
     data = {
         default = 0;
     };
@@ -2306,7 +2306,7 @@ prop = {
 prop = {
 	name = "node_last_ultra_check";
 	desc = "Last time at which we performed the ultrapeer requirement checks.";
-	type = guint32;
+	type = guint64;
 	data = {
 		default = 0;
 	};
@@ -2316,7 +2316,7 @@ prop = {
 	name = "node_last_ultra_leaf_switch";
 	desc = "Last time an automatic switch between ultra and "
 		"leaf mode occurred.";
-	type = guint32;
+	type = guint64;
 	save = FALSE;
 	data = {
 		default = 0;
@@ -2506,8 +2506,28 @@ prop = {
 };
 
 prop = {
-	name = "library_rescan_timestamp";
+	name = "library_rescan_started";
 	desc = "Time at which we started the last scan of the library.";
+	type = guint64;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "library_rescan_finished";
+	desc = "Time at which the last scan of the library finished.";
+	type = guint64;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "library_rescan_duration";
+	desc = "The number of seconds the last scan of the library took.";
 	type = guint32;
 	save = FALSE;
 	data = {
@@ -2516,19 +2536,9 @@ prop = {
 };
 
 prop = {
-	name = "library_rescan_time";
-	desc = "Time spent scanning the library, in seconds.";
-	type = guint32;
-	save = FALSE;
-	data = {
-		default = 0;
-	};
-};
-
-prop = {
-	name = "qrp_indexing_timestamp";
+	name = "qrp_indexing_started";
 	desc = "Time at which we started shared file indexing.";
-	type = guint32;
+	type = guint64;
 	save = FALSE;
 	data = {
 		default = 0;
@@ -2536,7 +2546,7 @@ prop = {
 };
 
 prop = {
-	name = "qrp_indexing_time";
+	name = "qrp_indexing_duration";
 	desc = "Time spent indexing shared files.";
 	type = guint32;
 	save = FALSE;
@@ -2548,7 +2558,7 @@ prop = {
 prop = {
 	name = "qrp_timestamp";
 	desc = "Time at which we started query routing table generation.";
-	type = guint32;
+	type = guint64;
 	save = FALSE;
 	data = {
 		default = 0;
@@ -2568,7 +2578,7 @@ prop = {
 prop = {
 	name = "qrp_patch_timestamp";
 	desc = "Time at which we started computing our QRP patch.";
-	type = guint32;
+	type = guint64;
 	save = FALSE;
 	data = {
 		default = 0;

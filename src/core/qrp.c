@@ -1657,8 +1657,8 @@ qrp_step_compute(gpointer h, gpointer u, gint unused_ticks)
 static bgret_t
 qrp_step_create_table(gpointer unused_h, gpointer u, gint unused_ticks)
 {
-	struct qrp_context *ctx = (struct qrp_context *) u;
-	guint32 elapsed;
+	struct qrp_context *ctx = u;
+	glong elapsed;
 
 	(void) unused_h;
 	(void) unused_ticks;
@@ -1687,7 +1687,8 @@ qrp_step_create_table(gpointer unused_h, gpointer u, gint unused_ticks)
 		*ctx->rpp = NULL;
 	}
 
-	elapsed = (guint32) delta_time(time(NULL), qrp_timestamp);
+	elapsed = delta_time(time(NULL), (time_t) qrp_timestamp);
+	elapsed = MAX(0, elapsed);
 	gnet_prop_set_guint32_val(PROP_QRP_COMPUTATION_TIME, elapsed);
 
 	return BGR_NEXT;		/* Proceed to next step */
@@ -1950,7 +1951,7 @@ qrp_finalize_computation(void)
 	ctx->rtp = &local_table;	/* NOT routing_table, this is for local files */
 	ctx->rpp = &routing_patch;
 
-	gnet_prop_set_guint32_val(PROP_QRP_TIMESTAMP, (guint32) time(NULL));
+	gnet_prop_set_guint64_val(PROP_QRP_TIMESTAMP, time(NULL));
 
 	qrp_comp = bg_task_create("QRP computation",
 		qrp_compute_steps, G_N_ELEMENTS(qrp_compute_steps),
@@ -2066,14 +2067,15 @@ qrt_patch_computed(gpointer unused_h, gpointer unused_u,
 
 	if (status == BGS_OK) {
 		time_t now = time(NULL);
-		guint32 elapsed;
+		glong elapsed;
 
 		if (*ctx->rpp != NULL)
 			qrt_patch_unref(*ctx->rpp);
 
 		*ctx->rpp = ctx->rp;
 
-		elapsed = (guint32) now - qrp_patch_timestamp;
+		elapsed = delta_time(now, (time_t) qrp_patch_timestamp);
+		elapsed = MAX(0, elapsed);
 		gnet_prop_set_guint32_val(PROP_QRP_PATCH_COMPUTATION_TIME, elapsed);
 		gnet_prop_set_guint32_val(PROP_QRP_PATCH_LENGTH,
 			(guint32) ctx->rp->len);
@@ -2181,7 +2183,7 @@ qrt_patch_compute(struct routing_table *rt, struct routing_patch **rpp)
 
 	g_assert(qrt_patch_ctx == NULL);	/* No computation active */
 
-	gnet_prop_set_guint32_val(PROP_QRP_PATCH_TIMESTAMP, (guint32) time(NULL));
+	gnet_prop_set_guint64_val(PROP_QRP_PATCH_TIMESTAMP, time(NULL));
 
 	qrt_patch_ctx = ctx = walloc(sizeof(*ctx));
 
