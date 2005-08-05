@@ -3279,7 +3279,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 */
 
 		len = g_strlcpy(p,
-				"Content-Disposition: inline; filename*=utf-8'en'", size);
+				"Content-Disposition: inline; filename*=\"utf-8'en'", size);
 		g_assert(len < sizeof buf);
 
 		p += len;
@@ -3287,12 +3287,12 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		len = url_escape_into(reqfile->name_nfc, p, size);
 		if ((size_t) -1 != len) {
-			static const gchar crlf[] = "\r\n";
+			static const gchar term[] = "\"\r\n";
 
 			p += len;
 			size -= len;
-			if (size > CONST_STRLEN(crlf)) {
-				len = g_strlcpy(p, crlf, size);
+			if (size > CONST_STRLEN(term)) {
+				len = g_strlcpy(p, term, size);
 
 				hev[hevcnt].he_type = HTTP_EXTRA_LINE;
 				hev[hevcnt].he_msg = buf;
