@@ -215,15 +215,18 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 				} else if (SHARE_REBUILDING == sf) {
 					browse_host_next_state(bh, BH_STATE_TRAILER);
 				} else {
-					/*
-					 * @todo FIXME: In HTML (especially anchors) certain
-					 * characters must be escaped, at least these: [<>&"].
-					 */
+					size_t html_size;
+					gchar *html_name;
+					
+					html_size = 1 + html_escape(sf->name_nfc, NULL, 0);
+					html_name = walloc(html_size);
+					html_escape(sf->name_nfc, html_name, html_size);
+					
 					if (sha1_hash_available(sf)) {
 						bh->d_buf = g_strconcat("<li>",
 								"<a href=\"/uri-res/N2R?urn:sha1:",
 								sha1_base32(sf->sha1_digest),
-								"\">", sf->name_nfc, "</a></li>\r\n",
+								"\">", html_name, "</a></li>\r\n",
 								(void *) 0);
 					} else {
 						gchar *escaped;
@@ -231,10 +234,12 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 						escaped = url_escape(sf->name_nfc);
 						bh->d_buf = g_strdup_printf(
 								"<li><a href=\"/get/%u/%s\">%s</a></li>\r\n",
-								sf->file_index, escaped, sf->name_nfc);
+								sf->file_index, escaped, html_name);
 						if (escaped != sf->name_nfc)
 							G_FREE_NULL(escaped);
 					}
+
+					wfree(html_name, html_size);
 					bh->b_data = bh->d_buf;
 					bh->b_size = strlen(bh->b_data);
 					bh->b_offset = 0;
