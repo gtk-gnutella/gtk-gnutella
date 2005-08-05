@@ -2470,9 +2470,10 @@ html_escape(const gchar *src, gchar *dst, size_t dst_size)
 			size_t len;
 		
 			r = html_escape_replacement(c, &len);
-			if (len > (size_t) (end - d))
+			if (len > dst_size)
 				break;
 
+			dst_size -= len;
 			while (len-- > 0)
 				*d++ = *r++;
 		}
