@@ -328,11 +328,25 @@ dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 	 * Prepare call to dechunk().
 	 */
 
-	ctx.src = pmsg_read_base(mb);
-	ctx.src_len = old_size = pmsg_size(mb);
-
-	if (old_size == 0)
+	old_size = pmsg_size(mb);
+	
+	if (0 == old_size)
 		return NULL;				/* No more data */
+
+	if (CHUNK_STATE_DATA == attr->state && old_size <= attr->data_remain) {
+		pmsg_t *nmb;
+
+		attr->data_remain -= old_size;
+		if (0 == attr->data_remain)
+			attr->state = CHUNK_STATE_DATA_CRLF;
+
+		nmb = pmsg_clone(mb);
+		mb->m_rptr += old_size;		/* Read that far */
+		return nmb;
+	}
+
+	ctx.src = pmsg_read_base(mb);
+	ctx.src_len = old_size;
 
 	db = rxbuf_new();
 
