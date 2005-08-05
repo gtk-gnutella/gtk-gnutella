@@ -1,10 +1,35 @@
 # since last version
 
+- (2005-08-04 - RAM)
+ * Make sure we abort the upload immediately if the shared file is no longer
+   present on the disk, especially when they are being queued for that
+   no-longer-existing file.
+ * Added full support for browse-host (server side): can now serve both
+   HTML and query hits.
+
+- (2005-08-03 - RAM)
+ * Added "eager mode" to the TX stack to always have it serviced.
+ * Browse host is now honouring deflate and chunked encoding.
+
 - (2005-08-02 - Hans)
  * Initial optional D-BUS support. This code only supports D-BUS
    0.35.2. Currently only 'started' and 'stopped' events are sent. The
    gtkg-dbus-listener.py script listens for these events.
 	
+- (2005-08-02 - RAM)
+ * New TX "chunking" driver to be able to send HTTP chunked data.
+ * Both TX and RX stacks now use walloc() for memory allocation.
+ * Added tx_has_error() to check for TX errors.
+ * Added tx_close() with callback to be notified when transmission is closed.
+
+- (2005-08-01 - RAM)
+ * Update the server IP when we get a GIV, and recompute the server's country
+   appropriately, with immediate GUI feedback.
+ * Try to compute a suitable upload filename for the SHA1 digest, especially
+   when PFS is enabled and we're given the digest of a file we downloaded
+   but chose not to share once completed.
+ * Was wrongly reporting "Already downloading that file" when the same host
+   requested two distinct files via PFS.
 
 # v 0.95.4  2005.07.31  [stable]
 
@@ -19,7 +44,6 @@
 - Doxygen documentation updates.
 - Japanese and Spanish translation updates.
 
-	
 - (2005-07-31 - RAM)
  * Added the "update" target to update the bogons and GeoIP database.
    Requires wget and perl to be installed. (meant for developers only)
