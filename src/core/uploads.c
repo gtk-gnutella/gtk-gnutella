@@ -2259,11 +2259,20 @@ static struct tx_deflate_cb upload_tx_deflate_cb = {
 	upload_tx_error,	/* shutdown */
 };
 
+static void
+upload_tx_add_written(gpointer o, gint amount)
+{
+	gnutella_upload_t *u = o;
+
+	u->file_size += amount;
+	u->end = u->file_size;
+}
+
 static struct tx_link_cb upload_tx_link_cb = {
-	NULL,				/* add_tx_written */
-	upload_tx_error,	/* eof_remove */
-	upload_tx_error,	/* eof_shutdown */
-	NULL,				/* unflushq -- XXX rename that, it's node specific */
+	upload_tx_add_written,	/* add_tx_written */
+	upload_tx_error,		/* eof_remove */
+	upload_tx_error,		/* eof_shutdown */
+	NULL,					/* unflushq -- XXX rename it, it's node specific */
 };
 
 /**
@@ -2420,6 +2429,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	) {
 		u->browse_host = TRUE;
 		u->name = atom_str_get(_("<Browse Host Request>"));
+		u->file_size = 0;
 
 		if (!browse_host_enabled) {
 			upload_error_remove(u, NULL, 403, "Browse Host Disabled");
@@ -3574,10 +3584,15 @@ upload_special_read(gnutella_upload_t *u)
 static inline ssize_t
 upload_special_write(gnutella_upload_t *u, gpointer data, size_t len)
 {
+	ssize_t r;
+
 	g_assert(NULL != u->special);
 	g_assert(NULL != u->special->write);
 
-	return u->special->write(u->special, data, len);
+	r = u->special->write(u->special, data, len);
+	upload_fire_upload_info_changed(u);		/* Update size info */
+
+	return r;
 }
 
 /**
@@ -3599,6 +3614,7 @@ upload_special_flushed(gpointer arg)
 	u->special->close(u->special);
 	u->special = NULL;
 
+	upload_fire_upload_info_changed(u);		/* Update size info */
 	upload_completed(u);	/* We're done, wait for next request if any */
 }
 
