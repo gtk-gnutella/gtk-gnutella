@@ -69,6 +69,7 @@ RCSID("$Id$");
 #include "lib/cq.h"
 #include "lib/endian.h"
 #include "lib/idtable.h"
+#include "lib/getdate.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/file.h"
@@ -817,27 +818,49 @@ send_upload_error_v(
 		 * want it to be re-emitted.
 		 */
 
-		if (u->from_browser) {
-			static gchar buf[1024];
+		if (503 == code && u->from_browser) {
+			static gchar buf[2048];
+			gchar href[1024];
 			glong retry;
 			
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-			hev[hevcnt++].he_msg = "Content-Type: text/html\r\n";
+			hev[hevcnt++].he_msg = "Content-Type: text/html; charset=utf-8\r\n";
 
 			hev[hevcnt].he_type = HTTP_EXTRA_BODY;
 			hev[hevcnt++].he_msg = buf;
 
 			retry = delta_time(parq_upload_lookup_retry(u), time(NULL));
 			retry = MAX(0, retry);
+
+			{
+				gchar *uri;
+				
+				uri = url_escape(u->name);
+				if (html_escape(uri, href, sizeof href) >= sizeof href) {
+					/* If the escaped href is too long, leave it out. They
+				 	 * might get an ugly filename but at least the URI
+				 	 * works. */
+					href[0] = '\0';
+				}
+				if (uri != u->name)
+					G_FREE_NULL(uri);
+			}
+
 			gm_snprintf(buf, sizeof buf,
+				"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
 				"<html>"
 				"<head>"
-				"<meta http-equiv=\"Refresh\" content=\"%ld;\">"
+				"<meta http-equiv=\"Refresh\" content=\"%ld; %s%s\">"
+				"<title>Download</title>"
 				"</head>"
 				"<body>Your download will start in %ld seconds.</body>"
 				"</html>"
 				"\r\n",
-				retry, retry);
+				retry,
+				'\0' != href[0] ? "/get/0/" : "",
+				href,
+				retry);
+
 		}
 	}
 
@@ -2267,7 +2290,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	struct upload_http_cb cb_parq_arg, cb_sha1_arg, cb_status_arg, cb_416_arg;
 	gint http_code;
 	const gchar *http_msg;
-	http_extra_desc_t hev[8];
+	http_extra_desc_t hev[9];
 	guint hevcnt = 0;
 	gchar *sha1 = NULL;
 	gboolean is_followup =
@@ -2395,14 +2418,37 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		NULL != is_strprefix(request, "GET / HTTP/") ||
 		NULL != is_strprefix(request, "HEAD / HTTP/")
 	) {
-		gchar name[80];
-
 		u->browse_host = TRUE;
 		u->name = atom_str_get(_("<Browse Host Request>"));
 		
 		if (!browse_host_enabled) {
 			upload_error_remove(u, NULL, 403, "Browse Host Disabled");
 			return;
+		}
+
+		buf = header_get(header, "If-Modified-Since");
+		if (buf) {
+			time_t t;
+
+			t = date2time(buf, now);
+			if (
+				(time_t) -1 != t &&
+				delta_time(library_rescan_timestamp, t) <= 0
+			) {
+				upload_error_remove(u, NULL, 304, "Not Modified");
+				return;
+			}
+		}
+		
+		{
+			static gchar buf[64];
+			
+			gm_snprintf(buf, sizeof buf, "Last-Modified: %s\r\n",
+				date_to_rfc1123_gchar(library_rescan_timestamp));
+			
+			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
+			hev[hevcnt].he_msg = buf;
+			hev[hevcnt++].he_arg = NULL;
 		}
 
 		/*
@@ -2476,15 +2522,18 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		/*
 		 * Change the name of the upload for the GUI.
 		 */
+		{
+			gchar name[80];
 
-		gm_snprintf(name, sizeof(name),
-			_("<Browse Host Request> [%s%s%s]"),
-			(bh_flags & BH_HTML) ? "HTML" : _("query hits"),
-			(bh_flags & BH_DEFLATE) ? _(", deflated") : "",
-			(bh_flags & BH_CHUNKED) ? _(", chunked") : "");
+			gm_snprintf(name, sizeof(name),
+					_("<Browse Host Request> [%s%s%s]"),
+					(bh_flags & BH_HTML) ? "HTML" : _("query hits"),
+					(bh_flags & BH_DEFLATE) ? _(", deflated") : "",
+					(bh_flags & BH_CHUNKED) ? _(", chunked") : "");
 
-		atom_str_free(u->name);
-		u->name = atom_str_get(name);
+			atom_str_free(u->name);
+			u->name = atom_str_get(name);
+		}
 	} else {
 		/*
 		 * If previous request was a browse host, clear the name.
