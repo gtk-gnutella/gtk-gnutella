@@ -2433,7 +2433,7 @@ html_escape_replacement(gchar c, size_t *len)
 	case '"':
 		REPLACE("&quot;");
 	case '\'':
-		REPLACE("&apos;");
+		REPLACE("&#39;");
 	}
 #undef REPLACE
 
