@@ -2463,8 +2463,6 @@ html_escape(const gchar *src, gchar *dst, size_t dst_size)
 	g_assert(NULL != src);
 
 	if (dst_size-- > 0) {
-		const gchar * const end = &dst[dst_size];
-		
 		for (/* NOTHING*/; '\0' != (c = *s); s++) {
 			const gchar *r;
 			size_t len;
