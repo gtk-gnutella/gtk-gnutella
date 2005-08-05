@@ -333,6 +333,12 @@ dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 	if (0 == old_size)
 		return NULL;				/* No more data */
 
+	/*
+	 * Copy avoidance: if the data we got fits into the current chunk size,
+	 * then we don't have to parse anything: all the data belong to the
+	 * current chunk, so we can simply pass them to the upper layer.
+	 */
+
 	if (CHUNK_STATE_DATA == attr->state && old_size <= attr->data_remain) {
 		pmsg_t *nmb;
 
