@@ -320,6 +320,10 @@ uploads_gui_init(void)
         GTK_CLIST(lookup_widget(main_window, "clist_uploads")),
         c_ul_size, GTK_JUSTIFY_RIGHT);
 
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_uploads")),
+        c_ul_progress, GTK_JUSTIFY_RIGHT);
+
 	gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_uploads")));
 
