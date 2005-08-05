@@ -308,7 +308,7 @@ prop_get_def(prop_set_t *ps, property_t p)
 	buf->desc = g_strdup(PROP(ps, p).desc);
 	buf->ev_changed = NULL;
 
-	switch(buf->type) {
+	switch (buf->type) {
 	case PROP_TYPE_BOOLEAN:
 		buf->data.boolean.def = g_memdup(
 			PROP(ps,p).data.boolean.def,
@@ -349,6 +349,7 @@ prop_get_def(prop_set_t *ps, property_t p)
 			PROP(ps,p).data.guint32.value,
 			sizeof(guint32) * PROP(ps,p).vector_size);
 		break;
+
 	case PROP_TYPE_GUINT64:
 		buf->data.guint64.def = g_memdup(
 			PROP(ps,p).data.guint64.def,
@@ -356,15 +357,19 @@ prop_get_def(prop_set_t *ps, property_t p)
 		buf->data.guint64.value = g_memdup(
 			PROP(ps,p).data.guint64.value,
 			sizeof(guint64) * PROP(ps,p).vector_size);
+		break;
+		
 	case PROP_TYPE_STRING:
 		buf->data.string.def	= g_new(gchar*, 1);
 		*buf->data.string.def   = g_strdup(*PROP(ps,p).data.string.def);
 		buf->data.string.value  = g_new(gchar*, 1);
 		*buf->data.string.value = g_strdup(*PROP(ps,p).data.string.value);
 		break;
+		
 	case PROP_TYPE_STORAGE:
 		buf->data.storage.value = g_memdup
 			(PROP(ps,p).data.storage.value, PROP(ps,p).vector_size);
+		break;
 	}
 
 	return buf;
