@@ -1493,10 +1493,6 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 		atom_guid_free(n->gnet_guid);
 		n->gnet_guid = NULL;
 	}
-	if (n->alive_pings) {
-		alive_free(n->alive_pings);
-		n->alive_pings = NULL;
-	}
 	if (n->tsync_ev) {
 		cq_cancel(callout_queue, n->tsync_ev);
 		n->tsync_ev = NULL;
