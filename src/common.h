@@ -200,10 +200,10 @@ do {				\
 
 /**
  * Stores a RCS ID tag inside the object file. Every .c source file should
- * use this macro once as `RCSID("$Id$")' on top. The ID tag is automagically
- * updated each time the file is committed to the CVS repository. The RCS IDs
- * can be looked up from the compiled binary with e.g. `what', `ident' or
- * `strings'. See also rcs(1) and ident(1).
+ * use this macro once as `RCSID("<dollar>Id$")' on top. The ID tag is
+ * automagically updated each time the file is committed to the CVS repository.
+ * The RCS IDs can be looked up from the compiled binary with e.g. `what',
+ * `ident' or `strings'. See also rcs(1) and ident(1).
  */
 #ifdef __GNUC__
 #define RCSID(x) \
@@ -266,7 +266,7 @@ do {				\
 #define GTA_PATCHLEVEL 0		  /**< patch level or teeny version */
 #define GTA_REVISION "unstable"	  /**< unstable, beta, stable */
 #define GTA_REVCHAR "u"			  /**< u - unstable, b - beta, none - stable */
-#define GTA_RELEASE "2005-08-02"  /**< ISO 8601 format YYYY-MM-DD */
+#define GTA_RELEASE "2005-08-06"  /**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)
