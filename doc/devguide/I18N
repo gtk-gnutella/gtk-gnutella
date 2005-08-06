@@ -226,8 +226,11 @@ http://www.gnu.org/manual/gettext/index.html
 A good online English<->German dictionary:
 http://dict.leo.org/
 
-Country codes as standardized by the UNO (United Nations Organizations):
-http://ftp.ics.uci.edu/pub/websoft/wwwstat/country-codes.txt
+Standard country codes (ISO 3166):
+http://www.ics.uci.edu/pub/ietf/http/related/iso3166.txt
+
+Standard language codes (ISO 639):
+http://www.w3.org/WAI/ER/IG/ert/iso639.htm
 
 Freedesktop.org desktop entry spec:
 http://www.freedesktop.org/standards/desktop-entry-spec/
