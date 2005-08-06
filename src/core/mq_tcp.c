@@ -182,8 +182,11 @@ again:
 		return;
 	}
 
-	if (has_prioritary)
+	if (has_prioritary) {
 		tx_flush(q->tx_drv);
+		if (tx_has_error(q->tx_drv))
+			return;
+	}
 
 	node_add_tx_given(q->node, r);
 	q->last_written = r;
@@ -322,7 +325,8 @@ static void mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 
 			if (prioritary && written == size) {
 				tx_flush(q->tx_drv);
-				node_unflushq(q->node);
+				if (tx_has_error(q->tx_drv))
+					goto cleanup;
 			}
 		} else {
 			gnet_stats_count_flowc(mbs);
