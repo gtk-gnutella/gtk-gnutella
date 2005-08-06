@@ -256,7 +256,7 @@ extern const guint64  library_rescan_started;
 extern const guint64  library_rescan_finished;
 extern const guint32  library_rescan_duration;
 extern const guint64  qrp_indexing_started;
-extern const guint64  qrp_indexing_duration;
+extern const guint32  qrp_indexing_duration;
 extern const guint64  qrp_timestamp;
 extern const guint32  qrp_computation_time;
 extern const guint64  qrp_patch_timestamp;

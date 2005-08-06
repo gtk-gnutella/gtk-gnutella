@@ -491,8 +491,8 @@ guint32  library_rescan_duration     = 0;
 guint32  library_rescan_duration_def = 0;
 guint64  qrp_indexing_started     = 0;
 guint64  qrp_indexing_started_def = 0;
-guint64  qrp_indexing_duration     = 0;
-guint64  qrp_indexing_duration_def = 0;
+guint32  qrp_indexing_duration     = 0;
+guint32  qrp_indexing_duration_def = 0;
 guint64  qrp_timestamp     = 0;
 guint64  qrp_timestamp_def = 0;
 guint32  qrp_computation_time     = 0;
@@ -4684,12 +4684,12 @@ gnet_prop_init(void) {
     gnet_property->props[214].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[214].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[214].data.guint64.def   = &qrp_indexing_duration_def;
-    gnet_property->props[214].data.guint64.value = &qrp_indexing_duration;
-    gnet_property->props[214].data.guint64.choices = NULL;
-    gnet_property->props[214].data.guint64.max   = (guint64) -1;
-    gnet_property->props[214].data.guint64.min   = 0x0000000000000000;
+    gnet_property->props[214].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[214].data.guint32.def   = &qrp_indexing_duration_def;
+    gnet_property->props[214].data.guint32.value = &qrp_indexing_duration;
+    gnet_property->props[214].data.guint32.choices = NULL;
+    gnet_property->props[214].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[214].data.guint32.min   = 0x00000000;
 
 
     /*
