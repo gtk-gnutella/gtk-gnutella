@@ -49,7 +49,10 @@ RCSID("$Id$");
 /** @todo DBus API is not stable yet, may need changes once 1.0 is released */
 #define DBUS_API_SUBJECT_TO_CHANGE
 #include <dbus/dbus.h>
+
+#ifdef USE_GLIB2 /* XXX */
 #include <dbus/dbus-glib-lowlevel.h>
+#endif /* USE_GLIB2 */
 
 /** The dbus path to the object serving the notifications. */
 #define DBUS_PATH "/net/gtkg/events"
@@ -74,8 +77,10 @@ dbus_util_init(void)
 		dbus_error_free(&error);
 	} else {
 
+#ifdef USE_GLIB2
 		/* Set up this connection to work in a GLib event loop */
 		dbus_connection_setup_with_g_main(bus, NULL);
+#endif /* USE_GLIB2 */
 
 		g_message("D-BUS set up and ready for use.");
 		/** @todo Include a timestamp or some other useful info */
@@ -109,19 +114,19 @@ dbus_util_close(void)
 void
 dbus_util_send_message(const char *signal_name, const char *text)
 {
-	DBusMessage *message = NULL;  /**< The dbus message to send */
+	DBusMessage *message;  /**< The dbus message to send */
 
 	/* 
 	 * If the bus could not be initialized earlier then we should not
 	 * attempt to send a message now.
 	 */
-	if (bus == NULL) 
+	if (NULL == bus) 
 		return;
 	
 	/* Create a new message on the DBUS_INTERFACE */
 	message = dbus_message_new_signal(DBUS_PATH, DBUS_INTERFACE, signal_name);
 	
-	if (message == NULL) {
+	if (NULL == message) {
 		g_message("Could not create D-BUS message!\n");
 	} else {
 			
