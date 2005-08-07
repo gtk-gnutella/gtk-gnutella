@@ -415,7 +415,7 @@ host_addr_hash(const host_addr_t ha)
 #define host_addr_net(x) (((void) (x)), NET_TYPE_IP4)
 #define host_addr_family(x) (((void) (x)), AF_INET) 
 #define host_addr_ip4(x) (x)
-#define host_addr_set_ip4(x, y) G_STMT_START { (x) = (y); } G_STMT_END
+#define host_addr_set_ip4(x) (x)
 #define host_addr_set_net(x, y) G_STMT_START { (void) ((x), (y)) } G_STMT_END
 #define is_host_addr(x) (0 != (x))
 #define host_addr_equal(a, b) ((a) == (b))
