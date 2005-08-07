@@ -84,7 +84,7 @@ gip_add_cidr(guint32 ip, guint bits, gpointer udata)
 
 	if (dbg > 4)
 		printf("GEO adding %s/%d for \"%s\"\n",
-			ip_to_gchar(ip), bits, ctx->line);
+			ip_to_string(ip), bits, ctx->line);
 
 	ccode = GUINT_TO_POINTER(ctx->country);
 	error = iprange_add_cidr(geo_db, ip, bits, ccode);
@@ -97,13 +97,13 @@ gip_add_cidr(guint32 ip, guint bits, gpointer udata)
 		if (error == IPR_ERR_OK) {
 			g_warning("%s, line %d: "
 				"entry \"%s\" (%s/%d) superseded earlier smaller range",
-				gip_file, ctx->linenum, ctx->line, ip_to_gchar(ip), bits);
+				gip_file, ctx->linenum, ctx->line, ip_to_string(ip), bits);
 			break;
 		}
 		/* FALL THROUGH */
 	default:
 		g_warning("%s, line %d: rejected entry \"%s\" (%s/%d): %s",
-			gip_file, ctx->linenum, ctx->line, ip_to_gchar(ip), bits,
+			gip_file, ctx->linenum, ctx->line, ip_to_string(ip), bits,
 			iprange_strerror(error));
 		return;
 	}
@@ -346,12 +346,17 @@ gip_close(void)
  * country code, * or -1 when unknown.
  */
 gint
-gip_country(guint32 ip)
+gip_country(const host_addr_t addr)
 {
-	gpointer code;
+	if (NET_TYPE_IP4 == host_addr_net(addr)) {
+		gpointer code;
 
-	code = geo_db != NULL ? iprange_get(geo_db, ip) : NULL;
-	return NULL != code ? (GPOINTER_TO_INT(code) >> 1) - 1 : -1;
+		code = geo_db != NULL ? iprange_get(geo_db, host_addr_ip4(addr)) : NULL;
+		return NULL != code ? (GPOINTER_TO_INT(code) >> 1) - 1 : -1;
+	} else if (NET_TYPE_IP6 == host_addr_net(addr)) {
+		/* XXX: Implement this! */
+	}
+	return -1;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
