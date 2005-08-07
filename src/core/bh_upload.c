@@ -161,7 +161,9 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 {
 	static const gchar header[] =
 		"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
-		"<html><head><title>Browse Host</title></head><body><ul>\r\n";
+		"<html><head><title>Browse Host</title></head><body>"
+		"<h1>Gtk-Gnutella</h1>"
+		"<ul>\r\n";
 	static const gchar trailer[] = "</ul></body></html>";
 	struct browse_host_ctx *bh = ctx;
 	gchar *p = dest; 

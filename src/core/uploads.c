@@ -847,20 +847,29 @@ send_upload_error_v(
 			}
 
 			gm_snprintf(buf, sizeof buf,
-				"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
-				"<html>"
-				"<head>"
-				"<meta http-equiv=\"Refresh\" content=\"%ld; %s%s\">"
-				"<title>Download</title>"
-				"</head>"
-				"<body>Your download will start in %ld seconds.</body>"
-				"</html>"
-				"\r\n",
-				retry,
-				'\0' != href[0] ? "/get/0/" : "",
-				href,
-				retry);
-
+					"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
+					"<html>"
+					"<head>"
+					"<meta http-equiv=\"Refresh\" content=\"%ld; url=%s%s\">"
+					"<title>Download</title>"
+					"<script type=\"text/javascript\">"
+					"var i=%ld;"
+					"function main(){"
+					"if (i>=0){"
+					"document.getElementById('x').innerHTML=i--;"
+					"setTimeout(\"main();\", 1000);"
+					"}"
+					"};"
+					"</script>"
+					"</head>"
+					"<body onload=\"main();\">"
+					"<h1>Gtk-Gnutella</h1>"
+					"<p>The download starts in <em id=\"x\">%ld</em> seconds.</p>"
+					"</body>"
+					"</html>"
+					"\r\n",
+					retry, '\0' != href[0] ? "/get/0/" : "", href,
+					retry, retry);			
 		}
 	}
 
@@ -2275,6 +2284,28 @@ static struct tx_link_cb upload_tx_link_cb = {
 	NULL,					/* unflushq -- XXX rename it, it's node specific */
 };
 
+static gboolean
+supports_deflate(header_t *header)
+{
+    const gchar *buf;
+
+    buf = header_get(header, "Accept-Encoding");
+    if (!buf)
+        return FALSE;
+
+    /* XXX needs more rigourous parsing */
+    if (!strstr(buf, "deflate"))
+        return FALSE;
+
+    buf = header_get(header, "User-Agent");
+    if (strstr(buf, "AppleWebKit"))
+        return FALSE;
+
+    return TRUE;
+}
+
+
+
 /**
  * Called to initiate the upload once all the HTTP headers have been
  * read.  Validate the request, and begin processing it if all OK.
@@ -2462,17 +2493,6 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		}
 
 		/*
-		 * If it's a HEAD request, let them know we support Browse Host.
-		 */
-
-		if (NULL != is_strprefix(request, "HEAD ")) {
-			static const gchar msg[] = N_("Browse Host Enabled");
-			http_send_status(u->socket, 200, FALSE, hev, hevcnt, msg);
-			upload_remove(u, _(msg));
-			return;
-		}
-
-		/*
 		 * Look at an Accept: line containing "application/x-gnutella-packets".
 		 * If we get that, then we can send query hits backs.  Otherwise,
 		 * we'll send HTML output.
@@ -2507,7 +2527,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		buf = header_get(header, "Accept-Encoding");
 		/* XXX needs more rigourous parsing */
-		if (NULL != buf && strstr(buf, "deflate")) {
+		if (supports_deflate(header)) {
 			bh_flags |= BH_DEFLATE;
 
 			g_assert(hevcnt < G_N_ELEMENTS(hev));
@@ -2527,6 +2547,17 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
 			hev[hevcnt].he_msg = "Transfer-Encoding: chunked\r\n";
 			hev[hevcnt++].he_arg = NULL;
+		}
+
+		/*
+		 * If it's a HEAD request, let them know we support Browse Host.
+		 */
+
+		if (NULL != is_strprefix(request, "HEAD ")) {
+			static const gchar msg[] = N_("Browse Host Enabled");
+			http_send_status(u->socket, 200, FALSE, hev, hevcnt, msg);
+			upload_remove(u, _(msg));
+			return;
 		}
 
 		/*
