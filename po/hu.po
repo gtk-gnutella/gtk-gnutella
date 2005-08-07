@@ -1,3 +1,4 @@
+# $Id:
 # Hungarian translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
 # Copyright (C) 2001-2005 Raphaël Manfredi.
@@ -8,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-08-02 19:45+0900\n"
-"PO-Revision-Date: 2005-08-02 21:01+0900\n"
+"POT-Creation-Date: 2005-08-07 12:09+0900\n"
+"PO-Revision-Date: 2005-08-06 14:02+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -17,162 +18,162 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: src/core/downloads.c:495 src/core/downloads.c:553
+#: src/core/downloads.c:502 src/core/downloads.c:560
 msgid "No longer connected"
 msgstr "Már nincs kapcsolatban"
 
-#: src/core/downloads.c:542 src/core/nodes.c:834 src/ui/gtk/hcache_common.c:43
+#: src/core/downloads.c:549 src/core/nodes.c:835 src/ui/gtk/hcache_common.c:43
 msgid "Timeout"
 msgstr "Türelmi idő"
 
-#: src/core/downloads.c:1287
+#: src/core/downloads.c:1294
 msgid "Requeued by file info change"
 msgstr "Fájl infó változás miatt újra sorban áll"
 
-#: src/core/downloads.c:1367 src/core/downloads.c:2426
-#: src/core/downloads.c:3322
+#: src/core/downloads.c:1374 src/core/downloads.c:2433
+#: src/core/downloads.c:3329
 msgid "Suspended (SHA1 checking)"
 msgstr "Felfüggesztve (SHA1 ellenőrzés)"
 
-#: src/core/downloads.c:2554
+#: src/core/downloads.c:2561
 #, fuzzy
 msgid "Waiting for a free chunk"
 msgstr "SHA1 ellenőrzésre várakozás…"
 
-#: src/core/downloads.c:2710 src/core/downloads.c:3332
+#: src/core/downloads.c:2717 src/core/downloads.c:3339
 msgid "No download slot"
 msgstr "Nics letöltő nyílás"
 
-#: src/core/downloads.c:2756
+#: src/core/downloads.c:2763
 #, fuzzy
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "Használt fájleírók legnagyobb százaléka"
 
-#: src/core/downloads.c:2973
+#: src/core/downloads.c:2980
 msgid "Ignoring Push flag"
 msgstr "Nyomás-jelzés mellőzése "
 
-#: src/core/downloads.c:3004
+#: src/core/downloads.c:3011
 #, c-format
 msgid "No direct connection yet (%d retry)"
 msgid_plural "No direct connection yet (%d retries)"
 msgstr[0] ""
 
-#: src/core/downloads.c:3011 src/core/downloads.c:3025
+#: src/core/downloads.c:3018 src/core/downloads.c:3032
 #, c-format
 msgid "Timeout (%d retry)"
 msgid_plural "Timeout (%d retries)"
 msgstr[0] ""
 
-#: src/core/downloads.c:3015
+#: src/core/downloads.c:3022
 #, c-format
 msgid "Connection refused (%d retry)"
 msgid_plural "Connection refused (%d retries)"
 msgstr[0] ""
 
-#: src/core/downloads.c:3313
+#: src/core/downloads.c:3320
 msgid "Dup SHA1 during creation"
 msgstr "SHA1 készítése létrehozás közben"
 
-#: src/core/downloads.c:3548
+#: src/core/downloads.c:3555
 msgid "Stopped (Index changed)"
 msgstr ""
 
-#: src/core/downloads.c:3856
+#: src/core/downloads.c:3863
 msgid "Explicitly requeued"
 msgstr "Kifejezetten újra sorba állítva"
 
-#: src/core/downloads.c:4033
+#: src/core/downloads.c:4040
 #, fuzzy, c-format
 msgid "Stopped (%s)"
 msgstr "Leálltak törlése"
 
-#: src/core/downloads.c:4036 src/core/downloads.c:4071
+#: src/core/downloads.c:4043 src/core/downloads.c:4078
 #, c-format
 msgid "Too many attempts (%d times)"
 msgstr ""
 
-#: src/core/downloads.c:4038 src/core/downloads.c:5292
-#: src/core/downloads.c:6360
+#: src/core/downloads.c:4045 src/core/downloads.c:5299
+#: src/core/downloads.c:6367
 #, c-format
 msgid "Failed (Read error: %s)"
 msgstr ""
 
-#: src/core/downloads.c:4067
+#: src/core/downloads.c:4074
 msgid "Connection not kept-alive (EOF)"
 msgstr ""
 
-#: src/core/downloads.c:4068
+#: src/core/downloads.c:4075
 #, fuzzy
 msgid "Stopped (EOF)"
 msgstr "Leálltak törlése"
 
-#: src/core/downloads.c:4185 src/core/downloads.c:6179
+#: src/core/downloads.c:4192 src/core/downloads.c:6186
 msgid "Stopped (Output file size changed)"
 msgstr ""
 
-#: src/core/downloads.c:4379
+#: src/core/downloads.c:4386
 #, c-format
 msgid "Can't save data: %s"
 msgstr ""
 
-#: src/core/downloads.c:4435
+#: src/core/downloads.c:4442
 msgid "Requeued by competing download"
 msgstr "Vetélkedő letöltés miatt újra sorbaállítva"
 
-#: src/core/downloads.c:4499
+#: src/core/downloads.c:4506
 msgid "Requeued after trimmed data"
 msgstr "Adatokat igazítva újra sorbaállítva"
 
-#: src/core/downloads.c:4501
+#: src/core/downloads.c:4508
 msgid "Chunk done, connection closed"
 msgstr "Darab kész, kapcsolat lezárva"
 
-#: src/core/downloads.c:4668
+#: src/core/downloads.c:4675
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Furcsa HTTP állapot (szinkron elvesztve?)"
 
-#: src/core/downloads.c:4994
+#: src/core/downloads.c:5001
 msgid "No URN on server, waiting for overlap"
 msgstr ""
 
-#: src/core/downloads.c:5000
+#: src/core/downloads.c:5007
 msgid "No URN on server to validate"
 msgstr ""
 
-#: src/core/downloads.c:5046
+#: src/core/downloads.c:5053
 msgid "URN fileinfo mismatch"
 msgstr "URN fájlinfó eltérés"
 
-#: src/core/downloads.c:5066
+#: src/core/downloads.c:5073
 msgid "Discovered dup SHA1"
 msgstr "SHA1 készítve"
 
-#: src/core/downloads.c:5274 src/core/downloads.c:5282
-#: src/core/downloads.c:6310 src/core/downloads.c:6350
+#: src/core/downloads.c:5281 src/core/downloads.c:5289
+#: src/core/downloads.c:6317 src/core/downloads.c:6357
 msgid "Stopped data (EOF)"
 msgstr ""
 
-#: src/core/downloads.c:5663 src/core/downloads.c:6159
+#: src/core/downloads.c:5670 src/core/downloads.c:6166
 #, fuzzy
 msgid "Partial file on server, waiting"
 msgstr "Részleges fájlmegosztás (zsúfolás)"
 
-#: src/core/downloads.c:5763
+#: src/core/downloads.c:5770
 #, c-format
 msgid "Queued (slot %d/%d) ETA: %s"
 msgstr ""
 
-#: src/core/downloads.c:6318
+#: src/core/downloads.c:6325
 msgid "Stopped (Read buffer full)"
 msgstr ""
 
-#: src/core/downloads.c:6357
+#: src/core/downloads.c:6364
 #, c-format
 msgid "Stopped data (%s)"
 msgstr ""
 
-#: src/core/downloads.c:7514
+#: src/core/downloads.c:7521
 msgid "SHA1 mismatch detected"
 msgstr "SHA1 eltérés érzékelve"
 
@@ -301,206 +302,206 @@ msgstr "Géphez csatlakozik"
 msgid "Updated web cache "
 msgstr ""
 
-#: src/core/nodes.c:842
+#: src/core/nodes.c:843
 #, c-format
 msgid "Shutdown (%s)"
 msgstr ""
 
-#: src/core/nodes.c:2858
+#: src/core/nodes.c:2867
 #, fuzzy, c-format
 msgid "Got %d connection pong"
 msgid_plural "Got %d connection pongs"
 msgstr[0] "élő kapcsolatot."
 
-#: src/core/nodes.c:2898 src/core/nodes.c:5020 src/core/nodes.c:5044
+#: src/core/nodes.c:2908 src/core/nodes.c:5035 src/core/nodes.c:5059
 msgid "Sent crawling info"
 msgstr ""
 
-#: src/core/nodes.c:3060
+#: src/core/nodes.c:3073
 msgid "Cannot setup compressing TX stack"
 msgstr ""
 
-#: src/core/nodes.c:3274
+#: src/core/nodes.c:3287
 #, c-format
 msgid "Got BYE %d %.*s"
 msgstr ""
 
-#: src/core/nodes.c:3605
+#: src/core/nodes.c:3620
 #, c-format
 msgid "Weird HELLO %s"
 msgstr ""
 
-#: src/core/nodes.c:3617
+#: src/core/nodes.c:3632
 #, c-format
 msgid "HELLO %s error %d (%s)"
 msgstr ""
 
-#: src/core/nodes.c:3621
+#: src/core/nodes.c:3636
 #, fuzzy
 msgid "Shielded node"
 msgstr "Saját pont"
 
-#: src/core/nodes.c:3652
+#: src/core/nodes.c:3667
 #, fuzzy
 msgid "Gnet connections disabled"
 msgstr "gNet kapcsolatok"
 
-#: src/core/nodes.c:3677
+#: src/core/nodes.c:3692
 #, fuzzy
 msgid "Unstable IP address"
 msgstr "Ellenséges IP-cím"
 
-#: src/core/nodes.c:3680
+#: src/core/nodes.c:3695
 msgid "Servent version appears unstable"
 msgstr ""
 
-#: src/core/nodes.c:3683
+#: src/core/nodes.c:3698
 msgid "No vendor string supplied"
 msgstr ""
 
-#: src/core/nodes.c:3688
+#: src/core/nodes.c:3703
 #, fuzzy, c-format
 msgid "Not connecting: %s"
 msgstr "gNet kapcsolatok"
 
-#: src/core/nodes.c:3720 src/core/nodes.c:3758 src/core/nodes.c:3802
-#: src/core/nodes.c:3851 src/core/nodes.c:3904
+#: src/core/nodes.c:3735 src/core/nodes.c:3773 src/core/nodes.c:3817
+#: src/core/nodes.c:3866 src/core/nodes.c:3919
 msgid "Connection not compressed"
 msgstr ""
 
-#: src/core/nodes.c:3735
+#: src/core/nodes.c:3750
 #, c-format
 msgid "Too many leaves (%d max)"
 msgstr ""
 
-#: src/core/nodes.c:3772 src/core/nodes.c:3888
+#: src/core/nodes.c:3787 src/core/nodes.c:3903
 #, c-format
 msgid "Too many ultra nodes (%d max)"
 msgstr ""
 
-#: src/core/nodes.c:3821
+#: src/core/nodes.c:3836
 #, c-format
 msgid "Rejected normal node (%d max)"
 msgstr ""
 
-#: src/core/nodes.c:3833
+#: src/core/nodes.c:3848
 #, fuzzy
 msgid "Rejected leaf node"
 msgstr "Saját pont"
 
-#: src/core/nodes.c:3839
+#: src/core/nodes.c:3854
 #, c-format
 msgid "Too many nodes (%d max)"
 msgstr ""
 
-#: src/core/nodes.c:3875
+#: src/core/nodes.c:3890
 msgid "Sent shielded indication"
 msgstr ""
 
-#: src/core/nodes.c:3881
+#: src/core/nodes.c:3896
 #, fuzzy
 msgid "Not an ultra node"
 msgstr "Átjátszó üzemmód"
 
-#: src/core/nodes.c:3954
+#: src/core/nodes.c:3969
 msgid "Protocol not acceptable"
 msgstr ""
 
-#: src/core/nodes.c:4235
+#: src/core/nodes.c:4250
 msgid "Servent Shutdown"
 msgstr ""
 
-#: src/core/nodes.c:4507
+#: src/core/nodes.c:4522
 msgid "Too frequent crawling"
 msgstr ""
 
-#: src/core/nodes.c:4673
+#: src/core/nodes.c:4688
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
 msgstr ""
 
-#: src/core/nodes.c:4683
+#: src/core/nodes.c:4698
 msgid "Reserved slot"
 msgstr ""
 
-#: src/core/nodes.c:4720
+#: src/core/nodes.c:4735
 msgid "Too ancient Gnutella protocol"
 msgstr ""
 
-#: src/core/nodes.c:4738
+#: src/core/nodes.c:4753
 msgid "Cannot connect to a crawler"
 msgstr ""
 
-#: src/core/nodes.c:4773
+#: src/core/nodes.c:4788
 #, fuzzy
 msgid "Not becoming a leaf node"
 msgstr "Átjátszó üzemmód"
 
-#: src/core/nodes.c:4945
+#: src/core/nodes.c:4960
 #, fuzzy, c-format
 msgid "Failed (Cannot send %s: %s)"
 msgstr "Nyomás elküldése sikertelen"
 
-#: src/core/nodes.c:4952
+#: src/core/nodes.c:4967
 #, c-format
 msgid "Failed (Cannot send %s atomically)"
 msgstr ""
 
-#: src/core/nodes.c:4999
+#: src/core/nodes.c:5014
 msgid "Failed (Header line too long)"
 msgstr ""
 
-#: src/core/nodes.c:5011 src/core/uploads.c:1096
+#: src/core/nodes.c:5026 src/core/uploads.c:1186
 #, fuzzy, c-format
 msgid "Failed (%s)"
 msgstr "Sikertelen"
 
-#: src/core/nodes.c:5020 src/core/uploads.c:1102
+#: src/core/nodes.c:5035 src/core/uploads.c:1192
 msgid "Failed (Input Exception)"
 msgstr ""
 
-#: src/core/nodes.c:5026
+#: src/core/nodes.c:5041
 msgid "Failed (Input buffer full)"
 msgstr ""
 
-#: src/core/nodes.c:5032 src/core/uploads.c:1114
+#: src/core/nodes.c:5047 src/core/uploads.c:1204
 #, c-format
 msgid "Failed (Input error: %s)"
 msgstr ""
 
-#: src/core/nodes.c:5044 src/core/uploads.c:1122
+#: src/core/nodes.c:5059 src/core/uploads.c:1212
 #, fuzzy
 msgid "Failed (EOF)"
 msgstr "Sikertelen"
 
-#: src/core/nodes.c:5050
+#: src/core/nodes.c:5065
 msgid "Failed (Extra HELLO data)"
 msgstr ""
 
-#: src/core/nodes.c:5100
+#: src/core/nodes.c:5115
 msgid "Pseudo UDP node"
 msgstr ""
 
-#: src/core/nodes.c:5427
+#: src/core/nodes.c:5446
 #, fuzzy
 msgid "Already connected"
 msgstr "Már nincs kapcsolatban"
 
-#: src/core/nodes.c:5945 src/core/nodes.c:6130
+#: src/core/nodes.c:5964 src/core/nodes.c:6149
 #, c-format
 msgid "Write error during HELLO: %s"
 msgstr ""
 
-#: src/core/nodes.c:6040
+#: src/core/nodes.c:6059
 msgid "Out of memory"
 msgstr ""
 
-#: src/core/nodes.c:6135
+#: src/core/nodes.c:6154
 #, fuzzy
 msgid "Connection reset during HELLO"
 msgstr "Kapcsolat beállítása"
 
-#: src/core/nodes.c:6374
+#: src/core/nodes.c:6393
 #, c-format
 msgid "Kicked: %s message too big (%d bytes)"
 msgstr ""
@@ -527,7 +528,7 @@ msgstr "„%s” beállításmappa teremtése"
 msgid "Cannot proceed without valid configuration directory"
 msgstr "Nem lehet továbblépni érvényes beállításmappa nélkül"
 
-#: src/core/settings.c:1296
+#: src/core/settings.c:1291
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr ""
 
@@ -673,11 +674,11 @@ msgstr ""
 msgid "Connection failed"
 msgstr "Összekapcsolva"
 
-#: src/core/tx_link.c:74
+#: src/core/tx_link.c:75
 msgid "Write failed (Input Exception)"
 msgstr ""
 
-#: src/core/tx_link.c:165 src/core/tx_link.c:180
+#: src/core/tx_link.c:167 src/core/tx_link.c:183
 #, c-format
 msgid "Write failed: %s"
 msgstr ""
@@ -698,72 +699,104 @@ msgid "Got %d host from UDP host cache %s:%u"
 msgid_plural "Got %d hosts from UDP host cache %s:%u"
 msgstr[0] ""
 
-#: src/core/uploads.c:382
+#: src/core/uploads.c:386
 #, fuzzy
 msgid "Connect back timeout"
 msgstr "Csatlakozás türelmi ideje lejárt"
 
-#: src/core/uploads.c:389
+#: src/core/uploads.c:393
 #, fuzzy
 msgid "Lifetime expired"
 msgstr "lejárt"
 
-#: src/core/uploads.c:472
+#: src/core/uploads.c:476
 #, c-format
 msgid "Banned: %s"
 msgstr ""
 
-#: src/core/uploads.c:474
+#: src/core/uploads.c:478
 #, c-format
 msgid "Banned for %s"
 msgstr ""
 
-#: src/core/uploads.c:1418
+#: src/core/uploads.c:1508
 #, fuzzy
 msgid "Unable to send GIV"
 msgstr "Nyomás elküldése sikertelen"
 
-#: src/core/uploads.c:2270
+#: src/core/uploads.c:2431
 msgid "<Browse Host Request>"
 msgstr ""
 
-#: src/core/uploads.c:2283
+#: src/core/uploads.c:2469
 msgid "Browse Host Enabled"
 msgstr ""
 
-#: src/core/uploads.c:2690
+#: src/core/uploads.c:2539
+#, c-format
+msgid "<Browse Host Request> [%s%s%s]"
+msgstr ""
+
+#: src/core/uploads.c:2540
+#, fuzzy
+msgid "query hits"
+msgstr "TX találatok"
+
+#: src/core/uploads.c:2541
+msgid ", deflated"
+msgstr ""
+
+#: src/core/uploads.c:2542
+msgid ", chunked"
+msgstr ""
+
+#: src/core/uploads.c:2958
 msgid "Stalling upload replaced"
 msgstr ""
 
-#: src/core/uploads.c:2840
+#: src/core/uploads.c:3108
 #, c-format
 msgid "Queued (slot %d, ETA: %s)"
 msgstr ""
 
-#: src/core/uploads.c:3026
+#: src/core/uploads.c:3335
 msgid "Cannot send whole HTTP status"
 msgstr ""
 
-#: src/core/uploads.c:3113
+#: src/core/uploads.c:3428
 msgid "Write exception"
 msgstr ""
 
-#: src/core/uploads.c:3188 src/core/uploads.c:3295
+#: src/core/uploads.c:3503
 #, c-format
 msgid "File read error: %s"
 msgstr ""
 
-#: src/core/uploads.c:3225 src/core/uploads.c:3315
+#: src/core/uploads.c:3507
+#, fuzzy
+msgid "File EOF?"
+msgstr "Sikertelen"
+
+#: src/core/uploads.c:3540
 #, c-format
 msgid "Data write error: %s"
 msgstr ""
 
-#: src/core/uploads.c:3344
+#: src/core/uploads.c:3544
+msgid "No bytes written, source may be gone"
+msgstr ""
+
+#: src/core/uploads.c:3655
+#, c-format
+msgid "Special read error: %s"
+msgstr ""
+
+#: src/core/uploads.c:3698
 #, fuzzy
 msgid "Explicitly killed"
 msgstr "Kifejezetten újra sorba állítva"
 
-#: src/core/uploads.c:3370
+#: src/core/uploads.c:3723
 #, fuzzy
 msgid "IP denying uploads"
 msgstr "Folyamatban lévő feltöltések száma"
@@ -813,17 +846,17 @@ msgstr "Átjátszó üzemmód"
 msgid "leaf node"
 msgstr "Saját pont"
 
-#: src/if/gnet_property.c:583
+#: src/if/gnet_property.c:585
 #, fuzzy
 msgid "Indicates whether the hostcache file is being read."
 msgstr "Jelzi, hogy beolvassa-e a gépgyorstár fájlt"
 
-#: src/if/gnet_property.c:600
+#: src/if/gnet_property.c:602
 #, fuzzy
 msgid "Indicates whether the ultracache file is being read."
 msgstr "Jelzi, hogy beolvassa-e a átjátszó gazdatár fájlját"
 
-#: src/if/gnet_property.c:617
+#: src/if/gnet_property.c:619
 msgid ""
 "Indicates that gtk-gnutella finds the version you run very VERY old.  You "
 "should upgrade as soon as possible to avoid suffering from non-optimal "
@@ -832,7 +865,7 @@ msgid ""
 "features."
 msgstr ""
 
-#: src/if/gnet_property.c:634
+#: src/if/gnet_property.c:636
 #, fuzzy
 msgid ""
 "Gtk-Gnutella found a newer version on the Gnet and gives information about "
@@ -840,7 +873,7 @@ msgid ""
 msgstr ""
 "Gtk-gnutella újabb verziót talált a gNet-en és itt ad róla tájékoztatást"
 
-#: src/if/gnet_property.c:655
+#: src/if/gnet_property.c:657
 #, fuzzy
 msgid ""
 "Try to keep at least this number of connections to other servents of the "
@@ -853,7 +886,7 @@ msgstr ""
 "amelyek ugyan olyanok mint a miénk (hagyományos vagy átjátszó csomópont). Ez "
 "legyen kisebb, mint a bejövő kapcsolatok legnagyobb száma!"
 
-#: src/if/gnet_property.c:675
+#: src/if/gnet_property.c:677
 #, fuzzy
 msgid ""
 "When in ultrapeer mode, try to keep at least this number of connections to "
@@ -864,7 +897,7 @@ msgstr ""
 "hagyományos kiszolgálóval. Ez legyen kisebb, mint a bejövő kapcsolatok "
 "legnagyobb száma!"
 
-#: src/if/gnet_property.c:695
+#: src/if/gnet_property.c:697
 #, fuzzy
 msgid ""
 "Don't allow more than this number of connections to other servents.  As a "
@@ -877,19 +910,19 @@ msgstr ""
 "sávszélességét, hagyjon egy kis helyet a TCP/IP fejléceknek! Nem tanácsos "
 "ezt az értéket 20-nál nagyobbra állítani."
 
-#: src/if/gnet_property.c:715
+#: src/if/gnet_property.c:717
 msgid "Number of leaf nodes currently connected."
 msgstr "Pillanatnyilag a végponti kapcsolatok száma."
 
-#: src/if/gnet_property.c:735
+#: src/if/gnet_property.c:737
 msgid "Number of normal nodes currently connected."
 msgstr "Pillanatnyilag a hagyományos kapcsolatok száma."
 
-#: src/if/gnet_property.c:755
+#: src/if/gnet_property.c:757
 msgid "Number of ultra nodes currently connected."
 msgstr "Pillanatnyilag az átjátszó kapcsolatok száma."
 
-#: src/if/gnet_property.c:775
+#: src/if/gnet_property.c:777
 #, fuzzy
 msgid ""
 "Don't start more than this number of parallel downloads.  Others will remain "
@@ -898,7 +931,7 @@ msgstr ""
 "Nem kezd bele ennél több egyidejű letöltésbe. A többi letöltő nyíláshoz áll "
 "sorba."
 
-#: src/if/gnet_property.c:795
+#: src/if/gnet_property.c:797
 #, fuzzy
 msgid ""
 "Don't make more connections than given here to a single host to download a "
@@ -907,7 +940,7 @@ msgstr ""
 "Letöltéskor nem hoz létre ennél több kapcsolatot egy géphez. Legyen kedves "
 "másokhoz, és hagyja az alapértéket (1)!"
 
-#: src/if/gnet_property.c:815
+#: src/if/gnet_property.c:817
 msgid ""
 "Don't allow more than this number of uploads in total. This also defines the "
 "amount of PARQ queues that will be used. You should at least set it to 2."
@@ -915,38 +948,38 @@ msgstr ""
 "Nem enged ennél több feltöltést. Ez meghatározza a PARQ sor hosszát is."
 "Legyen legalább 2!"
 
-#: src/if/gnet_property.c:835
+#: src/if/gnet_property.c:837
 #, fuzzy
 msgid ""
 "Don't upload more than this number of files in parallel to a single host."
 msgstr "Nem tölt fel ennél több fájlt egyidejűleg egy gépre."
 
-#: src/if/gnet_property.c:855
+#: src/if/gnet_property.c:857
 #, fuzzy
 msgid "Local IP address last determined."
 msgstr "Az utoljára meghatározott helyi IP-cím."
 
-#: src/if/gnet_property.c:875
+#: src/if/gnet_property.c:877
 #, fuzzy
 msgid "When the current IP address was determined."
 msgstr "Amikor a jelenlegi IP-címet meghatározták"
 
-#: src/if/gnet_property.c:895
+#: src/if/gnet_property.c:897
 #, fuzzy
 msgid "Average uptime with the same IP address."
 msgstr "Átlagos futási idő ugyanazzal az IP-címmel"
 
-#: src/if/gnet_property.c:915
+#: src/if/gnet_property.c:917
 #, fuzzy
 msgid "Timestamp at which servent was started."
 msgstr "A kiszolgáló indulásának időpontja"
 
-#: src/if/gnet_property.c:935
+#: src/if/gnet_property.c:937
 #, fuzzy
 msgid "Average servent uptime."
 msgstr "A kiszolgáló átlagos futási ideje másodpercben"
 
-#: src/if/gnet_property.c:955
+#: src/if/gnet_property.c:957
 #, fuzzy
 msgid ""
 "Local TCP port gtk-gnutella is listening on. Your ISP may block or choke "
@@ -962,14 +995,14 @@ msgstr ""
 "nyitás beállítását, amennyiben szükséges! Jegyezze meg, hogy a 6346-os kapu "
 "nem szokott megvédeni a cenzúrától."
 
-#: src/if/gnet_property.c:975
+#: src/if/gnet_property.c:977
 #, fuzzy
 msgid "Use this IP address as source address if 'force local ip' is activated."
 msgstr ""
 "Ezt az IP-címet használja forráscímként ha a „helyi ip kényszerítését” "
 "bekapcsolta"
 
-#: src/if/gnet_property.c:995
+#: src/if/gnet_property.c:997
 msgid ""
 "The connection bandwidth reported to other hosts. This is the speed at which "
 "you can upload things to others."
@@ -977,7 +1010,7 @@ msgstr ""
 "A kapcsolat sávszélessége, amit a többi gépnek jelent. Ez az a sebesség, "
 "amellyel a feltöltés folyik."
 
-#: src/if/gnet_property.c:1015
+#: src/if/gnet_property.c:1017
 msgid ""
 "Whether the connection bandwidth reported to other hosts should be computed "
 "based on the current average upload speed. The reported speed is the "
@@ -993,7 +1026,7 @@ msgstr ""
 "feltöltőnyílások számával. Bekapcsolva (ajánlott) a beállított kapcsolat "
 "sebessége nem használt."
 
-#: src/if/gnet_property.c:1032
+#: src/if/gnet_property.c:1034
 #, fuzzy
 msgid ""
 "Return at most this number of results to a query, using as many query hit "
@@ -1004,7 +1037,7 @@ msgstr ""
 "csomagot használva. A hálózat elárasztását kerülendő, tartsa ezt egy ésszerű "
 "értéken!"
 
-#: src/if/gnet_property.c:1052
+#: src/if/gnet_property.c:1054
 #, fuzzy
 msgid ""
 "Unless this percentage or more of the upload bandwidth is used, allow "
@@ -1013,32 +1046,32 @@ msgstr ""
 "Amíg ezt a százalékot nem éri el a feltöltésre használt sávszélesség, "
 "további feltöltések nyitását engedi."
 
-#: src/if/gnet_property.c:1072
+#: src/if/gnet_property.c:1074
 #, fuzzy
 msgid "Number of seconds before a download connect attempt times out."
 msgstr "A letöltő próbálkozás türelmi ideje másodpercben"
 
-#: src/if/gnet_property.c:1092
+#: src/if/gnet_property.c:1094
 #, fuzzy
 msgid "Number of seconds before a push request times out."
 msgstr "A nyomó próbálkozás türelmi ideje másodpercben"
 
-#: src/if/gnet_property.c:1112
+#: src/if/gnet_property.c:1114
 #, fuzzy
 msgid "Number of seconds before a download times out if no data is received."
 msgstr "A letöltés türelmi ideje másodpercben, ha nem érkezett adat"
 
-#: src/if/gnet_property.c:1132
+#: src/if/gnet_property.c:1134
 #, fuzzy
 msgid "Minimum number of seconds to wait on auto-retry timeouts."
 msgstr "Legalább ennyi másodpercet vár mielőtt újra próbál letölteni"
 
-#: src/if/gnet_property.c:1152
+#: src/if/gnet_property.c:1154
 #, fuzzy
 msgid "Maximum number of seconds to wait on auto-retry timeouts."
 msgstr "Legfeljebb ennyi másodpercet vár mielőtt újra próbál letölteni"
 
-#: src/if/gnet_property.c:1172
+#: src/if/gnet_property.c:1174
 #, fuzzy
 msgid ""
 "Maximum number of attempts to download a file not counting HTTP busy "
@@ -1047,21 +1080,21 @@ msgstr ""
 "Legfeljebb ennyiszer próbál egy fájlt letölteni nem számítva a HTTP foglalt "
 "jelzéseket"
 
-#: src/if/gnet_property.c:1192
+#: src/if/gnet_property.c:1194
 #, fuzzy
 msgid "Delay in seconds before retrying after a connection timed out."
 msgstr ""
 "Türelmi idő lejárta utáni késleltetés másodpercben mielőtt újra próbál "
 "kapcsolódni"
 
-#: src/if/gnet_property.c:1212
+#: src/if/gnet_property.c:1214
 #, fuzzy
 msgid ""
 "Delay in seconds before retrying after getting a 'busy' response from a host."
 msgstr ""
 "Foglalt jelzés utáni késleltetés másodpercben mielőtt újra próbál kapcsolódni"
 
-#: src/if/gnet_property.c:1232
+#: src/if/gnet_property.c:1234
 #, fuzzy
 msgid ""
 "Delay in seconds before retrying after getting a 'connection refused' "
@@ -1070,7 +1103,7 @@ msgstr ""
 "A „kapcsolat visszautasítva” válasz utáni ismételt próbálkozás késleltetése "
 "másodpercben"
 
-#: src/if/gnet_property.c:1252
+#: src/if/gnet_property.c:1254
 #, fuzzy
 msgid ""
 "Delay in seconds before retrying after a retry stopped (timed out, "
@@ -1079,7 +1112,7 @@ msgstr ""
 "A megállított próbálkozás (türelmi idő lejárt, a társ lezárta a kapcsolatot, "
 "stb.) utáni ismételt próbálkozás késleltetése"
 
-#: src/if/gnet_property.c:1272
+#: src/if/gnet_property.c:1274
 msgid ""
 "Amount of bytes to overlap when resuming a download. It should be at least "
 "64 bytes for safe resuming, otherwise gtk-gnutella will not accept to resume "
@@ -1089,7 +1122,7 @@ msgstr ""
 "biztonságosfolytatás érdekében, különben a gtk-gnutella nem fog folytatni "
 "olyan fájlt, amelyheznincs ismert SHA1, miután a kiszolgáló visszaad egyet."
 
-#: src/if/gnet_property.c:1292
+#: src/if/gnet_property.c:1294
 #, fuzzy
 msgid ""
 "Number of seconds before an upload times out if no connection can be "
@@ -1099,13 +1132,13 @@ msgstr ""
 "A feltöltés türelmi ideje másodpercben, ha nem sikerült kapcsolatot "
 "teremteni nyomással.Ez a teljes HTTP kérelem legnagyobb várakozási ideje is."
 
-#: src/if/gnet_property.c:1312
+#: src/if/gnet_property.c:1314
 #, fuzzy
 msgid ""
 "Number of seconds after which an upload times out if no data is transmitted."
 msgstr "A feltöltés türelmi ideje, ha nem történt adatátvitel."
 
-#: src/if/gnet_property.c:1332
+#: src/if/gnet_property.c:1334
 #, fuzzy
 msgid ""
 "Amount of seconds to wait before a search is issued again to see if new "
@@ -1117,7 +1150,7 @@ msgstr ""
 "eredményekért.Legyen óvatos ezzel a paraméterrel, és ne állítsa túl "
 "alacsonyra, különben a Gnutella-hálózat látja kárát. Fél óra késleltetés jó."
 
-#: src/if/gnet_property.c:1352
+#: src/if/gnet_property.c:1354
 #, fuzzy
 msgid ""
 "Maximum ratio of file descriptors reserved for banning. For instance, if "
@@ -1129,12 +1162,12 @@ msgstr ""
 "oprendszer ad 350 fájlleírót, akkor 10-es érték 35 fájlleírót jelent. Kb. "
 "100 fájlleírókell a hatékony működéshez."
 
-#: src/if/gnet_property.c:1372
+#: src/if/gnet_property.c:1374
 #, fuzzy
 msgid "Maximum number of file descriptors reserved for banning."
 msgstr "Legfeljebb ennyi fájlleírót foglal le"
 
-#: src/if/gnet_property.c:1392
+#: src/if/gnet_property.c:1394
 msgid ""
 "Amount of file descriptors currently used for banning, i.e. which are "
 "currently kept open for delayed close."
@@ -1142,12 +1175,12 @@ msgstr ""
 "Fájlleírók száma foglaláshoz, azaz amelyeket nyitva tart késleltetett "
 "záráshoz."
 
-#: src/if/gnet_property.c:1412
+#: src/if/gnet_property.c:1414
 #, fuzzy
 msgid "Number of file descriptors we'll actually be using for banning."
 msgstr "Ennyi fájlleírót fog használni"
 
-#: src/if/gnet_property.c:1432
+#: src/if/gnet_property.c:1434
 #, fuzzy
 msgid ""
 "Number of seconds an incoming connection has to start sending out its "
@@ -1155,7 +1188,7 @@ msgid ""
 msgstr ""
 "Másodpercek száma, ami után egy bejövő kapcsolatnak küldenie kell a kérelmét"
 
-#: src/if/gnet_property.c:1452
+#: src/if/gnet_property.c:1454
 #, fuzzy
 msgid ""
 "Number of seconds before a Gnet connect attempt times out if no connection "
@@ -1164,14 +1197,14 @@ msgstr ""
 "Gnet kapcsolat létesítésének türelmi ideje másodpercben, ha nem sikerült "
 "kapcsolódni"
 
-#: src/if/gnet_property.c:1472
+#: src/if/gnet_property.c:1474
 #, fuzzy
 msgid ""
 "Number of seconds before a Gnet connection times out if no data is "
 "transmitted."
 msgstr "Gnet kapcsolat tartásának türelmi ideje, ha nem történt adatátvitel"
 
-#: src/if/gnet_property.c:1492
+#: src/if/gnet_property.c:1494
 #, fuzzy
 msgid ""
 "Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150 "
@@ -1180,7 +1213,7 @@ msgstr ""
 "A küldősor legnagyobb mérete bájtban. Legalább a legnagyobb üzenet 150%-ának "
 "kell lennie."
 
-#: src/if/gnet_property.c:1512
+#: src/if/gnet_property.c:1514
 msgid ""
 "Maximum number of seconds a node can remain in transmit flow control before "
 "being kicked out."
@@ -1188,7 +1221,7 @@ msgstr ""
 "A leghosszabb idő másodpercben, amíg egy pont az átvitelt vezérelheti, "
 "mielőtt kirúgják."
 
-#: src/if/gnet_property.c:1532
+#: src/if/gnet_property.c:1534
 #, fuzzy
 msgid ""
 "Maximum percentage of time over 5 minutes that our node can remain in flow "
@@ -1199,7 +1232,7 @@ msgstr ""
 "mielőtt megszakítja a kapcsolatot. Ez csak olyan pontokkal működik, amelyek "
 "küldenek „hops-flow” üzenetet, amikor az átvitelt vezérlik."
 
-#: src/if/gnet_property.c:1552
+#: src/if/gnet_property.c:1554
 #, fuzzy
 msgid ""
 "Maximum TTL we allow in messages we broadcast.  If a query comes in with a "
@@ -1210,7 +1243,7 @@ msgstr ""
 "érkezik, akkor az ezt az értéket kapja. A Gnutellán a szabvány a TTL=7, "
 "tehát ennél kisebb értéket nem lehet beállítani."
 
-#: src/if/gnet_property.c:1572
+#: src/if/gnet_property.c:1574
 #, fuzzy
 msgid ""
 "The TTL we use in messages we generate.  The default on Gnutella is TTL=4.  "
@@ -1221,7 +1254,7 @@ msgstr ""
 "Ha túl nagyra állítják ezt az értéket, akkor lehet, hogy a társ gtk-gnutella "
 "pontok ezt lecsökkentik, vagy kirúg egy másik kiszolgáló."
 
-#: src/if/gnet_property.c:1592
+#: src/if/gnet_property.c:1594
 #, fuzzy
 msgid ""
 "Maximum hard TTL limit (hops + TTL) on messages we relay.  This should be "
@@ -1237,143 +1270,143 @@ msgstr ""
 "elveszett. Szabvány szórt üzenetek TTL korlátja a legnagyobb TTL érték, amit "
 "ennél jóval kisebbre kell állítani."
 
-#: src/if/gnet_property.c:1612
+#: src/if/gnet_property.c:1614
 #, fuzzy
 msgid "For development use: debug level."
 msgstr "Fejlesztőknek: hibajavítás szintje"
 
-#: src/if/gnet_property.c:1632
+#: src/if/gnet_property.c:1634
 #, fuzzy
 msgid "Debug level for HTTP code."
 msgstr "A gui hibajavítási szintje"
 
-#: src/if/gnet_property.c:1652
+#: src/if/gnet_property.c:1654
 #, fuzzy
 msgid "Debug level for downloads."
 msgstr "A gui hibajavítási szintje"
 
-#: src/if/gnet_property.c:1672
+#: src/if/gnet_property.c:1674
 #, fuzzy
 msgid "Debug level for uploads."
 msgstr "A gui hibajavítási szintje"
 
-#: src/if/gnet_property.c:1692
+#: src/if/gnet_property.c:1694
 #, fuzzy
 msgid "Debug level for code shared between gui and core."
 msgstr "Hibajavítás szintje a felhasználói felület és a mag osztott kódjára"
 
-#: src/if/gnet_property.c:1712
+#: src/if/gnet_property.c:1714
 msgid "Verbosity of Bitzi related debug messages."
 msgstr ""
 
-#: src/if/gnet_property.c:1732
+#: src/if/gnet_property.c:1734
 msgid "Verbosity of GWebCache related debug messages."
 msgstr ""
 
-#: src/if/gnet_property.c:1752
+#: src/if/gnet_property.c:1754
 msgid "Verbosity of URL handling related debug messages."
 msgstr ""
 
-#: src/if/gnet_property.c:1772
+#: src/if/gnet_property.c:1774
 #, fuzzy
 msgid "Debug level for dynamic query hit routing."
 msgstr "A gui hibajavítási szintje"
 
-#: src/if/gnet_property.c:1792
+#: src/if/gnet_property.c:1794
 #, fuzzy
 msgid "Debug level for dynamic queries."
 msgstr "A gui hibajavítási szintje"
 
-#: src/if/gnet_property.c:1812
+#: src/if/gnet_property.c:1814
 #, fuzzy
 msgid "Debug level for vendor messages."
 msgstr "A gui hibajavítási szintje"
 
-#: src/if/gnet_property.c:1832
+#: src/if/gnet_property.c:1834
 #, fuzzy
 msgid "Debug level for queries."
 msgstr "A gui hibajavítási szintje"
 
-#: src/if/gnet_property.c:1852
+#: src/if/gnet_property.c:1854
 msgid "Debug level for searches and search results management."
 msgstr ""
 
-#: src/if/gnet_property.c:1872
+#: src/if/gnet_property.c:1874
 #, fuzzy
 msgid "Debug level for the UDP traffic layer."
 msgstr "A gui hibajavítási szintje"
 
-#: src/if/gnet_property.c:1892
+#: src/if/gnet_property.c:1894
 #, fuzzy
 msgid "Debug level for the Query Routing Protocol."
 msgstr "Keresés-irányítás protokoll"
 
-#: src/if/gnet_property.c:1912
+#: src/if/gnet_property.c:1914
 #, fuzzy
 msgid "Debug level for message routing."
 msgstr "A gui hibajavítási szintje"
 
-#: src/if/gnet_property.c:1932
+#: src/if/gnet_property.c:1934
 #, fuzzy
 msgid "Debug level for GGEP."
 msgstr "A gui hibajavítási szintje"
 
-#: src/if/gnet_property.c:1952
+#: src/if/gnet_property.c:1954
 #, fuzzy
 msgid "Debug level for pong caching."
 msgstr "A gui hibajavítási szintje"
 
-#: src/if/gnet_property.c:1972
+#: src/if/gnet_property.c:1974
 #, fuzzy
 msgid "Debug level for HSEP."
 msgstr "A gui hibajavítási szintje"
 
-#: src/if/gnet_property.c:1992
+#: src/if/gnet_property.c:1994
 #, fuzzy
 msgid "For development use: track properties."
 msgstr "Fejlesztőknek: nyomkövetés tulajdonságai"
 
-#: src/if/gnet_property.c:2012
+#: src/if/gnet_property.c:2014
 #, fuzzy
 msgid "For development use: don't add new hosts to the hostcatcher."
 msgstr "Fejlesztőknek: nem tesz új gépeket a gépfogóba"
 
-#: src/if/gnet_property.c:2029
+#: src/if/gnet_property.c:2031
 #, fuzzy
 msgid "Enable bandwidth limitation for incoming HTTP traffic."
 msgstr "Bejövő HTTP forgalom korlátozása"
 
-#: src/if/gnet_property.c:2046
+#: src/if/gnet_property.c:2048
 #, fuzzy
 msgid "Enable bandwidth limitation for outgoing HTTP traffic."
 msgstr "Kimenő HTTP forgalom korlátozása"
 
-#: src/if/gnet_property.c:2063
+#: src/if/gnet_property.c:2065
 #, fuzzy
 msgid "Enable bandwidth limitation for incoming Gnet traffic."
 msgstr "Bejövő Gnet forgalom korlátozása"
 
-#: src/if/gnet_property.c:2080
+#: src/if/gnet_property.c:2082
 #, fuzzy
 msgid "Enable bandwidth limitation for incoming Gnet leaf traffic."
 msgstr "Bejövő Gnet végponti forgalom korlátozása"
 
-#: src/if/gnet_property.c:2097
+#: src/if/gnet_property.c:2099
 #, fuzzy
 msgid "Enable bandwidth limitation for outgoing Gnet traffic."
 msgstr "Kimenő Gnet forgalom korlátozása"
 
-#: src/if/gnet_property.c:2114
+#: src/if/gnet_property.c:2116
 #, fuzzy
 msgid "Enable bandwidth limitation for outgoing Gnet leaf traffic."
 msgstr "Kimenő Gnet végponti forgalom korlátozása"
 
-#: src/if/gnet_property.c:2131
+#: src/if/gnet_property.c:2133
 #, fuzzy
 msgid "Enable dynamic upload slots allocation."
 msgstr "Dinamikus feltöltő nyílás foglalása"
 
-#: src/if/gnet_property.c:2148
+#: src/if/gnet_property.c:2150
 #, fuzzy
 msgid ""
 "Allow HTTP and Gnutella to grab whatever bandwidth the other is not using.  "
@@ -1382,12 +1415,12 @@ msgstr ""
 "Engedi, hogy HTTP és Gnutella magához ragadja a másik által nem használt "
 "sávszélességet. Ha HAMIS, akkor a nem használt sávszélesség elveszik."
 
-#: src/if/gnet_property.c:2165
+#: src/if/gnet_property.c:2167
 #, fuzzy
 msgid "Auto clear completed downloads."
 msgstr "Befejezett letöltések automatikus takarítása"
 
-#: src/if/gnet_property.c:2182
+#: src/if/gnet_property.c:2184
 #, fuzzy
 msgid ""
 "Auto clear failed downloads (HTTP error, failure to resume, write error, "
@@ -1396,7 +1429,7 @@ msgstr ""
 "Sikertelen letöltések automatikus takarítása (HTTP hiba, sikertelen "
 "folytatás, írási hiba, stb.)"
 
-#: src/if/gnet_property.c:2199
+#: src/if/gnet_property.c:2201
 #, fuzzy
 msgid ""
 "Auto clear unavailable downloads (connection timeout, push route lost, "
@@ -1405,22 +1438,22 @@ msgstr ""
 "Elérhetetlen letöltések automatikus takarítása (türelmi idő lejárt, nyomás-"
 "útvonal elveszett, stb.)"
 
-#: src/if/gnet_property.c:2216
+#: src/if/gnet_property.c:2218
 #, fuzzy
 msgid "Remove downloaded files from the search result."
 msgstr "Letöltött fájlok eltávolítása a találatok közül"
 
-#: src/if/gnet_property.c:2233
+#: src/if/gnet_property.c:2235
 #, fuzzy
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "A kényszerített ip használata helyi ip-ként"
 
-#: src/if/gnet_property.c:2250
+#: src/if/gnet_property.c:2252
 #, fuzzy
 msgid "Try to connect to local networks first."
 msgstr "A helyi hálózatokhoz próbál csatlakozni először"
 
-#: src/if/gnet_property.c:2267 src/ui/gtk/gtk2/interface-glade.c:10045
+#: src/if/gnet_property.c:2269 src/ui/gtk/gtk2/interface-glade.c:10045
 #, fuzzy
 msgid ""
 "Check this button if you want to use Gtk-Gnutella on your Local Area "
@@ -1429,7 +1462,7 @@ msgstr ""
 "Pipálja ki ezt a négyzetet, ha a helyi hálózatokon akarja használni GTK-"
 "Gnutellát. RFC1918-at mellőzi."
 
-#: src/if/gnet_property.c:2284
+#: src/if/gnet_property.c:2286
 #, fuzzy
 msgid ""
 "Check this button if you want Gtk-Gnutella to use IP TOS to differentiate "
@@ -1442,78 +1475,78 @@ msgstr ""
 "lehet a legtöbb esetben, és segíthet ha egy gép, LAN vagy ISP rosszul "
 "konfigurált."
 
-#: src/if/gnet_property.c:2301
+#: src/if/gnet_property.c:2303
 #, fuzzy
 msgid "Remove files of aborted downloads from disk."
 msgstr "Elvetett letöltés-fájlok eltávolítása a lemezről"
 
-#: src/if/gnet_property.c:2318
+#: src/if/gnet_property.c:2320
 #, fuzzy
 msgid "Use username and password to authenticate to proxy."
 msgstr "Azonosító és jelszó használata a proxyhoz"
 
-#: src/if/gnet_property.c:2335
+#: src/if/gnet_property.c:2337
 #, fuzzy
 msgid "Username for proxy."
 msgstr "Azonosító a proxyhoz"
 
-#: src/if/gnet_property.c:2356
+#: src/if/gnet_property.c:2358
 #, fuzzy
 msgid "Password for proxy."
 msgstr "Jelszó a proxyhoz"
 
-#: src/if/gnet_property.c:2377
+#: src/if/gnet_property.c:2379
 #, fuzzy
 msgid "IP address of the proxy."
 msgstr "Proxy IP-címe"
 
-#: src/if/gnet_property.c:2397
+#: src/if/gnet_property.c:2399
 #, fuzzy
 msgid "Hostname of the proxy."
 msgstr "Proxy IP-címe"
 
-#: src/if/gnet_property.c:2418
+#: src/if/gnet_property.c:2420
 #, fuzzy
 msgid "TCP Port the proxy is listening on."
 msgstr "TCP-Kapu, amelyen a proxy várja a kapcsolatot"
 
-#: src/if/gnet_property.c:2438
+#: src/if/gnet_property.c:2440
 #, fuzzy
 msgid "Protocol the proxy uses."
 msgstr "Protokoll, amelyet a proxy használ"
 
-#: src/if/gnet_property.c:2458
+#: src/if/gnet_property.c:2460
 #, fuzzy
 msgid "Current number of hosts in regular node caches."
 msgstr "Gazdák száma jelenleg a hagyományos gazdatárban"
 
-#: src/if/gnet_property.c:2478
+#: src/if/gnet_property.c:2480
 #, fuzzy
 msgid "Current number of hosts in ultra node caches."
 msgstr "Gazdák száma jelenleg az átjátszó gazdatárban"
 
-#: src/if/gnet_property.c:2498
+#: src/if/gnet_property.c:2500
 #, fuzzy
 msgid "Current number of hosts in bad node caches."
 msgstr "Gazdák száma jelenleg a rossz gazdatárban"
 
-#: src/if/gnet_property.c:2518
+#: src/if/gnet_property.c:2520
 #, fuzzy
 msgid "Maximum number of hosts in the regular node catcher."
 msgstr "Gazdák maximális száma a hagyományos gazdatárban"
 
-#: src/if/gnet_property.c:2538
+#: src/if/gnet_property.c:2540
 #, fuzzy
 msgid "Maximum number of hosts in the ultra node catcher."
 msgstr "Gazdák maximális száma az átjátszó gazdatárban"
 
-#: src/if/gnet_property.c:2558
+#: src/if/gnet_property.c:2560
 #, fuzzy
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
 msgstr ""
 "A FOGLALT, BIZONYTALAN és ELÉRHETETLEN listákon tárolt gépek maximális száma"
 
-#: src/if/gnet_property.c:2578
+#: src/if/gnet_property.c:2580
 msgid ""
 "Amount of tolerable messages above hard TTL limit per node. See also "
 "MAX_HIGH_TTL_RADIUS"
@@ -1521,7 +1554,7 @@ msgstr ""
 "Pontonkénti kemény TTL korlát feletti üzenetek tűrhető száma. Lásd "
 "MAX_HIGH_TTL_RADIUS"
 
-#: src/if/gnet_property.c:2598
+#: src/if/gnet_property.c:2600
 #, fuzzy
 msgid ""
 "Hop radius for counting high TTL limit messages (# hops lower than...). See "
@@ -1529,27 +1562,27 @@ msgid ""
 msgstr ""
 "Magas TTL korlát üzenetek számolásához használt sugár. Lásd MAX_HIGH_TTL_MSG."
 
-#: src/if/gnet_property.c:2618
+#: src/if/gnet_property.c:2620
 #, fuzzy
 msgid "Bandwidth limit for incoming HTTP traffic in bytes/sec."
 msgstr "Bejövő HTTP forgalom sávszélesség korlátja bájt/másodpercben."
 
-#: src/if/gnet_property.c:2638
+#: src/if/gnet_property.c:2640
 #, fuzzy
 msgid "Bandwidth limit for outgoing HTTP traffic in bytes/sec."
 msgstr "Kimenő HTTP forgalom sávszélesség korlátja bájt/másodpercben."
 
-#: src/if/gnet_property.c:2658
+#: src/if/gnet_property.c:2660
 #, fuzzy
 msgid "Bandwidth limit for incoming Gnet traffic in bytes/sec."
 msgstr "Bejövő gNet forgalom sávszélesség korlátja bájt/másodpercben."
 
-#: src/if/gnet_property.c:2678
+#: src/if/gnet_property.c:2680
 #, fuzzy
 msgid "Bandwidth limit for outgoing Gnet traffic in bytes/sec."
 msgstr "Kimenő gNet forgalom sávszélesség korlátja bájt/másodpercben."
 
-#: src/if/gnet_property.c:2698
+#: src/if/gnet_property.c:2700
 #, fuzzy
 msgid ""
 "Bandwidth limit for incoming Gnet leaf traffic in bytes/sec. When running as "
@@ -1560,7 +1593,7 @@ msgstr ""
 "Átjátszó üzemmódban ezt a sávszélességet a hagyományos HTTP forgalomtól "
 "veszi el, ha engedélyezett."
 
-#: src/if/gnet_property.c:2718
+#: src/if/gnet_property.c:2720
 #, fuzzy
 msgid ""
 "Bandwidth limit for outgoing Gnet leaf traffic in bytes/sec. When running as "
@@ -1571,13 +1604,13 @@ msgstr ""
 "Átjátszó üzemmódban ezt a sávszélességet a hagyományos HTTP forgalomtól "
 "veszi el, ha engedélyezett."
 
-#: src/if/gnet_property.c:2738
+#: src/if/gnet_property.c:2740
 #, fuzzy
 msgid ""
 "Maximum size of search queries messages we forward to others  (in bytes)."
 msgstr "A továbbított kereső üzenetek legnagyobb mérete bájtban."
 
-#: src/if/gnet_property.c:2758
+#: src/if/gnet_property.c:2760
 #, fuzzy
 msgid ""
 "Maximum size of search queries messages we allow, otherwise close the "
@@ -1586,13 +1619,13 @@ msgstr ""
 "A legnagyobb engedélyezett kereső üzenetméret bájtban, különben lezárja a "
 "kapcsolatot."
 
-#: src/if/gnet_property.c:2778
+#: src/if/gnet_property.c:2780
 #, fuzzy
 msgid ""
 "Maximum size of search answers messages we forward to others (in bytes)."
 msgstr "A továbbított találat üzenetek legnagyobb mérete bájtban."
 
-#: src/if/gnet_property.c:2798
+#: src/if/gnet_property.c:2800
 #, fuzzy
 msgid ""
 "Maximum size of search answers messages we allow, otherwise close the "
@@ -1601,7 +1634,7 @@ msgstr ""
 "A legnagyobb engedélyezett találat-üzenetméret bájtban, különben lezárja a "
 "kapcsolatot."
 
-#: src/if/gnet_property.c:2818
+#: src/if/gnet_property.c:2820
 #, fuzzy
 msgid ""
 "Maximum size of unknown messages we allow, otherwise close the connection "
@@ -1610,14 +1643,14 @@ msgstr ""
 "A legnagyobb engedélyezett ismeretlen üzenetméret bájtban, különben lezárja "
 "a kapcsolatot."
 
-#: src/if/gnet_property.c:2838
+#: src/if/gnet_property.c:2840
 #, fuzzy
 msgid ""
 "Random factor for the hops field in search packets we send between 0 and 3 "
 "inclusive)."
 msgstr "Véletlen tényező a sugár mezőhöz a kereső csomagokban 0-tól 3-ig."
 
-#: src/if/gnet_property.c:2858
+#: src/if/gnet_property.c:2860
 #, fuzzy
 msgid ""
 "Whether or not to send push requests.  If you are firewalled, gtk-gnutella "
@@ -1628,7 +1661,7 @@ msgstr ""
 "kérelmet. Ezt letiltva nem jelennek meg olyan találatok, amelyekhez nyomás "
 "kell."
 
-#: src/if/gnet_property.c:2875
+#: src/if/gnet_property.c:2877
 #, fuzzy
 msgid ""
 "Minimum amount of dup messages to enable kicking, per node (also see "
@@ -1636,7 +1669,7 @@ msgid ""
 msgstr ""
 "Legalább ennyi dup üzenet kell pontonként a rúgáshoz. Lásd [min_dup_ratio]."
 
-#: src/if/gnet_property.c:2895
+#: src/if/gnet_property.c:2897
 #, fuzzy
 msgid ""
 "Minimum ratio of dups on received messages, per node (between 0.00 and "
@@ -1647,7 +1680,7 @@ msgstr ""
 "között)(lásd [min_dup_msg]) Megjegyzés: 0 és 10000 közötti érték kerül "
 "tárolásra a config fájlban."
 
-#: src/if/gnet_property.c:2915
+#: src/if/gnet_property.c:2917
 #, fuzzy
 msgid ""
 "Only files with the given extensions will be shared. The special --all-- "
@@ -1657,20 +1690,20 @@ msgstr ""
 "Csak a megadott végű fájlokat osztja meg. Az --all-- végződés minden fájlra "
 "illeszkedik, még a pont nélküliekre is. Használja óvatosan!"
 
-#: src/if/gnet_property.c:2936
+#: src/if/gnet_property.c:2938
 msgid "Ignore symbolically linked directories when scanning files to share."
 msgstr "Szimbólikusan kötött mappák mellőzése a megosztáskor."
 
-#: src/if/gnet_property.c:2953
+#: src/if/gnet_property.c:2955
 msgid "Ignore symbolically linked regular files when scanning files to share."
 msgstr "Szimbólikusan kötött fájlok mellőzése a megosztáskor."
 
-#: src/if/gnet_property.c:2970
+#: src/if/gnet_property.c:2972
 #, fuzzy
 msgid "Store incomplete files in this directory."
 msgstr "Ebben a mappában tárolja a be nem fejezett letöltésfájlokat."
 
-#: src/if/gnet_property.c:2991
+#: src/if/gnet_property.c:2993
 msgid ""
 "Move complete files to this directory. If this is set to the SAME directory "
 "as the incomplete or corrupted files, files will be renamed with a trailing ."
@@ -1680,7 +1713,7 @@ msgstr ""
 "mappa, mint a be nem fejezett és rossz fájlok mappája, akkor a fájlneveket "
 "megtoldja egy .OK végződéssel."
 
-#: src/if/gnet_property.c:3012
+#: src/if/gnet_property.c:3014
 msgid ""
 "Move corrupted, downloaded files to this directory. If this is set to the "
 "SAME directory as the incomplete or completed files, files will be renamed "
@@ -1690,12 +1723,12 @@ msgstr ""
 "mint a befejezett vagy a be nem fejezett mappa, akkor a fájlneveket "
 "megtoldja a .BAD végződéssel."
 
-#: src/if/gnet_property.c:3033
+#: src/if/gnet_property.c:3035
 #, fuzzy
 msgid "Directories which contain shared files."
 msgstr "A megosztott fájlok mappái"
 
-#: src/if/gnet_property.c:3054
+#: src/if/gnet_property.c:3056
 #, fuzzy
 msgid ""
 "List of networks considered local.  This is a list of IP addresses, "
@@ -1708,37 +1741,37 @@ msgstr ""
 "„/” és a hálózati maszkprefixhossz. Pl. 192.168.0.1/24 jelenti a 192.168.0.* "
 "hálózatot."
 
-#: src/if/gnet_property.c:3075
+#: src/if/gnet_property.c:3077
 #, fuzzy
 msgid "Total number of completed downloads in this session."
 msgstr "A program indítása óta az összes befejezett letöltés száma."
 
-#: src/if/gnet_property.c:3095
+#: src/if/gnet_property.c:3097
 #, fuzzy
 msgid "Number of running uploads."
 msgstr "Folyamatban lévő feltöltések száma"
 
-#: src/if/gnet_property.c:3115
+#: src/if/gnet_property.c:3117
 #, fuzzy
 msgid "Number of registered (pending) uploads."
 msgstr "Bejegyzett (függő) feltöltések száma"
 
-#: src/if/gnet_property.c:3135
+#: src/if/gnet_property.c:3137
 #, fuzzy
 msgid "Total number of completed uploads in this session."
 msgstr "A program indítása óta az összes befejezett feltöltés száma."
 
-#: src/if/gnet_property.c:3155
+#: src/if/gnet_property.c:3157
 #, fuzzy
 msgid "Global Unique IDentifier of this node."
 msgstr "E pont GUID-je"
 
-#: src/if/gnet_property.c:3172
+#: src/if/gnet_property.c:3174
 #, fuzzy
 msgid "Whether or not to use swarming (recommended = YES)."
 msgstr "Legyen-e zsúfolás (ajánlott IGEN)"
 
-#: src/if/gnet_property.c:3189
+#: src/if/gnet_property.c:3191
 msgid ""
 "Whether or not to launch competing downloads when swarming and there are "
 "many sources available with a few chunks left."
@@ -1746,7 +1779,7 @@ msgstr ""
 "Legyen-e egyidejűleg több forrásból letöltés zsúfoláskor, amikor sok forrás "
 "van néhány maradék darabbal."
 
-#: src/if/gnet_property.c:3206
+#: src/if/gnet_property.c:3208
 #, fuzzy
 msgid ""
 "Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will "
@@ -1755,19 +1788,19 @@ msgstr ""
 "Zsúfolás legkisebb darabja. Ez csak egy javaslat, mivel gtk-gnutella "
 "kevesebbet tölt le ha már csak néhány bájt maradt a fájlból."
 
-#: src/if/gnet_property.c:3226
+#: src/if/gnet_property.c:3228
 #, fuzzy
 msgid "Maximum chunk size when swarming."
 msgstr "Zsúfolás legnagyobb darabja."
 
-#: src/if/gnet_property.c:3246
+#: src/if/gnet_property.c:3248
 #, fuzzy
 msgid ""
 "Whether or not to automatically queue search results that match a file in "
 "the download queue."
 msgstr "Magától beállítsa-e a sorba a találatokat"
 
-#: src/if/gnet_property.c:3263
+#: src/if/gnet_property.c:3265
 msgid ""
 "Whether or not to automatically feed the download mesh with data gathered "
 "from the query hits that flow through our node. This looks for new entries "
@@ -1777,14 +1810,14 @@ msgstr ""
 "átfolynak.Ez újakat keres a megosztott fájlokhoz vagy azokhoz, amelyek a "
 "letöltő hálóban vannak."
 
-#: src/if/gnet_property.c:3280
+#: src/if/gnet_property.c:3282
 #, fuzzy
 msgid ""
 "When enabled, SHA1s must match. Otherwise, name and size will be sufficient."
 msgstr ""
 "Engedélyezve SHA1-eknek meg kell egyezniük. Különben név és méret elégséges."
 
-#: src/if/gnet_property.c:3297
+#: src/if/gnet_property.c:3299
 #, fuzzy
 msgid ""
 "Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching "
@@ -1793,7 +1826,7 @@ msgstr ""
 "Laza fájlnév illesztés (ajánlott = NEM; csak SHA1 illesztés a biztonság "
 "kedvéért)"
 
-#: src/if/gnet_property.c:3314
+#: src/if/gnet_property.c:3316
 #, fuzzy
 msgid ""
 "Fuzziness threshold for filename matching (higher = stricter). A value of "
@@ -1804,27 +1837,27 @@ msgstr ""
 "a fájlnevek 100%-ának meg kell egyeznie. 0-ás érték jelenti, bármely két "
 "fájlnév azonos. A legkisebb érték 50%."
 
-#: src/if/gnet_property.c:3334
+#: src/if/gnet_property.c:3336
 #, fuzzy
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
 msgstr "Gtk-gnutella szerint tűzfal mögött vagyunk-e"
 
-#: src/if/gnet_property.c:3351
+#: src/if/gnet_property.c:3353
 #, fuzzy
 msgid "Whether gtk-gnutella thinks it's connected to the Internet."
 msgstr "Gtk-gnutella szerint csatlakoztunk-e az Internethez"
 
-#: src/if/gnet_property.c:3368
+#: src/if/gnet_property.c:3370
 #, fuzzy
 msgid "Whether gtk-gnutella thinks you're currently firewalled, UDP-wise."
 msgstr "Gtk-gnutella szerint tűzfal mögött vagyunk-e"
 
-#: src/if/gnet_property.c:3385
+#: src/if/gnet_property.c:3387
 #, fuzzy
 msgid "Whether gtk-gnutella determined it could receive solicited UDP."
 msgstr "Gtk-gnutella szerint csatlakoztunk-e az Internethez"
 
-#: src/if/gnet_property.c:3402
+#: src/if/gnet_property.c:3404
 #, fuzzy
 msgid ""
 "Remove unnecessary ballast from query string before processing or forwarding "
@@ -1833,7 +1866,7 @@ msgstr ""
 "Eltávolítja a felesleges terhet a kereső szövegből mielőtt feldolgozza "
 "vagytovábbítja. Csökkenti a forgalmat egy kis CPU-idő árán."
 
-#: src/if/gnet_property.c:3419
+#: src/if/gnet_property.c:3421
 msgid ""
 "Also use sources that don't provide a SHA1 value for the first chunk of a "
 "file. This dramatically reduces the 'No URN on server' messages, but may "
@@ -1845,13 +1878,13 @@ msgstr ""
 "eredményezhet átfedési problémákat később, ha az első darab egy másik "
 "fájlból származik. Óvatosan használja!"
 
-#: src/if/gnet_property.c:3436
+#: src/if/gnet_property.c:3438
 #, fuzzy
 msgid ""
 "Whether gtk-gnutella is currently rebuilding its library in the background."
 msgstr "Pillanatnyilag újraépíti-e gtk-gnutella a könvtárát a háttérben"
 
-#: src/if/gnet_property.c:3453
+#: src/if/gnet_property.c:3455
 #, fuzzy
 msgid ""
 "Whether gtk-gnutella is currently computing SHA1 of shared files in the "
@@ -1860,7 +1893,7 @@ msgstr ""
 "Pillanatnyilag számít-e gtk-gnutella SHA1-et a megosztott fájlokra a "
 "háttérben"
 
-#: src/if/gnet_property.c:3470
+#: src/if/gnet_property.c:3472
 #, fuzzy
 msgid ""
 "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the "
@@ -1869,7 +1902,7 @@ msgstr ""
 "Pillanatnyilag ellenőriz-e gtk-gnutella SHA1-et a letöltött fájlokra a "
 "háttérben"
 
-#: src/if/gnet_property.c:3487
+#: src/if/gnet_property.c:3489
 #, fuzzy
 msgid ""
 "Whether gtk-gnutella is currently moving files across filesystems or simply "
@@ -1878,7 +1911,7 @@ msgstr ""
 "Pillanatnyilag mozgat-e gtk-gnutella fájlokat fájlrendszerek között vagy "
 "egyszerűen másolja őket a háttérben"
 
-#: src/if/gnet_property.c:3504
+#: src/if/gnet_property.c:3506
 msgid ""
 "If active, only compressed incoming connections are allowed after the "
 "minimum number of connections has been established. Always allows for one "
@@ -1887,7 +1920,7 @@ msgstr ""
 "Bekapcsolva csak a tömörített kapcsolatokat engedi miután a legkevesebb "
 "kapcsolat létrejött. Mindig enged egy nem tömörített kapcsolatot"
 
-#: src/if/gnet_property.c:3521
+#: src/if/gnet_property.c:3523
 #, fuzzy
 msgid ""
 "If deactivated, only uploads and downloads will continue. All Gnet "
@@ -1896,7 +1929,7 @@ msgstr ""
 "Kikapcsolva csak feltöltés és letöltés folytatódik. Minden gNet kapcsolatot "
 "letilt/lezár"
 
-#: src/if/gnet_property.c:3538
+#: src/if/gnet_property.c:3540
 #, fuzzy
 msgid ""
 "Whether gtk-gnutella should make sure the server confirms the URN of the "
@@ -1909,7 +1942,7 @@ msgstr ""
 "gtk-gnutella nem intéz /uri-res/N2R? kérelmeket) Beállítva felülbírálja a "
 "derűlátó első darab beállítást."
 
-#: src/if/gnet_property.c:3555
+#: src/if/gnet_property.c:3557
 msgid ""
 "Whether gtk-gnutella should make sure the server gives us back a non-empty "
 "identifying token."
@@ -1917,12 +1950,12 @@ msgstr ""
 "Megbizonyosodik-e gtk-gnutella arról, hogy a kiszolgáló nem ad vissza üres "
 "azonosító jegyet."
 
-#: src/if/gnet_property.c:3572
+#: src/if/gnet_property.c:3574
 msgid "Maximum amount of Ultrapeers we should connect to as a leaf."
 msgstr ""
 "Átjátszó csomópontok legnagyobb száma, amelyekhez végpontként csatlakozunk."
 
-#: src/if/gnet_property.c:3592
+#: src/if/gnet_property.c:3594
 msgid ""
 "To connect more quickly, gtk-gnutella will allow up to this many connections "
 "to be active while trying to fill up the connection slots."
@@ -1930,7 +1963,7 @@ msgstr ""
 "A gyorsabb kapcsolódás érdekében gtk-gnutella legfejlebb ennyi aktív "
 "kapcsolatot engedélyez, amíg próbálja feltölteni a kapcsolódó foglalatokat."
 
-#: src/if/gnet_property.c:3612
+#: src/if/gnet_property.c:3614
 #, fuzzy
 msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
@@ -1939,11 +1972,11 @@ msgstr ""
 "Fogadható végpontok legnagyobb száma. Átjátszóvá előléptetéshez legalább 32 "
 "bájt sávszélességet kell fenntartani végpontonként."
 
-#: src/if/gnet_property.c:3632
+#: src/if/gnet_property.c:3634
 msgid "What to do with files that will be ignored for downloading."
 msgstr "Mit tesz a letöltéskor mellőzött fájlokkkal."
 
-#: src/if/gnet_property.c:3652
+#: src/if/gnet_property.c:3654
 #, fuzzy
 msgid ""
 "The peer mode you want to operate as for gtk-gnutella.  When auto is "
@@ -1955,50 +1988,50 @@ msgstr ""
 "átjátszó csomóponttá, ha a sávszélesség és a futási idő engedi, feltéve, "
 "hogy nem vagyunk tűzfallal elzárva."
 
-#: src/if/gnet_property.c:3672
+#: src/if/gnet_property.c:3674
 #, fuzzy
 msgid "Current peer mode for gtk-gnutella."
 msgstr "Gtk-gnutella jelenlegi üzemmódja"
 
-#: src/if/gnet_property.c:3692
+#: src/if/gnet_property.c:3694
 #, fuzzy
 msgid "How many file descriptors this process can open."
 msgstr "Hány fájlleírót tud egy folyamat megnyitni."
 
-#: src/if/gnet_property.c:3712
+#: src/if/gnet_property.c:3714
 #, fuzzy
 msgid "How much physical memory is available."
 msgstr "Hány KB fizikai memória elérhető."
 
-#: src/if/gnet_property.c:3732
+#: src/if/gnet_property.c:3734
 msgid "How many downloads are currently held in the queue."
 msgstr "Hány letöltés van jelenleg a sorban."
 
-#: src/if/gnet_property.c:3752
+#: src/if/gnet_property.c:3754
 msgid "How many downloads are currently running (downloading / connecting)."
 msgstr "Hány letöltés fut jelenleg (letöltés / kapcsolódás)."
 
-#: src/if/gnet_property.c:3772
+#: src/if/gnet_property.c:3774
 msgid "How many downloads are currently active."
 msgstr "Hány letöltés zajlik jelenleg."
 
-#: src/if/gnet_property.c:3792
+#: src/if/gnet_property.c:3794
 msgid "How many downloads are currently actively queued."
 msgstr "Hány letöltés állt sorba aktívan."
 
-#: src/if/gnet_property.c:3812
+#: src/if/gnet_property.c:3814
 msgid "How many downloads are currently passively queued."
 msgstr "Hány letöltés állt sorba passzívan."
 
-#: src/if/gnet_property.c:3832
+#: src/if/gnet_property.c:3834
 msgid "How many fileinfo do we have."
 msgstr "Hány fájlinfónk van."
 
-#: src/if/gnet_property.c:3852
+#: src/if/gnet_property.c:3854
 msgid "How many fileinfo with sources do we have."
 msgstr "Hány fájlinfónk van forrással együtt."
 
-#: src/if/gnet_property.c:3872
+#: src/if/gnet_property.c:3874
 msgid ""
 "How many queued downloads are currently responsive (remote servent answering "
 "requests)."
@@ -2006,15 +2039,15 @@ msgstr ""
 "Hány sorbaállított letöltés válaszol jelenleg (távoli kiszolgáló válasz "
 "kérelmek)."
 
-#: src/if/gnet_property.c:3892
+#: src/if/gnet_property.c:3894
 msgid "Amount of bytes downloaded so far, HTTP headers notwithstanding."
 msgstr "Eddig letöltött bájtok száma, HTTP fejlécek nélkül"
 
-#: src/if/gnet_property.c:3912
+#: src/if/gnet_property.c:3914
 msgid "Amount of bytes uploaded so far, HTTP headers notwithstanding."
 msgstr "Eddig feltöltött bájtok száma, HTTP fejlécek nélkül"
 
-#: src/if/gnet_property.c:3932
+#: src/if/gnet_property.c:3934
 #, fuzzy
 msgid ""
 "Whether gtk-gnutella should serve partial files whilst they are still "
@@ -2026,7 +2059,7 @@ msgstr ""
 "Ajánlott a hálózat érdekében hacsak nem oszt már sok fájlt, amely esetben "
 "nem baj, ha marad, de nem sokat számít."
 
-#: src/if/gnet_property.c:3949
+#: src/if/gnet_property.c:3951
 #, fuzzy
 msgid ""
 "When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to "
@@ -2042,7 +2075,7 @@ msgstr ""
 "nézet, stb.) Ez a mező beállítja az adat első darabjának a méretét, amelyet "
 "a fájl elejétől folyamatosan kell letölteni. Ne állítsa túl nagyra!"
 
-#: src/if/gnet_property.c:3969
+#: src/if/gnet_property.c:3971
 #, fuzzy
 msgid ""
 "Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
@@ -2056,17 +2089,17 @@ msgstr ""
 "következetesebb lesz egy kis CPU-idő árán, és néhány érvényes elem "
 "elvesztésének árán."
 
-#: src/if/gnet_property.c:3986
+#: src/if/gnet_property.c:3988
 #, fuzzy
 msgid "Number of crawler visits during this session."
 msgstr "Csúszó látogatások az indulás óta"
 
-#: src/if/gnet_property.c:4006
+#: src/if/gnet_property.c:4008
 #, fuzzy
 msgid "Number of UDP crawler visits during this session."
 msgstr "Csúszó látogatások az indulás óta"
 
-#: src/if/gnet_property.c:4026
+#: src/if/gnet_property.c:4028
 msgid ""
 "Whether the clock of this host is kept accurate via NTP. When set, the "
 "computed clock skew is ignored. Normally, gtk-gnutella automatically "
@@ -2075,11 +2108,11 @@ msgid ""
 "ntpdate, for instance."
 msgstr ""
 
-#: src/if/gnet_property.c:4043
+#: src/if/gnet_property.c:4045
 msgid "Whether a running NTP daemon was detected locally."
 msgstr ""
 
-#: src/if/gnet_property.c:4060
+#: src/if/gnet_property.c:4062
 msgid ""
 "The signed clock skew of this host compared to absolute time. Adding this "
 "skew to the host clock should give the true time."
@@ -2087,7 +2120,7 @@ msgstr ""
 "E gép óra-hibája csillagidőhöz képest. Ez hozzáadva a gép órájához az igaz "
 "időt kapjuk."
 
-#: src/if/gnet_property.c:4080
+#: src/if/gnet_property.c:4082
 msgid ""
 "Whether gtk-gnutella should keep track of the IP of unstable servents it "
 "encounters, preventing further connections attempts to/from them."
@@ -2095,7 +2128,7 @@ msgstr ""
 "Érzékelt instabil kiszolgálók IP-követése, megakadályozza a jövőbeni "
 "kapcsolatot velük."
 
-#: src/if/gnet_property.c:4097
+#: src/if/gnet_property.c:4099
 #, fuzzy
 msgid ""
 "Whether gtk-gnutella should determine the servent types (as identified by "
@@ -2107,7 +2140,7 @@ msgstr ""
 "amelyek instabilak megakadályozandó a jövőbeni kapcsolatokat velük. Csak az "
 "instabil IP-követéssel együtt műdödik."
 
-#: src/if/gnet_property.c:4114
+#: src/if/gnet_property.c:4116
 msgid ""
 "Whether gtk-gnutella should automatically remove the file whenever it gets a "
 "resuming mismatch and retry from scratch. Until Tiger Tree Hashes are "
@@ -2116,7 +2149,7 @@ msgstr ""
 "Magától eltávolítja-e gtk-gnutella a fájlt valahányszor az összegzés eltér, "
 "és előröl kezdi. A tigrisfa hash elterjedéséig ez a legkönnyebb lehetőség."
 
-#: src/if/gnet_property.c:4131
+#: src/if/gnet_property.c:4133
 msgid ""
 "The amount of bytes which gtk-gnutella will strip off the already downloaded "
 "bytes after a resuming mismatch, in the hope that only this amount was "
@@ -2129,7 +2162,7 @@ msgstr ""
 "kiszolgálón, de ha a már letöltött adat rossz, akkor a visszalépés segíthet "
 "a helyreállításban."
 
-#: src/if/gnet_property.c:4151
+#: src/if/gnet_property.c:4153
 #, fuzzy
 msgid ""
 "The hostname of the server that can be used by downloaders to find the IP "
@@ -2141,25 +2174,25 @@ msgstr ""
 "dinamikus IP címe van egy dinamikus DNS szolgáltatóval, akkor ez értékes a "
 "letöltőknek, mert megtalálják a gépet az IP-címváltozás után is."
 
-#: src/if/gnet_property.c:4172
+#: src/if/gnet_property.c:4174
 msgid ""
 "Whether gtk-gnutella should advertise the hostname of your server to "
 "downloaders and in query hits."
 msgstr "Reklámozza-e gtk-gnutella a gépnevét a letöltőknek és a keresőknek."
 
-#: src/if/gnet_property.c:4189 src/ui/gtk/gtk2/interface-glade.c:11690
+#: src/if/gnet_property.c:4191 src/ui/gtk/gtk2/interface-glade.c:11690
 msgid ""
 "Percentage of the number of connections we should reserve for gtk-gnutella "
 "nodes."
 msgstr ""
 "A kapcsolatok számának százaléka, amit gtk-gnutella társaknak tartunk fent."
 
-#: src/if/gnet_property.c:4209
+#: src/if/gnet_property.c:4211
 #, fuzzy
 msgid "Maximum percentage of slots a vendor can occupy."
 msgstr "A nyílások legnagyobb százaléka, amelyet egy adó foglalhat"
 
-#: src/if/gnet_property.c:4229
+#: src/if/gnet_property.c:4231
 #, fuzzy
 msgid ""
 "Size of the RX socket buffer to be used for downloads, in kbytes. If you "
@@ -2176,7 +2209,7 @@ msgstr ""
 "Megjegyzés: minél kisebb az érték, annál pontosabban ellenőrizhető a bejövő "
 "forgalom."
 
-#: src/if/gnet_property.c:4249
+#: src/if/gnet_property.c:4251
 msgid ""
 "Size of the RX socket buffer to be used for nodes, in kbytes. The lower the "
 "value, the faster the remote end will flow-control at the TCP/IP level if "
@@ -2188,7 +2221,7 @@ msgstr ""
 "olvassa elég gyorsan, ami akkor fordul elő, ha korlátozza a bejövő "
 "sávszélességet."
 
-#: src/if/gnet_property.c:4269
+#: src/if/gnet_property.c:4271
 msgid ""
 "Average recent latency between the sending of the HTTP request and the "
 "reception of the reply from the remote server, in msecs."
@@ -2196,61 +2229,61 @@ msgstr ""
 "Átlagos késés mostanában a HTTP kérelem küldése és a válasz érkezése között "
 "ezredmásodpercben."
 
-#: src/if/gnet_property.c:4289
+#: src/if/gnet_property.c:4291
 msgid "Last time at which we performed the ultrapeer requirement checks."
 msgstr "Átjátszó csomópont követelményei ellenőrzésének utolsó időpontja."
 
-#: src/if/gnet_property.c:4309
+#: src/if/gnet_property.c:4311
 msgid "Last time an automatic switch between ultra and leaf mode occurred."
 msgstr "Átjátszó-végpont átállás utolsó időpontja."
 
-#: src/if/gnet_property.c:4329
+#: src/if/gnet_property.c:4331
 msgid ""
 "Whether we meet the sufficient average uptime requirement to become an Ultra "
 "node."
 msgstr ""
 "Elég hosszú-e az átlagos futási idő az átjátszó üzemmódba való átálláshoz."
 
-#: src/if/gnet_property.c:4346
+#: src/if/gnet_property.c:4348
 msgid ""
 "Whether we meet the sufficient average IP address uptime requirement to "
 "become an Ultra node."
 msgstr ""
 "Elég hosszú-e az IP-cím élettartama az átjátszó üzemmódba való átálláshoz."
 
-#: src/if/gnet_property.c:4363
+#: src/if/gnet_property.c:4365
 msgid ""
 "Whether we meet the sufficient node uptime requirement to become an Ultra "
 "node."
 msgstr "Elég hosszú-e a futási idő az átjátszó üzemmódba való átálláshoz."
 
-#: src/if/gnet_property.c:4380
+#: src/if/gnet_property.c:4382
 msgid "Whether we meet the non-firewalled requirement to become an Ultra node."
 msgstr ""
 "Tűzfalmentes-e a hálózati kapcsolat az átjátszó üzemmódba való átálláshoz."
 
-#: src/if/gnet_property.c:4397
+#: src/if/gnet_property.c:4399
 #, fuzzy
 msgid ""
 "Whether we meet the minimum amount of peer connections requirement to become "
 "an Ultra node."
 msgstr "Elég sok-e a fájlleíró az átjátszó üzemmódba való átálláshoz."
 
-#: src/if/gnet_property.c:4414
+#: src/if/gnet_property.c:4416
 msgid ""
 "Whether we meet the amount of file descriptor requirement to become an Ultra "
 "node."
 msgstr "Elég sok-e a fájlleíró az átjátszó üzemmódba való átálláshoz."
 
-#: src/if/gnet_property.c:4431
+#: src/if/gnet_property.c:4433
 msgid "Whether we meet the memory requirements to become an Ultra node."
 msgstr "Elég sok-e a memória az átjátszó üzemmódba való átálláshoz."
 
-#: src/if/gnet_property.c:4448
+#: src/if/gnet_property.c:4450
 msgid "Whether we meet the bandwidth requirements to become an Ultra node."
 msgstr "Elég nagy-e a sávszélesség az átjátszó üzemmódba való átálláshoz."
 
-#: src/if/gnet_property.c:4465
+#: src/if/gnet_property.c:4467
 #, fuzzy
 msgid ""
 "Size of the search queue holding the locally generated queries before they "
@@ -2262,7 +2295,7 @@ msgstr ""
 "keresést ejti küldés nélkül. Állítsa nagyobbra, mint a nyitott keresések "
 "legnagyobb mérete."
 
-#: src/if/gnet_property.c:4485
+#: src/if/gnet_property.c:4487
 msgid ""
 "Minimum amount of seconds between two consecutive queries sent to a given "
 "connection (for locally generated queries only!). The larger the value, the "
@@ -2272,7 +2305,7 @@ msgstr ""
 "helyben indított keresésekre!) Minél több, annál kisebb a káros hatása a "
 "hálózatra."
 
-#: src/if/gnet_property.c:4505
+#: src/if/gnet_property.c:4507
 msgid ""
 "Whether connection to gtk-gnutella via the 'shell' control interface should "
 "be allowed."
@@ -2280,7 +2313,7 @@ msgstr ""
 "Engedélyezze-e a gtk-gnutella a kapcsolatot a „shell” vezérlőfelületen "
 "keresztül."
 
-#: src/if/gnet_property.c:4522
+#: src/if/gnet_property.c:4524
 msgid ""
 "Amount of seconds to leave 'dead' entries around so that they can still be "
 "displayed by the GUI along with the termination status."
@@ -2288,7 +2321,7 @@ msgstr ""
 "A „halott” bejegyzések tartásának ideje másodpercben. Így ennyi ideig még "
 "láthatóak a felületen a befejező állapotukkal."
 
-#: src/if/gnet_property.c:4542
+#: src/if/gnet_property.c:4544
 #, fuzzy
 msgid ""
 "Whether gtk-gnutella should actively monitor query strings by TTL and hop "
@@ -2302,7 +2335,7 @@ msgstr ""
 "csak a pozitív sugárra, azaz nem közvetlen szomszédtól származókra. Ejtett "
 "keresésekről bővebben az „üzenetdobás” számlálóban."
 
-#: src/if/gnet_property.c:4559
+#: src/if/gnet_property.c:4561
 #, fuzzy
 msgid ""
 "Half the duration during which gtk-gnutella should remember the recently "
@@ -2316,7 +2349,7 @@ msgstr ""
 "ettől különböző beállításokkal. Minél nagyobbra állítja, annál valószínűbb, "
 "hogy érvényes kereséseket ejt."
 
-#: src/if/gnet_property.c:4579
+#: src/if/gnet_property.c:4581
 #, fuzzy
 msgid ""
 "The minimum amount of seconds to enforce between two identical queries from "
@@ -2331,76 +2364,82 @@ msgstr ""
 "másodpercek legnagyobb száma. Ha ismételt keresés történik a megadott időn "
 "belül, akkor ejti és számolja az „üzenetdobás” számlálóban."
 
-#: src/if/gnet_property.c:4599
+#: src/if/gnet_property.c:4601
 msgid "Time at which we started the last scan of the library."
 msgstr "Az utolsó könyvtárfelmérés kezdetének ideje."
 
-#: src/if/gnet_property.c:4619
-msgid "Time spent scanning the library, in seconds."
-msgstr "A könyvtárfelmérés ideje másodpercben."
+#: src/if/gnet_property.c:4621
+#, fuzzy
+msgid "Time at which the last scan of the library finished."
+msgstr "Az utolsó könyvtárfelmérés kezdetének ideje."
 
-#: src/if/gnet_property.c:4639
+#: src/if/gnet_property.c:4641
+#, fuzzy
+msgid "The number of seconds the last scan of the library took."
+msgstr "Az utolsó könyvtárfelmérés kezdetének ideje."
+
+#: src/if/gnet_property.c:4661
 msgid "Time at which we started shared file indexing."
 msgstr "A megosztott fájlok indexelésének kezdő időpontja."
 
-#: src/if/gnet_property.c:4659
+#: src/if/gnet_property.c:4681
 msgid "Time spent indexing shared files."
 msgstr "Megosztott fájlok indexelésével töltött idő."
 
-#: src/if/gnet_property.c:4679
+#: src/if/gnet_property.c:4701
 msgid "Time at which we started query routing table generation."
 msgstr "Keresésirányító táblakészítés kezdési ideje."
 
-#: src/if/gnet_property.c:4699
+#: src/if/gnet_property.c:4721
 msgid "Time spent computing the QRP table, in seconds."
 msgstr "QRP-tábla számításának időtartama másodpercben."
 
-#: src/if/gnet_property.c:4719
+#: src/if/gnet_property.c:4741
 msgid "Time at which we started computing our QRP patch."
 msgstr "QRP-foltszámítás kezdetének időpontja."
 
-#: src/if/gnet_property.c:4739
+#: src/if/gnet_property.c:4761
 msgid "Time spent computing the QRP table patch, in seconds."
 msgstr "QRP-folttábla számításával töltött idő."
 
-#: src/if/gnet_property.c:4759
+#: src/if/gnet_property.c:4781
 msgid "Query routing table generation number."
 msgstr "Keresés irányító tábla (QRP) sorszáma."
 
-#: src/if/gnet_property.c:4779
+#: src/if/gnet_property.c:4801
 msgid "Amount of slots used by our QRP table."
 msgstr "A QRP-tábla által használt nyílások száma."
 
-#: src/if/gnet_property.c:4799
+#: src/if/gnet_property.c:4821
 msgid "Amount of slots filled within our QRP table."
 msgstr "A QRP-táblában feltöltött nyílások száma."
 
-#: src/if/gnet_property.c:4819
+#: src/if/gnet_property.c:4841
 msgid "Percentage of slots filled within our QRP table."
 msgstr "A QRP-táblában feltöltött nyílások százaléka."
 
-#: src/if/gnet_property.c:4839
+#: src/if/gnet_property.c:4861
 msgid "Percentage of hashing conflicts whilst inserting data in our QRP table."
 msgstr "Hash-ütközések százaléka az adatok QRP-táblába való beillesztésekor."
 
-#: src/if/gnet_property.c:4859
+#: src/if/gnet_property.c:4881
 msgid "Amount of hashed keywords in our QRP table."
 msgstr "Hash-elt kulcsszavak mennyisége a QRP-táblában."
 
-#: src/if/gnet_property.c:4879
+#: src/if/gnet_property.c:4901
 #, fuzzy
 msgid "Total raw size of the QRP table patch, in bytes."
 msgstr "QRP-táblafolt összes nyers mérete bájtban."
 
-#: src/if/gnet_property.c:4899
+#: src/if/gnet_property.c:4921
 msgid "Final QRP table patch length, after possible compression."
 msgstr "Végső QRP-folttábla hossza, lehetséges tömörítés után."
 
-#: src/if/gnet_property.c:4919
+#: src/if/gnet_property.c:4941
 msgid "QRP table patch compression ratio, in percent, 0 means none."
 msgstr "QRP-folttábla tömörítési arány, százalékban, 0 a tömörítetlené."
 
-#: src/if/gnet_property.c:4939
+#: src/if/gnet_property.c:4961
 #, fuzzy
 msgid ""
 "This property must be set to the current version number of gtk-gnutella in "
@@ -2409,11 +2448,11 @@ msgstr ""
 "Ezt a tulajdonságot a gtk-gnutella aktuális változatszámára kell állítani, "
 "hogy fusson, amikor már ősi."
 
-#: src/if/gnet_property.c:4960
+#: src/if/gnet_property.c:4982
 msgid "Indicates that gtk-gnutella will expire in that many days."
 msgstr "Jelzi, hogy a gtk-gnutella ennyi nap alatt le fog járni."
 
-#: src/if/gnet_property.c:4980
+#: src/if/gnet_property.c:5002
 msgid ""
 "When set, gtk-gnutella is running short on file descriptors, but normal "
 "operations are still possible. The condition automatically clears itself "
@@ -2423,7 +2462,7 @@ msgstr ""
 "működés továbbra is lehetséges. Az állapot automatikusan megszűnik további "
 "10 perc elegendő fájlleíróval történő működés után."
 
-#: src/if/gnet_property.c:4997
+#: src/if/gnet_property.c:5019
 #, fuzzy
 msgid ""
 "When set, gtk-gnutella has run out of file descriptors, and operations are "
@@ -2434,21 +2473,21 @@ msgstr ""
 "szükségszerűen csökkent, ha nem lehetetlen. Az állapot automatikusan "
 "megszűnik 10 perccel az utolsó ilyen eset után."
 
-#: src/if/gnet_property.c:5014
+#: src/if/gnet_property.c:5036
 msgid "When set, gtk-gnutella will accept and handle G2 connections. "
 msgstr ""
 
-#: src/if/gnet_property.c:5031
+#: src/if/gnet_property.c:5053
 msgid "If set, spaces in filenames are replaced with underscores."
 msgstr ""
 
-#: src/if/gnet_property.c:5048
+#: src/if/gnet_property.c:5070
 msgid ""
 "If set, meta shell characters in filenames are replaced with underscores. "
 "(This must also be enabled for FAT partitions.)"
 msgstr ""
 
-#: src/if/gnet_property.c:5065
+#: src/if/gnet_property.c:5087
 msgid ""
 "If set, gtk-gnutella will, upon startup, sanitize filenames by converting "
 "spaces and/or evil characters in them, according to your settings, on "
@@ -2456,15 +2495,15 @@ msgid ""
 "above settings apply only on newly created entries, not existing ones."
 msgstr ""
 
-#: src/if/gnet_property.c:5082
+#: src/if/gnet_property.c:5104
 msgid "If set, all outgoing connections are tunneled over TLS."
 msgstr ""
 
-#: src/if/gnet_property.c:5099
+#: src/if/gnet_property.c:5121
 msgid "If not set, support for Gnutella connection compression is disabled."
 msgstr ""
 
-#: src/if/gnet_property.c:5116
+#: src/if/gnet_property.c:5138
 msgid ""
 "Whether UDP shall be used in complement to TCP.  When set, gtk-gnutella will "
 "also listen for UDP traffic on the same port as the one configured for TCP "
@@ -2473,7 +2512,7 @@ msgid ""
 "behaviour."
 msgstr ""
 
-#: src/if/gnet_property.c:5133
+#: src/if/gnet_property.c:5155
 msgid ""
 "Whether gtk-gnutella should honour the request for out-of-band delivery of "
 "query hits via UDP, provided UDP support is enabled.  It should not be "
@@ -2484,7 +2523,7 @@ msgid ""
 "emitted traffic and honours the bandwidth limitations."
 msgstr ""
 
-#: src/if/gnet_property.c:5150
+#: src/if/gnet_property.c:5172
 msgid ""
 "Whether gtk-gnutella should send queries requesting out-of-band delivery of "
 "query hits via UDP.  The setting is ignored if you seem to be UDP-"
@@ -2495,7 +2534,7 @@ msgid ""
 "controlled relaying node, limiting the results you can get."
 msgstr ""
 
-#: src/if/gnet_property.c:5167
+#: src/if/gnet_property.c:5189
 msgid ""
 "Whether gtk-gnutella should, when running as ultrapeer, act as proxy for "
 "leaf queries that are not requesting OOB delivery of query hits: gtk-"
@@ -2506,28 +2545,28 @@ msgid ""
 "messages and lowering the efficiency of the search network."
 msgstr ""
 
-#: src/if/gnet_property.c:5184
+#: src/if/gnet_property.c:5206
 msgid ""
 "Whether uploads are frequently stalling, indicating that the bandwidth is "
 "saturated.  Avoid running as an ultra-node under those conditions."
 msgstr ""
 
-#: src/if/gnet_property.c:5201
+#: src/if/gnet_property.c:5223
 msgid "If set to TRUE, automatic requeries are allowed."
 msgstr ""
 
-#: src/if/gnet_property.c:5218
+#: src/if/gnet_property.c:5240
 msgid ""
 "If set to TRUE, the global hostiles.txt is used as well as the private "
 "$GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban "
 "list from the global one distributed with Gtk-Gnutella."
 msgstr ""
 
-#: src/if/gnet_property.c:5235
+#: src/if/gnet_property.c:5257
 msgid "If set to TRUE, SO_LINGER is used for sockets."
 msgstr ""
 
-#: src/if/gnet_property.c:5252
+#: src/if/gnet_property.c:5274
 msgid "If TRUE, other hosts can request a complete list of all shared files."
 msgstr ""
 
@@ -4120,7 +4159,7 @@ msgstr "Bájt"
 msgid "%sB/s"
 msgstr ""
 
-#: src/main.c:574
+#: src/main.c:576
 msgid "This is an unofficial build which accesses files in this directory:"
 msgstr ""
 
@@ -4688,170 +4727,170 @@ msgstr ""
 msgid "Please choose a directory to share"
 msgstr ""
 
-#: src/ui/gtk/gtk1/downloads.c:543
+#: src/ui/gtk/gtk1/downloads.c:545
 #, fuzzy
 msgid "no size"
 msgstr "Rossz méret"
 
-#: src/ui/gtk/gtk1/downloads.c:686 src/ui/gtk/gtk1/downloads.c:829
-#: src/ui/gtk/gtk1/downloads.c:1670 src/ui/gtk/gtk1/downloads.c:1761
-#: src/ui/gtk/gtk2/downloads.c:955 src/ui/gtk/gtk2/downloads.c:1019
+#: src/ui/gtk/gtk1/downloads.c:688 src/ui/gtk/gtk1/downloads.c:829
+#: src/ui/gtk/gtk1/downloads.c:1668 src/ui/gtk/gtk1/downloads.c:1763
+#: src/ui/gtk/gtk2/downloads.c:958 src/ui/gtk/gtk2/downloads.c:1022
 #, fuzzy, c-format
 msgid "%u host"
 msgid_plural "%u hosts"
 msgstr[0] "%u gazda"
 
 #: src/ui/gtk/gtk1/downloads.c:1017 src/ui/gtk/gtk1/downloads.c:1048
-#: src/ui/gtk/gtk1/interface-glade.c:2222 src/ui/gtk/gtk2/downloads.c:1373
+#: src/ui/gtk/gtk1/interface-glade.c:2222 src/ui/gtk/gtk2/downloads.c:1376
 #: src/ui/gtk/gtk2/gnet_stats.c:56 src/ui/gtk/uploads_common.c:178
 msgid "Queued"
 msgstr "Sorban"
 
-#: src/ui/gtk/gtk1/downloads.c:1022 src/ui/gtk/gtk2/downloads.c:1378
+#: src/ui/gtk/gtk1/downloads.c:1022 src/ui/gtk/gtk2/downloads.c:1381
 #, c-format
 msgid " (slot %d"
 msgstr ""
 
-#: src/ui/gtk/gtk1/downloads.c:1032 src/ui/gtk/gtk2/downloads.c:1388
+#: src/ui/gtk/gtk1/downloads.c:1032 src/ui/gtk/gtk2/downloads.c:1391
 #, c-format
 msgid ", ETA: %s"
 msgstr ""
 
-#: src/ui/gtk/gtk1/downloads.c:1041 src/ui/gtk/gtk2/downloads.c:1397
+#: src/ui/gtk/gtk1/downloads.c:1041 src/ui/gtk/gtk2/downloads.c:1400
 #, c-format
 msgid " retry in %ds"
 msgstr " %d után újra"
 
 #: src/ui/gtk/gtk1/downloads.c:1057 src/ui/gtk/gtk1/downloads.c:1063
-#: src/ui/gtk/gtk2/downloads.c:1408 src/ui/gtk/nodes_common.c:67
+#: src/ui/gtk/gtk2/downloads.c:1411 src/ui/gtk/nodes_common.c:67
 msgid "Connecting..."
 msgstr "Kapcsolódás…"
 
-#: src/ui/gtk/gtk1/downloads.c:1076 src/ui/gtk/gtk2/downloads.c:1421
+#: src/ui/gtk/gtk1/downloads.c:1076 src/ui/gtk/gtk2/downloads.c:1424
 msgid "Push sent directly"
 msgstr "Nyomás elküldve közvetlenül"
 
 #: src/ui/gtk/gtk1/downloads.c:1077 src/ui/gtk/gtk1/downloads.c:1105
-#: src/ui/gtk/gtk1/downloads.c:1113 src/ui/gtk/gtk2/downloads.c:1421
-#: src/ui/gtk/gtk2/downloads.c:1449
+#: src/ui/gtk/gtk1/downloads.c:1113 src/ui/gtk/gtk2/downloads.c:1424
+#: src/ui/gtk/gtk2/downloads.c:1452
 msgid "Push sent"
 msgstr "Nyomás elküldve"
 
-#: src/ui/gtk/gtk1/downloads.c:1080 src/ui/gtk/gtk2/downloads.c:1424
+#: src/ui/gtk/gtk1/downloads.c:1080 src/ui/gtk/gtk2/downloads.c:1427
 msgid "Failed to send push"
 msgstr "Nyomás elküldése sikertelen"
 
-#: src/ui/gtk/gtk1/downloads.c:1083 src/ui/gtk/gtk2/downloads.c:1427
+#: src/ui/gtk/gtk1/downloads.c:1083 src/ui/gtk/gtk2/downloads.c:1430
 msgid "Sending push"
 msgstr "Nyomás elküldése"
 
-#: src/ui/gtk/gtk1/downloads.c:1085 src/ui/gtk/gtk2/downloads.c:1429
+#: src/ui/gtk/gtk1/downloads.c:1085 src/ui/gtk/gtk2/downloads.c:1432
 #, c-format
 msgid " via %s"
 msgstr ""
 
-#: src/ui/gtk/gtk1/downloads.c:1090 src/ui/gtk/gtk2/downloads.c:1434
+#: src/ui/gtk/gtk1/downloads.c:1090 src/ui/gtk/gtk2/downloads.c:1437
 msgid "Connecting"
 msgstr "Kapcsolódás"
 
 #: src/ui/gtk/gtk1/downloads.c:1091 src/ui/gtk/gtk1/downloads.c:1132
-#: src/ui/gtk/gtk2/downloads.c:1435 src/ui/gtk/gtk2/downloads.c:1467
+#: src/ui/gtk/gtk2/downloads.c:1438 src/ui/gtk/gtk2/downloads.c:1470
 msgid "Sending request"
 msgstr "Kérelem elküldése"
 
 #: src/ui/gtk/gtk1/downloads.c:1092 src/ui/gtk/gtk1/downloads.c:1136
-#: src/ui/gtk/gtk2/downloads.c:1436 src/ui/gtk/gtk2/downloads.c:1471
+#: src/ui/gtk/gtk2/downloads.c:1439 src/ui/gtk/gtk2/downloads.c:1474
 msgid "Request sent"
 msgstr "Kérelem elküldve"
 
-#: src/ui/gtk/gtk1/downloads.c:1093 src/ui/gtk/gtk2/downloads.c:1437
+#: src/ui/gtk/gtk1/downloads.c:1093 src/ui/gtk/gtk2/downloads.c:1440
 msgid "Reading headers"
 msgstr "Fejlécek olvasása"
 
-#: src/ui/gtk/gtk1/downloads.c:1116 src/ui/gtk/gtk2/downloads.c:1452
+#: src/ui/gtk/gtk1/downloads.c:1116 src/ui/gtk/gtk2/downloads.c:1455
 msgid "Falling back to push"
 msgstr "Visszaállás nyomásra"
 
-#: src/ui/gtk/gtk1/downloads.c:1128 src/ui/gtk/gtk2/downloads.c:1463
+#: src/ui/gtk/gtk1/downloads.c:1128 src/ui/gtk/gtk2/downloads.c:1466
 #, c-format
 msgid "Sending request (%d%%)"
 msgstr "(%d%%) kérelem elküldése"
 
-#: src/ui/gtk/gtk1/downloads.c:1140 src/ui/gtk/gtk2/downloads.c:1475
+#: src/ui/gtk/gtk1/downloads.c:1140 src/ui/gtk/gtk2/downloads.c:1478
 msgid "Receiving headers"
 msgstr "Fejlécek fogadása"
 
-#: src/ui/gtk/gtk1/downloads.c:1144 src/ui/gtk/gtk2/downloads.c:1479
+#: src/ui/gtk/gtk1/downloads.c:1144 src/ui/gtk/gtk2/downloads.c:1482
 msgid "Aborted (Server down)"
 msgstr "Abbahagyva (kiszolgáló ki)"
 
 #: src/ui/gtk/gtk1/downloads.c:1144 src/ui/gtk/gtk1/downloads.c:1152
-#: src/ui/gtk/gtk2/downloads.c:1479 src/ui/gtk/gtk2/downloads.c:1484
+#: src/ui/gtk/gtk2/downloads.c:1482 src/ui/gtk/gtk2/downloads.c:1487
 msgid "Aborted"
 msgstr "Abbahagyva"
 
 #: src/ui/gtk/gtk1/downloads.c:1161 src/ui/gtk/gtk1/downloads.c:1166
-#: src/ui/gtk/gtk1/interface-glade.c:3908 src/ui/gtk/gtk2/downloads.c:1493
-#: src/ui/gtk/gtk2/downloads.c:1498 src/ui/gtk/gtk2/interface-glade.c:4276
+#: src/ui/gtk/gtk1/interface-glade.c:3908 src/ui/gtk/gtk2/downloads.c:1496
+#: src/ui/gtk/gtk2/downloads.c:1501 src/ui/gtk/gtk2/interface-glade.c:4276
 msgid "Completed"
 msgstr "Befejezve"
 
 #: src/ui/gtk/gtk1/downloads.c:1161 src/ui/gtk/gtk1/downloads.c:1166
-#: src/ui/gtk/gtk2/downloads.c:1493 src/ui/gtk/gtk2/downloads.c:1498
+#: src/ui/gtk/gtk2/downloads.c:1496 src/ui/gtk/gtk2/downloads.c:1501
 msgid "Chunk done"
 msgstr "Darab kész"
 
-#: src/ui/gtk/gtk1/downloads.c:1173 src/ui/gtk/gtk2/downloads.c:1506
+#: src/ui/gtk/gtk1/downloads.c:1173 src/ui/gtk/gtk2/downloads.c:1509
 msgid "Waiting for SHA1 checking..."
 msgstr "SHA1 ellenőrzésre várakozás…"
 
-#: src/ui/gtk/gtk1/downloads.c:1180 src/ui/gtk/gtk2/downloads.c:1513
+#: src/ui/gtk/gtk1/downloads.c:1180 src/ui/gtk/gtk2/downloads.c:1516
 #, c-format
 msgid "Computing SHA1 (%.02f%%)"
 msgstr "SHA1 számítása (%.02f%%)"
 
-#: src/ui/gtk/gtk1/downloads.c:1210 src/ui/gtk/gtk2/downloads.c:1542
+#: src/ui/gtk/gtk1/downloads.c:1210 src/ui/gtk/gtk2/downloads.c:1545
 msgid "; Waiting for moving..."
 msgstr "; Áthelyezésre várakozás…"
 
-#: src/ui/gtk/gtk1/downloads.c:1215 src/ui/gtk/gtk2/downloads.c:1547
+#: src/ui/gtk/gtk1/downloads.c:1215 src/ui/gtk/gtk2/downloads.c:1550
 #, c-format
 msgid "; Moving (%.02f%%)"
 msgstr "; Áthelyezés (%.02f%%)"
 
-#: src/ui/gtk/gtk1/downloads.c:1220 src/ui/gtk/gtk2/downloads.c:1552
+#: src/ui/gtk/gtk1/downloads.c:1220 src/ui/gtk/gtk2/downloads.c:1555
 #, fuzzy, c-format
 msgid "; Moved (%s) %s"
 msgstr "; Áthelyezve (%.1f k/s) %s"
 
 #: src/ui/gtk/gtk1/downloads.c:1259 src/ui/gtk/gtk1/downloads.c:1281
-#: src/ui/gtk/gtk2/downloads.c:1598 src/ui/gtk/gtk2/downloads.c:1626
+#: src/ui/gtk/gtk2/downloads.c:1601 src/ui/gtk/gtk2/downloads.c:1629
 #, fuzzy
 msgid "(stalled)"
 msgstr " (elakadva)"
 
 #: src/ui/gtk/gtk1/downloads.c:1295 src/ui/gtk/gtk1/nodes.c:251
-#: src/ui/gtk/gtk2/downloads.c:1639 src/ui/gtk/nodes_common.c:277
+#: src/ui/gtk/gtk2/downloads.c:1642 src/ui/gtk/nodes_common.c:277
 msgid "Connected"
 msgstr "Összekapcsolva"
 
-#: src/ui/gtk/gtk1/downloads.c:1299 src/ui/gtk/gtk2/downloads.c:1643
+#: src/ui/gtk/gtk1/downloads.c:1299 src/ui/gtk/gtk2/downloads.c:1646
 #, fuzzy
 msgid "Unknown error"
 msgstr "Ismeretlen hiba"
 
-#: src/ui/gtk/gtk1/downloads.c:1306 src/ui/gtk/gtk2/downloads.c:1649
+#: src/ui/gtk/gtk1/downloads.c:1306 src/ui/gtk/gtk2/downloads.c:1652
 #, c-format
 msgid "Retry in %ds"
 msgstr "%d után újra"
 
-#: src/ui/gtk/gtk1/downloads.c:1316 src/ui/gtk/gtk2/downloads.c:1660
+#: src/ui/gtk/gtk1/downloads.c:1316 src/ui/gtk/gtk2/downloads.c:1663
 #, fuzzy, c-format
 msgid "Sinking (%s bytes left)"
 msgstr "Sűllyedés (%u bájt maradt)"
 
-#: src/ui/gtk/gtk1/downloads.c:1359 src/ui/gtk/gtk1/downloads.c:1431
-#: src/ui/gtk/gtk1/interface-glade.c:3192 src/ui/gtk/gtk2/downloads.c:1305
+#: src/ui/gtk/gtk1/downloads.c:1359 src/ui/gtk/gtk1/downloads.c:1433
+#: src/ui/gtk/gtk1/interface-glade.c:3192 src/ui/gtk/gtk2/downloads.c:1308
 #: src/ui/gtk/gtk2/upload_stats.c:271
 msgid "Complete"
 msgstr "Kész"
@@ -5085,13 +5124,13 @@ msgstr "Kattintson a kijelző cseréjéhez!"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1290
 #: src/ui/gtk/gtk1/interface-glade.c:1331
-#: src/ui/gtk/gtk1/interface-glade.c:1371 src/ui/gtk/misc.c:135
+#: src/ui/gtk/gtk1/interface-glade.c:1371 src/ui/gtk/misc.c:134
 msgid "in"
 msgstr "be"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1302
 #: src/ui/gtk/gtk1/interface-glade.c:1342
-#: src/ui/gtk/gtk1/interface-glade.c:1382 src/ui/gtk/misc.c:135
+#: src/ui/gtk/gtk1/interface-glade.c:1382 src/ui/gtk/misc.c:134
 msgid "out"
 msgstr "ki"
 
@@ -5855,8 +5894,8 @@ msgid ")"
 msgstr ")"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4070
-#: src/ui/gtk/gtk1/interface-glade.c:4972 src/ui/gtk/settings.c:1810
-#: src/ui/gtk/settings.c:1847
+#: src/ui/gtk/gtk1/interface-glade.c:4972 src/ui/gtk/settings.c:1814
+#: src/ui/gtk/settings.c:1851
 msgid "Show settings"
 msgstr "Beállítások megjelenítése"
 
@@ -6991,7 +7030,7 @@ msgstr "Kérem erősítse meg:"
 msgid "Do you really want to quit?"
 msgstr "Biztosan ki akar lépni?"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10284 src/ui/gtk/settings.c:1054
+#: src/ui/gtk/gtk1/interface-glade.c:10284 src/ui/gtk/settings.c:1058
 msgid "Yes"
 msgstr "Igen"
 
@@ -8591,31 +8630,31 @@ msgstr "%s képfájl betöltése sikertelen!"
 msgid "Error loading pixmap file: %s"
 msgstr "Hiba %s képfájl betöltése közben!"
 
-#: src/ui/gtk/gtk2/downloads.c:1499 src/ui/gtk/uploads_common.c:113
+#: src/ui/gtk/gtk2/downloads.c:1502 src/ui/gtk/uploads_common.c:113
 msgid "< 1s"
 msgstr ""
 
-#: src/ui/gtk/gtk2/downloads.c:1528
+#: src/ui/gtk/gtk2/downloads.c:1531
 msgid "SHA1 figure"
 msgstr "SHA1 érték"
 
-#: src/ui/gtk/gtk2/downloads.c:1528
+#: src/ui/gtk/gtk2/downloads.c:1531
 msgid "SHA1 check"
 msgstr "SHA1 ellenőrzés"
 
-#: src/ui/gtk/gtk2/downloads.c:1529
+#: src/ui/gtk/gtk2/downloads.c:1532
 msgid "ERROR"
 msgstr "HIBA"
 
-#: src/ui/gtk/gtk2/downloads.c:1530
+#: src/ui/gtk/gtk2/downloads.c:1533
 msgid "OK"
 msgstr "JÓ"
 
-#: src/ui/gtk/gtk2/downloads.c:1531
+#: src/ui/gtk/gtk2/downloads.c:1534
 msgid "FAILED"
 msgstr "ROSSZ"
 
-#: src/ui/gtk/gtk2/downloads.c:1665
+#: src/ui/gtk/gtk2/downloads.c:1668
 #, c-format
 msgid "Unknown status %u"
 msgstr ""
@@ -9004,7 +9043,7 @@ msgid "%lu file shared (%s)"
 msgid_plural "%lu files shared (%s)"
 msgstr[0] "%lu fájl megosztva (%s)"
 
-#: src/ui/gtk/misc.c:136
+#: src/ui/gtk/misc.c:135
 msgid "(avg)"
 msgstr "(átl)"
 
@@ -9143,100 +9182,100 @@ msgstr ""
 msgid "The SHA1 query is not validly encoded"
 msgstr ""
 
-#: src/ui/gtk/settings.c:995
+#: src/ui/gtk/settings.c:997
 msgid "Never"
 msgstr "Soha"
 
-#: src/ui/gtk/settings.c:1054
+#: src/ui/gtk/settings.c:1058
 msgid "No"
 msgstr "Nem"
 
-#: src/ui/gtk/settings.c:1180
+#: src/ui/gtk/settings.c:1184
 #, fuzzy, c-format
 msgid "%u/%u host (%u%%)"
 msgid_plural "%u/%u hosts (%u%%)"
 msgstr[0] "%u/%u gazda (%u%%)"
 
-#: src/ui/gtk/settings.c:1266 src/ui/gtk/settings.c:1288
+#: src/ui/gtk/settings.c:1270 src/ui/gtk/settings.c:1292
 msgid "loading..."
 msgstr "töltés…"
 
-#: src/ui/gtk/settings.c:1267
+#: src/ui/gtk/settings.c:1271
 msgid "Reading host cache..."
 msgstr "Gazdatár olvasása"
 
-#: src/ui/gtk/settings.c:1289
+#: src/ui/gtk/settings.c:1293
 msgid "Reading ultra cache..."
 msgstr "Átjátszó gazdatár olvasása"
 
-#: src/ui/gtk/settings.c:1333
+#: src/ui/gtk/settings.c:1337
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "☹☹☹ RÉGI VÁLTOZAT! ☹☹☹"
 
-#: src/ui/gtk/settings.c:1358
+#: src/ui/gtk/settings.c:1362
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
 msgstr ""
 
-#: src/ui/gtk/settings.c:1390
+#: src/ui/gtk/settings.c:1394
 msgid "*** FILE DESCRIPTORS HAVE RUN OUT! ***"
 msgstr "☹☹☹ ELFOGYOTAK A FÁJLLEÍRÓK! ☹☹☹"
 
-#: src/ui/gtk/settings.c:1395
+#: src/ui/gtk/settings.c:1399
 msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr "☹☹☹ KEVÉS FÁJLLEÍRÓ! ☹☹☹"
 
-#: src/ui/gtk/settings.c:1410
+#: src/ui/gtk/settings.c:1414
 msgid "*** VERSION WILL SOON BECOME OLD! ***"
 msgstr "☹☹☹ VÁLTOZAT HAMAROSAN ELAVUL! ☹☹☹"
 
-#: src/ui/gtk/settings.c:1413
+#: src/ui/gtk/settings.c:1417
 #, fuzzy, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
 msgid_plural "*** VERSION WILL BECOME OLD IN %d DAYS! ***"
 msgstr[0] "☹☹☹ VÁLTOZAT %d NAPON BELÜL ELAVUL! ☹☹☹"
 
-#: src/ui/gtk/settings.c:1804 src/ui/gtk/settings.c:1841
+#: src/ui/gtk/settings.c:1808 src/ui/gtk/settings.c:1845
 msgid "Hide settings"
 msgstr "Beállítások rejtése"
 
-#: src/ui/gtk/settings.c:1878
+#: src/ui/gtk/settings.c:1882
 #, c-format
 msgid "Address/port changed to: %s"
 msgstr "Cím/Kapu %s-re változott"
 
-#: src/ui/gtk/settings.c:2209
+#: src/ui/gtk/settings.c:2213
 msgid "no sources"
 msgstr "nincs forrás"
 
-#: src/ui/gtk/settings.c:2213
+#: src/ui/gtk/settings.c:2217
 #, fuzzy, c-format
 msgid "%u source"
 msgid_plural "%u sources"
 msgstr[0] "%u forrás"
 
-#: src/ui/gtk/settings.c:2228
+#: src/ui/gtk/settings.c:2232
 #, c-format
 msgid "%u active"
 msgstr "%u aktív"
 
-#: src/ui/gtk/settings.c:2256
+#: src/ui/gtk/settings.c:2260
 #, c-format
 msgid "%u queued"
 msgstr "%u sorban"
 
-#: src/ui/gtk/settings.c:2377
+#: src/ui/gtk/settings.c:2381
 #, fuzzy, c-format
 msgid "%u/%u connection"
 msgid_plural "%u/%u connections"
 msgstr[0] "%u/%u kapcsolat"
 
-#: src/ui/gtk/settings.c:2414
+#: src/ui/gtk/settings.c:2418
 #, fuzzy, c-format
 msgid "%u/%u upload"
 msgid_plural "%u/%u uploads"
 msgstr[0] "%u/%u feltöltés"
 
-#: src/ui/gtk/settings.c:2439
+#: src/ui/gtk/settings.c:2443
 #, fuzzy, c-format
 msgid "%u/%u download"
 msgid_plural "%u/%u downloads"

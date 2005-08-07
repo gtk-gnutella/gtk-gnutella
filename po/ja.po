@@ -57,8 +57,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-08-02 19:45+0900\n"
-"PO-Revision-Date: 2005-08-02 21:57+0900\n"
+"POT-Creation-Date: 2005-08-07 12:09+0900\n"
+"PO-Revision-Date: 2005-08-06 14:38+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -69,159 +69,159 @@ msgstr ""
 "X-Poedit-Country: JAPAN\n"
 "X-Poedit-SourceCharset: utf-8\n"
 
-#: src/core/downloads.c:495 src/core/downloads.c:553
+#: src/core/downloads.c:502 src/core/downloads.c:560
 msgid "No longer connected"
 msgstr "もう接続していません"
 
 # FIXME: needs separated
-#: src/core/downloads.c:542 src/core/nodes.c:834 src/ui/gtk/hcache_common.c:43
+#: src/core/downloads.c:549 src/core/nodes.c:835 src/ui/gtk/hcache_common.c:43
 msgid "Timeout"
 msgstr "タイムアウト"
 
-#: src/core/downloads.c:1287
+#: src/core/downloads.c:1294
 msgid "Requeued by file info change"
 msgstr "待機列に戻されました (ファイル情報変更)"
 
-#: src/core/downloads.c:1367 src/core/downloads.c:2426
-#: src/core/downloads.c:3322
+#: src/core/downloads.c:1374 src/core/downloads.c:2433
+#: src/core/downloads.c:3329
 msgid "Suspended (SHA1 checking)"
 msgstr "一時休止 (SHA1 確認中)"
 
-#: src/core/downloads.c:2554
+#: src/core/downloads.c:2561
 msgid "Waiting for a free chunk"
 msgstr "空きチャンクを待受中"
 
-#: src/core/downloads.c:2710 src/core/downloads.c:3332
+#: src/core/downloads.c:2717 src/core/downloads.c:3339
 msgid "No download slot"
 msgstr "ダウンロード受口がありません"
 
-#: src/core/downloads.c:2756
+#: src/core/downloads.c:2763
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "接続失敗 (ファイル記述子は足りていますか？)"
 
-#: src/core/downloads.c:2973
+#: src/core/downloads.c:2980
 msgid "Ignoring Push flag"
 msgstr "PUSH フラッグを無視します"
 
-#: src/core/downloads.c:3004
+#: src/core/downloads.c:3011
 #, c-format
 msgid "No direct connection yet (%d retry)"
 msgid_plural "No direct connection yet (%d retries)"
 msgstr[0] "まだ直接接続していません (%d 回目)"
 
-#: src/core/downloads.c:3011 src/core/downloads.c:3025
+#: src/core/downloads.c:3018 src/core/downloads.c:3032
 #, c-format
 msgid "Timeout (%d retry)"
 msgid_plural "Timeout (%d retries)"
 msgstr[0] "タイムアウトしました (%d 回目)"
 
-#: src/core/downloads.c:3015
+#: src/core/downloads.c:3022
 #, c-format
 msgid "Connection refused (%d retry)"
 msgid_plural "Connection refused (%d retries)"
 msgstr[0] "接続を拒否されました (%d 回目)"
 
-#: src/core/downloads.c:3313
+#: src/core/downloads.c:3320
 msgid "Dup SHA1 during creation"
 msgstr "作成中に SHA1 を複製します"
 
-#: src/core/downloads.c:3548
+#: src/core/downloads.c:3555
 msgid "Stopped (Index changed)"
 msgstr "中止 (インデックス変更)"
 
-#: src/core/downloads.c:3856
+#: src/core/downloads.c:3863
 msgid "Explicitly requeued"
 msgstr "待機列に戻されました (手動)"
 
-#: src/core/downloads.c:4033
+#: src/core/downloads.c:4040
 #, c-format
 msgid "Stopped (%s)"
 msgstr "中止されました (%s)"
 
-#: src/core/downloads.c:4036 src/core/downloads.c:4071
+#: src/core/downloads.c:4043 src/core/downloads.c:4078
 #, c-format
 msgid "Too many attempts (%d times)"
 msgstr "要求回数が多すぎます (%d 回)"
 
-#: src/core/downloads.c:4038 src/core/downloads.c:5292
-#: src/core/downloads.c:6360
+#: src/core/downloads.c:4045 src/core/downloads.c:5299
+#: src/core/downloads.c:6367
 #, c-format
 msgid "Failed (Read error: %s)"
 msgstr "失敗しました (読込エラー: %s)"
 
-#: src/core/downloads.c:4067
+#: src/core/downloads.c:4074
 msgid "Connection not kept-alive (EOF)"
 msgstr "接続が Keep-Alive ではありません (EOF)"
 
-#: src/core/downloads.c:4068
+#: src/core/downloads.c:4075
 msgid "Stopped (EOF)"
 msgstr "中止されました (EOF)"
 
-#: src/core/downloads.c:4185 src/core/downloads.c:6179
+#: src/core/downloads.c:4192 src/core/downloads.c:6186
 msgid "Stopped (Output file size changed)"
 msgstr "中止されました (出力ファイルサイズ変更)"
 
-#: src/core/downloads.c:4379
+#: src/core/downloads.c:4386
 #, c-format
 msgid "Can't save data: %s"
 msgstr "データを保存できません: %s"
 
-#: src/core/downloads.c:4435
+#: src/core/downloads.c:4442
 msgid "Requeued by competing download"
 msgstr "待機列に戻されました (競合ダウンロード)"
 
-#: src/core/downloads.c:4499
+#: src/core/downloads.c:4506
 msgid "Requeued after trimmed data"
 msgstr "待機列に戻されました (データ整理後)"
 
-#: src/core/downloads.c:4501
+#: src/core/downloads.c:4508
 msgid "Chunk done, connection closed"
 msgstr "チャンク完了、接続を閉じます"
 
-#: src/core/downloads.c:4668
+#: src/core/downloads.c:4675
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "おかしな HTTP ステータス (プロトコルが非同期？)"
 
-#: src/core/downloads.c:4994
+#: src/core/downloads.c:5001
 msgid "No URN on server, waiting for overlap"
 msgstr "サーバに URN がありません、オーバーラップ待受中"
 
-#: src/core/downloads.c:5000
+#: src/core/downloads.c:5007
 msgid "No URN on server to validate"
 msgstr "サーバに確認するための URN がありません"
 
-#: src/core/downloads.c:5046
+#: src/core/downloads.c:5053
 msgid "URN fileinfo mismatch"
 msgstr "URN ファイル情報が一致しません"
 
-#: src/core/downloads.c:5066
+#: src/core/downloads.c:5073
 msgid "Discovered dup SHA1"
 msgstr "重複する SHA1 を発見しました"
 
-#: src/core/downloads.c:5274 src/core/downloads.c:5282
-#: src/core/downloads.c:6310 src/core/downloads.c:6350
+#: src/core/downloads.c:5281 src/core/downloads.c:5289
+#: src/core/downloads.c:6317 src/core/downloads.c:6357
 msgid "Stopped data (EOF)"
 msgstr "データ転送が中止されました (EOF)"
 
-#: src/core/downloads.c:5663 src/core/downloads.c:6159
+#: src/core/downloads.c:5670 src/core/downloads.c:6166
 msgid "Partial file on server, waiting"
 msgstr "サーバの部分ファイルを待受中"
 
-#: src/core/downloads.c:5763
+#: src/core/downloads.c:5770
 #, c-format
 msgid "Queued (slot %d/%d) ETA: %s"
 msgstr "待機中 (受口 %d/%d) 予定時間: %s"
 
-#: src/core/downloads.c:6318
+#: src/core/downloads.c:6325
 msgid "Stopped (Read buffer full)"
 msgstr "中止されました (読込バッファが一杯です)"
 
-#: src/core/downloads.c:6357
+#: src/core/downloads.c:6364
 #, c-format
 msgid "Stopped data (%s)"
 msgstr "データ転送が中止されました (%s)"
 
-#: src/core/downloads.c:7514
+#: src/core/downloads.c:7521
 msgid "SHA1 mismatch detected"
 msgstr "SHA1 の不一致を検出しました"
 
@@ -348,197 +348,197 @@ msgstr "ウェブキャッシュ %s に接続しています。"
 msgid "Updated web cache "
 msgstr "ウェブキャッシュを更新しました"
 
-#: src/core/nodes.c:842
+#: src/core/nodes.c:843
 #, c-format
 msgid "Shutdown (%s)"
 msgstr "停止 (%s)"
 
-#: src/core/nodes.c:2858
+#: src/core/nodes.c:2867
 #, c-format
 msgid "Got %d connection pong"
 msgid_plural "Got %d connection pongs"
 msgstr[0] "%d の接続 Pong を受信しました。"
 
-#: src/core/nodes.c:2898 src/core/nodes.c:5020 src/core/nodes.c:5044
+#: src/core/nodes.c:2908 src/core/nodes.c:5035 src/core/nodes.c:5059
 msgid "Sent crawling info"
 msgstr "クローリング情報を送信しました"
 
-#: src/core/nodes.c:3060
+#: src/core/nodes.c:3073
 msgid "Cannot setup compressing TX stack"
 msgstr "圧縮送信スタックを準備できません"
 
-#: src/core/nodes.c:3274
+#: src/core/nodes.c:3287
 #, c-format
 msgid "Got BYE %d %.*s"
 msgstr "BYE %d %.*s を受信しました"
 
-#: src/core/nodes.c:3605
+#: src/core/nodes.c:3620
 #, c-format
 msgid "Weird HELLO %s"
 msgstr "おかしな HELLO %s"
 
-#: src/core/nodes.c:3617
+#: src/core/nodes.c:3632
 #, c-format
 msgid "HELLO %s error %d (%s)"
 msgstr "HELLO %s エラー %d (%s)"
 
-#: src/core/nodes.c:3621
+#: src/core/nodes.c:3636
 msgid "Shielded node"
 msgstr "保護ノードです"
 
-#: src/core/nodes.c:3652
+#: src/core/nodes.c:3667
 msgid "Gnet connections disabled"
 msgstr "Gnet 接続が無効になっています"
 
-#: src/core/nodes.c:3677
+#: src/core/nodes.c:3692
 msgid "Unstable IP address"
 msgstr "動的 IP アドレスです"
 
-#: src/core/nodes.c:3680
+#: src/core/nodes.c:3695
 msgid "Servent version appears unstable"
 msgstr "このサーバントは不安定です"
 
-#: src/core/nodes.c:3683
+#: src/core/nodes.c:3698
 msgid "No vendor string supplied"
 msgstr "ベンダ文字列を送ってきません"
 
-#: src/core/nodes.c:3688
+#: src/core/nodes.c:3703
 #, c-format
 msgid "Not connecting: %s"
 msgstr "接続しません: %s"
 
-#: src/core/nodes.c:3720 src/core/nodes.c:3758 src/core/nodes.c:3802
-#: src/core/nodes.c:3851 src/core/nodes.c:3904
+#: src/core/nodes.c:3735 src/core/nodes.c:3773 src/core/nodes.c:3817
+#: src/core/nodes.c:3866 src/core/nodes.c:3919
 msgid "Connection not compressed"
 msgstr "接続が圧縮されていません"
 
-#: src/core/nodes.c:3735
+#: src/core/nodes.c:3750
 #, c-format
 msgid "Too many leaves (%d max)"
 msgstr "リーフノード数が多すぎます (最大 %d 基)"
 
-#: src/core/nodes.c:3772 src/core/nodes.c:3888
+#: src/core/nodes.c:3787 src/core/nodes.c:3903
 #, c-format
 msgid "Too many ultra nodes (%d max)"
 msgstr "ウルトラノード数が多すぎます (最大 %d 基)"
 
-#: src/core/nodes.c:3821
+#: src/core/nodes.c:3836
 #, c-format
 msgid "Rejected normal node (%d max)"
 msgstr "通常ノードを拒否しました (最大 %d 基)"
 
-#: src/core/nodes.c:3833
+#: src/core/nodes.c:3848
 msgid "Rejected leaf node"
 msgstr "リーフノードを拒否しました"
 
-#: src/core/nodes.c:3839
+#: src/core/nodes.c:3854
 #, c-format
 msgid "Too many nodes (%d max)"
 msgstr "ノード数が多すぎます (最大 %d 基)"
 
-#: src/core/nodes.c:3875
+#: src/core/nodes.c:3890
 msgid "Sent shielded indication"
 msgstr "保護表示を送信しました"
 
-#: src/core/nodes.c:3881
+#: src/core/nodes.c:3896
 msgid "Not an ultra node"
 msgstr "ウルトラノードではありません"
 
-#: src/core/nodes.c:3954
+#: src/core/nodes.c:3969
 msgid "Protocol not acceptable"
 msgstr "このプロトコルは受け付けられません"
 
-#: src/core/nodes.c:4235
+#: src/core/nodes.c:4250
 msgid "Servent Shutdown"
 msgstr "サーバントが停止します"
 
-#: src/core/nodes.c:4507
+#: src/core/nodes.c:4522
 msgid "Too frequent crawling"
 msgstr "クローリングの頻度が多すぎます"
 
-#: src/core/nodes.c:4673
+#: src/core/nodes.c:4688
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
 msgstr "このベンダはスロットの %d%% を越えます"
 
-#: src/core/nodes.c:4683
+#: src/core/nodes.c:4698
 msgid "Reserved slot"
 msgstr "スロットは予約されています"
 
-#: src/core/nodes.c:4720
+#: src/core/nodes.c:4735
 msgid "Too ancient Gnutella protocol"
 msgstr "Gnutella プロトコルが古すぎます"
 
-#: src/core/nodes.c:4738
+#: src/core/nodes.c:4753
 msgid "Cannot connect to a crawler"
 msgstr "クロウラーに接続できません"
 
-#: src/core/nodes.c:4773
+#: src/core/nodes.c:4788
 msgid "Not becoming a leaf node"
 msgstr "リーフノードにはなりません"
 
-#: src/core/nodes.c:4945
+#: src/core/nodes.c:4960
 #, c-format
 msgid "Failed (Cannot send %s: %s)"
 msgstr "失敗しました (%s: %s を送信できません)"
 
-#: src/core/nodes.c:4952
+#: src/core/nodes.c:4967
 #, c-format
 msgid "Failed (Cannot send %s atomically)"
 msgstr "失敗しました (%s を自動送信できません)"
 
-#: src/core/nodes.c:4999
+#: src/core/nodes.c:5014
 msgid "Failed (Header line too long)"
 msgstr "失敗しました (ヘッダ行が長すぎます)"
 
-#: src/core/nodes.c:5011 src/core/uploads.c:1096
+#: src/core/nodes.c:5026 src/core/uploads.c:1186
 #, c-format
 msgid "Failed (%s)"
 msgstr "失敗しました (%s)"
 
-#: src/core/nodes.c:5020 src/core/uploads.c:1102
+#: src/core/nodes.c:5035 src/core/uploads.c:1192
 msgid "Failed (Input Exception)"
 msgstr "失敗しました (入力例外が発生)"
 
-#: src/core/nodes.c:5026
+#: src/core/nodes.c:5041
 msgid "Failed (Input buffer full)"
 msgstr "失敗しました (入力バッファが一杯です)"
 
-#: src/core/nodes.c:5032 src/core/uploads.c:1114
+#: src/core/nodes.c:5047 src/core/uploads.c:1204
 #, c-format
 msgid "Failed (Input error: %s)"
 msgstr "失敗しました (入力エラー: %s)"
 
-#: src/core/nodes.c:5044 src/core/uploads.c:1122
+#: src/core/nodes.c:5059 src/core/uploads.c:1212
 msgid "Failed (EOF)"
 msgstr "失敗しました (EOF)"
 
-#: src/core/nodes.c:5050
+#: src/core/nodes.c:5065
 msgid "Failed (Extra HELLO data)"
 msgstr "失敗しました (余計な HELLO データがあります)"
 
-#: src/core/nodes.c:5100
+#: src/core/nodes.c:5115
 msgid "Pseudo UDP node"
 msgstr "擬似 UDP ノード"
 
-#: src/core/nodes.c:5427
+#: src/core/nodes.c:5446
 msgid "Already connected"
 msgstr "既に接続しています"
 
-#: src/core/nodes.c:5945 src/core/nodes.c:6130
+#: src/core/nodes.c:5964 src/core/nodes.c:6149
 #, c-format
 msgid "Write error during HELLO: %s"
 msgstr "HELLO の最中に書込エラー: %s"
 
-#: src/core/nodes.c:6040
+#: src/core/nodes.c:6059
 msgid "Out of memory"
 msgstr "メモリが足りません"
 
-#: src/core/nodes.c:6135
+#: src/core/nodes.c:6154
 msgid "Connection reset during HELLO"
 msgstr "HELLO の最中に接続がリセットされました"
 
-#: src/core/nodes.c:6374
+#: src/core/nodes.c:6393
 #, c-format
 msgid "Kicked: %s message too big (%d bytes)"
 msgstr "除外されました: メッセージ %s は大きすぎます (%d バイト)"
@@ -565,7 +565,7 @@ msgstr "設定フォルダ \"%s\" を作成しています"
 msgid "Cannot proceed without valid configuration directory"
 msgstr "適当な設定フォルダが無いと先に進めません"
 
-#: src/core/settings.c:1296
+#: src/core/settings.c:1291
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "TCP がファイアウォール内にある場合はリーフとしてのみ動作します"
 
@@ -699,11 +699,11 @@ msgstr "読込エラー"
 msgid "Connection failed"
 msgstr "接続に失敗しました"
 
-#: src/core/tx_link.c:74
+#: src/core/tx_link.c:75
 msgid "Write failed (Input Exception)"
 msgstr "書込み失敗 (入力例外が発生しました)"
 
-#: src/core/tx_link.c:165 src/core/tx_link.c:180
+#: src/core/tx_link.c:167 src/core/tx_link.c:183
 #, c-format
 msgid "Write failed: %s"
 msgstr "書込み失敗: %s"
@@ -724,68 +724,98 @@ msgid "Got %d host from UDP host cache %s:%u"
 msgid_plural "Got %d hosts from UDP host cache %s:%u"
 msgstr[0] "UDP ホストキャッシュ %2$s:%3$u から %1$d 基のホストを取得しました。"
 
-#: src/core/uploads.c:382
+#: src/core/uploads.c:386
 msgid "Connect back timeout"
 msgstr "折り返し接続がタイムアウトしました"
 
-#: src/core/uploads.c:389
+#: src/core/uploads.c:393
 msgid "Lifetime expired"
 msgstr "有効期間が切れました"
 
-#: src/core/uploads.c:472
+#: src/core/uploads.c:476
 #, c-format
 msgid "Banned: %s"
 msgstr "禁止されました: %s"
 
-#: src/core/uploads.c:474
+#: src/core/uploads.c:478
 #, c-format
 msgid "Banned for %s"
 msgstr "%s を禁止します"
 
-#: src/core/uploads.c:1418
+#: src/core/uploads.c:1508
 msgid "Unable to send GIV"
 msgstr "GIV を送信できません"
 
-#: src/core/uploads.c:2270
+#: src/core/uploads.c:2431
 msgid "<Browse Host Request>"
 msgstr "<ホスト閲覧リクエスト>"
 
-#: src/core/uploads.c:2283
+#: src/core/uploads.c:2469
 msgid "Browse Host Enabled"
 msgstr "ホスト閲覧が有効にされました"
 
-#: src/core/uploads.c:2690
+#: src/core/uploads.c:2539
+#, c-format
+msgid "<Browse Host Request> [%s%s%s]"
+msgstr "<ホスト閲覧リクエスト> [%s%s%s]"
+
+#: src/core/uploads.c:2540
+msgid "query hits"
+msgstr "検索式ヒット"
+
+#: src/core/uploads.c:2541
+msgid ", deflated"
+msgstr ", デフレ化"
+
+#: src/core/uploads.c:2542
+msgid ", chunked"
+msgstr ", チャンク化"
+
+#: src/core/uploads.c:2958
 msgid "Stalling upload replaced"
 msgstr "停滞アップロードを置換えます"
 
-#: src/core/uploads.c:2840
+#: src/core/uploads.c:3108
 #, c-format
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "待機中 (受口 %d, 予定時間: %s)"
 
-#: src/core/uploads.c:3026
+#: src/core/uploads.c:3335
 msgid "Cannot send whole HTTP status"
 msgstr "全 HTTP ステータスを送信できません"
 
-#: src/core/uploads.c:3113
+#: src/core/uploads.c:3428
 msgid "Write exception"
 msgstr "書込み例外が発生しました"
 
-#: src/core/uploads.c:3188 src/core/uploads.c:3295
+#: src/core/uploads.c:3503
 #, c-format
 msgid "File read error: %s"
 msgstr "ファイル読込エラー: %s"
 
-#: src/core/uploads.c:3225 src/core/uploads.c:3315
+#: src/core/uploads.c:3507
+msgid "File EOF?"
+msgstr "ファイルの EOF?"
+
+#: src/core/uploads.c:3540
 #, c-format
 msgid "Data write error: %s"
 msgstr "データ書込エラー: %s"
 
-#: src/core/uploads.c:3344
+#: src/core/uploads.c:3544
+msgid "No bytes written, source may be gone"
+msgstr "書込バイトなし、送信元が無くなったかもしれません"
+
+#: src/core/uploads.c:3655
+#, c-format
+msgid "Special read error: %s"
+msgstr "特殊読込エラー: %s"
+
+#: src/core/uploads.c:3698
 msgid "Explicitly killed"
 msgstr "明示的に中断されました"
 
-#: src/core/uploads.c:3370
+#: src/core/uploads.c:3723
 msgid "IP denying uploads"
 msgstr "IP がアップロードを拒否します"
 
@@ -829,15 +859,15 @@ msgstr "ウルトラノード"
 msgid "leaf node"
 msgstr "リーフノード"
 
-#: src/if/gnet_property.c:583
+#: src/if/gnet_property.c:585
 msgid "Indicates whether the hostcache file is being read."
 msgstr "ホストキャッシュファイルが読込めるかどうかを示します。"
 
-#: src/if/gnet_property.c:600
+#: src/if/gnet_property.c:602
 msgid "Indicates whether the ultracache file is being read."
 msgstr "ウルトラキャッシュファイルが読込めるかどうかを示します。"
 
-#: src/if/gnet_property.c:617
+#: src/if/gnet_property.c:619
 msgid ""
 "Indicates that gtk-gnutella finds the version you run very VERY old.  You "
 "should upgrade as soon as possible to avoid suffering from non-optimal "
@@ -850,7 +880,7 @@ msgstr ""
 "新の機能に対応していない事で Gnutella ネットワークにも有害になります。これを"
 "避けるためにも、できるだけ早くアップグレードするようお願いします。"
 
-#: src/if/gnet_property.c:634
+#: src/if/gnet_property.c:636
 msgid ""
 "Gtk-Gnutella found a newer version on the Gnet and gives information about "
 "it here."
@@ -858,7 +888,7 @@ msgstr ""
 "Gnutella ネットワーク上に新しいバージョンを発見しました、ここに情報を提示しま"
 "す。"
 
-#: src/if/gnet_property.c:655
+#: src/if/gnet_property.c:657
 msgid ""
 "Try to keep at least this number of connections to other servents of the "
 "same kind as we are (normal or ultra nodes). This should be smaller than the "
@@ -872,7 +902,7 @@ msgstr ""
 "は 4 ですので、検索のための適当な範囲を提供するには 30 以上にする事が必要で"
 "す。"
 
-#: src/if/gnet_property.c:675
+#: src/if/gnet_property.c:677
 msgid ""
 "When in ultrapeer mode, try to keep at least this number of connections to "
 "normal servents.  This should be smaller than the maximum amount of "
@@ -882,7 +912,7 @@ msgstr ""
 "持するようにします。ノード内へ許可する最大接続数よりも少なくしたほうが良いで"
 "しょう。"
 
-#: src/if/gnet_property.c:695
+#: src/if/gnet_property.c:697
 msgid ""
 "Don't allow more than this number of connections to other servents.  As a "
 "rule of thumb you should reserve 256 b/s bandwidth per connection. Never use "
@@ -894,19 +924,19 @@ msgstr ""
 "TCP/IP オーバーへッドのための小さな空きを残して置いて下さい。この値を 30 より"
 "小さくする事は望ましくありません。"
 
-#: src/if/gnet_property.c:715
+#: src/if/gnet_property.c:717
 msgid "Number of leaf nodes currently connected."
 msgstr "現在接続しているリーフノード数です。"
 
-#: src/if/gnet_property.c:735
+#: src/if/gnet_property.c:737
 msgid "Number of normal nodes currently connected."
 msgstr "現在接続している通常ノード数です。"
 
-#: src/if/gnet_property.c:755
+#: src/if/gnet_property.c:757
 msgid "Number of ultra nodes currently connected."
 msgstr "現在接続しているウルトラノード数です。"
 
-#: src/if/gnet_property.c:775
+#: src/if/gnet_property.c:777
 msgid ""
 "Don't start more than this number of parallel downloads.  Others will remain "
 "in the queue waiting for a download slot."
@@ -914,7 +944,7 @@ msgstr ""
 "この数以上並行してダウンロードを開始しません。他のものはダウンロード受口が空"
 "くのを待ちながら待機列に残ります。"
 
-#: src/if/gnet_property.c:795
+#: src/if/gnet_property.c:797
 msgid ""
 "Don't make more connections than given here to a single host to download a "
 "file.  Be nice to others, and leave it at the default value (1)."
@@ -923,7 +953,7 @@ msgstr ""
 "に対して行いません。他の方への配慮のためにも、標準の値 (1) のままにしておいて"
 "下さい。"
 
-#: src/if/gnet_property.c:815
+#: src/if/gnet_property.c:817
 msgid ""
 "Don't allow more than this number of uploads in total. This also defines the "
 "amount of PARQ queues that will be used. You should at least set it to 2."
@@ -931,33 +961,33 @@ msgstr ""
 "合計でこれ以上のアップロードを許可しません。これは今後使用される PARQ キュー"
 "の数量も決定します。最低でも 2 以上を指定して下さい。"
 
-#: src/if/gnet_property.c:835
+#: src/if/gnet_property.c:837
 msgid ""
 "Don't upload more than this number of files in parallel to a single host."
 msgstr ""
 "この数以上のファイルを一つのホストに対して並行してアップロードしません。"
 
-#: src/if/gnet_property.c:855
+#: src/if/gnet_property.c:857
 msgid "Local IP address last determined."
 msgstr "最新のローカル IP アドレスです。"
 
-#: src/if/gnet_property.c:875
+#: src/if/gnet_property.c:877
 msgid "When the current IP address was determined."
 msgstr "現在の IP アドレスの決定時刻です。"
 
-#: src/if/gnet_property.c:895
+#: src/if/gnet_property.c:897
 msgid "Average uptime with the same IP address."
 msgstr "同じ IP アドレスでの平均稼働時間です。"
 
-#: src/if/gnet_property.c:915
+#: src/if/gnet_property.c:917
 msgid "Timestamp at which servent was started."
 msgstr "サーバントの起動時刻です。"
 
-#: src/if/gnet_property.c:935
+#: src/if/gnet_property.c:937
 msgid "Average servent uptime."
 msgstr "サーバントの平均稼動時間です。"
 
-#: src/if/gnet_property.c:955
+#: src/if/gnet_property.c:957
 msgid ""
 "Local TCP port gtk-gnutella is listening on. Your ISP may block or choke "
 "traffic on TCP port 6346 so it would be a good idea to change it to "
@@ -971,12 +1001,12 @@ msgstr ""
 "ルのポートを転送する/開けるのを忘れないで下さい。行き過ぎた検閲に対する防護の"
 "ため、標準では TCP 6346番ポートは使用されない事を覚えておいて下さい。"
 
-#: src/if/gnet_property.c:975
+#: src/if/gnet_property.c:977
 msgid "Use this IP address as source address if 'force local ip' is activated."
 msgstr ""
 "「強制ローカル IP」を有効にすると、これを発信元アドレスとして用います。"
 
-#: src/if/gnet_property.c:995
+#: src/if/gnet_property.c:997
 msgid ""
 "The connection bandwidth reported to other hosts. This is the speed at which "
 "you can upload things to others."
@@ -984,7 +1014,7 @@ msgstr ""
 "他のホストへ告げる接続帯域幅です。これは他のホストへアップロードする時の速度"
 "を表します。"
 
-#: src/if/gnet_property.c:1015
+#: src/if/gnet_property.c:1017
 msgid ""
 "Whether the connection bandwidth reported to other hosts should be computed "
 "based on the current average upload speed. The reported speed is the "
@@ -999,7 +1029,7 @@ msgstr ""
 "均帯域幅 (または、まだトラフィックが無ければ最大に設定された帯域幅) です。有"
 "効にすると (推奨設定)、ハード拘束された接続速度は使用されません。"
 
-#: src/if/gnet_property.c:1032
+#: src/if/gnet_property.c:1034
 msgid ""
 "Return at most this number of results to a query, using as many query hit "
 "packets as necessary.  To avoid network flooding, keep this to a reasonable "
@@ -1009,7 +1039,7 @@ msgstr ""
 "だけの結果を返します。ネットワークの氾濫を避けるために、妥当な値を設定してお"
 "いて下さい。"
 
-#: src/if/gnet_property.c:1052
+#: src/if/gnet_property.c:1054
 msgid ""
 "Unless this percentage or more of the upload bandwidth is used, allow "
 "additional upload slots."
@@ -1017,27 +1047,27 @@ msgstr ""
 "この割合以上のアップロード帯域幅が使用されていなければ、アップロード受口の追"
 "加を許可します。"
 
-#: src/if/gnet_property.c:1072
+#: src/if/gnet_property.c:1074
 msgid "Number of seconds before a download connect attempt times out."
 msgstr "ダウンロードの接続要求がタイムアウトになるまでの秒数です。"
 
-#: src/if/gnet_property.c:1092
+#: src/if/gnet_property.c:1094
 msgid "Number of seconds before a push request times out."
 msgstr "PUSH リクエストがタイムアウトになるまでの秒数です。"
 
-#: src/if/gnet_property.c:1112
+#: src/if/gnet_property.c:1114
 msgid "Number of seconds before a download times out if no data is received."
 msgstr "データを受け取れずにダウンロードがタイムアウトになるまでの秒数です。"
 
-#: src/if/gnet_property.c:1132
+#: src/if/gnet_property.c:1134
 msgid "Minimum number of seconds to wait on auto-retry timeouts."
 msgstr "自動再試行がタイムアウトになるまでの最短待機秒数です。"
 
-#: src/if/gnet_property.c:1152
+#: src/if/gnet_property.c:1154
 msgid "Maximum number of seconds to wait on auto-retry timeouts."
 msgstr "自動再試行がタイムアウトになるまでの最長待機秒数です。"
 
-#: src/if/gnet_property.c:1172
+#: src/if/gnet_property.c:1174
 msgid ""
 "Maximum number of attempts to download a file not counting HTTP busy "
 "indications."
@@ -1045,24 +1075,24 @@ msgstr ""
 "あるファイルのダウンロードを試みる最大回数です。ただし、HTTP 使用中と示された"
 "ものは含まれません。"
 
-#: src/if/gnet_property.c:1192
+#: src/if/gnet_property.c:1194
 msgid "Delay in seconds before retrying after a connection timed out."
 msgstr "接続がタイムアウトになった後に再試行するまでの遅延秒数です。"
 
-#: src/if/gnet_property.c:1212
+#: src/if/gnet_property.c:1214
 msgid ""
 "Delay in seconds before retrying after getting a 'busy' response from a host."
 msgstr ""
 "ホストから '使用中' という応答が返ってきてからの再試行までの遅延秒数です。"
 
-#: src/if/gnet_property.c:1232
+#: src/if/gnet_property.c:1234
 msgid ""
 "Delay in seconds before retrying after getting a 'connection refused' "
 "response from a host."
 msgstr ""
 "ホストから '接続拒否' という応答が返ってきてからの再試行までの遅延秒数です。"
 
-#: src/if/gnet_property.c:1252
+#: src/if/gnet_property.c:1254
 msgid ""
 "Delay in seconds before retrying after a retry stopped (timed out, "
 "connection reset by peer, etc...)."
@@ -1070,7 +1100,7 @@ msgstr ""
 "再試行が中断(タイムアウト、ピアによる接続リセット他...)された後の再試行までの"
 "遅延時間です。"
 
-#: src/if/gnet_property.c:1272
+#: src/if/gnet_property.c:1274
 msgid ""
 "Amount of bytes to overlap when resuming a download. It should be at least "
 "64 bytes for safe resuming, otherwise gtk-gnutella will not accept to resume "
@@ -1080,7 +1110,7 @@ msgstr ""
 "64 バイト以上にすべきでしょう。さもなくば、サーバが SHA1 を送り返してくるま"
 "で、その値が判明しないファイルの再開を受け付けません。"
 
-#: src/if/gnet_property.c:1292
+#: src/if/gnet_property.c:1294
 msgid ""
 "Number of seconds before an upload times out if no connection can be "
 "established during a push.  It is also the maximum amount of time we wait to "
@@ -1089,13 +1119,13 @@ msgstr ""
 "PUSH の最中に接続が全く確立されずにアップロードがタイムアウトになるまでの秒数"
 "です。これは全ての HTTP リクエストを取得するのに待つ最長時間でもあります。"
 
-#: src/if/gnet_property.c:1312
+#: src/if/gnet_property.c:1314
 msgid ""
 "Number of seconds after which an upload times out if no data is transmitted."
 msgstr ""
 "データが伝達されない場合にアップロードがタイムアウトになるまでの秒数です。"
 
-#: src/if/gnet_property.c:1332
+#: src/if/gnet_property.c:1334
 msgid ""
 "Amount of seconds to wait before a search is issued again to see if new "
 "results are available.  Be very careful with this parameter, and do not set "
@@ -1107,7 +1137,7 @@ msgstr ""
 "Gnutella ネットワークに損害を与えてしまう事になります。30分をみるのが良いで"
 "しょう。"
 
-#: src/if/gnet_property.c:1352
+#: src/if/gnet_property.c:1354
 msgid ""
 "Maximum ratio of file descriptors reserved for banning. For instance, if "
 "your OS gives you 350 file descriptors, a ratio of 10 will reserve at most "
@@ -1120,11 +1150,11 @@ msgstr ""
 "ておいた方がいいでしょう。(附記) お使いのシステムの標準値は ulimit -n で確認"
 "できます。"
 
-#: src/if/gnet_property.c:1372
+#: src/if/gnet_property.c:1374
 msgid "Maximum number of file descriptors reserved for banning."
 msgstr "禁止処理に予約されるファイル記述子の最大数です。"
 
-#: src/if/gnet_property.c:1392
+#: src/if/gnet_property.c:1394
 msgid ""
 "Amount of file descriptors currently used for banning, i.e. which are "
 "currently kept open for delayed close."
@@ -1132,17 +1162,17 @@ msgstr ""
 "現在禁止処理に使用されているファイル記述子の数です。つまり、後で閉じるために"
 "開かれ続けている数です。"
 
-#: src/if/gnet_property.c:1412
+#: src/if/gnet_property.c:1414
 msgid "Number of file descriptors we'll actually be using for banning."
 msgstr "実際に禁止処理に利用されるファイル記述子の最大数です。"
 
-#: src/if/gnet_property.c:1432
+#: src/if/gnet_property.c:1434
 msgid ""
 "Number of seconds an incoming connection has to start sending out its "
 "request."
 msgstr "ノード内への接続がその接続要求の送信を開始しなければならない時間です。"
 
-#: src/if/gnet_property.c:1452
+#: src/if/gnet_property.c:1454
 msgid ""
 "Number of seconds before a Gnet connect attempt times out if no connection "
 "can be established."
@@ -1150,7 +1180,7 @@ msgstr ""
 "接続が確立せずに Gnutella ネットワークへの接続の試みがタイムアウトになるまで"
 "の秒数です。"
 
-#: src/if/gnet_property.c:1472
+#: src/if/gnet_property.c:1474
 msgid ""
 "Number of seconds before a Gnet connection times out if no data is "
 "transmitted."
@@ -1158,7 +1188,7 @@ msgstr ""
 "データが伝達されずに Gnutella ネットワークの接続がタイムアウトになるまでの秒"
 "数です。"
 
-#: src/if/gnet_property.c:1492
+#: src/if/gnet_property.c:1494
 msgid ""
 "Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150 "
 "percent of the maximum message size."
@@ -1166,13 +1196,13 @@ msgstr ""
 "ノードへの送信キューの最大サイズ (バイト単位) です。少なくとも最大メッセージ"
 "サイズの 150 パーセントでなければなりません。"
 
-#: src/if/gnet_property.c:1512
+#: src/if/gnet_property.c:1514
 msgid ""
 "Maximum number of seconds a node can remain in transmit flow control before "
 "being kicked out."
 msgstr "除外するまで、あるノードを伝達フロー制御に残しておける最長秒数です。"
 
-#: src/if/gnet_property.c:1532
+#: src/if/gnet_property.c:1534
 msgid ""
 "Maximum percentage of time over 5 minutes that our node can remain in flow "
 "control remotely before dropping the connection.  This only works with nodes "
@@ -1182,7 +1212,7 @@ msgstr ""
 "低割合です。これはフロー制御時にホップ-フローメッセージを送信してくるノードの"
 "みで意味を持ちます。"
 
-#: src/if/gnet_property.c:1552
+#: src/if/gnet_property.c:1554
 msgid ""
 "Maximum TTL we allow in messages we broadcast.  If a query comes in with a "
 "TTL greater than that, it will be trimmed down to that value.  On Gnutella, "
@@ -1192,7 +1222,7 @@ msgstr ""
 "索式が来た場合、この値へ切り下げられます。Gnutella での標準は TTL=4 ですの"
 "で、これより低い値を設定することはできません。"
 
-#: src/if/gnet_property.c:1572
+#: src/if/gnet_property.c:1574
 msgid ""
 "The TTL we use in messages we generate.  The default on Gnutella is TTL=4.  "
 "If you set it to too large a value, you run the risk of being trimmed down "
@@ -1202,7 +1232,7 @@ msgstr ""
 "す。大きすぎる値を設定した場合、仲間の gtk-gnutella ノードに除外されたり、他"
 "のサーバントに弾かれるリスクを負うことになります。"
 
-#: src/if/gnet_property.c:1592
+#: src/if/gnet_property.c:1594
 msgid ""
 "Maximum hard TTL limit (hops + TTL) on messages we relay.  This should be "
 "greater than the standard TTL=4, because it is also applied to routed-back "
@@ -1217,119 +1247,119 @@ msgstr ""
 "の広域送信メッセージは設定した最大 TTL によって制限される TTL を持ち、この値"
 "より十分低くなっている必要があります。"
 
-#: src/if/gnet_property.c:1612
+#: src/if/gnet_property.c:1614
 msgid "For development use: debug level."
 msgstr "開発用: バグ解析レベルです。"
 
-#: src/if/gnet_property.c:1632
+#: src/if/gnet_property.c:1634
 msgid "Debug level for HTTP code."
 msgstr "HTTP コードのバグ解析レベルです。"
 
-#: src/if/gnet_property.c:1652
+#: src/if/gnet_property.c:1654
 msgid "Debug level for downloads."
 msgstr "ダウンロードのバグ解析レベルです。"
 
-#: src/if/gnet_property.c:1672
+#: src/if/gnet_property.c:1674
 msgid "Debug level for uploads."
 msgstr "アップロードのバグ解析レベルです。"
 
-#: src/if/gnet_property.c:1692
+#: src/if/gnet_property.c:1694
 msgid "Debug level for code shared between gui and core."
 msgstr "GUI とコアの間で共有されるコードのバグ解析レベルです。"
 
-#: src/if/gnet_property.c:1712
+#: src/if/gnet_property.c:1714
 msgid "Verbosity of Bitzi related debug messages."
 msgstr "Bitzi 関連のバグ解析メッセージの冗長度です。"
 
-#: src/if/gnet_property.c:1732
+#: src/if/gnet_property.c:1734
 msgid "Verbosity of GWebCache related debug messages."
 msgstr "G ウェブキャッシュ関連のバグ解析メッセージの冗長度です。"
 
-#: src/if/gnet_property.c:1752
+#: src/if/gnet_property.c:1754
 msgid "Verbosity of URL handling related debug messages."
 msgstr "URL ハンドリング関連のバグ解析メッセージの冗長度です。"
 
-#: src/if/gnet_property.c:1772
+#: src/if/gnet_property.c:1774
 msgid "Debug level for dynamic query hit routing."
 msgstr "動的検索式ヒット経路設定のバグ解析レベルです。"
 
-#: src/if/gnet_property.c:1792
+#: src/if/gnet_property.c:1794
 msgid "Debug level for dynamic queries."
 msgstr "動的検索式のバグ解析レベルです。"
 
-#: src/if/gnet_property.c:1812
+#: src/if/gnet_property.c:1814
 msgid "Debug level for vendor messages."
 msgstr "ベンダメッセージのバグ解析レベルです。"
 
-#: src/if/gnet_property.c:1832
+#: src/if/gnet_property.c:1834
 msgid "Debug level for queries."
 msgstr "検索式のバグ解析レベルです。"
 
-#: src/if/gnet_property.c:1852
+#: src/if/gnet_property.c:1854
 msgid "Debug level for searches and search results management."
 msgstr "検索と検索結果管理のバグ解析レベルです。"
 
-#: src/if/gnet_property.c:1872
+#: src/if/gnet_property.c:1874
 msgid "Debug level for the UDP traffic layer."
 msgstr "UDP トラフィックレイヤのバグ解析レベルです。"
 
-#: src/if/gnet_property.c:1892
+#: src/if/gnet_property.c:1894
 msgid "Debug level for the Query Routing Protocol."
 msgstr "検索式経路設定プロトコル (QRP) のバグ解析レベルです。"
 
-#: src/if/gnet_property.c:1912
+#: src/if/gnet_property.c:1914
 msgid "Debug level for message routing."
 msgstr "メッセージ経路設定のバグ解析レベルです。"
 
-#: src/if/gnet_property.c:1932
+#: src/if/gnet_property.c:1934
 msgid "Debug level for GGEP."
 msgstr "GGEP のバグ解析レベルです。"
 
-#: src/if/gnet_property.c:1952
+#: src/if/gnet_property.c:1954
 msgid "Debug level for pong caching."
 msgstr "Pong キャッシュのバグ解析レベルです。"
 
-#: src/if/gnet_property.c:1972
+#: src/if/gnet_property.c:1974
 msgid "Debug level for HSEP."
 msgstr "HSEP のバグ解析レベルです。"
 
-#: src/if/gnet_property.c:1992
+#: src/if/gnet_property.c:1994
 msgid "For development use: track properties."
 msgstr "開発用: 経路情報です。"
 
-#: src/if/gnet_property.c:2012
+#: src/if/gnet_property.c:2014
 msgid "For development use: don't add new hosts to the hostcatcher."
 msgstr "開発用: ホストキャッチャへ新規ホストを追加しません。"
 
-#: src/if/gnet_property.c:2029
+#: src/if/gnet_property.c:2031
 msgid "Enable bandwidth limitation for incoming HTTP traffic."
 msgstr "ノード内への HTTP トラフィックの帯域幅を制限します。"
 
-#: src/if/gnet_property.c:2046
+#: src/if/gnet_property.c:2048
 msgid "Enable bandwidth limitation for outgoing HTTP traffic."
 msgstr "ノード外への HTTP トラフィックの帯域幅を制限します。"
 
-#: src/if/gnet_property.c:2063
+#: src/if/gnet_property.c:2065
 msgid "Enable bandwidth limitation for incoming Gnet traffic."
 msgstr "ノード内への Gnet トラフィックの帯域幅を制限します。"
 
-#: src/if/gnet_property.c:2080
+#: src/if/gnet_property.c:2082
 msgid "Enable bandwidth limitation for incoming Gnet leaf traffic."
 msgstr "ノード内への Gnet リーフトラフィックの帯域幅を制限します。"
 
-#: src/if/gnet_property.c:2097
+#: src/if/gnet_property.c:2099
 msgid "Enable bandwidth limitation for outgoing Gnet traffic."
 msgstr "ノード外への Gnet トラフィックの帯域幅を制限します。"
 
-#: src/if/gnet_property.c:2114
+#: src/if/gnet_property.c:2116
 msgid "Enable bandwidth limitation for outgoing Gnet leaf traffic."
 msgstr "ノード外への Gnet リーフトラフィックの帯域幅を制限します。"
 
-#: src/if/gnet_property.c:2131
+#: src/if/gnet_property.c:2133
 msgid "Enable dynamic upload slots allocation."
 msgstr "アップロード受口の動的割当を有効にします。"
 
-#: src/if/gnet_property.c:2148
+#: src/if/gnet_property.c:2150
 msgid ""
 "Allow HTTP and Gnutella to grab whatever bandwidth the other is not using.  "
 "If FALSE, unused bandwidth is lost."
@@ -1337,11 +1367,11 @@ msgstr ""
 "使用されていない何れかの帯域幅を HTTP と Gnutella に取り込む事を許可します。"
 "無効にすると、未使用の帯域幅は失われます。"
 
-#: src/if/gnet_property.c:2165
+#: src/if/gnet_property.c:2167
 msgid "Auto clear completed downloads."
 msgstr "完了したダウンロードを自動消去します。"
 
-#: src/if/gnet_property.c:2182
+#: src/if/gnet_property.c:2184
 msgid ""
 "Auto clear failed downloads (HTTP error, failure to resume, write error, "
 "etc...)."
@@ -1349,7 +1379,7 @@ msgstr ""
 "失敗したダウンロード (HTTPエラー、再開の失敗、書込みエラー、他...) を自動消去"
 "します。"
 
-#: src/if/gnet_property.c:2199
+#: src/if/gnet_property.c:2201
 msgid ""
 "Auto clear unavailable downloads (connection timeout, push route lost, "
 "etc...)."
@@ -1357,19 +1387,19 @@ msgstr ""
 "ダウンロード出来ないもの (接続のタイムアウト、PUSH 経路喪失、他...)を自動消去"
 "します。"
 
-#: src/if/gnet_property.c:2216
+#: src/if/gnet_property.c:2218
 msgid "Remove downloaded files from the search result."
 msgstr "ダウンロードされたファイルは検索結果から削除します。"
 
-#: src/if/gnet_property.c:2233
+#: src/if/gnet_property.c:2235
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "入力した「強制ローカル IP」をローカル IP として使います。"
 
-#: src/if/gnet_property.c:2250
+#: src/if/gnet_property.c:2252
 msgid "Try to connect to local networks first."
 msgstr "最初にローカルネットへの接続を試みます。"
 
-#: src/if/gnet_property.c:2267 src/ui/gtk/gtk2/interface-glade.c:10045
+#: src/if/gnet_property.c:2269 src/ui/gtk/gtk2/interface-glade.c:10045
 msgid ""
 "Check this button if you want to use Gtk-Gnutella on your Local Area "
 "Network. RFC1918 will be ignored."
@@ -1377,7 +1407,7 @@ msgstr ""
 "Gtk-Gnutella を LAN 上で使用したければ有効にして下さい。RFC1918 は無視されま"
 "す。"
 
-#: src/if/gnet_property.c:2284
+#: src/if/gnet_property.c:2286
 msgid ""
 "Check this button if you want Gtk-Gnutella to use IP TOS to differentiate "
 "interactive, normal and bulk data. This is probably a good idea in most "
@@ -1388,63 +1418,63 @@ msgstr ""
 "を使用させたいならこれを有効にして下さい。大半の場合において良い考えでしょ"
 "う。取り分け、酷い設定をされたホスト、LAN, ISP で有用です。"
 
-#: src/if/gnet_property.c:2301
+#: src/if/gnet_property.c:2303
 msgid "Remove files of aborted downloads from disk."
 msgstr "中止するダウンロードのファイルをディスクから削除します。"
 
-#: src/if/gnet_property.c:2318
+#: src/if/gnet_property.c:2320
 msgid "Use username and password to authenticate to proxy."
 msgstr "この利用者名とパスワードを代理サーバの認証に使います。"
 
-#: src/if/gnet_property.c:2335
+#: src/if/gnet_property.c:2337
 msgid "Username for proxy."
 msgstr "代理サーバの利用者名です。"
 
-#: src/if/gnet_property.c:2356
+#: src/if/gnet_property.c:2358
 msgid "Password for proxy."
 msgstr "代理サーバのパスワードです。"
 
-#: src/if/gnet_property.c:2377
+#: src/if/gnet_property.c:2379
 msgid "IP address of the proxy."
 msgstr "代理サーバの IP アドレスです。"
 
-#: src/if/gnet_property.c:2397
+#: src/if/gnet_property.c:2399
 msgid "Hostname of the proxy."
 msgstr "代理サーバのホスト名です。"
 
-#: src/if/gnet_property.c:2418
+#: src/if/gnet_property.c:2420
 msgid "TCP Port the proxy is listening on."
 msgstr "代理サーバが利用する TCP ポートです。"
 
-#: src/if/gnet_property.c:2438
+#: src/if/gnet_property.c:2440
 msgid "Protocol the proxy uses."
 msgstr "代理サーバが用いるプロトコルです。"
 
-#: src/if/gnet_property.c:2458
+#: src/if/gnet_property.c:2460
 msgid "Current number of hosts in regular node caches."
 msgstr "通常ノードキャッシュの現在のホスト数です。"
 
-#: src/if/gnet_property.c:2478
+#: src/if/gnet_property.c:2480
 msgid "Current number of hosts in ultra node caches."
 msgstr "ウルトラノードキャッシュの現在のホスト数です。"
 
-#: src/if/gnet_property.c:2498
+#: src/if/gnet_property.c:2500
 msgid "Current number of hosts in bad node caches."
 msgstr "不正ノードキャッシュの現在のホスト数です。"
 
-#: src/if/gnet_property.c:2518
+#: src/if/gnet_property.c:2520
 msgid "Maximum number of hosts in the regular node catcher."
 msgstr "通常ノードキャッチャ内の最大ホスト数です。"
 
-#: src/if/gnet_property.c:2538
+#: src/if/gnet_property.c:2540
 msgid "Maximum number of hosts in the ultra node catcher."
 msgstr "ウルトラノードキャッチャ内の最大ホスト数です。"
 
-#: src/if/gnet_property.c:2558
+#: src/if/gnet_property.c:2560
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
 msgstr "\"使用中\"、\"不安定\"、\"タイムアウト\" リストの最大ホスト数です。"
 
-#: src/if/gnet_property.c:2578
+#: src/if/gnet_property.c:2580
 msgid ""
 "Amount of tolerable messages above hard TTL limit per node. See also "
 "MAX_HIGH_TTL_RADIUS"
@@ -1452,7 +1482,7 @@ msgstr ""
 "ノード毎の TTL の固定上限を越えるメッセージの許容量です。隣の項目も参照して下"
 "さい。"
 
-#: src/if/gnet_property.c:2598
+#: src/if/gnet_property.c:2600
 msgid ""
 "Hop radius for counting high TTL limit messages (# hops lower than...). See "
 "also MAX_HIGH_TTL_MSG"
@@ -1460,23 +1490,23 @@ msgstr ""
 "高 TTL 制限メッセージ (ホップ数より低い...) を数えるホップの半径です。隣の項"
 "目も参照して下さい。"
 
-#: src/if/gnet_property.c:2618
+#: src/if/gnet_property.c:2620
 msgid "Bandwidth limit for incoming HTTP traffic in bytes/sec."
 msgstr "ノード内部への HTTP トラフィックの帯域幅の上限です。"
 
-#: src/if/gnet_property.c:2638
+#: src/if/gnet_property.c:2640
 msgid "Bandwidth limit for outgoing HTTP traffic in bytes/sec."
 msgstr "ノード外部への HTTP トラフィックの帯域幅の上限です。"
 
-#: src/if/gnet_property.c:2658
+#: src/if/gnet_property.c:2660
 msgid "Bandwidth limit for incoming Gnet traffic in bytes/sec."
 msgstr "ノード内部への Gnet トラフィックの帯域幅の上限です。"
 
-#: src/if/gnet_property.c:2678
+#: src/if/gnet_property.c:2680
 msgid "Bandwidth limit for outgoing Gnet traffic in bytes/sec."
 msgstr "ノード外部への Gnet トラフィックの帯域幅の上限です。"
 
-#: src/if/gnet_property.c:2698
+#: src/if/gnet_property.c:2700
 msgid ""
 "Bandwidth limit for incoming Gnet leaf traffic in bytes/sec. When running as "
 "an ultra node, this bandwidth is stolen from the regular HTTP traffic if the "
@@ -1486,7 +1516,7 @@ msgstr ""
 "て動作している時、リーフの状態になれるのであれば、この帯域幅は通常の HTTP ト"
 "ラフィックから取得されます。"
 
-#: src/if/gnet_property.c:2718
+#: src/if/gnet_property.c:2720
 msgid ""
 "Bandwidth limit for outgoing Gnet leaf traffic in bytes/sec. When running as "
 "an ultra node, this bandwidth is stolen from the regular HTTP traffic, if "
@@ -1496,14 +1526,14 @@ msgstr ""
 "て動作している時、リーフの形態になれるのであれば、この帯域幅は通常の HTTP ト"
 "ラフィックから取得されます。"
 
-#: src/if/gnet_property.c:2738
+#: src/if/gnet_property.c:2740
 msgid ""
 "Maximum size of search queries messages we forward to others  (in bytes)."
 msgstr ""
 "他のホストへ転送する検索問い合わせメッセージの大きさの最大値です。 (バイト単"
 "位)"
 
-#: src/if/gnet_property.c:2758
+#: src/if/gnet_property.c:2760
 msgid ""
 "Maximum size of search queries messages we allow, otherwise close the "
 "connection (in bytes)."
@@ -1511,12 +1541,12 @@ msgstr ""
 "許可する検索問い合わせメッセージの最大の大きさです、これを越えると接続を閉じ"
 "ます。(バイト単位)"
 
-#: src/if/gnet_property.c:2778
+#: src/if/gnet_property.c:2780
 msgid ""
 "Maximum size of search answers messages we forward to others (in bytes)."
 msgstr "他のサーバントへ転送する検索回答メッセージの最大数です。(バイト単位)"
 
-#: src/if/gnet_property.c:2798
+#: src/if/gnet_property.c:2800
 msgid ""
 "Maximum size of search answers messages we allow, otherwise close the "
 "connection (in bytes)."
@@ -1524,7 +1554,7 @@ msgstr ""
 "受取りを許可する検索回答メッセージの最大数です、これを越えると接続を閉じま"
 "す。(バイト単位)"
 
-#: src/if/gnet_property.c:2818
+#: src/if/gnet_property.c:2820
 msgid ""
 "Maximum size of unknown messages we allow, otherwise close the connection "
 "(in bytes)."
@@ -1532,14 +1562,14 @@ msgstr ""
 "受取りを許可する不明メッセージの最大数です、これを越えると接続を閉じます。(バ"
 "イト単位)"
 
-#: src/if/gnet_property.c:2838
+#: src/if/gnet_property.c:2840
 msgid ""
 "Random factor for the hops field in search packets we send between 0 and 3 "
 "inclusive)."
 msgstr ""
 "送信する検索パケットでのホップフィールドのランダム因子です。( 0 から 3 まで)"
 
-#: src/if/gnet_property.c:2858
+#: src/if/gnet_property.c:2860
 msgid ""
 "Whether or not to send push requests.  If you are firewalled, gtk-gnutella "
 "will never send push requests anyway.  If you don't let gtk-gnutella send "
@@ -1549,14 +1579,14 @@ msgstr ""
 "るなら PUSH リクエストは送信されません。その場合、PUSH が必要な検索結果は表示"
 "されません。"
 
-#: src/if/gnet_property.c:2875
+#: src/if/gnet_property.c:2877
 msgid ""
 "Minimum amount of dup messages to enable kicking, per node (also see "
 "[min_dup_ratio])."
 msgstr ""
 "ノード毎に破棄できる重複メッセージの最小量です。(下の項目も参照して下さい)"
 
-#: src/if/gnet_property.c:2895
+#: src/if/gnet_property.c:2897
 msgid ""
 "Minimum ratio of dups on received messages, per node (between 0.00 and "
 "100.00) (also see [min_dup_msg]) Note: the value is stored between 0 (0.0) "
@@ -1566,7 +1596,7 @@ msgstr ""
 "で指定) (上の項目も参照して下さい) 付記: 設定ファイル config_gnet では 0 "
 "(0.0) と 10000 (100.0) の間の値で保管されます。"
 
-#: src/if/gnet_property.c:2915
+#: src/if/gnet_property.c:2917
 msgid ""
 "Only files with the given extensions will be shared. The special --all-- "
 "extension matches all files, even if they don't have any extension.  Use "
@@ -1575,23 +1605,23 @@ msgstr ""
 "指定した拡張子を持つファイルのみが共有されます。特殊な拡張子 --all-- は、拡張"
 "子を持たないファイルにも適合してしまいます。注意して使用して下さい。"
 
-#: src/if/gnet_property.c:2936
+#: src/if/gnet_property.c:2938
 msgid "Ignore symbolically linked directories when scanning files to share."
 msgstr ""
 "共有するファイルの走査時に、シンボリックリンクされているフォルダを無視しま"
 "す。"
 
-#: src/if/gnet_property.c:2953
+#: src/if/gnet_property.c:2955
 msgid "Ignore symbolically linked regular files when scanning files to share."
 msgstr ""
 "共有するファイルの走査時に、シンボリックリンクされているファイルを無視しま"
 "す。"
 
-#: src/if/gnet_property.c:2970
+#: src/if/gnet_property.c:2972
 msgid "Store incomplete files in this directory."
 msgstr "未完成のファイルをこのフォルダに格納します。"
 
-#: src/if/gnet_property.c:2991
+#: src/if/gnet_property.c:2993
 msgid ""
 "Move complete files to this directory. If this is set to the SAME directory "
 "as the incomplete or corrupted files, files will be renamed with a trailing ."
@@ -1601,7 +1631,7 @@ msgstr ""
 "納するフォルダと「同じ場所」に設定をした場合、ファイルは後ろに .OK を付けられ"
 "ます。"
 
-#: src/if/gnet_property.c:3012
+#: src/if/gnet_property.c:3014
 msgid ""
 "Move corrupted, downloaded files to this directory. If this is set to the "
 "SAME directory as the incomplete or completed files, files will be renamed "
@@ -1611,11 +1641,11 @@ msgstr ""
 "たファイルを格納するフォルダと「同じ場所」に設定をした場合、ファイルは後ろ"
 "に .BAD を付けられます。"
 
-#: src/if/gnet_property.c:3033
+#: src/if/gnet_property.c:3035
 msgid "Directories which contain shared files."
 msgstr "共有ファイルが含まれるフォルダです。"
 
-#: src/if/gnet_property.c:3054
+#: src/if/gnet_property.c:3056
 msgid ""
 "List of networks considered local.  This is a list of IP addresses, "
 "separated by ';'.  The IP address can be given out fully, as in 192.168.0.1, "
@@ -1627,32 +1657,32 @@ msgstr ""
 "続く任意のネットワークマスクの範囲が加えられて表されたりします。例えば、"
 "192.168.0.1/24 は 192.168.0.* の全てのネットワークを表します。"
 
-#: src/if/gnet_property.c:3075
+#: src/if/gnet_property.c:3077
 msgid "Total number of completed downloads in this session."
 msgstr "このセッションでのダウンロード完了総数です。"
 
-#: src/if/gnet_property.c:3095
+#: src/if/gnet_property.c:3097
 msgid "Number of running uploads."
 msgstr "実行中のアップロード数です。"
 
-#: src/if/gnet_property.c:3115
+#: src/if/gnet_property.c:3117
 msgid "Number of registered (pending) uploads."
 msgstr "登録済(未確定)のアップロード数です。"
 
-#: src/if/gnet_property.c:3135
+#: src/if/gnet_property.c:3137
 msgid "Total number of completed uploads in this session."
 msgstr "このセッションでのアップロード完了総数です。"
 
-#: src/if/gnet_property.c:3155
+#: src/if/gnet_property.c:3157
 msgid "Global Unique IDentifier of this node."
 msgstr "このノードの識別子 (GUID) です。"
 
-#: src/if/gnet_property.c:3172
+#: src/if/gnet_property.c:3174
 msgid "Whether or not to use swarming (recommended = YES)."
 msgstr ""
 "多元ダウンロードを利用するかどうかを選択します。(有効にする事を推奨します)"
 
-#: src/if/gnet_property.c:3189
+#: src/if/gnet_property.c:3191
 msgid ""
 "Whether or not to launch competing downloads when swarming and there are "
 "many sources available with a few chunks left."
@@ -1660,7 +1690,7 @@ msgstr ""
 "多元ダウンロードを行っていて、残っている僅かなチャンクに対して多数の送信元が"
 "利用可能な場合、競合するダウンロードを実行するかどうかを選択します。"
 
-#: src/if/gnet_property.c:3206
+#: src/if/gnet_property.c:3208
 msgid ""
 "Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will "
 "download less if you only have a few bytes to get for a file..."
@@ -1669,11 +1699,11 @@ msgstr ""
 "のにほんの僅かばかりのバイトで済む、より少ないダウンロードをする時にのみ有用"
 "です..."
 
-#: src/if/gnet_property.c:3226
+#: src/if/gnet_property.c:3228
 msgid "Maximum chunk size when swarming."
 msgstr "多元ダウンロードする時の最大チャンクサイズです。"
 
-#: src/if/gnet_property.c:3246
+#: src/if/gnet_property.c:3248
 msgid ""
 "Whether or not to automatically queue search results that match a file in "
 "the download queue."
@@ -1681,7 +1711,7 @@ msgstr ""
 "ダウンロード待機列にあるファイルに適合するものを、検索結果から自動的に待ち列"
 "に入れるかどうかを選択します。"
 
-#: src/if/gnet_property.c:3263
+#: src/if/gnet_property.c:3265
 msgid ""
 "Whether or not to automatically feed the download mesh with data gathered "
 "from the query hits that flow through our node. This looks for new entries "
@@ -1691,14 +1721,14 @@ msgstr ""
 "シュを自動的に給送するかどうかを選択します。これは共有しているファイルやすで"
 "にメッシュにあるファイルの、新規項目を参照します。"
 
-#: src/if/gnet_property.c:3280
+#: src/if/gnet_property.c:3282
 msgid ""
 "When enabled, SHA1s must match. Otherwise, name and size will be sufficient."
 msgstr ""
 "有効にすると、必ず SHA1 で一致させるようにします。無効にすると、名前と大きさ"
 "が十分なら一致します。"
 
-#: src/if/gnet_property.c:3297
+#: src/if/gnet_property.c:3299
 msgid ""
 "Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching "
 "to be safe)."
@@ -1706,7 +1736,7 @@ msgstr ""
 "曖昧なファイル名適合を用います。(非推奨; 確実にするには SHA1 適合のみに依拠す"
 "るのが良いでしょう)"
 
-#: src/if/gnet_property.c:3314
+#: src/if/gnet_property.c:3316
 msgid ""
 "Fuzziness threshold for filename matching (higher = stricter). A value of "
 "100 means the filenames must be 100% identical.  A value of 0 means any two "
@@ -1716,23 +1746,23 @@ msgstr ""
 "が 100% 同一のものである事を意味します。値 0 はどのような二つのファイル名も常"
 "に同一のものと見做されます。最小値は 50% です。"
 
-#: src/if/gnet_property.c:3334
+#: src/if/gnet_property.c:3336
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
 msgstr "現在、TCP に関してファイアウォール内にあるかどうかを表します。"
 
-#: src/if/gnet_property.c:3351
+#: src/if/gnet_property.c:3353
 msgid "Whether gtk-gnutella thinks it's connected to the Internet."
 msgstr "インターネットに接続しているかどうか表します。"
 
-#: src/if/gnet_property.c:3368
+#: src/if/gnet_property.c:3370
 msgid "Whether gtk-gnutella thinks you're currently firewalled, UDP-wise."
 msgstr "現在、UDP に関してファイアウォール内にあるかどうかを表します。"
 
-#: src/if/gnet_property.c:3385
+#: src/if/gnet_property.c:3387
 msgid "Whether gtk-gnutella determined it could receive solicited UDP."
 msgstr "要請されたUDPを受取れるのを確定したかどうか表します。"
 
-#: src/if/gnet_property.c:3402
+#: src/if/gnet_property.c:3404
 msgid ""
 "Remove unnecessary ballast from query string before processing or forwarding "
 "them. Reduces traffic at the cost of little CPU time."
@@ -1740,7 +1770,7 @@ msgstr ""
 "検索式を処理したり転送したりする前に、不必要な部分を検索式の文字列から取り除"
 "きます。CPU タイムを少々使いますがトラフィックを減らします。"
 
-#: src/if/gnet_property.c:3419
+#: src/if/gnet_property.c:3421
 msgid ""
 "Also use sources that don't provide a SHA1 value for the first chunk of a "
 "file. This dramatically reduces the 'No URN on server' messages, but may "
@@ -1752,19 +1782,19 @@ msgstr ""
 "クが実際は異なるファイルからのものであった場合、後にオーバーラップの問題を起"
 "こすかもしれません。注意して使用して下さい。"
 
-#: src/if/gnet_property.c:3436
+#: src/if/gnet_property.c:3438
 msgid ""
 "Whether gtk-gnutella is currently rebuilding its library in the background."
 msgstr ""
 "見えない所で Gtk-Gnutella のライブラリを再構築しているかどうかを表します。"
 
-#: src/if/gnet_property.c:3453
+#: src/if/gnet_property.c:3455
 msgid ""
 "Whether gtk-gnutella is currently computing SHA1 of shared files in the "
 "background."
 msgstr "見えない所で共有ファイルの SHA1 を算出しているかどうかを表します。"
 
-#: src/if/gnet_property.c:3470
+#: src/if/gnet_property.c:3472
 msgid ""
 "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the "
 "background."
@@ -1772,7 +1802,7 @@ msgstr ""
 "見えない所でダウンロードされたファイルの SHA1 を検証しているかどうかを表しま"
 "す。"
 
-#: src/if/gnet_property.c:3487
+#: src/if/gnet_property.c:3489
 msgid ""
 "Whether gtk-gnutella is currently moving files across filesystems or simply "
 "copying in the background."
@@ -1780,7 +1810,7 @@ msgstr ""
 "見えない所でファイルシステムを横断するファイル移動あるいは単にコピーを行って"
 "いるかどうかを表します。"
 
-#: src/if/gnet_property.c:3504
+#: src/if/gnet_property.c:3506
 msgid ""
 "If active, only compressed incoming connections are allowed after the "
 "minimum number of connections has been established. Always allows for one "
@@ -1789,7 +1819,7 @@ msgstr ""
 "有効にした場合、最低限の接続が確立した後にノード内への圧縮された接続のみが許"
 "可されます。圧縮をかけない転送は常に許可されます。"
 
-#: src/if/gnet_property.c:3521
+#: src/if/gnet_property.c:3523
 msgid ""
 "If deactivated, only uploads and downloads will continue. All Gnet "
 "connections are disabled/terminated."
@@ -1797,7 +1827,7 @@ msgstr ""
 "無効にすると、アップロードとダウンロードのみが継続します。全ての Gnutella "
 "ネットワークの接続は不可能となり切断されます。"
 
-#: src/if/gnet_property.c:3538
+#: src/if/gnet_property.c:3540
 msgid ""
 "Whether gtk-gnutella should make sure the server confirms the URN of the "
 "file we're requesting when it is known locally and a traditional request by "
@@ -1809,17 +1839,17 @@ msgstr ""
 "確認をサーバに取るべきかどうかを選択します。有効にした場合、設定「最初のチャ"
 "ンクを大目に見る」に取って代わることになります。"
 
-#: src/if/gnet_property.c:3555
+#: src/if/gnet_property.c:3557
 msgid ""
 "Whether gtk-gnutella should make sure the server gives us back a non-empty "
 "identifying token."
 msgstr "サーバが返す空ではない識別字句を確認するかどうかを選択します。"
 
-#: src/if/gnet_property.c:3572
+#: src/if/gnet_property.c:3574
 msgid "Maximum amount of Ultrapeers we should connect to as a leaf."
 msgstr "リーフノードとして接続するウルトラピアの最大数です。"
 
-#: src/if/gnet_property.c:3592
+#: src/if/gnet_property.c:3594
 msgid ""
 "To connect more quickly, gtk-gnutella will allow up to this many connections "
 "to be active while trying to fill up the connection slots."
@@ -1827,7 +1857,7 @@ msgstr ""
 "より素早く接続するため、接続ソケットを一杯にする間にこの数の接続を有効にする"
 "ようにします。"
 
-#: src/if/gnet_property.c:3612
+#: src/if/gnet_property.c:3614
 msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
 "reserve 32 bytes of bandwidth per leaf."
@@ -1835,11 +1865,11 @@ msgstr ""
 "受け付け可能なリーフノードの最大数です。ウルトラピアへと昇格するには、リーフ"
 "ノード毎に 32 バイトの帯域幅が必要になります。"
 
-#: src/if/gnet_property.c:3632
+#: src/if/gnet_property.c:3634
 msgid "What to do with files that will be ignored for downloading."
 msgstr "ダウンロード時に無視されるファイルに対して行う事です。"
 
-#: src/if/gnet_property.c:3652
+#: src/if/gnet_property.c:3654
 msgid ""
 "The peer mode you want to operate as for gtk-gnutella.  When auto is "
 "selected, gtk-gnutella will start as a leaf node and may be promoted to an "
@@ -1850,47 +1880,47 @@ msgstr ""
 "フノードとして動作を開始しますが、十分な帯域幅と稼動時間がありファイアウォー"
 "ル内に無ければ、ウルトラノードになる事を促されます。"
 
-#: src/if/gnet_property.c:3672
+#: src/if/gnet_property.c:3674
 msgid "Current peer mode for gtk-gnutella."
 msgstr "Gtk-Gnutella の現在のピアモードです。"
 
-#: src/if/gnet_property.c:3692
+#: src/if/gnet_property.c:3694
 msgid "How many file descriptors this process can open."
 msgstr "このプロセスが開けるファイル記述子の数です。"
 
-#: src/if/gnet_property.c:3712
+#: src/if/gnet_property.c:3714
 msgid "How much physical memory is available."
 msgstr "利用可能な物理メモリ量です。"
 
-#: src/if/gnet_property.c:3732
+#: src/if/gnet_property.c:3734
 msgid "How many downloads are currently held in the queue."
 msgstr "現在待機中のダウンロード数です。"
 
-#: src/if/gnet_property.c:3752
+#: src/if/gnet_property.c:3754
 msgid "How many downloads are currently running (downloading / connecting)."
 msgstr "現在実行中 (ダウンロード中/接続中) のダウンロード数です。"
 
-#: src/if/gnet_property.c:3772
+#: src/if/gnet_property.c:3774
 msgid "How many downloads are currently active."
 msgstr "現在動作中のダウンロード数です。"
 
-#: src/if/gnet_property.c:3792
+#: src/if/gnet_property.c:3794
 msgid "How many downloads are currently actively queued."
 msgstr "現在動作状態にある待機中のダウンロード数です。"
 
-#: src/if/gnet_property.c:3812
+#: src/if/gnet_property.c:3814
 msgid "How many downloads are currently passively queued."
 msgstr "現在受動状態にある待機中のダウンロード数です。"
 
-#: src/if/gnet_property.c:3832
+#: src/if/gnet_property.c:3834
 msgid "How many fileinfo do we have."
 msgstr "ファイル情報の数です。"
 
-#: src/if/gnet_property.c:3852
+#: src/if/gnet_property.c:3854
 msgid "How many fileinfo with sources do we have."
 msgstr "送信元のあるファイル情報の数です。"
 
-#: src/if/gnet_property.c:3872
+#: src/if/gnet_property.c:3874
 msgid ""
 "How many queued downloads are currently responsive (remote servent answering "
 "requests)."
@@ -1898,15 +1928,15 @@ msgstr ""
 "現在待機中のダウンロードが、どれくらい即応的(遠隔サーバントの回答リクエスト)"
 "かを表します。"
 
-#: src/if/gnet_property.c:3892
+#: src/if/gnet_property.c:3894
 msgid "Amount of bytes downloaded so far, HTTP headers notwithstanding."
 msgstr "これまでにダウンロードしたバイト数、HTTP へッダは除外されます。"
 
-#: src/if/gnet_property.c:3912
+#: src/if/gnet_property.c:3914
 msgid "Amount of bytes uploaded so far, HTTP headers notwithstanding."
 msgstr "これまでにアップロードしたバイト数、HTTP へッダは除外されます。"
 
-#: src/if/gnet_property.c:3932
+#: src/if/gnet_property.c:3934
 msgid ""
 "Whether gtk-gnutella should serve partial files whilst they are still "
 "incompletely downloaded.  Recommended for network's health unless you "
@@ -1918,7 +1948,7 @@ msgstr ""
 "担を軽減するためにもこれを推奨します。多数のファイルを共有している場合、その"
 "ままにしておいても有害ではありませんが、あまり意味を為さないでしょう。"
 
-#: src/if/gnet_property.c:3949
+#: src/if/gnet_property.c:3951
 msgid ""
 "When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to "
 "download chunks in a random order, to maximize the spreading of the file in "
@@ -1934,7 +1964,7 @@ msgstr ""
 "連続してダウンロードされるデータの最初のチャンクの大きさをバイトで設定して下"
 "さい。大き過ぎる値は設定しないで下さい。"
 
-#: src/if/gnet_property.c:3969
+#: src/if/gnet_property.c:3971
 msgid ""
 "Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
 "this filtering is to remove entries whose names are too different to be "
@@ -1948,15 +1978,15 @@ msgstr ""
 "最中にいくつかのまともな項目が損失を受けますが、それと引き替えに恐らくメッ"
 "シュがより一貫性のあるものになります。"
 
-#: src/if/gnet_property.c:3986
+#: src/if/gnet_property.c:3988
 msgid "Number of crawler visits during this session."
 msgstr "このセッション中に訪れたクロウラーの数です。"
 
-#: src/if/gnet_property.c:4006
+#: src/if/gnet_property.c:4008
 msgid "Number of UDP crawler visits during this session."
 msgstr "このセッション中に訪れた UDP クロウラーの数です。"
 
-#: src/if/gnet_property.c:4026
+#: src/if/gnet_property.c:4028
 msgid ""
 "Whether the clock of this host is kept accurate via NTP. When set, the "
 "computed clock skew is ignored. Normally, gtk-gnutella automatically "
@@ -1969,11 +1999,11 @@ msgstr ""
 "で NTP が動作しているかどうかを自動的に判別しますが、例えばあなたのホストが "
 "ntpdate への定期的な呼出しで同期を取り続けているかどうかは判別されません。"
 
-#: src/if/gnet_property.c:4043
+#: src/if/gnet_property.c:4045
 msgid "Whether a running NTP daemon was detected locally."
 msgstr "ローカルで実行している NTP デーモンが検出されたかどうかを表します。"
 
-#: src/if/gnet_property.c:4060
+#: src/if/gnet_property.c:4062
 msgid ""
 "The signed clock skew of this host compared to absolute time. Adding this "
 "skew to the host clock should give the true time."
@@ -1981,7 +2011,7 @@ msgstr ""
 "表示されているこのホストの時間のずれは、GMT と比較されたものです。ホストのク"
 "ロックにこのずれが加えられたものが実時間となります。"
 
-#: src/if/gnet_property.c:4080
+#: src/if/gnet_property.c:4082
 msgid ""
 "Whether gtk-gnutella should keep track of the IP of unstable servents it "
 "encounters, preventing further connections attempts to/from them."
@@ -1989,7 +2019,7 @@ msgstr ""
 "不安定なサーバントに遭遇して、それらへ/からの一層の接続の試みを妨げる場合、そ"
 "の IP の記録を保存しておくかどうかを選択します。"
 
-#: src/if/gnet_property.c:4097
+#: src/if/gnet_property.c:4099
 msgid ""
 "Whether gtk-gnutella should determine the servent types (as identified by "
 "their vendor string) that are unstable, preventing further connections to/"
@@ -2000,7 +2030,7 @@ msgstr ""
 "別されます) を検知するかどうかを選択します。これは gtk-gnutella が不安定な "
 "IP アドレスの記録を既に保持している場合にのみ有効です。"
 
-#: src/if/gnet_property.c:4114
+#: src/if/gnet_property.c:4116
 msgid ""
 "Whether gtk-gnutella should automatically remove the file whenever it gets a "
 "resuming mismatch and retry from scratch. Until Tiger Tree Hashes are "
@@ -2010,7 +2040,7 @@ msgstr ""
 "イルを自動的に削除するようにするかどうかを選びます。タイガー木ハッシュが普及"
 "するまでは、これが最も安全な選択枝となります。"
 
-#: src/if/gnet_property.c:4131
+#: src/if/gnet_property.c:4133
 msgid ""
 "The amount of bytes which gtk-gnutella will strip off the already downloaded "
 "bytes after a resuming mismatch, in the hope that only this amount was "
@@ -2024,7 +2054,7 @@ msgstr ""
 "タを指しますが、既にダウンロードされたデータが不正だった場合、これらを取り除"
 "く事は問題からの修復の手助けになります。"
 
-#: src/if/gnet_property.c:4151
+#: src/if/gnet_property.c:4153
 msgid ""
 "The hostname of the server that can be used by downloaders to find the IP "
 "address via a DNS resolution.  If you have a dynamic IP address coupled with "
@@ -2036,7 +2066,7 @@ msgstr ""
 "ら、これはダウンローダに対して有益です。ダウンローダはあなたの IP アドレスが"
 "少し変更されていてもあなたのノードを見つけ出すでしょう。"
 
-#: src/if/gnet_property.c:4172
+#: src/if/gnet_property.c:4174
 msgid ""
 "Whether gtk-gnutella should advertise the hostname of your server to "
 "downloaders and in query hits."
@@ -2044,17 +2074,17 @@ msgstr ""
 "あなたのサーバのホスト名を、ダウンローダや問合わせの成功で知らせるかどうかを"
 "選択します。"
 
-#: src/if/gnet_property.c:4189 src/ui/gtk/gtk2/interface-glade.c:11690
+#: src/if/gnet_property.c:4191 src/ui/gtk/gtk2/interface-glade.c:11690
 msgid ""
 "Percentage of the number of connections we should reserve for gtk-gnutella "
 "nodes."
 msgstr "gtk-gnutella ノード用に予約する接続数の割合です。"
 
-#: src/if/gnet_property.c:4209
+#: src/if/gnet_property.c:4211
 msgid "Maximum percentage of slots a vendor can occupy."
 msgstr "他のベンダが占有できる受口の最大割合です。"
 
-#: src/if/gnet_property.c:4229
+#: src/if/gnet_property.c:4231
 msgid ""
 "Size of the RX socket buffer to be used for downloads, in kbytes. If you "
 "wish to avoid Gnutella downloads using up all your bandwidth, set it to a "
@@ -2070,7 +2100,7 @@ msgstr ""
 "て下さい。この値を低くすればする程、入力レートをきちんと管理できるようになり"
 "ます"
 
-#: src/if/gnet_property.c:4249
+#: src/if/gnet_property.c:4251
 msgid ""
 "Size of the RX socket buffer to be used for nodes, in kbytes. The lower the "
 "value, the faster the remote end will flow-control at the TCP/IP level if "
@@ -2081,7 +2111,7 @@ msgstr ""
 "ないのなら、この値を低くすればする程、遠隔到達点の TCP/IP レベルでのフロー制"
 "御の速度が向上します。(ノード内への帯域幅を制限するとそのようになります)"
 
-#: src/if/gnet_property.c:4269
+#: src/if/gnet_property.c:4271
 msgid ""
 "Average recent latency between the sending of the HTTP request and the "
 "reception of the reply from the remote server, in msecs."
@@ -2089,22 +2119,22 @@ msgstr ""
 "HTTP リクエストの送信と遠隔サーバからの受付け応答の間の最近の待ち時間の平均値"
 "をミリ秒で表します。"
 
-#: src/if/gnet_property.c:4289
+#: src/if/gnet_property.c:4291
 msgid "Last time at which we performed the ultrapeer requirement checks."
 msgstr "ウルトラピアの必要条件を確認した最新の時刻です。"
 
-#: src/if/gnet_property.c:4309
+#: src/if/gnet_property.c:4311
 msgid "Last time an automatic switch between ultra and leaf mode occurred."
 msgstr "ウルトラとリーフモードの自動的に切替えられた最新の時刻です。"
 
-#: src/if/gnet_property.c:4329
+#: src/if/gnet_property.c:4331
 msgid ""
 "Whether we meet the sufficient average uptime requirement to become an Ultra "
 "node."
 msgstr ""
 "ウルトラノードになるのに必要な平均稼動時間が十分であるかどうかを表します。"
 
-#: src/if/gnet_property.c:4346
+#: src/if/gnet_property.c:4348
 msgid ""
 "Whether we meet the sufficient average IP address uptime requirement to "
 "become an Ultra node."
@@ -2112,20 +2142,20 @@ msgstr ""
 "ウルトラノードになるのに必要な IP アドレスの平均稼動時間が十分であるかどうか"
 "を表します。"
 
-#: src/if/gnet_property.c:4363
+#: src/if/gnet_property.c:4365
 msgid ""
 "Whether we meet the sufficient node uptime requirement to become an Ultra "
 "node."
 msgstr ""
 "ウルトラノードになるのに必要なノード稼動時間が十分であるかどうかを表します。"
 
-#: src/if/gnet_property.c:4380
+#: src/if/gnet_property.c:4382
 msgid "Whether we meet the non-firewalled requirement to become an Ultra node."
 msgstr ""
 "ウルトラノードになるのに必要な、ファイアウォールの外にあるかどうかを表しま"
 "す。"
 
-#: src/if/gnet_property.c:4397
+#: src/if/gnet_property.c:4399
 msgid ""
 "Whether we meet the minimum amount of peer connections requirement to become "
 "an Ultra node."
@@ -2133,7 +2163,7 @@ msgstr ""
 "ウルトラノードになるのに必要なピア接続の最小数を満たしているかどうかを表しま"
 "す。"
 
-#: src/if/gnet_property.c:4414
+#: src/if/gnet_property.c:4416
 msgid ""
 "Whether we meet the amount of file descriptor requirement to become an Ultra "
 "node."
@@ -2141,15 +2171,15 @@ msgstr ""
 "ウルトラノードになるのに必要なファイル記述子の数を満たしているかどうかを表し"
 "ます。"
 
-#: src/if/gnet_property.c:4431
+#: src/if/gnet_property.c:4433
 msgid "Whether we meet the memory requirements to become an Ultra node."
 msgstr "ウルトラノードになるのに必要なメモリがあるかどうかを表します。"
 
-#: src/if/gnet_property.c:4448
+#: src/if/gnet_property.c:4450
 msgid "Whether we meet the bandwidth requirements to become an Ultra node."
 msgstr "ウルトラノードになるのに必要な帯域幅があるのかどうかを表します。"
 
-#: src/if/gnet_property.c:4465
+#: src/if/gnet_property.c:4467
 msgid ""
 "Size of the search queue holding the locally generated queries before they "
 "are sent on a given connection.  When full, the oldest query is dropped "
@@ -2160,7 +2190,7 @@ msgstr ""
 "一杯になると最も古い検索式は送信されずに破棄されます。開始されている検索の数"
 "より少しだけ大きくなるように設定して下さい。"
 
-#: src/if/gnet_property.c:4485
+#: src/if/gnet_property.c:4487
 msgid ""
 "Minimum amount of seconds between two consecutive queries sent to a given "
 "connection (for locally generated queries only!). The larger the value, the "
@@ -2169,7 +2199,7 @@ msgstr ""
 "接続先に送信される二つの連続する検索式の間の最短秒です(ローカルに生成された検"
 "索式だけです!)。値を大きくすると、ネットワークへの負担は小さくなります。"
 
-#: src/if/gnet_property.c:4505
+#: src/if/gnet_property.c:4507
 msgid ""
 "Whether connection to gtk-gnutella via the 'shell' control interface should "
 "be allowed."
@@ -2177,7 +2207,7 @@ msgstr ""
 "'シェル' 管理インターフェイス経由で gtk-gnutella に接続する事を許可するかどう"
 "かを選択します。"
 
-#: src/if/gnet_property.c:4522
+#: src/if/gnet_property.c:4524
 msgid ""
 "Amount of seconds to leave 'dead' entries around so that they can still be "
 "displayed by the GUI along with the termination status."
@@ -2185,7 +2215,7 @@ msgstr ""
 "GUI が終了ステータスと共に '遺棄' エントリーを今まで通り表示できるように、こ"
 "のエントリーをそのまま残して置く秒数です。"
 
-#: src/if/gnet_property.c:4542
+#: src/if/gnet_property.c:4544
 msgid ""
 "Whether gtk-gnutella should actively monitor query strings by TTL and hop "
 "count and drop duplicates.  Only applies when not running as a leaf node, "
@@ -2198,7 +2228,7 @@ msgstr ""
 "0 より大きい検索式にのみ適用されます。即ちすぐ隣から来る検索式には適用されま"
 "せん。破棄された検索式は 'メッセージスロットル' カウンタで数えられます。"
 
-#: src/if/gnet_property.c:4559
+#: src/if/gnet_property.c:4561
 msgid ""
 "Half the duration during which gtk-gnutella should remember the recently "
 "relayed queries by TTL and hop count.  The default value of 5 should be just "
@@ -2210,7 +2240,7 @@ msgstr ""
 "値 5 が丁度良いですが、望むなら異なる設定で実験することもできます。値を高くす"
 "ると正規の検索式を破棄し易くなるので、注意するようにして下さい。"
 
-#: src/if/gnet_property.c:4579
+#: src/if/gnet_property.c:4581
 msgid ""
 "The minimum amount of seconds to enforce between two identical queries from "
 "leaf nodes.  If the requery too early, it is dropped and accounted for in "
@@ -2228,75 +2258,79 @@ msgstr ""
 "きます。標準の 1700 から外れるにつれ、ネットワークのトラフィックに指数関数的"
 "な影響を及ぼします。"
 
-#: src/if/gnet_property.c:4599
+#: src/if/gnet_property.c:4601
 msgid "Time at which we started the last scan of the library."
 msgstr "ライブラリのスキャンを最後に開始した時間です。"
 
-#: src/if/gnet_property.c:4619
-msgid "Time spent scanning the library, in seconds."
-msgstr "ライブラリをスキャンするのに費やした時間を秒で表します。"
+#: src/if/gnet_property.c:4621
+msgid "Time at which the last scan of the library finished."
+msgstr "最後のライブラリのスキャンが完了した時間です。"
 
-#: src/if/gnet_property.c:4639
+#: src/if/gnet_property.c:4641
+msgid "The number of seconds the last scan of the library took."
+msgstr "最後のライブラリのスキャンに掛かった秒数です。"
+
+#: src/if/gnet_property.c:4661
 msgid "Time at which we started shared file indexing."
 msgstr "共有ファイルの索引作成を開始した時間です。"
 
-#: src/if/gnet_property.c:4659
+#: src/if/gnet_property.c:4681
 msgid "Time spent indexing shared files."
 msgstr "共有ファイルの索引作成に費やした時間です。"
 
-#: src/if/gnet_property.c:4679
+#: src/if/gnet_property.c:4701
 msgid "Time at which we started query routing table generation."
 msgstr "検索式経路設定テーブルの生成を開始した時間です。"
 
-#: src/if/gnet_property.c:4699
+#: src/if/gnet_property.c:4721
 msgid "Time spent computing the QRP table, in seconds."
 msgstr "QRP を算出するのに費やした時間を秒で表します。"
 
-#: src/if/gnet_property.c:4719
+#: src/if/gnet_property.c:4741
 msgid "Time at which we started computing our QRP patch."
 msgstr "QRP パッチの算出を開始した時間です。"
 
-#: src/if/gnet_property.c:4739
+#: src/if/gnet_property.c:4761
 msgid "Time spent computing the QRP table patch, in seconds."
 msgstr "QRP テーブルパッチの算出に費やした時間を秒で表します。"
 
-#: src/if/gnet_property.c:4759
+#: src/if/gnet_property.c:4781
 msgid "Query routing table generation number."
 msgstr "検索式経路設定テーブルの生成番号です。"
 
-#: src/if/gnet_property.c:4779
+#: src/if/gnet_property.c:4801
 msgid "Amount of slots used by our QRP table."
 msgstr "QRP テーブルが使用する受口の量です。"
 
-#: src/if/gnet_property.c:4799
+#: src/if/gnet_property.c:4821
 msgid "Amount of slots filled within our QRP table."
 msgstr "QRP テーブルが使用している受口の量です。"
 
-#: src/if/gnet_property.c:4819
+#: src/if/gnet_property.c:4841
 msgid "Percentage of slots filled within our QRP table."
 msgstr "QRP テーブルが使用している受口の割合です。"
 
-#: src/if/gnet_property.c:4839
+#: src/if/gnet_property.c:4861
 msgid "Percentage of hashing conflicts whilst inserting data in our QRP table."
 msgstr "QRP テーブルにデータを挿入する間に起ったハッシュの競合割合です。"
 
-#: src/if/gnet_property.c:4859
+#: src/if/gnet_property.c:4881
 msgid "Amount of hashed keywords in our QRP table."
 msgstr "QRP テーブル中のハッシュキーワードの数です。"
 
-#: src/if/gnet_property.c:4879
+#: src/if/gnet_property.c:4901
 msgid "Total raw size of the QRP table patch, in bytes."
 msgstr "QRP テーブルパッチのそのままの総合サイズをバイトで表します。"
 
-#: src/if/gnet_property.c:4899
+#: src/if/gnet_property.c:4921
 msgid "Final QRP table patch length, after possible compression."
 msgstr "可能な圧縮が終わった後の、最終的な QRP テーブルパッチの長さです。"
 
-#: src/if/gnet_property.c:4919
+#: src/if/gnet_property.c:4941
 msgid "QRP table patch compression ratio, in percent, 0 means none."
 msgstr "QRP テーブルパッチの圧縮比率を割合で表します。0 は非圧縮を意味します。"
 
-#: src/if/gnet_property.c:4939
+#: src/if/gnet_property.c:4961
 msgid ""
 "This property must be set to the current version number of gtk-gnutella in "
 "order to allow it to run when it is ancient."
@@ -2304,12 +2338,12 @@ msgstr ""
 "古い gtk-gnutella を走らせるのを許可するために、このプロパティには必ず現在の"
 "バージョン番号を設定する必要があります。"
 
-#: src/if/gnet_property.c:4960
+#: src/if/gnet_property.c:4982
 msgid "Indicates that gtk-gnutella will expire in that many days."
 msgstr ""
 "Gtk-Gnutella が古すぎて期限切れになってからかなりの日数が経過しています。"
 
-#: src/if/gnet_property.c:4980
+#: src/if/gnet_property.c:5002
 msgid ""
 "When set, gtk-gnutella is running short on file descriptors, but normal "
 "operations are still possible. The condition automatically clears itself "
@@ -2319,7 +2353,7 @@ msgstr ""
 "操作は已然として可能です。これ以上の不足がない場合は、10 分経過後にこの状態自"
 "体を自動的にクリアします。"
 
-#: src/if/gnet_property.c:4997
+#: src/if/gnet_property.c:5019
 msgid ""
 "When set, gtk-gnutella has run out of file descriptors, and operations are "
 "necessarily degraded, if not impossible. The condition automatically clears "
@@ -2329,15 +2363,15 @@ msgstr ""
 "レードを下げる必要があります。最後に発生してから 10 分経過後に、この状態自体"
 "を自動的にクリアします。"
 
-#: src/if/gnet_property.c:5014
+#: src/if/gnet_property.c:5036
 msgid "When set, gtk-gnutella will accept and handle G2 connections. "
 msgstr "Gtk-Gnutella は G2 接続を受け入れて取り扱います。"
 
-#: src/if/gnet_property.c:5031
+#: src/if/gnet_property.c:5053
 msgid "If set, spaces in filenames are replaced with underscores."
 msgstr "有効にすると、ファイル名の空白が下線で置き換えられます。"
 
-#: src/if/gnet_property.c:5048
+#: src/if/gnet_property.c:5070
 msgid ""
 "If set, meta shell characters in filenames are replaced with underscores. "
 "(This must also be enabled for FAT partitions.)"
@@ -2345,7 +2379,7 @@ msgstr ""
 "有効にすると、ファイル名のメタシェル文字は下線で置き換えられます。(これはFAT"
 "区画に対しても有効になってしまいます。)"
 
-#: src/if/gnet_property.c:5065
+#: src/if/gnet_property.c:5087
 msgid ""
 "If set, gtk-gnutella will, upon startup, sanitize filenames by converting "
 "spaces and/or evil characters in them, according to your settings, on "
@@ -2357,15 +2391,15 @@ msgstr ""
 "対して行われます。標準では、上の設定は既に存在するファイルではなく新規に作成"
 "された項目にのみ適用されます。"
 
-#: src/if/gnet_property.c:5082
+#: src/if/gnet_property.c:5104
 msgid "If set, all outgoing connections are tunneled over TLS."
 msgstr "有効にすると、全ての外部接続は TLS 上を通過していきます。"
 
-#: src/if/gnet_property.c:5099
+#: src/if/gnet_property.c:5121
 msgid "If not set, support for Gnutella connection compression is disabled."
 msgstr "無効にすると、圧縮 Gnutella 接続へは対応しなくなります。"
 
-#: src/if/gnet_property.c:5116
+#: src/if/gnet_property.c:5138
 msgid ""
 "Whether UDP shall be used in complement to TCP.  When set, gtk-gnutella will "
 "also listen for UDP traffic on the same port as the one configured for TCP "
@@ -2379,7 +2413,7 @@ msgstr ""
 "になります。これは標準の振る舞いですので、そのままに設定しておいても安全で"
 "す。"
 
-#: src/if/gnet_property.c:5133
+#: src/if/gnet_property.c:5155
 msgid ""
 "Whether gtk-gnutella should honour the request for out-of-band delivery of "
 "query hits via UDP, provided UDP support is enabled.  It should not be "
@@ -2397,7 +2431,7 @@ msgstr ""
 "のノードが発生するトラフィックの大半を管理できて、帯域幅の制限を遵守する限り"
 "安全だと思われるため、標準では有効になります。"
 
-#: src/if/gnet_property.c:5150
+#: src/if/gnet_property.c:5172
 msgid ""
 "Whether gtk-gnutella should send queries requesting out-of-band delivery of "
 "query hits via UDP.  The setting is ignored if you seem to be UDP-"
@@ -2415,7 +2449,7 @@ msgstr ""
 "トは Gnutella ネットワークを通り抜けるようになり、あなたが得られる結果を制限"
 "しならが、フロー調整する中継ノードに破棄されます。"
 
-#: src/if/gnet_property.c:5167
+#: src/if/gnet_property.c:5189
 msgid ""
 "Whether gtk-gnutella should, when running as ultrapeer, act as proxy for "
 "leaf queries that are not requesting OOB delivery of query hits: gtk-"
@@ -2434,7 +2468,7 @@ msgstr ""
 "いけなくなり、その他の問合わせメッセージを破棄して検索ネットワークの効率を下"
 "げてしまうかもしれません。"
 
-#: src/if/gnet_property.c:5184
+#: src/if/gnet_property.c:5206
 msgid ""
 "Whether uploads are frequently stalling, indicating that the bandwidth is "
 "saturated.  Avoid running as an ultra-node under those conditions."
@@ -2442,11 +2476,11 @@ msgstr ""
 "アップロードが頻繁に停滞、帯域幅が飽和しているしている事を示すかどうかを表し"
 "ます。このような条件下ではウルトラノードとして動作する事を避けます。"
 
-#: src/if/gnet_property.c:5201
+#: src/if/gnet_property.c:5223
 msgid "If set to TRUE, automatic requeries are allowed."
 msgstr "有効にすると、自動的に再問合わせされます。"
 
-#: src/if/gnet_property.c:5218
+#: src/if/gnet_property.c:5240
 msgid ""
 "If set to TRUE, the global hostiles.txt is used as well as the private "
 "$GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban "
@@ -2456,11 +2490,11 @@ msgstr ""
 "hostiles.txt と同様に使用されます。これにより個人用の禁止リストと Gtk-"
 "Gnutella と共に配布されるシステム用の禁止リストを分ける事が可能になります。"
 
-#: src/if/gnet_property.c:5235
+#: src/if/gnet_property.c:5257
 msgid "If set to TRUE, SO_LINGER is used for sockets."
 msgstr "TRUE にすると、ソケットに SO_LINGER が使用されます。"
 
-#: src/if/gnet_property.c:5252
+#: src/if/gnet_property.c:5274
 msgid "If TRUE, other hosts can request a complete list of all shared files."
 msgstr ""
 "TRUE にすると、他のホストがあなたの全共有ファイルの完全なリストをリクエストで"
@@ -3968,7 +4002,7 @@ msgstr "%uバイト"
 msgid "%sB/s"
 msgstr "%sB/秒"
 
-#: src/main.c:574
+#: src/main.c:576
 msgid "This is an unofficial build which accesses files in this directory:"
 msgstr "これは非公式ビルドです、このフォルダのファイルにアクセスします:"
 
@@ -4558,59 +4592,59 @@ msgstr "破損したファイルを移動する場所を選んで下さい"
 msgid "Please choose a directory to share"
 msgstr "共有するフォルダを選んで下さい"
 
-#: src/ui/gtk/gtk1/downloads.c:543
+#: src/ui/gtk/gtk1/downloads.c:545
 msgid "no size"
 msgstr "大きさ不明"
 
-#: src/ui/gtk/gtk1/downloads.c:686 src/ui/gtk/gtk1/downloads.c:829
-#: src/ui/gtk/gtk1/downloads.c:1670 src/ui/gtk/gtk1/downloads.c:1761
-#: src/ui/gtk/gtk2/downloads.c:955 src/ui/gtk/gtk2/downloads.c:1019
+#: src/ui/gtk/gtk1/downloads.c:688 src/ui/gtk/gtk1/downloads.c:829
+#: src/ui/gtk/gtk1/downloads.c:1668 src/ui/gtk/gtk1/downloads.c:1763
+#: src/ui/gtk/gtk2/downloads.c:958 src/ui/gtk/gtk2/downloads.c:1022
 #, c-format
 msgid "%u host"
 msgid_plural "%u hosts"
 msgstr[0] "%u 基のホスト"
 
 #: src/ui/gtk/gtk1/downloads.c:1017 src/ui/gtk/gtk1/downloads.c:1048
-#: src/ui/gtk/gtk1/interface-glade.c:2222 src/ui/gtk/gtk2/downloads.c:1373
+#: src/ui/gtk/gtk1/interface-glade.c:2222 src/ui/gtk/gtk2/downloads.c:1376
 #: src/ui/gtk/gtk2/gnet_stats.c:56 src/ui/gtk/uploads_common.c:178
 msgid "Queued"
 msgstr "待機中"
 
-#: src/ui/gtk/gtk1/downloads.c:1022 src/ui/gtk/gtk2/downloads.c:1378
+#: src/ui/gtk/gtk1/downloads.c:1022 src/ui/gtk/gtk2/downloads.c:1381
 #, c-format
 msgid " (slot %d"
 msgstr " (受口 %d"
 
-#: src/ui/gtk/gtk1/downloads.c:1032 src/ui/gtk/gtk2/downloads.c:1388
+#: src/ui/gtk/gtk1/downloads.c:1032 src/ui/gtk/gtk2/downloads.c:1391
 #, c-format
 msgid ", ETA: %s"
 msgstr ", 予定時間: %s"
 
-#: src/ui/gtk/gtk1/downloads.c:1041 src/ui/gtk/gtk2/downloads.c:1397
+#: src/ui/gtk/gtk1/downloads.c:1041 src/ui/gtk/gtk2/downloads.c:1400
 #, c-format
 msgid " retry in %ds"
 msgstr " %d秒後に再試行"
 
 #: src/ui/gtk/gtk1/downloads.c:1057 src/ui/gtk/gtk1/downloads.c:1063
-#: src/ui/gtk/gtk2/downloads.c:1408 src/ui/gtk/nodes_common.c:67
+#: src/ui/gtk/gtk2/downloads.c:1411 src/ui/gtk/nodes_common.c:67
 msgid "Connecting..."
 msgstr "接続しています..."
 
-#: src/ui/gtk/gtk1/downloads.c:1076 src/ui/gtk/gtk2/downloads.c:1421
+#: src/ui/gtk/gtk1/downloads.c:1076 src/ui/gtk/gtk2/downloads.c:1424
 msgid "Push sent directly"
 msgstr "PUSH を直接送信しました"
 
 #: src/ui/gtk/gtk1/downloads.c:1077 src/ui/gtk/gtk1/downloads.c:1105
-#: src/ui/gtk/gtk1/downloads.c:1113 src/ui/gtk/gtk2/downloads.c:1421
-#: src/ui/gtk/gtk2/downloads.c:1449
+#: src/ui/gtk/gtk1/downloads.c:1113 src/ui/gtk/gtk2/downloads.c:1424
+#: src/ui/gtk/gtk2/downloads.c:1452
 msgid "Push sent"
 msgstr "PUSH を送信しました"
 
-#: src/ui/gtk/gtk1/downloads.c:1080 src/ui/gtk/gtk2/downloads.c:1424
+#: src/ui/gtk/gtk1/downloads.c:1080 src/ui/gtk/gtk2/downloads.c:1427
 msgid "Failed to send push"
 msgstr "PUSH の送信に失敗しました"
 
-#: src/ui/gtk/gtk1/downloads.c:1083 src/ui/gtk/gtk2/downloads.c:1427
+#: src/ui/gtk/gtk1/downloads.c:1083 src/ui/gtk/gtk2/downloads.c:1430
 msgid "Sending push"
 msgstr "PUSH を送信しています"
 
@@ -4621,112 +4655,112 @@ msgstr "PUSH を送信しています"
 # 'Push sent push via 127.0.0.1:6346'
 # 'Sending push via 127.0.0.1:6346'
 #
-#: src/ui/gtk/gtk1/downloads.c:1085 src/ui/gtk/gtk2/downloads.c:1429
+#: src/ui/gtk/gtk1/downloads.c:1085 src/ui/gtk/gtk2/downloads.c:1432
 #, c-format
 msgid " via %s"
 msgstr " (%s 経由)"
 
-#: src/ui/gtk/gtk1/downloads.c:1090 src/ui/gtk/gtk2/downloads.c:1434
+#: src/ui/gtk/gtk1/downloads.c:1090 src/ui/gtk/gtk2/downloads.c:1437
 msgid "Connecting"
 msgstr "接続しています"
 
 #: src/ui/gtk/gtk1/downloads.c:1091 src/ui/gtk/gtk1/downloads.c:1132
-#: src/ui/gtk/gtk2/downloads.c:1435 src/ui/gtk/gtk2/downloads.c:1467
+#: src/ui/gtk/gtk2/downloads.c:1438 src/ui/gtk/gtk2/downloads.c:1470
 msgid "Sending request"
 msgstr "リクエストを送信しています"
 
 #: src/ui/gtk/gtk1/downloads.c:1092 src/ui/gtk/gtk1/downloads.c:1136
-#: src/ui/gtk/gtk2/downloads.c:1436 src/ui/gtk/gtk2/downloads.c:1471
+#: src/ui/gtk/gtk2/downloads.c:1439 src/ui/gtk/gtk2/downloads.c:1474
 msgid "Request sent"
 msgstr "リクエストを送信しました"
 
-#: src/ui/gtk/gtk1/downloads.c:1093 src/ui/gtk/gtk2/downloads.c:1437
+#: src/ui/gtk/gtk1/downloads.c:1093 src/ui/gtk/gtk2/downloads.c:1440
 msgid "Reading headers"
 msgstr "へッダを読込んでいます"
 
-#: src/ui/gtk/gtk1/downloads.c:1116 src/ui/gtk/gtk2/downloads.c:1452
+#: src/ui/gtk/gtk1/downloads.c:1116 src/ui/gtk/gtk2/downloads.c:1455
 msgid "Falling back to push"
 msgstr "代わりに PUSH を送信しています"
 
-#: src/ui/gtk/gtk1/downloads.c:1128 src/ui/gtk/gtk2/downloads.c:1463
+#: src/ui/gtk/gtk1/downloads.c:1128 src/ui/gtk/gtk2/downloads.c:1466
 #, c-format
 msgid "Sending request (%d%%)"
 msgstr "リクエストを送信しています (%d%%)"
 
-#: src/ui/gtk/gtk1/downloads.c:1140 src/ui/gtk/gtk2/downloads.c:1475
+#: src/ui/gtk/gtk1/downloads.c:1140 src/ui/gtk/gtk2/downloads.c:1478
 msgid "Receiving headers"
 msgstr "ヘッダを受信しています"
 
-#: src/ui/gtk/gtk1/downloads.c:1144 src/ui/gtk/gtk2/downloads.c:1479
+#: src/ui/gtk/gtk1/downloads.c:1144 src/ui/gtk/gtk2/downloads.c:1482
 msgid "Aborted (Server down)"
 msgstr "中止しました (サーバダウン)"
 
 #: src/ui/gtk/gtk1/downloads.c:1144 src/ui/gtk/gtk1/downloads.c:1152
-#: src/ui/gtk/gtk2/downloads.c:1479 src/ui/gtk/gtk2/downloads.c:1484
+#: src/ui/gtk/gtk2/downloads.c:1482 src/ui/gtk/gtk2/downloads.c:1487
 msgid "Aborted"
 msgstr "中止しました"
 
 #: src/ui/gtk/gtk1/downloads.c:1161 src/ui/gtk/gtk1/downloads.c:1166
-#: src/ui/gtk/gtk1/interface-glade.c:3908 src/ui/gtk/gtk2/downloads.c:1493
-#: src/ui/gtk/gtk2/downloads.c:1498 src/ui/gtk/gtk2/interface-glade.c:4276
+#: src/ui/gtk/gtk1/interface-glade.c:3908 src/ui/gtk/gtk2/downloads.c:1496
+#: src/ui/gtk/gtk2/downloads.c:1501 src/ui/gtk/gtk2/interface-glade.c:4276
 msgid "Completed"
 msgstr "完了したもの"
 
 #: src/ui/gtk/gtk1/downloads.c:1161 src/ui/gtk/gtk1/downloads.c:1166
-#: src/ui/gtk/gtk2/downloads.c:1493 src/ui/gtk/gtk2/downloads.c:1498
+#: src/ui/gtk/gtk2/downloads.c:1496 src/ui/gtk/gtk2/downloads.c:1501
 msgid "Chunk done"
 msgstr "チャンク完了"
 
-#: src/ui/gtk/gtk1/downloads.c:1173 src/ui/gtk/gtk2/downloads.c:1506
+#: src/ui/gtk/gtk1/downloads.c:1173 src/ui/gtk/gtk2/downloads.c:1509
 msgid "Waiting for SHA1 checking..."
 msgstr "SHA1 確認を待っています..."
 
-#: src/ui/gtk/gtk1/downloads.c:1180 src/ui/gtk/gtk2/downloads.c:1513
+#: src/ui/gtk/gtk1/downloads.c:1180 src/ui/gtk/gtk2/downloads.c:1516
 #, c-format
 msgid "Computing SHA1 (%.02f%%)"
 msgstr "SHA1 を算出しています (%.02f%%)"
 
-#: src/ui/gtk/gtk1/downloads.c:1210 src/ui/gtk/gtk2/downloads.c:1542
+#: src/ui/gtk/gtk1/downloads.c:1210 src/ui/gtk/gtk2/downloads.c:1545
 msgid "; Waiting for moving..."
 msgstr "; 移動を待っています..."
 
-#: src/ui/gtk/gtk1/downloads.c:1215 src/ui/gtk/gtk2/downloads.c:1547
+#: src/ui/gtk/gtk1/downloads.c:1215 src/ui/gtk/gtk2/downloads.c:1550
 #, c-format
 msgid "; Moving (%.02f%%)"
 msgstr "; 移動しています (%.02f%%)"
 
-#: src/ui/gtk/gtk1/downloads.c:1220 src/ui/gtk/gtk2/downloads.c:1552
+#: src/ui/gtk/gtk1/downloads.c:1220 src/ui/gtk/gtk2/downloads.c:1555
 #, c-format
 msgid "; Moved (%s) %s"
 msgstr "; 移動し終えました (%s) %s"
 
 #: src/ui/gtk/gtk1/downloads.c:1259 src/ui/gtk/gtk1/downloads.c:1281
-#: src/ui/gtk/gtk2/downloads.c:1598 src/ui/gtk/gtk2/downloads.c:1626
+#: src/ui/gtk/gtk2/downloads.c:1601 src/ui/gtk/gtk2/downloads.c:1629
 msgid "(stalled)"
 msgstr "(停止状態)"
 
 #: src/ui/gtk/gtk1/downloads.c:1295 src/ui/gtk/gtk1/nodes.c:251
-#: src/ui/gtk/gtk2/downloads.c:1639 src/ui/gtk/nodes_common.c:277
+#: src/ui/gtk/gtk2/downloads.c:1642 src/ui/gtk/nodes_common.c:277
 msgid "Connected"
 msgstr "接続しました"
 
-#: src/ui/gtk/gtk1/downloads.c:1299 src/ui/gtk/gtk2/downloads.c:1643
+#: src/ui/gtk/gtk1/downloads.c:1299 src/ui/gtk/gtk2/downloads.c:1646
 msgid "Unknown error"
 msgstr "不明なエラー"
 
-#: src/ui/gtk/gtk1/downloads.c:1306 src/ui/gtk/gtk2/downloads.c:1649
+#: src/ui/gtk/gtk1/downloads.c:1306 src/ui/gtk/gtk2/downloads.c:1652
 #, c-format
 msgid "Retry in %ds"
 msgstr "%d秒後に再試行"
 
-#: src/ui/gtk/gtk1/downloads.c:1316 src/ui/gtk/gtk2/downloads.c:1660
+#: src/ui/gtk/gtk1/downloads.c:1316 src/ui/gtk/gtk2/downloads.c:1663
 #, c-format
 msgid "Sinking (%s bytes left)"
 msgstr "Sinking (%s バイト残存)"
 
 # FIXME: needs separated
-#: src/ui/gtk/gtk1/downloads.c:1359 src/ui/gtk/gtk1/downloads.c:1431
-#: src/ui/gtk/gtk1/interface-glade.c:3192 src/ui/gtk/gtk2/downloads.c:1305
+#: src/ui/gtk/gtk1/downloads.c:1359 src/ui/gtk/gtk1/downloads.c:1433
+#: src/ui/gtk/gtk1/interface-glade.c:3192 src/ui/gtk/gtk2/downloads.c:1308
 #: src/ui/gtk/gtk2/upload_stats.c:271
 msgid "Complete"
 msgstr "完了"
@@ -4957,7 +4991,7 @@ msgstr "クリックで表示を切替えます。"
 #
 #: src/ui/gtk/gtk1/interface-glade.c:1290
 #: src/ui/gtk/gtk1/interface-glade.c:1331
-#: src/ui/gtk/gtk1/interface-glade.c:1371 src/ui/gtk/misc.c:135
+#: src/ui/gtk/gtk1/interface-glade.c:1371 src/ui/gtk/misc.c:134
 msgid "in"
 msgstr "でノード内へ"
 
@@ -4967,7 +5001,7 @@ msgstr "でノード内へ"
 #
 #: src/ui/gtk/gtk1/interface-glade.c:1302
 #: src/ui/gtk/gtk1/interface-glade.c:1342
-#: src/ui/gtk/gtk1/interface-glade.c:1382 src/ui/gtk/misc.c:135
+#: src/ui/gtk/gtk1/interface-glade.c:1382 src/ui/gtk/misc.c:134
 msgid "out"
 msgstr "でノード外へ"
 
@@ -5039,7 +5073,7 @@ msgstr "フラッグ"
 #: src/ui/gtk/gtk1/interface-glade.c:2991 src/ui/gtk/gtk1/nodes.c:249
 #: src/ui/gtk/gtk2/nodes.c:169 src/ui/gtk/gtk2/uploads.c:84
 msgid "User-Agent"
-msgstr "User-Agent"
+msgstr "エージェント"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1554 src/ui/gtk/gtk1/nodes.c:250
 #: src/ui/gtk/gtk2/nodes.c:170
@@ -5741,8 +5775,8 @@ msgid ")"
 msgstr ")"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4070
-#: src/ui/gtk/gtk1/interface-glade.c:4972 src/ui/gtk/settings.c:1810
-#: src/ui/gtk/settings.c:1847
+#: src/ui/gtk/gtk1/interface-glade.c:4972 src/ui/gtk/settings.c:1814
+#: src/ui/gtk/settings.c:1851
 msgid "Show settings"
 msgstr "設定の表示"
 
@@ -6835,7 +6869,8 @@ msgstr "貢献者:"
 #: src/ui/gtk/gtk2/interface-glade.c:1631
 msgid ""
 "==> We are looking for people who want to contribute to this fine tool. <=="
-msgstr "==> この素晴らしいツールの開発を手伝ってみたいという方を探しています。<=="
+msgstr ""
+"==> この素晴らしいツールの開発を手伝ってみたいという方を探しています。<=="
 
 #: src/ui/gtk/gtk1/interface-glade.c:10101
 #: src/ui/gtk/gtk2/interface-glade.c:1637
@@ -6892,7 +6927,7 @@ msgstr "確認します:"
 msgid "Do you really want to quit?"
 msgstr "本当に終了しますか?"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10284 src/ui/gtk/settings.c:1054
+#: src/ui/gtk/gtk1/interface-glade.c:10284 src/ui/gtk/settings.c:1058
 msgid "Yes"
 msgstr "はい"
 
@@ -8429,31 +8464,31 @@ msgstr "Pixmap ファイルがありません: %s"
 msgid "Error loading pixmap file: %s"
 msgstr "Pixmap ファイルロード中のエラー: %s"
 
-#: src/ui/gtk/gtk2/downloads.c:1499 src/ui/gtk/uploads_common.c:113
+#: src/ui/gtk/gtk2/downloads.c:1502 src/ui/gtk/uploads_common.c:113
 msgid "< 1s"
 msgstr "1秒未満"
 
-#: src/ui/gtk/gtk2/downloads.c:1528
+#: src/ui/gtk/gtk2/downloads.c:1531
 msgid "SHA1 figure"
 msgstr "SHA1 形態"
 
-#: src/ui/gtk/gtk2/downloads.c:1528
+#: src/ui/gtk/gtk2/downloads.c:1531
 msgid "SHA1 check"
 msgstr "SHA1 確認"
 
-#: src/ui/gtk/gtk2/downloads.c:1529
+#: src/ui/gtk/gtk2/downloads.c:1532
 msgid "ERROR"
 msgstr "エラー"
 
-#: src/ui/gtk/gtk2/downloads.c:1530
+#: src/ui/gtk/gtk2/downloads.c:1533
 msgid "OK"
 msgstr "OK"
 
-#: src/ui/gtk/gtk2/downloads.c:1531
+#: src/ui/gtk/gtk2/downloads.c:1534
 msgid "FAILED"
 msgstr "失敗"
 
-#: src/ui/gtk/gtk2/downloads.c:1665
+#: src/ui/gtk/gtk2/downloads.c:1668
 #, c-format
 msgid "Unknown status %u"
 msgstr "不明なステータス %u"
@@ -8826,17 +8861,7 @@ msgstr "モニタ"
 #. and append your name to the list.
 #: src/ui/gtk/main.c:436
 msgid "translation_credit|"
-msgstr ""
-"翻訳者:\n"
-"\n"
-"オランダ語訳:\tJeroen Asselman <jeroen@asselman.com>\n"
-"スペイン語訳:\tPaco Arjonilla García <pacoarjonilla@yahoo.es>\n"
-"ドイツ語訳:\t\tThomas Schürger <thomas@schuerger.com>\n"
-"ハンガリー語訳:\tSulyok Péter <sp@elte.hu>\n"
-"フランス語訳:\tT'aZ <tazdev@altern.org>\n"
-"日本語訳:\t\t川畑 大地 <daichik@users.sourceforge.net>\n"
-"\n"
-"翻訳に関する事柄は上記のアドレスにご連絡下さい。"
+msgstr "日本語訳:\tDaichi Kawahata"
 
 #: src/ui/gtk/main.c:804
 #, c-format
@@ -8854,7 +8879,7 @@ msgstr[0] "%lu 個のファイルを共有 (%s)"
 #
 # '17KiB/s in/out (avg)'
 #
-#: src/ui/gtk/misc.c:136
+#: src/ui/gtk/misc.c:135
 msgid "(avg)"
 msgstr "(平均)"
 
@@ -8987,101 +9012,101 @@ msgstr "マグネットを解析できません"
 msgid "The SHA1 query is not validly encoded"
 msgstr "この SHA1 検索式は適切にエンコードされていません"
 
-#: src/ui/gtk/settings.c:995
+#: src/ui/gtk/settings.c:997
 msgid "Never"
 msgstr "未発生"
 
-#: src/ui/gtk/settings.c:1054
+#: src/ui/gtk/settings.c:1058
 msgid "No"
 msgstr "いいえ"
 
-#: src/ui/gtk/settings.c:1180
+#: src/ui/gtk/settings.c:1184
 #, c-format
 msgid "%u/%u host (%u%%)"
 msgid_plural "%u/%u hosts (%u%%)"
 msgstr[0] "%u/%u 基のホスト (%u%%)"
 
-#: src/ui/gtk/settings.c:1266 src/ui/gtk/settings.c:1288
+#: src/ui/gtk/settings.c:1270 src/ui/gtk/settings.c:1292
 msgid "loading..."
 msgstr "読込み中..."
 
-#: src/ui/gtk/settings.c:1267
+#: src/ui/gtk/settings.c:1271
 msgid "Reading host cache..."
 msgstr "ホストキャッシュ読込み中..."
 
-#: src/ui/gtk/settings.c:1289
+#: src/ui/gtk/settings.c:1293
 msgid "Reading ultra cache..."
 msgstr "ウルトラキャッシュ読込み中..."
 
-#: src/ui/gtk/settings.c:1333
+#: src/ui/gtk/settings.c:1337
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "*** 古いバージョンが動作中です! ***"
 
-#: src/ui/gtk/settings.c:1358
+#: src/ui/gtk/settings.c:1362
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
 msgstr "*** アップロードが停滞しています、帯域幅が不足していませんか? ***"
 
-#: src/ui/gtk/settings.c:1390
+#: src/ui/gtk/settings.c:1394
 msgid "*** FILE DESCRIPTORS HAVE RUN OUT! ***"
 msgstr "*** ファイル記述子の数が尽きました! ***"
 
-#: src/ui/gtk/settings.c:1395
+#: src/ui/gtk/settings.c:1399
 msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr "*** ファイル記述子の数が尽きかけています! ***"
 
-#: src/ui/gtk/settings.c:1410
+#: src/ui/gtk/settings.c:1414
 msgid "*** VERSION WILL SOON BECOME OLD! ***"
 msgstr "*** バージョンはもうすぐ古いものになります! ***"
 
-#: src/ui/gtk/settings.c:1413
+#: src/ui/gtk/settings.c:1417
 #, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
 msgid_plural "*** VERSION WILL BECOME OLD IN %d DAYS! ***"
 msgstr[0] "*** このバージョンはあと %d 日で古いものになります! ***"
 
-#: src/ui/gtk/settings.c:1804 src/ui/gtk/settings.c:1841
+#: src/ui/gtk/settings.c:1808 src/ui/gtk/settings.c:1845
 msgid "Hide settings"
 msgstr "設定を隠す"
 
-#: src/ui/gtk/settings.c:1878
+#: src/ui/gtk/settings.c:1882
 #, c-format
 msgid "Address/port changed to: %s"
 msgstr "アドレス/ポートが変更されました: %s"
 
 # MERGEBLE: not yet reported
-#: src/ui/gtk/settings.c:2209
+#: src/ui/gtk/settings.c:2213
 msgid "no sources"
 msgstr "送信元はありません"
 
-#: src/ui/gtk/settings.c:2213
+#: src/ui/gtk/settings.c:2217
 #, c-format
 msgid "%u source"
 msgid_plural "%u sources"
 msgstr[0] "%u 基の送信元"
 
-#: src/ui/gtk/settings.c:2228
+#: src/ui/gtk/settings.c:2232
 #, c-format
 msgid "%u active"
 msgstr "%u 件が動作中"
 
-#: src/ui/gtk/settings.c:2256
+#: src/ui/gtk/settings.c:2260
 #, c-format
 msgid "%u queued"
 msgstr "%u 件が待機中"
 
-#: src/ui/gtk/settings.c:2377
+#: src/ui/gtk/settings.c:2381
 #, c-format
 msgid "%u/%u connection"
 msgid_plural "%u/%u connections"
 msgstr[0] "%u/%u 件の接続"
 
-#: src/ui/gtk/settings.c:2414
+#: src/ui/gtk/settings.c:2418
 #, c-format
 msgid "%u/%u upload"
 msgid_plural "%u/%u uploads"
 msgstr[0] "%u/%u 件のアップロード"
 
-#: src/ui/gtk/settings.c:2439
+#: src/ui/gtk/settings.c:2443
 #, c-format
 msgid "%u/%u download"
 msgid_plural "%u/%u downloads"
