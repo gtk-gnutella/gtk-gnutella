@@ -50,10 +50,6 @@ RCSID("$Id$");
 #define DBUS_API_SUBJECT_TO_CHANGE
 #include <dbus/dbus.h>
 
-#ifdef USE_GLIB2 /* XXX */
-#include <dbus/dbus-glib-lowlevel.h>
-#endif /* USE_GLIB2 */
-
 /** The dbus path to the object serving the notifications. */
 #define DBUS_PATH "/net/gtkg/events"
 /** The interface that is sending the notifications. */
@@ -76,11 +72,6 @@ dbus_util_init(void)
 		g_message("Could not open connection to DBus bus: %s", error.message);
 		dbus_error_free(&error);
 	} else {
-
-#ifdef USE_GLIB2
-		/* Set up this connection to work in a GLib event loop */
-		dbus_connection_setup_with_g_main(bus, NULL);
-#endif /* USE_GLIB2 */
 
 		g_message("D-BUS set up and ready for use.");
 		/** @todo Include a timestamp or some other useful info */
@@ -127,7 +118,7 @@ dbus_util_send_message(const char *signal_name, const char *text)
 	message = dbus_message_new_signal(DBUS_PATH, DBUS_INTERFACE, signal_name);
 	
 	if (NULL == message) {
-		g_message("Could not create D-BUS message!\n");
+		g_message("Could not create D-BUS message!");
 	} else {
 			
 		/* Add the message to the Events signal */
@@ -137,7 +128,7 @@ dbus_util_send_message(const char *signal_name, const char *text)
 		/* Send the message */
 		dbus_connection_send(bus, message, NULL);
 		
-		g_message("Sent D-BUS signal '%s': %s\n", signal_name, text);
+		g_message("Sent D-BUS signal '%s': %s", signal_name, text);
 		
 		/* Free the message */
 		dbus_message_unref(message);

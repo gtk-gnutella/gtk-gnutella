@@ -24,8 +24,8 @@
 echo " "
 d_dbus="$define"
 echo "Checking how we can gather information about dbus..." >&4
-if pkg-config dbus-glib-1 --cflags >/dev/null 2>&1; then
-	dbusconfig="pkg-config dbus-glib-1"
+if pkg-config dbus-1 --cflags >/dev/null 2>&1; then
+	dbusconfig="pkg-config dbus-1"
 	modver=--modversion
 else
 	echo "You've don't seem to have dbus installed?" >&4
@@ -47,10 +47,29 @@ case "$version" in
 	if test 0$vint -lt 03502; then
 		echo "Sorry, you have dbus $version, I need at least 0.35.2." >&4
 	else
-		echo "Good, you have dbus $version.  Enabling D-BUS notifications..."
+		echo "Good, you have dbus $version."
 		dbuscflags=`$dbusconfig --cflags`
 		dbusldflags=`$dbusconfig --libs`
-		d_dbus="$define"
+		
+		$cat <<'EOM'
+
+D-Bus support allows me to send out messages onto the D-Bus message
+bus. That way external applications can easily act on certain 
+events that happen, such as a completed download.
+
+For more information, see doc/other/dbus-support.txt
+
+EOM
+		case "$dbus" in
+		false) dflt=n;;
+		*) dflt=y;;
+		esac
+		rp="Enable D-Bus support"
+		. ./myread
+		case "$ans" in
+		y) dbus=true; d_dbus="$define";;
+		*) dbus=false; d_bus="$undef";;
+		esac
 	fi
 	;;
 esac

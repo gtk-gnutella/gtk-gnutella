@@ -118,6 +118,7 @@ following is a list of commonly used options with the defaults.
 -D gtkversion=1
 -D official='false'
 -D remotectrl='true'
+-D dbus='true'
 
 To disable NLS (National Language Support) i.e., nationalized text in the
 user interface:
