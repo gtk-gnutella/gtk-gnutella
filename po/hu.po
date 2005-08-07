@@ -1,4 +1,5 @@
-# $Id:
+# $Id$
+#
 # Hungarian translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
 # Copyright (C) 2001-2005 Raphaël Manfredi.
@@ -10,7 +11,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-08-07 12:09+0900\n"
-"PO-Revision-Date: 2005-08-06 14:02+0900\n"
+"PO-Revision-Date: 2005-08-07 12:28+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"

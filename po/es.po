@@ -1,4 +1,5 @@
-# $Id:
+# $Id$
+#
 # Spanish translation for gtk-gnutella package.
 # Copyright (c) 2000-2001, Yann Grossel.
 # Copyright (c) 2001-2005, Raphaël Manfredi.
@@ -11,7 +12,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-08-07 12:09+0900\n"
-"PO-Revision-Date: 2005-08-06 14:02+0900\n"
+"PO-Revision-Date: 2005-08-07 12:28+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
