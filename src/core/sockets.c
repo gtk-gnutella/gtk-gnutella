@@ -2310,7 +2310,7 @@ socket_connect_by_name(const gchar *host, guint16 port, enum socket_type type)
 
 	g_assert(host);
 	
-	host_addr_set_ip4(0); /* XXX */
+	ha = host_addr_set_ip4(0); /* @todo TODO IPv6 */
 	s = socket_connect_prepare(ha, port, type);
 	g_return_val_if_fail(NULL != s, NULL);
 
@@ -2350,9 +2350,6 @@ socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
 		return NULL;
 	
 	haddr = is_host_addr(ha) ? ha : host_addr_set_ip4(INADDR_ANY);
-
-	g_message("net=%u:%u", haddr.net, haddr.addr.ip4);
-	g_assert(NET_TYPE_IP4 == haddr.net);
 	socket_addr_set(&addr, haddr, port);
 
 	sd = socket(host_addr_family(haddr), SOCK_STREAM, 0);
