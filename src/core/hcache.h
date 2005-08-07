@@ -55,18 +55,18 @@ const gchar *host_type_to_gchar(host_type_t type);
 const gchar *hcache_type_to_gchar(hcache_type_t type);
 
 gboolean hcache_add(
-    hcache_type_t type, guint32 ip, guint16 port,
+    hcache_type_t type, const host_addr_t addr, guint16 port,
     const gchar *what);
 
 gboolean hcache_add_caught(
-    host_type_t type, guint32 ip, guint16 port,
+    host_type_t type, const host_addr_t addr, guint16 port,
     const gchar *what);
 
 gboolean hcache_add_valid(
-    host_type_t type, guint32 ip, guint16 port,
+    host_type_t type, const host_addr_t addr, guint16 port,
     const gchar *what);
 
-gboolean hcache_node_is_bad(guint32 ip);
+gboolean hcache_node_is_bad(const host_addr_t addr);
 
 void hcache_prune(hcache_type_t type);
 
@@ -77,8 +77,9 @@ gboolean hcache_is_low(host_type_t type);
 gint hcache_fill_caught_array(
 	host_type_t type, gnet_host_t *hosts, gint hcount);
 
-void hcache_get_caught(host_type_t type, guint32 *ip, guint16 *port);
-gboolean hcache_find_nearby(host_type_t type, guint32 *ip, guint16 *port);
+void hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port);
+gboolean hcache_find_nearby(host_type_t type,
+	host_addr_t *addr, guint16 *port);
 
 void hcache_store_if_dirty(host_type_t type);
 

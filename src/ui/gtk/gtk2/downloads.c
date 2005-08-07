@@ -1430,7 +1430,8 @@ gui_update_download(download_t *d, gboolean force)
 							_("Sending push"));
 
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, _(" via %s"),
-						ip_port_to_gchar(cproxy_ip(cp), cproxy_port(cp)));
+						host_addr_port_to_string(cproxy_addr(cp),
+							cproxy_port(cp)));
 
 				if (!cp->done) {
 					switch (cp->state) {

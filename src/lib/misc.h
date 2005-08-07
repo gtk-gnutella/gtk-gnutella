@@ -298,6 +298,143 @@ typedef guint16 flag_t;
 #define set_flags(r,f) (r |= (f))
 #define clear_flags(r,f) (r &= ~(f))
 
+#if defined(USE_IPV6)
+static const host_addr_t zero_host_addr;
+
+static inline enum net_type 
+host_addr_net(const host_addr_t ha)
+{
+	return ha.net;
+}
+
+static inline guint32
+host_addr_ip4(const host_addr_t ha)
+{
+	return NET_TYPE_IP4 == ha.net ? ha.addr.ip4 : 0;
+}
+
+static inline const guint8 *
+host_addr_ip6(const host_addr_t *ha)
+{
+	return ha->addr.ip6;
+}
+
+static inline host_addr_t
+host_addr_set_ip4(guint32 ip)
+{
+	host_addr_t ha;
+	
+	ha.net = NET_TYPE_IP4;
+	ha.addr.ip4 = ip;
+	return ha;
+}
+
+static inline void
+host_addr_set_ip6(host_addr_t *ha, const guint8 *ip6)
+{
+	ha->net = NET_TYPE_IP6;
+	memcpy(ha->addr.ip6, ip6, 16);
+}
+
+static inline gboolean
+host_addr_equal(const host_addr_t a, const host_addr_t b)
+{
+	if (a.net == b.net) {
+		switch (a.net) {
+		case NET_TYPE_IP4:
+			return a.addr.ip4 == b.addr.ip4;
+		case NET_TYPE_IP6:
+			return 0 == memcmp(a.addr.ip6, b.addr.ip6, sizeof a.addr.ip6);
+		case NET_TYPE_NONE:
+			return TRUE;
+		}
+		g_assert_not_reached();
+	}
+	return FALSE;
+}
+
+static inline gboolean
+is_host_addr(const host_addr_t ha)
+{
+	switch (host_addr_net(ha)) {
+	case NET_TYPE_IP4:
+		return 0 != ha.addr.ip4;
+	case NET_TYPE_IP6:
+		return 0 != memcmp(ha.addr.ip6, zero_host_addr.addr.ip6,
+						sizeof ha.addr.ip6);
+	case NET_TYPE_NONE:
+		return FALSE;
+	}
+	g_assert_not_reached();
+	return FALSE;
+}
+
+static inline int 
+host_addr_family(const host_addr_t ha)
+{
+	switch (ha.net) {
+	case NET_TYPE_IP4:
+		return AF_INET;
+	case NET_TYPE_IP6:
+		return AF_INET6;
+	case NET_TYPE_NONE:
+		break;
+	}
+	g_message("%u:%u", (guint8) ha.net, ha.addr.ip4);
+	g_assert_not_reached();
+	return -1;
+}
+
+static inline guint32
+host_addr_hash(const host_addr_t ha)
+{
+	guint32 h = ha.net;
+
+	switch (ha.net) {
+	case NET_TYPE_IP4:
+		return h ^ ha.addr.ip4;
+	case NET_TYPE_IP6:
+		{
+			guint i;
+
+			for (i = 0; i < sizeof ha.addr.ip6; i++)
+				h ^= ha.addr.ip6[i] << (i * 2);
+		}
+		return h;
+	case NET_TYPE_NONE:
+		return h;
+	}
+	g_assert_not_reached();
+	return -1; 
+}
+
+#else
+
+/* IPv4 only */
+
+#define host_addr_net(x) (((void) (x)), NET_TYPE_IP4)
+#define host_addr_family(x) (((void) (x)), AF_INET) 
+#define host_addr_ip4(x) (x)
+#define host_addr_set_ip4(x, y) G_STMT_START { (x) = (y); } G_STMT_END
+#define host_addr_set_net(x, y) G_STMT_START { (void) ((x), (y)) } G_STMT_END
+#define is_host_addr(x) (0 != (x))
+#define host_addr_equal(a, b) ((a) == (b))
+#define host_addr_hash(x) (x)
+#define zero_host_addr 0
+
+#endif /* IPV6 */
+
+const gchar *host_addr_to_string(const host_addr_t addr);
+const gchar *host_addr_to_string_buf(const host_addr_t addr, gchar *, size_t);
+host_addr_t string_to_host_addr(const gchar *s);
+const gchar *host_addr_port_to_string(const host_addr_t addr, guint16 port);
+const gchar *host_addr_port_to_string_buf(const host_addr_t addr,
+				guint16 port, gchar *, size_t);
+gboolean string_to_host_addr_port(const gchar *s,
+			host_addr_t *addr, guint16 *port);
+host_addr_t name_to_host_addr(const gchar *host);
+const gchar *host_addr_to_name(const host_addr_t addr);
+
 /*
  * Network related string routines
  */
@@ -306,16 +443,14 @@ gboolean gchar_to_ip_strict(const gchar *s, guint32 *addr, gchar const **ep);
 gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask);
 gboolean gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port);
 gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask);
-gchar *  ip_to_gchar(guint32);
-gchar *  ip2_to_gchar(guint32);
-void ip_to_string(guint32 ip, gchar *buf, size_t size);
-gchar *  ip_port_to_gchar(guint32, guint16);
-gchar *hostname_port_to_gchar(const gchar *hostname, guint16 port);
-guint32  host_to_ip(const gchar *);
-const gchar *ip_to_host(guint32 addr);
-gchar *  host_name(void);
+const gchar *ip_to_string(guint32);
+const gchar *ip_to_string2(guint32);
+gchar *ip_to_string_buf(guint32 ip, gchar *buf, size_t size);
+const gchar *ip_port_to_string(guint32, guint16);
+const gchar *hostname_port_to_gchar(const gchar *hostname, guint16 port);
+const gchar *local_hostname(void);
 #define port_is_valid(port) (port != 0)
-gboolean ip_is_valid(guint32);
+gboolean addr_is_valid(const host_addr_t addr);
 
 /*
  * Date string conversions
@@ -382,7 +517,7 @@ gchar *base32_to_guid(const gchar *base32);
  * Tests
  */
 gboolean is_string_ip(const gchar *);
-gboolean is_private_ip(guint32 ip);
+gboolean is_private_addr(const host_addr_t addr);
 gboolean is_absolute_path(const char *);
 gboolean is_directory(const gchar *);
 gboolean is_regular(const gchar *);

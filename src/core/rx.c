@@ -96,11 +96,11 @@ rx_make_node(
 	g_assert(n);
 	g_assert(ops);
 
-	rx = walloc0(sizeof(*rx));
+	rx = walloc0(sizeof *rx);
 
 	rx->owner = n;
 	rx->ops = ops;
-	rx->host.ip = n->ip;
+	rx->host.addr = n->addr;
 	rx->host.port = n->port;
 	rx->upper = NULL;
 	rx->lower = NULL;

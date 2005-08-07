@@ -53,15 +53,14 @@ static time_t whitelist_mtime, whitelist_checked;
 static gchar *whitelist_path = NULL;
 
 /**
- * whitelist_retrieve
- *
  * Loads the whitelist into memory.
  */
-static void whitelist_retrieve(void)
+static void
+whitelist_retrieve(void)
 {
     gchar line[1024];
     gchar *p, *sport, *snetmask;
-    guint32 ip, port, netmask;
+    guint32 port, netmask;
     struct whitelist *n;
     FILE *f;
     struct stat st;
@@ -82,6 +81,8 @@ static void whitelist_retrieve(void)
     whitelist_mtime = st.st_mtime;
 
     while (fgets(line, sizeof(line), f)) {
+		host_addr_t addr;
+
         linenum++;
         if (*line == '#') continue;
 
@@ -108,8 +109,8 @@ static void whitelist_retrieve(void)
             sport = ++p;
         }
 
-        ip = host_to_ip(line);
-        if (!ip) {
+        addr = name_to_host_addr(line);
+        if (!is_host_addr(addr) || NET_TYPE_IP4 != host_addr_net(addr)) {
             g_warning("whitelist_retrieve(): "
 				"Line %d: Invalid IP \"%s\"", linenum, line);
             continue;
@@ -145,8 +146,8 @@ static void whitelist_retrieve(void)
             }
 		}
 
-        n = g_malloc0(sizeof(*n));
-        n->ip = ip;
+        n = g_malloc0(sizeof *n);
+		n->ip = host_addr_ip4(addr);
         n->port = port;
         n->netmask = netmask;
 
@@ -158,14 +159,13 @@ static void whitelist_retrieve(void)
 }
 
 /**
- * whitelist_connect
- *
  * Attempts to connect to the nodes we have whitelisted.
  * Only entries with a specified port will be tried.
  *
  * @returns the number of new nodes that are connected to.
  */
-guint whitelist_connect(void)
+guint
+whitelist_connect(void)
 {
     GSList *sl;
     struct whitelist *n;
@@ -173,15 +173,19 @@ guint whitelist_connect(void)
     guint num = 0;
 
     for (sl = sl_whitelist; sl; sl = g_slist_next(sl)) {
+		host_addr_t ha;
+		
         n = sl->data;
         if (!n->port)
             continue;
-        if (node_is_connected(n->ip, n->port, TRUE))
+
+		ha = host_addr_set_ip4(n->ip);
+        if (node_is_connected(ha, n->port, TRUE))
             continue;
 
         if (delta_time(now, n->last_try) > WHITELIST_RETRY_DELAY) {
             n->last_try = now;
-            node_add(n->ip, n->port);
+            node_add(ha, n->port);
             num++;
         }
     }
@@ -189,22 +193,20 @@ guint whitelist_connect(void)
 }
 
 /**
- * whitelist_init
- *
  * Called on startup. Loads the whitelist into memory.
  */
-void whitelist_init(void)
+void
+whitelist_init(void)
 {
 	whitelist_path = make_pathname(settings_config_dir(), whitelist_file);
     whitelist_retrieve();
 }
 
 /**
- * whitelist_close
- *
  * Frees all entries in the whitelist.
  */
-void whitelist_close(void)
+void
+whitelist_close(void)
 {
     GSList *sl;
 
@@ -217,30 +219,36 @@ void whitelist_close(void)
 }
 
 /**
- * whitelist_reload
- *
  * Reloads the whitelist.
  */
-void whitelist_reload(void)
+void
+whitelist_reload(void)
 {
     whitelist_close();
     whitelist_retrieve();
 }
 
 /**
- * whitelist_check
- *
  * Check the given IP agains the entries in the whitelist.
  * @returns TRUE if found, and FALSE if not.
  *
  * Also, it will peridically check the whitelist file for
  * updates, and reload it if it has changed.
  */
-gboolean whitelist_check(guint32 ip)
+gboolean
+whitelist_check(const host_addr_t addr)
 {
     struct whitelist *n;
     time_t now = time(NULL);
     GSList *sl;
+	guint32 ip;
+
+	if (NET_TYPE_IP4 != host_addr_net(addr)) {
+		/* XXX: Allow IPv6 addresses as well */
+		return FALSE;
+	}
+
+	ip = host_addr_ip4(addr);
 
     /* Check if the file has changed on disk, and reload it if necessary. */
     if (delta_time(now, whitelist_checked) > WHITELIST_CHECK_INTERVAL) {
@@ -258,12 +266,15 @@ gboolean whitelist_check(guint32 ip)
     }
 
     for (sl = sl_whitelist; sl; sl = g_slist_next(sl)) {
+		guint32 mask;
+
         n = sl->data;
-        if ((ip & n->netmask) == (n->ip & n->netmask))
+		mask = n->netmask;
+        if ((n->ip & mask) == (ip & mask))
             return TRUE;
     }
 
     return FALSE;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

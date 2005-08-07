@@ -153,14 +153,14 @@ hostiles_load(FILE *f, hostiles_t which)
 			if (dbg > 0 && error == IPR_ERR_OK) {
 				g_warning("%s: line %d: "
 					"entry \"%s\" (%s/%d) superseded earlier smaller range",
-					hostiles_file, linenum, line, ip_to_gchar(ip), bits);
+					hostiles_file, linenum, line, ip_to_string(ip), bits);
 				break;
 			}
 			/* FALL THROUGH */
 		default:
 			if (dbg > 0 || error != IPR_ERR_RANGE_SUBNET) {
 				g_warning("%s, line %d: rejected entry \"%s\" (%s/%d): %s",
-					hostiles_file, linenum, line, ip_to_gchar(ip), bits,
+					hostiles_file, linenum, line, ip_to_string(ip), bits,
 					iprange_strerror(error));
 			}
 			continue;
@@ -340,16 +340,23 @@ hostiles_close(void)
  * @returns TRUE if found, and FALSE if not.
  */
 gboolean
-hostiles_check(guint32 ip)
+hostiles_check(const host_addr_t addr)
 {
 	gint i;
 
-	for (i = 0; i < NUM_HOSTILES; i++) {
-		if (i == HOSTILE_GLOBAL && !use_global_hostiles_txt)
-			continue;
+	if (NET_TYPE_IP4 == host_addr_net(addr)) {
+		for (i = 0; i < NUM_HOSTILES; i++) {
+			if (i == HOSTILE_GLOBAL && !use_global_hostiles_txt)
+				continue;
 
-		if (NULL != hostile_db[i] && THERE == iprange_get(hostile_db[i], ip))
-			return TRUE;
+			if (
+				NULL != hostile_db[i] &&
+				THERE == iprange_get(hostile_db[i], host_addr_ip4(addr))
+			)
+				return TRUE;
+		}
+	} else if (NET_TYPE_IP6 == host_addr_net(addr)) {
+		/* XXX: Implement this! */
 	}
 	
 	return FALSE;

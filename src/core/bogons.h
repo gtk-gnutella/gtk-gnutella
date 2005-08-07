@@ -36,9 +36,9 @@
 #ifndef _core_bogons_h_
 #define _core_bogons_h_
 
-#include <glib.h>
+#include "common.h"
 
-gboolean bogons_check(guint32 ip);
+gboolean bogons_check(const host_addr_t addr);
 void bogons_init(void);
 void bogons_close(void);
 

@@ -51,7 +51,8 @@ extern struct in_addr *local_netmasks;
  * Global macros.
  */
 
-#define listen_ip()		(force_local_ip ? forced_local_ip : local_ip)
+#define listen_addr()	\
+	string_to_host_addr(force_local_addr ? forced_local_addr : local_addr)
 
 
 /*
@@ -61,7 +62,7 @@ extern struct in_addr *local_netmasks;
 void settings_init(void);
 void settings_save_if_dirty(void);
 void settings_shutdown(void);
-void settings_ip_changed(guint32 new_ip, guint32 peer);
+void settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer);
 guint32 settings_max_msg_size(void);
 void settings_close(void);
 void settings_ask_for_property(const gchar *name,

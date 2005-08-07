@@ -57,7 +57,7 @@ RCSID("$Id$");
 #define CLEAN_STEPS	3			/**< Amount of steps to remove off-track data */
 
 struct used_val {
-	guint32 ip;					/**< The IP address */
+	host_addr_t addr;			/**< The IP address */
 	gint precision;				/**< The precision used for the last update */
 	gpointer cq_ev;				/**< Scheduled cleanup event */
 };
@@ -94,12 +94,12 @@ static void
 val_free(struct used_val *v)
 {
 	g_assert(v);
-	g_assert(v->ip);
+	g_assert(is_host_addr(v->addr));
 
 	if (v->cq_ev)
 		cq_cancel(callout_queue, v->cq_ev);
 
-	wfree(v, sizeof(*v));
+	wfree(v, sizeof *v);
 }
 
 /**
@@ -108,13 +108,13 @@ val_free(struct used_val *v)
 static void
 val_destroy(cqueue_t *unused_cq, gpointer obj)
 {
-	struct used_val *v = (struct used_val *) obj;
+	struct used_val *v = obj;
 
 	(void) unused_cq;
 	g_assert(v);
-	g_assert(v->ip);
+	g_assert(is_host_addr(v->addr));
 
-	g_hash_table_remove(used, GUINT_TO_POINTER(v->ip));
+	g_hash_table_remove(used, &v->addr);
 	v->cq_ev = NULL;
 	val_free(v);
 }
@@ -123,11 +123,11 @@ val_destroy(cqueue_t *unused_cq, gpointer obj)
  * Create a value for the `used' table.
  */
 struct used_val *
-val_create(guint32 ip, gint precision)
+val_create(const host_addr_t addr, gint precision)
 {
-	struct used_val *v = walloc(sizeof(*v));
+	struct used_val *v = walloc(sizeof *v);
 
-	v->ip = ip;
+	v->addr = addr;
 	v->precision = precision;
 	v->cq_ev = cq_insert(callout_queue, REUSE_DELAY * 1000, val_destroy, v);
 
@@ -145,20 +145,34 @@ val_reused(struct used_val *v, gint precision)
 	cq_resched(callout_queue, v->cq_ev, REUSE_DELAY * 1000);
 }
 
+static guint
+item_hash(gconstpointer key)
+{
+	const host_addr_t *addr = key;
+	return host_addr_hash(*addr);
+}
+
+static gboolean
+item_equal(gconstpointer p, gconstpointer q)
+{
+	const host_addr_t *a = p, *b = q;
+	return host_addr_equal(*a, *b);
+}
+
 /**
  * Called at startup time to initialize local structures.
  */
 void
 clock_init(void)
 {
-	used = g_hash_table_new(NULL, NULL);
+	used = g_hash_table_new(item_hash, item_equal);
 	datapoints = statx_make();
 }
 
 static void
 used_free_kv(gpointer unused_key, gpointer val, gpointer unused_x)
 {
-	struct used_val *v = (struct used_val *) val;
+	struct used_val *v = val;
 
 	(void) unused_key;
 	(void) unused_x;
@@ -277,7 +291,7 @@ clock_adjust(void)
  * REUSE_DELAY seconds.
  */
 void
-clock_update(time_t update, gint precision, guint32 ip)
+clock_update(time_t update, gint precision, const host_addr_t addr)
 {
 	time_t now;
 	gint32 delta;
@@ -294,13 +308,13 @@ clock_update(time_t update, gint precision, guint32 ip)
 	 * end is running NTP.
 	 */
 
-	if ((v = g_hash_table_lookup(used, GUINT_TO_POINTER(ip)))) {
+	if ((v = g_hash_table_lookup(used, &addr))) {
 		if (precision && precision >= v->precision)
 			return;
 		val_reused(v, precision);
 	} else {
-		v = val_create(ip, precision);
-		g_hash_table_insert(used, GUINT_TO_POINTER(v->ip), v);
+		v = val_create(addr, precision);
+		g_hash_table_insert(used, &v->addr, v);
 	}
 
 	now = time(NULL);
@@ -311,7 +325,7 @@ clock_update(time_t update, gint precision, guint32 ip)
 
 	if (dbg > 1)
 		printf("CLOCK skew=%d delta=%d +/-%d [%s] (n=%d avg=%.2f sdev=%.2f)\n",
-			(gint32) clock_skew, delta, precision, ip_to_gchar(ip),
+			(gint32) clock_skew, delta, precision, host_addr_to_string(addr),
 			statx_n(datapoints), statx_avg(datapoints), statx_sdev(datapoints));
 
 	if (statx_n(datapoints) >= ENOUGH_DATA)

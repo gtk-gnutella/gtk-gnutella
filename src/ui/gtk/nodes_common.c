@@ -384,9 +384,9 @@ nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 }
 
 static void
-add_node_helper(guint32 ip, gpointer port)
+add_node_helper(const host_addr_t addr, gpointer port)
 {
-	guc_node_add(ip, GPOINTER_TO_UINT(port));
+	guc_node_add(addr, GPOINTER_TO_UINT(port));
 }
 
 /**

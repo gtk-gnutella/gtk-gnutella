@@ -367,9 +367,9 @@ share_remove_search_request_listener(search_request_listener_t l)
 
 static void
 share_emit_search_request(
-	query_type_t type, const gchar *query, guint32 ip, guint16 port)
+	query_type_t type, const gchar *query, const host_addr_t addr, guint16 port)
 {
-    LISTENER_EMIT(search_request, (type, query, ip, port));
+    LISTENER_EMIT(search_request, (type, query, addr, port));
 }
 
 /* ----------------------------------------- */
@@ -1419,7 +1419,7 @@ query_strip_oob_flag(gnutella_node_t *n, gchar *data)
 
 	if (query_debug)
 		printf("QUERY from node %s <%s>: removed OOB delivery (speed = 0x%x)\n",
-			node_ip(n), node_vendor(n), speed);
+			node_addr(n), node_vendor(n), speed);
 }
 
 /**
@@ -1436,7 +1436,7 @@ query_set_oob_flag(gnutella_node_t *n, gchar *data)
 
 	if (query_debug)
 		printf("QUERY %s from node %s <%s>: set OOB delivery (speed = 0x%x)\n",
-			guid_hex_str(n->header.muid), node_ip(n), node_vendor(n), speed);
+			guid_hex_str(n->header.muid), node_addr(n), node_vendor(n), speed);
 }
 
 /**
@@ -1744,7 +1744,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 		if (delta_time(now, (time_t) 0) - seen < node_requery_threshold) {
 			if (dbg) g_warning("node %s (%s) re-queried \"%s\" after %d secs",
-				node_ip(n), node_vendor(n), query, (gint) (now - seen));
+				node_addr(n), node_vendor(n), query, (gint) (now - seen));
 			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
 			return TRUE;		/* Drop the message! */
 		}
@@ -1793,7 +1793,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				last_sha1_digest == NULL ?
 					search : sha1_base32(last_sha1_digest),
 				n->header.hops, n->header.ttl,
-				node_ip(n), node_vendor(n));
+				node_addr(n), node_vendor(n));
 			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
 			return TRUE;		/* Drop the message! */
 		}
@@ -1813,9 +1813,9 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		gint i;
 		for (i = 0; i < exv_sha1cnt; i++)
 			share_emit_search_request(QUERY_SHA1,
-				sha1_base32(exv_sha1[i].sha1_digest), n->ip, n->port);
+				sha1_base32(exv_sha1[i].sha1_digest), n->addr, n->port);
 	} else
-		share_emit_search_request(QUERY_STRING, search, n->ip, n->port);
+		share_emit_search_request(QUERY_STRING, search, n->addr, n->port);
 
 	/*
 	 * Special processing for the "connection speed" field of queries.
@@ -1891,16 +1891,16 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 */
 
 	if (oob) {
-		guint32 ip;
+		host_addr_t addr;
 		guint16 port;
 
-		guid_oob_get_ip_port(n->header.muid, &ip, &port);
+		guid_oob_get_addr_port(n->header.muid, &addr, &port);
 
 		/*
-		 * Verify against the hotile IP addresses...
+		 * Verify against the hostile IP addresses...
 		 */
 
-		if (hostiles_check(ip)) {
+		if (hostiles_check(addr)) {
 			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 			return TRUE;		/* Drop the message! */
 		}
@@ -1912,14 +1912,17 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 * check that.
 		 */
 
-		if (n->header.hops == 1 && n->gnet_ip && ip != n->gnet_ip) {
+		if (	n->header.hops == 1 &&
+				is_host_addr(n->gnet_addr) &&
+				!host_addr_equal(addr, n->gnet_addr)
+		) {
 			gnet_stats_count_dropped(n, MSG_DROP_BAD_RETURN_ADDRESS);
 
 			if (query_debug)
 				printf("QUERY dropped from node %s <%s>: invalid OOB flag "
 					"(return address mismatch: %s, node: %s)\n",
-					node_ip(n), node_vendor(n),
-					ip_port_to_gchar(ip, port), node_gnet_ip(n));
+					node_addr(n), node_vendor(n),
+					host_addr_port_to_string(addr, port), node_gnet_addr(n));
 
 			return TRUE;		/* Drop the message! */
 		}
@@ -1928,15 +1931,15 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 * If the query contains an invalid IP:port, clear the OOB flag.
 		 */
 
-		if (!host_is_valid(ip, port)) {
+		if (!host_is_valid(addr, port)) {
 			query_strip_oob_flag(n, n->data);
 			oob = FALSE;
 
 			if (query_debug)
 				printf("QUERY %s node %s <%s>: removed OOB flag "
 					"(invalid return address: %s)\n",
-					guid_hex_str(n->header.muid), node_ip(n), node_vendor(n),
-					ip_port_to_gchar(ip, port));
+					guid_hex_str(n->header.muid), node_addr(n), node_vendor(n),
+					host_addr_port_to_string(addr, port));
 		}
 
 		/*
@@ -1952,7 +1955,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			if (query_debug)
 				printf("QUERY %s node %s <%s>: removed OOB flag "
 					"(leaf node is TCP-firewalled)\n",
-					guid_hex_str(n->header.muid), node_ip(n), node_vendor(n));
+					guid_hex_str(n->header.muid), node_addr(n), node_vendor(n));
 		}
 
 		/*
@@ -1971,7 +1974,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			if (query_debug)
 				printf("QUERY %s node %s <%s>: removed OOB flag "
 					"(no leaf guidance)\n",
-					guid_hex_str(n->header.muid), node_ip(n), node_vendor(n));
+					guid_hex_str(n->header.muid), node_addr(n), node_vendor(n));
 		}
 	}
 
@@ -2008,7 +2011,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 	if (
 		!oob && udp_active() && proxy_oob_queries && !is_udp_firewalled &&
-		NODE_IS_LEAF(n) && host_is_valid(listen_ip(), listen_port)
+		NODE_IS_LEAF(n) && host_is_valid(listen_addr(), listen_port)
 	) {
 		oob_proxy_create(n);
 		oob = TRUE;

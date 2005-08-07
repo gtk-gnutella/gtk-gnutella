@@ -1533,7 +1533,7 @@ download_selection_of_ctree(
 
 		filename = gm_sanitize_filename(rc->name, FALSE, FALSE);
 		if (guc_download_new(filename, rc->size, rc->index,
-				rs->ip, rs->port, rs->guid, rs->hostname,
+				rs->addr, rs->port, rs->guid, rs->hostname,
 				rc->sha1, rs->stamp, need_push, NULL, rs->proxies)
 		) {
 			created++;

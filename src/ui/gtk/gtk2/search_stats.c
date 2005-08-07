@@ -111,13 +111,13 @@ static void search_stats_tally(const word_vec_t * vec);
 
 static void
 search_stats_notify_word(query_type_t type, const gchar *search,
-	guint32 unused_ip, guint16 unused_port)
+	 const host_addr_t unused_addr, guint16 unused_port)
 {
     word_vec_t *wovec;
     guint wocnt;
     guint i;
 
-	(void) unused_ip;
+	(void) unused_addr;
 	(void) unused_port;
 
     if (type == QUERY_SHA1)
@@ -134,12 +134,12 @@ search_stats_notify_word(query_type_t type, const gchar *search,
 
 static void
 search_stats_notify_whole(query_type_t type, const gchar *search,
-	guint32 unused_ip, guint16 unused_port)
+	const host_addr_t unused_addr, guint16 unused_port)
 {
     word_vec_t wovec;
 	gchar buf[1024];
 
-	(void) unused_ip;
+	(void) unused_addr;
 	(void) unused_port;
 
 	gm_snprintf(buf, sizeof buf, type == QUERY_SHA1 ? "urn:sha1:%s" : "[%s]",
@@ -154,14 +154,14 @@ search_stats_notify_whole(query_type_t type, const gchar *search,
 
 static void
 search_stats_notify_routed(query_type_t unused_type, const gchar *unused_search,
-	guint32 ip, guint16 port)
+	const host_addr_t addr, guint16 port)
 {
     word_vec_t wovec;
 
 	(void) unused_type;
 	(void) unused_search;
 
-    wovec.word = ip_port_to_gchar(ip, port);
+    wovec.word = deconstify_gchar(host_addr_port_to_string(addr, port));
     wovec.len = strlen(wovec.word);
     wovec.amount = 1;
 

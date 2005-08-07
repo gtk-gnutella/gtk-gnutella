@@ -733,7 +733,8 @@ gmsg_query_can_send(pmsg_t *mb, mqueue_t *q)
 
 	if (!node_query_hops_ok(n, head->hops)) {
 		if (dbg > 4)
-			gmsg_log_dropped(start, "to node %s due to hops-flow", node_ip(n));
+			gmsg_log_dropped(start, "to node %s due to hops-flow",
+				node_addr(n));
 		return FALSE;
 	}
 
@@ -743,7 +744,7 @@ gmsg_query_can_send(pmsg_t *mb, mqueue_t *q)
 	if (!route_exists_for_reply(start, head->function)) {
 		if (dbg > 4)
 			gmsg_log_dropped(start, "to node %s due to no route for hits",
-				node_ip(n));
+				node_addr(n));
 		return FALSE;
 	}
 

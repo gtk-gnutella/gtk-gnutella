@@ -63,7 +63,7 @@ RCSID("$Id$");
 static gboolean
 udp_is_valid_gnet(struct gnutella_socket *s)
 {
-	struct gnutella_node *n = node_udp_get_ip_port(s->ip, s->port);
+	struct gnutella_node *n = node_udp_get_addr_port(s->addr, s->port);
 	struct gnutella_header *head;
 	gchar *msg;
 	guint32 size;				/**< Payload size, from the Gnutella message */
@@ -122,7 +122,7 @@ not:
 log:
 	if (udp_debug) {
 		g_warning("got invalid Gnutella packet from UDP (%s): %s",
-			ip_port_to_gchar(s->ip, s->port), msg);
+			host_addr_port_to_string(s->addr, s->port), msg);
 		if (s->pos)
 			dump_hex(stderr, "UDP datagram", s->buffer, s->pos);
 	}
@@ -142,7 +142,12 @@ udp_received(struct gnutella_socket *s)
 	 * If reply comes from the NTP port, notify that they're running NTP.
 	 */
 
-	if (s->ip == 0x7f000001 && s->port == NTP_PORT) {	/* from 127.0.0.1:123 */
+	if (
+		NET_TYPE_IP4 == host_addr_net(s->addr) &&
+		0x7f000001 == host_addr_ip4(s->addr) &&
+		NTP_PORT == s->port
+	)
+	{	/* from 127.0.0.1:123 */
 		ntp_got_reply(s);
 		return;
 	}
@@ -151,19 +156,20 @@ udp_received(struct gnutella_socket *s)
 	 * This must be regular Gnutella traffic then.
 	 */
 
-	inet_udp_got_incoming(s->ip);
+	inet_udp_got_incoming(s->addr);
 	bws_udp_count_read(s->pos);
 
 	/*
 	 * If we get traffic from a bogus IP (unroutable), warn, for now.
 	 */
 
-	if (bogons_check(s->ip)) {
+	if (bogons_check(s->addr)) {
 		bogus = TRUE;
 
 		if (udp_debug) {
 			g_warning("UDP datagram (%d byte%s) received from bogus IP %s",
-				(gint) s->pos, s->pos == 1 ? "" : "s", ip_to_gchar(s->ip));
+				(gint) s->pos, s->pos == 1 ? "" : "s",
+				host_addr_to_string(s->addr));
 		}
 		gnet_stats_count_general(GNR_UDP_BOGUS_SOURCE_IP, 1);
 	}
@@ -178,7 +184,7 @@ udp_received(struct gnutella_socket *s)
 
 	if (udp_debug > 19)
 		printf("UDP got %s from %s%s\n", gmsg_infostr_full(s->buffer),
-			bogus ? "BOGUS " : "", ip_port_to_gchar(s->ip, s->port));
+			bogus ? "BOGUS " : "", host_addr_port_to_string(s->addr, s->port));
 
 	node_udp_process(s);
 }
@@ -199,10 +205,10 @@ void udp_send_msg(gnutella_node_t *n, gpointer buf, gint len)
  * specified MUID.
  */
 void
-udp_connect_back(guint32 ip, guint16 port, const gchar *muid)
+udp_connect_back(const host_addr_t addr, guint16 port, const gchar *muid)
 {
 	struct gnutella_msg_init *m;
-	struct gnutella_node *n = node_udp_get_ip_port(ip, port);
+	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
 	guint32 size;
 
 	if (!udp_active())
@@ -214,17 +220,17 @@ udp_connect_back(guint32 ip, guint16 port, const gchar *muid)
 
 	if (udp_debug > 19)
 		printf("UDP queued connect-back PING %s (%u bytes) to %s\n",
-			guid_hex_str(muid), size, ip_port_to_gchar(ip, port));
+			guid_hex_str(muid), size, host_addr_port_to_string(addr, port));
 }
 
 /**
  * Send a Gnutella ping to the specified host.
  */
 void
-udp_send_ping(guint32 ip, guint16 port)
+udp_send_ping(const host_addr_t addr, guint16 port)
 {
 	struct gnutella_msg_init *m;
-	struct gnutella_node *n = node_udp_get_ip_port(ip, port);
+	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
 	guint32 size;
 
 	if (!udp_active())

@@ -220,8 +220,8 @@ static gint CAT2(compare_,field)( \
 #define COMPARE_FUNC_END } }
 
 COMPARE_FUNC(hosts)
-	guint32 ip_a = rd_a->ip;
-	guint32 ip_b = rd_b->ip;
+	guint32 ip_a = host_addr_ip4(rd_a->addr);
+	guint32 ip_b = host_addr_ip4(rd_b->addr);
 	return CMP(ip_a, ip_b);
 COMPARE_FUNC_END
 
@@ -254,10 +254,10 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 
 	rd->last_update  = time(NULL);
 
-	if (u->ip != rd->ip) {
-		rd->ip = u->ip;
+	if (!host_addr_equal(u->addr, rd->addr)) {
+		rd->addr = u->addr;
 		gtk_list_store_set(store_uploads, &rd->iter,
-			c_ul_host, ip_to_gchar(rd->ip), (-1));
+			c_ul_host, host_addr_to_string(rd->addr), (-1));
 	}
 
 	if (u->range_start != rd->range_start || u->range_end != rd->range_end) {
@@ -358,7 +358,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
     rd->range_end   = u->range_end;
 	rd->size		= u->file_size;
     rd->start_date  = u->start_date;
-	rd->ip			= u->ip;
+	rd->addr			= u->addr;
 	rd->name		= NULL != u->name ? atom_str_get(u->name) : NULL;
 	rd->country	    = u->country;
 	rd->user_agent	= NULL != u->user_agent
@@ -408,7 +408,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 
 	titles[c_ul_filename] = NULL != u->name
 								? lazy_locale_to_utf8(u->name) : "...";
-	titles[c_ul_host]     = ip_to_gchar(u->ip);
+	titles[c_ul_host]     = host_addr_to_string(u->addr);
 	titles[c_ul_status] = uploads_gui_status_str(&status, rd);
 
 	progress = 100.0 * uploads_gui_progress(&status, rd);

@@ -50,7 +50,7 @@ struct cproxy {
 	guint32 magic;
 	struct download *d;		/**< Which download triggered us */
 
-	guint32 ip;				/**< IP of the proxy servent */
+	host_addr_t addr;		/**< IP of the proxy servent */
 	guint16 port;			/**< Port of the proxy servent */
 	gchar *server;			/**< Server string */
 	gchar *guid;			/**< GUID (atom) to which push should be sent */
@@ -69,7 +69,7 @@ struct cproxy {
 };
 
 #define cproxy_vendor_str(c)	((c)->server ? (c)->server : "")
-#define cproxy_ip(c)			((c)->ip)
+#define cproxy_addr(c)			((c)->addr)
 #define cproxy_port(c)			((c)->port)
 
 #endif /* _if_core_pproxy_h_ */

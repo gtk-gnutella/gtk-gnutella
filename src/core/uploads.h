@@ -76,7 +76,7 @@ typedef struct upload {
 
 	struct dl_file_info *file_info;	/**< For PFSP: only set when partial file */
 
-	guint32 ip;					/**< Remote IP address */
+	host_addr_t addr;			/**< Remote IP address */
 	gchar *user_agent;			/**< Remote user agent */
 	gint country;				/**< Country of origin, ISO3166 code */
 	filesize_t skip;			/**< First byte to send, inclusive */
@@ -139,8 +139,8 @@ void upload_connect_conf(struct upload *u);
 void upload_init(void);
 void upload_close(void);
 void upload_stop_all(struct dl_file_info *fi, const gchar *reason);
-void upload_send_giv(guint32 ip, guint16 port, guint8 hops, guint8 ttl,
-	guint32 file_index, const gchar *file_name, gboolean banning);
+void upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops,
+	guint8 ttl, guint32 file_index, const gchar *file_name, gboolean banning);
 gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push);
 void upload_fire_upload_info_changed(gnutella_upload_t *n);
 void expect_http_header(gnutella_upload_t *u, upload_stage_t new_status);

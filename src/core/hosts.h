@@ -43,16 +43,16 @@ extern gboolean host_low_on_pongs;
 
 void host_init(void);
 void host_timer(void);
-void host_add(guint32, guint16, gboolean);
-void host_add_semi_pong(guint32 ip, guint16 port);
+void host_add(const host_addr_t addr, guint16, gboolean);
+void host_add_semi_pong(const host_addr_t addr, guint16 port);
 void host_shutdown(void);
 void host_close(void);
 
-const gchar *host_ip(const gnet_host_t *h);
+const gchar *host_to_string(const gnet_host_t *h);
 
-void parse_netmasks(gchar *value);
-gboolean host_is_nearby(guint32 ip);
-gboolean host_is_valid(guint32 ip, guint16 port);
+void parse_netmasks(const gchar *value);
+gboolean host_is_nearby(const host_addr_t addr);
+gboolean host_is_valid(const host_addr_t addr, guint16 port);
 
 guint host_hash(gconstpointer key);
 gint host_eq(gconstpointer v1, gconstpointer v2);

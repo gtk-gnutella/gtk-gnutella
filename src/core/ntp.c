@@ -156,7 +156,7 @@ ntp_probe(void)
 	tm_now(&now);
 	ntp_tm_serialize(m.transmit_timestamp, &now);
 
-	to.ip = gchar_to_ip("127.0.0.1");
+	to.addr = string_to_host_addr("127.0.0.1");
 	to.port = NTP_PORT;
 
 	if (-1 == s_udp_listen->wio.sendto(&s_udp_listen->wio, &to, &m, sizeof(m)))

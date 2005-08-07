@@ -37,9 +37,9 @@
 #ifndef _core_hostiles_h_
 #define _core_hostiles_h_
 
-#include <glib.h>
+#include "common.h" 
 
-gboolean hostiles_check(guint32 ip);
+gboolean hostiles_check(const host_addr_t addr);
 void hostiles_init(void);
 void hostiles_close(void);
 

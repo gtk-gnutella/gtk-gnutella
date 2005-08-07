@@ -296,7 +296,7 @@ on_popup_downloads_abort_host_activate(GtkMenuItem *unused_menuitem,
 			continue;
 		}
 		removed += guc_download_remove_all_from_peer(
-			download_guid(d), download_ip(d),
+			download_guid(d), download_addr(d),
 			download_port(d), FALSE);
 	}
 
@@ -529,7 +529,7 @@ on_popup_downloads_connect_activate(GtkMenuItem *unused_menuitem,
 	}
 
     gtk_ctree_unselect(ctree_downloads, l->data);
-    guc_node_add(download_ip(d), download_port(d));
+    guc_node_add(download_addr(d), download_port(d));
 }
 
 /***
@@ -684,7 +684,7 @@ on_popup_queue_abort_host_activate(GtkMenuItem *unused_menuitem,
 			continue;
 		}
 		removed += guc_download_remove_all_from_peer(
-			download_guid(d), download_ip(d), download_port(d), FALSE);
+			download_guid(d), download_addr(d), download_port(d), FALSE);
 	}
 
 	g_list_free(data_list);
@@ -817,7 +817,7 @@ on_popup_queue_connect_activate(GtkMenuItem *unused_menuitem,
     }
 
     gtk_ctree_unselect(ctree_downloads_queue, l->data);
-    guc_node_add(download_ip(d), download_port(d));
+    guc_node_add(download_addr(d), download_port(d));
 }
 
 /***

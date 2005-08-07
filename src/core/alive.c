@@ -80,7 +80,7 @@ ap_make(gchar *muid)
 {
 	struct alive_ping *ap;
 
-	ap = walloc(sizeof(*ap));
+	ap = walloc(sizeof *ap);
 
 	ap->muid = atom_guid_get(muid);
 	g_get_current_time(&ap->sent);
@@ -95,7 +95,7 @@ static void
 ap_free(struct alive_ping *ap)
 {
 	atom_guid_free(ap->muid);
-	wfree(ap, sizeof(*ap));
+	wfree(ap, sizeof *ap);
 }
 
 /**
@@ -107,7 +107,7 @@ alive_make(struct gnutella_node *n, gint max)
 {
 	struct alive *a;
 
-	a = g_malloc0(sizeof(*a));
+	a = g_malloc0(sizeof *a);
 	a->node = n;
 	a->maxcount = max;
 	a->min_rt = INFINITY;
@@ -121,11 +121,11 @@ alive_make(struct gnutella_node *n, gint max)
 void
 alive_free(gpointer obj)
 {
-	struct alive *a = (struct alive *) obj;
-	GSList *l;
+	struct alive *a = obj;
+	GSList *sl;
 
-	for (l = a->pings; l; l = l->next)
-		ap_free((struct alive_ping *) l->data);
+	for (sl = a->pings; sl; sl = g_slist_next(sl))
+		ap_free(sl->data);
 
 	g_slist_free(a->pings);
 	G_FREE_NULL(a);
@@ -142,7 +142,7 @@ alive_remove_link(struct alive *a, GSList *item)
 
 	a->pings = g_slist_remove_link(a->pings, item);
 	a->count--;
-	ap_free((struct alive_ping *) item->data);
+	ap_free(item->data);
 	g_slist_free_1(item);
 }
 
@@ -152,13 +152,13 @@ alive_remove_link(struct alive *a, GSList *item)
 static void
 alive_ping_drop(struct alive *a, const gchar *muid)
 {
-	GSList *l;
+	GSList *sl;
 
-	for (l = a->pings; l; l = l->next) {
-		struct alive_ping *ap = (struct alive_ping *) l->data;
+	for (sl = a->pings; sl; sl = g_slist_next(sl)) {
+		struct alive_ping *ap = sl->data;
 
 		if (guid_eq(ap->muid, muid)) {		/* Found it! */
-			alive_remove_link(a, l);
+			alive_remove_link(a, sl);
 			return;
 		}
 	}
@@ -173,7 +173,7 @@ alive_ping_can_send(pmsg_t *mb, mqueue_t *q)
 {
 	gnutella_node_t *n = mq_node(q);
 	gchar *muid = pmsg_start(mb);
-	struct alive *a = (struct alive *) n->alive_pings;
+	struct alive *a = n->alive_pings;
 
 	g_assert(((struct gnutella_header *) muid)->function == GTA_MSG_INIT);
 	g_assert(a->count == 0 || a->pings != NULL);
@@ -199,7 +199,7 @@ alive_ping_can_send(pmsg_t *mb, mqueue_t *q)
 
 	if (dbg > 1)
 		printf("ALIVE node %s (%s) dropped old alive ping %s, %d remain\n",
-			node_ip(a->node), node_vendor(a->node),
+			node_addr(a->node), node_vendor(a->node),
 			guid_hex_str(muid), a->count);
 
 	return FALSE;		/* Don't send message */
@@ -211,7 +211,7 @@ alive_ping_can_send(pmsg_t *mb, mqueue_t *q)
 static void
 alive_pmsg_free(pmsg_t *mb, gpointer arg)
 {
-	struct gnutella_node *n = (struct gnutella_node *) arg;
+	struct gnutella_node *n = arg;
 
 	g_assert(pmsg_is_extended(mb));
 
@@ -219,7 +219,7 @@ alive_pmsg_free(pmsg_t *mb, gpointer arg)
 		n->n_ping_sent++;
 		if (dbg > 1)
 			printf("ALIVE sent ping %s to node %s (%s)\n",
-				guid_hex_str(pmsg_start(mb)), node_ip(n), node_vendor(n));
+				guid_hex_str(pmsg_start(mb)), node_addr(n), node_vendor(n));
 	} else {
 		gchar *muid = pmsg_start(mb);
 		struct alive *a = (struct alive *) n->alive_pings;
@@ -313,7 +313,7 @@ ap_ack(struct alive_ping *ap, struct alive *a)
 	if (dbg > 4)
 		printf("ALIVE node %s (%s) "
 		"delay=%dms min=%dms, max=%dms, agv=%dms [%d queued]\n",
-			node_ip(a->node), node_vendor(a->node),
+			node_addr(a->node), node_vendor(a->node),
 			a->last_rt, a->min_rt, a->max_rt, a->avg_rt, a->count);
 }
 
@@ -323,14 +323,14 @@ ap_ack(struct alive_ping *ap, struct alive *a)
 static void
 alive_trim_upto(struct alive *a, GSList *item)
 {
-	GSList *l;
+	GSList *sl;
 
 	g_assert(a->count && a->pings != NULL);
 
-	for (l = a->pings; l; l = a->pings) {
-		alive_remove_link(a, l);
+	for (sl = a->pings; sl; sl = a->pings) {
+		alive_remove_link(a, sl);
 
-		if (l == item) {		/* Found it, removed it */
+		if (sl == item) {		/* Found it, removed it */
 			g_assert(a->count >= 0);
 			return;
 		}
@@ -347,20 +347,21 @@ alive_trim_upto(struct alive *a, GSList *item)
 gboolean
 alive_ack_ping(gpointer obj, gchar *muid)
 {
-	struct alive *a = (struct alive *) obj;
-	GSList *l;
+	struct alive *a = obj;
+	GSList *sl;
 
 	g_assert(a->count == 0 || a->pings != NULL);
 
-	for (l = a->pings; l; l = l->next) {
-		struct alive_ping *ap = (struct alive_ping *) l->data;
+	for (sl = a->pings; sl; sl = g_slist_next(sl)) {
+		struct alive_ping *ap = sl->data;
 
 		if (guid_eq(ap->muid, muid)) {		/* Found it! */
 			if (dbg > 1)
 				printf("ALIVE got alive pong %s from %s (%s)\n",
-					guid_hex_str(muid), node_ip(a->node), node_vendor(a->node));
+					guid_hex_str(muid), node_addr(a->node),
+					node_vendor(a->node));
 			ap_ack(ap, a);
-			alive_trim_upto(a, l);
+			alive_trim_upto(a, sl);
 			return TRUE;
 		}
 	}
@@ -375,9 +376,9 @@ alive_ack_ping(gpointer obj, gchar *muid)
 void
 alive_ack_first(gpointer obj, gchar *muid)
 {
-	struct alive *a = (struct alive *) obj;
-	GSList *l;
+	struct alive *a = obj;
 	struct alive_ping *ap;
+	GSList *sl;
 
 	g_assert(a->count == 0 || a->pings != NULL);
 
@@ -392,19 +393,19 @@ alive_ack_first(gpointer obj, gchar *muid)
 	 * Assume they're replying to the first ping we sent, ignore otherwise.
 	 */
 
-	l = a->pings;		/* First ping we sent, chronologically */
+	sl = a->pings;		/* First ping we sent, chronologically */
 
-	if (l == NULL)
+	if (NULL == sl)
 		return;
 
-	ap = (struct alive_ping *) l->data;
+	ap = sl->data;
 
 	if (dbg > 1)
 		printf("ALIVE TTL=0 ping from %s (%s), assuming it acks %s\n",
-			node_ip(a->node), node_vendor(a->node), guid_hex_str(ap->muid));
+			node_addr(a->node), node_vendor(a->node), guid_hex_str(ap->muid));
 
 	ap_ack(ap, a);
-	alive_remove_link(a, l);
+	alive_remove_link(a, sl);
 }
 
 /**
@@ -414,12 +415,12 @@ alive_ack_first(gpointer obj, gchar *muid)
 void
 alive_get_roundtrip_ms(gpointer obj, guint32 *avg, guint32 *last)
 {
-	const struct alive *a = (const struct alive *) obj;
+	const struct alive *a = obj;
 
-	g_assert(obj != NULL);
+	g_assert(NULL != obj);
 
 	if (avg)	*avg = a->avg_rt;
 	if (last)	*last = a->last_rt;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

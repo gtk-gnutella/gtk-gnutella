@@ -60,11 +60,11 @@ static guint32 monitor_items = 0;
 
 static void
 monitor_gui_append_to_monitor(query_type_t type, const gchar *item,
-	guint32 unused_ip, guint16 unused_port)
+	const host_addr_t unused_addr, guint16 unused_port)
 {
     static GtkWidget *clist_monitor = NULL;
 
-	(void) unused_ip;
+	(void) unused_addr;
 	(void) unused_port;
 
     if (clist_monitor == NULL) {
@@ -144,9 +144,8 @@ void
 monitor_gui_enable_monitor(const gboolean val)
 {
     static gboolean registered = FALSE;
-    gtk_widget_set_sensitive
-        (lookup_widget(main_window, "clist_monitor"), !val);
 
+    gtk_widget_set_sensitive(lookup_widget(main_window, "clist_monitor"), !val);
     if (val != registered) {
         if (val) {
             guc_share_add_search_request_listener

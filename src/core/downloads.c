@@ -165,13 +165,13 @@ static struct {
  * GUID, which is possible, in which case we simply supersede the old entry.
  */
 
-static GHashTable *dl_by_ip = NULL;
+static GHashTable *dl_by_addr = NULL;
 
 /**
- * Keys in the `dl_by_ip' table.
+ * Keys in the `dl_by_addr' table.
  */
-struct dl_ip {
-	guint32 ip;				/**< IP address of server */
+struct dl_addr {
+	host_addr_t addr;	/**< IP address of server */
 	guint16 port;			/**< Port of server */
 };
 
@@ -255,7 +255,7 @@ dl_key_hash(gconstpointer key)
 	guint hash;
 
 	hash = guid_hash(k->guid);
-	hash ^= k->ip;
+	hash ^= host_addr_hash(k->addr);
 	hash ^= (k->port << 16) | k->port;
 
 	return hash;
@@ -267,39 +267,37 @@ dl_key_hash(gconstpointer key)
 static gint
 dl_key_eq(gconstpointer a, gconstpointer b)
 {
-	const struct dl_key *ak = a;
-	const struct dl_key *bk = b;
+	const struct dl_key *ak = a, *bk = b;
 
-	return ak->ip == bk->ip &&
+	return host_addr_equal(ak->addr, bk->addr) &&
 		ak->port == bk->port &&
 		guid_eq(ak->guid, bk->guid);
 }
 
 /**
- * Hashing of a `dl_ip' structure.
+ * Hashing of a `dl_addr' structure.
  */
 static guint
-dl_ip_hash(gconstpointer key)
+dl_addr_hash(gconstpointer key)
 {
-	const struct dl_ip *k = key;
+	const struct dl_addr *k = key;
 	guint32 hash;
 
-	WRITE_GUINT32_LE(k->ip, &hash); /* Reverse IP, 192.x.y.z -> z.y.x.192 */
+	hash = host_addr_hash(k->addr);
 	hash ^= (k->port << 16) | k->port;
 
 	return (guint) hash;
 }
 
 /**
- * Comparison of `dl_ip' structures.
+ * Comparison of `dl_addr' structures.
  */
 static gint
-dl_ip_eq(gconstpointer a, gconstpointer b)
+dl_addr_eq(gconstpointer a, gconstpointer b)
 {
-	const struct dl_ip *ak = a;
-	const struct dl_ip *bk = b;
+	const struct dl_addr *ak = a, *bk = b;
 
-	return ak->ip == bk->ip && ak->port == bk->port;
+	return host_addr_equal(ak->addr, bk->addr) && ak->port == bk->port;
 }
 
 /**
@@ -356,7 +354,9 @@ has_blank_guid(const struct download *d)
 gboolean
 is_faked_download(const struct download *d)
 {
-	return download_ip(d) == 0 && download_port(d) == 0 && has_blank_guid(d);
+	return !is_host_addr(download_addr(d)) &&
+			download_port(d) == 0 &&
+			has_blank_guid(d);
 }
 
 /**
@@ -421,7 +421,7 @@ void
 download_init(void)
 {
 	dl_by_host = g_hash_table_new(dl_key_hash, dl_key_eq);
-	dl_by_ip = g_hash_table_new(dl_ip_hash, dl_ip_eq);
+	dl_by_addr = g_hash_table_new(dl_addr_hash, dl_addr_eq);
 	dl_count_by_name = g_hash_table_new(g_str_hash, g_str_equal);
 
 	src_init();
@@ -548,8 +548,8 @@ download_timer(time_t now)
 
 						download_unavailable(d, GTA_DL_ERROR, _("Timeout"));
 						download_remove_all_from_peer(
-							download_guid(d), download_ip(d), download_port(d),
-							TRUE);
+							download_guid(d), download_addr(d),
+							download_port(d), TRUE);
 					}
 				}
 			} else if (now != d->last_gui_update)
@@ -639,20 +639,20 @@ dl_by_time_remove(struct dl_server *server)
 static GSList *
 hostvec_to_slist(gnet_host_vec_t *vec)
 {
-	GSList *l = NULL;
+	GSList *sl = NULL;
 	gint i;
 
 	for (i = vec->hvcnt - 1; i >= 0; i--) {
 		gnet_host_t *h = &vec->hvec[i];
-		gnet_host_t *host = walloc(sizeof(*host));
+		gnet_host_t *host = walloc(sizeof *host);
 
-		host->ip = h->ip;
+		host->addr = h->addr;
 		host->port = h->port;
 
-		l = g_slist_prepend(l, host);
+		sl = g_slist_prepend(sl, host);
 	}
 
-	return l;
+	return sl;
 }
 
 /**
@@ -661,14 +661,14 @@ hostvec_to_slist(gnet_host_vec_t *vec)
 static void
 free_proxies(struct dl_server *server)
 {
-	GSList *l;
+	GSList *sl;
 
 	g_assert(server);
 	g_assert(server->proxies);
 
-	for (l = server->proxies; l; l = g_slist_next(l)) {
-		struct gnutella_host *h = (struct gnutella_host *) l->data;
-		wfree(h, sizeof(*h));
+	for (sl = server->proxies; sl; sl = g_slist_next(sl)) {
+		struct gnutella_host *h = sl->data;
+		wfree(h, sizeof *h);
 	}
 
 	g_slist_free(server->proxies);
@@ -679,18 +679,18 @@ free_proxies(struct dl_server *server)
  * Remove push proxy from server.
  */
 static void
-remove_proxy(struct dl_server *server, guint32 ip, guint16 port)
+remove_proxy(struct dl_server *server, const host_addr_t addr, guint16 port)
 {
-	GSList *l;
+	GSList *sl;
 
-	for (l = server->proxies; l; l = g_slist_next(l)) {
-		struct gnutella_host *h = (struct gnutella_host *) l->data;
+	for (sl = server->proxies; sl; sl = g_slist_next(sl)) {
+		struct gnutella_host *h = sl->data;
 		g_assert(h != NULL);
 
-		if (h->ip == ip && h->port == port) {
-			server->proxies = g_slist_remove_link(server->proxies, l);
-			g_slist_free_1(l);
-			wfree(h, sizeof(*h));
+		if (host_addr_equal(h->addr, addr) && h->port == port) {
+			server->proxies = g_slist_remove_link(server->proxies, sl);
+			g_slist_free_1(sl);
+			wfree(h, sizeof *h);
 			return;
 		}
 	}
@@ -702,7 +702,8 @@ remove_proxy(struct dl_server *server, guint32 ip, guint16 port)
 
 	if (download_debug) {
 		g_message("Did not find push-proxy %s in server %s",
-			ip_port_to_gchar(ip, port), ip_to_gchar(server->key->ip));
+			host_addr_port_to_string(addr, port),
+			host_addr_to_string(server->key->addr));
     }
 }
 
@@ -710,20 +711,20 @@ remove_proxy(struct dl_server *server, guint32 ip, guint16 port)
  * Allocate new server structure.
  */
 static struct dl_server *
-allocate_server(const gchar *guid, guint32 ip, guint16 port)
+allocate_server(const gchar *guid, const host_addr_t addr, guint16 port)
 {
 	struct dl_key *key;
 	struct dl_server *server;
 
-	key = walloc(sizeof(*key));
-	key->ip = ip;
+	key = walloc(sizeof *key);
+	key->addr = addr;
 	key->port = port;
 	key->guid = atom_guid_get(guid);
 
-	server = walloc0(sizeof(*server));
+	server = walloc0(sizeof *server);
 	server->key = key;
 	server->retry_after = time(NULL);
-	server->country = gip_country(ip);
+	server->country = gip_country(addr);
 
 	g_hash_table_insert(dl_by_host, key, server);
 	dl_by_time_insert(server);
@@ -733,21 +734,21 @@ allocate_server(const gchar *guid, guint32 ip, guint16 port)
 	 * identify the server as the (IP, port) should be unique.
 	 */
 
-	if (host_is_valid(ip, port)) {
-		struct dl_ip *ipk;
+	if (host_is_valid(addr, port)) {
+		struct dl_addr *ipk;
 		gpointer ipkey;
 		gpointer x;					/* Don't care about freeing values */
 		gboolean existed;
 
-		ipk = walloc(sizeof(*ipk));
-		ipk->ip = ip;
+		ipk = walloc(sizeof *ipk);
+		ipk->addr = addr;
 		ipk->port = port;
 
-		existed = g_hash_table_lookup_extended(dl_by_ip, ipk, &ipkey, &x);
-		g_hash_table_insert(dl_by_ip, ipk, server);
+		existed = g_hash_table_lookup_extended(dl_by_addr, ipk, &ipkey, &x);
+		g_hash_table_insert(dl_by_addr, ipk, server);
 
 		if (existed)
-			wfree(ipkey, sizeof(*ipk));	/* Old key superseded by new one */
+			wfree(ipkey, sizeof *ipk);	/* Old key superseded by new one */
 	}
 
 	return server;
@@ -759,7 +760,7 @@ allocate_server(const gchar *guid, guint32 ip, guint16 port)
 static void
 free_server(struct dl_server *server)
 {
-	struct dl_ip ipk;
+	struct dl_addr ipk;
 
 	dl_by_time_remove(server);
 	g_hash_table_remove(dl_by_host, server->key);
@@ -769,19 +770,19 @@ free_server(struct dl_server *server)
 	atom_guid_free(server->key->guid);
 
 	/*
-	 * We only inserted the server in the `dl_ip' table if it was "reachable".
+	 * We only inserted the server in the `dl_addr' table if it was "reachable".
 	 */
 
-	ipk.ip = server->key->ip;
+	ipk.addr = server->key->addr;
 	ipk.port = server->key->port;
 
-	if (host_is_valid(ipk.ip, ipk.port)) {
+	if (host_is_valid(ipk.addr, ipk.port)) {
 		gpointer ipkey;
 		gpointer x;					/* Don't care about freeing values */
 
-		if (g_hash_table_lookup_extended(dl_by_ip, &ipk, &ipkey, &x)) {
-			g_hash_table_remove(dl_by_ip, &ipk);
-			wfree(ipkey, sizeof(struct dl_ip));
+		if (g_hash_table_lookup_extended(dl_by_addr, &ipk, &ipkey, &x)) {
+			g_hash_table_remove(dl_by_addr, &ipk);
+			wfree(ipkey, sizeof(struct dl_addr));
 		}
 	}
 
@@ -796,7 +797,7 @@ free_server(struct dl_server *server)
 		atom_str_free(server->hostname);
 
 	wfree(server->key, sizeof(struct dl_key));
-	wfree(server, sizeof(*server));
+	wfree(server, sizeof *server);
 }
 
 /**
@@ -805,57 +806,57 @@ free_server(struct dl_server *server)
  * @returns NULL if not found.
  */
 static struct dl_server *
-get_server(gchar *guid, guint32 ip, guint16 port)
+get_server(gchar *guid, const host_addr_t addr, guint16 port)
 {
-	struct dl_ip ikey;
+	struct dl_addr ikey;
 	struct dl_key key;
 	struct dl_server *server;
 
 	g_assert(guid);
 
-	ikey.ip = ip;
+	ikey.addr = addr;
 	ikey.port = port;
 
-	server = (struct dl_server *) g_hash_table_lookup(dl_by_ip, &ikey);
+	server = g_hash_table_lookup(dl_by_addr, &ikey);
 	if (server)
 		return server;
 
 	key.guid = guid;
-	key.ip = ip;
+	key.addr = addr;
 	key.port = port;
 
-	return (struct dl_server *) g_hash_table_lookup(dl_by_host, &key);
+	return g_hash_table_lookup(dl_by_host, &key);
 }
 
 /**
- * The server IP address changed.
+ * The server address changed.
  */
 static void
-change_server_ip(struct dl_server *server, guint32 new_ip)
+change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 {
 	struct dl_key *key = server->key;
 	struct dl_server *duplicate;
 	GSList *l;
 
-	g_assert(key->ip != new_ip);
+	g_assert(!host_addr_equal(key->addr, new_addr));
 
 	g_hash_table_remove(dl_by_host, key);
 
 	/*
-	 * We only inserted the server in the `dl_ip' table if it was "reachable".
+	 * We only inserted the server in the `dl_addr' table if it was "reachable".
 	 */
 
-	if (host_is_valid(key->ip, key->port)) {
-		struct dl_ip ipk;
+	if (host_is_valid(key->addr, key->port)) {
+		struct dl_addr ipk;
 		gpointer ipkey;
 		gpointer x;					/* Don't care about freeing values */
 
-		ipk.ip = key->ip;
+		ipk.addr = key->addr;
 		ipk.port = key->port;
 
-		if (g_hash_table_lookup_extended(dl_by_ip, &ipk, &ipkey, &x)) {
-			g_hash_table_remove(dl_by_ip, &ipk);
-			wfree(ipkey, sizeof(struct dl_ip));
+		if (g_hash_table_lookup_extended(dl_by_addr, &ipk, &ipkey, &x)) {
+			g_hash_table_remove(dl_by_addr, &ipk);
+			wfree(ipkey, sizeof(struct dl_addr));
 		}
 	}
 
@@ -867,18 +868,21 @@ change_server_ip(struct dl_server *server, guint32 new_ip)
 		free_proxies(server);
 
 	if (download_debug) {
+		gchar buf[128];
+		
+		g_strlcpy(buf, host_addr_to_string(new_addr), sizeof buf);
 		g_message("Server <%s> at %s:%u changed its IP from %s to %s",
 			server->vendor == NULL ? "UNKNOWN" : server->vendor,
 			server->hostname == NULL ? "NONAME" : server->hostname,
-			key->port, ip_to_gchar(key->ip), ip2_to_gchar(new_ip));
+			key->port, host_addr_to_string(key->addr), buf);
     }
 
 	/*
 	 * Perform the IP change.
 	 */
 
-	key->ip = new_ip;
-	server->country = gip_country(new_ip);
+	key->addr = new_addr;
+	server->country = gip_country(new_addr);
 
 	/*
 	 * Look for a duplicate.  It's quite possible that we saw some IP
@@ -887,16 +891,16 @@ change_server_ip(struct dl_server *server, guint32 new_ip)
 	 * foo.example.com which we thought was 5.6.7.8 is at 1.2.3.4...
 	 */
 
-	duplicate = get_server(key->guid, new_ip, key->port);
+	duplicate = get_server(key->guid, new_addr, key->port);
 
 	if (duplicate != NULL) {
-		g_assert(duplicate->key->ip == key->ip);
+		g_assert(host_addr_equal(duplicate->key->addr, key->addr));
 		g_assert(duplicate->key->port == key->port);
 
 		if (download_debug) {
             g_message(
                 "New IP %s for server <%s> at %s:%u was used by <%s> at %s:%u",
-                ip_to_gchar(new_ip),
+                host_addr_to_string(new_addr),
                 server->vendor == NULL ? "UNKNOWN" : server->vendor,
                 server->hostname == NULL ? "NONAME" : server->hostname,
                 key->port,
@@ -951,21 +955,21 @@ change_server_ip(struct dl_server *server, guint32 new_ip)
 
 	g_hash_table_insert(dl_by_host, key, server);
 
-	if (host_is_valid(key->ip, key->port)) {
-		struct dl_ip *ipk;
+	if (host_is_valid(key->addr, key->port)) {
+		struct dl_addr *ipk;
 		gpointer ipkey;
 		gpointer x;					/* Don't care about freeing values */
 		gboolean existed;
 
-		ipk = walloc(sizeof(*ipk));
-		ipk->ip = new_ip;
+		ipk = walloc(sizeof *ipk);
+		ipk->addr = new_addr;
 		ipk->port = key->port;
 
-		existed = g_hash_table_lookup_extended(dl_by_ip, ipk, &ipkey, &x);
-		g_hash_table_insert(dl_by_ip, ipk, server);
+		existed = g_hash_table_lookup_extended(dl_by_addr, ipk, &ipkey, &x);
+		g_hash_table_insert(dl_by_addr, ipk, server);
 
 		if (existed)
-			wfree(ipkey, sizeof(*ipk));	/* Old key superseded by new one */
+			wfree(ipkey, sizeof *ipk);	/* Old key superseded by new one */
 	}
 }
 
@@ -989,9 +993,9 @@ set_server_hostname(struct dl_server *server, gchar *hostname)
  * identified by its GUID, IP and port.
  */
 gboolean
-download_server_nopush(gchar *guid, guint32 ip, guint16 port)
+download_server_nopush(gchar *guid, const host_addr_t addr, guint16 port)
 {
-	struct dl_server *server = get_server(guid, ip, port);
+	struct dl_server *server = get_server(guid, addr, port);
 
 	if (server == NULL)
 		return FALSE;
@@ -1052,9 +1056,9 @@ downloads_with_name_dec(gchar *name)
 static struct download *
 has_same_download(
 	const gchar *file, const gchar *sha1, gchar *guid,
-	guint32 ip, guint16 port)
+	const host_addr_t addr, guint16 port)
 {
-	struct dl_server *server = get_server(guid, ip, port);
+	struct dl_server *server = get_server(guid, addr, port);
 	GList *l;
 	guint n;
 	enum dl_list listnum[] = { DL_LIST_WAITING, DL_LIST_RUNNING };
@@ -1435,7 +1439,7 @@ queue_remove_downloads_with_file(
  * @return the number of removed downloads.
  */
 gint
-download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port,
+download_remove_all_from_peer(gchar *guid, const host_addr_t addr, guint16 port,
 	gboolean unavailable)
 {
 	struct dl_server *server[2];
@@ -1459,8 +1463,8 @@ download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port,
 	 *		--RAM, 15/10/2002.
 	 */
 
-	server[0] = get_server(guid, ip, port);
-	server[1] = get_server(blank_guid, ip, port);
+	server[0] = get_server(guid, addr, port);
+	server[1] = get_server(blank_guid, addr, port);
 
 	if (server[1] == server[0])
 		server[1] = NULL;
@@ -1474,7 +1478,7 @@ download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port,
 			GList *l;
 
 			for (l = server[i]->list[idx]; l; l = g_list_next(l)) {
-				struct download *d = (struct download *) l->data;
+				struct download *d = l->data;
 
 				g_assert(d);
 				g_assert(d->status != GTA_DL_REMOVED);
@@ -1493,7 +1497,7 @@ download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port,
 	 */
 
 	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
-		struct download *d = (struct download *) sl->data;
+		struct download *d = sl->data;
 		download_forget(d, unavailable);
 	}
 
@@ -1518,14 +1522,11 @@ download_remove_all_named(const gchar *name)
 	g_return_val_if_fail(name, 0);
 
 	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
-		struct download *d = (struct download *) sl->data;
+		struct download *d = sl->data;
 
 		g_assert(d != NULL);
 
-		if (
-			(d->status == GTA_DL_REMOVED) ||
-			(strcmp(name, d->file_name) != 0)
-		)
+		if (GTA_DL_REMOVED == d->status || 0 != strcmp(name, d->file_name))
 			continue;
 
 		n++;
@@ -1541,7 +1542,7 @@ download_remove_all_named(const gchar *name)
 	 */
 
 	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
-		struct download *d = (struct download *) sl->data;
+		struct download *d = sl->data;
 		file_info_set_discard(d->file_info, TRUE);
 		download_abort(d);
 	}
@@ -1571,14 +1572,14 @@ download_remove_all_with_sha1(const gchar *sha1)
 	g_return_val_if_fail(sha1 != NULL, 0);
 
 	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
-		struct download *d = (struct download *) sl->data;
+		struct download *d = sl->data;
 
 		g_assert(d != NULL);
 
 		if (
-			(d->status == GTA_DL_REMOVED) ||
-			(d->file_info->sha1 == NULL) ||
-			(memcmp(sha1, d->file_info->sha1, SHA1_RAW_SIZE) != 0)
+			GTA_DL_REMOVED == d->status ||
+			NULL == d->file_info->sha1 ||
+			0 != memcmp(sha1, d->file_info->sha1, SHA1_RAW_SIZE)
 		)
 			continue;
 
@@ -1595,7 +1596,7 @@ download_remove_all_with_sha1(const gchar *sha1)
 	 */
 
 	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
-		struct download *d = (struct download *) sl->data;
+		struct download *d = sl->data;
 		file_info_set_discard(d->file_info, TRUE);
 		download_abort(d);
 	}
@@ -1617,7 +1618,7 @@ download_set_socket_rx_size(gint rx_size)
 	g_assert(rx_size > 0);
 
 	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
-		struct download *d = (struct download *) sl->data;
+		struct download *d = sl->data;
 
 		if (d->socket != NULL)
 			sock_recv_buf(d->socket, rx_size, TRUE);
@@ -1650,7 +1651,7 @@ download_clear_stopped(gboolean complete,
 		current_time = time(NULL);
 
 	for (sl = sl_unqueued; sl; sl = g_slist_next(sl)) {
-		struct download *d = (struct download *) sl->data;
+		struct download *d = sl->data;
 		g_assert(d != NULL);
 
 		if (d->status == GTA_DL_REMOVED)
@@ -1925,7 +1926,8 @@ download_reparent(struct download *d, struct dl_server *new_server)
  * to a Location: redirection for instance, or because of a QUEUE callback.
  */
 void
-download_redirect_to_server(struct download *d, guint32 ip, guint16 port)
+download_redirect_to_server(struct download *d,
+	const host_addr_t addr, guint16 port)
 {
 	struct dl_server *server;
 	gchar old_guid[16];
@@ -1939,7 +1941,7 @@ download_redirect_to_server(struct download *d, guint32 ip, guint16 port)
 	 */
 
 	server = d->server;
-	if (server->key->ip == ip && server->key->port == port)
+	if (host_addr_equal(server->key->addr, addr) && server->key->port == port)
 		return;
 
 	/*
@@ -1957,9 +1959,9 @@ download_redirect_to_server(struct download *d, guint32 ip, guint16 port)
 	 * Create new server.
 	 */
 
-	server = get_server(old_guid, ip, port);
+	server = get_server(old_guid, addr, port);
 	if (server == NULL)
-		server = allocate_server(old_guid, ip, port);
+		server = allocate_server(old_guid, addr, port);
 	d->server = server;
 
 	/*
@@ -2328,9 +2330,12 @@ download_ignore_requested(struct download *d)
 	 * if someone echoes back our own alt-locs to us with PFSP).
 	 */
 
-	if (download_ip(d) == listen_ip() && download_port(d) == listen_port)
+	if (
+		host_addr_equal(download_addr(d), listen_addr()) &&
+		download_port(d) == listen_port
+	)
 		reason = IGNORE_OURSELVES;
-	else if (hostiles_check(download_ip(d)))
+	else if (hostiles_check(download_addr(d)))
 		reason = IGNORE_HOSTILE;
 
 	if (reason == IGNORE_FALSE)
@@ -2597,7 +2602,7 @@ download_pick_available(struct download *d)
 		if (download_debug > 3)
 			g_message("PFSP no interesting chunks from %s for \"%s\", "
 				"available was: %s",
-				ip_port_to_gchar(download_ip(d), download_port(d)),
+				host_addr_port_to_string(download_addr(d), download_port(d)),
 				download_outname(d), http_range_to_gchar(d->ranges));
 
 		return FALSE;
@@ -2628,7 +2633,7 @@ download_pick_available(struct download *d)
 		g_message("PFSP selected %s-%s (overlap=%u) "
 			"from %s for \"%s\", available was: %s",
 			uint64_to_string(from), uint64_to_string2(to - 1), d->overlap_size,
-			ip_port_to_gchar(download_ip(d), download_port(d)),
+			host_addr_port_to_string(download_addr(d), download_port(d)),
 			download_outname(d), http_range_to_gchar(d->ranges));
 
 	return TRUE;
@@ -2644,7 +2649,7 @@ download_bad_source(struct download *d)
 	download_passively_queued(d, FALSE);
 
 	if (!d->always_push && d->sha1)
-		dmesh_remove(d->sha1, download_ip(d), download_port(d),
+		dmesh_remove(d->sha1, download_addr(d), download_port(d),
 			d->record_index, d->file_name);
 }
 
@@ -2682,7 +2687,7 @@ download_connect(struct download *d)
 		return socket_connect_by_name(
 			server->hostname, port, SOCK_TYPE_DOWNLOAD);
 	} else
-		return socket_connect(download_ip(d), port, SOCK_TYPE_DOWNLOAD);
+		return socket_connect(download_addr(d), port, SOCK_TYPE_DOWNLOAD);
 }
 
 /**
@@ -2691,7 +2696,7 @@ download_connect(struct download *d)
 void
 download_start(struct download *d, gboolean check_allowed)
 {
-	guint32 ip = download_ip(d);
+	host_addr_t addr = download_addr(d);
 	guint16 port = download_port(d);
 
 	g_assert(d);
@@ -2734,13 +2739,13 @@ download_start(struct download *d, gboolean check_allowed)
 	 */
 
 	if (d->always_push && (d->server->attrs & DLS_A_PUSH_IGN)) {
-		g_assert(host_is_valid(ip, port));	/* Or would not have set flag */
+		g_assert(host_is_valid(addr, port));	/* Or would not have set flag */
 		if (d->push)
 			download_push_remove(d);
 		d->always_push = FALSE;
 	}
 
-	if (!DOWNLOAD_IS_IN_PUSH_MODE(d) && host_is_valid(ip, port)) {
+	if (!DOWNLOAD_IS_IN_PUSH_MODE(d) && host_is_valid(addr, port)) {
 		/* Direct download */
 		d->status = GTA_DL_CONNECTING;
 		d->socket = download_connect(d);
@@ -2806,7 +2811,7 @@ download_start(struct download *d, gboolean check_allowed)
 void
 download_pickup_queued(void)
 {
-	time_t now = time((time_t *) NULL);
+	time_t now = time(NULL);
 	guint running = count_running_downloads();
 	guint i;
 
@@ -2958,10 +2963,10 @@ download_push(struct download *d, gboolean on_timeout)
 		 *		-- RAM, 18/08/2002.
 		 */
 
-		if (!host_is_valid(download_ip(d), download_port(d))) {
+		if (!host_is_valid(download_addr(d), download_port(d))) {
 			download_unavailable(d, GTA_DL_ERROR, "Push route lost");
 			download_remove_all_from_peer(
-				download_guid(d), download_ip(d), download_port(d), TRUE);
+				download_guid(d), download_addr(d), download_port(d), TRUE);
 		} else {
 			/*
 			 * Later on, if we manage to connect to the server, we'll
@@ -2974,7 +2979,8 @@ download_push(struct download *d, gboolean on_timeout)
 
 			if (download_debug > 2)
 				g_message("PUSH trying to ignore them for %s",
-					ip_port_to_gchar(download_ip(d), download_port(d)));
+					host_addr_port_to_string(download_addr(d),
+					download_port(d)));
 
 			d->flags |= DL_F_PUSH_IGN;
 			download_queue(d, _("Ignoring Push flag"));
@@ -3005,7 +3011,7 @@ attempt_retry:
 			download_unavailable(d, GTA_DL_ERROR,
 				"Can't reach host (Push or Direct)");
 			download_remove_all_from_peer(
-				download_guid(d), download_ip(d), download_port(d), TRUE);
+				download_guid(d), download_addr(d), download_port(d), TRUE);
 		} else
 			download_queue_hold(d, download_retry_refused_delay,
 				NG_("No direct connection yet (%d retry)",
@@ -3033,7 +3039,7 @@ attempt_retry:
 					"Timeout (%d retries)", d->retries), d->retries);
 
 		download_remove_all_from_peer(
-			download_guid(d), download_ip(d), download_port(d), TRUE);
+			download_guid(d), download_addr(d), download_port(d), TRUE);
 	}
 
 	/*
@@ -3080,7 +3086,7 @@ download_fallback_to_push(struct download *d,
 		if (socket_bad_hostname(d->socket) && d->server->hostname != NULL) {
 			g_warning("hostname \"%s\" for %s could not resolve, discarding",
 				d->server->hostname,
-				ip_port_to_gchar(download_ip(d), download_port(d)));
+				host_addr_port_to_string(download_addr(d), download_port(d)));
 			atom_str_free(d->server->hostname);
 			d->server->hostname = NULL;
 			gcu_gui_update_download_host(d);
@@ -3135,7 +3141,7 @@ download_fallback_to_push(struct download *d,
  */
 static struct download *
 create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
-	guint32 ip, guint16 port, gchar *guid, gchar *hostname,
+	const host_addr_t addr, guint16 port, gchar *guid, gchar *hostname,
 	gchar *sha1, time_t stamp,
 	gboolean push, gboolean interactive, gboolean file_size_known,
 	struct dl_file_info *file_info, gnet_host_vec_t *proxies)
@@ -3163,7 +3169,7 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	 * if someone echoes back our own alt-locs to us with PFSP).
 	 */
 
-	if (ip == listen_ip() && port == listen_port) {
+	if (host_addr_equal(addr, listen_addr()) && port == listen_port) {
 		return NULL;
 	}
 
@@ -3180,9 +3186,9 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	 * Create server if none exists already.
 	 */
 
-	server = get_server(guid, ip, port);
+	server = get_server(guid, addr, port);
 	if (server == NULL) {
-		server = allocate_server(guid, ip, port);
+		server = allocate_server(guid, addr, port);
 		server_created = TRUE;
 	}
 
@@ -3203,7 +3209,7 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	 * Refuse to queue the same download twice. --RAM, 04/11/2001
 	 */
 
-	if ((d = has_same_download(file_name, sha1, guid, ip, port))) {
+	if ((d = has_same_download(file_name, sha1, guid, addr, port))) {
 		g_assert(!server_created);		/* Obviously! */
 		if (interactive)
 			g_message("Rejecting duplicate download for %s", file_name);
@@ -3215,7 +3221,7 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	 * Initialize download.
 	 */
 
-	d = (struct download *) walloc0(sizeof(struct download));
+	d = walloc0(sizeof *d);
 
 	d->src_handle = idtable_new_id(src_handle_map, d);
 	d->server = server;
@@ -3295,7 +3301,7 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	 */
 
 	if (!d->always_push && d->sha1)
-		dmesh_add(d->sha1, ip, port, record_index, file_name, stamp);
+		dmesh_add(d->sha1, addr, port, record_index, file_name, stamp);
 
 	/*
 	 * When we know our SHA1, if we don't have a SHA1 in the `fi' and we
@@ -3348,7 +3354,7 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
  */
 void
 download_auto_new(gchar *file, filesize_t size, guint32 record_index,
-	guint32 ip, guint16 port, gchar *guid, gchar *hostname,
+	const host_addr_t addr, guint16 port, gchar *guid, gchar *hostname,
 	gchar *sha1, time_t stamp, gboolean push,
 	gboolean file_size_known, struct dl_file_info *fi,
 	gnet_host_vec_t *proxies)
@@ -3362,7 +3368,7 @@ download_auto_new(gchar *file, filesize_t size, guint32 record_index,
 	 * which cannot access the bogus IP database.
 	 */
 
-	if (!push && !host_is_valid(ip, port)) {
+	if (!push && !host_is_valid(addr, port)) {
 		push = TRUE;
 		if (guid_eq(guid, blank_guid))
 			return;
@@ -3399,7 +3405,7 @@ download_auto_new(gchar *file, filesize_t size, guint32 record_index,
 
 	file_name = atom_str_get(file);
 
-	create_download(file_name, NULL, size, record_index, ip, port,
+	create_download(file_name, NULL, size, record_index, addr, port,
 		guid, hostname, sha1, stamp, push, FALSE, file_size_known, fi, proxies);
 
 	return;
@@ -3485,10 +3491,10 @@ download_clone(struct download *d)
  * Search has detected index change in queued download.
  */
 void
-download_index_changed(guint32 ip, guint16 port, gchar *guid,
+download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
 	guint32 from, guint32 to)
 {
-	struct dl_server *server = get_server(guid, ip, port);
+	struct dl_server *server = get_server(guid, addr, port);
 	GList *l;
 	gint nfound = 0;
 	GSList *to_stop = NULL;
@@ -3562,7 +3568,7 @@ download_index_changed(guint32 ip, guint16 port, gchar *guid,
 
 	if (nfound > 1) {
 		g_message("Found %d requests for index %d (now %d) at %s",
-			nfound, from, to, ip_port_to_gchar(ip, port));
+			nfound, from, to, host_addr_port_to_string(addr, port));
     }
 }
 
@@ -3573,11 +3579,11 @@ download_index_changed(guint32 ip, guint16 port, gchar *guid,
  */
 gboolean
 download_new(gchar *file, filesize_t size, guint32 record_index,
-	guint32 ip, guint16 port, gchar *guid, gchar *hostname,
+	const host_addr_t addr, guint16 port, gchar *guid, gchar *hostname,
 	gchar *sha1, time_t stamp, gboolean push,
 	struct dl_file_info *fi, gnet_host_vec_t *proxies)
 {
-	return NULL != create_download(file, NULL, size, record_index, ip, port,
+	return NULL != create_download(file, NULL, size, record_index, addr, port,
 		guid, hostname, sha1, stamp, push, TRUE, TRUE, fi, proxies);
 }
 
@@ -3586,20 +3592,21 @@ download_new(gchar *file, filesize_t size, guint32 record_index,
  */
 gboolean
 download_new_unknown_size(gchar *file, guint32 record_index,
-	guint32 ip, guint16 port, gchar *guid, gchar *hostname,
+	const host_addr_t addr, guint16 port, gchar *guid, gchar *hostname,
 	gchar *sha1, time_t stamp, gboolean push,
 	struct dl_file_info *fi, gnet_host_vec_t *proxies)
 {
-	return NULL != create_download(file, NULL, 1, record_index, ip, port,
+	return NULL != create_download(file, NULL, 0, record_index, addr, port,
 		guid, hostname, sha1, stamp, push, TRUE, FALSE, fi, proxies);
 }
 
-gboolean download_new_uri(gchar *file, gchar *uri, filesize_t size,
-			  guint32 ip, guint16 port, gchar *guid, gchar *hostname,
-			  gchar *sha1, time_t stamp, gboolean push,
-			  struct dl_file_info *fi, gnet_host_vec_t *proxies)
+gboolean
+download_new_uri(gchar *file, gchar *uri, filesize_t size,
+	  const host_addr_t addr, guint16 port, gchar *guid, gchar *hostname,
+	  gchar *sha1, time_t stamp, gboolean push,
+	  struct dl_file_info *fi, gnet_host_vec_t *proxies)
 {
-	return NULL != create_download(file, uri, size, 0, ip, port,
+	return NULL != create_download(file, uri, size, 0, addr, port,
 		guid, hostname, sha1, stamp, push, TRUE, size != 0 ? TRUE : FALSE, fi,
 		proxies);
 }
@@ -3613,8 +3620,8 @@ download_orphan_new(
 	gchar *file, filesize_t size, gchar *sha1, struct dl_file_info *fi)
 {
 	time_t ntime = fi->ntime;
-	(void) create_download(file, NULL, size, 0, 0, 0, blank_guid, NULL, sha1,
-		time(NULL), FALSE, TRUE, TRUE, fi, NULL);
+	(void) create_download(file, NULL, size, 0, zero_host_addr, 0,
+			blank_guid, NULL, sha1, time(NULL), FALSE, TRUE, TRUE, fi, NULL);
 	fi->ntime = ntime;
 }
 
@@ -3834,7 +3841,7 @@ download_resume(struct download *d)
 
 	if (
 		NULL != has_same_download(d->file_name, d->sha1,
-			download_guid(d), download_ip(d), download_port(d))
+			download_guid(d), download_addr(d), download_port(d))
 	) {
 		d->status = GTA_DL_CONNECTING;		/* So we may call download_stop */
 		download_move_to_list(d, DL_LIST_RUNNING);
@@ -3885,7 +3892,7 @@ use_push_proxy(struct download *d)
 		gnet_host_t *host;
 
 		host = (gnet_host_t *) server->proxies->data;	/* Pick the first */
-		d->cproxy = cproxy_create(d, host->ip, host->port,
+		d->cproxy = cproxy_create(d, host->addr, host->port,
 			download_guid(d), d->record_index);
 
 		if (d->cproxy) {
@@ -3894,7 +3901,7 @@ use_push_proxy(struct download *d)
 			return TRUE;
 		}
 
-		remove_proxy(server, host->ip, host->port);
+		remove_proxy(server, host->addr, host->port);
 	}
 
 	return FALSE;
@@ -3935,7 +3942,7 @@ download_proxy_failed(struct download *d)
 	/* Will read status in d->cproxy */
 	gcu_gui_update_download(d, TRUE);
 
-	remove_proxy(d->server, cproxy_ip(cp), cproxy_port(cp));
+	remove_proxy(d->server, cproxy_addr(cp), cproxy_port(cp));
 	cproxy_free(d->cproxy);
 	d->cproxy = NULL;
 
@@ -3958,6 +3965,8 @@ send_push_request(const gchar *guid, guint32 file_id, guint16 port)
 {
 	struct gnutella_msg_push_request m;
 	GSList *nodes;
+	host_addr_t addr;
+	guint32 ip;
 
 	nodes = route_towards_guid(guid);
 	if (nodes == NULL)
@@ -3980,8 +3989,10 @@ send_push_request(const gchar *guid, guint32 file_id, guint16 port)
 
 	memcpy(m.request.guid, guid, 16);
 
+	addr = listen_addr();
+	ip = host_addr_ip4(addr); /* XXX: Check whether it's IPv4 */
 	WRITE_GUINT32_LE(file_id, m.request.file_id);
-	WRITE_GUINT32_BE(listen_ip(), m.request.host_ip);
+	memcpy(m.request.host_ip, &ip, 4);
 	WRITE_GUINT16_LE(port, m.request.host_port);
 
 	/*
@@ -4368,7 +4379,7 @@ download_write_data(struct download *d)
 
 		g_message(
 			"Server %s (%s) gave us %s more byte%s than requested for \"%s\"",
-			ip_port_to_gchar(download_ip(d), download_port(d)),
+			host_addr_port_to_string(download_addr(d), download_port(d)),
 			download_vendor_str(d), uint64_to_string(extra),
 			extra == 1 ? "" : "s", download_outname(d));
 		s->pos -= extra;
@@ -4538,7 +4549,7 @@ download_moved_permanently(struct download *d, header_t *header)
 {
 	gchar *buf;
 	dmesh_urlinfo_t info;
-	guint32 ip = download_ip(d);
+	host_addr_t addr = download_addr(d);
 	guint16 port = download_port(d);
 
 	buf = header_get(header, "Location");
@@ -4554,9 +4565,9 @@ download_moved_permanently(struct download *d, header_t *header)
 	 * If ip/port changed, accept the new ones but warn.
 	 */
 
-	if (info.ip != ip || info.port != port) {
+	if (!host_addr_equal(info.addr, addr) || info.port != port) {
 		g_message("Server %s (file \"%s\") redirecting us to alien %s",
-			ip_port_to_gchar(ip, port), d->file_name, buf);
+			host_addr_port_to_string(addr, port), d->file_name, buf);
     }
 
 	/*
@@ -4571,14 +4582,15 @@ download_moved_permanently(struct download *d, header_t *header)
 
 	if (info.idx == 0) {
 		g_message("Server %s (file \"%s\") would redirect us to %s",
-			ip_port_to_gchar(ip, port), d->file_name, buf);
+			host_addr_port_to_string(addr, port), d->file_name, buf);
 		atom_str_free(info.name);
 		return FALSE;
 	}
 
 	if (0 != strcmp(info.name, d->file_name)) {
 		g_message("File \"%s\" was renamed \"%s\" on %s",
-			d->file_name, info.name, ip_port_to_gchar(info.ip, info.port));
+			d->file_name, info.name,
+			host_addr_port_to_string(info.addr, info.port));
 
 		/*
 		 * If name changed, we must update the global hash counting downloads.
@@ -4603,7 +4615,7 @@ download_moved_permanently(struct download *d, header_t *header)
 
 	d->record_index = info.idx;
 
-	download_redirect_to_server(d, info.ip, info.port);
+	download_redirect_to_server(d, info.addr, info.port);
 
 	return TRUE;
 }
@@ -4625,8 +4637,9 @@ download_get_server_name(struct download *d, header_t *header)
 
 	if (buf) {
 		struct dl_server *server = d->server;
-		gboolean faked =
-			!version_check(buf, header_get(header, "X-Token"), download_ip(d));
+		gboolean faked = !version_check(buf, header_get(header, "X-Token"),
+								download_addr(d));
+
 		if (server->vendor == NULL) {
 			if (faked) {
 				gchar name[1024];
@@ -4658,7 +4671,7 @@ download_check_status(struct download *d, getline_t *line, gint code)
 {
 	if (code == -1) {
 		g_message("Weird HTTP acknowledgment status line from %s (%s)",
-			ip_port_to_gchar(download_ip(d), download_port(d)),
+			host_addr_port_to_string(download_addr(d), download_port(d)),
 			download_vendor_str(d));
 		if (download_debug > 4) {
 			dump_hex(stderr, "Status Line", getline_str(line),
@@ -4714,7 +4727,7 @@ download_convert_to_urires(struct download *d)
 	 * In case it is still recorded under its now obsolete index/name...
 	 */
 
-	dmesh_remove(d->sha1, download_ip(d), download_port(d),
+	dmesh_remove(d->sha1, download_addr(d), download_port(d),
 		d->record_index, d->file_name);
 
 	/* XXX: This causes files with their hashsums as filenames!
@@ -4727,7 +4740,7 @@ download_convert_to_urires(struct download *d)
 	if (download_debug > 2) {
 		g_message("Download at %s \"%u/%s\" becomes "
 			"\"/uri-res/N2R?urn:sha1:%s\"",
-			ip_port_to_gchar(download_ip(d), download_port(d)),
+			host_addr_port_to_string(download_addr(d), download_port(d)),
 			d->record_index, d->file_name, name);
     }
 
@@ -4743,7 +4756,7 @@ download_convert_to_urires(struct download *d)
 	 */
 
 	xd = has_same_download(name, d->sha1,
-			download_guid(d), download_ip(d), download_port(d));
+			download_guid(d), download_addr(d), download_port(d));
 
 	if (xd != NULL && xd != d) {
 		download_stop(d, GTA_DL_ERROR, "Was a duplicate");
@@ -4797,7 +4810,7 @@ extract_retry_after(const header_t *header)
  * Look for a Date: header in the reply and use it to update our skew.
  */
 static void
-check_date(const header_t *header, guint32 ip, struct download *d)
+check_date(const header_t *header, const host_addr_t addr, struct download *d)
 {
 	const gchar *buf;
 
@@ -4805,7 +4818,7 @@ check_date(const header_t *header, guint32 ip, struct download *d)
 	if (buf) {
 		time_t their = date2time(buf, time(NULL));
 
-		if (their == (time_t) -1)
+		if ((time_t) -1 == their)
 			g_message("Cannot parse Date: %s", buf);
 		else {
 			tm_t delta;
@@ -4826,7 +4839,7 @@ check_date(const header_t *header, guint32 ip, struct download *d)
 			tm_sub(&delta, &d->header_sent);
 			correction = (time_t) (tm2f(&delta) / 2.0);
 
-			clock_update(their + correction, correction + 1, ip);
+			clock_update(their + correction, correction + 1, addr);
 		}
 	}
 }
@@ -4859,7 +4872,8 @@ check_xhostname(struct download *d, const header_t *header)
 
 		if (download_debug > 2)
 			g_message("PUSH got X-Hostname, trying to ignore them for %s (%s)",
-				buf, ip_port_to_gchar(download_ip(d), download_port(d)));
+				buf, host_addr_port_to_string(download_addr(d),
+				download_port(d)));
 
 		d->flags |= DL_F_PUSH_IGN;
 	}
@@ -4889,7 +4903,7 @@ static void
 check_xhost(struct download *d, const header_t *header)
 {
 	const gchar *buf;
-	guint32 ip;
+	host_addr_t addr;
 	guint16 port;
 
 	g_assert(d->got_giv);
@@ -4899,7 +4913,10 @@ check_xhost(struct download *d, const header_t *header)
 	if (buf == NULL)
 		return;
 
-	if (!gchar_to_ip_port(buf, &ip, &port) || !host_is_valid(ip, port))
+	if (
+		!string_to_host_addr_port(buf, &addr, &port) ||
+		!host_is_valid(addr, port)
+	)
 		return;
 
 	/*
@@ -4908,8 +4925,8 @@ check_xhost(struct download *d, const header_t *header)
 	 * the server knew its real IP address.
 	 */
 
-	if (ip != download_ip(d) || port != download_port(d))
-		download_redirect_to_server(d, ip, port);
+	if (!host_addr_equal(addr, download_addr(d)) || port != download_port(d))
+		download_redirect_to_server(d, addr, port);
 
 	/*
 	 * Most importantly, ignore all pushes to this server from now on.
@@ -4922,7 +4939,7 @@ check_xhost(struct download *d, const header_t *header)
 
 	if (download_debug > 2)
 		g_message("PUSH got X-Host, trying to ignore them for %s",
-			ip_port_to_gchar(download_ip(d), download_port(d)));
+			host_addr_port_to_string(download_addr(d), download_port(d)));
 
 	d->flags |= DL_F_PUSH_IGN;
 }
@@ -5100,7 +5117,7 @@ check_content_urn(struct download *d, header_t *header)
 
 		if (!d->always_push)
 			dmesh_add(d->sha1,
-				download_ip(d), download_port(d), d->record_index,
+				download_addr(d), download_port(d), d->record_index,
 				d->file_name, 0);
 	}
 
@@ -5143,20 +5160,20 @@ check_push_proxies(struct download *d, header_t *header)
 		return;
 
 	for (tok = strtok(buf, ","); tok; tok = strtok(NULL, ",")) {
-		guint32 ip;
+		host_addr_t addr;
 		guint16 port;
 
-		if (!gchar_to_ip_port(tok, &ip, &port))
+		if (!string_to_host_addr_port(tok, &addr, &port))
 			continue;
 
 
-		if (is_private_ip(ip)) {
+		if (is_private_addr(addr)) {
 			g_message("Host %s [%s] sent a private IP address as Push-Proxy.",
-				ip_port_to_gchar(download_ip(d), download_port(d)),
+				host_addr_port_to_string(download_addr(d), download_port(d)),
 				download_vendor_str(d));
 		} else {
-			gnet_host_t *host = walloc(sizeof(*host));
-			host->ip = ip;
+			gnet_host_t *host = walloc(sizeof *host);
+			host->addr = addr;
 			host->port = port;
 
 			l = g_slist_prepend(l, host);
@@ -5240,7 +5257,7 @@ download_sink(struct download *d)
 
 	if (s->pos > d->sinkleft) {
 		g_message("Got more data to sink than expected from %s <%s>",
-			ip_port_to_gchar(download_ip(d), download_port(d)),
+			host_addr_port_to_string(download_addr(d), download_port(d)),
 			download_vendor_str(d));
 		download_stop(d, GTA_DL_ERROR, "More data to sink than expected");
 		return;
@@ -5326,7 +5343,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	struct stat st;
 	gboolean got_content_length = FALSE;
 	filesize_t check_content_range = 0, requested_size;
-	guint32 ip;
+	host_addr_t addr;	
 	guint16 port;
 	guint http_major = 0, http_minor = 0;
 	gboolean is_followup = d->keep_alive;
@@ -5358,7 +5375,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	if (download_debug > 2) {
 		const gchar *incomplete = ok ? "" : "INCOMPLETE ";
-		printf("----Got %sreply from %s:\n", incomplete, ip_to_gchar(s->ip));
+		printf("----Got %sreply from %s:\n", incomplete,
+			host_addr_to_string(s->addr));
 		printf("%s\n", status);
 		header_dump(header, stdout);
 		printf("----\n");
@@ -5407,7 +5425,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	if (download_get_server_name(d, header))
 		gcu_gui_update_download_server(d);
 
-	node_check_remote_ip_header(download_ip(d), header);
+	node_check_remote_ip_header(download_addr(d), header);
 	
 	/*
 	 * Check status.
@@ -5422,10 +5440,10 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	d->retries = 0;				/* Retry successful, we managed to connect */
 	d->flags |= DL_F_REPLIED;
 
-	ip = download_ip(d);
+	addr = download_addr(d);
 	port = download_port(d);
 
-	check_date(header, ip, d);	/* Update clock skew if we have a Date: */
+	check_date(header, addr, d);	/* Update clock skew if we have a Date: */
 
 	/*
 	 * Do we have to keep the connection after this request?
@@ -5503,7 +5521,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 						/* Update mesh */
 						if (!d->always_push && d->sha1)
-							dmesh_add(d->sha1, ip, port, d->record_index,
+							dmesh_add(d->sha1, addr, port, d->record_index,
 								d->file_name, 0);
 
 						return;
@@ -5546,7 +5564,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 						"for \"%s\" already in the available ranges: %s",
 						uint64_to_string(d->skip),
 						uint64_to_string2(d->range_end - 1),
-						ip_port_to_gchar(download_ip(d), download_port(d)),
+						host_addr_port_to_string(download_addr(d),
+								download_port(d)),
 						download_outname(d), http_range_to_gchar(d->ranges));
 
 				break;
@@ -5565,7 +5584,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 			/* Update mesh -- we're about to return */
 			if (!d->always_push && d->sha1)
-				dmesh_add(d->sha1, ip, port,
+				dmesh_add(d->sha1, addr, port,
 					d->record_index, d->file_name, 0);
 
 			if (!download_start_prepare_running(d))
@@ -5597,7 +5616,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				if (buf == NULL) {
 					g_message("No Content-Length with keep-alive reply "
 						"%d \"%s\" from %s <%s>", ack_code, ack_message,
-						ip_port_to_gchar(download_ip(d), download_port(d)),
+						host_addr_port_to_string(download_addr(d),
+							download_port(d)),
 						download_vendor_str(d));
 					download_queue_delay(d,
 						MAX(delay, download_retry_refused_delay),
@@ -5612,7 +5632,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 					g_message("Too much data to sink (%s bytes) on reply "
 						"%d \"%s\" from %s <%s>",
 						uint64_to_string(d->sinkleft), ack_code, ack_message,
-						ip_port_to_gchar(download_ip(d), download_port(d)),
+						host_addr_port_to_string(download_addr(d),
+							download_port(d)),
 						download_vendor_str(d));
 
 					download_queue_delay(d,
@@ -5630,7 +5651,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				if (d->flags & DL_F_SUNK_DATA) {
 					g_message("Would have to sink twice during session "
 						"from %s <%s>",
-						ip_port_to_gchar(download_ip(d), download_port(d)),
+						host_addr_port_to_string(download_addr(d),
+							download_port(d)),
 						download_vendor_str(d));
 					download_queue_delay(d,
 						MAX(delay, download_retry_refused_delay),
@@ -5679,7 +5701,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	if (ack_code >= 200 && ack_code <= 299) {
 		/* OK -- Update mesh */
 		if (!d->always_push && d->sha1)
-			dmesh_add(d->sha1, ip, port, d->record_index, d->file_name, 0);
+			dmesh_add(d->sha1, addr, port, d->record_index, d->file_name, 0);
 
 		download_passively_queued(d, FALSE);
 		download_actively_queued(d, FALSE);
@@ -5756,7 +5778,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		case 408:				/* Request timeout */
 			/* Update mesh */
 			if (!d->always_push && d->sha1)
-				dmesh_add(d->sha1, ip, port, d->record_index, d->file_name, 0);
+				dmesh_add(d->sha1, addr, port, d->record_index,
+					d->file_name, 0);
 
 			/*
 			 * We did a fall through on a 503, however, the download could be
@@ -5848,7 +5871,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				if (download_debug > 0) {
 					g_message("Server \"%s\" at %s might be banning us",
 						download_vendor_str(d),
-						ip_port_to_gchar(download_ip(d), download_port(d)));
+						host_addr_port_to_string(download_addr(d),
+							download_port(d)));
 				}
 
 				if (hold)
@@ -5889,8 +5913,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		}
 
 		if (refusing) {
-			ban_record(download_ip(d), "IP denying uploads");
-			upload_kill_ip(download_ip(d));
+			ban_record(download_addr(d), "IP denying uploads");
+			upload_kill_addr(download_addr(d));
 		}
 
 	report_error:
@@ -5995,7 +6019,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 						"File '%s' on %s (%s): total size mismatch: got %s, "
 						"for a served content of %s",
                         d->file_name,
-                        ip_port_to_gchar(download_ip(d), download_port(d)),
+                        host_addr_port_to_string(download_addr(d),
+							download_port(d)),
                         download_vendor_str(d),
                         uint64_to_string(check_content_range),
 						uint64_to_string2(total));
@@ -6010,7 +6035,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
                     g_message("File '%s' on %s (%s): start byte mismatch: "
 						"wanted %s, got %s",
                         d->file_name,
-                        ip_port_to_gchar(download_ip(d), download_port(d)),
+                        host_addr_port_to_string(download_addr(d),
+							download_port(d)),
                         download_vendor_str(d),
                         uint64_to_string(d->skip - d->overlap_size),
 						uint64_to_string2(start));
@@ -6024,7 +6050,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
                         g_message("File '%s' on %s (%s): file size mismatch: "
 						"expected %s, got %s",
                         d->file_name,
-                        ip_port_to_gchar(download_ip(d), download_port(d)),
+                        host_addr_port_to_string(download_addr(d),
+							download_port(d)),
                         download_vendor_str(d),
                         uint64_to_string(fi->size), uint64_to_string2(total));
                 }
@@ -6037,7 +6064,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
                     g_message("File '%s' on %s (%s): end byte too large: "
 						"expected %s, got %s",
                         d->file_name,
-                        ip_port_to_gchar(download_ip(d), download_port(d)),
+                        host_addr_port_to_string(download_addr(d),
+							download_port(d)),
                         download_vendor_str(d),
                         uint64_to_string(d->range_end - 1),
 						uint64_to_string2(end));
@@ -6062,7 +6090,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				g_message(
 					"File '%s' on %s (%s): Range mismatch: wanted %s - %s, %s",
 					d->file_name,
-					ip_port_to_gchar(download_ip(d), download_port(d)),
+					host_addr_port_to_string(download_addr(d),
+						download_port(d)),
 					download_vendor_str(d),
 					uint64_to_string(d->skip),
 					uint64_to_string2(d->range_end - 1),
@@ -6076,7 +6105,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 						"File '%s' on %s (%s): end byte short: wanted %s, "
 						"got %s (continuing anyway)",
                         d->file_name,
-                        ip_port_to_gchar(download_ip(d), download_port(d)),
+                        host_addr_port_to_string(download_addr(d),
+							download_port(d)),
                         download_vendor_str(d),
                         uint64_to_string(d->range_end - 1),
 						uint64_to_string2(end));
@@ -6104,7 +6134,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
             if (download_debug) {
                 g_message("File '%s' on %s (%s): malformed Content-Range: %s",
                     d->file_name,
-					ip_port_to_gchar(download_ip(d), download_port(d)),
+					host_addr_port_to_string(download_addr(d),
+						download_port(d)),
 					download_vendor_str(d), buf);
             }
         }
@@ -6118,7 +6149,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	if (check_content_range != 0) {
 		g_message("File '%s': expected content of %s, server %s (%s) said %s",
 			d->file_name, uint64_to_string(requested_size),
-			ip_port_to_gchar(download_ip(d), download_port(d)),
+			host_addr_port_to_string(download_addr(d), download_port(d)),
 			download_vendor_str(d),
 			uint64_to_string2(check_content_range));
 		download_bad_source(d);
@@ -6468,7 +6499,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 		g_message(
 			"----Sent Request (%s) completely to %s (%d bytes):\n%.*s----\n",
 			d->keep_alive ? "follow-up" : "initial",
-			ip_port_to_gchar(download_ip(d), download_port(d)),
+			host_addr_port_to_string(download_addr(d), download_port(d)),
 			http_buffer_length(r), http_buffer_length(r), http_buffer_base(r));
 	}
 
@@ -6478,7 +6509,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 
 	if (download_debug) {
 		g_message("Flushed partially written HTTP request to %s (%d bytes)",
-			ip_port_to_gchar(download_ip(d), download_port(d)),
+			host_addr_port_to_string(download_addr(d), download_port(d)),
 			http_buffer_length(r));
     }
 
@@ -6526,9 +6557,12 @@ download_send_request(struct download *d)
 	 *		--RAM, 26/10/2003
 	 */
 
-	if (d->server->hostname != NULL && download_ip(d) != s->ip) {
-		change_server_ip(d->server, s->ip);
-		g_assert(download_ip(d) == s->ip);
+	if (
+		NULL != d->server->hostname &&
+		!host_addr_equal(download_addr(d), s->addr)
+	) {
+		change_server_addr(d->server, s->addr);
+		g_assert(host_addr_equal(download_addr(d), s->addr));
 		gcu_gui_update_download_host(d);
 	}
 
@@ -6541,7 +6575,7 @@ download_send_request(struct download *d)
 	if (d->always_push && !DOWNLOAD_IS_IN_PUSH_MODE(d)) {
 		if (download_debug > 2)
 			g_message("PUSH not necessary to reach %s",
-				ip_port_to_gchar(download_ip(d), download_port(d)));
+				host_addr_port_to_string(download_addr(d), download_port(d)));
 		d->server->attrs |= DLS_A_PUSH_IGN;
 		d->always_push = FALSE;
 	}
@@ -6649,7 +6683,7 @@ picked:
 	rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 		"Host: %s\r\n"
 		"User-Agent: %s\r\n",
-		ip_port_to_gchar(download_ip(d), download_port(d)),
+		host_addr_port_to_string(download_addr(d), download_port(d)),
 		(d->server->attrs & DLS_A_BANNING) ?
 			download_vendor_str(d) : version_string);
 
@@ -6752,7 +6786,7 @@ picked:
 
 			wmesh = dmesh_alternate_location(sha1,
 				&dl_tmp[rw], altloc_size,
-				download_ip(d), d->last_dmesh, download_vendor(d),
+				download_addr(d), d->last_dmesh, download_vendor(d),
 				file_info, TRUE);
 			rw += wmesh;
 
@@ -6803,7 +6837,7 @@ picked:
 		 */
 
 		g_message("Partial HTTP request write to %s: wrote %d out of %d bytes",
-			ip_port_to_gchar(download_ip(d), download_port(d)),
+			host_addr_port_to_string(download_addr(d), download_port(d)),
 			(int) sent, (int) rw);
 
 		g_assert(d->req == NULL);
@@ -6824,7 +6858,7 @@ picked:
 	} else if (download_debug > 1) {
 		g_message("----Sent Request (%s) to %s (%d bytes):\n%.*s----\n",
 			d->keep_alive ? "follow-up" : "initial",
-			ip_port_to_gchar(download_ip(d), download_port(d)),
+			host_addr_port_to_string(download_addr(d), download_port(d)),
 			(int) rw, (int) rw, dl_tmp);
 	}
 
@@ -6960,7 +6994,7 @@ select_push_download(const gchar *guid)
 					g_message(
 						"GIV: trying alternate download '%s' from %s at %s",
 						d->file_name, guid_hex_str(guid),
-						ip_port_to_gchar(download_ip(d), download_port(d)));
+						host_addr_port_to_string(download_addr(d), download_port(d)));
 
 				/*
 				 * Only prepare the download, don't call download_start(): we
@@ -7028,7 +7062,8 @@ download_push_ack(struct gnutella_socket *s)
 	gnet_stats_count_general(GNR_GIV_CALLBACKS, 1);
 
 	if (download_debug > 4)
-		g_message("----Got GIV from %s:\n%s\n----", ip_to_gchar(s->ip), giv);
+		g_message("----Got GIV from %s:\n%s\n----",
+			host_addr_to_string(s->addr), giv);
 
 	/*
 	 * To find out which download this is, we have to parse the incoming
@@ -7067,7 +7102,7 @@ download_push_ack(struct gnutella_socket *s)
 	g_assert(d->socket == NULL);
 
 	d->got_giv = TRUE;
-	d->last_update = time((time_t *) NULL);
+	d->last_update = time(NULL);
 	d->socket = s;
 	s->resource.download = d;
 
@@ -7075,10 +7110,10 @@ download_push_ack(struct gnutella_socket *s)
 	 * Since we got a GIV, we now know the remote IP of the host.
 	 */
 
-	if (download_ip(d) != s->ip)
-		change_server_ip(d->server, s->ip);
+	if (!host_addr_equal(download_addr(d), s->addr))
+		change_server_addr(d->server, s->addr);
 
-	g_assert(download_ip(d) == s->ip);
+	g_assert(host_addr_equal(download_addr(d), s->addr));
 
 	gcu_gui_update_download_host(d);
 
@@ -7124,16 +7159,16 @@ download_retry(struct download *d)
  * @returns NULL if none, the download we found otherwise.
  */
 struct download *
-download_find_waiting_unparq(guint32 ip, guint16 port)
+download_find_waiting_unparq(const host_addr_t addr, guint16 port)
 {
-	struct dl_server *server = get_server(blank_guid, ip, port);
+	struct dl_server *server = get_server(blank_guid, addr, port);
 	GList *w;
 
 	if (server == NULL)
 		return NULL;
 
 	for (w = server->list[DL_LIST_WAITING]; w; w = g_list_next(w)) {
-		struct download *d = (struct download *) w->data;
+		struct download *d = w->data;
 
 		g_assert(!DOWNLOAD_IS_RUNNING(d));
 
@@ -7212,7 +7247,7 @@ download_store(void)
 			d->escaped_name,
 			uint64_to_string(d->file_info->size), d->record_index,
 			guid == NULL ? "" : ":", guid == NULL ? "" : guid_hex_str(guid),
-			ip_port_to_gchar(download_ip(d), download_port(d)),
+			host_addr_port_to_string(download_addr(d), download_port(d)),
 			hostname == NULL ? "" : ", ", hostname == NULL ? "" : hostname,
 			d->file_info->sha1 ? sha1_base32(d->file_info->sha1) : "*",
 			id != NULL ? id : "*"
@@ -7252,7 +7287,7 @@ download_retrieve(void)
 	guint64 size64;
 	gint error;
 	gchar *d_name;
-	guint32 d_ip;
+	host_addr_t d_addr;
 	guint16 d_port;
 	guint32 d_index;
 	gchar d_hexguid[33];
@@ -7394,7 +7429,7 @@ download_retrieve(void)
 
 			d_ipport[22] = '\0';
 
-			if (!gchar_to_ip_port(d_ipport, &d_ip, &d_port)) {
+			if (!string_to_host_addr_port(d_ipport, &d_addr, &d_port)) {
 				g_message("download_retrieve(): "
 					"bad IP:port '%s' at line #%d, aborting", d_ipport, line);
 				goto out;
@@ -7453,13 +7488,13 @@ download_retrieve(void)
 		 * in the fileinfo.
 		 */
 
-		d = create_download(d_name, NULL, d_size, d_index, d_ip, d_port, d_guid,
-			d_hostname, has_sha1 ? sha1_digest : NULL, 1, FALSE, FALSE,
-			TRUE, NULL, NULL);
+		d = create_download(d_name, NULL, d_size, d_index, d_addr,
+				d_port, d_guid, d_hostname, has_sha1 ? sha1_digest : NULL,
+				1, FALSE, FALSE, TRUE, NULL, NULL);
 
 		if (d == NULL) {
 			g_message("Ignored dup download at line #%d (server %s)",
-				line - maxlines + 1, ip_port_to_gchar(d_ip, d_port));
+				line - maxlines + 1, host_addr_port_to_string(d_addr, d_port));
 			goto next_entry;
 		}
 
@@ -8016,7 +8051,7 @@ download_close(void)
 	sl_unqueued = NULL;
 
 	/* XXX free & check other hash tables as well.
-	 * dl_by_ip, dl_by_host
+	 * dl_by_addr, dl_by_host
 	 */
 }
 
@@ -8039,14 +8074,14 @@ build_url_from_download(const struct download *d)
 	if (sha1) {
 		gm_snprintf(url_tmp, sizeof(url_tmp),
 			"http://%s/uri-res/N2R?urn:sha1:%s",
-			 ip_port_to_gchar(download_ip(d), download_port(d)),
+			 host_addr_port_to_string(download_addr(d), download_port(d)),
 			 sha1_base32(sha1));
 	} else {
 		gchar *buf = url_escape(d->file_name);
 
 		gm_snprintf(url_tmp, sizeof(url_tmp),
 			   "http://%s/get/%u/%s",
-			   ip_port_to_gchar(download_ip(d), download_port(d)),
+			   host_addr_port_to_string(download_addr(d), download_port(d)),
 			   d->record_index, buf);
 
 		/*
@@ -8066,23 +8101,27 @@ build_url_from_download(const struct download *d)
 const gchar *
 download_get_hostname(const struct download *d)
 {
-	static gchar buf[MAX_HOSTLEN + sizeof ":65535"];
-	guint32 ip;
+	host_addr_t addr;
 	guint port;
 
 	if (is_faked_download(d))
 		return "";
 
 	if (d->socket) {
-		ip = d->socket->ip;
+		addr = d->socket->addr;
 		port = d->socket->port;
 	} else {
-		ip = download_ip(d);
+		addr = download_addr(d);
 		port = download_port(d);
 	}
-	gm_snprintf(buf, sizeof buf, "%s:%u", d->server->hostname ?
-			d->server->hostname : ip_to_gchar(ip), port);
-	return buf;
+	if (d->server->hostname) {
+		static gchar buf[MAX_HOSTLEN + sizeof ":65535"];
+
+		gm_snprintf(buf, sizeof buf, "%s:%u", d->server->hostname, port);
+		return buf;
+	} else {
+		return host_addr_port_to_string(addr, port);
+	}
 }
 
 gint

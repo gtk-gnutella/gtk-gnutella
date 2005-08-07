@@ -45,7 +45,7 @@ RCSID("$Id$");
 #include "gnet_stats.h"
 #include "dq.h"
 #include "udp.h"
-#include "settings.h"		/* For listen_ip() */
+#include "settings.h"		/* For listen_addr() */
 #include "guid.h"			/* For blank_guid[] */
 #include "inet.h"
 #include "oob.h"
@@ -376,7 +376,7 @@ handle_messages_supported(struct gnutella_node *n,
 
 	if (vmsg_debug)
 		printf("VMSG node %s <%s> supports %u vendor message%s\n",
-			node_ip(n), node_vendor(n), count,
+			node_addr(n), node_vendor(n), count,
 			count == 1 ? "" : "s");
 
 	expected = (gint) sizeof(count) + count * VMS_ITEM_SIZE;
@@ -407,7 +407,7 @@ handle_messages_supported(struct gnutella_node *n,
 		if (vm == NULL) {
 			if (vmsg_debug > 1)
 				g_warning("VMSG node %s <%s> supports unknown %s/%dv%d",
-					node_ip(n), node_vendor(n),
+					node_addr(n), node_vendor(n),
 					vendor_code_str(vendor), id, version);
 			continue;
 		}
@@ -514,7 +514,7 @@ handle_features_supported(struct gnutella_node *n,
 
 	if (vmsg_debug)
 		printf("VMSG node %s <%s> supports %u extra feature%s\n",
-			node_ip(n), node_vendor(n), count,
+			node_addr(n), node_vendor(n), count,
 			count == 1 ? "" : "s");
 
 	expected = (gint) sizeof(count) + count * VMS_FEATURE_SIZE;
@@ -540,7 +540,7 @@ handle_features_supported(struct gnutella_node *n,
 
 		if (vmsg_debug > 1)
 			printf("VMSG node %s <%s> supports feature %s/%u\n",
-				node_ip(n), node_vendor(n),
+				node_addr(n), node_vendor(n),
 				vendor_code_str(vendor), version);
 
 		/* XXX -- look for specific features not present in handshake */
@@ -610,7 +610,7 @@ handle_tcp_connect_back(struct gnutella_node *n,
 
 	if (port == 0) {
 		g_warning("got improper port #%d in %s from %s <%s>",
-			port, vmsg->name, node_ip(n), node_vendor(n));
+			port, vmsg->name, node_addr(n), node_vendor(n));
 		return;
 	}
 
@@ -682,11 +682,11 @@ handle_udp_connect_back(struct gnutella_node *n,
 
 	if (port == 0) {
 		g_warning("got improper port #%d in %s from %s <%s>",
-			port, vmsg->name, node_ip(n), node_vendor(n));
+			port, vmsg->name, node_addr(n), node_vendor(n));
 		return;
 	}
 
-	udp_connect_back(n->ip, port, guid_buf);
+	udp_connect_back(n->addr, port, guid_buf);
 }
 
 /**
@@ -740,7 +740,7 @@ vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid, gint version)
 	payload = vmsg_fill_type(&m->data, T_LIME, 22, version);
 
 	if (version >= 2) {
-		payload = poke_be32(payload, listen_ip());
+		payload = poke_be32(payload, host_addr_ip4(listen_addr()));
 	}
 
 	poke_le16(payload, listen_port);
@@ -775,7 +775,7 @@ handle_proxy_req(struct gnutella_node *n,
 
 	if (!NODE_IS_LEAF(n))
 		g_warning("got %s from non-leaf node %s <%s>",
-			vmsg->name, node_ip(n), node_vendor(n));
+			vmsg->name, node_addr(n), node_vendor(n));
 
 	/*
 	 * Add proxying info for this node.  On successful completion,
@@ -807,20 +807,20 @@ vmsg_send_proxy_req(struct gnutella_node *n, const gchar *muid)
 	gmsg_sendto_one(n, m, msgsize);
 
 	if (vmsg_debug > 2)
-		g_warning("sent proxy REQ to %s <%s>", node_ip(n), node_vendor(n));
+		g_warning("sent proxy REQ to %s <%s>", node_addr(n), node_vendor(n));
 }
 
 /**
  * Handle reception of the "Push Proxy Acknowledgment" message.
  *
- * Version 1 only bears the port.  The IP address must be gathered from n->ip.
+ * Version 1 only bears the port.  The IP address must be gathered from n->addr.
  * Version 2 holds both the IP and port of our push-proxy.
  */
 static void
 handle_proxy_ack(struct gnutella_node *n,
 	const struct vmsg *vmsg, gchar *payload, gint size)
 {
-	guint32 ip;
+	host_addr_t ha;
 	guint16 port;
 	gint expected_size;
 
@@ -832,26 +832,27 @@ handle_proxy_ack(struct gnutella_node *n,
 	}
 
 	if (vmsg->version >= 2) {
-		ip = peek_be32(payload);
+		ha = host_addr_set_ip4(peek_be32(payload));
 		payload += 4;
-	} else
-		ip = n->ip;
+	} else {
+		ha = n->addr;
+	}
 
 	port = peek_le16(payload);
 
 	if (vmsg_debug > 2)
 		g_message("got proxy ACK from %s <%s>: proxy at %s",
-			node_ip(n), node_vendor(n), ip_port_to_gchar(ip, port));
+			node_addr(n), node_vendor(n), host_addr_port_to_string(ha, port));
 
 
-	if (!host_is_valid(ip, port)) {
+	if (!host_is_valid(ha, port)) {
 		g_warning("got improper address %s in %s from %s <%s>",
-			ip_port_to_gchar(ip, port), vmsg->name,
-			node_ip(n), node_vendor(n));
+			host_addr_port_to_string(ha, port), vmsg->name,
+			node_addr(n), node_vendor(n));
 		return;
 	}
 
-	node_proxy_add(n, ip, port);
+	node_proxy_add(n, ha, port);
 }
 
 /**
@@ -950,7 +951,7 @@ vmsg_send_qstat_answer(struct gnutella_node *n, gchar *muid, guint16 hits)
 
 	if (vmsg_debug > 1)
 		printf("VMSG sending %s with hits=%u to %s <%s>\n",
-			gmsg_infostr_full(m), hits, node_ip(n), node_vendor(n));
+			gmsg_infostr_full(m), hits, node_addr(n), node_vendor(n));
 
 	gmsg_ctrl_sendto_one(n, m, msgsize);	/* Send it ASAP */
 }
@@ -997,7 +998,7 @@ vmsg_send_proxy_cancel(struct gnutella_node *n)
 	gmsg_sendto_one(n, m, msgsize);
 
 	if (vmsg_debug > 2)
-		g_message("sent proxy CANCEL to %s <%s>", node_ip(n), node_vendor(n));
+		g_message("sent proxy CANCEL to %s <%s>", node_addr(n), node_vendor(n));
 }
 
 /**
@@ -1018,7 +1019,7 @@ handle_oob_reply_ind(struct gnutella_node *n,
 		 */
 
 		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version, node_ip(n));
+			vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version, node_addr(n));
 		return;
 	}
 
@@ -1044,7 +1045,7 @@ handle_oob_reply_ind(struct gnutella_node *n,
 
 	if (hits == 0) {
 		g_warning("no results advertised in %s/%uv%u from %s",
-			vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version, node_ip(n));
+			vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version, node_addr(n));
 		return;
 	}
 
@@ -1053,7 +1054,7 @@ handle_oob_reply_ind(struct gnutella_node *n,
 
 not_handling:
 	g_warning("not handling %s/%uv%u from %s",
-		vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version, node_ip(n));
+		vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version, node_addr(n));
 }
 
 /**
@@ -1102,7 +1103,7 @@ handle_oob_reply_ack(struct gnutella_node *n,
 
 	if (!NODE_IS_UDP(n)) {
 		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version, node_ip(n));
+			vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version, node_addr(n));
 		return;
 	}
 
@@ -1135,7 +1136,7 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n, gchar *muid, guint8 want)
 
 	if (vmsg_debug > 2)
 		printf("sent OOB reply ACK %s to %s for %u hit%s\n",
-			guid_hex_str(muid), node_ip(n), want, want == 1 ? "" : "s");
+			guid_hex_str(muid), node_addr(n), want, want == 1 ? "" : "s");
 }
 
 /**
@@ -1409,7 +1410,7 @@ handle_udp_crawler_ping(struct gnutella_node *n,
 
 	if (!NODE_IS_UDP(n)) {
 		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version, node_ip(n));
+			vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version, node_addr(n));
 		return;
 	}
 
@@ -1469,7 +1470,7 @@ vmsg_send_udp_crawler_pong(struct gnutella_node *n, pmsg_t *mb)
 		guint8 nleaves = payload[1];
 
 		printf("VMSG sending %s with up=%u and leaves=%u to %s\n",
-			gmsg_infostr_full(m), nup, nleaves, node_ip(n));
+			gmsg_infostr_full(m), nup, nleaves, node_addr(n));
 	}
 
 	udp_send_msg(n, m, msgsize);

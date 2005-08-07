@@ -322,7 +322,7 @@ mq_enter_flowc(mqueue_t *q)
 
 	if (dbg > 4)
 		printf("entering FLOWC for node %s (%d bytes queued)\n",
-			node_ip(q->node), q->size);
+			node_addr(q->node), q->size);
 }
 
 /**
@@ -336,7 +336,7 @@ mq_leave_flowc(mqueue_t *q)
 	if (dbg > 4)
 		printf("leaving %s for node %s (%d bytes queued)\n",
 			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
-			node_ip(q->node), q->size);
+			node_addr(q->node), q->size);
 
 	q->flags &= ~(MQ_FLOWC|MQ_SWIFT);	/* Under low watermark, clear */
 	if (q->qlink)
@@ -779,7 +779,7 @@ make_room_header(
 	if (dbg > 5)
 		printf("%s try to make room for %d bytes in queue 0x%lx (node %s)\n",
 			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
-			needed, (gulong) q, node_ip(q->node));
+			needed, (gulong) q, node_addr(q->node));
 
 	if (q->qhead == NULL)			/* Queue is empty */
 		return FALSE;
@@ -868,7 +868,7 @@ make_room_header(
 			gmsg_log_dropped(pmsg_start(cmb),
 				"to %s node %s, in favor of %s",
 				(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
-				node_ip(q->node), gmsg_infostr(header));
+				node_addr(q->node), gmsg_infostr(header));
 
 		gnet_stats_count_flowc(pmsg_start(cmb));
 		cmb_size = pmsg_size(cmb);
@@ -885,7 +885,7 @@ make_room_header(
 	if (dbg > 5)
 		printf("%s end purge: %d bytes (count=%d) for node %s, need=%d\n",
 			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
-			q->size, q->count, node_ip(q->node), needed);
+			q->size, q->count, node_addr(q->node), needed);
 
 	/*
 	 * In case we emptied the whole queue, disable servicing.
@@ -943,7 +943,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 		if (dbg > 4)
 			gmsg_log_dropped(pmsg_start(mb),
 				"to FLOWC node %s, %d bytes queued",
-				node_ip(q->node), q->size);
+				node_addr(q->node), q->size);
 
 		gnet_stats_count_flowc(pmsg_start(mb));
 		pmsg_free(mb);
@@ -981,14 +981,14 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 			if (dbg > 4)
 				gmsg_log_dropped(pmsg_start(mb),
 					"to FLOWC node %s, %d bytes queued [FULL]",
-					node_ip(q->node), q->size);
+					node_addr(q->node), q->size);
 
 			node_inc_txdrop(q->node);		/* Dropped during TX */
 		} else {
 			if (dbg > 4)
 				gmsg_log_dropped(pmsg_start(mb),
 					"to FLOWC node %s, %d bytes queued [KILLING]",
-					node_ip(q->node), q->size);
+					node_addr(q->node), q->size);
 
 			/* XXX: Is the check for UDP the correct fix or just a
 			 *		workaround? node_bye_v() asserts that the node isn't

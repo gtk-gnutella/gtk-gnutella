@@ -119,13 +119,13 @@ bogons_load(FILE *f)
 			if (error == IPR_ERR_OK) {
 				g_warning("%s, line %d: "
 					"entry \"%s\" (%s/%d) superseded earlier smaller range",
-					bogons_file, linenum, line, ip_to_gchar(ip), bits);
+					bogons_file, linenum, line, ip_to_string(ip), bits);
 				break;
 			}
 			/* FALL THROUGH */
 		default:
 			g_warning("%s, line %d: rejected entry \"%s\" (%s/%d): %s",
-				bogons_file, linenum, line, ip_to_gchar(ip), bits,
+				bogons_file, linenum, line, ip_to_string(ip), bits,
 				iprange_strerror(error));
 			continue;
 		}
@@ -242,9 +242,15 @@ bogons_close(void)
  * @returns TRUE if found, and FALSE if not.
  */
 gboolean
-bogons_check(guint32 ip)
+bogons_check(const host_addr_t addr)
 {
-	return bogons_db != NULL && THERE == iprange_get(bogons_db, ip);
+	if (NET_TYPE_IP4 == host_addr_net(addr)) {
+		guint32 ip = host_addr_ip4(addr);
+		return bogons_db != NULL && THERE == iprange_get(bogons_db, ip);
+	} else if (NET_TYPE_IP6 == host_addr_net(addr)) {
+		/* XXX: Implement this! */
+	}
+	return FALSE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -282,9 +282,8 @@ gui_record_sha1_eq(gconstpointer rec1, gconstpointer rec2)
 gint
 gui_record_host_eq(gconstpointer rec1, gconstpointer rec2)
 {
-    return ((const record_t *) rec1)->results_set->ip
-       == ((const record_t *) rec2)->results_set->ip
-       ? 0 : 1;
+	const record_t *r1 = rec1, *r2 = rec2;
+    return host_addr_equal(r1->results_set->addr, r2->results_set->addr);
 }
 
 /**

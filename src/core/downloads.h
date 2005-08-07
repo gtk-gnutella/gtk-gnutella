@@ -73,9 +73,11 @@ gboolean download_start_prepare_running(struct download *d);
 void download_send_request(struct download *);
 void download_retry(struct download *);
 void download_close(void);
-gboolean download_server_nopush(gchar *guid, guint32 ip, guint16 port);
+gboolean download_server_nopush(gchar *guid,
+			const host_addr_t addr, guint16 port);
 void download_free_removed(void);
-void download_redirect_to_server(struct download *d, guint32 ip, guint16 port);
+void download_redirect_to_server(struct download *d,
+		const host_addr_t addr, guint16 port);
 void download_actively_queued(struct download *d, gboolean queued);
 
 void download_verify_start(struct download *d);
@@ -89,14 +91,15 @@ void download_move_done(struct download *d, guint elapsed);
 void download_move_error(struct download *d);
 
 gboolean download_new_uri(gchar *file, gchar *uri, filesize_t size,
-			  guint32 ip, guint16 port, gchar *guid, gchar *hostname,
-			  gchar *sha1, time_t stamp, gboolean push,
-			  struct dl_file_info *fi, gnet_host_vec_t *proxies);
+			const host_addr_t addr, guint16 port, gchar *guid, gchar *hostname,
+			gchar *sha1, time_t stamp, gboolean push, struct dl_file_info *fi,
+			gnet_host_vec_t *proxies);
 
 guint extract_retry_after(const header_t *header);
 gboolean is_faked_download(const struct download *d);
 
-struct download *download_find_waiting_unparq(guint32 ip, guint16 port);
+struct download *download_find_waiting_unparq(const host_addr_t addr,
+					guint16 port);
 void download_set_socket_rx_size(gint rx_size);
 
 void download_proxy_newstate(struct download *d);

@@ -773,7 +773,7 @@ prop_set_guint32(prop_set_t *ps, property_t prop, const guint32 *src,
 
 		for (n = 0; n < PROP(ps,prop).vector_size; n++) {
 			if (PROP(ps,prop).type == PROP_TYPE_IP) {
-				printf("%s%s ", ip_to_gchar(
+				printf("%s%s ", ip_to_string(
 					PROP(ps,prop).data.guint32.value[n]),
 					(n < (PROP(ps,prop).vector_size-1)) ? "," : "");
 			} else {
@@ -1044,7 +1044,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 
 			prop_get_guint32(ps, prop, &val, 0, 1);
 
-			g_strlcpy(s, ip_to_gchar(val), sizeof(s));
+			g_strlcpy(s, ip_to_string(val), sizeof(s));
 			break;
 		}
 		case PROP_TYPE_BOOLEAN: {
@@ -1308,7 +1308,7 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 				v = p->data.guint32.value[i];
 				if (v != p->data.guint32.def[i])
 					defaultvalue = FALSE;
-				vbuf[i] = g_strdup(ip_to_gchar(v));
+				vbuf[i] = g_strdup(ip_to_string(v));
 			}
 			vbuf[p->vector_size] = NULL;
 

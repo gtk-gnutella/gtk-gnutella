@@ -367,7 +367,7 @@ gchar *tok_short_version(void)
  * @returns error code, or TOK_OK if token is valid.
  */
 tok_error_t tok_version_valid(
-	const gchar *version, const gchar *tokenb64, gint len, guint32 ip)
+	const gchar *version, const gchar *tokenb64, gint len, host_addr_t addr)
 {
 	time_t now = time(NULL);
 	time_t stamp;
@@ -410,7 +410,7 @@ tok_error_t tok_version_valid(
 	 * clock skew if necessary.
 	 */
 
-	clock_update(stamp, TOKEN_LIFE, ip);
+	clock_update(stamp, TOKEN_LIFE, addr);
 
 	if (ABS(stamp - clock_loc2gmt(now)) > TOKEN_CLOCK_SKEW)
 		return TOK_BAD_STAMP;

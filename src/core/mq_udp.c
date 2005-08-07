@@ -209,7 +209,7 @@ mq_udp_service(gpointer data)
 
 		if (r != mb_size) {
 			g_warning("partial UDP write (%d bytes) to %s for %d-byte datagram",
-				r, ip_port_to_gchar(mi->to.ip, mi->to.port), mb_size);
+				r, host_addr_port_to_string(mi->to.addr, mi->to.port), mb_size);
 			l = q->cops->rmlink_prev(q, l, mb_size);
 			dropped++;
 			continue;
@@ -343,7 +343,7 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, gnet_host_t *to)
 
 		if (written > 0) {
 			g_warning("partial UDP write (%d bytes) to %s for %d-byte datagram",
-				(gint) written, ip_port_to_gchar(to->ip, to->port),
+				(gint) written, host_addr_port_to_string(to->addr, to->port),
 				(gint) size);
 			goto cleanup;
 		}
@@ -396,7 +396,7 @@ mq_udp_node_putq(mqueue_t *q, pmsg_t *mb, gnutella_node_t *n)
 {
 	gnet_host_t to;
 
-	to.ip = n->ip;
+	to.addr = n->addr;
 	to.port = n->port;
 
 	mq_udp_putq(q, mb, &to);

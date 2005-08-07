@@ -223,7 +223,7 @@ found_set_header(void)
 	connect_speed /= MAX(1, max_uploads);	/* Upload speed expected per slot */
 
 	WRITE_GUINT16_LE(listen_port, search_head->host_port);
-	WRITE_GUINT32_BE(listen_ip(), search_head->host_ip);
+	WRITE_GUINT32_BE(host_addr_ip4(listen_addr()), search_head->host_ip);
 	WRITE_GUINT32_LE(connect_speed, search_head->host_speed);
 }
 
@@ -282,7 +282,7 @@ qhit_send_node(gpointer data, size_t len, gpointer udata)
 			(gint) found_file_count(),
 			found_file_count() == 1 ? "y" : "ies",
 			(gint) found_size(),
-			node_ip(n));
+			node_addr(n));
 	}
 
 	g_assert(len <= INT_MAX);
@@ -415,11 +415,13 @@ flush_match(void)
 				ok && l && count < QHIT_MAX_PROXIES;
 				l = g_slist_next(l), count++
 			) {
-				struct gnutella_node *n = (struct gnutella_node *) l->data;
+				struct gnutella_node *n = l->data;
 
-				WRITE_GUINT32_BE(n->proxy_ip, &proxy[0]);
-				WRITE_GUINT16_LE(n->proxy_port, &proxy[4]);
-				ok = ggep_stream_write(&gs, proxy, sizeof(proxy));
+				if (NET_TYPE_IP4 == host_addr_net(n->proxy_addr)) {
+					WRITE_GUINT32_BE(host_addr_ip4(n->proxy_addr), &proxy[0]);
+					WRITE_GUINT16_LE(n->proxy_port, &proxy[4]);
+					ok = ggep_stream_write(&gs, proxy, sizeof proxy);
+				}
 			}
 
 			ok = ok && ggep_stream_end(&gs);
@@ -643,9 +645,11 @@ add_file(struct shared_file *sf)
 		ok = ggep_stream_begin(&gs, "ALT", GGEP_W_COBS);
 
 		for (i = 0; ok && i < hcnt; i++) {
-			WRITE_GUINT32_BE(hvec[i].ip, &alt[0]);
-			WRITE_GUINT16_LE(hvec[i].port, &alt[4]);
-			ok = ggep_stream_write(&gs, alt, sizeof(alt));
+			if (NET_TYPE_IP4 == host_addr_net(hvec[i].addr)) {
+				WRITE_GUINT32_BE(host_addr_ip4(hvec[i].addr), &alt[0]);
+				WRITE_GUINT16_LE(hvec[i].port, &alt[4]);
+				ok = ggep_stream_write(&gs, alt, sizeof alt);
+			}
 		}
 
 		ok = ok && ggep_stream_end(&gs);
@@ -746,7 +750,7 @@ qhit_send_results(
 	g_slist_free(files);
 
 	if (dbg > 3)
-		g_message("sent %d/%d hits to %s\n", sent, count, node_ip(n));
+		g_message("sent %d/%d hits to %s\n", sent, count, node_addr(n));
 }
 
 /**

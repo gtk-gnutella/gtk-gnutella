@@ -105,9 +105,9 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 
     case GTA_UL_COMPLETE:
 		{
-	        filesize_t requested = data->range_end - data->range_start + 1;
 			gint t = delta_time(u->last_update, data->start_date);
-			
+	        filesize_t requested = data->range_end - data->range_start + 1;
+
 			gm_snprintf(tmpstr, sizeof(tmpstr),
 				_("Completed (%s) %s"),
 				t > 0 ? short_rate(requested / t) : _("< 1s"),

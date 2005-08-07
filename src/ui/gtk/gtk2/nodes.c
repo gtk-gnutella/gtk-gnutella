@@ -344,7 +344,7 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			"%s %s (%s)\n"
 			"%s %.64s",
 			_("Peer:"),
-			ip_port_to_gchar(info.ip, info.port),
+			host_addr_port_to_string(info.addr, info.port),
 			_("Peermode:"),
 			peermode_to_string(flags.peermode),
 			flags.incoming ? _("incoming") : _("outgoing"),
@@ -379,7 +379,7 @@ host_lookup_callback(const gchar *hostname, gpointer data)
 	GtkTreeIter *iter;
 	GtkListStore *store;
 	GtkTreeView *tv;
-	guint32 ip;
+	host_addr_t addr;
 	guint16 port;
 	gchar buf[512];
 
@@ -396,17 +396,19 @@ host_lookup_callback(const gchar *hostname, gpointer data)
 
 	guc_node_fill_info(n, &info);
 	g_assert(n == info.node_handle);
-	ip = info.ip;
+	addr = info.addr;
 	port = info.port;
 	guc_node_clear_info(&info);
 
 	if (hostname) {
 		gm_snprintf(buf, sizeof buf, "%s (%s)",
-			lazy_locale_to_utf8(hostname), ip_port_to_gchar(ip, port));
+			lazy_locale_to_utf8(hostname),
+			host_addr_port_to_string(addr, port));
 	} else {
 		statusbar_gui_warning(10,
-			_("Reverse lookup for %s failed"), ip_to_gchar(ip));
-		gm_snprintf(buf, sizeof buf, "%s", ip_port_to_gchar(ip, port));
+			_("Reverse lookup for %s failed"), host_addr_to_string(addr));
+		gm_snprintf(buf, sizeof buf, "%s",
+			host_addr_port_to_string(addr, port));
 	}
 	gtk_list_store_set(store, iter, c_gnet_host, buf, (-1));
 }
@@ -553,7 +555,7 @@ nodes_gui_add_node(gnet_node_info_t *n)
 		n->proto_major, n->proto_minor);
     gtk_list_store_append(nodes_model, iter);
     gtk_list_store_set(nodes_model, iter,
-        c_gnet_host,    ip_port_to_gchar(n->ip, n->port),
+        c_gnet_host,    host_addr_port_to_string(n->addr, n->port),
         c_gnet_flags,    NULL,
         c_gnet_user_agent, n->vendor
 							? lazy_iso8859_1_to_utf8(n->vendor) : NULL,
@@ -785,10 +787,10 @@ nodes_gui_reverse_lookup_selected_helper(GtkTreeModel *model,
 	guc_node_fill_info(n, &info);
 	g_assert(n == info.node_handle);
 	gm_snprintf(buf, sizeof buf, "%s (%s)", _("Reverse lookup in progress..."),
-		ip_port_to_gchar(info.ip, info.port));
+		host_addr_port_to_string(info.addr, info.port));
 	gtk_list_store_set(GTK_LIST_STORE(model), iter, c_gnet_host, buf, (-1));
 	g_hash_table_insert(ht_pending_lookups, key, GINT_TO_POINTER(1));
-	adns_reverse_lookup(info.ip, host_lookup_callback, key);
+	adns_reverse_lookup(info.addr, host_lookup_callback, key);
 	guc_node_clear_info(&info);
 }
 

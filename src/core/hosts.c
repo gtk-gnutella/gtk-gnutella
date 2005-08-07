@@ -54,6 +54,7 @@ RCSID("$Id$");
 
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/misc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
 gboolean host_low_on_pongs = FALSE;			/**< True when less than 12% full */
@@ -70,9 +71,9 @@ static gboolean in_shutdown = FALSE;
 guint
 host_hash(gconstpointer key)
 {
-	const gnet_host_t *host = (const gnet_host_t *) key;
+	const gnet_host_t *host = key;
 
-	return (guint) (host->ip ^ ((host->port << 16) | host->port));
+	return host_addr_hash(host->addr) ^ ((host->port << 16) | host->port);
 }
 
 /**
@@ -83,10 +84,9 @@ host_hash(gconstpointer key)
 gint
 host_eq(gconstpointer v1, gconstpointer v2)
 {
-	const gnet_host_t *h1 = (const gnet_host_t *) v1;
-	const gnet_host_t *h2 = (const gnet_host_t *) v2;
+	const gnet_host_t *h1 = v1, *h2 = v2;
 
-	return h1->ip == h2->ip && h1->port == h2->port;
+	return host_addr_equal(h1->addr, h2->addr) && h1->port == h2->port;
 }
 
 /**
@@ -114,7 +114,7 @@ host_timer(void)
 	static gint called = 0;
     guint count;
 	gint missing;
-	guint32 ip;
+	host_addr_t addr;
 	guint16 port;
 	host_type_t htype;
 	guint max_nodes;
@@ -205,8 +205,8 @@ host_timer(void)
             missing = to_add;
 
 			while (hcache_size(htype) && missing-- > 0) {
-				hcache_get_caught(htype, &ip, &port);
-				node_add(ip, port);
+				hcache_get_caught(htype, &addr, &port);
+				node_add(addr, port);
 			}
 
 			if (missing > 0 && hcache_read_finished()) {
@@ -225,11 +225,11 @@ host_timer(void)
 
 	} else if (use_netmasks) {
 		/* Try to find better hosts */
-		if (hcache_find_nearby(htype, &ip, &port)) {
+		if (hcache_find_nearby(htype, &addr, &port)) {
 			if (node_remove_worst(TRUE))
-				node_add(ip, port);
+				node_add(addr, port);
 			else
-				hcache_add_caught(htype, ip, port, "nearby host");
+				hcache_add_caught(htype, addr, port, "nearby host");
 		}
 	}
 }
@@ -244,19 +244,19 @@ void host_init(void)
 }
 
 /**
- * @return the ip:port of a host
+ * @return the address:port of a host
  */
 const gchar *
-host_ip(const gnet_host_t *h)
+host_to_string(const gnet_host_t *h)
 {
-	static gchar a[32];
-	struct in_addr ia;
+	static gchar buf[64];
+	gchar host[48];
 
 	g_assert(h != NULL);
 
-	ia.s_addr = htonl(h->ip);
-	gm_snprintf(a, sizeof(a), "%s:%u", inet_ntoa(ia), h->port);
-	return a;
+	host_addr_to_string_buf(h->addr, host, sizeof host);
+	gm_snprintf(buf, sizeof buf, "%s:%u", host, h->port);
+	return buf;
 }
 
 /**
@@ -266,15 +266,15 @@ host_ip(const gnet_host_t *h)
  * not bogus.
  */
 gboolean
-host_is_valid(guint32 ip, guint16 port)
+host_is_valid(const host_addr_t addr, guint16 port)
 {
 	if (!port_is_valid(port))
 		return FALSE;
 
-	if (!ip_is_valid(ip))
+	if (!addr_is_valid(addr))
 		return FALSE;
 
-	if (bogons_check(ip))
+	if (bogons_check(addr))
 		return FALSE;
 
 	return TRUE;
@@ -286,9 +286,9 @@ host_is_valid(guint32 ip, guint16 port)
  * When `connect' is true, attempt to connect if we are low in Gnet links.
  */
 void
-host_add(guint32 ip, guint16 port, gboolean do_connect)
+host_add(const host_addr_t addr, guint16 port, gboolean do_connect)
 {
-	if (!hcache_add_caught(HOST_ANY, ip, port, "pong"))
+	if (!hcache_add_caught(HOST_ANY, addr, port, "pong"))
 		return;
 
 	/*
@@ -306,13 +306,13 @@ host_add(guint32 ip, guint16 port, gboolean do_connect)
 
 	if (do_connect) {
 		if (node_keep_missing() > 0)
-				node_add(ip, port);
+				node_add(addr, port);
 		else {
 			/* If we are above the max connections, delete a non-nearby
 			 * connection before adding this better one
 			 */
-			if (use_netmasks && host_is_nearby(ip) && node_remove_worst(TRUE))
-				node_add(ip, port);
+			if (use_netmasks && host_is_nearby(addr) && node_remove_worst(TRUE))
+				node_add(addr, port);
 		}
 
 	}
@@ -324,11 +324,11 @@ host_add(guint32 ip, guint16 port, gboolean do_connect)
  * may be unsuitable for Gnet connections.
  */
 void
-host_add_semi_pong(guint32 ip, guint16 port)
+host_add_semi_pong(const host_addr_t addr, guint16 port)
 {
 	g_assert(host_low_on_pongs);	/* Only used when low on pongs */
 
-    hcache_add_caught(HOST_ANY, ip, port, "semi-pong");
+    hcache_add_caught(HOST_ANY, addr, port, "semi-pong");
 }
 
 /* ---------- Netmask heuristic by Mike Perry -------- */
@@ -356,7 +356,7 @@ void free_networks(void)
  * the local_networks array. IP's are in network order.
  */
 void
-parse_netmasks(gchar * str)
+parse_netmasks(const gchar *str)
 {
 	gchar **masks = g_strsplit(str, ";", 0);
 	gchar *p;
@@ -378,14 +378,13 @@ parse_netmasks(gchar * str)
 		return;
     }
 
-	local_networks =
-		(struct network_pair *) g_malloc(i * sizeof(*local_networks));
+	local_networks = g_malloc(i * sizeof *local_networks);
 
 	for (i = 0; masks[i]; i++) {
 		/* Network is of the form ip/mask or ip/bits */
 		if ((p = strchr(masks[i], '/')) && *p) {
-			*p = 0;
-			p++;
+			*p++ = '\0';
+
 			if (strchr(p, '.')) {
 				/* get the network address from the user */
 				if (inet_aton(p, &local_networks[i].mask) == 0)
@@ -417,17 +416,23 @@ parse_netmasks(gchar * str)
 }
 
 /**
- * @returns true if the ip is inside one of the local networks
+ * @returns true if the address is inside one of the local networks
  */
 gboolean
-host_is_nearby(guint32 ip)
+host_is_nearby(const host_addr_t addr)
 {
 	guint i;
 
-	for (i = 0; i < number_local_networks; i++) {
-		if ((ip & local_networks[i].mask.s_addr) ==
-				(local_networks[i].net.s_addr & local_networks[i].mask.s_addr))
-			return TRUE;
+	if (NET_TYPE_IP4 == host_addr_net(addr)) {
+		for (i = 0; i < number_local_networks; i++) {
+			guint32 m_mask = local_networks[i].mask.s_addr;
+			guint32 m_ip = local_networks[i].net.s_addr;
+			
+			if ((host_addr_ip4(addr) & m_mask) == (m_ip & m_mask))
+				return TRUE;
+		}
+	} else if (NET_TYPE_IP6 == host_addr_net(addr)) {
+		/* XXX: Implement this! */
 	}
 	return FALSE;
 }

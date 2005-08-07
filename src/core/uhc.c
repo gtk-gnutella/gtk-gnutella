@@ -72,7 +72,7 @@ static struct uhc_context {
 	GHashTable *guids;			/**< GUIDs we sent */
 	gint attempts;				/**< Connection / resolution attempts */
 	const gchar *host;			/**< Last selected host */
-	guint32 ip;					/**< Resolved IP address for host */
+	host_addr_t addr;			/**< Resolved IP address for host */
 	guint16 port;				/**< Port of selected host cache */
 	gpointer timeout_ev;		/**< Ping timeout */
 } uhc_ctx;
@@ -91,7 +91,7 @@ static const gchar * const boot_hosts[] = {
 
 static gboolean uhc_connecting = FALSE;
 
-static void uhc_host_resolved(guint32 ip, gpointer uu_udata);
+static void uhc_host_resolved(const host_addr_t addr, gpointer uu_udata);
 
 /**
  * Parse hostname:port and return the hostname and port parts.
@@ -223,10 +223,10 @@ uhc_ping_timeout(cqueue_t *unused_cq, gpointer unused_obj)
  * Send an UDP ping to the host cache.
  */
 static void
-uhc_send_ping(guint32 ip, guint16 port)
+uhc_send_ping(const host_addr_t addr, guint16 port)
 {
 	struct gnutella_msg_init *m;
-	struct gnutella_node *n = node_udp_get_ip_port(ip, port);
+	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
 	guint32 size;
 	gchar *muid;
 	gchar msg[256];
@@ -249,13 +249,13 @@ uhc_send_ping(guint32 ip, guint16 port)
 
 	if (gwc_debug)
 		g_message("sent UDP SCP ping %s to %s",
-			guid_hex_str(muid), ip_port_to_gchar(ip, port));
+			guid_hex_str(muid), host_addr_port_to_string(addr, port));
 
 	/*
 	 * Give GUI feedback.
 	 */
 
-	gm_snprintf(msg, sizeof(msg), _("Sent ping to UDP host cache %s:%u"),
+	gm_snprintf(msg, sizeof msg, _("Sent ping to UDP host cache %s:%u"),
 		uhc_ctx.host, uhc_ctx.port);
 	gcu_statusbar_message(msg);
 
@@ -274,7 +274,7 @@ uhc_send_ping(guint32 ip, guint16 port)
  * Callback for adns_resolve(), invoked when the resolution is complete.
  */
 static void
-uhc_host_resolved(guint32 ip, gpointer uu_udata)
+uhc_host_resolved(const host_addr_t addr, gpointer uu_udata)
 {
 	(void) uu_udata;
 
@@ -282,7 +282,7 @@ uhc_host_resolved(guint32 ip, gpointer uu_udata)
 	 * If resolution failed, try again if possible.
 	 */
 
-	if (ip == 0 || !host_is_valid(ip, uhc_ctx.port)) {
+	if (!is_host_addr(addr) || !host_is_valid(addr, uhc_ctx.port)) {
 		if (gwc_debug)
 			g_warning("could not resolve UDP host cache \"%s\"",
 				uhc_ctx.host);
@@ -293,15 +293,15 @@ uhc_host_resolved(guint32 ip, gpointer uu_udata)
 
 	if (gwc_debug)
 		g_message("UDP host cache \"%s\" resolved to %s",
-			uhc_ctx.host, ip_to_gchar(ip));
+			uhc_ctx.host, host_addr_to_string(addr));
 
-	uhc_ctx.ip = ip;
+	uhc_ctx.addr = addr;
 
 	/*
 	 * Now send the ping.
 	 */
 
-	uhc_send_ping(uhc_ctx.ip, uhc_ctx.port);
+	uhc_send_ping(uhc_ctx.addr, uhc_ctx.port);
 }
 
 /**
@@ -366,19 +366,19 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 	if (gwc_debug)
 		g_message("extracting %d host%s in UDP IPP pong %s from %s (%s)",
 			cnt, cnt == 1 ? "" : "s",
-			guid_hex_str(n->header.muid), node_ip(n),
+			guid_hex_str(n->header.muid), node_addr(n),
 			uhc_connecting ? "expected" : "unsollicited");
 
 	for (i = 0, p = payload; i < cnt; i++) {
-		guint32 ip;
+		host_addr_t ha;
 		guint16 port;
 
-		READ_GUINT32_BE(p, ip);
+		ha = host_addr_set_ip4(peek_be32(p));
 		p += 4;
-		READ_GUINT16_LE(p, port);
+		port = peek_le16(p);
 		p += 2;
 
-		hcache_add_caught(HOST_ULTRA, ip, port, "UDP-HC");
+		hcache_add_caught(HOST_ULTRA, ha, port, "UDP-HC");
 	}
 
 	/*
@@ -394,8 +394,9 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 
 		if (gwc_debug)
 			g_message("UDP cache \"%s\" (%s) replied: got %d host%s from %s",
-				uhc_ctx.host, ip_port_to_gchar(uhc_ctx.ip, uhc_ctx.port),
-				cnt, cnt == 1 ? "" : "s", node_ip(n));
+				uhc_ctx.host,
+				host_addr_port_to_string(uhc_ctx.addr, uhc_ctx.port),
+				cnt, cnt == 1 ? "" : "s", node_addr(n));
 
 		/*
 		 * Terminate the probing cycle if we got hosts.

@@ -982,8 +982,8 @@ filter_rule_condition_to_gchar(const rule_t *r)
         {
             const gchar *addr, *mask;
 
-            addr = ip_to_gchar(r->u.ip.addr);
-            mask = ip2_to_gchar(r->u.ip.mask);
+            addr = ip_to_string(r->u.ip.addr);
+            mask = ip_to_string2(r->u.ip.mask);
             gm_snprintf(tmp, sizeof(tmp),
                 _("If IP address matches %s/%s"), addr, mask);
         }
@@ -2062,8 +2062,14 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
                 }
                 break;
             case RULE_IP:
-                if ((rec->results_set->ip & r->u.ip.mask) == r->u.ip.addr)
-                    match = TRUE;
+				{
+					guint32 ip;
+
+					/* @todo TODO: IPv6  */
+					ip = host_addr_ip4(rec->results_set->addr);
+                	if ((ip & r->u.ip.mask) == r->u.ip.addr)
+                    	match = TRUE;
+				}
                 break;
             case RULE_SIZE:
                 if (rec->size >= r->u.size.lower &&
@@ -2592,14 +2598,16 @@ void
 filter_add_drop_host_rule(const struct record *rec, filter_t *filter)
 {
     rule_t *rule;
+	guint ip;
 
     g_assert(rec != NULL);
     g_assert(filter != NULL);
 	g_assert(rec->magic == RECORD_MAGIC);
 	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
-    rule = filter_new_ip_rule(rec->results_set->ip, 0xFFFFFFFF,
-        filter_get_drop_target(), RULE_FLAG_ACTIVE);
+	ip = host_addr_ip4(rec->results_set->addr); /* @todo TODO: IPv6  */
+    rule = filter_new_ip_rule(ip, 0xFFFFFFFF,
+        		filter_get_drop_target(), RULE_FLAG_ACTIVE);
 
     filter_append_rule(filter, rule);
 }

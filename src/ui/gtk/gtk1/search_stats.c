@@ -88,8 +88,8 @@ delete_hash_entry(gpointer key, gpointer val, gpointer unused_data)
 {
 	(void) unused_data;
 	/* free the key str (was strdup'd below) */
-	g_free(key);
-	g_free(val);
+	G_FREE_NULL(key);
+	G_FREE_NULL(val);
 	return TRUE;
 }
 
@@ -108,17 +108,17 @@ static void search_stats_tally(const word_vec_t * vec);
 
 static void
 search_stats_notify_word(query_type_t type, const gchar *search,
-	guint32 unused_ip, guint16 unused_port)
+	const host_addr_t unused_addr, guint16 unused_port)
 {
     word_vec_t *wovec;
     guint wocnt;
     guint i;
     gchar *buf;
 
-	(void) unused_ip;
+	(void) unused_addr;
 	(void) unused_port;
 
-    if (type == QUERY_SHA1)
+    if (QUERY_SHA1 == type)
         return;
 
 	buf = g_strdup(search);
@@ -131,20 +131,20 @@ search_stats_notify_word(query_type_t type, const gchar *search,
 		word_vec_free(wovec, wocnt);
 	}
 
-    g_free(buf);
+    G_FREE_NULL(buf);
 }
 
 static void
 search_stats_notify_whole(query_type_t type, const gchar *search,
-	guint32 unused_ip, guint16 unused_port)
+	const host_addr_t unused_addr, guint16 unused_port)
 {
     word_vec_t wovec;
-	char buf[1024];
+	gchar buf[1024];
 
-	(void) unused_ip;
+	(void) unused_addr;
 	(void) unused_port;
 
-    gm_snprintf(buf, sizeof buf, type == QUERY_SHA1 ? "urn:sha1:%s" : "[%s]",
+    gm_snprintf(buf, sizeof buf, QUERY_SHA1 == type ? "urn:sha1:%s" : "[%s]",
 		search);
 
 	wovec.word = buf;
@@ -155,19 +155,21 @@ search_stats_notify_whole(query_type_t type, const gchar *search,
 }
 
 static void
-search_stats_notify_routed(query_type_t unused_type, const gchar *unused_search,
-	guint32 ip, guint16 port)
+search_stats_notify_routed(query_type_t unused_type,
+	const gchar *unused_search, const host_addr_t addr, guint16 port)
 {
+    const word_vec_t *p_wovec;
     word_vec_t wovec;
 
 	(void) unused_type;
 	(void) unused_search;
 
-    wovec.word = ip_port_to_gchar(ip, port);
+    wovec.word = deconstify_gchar(host_addr_port_to_string(addr, port));
     wovec.len = strlen(wovec.word);
     wovec.amount = 1;
+	p_wovec = &wovec;
 
-    search_stats_tally(&wovec);
+    search_stats_tally(p_wovec);
 }
 
 /***
@@ -198,7 +200,7 @@ stats_hash_to_clist(gpointer key, gpointer value, gpointer unused_udata)
 	gchar *text[3];
 	gchar period_tmp[32];
 	gchar total_tmp[32];
-	struct term_counts *val = (struct term_counts *) value;
+	struct term_counts *val = value;
 
 	(void) unused_udata;
 
@@ -211,11 +213,11 @@ stats_hash_to_clist(gpointer key, gpointer value, gpointer unused_udata)
 
 	/* try to keep the number of infrequent terms down */
 	if (
-		((float) val->total_cnt / (val->periods + 2.0)) * 100 <
+		((gfloat) val->total_cnt / (val->periods + 2.0)) * 100 <
 			search_stats_delcoef
 	) {
-		g_free(key);
-		g_free(val);
+		G_FREE_NULL(key);
+		G_FREE_NULL(val);
 		return TRUE;
 	}
 
@@ -224,10 +226,10 @@ stats_hash_to_clist(gpointer key, gpointer value, gpointer unused_udata)
 	/* update the display */
 
     /* FIXME: make %8.8d %d and set up custom sort function */
-	gm_snprintf(period_tmp, sizeof(period_tmp), "%8.8d", (int) val->period_cnt);
-	gm_snprintf(total_tmp, sizeof(total_tmp), "%8.8d", (int) val->total_cnt);
+	gm_snprintf(period_tmp, sizeof period_tmp, "%8.8d", (int) val->period_cnt);
+	gm_snprintf(total_tmp, sizeof total_tmp, "%8.8d", (int) val->total_cnt);
 
-	text[0] = (gchar *) key;
+	text[0] = key;
 	text[1] = period_tmp;
 	text[2] = total_tmp;
 
@@ -260,12 +262,9 @@ static void
 search_stats_gui_disable(void)
 {
     if (callback_registered) {
-        guc_share_remove_search_request_listener
-            (search_stats_notify_word);
-        guc_share_remove_search_request_listener
-            (search_stats_notify_whole);
-        guc_share_remove_search_request_listener
-            (search_stats_notify_routed);
+        guc_share_remove_search_request_listener(search_stats_notify_word);
+        guc_share_remove_search_request_listener(search_stats_notify_whole);
+        guc_share_remove_search_request_listener(search_stats_notify_routed);
         callback_registered = FALSE;
     }
 
@@ -280,18 +279,21 @@ search_stats_tally(const word_vec_t * vec)
 {
 	struct term_counts *val;
 	gpointer key;
+	guint i;
 
-	if (vec->word[1] == '\0' || vec->word[2] == '\0')
-		return;
+	for (i = 0; i < 3; i++) {
+		if ('\0' == vec->word[i])
+			return;
+	}
 
 	val = g_hash_table_lookup(stat_hash, vec->word);
 	if (val) {
 		val->period_cnt++;
 	} else {
-		key = g_strdup((gchar *) vec->word);
-		val = (struct term_counts *) g_malloc0(sizeof(struct term_counts));
+		key = g_strdup(vec->word);
+		val = g_malloc0(sizeof *val);
 		val->period_cnt = vec->amount;
-		g_hash_table_insert(stat_hash, key, (gpointer) val);
+		g_hash_table_insert(stat_hash, key, val);
 	}
 }
 
@@ -343,49 +345,54 @@ search_stats_gui_set_type(gint type)
 void
 search_stats_gui_init(void)
 {
-    GtkCombo *combo_types;
     GtkWidget *clist_search_stats =
         lookup_widget(main_window, "clist_search_stats");
 
-    combo_types = GTK_COMBO(
-        lookup_widget(main_window, "combo_search_stats_type"));
-
 #if 0
-    search_stats_mode_def = gui_prop_get_def(PROP_SEARCH_STATS_MODE);
+	{
+    	GtkCombo *combo_types = GTK_COMBO(
+        	lookup_widget(main_window, "combo_search_stats_type"));
+		
+		search_stats_mode_def = gui_prop_get_def(PROP_SEARCH_STATS_MODE);
 
-    gtk_combo_init_choices(
-        combo_types,
-        GTK_SIGNAL_FUNC(on_search_stats_type_selected),
-        search_stats_mode_def);
+		gtk_combo_init_choices(
+				combo_types,
+				GTK_SIGNAL_FUNC(on_search_stats_type_selected),
+				search_stats_mode_def);
 
-    prop_free_def(search_stats_mode_def);
+		prop_free_def(search_stats_mode_def);
 
-    /*
-     * Save search_stats_mode because it will be overridden
-     * when we create the menu.
-     */
-    original_mode = search_stats_mode;
+		/*
+		 * Save search_stats_mode because it will be overridden
+		 * when we create the menu.
+		 */
+		original_mode = search_stats_mode;
 
-    n = 0;
-    while (search_stats_mode->data.guint32.choices[n].title != NULL) {
-        GtkWidget *list_item;
-        GList *l;
+		n = 0;
+		while (search_stats_mode->data.guint32.choices[n].title != NULL) {
+			GtkWidget *list_item;
+			GList *l;
 
-        list_item = gtk_list_item_new_with_label(type_str[n]);
-        gtk_widget_show(list_item);
+			list_item = gtk_list_item_new_with_label(type_str[n]);
+			gtk_widget_show(list_item);
 
-        gtk_signal_connect(
-            GTK_OBJECT(list_item), "select",
-            GTK_SIGNAL_FUNC(on_search_stats_type_selected),
-            GINT_TO_POINTER(search_stats_mode->data.guint32.choices[n].value));
+			gtk_signal_connect(
+				GTK_OBJECT(list_item), "select",
+				GTK_SIGNAL_FUNC(on_search_stats_type_selected),
+				GINT_TO_POINTER(
+					search_stats_mode->data.guint32.choices[n].value));
 
-        l = g_list_prepend(NULL, (gpointer) list_item);
-        gtk_list_append_items(GTK_LIST(GTK_COMBO(combo_types)->list), l);
+			l = g_list_prepend(NULL, (gpointer) list_item);
+			gtk_list_append_items(GTK_LIST(GTK_COMBO(combo_types)->list), l);
 
-        if (search_stats_mode->data.guint32.choices[n].value == original_mode)
-            gtk_list_select_child(
-                GTK_LIST(GTK_COMBO(combo_types)->list), list_item);
-    }
+			if (
+				search_stats_mode->data.guint32.choices[n].value ==
+				original_mode
+			)
+				gtk_list_select_child(
+						GTK_LIST(GTK_COMBO(combo_types)->list), list_item);
+		}
+	}
 #endif
 
     /* set up the clist to be sorted properly */
@@ -411,7 +418,7 @@ search_stats_gui_shutdown(void)
 void
 search_stats_gui_update(time_t now)
 {
-	static guint32 last_update = 0;
+	static time_t last_update = 0;
     GtkWidget *clist_search_stats;
     GtkWidget *label_search_stats_count;
 

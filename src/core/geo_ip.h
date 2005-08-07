@@ -38,7 +38,7 @@
 
 #include <glib.h>
 
-gint gip_country(guint32 ip);
+gint gip_country(const host_addr_t addr);
 void gip_init(void);
 void gip_close(void);
 

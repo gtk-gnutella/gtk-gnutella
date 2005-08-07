@@ -80,7 +80,7 @@ typedef struct gnet_host_vec {
  */
 typedef struct gnet_results_set {
 	gchar *guid;				/**< Servent's GUID (atom) */
-	guint32 ip;
+	host_addr_t addr;
 	guint16 port;
 	guint16 status;				/**< Parsed status bits from trailer */
 	guint32 speed;
@@ -91,7 +91,7 @@ typedef struct gnet_results_set {
     flag_t  flags;
 	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
 	gchar *hostname;			/**< Optional: server's hostname */
-	guint32 udp_ip;				/**< IP of delivering node, if hit from UDP */
+	host_addr_t udp_addr;		/**< IP of delivering node, if hit from UDP */
 
 	GSList *records;
 	guint32 num_recs;

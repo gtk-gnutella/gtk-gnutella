@@ -82,7 +82,7 @@ guint parq_upload_lookup_position(const gnutella_upload_t *u);
 const gchar * parq_upload_lookup_id(const gnutella_upload_t *u);
 gboolean parq_upload_queue_full(gnutella_upload_t *u);
 guint parq_upload_lookup_size(const gnutella_upload_t *u);
-gboolean parq_upload_ip_can_proceed(const gnutella_upload_t *u);
+gboolean parq_upload_addr_can_proceed(const gnutella_upload_t *u);
 
 time_t parq_upload_lookup_lifetime(const gnutella_upload_t *u);
 time_t parq_upload_lookup_retry(const gnutella_upload_t *u);
@@ -101,6 +101,6 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u);
 
 gboolean parq_ul_id_sent(const gnutella_upload_t *u);
 
-time_t parq_banned_source_expire(guint32 ip);
+time_t parq_banned_source_expire(const host_addr_t addr);
 
 #endif /* _core_parq_h_ */

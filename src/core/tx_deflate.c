@@ -135,7 +135,7 @@ deflate_send(txdrv_t *tx)
 
 	if (dbg > 9)
 		printf("deflate_send: (%s) wrote %d bytes (buffer #%d) [%c%c]\n",
-			host_ip(&tx->host), (gint) r, attr->send_idx,
+			host_to_string(&tx->host), (gint) r, attr->send_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -151,7 +151,7 @@ deflate_send(txdrv_t *tx)
 	if ((size_t) r == len) {
 		if (dbg > 9)
 			printf("deflate_send: (%s) buffer #%d is empty\n",
-				host_ip(&tx->host), attr->send_idx);
+				host_to_string(&tx->host), attr->send_idx);
 
 		attr->send_idx = -1;			/* Signals: is now free */
 		b->wptr = b->rptr = b->arena;	/* Buffer is now empty */
@@ -231,7 +231,7 @@ deflate_rotate_and_send(txdrv_t *tx)
 
 	if (dbg > 9)
 		printf("deflate_rotate_and_send: (%s) fill buffer now #%d [%c%c]\n",
-			host_ip(&tx->host), attr->fill_idx,
+			host_to_string(&tx->host), attr->fill_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -257,7 +257,7 @@ retry:
 
 	if (dbg > 9)
 		printf("deflate_flush: (%s) flushing (buffer #%d) [%c%c]\n",
-			host_ip(&tx->host), attr->fill_idx,
+			host_to_string(&tx->host), attr->fill_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -309,7 +309,7 @@ retry:
 
 			if (dbg > 4)
 				printf("Compressing TX stack for peer %s enters FLOWC/FLUSH\n",
-					host_ip(&tx->host));
+					host_to_string(&tx->host));
 
 			return TRUE;
 		}
@@ -370,7 +370,7 @@ deflate_nagle_timeout(cqueue_t *unused_cq, gpointer arg)
 		if (dbg > 9)
 			printf("deflate_nagle_timeout: (%s) buffer #%d unsent,"
 				" exiting [%c%c]\n",
-				host_ip(&tx->host), attr->send_idx,
+				host_to_string(&tx->host), attr->send_idx,
 				(attr->flags & DF_FLOWC) ? 'C' : '-',
 				(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -385,7 +385,7 @@ deflate_nagle_timeout(cqueue_t *unused_cq, gpointer arg)
 
 	if (dbg > 9) {
 		printf("deflate_nagle_timeout: (%s) flushing (buffer #%d) [%c%c]\n",
-			host_ip(&tx->host), attr->fill_idx,
+			host_to_string(&tx->host), attr->fill_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 		fflush(stdout);
@@ -410,7 +410,7 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 	if (dbg > 9) {
 		printf("deflate_add: (%s) given %d bytes (buffer #%d, nagle %s, "
 			"unflushed %d) [%c%c]\n",
-			host_ip(&tx->host), len, attr->fill_idx,
+			host_to_string(&tx->host), len, attr->fill_idx,
 			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
@@ -479,7 +479,7 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 
 				if (dbg > 4)
 					printf("Compressing TX stack for peer %s enters FLOWC\n",
-						host_ip(&tx->host));
+						host_to_string(&tx->host));
 
 				return added;
 			}
@@ -543,7 +543,7 @@ deflate_service(gpointer data)
 
 	if (dbg > 9)
 		printf("deflate_service: (%s) %s(buffer #%d, %d bytes held) [%c%c]\n",
-			host_ip(&tx->host), (tx->flags & TX_ERROR) ? "ERROR " : "",
+			host_to_string(&tx->host), (tx->flags & TX_ERROR) ? "ERROR " : "",
 			attr->send_idx,
 			attr->send_idx >= 0 ?
 				(gint) (attr->buf[attr->send_idx].wptr -
@@ -575,7 +575,7 @@ deflate_service(gpointer data)
 	if (b->wptr >= b->end) {
 		if (dbg > 9)
 			printf("deflate_service: (%s) sending fill buffer #%d, %d bytes\n",
-				host_ip(&tx->host), attr->fill_idx, (gint) (b->wptr - b->rptr));
+				host_to_string(&tx->host), attr->fill_idx, (gint) (b->wptr - b->rptr));
 
 		deflate_rotate_and_send(tx);	/* Can set TX_ERROR */
 
@@ -600,7 +600,7 @@ deflate_service(gpointer data)
 
 		if (dbg > 4)
 			printf("Compressing TX stack for peer %s leaves FLOWC\n",
-				host_ip(&tx->host));
+				host_to_string(&tx->host));
 	}
 
 	/*
@@ -624,7 +624,7 @@ deflate_service(gpointer data)
 
 	if (dbg > 9)
 		printf("deflate_service: (%s) %sdone locally [%c%c]\n",
-			host_ip(&tx->host), (tx->flags & TX_ERROR) ? "ERROR " : "",
+			host_to_string(&tx->host), (tx->flags & TX_ERROR) ? "ERROR " : "",
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -641,7 +641,7 @@ deflate_service(gpointer data)
 done:
 	if (dbg > 9)
 		printf("deflate_service: (%s) %sleaving [%c%c]\n",
-			host_ip(&tx->host), (tx->flags & TX_ERROR) ? "ERROR " : "",
+			host_to_string(&tx->host), (tx->flags & TX_ERROR) ? "ERROR " : "",
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 }
@@ -678,7 +678,7 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 	if (ret != Z_OK) {
 		wfree(outz, sizeof(*outz));
 		g_warning("unable to initialize compressor for peer %s: %s",
-			host_ip(&tx->host), zlib_strerror(ret));
+			host_to_string(&tx->host), zlib_strerror(ret));
 		return NULL;
 	}
 
@@ -738,7 +738,7 @@ tx_deflate_destroy(txdrv_t *tx)
 
 	if (ret != Z_OK && ret != Z_DATA_ERROR)
 		g_warning("while freeing compressor for peer %s: %s",
-			host_ip(&tx->host), zlib_strerror(ret));
+			host_to_string(&tx->host), zlib_strerror(ret));
 
 	wfree(attr->outz, sizeof(*attr->outz));
 
@@ -761,7 +761,7 @@ tx_deflate_write(txdrv_t *tx, gpointer data, size_t len)
 	if (dbg > 9)
 		printf("tx_deflate_write: (%s) (buffer #%d, nagle %s, "
 			"unflushed %d) [%c%c]\n",
-			host_ip(&tx->host), attr->fill_idx,
+			host_to_string(&tx->host), attr->fill_idx,
 			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
@@ -790,7 +790,7 @@ tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 	if (dbg > 9)
 		printf("tx_deflate_writev: (%s) (buffer #%d, nagle %s, "
 			"unflushed %d) [%c%c]\n",
-			host_ip(&tx->host), attr->fill_idx,
+			host_to_string(&tx->host), attr->fill_idx,
 			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
@@ -821,7 +821,7 @@ tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 	if (dbg > 9)
 		printf("tx_deflate_writev: (%s) sent %d bytes (buffer #%d, nagle %s, "
 			"unflushed %d) [%c%c]\n",
-			host_ip(&tx->host), sent, attr->fill_idx,
+			host_to_string(&tx->host), sent, attr->fill_idx,
 			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
@@ -916,7 +916,7 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 	if (dbg > 9)
 		printf("tx_deflate_close: (%s) send=%d buffer #%d, nagle %s, "
 			"unflushed %d) [%c%c]\n",
-			host_ip(&tx->host), attr->send_idx, attr->fill_idx,
+			host_to_string(&tx->host), attr->send_idx, attr->fill_idx,
 			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
@@ -945,7 +945,7 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 	if (dbg > 9)
 		printf("tx_deflate_close: (%s) delayed! send=%d buffer #%d, nagle %s, "
 			"unflushed %d) [%c%c]\n",
-			host_ip(&tx->host), attr->send_idx, attr->fill_idx,
+			host_to_string(&tx->host), attr->send_idx, attr->fill_idx,
 			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');

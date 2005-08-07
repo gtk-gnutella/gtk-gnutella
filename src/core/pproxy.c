@@ -55,7 +55,7 @@ RCSID("$Id$");
 
 /* Following extra needed for the client-side */
 
-#include "settings.h"			/* For listen_ip() */
+#include "settings.h"			/* For listen_addr() */
 #include "token.h"
 #include "downloads.h"
 
@@ -124,14 +124,15 @@ send_pproxy_error_v(
 	gint hevcnt = 0;
 
 	if (msg) {
-		gm_vsnprintf(reason, sizeof(reason), msg, ap);
+		gm_vsnprintf(reason, sizeof reason, msg, ap);
 	} else
 		reason[0] = '\0';
 
 	if (pp->error_sent) {
 		g_warning("push-proxy: already sent an error %d to %s, "
 			"not sending %d (%s)",
-			pp->error_sent, ip_to_gchar(pp->socket->ip), code, reason);
+			pp->error_sent,host_addr_to_string(pp->socket->addr),
+			code, reason);
 		return;
 	}
 
@@ -142,9 +143,9 @@ send_pproxy_error_v(
 	 */
 
 	if (ext) {
-		size_t slen = g_strlcpy(extra, ext, sizeof(extra));
+		size_t slen = g_strlcpy(extra, ext, sizeof extra);
 
-		if (slen < sizeof(extra)) {
+		if (slen < sizeof extra) {
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
 			hev[hevcnt++].he_msg = extra;
 		} else
@@ -184,11 +185,11 @@ pproxy_remove_v(struct pproxy *pp, const gchar *reason, va_list ap)
 	g_assert(pp != NULL);
 
 	if (reason) {
-		gm_vsnprintf(errbuf, sizeof(errbuf), reason, ap);
+		gm_vsnprintf(errbuf, sizeof errbuf , reason, ap);
 		logreason = errbuf;
 	} else {
 		if (pp->error_sent) {
-			gm_snprintf(errbuf, sizeof(errbuf), "HTTP %d", pp->error_sent);
+			gm_snprintf(errbuf, sizeof errbuf, "HTTP %d", pp->error_sent);
 			logreason = errbuf;
 		} else {
 			errbuf[0] = '\0';
@@ -198,7 +199,7 @@ pproxy_remove_v(struct pproxy *pp, const gchar *reason, va_list ap)
 
 	if (dbg > 1) {
 		printf("push-proxy: ending request from %s (%s): %s\n",
-			pp->socket ? ip_to_gchar(pp->socket->ip) : "<no socket>",
+			pp->socket ? host_addr_to_string(pp->socket->addr) : "<no socket>",
 			pproxy_vendor_str(pp),
 			logreason);
 	}
@@ -210,9 +211,9 @@ pproxy_remove_v(struct pproxy *pp, const gchar *reason, va_list ap)
 	}
 
 	pproxy_free_resources(pp);
-	wfree(pp, sizeof(*pp));
+	wfree(pp, sizeof *pp);
 
-	pproxies = g_slist_remove(pproxies, (gpointer) pp);
+	pproxies = g_slist_remove(pproxies, pp);
 }
 
 /**
@@ -263,7 +264,7 @@ pproxy_timer(time_t now)
 	GSList *to_remove = NULL;
 
 	for (sl = pproxies; sl; sl = g_slist_next(sl)) {
-		struct pproxy *pp = (struct pproxy *) sl->data;
+		struct pproxy *pp = sl->data;
 
 		/*
 		 * We can't call pproxy_remove() since it will remove the structure
@@ -276,7 +277,7 @@ pproxy_timer(time_t now)
 	}
 
 	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
-		struct pproxy *pp = (struct pproxy *) sl->data;
+		struct pproxy *pp = sl->data;
 		pproxy_error_remove(pp, 408, "Request timeout");
 	}
 
@@ -291,7 +292,7 @@ pproxy_create(struct gnutella_socket *s)
 {
 	struct pproxy *pp;
 
-	pp = walloc0(sizeof(*pp));
+	pp = walloc0(sizeof *pp);
 
 	pp->socket = s;
 	pp->last_update = time(NULL);
@@ -477,8 +478,10 @@ error:
  */
 static void
 build_push(struct gnutella_msg_push_request *m,
-	gchar *guid, guint32 ip, guint16 port, guint32 file_idx)
+	gchar *guid, const host_addr_t addr, guint16 port, guint32 file_idx)
 {
+	guint32 ip = host_addr_ip4(addr);	/* XXX: Check whether it's IPv4 */
+
 	message_set_muid(&m->header, GTA_MSG_PUSH_REQUEST);
 
 	m->header.function = GTA_MSG_PUSH_REQUEST;
@@ -491,7 +494,7 @@ build_push(struct gnutella_msg_push_request *m,
 	memcpy(m->request.guid, guid, 16);
 
 	WRITE_GUINT32_LE(file_idx, m->request.file_id);
-	WRITE_GUINT32_BE(ip, m->request.host_ip);
+	memcpy(m->request.host_ip, &ip, 4);
 	WRITE_GUINT16_LE(port, m->request.host_port);
 }
 
@@ -501,12 +504,12 @@ build_push(struct gnutella_msg_push_request *m,
  * @return atom, or NULL.
  */
 static gchar *
-validate_vendor(gchar *vendor, gchar *token, guint32 ip)
+validate_vendor(gchar *vendor, gchar *token, const host_addr_t addr)
 {
 	gchar *result = NULL;
 
 	if (vendor) {
-		gboolean faked = !version_check(vendor, token, ip);
+		gboolean faked = !version_check(vendor, token, addr);
 
 		if (faked) {
 			gchar name[1024];
@@ -538,7 +541,8 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	GSList *nodes;
 
 	if (dbg > 2) {
-		printf("----Push-proxy request from %s:\n", ip_to_gchar(s->ip));
+		printf("----Push-proxy request from %s:\n",
+			host_addr_to_string(s->addr));
 		printf("%s\n", request);
 		header_dump(header, stdout);
 		printf("----\n");
@@ -552,7 +556,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	token = header_get(header, "X-Token");
 	user_agent = header_get(header, "User-Agent");
 
-	pp->user_agent = validate_vendor(user_agent, token, s->ip);
+	pp->user_agent = validate_vendor(user_agent, token, s->addr);
 
 	/*
 	 * Determine the servent ID.
@@ -563,7 +567,8 @@ pproxy_request(struct pproxy *pp, header_t *header)
 
 	if (dbg > 2)
 		printf("PUSH-PROXY: %s requesting a push to %s for file #%d\n",
-			ip_to_gchar(s->ip), guid_hex_str(pp->guid), pp->file_idx);
+			host_addr_to_string(s->addr), guid_hex_str(pp->guid),
+			pp->file_idx);
 
 	/*
 	 * Make sure they provide an X-Node header so we know whom to set up
@@ -578,23 +583,23 @@ pproxy_request(struct pproxy *pp, header_t *header)
 		return;
 	}
 
-	if (!gchar_to_ip_port(buf, &pp->ip, &pp->port)) {
+	if (!string_to_host_addr_port(buf, &pp->addr, &pp->port)) {
 		pproxy_error_remove(pp, 400,
 			"Malformed push-proxy request: cannot parse X-Node");
 		return;
 	}
 
-	if (!host_is_valid(pp->ip, pp->port)) {
+	if (!host_is_valid(pp->addr, pp->port)) {
 		pproxy_error_remove(pp, 400,
 			"Malformed push-proxy request: supplied address %s unreachable",
-			ip_port_to_gchar(pp->ip, pp->port));
+			host_addr_port_to_string(pp->addr, pp->port));
 		return;
 	}
 
-	if (pp->ip != s->ip)
+	if (!host_addr_equal(pp->addr, s->addr))
 		g_warning("push-proxy request from %s (%s) said node was at %s",
-			ip_to_gchar(s->ip), pproxy_vendor_str(pp),
-			ip_port_to_gchar(pp->ip, pp->port));
+			host_addr_to_string(s->addr), pproxy_vendor_str(pp),
+			host_addr_port_to_string(pp->addr, pp->port));
 
 	/*
 	 * Locate a route to that servent.
@@ -603,7 +608,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	n = route_proxy_find(pp->guid);
 
 	if (n != NULL) {
-		build_push(&m, pp->guid, pp->ip, pp->port, pp->file_idx);
+		build_push(&m, pp->guid, pp->addr, pp->port, pp->file_idx);
 		message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
 
 		STATIC_ASSERT(49 == sizeof m);
@@ -629,7 +634,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	if (nodes != NULL) {
 		gint cnt;
 
-		build_push(&m, pp->guid, pp->ip, pp->port, pp->file_idx);
+		build_push(&m, pp->guid, pp->addr, pp->port, pp->file_idx);
 		message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
 
 		STATIC_ASSERT(49 == sizeof m);
@@ -656,7 +661,8 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	 */
 
 	if (guid_eq(pp->guid, servent_guid)) {
-		upload_send_giv(pp->ip, pp->port, 0, 1, 0, "<from push-proxy>", FALSE);
+		upload_send_giv(pp->addr, pp->port, 0, 1, 0,
+			"<from push-proxy>", FALSE);
 
 		http_send_status(pp->socket, 202, FALSE, NULL, 0,
 			"Push-proxy: you found the target GUID %s",
@@ -878,7 +884,7 @@ cproxy_http_header_ind(gpointer handle, header_t *header,
 	if (server == NULL)
 		server = header_get(header, "User-Agent");
 
-	cp->server = validate_vendor(server, token, cp->ip);
+	cp->server = validate_vendor(server, token, cp->addr);
 
 	/*
 	 * Don't continue past headers, we don't expect data, and besides the
@@ -909,7 +915,7 @@ cproxy_http_header_ind(gpointer handle, header_t *header,
 		break;
 	case 400:
 		g_warning("push-proxy at %s (%s) for %s file #%u reported HTTP %d: %s",
-			ip_port_to_gchar(cp->ip, cp->port), cproxy_vendor_str(cp),
+			host_addr_port_to_string(cp->addr, cp->port), cproxy_vendor_str(cp),
 			guid_hex_str(cp->guid), cp->file_idx, code, message);
 		/* FALL THROUGH */
 	case 410:
@@ -918,7 +924,7 @@ cproxy_http_header_ind(gpointer handle, header_t *header,
 	default:
 		g_warning("push-proxy at %s (%s) for %s file #%u "
 			"sent unexpected HTTP %d: %s",
-			ip_port_to_gchar(cp->ip, cp->port), cproxy_vendor_str(cp),
+			host_addr_port_to_string(cp->addr, cp->port), cproxy_vendor_str(cp),
 			guid_hex_str(cp->guid), cp->file_idx, code, message);
 		download_proxy_failed(cp->d);
 		break;
@@ -926,7 +932,7 @@ cproxy_http_header_ind(gpointer handle, header_t *header,
 
 	if (dbg > 2 && cp->sent)
 		printf("PUSH-PROXY at %s (%s) sent PUSH for %s file #%u %s\n",
-			ip_port_to_gchar(cp->ip, cp->port), cproxy_vendor_str(cp),
+			host_addr_port_to_string(cp->addr, cp->port), cproxy_vendor_str(cp),
 			guid_hex_str(cp->guid), cp->file_idx,
 			cp->directly ? "directly" : "via Gnet");
 
@@ -964,7 +970,7 @@ cproxy_build_request(gpointer unused_handle, gchar *buf, size_t len,
 		"\r\n",
 		verb, path, version_string,
 		tok_version(),
-		ip_port_to_gchar(listen_ip(), listen_port));
+		host_addr_port_to_string(listen_addr(), listen_port));
 }
 
 /**
@@ -989,7 +995,7 @@ cproxy_http_newstate(gpointer handle, http_state_t newstate)
  * @returns NULL if problem during connection.
  */
 struct cproxy *
-cproxy_create(struct download *d, guint32 ip, guint16 port,
+cproxy_create(struct download *d, const host_addr_t addr, guint16 port,
 	gchar *guid, guint32 file_idx)
 {
 	struct cproxy *cp;
@@ -1003,21 +1009,21 @@ cproxy_create(struct download *d, guint32 ip, guint16 port,
 	 * Try to connect immediately: if we can't connect, no need to continue.
 	 */
 
-	handle = http_async_get_ip(path, ip, port,
+	handle = http_async_get_addr(path, addr, port,
 		cproxy_http_header_ind, NULL, cproxy_http_error_ind);
 
 	if (handle == NULL) {
 		g_warning("can't connect to push-proxy %s for GUID %s: %s",
-			ip_port_to_gchar(ip, port), guid_hex_str(guid),
+			host_addr_port_to_string(addr, port), guid_hex_str(guid),
 			http_async_strerror(http_async_errno));
 		return NULL;
 	}
 
-	cp = walloc0(sizeof(*cp));
+	cp = walloc0(sizeof *cp);
 
 	cp->magic = CPROXY_MAGIC;
 	cp->d = d;
-	cp->ip = ip;
+	cp->addr = addr;
 	cp->port = port;
 	cp->guid = atom_guid_get(guid);
 	cp->file_idx = file_idx;

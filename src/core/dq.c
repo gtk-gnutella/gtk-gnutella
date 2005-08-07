@@ -1016,7 +1016,7 @@ dq_send_query(dquery_t *dq, gnutella_node_t *n, gint ttl)
 	if (dq_debug > 19)
 		printf("DQ[%d] (%d secs) queuing ttl=%d to #%d %s <%s> Q=%d bytes\n",
 			dq->qid, (gint) delta_time(time(NULL), dq->start),
-			pmi->ttl, n->id, node_ip(n), node_vendor(n),
+			pmi->ttl, n->id, node_addr(n), node_vendor(n),
 			(gint) NODE_MQUEUE_PENDING(n));
 
 	dq->pending++;
@@ -1405,7 +1405,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 
 	if (dq_debug > 19)
 		printf("DQ node #%d %s <%s> (%s leaf-guidance) %squeries \"%s\"\n",
-			n->id, node_ip(n), node_vendor(n),
+			n->id, node_addr(n), node_vendor(n),
 			(dq->flags & DQ_F_LEAF_GUIDED) ? "with" : "no",
 			tagged_speed && (req_speed & QUERY_SPEED_OOB_REPLY) ? "OOB-" : "",
 			QUERY_TEXT(pmsg_start(dq->mb)));

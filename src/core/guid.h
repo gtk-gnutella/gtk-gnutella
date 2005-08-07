@@ -54,7 +54,8 @@ void guid_query_muid(gchar *muid, gboolean initial);
 gboolean guid_query_muid_is_gtkg(const gchar *guid,
 	gboolean oob, guint8 *majp, guint8 *minp, gboolean *relp);
 void guid_query_oob_muid(
-	gchar *muid, guint32 ip, guint16 port, gboolean initial);
-void guid_oob_get_ip_port(const gchar *guid, guint32 *ip, guint16 *port);
+	gchar *muid, const host_addr_t addr, guint16 port, gboolean initial);
+void guid_oob_get_addr_port(const gchar *guid,
+	host_addr_t *addr, guint16 *port);
 
 #endif /* _core_guid_h_ */

@@ -50,10 +50,10 @@ void search_remove_got_results_listener(search_got_results_listener_t l);
  *     is purely descriptive anyway.
  */
 typedef struct results_set {
-	gint refcount;				/**< Number of "struct search" this belongs to */
+	gint refcount;			/**< Number of "struct search" this belongs to */
 
-	gchar *guid;				/**< Servent's GUID (atom) */
-	guint32 ip;
+	gchar *guid;			/**< Servent's GUID (atom) */
+	host_addr_t addr;
 	guint16 port;
 	guint16 status;				/**< Parsed status bits from trailer */
 	guint16 speed;
@@ -63,7 +63,7 @@ typedef struct results_set {
 	gint country;				/**< Country code -- encoded ISO3166 */
 	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
 	gchar *hostname;			/**< Optional: server's hostname */
-	guint32 udp_ip;				/**< IP of delivering node, if hit from UDP */
+	host_addr_t udp_addr;		/**< IP of delivering node, if hit from UDP */
 
 	guint32 num_recs;
 	GSList *records;

@@ -80,11 +80,12 @@ gboolean file_info_got_sha1(struct dl_file_info *fi, const gchar *sha1);
 void file_info_update(struct download *d, filesize_t from, filesize_t to,
 	enum dl_chunk_status status);
 enum dl_chunk_status file_info_pos_status(struct dl_file_info *fi,
-	filesize_t pos);
+	filesize_t pos /*, filesize_t *start, filesize_t *end */);
 void file_info_close(void);
 void file_info_close_pre(void);
 void file_info_try_to_swarm_with(
-	gchar *file_name, guint32 idx, guint32 ip, guint32 port, gchar *sha1);
+	gchar *file_name, guint32 idx, const host_addr_t addr,
+	guint16 port, gchar *sha1);
 void file_info_spot_completed_orphans(void);
 void file_info_add_source(struct dl_file_info *fi, struct download *dl);
 void file_info_add_new_source(struct dl_file_info *fi, struct download *dl);

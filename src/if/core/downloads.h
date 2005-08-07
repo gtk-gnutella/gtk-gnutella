@@ -80,7 +80,7 @@ struct vernum {
 
 struct dl_key {
 	gchar *guid;				/**< GUID of server (atom) */
-	guint32 ip;					/**< IP address of server */
+	host_addr_t addr;			/**< IP address of server */
 	guint16 port;				/**< Port of server */
 };
 
@@ -233,7 +233,7 @@ struct download {
  */
 
 #define download_guid(d)		((d)->server->key->guid)
-#define download_ip(d)			((d)->server->key->ip)
+#define download_addr(d)		((d)->server->key->addr)
 #define download_port(d)		((d)->server->key->port)
 #define download_vendor(d)		((d)->server->vendor)
 #define download_country(d)		((d)->server->country)
@@ -306,15 +306,17 @@ struct download {
  *        actually needs to be in downloads.h and should be called from
  *        search.h and not from search_gui.h.
  */
-void download_index_changed(guint32, guint16, gchar *, guint32, guint32);
+void download_index_changed(const host_addr_t, guint16, gchar *,
+		guint32, guint32);
 
 gboolean download_new(gchar *,
-	filesize_t, guint32, guint32, guint16, gchar *, gchar *, gchar *, time_t,
+	filesize_t, guint32, const host_addr_t addr, guint16,
+	gchar *, gchar *, gchar *, time_t,
     gboolean, struct dl_file_info *, gnet_host_vec_t *);
 void download_auto_new(gchar *,
- 	filesize_t, guint32, guint32, guint16, gchar *, gchar *, gchar *, time_t,
+ 	filesize_t, guint32, const host_addr_t, guint16, gchar *,
+	gchar *, gchar *, time_t,
     gboolean, gboolean, struct dl_file_info *, gnet_host_vec_t *);
-void download_index_changed(guint32, guint16, gchar *, guint32, guint32);
 
 void src_add_listener(src_listener_t, gnet_src_ev_t, frequency_t, guint32);
 void src_remove_listener(src_listener_t, gnet_src_ev_t);
@@ -323,7 +325,7 @@ struct download *src_get_download(gnet_src_t src_handle);
 const gchar *build_url_from_download(const struct download *d);
 gint download_get_http_req_percent(const struct download *d);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
-gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port,
+gint download_remove_all_from_peer(gchar *guid, host_addr_t addr, guint16 port,
 	gboolean unavailable);
 gint download_remove_all_named(const gchar *name);
 gint download_remove_all_with_sha1(const gchar *sha1);
@@ -339,7 +341,7 @@ void download_thaw_queue(void);
 gint download_queue_is_frozen(void);
 void download_clear_stopped(gboolean, gboolean, gboolean, gboolean);
 gboolean download_new_unknown_size(gchar *file, guint32 record_index,
-	guint32 ip, guint16 port, gchar *guid, gchar *hostname,
+	 const host_addr_t addr, guint16 port, gchar *guid, gchar *hostname,
 	gchar *sha1, time_t stamp, gboolean push,
 	struct dl_file_info *fi, gnet_host_vec_t *proxies);
 const gchar *download_get_hostname(const struct download *d);

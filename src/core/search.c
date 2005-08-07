@@ -307,7 +307,7 @@ count_host(guint32 ip)
 			
 				g_hash_table_insert(ht_host, ic->p, GUINT_TO_POINTER(ic->n));
 				g_message("%8d %s", ic->n,
-					ip_to_gchar(GPOINTER_TO_UINT(ic->p)));
+					ip_to_string(GPOINTER_TO_UINT(ic->p)));
 			}
 		}
 	}
@@ -367,7 +367,7 @@ sent_node_hash_func(gconstpointer key)
 	const gnet_host_t *sd = (const gnet_host_t *) key;
 
 	/* ensure that we've got sizeof(gint) bytes of deterministic data */
-	return (guint32) sd->ip ^ (guint32) sd->port;
+	return host_addr_hash(sd->addr) ^ (guint32) sd->port;
 }
 
 static gint
@@ -375,7 +375,7 @@ sent_node_compare(gconstpointer a, gconstpointer b)
 {
 	const gnet_host_t *sa = a, *sb = b;
 
-	return sa->ip == sb->ip && sa->port == sb->port;
+	return host_addr_equal(sa->addr, sb->addr) && sa->port == sb->port;
 }
 
 static gboolean
@@ -409,7 +409,7 @@ static void
 mark_search_sent_to_node(search_ctrl_t *sch, gnutella_node_t *n)
 {
 	gnet_host_t *sd = walloc(sizeof *sd);
-	sd->ip = n->ip;
+	sd->addr = n->addr;
 	sd->port = n->port;
 	g_hash_table_insert(sch->sent_nodes, sd, GUINT_TO_POINTER(1));
 }
@@ -464,7 +464,7 @@ static gboolean
 search_already_sent_to_node(const search_ctrl_t *sch, const gnutella_node_t *n)
 {
 	gnet_host_t sd;
-	sd.ip = n->ip;
+	sd.addr = n->addr;
 	sd.port = n->port;
 	return NULL != g_hash_table_lookup(sch->sent_nodes, &sd);
 }
@@ -606,10 +606,10 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 
 	/* Transfer the Query Hit info to our internal results_set struct */
 
-	rs->num_recs = (guint8) r->num_recs;		/* Number of hits */
-	READ_GUINT32_BE(r->host_ip, rs->ip);		/* IP address */
-	READ_GUINT16_LE(r->host_port, rs->port);	/* Port */
-	READ_GUINT32_LE(r->host_speed, rs->speed);	/* Connection speed */
+	rs->num_recs = (guint8) r->num_recs;				 /* Number of hits */
+	rs->addr = host_addr_set_ip4(peek_be32(r->host_ip)); /* IP address */
+	rs->port = peek_le16(r->host_port);					 /* Port */
+	rs->speed = peek_le32(r->host_speed);				 /* Connection speed */
 
 	/*
 	 * Hits coming from UDP should bear the node's address, unless the
@@ -618,21 +618,24 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 	 */
 
 	if (NODE_IS_UDP(n)) {
-		rs->udp_ip = n->ip;
+		rs->udp_addr = n->addr;
 		rs->status |= ST_UDP;
 
-		if (n->ip != rs->ip && !is_private_ip(rs->ip))
+		if (
+			!host_addr_equal(n->addr, rs->addr) &&
+			!is_private_addr(rs->addr)
+		)
 			gnet_stats_count_general(GNR_OOB_HITS_WITH_ALIEN_IP, 1);
 	}
 
-	count_host(rs->ip);
+	count_host(rs->addr);
 	
 	/* Check for hostile IP addresses */
 
-	if (hostiles_check(rs->ip)) {
+	if (hostiles_check(rs->addr)) {
         if (dbg || search_debug) {
             g_message("dropping query hit from hostile IP %s",
-                ip_to_gchar(rs->ip));
+                host_addr_to_string(rs->addr));
         }
 		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 		goto bad_packet;
@@ -640,12 +643,12 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 
 	/* Check for valid IP addresses (unroutable => turn push on) */
 	
-	if (is_private_ip(rs->ip))
+	if (is_private_addr(rs->addr))
 		rs->status |= ST_FIREWALL;
-	else if (rs->port == 0 || bogons_check(rs->ip)) {
+	else if (rs->port == 0 || bogons_check(rs->addr)) {
         if (dbg || search_debug) {
             g_warning("query hit advertising bogus IP %s",
-				ip_port_to_gchar(rs->ip, rs->port));
+				host_addr_port_to_string(rs->addr, rs->port));
         }
 		rs->status |= ST_BOGUS | ST_FIREWALL;
 	}
@@ -1029,7 +1032,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 				"UNKNOWN %d-byte trailer at offset %d in %s from %s "
 				"(%u/%u records parsed)",
 				(gint) tlen, (gint) (s - n->data), gmsg_infostr(&n->header),
-				node_ip(n), (guint) nr, (guint) rs->num_recs);
+				node_addr(n), (guint) nr, (guint) rs->num_recs);
 			if (search_debug > 1) {
 				dump_hex(stderr, "Query Hit Data (non-empty UNKNOWN trailer?)",
 					n->data, n->size);
@@ -1113,7 +1116,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 				"%s from %s (via \"%s\" at %s) "
 				"had %d SHA1 error%s over %u record%s",
 				 gmsg_infostr(&n->header), vendor ? vendor : "????",
-				 node_vendor(n), node_ip(n),
+				 node_vendor(n), node_addr(n),
 				 sha1_errors, sha1_errors == 1 ? "" : "s",
 				 nr, nr == 1 ? "" : "s");
             gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1);
@@ -1130,7 +1133,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 				"%s from %s (via \"%s\" at %s) "
 				"had %d ALT error%s over %u record%s",
 				 gmsg_infostr(&n->header), vendor ? vendor : "????",
-				 node_vendor(n), node_ip(n),
+				 node_vendor(n), node_addr(n),
 				 alt_errors, alt_errors == 1 ? "" : "s",
 				 nr, nr == 1 ? "" : "s");
 		}
@@ -1140,7 +1143,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 				"%s from %s (via \"%s\" at %s) "
 				"had %d ALT extension%s with no hash over %u record%s",
 				 gmsg_infostr(&n->header), vendor ? vendor : "????",
-				 node_vendor(n), node_ip(n),
+				 node_vendor(n), node_addr(n),
 				 alt_without_hash, alt_without_hash == 1 ? "" : "s",
 				 nr, nr == 1 ? "" : "s");
 		}
@@ -1224,7 +1227,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 					break;
 				case EXT_T_GGEP_HNAME:
 					if (!validate_only) {
-						ret = ggept_hname_extract(e, hostname, sizeof(hostname));
+						ret = ggept_hname_extract(e,
+								hostname, sizeof(hostname));
 						if (ret == GGEP_OK)
 							rs->hostname = atom_str_get(hostname);
 						else {
@@ -1318,13 +1322,13 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 
 		if (
 			!validate_only && (rs->status & ST_FIREWALL) &&
-			download_server_nopush(rs->guid, rs->ip, rs->port)
+			download_server_nopush(rs->guid, rs->addr, rs->port)
 		)
 			rs->status &= ~ST_FIREWALL;		/* Clear "Push" indication */
 	}
 
 	if (!validate_only) {
-		guint32 cip;
+		host_addr_t c_addr;
 
 		g_string_free(info, TRUE);
 
@@ -1332,8 +1336,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 		 * Prefer an UDP source IP for the country computation.
 		 */
 
-		cip = (rs->status & ST_UDP) ? rs->udp_ip : rs->ip;
-		rs->country = gip_country(cip);
+		c_addr = (rs->status & ST_UDP) ? rs->udp_addr : rs->addr;
+		rs->country = gip_country(c_addr);
 	}
 
 	return rs;
@@ -1349,7 +1353,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 		g_warning(
 			"BAD %s from %s (via \"%s\" at %s) -- %u/%u records parsed",
 			 gmsg_infostr(&n->header), vendor ? vendor : "????",
-			 node_vendor(n), node_ip(n), nr, rs->num_recs);
+			 node_vendor(n), node_addr(n), nr, rs->num_recs);
 		if (search_debug > 1)
 			dump_hex(stderr, "Query Hit Data (BAD)", n->data, n->size);
 	}
@@ -1381,7 +1385,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			if (search_debug) g_warning("[weird #%d] "
 				"node %s (%s) had no tag in its query hits, now has %s in %s",
 				n->n_weird,
-				node_ip(n), node_vendor(n), vendor, gmsg_infostr(&n->header));
+				node_addr(n), node_vendor(n), vendor, gmsg_infostr(&n->header));
 			n->attrs &= ~NODE_A_QHD_NO_VTAG;
 		}
 	} else {
@@ -1400,7 +1404,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			if (search_debug) g_warning("[weird #%d] "
 				"node %s (%s) had tag %c%c%c%c in its query hits, "
 				"now has none in %s",
-				n->n_weird, node_ip(n), node_vendor(n),
+				n->n_weird, node_addr(n), node_vendor(n),
 				n->vcode[0], n->vcode[1], n->vcode[2], n->vcode[3],
 				gmsg_infostr(&n->header));
 		}
@@ -1420,7 +1424,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			n->n_weird++;
 			if (search_debug) g_warning("[weird #%d] "
 				"node %s (%s) moved from tag %c%c%c%c to %c%c%c%c in %s",
-				n->n_weird, node_ip(n), node_vendor(n),
+				n->n_weird, node_addr(n), node_vendor(n),
 				n->vcode[0], n->vcode[1], n->vcode[2], n->vcode[3],
 				rs->vendor[0], rs->vendor[1], rs->vendor[2], rs->vendor[3],
 				gmsg_infostr(&n->header));
@@ -1443,7 +1447,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 
 				g_warning("[weird #%d] "
 					"node %s (%s) moved from GUID %s to %s in %s",
-					n->n_weird, node_ip(n), node_vendor(n),
+					n->n_weird, node_addr(n), node_vendor(n),
 					old, guid_hex_str(rs->guid), gmsg_infostr(&n->header));
 			}
 			atom_guid_free(n->gnet_guid);
@@ -1466,24 +1470,28 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 	 */
 
 	if (
-		n->ip != rs->ip &&					/* Not socket's address */
+		!host_addr_equal(n->addr, rs->addr) &&	/* Not socket's address */
 		!(rs->status & ST_FIREWALL) &&		/* Hit not marked "firewalled" */
-		!is_private_ip(rs->ip)				/* Address not private */
+		!is_private_addr(rs->addr)			/* Address not private */
 	) {
 		if (
-			(n->gnet_qhit_ip && n->gnet_qhit_ip != rs->ip) ||
-			(n->gnet_qhit_ip == 0 &&
-				n->gnet_pong_ip && n->gnet_pong_ip != rs->ip)
+			(is_host_addr(n->gnet_qhit_addr) &&
+			 	!host_addr_equal(n->gnet_qhit_addr, rs->addr)
+				) ||
+			(!is_host_addr(n->gnet_qhit_addr) &&
+				is_host_addr(n->gnet_pong_addr) &&
+				!host_addr_equal(n->gnet_pong_addr, rs->addr)
+			)
 		) {
 			n->n_weird++;
 			if (search_debug) g_warning("[weird #%d] "
 				"node %s (%s) advertised %s but now says Query Hits from %s",
-				n->n_weird, node_ip(n), node_vendor(n),
-				ip_to_gchar(n->gnet_qhit_ip ?
-					n->gnet_qhit_ip : n->gnet_pong_ip),
-				ip_port_to_gchar(rs->ip, rs->port));
+				n->n_weird, node_addr(n), node_vendor(n),
+				host_addr_to_string(is_host_addr(n->gnet_qhit_addr) ?
+					n->gnet_qhit_addr : n->gnet_pong_addr),
+				host_addr_port_to_string(rs->addr, rs->port));
 		}
-		n->gnet_qhit_ip = rs->ip;
+		n->gnet_qhit_addr = rs->addr;
 	}
 
 	if (search_debug > 1 && old_weird != n->n_weird)
@@ -1589,12 +1597,15 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 	 */
 
 	if (udp_active() && send_oob_queries && !is_udp_firewalled) {
-		guint32 ip;
+		host_addr_t addr;
 		guint16 port;
 
-		guid_oob_get_ip_port(m->header.muid, &ip, &port);
+		guid_oob_get_addr_port(m->header.muid, &addr, &port);
 
-		if (ip == listen_ip() && port == listen_port && host_is_valid(ip, port))
+		if (
+			host_addr_equal(addr, listen_addr()) &&
+			port == listen_port && host_is_valid(addr, port)
+		)
 			speed |= QUERY_SPEED_OOB_REPLY;
 	}
 
@@ -1936,7 +1947,7 @@ search_send_query_status(search_ctrl_t *sch, guint32 node_id, guint16 kept)
 
 	if (search_debug > 1)
 		printf("SCH reporting %u kept results so far for \"%s\" to %s\n",
-			kept, sch->query, node_ip(n));
+			kept, sch->query, node_addr(n));
 
 	/*
 	 * We use the first MUID in the list, i.e. the last one we used
@@ -2242,7 +2253,7 @@ final_cleanup:
 	if (drop_it && n->header.hops == 1 && !NODE_IS_UDP(n)) {
 		n->n_weird++;
 		if (search_debug) g_warning("[weird #%d] dropped %s from %s (%s)",
-			n->n_weird, gmsg_infostr(&n->header), node_ip(n), node_vendor(n));
+			n->n_weird, gmsg_infostr(&n->header), node_addr(n), node_vendor(n));
 	}
 
 	return drop_it || !forward_it;
@@ -2323,12 +2334,12 @@ search_check_alt_locs(
 	for (i = alt->hvcnt - 1; i >= 0; i--) {
 		struct gnutella_host *h = &alt->hvec[i];
 
-		if (!host_is_valid(h->ip, h->port)) {
+		if (!host_is_valid(h->addr, h->port)) {
 			ignored++;
 			continue;
 		}
 
-		download_auto_new(rc->name, rc->size, URN_INDEX, h->ip,
+		download_auto_new(rc->name, rc->size, URN_INDEX, h->addr,
 			h->port, blank_guid, rs->hostname,
 			rc->sha1, rs->stamp, FALSE, TRUE, fi, rs->proxies);
 
@@ -2342,7 +2353,8 @@ search_check_alt_locs(
     	gchar *vendor = lookup_vendor_name(rs->vendor);
 		g_warning("ignored %d invalid alt-loc%s in hits from %s (%s)",
 			ignored, ignored == 1 ? "" : "s",
-			ip_port_to_gchar(rs->ip, rs->port), vendor ? vendor : "????");
+			host_addr_port_to_string(rs->addr, rs->port),
+			vendor ? vendor : "????");
 	}
 }
 
@@ -2363,9 +2375,9 @@ search_check_results_set(gnet_results_set_t *rs)
 
 		if (fi) {
 			gboolean need_push = (rs->status & ST_FIREWALL) ||
-				!host_is_valid(rs->ip, rs->port);
+				!host_is_valid(rs->addr, rs->port);
 
-			download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
+			download_auto_new(rc->name, rc->size, rc->index, rs->addr, rs->port,
 					rs->guid, rs->hostname,
 					rc->sha1, rs->stamp, need_push, TRUE, fi, rs->proxies);
 
@@ -2465,7 +2477,7 @@ static gchar *
 search_new_muid(gboolean initial)
 {
 	gchar *muid;
-	guint32 ip;
+	host_addr_t addr;
 	gint i;
 
 	muid = walloc(MUID_SIZE);
@@ -2481,11 +2493,11 @@ search_new_muid(gboolean initial)
 	 * we emit the query.
 	 */
 
-	ip = listen_ip();
+	addr = listen_addr();
 
 	for (i = 0; i < 100; i++) {
-		if (udp_active() && ip_is_valid(ip))
-			guid_query_oob_muid(muid, ip, listen_port, initial);
+		if (udp_active() && addr_is_valid(addr))
+			guid_query_oob_muid(muid, addr, listen_port, initial);
 		else
 			guid_query_muid(muid, initial);
 
@@ -2827,7 +2839,7 @@ search_oob_pending_results(
 
 	if (search_debug || udp_debug)
 		printf("has %d pending OOB hit%s for search %s at %s\n",
-			hits, hits == 1 ? "" : "s", guid_hex_str(muid), node_ip(n));
+			hits, hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
 
 	/*
 	 * If we got more than 15% of our maximum amount of shown results,

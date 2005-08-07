@@ -97,13 +97,13 @@ static gpointer
 tx_dgram_init(txdrv_t *tx, gpointer args)
 {
 	struct attr *attr;
-	struct tx_dgram_args *targs = (struct tx_dgram_args *) args;
+	struct tx_dgram_args *targs = args;
 
 	g_assert(tx);
 	g_assert(targs->cb != NULL);
 	g_assert(s_udp_listen != NULL);
 
-	attr = walloc(sizeof(*attr));
+	attr = walloc(sizeof *attr);
 
 	/*
 	 * Because we handle servicing of the upper layers explicitely within
@@ -131,11 +131,11 @@ tx_dgram_init(txdrv_t *tx, gpointer args)
 static void
 tx_dgram_destroy(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	bsched_source_remove(attr->bio);
 
-	wfree(attr, sizeof(*attr));
+	wfree(attr, sizeof *attr);
 }
 
 static inline gint
@@ -189,7 +189,7 @@ tx_dgram_write_error(txdrv_t *tx, gnet_host_t *to, const char *func)
 		 * Don't set TX_ERROR here, we don't care about lost packets.
 		 */
 		g_warning("UDP write to %s failed: %s",
-			ip_port_to_gchar(to->ip, to->port), g_strerror(errno));
+			host_addr_port_to_string(to->addr, to->port), g_strerror(errno));
 		return -1;
 	default:
 		{
@@ -198,7 +198,7 @@ tx_dgram_write_error(txdrv_t *tx, gnet_host_t *to, const char *func)
 			tx->flags |= TX_ERROR;				/* This should be fatal! */
 			g_error("%s  gtk-gnutella: %s: "
 				"UDP write to %s failed with unexpected errno: %d (%s)\n",
-				ctime(&t), func, ip_port_to_gchar(to->ip, to->port),
+				ctime(&t), func, host_addr_port_to_string(to->addr, to->port),
 				terr, g_strerror(terr));
 		}
 	}
@@ -215,7 +215,7 @@ static ssize_t
 tx_dgram_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len)
 {
 	ssize_t r;
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	r = bio_sendto(attr->bio, to, data, len);
 	if ((ssize_t) -1 == r)
@@ -224,7 +224,7 @@ tx_dgram_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len)
 	if (attr->cb->add_tx_written != NULL)
 		attr->cb->add_tx_written(tx->owner, r);
 
-	inet_udp_record_sent(to->ip);
+	inet_udp_record_sent(to->addr);
 
 	return r;
 }
@@ -235,7 +235,7 @@ tx_dgram_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len)
 static void
 tx_dgram_enable(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	bio_add_callback(attr->bio, is_writable, (gpointer) tx);
 }
@@ -246,7 +246,7 @@ tx_dgram_enable(txdrv_t *tx)
 static void
 tx_dgram_disable(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	bio_remove_callback(attr->bio);
 }
@@ -285,7 +285,7 @@ tx_dgram_shutdown(txdrv_t *unused_tx)
 static struct bio_source *
 tx_dgram_bio_source(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	return attr->bio;
 }

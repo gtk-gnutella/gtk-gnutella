@@ -55,7 +55,7 @@
 typedef struct {
 	gchar *name;				/**< File name or URN string (atom) */
 	guint idx;					/**< File index (URN_INDEX means URN access) */
-	guint32 ip;					/**< Host IP */
+	host_addr_t addr;			/**< Host address */
 	guint16 port;				/**< Host port */
 } dmesh_urlinfo_t;
 
@@ -85,11 +85,12 @@ const gchar *dmesh_url_strerror(dmesh_url_error_t errnum);
 gboolean dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info);
 
 gboolean dmesh_add(
-	gchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name,
+	gchar *sha1, const host_addr_t addr, guint16 port, guint idx, gchar *name,
 	time_t stamp);
 
 gboolean dmesh_remove(
-	const gchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name);
+	const gchar *sha1, const host_addr_t addr, guint16 port, guint idx,
+	gchar *name);
 
 gboolean dmesh_collect_sha1(gchar *value, gchar *digest);
 void dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer);
@@ -97,8 +98,9 @@ void dmesh_collect_compact_locations(gchar *sha1, gchar *value);
 gint dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt);
 
 gint dmesh_alternate_location(
-	const gchar *sha1, gchar * buf, size_t size, guint32 ip, time_t last_sent,
-	const gchar *vendor, struct dl_file_info *fi, gboolean request);
+	const gchar *sha1, gchar * buf, size_t size, const host_addr_t addr,
+	time_t last_sent, const gchar *vendor, struct dl_file_info *fi,
+	gboolean request);
 
 void dmesh_multiple_downloads(
 	gchar *sha1, filesize_t size, struct dl_file_info *fi);

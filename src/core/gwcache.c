@@ -919,12 +919,12 @@ gwc_host_line(struct parse_context *ctx, gchar *buf, gint len)
 	}
 
 	if (len) {
-		guint32 ip;
+		host_addr_t addr;
 		guint16 port;
 
-		if (gchar_to_ip_port(buf, &ip, &port)) {
+		if (string_to_host_addr_port(buf, &addr, &port)) {
 			ctx->processed++;
-			hcache_add_caught(HOST_ULTRA, ip, port, "GWC");
+			hcache_add_caught(HOST_ULTRA, addr, port, "GWC");
 		}
 	}
 
@@ -1162,10 +1162,10 @@ gwc_update_this(gchar *cache_url)
 	if (
 		!is_firewalled &&
 		current_peermode == NODE_P_ULTRA &&
-		host_is_valid(listen_ip(), listen_port)
+		host_is_valid(listen_addr(), listen_port)
 	) {
 		rw += gm_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw,
-			"ip=%s&", ip_port_to_gchar(listen_ip(), listen_port));
+			"ip=%s&", host_addr_port_to_string(listen_addr(), listen_port));
 		has_data = TRUE;
 	}
 

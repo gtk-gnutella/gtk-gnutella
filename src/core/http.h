@@ -235,7 +235,7 @@ gboolean http_range_contains(GSList *ranges, filesize_t from, filesize_t to);
 
 const gchar *http_url_strerror(http_url_error_t errnum);
 gboolean http_url_parse(
-	const gchar *url, guint16 *port, gchar **host, gchar **path);
+	const gchar *url, guint16 *port, const gchar **host, const gchar **path);
 
 gpointer http_async_get(
 	gchar *url,
@@ -243,9 +243,9 @@ gpointer http_async_get(
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind);
 
-gpointer http_async_get_ip(
+gpointer http_async_get_addr(
 	gchar *path,
-	guint32 ip,
+	const host_addr_t,
 	guint16 port,
 	http_header_cb_t header_ind,
 	http_data_cb_t data_ind,
@@ -254,7 +254,7 @@ gpointer http_async_get_ip(
 const gchar *http_async_strerror(guint errnum);
 const gchar *http_async_info(
 	gpointer handle, const gchar **req, gchar **path,
-	guint32 *ip, guint16 *port);
+	host_addr_t *addr, guint16 *port);
 void http_async_connected(gpointer handle);
 void http_async_close(gpointer handle);
 void http_async_cancel(gpointer handle);

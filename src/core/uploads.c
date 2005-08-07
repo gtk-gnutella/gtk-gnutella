@@ -119,7 +119,7 @@ static gint registered_uploads = 0;
  * (identified by its SHA1).
  */
 struct mesh_info_key {
-	guint32 ip;						/**< Remote host IP address */
+	host_addr_t addr;				/**< Remote host IP address */
 	const gchar *sha1;				/**< SHA1 atom */
 };
 
@@ -265,6 +265,7 @@ upload_timer(time_t now)
 
 		if (delta_time(now, u->last_update) > IO_STALLED) {
 			gboolean skip = FALSE;
+			guint32 ip;
 
 			/*
 			 * Check whether we know about this IP.  If we do, then it
@@ -273,7 +274,8 @@ upload_timer(time_t now)
 			 * counter.
 			 */
 
-			if (aging_lookup(stalling_uploads, GUINT_TO_POINTER(u->ip)))
+			ip = host_addr_ip4(u->addr); /* XXX */
+			if (aging_lookup(stalling_uploads, GUINT_TO_POINTER(ip)))
 				skip = TRUE;
 
 			if (!(u->flags & UPLOAD_F_STALLED)) {
@@ -286,7 +288,7 @@ upload_timer(time_t now)
 				g_warning("connection to %s (%s) "
 					"stalled after %s bytes sent,"
 					" stall counter at %d%s",
-					ip_to_gchar(u->ip), upload_vendor_str(u),
+					host_addr_to_string(u->addr), upload_vendor_str(u),
 					uint64_to_string(u->sent), stalled,
 					skip ? " (IGNORED)" : "");
 
@@ -295,20 +297,22 @@ upload_timer(time_t now)
 				 * that it's not the first time we're seeing it, if necessary.
 				 */
 
-				aging_insert(stalling_uploads, GUINT_TO_POINTER(u->ip),
+				aging_insert(stalling_uploads, GUINT_TO_POINTER(ip),
 					skip ? STALL_AGAIN : STALL_FIRST);
 			}
 		} else {
 			gboolean skip = FALSE;
 			gpointer stall;
+			guint32 ip;
 
-			stall = aging_lookup(stalling_uploads, GUINT_TO_POINTER(u->ip));
+			ip = host_addr_ip4(u->addr); /* XXX */
+			stall = aging_lookup(stalling_uploads, GUINT_TO_POINTER(ip));
 			if (stall == STALL_AGAIN)
 				skip = TRUE;
 
 			if (u->flags & UPLOAD_F_STALLED) {
 				g_warning("connection to %s (%s) un-stalled, %s bytes sent%s",
-					ip_to_gchar(u->ip), upload_vendor_str(u),
+					host_addr_to_string(u->addr), upload_vendor_str(u),
 					uint64_to_string(u->sent),
 					skip ? " (IGNORED)" : "");
 
@@ -318,7 +322,7 @@ upload_timer(time_t now)
 				) {
 					g_warning(
 						"re-enabling TCP_CORK on connection to %s (%s)",
-						ip_to_gchar(u->ip), upload_vendor_str(u));
+						host_addr_to_string(u->addr), upload_vendor_str(u));
 					sock_cork(u->socket, TRUE);
 					socket_tos_throughput(u->socket);
 				}
@@ -356,7 +360,7 @@ upload_timer(time_t now)
 				if (sock_is_corked(u->socket)) {
 					g_warning("connection to %s (%s) may be stalled,"
 						" disabling TCP_CORK",
-						ip_to_gchar(u->ip), upload_vendor_str(u));
+						host_addr_to_string(u->addr), upload_vendor_str(u));
 					sock_cork(u->socket, FALSE);
 					socket_tos_normal(u->socket); /* Have ACKs come faster */
 				}
@@ -409,8 +413,8 @@ upload_create(struct gnutella_socket *s, gboolean push)
     u->upload_handle = upload_new_handle(u);
 
 	u->socket = s;
-    u->ip = s->ip;
-	u->country = gip_country(u->ip);
+    u->addr = s->addr;
+	u->country = gip_country(u->addr);
 	s->resource.upload = u;
 
 	u->push = push;
@@ -453,16 +457,16 @@ upload_create(struct gnutella_socket *s, gboolean push)
  * currently prohibited.
  */
 void
-upload_send_giv(guint32 ip, guint16 port, guint8 hops, guint8 ttl,
+upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops, guint8 ttl,
 	guint32 file_index, const gchar *file_name, gboolean banning)
 {
 	gnutella_upload_t *u;
 	struct gnutella_socket *s;
 
-	s = socket_connect(ip, port, SOCK_TYPE_UPLOAD);
+	s = socket_connect(addr, port, SOCK_TYPE_UPLOAD);
 	if (!s) {
 		g_warning("PUSH request (hops=%d, ttl=%d) dropped: can't connect to %s",
-			hops, ttl, ip_port_to_gchar(ip, port));
+			hops, ttl, host_addr_port_to_string(addr, port));
 		return;
 	}
 
@@ -471,11 +475,11 @@ upload_send_giv(guint32 ip, guint16 port, guint8 hops, guint8 ttl,
 	u->name = atom_str_get(file_name);
 
 	if (banning) {
-		gchar *msg = ban_message(ip);
+		gchar *msg = ban_message(addr);
 		if (msg != NULL)
 			upload_remove(u, _("Banned: %s"), msg);
 		else
-			upload_remove(u, _("Banned for %s"), short_time(ban_delay(ip)));
+			upload_remove(u, _("Banned for %s"), short_time(ban_delay(addr)));
 		return;
 	}
 
@@ -494,8 +498,8 @@ void
 handle_push_request(struct gnutella_node *n)
 {
 	struct shared_file *req_file;
+	host_addr_t ha;
 	guint32 file_index;
-	guint32 ip;
 	guint16 port;
 	gchar *info;
 	gboolean show_banning = FALSE;
@@ -511,9 +515,9 @@ handle_push_request(struct gnutella_node *n)
 
 	info = n->data + 16;					/* Start of file information */
 
-	READ_GUINT32_LE(info, file_index);
-	READ_GUINT32_BE(info + 4, ip);
-	READ_GUINT16_LE(info + 8, port);
+	file_index = peek_le32(&info[0]);
+	ha = host_addr_set_ip4(peek_be32(&info[4]));
+	port = peek_le16(&info[8]);
 
 	/*
 	 * Quick sanity check on file index.
@@ -545,9 +549,10 @@ handle_push_request(struct gnutella_node *n)
 	 * allows easy local testing. -- RAM, 11/11/2002
 	 */
 
-	if (!host_is_valid(ip, port) && !node_is_connected(ip, port, TRUE)) {
+	if (!host_is_valid(ha, port) && !node_is_connected(ha, port, TRUE)) {
 		g_warning("PUSH request (hops=%d, ttl=%d) from invalid address %s",
-			n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port));
+			n->header.hops, n->header.ttl,
+			host_addr_port_to_string(ha, port));
 		return;
 	}
 
@@ -557,7 +562,7 @@ handle_push_request(struct gnutella_node *n)
 	 * of service attack.	-- RAM, 03/11/2002
 	 */
 
-	switch (ban_allow(ip)) {
+	switch (ban_allow(ha)) {
 	case BAN_OK:				/* Connection authorized */
 		break;
 	case BAN_MSG:				/* Refused: host forcefully banned */
@@ -567,8 +572,9 @@ handle_push_request(struct gnutella_node *n)
 	case BAN_FORCE:				/* Refused, no ack */
 		if (upload_debug)
 			g_warning("PUSH flood (hops=%d, ttl=%d) to %s [ban %s]: %s\n",
-				n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port),
-				short_time(ban_delay(ip)), file_name);
+				n->header.hops, n->header.ttl,
+				host_addr_port_to_string(ha, port),
+				short_time(ban_delay(ha)), file_name);
 		if (!show_banning)
 			return;
 		break;
@@ -582,10 +588,10 @@ handle_push_request(struct gnutella_node *n)
 
 	if (upload_debug > 4)
 		g_message("PUSH (hops=%d, ttl=%d) to %s: %s\n",
-			n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port),
+			n->header.hops, n->header.ttl, host_addr_port_to_string(ha, port),
 			file_name);
 
-	upload_send_giv(ip, port, n->header.hops, n->header.ttl,
+	upload_send_giv(ha, port, n->header.hops, n->header.ttl,
 		file_index, file_name, show_banning);
 }
 
@@ -771,7 +777,7 @@ send_upload_error_v(
 
 	if (u->error_sent) {
 		g_warning("Already sent an error %d to %s, not sending %d (%s)",
-			u->error_sent, ip_to_gchar(u->socket->ip), code, reason);
+			u->error_sent, host_addr_to_string(u->socket->addr), code, reason);
 		return;
 	}
 
@@ -847,26 +853,26 @@ send_upload_error_v(
 			}
 
 			gm_snprintf(buf, sizeof buf,
-					"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
-					"<html>"
-					"<head>"
-					"<meta http-equiv=\"Refresh\" content=\"%ld; url=%s%s\">"
-					"<title>Download</title>"
-					"<script type=\"text/javascript\">"
-					"var i=%ld;"
-					"function main(){"
+				"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
+				"<html>"
+				"<head>"
+				"<meta http-equiv=\"Refresh\" content=\"%ld; url=%s%s\">"
+				"<title>Download</title>"
+				"<script type=\"text/javascript\">"
+				"var i=%ld;"
+				"function main(){"
 					"if (i>=0){"
-					"document.getElementById('x').innerHTML=i--;"
-					"setTimeout(\"main();\", 1000);"
+						"document.getElementById('x').innerHTML=i--;"
+						"setTimeout(\"main();\", 1000);"
 					"}"
-					"};"
-					"</script>"
-					"</head>"
-					"<body onload=\"main();\">"
-					"<h1>Gtk-Gnutella</h1>"
-					"<p>The download starts in <em id=\"x\">%ld</em> seconds.</p>"
-					"</body>"
-					"</html>"
+				"};"
+				"</script>"
+				"</head>"
+				"<body onload=\"main();\">"
+				"<h1>Gtk-Gnutella</h1>"
+				"<p>The download starts in <em id=\"x\">%ld</em> seconds.</p>"
+				"</body>"
+				"</html>"
 					"\r\n",
 					retry, '\0' != href[0] ? "/get/0/" : "", href,
 					retry, retry);			
@@ -977,12 +983,12 @@ upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
 		if (u->name) {
 			g_message("Cancelling upload for \"%s\" from %s (%s): %s\n",
 				u->name,
-				u->socket ? ip_to_gchar(u->socket->ip) : "<no socket>",
+				u->socket ? host_addr_to_string(u->socket->addr) : "<no socket>",
 				upload_vendor_str(u),
 				logreason);
 		} else {
 			g_message("Cancelling upload from %s (%s): %s\n",
-				u->socket ? ip_to_gchar(u->socket->ip) : "<no socket>",
+				u->socket ? host_addr_to_string(u->socket->addr) : "<no socket>",
 				upload_vendor_str(u),
 				logreason);
 		}
@@ -1251,12 +1257,12 @@ call_upload_request(gpointer obj, header_t *header)
  ***/
 
 static struct mesh_info_key *
-mi_key_make(guint32 ip, const gchar *sha1)
+mi_key_make(const host_addr_t addr, const gchar *sha1)
 {
 	struct mesh_info_key *mik;
 
-	mik = walloc(sizeof(*mik));
-	mik->ip = ip;
+	mik = walloc(sizeof *mik);
+	mik->addr = addr;
 	mik->sha1 = atom_sha1_get(sha1);
 
 	return mik;
@@ -1268,25 +1274,24 @@ mi_key_free(struct mesh_info_key *mik)
 	g_assert(mik);
 
 	atom_sha1_free(mik->sha1);
-	wfree(mik, sizeof(*mik));
+	wfree(mik, sizeof *mik);
 }
 
 static guint
 mi_key_hash(gconstpointer key)
 {
-	const struct mesh_info_key *mik = (const struct mesh_info_key *) key;
+	const struct mesh_info_key *mik = key;
 
-	return sha1_hash((gconstpointer) mik->sha1) ^ mik->ip;
+	return sha1_hash(mik->sha1) ^ host_addr_hash(mik->addr);
 }
 
 static gint
 mi_key_eq(gconstpointer a, gconstpointer b)
 {
-	const struct mesh_info_key *mika = (const struct mesh_info_key *) a;
-	const struct mesh_info_key *mikb = (const struct mesh_info_key *) b;
+	const struct mesh_info_key *mika = a, *mikb = b;
 
-	return mika->ip == mikb->ip &&
-		sha1_eq((gconstpointer) mika->sha1, (gconstpointer) mikb->sha1);
+	return host_addr_equal(mika->addr, mikb->addr) &&
+		sha1_eq(mika->sha1, mikb->sha1);
 }
 
 static struct mesh_info_val *
@@ -1343,7 +1348,7 @@ mi_clean(cqueue_t *unused_cq, gpointer obj)
 
 	if (upload_debug > 4)
 		g_message("upload MESH info (%s/%s) discarded\n",
-			ip_to_gchar(mik->ip), sha1_base32(mik->sha1));
+			host_addr_to_string(mik->addr), sha1_base32(mik->sha1));
 
 	g_hash_table_remove(mesh_info, mik);
 	((struct mesh_info_val *) value)->cq_ev = NULL;
@@ -1356,13 +1361,13 @@ mi_clean(cqueue_t *unused_cq, gpointer obj)
  * Always records `now' as the time we sent mesh information.
  */
 static guint32
-mi_get_stamp(guint32 ip, const gchar *sha1, time_t now)
+mi_get_stamp(const host_addr_t addr, const gchar *sha1, time_t now)
 {
 	struct mesh_info_key mikey;
 	struct mesh_info_val *miv;
 	struct mesh_info_key *mik;
 
-	mikey.ip = ip;
+	mikey.addr = addr;
 	mikey.sha1 = sha1;
 
 	miv = g_hash_table_lookup(mesh_info, &mikey);
@@ -1383,7 +1388,7 @@ mi_get_stamp(guint32 ip, const gchar *sha1, time_t now)
 
 		if (upload_debug > 4)
 			g_message("upload MESH info (%s/%s) has stamp=%u\n",
-				ip_to_gchar(ip), sha1_base32(sha1), oldstamp);
+				host_addr_to_string(addr), sha1_base32(sha1), oldstamp);
 
 		return oldstamp;
 	}
@@ -1392,7 +1397,7 @@ mi_get_stamp(guint32 ip, const gchar *sha1, time_t now)
 	 * Create new entry.
 	 */
 
-	mik = mi_key_make(ip, sha1);
+	mik = mi_key_make(addr, sha1);
 	miv = mi_val_make((guint32) now);
 	miv->cq_ev = cq_insert(callout_queue, MESH_INFO_TIMEOUT, mi_clean, mik);
 
@@ -1400,7 +1405,7 @@ mi_get_stamp(guint32 ip, const gchar *sha1, time_t now)
 
 	if (upload_debug > 4)
 		g_message("new upload MESH info (%s/%s) stamp=%u\n",
-			ip_to_gchar(ip), sha1_base32(sha1), (guint32) now);
+			host_addr_to_string(addr), sha1_base32(sha1), (guint32) now);
 
 	return 0;			/* Don't remember sending info about this file */
 }
@@ -1503,13 +1508,13 @@ upload_connect_conf(gnutella_upload_t *u)
 	sent = bws_write(bws.out, &s->wio, giv, rw);
 	if ((ssize_t) -1 == sent) {
 		g_warning("Unable to send back GIV for \"%s\" to %s: %s",
-			u->name, ip_to_gchar(s->ip), g_strerror(errno));
+			u->name, host_addr_to_string(s->addr), g_strerror(errno));
 	} else if ((size_t) sent < rw) {
 		g_warning("Only sent %d out of %d bytes of GIV for \"%s\" to %s: %s",
-			(gint) sent, (gint) rw, u->name, ip_to_gchar(s->ip),
+			(gint) sent, (gint) rw, u->name, host_addr_to_string(s->addr),
 			g_strerror(errno));
 	} else if (upload_debug > 2) {
-		g_message("----Sent GIV to %s:\n%.*s----\n", ip_to_gchar(s->ip),
+		g_message("----Sent GIV to %s:\n%.*s----\n", host_addr_to_string(s->addr),
 			(gint) rw, giv);
 	}
 
@@ -1531,7 +1536,8 @@ upload_connect_conf(gnutella_upload_t *u)
 static void
 upload_error_not_found(gnutella_upload_t *u, const gchar *request)
 {
-	g_warning("Returned 404 for %s: %s", ip_to_gchar(u->socket->ip), request);
+	g_warning("Returned 404 for %s: %s", host_addr_to_string(u->socket->addr),
+		request);
 	upload_error_remove(u, NULL, 404, "Not Found");
 }
 
@@ -1771,7 +1777,7 @@ get_file_to_upload_from_index(
 
 			gm_snprintf(location, sizeof(location),
 				"Location: http://%s/get/%u/%s\r\n",
-				ip_port_to_gchar(listen_ip(), listen_port),
+				host_addr_port_to_string(listen_addr(), listen_port),
 				sfn->file_index, escaped);
 
 			upload_error_remove_ext(u, sfn, location,
@@ -2007,7 +2013,7 @@ upload_http_xhost_add(gchar *buf, gint *retval,
 {
 	size_t rw = 0;
 	size_t length = *retval;
-	guint32 ip;
+	host_addr_t addr;
 	guint16 port;
 
 	(void) unused_arg;
@@ -2015,11 +2021,11 @@ upload_http_xhost_add(gchar *buf, gint *retval,
 	g_assert(length <= INT_MAX);
 	g_assert(!is_firewalled);
 
-	ip = listen_ip();
+	addr = listen_addr();
 	port = listen_port;
 
-	if (host_is_valid(ip, port)) {
-		const gchar *xhost = ip_port_to_gchar(ip, port);
+	if (host_is_valid(addr, port)) {
+		const gchar *xhost = host_addr_port_to_string(addr, port);
 		size_t needed_room = strlen(xhost) + sizeof("X-Host: \r\n") - 1;
 
 		if (length > needed_room)
@@ -2115,7 +2121,7 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 
 	last_sent = u->last_dmesh ?
 		u->last_dmesh :
-		mi_get_stamp(u->socket->ip, sf->sha1_digest, now);
+		mi_get_stamp(u->socket->addr, sf->sha1_digest, now);
 
 	/*
 	 * Ranges are only emitted for partial files, so no pre-estimation of
@@ -2132,7 +2138,7 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 
 	if (need_available_ranges) {
 		mesh_len = dmesh_alternate_location(
-			sf->sha1_digest, tmp, sizeof(tmp), u->socket->ip,
+			sf->sha1_digest, tmp, sizeof(tmp), u->socket->addr,
 			last_sent, u->user_agent, NULL, FALSE);
 
 		if ((guint) mesh_len < sizeof(tmp) - 5)
@@ -2174,7 +2180,7 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 			maxlen = MIN((guint) maxlen, sizeof(tmp));
 
 		rw += dmesh_alternate_location(
-			sf->sha1_digest, &buf[rw], maxlen, u->socket->ip,
+			sf->sha1_digest, &buf[rw], maxlen, u->socket->addr,
 			last_sent, u->user_agent, NULL, FALSE);
 
 		u->last_dmesh = now;
@@ -2304,8 +2310,6 @@ supports_deflate(header_t *header)
     return TRUE;
 }
 
-
-
 /**
  * Called to initiate the upload once all the HTTP headers have been
  * read.  Validate the request, and begin processing it if all OK.
@@ -2348,7 +2352,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	if (upload_debug) {
 		g_message("----%s Request from %s%s:\n%s",
 			is_followup ? "Follow-up" : "Incoming",
-			ip_to_gchar(s->ip),
+			host_addr_to_string(s->addr),
 			u->from_browser ? " (via browser)" : "",
 			request);
 		header_dump(header, stdout);
@@ -2406,7 +2410,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		user_agent = header_get(header, "Server");
 
 	if (u->user_agent == NULL && user_agent != NULL) {
-		gboolean faked = !version_check(user_agent, token, u->ip);
+		gboolean faked = !version_check(user_agent, token, u->addr);
 		if (faked) {
 			gchar name[1024];
 
@@ -2525,8 +2529,6 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 * Accept-Encoding -- see whether they want compressed output.
 		 */
 
-		buf = header_get(header, "Accept-Encoding");
-		/* XXX needs more rigourous parsing */
 		if (supports_deflate(header)) {
 			bh_flags |= BH_DEFLATE;
 
@@ -2603,14 +2605,14 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		const gchar *msg = ban_vendor(user_agent);
 
 		if (msg != NULL) {
-			ban_record(u->ip, msg);
+			ban_record(u->addr, msg);
 			upload_error_remove(u, NULL, 403, "%s", msg);
 			return;
 		}
 	}
 
 	/* Pick up the X-Remote-IP or Remote-IP header */
-	node_check_remote_ip_header(u->ip, header);
+	node_check_remote_ip_header(u->addr, header);
 
 	if (reqfile) {
 		idx = reqfile->file_index;
@@ -2625,7 +2627,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		if (u->push && idx != u->index)
 			g_warning("Host %s sent PUSH for %u (%s), now requesting %u (%s)",
-				ip_to_gchar(u->ip), u->index, u->name, idx, reqfile->name_nfc);
+				host_addr_to_string(u->addr), u->index, u->name, idx, reqfile->name_nfc);
 
 		/*
 		 * We already have a non-NULL u->name in the structure, because we
@@ -2670,7 +2672,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			if (g_slist_next(ranges) != NULL) {
 				if (upload_debug)
 					g_warning("client %s <%s> requested several ranges "
-						"for \"%s\": %s", ip_to_gchar(u->ip),
+						"for \"%s\": %s", host_addr_to_string(u->addr),
 						u->user_agent ? u->user_agent : "", reqfile->name_nfc,
 						http_range_to_gchar(ranges));
 			}
@@ -2843,7 +2845,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	) {
 		g_warning("Host %s sent initial request for %u (%s), "
 			"now requesting %u (%s)",
-			ip_to_gchar(s->ip),
+			host_addr_to_string(s->addr),
 			u->index, u->name, idx, reqfile->name_nfc);
 		upload_error_remove(u, NULL, 400, "Change of Resource Forbidden");
 		return;
@@ -2948,7 +2950,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			if (!UPLOAD_IS_SENDING(up) && up->status != GTA_UL_QUEUED)
 				continue;
 			if (
-				up->socket->ip == s->ip && (
+				host_addr_equal(up->socket->addr, s->addr) && (
 					(up->index != URN_INDEX && up->index == idx) ||
 					(u->sha1 && up->sha1 == u->sha1)
 				)
@@ -2983,7 +2985,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 			g_warning("stalling connection to %s (%s) replaced "
 				"after %s bytes sent, stall counter at %d",
-				ip_to_gchar(up->ip), upload_vendor_str(up),
+				host_addr_to_string(up->addr), upload_vendor_str(up),
 				uint64_to_string(up->sent), stalled);
 
 			upload_remove(up, _("Stalling upload replaced"));
@@ -3045,7 +3047,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			gboolean parq_allows = FALSE;
 
 			if (parq_upload_lookup_position(u) == (guint) -1) {
-				time_t expire = parq_banned_source_expire(u->ip);
+				time_t expire = parq_banned_source_expire(u->addr);
 				gchar retry_after[80];
 				gint delay = delta_time(expire, now);
 
@@ -3154,7 +3156,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 *		--RAM, 24/12/2003
 		 */
 
-		if (!is_followup && !parq_upload_ip_can_proceed(u)) {
+		if (!is_followup && !parq_upload_addr_can_proceed(u)) {
 			upload_error_remove(u, reqfile, 503,
 				"Too many uploads to this IP address (limit=%d)",
 				max_uploads_ip);
@@ -3181,7 +3183,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		if ((u->total_requested / 11) * 10 > u->file_size) {
 			g_warning("host %s (%s) requesting more than there is to %u (%s)",
-				ip_to_gchar(s->ip), upload_vendor_str(u), u->index, u->name);
+				host_addr_to_string(s->addr), upload_vendor_str(u),
+				u->index, u->name);
 			upload_error_remove(u, NULL, 400, "Requesting Too Much");
 			return;
 		}
@@ -3244,8 +3247,13 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * writing too much before detecting the stall.
 	 */
 
-	known_for_stalling = NULL != aging_lookup(stalling_uploads,
-									GUINT_TO_POINTER(u->ip));
+	{
+		guint32 ip;
+		
+		ip = host_addr_ip4(u->addr); /* XXX */
+		known_for_stalling = NULL != aging_lookup(stalling_uploads,
+									GUINT_TO_POINTER(ip));
+	}
 
 	if (stalled <= STALL_THRESH && !known_for_stalling) {
 		sock_cork(s, TRUE);
@@ -3399,7 +3407,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	if (u->browse_host) {
 		gnet_host_t host;
 
-		host.ip = u->socket->ip;
+		host.addr = u->socket->addr;
 		host.port = u->socket->port;
 
 		u->special = browse_host_open(
@@ -3734,21 +3742,21 @@ upload_kill(gnet_upload_t upload)
  * Kill all running uploads by IP.
  */
 void
-upload_kill_ip(guint32 ip)
+upload_kill_addr(const host_addr_t addr)
 {
 	GSList *sl, *to_remove = NULL;
 
 	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
-		gnutella_upload_t *u = (gnutella_upload_t *) (sl->data);
+		gnutella_upload_t *u = sl->data;
 
 		g_assert(u != NULL);
 
-		if (u->ip == ip && !UPLOAD_IS_COMPLETE(u))
+		if (host_addr_equal(u->addr, addr) && !UPLOAD_IS_COMPLETE(u))
 			to_remove = g_slist_prepend(to_remove, u);
 	}
 
 	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
-		gnutella_upload_t *u = (gnutella_upload_t *) (sl->data);
+		gnutella_upload_t *u = sl->data;
 
 		parq_upload_force_remove(u);
 		upload_remove(u, _("IP denying uploads"));
@@ -3817,10 +3825,10 @@ upload_get_info(gnet_upload_t uh)
     gnutella_upload_t *u = upload_find_by_handle(uh);
     gnet_upload_info_t *info;
 
-    info = walloc(sizeof(*info));
+    info = walloc(sizeof *info);
 
     info->name          = u->name ? atom_str_get(u->name) : NULL;
-    info->ip            = u->ip;
+    info->addr          = u->addr;
     info->file_size     = u->file_size;
     info->range_start   = u->skip;
     info->range_end     = u->end;
@@ -3844,7 +3852,7 @@ upload_free_info(gnet_upload_info_t *info)
 	if (info->name)
 		atom_str_free(info->name);
 
-    wfree(info, sizeof(*info));
+    wfree(info, sizeof *info);
 }
 
 void

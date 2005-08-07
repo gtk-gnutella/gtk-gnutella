@@ -3965,13 +3965,14 @@ file_info_active(const gchar *sha1)
  *
  * @param file_name	the remote file name (as in the GET query).
  * @param idx	the remote file index (as in the GET query).
- * @param ip	the remote servent ip.
+ * @param addr	the remote servent address.
  * @param port	the remote servent port.
  * @param sha1	the SHA1 of the file.
  */
 void
 file_info_try_to_swarm_with(
-	gchar *file_name, guint32 idx, guint32 ip, guint32 port, gchar *sha1)
+	gchar *file_name, guint32 idx, const host_addr_t addr, guint16 port,
+	gchar *sha1)
 {
 	struct dl_file_info *fi;
 
@@ -3982,7 +3983,7 @@ file_info_try_to_swarm_with(
 	if (!fi)
 		return;
 
-	download_auto_new(file_name, fi->size, idx, ip, port, blank_guid, NULL,
+	download_auto_new(file_name, fi->size, idx, addr, port, blank_guid, NULL,
 		sha1, time(NULL), FALSE, TRUE, fi, NULL);
 }
 
@@ -4717,7 +4718,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 		) {
 			if (dbg > 5)
 				printf("    %s:%d replied (%x, %x), ",
-					ip_to_gchar(src->server->key->ip),
+					host_addr_to_string(src->server->key->addr),
 					src->server->key->port, src->flags, src->status);
 			if (!src->file_info->use_swarming || NULL == src->ranges) {
 				/*

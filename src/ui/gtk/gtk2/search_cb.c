@@ -529,7 +529,7 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			"%s %s\n"
 			"%s %s",
 			_("Peer:"),
-			ip_port_to_gchar(rc->results_set->ip, rc->results_set->port),
+			host_addr_port_to_string(rc->results_set->addr, rc->results_set->port),
 			_("Country:"),
 			iso3166_country_name(rc->results_set->country),
 			iso3166_country_cc(rc->results_set->country),
@@ -648,7 +648,8 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 	else
 		gtk_entry_set_text(GTK_ENTRY(
 					lookup_widget(main_window, "entry_result_info_source")),
-				ip_port_to_gchar(rc->results_set->ip, rc->results_set->port));
+				host_addr_port_to_string(rc->results_set->addr,
+					rc->results_set->port));
 
 	uint64_to_string_buf(bytes, sizeof bytes, rc->size);
 	gtk_entry_printf(

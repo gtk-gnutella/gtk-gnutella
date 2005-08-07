@@ -64,9 +64,9 @@ enum {
 
 static void
 monitor_gui_append(query_type_t type, const gchar *item,
-	guint32 ip, guint16 port)
+	const host_addr_t addr, guint16 port)
 {
-	(void) ip;
+	(void) addr;
 	(void) port;
 
 	/* The user might have changed the max. number of items to

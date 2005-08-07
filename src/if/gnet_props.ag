@@ -197,6 +197,15 @@ prop = {
 };
 
 prop = {
+    name = "local_addr";
+    desc = "Local address last determined.";
+    type = string;
+    data = {
+        default = "";
+    };
+};
+
+prop = {
     name = "current_ip_stamp";
     desc = "When the current IP address was determined.";
     type = guint64;
@@ -258,6 +267,17 @@ prop = {
         default = 0x00000000;
     };
 };
+
+prop = {
+    name = "forced_local_addr";
+    desc = "Use this address as source address if 'force local addr' "
+           "is activated.";
+    type = string;
+    data = {
+        default = "";
+    };
+};
+
 
 prop = {
     name = "connection_speed";
@@ -1015,6 +1035,16 @@ prop = {
 };
 
 prop = {
+    name = "force_local_addr";
+    desc = "Enable to use [forced_local_addr] as local ip.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+
+prop = {
     name = "use_netmasks";
     desc = "Try to connect to local networks first.";
     type = boolean;
@@ -1082,12 +1112,12 @@ prop = {
 };
 
 prop = {
-    name = "proxy_ip";
-    desc = "IP address of the proxy.";
+    name = "proxy_addr";
+    desc = "Address of the proxy.";
     save = FALSE;
-    type = ip;
+    type = string;
     data = {
-        default = 0x00000000;
+        default = "";
     };
 };
 

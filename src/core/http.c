@@ -246,15 +246,16 @@ http_send_status(
 	if (-1 == (sent = bws_write(bws.out, &s->wio, header, rw))) {
 		socket_eof(s);
 		g_warning("Unable to send back HTTP status %d (%s) to %s: %s",
-			code, status_msg, ip_to_gchar(s->ip), g_strerror(errno));
+			code, status_msg, host_addr_to_string(s->addr), g_strerror(errno));
 		return FALSE;
 	} else if (sent < rw) {
 		g_warning("Only sent %d out of %d bytes of status %d (%s) to %s: %s",
-			sent, rw, code, status_msg, ip_to_gchar(s->ip), g_strerror(errno));
+			sent, rw, code, status_msg, host_addr_to_string(s->addr),
+			g_strerror(errno));
 		return FALSE;
 	} else if (http_debug > 2) {
 		g_message("----Sent HTTP Status to %s (%d bytes):\n%.*s----\n",
-			ip_to_gchar(s->ip), rw, rw, header);
+			host_addr_to_string(s->addr), rw, rw, header);
 	}
 
 	return TRUE;
@@ -553,7 +554,8 @@ http_url_strerror(http_url_error_t errnum)
  *
  */
 gboolean
-http_url_parse(const gchar *url, guint16 *port, gchar **host, gchar **path)
+http_url_parse(const gchar *url, guint16 *port, const gchar **host,
+	const gchar **path)
 {
 	static gchar hostname[MAX_HOSTLEN + 1];
 	const gchar *host_start;
@@ -563,7 +565,7 @@ http_url_parse(const gchar *url, guint16 *port, gchar **host, gchar **path)
 	gboolean seen_upw = FALSE;
 	gchar s;
 	guint32 portnum;
-	gchar *tmp_host, *tmp_path;
+	const gchar *tmp_host, *tmp_path;
 	guint16 tmp_port;
 
 	g_assert(url != NULL);
@@ -1515,21 +1517,21 @@ static GSList *sl_ha_freed = NULL;		/* Pending physical removal */
  * This can be used by client code to log request parameters.
  *
  * @returns URL and fills `req' with the request type string (GET, POST, ...)
- * if it is a non-NULL pointer, `path' with the request path, `ip' and `port'
+ * if it is a non-NULL pointer, `path' with the request path, `addr' and `port'
  * with the server address/port.
  */
 const gchar *
 http_async_info(
 	gpointer handle, const gchar **req, gchar **path,
-	guint32 *ip, guint16 *port)
+	host_addr_t *addr, guint16 *port)
 {
-	struct http_async *ha = (struct http_async *) handle;
+	struct http_async *ha = handle;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 
 	if (req)  *req  = http_verb[ha->type];
 	if (path) *path = ha->path;
-	if (ip)   *ip   = ha->socket->ip;
+	if (addr) *addr   = ha->socket->addr;
 	if (port) *port = ha->socket->port;
 
 	return ha->url;
@@ -1780,7 +1782,7 @@ http_async_build_request(gpointer unused_handle, gchar *buf, size_t len,
  * The URL to request is given by `url'.
  * The type of HTTP request (GET, POST, ...) is given by `type'.
  *
- * If `ip' is non-zero, then `url' is supposed to hold a path, and `port'
+ * If `addr' is non-zero, then `url' is supposed to hold a path, and `port'
  * must also be non-zero.  Otherwise, the IP and port are gathered from
  * `url', which must start be something like "http://server:port/path".
  *
@@ -1797,7 +1799,7 @@ http_async_build_request(gpointer unused_handle, gchar *buf, size_t len,
 static struct http_async *
 http_async_create(
 	gchar *url,						/* Either full URL or path */
-	guint32 ip,						/* Optional: 0 means grab from url */
+	const host_addr_t addr,			/* Optional: 0 means grab from url */
 	guint16 port,					/* Optional, must be given when IP given */
 	enum http_reqtype type,
 	http_header_cb_t header_ind,
@@ -1805,14 +1807,13 @@ http_async_create(
 	http_error_cb_t error_ind,
 	struct http_async *parent)
 {
-	gchar *path;
 	struct gnutella_socket *s;
 	struct http_async *ha;
-	gchar *host = NULL;
+	const gchar *path, *host = NULL;
 
 	g_assert(url);
 	g_assert(error_ind);
-	g_assert(ip == 0 || port != 0);
+	g_assert(!is_host_addr(addr) || port != 0);
 
 	/*
 	 * Extract the necessary parameters for the connection.
@@ -1821,7 +1822,7 @@ http_async_create(
 	 * from the socket layer.
 	 */
 
-	if (ip == 0) {
+	if (!is_host_addr(addr)) {
 		guint16 uport;
 
 		if (!http_url_parse(url, &uport, &host, &path)) {
@@ -1833,10 +1834,10 @@ http_async_create(
 
 		s = socket_connect_by_name(host, uport, SOCK_TYPE_HTTP);
 	} else {
-		host = ip_port_to_gchar(ip, port);
+		host = host_addr_port_to_string(addr, port);
 		path = url;
 
-		s = socket_connect(ip, port, SOCK_TYPE_HTTP);
+		s = socket_connect(addr, port, SOCK_TYPE_HTTP);
 	}
 
 	if (s == NULL) {
@@ -1921,9 +1922,8 @@ http_async_get(
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind)
 {
-	return (gpointer) http_async_create(url, 0, 0, HTTP_GET,
-		header_ind, data_ind, error_ind,
-		NULL);
+	return http_async_create(url, zero_host_addr, 0, HTTP_GET,
+				header_ind, data_ind, error_ind, NULL);
 }
 
 /**
@@ -1931,15 +1931,15 @@ http_async_get(
  * IP and port to contact are given explicitly.
  */
 gpointer
-http_async_get_ip(
+http_async_get_addr(
 	gchar *path,
-	guint32 ip,
+	const host_addr_t addr,
 	guint16 port,
 	http_header_cb_t header_ind,
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind)
 {
-	return (gpointer) http_async_create(path, ip, port, HTTP_GET,
+	return http_async_create(path, addr, port, HTTP_GET,
 		header_ind, data_ind, error_ind,
 		NULL);
 }
@@ -2056,7 +2056,7 @@ http_async_subrequest(
 	 * the sub-request invisible from the outside.
 	 */
 
-	child = http_async_create(url, 0, 0, type,
+	child = http_async_create(url, zero_host_addr, 0, type,
 		parent->header_ind ? http_subreq_header_ind : NULL,	/* Optional */
 		parent->data_ind ? http_subreq_data_ind : NULL,		/* Optional */
 		http_subreq_error_ind,
@@ -2220,7 +2220,7 @@ http_got_header(struct http_async *ha, header_t *header)
 	guint http_major = 0, http_minor = 0;
 
 	if (http_debug > 2) {
-		printf("----Got HTTP reply from %s:\n", ip_to_gchar(s->ip));
+		printf("----Got HTTP reply from %s:\n", host_addr_to_string(s->addr));
 		printf("%s\n", status);
 		header_dump(header, stdout);
 		printf("----\n");
@@ -2454,7 +2454,7 @@ http_async_write_request(gpointer data, gint unused_source,
 	sent = bws_write(bws.out, &s->wio, base, rw);
 	if ((ssize_t) -1 == sent) {
 		g_warning("HTTP request sending to %s failed: %s",
-			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
+			host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
 		http_async_syserr(ha, errno);
 		return;
 	} else if ((size_t) sent < rw) {
@@ -2462,7 +2462,7 @@ http_async_write_request(gpointer data, gint unused_source,
 		return;
 	} else if (http_debug > 2) {
 		printf("----Sent HTTP request completely to %s (%d bytes):\n%.*s----\n",
-			ip_port_to_gchar(s->ip, s->port), http_buffer_length(r),
+			host_addr_port_to_string(s->addr, s->port), http_buffer_length(r),
 			http_buffer_length(r), http_buffer_base(r));
 		fflush(stdout);
 	}
@@ -2473,7 +2473,7 @@ http_async_write_request(gpointer data, gint unused_source,
 
 	if (http_debug)
 		g_warning("flushed partially written HTTP request to %s (%d bytes)",
-			ip_port_to_gchar(s->ip, s->port),
+			host_addr_port_to_string(s->addr, s->port),
 			http_buffer_length(r));
 
 	g_source_remove(s->gdk_tag);
@@ -2508,7 +2508,7 @@ http_async_connected(gpointer handle)
 
 	rw = (*ha->op_request)(ha, req, sizeof(req),
 		(gchar *) http_verb[ha->type], ha->path,
-		ha->host ? ha->host : ip_to_gchar(s->ip), s->port);
+		ha->host ? ha->host : host_addr_to_string(s->addr), s->port);
 
 	if (rw >= sizeof(req)) {
 		http_async_error(ha, HTTP_ASYNC_REQ2BIG);
@@ -2524,12 +2524,12 @@ http_async_connected(gpointer handle)
 	sent = bws_write(bws.out, &s->wio, req, rw);
 	if ((ssize_t) -1 == sent) {
 		g_warning("HTTP request sending to %s failed: %s",
-			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
+			host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
 		http_async_syserr(ha, errno);
 		return;
 	} else if ((size_t) sent < rw) {
 		g_warning("partial HTTP request write to %s: only %d of %d bytes sent",
-			ip_port_to_gchar(s->ip, s->port), (gint) sent, (gint) rw);
+			host_addr_port_to_string(s->addr, s->port), (gint) sent, (gint) rw);
 
 		g_assert(ha->delayed == NULL);
 
@@ -2548,7 +2548,7 @@ http_async_connected(gpointer handle)
 		return;
 	} else if (http_debug > 2) {
 		g_message("----Sent HTTP request to %s (%d bytes):\n%.*s----",
-			ip_port_to_gchar(s->ip, s->port), (int) rw, (int) rw, req);
+			host_addr_port_to_string(s->addr, s->port), (int) rw, (int) rw, req);
 	}
 
 	http_async_request_sent(ha);
@@ -2565,43 +2565,47 @@ http_async_log_error(gpointer handle, http_errtype_t type, gpointer v)
 	const gchar *req;
 	gint error = GPOINTER_TO_INT(v);
 	http_error_t *herror = (http_error_t *) v;
-	guint32 ip;
+	host_addr_t addr;
 	guint16 port;
 
-	url = http_async_info(handle, &req, NULL, &ip, &port);
+	url = http_async_info(handle, &req, NULL, &addr, &port);
 
 	switch (type) {
 	case HTTP_ASYNC_SYSERR:
         if (http_debug) {
             g_message("aborting \"%s %s\" at %s on system error: %s",
-                req, url, ip_port_to_gchar(ip, port), g_strerror(error));
+                req, url, host_addr_port_to_string(addr, port),
+				g_strerror(error));
         }
 		break;
 	case HTTP_ASYNC_ERROR:
 		if (error == HTTP_ASYNC_CANCELLED) {
 			if (http_debug > 3)
 				printf("explicitly cancelled \"%s %s\" at %s\n", req, url,
-					ip_port_to_gchar(ip, port));
+					host_addr_port_to_string(addr, port));
 		} else if (error == HTTP_ASYNC_CLOSED) {
 			if (http_debug > 3)
 				printf("connection closed for \"%s %s\" at %s\n", req, url,
-					ip_port_to_gchar(ip, port));
+					host_addr_port_to_string(addr, port));
 		} else
             if (http_debug) {
                 g_message("aborting \"%s %s\" at %s on error: %s", req, url,
-                    ip_port_to_gchar(ip, port), http_async_strerror(error));
+                    host_addr_port_to_string(addr, port),
+					http_async_strerror(error));
             }
 		break;
 	case HTTP_ASYNC_HEADER:
         if (http_debug) {
             g_message("aborting \"%s %s\" at %s on header parsing error: %s",
-                req, url, ip_port_to_gchar(ip, port), header_strerror(error));
+                req, url, host_addr_port_to_string(addr, port),
+				header_strerror(error));
         }
 		break;
 	case HTTP_ASYNC_HTTP:
         if (http_debug) {
             g_message("stopping \"%s %s\" at %s: HTTP %d %s", req, url,
-                ip_port_to_gchar(ip, port), herror->code, herror->message);
+                host_addr_port_to_string(addr, port),
+				herror->code, herror->message);
         }
 		break;
 	default:

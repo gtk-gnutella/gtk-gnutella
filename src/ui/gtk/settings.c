@@ -197,7 +197,7 @@ static gchar *prop_to_string(property_t prop)
 
             stub->guint32.get(prop, &val, 0, 1);
 
-            gm_snprintf(s, sizeof(s), "%s", ip_to_gchar(val));
+            gm_snprintf(s, sizeof(s), "%s", ip_to_string(val));
             break;
         }
         case PROP_TYPE_BOOLEAN: {
@@ -1875,7 +1875,7 @@ update_address_information(void)
 			(PROP_LOCAL_IP, &current_ip);
 
     if (old_address != current_ip || old_port != listen_port) {
-		const gchar *iport = ip_port_to_gchar(current_ip, listen_port);
+		const gchar *iport = ip_port_to_string(current_ip, listen_port);
 
         old_address = current_ip;
         old_port = listen_port;

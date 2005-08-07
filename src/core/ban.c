@@ -71,7 +71,7 @@ RCSID("$Id$");
 
 static GHashTable *info;		/**< Info by IP address */
 static gfloat decay_coeff;		/**< Decay coefficient, per second */
-static zone_t *ipf_zone;		/**< Zone for ip_info allocation */
+static zone_t *ipf_zone;		/**< Zone for addr_info allocation */
 
 /***
  *** Hammering-specific banning.
@@ -80,9 +80,9 @@ static zone_t *ipf_zone;		/**< Zone for ip_info allocation */
 /**
  * Information kept in the info table, per IP address.
  */
-struct ip_info {
+struct addr_info {
 	gfloat counter;				/**< Counts connection, decayed linearily */
-	guint32 ip;					/**< IP address */
+	host_addr_t addr;			/**< IP address */
 	time_t ctime;				/**< When did last connection occur? */
 	gpointer cq_ev;				/**< Scheduled callout event */
 	gint ban_delay;				/**< Banning delay, in seconds */
@@ -94,17 +94,17 @@ struct ip_info {
 static void ipf_destroy(cqueue_t *cq, gpointer obj);
 
 /**
- * Create new ip_info structure for said IP.
+ * Create new addr_info structure for said IP.
  */
-static struct ip_info *
-ipf_make(guint32 ip, time_t now)
+static struct addr_info *
+ipf_make(const host_addr_t addr, time_t now)
 {
-	struct ip_info *ipf;
+	struct addr_info *ipf;
 
 	ipf = zalloc(ipf_zone);
 
 	ipf->counter = 1.0;
-	ipf->ip = ip;
+	ipf->addr = addr;
 	ipf->ctime = now;
 	ipf->ban_delay = 0;
 	ipf->ban_count = 0;
@@ -126,10 +126,10 @@ ipf_make(guint32 ip, time_t now)
 }
 
 /**
- * Free ip_info structure.
+ * Free addr_info structure.
  */
 static void
-ipf_free(struct ip_info *ipf)
+ipf_free(struct addr_info *ipf)
 {
 	g_assert(ipf);
 
@@ -148,18 +148,17 @@ ipf_free(struct ip_info *ipf)
 static void
 ipf_destroy(cqueue_t *unused_cq, gpointer obj)
 {
-	struct ip_info *ipf = (struct ip_info *) obj;
+	struct addr_info *ipf = obj;
 
 	(void) unused_cq;
 	g_assert(ipf);
 	g_assert(!ipf->banned);
-	g_assert(
-		(gpointer) ipf == g_hash_table_lookup(info, GUINT_TO_POINTER(ipf->ip)));
+	g_assert(ipf == g_hash_table_lookup(info, &ipf->addr));
 
 	if (dbg > 8)
-		printf("disposing of BAN %s\n", ip_to_gchar(ipf->ip));
+		printf("disposing of BAN %s\n", host_addr_to_string(ipf->addr));
 
-	g_hash_table_remove(info, GUINT_TO_POINTER(ipf->ip));
+	g_hash_table_remove(info, &ipf->addr);
 	ipf->cq_ev = NULL;
 	ipf_free(ipf);
 }
@@ -170,15 +169,14 @@ ipf_destroy(cqueue_t *unused_cq, gpointer obj)
 static void
 ipf_unban(cqueue_t *unused_cq, gpointer obj)
 {
-	struct ip_info *ipf = (struct ip_info *) obj;
-	time_t now = time((time_t *) NULL);
+	struct addr_info *ipf = obj;
+	time_t now = time(NULL);
 	gint delay;
 
 	(void) unused_cq;
 	g_assert(ipf);
 	g_assert(ipf->banned);
-	g_assert(
-		(gpointer) ipf == g_hash_table_lookup(info, GUINT_TO_POINTER(ipf->ip)));
+	g_assert(ipf == g_hash_table_lookup(info, &ipf->addr));
 
 	/*
 	 * Decay counter by measuring the amount of seconds since last connection
@@ -190,7 +188,7 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 
 	if (dbg > 4)
 		printf("removing BAN for %s, counter = %.3f\n",
-			ip_to_gchar(ipf->ip), ipf->counter);
+			host_addr_to_string(ipf->addr), ipf->counter);
 
 	/**
 	 * Compute new scheduling delay.
@@ -206,9 +204,9 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 
 	if (delay <= 0) {
 		if (dbg > 8)
-			printf("disposing of BAN %s\n", ip_to_gchar(ipf->ip));
+			printf("disposing of BAN %s\n", host_addr_to_string(ipf->addr));
 
-		g_hash_table_remove(info, GUINT_TO_POINTER(ipf->ip));
+		g_hash_table_remove(info, &ipf->addr);
 		ipf->cq_ev = NULL;
 		ipf_free(ipf);
 		return;
@@ -229,20 +227,20 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
  *   BAN_MSG	will ban with explicit message and tailored error code.
  */
 ban_type_t
-ban_allow(guint32 ip)
+ban_allow(const host_addr_t addr)
 {
-	struct ip_info *ipf;
-	time_t now = time((time_t *) NULL);
+	struct addr_info *ipf;
+	time_t now = time(NULL);
 
-	ipf = (struct ip_info *) g_hash_table_lookup(info, GUINT_TO_POINTER(ip));
+	ipf = g_hash_table_lookup(info, &addr);
 
 	/*
 	 * First time we see this IP?  It's OK then.
 	 */
 
-	if (ipf == NULL) {
-		ipf = ipf_make(ip, now);
-		g_hash_table_insert(info, GUINT_TO_POINTER(ip), ipf);
+	if (NULL == ipf) {
+		ipf = ipf_make(addr, now);
+		g_hash_table_insert(info, &ipf->addr, ipf);
 		return BAN_OK;
 	}
 
@@ -268,7 +266,7 @@ ban_allow(guint32 ip)
 
 	if (dbg > 4)
 		printf("BAN %s, counter = %.3f (%s)\n",
-			ip_to_gchar(ipf->ip), ipf->counter,
+			host_addr_to_string(ipf->addr), ipf->counter,
 			ipf->banned ? "already banned" :
 			ipf->counter > (gfloat) MAX_REQUEST ? "banning" : "OK");
 
@@ -336,19 +334,19 @@ ban_allow(guint32 ip)
  * Record banning with specific message for a given IP, for MAX_BAN seconds.
  */
 void
-ban_record(guint32 ip, const gchar *msg)
+ban_record(const host_addr_t addr, const gchar *msg)
 {
-	struct ip_info *ipf;
+	struct addr_info *ipf;
 
 	/*
-	 * If is possible that we already have an ip_info for that host.
+	 * If is possible that we already have an addr_info for that host.
 	 */
 
-	ipf = (struct ip_info *) g_hash_table_lookup(info, GUINT_TO_POINTER(ip));
+	ipf = g_hash_table_lookup(info, &addr);
 
-	if (ipf == NULL) {
-		ipf = ipf_make(ip, time(NULL));
-		g_hash_table_insert(info, GUINT_TO_POINTER(ip), ipf);
+	if (NULL == ipf) {
+		ipf = ipf_make(addr, time(NULL));
+		g_hash_table_insert(info, &ipf->addr, ipf);
 	}
 
 	if (ipf->ban_msg != NULL)
@@ -488,11 +486,11 @@ ban_force(struct gnutella_socket *s)
  * Check whether IP is already recorded as being banned.
  */
 gboolean
-ban_is_banned(guint32 ip)
+ban_is_banned(const host_addr_t addr)
 {
-	struct ip_info *ipf;
+	struct addr_info *ipf;
 
-	ipf = (struct ip_info *) g_hash_table_lookup(info, GUINT_TO_POINTER(ip));
+	ipf = g_hash_table_lookup(info, &addr);
 
 	return ipf != NULL && ipf->banned;
 }
@@ -501,11 +499,11 @@ ban_is_banned(guint32 ip)
  * @return banning delay for banned IP.
  */
 gint
-ban_delay(guint32 ip)
+ban_delay(const host_addr_t addr)
 {
-	struct ip_info *ipf;
+	struct addr_info *ipf;
 
-	ipf = (struct ip_info *) g_hash_table_lookup(info, GUINT_TO_POINTER(ip));
+	ipf = g_hash_table_lookup(info, &addr);
 	g_assert(ipf);
 
 	return ipf->ban_delay;
@@ -515,15 +513,30 @@ ban_delay(guint32 ip)
  * @return banning message for banned IP.
  */
 gchar *
-ban_message(guint32 ip)
+ban_message(const host_addr_t addr)
 {
-	struct ip_info *ipf;
+	struct addr_info *ipf;
 
-	ipf = (struct ip_info *) g_hash_table_lookup(info, GUINT_TO_POINTER(ip));
+	ipf = g_hash_table_lookup(info, &addr);
 	g_assert(ipf);
 
 	return ipf->ban_msg;
 }
+
+static guint
+item_hash(gconstpointer key)
+{
+	const host_addr_t *addr = key;
+	return host_addr_hash(*addr);
+}
+
+static gboolean
+item_equal(gconstpointer p, gconstpointer q)
+{
+	const host_addr_t *a = p, *b = q;
+	return host_addr_equal(*a, *b);
+}
+
 
 /**
  * Initialize the banning system.
@@ -531,9 +544,9 @@ ban_message(guint32 ip)
 void
 ban_init(void)
 {
-	info = g_hash_table_new(g_direct_hash, 0);
+	info = g_hash_table_new(item_hash, item_equal);
 	decay_coeff = (gfloat) MAX_REQUEST / MAX_PERIOD;
-	ipf_zone = zget(sizeof(struct ip_info), 0);
+	ipf_zone = zget(sizeof(struct addr_info), 0);
 
 	ban_max_recompute();
 	file_register_fd_reclaimer(ban_reclaim_fd);
@@ -563,7 +576,7 @@ free_info(gpointer unused_key, gpointer value, gpointer unused_udata)
 {
 	(void) unused_key;
 	(void) unused_udata;
-	ipf_free((struct ip_info *) value);
+	ipf_free(value);
 }
 
 /**
@@ -577,7 +590,7 @@ ban_close(void)
 	g_hash_table_foreach(info, free_info, NULL);
 	g_hash_table_destroy(info);
 
-	for (l = banned_head; l; l = l->next)
+	for (l = banned_head; l; l = g_list_next(l))
 		(void) close(GPOINTER_TO_INT(l->data));		/* Reclaim fd */
 
 	g_list_free(banned_head);

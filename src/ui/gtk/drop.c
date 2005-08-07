@@ -107,11 +107,13 @@ handle_magnet(gchar *url)
 	struct {
 		gboolean ready;
 		gchar *file;
-		guint32 ip;
+		host_addr_t ha;
 		guint16 port;
 		gchar *hostname;
 		gchar *sha1;
-	} dl = { FALSE, NULL, 0, 0, NULL, NULL };
+	} dl;
+
+	memset(&dl, 0, sizeof dl);
 
 	p = strchr(url, ':');
 	g_assert(p);
@@ -241,7 +243,7 @@ handle_magnet(gchar *url)
 				continue;
 			}
 
-			dl.ip = addr;
+			dl.ha = host_addr_set_ip4(addr); /* XXX */
 			dl.port = port;
 			dl.sha1 = digest;
 			dl.ready = TRUE;
@@ -268,13 +270,14 @@ handle_magnet(gchar *url)
 
 	/* FIXME:	As long as downloading of files without a known size is
 	 *			defective, we cannot initiate downloads this way. */
-#if 0
+#if 1 
 	if (dl.ready) {
 		gchar *filename;
 
 		filename = gm_sanitize_filename(dl.file, FALSE, FALSE);
 
-		guc_download_new_unknown_size(filename, URN_INDEX, dl.ip,
+		g_message("Starting download from magnet");
+		guc_download_new_unknown_size(filename, URN_INDEX, dl.ha,
 			dl.port, blank_guid, dl.hostname, dl.sha1, time(NULL),
 			FALSE, NULL, NULL);
 		if (filename != dl.file)

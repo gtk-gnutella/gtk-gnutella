@@ -96,15 +96,8 @@ struct gnutella_socket *s_udp_listen = NULL;
 
 typedef union socket_addr {
 	struct sockaddr_in inet4;
-#ifdef USE_IPV6_HACK
-	/* The IPv6 hack might be useful for machines with IPv6 only. It is a
-	 * hack because it will only work with IPv4 addresses that are mapped
-	 * to IPv6 i.e., "::FFFF:<IPv4 address>". It is not tested so far.
-	 */
-#define SOCKET_AF AF_INET6
+#if defined(USE_IPV6)
 	struct sockaddr_in6 inet6;
-#else
-#define SOCKET_AF AF_INET
 #endif
 } socket_addr_t;
 
@@ -116,47 +109,59 @@ typedef union socket_addr {
  * @param port a 16-bit port number in host byte order
  */
 static void
-socket_addr_set(socket_addr_t *addr, guint32 ip, guint16 port)
+socket_addr_set(socket_addr_t *addr, const host_addr_t ha, guint16 port)
 {
-	static socket_addr_t zero_addr;
+	static const socket_addr_t zero_addr;
 
 	g_assert(addr != NULL);
 
 	*addr = zero_addr;
-	
-#ifdef USE_IPV6_HACK
-	addr->inet6.sin6_family = AF_INET6;	/* host byte order */
-	addr->inet6.sin6_port = htons(port);
-	addr->inet6.sin6_addr.s6_addr[10] = 0xff;
-	addr->inet6.sin6_addr.s6_addr[11] = 0xff;
-	WRITE_GUINT32_BE(ip, &addr->inet6.sin6_addr.s6_addr[12]);
-#else
-	addr->inet4.sin_family = AF_INET;	/* host byte order */
-	addr->inet4.sin_port = htons(port);
-	addr->inet4.sin_addr.s_addr = htonl(ip);
-#endif
+
+	switch (host_addr_net(ha)) {
+	case NET_TYPE_IP4:
+		addr->inet4.sin_family = AF_INET;	/* host byte order */
+		addr->inet4.sin_port = htons(port);
+		addr->inet4.sin_addr.s_addr = htonl(host_addr_ip4(ha));
+		return;
+		
+#if defined(USE_IPV6)	
+	case NET_TYPE_IP6:
+		addr->inet6.sin6_family = AF_INET6;	/* host byte order */
+		addr->inet6.sin6_port = htons(port);
+		memcpy(addr->inet6.sin6_addr.s6_addr, ha.addr.ip6, 16);
+		return;
+		
+	case NET_TYPE_NONE:
+		break;
+#endif /* USE_IPV6 */
+	}
+	g_assert_not_reached();
 }
 
 /**
- * Retrieves the IPv4 address from a socket_addr_t.
+ * Retrieves the address from a socket_addr_t.
  *
  * @param addr a pointer to an initialized socket_addr_t
- * @return the IPv4 address in host(!) byte order
+ * @return the address. 
  */
-static inline guint32
-socket_addr_get_ip(const socket_addr_t *addr)
+static inline host_addr_t  
+socket_addr_get_addr(const socket_addr_t *addr)
 {
-	guint32 ip;
+	host_addr_t ha;
 
-	g_assert(addr != NULL);
+	g_assert(addr);
 	
-#ifdef USE_IPV6_HACK
-	READ_GUINT32_BE(&addr->inet6.sin6_addr.s6_addr[12], ip);
-#else
-	ip = htonl(addr->inet4.sin_addr.s_addr);
-#endif
+	if (AF_INET == addr->inet4.sin_family) {
+		ha = host_addr_set_ip4(ntohl(addr->inet4.sin_addr.s_addr));
+#if defined(USE_IPV6)
+	} else if (AF_INET6 == addr->inet6.sin6_family) {
+		host_addr_set_ip6(&ha, addr->inet6.sin6_addr.s6_addr);
+#endif /* IPV6 */
+	} else {
+		ha = zero_host_addr;	
+	}
 
-	return ip;
+	return ha;
 }
 
 /**
@@ -170,11 +175,41 @@ socket_addr_get_port(const socket_addr_t *addr)
 {
 	g_assert(addr != NULL);
 
-#ifdef USE_IPV6_HACK
-	return ntohs(addr->inet6.sin6_port);
-#else
-	return ntohs(addr->inet4.sin_port);
-#endif
+	if (AF_INET == addr->inet4.sin_family) {
+		return ntohs(addr->inet4.sin_port);
+#if defined(USE_IPV6)
+	} else if (AF_INET6 == addr->inet6.sin6_family) {
+		return ntohs(addr->inet6.sin6_port);
+#endif /* IPV6 */
+	}
+	
+	return 0;
+}
+
+static socklen_t
+socket_addr_get(const socket_addr_t *addr, const struct sockaddr **p_sa)
+{
+	const struct sockaddr *sa;
+	socklen_t sa_len;
+	
+	g_assert(addr);	
+	g_assert(p_sa);	
+	
+	if (AF_INET == addr->inet4.sin_family) {
+		sa = cast_to_gconstpointer(&addr->inet4);
+		sa_len = sizeof addr->inet4;
+#ifdef USE_IPV6
+	} else if (AF_INET6 == addr->inet6.sin6_family) {
+		sa = cast_to_gconstpointer(&addr->inet6);
+		sa_len = sizeof addr->inet6;
+#endif /* USE_IPV6 */
+	} else {
+		sa = NULL;
+		sa_len = 0;
+	}
+	
+	*p_sa = sa;
+	return sa_len;
 }
 
 /*
@@ -194,14 +229,6 @@ socket_register_fd_reclaimer(reclaim_fd_t callback)
 {
 	reclaim_fd = callback;
 }
-
-/*
- * UDP address information for datagrams.
- */
-struct udp_addr {
-	struct sockaddr ud_addr;
-	socklen_t ud_addrlen;
-};
 
 struct sockreq {
 	gint8 version;
@@ -223,7 +250,7 @@ static gboolean ip_computed = FALSE;
 
 static GSList *sl_incoming = (GSList *) NULL;	/* To spot inactive sockets */
 
-static void guess_local_ip(int sd);
+static void guess_local_addr(int sd);
 static void socket_destroy(struct gnutella_socket *s, const gchar *reason);
 static void socket_connected(gpointer data, gint source, inputevt_cond_t cond);
 static void socket_wio_link(struct gnutella_socket *s);
@@ -388,14 +415,15 @@ socket_eof(struct gnutella_socket *s)
 }
 
 static void
-proxy_connect_helper(guint32 addr, gpointer udata)
+proxy_connect_helper(const host_addr_t addr, gpointer udata)
 {
 	gboolean *in_progress = udata;
+	const gchar *s;
 
 	*in_progress = FALSE;
-	gnet_prop_set_guint32(PROP_PROXY_IP, &addr, 0, 1);
-	g_message("Resolved proxy name \"%s\" to %s", proxy_hostname,
-		ip_to_gchar(proxy_ip));
+	s = host_addr_to_string(addr);
+	gnet_prop_set_string(PROP_PROXY_ADDR, s);
+	g_message("Resolved proxy name \"%s\" to %s", proxy_hostname, s);
 }
 
 /*
@@ -407,8 +435,10 @@ proxy_connect(int fd)
 {
 	static gboolean in_progress = FALSE;
 	socket_addr_t server;
+	const struct sockaddr *sa;
+	socklen_t sa_len;
 
-	if (!proxy_ip &&
+	if (!proxy_addr &&
 		proxy_port != 0 &&
 		proxy_hostname[0] != '\0'
 	) {
@@ -424,14 +454,15 @@ proxy_connect(int fd)
 		}
 	}
 
-	if (!proxy_ip || !proxy_port) {
+	if (!proxy_addr || !proxy_port) {
 		errno = EINVAL;
 		return -1;
 	}
 
-	socket_addr_set(&server, proxy_ip, proxy_port);
+	socket_addr_set(&server, string_to_host_addr(proxy_addr), proxy_port);
+	sa_len = socket_addr_get(&server, &sa);
 
-	return connect(fd, (struct sockaddr *) &server, sizeof server);
+	return connect(fd, sa, sa_len);
 }
 
 static gint
@@ -465,7 +496,7 @@ send_socks(struct gnutella_socket *s)
 	thisreq->version = 4;
 	thisreq->command = 1;
 	thisreq->dstport = htons(s->port);
-	thisreq->dstip = htonl(s->ip);
+	thisreq->dstip = htonl(host_addr_ip4(s->addr));
 
 	/* Send the socks header info */
 	ret = write(s->file_desc, realreq, length);
@@ -532,7 +563,7 @@ connect_http(struct gnutella_socket *s)
 	switch (s->pos) {
 	case 0:
 		{
-			const gchar *host = ip_port_to_gchar(s->ip, s->port);
+			const gchar *host = host_addr_port_to_string(s->addr, s->port);
 			size_t size;
 
 			size = gm_snprintf(s->buffer, sizeof(s->buffer),
@@ -773,8 +804,8 @@ connect_socksv5(struct gnutella_socket *s)
 		s->buffer[1] = '\x01';		/* Connect request */
 		s->buffer[2] = '\x00';		/* Reserved		*/
 		s->buffer[3] = '\x01';		/* IP version 4	*/
-		WRITE_GUINT32_BE(s->ip, &s->buffer[4]);
-		WRITE_GUINT16_BE(s->port, &s->buffer[8]);
+		poke_be32(&s->buffer[4], host_addr_ip4(s->addr));
+		poke_be16(&s->buffer[8], s->port);
 
 		/* Now send the connection */
 
@@ -870,7 +901,7 @@ socket_timer(time_t now)
 		if (delta > (gint32) incoming_connecting_timeout) {
 			if (dbg) {
 				g_warning("connection from %s timed out (%d bytes read)",
-						  ip_to_gchar(s->ip), (int) s->pos);
+					  host_addr_to_string(s->addr), (int) s->pos);
 				if (s->pos > 0)
 					dump_hex(stderr, "Connection Header",
 						s->buffer, MIN(s->pos, 80));
@@ -1031,7 +1062,7 @@ socket_free(struct gnutella_socket *s)
 
 	if (s->flags & SOCK_F_UDP) {
 		if (s->resource.handle)
-			wfree(s->resource.handle, sizeof(struct udp_addr));
+			wfree(s->resource.handle, sizeof(socket_addr_t));
 	}
 	if (s->last_update) {
 		g_assert(sl_incoming);
@@ -1294,7 +1325,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	/* 1 to allow trailing NUL */
 	if (count < 1) {
 		g_warning("socket_read(): incoming buffer full, disconnecting from %s",
-			 ip_to_gchar(s->ip));
+			 host_addr_to_string(s->addr));
 		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
 		socket_destroy(s, "Incoming buffer full");
 		return;
@@ -1330,7 +1361,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	switch (getline_read(s->getline, s->buffer, s->pos, &parsed)) {
 	case READ_OVERFLOW:
 		g_warning("socket_read(): first line too long, disconnecting from %s",
-			 ip_to_gchar(s->ip));
+			 host_addr_to_string(s->addr));
 		dump_hex(stderr, "Leading Data",
 			getline_str(s->getline), MIN(getline_length(s->getline), 256));
 		if (
@@ -1387,7 +1418,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	 * Check for banning.
 	 */
 
-	switch (ban_allow(s->ip)) {
+	switch (ban_allow(s->addr)) {
 	case BAN_OK:				/* Connection authorized */
 		break;
 	case BAN_FORCE:				/* Connection refused, no ack */
@@ -1395,11 +1426,12 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		goto cleanup;
 	case BAN_MSG:				/* Send specific 403 error message */
 		{
-			gchar *msg = ban_message(s->ip);
+			gchar *msg = ban_message(s->addr);
 
             if (dbg) {
                 g_message("rejecting connection from banned %s (%s still): %s",
-                    ip_to_gchar(s->ip), short_time(ban_delay(s->ip)), msg);
+                    host_addr_to_string(s->addr),
+					short_time(ban_delay(s->addr)), msg);
             }
 
 			if (is_strprefix(first, GNUTELLA_HELLO))
@@ -1411,9 +1443,9 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	case BAN_FIRST:				/* Connection refused, negative ack */
 		if (is_strprefix(first, GNUTELLA_HELLO))
 			send_node_error(s, 550, "Banned for %s",
-				short_time(ban_delay(s->ip)));
+				short_time(ban_delay(s->addr)));
 		else {
-			gint delay = ban_delay(s->ip);
+			gint delay = ban_delay(s->addr);
 			gchar msg[80];
 			http_extra_desc_t hev;
 
@@ -1435,12 +1467,12 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	 * 		-- JA, 29/07/2003
 	 */
 
-	banlimit = parq_banned_source_expire(s->ip);
+	banlimit = parq_banned_source_expire(s->addr);
 
 	if (banlimit > 0) {
 		if (dbg)
 			g_warning("[sockets] PARQ has banned ip %s until %d",
-				ip_to_gchar(s->ip), (gint) banlimit);
+				host_addr_to_string(s->addr), (gint) banlimit);
 		ban_force(s);
 		goto cleanup;
 	}
@@ -1452,12 +1484,12 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	 * get banned silently.
 	 */
 
-	if (hostiles_check(s->ip)) {
+	if (hostiles_check(s->addr)) {
 		static const gchar msg[] = "Hostile IP address banned";
 
 		if (dbg)
 			g_warning("denying connection from hostile %s: \"%s\"",
-				ip_to_gchar(s->ip), first);
+				host_addr_to_string(s->addr), first);
 		if (is_strprefix(first, GNUTELLA_HELLO))
 			send_node_error(s, 550, msg);
 		else
@@ -1470,7 +1502,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	 */
 
 	if (is_strprefix(first, GNUTELLA_HELLO))
-		node_add_socket(s, s->ip, s->port);	/* Incoming control connection */
+		node_add_socket(s, s->addr, s->port);	/* Incoming control connection */
 	else if (is_strprefix(first, "GET ") || is_strprefix(first, "HEAD ")) {
 		gchar *uri;
 
@@ -1505,7 +1537,7 @@ unknown:
 	if (dbg) {
 		gint len = getline_length(s->getline);
 		g_warning("socket_read(): got unknown incoming connection from %s, "
-			"dropping!", ip_to_gchar(s->ip));
+			"dropping!", host_addr_to_string(s->addr));
 		if (len > 0)
 			dump_hex(stderr, "First Line", first, MIN(len, 160));
 	}
@@ -1675,7 +1707,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 			return;
 		}
 
-		inet_connection_succeeded(s->ip);
+		inet_connection_succeeded(s->addr);
 
 		s->pos = 0;
 		memset(s->buffer, 0, sizeof(s->buffer));
@@ -1688,7 +1720,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 		 *		--RAM, 07/05/2002
 		 */
 
-		guess_local_ip(s->file_desc);
+		guess_local_addr(s->file_desc);
 
 		switch (s->type) {
 		case SOCK_TYPE_CONTROL:
@@ -1741,36 +1773,68 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 }
 
+static int 
+socket_addr_getsockname(socket_addr_t *p_addr, int fd)
+{
+	struct sockaddr_in sin;
+	socklen_t sa_len;
+	host_addr_t ha = zero_host_addr;
+	guint16 port = 0;
+
+	if (-1 != getsockname(fd, cast_to_gpointer(&sin), &sa_len)) {
+		ha = host_addr_set_ip4(ntohl(sin.sin_addr.s_addr));
+		port = sin.sin_port;
+	}
+
+#ifdef USE_IPV6
+	if (!is_host_addr(ha)) {
+		struct sockaddr_in6 sin6;
+
+		if (-1 != getsockname(fd, cast_to_gpointer(&sin6), &sa_len)) {
+			host_addr_set_ip6(&ha, sin6.sin6_addr.s6_addr);
+			port = sin6.sin6_port;
+		}
+	}
+#endif /* USE_IPV6 */
+
+	if (!is_host_addr(ha))
+		return -1;
+	
+	socket_addr_set(p_addr, ha, port);
+	return 0;
+}
+
 /**
  * Tries to guess the local IP address.
  */
 static void
-guess_local_ip(int sd)
+guess_local_addr(int fd)
 {
+	gboolean can_supersede;
 	socket_addr_t addr;
-	socklen_t len = sizeof addr;
-	guint32 ip;
+	host_addr_t ha;
 
-	if (-1 != getsockname(sd, (struct sockaddr *) &addr, &len)) {
-		gboolean can_supersede;
-		
-		ip = socket_addr_get_ip(&addr);
+	if (0 != socket_addr_getsockname(&addr, fd))
+		return;
+	
+	ha = socket_addr_get_addr(&addr);
+	
+	/*
+	 * If local IP was unknown, keep what we got here, even if it's a
+	 * private IP. Otherwise, we discard private IPs unless the previous
+	 * IP was private.
+	 *		--RAM, 17/05/2002
+	 */
 
-		/*
-		 * If local IP was unknown, keep what we got here, even if it's a
-		 * private IP. Otherwise, we discard private IPs unless the previous
-		 * IP was private.
-		 *		--RAM, 17/05/2002
-		 */
+	can_supersede = !is_private_addr(ha) ||
+		is_private_addr(string_to_host_addr(local_addr));
 
-		can_supersede = !is_private_ip(ip) || is_private_ip(local_ip);
-
-		if (!ip_computed) {
-			if (!local_ip || can_supersede)
-				gnet_prop_set_guint32_val(PROP_LOCAL_IP, ip);
-			ip_computed = TRUE;
-		} else if (can_supersede)
-			gnet_prop_set_guint32_val(PROP_LOCAL_IP, ip);
+	if (!ip_computed) {
+		if (!local_addr || can_supersede)
+			gnet_prop_set_string(PROP_LOCAL_ADDR, host_addr_to_string(ha));
+		ip_computed = TRUE;
+	} else if (can_supersede) {
+		gnet_prop_set_string(PROP_LOCAL_ADDR, host_addr_to_string(ha));
 	}
 }
 
@@ -1781,11 +1845,10 @@ static int
 socket_local_port(struct gnutella_socket *s)
 {
 	socket_addr_t addr;
-	socklen_t len = sizeof addr;
 
-	if (getsockname(s->file_desc, (struct sockaddr *) &addr, &len) == -1)
+	if (0 != socket_addr_getsockname(&addr, s->file_desc))
 		return -1;
-
+	
 	return socket_addr_get_port(&addr);
 }
 
@@ -1844,17 +1907,17 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 accepted:
 	bws_sock_accepted(SOCK_TYPE_HTTP);	/* Do not charge Gnet b/w for that */
 
-	if (!local_ip)
-		guess_local_ip(sd);
+	if (!local_addr)
+		guess_local_addr(sd);
 
 	/* Create a new struct socket for this incoming connection */
 
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
 
-	t = (struct gnutella_socket *) walloc0(sizeof *t);
+	t = walloc0(sizeof *t);
 
 	t->file_desc = sd;
-	t->ip = socket_addr_get_ip(&addr);
+	t->addr = socket_addr_get_addr(&addr);
 	t->port = socket_addr_get_port(&addr);
 	t->direction = SOCK_CONN_INCOMING;
 	t->type = s->type;
@@ -1906,7 +1969,7 @@ accepted:
 		break;
 	}
 
-	inet_got_incoming(t->ip);	/* Signal we got an incoming connection */
+	inet_got_incoming(t->addr);	/* Signal we got an incoming connection */
 }
 
 /**
@@ -1915,9 +1978,10 @@ accepted:
 static void
 socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
-	struct gnutella_socket *s = (struct gnutella_socket *) data;
-	struct udp_addr *addr;
-	const socket_addr_t *inaddr;
+	struct gnutella_socket *s = data;
+	socket_addr_t *from_addr;
+	gpointer from;
+	socklen_t from_len;
 	ssize_t r;
 
 	(void) unused_source;
@@ -1938,13 +2002,31 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * Receive the datagram in the socket's buffer.
 	 */
 
-	addr = (struct udp_addr *) s->resource.handle;
-	addr->ud_addrlen = sizeof(addr->ud_addr);
+	from_addr = s->resource.handle;
 
-	r = recvfrom(s->file_desc, s->buffer, sizeof(s->buffer), 0,
-		&addr->ud_addr, &addr->ud_addrlen);
+	switch (s->net) {
+	case NET_TYPE_IP4:
+		from = &from_addr->inet4;
+		from_len = sizeof from_addr->inet4;
+		break;
+#ifdef USE_IPV6
+	case NET_TYPE_IP6:
+		from = &from_addr->inet6;
+		from_len = sizeof from_addr->inet6;
+		break;
+	case NET_TYPE_NONE:
+#endif /* USE_IPV6 */
+	default:
+		from = NULL;
+		from_len = 0;
+		g_assert_not_reached();
+	}
+	g_assert(from);
+	g_assert(from_len > 0);
+	
+	r = recvfrom(s->file_desc, s->buffer, sizeof s->buffer, 0, from, &from_len);
 
-	if (r == (ssize_t) -1) {
+	if ((ssize_t) -1 == r) {
 		g_warning("ignoring datagram reception error: %s", g_strerror(errno));
 		return;
 	}
@@ -1956,11 +2038,8 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * Record remote address.
 	 */
 
-	g_assert(addr->ud_addrlen == sizeof(*inaddr));
-
-	inaddr = (const socket_addr_t *) &addr->ud_addr;
-	s->ip = socket_addr_get_ip(inaddr);
-	s->port = socket_addr_get_port(inaddr);
+	s->addr = socket_addr_get_addr(from_addr);
+	s->port = socket_addr_get_port(from_addr);
 
 	/*
 	 * Signal reception of a datagram to the UDP layer.
@@ -2009,14 +2088,15 @@ socket_set_linger(gint fd)
  * @returns NULL in case of failure.
  */
 static struct gnutella_socket *
-socket_connect_prepare(guint16 port, enum socket_type type)
+socket_connect_prepare(const host_addr_t ha, guint16 port,
+	enum socket_type type)
 {
 	struct gnutella_socket *s;
 	gint sd, option;
 
-	sd = socket(SOCKET_AF, SOCK_STREAM, 0);
+	sd = socket(host_addr_family(ha), SOCK_STREAM, 0);
 
-	if (sd == -1) {
+	if (-1 == sd) {
 		/*
 		 * If we ran out of file descriptors, try to reclaim one from the
 		 * banning pool and retry.
@@ -2026,7 +2106,7 @@ socket_connect_prepare(guint16 port, enum socket_type type)
 			(errno == EMFILE || errno == ENFILE) &&
 			reclaim_fd != NULL && (*reclaim_fd)()
 		) {
-			sd = socket(SOCKET_AF, SOCK_STREAM, 0);
+			sd = socket(host_addr_family(ha), SOCK_STREAM, 0);
 			if (sd >= 0) {
 				g_warning("had to close a banned fd to prepare new connection");
 				goto created;
@@ -2042,6 +2122,7 @@ created:
 
 	s->type = type;
 	s->direction = SOCK_CONN_OUTGOING;
+	s->net = host_addr_net(ha);
 	s->file_desc = sd;
 	s->port = port;
 	s->flags |= SOCK_F_TCP;
@@ -2074,59 +2155,67 @@ created:
  * in two steps since DNS resolving is asynchronous.
  */
 static struct gnutella_socket *
-socket_connect_finalize(struct gnutella_socket *s, guint32 ip_addr)
+socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 {
-	gint res = 0;
 	socket_addr_t addr;
+	gint res;
 
 	g_assert(NULL != s);
 
-	if (hostiles_check(ip_addr)) {
-		g_warning("Not connecting to hostile host %s", ip_to_gchar(ip_addr));
+	if (hostiles_check(ha)) {
+		g_warning("Not connecting to hostile host %s", host_addr_to_string(ha));
 		socket_destroy(s, "Not connecting to hostile host");
 		return NULL;
 	}
 
-	s->ip = ip_addr;
-	socket_addr_set(&addr, s->ip, s->port);
+	s->addr = ha;
+	socket_addr_set(&addr, s->addr, s->port);
 
-	inet_connection_attempted(s->ip);
+	inet_connection_attempted(s->addr);
 
 	/*
 	 * Now we check if we're forcing a local IP, and make it happen if so.
 	 *   --JSL
 	 */
-	if (force_local_ip) {
-		socket_addr_t lcladdr;
+	if (force_local_addr) {
+		socket_addr_t local;
+		const struct sockaddr *sa;
+		socklen_t sa_len;
 
-		socket_addr_set(&lcladdr, forced_local_ip, 0);
+		socket_addr_set(&local, string_to_host_addr(forced_local_addr), 0);
+		sa_len = socket_addr_get(&local, &sa);
 
 		/*
 		 * Note: we ignore failures: it will be automatic at connect()
 		 * It's useful only for people forcing the IP without being
 		 * behind a masquerading firewall --RAM.
 		 */
-		(void) bind(s->file_desc, (struct sockaddr *) &lcladdr, sizeof lcladdr);
+		(void) bind(s->file_desc, sa, sa_len);
 	}
 
 	if (proxy_protocol != PROXY_NONE) {
 		s->direction = SOCK_CONN_PROXY_OUTGOING;
 		res = proxy_connect(s->file_desc);
-	} else
-		res = connect(s->file_desc, (struct sockaddr *) &addr, sizeof addr);
+	} else {
+		const struct sockaddr *sa;
+		socklen_t sa_len;
 
-	if (res == -1 && errno != EINPROGRESS) {
-		if (proxy_protocol != PROXY_NONE && (!proxy_ip || !proxy_port)) {
+		sa_len = socket_addr_get(&addr, &sa);
+		res = connect(s->file_desc, sa, sa_len);
+	}
+
+	if (-1 == res && EINPROGRESS != errno) {
+		if (proxy_protocol != PROXY_NONE && (!proxy_addr || !proxy_port)) {
 			if (errno != EAGAIN) {
-				g_warning("Proxy isn't properly configured (%s)",
-					ip_port_to_gchar(proxy_ip, proxy_port));
+				g_warning("Proxy isn't properly configured (%s:%u)",
+					proxy_addr, proxy_port);
 			}
 			socket_destroy(s, "Check the proxy configuration");
 			return NULL;
 		}
 
 		g_warning("Unable to connect to %s: (%s)",
-				ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
+			host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
 
 		if (s->adns & SOCK_ADNS_PENDING)
 			s->adns_msg = "Connection failed";
@@ -2162,16 +2251,14 @@ socket_connect_finalize(struct gnutella_socket *s, guint32 ip_addr)
  * determined by the resource type.
  */
 struct gnutella_socket *
-socket_connect(guint32 ip_addr, guint16 port, enum socket_type type)
+socket_connect(const host_addr_t ha, guint16 port, enum socket_type type)
 {
 	/* Create a socket and try to connect it to ip:port */
 
 	struct gnutella_socket *s;
 
-	s = socket_connect_prepare(port, type);
-	if (s == NULL)
-		return NULL;
-	return socket_connect_finalize(s, ip_addr);
+	s = socket_connect_prepare(ha, port, type);
+	return s ? socket_connect_finalize(s, ha) : NULL;
 }
 
 /**
@@ -2189,19 +2276,19 @@ socket_bad_hostname(struct gnutella_socket *s)
  * Called when we got a reply from the ADNS process.
  */
 static void
-socket_connect_by_name_helper(guint32 ip_addr, gpointer user_data)
+socket_connect_by_name_helper(host_addr_t h, gpointer user_data)
 {
 	struct gnutella_socket *s = user_data;
 
 	g_assert(NULL != s);
 
-	if (0 == ip_addr || s->type == SOCK_TYPE_DESTROYING) {
+	if (!is_host_addr(h) || s->type == SOCK_TYPE_DESTROYING) {
 		s->adns &= ~SOCK_ADNS_PENDING;
 		s->adns |= SOCK_ADNS_FAILED | SOCK_ADNS_BADNAME;
 		s->adns_msg = "Could not resolve address";
 		return;
 	}
-	if (NULL == socket_connect_finalize(s, ip_addr)) {
+	if (NULL == socket_connect_finalize(s, h)) {
 		s->adns &= ~SOCK_ADNS_PENDING;
 		s->adns |= SOCK_ADNS_FAILED;
 		return;
@@ -2219,10 +2306,14 @@ socket_connect_by_name(const gchar *host, guint16 port, enum socket_type type)
 	/* Create a socket and try to connect it to host:port */
 
 	struct gnutella_socket *s;
+	host_addr_t ha;
 
-	g_assert(NULL != host);
-	s = socket_connect_prepare(port, type);
+	g_assert(host);
+	
+	host_addr_set_ip4(0); /* XXX */
+	s = socket_connect_prepare(ha, port, type);
 	g_return_val_if_fail(NULL != s, NULL);
+
 	s->adns |= SOCK_ADNS_PENDING;
 	if (
 		!adns_resolve(host, &socket_connect_by_name_helper, s)
@@ -2244,24 +2335,33 @@ socket_connect_by_name(const gchar *host, guint16 port, enum socket_type type)
  * resource of `type'.
  */
 struct gnutella_socket *
-socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
+socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
 {
-	/* Create a socket, then bind() and listen() it */
-
-	int sd, option;
-	socket_addr_t addr;
 	struct gnutella_socket *s;
+	const struct sockaddr *sa;
+	socket_addr_t addr;
+	host_addr_t haddr;
+	socklen_t sa_len;
+	int sd, option;
+
+	/* Create a socket, then bind() and listen() it */
 
  	if (port < 1024)
 		return NULL;
 	
-	sd = socket(SOCKET_AF, SOCK_STREAM, 0);
-	if (sd == -1) {
+	haddr = is_host_addr(ha) ? ha : host_addr_set_ip4(INADDR_ANY);
+
+	g_message("net=%u:%u", haddr.net, haddr.addr.ip4);
+	g_assert(NET_TYPE_IP4 == haddr.net);
+	socket_addr_set(&addr, haddr, port);
+
+	sd = socket(host_addr_family(haddr), SOCK_STREAM, 0);
+	if (-1 == sd) {
 		g_warning("Unable to create a socket (%s)", g_strerror(errno));
 		return NULL;
 	}
 
-	s = (struct gnutella_socket *) walloc0(sizeof *s);
+	s = walloc0(sizeof *s);
 
 	s->type = type;
 	s->direction = SOCK_CONN_LISTENING;
@@ -2278,13 +2378,14 @@ socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
 
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
 
-	socket_addr_set(&addr, ip ? ip : INADDR_ANY, port);
+	s->net = host_addr_net(haddr);
 
 	/* bind() the socket */
 
-	if (bind(sd, (struct sockaddr *) &addr, sizeof addr) == -1) {
+	sa_len = socket_addr_get(&addr, &sa);
+	if (-1 == bind(sd, sa, sa_len)) {
 		g_warning("Unable to bind() the socket on port %u (%s)",
-				  (unsigned int) port, g_strerror(errno));
+				  (guint) port, g_strerror(errno));
 		socket_destroy(s, "Unable to bind socket");
 		return NULL;
 	}
@@ -2299,10 +2400,10 @@ socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
 
 	/* Get the port of the socket, if needed */
 
-	if (!port) {
-		socklen_t len = sizeof addr;
-
-		if (getsockname(sd, (struct sockaddr *) &addr, &len) == -1) {
+	if (port) {
+		s->local_port = port;
+	} else {
+		if (0 != socket_addr_getsockname(&addr, sd)) {
 			g_warning("Unable to get the port of the socket: "
 				"getsockname() failed (%s)", g_strerror(errno));
 			socket_destroy(s, "Can't probe socket for port");
@@ -2310,8 +2411,7 @@ socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
 		}
 
 		s->local_port = socket_addr_get_port(&addr);
-	} else
-		s->local_port = port;
+	}
 
 #ifdef USE_TLS
 	s->tls.enabled = TRUE;
@@ -2327,27 +2427,34 @@ socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
  * Creates a non-blocking listening UDP socket.
  */
 struct gnutella_socket *
-socket_udp_listen(guint32 ip, guint16 port)
+socket_udp_listen(const host_addr_t ha, guint16 port)
 {
+	struct gnutella_socket *s;
+	const struct sockaddr *sa;
+	socket_addr_t addr;
+	host_addr_t haddr;
+	socklen_t sa_len;
+	int sd, option;
+
+	haddr = is_host_addr(ha) ? ha : host_addr_set_ip4(INADDR_ANY);
+	socket_addr_set(&addr, haddr, port);
+
 	/* Create a socket, then bind() it */
 
-	int sd, option;
-	socket_addr_t addr;
-	struct gnutella_socket *s;
-
-	sd = socket(SOCKET_AF, SOCK_DGRAM, 0);
-	if (sd == -1) {
+	sd = socket(host_addr_family(haddr), SOCK_DGRAM, 0);
+	if (-1 == sd) {
 		g_warning("Unable to create a socket (%s)", g_strerror(errno));
 		return NULL;
 	}
 
-	s = (struct gnutella_socket *) walloc0(sizeof *s);
+	s = walloc0(sizeof *s);
 
 	s->type = SOCK_TYPE_UDP;
 	s->direction = SOCK_CONN_LISTENING;
 	s->file_desc = sd;
 	s->pos = 0;
 	s->flags |= SOCK_F_UDP;
+	s->net = host_addr_net(haddr);
 
 	socket_wio_link(s);				/* Link to the I/O functions */
 
@@ -2355,12 +2462,11 @@ socket_udp_listen(guint32 ip, guint16 port)
 	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof option);
 
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
-
-	socket_addr_set(&addr, ip ? ip : INADDR_ANY, port);
-
+	
 	/* bind() the socket */
 
-	if (bind(sd, (struct sockaddr *) &addr, sizeof addr) == -1) {
+	sa_len = socket_addr_get(&addr, &sa);
+	if (-1 == bind(sd, sa, sa_len)) {
 		g_warning("Unable to bind() the socket on port %u (%s)",
 				  port, g_strerror(errno));
 		socket_destroy(s, "Unable to bind socket");
@@ -2372,14 +2478,14 @@ socket_udp_listen(guint32 ip, guint16 port)
 	 * of the datagrams we receive.
 	 */
 
-	s->resource.handle = walloc(sizeof(struct udp_addr));
+	s->resource.handle = walloc(sizeof(socket_addr_t));
 
 	/* Get the port of the socket, if needed */
 
-	if (!port) {
-		socklen_t len = sizeof addr;
-
-		if (getsockname(sd, (struct sockaddr *) &addr, &len) == -1) {
+	if (port) {
+		s->local_port = port;
+	} else {
+		if (0 != socket_addr_getsockname(&addr, sd)) {
 			g_warning("Unable to get the port of the socket: "
 				"getsockname() failed (%s)", g_strerror(errno));
 			socket_destroy(s, "Can't probe socket for port");
@@ -2387,8 +2493,7 @@ socket_udp_listen(guint32 ip, guint16 port)
 		}
 
 		s->local_port = socket_addr_get_port(&addr);
-	} else
-		s->local_port = port;
+	}
 
 	s->gdk_tag = inputevt_add(sd, INPUT_EVENT_READ, socket_udp_accept, s);
 
@@ -2607,6 +2712,8 @@ socket_plain_sendto(
 	struct wrap_io *wio, gnet_host_t *to, gconstpointer buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
+	const struct sockaddr *sa;
+	socklen_t sa_len;
 	socket_addr_t addr;
 	ssize_t ret;
 
@@ -2614,10 +2721,11 @@ socket_plain_sendto(
 	g_assert(!SOCKET_USES_TLS(s));
 #endif
 
-	socket_addr_set(&addr, to->ip, to->port);
+	g_assert(host_addr_net(to->addr) == s->net);
+	socket_addr_set(&addr, to->addr, to->port);
+	sa_len = socket_addr_get(&addr, &sa);
 
-	ret = sendto(s->file_desc, buf, size, 0,
-		(const struct sockaddr *) &addr, sizeof addr);
+	ret = sendto(s->file_desc, buf, size, 0, sa, sa_len);
 	
 	if ((ssize_t) -1 == ret && udp_debug) {
 		gint e = errno;

@@ -334,8 +334,8 @@ on_popup_downloads_abort_host_activate(GtkMenuItem *unused_menuitem,
 
    	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-		removed += guc_download_remove_all_from_peer
-			(download_guid(d), download_ip(d), download_port(d), FALSE);
+		removed += guc_download_remove_all_from_peer(download_guid(d),
+						download_addr(d), download_port(d), FALSE);
 	}
 	g_slist_free(selected);
 
@@ -490,7 +490,7 @@ on_popup_downloads_connect_activate(GtkMenuItem *unused_menuitem,
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-   		guc_node_add(download_ip(d), download_port(d));
+   		guc_node_add(download_addr(d), download_port(d));
    	}
 	g_slist_free(selected);
 }
@@ -601,7 +601,7 @@ on_popup_queue_abort_host_activate(GtkMenuItem *unused_menuitem,
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
 		removed += guc_download_remove_all_from_peer(
-				download_guid(d), download_ip(d), download_port(d), FALSE);
+				download_guid(d), download_addr(d), download_port(d), FALSE);
 	}
 	g_slist_free(selected);
 
@@ -674,7 +674,7 @@ on_popup_queue_connect_activate(GtkMenuItem *unused_menuitem,
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-    	guc_node_add(download_ip(d), download_port(d));
+    	guc_node_add(download_addr(d), download_port(d));
 	}
 	g_slist_free(selected);
 }

@@ -327,10 +327,10 @@ nodes_gui_add_node(gnet_node_info_t *n)
 
     g_assert(n != NULL);
 
-   	gm_snprintf(proto_tmp, sizeof(proto_tmp), "%d.%d",
+   	gm_snprintf(proto_tmp, sizeof proto_tmp, "%d.%d",
 		n->proto_major, n->proto_minor);
 
-    titles[c_gnet_host]       = ip_port_to_gchar(n->ip, n->port);
+    titles[c_gnet_host]       = host_addr_port_to_string(n->addr, n->port);
     titles[c_gnet_flags]      = "...";
     titles[c_gnet_user_agent] = n->vendor ? n->vendor : "...";
     titles[c_gnet_loc]        = iso3166_country_cc(n->country);

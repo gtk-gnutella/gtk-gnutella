@@ -429,7 +429,7 @@ hsep_connection_init(struct gnutella_node *n)
 
 	if (hsep_debug > 1)
 		printf("HSEP: Initializing node %s\n",
-			ip_port_to_gchar(n->ip, n->port));
+			host_addr_port_to_string(n->addr, n->port));
 
 	n->hsep = walloc(sizeof *n->hsep);
 	*n->hsep = zero_hsep; /* Initializes everything to 0 */
@@ -521,7 +521,7 @@ hsep_connection_close(struct gnutella_node *n)
 
 	if (hsep_debug > 1)
 		printf("HSEP: Deinitializing node %s\n",
-			ip_port_to_gchar(n->ip, n->port));
+			host_addr_port_to_string(n->addr, n->port));
 
 	for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++) {
 
@@ -571,7 +571,7 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 	if (length == 0) {   /* error, at least 1 triple must be present */
 		if (hsep_debug > 1)
 			printf("HSEP: Node %s sent empty message\n",
-				ip_port_to_gchar(n->ip, n->port));
+				host_addr_port_to_string(n->addr, n->port));
 
 		return;
 	}
@@ -579,7 +579,7 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 	if (length % 24) {   /* error, # of triples not an integer */
 		if (hsep_debug > 1)
 			printf("HSEP: Node %s sent broken message\n",
-				ip_port_to_gchar(n->ip, n->port));
+				host_addr_port_to_string(n->addr, n->port));
 
 		return;
 	}
@@ -591,7 +591,7 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 		if (hsep_debug > 1) {
 			printf(
 				"HSEP: Node %s is a leaf, but sent %u triples instead of 1\n",
-				ip_port_to_gchar(n->ip, n->port), msgmax);
+				host_addr_port_to_string(n->addr, n->port), msgmax);
 		}
 		return;
 	}
@@ -617,14 +617,14 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 	if (messaget[0][HSEP_IDX_NODES] != 1) { /* # of nodes for 1 hop must be 1 */
 		if (hsep_debug > 1)
 			printf("HSEP: Node %s's message's #nodes for 1 hop is not 1\n",
-				ip_port_to_gchar(n->ip, n->port));
+				host_addr_port_to_string(n->addr, n->port));
 		return;
 	}
 
 	if (!hsep_check_monotony(messaget, max)) {
 		if (hsep_debug > 1)
 			printf("HSEP: Node %s's message's monotony check failed\n",
-				ip_port_to_gchar(n->ip, n->port));
+				host_addr_port_to_string(n->addr, n->port));
 
 		return;
 	}
@@ -632,7 +632,7 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 	if (hsep_debug > 1) {
 		printf("HSEP: Received %d %s from node %s (msg #%u): ", max,
 		    max == 1 ? "triple" : "triples",
-			ip_port_to_gchar(n->ip, n->port),
+			host_addr_port_to_string(n->addr, n->port),
 			hsep->msgs_received + 1);
 	}
 
@@ -782,7 +782,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 	if (hsep_debug > 1) {
 		printf("HSEP: Sending %d %s to node %s (msg #%u): ", opttriples,
 		    opttriples == 1 ? "triple" : "triples",
-			ip_port_to_gchar(n->ip, n->port),
+			host_addr_port_to_string(n->addr, n->port),
 			hsep->msgs_sent + 1);
 	}
 

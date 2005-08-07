@@ -284,7 +284,7 @@ void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 
 	if (dbg > 4)
 		gmsg_log_dropped(&n->header, "from %s <%s>: %s",
-			node_ip(n), node_vendor(n), msg_drop_reason[reason]);
+			node_addr(n), node_vendor(n), msg_drop_reason[reason]);
 }
 
 void gnet_stats_count_general(gnr_stats_t type, guint32 x)
@@ -309,7 +309,7 @@ void gnet_stats_count_dropped_nosize(
 
 	if (dbg > 4)
 		gmsg_log_dropped(&n->header, "from %s <%s>: %s",
-			node_ip(n), node_vendor(n), msg_drop_reason[reason]);
+			node_addr(n), node_vendor(n), msg_drop_reason[reason]);
 }
 
 void gnet_stats_count_flowc(gpointer head)

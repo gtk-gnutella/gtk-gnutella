@@ -630,7 +630,7 @@ download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 	need_push = (rs->status & ST_FIREWALL) != 0;
 
 	filename = gm_sanitize_filename(rc->name, FALSE, FALSE);
-	guc_download_new(filename, rc->size, rc->index, rs->ip,
+	guc_download_new(filename, rc->size, rc->index, rs->addr,
 		rs->port, rs->guid, rs->hostname,
 		rc->sha1, rs->stamp, need_push, NULL, rs->proxies);
 

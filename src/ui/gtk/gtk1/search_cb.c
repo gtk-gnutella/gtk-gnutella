@@ -204,8 +204,8 @@ search_gui_set_details(record_t *rc)
 		gtk_entry_set_text(info_source, hostname_port_to_gchar(
 			rc->results_set->hostname, rc->results_set->port));
 	else
-		gtk_entry_set_text(info_source, ip_port_to_gchar(
-			rc->results_set->ip, rc->results_set->port));
+		gtk_entry_set_text(info_source, host_addr_port_to_string(
+			rc->results_set->addr, rc->results_set->port));
 
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s)",
 		iso3166_country_name(rc->results_set->country),

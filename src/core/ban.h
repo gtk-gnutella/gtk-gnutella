@@ -53,12 +53,12 @@ typedef enum {
 
 void ban_init(void);
 void ban_close(void);
-ban_type_t ban_allow(guint32 ip);
-void ban_record(guint32 ip, const gchar *msg);
+ban_type_t ban_allow(const host_addr_t addr);
+void ban_record(const host_addr_t addr, const gchar *msg);
 void ban_force(struct gnutella_socket *s);
-gint ban_delay(guint32 ip);
-gchar *ban_message(guint32 ip);
-gboolean ban_is_banned(guint32 ip);
+gint ban_delay(const host_addr_t addr);
+gchar *ban_message(const host_addr_t addr);
+gboolean ban_is_banned(const host_addr_t addr);
 void ban_max_recompute(void);
 
 const gchar *ban_vendor(const gchar *vendor);

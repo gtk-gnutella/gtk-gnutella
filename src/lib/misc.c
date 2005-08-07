@@ -41,6 +41,7 @@ RCSID("$Id$");
 #include <sys/times.h>			/* For times() */
 
 #include "base32.h"
+#include "endian.h"
 #include "misc.h"
 #include "glib-missing.h"
 #include "sha1.h"
@@ -222,28 +223,112 @@ file_exists(const gchar *f)
     return stat(f, &st) != -1;
 }
 
-gchar *
-ip_to_gchar(guint32 ip)
+const gchar *
+host_addr_to_string_buf(const host_addr_t ha, gchar *dst, size_t size)
 {
-	static gchar a[32];
-	struct in_addr ia;
-	ia.s_addr = htonl(ip);
-	g_strlcpy(a, inet_ntoa(ia), sizeof(a));
-	return a;
+	switch (host_addr_net(ha)) {
+	case NET_TYPE_IP4:
+		{
+			struct in_addr ia;
+
+			ia.s_addr = htonl(host_addr_ip4(ha));
+			g_strlcpy(dst, inet_ntoa(ia), size);
+			return dst;
+		}
+		break;
+
+#if defined(USE_IPV6)
+	case NET_TYPE_IP6:
+		{
+			gchar buf[64];
+			gchar *q = buf;
+			guint i;
+
+			for (i = 0; i < G_N_ELEMENTS(ha.addr.ip6); i += 2) {
+				guint8 a = ha.addr.ip6[i], b = ha.addr.ip6[i + 1];
+
+				if (0 != i)
+					*q++ = ':';
+				
+				if (0 != a) {
+					if (0xf0 & a)
+						*q++ = hex_alphabet_lower[a >> 4];
+					if (0x0f & a)
+						*q++ = hex_alphabet_lower[a & 0xf];
+					*q++ = hex_alphabet_lower[b >> 4];
+				} else if (0xf0 & b) {
+					*q++ = hex_alphabet_lower[b >> 4];
+				}
+				*q++ = hex_alphabet_lower[b & 0xf];
+			}
+			*q = '\0';
+
+			g_strlcpy(dst, buf, size);
+			return dst;
+		}
+		break;
+
+	case NET_TYPE_NONE:
+		g_strlcpy(dst, "<none>", size);
+		return dst;
+#endif /* USE_IPV6*/
+	}
+
+	g_assert_not_reached();
+	return NULL;
+}
+
+const gchar *
+host_addr_to_string(const host_addr_t ha)
+{
+	static gchar buf[128];
+
+	host_addr_to_string_buf(ha, buf, sizeof buf);
+	return buf;
+}
+
+const gchar *
+host_addr_port_to_string_buf(const host_addr_t ha, guint16 port,
+		gchar *buf, size_t size)
+{
+	gchar host[64];
+
+	host_addr_to_string_buf(ha, host, sizeof host);
+	gm_snprintf(buf, size,
+		NET_TYPE_IP6 == host_addr_net(ha) ? "[%s]:%u" : "%s:%u",
+		host, (guint) port);
+	
+	return buf;
+}
+
+const gchar *
+host_addr_port_to_string(const host_addr_t ha, guint16 port)
+{
+	static gchar buf[128];
+
+	host_addr_port_to_string_buf(ha, port, buf, sizeof buf);
+	return buf;
+}
+
+host_addr_t
+string_to_host_addr(const char *s)
+{
+	host_addr_t ha;
+	guint32 ip;
+
+	g_assert(s);
+
+	if (0 != (ip = gchar_to_ip(s))) {
+		ha = host_addr_set_ip4(ip);
+		return ha;
+	} else {
+		/* XXX: Check for IPv6 address */
+		return zero_host_addr;
+	}
 }
 
 gchar *
-ip2_to_gchar(guint32 ip)
-{
-	static gchar a[32];
-	struct in_addr ia;
-	ia.s_addr = htonl(ip);
-	g_strlcpy(a, inet_ntoa(ia), sizeof(a));
-	return a;
-}
-
-void
-ip_to_string(guint32 ip, gchar *buf, size_t size)
+ip_to_string_buf(guint32 ip, gchar *buf, size_t size)
 {
 	struct in_addr ia;
 
@@ -252,10 +337,29 @@ ip_to_string(guint32 ip, gchar *buf, size_t size)
 
 	ia.s_addr = htonl(ip);
 	g_strlcpy(buf, inet_ntoa(ia), size);
+	return buf;
 }
 
-gchar *
-ip_port_to_gchar(guint32 ip, guint16 port)
+const gchar *
+ip_to_string(guint32 ip)
+{
+	static gchar buf[32];
+
+	ip_to_string_buf(ip, buf, sizeof buf);
+	return buf;
+}
+
+const gchar *
+ip_to_string2(guint32 ip)
+{
+	static gchar buf[32];
+
+	ip_to_string_buf(ip, buf, sizeof buf);
+	return buf;
+}
+
+const gchar *
+ip_port_to_string(guint32 ip, guint16 port)
 {
 	static gchar a[32];
 	size_t len;
@@ -268,7 +372,7 @@ ip_port_to_gchar(guint32 ip, guint16 port)
 	return a;
 }
 
-gchar *
+const gchar *
 hostname_port_to_gchar(const gchar *hostname, guint16 port)
 {
 	static gchar a[300];
@@ -378,7 +482,7 @@ gchar_to_ip_strict(const gchar *s, guint32 *addr, gchar const **endptr)
  * @return TRUE if it parsed correctly, FALSE otherwise.
  */
 gboolean
-gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port)
+string_to_ip_port(const gchar *str, guint32 *ip, guint16 *port)
 {
 	gint a, b, c, d;
 	gint iport;
@@ -400,6 +504,20 @@ gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port)
 	return TRUE;
 }
 
+gboolean
+string_to_host_addr_port(const gchar *str, host_addr_t *ha, guint16 *port)
+{
+	guint32 ip;
+
+	if (string_to_ip_port(str, &ip, port)) {
+		*ha = host_addr_set_ip4(ip);
+		return TRUE;
+	} else {
+		/* XXX: Check for IPv6 address */
+		return FALSE;
+	}
+}
+	
 static void
 gethostbyname_error(const gchar *host)
 {
@@ -414,20 +532,44 @@ gethostbyname_error(const gchar *host)
 }
 
 const gchar *
-ip_to_host(guint32 ip)
+host_addr_to_name(const host_addr_t ha)
 {
-	static const struct in_addr zero_addr;
-	struct in_addr addr;
 	const struct hostent *he;
+	struct in_addr ipv4_addr;
+	gconstpointer addr;
+	int type;
 
-	addr = zero_addr;
-	addr.s_addr = (guint32) htonl(ip);
-	he = gethostbyaddr((gchar *) &addr, sizeof addr, AF_INET);
+	switch (host_addr_net(ha)) {
+	case NET_TYPE_IP4:
+		{
+			static const struct in_addr zero_addr;
+			
+			type = AF_INET;
+			ipv4_addr = zero_addr;
+			ipv4_addr.s_addr = htonl(host_addr_ip4(ha));
+			addr = cast_to_gpointer(&ipv4_addr);
+		}
+		break;
+
+#ifdef USE_IPV6	
+	case NET_TYPE_IP6:
+		type = AF_INET6;
+		addr = host_addr_ip6(&ha);
+		break;
+#endif /* USE_IPV6 */
+		
+	default:
+		addr = NULL;
+		type = 0;
+		g_assert_not_reached();
+	}
+	
+	he = gethostbyaddr(addr, sizeof addr, type);
 	if (!he) {
-		gchar host[32];
+		gchar buf[128];
 
-		ip_to_string(ip, host, sizeof host);
-		gethostbyname_error(host);
+		host_addr_to_string_buf(ha, buf, sizeof buf);
+		gethostbyname_error(buf);
 		return NULL;
 	}
 
@@ -444,14 +586,16 @@ ip_to_host(guint32 ip)
 	return he->h_name;
 }
 
-guint32
-host_to_ip(const gchar *host)
+host_addr_t
+name_to_host_addr(const gchar *host)
 {
-	const struct hostent *he = gethostbyname(host);
+	const struct hostent *he;
+	host_addr_t ha;
 
+   	he = gethostbyname(host);
 	if (!he) {
 		gethostbyname_error(host);
-		return 0;
+		return zero_host_addr;
 	}
 
 #if 0
@@ -464,36 +608,43 @@ host_to_ip(const gchar *host)
 	}
 #endif
 
-#ifdef USE_IPV6_HACK
-	if (AF_INET6 == he->h_addrtype && he->h_length == 16) {
-		guint32 ip;
-		memcpy(&ip, &he->h_addr_list[0][12], 4);
-		return ip;
-	}
-#endif /* USE_IPV6_HACK */
+	switch (he->h_addrtype) {
+	case AF_INET:
+		if (4 != he->h_length) {
+			g_warning("host_to_addr: Wrong length of IPv4 address "
+				"(host=\"%s\")", host);
+			return zero_host_addr;
+		}
 
-	if (AF_INET != he->h_addrtype) {
-		g_warning("host_to_ip: Wrong address type %d (host=%s).",
-			he->h_addrtype, host);
-		return 0;
+		ha = host_addr_set_ip4(peek_be32(he->h_addr_list[0]));
+		g_assert(peek_be32(he->h_addr_list[0]) == ha.addr.ip4);
+		g_assert(NET_TYPE_IP4 == ha.net);
+		return ha;
+		
+#ifdef USE_IPV6
+	case AF_INET6:
+		if (16 != he->h_length) {
+			g_warning("host_to_addr: Wrong length of IPv6 address "
+				"(host=\"%s\")", host);
+			return zero_host_addr;
+		}
+		host_addr_set_ip6(&ha, cast_to_gconstpointer(he->h_addr_list[0]));
+		return ha;
+#endif /* !USE_IPV6 */
 	}
-	if (4 != he->h_length) {
-		g_warning("host_to_ip: Wrong address length %d (host=%s).",
-			he->h_length, host);
-		return 0;
-	}
-	return ntohl(*(guint32 *) (he->h_addr_list[0]));
+	
+	return zero_host_addr;
 }
 
 /**
  * @returns local host name, as pointer to static data.
  */
-gchar *
-host_name(void)
+const gchar *
+local_hostname(void)
 {
 	static gchar name[256 + 1];
 
-	if (-1 == gethostname(name, sizeof(name)))
+	if (-1 == gethostname(name, sizeof name))
 		g_warning("gethostname() failed: %s", g_strerror(errno));
 
 	name[sizeof(name) - 1] = '\0';
@@ -505,21 +656,29 @@ host_name(void)
  * We rule out IPs of private networks, plus some other invalid combinations.
  */
 gboolean
-ip_is_valid(guint32 ip)
+addr_is_valid(const host_addr_t ha)
 {
-	if ((!ip) ||			/* IP == 0 */
-		(is_private_ip(ip)) ||
-		/* 0.0.0.0 / 7 */
-		((ip & (guint32) 0xFE000000) == (guint32) 0x00000000) ||
-		/* 224..239.0.0 / 8 (multicast) */
-		((ip & (guint32) 0xF0000000) == (guint32) 0xE0000000) ||
-		/* 127.0.0.0 / 8 */
-		((ip & (guint32) 0xFF000000) == (guint32) 0x7F000000) ||
-		/* 192.0.2.0 -- (192.0.2/24 prefix) TEST-NET [RFC 3330] */
-		((ip & 0xFFFFFF00) == 0xC0000200) ||
-		/* 255.0.0.0 / 8 */
-		((ip & (guint32) 0xFF000000) == (guint32) 0xFF000000))
+	if (!is_host_addr(ha) || is_private_addr(ha))
+		return FALSE;
+	
+	if (NET_TYPE_IP4 == host_addr_net(ha)) {
+		guint32 ip = host_addr_ip4(ha);
+
+		if ((!ip) ||			/* IP == 0 */
+			/* 0.0.0.0 / 7 */
+			((ip & (guint32) 0xFE000000) == (guint32) 0x00000000) ||
+			/* 224..239.0.0 / 8 (multicast) */
+			((ip & (guint32) 0xF0000000) == (guint32) 0xE0000000) ||
+			/* 127.0.0.0 / 8 */
+			((ip & (guint32) 0xFF000000) == (guint32) 0x7F000000) ||
+			/* 192.0.2.0 -- (192.0.2/24 prefix) TEST-NET [RFC 3330] */
+			((ip & 0xFFFFFF00) == 0xC0000200) ||
+			/* 255.0.0.0 / 8 */
+			((ip & (guint32) 0xFF000000) == (guint32) 0xFF000000))
 			return FALSE;
+	} else if (NET_TYPE_IP6 == host_addr_net(ha)) {
+		/* XXX: Implement this! */
+	}	
 
 	return TRUE;
 }
@@ -558,23 +717,29 @@ str_chomp(gchar *str, gint len)
  * @return TRUE if is a private address.
  */
 gboolean
-is_private_ip(guint32 ip)
+is_private_addr(const host_addr_t ha)
 {
-	/* 10.0.0.0 -- (10/8 prefix) */
-	if ((ip & 0xff000000) == 0xa000000)
-		return TRUE;
+	if (NET_TYPE_IP4 == host_addr_net(ha)) {
+		guint32 ip = ntohl(host_addr_ip4(ha));
 
-	/* 172.16.0.0 -- (172.16/12 prefix) */
-	if ((ip & 0xfff00000) == 0xac100000)
-		return TRUE;
+		/* 10.0.0.0 -- (10/8 prefix) */
+		if ((ip & 0xff000000) == 0xa000000)
+			return TRUE;
 
-	/* 169.254.0.0 -- (169.254/16 prefix) -- since Jan 2001 */
-	if ((ip & 0xffff0000) == 0xa9fe0000)
-		return TRUE;
+		/* 172.16.0.0 -- (172.16/12 prefix) */
+		if ((ip & 0xfff00000) == 0xac100000)
+			return TRUE;
 
-	/* 192.168.0.0 -- (192.168/16 prefix) */
-	if ((ip & 0xffff0000) == 0xc0a80000)
-		return TRUE;
+		/* 169.254.0.0 -- (169.254/16 prefix) -- since Jan 2001 */
+		if ((ip & 0xffff0000) == 0xa9fe0000)
+			return TRUE;
+
+		/* 192.168.0.0 -- (192.168/16 prefix) */
+		if ((ip & 0xffff0000) == 0xc0a80000)
+			return TRUE;
+	} else if (NET_TYPE_IP6 == host_addr_net(ha)) {
+		/* XXX: Implement this! */
+	}
 
 	return FALSE;
 }

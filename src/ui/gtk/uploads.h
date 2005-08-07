@@ -39,7 +39,7 @@ typedef struct upload_row_data {
     upload_stage_t status;      /**< last known status */
 #ifdef USE_GTK2
     GtkTreeIter   iter;
-	guint32       ip;
+	host_addr_t   addr;
 	filesize_t    size;
 	gboolean      push;
 	gchar         *user_agent;	/**< atom */

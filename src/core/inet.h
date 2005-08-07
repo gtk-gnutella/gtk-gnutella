@@ -36,7 +36,7 @@
 #ifndef _core_inet_h_
 #define _core_inet_h_
 
-#include <glib.h>
+#include "common.h"
 
 /*
  * Public interface.
@@ -50,13 +50,13 @@ void inet_udp_firewalled(void);
 
 gboolean inet_can_answer_ping(void);
 
-void inet_got_incoming(guint32 ip);
+void inet_got_incoming(const host_addr_t addr);
 void inet_read_activity(void);
-void inet_udp_got_incoming(guint32 ip);
-void inet_udp_record_sent(guint32 ip);
+void inet_udp_got_incoming(const host_addr_t addr);
+void inet_udp_record_sent(const host_addr_t addr);
 
-void inet_connection_attempted(guint32 ip);
-void inet_connection_succeeded(guint32 ip);
+void inet_connection_attempted(const host_addr_t addr);
+void inet_connection_succeeded(const host_addr_t addr);
 
 #endif /* _core_inet_h_ */
 

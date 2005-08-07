@@ -407,8 +407,8 @@ settings_remove_pidfile(void)
  *
  *		--RAM, 13/01/2002
  *
- * @param `new_ip'	no brief description.
- * @param `peer_ip' the IP address of peer which reported the new IP address.
+ * @param `new_addr' the newly suggested address.
+ * @param `peer_addr' the IP address of peer which reported the new IP address.
  *
  * There must be 3 peers from 3 different /16 networks before a change is
  * accepted. Otherwise, it would be very easy to confuse GTKG by connecting
@@ -417,24 +417,25 @@ settings_remove_pidfile(void)
  *		--cbiere, 2004-08-01
  */
 void
-settings_ip_changed(guint32 new_ip, guint32 peer_ip)
+settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer_addr)
 {
-	static guint32 last_ip_seen = 0;
-	static guint same_ip_count = 0;
-	static guint32 peers[3];
+	static const guint32 mask = 0xffff0000; /* CIDR /16 */
+	static guint same_addr_count = 0;
+	static host_addr_t peers[3], last_addr_seen;
+	host_addr_t peer = peer_addr; 
 	guint i;
 
-	g_assert(!force_local_ip);		/* Must be called when IP isn't forced */
-	g_assert(new_ip != 0);			/* The new IP must be valid */
+	g_assert(!force_local_addr);	  /* Must be called when IP isn't forced */
+	g_assert(is_host_addr(new_addr)); /* The new IP must be valid */
 
-	if (!ip_is_valid(new_ip) || !ip_is_valid(peer_ip))
+	if (!addr_is_valid(new_addr) || !addr_is_valid(peer))
 		return;
 
 	/*
 	 * Don't accept updates for private addresses from non-private addresses
 	 * and vice-versa.
 	 */
-	if (is_private_ip(new_ip) ^ is_private_ip(peer_ip))
+	if (is_private_addr(new_addr) ^ is_private_addr(peer))
 		return;
 
 	/*
@@ -442,40 +443,41 @@ settings_ip_changed(guint32 new_ip, guint32 peer_ip)
 	 * network; addresses are in host byte order.
 	 */
 	if (
-		is_private_ip(new_ip) &&
-		is_private_ip(peer_ip) &&
-		(peer_ip & 0xffff0000) != (new_ip & 0xffff0000)
+		is_private_addr(new_addr) &&
+		is_private_addr(peer) &&
+		(host_addr_ip4(peer) & mask) != (host_addr_ip4(new_addr) & mask)
 	) {
 		return;
 	}
 
-	peer_ip &= 0xffff0000;	/* One vote per /16 network; host byte order! */
+	/* One vote per /16 network; host byte order! */
+	peer = host_addr_set_ip4(host_addr_ip4(peer) & mask);
 	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
-		if (peers[i] == peer_ip)
+		if (host_addr_equal(peer, peers[i]))
 			return;
 	}
 
-	if (new_ip != last_ip_seen) {
-		last_ip_seen = new_ip;
-		same_ip_count = 1;
-		peers[0] = peer_ip;
+	if (!host_addr_equal(new_addr, last_addr_seen)) {
+		last_addr_seen = new_addr;
+		same_addr_count = 1;
+		peers[0] = peer;
 		return;
 	}
 
-	g_assert(same_ip_count > 0 && same_ip_count < G_N_ELEMENTS(peers));
-	peers[same_ip_count] = peer_ip;
+	g_assert(same_addr_count > 0 && same_addr_count < G_N_ELEMENTS(peers));
+	peers[same_addr_count] = peer;
 
-	if (++same_ip_count < G_N_ELEMENTS(peers))
+	if (++same_addr_count < G_N_ELEMENTS(peers))
 		return;
 
-	last_ip_seen = 0;
-	same_ip_count = 0;
+	last_addr_seen = zero_host_addr;
+	same_addr_count = 0;
 	memset(peers, 0, sizeof peers);
 
-	if (new_ip == local_ip)
+	if (host_addr_equal(new_addr, string_to_host_addr(local_addr)))
 		return;
 
-    gnet_prop_set_guint32_val(PROP_LOCAL_IP, new_ip);
+    gnet_prop_set_string(PROP_LOCAL_ADDR, host_addr_to_string(new_addr));
 }
 
 /**
@@ -808,7 +810,7 @@ enable_udp_changed(property_t prop)
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		if (s_udp_listen == NULL && listen_port)
-			s_udp_listen = socket_udp_listen(0, listen_port);
+			s_udp_listen = socket_udp_listen(zero_host_addr, listen_port);
 	} else {
 		if (s_udp_listen) {
 			socket_free(s_udp_listen);
@@ -888,7 +890,8 @@ listen_port_changed(property_t prop)
 		 */
 
 		if (listen_port)
-			s_tcp_listen = socket_tcp_listen(0, listen_port, SOCK_TYPE_CONTROL);
+			s_tcp_listen = socket_tcp_listen(zero_host_addr,
+								listen_port, SOCK_TYPE_CONTROL);
 
 		/*
 		 * If UDP is enabled, also listen on the same UDP port.
@@ -896,7 +899,7 @@ listen_port_changed(property_t prop)
 
 		if (enable_udp) {
 			if (listen_port)
-				s_udp_listen = socket_udp_listen(0, listen_port);
+				s_udp_listen = socket_udp_listen(zero_host_addr, listen_port);
 			if (random_port && s_udp_listen == NULL) {
 				socket_free(s_tcp_listen);
 				s_tcp_listen = NULL;
@@ -1416,27 +1419,6 @@ file_descriptor_x_changed(property_t prop)
     return FALSE;
 }
 
-/**
- * This is only necessary to migrate the old PROP_PROXY_IP to
- * PROP_PROXY_HOSTNAME and should be removed in a future release.
- *    -- cbiere, 2004-06-29
- */
-static gboolean
-proxy_ip_changed(property_t prop)
-{
-	guint32 ip;
-
-	gnet_prop_get_guint32_val(prop, &ip);
-	if (ip) {
-		gchar *hostname = gnet_prop_get_string(PROP_PROXY_HOSTNAME, NULL, 0);
-
-		if (hostname[0] == '\0')
-			gnet_prop_set_string(PROP_PROXY_HOSTNAME, ip_to_gchar(ip));
-    	G_FREE_NULL(hostname);
-	}
-    return FALSE;
-}
-
 /***
  *** Property-to-callback map
  ***/
@@ -1649,11 +1631,6 @@ static prop_map_t property_map[] = {
 		PROP_FILE_DESCRIPTOR_RUNOUT,
 		file_descriptor_x_changed,
 		FALSE,
-	},
-	{
-		PROP_PROXY_IP,
-		proxy_ip_changed,
-		TRUE,
 	},
 	{
 		PROP_ENABLE_UDP,

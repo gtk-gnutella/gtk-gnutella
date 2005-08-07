@@ -839,8 +839,8 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
         break;
     case RULE_IP:
         newxml = xml_new_empty_child(parent, NODE_RULE_IP);
-        xml_prop_set(newxml, TAG_RULE_IP_ADDR, ip_to_gchar(r->u.ip.addr));
-        xml_prop_set(newxml, TAG_RULE_IP_MASK, ip_to_gchar(r->u.ip.mask));
+        xml_prop_set(newxml, TAG_RULE_IP_ADDR, ip_to_string(r->u.ip.addr));
+        xml_prop_set(newxml, TAG_RULE_IP_MASK, ip_to_string(r->u.ip.mask));
         break;
     case RULE_SIZE:
 		{

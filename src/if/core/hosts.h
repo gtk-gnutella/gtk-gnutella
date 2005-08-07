@@ -26,11 +26,13 @@
 #ifndef _if_core_hosts_h_
 #define _if_core_hosts_h_
 
+#include "lib/misc.h" /* For host_addr_t addr */
+
 /**
  * A gnutella host.
  */
 typedef struct gnutella_host {
-	guint32 ip;
+	host_addr_t addr;
 	guint16 port;
 } gnet_host_t;
 

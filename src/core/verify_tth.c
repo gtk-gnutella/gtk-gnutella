@@ -326,7 +326,7 @@ tt_parse_header(struct download *d, header_t *header)
 #endif
 
 	download_new_uri(hash /* file */, uri /* uri */, 0 /* size */,
-		d->socket->ip, d->socket->port,
+		d->socket->addr, d->socket->port,
 #if 0
 		NULL, NULL,
 #endif

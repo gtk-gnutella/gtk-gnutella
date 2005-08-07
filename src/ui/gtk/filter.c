@@ -845,8 +845,8 @@ void filter_gui_edit_ip_rule(rule_t *r)
         return;
 
     if (r != NULL) {
-        ip     = g_strdup(ip_to_gchar(r->u.ip.addr));
-        mask   = g_strdup(ip_to_gchar(r->u.ip.mask));
+        ip     = g_strdup(ip_to_string(r->u.ip.addr));
+        mask   = g_strdup(ip_to_string(r->u.ip.mask));
         target = (gpointer) r->target;
         invert = RULE_IS_NEGATED(r);
         active = RULE_IS_ACTIVE(r);

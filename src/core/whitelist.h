@@ -54,7 +54,7 @@ struct whitelist {
     time_t last_try;
 };
 
-gboolean whitelist_check(guint32 ip);
+gboolean whitelist_check(const host_addr_t addr);
 void whitelist_init(void);
 void whitelist_close(void);
 guint whitelist_connect(void);

@@ -274,7 +274,7 @@ sq_clear(squeue_t *sq)
 
 	if (dbg > 3)
 		printf("clearing sq node %s (sent=%d, dropped=%d)\n",
-			sq->node ? node_ip(sq->node) : "GLOBAL",
+			sq->node ? node_addr(sq->node) : "GLOBAL",
 			sq->n_sent, sq->n_dropped);
 
 	for (l = sq->searches; l; l = g_list_next(l)) {
@@ -450,7 +450,7 @@ retry:
 
 		if (dbg > 2)
 			printf("sq for node %s, queuing \"%s\" (%u left, %d sent)\n",
-				node_ip(n), QUERY_TEXT(pmsg_start(sb->mb)),
+				node_addr(n), QUERY_TEXT(pmsg_start(sb->mb)),
 				sq->count, sq->n_sent);
 
 		/*
@@ -468,7 +468,7 @@ retry:
 	} else {
 		if (dbg > 4)
 			printf("sq for node %s, ignored \"%s\" (%u left, %d sent)\n",
-				node_ip(n), QUERY_TEXT(pmsg_start(sb->mb)),
+				node_addr(n), QUERY_TEXT(pmsg_start(sb->mb)),
 				sq->count, sq->n_sent);
 		pmsg_free(sb->mb);
 		if (sb->qhv)
@@ -514,7 +514,7 @@ cap_queue(squeue_t *sq)
 
 		if (dbg > 4)
 			printf("sq for node %s, dropped \"%s\" (%u left, %d dropped)\n",
-				node_ip(sq->node), QUERY_TEXT(pmsg_start(sb->mb)),
+				node_addr(sq->node), QUERY_TEXT(pmsg_start(sb->mb)),
 				sq->count, sq->n_dropped);
 
 		sqh_remove(sq, sb->shandle);
@@ -547,7 +547,7 @@ sq_search_closed(squeue_t *sq, gnet_search_t sh)
 
 		if (dbg > 4)
 			printf("sq for node %s, dropped \"%s\" on search close (%u left)\n",
-				sq->node ? node_ip(sq->node) : "GLOBAL",
+				sq->node ? node_addr(sq->node) : "GLOBAL",
 				QUERY_TEXT(pmsg_start(sb->mb)), sq->count);
 
 		sqh_remove(sq, sb->shandle);

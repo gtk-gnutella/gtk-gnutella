@@ -377,13 +377,13 @@ version_newer(const gchar *str, time_t stamp)
  * Check version of servent, and if it's a gtk-gnutella more recent than we
  * are, record that fact and change the status bar.
  *
- * The `ip' is being passed solely for the tok_version_valid() call.
+ * The `addr' is being passed solely for the tok_version_valid() call.
  *
  * @returns TRUE if we properly checked the version, FALSE if we got something
  * looking as gtk-gnutella but which failed the token-based sanity checks.
  */
 gboolean
-version_check(const gchar *str, const gchar *token, guint32 ip)
+version_check(const gchar *str, const gchar *token, const host_addr_t addr)
 {
 	version_t their_version;
 	version_t *target_version;
@@ -433,12 +433,12 @@ version_check(const gchar *str, const gchar *token, guint32 ip)
 			return FALSE;	/* Can't be correct */
 		}
 
-		error = tok_version_valid(str, token, strlen(token), ip);
+		error = tok_version_valid(str, token, strlen(token), addr);
 
 		if (error != TOK_OK) {
             if (dbg) {
                 g_message("vendor string \"%s\" [%s] has wrong token "
-                    "\"%s\": %s ", str, ip_to_gchar(ip), token,
+                    "\"%s\": %s ", str, host_addr_to_string(addr), token,
                     tok_strerror(error));
             }
 			return FALSE;

@@ -400,12 +400,16 @@ guid_query_muid_is_gtkg(
  * Byte 15 holds an HEC with bit 0 indicating a requery.
  */
 void
-guid_query_oob_muid(gchar *muid, guint32 ip, guint16 port, gboolean initial)
+guid_query_oob_muid(gchar *muid, const host_addr_t addr, guint16 port,
+	gboolean initial)
 {
+	guint32 ip;
+
 	guid_random_fill(muid);
 
-	WRITE_GUINT32_BE(ip, &muid[0]);
-	WRITE_GUINT16_LE(port, &muid[13]);
+	ip = host_addr_ip4(addr); /* @todo TODO: IPv6 */
+	poke_be32(&muid[0], ip);
+	poke_le16(&muid[13], port);
 
 	guid_flag_oob_gtkg(muid);		/* Mark as being from GTKG */
 
@@ -423,18 +427,17 @@ guid_query_oob_muid(gchar *muid, guint32 ip, guint16 port, gboolean initial)
  * Bytes 13 and 14 are the little endian representation of the port.
  */
 void
-guid_oob_get_ip_port(const gchar *guid, guint32 *ip, guint16 *port)
+guid_oob_get_addr_port(const gchar *guid, host_addr_t *addr, guint16 *port)
 {
-	if (ip) {
-		guint32 i;
-		READ_GUINT32_BE(&guid[0], i);
-		*ip = i;
+	if (addr) {
+		guint32 ip;
+
+		ip = peek_be32(&guid[0]);
+		*addr = host_addr_set_ip4(ip); /* @todo TODO: IPv6 */
 	}
 	if (port) {
-		guint16 p;
-		READ_GUINT16_LE(&guid[13], p);
-		*port = p;
+		*port = peek_le16(&guid[13]);
 	}
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

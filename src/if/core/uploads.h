@@ -68,7 +68,7 @@ typedef struct gnet_upload_info {
 
 	gchar  *name;        /**< Name of requested file */
 
-	guint32 ip;          /**< remote IP address */
+	host_addr_t addr;          /**< remote IP address */
 
 	filesize_t file_size;	/**< Size of requested file */
 	filesize_t range_start;	/**< First byte to send, inclusive */
@@ -135,7 +135,7 @@ typedef void (*upload_info_changed_listener_t) (
 gnet_upload_info_t *upload_get_info(gnet_upload_t uh);
 void upload_free_info(gnet_upload_info_t *info);
 void upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si);
-void upload_kill_ip(guint32 ip);
+void upload_kill_addr(const host_addr_t addr);
 void upload_add_upload_added_listener(upload_added_listener_t l);
 void upload_remove_upload_added_listener(upload_added_listener_t l);
 void upload_add_upload_removed_listener(upload_removed_listener_t l);

@@ -93,7 +93,7 @@ static gpointer solicited_udp_ev = NULL;	/**< Idem */
 static GHashTable *outgoing_udp = NULL;		/**< Maps "IP" => "ip_record" */
 
 struct ip_record {
-	guint32 ip;					/**< The IP address to which we sent data */
+	host_addr_t addr;			/**< The IP address to which we sent data */
 	gpointer timeout_ev;		/**< The expiration time for the fw breach */
 };
 
@@ -115,17 +115,31 @@ static gpointer outgoing_ev = NULL;		/**< Callout queue timer */
 
 static void inet_set_is_connected(gboolean val);
 
+static guint
+item_hash(gconstpointer key)
+{
+	const host_addr_t *addr = key;
+	return host_addr_hash(*addr);
+}
+
+static gboolean
+item_equal(gconstpointer p, gconstpointer q)
+{
+	const host_addr_t *a = p, *b = q;
+	return host_addr_equal(*a, *b);
+}
+
 /**
  * Create a new ip_record structure.
  */
 static struct ip_record *
-ip_record_make(guint32 ip)
+ip_record_make(const host_addr_t addr)
 {
 	struct ip_record *ipr;
 
 	ipr = walloc(sizeof *ipr);
 
-	ipr->ip = ip;
+	ipr->addr = addr;
 	ipr->timeout_ev = NULL;
 
 	return ipr;
@@ -148,7 +162,7 @@ ip_record_free(struct ip_record *ipr)
 static void
 ip_record_free_remove(struct ip_record *ipr)
 {
-	g_hash_table_remove(outgoing_udp, GUINT_TO_POINTER(ipr->ip));
+	g_hash_table_remove(outgoing_udp, &ipr->addr);
 	ip_record_free(ipr);
 }
 
@@ -181,19 +195,24 @@ ip_record_destroy(cqueue_t *unused_cq, gpointer obj)
  * network area.
  */
 static gboolean
-is_local_ip(guint32 ip)
+is_local_addr(const host_addr_t addr)
 {
-	static guint32 our_ip = 0;
+	static host_addr_t our_addr;
+	guint32 ip, our_ip;
 
-	if (our_ip == 0)
-		our_ip = host_to_ip(host_name());		/* This should not change */
-	if (our_ip == 0)
-		our_ip = listen_ip();
-	if (our_ip == 0)
-		our_ip = 0x7f000001;
+	if (!is_host_addr(our_addr)) {
+		/* This should not change */
+		our_addr = name_to_host_addr(local_hostname());
+	}
+	if (!is_host_addr(our_addr))
+		our_addr = listen_addr();
+	if (!is_host_addr(our_addr))
+		our_addr = host_addr_set_ip4(0x7f000001);
 
+	ip = host_addr_ip4(addr);
+	our_ip = host_addr_ip4(our_addr);
 	return
-		ip == listen_ip()	||							/* Ourselves */
+		host_addr_equal(addr, listen_addr())	||			/* Ourselves */
 		(ip & 0xffffff00) == (our_ip & 0xffffff00)	||	/* Same LAN/24 */
 		(ip & 0xff000000) == 0x7f000000; 				/* Loopback 127.xxx */
 }
@@ -339,9 +358,9 @@ inet_udp_not_firewalled(void)
  * Called when we got an incoming connection from another computer at `ip'.
  */
 void
-inet_got_incoming(guint32 ip)
+inet_got_incoming(const host_addr_t addr)
 {
-	gboolean is_local = is_local_ip(ip);
+	gboolean is_local = is_local_addr(addr);
 
 	/*
 	 * If we get an incoming connection from the outside, we're surely
@@ -415,9 +434,9 @@ inet_udp_got_unsolicited_incoming(void)
  * Called when we got an incoming datagram from another computer at `ip'.
  */
 void
-inet_udp_got_incoming(guint32 ip)
+inet_udp_got_incoming(const host_addr_t addr)
 {
-	gboolean is_local = is_local_ip(ip);
+	gboolean is_local = is_local_addr(addr);
 
 	if (!is_local)
 		activity_seen++;				/* In case we have a timer set */
@@ -431,12 +450,12 @@ inet_udp_got_incoming(guint32 ip)
 	 * some data to that IP address.
 	 */
 
-	if (!is_local_ip(ip)) {
+	if (!is_local_addr(addr)) {
 		gpointer ipr;
 
-		ipr = g_hash_table_lookup(outgoing_udp, GUINT_TO_POINTER(ip));
+		ipr = g_hash_table_lookup(outgoing_udp, &addr);
 		inet_udp_got_solicited();
-		if (ipr == NULL)
+		if (NULL == ipr)
 			inet_udp_got_unsolicited_incoming();
 	}
 }
@@ -446,16 +465,16 @@ inet_udp_got_incoming(guint32 ip)
  * breach on the firewall for the UDP reply.
  */
 void
-inet_udp_record_sent(guint32 ip)
+inet_udp_record_sent(const host_addr_t addr)
 {
 	struct ip_record *ipr;
 
-	ipr = g_hash_table_lookup(outgoing_udp, GUINT_TO_POINTER(ip));
+	ipr = g_hash_table_lookup(outgoing_udp, &addr);
 	if (ipr != NULL)
 		ip_record_touch(ipr);
 	else {
-		ipr = ip_record_make(ip);
-		g_hash_table_insert(outgoing_udp, GUINT_TO_POINTER(ipr->ip), ipr);
+		ipr = ip_record_make(addr);
+		g_hash_table_insert(outgoing_udp, &ipr->addr, ipr);
 		ipr->timeout_ev = cq_insert(callout_queue, FW_UDP_WINDOW * 1000,
 			ip_record_destroy, ipr);
 	}
@@ -471,18 +490,18 @@ inet_udp_record_sent(guint32 ip)
 gboolean
 inet_can_answer_ping(void)
 {
-	guint32 ip;
+	host_addr_t addr;
 	gint elapsed;
 
 	if (!is_firewalled)
 		return current_peermode != NODE_P_LEAF;	/* Leaves don't send pongs */
 
-	ip = listen_ip();
+	addr = listen_addr();
 
-	if (!ip)
+	if (!is_host_addr(addr))
 		return FALSE;		/* We don't know our local IP, we can't reply */
 
-	if (is_private_ip(ip))
+	if (is_private_addr(addr))
 		return FALSE;
 
 	elapsed = delta_time(time(NULL), fw_time);	/* Since last status change */
@@ -545,13 +564,13 @@ check_outgoing_connection(cqueue_t *unused_cq, gpointer unused_obj)
  * Called each time we attempt a connection.
  */
 void
-inet_connection_attempted(guint32 ip)
+inet_connection_attempted(const host_addr_t addr)
 {
 	/*
 	 * Count the attempt if it's not a local connection.
 	 */
 
-	if (is_local_ip(ip))
+	if (is_local_addr(addr))
 		return;
 
 	/*
@@ -570,13 +589,13 @@ inet_connection_attempted(guint32 ip)
  * Called each time a connection attempt succeeds.
  */
 void
-inet_connection_succeeded(guint32 ip)
+inet_connection_succeeded(const host_addr_t addr)
 {
 	/*
 	 * Count the attempt if it's not a local connection.
 	 */
 
-	if (is_local_ip(ip))
+	if (is_local_addr(addr))
 		return;
 
 	activity_seen++;
@@ -636,7 +655,7 @@ inet_init(void)
 	 * Initialize the table used to record outgoing UDP traffic.
 	 */
 
-	outgoing_udp = g_hash_table_new(NULL, NULL);
+	outgoing_udp = g_hash_table_new(item_hash, item_equal);
 }
 
 /**
@@ -648,7 +667,7 @@ free_ip_record(gpointer key, gpointer value, gpointer unused_udata)
 	struct ip_record *ipr = value;
 
 	(void) unused_udata;
-	g_assert(ipr->ip == GPOINTER_TO_UINT(key));
+	g_assert(&ipr->addr == key);
 	ip_record_free(ipr);
 }
 

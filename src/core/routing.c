@@ -122,9 +122,9 @@ static const gchar *debug_msg[256];
  * the "entry".
  */
 
-#define CHUNK_BITS			14 		/**< log2 of # messages stored  in a chunk */
-#define MAX_CHUNKS			32		/**< Max # of chunks */
-#define TABLE_MIN_CYCLE		1800	/**< 30 minutes at least */
+#define CHUNK_BITS			14 	  /**< log2 of # messages stored  in a chunk */
+#define MAX_CHUNKS			32	  /**< Max # of chunks */
+#define TABLE_MIN_CYCLE		1800  /**< 30 minutes at least */
 
 #define CHUNK_MESSAGES		(1 << CHUNK_BITS)
 #define CHUNK_INDEX(x)		(((x) & ~(CHUNK_MESSAGES - 1)) >> CHUNK_BITS)
@@ -132,11 +132,11 @@ static const gchar *debug_msg[256];
 
 static struct {
 	struct message **chunks[MAX_CHUNKS];
-	gint next_idx;					/**< Next slot to use in "message_array[]" */
-	gint capacity;					/**< Capacity in terms of messages */
-	gint count;						/**< Amount really stored */
-	GHashTable *messages_hashed;	/**< All messages (key = struct message) */
-	time_t last_rotation;			/**< Last time we restarted from idx=0 */
+	gint next_idx;				 /**< Next slot to use in "message_array[]" */
+	gint capacity;				 /**< Capacity in terms of messages */
+	gint count;					 /**< Amount really stored */
+	GHashTable *messages_hashed; /**< All messages (key = struct message) */
+	time_t last_rotation;		 /**< Last time we restarted from idx=0 */
 } routing;
 
 static gboolean find_message(
@@ -167,7 +167,7 @@ GHashTable *ht_proxyfied = NULL;
  * Routing logging.
  */
 struct route_log {
-	guint32 ip;					/**< Sender's IP */
+	host_addr_t addr;			/**< Sender's IP */
 	guint16 port;				/**< Sender's port */
 	gchar muid[16];				/**< Message ID */
 	guint8 function;			/**< Message function */
@@ -195,11 +195,11 @@ routing_log_init(struct route_log *log,
 
 	if (n == NULL) {
 		log->local = TRUE;
-		log->ip = 0;
+		log->addr = zero_host_addr;
 		log->port = 0;
 	} else {
 		log->local = FALSE;
-		log->ip = n->ip;
+		log->addr = n->addr;
 		log->port = n->port;
 	}
 
@@ -287,29 +287,30 @@ routing_log_extra(struct route_log *log, const gchar *fmt, ...)
  * @return string representation of message route, as pointer to static data.
  */
 static gchar *
-route_string(struct route_dest *dest, guint32 origin_ip)
+route_string(struct route_dest *dest, const host_addr_t origin_addr)
 {
 	static gchar msg[80];
 
 	switch (dest->type) {
 	case ROUTE_NONE:
-		gm_snprintf(msg, sizeof(msg), "stops here");
+		gm_snprintf(msg, sizeof msg, "stops here");
 		break;
 	case ROUTE_ONE:
-		gm_snprintf(msg, sizeof(msg), "node %s", node_ip(dest->ur.u_node));
+		gm_snprintf(msg, sizeof msg, "node %s", node_addr(dest->ur.u_node));
 		break;
 	case ROUTE_ALL_BUT_ONE:
-		gm_snprintf(msg, sizeof(msg), "all but %s", ip_to_gchar(origin_ip));
+		gm_snprintf(msg, sizeof msg, "all but %s",
+			host_addr_to_string(origin_addr));
 		break;
 	case ROUTE_MULTI:
 		{
 			gint count = g_slist_length(dest->ur.u_nodes);
-			gm_snprintf(msg, sizeof(msg), "selected %u node%s",
+			gm_snprintf(msg, sizeof msg, "selected %u node%s",
 				count, count == 1 ? "" : "s");
 		}
 		break;
 	default:
-		gm_snprintf(msg, sizeof(msg), "** BUG ** UNKNOWN ROUTE");
+		gm_snprintf(msg, sizeof msg, "** BUG ** UNKNOWN ROUTE");
 		break;
 	}
 
@@ -327,12 +328,13 @@ routing_log_flush(struct route_log *log)
 
 	g_log(G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG,
 		"ROUTE %-21s %s %s %3d/%3d: [%c] %s%s%s-> %s",
-		log->local ? "OURSELVES": ip_port_to_gchar(log->ip, log->port),
+		log->local ? "OURSELVES"
+			: host_addr_port_to_string(log->addr, log->port),
 		debug_msg[log->function], guid_hex_str(log->muid),
 		log->hops, log->ttl, log->handle ? 'H' : ' ',
 		log->new ? "[NEW] " : "",
 		log->extra, log->extra[0] == '\0' ? "" : " ",
-		route_string(&log->dest, log->ip));
+		route_string(&log->dest, log->addr));
 }
 
 /**
@@ -811,7 +813,7 @@ remove_one_message_reference(struct route_data *rd)
 		 */
 
 		if (rd->node == NULL && rd->saved_messages == 0)
-			wfree(rd, sizeof(*rd));
+			wfree(rd, sizeof *rd);
 	} else
 		g_assert(rd == &fake_route);
 }
@@ -1337,7 +1339,7 @@ route_push(struct route_log *log,
 {
 	struct gnutella_node *sender = *node;
 	struct message *m;
-	guint32 ip;
+	host_addr_t addr;
 
 	/*
 	 * A Push request is not broadcasted as other requests, it is routed
@@ -1367,7 +1369,7 @@ route_push(struct route_log *log,
 		if (routing_debug > 3)
 			gmsg_log_dropped(&sender->header,
 				"from %s, banned GUID %s",
-				node_ip(sender), guid_hex_str(sender->data));
+				node_addr(sender), guid_hex_str(sender->data));
 
 		gnet_stats_count_dropped(sender, MSG_DROP_BANNED);
 
@@ -1378,9 +1380,9 @@ route_push(struct route_log *log,
 	 * If IP address is among the hostile set, drop.
 	 */
 
-	READ_GUINT32_BE(sender->data + 20, ip);
+	addr = host_addr_set_ip4(peek_be32(&sender->data[20]));
 
-	if (hostiles_check(ip)) {
+	if (hostiles_check(addr)) {
 		gnet_stats_count_dropped(sender, MSG_DROP_HOSTILE_IP);
 		return FALSE;
 	}

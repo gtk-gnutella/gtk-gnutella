@@ -130,6 +130,44 @@ ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
 	return GGEP_OK;
 }
 
+static ggept_status_t
+ggept_ip_vec_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
+{
+	struct gnutella_host *vec;
+	const gchar *p;
+	gint tlen, cnt, i;
+	
+	g_assert(exv);
+	g_assert(hvec);
+	g_assert(hvcnt);
+	g_assert(EXT_GGEP == exv->ext_type);
+	
+	tlen = ext_paylen(exv);
+
+	if (tlen <= 0)
+		return GGEP_INVALID;
+
+	if (tlen % 6 != 0)
+		return GGEP_INVALID;
+
+	p = ext_payload(exv);
+
+	cnt = tlen / 6;
+	vec = walloc(cnt * sizeof *vec);
+
+	for (i = 0; i < cnt; i++) {
+		vec[i].addr = host_addr_set_ip4(peek_be32(p));
+		p += 4;
+		vec[i].port = peek_le16(p);
+		p += 2;
+	}
+
+	*hvec = vec;
+	*hvcnt = cnt;
+
+	return GGEP_OK;
+}
+
 /**
  * Extract vector of IP:port alternate locations.
  *
@@ -143,40 +181,10 @@ ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
 ggept_status_t
 ggept_alt_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
 {
-	const gchar *p;
-	gint tlen;
-	gint cnt;
-	struct gnutella_host *vec;
-	struct gnutella_host *h;
-	gint i;
-
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_ALT);
-
-	tlen = ext_paylen(exv);
-
-	if (tlen <= 0)
-		return GGEP_INVALID;
-
-	if (tlen % 6 != 0)
-		return GGEP_INVALID;
-
-	p = ext_payload(exv);
-
-	cnt = tlen / 6;
-	vec = walloc(cnt * sizeof(struct gnutella_host));
-
-	for (i = 0, h = vec; i < cnt; i++, h++) {
-		READ_GUINT32_BE(p, h->ip);
-		p += 4;
-		READ_GUINT16_LE(p, h->port);
-		p += 2;
-	}
-
-	*hvec = vec;
-	*hvcnt = cnt;
-
-	return GGEP_OK;
+	
+	return ggept_ip_vec_extract(exv, hvec, hvcnt);
 }
 
 /**
@@ -191,40 +199,10 @@ ggept_alt_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
 ggept_status_t
 ggept_push_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
 {
-	const gchar *p;
-	gint tlen;
-	gint cnt;
-	struct gnutella_host *vec;
-	struct gnutella_host *h;
-	gint i;
-
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_PUSH);
-
-	tlen = ext_paylen(exv);
-
-	if (tlen <= 0)
-		return GGEP_INVALID;
-
-	if (tlen % 6 != 0)
-		return GGEP_INVALID;
-
-	p = ext_payload(exv);
-
-	cnt = tlen / 6;
-	vec = walloc(cnt * sizeof(struct gnutella_host));
-
-	for (i = 0, h = vec; i < cnt; i++, h++) {
-		READ_GUINT32_BE(p, h->ip);
-		p += 4;
-		READ_GUINT16_LE(p, h->port);
-		p += 2;
-	}
-
-	*hvec = vec;
-	*hvcnt = cnt;
-
-	return GGEP_OK;
+	
+	return ggept_ip_vec_extract(exv, hvec, hvcnt);
 }
 
 /**

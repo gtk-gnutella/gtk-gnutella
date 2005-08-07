@@ -39,7 +39,7 @@ typedef enum {
  */
 
 typedef void (*search_request_listener_t) (
-    query_type_t, const gchar *query, guint32, guint16);
+    query_type_t, const gchar *query, const host_addr_t addr, guint16);
 
 /*
  * Public interface, visible from the bridge.

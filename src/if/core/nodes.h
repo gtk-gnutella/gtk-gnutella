@@ -46,8 +46,8 @@ typedef struct gnet_node_status {
 	/* FIXME: the variables below should go to gnet_node_info since they
 	 *        only change very seldom
      */
-	time_t connect_date;		/**< When we got connected (after handshake) */
-	time_t up_date;				/**< When remote server started (0 if unknown) */
+	time_t connect_date;	/**< When we got connected (after handshake) */
+	time_t up_date;			/**< When remote server started (0 if unknown) */
 	guint32 gnet_files_count;	/**< Amount of files shared */
 	guint32 gnet_kbytes_count;	/**< Size of the library, in Kbytes */
 	gboolean gnet_info_known;	/**< Whether previous two values are known */
@@ -91,17 +91,17 @@ typedef struct gnet_node_status {
 	 * Gnutella statistics -- RAM, 10/12/2003.
 	 */
 
-	gboolean has_qrp;			/**< Whether node is under QRP control */
-	gfloat qrp_efficiency;		/**< Queries matched / received on QRP control */
-	guint32 rx_queries;			/**< Total amount of queries received */
-	guint32 tx_queries;			/**< Total amount of queries sent */
-	guint32 rx_qhits;			/**< Total amount of hits received */
-	guint32 tx_qhits;			/**< Total amount of hits sent */
+	gboolean has_qrp;		/**< Whether node is under QRP control */
+	gfloat qrp_efficiency;	/**< Queries matched / received on QRP control */
+	guint32 rx_queries;		/**< Total amount of queries received */
+	guint32 tx_queries;		/**< Total amount of queries sent */
+	guint32 rx_qhits;		/**< Total amount of hits received */
+	guint32 tx_qhits;		/**< Total amount of hits sent */
 
-	gint qrt_slots;				/**< Amount of slots in leaf's QRT */
-	gint qrt_generation;		/**< Generation number */
-	gint qrt_fill_ratio;		/**< % of filling */
-	gint qrt_pass_throw;		/**< Query limiter pass throw when table filled */
+	gint qrt_slots;			/**< Amount of slots in leaf's QRT */
+	gint qrt_generation;	/**< Generation number */
+	gint qrt_fill_ratio;	/**< % of filling */
+	gint qrt_pass_throw;	/**< Query limiter pass throw when table filled */
 
 	guint32  rt_avg;			/**< Average ping/pong roundtrip time */
 	guint32  rt_last;			/**< Last ping/pong roundtrip time */
@@ -116,15 +116,15 @@ typedef struct gnet_node_status {
 typedef struct gnet_node_info {
     gnet_node_t node_handle;    /**< Internal node handle */
 
-    gchar *error_str;           /**< To sprintf() error strings with vars */
-	gint proto_major;			/**< Protocol major number */
-	gint proto_minor;			/**< Protocol minor number */
-	gchar *vendor;				/**< Vendor information */
-	gint country;				/**< Country information */
-	guchar vcode[4];			/**< Vendor code (vcode[0] == NUL when unknown) */
+    gchar *error_str;       /**< To sprintf() error strings with vars */
+	gint proto_major;		/**< Protocol major number */
+	gint proto_minor;		/**< Protocol minor number */
+	gchar *vendor;			/**< Vendor information */
+	gint country;			/**< Country information */
+	guchar vcode[4];		/**< Vendor code (vcode[0] == NUL when unknown) */
 
-	guint32 ip;					/**< ip of the node */
-	guint16 port;				/**< port of the node */
+	host_addr_t addr;		/**< ip of the node */
+	guint16 port;			/**< port of the node */
 } gnet_node_info_t;
 
 /*
@@ -221,7 +221,7 @@ void node_remove_node_flags_changed_listener(node_flags_changed_listener_t);
 /*
  * Nodes public interface
  */
-void node_add(guint32, guint16);
+void node_add(const host_addr_t addr, guint16);
 void node_remove_by_handle(gnet_node_t n);
 void node_remove_nodes_by_handle(GSList *node_list);
 void node_get_status(const gnet_node_t n, gnet_node_status_t *s);

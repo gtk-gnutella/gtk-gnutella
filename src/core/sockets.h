@@ -103,12 +103,13 @@ struct gnutella_socket {
 
 	enum socket_direction direction;
 	enum socket_type type;
+	enum net_type net;
 	gboolean corked;
 	gboolean was_shutdown;	/**< Set if shutdown() was used */
 	gint adns;				/**< status of ADNS resolution */
 	gchar *adns_msg;		/**< ADNS error message */
 
-	guint32 ip;				/**< IP   of our partner */
+	host_addr_t addr;		/**< IP   of our partner */
 	guint16 port;			/**< Port of our partner */
 
 	guint16 local_port;		/**< Port on our side */
@@ -174,11 +175,13 @@ void socket_init(void);
 void socket_register_fd_reclaimer(reclaim_fd_t callback);
 void socket_eof(struct gnutella_socket *s);
 void socket_free(struct gnutella_socket *);
-struct gnutella_socket *socket_connect(guint32, guint16, enum socket_type);
+struct gnutella_socket *socket_connect(const host_addr_t, guint16,
+		enum socket_type);
 struct gnutella_socket *socket_connect_by_name(
 	const gchar *host, guint16, enum socket_type);
-struct gnutella_socket *socket_tcp_listen(guint32, guint16, enum socket_type);
-struct gnutella_socket *socket_udp_listen(guint32, guint16);
+struct gnutella_socket *socket_tcp_listen(const host_addr_t, guint16,
+		enum socket_type);
+struct gnutella_socket *socket_udp_listen(const host_addr_t, guint16);
 
 void sock_cork(struct gnutella_socket *s, gboolean on);
 void sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink);

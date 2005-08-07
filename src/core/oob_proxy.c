@@ -161,6 +161,7 @@ oob_proxy_create(gnutella_node_t *n)
 {
 	gchar proxied_muid[16];
 	struct oob_proxy_rec *opr;
+	guint32 ip;
 
 	g_assert(n->header.function == GTA_MSG_SEARCH);
 	g_assert(NODE_IS_LEAF(n));
@@ -170,9 +171,10 @@ oob_proxy_create(gnutella_node_t *n)
 	 * Mangle the MUID of the query to insert our own IP:port.
 	 */
 
+	ip = host_addr_ip4(listen_addr()); /* @todo TODO: IPv6 */
 	memcpy(proxied_muid, n->header.muid, 16);
-	WRITE_GUINT32_BE(listen_ip(), &proxied_muid[0]);
-	WRITE_GUINT16_LE(listen_port, &proxied_muid[13]);
+	poke_be32(&proxied_muid[0], ip);
+	poke_le16(&proxied_muid[13], listen_port);
 
 	/*
 	 * Record the mapping, and make sure it expires in PROXY_EXPIRE_MS.
@@ -196,7 +198,7 @@ oob_proxy_create(gnutella_node_t *n)
 	if (query_debug > 5) {
 		gchar *orig = g_strdup(guid_hex_str(opr->leaf_muid));
 		printf("QUERY OOB-proxying query %s from %s <%s> as %s\n",
-			orig, node_ip(n), node_vendor(n), guid_hex_str(opr->proxied_muid));
+			orig, node_addr(n), node_vendor(n), guid_hex_str(opr->proxied_muid));
 		g_free(orig);
 	}
 }
@@ -305,7 +307,7 @@ oob_proxy_pending_results(
 
 	if (query_debug > 5)
 		printf("QUERY OOB-proxied %s notified of %d hits at %s, wants %u\n",
-			guid_hex_str(muid), hits, node_ip(n), wanted);
+			guid_hex_str(muid), hits, node_addr(n), wanted);
 
 	return TRUE;
 
@@ -313,8 +315,8 @@ ignore:
 	if (query_debug > 5)
 		printf("QUERY OOB-proxied %s "
 			"notified of %d hits at %s for %s, ignored (%s)\n",
-			guid_hex_str(muid), hits, node_ip(n),
-			leaf == NULL ? "???" : ip_to_gchar(leaf->ip), msg);
+			guid_hex_str(muid), hits, node_addr(n),
+			leaf == NULL ? "???" : host_addr_to_string(leaf->addr), msg);
 
 	return TRUE;
 }
@@ -401,7 +403,7 @@ oob_proxy_got_results(gnutella_node_t *n, guint results)
 	if (query_debug > 5)
 		printf("QUERY OOB-proxied %s routed %d hit%s to %s <%s> from %s\n",
 			guid_hex_str(opr->proxied_muid), results, results == 1 ? "" : "s",
-			node_ip(leaf), node_vendor(leaf), NODE_IS_UDP(n) ? "UDP" : "TCP");
+			node_addr(leaf), node_vendor(leaf), NODE_IS_UDP(n) ? "UDP" : "TCP");
 
 	return TRUE;			/* We routed the message */
 }

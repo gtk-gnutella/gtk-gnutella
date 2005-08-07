@@ -145,9 +145,9 @@ static guint
 urlinfo_hash(gconstpointer key)
 {
 	const dmesh_urlinfo_t *info = key;
-	guint hash = 0;
+	guint hash;
 
-	WRITE_GUINT32_LE(info->ip, &hash);	/* Reverse IP, 192.x.y.z -> z.y.x.192 */
+	hash = host_addr_hash(info->addr);
 	hash ^= (info->port << 16) | info->port;
 	hash ^= info->idx;
 	hash ^= g_str_hash(info->name);
@@ -163,7 +163,7 @@ urlinfo_eq(gconstpointer a, gconstpointer b)
 {
 	const dmesh_urlinfo_t *ia = a, *ib = b;
 
-	return ia->ip == ib->ip		&&
+	return host_addr_equal(ia->addr, ib->addr) &&
 		ia->port == ib->port	&&
 		ia->idx == ib->idx		&&
 		(ia->name == ib->name || 0 == strcmp(ia->name, ib->name));
@@ -238,7 +238,7 @@ dmesh_ban_expire(cqueue_t *unused_cq, gpointer obj)
 	 *		-- JA 24/10/2003
 	 */
 	if (dmb->sha1 != NULL) {
-		GSList *by_ip;
+		GSList *by_addr;
 		GSList *head;
 		gpointer key;			/* The SHA1 atom used for key in table */
 		gpointer x;
@@ -247,14 +247,14 @@ dmesh_ban_expire(cqueue_t *unused_cq, gpointer obj)
 		found = g_hash_table_lookup_extended(
 			ban_mesh_by_sha1, dmb->sha1, &key, &x);
 		g_assert(found);
-		head = by_ip = (GSList *) x;
-		by_ip = g_slist_remove(by_ip, dmb);
+		head = by_addr = x;
+		by_addr = g_slist_remove(by_addr, dmb);
 
-		if (by_ip == NULL) {
+		if (by_addr == NULL) {
 			g_hash_table_remove(ban_mesh_by_sha1, key);
 			atom_sha1_free(key);
-		} else if (by_ip != head)
-			g_hash_table_insert(ban_mesh_by_sha1, key, by_ip);
+		} else if (by_addr != head)
+			g_hash_table_insert(ban_mesh_by_sha1, key, by_addr);
 
 		atom_sha1_free(dmb->sha1);
 	}
@@ -291,13 +291,13 @@ dmesh_ban_add(const gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	 * Insert new entry, or update old entry if the new one is more recent.
 	 */
 
-	dmb = (struct dmesh_banned *) g_hash_table_lookup(ban_mesh, info);
+	dmb = g_hash_table_lookup(ban_mesh, info);
 
 	if (dmb == NULL) {
 		dmesh_urlinfo_t *ui;
 
 		ui = walloc(sizeof *ui);
-		ui->ip = info->ip;
+		ui->addr = info->addr;
 		ui->port = info->port;
 		ui->idx = info->idx;
 		ui->name = atom_str_get(info->name);
@@ -318,7 +318,7 @@ dmesh_ban_add(const gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 		 */
 
 		if (sha1 != NULL) {
-			GSList *by_ip;
+			GSList *by_addr;
 			gboolean existed;
 
 			dmb->sha1 = atom_sha1_get(sha1);
@@ -329,13 +329,13 @@ dmesh_ban_add(const gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
              * the appropriate dmb will be updates (else-case below).
              *     -- BLUE 16/01/2004
              */
-			by_ip = (GSList *) g_hash_table_lookup(ban_mesh_by_sha1, sha1);
-			existed = by_ip != NULL;
-			by_ip = g_slist_append(by_ip, dmb);
+			by_addr = g_hash_table_lookup(ban_mesh_by_sha1, sha1);
+			existed = by_addr != NULL;
+			by_addr = g_slist_append(by_addr, dmb);
 
 			if (!existed)
 				g_hash_table_insert(ban_mesh_by_sha1,
-					atom_sha1_get(sha1), by_ip);
+					atom_sha1_get(sha1), by_addr);
 		}
 	}
 	else if (delta_time(dmb->ctime, stamp) < 0) {
@@ -396,18 +396,17 @@ dmesh_url_strerror(dmesh_url_error_t errnum)
 gboolean
 dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
 {
-	guint32 ip;
+	host_addr_t addr;
 	guint16 port;
 	guint idx;
-	const gchar *endptr, *file;
-    gchar *path = NULL, *host = NULL;
+	const gchar *endptr, *file, *host = NULL, *path = NULL;
 
 	if (!http_url_parse(url, &port, &host, &path)) {
 		dmesh_url_errno = DMESH_URL_HTTP_PARSER;
 		return FALSE;
 	}
 
-	ip = host_to_ip(host);
+	addr = name_to_host_addr(host);
 
 	/*
 	 * Test the first form of resource naming:
@@ -448,7 +447,7 @@ dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
 
 	g_assert(file != NULL);
 	
-	info->ip = ip;
+	info->addr = addr;
 	info->port = port;
 	info->idx = idx;
 
@@ -536,19 +535,19 @@ dm_expire(struct dmesh *dm, guint32 agemax, const gchar *sha1)
  * @return TRUE if entry was removed or not found, FALSE otherwise.
  */
 static gboolean
-dm_remove(struct dmesh *dm, guint32 ip, guint16 port, guint idx,
-	const gchar *name, time_t stamp)
+dm_remove(struct dmesh *dm, const host_addr_t addr,
+	guint16 port, guint idx, const gchar *name, time_t stamp)
 {
-	GSList *l;
+	GSList *sl;
 
 	g_assert(dm);
 	g_assert(dm->count > 0);
 
-	for (l = dm->entries; l; l = l->next) {
-		struct dmesh_entry *dme = (struct dmesh_entry *) l->data;
+	for (sl = dm->entries; sl; sl = g_slist_next(sl)) {
+		struct dmesh_entry *dme = sl->data;
 
 		if (
-			dme->url.ip == ip		&&
+			host_addr_equal(dme->url.addr, addr) &&
 			dme->url.port == port	&&
 			dme->url.idx == idx		&&
 			0 == strcmp(dme->url.name, name)
@@ -599,18 +598,19 @@ dmesh_dispose(const gchar *sha1)
 }
 
 /**
- * Fill URL info from externally supplied sha1, ip, port, idx and name.
+ * Fill URL info from externally supplied sha1, addr, port, idx and name.
  * When `idx' is URN_INDEX, then `name' is ignored, and we use the
  * stringified SHA1.
  */
 static void
 dmesh_fill_info(dmesh_urlinfo_t *info,
-	const gchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name)
+	const gchar *sha1, const host_addr_t addr,
+	guint16 port, guint idx, gchar *name)
 {
 	static const gchar urnsha1[] = "urn:sha1:";
 	static gchar urn[SHA1_BASE32_SIZE + sizeof urnsha1];
 
-	info->ip = ip;
+	info->addr = addr;
 	info->port = port;
 	info->idx = idx;
 
@@ -625,7 +625,7 @@ dmesh_fill_info(dmesh_urlinfo_t *info,
  * Remove entry from mesh due to a failed download attempt.
  */
 gboolean
-dmesh_remove(const gchar *sha1, guint32 ip, guint16 port,
+dmesh_remove(const gchar *sha1, const host_addr_t addr, guint16 port,
 	guint idx, gchar *name)
 {
 	struct dmesh *dm;
@@ -636,19 +636,19 @@ dmesh_remove(const gchar *sha1, guint32 ip, guint16 port,
 	 * to prevent further insertion in the mesh.
 	 */
 
-	dmesh_fill_info(&info, sha1, ip, port, idx, name);
+	dmesh_fill_info(&info, sha1, addr, port, idx, name);
 	dmesh_ban_add(sha1, &info, 0);
 
 	/*
 	 * Lookup SHA1 in the mesh to see if we already have entries for it.
 	 */
 
-	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
+	dm = g_hash_table_lookup(mesh, sha1);
 
 	if (dm == NULL)				/* Nothing for this SHA1 key */
 		return FALSE;
 
-	(void) dm_remove(dm, ip, port, idx, info.name, MAX_STAMP);
+	(void) dm_remove(dm, addr, port, idx, info.name, MAX_STAMP);
 
 	/*
 	 * If there is nothing left, clear the mesh entry.
@@ -678,7 +678,7 @@ dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	struct dmesh_entry *dme;
 	struct dmesh *dm;
 	time_t now = time(NULL);
-	guint32 ip = info->ip;
+	host_addr_t addr = info->addr;
 	guint16 port = info->port;
 	guint idx = info->idx;
 	gchar *name = info->name;
@@ -693,13 +693,13 @@ dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	 * Reject if this is for our host, or if the host is a private/hostile IP.
 	 */
 
-	if (ip == listen_ip() && port == listen_port)
+	if (host_addr_equal(addr, listen_addr()) && port == listen_port)
 		return FALSE;
 
-	if (!host_is_valid(ip, port))
+	if (!host_is_valid(addr, port))
 		return FALSE;
 
-	if (hostiles_check(ip))
+	if (hostiles_check(addr))
 		return FALSE;
 
 	/*
@@ -719,7 +719,7 @@ dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	 * than the one we're trying to add).
 	 */
 
-	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
+	dm = g_hash_table_lookup(mesh, sha1);
 
 	if (dm == NULL) {
 		dm = walloc(sizeof *dm);
@@ -739,7 +739,7 @@ dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 		 * we have the entry already, and reject this duplicate.
 		 */
 
-		if (dm->count && !dm_remove(dm, ip, port, idx, name, stamp))
+		if (dm->count && !dm_remove(dm, addr, port, idx, name, stamp))
 			return FALSE;
 	}
 
@@ -747,11 +747,11 @@ dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	 * Allocate new entry.
 	 */
 
-	dme = (struct dmesh_entry *) walloc(sizeof *dme);
+	dme = walloc(sizeof *dme);
 
 	dme->inserted = now;
 	dme->stamp = stamp;
-	dme->url.ip = ip;
+	dme->url.addr = addr;
 	dme->url.port = port;
 	dme->url.idx = idx;
 	dme->url.name = atom_str_get(name);
@@ -788,7 +788,7 @@ dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	 */
 
 	if (dme != NULL)
-		file_info_try_to_swarm_with(name, idx, ip, port, sha1);
+		file_info_try_to_swarm_with(name, idx, addr, port, sha1);
 
 	return dme != NULL;			/* TRUE means we added the entry */
 }
@@ -797,7 +797,7 @@ dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
  * Same as dmesh_raw_add(), but this is for public consumption.
  */
 gboolean
-dmesh_add(gchar *sha1, guint32 ip, guint16 port, guint idx,
+dmesh_add(gchar *sha1, const host_addr_t addr, guint16 port, guint idx,
 	gchar *name, time_t stamp)
 {
 	dmesh_urlinfo_t info;
@@ -808,7 +808,7 @@ dmesh_add(gchar *sha1, guint32 ip, guint16 port, guint idx,
 	 * is our mark to indicate an /uri-res/N2R? URL (with an urn:sha1).
 	 */
 
-	dmesh_fill_info(&info, sha1, ip, port, idx, name);
+	dmesh_fill_info(&info, sha1, addr, port, idx, name);
 	return dmesh_raw_add(sha1, &info, stamp);
 }
 
@@ -834,8 +834,8 @@ dmesh_urlinfo(const dmesh_urlinfo_t *info, gchar *buf,
 	g_assert(info->name != NULL);
 
 	host = info->port == HTTP_PORT
-			? ip_to_gchar(info->ip)
-			: ip_port_to_gchar(info->ip, info->port);
+			? host_addr_to_string(info->addr)
+			: host_addr_port_to_string(info->addr, info->port);
 	rw = concat_strings(buf, len, "http://", host, (void *) 0);
 	if (rw >= maxslen)
 		return (size_t) -1;
@@ -889,7 +889,7 @@ dmesh_urlinfo_to_gchar(const dmesh_urlinfo_t *info)
 }
 
 /**
- * Format mesh_entry in the provided buffer, as a compact ip:port address.
+ * Format mesh_entry in the provided buffer, as a compact addr:port address.
  * The port is even omitted if it is the standard Gnutella one.
  *
  * @returns length of formatted entry, -1 if the address would be larger than
@@ -910,8 +910,8 @@ dmesh_entry_compact(const struct dmesh_entry *dme, gchar *buf, size_t size)
 		return (size_t) -1;
 
 	host = info->port == GTA_PORT
-		? ip_to_gchar(info->ip)
-		: ip_port_to_gchar(info->ip, info->port);
+		? host_addr_to_string(info->addr)
+		: host_addr_port_to_string(info->addr, info->port);
 
 	rw = g_strlcpy(buf, host, size);
 	return rw < size ? rw : (size_t) -1;
@@ -1059,7 +1059,7 @@ dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt)
 
 		g_assert(j < hcnt);
 
-		hvec[j].ip = dme->url.ip;
+		hvec[j].addr = dme->url.addr;
 		hvec[j++].port = dme->url.port;
 	}
 
@@ -1074,7 +1074,7 @@ dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt)
  * @param `buf'		no brief description.
  * @param 'size'	no brief description.
  *
- * @param `ip' is the host to which those alternate locations are meant:
+ * @param `addr' is the host to which those alternate locations are meant:
  * we skip any data pertaining to that host.
  *
  * @param `last_sent' is the time at which we sent some previous alternate
@@ -1099,7 +1099,8 @@ dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt)
  */
 gint
 dmesh_alternate_location(const gchar *sha1,
-	gchar *buf, size_t size, guint32 ip, time_t last_sent, const gchar *vendor,
+	gchar *buf, size_t size, const host_addr_t addr,
+	time_t last_sent, const gchar *vendor,
 	struct dl_file_info *fi, gboolean request)
 {
 	gchar url[1024];
@@ -1110,7 +1111,7 @@ dmesh_alternate_location(const gchar *sha1,
 	struct dmesh_entry *selected[MAX_ENTRIES];
 	gint i;
 	size_t maxslen;			/* Account for trailing NUL + "\r\n" */
-	GSList *by_ip;
+	GSList *by_addr;
 	size_t maxlinelen = 0;
 	gpointer fmt;
 	gboolean added;
@@ -1162,24 +1163,26 @@ dmesh_alternate_location(const gchar *sha1,
 	 *		 -- JA, 1/11/2003
 	 */
 
-	by_ip = (GSList *) g_hash_table_lookup(ban_mesh_by_sha1, sha1);
+	by_addr = g_hash_table_lookup(ban_mesh_by_sha1, sha1);
 
-	if (by_ip != NULL) {
+	if (by_addr != NULL) {
 		fmt = header_fmt_make("X-Nalt", ", ", size);
 		if (maxlinelen)
 			header_fmt_set_line_length(fmt, maxlinelen);
 		added = FALSE;
 
 		/* Loop through the X-Nalts */
-		for (l = by_ip; l != NULL; l = g_slist_next(l)) {
-			struct dmesh_banned *banned = (struct dmesh_banned *) l->data;
+		for (l = by_addr; l != NULL; l = g_slist_next(l)) {
+			struct dmesh_banned *banned = l->data;
 			dmesh_urlinfo_t *info = banned->info;
 
 			if (info->idx != URN_INDEX)
 				continue;
 
 			if (delta_time(banned->ctime, last_sent) > 0) {
-				gchar *value = ip_port_to_gchar(info->ip, info->port);
+				const gchar *value;
+			   
+				value = host_addr_port_to_string(info->addr, info->port);
 
 				if (!header_fmt_value_fits(fmt, strlen(value), size / 3))
 					break;
@@ -1236,7 +1239,7 @@ dmesh_alternate_location(const gchar *sha1,
 
 		ourselves.inserted = now;
 		ourselves.stamp = now;
-		ourselves.url.ip = listen_ip();
+		ourselves.url.addr = listen_addr();
 		ourselves.url.port = listen_port;
 		ourselves.url.idx = URN_INDEX;
 		ourselves.url.name = NULL;
@@ -1292,7 +1295,7 @@ dmesh_alternate_location(const gchar *sha1,
 		if (delta_time(dme->inserted, last_sent) <= 0)
 			continue;
 
-		if (dme->url.ip == ip)
+		if (host_addr_equal(dme->url.addr, addr))
 			continue;
 
 		if (dme->url.idx != URN_INDEX)
@@ -1712,22 +1715,22 @@ dmesh_collect_compact_locations(gchar *sha1, gchar *value)
 			 */
 
 			if (got_full) {
-				guint32 ip;
+				host_addr_t addr;
 				guint16 port = GTA_PORT;	/* Could be missing in address */
 				gboolean ok;
 
 				*p = '\0';
 				if (has_port)
-					ok = gchar_to_ip_port(start, &ip, &port);
+					ok = string_to_host_addr_port(start, &addr, &port);
 				else {
-					ip = gchar_to_ip(start);
-					ok = ip != 0;
+					addr = string_to_host_addr(start);
+					ok = is_host_addr(addr);
 				}
 
 				if (ok) {
 					dmesh_urlinfo_t info;
 
-					dmesh_fill_info(&info, sha1, ip, port, URN_INDEX, NULL);
+					dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
 					ok = dmesh_raw_add(sha1, &info, now);
 
 					if (dbg > 4)
@@ -1786,6 +1789,7 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 		non_space_seen = FALSE;
 		in_quote = FALSE;
 		info.name = NULL;
+		info.addr = zero_host_addr;
 
 		while ((c = *p)) {
 			if (!non_space_seen) {
@@ -2069,7 +2073,7 @@ dmesh_alt_loc_fill(const gchar *sha1, dmesh_urlinfo_t *buf, gint count)
 		from = &dme->url;
 		to = &buf[i++];
 
-		to->ip = from->ip;
+		to->addr = from->addr;
 		to->port = from->port;
 		to->idx = from->idx;
 		to->name = from->name;
@@ -2113,7 +2117,8 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 		}
 
 		if (has) {
-			dmesh_fill_info(&info, rc->sha1, rs->ip, rs->port, URN_INDEX, NULL);
+			dmesh_fill_info(&info, rc->sha1, rs->addr, rs->port,
+				URN_INDEX, NULL);
 			(void) dmesh_raw_add(rc->sha1, &info, now);
 
 			/*
@@ -2128,7 +2133,7 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 				for (i = alt->hvcnt - 1; i >= 0; i--) {
 					struct gnutella_host *h = &alt->hvec[i];
 
-					dmesh_fill_info(&info, rc->sha1, h->ip, h->port,
+					dmesh_fill_info(&info, rc->sha1, h->addr, h->port,
 						URN_INDEX, NULL);
 					(void) dmesh_raw_add(rc->sha1, &info, now);
 				}
@@ -2170,7 +2175,7 @@ dmesh_multiple_downloads(gchar *sha1, filesize_t size, struct dl_file_info *fi)
 			printf("ALT-LOC queuing from MESH: %s\n",
 				dmesh_urlinfo_to_gchar(p));
 
-		download_auto_new(p->name, size, p->idx, p->ip, p->port,
+		download_auto_new(p->name, size, p->idx, p->addr, p->port,
 			blank_guid, NULL, sha1, now, FALSE,
 			fi->file_size_known, fi, NULL);
 	}

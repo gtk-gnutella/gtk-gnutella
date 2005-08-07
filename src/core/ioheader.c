@@ -175,7 +175,7 @@ nextline:
 	switch (getline_read(getline, s->buffer, s->pos, &parsed)) {
 	case READ_OVERFLOW:
 		g_warning("io_header_parse: line too long, disconnecting from %s",
-			ip_to_gchar(s->ip));
+			host_addr_to_string(s->addr));
 		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
 		fprintf(stderr, "------ Header Dump:\n");
 		header_dump(header, stderr);
@@ -262,7 +262,7 @@ nextline:
 		/* FALL THROUGH */
 	case HEAD_EOH_REACHED:
 		g_warning("io_header_parse: %s, disconnecting from %s",
-			header_strerror(error),	ip_to_gchar(s->ip));
+			header_strerror(error),	host_addr_to_string(s->addr));
 		fprintf(stderr, "------ Header Dump:\n");
 		header_dump(header, stderr);
 		fprintf(stderr, "------\n");
@@ -274,7 +274,7 @@ nextline:
 	default:					/* Error, but try to continue */
 		if (dbg) {
 			g_warning("io_header_parse: %s, from %s",
-				header_strerror(error), ip_to_gchar(s->ip));
+				header_strerror(error), host_addr_to_string(s->addr));
 			dump_hex(stderr, "Header Line",
 				getline_str(getline), getline_length(getline));
 			fprintf(stderr, "------ Header Dump (so far):\n");
@@ -292,7 +292,7 @@ nextline:
 	if ((ih->flags & IO_HEAD_ONLY) && s->pos) {
         if (dbg) {
             g_message("remote %s sent extra bytes after headers",
-                ip_to_gchar(s->ip));
+                host_addr_to_string(s->addr));
             dump_hex(stderr, "Extra Data", s->buffer, MIN(s->pos, 512));
         }
 		(*ih->error->header_extra_data)(ih->resource);
@@ -378,7 +378,7 @@ io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 	count = sizeof(s->buffer) - s->pos;
 	if (count < 1) {
 		g_warning("ih_header_read: incoming buffer full, "
-			"disconnecting from %s", ip_to_gchar(s->ip));
+			"disconnecting from %s", host_addr_to_string(s->addr));
 		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
 		(*ih->error->input_buffer_full)(ih->resource);
 		return;

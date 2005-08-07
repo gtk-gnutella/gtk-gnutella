@@ -428,7 +428,7 @@ search_gui_hash_func(gconstpointer p)
 		GPOINTER_TO_UINT(rc->results_set->guid) ^	/* atom! */
 		(NULL != rc->sha1 ? 0 : g_str_hash(rc->name)) ^
 		rc->size ^
-		rc->results_set->ip ^
+		host_addr_hash(rc->results_set->addr) ^
 		rc->results_set->port;
 }
 
@@ -439,7 +439,7 @@ search_gui_hash_key_compare(gconstpointer a, gconstpointer b)
 	
 	/* Must compare same fields as search_hash_func() --RAM */
 	return rc1->size == rc2->size
-		&& rc1->results_set->ip == rc2->results_set->ip
+		&& host_addr_equal(rc1->results_set->addr, rc2->results_set->addr)
 		&& rc1->results_set->port == rc2->results_set->port
 		&& rc1->results_set->guid == rc2->results_set->guid	/* atom! */
 		&& (rc1->sha1 != NULL /* atom! */
@@ -499,7 +499,7 @@ search_gui_result_is_dup(search_t *sch, record_t *rc)
 				old.rc->index, rc->index, guid_hex_str(rc->results_set->guid),
 				rc->name);
 		guc_download_index_changed(
-			rc->results_set->ip,		/* This is for optimizing lookups */
+			rc->results_set->addr,		/* This is for optimizing lookups */
 			rc->results_set->port,
 			rc->results_set->guid,		/* This is for formal identification */
 			old.rc->index,
@@ -599,13 +599,13 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
     GSList *sl;
 	gint ignored = 0;
 
-    rs = (results_set_t *) zalloc(rs_zone);
+    rs = zalloc(rs_zone);
 
     rs->refcount = 0;
     rs->schl = g_slist_copy(schl);
 
     rs->guid = atom_guid_get(r_set->guid);
-    rs->ip = r_set->ip;
+    rs->addr = r_set->addr;
     rs->port = r_set->port;
     rs->status = r_set->status;
     rs->speed = r_set->speed;
@@ -614,7 +614,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
 	rs->version = r_set->version ? atom_str_get(r_set->version) : NULL;
 	rs->hostname = r_set->hostname ? atom_str_get(r_set->hostname) : NULL;
 	rs->country = r_set->country;
-	rs->udp_ip = r_set->udp_ip;
+	rs->udp_addr = r_set->udp_addr;
 
     rs->num_recs = 0;
     rs->records = NULL;
@@ -680,11 +680,11 @@ search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 	for (i = alt->hvcnt - 1; i >= 0; i--) {
 		gnet_host_t *h = &alt->hvec[i];
 
-		if (h->port == 0 || !ip_is_valid(h->ip))
+		if (h->port == 0 || !addr_is_valid(h->addr))
 			continue;
 
 		guc_download_auto_new(rc->name, rc->size, URN_INDEX,
-			h->ip, h->port, blank_guid, rs->hostname,
+			h->addr, h->port, blank_guid, rs->hostname,
 			rc->sha1, rs->stamp, FALSE, TRUE, NULL, NULL);
 	}
 
@@ -836,11 +836,11 @@ search_matched(search_t *sch, results_set_t *rs)
 		sch->udp_qhits++;
 		if (vinfo->len)
 			g_string_append(vinfo, ", ");
-		if (rs->ip == rs->udp_ip)
+		if (host_addr_equal(rs->addr, rs->udp_addr))
 			g_string_append(vinfo, "udp");
 		else {
 			g_string_append(vinfo, "udp ");
-			g_string_append(vinfo, ip_to_gchar(rs->udp_ip));
+			g_string_append(vinfo, host_addr_to_string(rs->udp_addr));
 		}
 	} else
 		sch->tcp_qhits++;
@@ -861,7 +861,8 @@ search_matched(search_t *sch, results_set_t *rs)
 		printf("search_matched: [%s] got hit with %d record%s (from %s) "
 			"need_push=%d, skipping=%d\n",
 			sch->query, rs->num_recs, rs->num_recs == 1 ? "" : "s",
-			ip_port_to_gchar(rs->ip, rs->port), need_push, skip_records);
+			host_addr_port_to_string(rs->addr, rs->port),
+			need_push, skip_records);
 
   	for (l = rs->records; l && !skip_records; l = l->next) {
 		record_t *rc = (record_t *) l->data;
@@ -931,8 +932,8 @@ search_matched(search_t *sch, results_set_t *rs)
 				FILTER_PROP_STATE_DO)
 		) {
             guc_download_auto_new(rc->name, rc->size, rc->index,
-				rs->ip, rs->port, rs->guid, rs->hostname, rc->sha1, rs->stamp,
-				need_push, TRUE, NULL, rs->proxies);
+				rs->addr, rs->port, rs->guid, rs->hostname, rc->sha1,
+				rs->stamp, need_push, TRUE, NULL, rs->proxies);
 
 			if (rs->proxies != NULL)
 				search_gui_free_proxies(rs);

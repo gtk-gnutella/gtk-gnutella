@@ -243,13 +243,13 @@ shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 	switch (get_command(tok)) {
 	case CMD_ADD: {
 		gchar *tok_buf;
-		guint32 ip = 0;
+		host_addr_t addr;
 		guint32 port = GTA_PORT;
 
 		tok_buf = shell_get_token(cmd, &pos);
 
 		if (tok_buf) {
-			ip = host_to_ip(tok_buf);
+			addr = name_to_host_addr(tok_buf);
 			G_FREE_NULL(tok_buf);
 		} else
 			goto error;
@@ -261,8 +261,8 @@ shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 			G_FREE_NULL(tok_buf);
 		}
 
-		if (ip && port) {
-			node_add(ip, port);
+		if (is_host_addr(addr) && port) {
+			node_add(addr, port);
 			sh->msg = _("Node added");
 		} else {
 			sh->msg = _("Invalid IP/Port");
@@ -625,7 +625,7 @@ shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 
 			gm_snprintf(buf, sizeof(buf),
 				_("Horizon size via HSEP node %s (%s):"),
-				node_ip(n),
+				node_addr(n),
 				NODE_IS_LEAF(n) ? _("leaf") :
 					(NODE_IS_ULTRA(n) ? _("ultrapeer") : _("normal node")));
 
@@ -914,7 +914,7 @@ shell_read_data(gnutella_shell_t *sh)
 		switch (getline_read(s->getline, s->buffer, s->pos, &parsed)) {
 		case READ_OVERFLOW:
 			g_warning("Line is too long (from shell at %s)\n",
-				ip_port_to_gchar(s->ip, s->port));
+				host_addr_port_to_string(s->addr, s->port));
 			shell_destroy(sh);
 			return;
 		case READ_DONE:
@@ -993,7 +993,7 @@ shell_write(gnutella_shell_t *sh, const gchar *s)
 
 	if (len + sh->outpos >= sizeof(sh->outbuf)) {
 		g_warning("Line is too long (for shell at %s)",
-			ip_port_to_gchar(sh->socket->ip, sh->socket->port));
+			host_addr_port_to_string(sh->socket->addr, sh->socket->port));
 		return FALSE;
 	}
 
@@ -1120,7 +1120,7 @@ shell_add(struct gnutella_socket *s)
 	g_assert(s->getline);
 
 	g_warning("Incoming shell connection from %s\n",
-		ip_port_to_gchar(s->ip, s->port));
+		host_addr_port_to_string(s->addr, s->port));
 
 	s->type = SOCK_TYPE_SHELL;
 	socket_tos_default(s);			/* Set proper Type of Service */

@@ -105,11 +105,14 @@ on_spinbutton_search_reissue_timeout_changed(GtkEditable *editable,
 }
 
 static void
-on_entry_config_proxy_hostname_activate_helper(guint32 ip,
+on_entry_config_proxy_hostname_activate_helper(const host_addr_t addr,
 		gpointer unused_udata)
 {
+	const gchar *s;
+	
 	(void) unused_udata;
-    gnet_prop_set_guint32_val(PROP_PROXY_IP, ip);
+	s = host_addr_to_string(addr);
+    gnet_prop_set_string(PROP_PROXY_ADDR, s);
 }
 
 void

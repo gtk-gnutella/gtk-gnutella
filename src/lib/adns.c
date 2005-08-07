@@ -53,7 +53,7 @@ static guint32 common_dbg = 0;	/**< @bug XXX -- need to init lib's props --RAM *
 typedef struct adns_query {
 	GFunc user_callback;
 	gpointer user_data;
-	guint32 ip;
+	host_addr_t addr;
 	gboolean reverse;
 	gchar hostname[MAX_HOSTLEN + 1];
 } adns_query_t;
@@ -66,7 +66,7 @@ typedef struct adns_async_write {
 
 typedef struct adns_cache_entry {
 	gchar *hostname;		/**< atom */
-    guint32 ip;
+	host_addr_t addr;
 	time_t timestamp;
 } adns_cache_entry_t;
 
@@ -155,13 +155,13 @@ adns_cache_free(adns_cache_t *cache)
 #undef ADNS_CACHE_TIMEOUT
 
 /**
- * Adds ``hostname'' and ``ip'' to the cache. The cache is implemented
+ * Adds ``hostname'' and ``addr'' to the cache. The cache is implemented
  * as a wrap-around FIFO. In case it's full, the oldest entry will be
  * overwritten.
  */
 static void
 adns_cache_add(adns_cache_t *cache, time_t now,
-	const gchar *hostname, guint32 ip)
+	const gchar *hostname, const host_addr_t addr)
 {
 	adns_cache_entry_t *entry;
 	gchar *atom;
@@ -177,7 +177,7 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 	}
 	entry->hostname = atom;
 	entry->timestamp = now;
-	entry->ip = ip;
+	entry->addr = addr;
 	g_hash_table_insert(cache->hashtab, entry->hostname,
 		GUINT_TO_POINTER(cache->oldest));
 
@@ -188,13 +188,13 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 /**
  * Looks for ``hostname'' in ``cache'' wrt to cache->timeout. If
  * ``hostname'' is not found or the entry is expired, FALSE will be
- * returned. Expired entries will be removed! ``ip'' is allowed to
+ * returned. Expired entries will be removed! ``addr'' is allowed to
  * be NULL, otherwise the cached IP will be stored into the variable
- * ``ip'' points to.
+ * ``addr'' points to.
  */
 static gboolean
 adns_cache_lookup(adns_cache_t *cache, time_t now,
-	const gchar *hostname, guint32 *ip)
+	const gchar *hostname, host_addr_t *addr)
 {
 	guint i;
 	gpointer key;
@@ -221,11 +221,11 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 	atom = NULL;
 
 	if (delta_time(now, entry->timestamp) < cache->timeout) {
-		if (NULL != ip)
-			*ip = entry->ip;
+		if (NULL != addr)
+			*addr = entry->addr;
 		if (common_dbg > 0)
-			g_warning("adns_cache_lookup: \"%s\" cached (ip=%s)",
-				entry->hostname, ip_to_gchar(entry->ip));
+			g_warning("adns_cache_lookup: \"%s\" cached (addr=%s)",
+				entry->hostname, host_addr_to_string(entry->addr));
 		return TRUE;
 	} else {
 		if (common_dbg > 0)
@@ -235,7 +235,7 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 		atom_str_free(key);
 		entry->hostname = NULL;
 		entry->timestamp = 0;
-		entry->ip = 0;
+		entry->addr = zero_host_addr;
 	}
 
 	return FALSE;
@@ -313,7 +313,7 @@ adns_do_write(gint fd, gpointer buf, size_t len)
 /**
  * Copies user_callback and user_data from the query buffer to the
  * reply buffer. This function won't fail. However, if gethostbyname()
- * fails ``reply->ip'' will be set to zero.
+ * fails ``reply->addr'' will be set to zero.
  */
 static void
 adns_gethostbyname(const adns_query_t *query, adns_query_t *reply)
@@ -325,14 +325,20 @@ adns_gethostbyname(const adns_query_t *query, adns_query_t *reply)
 
 	if (common_dbg > 1) {
 		g_message("adns_gethostbyname: Resolving \"%s\" ...",
-				query->reverse ? ip_to_gchar(query->ip) : query->hostname);
+			query->reverse
+				? host_addr_to_string(query->addr)
+				: query->hostname);
 	}
 
 	reply->user_callback = query->user_callback;
 	reply->user_data = query->user_data;
 	reply->reverse = query->reverse;
-	reply->ip = query->reverse ? query->ip : host_to_ip(query->hostname);
-	host = query->reverse ? ip_to_host(query->ip) : query->hostname;
+	reply->addr = query->reverse
+		? query->addr
+		: name_to_host_addr(query->hostname);
+	host = query->reverse
+		? host_addr_to_name(query->addr)
+		: query->hostname;
 	g_strlcpy(reply->hostname, host ? host : "", sizeof reply->hostname);
 }
 
@@ -381,7 +387,7 @@ adns_invoke_user_callback(adns_query_t *reply)
 		adns_callback_t func;
 
 		func = (adns_callback_t) reply->user_callback;
-		func(reply->ip, reply->user_data);
+		func(reply->addr, reply->user_data);
 	}
 }
 
@@ -449,12 +455,12 @@ again:
 		time_t now = time(NULL);
 
 		if (common_dbg > 1) {
-			const gchar *host, *ip;
+			const gchar *host, *addr;
 
 			host = reply.hostname;
-			ip = ip_to_gchar(reply.ip);
+			addr = host_addr_to_string(reply.addr);
 			g_warning("adns_reply_callback: Resolved \"%s\" to \"%s\".",
-				reply.reverse ? ip : host, reply.reverse ? host : ip);
+				reply.reverse ? addr : host, reply.reverse ? host : addr);
 		}
 
 		g_assert(NULL != reply.user_callback);
@@ -462,7 +468,7 @@ again:
 				!reply.reverse &&
 				!adns_cache_lookup(adns_cache, now, reply.hostname, NULL)
 		) {
-			adns_cache_add(adns_cache, now, reply.hostname, reply.ip);
+			adns_cache_add(adns_cache, now, reply.hostname, reply.addr);
 		}
 
 		adns_invoke_user_callback(&reply);
@@ -697,11 +703,11 @@ adns_resolve(const gchar *hostname,
 	query.user_callback = (GFunc) user_callback;
 	query.user_data = user_data;
 	query.reverse = FALSE;
-	query.ip = 0;
+	query.addr = zero_host_addr;
 	reply = query;
 
-	reply.ip = gchar_to_ip(hostname);
-	if (0 != reply.ip) {
+	reply.addr = name_to_host_addr(hostname);
+	if (is_host_addr(reply.addr)) {
 		adns_invoke_user_callback(&reply);
 		return FALSE; /* synchronous */
 	}
@@ -709,13 +715,15 @@ adns_resolve(const gchar *hostname,
 	hostname_len = g_strlcpy(query.hostname, hostname, sizeof(query.hostname));
 	if (hostname_len >= sizeof(query.hostname)) {
 		/* truncation detected */
-		reply.ip = 0;
+		reply.addr = zero_host_addr;
 		adns_invoke_user_callback(&reply);
 		return FALSE; /* synchronous */
 	}
 
 	ascii_strlower(query.hostname, hostname);
-	if (adns_cache_lookup(adns_cache, time(NULL), query.hostname, &reply.ip)) {
+	if (
+		adns_cache_lookup(adns_cache, time(NULL), query.hostname, &reply.addr)
+	) {
 		adns_invoke_user_callback(&reply);
 		return FALSE; /* synchronous */
 	}
@@ -732,7 +740,7 @@ adns_resolve(const gchar *hostname,
 }
 
 /**
- * Creates a DNS reverse lookup query for ``ip''. The given function
+ * Creates a DNS reverse lookup query for ``addr''. The given function
  * ``user_callback'' (which MUST NOT be NULL) will be invoked with
  * the resolved hostname and ``user_data'' as its parameters. If the lookup
  * failed, the callback will be invoked with ``hostname'' NULL. If the adns
@@ -745,16 +753,16 @@ adns_resolve(const gchar *hostname,
  * returned, adns_reverse_lookup() returns FALSE.
  */
 gboolean
-adns_reverse_lookup(guint32 ip,
+adns_reverse_lookup(const host_addr_t addr,
 	adns_reverse_callback_t user_callback, gpointer user_data)
 {
 	static adns_query_t query;
 
-	g_assert(NULL != user_callback);
+	g_assert(user_callback);
 
 	query.user_callback = (GFunc) user_callback;
 	query.user_data = user_data;
-	query.ip = ip;
+	query.addr = addr;
 	query.reverse = TRUE;
 	query.hostname[0] = '\0';
 
@@ -762,7 +770,7 @@ adns_reverse_lookup(guint32 ip,
 		return TRUE; /* asynchronous */
 
 	g_warning("adns_reverse_lookup: using synchronous resolution for \"%s\"",
-		ip_to_gchar(query.ip));
+		host_addr_to_string(query.addr));
 
 	adns_fallback(&query);
 
