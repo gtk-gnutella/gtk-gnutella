@@ -617,8 +617,6 @@ name_to_host_addr(const gchar *host)
 		}
 
 		ha = host_addr_set_ip4(peek_be32(he->h_addr_list[0]));
-		g_assert(peek_be32(he->h_addr_list[0]) == ha.addr.ip4);
-		g_assert(NET_TYPE_IP4 == ha.net);
 		return ha;
 		
 #ifdef USE_IPV6
