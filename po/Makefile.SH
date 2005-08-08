@@ -370,7 +370,7 @@ $(DUMMYPOFILES):
 update-gmo: Makefile $(GMOFILES)
 	@:
 
-Makefile: Makefile.SH
+Makefile: Makefile.SH LINGUAS
 	sh Makefile.SH
 
 force:
