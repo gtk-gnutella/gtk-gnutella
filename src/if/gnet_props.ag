@@ -1167,6 +1167,28 @@ prop = {
 };
 
 prop = {
+    name = "network_protocol";
+    desc = "Network protocols to use.";
+    type = multichoice;
+    data = {
+        default = NET_USE_IPV4;
+    };
+    choice = {
+        name = "IPv4 only";
+        value = NET_USE_IPV4;
+    };
+    choice = {
+        name = "IPv6 only";
+        value = NET_USE_IPV6;
+    };
+    choice = {
+        name = "IPv4 and IPv6";
+        value = NET_USE_BOTH;
+    };
+};
+
+
+prop = {
     name = "hosts_in_catcher";
     desc = "Current number of hosts in regular node caches.";
     save = FALSE;

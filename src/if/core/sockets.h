@@ -38,6 +38,16 @@ enum {
     PROXY_SOCKSV5 = 5
 };
 
+/***
+ *** Network protocols
+ ***/
+enum {
+    NET_USE_BOTH  = 0,
+    NET_USE_IPV4  = 4,
+    NET_USE_IPV6  = 6,
+};
+
+
 #endif /* _if_core_sockets_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

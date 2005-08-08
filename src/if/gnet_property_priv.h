@@ -142,6 +142,7 @@ extern const gchar   *proxy_addr;
 extern const gchar   *proxy_hostname;
 extern const guint32  proxy_port;
 extern const guint32  proxy_protocol;
+extern const guint32  network_protocol;
 extern const guint32  hosts_in_catcher;
 extern const guint32  hosts_in_ultra_catcher;
 extern const guint32  hosts_in_bad_catcher;
