@@ -56,6 +56,7 @@ msgid "No direct connection yet (%d retry)"
 msgid_plural "No direct connection yet (%d retries)"
 msgstr[0] "Прямого з'єднання поки що немає (%d спроба)"
 msgstr[1] "Прямого з'єднання поки що немає (%d спроб)"
+msgstr[2] "Прямого з'єднання поки що немає (%d спроб)"
 
 #: src/core/downloads.c:3018 src/core/downloads.c:3032
 #, c-format
@@ -63,6 +64,7 @@ msgid "Timeout (%d retry)"
 msgid_plural "Timeout (%d retries)"
 msgstr[0] "Тайм-аут (%d спроба)"
 msgstr[1] "Тайм-аут (%d спроб)"
+msgstr[2] "Тайм-аут (%d спроб)"
 
 #: src/core/downloads.c:3022
 #, c-format
@@ -70,6 +72,7 @@ msgid "Connection refused (%d retry)"
 msgid_plural "Connection refused (%d retries)"
 msgstr[0] "У з'єднанні відмовленно (%d спроба)"
 msgstr[1] "У з'єднанні відмовленно (%d спроб)"
+msgstr[2] "У з'єднанні відмовленно (%d спроб)"
 
 #: src/core/downloads.c:3320
 msgid "Dup SHA1 during creation"
