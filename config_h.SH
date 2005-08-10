@@ -333,6 +333,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_syssysctl I_SYS_SYSCTL		/**/
 
+/* USE_IPV6:
+ *  This symbol is defined when IPv6 can be used
+ */
+#$d_ipv6 USE_IPV6
+
 /* LOCALE_EXP:
  *	This symbol holds the possibly ~name expanded place where localization
  *	files for the package are expected to be found.

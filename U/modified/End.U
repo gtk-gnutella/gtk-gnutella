@@ -13,7 +13,7 @@
 ?X: 
 ?MAKE:End: $W cat gtkversion d_libxml2 libs d_iptos remotectrl \
 	d_deflate d_inflate i_zlib gtkgversion glibversion d_enablenls \
-	Sendfile64 d_dbus
+	Sendfile64 d_ipv6 d_dbus
 ?MAKE:	-pick add $@ %<
 ?LINT:use $W
 ?T:glib_used frontend persistent zlib remote iptos unicode nls
@@ -32,6 +32,10 @@ esac
 dbus=no
 case "$d_dbus" in
 "$define") dbus=yes;;
+esac
+ipv6=no
+case "$d_ipv6" in
+"$define") ipv6=yes;;
 esac
 zlib=no
 case " $libs " in
@@ -61,6 +65,7 @@ GUI front-end                      : $frontend
 Persistent filters                 : $persistent
 Gnutella traffic compression       : $zlib
 IP TOS (Type of Service)           : $iptos
+IPv6 support                       : $ipv6
 NLS (Native Language Support)      : $nls
 Experimental remote control        : $remote
 DBus support                       : $dbus
