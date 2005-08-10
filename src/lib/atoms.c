@@ -353,7 +353,8 @@ uint64_str(gconstpointer v)
 {
 	static gchar buf[22];
 	
-	return uint64_to_string_buf(buf, sizeof buf, *(const guint64 *) v);
+	uint64_to_string_buf(*(const guint64 *) v, buf, sizeof buf);
+	return buf;
 }
 
 /**

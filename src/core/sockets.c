@@ -130,10 +130,10 @@ socket_addr_set(socket_addr_t *addr, const host_addr_t ha, guint16 port)
 		addr->inet6.sin6_port = htons(port);
 		memcpy(addr->inet6.sin6_addr.s6_addr, ha.addr.ip6, 16);
 		return;
+#endif /* USE_IPV6 */
 		
 	case NET_TYPE_NONE:
 		break;
-#endif /* USE_IPV6 */
 	}
 	g_assert_not_reached();
 }
@@ -1781,6 +1781,7 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 	host_addr_t ha = zero_host_addr;
 	guint16 port = 0;
 
+	sa_len = sizeof sin;
 	if (-1 != getsockname(fd, cast_to_gpointer(&sin), &sa_len)) {
 		ha = host_addr_set_ip4(ntohl(sin.sin_addr.s_addr));
 		port = sin.sin_port;
@@ -1790,6 +1791,7 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 	if (!is_host_addr(ha)) {
 		struct sockaddr_in6 sin6;
 
+		sa_len = sizeof sin6;
 		if (-1 != getsockname(fd, cast_to_gpointer(&sin6), &sa_len)) {
 			host_addr_set_ip6(&ha, sin6.sin6_addr.s6_addr);
 			port = sin6.sin6_port;
@@ -2340,7 +2342,6 @@ socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
 	struct gnutella_socket *s;
 	const struct sockaddr *sa;
 	socket_addr_t addr;
-	host_addr_t haddr;
 	socklen_t sa_len;
 	int sd, option;
 
@@ -2348,11 +2349,12 @@ socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
 
  	if (port < 1024)
 		return NULL;
+	if (NET_TYPE_NONE == host_addr_net(ha))
+		return NULL;
 	
-	haddr = is_host_addr(ha) ? ha : host_addr_set_ip4(INADDR_ANY);
-	socket_addr_set(&addr, haddr, port);
+	socket_addr_set(&addr, ha, port);
 
-	sd = socket(host_addr_family(haddr), SOCK_STREAM, 0);
+	sd = socket(host_addr_family(ha), SOCK_STREAM, 0);
 	if (-1 == sd) {
 		g_warning("Unable to create a socket (%s)", g_strerror(errno));
 		return NULL;
@@ -2375,7 +2377,7 @@ socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
 
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
 
-	s->net = host_addr_net(haddr);
+	s->net = host_addr_net(ha);
 
 	/* bind() the socket */
 
@@ -2429,16 +2431,19 @@ socket_udp_listen(const host_addr_t ha, guint16 port)
 	struct gnutella_socket *s;
 	const struct sockaddr *sa;
 	socket_addr_t addr;
-	host_addr_t haddr;
 	socklen_t sa_len;
 	int sd, option;
 
-	haddr = is_host_addr(ha) ? ha : host_addr_set_ip4(INADDR_ANY);
-	socket_addr_set(&addr, haddr, port);
+	if (port < 1024)
+		return NULL;
+	if (NET_TYPE_NONE == host_addr_net(ha))
+		return NULL;
+
+	socket_addr_set(&addr, ha, port);
 
 	/* Create a socket, then bind() it */
 
-	sd = socket(host_addr_family(haddr), SOCK_DGRAM, 0);
+	sd = socket(host_addr_family(ha), SOCK_DGRAM, 0);
 	if (-1 == sd) {
 		g_warning("Unable to create a socket (%s)", g_strerror(errno));
 		return NULL;
@@ -2451,7 +2456,7 @@ socket_udp_listen(const host_addr_t ha, guint16 port)
 	s->file_desc = sd;
 	s->pos = 0;
 	s->flags |= SOCK_F_UDP;
-	s->net = host_addr_net(haddr);
+	s->net = host_addr_net(ha);
 
 	socket_wio_link(s);				/* Link to the I/O functions */
 
@@ -2712,14 +2717,19 @@ socket_plain_sendto(
 	const struct sockaddr *sa;
 	socklen_t sa_len;
 	socket_addr_t addr;
+	host_addr_t ha;
 	ssize_t ret;
 
 #ifdef USE_TLS
 	g_assert(!SOCKET_USES_TLS(s));
 #endif
 
-	g_assert(host_addr_net(to->addr) == s->net);
-	socket_addr_set(&addr, to->addr, to->port);
+	if (!host_addr_convert(&to->addr, &ha, s->net)) {
+		errno = EINVAL;
+		return -1;
+	}
+	
+	socket_addr_set(&addr, ha, to->port);
 	sa_len = socket_addr_get(&addr, &sa);
 
 	ret = sendto(s->file_desc, buf, size, 0, sa, sa_len);

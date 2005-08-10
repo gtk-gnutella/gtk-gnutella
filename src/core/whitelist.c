@@ -124,7 +124,7 @@ whitelist_retrieve(void)
         netmask = 0xffffffffU; /* Default mask */
         if (snetmask) {
             if (strchr(snetmask, '.')) {
-                netmask = gchar_to_ip(snetmask);
+                netmask = string_to_ip(snetmask);
             	if (!netmask) {
                 	netmask = 0xffffffff;
                 	g_warning("whitelist_retrieve(): "

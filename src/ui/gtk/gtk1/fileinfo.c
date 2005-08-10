@@ -174,7 +174,7 @@ fi_gui_set_details(gnet_fi_t fih)
     gtk_label_set_text(
         GTK_LABEL(lookup_widget(main_window, "label_fi_filename")),
         fi->file_name);
-	uint64_to_string_buf(bytes, sizeof bytes, fis.size);
+	uint64_to_string_buf(fis.size, bytes, sizeof bytes);
     gtk_label_printf(
         GTK_LABEL(lookup_widget(main_window, "label_fi_size")),
         _("%s (%s bytes)"), short_size(fis.size), bytes);

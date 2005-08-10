@@ -1577,7 +1577,7 @@ filter_update_size(GtkEntry *entry)
 		size = 0;
 	}
 
-	uint64_to_string_buf(buf, sizeof buf, size);
+	uint64_to_string_buf(size, buf, sizeof buf);
 	if (0 != strcmp(buf, text)) {
 		gtk_entry_set_text(entry, buf);
 	}

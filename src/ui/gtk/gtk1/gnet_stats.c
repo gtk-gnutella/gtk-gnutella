@@ -193,7 +193,7 @@ pkt_stat_str(const guint64 *val_tbl, gint type)
         gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     else
-        uint64_to_string_buf(strbuf, sizeof strbuf, val_tbl[type]);
+        uint64_to_string_buf(val_tbl[type], strbuf, sizeof strbuf);
 
     return strbuf;
 }
@@ -235,8 +235,8 @@ drop_stat_str(const gnet_stats_t *stats, gint reason)
         gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) stats->drop_reason[reason][selected_type] / total * 100);
     else
-        uint64_to_string_buf(strbuf, sizeof strbuf,
-			stats->drop_reason[reason][selected_type]);
+        uint64_to_string_buf(stats->drop_reason[reason][selected_type],
+			strbuf, sizeof strbuf);
 
     return strbuf;
 }
@@ -252,7 +252,7 @@ general_stat_str(const gnet_stats_t *stats, gint type)
     if (type == GNR_QUERY_COMPACT_SIZE) {
         return compact_size(stats->general[type]);
     } else {
-        uint64_to_string_buf(strbuf, sizeof strbuf, stats->general[type]);
+        uint64_to_string_buf(stats->general[type], strbuf, sizeof strbuf);
         return strbuf;
     }
 }
@@ -269,7 +269,7 @@ flowc_stat_str_pkg(const guint64 *val_tbl, gint type)
 		gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     } else {
-       	uint64_to_string_buf(strbuf, sizeof strbuf, val_tbl[type]);
+       	uint64_to_string_buf(val_tbl[type], strbuf, sizeof strbuf);
     }
 
     return strbuf;

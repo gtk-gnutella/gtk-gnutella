@@ -97,7 +97,7 @@ bogons_load(FILE *f)
 		if ('\0' == *line)
 			continue;
 
-		if (!gchar_to_ip_and_mask(line, &ip, &netmask)) {
+		if (!string_to_ip_and_mask(line, &ip, &netmask)) {
 			g_warning("%s, line %d: invalid IP or netmask \"%s\"",
 				bogons_file, linenum, line);
 			continue;

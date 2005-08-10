@@ -463,7 +463,7 @@ url_normalize(gchar *url, url_policy_t pol)
 		goto bad;
 	}
 
-	if (gchar_to_ip_strict(q, NULL, (const gchar **) &endptr)) {
+	if (string_to_ip_strict(q, NULL, (const gchar **) &endptr)) {
 		if (!(pol & URL_POLICY_ALLOW_IP_AS_HOST)) {
 			warn = "URLs without hostnames have been disabled";
 			goto bad;

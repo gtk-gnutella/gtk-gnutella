@@ -2200,12 +2200,12 @@ upload_416_extra(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 	size_t len = *retval;
 	const struct upload_http_cb *a = (const struct upload_http_cb *) arg;
 	const gnutella_upload_t *u = a->u;
-	gchar fsize[32];
+	gchar fsize[21];
 
 	(void) unused_flags;
 	g_assert(len <= INT_MAX);
-	rw = gm_snprintf(buf, len, "Content-Range: bytes */%s\r\n",
-			uint64_to_string_buf(fsize, sizeof fsize, u->file_size));
+	uint64_to_string_buf(u->file_size, fsize, sizeof fsize);
+	rw = gm_snprintf(buf, len, "Content-Range: bytes */%s\r\n", fsize);
 	g_assert(rw < len);
 
 	*retval = rw;
@@ -2222,30 +2222,31 @@ upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 	gint length = *retval;
 	struct upload_http_cb *a = (struct upload_http_cb *) arg;
 	gnutella_upload_t *u = a->u;
-	gchar csize[32];
+	gchar csize[21];
 
 	(void) unused_flags;
 
 	if (!u->keep_alive)
 		rw = gm_snprintf(buf, length, "Connection: close\r\n");
 
+	uint64_to_string_buf(u->end - u->skip + 1, csize, sizeof csize);
 	rw += gm_snprintf(&buf[rw], length - rw,
 		"Last-Modified: %s\r\n"
 		"Content-Type: application/binary\r\n"
 		"Content-Length: %s\r\n",
 			date_to_rfc1123_gchar(a->mtime),
-			uint64_to_string_buf(csize, sizeof csize, u->end - u->skip + 1));
+			csize);
 
 	g_assert(rw < length);
 
 	if (u->skip || u->end != (u->file_size - 1)) {
-		gchar rsize[32], start_buf[32], end_buf[32];
+		gchar rsize[21], start_buf[21], end_buf[21];
 
+		uint64_to_string_buf(u->skip, start_buf, sizeof start_buf),
+		uint64_to_string_buf(u->end, end_buf, sizeof end_buf),
+		uint64_to_string_buf(u->file_size, rsize, sizeof rsize);
 		rw += gm_snprintf(&buf[rw], length - rw,
-				"Content-Range: bytes %s-%s/%s\r\n",
-				uint64_to_string_buf(start_buf, sizeof start_buf, u->skip),
-				uint64_to_string_buf(end_buf, sizeof end_buf, u->end),
-				uint64_to_string_buf(rsize, sizeof rsize, u->file_size));
+				"Content-Range: bytes %s-%s/%s\r\n", start_buf, end_buf, rsize);
 	}
 
 	g_assert(rw < length);

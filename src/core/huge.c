@@ -177,15 +177,15 @@ cache_entry_print(FILE *f, const char *filename, const gchar *digest,
 	filesize_t size, time_t mtime)
 {
 	const gchar *sha1;
-	gchar size_buf[32], time_buf[32];
+	gchar size_buf[21], mtime_buf[21];
 	
-	uint64_to_string_buf(size_buf, sizeof size_buf, size);
-	uint64_to_string_buf(time_buf, sizeof time_buf, mtime);
+	uint64_to_string_buf(size, size_buf, sizeof size_buf);
+	uint64_to_string_buf(mtime, mtime_buf, sizeof mtime_buf);
 
 	sha1 = sha1_base32(digest);
 	g_assert(NULL != sha1);
 	
-	fprintf(f, "%s\t%s\t%s\t%s\n", sha1, size_buf, time_buf, filename);
+	fprintf(f, "%s\t%s\t%s\t%s\n", sha1, size_buf, mtime_buf, filename);
 }
 
 /**

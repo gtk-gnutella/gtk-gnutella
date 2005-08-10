@@ -191,7 +191,7 @@ on_entry_config_force_ip_activate(GtkEditable *unused_editable,
         GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_config_force_ip")),
         0, -1));
 	g_strstrip(e);
-	ip = gchar_to_ip(e);
+	ip = string_to_ip(e);
 	gnet_prop_set_guint32_val(PROP_FORCED_LOCAL_IP, ip);
 	g_free(e);
 }

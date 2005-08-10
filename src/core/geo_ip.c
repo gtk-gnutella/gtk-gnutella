@@ -163,7 +163,7 @@ gip_load(FILE *f)
 			continue;
 		}
 
-		if (!gchar_to_ip_strict(line, &ctx.ip1, NULL)) {
+		if (!string_to_ip_strict(line, &ctx.ip1, NULL)) {
 			g_warning("%s, line %d: invalid first IP in \"%s\"",
 				gip_file, linenum, line);
 			continue;
@@ -181,7 +181,7 @@ gip_load(FILE *f)
 			end++;
 		}
 
-		if (!gchar_to_ip_strict(end, &ctx.ip2, &end)) {
+		if (!string_to_ip_strict(end, &ctx.ip2, &end)) {
 			g_warning("%s, line %d: invalid second IP in \"%s\"",
 				gip_file, linenum, line);
 			continue;

@@ -50,7 +50,7 @@
 #ifndef _misc_h_
 #define _misc_h_
 
-#include "config.h"				/* Needed for FreeBSD compiles */
+#include "config.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -298,8 +298,15 @@ typedef guint16 flag_t;
 #define set_flags(r,f) (r |= (f))
 #define clear_flags(r,f) (r &= ~(f))
 
+
+#define IPV6_ADDR_BUFLEN \
+	  (sizeof "0001:0203:0405:0607:0809:1011:255.255.255.255")
+
 #if defined(USE_IPV6)
 static const host_addr_t zero_host_addr;
+
+gboolean host_addr_convert(const host_addr_t *from, host_addr_t *to,
+	enum net_type to_net);
 
 static inline enum net_type 
 host_addr_net(const host_addr_t ha)
@@ -316,7 +323,7 @@ host_addr_ip4(const host_addr_t ha)
 static inline const guint8 *
 host_addr_ip6(const host_addr_t *ha)
 {
-	return ha->addr.ip6;
+	return NET_TYPE_IP6 == ha->net ? ha->addr.ip6 : NULL;
 }
 
 static inline host_addr_t
@@ -425,27 +432,30 @@ host_addr_hash(const host_addr_t ha)
 #endif /* IPV6 */
 
 const gchar *host_addr_to_string(const host_addr_t addr);
-const gchar *host_addr_to_string_buf(const host_addr_t addr, gchar *, size_t);
+size_t host_addr_to_string_buf(const host_addr_t addr, gchar *, size_t);
 host_addr_t string_to_host_addr(const gchar *s);
 const gchar *host_addr_port_to_string(const host_addr_t addr, guint16 port);
-const gchar *host_addr_port_to_string_buf(const host_addr_t addr,
+size_t host_addr_port_to_string_buf(const host_addr_t addr,
 				guint16 port, gchar *, size_t);
 gboolean string_to_host_addr_port(const gchar *s,
 			host_addr_t *addr, guint16 *port);
 host_addr_t name_to_host_addr(const gchar *host);
 const gchar *host_addr_to_name(const host_addr_t addr);
+gboolean parse_ip6_addr(const gchar *s, uint8_t *dst, const gchar **endptr);
+const gchar *ip6_to_string(const guint8 *ipv6);
+size_t ip6_to_string_buf(const guint8 *ipv6, gchar *dst, size_t size);
 
 /*
  * Network related string routines
  */
-guint32  gchar_to_ip(const gchar *);
-gboolean gchar_to_ip_strict(const gchar *s, guint32 *addr, gchar const **ep);
-gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask);
-gboolean gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port);
-gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask);
+guint32  string_to_ip(const gchar *);
+gboolean string_to_ip_strict(const gchar *s, guint32 *addr, gchar const **ep);
+gboolean string_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask);
+gboolean string_to_ip_port(const gchar *str, guint32 *ip, guint16 *port);
+gboolean string_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask);
 const gchar *ip_to_string(guint32);
 const gchar *ip_to_string2(guint32);
-gchar *ip_to_string_buf(guint32 ip, gchar *buf, size_t size);
+size_t ip_to_string_buf(guint32 ip, gchar *buf, size_t size);
 const gchar *ip_port_to_string(guint32, guint16);
 const gchar *hostname_port_to_gchar(const gchar *hostname, guint16 port);
 const gchar *local_hostname(void);
@@ -566,7 +576,7 @@ gint create_directory(const gchar *dir);
 gboolean filepath_exists(const gchar *dir, const gchar *file);
 guint32 parse_uint32(const gchar *, gchar const **, gint, gint *);
 guint64 parse_uint64(const gchar *, gchar const **, gint, gint *);
-gchar * uint64_to_string_buf(gchar *dst, size_t size, guint64 v);
+size_t uint64_to_string_buf(guint64 v, gchar *dst, size_t size);
 const gchar * uint64_to_string(guint64 v);
 const gchar * uint64_to_string2(guint64 v);
 gint parse_major_minor(const gchar *src, gchar const **endptr,

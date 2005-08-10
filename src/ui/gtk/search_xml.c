@@ -175,7 +175,7 @@ xml_get_string(xmlNode *node, const gchar *id)
 }
 
 static inline const xmlChar *
-gchar_to_xmlChar(const gchar *p)
+string_to_xmlChar(const gchar *p)
 {
 	return (const xmlChar *) p;
 }
@@ -183,7 +183,7 @@ gchar_to_xmlChar(const gchar *p)
 static inline xmlNodePtr
 xml_new_empty_child(xmlNodePtr parent, const gchar *name)
 {
-	return xmlNewChild(parent, NULL, gchar_to_xmlChar(name), NULL);
+	return xmlNewChild(parent, NULL, string_to_xmlChar(name), NULL);
 }
 
 
@@ -347,7 +347,7 @@ target_to_string(filter_t *target)
 static inline xmlAttrPtr
 xml_prop_set(xmlNodePtr node, const gchar *name, const char *value)
 {
-    return xmlSetProp(node, gchar_to_xmlChar(name), gchar_to_xmlChar(value));
+    return xmlSetProp(node, string_to_xmlChar(name), string_to_xmlChar(value));
 }
 	
 /**
@@ -392,12 +392,12 @@ search_store_xml(void)
     /*
      * Create new xml document with version 1.0
      */
-    doc = xmlNewDoc(gchar_to_xmlChar("1.0"));
+    doc = xmlNewDoc(string_to_xmlChar("1.0"));
 
     /*
      * Create a new root node "gtkGnutella searches"
      */
-    root = xmlNewDocNode(doc, NULL, gchar_to_xmlChar("Searches"), NULL);
+    root = xmlNewDocNode(doc, NULL, string_to_xmlChar("Searches"), NULL);
     xmlDocSetRootElement(doc, root);
 	/* Discard the newline of the ctime string */
     xml_prop_printf(root, "Time", "%24.24s", ctime(&now));
@@ -844,13 +844,13 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
         break;
     case RULE_SIZE:
 		{
-			gchar buf[32];
+			gchar buf[21];
 			
+			uint64_to_string_buf(r->u.size.lower, buf, sizeof buf);
         	newxml = xml_new_empty_child(parent, NODE_RULE_SIZE);
-        	xml_prop_printf(newxml, TAG_RULE_SIZE_LOWER,
-				"%s", uint64_to_string_buf(buf, sizeof buf, r->u.size.lower));
-        	xml_prop_printf(newxml, TAG_RULE_SIZE_UPPER,
-				"%s", uint64_to_string_buf(buf, sizeof buf, r->u.size.upper));
+        	xml_prop_printf(newxml, TAG_RULE_SIZE_LOWER, "%s", buf);
+			uint64_to_string_buf(r->u.size.upper, buf, sizeof buf);
+        	xml_prop_printf(newxml, TAG_RULE_SIZE_UPPER, "%s", buf);
 		}
         break;
     case RULE_JUMP:
@@ -1275,7 +1275,7 @@ xml_to_ip_rule(xmlNodePtr xmlnode, gpointer data)
         g_warning("xml_to_ip_rule: rule without ip address");
 		return;
 	}
-	addr = gchar_to_ip(buf);	/* XXX: Needs validity check! */
+	addr = string_to_ip(buf);	/* XXX: Needs validity check! */
     G_FREE_NULL(buf);
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_IP_MASK));
@@ -1283,7 +1283,7 @@ xml_to_ip_rule(xmlNodePtr xmlnode, gpointer data)
         g_warning("xml_to_ip_rule: rule without netmask");
 		return;
 	}
-	mask = gchar_to_ip(buf);	/* XXX: Needs validity check! */
+	mask = string_to_ip(buf);	/* XXX: Needs validity check! */
     G_FREE_NULL(buf);
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_TARGET));

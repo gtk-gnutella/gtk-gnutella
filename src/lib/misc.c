@@ -208,7 +208,7 @@ is_string_ip(const gchar *s)
     if (s == NULL)
         return FALSE;
 
-    return 0 != gchar_to_ip(s);
+    return 0 != string_to_ip(s);
 }
 
 /**
@@ -223,7 +223,157 @@ file_exists(const gchar *f)
     return stat(f, &st) != -1;
 }
 
+/**
+ * Prints the unsigned 16-bit value ``v'' in hexadecimal presentation as
+ * NUL-terminated string to ``dst'' and returns the length of the resulting
+ * string. ``dst'' must point to a buffer of 5 or more bytes.
+ *
+ * @param dst the destination buffer.
+ * @param v the 16-bit value.
+ * @return the length of resulting string.
+ */
+static inline size_t
+print_uint16_hex(gchar *dst, guint16 v)
+{
+	gchar *p = dst;
+	gint i;
+
+	for (i = 0; i < 3; i++, v <<= 4) {
+		guint8 d;
+		
+		d = v >> 12;
+		if (0 != d || p != dst)
+			*p++ = hex_alphabet_lower[d];
+	}
+	*p++ = hex_alphabet_lower[v >> 12];
+	
+	*p = '\0';
+	return p - dst;
+}
+
+
+
+/**
+ * Prints the IPv6 address ``ipv6'' to ``dst''. The string written to ``dst''
+ * is always NUL-terminated unless ``size'' is zero. If ``size''
+ * is too small, the string will be truncated.
+ *
+ * @param dst the destination buffer; may be NULL iff ``size'' is zero.
+ * @param ipv6 the IPv6 address; must point to a buffer of 16 bytes.
+ * @param size the size of ``dst'' in bytes.
+ *
+ * @return The length of the resulting string assuming ``size'' is sufficient.
+ */
+size_t
+ip6_to_string_buf(const uint8_t *ip6, gchar *dst, size_t size)
+{
+	gchar *p, buf[IPV6_ADDR_BUFLEN];
+	const gchar *q;
+	gint zero_len = 2, zero_start = -1;
+	gint cur_len = 0, cur_start = 0;
+	gint i;
+
+	g_assert(ip6);
+	g_assert(0 == size || NULL != dst);
+
+	/*
+	 * Use a temporary buffer if ``size'' is not "safe" so that we
+	 * don't need any boundary checks.
+	 */
+	q = p = size < sizeof buf ? buf : dst;
+
+	/*
+	 * The zero compression "::" is allowed exactly once. Thus, determine
+	 * the longest run of zeros first.
+	 */
+
+	for (i = 0; i < 16; /* NOTHING */) {
+		guint16 v;
+
+		v = peek_be16(&ip6[i]);
+
+		/* We want "::1" and "::" but "::192.0.20.3" */
+		if (0 == v && (12 != i || 0 == cur_len || 0 == ip6[12]))
+			cur_len += 2;
+
+		i += 2;
+		if (0 != v || 16 == i) {
+			if (cur_len > zero_len) {
+				zero_start = cur_start;
+				zero_len = cur_len;
+			}
+			cur_start = i;
+			cur_len = 0;
+		}
+	}
+
+  
+	for (i = 0; i < 16; /* NOTHING */) {
+		guint16 v = peek_be16(&ip6[i]);
+
+		if (i != zero_start) {
+			p += print_uint16_hex(p, v);
+			i += 2;
+
+			if (i < 16 && i != zero_start)
+				*p++ = ':';
+		} else if (zero_len > 0) {
+			/* Compress the longest string of contiguous zeros with "::" */
+			i += zero_len;
+			*p++ = ':';
+			*p++ = ':';
+		}
+
+		/*
+		 * Use IPv4 representation for the special addresses
+		 */
+		if (12 == i &&
+			(
+			 (0xffff == v && 10 == zero_len) ||
+			 (0x0000 == v && 12 == zero_len)
+			)
+		) {
+			size_t n;
+
+			n = sizeof buf - (p - q);
+			p += ip_to_string_buf(peek_be32(&ip6[12]), p, n);
+			break;
+		}
+
+	}
+
+	/* Now copy the result to ``dst'' if we used the temporary buffer. */
+	if (dst != q) {
+		size_t n = size - 1;
+
+		n = MIN(n, (size_t) (p - q));
+		memcpy(dst, q, n);
+		dst[n] = '\0';
+	}
+
+	*p = '\0';
+	return p - q;
+}
+
+/**
+ * Prints the IPv6 address ``ipv6'' to a static buffer.
+ *
+ * @param ipv6 the IPv6 address; must point to a buffer of 16 bytes.
+ * @return a pointer to a static buffer holding a NUL-terminated string
+ *         representing the given IPv6 address.
+ */
 const gchar *
+ip6_to_string(const guint8 *ipv6)
+{
+	static gchar buf[IPV6_ADDR_BUFLEN];
+	size_t n;
+	
+	n = ip6_to_string_buf(ipv6, buf, sizeof buf);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
+size_t
 host_addr_to_string_buf(const host_addr_t ha, gchar *dst, size_t size)
 {
 	switch (host_addr_net(ha)) {
@@ -232,81 +382,63 @@ host_addr_to_string_buf(const host_addr_t ha, gchar *dst, size_t size)
 			struct in_addr ia;
 
 			ia.s_addr = htonl(host_addr_ip4(ha));
-			g_strlcpy(dst, inet_ntoa(ia), size);
-			return dst;
+			return g_strlcpy(dst, inet_ntoa(ia), size);
 		}
-		break;
 
 #if defined(USE_IPV6)
 	case NET_TYPE_IP6:
-		{
-			gchar buf[64];
-			gchar *q = buf;
-			guint i;
-
-			for (i = 0; i < G_N_ELEMENTS(ha.addr.ip6); i += 2) {
-				guint8 a = ha.addr.ip6[i], b = ha.addr.ip6[i + 1];
-
-				if (0 != i)
-					*q++ = ':';
-				
-				if (0 != a) {
-					if (0xf0 & a)
-						*q++ = hex_alphabet_lower[a >> 4];
-					if (0x0f & a)
-						*q++ = hex_alphabet_lower[a & 0xf];
-					*q++ = hex_alphabet_lower[b >> 4];
-				} else if (0xf0 & b) {
-					*q++ = hex_alphabet_lower[b >> 4];
-				}
-				*q++ = hex_alphabet_lower[b & 0xf];
-			}
-			*q = '\0';
-
-			g_strlcpy(dst, buf, size);
-			return dst;
-		}
-		break;
+		return ip6_to_string_buf(host_addr_ip6(&ha), dst, size);
+#endif /* USE_IPV6*/
 
 	case NET_TYPE_NONE:
-		g_strlcpy(dst, "<none>", size);
-		return dst;
-#endif /* USE_IPV6*/
+		return g_strlcpy(dst, "<none>", size);
 	}
 
 	g_assert_not_reached();
-	return NULL;
+	return 0;
 }
 
 const gchar *
 host_addr_to_string(const host_addr_t ha)
 {
 	static gchar buf[128];
+	size_t n;
 
-	host_addr_to_string_buf(ha, buf, sizeof buf);
+	n = host_addr_to_string_buf(ha, buf, sizeof buf);
+	g_assert(n < sizeof buf);
 	return buf;
 }
 
-const gchar *
+size_t
 host_addr_port_to_string_buf(const host_addr_t ha, guint16 port,
-		gchar *buf, size_t size)
+		gchar *dst, size_t size)
 {
-	gchar host[64];
+	size_t n;
+	gchar host_buf[64];
+	gchar port_buf[21];
 
-	host_addr_to_string_buf(ha, host, sizeof host);
-	gm_snprintf(buf, size,
-		NET_TYPE_IP6 == host_addr_net(ha) ? "[%s]:%u" : "%s:%u",
-		host, (guint) port);
+	n = host_addr_to_string_buf(ha, host_buf, sizeof host_buf);
+	n += uint64_to_string_buf(port, port_buf, sizeof port_buf);
+
+	if (NET_TYPE_IP6 == host_addr_net(ha)) {
+		concat_strings(dst, size, "[", host_buf, "]:", port_buf, (void *) 0);
+		n += CONST_STRLEN("[]:");
+	} else {
+		concat_strings(dst, size, host_buf, ":", port_buf, (void *) 0);
+		n += CONST_STRLEN(":");
+	}
 	
-	return buf;
+	return n;
 }
 
 const gchar *
 host_addr_port_to_string(const host_addr_t ha, guint16 port)
 {
-	static gchar buf[128];
+	static gchar buf[IPV6_ADDR_BUFLEN + sizeof "[]:65535"];
+	size_t n;
 
-	host_addr_port_to_string_buf(ha, port, buf, sizeof buf);
+	n = host_addr_port_to_string_buf(ha, port, buf, sizeof buf);
+	g_assert(n < sizeof buf);
 	return buf;
 }
 
@@ -315,19 +447,21 @@ string_to_host_addr(const char *s)
 {
 	host_addr_t ha;
 	guint32 ip;
+	guint8 ip6[16];
 
 	g_assert(s);
 
-	if (0 != (ip = gchar_to_ip(s))) {
+	if (0 != (ip = string_to_ip(s))) {
 		ha = host_addr_set_ip4(ip);
 		return ha;
-	} else {
-		/* XXX: Check for IPv6 address */
-		return zero_host_addr;
+	} else if (parse_ip6_addr(s, ip6, NULL)) {
+		host_addr_set_ip6(&ha, ip6);
+		return ha;		
 	}
+	return zero_host_addr;
 }
 
-gchar *
+size_t
 ip_to_string_buf(guint32 ip, gchar *buf, size_t size)
 {
 	struct in_addr ia;
@@ -336,8 +470,7 @@ ip_to_string_buf(guint32 ip, gchar *buf, size_t size)
 	g_assert(size <= INT_MAX);
 
 	ia.s_addr = htonl(ip);
-	g_strlcpy(buf, inet_ntoa(ia), size);
-	return buf;
+	return g_strlcpy(buf, inet_ntoa(ia), size);
 }
 
 const gchar *
@@ -407,7 +540,7 @@ inet_aton(const char *s, struct in_addr *addr)
 
 
 guint32
-gchar_to_ip(const gchar *str)
+string_to_ip(const gchar *str)
 {
 	/* Returns 0 if str is not a valid IP */
 
@@ -425,6 +558,109 @@ gchar_to_ip(const gchar *str)
 }
 
 /**
+ * Parses an IPv6 address.
+ *
+ * @param s the string to parse.
+ * @param dst will hold the IPv6 address on success; must
+ *        point to 16 or more bytes .
+ * @param endptr if not NULL, it will point to the next character after
+ *        the parsed address on success. On failure it will point to the
+ *        character which caused the failure.
+ * @returns FALSE if ``s'' is not a valid IPv6 address; TRUE on success.
+ */
+gboolean
+parse_ip6_addr(const gchar *s, guint8 *dst, const gchar **endptr)
+{
+	guint8 buf[16];
+	gint i;
+	guchar c = 0, last;
+	gint dc_start = -1;
+	gint error;
+	
+	g_assert(s);
+
+	for (i = 0; i < 16; /* NOTHING */) {
+		const gchar *ep;
+		guint32 v;
+		
+		last = c;
+		c = *s;
+		
+		if (':' == c) {
+			if (':' == last) {
+				if (dc_start >= 0) {
+					/* Second double colon */
+					s--; /* Rewind to the really bad colon */
+					break;
+				}
+				dc_start = i;
+			}
+			s++;
+			continue;
+		}
+
+		if (!is_ascii_xdigit(c)) {
+			/* "Expected hexdigit" */
+			break;
+		}
+		
+		v = parse_uint32(s, &ep, 16, &error);
+		if (error || v > 0xffff) {
+			/* parse_uint32() failed */
+			break;
+		}
+
+		if (*ep == '.' && i <= 12) {
+			guint32 ip;
+			
+			if (string_to_ip_strict(s, &ip, &ep)) {
+				s = ep;
+				poke_be32(&buf[i], ip);
+				i += 4;
+			}
+			/* IPv4 found */
+			break;
+		}
+					
+		buf[i++] = v >> 8;
+		buf[i++] = v & 0xff;
+
+		s = ep;
+		
+		if ('\0' == *s) {
+			/* NUL reached */
+			break;
+		}
+	
+		last = 0;
+	}
+
+	if (endptr)
+		*endptr = s;
+	
+	if (dc_start >= 0) {
+		gint z, n, j;
+
+		z = 16 - i;
+		n = i - dc_start;
+
+		for (j = 1; j <= n; j++)
+			buf[16 - j] = buf[dc_start + n - j];
+
+		memset(&buf[dc_start], 0, z);
+		i += z;
+	}
+
+	if (16 != i)
+		return FALSE;
+
+	if (dst)
+		memcpy(dst, buf, sizeof buf);
+
+	return TRUE;
+}
+
+/**
  * A strict string to IP address conversion; when other stuff from misc.[ch]
  * is not sufficient.
  *
@@ -436,7 +672,7 @@ gchar_to_ip(const gchar *str)
  * IPv4 address. ``addr'' and ``endptr'' may be NULL.
  */
 gboolean
-gchar_to_ip_strict(const gchar *s, guint32 *addr, gchar const **endptr)
+string_to_ip_strict(const gchar *s, guint32 *addr, gchar const **endptr)
 {
 	const gchar *p = s;
 	gboolean is_valid = TRUE;
@@ -535,9 +771,15 @@ const gchar *
 host_addr_to_name(const host_addr_t ha)
 {
 	const struct hostent *he;
-	struct in_addr ipv4_addr;
+	union {
+		struct in_addr in;
+#ifdef USE_IPV6	
+		struct in6_addr in6;
+#endif /* USE_IPV6 */
+	} a;
 	gconstpointer addr;
 	int type;
+	socklen_t len;
 
 	switch (host_addr_net(ha)) {
 	case NET_TYPE_IP4:
@@ -545,22 +787,33 @@ host_addr_to_name(const host_addr_t ha)
 			static const struct in_addr zero_addr;
 			
 			type = AF_INET;
-			ipv4_addr = zero_addr;
-			ipv4_addr.s_addr = htonl(host_addr_ip4(ha));
-			addr = cast_to_gpointer(&ipv4_addr);
+			a.in = zero_addr;
+			a.in.s_addr = htonl(host_addr_ip4(ha));
+			
+			addr = cast_to_gpointer(&a.in);
+			len = sizeof a.in;
 		}
 		break;
 
 #ifdef USE_IPV6	
 	case NET_TYPE_IP6:
-		type = AF_INET6;
-		addr = host_addr_ip6(&ha);
+		{
+			static const struct in6_addr zero_addr;
+				
+			type = AF_INET6;
+			a.in6 = zero_addr;
+			memcpy(&a.in6, host_addr_ip6(&ha), 16);
+			
+			addr = cast_to_gpointer(&a.in6);
+			len = sizeof a.in6;
+		}
 		break;
 #endif /* USE_IPV6 */
 		
 	default:
 		addr = NULL;
 		type = 0;
+		len = 0;
 		g_assert_not_reached();
 	}
 	
@@ -1990,13 +2243,13 @@ hex_escape(const gchar *name, gboolean strict)
  * If the IP address or the netmask is zero, the function will return FALSE.
  */
 gboolean
-gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
+string_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
 {
 	const gchar *ep, *s = str;
 	gint error;
 	glong v;
 
-	if (!gchar_to_ip_strict(s, ip, &ep))
+	if (!string_to_ip_strict(s, ip, &ep))
 		return FALSE;
 
 	s = ep;
@@ -2012,7 +2265,7 @@ gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
 	if (!is_ascii_digit(*s))
 		return FALSE;
 
-	if (gchar_to_ip_strict(s, netmask, &ep))
+	if (string_to_ip_strict(s, netmask, &ep))
 		return 0 != *netmask;
 
 	v = gm_atoul(s, (gchar **) &ep, &error);
@@ -2208,46 +2461,58 @@ filepath_exists(const gchar *dir, const gchar *file)
 	return exists;
 }
 
-gchar *
-uint64_to_string_buf(gchar *dst, size_t size, guint64 v)
+
+size_t
+uint64_to_string_buf(guint64 v, gchar *dst, size_t size)
 {
-	g_assert(dst != NULL);
+	static const gchar dec_alphabet[] = "0123456789";
+	gchar buf[21];
+	gchar *p;
+	size_t len;
+	
+	g_assert(0 == size || NULL != dst);
 	g_assert(size <= INT_MAX);
 
-  	if (size > 0) {
-		gchar buf[22], *end = &buf[sizeof buf], *p = buf, *q;
-  
-		do {
-			*p++ = v % 10 + '0';
-			if (v < 10)
-				break;
-			v /= 10;
-		} while (p != end);
+	for (p = buf; /* NOTHING */; v /= 10) {
+		*p++ = dec_alphabet[v % 10];
+		if (v < 10)
+			break;
+	}
+	len = p - buf;
 
-		end = &dst[size - 1];
-		for (q = dst; q != end && p != buf; q++) {
+	if (size > 0) {
+		const gchar *end = &dst[size - 1];
+		gchar *q;
+		
+		for (q = dst; q != end && p != buf; q++)
 			*q = *--p;
-		}
+
 		*q = '\0';
 	}
 
-	return dst;
+	return len;
 }
 
 const gchar *
 uint64_to_string(guint64 v)
 {
-	static gchar buf[22];
+	static gchar buf[21];
+	size_t n;
 
-	return uint64_to_string_buf(buf, sizeof buf, v);
+	n = uint64_to_string_buf(v, buf, sizeof buf);
+	g_assert(n < sizeof buf);
+	return buf;
 }
 
 const gchar *
 uint64_to_string2(guint64 v)
 {
-	static gchar buf[22];
+	static gchar buf[21];
+	size_t n;
 
-	return uint64_to_string_buf(buf, sizeof buf, v);
+	n = uint64_to_string_buf(v, buf, sizeof buf);
+	g_assert(n < sizeof buf);
+	return buf;
 }
 
 /**
@@ -2649,5 +2914,63 @@ html_escape(const gchar *src, gchar *dst, size_t dst_size)
 
 	return d - dst; 
 }
+
+gboolean
+host_addr_convert(const host_addr_t *from, host_addr_t *to,
+	enum net_type to_net)
+{
+	if (from->net == to_net) {
+		*to = *from;
+		return TRUE;
+	}
+
+	switch (to_net) {
+	case NET_TYPE_IP4:
+		switch (from->net) {
+		case NET_TYPE_IP6:
+			if (
+				(0x00 == from->addr.ip6[10] || 0xff == from->addr.ip6[10]) &&
+				from->addr.ip6[10] == from->addr.ip6[11]
+			) {
+				static const guint8 zeros[10];
+
+				/*
+				 * Convert "::ffff:A.B.C.D" to an IPv4 address "A.B.C.D".
+				 */
+
+				if (0 == memcmp(from->addr.ip6, zeros, sizeof zeros)) {
+					to->net = to_net;
+					to->addr.ip4 = peek_be32(&to->addr.ip6[12]);
+					return TRUE;
+				}
+			}
+			break;
+		case NET_TYPE_NONE:
+			break;
+		}
+		break;
+		
+	case NET_TYPE_IP6:
+		switch (from->net) {
+		case NET_TYPE_IP4:
+			to->net = to_net;
+			memset(to->addr.ip6, 0, 10);
+			to->addr.ip6[10] = 0xff;
+			to->addr.ip6[11] = 0xff;
+			poke_be32(&to->addr.ip6[12], from->addr.ip4);
+			return TRUE;
+		case NET_TYPE_NONE:
+			break;
+		}
+		break;
+
+	case NET_TYPE_NONE:
+		break;
+	}
+	
+	*to = zero_host_addr;
+	return FALSE;
+}
+
 
 /* vi: set ts=4 sw=4 cindent: */

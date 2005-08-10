@@ -822,10 +822,10 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 				http_range_t *pr = (http_range_t *) prev->data;
 				
 				if (pr->end >= start) {
-					gchar start_buf[32], end_buf[32];
+					gchar start_buf[21], end_buf[21];
 
-					uint64_to_string_buf(start_buf, sizeof start_buf, start);
-					uint64_to_string_buf(end_buf, sizeof end_buf, end);
+					uint64_to_string_buf(start, start_buf, sizeof start_buf);
+					uint64_to_string_buf(end, end_buf, sizeof end_buf);
 					
 					g_warning("vendor <%s> sent us overlapping range %s-%s "
 						"(with previous %s-%s) in the %s header -- ignoring",
@@ -842,10 +842,10 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 			if (next != NULL) {
 				http_range_t *nr = (http_range_t *) next->data;
 				if (nr->start <= end) {
-					gchar start_buf[32], end_buf[32];
+					gchar start_buf[21], end_buf[21];
 					
-					uint64_to_string_buf(start_buf, sizeof start_buf, start);
-					uint64_to_string_buf(end_buf, sizeof end_buf, end);
+					uint64_to_string_buf(start, start_buf, sizeof start_buf);
+					uint64_to_string_buf(end, end_buf, sizeof end_buf);
 					
 					g_warning("vendor <%s> sent us overlapping range %s-%s "
 						"(with next %s-%s) in the %s header -- ignoring",
@@ -862,10 +862,10 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 		}
 
 		if (r->end >= start) {
-			gchar start_buf[32], end_buf[32];
+			gchar start_buf[21], end_buf[21];
 			
-			uint64_to_string_buf(start_buf, sizeof start_buf, start);
-			uint64_to_string_buf(end_buf, sizeof end_buf, end);
+			uint64_to_string_buf(start, start_buf, sizeof start_buf);
+			uint64_to_string_buf(end, end_buf, sizeof end_buf);
 			
 			g_warning("vendor <%s> sent us overlapping range %s-%s "
 				"(with %s-%s) in the %s header -- ignoring",
@@ -1204,11 +1204,12 @@ http_range_to_gchar(const GSList *list)
 
 	for (rw = 0; sl && (size_t) rw < sizeof(str); sl = g_slist_next(sl)) {
 		const http_range_t *r = (const http_range_t *) sl->data;
-		gchar start_buf[32], end_buf[32];
+		gchar start_buf[21], end_buf[21];
 
+		uint64_to_string_buf(r->start, start_buf, sizeof start_buf);
+		uint64_to_string_buf(r->end, end_buf, sizeof end_buf);
 		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%s-%s",
-				uint64_to_string_buf(start_buf, sizeof start_buf, r->start),
-				uint64_to_string_buf(end_buf, sizeof end_buf, r->end));
+				start_buf, end_buf);
 
 		if (g_slist_next(sl) != NULL)
 			rw += gm_snprintf(&str[rw], sizeof(str)-rw, ", ");

@@ -183,7 +183,7 @@ handle_magnet(gchar *url)
 				continue;
 			}
 
-			if (gchar_to_ip_strict(p, &addr, (const gchar **) &ep)) {
+			if (string_to_ip_strict(p, &addr, (const gchar **) &ep)) {
 				p = ep;
 			} else {
 				hostname = p;

@@ -122,7 +122,7 @@ xml_get_string(xmlNode *node, const gchar *id)
 }
 
 static inline const xmlChar *
-gchar_to_xmlChar(const gchar *s)
+string_to_xmlChar(const gchar *s)
 {
 	/* If we were pedantic, we'd verify that ``s'' is UTF-8 encoded */
 	return (const xmlChar *) s;
@@ -357,8 +357,8 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 
 		for (i = 0; i < G_N_ELEMENTS(enum_fj_table); i++) {
 			if (
-				xmlStrEqual(gchar_to_xmlChar(s),
-					gchar_to_xmlChar(enum_fj_table[i].string))
+				xmlStrEqual(string_to_xmlChar(s),
+					string_to_xmlChar(enum_fj_table[i].string))
 			) {
 				data->judgement = enum_fj_table[i].judgement;
 				break;
@@ -386,7 +386,7 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 
 	s = xml_get_string(node, "format");
 	if (s) {
-		if (xmlStrstr(gchar_to_xmlChar(s), gchar_to_xmlChar("video"))) {
+		if (xmlStrstr(string_to_xmlChar(s), string_to_xmlChar("video"))) {
 			gchar *xml_sizex = xml_get_string(node, "videoWidth");
 			gchar *xml_sizey = xml_get_string(node, "videoHeight");
 			gchar *xml_bitrate = xml_get_string(node, "videoBitrate");
@@ -413,7 +413,9 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 						(xml_fps != NULL) ? xml_fps : "?",
 						(xml_bitrate != NULL) ? xml_bitrate : "?");
 			}
-		} else if (xmlStrstr(gchar_to_xmlChar(s), gchar_to_xmlChar("audio"))) {
+		} else if (
+			xmlStrstr(string_to_xmlChar(s), string_to_xmlChar("audio"))
+		) {
 			data->mime_type = g_strdup(s);
 		}
 	}

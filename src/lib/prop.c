@@ -85,7 +85,7 @@ prop_parse_ip_vector(const gchar *name,
 		if (!h[i])
 			break;
 
-		t[i] = gchar_to_ip(h[i]);
+		t[i] = string_to_ip(h[i]);
 	}
 
 	if (i < size)
@@ -1030,7 +1030,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 			guint64 val;
 
 			prop_get_guint64(ps, prop, &val, 0, 1);
-			uint64_to_string_buf(s, sizeof s, val);
+			uint64_to_string_buf(val, s, sizeof s);
 			break;
 		}
 		case PROP_TYPE_STRING: {
@@ -1285,7 +1285,9 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 				v = p->data.guint64.value[i];
 				if (v != p->data.guint64.def[i])
 					defaultvalue = FALSE;
-				vbuf[i] = g_strdup(uint64_to_string_buf(sbuf, sizeof sbuf, v));
+
+				uint64_to_string_buf(v, sbuf, sizeof sbuf);
+				vbuf[i] = g_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
 

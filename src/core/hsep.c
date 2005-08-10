@@ -646,7 +646,7 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 			gchar buf[G_N_ELEMENTS(messaget[0])][32];
 
 			for (j = 0; j < G_N_ELEMENTS(buf); j++)
-				uint64_to_string_buf(buf[j], sizeof buf[0], messaget[k][j]);
+				uint64_to_string_buf(messaget[k][j], buf[j], sizeof buf[0]);
 		
 			STATIC_ASSERT(3 == G_N_ELEMENTS(buf));	
 			printf("(%s, %s, %s) ", buf[0], buf[1], buf[2]);
@@ -794,7 +794,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 				guint64 v;
 
 				v = hsep_own[j] + hsep_global_table[i][j] - hsep->table[i][j];
-				uint64_to_string_buf(buf[j], sizeof buf[0], v);
+				uint64_to_string_buf(v, buf[j], sizeof buf[0]);
 			}
 		
 			STATIC_ASSERT(3 == G_N_ELEMENTS(buf));	
@@ -1000,7 +1000,8 @@ hsep_get_static_str(gint row, gint column)
 			static gchar buf[21];
 
 			v = hsep_table[row][HSEP_IDX_NODES] + other[0][HSEP_IDX_NODES];
-			ret = uint64_to_string_buf(buf, sizeof buf, v);
+			uint64_to_string_buf(v, buf, sizeof buf);
+			ret = buf;
 		}
 		break;
 
@@ -1009,7 +1010,8 @@ hsep_get_static_str(gint row, gint column)
 			static gchar buf[21];
 
 			v = hsep_table[row][HSEP_IDX_FILES] + other[0][HSEP_IDX_FILES];
-			ret = uint64_to_string_buf(buf, sizeof buf, v);
+			uint64_to_string_buf(v, buf, sizeof buf);
+			ret = buf;
 		}
 		break;
 

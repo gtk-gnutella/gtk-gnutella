@@ -850,6 +850,8 @@ listen_port_changed(property_t prop)
 	memset(tried, 0xff, 1024 / 8);	/* Mark ports below 1024 as already tried */
 
 	do {
+		host_addr_t listen_ha = zero_host_addr;
+		
 		if (random_port) {
 			guint32 i, b, r;
 
@@ -889,9 +891,27 @@ listen_port_changed(property_t prop)
 		 * If the new port != 0, open the new port
 		 */
 
-		if (listen_port)
-			s_tcp_listen = socket_tcp_listen(zero_host_addr,
-								listen_port, SOCK_TYPE_CONTROL);
+		if (listen_port) {
+			
+			switch (network_protocol) {
+			case NET_USE_BOTH:
+			case NET_USE_IPV4:
+				listen_ha = host_addr_set_ip4(INADDR_ANY);
+				break;
+#ifdef USE_IPV6
+			case NET_USE_IPV6:
+				{
+					static const guint8 zero_ip6_addr[16];
+
+					host_addr_set_ip6(&listen_ha, zero_ip6_addr);
+				}
+				break;
+#endif /* USE_IPV6 */
+			}
+
+			s_tcp_listen = socket_tcp_listen(listen_ha,
+							listen_port, SOCK_TYPE_CONTROL);
+		}
 
 		/*
 		 * If UDP is enabled, also listen on the same UDP port.
@@ -899,7 +919,7 @@ listen_port_changed(property_t prop)
 
 		if (enable_udp) {
 			if (listen_port)
-				s_udp_listen = socket_udp_listen(zero_host_addr, listen_port);
+				s_udp_listen = socket_udp_listen(listen_ha, listen_port);
 			if (random_port && s_udp_listen == NULL) {
 				socket_free(s_tcp_listen);
 				s_tcp_listen = NULL;

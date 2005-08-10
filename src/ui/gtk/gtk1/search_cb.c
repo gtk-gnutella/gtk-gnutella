@@ -212,7 +212,7 @@ search_gui_set_details(record_t *rc)
 		iso3166_country_cc(rc->results_set->country));
 	gtk_entry_set_text(info_country, tmpstr);
 
-	uint64_to_string_buf(bytes, sizeof bytes, rc->size);
+	uint64_to_string_buf(rc->size, bytes, sizeof bytes);
 	gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%s bytes)"),
 		short_size(rc->size), bytes);
 	gtk_entry_set_text(info_size, tmpstr);

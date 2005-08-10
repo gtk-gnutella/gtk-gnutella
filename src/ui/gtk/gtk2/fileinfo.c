@@ -114,7 +114,7 @@ fi_gui_set_details(gnet_fi_t fih)
     gchar **aliases;
 	GtkTreeIter iter;
 	gint i;
-	gchar bytes[32];
+	gchar bytes[21];
 
     fi = guc_fi_get_info(fih);
     g_assert(fi != NULL);
@@ -124,7 +124,7 @@ fi_gui_set_details(gnet_fi_t fih)
 
     gtk_entry_set_text(entry_fi_filename,
 		lazy_locale_to_utf8(fi->file_name));
-	uint64_to_string_buf(bytes, sizeof bytes, fis.size);
+	uint64_to_string_buf(fis.size, bytes, sizeof bytes);
     gtk_label_printf(label_fi_size, _("%s (%s bytes)"),
 		short_size(fis.size), bytes);
     gtk_label_printf(label_fi_sha1, "%s%s",

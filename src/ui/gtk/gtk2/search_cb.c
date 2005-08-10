@@ -621,7 +621,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 {
 	GtkTextBuffer *txt;
 	const record_t *rc = NULL;
-	gchar bytes[32];
+	gchar bytes[21];
 	gchar *xml_txt;
 
 	g_assert(tv != NULL);
@@ -651,7 +651,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 				host_addr_port_to_string(rc->results_set->addr,
 					rc->results_set->port));
 
-	uint64_to_string_buf(bytes, sizeof bytes, rc->size);
+	uint64_to_string_buf(rc->size, bytes, sizeof bytes);
 	gtk_entry_printf(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_size")),
 			_("%s (%s bytes)"), short_size(rc->size), bytes);
