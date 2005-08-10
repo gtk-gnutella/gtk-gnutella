@@ -119,6 +119,7 @@ following is a list of commonly used options with the defaults.
 -D official='false'
 -D remotectrl='true'
 -D dbus='true'
+-D ipv6='true'
 
 To disable NLS (National Language Support) i.e., nationalized text in the
 user interface:
