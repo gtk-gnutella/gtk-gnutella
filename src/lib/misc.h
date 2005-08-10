@@ -356,6 +356,11 @@ host_addr_equal(const host_addr_t a, const host_addr_t b)
 			return TRUE;
 		}
 		g_assert_not_reached();
+	} else {
+		host_addr_t to;
+		
+		if (host_addr_convert(&a, &to, b.net) && host_addr_equal(b, to))
+			return TRUE;
 	}
 	return FALSE;
 }
