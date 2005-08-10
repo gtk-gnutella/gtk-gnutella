@@ -313,7 +313,7 @@ sol_ip(void)
 static void
 socket_tos(struct gnutella_socket *s, gint tos)
 {
-	if (!use_ip_tos)
+	if (!use_ip_tos || NET_TYPE_IP4 != s->net)
 		return;
 
 	if (-1 == setsockopt(s->file_desc, sol_ip(), IP_TOS, &tos, sizeof tos)) {
