@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Aug 10 18:56:32 CEST 2005 [metaconfig 3.0 PL70]
+# Generated on Wed Aug 10 20:27:25 CEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -4784,7 +4784,11 @@ echo " "
 echo "Checking whether IPv6 can be used ..." >&4
 d_ipv6="$define"
 $cat >try.c <<'EOC'
-#include <resolv.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 int main(void)
 {
 	struct sockaddr_in6 addr;
