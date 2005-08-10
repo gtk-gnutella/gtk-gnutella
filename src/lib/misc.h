@@ -419,6 +419,17 @@ host_addr_hash(const host_addr_t ha)
 
 /* IPv4 only */
 
+static inline gboolean
+host_addr_convert(const host_addr_t *from, host_addr_t *to,
+	enum net_type to_net)
+{
+	if (NET_TYPE_IP4 == to_net) {
+		*to = *from;
+		return TRUE;
+	}
+	return FALSE;
+}
+
 #define host_addr_net(x) (((void) (x)), NET_TYPE_IP4)
 #define host_addr_family(x) (((void) (x)), AF_INET) 
 #define host_addr_ip4(x) (x)

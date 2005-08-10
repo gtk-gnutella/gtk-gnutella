@@ -447,16 +447,20 @@ string_to_host_addr(const char *s)
 {
 	host_addr_t ha;
 	guint32 ip;
-	guint8 ip6[16];
 
 	g_assert(s);
 
 	if (0 != (ip = string_to_ip(s))) {
 		ha = host_addr_set_ip4(ip);
 		return ha;
-	} else if (parse_ip6_addr(s, ip6, NULL)) {
-		host_addr_set_ip6(&ha, ip6);
-		return ha;		
+#ifdef USE_IPV6
+	} else {
+		if (parse_ip6_addr(s, ip6, NULL)) {
+			guint8 ip6[16];
+			host_addr_set_ip6(&ha, ip6);
+			return ha;
+		}
+#endif
 	}
 	return zero_host_addr;
 }
@@ -2915,6 +2919,7 @@ html_escape(const gchar *src, gchar *dst, size_t dst_size)
 	return d - dst; 
 }
 
+#ifdef USE_IPV6
 gboolean
 host_addr_convert(const host_addr_t *from, host_addr_t *to,
 	enum net_type to_net)
@@ -2971,6 +2976,7 @@ host_addr_convert(const host_addr_t *from, host_addr_t *to,
 	*to = zero_host_addr;
 	return FALSE;
 }
+#endif /* USE_IPV6 */
 
 
 /* vi: set ts=4 sw=4 cindent: */
