@@ -455,8 +455,8 @@ string_to_host_addr(const char *s)
 		return ha;
 #ifdef USE_IPV6
 	} else {
+		guint8 ip6[16];
 		if (parse_ip6_addr(s, ip6, NULL)) {
-			guint8 ip6[16];
 			host_addr_set_ip6(&ha, ip6);
 			return ha;
 		}
