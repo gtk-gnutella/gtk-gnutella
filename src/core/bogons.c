@@ -242,14 +242,18 @@ bogons_close(void)
  * @returns TRUE if found, and FALSE if not.
  */
 gboolean
-bogons_check(const host_addr_t addr)
+bogons_check(const host_addr_t ha)
 {
-	if (NET_TYPE_IP4 == host_addr_net(addr)) {
-		guint32 ip = host_addr_ip4(addr);
+	if (NET_TYPE_IP4 == host_addr_net(ha)) {
+		guint32 ip = host_addr_ip4(ha);
 		return bogons_db != NULL && THERE == iprange_get(bogons_db, ip);
-	} else if (NET_TYPE_IP6 == host_addr_net(addr)) {
-		/* XXX: Implement this! */
+	} else if (NET_TYPE_IP6 == host_addr_net(ha)) {
+		host_addr_t to;
+		
+		if (host_addr_convert(&ha, &to, NET_TYPE_IP4))
+			return bogons_check(to);
 	}
+
 	return FALSE;
 }
 

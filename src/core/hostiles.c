@@ -335,33 +335,34 @@ hostiles_close(void)
 }
 
 /**
- * Check the given IP against the entries in the hostiles.
+ * Check the given address against the entries in the hostiles.
  *
+ * @param ha the host address to check.
  * @returns TRUE if found, and FALSE if not.
  */
 gboolean
 hostiles_check(const host_addr_t ha)
 {
-	gint i;
+	host_addr_t to;
+	
+	if (host_addr_convert(&ha, &to, NET_TYPE_IP4)) {
+		guint32 ip;
+		gint i;
 
-	if (NET_TYPE_IP4 == host_addr_net(ha)) {
+		ip = host_addr_ip4(to);
+
 		for (i = 0; i < NUM_HOSTILES; i++) {
 			if (i == HOSTILE_GLOBAL && !use_global_hostiles_txt)
 				continue;
 
 			if (
 				NULL != hostile_db[i] &&
-				THERE == iprange_get(hostile_db[i], host_addr_ip4(ha))
+				THERE == iprange_get(hostile_db[i], ip)
 			)
 				return TRUE;
 		}
-	} else if (NET_TYPE_IP6 == host_addr_net(ha)) {
-		host_addr_t to;
-		
-		if (host_addr_convert(&ha, &to, NET_TYPE_IP4))
-			return hostiles_check(to);
 	}
-	
+
 	return FALSE;
 }
 

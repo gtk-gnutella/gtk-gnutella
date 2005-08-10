@@ -340,21 +340,24 @@ gip_close(void)
 }
 
 /**
- * Retrieves the country an IP address is assigned to.
+ * Retrieves the country an address is assigned to.
  *
+ * @param ha the host address to look up.
  * @return the country mapped to this IP address as an numerical encoded
  * country code, * or -1 when unknown.
  */
 gint
-gip_country(const host_addr_t addr)
+gip_country(const host_addr_t ha)
 {
-	if (NET_TYPE_IP4 == host_addr_net(addr)) {
-		gpointer code;
+	host_addr_t to;
 
-		code = geo_db != NULL ? iprange_get(geo_db, host_addr_ip4(addr)) : NULL;
-		return NULL != code ? (GPOINTER_TO_INT(code) >> 1) - 1 : -1;
-	} else if (NET_TYPE_IP6 == host_addr_net(addr)) {
-		/* XXX: Implement this! */
+	if (host_addr_convert(&ha, &to, NET_TYPE_IP4)) {
+		gpointer code;
+		guint32 ip;
+	
+		ip = host_addr_ip4(to);
+		if (geo_db && NULL != (code = iprange_get(geo_db, ip)))
+			return (GPOINTER_TO_INT(code) >> 1) - 1;
 	}
 	return -1;
 }
