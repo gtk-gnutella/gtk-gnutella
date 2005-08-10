@@ -411,8 +411,10 @@ nodes_gui_common_connect_by_name(const gchar *addr)
 			host = &e[1];
 		   	if (':' == p[1])
 				*p++ = '\0';
-		} else
+		} else {
+			host = NULL;
 			p = NULL;
+		}
 
 		g_message("e=\"%s\", p=\"%s\"", e, p);
 	} else {
