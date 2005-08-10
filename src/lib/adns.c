@@ -706,7 +706,7 @@ adns_resolve(const gchar *hostname,
 	query.addr = zero_host_addr;
 	reply = query;
 
-	reply.addr = name_to_host_addr(hostname);
+	reply.addr = string_to_host_addr(hostname);
 	if (is_host_addr(reply.addr)) {
 		adns_invoke_user_callback(&reply);
 		return FALSE; /* synchronous */
