@@ -23,7 +23,6 @@ U/new/d_herror.U
 U/new/d_hstrerror.U
 U/new/d_inflate.U
 U/new/d_iptos.U
-U/new/d_ipv6.U
 U/new/d_nls.U
 U/new/d_random.U
 U/new/d_sendfile.U
@@ -44,6 +43,7 @@ U/new/i_syssysctl.U
 U/new/i_uni_putil.U
 U/new/i_zlib.U
 U/new/icu.U
+U/new/ipv6.U
 U/new/locale.U
 U/new/msgmerge_update.U
 U/new/official.U
