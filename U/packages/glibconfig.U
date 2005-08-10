@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:glibconfig glibcflags glibldflags: glibpackage
+?MAKE:glibconfig glibcflags glibldflags: glibpackage cc ccflags ldflags cat rm
 ?MAKE:	-pick add $@ %<
 ?S:glibconfig:
 ?S:	This variable holds the command to use to grab information about glib.
