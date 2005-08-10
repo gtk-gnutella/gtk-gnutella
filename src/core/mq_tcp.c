@@ -56,18 +56,22 @@ RCSID("$Id$");
 #define MQ_MINSEND		256		/**< Minimum size we try to send */
 
 static void mq_tcp_service(gpointer data);
-static struct mq_ops mq_tcp_ops;
+static void mq_tcp_putq(mqueue_t *q, pmsg_t *mb);
+static const struct mq_ops mq_tcp_ops = {
+	mq_tcp_putq,			/* putq */
+};
+
 
 /**
  * Create new message queue capable of holding `maxsize' bytes, and
  * owned by the supplied node.
  */
-mqueue_t *mq_tcp_make(
-	gint maxsize, struct gnutella_node *n, struct txdriver *nd)
+mqueue_t *
+mq_tcp_make(gint maxsize, struct gnutella_node *n, struct txdriver *nd)
 {
 	mqueue_t *q;
 
-	q = walloc0(sizeof(*q));
+	q = walloc0(sizeof *q);
 
 	q->node = n;
 	q->tx_drv = nd;
@@ -83,11 +87,10 @@ mqueue_t *mq_tcp_make(
 }
 
 /**
- * mq_tcp_service
- *
  * Service routine for TCP message queue.
  */
-static void mq_tcp_service(gpointer data)
+static void
+mq_tcp_service(gpointer data)
 {
 	mqueue_t *q = (mqueue_t *) data;
 	static struct iovec iov[MQ_MAXIOV];
@@ -174,6 +177,8 @@ again:
 		node_flushq(q->node);
 
 	r = tx_writev(q->tx_drv, iov, iovcnt);
+	if (tx_has_error(q->tx_drv))
+		return;
 
 	if (r <= 0) {
 		q->last_written = 0;
@@ -286,7 +291,8 @@ update_servicing:
 /**
  * Enqueue message, which becomes owned by the queue.
  */
-static void mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
+static void
+mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 {
 	gint size = pmsg_size(mb);
 	gchar *mbs = pmsg_start(mb);
@@ -322,6 +328,8 @@ static void mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 				node_flushq(q->node);
 
 			written = tx_write(q->tx_drv, mbs, size);
+			if (tx_has_error(q->tx_drv))
+				goto cleanup;
 
 			if (prioritary && written == size) {
 				tx_flush(q->tx_drv);
@@ -374,8 +382,4 @@ cleanup:
 	return;
 }
 
-static struct mq_ops mq_tcp_ops = {
-	mq_tcp_putq,			/* putq */
-};
-
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
