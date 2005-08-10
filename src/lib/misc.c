@@ -2945,7 +2945,7 @@ host_addr_convert(const host_addr_t *from, host_addr_t *to,
 
 				if (0 == memcmp(from->addr.ip6, zeros, sizeof zeros)) {
 					to->net = to_net;
-					to->addr.ip4 = peek_be32(&to->addr.ip6[12]);
+					to->addr.ip4 = peek_be32(&from->addr.ip6[12]);
 					return TRUE;
 				}
 			}
