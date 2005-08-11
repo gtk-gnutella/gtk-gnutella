@@ -158,12 +158,12 @@ handle_magnet(gchar *url)
 			/* eXact Source */
 			static const char n2r_query[] = "/uri-res/N2R?";
 			static const char http_prefix[] = "http://";
+			host_addr_t addr;
 			gchar *hash;
 			gchar digest[SHA1_RAW_SIZE];
-			guint32 addr;
 			guint16 port;
 			gchar *hostname = NULL;
-			gchar *ep;
+			const gchar *ep;
 
 			/* XXX: This should be handled elsewhere e.g., downloads.c in
 			 *		a generic way. */
@@ -183,20 +183,17 @@ handle_magnet(gchar *url)
 				continue;
 			}
 
-			if (string_to_ip_strict(p, &addr, (const gchar **) &ep)) {
-				p = ep;
-			} else {
-				hostname = p;
-				p = strchr(p, ':');
-				if (!p)
-					p = strchr(p, '/');
-				if (!p) {
-					g_message("Missing path in HTTP URL");
-					continue;
-				}
+			if (!string_to_host_or_addr(p, &ep, &addr)) {
+				g_message("Expected host part");
+				continue;
 			}
 
-			if (*p == ':') {
+			if (!is_host_addr(addr)) {
+				hostname = p;
+			}
+			p += ep - p;
+
+			if (':' == *p) {
 				gchar *ep2;
 				gint error;
 				gulong v;
@@ -215,7 +212,7 @@ handle_magnet(gchar *url)
 				port = 80;
 			}
 
-			if (*p != '/') {
+			if ('/' != *p) {
 				g_message("Expected port followed by '/'");
 				/* Skip this parameter */
 				continue;
@@ -243,7 +240,7 @@ handle_magnet(gchar *url)
 				continue;
 			}
 
-			dl.ha = host_addr_set_ip4(addr); /* XXX */
+			dl.ha = addr;
 			dl.port = port;
 			dl.sha1 = digest;
 			dl.ready = TRUE;
