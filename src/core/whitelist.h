@@ -48,10 +48,10 @@
 #define WHITELIST_CHECK_INTERVAL 60
 
 struct whitelist {
-    guint32 ip;
-    guint16 port;
-    guint32 netmask;
     time_t last_try;
+    host_addr_t addr;
+    guint16 port;
+    guint8 bits;
 };
 
 gboolean whitelist_check(const host_addr_t addr);
@@ -61,3 +61,4 @@ guint whitelist_connect(void);
 void whitelist_reload(void);
 
 #endif /* _core_whitelist_h_ */
+/* vi: set ts=4 sw=4 cindent: */

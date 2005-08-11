@@ -44,6 +44,7 @@ RCSID("$Id$");
 
 #include "lib/file.h"
 #include "lib/glib-missing.h"
+#include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 static GSList *sl_whitelist = NULL;
@@ -59,9 +60,6 @@ static void
 whitelist_retrieve(void)
 {
     gchar line[1024];
-    gchar *p, *sport, *snetmask;
-    guint32 port, netmask;
-    struct whitelist *n;
     FILE *f;
     struct stat st;
     int linenum = 0;
@@ -80,78 +78,183 @@ whitelist_retrieve(void)
     whitelist_checked = time(NULL);
     whitelist_mtime = st.st_mtime;
 
-    while (fgets(line, sizeof(line), f)) {
+    while (fgets(line, sizeof line, f)) {
+		const gchar *endptr;
 		host_addr_t addr;
+    	guint16 port;
+		guint8 bits;
+		gchar *p;
 
         linenum++;
-        if (*line == '#') continue;
+        if ('#' == line[0]) continue;
 
 		/* Remove trailing spaces so that lines that contain spaces only
 		 * are ignored and cause no warnings. */
 		p = strchr(line, '\0');
-        while (--p >= line) {
-			if (!is_ascii_space((guchar) *p))
+        while (p != line) {
+			p--;
+			if (!is_ascii_space((guchar) *p)) {
+				*++p = '\0';
 				break;
-           	*p = '\0';
+			}
 		}
 
-        if ('\0' == *line)
+        if ('\0' == line[0])
             continue;
 
-        sport = snetmask = NULL;
+		addr = zero_host_addr;
+		endptr = NULL;
 
-        if ((p = strchr(line, '/')) != NULL) {
-            *p = '\0';
-            snetmask = ++p;
-        }
-        if ((p = strchr(line, ':')) != NULL) {
-            *p = '\0';
-            sport = ++p;
-        }
-
-        addr = name_to_host_addr(line);
-        if (!is_host_addr(addr) || NET_TYPE_IP4 != host_addr_net(addr)) {
+		if (!string_to_host_or_addr(line, &endptr, &addr)) {
             g_warning("whitelist_retrieve(): "
-				"Line %d: Invalid IP \"%s\"", linenum, line);
-            continue;
-        }
-
-        if (sport)
-            port = atol(sport);
-        else
-            port = 0;
-
-        netmask = 0xffffffffU; /* Default mask */
-        if (snetmask) {
-            if (strchr(snetmask, '.')) {
-                netmask = string_to_ip(snetmask);
-            	if (!netmask) {
-                	netmask = 0xffffffff;
-                	g_warning("whitelist_retrieve(): "
-						"Line %d: Invalid netmask \"%s\", "
-						"using 255.255.255.255 instead.", linenum, snetmask);
-            	}
-            } else {
-				gint error;
-				gulong v;
-
-				v = gm_atoul(snetmask, NULL, &error);
-                if (!error && v > 0 && v <= 32) {
-                	netmask = ~(0xffffffffU >> v);
-				} else {
-					g_warning("whitelist_retrieve(): "
-						"Line %d: Invalid netmask \"%s\", "
-						"using /32 instead.", linenum, snetmask);
-				}
-            }
+				"Line %d: Expect hostname or IP address \"%s\"",
+				linenum, line);
+			continue;
 		}
 
-        n = g_malloc0(sizeof *n);
-		n->ip = host_addr_ip4(addr);
-        n->port = port;
-        n->netmask = netmask;
+        if (!is_host_addr(addr)) {
+			guchar c = *endptr;
+			size_t len;
+			
+			switch (c) {
+			case '\0':
+			case ':':
+			case '/':
+				break;
+			default:
+				if (!is_ascii_space(c))
+					endptr = NULL;
+			}
+		
+			if (!endptr) {	
+           		g_warning("whitelist_retrieve(): "
+					"Line %d: Expected a hostname or IP address \"%s\"",
+						linenum, line);
+				continue;
+			}
 
-        sl_whitelist = g_slist_prepend(sl_whitelist, n);
+			len = endptr - line;
+			line[len] = '\0'; /* Terminate the string for name_to_host_addr() */
+
+			/* @todo TODO: This should use the ADNS resolver. */
+        	addr = name_to_host_addr(line);
+
+        	if (!is_host_addr(addr)) {
+            	g_warning("whitelist_retrieve(): "
+				"Line %d: Could not resolve hostname \"%s\"", linenum, line);
+            	continue;
+        	}
+		}
+
+       	g_assert(is_host_addr(addr));
+		g_assert(NULL != endptr);
+		port = bits = 0;
+
+		/* Ignore trailing items separated by a space */
+		while ('\0' != *endptr && !is_ascii_space(*endptr)) {
+			guchar c = *endptr++;
+			
+			if (':' == c) {
+				gint error;
+				guint32 v;
+		
+				if (0 != port) {
+					g_warning("whitelist_retrieve(): Line %d:"
+						"Multiple colons after host", linenum);
+					addr = zero_host_addr;
+					break;
+				}
+					
+            	v = parse_uint32(endptr, &endptr, 10, &error);
+				port = (error || v > 0xffff) ? 0 : v;
+				if (0 == port) {
+					g_warning("whitelist_retrieve(): Line %d: "
+						"Invalid port value after host", linenum);
+					addr = zero_host_addr;
+					break;
+				}
+			} else if ('/' == c) {
+				const gchar *ep;
+				guint32 mask;
+
+				if (0 != bits) {
+					g_warning("whitelist_retrieve(): Line %d:"
+						"Multiple slashes after host", linenum);
+					addr = zero_host_addr;
+					break;
+				}
+
+				if (string_to_ip_strict(endptr, &mask, &ep)) {
+					if (NET_TYPE_IP4 != host_addr_net(addr)) {
+						g_warning("whitelist_retrieve(): Line %d: "
+							"IPv4 netmask after non-IPv4 address", linenum);
+						addr = zero_host_addr;
+						break;
+					}
+					endptr = ep;
+
+					if (0 == (bits = netmask_to_cidr(mask))) {
+						g_warning("whitelist_retrieve(): Line %d: "
+							"IPv4 netmask after non-IPv4 address", linenum);
+						addr = zero_host_addr;
+						break;
+					}
+						
+				} else {
+					gint error;
+					guint32 v;
+					
+            		v = parse_uint32(endptr, &endptr, 10, &error);
+					if (
+						error ||
+						0 == v ||
+						(v > 32 && NET_TYPE_IP4 == host_addr_net(addr)) ||
+						(v > 128 && NET_TYPE_IP6 == host_addr_net(addr))
+					) {
+						g_warning("whitelist_retrieve(): Line %d: "
+							"Invalid numeric netmask after host", linenum);
+						addr = zero_host_addr;
+						break;
+					}
+					bits = v;
+				}
+			} else {
+				g_warning("whitelist_retrieve(): Line %d: "
+					"Unexpected character after host", linenum);
+				addr = zero_host_addr;
+				break;
+			}
+		}
+
+        if (!is_host_addr(addr)) {
+			continue;
+		}
+	
+		if (0 == bits)	{
+			/* Default mask */
+			switch (host_addr_net(addr)) {
+			case NET_TYPE_IP4:
+        		bits = 32;
+				break;
+			case NET_TYPE_IP6:
+        		bits = 128;
+				break;
+			case NET_TYPE_NONE:
+				break;
+			}
+			g_assert(0 != bits);
+		}
+
+		{
+    		struct whitelist *item;
+			
+        	item = walloc0(sizeof *item);
+			item->addr = addr;
+        	item->port = port;
+        	item->bits = bits;
+
+        	sl_whitelist = g_slist_prepend(sl_whitelist, item);
+		}
     }
 
     sl_whitelist = g_slist_reverse(sl_whitelist);
@@ -167,25 +270,24 @@ whitelist_retrieve(void)
 guint
 whitelist_connect(void)
 {
-    GSList *sl;
-    struct whitelist *n;
     time_t now = time(NULL);
+    const GSList *sl;
     guint num = 0;
 
     for (sl = sl_whitelist; sl; sl = g_slist_next(sl)) {
-		host_addr_t ha;
-		
-        n = sl->data;
-        if (!n->port)
+    	struct whitelist *item;
+
+        item = sl->data;
+
+        if (!item->port)
             continue;
 
-		ha = host_addr_set_ip4(n->ip);
-        if (node_is_connected(ha, n->port, TRUE))
+        if (node_is_connected(item->addr, item->port, TRUE))
             continue;
 
-        if (delta_time(now, n->last_try) > WHITELIST_RETRY_DELAY) {
-            n->last_try = now;
-            node_add(ha, n->port);
+        if (delta_time(now, item->last_try) > WHITELIST_RETRY_DELAY) {
+            item->last_try = now;
+            node_add(item->addr, item->port);
             num++;
         }
     }
@@ -210,8 +312,12 @@ whitelist_close(void)
 {
     GSList *sl;
 
-    for (sl = sl_whitelist; sl; sl = g_slist_next(sl))
-        g_free(sl->data);
+    for (sl = sl_whitelist; sl; sl = g_slist_next(sl)) {
+		struct whitelist *item;
+		
+		item = sl->data;
+        wfree(item, sizeof *item);
+	}
 
     g_slist_free(sl_whitelist);
     sl_whitelist = NULL;
@@ -230,25 +336,18 @@ whitelist_reload(void)
 
 /**
  * Check the given IP agains the entries in the whitelist.
- * @returns TRUE if found, and FALSE if not.
  *
- * Also, it will peridically check the whitelist file for
+ * Also, it will periodically check the whitelist file for
  * updates, and reload it if it has changed.
+ *
+ * @param ha the host address to check.
+ * @returns TRUE if found, and FALSE if not.
  */
 gboolean
-whitelist_check(const host_addr_t addr)
+whitelist_check(const host_addr_t ha)
 {
-    struct whitelist *n;
     time_t now = time(NULL);
     GSList *sl;
-	guint32 ip;
-
-	if (NET_TYPE_IP4 != host_addr_net(addr)) {
-		/* XXX: Allow IPv6 addresses as well */
-		return FALSE;
-	}
-
-	ip = host_addr_ip4(addr);
 
     /* Check if the file has changed on disk, and reload it if necessary. */
     if (delta_time(now, whitelist_checked) > WHITELIST_CHECK_INTERVAL) {
@@ -266,11 +365,10 @@ whitelist_check(const host_addr_t addr)
     }
 
     for (sl = sl_whitelist; sl; sl = g_slist_next(sl)) {
-		guint32 mask;
+    	struct whitelist *n;
 
         n = sl->data;
-		mask = n->netmask;
-        if ((n->ip & mask) == (ip & mask))
+		if (host_addr_matches(ha, n->addr, n->bits))
             return TRUE;
     }
 
