@@ -188,7 +188,7 @@ horizon_stat_str(gint row, c_horizon_t column)
     switch (column) {
     case c_horizon_hops:
 		{
-    		static gchar buf[21];
+    		static gchar buf[UINT64_DEC_BUFLEN];
 
 			gm_snprintf(buf, sizeof(buf), "%d", row);
            	return buf;

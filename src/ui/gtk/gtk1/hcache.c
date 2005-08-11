@@ -40,8 +40,9 @@ RCSID("$Id$");
 /***
  *** Callbacks
  ***/
-void on_clist_hcache_resize_column(
-    GtkCList *unused_clist, gint column, gint width, gpointer unused_udata)
+void
+on_clist_hcache_resize_column(GtkCList *unused_clist, gint column, gint width,
+	gpointer unused_udata)
 {
     static gboolean lock = FALSE;
     guint32 buf = width;
@@ -63,12 +64,12 @@ void on_clist_hcache_resize_column(
 /***
  *** Private functions
  ***/
-static gchar *guint_to_str(guint32 i)
+static gchar *
+guint_to_str(guint32 i)
 {
-    static gchar strbuf[21];
+    static gchar strbuf[UINT32_DEC_BUFLEN];
 
-    gm_snprintf(strbuf, sizeof(strbuf), "%d", i);
-
+    gm_snprintf(strbuf, sizeof(strbuf), "%u", i);
     return strbuf;
 }
 
@@ -78,7 +79,8 @@ static gchar *guint_to_str(guint32 i)
  *** Public functions
  ***/
 
-void hcache_gui_init(void)
+void
+hcache_gui_init(void)
 {
     GtkCList *clist_hcache;
     const gchar *titles[5];
@@ -116,12 +118,14 @@ void hcache_gui_init(void)
     }
 }
 
-void hcache_gui_shutdown(void)
+void
+hcache_gui_shutdown(void)
 {
 	/* Nothing for now */
 }
 
-void hcache_gui_update(time_t now)
+void
+hcache_gui_update(time_t now)
 {
 	static time_t last_update = 0;
     GtkCList *clist_hcache;

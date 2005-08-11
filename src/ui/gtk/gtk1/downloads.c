@@ -1310,7 +1310,7 @@ gui_update_download(struct download *d, gboolean force)
 		break;
 	case GTA_DL_SINKING:
 		{
-			gchar buf[21];
+			gchar buf[UINT64_DEC_BUFLEN];
 			
 			uint64_to_string_buf(d->sinkleft, buf, sizeof buf);
 			gm_snprintf(tmpstr, sizeof(tmpstr),

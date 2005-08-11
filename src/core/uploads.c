@@ -2200,7 +2200,7 @@ upload_416_extra(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 	size_t len = *retval;
 	const struct upload_http_cb *a = (const struct upload_http_cb *) arg;
 	const gnutella_upload_t *u = a->u;
-	gchar fsize[21];
+	gchar fsize[UINT64_DEC_BUFLEN];
 
 	(void) unused_flags;
 	g_assert(len <= INT_MAX);
@@ -2222,7 +2222,7 @@ upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 	gint length = *retval;
 	struct upload_http_cb *a = (struct upload_http_cb *) arg;
 	gnutella_upload_t *u = a->u;
-	gchar csize[21];
+	gchar csize[UINT64_DEC_BUFLEN];
 
 	(void) unused_flags;
 
@@ -2240,7 +2240,9 @@ upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 	g_assert(rw < length);
 
 	if (u->skip || u->end != (u->file_size - 1)) {
-		gchar rsize[21], start_buf[21], end_buf[21];
+		gchar rsize[UINT64_DEC_BUFLEN];
+	   	gchar start_buf[UINT64_DEC_BUFLEN];
+		gchar end_buf[UINT64_DEC_BUFLEN];
 
 		uint64_to_string_buf(u->skip, start_buf, sizeof start_buf),
 		uint64_to_string_buf(u->end, end_buf, sizeof end_buf),

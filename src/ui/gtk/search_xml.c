@@ -844,7 +844,7 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
         break;
     case RULE_SIZE:
 		{
-			gchar buf[21];
+			gchar buf[UINT64_DEC_BUFLEN];
 			
 			uint64_to_string_buf(r->u.size.lower, buf, sizeof buf);
         	newxml = xml_new_empty_child(parent, NODE_RULE_SIZE);

@@ -997,7 +997,7 @@ hsep_get_static_str(gint row, gint column)
     switch (column) {
     case HSEP_IDX_NODES:
 		{
-			static gchar buf[21];
+			static gchar buf[UINT64_DEC_BUFLEN];
 
 			v = hsep_table[row][HSEP_IDX_NODES] + other[0][HSEP_IDX_NODES];
 			uint64_to_string_buf(v, buf, sizeof buf);
@@ -1007,7 +1007,7 @@ hsep_get_static_str(gint row, gint column)
 
     case HSEP_IDX_FILES:
 		{
-			static gchar buf[21];
+			static gchar buf[UINT64_DEC_BUFLEN];
 
 			v = hsep_table[row][HSEP_IDX_FILES] + other[0][HSEP_IDX_FILES];
 			uint64_to_string_buf(v, buf, sizeof buf);
@@ -1017,7 +1017,7 @@ hsep_get_static_str(gint row, gint column)
 
 	case HSEP_IDX_KIB:
 		{
-			static gchar buf[21];
+			static gchar buf[UINT64_DEC_BUFLEN];
 
 			/* Make a copy because concurrent usage of short_kb_size()
 	 	 	 * could be hard to discover. */

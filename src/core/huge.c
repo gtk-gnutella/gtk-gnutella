@@ -177,7 +177,7 @@ cache_entry_print(FILE *f, const char *filename, const gchar *digest,
 	filesize_t size, time_t mtime)
 {
 	const gchar *sha1;
-	gchar size_buf[21], mtime_buf[21];
+	gchar size_buf[UINT64_DEC_BUFLEN], mtime_buf[UINT64_DEC_BUFLEN];
 	
 	uint64_to_string_buf(size, size_buf, sizeof size_buf);
 	uint64_to_string_buf(mtime, mtime_buf, sizeof mtime_buf);

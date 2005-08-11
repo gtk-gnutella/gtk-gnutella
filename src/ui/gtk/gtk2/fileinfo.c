@@ -114,7 +114,7 @@ fi_gui_set_details(gnet_fi_t fih)
     gchar **aliases;
 	GtkTreeIter iter;
 	gint i;
-	gchar bytes[21];
+	gchar bytes[UINT64_DEC_BUFLEN];
 
     fi = guc_fi_get_info(fih);
     g_assert(fi != NULL);

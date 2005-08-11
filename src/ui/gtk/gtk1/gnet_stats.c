@@ -184,7 +184,7 @@ on_gnet_stats_type_selected(GtkItem *unused_item, gpointer data)
 const gchar *
 pkt_stat_str(const guint64 *val_tbl, gint type)
 {
-    static gchar strbuf[21];
+    static gchar strbuf[UINT64_DEC_BUFLEN];
 
     if (val_tbl[type] == 0)
         return gnet_stats_perc ? "-  " : "-";
@@ -202,7 +202,7 @@ pkt_stat_str(const guint64 *val_tbl, gint type)
 const gchar *
 byte_stat_str(const guint64 *val_tbl, const guint64 *nb_packets, gint type)
 {
-    static gchar strbuf[21];
+    static gchar strbuf[UINT64_DEC_BUFLEN];
 	guint64 size = val_tbl[type];
 
     if (val_tbl[type] == 0)
@@ -225,7 +225,7 @@ byte_stat_str(const guint64 *val_tbl, const guint64 *nb_packets, gint type)
 const gchar *
 drop_stat_str(const gnet_stats_t *stats, gint reason)
 {
-    static gchar strbuf[21];
+    static gchar strbuf[UINT64_DEC_BUFLEN];
     guint32 total = stats->pkg.dropped[MSG_TOTAL];
 
     if (stats->drop_reason[reason][selected_type] == 0)
@@ -244,7 +244,7 @@ drop_stat_str(const gnet_stats_t *stats, gint reason)
 const gchar *
 general_stat_str(const gnet_stats_t *stats, gint type)
 {
-    static gchar strbuf[21];
+    static gchar strbuf[UINT64_DEC_BUFLEN];
 
     if (stats->general[type] == 0)
         return "-";
@@ -260,7 +260,7 @@ general_stat_str(const gnet_stats_t *stats, gint type)
 const gchar *
 flowc_stat_str_pkg(const guint64 *val_tbl, gint type)
 {
-    static gchar strbuf[21];
+    static gchar strbuf[UINT64_DEC_BUFLEN];
 
     if (val_tbl[type] == 0)
         return gnet_stats_perc ? "-  " : "-";
@@ -278,7 +278,7 @@ flowc_stat_str_pkg(const guint64 *val_tbl, gint type)
 const gchar *
 flowc_stat_str_byte(const guint64 *val_tbl, gint type)
 {
-    static gchar strbuf[21];
+    static gchar strbuf[UINT64_DEC_BUFLEN];
 
     if (val_tbl[type] == 0)
         return gnet_stats_perc ? "-  " : "-";

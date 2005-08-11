@@ -1657,7 +1657,7 @@ gui_update_download(download_t *d, gboolean force)
 		break;
 	case GTA_DL_SINKING:
 		{
-			gchar bytes[21];
+			gchar bytes[UINT64_DEC_BUFLEN];
 
 			uint64_to_string_buf(d->sinkleft, bytes, sizeof bytes);
 			gm_snprintf(tmpstr, sizeof(tmpstr),

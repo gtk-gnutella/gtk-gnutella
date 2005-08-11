@@ -621,7 +621,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 {
 	GtkTextBuffer *txt;
 	const record_t *rc = NULL;
-	gchar bytes[21];
+	gchar bytes[UINT64_DEC_BUFLEN];
 	gchar *xml_txt;
 
 	g_assert(tv != NULL);

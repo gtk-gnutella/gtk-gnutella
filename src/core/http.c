@@ -822,7 +822,8 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 				http_range_t *pr = (http_range_t *) prev->data;
 				
 				if (pr->end >= start) {
-					gchar start_buf[21], end_buf[21];
+					gchar start_buf[UINT64_DEC_BUFLEN];
+					gchar end_buf[UINT64_DEC_BUFLEN];
 
 					uint64_to_string_buf(start, start_buf, sizeof start_buf);
 					uint64_to_string_buf(end, end_buf, sizeof end_buf);
@@ -842,7 +843,8 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 			if (next != NULL) {
 				http_range_t *nr = (http_range_t *) next->data;
 				if (nr->start <= end) {
-					gchar start_buf[21], end_buf[21];
+					gchar start_buf[UINT64_DEC_BUFLEN];
+				   	gchar end_buf[UINT64_DEC_BUFLEN];
 					
 					uint64_to_string_buf(start, start_buf, sizeof start_buf);
 					uint64_to_string_buf(end, end_buf, sizeof end_buf);
@@ -862,7 +864,8 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 		}
 
 		if (r->end >= start) {
-			gchar start_buf[21], end_buf[21];
+			gchar start_buf[UINT64_DEC_BUFLEN];
+			gchar end_buf[UINT64_DEC_BUFLEN];
 			
 			uint64_to_string_buf(start, start_buf, sizeof start_buf);
 			uint64_to_string_buf(end, end_buf, sizeof end_buf);
@@ -1204,7 +1207,7 @@ http_range_to_gchar(const GSList *list)
 
 	for (rw = 0; sl && (size_t) rw < sizeof(str); sl = g_slist_next(sl)) {
 		const http_range_t *r = (const http_range_t *) sl->data;
-		gchar start_buf[21], end_buf[21];
+		gchar start_buf[UINT64_DEC_BUFLEN], end_buf[UINT64_DEC_BUFLEN];
 
 		uint64_to_string_buf(r->start, start_buf, sizeof start_buf);
 		uint64_to_string_buf(r->end, end_buf, sizeof end_buf);
