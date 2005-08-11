@@ -384,9 +384,12 @@ nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 }
 
 static void
-add_node_helper(const host_addr_t addr, gpointer port)
+add_node_helper(const host_addr_t *addr, gpointer port_as_pointer)
 {
-	guc_node_add(addr, GPOINTER_TO_UINT(port));
+	if (addr) {
+		guint16 port = GPOINTER_TO_UINT(port_as_pointer);
+		guc_node_add(*addr, port);
+	}
 }
 
 /**
@@ -394,51 +397,85 @@ add_node_helper(const host_addr_t addr, gpointer port)
  * [ip]:[port]. Port may be omitted.
  */
 void
-nodes_gui_common_connect_by_name(const gchar *addr)
+nodes_gui_common_connect_by_name(const gchar *line)
 {
-    guint32 port = GTA_PORT;
-    gchar *e, *p;
-	const gchar *host;
+	const gchar *q;
 
-    g_assert(addr != NULL);
+    g_assert(line);
 
-    e = g_strdup(addr);
-	g_strstrip(e);
-
-	if ('[' == e[0] && (':' == e[1] || is_ascii_xdigit(e[1]))) {
-		p = strchr(e, ']');
-		if (p) {
-			host = &e[1];
-		   	if (':' == p[1])
-				*p++ = '\0';
-		} else {
-			host = NULL;
-			p = NULL;
+	q = line;
+	while ('\0' != *q) {
+		const gchar *endptr, *hostname;
+		size_t hostname_len;
+		host_addr_t addr;
+    	guint16 port;
+		
+		q = skip_ascii_spaces(q);
+		if (',' == *q) {
+			q++;
+			continue;
+		}
+	
+		addr = zero_host_addr;	
+		port = GTA_PORT;
+		endptr = NULL;
+		hostname = NULL;
+		hostname_len = 0;
+		
+		if (!string_to_host_or_addr(q, &endptr, &addr)) {
+			g_message("Expected hostname or IP address");
+			break;
+		}
+		
+		if (!is_host_addr(addr)) {
+			hostname = q;
+			hostname_len = endptr - q;
 		}
 
-		g_message("e=\"%s\", p=\"%s\"", e, p);
-	} else {
-		host = e;
-		p = strchr(e, ':');
+		q = endptr;
+
+		if (':' == *q) {
+			guint32 v;
+			gint error;
+
+			v = parse_uint32(&q[1], &endptr, 10, &error);
+			if (error || 0 == v || v > 0xffff) {
+				g_message("Cannot parse port");
+				break;
+			}
+
+			port = v;
+			q = skip_ascii_spaces(endptr);
+		} else {
+			q = skip_ascii_spaces(endptr);
+			if ('\0' != *q && ',' != *q) {
+				g_message("Expected \",\" or \":\"");
+				break;
+			}
+		}
+
+		if (!hostname) {
+			guc_node_add(addr, port);
+		} else {
+			gchar *p;
+		
+			if ('\0' == hostname[hostname_len])	{
+				p = NULL;
+			} else {
+				size_t n = 1 + hostname_len;
+			
+				g_assert(n > hostname_len);	
+				p = g_malloc(n);
+				g_strlcpy(p, hostname, n);
+				hostname = p; 
+			}
+
+			guc_adns_resolve(hostname, add_node_helper,
+				GUINT_TO_POINTER((guint) port));
+
+			G_FREE_NULL(p);
+		}
 	}
-
-	if (p) {
-		const gchar *endptr;
-		guint32 v;
-		gint error;
-
-		*p++ = '\0';
-		v = parse_uint32(p, &endptr, 10, &error);
-		port = (v > 0 && v < 65536 && *endptr == '\0') ? v : 0;
-	}
-
-	if (port < 1 || port > 65535 || !host) {
-		statusbar_gui_warning(15, _("Port must be between 1 and 65535"));
-    } else {
-		guc_adns_resolve(host, add_node_helper, GUINT_TO_POINTER((guint) port));
-	}
-
-    G_FREE_NULL(e);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
