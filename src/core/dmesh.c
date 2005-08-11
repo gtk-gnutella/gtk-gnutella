@@ -1723,7 +1723,7 @@ dmesh_collect_compact_locations(gchar *sha1, gchar *value)
 				if (has_port)
 					ok = string_to_host_addr_port(start, &addr, &port);
 				else {
-					addr = string_to_host_addr(start);
+					addr = string_to_host_addr(start, NULL);
 					ok = is_host_addr(addr);
 				}
 

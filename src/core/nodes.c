@@ -3511,7 +3511,7 @@ extract_my_addr(header_t *header)
 	if (!field)
 		return zero_host_addr;
 
-	return string_to_host_addr(field);
+	return string_to_host_addr(field, NULL);
 }
 
 /**
@@ -3544,7 +3544,7 @@ node_check_remote_ip_header(const host_addr_t peer, header_t *head)
 	addr = extract_my_addr(head);
 	if (
 		!is_host_addr(addr) ||
-		host_addr_equal(addr, string_to_host_addr(local_addr))
+		host_addr_equal(addr, string_to_host_addr(local_addr, NULL))
 	)
 		return;
 	

@@ -3694,7 +3694,7 @@ parq_upload_load_queue(void)
 			{
 				host_addr_t addr;
 				
-				addr = string_to_host_addr(value);
+				addr = string_to_host_addr(value, NULL);
 				if (!is_host_addr(addr)) {
 					damaged = TRUE;
 					g_warning("Not a valid IP address.");
