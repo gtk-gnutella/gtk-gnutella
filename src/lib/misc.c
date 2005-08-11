@@ -373,6 +373,17 @@ ip6_to_string(const guint8 *ipv6)
 	return buf;
 }
 
+/**
+ * Prints the host address ``ha'' to ``dst''. The string written to ``dst''
+ * is always NUL-terminated unless ``size'' is zero. If ``size'' is too small,
+ * the string will be truncated.
+ *
+ * @param dst the destination buffer; may be NULL iff ``size'' is zero.
+ * @param ha the host address.
+ * @param size the size of ``dst'' in bytes.
+ *
+ * @return The length of the resulting string assuming ``size'' is sufficient.
+ */
 size_t
 host_addr_to_string_buf(const host_addr_t ha, gchar *dst, size_t size)
 {
@@ -398,6 +409,13 @@ host_addr_to_string_buf(const host_addr_t ha, gchar *dst, size_t size)
 	return 0;
 }
 
+/**
+ * Prints the host address ``ha'' to a static buffer.
+ *
+ * @param ha the host address.
+ * @return a pointer to a static buffer holding a NUL-terminated string
+ *         representing the given host address.
+ */
 const gchar *
 host_addr_to_string(const host_addr_t ha)
 {
@@ -409,28 +427,48 @@ host_addr_to_string(const host_addr_t ha)
 	return buf;
 }
 
+/**
+ * Prints the host address ``ha'' followed by ``port'' to ``dst''. The string
+ * written to ``dst'' is always NUL-terminated unless ``size'' is zero. If
+ * ``size'' is too small, the string will be truncated.
+ *
+ * @param dst the destination buffer; may be NULL iff ``size'' is zero.
+ * @param ha the host address.
+ * @param port the port number.
+ * @param size the size of ``dst'' in bytes.
+ *
+ * @return The length of the resulting string assuming ``size'' is sufficient.
+ */
 size_t
 host_addr_port_to_string_buf(const host_addr_t ha, guint16 port,
 		gchar *dst, size_t size)
 {
 	size_t n;
 	gchar host_buf[64];
-	gchar port_buf[21];
+	gchar port_buf[UINT64_DEC_BUFLEN];
 
-	n = host_addr_to_string_buf(ha, host_buf, sizeof host_buf);
-	n += uint64_to_string_buf(port, port_buf, sizeof port_buf);
+	host_addr_to_string_buf(ha, host_buf, sizeof host_buf);
+	uint64_to_string_buf(port, port_buf, sizeof port_buf);
 
 	if (NET_TYPE_IP6 == host_addr_net(ha)) {
-		concat_strings(dst, size, "[", host_buf, "]:", port_buf, (void *) 0);
-		n += CONST_STRLEN("[]:");
+		n = concat_strings(dst, size, "[", host_buf, "]:",
+				port_buf, (void *) 0);
 	} else {
-		concat_strings(dst, size, host_buf, ":", port_buf, (void *) 0);
-		n += CONST_STRLEN(":");
+		n = concat_strings(dst, size, host_buf, ":", port_buf, (void *) 0);
 	}
 	
 	return n;
 }
 
+/**
+ * Prints the host address ``ha'' followed by ``port'' to a static buffer. 
+ *
+ * @param ha the host address.
+ * @param port the port number.
+ *
+ * @return a pointer to a static buffer holding a NUL-terminated string
+ *         representing the given host address and port.
+ */
 const gchar *
 host_addr_port_to_string(const host_addr_t ha, guint16 port)
 {
@@ -442,27 +480,101 @@ host_addr_port_to_string(const host_addr_t ha, guint16 port)
 	return buf;
 }
 
+/**
+ * Parses IPv4 and IPv6 addresses. The latter requires IPv6 support to be
+ * enabled.
+ *
+ * "0.0.0.0" and "::" cannot be distinguished from unparsable addresses.
+ *
+ * @param s The string to parse.
+ * @param endptr This will point to the first character after the parsed
+ *        address.
+ * @return Returns the host address or ``zero_host_addr'' on failure.
+ */
 host_addr_t
-string_to_host_addr(const char *s)
+string_to_host_addr(const char *s, const gchar **endptr)
 {
 	host_addr_t ha;
 	guint32 ip;
 
 	g_assert(s);
 
-	if (0 != (ip = string_to_ip(s))) {
+	if (string_to_ip_strict(s, &ip, endptr)) {
 		ha = host_addr_set_ip4(ip);
 		return ha;
 #ifdef USE_IPV6
 	} else {
 		guint8 ip6[16];
-		if (parse_ip6_addr(s, ip6, NULL)) {
+		if (parse_ip6_addr(s, ip6, endptr)) {
 			host_addr_set_ip6(&ha, ip6);
 			return ha;
 		}
 #endif
 	}
 	return zero_host_addr;
+}
+
+/**
+ * Parses the NUL-terminated string ``s'' for a host address or a hostname.
+ * If ``s'' points to a parsable address, ``*ha'' will be set to it. Otherwise,
+ * ``*ha'' is set to ``zero_host_addr''. If the string is a possible hostname
+ * the function returns TRUE nonetheless and ``*endptr'' will point to the
+ * first character after hostname. If IPv6 support is disabled, "[::]" will
+ * be considered a hostname rather than a host address.
+ *
+ * @param s the string to parse.
+ * @param endptr if not NULL, it will point the first character after
+ *        the parsed host address or hostname.
+ * @param ha if not NULL, it is set to the parsed host address or
+ *        ``zero_host_addr'' on failure.
+ * @return TRUE if the string points to host address or is a possible
+ *         hostname.
+ */
+gboolean
+string_to_host_or_addr(const char *s, const gchar **endptr, host_addr_t *ha)
+{
+	const gchar *ep;
+	host_addr_t addr;
+
+	if ('[' == s[0]) {
+		guint8 ip6[16];
+
+		if (parse_ip6_addr(&s[1], ip6, &ep) && ']' == *ep) {
+
+			if (ha) {
+#ifdef USE_IPV6
+				host_addr_set_ip6(ha, ip6);
+#else
+				/* If IPv6 is disabled, consider [::] a hostname */
+				*ha = zero_host_addr;
+#endif
+			}
+			if (endptr)
+				*endptr = ++ep;
+
+			return TRUE;
+		}
+	}
+	
+	addr = string_to_host_addr(s, endptr);
+	if (is_host_addr(addr)) {
+		if (ha)
+			*ha = addr;
+
+		return TRUE;
+	}
+
+	for (ep = s; '\0' != *ep; ep++) {
+		if (!is_ascii_alnum(*ep) && '.' != *ep && '-' != *ep)
+			break;
+	}
+
+	if (ha)
+		*ha = zero_host_addr;
+	if (endptr)
+		*endptr = ep;
+
+	return s != ep ? TRUE : FALSE;
 }
 
 size_t
@@ -676,7 +788,7 @@ parse_ip6_addr(const gchar *s, guint8 *dst, const gchar **endptr)
  * IPv4 address. ``addr'' and ``endptr'' may be NULL.
  */
 gboolean
-string_to_ip_strict(const gchar *s, guint32 *addr, gchar const **endptr)
+string_to_ip_strict(const gchar *s, guint32 *addr, const gchar **endptr)
 {
 	const gchar *p = s;
 	gboolean is_valid = TRUE;
@@ -2470,7 +2582,7 @@ size_t
 uint64_to_string_buf(guint64 v, gchar *dst, size_t size)
 {
 	static const gchar dec_alphabet[] = "0123456789";
-	gchar buf[21];
+	gchar buf[UINT64_DEC_BUFLEN];
 	gchar *p;
 	size_t len;
 	
@@ -2500,7 +2612,7 @@ uint64_to_string_buf(guint64 v, gchar *dst, size_t size)
 const gchar *
 uint64_to_string(guint64 v)
 {
-	static gchar buf[21];
+	static gchar buf[UINT64_DEC_BUFLEN];
 	size_t n;
 
 	n = uint64_to_string_buf(v, buf, sizeof buf);
@@ -2511,7 +2623,7 @@ uint64_to_string(guint64 v)
 const gchar *
 uint64_to_string2(guint64 v)
 {
-	static gchar buf[21];
+	static gchar buf[UINT64_DEC_BUFLEN];
 	size_t n;
 
 	n = uint64_to_string_buf(v, buf, sizeof buf);

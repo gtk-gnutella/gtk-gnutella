@@ -298,7 +298,19 @@ typedef guint16 flag_t;
 #define set_flags(r,f) (r |= (f))
 #define clear_flags(r,f) (r &= ~(f))
 
-
+/*
+ * Macros to determine the maximum buffer size required to hold a
+ * NUL-terminated string.
+ */
+#define UINT8_HEX_BUFLEN	(sizeof "FF")
+#define UINT8_DEC_BUFLEN	(sizeof "255")
+#define UINT16_HEX_BUFLEN	(sizeof "01234")
+#define UINT16_DEC_BUFLEN	(sizeof "65535")
+#define UINT32_HEX_BUFLEN	(sizeof "012345678")
+#define UINT32_DEC_BUFLEN	(sizeof "4294967295")
+#define UINT64_HEX_BUFLEN	(sizeof "0123456789ABCDEF")
+#define UINT64_DEC_BUFLEN	(sizeof "18446744073709551615")
+#define IPV4_ADDR_BUFLEN	(sizeof "255.255.255.255")
 #define IPV6_ADDR_BUFLEN \
 	  (sizeof "0001:0203:0405:0607:0809:1011:255.255.255.255")
 
@@ -364,6 +376,47 @@ host_addr_equal(const host_addr_t a, const host_addr_t b)
 	}
 	return FALSE;
 }
+
+static inline gboolean
+host_addr_matches(const host_addr_t a, const host_addr_t b, guint8 bits)
+{
+	host_addr_t to;
+	guint8 shift;
+	
+	if (host_addr_convert(&b, &to, a.net))
+		return FALSE;
+		
+	switch (a.net) {
+	case NET_TYPE_IP4:
+		shift = bits < 32 ? 32 - bits : 0;
+		return (a.addr.ip4 >> shift) == (to.addr.ip4 >> shift);
+		
+	case NET_TYPE_IP6:
+		{
+			gint i;
+		
+			bits = MIN(128, bits);
+			for (i = 0; bits >= 8; i++, bits -= 8) {
+				if (a.addr.ip6[i] != to.addr.ip6[i])
+					return FALSE;
+			}
+
+			if (bits > 0) {
+				guint8 shift = 8 - bits;
+				return (a.addr.ip6[i] >> shift) == (to.addr.ip6[i] >> shift);
+			}
+			
+		}
+		return TRUE;
+
+	case NET_TYPE_NONE:
+		return TRUE;
+	}
+
+	g_assert_not_reached();
+	return FALSE;
+}
+
 
 static inline gboolean
 is_host_addr(const host_addr_t ha)
@@ -445,11 +498,20 @@ host_addr_convert(const host_addr_t *from, host_addr_t *to,
 #define host_addr_hash(x) (x)
 #define zero_host_addr 0
 
+static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
+host_addr_matches(guint32 a, guint32 b, guint8 bits)
+{
+	guint8 shift;
+	
+	shift = bits < 32 ? 32 - bits : 0;
+	return (a >> shift) == (b >> shift);
+}
+	
 #endif /* IPV6 */
 
 const gchar *host_addr_to_string(const host_addr_t addr);
 size_t host_addr_to_string_buf(const host_addr_t addr, gchar *, size_t);
-host_addr_t string_to_host_addr(const gchar *s);
+host_addr_t string_to_host_addr(const gchar *s, const gchar **endptr);
 const gchar *host_addr_port_to_string(const host_addr_t addr, guint16 port);
 size_t host_addr_port_to_string_buf(const host_addr_t addr,
 				guint16 port, gchar *, size_t);
@@ -460,15 +522,16 @@ const gchar *host_addr_to_name(const host_addr_t addr);
 gboolean parse_ip6_addr(const gchar *s, uint8_t *dst, const gchar **endptr);
 const gchar *ip6_to_string(const guint8 *ipv6);
 size_t ip6_to_string_buf(const guint8 *ipv6, gchar *dst, size_t size);
+gboolean string_to_host_or_addr(const char *s, const gchar **endptr,
+		host_addr_t *ha);
 
 /*
  * Network related string routines
  */
 guint32  string_to_ip(const gchar *);
-gboolean string_to_ip_strict(const gchar *s, guint32 *addr, gchar const **ep);
+gboolean string_to_ip_strict(const gchar *s, guint32 *addr, const gchar **ep);
 gboolean string_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask);
 gboolean string_to_ip_port(const gchar *str, guint32 *ip, guint16 *port);
-gboolean string_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask);
 const gchar *ip_to_string(guint32);
 const gchar *ip_to_string2(guint32);
 size_t ip_to_string_buf(guint32 ip, gchar *buf, size_t size);
@@ -624,6 +687,26 @@ swap_guint32(guint32 i)
 	gint d = (i & 0xff000000) >> 24;
 
 	return d + (c << 8) + (b << 16) + (a << 24);
+}
+
+/**
+ * Converts the given IPv4 netmask in host byte order to a CIDR prefix length.
+ * No checks are performed whether the netmask is proper and if it's not
+ * the result is unspecified.
+ *
+ * @param netmask an IPv4 netmask in host byte order.
+ * @return The CIDR prefix length (0..32).
+ */
+static inline G_GNUC_CONST WARN_UNUSED_RESULT guint8
+netmask_to_cidr(guint32 netmask)
+{
+	guint8 bits = 32;
+
+	while (0 == (netmask & 0x1)) {
+		netmask >>= 1;
+		bits--;
+	}
+	return bits;
 }
 
 /*
