@@ -103,12 +103,7 @@ bogons_load(FILE *f)
 			continue;
 		}
 
-		bits = 32;
-		while (0 == (netmask & 0x1)) {
-			netmask >>= 1;
-			bits--;
-		}
-
+		bits = netmask_to_cidr(netmask);
 		error = iprange_add_cidr(bogons_db, ip, bits, THERE);
 
 		switch (error) {

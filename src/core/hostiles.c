@@ -135,12 +135,7 @@ hostiles_load(FILE *f, hostiles_t which)
 			continue;
 		}
 
-		bits = 32;
-		while (0 == (netmask & 0x1)) {
-			netmask >>= 1;
-			bits--;
-		}
-
+		bits = netmask_to_cidr(netmask);
 		error = iprange_add_cidr(hostile_db[which], ip, bits, THERE);
 
 		switch (error) {
