@@ -99,8 +99,16 @@ static void update_uptimes(void);
 /* ----------------------------------------- */
 
 /**
- * ensure_unicity
- *
+ * @return the currently used local listening address.
+ */
+host_addr_t
+listen_addr(void)
+{
+	const gchar *s = force_local_addr ? forced_local_addr : local_addr;
+	return string_to_host_addr(s, NULL);
+}
+
+/**
  * Look for any existing PID file. If found, look at the pid recorded
  * there and make sure it has died. Abort operations if it hasn't...
  */
@@ -474,7 +482,7 @@ settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer_addr)
 	same_addr_count = 0;
 	memset(peers, 0, sizeof peers);
 
-	if (host_addr_equal(new_addr, string_to_host_addr(local_addr)))
+	if (host_addr_equal(new_addr, string_to_host_addr(local_addr, NULL)))
 		return;
 
     gnet_prop_set_string(PROP_LOCAL_ADDR, host_addr_to_string(new_addr));
@@ -948,6 +956,23 @@ listen_port_changed(property_t prop)
 
     return FALSE;
 }
+
+static gboolean
+network_protocol_changed(property_t prop)
+{
+	guint32 port;
+
+	(void) prop;
+    gnet_prop_get_guint32_val(PROP_LISTEN_PORT, &port);
+	/*
+	 * Trigger a change of the listening port to create a new listening
+	 * socket.
+	 */
+    gnet_prop_set_guint32_val(PROP_LISTEN_PORT, 0);
+    gnet_prop_set_guint32_val(PROP_LISTEN_PORT, port);
+	return FALSE;
+}
+
 
 static gboolean
 bw_http_in_enabled_changed(property_t prop)
@@ -1496,6 +1521,11 @@ static prop_map_t property_map[] = {
         PROP_LISTEN_PORT,
         listen_port_changed,
         TRUE
+    },
+    {
+        PROP_NETWORK_PROTOCOL,
+        network_protocol_changed,
+        FALSE
     },
     {
         PROP_BW_HTTP_IN_ENABLED,

@@ -47,18 +47,12 @@
 
 extern struct in_addr *local_netmasks;
 
-/**
- * Global macros.
- */
-
-#define listen_addr()	\
-	string_to_host_addr(force_local_addr ? forced_local_addr : local_addr)
-
 
 /*
  * Global Functions
  */
 
+host_addr_t listen_addr(void);
 void settings_init(void);
 void settings_save_if_dirty(void);
 void settings_shutdown(void);
@@ -72,3 +66,4 @@ guint32 get_average_servent_uptime(time_t now);
 guint32 get_average_ip_lifetime(time_t now);
 
 #endif /* _core_settings_h_ */
+/* vi: set ts=4 sw=4 cindent: */
