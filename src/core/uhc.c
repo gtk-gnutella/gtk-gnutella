@@ -91,7 +91,7 @@ static const gchar * const boot_hosts[] = {
 
 static gboolean uhc_connecting = FALSE;
 
-static void uhc_host_resolved(const host_addr_t addr, gpointer uu_udata);
+static void uhc_host_resolved(const host_addr_t *addr, gpointer uu_udata);
 
 /**
  * Parse hostname:port and return the hostname and port parts.
@@ -274,7 +274,7 @@ uhc_send_ping(const host_addr_t addr, guint16 port)
  * Callback for adns_resolve(), invoked when the resolution is complete.
  */
 static void
-uhc_host_resolved(const host_addr_t addr, gpointer uu_udata)
+uhc_host_resolved(const host_addr_t *addr, gpointer uu_udata)
 {
 	(void) uu_udata;
 
@@ -282,7 +282,7 @@ uhc_host_resolved(const host_addr_t addr, gpointer uu_udata)
 	 * If resolution failed, try again if possible.
 	 */
 
-	if (!is_host_addr(addr) || !host_is_valid(addr, uhc_ctx.port)) {
+	if (addr || !host_is_valid(*addr, uhc_ctx.port)) {
 		if (gwc_debug)
 			g_warning("could not resolve UDP host cache \"%s\"",
 				uhc_ctx.host);
@@ -293,9 +293,9 @@ uhc_host_resolved(const host_addr_t addr, gpointer uu_udata)
 
 	if (gwc_debug)
 		g_message("UDP host cache \"%s\" resolved to %s",
-			uhc_ctx.host, host_addr_to_string(addr));
+			uhc_ctx.host, host_addr_to_string(*addr));
 
-	uhc_ctx.addr = addr;
+	uhc_ctx.addr = *addr;
 
 	/*
 	 * Now send the ping.

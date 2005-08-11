@@ -51,7 +51,7 @@ static guint32 common_dbg = 0;	/**< @bug XXX -- need to init lib's props --RAM *
 /* private data types */
 
 typedef struct adns_query {
-	GFunc user_callback;
+	void (*user_callback)(void);
 	gpointer user_data;
 	host_addr_t addr;
 	gboolean reverse;
@@ -387,7 +387,7 @@ adns_invoke_user_callback(adns_query_t *reply)
 		adns_callback_t func;
 
 		func = (adns_callback_t) reply->user_callback;
-		func(reply->addr, reply->user_data);
+		func(&reply->addr, reply->user_data);
 	}
 }
 
@@ -700,13 +700,13 @@ adns_resolve(const gchar *hostname,
 	g_assert(NULL != hostname);
 	g_assert(NULL != user_callback);
 
-	query.user_callback = (GFunc) user_callback;
+	query.user_callback = (void (*)(void)) user_callback;
 	query.user_data = user_data;
 	query.reverse = FALSE;
 	query.addr = zero_host_addr;
 	reply = query;
 
-	reply.addr = string_to_host_addr(hostname);
+	reply.addr = string_to_host_addr(hostname, NULL);
 	if (is_host_addr(reply.addr)) {
 		adns_invoke_user_callback(&reply);
 		return FALSE; /* synchronous */
@@ -760,7 +760,7 @@ adns_reverse_lookup(const host_addr_t addr,
 
 	g_assert(user_callback);
 
-	query.user_callback = (GFunc) user_callback;
+	query.user_callback = (void (*)(void)) user_callback;
 	query.user_data = user_data;
 	query.addr = addr;
 	query.reverse = TRUE;

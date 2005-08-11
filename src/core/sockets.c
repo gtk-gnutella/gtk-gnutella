@@ -415,15 +415,19 @@ socket_eof(struct gnutella_socket *s)
 }
 
 static void
-proxy_connect_helper(const host_addr_t addr, gpointer udata)
+proxy_connect_helper(const host_addr_t *addr, gpointer udata)
 {
 	gboolean *in_progress = udata;
 	const gchar *s;
 
-	*in_progress = FALSE;
-	s = host_addr_to_string(addr);
-	gnet_prop_set_string(PROP_PROXY_ADDR, s);
-	g_message("Resolved proxy name \"%s\" to %s", proxy_hostname, s);
+	if (!addr) {
+		g_message("Could not resolve proxy name \"%s\"", proxy_hostname);
+	} else {
+		*in_progress = FALSE;
+		s = host_addr_to_string(*addr);
+		gnet_prop_set_string(PROP_PROXY_ADDR, s);
+		g_message("Resolved proxy name \"%s\" to %s", proxy_hostname, s);
+	}
 }
 
 /*
@@ -459,7 +463,7 @@ proxy_connect(int fd)
 		return -1;
 	}
 
-	socket_addr_set(&server, string_to_host_addr(proxy_addr), proxy_port);
+	socket_addr_set(&server, string_to_host_addr(proxy_addr, NULL), proxy_port);
 	sa_len = socket_addr_get(&server, &sa);
 
 	return connect(fd, sa, sa_len);
@@ -1829,7 +1833,7 @@ guess_local_addr(int fd)
 	 */
 
 	can_supersede = !is_private_addr(ha) ||
-		is_private_addr(string_to_host_addr(local_addr));
+		is_private_addr(string_to_host_addr(local_addr, NULL));
 
 	if (!ip_computed) {
 		if (!local_addr || can_supersede)
@@ -2184,7 +2188,8 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 		const struct sockaddr *sa;
 		socklen_t sa_len;
 
-		socket_addr_set(&local, string_to_host_addr(forced_local_addr), 0);
+		socket_addr_set(&local,
+			string_to_host_addr(forced_local_addr, NULL), 0);
 		sa_len = socket_addr_get(&local, &sa);
 
 		/*
@@ -2278,19 +2283,19 @@ socket_bad_hostname(struct gnutella_socket *s)
  * Called when we got a reply from the ADNS process.
  */
 static void
-socket_connect_by_name_helper(host_addr_t h, gpointer user_data)
+socket_connect_by_name_helper(const host_addr_t *h, gpointer user_data)
 {
 	struct gnutella_socket *s = user_data;
 
 	g_assert(NULL != s);
 
-	if (!is_host_addr(h) || s->type == SOCK_TYPE_DESTROYING) {
+	if (!h || s->type == SOCK_TYPE_DESTROYING) {
 		s->adns &= ~SOCK_ADNS_PENDING;
 		s->adns |= SOCK_ADNS_FAILED | SOCK_ADNS_BADNAME;
 		s->adns_msg = "Could not resolve address";
 		return;
 	}
-	if (NULL == socket_connect_finalize(s, h)) {
+	if (NULL == socket_connect_finalize(s, *h)) {
 		s->adns &= ~SOCK_ADNS_PENDING;
 		s->adns |= SOCK_ADNS_FAILED;
 		return;

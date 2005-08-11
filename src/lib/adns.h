@@ -38,7 +38,7 @@
 
 #include "common.h"	/* For ``struct host_addr'' */
 
-typedef void (*adns_callback_t)(const host_addr_t, gpointer);
+typedef void (*adns_callback_t)(const host_addr_t *, gpointer);
 typedef void (*adns_reverse_callback_t)(const gchar *, gpointer);
 
 void adns_init(void);
