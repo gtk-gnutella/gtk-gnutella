@@ -55,27 +55,38 @@
 
 #define walloc(s)			g_malloc(s)
 #define walloc0(s)			g_malloc0(s)
+#define wcopy(p,s)			g_memdup((p), (s))
 #define wfree(p,s)			g_free(p)
 #define wrealloc(p,o,n)		g_realloc((p), (n));
 
 #else	/* !REMAP_ZALLOC */
 
-gpointer walloc(gint size);
-gpointer walloc0(int size);
-void wfree(gpointer ptr, gint size);
-gpointer wrealloc(gpointer old, gint old_size, gint new_size);
+gpointer walloc(size_t size);
+gpointer walloc0(size_t size);
+void wfree(gpointer ptr, size_t size);
+gpointer wrealloc(gpointer old, size_t old_size, size_t new_size);
+
+static inline WARN_UNUSED_RESULT gpointer
+wcopy(gconstpointer ptr, size_t size)
+{
+	gpointer cp = walloc(size);
+	memcpy(cp, ptr, size);
+	return cp;
+}
 
 #endif	/* REMAP_ZALLOC */
 
 #ifdef TRACK_ZALLOC
 
 #define walloc(s)			walloc_track(s, __FILE__, __LINE__)
+#define wcopy(p,s)			wcopy_track(p, s, __FILE__, __LINE__)
 #define walloc0(s)			walloc0_track(s, __FILE__, __LINE__)
 #define wrealloc(p,o,n)		wrealloc_track(p, o, n, __FILE__, __LINE__)
 
-gpointer walloc_track(gint size, gchar *file, gint line);
-gpointer walloc0_track(int size, gchar *file, gint line);
-gpointer wrealloc_track(gpointer old, gint old_size, gint new_size,
+gpointer walloc_track(size_t size, gchar *file, gint line);
+gpointer walloc0_track(size_t size, gchar *file, gint line);
+gpointer wcopy_track(gconstpointer, size_t size, gchar *file, gint line);
+gpointer wrealloc_track(gpointer old, size_t old_size, size_t new_size,
 	gchar *file, gint line);
 
 #endif	/* TRACK_ZALLOC */
@@ -84,3 +95,4 @@ void wdestroy(void);
 
 #endif /* _walloc_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

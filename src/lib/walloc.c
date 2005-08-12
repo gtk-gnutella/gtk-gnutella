@@ -71,8 +71,6 @@ static struct zone *wzone[WZONE_SIZE];
 
 #ifndef REMAP_ZALLOC
 /**
- * walloc
- *
  * Allocate memory from a zone suitable for the given size.
  *
  * The basics for this algorithm is to allocate from fixed-sized zones, which
@@ -82,11 +80,12 @@ static struct zone *wzone[WZONE_SIZE];
  *
  * @return a pointer to the start of the allocated block.
  */
-gpointer walloc(int size)
+gpointer
+walloc(size_t size)
 {
 	zone_t *zone;
-	gint rounded = zalloc_round(size);
-	gint idx;
+	size_t rounded = zalloc_round(size);
+	size_t idx;
 
 	g_assert(size > 0);
 
@@ -96,10 +95,10 @@ gpointer walloc(int size)
 	idx = rounded >> ZALLOC_ALIGNBITS;
 
 	STATIC_ASSERT(WALLOC_MAX >> ZALLOC_ALIGNBITS == WZONE_SIZE);
-	g_assert(idx >= 0 && idx < WZONE_SIZE);
+	g_assert(idx < WZONE_SIZE);
 
 	if (!(zone = wzone[idx])) {
-		gint count;
+		size_t count;
 
 		/*
 		 * We're paying this computation/allocation cost once per size!
@@ -119,11 +118,10 @@ gpointer walloc(int size)
 }
 
 /**
- * walloc0
- *
  * Same as walloc(), but zeroes the allocated memory before returning.
  */
-gpointer walloc0(int size)
+gpointer
+walloc0(size_t size)
 {
 	gpointer p = walloc(size);
 
@@ -134,22 +132,22 @@ gpointer walloc0(int size)
 }
 
 /**
- * wfree
- *
  * Free a block allocated via walloc().
  *
  * The size is used to find the zone from which the block was allocated, or
  * to determine that we actually malloc()'ed it so it gets free()'ed.
  */
-void wfree(gpointer ptr, gint size)
+void
+wfree(gpointer ptr, size_t size)
 {
 	zone_t *zone;
-	gint rounded = zalloc_round(size);
-	gint idx;
+	size_t rounded = zalloc_round(size);
+	size_t idx;
 
 	g_assert(ptr);
 	g_assert(size > 0);
 
+	memset(ptr, 0, size);
 	if (rounded >= WALLOC_MAX) {
 		g_free(ptr);
 		return;
@@ -157,7 +155,7 @@ void wfree(gpointer ptr, gint size)
 
 	idx = rounded >> ZALLOC_ALIGNBITS;
 
-	g_assert(idx >= 0 && idx < WZONE_SIZE);
+	g_assert(idx < WZONE_SIZE);
 
 	zone = wzone[idx];
 	g_assert(zone);
@@ -166,16 +164,15 @@ void wfree(gpointer ptr, gint size)
 }
 
 /**
- * wrealloc
- *
  * Reallocate a block allocated via walloc().
  *
  * @return new block address.
  */
-gpointer wrealloc(gpointer old, gint old_size, gint new_size)
+gpointer
+wrealloc(gpointer old, size_t old_size, size_t new_size)
 {
 	gpointer new;
-	gulong rounded = zalloc_round(new_size);
+	size_t rounded = zalloc_round(new_size);
 
 	if (zalloc_round(old_size) == rounded)
 		return old;
@@ -194,17 +191,16 @@ gpointer wrealloc(gpointer old, gint old_size, gint new_size)
 
 #ifdef TRACK_ZALLOC
 /**
- * walloc_track
- *
  * Allocate memory from a zone suitable for the given size.
  *
  * @returns a pointer to the start of the allocated block.
  */
-gpointer walloc_track(int size, gchar *file, gint line)
+gpointer
+walloc_track(size_t size, gchar *file, gint line)
 {
 	zone_t *zone;
-	gint rounded = zalloc_round(size);
-	gint idx;
+	size_t rounded = zalloc_round(size);
+	size_t idx;
 
 	g_assert(size > 0);
 
@@ -218,10 +214,10 @@ gpointer walloc_track(int size, gchar *file, gint line)
 	idx = rounded >> ZALLOC_ALIGNBITS;
 
 	g_assert(WALLOC_MAX >> ZALLOC_ALIGNBITS == WZONE_SIZE);
-	g_assert(idx >= 0 && idx < WZONE_SIZE);
+	g_assert(idx < WZONE_SIZE);
 
 	if (!(zone = wzone[idx])) {
-		gint count;
+		size_t count;
 
 		/*
 		 * We're paying this computation/allocation cost once per size!
@@ -241,11 +237,10 @@ gpointer walloc_track(int size, gchar *file, gint line)
 }
 
 /**
- * walloc0_track
- *
  * Same as walloc_track(), but zeroes the allocated memory before returning.
  */
-gpointer walloc0_track(int size, gchar *file, gint line)
+gpointer
+walloc0_track(size_t size, gchar *file, gint line)
 {
 	gpointer p = walloc_track(size, file, line);
 
@@ -256,19 +251,33 @@ gpointer walloc0_track(int size, gchar *file, gint line)
 }
 
 /**
- * wrealloc_track
- *
+ * Same as walloc_track(), but copies ``size'' bytes from ``ptr''
+ * to the allocated memory before returning.
+ */
+gpointer
+wcopy_track(gconstpointer ptr, size_t size, gchar *file, gint line)
+{
+	gpointer p = walloc_track(size, file, line);
+
+	if (p != NULL)
+		memcpy(p, ptr, size);
+
+	return p;
+}
+
+/**
  * Reallocate a block allocated via walloc().
  *
  * @return new block address.
  */
-gpointer wrealloc_track(gpointer old, gint old_size, gint new_size,
+gpointer
+wrealloc_track(gpointer old, size_t old_size, size_t new_size,
 	gchar *file, gint line)
 {
 	gpointer new;
-	gint rounded = zalloc_round(new_size);
+	size_t rounded = zalloc_round(new_size);
 
-	if (zalloc_round(old_size) == (gulong) rounded)
+	if (zalloc_round(old_size) == (size_t) rounded)
 		return old;
 
 	new = walloc_track(new_size, file, line);
@@ -280,13 +289,12 @@ gpointer wrealloc_track(gpointer old, gint old_size, gint new_size,
 #endif	/* TRACK_ZALLOC */
 
 /**
- * wdestroy
- *
  * Destroy all the zones we allocated so far.
  */
-void wdestroy(void)
+void
+wdestroy(void)
 {
-	gint i;
+	size_t i;
 
 	for (i = 0; i < WZONE_SIZE; i++) {
 		if (wzone[i] != NULL) {
@@ -296,3 +304,4 @@ void wdestroy(void)
 	}
 }
 
+/* vi: set ts=4 sw=4 cindent: */
