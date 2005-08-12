@@ -47,5 +47,5 @@ void aging_remove(gpointer obj, gpointer key);
 
 #endif	/* _aging_h_ */
 
-/* vi: set ts=4: sw=4: */
+/* vi: set ts=4: sw=4 cindent: */
 

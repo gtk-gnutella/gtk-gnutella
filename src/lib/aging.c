@@ -95,7 +95,7 @@ aging_make(
 {
 	struct aging *ag;
 
-	ag = walloc(sizeof(*ag));
+	ag = walloc(sizeof *ag);
 	ag->magic = AGING_MAGIC;
 	ag->table = g_hash_table_new(hash, eq);
 	ag->kfree = kfree;
@@ -127,7 +127,7 @@ aging_free_kv(gpointer key, gpointer value, gpointer udata)
 	if (ag->vfree != NULL)
 		(*ag->vfree)(aval->value, ag->vdata);
 
-	wfree(aval, sizeof(*aval));
+	wfree(aval, sizeof *aval);
 }
 
 /**
@@ -142,7 +142,7 @@ aging_destroy(gpointer obj)
 
 	g_hash_table_foreach(ag->table, aging_free_kv, ag);
 	g_hash_table_destroy(ag->table);
-	wfree(ag, sizeof(*ag));
+	wfree(ag, sizeof *ag);
 }
 
 /**
@@ -266,4 +266,4 @@ aging_insert(gpointer obj, gpointer key, gpointer value)
 	}
 }
 
-/* vi: set ts=4: sw=4: */
+/* vi: set ts=4: sw=4 cindent: */
