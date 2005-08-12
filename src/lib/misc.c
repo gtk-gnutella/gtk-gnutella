@@ -1023,31 +1023,61 @@ local_hostname(void)
  * We rule out IPs of private networks, plus some other invalid combinations.
  */
 gboolean
-addr_is_valid(const host_addr_t ha)
+addr_is_valid(const host_addr_t addr)
 {
-	if (!is_host_addr(ha) || is_private_addr(ha))
+	host_addr_t ha;
+
+	if (!is_host_addr(addr) || is_private_addr(addr))
 		return FALSE;
+
+	if (!host_addr_convert(&addr, &ha, NET_TYPE_IP4))
+		ha = addr;
 	
-	if (NET_TYPE_IP4 == host_addr_net(ha)) {
-		guint32 ip = host_addr_ip4(ha);
+	switch (host_addr_net(ha)) {
+	case NET_TYPE_IP4:
+		{
+			guint32 ip = host_addr_ip4(ha);
 
-		if ((!ip) ||			/* IP == 0 */
-			/* 0.0.0.0 / 7 */
-			((ip & (guint32) 0xFE000000) == (guint32) 0x00000000) ||
-			/* 224..239.0.0 / 8 (multicast) */
-			((ip & (guint32) 0xF0000000) == (guint32) 0xE0000000) ||
-			/* 127.0.0.0 / 8 */
-			((ip & (guint32) 0xFF000000) == (guint32) 0x7F000000) ||
-			/* 192.0.2.0 -- (192.0.2/24 prefix) TEST-NET [RFC 3330] */
-			((ip & 0xFFFFFF00) == 0xC0000200) ||
-			/* 255.0.0.0 / 8 */
-			((ip & (guint32) 0xFF000000) == (guint32) 0xFF000000))
-			return FALSE;
-	} else if (NET_TYPE_IP6 == host_addr_net(ha)) {
-		/* XXX: Implement this! */
-	}	
+			if (
+					ip == 0x00000000UL ||
+					/* 0.0.0.0 / 7 */
+					(ip & 0xFE000000UL) == 0x00000000UL ||
+					/* 224..239.0.0 / 8 (multicast) */
+					(ip & 0xF0000000UL) == 0xE0000000UL ||
+					/* 127.0.0.0 / 8 */
+					(ip & 0xFF000000UL) == 0x7F000000UL ||
+					/* 192.0.2.0 -- (192.0.2/24 prefix) TEST-NET [RFC 3330] */
+					(ip & 0xFFFFFF00UL) == 0xC0000200UL ||
+					/* 255.0.0.0 / 8 */
+					(ip & 0xFF000000UL) == 0xFF000000UL
+			)
+				return FALSE;
+		}
+		return TRUE;
+		
+	case NET_TYPE_IP6:
+#ifdef USE_IPV6
+		{
+			static gboolean initialized;
+			static host_addr_t zero_net, multicast_net;
+			
+			if (!initialized) {
+				zero_net = string_to_host_addr("::", NULL);
+				multicast_net = string_to_host_addr("FF00::", NULL);
+				initialized = TRUE;
+			}
 
-	return TRUE;
+			return 	!host_addr_matches(ha, zero_net, 8) &&
+					!host_addr_matches(ha, multicast_net, 8);
+		}
+#endif /* USE_IPV6 */
+		
+	case NET_TYPE_NONE:
+		break;
+	}
+
+	g_assert_not_reached();
+	return FALSE;
 }
 
 /**
