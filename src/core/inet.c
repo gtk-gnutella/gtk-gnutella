@@ -115,20 +115,6 @@ static gpointer outgoing_ev = NULL;		/**< Callout queue timer */
 
 static void inet_set_is_connected(gboolean val);
 
-static guint
-item_hash(gconstpointer key)
-{
-	const host_addr_t *addr = key;
-	return host_addr_hash(*addr);
-}
-
-static gboolean
-item_equal(gconstpointer p, gconstpointer q)
-{
-	const host_addr_t *a = p, *b = q;
-	return host_addr_equal(*a, *b);
-}
-
 /**
  * Create a new ip_record structure.
  */
@@ -681,7 +667,7 @@ inet_init(void)
 	 * Initialize the table used to record outgoing UDP traffic.
 	 */
 
-	outgoing_udp = g_hash_table_new(item_hash, item_equal);
+	outgoing_udp = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
 }
 
 /**

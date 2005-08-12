@@ -523,28 +523,13 @@ ban_message(const host_addr_t addr)
 	return ipf->ban_msg;
 }
 
-static guint
-item_hash(gconstpointer key)
-{
-	const host_addr_t *addr = key;
-	return host_addr_hash(*addr);
-}
-
-static gboolean
-item_equal(gconstpointer p, gconstpointer q)
-{
-	const host_addr_t *a = p, *b = q;
-	return host_addr_equal(*a, *b);
-}
-
-
 /**
  * Initialize the banning system.
  */
 void
 ban_init(void)
 {
-	info = g_hash_table_new(item_hash, item_equal);
+	info = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
 	decay_coeff = (gfloat) MAX_REQUEST / MAX_PERIOD;
 	ipf_zone = zget(sizeof(struct addr_info), 0);
 

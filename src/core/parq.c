@@ -265,20 +265,6 @@ static gboolean parq_still_sharing(struct parq_ul_queued *);
 void parq_add_banned_source(const host_addr_t addr, time_t delay);
 void parq_del_banned_source(const host_addr_t addr);
 
-static guint
-item_hash(gconstpointer key)
-{
-	const host_addr_t *addr = key;
-	return host_addr_hash(*addr);
-}
-
-static gboolean
-item_equal(gconstpointer p, gconstpointer q)
-{
-	const host_addr_t *a = p, *b = q;
-	return host_addr_equal(*a, *b);
-}
-
 /***
  ***  Generic non PARQ specific functions
  ***/
@@ -462,11 +448,12 @@ parq_init(void)
 		"queue", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);
 
 	ul_all_parq_by_addr_and_name = g_hash_table_new(g_str_hash, g_str_equal);
-	ul_all_parq_by_addr = g_hash_table_new(item_hash, item_equal);
+	ul_all_parq_by_addr = g_hash_table_new(host_addr_hash_func,
+								host_addr_eq_func);
 	ul_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
 	dl_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
 
-	ht_banned_source = g_hash_table_new(item_hash, item_equal);
+	ht_banned_source = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
 
 	(void) parq_upload_new_queue();
 

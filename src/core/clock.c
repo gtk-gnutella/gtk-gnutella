@@ -145,27 +145,13 @@ val_reused(struct used_val *v, gint precision)
 	cq_resched(callout_queue, v->cq_ev, REUSE_DELAY * 1000);
 }
 
-static guint
-item_hash(gconstpointer key)
-{
-	const host_addr_t *addr = key;
-	return host_addr_hash(*addr);
-}
-
-static gboolean
-item_equal(gconstpointer p, gconstpointer q)
-{
-	const host_addr_t *a = p, *b = q;
-	return host_addr_equal(*a, *b);
-}
-
 /**
  * Called at startup time to initialize local structures.
  */
 void
 clock_init(void)
 {
-	used = g_hash_table_new(item_hash, item_equal);
+	used = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
 	datapoints = statx_make();
 }
 
