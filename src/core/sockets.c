@@ -1714,12 +1714,12 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 		inet_connection_succeeded(s->addr);
 
 		s->pos = 0;
-		memset(s->buffer, 0, sizeof(s->buffer));
+		memset(s->buffer, 0, sizeof s->buffer);
 
 		g_assert(s->gdk_tag == 0);
 
 		/*
-		 * Even though local_ip is persistent, we refresh it after startup,
+		 * Even though local_addr is persistent, we refresh it after startup,
 		 * in case the IP changed since last time.
 		 *		--RAM, 07/05/2002
 		 */
@@ -1818,7 +1818,7 @@ guess_local_addr(int fd)
 {
 	gboolean can_supersede;
 	socket_addr_t addr;
-	host_addr_t ha;
+	host_addr_t ha, local_ha;
 
 	if (0 != socket_addr_getsockname(&addr, fd))
 		return;
@@ -1832,15 +1832,15 @@ guess_local_addr(int fd)
 	 *		--RAM, 17/05/2002
 	 */
 
-	can_supersede = !is_private_addr(ha) ||
-		is_private_addr(string_to_host_addr(local_addr, NULL));
+	local_ha = string_to_host_addr(local_ip, NULL);
+	can_supersede = !is_private_addr(ha) || is_private_addr(local_ha);
 
 	if (!ip_computed) {
-		if (!local_addr || can_supersede)
-			gnet_prop_set_string(PROP_LOCAL_ADDR, host_addr_to_string(ha));
+		if (!is_host_addr(local_ha) || can_supersede)
+			gnet_prop_set_string(PROP_LOCAL_IP, host_addr_to_string(ha));
 		ip_computed = TRUE;
 	} else if (can_supersede) {
-		gnet_prop_set_string(PROP_LOCAL_ADDR, host_addr_to_string(ha));
+		gnet_prop_set_string(PROP_LOCAL_IP, host_addr_to_string(ha));
 	}
 }
 
@@ -1913,7 +1913,7 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 accepted:
 	bws_sock_accepted(SOCK_TYPE_HTTP);	/* Do not charge Gnet b/w for that */
 
-	if (!local_addr)
+	if (!local_ip)
 		guess_local_addr(sd);
 
 	/* Create a new struct socket for this incoming connection */
@@ -2183,13 +2183,12 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	 * Now we check if we're forcing a local IP, and make it happen if so.
 	 *   --JSL
 	 */
-	if (force_local_addr) {
+	if (force_local_ip) {
 		socket_addr_t local;
 		const struct sockaddr *sa;
 		socklen_t sa_len;
 
-		socket_addr_set(&local,
-			string_to_host_addr(forced_local_addr, NULL), 0);
+		socket_addr_set(&local, string_to_host_addr(forced_local_ip, NULL), 0);
 		sa_len = socket_addr_get(&local, &sa);
 
 		/*
