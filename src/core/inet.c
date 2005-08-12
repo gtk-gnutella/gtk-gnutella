@@ -198,7 +198,6 @@ static gboolean
 is_local_addr(const host_addr_t addr)
 {
 	static host_addr_t our_addr;
-	guint32 ip, our_ip;
 
 	if (!is_host_addr(our_addr)) {
 		/* This should not change */
@@ -207,14 +206,41 @@ is_local_addr(const host_addr_t addr)
 	if (!is_host_addr(our_addr))
 		our_addr = listen_addr();
 	if (!is_host_addr(our_addr))
-		our_addr = host_addr_set_ip4(0x7f000001);
+		our_addr = name_to_host_addr("localhost");
 
-	ip = host_addr_ip4(addr);
-	our_ip = host_addr_ip4(our_addr);
-	return
-		host_addr_equal(addr, listen_addr())	||			/* Ourselves */
-		(ip & 0xffffff00) == (our_ip & 0xffffff00)	||	/* Same LAN/24 */
-		(ip & 0xff000000) == 0x7f000000; 				/* Loopback 127.xxx */
+	if (host_addr_equal(addr, listen_addr()))	/* Ourselves */
+		return TRUE;
+
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IP4:
+		{
+			static host_addr_t loopback;
+
+			if (!is_host_addr(loopback))
+				loopback = string_to_host_addr("127.0.0.0", NULL);
+	
+			return	host_addr_matches(addr, loopback, 8) ||
+					host_addr_matches(addr, our_addr, 24); /* Same LAN/24 */
+		}
+	case NET_TYPE_IP6:
+#ifdef USE_IPV6
+		{
+			static host_addr_t link_local, site_local;
+			
+			if (!is_host_addr(link_local)) {
+				link_local = string_to_host_addr("3FA::", NULL);
+				site_local = string_to_host_addr("3FB::", NULL);
+			}
+			
+			return	host_addr_matches(addr, link_local, 64) ||
+					host_addr_matches(addr, site_local, 64);
+		}
+#endif /* USE_IPV6 */
+	case NET_TYPE_NONE:
+		return FALSE;
+	}
+	g_assert_not_reached();	
+	return FALSE;
 }
 
 /***
