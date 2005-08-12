@@ -704,14 +704,16 @@ pcache_init(void)
 	gint h;
 	gchar *lang = NULL;
 
-	memset(pong_cache, 0, sizeof(pong_cache));
-	memset(recent_pongs, 0, sizeof(recent_pongs));
+	memset(pong_cache, 0, sizeof pong_cache);
+	memset(recent_pongs, 0, sizeof recent_pongs);
 
 	/*
 	 * We limit UDP pings to 1 every UDP_PING_FREQ seconds.
 	 */
 
-	udp_pings = aging_make(UDP_PING_FREQ, NULL, NULL, NULL, NULL, NULL, NULL);
+	udp_pings = aging_make(UDP_PING_FREQ,
+			host_addr_hash_func, host_addr_eq_func, wfree_host_addr,
+			NULL, NULL, NULL);
 
 	/*
 	 * The `local_meta' structure collects our meta data that we may send
@@ -1678,8 +1680,6 @@ record_fresh_pong(
 static void
 pcache_udp_ping_received(struct gnutella_node *n)
 {
-	guint32 ip;
-
 	g_assert(NODE_IS_UDP(n));
 	
 	/*
@@ -1698,14 +1698,13 @@ pcache_udp_ping_received(struct gnutella_node *n)
 	 * Don't answer to too frequent pings from the same IP.
 	 */
 
-	ip = host_addr_ip4(n->addr); /* @todo TODO: IPv6 */
-	if (aging_lookup(udp_pings, GUINT_TO_POINTER(ip))) {
+	if (aging_lookup(udp_pings, &n->addr)) {
         gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
 		return;
 	}
 
-	/* @todo TODO: IPv6 */
-	aging_insert(udp_pings, GUINT_TO_POINTER(ip), GUINT_TO_POINTER(1));
+	aging_insert(udp_pings,
+		wcopy(&n->addr, sizeof n->addr), GUINT_TO_POINTER(1));
 	send_personal_info(n, FALSE, ping_type(n));
 }
 

@@ -100,6 +100,8 @@ static gboolean sendfile_failed = FALSE;
 
 static idtable_t *upload_handle_map = NULL;
 
+static const gchar no_reason[] = "<no reason>"; /* Don't translate this */
+
 
 #define upload_find_by_handle(n) \
     (gnutella_upload_t *) idtable_get_value(upload_handle_map, n)
@@ -265,7 +267,6 @@ upload_timer(time_t now)
 
 		if (delta_time(now, u->last_update) > IO_STALLED) {
 			gboolean skip = FALSE;
-			guint32 ip;
 
 			/*
 			 * Check whether we know about this IP.  If we do, then it
@@ -274,8 +275,7 @@ upload_timer(time_t now)
 			 * counter.
 			 */
 
-			ip = host_addr_ip4(u->addr); /* XXX */
-			if (aging_lookup(stalling_uploads, GUINT_TO_POINTER(ip)))
+			if (aging_lookup(stalling_uploads, &u->addr))
 				skip = TRUE;
 
 			if (!(u->flags & UPLOAD_F_STALLED)) {
@@ -297,16 +297,14 @@ upload_timer(time_t now)
 				 * that it's not the first time we're seeing it, if necessary.
 				 */
 
-				aging_insert(stalling_uploads, GUINT_TO_POINTER(ip),
+				aging_insert(stalling_uploads, wcopy(&u->addr, sizeof u->addr),
 					skip ? STALL_AGAIN : STALL_FIRST);
 			}
 		} else {
 			gboolean skip = FALSE;
 			gpointer stall;
-			guint32 ip;
 
-			ip = host_addr_ip4(u->addr); /* XXX */
-			stall = aging_lookup(stalling_uploads, GUINT_TO_POINTER(ip));
+			stall = aging_lookup(stalling_uploads, &u->addr);
 			if (stall == STALL_AGAIN)
 				skip = TRUE;
 
@@ -671,9 +669,7 @@ upload_free_resources(gnutella_upload_t *u)
 static gnutella_upload_t *
 upload_clone(gnutella_upload_t *u)
 {
-	gnutella_upload_t *cu = walloc(sizeof(gnutella_upload_t));
-
-	*cu = *u;		/* Struct copy */
+	gnutella_upload_t *cu = wcopy(u, sizeof *cu);
 
 	g_assert(u->io_opaque == NULL);		/* If cloned, we were transferrring! */
 
@@ -770,8 +766,8 @@ send_upload_error_v(
 	guint hevcnt = 0;
 	struct upload_http_cb cb_parq_arg, cb_sha1_arg;
 
-	if (msg) {
-		gm_vsnprintf(reason, sizeof(reason), msg, ap);
+	if (msg && no_reason != msg) {
+		gm_vsnprintf(reason, sizeof reason, msg, ap);
 	} else
 		reason[0] = '\0';
 
@@ -966,8 +962,8 @@ upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
 
 	g_assert(u != NULL);
 
-	if (reason) {
-		gm_vsnprintf(errbuf, sizeof(errbuf), reason, ap);
+	if (reason && no_reason != reason) {
+		gm_vsnprintf(errbuf, sizeof errbuf, reason, ap);
 		logreason = errbuf;
 	} else {
 		if (u->error_sent) {
@@ -1101,7 +1097,7 @@ upload_error_remove(
 {
 	va_list args, errargs;
 
-	g_assert(u != NULL);
+	g_assert(NULL != u);
 
 	va_start(args, msg);
 
@@ -1109,7 +1105,7 @@ upload_error_remove(
 	send_upload_error_v(u, sf, NULL, code, msg, errargs);
 	va_end(errargs);
 
-	upload_remove_v(u, msg ? _(msg) : NULL, args);
+	upload_remove_v(u, _(msg), args);
 	va_end(args);
 }
 
@@ -1127,7 +1123,7 @@ upload_error_remove_ext(
 {
 	va_list args, errargs;
 
-	g_assert(u != NULL);
+	g_assert(NULL != u);
 
 	va_start(args, msg);
 
@@ -1143,7 +1139,8 @@ upload_error_remove_ext(
 /**
  * Stop all uploads dealing with partial file `fi'.
  */
-void upload_stop_all(struct dl_file_info *fi, const gchar *reason)
+void
+upload_stop_all(struct dl_file_info *fi, const gchar *reason)
 {
 	GSList *sl, *to_stop = NULL;
 	gint count = 0;
@@ -3250,13 +3247,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * writing too much before detecting the stall.
 	 */
 
-	{
-		guint32 ip;
-		
-		ip = host_addr_ip4(u->addr); /* XXX */
-		known_for_stalling = NULL != aging_lookup(stalling_uploads,
-									GUINT_TO_POINTER(ip));
-	}
+	known_for_stalling = NULL != aging_lookup(stalling_uploads, &u->addr);
 
 	if (stalled <= STALL_THRESH && !known_for_stalling) {
 		sock_cork(s, TRUE);
@@ -3396,7 +3387,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		if (u->keep_alive)
 			upload_wait_new_request(u);
 		else
-			upload_remove(u, NULL);		/* No message, everything was OK */
+			upload_remove(u, no_reason);	/* No message, everything was OK */
 		return;
 	}
 
@@ -3454,7 +3445,7 @@ upload_completed(gnutella_upload_t *u)
 		running_uploads--;
 	}
 
-	upload_remove(u, NULL);
+	upload_remove(u, no_reason);
 }
 
 /**
@@ -3784,11 +3775,13 @@ upload_is_enabled(void)
 /**
  * Initialize uploads.
  */
-void upload_init(void)
+void
+upload_init(void)
 {
 	mesh_info = g_hash_table_new(mi_key_hash, mi_key_eq);
 	stalling_uploads = aging_make(STALL_CLEAR,
-							NULL, NULL, NULL, NULL, NULL, NULL);
+						host_addr_hash_func, host_addr_eq_func, wfree_host_addr,
+						NULL, NULL, NULL);
     upload_handle_map = idtable_new(32, 32);
 }
 

@@ -223,6 +223,8 @@ static gint pending_byes = 0;			/* Used when shutdowning servent */
 static gboolean in_shutdown = FALSE;
 static guint32 leaf_to_up_switch = NODE_AUTO_SWITCH_MIN;
 
+static const gchar no_reason[] = "<no reason>"; /* Don't translate this */
+
 static query_hashvec_t *query_hashvec = NULL;
 
 static void node_disable_read(struct gnutella_node *n);
@@ -1085,10 +1087,12 @@ node_init(void)
 	 */
 
 	tcp_crawls = aging_make(TCP_CRAWLER_FREQ,
-		NULL, NULL, NULL, NULL, NULL, NULL);
+		host_addr_hash_func, host_addr_eq_func, wfree_host_addr,
+		NULL, NULL, NULL);
 
 	udp_crawls = aging_make(UDP_CRAWLER_FREQ,
-		NULL, NULL, NULL, NULL, NULL, NULL);
+		host_addr_hash_func, host_addr_eq_func, wfree_host_addr,
+		NULL, NULL, NULL);
 }
 
 /**
@@ -1374,9 +1378,8 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 	g_assert(n->status != GTA_NODE_REMOVING);
 	g_assert(!NODE_IS_UDP(n));
 
-	if (reason) {
-		gm_vsnprintf(n->error_str, sizeof(n->error_str), reason, ap);
-		n->error_str[sizeof(n->error_str) - 1] = '\0';	/* May be truncated */
+	if (reason && no_reason != reason) {
+		gm_vsnprintf(n->error_str, sizeof n->error_str, reason, ap);
 		n->remove_msg = n->error_str;
 	} else if (n->status != GTA_NODE_SHUTDOWN)	/* Preserve shutdown error */
 		n->remove_msg = NULL;
@@ -1585,7 +1588,7 @@ node_remove_by_handle(gnet_node_t n)
 	else if (NODE_IS_WRITABLE(node))
         node_bye(node, 201, "User manual removal");
 	else {
-        node_remove(node, NULL);
+        node_remove(node, no_reason);
         node_real_remove(node);
     }
 }
@@ -2071,8 +2074,7 @@ node_shutdown_v(struct gnutella_node *n, const gchar *reason, va_list args)
 	n->flags |= NODE_F_CLOSING;
 
 	if (reason) {
-		gm_vsnprintf(n->error_str, sizeof(n->error_str), reason, args);
-		n->error_str[sizeof(n->error_str) - 1] = '\0';	/* May be truncated */
+		gm_vsnprintf(n->error_str, sizeof n->error_str, reason, args);
 		n->remove_msg = n->error_str;
 	} else {
 		n->remove_msg = "Unknown reason";
@@ -2124,8 +2126,7 @@ node_bye_v(struct gnutella_node *n, gint code, const gchar *reason, va_list ap)
 	n->flags |= NODE_F_CLOSING;
 
 	if (reason) {
-		gm_vsnprintf(n->error_str, sizeof(n->error_str), reason, ap);
-		n->error_str[sizeof(n->error_str) - 1] = '\0';	/* May be truncated */
+		gm_vsnprintf(n->error_str, sizeof n->error_str, reason, ap);
 		n->remove_msg = n->error_str;
 	} else {
 		n->remove_msg = NULL;
@@ -2146,20 +2147,20 @@ node_bye_v(struct gnutella_node *n, gint code, const gchar *reason, va_list ap)
 	 * Build the bye message.
 	 */
 
-	len = gm_snprintf(reason_base, sizeof(reason_fmt) - 3,
+	len = gm_snprintf(reason_base, sizeof reason_fmt - 3,
 		"%s", n->error_str);
 
 	/* XXX Add X-Try and X-Try-Ultrapeers */
 
 	if (code != 200) {
-		len += gm_snprintf(reason_base + len, sizeof(reason_fmt) - len - 3,
+		len += gm_snprintf(reason_base + len, sizeof reason_fmt - len - 3,
 			"\r\n"
 			"Server: %s\r\n"
 			"\r\n",
 			version_string);
 	}
 
-	g_assert(len <= sizeof(reason_fmt) - 3);
+	g_assert(len <= sizeof reason_fmt - 3);
 
 	reason_base[len] = '\0';
 	len += 2 + 1;		/* 2 for the leading code, 1 for the trailing NUL */
@@ -3538,13 +3539,13 @@ node_check_remote_ip_header(const host_addr_t peer, header_t *head)
 	 *		--RAM, 13/01/2002
 	 */
 
-	if (force_local_addr)
+	if (force_local_ip)
 		return;
 	
 	addr = extract_my_addr(head);
 	if (
 		!is_host_addr(addr) ||
-		host_addr_equal(addr, string_to_host_addr(local_addr, NULL))
+		host_addr_equal(addr, string_to_host_addr(local_ip, NULL))
 	)
 		return;
 	
@@ -4536,7 +4537,6 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "Crawler");
 	if (field) {
-		guint32 ip;
 		
 		n->flags |= NODE_F_CRAWLER;
         gnet_prop_set_guint32_val(PROP_CRAWLER_VISIT_COUNT,
@@ -4546,8 +4546,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		 * Make sure they're not crawling us too often.
 		 */
 
-		ip = host_addr_ip4(n->addr); /* @todo TODO: IPv6 */
-		if (aging_lookup(tcp_crawls, GUINT_TO_POINTER(ip))) {
+		if (aging_lookup(tcp_crawls, &n->addr)) {
 			static const gchar msg[] = N_("Too frequent crawling");
 
 			g_warning("rejecting TCP crawler request from %s", node_addr(n));
@@ -4557,8 +4556,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			return;
 		}
 
-		/* @todo TODO: IPv6 */
-		aging_insert(tcp_crawls, GUINT_TO_POINTER(ip), GUINT_TO_POINTER(1));
+		aging_insert(tcp_crawls,
+			wcopy(&n->addr, sizeof n->addr), GUINT_TO_POINTER(1));
 	}
 
 	/*
@@ -7984,7 +7983,6 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 	guchar *payload;					/* Start of constructed payload */
 	GString *agents = NULL;				/* The string holding user-agents */
 	time_t now;
-	guint32 ip;
 
 	g_assert(NODE_IS_UDP(n));
 	g_assert(ucnt >= 0 && ucnt <= 255);
@@ -7997,14 +7995,13 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 	 * Make sure they're not crawling us too often.
 	 */
 
-	ip = host_addr_ip4(n->addr);	/* @todo TODO: IPv6 */
-	if (aging_lookup(udp_crawls, GUINT_TO_POINTER(ip))) {
+	if (aging_lookup(udp_crawls, &n->addr)) {
 		g_warning("rejecting UDP crawler request from %s", node_addr(n));
 		return;
 	}
 
-	/* @todo TODO: IPv6 */
-	aging_insert(udp_crawls, GUINT_TO_POINTER(ip), GUINT_TO_POINTER(1));
+	aging_insert(udp_crawls,
+		wcopy(&n->addr, sizeof n->addr), GUINT_TO_POINTER(1));
 
 	/*
 	 * Build an array of candidate nodes.
