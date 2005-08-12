@@ -509,6 +509,10 @@ host_addr_matches(guint32 a, guint32 b, guint8 bits)
 	
 #endif /* IPV6 */
 
+guint host_addr_hash_func(gconstpointer key);
+gboolean host_addr_eq_func(gconstpointer p, gconstpointer q);
+void wfree_host_addr(gpointer key, gpointer unused_data);
+
 const gchar *host_addr_to_string(const host_addr_t addr);
 size_t host_addr_to_string_buf(const host_addr_t addr, gchar *, size_t);
 host_addr_t string_to_host_addr(const gchar *s, const gchar **endptr);

@@ -45,6 +45,7 @@ RCSID("$Id$");
 #include "misc.h"
 #include "glib-missing.h"
 #include "sha1.h"
+#include "walloc.h"
 #include "override.h"			/* Must be the last header included */
 
 #if !defined(HAS_SRANDOM) || !defined(HAS_RANDOM)
@@ -3059,6 +3060,27 @@ html_escape(const gchar *src, gchar *dst, size_t dst_size)
 	}
 
 	return d - dst; 
+}
+
+guint
+host_addr_hash_func(gconstpointer key)
+{
+	const host_addr_t *addr = key;
+	return host_addr_hash(*addr);
+}
+
+gboolean
+host_addr_eq_func(gconstpointer p, gconstpointer q)
+{
+	const host_addr_t *a = p, *b = q;
+	return host_addr_equal(*a, *b);
+}
+
+void
+wfree_host_addr(gpointer key, gpointer unused_data)
+{
+	(void) unused_data;
+	wfree(key, sizeof (host_addr_t));
 }
 
 #ifdef USE_IPV6
