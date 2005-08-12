@@ -103,6 +103,7 @@ static const gchar DL_OK_EXT[] = ".OK";		/**< Extension to mark OK files */
 static const gchar DL_BAD_EXT[] = ".BAD"; 	/**< "Bad" files (SHA1 mismatch) */
 static const gchar DL_UNKN_EXT[] = ".UNKN";		/**< For unchecked files */
 static const gchar file_what[] = "downloads"; /**< What is persisted to file */
+static const gchar no_reason[] = "<no reason>"; /* Don't translate this */
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
 static gboolean send_push_request(const gchar *, guint32, guint16);
@@ -1216,7 +1217,7 @@ download_remove_file(struct download *d, gboolean reset)
 		}
 
 		if (DOWNLOAD_IS_RUNNING(dl)) {
-			download_stop(dl, GTA_DL_TIMEOUT_WAIT, NULL);
+			download_stop(dl, GTA_DL_TIMEOUT_WAIT, no_reason);
 			download_queue(dl, "Requeued due to file removal");
 		}
 	}
@@ -1266,7 +1267,7 @@ download_info_change_all(
 		}
 
 		if (is_running)
-			download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
+			download_stop(d, GTA_DL_TIMEOUT_WAIT, no_reason);
 
 		switch (d->status) {
 		case GTA_DL_COMPLETED:
@@ -2029,7 +2030,7 @@ download_stop_v(struct download *d, guint32 new_status,
 		break;
 	}
 
-	if (reason) {
+	if (reason && no_reason != reason) {
 		gm_vsnprintf(d->error_str, sizeof(d->error_str), reason, ap);
 		d->remove_msg = d->error_str;
 	} else
@@ -2161,7 +2162,7 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	 */
 
 	if (fmt) {
-		gm_vsnprintf(d->error_str, sizeof(d->error_str), fmt, ap);
+		gm_vsnprintf(d->error_str, sizeof d->error_str, fmt, ap);
 		/* d->remove_msg updated below */
 	}
 
@@ -2169,7 +2170,7 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 		gcu_download_gui_remove(d);
 
 	if (DOWNLOAD_IS_RUNNING(d))
-		download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
+		download_stop(d, GTA_DL_TIMEOUT_WAIT, no_reason);
 	else
 		file_info_clear_download(d, TRUE);	/* Also done by download_stop() */
 
@@ -3706,7 +3707,7 @@ download_remove(struct download *d)
 	 */
 
 	if (DOWNLOAD_IS_RUNNING(d))
-		download_stop(d, GTA_DL_ABORTED, NULL);
+		download_stop(d, GTA_DL_ABORTED, no_reason);
 	else if (DOWNLOAD_IS_STOPPED(d))
 		/* nothing, lifecount already decremented */;
 	else {
@@ -3788,7 +3789,7 @@ download_forget(struct download *d, gboolean unavailable)
 	if (unavailable)
 		download_unavailable(d, GTA_DL_ABORTED, NULL);
 	else
-		download_stop(d, GTA_DL_ABORTED, NULL);
+		download_stop(d, GTA_DL_ABORTED, no_reason);
 }
 
 /**
@@ -4504,7 +4505,7 @@ partial_done:
 	 */
 
 	cd = download_clone(d);
-	download_stop(d, GTA_DL_COMPLETED, NULL);
+	download_stop(d, GTA_DL_COMPLETED, no_reason);
 
 	/*
 	 * If we had to trim the data requested, it means the server did not
@@ -4532,7 +4533,7 @@ partial_done:
 	 */
 
 done:
-	download_stop(d, GTA_DL_COMPLETED, NULL);
+	download_stop(d, GTA_DL_COMPLETED, no_reason);
 	download_verify_sha1(d);
 
 	gnet_prop_set_guint32_val(PROP_TOTAL_DOWNLOADS, total_downloads + 1);
@@ -7139,8 +7140,7 @@ download_retry(struct download *d)
 		d->timeout_delay *= 2;
 		if (d->start_date) {
 			/* We forgive a little while the download is working */
-			d->timeout_delay -=
-				(time((time_t *) NULL) - d->start_date) / 10;
+			d->timeout_delay -= delta_time(time(NULL), d->start_date) / 10;
 		}
 	}
 
@@ -7149,7 +7149,7 @@ download_retry(struct download *d)
 	if (d->timeout_delay > download_retry_timeout_max)
 		d->timeout_delay = download_retry_timeout_max;
 
-	download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
+	download_stop(d, GTA_DL_TIMEOUT_WAIT, no_reason);
 }
 
 /**
@@ -7929,7 +7929,7 @@ download_resume_bg_tasks(void)
 			download_unqueue(d);
 
 		if (!DOWNLOAD_IS_STOPPED(d))
-			download_stop(d, GTA_DL_COMPLETED, NULL);
+			download_stop(d, GTA_DL_COMPLETED, no_reason);
 
 		/*
 		 * If we don't have the computed SHA1 yet, queue it for SHA1
