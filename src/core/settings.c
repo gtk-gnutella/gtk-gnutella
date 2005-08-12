@@ -104,7 +104,7 @@ static void update_uptimes(void);
 host_addr_t
 listen_addr(void)
 {
-	const gchar *s = force_local_addr ? forced_local_addr : local_addr;
+	const gchar *s = force_local_ip ? forced_local_ip : local_ip;
 	return string_to_host_addr(s, NULL);
 }
 
@@ -425,15 +425,13 @@ settings_remove_pidfile(void)
  *		--cbiere, 2004-08-01
  */
 void
-settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer_addr)
+settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer)
 {
-	static const guint32 mask = 0xffff0000; /* CIDR /16 */
 	static guint same_addr_count = 0;
 	static host_addr_t peers[3], last_addr_seen;
-	host_addr_t peer = peer_addr; 
 	guint i;
 
-	g_assert(!force_local_addr);	  /* Must be called when IP isn't forced */
+	g_assert(!force_local_ip);	  /* Must be called when IP isn't forced */
 	g_assert(is_host_addr(new_addr)); /* The new IP must be valid */
 
 	if (!addr_is_valid(new_addr) || !addr_is_valid(peer))
@@ -453,15 +451,14 @@ settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer_addr)
 	if (
 		is_private_addr(new_addr) &&
 		is_private_addr(peer) &&
-		(host_addr_ip4(peer) & mask) != (host_addr_ip4(new_addr) & mask)
+		!host_addr_matches(peer, new_addr, 16) /* CIDR /16 */
 	) {
 		return;
 	}
 
-	/* One vote per /16 network; host byte order! */
-	peer = host_addr_set_ip4(host_addr_ip4(peer) & mask);
+	/* FIXME: Correct this for IPv6 */
 	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
-		if (host_addr_equal(peer, peers[i]))
+		if (host_addr_matches(peer, new_addr, 16)) /* CIDR /16 */
 			return;
 	}
 
@@ -480,12 +477,13 @@ settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer_addr)
 
 	last_addr_seen = zero_host_addr;
 	same_addr_count = 0;
-	memset(peers, 0, sizeof peers);
+	for (i = 0; i < G_N_ELEMENTS(peers); i++)
+		peers[0] = zero_host_addr;
 
-	if (host_addr_equal(new_addr, string_to_host_addr(local_addr, NULL)))
+	if (host_addr_equal(new_addr, string_to_host_addr(local_ip, NULL)))
 		return;
 
-    gnet_prop_set_string(PROP_LOCAL_ADDR, host_addr_to_string(new_addr));
+    gnet_prop_set_string(PROP_LOCAL_IP, host_addr_to_string(new_addr));
 }
 
 /**
@@ -665,25 +663,24 @@ get_average_ip_lifetime(time_t now)
 static void
 update_address_lifetime(void)
 {
-	static guint32 old_ip = 0;
-	gboolean force_local_ip;
-	guint32 current_ip;
+	static host_addr_t old_addr;
 	guint64 current_ip_stamp;
+	host_addr_t addr;
 
-	gnet_prop_get_boolean_val(PROP_FORCE_LOCAL_IP, &force_local_ip);
-	if (force_local_ip)
-		gnet_prop_get_guint32_val(PROP_FORCED_LOCAL_IP, &current_ip);
-	else
-		gnet_prop_get_guint32_val(PROP_LOCAL_IP, &current_ip);
+	{
+		const gchar *val;
+		val = force_local_ip ? forced_local_ip : local_ip;
+		addr = string_to_host_addr(val, NULL);
+	}
 
-	if (0 == old_ip) {				/* First time */
-		old_ip = current_ip;
+	if (!is_host_addr(old_addr)) {				/* First time */
+		old_addr = addr;
 		gnet_prop_get_guint64_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
 		if (0 == current_ip_stamp)
 			gnet_prop_set_guint64_val(PROP_CURRENT_IP_STAMP, time(NULL));
 	}
 
-	if (old_ip != current_ip) {
+	if (!host_addr_equal(old_addr, addr)) {
 		time_t now;
 
 		/*
@@ -691,7 +688,7 @@ update_address_lifetime(void)
 		 */
 
 		now = time(NULL);
-		old_ip = current_ip;
+		old_addr = addr;
 
 		gnet_prop_get_guint64_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
 
@@ -1289,7 +1286,7 @@ lib_debug_changed(property_t unused_prop)
 }
 
 static gboolean
-force_local_ip_changed(property_t prop)
+force_local_addr_changed(property_t prop)
 {
 	g_assert(PROP_FORCE_LOCAL_IP == prop);
 	update_address_lifetime();
@@ -1297,7 +1294,7 @@ force_local_ip_changed(property_t prop)
 }
 
 static gboolean
-local_ip_changed(property_t prop)
+local_addr_changed(property_t prop)
 {
 	g_assert(PROP_LOCAL_IP == prop);
 	update_address_lifetime();
@@ -1644,12 +1641,12 @@ static prop_map_t property_map[] = {
     },
 	{
 		PROP_FORCE_LOCAL_IP,
-		force_local_ip_changed,
+		force_local_addr_changed,
 		TRUE,
 	},
 	{
 		PROP_LOCAL_IP,
-		local_ip_changed,
+		local_addr_changed,
 		TRUE,
 	},
 	{

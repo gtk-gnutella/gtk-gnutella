@@ -1858,38 +1858,44 @@ show_dl_settings_changed(property_t prop)
 static gboolean
 update_address_information(void)
 {
-    static guint32 old_address = 0;
+    static host_addr_t old_address;
     static guint16 old_port = 0;
-    gboolean force_local_ip;
+    gboolean force_local_addr;
+	host_addr_t current_addr;
     guint32 listen_port;
-    guint32 current_ip;
 
-    gnet_prop_get_boolean_val(PROP_FORCE_LOCAL_IP, &force_local_ip);
+    gnet_prop_get_boolean_val(PROP_FORCE_LOCAL_IP, &force_local_addr);
     gnet_prop_get_guint32_val(PROP_LISTEN_PORT, &listen_port);
 
-    if (force_local_ip)
-        gnet_prop_get_guint32_val
-			(PROP_FORCED_LOCAL_IP, &current_ip);
-    else
-        gnet_prop_get_guint32_val
-			(PROP_LOCAL_IP, &current_ip);
+	{
+		gchar *val;
+		
+    	val = gnet_prop_get_string(
+				force_local_addr ? PROP_FORCED_LOCAL_IP : PROP_LOCAL_IP,
+				NULL, 0);
 
-    if (old_address != current_ip || old_port != listen_port) {
-		const gchar *iport = ip_port_to_string(current_ip, listen_port);
+		current_addr = string_to_host_addr(val, NULL);
+		G_FREE_NULL(val);
+	}
 
-        old_address = current_ip;
+    if (
+		!host_addr_equal(old_address, current_addr) ||
+		old_port != listen_port
+	) {
+		const gchar *s = host_addr_port_to_string(current_addr, listen_port);
+
+        old_address = current_addr;
         old_port = listen_port;
-        statusbar_gui_message(15, _("Address/port changed to: %s"), iport);
+        statusbar_gui_message(15, _("Address/port changed to: %s"), s);
         gtk_label_set_text(
-            GTK_LABEL(lookup_widget(dlg_prefs, "label_current_port")) ,
-            iport);
+            GTK_LABEL(lookup_widget(dlg_prefs, "label_current_port")), s);
 
 #ifdef USE_GTK2
         gtk_label_set_text(
-			GTK_LABEL(lookup_widget(main_window, "label_nodes_ip")), iport);
+			GTK_LABEL(lookup_widget(main_window, "label_nodes_ip")), s);
 #else
         gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_nodes_ip")), iport);
+			GTK_ENTRY(lookup_widget(main_window, "entry_nodes_ip")), s);
 #endif
     }
 
@@ -1988,7 +1994,7 @@ spinbutton_output_bw_changed(property_t prop)
 }
 
 static gboolean
-force_local_ip_changed(property_t prop)
+force_local_addr_changed(property_t prop)
 {
     update_togglebutton(prop);
     update_address_information();
@@ -3673,7 +3679,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_FORCE_LOCAL_IP,
-        force_local_ip_changed,
+        force_local_addr_changed,
         TRUE,
         "checkbutton_config_force_ip",
         FREQ_UPDATES, 0
