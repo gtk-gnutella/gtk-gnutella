@@ -228,8 +228,8 @@ is_local_addr(const host_addr_t addr)
 			static host_addr_t link_local, site_local;
 			
 			if (!is_host_addr(link_local)) {
-				link_local = string_to_host_addr("3FA::", NULL);
-				site_local = string_to_host_addr("3FB::", NULL);
+				link_local = string_to_host_addr("FE80::", NULL);
+				site_local = string_to_host_addr("FEC0::", NULL);
 			}
 			
 			return	host_addr_matches(addr, link_local, 64) ||
