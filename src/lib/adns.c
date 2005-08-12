@@ -387,7 +387,7 @@ adns_invoke_user_callback(adns_query_t *reply)
 		adns_callback_t func;
 
 		func = (adns_callback_t) reply->user_callback;
-		func(&reply->addr, reply->user_data);
+		func(is_host_addr(reply->addr) ? &reply->addr : NULL, reply->user_data);
 	}
 }
 
