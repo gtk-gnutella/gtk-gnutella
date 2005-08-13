@@ -43,10 +43,12 @@ OBJ = main.o
 ++XML2_CFLAGS $xmlcflags
 ++XML2_LDFLAGS $xmlldflags
 
-/* Add the dbus linker flags */
+/* Add the dbus flags */
+++DBUS_CFLAGS $dbuscflags
 ++DBUS_LDFLAGS $dbusldflags
 
-/* Add the gnutls linker flags */
+/* Add the GNU TLS flags */
+++GNUTLS_CFLAGS $gnutlscflags
 ++GNUTLS_LDFLAGS $gnutlsldflags
 
 /*
@@ -61,7 +63,13 @@ EXTRA = \
 	if/gnet_property.o \
 	if/gui_property.o
 
-CFLAGS = -I.. -I. $(GTK_CFLAGS) $(XLM2_CFLAGS) -DCURDIR=$(CURRENT)
+CFLAGS = -I.. -I. \
+	$(GTK_CFLAGS) \
+	$(XML2_CFLAGS) \
+	$(DBUS_CFLAGS) \
+	$(GNUTLS_CFLAGS) \
+	-DCURDIR=$(CURRENT)
+
 DPFLAGS = $(CFLAGS)
 LDFLAGS = \
 	-Lcore -lcore \
