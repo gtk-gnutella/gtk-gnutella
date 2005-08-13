@@ -7199,7 +7199,7 @@ static void
 download_store(void)
 {
 	FILE *out;
-	GSList *l;
+	const GSList *l;
 	file_path_t fp;
 
 	if (retrieving)
@@ -7224,7 +7224,7 @@ download_store(void)
 			"RECLINES=4\n\n", out);
 
 	for (l = sl_downloads; l; l = g_slist_next(l)) {
-		struct download *d = (struct download *) l->data;
+		struct download *d = l->data;
 		const gchar *id, *guid, *hostname;
 
 		g_assert(d != NULL);
