@@ -230,25 +230,10 @@ socket_register_fd_reclaimer(reclaim_fd_t callback)
 	reclaim_fd = callback;
 }
 
-struct sockreq {
-	gint8 version;
-	gint8 command;
-	gint16 dstport;
-	gint32 dstip;
-	/* A null terminated username goes here */
-} __attribute__((__packed__));
-
-struct sockrep {
-	gint8 version;
-	gint8 result;
-	gint16 ignore1;
-	gint32 ignore2;
-} __attribute__((__packed__));
-
 
 static gboolean ip_computed = FALSE;
 
-static GSList *sl_incoming = (GSList *) NULL;	/* To spot inactive sockets */
+static GSList *sl_incoming = NULL;	/* To spot inactive sockets */
 
 static void guess_local_addr(int sd);
 static void socket_destroy(struct gnutella_socket *s, const gchar *reason);
@@ -420,10 +405,12 @@ proxy_connect_helper(const host_addr_t *addr, gpointer udata)
 	gboolean *in_progress = udata;
 	const gchar *s;
 
+	g_assert(NULL != in_progress);
+	*in_progress = FALSE;
+	
 	if (!addr) {
 		g_message("Could not resolve proxy name \"%s\"", proxy_hostname);
 	} else {
-		*in_progress = FALSE;
 		s = host_addr_to_string(*addr);
 		gnet_prop_set_string(PROP_PROXY_ADDR, s);
 		g_message("Resolved proxy name \"%s\" to %s", proxy_hostname, s);
@@ -470,41 +457,65 @@ proxy_connect(int fd)
 }
 
 static gint
-send_socks(struct gnutella_socket *s)
+send_socks4(struct gnutella_socket *s)
 {
-	struct passwd *user;
-	struct sockreq *thisreq;
-	const gchar *name;
-	size_t name_size, length = 0;
+	size_t length;
 	ssize_t ret;
-	gchar *realreq;
+	host_addr_t addr;
+
+	/* SOCKS4 is IPv4 only */
+	if (!host_addr_convert(&s->addr, &addr, NET_TYPE_IP4))
+		return -1;
+	
+	/* Create the request */
+	{
+		struct {
+			guint8 version;
+			guint8 command;
+			guint8 dstport[2];
+			guint8 dstip[4];
+			/* A null terminated username goes here */
+		} *req;
+
+		STATIC_ASSERT(8 == sizeof *req);
+
+		req = cast_to_gpointer(s->buffer);
+		req->version = 4;	/* SOCKS 4 */
+		req->command = 1;	/* Connect */
+		poke_be16(req->dstport, s->port);
+		poke_be32(req->dstip, host_addr_ip4(addr));
+		length = sizeof *req;
+	}
 
 	/* XXX: Shouldn't this use the configured username instead? */
 	/* Determine the current username */
-	user = getpwuid(getuid());
-	name = user != NULL ? user->pw_name : "";
-	name_size = strlen(name) + 1;
+	{
+		const struct passwd *user;
+		const gchar *name;
+		size_t name_size;
 
-	/* Allocate enough space for the request and the null */
-	/* terminated username */
-	length = sizeof(struct sockreq) + name_size;
-	realreq = g_malloc(length);
-	if (!realreq)
-		return -1;
+		user = getpwuid(getuid());
+		name = user != NULL ? user->pw_name : "";
+		name_size = 1 + strlen(name);
 
-	/* Copy the username */
-	strncpy(&realreq[sizeof(struct sockreq)], name, name_size);
+		/* Make sure the request fits into the socket buffer */
+		if (
+			name_size >= sizeof s->buffer ||
+			length + name_size > sizeof s->buffer
+		) {
+			/* Such a long username would be insane, no need to malloc(). */
+			g_warning("send_socks4(): Username is too long");
+			return -1;
+		}
 
-	/* Create the request */
-	thisreq = (struct sockreq *) realreq;
-	thisreq->version = 4;
-	thisreq->command = 1;
-	thisreq->dstport = htons(s->port);
-	thisreq->dstip = htonl(host_addr_ip4(s->addr));
+		/* Copy the username */
+		memcpy(&s->buffer[length], name, name_size);
+		length += name_size;
+	}
 
 	/* Send the socks header info */
-	ret = write(s->file_desc, realreq, length);
-	G_FREE_NULL(realreq);
+	ret = write(s->file_desc, s->buffer, length);
+
 	if ((size_t) ret != length) {
 		g_warning("Error attempting to send SOCKS request (%s)",
 			ret == (ssize_t) -1 ? strerror(errno) : "Partial write");
@@ -515,14 +526,21 @@ send_socks(struct gnutella_socket *s)
 }
 
 static gint
-recv_socks(struct gnutella_socket *s)
+recv_socks4(struct gnutella_socket *s)
 {
+	struct {
+		guint8 version;
+		guint8 result;
+		guint8 ignore1[2];
+		guint8 ignore2[4];
+	} reply;
+	static const size_t size = sizeof reply;
 	ssize_t ret;
-	struct sockrep thisrep;
-	size_t size = sizeof thisrep;
 
-	ret = read(s->file_desc, (void *) &thisrep, size);
-	if (ret == (ssize_t) -1) {
+	STATIC_ASSERT(8 == sizeof reply);
+	
+	ret = read(s->file_desc, cast_to_gpointer(&reply), size);
+	if ((ssize_t) -1 == ret) {
 		g_warning("Error attempting to receive SOCKS reply (%s)",
 			g_strerror(errno));
 		return ECONNREFUSED;
@@ -534,21 +552,28 @@ recv_socks(struct gnutella_socket *s)
 	}
 
 	ret = (ssize_t) -1;
-	if (thisrep.result == 91) {
+	switch (reply.result) {
+	case 91:
 		g_warning("SOCKS server refused connection");
-	} else if (thisrep.result == 92) {
+		break;
+
+	case 92:
 		g_warning("SOCKS server refused connection "
 				   "because of failed connect to identd "
 				   "on this machine");
-	} else if (thisrep.result == 93) {
+		break;
+		
+	case 93:
 		g_warning("SOCKS server refused connection "
 				   "because identd and this library "
 				   "reported different user-ids");
-	} else {
+		break;
+		
+	default:
 		ret = 0;
 	}
 
-	if (ret != 0) {
+	if (0 != ret) {
 		errno = ECONNREFUSED;
 		return -1;
 	}
@@ -692,9 +717,32 @@ connect_socksv5(struct gnutella_socket *s)
 	static const gchar verstring[] = "\x05\x02\x02";
 	const gchar *name;
 	gint sockid;
+	host_addr_t addr;
 
 	sockid = s->file_desc;
 
+	if (!host_addr_convert(&s->addr, &addr, NET_TYPE_IP4))
+		addr = s->addr;
+
+	{
+		gboolean ok = FALSE;
+		
+		switch (host_addr_net(addr)) {
+		case NET_TYPE_IP4:
+			ok = TRUE;
+			break;
+#ifdef USE_IPV6
+		case NET_TYPE_IP6:
+			ok = TRUE;
+			break;
+#endif /* USE_IPV6 */
+		case NET_TYPE_NONE:
+			break;
+		}
+		if (!ok)
+			return ECONNREFUSED;
+	}
+		
 	switch (s->pos) {
 	case 0:
 		/* Now send the method negotiation */
@@ -804,16 +852,35 @@ connect_socksv5(struct gnutella_socket *s)
 		break;
 	case 4:
 		/* Now send the connect */
-		s->buffer[0] = '\x05';		/* Version 5 SOCKS */
-		s->buffer[1] = '\x01';		/* Connect request */
-		s->buffer[2] = '\x00';		/* Reserved		*/
-		s->buffer[3] = '\x01';		/* IP version 4	*/
-		poke_be32(&s->buffer[4], host_addr_ip4(s->addr));
-		poke_be16(&s->buffer[8], s->port);
+		s->buffer[0] = 0x05;		/* Version 5 SOCKS */
+		s->buffer[1] = 0x01;		/* Connect request */
+		s->buffer[2] = 0x00;		/* Reserved		*/
+
+		size = 0;
+		switch (host_addr_net(addr)) {
+		case NET_TYPE_IP4:
+			s->buffer[3] = 0x01;		/* IP version 4	*/
+			poke_be32(&s->buffer[4], host_addr_ip4(addr));
+			poke_be16(&s->buffer[8], s->port);
+			size = 10;
+			break;
+
+		case NET_TYPE_IP6:
+#ifdef USE_IPV6		
+			s->buffer[3] = 0x04;		/* IP version 6	*/
+			memcpy(&s->buffer[4], host_addr_ip6(&addr), 16);
+			poke_be16(&s->buffer[20], s->port);
+			size = 22;
+			break;
+#endif /* USE_IPV6 */
+		case NET_TYPE_NONE:
+			g_assert_not_reached();
+		}
+
+		g_assert(0 != size);
 
 		/* Now send the connection */
 
-		size = 10;
 		ret = write(sockid, s->buffer, size);
 		if ((size_t) ret != size) {
 			g_warning("Send SOCKS connect command failed: %s",
@@ -828,7 +895,7 @@ connect_socksv5(struct gnutella_socket *s)
 
 		size = 10;
 		ret = read(sockid, s->buffer, size);
-		if (ret == (ssize_t) -1) {
+		if ((ssize_t) -1 == ret) {
 			g_warning("Receiving SOCKS connection reply failed: %s",
 				g_strerror(errno));
 			return ECONNREFUSED;
@@ -1235,7 +1302,8 @@ socket_tls_setup(struct gnutella_socket *s)
 			goto destroy;
 		}
 		s->tls.stage = SOCK_TLS_ESTABLISHED;
-		g_message("TLS handshake succeeded");
+		if (tls_debug)
+			g_message("TLS handshake succeeded");
 		socket_wio_link(s); /* Link to the TLS I/O functions */
 	}
 
@@ -1297,7 +1365,8 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			g_assert(ret > 0 && (size_t) ret <= sizeof buf);
 			buf[ret - 1] = '\0';
 
-			g_message("buf=\"%s\"", buf);
+			if (tls_debug)
+				g_message("socket_read(): buf=\"%s\"", buf);
 
 			/* Check whether the buffer contents match a known clear
 			 * text handshake. */
@@ -1598,7 +1667,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 			s->gdk_tag = 0;
 
 			if (proxy_protocol == PROXY_SOCKSV4) {
-				if (recv_socks(s) != 0) {
+				if (recv_socks4(s) != 0) {
 					socket_destroy(s, "Error receiving from SOCKS 4 proxy");
 					return;
 				}
@@ -1688,7 +1757,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 			&& s->direction == SOCK_CONN_PROXY_OUTGOING) {
 			if (proxy_protocol == PROXY_SOCKSV4) {
 
-				if (send_socks(s) != 0) {
+				if (send_socks4(s) != 0) {
 					socket_destroy(s, "Error sending to SOCKS 4 proxy");
 					return;
 				}
@@ -1937,7 +2006,8 @@ accepted:
 	t->tls.session = NULL;
 	t->tls.snarf = 0;
 
-	g_message("Incoming connection");
+	if (tls_debug)
+		g_message("Incoming connection");
 #endif /* USE_TLS */
 
 	socket_wio_link(t);
@@ -2822,7 +2892,8 @@ socket_tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 			break;
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
-			g_message("%s: errno=\"%s\"", __func__, g_strerror(errno));
+			if (tls_debug)
+				g_message("%s: errno=\"%s\"", __func__, g_strerror(errno));
 			errno = EIO;
 			ret = -1;
 			break;
@@ -2864,7 +2935,8 @@ socket_tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 			break;
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
-			g_message("%s: errno=\"%s\"", __func__, g_strerror(errno));
+			if (tls_debug)
+				g_message("%s: errno=\"%s\"", __func__, g_strerror(errno));
 			errno = EIO;
 			break;
 		default:
@@ -2907,7 +2979,8 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 				break;
 			case GNUTLS_E_PULL_ERROR:
 			case GNUTLS_E_PUSH_ERROR:
-				g_message("%s: errno=\"%s\"", __func__, g_strerror(errno));
+				if (tls_debug)
+					g_message("%s: errno=\"%s\"", __func__, g_strerror(errno));
 				errno = EIO;
 				break;
 			default:
@@ -2940,7 +3013,8 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 				break;
 			case GNUTLS_E_PULL_ERROR:
 			case GNUTLS_E_PUSH_ERROR:
-				g_message("%s: errno=\"%s\"", __func__, g_strerror(errno));
+				if (tls_debug)
+					g_message("%s: errno=\"%s\"", __func__, g_strerror(errno));
 				ret = -1;
 				break;
 			default:
@@ -3003,7 +3077,8 @@ socket_tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 			break;
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
-			g_message("%s: errno=\"%s\"", __func__, g_strerror(errno));
+			if (tls_debug)
+				g_message("%s: errno=\"%s\"", __func__, g_strerror(errno));
 			errno = EIO;
 			ret = -1;
 			break;
