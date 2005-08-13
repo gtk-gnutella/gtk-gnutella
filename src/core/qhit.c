@@ -458,11 +458,11 @@ flush_match(void)
 			g_warning("could not write GGEP \"BH\" extension into query hit");
 	}
 
-#ifdef USE_TLS	
+#ifdef HAS_GNUTLS	
 	if (!ggep_stream_pack(&gs, "GTKG_TLS", NULL, 0, 0))
 			g_warning("could not write GGEP \"GTKG_TLS\" extension "
 				"into query hit");
-#endif /* USE_TLS */
+#endif /* HAS_GNUTLS */
 
 	ggep_len = ggep_stream_close(&gs);
 	found_close(ggep_len);

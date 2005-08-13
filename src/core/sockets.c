@@ -73,9 +73,9 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 #define TLS_DH_BITS 768
-#endif /* USE_TLS */
+#endif /* HAS_GNUTLS */
 
 #ifndef SHUT_WR
 /* XXX: This should be handled by Configure because SHUT_* are sometimes
@@ -1153,7 +1153,7 @@ socket_free(struct gnutella_socket *s)
 		s->getline = NULL;
 	}
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 	if (s->tls.stage > SOCK_TLS_NONE) {
 		if (s->file_desc != -1) {
 			gnutls_bye(s->tls.session, s->direction == SOCK_CONN_INCOMING
@@ -1162,7 +1162,7 @@ socket_free(struct gnutella_socket *s)
 		gnutls_deinit(s->tls.session);
 		s->tls.stage = SOCK_TLS_NONE;
 	}
-#endif /* USE_TLS */
+#endif /* HAS_GNUTLS */
 
 	if (s->file_desc != -1) {
 		if (s->corked)
@@ -1182,7 +1182,7 @@ socket_free(struct gnutella_socket *s)
 	wfree(s, sizeof *s);
 }
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 static gnutls_dh_params
 get_dh_params(void)
 {
@@ -1314,7 +1314,7 @@ destroy:
 	socket_destroy(s, "TLS handshake failed");
 	return 0;
 }
-#endif /* USE_TLS */
+#endif /* HAS_GNUTLS */
 
 /**
  * Used for incoming connections, for outgoing too??
@@ -1342,7 +1342,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 
 	g_assert(s->pos == 0);		/* We read a line, then leave this callback */
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 	if (s->tls.enabled && s->direction == SOCK_CONN_INCOMING) {
 		ssize_t ret;
 		size_t i;
@@ -1390,7 +1390,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		if (s->tls.enabled && !socket_tls_setup(s))
 			return;
 	}
-#endif /* USE_TLS */
+#endif /* HAS_GNUTLS */
 
 	g_assert(sizeof(s->buffer) >= s->pos);
 	count = sizeof(s->buffer) - s->pos;
@@ -1652,11 +1652,11 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 	s->flags |= SOCK_F_ESTABLISHED;
 	bws_sock_connected(s->type);
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 	if (!socket_tls_setup(s)) {
 		return;
 	}
-#endif /* USE_TLS */
+#endif /* HAS_GNUTLS */
 
 	if (cond & INPUT_EVENT_READ) {
 		if (
@@ -2000,7 +2000,7 @@ accepted:
 	t->getline = getline_make(MAX_LINE_SIZE);
 	t->flags |= SOCK_F_TCP;
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 	t->tls.enabled = s->tls.enabled; /* Inherit from listening socket */
 	t->tls.stage = SOCK_TLS_NONE;
 	t->tls.session = NULL;
@@ -2008,7 +2008,7 @@ accepted:
 
 	if (tls_debug)
 		g_message("Incoming connection");
-#endif /* USE_TLS */
+#endif /* HAS_GNUTLS */
 
 	socket_wio_link(t);
 
@@ -2203,12 +2203,12 @@ created:
 	s->port = port;
 	s->flags |= SOCK_F_TCP;
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 	s->tls.enabled = tls_enforce;
 	s->tls.stage = SOCK_TLS_NONE;
 	s->tls.session = NULL;
 	s->tls.snarf = 0;
-#endif /* USE_TLS */
+#endif /* HAS_GNUTLS */
 
 	socket_wio_link(s);
 
@@ -2486,9 +2486,9 @@ socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
 		s->local_port = socket_addr_get_port(&addr);
 	}
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 	s->tls.enabled = TRUE;
-#endif /* USE_TLS */
+#endif /* HAS_GNUTLS */
 
 	s->gdk_tag = inputevt_add(sd, INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 					  socket_accept, s);
@@ -2740,7 +2740,7 @@ socket_plain_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 	g_assert(!SOCKET_USES_TLS(s));
 #endif
 
@@ -2752,7 +2752,7 @@ socket_plain_read(struct wrap_io *wio, gpointer buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 	g_assert(!SOCKET_USES_TLS(s));
 #endif
 
@@ -2764,7 +2764,7 @@ socket_plain_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 {
 	struct gnutella_socket *s = wio->ctx;
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 	g_assert(!SOCKET_USES_TLS(s));
 #endif
 
@@ -2776,7 +2776,7 @@ socket_plain_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 {
 	struct gnutella_socket *s = wio->ctx;
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 	g_assert(!SOCKET_USES_TLS(s));
 #endif
 
@@ -2794,7 +2794,7 @@ socket_plain_sendto(
 	host_addr_t ha;
 	ssize_t ret;
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 	g_assert(!SOCKET_USES_TLS(s));
 #endif
 
@@ -2851,7 +2851,7 @@ socket_no_writev(struct wrap_io *unused_wio,
 	return -1;
 }
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 static ssize_t
 socket_tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 {
@@ -3092,7 +3092,7 @@ socket_tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 	g_assert(ret == (ssize_t) -1 || ret >= 0);
 	return ret;
 }
-#endif /* USE_TLS */
+#endif /* HAS_GNUTLS */
 
 static void
 socket_wio_link(struct gnutella_socket *s)
@@ -3102,7 +3102,7 @@ socket_wio_link(struct gnutella_socket *s)
 	s->wio.ctx = s;
 	s->wio.fd = socket_get_fd;
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 	if (SOCKET_USES_TLS(s)) {
 		s->wio.write = socket_tls_write;
 		s->wio.read = socket_tls_read;
@@ -3110,7 +3110,7 @@ socket_wio_link(struct gnutella_socket *s)
 		s->wio.readv = socket_tls_readv;
 		s->wio.sendto = socket_no_sendto;
 	} else
-#endif /* USE_TLS */
+#endif /* HAS_GNUTLS */
 	if (s->flags & SOCK_F_TCP) {
 		s->wio.write = socket_plain_write;
 		s->wio.read = socket_plain_read;
@@ -3131,12 +3131,12 @@ socket_init(void)
 {
 	get_sol();
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 	if (gnutls_global_init()) {
 		g_warning("%s: gnutls_global_init() failed", __func__);
 	}
 	get_dh_params();
-#endif /* USE_TLS */
+#endif /* HAS_GNUTLS */
 }
 
 /* vi: set ts=4 sw=4 cindent: */

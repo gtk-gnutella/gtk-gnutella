@@ -44,7 +44,7 @@
 #include "if/core/wrap.h"			/* For wrap_io_t */
 #include "if/core/sockets.h"
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 #include <gnutls/gnutls.h>
 
 enum socket_tls_stage {
@@ -62,9 +62,9 @@ struct socket_tls_ctx {
 
 #define SOCKET_USES_TLS(s) \
 	((s)->tls.enabled && (s)->tls.stage >= SOCK_TLS_ESTABLISHED)
-#else /* !USE_TLS */
+#else /* !HAS_GNUTLS */
 #define SOCKET_USES_TLS(s) 0
-#endif /* USE_TLS */
+#endif /* HAS_GNUTLS */
 
 struct sockaddr;
 
@@ -118,7 +118,7 @@ struct gnutella_socket {
 
 	struct wrap_io wio;		/**< Wrapped IO object */
 
-#ifdef USE_TLS
+#ifdef HAS_GNUTLS
 	struct socket_tls_ctx tls;
 #endif
 
