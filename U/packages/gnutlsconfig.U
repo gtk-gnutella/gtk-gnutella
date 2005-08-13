@@ -1,0 +1,74 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:gnutlsconfig gnutlscflags gnutlsldflags d_gnutls: 
+?MAKE:	-pick add $@ %<
+?S:gnutlsconfig:
+?S:	This variable holds the command to use to grab information
+?S:	about GNU TLS.
+?S: Typically something "pkg-config gnutls".
+?S:.
+?S:gnutlscflags:
+?S:	This variable holds the compiler flags required to compile with GNU TLS.
+?S:.
+?S:gnutlsldflags:
+?S:	This variable holds the linker flags required to link against GNU TLS.
+?S:.
+?C:HAS_GNUTLS:
+?C: This symbol is defined when GNU TLS is present
+?C:.
+?H:#$d_gnutls HAS_GNUTLS  /**/
+?H:.
+?T:modver version
+: how can we find information about GNU TLS?
+echo " "
+d_gnutls="$define"
+echo "Checking how we can gather information about GNU TLS..." >&4
+if pkg-config gnutls --cflags >/dev/null 2>&1; then
+	gnutlsconfig="pkg-config gnutls"
+	modver=--modversion
+else
+	echo "You've don't seem to have GNU TLS installed?" >&4
+	d_gnutls="$undef"
+	gnutlsconfig='false'
+	modver=''
+fi
+echo "(I'll use '$gnutlsconfig' to gather that information.)"
+
+?X: Make sure we have a good enough version
+gnutlscflags=""
+gnutlsldflags=""
+d_gnutls="$undef"
+version=`$gnutlsconfig $modver`
+case "$version" in
+'') ;;
+*)
+	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+	if test 0$vint -lt 010205; then
+		echo "Sorry, you have GNU TLS $version, I need at least 1.2.5." >&4
+	else
+		echo "Good, you have GNU TLS $version."
+		gnutlscflags=`$gnutlsconfig --cflags`
+		gnutlsldflags=`$gnutlsconfig --libs`
+		
+		$cat <<'EOM'
+
+GNU TLS allows encryption of downloads, uploads and Gnutella connections.
+
+For more information, see http://www.gnu.org/software/gnutls/.
+
+EOM
+		case "$gnutls" in
+		false) dflt=n;;
+		*) dflt=y;;
+		esac
+		rp="Enable GNU TLS support"
+		. ./myread
+		case "$ans" in
+		y) gnutls=true; d_gnutls="$define";;
+		*) gnutls=false; d_gnutls="$undef";;
+		esac
+	fi
+	;;
+esac
