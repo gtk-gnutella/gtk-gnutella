@@ -58,13 +58,14 @@ SED = $sed
 
 SUBDIRS = core lib ui if
 USRINC = $usrinc
-GTK_LDFLAGS =  $gtkldflags
 SOURCES =   \$(SRC)
-OBJECTS =   \$(OBJ) \$(EXTRA)
 GTK_CFLAGS =  $gtkcflags
-XML2_CFLAGS =  $xmlcflags
+GNUTLS_LDFLAGS =  $gnutlsldflags
 DBUS_LDFLAGS =  $dbusldflags
 XML2_LDFLAGS =  $xmlldflags
+GTK_LDFLAGS =  $gtkldflags
+OBJECTS =   \$(OBJ) \$(EXTRA)
+XML2_CFLAGS =  $xmlcflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -88,7 +89,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.31 2005/08/02 22:19:06 graaff Exp $
+# $X-Id: Jmakefile,v 1.32 2005/08/13 08:23:37 graaff Exp $
 
 all::
 
@@ -116,7 +117,7 @@ LDFLAGS = \
 	-Lui/gtk \
 	-lgtk-common -lgtkx -lgtk-common -lcore \
 	-Llib -lshared \
-	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS)
+	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS)
 
 .FORCE:
 
