@@ -190,26 +190,26 @@ static socklen_t
 socket_addr_get(const socket_addr_t *addr, const struct sockaddr **p_sa)
 {
 	const struct sockaddr *sa;
-	socklen_t sa_len;
+	socklen_t len;
 	
 	g_assert(addr);	
 	g_assert(p_sa);	
 	
 	if (AF_INET == addr->inet4.sin_family) {
 		sa = cast_to_gconstpointer(&addr->inet4);
-		sa_len = sizeof addr->inet4;
+		len = sizeof addr->inet4;
 #ifdef USE_IPV6
 	} else if (AF_INET6 == addr->inet6.sin6_family) {
 		sa = cast_to_gconstpointer(&addr->inet6);
-		sa_len = sizeof addr->inet6;
+		len = sizeof addr->inet6;
 #endif /* USE_IPV6 */
 	} else {
 		sa = NULL;
-		sa_len = 0;
+		len = 0;
 	}
 	
 	*p_sa = sa;
-	return sa_len;
+	return len;
 }
 
 /*
@@ -427,7 +427,7 @@ proxy_connect(int fd)
 	static gboolean in_progress = FALSE;
 	socket_addr_t server;
 	const struct sockaddr *sa;
-	socklen_t sa_len;
+	socklen_t len;
 
 	if (!proxy_addr &&
 		proxy_port != 0 &&
@@ -451,9 +451,9 @@ proxy_connect(int fd)
 	}
 
 	socket_addr_set(&server, string_to_host_addr(proxy_addr, NULL), proxy_port);
-	sa_len = socket_addr_get(&server, &sa);
+	len = socket_addr_get(&server, &sa);
 
-	return connect(fd, sa, sa_len);
+	return connect(fd, sa, len);
 }
 
 static gint
@@ -1850,12 +1850,12 @@ static int
 socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 {
 	struct sockaddr_in sin;
-	socklen_t sa_len;
+	socklen_t len;
 	host_addr_t ha = zero_host_addr;
 	guint16 port = 0;
 
-	sa_len = sizeof sin;
-	if (-1 != getsockname(fd, cast_to_gpointer(&sin), &sa_len)) {
+	len = sizeof sin;
+	if (-1 != getsockname(fd, cast_to_gpointer(&sin), &len)) {
 		ha = host_addr_set_ip4(ntohl(sin.sin_addr.s_addr));
 		port = sin.sin_port;
 	}
@@ -1864,8 +1864,8 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 	if (!is_host_addr(ha)) {
 		struct sockaddr_in6 sin6;
 
-		sa_len = sizeof sin6;
-		if (-1 != getsockname(fd, cast_to_gpointer(&sin6), &sa_len)) {
+		len = sizeof sin6;
+		if (-1 != getsockname(fd, cast_to_gpointer(&sin6), &len)) {
 			host_addr_set_ip6(&ha, sin6.sin6_addr.s6_addr);
 			port = sin6.sin6_port;
 		}
@@ -2256,17 +2256,17 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	if (force_local_ip) {
 		socket_addr_t local;
 		const struct sockaddr *sa;
-		socklen_t sa_len;
+		socklen_t len;
 
 		socket_addr_set(&local, string_to_host_addr(forced_local_ip, NULL), 0);
-		sa_len = socket_addr_get(&local, &sa);
+		len = socket_addr_get(&local, &sa);
 
 		/*
 		 * Note: we ignore failures: it will be automatic at connect()
 		 * It's useful only for people forcing the IP without being
 		 * behind a masquerading firewall --RAM.
 		 */
-		(void) bind(s->file_desc, sa, sa_len);
+		(void) bind(s->file_desc, sa, len);
 	}
 
 	if (proxy_protocol != PROXY_NONE) {
@@ -2274,10 +2274,10 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 		res = proxy_connect(s->file_desc);
 	} else {
 		const struct sockaddr *sa;
-		socklen_t sa_len;
+		socklen_t len;
 
-		sa_len = socket_addr_get(&addr, &sa);
-		res = connect(s->file_desc, sa, sa_len);
+		len = socket_addr_get(&addr, &sa);
+		res = connect(s->file_desc, sa, len);
 	}
 
 	if (-1 == res && EINPROGRESS != errno) {
@@ -2416,7 +2416,7 @@ socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
 	struct gnutella_socket *s;
 	const struct sockaddr *sa;
 	socket_addr_t addr;
-	socklen_t sa_len;
+	socklen_t len;
 	int sd, option;
 
 	/* Create a socket, then bind() and listen() it */
@@ -2455,8 +2455,8 @@ socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
 
 	/* bind() the socket */
 
-	sa_len = socket_addr_get(&addr, &sa);
-	if (-1 == bind(sd, sa, sa_len)) {
+	len = socket_addr_get(&addr, &sa);
+	if (-1 == bind(sd, sa, len)) {
 		g_warning("Unable to bind() the socket on port %u (%s)",
 				  (guint) port, g_strerror(errno));
 		socket_destroy(s, "Unable to bind socket");
@@ -2505,7 +2505,7 @@ socket_udp_listen(const host_addr_t ha, guint16 port)
 	struct gnutella_socket *s;
 	const struct sockaddr *sa;
 	socket_addr_t addr;
-	socklen_t sa_len;
+	socklen_t len;
 	int sd, option;
 
 	if (port < 1024)
@@ -2541,8 +2541,8 @@ socket_udp_listen(const host_addr_t ha, guint16 port)
 	
 	/* bind() the socket */
 
-	sa_len = socket_addr_get(&addr, &sa);
-	if (-1 == bind(sd, sa, sa_len)) {
+	len = socket_addr_get(&addr, &sa);
+	if (-1 == bind(sd, sa, len)) {
 		g_warning("Unable to bind() the socket on port %u (%s)",
 				  port, g_strerror(errno));
 		socket_destroy(s, "Unable to bind socket");
@@ -2789,7 +2789,7 @@ socket_plain_sendto(
 {
 	struct gnutella_socket *s = wio->ctx;
 	const struct sockaddr *sa;
-	socklen_t sa_len;
+	socklen_t len;
 	socket_addr_t addr;
 	host_addr_t ha;
 	ssize_t ret;
@@ -2804,9 +2804,9 @@ socket_plain_sendto(
 	}
 	
 	socket_addr_set(&addr, ha, to->port);
-	sa_len = socket_addr_get(&addr, &sa);
+	len = socket_addr_get(&addr, &sa);
 
-	ret = sendto(s->file_desc, buf, size, 0, sa, sa_len);
+	ret = sendto(s->file_desc, buf, size, 0, sa, len);
 	
 	if ((ssize_t) -1 == ret && udp_debug) {
 		gint e = errno;
