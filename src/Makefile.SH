@@ -66,6 +66,8 @@ XML2_LDFLAGS =  $xmlldflags
 GTK_LDFLAGS =  $gtkldflags
 OBJECTS =   \$(OBJ) \$(EXTRA)
 XML2_CFLAGS =  $xmlcflags
+DBUS_CFLAGS =  $dbuscflags
+GNUTLS_CFLAGS =  $gnutlscflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -110,7 +112,13 @@ EXTRA = \
 	if/gnet_property.o \
 	if/gui_property.o
 
-CFLAGS = -I.. -I. $(GTK_CFLAGS) $(XLM2_CFLAGS) -DCURDIR=$(CURRENT)
+CFLAGS = -I.. -I. \
+	$(GTK_CFLAGS) \
+	$(XML2_CFLAGS) \
+	$(DBUS_CFLAGS) \
+	$(GNUTLS_CFLAGS) \
+	-DCURDIR=$(CURRENT)
+
 DPFLAGS = $(CFLAGS)
 LDFLAGS = \
 	-Lcore -lcore \
