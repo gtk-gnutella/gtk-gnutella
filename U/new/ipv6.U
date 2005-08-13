@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_ipv6: cc ccflags ldflags rm cat
+?MAKE:d_ipv6: cc ccflags ldflags rm cat Myread
 ?MAKE:	-pick add $@ %<
 ?S:d_ipv6:
 ?S: This variable conditionally defines USE_IPV6.
@@ -12,7 +12,7 @@
 ?C:.
 ?H:#$d_ipv6 USE_IPV6
 ?H:.
-?LINT:change d_ipv6
+?T:ipv6
 : determine whether IPv6 can be used
 echo " "
 echo "Checking whether IPv6 can be used ..." >&4

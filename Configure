@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Aug 13 10:25:25 CEST 2005 [metaconfig 3.0 PL70]
+# Generated on Sat Aug 13 22:34:17 CEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -4710,11 +4710,12 @@ EOM
 		. ./myread
 		case "$ans" in
 		y) dbus=true; d_dbus="$define";;
-		*) dbus=false; d_bus="$undef";;
+		*) dbus=false; d_dbus="$undef";;
 		esac
 	fi
 	;;
 esac
+
 : see if getinvent exists
 set getinvent d_getinvent
 eval $inlibc
@@ -4769,6 +4770,7 @@ EOM
 	fi
 	;;
 esac
+
 : see if herror exists
 set herror d_herror
 eval $inlibc

@@ -2,8 +2,11 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:dbusconfig dbuscflags dbusldflags d_dbus: 
+?MAKE:dbusconfig dbuscflags dbusldflags d_dbus: awk cat Myread
 ?MAKE:	-pick add $@ %<
+?S:d_dbus:
+?S: This variable determines if HAS_DBUS will be defined.
+?S:.
 ?S:dbusconfig:
 ?S:	This variable holds the command to use to grab information about dbus.
 ?S: Typically something like "pkg-config dbus" or "dbus-config".
@@ -19,7 +22,7 @@
 ?C:.
 ?H:#$d_dbus HAS_DBUS  /**/
 ?H:.
-?T:modver version
+?T:modver version dbus vint
 : how can we find information about dbus?
 echo " "
 d_dbus="$define"
@@ -68,8 +71,9 @@ EOM
 		. ./myread
 		case "$ans" in
 		y) dbus=true; d_dbus="$define";;
-		*) dbus=false; d_bus="$undef";;
+		*) dbus=false; d_dbus="$undef";;
 		esac
 	fi
 	;;
 esac
+

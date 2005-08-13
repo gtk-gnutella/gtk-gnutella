@@ -13,10 +13,11 @@
 ?X: 
 ?MAKE:End: $W cat gtkversion d_libxml2 libs d_iptos remotectrl \
 	d_deflate d_inflate i_zlib gtkgversion glibversion d_enablenls \
-	Sendfile64 d_ipv6 d_dbus
+	Sendfile64 d_ipv6 d_dbus d_gnutls
 ?MAKE:	-pick add $@ %<
 ?LINT:use $W
-?T:glib_used frontend persistent zlib remote iptos unicode nls
+?T:glib_used frontend persistent zlib remote iptos unicode nls 
+?T:gnutls ipv6 dbus
 : end of configuration questions
 echo " "
 echo "End of configuration questions."

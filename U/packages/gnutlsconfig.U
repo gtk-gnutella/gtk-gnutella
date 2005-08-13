@@ -2,8 +2,11 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:gnutlsconfig gnutlscflags gnutlsldflags d_gnutls: 
+?MAKE:gnutlsconfig gnutlscflags gnutlsldflags d_gnutls: awk cat Myread
 ?MAKE:	-pick add $@ %<
+?S:d_gnutls:
+?S: This variable determines if HAS_GNUTLS will be defined.
+?S:.
 ?S:gnutlsconfig:
 ?S:	This variable holds the command to use to grab information
 ?S:	about GNU TLS.
@@ -20,7 +23,7 @@
 ?C:.
 ?H:#$d_gnutls HAS_GNUTLS  /**/
 ?H:.
-?T:modver version
+?T:modver version gnutls vint
 : how can we find information about GNU TLS?
 echo " "
 d_gnutls="$define"
@@ -72,3 +75,4 @@ EOM
 	fi
 	;;
 esac
+
