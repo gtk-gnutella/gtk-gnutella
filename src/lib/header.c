@@ -491,11 +491,7 @@ gint header_append(header_t *o, const gchar *text, gint len)
 		g_assert(*p == ':');
 
 		p++;							/* First char is field separator */
-		while ((c = *p)) {
-			if (!is_ascii_space(c))
-				break;
-			p++;
-		}
+		p = skip_ascii_spaces(p);
 
 		/*
 		 * Record field value.
