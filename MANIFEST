@@ -51,6 +51,7 @@ U/packages/dbusconfig.U
 U/packages/glade.U
 U/packages/glibconfig.U
 U/packages/glibversion.U
+U/packages/gnutlsconfig.U
 U/packages/gtkconfig.U
 U/packages/gtkversion.U
 U/packages/remotectrl.U
