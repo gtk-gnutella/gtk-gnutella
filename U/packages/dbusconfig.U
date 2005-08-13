@@ -6,7 +6,7 @@
 ?MAKE:	-pick add $@ %<
 ?S:dbusconfig:
 ?S:	This variable holds the command to use to grab information about dbus.
-?S: Typically something like "pkg-config dbus+" or "dbus-config".
+?S: Typically something like "pkg-config dbus" or "dbus-config".
 ?S:.
 ?S:dbuscflags:
 ?S:	This variable holds the compiler flags required to compile with dbus.
