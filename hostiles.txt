@@ -160,6 +160,10 @@
 # weasel.net, diverse GWebCache spamming/trashing
 66.68.124.56
 
+# Generic spammer, results don't even match query
+70.85.111.131
+70.86.48.178
+
 # reserved range
 79.79.55.0/24
 
