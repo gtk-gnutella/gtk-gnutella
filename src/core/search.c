@@ -1177,6 +1177,12 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 					continue;
 
 				switch (e->ext_token) {
+				case EXT_T_GGEP_BH:
+					rs->status |= ST_BH;
+					break;
+				case EXT_T_GGEP_GTKG_TLS:
+					rs->status |= ST_TLS;
+					break;
 				case EXT_T_GGEP_GTKGV1:
 					ret = ggept_gtkgv1_extract(e, &info);
 					if (ret == GGEP_OK) {
