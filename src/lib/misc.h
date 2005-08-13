@@ -609,7 +609,6 @@ gchar *base32_to_guid(const gchar *base32);
 /*
  * Tests
  */
-gboolean is_string_ip(const gchar *);
 gboolean is_private_addr(const host_addr_t addr);
 gboolean is_absolute_path(const char *);
 gboolean is_directory(const gchar *);

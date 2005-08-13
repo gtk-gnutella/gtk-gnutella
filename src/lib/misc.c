@@ -199,20 +199,6 @@ is_strcaseprefix(const gchar *str, const gchar *prefix)
 }
 
 /**
- * Checks whether the given string contains a valid IP address.
- *
- * @return FALSE if the string is NULL.
- */
-gboolean
-is_string_ip(const gchar *s)
-{
-    if (s == NULL)
-        return FALSE;
-
-    return 0 != string_to_ip(s);
-}
-
-/**
  * Check for file existence.
  */
 gboolean
