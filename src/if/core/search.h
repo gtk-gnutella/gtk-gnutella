@@ -53,15 +53,17 @@ typedef struct gnet_host_vec {
 /*
  * Result sets `status' flags.
  */
-#define ST_KNOWN_VENDOR			0x8000		/**< Found known vendor code */
-#define ST_PARSED_TRAILER		0x4000		/**< Was able to parse trailer */
-#define ST_UDP					0x2000		/**< Got hit via UDP */
-#define ST_BOGUS				0x1000		/**< Bogus IP address */
-#define ST_PUSH_PROXY			0x0010		/**< Listed some push proxies */
-#define ST_GGEP					0x0008		/**< Trailer has a GGEP extension */
-#define ST_UPLOADED				0x0004		/**< Is "stable", people downloaded */
-#define ST_BUSY					0x0002		/**< Has currently no slots */
-#define ST_FIREWALL				0x0001		/**< Is behind a firewall */
+#define ST_TLS				(1 << 10)	/**< Indicated support for TLS */
+#define ST_BH				(1 << 9)	/**< Browse Host support */
+#define ST_KNOWN_VENDOR		(1 << 8)	/**< Found known vendor code */
+#define ST_PARSED_TRAILER	(1 << 7)	/**< Was able to parse trailer */
+#define ST_UDP				(1 << 6)	/**< Got hit via UDP */
+#define ST_BOGUS			(1 << 5)	/**< Bogus IP address */
+#define ST_PUSH_PROXY		(1 << 4)	/**< Listed some push proxies */
+#define ST_GGEP				(1 << 3)	/**< Trailer has a GGEP extension */
+#define ST_UPLOADED			(1 << 2)	/**< Is "stable", people downloaded */
+#define ST_BUSY				(1 << 1)	/**< Has currently no slots */
+#define ST_FIREWALL			(1 << 0)	/**< Is behind a firewall */
 
 /*
  * Processing of ignored files.
