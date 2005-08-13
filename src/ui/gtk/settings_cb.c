@@ -207,8 +207,8 @@ on_entry_config_force_ip_changed(GtkEditable *editable, gpointer unused_udata)
 	g_strstrip(e);
 	gtk_widget_set_sensitive(
         lookup_widget(dlg_prefs, "checkbutton_config_force_ip"),
-        is_string_ip(e));
-	g_free(e);
+        is_host_addr(string_to_host_addr(e, NULL)));
+	G_FREE_NULL(e);
 }
 
 void
