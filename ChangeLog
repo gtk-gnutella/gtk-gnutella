@@ -1,5 +1,13 @@
 # since last version
 
+- (2005-08-13 - Hans)
+ * Include configure options for GNU TLS. GNU TLS is enabled when
+   found.
+
+- (2005-08-10 - Hans)
+ * Include configure option for IPv6. Ask the user if this should be
+   enabled.
+	
 - (2005-08-04 - RAM)
  * Make sure we abort the upload immediately if the shared file is no longer
    present on the disk, especially when they are being queued for that
