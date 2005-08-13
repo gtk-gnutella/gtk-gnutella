@@ -45,6 +45,10 @@ case " $libs " in
 	esac
 	;;
 esac
+gnutls=no
+case "$d_gnutls" in
+"$define") gnutls=yes;;
+esac
 remote=no
 if $remotectrl; then remote=yes; fi
 unicode=no
@@ -64,6 +68,7 @@ Glib version                       : $glib_used
 GUI front-end                      : $frontend
 Persistent filters                 : $persistent
 Gnutella traffic compression       : $zlib
+GNU TLS support                    : $gnutls
 IP TOS (Type of Service)           : $iptos
 IPv6 support                       : $ipv6
 NLS (Native Language Support)      : $nls

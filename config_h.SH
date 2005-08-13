@@ -375,6 +375,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #$d_useglib1 USE_GLIB1    /**/
 #$d_useglib2 USE_GLIB2    /**/
 
+/* HAS_GNUTLS:
+ * This symbol is defined when GNU TLS is present
+ */
+#$d_gnutls HAS_GNUTLS  /**/
+
 /* USE_GTK1:
  * This symbol is defined when compiling for the GTK1 toolkit.
  */

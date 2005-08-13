@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Aug 10 21:16:40 CEST 2005 [metaconfig 3.0 PL70]
+# Generated on Sat Aug 13 10:25:25 CEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -333,6 +333,10 @@ d_useglib1=''
 d_useglib2=''
 glibpackage=''
 glibversion=''
+d_gnutls=''
+gnutlscflags=''
+gnutlsconfig=''
+gnutlsldflags=''
 gtkcflags=''
 gtkconfig=''
 gtkldflags=''
@@ -4715,6 +4719,56 @@ esac
 set getinvent d_getinvent
 eval $inlibc
 
+: how can we find information about GNU TLS?
+echo " "
+d_gnutls="$define"
+echo "Checking how we can gather information about GNU TLS..." >&4
+if pkg-config gnutls --cflags >/dev/null 2>&1; then
+	gnutlsconfig="pkg-config gnutls"
+	modver=--modversion
+else
+	echo "You've don't seem to have GNU TLS installed?" >&4
+	d_gnutls="$undef"
+	gnutlsconfig='false'
+	modver=''
+fi
+echo "(I'll use '$gnutlsconfig' to gather that information.)"
+
+gnutlscflags=""
+gnutlsldflags=""
+d_gnutls="$undef"
+version=`$gnutlsconfig $modver`
+case "$version" in
+'') ;;
+*)
+	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+	if test 0$vint -lt 010205; then
+		echo "Sorry, you have GNU TLS $version, I need at least 1.2.5." >&4
+	else
+		echo "Good, you have GNU TLS $version."
+		gnutlscflags=`$gnutlsconfig --cflags`
+		gnutlsldflags=`$gnutlsconfig --libs`
+		
+		$cat <<'EOM'
+
+GNU TLS allows encryption of downloads, uploads and Gnutella connections.
+
+For more information, see http://www.gnu.org/software/gnutls/.
+
+EOM
+		case "$gnutls" in
+		false) dflt=n;;
+		*) dflt=y;;
+		esac
+		rp="Enable GNU TLS support"
+		. ./myread
+		case "$ans" in
+		y) gnutls=true; d_gnutls="$define";;
+		*) gnutls=false; d_gnutls="$undef";;
+		esac
+	fi
+	;;
+esac
 : see if herror exists
 set herror d_herror
 eval $inlibc
@@ -4789,9 +4843,29 @@ $cat >try.c <<'EOC'
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#define STATIC_ASSERT(x)	\
+	do { switch (0) { case ((x) ? 1 : 0): case 0: break; } } while(0)
+
 int main(void)
 {
-	struct sockaddr_in6 addr;
+	struct sockaddr_in6 sin6;
+	static struct in6_addr in6;
+
+	sin6.sin6_family = AF_INET6;
+	sin6.sin6_port = 6346;
+	sin6.sin6_flowinfo = 23UL;
+	sin6.sin6_scope_id = 42UL;
+	sin6.sin6_addr = in6;
+	sin6.sin6_addr.s6_addr[0] = in6.s6_addr[0];
+
+	STATIC_ASSERT(sizeof in6 == sizeof sin6.sin6_addr);
+	STATIC_ASSERT(16 == sizeof sin6.sin6_addr.s6_addr);
+	STATIC_ASSERT(2 == sizeof sin6.sin6_port);
+	STATIC_ASSERT(4 == sizeof sin6.sin6_flowinfo);
+	STATIC_ASSERT(4 == sizeof sin6.sin6_scope_id);
+
+	(void) sin6;
+	(void) in6;
 
 	return 0;
 }
@@ -6228,6 +6302,10 @@ case " $libs " in
 	esac
 	;;
 esac
+gnutls=no
+case "$d_gnutls" in
+"$define") gnutls=yes;;
+esac
 remote=no
 if $remotectrl; then remote=yes; fi
 unicode=no
@@ -6247,6 +6325,7 @@ Glib version                       : $glib_used
 GUI front-end                      : $frontend
 Persistent filters                 : $persistent
 Gnutella traffic compression       : $zlib
+GNU TLS support                    : $gnutls
 IP TOS (Type of Service)           : $iptos
 IPv6 support                       : $ipv6
 NLS (Native Language Support)      : $nls
@@ -6378,6 +6457,7 @@ d_eunice='$d_eunice'
 d_getinvent='$d_getinvent'
 d_gettext='$d_gettext'
 d_gnulibc='$d_gnulibc'
+d_gnutls='$d_gnutls'
 d_herror='$d_herror'
 d_hstrerror='$d_hstrerror'
 d_index='$d_index'
@@ -6435,6 +6515,9 @@ glibpth='$glibpth'
 glibversion='$glibversion'
 gmsgfmt='$gmsgfmt'
 gnulibc_version='$gnulibc_version'
+gnutlscflags='$gnutlscflags'
+gnutlsconfig='$gnutlsconfig'
+gnutlsldflags='$gnutlsldflags'
 grep='$grep'
 gtkcflags='$gtkcflags'
 gtkconfig='$gtkconfig'
