@@ -459,7 +459,7 @@ flush_match(void)
 	}
 
 #ifdef HAS_GNUTLS	
-	if (!ggep_stream_pack(&gs, "GTKG_TLS", NULL, 0, 0))
+	if (!ggep_stream_pack(&gs, "GTKG.TLS", NULL, 0, 0))
 			g_warning("could not write GGEP \"GTKG_TLS\" extension "
 				"into query hit");
 #endif /* HAS_GNUTLS */

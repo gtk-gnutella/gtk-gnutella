@@ -151,14 +151,15 @@ static const struct rwtable urntable[] =
 static const struct rwtable ggeptable[] =
 {
 #define GGEP_ID(x) { STRINGIFY(x), CAT2(EXT_T_GGEP_,x) }
+#define GGEP_GTKG_ID(x) { "GTKG." STRINGIFY(x), CAT2(EXT_T_GGEP_GTKG_,x) }
 
 	{ "<", EXT_T_GGEP_LIME_XML }, /**< '<' is less that 'A' */
 	GGEP_ID(ALT),		/**< Alt-locs in qhits */
 	GGEP_ID(BH),		/**< Browseable host indication */
 	GGEP_ID(CT),		/**< Resource creation time */
 	GGEP_ID(DU),		/**< Average servent uptime */
+	GGEP_GTKG_ID(TLS),	/**< GTKG TLS support indication */
 	GGEP_ID(GTKGV1),	/**< GTKG complete version number (binary) */
-	GGEP_ID(GTKG_TLS),	/**< GTKG TLS support indication */
 	GGEP_ID(GUE),		/**< GUESS support */
 	GGEP_ID(H),			/**< Hashes in binary form */
 	GGEP_ID(HNAME),		/**< Hostname */
