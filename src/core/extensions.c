@@ -152,28 +152,29 @@ static const struct rwtable ggeptable[] =
 {
 #define GGEP_ID(x) { STRINGIFY(x), CAT2(EXT_T_GGEP_,x) }
 
-	{ "<", EXT_T_GGEP_LIME_XML },	/**< '<' is less that 'A' */
-	GGEP_ID(ALT),					/**< Alt-locs in qhits */
-	GGEP_ID(BH),					/**< Browseable host indication */
-	GGEP_ID(CT),					/**< Resource creation time */
-	GGEP_ID(DU),					/**< Average servent uptime */
-	GGEP_ID(GTKGV1),				/**< GTKG complete version number (binary) */
-	GGEP_ID(GUE),					/**< GUESS support */
-	GGEP_ID(H),						/**< Hashes in binary form */
-	GGEP_ID(HNAME),					/**< Hostname */
-	GGEP_ID(IP),					/**< Ip:Port in ping and pongs (F2F) */
-	GGEP_ID(IPP),					/**< IP:Port in pongs (UHC) */
-	GGEP_ID(LF),					/**< Large file size in qhits */
-	GGEP_ID(LOC),					/**< Locale preferences, for clustering  */
-	GGEP_ID(PATH),					/**< Shared file path, in query hits */
-	GGEP_ID(PHC),					/**< Packed host caches (UHC) in pongs */
-	GGEP_ID(PUSH),					/**< Push proxy info, in qhits */
-	GGEP_ID(SCP),					/**< Supports cached pongs, in pings (UHC) */
-	GGEP_ID(T),						/**< Textual information in qhits */
-	GGEP_ID(UDPHC),					/**< Is an UDP hostcache (UHC) , in pongs */
-	GGEP_ID(UP),					/**< Ultrapeer information about free slots */
-	GGEP_ID(VC),					/**< Vendor code, in pongs */
-	GGEP_ID(u),						/**< HUGE URN in ASCII */
+	{ "<", EXT_T_GGEP_LIME_XML }, /**< '<' is less that 'A' */
+	GGEP_ID(ALT),		/**< Alt-locs in qhits */
+	GGEP_ID(BH),		/**< Browseable host indication */
+	GGEP_ID(CT),		/**< Resource creation time */
+	GGEP_ID(DU),		/**< Average servent uptime */
+	GGEP_ID(GTKGV1),	/**< GTKG complete version number (binary) */
+	GGEP_ID(GTKG_TLS),	/**< GTKG TLS support indication */
+	GGEP_ID(GUE),		/**< GUESS support */
+	GGEP_ID(H),			/**< Hashes in binary form */
+	GGEP_ID(HNAME),		/**< Hostname */
+	GGEP_ID(IP),		/**< Ip:Port in ping and pongs (F2F) */
+	GGEP_ID(IPP),		/**< IP:Port in pongs (UHC) */
+	GGEP_ID(LF),		/**< Large file size in qhits */
+	GGEP_ID(LOC),		/**< Locale preferences, for clustering  */
+	GGEP_ID(PATH),		/**< Shared file path, in query hits */
+	GGEP_ID(PHC),		/**< Packed host caches (UHC) in pongs */
+	GGEP_ID(PUSH),		/**< Push proxy info, in qhits */
+	GGEP_ID(SCP),		/**< Supports cached pongs, in pings (UHC) */
+	GGEP_ID(T),			/**< Textual information in qhits */
+	GGEP_ID(UDPHC),		/**< Is an UDP hostcache (UHC) , in pongs */
+	GGEP_ID(UP),		/**< Ultrapeer information about free slots */
+	GGEP_ID(VC),		/**< Vendor code, in pongs */
+	GGEP_ID(u),			/**< HUGE URN in ASCII */
 
 #undef GGEP_ID
 };
