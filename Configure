@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Aug 13 22:34:17 CEST 2005 [metaconfig 3.0 PL70]
+# Generated on Sun Aug 14 14:34:24 MEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -176,6 +176,7 @@ d_linux=''
 d_os2=''
 d_xenix=''
 eunicefix=''
+Mcc=''
 ar=''
 awk=''
 bash=''
@@ -1862,7 +1863,7 @@ esac
 
 : see whether [:lower:] and [:upper:] are supported character classes
 echo " "
-case "`echo AbyZ | LC_ALL=C $tr '[:lower:]' '[:upper:]' 2>/dev/null`" in
+case "`echo AbyZ | $tr '[:lower:]' '[:upper:]' 2>/dev/null`" in
 ABYZ)
 	echo "Good, your tr supports [:lower:] and [:upper:] to convert case." >&4
 	up='[:upper:]'
@@ -1871,14 +1872,14 @@ ABYZ)
 *)	# There is a discontinuity in EBCDIC between 'I' and 'J'
         # (0xc9 and 0xd1), therefore that is a nice testing point.
         if test "X$up" = X -o "X$low" = X; then
-	    case "`echo IJ | LC_ALL=C $tr '[I-J]' '[i-j]' 2>/dev/null`" in
+	    case "`echo IJ | $tr '[I-J]' '[i-j]' 2>/dev/null`" in
 	    ij) up='[A-Z]'
 	        low='[a-z]'
 		;;
 	    esac
         fi
 	if test "X$up" = X -o "X$low" = X; then
-	    case "`echo IJ | LC_ALL=C $tr I-J i-j 2>/dev/null`" in
+	    case "`echo IJ | $tr I-J i-j 2>/dev/null`" in
 	    ij) up='A-Z'
 		low='a-z'
 		;;
@@ -1889,15 +1890,14 @@ ABYZ)
 	    *C9D1*|*c9d1*)
 		echo "Hey, this might be EBCDIC." >&4
 		if test "X$up" = X -o "X$low" = X; then
-		    case "`echo IJ | \
-				LC_ALL=C $tr '[A-IJ-RS-Z]' '[a-ij-rs-z]' 2>/dev/null`" in
+		    case "`echo IJ | $tr '[A-IJ-RS-Z]' '[a-ij-rs-z]' 2>/dev/null`" in
 		    ij) up='[A-IJ-RS-Z]'
 		        low='[a-ij-rs-z]'
 			;;
 		    esac
 		fi
 		if test "X$up" = X -o "X$low" = X; then
-		    case "`echo IJ | LC_ALL=C $tr A-IJ-RS-Z a-ij-rs-z 2>/dev/null`" in
+		    case "`echo IJ | $tr A-IJ-RS-Z a-ij-rs-z 2>/dev/null`" in
 		    ij) up='A-IJ-RS-Z'
 		        low='a-ij-rs-z'
 			;;
@@ -1907,7 +1907,7 @@ ABYZ)
 	    esac
 	fi
 esac
-case "`echo IJ | LC_ALL=C $tr \"$up\" \"$low\" 2>/dev/null`" in
+case "`echo IJ | $tr \"$up\" \"$low\" 2>/dev/null`" in
 ij)
     echo "Using $up and $low to convert case." >&4
     ;;
@@ -1921,10 +1921,10 @@ esac
 cat >tr <<EOSC
 $startsh
 case "\$1\$2" in
-'[A-Z][a-z]') LC_ALL=C exec $tr '$up' '$low';;
-'[a-z][A-Z]') LC_ALL=C exec $tr '$low' '$up';;
+'[A-Z][a-z]') exec $tr '$up' '$low';;
+'[a-z][A-Z]') exec $tr '$low' '$up';;
 esac
-LC_ALL=C exec $tr "\$@"
+exec $tr "\$@"
 EOSC
 chmod +x tr
 $eunicefix tr
@@ -4722,14 +4722,19 @@ eval $inlibc
 
 : how can we find information about GNU TLS?
 echo " "
-d_gnutls="$define"
+case "$d_gnutls" in
+"$undef") gnutls="$undef";;
+*) gnutls="$define";;
+esac
 echo "Checking how we can gather information about GNU TLS..." >&4
 if pkg-config gnutls --cflags >/dev/null 2>&1; then
 	gnutlsconfig="pkg-config gnutls"
 	modver=--modversion
+elif libgnutls-config --cflags >/dev/null 2>&1; then
+	gnutlsconfig="libgnutls-config"
+	modver=--version
 else
 	echo "You've don't seem to have GNU TLS installed?" >&4
-	d_gnutls="$undef"
 	gnutlsconfig='false'
 	modver=''
 fi
@@ -4737,18 +4742,18 @@ echo "(I'll use '$gnutlsconfig' to gather that information.)"
 
 gnutlscflags=""
 gnutlsldflags=""
-d_gnutls="$undef"
 version=`$gnutlsconfig $modver`
+val="$undef"
 case "$version" in
 '') ;;
 *)
+	gnutlscflags=`$gnutlsconfig --cflags`
+	gnutlsldflags=`$gnutlsconfig --libs`
 	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
-	if test 0$vint -lt 010205; then
-		echo "Sorry, you have GNU TLS $version, I need at least 1.2.5." >&4
+	if test 0$vint -lt 010016; then
+		echo "Sorry, you have GNU TLS $version, I need at least 1.0.16." >&4
 	else
 		echo "Good, you have GNU TLS $version."
-		gnutlscflags=`$gnutlsconfig --cflags`
-		gnutlsldflags=`$gnutlsconfig --libs`
 		
 		$cat <<'EOM'
 
@@ -4758,18 +4763,20 @@ For more information, see http://www.gnu.org/software/gnutls/.
 
 EOM
 		case "$gnutls" in
-		false) dflt=n;;
-		*) dflt=y;;
+		"$define") dflt=y;;
+		*) dflt=n;;
 		esac
 		rp="Enable GNU TLS support"
 		. ./myread
 		case "$ans" in
-		y) gnutls=true; d_gnutls="$define";;
-		*) gnutls=false; d_gnutls="$undef";;
+		y) val="$define";;
+		*) val="$undef";;
 		esac
 	fi
 	;;
 esac
+set d_gnutls
+eval $setvar
 
 : see if herror exists
 set herror d_herror
@@ -6403,6 +6410,7 @@ Header='$Header'
 Id='$Id'
 Locker='$Locker'
 Log='$Log'
+Mcc='$Mcc'
 RCSfile='$RCSfile'
 Revision='$Revision'
 Source='$Source'
