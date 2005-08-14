@@ -1183,6 +1183,24 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 				case EXT_T_GGEP_GTKG_TLS:
 					rs->status |= ST_TLS;
 					break;
+				case EXT_T_GGEP_GTKG_IPV6:
+					{
+						host_addr_t addr;
+						
+						ret = ggept_gtkg_ipv6_extract(e, &addr);
+						if (GGEP_OK == ret) {
+							/* XXX: Check validity, hostiles etc. */
+							if (is_host_addr(addr))
+								rs->addr = addr;
+						} else if (ret == GGEP_INVALID) {
+							if (search_debug) {
+								g_warning("%s bad GGEP \"GTKG.IPV6\" (dumping)",
+									gmsg_infostr(&n->header));
+								ext_dump(stderr, e, 1, "....", "\n", TRUE);
+							}
+						}
+					}
+					break;
 				case EXT_T_GGEP_GTKGV1:
 					ret = ggept_gtkgv1_extract(e, &info);
 					if (ret == GGEP_OK) {
