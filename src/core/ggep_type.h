@@ -71,6 +71,7 @@ ggept_status_t ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info);
 ggept_status_t ggept_hname_extract(extvec_t *exv, gchar *buf, gint len);
 ggept_status_t ggept_lf_extract(extvec_t *exv, guint64 *fs);
 ggept_status_t ggept_du_extract(extvec_t *exv, guint32 *uptime);
+ggept_status_t ggept_gtkg_ipv6_extract(extvec_t *exv, host_addr_t *addr);
 
 ggept_status_t ggept_alt_extract(extvec_t *exv,
 	struct gnutella_host **hvec, gint *hvcnt);

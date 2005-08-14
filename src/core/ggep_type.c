@@ -278,6 +278,39 @@ ggept_lf_extract(extvec_t *exv, guint64 *filesize)
 }
 
 /**
+ * Extract IPv6 address into `addr' from GGEP "GTKG.IPV6" extension.
+ * A zero length indicates IPv6 support, a length of 16 or more
+ * indicates that the first 16 bytes are a IPv6 address.
+ */
+ggept_status_t
+ggept_gtkg_ipv6_extract(extvec_t *exv, host_addr_t *addr)
+{
+	size_t len;
+
+	g_assert(exv->ext_type == EXT_GGEP);
+	g_assert(exv->ext_token == EXT_T_GGEP_GTKG_IPV6);
+
+	len = ext_paylen(exv);
+	if (0 != len && 16 < len)
+		return GGEP_INVALID;
+
+	if (addr) {
+		if (0 == len) {
+			*addr = zero_host_addr;
+		} else {
+			const gchar *ip6;
+
+			g_assert(len >= 16);
+			ip6 = ext_payload(exv);
+			host_addr_set_ip6(addr, cast_to_gconstpointer(ip6));
+		}
+	}
+
+	return GGEP_OK;
+}
+
+
+/**
  * Encodes a variable-length integer. This encoding is equivalent to
  * little-endian encoding whereas trailing zeros are discarded.
  *
