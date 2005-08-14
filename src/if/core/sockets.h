@@ -47,6 +47,10 @@ enum {
     NET_USE_IPV6  = 6,
 };
 
+enum {
+	CONNECTION_F_MANUALLY	= (1 << 0),
+	CONNECTION_F_TLS		= (1 << 1),
+};
 
 #endif /* _if_core_sockets_h_ */
 
