@@ -58,12 +58,13 @@ typedef enum ext_type {
 
 typedef enum ext_token {
 	EXT_T_UNKNOWN = 0,		/**< Unknown */
-	EXT_T_URN_SHA1,			/**< urn:sha1: */
 	EXT_T_URN_BITPRINT,		/**< urn:bitprint: */
+	EXT_T_URN_SHA1,			/**< urn:sha1: */
 	EXT_T_URN_EMPTY,		/**< urn: */
 	EXT_T_XML,				/**< XML payload */
 	EXT_T_UNKNOWN_GGEP,		/**< Unknown GGEP extension */
 	EXT_T_OVERHEAD,			/**< Pure overhead */
+	EXT_T_GGEP_LIME_XML,	/**< LimeWire XML metadata, in query hits */
 	EXT_T_GGEP_ALT,			/**< Alternate locations in query hits */
 	EXT_T_GGEP_BH,			/**< Browseable host indication */
 	EXT_T_GGEP_CT,			/**< Resource creation time */
@@ -77,7 +78,6 @@ typedef enum ext_token {
 	EXT_T_GGEP_IP,			/**< IP:Port, in ping and pongs (F2F) */
 	EXT_T_GGEP_IPP,			/**< IP:Port, in pongs (UHC) */
 	EXT_T_GGEP_LF,			/**< Large File, in query hits */
-	EXT_T_GGEP_LIME_XML,	/**< LimeWire XML metadata, in query hits */
 	EXT_T_GGEP_LOC,			/**< Locale preferences */
 	EXT_T_GGEP_PATH,		/**< Shared file path, in query hits */
 	EXT_T_GGEP_PHC,			/**< Packed HostCaches, in pongs (UHC) */
@@ -91,6 +91,9 @@ typedef enum ext_token {
 	
 	EXT_T_TOKEN_COUNT
 } ext_token_t;
+
+#define GGEP_NAME(x) ext_ggep_name(CAT2(EXT_T_GGEP_,x))
+#define GGEP_GTKG_NAME(x) ext_ggep_name(CAT2(EXT_T_GGEP_GTKG_,x))
 
 /**
  * A public extension descriptor.
@@ -147,6 +150,7 @@ const gchar *ext_base(const extvec_t *e);
 guint16 ext_headlen(const extvec_t *e);
 guint16 ext_len(const extvec_t *e);
 const gchar *ext_ggep_id_str(const extvec_t *e);
+const gchar *ext_ggep_name(ext_token_t id);
 
 void ext_prepare(extvec_t *exv, gint exvcnt);
 void ext_reset(extvec_t *exv, gint exvcnt);
