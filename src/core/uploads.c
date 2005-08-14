@@ -1057,7 +1057,8 @@ upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
     }
 
 	parq_upload_remove(u);
-    upload_fire_upload_removed(u, reason ? errbuf : NULL);
+    upload_fire_upload_removed(u,
+		(reason && reason != no_reason) ? errbuf : NULL);
 
 	upload_free_resources(u);
 	wfree(u, sizeof *u);
@@ -2290,6 +2291,10 @@ static struct tx_link_cb upload_tx_link_cb = {
 	NULL,					/* unflushq -- XXX rename it, it's node specific */
 };
 
+/**
+ * Check whether remote end supports deflate, using a combination of both
+ * HTTP headers and User-Agent to screen out known-to-be-broken agents.
+ */
 static gboolean
 supports_deflate(header_t *header)
 {
