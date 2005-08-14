@@ -575,7 +575,8 @@ deflate_service(gpointer data)
 	if (b->wptr >= b->end) {
 		if (dbg > 9)
 			printf("deflate_service: (%s) sending fill buffer #%d, %d bytes\n",
-				host_to_string(&tx->host), attr->fill_idx, (gint) (b->wptr - b->rptr));
+				host_to_string(&tx->host), attr->fill_idx,
+				(gint) (b->wptr - b->rptr));
 
 		deflate_rotate_and_send(tx);	/* Can set TX_ERROR */
 
