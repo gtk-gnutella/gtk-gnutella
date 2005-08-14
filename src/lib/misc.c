@@ -1203,6 +1203,38 @@ short_size(guint64 size)
 	return b;
 }
 
+/**
+ * Like short_size() but with unbreakable space between the digits and unit.
+ */
+const gchar *
+short_html_size(guint64 size)
+{
+	static gchar b[SIZE_FIELD_MAX];
+
+	if (size < 1024) {
+		if (size == 1)
+			gm_snprintf(b, sizeof(b), _("1&nbsp;Byte"));
+		else
+			gm_snprintf(b, sizeof(b), _("%u&nbsp;Bytes"), (guint) size);
+	} else if (size < 1048576)
+		gm_snprintf(b, sizeof(b), "%.2f&nbsp;KiB", (gfloat) size / 1024.0);
+	else if (size < 1073741824)
+		gm_snprintf(b, sizeof(b), "%.2f&nbsp;MiB", (gfloat) size / 1048576.0);
+	else if ((size >> 10) < 1073741824)
+		gm_snprintf(b, sizeof(b), "%.2f&nbsp;GiB", (gfloat) size / 1073741824.0);
+	else if ((size >> 20) < 1073741824)
+		gm_snprintf(b, sizeof(b), "%.2f&nbsp;TiB",
+			(gfloat) (size >> 10) / 1073741824.0);
+	else if ((size >> 30) < 1073741824)
+		gm_snprintf(b, sizeof(b), "%.2f&nbsp;PiB",
+			(gfloat) (size >> 20) / 1073741824.0);
+	else
+		gm_snprintf(b, sizeof(b), "%.2f&nbsp;EiB",
+			(gfloat) (size >> 30) / 1073741824.0);
+
+	return b;
+}
+
 const gchar *
 short_kb_size(guint64 size)
 {

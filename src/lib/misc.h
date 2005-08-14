@@ -595,6 +595,7 @@ gchar *short_uptime(gint s);
  * Size string conversions
  */
 const gchar *short_size(guint64 size);
+const gchar *short_html_size(guint64 size);
 const gchar *short_kb_size(guint64 size);
 const gchar *short_rate(guint64 rate);
 const gchar *compact_size(guint64 size);
