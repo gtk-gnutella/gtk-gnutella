@@ -104,7 +104,7 @@ ggep_stream_cleanup(ggep_stream_t *gs)
  *
  * @return FALSE if there's not enough room in the output.
  */
-static gboolean
+static inline gboolean
 ggep_stream_appendc(ggep_stream_t *gs, gchar c)
 {
 	if (0 == ggep_stream_avail(gs))
@@ -120,8 +120,8 @@ ggep_stream_appendc(ggep_stream_t *gs, gchar c)
  *
  * @return FALSE if there's not enough room in the output.
  */
-static gboolean
-ggep_stream_append(ggep_stream_t *gs, gpointer data, size_t len)
+static inline gboolean
+ggep_stream_append(ggep_stream_t *gs, gconstpointer data, size_t len)
 {
 	if (len > ggep_stream_avail(gs))
 		return FALSE;
@@ -143,7 +143,7 @@ ggep_stream_append(ggep_stream_t *gs, gpointer data, size_t len)
  * On error, the stream is left in a clean state.
  */
 gboolean
-ggep_stream_begin(ggep_stream_t *gs, gchar *id, guint32 wflags)
+ggep_stream_begin(ggep_stream_t *gs, const gchar *id, guint32 wflags)
 {
 	gint idlen;
 	guint8 flags = 0;
@@ -259,10 +259,10 @@ cleanup:
  * @return TRUE if OK.  On error, the stream is brought back to a clean state.
  */
 gboolean
-ggep_stream_writev(ggep_stream_t *gs, struct iovec *iov, gint iovcnt)
+ggep_stream_writev(ggep_stream_t *gs, const struct iovec *iov, gint iovcnt)
 {
+	const struct iovec *xiov;
 	gint i;
-	struct iovec *xiov;
 
 	g_assert(gs->begun);
 	g_assert(iovcnt >= 0);
@@ -317,15 +317,16 @@ cleanup:
  * @return TRUE if OK.  On error, the stream is brought back to a clean state.
  */
 gboolean
-ggep_stream_write(ggep_stream_t *gs, gpointer data, size_t len)
+ggep_stream_write(ggep_stream_t *gs, gconstpointer data, size_t len)
 {
 	struct iovec iov;
+	const struct iovec *p_iov = &iov;
 
 	g_assert(len <= INT_MAX);
-	iov.iov_base = data;
+	iov.iov_base = deconstify_gpointer(data);
 	iov.iov_len = len;
 
-	return ggep_stream_writev(gs, &iov, 1);
+	return ggep_stream_writev(gs, p_iov, 1);
 }
 
 /**
@@ -590,7 +591,7 @@ ggep_stream_close(ggep_stream_t *gs)
  */
 gboolean
 ggep_stream_packv(ggep_stream_t *gs,
-	gchar *id, struct iovec *iov, gint iovcnt, guint32 wflags)
+	const gchar *id, const struct iovec *iov, gint iovcnt, guint32 wflags)
 {
 	g_assert(iovcnt >= 0);
 	
@@ -625,15 +626,16 @@ ggep_stream_packv(ggep_stream_t *gs,
  */
 gboolean
 ggep_stream_pack(ggep_stream_t *gs,
-	gchar *id, gchar *payload, size_t plen, guint32 wflags)
+	const gchar *id, gconstpointer payload, size_t plen, guint32 wflags)
 {
 	struct iovec iov;
+	const struct iovec *p_iov = &iov;
 
 	g_assert(plen <= INT_MAX);
-	iov.iov_base = payload;
+	iov.iov_base = deconstify_gpointer(payload);
 	iov.iov_len = plen;
 
-	return ggep_stream_packv(gs, id, &iov, 1, wflags);
+	return ggep_stream_packv(gs, id, p_iov, 1, wflags);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
