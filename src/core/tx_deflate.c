@@ -883,7 +883,7 @@ tx_deflate_flush(txdrv_t *tx)
 	if (attr->flags & DF_NAGLE) {
 		g_assert(attr->tm_ev != NULL);
 		cq_expire(attr->cq, attr->tm_ev);
-	} else if (!attr->flags & DF_FLOWC)
+	} else if (!(attr->flags & DF_FLOWC))
 		deflate_flush_send(tx);
 }
 
