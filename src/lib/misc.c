@@ -3071,6 +3071,46 @@ wfree_host_addr(gpointer key, gpointer unused_data)
 
 #ifdef USE_IPV6
 gboolean
+host_addr_can_convert(const host_addr_t from, enum net_type to_net)
+{
+	if (from.net == to_net)
+		return TRUE;
+
+	switch (to_net) {
+	case NET_TYPE_IP4:
+		switch (from.net) {
+		case NET_TYPE_IP6:
+			if (
+				(0x00 == from.addr.ip6[10] || 0xff == from.addr.ip6[10]) &&
+				from.addr.ip6[10] == from.addr.ip6[11]
+			) {
+				static const guint8 zeros[10];
+
+				return 0 == memcmp(from.addr.ip6, zeros, sizeof zeros);
+			}
+			break;
+		case NET_TYPE_NONE:
+			break;
+		}
+		break;
+		
+	case NET_TYPE_IP6:
+		switch (from.net) {
+		case NET_TYPE_IP4:
+			return TRUE;
+		case NET_TYPE_NONE:
+			break;
+		}
+		break;
+
+	case NET_TYPE_NONE:
+		break;
+	}
+	
+	return FALSE;
+}
+
+gboolean
 host_addr_convert(const host_addr_t *from, host_addr_t *to,
 	enum net_type to_net)
 {

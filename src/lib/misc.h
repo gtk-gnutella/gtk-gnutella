@@ -319,6 +319,7 @@ static const host_addr_t zero_host_addr;
 
 gboolean host_addr_convert(const host_addr_t *from, host_addr_t *to,
 	enum net_type to_net);
+gboolean host_addr_can_convert(const host_addr_t from, enum net_type to_net);
 
 static inline enum net_type 
 host_addr_net(const host_addr_t ha)
