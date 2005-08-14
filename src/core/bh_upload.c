@@ -48,6 +48,7 @@ RCSID("$Id$");
 #include "qhit.h"
 #include "gmsg.h"
 #include "guid.h"
+#include "version.h"
 
 #include "lib/header.h"
 #include "lib/misc.h"
@@ -68,6 +69,7 @@ RCSID("$Id$");
 
 enum bh_state {
 	BH_STATE_HEADER = 0,	/* Sending header */
+	BH_STATE_LIBRARY_INFO,	/* Info on library */
 	BH_STATE_FILES,			/* Sending file data (URI, Hash, Size etc.) */
 	BH_STATE_TRAILER,		/* Sending trailer data */
 	BH_STATE_EOF,			/* All data sent (End Of File) */
@@ -161,9 +163,7 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 {
 	static const gchar header[] =
 		"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
-		"<html><head><title>Browse Host</title></head><body>"
-		"<h1>Gtk-Gnutella</h1>"
-		"<ul>\r\n";
+		"<html><head><title>Browse Host</title></head><body>\r\n";
 	static const gchar trailer[] = "</ul></body></html>";
 	struct browse_host_ctx *bh = ctx;
 	gchar *p = dest; 
@@ -185,9 +185,28 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 			}
 			p += browse_host_read_data(bh, p, &size);
 			if (bh->b_size == bh->b_offset)
+				browse_host_next_state(bh, BH_STATE_LIBRARY_INFO);
+			break;
+
+		case BH_STATE_LIBRARY_INFO:
+			if (!bh->b_data) {
+				bh->d_buf = g_strdup_printf("<h1>Gtk-Gnutella</h1>\r\n"
+					"<h3>%s sharing %lu file%s, %s total</h3>\r\n"
+					"<ul>\r\n",
+					version_get_string(),
+					(gulong) shared_files_scanned(),
+					shared_files_scanned() == 1 ? "" : "s",
+					short_kb_size(shared_kbytes_scanned())
+				);
+				bh->b_data = bh->d_buf;
+				bh->b_size = strlen(bh->b_data);
+				bh->b_offset = 0;
+			}
+			p += browse_host_read_data(bh, p, &size);
+			if (bh->b_size == bh->b_offset)
 				browse_host_next_state(bh, BH_STATE_FILES);
 			break;
-			
+
 		case BH_STATE_TRAILER:
 			if (!bh->b_data) {
 				bh->b_data = trailer;
