@@ -287,7 +287,7 @@ whitelist_connect(void)
 
         if (delta_time(now, item->last_try) > WHITELIST_RETRY_DELAY) {
             item->last_try = now;
-            node_add(item->addr, item->port);
+            node_add(item->addr, item->port, 0);
             num++;
         }
     }

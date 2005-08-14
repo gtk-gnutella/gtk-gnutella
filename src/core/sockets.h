@@ -176,9 +176,9 @@ void socket_register_fd_reclaimer(reclaim_fd_t callback);
 void socket_eof(struct gnutella_socket *s);
 void socket_free(struct gnutella_socket *);
 struct gnutella_socket *socket_connect(const host_addr_t, guint16,
-		enum socket_type);
+		enum socket_type, guint32 flags);
 struct gnutella_socket *socket_connect_by_name(
-	const gchar *host, guint16, enum socket_type);
+	const gchar *host, guint16, enum socket_type, guint32 flags);
 struct gnutella_socket *socket_tcp_listen(const host_addr_t, guint16,
 		enum socket_type);
 struct gnutella_socket *socket_udp_listen(const host_addr_t, guint16);

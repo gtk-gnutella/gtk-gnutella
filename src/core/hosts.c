@@ -206,7 +206,7 @@ host_timer(void)
 
 			while (hcache_size(htype) && missing-- > 0) {
 				hcache_get_caught(htype, &addr, &port);
-				node_add(addr, port);
+				node_add(addr, port, 0);
 			}
 
 			if (missing > 0 && hcache_read_finished()) {
@@ -227,7 +227,7 @@ host_timer(void)
 		/* Try to find better hosts */
 		if (hcache_find_nearby(htype, &addr, &port)) {
 			if (node_remove_worst(TRUE))
-				node_add(addr, port);
+				node_add(addr, port, 0);
 			else
 				hcache_add_caught(htype, addr, port, "nearby host");
 		}
@@ -306,13 +306,13 @@ host_add(const host_addr_t addr, guint16 port, gboolean do_connect)
 
 	if (do_connect) {
 		if (node_keep_missing() > 0)
-				node_add(addr, port);
+				node_add(addr, port, 0);
 		else {
 			/* If we are above the max connections, delete a non-nearby
 			 * connection before adding this better one
 			 */
 			if (use_netmasks && host_is_nearby(addr) && node_remove_worst(TRUE))
-				node_add(addr, port);
+				node_add(addr, port, 0);
 		}
 
 	}

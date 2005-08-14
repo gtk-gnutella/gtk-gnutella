@@ -262,7 +262,7 @@ shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 		}
 
 		if (is_host_addr(addr) && port) {
-			node_add(addr, port);
+			node_add(addr, port, 0);
 			sh->msg = _("Node added");
 		} else {
 			sh->msg = _("Invalid IP/Port");

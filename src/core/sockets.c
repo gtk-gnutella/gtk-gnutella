@@ -1574,9 +1574,10 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	 * Dispatch request. Here we decide what kind of connection this is.
 	 */
 
-	if (is_strprefix(first, GNUTELLA_HELLO))
-		node_add_socket(s, s->addr, s->port);	/* Incoming control connection */
-	else if (is_strprefix(first, "GET ") || is_strprefix(first, "HEAD ")) {
+	if (is_strprefix(first, GNUTELLA_HELLO)) {
+		/* Incoming control connection */
+		node_add_socket(s, s->addr, s->port, 0);
+	} else if (is_strprefix(first, "GET ") || is_strprefix(first, "HEAD ")) {
 		gchar *uri;
 
 		/*
@@ -2165,7 +2166,7 @@ socket_set_linger(gint fd)
  */
 static struct gnutella_socket *
 socket_connect_prepare(const host_addr_t ha, guint16 port,
-	enum socket_type type)
+	enum socket_type type, guint32 flags)
 {
 	struct gnutella_socket *s;
 	gint sd, option;
@@ -2204,7 +2205,7 @@ created:
 	s->flags |= SOCK_F_TCP;
 
 #ifdef HAS_GNUTLS
-	s->tls.enabled = tls_enforce;
+	s->tls.enabled = tls_enforce || (CONNECTION_F_TLS & flags);
 	s->tls.stage = SOCK_TLS_NONE;
 	s->tls.session = NULL;
 	s->tls.snarf = 0;
@@ -2327,13 +2328,14 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
  * determined by the resource type.
  */
 struct gnutella_socket *
-socket_connect(const host_addr_t ha, guint16 port, enum socket_type type)
+socket_connect(const host_addr_t ha, guint16 port,
+	enum socket_type type, guint32 flags)
 {
 	/* Create a socket and try to connect it to ip:port */
 
 	struct gnutella_socket *s;
 
-	s = socket_connect_prepare(ha, port, type);
+	s = socket_connect_prepare(ha, port, type, flags);
 	return s ? socket_connect_finalize(s, ha) : NULL;
 }
 
@@ -2377,7 +2379,8 @@ socket_connect_by_name_helper(const host_addr_t *h, gpointer user_data)
  * resolved through async DNS calls.
  */
 struct gnutella_socket *
-socket_connect_by_name(const gchar *host, guint16 port, enum socket_type type)
+socket_connect_by_name(const gchar *host, guint16 port,
+	enum socket_type type, guint32 flags)
 {
 	/* Create a socket and try to connect it to host:port */
 
@@ -2387,7 +2390,7 @@ socket_connect_by_name(const gchar *host, guint16 port, enum socket_type type)
 	g_assert(host);
 	
 	ha = host_addr_set_ip4(0); /* @todo TODO IPv6 */
-	s = socket_connect_prepare(ha, port, type);
+	s = socket_connect_prepare(ha, port, type, flags);
 	g_return_val_if_fail(NULL != s, NULL);
 
 	s->adns |= SOCK_ADNS_PENDING;

@@ -504,9 +504,9 @@ guc_node_remove_node_flags_changed_listener(node_flags_changed_listener_t l)
 }
 
 void
-guc_node_add(const host_addr_t addr, guint16 port)
+guc_node_add(const host_addr_t addr, guint16 port, guint32 flags)
 {
-	node_add(addr, port);
+	node_add(addr, port, flags);
 }
 
 void

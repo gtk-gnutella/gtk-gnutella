@@ -173,7 +173,7 @@ void guc_node_remove_node_info_changed_listener
 	(node_info_changed_listener_t l);
 void guc_node_remove_node_flags_changed_listener
 	(node_flags_changed_listener_t l);
-void guc_node_add(const host_addr_t addr, guint16 port);
+void guc_node_add(const host_addr_t addr, guint16 port, guint32 flags);
 void guc_node_remove_by_handle(gnet_node_t n);
 void guc_node_remove_nodes_by_handle(GSList *node_list);
 void guc_node_get_status

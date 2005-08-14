@@ -3315,7 +3315,7 @@ parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 			  host_addr_port_to_string(parq_ul->addr, parq_ul->port),
 			  parq_ul->name);
 
-	s = socket_connect(parq_ul->addr, parq_ul->port, SOCK_TYPE_UPLOAD);
+	s = socket_connect(parq_ul->addr, parq_ul->port, SOCK_TYPE_UPLOAD, 0);
 
 	if (!s) {
 		g_warning("[PARQ UL] could not send QUEUE #%d to %s (can't connect)",

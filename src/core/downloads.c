@@ -2686,9 +2686,9 @@ download_connect(struct download *d)
 		server->attrs &= ~DLS_A_DNS_LOOKUP;
 		server->dns_lookup = time(NULL);
 		return socket_connect_by_name(
-			server->hostname, port, SOCK_TYPE_DOWNLOAD);
+			server->hostname, port, SOCK_TYPE_DOWNLOAD, 0);
 	} else
-		return socket_connect(download_addr(d), port, SOCK_TYPE_DOWNLOAD);
+		return socket_connect(download_addr(d), port, SOCK_TYPE_DOWNLOAD, 0);
 }
 
 /**

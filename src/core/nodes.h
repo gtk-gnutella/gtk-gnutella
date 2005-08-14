@@ -499,7 +499,7 @@ gboolean node_is_connected(const host_addr_t addr, guint16 port,
 		gboolean incoming);
 gboolean node_host_is_connected(const host_addr_t addr, guint16 port);
 void node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
-		guint16 port);
+		guint16 port, guint32 flags);
 void node_remove(struct gnutella_node *,
 	const gchar * reason, ...) G_GNUC_PRINTF(2, 3);
 void node_bye(gnutella_node_t *, gint code,

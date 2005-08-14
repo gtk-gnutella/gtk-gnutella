@@ -461,7 +461,7 @@ upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops, guint8 ttl,
 	gnutella_upload_t *u;
 	struct gnutella_socket *s;
 
-	s = socket_connect(addr, port, SOCK_TYPE_UPLOAD);
+	s = socket_connect(addr, port, SOCK_TYPE_UPLOAD, 0);
 	if (!s) {
 		g_warning("PUSH request (hops=%d, ttl=%d) dropped: can't connect to %s",
 			hops, ttl, host_addr_port_to_string(addr, port));

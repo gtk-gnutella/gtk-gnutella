@@ -1836,12 +1836,12 @@ http_async_create(
 
 		g_assert(host != NULL);
 
-		s = socket_connect_by_name(host, uport, SOCK_TYPE_HTTP);
+		s = socket_connect_by_name(host, uport, SOCK_TYPE_HTTP, 0);
 	} else {
 		host = host_addr_port_to_string(addr, port);
 		path = url;
 
-		s = socket_connect(addr, port, SOCK_TYPE_HTTP);
+		s = socket_connect(addr, port, SOCK_TYPE_HTTP, 0);
 	}
 
 	if (s == NULL) {
