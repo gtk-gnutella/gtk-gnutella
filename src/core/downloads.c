@@ -3986,15 +3986,33 @@ send_push_request(const gchar *guid, guint32 file_id, guint16 port)
 	m.header.hops = 0;
 
 	STATIC_ASSERT(49 == sizeof m);
-	WRITE_GUINT32_LE(sizeof m.request, m.header.size);
-
+	
+	poke_be32(m.header.size, sizeof m.request);
 	memcpy(m.request.guid, guid, 16);
 
+	ip = 0;
 	addr = listen_addr();
-	ip = host_addr_ip4(addr); /* XXX: Check whether it's IPv4 */
-	WRITE_GUINT32_LE(file_id, m.request.file_id);
-	memcpy(m.request.host_ip, &ip, 4);
-	WRITE_GUINT16_LE(port, m.request.host_port);
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IP6:
+		{
+			const host_addr_t from = addr;
+
+			if (!host_addr_convert(&from, &addr, NET_TYPE_IP4)) {
+				/* XXX: Add GGEP GTKG.IPV6 for IPv6 */
+				break;
+			}
+		}
+		/* FALL THROUGH */
+	case NET_TYPE_IP4:
+		ip = host_addr_ip4(addr);
+		break;
+	case NET_TYPE_NONE:
+		break;
+	}
+	
+	poke_le32(m.request.file_id, file_id);
+	poke_be32(m.request.host_ip, ip);
+	poke_le16(m.request.host_port, port);
 
 	/*
 	 * Send the message to all the nodes that can route our request back
