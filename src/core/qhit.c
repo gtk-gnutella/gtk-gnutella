@@ -481,9 +481,8 @@ flush_match(void)
 	ggep_len = ggep_stream_close(&gs);
 	found_close(ggep_len);
 
-	if (ggep_len > 0) {
+	if (ggep_len > 0)
 		trailer_start[6] |= 0x20;		/* Has GGEP extensions in trailer */
-	}
 
 	/*
 	 * Store the GUID in the last 16 bytes of the query hit.
@@ -549,18 +548,16 @@ add_file(struct shared_file *sf)
 	if (
 		found_size() + needed + QHIT_MIN_TRAILER_LEN
 			> search_answers_forward_size
-	) {
+	)
 		return FALSE;
-	}
 
 	/*
 	 * Grow buffer by the size of the search results header 8 bytes,
 	 * plus the string length - NULL, plus two NULL's
 	 */
 
-	if (needed > found_left()) {
+	if (needed > found_left())
 		return FALSE;
-	}
 
 	/*
 	 * If size is greater than 2^31-1, we store ~0 as the file size and will
@@ -570,22 +567,18 @@ add_file(struct shared_file *sf)
 	fs32 = sf->file_size >= (1U << 31) ? ~0U : sf->file_size;
 	
 	WRITE_GUINT32_LE(sf->file_index, &idx_le);
-	if (!found_write(&idx_le, sizeof idx_le)) {
+	if (!found_write(&idx_le, sizeof idx_le))
 		return FALSE;
-	}
 	WRITE_GUINT32_LE(fs32, &fs32_le);
-	if (!found_write(&fs32_le, sizeof fs32_le)) {
+	if (!found_write(&fs32_le, sizeof fs32_le))
 		return FALSE;
-	}
-	if (!found_write(sf->name_nfc, sf->name_nfc_len)) {
+	if (!found_write(sf->name_nfc, sf->name_nfc_len))
 		return FALSE;
-	}
 
 	/* Position equals the next byte to be written to */
 
-	if (!found_write("", 1)) {
+	if (!found_write("", 1))
 		return FALSE;
-	}
 
 	/*
 	 * We're now between the two NULs at the end of the hit entry.
@@ -600,12 +593,10 @@ add_file(struct shared_file *sf)
 		const gchar *b32 = sha1_base32(sf->sha1_digest);
 		/* Good old way: ASCII URN */
 
-		if (!found_write(urnsha1, CONST_STRLEN(urnsha1))) {
+		if (!found_write(urnsha1, CONST_STRLEN(urnsha1)))
 			return FALSE;
-		}
-		if (!found_write(b32, SHA1_BASE32_SIZE)) {
+		if (!found_write(b32, SHA1_BASE32_SIZE))
 			return FALSE;
-		}
 	}
 
 	/*
@@ -678,18 +669,17 @@ add_file(struct shared_file *sf)
 			g_warning("could not write GGEP \"ALT\" extension in query hit");
 	}
 
-	ggep_len = ggep_stream_close(&gs);
 	/*
 	 * Because we don't know exactly the size of the GGEP extension
 	 * (could be COBS-encoded or not), we need to adjust the real
 	 * extension size now that the entry is fully written.
 	 */
+
+	ggep_len = ggep_stream_close(&gs);
 	found_close(ggep_len);
 
-	/* Append terminating NUL */
-	if (!found_write("", 1)) {
+	if (!found_write("", 1))		/* Append terminating NUL */
 		return FALSE;
-	}
 
 	found_add_files(1);
 
