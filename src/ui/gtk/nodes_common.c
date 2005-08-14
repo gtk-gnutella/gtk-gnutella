@@ -310,9 +310,9 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
  * The stuff in the Flags column means:
  *
  *  - 012345678AB (offset)
- *  - NIrwqxZPFhT
+ *  - NIrwqxZPFhE
  *  - ^^^^^^^^^^^
- *  - ||||||||||+ T indicates a TLS-tunneled connection
+ *  - ||||||||||+ E indicates a TLS encrypted connection
  *  - |||||||||+  hops flow triggerd (h), or total query flow control (f)
  *  - ||||||||+   flow control (F), or pending data in queue (d)
  *  - |||||||+    indicates whether we're a push proxy (P) / node is proxy (p)
@@ -379,7 +379,7 @@ nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 	else
 		status[9] = '-';
 
-	status[10] = flags->tls ? 'T' : '-';
+	status[10] = flags->tls ? 'E' : '-';
 
 	status[sizeof(status) - 1] = '\0';
 	return status;
