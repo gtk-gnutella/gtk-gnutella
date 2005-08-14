@@ -381,7 +381,7 @@ flush_match(void)
 		WRITE_GUINT32_BE(start_stamp, &start);
 
 		ok =
-			ggep_stream_begin(&gs, "GTKGV1", 0) &&
+			ggep_stream_begin(&gs, GGEP_NAME(GTKGV1), 0) &&
 			ggep_stream_write(&gs, &major, 1) &&
 			ggep_stream_write(&gs, &minor, 1) &&
 			ggep_stream_write(&gs, &patch, 1) &&
@@ -408,7 +408,7 @@ flush_match(void)
 			gchar proxy[6];
 			gboolean ok;
 
-			ok = ggep_stream_begin(&gs, "PUSH", 0);
+			ok = ggep_stream_begin(&gs, GGEP_NAME(PUSH), 0);
 
 			for (
 				l = nodes, count = 0;
@@ -437,16 +437,34 @@ flush_match(void)
 	 * server's hostname.
 	 */
 
-	if (!is_firewalled && give_server_hostname && 0 != *server_hostname) {
+	if (!is_firewalled && give_server_hostname && '\0' != server_hostname[0]) {
 		gboolean ok;
 
-		ok = ggep_stream_pack(&gs, "HNAME",
-				(gchar *) server_hostname, strlen(server_hostname), 0);
+		ok = ggep_stream_pack(&gs, GGEP_NAME(HNAME),
+				server_hostname, strlen(server_hostname), 0);
 
 		if (!ok)
 			g_warning("could not write GGEP \"HNAME\" extension "
 				"in query hit");
 	}
+
+	if (
+		NET_TYPE_IP6 == host_addr_net(listen_addr()) &&
+		!host_addr_can_convert(listen_addr(), NET_TYPE_IP4)
+	) {
+		const host_addr_t addr = listen_addr();
+		const guint8 *ip6 = host_addr_ip6(&addr);
+
+		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6), ip6, 16, 0))
+			g_warning("could not write GGEP \"GTKG.IPV6\" extension "
+				"into query hit");
+	}
+
+#ifdef HAS_GNUTLS
+	if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0))
+		g_warning("could not write GGEP \"GTKG.TLS\" extension into query hit");
+#endif /* HAS_GNUTLS */
+
 
 	/*
 	 * Advertise the Browse Host extension in the results if the feature is
@@ -454,15 +472,9 @@ flush_match(void)
      */
 	
 	if (browse_host_enabled) {
-		if (!ggep_stream_pack(&gs, "BH", NULL, 0, 0))
+		if (!ggep_stream_pack(&gs, GGEP_NAME(BH), NULL, 0, 0))
 			g_warning("could not write GGEP \"BH\" extension into query hit");
 	}
-
-#ifdef HAS_GNUTLS	
-	if (!ggep_stream_pack(&gs, "GTKG.TLS", NULL, 0, 0))
-			g_warning("could not write GGEP \"GTKG_TLS\" extension "
-				"into query hit");
-#endif /* HAS_GNUTLS */
 
 	ggep_len = ggep_stream_close(&gs);
 	found_close(ggep_len);
@@ -610,7 +622,7 @@ add_file(struct shared_file *sf)
 		guint8 type = GGEP_H_SHA1;
 
 		ok =
-			ggep_stream_begin(&gs, "H", GGEP_W_COBS) &&
+			ggep_stream_begin(&gs, GGEP_NAME(H), GGEP_W_COBS) &&
 			ggep_stream_write(&gs, &type, 1) &&
 			ggep_stream_write(&gs, sf->sha1_digest, SHA1_RAW_SIZE) &&
 			ggep_stream_end(&gs);
@@ -632,7 +644,7 @@ add_file(struct shared_file *sf)
 
 		g_assert(len > 0 && len <= (gint) sizeof buf);
 
-		ok = ggep_stream_pack(&gs, "LF", buf, len, GGEP_W_COBS);
+		ok = ggep_stream_pack(&gs, GGEP_NAME(LF), buf, len, GGEP_W_COBS);
 		if (!ok)
 			g_warning("could not write GGEP \"LF\" extension in query hit");
 	}
@@ -648,7 +660,7 @@ add_file(struct shared_file *sf)
 
 		g_assert(hcnt <= QHIT_MAX_ALT);
 
-		ok = ggep_stream_begin(&gs, "ALT", GGEP_W_COBS);
+		ok = ggep_stream_begin(&gs, GGEP_NAME(ALT), GGEP_W_COBS);
 
 		for (i = 0; ok && i < hcnt; i++) {
 			if (NET_TYPE_IP4 == host_addr_net(hvec[i].addr)) {

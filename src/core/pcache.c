@@ -185,7 +185,7 @@ build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 		gchar spp;
 
 		spp = (current_peermode == NODE_P_LEAF) ? 0x0 : 0x1;
-		ggep_stream_pack(&gs, "SCP", &spp, sizeof spp, 0);
+		ggep_stream_pack(&gs, GGEP_NAME(SCP), &spp, sizeof spp, 0);
 	}
 
 	/*
@@ -197,7 +197,7 @@ build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 		pong_meta_t *meta = &local_meta;
 		gboolean ok;
 
-		ok = ggep_stream_begin(&gs, "VC", 0) &&
+		ok = ggep_stream_begin(&gs, GGEP_NAME(VC), 0) &&
 		ggep_stream_write(&gs, meta->vendor, sizeof meta->vendor) &&
 		ggep_stream_write(&gs, &meta->version_ua, 1) &&
 		ggep_stream_end(&gs);
@@ -264,19 +264,20 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		if (meta->flags & PONG_META_HAS_VC) {	/* Vendor code */
 			gboolean ok;
 
-			ok = ggep_stream_begin(&gs, "VC", 0) &&
+			ok = ggep_stream_begin(&gs, GGEP_NAME(VC), 0) &&
 			ggep_stream_write(&gs, meta->vendor, sizeof meta->vendor) &&
 			ggep_stream_write(&gs, &meta->version_ua, 1) &&
 			ggep_stream_end(&gs);
 		}
 
 		if (meta->flags & PONG_META_HAS_GUE)	/* GUESS support */
-			ggep_stream_pack(&gs, "GUE", cast_to_gpointer(&meta->guess), 1, 0);
+			ggep_stream_pack(&gs, GGEP_NAME(GUE),
+				cast_to_gpointer(&meta->guess), 1, 0);
 
 		if (meta->flags & PONG_META_HAS_UP) {	/* Ultrapeer info */
 			gboolean ok;
 
-			ok = ggep_stream_begin(&gs, "UP", 0) &&
+			ok = ggep_stream_begin(&gs, GGEP_NAME(UP), 0) &&
 			ggep_stream_write(&gs, &meta->version_up, 1) &&
 			ggep_stream_write(&gs, &meta->up_slots, 1) &&
 			ggep_stream_write(&gs, &meta->leaf_slots, 1) &&
@@ -286,7 +287,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		if (meta->flags & PONG_META_HAS_LOC) {	/* Locale preferencing */
 			gboolean ok;
 
-			ok = ggep_stream_begin(&gs, "LOC", 0) &&
+			ok = ggep_stream_begin(&gs, GGEP_NAME(LOC), 0) &&
 				ggep_stream_write(&gs, meta->language, 2);
 
 			if (ok && meta->country[0])
@@ -302,7 +303,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 			guint32 value = MIN(meta->daily_uptime, 86400);
 
 			len = ggept_du_encode(value, uptime);
-			ggep_stream_pack(&gs, "DU", uptime, len, 0);
+			ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);
 		}
 
 	}
@@ -336,7 +337,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 			 * pain and the CPU overhead.
 			 */
 
-			ok = ggep_stream_begin(&gs, "IPP", 0);
+			ok = ggep_stream_begin(&gs, GGEP_NAME(IPP), 0);
 
 			for (i = 0; ok && i < hcount; i++) {
 				if (NET_TYPE_IP4 == host_addr_net(host[i].addr)) {
@@ -363,7 +364,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 
 		poke_be32(&ip_port[0], host_addr_ip4(sender_addr));
 		poke_le16(&ip_port[4], sender_port);
-		ggep_stream_pack(&gs, "IP", ip_port, sizeof ip_port, 0);
+		ggep_stream_pack(&gs, GGEP_NAME(IP), ip_port, sizeof ip_port, 0);
 	}
 
 	sz += ggep_stream_close(&gs);
