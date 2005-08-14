@@ -161,8 +161,8 @@
 66.68.124.56
 
 # Generic spammer, results don't even match query
-70.85.111.131
-70.86.48.178
+70.85.111.0/24
+70.86.48.0/24
 
 # reserved range
 79.79.55.0/24
