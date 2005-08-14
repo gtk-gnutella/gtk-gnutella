@@ -448,6 +448,7 @@ flush_match(void)
 				"in query hit");
 	}
 
+#ifdef USE_IPV6
 	if (
 		NET_TYPE_IP6 == host_addr_net(listen_addr()) &&
 		!host_addr_can_convert(listen_addr(), NET_TYPE_IP4)
@@ -459,6 +460,7 @@ flush_match(void)
 			g_warning("could not write GGEP \"GTKG.IPV6\" extension "
 				"into query hit");
 	}
+#endif /* USE_IPV6 */
 
 #ifdef HAS_GNUTLS
 	if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0))
