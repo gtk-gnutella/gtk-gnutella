@@ -44,10 +44,12 @@ RCSID("$Id$");
 
 #include "if/bridge/ui2c.h"
 #include "if/core/nodes.h"
+#include "if/core/sockets.h"
 #include "if/gui_property_priv.h"
 
 #include "lib/glib-missing.h"
 #include "lib/misc.h"
+#include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
 static gchar gui_tmp[4096];
@@ -383,13 +385,23 @@ nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 	return status;
 }
 
+struct add_node_context {
+	guint32 flags;
+	guint16 port;
+};
+
 static void
-add_node_helper(const host_addr_t *addr, gpointer port_as_pointer)
+add_node_helper(const host_addr_t *addr, gpointer data)
 {
-	if (addr) {
-		guint16 port = GPOINTER_TO_UINT(port_as_pointer);
-		guc_node_add(*addr, port);
-	}
+	struct add_node_context *ctx = data;
+		
+	g_assert(ctx);
+	g_assert(0 != ctx->port);
+	
+	if (addr)
+		guc_node_add(*addr, ctx->port, ctx->flags);
+	
+	wfree(ctx, sizeof *ctx);
 }
 
 /**
@@ -408,6 +420,7 @@ nodes_gui_common_connect_by_name(const gchar *line)
 		const gchar *endptr, *hostname;
 		size_t hostname_len;
 		host_addr_t addr;
+		guint32 flags;
     	guint16 port;
 		
 		q = skip_ascii_spaces(q);
@@ -418,9 +431,16 @@ nodes_gui_common_connect_by_name(const gchar *line)
 	
 		addr = zero_host_addr;	
 		port = GTA_PORT;
+		flags = CONNECTION_F_MANUALLY;
 		endptr = NULL;
 		hostname = NULL;
 		hostname_len = 0;
+	
+		endptr = is_strcaseprefix(q, "tls:");
+		if (endptr) {
+			flags |= CONNECTION_F_TLS;
+			q = endptr;
+		}
 		
 		if (!string_to_host_or_addr(q, &endptr, &addr)) {
 			g_message("Expected hostname or IP address");
@@ -455,8 +475,9 @@ nodes_gui_common_connect_by_name(const gchar *line)
 		}
 
 		if (!hostname) {
-			guc_node_add(addr, port);
+			guc_node_add(addr, port, flags);
 		} else {
+			struct add_node_context *ctx;
 			gchar *p;
 		
 			if ('\0' == hostname[hostname_len])	{
@@ -470,8 +491,10 @@ nodes_gui_common_connect_by_name(const gchar *line)
 				hostname = p; 
 			}
 
-			guc_adns_resolve(hostname, add_node_helper,
-				GUINT_TO_POINTER((guint) port));
+			ctx = walloc(sizeof *ctx);
+			ctx->port = port;
+			ctx->flags = flags;
+			guc_adns_resolve(hostname, add_node_helper, ctx);
 
 			G_FREE_NULL(p);
 		}
