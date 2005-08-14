@@ -231,9 +231,23 @@ rw_is_sorted(const gchar *name,
 	 * element are sorted anyway. */
 	for (i = 1; i < size; i++) {
 		const struct rwtable *prev = &table[i - 1], *e = &table[i];
-		if (strcmp(prev->rw_name, e->rw_name) >= 0)
+		
+		if (
+			prev->rw_token >= e->rw_token ||
+			strcmp(prev->rw_name, e->rw_name) >= 0
+		)
 			g_error("reserved word table \"%s\" unsorted (near item \"%s\")",
 				name, e->rw_name);
+		
+		if (ggeptable == table) {
+			const gchar *s;
+			
+		   	s = ext_ggep_name(e->rw_token);
+			if (0 != strcmp(s, e->rw_name)) {
+				g_error("table \"%s\" has wrong GGEP ID (near item \"%s\")",
+					name, e->rw_name);
+			}
+		}
 	}
 }
 
@@ -1513,6 +1527,21 @@ ext_reset(extvec_t *exv, gint exvcnt)
 		wfree(d, sizeof(*d));
 		e->opaque = NULL;
 	}
+}
+
+const gchar *
+ext_ggep_name(ext_token_t id)
+{
+	size_t i;
+	
+	g_assert(id < EXT_T_TOKEN_COUNT);
+	g_assert(id >= ggeptable[0].rw_token);
+
+	i = id - ggeptable[0].rw_token;
+	g_assert(i < G_N_ELEMENTS(ggeptable));
+	g_assert(id == ggeptable[i].rw_token);
+
+	return ggeptable[i].rw_name;
 }
 
 /***
