@@ -2205,7 +2205,7 @@ created:
 	s->flags |= SOCK_F_TCP;
 
 #ifdef HAS_GNUTLS
-	s->tls.enabled = tls_enforce || (CONNECTION_F_TLS & flags);
+	s->tls.enabled = tls_enforce || (CONNECT_F_TLS & flags);
 	s->tls.stage = SOCK_TLS_NONE;
 	s->tls.session = NULL;
 	s->tls.snarf = 0;

@@ -5278,7 +5278,7 @@ node_add(const host_addr_t addr, guint16 port, guint32 flags)
 		return;
 
 	if (
-		!(CONNECTION_F_MANUALLY & flags) &&
+		!(CONNECT_F_FORCE & flags) &&
 		(hostiles_check(addr) || hcache_node_is_bad(addr))
 	)
 		return;
@@ -5371,7 +5371,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 			node_ultra_count + node_normal_count >= max_connections)
 	) {
         if (!already_connected) {
-			if (whitelist_check(addr) || (CONNECTION_F_MANUALLY & flags)) {
+			if (whitelist_check(addr) || (CONNECT_F_FORCE & flags)) {
 				/* Incoming whitelisted IP, and we're full. Remove one node. */
 				(void) node_remove_worst(FALSE);
 			} else if (use_netmasks && host_is_nearby(addr)) {

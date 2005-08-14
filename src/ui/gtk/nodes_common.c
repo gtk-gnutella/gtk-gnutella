@@ -431,14 +431,14 @@ nodes_gui_common_connect_by_name(const gchar *line)
 	
 		addr = zero_host_addr;	
 		port = GTA_PORT;
-		flags = CONNECTION_F_MANUALLY;
+		flags = CONNECT_F_FORCE;
 		endptr = NULL;
 		hostname = NULL;
 		hostname_len = 0;
 	
 		endptr = is_strcaseprefix(q, "tls:");
 		if (endptr) {
-			flags |= CONNECTION_F_TLS;
+			flags |= CONNECT_F_TLS;
 			q = endptr;
 		}
 		
