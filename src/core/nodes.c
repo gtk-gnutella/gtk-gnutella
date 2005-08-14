@@ -106,34 +106,34 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define CONNECT_PONGS_COUNT		10		/**< Amoung of pongs to send */
-#define CONNECT_PONGS_LOW		5		/**< Amoung of pongs sent if saturated */
-#define BYE_MAX_SIZE			4096	/**< Maximum size for the Bye message */
-#define NODE_SEND_BUFSIZE		4096	/**< TCP send buffer size - 4K */
-#define NODE_SEND_LEAF_BUFSIZE	1024	/**< TCP send buffer size for leaves */
-#define MAX_GGEP_PAYLOAD		1536	/**< In ping, pong, push */
-#define MAX_MSG_SIZE			65536	/**< Absolute maximum message length */
-#define MAX_HOP_COUNT			255		/**< Architecturally defined maximum */
-#define NODE_LEGACY_DEGREE		8		/**< Older node without X-Degree */
-#define NODE_LEGACY_TTL			7		/**< Older node without X-Max-TTL */
-#define NODE_USELESS_GRACE		20		/**< No kick if condition too recent */
+#define CONNECT_PONGS_COUNT		10	  /**< Amoung of pongs to send */
+#define CONNECT_PONGS_LOW		5	  /**< Amoung of pongs sent if saturated */
+#define BYE_MAX_SIZE			4096  /**< Maximum size for the Bye message */
+#define NODE_SEND_BUFSIZE		4096  /**< TCP send buffer size - 4K */
+#define NODE_SEND_LEAF_BUFSIZE	1024  /**< TCP send buffer size for leaves */
+#define MAX_GGEP_PAYLOAD		1536  /**< In ping, pong, push */
+#define MAX_MSG_SIZE			65536 /**< Absolute maximum message length */
+#define MAX_HOP_COUNT			255	  /**< Architecturally defined maximum */
+#define NODE_LEGACY_DEGREE		8	  /**< Older node without X-Degree */
+#define NODE_LEGACY_TTL			7	  /**< Older node without X-Max-TTL */
+#define NODE_USELESS_GRACE		20	  /**< No kick if condition too recent */
 
-#define SHUTDOWN_GRACE_DELAY	120		/**< Grace time for shutdowning nodes */
-#define BYE_GRACE_DELAY			30		/**< Bye sent, give time to propagate */
-#define MAX_WEIRD_MSG			5		/**< End link after so much weirds */
-#define MAX_TX_RX_RATIO			70		/**< Max TX/RX ratio for shortage */
-#define MIN_TX_FOR_RATIO		500		/**< TX packets before enforcing ratio */
-#define ALIVE_PERIOD			20		/**< Seconds between each alive ping */
-#define ALIVE_PERIOD_LEAF		120		/**< Idem, for leaves <-> ultrapeers */
-#define ALIVE_MAX_PENDING		6		/**< Max unanswered pings in a row */
-#define ALIVE_MAX_PENDING_LEAF	4		/**< Max unanswered pings in a row (leaves) */
+#define SHUTDOWN_GRACE_DELAY	120	  /**< Grace time for shutdowning nodes */
+#define BYE_GRACE_DELAY			30	  /**< Bye sent, give time to propagate */
+#define MAX_WEIRD_MSG			5	  /**< End link after so much weirds */
+#define MAX_TX_RX_RATIO			70	  /**< Max TX/RX ratio for shortage */
+#define MIN_TX_FOR_RATIO		500	  /**< TX packets before enforcing ratio */
+#define ALIVE_PERIOD			20	  /**< Seconds between each alive ping */
+#define ALIVE_PERIOD_LEAF		120	  /**< Idem, for leaves <-> ultrapeers */
+#define ALIVE_MAX_PENDING		6	  /**< Max unanswered pings in a row */
+#define ALIVE_MAX_PENDING_LEAF	4 /**< Max unanswered pings in a row (leaves) */
 
-#define NODE_MIN_UP_CONNECTIONS	25		/**< Min 25 peer connections for UP */
-#define NODE_MIN_UPTIME			3600	/**< Minumum uptime to become an UP */
-#define NODE_MIN_AVG_UPTIME		10800	/**< Average uptime to become an UP */
-#define NODE_AVG_LEAF_MEM		262144	/**< Average memory used by leaf */
-#define NODE_CASUAL_FD			10		/**< # of fds we might use casually */
-#define NODE_UPLOAD_QUEUE_FD	5		/**< # of fds/upload slot we can queue */
+#define NODE_MIN_UP_CONNECTIONS	25	   /**< Min 25 peer connections for UP */
+#define NODE_MIN_UPTIME			3600   /**< Minumum uptime to become an UP */
+#define NODE_MIN_AVG_UPTIME		10800  /**< Average uptime to become an UP */
+#define NODE_AVG_LEAF_MEM		262144 /**< Average memory used by leaf */
+#define NODE_CASUAL_FD			10	   /**< # of fds we might use casually */
+#define NODE_UPLOAD_QUEUE_FD	5	   /**< # of fds/upload slot we can queue */
 
 #define NODE_AUTO_SWITCH_MIN	1800	/**< Don't switch too often UP - leaf */
 #define NODE_AUTO_SWITCH_MAX	61200	/**< Max between switches (17 hours) */
