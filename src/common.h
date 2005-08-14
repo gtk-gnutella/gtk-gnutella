@@ -357,7 +357,7 @@ ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
 enum net_type {
 	NET_TYPE_NONE	= 0,
 	NET_TYPE_IP4	= 4,
-	NET_TYPE_IP6	= 16,
+	NET_TYPE_IP6	= 6,
 };
 
 #ifdef USE_IPV6
