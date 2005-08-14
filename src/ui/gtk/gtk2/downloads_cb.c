@@ -489,8 +489,8 @@ on_popup_downloads_connect_activate(GtkMenuItem *unused_menuitem,
 		return;
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
-		struct download *d = sl->data;
-   		guc_node_add(download_addr(d), download_port(d));
+		const struct download *d = sl->data;
+   		guc_node_add(download_addr(d), download_port(d), CONNECTION_F_MANUALLY);
    	}
 	g_slist_free(selected);
 }
@@ -662,7 +662,8 @@ void
 on_popup_queue_connect_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
-	GSList *sl, *selected;
+	GSList *selected;
+	const GSList *sl;
 
 	(void) unused_menuitem;
 	(void) unused_udata;
@@ -673,8 +674,8 @@ on_popup_queue_connect_activate(GtkMenuItem *unused_menuitem,
 		return;
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
-		struct download *d = sl->data;
-    	guc_node_add(download_addr(d), download_port(d));
+		const struct download *d = sl->data;
+    	guc_node_add(download_addr(d), download_port(d), CONNECTION_F_MANUALLY);
 	}
 	g_slist_free(selected);
 }
@@ -693,7 +694,7 @@ void
 on_button_downloads_abort_clicked(GtkButton *unused_button,
 	gpointer unused_udata)
 {
-	GSList *sl, *selected;
+	GSList *selected, *sl;
 
 	(void) unused_button;
 	(void) unused_udata;
