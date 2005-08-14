@@ -115,8 +115,11 @@ OBJ = \
 /* Add the libxml2 flags */
 ++XML2_CFLAGS $xmlcflags
 
+/* Add the GNU TLS flags */
+++GNUTLS_CFLAGS $gnutlscflags
+
 ;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(XML2_CFLAGS) \
+CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(XML2_CFLAGS) $(GNUTLS_CFLAGS) \
 	-DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 

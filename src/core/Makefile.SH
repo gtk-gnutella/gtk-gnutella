@@ -54,6 +54,7 @@ SOURCES =   \$(SRC)
 OBJECTS =   \$(OBJ)
 GLIB_CFLAGS =  $glibcflags
 XML2_CFLAGS =  $xmlcflags
+GNUTLS_CFLAGS =  $gnutlscflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -233,7 +234,7 @@ OBJ = \
 	whitelist.o 
 
 # Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(XML2_CFLAGS) \
+CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(XML2_CFLAGS) $(GNUTLS_CFLAGS) \
 	-DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
