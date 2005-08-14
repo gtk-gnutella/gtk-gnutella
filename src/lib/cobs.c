@@ -45,7 +45,7 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-#define COBS_MAGIC	0xc0bef
+#define COBS_MAGIC	0xc0befU
 
 /**
  * Encode vector `iov' of `iovcnt' elements, whose size is held in `retlen'.
@@ -304,6 +304,8 @@ cobs_stream_init(cobs_stream_t *cs, gpointer data, size_t len)
 
 	if (len < 2)
 		cs->closed = TRUE;	/* Too short to write anything */
+
+	g_assert(cobs_stream_is_valid(cs));
 }
 
 /**
