@@ -1,5 +1,9 @@
 # since last version
 
+- (2005-08-14 - RAM)
+ * Added size of shared files within brackets in HTML browse-host output.
+ * Fixed buglet that caused no status to be displayed for completed uploads.
+
 - (2005-08-13 - Hans)
  * Include configure options for GNU TLS. GNU TLS is enabled when
    found.
