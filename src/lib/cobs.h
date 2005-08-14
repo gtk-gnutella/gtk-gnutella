@@ -43,6 +43,7 @@
  * the input data is not known beforehand but gathered a piece at a time.
  */
 typedef struct cobs_stream {
+	guint32 magic;			/**< Magic number */
 	gchar *outbuf;			/**< Output buffer start */
 	gchar *end;				/**< First char beyond output buffer */
 	gchar *o;				/**< Where next non-NUL data will be written */
@@ -70,6 +71,8 @@ gboolean cobs_is_valid(const gchar *buf, size_t len);
 void cobs_stream_init(cobs_stream_t *cs, gpointer data, size_t len);
 size_t cobs_stream_close(cobs_stream_t *cs, gboolean *saw_nul);
 gboolean cobs_stream_write(cobs_stream_t *cs, gpointer data, size_t len);
+void cobs_stream_invalidate(cobs_stream_t *cs);
+gboolean cobs_stream_is_valid(cobs_stream_t *cs);
 
 #endif	/* _cobs_h_ */
 

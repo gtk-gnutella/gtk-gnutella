@@ -45,6 +45,8 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
+#define COBS_MAGIC	0xc0bef
+
 /**
  * Encode vector `iov' of `iovcnt' elements, whose size is held in `retlen'.
  *
@@ -288,11 +290,10 @@ cobs_decode(gchar *buf, size_t len, size_t *retlen, gboolean inplace)
 void
 cobs_stream_init(cobs_stream_t *cs, gpointer data, size_t len)
 {
-	if (len < 2) {
-		cs->closed = TRUE;	/* Too short to write anything */
-		return;
-	}
+	g_assert(len != 0);
+	g_assert(data != NULL);
 
+	cs->magic = COBS_MAGIC;
 	cs->o = cs->outbuf = data;
 	cs->end = &cs->outbuf[len];
 	cs->cp = cs->o++;
@@ -300,6 +301,9 @@ cobs_stream_init(cobs_stream_t *cs, gpointer data, size_t len)
 	cs->last_code = 0;
 	cs->saw_nul = FALSE;
 	cs->closed = FALSE;
+
+	if (len < 2)
+		cs->closed = TRUE;	/* Too short to write anything */
 }
 
 /**
@@ -312,6 +316,8 @@ cobs_stream_write(cobs_stream_t *cs, gpointer data, size_t len)
 {
 	gchar *p = data;
 	const gchar *end = &p[len];
+
+	g_assert(cobs_stream_is_valid(cs));
 
 	if (cs->closed)
 		return FALSE;	/* Stream closed */
@@ -356,6 +362,8 @@ cobs_stream_write(cobs_stream_t *cs, gpointer data, size_t len)
 size_t
 cobs_stream_close(cobs_stream_t *cs, gboolean *saw_nul)
 {
+	g_assert(cobs_stream_is_valid(cs));
+
 	if (cs->closed)
 		return 0;	/* Stream closed */
 
@@ -382,6 +390,47 @@ closed:
 		*saw_nul = cs->saw_nul;
 
 	return cs->cp - cs->outbuf;
+}
+
+/**
+ * Empty the descriptor, making it invalid.
+ */
+void
+cobs_stream_invalidate(cobs_stream_t *cs)
+{
+	memset(cs, 0, sizeof *cs);
+}
+
+/**
+ * Check whether the stream descriptor is valid, for assertions.
+ */
+gboolean cobs_stream_is_valid(cobs_stream_t *cs)
+{
+	if (NULL == cs)
+		return FALSE;
+
+	if (cs->magic != COBS_MAGIC)
+		return FALSE;
+
+	if (NULL == cs->outbuf)
+		return FALSE;
+
+	if (NULL == cs->end || cs->end <= cs->outbuf)
+		return FALSE;
+
+	if (cs->o == NULL || cs->o < cs->outbuf || cs->o > cs->end)
+		return FALSE;
+
+	if (cs->cp == NULL || cs->cp < cs->outbuf || cs->cp > cs->end)
+		return FALSE;
+
+	if (cs->saw_nul != TRUE && cs->saw_nul != FALSE)
+		return FALSE;
+
+	if (cs->closed != TRUE && cs->closed != FALSE)
+		return FALSE;
+
+	return TRUE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
