@@ -177,8 +177,8 @@ again:
 		node_flushq(q->node);
 
 	r = tx_writev(q->tx_drv, iov, iovcnt);
-	if (tx_has_error(q->tx_drv))
-		return;
+
+	g_assert(-1 == r || !tx_has_error(q->tx_drv));
 
 	if (r <= 0) {
 		q->last_written = 0;
@@ -328,7 +328,10 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 				node_flushq(q->node);
 
 			written = tx_write(q->tx_drv, mbs, size);
-			if (tx_has_error(q->tx_drv))
+
+			g_assert(-1 == written || !tx_has_error(q->tx_drv));
+
+			if (-1 == written)
 				goto cleanup;
 
 			if (prioritary && written == size) {
