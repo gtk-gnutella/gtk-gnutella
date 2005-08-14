@@ -297,6 +297,7 @@ ggept_gtkg_ipv6_extract(extvec_t *exv, host_addr_t *addr)
 	if (addr) {
 		if (0 == len) {
 			*addr = zero_host_addr;
+#ifdef USE_IPV6
 		} else {
 			const gchar *ip6;
 
@@ -304,6 +305,7 @@ ggept_gtkg_ipv6_extract(extvec_t *exv, host_addr_t *addr)
 			ip6 = ext_payload(exv);
 			host_addr_set_ip6(addr, cast_to_gconstpointer(ip6));
 		}
+#endif /* USE_IPV6 */
 	}
 
 	return GGEP_OK;
