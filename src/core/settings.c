@@ -98,14 +98,33 @@ static void update_uptimes(void);
 
 /* ----------------------------------------- */
 
+static host_addr_t
+listen_address(gboolean update)
+{
+	static host_addr_t addr;
+
+	if (update) {
+		const gchar *val;
+
+		val = force_local_ip ? forced_local_ip : local_ip;
+		addr = string_to_host_addr(val, NULL);
+	}
+	return addr;
+}
+
+static inline void
+listen_address_update(void)
+{
+	listen_address(TRUE);
+}
+
 /**
  * @return the currently used local listening address.
  */
 host_addr_t
 listen_addr(void)
 {
-	const gchar *s = force_local_ip ? forced_local_ip : local_ip;
-	return string_to_host_addr(s, NULL);
+	return listen_address(FALSE);
 }
 
 /**
@@ -667,11 +686,7 @@ update_address_lifetime(void)
 	guint64 current_ip_stamp;
 	host_addr_t addr;
 
-	{
-		const gchar *val;
-		val = force_local_ip ? forced_local_ip : local_ip;
-		addr = string_to_host_addr(val, NULL);
-	}
+	addr = listen_addr();
 
 	if (!is_host_addr(old_addr)) {				/* First time */
 		old_addr = addr;
@@ -1289,6 +1304,7 @@ static gboolean
 force_local_addr_changed(property_t prop)
 {
 	g_assert(PROP_FORCE_LOCAL_IP == prop);
+	listen_address_update();
 	update_address_lifetime();
     return FALSE;
 }
@@ -1297,6 +1313,7 @@ static gboolean
 local_addr_changed(property_t prop)
 {
 	g_assert(PROP_LOCAL_IP == prop);
+	listen_address_update();
 	update_address_lifetime();
     return FALSE;
 }
