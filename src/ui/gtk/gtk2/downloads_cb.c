@@ -37,6 +37,7 @@ RCSID("$Id$");
 #include "if/gnet_property.h"
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
+#include "if/core/sockets.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
