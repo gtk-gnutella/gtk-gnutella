@@ -84,6 +84,7 @@ static const gchar * const boot_hosts[] = {
 	"cache.kicks-ass.net:8000",
 	"gwc.jooz.net:8010",
 	"gwc.mine.nu:9999",
+	"gwc2.908middle.us:3559",
 	"kisama.ath.cx:8080",
 	"krill.shacknet.nu:20095",
 	"plankton.merseine.nu:20098",
