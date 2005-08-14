@@ -226,17 +226,21 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 					
 					if (sha1_hash_available(sf)) {
 						bh->d_buf = g_strconcat("<li>",
-								"<a href=\"/uri-res/N2R?urn:sha1:",
-								sha1_base32(sf->sha1_digest),
-								"\">", html_name, "</a></li>\r\n",
-								(void *) 0);
+							"<a href=\"/uri-res/N2R?urn:sha1:",
+							sha1_base32(sf->sha1_digest),
+							"\">", html_name, "</a>&nbsp;[",
+							short_html_size(sf->file_size),
+							"]</li>\r\n",
+							(void *) 0);
 					} else {
 						gchar *escaped;
 
 						escaped = url_escape(sf->name_nfc);
 						bh->d_buf = g_strdup_printf(
-								"<li><a href=\"/get/%u/%s\">%s</a></li>\r\n",
-								sf->file_index, escaped, html_name);
+							"<li><a href=\"/get/%u/%s\">%s</a>"
+							"&nbsp;[%s]</li>\r\n",
+							sf->file_index, escaped, html_name,
+							short_html_size(sf->file_size));
 						if (escaped != sf->name_nfc)
 							G_FREE_NULL(escaped);
 					}
