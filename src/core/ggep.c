@@ -77,13 +77,13 @@ ggep_stream_is_valid(ggep_stream_t *gs)
 		return FALSE;
 
 	if (gs->begun) {
-		if ((gs->flags & GGEP_W_COBS) && !cobs_stream_is_valid(&gs->cs))
+		if ((gs->flags & GGEP_F_COBS) && !cobs_stream_is_valid(&gs->cs))
 			return FALSE;
 
-		if ((gs->flags & GGEP_W_DEFLATE) && NULL == gs->zd)
+		if ((gs->flags & GGEP_F_DEFLATE) && NULL == gs->zd)
 			return FALSE;
 
-		if (!(gs->flags & GGEP_W_DEFLATE) && NULL != gs->zd)
+		if (!(gs->flags & GGEP_F_DEFLATE) && NULL != gs->zd)
 			return FALSE;
 	}
 
@@ -302,9 +302,9 @@ ggep_stream_begin(ggep_stream_t *gs, const gchar *id, guint32 wflags)
 
 	gs->begun = TRUE;
 
-	g_assert(!(gs->flags & GGEP_W_COBS) || cobs_stream_is_valid(&gs->cs));
-	g_assert(!(gs->flags & GGEP_W_DEFLATE) || gs->zd != NULL);
-	g_assert((gs->flags & GGEP_W_DEFLATE) || gs->zd == NULL);
+	g_assert(!(gs->flags & GGEP_F_COBS) || cobs_stream_is_valid(&gs->cs));
+	g_assert(!(gs->flags & GGEP_F_DEFLATE) || gs->zd != NULL);
+	g_assert((gs->flags & GGEP_F_DEFLATE) || gs->zd == NULL);
 
 	return TRUE;
 
