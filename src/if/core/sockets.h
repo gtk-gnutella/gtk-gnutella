@@ -48,8 +48,8 @@ enum {
 };
 
 enum {
-	CONNECT_F_FORCE	= (1 << 0),
-	CONNECT_F_TLS	= (1 << 1),
+	CONNECT_F_FORCE	= (1 << 0),		/* Bypass limitation checks */
+	CONNECT_F_TLS	= (1 << 1),		/* Initiate a TLS connection */
 };
 
 #endif /* _if_core_sockets_h_ */
