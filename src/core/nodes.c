@@ -3860,7 +3860,8 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 					"Too many normal nodes (%d max)", normal_connections);
 			else
 				node_send_error(n, 403, "Normal nodes refused");
-			node_remove(n, _("Rejected normal node (%d max)"), normal_connections);
+			node_remove(n, _("Rejected normal node (%d max)"),
+				normal_connections);
 			return FALSE;
 		}
 
@@ -3927,7 +3928,8 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			if (node_ultra_count >= max_ultrapeers) {
 				node_send_error(n, 503,
 					"Too many ultra connections (%d max)", max_ultrapeers);
-				node_remove(n, _("Too many ultra nodes (%d max)"), max_ultrapeers);
+				node_remove(n, _("Too many ultra nodes (%d max)"),
+					max_ultrapeers);
 				return FALSE;
 			}
 
@@ -5270,17 +5272,18 @@ void node_udp_gui_remove(void)
  * Add new node.
  */
 void
-node_add(const host_addr_t addr, guint16 port)
+node_add(const host_addr_t addr, guint16 port, guint32 flags)
 {
+	if (!is_host_addr(addr) || !port)
+		return;
+
 	if (
-		!is_host_addr(addr) ||
-		!port ||
-		hostiles_check(addr) ||
-		hcache_node_is_bad(addr)
+		!(CONNECTION_F_MANUALLY & flags) &&
+		(hostiles_check(addr) || hcache_node_is_bad(addr))
 	)
 		return;
 
-   	node_add_socket(NULL, addr, port);
+   	node_add_socket(NULL, addr, port, flags);
 }
 
 /**
@@ -5288,7 +5291,8 @@ node_add(const host_addr_t addr, guint16 port)
  * the socket is not NULL (incoming connection).
  */
 void
-node_add_socket(struct gnutella_socket *s, const host_addr_t addr, guint16 port)
+node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
+	guint16 port, guint32 flags)
 {
 	struct gnutella_node *n;
 	gboolean incoming = FALSE, already_connected = FALSE;
@@ -5361,13 +5365,13 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr, guint16 port)
 	 */
 
     if (
-		(current_peermode == NODE_P_LEAF && node_ultra_count >= max_ultrapeers)
-		||
+		(current_peermode == NODE_P_LEAF &&
+		 	node_ultra_count >= max_ultrapeers) ||
 		(current_peermode != NODE_P_LEAF &&
 			node_ultra_count + node_normal_count >= max_connections)
 	) {
         if (!already_connected) {
-			if (whitelist_check(addr)) {
+			if (whitelist_check(addr) || (CONNECTION_F_MANUALLY & flags)) {
 				/* Incoming whitelisted IP, and we're full. Remove one node. */
 				(void) node_remove_worst(FALSE);
 			} else if (use_netmasks && host_is_nearby(addr)) {
@@ -5435,7 +5439,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr, guint16 port)
 	} else {
 		/* We have to create an outgoing control connection for the node */
 
-		s = socket_connect(addr, port, SOCK_TYPE_CONTROL);
+		s = socket_connect(addr, port, SOCK_TYPE_CONTROL, flags);
 
 		if (s) {
 			n->status = GTA_NODE_CONNECTING;
@@ -7537,7 +7541,7 @@ node_connect_back(const gnutella_node_t *n, guint16 port)
 	 * from the socket layer.
 	 */
 
-	s = socket_connect(n->addr, port, SOCK_TYPE_CONNBACK);
+	s = socket_connect(n->addr, port, SOCK_TYPE_CONNBACK, 0);
 
 	if (s == NULL)
 		return;
