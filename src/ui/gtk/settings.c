@@ -1878,10 +1878,7 @@ update_address_information(void)
 		G_FREE_NULL(val);
 	}
 
-    if (
-		!host_addr_equal(old_address, current_addr) ||
-		old_port != listen_port
-	) {
+	{
 		const gchar *s = host_addr_port_to_string(current_addr, listen_port);
 
         old_address = current_addr;
