@@ -68,8 +68,9 @@ typedef enum ext_token {
 	EXT_T_GGEP_BH,			/**< Browseable host indication */
 	EXT_T_GGEP_CT,			/**< Resource creation time */
 	EXT_T_GGEP_DU,			/**< Daily Uptime */
-	EXT_T_GGEP_GTKGV1,		/**< GTKG version indication #1 */
+	EXT_T_GGEP_GTKG_IPV6,	/**< GTKG IPv6 address */
 	EXT_T_GGEP_GTKG_TLS,	/**< GTKG TLS support indication */
+	EXT_T_GGEP_GTKGV1,		/**< GTKG version indication #1 */
 	EXT_T_GGEP_GUE,			/**< GUESS support */
 	EXT_T_GGEP_H,			/**< GGEP binary hash value */
 	EXT_T_GGEP_HNAME,		/**< Hostname info, in query hits */

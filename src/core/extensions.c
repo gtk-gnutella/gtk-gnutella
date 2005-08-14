@@ -158,6 +158,7 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(BH),		/**< Browseable host indication */
 	GGEP_ID(CT),		/**< Resource creation time */
 	GGEP_ID(DU),		/**< Average servent uptime */
+	GGEP_GTKG_ID(IPV6),	/**< GTKG TLS support indication */
 	GGEP_GTKG_ID(TLS),	/**< GTKG TLS support indication */
 	GGEP_ID(GTKGV1),	/**< GTKG complete version number (binary) */
 	GGEP_ID(GUE),		/**< GUESS support */
