@@ -88,6 +88,7 @@
  * Structure keeping track of incremental GGEP writes.
  */
 typedef struct ggep_stream {
+	guint32 magic;			/**< Magic number */
 	gchar *outbuf;			/**< Base address of output buffer */
 	gchar *end;				/**< First address beyond output buffer */
 	gchar *o;				/**< Where next output should go */
@@ -121,6 +122,8 @@ gboolean ggep_stream_packv(ggep_stream_t *gs,
 	const gchar *id, const struct iovec *iov, gint iovcnt, guint32 wflags);
 gboolean ggep_stream_pack(ggep_stream_t *gs,
 	const gchar *id, gconstpointer payload, size_t plen, guint32 wflags);
+
+gboolean ggep_stream_is_valid(ggep_stream_t *gs);
 
 #endif	/* _core_ggep_h_ */
 

@@ -47,6 +47,49 @@ RCSID("$Id$");
 
 #include "lib/override.h"			/* Must be the last header included */
 
+#define GGEP_MAGIC_ID	0xaaee99e4U
+
+/**
+ * Check whether a GGEP stream descriptor is valid.
+ */
+gboolean
+ggep_stream_is_valid(ggep_stream_t *gs)
+{
+	if (NULL == gs)
+		return FALSE;
+
+	if (gs->magic != GGEP_MAGIC_ID)
+		return FALSE;
+
+	if (NULL == gs->outbuf)
+		return FALSE;
+
+	if (NULL == gs->end || gs->end <= gs->outbuf)
+		return FALSE;
+
+	if (NULL == gs->o || gs->o < gs->outbuf || gs->o > gs->end)
+		return FALSE;
+
+	if (gs->magic_emitted != TRUE && gs->magic_emitted != FALSE)
+		return FALSE;
+
+	if (gs->begun != TRUE && gs->begun != FALSE)
+		return FALSE;
+
+	if (gs->begun) {
+		if ((gs->flags & GGEP_W_COBS) && !cobs_stream_is_valid(&gs->cs))
+			return FALSE;
+
+		if ((gs->flags & GGEP_W_DEFLATE) && NULL == gs->zd)
+			return FALSE;
+
+		if (!(gs->flags & GGEP_W_DEFLATE) && NULL != gs->zd)
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
 /**
  * Initialize a GGEP stream object, capable of receiving multiple GGEP
  * extensions, written into the supplied buffer.
@@ -59,6 +102,9 @@ void
 ggep_stream_init(ggep_stream_t *gs, gpointer data, size_t len)
 {
 	g_assert(len <= INT_MAX);
+	g_assert(len != 0);
+
+	gs->magic = GGEP_MAGIC_ID;
 	gs->outbuf = data;
 	gs->size = len;
 	gs->end = &gs->outbuf[len];
@@ -67,6 +113,8 @@ ggep_stream_init(ggep_stream_t *gs, gpointer data, size_t len)
 	gs->magic_emitted = FALSE;
 	gs->begun = FALSE;
 	gs->zd = NULL;
+
+	g_assert(ggep_stream_is_valid(gs));
 }
 
 /**
@@ -88,6 +136,7 @@ ggep_stream_avail(ggep_stream_t *gs)
 static void
 ggep_stream_cleanup(ggep_stream_t *gs)
 {
+	g_assert(ggep_stream_is_valid(gs));
 	g_assert(gs->begun);
 
 	gs->begun = FALSE;
@@ -107,6 +156,8 @@ ggep_stream_cleanup(ggep_stream_t *gs)
 static inline gboolean
 ggep_stream_appendc(ggep_stream_t *gs, gchar c)
 {
+	g_assert(ggep_stream_is_valid(gs));
+
 	if (0 == ggep_stream_avail(gs))
 		return FALSE;
 
@@ -123,6 +174,8 @@ ggep_stream_appendc(ggep_stream_t *gs, gchar c)
 static inline gboolean
 ggep_stream_append(ggep_stream_t *gs, gconstpointer data, size_t len)
 {
+	g_assert(ggep_stream_is_valid(gs));
+
 	if (len > ggep_stream_avail(gs))
 		return FALSE;
 
@@ -148,6 +201,7 @@ ggep_stream_begin(ggep_stream_t *gs, const gchar *id, guint32 wflags)
 	gint idlen;
 	guint8 flags = 0;
 
+	g_assert(ggep_stream_is_valid(gs));
 	g_assert(gs->outbuf != NULL);		/* Stream not closed */
 
 	/*
@@ -244,7 +298,13 @@ ggep_stream_begin(ggep_stream_t *gs, const gchar *id, guint32 wflags)
 	 * All the data we'll now be appending count as payload data.
 	 */
 
+	g_assert(ggep_stream_is_valid(gs));
+
 	gs->begun = TRUE;
+
+	g_assert(!(gs->flags & GGEP_W_COBS) || cobs_stream_is_valid(&gs->cs));
+	g_assert(!(gs->flags & GGEP_W_DEFLATE) || gs->zd != NULL);
+	g_assert((gs->flags & GGEP_W_DEFLATE) || gs->zd == NULL);
 
 	return TRUE;
 
@@ -264,6 +324,7 @@ ggep_stream_writev(ggep_stream_t *gs, const struct iovec *iov, gint iovcnt)
 	const struct iovec *xiov;
 	gint i;
 
+	g_assert(ggep_stream_is_valid(gs));
 	g_assert(gs->begun);
 	g_assert(iovcnt >= 0);
 
@@ -341,6 +402,7 @@ ggep_stream_end(ggep_stream_t *gs)
 	gint8 hlen[3];
 	size_t slen;
 
+	g_assert(ggep_stream_is_valid(gs));
 	g_assert(gs->begun);
 
 	/*
