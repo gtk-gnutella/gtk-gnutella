@@ -34,6 +34,7 @@ RCSID("$Id$");
 #include "downloads_cb.h"
 
 #include "if/bridge/ui2c.h"
+#include "if/core/sockets.h"
 #include "if/gui_property_priv.h"
 
 #include "lib/override.h"	/* Must be the last header included */
@@ -529,7 +530,7 @@ on_popup_downloads_connect_activate(GtkMenuItem *unused_menuitem,
 	}
 
     gtk_ctree_unselect(ctree_downloads, l->data);
-    guc_node_add(download_addr(d), download_port(d));
+    guc_node_add(download_addr(d), download_port(d), CONNECT_F_FORCE);
 }
 
 /***
@@ -817,7 +818,7 @@ on_popup_queue_connect_activate(GtkMenuItem *unused_menuitem,
     }
 
     gtk_ctree_unselect(ctree_downloads_queue, l->data);
-    guc_node_add(download_addr(d), download_port(d));
+    guc_node_add(download_addr(d), download_port(d), CONNECT_F_FORCE);
 }
 
 /***
