@@ -364,7 +364,15 @@ host_addr_equal(const host_addr_t a, const host_addr_t b)
 		case NET_TYPE_IP4:
 			return a.addr.ip4 == b.addr.ip4;
 		case NET_TYPE_IP6:
-			return 0 == memcmp(a.addr.ip6, b.addr.ip6, sizeof a.addr.ip6);
+			if (0 != memcmp(a.addr.ip6, b.addr.ip6, sizeof a.addr.ip6)) {
+				host_addr_t a_ip4, b_ip4;
+
+				return host_addr_convert(&a, &a_ip4, NET_TYPE_IP4) &&
+					host_addr_convert(&b, &b_ip4, NET_TYPE_IP4) &&
+					a_ip4.addr.ip4 == b_ip4.addr.ip4;
+			}
+			return TRUE;
+			
 		case NET_TYPE_NONE:
 			return TRUE;
 		}
@@ -452,23 +460,29 @@ host_addr_family(const host_addr_t ha)
 }
 
 static inline guint32
-host_addr_hash(const host_addr_t ha)
+host_addr_hash(host_addr_t ha)
 {
-	guint32 h = ha.net;
-
 	switch (ha.net) {
-	case NET_TYPE_IP4:
-		return h ^ ha.addr.ip4;
 	case NET_TYPE_IP6:
 		{
-			guint i;
+			host_addr_t ha_ip4;
 
-			for (i = 0; i < sizeof ha.addr.ip6; i++)
-				h ^= ha.addr.ip6[i] << (i * 2);
+			if (!host_addr_convert(&ha, &ha_ip4, NET_TYPE_IP4)) {
+				guint32 h = ha.net ^ ha.addr.ip6[15];
+				guint i;
+
+				for (i = 0; i < sizeof ha.addr.ip6; i++)
+					h ^= (guint32) ha.addr.ip6[i] << (i * 2);
+
+				return h;
+			}
+			ha = ha_ip4;
 		}
-		return h;
+		/* FALL THROUGH */
+	case NET_TYPE_IP4:
+		return ha.net ^ ha.addr.ip4;
 	case NET_TYPE_NONE:
-		return h;
+		return 0;
 	}
 	g_assert_not_reached();
 	return -1; 
