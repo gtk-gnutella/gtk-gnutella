@@ -81,12 +81,14 @@ static struct uhc_context {
  * The following hosts are there for bootstrapping purposes only.
  */
 static const gchar * const boot_hosts[] = {
-	"uhc.udp-host-cache.com:9999",
+	"cache.kicks-ass.net:8000",
+	"gwc.jooz.net:8010",
+	"gwc.mine.nu:9999",
 	"kisama.ath.cx:8080",
 	"krill.shacknet.nu:20095",
-	"secondary.udp-host-cache.com:9999",
 	"plankton.merseine.nu:20098",
-	"cache.kicks-ass.net:8000",
+	"secondary.udp-host-cache.com:9999",
+	"uhc.udp-host-cache.com:9999",
 };
 
 static gboolean uhc_connecting = FALSE;
