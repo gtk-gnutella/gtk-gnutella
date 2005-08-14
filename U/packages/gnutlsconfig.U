@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:gnutlsconfig gnutlscflags gnutlsldflags d_gnutls: awk cat Myread
+?MAKE:gnutlsconfig gnutlscflags gnutlsldflags d_gnutls: awk cat Myread Setvar
 ?MAKE:	-pick add $@ %<
 ?S:d_gnutls:
 ?S: This variable determines if HAS_GNUTLS will be defined.
@@ -23,17 +23,23 @@
 ?C:.
 ?H:#$d_gnutls HAS_GNUTLS  /**/
 ?H:.
-?T:modver version gnutls vint
+?T:modver version vint gnutls
+?LINT: set d_gnutls
 : how can we find information about GNU TLS?
 echo " "
-d_gnutls="$define"
+case "$d_gnutls" in
+"$undef") gnutls="$undef";;
+*) gnutls="$define";;
+esac
 echo "Checking how we can gather information about GNU TLS..." >&4
 if pkg-config gnutls --cflags >/dev/null 2>&1; then
 	gnutlsconfig="pkg-config gnutls"
 	modver=--modversion
+elif libgnutls-config --cflags >/dev/null 2>&1; then
+	gnutlsconfig="libgnutls-config"
+	modver=--version
 else
 	echo "You've don't seem to have GNU TLS installed?" >&4
-	d_gnutls="$undef"
 	gnutlsconfig='false'
 	modver=''
 fi
@@ -42,18 +48,18 @@ echo "(I'll use '$gnutlsconfig' to gather that information.)"
 ?X: Make sure we have a good enough version
 gnutlscflags=""
 gnutlsldflags=""
-d_gnutls="$undef"
 version=`$gnutlsconfig $modver`
+val="$undef"
 case "$version" in
 '') ;;
 *)
+	gnutlscflags=`$gnutlsconfig --cflags`
+	gnutlsldflags=`$gnutlsconfig --libs`
 	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
-	if test 0$vint -lt 010205; then
-		echo "Sorry, you have GNU TLS $version, I need at least 1.2.5." >&4
+	if test 0$vint -lt 010016; then
+		echo "Sorry, you have GNU TLS $version, I need at least 1.0.16." >&4
 	else
 		echo "Good, you have GNU TLS $version."
-		gnutlscflags=`$gnutlsconfig --cflags`
-		gnutlsldflags=`$gnutlsconfig --libs`
 		
 		$cat <<'EOM'
 
@@ -63,16 +69,18 @@ For more information, see http://www.gnu.org/software/gnutls/.
 
 EOM
 		case "$gnutls" in
-		false) dflt=n;;
-		*) dflt=y;;
+		"$define") dflt=y;;
+		*) dflt=n;;
 		esac
 		rp="Enable GNU TLS support"
 		. ./myread
 		case "$ans" in
-		y) gnutls=true; d_gnutls="$define";;
-		*) gnutls=false; d_gnutls="$undef";;
+		y) val="$define";;
+		*) val="$undef";;
 		esac
 	fi
 	;;
 esac
+set d_gnutls
+eval $setvar
 
