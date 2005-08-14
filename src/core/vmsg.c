@@ -740,7 +740,7 @@ vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid, gint version)
 	payload = vmsg_fill_type(&m->data, T_LIME, 22, version);
 
 	if (version >= 2) {
-		payload = poke_be32(payload, host_addr_ip4(listen_addr()));
+		payload = poke_be32(payload, host_addr_ipv4(listen_addr()));
 	}
 
 	poke_le16(payload, listen_port);
@@ -832,7 +832,7 @@ handle_proxy_ack(struct gnutella_node *n,
 	}
 
 	if (vmsg->version >= 2) {
-		ha = host_addr_set_ip4(peek_be32(payload));
+		ha = host_addr_set_ipv4(peek_be32(payload));
 		payload += 4;
 	} else {
 		ha = n->addr;

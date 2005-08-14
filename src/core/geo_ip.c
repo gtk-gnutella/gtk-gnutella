@@ -351,11 +351,11 @@ gip_country(const host_addr_t ha)
 {
 	host_addr_t to;
 
-	if (host_addr_convert(&ha, &to, NET_TYPE_IP4)) {
+	if (host_addr_convert(&ha, &to, NET_TYPE_IPV4)) {
 		gpointer code;
 		guint32 ip;
 	
-		ip = host_addr_ip4(to);
+		ip = host_addr_ipv4(to);
 		if (geo_db && NULL != (code = iprange_get(geo_db, ip)))
 			return (GPOINTER_TO_INT(code) >> 1) - 1;
 	}

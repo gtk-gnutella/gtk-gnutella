@@ -223,7 +223,7 @@ found_set_header(void)
 	connect_speed /= MAX(1, max_uploads);	/* Upload speed expected per slot */
 
 	WRITE_GUINT16_LE(listen_port, search_head->host_port);
-	WRITE_GUINT32_BE(host_addr_ip4(listen_addr()), search_head->host_ip);
+	WRITE_GUINT32_BE(host_addr_ipv4(listen_addr()), search_head->host_ip);
 	WRITE_GUINT32_LE(connect_speed, search_head->host_speed);
 }
 
@@ -417,8 +417,8 @@ flush_match(void)
 			) {
 				struct gnutella_node *n = l->data;
 
-				if (NET_TYPE_IP4 == host_addr_net(n->proxy_addr)) {
-					WRITE_GUINT32_BE(host_addr_ip4(n->proxy_addr), &proxy[0]);
+				if (NET_TYPE_IPV4 == host_addr_net(n->proxy_addr)) {
+					WRITE_GUINT32_BE(host_addr_ipv4(n->proxy_addr), &proxy[0]);
 					WRITE_GUINT16_LE(n->proxy_port, &proxy[4]);
 					ok = ggep_stream_write(&gs, proxy, sizeof proxy);
 				}
@@ -450,13 +450,13 @@ flush_match(void)
 
 #ifdef USE_IPV6
 	if (
-		NET_TYPE_IP6 == host_addr_net(listen_addr()) &&
-		!host_addr_can_convert(listen_addr(), NET_TYPE_IP4)
+		NET_TYPE_IPV6 == host_addr_net(listen_addr()) &&
+		!host_addr_can_convert(listen_addr(), NET_TYPE_IPV4)
 	) {
 		const host_addr_t addr = listen_addr();
-		const guint8 *ip6 = host_addr_ip6(&addr);
+		const guint8 *ipv6 = host_addr_ipv6(&addr);
 
-		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6), ip6, 16, 0))
+		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6), ipv6, 16, 0))
 			g_warning("could not write GGEP \"GTKG.IPV6\" extension "
 				"into query hit");
 	}
@@ -665,8 +665,8 @@ add_file(struct shared_file *sf)
 		ok = ggep_stream_begin(&gs, GGEP_NAME(ALT), GGEP_W_COBS);
 
 		for (i = 0; ok && i < hcnt; i++) {
-			if (NET_TYPE_IP4 == host_addr_net(hvec[i].addr)) {
-				WRITE_GUINT32_BE(host_addr_ip4(hvec[i].addr), &alt[0]);
+			if (NET_TYPE_IPV4 == host_addr_net(hvec[i].addr)) {
+				WRITE_GUINT32_BE(host_addr_ipv4(hvec[i].addr), &alt[0]);
 				WRITE_GUINT16_LE(hvec[i].port, &alt[4]);
 				ok = ggep_stream_write(&gs, alt, sizeof alt);
 			}

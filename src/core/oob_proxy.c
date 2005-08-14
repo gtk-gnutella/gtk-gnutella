@@ -171,7 +171,7 @@ oob_proxy_create(gnutella_node_t *n)
 	 * Mangle the MUID of the query to insert our own IP:port.
 	 */
 
-	ip = host_addr_ip4(listen_addr()); /* @todo TODO: IPv6 */
+	ip = host_addr_ipv4(listen_addr()); /* @todo TODO: IPv6 */
 	memcpy(proxied_muid, n->header.muid, 16);
 	poke_be32(&proxied_muid[0], ip);
 	poke_le16(&proxied_muid[13], listen_port);

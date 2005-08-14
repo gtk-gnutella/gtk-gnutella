@@ -480,7 +480,7 @@ static void
 build_push(struct gnutella_msg_push_request *m,
 	gchar *guid, const host_addr_t addr, guint16 port, guint32 file_idx)
 {
-	guint32 ip = host_addr_ip4(addr);	/* XXX: Check whether it's IPv4 */
+	guint32 ip = host_addr_ipv4(addr);	/* XXX: Check whether it's IPv4 */
 
 	message_set_muid(&m->header, GTA_MSG_PUSH_REQUEST);
 

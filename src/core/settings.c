@@ -916,14 +916,14 @@ listen_port_changed(property_t prop)
 			switch (network_protocol) {
 			case NET_USE_BOTH:
 			case NET_USE_IPV4:
-				listen_ha = host_addr_set_ip4(INADDR_ANY);
+				listen_ha = host_addr_set_ipv4(INADDR_ANY);
 				break;
 #ifdef USE_IPV6
 			case NET_USE_IPV6:
 				{
-					static const guint8 zero_ip6_addr[16];
+					static const guint8 zero_ipv6_addr[16];
 
-					host_addr_set_ip6(&listen_ha, zero_ip6_addr);
+					host_addr_set_ipv6(&listen_ha, zero_ipv6_addr);
 				}
 				break;
 #endif /* USE_IPV6 */

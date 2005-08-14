@@ -143,8 +143,8 @@ udp_received(struct gnutella_socket *s)
 	 */
 
 	if (
-		NET_TYPE_IP4 == host_addr_net(s->addr) &&
-		0x7f000001 == host_addr_ip4(s->addr) &&
+		NET_TYPE_IPV4 == host_addr_net(s->addr) &&
+		0x7f000001 == host_addr_ipv4(s->addr) &&
 		NTP_PORT == s->port
 	)
 	{	/* from 127.0.0.1:123 */

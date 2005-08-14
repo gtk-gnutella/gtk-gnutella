@@ -340,11 +340,11 @@ hostiles_check(const host_addr_t ha)
 {
 	host_addr_t to;
 	
-	if (host_addr_convert(&ha, &to, NET_TYPE_IP4)) {
+	if (host_addr_convert(&ha, &to, NET_TYPE_IPV4)) {
 		guint32 ip;
 		gint i;
 
-		ip = host_addr_ip4(to);
+		ip = host_addr_ipv4(to);
 
 		for (i = 0; i < NUM_HOSTILES; i++) {
 			if (i == HOSTILE_GLOBAL && !use_global_hostiles_txt)

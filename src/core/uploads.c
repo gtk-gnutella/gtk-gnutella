@@ -514,7 +514,7 @@ handle_push_request(struct gnutella_node *n)
 	info = n->data + 16;					/* Start of file information */
 
 	file_index = peek_le32(&info[0]);
-	ha = host_addr_set_ip4(peek_be32(&info[4]));
+	ha = host_addr_set_ipv4(peek_be32(&info[4]));
 	port = peek_le16(&info[8]);
 
 	/*

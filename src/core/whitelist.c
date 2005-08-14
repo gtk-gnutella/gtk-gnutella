@@ -65,6 +65,8 @@ whitelist_retrieve(void)
     int linenum = 0;
 	file_path_t fp[1];
 
+    whitelist_checked = time(NULL);
+
 	file_path_set(fp, settings_config_dir(), whitelist_file);
 	f = file_config_open_read_norename("Host Whitelist", fp, G_N_ELEMENTS(fp));
 	if (!f)
@@ -75,7 +77,6 @@ whitelist_retrieve(void)
 		fclose(f);
 		return;
 	}
-    whitelist_checked = time(NULL);
     whitelist_mtime = st.st_mtime;
 
     while (fgets(line, sizeof line, f)) {
@@ -185,7 +186,7 @@ whitelist_retrieve(void)
 				}
 
 				if (string_to_ip_strict(endptr, &mask, &ep)) {
-					if (NET_TYPE_IP4 != host_addr_net(addr)) {
+					if (NET_TYPE_IPV4 != host_addr_net(addr)) {
 						g_warning("whitelist_retrieve(): Line %d: "
 							"IPv4 netmask after non-IPv4 address", linenum);
 						addr = zero_host_addr;
@@ -208,8 +209,8 @@ whitelist_retrieve(void)
 					if (
 						error ||
 						0 == v ||
-						(v > 32 && NET_TYPE_IP4 == host_addr_net(addr)) ||
-						(v > 128 && NET_TYPE_IP6 == host_addr_net(addr))
+						(v > 32 && NET_TYPE_IPV4 == host_addr_net(addr)) ||
+						(v > 128 && NET_TYPE_IPV6 == host_addr_net(addr))
 					) {
 						g_warning("whitelist_retrieve(): Line %d: "
 							"Invalid numeric netmask after host", linenum);
@@ -233,10 +234,10 @@ whitelist_retrieve(void)
 		if (0 == bits)	{
 			/* Default mask */
 			switch (host_addr_net(addr)) {
-			case NET_TYPE_IP4:
+			case NET_TYPE_IPV4:
         		bits = 32;
 				break;
-			case NET_TYPE_IP6:
+			case NET_TYPE_IPV6:
         		bits = 128;
 				break;
 			case NET_TYPE_NONE:

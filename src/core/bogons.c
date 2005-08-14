@@ -239,13 +239,13 @@ bogons_close(void)
 gboolean
 bogons_check(const host_addr_t ha)
 {
-	if (NET_TYPE_IP4 == host_addr_net(ha)) {
-		guint32 ip = host_addr_ip4(ha);
+	if (NET_TYPE_IPV4 == host_addr_net(ha)) {
+		guint32 ip = host_addr_ipv4(ha);
 		return bogons_db != NULL && THERE == iprange_get(bogons_db, ip);
-	} else if (NET_TYPE_IP6 == host_addr_net(ha)) {
+	} else if (NET_TYPE_IPV6 == host_addr_net(ha)) {
 		host_addr_t to;
 		
-		if (host_addr_convert(&ha, &to, NET_TYPE_IP4))
+		if (host_addr_convert(&ha, &to, NET_TYPE_IPV4))
 			return bogons_check(to);
 	}
 

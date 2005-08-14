@@ -2066,7 +2066,7 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
 					guint32 ip;
 
 					/* @todo TODO: IPv6  */
-					ip = host_addr_ip4(rec->results_set->addr);
+					ip = host_addr_ipv4(rec->results_set->addr);
                 	if ((ip & r->u.ip.mask) == r->u.ip.addr)
                     	match = TRUE;
 				}
@@ -2605,7 +2605,7 @@ filter_add_drop_host_rule(const struct record *rec, filter_t *filter)
 	g_assert(rec->magic == RECORD_MAGIC);
 	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
-	ip = host_addr_ip4(rec->results_set->addr); /* @todo TODO: IPv6  */
+	ip = host_addr_ipv4(rec->results_set->addr); /* @todo TODO: IPv6  */
     rule = filter_new_ip_rule(ip, 0xFFFFFFFF,
         		filter_get_drop_target(), RULE_FLAG_ACTIVE);
 

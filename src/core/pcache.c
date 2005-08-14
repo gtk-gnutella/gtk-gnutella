@@ -242,7 +242,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 	pong->header.ttl = ttl;
 	memcpy(&pong->header.muid, muid, 16);
 
-	ip = host_addr_ip4(info->addr); /* @todo TODO: IPv6 */
+	ip = host_addr_ipv4(info->addr); /* @todo TODO: IPv6 */
 	WRITE_GUINT16_LE(info->port, pong->response.host_port);
 	WRITE_GUINT32_BE(ip, pong->response.host_ip);
 	WRITE_GUINT32_LE(info->files_count, pong->response.files_count);
@@ -340,10 +340,10 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 			ok = ggep_stream_begin(&gs, GGEP_NAME(IPP), 0);
 
 			for (i = 0; ok && i < hcount; i++) {
-				if (NET_TYPE_IP4 == host_addr_net(host[i].addr)) {
+				if (NET_TYPE_IPV4 == host_addr_net(host[i].addr)) {
 					guint32 ip;
 
-					ip = host_addr_ip4(host[i].addr); /* @todo TODO: IPv6 */
+					ip = host_addr_ipv4(host[i].addr); /* @todo TODO: IPv6 */
 					poke_be32(&addr[0], ip);
 					poke_le16(&addr[4], host[i].port);
 					ok = ggep_stream_write(&gs, addr, sizeof addr);
@@ -354,7 +354,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		}
 	}
 
-	if ((flags & PING_F_IP) && NET_TYPE_IP4 == host_addr_net(sender_addr)) {
+	if ((flags & PING_F_IP) && NET_TYPE_IPV4 == host_addr_net(sender_addr)) {
 		gchar ip_port[6];
 
 		/* Ip Port (not UHC IPP!)*/
@@ -362,7 +362,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 			g_message("Adding GGEP IP for %s",
 				host_addr_port_to_string(sender_addr, sender_port));
 
-		poke_be32(&ip_port[0], host_addr_ip4(sender_addr));
+		poke_be32(&ip_port[0], host_addr_ipv4(sender_addr));
 		poke_le16(&ip_port[4], sender_port);
 		ggep_stream_pack(&gs, GGEP_NAME(IP), ip_port, sizeof ip_port, 0);
 	}
@@ -1919,7 +1919,7 @@ pcache_pong_received(struct gnutella_node *n)
 	 */
 
 	port = peek_le16(&n->data[0]);
-	addr = host_addr_set_ip4(peek_be32(&n->data[2])); /* @todo TODO: IPv6 */
+	addr = host_addr_set_ipv4(peek_be32(&n->data[2])); /* @todo TODO: IPv6 */
 	files_count = peek_le32(&n->data[6]);
 	kbytes_count = peek_le32(&n->data[10]);
 

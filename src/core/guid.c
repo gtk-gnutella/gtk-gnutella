@@ -407,7 +407,7 @@ guid_query_oob_muid(gchar *muid, const host_addr_t addr, guint16 port,
 
 	guid_random_fill(muid);
 
-	ip = host_addr_ip4(addr); /* @todo TODO: IPv6 */
+	ip = host_addr_ipv4(addr); /* @todo TODO: IPv6 */
 	poke_be32(&muid[0], ip);
 	poke_le16(&muid[13], port);
 
@@ -433,7 +433,7 @@ guid_oob_get_addr_port(const gchar *guid, host_addr_t *addr, guint16 *port)
 		guint32 ip;
 
 		ip = peek_be32(&guid[0]);
-		*addr = host_addr_set_ip4(ip); /* @todo TODO: IPv6 */
+		*addr = host_addr_set_ipv4(ip); /* @todo TODO: IPv6 */
 	}
 	if (port) {
 		*port = peek_le16(&guid[13]);

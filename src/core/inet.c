@@ -198,7 +198,7 @@ is_local_addr(const host_addr_t addr)
 		return TRUE;
 
 	switch (host_addr_net(addr)) {
-	case NET_TYPE_IP4:
+	case NET_TYPE_IPV4:
 		{
 			static host_addr_t loopback;
 
@@ -208,7 +208,7 @@ is_local_addr(const host_addr_t addr)
 			return	host_addr_matches(addr, loopback, 8) ||
 					host_addr_matches(addr, our_addr, 24); /* Same LAN/24 */
 		}
-	case NET_TYPE_IP6:
+	case NET_TYPE_IPV6:
 #ifdef USE_IPV6
 		{
 			static host_addr_t link_local, site_local;

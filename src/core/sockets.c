@@ -118,17 +118,17 @@ socket_addr_set(socket_addr_t *addr, const host_addr_t ha, guint16 port)
 	*addr = zero_addr;
 
 	switch (host_addr_net(ha)) {
-	case NET_TYPE_IP4:
+	case NET_TYPE_IPV4:
 		addr->inet4.sin_family = AF_INET;	/* host byte order */
 		addr->inet4.sin_port = htons(port);
-		addr->inet4.sin_addr.s_addr = htonl(host_addr_ip4(ha));
+		addr->inet4.sin_addr.s_addr = htonl(host_addr_ipv4(ha));
 		return;
 		
 #if defined(USE_IPV6)	
-	case NET_TYPE_IP6:
+	case NET_TYPE_IPV6:
 		addr->inet6.sin6_family = AF_INET6;	/* host byte order */
 		addr->inet6.sin6_port = htons(port);
-		memcpy(addr->inet6.sin6_addr.s6_addr, ha.addr.ip6, 16);
+		memcpy(addr->inet6.sin6_addr.s6_addr, ha.addr.ipv6, 16);
 		return;
 #endif /* USE_IPV6 */
 		
@@ -152,10 +152,10 @@ socket_addr_get_addr(const socket_addr_t *addr)
 	g_assert(addr);
 	
 	if (AF_INET == addr->inet4.sin_family) {
-		ha = host_addr_set_ip4(ntohl(addr->inet4.sin_addr.s_addr));
+		ha = host_addr_set_ipv4(ntohl(addr->inet4.sin_addr.s_addr));
 #if defined(USE_IPV6)
 	} else if (AF_INET6 == addr->inet6.sin6_family) {
-		host_addr_set_ip6(&ha, addr->inet6.sin6_addr.s6_addr);
+		host_addr_set_ipv6(&ha, addr->inet6.sin6_addr.s6_addr);
 #endif /* IPV6 */
 	} else {
 		ha = zero_host_addr;	
@@ -298,7 +298,7 @@ sol_ip(void)
 static void
 socket_tos(struct gnutella_socket *s, gint tos)
 {
-	if (!use_ip_tos || NET_TYPE_IP4 != s->net)
+	if (!use_ip_tos || NET_TYPE_IPV4 != s->net)
 		return;
 
 	if (-1 == setsockopt(s->file_desc, sol_ip(), IP_TOS, &tos, sizeof tos)) {
@@ -464,7 +464,7 @@ send_socks4(struct gnutella_socket *s)
 	host_addr_t addr;
 
 	/* SOCKS4 is IPv4 only */
-	if (!host_addr_convert(&s->addr, &addr, NET_TYPE_IP4))
+	if (!host_addr_convert(&s->addr, &addr, NET_TYPE_IPV4))
 		return -1;
 	
 	/* Create the request */
@@ -483,7 +483,7 @@ send_socks4(struct gnutella_socket *s)
 		req->version = 4;	/* SOCKS 4 */
 		req->command = 1;	/* Connect */
 		poke_be16(req->dstport, s->port);
-		poke_be32(req->dstip, host_addr_ip4(addr));
+		poke_be32(req->dstip, host_addr_ipv4(addr));
 		length = sizeof *req;
 	}
 
@@ -721,18 +721,18 @@ connect_socksv5(struct gnutella_socket *s)
 
 	sockid = s->file_desc;
 
-	if (!host_addr_convert(&s->addr, &addr, NET_TYPE_IP4))
+	if (!host_addr_convert(&s->addr, &addr, NET_TYPE_IPV4))
 		addr = s->addr;
 
 	{
 		gboolean ok = FALSE;
 		
 		switch (host_addr_net(addr)) {
-		case NET_TYPE_IP4:
+		case NET_TYPE_IPV4:
 			ok = TRUE;
 			break;
 #ifdef USE_IPV6
-		case NET_TYPE_IP6:
+		case NET_TYPE_IPV6:
 			ok = TRUE;
 			break;
 #endif /* USE_IPV6 */
@@ -858,17 +858,17 @@ connect_socksv5(struct gnutella_socket *s)
 
 		size = 0;
 		switch (host_addr_net(addr)) {
-		case NET_TYPE_IP4:
+		case NET_TYPE_IPV4:
 			s->buffer[3] = 0x01;		/* IP version 4	*/
-			poke_be32(&s->buffer[4], host_addr_ip4(addr));
+			poke_be32(&s->buffer[4], host_addr_ipv4(addr));
 			poke_be16(&s->buffer[8], s->port);
 			size = 10;
 			break;
 
-		case NET_TYPE_IP6:
+		case NET_TYPE_IPV6:
 #ifdef USE_IPV6		
 			s->buffer[3] = 0x04;		/* IP version 6	*/
-			memcpy(&s->buffer[4], host_addr_ip6(&addr), 16);
+			memcpy(&s->buffer[4], host_addr_ipv6(&addr), 16);
 			poke_be16(&s->buffer[20], s->port);
 			size = 22;
 			break;
@@ -1857,7 +1857,7 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 
 	len = sizeof sin;
 	if (-1 != getsockname(fd, cast_to_gpointer(&sin), &len)) {
-		ha = host_addr_set_ip4(ntohl(sin.sin_addr.s_addr));
+		ha = host_addr_set_ipv4(ntohl(sin.sin_addr.s_addr));
 		port = sin.sin_port;
 	}
 
@@ -1867,7 +1867,7 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 
 		len = sizeof sin6;
 		if (-1 != getsockname(fd, cast_to_gpointer(&sin6), &len)) {
-			host_addr_set_ip6(&ha, sin6.sin6_addr.s6_addr);
+			host_addr_set_ipv6(&ha, sin6.sin6_addr.s6_addr);
 			port = sin6.sin6_port;
 		}
 	}
@@ -2082,12 +2082,12 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	from_addr = s->resource.handle;
 
 	switch (s->net) {
-	case NET_TYPE_IP4:
+	case NET_TYPE_IPV4:
 		from = &from_addr->inet4;
 		from_len = sizeof from_addr->inet4;
 		break;
 #ifdef USE_IPV6
-	case NET_TYPE_IP6:
+	case NET_TYPE_IPV6:
 		from = &from_addr->inet6;
 		from_len = sizeof from_addr->inet6;
 		break;
@@ -2389,7 +2389,7 @@ socket_connect_by_name(const gchar *host, guint16 port,
 
 	g_assert(host);
 	
-	ha = host_addr_set_ip4(0); /* @todo TODO IPv6 */
+	ha = host_addr_set_ipv4(0); /* @todo TODO IPv6 */
 	s = socket_connect_prepare(ha, port, type, flags);
 	g_return_val_if_fail(NULL != s, NULL);
 

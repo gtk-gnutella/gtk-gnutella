@@ -3993,18 +3993,18 @@ send_push_request(const gchar *guid, guint32 file_id, guint16 port)
 	ip = 0;
 	addr = listen_addr();
 	switch (host_addr_net(addr)) {
-	case NET_TYPE_IP6:
+	case NET_TYPE_IPV6:
 		{
 			const host_addr_t from = addr;
 
-			if (!host_addr_convert(&from, &addr, NET_TYPE_IP4)) {
+			if (!host_addr_convert(&from, &addr, NET_TYPE_IPV4)) {
 				/* XXX: Add GGEP GTKG.IPV6 for IPv6 */
 				break;
 			}
 		}
 		/* FALL THROUGH */
-	case NET_TYPE_IP4:
-		ip = host_addr_ip4(addr);
+	case NET_TYPE_IPV4:
+		ip = host_addr_ipv4(addr);
 		break;
 	case NET_TYPE_NONE:
 		break;

@@ -593,7 +593,7 @@ node_extract_host(const struct gnutella_node *n,
 	READ_GUINT32_BE(r->host_ip, hip);		/* IP address */
 	READ_GUINT16_LE(r->host_port, hport);	/* Port */
 
-	*ha = host_addr_set_ip4(hip);
+	*ha = host_addr_set_ipv4(hip);
 	*port = hport;
 }
 
@@ -7919,7 +7919,7 @@ node_crawl_fill(pmsg_t *mb,
 		 * Add node's address (IP:port).
 		 */
 
-		ip = host_addr_ip4(n->gnet_addr);	/* XXX: Check whether it's IPv4 */
+		ip = host_addr_ipv4(n->gnet_addr);	/* XXX: Check whether it's IPv4 */
 		memcpy(&addr[0], &ip, 4);
 		WRITE_GUINT16_LE(n->gnet_port, &addr[4]);
 

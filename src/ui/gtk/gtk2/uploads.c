@@ -220,8 +220,8 @@ static gint CAT2(compare_,field)( \
 #define COMPARE_FUNC_END } }
 
 COMPARE_FUNC(hosts)
-	guint32 ip_a = host_addr_ip4(rd_a->addr);
-	guint32 ip_b = host_addr_ip4(rd_b->addr);
+	guint32 ip_a = host_addr_ipv4(rd_a->addr);
+	guint32 ip_b = host_addr_ipv4(rd_b->addr);
 	return CMP(ip_a, ip_b);
 COMPARE_FUNC_END
 
