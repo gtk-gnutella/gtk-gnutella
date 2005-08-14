@@ -48,8 +48,8 @@ enum {
 };
 
 enum {
-	CONNECTION_F_MANUALLY	= (1 << 0),
-	CONNECTION_F_TLS		= (1 << 1),
+	CONNECT_F_FORCE	= (1 << 0),
+	CONNECT_F_TLS	= (1 << 1),
 };
 
 #endif /* _if_core_sockets_h_ */
