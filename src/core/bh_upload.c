@@ -71,6 +71,7 @@ enum bh_state {
 	BH_STATE_HEADER = 0,	/* Sending header */
 	BH_STATE_LIBRARY_INFO,	/* Info on library */
 	BH_STATE_FILES,			/* Sending file data (URI, Hash, Size etc.) */
+	BH_STATE_REBUILDING,	/* If the library is suddenly rebuild */
 	BH_STATE_TRAILER,		/* Sending trailer data */
 	BH_STATE_EOF,			/* All data sent (End Of File) */
 	
@@ -241,7 +242,7 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 						browse_host_next_state(bh, BH_STATE_TRAILER);
 					/* Skip holes in the file_index table */
 				} else if (SHARE_REBUILDING == sf) {
-					browse_host_next_state(bh, BH_STATE_TRAILER);
+					browse_host_next_state(bh, BH_STATE_REBUILDING);
 				} else {
 					size_t html_size;
 					gchar *html_name;
@@ -283,6 +284,24 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 			if (bh->b_data)
 				p += browse_host_read_data(bh, p, &size);
 
+			break;
+			
+		case BH_STATE_REBUILDING:
+			if (!bh->b_data) {
+				static const gchar msg[] =
+					"<li>"
+						"<b>"
+							"The library is currently being rebuild. Please, "
+							"try again in a moment."
+						"</b>"
+					"</li>";
+
+				bh->b_data = msg;
+				bh->b_size = CONST_STRLEN(msg);
+			}
+			p += browse_host_read_data(bh, p, &size);
+			if (bh->b_size == bh->b_offset)
+				browse_host_next_state(bh, BH_STATE_TRAILER);
 			break;
 			
 		case BH_STATE_EOF:
