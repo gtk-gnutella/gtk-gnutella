@@ -2370,7 +2370,7 @@ prepare_browsing(gnutella_upload_t *u, header_t *header, gchar *request,
 		!is_strprefix(buf, server_hostname) &&
 		upload_likely_from_browser(header)
 	) {
-		static const gchar fmt[] = "Location: http://%s:%u/\r\n;
+		static const gchar fmt[] = "Location: http://%s:%u/\r\n";
 		static gchar buf[sizeof fmt + UINT16_DEC_BUFLEN + MAX_HOSTLEN];
 
 		gm_snprintf(buf, sizeof buf, fmt, server_hostname, listen_port);
