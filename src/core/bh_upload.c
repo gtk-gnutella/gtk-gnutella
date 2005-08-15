@@ -86,7 +86,8 @@ struct browse_host_ctx {
 	struct special_ctx special;	/**< vtable, MUST be first field */
 	enum bh_type type;		/**< Type of data to send back */
 	txdrv_t *tx;			/**< The transmission stack */
-	gpointer d_buf;			/**< Used for dynamically allocated buffer */
+	gchar *w_buf;			/**< Used for dynamically wallocated buffer */
+	size_t w_buf_size;		/**< Size of the wallocated buffer */
 	const gchar *b_data;	/**< Current data block */
 	size_t b_offset;		/**< Offset in data block */
 	size_t b_size;			/**< Size of the data block */
@@ -136,7 +137,8 @@ browse_host_next_state(struct browse_host_ctx *bh, enum bh_state state)
 {
 	g_assert(NULL != bh);
 	g_assert((gint) state >= 0 && state < NUM_BH_STATES);
-	bh->d_buf = NULL;
+	bh->w_buf = NULL;
+	bh->w_buf_size = 0;
 	bh->b_data = NULL;
 	bh->b_size = 0;
 	bh->b_offset = 0;
@@ -190,16 +192,19 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 
 		case BH_STATE_LIBRARY_INFO:
 			if (!bh->b_data) {
-				bh->d_buf = g_strdup_printf("<h1>Gtk-Gnutella</h1>\r\n"
-					"<h3>%s sharing %lu file%s, %s total</h3>\r\n"
-					"<ul>\r\n",
-					version_get_string(),
-					(gulong) shared_files_scanned(),
+				bh->b_size = w_concat_strings(&bh->w_buf,
+					"<h1>Gtk-Gnutella</h1>\r\n"
+					"<h3>", version_get_string(),
+				   	" sharing ",
+					uint64_to_string(shared_files_scanned()),
+					" file",
 					shared_files_scanned() == 1 ? "" : "s",
-					short_kb_size(shared_kbytes_scanned())
-				);
-				bh->b_data = bh->d_buf;
-				bh->b_size = strlen(bh->b_data);
+					" ",
+					short_kb_size(shared_kbytes_scanned()),
+					" total</h3>\r\n"
+					"<ul>\r\n", (void *) 0);
+				bh->b_data = bh->w_buf;
+				bh->w_buf_size = 1 + bh->b_size;
 				bh->b_offset = 0;
 			}
 			p += browse_host_read_data(bh, p, &size);
@@ -219,8 +224,10 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 
 		case BH_STATE_FILES:
 			if (bh->b_data && bh->b_size == bh->b_offset) {
-				g_assert(bh->d_buf == bh->b_data);
-				G_FREE_NULL(bh->d_buf);
+				g_assert(bh->w_buf == bh->b_data);
+				wfree(bh->w_buf, bh->w_buf_size);
+				bh->w_buf = NULL;
+				bh->w_buf_size = 0;
 				bh->b_data = NULL;
 			}
 		
@@ -244,8 +251,8 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 					html_escape(sf->name_nfc, html_name, html_size);
 					
 					if (sha1_hash_available(sf)) {
-						bh->d_buf = g_strconcat("<li>",
-							"<a href=\"/uri-res/N2R?urn:sha1:",
+						bh->b_size = w_concat_strings(&bh->w_buf,
+							"<li><a href=\"/uri-res/N2R?urn:sha1:",
 							sha1_base32(sf->sha1_digest),
 							"\">", html_name, "</a>&nbsp;[",
 							short_html_size(sf->file_size),
@@ -255,18 +262,20 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 						gchar *escaped;
 
 						escaped = url_escape(sf->name_nfc);
-						bh->d_buf = g_strdup_printf(
-							"<li><a href=\"/get/%u/%s\">%s</a>"
-							"&nbsp;[%s]</li>\r\n",
-							sf->file_index, escaped, html_name,
-							short_html_size(sf->file_size));
+						bh->b_size = w_concat_strings(&bh->w_buf,
+							"<li><a href=\"/get/",
+							uint64_to_string(sf->file_index),
+							"/", escaped, "\">", html_name, "</a>"
+							"&nbsp;[", short_html_size(sf->file_size),
+							"]</li>\r\n", (void *) 0);
+
 						if (escaped != sf->name_nfc)
 							G_FREE_NULL(escaped);
 					}
 
 					wfree(html_name, html_size);
-					bh->b_data = bh->d_buf;
-					bh->b_size = strlen(bh->b_data);
+					bh->b_data = bh->w_buf;
+					bh->w_buf_size = 1 + bh->b_size;
 					bh->b_offset = 0;
 				}
 			}
@@ -455,7 +464,10 @@ browse_host_close(gpointer ctx)
 	}
 	g_slist_free(bh->hits);
 
-	G_FREE_NULL(bh->d_buf);
+	if (bh->w_buf) {
+		wfree(bh->w_buf, bh->w_buf_size);
+		bh->w_buf = NULL;
+	}
 	tx_free(bh->tx);
 	wfree(bh, sizeof *bh);
 }
