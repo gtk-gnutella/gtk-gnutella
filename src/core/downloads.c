@@ -717,7 +717,7 @@ allocate_server(const gchar *guid, const host_addr_t addr, guint16 port)
 	struct dl_key *key;
 	struct dl_server *server;
 
-	g_assert(is_host_addr(addr));
+	g_assert(host_addr_initialized(addr));
 
 	key = walloc(sizeof *key);
 	key->addr = addr;
@@ -751,7 +751,7 @@ allocate_server(const gchar *guid, const host_addr_t addr, guint16 port)
 		g_hash_table_insert(dl_by_addr, ipk, server);
 
 		if (existed) {
-			g_assert(is_host_addr(((struct dl_addr *) ipkey)->addr));
+			g_assert(host_addr_initialized(((struct dl_addr *) ipkey)->addr));
 			wfree(ipkey, sizeof *ipk);	/* Old key superseded by new one */
 		}
 	}
@@ -787,7 +787,7 @@ free_server(struct dl_server *server)
 
 		if (g_hash_table_lookup_extended(dl_by_addr, &ipk, &ipkey, &x)) {
 			g_hash_table_remove(dl_by_addr, &ipk);
-			g_assert(is_host_addr(((struct dl_addr *) ipkey)->addr));
+			g_assert(host_addr_initialized(((struct dl_addr *) ipkey)->addr));
 			wfree(ipkey, sizeof(struct dl_addr));
 		}
 	}
@@ -845,7 +845,7 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 	GSList *l;
 
 	g_assert(!host_addr_equal(key->addr, new_addr));
-	g_assert(is_host_addr(new_addr));
+	g_assert(host_addr_initialized(new_addr));
 
 	g_hash_table_remove(dl_by_host, key);
 
@@ -863,7 +863,7 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 
 		if (g_hash_table_lookup_extended(dl_by_addr, &ipk, &ipkey, &x)) {
 			g_hash_table_remove(dl_by_addr, &ipk);
-			g_assert(is_host_addr(((struct dl_addr *) ipkey)->addr));
+			g_assert(host_addr_initialized(((struct dl_addr *) ipkey)->addr));
 			wfree(ipkey, sizeof(struct dl_addr));
 		}
 	}
@@ -977,7 +977,7 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 		g_hash_table_insert(dl_by_addr, ipk, server);
 
 		if (existed) {
-			g_assert(is_host_addr(((struct dl_addr *) ipkey)->addr));
+			g_assert(host_addr_initialized(((struct dl_addr *) ipkey)->addr));
 			wfree(ipkey, sizeof *ipk);	/* Old key superseded by new one */
 		}
 	}
@@ -3164,6 +3164,7 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	gboolean server_created = FALSE;		/* For assertions only */
 
 	g_assert(size == 0 || file_size_known);
+	g_assert(host_addr_initialized(addr));
 
 #if 0 /* This is helpful when you have a transparent proxy running */
 		/* XXX make that configurable from the GUI --RAM, 2005-08-15 */
@@ -3173,13 +3174,6 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
     if ((port == 80) || (port == 443))
         return NULL;
 #endif
-
-	/*
-	 * Reject a bad address.  I'd make it a precondition, someday, --RAM.
-	 */
-
-	if (!is_host_addr(addr))
-		return NULL;
 
 	/*
 	 * Reject if we're trying to download from ourselves (could happen
