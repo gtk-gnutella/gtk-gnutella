@@ -2341,10 +2341,10 @@ supports_deflate(header_t *header)
  */
 static gboolean
 prepare_browsing(gnutella_upload_t *u, header_t *header, gchar *request,
-	time_t now, http_extra_desc_t *hev, gint hevlen,
-	gint *hevsize, gint *flags)
+	time_t now, http_extra_desc_t *hev, size_t hevlen,
+	size_t *hevsize, gint *flags)
 {
-	gint hevcnt = *hevsize;
+	size_t hevcnt = *hevsize;
 	gchar *buf;
 	gint bh_flags = 0;
 
@@ -2531,7 +2531,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	gint http_code;
 	const gchar *http_msg;
 	http_extra_desc_t hev[10];
-	guint hevcnt = 0;
+	size_t hevcnt = 0;
 	gchar *sha1 = NULL;
 	gboolean is_followup =
 		(u->status == GTA_UL_WAITING || u->status == GTA_UL_PFSP_WAITING);
