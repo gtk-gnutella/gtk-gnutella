@@ -1442,8 +1442,24 @@ expect_http_header(gnutella_upload_t *u, upload_stage_t new_status)
 	struct gnutella_socket *s = u->socket;
 
 	g_assert(s->resource.upload == u);
-	g_assert(s->getline == NULL);
-	g_assert(u->io_opaque == NULL);
+
+	/*
+	 * Cleanup data structures if not already done.
+	 */
+
+	if (u->io_opaque) {
+		io_free(u->io_opaque);
+		u->io_opaque = NULL;
+	}
+
+	if (s->getline) {
+		getline_free(s->getline);
+		s->getline = NULL;
+	}
+
+	/*
+	 * Change status, with immediate GUI feedback.
+	 */
 
 	u->status = new_status;
 	upload_fire_upload_info_changed(u);
@@ -2319,6 +2335,178 @@ supports_deflate(header_t *header)
 }
 
 /**
+ * Prepare the browse host request.
+ * Return TRUE if we may go on, FALSE if we've replied to the remote
+ * host and either expect a new request now or terminated the connection.
+ */
+static gboolean
+prepare_browsing(gnutella_upload_t *u, header_t *header, gchar *request,
+	time_t now, http_extra_desc_t *hev, gint hevlen,
+	gint *hevsize, gint *flags)
+{
+	gint hevcnt = *hevsize;
+	gchar *buf;
+	gint bh_flags = 0;
+
+	g_assert(hevcnt < hevlen);
+
+	u->browse_host = TRUE;
+	u->name = atom_str_get(_("<Browse Host Request>"));
+	u->file_size = 0;
+
+	if (!browse_host_enabled) {
+		upload_error_remove(u, NULL, 403, "Browse Host Disabled");
+		return FALSE;
+	}
+
+	/*
+	 * If we are advertising our hostname in query hits and they are not
+	 * addressing our host directly, then redirect them to that.
+	 */
+
+	buf = header_get(header, "Host");
+	if (
+		buf && give_server_hostname && *server_hostname &&
+		!is_strprefix(buf, server_hostname) &&
+		upload_likely_from_browser(header)
+	) {
+		static gchar buf[80];
+
+		gm_snprintf(buf, sizeof buf, "Location: http://%s:%u/\r\n",
+			server_hostname, listen_port);
+
+		g_assert(hevcnt < hevlen);
+		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
+		hev[hevcnt].he_msg = buf;
+		hev[hevcnt++].he_arg = NULL;
+
+		http_send_status(u->socket, 301, TRUE, hev, hevcnt, "Redirecting");
+		upload_wait_new_request(u);
+		return FALSE;
+	}
+
+	buf = header_get(header, "If-Modified-Since");
+	if (buf) {
+		time_t t;
+
+		t = date2time(buf, now);
+		if (
+			(time_t) -1 != t &&
+			delta_time((time_t) library_rescan_finished, t) <= 0 
+		) {
+			upload_error_remove(u, NULL, 304, "Not Modified");
+			return FALSE;
+		}
+	}
+
+	/*
+	 * Add a Last-Modified header containing the time of the last successful
+	 * library scan.  This will allow browsers to issue conditional requests
+	 * on "reload".
+	 */
+
+	{
+		static gchar buf[64];
+
+		gm_snprintf(buf, sizeof buf, "Last-Modified: %s\r\n",
+			date_to_rfc1123_gchar(library_rescan_finished));
+
+		g_assert(hevcnt < hevlen);
+		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
+		hev[hevcnt].he_msg = buf;
+		hev[hevcnt++].he_arg = NULL;
+	}
+
+	/*
+	 * Look at an Accept: line containing "application/x-gnutella-packets".
+	 * If we get that, then we can send query hits backs.  Otherwise,
+	 * we'll send HTML output.
+	 */
+
+	buf = header_get(header, "Accept");
+	if (buf) {
+		/* XXX needs more rigourous parsing */
+		if (strstr(buf, "application/x-gnutella-packets"))
+			bh_flags |= BH_QHITS;
+		else if (strstr(buf, "text/html"))
+			bh_flags |= BH_HTML;
+		else if (strstr(buf, "*/*") || strstr(buf, "text/*"))
+			bh_flags |= BH_HTML;	/* A browser probably */
+		else {
+			upload_error_remove(u, NULL, 406, "Not Acceptable");
+			return FALSE;
+		}
+	} else
+		bh_flags |= BH_HTML;		/* No Accept, default to HTML */
+
+	g_assert(hevcnt < hevlen);
+	hev[hevcnt].he_type = HTTP_EXTRA_LINE;
+	hev[hevcnt].he_msg = (bh_flags & BH_HTML) ?
+		"Content-Type: text/html; charset=utf-8\r\n" :
+		"Content-Type: application/x-gnutella-packets\r\n";
+	hev[hevcnt++].he_arg = NULL;
+
+	/*
+	 * Accept-Encoding -- see whether they want compressed output.
+	 */
+
+	if (supports_deflate(header)) {
+		bh_flags |= BH_DEFLATE;
+
+		g_assert(hevcnt < hevlen);
+		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
+		hev[hevcnt].he_msg = "Content-Encoding: deflate\r\n";
+		hev[hevcnt++].he_arg = NULL;
+	}
+
+	/*
+	 * Starting at HTTP/1.1, we can send chunked data back.
+	 */
+
+	if (u->http_major > 1 || (u->http_major == 1 && u->http_minor >= 1)) {
+		bh_flags |= BH_CHUNKED;
+
+		g_assert(hevcnt < hevlen);
+		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
+		hev[hevcnt].he_msg = "Transfer-Encoding: chunked\r\n";
+		hev[hevcnt++].he_arg = NULL;
+	}
+
+	/*
+	 * If it's a HEAD request, let them know we support Browse Host.
+	 */
+
+	if (NULL != is_strprefix(request, "HEAD ")) {
+		static const gchar msg[] = N_("Browse Host Enabled");
+		http_send_status(u->socket, 200, FALSE, hev, hevcnt, msg);
+		upload_remove(u, _(msg));
+		return FALSE;
+	}
+
+	/*
+	 * Change the name of the upload for the GUI.
+	 */
+	{
+		gchar name[80];
+
+		gm_snprintf(name, sizeof(name),
+				_("<Browse Host Request> [%s%s%s]"),
+				(bh_flags & BH_HTML) ? "HTML" : _("query hits"),
+				(bh_flags & BH_DEFLATE) ? _(", deflated") : "",
+				(bh_flags & BH_CHUNKED) ? _(", chunked") : "");
+
+		atom_str_free(u->name);
+		u->name = atom_str_get(name);
+	}
+
+	*hevsize = hevcnt;
+	*flags = bh_flags;
+
+	return TRUE;
+}
+
+
+/**
  * Called to initiate the upload once all the HTTP headers have been
  * read.  Validate the request, and begin processing it if all OK.
  * Otherwise cancel the upload.
@@ -2470,121 +2658,11 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		NULL != is_strprefix(request, "GET / HTTP/") ||
 		NULL != is_strprefix(request, "HEAD / HTTP/")
 	) {
-		u->browse_host = TRUE;
-		u->name = atom_str_get(_("<Browse Host Request>"));
-		u->file_size = 0;
-
-		if (!browse_host_enabled) {
-			upload_error_remove(u, NULL, 403, "Browse Host Disabled");
+		if (
+			!prepare_browsing(u, header, request, now,
+				hev, G_N_ELEMENTS(hev), &hevcnt, &bh_flags)
+		)
 			return;
-		}
-
-		buf = header_get(header, "If-Modified-Since");
-		if (buf) {
-			time_t t;
-
-			t = date2time(buf, now);
-			if (
-				(time_t) -1 != t &&
-				delta_time((time_t) library_rescan_finished, t) <= 0 
-			) {
-				upload_error_remove(u, NULL, 304, "Not Modified");
-				return;
-			}
-		}
-
-		{
-			static gchar buf[64];
-
-			gm_snprintf(buf, sizeof buf, "Last-Modified: %s\r\n",
-				date_to_rfc1123_gchar(library_rescan_finished));
-
-			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-			hev[hevcnt].he_msg = buf;
-			hev[hevcnt++].he_arg = NULL;
-		}
-
-		/*
-		 * Look at an Accept: line containing "application/x-gnutella-packets".
-		 * If we get that, then we can send query hits backs.  Otherwise,
-		 * we'll send HTML output.
-		 */
-
-		buf = header_get(header, "Accept");
-		if (buf) {
-			/* XXX needs more rigourous parsing */
-			if (strstr(buf, "application/x-gnutella-packets"))
-				bh_flags |= BH_QHITS;
-			else if (strstr(buf, "text/html"))
-				bh_flags |= BH_HTML;
-			else if (strstr(buf, "*/*") || strstr(buf, "text/*"))
-				bh_flags |= BH_HTML;	/* A browser probably */
-			else {
-				upload_error_remove(u, NULL, 406, "Not Acceptable");
-				return;
-			}
-		} else
-			bh_flags |= BH_HTML;		/* No Accept, default to HTML */
-
-	    g_assert(hevcnt < G_N_ELEMENTS(hev));
-		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-		hev[hevcnt].he_msg = (bh_flags & BH_HTML) ?
-			"Content-Type: text/html; charset=utf-8\r\n" :
-			"Content-Type: application/x-gnutella-packets\r\n";
-		hev[hevcnt++].he_arg = NULL;
-
-		/*
-		 * Accept-Encoding -- see whether they want compressed output.
-		 */
-
-		if (supports_deflate(header)) {
-			bh_flags |= BH_DEFLATE;
-
-			g_assert(hevcnt < G_N_ELEMENTS(hev));
-			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-			hev[hevcnt].he_msg = "Content-Encoding: deflate\r\n";
-			hev[hevcnt++].he_arg = NULL;
-		}
-
-		/*
-		 * Starting at HTTP/1.1, we can send chunked data back.
-		 */
-
-		if (u->http_major > 1 || (u->http_major == 1 && u->http_minor >= 1)) {
-			bh_flags |= BH_CHUNKED;
-
-			g_assert(hevcnt < G_N_ELEMENTS(hev));
-			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-			hev[hevcnt].he_msg = "Transfer-Encoding: chunked\r\n";
-			hev[hevcnt++].he_arg = NULL;
-		}
-
-		/*
-		 * If it's a HEAD request, let them know we support Browse Host.
-		 */
-
-		if (NULL != is_strprefix(request, "HEAD ")) {
-			static const gchar msg[] = N_("Browse Host Enabled");
-			http_send_status(u->socket, 200, FALSE, hev, hevcnt, msg);
-			upload_remove(u, _(msg));
-			return;
-		}
-
-		/*
-		 * Change the name of the upload for the GUI.
-		 */
-		{
-			gchar name[80];
-
-			gm_snprintf(name, sizeof(name),
-					_("<Browse Host Request> [%s%s%s]"),
-					(bh_flags & BH_HTML) ? "HTML" : _("query hits"),
-					(bh_flags & BH_DEFLATE) ? _(", deflated") : "",
-					(bh_flags & BH_CHUNKED) ? _(", chunked") : "");
-
-			atom_str_free(u->name);
-			u->name = atom_str_get(name);
-		}
 	} else {
 		/*
 		 * If previous request was a browse host, clear the name.
@@ -2635,7 +2713,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		if (u->push && idx != u->index)
 			g_warning("Host %s sent PUSH for %u (%s), now requesting %u (%s)",
-				host_addr_to_string(u->addr), u->index, u->name, idx, reqfile->name_nfc);
+				host_addr_to_string(u->addr), u->index, u->name, idx,
+				reqfile->name_nfc);
 
 		/*
 		 * We already have a non-NULL u->name in the structure, because we
@@ -2731,6 +2810,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		u->pos = skip;
 
 	} /* reqfile */
+
+	g_assert(hevcnt <= G_N_ELEMENTS(hev));
 
 	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 	hev[hevcnt].he_cb = upload_xfeatures_add;
@@ -2914,16 +2995,6 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		g_assert(hevcnt <= G_N_ELEMENTS(hev));
 
 		if (!head_only && u->keep_alive && !u->unavailable_range) {
-			/*
-			 * Cleanup data structures.
-			 */
-
-			io_free(u->io_opaque);
-			u->io_opaque = NULL;
-
-			getline_free(s->getline);
-			s->getline = NULL;
-
 			u->unavailable_range = TRUE;
 			(void) http_send_status(u->socket, 416, TRUE, hev, hevcnt, msg);
 			running_uploads--;		/* Re-incremented if they ever come back */
