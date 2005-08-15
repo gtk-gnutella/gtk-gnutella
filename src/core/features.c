@@ -109,12 +109,10 @@ header_features_cleanup(struct xfeature_t *xfeatures)
 /**
  * Adds the X-Features header to a HTTP request.
  *
- * @param *xfeatures should be the type of which we should include
- *			in the X-Features header.
- * @param *buf	should point to the beginning of the header.
- * @param len	no brief description.
- * @param *rw	should contain the number of bytes that were allready
- *			written.
+ * @param xfeatures	structure holding the collected features
+ * @param buf		should point to the beginning of the header.
+ * @param len		no brief description.
+ * @param rw		the number of bytes that were already written.
  *
  * *rw is changed too *rw + bytes written
  */
