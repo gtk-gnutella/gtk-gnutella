@@ -323,7 +323,7 @@ gboolean host_addr_convert(const host_addr_t *from, host_addr_t *to,
 	enum net_type to_net);
 gboolean host_addr_can_convert(const host_addr_t from, enum net_type to_net);
 
-static inline guint32
+static inline gboolean
 host_addr_initialized(const host_addr_t ha)
 {
 	return NET_TYPE_IPV4 == ha.net || NET_TYPE_IPV6 == ha.net;
