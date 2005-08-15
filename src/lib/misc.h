@@ -323,6 +323,12 @@ gboolean host_addr_convert(const host_addr_t *from, host_addr_t *to,
 	enum net_type to_net);
 gboolean host_addr_can_convert(const host_addr_t from, enum net_type to_net);
 
+static inline guint32
+host_addr_initialized(const host_addr_t ha)
+{
+	return NET_TYPE_IPV4 == ha.net || NET_TYPE_IPV6 == ha.net;
+}
+
 static inline enum net_type 
 host_addr_net(const host_addr_t ha)
 {
@@ -505,6 +511,7 @@ host_addr_convert(const host_addr_t *from, host_addr_t *to,
 	return FALSE;
 }
 
+#define host_addr_initialized(x)	TRUE
 #define host_addr_net(x) (((void) (x)), NET_TYPE_IPV4)
 #define host_addr_family(x) (((void) (x)), AF_INET) 
 #define host_addr_ipv4(x) (x)
