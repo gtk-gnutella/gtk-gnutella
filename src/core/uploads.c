@@ -823,6 +823,7 @@ send_upload_error_v(
 		if (503 == code && u->from_browser) {
 			static gchar buf[2048];
 			gchar href[1024];
+			gchar index_href[32];
 			glong retry;
 
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
@@ -848,6 +849,8 @@ send_upload_error_v(
 					G_FREE_NULL(uri);
 			}
 
+			gm_snprintf(index_href, sizeof index_href,
+				"/get/%lu/", (gulong) u->index);
 			gm_snprintf(buf, sizeof buf,
 				"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
 				"<html>"
@@ -870,7 +873,7 @@ send_upload_error_v(
 				"</body>"
 				"</html>"
 					"\r\n",
-					retry, '\0' != href[0] ? "/get/0/" : "", href,
+					retry, '\0' != href[0] ? index_href : "", href,
 					retry, retry);			
 		}
 	}
