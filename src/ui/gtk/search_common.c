@@ -848,7 +848,7 @@ search_matched(search_t *sch, results_set_t *rs)
 	if (rs->status & ST_TLS)
 		g_string_append(vinfo, vinfo->len ? ", TLS" : "TLS");
 	if (rs->status & ST_BH)
-		g_string_append(vinfo, vinfo->len ? ", browse host" : "browse host");
+		g_string_append(vinfo, vinfo->len ? ", browseable" : "browseable");
 
 	/*
 	 * If we're firewalled, or they don't want to send pushes, then don't
