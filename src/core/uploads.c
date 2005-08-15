@@ -3863,6 +3863,8 @@ upload_init(void)
 						host_addr_hash_func, host_addr_eq_func, wfree_host_addr,
 						NULL, NULL, NULL);
     upload_handle_map = idtable_new(32, 32);
+	header_features_add(&xfeatures.uploads, "browse",
+		BH_VERSION_MAJOR, BH_VERSION_MINOR);
 }
 
 void

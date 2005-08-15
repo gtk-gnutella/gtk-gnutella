@@ -47,6 +47,12 @@
 #include "if/core/wrap.h"
 
 /**
+ * The version of the Browse-Host protocol we support.
+ */
+#define BH_VERSION_MAJOR	1
+#define BH_VERSION_MINOR	0
+
+/**
  * Flags for browse_host_open().
  */
 #define BH_DEFLATE	0x00000001		/**< Deflate output */

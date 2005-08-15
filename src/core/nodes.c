@@ -82,6 +82,7 @@ RCSID("$Id$");
 #include "tsync.h"
 #include "geo_ip.h"
 #include "extensions.h"
+#include "bh_upload.h"
 #ifdef ENABLE_G2
 #include "g2/g2nodes.h"
 #endif
@@ -1069,6 +1070,8 @@ node_init(void)
 	g_assert(23 == sizeof(struct gnutella_header));
 
     node_handle_map = idtable_new(32, 32);
+	header_features_add(&xfeatures.connections, "browse",
+		BH_VERSION_MAJOR, BH_VERSION_MINOR);
 
 	g_hook_list_init(&node_added_hook_list, sizeof(GHook));
 	node_added_hook_list.seq_id = 1;
