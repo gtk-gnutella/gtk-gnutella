@@ -2380,8 +2380,8 @@ prepare_browsing(gnutella_upload_t *u, header_t *header, gchar *request,
 		hev[hevcnt].he_msg = buf;
 		hev[hevcnt++].he_arg = NULL;
 
-		http_send_status(u->socket, 301, TRUE, hev, hevcnt, "Redirecting");
-		upload_wait_new_request(u);
+		http_send_status(u->socket, 301, FALSE, hev, hevcnt, "Redirecting");
+		upload_remove(u, "Redirected to %s:%u", server_hostname, listen_port);
 		return FALSE;
 	}
 
