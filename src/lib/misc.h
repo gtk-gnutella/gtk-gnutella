@@ -326,7 +326,14 @@ gboolean host_addr_can_convert(const host_addr_t from, enum net_type to_net);
 static inline gboolean
 host_addr_initialized(const host_addr_t ha)
 {
-	return NET_TYPE_IPV4 == ha.net || NET_TYPE_IPV6 == ha.net;
+	switch (ha.net) {
+	case NET_TYPE_IPV4:
+	case NET_TYPE_IPV6:
+		return TRUE;
+	case NET_TYPE_NONE:
+		return FALSE;
+	}
+	g_assert_not_reached();
 }
 
 static inline enum net_type 
