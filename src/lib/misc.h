@@ -394,7 +394,7 @@ host_addr_matches(const host_addr_t a, const host_addr_t b, guint8 bits)
 	host_addr_t to;
 	guint8 shift;
 	
-	if (host_addr_convert(&b, &to, a.net))
+	if (!host_addr_convert(&b, &to, a.net))
 		return FALSE;
 		
 	switch (a.net) {
