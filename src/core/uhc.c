@@ -82,6 +82,7 @@ static struct uhc_context {
  */
 static const gchar * const boot_hosts[] = {
 	"cache.kicks-ass.net:8000",
+	"crab2.dyndns.org:8003",
 	"gwc.jooz.net:8010",
 	"gwc.mine.nu:9999",
 	"gwc2.908middle.us:3559",
