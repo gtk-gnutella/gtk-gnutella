@@ -75,6 +75,8 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 
 size_t concat_strings(gchar *dst, size_t size,
 	const gchar *s, ...) WARN_NEED_SENTINEL;
+size_t w_concat_strings(gchar **dst,
+	const gchar *first, ...) WARN_NEED_SENTINEL;
 
 /**
  * Cast a ``const gchar *'' to ``gchar *''. This allows the compiler to

@@ -143,6 +143,55 @@ concat_strings(gchar *dst, size_t size, const gchar *s, ...)
 }
 
 /**
+ * Concatenates a variable number of NUL-terminated strings into buffer
+ * which will be allocated using walloc().
+ * The returned value is the length of the resulting string. The buffer
+ * is exactly one byte larger than this to hold the terminating NUL.
+ *
+ * The list of strings must be terminated by a NULL pointer. The first
+ * list element may be NULL in which case zero is returned.
+ *
+ * @param dst_ptr if not NULL, it will point to the allocated buffer.
+ * @param first the first source string or NULL.
+ *
+ * @return the sum of the lengths of all passed strings.
+ */
+size_t
+w_concat_strings(gchar **dst_ptr, const gchar *first, ...)
+{
+	va_list ap, ap2;
+	const gchar *s;
+	size_t len;
+
+	va_start(ap, first);
+	VA_COPY(ap2, ap);
+	
+	for (s = first, len = 0; NULL != s; /* NOTHING */) {
+		len += strlen(s);
+		s = va_arg(ap, const gchar *);
+	}
+
+	va_end(ap);
+	
+	if (dst_ptr) {
+		gchar *p;
+		size_t n, size = 1 + len;
+		
+		*dst_ptr = p = walloc(size);
+		for (s = first; NULL != s; p += n, size -= n) {
+			n = g_strlcpy(p, s, size);
+			s = va_arg(ap2, const gchar *);
+			g_assert(n < size);
+		}
+		g_assert(1 == size);
+	}
+
+	va_end(ap2);
+
+	return len;
+}
+	
+/**
  * Checks whether ``prefix'' is a prefix of ``str''.
  * Maybe skip_prefix() would be a better name.
  *
