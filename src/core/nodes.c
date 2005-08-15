@@ -135,6 +135,9 @@ RCSID("$Id$");
 #define NODE_CASUAL_FD			10	   /**< # of fds we might use casually */
 #define NODE_UPLOAD_QUEUE_FD	5	   /**< # of fds/upload slot we can queue */
 
+#define NODE_TX_BUFSIZ			1024	/**< Buffer size for TX deflation */
+#define NODE_TX_FLUSH			16384	/**< Flush deflator every 16K */
+
 #define NODE_AUTO_SWITCH_MIN	1800	/**< Don't switch too often UP - leaf */
 #define NODE_AUTO_SWITCH_MAX	61200	/**< Max between switches (17 hours) */
 
@@ -3085,6 +3088,9 @@ node_is_now_connected(struct gnutella_node *n)
 
 		args.cq = callout_queue;
 		args.cb = &node_tx_deflate_cb;
+		args.nagle = TRUE;
+		args.buffer_size = NODE_TX_BUFSIZ;
+		args.buffer_flush = NODE_TX_FLUSH;
 
 		ctx = tx_make_above(tx, tx_deflate_get_ops(), &args);
 		if (ctx == NULL) {

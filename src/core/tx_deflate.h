@@ -55,6 +55,9 @@ struct tx_deflate_cb {
 struct tx_deflate_args {
 	struct tx_deflate_cb *cb;	/**< Callbacks */
 	cqueue_t *cq;				/**< Callout queue to use */
+	size_t buffer_size;			/**< Internal buffer size to use */
+	size_t buffer_flush;		/**< Flush after that many bytes */
+	gboolean nagle;				/**< Whether to use Nagle or not */
 };
 
 #endif	/* _core_tx_deflate_h_ */

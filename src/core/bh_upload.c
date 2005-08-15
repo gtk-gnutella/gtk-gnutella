@@ -67,6 +67,8 @@ RCSID("$Id$");
 #define BH_MAX_QHIT_SIZE	3500	/**< Flush hits larger than this */
 #define BH_SCAN_AHEAD		100		/**< Amount of files scanned ahead */
 
+#define BH_BUFSIZ			16384	/**< Buffer size for TX deflation */
+
 enum bh_state {
 	BH_STATE_HEADER = 0,	/* Sending header */
 	BH_STATE_LIBRARY_INFO,	/* Info on library */
@@ -553,6 +555,9 @@ browse_host_open(
 
 		args.cq = callout_queue;
 		args.cb = deflate_cb;
+		args.nagle = FALSE;
+		args.buffer_flush = INT_MAX;		/* Flush only at the end */
+		args.buffer_size = BH_BUFSIZ;
 
 		ctx = tx_make_above(bh->tx, tx_deflate_get_ops(), &args);
 		if (ctx == NULL) {

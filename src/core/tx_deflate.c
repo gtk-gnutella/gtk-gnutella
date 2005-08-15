@@ -63,8 +63,6 @@ RCSID("$Id$");
  */
 
 #define BUFFER_COUNT	2
-#define BUFFER_SIZE		1024
-#define BUFFER_FLUSH	4096	/**< Try to flush every 4K */
 #define BUFFER_NAGLE	200		/**< 200 ms */
 
 struct buffer {
@@ -79,17 +77,20 @@ struct buffer {
  */
 struct attr {
 	struct buffer buf[BUFFER_COUNT];
+	size_t buffer_size;			/**< Buffer size used */
+	size_t buffer_flush;		/**< Flush after that many bytes */
 	gint fill_idx;				/**< Filled buffer index */
 	gint send_idx;				/**< Buffer to be sent */
 	z_streamp outz;				/**< Compressing stream */
 	txdrv_t *nd;				/**< Network driver, underneath us */
-	gint unflushed;				/**< Amount of bytes written since last flush */
+	size_t unflushed;			/**< Amount of bytes written since last flush */
 	gint flags;					/**< Operating flags */
 	cqueue_t *cq;				/**< The callout queue to use for Nagle */
 	gpointer tm_ev;				/**< The timer event */
 	struct tx_deflate_cb *cb;	/**< Layer-specific callbacks */
 	tx_closed_t closed;			/**< Callback to invoke when layer closed */
 	gpointer closed_arg;		/**< Argument for closing routine */
+	gboolean nagle;				/**< Whether to use Nagle or not */
 };
 
 /*
@@ -180,6 +181,9 @@ deflate_nagle_start(txdrv_t *tx)
 
 	g_assert(!(attr->flags & DF_NAGLE));
 	g_assert(attr->tm_ev == NULL);
+
+	if (!attr->nagle)					/* Nagle not allowed */
+		return;
 
 	attr->tm_ev = cq_insert(attr->cq, BUFFER_NAGLE, deflate_nagle_timeout, tx);
 	attr->flags |= DF_NAGLE;
@@ -516,10 +520,10 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 	/*
 	 * We're going to ask for a flush if not already started yet and the
 	 * amount of bytes we have written since the last flush is greater
-	 * than BUFFER_FLUSH.
+	 * than attr->buffer_flush.
 	 */
 
-	if (attr->unflushed > BUFFER_FLUSH) {
+	if (attr->unflushed > attr->buffer_flush) {
 		if (!deflate_flush(tx))
 			return -1;
 	}
@@ -687,6 +691,9 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 
 	attr->cq = targs->cq;
 	attr->cb = targs->cb;
+	attr->buffer_size = targs->buffer_size;
+	attr->buffer_flush = targs->buffer_flush;
+	attr->nagle = targs->nagle;
 
 	attr->outz = outz;
 	attr->flags = 0;
@@ -696,8 +703,8 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 	for (i = 0; i < BUFFER_COUNT; i++) {
 		struct buffer *b = &attr->buf[i];
 
-		b->arena = b->wptr = b->rptr = (gchar *) g_malloc(BUFFER_SIZE);
-		b->end = b->arena + BUFFER_SIZE;
+		b->arena = b->wptr = b->rptr = (gchar *) g_malloc(attr->buffer_size);
+		b->end = b->arena + attr->buffer_size;
 	}
 
 	attr->fill_idx = 0;
