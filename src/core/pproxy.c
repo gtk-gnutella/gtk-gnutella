@@ -50,6 +50,8 @@ RCSID("$Id$");
 #include "routing.h"
 #include "gmsg.h"
 #include "uploads.h"
+#include "ggep.h"
+#include "ggep_type.h"
 #include "gnet_stats.h"
 #include "lib/url.h"
 
@@ -295,6 +297,7 @@ pproxy_create(struct gnutella_socket *s)
 	pp = walloc0(sizeof *pp);
 
 	pp->socket = s;
+	pp->flags = 0; /* XXX: TLS? */
 	pp->last_update = time(NULL);
 	s->resource.pproxy = pp;
 
@@ -472,30 +475,115 @@ error:
 }
 
 /**
- * Build a push request to send.  We set TTL=max_ttl-1 and hops=1 since
+ * Builds a push request to send.  We set TTL=max_ttl-1 and hops=1 since
  * it does not come from our node really.  The file ID may be set to 0, but
  * it should be ignored when the GIV is received anyway.
+ *
+ * @param ttl the TTL to use for the packet header.
+ * @param hops the hops value to use for the packet header.
+ * @param guid the hops value to use for the packet header.
+ * @param addr the host address the receiving peer should connect to.
+ * @param port the port number the receiving peer should connect to.
+ * @param file_idx the file index this push is for.
+ * @return	A pointer to a static buffer holding the created Gnutella PUSH
+ *			packet on success, NULL on failure.
  */
-static void
-build_push(struct gnutella_msg_push_request *m,
-	gchar *guid, const host_addr_t addr, guint16 port, guint32 file_idx)
+const gchar *
+build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
+	host_addr_t addr, guint16 port, guint32 file_idx)
 {
-	guint32 ip = host_addr_ipv4(addr);	/* XXX: Check whether it's IPv4 */
+	static union {
+		struct gnutella_msg_push_request m;
+		gchar data[1024];
+	} packet;
+	gchar *p = packet.data;
+	size_t len = 0, size = sizeof packet;
+	ggep_stream_t gs;
+	guint32 ip;
+	
+	g_assert(size_ptr);
+	g_assert(guid);
+	g_assert(0 != port);
+	
+	message_set_muid(&packet.m.header, GTA_MSG_PUSH_REQUEST);
 
-	message_set_muid(&m->header, GTA_MSG_PUSH_REQUEST);
+	packet.m.header.function = GTA_MSG_PUSH_REQUEST;
+	packet.m.header.ttl = ttl;
+	packet.m.header.hops = hops;
+	memcpy(packet.m.request.guid, guid, 16);
 
-	m->header.function = GTA_MSG_PUSH_REQUEST;
-	m->header.ttl = max_ttl - 1;
-	m->header.hops = 1;
+	STATIC_ASSERT(49 == sizeof packet.m);
+	p += sizeof packet.m;
+	size -= sizeof packet.m;
+	len += sizeof packet.m.request;	/* Exclude the header size */
+	
+	ggep_stream_init(&gs, p, size);
+	
+#ifdef HAS_GNUTLS
+	if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0)) {
+		g_warning("could not write GGEP \"GTKG.TLS\" extension into PUSH");
+			ggep_stream_close(&gs);
+			return NULL;
+	}
+#endif /* HAS_GNUTLS */
+	
+	ip = 0;
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV6:
+#ifndef USE_IPV6
+		g_assert_not_reached();
+		break;
+#else /* USE_IPV6 */
+		{
+			const host_addr_t from = addr;
 
-	STATIC_ASSERT(49 == sizeof *m);
-	WRITE_GUINT32_LE(sizeof m->request, m->header.size);
+			if (!host_addr_convert(&from, &addr, NET_TYPE_IPV4)) {
+				const guint8 *ipv6 = host_addr_ipv6(&from);
+				
+				if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6), ipv6, 16, 0)) {
+					g_warning("could not write GGEP \"GTKG.IPV6\" extension "
+						"into PUSH");
+					ggep_stream_close(&gs);
+					return NULL;
+				}
+			
+				break;
+			}
+		}
+		
+#endif	/* !USE_IPV6 */
+		
+		/* FALL THROUGH */
+	case NET_TYPE_IPV4:
+		ip = host_addr_ipv4(addr);
+		break;
+	case NET_TYPE_NONE:
+		g_assert_not_reached();
+		break;
+	}
 
-	memcpy(m->request.guid, guid, 16);
+	{
+		size_t glen;
+		
+		glen = ggep_stream_close(&gs);
+		g_assert(size >= glen);
 
-	WRITE_GUINT32_LE(file_idx, m->request.file_id);
-	memcpy(m->request.host_ip, &ip, 4);
-	WRITE_GUINT16_LE(port, m->request.host_port);
+		size -= glen;
+		len += glen;
+		p += glen;
+	}
+	g_assert(len < size);
+	g_assert(len < sizeof packet);
+	
+	poke_le32(packet.m.request.file_id, file_idx);
+	poke_be32(packet.m.request.host_ip, ip);
+	poke_le16(packet.m.request.host_port, port);
+	poke_le32(packet.m.header.size, len);
+
+	message_add(packet.m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
+
+	*size_ptr = p - packet.data;
+	return packet.data;
 }
 
 /**
@@ -537,7 +625,6 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	gchar *buf;
 	gchar *token;
 	gchar *user_agent;
-	struct gnutella_msg_push_request m;
 	GSList *nodes;
 
 	if (dbg > 2) {
@@ -608,19 +695,32 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	n = route_proxy_find(pp->guid);
 
 	if (n != NULL) {
-		build_push(&m, pp->guid, pp->addr, pp->port, pp->file_idx);
-		message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
+		const gchar *packet;
+		size_t size;
 
-		STATIC_ASSERT(49 == sizeof m);
-		gmsg_sendto_one(n, &m, sizeof m);
-		gnet_stats_count_general(GNR_PUSH_PROXY_RELAYED, 1);
+		/*
+ 		 * We set TTL=max_ttl-1 and hops=1 since
+		 * it does not come from our node really.
+		 */
 
-		http_send_status(pp->socket, 202, FALSE, NULL, 0,
-			"Push-proxy: message sent to node");
+		packet = build_push(&size, max_ttl - 1, 1, pp->guid,
+					pp->addr, pp->port, pp->file_idx);
 
-		pp->error_sent = 202;
-		pproxy_remove(pp, "Push sent directly to node GUID %s",
-			guid_hex_str(pp->guid));
+		if (NULL == packet) {
+			g_warning("Failed to send push to %s (index=%lu)",
+				host_addr_port_to_string(pp->addr, pp->port),
+				(gulong) pp->file_idx);
+		} else {
+			gmsg_sendto_one(n, &packet, size);
+			gnet_stats_count_general(GNR_PUSH_PROXY_RELAYED, 1);
+
+			http_send_status(pp->socket, 202, FALSE, NULL, 0,
+					"Push-proxy: message sent to node");
+
+			pp->error_sent = 202;
+			pproxy_remove(pp, "Push sent directly to node GUID %s",
+					guid_hex_str(pp->guid));
+		}
 
 		return;
 	}
@@ -629,28 +729,40 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	 * Bad luck, no direct connection.  Look for a Gnutella route.
 	 */
 
-	nodes = route_towards_guid(pp->guid);
+	if (NULL != (nodes = route_towards_guid(pp->guid))) {
+		const gchar *packet;
+		size_t size;
 
-	if (nodes != NULL) {
-		gint cnt;
+		/*
+ 		 * We set TTL=max_ttl-1 and hops=1 since
+		 * it does not come from our node really.
+		 */
 
-		build_push(&m, pp->guid, pp->addr, pp->port, pp->file_idx);
-		message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
+		packet = build_push(&size, max_ttl - 1, 1,
+					pp->guid, pp->addr, pp->port, pp->file_idx);
 
-		STATIC_ASSERT(49 == sizeof m);
-		gmsg_sendto_all(nodes, &m, sizeof m);
-		gnet_stats_count_general(GNR_PUSH_PROXY_BROADCASTED, 1);
+		if (NULL == packet) {
+			g_warning("Failed to send push to %s (index=%lu)",
+				host_addr_port_to_string(pp->addr, pp->port),
+				(gulong) pp->file_idx);
+		} else {
+			gint cnt;
+			
+			gmsg_sendto_all(nodes, packet, size);
+			gnet_stats_count_general(GNR_PUSH_PROXY_BROADCASTED, 1);
 
-		cnt = g_slist_length(nodes);
-		g_slist_free(nodes);
+			cnt = g_slist_length(nodes);
+			g_slist_free(nodes);
+			nodes = NULL;
 
-		http_send_status(pp->socket, 203, FALSE, NULL, 0,
-			"Push-proxy: message sent through Gnutella (via %d node%s)",
-			cnt, cnt == 1 ? "" : "s");
+			http_send_status(pp->socket, 203, FALSE, NULL, 0,
+					"Push-proxy: message sent through Gnutella (via %d node%s)",
+					cnt, cnt == 1 ? "" : "s");
 
-		pp->error_sent = 203;
-		pproxy_remove(pp, "Push sent via Gnutella (%d node%s) for GUID %s",
-			cnt, cnt == 1 ? "" : "s", guid_hex_str(pp->guid));
+			pp->error_sent = 203;
+			pproxy_remove(pp, "Push sent via Gnutella (%d node%s) for GUID %s",
+					cnt, cnt == 1 ? "" : "s", guid_hex_str(pp->guid));
+		}
 
 		return;
 	}
@@ -662,7 +774,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 
 	if (guid_eq(pp->guid, servent_guid)) {
 		upload_send_giv(pp->addr, pp->port, 0, 1, 0,
-			"<from push-proxy>", FALSE);
+			"<from push-proxy>", FALSE, pp->flags);
 
 		http_send_status(pp->socket, 202, FALSE, NULL, 0,
 			"Push-proxy: you found the target GUID %s",
