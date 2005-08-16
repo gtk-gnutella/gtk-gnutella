@@ -1,5 +1,13 @@
 # since last version
 
+- (2005-08-15 - RAM)
+ * Show GTKG's version, amount of files and total size shared in HTML browsing.
+ * If they advertise a host name in query hits, redirect an HTML browsing
+   to the qualified host name if it was directed to the IP address, so that
+   the links shown there have a longer lifetime.
+ * Allow the TX deflate layer to have its buffer size / flush / nagle params
+   configurable externally.
+
 - (2005-08-14 - RAM)
  * Added size of shared files within brackets in HTML browse-host output.
  * Fixed buglet that caused no status to be displayed for completed uploads.
