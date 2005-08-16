@@ -110,7 +110,7 @@ search_gui_free_alt_locs(record_t *rc)
 		guint i;
 
 		for (i = 0; i < alt->hvcnt; i++)
-			g_assert(host_addr_initialized(alt->hvec[i]));
+			g_assert(host_addr_initialized(alt->hvec[i].addr));
 	}
 	
 	wfree(alt->hvec, alt->hvcnt * sizeof *alt->hvec);
@@ -586,7 +586,7 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 			guint i;
 
 			for (i = 0; i < r->alt_locs->hvcnt; i++)
-				g_assert(host_addr_initialized(r->alt_locs->hvec[i]));
+				g_assert(host_addr_initialized(r->alt_locs->hvec[i].addr));
 		}
 		
 		rc->alt_locs = wcopy(r->alt_locs, sizeof *r->alt_locs);
