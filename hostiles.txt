@@ -273,6 +273,13 @@
 208.50.66.0/24
 212.241.48.0/24
 
+# Quibus International AB -- subnet used by rogue agents (e.g. advertise
+# as LimeWire in hits, and when connected, they send User-Agent: Gnucleus).
+212.209.1.0/24
+
+# This range on theplanet.com (hoster) sends back SPAM hits
+70.86.48.0/24
+
 # Open Proxies
 24.239.248.21
 61.90.250.15
