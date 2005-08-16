@@ -1694,7 +1694,7 @@ dmesh_collect_compact_locations(gchar *sha1, gchar *value)
 	for (;;) {
 		gboolean has_port = FALSE;
 		gboolean got_full = FALSE;
-		gchar *start = p;
+		gchar *start = p = skip_ascii_blanks(p);
 
 		for (;;) {
 			c = *p;
