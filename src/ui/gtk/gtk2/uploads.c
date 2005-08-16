@@ -751,8 +751,7 @@ uploads_gui_shutdown(void)
 
     guc_upload_remove_upload_added_listener(upload_added);
     guc_upload_remove_upload_removed_listener(upload_removed);
-    guc_upload_remove_upload_info_changed_listener
-		(upload_info_changed);
+    guc_upload_remove_upload_info_changed_listener(upload_info_changed);
 
 	gtk_list_store_clear(store_uploads);
 
