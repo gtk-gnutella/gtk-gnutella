@@ -7917,7 +7917,7 @@ node_crawl_fill(pmsg_t *mb,
 	g_assert(start < len);
 
 	for (i = start, j = 0; written < want && j < len; j++) {
-		guint32 ip;
+		host_addr_t ha;
 		gnutella_node_t *n = ary[i];
 		gchar addr[6];
 
@@ -7928,9 +7928,11 @@ node_crawl_fill(pmsg_t *mb,
 		 * Add node's address (IP:port).
 		 */
 
-		ip = host_addr_ipv4(n->gnet_addr);	/* XXX: Check whether it's IPv4 */
-		memcpy(&addr[0], &ip, 4);
-		WRITE_GUINT16_LE(n->gnet_port, &addr[4]);
+		if (!host_addr_convert(&n->gnet_addr, &ha, NET_TYPE_IPV4))
+			goto next;
+
+		poke_be32(&addr[0], host_addr_ipv4(ha));
+		poke_le16(&addr[4], n->gnet_port);
 
 		if (sizeof addr != pmsg_write(mb, addr, sizeof addr))
 			break;
