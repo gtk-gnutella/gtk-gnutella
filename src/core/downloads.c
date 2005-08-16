@@ -786,9 +786,11 @@ free_server(struct dl_server *server)
 		gpointer x;					/* Don't care about freeing values */
 
 		if (g_hash_table_lookup_extended(dl_by_addr, &ipk, &ipkey, &x)) {
+			struct dl_addr *da = ipkey;
+
 			g_hash_table_remove(dl_by_addr, &ipk);
-			g_assert(host_addr_initialized(((struct dl_addr *) ipkey)->addr));
-			wfree(ipkey, sizeof(struct dl_addr));
+			g_assert(host_addr_initialized(da->addr));
+			wfree(ipkey, sizeof *da);
 		}
 	}
 
