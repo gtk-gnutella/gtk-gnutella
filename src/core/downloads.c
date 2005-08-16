@@ -794,11 +794,22 @@ free_server(struct dl_server *server)
 		gpointer ipkey;
 		gpointer x;					/* Don't care about freeing values */
 
+		/*
+		 * Only remove server in the `dl_by_addr' table if it is the one
+		 * for which the IP key is recored.  Otherwise, what can happen
+		 * is that a server is detached from a download and marked for
+		 * delayed removal.  Then a new one with same address is sprung
+		 * to life, and inserted in `dl_by_addr'.  If we remove it now,
+		 * we'll free the key of the new server.
+		 */
+
 		if (g_hash_table_lookup_extended(dl_by_addr, &ipk, &ipkey, &x)) {
 			struct dl_addr *da = ipkey;
-			g_hash_table_remove(dl_by_addr, &ipk);
 			g_assert(host_addr_initialized(da->addr));
-			wfree(da, sizeof *da);
+			if (x == server) {		/* We own the key */
+				g_hash_table_remove(dl_by_addr, &ipk);
+				wfree(da, sizeof *da);
+			}
 		}
 	}
 
@@ -882,8 +893,10 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 		if (g_hash_table_lookup_extended(dl_by_addr, &ipk, &ipkey, &x)) {
 			struct dl_addr *da = ipkey;
 			g_assert(host_addr_initialized(da->addr));
-			g_hash_table_remove(dl_by_addr, da);
-			wfree(da, sizeof *da);
+			if (x == server) {		/* We "own" the key -- see free_server() */
+				g_hash_table_remove(dl_by_addr, da);
+				wfree(da, sizeof *da);
+			}
 		}
 	}
 
