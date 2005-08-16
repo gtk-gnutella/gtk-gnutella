@@ -892,7 +892,7 @@ get_server(gchar *guid, const host_addr_t addr, guint16 port)
 	server = g_hash_table_lookup(dl_by_host, &key);
 	g_assert(server == NULL || dl_server_valid(server));
 
-	if (server->attrs & DLS_A_REMOVED)
+	if (server && (server->attrs & DLS_A_REMOVED))
 		server_undelete(server);
 
 	return server;
