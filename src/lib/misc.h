@@ -334,6 +334,7 @@ host_addr_initialized(const host_addr_t ha)
 		return FALSE;
 	}
 	g_assert_not_reached();
+	return FALSE;
 }
 
 static inline enum net_type 
