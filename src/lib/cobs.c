@@ -45,8 +45,6 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-#define COBS_MAGIC	0xc0befU
-
 /**
  * Encode vector `iov' of `iovcnt' elements, whose size is held in `retlen'.
  *

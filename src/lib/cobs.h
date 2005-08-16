@@ -38,12 +38,14 @@
 
 #include <glib.h>
 
+enum cobs_magic { COBS_MAGIC = 0xc0befU };
+
 /**
  * A COBS stream is used to fill a buffer space with COBS-ed data where
  * the input data is not known beforehand but gathered a piece at a time.
  */
 typedef struct cobs_stream {
-	guint32 magic;			/**< Magic number */
+	enum cobs_magic magic;	/**< Magic number */
 	gchar *outbuf;			/**< Output buffer start */
 	gchar *end;				/**< First char beyond output buffer */
 	gchar *o;				/**< Where next non-NUL data will be written */
