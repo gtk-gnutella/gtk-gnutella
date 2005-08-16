@@ -229,10 +229,10 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		gchar buf[1024];
 	} msg_pong;
 	struct gnutella_msg_init_response *pong = &msg_pong.s;
-	guint32 sz;
-	guchar *ggep;
 	ggep_stream_t gs;
-	guint32 ip;
+	host_addr_t addr;
+	guchar *ggep;
+	guint32 sz;
 
 	STATIC_ASSERT(37 == sizeof *pong);
 	ggep = cast_to_gpointer(&pong[1]);
@@ -242,11 +242,12 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 	pong->header.ttl = ttl;
 	memcpy(&pong->header.muid, muid, 16);
 
-	ip = host_addr_ipv4(info->addr); /* @todo TODO: IPv6 */
-	WRITE_GUINT16_LE(info->port, pong->response.host_port);
-	WRITE_GUINT32_BE(ip, pong->response.host_ip);
-	WRITE_GUINT32_LE(info->files_count, pong->response.files_count);
-	WRITE_GUINT32_LE(info->kbytes_count, pong->response.kbytes_count);
+	poke_le16(pong->response.host_port, info->port);
+	poke_le32(pong->response.files_count, info->files_count);
+	poke_le32(pong->response.kbytes_count, info->kbytes_count);
+	poke_be32(pong->response.host_ip,
+		host_addr_convert(&info->addr, &addr, NET_TYPE_IPV4)
+			? host_addr_ipv4(addr) : 0);
 
 	sz = sizeof pong->response;
 
@@ -299,8 +300,8 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 
 		if (meta->flags & PONG_META_HAS_DU) {	/* Daily average uptime */
 			gchar uptime[sizeof meta->daily_uptime];
-			gint len;
 			guint32 value = MIN(meta->daily_uptime, 86400);
+			gint len;
 
 			len = ggept_du_encode(value, uptime);
 			ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);
@@ -367,9 +368,16 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		ggep_stream_pack(&gs, GGEP_NAME(IP), ip_port, sizeof ip_port, 0);
 	}
 
+#ifdef USE_IPV6
+	if (NET_TYPE_IPV6 == host_addr_net(addr)) {
+		ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6),
+			host_addr_ipv6(&addr), 16, 0);
+	}
+#endif /* USE_IPV6 */
+
 	sz += ggep_stream_close(&gs);
 
-	WRITE_GUINT32_LE(sz, pong->header.size);
+	poke_le32(pong->header.size, sz);
 
 	if (size)
 		*size = sz + sizeof pong->header;
