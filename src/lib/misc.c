@@ -666,47 +666,17 @@ hostname_port_to_gchar(const gchar *hostname, guint16 port)
 	return a;
 }
 
-#ifndef HAS_INET_ATON
-/**
- * Copied from icecast.
- * Fixed to returns 0 on failure, 1 on success --RAM, 12/01/2002.
+/*
+ * @returns 0 if ``s'' is not a valid IPv4 address. Otherwise, the parsed
+ * 			IPv4 address in host byte order.
  */
-int
-inet_aton(const char *s, struct in_addr *addr)
-{
-	int a, b, c, d;
-
-	if (sscanf(s, "%d.%d.%d.%d", &a, &b, &c, &d) < 4)
-		return 0;
-
-#if G_BYTE_ORDER == G_BIG_ENDIAN
-	addr->s_addr = d + (c << 8) + (b << 16) + (a << 24);
-#elif G_BYTE_ORDER == G_LITTLE_ENDIAN
-	addr->s_addr = a + (b << 8) + (c << 16) + (d << 24);
-#else
-#error Byteorder not supported!
-#endif
-	return 1;
-}
-#endif /* !HAS_INET_ATON */
-
-
 guint32
-string_to_ip(const gchar *str)
+string_to_ip(const gchar *s)
 {
-	/* Returns 0 if str is not a valid IP */
-
-	struct in_addr ia;
-	gint r;
-
-	/* Skip leading spaces */
-	while (isspace((guchar) *str))
-		str++;
-
-	r = inet_aton(str, &ia);
-	if (r)
-		return ntohl(ia.s_addr);
-	return 0;
+	guint32 ip;
+	
+	s = skip_ascii_spaces(s);
+	return string_to_ip_strict(s, &ip, NULL) ? ip : 0;
 }
 
 /**
@@ -870,24 +840,23 @@ string_to_ip_strict(const gchar *s, guint32 *addr, const gchar **endptr)
  * @return TRUE if it parsed correctly, FALSE otherwise.
  */
 gboolean
-string_to_ip_port(const gchar *str, guint32 *ip, guint16 *port)
+string_to_ip_port(const gchar *s, guint32 *ip_ptr, guint16 *port_ptr)
 {
-	gint a, b, c, d;
-	gint iport;
+	const gchar *ep;
+	guint32 v;
+	gint error;
 
-	/* Skip leading spaces */
-	while (isspace((const guchar) *str))
-		str++;
-
-	/* IP addresses are always written in big-endian format */
-	if (sscanf(str, "%d.%d.%d.%d:%d", &a, &b, &c, &d, &iport) < 5)
+	s = skip_ascii_spaces(s);
+	if (!string_to_ip_strict(s, ip_ptr, &ep) || ':' != *ep)
 		return FALSE;
 
-	if (iport < 0 || iport > 65535)
+	s = ++ep;
+	v = parse_uint32(s, NULL, 10, &error);
+	if (error || v > 65535)
 		return FALSE;
 
-	*ip = d + (c << 8) + (b << 16) + (a << 24);
-	*port = iport;
+	if (port_ptr)
+		*port_ptr = v;
 
 	return TRUE;
 }
@@ -1153,7 +1122,7 @@ gboolean
 is_private_addr(const host_addr_t ha)
 {
 	if (NET_TYPE_IPV4 == host_addr_net(ha)) {
-		guint32 ip = ntohl(host_addr_ipv4(ha));
+		guint32 ip = host_addr_ipv4(ha);
 
 		/* 10.0.0.0 -- (10/8 prefix) */
 		if ((ip & 0xff000000) == 0xa000000)
