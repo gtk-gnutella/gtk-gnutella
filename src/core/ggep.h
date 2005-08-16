@@ -84,11 +84,13 @@
 #define GGEP_W_DEFLATE	0x00000004	/**< Attempt payload compression */
 #define GGEP_W_FIRST	0x00000008	/**< First extension, write GGEP_MAGIC */
 
+enum ggep_magic { GGEP_MAGIC_ID = 0x62961da4U };
+
 /**
  * Structure keeping track of incremental GGEP writes.
  */
 typedef struct ggep_stream {
-	guint32 magic;			/**< Magic number */
+	enum ggep_magic magic;/**< Magic number */
 	gchar *outbuf;			/**< Base address of output buffer */
 	gchar *end;				/**< First address beyond output buffer */
 	gchar *o;				/**< Where next output should go */

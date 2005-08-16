@@ -47,8 +47,6 @@ RCSID("$Id$");
 
 #include "lib/override.h"			/* Must be the last header included */
 
-#define GGEP_MAGIC_ID	0xaaee99e4U
-
 /**
  * Check whether a GGEP stream descriptor is valid.
  */
@@ -693,7 +691,10 @@ ggep_stream_pack(ggep_stream_t *gs,
 	struct iovec iov;
 	const struct iovec *p_iov = &iov;
 
+	g_assert(id);
+	g_assert(0 == plen || NULL != payload);
 	g_assert(plen <= INT_MAX);
+
 	iov.iov_base = deconstify_gpointer(payload);
 	iov.iov_len = plen;
 
