@@ -3161,15 +3161,22 @@ host_addr_can_convert(const host_addr_t from, enum net_type to_net)
 	case NET_TYPE_IPV4:
 		switch (from.net) {
 		case NET_TYPE_IPV6:
-			if (
-				(0x00 == from.addr.ipv6[10] || 0xff == from.addr.ipv6[10]) &&
-				from.addr.ipv6[10] == from.addr.ipv6[11]
-			) {
-				static const guint8 zeros[10];
-
-				return 0 == memcmp(from.addr.ipv6, zeros, sizeof zeros);
+			{
+				static const host_addr_t fnet = {	/* ::ffff:0/96 */
+					NET_TYPE_IPV6,
+					{ { 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, 0, 0, 0, 0 } },
+				};
+				static const host_addr_t znet = {	/* ::/96 */
+					NET_TYPE_IPV6,
+					{ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
+				};
+			
+				return host_addr_matches(from, fnet, 96) ||
+					(	
+					 	0 != from.addr.ipv6[12] &&
+					 	host_addr_matches(from, znet, 96)
+					);
 			}
-			break;
 		case NET_TYPE_NONE:
 			break;
 		}
@@ -3204,21 +3211,10 @@ host_addr_convert(const host_addr_t *from, host_addr_t *to,
 	case NET_TYPE_IPV4:
 		switch (from->net) {
 		case NET_TYPE_IPV6:
-			if (
-				(0x00 == from->addr.ipv6[10] || 0xff == from->addr.ipv6[10]) &&
-				from->addr.ipv6[10] == from->addr.ipv6[11]
-			) {
-				static const guint8 zeros[10];
-
-				/*
-				 * Convert "::ffff:A.B.C.D" to an IPv4 address "A.B.C.D".
-				 */
-
-				if (0 == memcmp(from->addr.ipv6, zeros, sizeof zeros)) {
-					to->net = to_net;
-					to->addr.ipv4 = peek_be32(&from->addr.ipv6[12]);
-					return TRUE;
-				}
+			if (host_addr_can_convert(*from, NET_TYPE_IPV4)) {
+				to->net = NET_TYPE_IPV4;
+				to->addr.ipv4 = peek_be32(&from->addr.ipv6[12]);
+				return TRUE;
 			}
 			break;
 		case NET_TYPE_NONE:
