@@ -106,8 +106,15 @@ search_gui_free_alt_locs(record_t *rc)
 	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
 	g_assert(alt != NULL);
 
-	wfree(alt->hvec, alt->hvcnt * sizeof(*alt->hvec));
-	wfree(alt, sizeof(*alt));
+	{
+		guint i;
+
+		for (i = 0; i < alt->hvcnt; i++)
+			g_assert(host_addr_initialized(alt->hvec[i]));
+	}
+	
+	wfree(alt->hvec, alt->hvcnt * sizeof *alt->hvec);
+	wfree(alt, sizeof *alt);
 
 	rc->alt_locs = NULL;
 }
@@ -122,8 +129,8 @@ search_gui_free_proxies(results_set_t *rs)
 
 	g_assert(v != NULL);
 
-	wfree(v->hvec, v->hvcnt * sizeof(*v->hvec));
-	wfree(v, sizeof(*v));
+	wfree(v->hvec, v->hvcnt * sizeof *v->hvec);
+	wfree(v, sizeof *v);
 
 	rs->proxies = NULL;
 }
@@ -574,16 +581,17 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
    	rc->flags = r->flags;
 	rc->alt_locs = NULL;
 
-	if (r->alt_locs != NULL) {
-		gnet_host_vec_t *a = r->alt_locs;				/* Original from core */
-		gnet_host_vec_t *alt = walloc(sizeof(*alt));	/* GUI copy */
-		gint hlen = a->hvcnt * sizeof(*a->hvec);
+	if (NULL != r->alt_locs) {
+		{
+			guint i;
 
-		alt->hvec = walloc(hlen);
-		alt->hvcnt = a->hvcnt;
-		memcpy(a->hvec, alt->hvec, hlen);
-
-		rc->alt_locs = alt;
+			for (i = 0; i < r->alt_locs->hvcnt; i++)
+				g_assert(host_addr_initialized(r->alt_locs->hvec[i]));
+		}
+		
+		rc->alt_locs = wcopy(r->alt_locs, sizeof *r->alt_locs);
+		rc->alt_locs->hvec = wcopy(r->alt_locs->hvec,
+								r->alt_locs->hvcnt * sizeof *r->alt_locs->hvec);
 	}
 
     return rc;
@@ -610,7 +618,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
     rs->status = r_set->status;
     rs->speed = r_set->speed;
     rs->stamp = r_set->stamp;
-    memcpy(rs->vendor, r_set->vendor, sizeof(rs->vendor));
+    memcpy(rs->vendor, r_set->vendor, sizeof rs->vendor);
 	rs->version = r_set->version ? atom_str_get(r_set->version) : NULL;
 	rs->hostname = r_set->hostname ? atom_str_get(r_set->hostname) : NULL;
 	rs->country = r_set->country;
@@ -669,17 +677,18 @@ search_gui_common_shutdown(void)
 void
 search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 {
-	gint i;
 	gnet_host_vec_t *alt = rc->alt_locs;
+	gint i;
 
 	g_assert(rc->magic == RECORD_MAGIC);
 	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
 	g_assert(alt != NULL);
 	g_assert(rs->proxies == NULL);	/* Since we downloaded record already */
 
-	for (i = alt->hvcnt - 1; i >= 0; i--) {
+	for (i = 0; i < alt->hvcnt; i++) {
 		gnet_host_t *h = &alt->hvec[i];
 
+		g_assert(host_addr_initialized(h->addr));
 		if (h->port == 0 || !addr_is_valid(h->addr))
 			continue;
 
