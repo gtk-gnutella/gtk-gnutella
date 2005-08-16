@@ -107,7 +107,7 @@ search_gui_free_alt_locs(record_t *rc)
 	g_assert(alt != NULL);
 
 	{
-		guint i;
+		gint i;
 
 		for (i = 0; i < alt->hvcnt; i++)
 			g_assert(host_addr_initialized(alt->hvec[i].addr));
@@ -583,7 +583,7 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 
 	if (NULL != r->alt_locs) {
 		{
-			guint i;
+			gint i;
 
 			for (i = 0; i < r->alt_locs->hvcnt; i++)
 				g_assert(host_addr_initialized(r->alt_locs->hvec[i].addr));
