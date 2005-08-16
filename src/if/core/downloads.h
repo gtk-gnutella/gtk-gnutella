@@ -84,7 +84,10 @@ struct dl_key {
 	guint16 port;				/**< Port of server */
 };
 
+enum dl_server_magic { DL_SERVER_MAGIC = 0x5e45e4ffU };
+
 struct dl_server {
+	enum dl_server_magic magic;	/**< Magic number */
 	struct dl_key *key;		 /**< Key properties */
 	GList *list[DL_LIST_SZ]; /**< Download lists */
 	guint count[DL_LIST_SZ]; /**< Amount of downloads in list */
@@ -98,6 +101,8 @@ struct dl_server {
 	GSList *proxies;		/**< Known push proxies (struct gnutella_host) */
 	time_t proxies_stamp;	/**< Time when list was last updated */
 };
+
+#define dl_server_valid(x)	((x) != NULL && (x)->magic == DL_SERVER_MAGIC)
 
 /**
  * Download states.
