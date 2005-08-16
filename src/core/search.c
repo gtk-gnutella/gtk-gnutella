@@ -2365,7 +2365,8 @@ search_check_alt_locs(
 
 		download_auto_new(rc->name, rc->size, URN_INDEX, h->addr,
 			h->port, blank_guid, rs->hostname,
-			rc->sha1, rs->stamp, FALSE, TRUE, fi, rs->proxies);
+			rc->sha1, rs->stamp, FALSE, TRUE, fi, rs->proxies,
+			(rs->status & ST_TLS) ? CONNECT_F_TLS : 0);
 
 		if (rs->proxies != NULL)
 			search_free_proxies(rs);
@@ -2403,7 +2404,8 @@ search_check_results_set(gnet_results_set_t *rs)
 
 			download_auto_new(rc->name, rc->size, rc->index, rs->addr, rs->port,
 					rs->guid, rs->hostname,
-					rc->sha1, rs->stamp, need_push, TRUE, fi, rs->proxies);
+					rc->sha1, rs->stamp, need_push, TRUE, fi,
+					rs->proxies, (rs->status & ST_TLS) ? CONNECT_F_TLS : 0);
 
 
 			if (rs->proxies != NULL)

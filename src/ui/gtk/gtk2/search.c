@@ -50,6 +50,7 @@
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
 #include "if/core/bitzi.h"
+#include "if/core/sockets.h"
 
 #include "lib/atoms.h"
 #include "lib/misc.h"
@@ -613,6 +614,7 @@ download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 {
 	struct results_set *rs;
 	struct record *rc = NULL;
+	guint32 flags;
 	gboolean need_push;
 	gchar *filename;
 
@@ -627,12 +629,13 @@ download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 	g_assert(rc->refcount > 0);
 
 	rs = rc->results_set;
-	need_push = (rs->status & ST_FIREWALL) != 0;
+	need_push = 0 != (rs->status & ST_FIREWALL);
+	flags = (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
 
 	filename = gm_sanitize_filename(rc->name, FALSE, FALSE);
 	guc_download_new(filename, rc->size, rc->index, rs->addr,
-		rs->port, rs->guid, rs->hostname,
-		rc->sha1, rs->stamp, need_push, NULL, rs->proxies);
+		rs->port, rs->guid, rs->hostname, rc->sha1, rs->stamp,
+		need_push, NULL, rs->proxies, flags);
 
 	if (filename != rc->name)
 		G_FREE_NULL(filename);

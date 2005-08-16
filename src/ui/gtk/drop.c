@@ -276,7 +276,7 @@ handle_magnet(gchar *url)
 		g_message("Starting download from magnet");
 		guc_download_new_unknown_size(filename, URN_INDEX, dl.ha,
 			dl.port, blank_guid, dl.hostname, dl.sha1, time(NULL),
-			FALSE, NULL, NULL);
+			FALSE, NULL, NULL, 0);
 		if (filename != dl.file)
 			G_FREE_NULL(filename);
 	}

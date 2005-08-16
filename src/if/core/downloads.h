@@ -85,18 +85,18 @@ struct dl_key {
 };
 
 struct dl_server {
-	struct dl_key *key;			/**< Key properties */
-	GList *list[DL_LIST_SZ];	/**< Download lists */
-	guint count[DL_LIST_SZ];	/**< Amount of downloads in list */
-	const gchar *vendor;		/**< Remote server vendor string (atom) */
-	const gchar *hostname;		/**< Remote hostname, if known (atom) */
-	gint country;				/**< Country of origin -- encoded ISO3166 */
-	time_t retry_after;			/**< Time at which we may retry from this host */
-	time_t dns_lookup;			/**< Last DNS lookup for hostname */
+	struct dl_key *key;		 /**< Key properties */
+	GList *list[DL_LIST_SZ]; /**< Download lists */
+	guint count[DL_LIST_SZ]; /**< Amount of downloads in list */
+	const gchar *vendor;	 /**< Remote server vendor string (atom) */
+	const gchar *hostname;	 /**< Remote hostname, if known (atom) */
+	gint country;			 /**< Country of origin -- encoded ISO3166 */
+	time_t retry_after;		 /**< Time at which we may retry from this host */
+	time_t dns_lookup;		/**< Last DNS lookup for hostname */
 	struct vernum parq_version; /**< Supported queueing version */
 	guint32 attrs;
-	GSList *proxies;			/**< Known push proxies (struct gnutella_host) */
-	time_t proxies_stamp;		/**< Time when list was last updated */
+	GSList *proxies;		/**< Known push proxies (struct gnutella_host) */
+	time_t proxies_stamp;	/**< Time when list was last updated */
 };
 
 /**
@@ -104,28 +104,28 @@ struct dl_server {
  */
 
 typedef enum {
-    GTA_DL_QUEUED           = 1,    /**< Download queued, will start later */
-    GTA_DL_CONNECTING       = 2,    /**< We are connecting to the server */
-    GTA_DL_PUSH_SENT        = 3,    /**< Sent a push, waiting connection */
-    GTA_DL_FALLBACK         = 4,    /**< Direct request failed, using push */
-    GTA_DL_REQ_SENT         = 5,    /**< Request sent, waiting for HTTP headers */
-    GTA_DL_HEADERS          = 6,    /**< We are receiving the HTTP headers */
-    GTA_DL_RECEIVING        = 7,    /**< We are receiving the data of the file */
-    GTA_DL_COMPLETED        = 8,    /**< Download is completed */
-    GTA_DL_ERROR            = 9,    /**< Download is stopped due to error */
-    GTA_DL_ABORTED          = 10,   /**< User used the 'Abort Download' button */
-    GTA_DL_TIMEOUT_WAIT     = 11,   /**< Waiting to try connecting again */
-    GTA_DL_REMOVED          = 12,   /**< Download was removed, pending free */
-    GTA_DL_VERIFY_WAIT      = 13,   /**< Waiting to verify SHA1 */
-    GTA_DL_VERIFYING        = 14,   /**< Computing SHA1 */
-    GTA_DL_VERIFIED         = 15,   /**< Verify of SHA1 done */
-    GTA_DL_MOVE_WAIT        = 16,   /**< Waiting to be moved to "done/bad" dir */
-    GTA_DL_MOVING           = 17,   /**< Being moved to "done/bad" dir */
-    GTA_DL_DONE             = 18,   /**< All done! */
-    GTA_DL_SINKING          = 19,   /**< Sinking HTML reply */
-    GTA_DL_ACTIVE_QUEUED    = 20,   /**< Actively queued */
-    GTA_DL_PASSIVE_QUEUED   = 21,   /**< Passively queued */
-    GTA_DL_REQ_SENDING      = 22   	/**< Sending HTTP request */
+    GTA_DL_QUEUED           = 1,  /**< Download queued, will start later */
+    GTA_DL_CONNECTING       = 2,  /**< We are connecting to the server */
+    GTA_DL_PUSH_SENT        = 3,  /**< Sent a push, waiting connection */
+    GTA_DL_FALLBACK         = 4,  /**< Direct request failed, using push */
+    GTA_DL_REQ_SENT         = 5,  /**< Request sent, waiting for HTTP headers */
+    GTA_DL_HEADERS          = 6,  /**< We are receiving the HTTP headers */
+    GTA_DL_RECEIVING        = 7,  /**< We are receiving the data of the file */
+    GTA_DL_COMPLETED        = 8,  /**< Download is completed */
+    GTA_DL_ERROR            = 9,  /**< Download is stopped due to error */
+    GTA_DL_ABORTED          = 10, /**< User used the 'Abort Download' button */
+    GTA_DL_TIMEOUT_WAIT     = 11, /**< Waiting to try connecting again */
+    GTA_DL_REMOVED          = 12, /**< Download was removed, pending free */
+    GTA_DL_VERIFY_WAIT      = 13, /**< Waiting to verify SHA1 */
+    GTA_DL_VERIFYING        = 14, /**< Computing SHA1 */
+    GTA_DL_VERIFIED         = 15, /**< Verify of SHA1 done */
+    GTA_DL_MOVE_WAIT        = 16, /**< Waiting to be moved to "done/bad" dir */
+    GTA_DL_MOVING           = 17, /**< Being moved to "done/bad" dir */
+    GTA_DL_DONE             = 18, /**< All done! */
+    GTA_DL_SINKING          = 19, /**< Sinking HTML reply */
+    GTA_DL_ACTIVE_QUEUED    = 20, /**< Actively queued */
+    GTA_DL_PASSIVE_QUEUED   = 21, /**< Passively queued */
+    GTA_DL_REQ_SENDING      = 22  /**< Sending HTTP request */
 } download_status_t;
 
 typedef struct download download_t;
@@ -183,6 +183,7 @@ struct download {
 	filesize_t sinkleft;		/**< Amount of data left to sink */
 
 	guint32 flags;
+	guint32 cflags;
 
 	gboolean file_size_known;	/**< File size known? */
 	gboolean keep_alive;		/**< Keep HTTP connection? */
@@ -312,11 +313,12 @@ void download_index_changed(const host_addr_t, guint16, gchar *,
 gboolean download_new(gchar *,
 	filesize_t, guint32, const host_addr_t addr, guint16,
 	gchar *, gchar *, gchar *, time_t,
-    gboolean, struct dl_file_info *, gnet_host_vec_t *);
+    gboolean, struct dl_file_info *, gnet_host_vec_t *, guint32 flags);
 void download_auto_new(gchar *,
  	filesize_t, guint32, const host_addr_t, guint16, gchar *,
 	gchar *, gchar *, time_t,
-    gboolean, gboolean, struct dl_file_info *, gnet_host_vec_t *);
+    gboolean, gboolean, struct dl_file_info *, gnet_host_vec_t *,
+	guint32 flags);
 
 void src_add_listener(src_listener_t, gnet_src_ev_t, frequency_t, guint32);
 void src_remove_listener(src_listener_t, gnet_src_ev_t);
@@ -343,7 +345,7 @@ void download_clear_stopped(gboolean, gboolean, gboolean, gboolean);
 gboolean download_new_unknown_size(gchar *file, guint32 record_index,
 	 const host_addr_t addr, guint16 port, gchar *guid, gchar *hostname,
 	gchar *sha1, time_t stamp, gboolean push,
-	struct dl_file_info *fi, gnet_host_vec_t *proxies);
+	struct dl_file_info *fi, gnet_host_vec_t *proxies, guint32 flags);
 const gchar *download_get_hostname(const struct download *d);
 gdouble download_source_progress(const struct download *);
 gdouble download_total_progress(const struct download *);

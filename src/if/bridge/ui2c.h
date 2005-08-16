@@ -93,11 +93,11 @@ void guc_download_auto_new(gchar *file, filesize_t size,
 gboolean guc_download_new(gchar *file, filesize_t size,
 	guint32 record_index, const host_addr_t addr, guint16 port, gchar *guid,
 	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
-	struct dl_file_info *fi, gnet_host_vec_t *proxies);
+	struct dl_file_info *fi, gnet_host_vec_t *proxies, guint32 flags);
 gboolean guc_download_new_unknown_size(gchar *file,
 	guint32 record_index, const host_addr_t addr, guint16 port, gchar *guid,
 	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
-	struct dl_file_info *fi, gnet_host_vec_t *proxies);
+	struct dl_file_info *fi, gnet_host_vec_t *proxies, guint32 flags);
 const gchar *guc_download_get_hostname(const struct download *d);
 const gchar *guc_download_get_country(const struct download *d);
 gdouble guc_download_source_progress(const struct download *d);
