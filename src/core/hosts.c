@@ -334,8 +334,8 @@ host_add_semi_pong(const host_addr_t addr, guint16 port)
 /* ---------- Netmask heuristic by Mike Perry -------- */
 struct network_pair
 {
-	struct in_addr mask;
-	struct in_addr net;
+	guint32 mask;
+	guint32 net;
 };
 
 struct network_pair *local_networks = NULL;
@@ -387,29 +387,28 @@ parse_netmasks(const gchar *str)
 
 			if (strchr(p, '.')) {
 				/* get the network address from the user */
-				if (inet_aton(p, &local_networks[i].mask) == 0)
-					perror("inet_aton on netmasks");
+				if (!string_to_ip_strict(p, &local_networks[i].mask, NULL))
+					g_warning("parse_netmasks(): Invalid netmask: \"%s\"", p);
 			}
 			else {
-				errno = 0;
-				mask_div = strtol(p, NULL, 10);
-				if (mask_div > 32) {
-					mask_div = 32;
-				}
-				if (errno)
-					perror("netmask_div");
+				gint error;
+				
+				mask_div = parse_uint32(p, NULL, 10, &error);
+				mask_div = MIN(32, mask_div);
+				if (error)
+					g_warning("parse_netmasks(): "
+						"Invalid CIDR prefixlen: \"%s\"", p);
 				else
-					WRITE_GUINT32_BE(~((1 << (32 - mask_div)) - 1),
-						&local_networks[i].mask.s_addr);
+					local_networks[i].mask = (guint32) -1 << (32 - mask_div);
 			}
 		}
 		else {
 			/* Assume single-host */
-			inet_aton("255.255.255.255", &local_networks[i].mask);
+			local_networks[i].mask = -1; /* 255.255.255.255 */
 		}
 		/* get the network address from the user */
-		if (inet_aton(masks[i], &local_networks[i].net) == 0)
-			perror("inet_aton on netmasks");
+		if (!string_to_ip_strict(masks[i], &local_networks[i].net, NULL))
+			g_warning("parse_netmasks(): Invalid netmask: \"%s\"", masks[i]);
 	}
 
 	g_strfreev(masks);
@@ -425,8 +424,8 @@ host_is_nearby(const host_addr_t addr)
 
 	if (NET_TYPE_IPV4 == host_addr_net(addr)) {
 		for (i = 0; i < number_local_networks; i++) {
-			guint32 m_mask = local_networks[i].mask.s_addr;
-			guint32 m_ip = local_networks[i].net.s_addr;
+			guint32 m_mask = local_networks[i].mask;
+			guint32 m_ip = local_networks[i].net;
 			
 			if ((host_addr_ipv4(addr) & m_mask) == (m_ip & m_mask))
 				return TRUE;
