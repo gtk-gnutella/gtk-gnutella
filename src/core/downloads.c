@@ -829,6 +829,32 @@ free_server(struct dl_server *server)
 }
 
 /**
+ * Marks server for delayed removal (via asynchronous timer).
+ */
+static void
+server_delay_delete(struct dl_server *server)
+{
+	g_assert(dl_server_valid(server));
+	g_assert(!(server->attrs & DLS_A_REMOVED));
+
+	server->attrs |= DLS_A_REMOVED;		/* Insert once in list */
+	sl_removed_servers = g_slist_prepend(sl_removed_servers, server);
+}
+
+/**
+ * Resurrect server pending deletion.
+ */
+static void
+server_undelete(struct dl_server *server)
+{
+	g_assert(dl_server_valid(server));
+	g_assert(server->attrs & DLS_A_REMOVED);
+
+	server->attrs &= ~DLS_A_REMOVED;	/* Clear flag */
+	sl_removed_servers = g_slist_remove(sl_removed_servers, server);
+}
+
+/**
  * Fetch server entry identified by IP:port first, then GUID+IP:port.
  *
  * @returns NULL if not found.
@@ -846,8 +872,15 @@ get_server(gchar *guid, const host_addr_t addr, guint16 port)
 	ikey.addr = addr;
 	ikey.port = port;
 
+	/*
+	 * A server can have its freeing "delayed".  If we are asked for a
+	 * server that has been deleted, we need to "undelete" it.
+	 */
+
 	server = g_hash_table_lookup(dl_by_addr, &ikey);
 	if (server) {
+		if (server->attrs & DLS_A_REMOVED)
+			server_undelete(server);
 		g_assert(dl_server_valid(server));
 		return server;
 	}
@@ -858,6 +891,9 @@ get_server(gchar *guid, const host_addr_t addr, guint16 port)
 
 	server = g_hash_table_lookup(dl_by_host, &key);
 	g_assert(server == NULL || dl_server_valid(server));
+
+	if (server->attrs & DLS_A_REMOVED)
+		server_undelete(server);
 
 	return server;
 }
@@ -1911,11 +1947,8 @@ download_reclaim_server(struct download *d, gboolean delayed)
 		server->count[DL_LIST_STOPPED] == 0
 	) {
 		if (delayed) {
-			if (!(server->attrs & DLS_A_REMOVED)) {
-				server->attrs |= DLS_A_REMOVED;		/* Insert once in list */
-				sl_removed_servers =
-					g_slist_prepend(sl_removed_servers, server);
-			}
+			if (!(server->attrs & DLS_A_REMOVED))
+				server_delay_delete(server);
 		} else
 			free_server(server);
 	}
