@@ -48,6 +48,7 @@
 
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
+#include "if/core/sockets.h"
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
@@ -1496,6 +1497,7 @@ download_selection_of_ctree(
 	gboolean resort = FALSE;
 	guint created = 0;
 	guint count = 0;
+	guint32 flags;
 	GtkCTreeNode *node;
 	GtkCTreeRow *row;
 	gchar *filename;
@@ -1529,12 +1531,13 @@ download_selection_of_ctree(
         }
 
 		rs = rc->results_set;
-		need_push = (rs->status & ST_FIREWALL) != 0;
+		need_push = 0 != (rs->status & ST_FIREWALL);
+		flags = (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
 
 		filename = gm_sanitize_filename(rc->name, FALSE, FALSE);
 		if (guc_download_new(filename, rc->size, rc->index,
 				rs->addr, rs->port, rs->guid, rs->hostname,
-				rc->sha1, rs->stamp, need_push, NULL, rs->proxies)
+				rc->sha1, rs->stamp, need_push, NULL, rs->proxies, flags)
 		) {
 			created++;
 		}
