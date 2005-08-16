@@ -402,6 +402,41 @@ host_addr_equal(const host_addr_t a, const host_addr_t b)
 	return FALSE;
 }
 
+static inline gint
+host_addr_cmp(host_addr_t a, host_addr_t b)
+{
+	gint r;
+
+	r = CMP(a.net, b.net);
+	if (0 != r) {
+		host_addr_t to;
+		
+		if (!host_addr_convert(&b, &to, a.net))
+			return r;
+		b = to;
+	}
+	
+	switch (a.net) {
+	case NET_TYPE_IPV4:
+		return CMP(a.addr.ipv4, b.addr.ipv4);
+	case NET_TYPE_IPV6:
+		{
+			guint i;
+
+			for (i = 0; i < G_N_ELEMENTS(a.addr.ipv6); i++) {
+				r = CMP(a.addr.ipv6[i], b.addr.ipv6[i]);
+				if (0 != r)
+					break;
+			}
+		}
+		return r;
+	case NET_TYPE_NONE:
+		return 0;
+	}
+	g_assert_not_reached();
+	return 0;
+}
+
 static inline gboolean
 host_addr_matches(const host_addr_t a, const host_addr_t b, guint8 bits)
 {
@@ -527,6 +562,7 @@ host_addr_convert(const host_addr_t *from, host_addr_t *to,
 #define host_addr_set_net(x, y) G_STMT_START { (void) ((x), (y)) } G_STMT_END
 #define is_host_addr(x) (0 != (x))
 #define host_addr_equal(a, b) ((a) == (b))
+#define host_addr_cmp(a, b) (CMP((a), (b)))
 #define host_addr_hash(x) (x)
 #define zero_host_addr 0
 

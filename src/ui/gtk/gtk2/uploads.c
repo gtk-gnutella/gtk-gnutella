@@ -53,6 +53,7 @@
 #include "lib/glib-missing.h"
 #include "lib/utf8.h"
 #include "lib/iso3166.h"
+#include "lib/misc.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -220,9 +221,7 @@ static gint CAT2(compare_,field)( \
 #define COMPARE_FUNC_END } }
 
 COMPARE_FUNC(hosts)
-	guint32 ip_a = host_addr_ipv4(rd_a->addr);
-	guint32 ip_b = host_addr_ipv4(rd_b->addr);
-	return CMP(ip_a, ip_b);
+	return host_addr_cmp(rd_a->addr, rd_b->addr);
 COMPARE_FUNC_END
 
 COMPARE_FUNC(sizes)
