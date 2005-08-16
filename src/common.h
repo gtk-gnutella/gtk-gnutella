@@ -364,8 +364,8 @@ enum net_type {
 typedef struct host_addr {
 	guint32 net;	/**< The address network type */
 	union {
-		guint32 ipv4;	/**< @attention: Always in host byte order! */
 		guint8 ipv6[16];	/**< This is valid if "net == NET_TYPE_IPV6" */
+		guint32 ipv4;	/**< @attention: Always in host byte order! */
 	} addr;
 } host_addr_t;
 #else
