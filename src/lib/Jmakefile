@@ -48,6 +48,7 @@ LSRC = \
 	glib-missing.c \
 	hashlist.c \
 	header.c \
+	host_addr.c \
 	idtable.c \
 	inputevt.c \
 	iprange.c \
