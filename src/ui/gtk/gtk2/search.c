@@ -1369,6 +1369,45 @@ add_results_columns(GtkTreeView *treeview)
 	}
 }
 
+static gboolean
+search_by_regex(GtkTreeModel *model, gint column, const gchar *key,
+	GtkTreeIter *iter, gpointer unused_data)
+{
+	static const gboolean found = FALSE;
+	static gchar *last_key;	/* This will be "leaked" on exit */
+	static regex_t re;		/* The last regex will be "leaked" on exit */
+	gchar *filename = NULL;
+	gint ret;
+
+	g_return_val_if_fail(model, !found);
+	g_return_val_if_fail(column >= 0, !found);
+	g_return_val_if_fail((guint) column < SEARCH_RESULTS_VISIBLE_COLUMNS,
+		!found);
+	g_return_val_if_fail(key, !found);
+	g_return_val_if_fail(iter, !found);
+	(void) unused_data;
+
+	if (!last_key || 0 != strcmp(last_key, key)) {
+		if (last_key) {
+			regfree(&re);
+			G_FREE_NULL(last_key);
+		}
+		
+		ret = regcomp(&re, key, REG_EXTENDED | REG_NOSUB | REG_ICASE);
+		g_return_val_if_fail(0 == ret, !found);
+		
+		last_key = g_strdup(key);
+	}
+	
+	gtk_tree_model_get(model, iter, c_sr_filename, &filename, (-1));
+	g_return_val_if_fail(NULL != filename, !found);
+	
+	ret = regexec(&re, filename, 0, NULL, 0);
+	G_FREE_NULL(filename);
+
+	return 0 == ret ? found : !found;
+}
+
 /**
  * Create a new GtkTreeView for search results.
  */
@@ -1394,6 +1433,7 @@ gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 	gtk_tree_view_set_headers_clickable(treeview, TRUE);
 	gtk_tree_view_set_enable_search(treeview, TRUE);
 	gtk_tree_view_set_rules_hint(treeview, TRUE);
+	gtk_tree_view_set_search_equal_func(treeview, search_by_regex, NULL, NULL);
 
       /* add columns to the tree view */
 	add_results_columns(treeview);
