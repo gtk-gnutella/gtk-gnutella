@@ -246,7 +246,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 	poke_le32(pong->response.files_count, info->files_count);
 	poke_le32(pong->response.kbytes_count, info->kbytes_count);
 	poke_be32(pong->response.host_ip,
-		host_addr_convert(&info->addr, &addr, NET_TYPE_IPV4)
+		host_addr_convert(info->addr, &addr, NET_TYPE_IPV4)
 			? host_addr_ipv4(addr) : 0);
 
 	sz = sizeof pong->response;

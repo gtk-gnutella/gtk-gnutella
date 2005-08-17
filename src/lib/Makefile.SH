@@ -103,6 +103,7 @@ LSRC = \
 	glib-missing.c \
 	hashlist.c \
 	header.c \
+	host_addr.c \
 	idtable.c \
 	inputevt.c \
 	iprange.c \
@@ -147,6 +148,7 @@ LOBJ = \
 	glib-missing.o \
 	hashlist.o \
 	header.o \
+	host_addr.o \
 	idtable.o \
 	inputevt.o \
 	iprange.o \

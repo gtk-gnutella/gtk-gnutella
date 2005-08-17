@@ -36,7 +36,8 @@
 #ifndef _core_bogons_h_
 #define _core_bogons_h_
 
-#include "common.h"
+#include <glib.h>
+#include "lib/host_addr.h"
 
 gboolean bogons_check(const host_addr_t addr);
 void bogons_init(void);

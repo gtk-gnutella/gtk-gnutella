@@ -41,6 +41,7 @@ RCSID("$Id$");
 #include "ggep_type.h"
 #include "hosts.h"				/* For struct gnutella_host */
 #include "lib/endian.h"
+#include "lib/misc.h"
 #include "lib/walloc.h"
 
 #include "if/core/hosts.h"

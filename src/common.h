@@ -354,27 +354,6 @@ ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
  */
 #define NG_(Single, Plural, Number) ngettext_((Single), (Plural), (Number))
 
-enum net_type {
-	NET_TYPE_NONE	= 0,
-	NET_TYPE_IPV4	= 4,
-	NET_TYPE_IPV6	= 6,
-};
-
-#ifdef USE_IPV6
-typedef struct host_addr {
-	guint32 net;	/**< The address network type */
-	union {
-		guint8 ipv6[16];	/**< This is valid if "net == NET_TYPE_IPV6" */
-		guint32 ipv4;	/**< @attention: Always in host byte order! */
-	} addr;
-} host_addr_t;
-#else
-
-/* For an IPv4-only configuration */
-typedef guint32 host_addr_t; /**< @attention: Always in host byte order! */
-
-#endif
-
 #endif /* _common_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

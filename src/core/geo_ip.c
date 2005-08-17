@@ -351,7 +351,7 @@ gip_country(const host_addr_t ha)
 {
 	host_addr_t to;
 
-	if (host_addr_convert(&ha, &to, NET_TYPE_IPV4)) {
+	if (host_addr_convert(ha, &to, NET_TYPE_IPV4)) {
 		gpointer code;
 		guint32 ip;
 	

@@ -453,7 +453,7 @@ settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer)
 	g_assert(!force_local_ip);	  /* Must be called when IP isn't forced */
 	g_assert(is_host_addr(new_addr)); /* The new IP must be valid */
 
-	if (!addr_is_valid(new_addr) || !addr_is_valid(peer))
+	if (!host_addr_is_routable(new_addr) || !host_addr_is_routable(peer))
 		return;
 
 	/*

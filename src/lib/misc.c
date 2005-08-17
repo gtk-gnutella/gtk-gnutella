@@ -37,7 +37,6 @@
 
 RCSID("$Id$");
 
-#include <netdb.h>				/* For gethostbyname() */
 #include <sys/times.h>			/* For times() */
 
 #include "base32.h"
@@ -46,6 +45,7 @@ RCSID("$Id$");
 #include "glib-missing.h"
 #include "sha1.h"
 #include "walloc.h"
+
 #include "override.h"			/* Must be the last header included */
 
 #if !defined(HAS_SRANDOM) || !defined(HAS_RANDOM)
@@ -61,6 +61,8 @@ RCSID("$Id$");
 static const char hex_alphabet[] = "0123456789ABCDEF";
 static const char hex_alphabet_lower[] = "0123456789abcdef";
 
+		
+	
 #ifndef HAS_STRLCPY
 size_t
 strlcpy(gchar *dst, const gchar *src, size_t dst_size)
@@ -287,8 +289,6 @@ print_uint16_hex(gchar *dst, guint16 v)
 	return p - dst;
 }
 
-
-
 /**
  * Prints the IPv6 address ``ipv6'' to ``dst''. The string written to ``dst''
  * is always NUL-terminated unless ``size'' is zero. If ``size''
@@ -407,210 +407,6 @@ ipv6_to_string(const guint8 *ipv6)
 	n = ipv6_to_string_buf(ipv6, buf, sizeof buf);
 	g_assert(n < sizeof buf);
 	return buf;
-}
-
-/**
- * Prints the host address ``ha'' to ``dst''. The string written to ``dst''
- * is always NUL-terminated unless ``size'' is zero. If ``size'' is too small,
- * the string will be truncated.
- *
- * @param dst the destination buffer; may be NULL iff ``size'' is zero.
- * @param ha the host address.
- * @param size the size of ``dst'' in bytes.
- *
- * @return The length of the resulting string assuming ``size'' is sufficient.
- */
-size_t
-host_addr_to_string_buf(const host_addr_t ha, gchar *dst, size_t size)
-{
-	switch (host_addr_net(ha)) {
-	case NET_TYPE_IPV4:
-		{
-			struct in_addr ia;
-
-			ia.s_addr = htonl(host_addr_ipv4(ha));
-			return g_strlcpy(dst, inet_ntoa(ia), size);
-		}
-
-#if defined(USE_IPV6)
-	case NET_TYPE_IPV6:
-		return ipv6_to_string_buf(host_addr_ipv6(&ha), dst, size);
-#endif /* USE_IPV6*/
-
-	case NET_TYPE_NONE:
-		return g_strlcpy(dst, "<none>", size);
-	}
-
-	g_assert_not_reached();
-	return 0;
-}
-
-/**
- * Prints the host address ``ha'' to a static buffer.
- *
- * @param ha the host address.
- * @return a pointer to a static buffer holding a NUL-terminated string
- *         representing the given host address.
- */
-const gchar *
-host_addr_to_string(const host_addr_t ha)
-{
-	static gchar buf[128];
-	size_t n;
-
-	n = host_addr_to_string_buf(ha, buf, sizeof buf);
-	g_assert(n < sizeof buf);
-	return buf;
-}
-
-/**
- * Prints the host address ``ha'' followed by ``port'' to ``dst''. The string
- * written to ``dst'' is always NUL-terminated unless ``size'' is zero. If
- * ``size'' is too small, the string will be truncated.
- *
- * @param dst the destination buffer; may be NULL iff ``size'' is zero.
- * @param ha the host address.
- * @param port the port number.
- * @param size the size of ``dst'' in bytes.
- *
- * @return The length of the resulting string assuming ``size'' is sufficient.
- */
-size_t
-host_addr_port_to_string_buf(const host_addr_t ha, guint16 port,
-		gchar *dst, size_t size)
-{
-	size_t n;
-	gchar host_buf[64];
-	gchar port_buf[UINT64_DEC_BUFLEN];
-
-	host_addr_to_string_buf(ha, host_buf, sizeof host_buf);
-	uint64_to_string_buf(port, port_buf, sizeof port_buf);
-
-	if (NET_TYPE_IPV6 == host_addr_net(ha)) {
-		n = concat_strings(dst, size, "[", host_buf, "]:",
-				port_buf, (void *) 0);
-	} else {
-		n = concat_strings(dst, size, host_buf, ":", port_buf, (void *) 0);
-	}
-	
-	return n;
-}
-
-/**
- * Prints the host address ``ha'' followed by ``port'' to a static buffer. 
- *
- * @param ha the host address.
- * @param port the port number.
- *
- * @return a pointer to a static buffer holding a NUL-terminated string
- *         representing the given host address and port.
- */
-const gchar *
-host_addr_port_to_string(const host_addr_t ha, guint16 port)
-{
-	static gchar buf[IPV6_ADDR_BUFLEN + sizeof "[]:65535"];
-	size_t n;
-
-	n = host_addr_port_to_string_buf(ha, port, buf, sizeof buf);
-	g_assert(n < sizeof buf);
-	return buf;
-}
-
-/**
- * Parses IPv4 and IPv6 addresses. The latter requires IPv6 support to be
- * enabled.
- *
- * "0.0.0.0" and "::" cannot be distinguished from unparsable addresses.
- *
- * @param s The string to parse.
- * @param endptr This will point to the first character after the parsed
- *        address.
- * @return Returns the host address or ``zero_host_addr'' on failure.
- */
-host_addr_t
-string_to_host_addr(const char *s, const gchar **endptr)
-{
-	host_addr_t ha;
-	guint32 ip;
-
-	g_assert(s);
-
-	if (string_to_ip_strict(s, &ip, endptr)) {
-		ha = host_addr_set_ipv4(ip);
-		return ha;
-#ifdef USE_IPV6
-	} else {
-		guint8 ipv6[16];
-		if (parse_ipv6_addr(s, ipv6, endptr)) {
-			host_addr_set_ipv6(&ha, ipv6);
-			return ha;
-		}
-#endif
-	}
-	return zero_host_addr;
-}
-
-/**
- * Parses the NUL-terminated string ``s'' for a host address or a hostname.
- * If ``s'' points to a parsable address, ``*ha'' will be set to it. Otherwise,
- * ``*ha'' is set to ``zero_host_addr''. If the string is a possible hostname
- * the function returns TRUE nonetheless and ``*endptr'' will point to the
- * first character after hostname. If IPv6 support is disabled, "[::]" will
- * be considered a hostname rather than a host address.
- *
- * @param s the string to parse.
- * @param endptr if not NULL, it will point the first character after
- *        the parsed host address or hostname.
- * @param ha if not NULL, it is set to the parsed host address or
- *        ``zero_host_addr'' on failure.
- * @return TRUE if the string points to host address or is a possible
- *         hostname.
- */
-gboolean
-string_to_host_or_addr(const char *s, const gchar **endptr, host_addr_t *ha)
-{
-	const gchar *ep;
-	host_addr_t addr;
-
-	if ('[' == s[0]) {
-		guint8 ipv6[16];
-
-		if (parse_ipv6_addr(&s[1], ipv6, &ep) && ']' == *ep) {
-
-			if (ha) {
-#ifdef USE_IPV6
-				host_addr_set_ipv6(ha, ipv6);
-#else
-				/* If IPv6 is disabled, consider [::] a hostname */
-				*ha = zero_host_addr;
-#endif
-			}
-			if (endptr)
-				*endptr = ++ep;
-
-			return TRUE;
-		}
-	}
-	
-	addr = string_to_host_addr(s, endptr);
-	if (is_host_addr(addr)) {
-		if (ha)
-			*ha = addr;
-
-		return TRUE;
-	}
-
-	for (ep = s; '\0' != *ep; ep++) {
-		if (!is_ascii_alnum(*ep) && '.' != *ep && '-' != *ep)
-			break;
-	}
-
-	if (ha)
-		*ha = zero_host_addr;
-	if (endptr)
-		*endptr = ep;
-
-	return s != ep ? TRUE : FALSE;
 }
 
 size_t
@@ -861,153 +657,6 @@ string_to_ip_port(const gchar *s, guint32 *ip_ptr, guint16 *port_ptr)
 	return TRUE;
 }
 
-gboolean
-string_to_host_addr_port(const gchar *str, host_addr_t *ha, guint16 *port)
-{
-	guint32 ip;
-
-	if (string_to_ip_port(str, &ip, port)) {
-		*ha = host_addr_set_ipv4(ip);
-		return TRUE;
-	} else {
-		/* XXX: Check for IPv6 address */
-		return FALSE;
-	}
-}
-	
-static void
-gethostbyname_error(const gchar *host)
-{
-#if defined(HAS_HSTRERROR)
-		g_warning("cannot resolve \"%s\": %s", host, hstrerror(h_errno));
-#elif defined(HAS_HERROR)
-		g_warning("cannot resolve \"%s\":", host);
-		herror("gethostbyname()");
-#else
-		g_warning("cannot resolve \"%s\": gethostbyname() failed!", host);
-#endif /* defined(HAS_HSTRERROR) */
-}
-
-const gchar *
-host_addr_to_name(const host_addr_t ha)
-{
-	const struct hostent *he;
-	union {
-		struct in_addr in;
-#ifdef USE_IPV6	
-		struct in6_addr in6;
-#endif /* USE_IPV6 */
-	} a;
-	gconstpointer addr;
-	int type;
-	socklen_t len;
-
-	switch (host_addr_net(ha)) {
-	case NET_TYPE_IPV4:
-		{
-			static const struct in_addr zero_addr;
-			
-			type = AF_INET;
-			a.in = zero_addr;
-			a.in.s_addr = htonl(host_addr_ipv4(ha));
-			
-			addr = cast_to_gpointer(&a.in);
-			len = sizeof a.in;
-		}
-		break;
-
-#ifdef USE_IPV6	
-	case NET_TYPE_IPV6:
-		{
-			static const struct in6_addr zero_addr;
-				
-			type = AF_INET6;
-			a.in6 = zero_addr;
-			memcpy(&a.in6, host_addr_ipv6(&ha), 16);
-			
-			addr = cast_to_gpointer(&a.in6);
-			len = sizeof a.in6;
-		}
-		break;
-#endif /* USE_IPV6 */
-		
-	default:
-		addr = NULL;
-		type = 0;
-		len = 0;
-		g_assert_not_reached();
-	}
-	
-	he = gethostbyaddr(addr, sizeof addr, type);
-	if (!he) {
-		gchar buf[128];
-
-		host_addr_to_string_buf(ha, buf, sizeof buf);
-		gethostbyname_error(buf);
-		return NULL;
-	}
-
-#if 0
-	g_message("h_name=\"%s\"", NULL_STRING(he->h_name));
-	if (he->h_aliases) {
-		size_t i;
-
-		for (i = 0; he->h_aliases[i]; i++)
-			g_message("h_aliases[%u]=\"%s\"", (unsigned) i, he->h_aliases[i]);
-	}
-#endif
-
-	return he->h_name;
-}
-
-host_addr_t
-name_to_host_addr(const gchar *host)
-{
-	const struct hostent *he;
-	host_addr_t ha;
-
-   	he = gethostbyname(host);
-	if (!he) {
-		gethostbyname_error(host);
-		return zero_host_addr;
-	}
-
-#if 0
-	g_message("h_name=\"%s\"", NULL_STRING(he->h_name));
-	if (he->h_aliases) {
-		size_t i;
-
-		for (i = 0; he->h_aliases[i]; i++)
-			g_message("h_aliases[%u]=\"%s\"", (unsigned) i, he->h_aliases[i]);
-	}
-#endif
-
-	switch (he->h_addrtype) {
-	case AF_INET:
-		if (4 != he->h_length) {
-			g_warning("host_to_addr: Wrong length of IPv4 address "
-				"(host=\"%s\")", host);
-			return zero_host_addr;
-		}
-
-		ha = host_addr_set_ipv4(peek_be32(he->h_addr_list[0]));
-		return ha;
-		
-#ifdef USE_IPV6
-	case AF_INET6:
-		if (16 != he->h_length) {
-			g_warning("host_to_addr: Wrong length of IPv6 address "
-				"(host=\"%s\")", host);
-			return zero_host_addr;
-		}
-		host_addr_set_ipv6(&ha, cast_to_gconstpointer(he->h_addr_list[0]));
-		return ha;
-#endif /* !USE_IPV6 */
-	}
-	
-	return zero_host_addr;
-}
-
 /**
  * @returns local host name, as pointer to static data.
  */
@@ -1021,68 +670,6 @@ local_hostname(void)
 
 	name[sizeof(name) - 1] = '\0';
 	return name;
-}
-
-/**
- * Check whether host can be reached from the Internet.
- * We rule out IPs of private networks, plus some other invalid combinations.
- */
-gboolean
-addr_is_valid(const host_addr_t addr)
-{
-	host_addr_t ha;
-
-	if (!is_host_addr(addr) || is_private_addr(addr))
-		return FALSE;
-
-	if (!host_addr_convert(&addr, &ha, NET_TYPE_IPV4))
-		ha = addr;
-	
-	switch (host_addr_net(ha)) {
-	case NET_TYPE_IPV4:
-		{
-			guint32 ip = host_addr_ipv4(ha);
-
-			if (
-					ip == 0x00000000UL ||
-					/* 0.0.0.0 / 7 */
-					(ip & 0xFE000000UL) == 0x00000000UL ||
-					/* 224..239.0.0 / 8 (multicast) */
-					(ip & 0xF0000000UL) == 0xE0000000UL ||
-					/* 127.0.0.0 / 8 */
-					(ip & 0xFF000000UL) == 0x7F000000UL ||
-					/* 192.0.2.0 -- (192.0.2/24 prefix) TEST-NET [RFC 3330] */
-					(ip & 0xFFFFFF00UL) == 0xC0000200UL ||
-					/* 255.0.0.0 / 8 */
-					(ip & 0xFF000000UL) == 0xFF000000UL
-			)
-				return FALSE;
-		}
-		return TRUE;
-		
-	case NET_TYPE_IPV6:
-#ifdef USE_IPV6
-		{
-			static gboolean initialized;
-			static host_addr_t zero_net, multicast_net;
-			
-			if (!initialized) {
-				zero_net = string_to_host_addr("::", NULL);
-				multicast_net = string_to_host_addr("FF00::", NULL);
-				initialized = TRUE;
-			}
-
-			return 	!host_addr_matches(ha, zero_net, 8) &&
-					!host_addr_matches(ha, multicast_net, 8);
-		}
-#endif /* USE_IPV6 */
-		
-	case NET_TYPE_NONE:
-		break;
-	}
-
-	g_assert_not_reached();
-	return FALSE;
 }
 
 /**
@@ -1111,39 +698,6 @@ str_chomp(gchar *str, gint len)
 		return len - 1;
 	} else
 		return len;
-}
-
-/**
- * Checks for RFC1918 private addresses.
- *
- * @return TRUE if is a private address.
- */
-gboolean
-is_private_addr(const host_addr_t ha)
-{
-	if (NET_TYPE_IPV4 == host_addr_net(ha)) {
-		guint32 ip = host_addr_ipv4(ha);
-
-		/* 10.0.0.0 -- (10/8 prefix) */
-		if ((ip & 0xff000000) == 0xa000000)
-			return TRUE;
-
-		/* 172.16.0.0 -- (172.16/12 prefix) */
-		if ((ip & 0xfff00000) == 0xac100000)
-			return TRUE;
-
-		/* 169.254.0.0 -- (169.254/16 prefix) -- since Jan 2001 */
-		if ((ip & 0xffff0000) == 0xa9fe0000)
-			return TRUE;
-
-		/* 192.168.0.0 -- (192.168/16 prefix) */
-		if ((ip & 0xffff0000) == 0xc0a80000)
-			return TRUE;
-	} else if (NET_TYPE_IPV6 == host_addr_net(ha)) {
-		/* XXX: Implement this! */
-	}
-
-	return FALSE;
 }
 
 /**
@@ -3097,122 +2651,5 @@ html_escape(const gchar *src, gchar *dst, size_t dst_size)
 
 	return d - dst; 
 }
-
-guint
-host_addr_hash_func(gconstpointer key)
-{
-	const host_addr_t *addr = key;
-	return host_addr_hash(*addr);
-}
-
-gboolean
-host_addr_eq_func(gconstpointer p, gconstpointer q)
-{
-	const host_addr_t *a = p, *b = q;
-	return host_addr_equal(*a, *b);
-}
-
-void
-wfree_host_addr(gpointer key, gpointer unused_data)
-{
-	(void) unused_data;
-	wfree(key, sizeof (host_addr_t));
-}
-
-#ifdef USE_IPV6
-gboolean
-host_addr_can_convert(const host_addr_t from, enum net_type to_net)
-{
-	if (from.net == to_net)
-		return TRUE;
-
-	switch (to_net) {
-	case NET_TYPE_IPV4:
-		switch (from.net) {
-		case NET_TYPE_IPV6:
-			{
-				static const host_addr_t fnet = {	/* ::ffff:0/96 */
-					NET_TYPE_IPV6,
-					{ { 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, 0, 0, 0, 0 } },
-				};
-				static const host_addr_t znet = {	/* ::/96 */
-					NET_TYPE_IPV6,
-					{ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-				};
-			
-				return host_addr_matches(from, fnet, 96) ||
-					(	
-					 	0 != from.addr.ipv6[12] &&
-					 	host_addr_matches(from, znet, 96)
-					);
-			}
-		case NET_TYPE_NONE:
-			break;
-		}
-		break;
-		
-	case NET_TYPE_IPV6:
-		switch (from.net) {
-		case NET_TYPE_IPV4:
-			return TRUE;
-		case NET_TYPE_NONE:
-			break;
-		}
-		break;
-
-	case NET_TYPE_NONE:
-		break;
-	}
-	
-	return FALSE;
-}
-
-gboolean
-host_addr_convert(const host_addr_t *from, host_addr_t *to,
-	enum net_type to_net)
-{
-	if (from->net == to_net) {
-		*to = *from;
-		return TRUE;
-	}
-
-	switch (to_net) {
-	case NET_TYPE_IPV4:
-		switch (from->net) {
-		case NET_TYPE_IPV6:
-			if (host_addr_can_convert(*from, NET_TYPE_IPV4)) {
-				to->net = NET_TYPE_IPV4;
-				to->addr.ipv4 = peek_be32(&from->addr.ipv6[12]);
-				return TRUE;
-			}
-			break;
-		case NET_TYPE_NONE:
-			break;
-		}
-		break;
-		
-	case NET_TYPE_IPV6:
-		switch (from->net) {
-		case NET_TYPE_IPV4:
-			to->net = to_net;
-			memset(to->addr.ipv6, 0, 10);
-			to->addr.ipv6[10] = 0xff;
-			to->addr.ipv6[11] = 0xff;
-			poke_be32(&to->addr.ipv6[12], from->addr.ipv4);
-			return TRUE;
-		case NET_TYPE_NONE:
-			break;
-		}
-		break;
-
-	case NET_TYPE_NONE:
-		break;
-	}
-	
-	*to = zero_host_addr;
-	return FALSE;
-}
-#endif /* USE_IPV6 */
-
 
 /* vi: set ts=4 sw=4 cindent: */

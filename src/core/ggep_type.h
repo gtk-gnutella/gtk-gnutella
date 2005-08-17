@@ -37,6 +37,7 @@
 #define _core_ggep_type_h_
 
 #include <glib.h>
+#include "lib/host_addr.h"
 
 /**
  * Extraction interface return types.

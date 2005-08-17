@@ -570,7 +570,10 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
 	hc = caches[type];
     g_assert(hc->type == type);
 
-    if (!addr_is_valid(addr) && (!hc->addr_only || !port_is_valid(port))) {
+    if (
+		!host_addr_is_routable(addr) &&
+		(!hc->addr_only || !port_is_valid(port))
+	) {
         stats[HCACHE_INVALID_HOST]++;
 		return FALSE;			/* Is host valid? */
     }

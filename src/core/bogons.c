@@ -245,7 +245,7 @@ bogons_check(const host_addr_t ha)
 	} else if (NET_TYPE_IPV6 == host_addr_net(ha)) {
 		host_addr_t to;
 		
-		if (host_addr_convert(&ha, &to, NET_TYPE_IPV4))
+		if (host_addr_convert(ha, &to, NET_TYPE_IPV4))
 			return bogons_check(to);
 	}
 

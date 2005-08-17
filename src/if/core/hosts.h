@@ -26,7 +26,7 @@
 #ifndef _if_core_hosts_h_
 #define _if_core_hosts_h_
 
-#include "lib/misc.h" /* For host_addr_t addr */
+#include "lib/host_addr.h" /* For host_addr_t addr */
 
 /**
  * A gnutella host.

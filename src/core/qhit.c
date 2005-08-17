@@ -82,7 +82,7 @@ struct found_struct {
 	size_t files;				/**< amount of file entries */
 	size_t max_size;			/**< max query hit size */
 	gboolean use_ggep_h;		/**< whether to use GGEP "H" to send SHA1 */
-	gchar *muid;				/**< the MUID to put in all query hits */
+	const gchar *muid;			/**< the MUID to put in all query hits */
 	qhit_process_t process;		/**< processor once query hit is built */
 	gpointer udata;				/**< processor argument */
 	gboolean open;				/**< Set if found_open() was used */
@@ -249,7 +249,7 @@ found_process(void)
 }
 
 static void
-found_init(size_t max_size, gchar *xuid, gboolean ggep_h,
+found_init(size_t max_size, const gchar *xuid, gboolean ggep_h,
 	qhit_process_t proc, gpointer udata)
 {
 	struct found_struct *f = found_get();
@@ -508,7 +508,7 @@ failure:
  * lack of space.
  */
 static gboolean
-add_file(struct shared_file *sf)
+add_file(const struct shared_file *sf)
 {
 	size_t needed = 8 + 2 + sf->name_nfc_len;		/* size of hit entry */
 	gboolean sha1_available;
@@ -519,6 +519,7 @@ add_file(struct shared_file *sf)
 	gboolean ok;
 	ggep_stream_t gs;
 	size_t left;
+	gpointer start;
 
 	g_assert(sf->fi == NULL);	/* Cannot match partially downloaded files */
 
@@ -604,7 +605,8 @@ add_file(struct shared_file *sf)
 	 */
 
 	left = found_left();
-	ggep_stream_init(&gs, found_open(), left);
+	start = found_open();
+	ggep_stream_init(&gs, start, left);
 
 	/*
 	 * Emit the SHA1 as GGEP "H" if they said they understand it.
@@ -656,6 +658,7 @@ add_file(struct shared_file *sf)
 		ok = ggep_stream_begin(&gs, GGEP_NAME(ALT), GGEP_W_COBS);
 
 		for (i = 0; ok && i < hcnt; i++) {
+			g_assert(start == gs.outbuf);
 			if (NET_TYPE_IPV4 == host_addr_net(hvec[i].addr)) {
 				WRITE_GUINT32_BE(host_addr_ipv4(hvec[i].addr), &alt[0]);
 				WRITE_GUINT16_LE(hvec[i].port, &alt[4]);
@@ -719,7 +722,7 @@ add_file(struct shared_file *sf)
  * have to be sent out-of-bound
  */
 static void
-found_reset(size_t max_size, gchar *muid,
+found_reset(size_t max_size, const gchar *muid,
 	gboolean use_ggep_h, qhit_process_t process, gpointer udata)
 {
 	g_assert(process != NULL);
@@ -791,16 +794,16 @@ qhit_build_results(
 	GSList *files, gint count,
 	size_t max_msgsize,
 	qhit_process_t cb, gpointer udata,
-	gchar *muid, gboolean use_ggep_h)
+	const gchar *muid, gboolean use_ggep_h)
 {
-	GSList *sl;
+	const GSList *sl;
 	gint sent;
 
 	g_assert(cb != NULL);
 	found_reset(max_msgsize, muid, use_ggep_h, cb, udata);
 
 	for (sl = files, sent = 0; sl && sent < count; sl = g_slist_next(sl)) {
-		shared_file_t *sf = (shared_file_t *) sl->data;
+		const shared_file_t *sf = sl->data;
 
 		if (add_file(sf))
 			sent++;

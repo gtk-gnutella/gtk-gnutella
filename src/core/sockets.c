@@ -464,7 +464,7 @@ send_socks4(struct gnutella_socket *s)
 	host_addr_t addr;
 
 	/* SOCKS4 is IPv4 only */
-	if (!host_addr_convert(&s->addr, &addr, NET_TYPE_IPV4))
+	if (!host_addr_convert(s->addr, &addr, NET_TYPE_IPV4))
 		return -1;
 	
 	/* Create the request */
@@ -721,7 +721,7 @@ connect_socksv5(struct gnutella_socket *s)
 
 	sockid = s->file_desc;
 
-	if (!host_addr_convert(&s->addr, &addr, NET_TYPE_IPV4))
+	if (!host_addr_convert(s->addr, &addr, NET_TYPE_IPV4))
 		addr = s->addr;
 
 	{
@@ -2801,7 +2801,7 @@ socket_plain_sendto(
 	g_assert(!SOCKET_USES_TLS(s));
 #endif
 
-	if (!host_addr_convert(&to->addr, &ha, s->net)) {
+	if (!host_addr_convert(to->addr, &ha, s->net)) {
 		errno = EINVAL;
 		return -1;
 	}

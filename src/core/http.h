@@ -37,6 +37,7 @@
 #define _core_http_h_
 
 #include "if/core/http.h"
+#include "lib/host_addr.h"
 
 #define HTTP_PORT		80		/**< Registered HTTP port */
 

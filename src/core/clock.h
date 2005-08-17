@@ -38,6 +38,7 @@
 #define _core_clock_h_
 
 #include "common.h"
+#include "lib/host_addr.h"
 
 /*
  * Public interface.

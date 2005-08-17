@@ -91,7 +91,7 @@ void download_move_done(struct download *d, guint elapsed);
 void download_move_error(struct download *d);
 
 gboolean download_new_uri(gchar *file, gchar *uri, filesize_t size,
-			const host_addr_t addr, guint16 port, gchar *guid, gchar *hostname,
+	const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
 			gchar *sha1, time_t stamp, gboolean push, struct dl_file_info *fi,
 			gnet_host_vec_t *proxies, guint32 flags);
 

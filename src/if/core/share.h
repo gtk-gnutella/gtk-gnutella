@@ -26,6 +26,8 @@
 #ifndef _if_core_share_h_
 #define _if_core_share_h_
 
+#include "lib/host_addr.h"
+
 /**
  * Search query types.
  */

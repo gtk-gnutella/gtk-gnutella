@@ -40,6 +40,7 @@
 #include "common.h"
 
 #include "if/core/settings.h"
+#include "lib/host_addr.h"
 
 /**
  * Global Data.

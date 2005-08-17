@@ -271,7 +271,7 @@ host_is_valid(const host_addr_t addr, guint16 port)
 	if (!port_is_valid(port))
 		return FALSE;
 
-	if (!addr_is_valid(addr))
+	if (!host_addr_is_routable(addr))
 		return FALSE;
 
 	if (bogons_check(addr))

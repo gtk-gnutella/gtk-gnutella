@@ -37,12 +37,13 @@
 #define _core_guid_h_
 
 #include <glib.h>
+#include "lib/host_addr.h"
 
 /*
  * Public interface.
  */
 
-extern gchar blank_guid[16];
+extern const gchar blank_guid[16];
 
 void guid_init(void);
 gboolean guid_is_gtkg(

@@ -2522,7 +2522,7 @@ search_new_muid(gboolean initial)
 	addr = listen_addr();
 
 	for (i = 0; i < 100; i++) {
-		if (udp_active() && addr_is_valid(addr))
+		if (udp_active() && host_addr_is_routable(addr))
 			guid_query_oob_muid(muid, addr, listen_port, initial);
 		else
 			guid_query_muid(muid, initial);

@@ -37,6 +37,9 @@
 #ifndef _core_whitelist_h_
 #define _core_whitelist_h_
 
+#include "common.h"
+#include "lib/host_addr.h"
+
 /**
  * Number of seconds between each connection attempt to a whitelisted node.
  */

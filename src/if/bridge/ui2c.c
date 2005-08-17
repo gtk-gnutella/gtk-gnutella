@@ -195,9 +195,9 @@ guc_download_clear_stopped(gboolean complete,
 
 void
 guc_download_auto_new(gchar *file, filesize_t size,
-	guint32 record_index, const host_addr_t addr, guint16 port, gchar *guid,
-	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
-	gboolean file_size_known, struct dl_file_info *fi,
+	guint32 record_index, const host_addr_t addr, guint16 port,
+	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
+	gboolean push, gboolean file_size_known, struct dl_file_info *fi,
 	gnet_host_vec_t *proxies, guint32 flags)
 {
 	download_auto_new(file, size, record_index, addr, port, guid, hostname,
@@ -206,8 +206,8 @@ guc_download_auto_new(gchar *file, filesize_t size,
 
 gboolean
 guc_download_new_unknown_size(gchar *file,
-			guint32 record_index, const host_addr_t addr, guint16 port,
-			gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
+	guint32 record_index, const host_addr_t addr, guint16 port,
+	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
 			gboolean push, struct dl_file_info *fi,
 			gnet_host_vec_t *proxies, guint32 flags)
 {
@@ -248,7 +248,7 @@ guc_download_something_to_clear(void)
 gboolean
 guc_download_new(gchar *file, filesize_t size,
 			guint32 record_index, const host_addr_t addr, guint16 port,
-			gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
+			const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
 			gboolean push, struct dl_file_info *fi,
 			gnet_host_vec_t *proxies, guint32 flags)
 {

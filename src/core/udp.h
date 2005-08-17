@@ -37,6 +37,7 @@
 #define _core_udp_h_
 
 #include <glib.h>
+#include "lib/host_addr.h"
 
 /*
  * Public interface.

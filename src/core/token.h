@@ -37,6 +37,7 @@
 #define _core_token_h_
 
 #include <glib.h>
+#include "lib/host_addr.h"
 
 #define TOKEN_VERSION_SIZE	(4 + 3 + 20)	/**< stamp + seed + SHA1 */
 #define TOKEN_START_DATE	1045868400		/**< When we started using tokens */

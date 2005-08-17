@@ -40,6 +40,7 @@
 #define _if_core_pproxy_h_
 
 #include "if/core/http.h"	/* For http_state_t */
+#include "lib/host_addr.h"	/* For host_addr_t */
 
 struct download;
 

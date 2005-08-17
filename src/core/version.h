@@ -38,6 +38,7 @@
 
 #include "common.h"
 #include "if/core/version.h"
+#include "lib/host_addr.h"
 
 /**
  * A decompiled version descriptor.

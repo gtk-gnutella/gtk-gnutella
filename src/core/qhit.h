@@ -55,8 +55,8 @@ void qhit_build_results(
 	GSList *files, gint count,
 	size_t max_msgsize,
 	qhit_process_t cb, gpointer udata,
-	gchar *muid, gboolean use_ggep_h);
+	const gchar *muid, gboolean use_ggep_h);
 
 #endif /* _core_qhit_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

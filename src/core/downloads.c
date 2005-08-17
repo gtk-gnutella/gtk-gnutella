@@ -860,7 +860,7 @@ server_undelete(struct dl_server *server)
  * @returns NULL if not found.
  */
 static struct dl_server *
-get_server(gchar *guid, const host_addr_t addr, guint16 port)
+get_server(const gchar *guid, const host_addr_t addr, guint16 port)
 {
 	struct dl_addr ikey;
 	struct dl_key key;
@@ -885,7 +885,7 @@ get_server(gchar *guid, const host_addr_t addr, guint16 port)
 		return server;
 	}
 
-	key.guid = guid;
+	key.guid = deconstify_gchar(guid);
 	key.addr = addr;
 	key.port = port;
 
@@ -1139,13 +1139,13 @@ downloads_with_name_dec(gchar *name)
  */
 static struct download *
 has_same_download(
-	const gchar *file, const gchar *sha1, gchar *guid,
+	const gchar *file, const gchar *sha1, const gchar *guid,
 	const host_addr_t addr, guint16 port)
 {
+	static const enum dl_list listnum[] = { DL_LIST_WAITING, DL_LIST_RUNNING };
 	struct dl_server *server = get_server(guid, addr, port);
 	GList *l;
 	guint n;
-	enum dl_list listnum[] = { DL_LIST_WAITING, DL_LIST_RUNNING };
 
 	if (server == NULL)
 		return NULL;
@@ -1160,8 +1160,8 @@ has_same_download(
 	 */
 
 	for (n = 0; n < G_N_ELEMENTS(listnum); n++) {
-		for (l = server->list[n]; l; l = l->next) {
-			struct download *d = (struct download *) l->data;
+		for (l = server->list[n]; l; l = g_list_next(l)) {
+			struct download *d = l->data;
 
 			g_assert(!DOWNLOAD_IS_STOPPED(d));
 
@@ -3229,7 +3229,7 @@ download_fallback_to_push(struct download *d,
  */
 static struct download *
 create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
-	const host_addr_t addr, guint16 port, gchar *guid, gchar *hostname,
+	const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
 	gchar *sha1, time_t stamp,
 	gboolean push, gboolean interactive, gboolean file_size_known,
 	struct dl_file_info *file_info, gnet_host_vec_t *proxies, guint32 cflags)
@@ -3449,7 +3449,7 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
  */
 void
 download_auto_new(gchar *file, filesize_t size, guint32 record_index,
-	const host_addr_t addr, guint16 port, gchar *guid, gchar *hostname,
+	const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
 	gchar *sha1, time_t stamp, gboolean push,
 	gboolean file_size_known, struct dl_file_info *fi,
 	gnet_host_vec_t *proxies, guint32 flags)
@@ -3677,7 +3677,7 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
  */
 gboolean
 download_new(gchar *file, filesize_t size, guint32 record_index,
-	const host_addr_t addr, guint16 port, gchar *guid, gchar *hostname,
+	const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
 	gchar *sha1, time_t stamp, gboolean push,
 	struct dl_file_info *fi, gnet_host_vec_t *proxies, guint32 flags)
 {
@@ -3690,7 +3690,7 @@ download_new(gchar *file, filesize_t size, guint32 record_index,
  */
 gboolean
 download_new_unknown_size(gchar *file, guint32 record_index,
-	const host_addr_t addr, guint16 port, gchar *guid, gchar *hostname,
+	const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
 	gchar *sha1, time_t stamp, gboolean push,
 	struct dl_file_info *fi, gnet_host_vec_t *proxies, guint32 flags)
 {
@@ -3700,7 +3700,7 @@ download_new_unknown_size(gchar *file, guint32 record_index,
 
 gboolean
 download_new_uri(gchar *file, gchar *uri, filesize_t size,
-	  const host_addr_t addr, guint16 port, gchar *guid, gchar *hostname,
+	  const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
 	  gchar *sha1, time_t stamp, gboolean push,
 	  struct dl_file_info *fi, gnet_host_vec_t *proxies, guint32 flags)
 {

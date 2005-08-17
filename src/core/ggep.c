@@ -40,6 +40,7 @@ RCSID("$Id$");
 #include "ggep.h"
 #include "extensions.h"
 #include "lib/cobs.h"
+#include "lib/misc.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
 

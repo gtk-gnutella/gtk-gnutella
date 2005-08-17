@@ -689,7 +689,7 @@ search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 		gnet_host_t *h = &alt->hvec[i];
 
 		g_assert(host_addr_initialized(h->addr));
-		if (h->port == 0 || !addr_is_valid(h->addr))
+		if (h->port == 0 || !host_addr_is_routable(h->addr))
 			continue;
 
 		guc_download_auto_new(rc->name, rc->size, URN_INDEX,

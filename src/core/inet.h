@@ -37,6 +37,7 @@
 #define _core_inet_h_
 
 #include "common.h"
+#include "lib/host_addr.h"
 
 /*
  * Public interface.

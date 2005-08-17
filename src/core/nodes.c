@@ -7928,7 +7928,7 @@ node_crawl_fill(pmsg_t *mb,
 		 * Add node's address (IP:port).
 		 */
 
-		if (!host_addr_convert(&n->gnet_addr, &ha, NET_TYPE_IPV4))
+		if (!host_addr_convert(n->gnet_addr, &ha, NET_TYPE_IPV4))
 			goto next;
 
 		poke_be32(&addr[0], host_addr_ipv4(ha));

@@ -537,7 +537,7 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 		{
 			const host_addr_t from = addr;
 
-			if (!host_addr_convert(&from, &addr, NET_TYPE_IPV4)) {
+			if (!host_addr_convert(from, &addr, NET_TYPE_IPV4)) {
 				const guint8 *ipv6 = host_addr_ipv6(&from);
 				
 				if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6), ipv6, 16, 0)) {

@@ -442,6 +442,8 @@ src/lib/hashlist.c
 src/lib/hashlist.h
 src/lib/header.c
 src/lib/header.h
+src/lib/host_addr.c
+src/lib/host_addr.h
 src/lib/idtable.c
 src/lib/idtable.h
 src/lib/inputevt.c

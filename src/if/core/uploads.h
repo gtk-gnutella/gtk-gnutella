@@ -27,6 +27,7 @@
 #define _if_core_uploads_h_
 
 #include "common.h"
+#include "lib/host_addr.h"
 
 typedef guint32 gnet_upload_t;
 
