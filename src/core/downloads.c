@@ -775,6 +775,7 @@ free_server(struct dl_server *server)
 	struct dl_addr ipk;
 
 	g_assert(dl_server_valid(server));
+	g_assert(server->refcnt == 0);
 
 	dl_by_time_remove(server);
 	g_hash_table_remove(dl_by_host, server->key);
@@ -857,7 +858,7 @@ server_undelete(struct dl_server *server)
 /**
  * Fetch server entry identified by IP:port first, then GUID+IP:port.
  *
- * @returns NULL if not found.
+ * @returns server, allocated if needed.
  */
 static struct dl_server *
 get_server(const gchar *guid, const host_addr_t addr, guint16 port)
@@ -881,8 +882,7 @@ get_server(const gchar *guid, const host_addr_t addr, guint16 port)
 	if (server) {
 		if (server->attrs & DLS_A_REMOVED)
 			server_undelete(server);
-		g_assert(dl_server_valid(server));
-		return server;
+		goto done;
 	}
 
 	key.guid = deconstify_gchar(guid);
@@ -895,6 +895,15 @@ get_server(const gchar *guid, const host_addr_t addr, guint16 port)
 	if (server && (server->attrs & DLS_A_REMOVED))
 		server_undelete(server);
 
+	/*
+	 * Allocate new server if it does not exist already.
+	 */
+
+	if (NULL == server)
+		server = allocate_server(guid, addr, port);
+
+done:
+	g_assert(dl_server_valid(server));
 	return server;
 }
 
@@ -1933,6 +1942,7 @@ download_reclaim_server(struct download *d, gboolean delayed)
 
 	server = d->server;
 	d->server = NULL;
+	server->refcnt--;
 
 	/*
 	 * We cannot reclaim the server structure immediately if `delayed' is set,
@@ -1946,6 +1956,7 @@ download_reclaim_server(struct download *d, gboolean delayed)
 		server->count[DL_LIST_WAITING] == 0 &&
 		server->count[DL_LIST_STOPPED] == 0
 	) {
+		g_assert(server->refcnt == 0);
 		if (delayed) {
 			if (!(server->attrs & DLS_A_REMOVED))
 				server_delay_delete(server);
@@ -1996,6 +2007,7 @@ download_reparent(struct download *d, struct dl_server *new_server)
 	download_remove_from_server(d, FALSE);	/* Server reclaimed later */
 	download_reclaim_server(d, TRUE);		/* Delays free if empty */
 	d->server = new_server;
+	new_server->refcnt++;
 
 	/*
 	 * Insert download in new server, in the same list.
@@ -2041,13 +2053,12 @@ download_redirect_to_server(struct download *d,
 	download_remove_from_server(d, TRUE);
 
 	/*
-	 * Create new server.
+	 * Associate to server.
 	 */
 
 	server = get_server(old_guid, addr, port);
-	if (server == NULL)
-		server = allocate_server(old_guid, addr, port);
 	d->server = server;
+	server->refcnt++;
 
 	/*
 	 * Insert download in new server, in the same list.
@@ -3239,7 +3250,6 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	gchar *file_name;
 	gchar *file_uri = NULL;
 	struct dl_file_info *fi;
-	gboolean server_created = FALSE;		/* For assertions only */
 
 	g_assert(size == 0 || file_size_known);
 	g_assert(host_addr_initialized(addr));
@@ -3279,10 +3289,6 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	 */
 
 	server = get_server(guid, addr, port);
-	if (server == NULL) {
-		server = allocate_server(guid, addr, port);
-		server_created = TRUE;
-	}
 
 	g_assert(dl_server_valid(server));
 
@@ -3304,7 +3310,6 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	 */
 
 	if ((d = has_same_download(file_name, sha1, guid, addr, port))) {
-		g_assert(!server_created);		/* Obviously! */
 		if (interactive)
 			g_message("Rejecting duplicate download for %s", file_name);
 		atom_str_free(file_name);
@@ -3319,6 +3324,7 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 
 	d->src_handle = idtable_new_id(src_handle_map, d);
 	d->server = server;
+	server->refcnt++;
 	d->list_idx = DL_LIST_INVALID;
 	d->cflags = cflags;
 
@@ -3546,6 +3552,7 @@ download_clone(struct download *d)
 	cd->visible = FALSE;
 	cd->push = FALSE;
 	cd->status = GTA_DL_CONNECTING;
+	cd->server->refcnt++;
 
 	if (d->escaped_name == d->file_name)
 		cd->escaped_name = cd->file_name;
@@ -3822,9 +3829,9 @@ download_remove(struct download *d)
 		d->sha1 = NULL;
 	}
 
-	if (d->uri)
-	{
+	if (d->uri) {
 		atom_str_free(d->uri);
+		d->uri = NULL;
 	}
 
 	if (d->ranges) {

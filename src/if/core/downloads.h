@@ -88,6 +88,7 @@ enum dl_server_magic { DL_SERVER_MAGIC = 0x5e45e4ffU };
 
 struct dl_server {
 	enum dl_server_magic magic;	/**< Magic number */
+	gint refcnt;			 /**< Reference count */
 	struct dl_key *key;		 /**< Key properties */
 	GList *list[DL_LIST_SZ]; /**< Download lists */
 	guint count[DL_LIST_SZ]; /**< Amount of downloads in list */
