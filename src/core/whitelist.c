@@ -91,14 +91,11 @@ whitelist_retrieve(void)
 
 		/* Remove trailing spaces so that lines that contain spaces only
 		 * are ignored and cause no warnings. */
-		p = strchr(line, '\0');
-        while (p != line) {
-			p--;
-			if (!is_ascii_space((guchar) *p)) {
-				*++p = '\0';
+		for (p = strchr(line, '\0'); p != line; p--) {
+			if (!is_ascii_space(*(p - 1)))
 				break;
-			}
 		}
+		*p = '\0';
 
         if ('\0' == line[0])
             continue;
@@ -108,7 +105,7 @@ whitelist_retrieve(void)
 
 		if (!string_to_host_or_addr(line, &endptr, &addr)) {
             g_warning("whitelist_retrieve(): "
-				"Line %d: Expect hostname or IP address \"%s\"",
+				"Line %d: Expected hostname or IP address \"%s\"",
 				linenum, line);
 			continue;
 		}
@@ -348,7 +345,7 @@ gboolean
 whitelist_check(const host_addr_t ha)
 {
     time_t now = time(NULL);
-    GSList *sl;
+    const GSList *sl;
 
     /* Check if the file has changed on disk, and reload it if necessary. */
     if (delta_time(now, whitelist_checked) > WHITELIST_CHECK_INTERVAL) {
@@ -358,7 +355,7 @@ whitelist_check(const host_addr_t ha)
 
         if (NULL != whitelist_path && 0 == stat(whitelist_path, &st)) {
             if (st.st_mtime != whitelist_mtime) {
-                g_warning("whitelist_check(): "
+                g_message("whitelist_check(): "
 					"Whitelist changed on disk. Reloading.");
                 whitelist_reload();
             }
@@ -366,10 +363,9 @@ whitelist_check(const host_addr_t ha)
     }
 
     for (sl = sl_whitelist; sl; sl = g_slist_next(sl)) {
-    	struct whitelist *n;
+    	const struct whitelist *item = sl->data;
 
-        n = sl->data;
-		if (host_addr_matches(ha, n->addr, n->bits))
+		if (host_addr_matches(ha, item->addr, item->bits))
             return TRUE;
     }
 
