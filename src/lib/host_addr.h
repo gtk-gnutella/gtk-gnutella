@@ -313,17 +313,6 @@ host_addr_hash(host_addr_t ha)
 
 /* IPv4 only */
 
-static inline gboolean
-host_addr_convert(const host_addr_t from, host_addr_t *to,
-	enum net_type to_net)
-{
-	if (NET_TYPE_IPV4 == to_net) {
-		to = *from;
-		return TRUE;
-	}
-	return FALSE;
-}
-
 #define host_addr_initialized(x)	TRUE
 #define host_addr_net(x) (((void) (x)), NET_TYPE_IPV4)
 #define host_addr_family(x) (((void) (x)), AF_INET) 
@@ -335,6 +324,18 @@ host_addr_convert(const host_addr_t from, host_addr_t *to,
 #define host_addr_cmp(a, b) (CMP((a), (b)))
 #define host_addr_hash(x) (x)
 #define zero_host_addr 0
+
+static inline gboolean
+host_addr_convert(const host_addr_t from, host_addr_t *to,
+	enum net_type to_net)
+{
+	if (NET_TYPE_IPV4 == to_net) {
+		*to = from;
+		return TRUE;
+	}
+	*to = zero_host_addr;
+	return FALSE;
+}
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
 host_addr_matches(guint32 a, guint32 b, guint8 bits)
