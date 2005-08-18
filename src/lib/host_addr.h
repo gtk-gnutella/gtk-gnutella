@@ -314,11 +314,11 @@ host_addr_hash(host_addr_t ha)
 /* IPv4 only */
 
 static inline gboolean
-host_addr_convert(const host_addr_t *from, host_addr_t *to,
+host_addr_convert(const host_addr_t from, host_addr_t *to,
 	enum net_type to_net)
 {
 	if (NET_TYPE_IPV4 == to_net) {
-		*to = *from;
+		to = *from;
 		return TRUE;
 	}
 	return FALSE;
