@@ -467,7 +467,7 @@ download_timer(time_t now)
 		guint32 t;
 
 		g_assert(d != NULL);
-		g_assert(d->server == NULL || dl_server_valid(d->server));
+		g_assert(dl_server_valid(d->server));
 
 		l = l->next;
 
@@ -776,6 +776,12 @@ free_server(struct dl_server *server)
 
 	g_assert(dl_server_valid(server));
 	g_assert(server->refcnt == 0);
+	g_assert(server->count[DL_LIST_RUNNING] == 0);
+	g_assert(server->count[DL_LIST_WAITING] == 0);
+	g_assert(server->count[DL_LIST_STOPPED] == 0);
+	g_assert(server->list[DL_LIST_RUNNING] == NULL);
+	g_assert(server->list[DL_LIST_WAITING] == NULL);
+	g_assert(server->list[DL_LIST_STOPPED] == NULL);
 
 	dl_by_time_remove(server);
 	g_hash_table_remove(dl_by_host, server->key);
@@ -858,10 +864,11 @@ server_undelete(struct dl_server *server)
 /**
  * Fetch server entry identified by IP:port first, then GUID+IP:port.
  *
- * @returns server, allocated if needed.
+ * @returns server, allocated if needed when allocate is TRUE.
  */
 static struct dl_server *
-get_server(const gchar *guid, const host_addr_t addr, guint16 port)
+get_server(
+	const gchar *guid, const host_addr_t addr, guint16 port, gboolean allocate)
 {
 	struct dl_addr ikey;
 	struct dl_key key;
@@ -899,8 +906,12 @@ get_server(const gchar *guid, const host_addr_t addr, guint16 port)
 	 * Allocate new server if it does not exist already.
 	 */
 
-	if (NULL == server)
+	if (NULL == server) {
+		if (!allocate)
+			return NULL;
 		server = allocate_server(guid, addr, port);
+		/* FALL THROUGH */
+	}
 
 done:
 	g_assert(dl_server_valid(server));
@@ -976,11 +987,12 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 	 * foo.example.com which we thought was 5.6.7.8 is at 1.2.3.4...
 	 */
 
-	duplicate = get_server(key->guid, new_addr, key->port);
+	duplicate = get_server(key->guid, new_addr, key->port, FALSE);
 
 	if (duplicate != NULL) {
 		g_assert(host_addr_equal(duplicate->key->addr, key->addr));
 		g_assert(duplicate->key->port == key->port);
+		g_assert(duplicate != server);
 
 		if (download_debug) {
             g_message(
@@ -1086,7 +1098,7 @@ set_server_hostname(struct dl_server *server, gchar *hostname)
 gboolean
 download_server_nopush(gchar *guid, const host_addr_t addr, guint16 port)
 {
-	struct dl_server *server = get_server(guid, addr, port);
+	struct dl_server *server = get_server(guid, addr, port, FALSE);
 
 	if (server == NULL)
 		return FALSE;
@@ -1152,7 +1164,7 @@ has_same_download(
 	const host_addr_t addr, guint16 port)
 {
 	static const enum dl_list listnum[] = { DL_LIST_WAITING, DL_LIST_RUNNING };
-	struct dl_server *server = get_server(guid, addr, port);
+	struct dl_server *server = get_server(guid, addr, port, FALSE);
 	GList *l;
 	guint n;
 
@@ -1558,8 +1570,8 @@ download_remove_all_from_peer(gchar *guid, const host_addr_t addr, guint16 port,
 	 *		--RAM, 15/10/2002.
 	 */
 
-	server[0] = get_server(guid, addr, port);
-	server[1] = get_server(blank_guid, addr, port);
+	server[0] = get_server(guid, addr, port, FALSE);
+	server[1] = get_server(blank_guid, addr, port, FALSE);
 
 	if (server[1] == server[0])
 		server[1] = NULL;
@@ -2056,7 +2068,7 @@ download_redirect_to_server(struct download *d,
 	 * Associate to server.
 	 */
 
-	server = get_server(old_guid, addr, port);
+	server = get_server(old_guid, addr, port, TRUE);
 	d->server = server;
 	server->refcnt++;
 
@@ -3288,7 +3300,7 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	 * Create server if none exists already.
 	 */
 
-	server = get_server(guid, addr, port);
+	server = get_server(guid, addr, port, TRUE);
 
 	g_assert(dl_server_valid(server));
 
@@ -3597,7 +3609,7 @@ void
 download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
 	guint32 from, guint32 to)
 {
-	struct dl_server *server = get_server(guid, addr, port);
+	struct dl_server *server = get_server(guid, addr, port, FALSE);
 	GList *l;
 	gint nfound = 0;
 	GSList *to_stop = NULL;
@@ -7264,7 +7276,7 @@ download_retry(struct download *d)
 struct download *
 download_find_waiting_unparq(const host_addr_t addr, guint16 port)
 {
-	struct dl_server *server = get_server(blank_guid, addr, port);
+	struct dl_server *server = get_server(blank_guid, addr, port, FALSE);
 	GList *w;
 
 	if (server == NULL)
