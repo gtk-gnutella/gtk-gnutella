@@ -14,13 +14,10 @@ http://gwc.nonamer.ath.cx:8080/
 http://gwc1.nouiz.org/servlet/GWebCache/req
 http://gwcrab.sarcastro.com:8001/
 http://gwebcache.bearshare.net/
-http://kisama.ath.cx:8080/
 http://krill.shacknet.nu:20095/gwc
 http://loot.alumnigroup.org/
 http://node00.hewson.cns.ufl.edu:8080/pwc.cgi
 http://node02.hewson.cns.ufl.edu:8080/pwc.cgi
-http://overbeer.ghostwhitecrab.de/
 http://pokerface.bishopston.net:3558/
-http://starscream.dynalias.com/
 http://toadface.bishopston.net:3558/
 
