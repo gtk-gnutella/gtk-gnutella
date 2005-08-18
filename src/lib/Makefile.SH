@@ -80,7 +80,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.11 2005/08/02 22:19:16 graaff Exp $
+# $X-Id: Jmakefile,v 1.13 2005/08/18 20:41:46 rmanfredi Exp $
 
 LSRC = \
 	adns.c \
@@ -203,8 +203,11 @@ depend::
 	$(RM) Makefile.new
 
 getdate.c: getdate.y
-	-$(YACC) $(JYFLAGS) $<
-	-$(MV) y.tab.c $@
+	-@if test -f $(TOP)/.package; then \
+		echo "	$(YACC) $(JYFLAGS) $<"; \
+		$(YACC) $(JYFLAGS) $<; \
+		echo "	$(MV) y.tab.c $@"; \
+		$(MV) y.tab.c $@; else touch $@; fi
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit
