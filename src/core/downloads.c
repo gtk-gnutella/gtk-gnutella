@@ -1961,6 +1961,11 @@ download_reclaim_server(struct download *d, gboolean delayed)
 	 * because we can be removing physically several downloads that all
 	 * pointed to the same server, and which have all been removed from it.
 	 * Therefore, the server structure appears empty but is still referenced.
+	 *
+	 * Because we split the detaching of the download from the server and
+	 * the actual reclaiming, the lists can be empty but still the server
+	 * can have downloads referencing it, so we don't physically free it
+	 * until all of them have been detached,
 	 */
 
 	if (
@@ -1968,11 +1973,10 @@ download_reclaim_server(struct download *d, gboolean delayed)
 		server->count[DL_LIST_WAITING] == 0 &&
 		server->count[DL_LIST_STOPPED] == 0
 	) {
-		g_assert(server->refcnt == 0);
 		if (delayed) {
 			if (!(server->attrs & DLS_A_REMOVED))
 				server_delay_delete(server);
-		} else
+		} else if (server->refcnt == 0)
 			free_server(server);
 	}
 }
