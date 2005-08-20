@@ -55,6 +55,7 @@ RCSID("$Id$");
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/vendors.h"
+#include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 extern search_t *search_selected;
@@ -147,7 +148,9 @@ search_gui_set_details(record_t *rc)
 	static GtkEntry *info_tag = NULL;
 	static GtkEntry *info_country = NULL;
 	static GtkEntry *info_speed = NULL;
+	static GtkText *info_xml = NULL;
 	const gchar *vendor;
+	gchar *xml_text;
 	gchar bytes[32];
 
 	if (info_filename == NULL) {		/* First time */
@@ -173,6 +176,8 @@ search_gui_set_details(record_t *rc)
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_country"));
 		info_speed =
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_speed"));
+		info_xml =
+			GTK_TEXT(lookup_widget(main_window, "text_result_info_xml"));
 	}
 
 	if (rc == NULL) {
@@ -189,6 +194,11 @@ search_gui_set_details(record_t *rc)
 		gtk_entry_set_text(info_tag, empty);
 		gtk_entry_set_text(info_country, empty);
 		gtk_entry_set_text(info_speed, empty);
+
+		gtk_text_freeze(info_xml);
+		gtk_text_set_point(info_xml, 0);
+		gtk_text_forward_delete(info_xml, gtk_text_get_length(info_xml));
+		gtk_text_thaw(info_xml);
 
 		return;
 	}
@@ -240,6 +250,16 @@ search_gui_set_details(record_t *rc)
 
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%u", rc->results_set->speed);
 	gtk_entry_set_text(info_speed, tmpstr);
+
+	xml_text = rc->xml ? search_xml_indent(rc->xml) : NULL;
+	if (xml_text != NULL) {
+		gtk_text_freeze(info_xml);
+		gtk_text_set_point(info_xml, 0);
+		gtk_text_insert(info_xml, NULL, NULL, NULL,
+			lazy_utf8_to_locale(xml_text), -1);
+		gtk_text_thaw(info_xml);
+	}
+	G_FREE_NULL(xml_text);
 }
 
 /**
