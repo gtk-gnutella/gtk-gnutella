@@ -151,6 +151,8 @@ void search_gui_add_targetted_search(
     struct record *rec, struct filter *noneed);
 void search_gui_update_items(struct search *);
 
+gchar *search_xml_indent(const gchar *s);
+
 #endif /* _gtk_search_common_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

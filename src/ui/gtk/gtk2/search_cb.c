@@ -547,75 +547,6 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 	}
 }
 
-/**
- * Adds some indendation to XML-like text. The input text is assumed to be
- * "flat" and well-formed. If these assumptions fail, the output might look
- * worse than the input.
- *
- * @param s the string to format.
- * @return a newly allocated string.
- */
-static gchar *
-xml_indent(const gchar *s)
-{
-	GString *gs;
-	const gchar *p, *q;
-	guint i, depth = 0;
-
-	gs = g_string_new("");
-
-	q = s;
-	for (;;) {
-
-		q = skip_ascii_spaces(q);
-
-		/* Find the start of the tag */
-		p = strchr(q, '<');
-		if (!p)
-			p = strchr(q, '\0');
-
-		/* Append the text between the previous and the current tag, if any */
-		if (p != q)
-			gs = g_string_append_len(gs, q, p - q);
-		if ('\0' == *p)
-			break;
-		
-		/* Find the end of the tag */
-		q = strchr(p, '>');
-		if (!q)
-			q = strchr(p, '\0');
-
-		if (p[1] != '/') {
-			/* Something like <start> */
-			
-			for (i = 0; i < depth; i++)
-				gs = g_string_append_c(gs, '\t');
-			gs = g_string_append_len(gs, p, (q - p) + 1);
-
-			/* Check for tags like <tag/> */
-			if ('/' != *(q - 1)) {
-				depth++;
-			}
-		} else {
-			/* Something like </end> */
-
-			if (depth > 0) {
-				depth--;
-			}
-			
-			for (i = 0; i < depth; i++)
-				gs = g_string_append_c(gs, '\t');
-			gs = g_string_append_len(gs, p, (q - p) + 1);
-		}
-		gs = g_string_append(gs, "\n");
-
-		if ('>' == *q)
-			q++;
-	}
-	
-	return g_string_free(gs, FALSE);
-}
-
 static void
 search_update_details(GtkTreeView *tv, GtkTreePath *path)
 {
@@ -679,7 +610,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 
 	txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget(main_window,
 					"textview_result_info_xml"))); 
-	xml_txt = rc->xml ? xml_indent(rc->xml) : NULL;
+	xml_txt = rc->xml ? search_xml_indent(rc->xml) : NULL;
 	gtk_text_buffer_set_text(txt, xml_txt ? xml_txt : _("<none>"), -1);
 	G_FREE_NULL(xml_txt);
 }
