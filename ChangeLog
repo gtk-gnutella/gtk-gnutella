@@ -1,5 +1,10 @@
 # since last version
 
+- (2005-08-20 - RAM)
+ * [GTK1] Added 7 new GUI-settable debug levels.
+ * [GTK1] Added provision for displaying XML data from search results.
+ * [GTK1] Search results now show XML payload, if any.
+
 - (2005-08-15 - RAM)
  * Show GTKG's version, amount of files and total size shared in HTML browsing.
  * If they advertise a host name in query hits, redirect an HTML browsing
