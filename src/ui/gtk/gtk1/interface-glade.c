@@ -497,6 +497,9 @@ create_main_window (void)
   GtkWidget *entry_result_info_size;
   GtkWidget *entry_result_info_guid;
   GtkWidget *label707;
+  GtkWidget *label736;
+  GtkWidget *scrolledwindow491;
+  GtkWidget *text_result_info_xml;
   GtkWidget *hbox147;
   GtkWidget *viewport_fix_flashing_1;
   GtkWidget *hbox167;
@@ -4601,7 +4604,7 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (viewport45), frame137);
   gtk_container_set_border_width (GTK_CONTAINER (frame137), 2);
 
-  table95 = gtk_table_new (6, 4, FALSE);
+  table95 = gtk_table_new (7, 4, FALSE);
   gtk_widget_set_name (table95, "table95");
   gtk_widget_ref (table95);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table95", table95,
@@ -4850,6 +4853,36 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label707), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label707), 4, 0);
+
+  label736 = gtk_label_new (_("XML data:"));
+  gtk_widget_set_name (label736, "label736");
+  gtk_widget_ref (label736);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label736", label736,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label736);
+  gtk_table_attach (GTK_TABLE (table95), label736, 0, 1, 6, 7,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label736), 1, 0.5);
+
+  scrolledwindow491 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow491, "scrolledwindow491");
+  gtk_widget_ref (scrolledwindow491);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow491", scrolledwindow491,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (scrolledwindow491);
+  gtk_table_attach (GTK_TABLE (table95), scrolledwindow491, 1, 4, 6, 7,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow491), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
+
+  text_result_info_xml = gtk_text_new (NULL, NULL);
+  gtk_widget_set_name (text_result_info_xml, "text_result_info_xml");
+  gtk_widget_ref (text_result_info_xml);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "text_result_info_xml", text_result_info_xml,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (text_result_info_xml);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow491), text_result_info_xml);
 
   hbox147 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox147, "hbox147");
@@ -11034,6 +11067,24 @@ create_dlg_prefs (void)
   GtkWidget *label714;
   GtkObject *spinbutton_config_pcache_debug_adj;
   GtkWidget *spinbutton_config_pcache_debug;
+  GtkWidget *label737;
+  GtkWidget *label738;
+  GtkWidget *label739;
+  GtkObject *spinbutton_config_tls_debug_adj;
+  GtkWidget *spinbutton_config_tls_debug;
+  GtkObject *spinbutton_config_bitzi_debug_adj;
+  GtkWidget *spinbutton_config_bitzi_debug;
+  GtkObject *spinbutton_config_hsep_debug_adj;
+  GtkWidget *spinbutton_config_hsep_debug;
+  GtkWidget *label744;
+  GtkObject *spinbutton_config_http_debug_adj;
+  GtkWidget *spinbutton_config_http_debug;
+  GtkWidget *label742;
+  GtkObject *spinbutton_config_upload_debug_adj;
+  GtkWidget *spinbutton_config_upload_debug;
+  GtkWidget *label743;
+  GtkObject *spinbutton_config_download_debug_adj;
+  GtkWidget *spinbutton_config_download_debug;
   GtkWidget *frame_expert_unmapped;
   GtkWidget *table57;
   GtkWidget *label465;
@@ -16571,7 +16622,7 @@ create_dlg_prefs (void)
   gtk_box_pack_start (GTK_BOX (hbox206), frame134, FALSE, TRUE, 0);
   gtk_frame_set_shadow_type (GTK_FRAME (frame134), GTK_SHADOW_OUT);
 
-  table92 = gtk_table_new (5, 6, FALSE);
+  table92 = gtk_table_new (7, 6, FALSE);
   gtk_widget_set_name (table92, "table92");
   gtk_widget_ref (table92);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table92", table92,
@@ -16858,6 +16909,138 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_config_pcache_debug);
   gtk_table_attach (GTK_TABLE (table92), spinbutton_config_pcache_debug, 5, 6, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label737 = gtk_label_new (_("TLS connection"));
+  gtk_widget_set_name (label737, "label737");
+  gtk_widget_ref (label737);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label737", label737,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label737);
+  gtk_table_attach (GTK_TABLE (table92), label737, 0, 1, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label737), 0, 0.5);
+
+  label738 = gtk_label_new (_("Bitzi debug"));
+  gtk_widget_set_name (label738, "label738");
+  gtk_widget_ref (label738);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label738", label738,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label738);
+  gtk_table_attach (GTK_TABLE (table92), label738, 0, 1, 6, 7,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label738), 0, 0.5);
+
+  label739 = gtk_label_new (_("HSEP debug"));
+  gtk_widget_set_name (label739, "label739");
+  gtk_widget_ref (label739);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label739", label739,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label739);
+  gtk_table_attach (GTK_TABLE (table92), label739, 2, 3, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label739), 0, 0.5);
+
+  spinbutton_config_tls_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_tls_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_tls_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_tls_debug, "spinbutton_config_tls_debug");
+  gtk_widget_ref (spinbutton_config_tls_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_tls_debug", spinbutton_config_tls_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_tls_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_tls_debug, 1, 2, 5, 6,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_config_bitzi_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_bitzi_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bitzi_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_bitzi_debug, "spinbutton_config_bitzi_debug");
+  gtk_widget_ref (spinbutton_config_bitzi_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_bitzi_debug", spinbutton_config_bitzi_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_bitzi_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_bitzi_debug, 1, 2, 6, 7,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_config_hsep_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_hsep_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_hsep_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_hsep_debug, "spinbutton_config_hsep_debug");
+  gtk_widget_ref (spinbutton_config_hsep_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_hsep_debug", spinbutton_config_hsep_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_hsep_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_hsep_debug, 3, 4, 5, 6,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label744 = gtk_label_new (_("HTTP debug"));
+  gtk_widget_set_name (label744, "label744");
+  gtk_widget_ref (label744);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label744", label744,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label744);
+  gtk_table_attach (GTK_TABLE (table92), label744, 2, 3, 6, 7,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label744), 0, 0.5);
+
+  spinbutton_config_http_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_http_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_http_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_http_debug, "spinbutton_config_http_debug");
+  gtk_widget_ref (spinbutton_config_http_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_http_debug", spinbutton_config_http_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_http_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_http_debug, 3, 4, 6, 7,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label742 = gtk_label_new (_("Upload debug"));
+  gtk_widget_set_name (label742, "label742");
+  gtk_widget_ref (label742);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label742", label742,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label742);
+  gtk_table_attach (GTK_TABLE (table92), label742, 4, 5, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label742), 0, 0.5);
+
+  spinbutton_config_upload_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_upload_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_upload_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_upload_debug, "spinbutton_config_upload_debug");
+  gtk_widget_ref (spinbutton_config_upload_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_upload_debug", spinbutton_config_upload_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_upload_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_upload_debug, 5, 6, 2, 3,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label743 = gtk_label_new (_("Download debug"));
+  gtk_widget_set_name (label743, "label743");
+  gtk_widget_ref (label743);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label743", label743,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label743);
+  gtk_table_attach (GTK_TABLE (table92), label743, 4, 5, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label743), 0, 0.5);
+
+  spinbutton_config_download_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_download_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_download_debug, "spinbutton_config_download_debug");
+  gtk_widget_ref (spinbutton_config_download_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_download_debug", spinbutton_config_download_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_download_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_download_debug, 5, 6, 3, 4,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
