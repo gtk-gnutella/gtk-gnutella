@@ -753,14 +753,22 @@ allocate_server(const gchar *guid, const host_addr_t addr, guint16 port)
 		ipk->port = port;
 
 		existed = g_hash_table_lookup_extended(dl_by_addr, ipk, &ipkey, &x);
-		g_hash_table_insert(dl_by_addr, ipk, server);
+
+		/*
+		 * For the rare cases where the key already existed, we "take
+		 * ownership" of the old key by associating our server entry in it.
+		 * We reuse the old key, and free the new one, otherwise we'd
+		 * have a memory leak because noone would free the old key!
+		 */
 
 		if (existed) {
 			struct dl_addr *da = ipkey;
 			g_assert(da != ipk);
 			g_assert(host_addr_initialized(da->addr));
-			wfree(da, sizeof *da);	/* Old key superseded by new one */
-		}
+			wfree(ipk, sizeof *ipk);	/* Keep the old key */
+			g_hash_table_insert(dl_by_addr, da, server);
+		} else
+			g_hash_table_insert(dl_by_addr, ipk, server);
 	}
 
 	return server;
@@ -1063,14 +1071,22 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 		ipk->port = key->port;
 
 		existed = g_hash_table_lookup_extended(dl_by_addr, ipk, &ipkey, &x);
-		g_hash_table_insert(dl_by_addr, ipk, server);
+
+		/*
+		 * For the rare cases where the key already existed, we "take
+		 * ownership" of the old key by associating our server entry in it.
+		 * We reuse the old key, and free the new one, otherwise we'd
+		 * have a memory leak because noone would free the old key!
+		 */
 
 		if (existed) {
 			struct dl_addr *da = ipkey;
 			g_assert(host_addr_initialized(da->addr));
 			g_assert(da != ipk);
-			wfree(da, sizeof *da);	/* Old key superseded by new one */
-		}
+			wfree(ipk, sizeof *ipk);	/* Keep the old key around */
+			g_hash_table_insert(dl_by_addr, da, server);
+		} else
+			g_hash_table_insert(dl_by_addr, ipk, server);
 	}
 }
 
