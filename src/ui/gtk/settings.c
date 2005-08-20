@@ -5204,6 +5204,54 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
+        PROP_HTTP_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_http_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_DOWNLOAD_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_download_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_UPLOAD_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_upload_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_BITZI_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_bitzi_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_HSEP_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_hsep_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_TLS_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_tls_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
         PROP_GWC_DEBUG,
         update_spinbutton,
         TRUE,
