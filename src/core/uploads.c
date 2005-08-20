@@ -1036,13 +1036,13 @@ upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
 
 	if (!UPLOAD_IS_COMPLETE(u) && upload_debug > 1) {
 		if (u->name) {
-			g_message("Cancelling upload for \"%s\" from %s (%s): %s\n",
+			g_message("Cancelling upload for \"%s\" from %s (%s): %s",
 				u->name,
 				u->socket ? host_addr_to_string(u->socket->addr) : "<no socket>",
 				upload_vendor_str(u),
 				logreason);
 		} else {
-			g_message("Cancelling upload from %s (%s): %s\n",
+			g_message("Cancelling upload from %s (%s): %s",
 				u->socket ? host_addr_to_string(u->socket->addr) : "<no socket>",
 				upload_vendor_str(u),
 				logreason);
@@ -2409,6 +2409,11 @@ prepare_browsing(gnutella_upload_t *u, header_t *header, gchar *request,
 	u->browse_host = TRUE;
 	u->name = atom_str_get(_("<Browse Host Request>"));
 	u->file_size = 0;
+
+	if (upload_debug > 1)
+		g_message("BROWSE request from %s (%s)\n",
+			host_addr_to_string(u->socket->addr),
+			upload_vendor_str(u));
 
 	if (!browse_host_enabled) {
 		upload_error_remove(u, NULL, 403, "Browse Host Disabled");
@@ -3782,6 +3787,14 @@ upload_special_flushed(gpointer arg)
 
 	u->special->close(u->special);
 	u->special = NULL;
+
+	if (upload_debug)
+		g_message("BROWSE %s from %s (%s) done: %lu bytes, %lu sent\n",
+			u->name,
+			host_addr_to_string(u->socket->addr),
+			upload_vendor_str(u),
+			(gulong) u->sent,			/* Sent to TX stack = final RX size */
+			(gulong) u->file_size);		/* True amount sent on the wire */
 
 	upload_fire_upload_info_changed(u);		/* Update size info */
 	upload_completed(u);	/* We're done, wait for next request if any */
