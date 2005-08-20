@@ -328,6 +328,22 @@ unsigned long gm_atoul(const char *str, char **endptr, int *errorcode)
 	return ret;
 }
 
+#ifdef USE_GLIB1
+/**
+ * Appends len bytes of val to string. Because len is provided, val may
+ * contain embedded nuls and need not be nul-terminated. 
+ */
+GString *g_string_append_len(GString *gs, const gchar *val,  gssize len)
+{
+	const gchar *p = val;
+
+	while (len--)
+		g_string_append_c(gs, *p++);
+
+	return gs;
+}
+#endif	/* USE_GLIB1 */
+
 /**
  * Creates a valid and sanitized filename from the supplied string. This is
  * necessary for platforms which have certain requirements for filenames. For

@@ -57,8 +57,9 @@ GSList *gm_slist_insert_after(GSList *list, GSList *lnk, gpointer data);
 
 GList *gm_list_insert_after(GList *list, GList *lnk, gpointer data);
 
-#ifndef USE_GLIB2
+#ifdef USE_GLIB1
 GList *g_list_delete_link(GList *l, GList *lnk);
+GString *g_string_append_len(GString *gs, const gchar *val, gssize len);
 #endif
 
 size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args);
