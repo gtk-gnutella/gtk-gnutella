@@ -900,7 +900,6 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 				case EXT_T_GGEP_LIME_XML:
 					paylen = ext_paylen(e);
 					payload = ext_payload(e);
-					g_message("YAY!");
 					if (!rc->xml && paylen > 0) {
 						size_t len;
 						gchar buf[4096];
@@ -908,9 +907,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 						len = MIN((size_t) paylen, sizeof buf - 1);
 						memcpy(buf, payload, len);
 						buf[len] = '\0';
-						if (utf8_is_valid_string(buf, 0)) {
+						if (utf8_is_valid_string(buf, 0))
 							rc->xml = atom_str_get(buf);
-						}
 					}
 					break;
 				case EXT_T_UNKNOWN_GGEP:	/* Unknown GGEP extension */
@@ -1280,9 +1278,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 							len = MIN((size_t) paylen, sizeof buf - 1);
 							memcpy(buf, payload, len);
 							buf[len] = '\0';
-							if (utf8_is_valid_string(buf, 0)) {
+							if (utf8_is_valid_string(buf, 0))
 								rc->xml = atom_str_get(buf);
-							}
 						}
 					}
 					break;
