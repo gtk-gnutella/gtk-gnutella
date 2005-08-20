@@ -88,10 +88,10 @@ RCSID("$Id$");
 
 #ifdef USE_GTK2
 #ifndef g_hash_table_freeze
-#define g_hash_table_freeze(x)	/**< The function is deprecated. It does nothing */
+#define g_hash_table_freeze(x)	/**< The function is deprecated: does nothing */
 #endif
 #ifndef g_hash_table_thaw
-#define g_hash_table_thaw(x)	/**< The function is deprecated. It does nothing */
+#define g_hash_table_thaw(x)	/**< The function is deprecated: does nothing */
 #endif
 #endif
 
@@ -128,7 +128,7 @@ typedef struct search_ctrl {
 	GHook *new_node_hook;
 	guint reissue_timeout_id;
 	guint reissue_timeout;		/**< timeout per search, 0 = search stopped */
-	guint query_emitted;		/**< Amount of queries emitted since last retry */
+	guint query_emitted;		/**< # of queries emitted since last retry */
 	guint32 items;				/**< Items displayed in the GUI */
 	guint32 kept_results;		/**< Results we kept for last query */
 } search_ctrl_t;
@@ -1601,6 +1601,10 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 	 *
 	 * Starting today (06/07/2003), we're using marked speed fields and
 	 * ignore the speed they specify in the searches from the GUI. --RAM
+	 *
+	 * Starting 2005-08-20, we no longer specify QUERY_SPEED_NO_XML because
+	 * we show XML in hits within the GUI.  We don't yet parse it, but at
+	 * least they can read it.
 	 */
 
 	speed = QUERY_SPEED_MARK;			/* Indicates: special speed field */
@@ -1608,7 +1612,6 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 		speed |= QUERY_SPEED_FIREWALLED;
 	speed |= QUERY_SPEED_LEAF_GUIDED;	/* GTKG supports leaf-guided queries */
 	speed |= QUERY_SPEED_GGEP_H;		/* GTKG understands GGEP "H" in hits */
-	speed |= QUERY_SPEED_NO_XML;		/* GTKG does not parse XML in hits */
 
 	/*
 	 * We need special processing for OOB queries since the GUID has to be
