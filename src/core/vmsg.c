@@ -1502,4 +1502,43 @@ vmsg_send_udp_crawler_ping(struct gnutella_node *n,
 }
 #endif
 
+/**
+ * Assert that the vmsg_map[] array is sorted.
+ */
+static void
+vmsg_map_is_sorted(void)
+{
+	size_t i;
+	size_t size = G_N_ELEMENTS(vmsg_map);
+	gint c_vendor, c_id, c_version;
+
+	/* Don't use BINARY_ARRAY_SORTED -- keep that macro simple */
+
+#define COMPARE(it, o) \
+	(0 != (c_vendor = VENDOR_CODE_CMP((it)->vendor, (o)->vendor)) \
+		? c_vendor \
+		: PAIR_CMP(c_id, c_version, \
+			(it)->id, (o)->id, (it)->version, (o)->version))
+
+
+	for (i = 1; i < size; i++) {
+		const struct vmsg *prev = &vmsg_map[i - 1], *e = &vmsg_map[i];
+
+		if (COMPARE(prev, e) >= 0)
+			g_error("vmsg_map[] unsorted (near %s/%uv%u '%s')",
+				vendor_code_str(e->vendor), e->id, e->version, e->name);
+	}
+
+#undef COMPARE
+}
+
+/**
+ * Initialize vendor messages.
+ */
+void
+vmsg_init(void)
+{
+	vmsg_map_is_sorted();
+}
+
 /* vi: set ts=4 sw=4 cindent: */

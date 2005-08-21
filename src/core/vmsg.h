@@ -65,6 +65,8 @@ void vmsg_send_udp_crawler_pong(struct gnutella_node *n, struct pmsg *mb);
 
 struct pmsg *vmsg_build_oob_reply_ind(gchar *muid, guint8 hits);
 
+void vmsg_init(void);
+
 #endif	/* _core_vmsg_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
