@@ -436,117 +436,6 @@ get_header_value(gchar *const s, gchar const *const attribute, size_t *length)
 }
 
 
-/**
- * Initialises the upload queue for PARQ.
- */
-void
-parq_init(void)
-{
-	header_features_add(&xfeatures.uploads,
-		"queue", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);
-	header_features_add(&xfeatures.downloads,
-		"queue", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);
-
-	ul_all_parq_by_addr_and_name = g_hash_table_new(g_str_hash, g_str_equal);
-	ul_all_parq_by_addr = g_hash_table_new(host_addr_hash_func,
-								host_addr_eq_func);
-	ul_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
-	dl_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
-
-	ht_banned_source = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
-
-	(void) parq_upload_new_queue();
-
-	g_assert(ul_all_parq_by_addr_and_name != NULL);
-	g_assert(ul_all_parq_by_id != NULL);
-	g_assert(ul_all_parq_by_addr != NULL);
-	g_assert(dl_all_parq_by_id != NULL);
-	g_assert(ht_banned_source != NULL);
-
-	parq_upload_load_queue();
-}
-
-/**
- * Saves any queueing information and frees all memory used by PARQ.
- */
-void
-parq_close(void)
-{
-	GList *dl, *queues;
-	GSList *sl, *to_remove = NULL, *to_removeq = NULL;
-
-	parq_shutdown = TRUE;
-
-	parq_upload_save_queue();
-
-	for (dl = parq_banned_sources ; dl != NULL; dl = g_list_next(dl)) {
-		struct parq_banned *banned = dl->data;
-
-		to_remove = g_slist_prepend(to_remove, banned);
-	}
-
-	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
-		struct parq_banned *banned = sl->data;
-
-		parq_del_banned_source(banned->addr);
-	}
-
-	g_slist_free(to_remove);
-	to_remove = NULL;
-
-	/*
-	 * First locate all queued items (dead or alive). And place them in the
-	 * 'to be removed' list.
-	 */
-	for (queues = ul_parqs; queues != NULL; queues = queues->next) {
-		struct parq_ul_queue *queue = queues->data;
-
-		for (dl = queue->by_position; dl != NULL; dl = g_list_next(dl)) {
-			struct parq_ul_queued *parq_ul = dl->data;
-
-			if (parq_ul == NULL)
-				break;
-
-			parq_ul->by_addr->uploading = 0;
-
-			to_remove = g_slist_prepend(to_remove, parq_ul);
-		}
-
-		to_removeq = g_slist_prepend(to_removeq, queue);
-	}
-
-	/* Free all memory used by queued items */
-	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
-		parq_upload_free(sl->data);
-
-	g_slist_free(to_remove);
-	to_remove = NULL;
-
-	for (sl = to_removeq; sl != NULL; sl = g_slist_next(sl)) {
-		struct parq_ul_queue *queue = (struct parq_ul_queue *)sl->data;
-
-		/*
-		 * We didn't decrease the active_uploads counters when we were freeing
-		 * we don't care about this information anymore anyway.
-		 * Set the queue inactive to avoid an assertion
-		 */
-		queue->active_uploads = 0;
-		queue->active = FALSE;
-		parq_upload_free_queue(queue);
-	}
-
-	g_slist_free(to_removeq);
-	to_removeq = NULL;
-
-	g_hash_table_destroy(ul_all_parq_by_addr_and_name);
-	g_hash_table_destroy(ul_all_parq_by_addr);
-	g_hash_table_destroy(ul_all_parq_by_id);
-
-	g_hash_table_destroy(ht_banned_source);
-	g_list_free(parq_banned_sources);
-
-}
-
 /***
  ***  The following section contains download PARQ functions
  ***/
@@ -3965,6 +3854,124 @@ parq_still_sharing(struct parq_ul_queued *parq_ul)
 
 	/* Return TRUE by default because this is the safest condition */
 	return TRUE;
+}
+
+/**
+ * Initialises the upload queue for PARQ.
+ */
+void
+parq_init(void)
+{
+
+#define bs_nop(x)	(x)
+
+	BINARY_ARRAY_SORTED(parq_tag_map, struct parq_tag, str, strcmp, bs_nop);
+
+#undef bs_nop
+
+	header_features_add(&xfeatures.uploads,
+		"queue", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);
+	header_features_add(&xfeatures.downloads,
+		"queue", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);
+
+	ul_all_parq_by_addr_and_name = g_hash_table_new(g_str_hash, g_str_equal);
+	ul_all_parq_by_addr = g_hash_table_new(host_addr_hash_func,
+								host_addr_eq_func);
+	ul_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
+	dl_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
+
+	ht_banned_source = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
+
+	(void) parq_upload_new_queue();
+
+	g_assert(ul_all_parq_by_addr_and_name != NULL);
+	g_assert(ul_all_parq_by_id != NULL);
+	g_assert(ul_all_parq_by_addr != NULL);
+	g_assert(dl_all_parq_by_id != NULL);
+	g_assert(ht_banned_source != NULL);
+
+	parq_upload_load_queue();
+}
+
+/**
+ * Saves any queueing information and frees all memory used by PARQ.
+ */
+void
+parq_close(void)
+{
+	GList *dl, *queues;
+	GSList *sl, *to_remove = NULL, *to_removeq = NULL;
+
+	parq_shutdown = TRUE;
+
+	parq_upload_save_queue();
+
+	for (dl = parq_banned_sources ; dl != NULL; dl = g_list_next(dl)) {
+		struct parq_banned *banned = dl->data;
+
+		to_remove = g_slist_prepend(to_remove, banned);
+	}
+
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+		struct parq_banned *banned = sl->data;
+
+		parq_del_banned_source(banned->addr);
+	}
+
+	g_slist_free(to_remove);
+	to_remove = NULL;
+
+	/*
+	 * First locate all queued items (dead or alive). And place them in the
+	 * 'to be removed' list.
+	 */
+	for (queues = ul_parqs; queues != NULL; queues = queues->next) {
+		struct parq_ul_queue *queue = queues->data;
+
+		for (dl = queue->by_position; dl != NULL; dl = g_list_next(dl)) {
+			struct parq_ul_queued *parq_ul = dl->data;
+
+			if (parq_ul == NULL)
+				break;
+
+			parq_ul->by_addr->uploading = 0;
+
+			to_remove = g_slist_prepend(to_remove, parq_ul);
+		}
+
+		to_removeq = g_slist_prepend(to_removeq, queue);
+	}
+
+	/* Free all memory used by queued items */
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
+		parq_upload_free(sl->data);
+
+	g_slist_free(to_remove);
+	to_remove = NULL;
+
+	for (sl = to_removeq; sl != NULL; sl = g_slist_next(sl)) {
+		struct parq_ul_queue *queue = (struct parq_ul_queue *)sl->data;
+
+		/*
+		 * We didn't decrease the active_uploads counters when we were freeing
+		 * we don't care about this information anymore anyway.
+		 * Set the queue inactive to avoid an assertion
+		 */
+		queue->active_uploads = 0;
+		queue->active = FALSE;
+		parq_upload_free_queue(queue);
+	}
+
+	g_slist_free(to_removeq);
+	to_removeq = NULL;
+
+	g_hash_table_destroy(ul_all_parq_by_addr_and_name);
+	g_hash_table_destroy(ul_all_parq_by_addr);
+	g_hash_table_destroy(ul_all_parq_by_id);
+
+	g_hash_table_destroy(ht_banned_source);
+	g_list_free(parq_banned_sources);
+
 }
 
 /* vi: set ts=4 sw=4 cindent: */
