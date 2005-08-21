@@ -887,6 +887,13 @@ locale_init(void)
 	};
 	guint i;
 
+	BINARY_ARRAY_SORTED(utf32_nfkd_lut,
+		struct utf32_nfkd, c & ~UTF32_F_MASK, CMP, uint32_to_string);
+	BINARY_ARRAY_SORTED(utf32_comb_class_lut,
+		struct utf32_comb_class, uc, CMP, uint32_to_string);
+	BINARY_ARRAY_SORTED(utf32_general_category_lut,
+		struct utf32_general_category, uc, CMP, uint32_to_string);
+
 	setlocale(LC_ALL, "");
 	charset = get_locale_charset();
 

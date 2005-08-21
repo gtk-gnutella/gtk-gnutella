@@ -162,7 +162,7 @@ typedef enum {
  * The upper 8 bit of c are reserved for flags. The character value is, thus,
  * only the lower 24 bits.
  */
-static const struct {
+static const struct utf32_nfkd {
     const guint32 c;
     const guint32 d[UTF32_NFKD_REPLACE_MAXLEN];
 } utf32_nfkd_lut[] = {
@@ -7262,7 +7262,7 @@ static const struct {
  * The table is extracted from UnicodeData.txt - the 4th column is
  * relevant.
  *
- 	awk 'BEGIN { FS=";"}
+	awk 'BEGIN { FS=";"}
 		$4 != "0" {
 			printf("\t{ 0x%s, %s },\n", $1, $4)
 		}' UnicodeData.txt
@@ -7270,7 +7270,7 @@ static const struct {
  * Lookup table to determine the combining class of a character. The
  * default class is 0, which means the character is a ``starter''.
  */
-static const struct {
+static const struct utf32_comb_class {
 	guint32 uc;
 	guint8 cc;
 } utf32_comb_class_lut[] = {
@@ -7778,7 +7778,7 @@ static const guint32 utf32_composition_exclusions[] = {
  * The default general category for characters not included in this
  * table is UNI_GC_CN ("Cn", "Other, Not Assigned").
  */
-static const struct {
+static const struct utf32_general_category {
 	guint32 uc;		/**< The first unicode character in the array */
 	guint16 len;	/**< The array length */
 	guint8  gc;		/**< general category */
