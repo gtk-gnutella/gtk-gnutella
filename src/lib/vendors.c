@@ -220,4 +220,14 @@ lookup_vendor_name(guchar raw[4])
 	return temp[0] ? temp : NULL;
 }
 
+/**
+ * Initialize the vendor lookup.
+ */
+void
+vendor_init(void)
+{
+	BINARY_ARRAY_SORTED(vendor_map, struct vendor, code,
+		VENDOR_CODE_CMP, vendor_code_str);
+}
+
 /* vi: set ts=4 sw=4 cindent: */

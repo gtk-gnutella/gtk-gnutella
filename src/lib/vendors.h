@@ -133,5 +133,7 @@ gchar *vendor_code_str(guint32 code);
 gchar *lookup_vendor_name(guchar code[4]);
 gboolean is_vendor_known(guchar code[4]);
 
+void vendor_init(void);
+
 #endif /* _vendors_h_ */
 
