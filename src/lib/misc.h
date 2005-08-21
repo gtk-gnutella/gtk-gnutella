@@ -448,9 +448,11 @@ gint create_directory(const gchar *dir);
 gboolean filepath_exists(const gchar *dir, const gchar *file);
 guint32 parse_uint32(const gchar *, gchar const **, gint, gint *);
 guint64 parse_uint64(const gchar *, gchar const **, gint, gint *);
+size_t uint32_to_string_buf(guint64 v, gchar *dst, size_t size);
 size_t uint64_to_string_buf(guint64 v, gchar *dst, size_t size);
-const gchar * uint64_to_string(guint64 v);
-const gchar * uint64_to_string2(guint64 v);
+const gchar *uint32_to_string(guint32 v);
+const gchar *uint64_to_string(guint64 v);
+const gchar *uint64_to_string2(guint64 v);
 gint parse_major_minor(const gchar *src, gchar const **endptr,
 	guint *major, guint *minor);
 gchar *is_strprefix(const gchar *s, const gchar *prefix) WARN_UNUSED_RESULT;
@@ -535,7 +537,7 @@ void ip_range_split(
  * other visible variables.
  */
 #define BINARY_SEARCH(bs_type, bs_key, bs_size, bs_cmp, bs_get_key, bs_found) \
-do { \
+G_STMT_START { \
 	size_t bs_index, bs_j = 0, bs_k; \
 	for (bs_k = (bs_size); bs_k != 0; bs_k >>= 1) { \
 		bs_type bs_item; \
@@ -552,7 +554,34 @@ do { \
 			bs_k--; \
 		} \
 	} \
-} while (0)
+} G_STMT_END
+
+/**
+ * Ensure a table used for binary search is sorted.
+ *
+ * bs_array is the (static) array to scan.
+ * bs_type is the type of bs_item
+ * bs_field is the field in the bs_item structure to compare.
+ * bs_cmp() is the comparison function to use between items
+ * bs_field2str is how one can stringify the bs_field.
+ *
+ * Skip the first to have a previous element, tables with a single
+ * element are sorted anyway.
+ */
+#define BINARY_ARRAY_SORTED(bs_array, bs_type, bs_field, bs_cmp, bs_field2str) \
+G_STMT_START { \
+	size_t bs_index; \
+	size_t bs_size = G_N_ELEMENTS(bs_array); \
+\
+	for (bs_index = 1; bs_index < bs_size; bs_index++) { \
+		const bs_type *prev = &bs_array[bs_index - 1]; \
+		const bs_type *e = &bs_array[bs_index]; \
+\
+		if (bs_cmp(prev->bs_field, e->bs_field) >= 0) \
+			g_error(STRINGIFY(bs_array) "[] unsorted (near item \"%s\")", \
+				bs_field2str(e->bs_field)); \
+	} \
+} G_STMT_END
 
 #endif /* _misc_h_ */
 

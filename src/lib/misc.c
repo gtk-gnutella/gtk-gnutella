@@ -2198,6 +2198,36 @@ filepath_exists(const gchar *dir, const gchar *file)
 	return exists;
 }
 
+size_t
+uint32_to_string_buf(guint64 v, gchar *dst, size_t size)
+{
+	static const gchar dec_alphabet[] = "0123456789";
+	gchar buf[UINT32_DEC_BUFLEN];
+	gchar *p;
+	size_t len;
+	
+	g_assert(0 == size || NULL != dst);
+	g_assert(size <= INT_MAX);
+
+	for (p = buf; /* NOTHING */; v /= 10) {
+		*p++ = dec_alphabet[v % 10];
+		if (v < 10)
+			break;
+	}
+	len = p - buf;
+
+	if (size > 0) {
+		const gchar *end = &dst[size - 1];
+		gchar *q;
+		
+		for (q = dst; q != end && p != buf; q++)
+			*q = *--p;
+
+		*q = '\0';
+	}
+
+	return len;
+}
 
 size_t
 uint64_to_string_buf(guint64 v, gchar *dst, size_t size)
@@ -2228,6 +2258,17 @@ uint64_to_string_buf(guint64 v, gchar *dst, size_t size)
 	}
 
 	return len;
+}
+
+const gchar *
+uint32_to_string(guint32 v)
+{
+	static gchar buf[UINT32_DEC_BUFLEN];
+	size_t n;
+
+	n = uint32_to_string_buf(v, buf, sizeof buf);
+	g_assert(n < sizeof buf);
+	return buf;
 }
 
 const gchar *
