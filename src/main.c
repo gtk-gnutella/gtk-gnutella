@@ -82,6 +82,7 @@
 #include "core/upload_stats.h"
 #include "core/verify.h"
 #include "core/version.h"
+#include "core/vmsg.h"
 #include "core/whitelist.h"
 #include "lib/adns.h"
 #include "lib/atoms.h"
@@ -95,6 +96,7 @@
 #include "lib/pattern.h"
 #include "lib/tiger.h"
 #include "lib/utf8.h"
+#include "lib/vendors.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 #include "lib/wordvec.h"
@@ -593,6 +595,8 @@ main(int argc, char **argv)
 	gnet_stats_init();
 	iso3166_init();
 	dbus_util_init();
+	vendor_init();
+	vmsg_init();
 
 	main_gui_early_init(argc, argv);
 
