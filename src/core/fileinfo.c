@@ -141,7 +141,7 @@ enum dl_file_info_field {
 };
 
 #define FI_STORE_DELAY		10	/**< Max delay (secs) for flushing fileinfo */
-#define FI_TRAILER_INT		6	/**< Amount of guint32 that make up the trailer */
+#define FI_TRAILER_INT		6	/**< Amount of guint32 in the trailer */
 
 /**
  * The swarming trailer is built within a memory buffer first, to avoid having
@@ -401,47 +401,6 @@ tbuf_read(gint fd, gint len)
 	TBUF_INIT_READ(len);
 
 	return read(fd, tbuf.arena, len);
-}
-
-/**
- * Initialize fileinfo handling.
- */
-void
-file_info_init(void)
-{
-	tbuf.arena = g_malloc(TBUF_SIZE);
-	tbuf.size = TBUF_SIZE;
-
-	fi_by_sha1     = g_hash_table_new(sha1_hash, sha1_eq);
-	fi_by_namesize = g_hash_table_new(namesize_hash, namesize_eq);
-	fi_by_size     = g_hash_table_new(uint64_hash, uint64_eq);
-	fi_by_outname  = g_hash_table_new(g_str_hash, g_str_equal);
-
-    fi_handle_map = idtable_new(32, 32);
-
-    fi_events[EV_FI_ADDED]          = event_new("fi_added");
-    fi_events[EV_FI_REMOVED]        = event_new("fi_removed");
-    fi_events[EV_FI_INFO_CHANGED]   = event_new("fi_info_changed");	/* UNUSED */
-    fi_events[EV_FI_STATUS_CHANGED] = event_new("fi_status_changed");
-    fi_events[EV_FI_STATUS_CHANGED_TRANSIENT] =
-									  event_new("fi_status_changed_transient");
-    fi_events[EV_FI_SRC_ADDED]      = event_new("fi_src_added");
-    fi_events[EV_FI_SRC_REMOVED]    = event_new("fi_src_removed");
-	fi_events[EV_FI_RANGES_CHANGED] = event_new("fi_ranges_changed");
-}
-
-/**
- * Finish initialization of fileinfo handling. This post initialization is
- * needed to avoid circular dependencies during the init phase. The listener
- * we set up here is set up in download_init, but that must be called after
- * file_info_init.
- */
-void
-file_info_init_post(void)
-{
-	/* subscribe to src events on available range updates */
-	src_add_listener(fi_update_seen_on_network, EV_SRC_RANGES_CHANGED,
-		FREQ_SECS, 0);
 }
 
 static inline void
@@ -4111,6 +4070,11 @@ fi_remove_listener(fi_listener_t cb, gnet_fi_ev_t ev)
     event_remove_subscriber(fi_events[ev], (GCallback) cb);
 }
 
+/**
+ * Get an information structure summarizing the file info.
+ * This is used by the GUI to avoid peeking into the file info structure
+ * directly: it has its own little pre-digested information to display.
+ */
 gnet_fi_info_t *
 fi_get_info(gnet_fi_t fih)
 {
@@ -4134,6 +4098,9 @@ fi_get_info(gnet_fi_t fih)
     return info;
 }
 
+/**
+ * Dispose of the info structure.
+ */
 void
 fi_free_info(gnet_fi_info_t *info)
 {
@@ -4157,6 +4124,10 @@ fi_free_info(gnet_fi_info_t *info)
     wfree(info, sizeof *info);
 }
 
+/**
+ * Fill in the fileinfo status structure "s" using the fileinfo associated
+ * with the fileinfo handle "fih".
+ */
 void
 fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
 {
@@ -4224,7 +4195,7 @@ fi_free_chunks(GSList *chunks)
 /**
  * Get a list of available ranges for this fileinfo handle.
  * The list is fully allocated and the receiver is responsible for
- * up the memory, for example using fi_free_ranges().
+ * freeing up the memory, for example using fi_free_ranges().
  */
 GSList *
 fi_get_ranges(gnet_fi_t fih)
@@ -4765,6 +4736,52 @@ fi_update_seen_on_network(gnet_src_t srcid)
         T_NORMAL(fi_listener_t, (d->file_info->fi_handle)));
 }
 
+/**
+ * Initialize fileinfo handling.
+ */
+void
+file_info_init(void)
+{
+	tbuf.arena = g_malloc(TBUF_SIZE);
+	tbuf.size = TBUF_SIZE;
+
+#define bs_nop(x)	(x)
+
+	BINARY_ARRAY_SORTED(fi_tag_map, struct fi_tag, str, strcmp, bs_nop);
+
+#undef bs_nop
+
+	fi_by_sha1     = g_hash_table_new(sha1_hash, sha1_eq);
+	fi_by_namesize = g_hash_table_new(namesize_hash, namesize_eq);
+	fi_by_size     = g_hash_table_new(uint64_hash, uint64_eq);
+	fi_by_outname  = g_hash_table_new(g_str_hash, g_str_equal);
+
+    fi_handle_map = idtable_new(32, 32);
+
+    fi_events[EV_FI_ADDED]          = event_new("fi_added");
+    fi_events[EV_FI_REMOVED]        = event_new("fi_removed");
+    fi_events[EV_FI_INFO_CHANGED]   = event_new("fi_info_changed");	/* UNUSED */
+    fi_events[EV_FI_STATUS_CHANGED] = event_new("fi_status_changed");
+    fi_events[EV_FI_STATUS_CHANGED_TRANSIENT] =
+									  event_new("fi_status_changed_transient");
+    fi_events[EV_FI_SRC_ADDED]      = event_new("fi_src_added");
+    fi_events[EV_FI_SRC_REMOVED]    = event_new("fi_src_removed");
+	fi_events[EV_FI_RANGES_CHANGED] = event_new("fi_ranges_changed");
+}
+
+/**
+ * Finish initialization of fileinfo handling. This post initialization is
+ * needed to avoid circular dependencies during the init phase. The listener
+ * we set up here is set up in download_init, but that must be called after
+ * file_info_init.
+ */
+void
+file_info_init_post(void)
+{
+	/* subscribe to src events on available range updates */
+	src_add_listener(fi_update_seen_on_network, EV_SRC_RANGES_CHANGED,
+		FREQ_SECS, 0);
+}
 
 /*
  * Local Variables:
