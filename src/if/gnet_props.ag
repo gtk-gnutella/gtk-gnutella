@@ -865,6 +865,16 @@ prop = {
     };
 };
 
+prop = {
+	name = "parq_debug";
+	desc = "Debug level for PARQ.";
+	type = guint32;
+	data = {
+		default	= 0;
+		min		= 0;
+		max		= 20;
+	};
+};
 
 prop = {
     name = "track_props";

@@ -114,6 +114,7 @@ extern const guint32  ggep_debug;
 extern const guint32  pcache_debug;
 extern const guint32  hsep_debug;
 extern const guint32  tls_debug;
+extern const guint32  parq_debug;
 extern const guint32  track_props;
 extern const gboolean stop_host_get;
 extern const gboolean bws_in_enabled;

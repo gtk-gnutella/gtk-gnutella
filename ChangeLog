@@ -1,5 +1,10 @@
 # since last version
 
+- (2005-08-24 - JA)
+ * [PARQ] Added parq_debug property for PARQ specific debugging
+ * [PARQ] Fixed bug where an upload got queued, with an ETA of 0s
+ *        and all upload slots where available
+
 - (2005-08-20 - RAM)
  * [GTK1] Added 7 new GUI-settable debug levels.
  * [GTK1] Added provision for displaying XML data from search results.

@@ -29,7 +29,7 @@
  *
  * @author Jeroen Asselman
  * @author Raphael Manfredi
- * @date 2003-2004
+ * @date 2003-2005
  */
 
 #include "common.h"
@@ -1371,7 +1371,13 @@ parq_upload_create(gnutella_upload_t *u)
 	parq_ul->is_alive = TRUE;
 	parq_ul->had_slot =  FALSE;
 	parq_ul->queue->alive++;
-	parq_ul->retry = now + parq_ul_calc_retry(parq_ul);
+	/*
+	 * On create, set the retry to now. If we use the
+	 * now + parq_ul_calc_retry method, the new request
+	 * would immediatly be followed by a requested to soon
+	 * error.
+	 */
+	parq_ul->retry = now;
 	parq_ul->expire = parq_ul->retry + MIN_LIFE_TIME;
 	parq_ul->ban_timeout = 0;
 	parq_ul->disc_timeout = 0;
@@ -2019,6 +2025,9 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	 * upload slot anyway. So we might just as well abort here
 	 */
 
+	if (parq_debug >= 5)
+		g_message("[PARQ UL] parq_upload_continue, free_slots %d", free_slots);
+
 	if (free_slots <= 0)
 		return FALSE;
 
@@ -2026,7 +2035,13 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	 * Don't allow more than max_uploads_ip per single host (IP)
 	 */
 	if ((guint32) uq->by_addr->uploading >= max_uploads_ip)
+	{
+		if (parq_debug >= 5)
+			g_message("[PARQ UL] parq_upload_continue, " 
+				"max_uploads_ip per single host reached %d/%d",
+				uq->by_addr->uploading, max_uploads_ip);
 		return FALSE;
+	}
 
 	/*
 	 * If the number of upload slots have been decreased, an old queue
@@ -2088,6 +2103,11 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 #endif
 
 	if (allowed_max_uploads <= uq->queue->active_uploads - slots_free) {
+		if (parq_debug >= 5)
+			g_message("[PARQ UL] parq_upload_continue max_uploads reached "
+				"(%d-%d)/%d",
+				uq->queue->active_uploads, slots_free,
+				allowed_max_uploads);
 		return FALSE;
 	}
 
@@ -2108,6 +2128,8 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 			) {
 			/* Another upload in the current queue is allowed first */
 			if (slots_free < 0) {
+				if (parq_debug >= 4)
+					g_message("[PARQ UL] Another upload in other queue first");
 				return FALSE;
 			}
 			slots_free--;
@@ -2123,6 +2145,7 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 			 * we check if the requesting host has another queued item which
 			 * is allowed to continue. We will just use that position here then.
 			 */
+			g_message("[PARQ UL] Allowing upload");
 			return TRUE;
 		}
 	}
@@ -2276,8 +2299,9 @@ parq_upload_get(gnutella_upload_t *u, header_t *header, gboolean replacing)
 
 		g_assert(parq_ul != NULL);
 
-		if (dbg > 3)
-			g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d) ETA: %s Added: %s '%s'",
+		if (parq_debug >= 3)
+			g_message("[PARQ UL] Q %d/%d (%3d[%3d]/%3d) "  
+				"ETA: %s Added: %s '%s'",
 				g_list_position(ul_parqs,
 					g_list_find(ul_parqs, parq_ul->queue)) + 1,
 				g_list_length(ul_parqs),
@@ -2458,7 +2482,7 @@ parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 		 * we are not going to allow this download. Whether it could get an
 		 * upload slot or not. Neither are we going to active queue it.
 		 */
-		if (dbg) g_warning("[PARQ UL] "
+		if (parq_debug) g_warning("[PARQ UL] "
 			"host %s (%s) re-requested \"%s\" too soon (%d secs early)",
 			host_addr_port_to_string(u->socket->addr, u->socket->port),
 			upload_vendor_str(u),
@@ -2557,7 +2581,7 @@ parq_upload_busy(gnutella_upload_t *u, gpointer handle)
 
 	g_assert(parq_ul != NULL);
 
-	if (dbg > 2) {
+	if (parq_debug > 2) {
 		g_message("PARQ UL: Upload %d[%d] is busy",
 		  	  parq_ul->position, parq_ul->relative_position);
 	}
@@ -2644,7 +2668,7 @@ parq_upload_remove(gnutella_upload_t *u)
 	 *		--RAM, 17/05/2003
 	 */
 
-	if (dbg > 2 && (parq_ul->flags & PARQ_UL_QUEUE_SENT))
+	if (parq_debug > 2 && (parq_ul->flags & PARQ_UL_QUEUE_SENT))
 		g_message("PARQ UL Q %d/%d: "
 			"QUEUE #%d sent [refused=%d], u->status = %d",
 			g_list_position(ul_parqs,
@@ -2683,7 +2707,7 @@ parq_upload_remove(gnutella_upload_t *u)
 
 	parq_ul->active_queued = FALSE;
 
-	if (dbg > 3)
+	if (parq_debug > 3)
 		g_message("PARQ UL Q %d/%d: Upload removed",
 			g_list_position(ul_parqs,
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
@@ -2692,7 +2716,7 @@ parq_upload_remove(gnutella_upload_t *u)
 	if (parq_ul->has_slot) {
 		GList *lnext = NULL;
 
-		if (dbg > 2)
+		if (parq_debug > 2)
 			g_message("PARQ UL: Freed an upload slot");
 
 		g_assert(parq_ul->by_addr != NULL);
@@ -3975,3 +3999,4 @@ parq_close(void)
 }
 
 /* vi: set ts=4 sw=4 cindent: */
+
