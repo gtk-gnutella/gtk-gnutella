@@ -6098,7 +6098,7 @@ node_init_outgoing(struct gnutella_node *n)
 	 */
 
 	if (!n->hello.ptr) {
-		g_assert(s->gdk_tag == 0);
+		g_assert(0 == s->gdk_tag);
 
 		n->hello.pos = 0;
 		n->hello.len = 0;
@@ -6178,10 +6178,7 @@ node_init_outgoing(struct gnutella_node *n)
 			n->flags |= NODE_F_TLS;
 
 	} else {
-		if (s->gdk_tag) {
-			g_source_remove(s->gdk_tag);
-			s->gdk_tag = 0;
-		}
+		socket_evt_clear(s);
 	}
 
 	g_assert(n->hello.ptr != NULL);
@@ -6191,26 +6188,30 @@ node_init_outgoing(struct gnutella_node *n)
 	sent = bws_write(bws.gout, &n->socket->wio,
 				&n->hello.ptr[n->hello.pos], n->hello.len);
 
-	if ((ssize_t) -1 == sent) {
+	switch (sent) {
+	case (ssize_t) -1:
 		g_message("bws_write() failed: %s", g_strerror(errno));
 		if (errno != EAGAIN) {
 			node_remove(n, _("Write error during HELLO: %s"),
 				g_strerror(errno));
 			return;
 		}
-	} else if (sent == 0) {
-			node_remove(n, _("Connection reset during HELLO"));
-			return;
-	} else {
+		break;
+		
+	case 0:
+		node_remove(n, _("Connection reset during HELLO"));
+		return;
+		
+	default:	
+		g_assert(sent > 0);
+		g_assert((size_t) sent <= n->hello.len);
 		n->hello.pos += sent;
 		n->hello.len -= sent;
 	}
 
 	if (n->hello.len > 0 && !s->gdk_tag) {
 		g_assert(!s->gdk_tag);
-		s->gdk_tag = inputevt_add(s->wio.fd(&s->wio),
-						INPUT_EVENT_EXCEPTION | INPUT_EVENT_WRITE,
-						node_drain_hello, n);
+		socket_evt_set(n->socket, INPUT_EVENT_WRITE, node_drain_hello, n);
 		return;
 	}
 

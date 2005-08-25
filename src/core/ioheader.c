@@ -238,8 +238,7 @@ nextline:
 
 		g_assert(s->gdk_tag);
 
-		g_source_remove(s->gdk_tag);
-		s->gdk_tag = 0;
+		socket_evt_clear(s);
 
 		ih->process_header(ih->resource, ih->header);
 		return;
@@ -328,8 +327,7 @@ nextline:
 
 		g_assert(s->gdk_tag);
 
-		g_source_remove(s->gdk_tag);
-		s->gdk_tag = 0;
+		socket_evt_clear(s);
 	}
 
 	ih->process_header(ih->resource, ih->header);
@@ -344,7 +342,7 @@ nextline:
 static void
 io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
-	struct io_header *ih = (struct io_header *) data;
+	struct io_header *ih = data;
 	struct gnutella_socket *s = ih->socket;
 	size_t count;
 	ssize_t r;
@@ -390,7 +388,7 @@ io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * errors to our client.
 	 */
 
-	r = bws_read(ih->bs, &s->wio, s->buffer + s->pos, count);
+	r = bws_read(ih->bs, &s->wio, &s->buffer[s->pos], count);
 	if (r == 0) {
 		socket_eof(s);
 		(*ih->error->header_read_eof)(ih->resource);
@@ -435,7 +433,6 @@ io_get_header(
 	const struct io_error *error) /**< Mandatory: error callbacks for resource */
 {
 	struct io_header *ih;
-	gint mask;
 
 	g_assert(resource);
 	g_assert(io_opaque);
@@ -452,7 +449,7 @@ io_get_header(
 	 * Create and initialize the callback argument used during header reading.
 	 */
 
-	ih = walloc(sizeof(*ih));
+	ih = walloc(sizeof *ih);
 	ih->resource = resource;
 	ih->io_opaque = io_opaque;
 	ih->getline = getline_make(HEAD_MAX_SIZE);
@@ -479,9 +476,7 @@ io_get_header(
 
 	g_assert(s->gdk_tag == 0);
 
-	mask = INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION;
-	s->gdk_tag = inputevt_add(s->wio.fd(&s->wio), mask, io_read_data,
-					(gpointer) ih);
+	socket_evt_set(s, INPUT_EVENT_READ, io_read_data, ih);
 
 	/*
 	 * There may be pending input in the socket buffer, so go handle

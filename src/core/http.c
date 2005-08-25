@@ -1188,7 +1188,7 @@ http_range_size(const GSList *list)
 	filesize_t size = 0;
 
 	for (l = list; l; l = g_slist_next(l)) {
-		http_range_t *r = (http_range_t *) l->data;
+		http_range_t *r = l->data;
 		size += r->end - r->start + 1;
 	}
 
@@ -2480,8 +2480,7 @@ http_async_write_request(gpointer data, gint unused_source,
 			host_addr_port_to_string(s->addr, s->port),
 			http_buffer_length(r));
 
-	g_source_remove(s->gdk_tag);
-	s->gdk_tag = 0;
+	socket_evt_clear(s);
 
 	http_buffer_free(r);
 	ha->delayed = NULL;
@@ -2545,9 +2544,7 @@ http_async_connected(gpointer handle)
 
 		g_assert(s->gdk_tag == 0);
 
-		s->gdk_tag = inputevt_add(s->file_desc,
-			(inputevt_cond_t) INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
-			http_async_write_request, (gpointer) ha);
+		socket_evt_set(s, INPUT_EVENT_WRITE, http_async_write_request, ha);
 
 		return;
 	} else if (http_debug > 2) {
