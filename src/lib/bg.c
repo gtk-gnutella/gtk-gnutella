@@ -721,7 +721,7 @@ static void bg_task_deliver_signals(struct bgtask *bt)
 
 	while (bt->signals != NULL) {
 		GSList *lnk = bt->signals;
-		bgsig_t sig = (bgsig_t) lnk->data;
+		bgsig_t sig = (bgsig_t) GPOINTER_TO_UINT(lnk->data);
 
 		/*
 		 * If signal kills the thread (it calls bg_task_exit() from the
