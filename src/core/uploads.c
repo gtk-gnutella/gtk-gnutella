@@ -2375,16 +2375,13 @@ supports_deflate(header_t *header)
 {
     const gchar *buf;
 
-    buf = header_get(header, "Accept-Encoding");
-    if (!buf)
-        return FALSE;
-
     /* XXX needs more rigourous parsing */
-    if (!strstr(buf, "deflate"))
+    buf = header_get(header, "Accept-Encoding");
+    if (!buf || !strstr(buf, "deflate"))
         return FALSE;
 
     buf = header_get(header, "User-Agent");
-    if (strstr(buf, "AppleWebKit"))
+    if (buf && strstr(buf, "AppleWebKit"))
         return FALSE;
 
     return TRUE;
