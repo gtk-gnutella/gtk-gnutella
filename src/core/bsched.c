@@ -492,10 +492,10 @@ bsched_enable_all(void)
 void
 bsched_shutdown(void)
 {
-	GSList *l;
+	GSList *sl;
 
-	for (l = bws_list; l; l = g_slist_next(l))
-		bsched_disable(l->data);
+	for (sl = bws_list; sl; sl = g_slist_next(sl))
+		bsched_disable(sl->data);
 }
 
 /**
@@ -504,13 +504,12 @@ bsched_shutdown(void)
 static void
 bio_enable(bio_source_t *bio)
 {
-	g_assert(bio->io_tag == 0);
+	g_assert(0 == bio->io_tag);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
 
 	bio->io_tag = inputevt_add(bio->wio->fd(bio->wio),
-		(inputevt_cond_t) INPUT_EVENT_EXCEPTION |
-			((bio->flags & BIO_F_READ) ? INPUT_EVENT_READ : INPUT_EVENT_WRITE),
-		bio->io_callback, bio->io_arg);
+			(bio->flags & BIO_F_READ) ? INPUT_EVENT_READ : INPUT_EVENT_WRITE,
+			bio->io_callback, bio->io_arg);
 
 	g_assert(bio->io_tag);
 }
@@ -792,7 +791,7 @@ bsched_source_add(
 	g_assert((flags & BIO_F_RW) != BIO_F_RW);	/* Either reading or writing */
 	g_assert(!(flags & ~BIO_F_RW));				/* Can only specify r/w flags */
 
-	bio = (bio_source_t *) walloc0(sizeof(*bio));
+	bio = walloc0(sizeof *bio);
 
 	bio->bs = bs;
 	bio->wio = wio;
@@ -829,7 +828,7 @@ bsched_source_remove(bio_source_t *bio)
 	if (bio->io_tag)
 		g_source_remove(bio->io_tag);
 
-	wfree(bio, sizeof(*bio));
+	wfree(bio, sizeof *bio);
 }
 
 /**
@@ -1175,7 +1174,7 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
 	 *		--RAM, 05/10/2003
 	 */
 
-	if ((ssize_t) -1  == r && errno == 0) {
+	if ((ssize_t) -1 == r && 0 == errno) {
 		g_warning("wio->write(fd=%d, len=%d) returned -1 with errno = 0, "
 			"assuming EAGAIN", bio->wio->fd(bio->wio), (gint) len);
 		errno = EAGAIN;
@@ -1289,7 +1288,7 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 	 *		--RAM, 05/10/2003
 	 */
 
-	if ((ssize_t) -1 == r && errno == 0) {
+	if ((ssize_t) -1 == r && 0 == errno) {
 		g_warning("writev(fd=%d, len=%d) returned -1 with errno = 0, "
 			"assuming EAGAIN", bio->wio->fd(bio->wio), (gint) len);
 		errno = EAGAIN;
@@ -1363,7 +1362,7 @@ bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, size_t len)
 	 *		--RAM, 05/10/2003
 	 */
 
-	if ((ssize_t) -1 == r && errno == 0) {
+	if ((ssize_t) -1 == r && 0 == errno) {
 		g_warning("wio->sendto(fd=%d, len=%d) returned -1 with errno = 0, "
 			"assuming EAGAIN", bio->wio->fd(bio->wio), (gint) len);
 		errno = EAGAIN;
@@ -1650,8 +1649,10 @@ bws_write(bsched_t *bs, wrap_io_t *wio, gconstpointer data, size_t len)
 
 	g_assert(bs);
 	g_assert(bs->flags & BS_F_WRITE);
-
+	g_assert(wio);
+	g_assert(wio->write);
 	g_assert(len <= INT_MAX);
+	
 	r = wio->write(wio, data, len);
 	if (r > 0)
 		bsched_bw_update(bs, r, len);
@@ -1671,8 +1672,10 @@ bws_read(bsched_t *bs, wrap_io_t *wio, gpointer data, size_t len)
 
 	g_assert(bs);
 	g_assert(bs->flags & BS_F_READ);
-
+	g_assert(wio);
+	g_assert(wio->read);
 	g_assert(len <= INT_MAX);
+
 	r = wio->read(wio, data, len);
 	if (r > 0) {
 		bsched_bw_update(bs, r, len);
