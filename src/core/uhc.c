@@ -83,7 +83,6 @@ static struct uhc_context {
 static const gchar * const boot_hosts[] = {
 	"cache.kicks-ass.net:8000",
 	"crab2.dyndns.org:8003",
-	"gwc.jooz.net:8010",
 	"gwc.mine.nu:9999",
 	"gwc2.908middle.us:3559",
 	"krill.shacknet.nu:20095",
@@ -283,7 +282,7 @@ uhc_host_resolved(const host_addr_t *addr, gpointer uu_udata)
 	 * If resolution failed, try again if possible.
 	 */
 
-	if (addr || !host_is_valid(*addr, uhc_ctx.port)) {
+	if (!addr || !host_is_valid(*addr, uhc_ctx.port)) {
 		if (gwc_debug)
 			g_warning("could not resolve UDP host cache \"%s\"",
 				uhc_ctx.host);
