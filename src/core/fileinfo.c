@@ -4277,6 +4277,7 @@ void
 file_info_add_source(struct dl_file_info *fi, struct download *dl)
 {
     g_assert(NULL == dl->file_info);
+    g_assert(!DOWNLOAD_IS_VISIBLE(dl)); /* Must be removed from the GUI first */
 
     fi->refcount++;
     fi->dirty_status = TRUE;
