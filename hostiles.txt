@@ -135,7 +135,7 @@
 207.44.144.3
 207.44.144.148
 
-# isaveclub.com AKA esaveclub.com
+# isaveclub.com AKA esaveclub.com AKA edirectclub.com
 69.44.155.0/24
 69.44.156.0/24
 69.44.157.0/24
@@ -163,6 +163,14 @@
 # Generic spammer, results don't even match query
 70.85.111.0/24
 70.86.48.0/24
+70.86.75.0/24
+
+# DRM spam
+64.40.98.106
+# drmspace.com, 66103.vidlock.com
+216.55.178.165
+# vidlock.com
+217.116.225.250
 
 # reserved range
 79.79.55.0/24
@@ -276,9 +284,6 @@
 # Quibus International AB -- subnet used by rogue agents (e.g. advertise
 # as LimeWire in hits, and when connected, they send User-Agent: Gnucleus).
 212.209.1.0/24
-
-# This range on theplanet.com (hoster) sends back SPAM hits
-70.86.48.0/24
 
 # Open Proxies
 24.239.248.21
