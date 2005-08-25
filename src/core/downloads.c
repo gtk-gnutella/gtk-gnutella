@@ -1355,11 +1355,12 @@ void
 download_info_change_all(
 	struct dl_file_info *old_fi, struct dl_file_info *new_fi)
 {
-	GSList *l;
+	GSList *sl;
 
-	for (l = sl_downloads; l; l = g_slist_next(l)) {
-		struct download *d = (struct download *) l->data;
+	for (sl = sl_downloads; sl; sl = g_slist_next(sl)) {
+		struct download *d = sl->data;
 		gboolean is_running;
+		
 		g_assert(d != NULL);
 
 		if (d->status == GTA_DL_REMOVED)
@@ -1408,6 +1409,11 @@ download_info_change_all(
 			new_fi->lifecount++;
 			break;
 		}
+
+		/* Below file_info_add_source() changes d->file_info. Therefore, the
+		 * download must be removed from the GUI right now. */
+		if (DOWNLOAD_IS_VISIBLE(d))
+			gcu_download_gui_remove(d);
 
 		g_assert(old_fi->refcount > 0);
 		file_info_remove_source(old_fi, d, FALSE); /* Keep it around */
@@ -3571,6 +3577,7 @@ download_clone(struct download *d)
 	*cd = *d;						/* Struct copy */
 	cd->src_handle = idtable_new_id(src_handle_map, cd); /* new handle */
 	cd->file_info = NULL;			/* has not been added to fi sources list */
+	cd->visible = FALSE;
 	file_info_add_source(fi, cd);	/* add cloned source */
 
 	g_assert(d->io_opaque == NULL);		/* If cloned, we were receiving! */
@@ -3581,7 +3588,6 @@ download_clone(struct download *d)
 	cd->file_info->lifecount++;			/* Both are still "alive" for now */
 	cd->list_idx = DL_LIST_INVALID;
 	cd->file_name = atom_str_get(d->file_name);
-	cd->visible = FALSE;
 	cd->push = FALSE;
 	cd->status = GTA_DL_CONNECTING;
 	cd->server->refcnt++;
@@ -6648,8 +6654,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 			http_buffer_length(r));
     }
 
-	g_source_remove(s->gdk_tag);
-	s->gdk_tag = 0;
+	socket_evt_clear(s);
 
 	http_buffer_free(r);
 	d->req = NULL;
@@ -6985,10 +6990,7 @@ picked:
 
 		g_assert(s->gdk_tag == 0);
 
-		s->gdk_tag = inputevt_add(s->wio.fd(&s->wio),
-			(inputevt_cond_t) INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
-			download_write_request, (gpointer) d);
-
+		socket_evt_set(s, INPUT_EVENT_WRITE, download_write_request, d);
 		return;
 	} else if (download_debug > 1) {
 		g_message("----Sent Request (%s) to %s (%d bytes):\n%.*s----\n",
