@@ -5202,6 +5202,7 @@ static prop_map_t property_map[] = {
         /* need eventbox because image has no tooltip */
         FREQ_UPDATES, 0
     ),
+#ifdef USE_GTK1
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_HTTP_DEBUG,
@@ -5346,6 +5347,7 @@ static prop_map_t property_map[] = {
         "spinbutton_config_pcache_debug",
         FREQ_UPDATES, 0
     ),
+#endif /* USE_GTK1 */
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_PROCESS_OOB_QUERIES,
