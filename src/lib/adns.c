@@ -611,9 +611,8 @@ adns_init(void)
 	fcntl(adns_query_fd, F_SETFL, O_NONBLOCK);
 	fcntl(fd_reply[0], F_SETFL, O_NONBLOCK);
 	adns_cache = adns_cache_init();
-	adns_reply_event_id = inputevt_add(fd_reply[0],
-		INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
-		adns_reply_callback, NULL);
+	adns_reply_event_id = inputevt_add(fd_reply[0], INPUT_EVENT_READ,
+							adns_reply_callback, NULL);
 	return;
 
 prefork_failure:
