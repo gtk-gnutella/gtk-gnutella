@@ -42,7 +42,9 @@
 typedef enum {
 	INPUT_EVENT_READ		= 1 << 0,
 	INPUT_EVENT_WRITE		= 1 << 1,
-	INPUT_EVENT_EXCEPTION	= 1 << 2
+	INPUT_EVENT_EXCEPTION	= 1 << 2,
+		
+	INPUT_EVENT_RDWR = ((guint) INPUT_EVENT_READ | (guint) INPUT_EVENT_WRITE)
 } inputevt_cond_t;
 
 /**

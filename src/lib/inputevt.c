@@ -121,12 +121,24 @@ inputevt_add(gint source, inputevt_cond_t condition,
 	relay->handler = handler;
 	relay->data = data;
 
-	if (condition & INPUT_EVENT_READ)
+	cond = EXCEPTION_CONDITION;
+	switch (condition) {
+	case INPUT_EVENT_READ:
 		cond |= READ_CONDITION;
-	if (condition & INPUT_EVENT_WRITE)
+		break;
+		
+	case INPUT_EVENT_WRITE:
 		cond |= WRITE_CONDITION;
-	if (condition & INPUT_EVENT_EXCEPTION)
-		cond |= EXCEPTION_CONDITION;
+		break;
+		
+	case INPUT_EVENT_RDWR:
+		cond |= (READ_CONDITION | WRITE_CONDITION);
+		break;
+		
+	case INPUT_EVENT_EXCEPTION:
+		g_assert_not_reached();
+	}
+	g_assert(EXCEPTION_CONDITION != cond);
 
 	chan = g_io_channel_unix_new(source);
 #ifdef USE_GLIB2
