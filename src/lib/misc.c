@@ -1005,8 +1005,8 @@ gchar *
 guid_hex_str(const gchar *guid)
 {
 	static gchar buf[33];
+	const guint8 *g = cast_to_gconstpointer(guid);
 	gulong i;
-	const guchar *g = (guchar *) guid;
 
 	for (i = 0; i < 32; g++) {
 		buf[i++] = hex_alphabet_lower[*g >> 4];
@@ -1029,7 +1029,7 @@ data_hex_str(const gchar *data, size_t len)
 {
 	static gchar buf[84];
 	static const size_t maxlen = sizeof(buf) - 4; /* 3 chars for "more" + NUL */
-	const guchar *p = (guchar *) data;
+	const guint8 *p = cast_to_gconstpointer(data);
 	size_t hmax;
 	size_t i;
 
@@ -1529,11 +1529,11 @@ random_init(void)
  */
 gboolean is_printable(const gchar *buf, gint len)
 {
-	const guchar *p = (guchar *) buf;
+	const gchar *p = buf;
 	gint l = len;
 
 	while (l--) {
-		guchar c = *p++;
+		gchar c = *p++;
 		if (!is_ascii_print(c))
 			return FALSE;
 	}
@@ -1560,7 +1560,7 @@ void
 dump_hex(FILE *out, const gchar *title, gconstpointer data, gint b)
 {
 	int i, x, y, z, end;
-	const gchar *s = (const gchar *) data;
+	const gchar *s = data;
 	gchar temp[18];
 
 	if ((b < 0) || (s == NULL)) {
@@ -1624,7 +1624,7 @@ void
 locale_strlower(gchar *dst, const gchar *src)
 {
 	do {
-		*dst++ = tolower((const guchar) *src);
+		*dst++ = tolower((guchar) *src);
 	} while (*src++);
 }
 
@@ -1640,12 +1640,12 @@ ascii_strlower(gchar *dst, const gchar *src)
 
 	if (dst != src)
 		do {
-			c = (const guchar) *src++;
+			c = (guchar) *src++;
 			*dst++ = ascii_tolower(c);
 		} while (c != '\0');
 	else
 		do {
-			c = (const guchar) *src++;
+			c = (guchar) *src++;
 			if (is_ascii_upper(c))
 				*dst = ascii_tolower(c);
 			dst++;
