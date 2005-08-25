@@ -70,7 +70,7 @@ void hsep_timer(time_t now);
 void hsep_notify_shared(guint64 ownfiles, guint64 ownkibibytes);
 unsigned int hsep_get_global_table(hsep_triple *buffer,
 	unsigned int maxtriples);
-unsigned int hsep_get_connection_table(struct gnutella_node *n,
+unsigned int hsep_get_connection_table(const struct gnutella_node *n,
 	hsep_triple *buffer, unsigned int maxtriples);
 const gchar *hsep_get_static_str(gint row, gint column);
 

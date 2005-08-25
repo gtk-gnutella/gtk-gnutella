@@ -892,7 +892,7 @@ hsep_get_global_table(hsep_triple *buffer, unsigned int maxtriples)
  */
 
 unsigned int
-hsep_get_connection_table(struct gnutella_node *n,
+hsep_get_connection_table(const struct gnutella_node *n,
     hsep_triple *buffer, unsigned int maxtriples)
 {
 	g_assert(n);
