@@ -44,6 +44,8 @@
 #include "if/core/wrap.h"			/* For wrap_io_t */
 #include "if/core/sockets.h"
 
+#include "lib/inputevt.h"
+
 #ifdef HAS_GNUTLS
 #include <gnutls/gnutls.h>
 
@@ -58,6 +60,10 @@ struct socket_tls_ctx {
 	gboolean			 	enabled;
 	enum socket_tls_stage	stage;
 	size_t snarf;			/**< Pending bytes if write failed temporarily. */
+	
+	inputevt_cond_t			cb_cond;
+	inputevt_handler_t		cb_handler;
+	gpointer				cb_data;
 };
 
 #define SOCKET_USES_TLS(s) \
@@ -182,6 +188,9 @@ struct gnutella_socket *socket_connect_by_name(
 struct gnutella_socket *socket_tcp_listen(const host_addr_t, guint16,
 		enum socket_type);
 struct gnutella_socket *socket_udp_listen(const host_addr_t, guint16);
+void socket_evt_set(struct gnutella_socket *s,
+	inputevt_cond_t cond, inputevt_handler_t handler, gpointer data);
+void socket_evt_clear(struct gnutella_socket *s);
 
 void sock_cork(struct gnutella_socket *s, gboolean on);
 void sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink);

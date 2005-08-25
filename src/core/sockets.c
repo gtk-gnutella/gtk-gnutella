@@ -212,6 +212,96 @@ socket_addr_get(const socket_addr_t *addr, const struct sockaddr **p_sa)
 	return len;
 }
 
+static const gchar *
+cond_to_string(inputevt_cond_t cond)
+{
+#define CASE(x) case x: return STRINGIFY(x)
+	switch (cond) {
+	CASE(INPUT_EVENT_EXCEPTION);
+	CASE(INPUT_EVENT_READ);
+	CASE(INPUT_EVENT_WRITE);
+	CASE(INPUT_EVENT_RDWR);
+	}
+	return NULL;
+}
+		
+void
+socket_evt_set(struct gnutella_socket *s,
+	inputevt_cond_t cond, inputevt_handler_t handler, gpointer data)
+{
+	gint fd = -1;
+	
+	g_assert(s);
+	g_assert(handler);
+	g_assert(INPUT_EVENT_EXCEPTION != cond);
+	g_assert(0 == s->gdk_tag);
+
+	switch (s->direction) {
+	case SOCK_CONN_LISTENING:
+		g_assert(s->file_desc >= 0);
+		fd = s->file_desc;
+		break;
+		
+	case SOCK_CONN_INCOMING:
+	case SOCK_CONN_OUTGOING:
+	case SOCK_CONN_PROXY_OUTGOING:
+		g_assert(s->wio.fd);
+		fd = s->wio.fd(&s->wio);
+		g_assert(fd >= 0);
+		break;
+	}
+	g_assert(-1 != fd);
+
+#ifdef HAS_GNUTLS
+	s->tls.cb_cond = cond;
+	s->tls.cb_handler = handler;
+	s->tls.cb_data = data;
+
+	if (tls_debug > 1)
+		g_message("socket_evt_set: fd=%d, cond=%s, handler=%p",
+			fd, cond_to_string(cond), handler);
+#endif /* HAS_GNUTLS */
+
+	s->gdk_tag = inputevt_add(fd, cond, handler, data);
+	g_assert(0 != s->gdk_tag);
+}
+
+void
+socket_evt_clear(struct gnutella_socket *s)
+{
+	g_assert(s);
+
+	if (s->gdk_tag) {
+#ifdef HAS_GNUTLS
+		s->tls.cb_cond = 0;
+		s->tls.cb_handler = NULL;
+		s->tls.cb_data = NULL;
+#endif /* HAS_GNUTLS */
+		inputevt_remove(s->gdk_tag);
+		s->gdk_tag = 0;
+	}
+}
+
+void
+socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
+{
+	g_assert(s);
+	g_assert(INPUT_EVENT_EXCEPTION != cond);
+	g_assert(0 != s->gdk_tag);
+
+#ifdef HAS_GNUTLS
+	if (cond != s->tls.cb_cond) {
+		if (s->gdk_tag) {
+			inputevt_remove(s->gdk_tag);
+			s->gdk_tag = 0;
+		}
+		socket_evt_set(s, cond, s->tls.cb_handler, s->tls.cb_data);
+	}
+#else
+	g_assert_not_reached();
+#endif /* HAS_GNUTLS */
+}
+
 /*
  * In order to avoid having a dependency between sockets.c and ban.c,
  * we have ban.c register a callback to reclaim file descriptors
@@ -1097,7 +1187,7 @@ socket_linger_cb(gpointer data, gint fd, inputevt_cond_t unused_cond)
 		g_message("socket_linger_cb: close() succeeded");
 	}
 
-	g_source_remove(ctx->tag);
+	inputevt_remove(ctx->tag);
 	wfree(ctx, sizeof *ctx);
 }
 
@@ -1109,9 +1199,7 @@ socket_linger_close(gint fd)
 	g_assert(fd >= 0);
 
 	ctx = walloc(sizeof *ctx);
-	ctx->tag = inputevt_add(fd,
-		INPUT_EVENT_READ | INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
-		socket_linger_cb, ctx);
+	ctx->tag = inputevt_add(fd, INPUT_EVENT_RDWR, socket_linger_cb, ctx);
 	g_assert(0 != ctx->tag);
 }
 
@@ -1140,10 +1228,7 @@ socket_free(struct gnutella_socket *s)
 		sl_incoming = g_slist_remove(sl_incoming, s);
 		s->last_update = 0;
 	}
-	if (s->gdk_tag) {
-		g_source_remove(s->gdk_tag);
-		s->gdk_tag = 0;
-	}
+	socket_evt_clear(s);
 	if (s->adns & SOCK_ADNS_PENDING) {
 		s->type = SOCK_TYPE_DESTROYING;
 		return;
@@ -1295,6 +1380,8 @@ socket_tls_setup(struct gnutella_socket *s)
 
 		ret = gnutls_handshake(s->tls.session);
 		if (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED) {
+			socket_evt_change(s, gnutls_record_get_direction(s->tls.session)
+				? INPUT_EVENT_WRITE : INPUT_EVENT_READ);
 			return 0;
 		} else if (ret < 0) {
 			g_warning("gnutls_handshake() failed");
@@ -1304,6 +1391,8 @@ socket_tls_setup(struct gnutella_socket *s)
 		s->tls.stage = SOCK_TLS_ESTABLISHED;
 		if (tls_debug)
 			g_message("TLS handshake succeeded");
+
+		socket_evt_change(s, INPUT_EVENT_WRITE);
 		socket_wio_link(s); /* Link to the TLS I/O functions */
 	}
 
@@ -1326,9 +1415,9 @@ destroy:
 static void
 socket_read(gpointer data, gint source, inputevt_cond_t cond)
 {
-	ssize_t r;
-	struct gnutella_socket *s = (struct gnutella_socket *) data;
+	struct gnutella_socket *s = data;
 	size_t count;
+	ssize_t r;
 	gint parsed;
 	gchar *first;
 	time_t banlimit;
@@ -1340,7 +1429,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		return;
 	}
 
-	g_assert(s->pos == 0);		/* We read a line, then leave this callback */
+	g_assert(0 == s->pos);		/* We read a line, then leave this callback */
 
 #ifdef HAS_GNUTLS
 	if (s->tls.enabled && s->direction == SOCK_CONN_INCOMING) {
@@ -1414,18 +1503,19 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 
 	count = MIN(count, RQST_LINE_LENGTH);
 
-	r = bws_read(bws.in, &s->wio, s->buffer + s->pos, count);
-	if (r == 0) {
+	r = bws_read(bws.in, &s->wio, &s->buffer[s->pos], count);
+	switch (r) {
+	case 0:
 		socket_destroy(s, "Got EOF");
 		return;
-	} else if ((ssize_t) -1 == r) {
+	case (ssize_t) -1:
 		if (errno != EAGAIN)
 			socket_destroy(s, _("Read error"));
 		return;
+	default:
+		s->last_update = time(NULL);
+		s->pos += r;
 	}
-
-	s->last_update = time(NULL);
-	s->pos += r;
 
 	/*
 	 * Get first line.
@@ -1465,8 +1555,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	 * an upload, we'll monitor the upload.
 	 */
 
-	g_source_remove(s->gdk_tag);
-	s->gdk_tag = 0;
+	socket_evt_clear(s);
 	sl_incoming = g_slist_remove(sl_incoming, s);
 	s->last_update = 0;
 
@@ -1637,7 +1726,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 {
 	/* We are connected to somebody */
 
-	struct gnutella_socket *s = (struct gnutella_socket *) data;
+	struct gnutella_socket *s = data;
 
 	g_assert(source == s->file_desc);
 
@@ -1661,11 +1750,10 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 	if (cond & INPUT_EVENT_READ) {
 		if (
-			proxy_protocol != PROXY_NONE
-			&& s->direction == SOCK_CONN_PROXY_OUTGOING
+			proxy_protocol != PROXY_NONE &&
+			s->direction == SOCK_CONN_PROXY_OUTGOING
 		) {
-			g_source_remove(s->gdk_tag);
-			s->gdk_tag = 0;
+			socket_evt_clear(s);
 
 			if (proxy_protocol == PROXY_SOCKSV4) {
 				if (recv_socks4(s) != 0) {
@@ -1674,12 +1762,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 				}
 
 				s->direction = SOCK_CONN_OUTGOING;
-
-				s->gdk_tag =
-					inputevt_add(s->file_desc,
-								  INPUT_EVENT_READ | INPUT_EVENT_WRITE |
-								  INPUT_EVENT_EXCEPTION, socket_connected,
-								  (gpointer) s);
+				socket_evt_set(s, INPUT_EVENT_RDWR, socket_connected, s);
 				return;
 			} else if (proxy_protocol == PROXY_SOCKSV5) {
 				if (connect_socksv5(s) != 0) {
@@ -1689,20 +1772,10 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 				if (s->pos > 5) {
 					s->direction = SOCK_CONN_OUTGOING;
-
-					s->gdk_tag =
-						inputevt_add(s->file_desc,
-									  INPUT_EVENT_READ | INPUT_EVENT_WRITE |
-									  INPUT_EVENT_EXCEPTION,
-									  socket_connected, (gpointer) s);
-
-					return;
-				} else
-					s->gdk_tag =
-						inputevt_add(s->file_desc,
-									  INPUT_EVENT_WRITE |
-									  INPUT_EVENT_EXCEPTION,
-									  socket_connected, (gpointer) s);
+					socket_evt_set(s, INPUT_EVENT_RDWR, socket_connected, s);
+				} else {
+					socket_evt_set(s, INPUT_EVENT_WRITE, socket_connected, s);
+				}
 
 				return;
 
@@ -1714,17 +1787,11 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 				if (s->pos > 2) {
 					s->direction = SOCK_CONN_OUTGOING;
-					s->gdk_tag = inputevt_add(s->file_desc,
-									  INPUT_EVENT_READ | INPUT_EVENT_WRITE |
-									  INPUT_EVENT_EXCEPTION,
-									  socket_connected, (gpointer) s);
-					return;
+					socket_evt_set(s, INPUT_EVENT_RDWR, socket_connected, s);
 				} else {
-					s->gdk_tag = inputevt_add(s->file_desc,
-									  INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
-									  socket_connected, (gpointer) s);
-					return;
+					socket_evt_set(s, INPUT_EVENT_READ, socket_connected, s);
 				}
+				return;
 			}
 		}
 	}
@@ -1734,8 +1801,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 		gint res, option;
 		socklen_t size = sizeof option;
 
-		g_source_remove(s->gdk_tag);
-		s->gdk_tag = 0;
+		socket_evt_clear(s);
 
 		/* Check whether the socket is really connected */
 
@@ -1754,8 +1820,10 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 			return;
 		}
 
-		if (proxy_protocol != PROXY_NONE
-			&& s->direction == SOCK_CONN_PROXY_OUTGOING) {
+		if (
+			proxy_protocol != PROXY_NONE &&
+			s->direction == SOCK_CONN_PROXY_OUTGOING
+		) {
 			if (proxy_protocol == PROXY_SOCKSV4) {
 
 				if (send_socks4(s) != 0) {
@@ -1775,9 +1843,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 				}
 			}
 
-			s->gdk_tag = inputevt_add(s->file_desc,
-							  INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
-							  socket_connected, (gpointer) s);
+			socket_evt_set(s, INPUT_EVENT_READ, socket_connected, s);
 			return;
 		}
 
@@ -1786,7 +1852,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 		s->pos = 0;
 		memset(s->buffer, 0, sizeof s->buffer);
 
-		g_assert(s->gdk_tag == 0);
+		g_assert(0 == s->gdk_tag);
 
 		/*
 		 * Even though local_addr is persistent, we refresh it after startup,
@@ -1936,7 +2002,7 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	socket_addr_t addr;
 	socklen_t len = sizeof addr;
-	struct gnutella_socket *s = (struct gnutella_socket *) data;
+	struct gnutella_socket *s = data;
 	struct gnutella_socket *t = NULL;
 	gint sd;
 
@@ -2017,9 +2083,7 @@ accepted:
 
 	switch (s->type) {
 	case SOCK_TYPE_CONTROL:
-		t->gdk_tag =
-			inputevt_add(sd, INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
-						  socket_read, t);
+		socket_evt_set(t, INPUT_EVENT_READ, socket_read, t);
 		/*
 		 * Whilst the socket is attached to that callback, it has been
 		 * freshly accepted and we don't know what we're going to do with
@@ -2235,6 +2299,7 @@ static struct gnutella_socket *
 socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 {
 	socket_addr_t addr;
+	inputevt_cond_t cond;
 	gint res;
 
 	g_assert(NULL != s);
@@ -2309,15 +2374,8 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 
 	g_assert(0 == s->gdk_tag);
 
-	if (proxy_protocol != PROXY_NONE)
-		s->gdk_tag = inputevt_add(s->file_desc,
-			INPUT_EVENT_READ | INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
-			socket_connected, s);
-	else
-		s->gdk_tag = inputevt_add(s->file_desc,
-			INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
-			socket_connected, s);
-
+	cond = PROXY_NONE != proxy_protocol ? INPUT_EVENT_RDWR : INPUT_EVENT_WRITE;
+	socket_evt_set(s, cond, socket_connected, s);
 	return s;
 }
 
@@ -2493,9 +2551,7 @@ socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
 	s->tls.enabled = TRUE;
 #endif /* HAS_GNUTLS */
 
-	s->gdk_tag = inputevt_add(sd, INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
-					  socket_accept, s);
-
+	socket_evt_set(s, INPUT_EVENT_READ, socket_accept, s);
 	return s;
 }
 
@@ -2574,7 +2630,7 @@ socket_udp_listen(const host_addr_t ha, guint16 port)
 		s->local_port = socket_addr_get_port(&addr);
 	}
 
-	s->gdk_tag = inputevt_add(sd, INPUT_EVENT_READ, socket_udp_accept, s);
+	socket_evt_set(s, INPUT_EVENT_READ, socket_udp_accept, s);
 
 	/*
 	 * Enlarge the RX buffer on the UDP socket to avoid loosing incoming
@@ -2743,9 +2799,7 @@ socket_plain_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
 
-#ifdef HAS_GNUTLS
 	g_assert(!SOCKET_USES_TLS(s));
-#endif
 
 	return write(s->file_desc, buf, size);
 }
@@ -2755,9 +2809,7 @@ socket_plain_read(struct wrap_io *wio, gpointer buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
 
-#ifdef HAS_GNUTLS
 	g_assert(!SOCKET_USES_TLS(s));
-#endif
 
 	return read(s->file_desc, buf, size);
 }
@@ -2767,9 +2819,7 @@ socket_plain_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 {
 	struct gnutella_socket *s = wio->ctx;
 
-#ifdef HAS_GNUTLS
 	g_assert(!SOCKET_USES_TLS(s));
-#endif
 
 	return writev(s->file_desc, iov, iovcnt);
 }
@@ -2779,9 +2829,7 @@ socket_plain_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 {
 	struct gnutella_socket *s = wio->ctx;
 
-#ifdef HAS_GNUTLS
 	g_assert(!SOCKET_USES_TLS(s));
-#endif
 
 	return readv(s->file_desc, iov, iovcnt);
 }
@@ -2797,9 +2845,7 @@ socket_plain_sendto(
 	host_addr_t ha;
 	ssize_t ret;
 
-#ifdef HAS_GNUTLS
 	g_assert(!SOCKET_USES_TLS(s));
-#endif
 
 	if (!host_addr_convert(to->addr, &ha, s->net)) {
 		errno = EINVAL;
@@ -2885,6 +2931,10 @@ socket_tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 			break;
 		case GNUTLS_E_INTERRUPTED:
 		case GNUTLS_E_AGAIN:
+			if (s->gdk_tag)
+				socket_evt_change(s, gnutls_record_get_direction(s->tls.session)
+					? INPUT_EVENT_WRITE : INPUT_EVENT_READ);
+
 			if (0 == s->tls.snarf) {
 				s->tls.snarf = len;
 				ret = len;
@@ -2934,6 +2984,9 @@ socket_tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 		switch (ret) {
 		case GNUTLS_E_INTERRUPTED:
 		case GNUTLS_E_AGAIN:
+			if (s->gdk_tag)
+				socket_evt_change(s, gnutls_record_get_direction(s->tls.session)
+					? INPUT_EVENT_WRITE : INPUT_EVENT_READ);
 			errno = EAGAIN;
 			break;
 		case GNUTLS_E_PULL_ERROR:
@@ -2978,6 +3031,10 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 				return 0;
 			case GNUTLS_E_INTERRUPTED:
 			case GNUTLS_E_AGAIN:
+				if (s->gdk_tag)
+					socket_evt_change(s,
+						gnutls_record_get_direction(s->tls.session)
+							? INPUT_EVENT_WRITE : INPUT_EVENT_READ);
 				errno = EAGAIN;
 				break;
 			case GNUTLS_E_PULL_ERROR:
@@ -3011,6 +3068,10 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 				break;
 			case GNUTLS_E_INTERRUPTED:
 			case GNUTLS_E_AGAIN:
+				if (s->gdk_tag)
+					socket_evt_change(s,
+						gnutls_record_get_direction(s->tls.session)
+							? INPUT_EVENT_WRITE : INPUT_EVENT_READ);
 				s->tls.snarf = len;
 				ret = written + len;
 				break;
@@ -3071,6 +3132,10 @@ socket_tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 		switch (ret) {
 		case GNUTLS_E_INTERRUPTED:
 		case GNUTLS_E_AGAIN:
+			if (s->gdk_tag)
+				socket_evt_change(s, gnutls_record_get_direction(s->tls.session)
+					? INPUT_EVENT_WRITE : INPUT_EVENT_READ);
+
 			if (0 != rcvd) {
 				ret = rcvd;
 			} else {
@@ -3105,16 +3170,15 @@ socket_wio_link(struct gnutella_socket *s)
 	s->wio.ctx = s;
 	s->wio.fd = socket_get_fd;
 
-#ifdef HAS_GNUTLS
 	if (SOCKET_USES_TLS(s)) {
+#ifdef HAS_GNUTLS
 		s->wio.write = socket_tls_write;
 		s->wio.read = socket_tls_read;
 		s->wio.writev = socket_tls_writev;
 		s->wio.readv = socket_tls_readv;
 		s->wio.sendto = socket_no_sendto;
-	} else
 #endif /* HAS_GNUTLS */
-	if (s->flags & SOCK_F_TCP) {
+	} else if (s->flags & SOCK_F_TCP) {
 		s->wio.write = socket_plain_write;
 		s->wio.read = socket_plain_read;
 		s->wio.writev = socket_plain_writev;
