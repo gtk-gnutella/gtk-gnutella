@@ -44,10 +44,11 @@ RCSID("$Id$");
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/inputevt.h"
+#include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define CMD_MAX_SIZE 1024
-#define OUTPUT_BUFFER_SIZE 64000
+#define SHELL_BUFFER_SIZE 64000
 
 #define IS_PROCESSING(sh) (sh->outpos > 0)
 #define SHELL_TIMEOUT 60
@@ -60,16 +61,12 @@ static GSList *sl_shells = NULL;
 
 typedef struct gnutella_shell {
 	struct gnutella_socket *socket;
-	gchar  outbuf[OUTPUT_BUFFER_SIZE];
+	gchar  *outbuf;	/* FIXME: Always use a newly walloc()ed buffer instead */
 	gint32 outpos;
-	guint  write_tag;
 	time_t last_update; /**< Last update (needed for timeout) */
 	gchar *msg;         /**< Additional information to reply code */
 	gboolean shutdown;  /**< In shutdown mode? */
 } gnutella_shell_t;
-
-/* Don't refer to OUTPUT_BUFFER_SIZE, use sizeof */
-#undef OUTPUT_BUFFER_SIZE
 
 static gchar auth_cookie[SHA1_RAW_SIZE];
 
@@ -78,9 +75,12 @@ static void shell_destroy(gnutella_shell_t *sh);
 static gboolean shell_write(gnutella_shell_t *sh, const gchar *s);
 static void print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 	int triples, hsep_triple *non_hsep);
+static void shell_handle_data(gpointer data, gint unused_source,
+	inputevt_cond_t cond);
 
 enum {
 	CMD_UNKNOWN,
+	CMD_NOOP,
 	CMD_QUIT,
 	CMD_SEARCH,
 	CMD_NODE,
@@ -96,15 +96,15 @@ static const struct {
 	const gint id;
 	const gchar * const cmd;
 } commands[] = {
-	{CMD_QUIT,   "QUIT"},
-	{CMD_SEARCH, "SEARCH"},
-	{CMD_NODE,   "NODE"},
-	{CMD_ADD,    "ADD"},
-	{CMD_HELP,   "HELP"},
-	{CMD_PRINT,  "PRINT"},
-	{CMD_SET,    "SET"},
-	{CMD_WHATIS, "WHATIS"},
-	{CMD_HORIZON, "HORIZON"}
+	{	CMD_QUIT,		"QUIT"		},
+	{	CMD_SEARCH,		"SEARCH"	},
+	{	CMD_NODE,		"NODE"		},
+	{	CMD_ADD,		"ADD"		},
+	{	CMD_HELP,		"HELP"		},
+	{	CMD_PRINT,		"PRINT"		},
+	{	CMD_SET,		"SET"		},
+	{	CMD_WHATIS,		"WHATIS"	},
+	{	CMD_HORIZON,	"HORIZON"	}
 };
 
 
@@ -262,7 +262,7 @@ shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 		}
 
 		if (is_host_addr(addr) && port) {
-			node_add(addr, port, 0);
+			node_add(addr, port, CONNECT_F_FORCE);
 			sh->msg = _("Node added");
 		} else {
 			sh->msg = _("Invalid IP/Port");
@@ -301,7 +301,7 @@ shell_exec_search(gnutella_shell_t *sh, const gchar *cmd)
 	if (!tok)
 		goto error;
 
-	switch(get_command(tok)) {
+	switch (get_command(tok)) {
 	case CMD_ADD: {
 		gchar *tok_query;
 
@@ -601,7 +601,7 @@ shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 	hsep_get_global_table(globaltable, G_N_ELEMENTS(globaltable));
 	hsep_get_non_hsep_triple(non_hsep);
 
-	gm_snprintf(buf, sizeof(buf),
+	gm_snprintf(buf, sizeof buf,
 		_("Total horizon size (%u/%u nodes support HSEP):"),
 		(guint)globaltable[1][HSEP_IDX_NODES],
 		(guint)(globaltable[1][HSEP_IDX_NODES] + non_hsep[0][HSEP_IDX_NODES]));
@@ -612,18 +612,18 @@ shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 	print_hsep_table(sh, globaltable, HSEP_N_MAX, non_hsep);
 
 	if (all) {
-		GSList *sl;
+		const GSList *sl;
 		hsep_triple table[HSEP_N_MAX + 1];
 
-		for (sl = (GSList *) node_all_nodes(); sl; sl = g_slist_next(sl)) {
-			struct gnutella_node *n = (struct gnutella_node *) sl->data;
+		for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+			const struct gnutella_node *n = sl->data;
 
 			if ((!NODE_IS_ESTABLISHED(n)) || !(n->attrs & NODE_A_CAN_HSEP))
 				continue;
 
 			shell_write(sh, "\n");
 
-			gm_snprintf(buf, sizeof(buf),
+			gm_snprintf(buf, sizeof buf,
 				_("Horizon size via HSEP node %s (%s):"),
 				node_addr(n),
 				NODE_IS_LEAF(n) ? _("leaf") :
@@ -711,7 +711,7 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 			maxlen[m] = n;
 	}
 
-	gm_snprintf(buf, sizeof(buf), "%*s  %*s  %*s  %*s\n",
+	gm_snprintf(buf, sizeof buf, "%*s  %*s  %*s  %*s\n",
 		maxlen[0], hops_str,
 		maxlen[1], nodes_str,
 		maxlen[2], files_str,
@@ -733,7 +733,7 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 		s2 = uint64_to_string2(t[i][HSEP_IDX_FILES] + non_hsep[HSEP_IDX_FILES]);
 		s3 = short_kb_size(t[i][HSEP_IDX_KIB] + non_hsep[HSEP_IDX_KIB]);
 		
-		gm_snprintf(buf, sizeof(buf), "%*d  %*s  %*s  %*s\n",
+		gm_snprintf(buf, sizeof buf, "%*d  %*s  %*s  %*s\n",
 			maxlen[0], i + 1,
 			maxlen[1], s1,
 			maxlen[2], s2,
@@ -761,7 +761,7 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 
 	tok = shell_get_token(cmd, &pos);
 	if (!tok)
-		goto error;
+		return CMD_NOOP;
 
 	switch (get_command(tok)) {
 	case CMD_HELP:
@@ -829,9 +829,10 @@ shell_write_data(gnutella_shell_t *sh)
 
 	g_assert(sh);
 	g_assert(sh->socket);
+	g_assert(sh->outbuf);
 	g_assert(IS_PROCESSING(sh));
 
-	sh->last_update = time((time_t *) NULL);
+	sh->last_update = time(NULL);
 
 	s = sh->socket;
 	written = s->wio.write(&s->wio, sh->outbuf, sh->outpos);
@@ -848,17 +849,15 @@ shell_write_data(gnutella_shell_t *sh)
 		break;
 		
 	default:
-		memmove(sh->outbuf, sh->outbuf + written, sh->outpos-written);
+		memmove(sh->outbuf, &sh->outbuf[written], sh->outpos - written);
 		sh->outpos -= written;
 	}
 
 	g_assert(sh->outpos >= 0);
 
-	if (sh->outpos == 0) {
-		if (sh->write_tag) {
-			inputevt_remove(sh->write_tag);
-			sh->write_tag = 0;
-		}
+	if (0 == sh->outpos) {
+		socket_evt_clear(sh->socket);
+		socket_evt_set(sh->socket, INPUT_EVENT_READ, shell_handle_data, sh);
 	}
 }
 
@@ -878,7 +877,7 @@ shell_read_data(gnutella_shell_t *sh)
 	g_assert(sh->socket);
 	g_assert(sh->socket->getline);
 
-	sh->last_update = time((time_t *) NULL);
+	sh->last_update = time(NULL);
 	s = sh->socket;
 
 	if (s->pos >= sizeof(s->buffer))
@@ -907,7 +906,6 @@ shell_read_data(gnutella_shell_t *sh)
 
 	while (s->pos) {
 		guint reply_code;
-		GString *buf;
 
 		g_assert (s->pos > 0);
 
@@ -933,14 +931,20 @@ shell_read_data(gnutella_shell_t *sh)
 		 * We come here everytime we get a full line.
 		 */
 
-		buf = g_string_sized_new(100);
 		reply_code = shell_exec(sh, getline_str(s->getline));
-		g_string_printf(buf, "%u %s\n", reply_code, sh->msg ? sh->msg : "");
-		shell_write(sh, buf->str);
-		g_string_free(buf, TRUE);
+		if (CMD_NOOP != reply_code) {
+			gchar *buf = NULL;
+			size_t len;
+			
+			len = w_concat_strings(&buf, uint32_to_string(reply_code),
+					" ", sh->msg ? sh->msg : "", "\n", (void *) 0);
+			
+			shell_write(sh, buf); /* XXX: Let shell_write() own ``buf'' */
+			wfree(buf, 1 + len);
+			buf = NULL;
+		}
+		
 		sh->msg = NULL;
-		buf = NULL;
-
 		getline_reset(s->getline);
 	}
 
@@ -981,29 +985,31 @@ static gboolean
 shell_write(gnutella_shell_t *sh, const gchar *s)
 {
 	size_t len;
+	gboolean writing;
 
 	g_assert(sh);
 	g_assert(s);
 
 	g_return_val_if_fail(sh->outpos >= 0, FALSE);
-	g_return_val_if_fail((size_t) sh->outpos < sizeof sh->outbuf, FALSE);
+	g_return_val_if_fail((size_t) sh->outpos < SHELL_BUFFER_SIZE, FALSE);
 	len = strlen(s);
 	g_return_val_if_fail((ssize_t) len >= 0, FALSE);
-	g_return_val_if_fail(len <= sizeof sh->outbuf, FALSE);
+	g_return_val_if_fail(len <= SHELL_BUFFER_SIZE, FALSE);
 
-	if (len + sh->outpos >= sizeof(sh->outbuf)) {
+	if (len + sh->outpos >= SHELL_BUFFER_SIZE) {
+		/* XXX: This is ridiculous */
 		g_warning("Line is too long (for shell at %s)",
 			host_addr_port_to_string(sh->socket->addr, sh->socket->port));
 		return FALSE;
 	}
 
-	memcpy(sh->outbuf + sh->outpos, s, len);
+	writing = 0 != sh->outpos;
+	memcpy(&sh->outbuf[sh->outpos], s, len);
 	sh->outpos += len;
 
-	if (sh->write_tag == 0) {
-		sh->write_tag = inputevt_add(sh->socket->wio.fd(&sh->socket->wio),
-			INPUT_EVENT_EXCEPTION | INPUT_EVENT_WRITE,
-			shell_handle_data, (gpointer) sh);
+	if (!writing) {
+		socket_evt_clear(sh->socket);
+		socket_evt_set(sh->socket, INPUT_EVENT_WRITE, shell_handle_data, sh);
 	}
 
 	return TRUE;
@@ -1052,10 +1058,10 @@ shell_new(struct gnutella_socket *s)
 
 	g_assert(s);
 
-	sh = g_new0(gnutella_shell_t, 1);
+	sh = walloc0(sizeof *sh);
 	sh->socket = s;
+	sh->outbuf = walloc(SHELL_BUFFER_SIZE);
 	sh->outpos = 0;
-	sh->write_tag = 0;
 	sh->msg = NULL;
 	sh->shutdown = FALSE;
 
@@ -1068,9 +1074,10 @@ shell_new(struct gnutella_socket *s)
 static void
 shell_free(gnutella_shell_t *sh)
 {
-	g_assert(sh->socket == NULL); /* must have called shell_destroy before */
-
-	G_FREE_NULL(sh);
+	g_assert(NULL == sh->socket); /* must have called shell_destroy before */
+	g_assert(NULL == sh->outbuf); /* must have called shell_destroy before */
+	
+	wfree(sh, sizeof *sh);
 }
 
 /**
@@ -1078,24 +1085,26 @@ shell_free(gnutella_shell_t *sh)
  * removed from sl_shells, so don't call this while iterating over sl_shells.
  */
 static void
-shell_destroy(gnutella_shell_t *s)
+shell_destroy(gnutella_shell_t *sh)
 {
-	g_assert(s);
-	g_assert(s->socket);
+	g_assert(sh);
+	g_assert(sh->socket);
 
 	if (dbg > 0)
 		g_warning("shell_destroy");
 
-	sl_shells = g_slist_remove(sl_shells, s);
+	sl_shells = g_slist_remove(sl_shells, sh);
 
-	if (s->write_tag) {
-		inputevt_remove(s->write_tag);
-		s->write_tag = 0;
+	socket_evt_clear(sh->socket);
+
+	if (sh->outbuf) {
+		wfree(sh->outbuf, SHELL_BUFFER_SIZE);
+		sh->outbuf = NULL;
 	}
 
-	socket_free(s->socket);
-	s->socket = NULL;
-	shell_free(s);
+	socket_free(sh->socket);
+	sh->socket = NULL;
+	shell_free(sh);
 }
 
 static void
@@ -1116,7 +1125,7 @@ shell_add(struct gnutella_socket *s)
 	gnutella_shell_t *sh;
 
 	g_assert(s);
-	g_assert(s->gdk_tag == 0);
+	g_assert(0 == s->gdk_tag);
 	g_assert(s->getline);
 
 	g_warning("Incoming shell connection from %s\n",
@@ -1127,10 +1136,8 @@ shell_add(struct gnutella_socket *s)
 
 	sh = shell_new(s);
 
-	g_assert(s->gdk_tag == 0);
-	s->gdk_tag = inputevt_add(s->wio.fd(&s->wio),
-		INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
-		shell_handle_data, (gpointer) sh);
+	socket_evt_clear(s);
+	socket_evt_set(s, INPUT_EVENT_READ, shell_handle_data, sh);
 
 	sl_shells = g_slist_prepend(sl_shells, sh);
 
