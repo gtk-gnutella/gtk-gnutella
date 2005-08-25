@@ -209,7 +209,7 @@ do {				\
 #define RCSID(x) \
 	static const char rcsid[] __attribute__((__unused__)) = "@(#) " x
 #else
-#define RCSID(x) static const char rcsid[] = "@(#) " x
+#define RCSID(x)
 #endif
 
 #if defined(__GNUC__) && defined(__GNUC_MINOR__)
