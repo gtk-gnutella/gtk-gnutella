@@ -159,7 +159,7 @@ oob_proxy_rec_destroy(cqueue_t *unused_cq, gpointer obj)
 void
 oob_proxy_create(gnutella_node_t *n)
 {
-	gchar proxied_muid[16];
+	gchar proxied_muid[GUID_RAW_SIZE];
 	struct oob_proxy_rec *opr;
 	guint32 ip;
 

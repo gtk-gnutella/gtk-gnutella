@@ -28,6 +28,8 @@
 
 #include <glib.h>
 
-extern gchar blank_guid[16];
+#include "lib/misc.h"		/* For GUID_RAW_SIZE */
+
+extern const gchar blank_guid[GUID_RAW_SIZE];
 
 #endif /* _if_core_guid_h_ */

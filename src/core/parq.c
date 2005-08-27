@@ -1300,7 +1300,7 @@ parq_upload_create(gnutella_upload_t *u)
 	struct parq_ul_queued *parq_ul = NULL;
 	struct parq_ul_queued *parq_ul_prev = NULL;
 	struct parq_ul_queue *parq_ul_queue = NULL;
-	gchar parq_id[16];
+	gchar parq_id[GUID_RAW_SIZE];
 
 	guint eta = 0;
 	guint rel_pos = 1;

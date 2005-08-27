@@ -649,7 +649,7 @@ handle_udp_connect_back(struct gnutella_node *n,
 	const struct vmsg *vmsg, gchar *payload, gint size)
 {
 	guint16 port;
-	gchar guid_buf[16];
+	gchar guid_buf[GUID_RAW_SIZE];
 
 	g_assert(vmsg->version <= 2);
 

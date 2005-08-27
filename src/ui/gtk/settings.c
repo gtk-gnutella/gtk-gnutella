@@ -2031,7 +2031,7 @@ use_netmasks_changed(property_t prop)
 static gboolean
 guid_changed(property_t prop)
 {
-    gchar guid_buf[16];
+    gchar guid_buf[GUID_RAW_SIZE];
 
     gnet_prop_get_storage(prop, guid_buf, sizeof(guid_buf));
 

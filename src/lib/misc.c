@@ -1856,7 +1856,7 @@ unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	size_t len;
 	struct stat buf;
 	gint i;
-	gchar xuid[16];
+	gchar xuid[GUID_RAW_SIZE];
 
 	g_assert(path);
 	g_assert(file);

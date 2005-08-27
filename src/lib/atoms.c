@@ -231,7 +231,7 @@ binary_hash(const guchar *key, gint len)
 guint
 guid_hash(gconstpointer key)
 {
-	return binary_hash(key, 16);
+	return binary_hash(key, GUID_RAW_SIZE);
 }
 
 /**
@@ -254,7 +254,7 @@ guid_eq(gconstpointer a, gconstpointer b)
 		ax[2] == bx[2] &&
 		ax[3] == bx[3];
 #else
-	return a == b || 0 == memcmp(a, b, 16);
+	return a == b || 0 == memcmp(a, b, GUID_RAW_SIZE);
 #endif
 }
 
@@ -265,7 +265,7 @@ static gint
 guid_len(gconstpointer unused_guid)
 {
 	(void) unused_guid;
-	return 16;
+	return GUID_RAW_SIZE;
 }
 
 /**

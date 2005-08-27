@@ -429,7 +429,7 @@ get_params(struct pproxy *pp, gchar *request,
 
 		*guid_atom = atom_guid_get(guid);
 	} else if (0 == strcmp(attr, "guid")) {
-		gchar guid[16];
+		gchar guid[GUID_RAW_SIZE];
 
 		/*
 		 * GUID in hexadecimal: valid length is 32.

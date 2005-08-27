@@ -2065,7 +2065,7 @@ download_redirect_to_server(struct download *d,
 	const host_addr_t addr, guint16 port)
 {
 	struct dl_server *server;
-	gchar old_guid[16];
+	gchar old_guid[GUID_RAW_SIZE];
 	enum dl_list list_idx;
 
 	g_assert(d);
@@ -7190,9 +7190,9 @@ download_push_ack(struct gnutella_socket *s)
 {
 	struct download *d = NULL;
 	gchar *giv;
-	guint file_index;		/* The requested file index */
-	gchar hex_guid[33];		/* The hexadecimal GUID */
-	gchar guid[16];			/* The decoded (binary) GUID */
+	guint file_index;			/* The requested file index */
+	gchar hex_guid[33];			/* The hexadecimal GUID */
+	gchar guid[GUID_RAW_SIZE];	/* The decoded (binary) GUID */
 
 	g_assert(s->getline);
 	giv = getline_str(s->getline);
@@ -7422,8 +7422,7 @@ static void
 download_retrieve(void)
 {
 	FILE *in;
-	gchar d_guid[16];		/* The d_ vars are what we deserialize */
-	filesize_t d_size = 0;
+	filesize_t d_size = 0;	/* The d_ vars are what we deserialize */
 	guint64 size64;
 	gint error;
 	gchar *d_name;
@@ -7436,6 +7435,7 @@ download_retrieve(void)
 	gchar d_hostname[256];	/* Server hostname */
 	gint recline;			/* Record line number */
 	gint line;				/* File line number */
+	gchar d_guid[GUID_RAW_SIZE];
 	gchar sha1_digest[SHA1_RAW_SIZE];
 	gboolean has_sha1 = FALSE;
 	gint maxlines = -1;

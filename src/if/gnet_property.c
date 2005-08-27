@@ -34,6 +34,7 @@
  */
 #include "core/sockets.h"
 #include "core/bsched.h"
+#include "lib/misc.h"
 #include "if/core/nodes.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -322,7 +323,7 @@ guint32  ul_registered     = 0;
 guint32  ul_registered_def = 0;
 guint32  total_uploads     = 0;
 guint32  total_uploads_def = 0;
-gchar   servent_guid[16];
+gchar   servent_guid[GUID_RAW_SIZE];
 gboolean use_swarming     = TRUE;
 gboolean use_swarming_def = TRUE;
 gboolean use_aggressive_swarming     = TRUE;
@@ -3236,7 +3237,7 @@ gnet_prop_init(void) {
     gnet_property->props[135].desc = _("Global Unique IDentifier of this node.");
     gnet_property->props[135].ev_changed = event_new("servent_guid_changed");
     gnet_property->props[135].save = TRUE;
-    gnet_property->props[135].vector_size = 16;
+    gnet_property->props[135].vector_size = GUID_RAW_SIZE;
 
     /* Type specific data: */
     gnet_property->props[135].type               = PROP_TYPE_STORAGE;

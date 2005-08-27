@@ -11,6 +11,7 @@ private_src  = "CORE_SOURCES";
 
 uses = "core/sockets.h";
 uses = "core/bsched.h";
+uses = "lib/misc.h";
 uses = "if/core/nodes.h";
 
 prop = {
@@ -1625,7 +1626,7 @@ prop = {
     cfgvar = "guid";
     desc = "Global Unique IDentifier of this node.";
     type = storage;
-    vector_size = 16;
+    vector_size = GUID_RAW_SIZE;
 };
 
 prop = {

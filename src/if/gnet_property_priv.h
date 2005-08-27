@@ -39,6 +39,7 @@
  */
 #include "core/sockets.h"
 #include "core/bsched.h"
+#include "lib/misc.h"
 #include "if/core/nodes.h"
 
 
@@ -177,7 +178,7 @@ extern const guint32  total_downloads;
 extern const guint32  ul_running;
 extern const guint32  ul_registered;
 extern const guint32  total_uploads;
-extern const gchar    servent_guid[16];
+extern const gchar    servent_guid[GUID_RAW_SIZE];
 extern const gboolean use_swarming;
 extern const gboolean use_aggressive_swarming;
 extern const guint32  dl_minchunksize;

@@ -70,7 +70,7 @@ static struct gnutella_node *fake_node;		/**< Our fake node */
  * their liftime.
  */
 struct message {
-	gchar muid[16];				/**< Message UID */
+	gchar muid[GUID_RAW_SIZE];	/**< Message UID */
 	struct message **slot;		/**< Place where we're referenced from */
 	GSList *routes;	            /**< route_data from where the message came */
 	guint8 function;			/**< Type of the message */
@@ -169,7 +169,7 @@ GHashTable *ht_proxyfied = NULL;
 struct route_log {
 	host_addr_t addr;			/**< Sender's IP */
 	guint16 port;				/**< Sender's port */
-	gchar muid[16];				/**< Message ID */
+	gchar muid[GUID_RAW_SIZE];	/**< Message ID */
 	guint8 function;			/**< Message function */
 	guint8 hops;				/**< Message hops */
 	guint8 ttl;					/**< Message ttl */
@@ -345,9 +345,9 @@ routing_log_flush(struct route_log *log)
  */
 static const gchar *route_mangled_oob_muid(const gchar *muid)
 {
-	static gchar mangled[16];
+	static gchar mangled[GUID_RAW_SIZE];
 
-	memcpy(mangled, muid, 16);
+	memcpy(mangled, muid, GUID_RAW_SIZE);
 
 	mangled[0] = mangled[1] = mangled[2] = mangled[3] = 0;	/* Clear IP */
 	mangled[13] = mangled[14] = 0;							/* Clear port */
@@ -668,7 +668,7 @@ message_hash_func(gconstpointer key)
 void
 routing_init(void)
 {
-    gchar guid_buf[16];
+    gchar guid_buf[GUID_RAW_SIZE];
 	guint32 i;
 	gboolean need_guid = TRUE;
 
@@ -687,7 +687,7 @@ routing_init(void)
 	ht_banned_push = g_hash_table_new(guid_hash, guid_eq);
 
 	for (i = 0; i < BANNED_PUSH_COUNT; i++) {
-		gchar g[16];
+		gchar g[GUID_RAW_SIZE];
 		const gchar *hex = banned_push[i];
 
 		g_assert(strlen(hex) == 2 * sizeof(g));

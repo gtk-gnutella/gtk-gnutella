@@ -239,7 +239,7 @@ gboolean
 alive_send_ping(gpointer obj)
 {
 	struct alive *a = (struct alive *) obj;
-	gchar muid[16];
+	gchar muid[GUID_RAW_SIZE];
 	struct alive_ping *ap;
 	struct gnutella_msg_init *m;
 	guint32 size;

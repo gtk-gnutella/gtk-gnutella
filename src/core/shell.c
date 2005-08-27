@@ -481,7 +481,7 @@ shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 		break;
 	}
 	case PROP_TYPE_STORAGE: {
-		gchar guid[16];
+		gchar guid[GUID_RAW_SIZE];
 		hex_to_guid(tok_value, guid);
 		stub->storage.set (prop, guid, prop_buf->vector_size);
 		break;

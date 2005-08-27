@@ -38,6 +38,7 @@
 
 #include "if/core/wrap.h"			/* For wrap_io_t */
 #include "if/core/hsep.h"
+#include "if/core/guid.h"
 #include "if/core/nodes.h"
 
 #include "lib/header.h"
@@ -206,7 +207,7 @@ typedef struct gnutella_node {
 	guint ping_throttle;		/**< Period for accepting new pings (secs) */
 	time_t ping_accept;			/**< Time after which we accept new pings */
 	time_t next_ping;			/**< When to send a ping, for "OLD" clients */
-	gchar ping_guid[16];		/**< The GUID of the last accepted ping */
+	gchar ping_guid[GUID_RAW_SIZE];	/**< The GUID of the last accepted ping */
 	guchar pong_needed[MAX_CACHE_HOPS+1];	/**< Pongs needed, by hop value */
 	guchar pong_missing;	/**< Sum(pong_needed[i]), i = 0..MAX_CACHE_HOPS */
 
