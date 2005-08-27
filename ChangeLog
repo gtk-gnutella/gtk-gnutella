@@ -1,9 +1,24 @@
 # since last version
 
+- (2005-08-27 - RAM)
+ * Adapt stalling threshold to the amount of upload slots configured.
+ * Reduced stalling TX buffer down to 1K.
+ * Count HTML and Gnutella browse host requests.
+ * Show HTML and Gnutella browse host request counts in upload stat pane.
+ * Don't allow dynamic upload slot allocation when uploads are stalling.
+ * Added internal GUID to each fileinfo, to be perused by downloads at
+   retrieval time, ensuring a download source is uniquely linked to a given
+   fileinfo.
+ * [GTK1] Added GUI setting for "parq_debug".
+
 - (2005-08-24 - JA)
  * [PARQ] Added parq_debug property for PARQ specific debugging
  * [PARQ] Fixed bug where an upload got queued, with an ETA of 0s
  *        and all upload slots where available
+
+- (2005-08-21 - RAM)
+ * GTKG is no longer explicitly asking replying servents to skip XML in
+   query hits, since it can now show the XML.
 
 - (2005-08-20 - RAM)
  * [GTK1] Added 7 new GUI-settable debug levels.
