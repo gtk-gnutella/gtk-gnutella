@@ -679,8 +679,8 @@ fi_free(struct dl_file_info *fi)
 		g_assert(NULL == fi->sf);
 	}
 
-	atom_guid_free(fi->guid);
-
+	if (fi->guid)
+		atom_guid_free(fi->guid);
 	if (fi->size_atom)
 		atom_uint64_free(fi->size_atom);
 	if (fi->file_name)
