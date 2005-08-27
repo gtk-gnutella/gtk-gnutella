@@ -72,7 +72,7 @@ typedef struct gnet_fi_chunks {
 
 struct dl_file_info {
     gnet_fi_t fi_handle;    /**< Handle */
-
+	gchar *guid;			/**< Unique fileinfo ID */
 	guint32 flags;			/**< Operating flags */
 	gchar *file_name;		/**< Output file name (atom) */
 	gchar *path;			/**< Output file path (atom) */
@@ -102,12 +102,11 @@ struct dl_file_info {
 	guint32  aqueued_count; /**< Actively queued sources */
 	guint32  pqueued_count; /**< Passively queued sources */
 
-
 	/*
 	 * The following group is used to compute the aggregated reception rate.
 	 */
 
-	gint32 recvcount;		/**< Amount of "receiving" downloads referencing us */
+	gint32 recvcount;		/**< Amount of "receiving" d/l referencing us */
 	guint32 recv_last_rate;	/**< Last amount of bytes/sec received */
 	guint32 recv_amount;	/**< Amount of bytes received this period */
 	time_t recv_last_time;	/**< When did we last compute recv_last_rate? */

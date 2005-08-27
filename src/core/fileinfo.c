@@ -108,12 +108,15 @@ struct dl_file_chunk {
  * The `fi_by_sha1' hash table keeps track of the SHA1 -> fi association.
  * The `fi_by_namesize' hash table keeps track of items by (name, size).
  * The `fi_by_outname' table keeps track of the "output name" -> fi link.
+ * The `fi_by_guid' hash table keeps track of the GUID -> fi association.
+ * The `fi_by_size' hash table keeps track of the fi with identical file size.
  */
 
 static GHashTable *fi_by_sha1 = NULL;
 static GHashTable *fi_by_namesize = NULL;
 static GHashTable *fi_by_size = NULL;
 static GHashTable *fi_by_outname = NULL;
+static GHashTable *fi_by_guid = NULL;
 
 static const gchar file_info_file[] = "fileinfo";
 static const gchar file_info_what[] = "the fileinfo database";
@@ -136,6 +139,8 @@ enum dl_file_info_field {
 	FILE_INFO_FIELD_CHUNK,
 	FILE_INFO_FIELD_END,		/**< Marks end of field section */
 	FILE_INFO_FIELD_CHA1,
+	FILE_INFO_FIELD_GUID,
+	/* Add new fields here, never change ordering for backward compatibility */
 
 	NUM_FILE_INFO_FIELDS
 };
@@ -494,6 +499,8 @@ file_info_fd_store_binary(struct dl_file_info *fi, int fd, gboolean force)
 	 * Emit variable-length fields.
 	 */
 
+	FIELD_ADD(FILE_INFO_FIELD_GUID, GUID_RAW_SIZE, fi->guid);
+
 	if (fi->sha1)
 		FIELD_ADD(FILE_INFO_FIELD_SHA1, SHA1_RAW_SIZE, fi->sha1);
 
@@ -671,6 +678,8 @@ fi_free(struct dl_file_info *fi)
 		file_info_upload_stop(fi, "File info discarded");
 		g_assert(NULL == fi->sf);
 	}
+
+	atom_guid_free(fi->guid);
 
 	if (fi->size_atom)
 		atom_uint64_free(fi->size_atom);
@@ -1034,7 +1043,11 @@ file_info_lookup_dup(struct dl_file_info *fi)
 			return dfi;
 	}
 
-	return NULL;
+	/*
+	 * The file ID must also be unique.
+	 */
+
+	return g_hash_table_lookup(fi_by_guid, fi->guid);
 }
 
 /**
@@ -1177,6 +1190,64 @@ file_info_shared_sha1(const gchar *sha1)
 }
 
 /**
+ * Allocate random GUID to use as the file ID.
+ *
+ * @return a GUID atom, refcount incremented already.
+ */
+static gchar *
+fi_random_guid_atom(void)
+{
+	gchar xuid[GUID_RAW_SIZE];
+	gint i;
+
+	/*
+	 * Paranoid, in case the random number generator is broken.
+	 */
+
+	for (i = 0; i < 100; i++) {
+		guid_random_fill(xuid);
+
+		if (NULL == g_hash_table_lookup(fi_by_guid, xuid))
+			return atom_guid_get(xuid);
+	}
+
+	g_error("no luck with random number generator");
+	return NULL;
+}
+
+/**
+ * Ensure potentially old fileinfo structure is brought up-to-date by
+ * inferring or allocating missing fields.
+ */
+static void
+fi_upgrade_older_version(struct dl_file_info *fi)
+{
+	/*
+	 * Ensure proper timestamps for creation and update times.
+	 */
+
+	if (0 == fi->ctime)
+		fi->ctime = time(NULL);
+
+	if (0 == fi->ntime)
+		fi->ntime = fi->ctime;
+
+	/*
+	 * Enforce "size != 0 => file_size_known".
+	 */
+
+	if (fi->size)
+		fi->file_size_known = TRUE;
+
+	/*
+	 * Versions before 2005-08-27 lacked the GUID in the fileinfo.
+	 */
+
+	if (NULL == fi->guid)
+		fi->guid = fi_random_guid_atom();
+}
+
+/**
  * Reads the file metainfo from the trailer of a file, if it exists.
  *
  * @returns a pointer to the info structure if found, and NULL otherwise.
@@ -1316,11 +1387,26 @@ G_STMT_START {				\
 		case FILE_INFO_FIELD_ALIAS:
 			fi_alias(fi, tmp, FALSE);
 			break;
+		case FILE_INFO_FIELD_GUID:
+			if (GUID_RAW_SIZE == tmpguint)
+				fi->guid = atom_guid_get(tmp);
+			else
+				g_warning("bad length %d for GUID in fileinfo v%u for \"%s\"",
+					tmpguint, version, file);
+			break;
 		case FILE_INFO_FIELD_SHA1:
-			fi->sha1 = atom_sha1_get(tmp);
+			if (SHA1_RAW_SIZE == tmpguint)
+				fi->sha1 = atom_sha1_get(tmp);
+			else
+				g_warning("bad length %d for SHA1 in fileinfo v%u for \"%s\"",
+					tmpguint, version, file);
 			break;
 		case FILE_INFO_FIELD_CHA1:
-			fi->cha1 = atom_sha1_get(tmp);
+			if (SHA1_RAW_SIZE == tmpguint)
+				fi->cha1 = atom_sha1_get(tmp);
+			else
+				g_warning("bad length %d for CHA1 in fileinfo v%u for \"%s\"",
+					tmpguint, version, file);
 			break;
 		case FILE_INFO_FIELD_CHUNK:
 			{
@@ -1369,7 +1455,7 @@ G_STMT_START {				\
 			break;
 		default:
 			g_warning("file_info_retrieve_binary(): "
-				"unhandled field ID %u", field);
+				"unhandled field ID %u (%d bytes long)", field, tmpguint);
 			break;
 		}
 	}
@@ -1392,12 +1478,7 @@ G_STMT_START {				\
 	if (version < 5)
 		fi->file_size_known = TRUE;
 
-	/*
-	 * Enforce "size != 0 => file_size_known".
-	 */
-
-	if (fi->size)
-		fi->file_size_known = TRUE;
+	fi_upgrade_older_version(fi);
 
 	/*
 	 * If the fileinfo appendix was coherent sofar, we must have reached
@@ -1486,10 +1567,12 @@ file_info_store_one(FILE *f, struct dl_file_info *fi)
 		"# refcount %u\n"
 		"NAME %s\n"
 		"PATH %s\n"
+		"GUID %s\n"
 		"GENR %u\n",
 		fi->refcount,
 		fi->file_name,
 		fi->path,
+		guid_hex_str(fi->guid),
 		fi->generation);
 
 	for (a = fi->alias; a; a = a->next) {
@@ -1568,6 +1651,7 @@ file_info_store(void)
 		"# Format is:\n"
 		"#	NAME <file name>\n"
 		"#	PATH <path>\n"
+		"#	GUID <file ID>\n"
 		"#	GENR <generation number>\n"
 		"#	ALIA <alias file name>\n"
 		"#	SIZE <size>\n"
@@ -1651,6 +1735,21 @@ file_info_free_size_kv(gpointer unused_key, gpointer val, gpointer unused_x)
  * Callback for hash table iterator. Used by file_info_close().
  */
 static void
+file_info_free_guid_kv(gpointer key, gpointer val, gpointer unused_x)
+{
+	const gchar *guid = (const gchar *) key;
+	const struct dl_file_info *fi = (const struct dl_file_info *) val;
+
+	(void) unused_x;
+	g_assert(guid == fi->guid);		/* GUID shared with fi's, don't free */
+
+	/* fi structure in value not freed, shared with other hash tables */
+}
+
+/**
+ * Callback for hash table iterator. Used by file_info_close().
+ */
+static void
 file_info_free_outname_kv(gpointer key, gpointer val, gpointer unused_x)
 {
 	const gchar *name = (const gchar *) key;
@@ -1719,6 +1818,7 @@ file_info_close(void)
 	g_hash_table_foreach(fi_by_sha1, file_info_free_sha1_kv, NULL);
 	g_hash_table_foreach(fi_by_namesize, file_info_free_namesize_kv, NULL);
 	g_hash_table_foreach(fi_by_size, file_info_free_size_kv, NULL);
+	g_hash_table_foreach(fi_by_guid, file_info_free_guid_kv, NULL);
 	g_hash_table_foreach(fi_by_outname, file_info_free_outname_kv, NULL);
 
     /*
@@ -1736,6 +1836,7 @@ file_info_close(void)
 	g_hash_table_destroy(fi_by_sha1);
 	g_hash_table_destroy(fi_by_namesize);
 	g_hash_table_destroy(fi_by_size);
+	g_hash_table_destroy(fi_by_guid);
 	g_hash_table_destroy(fi_by_outname);
 
 	G_FREE_NULL(tbuf.arena);
@@ -1754,6 +1855,7 @@ file_info_hash_insert(struct dl_file_info *fi)
 	g_assert(fi);
 	g_assert(!fi->hashed);
 	g_assert(fi->size_atom);
+	g_assert(fi->guid);
 
 	if (dbg > 4) {
 		printf("FILEINFO insert 0x%p \"%s\" "
@@ -1795,6 +1897,18 @@ file_info_hash_insert(struct dl_file_info *fi)
 		if (NULL == xfi)
 			g_hash_table_insert(fi_by_sha1, fi->sha1, fi);
 	}
+
+	/*
+	 * Obviously, GUID entries must be unique as well.
+	 */
+
+	xfi = g_hash_table_lookup(fi_by_guid, fi->guid);
+
+	if (NULL != xfi && xfi != fi)		/* See comment above */
+		g_error("xfi = 0x%lx, fi = 0x%lx", (gulong) xfi, (gulong) fi);
+
+	if (NULL == xfi)
+		g_hash_table_insert(fi_by_guid, fi->guid, fi);
 
 	/*
 	 * The (name, size) tuples also point to a list of entries, one for
@@ -1862,6 +1976,7 @@ file_info_hash_remove(struct dl_file_info *fi)
 	g_assert(fi);
 	g_assert(fi->hashed);
 	g_assert(fi->size_atom);
+	g_assert(fi->guid);
 
 	if (dbg > 4) {
 		g_message("FILEINFO remove 0x%lx \"%s\" "
@@ -1885,13 +2000,15 @@ file_info_hash_remove(struct dl_file_info *fi)
 	g_assert((gint) fi_all_count >= 0);
 
 	/*
-	 * Remove from plain hash tables: by output name, and by SHA1.
+	 * Remove from plain hash tables: by output name, by SHA1 and by GUID.
 	 */
 
 	g_hash_table_remove(fi_by_outname, fi->file_name);
 
 	if (fi->sha1)
 		g_hash_table_remove(fi_by_sha1, fi->sha1);
+
+	g_hash_table_remove(fi_by_guid, fi->guid);
 
 	/*
 	 * Remove all the aliases from the (name, size) table.
@@ -2102,6 +2219,24 @@ file_info_got_sha1(struct dl_file_info *fi, const gchar *sha1)
 }
 
 /**
+ * Extract GUID from GUID line in the ASCII "fileinfo" summary file
+ * and return NULL if none or invalid, the GUID atom otherwise.
+ */
+static gchar *
+extract_guid(const gchar *s)
+{
+	gchar guid[GUID_RAW_SIZE];
+
+	if (strlen(s) < GUID_HEX_SIZE)
+		return NULL;
+
+	if (!hex_to_guid(s, guid))
+		return NULL;
+
+	return atom_guid_get(guid);
+}
+
+/**
  * Extract sha1 from SHA1/CHA1 line in the ASCII "fileinfo" summary file
  * and return NULL if none or invalid, the SHA1 atom otherwise.
  */
@@ -2135,6 +2270,7 @@ typedef enum {
 	FI_TAG_NTIM,
 	FI_TAG_SWRM,
 	FI_TAG_CHNK,
+	FI_TAG_GUID,
 
 	NUM_FI_TAGS
 } fi_tag_t;
@@ -2152,6 +2288,7 @@ static const struct fi_tag {
 	{ FI_TAG_DONE, "DONE" },
 	{ FI_TAG_FSKN, "FSKN" },
 	{ FI_TAG_GENR, "GENR" },
+	{ FI_TAG_GUID, "GUID" },
 	{ FI_TAG_NAME, "NAME" },
 	{ FI_TAG_NTIM, "NTIM" },
 	{ FI_TAG_PATH, "PATH" },
@@ -2286,17 +2423,10 @@ file_info_retrieve(void)
 			}
 
 			/*
-			 * If CTIM was missing, then reset CTIM and NTIM to now.
+			 * If we deserialized an older version, bring it up to date.
 			 */
 
-			if (0 == fi->ctime)
-				fi->ctime = fi->ntime = time(NULL);
-
-			/*
-			 * Ensure "size != 0 => file_size_known".
-			 */
-
-			fi->file_size_known = 0 != fi->size;
+			fi_upgrade_older_version(fi);
 
 			/*
 			 * Allow reconstruction of missing information: if no CHNK
@@ -2598,6 +2728,10 @@ file_info_retrieve(void)
 			damaged = error || '\0' != *ep || v > 1;
 			fi->use_swarming = v;
 			break;
+		case FI_TAG_GUID:
+			fi->guid = extract_guid(value);
+			damaged = NULL == fi->guid;
+			break;
 		case FI_TAG_SHA1:
 			fi->sha1 = extract_sha1(value);
 			damaged = NULL == fi->sha1;
@@ -2684,7 +2818,7 @@ static gchar *
 file_info_new_outname(const gchar *name, const gchar *dir)
 {
 	gint i;
-	gchar xuid[16];
+	gchar xuid[GUID_RAW_SIZE];
 	size_t flen;
 	const gchar *escaped;
 	gchar *result;
@@ -2789,6 +2923,9 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
 	fi->file_name = file_info_new_outname(file, path);
 	fi->path = atom_str_get(path);
 
+	/* Get unique ID */
+	fi->guid = fi_random_guid_atom();
+
 	if (sha1)
 		fi->sha1 = atom_sha1_get(sha1);
 	fi->size = 0;	/* Will be updated by fi_resize() */
@@ -2824,6 +2961,42 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
 		g_assert(!fi->use_swarming);
 
 	return fi;
+}
+
+/**
+ * Rename dead file we cannot use, either because it bears a duplicate SHA1
+ * or because its file trailer bears a duplicate file ID.
+ *
+ * The file is really dead, so unfortunately we have to strip its fileinfo
+ * trailer so that we do not try to reparent it at a later time.
+ */
+static void
+fi_rename_dead(struct dl_file_info *fi,
+	const gchar *path, const gchar *basename)
+{
+	gchar *dead;
+	gchar *pathname;
+
+	pathname = make_pathname(path, basename);
+	dead = g_strconcat(pathname, ".DEAD", (void *) 0);
+
+	if (
+		NULL != pathname &&
+		NULL != dead &&
+		-1 == rename(pathname, dead)
+	) {
+		g_warning("cannot rename \"%s\" as \"%s\": %s",
+			pathname, dead, g_strerror(errno));
+		goto done;
+	}
+
+	if (-1 == truncate(dead, fi->size))
+		g_warning("could not chop fileinfo trailer off \"%s\": %s",
+			dead, g_strerror(errno));
+
+done:
+	G_FREE_NULL(dead);
+	G_FREE_NULL(pathname);
 }
 
 /**
@@ -2900,37 +3073,27 @@ file_info_get(gchar *file, const gchar *path, filesize_t size, gchar *sha1,
 		 * 2. we have a SHA1 but it differs
 		 *
 		 * then the file is "dead": we cannot use it.
+		 *
+		 * Likewise, if the trailer bears a file ID that conflicts with
+		 * one of our currently managed files, we cannot use it.
 		 */
 
 		if (NULL != fi->sha1 && (NULL == sha1 || !sha1_eq(sha1, fi->sha1))) {
-			char *dead;
-			char *pathname;
+			g_warning("found DEAD file \"%s\" in %s bearing SHA1 %s",
+				outname, path, sha1_base32(fi->sha1));
 
-			g_warning("found DEAD file \"%s\" bearing SHA1 %s",
-				outname, sha1_base32(fi->sha1));
-
-			pathname = make_pathname(path, outname);
-			dead = g_strconcat(pathname, ".DEAD", (void *) 0);
-
-			if (
-				NULL != pathname &&
-				NULL != dead &&
-				-1 == rename(pathname, dead)
-			)
-				g_warning("cannot rename \"%s\" as \"%s\": %s",
-					pathname, dead, g_strerror(errno));
-
-			if (NULL != dead)
-				G_FREE_NULL(dead);
-			if (NULL != pathname)
-				G_FREE_NULL(pathname);
+			fi_rename_dead(fi, path, outname);
 			fi_free(fi);
 			fi = NULL;
 		}
-		/* FIXME: DOWNLOAD_SIZE:
-		 * Do we need to add something here because fileinfos can have
-		 * an unknown size --- Emile
-		 */
+		else if (NULL != g_hash_table_lookup(fi_by_guid, fi->guid)) {
+			g_warning("found DEAD file \"%s\" in %s with conflicting ID %s",
+				outname, path, guid_hex_str(fi->guid));
+
+			fi_rename_dead(fi, path, outname);
+			fi_free(fi);
+			fi = NULL;
+		}
 		else if (fi->size < size) {
 			/*
 			 * Existing file is smaller than the total size of this file.
@@ -4755,6 +4918,7 @@ file_info_init(void)
 	fi_by_sha1     = g_hash_table_new(sha1_hash, sha1_eq);
 	fi_by_namesize = g_hash_table_new(namesize_hash, namesize_eq);
 	fi_by_size     = g_hash_table_new(uint64_hash, uint64_eq);
+	fi_by_guid     = g_hash_table_new(guid_hash, guid_eq);
 	fi_by_outname  = g_hash_table_new(g_str_hash, g_str_equal);
 
     fi_handle_map = idtable_new(32, 32);
