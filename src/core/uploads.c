@@ -573,7 +573,7 @@ handle_push_request(struct gnutella_node *n)
 				flags |= CONNECT_F_TLS;
 				break;
 			default:
-				if (ggep_debug && e->ext_type == EXT_GGEP) {
+				if (ggep_debug > 1 && e->ext_type == EXT_GGEP) {
 					paylen = ext_paylen(e);
 					g_warning("%s (PUSH): unhandled GGEP \"%s\" (%d byte%s)",
 							gmsg_infostr(&n->header), ext_ggep_id_str(e),
@@ -651,7 +651,7 @@ handle_push_request(struct gnutella_node *n)
 	 * OK, start the upload by opening a connection to the remote host.
 	 */
 
-	if (upload_debug > 4)
+	if (upload_debug > 3)
 		g_message("PUSH (hops=%d, ttl=%d) to %s: %s\n",
 			n->header.hops, n->header.ttl, host_addr_port_to_string(ha, port),
 			file_name);
@@ -1591,10 +1591,10 @@ upload_connect_conf(gnutella_upload_t *u)
 	s = u->socket;
 	sent = bws_write(bws.out, &s->wio, giv, rw);
 	if ((ssize_t) -1 == sent) {
-		g_warning("Unable to send back GIV for \"%s\" to %s: %s",
+		g_warning("unable to send back GIV for \"%s\" to %s: %s",
 			u->name, host_addr_to_string(s->addr), g_strerror(errno));
 	} else if ((size_t) sent < rw) {
-		g_warning("Only sent %d out of %d bytes of GIV for \"%s\" to %s: %s",
+		g_warning("only sent %d out of %d bytes of GIV for \"%s\" to %s: %s",
 			(gint) sent, (gint) rw, u->name, host_addr_to_string(s->addr),
 			g_strerror(errno));
 	} else if (upload_debug > 2) {
@@ -1831,7 +1831,7 @@ get_file_to_upload_from_index(
 			 */
 
 			if (u->push) {
-				if (upload_debug > 4)
+				if (upload_debug > 1)
 					g_message("INDEX FIXED (push, SHA1 = %s): "
 						"requested %u, serving %u: %s\n",
 						sha1_base32(digest), idx,
@@ -1848,7 +1848,7 @@ get_file_to_upload_from_index(
 			 */
 
 			if (sfn->fi != NULL) {
-				if (upload_debug > 4)
+				if (upload_debug > 1)
 					g_message("REQUEST FIXED (partial, SHA1 = %s): "
 						"requested \"%s\", serving \"%s\"\n",
 						sha1_base32(digest), basename,
@@ -1897,7 +1897,7 @@ get_file_to_upload_from_index(
 
 		g_assert(sf != SHARE_REBUILDING);	/* Or we'd have trapped above */
 
-		if (upload_debug > 4) {
+		if (upload_debug > 1) {
 			if (sf)
 				g_message("BAD INDEX FIXED: requested %u, serving %u: %s\n",
 					idx, sf->file_index, sf->file_path);
@@ -1911,7 +1911,7 @@ get_file_to_upload_from_index(
 
 		g_assert(sfn != SHARE_REBUILDING);	/* Or we'd have trapped above */
 
-		if (upload_debug > 4) {
+		if (upload_debug > 1) {
 			if (sfn)
 				g_message("INDEX FIXED: requested %u, serving %u: %s\n",
 					idx, sfn->file_index, sfn->file_path);
@@ -2614,7 +2614,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	u->from_browser = upload_likely_from_browser(header);
 
-	if (upload_debug) {
+	if (upload_debug > 2) {
 		g_message("----%s Request from %s%s:\n%s",
 			is_followup ? "Follow-up" : "Incoming",
 			host_addr_to_string(s->addr),
@@ -3249,7 +3249,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				if (parq_upload_request_force(
 						u, u->parq_opaque, running_uploads - 1)) {
 					parq_allows = TRUE;
-					if (upload_debug > 4)
+					if (upload_debug)
 						g_message(
 							"Overriden slot limit because u/l b/w used at "
 							"%d%% (minimum set to %d%%)\n",

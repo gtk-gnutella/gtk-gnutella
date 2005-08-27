@@ -794,7 +794,7 @@ parq_download_parse_queue_status(struct download *d, header_t *header)
 				" send X-Queued",
 				host_addr_port_to_string(download_addr(d), download_port(d)),
 				major, minor);
-			if (dbg) {
+			if (parq_debug) {
 				g_warning("[PARQ DL]: header dump:");
 				header_dump(header, stderr);
 			}
@@ -856,7 +856,7 @@ parq_download_parse_queue_status(struct download *d, header_t *header)
 	if (retry < (gint) parq_dl->retry_delay)
 		retry = parq_dl->retry_delay;
 
-	if (dbg > 2)
+	if (parq_debug > 2)
 		g_message("Queue version: %d.%d, position %d out of %d,"
 			" retry in %ds within [%d, %d]",
 			major, minor, parq_dl->position, parq_dl->length,
@@ -996,7 +996,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 
 	gnet_stats_count_general(GNR_QUEUE_CALLBACKS, 1);
 
-	if (dbg) {
+	if (parq_debug > 2 || download_debug > 2) {
 		g_message("--- Got QUEUE from %s:\n%s\n---",
 			host_addr_to_string(s->addr), queue);
 	}
@@ -1034,7 +1034,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	 */
 
 	if (dl == NULL) {
-        if (dbg) {
+        if (parq_debug) {
             g_message("[PARQ DL] could not locate QUEUE id '%s' from %s",
                 id, host_addr_port_to_string(addr, port));
         }
@@ -1043,7 +1043,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 			dl = download_find_waiting_unparq(addr, port);
 
 			if (dl != NULL) {
-                if (dbg) {
+                if (parq_debug) {
                     g_message("[PARQ DL] elected '%s' from %s for QUEUE"
                         " id '%s'",
                         dl->file_name,
@@ -1245,7 +1245,7 @@ parq_upload_free(struct parq_ul_queued *parq_ul)
 	wfree(parq_ul, sizeof *parq_ul);
 	parq_ul = NULL;
 
-	if (dbg > 3)
+	if (parq_debug > 3)
 		g_message("PARQ UL: Entry freed from memory");
 }
 
@@ -1391,7 +1391,7 @@ parq_upload_create(gnutella_upload_t *u)
 	parq_ul_queue->by_rel_pos =
 		g_list_append(parq_ul_queue->by_rel_pos, parq_ul);
 
-	if (dbg > 3) {
+	if (parq_debug > 3) {
 		g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): New: %s \"%s\"; ID=\"%s\"",
 			g_list_position(ul_parqs,
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
@@ -1510,7 +1510,7 @@ parq_upload_new_queue(void)
 
 	ul_parqs = g_list_append(ul_parqs, queue);
 
-	if (dbg)
+	if (parq_debug)
 		g_message("PARQ UL: Created new queue %d",
 			g_list_position(ul_parqs, g_list_find(ul_parqs, queue)) + 1);
 
@@ -1535,7 +1535,7 @@ parq_upload_free_queue(struct parq_ul_queue *queue)
 	g_assert(queue->active_uploads == 0);
 	g_assert(queue->active == FALSE);
 
-	if (dbg)
+	if (parq_debug)
 		g_message("PARQ UL: Removing inactive queue %d",
 				g_list_position(ul_parqs, g_list_find(ul_parqs, queue)) + 1);
 
@@ -1628,7 +1628,7 @@ parq_upload_find_id(header_t *header)
 
 		if (id == NULL) {
 			g_warning("[PARQ UL] missing ID in PARQ request");
-			if (dbg) {
+			if (parq_debug) {
 				g_warning("[PARQ UL] header dump:");
 				header_dump(header, stderr);
 			}
@@ -1766,7 +1766,7 @@ parq_upload_timer(time_t now)
 				!parq_ul->has_slot &&
 				!(parq_ul->flags & PARQ_UL_QUEUE)	/* No timeout if pending */
 			) {
-				if (dbg > 3)
+				if (parq_debug > 3)
 					g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
 						"Timeout: %s '%s'",
 						g_list_position(ul_parqs,
@@ -1825,7 +1825,7 @@ parq_upload_timer(time_t now)
 	if (print_q_size++ >= 60) {
 		print_q_size = 0;
 
-		if (dbg) {
+		if (parq_debug) {
 
 			for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
 				struct parq_ul_queue *queue = queues->data;
@@ -1888,7 +1888,7 @@ parq_upload_timer(time_t now)
 				now - parq_ul->by_addr->last_queue_sent < QUEUE_PERIOD
 			) {
 
-				if (dbg > 3)
+				if (parq_debug > 3)
 					g_message("PARQ UL: Removing QUEUE command due to other "
 						"failed QUEUE command for ip: %s",
 						host_addr_to_string(parq_ul->by_addr->addr));
@@ -1911,7 +1911,7 @@ parq_upload_timer(time_t now)
 					parq_ul->by_addr->last_queue_connected
 				) {
 
-					if (dbg > 3) {
+					if (parq_debug > 3) {
 						g_message("PARQ UL: Not sending QUEUE command due to "
 							"another pending QUEUE command for ip: %s",
 							host_addr_to_string(parq_ul->by_addr->addr));
@@ -1961,7 +1961,7 @@ parq_upload_queue_full(gnutella_upload_t *u)
 
 	g_assert(q_ul->by_date_dead != NULL);
 
-	if (dbg > 2)
+	if (parq_debug > 2)
 		g_message("PARQ UL: Removing a 'dead' upload");
 
 	parq_ul = g_list_first(q_ul->by_date_dead)->data;
@@ -3178,7 +3178,7 @@ parq_upload_register_send_queue(struct parq_ul_queued *parq_ul)
 
 	/* No known connect back port / ip */
 	if (parq_ul->port == 0 || !is_host_addr(parq_ul->addr)) {
-		if (dbg > 2) {
+		if (parq_debug > 2) {
 			g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
 				"No port to send QUEUE: %s '%s'",
 				  g_list_position(ul_parqs,
@@ -3215,7 +3215,7 @@ parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 	parq_ul->queue_sent++;
 	parq_ul->by_addr->last_queue_sent = now;
 
-	if (dbg)
+	if (parq_debug)
 		g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
 			"Sending QUEUE #%d to %s: '%s'",
 			  g_list_position(ul_parqs,
@@ -3298,7 +3298,7 @@ parq_upload_send_queue_conf(gnutella_upload_t *u)
 			"Only sent %d out of %d bytes of QUEUE for \"%s\" to %s: %s",
 			  sent, rw, u->name, host_addr_port_to_string(s->addr, s->port),
 			  g_strerror(errno));
-	} else if (dbg > 2) {
+	} else if (parq_debug > 2) {
 		g_message("PARQ UL: Sent #%d to %s: %s",
 			  parq_ul->queue_sent, host_addr_port_to_string(s->addr, s->port),
 			  queue);
@@ -3340,7 +3340,7 @@ parq_store(gpointer data, gpointer x)
 		return;
 
 	g_assert(NULL != f);
-	if (dbg > 5)
+	if (parq_debug > 5)
 		g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): Saving ID: '%s' - %s '%s'",
 			  g_list_position(ul_parqs,
 				  g_list_find(ul_parqs, parq_ul->queue)) + 1,
@@ -3397,7 +3397,7 @@ parq_upload_save_queue(void)
 	time_t now = time((time_t *)NULL);
 	GList *queues;
 
-	if (dbg > 3)
+	if (parq_debug > 3)
 		g_message("PARQ UL: Trying to save all queue info");
 
 	file_path_set(&fp, settings_config_dir(), file_parq_file);
@@ -3418,7 +3418,7 @@ parq_upload_save_queue(void)
 
 	file_config_close(f, &fp);
 
-	if (dbg > 3)
+	if (parq_debug > 3)
 		g_message("PARQ UL: All saved");
 
 }
@@ -3527,7 +3527,7 @@ parq_upload_load_queue(void)
 	if (!f)
 		return;
 
-	if (dbg)
+	if (parq_debug)
 		g_warning("[PARQ UL] Loading queue information");
 
 	/* Reset state */
@@ -3733,7 +3733,7 @@ parq_upload_load_queue(void)
 			parq_ul->id = g_strdup(entry.id);
 			g_hash_table_insert(ul_all_parq_by_id, parq_ul->id, parq_ul);
 
-			if (dbg > 2)
+			if (parq_debug > 2)
 				g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d) ETA: %s "
 					"Restored: %s '%s'",
 					g_list_position(ul_parqs,

@@ -360,7 +360,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 
 		/* Ip Port (not UHC IPP!)*/
 		if (pcache_debug || ggep_debug)
-			g_message("Adding GGEP IP for %s",
+			g_message("adding GGEP IP for %s",
 				host_addr_port_to_string(sender_addr, sender_port));
 
 		poke_be32(&ip_port[0], host_addr_ipv4(sender_addr));
@@ -1631,7 +1631,7 @@ pong_extract_metadata(struct gnutella_node *n)
 			}
 			break;
 		default:
-			if (ggep_debug && e->ext_type == EXT_GGEP) {
+			if (ggep_debug > 1 && e->ext_type == EXT_GGEP) {
 				paylen = ext_paylen(e);
 				g_warning("%s: unhandled GGEP \"%s\" (%d byte%s)",
 					gmsg_infostr(&n->header), ext_ggep_id_str(e),
@@ -1880,7 +1880,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 				uhc_ipp_extract(n, payload, paylen);
 			break;
 		default:
-			if (ggep_debug && e->ext_type == EXT_GGEP) {
+			if (ggep_debug > 1 && e->ext_type == EXT_GGEP) {
 				paylen = ext_paylen(e);
 				g_warning("%s (UDP): unhandled GGEP \"%s\" (%d byte%s)",
 					gmsg_infostr(&n->header), ext_ggep_id_str(e),
