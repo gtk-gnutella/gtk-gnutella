@@ -88,14 +88,14 @@ RCSID("$Id$");
 #define IO_PRE_STALL	30			/**< Pre-stalling warning */
 #define IO_STALLED		60			/**< Stalling condition */
 #define IO_LONG_TIMEOUT	160			/**< Longer timeouting condition */
-#define UP_SEND_BUFSIZE	8192		/**< Socket write buffer, when stalling */
+#define UP_SEND_BUFSIZE	1024		/**< Socket write buffer, when stalling */
 #define STALL_CLEAR		600			/**< Decrease stall counter every 10 min */
 #define STALL_THRESH	3			/**< If more stalls than that, workaround */
 
 #define RQST_LINE_LENGTH	256		/**< Reasonable estimate for request line */
 
 static GSList *list_uploads = NULL;
-static gint stalled = 0;			/**< Counts stalled connections */
+static guint stalled = 0;			/**< Counts stalled connections */
 static time_t last_stalled;			/**< Time at which last stall occurred */
 
 /** Used to fall back to write() if sendfile() failed */
@@ -104,7 +104,6 @@ static gboolean sendfile_failed = FALSE;
 static idtable_t *upload_handle_map = NULL;
 
 static const gchar no_reason[] = "<no reason>"; /* Don't translate this */
-
 
 #define upload_find_by_handle(n) \
     (gnutella_upload_t *) idtable_get_value(upload_handle_map, n)
@@ -235,6 +234,18 @@ upload_fire_upload_info_changed(gnutella_upload_t *n)
  ***/
 
 /**
+ * Dynamically computed stalling threshold.
+ *
+ * It is half the amount of upload slots configured, with a minimum value
+ * of STALL_THRESH.
+ */
+static inline guint32
+stall_thresh(void)
+{
+	return MAX(STALL_THRESH, max_uploads / 2);
+}
+
+/**
  * Upload heartbeat timer.
  */
 void
@@ -282,7 +293,7 @@ upload_timer(time_t now)
 				skip = TRUE;
 
 			if (!(u->flags & UPLOAD_F_STALLED)) {
-				if (!skip && stalled++ == STALL_THRESH) {
+				if (!skip && stalled++ >= stall_thresh()) {
 					g_warning("frequent stalling detected, using workarounds");
 					gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, TRUE);
 				}
@@ -318,7 +329,7 @@ upload_timer(time_t now)
 					skip ? " (IGNORED)" : "");
 
 				if (
-					!skip && stalled <= STALL_THRESH &&
+					!skip && stalled <= stall_thresh() &&
 					!sock_is_corked(u->socket)
 				) {
 					g_warning(
@@ -328,7 +339,7 @@ upload_timer(time_t now)
 					socket_tos_throughput(u->socket);
 				}
 
-				if (!skip && stalled > 0) /* It un-stalled, it's not too bad */
+				if (!skip && stalled != 0) /* It un-stalled, it's not too bad */
 					stalled--;
 			}
 			u->flags &= ~UPLOAD_F_STALLED;
@@ -343,7 +354,7 @@ upload_timer(time_t now)
 		 * be much more lenient about connection timeouts.
 		 */
 
-		if (!is_connecting && stalled > STALL_THRESH)
+		if (!is_connecting && stalled > stall_thresh())
 			t = MAX(t, IO_LONG_TIMEOUT);
 
 		/*
@@ -2609,7 +2620,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			host_addr_to_string(s->addr),
 			u->from_browser ? " (via browser)" : "",
 			request);
-		header_dump(header, stdout);
+		header_dump(header, stderr);
 		g_message("----");
 	}
 
@@ -3386,7 +3397,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	known_for_stalling = NULL != aging_lookup(stalling_uploads, &u->addr);
 
-	if (stalled <= STALL_THRESH && !known_for_stalling) {
+	if (stalled <= stall_thresh() && !known_for_stalling) {
 		sock_cork(s, TRUE);
 		socket_tos_throughput(s);
 	} else {
