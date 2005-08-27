@@ -3185,7 +3185,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 *		--RAM, 15/12/2001
 		 *
  		 * Althought the uploads slots are full, we could try to queue
-		 * the download in PARQ. If this also fails, than the requesting client
+		 * the download in PARQ. If this also fails, then the requesting client
 		 * is out of luck.
 		 *		--JA, 05/02/2003
 		 *
@@ -3231,13 +3231,18 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 	 * lower than the minimum to trigger the override.  This will
 		 	 * make it more robust when bandwidth stealing is enabled.
 		 	 *		--RAM, 27/01/2003
-		 	 *
+			 *
+			 * Naturally, no new slot must be created when uploads are
+			 * stalling, since then b/w usage will be abnormally low and
+			 * creating new slots could make things worse.
+			 *		--RAM, 2005-08-27
 			 */
 
 			if (
-				upload_is_enabled() &&
 				bw_ul_usage_enabled &&
+				upload_is_enabled() &&
 				bws_out_enabled &&
+				stalled <= stall_thresh() &&
 				(gulong) bsched_pct(bws.out) < ul_usage_min_percentage &&
 				(gulong) bsched_avg_pct(bws.out) < ul_usage_min_percentage
 			) {
@@ -3943,6 +3948,9 @@ upload_init(void)
 		BH_VERSION_MAJOR, BH_VERSION_MINOR);
 }
 
+/**
+ * Final cleanup at shutdown time.
+ */
 void
 upload_close(void)
 {
