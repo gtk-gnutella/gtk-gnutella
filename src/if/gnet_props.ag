@@ -2958,5 +2958,24 @@ prop = {
 	};
 };
 
+prop = {
+    name = "html_browse_count";
+    desc = "Number of HTML browsing requests received in this session.";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "qhits_browse_count";
+    desc = "Number of Gnutella browsing requests received in this session.";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
 
 /* vi: set ts=4: */

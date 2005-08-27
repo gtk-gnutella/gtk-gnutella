@@ -569,6 +569,10 @@ gboolean use_so_linger     = FALSE;
 gboolean use_so_linger_def = FALSE;
 gboolean browse_host_enabled     = FALSE;
 gboolean browse_host_enabled_def = FALSE;
+guint32  html_browse_count     = 0;
+guint32  html_browse_count_def = 0;
+guint32  qhits_browse_count     = 0;
+guint32  qhits_browse_count_def = 0;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -5355,6 +5359,46 @@ gnet_prop_init(void) {
     gnet_property->props[249].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[249].data.boolean.def   = &browse_host_enabled_def;
     gnet_property->props[249].data.boolean.value = &browse_host_enabled;
+
+
+    /*
+     * PROP_HTML_BROWSE_COUNT:
+     *
+     * General data:
+     */
+    gnet_property->props[250].name = "html_browse_count";
+    gnet_property->props[250].desc = _("Number of HTML browsing requests received in this session.");
+    gnet_property->props[250].ev_changed = event_new("html_browse_count_changed");
+    gnet_property->props[250].save = FALSE;
+    gnet_property->props[250].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[250].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[250].data.guint32.def   = &html_browse_count_def;
+    gnet_property->props[250].data.guint32.value = &html_browse_count;
+    gnet_property->props[250].data.guint32.choices = NULL;
+    gnet_property->props[250].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[250].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QHITS_BROWSE_COUNT:
+     *
+     * General data:
+     */
+    gnet_property->props[251].name = "qhits_browse_count";
+    gnet_property->props[251].desc = _("Number of Gnutella browsing requests received in this session.");
+    gnet_property->props[251].ev_changed = event_new("qhits_browse_count_changed");
+    gnet_property->props[251].save = FALSE;
+    gnet_property->props[251].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[251].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[251].data.guint32.def   = &qhits_browse_count_def;
+    gnet_property->props[251].data.guint32.value = &qhits_browse_count;
+    gnet_property->props[251].data.guint32.choices = NULL;
+    gnet_property->props[251].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[251].data.guint32.min   = 0x00000000;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

@@ -50,6 +50,9 @@ RCSID("$Id$");
 #include "guid.h"
 #include "version.h"
 
+#include "if/gnet_property.h"
+#include "if/gnet_property_priv.h"
+
 #include "lib/header.h"
 #include "lib/misc.h"
 #include "lib/url.h"
@@ -577,6 +580,18 @@ browse_host_open(
 
 	tx_srv_register(bh->tx, writable, owner);
 	tx_eager_mode(bh->tx, TRUE);
+
+	/*
+	 * Update statistics.
+	 */
+
+	if (flags & BH_HTML)
+		gnet_prop_set_guint32_val(PROP_HTML_BROWSE_COUNT,
+			html_browse_count + 1);
+
+	if (flags & BH_QHITS)
+		gnet_prop_set_guint32_val(PROP_QHITS_BROWSE_COUNT,
+			qhits_browse_count + 1);
 
 	return &bh->special;
 }
