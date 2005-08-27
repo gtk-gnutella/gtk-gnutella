@@ -1081,18 +1081,26 @@ hex2dec(guchar c)
 /**
  * Converts hexadecimal string into a GUID.
  *
- * @return true if OK.
+ * @param hexguid	the hexadecimal representation to convert
+ * @param guid		the 16-byte array into which the decoded GUID is written to
+ *
+ * @return TRUE if OK.
  */
 gboolean
 hex_to_guid(const gchar *hexguid, gchar *guid)
 {
 	gulong i;
 
-	for (i = 0; i < 16; i++) {
- 		gint a = (guchar) hexguid[i << 1];
- 		gint b = (guchar) hexguid[(i << 1) + 1];
+	for (i = 0; i < GUID_RAW_SIZE; i++) {
+ 		gint a;
+ 		gint b;
 
-		if (!(is_ascii_xdigit(a) && is_ascii_xdigit(b)))
+		a = (guchar) hexguid[i << 1];
+		if (!is_ascii_xdigit(a))
+			return FALSE;
+
+		b = (guchar) hexguid[(i << 1) + 1];
+		if (!is_ascii_xdigit(b))
 			return FALSE;
 
 		guid[i] = (hex2dec_inline(a) << 4) + hex2dec_inline(b);
