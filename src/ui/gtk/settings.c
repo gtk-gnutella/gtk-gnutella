@@ -5221,6 +5221,14 @@ static prop_map_t property_map[] = {
 #ifdef USE_GTK1
     PROP_ENTRY(
         get_prefs_dialog,
+        PROP_PARQ_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_parq_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
         PROP_HTTP_DEBUG,
         update_spinbutton,
         TRUE,

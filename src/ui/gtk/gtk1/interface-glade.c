@@ -11149,6 +11149,9 @@ create_dlg_prefs (void)
   GtkWidget *label743;
   GtkObject *spinbutton_config_download_debug_adj;
   GtkWidget *spinbutton_config_download_debug;
+  GtkWidget *label750;
+  GtkObject *spinbutton_config_parq_debug_adj;
+  GtkWidget *spinbutton_config_parq_debug;
   GtkWidget *frame_expert_unmapped;
   GtkWidget *table57;
   GtkWidget *label465;
@@ -17105,6 +17108,28 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_config_download_debug);
   gtk_table_attach (GTK_TABLE (table92), spinbutton_config_download_debug, 5, 6, 3, 4,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label750 = gtk_label_new (_("PARQ debug"));
+  gtk_widget_set_name (label750, "label750");
+  gtk_widget_ref (label750);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label750", label750,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label750);
+  gtk_table_attach (GTK_TABLE (table92), label750, 4, 5, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label750), 0, 0.5);
+
+  spinbutton_config_parq_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_parq_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_parq_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_parq_debug, "spinbutton_config_parq_debug");
+  gtk_widget_ref (spinbutton_config_parq_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_parq_debug", spinbutton_config_parq_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_parq_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_parq_debug, 5, 6, 4, 5,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
