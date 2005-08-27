@@ -1498,7 +1498,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label498), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label498), 10, 0);
 
-  label494 = gtk_label_new ("Rapha\303\253l Manfredi");
+  label494 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_table_attach (GTK_TABLE (table105), label494, 1, 2, 1, 2,
@@ -1525,7 +1525,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label704), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label704), 4, 0);
 
-  label493 = gtk_label_new ("Rapha\303\253l Manfredi");
+  label493 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_table_attach (GTK_TABLE (table105), label493, 4, 5, 0, 1,
@@ -3850,6 +3850,12 @@ create_main_window_upload_stats_tab (void)
   GtkWidget *hbox168;
   GtkWidget *image38;
   GtkWidget *label419;
+  GtkWidget *hbox9296;
+  GtkWidget *label923;
+  GtkWidget *label_html_browse_count;
+  GtkWidget *label925;
+  GtkWidget *label_qhits_browse_count;
+  GtkWidget *label927;
   GtkWidget *label284;
   GtkTooltips *tooltips;
 
@@ -3941,6 +3947,37 @@ create_main_window_upload_stats_tab (void)
   gtk_widget_show (label419);
   gtk_box_pack_start (GTK_BOX (hbox168), label419, FALSE, FALSE, 0);
 
+  hbox9296 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox9296, "hbox9296");
+  gtk_widget_show (hbox9296);
+  gtk_box_pack_start (GTK_BOX (ul_stats_hbox2), hbox9296, TRUE, TRUE, 0);
+
+  label923 = gtk_label_new (_("Served "));
+  gtk_widget_set_name (label923, "label923");
+  gtk_widget_show (label923);
+  gtk_box_pack_start (GTK_BOX (hbox9296), label923, TRUE, TRUE, 0);
+  gtk_misc_set_alignment (GTK_MISC (label923), 1, 0.5);
+
+  label_html_browse_count = gtk_label_new (_("[BH HTML]"));
+  gtk_widget_set_name (label_html_browse_count, "label_html_browse_count");
+  gtk_widget_show (label_html_browse_count);
+  gtk_box_pack_start (GTK_BOX (hbox9296), label_html_browse_count, FALSE, FALSE, 0);
+
+  label925 = gtk_label_new (_(" HTML and "));
+  gtk_widget_set_name (label925, "label925");
+  gtk_widget_show (label925);
+  gtk_box_pack_start (GTK_BOX (hbox9296), label925, FALSE, FALSE, 0);
+
+  label_qhits_browse_count = gtk_label_new (_("[BH qhits]"));
+  gtk_widget_set_name (label_qhits_browse_count, "label_qhits_browse_count");
+  gtk_widget_show (label_qhits_browse_count);
+  gtk_box_pack_start (GTK_BOX (hbox9296), label_qhits_browse_count, FALSE, FALSE, 0);
+
+  label927 = gtk_label_new (_(" Gnutella browse requests"));
+  gtk_widget_set_name (label927, "label927");
+  gtk_widget_show (label927);
+  gtk_box_pack_start (GTK_BOX (hbox9296), label927, FALSE, FALSE, 0);
+
   label284 = gtk_label_new (_("Upload history"));
   gtk_widget_set_name (label284, "label284");
   gtk_widget_show (label284);
@@ -3970,6 +4007,12 @@ create_main_window_upload_stats_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, hbox168, "hbox168");
   GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, image38, "image38");
   GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, label419, "label419");
+  GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, hbox9296, "hbox9296");
+  GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, label923, "label923");
+  GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, label_html_browse_count, "label_html_browse_count");
+  GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, label925, "label925");
+  GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, label_qhits_browse_count, "label_qhits_browse_count");
+  GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, label927, "label927");
   GLADE_HOOKUP_OBJECT (main_window_upload_stats_tab, label284, "label284");
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_upload_stats_tab, tooltips, "tooltips");
 
@@ -13359,7 +13402,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table94), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table94), 4);
 
-  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 6.71089e+07, 1, 10, 10);
+  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 67108900, 1, 10, 10);
   spinbutton_dl_minchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_minchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_minchunksize, "spinbutton_dl_minchunksize");
   gtk_widget_show (spinbutton_dl_minchunksize);
@@ -13368,7 +13411,7 @@ create_dlg_prefs_dl_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_minchunksize), TRUE);
 
-  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 6.71089e+07, 1, 10, 10);
+  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 67108900, 1, 10, 10);
   spinbutton_dl_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_maxchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_maxchunksize, "spinbutton_dl_maxchunksize");
   gtk_widget_show (spinbutton_dl_maxchunksize);
@@ -13887,7 +13930,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label726), 0, 0.5);
 
-  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
+  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
   spinbutton_pfsp_first_chunk = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_first_chunk_adj), 1, 0);
   gtk_widget_set_name (spinbutton_pfsp_first_chunk, "spinbutton_pfsp_first_chunk");
   gtk_widget_show (spinbutton_pfsp_first_chunk);

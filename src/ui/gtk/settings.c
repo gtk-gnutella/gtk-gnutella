@@ -5177,6 +5177,22 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_main_window,
+        PROP_HTML_BROWSE_COUNT,
+        update_label,
+        TRUE,
+        "label_html_browse_count",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
+        PROP_QHITS_BROWSE_COUNT,
+        update_label,
+        TRUE,
+        "label_qhits_browse_count",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
         PROP_UPLOADS_STALLING,
         uploads_stalling_changed,
         TRUE,

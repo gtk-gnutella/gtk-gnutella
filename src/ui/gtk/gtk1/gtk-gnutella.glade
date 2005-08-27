@@ -4155,6 +4155,109 @@
 		    <fill>False</fill>
 		  </child>
 		</widget>
+
+		<widget>
+		  <class>GtkViewport</class>
+		  <name>viewport50</name>
+		  <shadow_type>GTK_SHADOW_IN</shadow_type>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkHBox</class>
+		    <name>hbox2101</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label745</name>
+		      <label>Served </label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>1</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label_html_browse_count</name>
+		      <label>[BH HTML]</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label747</name>
+		      <label> HTML and </label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label_qhits_browse_count</name>
+		      <label>[BH qhits]</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label749</name>
+		      <label> Gnutella browse requests</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+		  </widget>
+		</widget>
 	      </widget>
 	    </widget>
 	  </widget>

@@ -314,6 +314,13 @@ create_main_window (void)
   GtkWidget *ul_stats_hbox2;
   GtkWidget *button_ul_stats_clear_deleted;
   GtkWidget *button_ul_stats_clear_all;
+  GtkWidget *viewport50;
+  GtkWidget *hbox2101;
+  GtkWidget *label745;
+  GtkWidget *label_html_browse_count;
+  GtkWidget *label747;
+  GtkWidget *label_qhits_browse_count;
+  GtkWidget *label749;
   GtkWidget *label_ul_stats;
   GtkWidget *frame76;
   GtkWidget *vbox109;
@@ -3233,6 +3240,63 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_ul_stats_clear_all);
   gtk_box_pack_start (GTK_BOX (ul_stats_hbox2), button_ul_stats_clear_all, FALSE, FALSE, 0);
+
+  viewport50 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport50, "viewport50");
+  gtk_widget_ref (viewport50);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport50", viewport50,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (viewport50);
+  gtk_box_pack_start (GTK_BOX (ul_stats_hbox2), viewport50, TRUE, TRUE, 0);
+
+  hbox2101 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox2101, "hbox2101");
+  gtk_widget_ref (hbox2101);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox2101", hbox2101,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox2101);
+  gtk_container_add (GTK_CONTAINER (viewport50), hbox2101);
+
+  label745 = gtk_label_new (_("Served "));
+  gtk_widget_set_name (label745, "label745");
+  gtk_widget_ref (label745);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label745", label745,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label745);
+  gtk_box_pack_start (GTK_BOX (hbox2101), label745, TRUE, TRUE, 0);
+  gtk_misc_set_alignment (GTK_MISC (label745), 1, 0.5);
+
+  label_html_browse_count = gtk_label_new (_("[BH HTML]"));
+  gtk_widget_set_name (label_html_browse_count, "label_html_browse_count");
+  gtk_widget_ref (label_html_browse_count);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_html_browse_count", label_html_browse_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_html_browse_count);
+  gtk_box_pack_start (GTK_BOX (hbox2101), label_html_browse_count, FALSE, FALSE, 0);
+
+  label747 = gtk_label_new (_(" HTML and "));
+  gtk_widget_set_name (label747, "label747");
+  gtk_widget_ref (label747);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label747", label747,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label747);
+  gtk_box_pack_start (GTK_BOX (hbox2101), label747, FALSE, FALSE, 0);
+
+  label_qhits_browse_count = gtk_label_new (_("[BH qhits]"));
+  gtk_widget_set_name (label_qhits_browse_count, "label_qhits_browse_count");
+  gtk_widget_ref (label_qhits_browse_count);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_qhits_browse_count", label_qhits_browse_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_qhits_browse_count);
+  gtk_box_pack_start (GTK_BOX (hbox2101), label_qhits_browse_count, FALSE, FALSE, 0);
+
+  label749 = gtk_label_new (_(" Gnutella browse requests"));
+  gtk_widget_set_name (label749, "label749");
+  gtk_widget_ref (label749);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label749", label749,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label749);
+  gtk_box_pack_start (GTK_BOX (hbox2101), label749, FALSE, FALSE, 0);
 
   label_ul_stats = gtk_label_new (_("#|Upload Stats"));
   gtk_widget_set_name (label_ul_stats, "label_ul_stats");
