@@ -89,9 +89,9 @@ inputevt_dispatch(GIOChannel *source, GIOCondition condition, gpointer data)
 	inputevt_relay_t *relay = data;
 
 	if (condition & READ_CONDITION)
-		cond |= INPUT_EVENT_READ;
+		cond |= INPUT_EVENT_R;
 	if (condition & WRITE_CONDITION)
-		cond |= INPUT_EVENT_WRITE;
+		cond |= INPUT_EVENT_W;
 	if (condition & EXCEPTION_CONDITION)
 		cond |= INPUT_EVENT_EXCEPTION;
 
@@ -114,7 +114,7 @@ inputevt_add(gint source, inputevt_cond_t condition,
 {
 	guint result;
 	GIOChannel *chan;
-	GIOCondition cond = EXCEPTION_CONDITION;
+	GIOCondition cond = 0;
 	inputevt_relay_t *relay = walloc(sizeof *relay);
 
 	relay->condition = condition;
@@ -122,22 +122,28 @@ inputevt_add(gint source, inputevt_cond_t condition,
 	relay->data = data;
 
 	switch (condition) {
-	case INPUT_EVENT_READ:
+	case INPUT_EVENT_RX:
+		cond |= EXCEPTION_CONDITION; 
+	case INPUT_EVENT_R:
 		cond |= READ_CONDITION;
 		break;
 		
-	case INPUT_EVENT_WRITE:
+	case INPUT_EVENT_WX:
+		cond |= EXCEPTION_CONDITION; 
+	case INPUT_EVENT_W:
 		cond |= WRITE_CONDITION;
 		break;
 		
-	case INPUT_EVENT_RDWR:
+	case INPUT_EVENT_RWX:
+		cond |= EXCEPTION_CONDITION; 
+	case INPUT_EVENT_RW:
 		cond |= (READ_CONDITION | WRITE_CONDITION);
 		break;
 		
 	case INPUT_EVENT_EXCEPTION:
 		g_error("must not specify INPUT_EVENT_EXCEPTION only!");
 	}
-	g_assert(EXCEPTION_CONDITION != cond);
+	g_assert(0 != cond);
 
 	chan = g_io_channel_unix_new(source);
 #ifdef USE_GLIB2

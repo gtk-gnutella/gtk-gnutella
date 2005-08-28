@@ -420,15 +420,15 @@ adns_reply_callback(gpointer data, gint source, inputevt_cond_t condition)
 	static adns_query_t reply;
 
 	g_assert(NULL == data);
-	g_assert(condition & (INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION));
-	g_assert(sizeof(reply) >= n);
+	g_assert(condition & INPUT_EVENT_RX);
+	g_assert(sizeof reply >= n);
 
 again:
-	if (sizeof(reply) > n) {
-		gpointer buf = (gchar *) &reply + n;
+	if (sizeof reply > n) {
+		gpointer buf = cast_to_gchar_ptr(&reply) + n;
 		ssize_t ret;
 
-		ret = read(source, buf, sizeof(reply)-n);
+		ret = read(source, buf, sizeof reply - n);
 
 		if (0 == ret) {
 			errno = ECONNRESET;
@@ -451,7 +451,7 @@ again:
 		n += (size_t) ret;
 	}
 	/* FALL THROUGH */
-	if (sizeof(reply) == n) {
+	if (sizeof reply == n) {
 		time_t now = time(NULL);
 
 		if (common_dbg > 1) {
@@ -485,13 +485,13 @@ adns_async_write_alloc(const adns_query_t *query, size_t n)
 {
 	adns_async_write_t *remain;
 
-	g_assert(n < sizeof(*query));
+	g_assert(n < sizeof *query);
 
-	remain = walloc(sizeof(*remain));
-	remain->query = walloc(sizeof(*query));
-	memcpy(remain->query, query, sizeof(*query));
-	remain->buf = (gchar *) remain->query + n;
-	remain->n = sizeof(*query) - n;
+	remain = walloc(sizeof *remain);
+	remain->query = walloc(sizeof *query);
+	memcpy(remain->query, query, sizeof *query);
+	remain->buf = cast_to_gchar_ptr(remain->query) + n;
+	remain->n = sizeof *query - n;
 
 	return remain;
 }
@@ -502,8 +502,8 @@ adns_async_write_alloc(const adns_query_t *query, size_t n)
 static void
 adns_async_write_free(adns_async_write_t *remain)
 {
-	wfree(remain->query, sizeof(*remain->query));
-	wfree(remain, sizeof(*remain));
+	wfree(remain->query, sizeof *remain->query);
+	wfree(remain, sizeof *remain);
 }
 
 /**
@@ -611,7 +611,7 @@ adns_init(void)
 	fcntl(adns_query_fd, F_SETFL, O_NONBLOCK);
 	fcntl(fd_reply[0], F_SETFL, O_NONBLOCK);
 	adns_cache = adns_cache_init();
-	adns_reply_event_id = inputevt_add(fd_reply[0], INPUT_EVENT_READ,
+	adns_reply_event_id = inputevt_add(fd_reply[0], INPUT_EVENT_RX,
 							adns_reply_callback, NULL);
 	return;
 
@@ -662,12 +662,11 @@ adns_send_query(const adns_query_t *query)
 	 * can absorb new data.
 	 */
 
-	if (written < (ssize_t) sizeof(q)) {
+	if (written < (ssize_t) sizeof q) {
 		adns_async_write_t *aq = adns_async_write_alloc(&q, written);
 
-		adns_query_event_id = inputevt_add(adns_query_fd,
-			INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
-			adns_query_callback, aq);
+		adns_query_event_id = inputevt_add(adns_query_fd, INPUT_EVENT_WX,
+								adns_query_callback, aq);
 	}
 
 	return TRUE;

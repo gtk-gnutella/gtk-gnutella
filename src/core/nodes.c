@@ -6211,7 +6211,7 @@ node_init_outgoing(struct gnutella_node *n)
 
 	if (n->hello.len > 0 && !s->gdk_tag) {
 		g_assert(!s->gdk_tag);
-		socket_evt_set(n->socket, INPUT_EVENT_WRITE, node_drain_hello, n);
+		socket_evt_set(n->socket, INPUT_EVENT_WX, node_drain_hello, n);
 		return;
 	}
 

@@ -62,16 +62,16 @@ static GSList *bws_in_list = NULL;
 static gint bws_out_ema = 0;
 static gint bws_in_ema = 0;
 
-#define BW_SLOT_MIN		64		/**< Minimum bandwidth/slot for realloc */
+#define BW_SLOT_MIN		64	 /**< Minimum bandwidth/slot for realloc */
 
-#define BW_OUT_UP_MIN	8192	/**< Minimum out bandwidth for becoming ultra */
-#define BW_OUT_GNET_MIN	128		/**< Minimum out bandwidth per Gnet connection */
-#define BW_OUT_LEAF_MIN	32		/**< Minimum out bandwidth per leaf connection */
+#define BW_OUT_UP_MIN	8192 /**< Minimum out bandwidth for becoming ultra */
+#define BW_OUT_GNET_MIN	128	 /**< Minimum out bandwidth per Gnet connection */
+#define BW_OUT_LEAF_MIN	32	 /**< Minimum out bandwidth per leaf connection */
 
-#define BW_TCP_MSG		40		/**< Smallest size of a TCP message */
-#define BW_UDP_MSG		20		/**< Minimal IP overhead for a UDP message */
+#define BW_TCP_MSG		40	 /**< Smallest size of a TCP message */
+#define BW_UDP_MSG		20	 /**< Minimal IP overhead for a UDP message */
 
-#define BW_UDP_OVERSIZE	512		/**< Allow that many bytes over available b/w */
+#define BW_UDP_OVERSIZE	512	 /**< Allow that many bytes over available b/w */
 
 /*
  * Determine how large an I/O vector the kernel can accept.
@@ -508,7 +508,7 @@ bio_enable(bio_source_t *bio)
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
 
 	bio->io_tag = inputevt_add(bio->wio->fd(bio->wio),
-			(bio->flags & BIO_F_READ) ? INPUT_EVENT_READ : INPUT_EVENT_WRITE,
+			(bio->flags & BIO_F_READ) ? INPUT_EVENT_RX : INPUT_EVENT_WX,
 			bio->io_callback, bio->io_arg);
 
 	g_assert(bio->io_tag);

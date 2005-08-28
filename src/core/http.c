@@ -2544,7 +2544,7 @@ http_async_connected(gpointer handle)
 
 		g_assert(s->gdk_tag == 0);
 
-		socket_evt_set(s, INPUT_EVENT_WRITE, http_async_write_request, ha);
+		socket_evt_set(s, INPUT_EVENT_WX, http_async_write_request, ha);
 
 		return;
 	} else if (http_debug > 2) {

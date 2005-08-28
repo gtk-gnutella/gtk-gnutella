@@ -225,9 +225,12 @@ cond_to_string(inputevt_cond_t cond)
 #define CASE(x) case x: return STRINGIFY(x)
 	switch (cond) {
 	CASE(INPUT_EVENT_EXCEPTION);
-	CASE(INPUT_EVENT_READ);
-	CASE(INPUT_EVENT_WRITE);
-	CASE(INPUT_EVENT_RDWR);
+	CASE(INPUT_EVENT_R);
+	CASE(INPUT_EVENT_W);
+	CASE(INPUT_EVENT_RW);
+	CASE(INPUT_EVENT_RX);
+	CASE(INPUT_EVENT_WX);
+	CASE(INPUT_EVENT_RWX);
 	}
 	return "?";
 }
@@ -264,17 +267,13 @@ socket_evt_fd(struct gnutella_socket *s)
  * Install handler callback when an input condition is satisfied on the socket.
  *
  * @param s			the socket
- * @param cond		INPUT_EVENT_READ, INPUT_EVENT_WRITE or INPUT_EVENT_RDWR
+ * @param cond		Any INPUT_EVENT_* except INPUT_EVENT_EXCEPTION.
  * @param handler	the handler callback to invoke when condition is satisfied
  * @param data		opaque data to supply to the callback
  *
  * @note
- * The socket will be automatically monitored for exceptional events, so
- * the handler must be prepared for INPUT_EVENT_EXCEPTION conditions.
- *
- * @note
- * When monitoring for INPUT_EVENT_RDWR, both INPUT_EVENT_READ and
- * INPUT_EVENT_WRITE flags can be set at the same time when the callback is
+ * When monitoring for INPUT_EVENT_RW(X), both INPUT_EVENT_R and
+ * INPUT_EVENT_W flags can be set at the same time when the callback is
  * invoked.
  */
 void
@@ -1259,7 +1258,7 @@ socket_linger_close(gint fd)
 	g_assert(fd >= 0);
 
 	ctx = walloc(sizeof *ctx);
-	ctx->tag = inputevt_add(fd, INPUT_EVENT_RDWR, socket_linger_cb, ctx);
+	ctx->tag = inputevt_add(fd, INPUT_EVENT_RWX, socket_linger_cb, ctx);
 	g_assert(0 != ctx->tag);
 }
 
@@ -1441,7 +1440,7 @@ socket_tls_setup(struct gnutella_socket *s)
 		ret = gnutls_handshake(s->tls.session);
 		if (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED) {
 			socket_evt_change(s, gnutls_record_get_direction(s->tls.session)
-				? INPUT_EVENT_WRITE : INPUT_EVENT_READ);
+				? INPUT_EVENT_WX : INPUT_EVENT_RX);
 			return 0;
 		} else if (ret < 0) {
 			g_warning("gnutls_handshake() failed");
@@ -1452,7 +1451,7 @@ socket_tls_setup(struct gnutella_socket *s)
 		if (tls_debug)
 			g_message("TLS handshake succeeded");
 
-		socket_evt_change(s, INPUT_EVENT_WRITE);
+		socket_evt_change(s, INPUT_EVENT_W);
 		socket_wio_link(s); /* Link to the TLS I/O functions */
 	}
 
@@ -1808,7 +1807,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 	}
 #endif /* HAS_GNUTLS */
 
-	if (cond & INPUT_EVENT_READ) {
+	if (cond & INPUT_EVENT_R) {
 		if (
 			proxy_protocol != PROXY_NONE &&
 			s->direction == SOCK_CONN_PROXY_OUTGOING
@@ -1822,7 +1821,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 				}
 
 				s->direction = SOCK_CONN_OUTGOING;
-				socket_evt_set(s, INPUT_EVENT_RDWR, socket_connected, s);
+				socket_evt_set(s, INPUT_EVENT_RWX, socket_connected, s);
 				return;
 			} else if (proxy_protocol == PROXY_SOCKSV5) {
 				if (connect_socksv5(s) != 0) {
@@ -1832,9 +1831,9 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 				if (s->pos > 5) {
 					s->direction = SOCK_CONN_OUTGOING;
-					socket_evt_set(s, INPUT_EVENT_RDWR, socket_connected, s);
+					socket_evt_set(s, INPUT_EVENT_RWX, socket_connected, s);
 				} else {
-					socket_evt_set(s, INPUT_EVENT_WRITE, socket_connected, s);
+					socket_evt_set(s, INPUT_EVENT_WX, socket_connected, s);
 				}
 
 				return;
@@ -1847,16 +1846,16 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 				if (s->pos > 2) {
 					s->direction = SOCK_CONN_OUTGOING;
-					socket_evt_set(s, INPUT_EVENT_RDWR, socket_connected, s);
+					socket_evt_set(s, INPUT_EVENT_RWX, socket_connected, s);
 				} else {
-					socket_evt_set(s, INPUT_EVENT_READ, socket_connected, s);
+					socket_evt_set(s, INPUT_EVENT_RX, socket_connected, s);
 				}
 				return;
 			}
 		}
 	}
 
-	if (0 != (cond & INPUT_EVENT_WRITE)) {
+	if (0 != (cond & INPUT_EVENT_W)) {
 		/* We are just connected to our partner */
 		gint res, option;
 		socklen_t size = sizeof option;
@@ -1903,7 +1902,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 				}
 			}
 
-			socket_evt_set(s, INPUT_EVENT_READ, socket_connected, s);
+			socket_evt_set(s, INPUT_EVENT_RX, socket_connected, s);
 			return;
 		}
 
@@ -2143,7 +2142,7 @@ accepted:
 
 	switch (s->type) {
 	case SOCK_TYPE_CONTROL:
-		socket_evt_set(t, INPUT_EVENT_READ, socket_read, t);
+		socket_evt_set(t, INPUT_EVENT_RX, socket_read, t);
 		/*
 		 * Whilst the socket is attached to that callback, it has been
 		 * freshly accepted and we don't know what we're going to do with
@@ -2434,7 +2433,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 
 	g_assert(0 == s->gdk_tag);
 
-	cond = PROXY_NONE != proxy_protocol ? INPUT_EVENT_RDWR : INPUT_EVENT_WRITE;
+	cond = PROXY_NONE != proxy_protocol ? INPUT_EVENT_RWX : INPUT_EVENT_WX;
 	socket_evt_set(s, cond, socket_connected, s);
 	return s;
 }
@@ -2611,7 +2610,7 @@ socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
 	s->tls.enabled = TRUE;
 #endif /* HAS_GNUTLS */
 
-	socket_evt_set(s, INPUT_EVENT_READ, socket_accept, s);
+	socket_evt_set(s, INPUT_EVENT_RX, socket_accept, s);
 	return s;
 }
 
@@ -2690,7 +2689,8 @@ socket_udp_listen(const host_addr_t ha, guint16 port)
 		s->local_port = socket_addr_get_port(&addr);
 	}
 
-	socket_evt_set(s, INPUT_EVENT_READ, socket_udp_accept, s);
+	/* Ignore exceptions */
+	socket_evt_set(s, INPUT_EVENT_R, socket_udp_accept, s);
 
 	/*
 	 * Enlarge the RX buffer on the UDP socket to avoid loosing incoming
@@ -2993,7 +2993,7 @@ socket_tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 		case GNUTLS_E_AGAIN:
 			if (s->gdk_tag)
 				socket_evt_change(s, gnutls_record_get_direction(s->tls.session)
-					? INPUT_EVENT_WRITE : INPUT_EVENT_READ);
+					? INPUT_EVENT_WX : INPUT_EVENT_RX);
 
 			if (0 == s->tls.snarf) {
 				s->tls.snarf = len;
@@ -3046,7 +3046,7 @@ socket_tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 		case GNUTLS_E_AGAIN:
 			if (s->gdk_tag)
 				socket_evt_change(s, gnutls_record_get_direction(s->tls.session)
-					? INPUT_EVENT_WRITE : INPUT_EVENT_READ);
+					? INPUT_EVENT_WX : INPUT_EVENT_RX);
 			errno = EAGAIN;
 			break;
 		case GNUTLS_E_PULL_ERROR:
@@ -3094,7 +3094,7 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 				if (s->gdk_tag)
 					socket_evt_change(s,
 						gnutls_record_get_direction(s->tls.session)
-							? INPUT_EVENT_WRITE : INPUT_EVENT_READ);
+							? INPUT_EVENT_WX : INPUT_EVENT_RX);
 				errno = EAGAIN;
 				break;
 			case GNUTLS_E_PULL_ERROR:
@@ -3131,7 +3131,7 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 				if (s->gdk_tag)
 					socket_evt_change(s,
 						gnutls_record_get_direction(s->tls.session)
-							? INPUT_EVENT_WRITE : INPUT_EVENT_READ);
+							? INPUT_EVENT_WX : INPUT_EVENT_RX);
 				s->tls.snarf = len;
 				ret = written + len;
 				break;
@@ -3194,7 +3194,7 @@ socket_tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 		case GNUTLS_E_AGAIN:
 			if (s->gdk_tag)
 				socket_evt_change(s, gnutls_record_get_direction(s->tls.session)
-					? INPUT_EVENT_WRITE : INPUT_EVENT_READ);
+					? INPUT_EVENT_WX : INPUT_EVENT_RX);
 
 			if (0 != rcvd) {
 				ret = rcvd;

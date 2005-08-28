@@ -6990,7 +6990,7 @@ picked:
 
 		g_assert(s->gdk_tag == 0);
 
-		socket_evt_set(s, INPUT_EVENT_WRITE, download_write_request, d);
+		socket_evt_set(s, INPUT_EVENT_WX, download_write_request, d);
 		return;
 	} else if (download_debug > 1) {
 		g_message("----Sent Request (%s) to %s (%d bytes):\n%.*s----\n",

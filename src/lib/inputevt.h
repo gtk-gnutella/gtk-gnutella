@@ -40,11 +40,14 @@
  * This mimics the GDK input condition type.
  */
 typedef enum {
-	INPUT_EVENT_READ		= 1 << 0,
-	INPUT_EVENT_WRITE		= 1 << 1,
-	INPUT_EVENT_EXCEPTION	= 1 << 2,
+	INPUT_EVENT_R			= 1 << 0,	/* poll for Read events */
+	INPUT_EVENT_W			= 1 << 1,	/* poll for Write events */
+	INPUT_EVENT_EXCEPTION	= 1 << 2,	/* poll for exceptions */
 		
-	INPUT_EVENT_RDWR = ((guint) INPUT_EVENT_READ | (guint) INPUT_EVENT_WRITE)
+	INPUT_EVENT_RX = ((guint) INPUT_EVENT_R | (guint) INPUT_EVENT_EXCEPTION),
+	INPUT_EVENT_WX = ((guint) INPUT_EVENT_W | (guint) INPUT_EVENT_EXCEPTION),
+	INPUT_EVENT_RW = ((guint) INPUT_EVENT_R | (guint) INPUT_EVENT_W),
+	INPUT_EVENT_RWX = ((guint) INPUT_EVENT_RW | (guint) INPUT_EVENT_EXCEPTION)
 } inputevt_cond_t;
 
 /**

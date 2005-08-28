@@ -476,7 +476,7 @@ io_get_header(
 
 	g_assert(s->gdk_tag == 0);
 
-	socket_evt_set(s, INPUT_EVENT_READ, io_read_data, ih);
+	socket_evt_set(s, INPUT_EVENT_RX, io_read_data, ih);
 
 	/*
 	 * There may be pending input in the socket buffer, so go handle

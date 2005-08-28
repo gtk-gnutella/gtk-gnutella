@@ -857,7 +857,7 @@ shell_write_data(gnutella_shell_t *sh)
 
 	if (0 == sh->outpos) {
 		socket_evt_clear(sh->socket);
-		socket_evt_set(sh->socket, INPUT_EVENT_READ, shell_handle_data, sh);
+		socket_evt_set(sh->socket, INPUT_EVENT_RX, shell_handle_data, sh);
 	}
 }
 
@@ -967,7 +967,7 @@ shell_handle_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	if ((cond & INPUT_EVENT_WRITE) && IS_PROCESSING(sh))
+	if ((cond & INPUT_EVENT_W) && IS_PROCESSING(sh))
 		shell_write_data(sh);
 
 	if (sh->shutdown) {
@@ -976,7 +976,7 @@ shell_handle_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	if (cond & INPUT_EVENT_READ)
+	if (cond & INPUT_EVENT_R)
 		shell_read_data(sh);
 
 }
@@ -1009,7 +1009,7 @@ shell_write(gnutella_shell_t *sh, const gchar *s)
 
 	if (!writing) {
 		socket_evt_clear(sh->socket);
-		socket_evt_set(sh->socket, INPUT_EVENT_WRITE, shell_handle_data, sh);
+		socket_evt_set(sh->socket, INPUT_EVENT_WX, shell_handle_data, sh);
 	}
 
 	return TRUE;
@@ -1137,7 +1137,7 @@ shell_add(struct gnutella_socket *s)
 	sh = shell_new(s);
 
 	socket_evt_clear(s);
-	socket_evt_set(s, INPUT_EVENT_READ, shell_handle_data, sh);
+	socket_evt_set(s, INPUT_EVENT_RX, shell_handle_data, sh);
 
 	sl_shells = g_slist_prepend(sl_shells, sh);
 
