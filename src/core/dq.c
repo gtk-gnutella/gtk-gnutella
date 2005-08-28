@@ -97,35 +97,35 @@ RCSID("$Id$");
  * The dynamic query.
  */
 typedef struct dquery {
-	guint32 qid;				/**< Unique query ID, to detect ghosts */
-	guint32 node_id;			/**< ID of the node that originated the query */
-	guint32 flags;				/**< Operational flags */
-	gnet_search_t sh;			/**< Search handle, if node ID = NODE_ID_LOCAL */
-	pmsg_t *mb;					/**< The search messsage "template" */
-	query_hashvec_t *qhv;		/**< Query hash vector for QRP filtering */
-	GHashTable *queried;		/**< Contains node IDs that we queried so far */
-	guint8 ttl;					/**< Initial query TTL */
-	guint32 horizon;			/**< Theoretical horizon reached thus far */
-	guint32 up_sent;			/**< # of UPs to which we really sent our query */
-	guint32 pending;			/**< Pending query messages not ACK'ed yet by mq */
-	guint32 max_results;		/**< Max results we're targetting for */
-	guint32 fin_results;		/**< # of results terminating leaf-guided query */
-	guint32 oob_results;		/**< Amount of unclaimed OOB results reported */
-	guint32 results;			/**< Results we got so far for the query */
-	guint32 linger_results;		/**< Results we got whilst lingering */
-	guint32 new_results;		/**< New we got since last query status request */
-	guint32 kept_results;		/**< Results they say they kept after filtering */
-	guint32 result_timeout;		/**< The current timeout for getting results */
-	gpointer expire_ev;			/**< Callout queue global expiration event */
-	gpointer results_ev;		/**< Callout queue results expiration event */
-	gpointer alive;				/**< Alive ping stats for computing timeouts */
-	time_t start;				/**< Time at which it started */
-	time_t stop;				/**< Time at which it was terminated */
+	guint32 qid;			/**< Unique query ID, to detect ghosts */
+	guint32 node_id;		/**< ID of the node that originated the query */
+	guint32 flags;			/**< Operational flags */
+	gnet_search_t sh;		/**< Search handle, if node ID = NODE_ID_LOCAL */
+	pmsg_t *mb;				/**< The search messsage "template" */
+	query_hashvec_t *qhv;	/**< Query hash vector for QRP filtering */
+	GHashTable *queried;	/**< Contains node IDs that we queried so far */
+	guint8 ttl;				/**< Initial query TTL */
+	guint32 horizon;		/**< Theoretical horizon reached thus far */
+	guint32 up_sent;		/**< # of UPs to which we really sent our query */
+	guint32 pending;		/**< Pending query messages not ACK'ed yet by mq */
+	guint32 max_results;	/**< Max results we're targetting for */
+	guint32 fin_results;	/**< # of results terminating leaf-guided query */
+	guint32 oob_results;	/**< Amount of unclaimed OOB results reported */
+	guint32 results;		/**< Results we got so far for the query */
+	guint32 linger_results;	/**< Results we got whilst lingering */
+	guint32 new_results;	/**< New we got since last query status request */
+	guint32 kept_results;	/**< Results they say they kept after filtering */
+	guint32 result_timeout;	/**< The current timeout for getting results */
+	gpointer expire_ev;		/**< Callout queue global expiration event */
+	gpointer results_ev;	/**< Callout queue results expiration event */
+	gpointer alive;			/**< Alive ping stats for computing timeouts */
+	time_t start;			/**< Time at which it started */
+	time_t stop;			/**< Time at which it was terminated */
 	pmsg_t *by_ttl[DQ_MAX_TTL];	/**< Copied mesages, one for each TTL */
 } dquery_t;
 
 #define DQ_F_ID_CLEANING	0x00000001	/**< Cleaning the `by_node_id' table */
-#define DQ_F_LINGER			0x00000002	/**< Lingering to monitor extra results */
+#define DQ_F_LINGER			0x00000002	/**< Lingering to monitor extra hits */
 #define DQ_F_LEAF_GUIDED	0x00000004	/**< Leaf-guided query */
 #define DQ_F_WAITING		0x00000008	/**< Waiting guidance reply from leaf */
 #define DQ_F_GOT_GUIDANCE	0x00000010	/**< Got unsolicited leaf guidance */
