@@ -1218,33 +1218,47 @@ fi_random_guid_atom(void)
 /**
  * Ensure potentially old fileinfo structure is brought up-to-date by
  * inferring or allocating missing fields.
+ *
+ * @return TRUE if an upgrade was necessary.
  */
-static void
+static gboolean
 fi_upgrade_older_version(struct dl_file_info *fi)
 {
+	gboolean upgraded = FALSE;
+
 	/*
 	 * Ensure proper timestamps for creation and update times.
 	 */
 
-	if (0 == fi->ctime)
+	if (0 == fi->ctime) {
 		fi->ctime = time(NULL);
+		upgraded = TRUE;
+	}
 
-	if (0 == fi->ntime)
+	if (0 == fi->ntime) {
 		fi->ntime = fi->ctime;
+		upgraded = TRUE;
+	}
 
 	/*
 	 * Enforce "size != 0 => file_size_known".
 	 */
 
-	if (fi->size)
+	if (fi->size && !fi->file_size_known) {
 		fi->file_size_known = TRUE;
+		upgraded = TRUE;
+	}
 
 	/*
 	 * Versions before 2005-08-27 lacked the GUID in the fileinfo.
 	 */
 
-	if (NULL == fi->guid)
+	if (NULL == fi->guid) {
 		fi->guid = fi_random_guid_atom();
+		upgraded = TRUE;
+	}
+
+	return upgraded;
 }
 
 /**
@@ -2401,6 +2415,7 @@ file_info_retrieve(void)
 
 		if ('\0' == *line && fi) {
 			struct dl_file_info *dfi;
+			gboolean upgraded;
 
 			if (!(fi->file_name && fi->path)) {
 				/* There's an incomplete fileinfo record */
@@ -2426,7 +2441,7 @@ file_info_retrieve(void)
 			 * If we deserialized an older version, bring it up to date.
 			 */
 
-			fi_upgrade_older_version(fi);
+			upgraded = fi_upgrade_older_version(fi);
 
 			/*
 			 * Allow reconstruction of missing information: if no CHNK
@@ -2514,6 +2529,16 @@ file_info_retrieve(void)
 
 			dfi = file_info_retrieve_binary(fi->file_name, fi->path);
 
+			/*
+			 * Special treatment for the GUID: if not present, it will be
+			 * added during retrieval, but it will be different for the
+			 * one in the fileinfo DB and the one on disk.  Set `upgraded'
+			 * to signal that, so that we resync the metainfo below.
+			 */
+
+			if (dfi && dfi->guid != fi->guid)		/* They're atoms... */
+				upgraded = TRUE;
+
 			if (NULL == dfi) {
 				gchar *pathname;
 
@@ -2521,6 +2546,7 @@ file_info_retrieve(void)
 				if (is_regular(pathname)) {
 					g_warning("got metainfo in fileinfo cache, "
 						"but none in \"%s\"", pathname);
+					upgraded = FALSE;			/* No need to flush twice */
 					file_info_store_binary(fi);			/* Create metainfo */
 				} else {
 					file_info_merge_adjacent(fi);		/* Compute fi->done */
@@ -2545,6 +2571,7 @@ file_info_retrieve(void)
 				g_warning("found OUTDATED metainfo in \"%s%s%s\"",
 					fi->path, G_DIR_SEPARATOR_S, fi->file_name);
 				fi_free(dfi);
+				upgraded = FALSE;				/* No need to flush twice */
 				file_info_store_binary(fi);		/* Resync metainfo */
 			} else {
 				g_assert(dfi->generation == fi->generation);
@@ -2565,6 +2592,17 @@ file_info_retrieve(void)
 				fi_free(fi);
 				fi = NULL;
 				continue;
+			}
+
+			/*
+			 * If we had to upgrade the fileinfo, make sure we resync
+			 * the metadata on disk as well.
+			 */
+
+			if (upgraded) {
+				g_warning("flushing upgraded metainfo in \"%s%s%s\"",
+					fi->path, G_DIR_SEPARATOR_S, fi->file_name);
+				file_info_store_binary(fi);		/* Resync metainfo */
 			}
 
 			file_info_merge_adjacent(fi);
