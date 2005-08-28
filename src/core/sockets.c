@@ -186,6 +186,13 @@ socket_addr_get_port(const socket_addr_t *addr)
 	return 0;
 }
 
+/**
+ * Grab a generic sockaddr structure pointer from the socket address `addr'
+ * which can be either an IPv4 or IPv6 socket address..
+ *
+ * @return the length of the generic sockaddr structure, with `p_sa' filled
+ * with the pointer to the start of the structure.
+ */
 static socklen_t
 socket_addr_get(const socket_addr_t *addr, const struct sockaddr **p_sa)
 {
@@ -222,26 +229,24 @@ cond_to_string(inputevt_cond_t cond)
 	CASE(INPUT_EVENT_WRITE);
 	CASE(INPUT_EVENT_RDWR);
 	}
-	return NULL;
+	return "?";
 }
-		
-void
-socket_evt_set(struct gnutella_socket *s,
-	inputevt_cond_t cond, inputevt_handler_t handler, gpointer data)
+
+/**
+ * Return the file descriptor to use for I/O monitoring callbacks on
+ * the socket.
+ */
+static gint
+socket_evt_fd(struct gnutella_socket *s)
 {
 	gint fd = -1;
-	
-	g_assert(s);
-	g_assert(handler);
-	g_assert(INPUT_EVENT_EXCEPTION != cond);
-	g_assert(0 == s->gdk_tag);
 
 	switch (s->direction) {
 	case SOCK_CONN_LISTENING:
 		g_assert(s->file_desc >= 0);
 		fd = s->file_desc;
 		break;
-		
+
 	case SOCK_CONN_INCOMING:
 	case SOCK_CONN_OUTGOING:
 	case SOCK_CONN_PROXY_OUTGOING:
@@ -251,6 +256,39 @@ socket_evt_set(struct gnutella_socket *s,
 		break;
 	}
 	g_assert(-1 != fd);
+
+	return fd;
+}
+		
+/**
+ * Install handler callback when an input condition is satisfied on the socket.
+ *
+ * @param s			the socket
+ * @param cond		INPUT_EVENT_READ, INPUT_EVENT_WRITE or INPUT_EVENT_RDWR
+ * @param handler	the handler callback to invoke when condition is satisfied
+ * @param data		opaque data to supply to the callback
+ *
+ * @note
+ * The socket will be automatically monitored for exceptional events, so
+ * the handler must be prepared for INPUT_EVENT_EXCEPTION conditions.
+ *
+ * @note
+ * When monitoring for INPUT_EVENT_RDWR, both INPUT_EVENT_READ and
+ * INPUT_EVENT_WRITE flags can be set at the same time when the callback is
+ * invoked.
+ */
+void
+socket_evt_set(struct gnutella_socket *s,
+	inputevt_cond_t cond, inputevt_handler_t handler, gpointer data)
+{
+	gint fd;
+	
+	g_assert(s);
+	g_assert(handler);
+	g_assert(INPUT_EVENT_EXCEPTION != cond);
+	g_assert(0 == s->gdk_tag);
+
+	fd = socket_evt_fd(s);
 
 #ifdef HAS_GNUTLS
 	s->tls.cb_cond = cond;
@@ -266,6 +304,9 @@ socket_evt_set(struct gnutella_socket *s,
 	g_assert(0 != s->gdk_tag);
 }
 
+/**
+ * Remove I/O readiness monitoring on the socket.
+ */
 void
 socket_evt_clear(struct gnutella_socket *s)
 {
@@ -273,6 +314,12 @@ socket_evt_clear(struct gnutella_socket *s)
 
 	if (s->gdk_tag) {
 #ifdef HAS_GNUTLS
+		if (tls_debug > 1) {
+			gint fd = socket_evt_fd(s);
+			g_message("socket_evt_clear: fd=%d, cond=%s, handler=%p",
+				fd, cond_to_string(s->tls.cb_cond), s->tls.cb_handler);
+		}
+
 		s->tls.cb_cond = 0;
 		s->tls.cb_handler = NULL;
 		s->tls.cb_data = NULL;
@@ -282,15 +329,28 @@ socket_evt_clear(struct gnutella_socket *s)
 	}
 }
 
+/**
+ * Change the monitoring condition on the socket.
+ *
+ * @note
+ * Triggered only on TLS sockets.
+ */
 void
 socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
 {
 	g_assert(s);
+	g_assert(SOCKET_USES_TLS(s));
 	g_assert(INPUT_EVENT_EXCEPTION != cond);
 	g_assert(0 != s->gdk_tag);
 
 #ifdef HAS_GNUTLS
 	if (cond != s->tls.cb_cond) {
+		if (tls_debug > 1) {
+			gint fd = socket_evt_fd(s);
+			g_message("socket_evt_change: fd=%d, cond=%s -> %s, handler=%p",
+				fd, cond_to_string(s->tls.cb_cond), cond_to_string(cond),
+				s->tls.cb_handler);
+		}
 		if (s->gdk_tag) {
 			inputevt_remove(s->gdk_tag);
 			s->gdk_tag = 0;
@@ -3199,9 +3259,8 @@ socket_init(void)
 	get_sol();
 
 #ifdef HAS_GNUTLS
-	if (gnutls_global_init()) {
+	if (gnutls_global_init())
 		g_warning("%s: gnutls_global_init() failed", __func__);
-	}
 	get_dh_params();
 #endif /* HAS_GNUTLS */
 }
