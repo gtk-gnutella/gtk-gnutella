@@ -1,5 +1,10 @@
 # since last version
 
+- (2005-08-28 - RAM)
+ * Will now serve GTKG's favorite web icon when "/favicon.ico" is requested.
+ * Typo in metaconfig symbol prevented the use of sendfile() on platforms
+   that have it.
+
 - (2005-08-27 - RAM)
  * Adapt stalling threshold to the amount of upload slots configured.
  * Reduced stalling TX buffer down to 1K.
