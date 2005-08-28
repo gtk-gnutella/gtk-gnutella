@@ -95,7 +95,6 @@ RCSID("$Id$");
 #endif
 #endif
 
-#define MUID_SIZE			16
 #define MUID_MAX			4		/**< Max amount of MUID we keep per search */
 #define SEARCH_MIN_RETRY	1800	/**< Minimum search retry timeout */
 
@@ -1549,6 +1548,7 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
     g_assert(sizep != NULL);
     g_assert(!sch->passive);
 	g_assert(!sch->frozen);
+	g_assert(sch->muids);
 
 	/*
 	 * Are we dealing with an URN search?
@@ -1580,7 +1580,7 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 	*len = size;	/* What we allocated */
 
 	/* Use the first MUID on the list (the last one allocated) */
-	memcpy(m->header.muid, sch->muids->data, 16);
+	memcpy(m->header.muid, sch->muids->data, GUID_RAW_SIZE);
 
 	m->header.function = GTA_MSG_SEARCH;
 	m->header.ttl = my_ttl;
@@ -1676,6 +1676,11 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 			sch->query, search_queries_forward_size);
 		goto cleanup;
 	}
+
+	if (search_debug > 3)
+		g_message("%squery \"%s\" message built with MUID %s",
+			is_urn_search ? "URN " : "", sch->query,
+			guid_hex_str(m->header.muid));
 
 	message_add(m->header.muid, GTA_MSG_SEARCH, NULL);
 
@@ -1857,7 +1862,7 @@ search_add_new_muid(search_ctrl_t *sch, gchar *muid)
 	while (count-- > MUID_MAX) {
 		GSList *last = g_slist_last(sch->muids);
 		g_hash_table_remove(search_by_muid, last->data);
-		wfree(last->data, MUID_SIZE);
+		wfree(last->data, GUID_RAW_SIZE);
 		sch->muids = g_slist_remove_link(sch->muids, last);
 		g_slist_free_1(last);
 	}
@@ -2477,7 +2482,7 @@ search_close(gnet_search_t sh)
 
 		for (m = sch->muids; m; m = m->next) {
 			g_hash_table_remove(search_by_muid, m->data);
-			wfree(m->data, MUID_SIZE);
+			wfree(m->data, GUID_RAW_SIZE);
 		}
 
 		g_slist_free(sch->muids);
@@ -2506,7 +2511,7 @@ search_new_muid(gboolean initial)
 	host_addr_t addr;
 	gint i;
 
-	muid = walloc(MUID_SIZE);
+	muid = walloc(GUID_RAW_SIZE);
 
 	/*
 	 * Determine whether this is going to be an OOB query, because we have
