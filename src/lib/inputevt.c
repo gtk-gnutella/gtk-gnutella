@@ -114,14 +114,13 @@ inputevt_add(gint source, inputevt_cond_t condition,
 {
 	guint result;
 	GIOChannel *chan;
-	GIOCondition cond = 0;
+	GIOCondition cond = EXCEPTION_CONDITION;
 	inputevt_relay_t *relay = walloc(sizeof *relay);
 
 	relay->condition = condition;
 	relay->handler = handler;
 	relay->data = data;
 
-	cond = EXCEPTION_CONDITION;
 	switch (condition) {
 	case INPUT_EVENT_READ:
 		cond |= READ_CONDITION;
@@ -136,7 +135,7 @@ inputevt_add(gint source, inputevt_cond_t condition,
 		break;
 		
 	case INPUT_EVENT_EXCEPTION:
-		g_assert_not_reached();
+		g_error("must not specify INPUT_EVENT_EXCEPTION only!");
 	}
 	g_assert(EXCEPTION_CONDITION != cond);
 
