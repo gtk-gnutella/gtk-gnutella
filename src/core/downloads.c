@@ -706,7 +706,7 @@ remove_proxy(struct dl_server *server, const host_addr_t addr, guint16 port)
 	 */
 
 	if (download_debug) {
-		g_message("Did not find push-proxy %s in server %s",
+		g_message("did not find push-proxy %s in server %s",
 			host_addr_port_to_string(addr, port),
 			host_addr_to_string(server->key->addr));
     }
@@ -975,7 +975,7 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 		gchar buf[128];
 		
 		g_strlcpy(buf, host_addr_to_string(new_addr), sizeof buf);
-		g_message("Server <%s> at %s:%u changed its IP from %s to %s",
+		g_message("server <%s> at %s:%u changed its IP from %s to %s",
 			server->vendor == NULL ? "UNKNOWN" : server->vendor,
 			server->hostname == NULL ? "NONAME" : server->hostname,
 			key->port, host_addr_to_string(key->addr), buf);
@@ -1004,7 +1004,7 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 
 		if (download_debug) {
             g_message(
-                "New IP %s for server <%s> at %s:%u was used by <%s> at %s:%u",
+                "new IP %s for server <%s> at %s:%u was used by <%s> at %s:%u",
                 host_addr_to_string(new_addr),
                 server->vendor == NULL ? "UNKNOWN" : server->vendor,
                 server->hostname == NULL ? "NONAME" : server->hostname,
@@ -1029,7 +1029,8 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 			!guid_eq(key->guid, duplicate->key->guid) &&
 			!guid_eq(duplicate->key->guid, blank_guid)
 		) {
-			g_message("Found two distinct GUID for <%s> at %s:%u, keeping %s",
+			if (download_debug) g_warning(
+				"found two distinct GUID for <%s> at %s:%u, keeping %s",
 				server->vendor == NULL ? "UNKNOWN" : server->vendor,
 				server->hostname == NULL ? "NONAME" : server->hostname,
 				key->port, guid_hex_str(key->guid));
@@ -3308,7 +3309,7 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 
 	if (host_addr_equal(addr, listen_addr()) && port == listen_port) {
 		if (download_debug)
-			g_warning("create_download(): Ignoring download from own address");
+			g_warning("create_download(): ignoring download from own address");
 		
 		return NULL;
 	}
@@ -3349,7 +3350,7 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 
 	if ((d = has_same_download(file_name, sha1, guid, addr, port))) {
 		if (interactive)
-			g_message("Rejecting duplicate download for %s", file_name);
+			g_message("rejecting duplicate download for %s", file_name);
 		atom_str_free(file_name);
 		return NULL;
 	}
@@ -3453,7 +3454,7 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	if (d->sha1 != NULL && fi->sha1 == NULL) {
 		gboolean success = file_info_got_sha1(fi, d->sha1);
 		if (success) {
-            g_message("Forced SHA1 %s after %s byte%s "
+            g_message("forced SHA1 %s after %s byte%s "
 				"downloaded for %s",
 				sha1_base32(d->sha1), uint64_to_string(fi->done),
 				fi->done == 1 ? "" : "s",
@@ -3673,7 +3674,7 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
 				 * since we check the matching between the index and the file
 				 * name, but some peers might not bother.
 				 */
-				g_message("Stopping request for '%s': index changed",
+				g_message("stopping request for '%s': index changed",
 					d->file_name);
 				to_stop = g_slist_prepend(to_stop, d);
 				break;
@@ -3682,7 +3683,7 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
 				 * Ouch.  Pray and hope that the change occurred after we
 				 * requested the file.	There's nothing we can do now.
 				 */
-				g_message("Index of '%s' changed during reception",
+				g_message("index of '%s' changed during reception",
 					d->file_name);
 				break;
 			default:
@@ -3690,7 +3691,7 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
 				 * Queued or other state not needing special notice
 				 */
 				if (download_debug > 3) {
-					g_message("Noted index change from %u to %u at %s for %s",
+					g_message("noted index change from %u to %u at %s for %s",
 						from, to, guid_hex_str(guid), d->file_name);
                 }
 				break;
@@ -4310,14 +4311,14 @@ download_overlap_check(struct download *d)
 	G_FREE_NULL(path);
 	if (fd == -1) {
 		const gchar *error = g_strerror(errno);
-		g_message("Cannot check resuming for \"%s\": %s", fi->file_name, error);
+		g_message("cannot check resuming for \"%s\": %s", fi->file_name, error);
 		download_stop(d, GTA_DL_ERROR, "Can't check resume data: %s", error);
 		goto out;
 	}
 
 	if (-1 == fstat(fd, &buf)) {			/* Should never happen */
 		const gchar *error = g_strerror(errno);
-		g_message("Cannot stat opened \"%s\": %s", fi->file_name, error);
+		g_message("cannot stat opened \"%s\": %s", fi->file_name, error);
 		download_stop(d, GTA_DL_ERROR, "Can't stat opened file: %s", error);
 		goto out;
 	}
@@ -4328,7 +4329,7 @@ download_overlap_check(struct download *d)
 	 */
 
 	if (!fi->use_swarming && d->skip != fi->done) {
-		g_message("File '%s' changed size (now %s, but was %s)",
+		g_message("file '%s' changed size (now %s, but was %s)",
 			fi->file_name, uint64_to_string(buf.st_size),
 			uint64_to_string2(d->skip));
 		download_queue_delay(d, download_retry_stopped_delay,
@@ -4354,7 +4355,7 @@ download_overlap_check(struct download *d)
 
 	if ((ssize_t) -1 == r) {
 		const gchar *error = g_strerror(errno);
-		g_message("Cannot read resuming data for \"%s\": %s",
+		g_message("cannot read resuming data for \"%s\": %s",
 			fi->file_name, error);
 		download_stop(d, GTA_DL_ERROR, "Can't read resume data: %s", error);
 		goto out;
@@ -4362,14 +4363,14 @@ download_overlap_check(struct download *d)
 
 	if ((size_t) r != d->overlap_size) {
 		g_message(
-            "Short read (%d instead of %d bytes) on resuming data "
+            "short read (%d instead of %d bytes) on resuming data "
 			"for \"%s\"", (gint) r, (gint) d->overlap_size, fi->file_name);
 		download_stop(d, GTA_DL_ERROR, "Short read on resume data");
 		goto out;
 	}
 
 	if (0 != memcmp(s->buffer, data, d->overlap_size)) {
-		if (download_debug > 3) {
+		if (download_debug > 1) {
 			g_message("%d overlapping bytes UNMATCHED at offset %s for \"%s\"",
 				(gint) d->overlap_size,
 				uint64_to_string(d->skip - d->overlap_size), d->file_name);
@@ -4400,7 +4401,7 @@ download_overlap_check(struct download *d)
 			else
 				begin = 0;
 			file_info_update(d, begin, end, DL_CHUNK_EMPTY);
-			g_message("Resuming data mismatch on %s, backed out %d bytes block"
+			g_message("resuming data mismatch on %s, backed out %d bytes block"
 				" from %s to %s",
 				 d->file_name, (gint) backout,
 				 uint64_to_string(begin), uint64_to_string2(end));
@@ -4509,8 +4510,8 @@ download_write_data(struct download *d)
 	if (d->pos + s->pos > d->range_end) {
 		filesize_t extra = (d->pos + s->pos) - d->range_end;
 
-		g_message(
-			"Server %s (%s) gave us %s more byte%s than requested for \"%s\"",
+		if (download_debug) g_message(
+			"server %s (%s) gave us %s more byte%s than requested for \"%s\"",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			download_vendor_str(d), uint64_to_string(extra),
 			extra == 1 ? "" : "s", download_outname(d));
@@ -4521,8 +4522,8 @@ download_write_data(struct download *d)
 
 	if ((ssize_t) -1 == (written = write(d->file_desc, s->buffer, s->pos))) {
 		const char *error = g_strerror(errno);
-		g_message("Write to file failed (%s) !", error);
-		g_message("Tried to write(%d, %p, %d)",
+		g_message("write to file failed (%s) !", error);
+		g_message("tried to write(%d, %p, %d)",
 			  (int) d->file_desc, cast_to_gconstpointer(s->buffer),
 			  (int) s->pos);
 		download_queue_delay(d, download_retry_busy_delay,
@@ -4534,7 +4535,7 @@ download_write_data(struct download *d)
 	gnet_prop_set_guint64_val(PROP_DL_BYTE_COUNT, dl_byte_count + written);
 
 	if ((size_t) written < s->pos) {
-		g_message("Partial write of %d out of %d bytes to file '%s'",
+		g_message("partial write of %d out of %d bytes to file '%s'",
 			(int) written, (int) s->pos, fi->file_name);
 		download_queue_delay(d, download_retry_busy_delay,
 			"Partial write to file");
@@ -4689,7 +4690,8 @@ download_moved_permanently(struct download *d, header_t *header)
 		return FALSE;
 
 	if (!dmesh_url_parse(buf, &info)) {
-		g_message("Could not parse HTTP Location: %s", buf);
+		if (download_debug)
+			g_message("could not parse HTTP Location: %s", buf);
 		return FALSE;
 	}
 
@@ -4698,12 +4700,12 @@ download_moved_permanently(struct download *d, header_t *header)
 	 */
 
 	if (!host_addr_equal(info.addr, addr) || info.port != port) {
-		g_message("Server %s (file \"%s\") redirecting us to alien %s",
+		g_warning("server %s (file \"%s\") redirecting us to alien %s",
 			host_addr_port_to_string(addr, port), d->file_name, buf);
     }
 
 	if (!is_host_addr(info.addr)) {
-		g_message("Server %s (file \"%s\") would redirect us to invalid %s",
+		g_warning("server %s (file \"%s\") would redirect us to invalid %s",
 			host_addr_port_to_string(addr, port), d->file_name, buf);
 		atom_str_free(info.name);
 		return FALSE;
@@ -4715,19 +4717,19 @@ download_moved_permanently(struct download *d, header_t *header)
 	 * If it changed, we don't change the output_name, so we'll continue
 	 * to write to the same file we previously started with.
 	 *
-	 * NB: idx = 0 is used to indicate a /uri-res/N2R? URL, which we don't
-	 * really want here (if we have the SHA1, we already asked for it).
+	 * NB: idx = URN_INDEX is used to indicate a /uri-res/N2R? URL, which we
+	 * don't really want here (if we have the SHA1, we already asked for it).
 	 */
 
-	if (info.idx == 0) {
-		g_message("Server %s (file \"%s\") would redirect us to %s",
+	if (URN_INDEX == info.idx) {
+		g_message("server %s (file \"%s\") would redirect us to %s",
 			host_addr_port_to_string(addr, port), d->file_name, buf);
 		atom_str_free(info.name);
 		return FALSE;
 	}
 
 	if (0 != strcmp(info.name, d->file_name)) {
-		g_message("File \"%s\" was renamed \"%s\" on %s",
+		g_message("file \"%s\" was renamed \"%s\" on %s",
 			d->file_name, info.name,
 			host_addr_port_to_string(info.addr, info.port));
 
@@ -4811,10 +4813,10 @@ static gboolean
 download_check_status(struct download *d, getline_t *line, gint code)
 {
 	if (code == -1) {
-		g_message("Weird HTTP acknowledgment status line from %s (%s)",
+		g_message("weird HTTP acknowledgment status line from %s (%s)",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			download_vendor_str(d));
-		if (download_debug > 4) {
+		if (download_debug) {
 			dump_hex(stderr, "Status Line", getline_str(line),
 				MIN(getline_length(line), 80));
 		}
@@ -4835,7 +4837,6 @@ download_check_status(struct download *d, getline_t *line, gint code)
 	return TRUE;
 }
 
-#if 0
 /**
  * Convert download to /uri-res/N2R? request.
  *
@@ -4857,7 +4858,6 @@ download_check_status(struct download *d, getline_t *line, gint code)
 static gboolean
 download_convert_to_urires(struct download *d)
 {
-	gchar *name;
 	struct download *xd;
 
 	g_assert(d->record_index != URN_INDEX);
@@ -4871,32 +4871,20 @@ download_convert_to_urires(struct download *d)
 	dmesh_remove(d->sha1, download_addr(d), download_port(d),
 		d->record_index, d->file_name);
 
-	/* XXX: This causes files with their hashsums as filenames!
-	 *		download_send_request() uses uri-res requests anyway, as long
-	 *		as the SHA1 is known. So converting the filename here is
-	 *		pointless.
-	 */
-	name = atom_str_get(sha1_base32(d->sha1));
-
-	if (download_debug > 2) {
-		g_message("Download at %s \"%u/%s\" becomes "
+	if (download_debug > 1) {
+		g_message("download at %s \"%u/%s\" becomes "
 			"\"/uri-res/N2R?urn:sha1:%s\"",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
-			d->record_index, d->file_name, name);
+			d->record_index, d->file_name, sha1_base32(d->sha1));
     }
 
-	atom_str_free(d->file_name);
-	if (d->escaped_name != d->file_name)
-		g_free(d->escaped_name);
 	d->record_index = URN_INDEX;
-	d->file_name = name;
-	d->escaped_name = url_escape_cntrl(name);
 
 	/*
 	 * Maybe it became a duplicate download, due to our lame detection?
 	 */
 
-	xd = has_same_download(name, d->sha1,
+	xd = has_same_download(d->file_name, d->sha1,
 			download_guid(d), download_addr(d), download_port(d));
 
 	if (xd != NULL && xd != d) {
@@ -4906,13 +4894,12 @@ download_convert_to_urires(struct download *d)
 
 	return TRUE;
 }
-#endif /* 0 */
 
 /**
  * Extract Retry-After delay from header, returning 0 if none.
  */
 guint
-extract_retry_after(const header_t *header)
+extract_retry_after(struct download *d, const header_t *header)
 {
 	const gchar *buf;
 	gulong delay;
@@ -4933,7 +4920,10 @@ extract_retry_after(const header_t *header)
 		time_t retry = date2time(buf, now);
 
 		if (retry == (time_t) -1) {
-			g_message("Cannot parse Retry-After: %s", buf);
+			g_warning("cannot parse Retry-After \"%s\" sent by %s <%s>",
+				buf,
+				host_addr_port_to_string(download_addr(d), download_port(d)),
+				download_vendor(d));
 			return 0;
 		}
 
@@ -4960,7 +4950,10 @@ check_date(const header_t *header, const host_addr_t addr, struct download *d)
 		time_t their = date2time(buf, time(NULL));
 
 		if ((time_t) -1 == their)
-			g_message("Cannot parse Date: %s", buf);
+			g_warning("cannot parse Date \"%s\" sent by %s <%s>",
+				buf,
+				host_addr_port_to_string(download_addr(d), download_port(d)),
+				download_vendor(d));
 		else {
 			tm_t delta;
 			time_t correction;
@@ -5194,7 +5187,7 @@ check_content_urn(struct download *d, header_t *header)
 		 */
 
 		if (d->file_info->sha1 != d->sha1) {
-			g_message("Discovered SHA1 %s on the fly for %s "
+			g_message("discovered SHA1 %s on the fly for %s "
 				"(fileinfo has %s)",
 				sha1_base32(d->sha1), download_outname(d),
 				d->file_info->sha1 ? "another" : "none");
@@ -5309,7 +5302,7 @@ check_push_proxies(struct download *d, header_t *header)
 
 
 		if (is_private_addr(addr)) {
-			g_message("Host %s [%s] sent a private IP address as Push-Proxy.",
+			g_message("host %s [%s] sent a private IP address as Push-Proxy.",
 				host_addr_port_to_string(download_addr(d), download_port(d)),
 				download_vendor_str(d));
 		} else {
@@ -5397,7 +5390,7 @@ download_sink(struct download *d)
 	g_assert(d->flags & DL_F_SUNK_DATA);
 
 	if (s->pos > d->sinkleft) {
-		g_message("Got more data to sink than expected from %s <%s>",
+		g_message("got more data to sink than expected from %s <%s>",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			download_vendor_str(d));
 		download_stop(d, GTA_DL_ERROR, "More data to sink than expected");
@@ -5516,12 +5509,12 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	if (download_debug > 2) {
 		const gchar *incomplete = ok ? "" : "INCOMPLETE ";
-		printf("----Got %sreply from %s:\n", incomplete,
+		g_message("----Got %sreply from %s:", incomplete,
 			host_addr_to_string(s->addr));
-		printf("%s\n", status);
-		header_dump(header, stdout);
-		printf("----\n");
-		fflush(stdout);
+		fprintf(stderr, "%s\n", status);
+		header_dump(header, stderr);
+		fprintf(stderr, "----\n");
+		fflush(stderr);
 	}
 
 	/*
@@ -5633,8 +5626,6 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	if (ack_code == 503 || (ack_code >= 200 && ack_code <= 299)) {
 
-	/* XXX: This doesn't look like it makes any sense any longer */
-#if 0
 		/*
 		 * If we made a /uri-res/N2R? request, yet if the download still
 		 * has the old index/name indication, convert it to a /uri-res/.
@@ -5642,7 +5633,6 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		if (d->record_index != URN_INDEX && (d->flags & DL_F_URIRES))
 			if (!download_convert_to_urires(d))
 				return;
-#endif /* 0 */
 
 		/*
 		 * The download could be remotely queued. Check this now before
@@ -5679,7 +5669,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	update_available_ranges(d, header);		/* Updates `d->ranges' */
 
-	delay = extract_retry_after(header);
+	delay = extract_retry_after(d, header);
 	d->retry_after = (delay > 0) ? (time(NULL) + delay) : 0;
 
 	/*
@@ -6009,8 +5999,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			if (d->server->attrs & DLS_A_BANNING) {
 				d->server->attrs |= DLS_A_MINIMAL_HTTP;
 
-				if (download_debug > 0) {
-					g_message("Server \"%s\" at %s might be banning us",
+				if (download_debug) {
+					g_message("server \"%s\" at %s might be banning us",
 						download_vendor_str(d),
 						host_addr_port_to_string(download_addr(d),
 							download_port(d)));
@@ -6157,7 +6147,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			if (check_content_range > total) {
                 if (download_debug)
                     g_message(
-						"File '%s' on %s (%s): total size mismatch: got %s, "
+						"file '%s' on %s (%s): total size mismatch: got %s, "
 						"for a served content of %s",
                         d->file_name,
                         host_addr_port_to_string(download_addr(d),
@@ -6173,7 +6163,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 			if (start != d->skip - d->overlap_size) {
                 if (download_debug)
-                    g_message("File '%s' on %s (%s): start byte mismatch: "
+                    g_message("file '%s' on %s (%s): start byte mismatch: "
 						"wanted %s, got %s",
                         d->file_name,
                         host_addr_port_to_string(download_addr(d),
@@ -6188,7 +6178,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			}
 			if (total != fi->size) {
                 if (download_debug) {
-                        g_message("File '%s' on %s (%s): file size mismatch: "
+                        g_message("file '%s' on %s (%s): file size mismatch: "
 						"expected %s, got %s",
                         d->file_name,
                         host_addr_port_to_string(download_addr(d),
@@ -6202,7 +6192,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			}
 			if (end > d->range_end - 1) {
                 if (download_debug) {
-                    g_message("File '%s' on %s (%s): end byte too large: "
+                    g_message("file '%s' on %s (%s): end byte too large: "
 						"expected %s, got %s",
                         d->file_name,
                         host_addr_port_to_string(download_addr(d),
@@ -6243,7 +6233,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			if (end < d->range_end - 1) {
                 if (download_debug)
                     g_message(
-						"File '%s' on %s (%s): end byte short: wanted %s, "
+						"file '%s' on %s (%s): end byte short: wanted %s, "
 						"got %s (continuing anyway)",
                         d->file_name,
                         host_addr_port_to_string(download_addr(d),
@@ -6273,7 +6263,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			check_content_range = 0;		/* We validated the served range */
 		} else {
             if (download_debug) {
-                g_message("File '%s' on %s (%s): malformed Content-Range: %s",
+                g_message("file '%s' on %s (%s): malformed Content-Range: %s",
                     d->file_name,
 					host_addr_port_to_string(download_addr(d),
 						download_port(d)),
@@ -6311,7 +6301,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		const char *ua = header_get(header, "Server");
 		ua = ua ? ua : header_get(header, "User-Agent");
 		if (ua && download_debug)
-			g_message("Server \"%s\" did not send any length indication", ua);
+			g_message("server \"%s\" did not send any length indication", ua);
 		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, "No Content-Length header");
 		return;
@@ -6636,7 +6626,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 	} else if (sent < rw) {
 		http_buffer_add_read(r, sent);
 		return;
-	} else if (download_debug > 1) {
+	} else if (download_debug > 2) {
 		g_message(
 			"----Sent Request (%s) completely to %s (%d bytes):\n%.*s----\n",
 			d->keep_alive ? "follow-up" : "initial",
@@ -6649,7 +6639,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 */
 
 	if (download_debug) {
-		g_message("Flushed partially written HTTP request to %s (%d bytes)",
+		g_message("flushed partially written HTTP request to %s (%d bytes)",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			http_buffer_length(r));
     }
@@ -6791,8 +6781,6 @@ picked:
 	 */
 
 	if (d->uri) {
-		if (download_debug)
-			g_message("GET %s HTTP/1.1\r\n", d->uri);
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
 			"GET %s HTTP/1.1\r\n",
 			d->uri);
@@ -6992,9 +6980,13 @@ picked:
 
 		socket_evt_set(s, INPUT_EVENT_WX, download_write_request, d);
 		return;
-	} else if (download_debug > 1) {
-		g_message("----Sent Request (%s) to %s (%d bytes):\n%.*s----\n",
+	} else if (download_debug > 2) {
+		g_message("----Sent Request (%s%s%s%s%s) to %s (%d bytes):\n%.*s----\n",
 			d->keep_alive ? "follow-up" : "initial",
+			(d->server->attrs & DLS_A_HTTP_1_1) ? ", http/1.1" : "",
+			(d->server->attrs & DLS_A_PUSH_IGN) ? ", ign-push" : "",
+			(d->server->attrs & DLS_A_MINIMAL_HTTP) ? ", minimal" : "",
+			(d->server->attrs & DLS_A_FAKE_G2) ? ", g2" : "",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			(int) rw, (int) rw, dl_tmp);
 	}
@@ -7096,7 +7088,7 @@ select_push_download(const gchar *guid)
 				g_assert(DOWNLOAD_IS_RUNNING(d));
 
 				if (d->socket == NULL && DOWNLOAD_IS_EXPECTING_GIV(d)) {
-					if (download_debug > 2)
+					if (download_debug > 1)
 						g_message("GIV: selected active download '%s' from %s",
 							d->file_name, guid_hex_str(guid));
 					return d;
@@ -7127,7 +7119,7 @@ select_push_download(const gchar *guid)
 				if (d->flags & DL_F_SUSPENDED)
 					continue;
 
-				if (download_debug > 4)
+				if (download_debug > 3)
 					g_message(
 						"GIV: trying alternate download '%s' from %s at %s",
 						d->file_name, guid_hex_str(guid),
@@ -7153,7 +7145,7 @@ select_push_download(const gchar *guid)
 					gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT,
 						count_running_downloads());
 
-					if (download_debug > 2)
+					if (download_debug > 1)
 						g_message(
 							"GIV: selected alternate download '%s' from %s",
 							d->file_name, guid_hex_str(guid));
@@ -7199,7 +7191,7 @@ download_push_ack(struct gnutella_socket *s)
 
 	gnet_stats_count_general(GNR_GIV_CALLBACKS, 1);
 
-	if (download_debug > 4)
+	if (download_debug > 2)
 		g_message("----Got GIV from %s:\n%s\n----",
 			host_addr_to_string(s->addr), giv);
 
