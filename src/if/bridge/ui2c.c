@@ -62,6 +62,7 @@
 #include "if/core/upload_stats.h"
 #include "if/core/version.h"
 #include "if/core/main.h"
+#include "if/bridge/ui2c.h"
 
 /*
  *	Functions the UI uses to access the CORE

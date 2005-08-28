@@ -86,18 +86,20 @@ gint guc_download_queue_is_frozen(void);
 void guc_download_clear_stopped(gboolean complete,
 	gboolean failed, gboolean unavailable, gboolean now);
 void guc_download_auto_new(gchar *file, filesize_t size,
-	guint32 record_index, const host_addr_t addr, guint16 port, gchar *guid,
-	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
-	gboolean file_size_known, struct dl_file_info *fi,
-	gnet_host_vec_t *proxies);
+	guint32 record_index, const host_addr_t addr, guint16 port,
+	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
+	gboolean push, gboolean file_size_known, struct dl_file_info *fi,
+	gnet_host_vec_t *proxies, guint32 flags);
 gboolean guc_download_new(gchar *file, filesize_t size,
-	guint32 record_index, const host_addr_t addr, guint16 port, gchar *guid,
-	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
-	struct dl_file_info *fi, gnet_host_vec_t *proxies, guint32 flags);
+	guint32 record_index, const host_addr_t addr, guint16 port,
+	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
+	gboolean push, struct dl_file_info *fi, gnet_host_vec_t *proxies,
+	guint32 flags);
 gboolean guc_download_new_unknown_size(gchar *file,
-	guint32 record_index, const host_addr_t addr, guint16 port, gchar *guid,
-	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
-	struct dl_file_info *fi, gnet_host_vec_t *proxies, guint32 flags);
+	guint32 record_index, const host_addr_t addr, guint16 port,
+	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
+	gboolean push, struct dl_file_info *fi, gnet_host_vec_t *proxies,
+	guint32 flags);
 const gchar *guc_download_get_hostname(const struct download *d);
 const gchar *guc_download_get_country(const struct download *d);
 gdouble guc_download_source_progress(const struct download *d);
@@ -118,7 +120,7 @@ gnet_fi_info_t *guc_fi_get_info(gnet_fi_t fih);
 void guc_fi_free_info(gnet_fi_info_t *info);
 void guc_fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s);
 gchar **guc_fi_get_aliases(gnet_fi_t fih);
-void guc_fi_purge_by_handle_list(GSList *list);
+void guc_fi_purge_by_handle_list(const GSList *list);
 gboolean guc_fi_purge(gnet_fi_t fih);
 void guc_fi_add_listener(fi_listener_t cb, gnet_fi_ev_t ev,
     frequency_t t, guint32 interval);
