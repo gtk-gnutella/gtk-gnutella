@@ -209,9 +209,17 @@ gtk_gnutella_exit(gint n)
 {
 	time_t exit_time = time(NULL);
 	gint exit_grace = EXIT_GRACE;
+	static gboolean safe_to_exit = FALSE;
 
-	if (exiting)
-		return;			/* Already exiting, must be in loop below */
+	if (exiting) {
+		if (safe_to_exit) {
+			g_warning("forced exit(%d), good bye.", n);
+			exit(n);
+		}
+		g_warning("ignoring re-entrant exit(%d), unsafe now (in %s)",
+			n, exit_step);
+		return;
+	}
 
 	exiting = TRUE;
 
@@ -242,6 +250,8 @@ gtk_gnutella_exit(gint n)
 
 	DO(settings_save_if_dirty);
 	DO(settings_gui_save_if_dirty);
+
+	safe_to_exit = TRUE;	/* Will immediately exit if re-entered */
 
 	if (from_atexit)
 		return;
