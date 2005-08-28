@@ -1408,7 +1408,7 @@ ssize_t
 bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	size_t len)
 {
-#if !defined(USE_MMAP) && !defined(HAVE_SENDFILE)
+#if !defined(USE_MMAP) && !defined(HAS_SENDFILE)
 
 	(void) ctx;
 	(void) bio;
@@ -1421,7 +1421,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	errno = ENOTSUP;
 	return (ssize_t) -1;
 	
-#else /* USE_MMAP || HAVE_SENDFILE */
+#else /* USE_MMAP || HAS_SENDFILE */
 	
 	/*
 	 * amount is only declared volatile to shut up the bogus warning by GCC
@@ -1589,7 +1589,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	}
 
 	return r;
-#endif /* !USE_MMAP && !HAVE_SENDFILE */
+#endif /* !USE_MMAP && !HAS_SENDFILE */
 }
 
 /**
