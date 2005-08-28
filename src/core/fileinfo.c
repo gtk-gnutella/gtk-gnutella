@@ -1179,6 +1179,7 @@ file_info_shared_sha1(const gchar *sha1)
 		sf->file_index = URN_INDEX;
 		sf->mtime = fi->last_flush;
 		sf->flags = SHARE_F_HAS_DIGEST;
+		sf->content_type = share_mime_type(SHARE_M_APPLICATION_BINARY);
 
 		memcpy(sf->sha1_digest, fi->sha1, SHA1_RAW_SIZE);
 

@@ -246,6 +246,20 @@ stall_thresh(void)
 }
 
 /**
+ * Can we use bio_sendfile()?
+ */
+static inline gboolean
+use_sendfile(gnutella_upload_t *u)
+{
+#if defined(USE_MMAP) || defined(HAS_SENDFILE)
+	return !sendfile_failed && !SOCKET_USES_TLS(u->socket);
+#else
+	(void) u;
+	return FALSE;
+#endif /* USE_MMAP || HAS_SENDFILE */
+}
+
+/**
  * Upload heartbeat timer.
  */
 void
@@ -421,11 +435,9 @@ upload_timer(time_t now)
 gnutella_upload_t *
 upload_create(struct gnutella_socket *s, gboolean push)
 {
-	static const gnutella_upload_t zero_upload;
 	gnutella_upload_t *u;
 
-	u = walloc(sizeof *u);
-	*u = zero_upload;
+	u = walloc0(sizeof *u);
     u->upload_handle = upload_new_handle(u);
 
 	u->socket = s;
@@ -1696,7 +1708,7 @@ upload_file_present(
  *
  * @return the shared_file if found, NULL otherwise.
  */
-static struct shared_file *
+static shared_file_t *
 get_file_to_upload_from_index(
 	gnutella_upload_t *u,
 	header_t *header,
@@ -1969,7 +1981,7 @@ sha1_recomputed:
  * Get the shared_file to upload from a given URN.
  * @return the shared_file if we have it, NULL otherwise
  */
-static struct shared_file *
+static shared_file_t *
 get_file_to_upload_from_urn(
 	gnutella_upload_t *u,
 	header_t *header,
@@ -2065,7 +2077,7 @@ not_found:
  * @return the shared_file if we got it, or NULL otherwise.
  * When NULL is returned, we have sent the error back to the client.
  */
-static struct shared_file *
+static shared_file_t *
 get_file_to_upload(gnutella_upload_t *u, header_t *header, gchar *request)
 {
 	const gchar *endptr;
@@ -2073,7 +2085,7 @@ get_file_to_upload(gnutella_upload_t *u, header_t *header, gchar *request)
 
 	/*
 	 * We have either "GET uri" or "HEAD uri" at this point. The following
-	 * will skip the request along with trailing blanks * and point to the
+	 * will skip the request along with trailing blanks and point to the
 	 * beginning of the requested URI.
 	 */
 
@@ -2093,9 +2105,11 @@ get_file_to_upload(gnutella_upload_t *u, header_t *header, gchar *request)
 		idx = parse_uint32(arg, &endptr, 10, &error);
 		if (!error && *endptr == '/')
 			return get_file_to_upload_from_index(u, header, arg, idx);
-	} else if (NULL != (arg = is_strprefix(uri, "/uri-res/N2R?"))) {
-		return get_file_to_upload_from_urn(u, header, arg);
 	}
+	else if (NULL != (arg = is_strprefix(uri, "/uri-res/N2R?")))
+		return get_file_to_upload_from_urn(u, header, arg);
+	else if (NULL != is_strprefix(uri, "/favicon.ico"))
+		return shared_favicon();
 
 	upload_error_not_found(u, request);
 	return NULL;
@@ -2324,15 +2338,18 @@ upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 
 	(void) unused_flags;
 
+	g_assert(a->sf != NULL);
+
 	if (!u->keep_alive)
 		rw = gm_snprintf(buf, length, "Connection: close\r\n");
 
 	uint64_to_string_buf(u->end - u->skip + 1, csize, sizeof csize);
 	rw += gm_snprintf(&buf[rw], length - rw,
 		"Last-Modified: %s\r\n"
-		"Content-Type: application/binary\r\n"
+		"Content-Type: %s\r\n"
 		"Content-Length: %s\r\n",
 			date_to_rfc1123_gchar(a->mtime),
+			a->sf->content_type,
 			csize);
 
 	g_assert(rw < length);
@@ -2621,10 +2638,10 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean was_actively_queued = u->status == GTA_UL_QUEUED;
 	gboolean range_unavailable = FALSE;
 	gboolean replacing_stall = FALSE;
-	gboolean use_sendfile;
 	gchar *token;
 	gboolean known_for_stalling;
 	gint bh_flags = 0;
+	gboolean using_sendfile;
 
 	u->from_browser = upload_likely_from_browser(header);
 
@@ -2815,7 +2832,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			atom_str_free(u->name);
 
 		u->name = atom_str_get(reqfile->name_nfc);
-		u->file_info = reqfile->fi;
+		u->file_info = reqfile->fi;		/* NULL unless partially shared file*/
 
 		/*
 		 * Range: bytes=10453-23456
@@ -3330,6 +3347,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		parq_upload_busy(u, u->parq_opaque);
 	}
 
+	using_sendfile = use_sendfile(u);
+
 	if (reqfile) {
 
 		if (-1 == stat(fpath, &statbuf)) {
@@ -3359,29 +3378,32 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			upload_error_not_found(u, request);
 			return;
 		}
-	}
 
-#if defined(USE_MMAP) || defined(HAVE_SENDFILE)
-	use_sendfile = !sendfile_failed && !SOCKET_USES_TLS(u->socket) && reqfile;
-#else
-	use_sendfile = FALSE;
-#endif /* USE_MMAP || HAVE_SENDFILE */
+		/*
+		 * If we got a valid skip amount then jump ahead to that position.
+		 * This only applies when we're not going to use sendile().
+		 */
 
-	if (!use_sendfile) {
-
-		/* If we got a valid skip amount then jump ahead to that position */
-		if (u->skip > 0) {
+		if (!using_sendfile && u->skip > 0) {
 			if (-1 == lseek(u->file_desc, u->skip, SEEK_SET)) {
 				upload_error_remove(u, NULL,
 					500, "File seek error: %s", g_strerror(errno));
 				return;
 			}
 		}
+	}
 
+	/*
+	 * If we're not using sendfile() or if we don't have a requested file
+	 * to serve (meaning we're dealing with a special upload), we're going
+	 * to need a buffer.
+	 */
+
+	if (!using_sendfile || !reqfile) {
 		u->bpos = 0;
 		u->bsize = 0;
 
-		if (!is_followup) {
+		if (u->buffer == NULL) {
 			u->buf_size = READ_BUF_SIZE;
 			u->buffer = (gchar *) g_malloc(u->buf_size);
 		}
@@ -3640,7 +3662,7 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 	ssize_t written;
 	filesize_t amount;
 	size_t available;
-	gboolean use_sendfile;
+	gboolean using_sendfile;
 
 	(void) unused_source;
 
@@ -3654,13 +3676,9 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 	amount = u->end - u->pos + 1;
 	g_assert(amount > 0);
 
-#if defined(USE_MMAP) || defined(HAVE_SENDFILE)
-	use_sendfile = !sendfile_failed && !SOCKET_USES_TLS(u->socket);
-#else
-	use_sendfile = FALSE;
-#endif /* USE_MMAP || HAVE_SENDFILE */
+	using_sendfile = use_sendfile(u);
 
-	if (use_sendfile) {
+	if (using_sendfile) {
 		off_t pos, before;			/**< For sendfile() sanity checks */
 		/*
 	 	 * Compute the amount of bytes to send.
@@ -3743,7 +3761,7 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	if (!use_sendfile) {
+	if (!using_sendfile) {
 		/*
 	 	 * Only required when not using sendfile(), otherwise the u->pos field
 	 	 * is directly updated by the kernel, and u->bpos is unused.

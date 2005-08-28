@@ -119,7 +119,7 @@ struct upload_http_cb {
 	gnutella_upload_t *u;			/**< Upload being ACK'ed */
 	time_t now;						/**< Current time */
 	time_t mtime;					/**< File modification time */
-	struct shared_file *sf;
+	struct shared_file *sf;			/**< Info on the file we're uploading */
 };
 
 /*

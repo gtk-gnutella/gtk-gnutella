@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2001-2005, Raphael Manfredi
  * Copyright (c) 2000 Daniel Walker (dwalker@cats.ucsc.edu)
  *
  *----------------------------------------------------------------------
@@ -31,7 +31,7 @@
  * Handle sharing of our own files and answers to remote queries.
  *
  * @author Raphael Manfredi
- * @date 2001-2003
+ * @date 2001-2005
  * @author Daniel Walker (dwalker@cats.ucsc.edu)
  * @date 2000
  */
@@ -51,6 +51,7 @@ typedef struct shared_file {
 	const gchar *file_path;		/**< The full path of the file (atom!) */
 	const gchar *name_nfc;		/**< UTF-8 NFC version of filename (atom!) */
 	const gchar *name_canonic;	/**< UTF-8 canonized ver. of filename (atom)! */
+	const gchar *content_type;	/**< MIME content type (static string) */
 	
 	struct dl_file_info *fi;	/**< PFSP-server: the holding fileinfo */
 	
@@ -63,16 +64,25 @@ typedef struct shared_file {
 	size_t name_nfc_len;		/**< strlen(name_nfc) */
 	size_t name_canonic_len;	/**< strlen(name_canonic) */
 	
-	time_t mtime;				/**< Last modification time, for SHA1 computation */
+	time_t mtime;				/**< Last modif. time, for SHA1 computation */
 	gchar sha1_digest[SHA1_RAW_SIZE];	/**< SHA1 digest, binary form */
 } shared_file_t;
 
-/*
+/**
  * shared_file flags
  */
 
 #define SHARE_F_HAS_DIGEST	0x00000001		/**< Digest is set */
 #define SHARE_F_RECOMPUTING	0x00000002		/**< Digest being recomputed */
+
+/**
+ * Known MIME content types
+ */
+
+enum share_mime_type {
+	SHARE_M_APPLICATION_BINARY = 0,
+	SHARE_M_IMAGE_PNG,
+};
 
 struct gnutella_search_results_out {
 	guchar num_recs;
@@ -108,10 +118,13 @@ extern GSList *extensions, *shared_dirs;
 void share_init(void);
 void share_close(void);
 
+const gchar *share_mime_type(enum share_mime_type type);
+
 shared_file_t *shared_file(guint idx);
 shared_file_t *shared_file_by_name(const gchar *basename);
 shared_file_t * shared_file_ref(shared_file_t *sf);
 shared_file_t *shared_file_by_sha1(gchar *sha1_digest);
+shared_file_t *shared_favicon(void);
 void shared_file_unref(shared_file_t *sf);
 
 gboolean search_request(struct gnutella_node *n, struct query_hashvec *qhv);
