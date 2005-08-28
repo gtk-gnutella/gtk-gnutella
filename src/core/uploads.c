@@ -294,13 +294,14 @@ upload_timer(time_t now)
 
 			if (!(u->flags & UPLOAD_F_STALLED)) {
 				if (!skip && stalled++ >= stall_thresh()) {
-					g_warning("frequent stalling detected, using workarounds");
+					if (upload_debug) g_warning(
+						"frequent stalling detected, using workarounds");
 					gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, TRUE);
 				}
 				if (!skip) last_stalled = now;
 				u->flags |= UPLOAD_F_STALLED;
-				g_warning("connection to %s (%s) "
-					"stalled after %s bytes sent,"
+				if (upload_debug) g_warning(
+					"connection to %s (%s) stalled after %s bytes sent,"
 					" stall counter at %d%s",
 					host_addr_to_string(u->addr), upload_vendor_str(u),
 					uint64_to_string(u->sent), stalled,
@@ -323,7 +324,8 @@ upload_timer(time_t now)
 				skip = TRUE;
 
 			if (u->flags & UPLOAD_F_STALLED) {
-				g_warning("connection to %s (%s) un-stalled, %s bytes sent%s",
+				if (upload_debug) g_warning(
+					"connection to %s (%s) un-stalled, %s bytes sent%s",
 					host_addr_to_string(u->addr), upload_vendor_str(u),
 					uint64_to_string(u->sent),
 					skip ? " (IGNORED)" : "");
@@ -332,7 +334,7 @@ upload_timer(time_t now)
 					!skip && stalled <= stall_thresh() &&
 					!sock_is_corked(u->socket)
 				) {
-					g_warning(
+					if (upload_debug) g_warning(
 						"re-enabling TCP_CORK on connection to %s (%s)",
 						host_addr_to_string(u->addr), upload_vendor_str(u));
 					sock_cork(u->socket, TRUE);
@@ -370,8 +372,9 @@ upload_timer(time_t now)
 		else if (UPLOAD_IS_SENDING(u)) {
 			if (delta_time(now, u->last_update) > IO_PRE_STALL) {
 				if (sock_is_corked(u->socket)) {
-					g_warning("connection to %s (%s) may be stalled,"
-						" disabling TCP_CORK",
+					if (upload_debug) g_warning(
+						"connection to %s (%s) may be stalled, "
+						"disabling TCP_CORK",
 						host_addr_to_string(u->addr), upload_vendor_str(u));
 					sock_cork(u->socket, FALSE);
 					socket_tos_normal(u->socket); /* Have ACKs come faster */
@@ -389,7 +392,8 @@ upload_timer(time_t now)
 			if (upload_debug)
 				g_warning("stall counter downgraded to %d", stalled);
 			if (stalled == 0) {
-				g_warning("frequent stalling condition cleared");
+				if (upload_debug)
+					g_warning("frequent stalling condition cleared");
 				gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, FALSE);
 			}
 		}
@@ -477,7 +481,8 @@ upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops, guint8 ttl,
 
 	s = socket_connect(addr, port, SOCK_TYPE_UPLOAD, flags);
 	if (!s) {
-		g_warning("PUSH request (hops=%d, ttl=%d) dropped: can't connect to %s",
+		if (upload_debug) g_warning(
+			"PUSH request (hops=%d, ttl=%d) dropped: can't connect to %s",
 			hops, ttl, host_addr_port_to_string(addr, port));
 		return;
 	}
@@ -561,7 +566,7 @@ handle_push_request(struct gnutella_node *n)
 						if (is_host_addr(addr))
 							ha = addr;
 					} else if (ret == GGEP_INVALID) {
-						if (search_debug) {
+						if (ggep_debug > 3) {
 							g_warning("%s bad GGEP \"GTKG.IPV6\" (dumping)",
 									gmsg_infostr(&n->header));
 							ext_dump(stderr, e, 1, "....", "\n", TRUE);
@@ -596,10 +601,12 @@ handle_push_request(struct gnutella_node *n)
 	req_file = shared_file(file_index);
 
 	if (req_file == SHARE_REBUILDING) {
-		g_warning("PUSH request (hops=%d, ttl=%d) whilst rebuilding library",
+		if (upload_debug) g_warning(
+			"PUSH request (hops=%d, ttl=%d) whilst rebuilding library",
 			n->header.hops, n->header.ttl);
 	} else if (req_file == NULL) {
-		g_warning("PUSH request (hops=%d, ttl=%d) for invalid file index %u",
+		if (upload_debug) g_warning(
+			"PUSH request (hops=%d, ttl=%d) for invalid file index %u",
 			n->header.hops, n->header.ttl, file_index);
 	} else
 		file_name = req_file->name_nfc;
@@ -615,7 +622,8 @@ handle_push_request(struct gnutella_node *n)
 	 */
 
 	if (!host_is_valid(ha, port) && !node_is_connected(ha, port, TRUE)) {
-		g_warning("PUSH request (hops=%d, ttl=%d) from invalid address %s",
+		if (upload_debug) g_warning(
+			"PUSH request (hops=%d, ttl=%d) from invalid address %s",
 			n->header.hops, n->header.ttl,
 			host_addr_port_to_string(ha, port));
 		return;
@@ -839,7 +847,8 @@ send_upload_error_v(
 		reason[0] = '\0';
 
 	if (u->error_sent) {
-		g_warning("Already sent an error %d to %s, not sending %d (%s)",
+		if (upload_debug) g_warning(
+			"already sent an error %d to %s, not sending %d (%s)",
 			u->error_sent, host_addr_to_string(u->socket->addr), code, reason);
 		return;
 	}
@@ -1047,13 +1056,13 @@ upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
 
 	if (!UPLOAD_IS_COMPLETE(u) && upload_debug > 1) {
 		if (u->name) {
-			g_message("Cancelling upload for \"%s\" from %s (%s): %s",
+			g_message("cancelling upload for \"%s\" from %s (%s): %s",
 				u->name,
 				u->socket ? host_addr_to_string(u->socket->addr) : "<no socket>",
 				upload_vendor_str(u),
 				logreason);
 		} else {
-			g_message("Cancelling upload from %s (%s): %s",
+			g_message("cancelling upload from %s (%s): %s",
 				u->socket ? host_addr_to_string(u->socket->addr) : "<no socket>",
 				upload_vendor_str(u),
 				logreason);
@@ -1591,14 +1600,17 @@ upload_connect_conf(gnutella_upload_t *u)
 	s = u->socket;
 	sent = bws_write(bws.out, &s->wio, giv, rw);
 	if ((ssize_t) -1 == sent) {
-		g_warning("unable to send back GIV for \"%s\" to %s: %s",
+		if (upload_debug > 1) g_warning(
+			"unable to send back GIV for \"%s\" to %s: %s",
 			u->name, host_addr_to_string(s->addr), g_strerror(errno));
 	} else if ((size_t) sent < rw) {
-		g_warning("only sent %d out of %d bytes of GIV for \"%s\" to %s: %s",
+		if (upload_debug) g_warning(
+			"only sent %d out of %d bytes of GIV for \"%s\" to %s: %s",
 			(gint) sent, (gint) rw, u->name, host_addr_to_string(s->addr),
 			g_strerror(errno));
 	} else if (upload_debug > 2) {
-		g_message("----Sent GIV to %s:\n%.*s----\n", host_addr_to_string(s->addr),
+		g_message(
+			"----Sent GIV to %s:\n%.*s----\n", host_addr_to_string(s->addr),
 			(gint) rw, giv);
 	}
 
@@ -1620,7 +1632,8 @@ upload_connect_conf(gnutella_upload_t *u)
 static void
 upload_error_not_found(gnutella_upload_t *u, const gchar *request)
 {
-	g_warning("Returned 404 for %s: %s", host_addr_to_string(u->socket->addr),
+	if (upload_debug) g_warning(
+		"returned 404 for %s: %s", host_addr_to_string(u->socket->addr),
 		request);
 	upload_error_remove(u, NULL, 404, "Not Found");
 }
@@ -1730,7 +1743,8 @@ get_file_to_upload_from_index(
 
 	buf = strchr(buf, '/');
 	if (!buf) {
-		g_warning("Invalid encoded Gnutella HTTP URI: %s", uri);
+		if (upload_debug)
+			g_warning("invalid encoded Gnutella HTTP URI: %s", uri);
 		upload_error_remove(u, NULL, 400,
 			"Invalid encoded Gnutella HTTP request");
 		return NULL;
@@ -2780,8 +2794,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 *		--RAM, 31/12/2001
 		 */
 
-		if (u->push && idx != u->index)
-			g_warning("Host %s sent PUSH for %u (%s), now requesting %u (%s)",
+		if (u->push && idx != u->index && upload_debug)
+			g_warning("host %s sent PUSH for %u (%s), now requesting %u (%s)",
 				host_addr_to_string(u->addr), u->index, u->name, idx,
 				reqfile->name_nfc);
 
@@ -3001,8 +3015,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		is_followup &&
 		!(sha1 && u->sha1 && sha1_eq(sha1, u->sha1)) && idx != u->index
 	) {
-		g_warning("Host %s sent initial request for %u (%s), "
-			"now requesting %u (%s)",
+		if (upload_debug) g_warning(
+			"host %s sent initial request for %u (%s), now requesting %u (%s)",
 			host_addr_to_string(s->addr),
 			u->index, u->name, idx, reqfile->name_nfc);
 		upload_error_remove(u, NULL, 400, "Change of Resource Forbidden");
@@ -3127,8 +3141,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			gnutella_upload_t *up = (gnutella_upload_t *) (sl->data);
 			g_assert(up);
 
-			g_warning("stalling connection to %s (%s) replaced "
-				"after %s bytes sent, stall counter at %d",
+			if (upload_debug) g_warning(
+				"stalling connection to %s (%s) replaced after %s bytes sent, "
+				"stall counter at %d",
 				host_addr_to_string(up->addr), upload_vendor_str(up),
 				uint64_to_string(up->sent), stalled);
 
@@ -3331,7 +3346,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		u->total_requested += end - skip + 1;
 
 		if ((u->total_requested / 11) * 10 > u->file_size) {
-			g_warning("host %s (%s) requesting more than there is to %u (%s)",
+			if (upload_debug) g_warning(
+				"host %s (%s) requesting more than there is to %u (%s)",
 				host_addr_to_string(s->addr), upload_vendor_str(u),
 				u->index, u->name);
 			upload_error_remove(u, NULL, 400, "Requesting Too Much");
@@ -3713,8 +3729,8 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 			e != ENOTCONN &&
 			e != ENOBUFS
 		) {
-			g_warning("sendfile() failed: \"%s\"\n"
-				"Disabling sendfile() for this session", g_strerror(e));
+			g_warning("sendfile() failed: \"%s\" -- "
+				"disabling sendfile() for this session", g_strerror(e));
 			sendfile_failed = TRUE;
 		}
 		if (e != EAGAIN && e != EINTR) {

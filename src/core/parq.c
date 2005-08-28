@@ -2145,7 +2145,8 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 			 * we check if the requesting host has another queued item which
 			 * is allowed to continue. We will just use that position here then.
 			 */
-			g_message("[PARQ UL] Allowing upload");
+			if (parq_debug)
+				g_message("[PARQ UL] Allowing upload");
 			return TRUE;
 		}
 	}
@@ -2494,14 +2495,14 @@ parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 		 	 * queue now.
 			 */
 
-			g_warning("[PARQ UL] "
+			if (parq_debug) g_warning(
+				"[PARQ UL] "
 				"punishing %s (%s) for re-requesting \"%s\" %d secs early",
 				host_addr_port_to_string(u->socket->addr, u->socket->port),
 				upload_vendor_str(u),
 				u->name, (gint) (org_retry - now));
 
 			parq_add_banned_source(u->addr, parq_ul->retry - now);
-
 			parq_upload_force_remove(u);
 			return FALSE;
 		}

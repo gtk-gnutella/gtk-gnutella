@@ -7610,7 +7610,8 @@ node_proxying_add(gnutella_node_t *n, gchar *guid)
 	 */
 
 	if (is_firewalled) {
-		g_warning("denying push-proxyfication for %s <%s>: firewalled",
+		if (dbg) g_warning(
+			"denying push-proxyfication for %s <%s>: firewalled",
 			node_addr(n), node_vendor(n));
 		return FALSE;
 	}
@@ -7620,8 +7621,8 @@ node_proxying_add(gnutella_node_t *n, gchar *guid)
 	 */
 
 	if (!host_is_valid(listen_addr(), listen_port)) {
-		g_warning("denying push-proxyfication for %s <%s>: "
-			"current IP %s is invalid",
+		if (dbg) g_warning(
+			"denying push-proxyfication for %s <%s>: current IP %s is invalid",
 			node_addr(n), node_vendor(n),
 			host_addr_port_to_string(listen_addr(), listen_port));
 		return FALSE;
@@ -7640,13 +7641,15 @@ node_proxying_add(gnutella_node_t *n, gchar *guid)
 		gchar old[33];
 
 		if (n->flags & NODE_F_PROXIED)
-			g_warning("spurious push-proxyfication request from %s <%s>",
+			if (dbg) g_warning(
+				"spurious push-proxyfication request from %s <%s>",
 				node_addr(n), node_vendor(n));
 
 		if (!guid_eq(guid, n->guid)) {
 			strncpy(old, guid_hex_str(n->guid), sizeof(old));
 
-			g_warning("new GUID %s for node %s <%s> (was %s)",
+			if (dbg) g_warning(
+				"new GUID %s for node %s <%s> (was %s)",
 				guid_hex_str(guid), node_addr(n), node_vendor(n), old);
 
 			route_proxy_remove(n->guid);
@@ -7666,7 +7669,8 @@ node_proxying_add(gnutella_node_t *n, gchar *guid)
 		return TRUE;
 	}
 
-	g_warning("push-proxyfication failed for %s <%s>: conflicting GUID %s",
+	if (dbg) g_warning(
+		"push-proxyfication failed for %s <%s>: conflicting GUID %s",
 		node_addr(n), node_vendor(n), guid_hex_str(guid));
 
 	atom_guid_free(n->guid);

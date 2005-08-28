@@ -245,11 +245,13 @@ http_send_status(
 
 	if (-1 == (sent = bws_write(bws.out, &s->wio, header, rw))) {
 		socket_eof(s);
-		g_warning("Unable to send back HTTP status %d (%s) to %s: %s",
+		if (http_debug > 1)
+			g_warning("unable to send back HTTP status %d (%s) to %s: %s",
 			code, status_msg, host_addr_to_string(s->addr), g_strerror(errno));
 		return FALSE;
 	} else if (sent < rw) {
-		g_warning("Only sent %d out of %d bytes of status %d (%s) to %s: %s",
+		if (http_debug) g_warning(
+			"only sent %d out of %d bytes of status %d (%s) to %s: %s",
 			sent, rw, code, status_msg, host_addr_to_string(s->addr),
 			g_strerror(errno));
 		return FALSE;
