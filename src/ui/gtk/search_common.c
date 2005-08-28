@@ -47,6 +47,7 @@ RCSID("$Id$");
 #include "if/gnet_property.h"
 #include "if/core/downloads.h"
 #include "if/core/guid.h"
+#include "if/core/sockets.h"
 #include "if/bridge/ui2c.h"
 
 #include "lib/atoms.h"
@@ -694,7 +695,7 @@ search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 
 		guc_download_auto_new(rc->name, rc->size, URN_INDEX,
 			h->addr, h->port, blank_guid, rs->hostname,
-			rc->sha1, rs->stamp, FALSE, TRUE, NULL, NULL);
+			rc->sha1, rs->stamp, FALSE, TRUE, NULL, NULL, 0);
 	}
 
 	search_gui_free_alt_locs(rc);
@@ -810,7 +811,7 @@ search_matched(search_t *sch, results_set_t *rs)
     gboolean send_pushes;
     gboolean is_firewalled;
 	guint i;
-	guint32 results_kept = 0;
+	guint32 flags = 0, results_kept = 0;
 
     g_assert(sch != NULL);
     g_assert(rs != NULL);
@@ -858,6 +859,7 @@ search_matched(search_t *sch, results_set_t *rs)
 		g_string_append(vinfo, vinfo->len ? ", TLS" : "TLS");
 	if (rs->status & ST_BH)
 		g_string_append(vinfo, vinfo->len ? ", browsable" : "browsable");
+	flags = (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
 
 	/*
 	 * If we're firewalled, or they don't want to send pushes, then don't
@@ -947,7 +949,7 @@ search_matched(search_t *sch, results_set_t *rs)
 		) {
             guc_download_auto_new(rc->name, rc->size, rc->index,
 				rs->addr, rs->port, rs->guid, rs->hostname, rc->sha1,
-				rs->stamp, need_push, TRUE, NULL, rs->proxies);
+				rs->stamp, need_push, TRUE, NULL, rs->proxies, flags);
 
 			if (rs->proxies != NULL)
 				search_gui_free_proxies(rs);
