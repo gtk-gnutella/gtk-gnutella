@@ -60,10 +60,11 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.13 2005/07/31 07:02:55 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.15 2005/08/28 20:30:50 rmanfredi Exp $
 
 EXTRA_FILES = \
 	bogons.txt \
+	favicon.png \
 	gwcache.boot \
 	geo-ip.txt \
 	hostiles.txt
