@@ -801,7 +801,7 @@ parq_download_parse_queue_status(struct download *d, header_t *header)
 			return FALSE;
 		}
 
-		parq_dl->retry_delay = extract_retry_after(header);
+		parq_dl->retry_delay = extract_retry_after(d, header);
 
 		value = get_header_value(buf, "lifetime", NULL);
 		parq_dl->lifetime = value == NULL ?
