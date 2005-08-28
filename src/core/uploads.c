@@ -2535,6 +2535,12 @@ prepare_browsing(gnutella_upload_t *u, header_t *header, gchar *request,
 	if (u->http_major > 1 || (u->http_major == 1 && u->http_minor >= 1)) {
 		gboolean need_chunked = TRUE;
 
+		/* XXX: The following is not a good idea because the amount
+		 *		of saved bytes is very low and the receiver cannot
+		 *		detect a truncated message body this way.
+		 * 		--cbiere, 2005-08-28
+		 */
+#if 0
 		/*
 		 * An HTTP/1.1 client must support chunked encoding, but if they
 		 * request that the connection not be kept alive, then we can
@@ -2544,6 +2550,7 @@ prepare_browsing(gnutella_upload_t *u, header_t *header, gchar *request,
 		buf = header_get(header, "Connection");
 		if (buf && 0 == ascii_strcasecmp(buf, "close"))
 			need_chunked = FALSE;
+#endif
 
 		if (need_chunked) {
 			bh_flags |= BH_CHUNKED;
