@@ -2533,33 +2533,12 @@ prepare_browsing(gnutella_upload_t *u, header_t *header, gchar *request,
 	 */
 
 	if (u->http_major > 1 || (u->http_major == 1 && u->http_minor >= 1)) {
-		gboolean need_chunked = TRUE;
+		bh_flags |= BH_CHUNKED;
 
-		/* XXX: The following is not a good idea because the amount
-		 *		of saved bytes is very low and the receiver cannot
-		 *		detect a truncated message body this way.
-		 * 		--cbiere, 2005-08-28
-		 */
-#if 0
-		/*
-		 * An HTTP/1.1 client must support chunked encoding, but if they
-		 * request that the connection not be kept alive, then we can
-		 * save a few percentage of output by not emitting chunk headers.
-		 */
-
-		buf = header_get(header, "Connection");
-		if (buf && 0 == ascii_strcasecmp(buf, "close"))
-			need_chunked = FALSE;
-#endif
-
-		if (need_chunked) {
-			bh_flags |= BH_CHUNKED;
-
-			g_assert(hevcnt < hevlen);
-			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-			hev[hevcnt].he_msg = "Transfer-Encoding: chunked\r\n";
-			hev[hevcnt++].he_arg = NULL;
-		}
+		g_assert(hevcnt < hevlen);
+		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
+		hev[hevcnt].he_msg = "Transfer-Encoding: chunked\r\n";
+		hev[hevcnt++].he_arg = NULL;
 	}
 
 	/*
@@ -3049,14 +3028,10 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	}
 
 	/*
-	 * Implement Tranfer-Encoding "chunked" to allow keep-alive
-	 * connections with unknown content-lengths. This is a
-	 * required feature of HTTP/1.1 - HTTP/1.0 doesn't support it.
-	 *
-	 * We don't want to determine the content-length in advance and we
-	 * do not support chunked transfers either. Thus, the only way to
-	 * indicate the end-of-message is an EOF which means we keep-alive
-	 * connections must be disabled for this purpose.
+	 * If browsing our host with a client that cannot allow chunked
+	 * transmission encoding, we have no choice but to indicate the end
+	 * of the transmission with EOF since we don't want to compute the
+	 * length of the data in advance.
 	 */
 
 	if (u->browse_host && !(bh_flags & BH_CHUNKED))
