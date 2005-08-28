@@ -123,6 +123,7 @@ gtk_clist_restore_visibility(GtkCList *clist, property_t prop)
 }
 #endif /* USE_GTK1 */
 
+#define GTK_ITERATION_MAX	100		/* Don't spend too much time in GUI */
 
 /**
  * Process all pending gtk events (id est draw now!).
@@ -135,17 +136,19 @@ gint
 gtk_main_flush(void)
 {
     gint val = FALSE;
+	gint i = 0;
 
-    while (gtk_events_pending()) {
+    while (gtk_events_pending() && i++ < GTK_ITERATION_MAX) {
         val = gtk_main_iteration_do(FALSE);
 		if (val)
 			break;
 	}
 
+	if (i > GTK_ITERATION_MAX && !val)
+		g_warning("gtk_main_flush: too much work");
+
     return val;
 }
-
-
 
 /**
  * Select the menu item which has given data attached to it.
