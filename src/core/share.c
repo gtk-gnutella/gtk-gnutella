@@ -1459,7 +1459,7 @@ do {												\
 		*p = '\0'; /* terminate mangled query */
 
 	if (dbg > 4)
-		printf("\nmangled: [%s]\n", search);
+		printf("mangled: [%s]\n", search);
 
 	/* search does no longer contain unnecessary whitespace */
 	return p - search;
@@ -1621,6 +1621,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	struct query_context *qctx;
 	gboolean tagged_speed = FALSE;
 	gboolean should_oob = FALSE;
+	gchar muid[GUID_RAW_SIZE];
 
 	/*
 	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
@@ -2155,7 +2156,14 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 * If the query does not have an OOB mark, comes from a leaf node and
 	 * they allow us to be an OOB-proxy, then replace the IP:port of the
 	 * query with ours, so that we are the ones to get the UDP replies.
+	 *
+	 * Since calling oob_proxy_create() is going to mangle the query's
+	 * MUID in place (alterting n->header.muid), we must save the MUID
+	 * in case we have local hits to deliver: since we send those directly
+	 *		--RAM, 2005-08-28
 	 */
+
+	memcpy(muid, n->header.muid, GUID_RAW_SIZE);
 
 	if (
 		!oob && udp_active() && proxy_oob_queries && !is_udp_firewalled &&
@@ -2310,6 +2318,11 @@ finish:
 		}
 	}
 
+	if (dbg > 3)
+		printf("QUERY %s \"%s\" has %u hit%s\n",
+			guid_hex_str(n->header.muid), search, qctx->found,
+			qctx->found == 1 ? "" : "s");
+
 	/*
 	 * If we got a query marked for OOB results delivery, send them
 	 * a reply out-of-band but only if the query's hops is > 1.  Otherwise,
@@ -2320,7 +2333,7 @@ finish:
 		if (oob && should_oob)
 			oob_got_results(n, qctx->files, qctx->found, use_ggep_h);
 		else
-			qhit_send_results(n, qctx->files, qctx->found, use_ggep_h);
+			qhit_send_results(n, qctx->files, qctx->found, muid, use_ggep_h);
 	}
 
 	share_query_context_free(qctx);

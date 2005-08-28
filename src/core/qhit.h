@@ -50,7 +50,8 @@ void qhit_init(void);
 void qhit_close(void);
 
 void qhit_send_results(
-	struct gnutella_node *n, GSList *files, gint count, gboolean use_ggep_h);
+	struct gnutella_node *n, GSList *files, gint count,
+	const gchar *muid, gboolean use_ggep_h);
 void qhit_build_results(
 	GSList *files, gint count,
 	size_t max_msgsize,

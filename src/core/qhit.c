@@ -738,17 +738,26 @@ found_reset(size_t max_size, const gchar *muid,
  * @param n				the node where we should send results to
  * @param files			the list of shared_file_t entries that make up results
  * @param count			the amount of results
+ * @param muid			the query's MUID
  * @param use_ggep_h	whether GGEP "H" can be used to send the SHA1 of files
  */
 void
 qhit_send_results(
-	struct gnutella_node *n, GSList *files, gint count, gboolean use_ggep_h)
+	struct gnutella_node *n, GSList *files, gint count,
+	const gchar *muid, gboolean use_ggep_h)
 {
 	GSList *sl;
 	gint sent = 0;
 
-	found_reset(QHIT_SIZE_THRESHOLD, n->header.muid,
-		use_ggep_h, qhit_send_node, n);
+	/*
+	 * We can't use n->header.muid as the query's MUID but must rely on the
+	 * parameter we're given.  Indeed, we're delivering a local hit here,
+	 * but the query can have been OOB-proxified already and therefore the
+	 * n->header.muid data have been mangled (since that is what we're going
+	 * to forward to other nodes).
+	 */
+
+	found_reset(QHIT_SIZE_THRESHOLD, muid, use_ggep_h, qhit_send_node, n);
 
 	for (sl = files; sl; sl = g_slist_next(sl)) {
 		shared_file_t *sf = (shared_file_t *) sl->data;
