@@ -75,6 +75,7 @@ RCSID("$Id$");
 
 #include "lib/atoms.h"
 #include "lib/endian.h"
+#include "lib/glib-missing.h"
 #include "lib/idtable.h"
 #include "lib/listener.h"
 #include "lib/misc.h"
@@ -930,19 +931,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 					) {
 						if (info->len)
 							g_string_append(info, "; ");
-
-#ifdef USE_GLIB1
-						{
-							gint plen = ext_paylen(e);
-							const gchar *p = ext_payload(e);
-
-							while (plen--)
-								g_string_append_c(info, *p++);
-						}
-#else
 						g_string_append_len(info,
 							ext_payload(e), ext_paylen(e));
-#endif
 					}
 					break;
 				default:
