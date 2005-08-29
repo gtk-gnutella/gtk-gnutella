@@ -338,7 +338,7 @@ void
 socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
 {
 	g_assert(s);
-	g_assert(SOCKET_USES_TLS(s));
+	g_assert(SOCKET_WITH_TLS(s));	/* No USES yet, may not have handshaked */
 	g_assert(INPUT_EVENT_EXCEPTION != cond);
 	g_assert(0 != s->gdk_tag);
 
@@ -1304,6 +1304,7 @@ socket_free(struct gnutella_socket *s)
 				? GNUTLS_SHUT_WR : GNUTLS_SHUT_RDWR);
 		}
 		gnutls_deinit(s->tls.session);
+		s->tls.session = NULL;
 		s->tls.stage = SOCK_TLS_NONE;
 	}
 #endif /* HAS_GNUTLS */
@@ -1382,6 +1383,8 @@ socket_tls_setup(struct gnutella_socket *s)
 
 			gnutls_anon_set_server_dh_params(server_cred, get_dh_params());
 			cred = server_cred;
+
+			g_assert(s->tls.session == NULL);
 
 			if (gnutls_init(&s->tls.session, GNUTLS_SERVER)) {
 				g_warning("gnutls_init() failed");

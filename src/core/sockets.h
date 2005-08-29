@@ -66,9 +66,12 @@ struct socket_tls_ctx {
 	gpointer				cb_data;
 };
 
+#define SOCKET_WITH_TLS(s) \
+	((s)->tls.enabled && (s)->tls.stage >= SOCK_TLS_INITIALIZED)
 #define SOCKET_USES_TLS(s) \
 	((s)->tls.enabled && (s)->tls.stage >= SOCK_TLS_ESTABLISHED)
 #else /* !HAS_GNUTLS */
+#define SOCKET_WITH_TLS(s) 0
 #define SOCKET_USES_TLS(s) 0
 #endif /* HAS_GNUTLS */
 
