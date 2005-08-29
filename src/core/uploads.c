@@ -3739,7 +3739,7 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 		gint e = errno;
 
 		if (
-			use_sendfile &&
+			using_sendfile &&
 			e != EINTR &&
 			e != EAGAIN &&
 			e != EPIPE &&
