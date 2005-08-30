@@ -1256,7 +1256,7 @@ gui_update_download(download_t *d, gboolean force)
 	static GtkNotebook *notebook = NULL;
 	const gchar *a = NULL;
 	time_t now = time((time_t *) NULL);
-	struct dl_file_info *fi;
+	fileinfo_t *fi;
 	download_t *drecord;
 	gint rw;
 	GtkTreeView *treeview;

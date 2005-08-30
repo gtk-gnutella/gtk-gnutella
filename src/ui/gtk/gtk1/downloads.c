@@ -951,7 +951,7 @@ gui_update_download(struct download *d, gboolean force)
     GdkColor *color;
 	GtkCTreeNode *node, *parent;
 	struct download *drecord;
-	struct dl_file_info *fi;
+	fileinfo_t *fi;
 	gpointer key;
 	gint active_src, tot_src;
 	gdouble percent_done = 0;
