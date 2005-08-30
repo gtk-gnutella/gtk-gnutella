@@ -344,6 +344,8 @@ socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
 
 #ifdef HAS_GNUTLS
 	if (cond != s->tls.cb_cond) {
+		gint saved_errno = errno;
+		
 		if (tls_debug > 1) {
 			gint fd = socket_evt_fd(s);
 			g_message("socket_evt_change: fd=%d, cond=%s -> %s, handler=%p",
@@ -355,6 +357,7 @@ socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
 			s->gdk_tag = 0;
 		}
 		socket_evt_set(s, cond, s->tls.cb_handler, s->tls.cb_data);
+		errno = saved_errno;
 	}
 #else
 	g_assert_not_reached();
@@ -1432,7 +1435,7 @@ socket_tls_setup(struct gnutella_socket *s)
 		}
 
 		gnutls_transport_set_ptr(s->tls.session,
-				(gnutls_transport_ptr) s->file_desc);
+				(gnutls_transport_ptr) GUINT_TO_POINTER(s->file_desc));
 
 		s->tls.stage = SOCK_TLS_INITIALIZED;
 	}
@@ -1441,15 +1444,23 @@ socket_tls_setup(struct gnutella_socket *s)
 		gint ret;
 
 		ret = gnutls_handshake(s->tls.session);
-		if (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED) {
-			socket_evt_change(s, gnutls_record_get_direction(s->tls.session)
-				? INPUT_EVENT_WX : INPUT_EVENT_RX);
-			return 0;
-		} else if (ret < 0) {
-			g_warning("gnutls_handshake() failed");
-			gnutls_perror(ret);
-			goto destroy;
+		if (0 != ret) {
+			switch (ret) {
+			case GNUTLS_E_AGAIN:
+			case GNUTLS_E_INTERRUPTED:
+				socket_evt_change(s,
+					gnutls_record_get_direction(s->tls.session)
+						? INPUT_EVENT_WX : INPUT_EVENT_RX);
+				return 0;
+			default:
+				if (tls_debug) {
+					g_warning("gnutls_handshake() failed");
+					gnutls_perror(ret);
+				}
+				goto destroy;
+			}
 		}
+
 		s->tls.stage = SOCK_TLS_ESTABLISHED;
 		if (tls_debug)
 			g_message("TLS handshake succeeded");
@@ -1462,7 +1473,8 @@ socket_tls_setup(struct gnutella_socket *s)
 
 destroy:
 
-	socket_destroy(s, "TLS handshake failed");
+	if (tls_debug)
+		socket_destroy(s, "TLS handshake failed");
 	return 0;
 }
 #endif /* HAS_GNUTLS */
@@ -2967,6 +2979,7 @@ socket_no_writev(struct wrap_io *unused_wio,
 static ssize_t
 socket_tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 {
+	inputevt_cond_t cond = INPUT_EVENT_WX;
 	struct gnutella_socket *s = wio->ctx;
 	const gchar *p;
 	size_t len;
@@ -2994,9 +3007,8 @@ socket_tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 			break;
 		case GNUTLS_E_INTERRUPTED:
 		case GNUTLS_E_AGAIN:
-			if (s->gdk_tag)
-				socket_evt_change(s, gnutls_record_get_direction(s->tls.session)
-					? INPUT_EVENT_WX : INPUT_EVENT_RX);
+			cond = gnutls_record_get_direction(s->tls.session)
+					? INPUT_EVENT_WX : INPUT_EVENT_RX;
 
 			if (0 == s->tls.snarf) {
 				s->tls.snarf = len;
@@ -3026,6 +3038,9 @@ socket_tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 		}
 	}
 
+	if (s->gdk_tag)
+		socket_evt_change(s, cond);
+
 	g_assert(ret == (ssize_t) -1 || (size_t) ret <= size);
 	return ret;
 }
@@ -3033,6 +3048,7 @@ socket_tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 static ssize_t
 socket_tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 {
+	inputevt_cond_t cond = INPUT_EVENT_RX;
 	struct gnutella_socket *s = wio->ctx;
 	ssize_t ret;
 
@@ -3047,9 +3063,8 @@ socket_tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 		switch (ret) {
 		case GNUTLS_E_INTERRUPTED:
 		case GNUTLS_E_AGAIN:
-			if (s->gdk_tag)
-				socket_evt_change(s, gnutls_record_get_direction(s->tls.session)
-					? INPUT_EVENT_WX : INPUT_EVENT_RX);
+			cond = gnutls_record_get_direction(s->tls.session)
+					? INPUT_EVENT_WX : INPUT_EVENT_RX;
 			errno = EAGAIN;
 			break;
 		case GNUTLS_E_PULL_ERROR:
@@ -3065,6 +3080,9 @@ socket_tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 		ret = -1;
 	}
 
+	if (s->gdk_tag)
+		socket_evt_change(s, cond);
+
 	g_assert(ret == (ssize_t) -1 || (size_t) ret <= size);
 	return ret;
 }
@@ -3072,6 +3090,7 @@ socket_tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 static ssize_t
 socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 {
+	inputevt_cond_t cond = INPUT_EVENT_WX;
 	struct gnutella_socket *s = wio->ctx;
 	ssize_t ret, written;
 	int i;
@@ -3086,18 +3105,18 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 			s->tls.snarf -= ret;
 			if (0 != s->tls.snarf) {
 				errno = EAGAIN;
-				return -1;
+				ret = -1;
+				goto done;
 			}
 		} else {
 			switch (ret) {
 			case 0:
-				return 0;
+				ret = 0;
+				goto done;
 			case GNUTLS_E_INTERRUPTED:
 			case GNUTLS_E_AGAIN:
-				if (s->gdk_tag)
-					socket_evt_change(s,
-						gnutls_record_get_direction(s->tls.session)
-							? INPUT_EVENT_WX : INPUT_EVENT_RX);
+				cond = gnutls_record_get_direction(s->tls.session)
+						? INPUT_EVENT_WX : INPUT_EVENT_RX;
 				errno = EAGAIN;
 				break;
 			case GNUTLS_E_PULL_ERROR:
@@ -3110,7 +3129,8 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 				gnutls_perror(ret);
 				errno = EIO;
 			}
-			return -1;
+			ret = -1;
+			goto done;
 		}
 	}
 
@@ -3131,10 +3151,8 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 				break;
 			case GNUTLS_E_INTERRUPTED:
 			case GNUTLS_E_AGAIN:
-				if (s->gdk_tag)
-					socket_evt_change(s,
-						gnutls_record_get_direction(s->tls.session)
-							? INPUT_EVENT_WX : INPUT_EVENT_RX);
+				cond = gnutls_record_get_direction(s->tls.session)
+						? INPUT_EVENT_WX : INPUT_EVENT_RX;
 				s->tls.snarf = len;
 				ret = written + len;
 				break;
@@ -3157,6 +3175,10 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 		ret = written;
 	}
 
+done:
+	if (s->gdk_tag)
+		socket_evt_change(s, cond);
+	
 	g_assert(ret == (ssize_t) -1 || ret >= 0);
 	return ret;
 }
@@ -3164,6 +3186,7 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 static ssize_t
 socket_tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 {
+	inputevt_cond_t cond = INPUT_EVENT_RX;
 	struct gnutella_socket *s = wio->ctx;
 	int i;
 	size_t rcvd = 0;
@@ -3195,10 +3218,8 @@ socket_tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 		switch (ret) {
 		case GNUTLS_E_INTERRUPTED:
 		case GNUTLS_E_AGAIN:
-			if (s->gdk_tag)
-				socket_evt_change(s, gnutls_record_get_direction(s->tls.session)
-					? INPUT_EVENT_WX : INPUT_EVENT_RX);
-
+			cond = gnutls_record_get_direction(s->tls.session)
+					? INPUT_EVENT_WX : INPUT_EVENT_RX;
 			if (0 != rcvd) {
 				ret = rcvd;
 			} else {
@@ -3219,6 +3240,9 @@ socket_tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 			ret = -1;
 		}
 	}
+
+	if (s->gdk_tag)
+		socket_evt_change(s, cond);
 
 	g_assert(ret == (ssize_t) -1 || ret >= 0);
 	return ret;
