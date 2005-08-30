@@ -67,7 +67,7 @@ RCSID("$Id$");
 #define PARQ_TIMER_BY_POS	30		/**< 30 seconds for each queue position */
 #define GUARDING_TIME		45		/**< Time we keep a slot after disconnect */
 #define MIN_LIFE_TIME		90
-#define QUEUE_PERIOD		600		/**< Try to resend a queue every 10 minutes */
+#define QUEUE_PERIOD		600		/**< Try to resend a queue every 10 min. */
 #define MAX_QUEUE			144		/**< Max amount of QUEUE we can send */
 #define MAX_QUEUE_REFUSED	2		/**< Max QUEUE they can refuse in a row */
 
@@ -177,8 +177,8 @@ struct parq_ul_queued {
 	guint eta;				/**< Expected time in seconds till an upload slot is
 							     reached, this is a relative timestamp */
 
-	time_t expire;			/**< Time at which the queue position will be lost */
-	time_t retry;			/**< Time at which the first retry-after is expected */
+	time_t expire;			/**< Time when the queue position will be lost */
+	time_t retry;			/**< Time when the first retry-after is expected */
 	time_t enter;			/**< Time upload entered parq */
 	time_t updated;			/**< Time last upload request was sent */
 	time_t ban_timeout;		/**< Time after which we won't kick out the upload
@@ -1264,9 +1264,7 @@ parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 	GList *l = NULL;
 	guint avg_bps;
 
-
-	if (parq_optimistic)
-	{
+	if (parq_optimistic) {
 		avg_bps = bsched_avg_bps(bws.out);
 		avg_bps = MAX(1, avg_bps);
 
