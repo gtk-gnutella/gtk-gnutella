@@ -70,7 +70,7 @@ typedef struct gnet_fi_chunks {
     gboolean old;
 } gnet_fi_chunks_t;
 
-struct dl_file_info {
+typedef struct dl_file_info {
     gnet_fi_t fi_handle;    /**< Handle */
 	gchar *guid;			/**< Unique fileinfo ID */
 	guint32 flags;			/**< Operating flags */
@@ -119,7 +119,7 @@ struct dl_file_info {
 	filesize_t cha1_hashed;	/**< Amount of bytes hashed so far */
 	guint copy_elapsed;		/**< Time spent to copy the file */
 	filesize_t copied;		/**< Amount of bytes copied so far */
-};
+} fileinfo_t;
 
 #define FILE_INFO_COMPLETE(x)	((x)->done == (x)->size && (x)->file_size_known)
 

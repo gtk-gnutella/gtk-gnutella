@@ -101,11 +101,11 @@ gint dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt);
 
 gint dmesh_alternate_location(
 	const gchar *sha1, gchar * buf, size_t size, const host_addr_t addr,
-	time_t last_sent, const gchar *vendor, struct dl_file_info *fi,
+	time_t last_sent, const gchar *vendor, fileinfo_t *fi,
 	gboolean request);
 
 void dmesh_multiple_downloads(
-	gchar *sha1, filesize_t size, struct dl_file_info *fi);
+	gchar *sha1, filesize_t size, fileinfo_t *fi);
 
 void dmesh_check_results_set(gnet_results_set_t *rs);
 

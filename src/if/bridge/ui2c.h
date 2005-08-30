@@ -88,17 +88,17 @@ void guc_download_clear_stopped(gboolean complete,
 void guc_download_auto_new(gchar *file, filesize_t size,
 	guint32 record_index, const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
-	gboolean push, gboolean file_size_known, struct dl_file_info *fi,
+	gboolean push, gboolean file_size_known, fileinfo_t *fi,
 	gnet_host_vec_t *proxies, guint32 flags);
 gboolean guc_download_new(gchar *file, filesize_t size,
 	guint32 record_index, const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
-	gboolean push, struct dl_file_info *fi, gnet_host_vec_t *proxies,
+	gboolean push, fileinfo_t *fi, gnet_host_vec_t *proxies,
 	guint32 flags);
 gboolean guc_download_new_unknown_size(gchar *file,
 	guint32 record_index, const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
-	gboolean push, struct dl_file_info *fi, gnet_host_vec_t *proxies,
+	gboolean push, fileinfo_t *fi, gnet_host_vec_t *proxies,
 	guint32 flags);
 const gchar *guc_download_get_hostname(const struct download *d);
 const gchar *guc_download_get_country(const struct download *d);
@@ -114,8 +114,7 @@ void guc_src_remove_listener(src_listener_t cb,
 	gnet_src_ev_t ev);
 
 /* fileinfo interface functions */
-const gchar *guc_file_info_readable_filename
-	(struct dl_file_info *fi);
+const gchar *guc_file_info_readable_filename(fileinfo_t *fi);
 gnet_fi_info_t *guc_fi_get_info(gnet_fi_t fih);
 void guc_fi_free_info(gnet_fi_info_t *info);
 void guc_fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s);

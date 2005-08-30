@@ -2342,7 +2342,7 @@ search_notify_sent(gpointer search, guint32 id, guint32 node_id)
  */
 static void
 search_check_alt_locs(
-	gnet_results_set_t *rs, gnet_record_t *rc, struct dl_file_info *fi)
+	gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 {
 	gint i;
 	gnet_host_vec_t *alt = rc->alt_locs;
@@ -2386,7 +2386,7 @@ static void
 search_check_results_set(gnet_results_set_t *rs)
 {
 	GSList *sl;
-	struct dl_file_info *fi;
+	fileinfo_t *fi;
 
 	for (sl = rs->records; sl; sl = g_slist_next(sl)) {
 		gnet_record_t *rc = (gnet_record_t *) sl->data;

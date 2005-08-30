@@ -198,7 +198,7 @@ void
 guc_download_auto_new(gchar *file, filesize_t size,
 	guint32 record_index, const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
-	gboolean push, gboolean file_size_known, struct dl_file_info *fi,
+	gboolean push, gboolean file_size_known, fileinfo_t *fi,
 	gnet_host_vec_t *proxies, guint32 flags)
 {
 	download_auto_new(file, size, record_index, addr, port, guid, hostname,
@@ -209,7 +209,7 @@ gboolean
 guc_download_new_unknown_size(gchar *file,
 	guint32 record_index, const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
-			gboolean push, struct dl_file_info *fi,
+			gboolean push, fileinfo_t *fi,
 			gnet_host_vec_t *proxies, guint32 flags)
 {
 	return download_new_unknown_size(file, record_index, addr, port, guid,
@@ -250,7 +250,7 @@ gboolean
 guc_download_new(gchar *file, filesize_t size,
 			guint32 record_index, const host_addr_t addr, guint16 port,
 			const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
-			gboolean push, struct dl_file_info *fi,
+			gboolean push, fileinfo_t *fi,
 			gnet_host_vec_t *proxies, guint32 flags)
 {
 	return download_new(file, size, record_index, addr, port, guid, hostname,
@@ -286,7 +286,7 @@ guc_src_remove_listener(src_listener_t cb, gnet_src_ev_t ev)
 
 /*	fileinfo interface functions (UI -> Core)*/
 const gchar *
-guc_file_info_readable_filename(struct dl_file_info *fi)
+guc_file_info_readable_filename(fileinfo_t *fi)
 {
 	return file_info_readable_filename(fi);
 }

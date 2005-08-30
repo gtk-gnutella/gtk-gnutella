@@ -1121,7 +1121,7 @@ gint
 dmesh_alternate_location(const gchar *sha1,
 	gchar *buf, size_t size, const host_addr_t addr,
 	time_t last_sent, const gchar *vendor,
-	struct dl_file_info *fi, gboolean request)
+	fileinfo_t *fi, gboolean request)
 {
 	gchar url[1024];
 	struct dmesh *dm;
@@ -2178,7 +2178,7 @@ dmesh_check_results_set(gnet_results_set_t *rs)
  * @param `fi' no brief description.
  */
 void
-dmesh_multiple_downloads(gchar *sha1, filesize_t size, struct dl_file_info *fi)
+dmesh_multiple_downloads(gchar *sha1, filesize_t size, fileinfo_t *fi)
 {
 	dmesh_urlinfo_t buffer[DMESH_MAX], *p;
 	gint n;

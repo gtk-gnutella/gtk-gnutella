@@ -56,10 +56,9 @@ void download_init(void);
 void download_restore_state(void);
 void download_store_if_dirty(void);
 void download_timer(time_t now);
-void download_info_change_all(
-	struct dl_file_info *old_fi, struct dl_file_info *new_fi);
+void download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi);
 void download_orphan_new(
-	gchar *file, filesize_t size, gchar *sha1, struct dl_file_info *fi);
+	gchar *file, filesize_t size, gchar *sha1, fileinfo_t *fi);
 void download_queue(struct download *d,
 	const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
 void download_stop(struct download *, guint32,
@@ -92,7 +91,7 @@ void download_move_error(struct download *d);
 
 gboolean download_new_uri(gchar *file, gchar *uri, filesize_t size,
 	const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
-			gchar *sha1, time_t stamp, gboolean push, struct dl_file_info *fi,
+			gchar *sha1, time_t stamp, gboolean push, fileinfo_t *fi,
 			gnet_host_vec_t *proxies, guint32 flags);
 
 guint extract_retry_after(struct download *d, const header_t *header);
