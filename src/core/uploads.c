@@ -4029,6 +4029,7 @@ upload_get_info(gnet_upload_t uh)
     info->country       = u->country;
     info->upload_handle = u->upload_handle;
 	info->push          = u->push;
+	info->encrypted     = u->socket && SOCKET_USES_TLS(u->socket);
 	info->partial       = u->file_info != NULL;
 
     return info;

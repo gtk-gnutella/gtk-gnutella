@@ -256,7 +256,7 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 	if (!host_addr_equal(u->addr, rd->addr)) {
 		rd->addr = u->addr;
 		gtk_list_store_set(store_uploads, &rd->iter,
-			c_ul_host, host_addr_to_string(rd->addr), (-1));
+			c_ul_host, uploads_gui_host_string(u), (-1));
 	}
 
 	if (u->range_start != rd->range_start || u->range_end != rd->range_end) {
@@ -266,18 +266,18 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 		rd->range_end  = u->range_end;
 
 		if (u->range_start == 0 && u->range_end == 0)
-			g_strlcpy(str, "...", sizeof(str));
+			g_strlcpy(str, "...", sizeof str);
 		else {
-			range_len = gm_snprintf(str, sizeof(str), "%s%s",
+			range_len = gm_snprintf(str, sizeof str, "%s%s",
 				u->partial ? "*" : "",
 				short_size(u->range_end - u->range_start + 1));
 
-			if ((guint) range_len < sizeof(str)) {
+			if ((guint) range_len < sizeof str) {
 				if (u->range_start)
 					range_len += gm_snprintf(&str[range_len],
-									sizeof(str)-range_len,
+									sizeof str - range_len,
 									" @ %s", short_size(u->range_start));
-				g_assert((guint) range_len < sizeof(str));
+				g_assert((guint) range_len < sizeof str);
 			}
 		}
 
@@ -346,18 +346,18 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 {
 	gint range_len, progress;
 	const gchar *titles[UPLOADS_GUI_VISIBLE_COLUMNS];
-    upload_row_data_t *rd = walloc(sizeof(*rd));
+    upload_row_data_t *rd = walloc(sizeof *rd);
 	gnet_upload_status_t status;
 	static gchar size_tmp[256];
 
-	memset(titles, 0, sizeof(titles));
+	memset(titles, 0, sizeof titles);
 
     rd->handle      = u->upload_handle;
     rd->range_start = u->range_start;
     rd->range_end   = u->range_end;
 	rd->size		= u->file_size;
     rd->start_date  = u->start_date;
-	rd->addr			= u->addr;
+	rd->addr		= u->addr;
 	rd->name		= NULL != u->name ? atom_str_get(u->name) : NULL;
 	rd->country	    = u->country;
 	rd->user_agent	= NULL != u->user_agent
@@ -373,21 +373,21 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
     else {
 		static gchar range_tmp[256];	/* MUST be static! */
 
-        range_len = gm_snprintf(range_tmp, sizeof(range_tmp), "%s%s",
+        range_len = gm_snprintf(range_tmp, sizeof range_tmp, "%s%s",
 			u->partial ? "*" : "",
             short_size(u->range_end - u->range_start + 1));
 
         if (u->range_start)
             range_len += gm_snprintf(
-                &range_tmp[range_len], sizeof(range_tmp)-range_len,
+                &range_tmp[range_len], sizeof range_tmp - range_len,
                 " @ %s", short_size(u->range_start));
 
-        g_assert((guint) range_len < sizeof(range_tmp));
+        g_assert((guint) range_len < sizeof range_tmp);
 
         titles[c_ul_range] = range_tmp;
     }
 
-	g_strlcpy(size_tmp, short_size(u->file_size), sizeof(size_tmp));
+	g_strlcpy(size_tmp, short_size(u->file_size), sizeof size_tmp);
     titles[c_ul_size] = size_tmp;
 
 	if (NULL != u->user_agent) {
@@ -407,7 +407,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 
 	titles[c_ul_filename] = NULL != u->name
 								? lazy_locale_to_utf8(u->name) : "...";
-	titles[c_ul_host]     = host_addr_to_string(u->addr);
+	titles[c_ul_host] = uploads_gui_host_string(u);
 	titles[c_ul_status] = uploads_gui_status_str(&status, rd);
 
 	progress = 100.0 * uploads_gui_progress(&status, rd);
@@ -585,7 +585,7 @@ free_row_data(upload_row_data_t *rd, gpointer user_data)
 		atom_str_free(rd->name);
 		rd->user_agent = NULL;
 	}
-	wfree(rd, sizeof(*rd));
+	wfree(rd, sizeof *rd);
 }
 
 static inline void

@@ -40,13 +40,12 @@ RCSID("$Id$");
 #define IO_STALLED		60		/**< If nothing exchanged after that many secs */
 
 /**
- * uploads_gui_progress
  *
  * @returns a floating point value from [0:1] which indicates
  * the total progress of the upload.
  */
-gfloat uploads_gui_progress(
-	const gnet_upload_status_t *u,
+gfloat
+uploads_gui_progress(const gnet_upload_status_t *u,
 	const upload_row_data_t *data)
 {
 	gfloat progress = 0.0;
@@ -250,5 +249,19 @@ upload_should_remove(time_t now, const upload_row_data_t *ul)
 
 	return FALSE;
 }
+
+/**
+ * @return A pointer to a static buffer holding the host address as string.
+ */
+const gchar * 
+uploads_gui_host_string(const gnet_upload_info_t *u)
+{
+	static gchar buf[MAX_HOSTLEN + sizeof " (E)"];
+
+	concat_strings(buf, sizeof buf,
+		host_addr_to_string(u->addr), u->encrypted ? " (E)" : "", (void *) 0);
+	return buf;
+}
+
 
 /* vi: set ts=4 sw=4 cindent: */

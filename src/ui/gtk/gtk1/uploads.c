@@ -214,7 +214,7 @@ uploads_gui_update_upload_info(gnet_upload_info_t *u)
 	gtk_clist_set_text(clist_uploads, row, c_ul_filename,
 		(u->name != NULL) ? u->name : "...");
 	gtk_clist_set_text(clist_uploads, row, c_ul_host,
-			host_addr_to_string(u->addr));
+			uploads_gui_host_string(u));
 	gtk_clist_set_text(clist_uploads, row, c_ul_agent,
 		(u->user_agent != NULL) ? u->user_agent : "...");
 
@@ -285,7 +285,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
     }
 
 	titles[c_ul_filename] = (u->name != NULL) ? u->name : "...";
-	titles[c_ul_host]     = host_addr_to_string(u->addr);
+	titles[c_ul_host]     = uploads_gui_host_string(u);
 	titles[c_ul_loc]      = iso3166_country_cc(u->country);
     titles[c_ul_agent]    = (u->user_agent != NULL) ? u->user_agent : "...";
 	titles[c_ul_progress]   = "...";

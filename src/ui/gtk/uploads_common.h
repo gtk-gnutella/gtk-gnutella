@@ -34,5 +34,6 @@ gfloat uploads_gui_progress(
 const gchar *uploads_gui_status_str(
     const gnet_upload_status_t *u, const upload_row_data_t *data);
 gboolean upload_should_remove(time_t now, const upload_row_data_t *ul);
+const gchar *uploads_gui_host_string(const gnet_upload_info_t *u);
 
 #endif /* _gtk_uploads_common_h_ */

@@ -81,6 +81,7 @@ typedef struct gnet_upload_info {
 	gint   country;  	/**< Contry of origin */
 	gboolean push;		/**< Whether we're pushing or not */
 	gboolean partial;	/**< Whether it's a partial file */
+	gboolean encrypted; /**< Whether the connection is (TLS) encrypted */
 } gnet_upload_info_t;
 
 /*
