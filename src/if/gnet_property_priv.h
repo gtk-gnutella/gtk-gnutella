@@ -98,6 +98,7 @@ extern const guint32  hard_ttl_limit;
 extern const guint32  dbg;
 extern const guint32  http_debug;
 extern const guint32  download_debug;
+extern const guint32  fileinfo_debug;
 extern const guint32  upload_debug;
 extern const guint32  lib_debug;
 extern const guint32  bitzi_debug;

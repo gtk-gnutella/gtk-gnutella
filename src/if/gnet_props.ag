@@ -684,6 +684,15 @@ prop = {
 };
 
 prop = {
+    name = "fileinfo_debug";
+    desc = "Debug level for fileinfo.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
     name = "upload_debug";
     desc = "Debug level for uploads.";
     type = guint32;
@@ -880,8 +889,8 @@ prop = {
 prop = {
 	name = "parq_optimistic";
 	desc = "If set, PARQ will calculate its ETA and retry times more "
-		   "optimistic. If not set PARQ will caclulate using a worst case "
-		   "scenario.";
+		   "optimistically. If not set PARQ will caclulate using a worst "
+		   "case scenario.  The default is to be optimistic.";
 	type = boolean;
 	data = {
 		default = TRUE;
