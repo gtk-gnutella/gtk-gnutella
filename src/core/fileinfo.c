@@ -322,10 +322,10 @@ struct trailer {
 	fi_magic_t magic;		/**< Magic number */
 };
 
-static struct dl_file_info *file_info_retrieve_binary(
+static fileinfo_t *file_info_retrieve_binary(
 	const gchar *file, const gchar *path);
-static void fi_free(struct dl_file_info *fi);
-static void file_info_hash_remove(struct dl_file_info *fi);
+static void fi_free(fileinfo_t *fi);
+static void file_info_hash_remove(fileinfo_t *fi);
 static void fi_update_seen_on_network(gnet_src_t srcid);
 static gchar *file_info_new_outname(const gchar *name, const gchar *dir);
 static gboolean looks_like_urn(const gchar *filename);
@@ -333,7 +333,7 @@ static gboolean looks_like_urn(const gchar *filename);
 static idtable_t *fi_handle_map = NULL;
 
 #define file_info_find_by_handle(n) \
-    (struct dl_file_info *) idtable_get_value(fi_handle_map, n)
+    (fileinfo_t *) idtable_get_value(fi_handle_map, n)
 
 #define file_info_request_handle(n) \
     idtable_new_id(fi_handle_map, n)
@@ -422,10 +422,18 @@ file_info_checksum(guint32 *checksum, gchar *d, int len)
  * @return TRUE if chunklist is consistent, FALSE otherwise.
  */
 static gboolean
-file_info_check_chunklist(struct dl_file_info *fi)
+file_info_check_chunklist(fileinfo_t *fi, gboolean assertion)
 {
 	GSList *sl;
 	filesize_t last = 0;
+
+	/*
+	 * This routine ends up being a CPU hog when all the asserts using it
+	 * are run.  Do that only when debugging.
+	 */
+
+	if (assertion && !fileinfo_debug)
+		return TRUE;
 
 	g_assert(NULL != fi);
 
@@ -455,7 +463,7 @@ file_info_check_chunklist(struct dl_file_info *fi)
  * have elapsed since last flush to disk.
  */
 static void
-file_info_fd_store_binary(struct dl_file_info *fi, int fd, gboolean force)
+file_info_fd_store_binary(fileinfo_t *fi, int fd, gboolean force)
 {
 	GSList *fclist;
 	GSList *a;
@@ -514,7 +522,7 @@ file_info_fd_store_binary(struct dl_file_info *fi, int fd, gboolean force)
 			FIELD_ADD(FILE_INFO_FIELD_ALIAS, len, a->data);
 	}
 
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		struct dl_file_chunk *fc = fclist->data;
 		guint32 from_hi = (guint64) fc->from >> 32;
@@ -557,7 +565,7 @@ file_info_fd_store_binary(struct dl_file_info *fi, int fd, gboolean force)
  * output file, if it exists.
  */
 void
-file_info_store_binary(struct dl_file_info *fi)
+file_info_store_binary(fileinfo_t *fi)
 {
 	int fd;
 	char *path;
@@ -588,7 +596,7 @@ file_info_store_binary(struct dl_file_info *fi)
  * Strips the file metainfo trailer off a file.
  */
 void
-file_info_strip_binary(struct dl_file_info *fi)
+file_info_strip_binary(fileinfo_t *fi)
 {
 	char *path;
 
@@ -605,9 +613,9 @@ file_info_strip_binary(struct dl_file_info *fi)
  * Strips the file metainfo trailer off specified file.
  */
 void
-file_info_strip_binary_from_file(struct dl_file_info *fi, const gchar *file)
+file_info_strip_binary_from_file(fileinfo_t *fi, const gchar *file)
 {
-	struct dl_file_info *dfi;
+	fileinfo_t *dfi;
 
 	g_assert(G_DIR_SEPARATOR == file[0]);	/* Absolute path given */
 
@@ -649,7 +657,7 @@ file_info_strip_binary_from_file(struct dl_file_info *fi, const gchar *file)
  * @param fi the fileinfo struct.
  */
 static void
-file_info_chunklist_free(struct dl_file_info *fi)
+file_info_chunklist_free(fileinfo_t *fi)
 {
 	GSList *sl;
 
@@ -665,7 +673,7 @@ file_info_chunklist_free(struct dl_file_info *fi)
  * Free a `file_info' structure.
  */
 static void
-fi_free(struct dl_file_info *fi)
+fi_free(fileinfo_t *fi)
 {
 	g_assert(fi);
 	g_assert(!fi->hashed);
@@ -692,7 +700,7 @@ fi_free(struct dl_file_info *fi)
 	if (fi->cha1)
 		atom_sha1_free(fi->cha1);
 	if (fi->chunklist) {
-		g_assert(file_info_check_chunklist(fi));
+		g_assert(file_info_check_chunklist(fi, TRUE));
 		file_info_chunklist_free(fi);
 	}
 	if (fi->alias) {
@@ -711,7 +719,7 @@ fi_free(struct dl_file_info *fi)
  * Resize fileinfo to be `size' bytes, by adding empty chunk at the tail.
  */
 static void
-fi_resize(struct dl_file_info *fi, filesize_t size)
+fi_resize(fileinfo_t *fi, filesize_t size)
 {
 	struct dl_file_chunk *fc;
 
@@ -735,7 +743,7 @@ fi_resize(struct dl_file_info *fi, filesize_t size)
 	atom_uint64_free(fi->size_atom);
 	fi->size = size;
 	fi->size_atom = atom_uint64_get(&size);
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 }
 
 /**
@@ -743,7 +751,7 @@ fi_resize(struct dl_file_info *fi, filesize_t size)
  * If `record' is TRUE, also record new alias entry in `fi_by_namesize'.
  */
 static void
-fi_alias(struct dl_file_info *fi, gchar *name, gboolean record)
+fi_alias(fileinfo_t *fi, gchar *name, gboolean record)
 {
 	namesize_t nsk;
 	GSList *list;
@@ -917,7 +925,7 @@ file_info_has_trailer(const gchar *path)
  * and FALSE if not.
  */
 static gboolean
-file_info_has_filename(struct dl_file_info *fi, gchar *file)
+file_info_has_filename(fileinfo_t *fi, gchar *file)
 {
 	GSList *sl;
 
@@ -949,10 +957,10 @@ file_info_has_filename(struct dl_file_info *fi, gchar *file)
  *
  * @returns the fileinfo structure if found, NULL otherwise.
  */
-static struct dl_file_info *
+static fileinfo_t *
 file_info_lookup(gchar *name, filesize_t size, const gchar *sha1)
 {
-	struct dl_file_info *fi;
+	fileinfo_t *fi;
 	struct namesize nsk;
 	GSList *list, *sl;
 
@@ -1023,10 +1031,10 @@ file_info_lookup(gchar *name, filesize_t size, const gchar *sha1)
  *
  * @returns the duplicate found, or NULL if no duplicate was found.
  */
-static struct dl_file_info *
-file_info_lookup_dup(struct dl_file_info *fi)
+static fileinfo_t *
+file_info_lookup_dup(fileinfo_t *fi)
 {
-	struct dl_file_info *dfi;
+	fileinfo_t *dfi;
 
 	dfi = g_hash_table_lookup(fi_by_outname, fi->file_name);
 
@@ -1088,7 +1096,7 @@ looks_like_urn(const gchar *filename)
  * duplicated should it be perused later.
  */
 const gchar *
-file_info_readable_filename(const struct dl_file_info *fi)
+file_info_readable_filename(const fileinfo_t *fi)
 {
 	const GSList *sl;
 
@@ -1116,7 +1124,7 @@ file_info_readable_filename(const struct dl_file_info *fi)
 shared_file_t *
 file_info_shared_sha1(const gchar *sha1)
 {
-	struct dl_file_info *fi;
+	fileinfo_t *fi;
 
 	fi = g_hash_table_lookup(fi_by_sha1, sha1);
 
@@ -1223,7 +1231,7 @@ fi_random_guid_atom(void)
  * @return TRUE if an upgrade was necessary.
  */
 static gboolean
-fi_upgrade_older_version(struct dl_file_info *fi)
+fi_upgrade_older_version(fileinfo_t *fi)
 {
 	gboolean upgraded = FALSE;
 
@@ -1267,13 +1275,13 @@ fi_upgrade_older_version(struct dl_file_info *fi)
  *
  * @returns a pointer to the info structure if found, and NULL otherwise.
  */
-static struct dl_file_info *
+static fileinfo_t *
 file_info_retrieve_binary(const gchar *file, const gchar *path)
 {
 	guint32 tmpchunk[5];
 	guint32 tmpguint;
 	guint32 checksum = 0;
-	struct dl_file_info *fi = NULL;
+	fileinfo_t *fi = NULL;
 	enum dl_file_info_field field;
 	gchar tmp[FI_MAX_FIELD_LEN + 1];	/* +1 for trailing NUL on strings */
 	gchar *reason;
@@ -1476,7 +1484,7 @@ G_STMT_START {				\
 	}
 
 	fi->chunklist = g_slist_reverse(chunklist);
-	if (!file_info_check_chunklist(fi)) {
+	if (!file_info_check_chunklist(fi, FALSE)) {
 		file_info_chunklist_free(fi);
 		BAILOUT("File contains inconsistent chunk list");
 		/* NOT REACHED */
@@ -1523,7 +1531,7 @@ G_STMT_START {				\
 
 	file_info_merge_adjacent(fi);	/* Update fi->done */
 
-	if (dbg > 3)
+	if (fileinfo_debug > 3)
 		g_message("FILEINFO: "
 			"good trailer info (v%u, %s bytes) in \"%s\"",
 			version, uint64_to_string(trailer.length), pathname);
@@ -1553,7 +1561,7 @@ eof:
  * appends it to the output file in question if needed.
  */
 static void
-file_info_store_one(FILE *f, struct dl_file_info *fi)
+file_info_store_one(FILE *f, fileinfo_t *fi)
 {
 	GSList *fclist;
 	GSList *a;
@@ -1615,7 +1623,7 @@ file_info_store_one(FILE *f, struct dl_file_info *fi)
 	fprintf(f, "NTIM %s\n", uint64_to_string(fi->ntime));
 	fprintf(f, "SWRM %d\n", fi->use_swarming ? 1 : 0);
 
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		fc = fclist->data;
 		fprintf(f, "CHNK %s %s %u\n",
@@ -1632,11 +1640,11 @@ static void
 file_info_store_list(gpointer key, gpointer val, gpointer x)
 {
 	GSList *sl;
-	struct dl_file_info *fi;
+	fileinfo_t *fi;
 	FILE *f = (FILE *)x;
 
 	for (sl = (GSList *) val; sl; sl = g_slist_next(sl)) {
-		fi = (struct dl_file_info *) sl->data;
+		fi = (fileinfo_t *) sl->data;
 		g_assert(*(const filesize_t *) key == fi->size);
 		file_info_store_one(f, fi);
 	}
@@ -1707,7 +1715,7 @@ static void
 file_info_free_sha1_kv(gpointer key, gpointer val, gpointer unused_x)
 {
 	const gchar *sha1 = (const gchar *) key;
-	const struct dl_file_info *fi = (const struct dl_file_info *) val;
+	const fileinfo_t *fi = (const fileinfo_t *) val;
 
 	(void) unused_x;
 	g_assert(sha1 == fi->sha1);		/* SHA1 shared with fi's, don't free */
@@ -1753,7 +1761,7 @@ static void
 file_info_free_guid_kv(gpointer key, gpointer val, gpointer unused_x)
 {
 	const gchar *guid = (const gchar *) key;
-	const struct dl_file_info *fi = (const struct dl_file_info *) val;
+	const fileinfo_t *fi = (const fileinfo_t *) val;
 
 	(void) unused_x;
 	g_assert(guid == fi->guid);		/* GUID shared with fi's, don't free */
@@ -1768,7 +1776,7 @@ static void
 file_info_free_outname_kv(gpointer key, gpointer val, gpointer unused_x)
 {
 	const gchar *name = (const gchar *) key;
-	struct dl_file_info *fi = (struct dl_file_info *) val;
+	fileinfo_t *fi = (fileinfo_t *) val;
 
 	(void) unused_x;
 	g_assert(name == fi->file_name);	/* name shared with fi's, don't free */
@@ -1861,9 +1869,9 @@ file_info_close(void)
  * Inserts a file_info struct into the hash tables.
  */
 static void
-file_info_hash_insert(struct dl_file_info *fi)
+file_info_hash_insert(fileinfo_t *fi)
 {
-	struct dl_file_info *xfi;
+	fileinfo_t *xfi;
 	namesize_t nsk;
 	GSList *l;
 
@@ -1872,7 +1880,7 @@ file_info_hash_insert(struct dl_file_info *fi)
 	g_assert(fi->size_atom);
 	g_assert(fi->guid);
 
-	if (dbg > 4) {
+	if (fileinfo_debug > 4) {
 		printf("FILEINFO insert 0x%p \"%s\" "
 			"(%s/%s bytes done) sha1=%s\n",
 			cast_to_gconstpointer(fi), fi->file_name,
@@ -1981,7 +1989,7 @@ file_info_hash_insert(struct dl_file_info *fi)
  * Remove fileinfo data from all the hash tables.
  */
 static void
-file_info_hash_remove(struct dl_file_info *fi)
+file_info_hash_remove(fileinfo_t *fi)
 {
 	namesize_t nsk;
 	gboolean found;
@@ -1993,7 +2001,7 @@ file_info_hash_remove(struct dl_file_info *fi)
 	g_assert(fi->size_atom);
 	g_assert(fi->guid);
 
-	if (dbg > 4) {
+	if (fileinfo_debug > 4) {
 		g_message("FILEINFO remove 0x%lx \"%s\" "
 			"(%s/%s bytes done) sha1=%s\n",
 			(gulong) fi, fi->file_name,
@@ -2085,7 +2093,7 @@ file_info_hash_remove(struct dl_file_info *fi)
  * Stop all sharing occuring for this fileinfo.
  */
 void
-file_info_upload_stop(struct dl_file_info *fi, const gchar *reason)
+file_info_upload_stop(fileinfo_t *fi, const gchar *reason)
 {
 	upload_stop_all(fi, reason);
 	shared_file_unref(fi->sf);
@@ -2096,7 +2104,7 @@ file_info_upload_stop(struct dl_file_info *fi, const gchar *reason)
  * Unlink file from disk.
  */
 void
-file_info_unlink(struct dl_file_info *fi)
+file_info_unlink(fileinfo_t *fi)
 {
 	char *path;
 
@@ -2136,8 +2144,7 @@ file_info_unlink(struct dl_file_info *fi)
  * Reparent all downloads using `from' as a fileinfo, so they use `to' now.
  */
 static void
-file_info_reparent_all(
-	struct dl_file_info *from, struct dl_file_info *to)
+file_info_reparent_all(fileinfo_t *from, fileinfo_t *to)
 {
 	g_assert(0 == from->done);
 	g_assert(0 != strcmp(from->file_name, to->file_name));
@@ -2165,9 +2172,9 @@ file_info_reparent_all(
  * @returns TRUE if OK, FALSE if a duplicate record with the same SHA1 exists.
  */
 gboolean
-file_info_got_sha1(struct dl_file_info *fi, const gchar *sha1)
+file_info_got_sha1(fileinfo_t *fi, const gchar *sha1)
 {
-	struct dl_file_info *xfi;
+	fileinfo_t *xfi;
 
 	g_assert(fi);
 	g_assert(sha1);
@@ -2195,7 +2202,7 @@ file_info_got_sha1(struct dl_file_info *fi, const gchar *sha1)
 	 * XXX		--RAM, 05/09/2002
 	 */
 
-	if (dbg > 3) {
+	if (fileinfo_debug > 3) {
 		gchar buf[64];
 
 		concat_strings(buf, sizeof buf,
@@ -2341,6 +2348,57 @@ file_info_string_to_tag(const gchar *s)
 }
 
 /**
+ * Reset CHUNK info: everything will have to be downloaded again
+ */
+static void
+fi_reset_chunks(fileinfo_t *fi)
+{
+	if (fi->file_size_known) {
+		struct dl_file_chunk *fc;
+
+		fc = walloc0(sizeof *fc);
+		fc->from = 0;
+		fc->to = fi->size;
+		fc->status = DL_CHUNK_EMPTY;
+		fi->chunklist = g_slist_append(fi->chunklist, fc);
+	}
+
+	fi->generation = 0;		/* Restarting from scratch... */
+	fi->done = 0;
+	if (NULL != fi->cha1) {
+		atom_sha1_free(fi->cha1);
+		fi->cha1 = NULL;
+	}
+}
+
+/**
+ * Copy CHUNK info from binary trailer `trailer' into `fi'.
+ */
+static void
+fi_copy_chunks(fileinfo_t *fi, fileinfo_t *trailer)
+{
+	GSList *sl;
+
+	fi->generation = trailer->generation;
+	if (trailer->cha1)
+		fi->cha1 = atom_sha1_get(trailer->cha1);
+
+	for (sl = trailer->chunklist; NULL != sl; sl = g_slist_next(sl)) {
+		struct dl_file_chunk *fc = sl->data;
+		struct dl_file_chunk *nfc;
+
+		nfc = wcopy(fc, sizeof *fc);
+
+		/* Prepend now and reverse later for better efficiency */
+		fi->chunklist = g_slist_prepend(fi->chunklist, fc);
+	}
+
+	fi->chunklist = g_slist_reverse(fi->chunklist);
+
+	file_info_merge_adjacent(fi); /* Recalculates also fi->done */
+}
+
+/**
  * Loads the fileinfo database from disk, and saves a copy in fileinfo.orig.
  */
 void
@@ -2348,7 +2406,7 @@ file_info_retrieve(void)
 {
 	FILE *f;
 	gchar line[1024];
-	struct dl_file_info *fi = NULL;
+	fileinfo_t *fi = NULL;
 	gboolean empty = TRUE;
 	gboolean last_was_truncated = FALSE;
 	file_path_t fp;
@@ -2415,8 +2473,9 @@ file_info_retrieve(void)
 		str_chomp(line, len);
 
 		if ('\0' == *line && fi) {
-			struct dl_file_info *dfi;
+			fileinfo_t *dfi;
 			gboolean upgraded;
+			gboolean reload_chunks = FALSE;
 
 			if (!(fi->file_name && fi->path)) {
 				/* There's an incomplete fileinfo record */
@@ -2458,25 +2517,19 @@ file_info_retrieve(void)
 			 */
 
 			if (NULL == fi->chunklist) {
-				if (fi->file_size_known) {
-					struct dl_file_chunk *fc;
-
-					g_warning("no CHNK info for \"%s\" -- assuming empty file",
+				if (fi->file_size_known)
+					g_warning("no CHNK info for \"%s\"", fi->file_name);
+				fi_reset_chunks(fi);
+				reload_chunks = TRUE;	/* Will try to grab from trailer */
+			} else if (!file_info_check_chunklist(fi, FALSE)) {
+				if (fi->file_size_known)
+					g_warning("invalid set of CHNK info for \"%s\"",
 						fi->file_name);
-					fc = walloc0(sizeof *fc);
-					fc->from = 0;
-					fc->to = fi->size;
-					fc->status = DL_CHUNK_EMPTY;
-					fi->chunklist = g_slist_append(fi->chunklist, fc);
-				}
-				fi->generation = 0;		/* Restarting from scratch... */
-				fi->done = 0;
-				if (NULL != fi->cha1) {
-					atom_sha1_free(fi->cha1);
-					fi->cha1 = NULL;
-				}
+				fi_reset_chunks(fi);
+				reload_chunks = TRUE;	/* Will try to grab from trailer */
 			}
-			g_assert(file_info_check_chunklist(fi));
+
+			g_assert(file_info_check_chunklist(fi, TRUE));
 
 			file_info_merge_adjacent(fi); /* Recalculates also fi->done */
 
@@ -2529,6 +2582,24 @@ file_info_retrieve(void)
 			 */
 
 			dfi = file_info_retrieve_binary(fi->file_name, fi->path);
+
+			/*
+			 * If we resetted the CHNK list above, grab those from the
+			 * trailer: that cannot be worse than having to download
+			 * everything again...  If there was no valid trailer, all the
+			 * data are lost and the whole file will need to be grabbed again.
+			 */
+
+			if (dfi != NULL && reload_chunks) {
+				fi_copy_chunks(fi, dfi);
+				if (fi->chunklist) g_message(
+					"recovered %lu downloaded bytes from trailer of \"%s\"",
+						(gulong) fi->done, fi->file_name);
+			} else if (reload_chunks)
+				g_warning("lost all CHNK info for \"%s\" -- downloading again",
+					fi->file_name);
+
+			g_assert(file_info_check_chunklist(fi, TRUE));
 
 			/*
 			 * Special treatment for the GUID: if not present, it will be
@@ -2948,11 +3019,11 @@ ok:
  * The given `size' argument reflect the final size of the (complete) file.
  * The `sha1' is the known SHA1 for the file (NULL if unknown).
  */
-static struct dl_file_info *
+static fileinfo_t *
 file_info_create(gchar *file, const gchar *path, filesize_t size,
 	const gchar *sha1, gboolean file_size_known)
 {
-	struct dl_file_info *fi;
+	fileinfo_t *fi;
 	struct stat st;
 	char *pathname;
 
@@ -3010,7 +3081,7 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
  * trailer so that we do not try to reparent it at a later time.
  */
 static void
-fi_rename_dead(struct dl_file_info *fi,
+fi_rename_dead(fileinfo_t *fi,
 	const gchar *path, const gchar *basename)
 {
 	gchar *dead;
@@ -3048,11 +3119,11 @@ done:
  * @returns a pointer to file_info struct that matches the given file
  * name, size and/or SHA1. A new struct will be allocated if necessary.
  */
-struct dl_file_info *
+fileinfo_t *
 file_info_get(gchar *file, const gchar *path, filesize_t size, gchar *sha1,
 	gboolean file_size_known)
 {
-	struct dl_file_info *fi;
+	fileinfo_t *fi;
 	gchar *outname;
 
 	/*
@@ -3180,13 +3251,13 @@ file_info_get(gchar *file, const gchar *path, filesize_t size, gchar *sha1,
  * identical to the given properties in the download queue already,
  * and NULL otherwise.
  */
-struct dl_file_info *
+fileinfo_t *
 file_info_has_identical(gchar *file, filesize_t size, gchar *sha1)
 {
 	GSList *p;
 	GSList *sizelist;
 	GSList *list;
-	struct dl_file_info *fi;
+	fileinfo_t *fi;
 	namesize_t nsk;
 
 	/*
@@ -3233,7 +3304,7 @@ file_info_has_identical(gchar *file, filesize_t size, gchar *sha1)
 	 */
 
 	for (p = sizelist; p; p = p->next) {
-		fi = (struct dl_file_info *) p->data;
+		fi = (fileinfo_t *) p->data;
 
 		/* FIXME: FILE_SIZE_KNOWN: Should we provide another lookup?
 		 *	-- JA 2004-07-21
@@ -3266,7 +3337,7 @@ file_info_has_identical(gchar *file, filesize_t size, gchar *sha1)
  * Set or clear the discard state for a fileinfo.
  */
 void
-file_info_set_discard(struct dl_file_info *fi, gboolean state)
+file_info_set_discard(fileinfo_t *fi, gboolean state)
 {
 	g_assert(fi);
 
@@ -3281,13 +3352,13 @@ file_info_set_discard(struct dl_file_info *fi, gboolean state)
  * same status and download. Keeps the chunk list short and tidy.
  */
 void
-file_info_merge_adjacent(struct dl_file_info *fi)
+file_info_merge_adjacent(fileinfo_t *fi)
 {
 	GSList *fclist;
 	gboolean restart;
 	filesize_t done;
 
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 	
 	do {
 		struct dl_file_chunk *fc1, *fc2;
@@ -3318,7 +3389,7 @@ file_info_merge_adjacent(struct dl_file_info *fi)
 	} while (restart);
 
 	fi->done = done;
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 }
 
 /**
@@ -3334,7 +3405,7 @@ file_info_update(struct download *d, filesize_t from, filesize_t to,
 {
 	GSList *fclist;
 	int n;
-	struct dl_file_info *fi = d->file_info;
+	fileinfo_t *fi = d->file_info;
 	struct dl_file_chunk *fc, *nfc;
 	struct dl_file_chunk *prevfc;
 	gboolean found = FALSE;
@@ -3345,7 +3416,7 @@ file_info_update(struct download *d, filesize_t from, filesize_t to,
 	g_assert(fi->refcount > 0);
 	g_assert(fi->lifecount > 0);
 	g_assert(from < to);
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	fi->stamp = time(NULL);
 
@@ -3395,7 +3466,7 @@ again:
 			fc->status = status;
 			fc->download = newval;
 			found = TRUE;
-			g_assert(file_info_check_chunklist(fi));
+			g_assert(file_info_check_chunklist(fi, TRUE));
 			break;
 
 		} else if ((fc->from == from) && (fc->to < to)) {
@@ -3410,7 +3481,7 @@ again:
 			fc->status = status;
 			fc->download = newval;
 			from = fc->to;
-			g_assert(file_info_check_chunklist(fi));
+			g_assert(file_info_check_chunklist(fi, TRUE));
 			continue;
 
 		} else if ((fc->from == from) && (fc->to > to)) {
@@ -3429,7 +3500,7 @@ again:
 				g_assert(prevfc->to == fc->from);
 				prevfc->to = to;
 				fc->from = to;
-				g_assert(file_info_check_chunklist(fi));
+				g_assert(file_info_check_chunklist(fi, TRUE));
 			} else {
 				nfc = walloc(sizeof *nfc);
 				nfc->from = to;
@@ -3441,7 +3512,7 @@ again:
 				fc->status = status;
 				fc->download = newval;
 				gm_slist_insert_after(fi->chunklist, fclist, nfc);
-				g_assert(file_info_check_chunklist(fi));
+				g_assert(file_info_check_chunklist(fi, TRUE));
 			}
 
 			found = TRUE;
@@ -3478,7 +3549,7 @@ again:
 			fc->to = from;
 
 			found = TRUE;
-			g_assert(file_info_check_chunklist(fi));
+			g_assert(file_info_check_chunklist(fi, TRUE));
 			break;
 
 		} else if ((fc->from < from) && (fc->to < to)) {
@@ -3501,7 +3572,7 @@ again:
 			tmp = fc->to;
 			fc->to = from;
 			from = tmp;
-			g_assert(file_info_check_chunklist(fi));
+			g_assert(file_info_check_chunklist(fi, TRUE));
 			goto again;
 		}
 	}
@@ -3523,7 +3594,7 @@ again:
 	if (need_merging)
 		file_info_merge_adjacent(fi);		/* Also updates fi->done */
 
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	/*
 	 * When status is DL_CHUNK_DONE, we're coming from an "active" download,
@@ -3551,10 +3622,10 @@ file_info_clear_download(struct download *d, gboolean lifecount)
 {
 	GSList *fclist;
 	struct dl_file_chunk *fc;
-	struct dl_file_info *fi = d->file_info;
+	fileinfo_t *fi = d->file_info;
 	gint busy;			/**< For assertions only */
 
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 	for (fclist = fi->chunklist, busy = 0; fclist; fclist = fclist->next) {
 		fc = fclist->data;
 		if (DL_CHUNK_BUSY == fc->status)
@@ -3583,12 +3654,12 @@ file_info_clear_download(struct download *d, gboolean lifecount)
  * Reset all chunks to EMPTY, clear computed SHA1 if any.
  */
 void
-file_info_reset(struct dl_file_info *fi)
+file_info_reset(fileinfo_t *fi)
 {
 	GSList *l;
 	struct dl_file_chunk *fc;
 
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	if (fi->cha1) {
 		atom_sha1_free(fi->cha1);
@@ -3626,12 +3697,12 @@ restart:
  * checking.
  */
 enum dl_chunk_status
-file_info_chunk_status(struct dl_file_info *fi, filesize_t from, filesize_t to)
+file_info_chunk_status(fileinfo_t *fi, filesize_t from, filesize_t to)
 {
 	GSList *fclist;
 	struct dl_file_chunk *fc;
 
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		fc = fclist->data;
@@ -3653,13 +3724,13 @@ file_info_chunk_status(struct dl_file_info *fi, filesize_t from, filesize_t to)
  * Used to detect if a download is crashing with another.
  */
 enum dl_chunk_status
-file_info_pos_status(struct dl_file_info *fi, filesize_t pos /* XXX,
+file_info_pos_status(fileinfo_t *fi, filesize_t pos /* XXX,
 	filesize_t *start, filesize_t *end */)
 {
 	GSList *fclist;
 	struct dl_file_chunk *fc;
 
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		fc = fclist->data;
@@ -3696,7 +3767,7 @@ file_info_pos_status(struct dl_file_info *fi, filesize_t pos /* XXX,
  * 		--RAM, 21/08/2002.
  */
 static void
-fi_check_file(struct dl_file_info *fi)
+fi_check_file(fileinfo_t *fi)
 {
 	char *path;
 	struct stat buf;
@@ -3721,12 +3792,12 @@ fi_check_file(struct dl_file_info *fi)
  * Count the amount of BUSY chunks attached to a given download.
  */
 static gint
-fi_busy_count(struct dl_file_info *fi, struct download *d)
+fi_busy_count(fileinfo_t *fi, struct download *d)
 {
 	GSList *l;
 	gint count = 0;
 
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	for (l = fi->chunklist; l; l = g_slist_next(l)) {
 		struct dl_file_chunk *fc = l->data;
@@ -3747,7 +3818,7 @@ fi_busy_count(struct dl_file_info *fi, struct download *d)
  * returned.
  */
 static GSList *
-list_clone_shift(struct dl_file_info *fi)
+list_clone_shift(fileinfo_t *fi)
 {
 	struct dl_file_chunk *fc;
 	filesize_t offset;
@@ -3755,7 +3826,7 @@ list_clone_shift(struct dl_file_info *fi)
 	GSList *l;
 	GSList *tail;
 
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	fc = fi->chunklist->data;		/* First chunk */
 
@@ -3812,7 +3883,7 @@ list_clone_shift(struct dl_file_info *fi)
 			}
 		}
 
-		g_assert(file_info_check_chunklist(fi));
+		g_assert(file_info_check_chunklist(fi, TRUE));
 	}
 
 	/*
@@ -3855,7 +3926,7 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 {
 	GSList *fclist;
 	struct dl_file_chunk *fc;
-	struct dl_file_info *fi = d->file_info;
+	fileinfo_t *fi = d->file_info;
 	filesize_t chunksize;
 	guint busy = 0;
 	GSList *cklist;
@@ -3864,7 +3935,7 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 	g_assert(fi->refcount > 0);
 	g_assert(fi->lifecount > 0);
 	g_assert(0 == fi_busy_count(fi, d));	/* No reservation for `d' yet */
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	/*
 	 * Ensure the file has not disappeared.
@@ -3991,7 +4062,7 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 
 selected:	/* Selected a hole to download */
 
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	if (cloned)
 		g_slist_free(cklist);
@@ -4014,7 +4085,7 @@ file_info_find_available_hole(
 	struct download *d, GSList *ranges, filesize_t *from, filesize_t *to)
 {
 	GSList *fclist;
-	struct dl_file_info *fi;
+	fileinfo_t *fi;
 	filesize_t chunksize;
 	GSList *cklist;
 	gboolean cloned = FALSE;
@@ -4023,7 +4094,7 @@ file_info_find_available_hole(
 	g_assert(ranges);
 
 	fi = d->file_info;
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	/*
 	 * Ensure the file has not disappeared.
@@ -4112,7 +4183,7 @@ found:
 /**
  * @return a dl_file_info if there's an active one with the same sha1.
  */
-static struct dl_file_info *
+static fileinfo_t *
 file_info_active(const gchar *sha1)
 {
 	return g_hash_table_lookup(fi_by_sha1, sha1);
@@ -4135,7 +4206,7 @@ file_info_try_to_swarm_with(
 	gchar *file_name, guint32 idx, const host_addr_t addr, guint16 port,
 	gchar *sha1)
 {
-	struct dl_file_info *fi;
+	fileinfo_t *fi;
 
 	if (!can_swarm)				/* Downloads not initialized yet */
 		return;
@@ -4157,7 +4228,7 @@ file_info_scandir(const gchar *dir)
 {
 	DIR *d;
 	struct dirent *dentry;
-	struct dl_file_info *fi;
+	fileinfo_t *fi;
 	gchar *filename = NULL;
 
 	d = opendir(dir);
@@ -4223,7 +4294,7 @@ static void
 fi_spot_completed_kv(gpointer key, gpointer val, gpointer unused_x)
 {
 	const gchar *name = (const gchar *) key;
-	struct dl_file_info *fi = (struct dl_file_info *) val;
+	fileinfo_t *fi = (fileinfo_t *) val;
 
 	(void) unused_x;
 	g_assert(name == fi->file_name);	/* name shared with fi's, don't free */
@@ -4280,7 +4351,7 @@ fi_remove_listener(fi_listener_t cb, gnet_fi_ev_t ev)
 gnet_fi_info_t *
 fi_get_info(gnet_fi_t fih)
 {
-    struct dl_file_info *fi = file_info_find_by_handle(fih);
+    fileinfo_t *fi = file_info_find_by_handle(fih);
     gnet_fi_info_t *info;
 	GSList *l;
 
@@ -4333,7 +4404,7 @@ fi_free_info(gnet_fi_info_t *info)
 void
 fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
 {
-    struct dl_file_info *fi = file_info_find_by_handle(fih);
+    fileinfo_t *fi = file_info_find_by_handle(fih);
 
     g_assert(NULL != s);
 
@@ -4356,11 +4427,11 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
 GSList *
 fi_get_chunks(gnet_fi_t fih)
 {
-    struct dl_file_info *fi = file_info_find_by_handle(fih);
+    fileinfo_t *fi = file_info_find_by_handle(fih);
     GSList *l, *chunks = NULL;
 
     g_assert(fi);
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 
     for (l = fi->chunklist; NULL != l; l = g_slist_next(l)) {
         struct dl_file_chunk *fc = l->data;
@@ -4402,7 +4473,7 @@ fi_free_chunks(GSList *chunks)
 GSList *
 fi_get_ranges(gnet_fi_t fih)
 {
-    struct dl_file_info *fi = file_info_find_by_handle(fih);
+    fileinfo_t *fi = file_info_find_by_handle(fih);
     http_range_t *range = NULL;
     GSList *l, *ranges = NULL;
 
@@ -4447,7 +4518,7 @@ fi_get_aliases(gnet_fi_t fih)
     guint len;
     GSList *sl;
     guint n;
-    struct dl_file_info *fi = file_info_find_by_handle(fih);
+    fileinfo_t *fi = file_info_find_by_handle(fih);
 
     len = g_slist_length(fi->alias);
 
@@ -4466,7 +4537,7 @@ fi_get_aliases(gnet_fi_t fih)
  * Add new download source for the file.
  */
 void
-file_info_add_new_source(struct dl_file_info *fi, struct download *dl)
+file_info_add_new_source(fileinfo_t *fi, struct download *dl)
 {
 	fi->ntime = time(NULL);
 	file_info_add_source(fi, dl);
@@ -4476,7 +4547,7 @@ file_info_add_new_source(struct dl_file_info *fi, struct download *dl)
  * Add download source for the file, but preserve original "ntime".
  */
 void
-file_info_add_source(struct dl_file_info *fi, struct download *dl)
+file_info_add_source(fileinfo_t *fi, struct download *dl)
 {
     g_assert(NULL == dl->file_info);
     g_assert(!DOWNLOAD_IS_VISIBLE(dl)); /* Must be removed from the GUI first */
@@ -4504,7 +4575,7 @@ file_info_add_source(struct dl_file_info *fi, struct download *dl)
  */
 void
 file_info_remove_source(
-	struct dl_file_info *fi, struct download *dl, gboolean discard)
+	fileinfo_t *fi, struct download *dl, gboolean discard)
 {
     g_assert(NULL != dl->file_info);
     g_assert(fi->refcount > 0);
@@ -4542,7 +4613,7 @@ file_info_remove_source(
 static void
 fi_notify_helper(gpointer unused_key, gpointer value, gpointer unused_udata)
 {
-    struct dl_file_info *fi = (struct dl_file_info *) value;
+    fileinfo_t *fi = (fileinfo_t *) value;
 
 	(void) unused_key;
 	(void) unused_udata;
@@ -4587,7 +4658,7 @@ fi_purge(gnet_fi_t fih)
 {
 	GSList *sl;
 	GSList *csl;
-	struct dl_file_info *fi = file_info_find_by_handle(fih);
+	fileinfo_t *fi = file_info_find_by_handle(fih);
 	gboolean do_remove;
 
 	g_assert(NULL != fi);
@@ -4637,7 +4708,7 @@ fi_purge(gnet_fi_t fih)
  * @returns the size of the generated header.
  */
 gint
-file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
+file_info_available_ranges(fileinfo_t *fi, gchar *buf, gint size)
 {
 	gpointer fmt;
 	gboolean is_first = TRUE;
@@ -4651,7 +4722,7 @@ file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 	gint length;
 
 	g_assert(size >= 0);
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 	fmt = header_fmt_make("X-Available-Ranges", ", ", size);
 
 	if (header_fmt_length(fmt) + sizeof "bytes 0-512\r\n" >= (size_t) size)
@@ -4777,12 +4848,11 @@ emit:
  * an available chunk.
  */
 gboolean
-file_info_restrict_range(struct dl_file_info *fi,
-		filesize_t start, filesize_t *end)
+file_info_restrict_range(fileinfo_t *fi, filesize_t start, filesize_t *end)
 {
 	GSList *l;
 
-	g_assert(file_info_check_chunklist(fi));
+	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	for (l = fi->chunklist; NULL != l; l = g_slist_next(l)) {
 		struct dl_file_chunk *fc = l->data;
@@ -4871,7 +4941,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	 * Look at all the download sources for this fileinfo and calculate the
 	 * overall ranges info for this file.
 	 */
-	if (dbg > 5)
+	if (fileinfo_debug > 5)
 		printf("*** Fileinfo: %s\n", d->file_info->file_name);
 	for (l = d->file_info->sources; l; l = g_slist_next(l)) {
 		struct download *src = (struct download *)l->data;
@@ -4890,7 +4960,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 				GTA_DL_DONE      == src->status
 			)
 		) {
-			if (dbg > 5)
+			if (fileinfo_debug > 5)
 				printf("    %s:%d replied (%x, %x), ",
 					host_addr_to_string(src->server->key->addr),
 					src->server->key->port, src->flags, src->status);
@@ -4907,14 +4977,14 @@ fi_update_seen_on_network(gnet_src_t srcid)
 				 * believe that currently a 404 will also trigger a
 				 * whole file is available event...
 				*/
-				if (dbg > 5)
+				if (fileinfo_debug > 5)
 					printf("whole file available.\n");
 				full_r = fi_range_for_complete_file(d->file_info->size);
 				new_r = http_range_merge(r, full_r);
 				fi_free_ranges(full_r);
 			} else {
 				/* Merge in the new ranges */
-				if (dbg > 5)
+				if (fileinfo_debug > 5)
 					printf(" ranges %s available\n",
 						http_range_to_gchar(src->ranges));
 				new_r = http_range_merge(r, src->ranges);
@@ -4923,7 +4993,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 			r = new_r;
 		}
 	}
-	if (dbg > 5)
+	if (fileinfo_debug > 5)
 		printf("    Final ranges: %s\n\n", http_range_to_gchar(r));
 	d->file_info->seen_on_network = r;
 
