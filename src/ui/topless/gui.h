@@ -41,7 +41,7 @@
 
 #define main_gui_early_init(argc, argv)
 #define main_gui_init()
-#define main_gui_timer()
+#define main_gui_timer(x)
 #define main_gui_update_coords()
 #define main_gui_shutdown()
 #define main_gui_shutdown_tick(remain)

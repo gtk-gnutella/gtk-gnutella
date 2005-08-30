@@ -614,11 +614,12 @@ void
 main_gui_run(void)
 {
     guint32 coord[4] = { 0, 0, 0, 0 };
+	time_t now = time(NULL);
 
     gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, G_N_ELEMENTS(coord));
 	gui_fix_coords(coord);
 		
-    main_gui_timer();
+    main_gui_timer(now);
 
     /*
      * We need to tell Gtk the size of the window, otherwise we'll get
@@ -770,10 +771,8 @@ main_gui_update_coords(void)
  * Main gui timer. This is called once a second.
  */
 void
-main_gui_timer(void)
+main_gui_timer(time_t now)
 {
-	time_t now = time((time_t *) NULL);
-
     gui_general_timer(now);
 
     hcache_gui_update(now);

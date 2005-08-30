@@ -26,6 +26,8 @@
 #ifndef _gtk_main_h_
 #define _gtk_main_h_
 
+#include "common.h"
+
 #include <gtk/gtk.h>
 
 extern GtkWidget *main_window;
@@ -45,7 +47,7 @@ void main_gui_early_init(gint, gchar **);
 void main_gui_init(void);
 void main_gui_run(void);
 void main_gui_shutdown(void);
-void main_gui_timer(void);
+void main_gui_timer(time_t now);
 void main_gui_update_coords(void);
 void main_gui_shutdown_tick(guint);
 

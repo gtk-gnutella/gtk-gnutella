@@ -884,9 +884,8 @@ hcache_size(host_type_t type)
  * @return total number of expired entries
  */
 static guint32
-hcache_expire_cache(hostcache_t *hc)
+hcache_expire_cache(hostcache_t *hc, time_t now)
 {
-    time_t now = time((time_t *) NULL);
     gint32 secs_to_keep = 60 * 30; /* 30 minutes */
     guint32 expire_count = 0;
 	gnet_host_t *h;
@@ -922,14 +921,14 @@ hcache_expire_cache(hostcache_t *hc)
  *
  * @return total number of expired entries
  */
-guint32
-hcache_expire_all(void)
+static guint32
+hcache_expire_all(time_t now)
 {
     guint32 expire_count = 0;
 
-    expire_count += hcache_expire_cache(caches[HCACHE_TIMEOUT]);
-    expire_count += hcache_expire_cache(caches[HCACHE_BUSY]);
-    expire_count += hcache_expire_cache(caches[HCACHE_UNSTABLE]);
+    expire_count += hcache_expire_cache(caches[HCACHE_TIMEOUT], now);
+    expire_count += hcache_expire_cache(caches[HCACHE_BUSY], now);
+    expire_count += hcache_expire_cache(caches[HCACHE_UNSTABLE], now);
 
     return expire_count;
 }
@@ -1491,9 +1490,9 @@ hcache_get_stats(hcache_stats_t *s)
  * Host cache timer.
  */
 void
-hcache_timer(void)
+hcache_timer(time_t now)
 {
-    hcache_expire_all();
+    hcache_expire_all(now);
 
     if (dbg >= 15) {
         hcache_dump_info(caches[HCACHE_FRESH_ANY],   "timer");

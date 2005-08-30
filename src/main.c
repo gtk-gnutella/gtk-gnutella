@@ -408,6 +408,9 @@ slow_main_timer(time_t now)
 void icon_timer(void);
 #endif /* USE_TOPLESS */
 
+/**
+ * Main timer routine, called once per second.
+ */
 static gboolean
 main_timer(gpointer p)
 {
@@ -431,7 +434,7 @@ main_timer(gpointer p)
 
 	bsched_timer();					/* Scheduling update */
 	host_timer();					/* Host connection */
-    hcache_timer();
+    hcache_timer(now);
 	node_timer(now);				/* Node timeouts */
 	http_timer(now);				/* HTTP request timeouts */
 	if (!exiting) {
@@ -454,7 +457,7 @@ main_timer(gpointer p)
 	 */
 
 	if (!exiting) {
-		main_gui_timer();
+		main_gui_timer(now);
 
 		/* Update for things that change slowly */
 		if (main_slow_update++ > SLOW_UPDATE_PERIOD) {

@@ -37,6 +37,8 @@
 #ifndef _core_hcache_h_
 #define _core_hcache_h_
 
+#include "common.h"
+
 #include "if/core/hcache.h"
 #include "if/core/hosts.h"
 
@@ -49,7 +51,7 @@ void hcache_shutdown(void);
 void hcache_close(void);
 void hcache_retrieve_all(void);
 
-void hcache_timer(void);
+void hcache_timer(time_t now);
 
 const gchar *host_type_to_gchar(host_type_t type);
 const gchar *hcache_type_to_gchar(hcache_type_t type);
