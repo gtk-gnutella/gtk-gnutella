@@ -2869,7 +2869,7 @@ gnet_prop_init(void) {
     gnet_property->props[116].data.guint32.value = &search_queries_forward_size;
     gnet_property->props[116].data.guint32.choices = NULL;
     gnet_property->props[116].data.guint32.max   = 256;
-    gnet_property->props[116].data.guint32.min   = 64;
+    gnet_property->props[116].data.guint32.min   = 128;
 
 
     /*
@@ -2889,7 +2889,7 @@ gnet_prop_init(void) {
     gnet_property->props[117].data.guint32.value = &search_queries_kick_size;
     gnet_property->props[117].data.guint32.choices = NULL;
     gnet_property->props[117].data.guint32.max   = 1024;
-    gnet_property->props[117].data.guint32.min   = 128;
+    gnet_property->props[117].data.guint32.min   = 256;
 
 
     /*

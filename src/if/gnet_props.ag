@@ -1379,7 +1379,7 @@ prop = {
     type = guint32;
     data = {
         default = 256;
-        min     = 64;
+        min     = 128;
         max     = 256;
     };
 };
@@ -1391,7 +1391,7 @@ prop = {
     type = guint32;
     data = {
         default = 1024;
-        min     = 128;
+        min     = 256;
         max     = 1024;
     };
 };
