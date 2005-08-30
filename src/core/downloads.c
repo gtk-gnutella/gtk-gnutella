@@ -1059,6 +1059,8 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 	 * server will be freed later, asynchronously.
 	 */
 
+	g_assert(server->key == key);
+
 	g_hash_table_insert(dl_by_host, key, server);
 
 	if (host_is_valid(key->addr, key->port)) {
@@ -3711,7 +3713,7 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
 	 */
 
 	if (nfound > 1) {
-		g_message("Found %d requests for index %d (now %d) at %s",
+		g_message("found %d requests for index %d (now %d) at %s",
 			nfound, from, to, host_addr_port_to_string(addr, port));
     }
 }
@@ -4923,7 +4925,7 @@ extract_retry_after(struct download *d, const header_t *header)
 			g_warning("cannot parse Retry-After \"%s\" sent by %s <%s>",
 				buf,
 				host_addr_port_to_string(download_addr(d), download_port(d)),
-				download_vendor(d));
+				download_vendor_str(d));
 			return 0;
 		}
 
@@ -4953,7 +4955,7 @@ check_date(const header_t *header, const host_addr_t addr, struct download *d)
 			g_warning("cannot parse Date \"%s\" sent by %s <%s>",
 				buf,
 				host_addr_port_to_string(download_addr(d), download_port(d)),
-				download_vendor(d));
+				download_vendor_str(d));
 		else {
 			tm_t delta;
 			time_t correction;
@@ -7027,15 +7029,15 @@ download_push_ready(struct download *d, getline_t *empty)
 
 /**
  * On reception of a "GIV index:GUID" string, select the appropriate download
- * to request.
+ * to request, from the list of potential server targets.
  *
  * @returns the selected download, or NULL if we could not find one.
  */
 static struct download *
-select_push_download(const gchar *guid)
+select_push_download(GSList *servers)
 {
-	gint i;
-	time_t now;
+	GSList *sl;
+	time_t now = time(NULL);
 
 	/*
 	 * We do not limit by download slots for GIV... Indeed, pushes are
@@ -7047,128 +7049,163 @@ select_push_download(const gchar *guid)
 	 *		--RAM, 19/07/2003
 	 */
 
-	/*
-	 * Look for a queued download on this host that we could request.
-	 */
+	for (sl = servers; sl; sl = g_slist_next(sl)) {
+		struct dl_server *server = sl->data;
+		GList *w;
 
-	now = time(NULL);
+		g_assert(dl_server_valid(server));
 
-	for (i = 0; i < DHASH_SIZE; i++) {
-		GList *l;
-		gint last_change;
+		/*
+		 * Look for an active download for this host, expecting a GIV
+		 * and not already gone through download_push_ack() i.e. not
+		 * connected yet (downloads remain in the expecting state until
+		 * they have read the trailing "\n" of the GIV, even though they
+		 * are connected).
+		 */
 
-	retry:
-		l = dl_by_time.servers[i];
-		last_change = dl_by_time.change[i];
+		for (w = server->list[DL_LIST_RUNNING]; w; w = g_list_next(w)) {
+			struct download *d = w->data;
 
-		for (/* empty */; l; l = g_list_next(l)) {
-			struct dl_server *server = (struct dl_server *) l->data;
-			GList *w;
+			g_assert(DOWNLOAD_IS_RUNNING(d));
 
-			g_assert(dl_server_valid(server));
+			if (d->socket == NULL && DOWNLOAD_IS_EXPECTING_GIV(d)) {
+				if (download_debug > 1) g_message(
+					"GIV: selected active download '%s' from %s at %s <%s>",
+					d->file_name, guid_hex_str(server->key->guid),
+					host_addr_port_to_string(download_addr(d),
+						download_port(d)),
+					download_vendor_str(d));
+				return d;
+			}
+		}
 
-			/*
-			 * There might be several hosts with the same GUID (Mallory nodes).
-			 */
+		/*
+		 * No luck so far.  Look for waiting downloads for this host.
+		 *
+		 * We don't check whether
+		 *
+		 *   count_running_on_server(server) >= max_host_downloads
+		 *
+		 * for the same reason we don't care about download slots: pushed
+		 * downloads are precious.  Let the remote host decide whether
+		 * he can accept us.
+		 */
 
-			if (!guid_eq(guid, server->key->guid))
+		for (w = server->list[DL_LIST_WAITING]; w; w = g_list_next(w)) {
+			struct download *d = w->data;
+
+			g_assert(!DOWNLOAD_IS_RUNNING(d));
+
+			if (
+				!d->file_info->use_swarming &&
+				count_running_downloads_with_name(download_outname(d)) != 0
+			)
 				continue;
 
-			/*
-			 * Look for an active download for this host, expecting a GIV
-			 * and not already gone through download_push_ack() i.e. not
-			 * connected yet (downloads remain in the expecting state until
-			 * they have read the trailing "\n" of the GIV, even though they
-			 * are connected).
-			 */
+			if (now < d->retry_after)
+				break;		/* List is sorted */
 
-			for (w = server->list[DL_LIST_RUNNING]; w; w = g_list_next(w)) {
-				struct download *d = (struct download *) w->data;
-
-				g_assert(DOWNLOAD_IS_RUNNING(d));
-
-				if (d->socket == NULL && DOWNLOAD_IS_EXPECTING_GIV(d)) {
-					if (download_debug > 1)
-						g_message("GIV: selected active download '%s' from %s",
-							d->file_name, guid_hex_str(guid));
-					return d;
-				}
-			}
-
-			/*
-			 * No luck so far.  Look for waiting downloads for this host.
-			 */
-
-			if (count_running_on_server(server) >= max_host_downloads)
+			if (d->flags & DL_F_SUSPENDED)
 				continue;
 
-			for (w = server->list[DL_LIST_WAITING]; w; w = g_list_next(w)) {
-				struct download *d = (struct download *) w->data;
-
-				g_assert(!DOWNLOAD_IS_RUNNING(d));
-
-				if (
-					!d->file_info->use_swarming &&
-					count_running_downloads_with_name(download_outname(d)) != 0
-				)
-					continue;
-
-				if (now < d->retry_after)
-					break;		/* List is sorted */
-
-				if (d->flags & DL_F_SUSPENDED)
-					continue;
-
-				if (download_debug > 3)
-					g_message(
-						"GIV: trying alternate download '%s' from %s at %s",
-						d->file_name, guid_hex_str(guid),
-						host_addr_port_to_string(download_addr(d),
-							download_port(d)));
-
-				/*
-				 * Only prepare the download, don't call download_start(): we
-				 * already have the connection, and simply need to prepare the
-				 * range offset.
-				 */
-
-				g_assert(d->socket == NULL);
-
-				if (download_start_prepare(d)) {
-					d->status = GTA_DL_CONNECTING;
-					if (!DOWNLOAD_IS_VISIBLE(d))
-						gcu_download_gui_add(d);
-
-					gcu_gui_update_download(d, TRUE);
-					gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT,
-						dl_active);
-					gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT,
-						count_running_downloads());
-
-					if (download_debug > 1)
-						g_message(
-							"GIV: selected alternate download '%s' from %s",
-							d->file_name, guid_hex_str(guid));
-
-					return d;
-				}
-			}
+			if (download_debug > 2) g_message(
+				"GIV: trying alternate download '%s' from %s at %s <%s>",
+				d->file_name, guid_hex_str(server->key->guid),
+				host_addr_port_to_string(download_addr(d),
+					download_port(d)),
+				download_vendor_str(d));
 
 			/*
-			 * If download_start_prepare() requeued something with a delay,
-			 * the dl_by_time list has changed and we must restart the loop.
-			 *		--RAM, 24/08/2002.
+			 * Only prepare the download, don't call download_start(): we
+			 * already have the connection, and simply need to prepare the
+			 * range offset.
 			 */
 
-			if (last_change != dl_by_time.change[i])
-				goto retry;
+			g_assert(d->socket == NULL);
+
+			if (download_start_prepare(d)) {
+				d->status = GTA_DL_CONNECTING;
+				if (!DOWNLOAD_IS_VISIBLE(d))
+					gcu_download_gui_add(d);
+
+				gcu_gui_update_download(d, TRUE);
+				gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT,
+					dl_active);
+				gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT,
+					count_running_downloads());
+
+				if (download_debug > 1) g_message(
+					"GIV: selected alternate download '%s' from %s at %s <%s>",
+					d->file_name, guid_hex_str(server->key->guid),
+					host_addr_port_to_string(download_addr(d),
+						download_port(d)),
+					download_vendor_str(d));
+
+				return d;
+			}
 		}
 	}
 
-	g_message("Discarding GIV from %s: no suitable alternate found",
-		guid_hex_str(guid));
-
 	return NULL;
+}
+
+/*
+ * Structure used to select servers matching the GUID / IP address criteria.
+ */
+struct server_select {
+	const gchar *guid;			/* The GUID that must match */
+	host_addr_t addr;			/* The IP address that must match */
+	GSList *servers;			/* List of servers matching criteria */
+	gint count;					/* Amount of servers inserted */
+};
+
+/**
+ * If server is matching the selection criteria, insert it in the
+ * result set.
+ *
+ * This routine is a hash table iterator callback.
+ */
+static void
+select_matching_servers(gpointer key, gpointer value, gpointer user)
+{
+	const struct dl_key *skey = key;
+	struct dl_server *server = value;
+	struct server_select *ctx = user;
+
+	g_assert(server->key->guid == skey->guid);	/* They're atoms! */
+
+	if (
+		guid_eq(skey->guid, ctx->guid) ||
+		host_addr_equal(skey->addr, ctx->addr)
+	) {
+		ctx->servers = g_slist_prepend(ctx->servers, server);
+		ctx->count++;
+	}
+}
+
+/**
+ * Given a servent GUID and an IP address, build a list of all the servents
+ * that bear either this GUID or that IP address.
+ *
+ * @return a list a servers matching, with `count' being updated with the
+ * amount of matching servers we found.
+
+ * @note	It is up to the caller to g_slist_free() the returned list.
+ */
+static GSList *
+select_servers(const gchar *guid, const host_addr_t addr, gint *count)
+{
+	struct server_select ctx;
+
+	ctx.guid = guid;
+	ctx.addr = addr;
+	ctx.servers = NULL;
+	ctx.count = 0;
+
+	g_hash_table_foreach(dl_by_host, select_matching_servers, &ctx);
+
+	*count = ctx.count;
+	return ctx.servers;
 }
 
 /**
@@ -7185,6 +7222,8 @@ download_push_ack(struct gnutella_socket *s)
 	guint file_index;			/* The requested file index */
 	gchar hex_guid[33];			/* The hexadecimal GUID */
 	gchar guid[GUID_RAW_SIZE];	/* The decoded (binary) GUID */
+	GSList *servers;			/* Potential targets for the download */
+	gint count;					/* Amount of potential targets found */
 
 	g_assert(s->getline);
 	giv = getline_str(s->getline);
@@ -7201,10 +7240,9 @@ download_push_ack(struct gnutella_socket *s)
 	 */
 
 	if (!sscanf(giv, "GIV %u:%32c/", &file_index, hex_guid)) {
-		g_message("Malformed GIV string: %s", giv);
-		g_assert(s->resource.download == NULL);	/* Hence socket_free() */
-		socket_free(s);
-		return;
+		g_warning("malformed GIV string \"%s\" from %s",
+			giv, host_addr_to_string(s->addr));
+		goto discard;
 	}
 
 	/*
@@ -7213,17 +7251,55 @@ download_push_ack(struct gnutella_socket *s)
 
 	hex_guid[32] = '\0';
 	if (!hex_to_guid(hex_guid, guid)) {
-		g_message("Discarding GIV with malformed GUID %s", hex_guid);
-		return;
+		g_warning("discarding GIV with malformed GUID %s from %s",
+			hex_guid, host_addr_to_string(s->addr));
+		goto discard;
 	}
 
-	d = select_push_download(guid);
-	if (!d) {
-		g_message("Discarded GIV string: %s", giv);
-		g_assert(s->resource.download == NULL);	/* Hence socket_free() */
-		socket_free(s);
-		return;
+	/*
+	 * Identify the targets for this download.
+	 */
+
+	servers = select_servers(guid, s->addr, &count);
+
+	switch (count) {
+	case 0:
+		g_warning("discarding GIV: found no host bearing GUID %s or at %s",
+			hex_guid, host_addr_to_string(s->addr));
+		goto discard;
+	case 1:
+		break;
+	default:
+		g_warning("found %d possible targets for GIV from GUID %s at %s",
+			count, hex_guid, host_addr_to_string(s->addr));
+		if (download_debug) {
+			GSList *sl;
+			gint i;
+
+			for (sl = servers, i = 0; sl; sl = g_slist_next(sl), i++) {
+				struct dl_server *serv = sl->data;
+				g_message("  #%d is GUID %s at %s <%s>",
+					i + 1, guid_hex_str(serv->key->guid),
+					host_addr_port_to_string(serv->key->addr, serv->key->port),
+					serv->vendor ? serv->vendor : "");
+			}
+		}
+		break;
 	}
+
+	d = select_push_download(servers);
+	g_slist_free(servers);
+
+	if (!d) {
+		g_warning("discarded GIV \"%s\" from %s",
+			giv, host_addr_to_string(s->addr));
+		goto discard;
+	}
+
+	if (download_debug)
+		g_message("mapped GIV \"%s\" to \"%s\" from %s <%s>",
+			giv, d->file_name, host_addr_to_string(s->addr),
+			download_vendor_str(d));
 
 	/*
 	 * Install socket for the download.
@@ -7254,6 +7330,12 @@ download_push_ack(struct gnutella_socket *s)
 	g_assert(NULL == d->io_opaque);
 	io_get_header(d, &d->io_opaque, bws.in, s, IO_SINGLE_LINE,
 		call_download_push_ready, NULL, &download_io_error);
+
+	return;
+
+discard:
+	g_assert(s->resource.download == NULL);	/* Hence socket_free() below */
+	socket_free(s);
 }
 
 void
