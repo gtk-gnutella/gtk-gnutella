@@ -3795,6 +3795,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
+        PROP_PARQ_OPTIMISTIC,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_parq_optimistic",
+        FREQ_UPDATES, 0
+	),
+    PROP_ENTRY(
+        get_prefs_dialog,
         PROP_SCAN_IGNORE_SYMLINK_REGFILES,
         update_togglebutton,
         TRUE,
@@ -5219,6 +5227,14 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
 #ifdef USE_GTK1
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_FILEINFO_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_fileinfo_debug",
+        FREQ_UPDATES, 0
+    ),
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_PARQ_DEBUG,

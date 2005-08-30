@@ -10916,6 +10916,7 @@ create_dlg_prefs (void)
   GtkWidget *checkbutton_scan_ignore_symlink_dirs;
   guint checkbutton_scan_ignore_symlink_regfiles_key;
   GtkWidget *checkbutton_scan_ignore_symlink_regfiles;
+  GtkWidget *checkbutton_parq_optimistic;
   GtkWidget *hbox27;
   guint label41_key;
   GtkWidget *label41;
@@ -11152,6 +11153,9 @@ create_dlg_prefs (void)
   GtkWidget *label750;
   GtkObject *spinbutton_config_parq_debug_adj;
   GtkWidget *spinbutton_config_parq_debug;
+  GtkWidget *label751;
+  GtkObject *spinbutton_config_fileinfo_debug_adj;
+  GtkWidget *spinbutton_config_fileinfo_debug;
   GtkWidget *frame_expert_unmapped;
   GtkWidget *table57;
   GtkWidget *label465;
@@ -15166,6 +15170,14 @@ create_dlg_prefs (void)
   gtk_widget_show (checkbutton_scan_ignore_symlink_regfiles);
   gtk_box_pack_start (GTK_BOX (hbox174), checkbutton_scan_ignore_symlink_regfiles, FALSE, FALSE, 0);
 
+  checkbutton_parq_optimistic = gtk_check_button_new_with_label (_("Use realistic PARQ estimates"));
+  gtk_widget_set_name (checkbutton_parq_optimistic, "checkbutton_parq_optimistic");
+  gtk_widget_ref (checkbutton_parq_optimistic);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_parq_optimistic", checkbutton_parq_optimistic,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_parq_optimistic);
+  gtk_box_pack_start (GTK_BOX (hbox174), checkbutton_parq_optimistic, FALSE, FALSE, 0);
+
   hbox27 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox27, "hbox27");
   gtk_widget_ref (hbox27);
@@ -17130,6 +17142,28 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_config_parq_debug);
   gtk_table_attach (GTK_TABLE (table92), spinbutton_config_parq_debug, 5, 6, 4, 5,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label751 = gtk_label_new (_("Fileinfo debug"));
+  gtk_widget_set_name (label751, "label751");
+  gtk_widget_ref (label751);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label751", label751,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label751);
+  gtk_table_attach (GTK_TABLE (table92), label751, 4, 5, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label751), 0, 0.5);
+
+  spinbutton_config_fileinfo_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_fileinfo_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_fileinfo_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_fileinfo_debug, "spinbutton_config_fileinfo_debug");
+  gtk_widget_ref (spinbutton_config_fileinfo_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_fileinfo_debug", spinbutton_config_fileinfo_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_fileinfo_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_fileinfo_debug, 5, 6, 5, 6,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 

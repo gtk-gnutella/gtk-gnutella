@@ -13672,6 +13672,7 @@ create_dlg_prefs_ul_tab (void)
   GtkWidget *hbox232;
   GtkWidget *checkbutton_scan_ignore_symlink_dirs;
   GtkWidget *checkbutton_scan_ignore_symlink_regfiles;
+  GtkWidget *checkbutton_parq_optimistic;
   GtkWidget *label300;
   GtkWidget *hbox284;
   GtkWidget *frame86;
@@ -13898,6 +13899,11 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_set_name (checkbutton_scan_ignore_symlink_regfiles, "checkbutton_scan_ignore_symlink_regfiles");
   gtk_widget_show (checkbutton_scan_ignore_symlink_regfiles);
   gtk_box_pack_start (GTK_BOX (hbox232), checkbutton_scan_ignore_symlink_regfiles, FALSE, FALSE, 0);
+
+  checkbutton_parq_optimistic = gtk_check_button_new_with_mnemonic (_("Use realistic PARQ estimates"));
+  gtk_widget_set_name (checkbutton_parq_optimistic, "checkbutton_parq_optimistic");
+  gtk_widget_show (checkbutton_parq_optimistic);
+  gtk_box_pack_start (GTK_BOX (hbox232), checkbutton_parq_optimistic, FALSE, FALSE, 0);
 
   label300 = gtk_label_new_with_mnemonic (_("_Path(s) to files"));
   gtk_widget_set_name (label300, "label300");
@@ -14627,6 +14633,7 @@ create_dlg_prefs_ul_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, hbox232, "hbox232");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_scan_ignore_symlink_dirs, "checkbutton_scan_ignore_symlink_dirs");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_scan_ignore_symlink_regfiles, "checkbutton_scan_ignore_symlink_regfiles");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_parq_optimistic, "checkbutton_parq_optimistic");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label300, "label300");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, hbox284, "hbox284");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame86, "frame86");
