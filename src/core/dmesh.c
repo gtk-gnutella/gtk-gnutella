@@ -676,7 +676,10 @@ dmesh_count(const gchar *sha1)
 	
 	dm = g_hash_table_lookup(mesh, sha1);
 
-	return dm->count;
+	if (dm)
+		return dm->count;
+
+	return 0;
 }
 
 /**
