@@ -71,6 +71,8 @@ size_t utf32_strmaxlen(const guint32 *s, size_t maxlen);
 size_t utf32_to_utf8(const guint32 *in, gchar *out, size_t size);
 size_t utf32_strlen(const guint32 *s);
 
+static guint32 utf8_decode_char_fast(const gchar *s, gint *retlen);
+
 /**
  * use_icu is set to TRUE if the initialization of ICU succeeded.
  * If it fails, we'll fall back to the non-ICU behaviour.
@@ -309,11 +311,8 @@ utf8_is_valid_char(const gchar *s)
 	if (UTF8_IS_ASCII((guchar) *s)) {
 		return 1;
 	} else {
-		size_t len;
 		gint clen;
-
-		len = utf8_decode_lookahead(s, 1);
-		return 0 != utf8_decode_char(s, len, &clen, FALSE) ? clen : 0;
+		return 0 != utf8_decode_char_fast(s, &clen) ? clen : 0;
 	}
 }
 
@@ -637,6 +636,87 @@ malformed:
 
 	if (retlen)
 		*retlen = expectlen ? expectlen : len;
+
+	return 0;
+}
+
+/**
+ * This routine is the same as utf8_decode_char() but it is more specialized
+ * and is aimed at being fast.  Use it when you don't need warnings and you
+ * don't know the length of the string you're reading from.
+ *
+ * @returns the character value of the first character in the string `s',
+ * which is assumed to be in UTF-8 encoding, and ending with a NUL byte.
+ * `retlen' will be set to the length, in bytes, of that character.
+ *
+ * If `s' does not point to a well-formed UTF-8 character, `retlen' is
+ * set to -1 and the function returns 0.
+ */
+static guint32
+utf8_decode_char_fast(const gchar *s, gint *retlen)
+{
+	guint32 v = *s;
+	guint32 nv;
+	guint32 ov = 0;
+	gint clen = 1;
+	gint expectlen = 0;
+
+	g_assert(s);
+
+	if (v == 0)
+		goto malformed;
+
+	if (UTF8_IS_ASCII(v)) {
+		if (retlen)
+			*retlen = 1;
+		return *s;
+	}
+
+	if (UTF8_IS_CONTINUATION(v))
+		goto malformed;
+
+	nv = s[1];
+
+	if (UTF8_IS_START(v) && !UTF8_IS_CONTINUATION(nv))
+		goto malformed;
+
+	if (v == 0xfe || v == 0xff)
+		goto malformed;
+
+	if      (!(v & 0x20)) { clen = 2; v &= 0x1f; }
+	else if (!(v & 0x10)) { clen = 3; v &= 0x0f; }
+	else if (!(v & 0x08)) { clen = 4; v &= 0x07; }
+	else if (!(v & 0x04)) { clen = 5; v &= 0x03; }
+	else if (!(v & 0x02)) { clen = 6; v &= 0x01; }
+	else if (!(v & 0x01)) { clen = 7; v = 0; }
+
+	if (retlen)
+		*retlen = clen;
+
+	expectlen = clen;
+
+	/* nv was already set above as s[1], no need to read it again */
+
+	for (clen--, s++, ov = v; clen; clen--, nv = *(++s), ov = v) {
+		if (!UTF8_IS_CONTINUATION(nv))
+			goto malformed;
+
+		v = UTF8_ACCUMULATE(v, nv);
+
+		if (v <= ov)
+			goto malformed;
+	}
+
+	if (UNICODE_IS_SURROGATE(v))		goto malformed;
+	if (UNICODE_IS_BYTE_ORDER_MARK(v))	goto malformed;
+	if (expectlen > UNISKIP(v))			goto malformed;
+	if (UNICODE_IS_ILLEGAL(v))			goto malformed;
+
+	return v;
+
+malformed:
+	if (retlen)
+		*retlen = -1;
 
 	return 0;
 }
@@ -1687,20 +1767,17 @@ gboolean
 utf8_is_decomposed(const gchar *src, gboolean nfkd)
 {
 	guint prev, cc;
-	size_t len = 0;
 	gchar c;
 
 	for (prev = 0; '\0' != (c = *src); prev = cc) {
-		len = utf8_decode_lookahead(src, len);
 		if (UTF8_IS_ASCII(c)) {
-			len--;
 			src++;
 			cc = 0;
 		} else {
 			guint32 uc;
 			gint retlen;
 		
-			uc = utf8_decode_char(src, len, &retlen, FALSE);
+			uc = utf8_decode_char_fast(src, &retlen);
 			if (uc == 0x0000)
 				break;
 
@@ -1712,7 +1789,6 @@ utf8_is_decomposed(const gchar *src, gboolean nfkd)
 				return FALSE;
 
 			src += retlen;
-			len -= retlen;
 		}
 	}
 
@@ -1720,26 +1796,23 @@ utf8_is_decomposed(const gchar *src, gboolean nfkd)
 }
 
 /**
- * Checks whether an UTF-32 encoded string is in canonical order.
+ * Checks whether an UTF-8 encoded string is in canonical order.
  */
 gboolean
 utf8_canonical_sorted(const gchar *src)
 {
 	guint prev, cc;
-	size_t len = 0;
 	gchar c;
 
 	for (prev = 0; '\0' != (c = *src); prev = cc) {
-		len = utf8_decode_lookahead(src, len);
 		if (UTF8_IS_ASCII(c)) {
-			len--;
 			src++;
 			cc = 0;
 		} else {
 			guint32 uc;
 			gint retlen;
 
-			uc = utf8_decode_char(src, len, &retlen, FALSE);
+			uc = utf8_decode_char_fast(src, &retlen);
 			if (uc == 0x0000)
 				break;
 		
@@ -1748,7 +1821,6 @@ utf8_canonical_sorted(const gchar *src)
 				return FALSE;
 		
 			src += retlen;
-			len -= retlen;
 		}
 	}
 
@@ -1756,7 +1828,7 @@ utf8_canonical_sorted(const gchar *src)
 }
 
 /**
- * Puts an UTF-32 encoded string into canonical order.
+ * Puts an UTF-8 encoded string into canonical order.
  */
 gchar *
 utf8_sort_canonical(gchar *src)
@@ -2082,7 +2154,7 @@ utf8_decompose(const gchar *src, gchar *out, size_t size, gboolean nfkd)
 	const guint32 *d;
 	guint32 uc;
 	gint retlen;
-	size_t d_len, len = 0, new_len = 0;
+	size_t d_len, new_len = 0;
 
 	g_assert(src != NULL);
 	g_assert(size == 0 || out != NULL);
@@ -2095,13 +2167,11 @@ utf8_decompose(const gchar *src, gchar *out, size_t size, gboolean nfkd)
 			size_t utf8_len;
 			gchar buf[256], utf8_buf[7], *q;
 
-			len = utf8_decode_lookahead(src, len);
-			uc = utf8_decode_char(src, len, &retlen, FALSE);
+			uc = utf8_decode_char_fast(src, &retlen);
 			if (uc == 0x0000)
 				break;
 
 			src += retlen;
-			len -= retlen;
 			d = utf32_decompose_char(uc, &d_len, nfkd);
 			q = buf;
 			while (d_len-- > 0) {
@@ -2127,13 +2197,11 @@ utf8_decompose(const gchar *src, gchar *out, size_t size, gboolean nfkd)
 	}
 
 	while (*src != '\0') {
-		len = utf8_decode_lookahead(src, len);
-		uc = utf8_decode_char(src, len, &retlen, FALSE);
+		uc = utf8_decode_char_fast(src, &retlen);
 		if (uc == 0x0000)
 			break;
 		
 		src += retlen;
-		len -= retlen;
 		d = utf32_decompose_char(uc, &d_len, nfkd);
 		while (d_len-- > 0)
 			new_len += utf8_encoded_char_len(*d++);
@@ -2268,8 +2336,9 @@ static size_t
 utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 {
 	guint32 uc;
+	guint32 nuc;
 	gint retlen;
-	size_t len = 0, new_len = 0;
+	size_t new_len = 0;
 
 	g_assert(dst != NULL);
 	g_assert(src != NULL);
@@ -2278,38 +2347,44 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 
 	if (size-- > 0) {
 		while (*src != '\0') {
-			size_t utf8_len;
+			gint utf8_len;
 			gchar utf8_buf[7];
 
-			len = utf8_decode_lookahead(src, len);
-			uc = utf8_decode_char(src, len, &retlen, FALSE);
+			uc = utf8_decode_char_fast(src, &retlen);
 			if (uc == 0x0000)
 				break;
 
+			/*
+			 * This function is a hot spot.  Don't bother re-encoding
+			 * the character if it's been remapped to itself: we already
+			 * have the encoded form in the source!
+			 *		--RAM, 2005-08-28
+			 */
+
 			src += retlen;
-			len -= retlen;
-			uc = remap(uc);
-			utf8_len = utf8_encode_char(uc, utf8_buf);
+			nuc = remap(uc);
+			utf8_len = nuc == uc ? retlen : utf8_encode_char(nuc, utf8_buf);
 			new_len += utf8_len;
 			if (new_len > size)
 				break;
 			
-			memcpy(dst, utf8_buf, utf8_len);
+			if (nuc == uc)
+				memcpy(dst, src - retlen, retlen);
+			else
+				memcpy(dst, utf8_buf, utf8_len);
 			dst += utf8_len;
 		}
 		*dst = '\0';
 	}
 
 	while (*src != '\0') {
-		len = utf8_decode_lookahead(src, len);
-		uc = utf8_decode_char(src, len, &retlen, FALSE);
+		uc = utf8_decode_char_fast(src, &retlen);
 		if (uc == 0x0000)
 			break;
 
 		src += retlen;
-		len -= retlen;
-		uc = remap(uc);
-		new_len += utf8_encoded_char_len(uc);
+		nuc = remap(uc);
+		new_len += nuc == uc ? retlen : utf8_encoded_char_len(nuc);
 	}
 
 	return new_len;
