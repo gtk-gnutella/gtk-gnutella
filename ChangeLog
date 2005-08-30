@@ -1,5 +1,9 @@
 # since last version
 
+- (2005-08-30 - JA)
+ * [PARQ] Added setting to allow more optimistic calculation of ETA. 
+          default is TRUE.
+
 - (2005-08-28 - RAM)
  * Will now serve GTKG's favorite web icon when "/favicon.ico" is requested.
  * Typo in metaconfig symbol prevented the use of sendfile() on platforms

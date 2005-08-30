@@ -39,6 +39,7 @@ RCSID("$Id$");
 #include "parq.h"
 #include "ban.h"
 #include "downloads.h"
+#include "dmesh.h"
 #include "features.h"
 #include "guid.h"
 #include "http.h"
@@ -61,8 +62,6 @@ RCSID("$Id$");
 
 #define PARQ_VERSION_MAJOR	1
 #define PARQ_VERSION_MINOR	0
-
-#define AGGRESSIVE 0
 
 #define PARQ_RETRY_SAFETY	40		/**< 40 seconds before lifetime */
 #define PARQ_TIMER_BY_POS	30		/**< 30 seconds for each queue position */
@@ -1258,33 +1257,37 @@ guint32
 parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 {
 	int result = 60 + 45 * (parq_ul->relative_position - 1);
-#if AGGRESSIVE
+
+	// Ussed for optimistic mode
 	int fast_result;
 	struct parq_ul_queued *parq_ul_prev = NULL;
 	GList *l = NULL;
 	guint avg_bps;
 
-	avg_bps = bsched_avg_bps(bws.out);
-	avg_bps = MAX(1, avg_bps);
 
-	l = g_list_find(parq_ul->queue->by_rel_pos, parq_ul);
+	if (parq_optimistic)
+	{
+		avg_bps = bsched_avg_bps(bws.out);
+		avg_bps = MAX(1, avg_bps);
 
-	if (l == NULL)
-		l = g_list_last(parq_ul->queue->by_position);
+		l = g_list_find(parq_ul->queue->by_rel_pos, parq_ul);
 
-	if (l == NULL)
-		return MIN(PARQ_MAX_UL_RETRY_DELAY, result);
+		if (l == NULL)
+			l = g_list_last(parq_ul->queue->by_position);
 
-	if (l->prev != NULL) {
-		parq_ul_prev = l->prev->data;
+		if (l == NULL)
+			return MIN(PARQ_MAX_UL_RETRY_DELAY, result);
 
-		g_assert(parq_ul_prev != NULL);
+		if (l->prev != NULL) {
+			parq_ul_prev = l->prev->data;
 
-		fast_result = parq_ul_prev->chunk_size / avg_bps * max_uploads;
+			g_assert(parq_ul_prev != NULL);
 
-		result = MIN(result, fast_result);
+			fast_result = parq_ul_prev->chunk_size / avg_bps * max_uploads;
+
+			result = MIN(result, fast_result);
+		}
 	}
-#endif
 
 	return MIN(PARQ_MAX_UL_RETRY_DELAY, result);
 }
@@ -1333,7 +1336,12 @@ parq_upload_create(gnutella_upload_t *u)
 			avg_bps = bsched_avg_bps(bws.out);
 			avg_bps = MAX(1, avg_bps);
 
-			eta += parq_ul_prev->file_size / avg_bps * max_uploads;
+			if (parq_optimistic)
+				eta += (parq_ul_prev->file_size / avg_bps * max_uploads) / 
+					(parq_ul_prev->sha1 != NULL ? 
+					 	dmesh_count(parq_ul_prev->sha1) + 1 : 1);
+			else
+				eta += parq_ul_prev->file_size / avg_bps * max_uploads;
 		}
 	}
 
@@ -1612,7 +1620,12 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 			continue;			/* Skip already uploading uploads */
 
 		/* Recalculate ETA */
-		eta += parq_ul->file_size / avg_bps * max_uploads;
+		if (parq_optimistic)		
+			eta += (parq_ul->file_size / avg_bps * max_uploads) /
+				(parq_ul->sha1 != NULL ? dmesh_count(parq_ul->sha1) + 1 : 1);
+		else
+			eta += parq_ul->file_size / avg_bps * max_uploads;
+				
 	}
 }
 
@@ -2097,10 +2110,8 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	if (slots_free < 0)
 		slots_free = 0;
 
-#if AGGRESSIVE
-#else
-	slots_free = 0;
-#endif
+	if (parq_optimistic)
+		slots_free = 0;
 
 	if (allowed_max_uploads <= uq->queue->active_uploads - slots_free) {
 		if (parq_debug >= 5)
@@ -2447,9 +2458,7 @@ parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 	time_t now = time((time_t *) NULL);
 	time_t org_retry = parq_ul->retry;
 	filesize_t chunk_size;
-#if AGGRESSIVE
 	guint avg_bps;
-#endif
 
 	g_assert(u != NULL);
 
@@ -2459,17 +2468,20 @@ parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 	parq_ul->retry = now + parq_ul_calc_retry(parq_ul);
 	g_assert(parq_ul->retry >= now);
 
-#if AGGRESSIVE
-	avg_bps = bsched_avg_bps(bws.out);
-	avg_bps = MAX(1, avg_bps);
+	if (parq_optimistic)
+	{
+		avg_bps = bsched_avg_bps(bws.out);
+		avg_bps = MAX(1, avg_bps);
 
-	/* If the chunk sizes are really small, expire them sooner */
-	parq_ul->expire = parq_ul->retry +
-		parq_ul->chunk_size / avg_bps * max_uploads;
-	parq_ul->expire = MIN(MIN_LIFE_TIME + parq_ul->retry, parq_ul->expire);
-#else
-	parq_ul->expire = MIN_LIFE_TIME + parq_ul->retry;
-#endif
+		/* If the chunk sizes are really small, expire them sooner */
+		parq_ul->expire = parq_ul->retry +
+			parq_ul->chunk_size / avg_bps * max_uploads;
+		parq_ul->expire = MIN(MIN_LIFE_TIME + parq_ul->retry, parq_ul->expire);
+	}
+	else
+	{
+		parq_ul->expire = MIN_LIFE_TIME + parq_ul->retry;
+	}
 
 	if (
 		org_retry > now &&

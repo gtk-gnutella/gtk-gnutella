@@ -92,6 +92,8 @@ gboolean dmesh_remove(
 	const gchar *sha1, const host_addr_t addr, guint16 port, guint idx,
 	gchar *name);
 
+gint dmesh_count(const gchar *sha1);
+
 gboolean dmesh_collect_sha1(gchar *value, gchar *digest);
 void dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer);
 void dmesh_collect_compact_locations(gchar *sha1, gchar *value);

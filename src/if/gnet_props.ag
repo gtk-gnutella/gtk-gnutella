@@ -878,6 +878,17 @@ prop = {
 };
 
 prop = {
+	name = "parq_optimistic";
+	desc = "If set, PARQ will calculate its ETA and retry times more "
+		   "optimistic. If not set PARQ will caclulate using a worst case "
+		   "scenario.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
+prop = {
     name = "track_props";
     desc = "For development use: track properties.";
     type = guint32;

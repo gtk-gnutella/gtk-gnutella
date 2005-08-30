@@ -663,6 +663,23 @@ dmesh_remove(const gchar *sha1, const host_addr_t addr, guint16 port,
 }
 
 /**
+ * Get the number of dmesh entries for a given SHA1.
+ *
+ * @return the number of dmesh entries
+ */
+gint
+dmesh_count(const gchar *sha1)
+{
+	struct dmesh *dm;
+
+	g_assert(sha1);
+	
+	dm = g_hash_table_lookup(mesh, sha1);
+
+	return dm->count;
+}
+
+/**
  * Add entry to the download mesh, indexed by the binary `sha1' digest.
  * If `stamp' is 0, then the current time is used.
  *
