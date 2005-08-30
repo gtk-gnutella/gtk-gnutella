@@ -1,13 +1,24 @@
 # since last version
 
+- (2005-08-30 - RAM)
+ * Revisited download selection logic when a GIV string is received.
+ * Improved tracing of the download selection logic for debugging.
+ * Added another banned GUID from Morpheus hosts.
+ * Added fast UTF-8 char decoder to try to reduce overhead of remappings.
+ * Validate the CHNK list from the fileinfo database, using the trailer
+   information if it is corrupted or missing.
+
 - (2005-08-30 - JA)
  * [PARQ] Added setting to allow more optimistic calculation of ETA. 
-          default is TRUE.
+   default is TRUE.
 
 - (2005-08-28 - RAM)
  * Will now serve GTKG's favorite web icon when "/favicon.ico" is requested.
  * Typo in metaconfig symbol prevented the use of sendfile() on platforms
    that have it.
+ * The OOB-proxying ultrapeer would send back the local hits to the leaf
+   using the mangled MUID, instead of the original, surely causing the leaf
+   to discard the replies.
 
 - (2005-08-27 - RAM)
  * Adapt stalling threshold to the amount of upload slots configured.
