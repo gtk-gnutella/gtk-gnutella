@@ -150,6 +150,7 @@ static gboolean find_message(
  */
 static const gchar * const banned_push[] = {
 	"20d262ff0e6fd6119734004005a207b1",		/**< Morpheus, 29/06/2002 */
+	"9c51e42153d4c94a858f8e8a8391173d",		/**< morph471 4.7.1.326 */
 };
 GHashTable *ht_banned_push = NULL;
 
