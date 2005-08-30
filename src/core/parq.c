@@ -1258,7 +1258,7 @@ parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 {
 	int result = 60 + 45 * (parq_ul->relative_position - 1);
 
-	// Ussed for optimistic mode
+	/* Used for optimistic mode */
 	int fast_result;
 	struct parq_ul_queued *parq_ul_prev = NULL;
 	GList *l = NULL;
