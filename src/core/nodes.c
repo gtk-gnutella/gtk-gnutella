@@ -5380,7 +5380,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 			node_ultra_count + node_normal_count >= max_connections)
 	) {
         if (!already_connected) {
-			if (whitelist_check(addr) || (CONNECT_F_FORCE & flags)) {
+			if ((CONNECT_F_FORCE & flags) || whitelist_check(addr)) {
 				/* Incoming whitelisted IP, and we're full. Remove one node. */
 				(void) node_remove_worst(FALSE);
 			} else if (use_netmasks && host_is_nearby(addr)) {
