@@ -575,7 +575,7 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 	g_assert(len < size);
 	g_assert(len < sizeof packet);
 	
-	poke_le32(packet.m.request.file_id, file_idx);
+	poke_le32(packet.m.request.file_id, file_idx == URN_INDEX ? 0 : file_idx);
 	poke_be32(packet.m.request.host_ip, ip);
 	poke_le16(packet.m.request.host_port, port);
 	poke_le32(packet.m.header.size, len);
