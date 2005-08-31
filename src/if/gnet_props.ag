@@ -898,7 +898,7 @@ prop = {
 };
 
 prop = {
-	name = "parq_size_alwayscontinue";
+	name = "parq_size_always_continue";
 	desc = "Maximum size in bytes of an upload which PARQ shall not queue "
 	       "and is always allowed to continue. However, if a client "
 	       "requests small chunks over and over the chunk size previously "
@@ -911,7 +911,7 @@ prop = {
 };
 
 prop = {
-	name = "parq_time_alwayscontinue";
+	name = "parq_time_always_continue";
 	desc = "When an upload is expected to take less then this setting "
 	       "in seconds, PARQ will be instructed to not queue the upload. "
 	       "This overrides parq_size_alwayscontinue. "
