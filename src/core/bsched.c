@@ -1418,7 +1418,9 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	
 	g_assert_not_reached();
 	/* NOTREACHED */
-	errno = ENOTSUP;
+
+	errno = ENOSYS;
+
 	return (ssize_t) -1;
 	
 #else /* USE_MMAP || HAS_SENDFILE */
