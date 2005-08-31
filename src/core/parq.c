@@ -2030,15 +2030,15 @@ parq_upload_quick_continue(struct parq_ul_queued *uq)
 {
 	g_assert(uq);
 	
-	if (parq_time_alwayscontinue > 0)
+	if (parq_time_always_continue > 0)
 		g_message("[PARQ_UL] parq_time_alwayscontine was set "
 		          "but we don't use it yet. "
 		          "Fallback to parq_size_alwayscontinue");
 	
-	/* XXX: Implement also the usage of parq_time_alwayscontinue.
+	/* XXX: Implement also the usage of parq_time_always_continue.
 	 *      Will do this any day soon.
 	 *      -- JA 31/8/2005 */
-	return uq->uploaded_size + uq->chunk_size < parq_size_alwayscontinue;
+	return uq->uploaded_size + uq->chunk_size < parq_size_always_continue;
 }
 
 /**
