@@ -1146,7 +1146,7 @@ utf8_enforce(gchar *dst, size_t size, const gchar *src)
 			if (clen > size)
 				break;
 
-			if (clen == 1) {
+			if (1 == clen) {
 				*d++ = c;
 				s++;
 				size--;
@@ -1160,8 +1160,8 @@ utf8_enforce(gchar *dst, size_t size, const gchar *src)
 		*d = '\0';
 	}
 
- 	while ('\0' != *s)
-		s++;
+ 	while ('\0' != *s++)
+		d++;
 
 	return d - dst;
 }
@@ -1224,12 +1224,13 @@ locale_to_utf8_full(const gchar *str)
 		return deconstify_gchar(str);
 	
 	if (locale_is_utf8()) {
-		size_t size;
+		size_t size, n;
 		gchar *s;
 	
 		size = 1 + utf8_enforce(NULL, 0, str);
 		s = g_malloc(size);
-		utf8_enforce(s, size, str);
+		n = utf8_enforce(s, size, str);
+		g_assert(1 + size == n);
 		return s;
 	} else {
 		size_t utf8_len;
