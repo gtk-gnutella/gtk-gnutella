@@ -5047,7 +5047,7 @@ check_xhost(struct download *d, const header_t *header)
 		return;
 
 	if (
-		!string_to_host_addr_port(buf, &addr, &port) ||
+		!string_to_host_addr_port(buf, NULL, &addr, &port) ||
 		!host_is_valid(addr, port)
 	)
 		return;
@@ -5296,7 +5296,7 @@ check_push_proxies(struct download *d, header_t *header)
 		host_addr_t addr;
 		guint16 port;
 
-		if (!string_to_host_addr_port(tok, &addr, &port))
+		if (!string_to_host_addr_port(tok, NULL, &addr, &port))
 			continue;
 
 
@@ -7500,9 +7500,8 @@ download_retrieve(void)
 	gboolean d_push;
 	host_addr_t d_addr;
 	guint16 d_port;
-	guint32 d_index;
+	guint32 d_index = 0;
 	gchar d_hexguid[33];
-	gchar d_ipport[23];		/* IP:port + possible hostname */
 	gchar d_hostname[256];	/* Server hostname */
 	gint recline;			/* Record line number */
 	gint line;				/* File line number */
@@ -7595,7 +7594,7 @@ download_retrieve(void)
 			d_hostname[0] = '\0';
 
 			size64 = parse_uint64(dl_tmp, &endptr, 10, &error);
-			if (error || *endptr != ',' ) {
+			if (error || ',' != *endptr) {
 				g_message("download_retrieve(): "
 					"cannot parse line #%d: %s", line, dl_tmp);
 				goto out;
@@ -7611,43 +7610,53 @@ download_retrieve(void)
 			/* skip "<filesize>," for sscanf() */
 			g_assert(endptr != dl_tmp);
 			g_assert(*endptr == ',');
-			endptr++;
+			endptr = skip_ascii_blanks(++endptr);
 
-			if (
-				sscanf(endptr, "%u, %22s %255s",
-					&d_index, d_ipport, d_hostname) == 3
-			) {
-				memset(d_hexguid, '0', 32);		/* GUID missing -> blank */
-				d_hexguid[32] = '\0';
-			}
-			else if (sscanf(endptr, "%u, %22s", &d_index, d_ipport) == 2) {
-				memset(d_hexguid, '0', 32);		/* GUID missing -> blank */
-				d_hexguid[32] = '\0';
-			}
-			else if (
-				sscanf(endptr, "%u:%32c, %22s %255s",
-					&d_index, d_hexguid, d_ipport, d_hostname) == 4
-			) {
-				/* empty */
-			}
-			else if (
-				sscanf(endptr, "%u:%32c, %22s",
-					&d_index, d_hexguid, d_ipport) < 3
-			) {
-				(void) str_chomp(dl_tmp, 0);
+			d_index = parse_uint32(endptr, &endptr, 10, &error);
+			if (error || NULL == strchr(":,", *endptr)) {
 				g_message("download_retrieve(): "
-					"cannot parse line #%d: %s", line, dl_tmp);
+					"cannot parse index in line #%d: %s", line, dl_tmp);
 				goto out;
 			}
 
-			d_ipport[22] = '\0';
+			if (',' == *endptr) {
+				memset(d_hexguid, '0', 32);		/* GUID missing -> blank */
+				d_hexguid[32] = '\0';
+			} else {
+				g_assert(':' == *endptr);
+				endptr++;
 
-			if (!string_to_host_addr_port(d_ipport, &d_addr, &d_port)) {
+				strncpy(d_hexguid, endptr, sizeof d_hexguid);
+				d_hexguid[32] = '\0';
+				endptr += strlen(d_hexguid);
+			}
+
+			if (',' != *endptr) {
 				g_message("download_retrieve(): "
-					"bad IP:port '%s' at line #%d, ignoring", d_ipport, line);
+					"expected ',' in line #%d: %s", line, dl_tmp);
+				goto out;
+			}
+			endptr = skip_ascii_blanks(++endptr);
+			
+			if (!string_to_host_addr_port(endptr, &endptr, &d_addr, &d_port)) {
+				g_message("download_retrieve(): "
+					"bad IP:port at line #%d: %s", line, dl_tmp);
 				d_port = 0;
 				d_addr = host_addr_set_ipv4(0);
 				d_push = TRUE;		/* Will drop download when scheduling it */
+			}
+
+			if (',' == *endptr) {
+				const gchar *end = &d_hostname[sizeof d_hostname - 1];
+				gchar c, *s = d_hostname;
+				
+				endptr = skip_ascii_blanks(++endptr);
+				while (end != s && '\0' != (c = *endptr++)) {
+					if (!is_ascii_alnum(c) && '.' != c && '-' != c)
+						break;
+					*s++ = c;	
+				}
+				*s = '\0';
 			}
 
 			if (maxlines == 2)
