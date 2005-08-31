@@ -524,14 +524,15 @@ http_extract_version(
  ***/
 
 static gchar *parse_errstr[] = {
-	"OK",									/**< HTTP_URL_OK */
-	"Not an http URI",						/**< HTTP_URL_NOT_HTTP */
-	"More than one <user>:<password>",		/**< HTTP_URL_MULTIPLE_CREDENTIALS */
-	"Truncated <user>:<password>",			/**< HTTP_URL_BAD_CREDENTIALS */
-	"Could not parse port",					/**< HTTP_URL_BAD_PORT_PARSING */
-	"Port value is out of range",			/**< HTTP_URL_BAD_PORT_RANGE */
-	"Could not resolve host into IP",		/**< HTTP_URL_HOSTNAME_UNKNOWN */
-	"URL has no URI part",					/**< HTTP_URL_MISSING_URI */
+	"OK",								/**< HTTP_URL_OK */
+	"Not an http URI",					/**< HTTP_URL_NOT_HTTP */
+	"More than one <user>:<password>",	/**< HTTP_URL_MULTIPLE_CREDENTIALS */
+	"Truncated <user>:<password>",		/**< HTTP_URL_BAD_CREDENTIALS */
+	"Could not parse port",				/**< HTTP_URL_BAD_PORT_PARSING */
+	"Port value is out of range",		/**< HTTP_URL_BAD_PORT_RANGE */
+	"Could not parse host",				/**< HTTP_URL_BAD_HOST_PART */
+	"Could not resolve host into IP",	/**< HTTP_URL_HOSTNAME_UNKNOWN */
+	"URL has no URI part",				/**< HTTP_URL_MISSING_URI */
 };
 
 /**
@@ -560,110 +561,87 @@ http_url_parse(const gchar *url, guint16 *port, const gchar **host,
 	const gchar **path)
 {
 	static gchar hostname[MAX_HOSTLEN + 1];
-	const gchar *host_start;
-	const gchar *port_start;
-	const gchar *p;
-	gchar c;
-	gboolean seen_upw = FALSE;
-	gchar s;
-	guint32 portnum;
-	const gchar *tmp_host, *tmp_path;
-	guint16 tmp_port;
+	struct {
+		const gchar *host, *path;
+		guint16 port;
+	} tmp;
+	const gchar *endptr, *p;
+	host_addr_t addr;
 
-	g_assert(url != NULL);
-	if (!host) host = &tmp_host;
-	if (!path) path = &tmp_path;
-	if (!port) port = &tmp_port;
+	g_assert(url);
+
+	if (!host) host = &tmp.host;
+	if (!path) path = &tmp.path;
+	if (!port) port = &tmp.port;
 
 	/*
-	 * The general URL syntax is (RFC-1738):
+	 * The general URL syntax is (RFC 1738):
 	 *
-	 *	//<user>:<password>@<host>:<port>/<url-path>
+	 *	//[<user>[:<pass>]@]<host>[:<port>]/[<url-path>]
 	 *
-	 * Any special character in <user> or <password> (i.e. '/', ':' or '@')
-	 * must be URL-encoded, naturally.
-	 *
-	 * In the code below, we don't care about the user/password and simply
-	 * skip them if they are present.
 	 */
 
 	/* Assume there's no <user>:<password> */
-	host_start = is_strcaseprefix(url, "http://");
-	if (!host_start) {
+	p = is_strcaseprefix(url, "http://");
+	if (!p) {
 		http_url_errno = HTTP_URL_NOT_HTTP;
 		return FALSE;
 	}
 
-	port_start = NULL;		/* Port not seen yet */
-	p = &host_start[1];
-
-	while ((c = *p++)) {
-		if (c == '@') {
-			if (seen_upw) {			/* There can be only ONE user/password */
-				http_url_errno = HTTP_URL_MULTIPLE_CREDENTIALS;
-				return FALSE;
-			}
-			seen_upw = TRUE;
-			host_start = p;			/* Right after the '@' */
-			port_start = NULL;
-		} else if (c == ':')
-			port_start = p;			/* Right after the ':' */
-		else if (c == '/')
-			break;
-	}
-
-	p--;							/* Go back to trailing "/" */
-	if (*p != '/') {
-		if (seen_upw)
-			http_url_errno = HTTP_URL_BAD_CREDENTIALS;
-		else
-			http_url_errno = HTTP_URL_MISSING_URI;
-		return FALSE;
-	}
-
-	*path = deconstify_gchar(p);	/* Start of path, at the "/" */
-
 	/*
-	 * Validate the port.
+	 * Extract hostname into hostname[].
 	 */
 
-	if (port_start == NULL)
-		portnum = HTTP_PORT;
-	else if (2 != sscanf(port_start, "%u%c", &portnum, &s) || s != '/') {
-		http_url_errno = HTTP_URL_BAD_PORT_PARSING;
+	if (!string_to_host_or_addr(p, &endptr, &addr)) {
+		http_url_errno = HTTP_URL_BAD_HOST_PART;
 		return FALSE;
 	}
 
-	if ((portnum & 0xffff) != portnum) {
-		http_url_errno = HTTP_URL_BAD_PORT_RANGE;
-		return FALSE;
-	}
-	*port = (guint16) portnum;
+	if (is_host_addr(addr)) {
+		host_addr_to_string_buf(addr, hostname, sizeof hostname);
+	} else {
+		size_t len;
 
-	hostname[0] = '\0';
-
-	{
-		gchar *q = hostname;
-		gchar *end = hostname + sizeof(hostname);
-
-		/*
-		 * Extract hostname into hostname[].
-		 */
-
-		p = host_start;
-		while ((c = *p++) && q < end) {
-			if (c == '/' || c == ':') {
-				*q++ = '\0';
-				break;
-			}
-			*q++ = c;
+		len = endptr - p;
+		if (len >= sizeof hostname) {
+			http_url_errno = HTTP_URL_BAD_HOST_PART;
+			return FALSE;
 		}
-		hostname[MAX_HOSTLEN] = '\0';
-		*host = hostname;				/* Static data! */
+		memcpy(hostname, p, len);
+		hostname[len] = '\0';
+	}
+	p = endptr;
+	*host = hostname;				/* Static data! */
+
+	if (':' != *p) {
+		*port = HTTP_PORT;
+	} else {
+		gint error;
+		guint32 u;
+
+		g_assert(':'== *p);
+		p++;
+
+		u = parse_uint32(p, &endptr, 10, &error);
+		if (error) {
+			http_url_errno = HTTP_URL_BAD_PORT_PARSING;
+			return FALSE;
+		} else if (u > 65535) {
+			http_url_errno = HTTP_URL_BAD_PORT_RANGE;
+			return FALSE;
+		}
+		p = endptr;
+		*port = u;
+	}
+
+	*path = p;
+	if ('/' != *p) {
+		http_url_errno = HTTP_URL_MISSING_URI;
+		return FALSE;
 	}
 
 	if (http_debug > 4) {
-		printf("URL \"%s\" -> host=\"%s\", port=%u, path=\"%s\"\n",
+		g_message("URL \"%s\" -> host=\"%s\", port=%u, path=\"%s\"\n",
 			url, *host, (unsigned) *port, *path);
 	}
 

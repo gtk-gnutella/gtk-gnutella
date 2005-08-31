@@ -164,20 +164,21 @@ extern guint http_async_errno;
  */
 
 typedef enum {
-	HTTP_URL_OK = 0,					/**< All OK */
-	HTTP_URL_NOT_HTTP,					/**< Not an http URI */
-	HTTP_URL_MULTIPLE_CREDENTIALS,		/**< More than one "<user>:<password>" */
-	HTTP_URL_BAD_CREDENTIALS,			/**< Truncated "<user>:<password>" */
-	HTTP_URL_BAD_PORT_PARSING,			/**< Could not parse port */
-	HTTP_URL_BAD_PORT_RANGE,			/**< Port value is out of range */
-	HTTP_URL_HOSTNAME_UNKNOWN,			/**< Could not resolve host into IP */
-	HTTP_URL_MISSING_URI				/**< URL has no URI part */
+	HTTP_URL_OK = 0,				/**< All OK */
+	HTTP_URL_NOT_HTTP,				/**< Not an http URI */
+	HTTP_URL_MULTIPLE_CREDENTIALS,	/**< More than one "<user>:<password>" */
+	HTTP_URL_BAD_CREDENTIALS,		/**< Truncated "<user>:<password>" */
+	HTTP_URL_BAD_PORT_PARSING,		/**< Could not parse port */
+	HTTP_URL_BAD_PORT_RANGE,		/**< Port value is out of range */
+	HTTP_URL_BAD_HOST_PART,			/**< Could not parse host */
+	HTTP_URL_HOSTNAME_UNKNOWN,		/**< Could not resolve host into IP */
+	HTTP_URL_MISSING_URI			/**< URL has no URI part */
 } http_url_error_t;
 
 extern http_url_error_t http_url_errno;
 
 /**
- * Callabck to notify about state changes in HTTP request.
+ * Callback to notify about state changes in HTTP request.
  */
 
 typedef void (*http_state_change_t)(gpointer handle, http_state_t newstate);
