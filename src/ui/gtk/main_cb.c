@@ -40,15 +40,18 @@ RCSID("$Id$");
  *** Private functions
  ***/
 
-static void quit(gboolean force)
+static void
+quit(gboolean force)
 {
     gboolean confirm;
 
     gui_prop_get_boolean_val(PROP_CONFIRM_QUIT, &confirm);
-    if (force || !confirm)
+    if (force || !confirm) {
        	guc_gtk_gnutella_exit(0);
-	else
+	} else {
         gtk_widget_show(dlg_quit);
+    	gdk_window_raise(dlg_quit->window);
+	}
 }
 
 /***
@@ -63,7 +66,7 @@ on_main_window_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 	(void) unused_event;
 	(void) unused_udata;
 
-    quit(FALSE);
+	quit(FALSE);
 	return TRUE;
 }
 
