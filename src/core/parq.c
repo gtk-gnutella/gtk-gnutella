@@ -2712,7 +2712,7 @@ parq_upload_remove(gnutella_upload_t *u)
 		return FALSE;
 
 	/* Data is only expected to be sent when the upload had a slot */
-	g_assert(parq_ul->has_slot || u->sent == 0);
+	g_assert(parq_ul->has_slot || parq_ul->had_slot || u->sent == 0);
 	
 	parq_ul->uploaded_size += u->sent;
 	
