@@ -9,7 +9,7 @@
 ?S:	indicates to the C program that the strlcpy() routine is available.
 ?S:.
 ?C:HAS_STRLCPY:
-?C:	This symbol, if defined, indicates that the chown routine is
+?C:	This symbol, if defined, indicates that the strlcpy routine is
 ?C:	available.
 ?C:.
 ?H:#$d_strlcpy HAS_STRLCPY		/**/
