@@ -360,8 +360,8 @@ host_addr_t string_to_host_addr(const gchar *s, const gchar **endptr);
 const gchar *host_addr_port_to_string(const host_addr_t addr, guint16 port);
 size_t host_addr_port_to_string_buf(const host_addr_t addr,
 				guint16 port, gchar *, size_t);
-gboolean string_to_host_addr_port(const gchar *s,
-			host_addr_t *addr, guint16 *port);
+gboolean string_to_host_addr_port(const gchar *str, const gchar **endptr,
+	host_addr_t *addr_ptr, guint16 *port_ptr);
 host_addr_t name_to_host_addr(const gchar *host);
 const gchar *host_addr_to_name(const host_addr_t addr);
 gboolean string_to_host_or_addr(const char *s, const gchar **endptr,

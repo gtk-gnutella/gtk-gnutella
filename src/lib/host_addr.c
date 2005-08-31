@@ -420,17 +420,35 @@ string_to_host_or_addr(const char *s, const gchar **endptr, host_addr_t *ha)
 }
 
 gboolean
-string_to_host_addr_port(const gchar *str, host_addr_t *ha, guint16 *port)
+string_to_host_addr_port(const gchar *str, const gchar **endptr,
+	host_addr_t *addr_ptr, guint16 *port_ptr)
 {
-	guint32 ip;
-
-	if (string_to_ip_port(str, &ip, port)) {
-		*ha = host_addr_set_ipv4(ip);
-		return TRUE;
+	const gchar *ep;
+	host_addr_t addr;
+	gboolean ret;
+	guint16 port;
+	
+	ret = string_to_host_or_addr(str, &ep, &addr);
+	if (ret && ':' == *ep && is_host_addr(addr)) {
+		guint32 u;
+		gint error;
+		
+		ep++;
+		u = parse_uint32(ep, &ep, 10, &error);
+		port = error || u > 65535 ? 0 : u;
+		ret = 0 != port;
 	} else {
-		/* XXX: Check for IPv6 address */
-		return FALSE;
+		ret = FALSE;
+		port = 0;
 	}
+
+	if (addr_ptr)
+		*addr_ptr = addr;
+	if (port_ptr)
+		*port_ptr = port;
+	if (endptr)
+		*endptr = ep;
+	return ret;
 }
 
 static void
@@ -496,7 +514,7 @@ host_addr_to_name(const host_addr_t ha)
 		len = 0;
 		g_assert_not_reached();
 	}
-	
+
 	he = gethostbyaddr(addr, sizeof addr, type);
 	if (!he) {
 		gchar buf[128];
@@ -522,8 +540,72 @@ host_addr_to_name(const host_addr_t ha)
 host_addr_t
 name_to_host_addr(const gchar *host)
 {
+#if defined(HAVE_GETADDRINFO) 
+	static const struct addrinfo zero_hints;
+	struct addrinfo hints, *ai, *ai0 = NULL;
+	gboolean finished = FALSE;
+	host_addr_t addr;
+	gint error;
+
+	g_assert(host);
+
+	hints = zero_hints;
+#ifdef USE_IPV6
+	hints.ai_family = PF_UNSPEC;
+#else
+	hints.ai_family = PF_INET;
+#endif /* USE_IPV6 */
+	
+	error = getaddrinfo(host, NULL, &hints, &ai0);
+	if (error) {
+		g_message("getaddrinfo() failed for \"%s\": %s",
+				host, gai_strerror(error));
+		return zero_host_addr;
+	}
+
+	addr = zero_host_addr;
+	for (ai = ai0; ai && !finished; ai = ai->ai_next) {
+		if (!ai->ai_addr)
+			continue;
+		
+		switch (ai->ai_family) {
+		case PF_INET:
+			if (ai->ai_addrlen >= 4) {
+				const struct sockaddr_in *sin;
+				
+				sin = cast_to_gconstpointer(ai->ai_addr);
+				addr = host_addr_set_ipv4(ntohl(sin->sin_addr.s_addr));
+				finished = TRUE;
+			}
+			break;
+
+#ifdef USE_IPV6
+		case PF_INET6:
+			if (ai->ai_addrlen >= 16) {
+				const struct sockaddr_in6 *sin6;
+				
+				sin6 = cast_to_gconstpointer(ai->ai_addr);
+				host_addr_set_ipv6(&addr,
+					cast_to_gconstpointer(sin6->sin6_addr.s6_addr));
+				finished = TRUE;
+			}
+			break;
+#endif /* USE_IPV6 */
+
+		default:;
+		}
+	}
+
+	if (ai0)
+		freeaddrinfo(ai0);
+
+	return addr;
+}
+
+#else /* !HAVE_GETADDRINFO */
+
 	const struct hostent *he;
-	host_addr_t ha;
+	host_addr_t addr;
 
    	he = gethostbyname(host);
 	if (!he) {
@@ -549,8 +631,8 @@ name_to_host_addr(const gchar *host)
 			return zero_host_addr;
 		}
 
-		ha = host_addr_set_ipv4(peek_be32(he->h_addr_list[0]));
-		return ha;
+		addr = host_addr_set_ipv4(peek_be32(he->h_addr_list[0]));
+		return addr;
 		
 #ifdef USE_IPV6
 	case AF_INET6:
@@ -559,13 +641,15 @@ name_to_host_addr(const gchar *host)
 				"(host=\"%s\")", host);
 			return zero_host_addr;
 		}
-		host_addr_set_ipv6(&ha, cast_to_gconstpointer(he->h_addr_list[0]));
-		return ha;
+		host_addr_set_ipv6(&addr, cast_to_gconstpointer(he->h_addr_list[0]));
+		return addr;
 #endif /* !USE_IPV6 */
 	}
 	
 	return zero_host_addr;
 }
+
+#endif /* HAVE_GETADDRINFO */
 
 guint
 host_addr_hash_func(gconstpointer key)
