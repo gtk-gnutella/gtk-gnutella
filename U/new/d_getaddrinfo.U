@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_gnugettext: Myread Setvar cat +cc +ccflags +ldflags +libs
+?MAKE:d_getaddrinfo: Myread Setvar cat rm +cc +ccflags +ldflags
 ?MAKE:	-pick add $@ %<
 ?S:d_getaddrinfo:
 ?S:	This variable conditionally defines the HAS_GETADDRINFO symbol, which
@@ -11,11 +11,13 @@
 ?C:HAS_GETADDRINFO:
 ?C:	This symbol is defined when getaddrinfo() can be used.
 ?C:.
-?H:#$d_ipv6 USE_IPV6
+?H:#$d_getaddrinfo HAS_GETADDRINFO
 ?H:.
+?LINT: set d_getaddrinfo
+: can we use getaddrinfo?
 echo " "
-echo "Checking whether IPv6 can be used ..." >&4
-d_ipv6="$define"
+echo "Checking whether getaddrinfo() can be used ..." >&4
+val="$define"
 $cat >try.c <<'EOC'
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -54,7 +56,9 @@ EOM
 
 else
 	echo "Sorry, I will not be using getaddrinfo()."
-	d_getaddrinfo="$undef"
+	val="$undef"
 fi
 $rm -f try try.c
+set d_getaddrinfo
+eval $setvar
 
