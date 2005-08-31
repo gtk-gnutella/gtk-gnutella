@@ -2300,7 +2300,8 @@ socket_set_linger(gint fd)
 
 /**
  * Called to prepare the creation of the socket connection.
- * @returns non-zero in case of failure.
+ *
+ * @returns non-zero in case of failure, zero on success.
  */
 static gint 
 socket_connect_prepare(struct gnutella_socket *s,
@@ -2366,8 +2367,10 @@ created:
 /**
  * Called to finalize the creation of the socket connection, which is done
  * in two steps since DNS resolving is asynchronous.
+ *
+ * @returns non-zero in case of failure, zero on success.
  */
-static struct gnutella_socket *
+static gint
 socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 {
 	socket_addr_t addr;
@@ -2379,7 +2382,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	if (hostiles_check(ha)) {
 		g_warning("Not connecting to hostile host %s", host_addr_to_string(ha));
 		socket_destroy(s, "Not connecting to hostile host");
-		return NULL;
+		return -1;
 	}
 
 	s->addr = ha;
@@ -2425,7 +2428,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 					proxy_addr, proxy_port);
 			}
 			socket_destroy(s, "Check the proxy configuration");
-			return NULL;
+			return -1;
 		}
 
 		g_warning("Unable to connect to %s: (%s)",
@@ -2435,7 +2438,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 			s->adns_msg = "Connection failed";
 		else
 			socket_destroy(s, _("Connection failed"));
-		return NULL;
+		return -1;
 	}
 
 	s->local_port = socket_local_port(s);
@@ -2464,12 +2467,15 @@ socket_connect(const host_addr_t ha, guint16 port,
 	struct gnutella_socket *s;
 
 	s = walloc0(sizeof *s);
-	if (0 != socket_connect_prepare(s, ha, port, type, flags)) {
+	if (
+		0 != socket_connect_prepare(s, ha, port, type, flags) ||
+		0 != socket_connect_finalize(s, ha)
+	) {
 		wfree(s, sizeof *s);
-		return NULL;
+		s = NULL;
 	}
 
-	return socket_connect_finalize(s, ha);
+	return s;
 }
 
 /**
@@ -2514,7 +2520,7 @@ socket_connect_by_name_helper(const host_addr_t *addr, gpointer user_data)
 		}
 	}
 	
-	if (NULL == socket_connect_finalize(s, *addr)) {
+	if (0 != socket_connect_finalize(s, *addr)) {
 		s->adns |= SOCK_ADNS_FAILED;
 		return;
 	}
