@@ -1,6 +1,10 @@
 # since last version
 
-- (2005-08-31 0 JA)
+- (2005-08-31 - RAM)
+ * Reduce the amount of time() and gettimeofday() system calls drastically.
+   This should reduce the kernel time used by GTKG.
+
+- (2005-08-31 - JA)
  * [PARQ] Added option to allow small uploads to always continue.
 
 - (2005-08-30 - RAM)
