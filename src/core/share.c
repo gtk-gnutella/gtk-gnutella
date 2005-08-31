@@ -1119,8 +1119,10 @@ recurse_scan(gchar *dir, const gchar *basedir)
 					share_mime_type(SHARE_M_APPLICATION_BINARY);
 
 				if (0 == found->name_nfc_len || 0 == found->name_canonic_len) {
-					g_warning("Normalized filename is an empty string \"%s\"",
-						full);
+					g_warning(
+						"Normalized filename is an empty string \"%s\" "
+						"(NFC=\"%s\", canonic=\"%s\")",
+						full, found->name_nfc, found->name_canonic);
 					shared_file_free(found);
 					found = NULL;
 					break;
