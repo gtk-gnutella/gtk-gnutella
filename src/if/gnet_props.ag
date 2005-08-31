@@ -898,6 +898,31 @@ prop = {
 };
 
 prop = {
+	name = "parq_size_alwayscontinue";
+	desc = "Maximum size in bytes of an upload which PARQ shall not queue "
+	       "and is always allowed to continue. However, if a client "
+	       "requests small chunks over and over the chunk size previously "
+	       "requested are also counted."
+	       "Set to 0 to disable this feature.";
+	type = guint32;
+	data = {
+		default = 8096;
+	};
+};
+
+prop = {
+	name = "parq_time_alwayscontinue";
+	desc = "When an upload is expected to take less then this setting "
+	       "in seconds, PARQ will be instructed to not queue the upload. "
+	       "This overrides parq_size_alwayscontinue. "
+	       "Set to 0 to disable this feature.";
+	type = guint32;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
     name = "track_props";
     desc = "For development use: track properties.";
     type = guint32;

@@ -1,5 +1,8 @@
 # since last version
 
+- (2005-08-31 0 JA)
+ * [PARQ] Added option to allow small uploads to always continue.
+
 - (2005-08-30 - RAM)
  * Revisited download selection logic when a GIV string is received.
  * Improved tracing of the download selection logic for debugging.

@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2003 - 2004, Jeroen Asselman & Raphael Manfredi
+ * Copyright (c) 2003 - 2004, Raphael Manfredi
+ * Copyright (c) 2003 - 2005, Jeroen Asselman
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -202,6 +203,7 @@ struct parq_ul_queued {
 
 	filesize_t file_size;	/**< Needed to recalculate ETA */
 	filesize_t chunk_size;	/**< Requested chunk size */
+	filesize_t uploaded_size;	/**< Bytes previously uploaded */
 	host_addr_t addr;		/**< Contact IP:port, as read from X-Node: */
 	guint16 port;
 
@@ -1390,7 +1392,8 @@ parq_upload_create(gnutella_upload_t *u)
 	parq_ul->expire = parq_ul->retry + MIN_LIFE_TIME;
 	parq_ul->ban_timeout = 0;
 	parq_ul->disc_timeout = 0;
-
+	parq_ul->uploaded_size = 0;
+	
 	/* Save into hash table so we can find the current parq ul later */
 	g_hash_table_insert(ul_all_parq_by_id, parq_ul->id, parq_ul);
 
@@ -2018,6 +2021,27 @@ parq_upload_addr_can_proceed(const gnutella_upload_t *u)
 }
 
 /**
+ * @return TRUE if the current upload will finish quickly enough and 
+ * actually scheduling would only cost more resources then it would
+ * save.
+ */
+static gboolean
+parq_upload_quick_continue(struct parq_ul_queued *uq)
+{
+	g_assert(uq);
+	
+	if (parq_time_alwayscontinue > 0)
+		g_message("[PARQ_UL] parq_time_alwayscontine was set "
+		          "but we don't use it yet. "
+		          "Fallback to parq_size_alwayscontinue");
+	
+	/* XXX: Implement also the usage of parq_time_alwayscontinue.
+	 *      Will do this any day soon.
+	 *      -- JA 31/8/2005 */
+	return uq->uploaded_size + uq->chunk_size < parq_size_alwayscontinue;
+}
+
+/**
  * @return TRUE if the current upload is allowed to get an upload slot.
  */
 static gboolean
@@ -2025,7 +2049,8 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 {
 	GList *l = NULL;
 	gint slots_free = max_uploads;
-
+	gboolean quick_allowed = FALSE;
+	
 	/*
 	 * max_uploads holds the number of upload slots a queue may currently
 	 * use. This is the lowest number of upload slots used by a queue + 1.
@@ -2036,12 +2061,23 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 
 	/*
 	 * If there are no free upload slots the queued upload isn't allowed an
-	 * upload slot anyway. So we might just as well abort here
+	 * upload slot anyway. So we might just as well abort here.
+	 *
+	 * Let the download continue if the request is small enough though.
 	 */
 
+	quick_allowed = parq_upload_quick_continue(uq);
+	
 	if (parq_debug >= 5)
 		g_message("[PARQ UL] parq_upload_continue, free_slots %d", free_slots);
 
+	if (quick_allowed)
+	{
+		if (parq_debug >= 5)
+			g_message("[PARQ UL] Allowed quick upload");
+		return TRUE;
+	}
+	
 	if (free_slots <= 0)
 		return FALSE;
 
@@ -2675,6 +2711,11 @@ parq_upload_remove(gnutella_upload_t *u)
 	if (parq_ul == NULL)
 		return FALSE;
 
+	/* Data is only expected to be sent when the upload had a slot */
+	g_assert(parq_ul->has_slot || u->sent == 0);
+	
+	parq_ul->uploaded_size += u->sent;
+	
 	/*
 	 * If we're still in the GTA_UL_QUEUE_WAITING state, we did not get any
 	 * HTTP requesst after sending the QUEUE callback.  However, if we sent
