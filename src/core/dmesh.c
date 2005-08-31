@@ -1741,7 +1741,7 @@ dmesh_collect_compact_locations(gchar *sha1, gchar *value)
 
 				*p = '\0';
 				if (has_port)
-					ok = string_to_host_addr_port(start, &addr, &port);
+					ok = string_to_host_addr_port(start, NULL, &addr, &port);
 				else {
 					addr = string_to_host_addr(start, NULL);
 					ok = is_host_addr(addr);

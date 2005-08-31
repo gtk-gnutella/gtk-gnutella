@@ -3446,7 +3446,7 @@ extract_field_pongs(gchar *field, host_type_t type)
 		guint16 port;
 		host_addr_t addr;
 
-		if (string_to_host_addr_port(tok, &addr, &port)) {
+		if (string_to_host_addr_port(tok, NULL, &addr, &port)) {
             hcache_add_caught(type, addr, port, "pong");
 			pong++;
 		}
@@ -4387,7 +4387,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		if (!field) field = header_get(head, "X-My-Address");
 		if (!field) field = header_get(head, "Listen-Ip");
 
-		if (field && string_to_host_addr_port(field, &addr, &port)) {
+		if (field && string_to_host_addr_port(field, NULL, &addr, &port)) {
 			if (n->attrs & NODE_A_ULTRA)
 				pcache_pong_fake(n, addr, port);	/* Might have free slots */
 

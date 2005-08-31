@@ -670,7 +670,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 		return;
 	}
 
-	if (!string_to_host_addr_port(buf, &pp->addr, &pp->port)) {
+	if (!string_to_host_addr_port(buf, NULL, &pp->addr, &pp->port)) {
 		pproxy_error_remove(pp, 400,
 			"Malformed push-proxy request: cannot parse X-Node");
 		return;

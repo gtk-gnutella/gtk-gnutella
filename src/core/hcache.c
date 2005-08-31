@@ -1348,7 +1348,7 @@ read_step(gpointer unused_h, gpointer u, gint ticks)
 			host_addr_t addr;
 			guint16 port;
 
-			if (string_to_host_addr_port(h_tmp, &addr, &port))
+			if (string_to_host_addr_port(h_tmp, NULL, &addr, &port))
                 hcache_add(hc->type, addr, port, "on-disk cache");
 		} else
 			goto done;

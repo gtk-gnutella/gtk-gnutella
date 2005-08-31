@@ -1011,7 +1011,10 @@ parq_download_queue_ack(struct gnutella_socket *s)
 
 	ip_str = strchr(id, ' ');
 
-	if (ip_str == NULL || !string_to_host_addr_port(ip_str + 1, &addr, &port)) {
+	if (
+		ip_str == NULL ||
+		!string_to_host_addr_port(&ip_str[1], NULL, &addr, &port)
+	) {
 		g_warning("[PARQ DL] missing IP:port in \"%s\" from %s",
 			queue, host_addr_to_string(s->addr));
 		has_ip_port = FALSE;
@@ -2394,7 +2397,7 @@ cleanup:
 			for (l = parq_ul->by_addr->list; l != NULL; l = g_list_next(l)) {
 				struct parq_ul_queued *parq_ul_up = l->data;
 
-				string_to_host_addr_port(buf,
+				string_to_host_addr_port(buf, NULL,
 					&parq_ul_up->addr, &parq_ul_up->port);
 				parq_ul_up->flags &= ~PARQ_UL_NOQUEUE;
 			}

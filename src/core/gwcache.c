@@ -919,7 +919,7 @@ gwc_host_line(struct parse_context *ctx, gchar *buf, gint len)
 		host_addr_t addr;
 		guint16 port;
 
-		if (string_to_host_addr_port(buf, &addr, &port)) {
+		if (string_to_host_addr_port(buf, NULL, &addr, &port)) {
 			ctx->processed++;
 			hcache_add_caught(HOST_ULTRA, addr, port, "GWC");
 		}
