@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2003-2004, Raphael Manfredi
+ * Copyright (c) 2003-2005, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -27,10 +27,10 @@
  * @ingroup lib
  * @file
  *
- * Time manipulation routines.
+ * Time manipulation and caching routines.
  *
  * @author Raphael Manfredi
- * @date 2003-2004
+ * @date 2003-2005
  */
 
 #include "common.h"
@@ -39,6 +39,8 @@ RCSID("$Id$");
 
 #include "tm.h"
 #include "override.h"		/* Must be the last header included */
+
+static tm_t now;			/* Currently cached time */
 
 /**
  * Convert floating point time description into a struct timeval by filling
@@ -107,12 +109,41 @@ tm_cmp(const tm_t *a, const tm_t *b)
 }
 
 /**
- * Fill supplied structure with current time.
+ * Fill supplied structure with current time (cached).
  */
 void
 tm_now(tm_t *tm)
 {
-	g_get_current_time(tm);
+	*tm = now;		/* Struct copy */
+}
+
+/**
+ * Fill supplied structure with current time (recomputed).
+ */
+void
+tm_now_exact(tm_t *tm)
+{
+	g_get_current_time(&now);
+	*tm = now;
+}
+
+/**
+ * Get current time, at the second granularity (cached).
+ */
+time_t
+tm_time(void)
+{
+	return (time_t) now.tv_sec;
+}
+
+/**
+ * Get current time, at the second granularity (recomputed).
+ */
+time_t
+tm_time_exact(void)
+{
+	g_get_current_time(&now);
+	return (time_t) now.tv_sec;
 }
 
 /**

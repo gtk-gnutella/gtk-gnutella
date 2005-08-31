@@ -1158,7 +1158,7 @@ handle_time_sync_req(struct gnutella_node *n,
 	 * we should.
 	 */
 
-	tm_now(&got);			/* Mark when we got the message */
+	tm_now_exact(&got);			/* Mark when we got the message */
 	got.tv_sec = clock_loc2gmt(got.tv_sec);
 
 	if (size != 1) {
@@ -1185,7 +1185,7 @@ handle_time_sync_reply(struct gnutella_node *n,
 	gchar *muid;
 	gchar *data;
 
-	tm_now(&got);			/* Mark when we got (to see) the message */
+	tm_now_exact(&got);			/* Mark when we got (to see) the message */
 	got.tv_sec = clock_loc2gmt(got.tv_sec);
 
 	if (size != 9) {
@@ -1245,7 +1245,7 @@ vmsg_time_sync_req_stamp(pmsg_t *mb, struct mqueue *unused_q)
 	old.tv_sec = peek_be32(&muid[0]);
 	old.tv_usec = peek_be32(&muid[4]);
 
-	tm_now(&now);
+	tm_now_exact(&now);
 	now.tv_sec = clock_loc2gmt(now.tv_sec);
 
 	muid = poke_be32(muid, now.tv_sec);
@@ -1330,7 +1330,7 @@ vmsg_time_sync_reply_stamp(pmsg_t *mb, struct mqueue *unused_q)
 
 	muid += 8;
 
-	tm_now(&now);
+	tm_now_exact(&now);
 	now.tv_sec = clock_loc2gmt(now.tv_sec);
 
 	muid = poke_be32(muid, now.tv_sec);	/* Second half of MUID */

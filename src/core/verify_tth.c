@@ -51,6 +51,7 @@ RCSID("$Id$");
 #include "lib/bg.h"
 #include "lib/tigertree.h"
 #include "lib/tiger.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last inclusion */
 
@@ -330,7 +331,7 @@ tt_parse_header(struct download *d, header_t *header)
 #if 0
 		NULL, NULL,
 #endif
-		blank_guid, NULL /* hostname */, NULL /* SHA1 */, time(NULL),
+		blank_guid, NULL /* hostname */, NULL /* SHA1 */, tm_time(),
 		FALSE /* PUSH */, NULL /* fi */, NULL /* proxies */, 0 /* flags */);
 
 }

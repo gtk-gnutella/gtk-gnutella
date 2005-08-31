@@ -47,6 +47,7 @@ RCSID("$Id$");
 #include "if/bridge/ui2c.h"
 
 #include "lib/atoms.h"
+#include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -1255,7 +1256,7 @@ gui_update_download(download_t *d, gboolean force)
 {
 	static GtkNotebook *notebook = NULL;
 	const gchar *a = NULL;
-	time_t now = time((time_t *) NULL);
+	time_t now = tm_time();
 	fileinfo_t *fi;
 	download_t *drecord;
 	gint rw;

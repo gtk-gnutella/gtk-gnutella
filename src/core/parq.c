@@ -58,6 +58,7 @@ RCSID("$Id$");
 #include "lib/file.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"			/* Must be the last header included */
 
@@ -1115,7 +1116,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 
 
   		g_assert(dl->socket != NULL);
-		dl->last_update = time(NULL);
+		dl->last_update = tm_time();
 		s->resource.download = dl;
 
 		/* Resend request for download */
@@ -1302,7 +1303,7 @@ parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 static struct parq_ul_queued *
 parq_upload_create(gnutella_upload_t *u)
 {
-	time_t now = time(NULL);
+	time_t now = tm_time();
 	struct parq_ul_queued *parq_ul = NULL;
 	struct parq_ul_queued *parq_ul_prev = NULL;
 	struct parq_ul_queue *parq_ul_queue = NULL;
@@ -2071,8 +2072,7 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	if (parq_debug >= 5)
 		g_message("[PARQ UL] parq_upload_continue, free_slots %d", free_slots);
 
-	if (quick_allowed)
-	{
+	if (quick_allowed) {
 		if (parq_debug >= 5)
 			g_message("[PARQ UL] Allowed quick upload");
 		return TRUE;
@@ -2084,8 +2084,7 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	/*
 	 * Don't allow more than max_uploads_ip per single host (IP)
 	 */
-	if ((guint32) uq->by_addr->uploading >= max_uploads_ip)
-	{
+	if ((guint32) uq->by_addr->uploading >= max_uploads_ip) {
 		if (parq_debug >= 5)
 			g_message("[PARQ UL] parq_upload_continue, " 
 				"max_uploads_ip per single host reached %d/%d",
@@ -2492,7 +2491,7 @@ gboolean
 parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 {
 	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
-	time_t now = time((time_t *) NULL);
+	time_t now = tm_time();
 	time_t org_retry = parq_ul->retry;
 	filesize_t chunk_size;
 	guint avg_bps;
@@ -2690,7 +2689,7 @@ parq_upload_remove(gnutella_upload_t *u)
 {
 	gboolean return_result = FALSE; /* True if the upload was really removed
 									   ie: Removed from memory */
-	time_t now = time((time_t *) NULL);
+	time_t now = tm_time();
 	struct parq_ul_queued *parq_ul = NULL;
 
 	g_assert(u != NULL);
@@ -2863,7 +2862,7 @@ parq_upload_add_header(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {
 	gint rw = 0;
 	gint length = *retval;
-	time_t now = time((time_t *) NULL);
+	time_t now = tm_time();
 	struct upload_http_cb *a = (struct upload_http_cb *) arg;
 	gboolean small_reply = (flags & HTTP_CBF_SMALL_REPLY);
 
@@ -3262,7 +3261,7 @@ parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 {
 	struct gnutella_socket *s;
 	gnutella_upload_t *u;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 
 	g_assert(parq_ul->flags & PARQ_UL_QUEUE);
 
@@ -3317,7 +3316,7 @@ parq_upload_send_queue_conf(gnutella_upload_t *u)
 	struct gnutella_socket *s;
 	gint rw;
 	gint sent;
-	time_t now = time((time_t *) NULL);
+	time_t now = tm_time();
 
 	g_assert(u);
 	g_assert(u->status == GTA_UL_QUEUE);
@@ -3382,7 +3381,7 @@ static inline void
 parq_store(gpointer data, gpointer x)
 {
 	FILE *f = (FILE *)x;
-	time_t now = time((time_t *) NULL);
+	time_t now = tm_time();
 	struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) data;
 	gint expire;
 
@@ -3449,7 +3448,7 @@ parq_upload_save_queue(void)
 {
 	FILE *f;
 	file_path_t fp;
-	time_t now = time((time_t *)NULL);
+	time_t now = tm_time();
 	GList *queues;
 
 	if (parq_debug > 3)
@@ -3570,7 +3569,7 @@ parq_upload_load_queue(void)
 	gboolean next = FALSE;
 	gnutella_upload_t u;
 	struct parq_ul_queued *parq_ul;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 	guint line_no = 0;
 	guint64 v;
 	gint error;
@@ -3823,7 +3822,7 @@ parq_upload_load_queue(void)
 void
 parq_add_banned_source(const host_addr_t addr, time_t delay)
 {
-	time_t now = time(NULL);
+	time_t now = tm_time();
 	struct parq_banned *banned = NULL;
 
 	g_assert(ht_banned_source != NULL);

@@ -153,7 +153,7 @@ ntp_probe(void)
 
 	memset(&m, 0, sizeof(m));
 	m.flags = (NTP_VERSION << 3) | NTP_CLIENT;
-	tm_now(&now);
+	tm_now_exact(&now);
 	ntp_tm_serialize(m.transmit_timestamp, &now);
 
 	to.addr = name_to_host_addr("localhost");
@@ -191,7 +191,7 @@ ntp_got_reply(struct gnutella_socket *s)
 	tm_t offset;
 	gdouble clock_offset;
 
-	tm_now(&got);
+	tm_now_exact(&got);
 
 	if (s->pos != NTP_MINSIZE && s->pos != NTP_MAXSIZE) {
 		g_warning("got weird reply from NTP server (%d bytes)", (gint) s->pos);

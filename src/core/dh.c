@@ -45,6 +45,7 @@ RCSID("$Id$");
 
 #include "lib/atoms.h"
 #include "lib/misc.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
@@ -513,7 +514,7 @@ dh_init(void)
 {
 	by_muid = g_hash_table_new(guid_hash, guid_eq);
 	by_muid_old = g_hash_table_new(guid_hash, guid_eq);
-	last_rotation = time(NULL);
+	last_rotation = tm_time();
 }
 
 /**

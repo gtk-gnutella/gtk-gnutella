@@ -65,6 +65,7 @@ RCSID("$Id$");
 #include "lib/fuzzy.h"
 #include "lib/header.h"
 #include "lib/idtable.h"
+#include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 #include "lib/glib-missing.h"
@@ -587,7 +588,7 @@ file_info_store_binary(fileinfo_t *fi)
 	}
 
 	G_FREE_NULL(path);
-	fi->stamp = time(NULL);
+	fi->stamp = tm_time();
 	file_info_fd_store_binary(fi, fd, TRUE);	/* Force flush */
 	close(fd);
 }
@@ -1240,7 +1241,7 @@ fi_upgrade_older_version(fileinfo_t *fi)
 	 */
 
 	if (0 == fi->ctime) {
-		fi->ctime = time(NULL);
+		fi->ctime = tm_time();
 		upgraded = TRUE;
 	}
 
@@ -1496,7 +1497,7 @@ G_STMT_START {				\
 	 */
 
 	if (version < 4)
-		fi->ntime = fi->ctime = time(NULL);
+		fi->ntime = fi->ctime = tm_time();
 
 	if (version < 5)
 		fi->file_size_known = TRUE;
@@ -3042,7 +3043,7 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
 	fi->file_size_known = file_size_known;
 	fi->done = 0;
 	fi->use_swarming = use_swarming && file_size_known;
-	fi->ctime = time(NULL);
+	fi->ctime = tm_time();
 	fi->seen_on_network = NULL;
 
 	pathname = make_pathname(fi->path, fi->file_name);
@@ -3418,7 +3419,7 @@ file_info_update(struct download *d, filesize_t from, filesize_t to,
 	g_assert(from < to);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
-	fi->stamp = time(NULL);
+	fi->stamp = tm_time();
 
 	if (DL_CHUNK_DONE == status)
 		fi->dirty = TRUE;
@@ -4216,7 +4217,7 @@ file_info_try_to_swarm_with(
 		return;
 
 	download_auto_new(file_name, fi->size, idx, addr, port, blank_guid, NULL,
-		sha1, time(NULL), FALSE, TRUE, fi, NULL, /* XXX: TLS? */ 0);
+		sha1, tm_time(), FALSE, TRUE, fi, NULL, /* XXX: TLS? */ 0);
 }
 
 /**
@@ -4539,7 +4540,7 @@ fi_get_aliases(gnet_fi_t fih)
 void
 file_info_add_new_source(fileinfo_t *fi, struct download *dl)
 {
-	fi->ntime = time(NULL);
+	fi->ntime = tm_time();
 	file_info_add_source(fi, dl);
 }
 

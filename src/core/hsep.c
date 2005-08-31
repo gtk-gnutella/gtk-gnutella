@@ -108,6 +108,7 @@ RCSID("$Id$");
 
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"
 
@@ -329,7 +330,7 @@ hsep_init(void)
 		"HSEP", HSEP_VERSION_MAJOR, HSEP_VERSION_MINOR);
 	memset(hsep_global_table, 0, sizeof(hsep_global_table));
 	hsep_global_table_changed_event = event_new("hsep_global_table_changed");
- 	hsep_fire_global_table_changed(time(NULL));
+ 	hsep_fire_global_table_changed(tm_time());
 }
 
 /**
@@ -411,7 +412,7 @@ hsep_reset(void)
 		 * to all HSEP connections the next time it is called.
 		 */
 	}
-	hsep_fire_global_table_changed(time(NULL));
+	hsep_fire_global_table_changed(tm_time());
 }
 
 /**
@@ -422,7 +423,7 @@ void
 hsep_connection_init(struct gnutella_node *n)
 {
 	static const hsep_ctx_t zero_hsep;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 	guint i;
 
 	g_assert(n);
@@ -543,7 +544,7 @@ hsep_connection_close(struct gnutella_node *n)
 	if (hsep_debug > 1)
 		hsep_dump_table();
 
-	hsep_fire_global_table_changed(time(NULL));
+	hsep_fire_global_table_changed(tm_time());
 }
 
 /**

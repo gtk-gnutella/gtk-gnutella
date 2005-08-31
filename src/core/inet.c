@@ -45,6 +45,7 @@ RCSID("$Id$");
 #include "if/gnet_property_priv.h"
 
 #include "lib/cq.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -59,7 +60,7 @@ RCSID("$Id$");
  * prove us we're not firewalled.
  */
 
-#define FW_STARTUP_GRACE		300		/**< Startup period where we send pongs */
+#define FW_STARTUP_GRACE		300		/**< Startup period: we send pongs */
 #define FW_GRACE_INTERVAL		3600	/**< Every hour, new grace period */
 #define FW_PERIODIC_GRACE		120		/**< We send pongs for 2 minutes */
 #define FW_INCOMING_WINDOW		3600	/**< Incoming monitoring window */
@@ -231,7 +232,7 @@ void
 inet_firewalled(void)
 {
 	gnet_prop_set_boolean_val(PROP_IS_FIREWALLED, TRUE);
-	fw_time = time(NULL);
+	fw_time = tm_time();
 
 	if (incoming_ev) {
 		cq_cancel(callout_queue, incoming_ev);
@@ -507,7 +508,7 @@ inet_can_answer_ping(void)
 	if (is_private_addr(addr))
 		return FALSE;
 
-	elapsed = delta_time(time(NULL), fw_time);	/* Since last status change */
+	elapsed = delta_time(tm_time(), fw_time);	/* Since last status change */
 
 	/*
 	 * If we're close to a status change, send pongs.

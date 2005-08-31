@@ -45,6 +45,7 @@ RCSID("$Id$");
 #include "mq.h"
 #include "pcache.h"
 #include "lib/atoms.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "if/gnet_property_priv.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -67,7 +68,7 @@ struct alive {
 
 struct alive_ping {
 	gchar *muid;				/**< The GUID of the message */
-	GTimeVal sent;				/**< Time at which we sent the message */
+	tm_t sent;					/**< Time at which we sent the message */
 };
 
 static void alive_trim_upto(struct alive *a, GSList *item);
@@ -83,7 +84,7 @@ ap_make(gchar *muid)
 	ap = walloc(sizeof *ap);
 
 	ap->muid = atom_guid_get(muid);
-	g_get_current_time(&ap->sent);
+	tm_now_exact(&ap->sent);
 
 	return ap;
 }
@@ -256,7 +257,7 @@ alive_send_ping(gpointer obj)
 	ap = ap_make(muid);
 	a->count++;
 	a->pings = g_slist_append(a->pings, ap);
-	a->node->last_alive_ping = time(NULL);
+	a->node->last_alive_ping = tm_time();
 
 	/*
 	 * Build ping message and attach a pre-sender callback, as well as
@@ -284,7 +285,7 @@ ap_ack(struct alive_ping *ap, struct alive *a)
 	GTimeVal now;
 	gint delay;					/**< Between sending and reception, in ms */
 
-	g_get_current_time(&now);
+	tm_now_exact(&now);
 
 	delay = (gint) ((now.tv_sec - ap->sent.tv_sec) * 1000 +
 		(now.tv_usec - ap->sent.tv_usec) / 1000);

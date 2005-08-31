@@ -53,6 +53,7 @@ RCSID("$Id$");
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/header.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
@@ -175,7 +176,7 @@ http_send_status(
 
 	g_assert((size_t) header_size <= sizeof(header));
 
-	date = date_to_rfc1123_gchar(clock_loc2gmt(time(NULL)));
+	date = date_to_rfc1123_gchar(clock_loc2gmt(tm_time()));
 	rw = gm_snprintf(header, header_size,
 		"HTTP/1.1 %d %s\r\n"
 		"Server: %s\r\n"
@@ -1851,7 +1852,7 @@ http_async_create(
 	ha->state_chg = NULL;
 	ha->io_opaque = NULL;
 	ha->bio = NULL;
-	ha->last_update = time(NULL);
+	ha->last_update = tm_time();
 	ha->user_opaque = NULL;
 	ha->user_free = NULL;
 	ha->parent = parent;
@@ -1879,7 +1880,7 @@ static void
 http_async_newstate(struct http_async *ha, http_state_t state)
 {
 	ha->state = state;
-	ha->last_update = time(NULL);
+	ha->last_update = tm_time();
 
 	if (ha->state_chg != NULL)
 		(*ha->state_chg)(ha, state);
@@ -2130,7 +2131,7 @@ http_got_data(struct http_async *ha, gboolean eof)
 	g_assert(eof || s->pos > 0);		/* If not EOF, there must be data */
 
 	if (s->pos > 0) {
-		ha->last_update = time(NULL);
+		ha->last_update = tm_time();
 		(*ha->data_ind)(ha, s->buffer, s->pos);
 		if (ha->flags & HA_F_FREED)		/* Callback decided to cancel/close */
 			return;

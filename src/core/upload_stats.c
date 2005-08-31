@@ -61,6 +61,7 @@ RCSID("$Id$");
 #include "if/bridge/c2ui.h"
 
 #include "lib/file.h"
+#include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -172,7 +173,7 @@ static void
 upload_stats_dump_history(const gchar *ul_history_file_name)
 {
 	FILE *out;
-	time_t now = time((time_t *) NULL);
+	time_t now = tm_time();
 	GList *l;
 
 	/* open file for writing */

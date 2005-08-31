@@ -54,6 +54,7 @@ RCSID("$Id$");
 #include "lib/getdate.h"
 #include "lib/endian.h"
 #include "lib/misc.h"
+#include "lib/tm.h"
 #include "lib/override.h"			/* Must be the last header included */
 
 #define QHIT_SIZE_THRESHOLD	2016	/**< Flush query hits larger than this */
@@ -832,7 +833,7 @@ qhit_build_results(
 void
 qhit_init(void)
 {
-	release_date = date2time(GTA_RELEASE, time(NULL));
+	release_date = date2time(GTA_RELEASE, tm_time());
 }
 
 /**

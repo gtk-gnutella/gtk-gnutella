@@ -46,6 +46,7 @@ RCSID("$Id$");
 #include "lib/bg.h"
 #include "lib/sha1.h"
 #include "lib/file.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -129,7 +130,7 @@ d_start(gpointer unused_h, gpointer ctx, gpointer item)
 	}
 
 	vd->d = d;
-	vd->start = time(NULL);
+	vd->start = tm_time();
 	vd->size = download_filesize(d);
 	vd->hashed = 0;
 	vd->error = 0;
@@ -170,7 +171,7 @@ d_end(gpointer unused_h, gpointer ctx, gpointer item)
 		SHA1Result(&vd->context, digest);
 	}
 
-	elapsed = time(NULL) - vd->start;
+	elapsed = tm_time() - vd->start;
 	elapsed = MAX(1, elapsed);
 
 	if (dbg > 1)

@@ -39,6 +39,7 @@
 #include "sockets.h"		/* For enum socket_type */
 
 #include "lib/inputevt.h"
+#include "lib/tm.h"
 #include "if/core/hosts.h"	/* For gnet_host_t */
 #include "if/core/nodes.h"	/* For node_peer_t */
 #include "if/core/bsched.h"
@@ -72,7 +73,7 @@
  */
 
 struct bsched {
-	GTimeVal last_period;			/**< Last time we ran our period */
+	tm_t last_period;				/**< Last time we ran our period */
 	GList *sources;					/**< List of bio_source_t */
 	GSList *stealers;				/**< List of bsched_t stealing bw */
 	gchar *name;					/**< Name, for tracing purposes */

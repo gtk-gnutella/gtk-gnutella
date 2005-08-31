@@ -36,6 +36,7 @@
 #include "common.h"		/* For RCSID */
 
 #include "atoms.h"		/* For binary_hash() */
+#include "tm.h"			/* For tm_time() */
 
 /**
  * Routines in this file are defined either for TRACK_MALLOC or TRACK_ZALLOC
@@ -213,7 +214,7 @@ static void malloc_init(void)
 	stats = g_hash_table_new(stats_hash, stats_eq);
 #endif
 
-	init_time = reset_time = time(NULL);
+	init_time = reset_time = tm_time();
 }
 
 /**
@@ -1666,7 +1667,7 @@ void alloc_dump(FILE *f, gboolean total)
 	if (count == 0)
 		return;
 
-	now = time(NULL);
+	now = tm_time();
 	fprintf(f, "--- distinct allocation spots found: %d at %s\n",
 		count, short_time(now - init_time));
 
@@ -1731,7 +1732,7 @@ static void stats_reset(gpointer uu_key, gpointer value, gpointer uu_user)
  */
 void alloc_reset(FILE *f, gboolean total)
 {
-	time_t now = time(NULL);
+	time_t now = tm_time();
 
 	alloc_dump(f, total);
 	g_hash_table_foreach(stats, stats_reset, NULL);

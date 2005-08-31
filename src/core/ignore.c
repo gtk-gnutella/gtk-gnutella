@@ -45,8 +45,9 @@ RCSID("$Id$");
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
-#include "lib/misc.h"
 #include "lib/file.h"
+#include "lib/misc.h"
+#include "lib/tm.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -104,7 +105,7 @@ open_read_stamp(const gchar *file, time_t *stamp)
 
 	if (-1 == stat(path, &buf)) {
 		if (stamp)
-			*stamp = time(NULL);
+			*stamp = tm_time();
 		G_FREE_NULL(path);
 		return NULL;
 	}

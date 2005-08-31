@@ -31,6 +31,7 @@ RCSID("$Id$");
 #include "file.h"
 #include "misc.h"
 #include "glib-missing.h"
+#include "tm.h"
 #include "override.h"		/* Must be the last header included */
 
 #define debug track_props
@@ -1356,7 +1357,7 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		if (-1 == rename(newfile, pathname))
 			g_warning("could not rename %s as %s: %s",
 				newfile, pathname, g_strerror(errno));
-		ps->mtime = time(NULL);
+		ps->mtime = tm_time();
 	} else
 		g_warning("could not flush %s: %s", newfile, g_strerror(errno));
 

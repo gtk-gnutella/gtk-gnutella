@@ -35,6 +35,7 @@ RCSID("$Id$");
 
 #include "lib/misc.h"
 #include "lib/glib-missing.h"	/* For gm_snprintf() */
+#include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define IO_STALLED		60		/**< If nothing exchanged after that many secs */
@@ -119,7 +120,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			/* Time Remaining at the current rate, in seconds  */
 			filesize_t tr = (data->range_end + 1 - u->pos) / MAX(1, u->avg_bps);
 			gdouble p = uploads_gui_progress(u, data);
-			time_t now = time(NULL);
+			time_t now = tm_time();
 			gboolean stalled = delta_time(now, u->last_update) > IO_STALLED;
 			gchar pbuf[32];
 

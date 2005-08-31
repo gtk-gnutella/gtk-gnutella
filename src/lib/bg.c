@@ -42,6 +42,7 @@
 RCSID("$Id$");
 
 #include "bg.h"
+#include "tm.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -84,7 +85,7 @@ struct bgtask {
 	bgsig_t signal;			/**< Last signal delivered */
 	GSList *signals;		/**< List of signals pending delivery */
 	jmp_buf env;			/**< Only valid when TASK_F_RUNNING */
-	GTimeVal start;			/**< Start time of scheduling "tick" */
+	tm_t start;				/**< Start time of scheduling "tick" */
 	gint ticks;				/**< Scheduling ticks for time slice */
 	gint ticks_used;		/**< Amount of ticks used by processing step */
 	gint prev_ticks;		/**< Ticks used when measuring `elapsed' below */
@@ -184,7 +185,7 @@ static struct bgtask *bg_sched_pick(void)
  */
 static void bg_task_suspend(struct bgtask *bt)
 {
-	GTimeVal end;
+	tm_t end;
 	gint elapsed;
 
 	g_assert(bt->flags & TASK_F_RUNNING);
@@ -196,7 +197,7 @@ static void bg_task_suspend(struct bgtask *bt)
 	 * Update task running time.
 	 */
 
-	g_get_current_time(&end);
+	tm_now_exact(&end);
 	elapsed = (glong) ((end.tv_sec - bt->start.tv_sec) * 1000 * 1000 +
 		(end.tv_usec - bt->start.tv_usec));
 
@@ -250,7 +251,7 @@ static void bg_task_resume(struct bgtask *bt)
 	bg_sched_remove(bt);
 	bt->flags |= TASK_F_RUNNING;
 
-	g_get_current_time(&bt->start);
+	tm_now_exact(&bt->start);
 }
 
 /**

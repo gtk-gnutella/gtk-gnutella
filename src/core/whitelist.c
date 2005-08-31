@@ -44,6 +44,7 @@ RCSID("$Id$");
 
 #include "lib/file.h"
 #include "lib/glib-missing.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -65,7 +66,7 @@ whitelist_retrieve(void)
     int linenum = 0;
 	file_path_t fp[1];
 
-    whitelist_checked = time(NULL);
+    whitelist_checked = tm_time();
 
 	file_path_set(fp, settings_config_dir(), whitelist_file);
 	f = file_config_open_read_norename("Host Whitelist", fp, G_N_ELEMENTS(fp));
@@ -268,7 +269,7 @@ whitelist_retrieve(void)
 guint
 whitelist_connect(void)
 {
-    time_t now = time(NULL);
+    time_t now = tm_time();
     const GSList *sl;
     guint num = 0;
 
@@ -344,7 +345,7 @@ whitelist_reload(void)
 gboolean
 whitelist_check(const host_addr_t ha)
 {
-    time_t now = time(NULL);
+    time_t now = tm_time();
     const GSList *sl;
 
     /* Check if the file has changed on disk, and reload it if necessary. */

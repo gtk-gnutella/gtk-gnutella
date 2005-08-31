@@ -67,6 +67,7 @@ RCSID("$Id$");
 #include "lib/file.h"
 #include "lib/listener.h"
 #include "lib/glib-missing.h"
+#include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/watcher.h"
 #include "lib/walloc.h"
@@ -1240,7 +1241,7 @@ share_scan(void)
 	else
 		in_share_scan = TRUE;
 
-	started = now = time(NULL);
+	started = now = tm_time();
 
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, TRUE);
 	gnet_prop_set_guint64_val(PROP_LIBRARY_RESCAN_STARTED, now);
@@ -1334,7 +1335,7 @@ share_scan(void)
 
 	gcu_gui_update_files_scanned();		/* Final view */
 
-	now = time(NULL);
+	now = tm_time();
 	elapsed = delta_time(now, started);
 	elapsed = MAX(0, elapsed);
 	gnet_prop_set_guint64_val(PROP_LIBRARY_RESCAN_FINISHED, now);
@@ -1358,7 +1359,7 @@ share_scan(void)
 
 	qrp_finalize_computation();
 
-	now = time(NULL);
+	now = tm_time();
 	elapsed = delta_time(now, started);
 	elapsed = MAX(0, elapsed);
 	gnet_prop_set_guint32_val(PROP_QRP_INDEXING_DURATION, elapsed);
@@ -1874,7 +1875,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 */
 
 	if (n->header.hops == 1 && n->qseen != NULL) {
-		time_t now = time(NULL);
+		time_t now = tm_time();
 		time_t seen = 0;
 		gboolean found;
 		gpointer atom;

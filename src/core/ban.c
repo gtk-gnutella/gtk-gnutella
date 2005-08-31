@@ -47,6 +47,7 @@ RCSID("$Id$");
 #include "lib/file.h"		/* For file_register_fd_reclaimer() */
 #include "lib/cq.h"
 #include "lib/misc.h"
+#include "lib/tm.h"
 #include "lib/zalloc.h"
 
 #include "if/gnet_property.h"
@@ -170,7 +171,7 @@ static void
 ipf_unban(cqueue_t *unused_cq, gpointer obj)
 {
 	struct addr_info *ipf = obj;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 	gint delay;
 
 	(void) unused_cq;
@@ -230,7 +231,7 @@ ban_type_t
 ban_allow(const host_addr_t addr)
 {
 	struct addr_info *ipf;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 
 	ipf = g_hash_table_lookup(info, &addr);
 
@@ -345,7 +346,7 @@ ban_record(const host_addr_t addr, const gchar *msg)
 	ipf = g_hash_table_lookup(info, &addr);
 
 	if (NULL == ipf) {
-		ipf = ipf_make(addr, time(NULL));
+		ipf = ipf_make(addr, tm_time());
 		g_hash_table_insert(info, &ipf->addr, ipf);
 	}
 

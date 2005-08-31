@@ -67,6 +67,7 @@ RCSID("$Id$");
 #include "lib/header.h"
 #include "lib/glib-missing.h"
 #include "lib/endian.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
@@ -298,7 +299,7 @@ pproxy_create(struct gnutella_socket *s)
 
 	pp->socket = s;
 	pp->flags = 0; /* XXX: TLS? */
-	pp->last_update = time(NULL);
+	pp->last_update = tm_time();
 	s->resource.pproxy = pp;
 
 	return pp;

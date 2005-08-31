@@ -39,6 +39,7 @@ RCSID("$Id$");
 
 #include "file.h"
 #include "misc.h"
+#include "tm.h"
 #include "override.h"		/* Must be the last header included */
 
 static const gchar orig_ext[] = "orig";
@@ -310,7 +311,7 @@ failed:
 void
 file_config_preamble(FILE *out, const gchar *what)
 {
-	time_t now = time((time_t *) NULL);
+	time_t now = tm_time();
 
 	g_assert(out);
 

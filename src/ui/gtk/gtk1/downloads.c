@@ -40,6 +40,7 @@ RCSID("$Id$");
 
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
+#include "lib/tm.h"
 #include "lib/override.h"	/* Must be the last header included */
 
 static gchar tmpstr[4096];
@@ -947,7 +948,7 @@ void
 gui_update_download(struct download *d, gboolean force)
 {
 	const gchar *a = NULL;
-	time_t now = time(NULL);
+	time_t now = tm_time();
     GdkColor *color;
 	GtkCTreeNode *node, *parent;
 	struct download *drecord;

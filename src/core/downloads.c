@@ -731,7 +731,7 @@ allocate_server(const gchar *guid, const host_addr_t addr, guint16 port)
 	server = walloc0(sizeof *server);
 	server->magic = DL_SERVER_MAGIC;
 	server->key = key;
-	server->retry_after = time(NULL);
+	server->retry_after = tm_time();
 	server->country = gip_country(addr);
 
 	g_hash_table_insert(dl_by_host, key, server);
@@ -1777,7 +1777,7 @@ download_clear_stopped(gboolean complete,
 		return;
 
 	if (!now)
-		current_time = time(NULL);
+		current_time = tm_time();
 
 	for (sl = sl_unqueued; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
@@ -2214,7 +2214,7 @@ download_stop_v(struct download *d, guint32 new_status,
 	/* Register the new status, and update the GUI if needed */
 
 	d->status = new_status;
-	d->last_update = time((time_t *) NULL);
+	d->last_update = tm_time();
 
 	if (d->status != GTA_DL_TIMEOUT_WAIT)
 		d->retries = 0;		/* If they retry, go over whole cycle again */
@@ -2383,7 +2383,7 @@ download_queue_hold_delay_v(struct download *d,
 	gint delay, time_t hold,
 	const gchar *fmt, va_list ap)
 {
-	time_t now = time((time_t *) NULL);
+	time_t now = tm_time();
 
 	/*
 	 * Must update `retry_after' before enqueuing, since the "waiting" list
@@ -2605,7 +2605,7 @@ download_start_prepare_running(struct download *d)
 		g_assert(d->overlap_size == 0 || d->skip > d->overlap_size);
 	}
 
-	d->last_update = time((time_t *) NULL);
+	d->last_update = tm_time();
 
 	/*
 	 * Is there anything to get at all?
@@ -2679,7 +2679,7 @@ download_pick_chunk(struct download *d)
 	g_assert(d->file_info->use_swarming);
 
 	d->overlap_size = 0;
-	d->last_update = time((time_t *) NULL);
+	d->last_update = tm_time();
 
 	status = file_info_find_hole(d, &from, &to);
 
@@ -2730,7 +2730,7 @@ download_pick_available(struct download *d)
 
 
 	d->overlap_size = 0;
-	d->last_update = time((time_t *) NULL);
+	d->last_update = tm_time();
 
 	if (!file_info_find_available_hole(d, d->ranges, &from, &to)) {
 		if (download_debug > 3)
@@ -2811,13 +2811,13 @@ download_connect(struct download *d)
 	if (
 		(server->attrs & DLS_A_DNS_LOOKUP) ||
 		(server->hostname != NULL &&
-			delta_time(time(NULL), server->dns_lookup) > DOWNLOAD_DNS_LOOKUP)
+			delta_time(tm_time(), server->dns_lookup) > DOWNLOAD_DNS_LOOKUP)
 	) {
 		g_assert(server->hostname != NULL);
 
 		d->flags |= DL_F_DNS_LOOKUP;
 		server->attrs &= ~DLS_A_DNS_LOOKUP;
-		server->dns_lookup = time(NULL);
+		server->dns_lookup = tm_time();
 		return socket_connect_by_name(
 			server->hostname, port, SOCK_TYPE_DOWNLOAD, d->cflags);
 	} else
@@ -2946,7 +2946,7 @@ download_start(struct download *d, gboolean check_allowed)
 void
 download_pickup_queued(void)
 {
-	time_t now = time(NULL);
+	time_t now = tm_time();
 	guint running = count_running_downloads();
 	guint i;
 
@@ -3252,7 +3252,7 @@ download_fallback_to_push(struct download *d,
 	else
 		d->status = GTA_DL_FALLBACK;
 
-	d->last_update = time(NULL);		/* Reset timeout if we send the push */
+	d->last_update = tm_time();		/* Reset timeout if we send the push */
 	download_push(d, on_timeout);
 
 	gcu_gui_update_download(d, TRUE);
@@ -3764,7 +3764,7 @@ download_orphan_new(
 {
 	time_t ntime = fi->ntime;
 	(void) create_download(file, NULL, size, 0, zero_host_addr, 0,
-			blank_guid, NULL, sha1, time(NULL), FALSE, TRUE, TRUE, fi, NULL, 0);
+			blank_guid, NULL, sha1, tm_time(), FALSE, TRUE, TRUE, fi, NULL, 0);
 	fi->ntime = ntime;
 }
 
@@ -4257,7 +4257,7 @@ download_start_reading(gpointer o)
 	 */
 
 	d->status = GTA_DL_HEADERS;
-	d->last_update = time((time_t *) 0);	/* Starting reading */
+	d->last_update = tm_time();			/* Starting reading */
 	gcu_gui_update_download(d, TRUE);
 }
 
@@ -4915,7 +4915,7 @@ extract_retry_after(struct download *d, const header_t *header)
 
 	delay = gm_atoul(buf, NULL, &error);
 	if (error || delay > INT_MAX) {
-		time_t now = time((time_t *) NULL);
+		time_t now = tm_time();
 		time_t retry = date2time(buf, now);
 
 		if (retry == (time_t) -1) {
@@ -4946,7 +4946,7 @@ check_date(const header_t *header, const host_addr_t addr, struct download *d)
 
 	buf = header_get(header, "Date");
 	if (buf) {
-		time_t their = date2time(buf, time(NULL));
+		time_t their = date2time(buf, tm_time());
 
 		if ((time_t) -1 == their)
 			g_warning("cannot parse Date \"%s\" sent by %s <%s>",
@@ -5317,7 +5317,7 @@ check_push_proxies(struct download *d, header_t *header)
 		free_proxies(server);
 
 	server->proxies = l;
-	server->proxies_stamp = time(NULL);
+	server->proxies_stamp = tm_time();
 }
 
 /**
@@ -5452,7 +5452,7 @@ download_sink_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 	}
 
 	s->pos = r;
-	d->last_update = time(NULL);
+	d->last_update = tm_time();
 
 	download_sink(d);
 }
@@ -5504,7 +5504,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	g_assert(s->getline);				/* Being in the header reading phase */
 
 	status = getline_str(s->getline);
-	d->last_update = time(NULL);		/* Done reading headers */
+	d->last_update = tm_time();			/* Done reading headers */
 
 	if (download_debug > 2) {
 		const gchar *incomplete = ok ? "" : "INCOMPLETE ";
@@ -5669,7 +5669,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	update_available_ranges(d, header);		/* Updates `d->ranges' */
 
 	delay = extract_retry_after(d, header);
-	d->retry_after = (delay > 0) ? (time(NULL) + delay) : 0;
+	d->retry_after = (delay > 0) ? (tm_time() + delay) : 0;
 
 	/*
 	 * Partial File Sharing Protocol (PFSP) -- client-side
@@ -6393,7 +6393,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	getline_free(s->getline);		/* No longer need this */
 	s->getline = NULL;
 
-	d->start_date = time((time_t *) NULL);
+	d->start_date = tm_time();
 	d->status = GTA_DL_RECEIVING;
 
 	if (fi->recvcount == 0) {		/* First source to begin receiving */
@@ -6531,7 +6531,7 @@ download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 	}
 
 	s->pos += r;
-	d->last_update = time((time_t *) 0);
+	d->last_update = tm_time();
 	fi->recv_amount += r;
 
 	g_assert(s->pos > 0);
@@ -6549,7 +6549,7 @@ download_request_sent(struct download *d)
 	 * Update status and GUI.
 	 */
 
-	d->last_update = time((time_t *) 0);
+	d->last_update = tm_time();
 	d->status = GTA_DL_REQ_SENT;
 	tm_now(&d->header_sent);
 
@@ -6768,7 +6768,7 @@ picked:
 	 */
 
 	d->status = GTA_DL_REQ_SENDING;
-	d->last_update = time((time_t *) 0);
+	d->last_update = tm_time();
 
 	if (!DOWNLOAD_IS_VISIBLE(d))
 		gcu_download_gui_add(d);
@@ -6917,7 +6917,7 @@ picked:
 				file_info, TRUE);
 			rw += wmesh;
 
-			d->last_dmesh = (guint32) time(NULL);
+			d->last_dmesh = (guint32) tm_time();
 		}
 
 		/*
@@ -7034,7 +7034,7 @@ static struct download *
 select_push_download(GSList *servers)
 {
 	GSList *sl;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 
 	/*
 	 * We do not limit by download slots for GIV... Indeed, pushes are
@@ -7305,7 +7305,7 @@ download_push_ack(struct gnutella_socket *s)
 	g_assert(d->socket == NULL);
 
 	d->got_giv = TRUE;
-	d->last_update = time(NULL);
+	d->last_update = tm_time();
 	d->socket = s;
 	s->resource.download = d;
 
@@ -7348,7 +7348,7 @@ download_retry(struct download *d)
 		d->timeout_delay *= 2;
 		if (d->start_date) {
 			/* We forgive a little while the download is working */
-			d->timeout_delay -= delta_time(time(NULL), d->start_date) / 10;
+			d->timeout_delay -= delta_time(tm_time(), d->start_date) / 10;
 		}
 	}
 

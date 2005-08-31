@@ -48,6 +48,7 @@ RCSID("$Id$");
 #include "if/core/hosts.h"
 
 #include "lib/misc.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -194,7 +195,7 @@ tx_dgram_write_error(txdrv_t *tx, gnet_host_t *to, const char *func)
 	default:
 		{
 			int terr = errno;
-			time_t t = time(NULL);
+			time_t t = tm_time();
 			tx->flags |= TX_ERROR;				/* This should be fatal! */
 			g_error("%s  gtk-gnutella: %s: "
 				"UDP write to %s failed with unexpected errno: %d (%s)\n",

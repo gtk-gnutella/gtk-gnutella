@@ -46,6 +46,7 @@ RCSID("$Id$");
 #include "tx_link.h"
 #include "bsched.h"
 
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -186,7 +187,7 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 	default:
 		{
 			int terr = errno;
-			time_t t = time(NULL);
+			time_t t = tm_time();
 			wrap_io_t *wio = ((struct attr *) tx->opaque)->wio;
 			gint fd = wio->fd(wio);
 			tx->flags |= TX_ERROR;

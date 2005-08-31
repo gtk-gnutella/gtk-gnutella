@@ -78,6 +78,7 @@ RCSID("$Id$");
 #include "lib/file.h"
 #include "lib/header.h"
 #include "lib/listener.h"
+#include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/urn.h"
 #include "lib/walloc.h"
@@ -447,7 +448,7 @@ upload_create(struct gnutella_socket *s, gboolean push)
 
 	u->push = push;
 	u->status = push ? GTA_UL_PUSH_RECEIVED : GTA_UL_HEADERS;
-	u->last_update = time(NULL);
+	u->last_update = tm_time();
 	u->file_desc = -1;
 	u->sendfile_ctx.map = NULL;
 
@@ -920,7 +921,7 @@ send_upload_error_v(
 			hev[hevcnt].he_type = HTTP_EXTRA_BODY;
 			hev[hevcnt++].he_msg = buf;
 
-			retry = delta_time(parq_upload_lookup_retry(u), time(NULL));
+			retry = delta_time(parq_upload_lookup_retry(u), tm_time());
 			retry = MAX(0, retry);
 
 			{
@@ -2180,7 +2181,7 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 	shared_file_t *sf = a->sf;
 	gint needed_room;
 	gint range_length;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 	guint32 last_sent;
 	gchar tmp[160];
 	gint mesh_len;
@@ -2626,7 +2627,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean head_only;
 	gboolean has_end = FALSE;
 	struct stat statbuf;
-	time_t mtime, now = time((time_t *) NULL);
+	time_t mtime, now = tm_time();
 	struct upload_http_cb cb_parq_arg, cb_sha1_arg, cb_status_arg, cb_416_arg;
 	gint http_code;
 	const gchar *http_msg;
@@ -2681,7 +2682,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	u->status = GTA_UL_SENDING;
-	u->last_update = time((time_t *) 0);	/* Done reading headers */
+	u->last_update = tm_time();		/* Done reading headers */
 
 	/*
 	 * If `head_only' is true, the request was a HEAD and we're only going
@@ -3774,7 +3775,7 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 
 	gnet_prop_set_guint64_val(PROP_UL_BYTE_COUNT, ul_byte_count + written);
 
-	u->last_update = time(NULL);
+	u->last_update = tm_time();
 	u->sent += written;
 
 	/* This upload is complete */
@@ -3903,7 +3904,7 @@ upload_special_writable(gpointer up)
 
 	gnet_prop_set_guint64_val(PROP_UL_BYTE_COUNT, ul_byte_count + written);
 
-	u->last_update = time(NULL);
+	u->last_update = tm_time();
 	u->sent += written;
 }
 
@@ -4052,7 +4053,7 @@ void
 upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 {
     gnutella_upload_t *u = upload_find_by_handle(uh);
-	time_t now = time(NULL);
+	time_t now = tm_time();
 
     g_assert(si != NULL);
 

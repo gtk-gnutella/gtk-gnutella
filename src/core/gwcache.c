@@ -50,6 +50,7 @@ RCSID("$Id$");
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/misc.h"
+#include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/walloc.h"
 
@@ -240,7 +241,7 @@ gwc_pick(void)
 	gint count = g_hash_table_size(gwc_known_url);
 	gint idx, i;
 	gchar *url = NULL;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 
 	if (0 == count)
 		return NULL;
@@ -989,7 +990,7 @@ gwc_get_hosts(void)
 {
 	gpointer handle;
 	static time_t last_called = 0;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 
 	/*
 	 * Make sure we don't probe more than one webcache at a time.

@@ -61,6 +61,7 @@ RCSID("$Id$");
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
 #include "lib/header.h"
+#include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/urn.h"
 #include "lib/walloc.h"
@@ -271,7 +272,7 @@ dmesh_ban_expire(cqueue_t *unused_cq, gpointer obj)
 static void
 dmesh_ban_add(const gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 {
-	time_t now = time(NULL);
+	time_t now = tm_time();
 	struct dmesh_banned *dmb;
 	gint lifetime = BAN_LIFETIME;
 
@@ -486,7 +487,7 @@ dm_expire(struct dmesh *dm, guint32 agemax, const gchar *sha1)
 {
 	GSList *l;
 	GSList *prev;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 
 	for (prev = NULL, l = dm->entries; l; /* empty */) {
 		struct dmesh_entry *dme = (struct dmesh_entry *) l->data;
@@ -697,7 +698,7 @@ dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 {
 	struct dmesh_entry *dme;
 	struct dmesh *dm;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 	host_addr_t addr = info->addr;
 	guint16 port = info->port;
 	guint idx = info->idx;
@@ -1255,7 +1256,7 @@ dmesh_alternate_location(const gchar *sha1,
 	) {
 		size_t url_len;
 		struct dmesh_entry ourselves;
-		time_t now = time(NULL);
+		time_t now = tm_time();
 
 		ourselves.inserted = now;
 		ourselves.stamp = now;
@@ -1505,7 +1506,7 @@ dmesh_check_deferred_against_existing(gchar *sha1,
     gulong score;
     gint matches;
     gint threshold = g_slist_length(existing_urls);
-	time_t now = time(NULL);
+	time_t now = tm_time();
 
     /* We want to match at least 2 or more entries, going for 50% */
     threshold = (threshold < 3) ? 2 : (threshold / 2);
@@ -1620,7 +1621,7 @@ dmesh_check_deferred_against_themselves(gchar *sha1, GSList *deferred_urls)
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
 				dmesh_urlinfo_to_gchar(url), (guint32) def->stamp,
-				(gint) delta_time(time(NULL), def->stamp));
+				(gint) delta_time(tm_time(), def->stamp));
 		}
 	}
 
@@ -1707,7 +1708,7 @@ dmesh_collect_sha1(gchar *value, gchar *digest)
 void
 dmesh_collect_compact_locations(gchar *sha1, gchar *value)
 {
-	time_t now = time(NULL);
+	time_t now = tm_time();
 	guchar c;
 	gchar *p = value;
 
@@ -1786,7 +1787,7 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 {
 	gchar *p = value;
 	guchar c;
-	time_t now = time(NULL);
+	time_t now = tm_time();
     GSList *nonurn_altlocs = NULL;
 
 	for (;;) {
@@ -2110,7 +2111,7 @@ void
 dmesh_check_results_set(gnet_results_set_t *rs)
 {
 	GSList *sl;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 
 	for (sl = rs->records; sl; sl = g_slist_next(sl)) {
 		gnet_record_t *rc = sl->data;
@@ -2188,7 +2189,7 @@ dmesh_multiple_downloads(gchar *sha1, filesize_t size, fileinfo_t *fi)
 	if (n == 0)
 		return;
 
-	now = time(NULL);
+	now = tm_time();
 
 	for (p = buffer; n > 0; n--, p++) {
 		if (dbg > 2)

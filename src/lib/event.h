@@ -28,6 +28,8 @@
 
 #include "common.h"
 
+#include "tm.h"
+
 typedef enum frequency_type {
     FREQ_SECS,
     FREQ_UPDATES
@@ -95,7 +97,7 @@ gboolean event_subscriber_active(struct event *evt);
 				break;											 			\
 			case FREQ_SECS:													\
 				if ((time_t) -1 == vars_.now)								\
-					vars_.now = time(NULL);									\
+					vars_.now = tm_time();									\
 				vars_.t = vars_.s->f_interval <=							\
 						(guint32) delta_time(vars_.now, vars_.s->last_call);\
 				break;														\
@@ -106,7 +108,7 @@ gboolean event_subscriber_active(struct event *evt);
 		if (vars_.t) {														\
 			if (FREQ_SECS == vars_.s->f_type) {								\
 				if ((time_t) -1 == vars_.now)								\
-					vars_.now = time(NULL);									\
+					vars_.now = tm_time();									\
 				vars_.s->last_call = vars_.now;								\
 			}																\
 			callback														\

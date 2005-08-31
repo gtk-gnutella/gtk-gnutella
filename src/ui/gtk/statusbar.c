@@ -43,6 +43,7 @@ RCSID("$Id$");
 
 #include "lib/glib-missing.h"
 #include "lib/misc.h"
+#include "lib/tm.h"
 #include "lib/override.h"	/* Must be the last header included */
 
 static const statusbar_msgid_t zero_msgid;
@@ -267,7 +268,7 @@ statusbar_gui_add_timeout(statusbar_msgid_t id, guint timeout)
     t = g_malloc0(sizeof *t);
 
 	t->id = id;
-	t->stamp = time(NULL);
+	t->stamp = tm_time();
 	t->timeout = timeout;
 
 	sl_statusbar_timeouts = g_slist_prepend(sl_statusbar_timeouts, t);

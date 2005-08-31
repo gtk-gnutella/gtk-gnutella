@@ -54,6 +54,7 @@
 #include "lib/utf8.h"
 #include "lib/iso3166.h"
 #include "lib/misc.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -251,7 +252,7 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 	rd = find_upload(u->upload_handle);
 	g_assert(NULL != rd);
 
-	rd->last_update  = time(NULL);
+	rd->last_update  = tm_time();
 
 	if (!host_addr_equal(u->addr, rd->addr)) {
 		rd->addr = u->addr;

@@ -45,13 +45,14 @@ RCSID("$Id$");
 #include "lib/sha1.h"
 #include "lib/base64.h"
 #include "lib/crc.h"
+#include "lib/tm.h"
 #include "lib/override.h"	/* Must be the last header included */
 
 #define TOKEN_CLOCK_SKEW	3600		/**< +/- 1 hour */
 #define TOKEN_LIFE			60			/**< lifetime of our tokens */
 #define TOKEN_BASE64_SIZE	(TOKEN_VERSION_SIZE * 4 / 3)	/**< base64 size */
 #define LEVEL_SIZE			(2 * G_N_ELEMENTS(token_keys))	/**< at most */
-#define LEVEL_BASE64_SIZE	(LEVEL_SIZE * 4 / 3 + 3)		/**< +2 for == tail */
+#define LEVEL_BASE64_SIZE	(LEVEL_SIZE * 4 / 3 + 3)	/**< +2 for == tail */
 
 /*
  * Keys are generated through "od -x /dev/random".
@@ -301,7 +302,7 @@ gchar *tok_version(void)
 {
 	static time_t last_generated = 0;
 	static gchar *toklevel = NULL;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 
 	/*
 	 * We don't generate a new token each time, but only every TOKEN_LIFE
@@ -335,7 +336,7 @@ gchar *tok_short_version(void)
 {
 	static time_t last_generated = 0;
 	static gchar *toklevel = NULL;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 
 	/*
 	 * We don't generate a new token each time, but only every TOKEN_LIFE
@@ -369,7 +370,7 @@ gchar *tok_short_version(void)
 tok_error_t tok_version_valid(
 	const gchar *version, const gchar *tokenb64, gint len, host_addr_t addr)
 {
-	time_t now = time(NULL);
+	time_t now = tm_time();
 	time_t stamp;
 	guint32 stamp32;
 	const struct tokkey *tk;

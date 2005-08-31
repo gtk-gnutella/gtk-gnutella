@@ -44,6 +44,7 @@ RCSID("$Id$");
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/inputevt.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -832,7 +833,7 @@ shell_write_data(gnutella_shell_t *sh)
 	g_assert(sh->outbuf);
 	g_assert(IS_PROCESSING(sh));
 
-	sh->last_update = time(NULL);
+	sh->last_update = tm_time();
 
 	s = sh->socket;
 	written = s->wio.write(&s->wio, sh->outbuf, sh->outpos);
@@ -877,7 +878,7 @@ shell_read_data(gnutella_shell_t *sh)
 	g_assert(sh->socket);
 	g_assert(sh->socket->getline);
 
-	sh->last_update = time(NULL);
+	sh->last_update = tm_time();
 	s = sh->socket;
 
 	if (s->pos >= sizeof(s->buffer))

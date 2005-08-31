@@ -50,6 +50,7 @@ RCSID("$Id$");
 #include "if/bridge/ui2c.h"
 
 #include "lib/glib-missing.h"
+#include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -380,7 +381,7 @@ void
 search_store_xml(void)
 {
 	const GList *l;
-	time_t now = time((time_t *) NULL);
+	time_t now = tm_time();
     xmlDocPtr doc;
     xmlNodePtr root;
 	gchar *filename_new;

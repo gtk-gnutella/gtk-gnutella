@@ -65,6 +65,7 @@ RCSID("$Id$");
 #include "lib/bg.h"
 #include "lib/file.h"
 #include "lib/hashlist.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property.h"
@@ -299,7 +300,7 @@ hcache_ht_add(hcache_type_t type, gnet_host_t *host)
 
     hce = hce_alloc();
     hce->type = type;
-    hce->time_added = time((time_t *) NULL);
+    hce->time_added = tm_time();
 
 	g_hash_table_insert(ht_known_hosts, host, hce);
 
@@ -644,7 +645,7 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
 		caches[hce->type]->dirty = hc->dirty = TRUE;
 
 		hce->type = type;
-		hce->time_added = time(NULL);
+		hce->time_added = tm_time();
 
 		return TRUE;
     }

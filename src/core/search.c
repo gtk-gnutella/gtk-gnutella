@@ -79,6 +79,7 @@ RCSID("$Id$");
 #include "lib/idtable.h"
 #include "lib/listener.h"
 #include "lib/misc.h"
+#include "lib/tm.h"
 #include "lib/vendors.h"
 #include "lib/wordvec.h"
 #include "lib/walloc.h"
@@ -1036,7 +1037,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 	/* We now have the guid of the node */
 
 	rs->guid = atom_guid_get(e);
-	rs->stamp = time(NULL);
+	rs->stamp = tm_time();
 
 	/*
 	 * Compute status bits, decompile trailer info, if present

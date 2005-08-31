@@ -54,6 +54,7 @@ RCSID("$Id$");
 #include "lib/file.h"
 #include "lib/header.h"
 #include "lib/sha1.h"
+#include "lib/tm.h"
 #include "lib/urn.h"
 #include "lib/walloc.h"
 
@@ -609,7 +610,7 @@ close_current_file(struct sha1_computation_context *ctx)
 	if (ctx->fd != -1) {
 		if (dbg > 1) {
 			struct stat buf;
-			gint delta = delta_time(time((time_t *) NULL), ctx->start);
+			gint delta = delta_time(tm_time(), ctx->start);
 
 			if (delta && -1 != fstat(ctx->fd, &buf))
 				printf("SHA1 computation rate: %s bytes/sec\n",
@@ -700,7 +701,7 @@ open_next_file(struct sha1_computation_context *ctx)
 
 	if (dbg > 1) {
 		printf("Computing SHA1 digest for %s\n", ctx->file->file_name);
-		ctx->start = time((time_t *) NULL);
+		ctx->start = tm_time();
 	}
 
 	ctx->fd = file_open(ctx->file->file_name, O_RDONLY);

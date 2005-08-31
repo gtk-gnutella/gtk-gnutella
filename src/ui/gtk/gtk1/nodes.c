@@ -42,6 +42,7 @@ RCSID("$Id$");
 
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
+#include "lib/tm.h"
 #include "lib/override.h"	/* Must be the last header included */
 
 #define UPDATE_MIN	300		/**< Update screen every 5 minutes at least */
@@ -160,7 +161,7 @@ nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
     if (row != -1) {
 		gchar ver_buf[64];
         gnet_node_status_t status;
-        time_t now = time((time_t *) NULL);
+        time_t now = tm_time();
 
         guc_node_get_status(n->node_handle, &status);
 

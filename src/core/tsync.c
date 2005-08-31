@@ -140,7 +140,7 @@ tsync_send(struct gnutella_node *n, guint32 node_id)
 
 	ts = walloc(sizeof(*ts));
 	ts->magic = TSYNC_MAGIC;
-	tm_now(&ts->sent);
+	tm_now_exact(&ts->sent);
 	ts->sent.tv_sec = clock_loc2gmt(ts->sent.tv_sec);
 	ts->node_id = node_id;
 	ts->udp = NODE_IS_UDP(n);

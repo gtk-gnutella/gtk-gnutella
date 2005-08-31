@@ -95,6 +95,7 @@
 #include "lib/iso3166.h"
 #include "lib/pattern.h"
 #include "lib/tiger.h"
+#include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/vendors.h"
 #include "lib/walloc.h"
@@ -414,7 +415,7 @@ void icon_timer(void);
 static gboolean
 main_timer(gpointer p)
 {
-	time_t now = time(NULL);
+	time_t now = tm_time_exact();
 
 	(void) p;
 	if (signal_received) {
@@ -498,7 +499,7 @@ log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 
 	(void) log_domain;
 	(void) user_data;
-	now = time(NULL);
+	now = tm_time();
 	ct = localtime(&now);
 
 	switch (log_level) {
@@ -585,6 +586,7 @@ main(int argc, char **argv)
 	gm_savemain(argc, argv, environ);	/* For gm_setproctitle() */
 
 	/* Our inits */
+	(void) tm_time_exact();
 	log_init();
 #ifndef OFFICIAL_BUILD
 	g_warning("%s \"%s\"",
@@ -687,6 +689,7 @@ main(int argc, char **argv)
 
 	/* Okay, here we go */
 
+	(void) tm_time_exact();
 	bsched_enable_all();
 	version_ancient_warn();
 

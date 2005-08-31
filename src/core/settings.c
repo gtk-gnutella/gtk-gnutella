@@ -59,6 +59,7 @@
 #include "lib/cq.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
+#include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -692,7 +693,7 @@ update_address_lifetime(void)
 		old_addr = addr;
 		gnet_prop_get_guint64_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
 		if (0 == current_ip_stamp)
-			gnet_prop_set_guint64_val(PROP_CURRENT_IP_STAMP, time(NULL));
+			gnet_prop_set_guint64_val(PROP_CURRENT_IP_STAMP, tm_time());
 	}
 
 	if (!host_addr_equal(old_addr, addr)) {
@@ -702,7 +703,7 @@ update_address_lifetime(void)
 		 * IP address changed, update lifetime information.
 		 */
 
-		now = time(NULL);
+		now = tm_time();
 		old_addr = addr;
 
 		gnet_prop_get_guint64_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
@@ -749,7 +750,7 @@ get_average_servent_uptime(time_t now)
 static void
 update_uptimes(void)
 {
-	time_t now = time(NULL);
+	time_t now = tm_time();
 
 	gnet_prop_set_guint32_val(PROP_AVERAGE_SERVENT_UPTIME,
 		get_average_servent_uptime(now));

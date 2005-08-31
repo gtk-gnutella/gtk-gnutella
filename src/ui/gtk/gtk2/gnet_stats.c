@@ -36,6 +36,7 @@ RCSID("$Id$");
 #include "if/core/gnutella.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/tm.h"
 #include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -431,7 +432,7 @@ gnet_stats_update_horizon(void)
 	GtkTreeIter iter;
 	gint i;
 	static time_t last_horizon_update = 0;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 	gint global_table_size;
 
 	/*

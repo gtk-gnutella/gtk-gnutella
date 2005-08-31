@@ -37,6 +37,7 @@ RCSID("$Id$");
 
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
+#include "lib/tm.h"
 #include "lib/override.h"	/* Must be the last header included */
 
 #define UPDATE_MIN	300		/**< Update screen every 5 minutes at least */
@@ -188,7 +189,7 @@ uploads_gui_update_upload_info(gnet_upload_info_t *u)
 	rd->range_start  = u->range_start;
 	rd->range_end    = u->range_end;
 	rd->start_date   = u->start_date;
-	rd->last_update  = time((time_t *) NULL);
+	rd->last_update  = tm_time();
 
 	if ((u->range_start == 0) && (u->range_end == 0)) {
 		gtk_clist_set_text(clist_uploads, row, c_ul_size, "...");

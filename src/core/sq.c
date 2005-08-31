@@ -57,6 +57,7 @@ RCSID("$Id$");
 #include "if/gnet_property_priv.h"
 
 #include "lib/atoms.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -252,7 +253,7 @@ sq_make(struct gnutella_node *node)
 	 */
 
 	sq->count		= 0;
-	sq->last_sent 	= time(NULL);
+	sq->last_sent 	= tm_time();
 	sq->searches 	= NULL;
 	sq->n_sent 		= 0;
 	sq->n_dropped 	= 0;

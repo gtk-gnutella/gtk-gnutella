@@ -39,6 +39,7 @@ RCSID("$Id$");
 
 #include "cq.h"
 #include "misc.h"
+#include "tm.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -431,12 +432,12 @@ done:
 static gboolean
 callout_timer(gpointer p)
 {
-	static GTimeVal last_period = { 0L, 0L };
+	static tm_t last_period = { 0L, 0L };
 	GTimeVal tv;
 	gint delay;
 
 	(void) p;
-	g_get_current_time(&tv);
+	tm_now_exact(&tv);
 
 	/*
 	 * How much elapsed since last call?

@@ -44,6 +44,7 @@ RCSID("$Id$");
 #include "lib/atoms.h"
 #include "lib/bg.h"
 #include "lib/file.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property.h"
@@ -233,7 +234,7 @@ d_start(gpointer h, gpointer ctx, gpointer item)
 	if (md->wd == -1)
 		goto abort_read;
 
-	md->start = time(NULL);
+	md->start = tm_time();
 	md->size = download_filesize(d);
 	md->copied = 0;
 	md->error = 0;
@@ -307,7 +308,7 @@ d_end(gpointer h, gpointer ctx, gpointer item)
 				md->target, g_strerror(errno));
 	}
 
-	elapsed = delta_time(time(NULL), md->start);
+	elapsed = delta_time(tm_time(), md->start);
 	elapsed = MAX(1, elapsed);		/* time warp? clock not monotic? */
 
 	if (dbg > 1)

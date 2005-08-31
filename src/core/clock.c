@@ -48,6 +48,7 @@ RCSID("$Id$");
 #include "if/gnet_property_priv.h"
 
 #include "lib/stats.h"
+#include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define REUSE_DELAY	10800		/**< 3 hours */
@@ -303,7 +304,7 @@ clock_update(time_t update, gint precision, const host_addr_t addr)
 		g_hash_table_insert(used, &v->addr, v);
 	}
 
-	now = time(NULL);
+	now = tm_time();
 	delta = delta_time(update, (now + (gint32) clock_skew));
 
 	statx_add(datapoints, (gdouble) (delta + precision));

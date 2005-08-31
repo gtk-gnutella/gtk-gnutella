@@ -53,6 +53,7 @@ RCSID("$Id$");
 #include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -455,7 +456,7 @@ get_next_slot(void)
 	chunk = routing.chunks[chunk_idx];
 
 	if (chunk == NULL) {
-		time_t now = time((time_t) NULL);
+		time_t now = tm_time();
 
 		g_assert((gint) idx >= routing.capacity);
 
@@ -505,7 +506,7 @@ get_next_slot(void)
 		 */
 
 		if (idx == 0) {
-			time_t now = time((time_t) NULL);
+			time_t now = tm_time();
 			gint elapsed = now - routing.last_rotation;
 
 			if (routing_debug)
@@ -760,7 +761,7 @@ retry:
 		g_hash_table_new(message_hash_func, message_compare_func);
 	routing.next_idx = 0;
 	routing.capacity = 0;
-	routing.last_rotation = time(NULL);
+	routing.last_rotation = tm_time();
 
 	/*
 	 * Push proxification.

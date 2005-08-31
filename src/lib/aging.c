@@ -41,6 +41,7 @@ RCSID("$Id$");
 #include "aging.h"
 #include "cq.h"
 #include "misc.h"
+#include "tm.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -220,7 +221,7 @@ aging_insert(gpointer obj, gpointer key, gpointer value)
 	gboolean found;
 	gpointer okey;
 	gpointer ovalue;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 	struct aging_value *aval;
 
 	g_assert(ag->magic == AGING_MAGIC);

@@ -69,6 +69,7 @@ RCSID("$Id$");
 #include "lib/glib-missing.h"
 #include "lib/endian.h"
 #include "lib/header.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -1587,7 +1588,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			socket_destroy(s, _("Read error"));
 		return;
 	default:
-		s->last_update = time(NULL);
+		s->last_update = tm_time();
 		s->pos += r;
 	}
 
@@ -2176,7 +2177,7 @@ accepted:
 		 */
 
 		sl_incoming = g_slist_prepend(sl_incoming, t);
-		t->last_update = time(NULL);
+		t->last_update = tm_time();
 		break;
 
 	default:

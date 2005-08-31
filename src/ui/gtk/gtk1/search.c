@@ -54,6 +54,7 @@
 #include "lib/base32.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
+#include "lib/tm.h"
 #include "lib/urn.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -2346,8 +2347,7 @@ void gui_search_force_update_tab_label(struct search *sch)
         gtk_clist_set_background(clist_search, row, NULL);
     }
 
-	sch->last_update_time = time(NULL);
-
+	sch->last_update_time = tm_time();
 }
 
 
@@ -2361,7 +2361,7 @@ gui_search_update_tab_label(struct search *sch)
 	if (sch->items == sch->last_update_items)
 		return TRUE;
 
-	if (time(NULL) - sch->last_update_time < TAB_UPDATE_TIME)
+	if (tm_time() - sch->last_update_time < TAB_UPDATE_TIME)
 		return TRUE;
 
 	gui_search_force_update_tab_label(sch);

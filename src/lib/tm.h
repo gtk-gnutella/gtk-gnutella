@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2003, Raphael Manfredi
+ * Copyright (c) 2003-2005, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -27,10 +27,10 @@
  * @ingroup lib
  * @file
  *
- * Time manipulation routines.
+ * Time manipulation and caching routines.
  *
  * @author Raphael Manfredi
- * @date 2003
+ * @date 2003-2005
  */
 
 #ifndef _tm_h_
@@ -66,7 +66,11 @@ void tm_elapsed(tm_t *elapsed, const tm_t *last, const tm_t *old);
 void tm_sub(tm_t *tm, const tm_t *dec);
 void tm_add(tm_t *tm, const tm_t *inc);
 int tm_cmp(const tm_t *a, const tm_t *b);
+
 void tm_now(tm_t *tm);
+void tm_now_exact(tm_t *tm);
+time_t tm_time(void);
+time_t tm_time_exact(void);
 
 guint tm_hash(gconstpointer key);
 gint tm_equal(gconstpointer a, gconstpointer b);

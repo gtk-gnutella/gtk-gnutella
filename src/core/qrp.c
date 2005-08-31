@@ -53,6 +53,7 @@ RCSID("$Id$");
 #include "lib/glib-missing.h"
 #include "lib/endian.h"
 #include "lib/sha1.h"
+#include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/wordvec.h"
 #include "lib/walloc.h"
@@ -1702,7 +1703,7 @@ qrp_step_create_table(gpointer unused_h, gpointer u, gint unused_ticks)
 		*ctx->rpp = NULL;
 	}
 
-	elapsed = delta_time(time(NULL), (time_t) qrp_timestamp);
+	elapsed = delta_time(tm_time(), (time_t) qrp_timestamp);
 	elapsed = MAX(0, elapsed);
 	gnet_prop_set_guint32_val(PROP_QRP_COMPUTATION_TIME, elapsed);
 
@@ -1966,7 +1967,7 @@ qrp_finalize_computation(void)
 	ctx->rtp = &local_table;	/* NOT routing_table, this is for local files */
 	ctx->rpp = &routing_patch;
 
-	gnet_prop_set_guint64_val(PROP_QRP_TIMESTAMP, time(NULL));
+	gnet_prop_set_guint64_val(PROP_QRP_TIMESTAMP, tm_time());
 
 	qrp_comp = bg_task_create("QRP computation",
 		qrp_compute_steps, G_N_ELEMENTS(qrp_compute_steps),
@@ -2085,7 +2086,7 @@ qrt_patch_computed(gpointer unused_h, gpointer unused_u,
 	qrt_patch_ctx = NULL;			/* Indicates that we're done */
 
 	if (status == BGS_OK) {
-		time_t now = time(NULL);
+		time_t now = tm_time();
 		glong elapsed;
 
 		if (*ctx->rpp != NULL)
@@ -2202,7 +2203,7 @@ qrt_patch_compute(struct routing_table *rt, struct routing_patch **rpp)
 
 	g_assert(qrt_patch_ctx == NULL);	/* No computation active */
 
-	gnet_prop_set_guint64_val(PROP_QRP_PATCH_TIMESTAMP, time(NULL));
+	gnet_prop_set_guint64_val(PROP_QRP_PATCH_TIMESTAMP, tm_time());
 
 	qrt_patch_ctx = ctx = walloc(sizeof *ctx);
 
@@ -2700,7 +2701,7 @@ qrt_update_send_next(gpointer handle)
 	 * bytes accumulate in the TX queue.
 	 */
 
-	now = time(NULL);
+	now = tm_time();
 	elapsed = delta_time(now, qup->last);
 
 	if (elapsed <= 0)				/* We're called once every second */

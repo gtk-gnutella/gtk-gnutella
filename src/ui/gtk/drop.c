@@ -49,6 +49,7 @@ RCSID("$Id$");
 #include "if/gui_property_priv.h"
 
 #include "lib/glib-missing.h"
+#include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/urn.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -275,7 +276,7 @@ handle_magnet(gchar *url)
 
 		g_message("Starting download from magnet");
 		guc_download_new_unknown_size(filename, URN_INDEX, dl.ha,
-			dl.port, blank_guid, dl.hostname, dl.sha1, time(NULL),
+			dl.port, blank_guid, dl.hostname, dl.sha1, tm_time(),
 			FALSE, NULL, NULL, 0);
 		if (filename != dl.file)
 			G_FREE_NULL(filename);

@@ -42,11 +42,12 @@ RCSID("$Id$");
 #include "inputevt.h"
 #include "misc.h"
 #include "glib-missing.h"
+#include "tm.h"
 #include "walloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
-static guint32 common_dbg = 0;	/**< @bug XXX -- need to init lib's props --RAM */
+static guint32 common_dbg = 0;	/**< @bug XXX need to init lib's props --RAM */
 
 /* private data types */
 
@@ -452,7 +453,7 @@ again:
 	}
 	/* FALL THROUGH */
 	if (sizeof reply == n) {
-		time_t now = time(NULL);
+		time_t now = tm_time();
 
 		if (common_dbg > 1) {
 			const gchar *host, *addr;
@@ -720,7 +721,7 @@ adns_resolve(const gchar *hostname,
 
 	ascii_strlower(query.hostname, hostname);
 	if (
-		adns_cache_lookup(adns_cache, time(NULL), query.hostname, &reply.addr)
+		adns_cache_lookup(adns_cache, tm_time(), query.hostname, &reply.addr)
 	) {
 		adns_invoke_user_callback(&reply);
 		return FALSE; /* synchronous */

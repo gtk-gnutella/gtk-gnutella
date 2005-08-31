@@ -56,6 +56,7 @@
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
+#include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -839,7 +840,7 @@ search_gui_download_files(void)
     	g_slist_free(sl);
 	}
 
-    gui_search_force_update_tab_label(search, time(NULL));
+    gui_search_force_update_tab_label(search, tm_time());
     search_gui_update_items(search);
     guc_search_update_items(search->search_handle, search->items);
 }
@@ -870,7 +871,7 @@ search_gui_discard_files(void)
     	g_slist_free(sl);
 	}
 
-    gui_search_force_update_tab_label(search, time(NULL));
+    gui_search_force_update_tab_label(search, tm_time());
     search_gui_update_items(search);
     guc_search_update_items(search->search_handle, search->items);
 }
@@ -1161,7 +1162,7 @@ search_gui_set_current_search(search_t *sch)
     locked = TRUE;
 
 	if (old_sch)
-		gui_search_force_update_tab_label(old_sch, time(NULL));
+		gui_search_force_update_tab_label(old_sch, tm_time());
 
     passive = guc_search_is_passive(sch->search_handle);
     frozen = guc_search_is_frozen(sch->search_handle);
@@ -1201,7 +1202,7 @@ search_gui_set_current_search(search_t *sch)
         (main_window, "spinbutton_search_reissue_timeout");
 
     if (sch != NULL) {
-        gui_search_force_update_tab_label(sch, time(NULL));
+        gui_search_force_update_tab_label(sch, tm_time());
         search_gui_update_items(sch);
 
         gtk_spin_button_set_value
@@ -1526,7 +1527,7 @@ gui_search_update_tab_label(struct search *sch)
 	static time_t now;
 
 	if (sch->items != sch->last_update_items) {
-		now = time(NULL);
+		now = tm_time();
 
 		if (delta_time(now, sch->last_update_time) >= TAB_UPDATE_TIME)
 			gui_search_force_update_tab_label(sch, now);
@@ -1542,7 +1543,7 @@ gui_search_clear_results(void)
 
 	search = search_gui_get_current_search();
 	search_gui_reset_search(search);
-	gui_search_force_update_tab_label(search, time(NULL));
+	gui_search_force_update_tab_label(search, tm_time());
 	search_gui_update_items(search);
 }
 
@@ -1625,7 +1626,7 @@ gui_search_set_enabled(struct search *sch, gboolean enabled)
 		guc_search_stop(sch->search_handle);
 
 	/* Marks this entry as active/inactive in the searches list. */
-	gui_search_force_update_tab_label(sch, time(NULL));
+	gui_search_force_update_tab_label(sch, tm_time());
 }
 
 
@@ -1671,7 +1672,7 @@ search_gui_end_massive_update(search_t *sch)
 	if (!sch->massive_update)
 		return;
 
-    gui_search_force_update_tab_label(sch, time(NULL));
+    gui_search_force_update_tab_label(sch, tm_time());
 	gtk_tree_view_set_model(GTK_TREE_VIEW(sch->tree_view),
 		GTK_TREE_MODEL(sch->model));
 	g_object_unref(GTK_TREE_MODEL(sch->model));

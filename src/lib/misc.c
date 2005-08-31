@@ -44,6 +44,7 @@ RCSID("$Id$");
 #include "misc.h"
 #include "glib-missing.h"
 #include "sha1.h"
+#include "tm.h"
 #include "walloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -1419,7 +1420,7 @@ random_init(void)
 	FILE *f = NULL;
 	SHA1Context ctx;
 	struct stat buf;
-	GTimeVal start, end;
+	tm_t start, end;
 	struct tms ticks;
 	guint32 seed;
 	guint8 digest[SHA1HashSize];
@@ -1432,7 +1433,7 @@ random_init(void)
 	 * Get random entropy from the system.
 	 */
 
-	g_get_current_time(&start);
+	tm_now_exact(&start);
 
 	SHA1Reset(&ctx);
 
@@ -1490,7 +1491,7 @@ random_init(void)
 	sys[i++] = ticks.tms_utime;
 	sys[i++] = ticks.tms_stime;
 
-	g_get_current_time(&end);
+	tm_now_exact(&end);
 
 	sys[i++] = end.tv_sec - start.tv_sec;
 	sys[i++] = end.tv_usec - start.tv_usec;

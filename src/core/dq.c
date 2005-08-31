@@ -58,6 +58,7 @@ RCSID("$Id$");
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/misc.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"			/* Must be the last header included */
@@ -76,7 +77,7 @@ RCSID("$Id$");
 #define DQ_LOCAL_RESULTS	150		/**< # of results for local queries */
 #define DQ_SHA1_DECIMATOR	25		/**< Divide expected by that much for SHA1 */
 #define DQ_PROBE_UP			3		/**< Amount of UPs for initial probe */
-#define DQ_MAX_HORIZON		500000	/**< Stop search after that many UP queried */
+#define DQ_MAX_HORIZON		500000	/**< Stop after that many UP queried */
 #define DQ_MIN_HORIZON		3000	/**< Min horizon before timeout adjustment */
 #define DQ_LOW_RESULTS		10		/**< After DQ_MIN_HORIZON queried for adj. */
 #define DQ_PERCENT_KEPT		5		/**< Assume 5% of results kept, worst case */
@@ -452,7 +453,7 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 			printf("DQ[%d] %s(%d secs) queried %d UP%s, "
 				"horizon=%d, results=%d\n",
 				dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "",
-				(gint) (time(NULL) - dq->start),
+				(gint) (tm_time() - dq->start),
 				dq->up_sent, dq->up_sent == 1 ? "" :"s",
 				dq->horizon, dq->results);
 		}
@@ -663,8 +664,8 @@ dq_free(dquery_t *dq)
 		printf("DQ[%d] %s(%d secs; +%d secs) node #%d ending: "
 			"ttl=%d, queried=%d, horizon=%d, results=%d+%d\n",
 			dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "",
-			(gint) (time(NULL) - dq->start),
-			(dq->flags & DQ_F_LINGER) ? (gint) (time(NULL) - dq->stop) : 0,
+			(gint) (tm_time() - dq->start),
+			(dq->flags & DQ_F_LINGER) ? (gint) (tm_time() - dq->stop) : 0,
 			dq->node_id, dq->ttl, dq->up_sent, dq->horizon, dq->results,
 			dq->linger_results);
 
@@ -815,7 +816,7 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	if (dq->flags & DQ_F_WAITING) {
 		if (dq_debug > 19)
 			printf("DQ[%d] (%d secs) timeout waiting for status results\n",
-				dq->qid, (gint) (time(NULL) - dq->start));
+				dq->qid, (gint) (tm_time() - dq->start));
 		dq->flags &= ~DQ_F_WAITING;
 		dq_terminate(dq);
 		return;
@@ -847,14 +848,14 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	if (n == NULL) {
 		if (dq_debug > 19)
 			printf("DQ[%d] (%d secs) node #%d appears to be dead\n",
-				dq->qid, (gint) (time(NULL) - dq->start), dq->node_id);
+				dq->qid, (gint) (tm_time() - dq->start), dq->node_id);
 		dq_free(dq);
 		return;
 	}
 
 	if (dq_debug > 19)
 		printf("DQ[%d] (%d secs) requesting node #%d for status (kept=%u)\n",
-			dq->qid, (gint) (time(NULL) - dq->start), dq->node_id,
+			dq->qid, (gint) (tm_time() - dq->start), dq->node_id,
 			dq->kept_results);
 
 	dq->flags |= DQ_F_WAITING;
@@ -900,12 +901,12 @@ dq_terminate(dquery_t *dq)
 
 	dq->flags &= ~DQ_F_WAITING;
 	dq->flags |= DQ_F_LINGER;
-	dq->stop = time(NULL);
+	dq->stop = tm_time();
 
 	if (dq_debug > 19)
 		printf("DQ[%d] (%d secs) node #%d lingering: "
 			"ttl=%d, queried=%d, horizon=%d, results=%d\n",
-			dq->qid, (gint) (time(NULL) - dq->start), dq->node_id,
+			dq->qid, (gint) (tm_time() - dq->start), dq->node_id,
 			dq->ttl, dq->up_sent, dq->horizon, dq->results);
 }
 
@@ -1015,7 +1016,7 @@ dq_send_query(dquery_t *dq, gnutella_node_t *n, gint ttl)
 
 	if (dq_debug > 19)
 		printf("DQ[%d] (%d secs) queuing ttl=%d to #%d %s <%s> Q=%d bytes\n",
-			dq->qid, (gint) delta_time(time(NULL), dq->start),
+			dq->qid, (gint) delta_time(tm_time(), dq->start),
 			pmi->ttl, n->id, node_addr(n), node_vendor(n),
 			(gint) NODE_MQUEUE_PENDING(n));
 
@@ -1191,7 +1192,7 @@ dq_send_next(dquery_t *dq)
 
 	if (dq_debug > 1)
 		printf("DQ[%d] (%d secs) timeout set to %d ms (pending=%d)\n",
-			dq->qid, (gint) (time(NULL) - dq->start), timeout, dq->pending);
+			dq->qid, (gint) (tm_time() - dq->start), timeout, dq->pending);
 
 	dq->results_ev = cq_insert(callout_queue, timeout, dq_results_expired, dq);
 
@@ -1291,7 +1292,7 @@ dq_common_init(dquery_t *dq)
 	dq->qid = dyn_query_id++;
 	dq->queried = g_hash_table_new(NULL, NULL);
 	dq->result_timeout = DQ_QUERY_TIMEOUT;
-	dq->start = time(NULL);
+	dq->start = tm_time();
 
 	/*
 	 * Make sure the dynamic query structure is cleaned up in at most
@@ -1541,15 +1542,15 @@ dq_count_results(gchar *muid, gint count, gboolean oob)
 			printf("DQ[%d] %s(%d secs; +%d secs) "
 				"+%d %slinger_results=%d kept=%d\n",
 				dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "",
-				(gint) (time(NULL) - dq->start),
-				(gint) (time(NULL) - dq->stop),
+				(gint) (tm_time() - dq->start),
+				(gint) (tm_time() - dq->stop),
 				count, oob ? "OOB " : "",
 				dq->linger_results, dq->kept_results);
 		else
 			printf("DQ[%d] %s(%d secs) "
 				"+%d %sresults=%d new=%d kept=%d oob=%d\n",
 				dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "",
-				(gint) (time(NULL) - dq->start),
+				(gint) (tm_time() - dq->start),
 				count, oob ? "OOB " : "",
 				dq->results, dq->new_results, dq->kept_results,
 				dq->oob_results);
@@ -1648,11 +1649,11 @@ dq_got_query_status(gchar *muid, guint32 node_id, guint16 kept)
 	if (dq_debug > 19) {
 		if (dq->flags & DQ_F_LINGER)
 			printf("DQ[%d] (%d secs; +%d secs) kept_results=%d\n",
-				dq->qid, (gint) (time(NULL) - dq->start),
-				(gint) (time(NULL) - dq->stop), dq->kept_results);
+				dq->qid, (gint) (tm_time() - dq->start),
+				(gint) (tm_time() - dq->stop), dq->kept_results);
 		else
 			printf("DQ[%d] (%d secs) %ssolicited, kept_results=%d\n",
-				dq->qid, (gint) (time(NULL) - dq->start),
+				dq->qid, (gint) (tm_time() - dq->start),
 				(dq->flags & DQ_F_WAITING) ? "" : "un", dq->kept_results);
 	}
 

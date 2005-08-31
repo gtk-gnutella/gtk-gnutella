@@ -37,6 +37,7 @@ RCSID("$Id$");
 #include "if/bridge/ui2c.h"
 
 #include "lib/glib-missing.h"
+#include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 static gint selected_type = MSG_TOTAL;
@@ -173,7 +174,7 @@ on_gnet_stats_type_selected(GtkItem *unused_item, gpointer data)
 	(void) unused_item;
 
     selected_type = GPOINTER_TO_INT(data);
-    gnet_stats_gui_update(time(NULL));
+    gnet_stats_gui_update(tm_time());
 }
 
 

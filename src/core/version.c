@@ -50,6 +50,7 @@ RCSID("$Id$");
 #include "lib/getdate.h"
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
+#include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define SECS_PER_DAY	86400
@@ -162,7 +163,7 @@ version_stamp(const gchar *str, version_t *ver)
 			 */
 
 			g_strlcpy(stamp, p, MIN(size, sizeof(stamp)));
-			ver->timestamp = date2time(stamp, time(NULL));
+			ver->timestamp = date2time(stamp, tm_time());
 
 			if (ver->timestamp == -1) {
 				ver->timestamp = 0;
@@ -536,7 +537,7 @@ version_init(void)
 	struct utsname un;
 	gchar buf[128];
 	gboolean ok;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 
 	if (uname(&un)) {
 		memset(&un, 0, sizeof un);
@@ -635,7 +636,7 @@ version_maybe_refuse(gint overtime)
 void
 version_ancient_warn(void)
 {
-	time_t now = time(NULL);
+	time_t now = tm_time();
 	gint lifetime, remain, elapsed;
 	time_t s;
 
@@ -710,7 +711,7 @@ gboolean
 version_is_too_old(const gchar *vendor)
 {
 	version_t ver;
-	time_t now = time(NULL);
+	time_t now = tm_time();
 	gint d;
 
 	version_stamp(vendor, &ver);		/* Fills ver->timestamp */

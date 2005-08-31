@@ -99,6 +99,7 @@ RCSID("$Id$");
 #include "lib/idtable.h"
 #include "lib/listener.h"
 #include "lib/misc.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
 
@@ -305,14 +306,14 @@ node_remove_node_flags_changed_listener(node_flags_changed_listener_t l)
 static void
 node_fire_node_added(gnutella_node_t *n)
 {
-    n->last_update = time((time_t *)NULL);
+    n->last_update = tm_time();
     LISTENER_EMIT(node_added, (n->node_handle));
 }
 
 static void
 node_fire_node_removed(gnutella_node_t *n)
 {
-    n->last_update = time((time_t *)NULL);
+    n->last_update = tm_time();
     LISTENER_EMIT(node_removed, (n->node_handle));
 }
 
@@ -1063,7 +1064,7 @@ node_timer(time_t now)
 void
 node_init(void)
 {
-	time_t now = clock_loc2gmt(time(NULL));
+	time_t now = clock_loc2gmt(tm_time());
 
 	rxbuf_init();
 
@@ -1518,7 +1519,7 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 
 	n->status = GTA_NODE_REMOVING;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE|NODE_F_BYE_SENT);
-	n->last_update = time(NULL);
+	n->last_update = tm_time();
 
     node_ht_connected_nodes_remove(n->gnet_addr, n->gnet_port);
 	node_proxying_remove(n, TRUE);
@@ -1694,7 +1695,7 @@ node_mark_bad_vendor(struct gnutella_node *n)
 		 */
 		return;
 
-	now = time(NULL);
+	now = tm_time();
 
 	/* Don't mark a node with whom we could stay a long time as being bad */
 	if (
@@ -2054,7 +2055,7 @@ node_shutdown_mode(struct gnutella_node *n, guint32 delay)
 
 	n->status = GTA_NODE_SHUTDOWN;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE);
-	n->shutdown_date = time(NULL);
+	n->shutdown_date = tm_time();
 	mq_discard(n->outq);					/* Discard any further data */
 	node_flushq(n);							/* Fast queue flushing */
 
@@ -2971,7 +2972,7 @@ node_is_now_connected(struct gnutella_node *n)
 
 	n->status = GTA_NODE_CONNECTED;
 	n->flags |= NODE_F_VALID;
-	n->last_update = n->connect_date = time(NULL);
+	n->last_update = n->connect_date = tm_time();
 
 	connected_node_cnt++;
 
@@ -3204,7 +3205,7 @@ node_is_now_connected(struct gnutella_node *n)
 		else {
 			if (node_watch_similar_queries) {
 				n->qrelayed = g_hash_table_new(g_str_hash, g_str_equal);
-				n->qrelayed_created = time(NULL);
+				n->qrelayed_created = tm_time();
 			}
 		}
 	}
@@ -4458,7 +4459,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Live-Since");
 	if (field) {
-		time_t now = time(NULL), up = date2time(field, now);
+		time_t now = tm_time(), up = date2time(field, now);
 
 		/*
 		 * We'll be comparing the up_date we compute to our local timestamp
@@ -4477,7 +4478,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	} else {
 		field = header_get(head, "Uptime");
 		if (field) {
-			time_t now = time(NULL);
+			time_t now = tm_time();
 			gint days, hours, mins;
 
 			if (3 == sscanf(field, "%dD %dH %dM", &days, &hours, &mins))
@@ -5017,7 +5018,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 * Now that we got all the headers, we may update the `last_update' field.
 	 */
 
-	n->last_update = time(NULL);
+	n->last_update = tm_time();
 
 	/*
 	 * If this is an incoming connection, we need to wait for the final ack.
@@ -5151,7 +5152,7 @@ node_udp_create(void)
 	n->proto_minor = 6;
 	n->peermode = NODE_P_UDP;
 	n->hops_flow = MAX_HOP_COUNT;
-	n->last_update = n->last_tx = n->last_rx = time(NULL);
+	n->last_update = n->last_tx = n->last_rx = tm_time();
 	n->routing_data = NULL;
 	n->vendor = atom_str_get(_("Pseudo UDP node"));
 	n->status = GTA_NODE_CONNECTED;
@@ -5406,7 +5407,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	n->peermode = NODE_P_UNKNOWN;		/* Until end of handshaking */
 	n->start_peermode = (node_peer_t) current_peermode;
 	n->hops_flow = MAX_HOP_COUNT;
-	n->last_update = n->last_tx = n->last_rx = time(NULL);
+	n->last_update = n->last_tx = n->last_rx = tm_time();
 	n->country = gip_country(addr);
 
 	n->hello.ptr = NULL;
@@ -5832,7 +5833,7 @@ node_parse(struct gnutella_node *node)
 		}
 		break;
 	case GTA_MSG_HSEP_DATA:
-		hsep_process_msg(n, time(NULL));
+		hsep_process_msg(n, tm_time());
 		goto reset_header;
 	default:
 		break;
@@ -6216,7 +6217,7 @@ node_init_outgoing(struct gnutella_node *n)
 	}
 
 	n->status = GTA_NODE_HELLO_SENT;
-	n->last_update = time(NULL);
+	n->last_update = tm_time();
 	node_fire_node_info_changed(n);
 
 	if (dbg > 2) {
@@ -6307,7 +6308,7 @@ node_tx_leave_warnzone(struct gnutella_node *n)
 void
 node_tx_enter_flowc(struct gnutella_node *n)
 {
-	n->tx_flowc_date = time(NULL);
+	n->tx_flowc_date = tm_time();
 
 	if ((n->attrs & NODE_A_CAN_VENDOR) && !NODE_IS_UDP(n))
 		vmsg_send_hops_flow(n, 0);			/* Disable all query traffic */
@@ -6322,7 +6323,7 @@ void
 node_tx_leave_flowc(struct gnutella_node *n)
 {
 	if (dbg > 4) {
-		gint spent = delta_time(time(NULL), n->tx_flowc_date);
+		gint spent = delta_time(tm_time(), n->tx_flowc_date);
 
 		printf("node %s spent %d second%s in TX FLOWC\n",
 			node_addr(n), spent, spent == 1 ? "" : "s");
@@ -6546,7 +6547,7 @@ node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	 * message buffer is empty.
 	 */
 
-	n->last_update = n->last_rx = time(NULL);
+	n->last_update = n->last_rx = tm_time();
 	n->flags |= NODE_F_ESTABLISHED;		/* Since we've got Gnutella data */
 
 	while (n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n)) {
@@ -6721,7 +6722,7 @@ node_remove_useless_leaf(void)
 			continue;
 
 		if ((time_t) -1 == now)
-			now = time(NULL);
+			now = tm_time();
 
 		diff = delta_time(now, target);
 
@@ -7131,21 +7132,21 @@ node_close(void)
 inline void
 node_add_sent(gnutella_node_t *n, gint x)
 {
-   	n->last_update = n->last_tx = time(NULL);
+   	n->last_update = n->last_tx = tm_time();
 	n->sent += x;
 }
 
 inline void
 node_add_txdrop(gnutella_node_t *n, gint x)
 {
-	n->last_update = time(NULL);
+	n->last_update = tm_time();
 	n->tx_dropped += x;
 }
 
 inline void
 node_add_rxdrop(gnutella_node_t *n, gint x)
 {
-   	n->last_update = time(NULL);
+   	n->last_update = tm_time();
 	n->rx_dropped += x;
 }
 
@@ -7210,7 +7211,7 @@ node_set_hops_flow(gnutella_node_t *n, guint8 hops)
 	 */
 
 	if (n->peermode == NODE_P_LEAF) {
-		n->leaf_flowc_start = hops <= 1 ? time(NULL) : 0;
+		n->leaf_flowc_start = hops <= 1 ? tm_time() : 0;
 		goto fire;
 	}
 
@@ -7221,7 +7222,7 @@ node_set_hops_flow(gnutella_node_t *n, guint8 hops)
 
 	if (hops < GTA_NORMAL_TTL && n->rxfc == NULL) {
 		n->rxfc = walloc0(sizeof(*n->rxfc));
-		n->rxfc->start_half_period = time(NULL);
+		n->rxfc->start_half_period = tm_time();
 	}
 
 	g_assert(n->rxfc != NULL || hops >= GTA_NORMAL_TTL);
@@ -7234,10 +7235,10 @@ node_set_hops_flow(gnutella_node_t *n, guint8 hops)
 	if (hops < GTA_NORMAL_TTL) {
 		/* Entering hops-flow control */
 		if (rxfc->fc_start == 0)		/* Not previously under flow control */
-			rxfc->fc_start = time(NULL);
+			rxfc->fc_start = tm_time();
 	} else if (rxfc->fc_start != 0)	{	/* We were under flow control */
 		/* Leaving hops-flow control */
-		rxfc->fc_accumulator += time(NULL) - rxfc->fc_start;
+		rxfc->fc_accumulator += tm_time() - rxfc->fc_start;
 		rxfc->fc_start = 0;
 	}
 
@@ -7469,7 +7470,7 @@ node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 	status->tx_qhits   = node->tx_qhits;
 
 	if (node->shutdown_delay) {
-		gint d = delta_time(time(NULL), node->shutdown_date);
+		gint d = delta_time(tm_time(), node->shutdown_date);
 		
    		status->shutdown_remain = (gint) node->shutdown_delay > d
 			? node->shutdown_delay - d : 0;
@@ -8120,7 +8121,7 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 	 * of the following: connection time in minutes, language info.
 	 */
 
-	now = time(NULL);
+	now = tm_time();
 
 	if (features & NODE_CR_USER_AGENT)
 		agents = g_string_sized_new((un + ln) * 15);

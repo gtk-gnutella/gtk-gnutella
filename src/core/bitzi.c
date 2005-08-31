@@ -55,6 +55,7 @@
 #include "lib/atoms.h"
 #include "lib/getdate.h"	/* date2time() */
 #include "lib/glib-missing.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* This file MUST be the last one included */
 
@@ -327,7 +328,7 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 	 */
 	s = xml_get_string(node, "ticketExpires");
 	if (s) {
-		data->expiry = date2time(s, time(NULL));
+		data->expiry = date2time(s, tm_time());
 		if ((time_t) -1 == data->expiry)
 			g_warning("process_rdf_description: Bad expiration date \"%s\"", s);
 	} else {
@@ -515,7 +516,7 @@ process_meta_data(bitzi_request_t *request)
 
 			if (
 				(time_t) -1 == data->expiry ||
-				delta_time(data->expiry, time(NULL)) <= 0
+				delta_time(data->expiry, tm_time()) <= 0
 			) {
 				g_warning("process_meta_data: stale bitzi data");
 			} else if (bitzi_cache_add(data)) {
@@ -662,7 +663,7 @@ bitzi_cache_remove(bitzi_data_t * data)
 static void
 bitzi_cache_clean(void)
 {
-	time_t now = time(NULL);
+	time_t now = tm_time();
 	GList *l = bitzi_cache;
 	GSList *to_remove = NULL, *sl;
 

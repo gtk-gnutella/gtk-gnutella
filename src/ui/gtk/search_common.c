@@ -56,6 +56,7 @@ RCSID("$Id$");
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/vendors.h"
+#include "lib/tm.h"
 #include "lib/urn.h"
 #include "lib/utf8.h"
 #include "lib/zalloc.h"
@@ -1058,7 +1059,7 @@ search_matched(search_t *sch, results_set_t *rs)
 	else
 		sch->unseen_items += sch->items - old_items;
 
-	if (time(NULL) - sch->last_update_time < TAB_UPDATE_TIME)
+	if (tm_time() - sch->last_update_time < TAB_UPDATE_TIME)
 		gui_search_update_tab_label(sch);
 
   	g_string_free(vinfo, TRUE);

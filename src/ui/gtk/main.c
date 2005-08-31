@@ -76,6 +76,7 @@ RCSID("$Id$");
 #include "if/bridge/ui2c.h"
 
 #include "lib/glib-missing.h"
+#include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/override.h"			/* Must be the last header included */
 
@@ -614,7 +615,7 @@ void
 main_gui_run(void)
 {
     guint32 coord[4] = { 0, 0, 0, 0 };
-	time_t now = time(NULL);
+	time_t now = tm_time_exact();
 
     gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, G_N_ELEMENTS(coord));
 	gui_fix_coords(coord);

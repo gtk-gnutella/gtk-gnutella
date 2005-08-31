@@ -63,6 +63,7 @@ RCSID("$Id$");
 #include "lib/aging.h"
 #include "lib/atoms.h"
 #include "lib/endian.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -540,7 +541,7 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 	 * every 12 hours, it makes no sense to advertise a high daily uptime...
 	 */
 
-	ip_uptime = delta_time(time(NULL), current_ip_stamp);
+	ip_uptime = delta_time(tm_time(), current_ip_stamp);
 	ip_uptime = MAX(ip_uptime, average_ip_uptime);
 	local_meta.daily_uptime = MIN(average_servent_uptime, ip_uptime);
 
@@ -1155,7 +1156,7 @@ pcache_possibly_expired(time_t now)
 void
 pcache_set_peermode(node_peer_t mode)
 {
-	pcache_expire_time = time(NULL) + cache_lifespan(mode);
+	pcache_expire_time = tm_time() + cache_lifespan(mode);
 }
 
 /**
@@ -1737,7 +1738,7 @@ pcache_udp_ping_received(struct gnutella_node *n)
 void
 pcache_ping_received(struct gnutella_node *n)
 {
-	time_t now = time((time_t *) 0);
+	time_t now = tm_time();
 
 	g_assert(NODE_IS_CONNECTED(n));
 

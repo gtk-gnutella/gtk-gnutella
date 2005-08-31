@@ -441,7 +441,7 @@ bsched_enable(bsched_t *bs)
 	g_assert(bs);
 
 	bs->flags |= BS_F_ENABLED;
-	g_get_current_time(&bs->last_period);
+	tm_now(&bs->last_period);
 }
 
 /**
@@ -1900,7 +1900,7 @@ bws_can_connect(enum socket_type type)
  * Periodic heartbeat.
  */
 static void
-bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
+bsched_heartbeat(bsched_t *bs, tm_t *tv)
 {
 	GList *l;
 	gint delay;
@@ -2223,13 +2223,13 @@ bsched_stealbeat(bsched_t *bs)
 void
 bsched_timer(void)
 {
-	GTimeVal tv;
+	tm_t tv;
 	GSList *l;
 	gint out_used = 0;
 	gint in_used = 0;
 	gboolean read_data = FALSE;
 
-	g_get_current_time(&tv);
+	tm_now(&tv);
 
 	/*
 	 * First pass: compute bandwidth used.
