@@ -2300,15 +2300,15 @@ socket_set_linger(gint fd)
 
 /**
  * Called to prepare the creation of the socket connection.
- * @returns NULL in case of failure.
+ * @returns non-zero in case of failure.
  */
-static struct gnutella_socket *
-socket_connect_prepare(const host_addr_t ha, guint16 port,
-	enum socket_type type, guint32 flags)
+static gint 
+socket_connect_prepare(struct gnutella_socket *s,
+	const host_addr_t ha, guint16 port, enum socket_type type, guint32 flags)
 {
-	struct gnutella_socket *s;
 	gint sd, option;
 
+	g_assert(s);
 	sd = socket(host_addr_family(ha), SOCK_STREAM, 0);
 
 	if (-1 == sd) {
@@ -2329,12 +2329,10 @@ socket_connect_prepare(const host_addr_t ha, guint16 port,
 		}
 
 		g_warning("unable to create a socket (%s)", g_strerror(errno));
-		return NULL;
+		return -1;
 	}
 
 created:
-	s = walloc0(sizeof *s);
-
 	s->type = type;
 	s->direction = SOCK_CONN_OUTGOING;
 	s->net = host_addr_net(ha);
@@ -2362,7 +2360,7 @@ created:
 	fcntl(s->file_desc, F_SETFL, O_NONBLOCK);
 
 	socket_tos_normal(s);
-	return s;
+	return 0;
 }
 
 /**
@@ -2450,7 +2448,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 
 	cond = PROXY_NONE != proxy_protocol ? INPUT_EVENT_RWX : INPUT_EVENT_WX;
 	socket_evt_set(s, cond, socket_connected, s);
-	return s;
+	return 0;
 }
 
 /**
@@ -2463,12 +2461,15 @@ struct gnutella_socket *
 socket_connect(const host_addr_t ha, guint16 port,
 	enum socket_type type, guint32 flags)
 {
-	/* Create a socket and try to connect it to ip:port */
-
 	struct gnutella_socket *s;
 
-	s = socket_connect_prepare(ha, port, type, flags);
-	return s ? socket_connect_finalize(s, ha) : NULL;
+	s = walloc0(sizeof *s);
+	if (0 != socket_connect_prepare(s, ha, port, type, flags)) {
+		wfree(s, sizeof *s);
+		return NULL;
+	}
+
+	return socket_connect_finalize(s, ha);
 }
 
 /**
@@ -2486,24 +2487,37 @@ socket_bad_hostname(struct gnutella_socket *s)
  * Called when we got a reply from the ADNS process.
  */
 static void
-socket_connect_by_name_helper(const host_addr_t *h, gpointer user_data)
+socket_connect_by_name_helper(const host_addr_t *addr, gpointer user_data)
 {
 	struct gnutella_socket *s = user_data;
 
 	g_assert(NULL != s);
 
-	if (!h || s->type == SOCK_TYPE_DESTROYING) {
-		s->adns &= ~SOCK_ADNS_PENDING;
+	s->adns &= ~SOCK_ADNS_PENDING;
+
+	if (NULL == addr || s->type == SOCK_TYPE_DESTROYING) {
 		s->adns |= SOCK_ADNS_FAILED | SOCK_ADNS_BADNAME;
 		s->adns_msg = "Could not resolve address";
 		return;
 	}
-	if (NULL == socket_connect_finalize(s, *h)) {
-		s->adns &= ~SOCK_ADNS_PENDING;
+
+	if (s->net != host_addr_net(*addr)) {
+		s->net = host_addr_net(*addr);
+
+		if (-1 != s->file_desc) {
+			close(s->file_desc);
+			s->file_desc = -1;
+		}
+		if (0 != socket_connect_prepare(s, *addr, s->port, s->type, s->flags)) {
+			s->adns |= SOCK_ADNS_FAILED;
+			return;
+		}
+	}
+	
+	if (NULL == socket_connect_finalize(s, *addr)) {
 		s->adns |= SOCK_ADNS_FAILED;
 		return;
 	}
-	s->adns &= ~SOCK_ADNS_PENDING;
 }
 
 /**
@@ -2514,16 +2528,17 @@ struct gnutella_socket *
 socket_connect_by_name(const gchar *host, guint16 port,
 	enum socket_type type, guint32 flags)
 {
-	/* Create a socket and try to connect it to host:port */
-
 	struct gnutella_socket *s;
 	host_addr_t ha;
 
 	g_assert(host);
 	
 	ha = host_addr_set_ipv4(0); /* @todo TODO IPv6 */
-	s = socket_connect_prepare(ha, port, type, flags);
-	g_return_val_if_fail(NULL != s, NULL);
+	s = walloc0(sizeof *s);
+	if (0 != socket_connect_prepare(s, ha, port, type, flags)) {
+		wfree(s, sizeof *s);
+		return NULL;
+	}
 
 	s->adns |= SOCK_ADNS_PENDING;
 	if (
