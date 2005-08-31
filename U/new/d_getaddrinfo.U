@@ -1,0 +1,60 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_gnugettext: Myread Setvar cat +cc +ccflags +ldflags +libs
+?MAKE:	-pick add $@ %<
+?S:d_getaddrinfo:
+?S:	This variable conditionally defines the HAS_GETADDRINFO symbol, which
+?S:	indicates to the C program that the getaddrinfo() routine is available.
+?S:.
+?C:HAS_GETADDRINFO:
+?C:	This symbol is defined when getaddrinfo() can be used.
+?C:.
+?H:#$d_ipv6 USE_IPV6
+?H:.
+echo " "
+echo "Checking whether IPv6 can be used ..." >&4
+d_ipv6="$define"
+$cat >try.c <<'EOC'
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+
+int
+main(void) {
+	struct addrinfo hints, *res;
+	int ret;
+
+	hints.ai_flags = 1;
+	hints.ai_family = PF_UNSPEC;
+	hints.ai_socktype = 1;
+	hints.ai_protocol = 1;
+	hints.ai_addrlen = (socklen_t) 1;
+	hints.ai_canonname = "canonname";
+	hints.ai_addr = (struct sockaddr *) 0;
+	hints.ai_next = (struct addrinfo *) 0;
+	ret = getaddrinfo("localhost", "www", &hints, &res);
+	if (0 != ret) {
+		const char *s;
+		s = gai_strerror(ret);
+		(void) s;
+	}
+	if (ai)
+		freeaddrinfo(ai);
+	return 0;
+}
+EOC
+if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+    $cat <<'EOM'
+It looks like getaddrinfo() is usable on your system, good.
+EOM
+
+else
+	echo "Sorry, I will not be using getaddrinfo()."
+	d_getaddrinfo="$undef"
+fi
+$rm -f try try.c
+
