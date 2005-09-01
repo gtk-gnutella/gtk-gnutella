@@ -2468,15 +2468,12 @@ socket_connect(const host_addr_t ha, guint16 port,
 	struct gnutella_socket *s;
 
 	s = walloc0(sizeof *s);
-	if (
-		0 != socket_connect_prepare(s, ha, port, type, flags) ||
-		0 != socket_connect_finalize(s, ha)
-	) {
+	if (0 != socket_connect_prepare(s, ha, port, type, flags)) {
 		wfree(s, sizeof *s);
-		s = NULL;
+		return NULL;
 	}
 
-	return s;
+	return 0 != socket_connect_finalize(s, ha) ? NULL : s;
 }
 
 /**
