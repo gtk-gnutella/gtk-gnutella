@@ -2587,7 +2587,7 @@ parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 	 */
 
 	if (parq_ul->has_slot) {
-		if (!parq_upload_quick_continue(parq_ul)) {
+		if (parq_ul->quick && !parq_upload_quick_continue(parq_ul)) {
 			if (parq_debug)
 				g_message("[PARQ UL] Queuing back quick upload slot");
 			goto queue;
