@@ -121,8 +121,10 @@ following is a list of commonly used options with the defaults.
 -D dbus='true'
 -D ipv6='true'
 
-To disable NLS (National Language Support) i.e., nationalized text in the
-user interface:
+National Language Support requires at least GNU gettext 0.11.5 or a
+compatible implementation which supports its plural model. To disable
+NLS (National Language Support) i.e., nationalized text in the user
+interface:
 
 -U d_enablenls
 
