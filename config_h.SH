@@ -114,13 +114,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #define _GNU_SOURCE
 #endif
 
-/* HAS_INET_ATON:
- *	This symbol, if defined, indicates to the C program that the
- *	inet_aton() function is available to parse IP address "dotted-quad"
- *	strings.
- */
-#$d_inetaton HAS_INET_ATON		/**/
-
 /* HAS_ISASCII:
  *	This manifest constant lets the C program know that isascii 
  *	is available.
@@ -235,6 +228,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bindtxtcode HAS_BIND_TEXTDOMAIN_CODESET		/**/
 
+/* HAS_GETADDRINFO:
+ *	This symbol is defined when getaddrinfo() can be used.
+ */
+#$d_getaddrinfo HAS_GETADDRINFO
+
 /* HAS_GETINVENT:
  *    This symbol, if defined, indicates that the getinvent routine is
  *    available.
@@ -280,7 +278,7 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #$d_srandom HAS_SRANDOM		/**/
 
 /* HAS_STRLCPY:
- *	This symbol, if defined, indicates that the chown routine is
+ *	This symbol, if defined, indicates that the strlcpy routine is
  *	available.
  */
 #$d_strlcpy HAS_STRLCPY		/**/

@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Aug 14 14:45:06 MEST 2005 [metaconfig 3.0 PL70]
+# Generated on Thu Sep  1 19:15:18 MEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -295,13 +295,13 @@ d_bcopy=''
 d_bindtxtcode=''
 d_const=''
 d_deflate=''
+d_getaddrinfo=''
 d_getinvent=''
 d_gettext=''
 d_gnulibc=''
 gnulibc_version=''
 d_herror=''
 d_hstrerror=''
-d_inetaton=''
 d_inflate=''
 d_iptos=''
 d_isascii=''
@@ -4717,6 +4717,54 @@ EOM
 	;;
 esac
 
+: can we use getaddrinfo?
+echo " "
+echo "Checking whether getaddrinfo() can be used ..." >&4
+val="$define"
+$cat >try.c <<'EOC'
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+
+int
+main(void) {
+	struct addrinfo hints, *res;
+	int ret;
+
+	hints.ai_flags = 1;
+	hints.ai_family = PF_UNSPEC;
+	hints.ai_socktype = 1;
+	hints.ai_protocol = 1;
+	hints.ai_addrlen = (socklen_t) 1;
+	hints.ai_canonname = "canonname";
+	hints.ai_addr = (struct sockaddr *) 0;
+	hints.ai_next = (struct addrinfo *) 0;
+	ret = getaddrinfo("localhost", "www", &hints, &res);
+	if (0 != ret) {
+		const char *s;
+		s = gai_strerror(ret);
+		(void) s;
+	}
+	if (ai)
+		freeaddrinfo(ai);
+	return 0;
+}
+EOC
+if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+    $cat <<'EOM'
+It looks like getaddrinfo() is usable on your system, good.
+EOM
+
+else
+	echo "Sorry, I will not be using getaddrinfo()."
+	val="$undef"
+fi
+$rm -f try try.c
+set d_getaddrinfo
+eval $setvar
+
 : see if getinvent exists
 set getinvent d_getinvent
 eval $inlibc
@@ -4787,10 +4835,6 @@ eval $inlibc
 set hstrerror d_hstrerror
 eval $inlibc
 
-: check whether inet_aton exists
-set inet_aton d_inetaton
-eval $inlibc
-
 : see if this is a netinet/in.h or sys/in.h system
 set netinet/in.h i_niin sys/in.h i_sysin
 eval $inhdr
@@ -4858,8 +4902,11 @@ $cat >try.c <<'EOC'
 
 int main(void)
 {
+	struct sockaddr_storage ss;
 	struct sockaddr_in6 sin6;
 	static struct in6_addr in6;
+
+	ss.ss_family = PF_INET6;
 
 	sin6.sin6_family = AF_INET6;
 	sin6.sin6_port = 6346;
@@ -4868,6 +4915,7 @@ int main(void)
 	sin6.sin6_addr = in6;
 	sin6.sin6_addr.s6_addr[0] = in6.s6_addr[0];
 
+	STATIC_ASSERT(AF_INET6 == PF_INET6);
 	STATIC_ASSERT(sizeof in6 == sizeof sin6.sin6_addr);
 	STATIC_ASSERT(16 == sizeof sin6.sin6_addr.s6_addr);
 	STATIC_ASSERT(2 == sizeof sin6.sin6_port);
@@ -6465,6 +6513,7 @@ d_deflate='$d_deflate'
 d_dos='$d_dos'
 d_enablenls='$d_enablenls'
 d_eunice='$d_eunice'
+d_getaddrinfo='$d_getaddrinfo'
 d_getinvent='$d_getinvent'
 d_gettext='$d_gettext'
 d_gnulibc='$d_gnulibc'
@@ -6472,7 +6521,6 @@ d_gnutls='$d_gnutls'
 d_herror='$d_herror'
 d_hstrerror='$d_hstrerror'
 d_index='$d_index'
-d_inetaton='$d_inetaton'
 d_inflate='$d_inflate'
 d_iptos='$d_iptos'
 d_ipv6='$d_ipv6'
