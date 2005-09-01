@@ -1137,7 +1137,7 @@ ignore:
  ***/
 
 /**
- * Convert an handle to a `parq_ul_queued' structure.
+ * Convert a handle to a `parq_ul_queued' structure.
  */
 static inline struct parq_ul_queued *
 handle_to_queued(gpointer handle)
@@ -1674,12 +1674,12 @@ parq_upload_find(const gnutella_upload_t *u)
 	g_assert(ul_all_parq_by_addr_and_name != NULL);
 	g_assert(ul_all_parq_by_id != NULL);
 
+	if (u->parq_opaque != NULL)
+		return u->parq_opaque;
+
 	/* Can't lookup an upload with no name */
 	if (u->name == NULL)
 		return NULL;
-
-	if (u->parq_opaque != NULL)
-		return u->parq_opaque;
 
 	gm_snprintf(buf, sizeof(buf), "%s %s",
 		host_addr_to_string(u->addr), u->name);
@@ -2061,40 +2061,16 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 
 	g_assert(uq != NULL);
 
-	/*
-	 * If there are no free upload slots the queued upload isn't allowed an
-	 * upload slot anyway. So we might just as well abort here.
-	 *
-	 * Let the download continue if the request is small enough though.
-	 */
-
-	quick_allowed = parq_upload_quick_continue(uq);
-	
 	if (parq_debug >= 5)
 		g_message("[PARQ UL] parq_upload_continue, free_slots %d", free_slots);
 
 	/*
-	 * If uploads are stalling, we're already short in bandwidth.  Don't
-	 * add to the clogging of the output link.
+	 * If there are no free upload slots the queued upload isn't allowed an
+	 * upload slot anyway. So we might just as well abort here.
 	 */
 
-	if (uploads_stalling && quick_allowed) {
-		if (parq_debug)
-			g_message("[PARQ UL] No quick upload of %ld bytes (stalling)",
-				(gulong) uq->chunk_size);
-		quick_allowed = FALSE;
-	}
-
-	if (quick_allowed) {
-		if (parq_debug)
-			g_message("[PARQ UL] Allowed quick upload (%ld bytes)",
-				(gulong) uq->chunk_size);
-		uq->quick = TRUE;
-		return TRUE;
-	}
-	
 	if (free_slots <= 0)
-		return FALSE;
+		goto check_quick;
 
 	/*
 	 * Don't allow more than max_uploads_ip per single host (IP)
@@ -2104,7 +2080,7 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 			g_message("[PARQ UL] parq_upload_continue, " 
 				"max_uploads_ip per single host reached %d/%d",
 				uq->by_addr->uploading, max_uploads_ip);
-		return FALSE;
+		goto check_quick;
 	}
 
 	/*
@@ -2120,7 +2096,7 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 		if (!queue->active && queue->alive > 0) {
 			if (uq->queue->active) {
 				g_warning("[PARQ UL] Upload in inactive queue first");
-				return FALSE;
+				goto check_quick;
 			}
 		}
 	}
@@ -2170,7 +2146,7 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 				"(%d-%d)/%d",
 				uq->queue->active_uploads, slots_free,
 				allowed_max_uploads);
-		return FALSE;
+		goto check_quick;
 	}
 
 	/*
@@ -2192,7 +2168,7 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 			if (slots_free < 0) {
 				if (parq_debug >= 4)
 					g_message("[PARQ UL] Another upload in other queue first");
-				return FALSE;
+				goto check_quick;
 			}
 			slots_free--;
 		} else if (
@@ -2213,13 +2189,38 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 		}
 	}
 
-	/* We should never make it here */
-	g_warning("PARQ UL: "
-		"Error while determining whether an upload should continue");
+check_quick:
+	/*
+	 * Let the download continue if the request is small enough though.
+	 * This check must be done only when we would otherwise refuse a
+	 * normal slot for this upload.  Indeed, when its quota is exhausted,
+	 * it will be queued back.
+	 */
 
+	quick_allowed = parq_upload_quick_continue(uq);
+	
+	/*
+	 * If uploads are stalling, we're already short in bandwidth.  Don't
+	 * add to the clogging of the output link.
+	 */
+
+	if (uploads_stalling && quick_allowed) {
+		if (parq_debug)
+			g_message("[PARQ UL] No quick upload of %ld bytes (stalling)",
+				(gulong) uq->chunk_size);
+		quick_allowed = FALSE;
+	}
+
+	if (quick_allowed) {
+		if (parq_debug)
+			g_message("[PARQ UL] Allowed quick upload (%ld bytes)",
+				(gulong) uq->chunk_size);
+		uq->quick = TRUE;
+		return TRUE;
+	}
+	
 	return FALSE;
 }
-
 
 /**
  * Updates the IP and name entry in the queued structure and makes sure the hash
@@ -2279,9 +2280,8 @@ parq_upload_upload_got_cloned(gnutella_upload_t *u, gnutella_upload_t *cu)
 
 	parq_ul = parq_upload_find(u);
 
-	if (parq_ul != NULL) {
+	if (parq_ul != NULL)
 		parq_ul->u = cu;
-	}
 
 	u->parq_opaque = NULL;
 
@@ -2503,8 +2503,9 @@ parq_upload_request_force(gnutella_upload_t *u, gpointer handle,
  * (which probably means the upload is queued).
  */
 gboolean
-parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
+parq_upload_request(gnutella_upload_t *u, guint used_slots)
 {
+	gpointer handle = u->parq_opaque;
 	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
 	time_t now = tm_time();
 	time_t org_retry = parq_ul->retry;
@@ -2529,7 +2530,23 @@ parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 	} else
 		parq_ul->expire = MIN_LIFE_TIME + parq_ul->retry;
 
+	if (parq_debug > 1)
+		g_message("[PARQ UL] Request for \"%s\" from %s <%s>: "
+			"chunk=%lu, now=%d, retry=%d, expire=%d, quick=%s, has_slot=%s, "
+			"uploaded=%lu",
+			u->name, host_addr_to_string(u->addr),
+			upload_vendor_str(u),
+			(gulong) parq_ul->chunk_size, (gint) now, (gint) parq_ul->retry,
+			(gint) parq_ul->expire, parq_ul->quick ? "y" : "n",
+			parq_ul->has_slot ? "y" : "n", (gulong) parq_ul->uploaded_size);
+
+	/*
+	 * Make sure they did not retry the request too soon.
+	 * This check is naturally skipped for follow-up requests.
+	 */
+
 	if (
+		!parq_ul->has_slot &&		/* Not a follow-up request */
 		org_retry > now &&
 		!(
 			(parq_ul->flags & PARQ_UL_QUEUE_SENT) ||
@@ -2587,13 +2604,14 @@ parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 	 */
 
 	if (parq_ul->has_slot) {
-		if (parq_ul->quick && !parq_upload_quick_continue(parq_ul)) {
-			if (parq_debug)
-				g_message("[PARQ UL] Queuing back quick upload slot");
-			goto queue;
-		}
-		return TRUE;
+		if (!parq_ul->quick || parq_upload_quick_continue(parq_ul))
+			return TRUE;
+		if (parq_debug)
+			g_message("[PARQ UL] Fully checking quick upload slot");
+		/* FALL THROUGH */
 	}
+
+	parq_ul->quick = FALSE;		/* Doing full "continue" checks now */
 
 	/*
 	 * Check whether the current upload is allowed to get an upload slot. If so
@@ -2604,8 +2622,12 @@ parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 	if (parq_upload_continue(parq_ul, max_uploads - used_slots))
 		return TRUE;
 
-queue:
-	parq_ul->quick = FALSE;
+	if (parq_ul->has_slot) {
+		parq_ul->by_addr->uploading--;
+		parq_ul->queue->active_uploads--;
+		parq_ul->has_slot = FALSE;
+	}
+
 	/* Don't allow more than 1 active queued upload per ip */
 	if (parq_ul->by_addr->active_queued == 0 || parq_ul->active_queued) {
 
@@ -2689,13 +2711,28 @@ parq_upload_force_remove(gnutella_upload_t *u)
 {
 	struct parq_ul_queued *parq_ul = parq_upload_find(u);
 
-	if (parq_ul != NULL) {
-		if (!parq_upload_remove(u)) {
-			parq_upload_free(parq_ul);
-		}
-	}
+	if (parq_ul != NULL && !parq_upload_remove(u))
+		parq_upload_free(parq_ul);
 }
 
+/**
+ * Collect running stats about the completed / removed upload.
+ */
+void
+parq_upload_collect_stats(gnutella_upload_t *u)
+{
+	struct parq_ul_queued *uq = parq_upload_find(u);
+
+	/*
+	 * Data is only expected to be sent when the upload had a slot
+	 */
+
+	g_assert(uq != NULL);
+	g_assert(uq->has_slot || uq->had_slot || u->sent == 0);
+
+	uq->uploaded_size += u->sent;
+}
+	
 /**
  * When an upload is removed this function should be called so parq
  * knows the current upload status of an upload.
@@ -2725,15 +2762,16 @@ parq_upload_remove(gnutella_upload_t *u)
 
 	parq_ul = parq_upload_find(u);
 
-	/* If parq_ul = NULL, than the upload didn't get a slot in the PARQ. */
+	/*
+	 * If parq_ul = NULL, than the upload didn't get a slot in the PARQ,
+	 * or it is the parent of a now cloned upload (see upload_clone()).
+	 */
+
 	if (parq_ul == NULL)
 		return FALSE;
 
-	/* Data is only expected to be sent when the upload had a slot */
-	g_assert(parq_ul->has_slot || parq_ul->had_slot || u->sent == 0);
+	parq_upload_collect_stats(u);
 
-	parq_ul->uploaded_size += u->sent;
-	
 	/*
 	 * If we're still in the GTA_UL_QUEUE_WAITING state, we did not get any
 	 * HTTP requesst after sending the QUEUE callback.  However, if we sent
@@ -2757,7 +2795,8 @@ parq_upload_remove(gnutella_upload_t *u)
 	parq_ul->flags &= ~PARQ_UL_QUEUE_SENT;
 
 	if (parq_ul->has_slot && u->keep_alive && u->status == GTA_UL_WAITING) {
-		g_message("**** PARQ UL Q %d/%d: Not removed, waiting for new request",
+		if (parq_debug) g_message(
+			"**** PARQ UL Q %d/%d: Not removed, waiting for new request",
 			g_list_position(ul_parqs,
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
 			g_list_length(ul_parqs));

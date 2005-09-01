@@ -451,6 +451,7 @@ upload_create(struct gnutella_socket *s, gboolean push)
 	u->last_update = tm_time();
 	u->file_desc = -1;
 	u->sendfile_ctx.map = NULL;
+	u->parq_status = FALSE;
 
 	/*
 	 * Record pending upload in the GUI.
@@ -468,9 +469,8 @@ upload_create(struct gnutella_socket *s, gboolean push)
 	/*
 	 * Add upload to the GUI
 	 */
-    upload_fire_upload_added(u);
 
-	u->parq_status = 0;
+    upload_fire_upload_added(u);
 
 	return u;
 }
@@ -895,6 +895,7 @@ send_upload_error_v(
 	 * If the download got queued, also add the queueing information
 	 *		--JA, 07/02/2003
 	 */
+
 	if (parq_upload_queued(u)) {
 		cb_parq_arg.u = u;
 		cb_parq_arg.sf = sf;
@@ -2643,6 +2644,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean known_for_stalling;
 	gint bh_flags = 0;
 	gboolean using_sendfile;
+	gboolean parq_allows = FALSE;
 
 	u->from_browser = upload_likely_from_browser(header);
 
@@ -3203,9 +3205,19 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				"Another connection is still active");
 			return;
 		}
+
+		/*
+		 * Check whether we can perform this upload.
+		 *
+		 * Note that we perform this check even for follow-up requests, as
+		 * we can have allowed a quick upload to go through, but they
+		 * start requesting too many small chunks..
+		 */
+
+		parq_allows = parq_upload_request(u, running_uploads - 1);
 	}
 
-	if (reqfile && !(head_only || is_followup)) {
+	if (reqfile && !head_only && !parq_allows) {
 		/*
 		 * Even though this test is less costly than the previous ones, doing
 		 * it afterwards allows them to be notified of a mismatch whilst they
@@ -3220,112 +3232,109 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 *
 		 */
 
-		if (!parq_upload_request(u, u->parq_opaque, running_uploads - 1)) {
-			gboolean parq_allows = FALSE;
+		if (parq_upload_lookup_position(u) == (guint) -1) {
+			time_t expire = parq_banned_source_expire(u->addr);
+			gchar retry_after[80];
+			gint delay = delta_time(expire, now);
 
-			if (parq_upload_lookup_position(u) == (guint) -1) {
-				time_t expire = parq_banned_source_expire(u->addr);
-				gchar retry_after[80];
-				gint delay = delta_time(expire, now);
-
-				if (delay <= 0)
-					delay = 60;		/* Let them retry in a minute, only */
+			if (delay <= 0)
+				delay = 60;		/* Let them retry in a minute, only */
 
 
-				gm_snprintf(retry_after, sizeof(retry_after),
-					"Retry-After: %d\r\n", (gint) delay);
-
-				/*
-				 * Looks like upload got removed from PARQ queue. For now this
-				 * only happens when a client got banned. Bye bye!
-			 	 *		-- JA, 19/05/'03
-				 */
-				upload_error_remove_ext(u, reqfile, retry_after, 403,
-					"%s not honoured; removed from PARQ queue",
-					was_actively_queued ?
-						"Minimum retry delay" : "Retry-After");
-				return;
-			}
+			gm_snprintf(retry_after, sizeof(retry_after),
+				"Retry-After: %d\r\n", (gint) delay);
 
 			/*
-			 * Support for bandwith-dependent number of upload slots.
-		 	 * The upload bandwith limitation has to be enabled, otherwise
-		 	 * we cannot be sure that we have reasonable values for the
-		 	 * outgoing bandwith set.
-		 	 *		--TF 30/05/2002
-		 	 *
-		 	 * NB: if max_uploads is 0, then we disable sharing, period.
-		 	 *
-		 	 * Require that BOTH the average and "instantaneous" usage be
-		 	 * lower than the minimum to trigger the override.  This will
-		 	 * make it more robust when bandwidth stealing is enabled.
-		 	 *		--RAM, 27/01/2003
-			 *
-			 * Naturally, no new slot must be created when uploads are
-			 * stalling, since then b/w usage will be abnormally low and
-			 * creating new slots could make things worse.
-			 *		--RAM, 2005-08-27
+			 * Looks like upload got removed from PARQ queue. For now this
+			 * only happens when a client got banned. Bye bye!
+			 *		-- JA, 19/05/'03
 			 */
+			upload_error_remove_ext(u, reqfile, retry_after, 403,
+				"%s not honoured; removed from PARQ queue",
+				was_actively_queued ?
+					"Minimum retry delay" : "Retry-After");
+			return;
+		}
 
-			if (
-				bw_ul_usage_enabled &&
-				upload_is_enabled() &&
-				bws_out_enabled &&
-				stalled <= stall_thresh() &&
-				(gulong) bsched_pct(bws.out) < ul_usage_min_percentage &&
-				(gulong) bsched_avg_pct(bws.out) < ul_usage_min_percentage
-			) {
-				if (parq_upload_request_force(
-						u, u->parq_opaque, running_uploads - 1)) {
-					parq_allows = TRUE;
-					if (upload_debug)
-						g_message(
-							"Overriden slot limit because u/l b/w used at "
-							"%d%% (minimum set to %d%%)\n",
-							bsched_avg_pct(bws.out), ul_usage_min_percentage);
-				}
+		/*
+		 * Support for bandwith-dependent number of upload slots.
+		 * The upload bandwith limitation has to be enabled, otherwise
+		 * we cannot be sure that we have reasonable values for the
+		 * outgoing bandwith set.
+		 *		--TF 30/05/2002
+		 *
+		 * NB: if max_uploads is 0, then we disable sharing, period.
+		 *
+		 * Require that BOTH the average and "instantaneous" usage be
+		 * lower than the minimum to trigger the override.  This will
+		 * make it more robust when bandwidth stealing is enabled.
+		 *		--RAM, 27/01/2003
+		 *
+		 * Naturally, no new slot must be created when uploads are
+		 * stalling, since then b/w usage will be abnormally low and
+		 * creating new slots could make things worse.
+		 *		--RAM, 2005-08-27
+		 */
+
+		if (
+			!is_followup &&
+			bw_ul_usage_enabled &&
+			upload_is_enabled() &&
+			bws_out_enabled &&
+			stalled <= stall_thresh() &&
+			(gulong) bsched_pct(bws.out) < ul_usage_min_percentage &&
+			(gulong) bsched_avg_pct(bws.out) < ul_usage_min_percentage
+		) {
+			if (parq_upload_request_force(
+					u, u->parq_opaque, running_uploads - 1)) {
+				parq_allows = TRUE;
+				if (upload_debug)
+					g_message(
+						"Overriden slot limit because u/l b/w used at "
+						"%d%% (minimum set to %d%%)\n",
+						bsched_avg_pct(bws.out), ul_usage_min_percentage);
 			}
+		}
 
-			if (!parq_allows) {
-				if (u->status == GTA_UL_QUEUED) {
-					/*
-					 * Cleanup data structures.
-					 */
+		if (!parq_allows) {
+			if (u->status == GTA_UL_QUEUED) {
+				/*
+				 * Cleanup data structures.
+				 */
 
-					io_free(u->io_opaque);
-					g_assert(u->io_opaque == NULL);
+				io_free(u->io_opaque);
+				g_assert(u->io_opaque == NULL);
 
-					getline_free(s->getline);
-					s->getline = NULL;
+				getline_free(s->getline);
+				s->getline = NULL;
 
-					send_upload_error(u, reqfile, 503,
-						  "Queued (slot %d, ETA: %s)",
-						  parq_upload_lookup_position(u),
-						  short_time(parq_upload_lookup_eta(u)));
+				send_upload_error(u, reqfile, 503,
+					  "Queued (slot %d, ETA: %s)",
+					  parq_upload_lookup_position(u),
+					  short_time(parq_upload_lookup_eta(u)));
 
-					u->error_sent = 0;	/* Any new request should be allowed
-										   to retrieve an error code */
+				u->error_sent = 0;	/* Any new request should be allowed
+									   to retrieve an error code */
 
-					/* Avoid data timeout */
-					u->last_update = parq_upload_lookup_lifetime(u) -
-						  upload_connected_timeout;
+				/* Avoid data timeout */
+				u->last_update = parq_upload_lookup_lifetime(u) -
+					  upload_connected_timeout;
 
-					running_uploads--;	/* will get increased next time
-										   upload_request is called */
+				running_uploads--;	/* will get increased next time
+									   upload_request is called */
 
-					expect_http_header(u, GTA_UL_QUEUED);
-					return;
-				} else
-				if (parq_upload_queue_full(u)) {
-					upload_error_remove(u, reqfile, 503, "Queue full");
-				} else {
-					upload_error_remove(u, reqfile,	503,
-						N_("Queued (slot %d, ETA: %s)"),
-						parq_upload_lookup_position(u),
-						short_time(parq_upload_lookup_eta(u)));
-				}
+				expect_http_header(u, GTA_UL_QUEUED);
 				return;
+			} else
+			if (parq_upload_queue_full(u)) {
+				upload_error_remove(u, reqfile, 503, "Queue full");
+			} else {
+				upload_error_remove(u, reqfile,	503,
+					N_("Queued (slot %d, ETA: %s)"),
+					parq_upload_lookup_position(u),
+					short_time(parq_upload_lookup_eta(u)));
 			}
+			return;
 		}
 	}
 
@@ -3620,10 +3629,18 @@ upload_completed(gnutella_upload_t *u)
 	/*
 	 * If we're going to keep the connection, we must clone the upload
 	 * structure, since it is associated to the GUI entry.
+	 *
+	 * When the upload is to be cloned, we need to collect stats before
+	 * it is cloned, otherwise it will be performed by upload_remove().
+	 * Indeed, once cloned, the PARQ opaque structure is attached to the
+	 * child and no longer to the parent.
 	 */
 
 	if (u->keep_alive) {
-		gnutella_upload_t *cu = upload_clone(u);
+		gnutella_upload_t *cu;
+
+		parq_upload_collect_stats(u);
+		cu = upload_clone(u);
 		upload_wait_new_request(cu);
 		/*
 		 * Don't decrement counters, we're still using the same slot.
