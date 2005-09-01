@@ -2526,7 +2526,7 @@ parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 
 	g_assert(u != NULL);
 
-	parq_ul->chunk_size = u->skip >= u->end ? 0 : u->end - u->skip;
+	parq_ul->chunk_size = u->skip > u->end ? 0 : u->end - u->skip + 1;
 	parq_ul->updated = now;
 	parq_ul->retry = now + parq_ul_calc_retry(parq_ul);
 
