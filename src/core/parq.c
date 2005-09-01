@@ -2499,20 +2499,6 @@ parq_upload_request_force(gnutella_upload_t *u, gpointer handle,
 }
 
 /**
- * Update amount of uploaded data.
- */
-void
-parq_upload_update_sent(gpointer handle, filesize_t sent)
-{
-	struct parq_ul_queued *uq = handle_to_queued(handle);
-
-	/* Data is only expected to be sent when the upload had a slot */
-	g_assert(uq->has_slot || uq->had_slot);
-
-	uq->uploaded_size += sent;
-}
-
-/**
  * @return If the download may continue, TRUE is returned. FALSE otherwise
  * (which probably means the upload is queued).
  */
@@ -2743,7 +2729,10 @@ parq_upload_remove(gnutella_upload_t *u)
 	if (parq_ul == NULL)
 		return FALSE;
 
-	parq_ul->quick = FALSE;
+	/* Data is only expected to be sent when the upload had a slot */
+	g_assert(parq_ul->has_slot || parq_ul->had_slot || u->sent == 0);
+
+	parq_ul->uploaded_size += u->sent;
 	
 	/*
 	 * If we're still in the GTA_UL_QUEUE_WAITING state, we did not get any
@@ -2774,6 +2763,13 @@ parq_upload_remove(gnutella_upload_t *u)
 			g_list_length(ul_parqs));
 		return FALSE;
 	}
+
+	/*
+	 * Reset "quick slot" indication since the upload is moved back
+	 * to the queue.
+	 */
+
+	parq_ul->quick = FALSE;
 
 	/*
 	 * When the upload was actively queued, the last_update timestamp was

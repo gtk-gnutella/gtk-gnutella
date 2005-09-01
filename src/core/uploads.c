@@ -3617,8 +3617,6 @@ upload_completed(gnutella_upload_t *u)
 	gnet_prop_set_guint32_val(PROP_TOTAL_UPLOADS, total_uploads + 1);
 	upload_fire_upload_info_changed(u); /* gui must update last state */
 
-	parq_upload_update_sent(u->parq_opaque, u->sent);
-
 	/*
 	 * If we're going to keep the connection, we must clone the upload
 	 * structure, since it is associated to the GUI entry.
