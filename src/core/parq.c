@@ -172,6 +172,7 @@ struct parq_ul_queued {
 	guint position;			/**< Current position in the queue */
 	guint relative_position; /**< Relative position in the queue, if 'not alive'
 								  uploads are taken into account */
+	gboolean quick;			/**< Slot granted for allowed quick upload */
 	gboolean active_queued;	/**< Whether the current upload is actively queued */
 	gboolean has_slot;		/**< Whether the items is currently uploading */
 	gboolean had_slot;		/**< If an upload had an upload slot it is not
@@ -2072,9 +2073,23 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	if (parq_debug >= 5)
 		g_message("[PARQ UL] parq_upload_continue, free_slots %d", free_slots);
 
+	/*
+	 * If uploads are stalling, we're already short in bandwidth.  Don't
+	 * add to the clogging of the output link.
+	 */
+
+	if (uploads_stalling && quick_allowed) {
+		if (parq_debug)
+			g_message("[PARQ UL] No quick upload of %ld bytes (stalling)",
+				(gulong) uq->chunk_size);
+		quick_allowed = FALSE;
+	}
+
 	if (quick_allowed) {
-		if (parq_debug >= 5)
-			g_message("[PARQ UL] Allowed quick upload");
+		if (parq_debug)
+			g_message("[PARQ UL] Allowed quick upload (%ld bytes)",
+				(gulong) uq->chunk_size);
+		uq->quick = TRUE;
 		return TRUE;
 	}
 	
@@ -2484,6 +2499,20 @@ parq_upload_request_force(gnutella_upload_t *u, gpointer handle,
 }
 
 /**
+ * Update amount of uploaded data.
+ */
+void
+parq_upload_update_sent(gpointer handle, filesize_t sent)
+{
+	struct parq_ul_queued *uq = handle_to_queued(handle);
+
+	/* Data is only expected to be sent when the upload had a slot */
+	g_assert(uq->has_slot || uq->had_slot);
+
+	uq->uploaded_size += sent;
+}
+
+/**
  * @return If the download may continue, TRUE is returned. FALSE otherwise
  * (which probably means the upload is queued).
  */
@@ -2493,19 +2522,17 @@ parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
 	time_t now = tm_time();
 	time_t org_retry = parq_ul->retry;
-	filesize_t chunk_size;
 	guint avg_bps;
 
 	g_assert(u != NULL);
 
-	chunk_size = u->skip > u->end ? u->skip - u->end : u->end - u->skip;
-	parq_ul->chunk_size = chunk_size;
+	parq_ul->chunk_size = u->skip >= u->end ? 0 : u->end - u->skip;
 	parq_ul->updated = now;
 	parq_ul->retry = now + parq_ul_calc_retry(parq_ul);
+
 	g_assert(parq_ul->retry >= now);
 
-	if (parq_optimistic)
-	{
+	if (parq_optimistic) {
 		avg_bps = bsched_avg_bps(bws.out);
 		avg_bps = MAX(1, avg_bps);
 
@@ -2513,11 +2540,8 @@ parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 		parq_ul->expire = parq_ul->retry +
 			parq_ul->chunk_size / avg_bps * max_uploads;
 		parq_ul->expire = MIN(MIN_LIFE_TIME + parq_ul->retry, parq_ul->expire);
-	}
-	else
-	{
+	} else
 		parq_ul->expire = MIN_LIFE_TIME + parq_ul->retry;
-	}
 
 	if (
 		org_retry > now &&
@@ -2571,11 +2595,19 @@ parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 
 	/*
 	 * Client was already downloading a segment, segment was finished and
-	 * just did a follow up request.
+	 * just did a follow up request.  However, if the slot was granted
+	 * for a quick upload, and the amount requested is too large now,
+	 * we cannot allow it to continue.
 	 */
 
-	if (parq_ul->has_slot)
+	if (parq_ul->has_slot) {
+		if (!parq_upload_quick_continue(parq_ul)) {
+			if (parq_debug)
+				g_message("[PARQ UL] Queuing back quick upload slot");
+			goto queue;
+		}
 		return TRUE;
+	}
 
 	/*
 	 * Check whether the current upload is allowed to get an upload slot. If so
@@ -2585,39 +2617,40 @@ parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 
 	if (parq_upload_continue(parq_ul, max_uploads - used_slots))
 		return TRUE;
-	else {
-		/* Don't allow more than 1 active queued upload per ip */
-		if (parq_ul->by_addr->active_queued == 0 || parq_ul->active_queued) {
 
-			/* Active queue requests which are either a push request and at a
-			 * reasonable position. Or if the request is at a position which
-			 * might actually get an upload slot soon
-			 */
-			if (
-				(u->push &&
-				  parq_ul->relative_position <= parq_upload_active_size) ||
-				  parq_ul->relative_position <= max_uploads + 2
-			) {
-				if (parq_ul->minor > 0 || parq_ul->major > 0) {
-					if (!parq_ul->active_queued) {
-						if (parq_ul->by_addr->active_queued == 0) {
-							u->status = GTA_UL_QUEUED;
+queue:
+	parq_ul->quick = FALSE;
+	/* Don't allow more than 1 active queued upload per ip */
+	if (parq_ul->by_addr->active_queued == 0 || parq_ul->active_queued) {
 
-							parq_ul->active_queued = TRUE;
-							parq_ul->by_addr->active_queued++;
-						}
-					} else {
-							u->status = GTA_UL_QUEUED;
+		/* Active queue requests which are either a push request and at a
+		 * reasonable position. Or if the request is at a position which
+		 * might actually get an upload slot soon
+		 */
+		if (
+			(u->push &&
+			  parq_ul->relative_position <= parq_upload_active_size) ||
+			  parq_ul->relative_position <= max_uploads + 2
+		) {
+			if (parq_ul->minor > 0 || parq_ul->major > 0) {
+				if (!parq_ul->active_queued) {
+					if (parq_ul->by_addr->active_queued == 0) {
+						u->status = GTA_UL_QUEUED;
+
+						parq_ul->active_queued = TRUE;
+						parq_ul->by_addr->active_queued++;
 					}
+				} else {
+						u->status = GTA_UL_QUEUED;
 				}
 			}
 		}
-
-		g_assert(parq_ul->by_addr->active_queued <= 1);
-
-		u->parq_status = TRUE;		/* XXX would violate encapsulation */
-		return FALSE;
 	}
+
+	g_assert(parq_ul->by_addr->active_queued <= 1);
+
+	u->parq_status = TRUE;		/* XXX would violate encapsulation */
+	return FALSE;
 }
 
 /**
@@ -2710,10 +2743,7 @@ parq_upload_remove(gnutella_upload_t *u)
 	if (parq_ul == NULL)
 		return FALSE;
 
-	/* Data is only expected to be sent when the upload had a slot */
-	g_assert(parq_ul->has_slot || parq_ul->had_slot || u->sent == 0);
-	
-	parq_ul->uploaded_size += u->sent;
+	parq_ul->quick = FALSE;
 	
 	/*
 	 * If we're still in the GTA_UL_QUEUE_WAITING state, we did not get any
