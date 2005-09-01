@@ -63,6 +63,7 @@ typedef enum {
 	DL_ACTION_QUEUED_CONNECT,
 	DL_ACTION_QUEUED_COPY_URL,
 	DL_ACTION_QUEUED_START,
+	DL_ACTION_QUEUED_PUSH,
 
 	NUM_DL_ACTION
 } dl_action_type_t;
@@ -103,6 +104,7 @@ dl_action(GtkTreeModel *model, GtkTreePath *unused_path,
 	case DL_ACTION_QUEUED_ABORT_NAMED:
 	case DL_ACTION_QUEUED_CONNECT:
 	case DL_ACTION_QUEUED_COPY_URL:
+	case DL_ACTION_QUEUED_PUSH:
 
 		switch (ctx->action) {
 		/* Active download stuff goes here */
@@ -126,6 +128,7 @@ dl_action(GtkTreeModel *model, GtkTreePath *unused_path,
 		case DL_ACTION_QUEUED_CONNECT:
 		case DL_ACTION_QUEUED_COPY_URL:
 		case DL_ACTION_QUEUED_START:
+		case DL_ACTION_QUEUED_PUSH:
 			column = c_queue_record;
 			break;
 
@@ -177,6 +180,7 @@ dl_action(GtkTreeModel *model, GtkTreePath *unused_path,
 		case DL_ACTION_QUEUED_CONNECT:
 		case DL_ACTION_QUEUED_COPY_URL:
 		case DL_ACTION_QUEUED_START:
+		case DL_ACTION_QUEUED_PUSH:
 		case NUM_DL_ACTION:
 			g_assert_not_reached();
 		}
@@ -256,27 +260,21 @@ show_removed(guint removed)
 		removed);
 }
 
-/**
- *	Causes all selected active downloads to fall back to push
- */
-void
-on_popup_downloads_push_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
+static void
+push_activate(gboolean active)
 {
 	GSList *sl, *selected;
-	gboolean send_pushes;
-	gboolean firewalled;
+	gboolean send_pushes, firewalled;
 
-	(void) unused_menuitem;
-	(void) unused_udata;
+   	gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
+   	gnet_prop_get_boolean_val(PROP_IS_FIREWALLED, &firewalled);
 
-    gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
-    gnet_prop_get_boolean_val(PROP_IS_FIREWALLED, &firewalled);
+   	if (firewalled || !send_pushes)
+       	return;
 
-    if (firewalled || !send_pushes)
-        return;
-
-	selected = dl_action_select("treeview_downloads", DL_ACTION_PUSH);
+	selected = dl_action_select(
+					active ? "treeview_downloads" : "treeview_downloads_queue",
+					active ? DL_ACTION_PUSH : DL_ACTION_QUEUED_PUSH);
 	if (!selected)
 		return;
 
@@ -285,6 +283,33 @@ on_popup_downloads_push_activate(GtkMenuItem *unused_menuitem,
 		guc_download_fallback_to_push(d, FALSE, TRUE);
 	}
 	g_slist_free(selected);
+}
+
+
+/**
+ *	Causes all selected active downloads to fall back to push
+ */
+void
+on_popup_downloads_push_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	push_activate(TRUE);
+}
+
+/**
+ *	Causes all selected queued downloads to fall back to push
+ */
+void
+on_popup_queue_push_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	push_activate(FALSE);
 }
 
 

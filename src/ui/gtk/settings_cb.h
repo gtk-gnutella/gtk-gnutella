@@ -71,4 +71,10 @@ void on_menu_autohide_bws_gleaf_activate(GtkMenuItem * menuitem, gpointer user_d
 
 void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_data);
 
+#ifdef USE_GTK2
+void
+on_button_config_remove_dir_clicked(GtkButton *unused_button,
+	gpointer unused_udata);
+#endif /* USE_GTK2 */
+
 #endif /* _gtk_settings_cb_h_ */

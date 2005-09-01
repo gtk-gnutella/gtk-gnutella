@@ -9,12 +9,13 @@
   <child>
     <widget class="GtkImageMenuItem" id="popup_downloads_abort">
       <property name="visible">True</property>
+      <property name="tooltip" translatable="yes">Aborts the download from the selected source but not the download of the file itself.</property>
       <property name="label" translatable="yes">Abort</property>
       <property name="use_underline">True</property>
       <signal name="activate" handler="on_button_downloads_abort_clicked"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image413">
+	<widget class="GtkImage" id="image546">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-stop</property>
 	  <property name="icon_size">1</property>
@@ -30,6 +31,7 @@
   <child>
     <widget class="GtkMenuItem" id="abort_all1">
       <property name="visible">True</property>
+      <property name="tooltip" translatable="yes">Aborts the download from sources matching the selected criteria but not the download of the file itself.</property>
       <property name="label" translatable="yes">Abort all...</property>
       <property name="use_underline">True</property>
 
@@ -75,7 +77,7 @@
       <signal name="activate" handler="on_popup_downloads_remove_file_activate" last_modification_time="Tue, 21 Dec 2004 06:25:52 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image414">
+	<widget class="GtkImage" id="image547">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -96,7 +98,7 @@
       <signal name="activate" handler="on_button_downloads_resume_clicked"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image415">
+	<widget class="GtkImage" id="image548">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-redo</property>
 	  <property name="icon_size">1</property>
@@ -117,7 +119,7 @@
       <signal name="activate" handler="on_popup_downloads_queue_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image416">
+	<widget class="GtkImage" id="image549">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-undo</property>
 	  <property name="icon_size">1</property>
@@ -139,6 +141,7 @@
   <child>
     <widget class="GtkMenuItem" id="popup_downloads_push">
       <property name="visible">True</property>
+      <property name="tooltip" translatable="yes">If the source appears to be firewalled, it may help to enforce push mode to let the source connect back to us.</property>
       <property name="label" translatable="yes">Force push mode</property>
       <property name="use_underline">True</property>
       <signal name="activate" handler="on_popup_downloads_push_activate"/>
@@ -159,7 +162,7 @@
       <signal name="activate" handler="on_popup_downloads_copy_url_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image417">
+	<widget class="GtkImage" id="image550">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-copy</property>
 	  <property name="icon_size">1</property>
@@ -180,7 +183,7 @@
       <signal name="activate" handler="on_popup_downloads_connect_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image418">
+	<widget class="GtkImage" id="image551">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-jump-to</property>
 	  <property name="icon_size">1</property>
@@ -207,7 +210,7 @@
       <signal name="activate" handler="on_popup_downloads_config_cols_activate" last_modification_time="Fri, 18 Jun 2004 02:16:51 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image419">
+	<widget class="GtkImage" id="image552">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-preferences</property>
 	  <property name="icon_size">1</property>
@@ -228,7 +231,7 @@
       <signal name="activate" handler="on_popup_downloads_expand_all_activate" last_modification_time="Thu, 01 Jan 2004 05:03:24 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image420">
+	<widget class="GtkImage" id="image553">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
@@ -249,7 +252,7 @@
       <signal name="activate" handler="on_popup_downloads_collapse_all_activate" last_modification_time="Thu, 01 Jan 2004 05:03:24 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image421">
+	<widget class="GtkImage" id="image554">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-remove</property>
 	  <property name="icon_size">1</property>
@@ -283,7 +286,7 @@
       <signal name="activate" handler="on_popup_queue_abort_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image483">
+	<widget class="GtkImage" id="image560">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-stop</property>
 	  <property name="icon_size">1</property>
@@ -343,6 +346,21 @@
   </child>
 
   <child>
+    <widget class="GtkMenuItem" id="popup_queue_push">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">Force push mode</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="on_popup_queue_push_activate" last_modification_time="Thu, 01 Sep 2005 00:08:44 GMT"/>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkSeparatorMenuItem" id="separator22">
+      <property name="visible">True</property>
+    </widget>
+  </child>
+
+  <child>
     <widget class="GtkImageMenuItem" id="popup_queue_copy_url">
       <property name="visible">True</property>
       <property name="label" translatable="yes">Copy URL to clipboard</property>
@@ -350,7 +368,7 @@
       <signal name="activate" handler="on_popup_queue_copy_url_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image484">
+	<widget class="GtkImage" id="image561">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-copy</property>
 	  <property name="icon_size">1</property>
@@ -371,7 +389,7 @@
       <signal name="activate" handler="on_popup_queue_connect_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image485">
+	<widget class="GtkImage" id="image562">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-jump-to</property>
 	  <property name="icon_size">1</property>
@@ -398,7 +416,7 @@
       <signal name="activate" handler="on_popup_queue_config_cols_activate" last_modification_time="Fri, 18 Jun 2004 02:15:28 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image486">
+	<widget class="GtkImage" id="image563">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-preferences</property>
 	  <property name="icon_size">1</property>
@@ -419,7 +437,7 @@
       <signal name="activate" handler="on_popup_queue_expand_all_activate" last_modification_time="Thu, 01 Jan 2004 05:04:18 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image487">
+	<widget class="GtkImage" id="image564">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
@@ -440,7 +458,7 @@
       <signal name="activate" handler="on_popup_queue_collapse_all_activate" last_modification_time="Thu, 01 Jan 2004 05:04:18 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image488">
+	<widget class="GtkImage" id="image565">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-remove</property>
 	  <property name="icon_size">1</property>
@@ -2082,7 +2100,7 @@ Grace time remaining:</property>
       <child>
 	<widget class="GtkLabel" id="label_about_translation">
 	  <property name="visible">True</property>
-	  <property name="label"></property>
+	  <property name="label">[translator credit]</property>
 	  <property name="use_underline">False</property>
 	  <property name="use_markup">False</property>
 	  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -2128,6 +2146,7 @@ Grace time remaining:</property>
 		    <widget class="GtkTextView" id="textview_about_contributors">
 		      <property name="visible">True</property>
 		      <property name="can_focus">True</property>
+		      <property name="has_focus">True</property>
 		      <property name="editable">False</property>
 		      <property name="overwrite">False</property>
 		      <property name="accepts_tab">True</property>
@@ -2274,13 +2293,14 @@ Grace time remaining:</property>
       <child>
 	<widget class="GtkLabel" id="label892">
 	  <property name="visible">True</property>
+	  <property name="can_focus">True</property>
 	  <property name="label" translatable="yes">This product includes GeoIP data created by MaxMind, available from
 http://maxmind.com/</property>
 	  <property name="use_underline">False</property>
 	  <property name="use_markup">False</property>
 	  <property name="justify">GTK_JUSTIFY_CENTER</property>
 	  <property name="wrap">False</property>
-	  <property name="selectable">False</property>
+	  <property name="selectable">True</property>
 	  <property name="xalign">0.5</property>
 	  <property name="yalign">0.5</property>
 	  <property name="xpad">0</property>
@@ -3333,7 +3353,7 @@ http://maxmind.com/</property>
 				      <property name="visible">True</property>
 				      <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				      <property name="fraction">0</property>
-				      <property name="pulse_step">0.10000000149</property>
+				      <property name="pulse_step">0.1</property>
 				    </widget>
 				    <packing>
 				      <property name="padding">0</property>
@@ -3385,7 +3405,7 @@ http://maxmind.com/</property>
 				      <property name="visible">True</property>
 				      <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				      <property name="fraction">0</property>
-				      <property name="pulse_step">0.10000000149</property>
+				      <property name="pulse_step">0.1</property>
 				    </widget>
 				    <packing>
 				      <property name="padding">0</property>
@@ -3437,7 +3457,7 @@ http://maxmind.com/</property>
 				      <property name="visible">True</property>
 				      <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				      <property name="fraction">0</property>
-				      <property name="pulse_step">0.10000000149</property>
+				      <property name="pulse_step">0.1</property>
 				    </widget>
 				    <packing>
 				      <property name="padding">0</property>
@@ -3482,7 +3502,7 @@ http://maxmind.com/</property>
 				  <property name="events">GDK_BUTTON_PRESS_MASK</property>
 				  <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				  <property name="fraction">0</property>
-				  <property name="pulse_step">0.10000000149</property>
+				  <property name="pulse_step">0.1</property>
 				  <signal name="button_press_event" handler="on_progressbar_bws_in_button_press_event"/>
 				</widget>
 				<packing>
@@ -3499,7 +3519,7 @@ http://maxmind.com/</property>
 				  <property name="events">GDK_BUTTON_PRESS_MASK</property>
 				  <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				  <property name="fraction">0</property>
-				  <property name="pulse_step">0.10000000149</property>
+				  <property name="pulse_step">0.1</property>
 				  <signal name="button_press_event" handler="on_progressbar_bws_out_button_press_event"/>
 				</widget>
 				<packing>
@@ -3557,7 +3577,7 @@ http://maxmind.com/</property>
 				  <property name="events">GDK_BUTTON_PRESS_MASK</property>
 				  <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				  <property name="fraction">0</property>
-				  <property name="pulse_step">0.10000000149</property>
+				  <property name="pulse_step">0.1</property>
 				  <signal name="button_press_event" handler="on_progressbar_bws_gin_button_press_event"/>
 				</widget>
 				<packing>
@@ -3574,7 +3594,7 @@ http://maxmind.com/</property>
 				  <property name="events">GDK_BUTTON_PRESS_MASK</property>
 				  <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				  <property name="fraction">0</property>
-				  <property name="pulse_step">0.10000000149</property>
+				  <property name="pulse_step">0.1</property>
 				  <signal name="button_press_event" handler="on_progressbar_bws_gout_button_press_event"/>
 				</widget>
 				<packing>
@@ -3632,7 +3652,7 @@ http://maxmind.com/</property>
 				  <property name="events">GDK_BUTTON_PRESS_MASK</property>
 				  <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				  <property name="fraction">0</property>
-				  <property name="pulse_step">0.10000000149</property>
+				  <property name="pulse_step">0.1</property>
 				  <signal name="button_press_event" handler="on_progressbar_bws_lin_button_press_event" last_modification_time="Wed, 16 Apr 2003 19:04:07 GMT"/>
 				</widget>
 				<packing>
@@ -3649,7 +3669,7 @@ http://maxmind.com/</property>
 				  <property name="events">GDK_BUTTON_PRESS_MASK</property>
 				  <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				  <property name="fraction">0</property>
-				  <property name="pulse_step">0.10000000149</property>
+				  <property name="pulse_step">0.1</property>
 				  <signal name="button_press_event" handler="on_progressbar_bws_lout_button_press_event" last_modification_time="Wed, 16 Apr 2003 19:04:37 GMT"/>
 				</widget>
 				<packing>
@@ -4346,6 +4366,7 @@ http://maxmind.com/</property>
   <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
   <property name="gravity">GDK_GRAVITY_NORTH_WEST</property>
   <property name="has_separator">True</property>
+  <signal name="delete_event" handler="on_dlg_quit_delete_event" last_modification_time="Wed, 31 Aug 2005 23:31:16 GMT"/>
 
   <child internal-child="vbox">
     <widget class="GtkVBox" id="dialog-vbox1">
@@ -5054,7 +5075,7 @@ http://maxmind.com/</property>
 				  <property name="justify">GTK_JUSTIFY_CENTER</property>
 				  <property name="wrap">False</property>
 				  <property name="selectable">False</property>
-				  <property name="xalign">7.45058015283e-09</property>
+				  <property name="xalign">7.45058e-09</property>
 				  <property name="yalign">0.5</property>
 				  <property name="xpad">0</property>
 				  <property name="ypad">0</property>
@@ -7700,7 +7721,7 @@ http://maxmind.com/</property>
 					      <property name="visible">True</property>
 					      <property name="xalign">0</property>
 					      <property name="yalign">0.5</property>
-					      <property name="xscale">0.15000000596</property>
+					      <property name="xscale">0.15</property>
 					      <property name="yscale">1</property>
 					      <property name="top_padding">0</property>
 					      <property name="bottom_padding">0</property>
@@ -8482,7 +8503,7 @@ http://maxmind.com/</property>
 		      <property name="justify">GTK_JUSTIFY_CENTER</property>
 		      <property name="wrap">False</property>
 		      <property name="selectable">False</property>
-		      <property name="xalign">7.45058015283e-09</property>
+		      <property name="xalign">7.45058e-09</property>
 		      <property name="yalign">0.5</property>
 		      <property name="xpad">5</property>
 		      <property name="ypad">0</property>
@@ -12012,7 +12033,7 @@ http://maxmind.com/</property>
 	<widget class="GtkAlignment" id="alignment24">
 	  <property name="visible">True</property>
 	  <property name="xalign">0.5</property>
-	  <property name="yalign">7.45058015283e-09</property>
+	  <property name="yalign">7.45058e-09</property>
 	  <property name="xscale">1</property>
 	  <property name="yscale">1</property>
 	  <property name="top_padding">0</property>
@@ -14379,7 +14400,7 @@ http://maxmind.com/</property>
 		    <widget class="GtkAlignment" id="alignment23">
 		      <property name="visible">True</property>
 		      <property name="xalign">0</property>
-		      <property name="yalign">7.45058015283e-09</property>
+		      <property name="yalign">7.45058e-09</property>
 		      <property name="xscale">1</property>
 		      <property name="yscale">0</property>
 		      <property name="top_padding">0</property>
@@ -15514,7 +15535,7 @@ http://maxmind.com/</property>
 		      <property name="visible">True</property>
 		      <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 		      <property name="fraction">0</property>
-		      <property name="pulse_step">0.10000000149</property>
+		      <property name="pulse_step">0.1</property>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
@@ -15611,7 +15632,7 @@ http://maxmind.com/</property>
 		      <property name="visible">True</property>
 		      <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 		      <property name="fraction">0</property>
-		      <property name="pulse_step">0.10000000149</property>
+		      <property name="pulse_step">0.1</property>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
@@ -15708,7 +15729,7 @@ http://maxmind.com/</property>
 		      <property name="visible">True</property>
 		      <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 		      <property name="fraction">0</property>
-		      <property name="pulse_step">0.10000000149</property>
+		      <property name="pulse_step">0.1</property>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
@@ -16633,12 +16654,13 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkLabel" id="label_current_port">
 			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">not yet determined</property>
 			      <property name="use_underline">False</property>
 			      <property name="use_markup">False</property>
 			      <property name="justify">GTK_JUSTIFY_CENTER</property>
 			      <property name="wrap">False</property>
-			      <property name="selectable">False</property>
+			      <property name="selectable">True</property>
 			      <property name="xalign">0.5</property>
 			      <property name="yalign">0.5</property>
 			      <property name="xpad">0</property>
@@ -19249,7 +19271,7 @@ http://maxmind.com/</property>
 				  <property name="justify">GTK_JUSTIFY_CENTER</property>
 				  <property name="wrap">False</property>
 				  <property name="selectable">False</property>
-				  <property name="xalign">7.45058015283e-09</property>
+				  <property name="xalign">7.45058e-09</property>
 				  <property name="yalign">0.5</property>
 				  <property name="xpad">0</property>
 				  <property name="ypad">0</property>
@@ -19273,7 +19295,7 @@ http://maxmind.com/</property>
 				  <property name="justify">GTK_JUSTIFY_CENTER</property>
 				  <property name="wrap">False</property>
 				  <property name="selectable">False</property>
-				  <property name="xalign">7.45058015283e-09</property>
+				  <property name="xalign">7.45058e-09</property>
 				  <property name="yalign">0.5</property>
 				  <property name="xpad">4</property>
 				  <property name="ypad">0</property>
@@ -23923,7 +23945,7 @@ message</property>
 			      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
 			      <property name="snap_to_ticks">False</property>
 			      <property name="wrap">False</property>
-			      <property name="adjustment">1 0 67108900 1 10 10</property>
+			      <property name="adjustment">1 0 6.71089e+07 1 10 10</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
@@ -23944,7 +23966,7 @@ message</property>
 			      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
 			      <property name="snap_to_ticks">False</property>
 			      <property name="wrap">False</property>
-			      <property name="adjustment">1 0 67108900 1 10 10</property>
+			      <property name="adjustment">1 0 6.71089e+07 1 10 10</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
@@ -24314,23 +24336,42 @@ message</property>
 		      <property name="spacing">2</property>
 
 		      <child>
-			<widget class="GtkEntry" id="entry_config_path">
+			<widget class="GtkHBox" id="hbox9299">
 			  <property name="visible">True</property>
-			  <property name="can_focus">True</property>
-			  <property name="editable">True</property>
-			  <property name="visibility">True</property>
-			  <property name="max_length">0</property>
-			  <property name="text" translatable="yes"></property>
-			  <property name="has_frame">True</property>
-			  <property name="invisible_char">*</property>
-			  <property name="activates_default">False</property>
-			  <signal name="activate" handler="on_entry_config_path_activate"/>
-			  <signal name="focus_out_event" handler="on_entry_config_path_focus_out_event"/>
+			  <property name="homogeneous">False</property>
+			  <property name="spacing">0</property>
+
+			  <child>
+			    <widget class="GtkScrolledWindow" id="scrolledwindow79">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+			      <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+			      <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
+
+			      <child>
+				<widget class="GtkTreeView" id="treeview_shared_dirs">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="headers_visible">False</property>
+				  <property name="rules_hint">True</property>
+				  <property name="reorderable">True</property>
+				  <property name="enable_search">True</property>
+				</widget>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="padding">0</property>
+			      <property name="expand">True</property>
+			      <property name="fill">True</property>
+			    </packing>
+			  </child>
 			</widget>
 			<packing>
 			  <property name="padding">0</property>
-			  <property name="expand">False</property>
-			  <property name="fill">False</property>
+			  <property name="expand">True</property>
+			  <property name="fill">True</property>
 			</packing>
 		      </child>
 
@@ -24387,6 +24428,81 @@ message</property>
 					<widget class="GtkLabel" id="label482">
 					  <property name="visible">True</property>
 					  <property name="label" translatable="yes">_Add directory</property>
+					  <property name="use_underline">True</property>
+					  <property name="use_markup">False</property>
+					  <property name="justify">GTK_JUSTIFY_LEFT</property>
+					  <property name="wrap">False</property>
+					  <property name="selectable">False</property>
+					  <property name="xalign">0.5</property>
+					  <property name="yalign">0.5</property>
+					  <property name="xpad">0</property>
+					  <property name="ypad">0</property>
+					</widget>
+					<packing>
+					  <property name="padding">0</property>
+					  <property name="expand">False</property>
+					  <property name="fill">False</property>
+					</packing>
+				      </child>
+				    </widget>
+				  </child>
+				</widget>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="padding">0</property>
+			      <property name="expand">False</property>
+			      <property name="fill">False</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkButton" id="button_config_remove_dir">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="relief">GTK_RELIEF_NORMAL</property>
+			      <property name="focus_on_click">True</property>
+			      <signal name="clicked" handler="on_button_config_remove_dir_clicked" last_modification_time="Thu, 01 Sep 2005 00:56:30 GMT"/>
+
+			      <child>
+				<widget class="GtkAlignment" id="alignment111">
+				  <property name="visible">True</property>
+				  <property name="xalign">0.5</property>
+				  <property name="yalign">0.5</property>
+				  <property name="xscale">0</property>
+				  <property name="yscale">0</property>
+				  <property name="top_padding">0</property>
+				  <property name="bottom_padding">0</property>
+				  <property name="left_padding">0</property>
+				  <property name="right_padding">0</property>
+
+				  <child>
+				    <widget class="GtkHBox" id="hbox9298">
+				      <property name="visible">True</property>
+				      <property name="homogeneous">False</property>
+				      <property name="spacing">2</property>
+
+				      <child>
+					<widget class="GtkImage" id="image566">
+					  <property name="visible">True</property>
+					  <property name="stock">gtk-remove</property>
+					  <property name="icon_size">4</property>
+					  <property name="xalign">0.5</property>
+					  <property name="yalign">0.5</property>
+					  <property name="xpad">0</property>
+					  <property name="ypad">0</property>
+					</widget>
+					<packing>
+					  <property name="padding">0</property>
+					  <property name="expand">False</property>
+					  <property name="fill">False</property>
+					</packing>
+				      </child>
+
+				      <child>
+					<widget class="GtkLabel" id="label933">
+					  <property name="visible">True</property>
+					  <property name="label" translatable="yes">_Remove directory</property>
 					  <property name="use_underline">True</property>
 					  <property name="use_markup">False</property>
 					  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -24499,7 +24615,7 @@ message</property>
 			      <property name="justify">GTK_JUSTIFY_CENTER</property>
 			      <property name="wrap">False</property>
 			      <property name="selectable">False</property>
-			      <property name="xalign">7.45058015283e-09</property>
+			      <property name="xalign">7.45058e-09</property>
 			      <property name="yalign">0.5</property>
 			      <property name="xpad">0</property>
 			      <property name="ypad">0</property>
@@ -24514,7 +24630,7 @@ message</property>
 			<packing>
 			  <property name="padding">0</property>
 			  <property name="expand">False</property>
-			  <property name="fill">False</property>
+			  <property name="fill">True</property>
 			</packing>
 		      </child>
 
@@ -24617,29 +24733,10 @@ message</property>
 			      <property name="fill">False</property>
 			    </packing>
 			  </child>
-
-			  <child>
-			    <widget class="GtkCheckButton" id="checkbutton_parq_optimistic">
-			      <property name="visible">True</property>
-			      <property name="can_focus">True</property>
-			      <property name="label" translatable="yes">Use realistic PARQ estimates</property>
-			      <property name="use_underline">True</property>
-			      <property name="relief">GTK_RELIEF_NORMAL</property>
-			      <property name="focus_on_click">True</property>
-			      <property name="active">False</property>
-			      <property name="inconsistent">False</property>
-			      <property name="draw_indicator">True</property>
-			    </widget>
-			    <packing>
-			      <property name="padding">0</property>
-			      <property name="expand">False</property>
-			      <property name="fill">False</property>
-			    </packing>
-			  </child>
 			</widget>
 			<packing>
 			  <property name="padding">0</property>
-			  <property name="expand">True</property>
+			  <property name="expand">False</property>
 			  <property name="fill">True</property>
 			</packing>
 		      </child>
@@ -24667,7 +24764,7 @@ message</property>
 		</widget>
 		<packing>
 		  <property name="padding">0</property>
-		  <property name="expand">False</property>
+		  <property name="expand">True</property>
 		  <property name="fill">True</property>
 		</packing>
 	      </child>
@@ -24731,7 +24828,7 @@ message</property>
 			      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
 			      <property name="snap_to_ticks">False</property>
 			      <property name="wrap">False</property>
-			      <property name="adjustment">0 0 67108900 1 10 10</property>
+			      <property name="adjustment">0 0 6.71089e+07 1 10 10</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
@@ -24911,6 +25008,182 @@ message</property>
 			<widget class="GtkLabel" id="label301">
 			  <property name="visible">True</property>
 			  <property name="label" translatable="yes">Timeouts (all values in seconds)</property>
+			  <property name="use_underline">False</property>
+			  <property name="use_markup">False</property>
+			  <property name="justify">GTK_JUSTIFY_LEFT</property>
+			  <property name="wrap">False</property>
+			  <property name="selectable">False</property>
+			  <property name="xalign">0.5</property>
+			  <property name="yalign">0.5</property>
+			  <property name="xpad">0</property>
+			  <property name="ypad">0</property>
+			</widget>
+			<packing>
+			  <property name="type">label_item</property>
+			</packing>
+		      </child>
+		    </widget>
+		    <packing>
+		      <property name="padding">0</property>
+		      <property name="expand">False</property>
+		      <property name="fill">True</property>
+		    </packing>
+		  </child>
+		</widget>
+		<packing>
+		  <property name="padding">0</property>
+		  <property name="expand">False</property>
+		  <property name="fill">True</property>
+		</packing>
+	      </child>
+
+	      <child>
+		<widget class="GtkHBox" id="hbox9297">
+		  <property name="visible">True</property>
+		  <property name="homogeneous">False</property>
+		  <property name="spacing">4</property>
+
+		  <child>
+		    <widget class="GtkFrame" id="frame141">
+		      <property name="visible">True</property>
+		      <property name="label_xalign">0</property>
+		      <property name="label_yalign">0.5</property>
+		      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+
+		      <child>
+			<widget class="GtkTable" id="table109">
+			  <property name="border_width">2</property>
+			  <property name="visible">True</property>
+			  <property name="n_rows">3</property>
+			  <property name="n_columns">2</property>
+			  <property name="homogeneous">False</property>
+			  <property name="row_spacing">2</property>
+			  <property name="column_spacing">4</property>
+
+			  <child>
+			    <widget class="GtkLabel" id="label928">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">Minimum chunk _size</property>
+			      <property name="use_underline">True</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_LEFT</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">0</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			      <property name="mnemonic_widget">spinbutton_pfsp_first_chunk</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">0</property>
+			      <property name="right_attach">1</property>
+			      <property name="top_attach">1</property>
+			      <property name="bottom_attach">2</property>
+			      <property name="x_padding">4</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkSpinButton" id="spinbutton_parq_min_size">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="climb_rate">1</property>
+			      <property name="digits">0</property>
+			      <property name="numeric">False</property>
+			      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
+			      <property name="snap_to_ticks">False</property>
+			      <property name="wrap">False</property>
+			      <property name="adjustment">0 0 6.71089e+07 1 10 10</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">1</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">1</property>
+			      <property name="bottom_attach">2</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkLabel" id="label932">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">Minimum upload time</property>
+			      <property name="use_underline">True</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_LEFT</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">0</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			      <property name="mnemonic_widget">spinbutton_pfsp_first_chunk</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">0</property>
+			      <property name="right_attach">1</property>
+			      <property name="top_attach">2</property>
+			      <property name="bottom_attach">3</property>
+			      <property name="x_padding">4</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkCheckButton" id="checkbutton_parq_optimistic">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="label" translatable="yes">Use realistic PARQ estimates</property>
+			      <property name="use_underline">True</property>
+			      <property name="relief">GTK_RELIEF_NORMAL</property>
+			      <property name="focus_on_click">True</property>
+			      <property name="active">False</property>
+			      <property name="inconsistent">False</property>
+			      <property name="draw_indicator">True</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">0</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_padding">4</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkSpinButton" id="spinbutton_parq_min_time">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="climb_rate">1</property>
+			      <property name="digits">0</property>
+			      <property name="numeric">False</property>
+			      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
+			      <property name="snap_to_ticks">False</property>
+			      <property name="wrap">False</property>
+			      <property name="adjustment">0 0 6.71089e+07 1 10 10</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">1</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">2</property>
+			      <property name="bottom_attach">3</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+			</widget>
+		      </child>
+
+		      <child>
+			<widget class="GtkLabel" id="label929">
+			  <property name="visible">True</property>
+			  <property name="label" translatable="yes">Queuing details</property>
 			  <property name="use_underline">False</property>
 			  <property name="use_markup">False</property>
 			  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -29117,12 +29390,13 @@ message</property>
 				  <child>
 				    <widget class="GtkLabel" id="label_fi_size">
 				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
 				      <property name="label" translatable="yes"></property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">False</property>
 				      <property name="justify">GTK_JUSTIFY_LEFT</property>
 				      <property name="wrap">False</property>
-				      <property name="selectable">False</property>
+				      <property name="selectable">True</property>
 				      <property name="xalign">0</property>
 				      <property name="yalign">0.5</property>
 				      <property name="xpad">0</property>
@@ -29218,7 +29492,7 @@ message</property>
 				  <property name="can_focus">True</property>
 				  <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
 				  <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-				  <property name="shadow_type">GTK_SHADOW_IN</property>
+				  <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
 				  <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
 				  <child>
@@ -29319,6 +29593,7 @@ message</property>
 		<widget class="GtkButton" id="button_fi_purge">
 		  <property name="border_width">2</property>
 		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Erases all selected files as far as they are incomplete and discontinues the download of the selected files.</property>
 		  <property name="can_focus">True</property>
 		  <property name="relief">GTK_RELIEF_NORMAL</property>
 		  <property name="focus_on_click">True</property>

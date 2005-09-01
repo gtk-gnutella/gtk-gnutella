@@ -10916,7 +10916,6 @@ create_dlg_prefs (void)
   GtkWidget *checkbutton_scan_ignore_symlink_dirs;
   guint checkbutton_scan_ignore_symlink_regfiles_key;
   GtkWidget *checkbutton_scan_ignore_symlink_regfiles;
-  GtkWidget *checkbutton_parq_optimistic;
   GtkWidget *hbox27;
   guint label41_key;
   GtkWidget *label41;
@@ -10939,6 +10938,15 @@ create_dlg_prefs (void)
   GtkWidget *checkbutton_pfsp_server;
   GtkObject *spinbutton_pfsp_first_chunk_adj;
   GtkWidget *spinbutton_pfsp_first_chunk;
+  GtkWidget *frame140;
+  GtkWidget *table96;
+  GtkWidget *label753;
+  GtkObject *spinbutton_parq_min_time_adj;
+  GtkWidget *spinbutton_parq_min_time;
+  GtkWidget *label752;
+  GtkObject *spinbutton_parq_min_size_adj;
+  GtkWidget *spinbutton_parq_min_size;
+  GtkWidget *checkbutton_parq_optimistic;
   GtkWidget *frame_expert_share_statistics;
   GtkWidget *vbox117;
   GtkWidget *alignment36;
@@ -15170,14 +15178,6 @@ create_dlg_prefs (void)
   gtk_widget_show (checkbutton_scan_ignore_symlink_regfiles);
   gtk_box_pack_start (GTK_BOX (hbox174), checkbutton_scan_ignore_symlink_regfiles, FALSE, FALSE, 0);
 
-  checkbutton_parq_optimistic = gtk_check_button_new_with_label (_("Use realistic PARQ estimates"));
-  gtk_widget_set_name (checkbutton_parq_optimistic, "checkbutton_parq_optimistic");
-  gtk_widget_ref (checkbutton_parq_optimistic);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_parq_optimistic", checkbutton_parq_optimistic,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_parq_optimistic);
-  gtk_box_pack_start (GTK_BOX (hbox174), checkbutton_parq_optimistic, FALSE, FALSE, 0);
-
   hbox27 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox27, "hbox27");
   gtk_widget_ref (hbox27);
@@ -15330,6 +15330,81 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_usize (spinbutton_pfsp_first_chunk, 76, -2);
+
+  frame140 = gtk_frame_new (_("Queuing details"));
+  gtk_widget_set_name (frame140, "frame140");
+  gtk_widget_ref (frame140);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame140", frame140,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame140);
+  gtk_box_pack_start (GTK_BOX (vbox40), frame140, FALSE, TRUE, 0);
+
+  table96 = gtk_table_new (3, 2, FALSE);
+  gtk_widget_set_name (table96, "table96");
+  gtk_widget_ref (table96);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table96", table96,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table96);
+  gtk_container_add (GTK_CONTAINER (frame140), table96);
+  gtk_container_set_border_width (GTK_CONTAINER (table96), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table96), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table96), 4);
+
+  label753 = gtk_label_new (_("Minimum upload time"));
+  gtk_widget_set_name (label753, "label753");
+  gtk_widget_ref (label753);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label753", label753,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label753);
+  gtk_table_attach (GTK_TABLE (table96), label753, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label753), 0, 0.5);
+
+  spinbutton_parq_min_time_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_parq_min_time = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_parq_min_time_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_parq_min_time, "spinbutton_parq_min_time");
+  gtk_widget_ref (spinbutton_parq_min_time);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_parq_min_time", spinbutton_parq_min_time,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_parq_min_time);
+  gtk_table_attach (GTK_TABLE (table96), spinbutton_parq_min_time, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_parq_min_time), TRUE);
+
+  label752 = gtk_label_new (_("Minimum chunk size"));
+  gtk_widget_set_name (label752, "label752");
+  gtk_widget_ref (label752);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label752", label752,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label752);
+  gtk_table_attach (GTK_TABLE (table96), label752, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label752), 0, 0.5);
+
+  spinbutton_parq_min_size_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_parq_min_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_parq_min_size_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_parq_min_size, "spinbutton_parq_min_size");
+  gtk_widget_ref (spinbutton_parq_min_size);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_parq_min_size", spinbutton_parq_min_size,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_parq_min_size);
+  gtk_table_attach (GTK_TABLE (table96), spinbutton_parq_min_size, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_parq_min_size), TRUE);
+
+  checkbutton_parq_optimistic = gtk_check_button_new_with_label (_("Use realistic PARQ estimates"));
+  gtk_widget_set_name (checkbutton_parq_optimistic, "checkbutton_parq_optimistic");
+  gtk_widget_ref (checkbutton_parq_optimistic);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_parq_optimistic", checkbutton_parq_optimistic,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_parq_optimistic);
+  gtk_table_attach (GTK_TABLE (table96), checkbutton_parq_optimistic, 0, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   frame_expert_share_statistics = gtk_frame_new (_("Statistics:"));
   gtk_widget_set_name (frame_expert_share_statistics, "frame_expert_share_statistics");

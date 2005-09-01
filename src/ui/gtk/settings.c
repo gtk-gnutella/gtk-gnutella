@@ -499,6 +499,119 @@ static gboolean update_size_entry(property_t prop)
     return FALSE;
 }
 
+#ifdef USE_GTK2
+static gint
+str_cmp_func(gconstpointer a, gconstpointer b)
+{
+	return strcmp(a, b);
+}
+
+static GtkTreeModel *
+get_shared_dirs_model(void)
+{
+	GtkTreeView *tv;
+	GtkTreeModel *model;
+	
+	tv = GTK_TREE_VIEW(lookup_widget(dlg_prefs, "treeview_shared_dirs"));
+	model = gtk_tree_view_get_model(tv);
+
+	if (!model) {
+		GtkTreeSelection *selection;
+    	GtkTreeViewColumn *column;
+		GtkCellRenderer *renderer;
+
+		model = GTK_TREE_MODEL(gtk_list_store_new(2,
+									G_TYPE_STRING, G_TYPE_STRING));
+
+		gtk_tree_view_set_model(tv, model);
+		g_object_unref(model);
+		
+		selection = gtk_tree_view_get_selection(tv);
+		gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
+		renderer = gtk_cell_renderer_text_new();
+		column = gtk_tree_view_column_new_with_attributes(NULL, renderer,
+					"text", 1, (void *) 0);
+			
+		g_object_set(renderer,
+			"xalign", 0.0,
+			"xpad", GUI_CELL_RENDERER_XPAD,
+			"ypad", GUI_CELL_RENDERER_YPAD,
+			(void *) 0);
+		g_object_set(column,
+			"fixed-width", 200,
+			"min-width", 1,
+			"resizable", TRUE,
+			"reorderable", FALSE,
+			"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
+			(void *) 0);
+
+   		gtk_tree_view_append_column(tv, column);
+	}
+
+	return model;
+}
+
+static gboolean
+update_shared_dirs(property_t prop)
+{
+	GtkTreeModel *model;
+	gchar *str;
+	const gchar *p, *end;
+	GList *l, *dirs = NULL;
+
+	model = get_shared_dirs_model();
+	gtk_list_store_clear(GTK_LIST_STORE(model));
+
+	/* Convert the string to a list of strings for sorting */
+   	str = gnet_prop_get_string(prop, NULL, 0);
+	for (p = str; '\0' != *p; p = '\0' == *end ? end : ++end) {
+		size_t len;
+			
+		end = strchr(p, ':');
+		if (!end)
+			end = strchr(p, '\0');
+			
+		len = end - p;
+		if (len > 0) {
+			gchar *dir;
+				
+			dir = g_malloc(1 + len);
+			memcpy(dir, p, len);
+			dir[len] = '\0';
+			dirs = g_list_append(dirs, dir);
+		}
+	}
+	G_FREE_NULL(str);
+
+	/* Feed the sorted list of directories to the GtkListStore */
+	dirs = g_list_sort(dirs, str_cmp_func);
+	for (l = dirs; NULL != l; l = g_list_next(l)) {
+		GtkTreeIter iter;
+		gchar *dir, *dir_utf8;
+				
+		dir = l->data;
+		dir_utf8 = locale_to_utf8_normalized(dir, UNI_NORM_NFC);
+		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+		gtk_list_store_set(GTK_LIST_STORE(model), &iter,
+			0, dir,	/* The actual pathname, not necessarily UTF-8 encoded */
+			1, dir_utf8, /* The best effort UTF-8 conversion for viewing */
+			(-1));
+
+		/*
+		 * gtk_list_store_set() makes copies of the strings, thus
+		 * free the originals here.
+		 */
+
+		if (dir != dir_utf8)
+			G_FREE_NULL(dir_utf8);
+		G_FREE_NULL(dir);
+	}
+	g_list_free(dirs);
+
+    return FALSE;
+}
+#endif /* USE_GTK2 */
+	
 #ifdef USE_GTK1
 static gboolean update_clist_col_widths(property_t prop)
 {
@@ -3803,6 +3916,22 @@ static prop_map_t property_map[] = {
 	),
     PROP_ENTRY(
         get_prefs_dialog,
+        PROP_PARQ_SIZE_ALWAYS_CONTINUE,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_parq_min_size",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_PARQ_TIME_ALWAYS_CONTINUE,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_parq_min_time",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
         PROP_SCAN_IGNORE_SYMLINK_REGFILES,
         update_togglebutton,
         TRUE,
@@ -3833,6 +3962,7 @@ static prop_map_t property_map[] = {
         "entry_config_bad_path",
         FREQ_UPDATES, 0
     ),
+#ifdef USE_GTK1
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_SHARED_DIRS_PATHS,
@@ -3841,6 +3971,17 @@ static prop_map_t property_map[] = {
         "entry_config_path",
         FREQ_UPDATES, 0
     ),
+#endif /* USE_GTK1 */
+#ifdef USE_GTK2
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_SHARED_DIRS_PATHS,
+        update_shared_dirs,
+        TRUE,
+        "treeview_shared_dirs",
+        FREQ_UPDATES, 0
+    ),
+#endif /* USE_GTK2 */
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_MIN_DUP_MSG,

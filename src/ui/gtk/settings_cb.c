@@ -170,6 +170,7 @@ on_entry_config_extensions_activate(GtkEditable *editable, gpointer unused_data)
 }
 FOCUS_TO_ACTIVATE(entry_config_extensions)
 
+#ifdef USE_GTK1
 void
 on_entry_config_path_activate(GtkEditable *editable, gpointer unused_udata)
 {
@@ -180,6 +181,50 @@ on_entry_config_path_activate(GtkEditable *editable, gpointer unused_udata)
     g_free(path);
 }
 FOCUS_TO_ACTIVATE(entry_config_path)
+#endif /* GTK1 */
+
+#ifdef USE_GTK2
+void
+on_button_config_remove_dir_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	GtkTreeView *tv;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	GtkTreeSelection *selection;
+	GString *gs;
+	
+	(void) unused_button;
+	(void) unused_udata;
+
+	tv = GTK_TREE_VIEW(lookup_widget(dlg_prefs, "treeview_shared_dirs"));
+	model = gtk_tree_view_get_model(tv);
+
+	if (!gtk_tree_model_get_iter_first(model, &iter))
+		return;
+	
+	/* Regenerate the string property holding a list of paths */
+	selection = gtk_tree_view_get_selection(tv);
+	gs = g_string_new("");
+	
+	do {
+		gchar *dir = NULL;
+
+		/* Skip items selected for removal */
+		if (gtk_tree_selection_iter_is_selected(selection, &iter))
+			continue;
+
+		gtk_tree_model_get(model, &iter, 0, &dir, (-1));
+		if ('\0' != gs->str[0])
+			gs = g_string_append_c(gs, ':');
+		gs = g_string_append(gs, dir);
+		G_FREE_NULL(dir);
+	} while (gtk_tree_model_iter_next(model, &iter));
+
+	gnet_prop_set_string(PROP_SHARED_DIRS_PATHS, gs->str);
+	g_string_free(gs, TRUE);
+}
+#endif /* GTK2 */
 
 void
 on_entry_config_force_ip_activate(GtkEditable *unused_editable,

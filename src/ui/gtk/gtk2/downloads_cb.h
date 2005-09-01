@@ -87,6 +87,8 @@ void on_popup_downloads_connect_activate(
 
 void on_popup_queue_start_now_activate(
 	GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_queue_push_activate(
+	GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_queue_freeze_activate(
 	GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_queue_search_again_activate(
