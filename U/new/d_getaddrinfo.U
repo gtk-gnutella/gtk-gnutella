@@ -44,8 +44,8 @@ main(void) {
 		s = gai_strerror(ret);
 		(void) s;
 	}
-	if (ai)
-		freeaddrinfo(ai);
+	if (res)
+		freeaddrinfo(res);
 	return 0;
 }
 EOC
