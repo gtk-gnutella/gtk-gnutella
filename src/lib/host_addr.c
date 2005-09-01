@@ -540,7 +540,7 @@ host_addr_to_name(const host_addr_t ha)
 host_addr_t
 name_to_host_addr(const gchar *host)
 {
-#if defined(HAVE_GETADDRINFO) 
+#if defined(HAS_GETADDRINFO) 
 	static const struct addrinfo zero_hints;
 	struct addrinfo hints, *ai, *ai0 = NULL;
 	gboolean finished = FALSE;
@@ -602,7 +602,7 @@ name_to_host_addr(const gchar *host)
 	return addr;
 }
 
-#else /* !HAVE_GETADDRINFO */
+#else /* !HAS_GETADDRINFO */
 
 	const struct hostent *he;
 	host_addr_t addr;
@@ -649,7 +649,7 @@ name_to_host_addr(const gchar *host)
 	return zero_host_addr;
 }
 
-#endif /* HAVE_GETADDRINFO */
+#endif /* HAS_GETADDRINFO */
 
 guint
 host_addr_hash_func(gconstpointer key)
