@@ -336,8 +336,8 @@ gtk_gnutella_exit(gint n)
 #endif
 
 
-	if (dbg)
-		printf("gtk-gnutella shut down cleanly.\n\n");
+	if (dbg || signal_received)
+		g_message("gtk-gnutella shut down cleanly.");
 
 #if defined(USE_GTK1) || defined(USE_GTK2)
 	gtk_exit(n);
