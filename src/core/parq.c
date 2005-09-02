@@ -2724,7 +2724,13 @@ parq_upload_collect_stats(const gnutella_upload_t *u)
 	struct parq_ul_queued *uq;
 
 	g_assert(u);
-	
+
+	/*
+	 * Browse host requests have no PARQ data structures associated with them,
+	 * so having a completed upload does not necessarily imply there is
+	 * something to track at this point.
+	 */
+
 	if (!u->parq_opaque)
 		return;
 	

@@ -3639,8 +3639,7 @@ upload_completed(gnutella_upload_t *u)
 	if (u->keep_alive) {
 		gnutella_upload_t *cu;
 
-		if (u->parq_opaque)			/* Browse host requests have no PARQ */
-			parq_upload_collect_stats(u);
+		parq_upload_collect_stats(u);
 		cu = upload_clone(u);
 		upload_wait_new_request(cu);
 		/*
