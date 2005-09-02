@@ -83,10 +83,13 @@ static struct uhc_context {
 static const gchar * const boot_hosts[] = {
 	"cache.kicks-ass.net:8000",
 	"crab2.dyndns.org:8003",
+	"g6.dns6.org:1337",
 	"gwc.mine.nu:9999",
-	"gwc2.908middle.us:3559",
+	"gwc1c.olden.ch:3559",
 	"krill.shacknet.nu:20095",
 	"plankton.merseine.nu:20098",
+	"secondary.udp-host-cache.com:9999",
+	"uhc.udp-host-cache.com:9999",
 };
 
 static gboolean uhc_connecting = FALSE;
