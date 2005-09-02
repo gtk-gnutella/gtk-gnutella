@@ -90,7 +90,7 @@ guint parq_upload_lookup_queue_no(const gnutella_upload_t *u);
 
 gboolean parq_upload_queued(gnutella_upload_t *u);
 gboolean parq_upload_remove(gnutella_upload_t *u);
-void parq_upload_collect_stats(gnutella_upload_t *u);
+void parq_upload_collect_stats(const gnutella_upload_t *u);
 void parq_upload_upload_got_freed(gnutella_upload_t *u);
 void parq_upload_upload_got_cloned(gnutella_upload_t *u, gnutella_upload_t *cu);
 void parq_upload_force_remove(gnutella_upload_t *u);

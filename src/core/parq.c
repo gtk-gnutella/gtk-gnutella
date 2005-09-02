@@ -2719,16 +2719,22 @@ parq_upload_force_remove(gnutella_upload_t *u)
  * Collect running stats about the completed / removed upload.
  */
 void
-parq_upload_collect_stats(gnutella_upload_t *u)
+parq_upload_collect_stats(const gnutella_upload_t *u)
 {
-	struct parq_ul_queued *uq = parq_upload_find(u);
+	struct parq_ul_queued *uq;
 
+	g_assert(u);
+	
+	if (!u->parq_opaque)
+		return;
+	
 	/*
 	 * Data is only expected to be sent when the upload had a slot
 	 */
 
+   	uq = parq_upload_find(u);
 	g_assert(uq != NULL);
-	g_assert(uq->has_slot || uq->had_slot || u->sent == 0);
+	g_assert(uq->has_slot || uq->had_slot || 0 == u->sent);
 
 	uq->uploaded_size += u->sent;
 }
