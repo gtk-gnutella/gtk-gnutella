@@ -90,6 +90,7 @@ static const gchar * const boot_hosts[] = {
 	"plankton.merseine.nu:20098",
 	"secondary.udp-host-cache.com:9999",
 	"uhc.udp-host-cache.com:9999",
+	"uhc2.limewire.com:20181",
 };
 
 static gboolean uhc_connecting = FALSE;
