@@ -1474,8 +1474,7 @@ socket_tls_setup(struct gnutella_socket *s)
 
 destroy:
 
-	if (tls_debug)
-		socket_destroy(s, "TLS handshake failed");
+	socket_destroy(s, "TLS handshake failed");
 	return 0;
 }
 #endif /* HAS_GNUTLS */
