@@ -71,8 +71,8 @@ struct socket_tls_ctx {
 #define SOCKET_USES_TLS(s) \
 	((s)->tls.enabled && (s)->tls.stage >= SOCK_TLS_ESTABLISHED)
 #else /* !HAS_GNUTLS */
-#define SOCKET_WITH_TLS(s) 0
-#define SOCKET_USES_TLS(s) 0
+#define SOCKET_WITH_TLS(s) ((void) (s), 0)
+#define SOCKET_USES_TLS(s) ((void) (s), 0)
 #endif /* HAS_GNUTLS */
 
 struct sockaddr;
