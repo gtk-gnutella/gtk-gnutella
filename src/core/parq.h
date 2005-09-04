@@ -87,6 +87,7 @@ time_t parq_upload_lookup_lifetime(const gnutella_upload_t *u);
 time_t parq_upload_lookup_retry(const gnutella_upload_t *u);
 guint parq_upload_lookup_eta(const gnutella_upload_t *u);
 guint parq_upload_lookup_queue_no(const gnutella_upload_t *u);
+gboolean parq_upload_lookup_quick(const gnutella_upload_t *u);
 
 gboolean parq_upload_queued(gnutella_upload_t *u);
 gboolean parq_upload_remove(gnutella_upload_t *u);

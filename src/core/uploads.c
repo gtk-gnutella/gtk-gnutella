@@ -4085,6 +4085,7 @@ upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 	si->parq_size = parq_upload_lookup_size(u);
 	si->parq_lifetime = MAX(0, delta_time(parq_upload_lookup_lifetime(u), now));
 	si->parq_retry = MAX(0, delta_time(parq_upload_lookup_retry(u), now));
+	si->parq_quick = parq_upload_lookup_quick(u);
 
     if (u->bio) {
         si->bps = bio_bps(u->bio);

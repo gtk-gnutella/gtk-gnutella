@@ -1,5 +1,11 @@
 # since last version
 
+- (2005-09-04 - JA)
+ * [PARQ] Implemented option to always allow uploads which would take then
+          a certain amount of seconds to complete.
+ * [PARQ] Show an astrisk in front of uploads which are given a quick
+          upload slot (time or size based).
+
 - (2005-08-31 - RAM)
  * Reduce the amount of time() and gettimeofday() system calls drastically.
    This should reduce the kernel time used by GTKG.

@@ -109,7 +109,8 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 	        filesize_t requested = data->range_end - data->range_start + 1;
 
 			gm_snprintf(tmpstr, sizeof(tmpstr),
-				_("Completed (%s) %s"),
+				_("%sCompleted (%s) %s"),
+				u->parq_quick ? "* " : "",
 				t > 0 ? short_rate(requested / t) : _("< 1s"),
 				t > 0 ? short_time(t) : "");
 		}
@@ -125,7 +126,8 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			gchar pbuf[32];
 
 			gm_snprintf(pbuf, sizeof pbuf, "%5.02f%% ", p * 100.0);
-			gm_snprintf(tmpstr, sizeof tmpstr, "%s(%s) TR: %s",
+			gm_snprintf(tmpstr, sizeof tmpstr, "%s%s(%s) TR: %s",
+				u->parq_quick ? "* " : "",
 				p > 1.0 ? pbuf : "",
 				stalled ? _("stalled") : short_rate(u->bps),
 				short_time(tr));

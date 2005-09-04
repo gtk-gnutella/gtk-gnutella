@@ -1383,6 +1383,7 @@ parq_upload_create(gnutella_upload_t *u)
 	parq_ul->active_queued = FALSE;
 	parq_ul->is_alive = TRUE;
 	parq_ul->had_slot =  FALSE;
+	parq_ul->quick = FALSE;
 	parq_ul->queue->alive++;
 	/*
 	 * On create, set the retry to now. If we use the
@@ -2028,18 +2029,27 @@ parq_upload_addr_can_proceed(const gnutella_upload_t *u)
  * save.
  */
 static gboolean
-parq_upload_quick_continue(struct parq_ul_queued *uq)
+parq_upload_quick_continue(struct parq_ul_queued *uq, gint used_slots)
 {
+	guint avg_bps;
+	
 	g_assert(uq);
-	
+
 	if (parq_time_always_continue > 0)
-		g_message("[PARQ_UL] parq_time_alwayscontine was set "
-		          "but we don't use it yet. "
-		          "Fallback to parq_size_alwayscontinue");
+	{
+		avg_bps = bsched_avg_bps(bws.out);
+		avg_bps = MAX(1, avg_bps);
+		
+		/*
+		 * Determine the time this upload would need. Add + 1 to the
+		 * number of used_slots to also include this upload in the
+		 * calculation.
+		 */
+		return (uq->uploaded_size + uq->chunk_size)  / 
+			  (avg_bps / (used_slots + 1))
+			<= parq_time_always_continue;
+	}
 	
-	/* XXX: Implement also the usage of parq_time_always_continue.
-	 *      Will do this any day soon.
-	 *      -- JA 31/8/2005 */
 	return uq->uploaded_size + uq->chunk_size < parq_size_always_continue;
 }
 
@@ -2047,10 +2057,11 @@ parq_upload_quick_continue(struct parq_ul_queued *uq)
  * @return TRUE if the current upload is allowed to get an upload slot.
  */
 static gboolean
-parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
+parq_upload_continue(struct parq_ul_queued *uq, gint used_slots)
 {
 	GList *l = NULL;
-	gint slots_free = max_uploads;
+	gint free_slots = max_uploads - used_slots;
+	gint slots_free = max_uploads;	/* Free slot calculater */
 	gboolean quick_allowed = FALSE;
 	
 	/*
@@ -2197,7 +2208,7 @@ check_quick:
 	 * it will be queued back.
 	 */
 
-	quick_allowed = parq_upload_quick_continue(uq);
+	quick_allowed = parq_upload_quick_continue(uq, used_slots);
 	
 	/*
 	 * If uploads are stalling, we're already short in bandwidth.  Don't
@@ -2488,7 +2499,7 @@ parq_upload_request_force(gnutella_upload_t *u, gpointer handle,
 		 * to let it continue now */
 		return FALSE;
 
-	if (parq_upload_continue(parq_ul, 1)) {
+	if (parq_upload_continue(parq_ul, used_slots - 1)) {
 		if (u->status == GTA_UL_QUEUED)
 			u->status = GTA_UL_SENDING;
 
@@ -2604,7 +2615,7 @@ parq_upload_request(gnutella_upload_t *u, guint used_slots)
 	 */
 
 	if (parq_ul->has_slot) {
-		if (!parq_ul->quick || parq_upload_quick_continue(parq_ul))
+		if (!parq_ul->quick || parq_upload_quick_continue(parq_ul, used_slots))
 			return TRUE;
 		if (parq_debug)
 			g_message("[PARQ UL] Fully checking quick upload slot");
@@ -2619,7 +2630,7 @@ parq_upload_request(gnutella_upload_t *u, guint used_slots)
 	 * queue
 	 */
 
-	if (parq_upload_continue(parq_ul, max_uploads - used_slots))
+	if (parq_upload_continue(parq_ul, used_slots))
 		return TRUE;
 
 	if (parq_ul->has_slot) {
@@ -3227,6 +3238,22 @@ parq_upload_lookup_queue_no(const gnutella_upload_t *u)
 	}
 }
 
+/**
+ * @return TRUE if the upload was allowed quickly by PARQ.
+ */
+gboolean
+parq_upload_lookup_quick(const gnutella_upload_t *u)
+{
+	struct parq_ul_queued *parq_ul = NULL;
+
+	parq_ul = parq_upload_find(u);
+
+	if (parq_ul != NULL) {
+		return parq_ul->quick;
+	} else {
+		return FALSE;
+	}
+}
 
 /**
  * Updates the relative position of all queued after the given queued
