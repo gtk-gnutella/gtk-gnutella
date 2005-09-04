@@ -1,10 +1,10 @@
 # since last version
 
 - (2005-09-04 - JA)
- * [PARQ] Implemented option to always allow uploads which would take then
-          a certain amount of seconds to complete.
+ * [PARQ] Implemented option to always allow uploads which would take less
+   than a certain amount of seconds to complete.
  * [PARQ] Show an astrisk in front of uploads which are given a quick
-          upload slot (time or size based).
+   upload slot (time or size based).
 
 - (2005-08-31 - RAM)
  * Reduce the amount of time() and gettimeofday() system calls drastically.
@@ -47,7 +47,7 @@
 - (2005-08-24 - JA)
  * [PARQ] Added parq_debug property for PARQ specific debugging
  * [PARQ] Fixed bug where an upload got queued, with an ETA of 0s
- *        and all upload slots where available
+   and all upload slots where available
 
 - (2005-08-21 - RAM)
  * GTKG is no longer explicitly asking replying servents to skip XML in
