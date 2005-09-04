@@ -220,6 +220,7 @@ socket_addr_get(const socket_addr_t *addr, const struct sockaddr **p_sa)
 	return len;
 }
 
+#ifdef HAS_GNUTLS
 static const gchar *
 cond_to_string(inputevt_cond_t cond)
 {
@@ -235,6 +236,7 @@ cond_to_string(inputevt_cond_t cond)
 	}
 	return "?";
 }
+#endif /* HAS_GNUTLS */
 
 /**
  * Return the file descriptor to use for I/O monitoring callbacks on
