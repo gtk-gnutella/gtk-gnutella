@@ -94,7 +94,7 @@ gboolean dmesh_remove(
 
 gint dmesh_count(const gchar *sha1);
 
-gboolean dmesh_collect_sha1(gchar *value, gchar *digest);
+gboolean dmesh_collect_sha1(const gchar *value, gchar *digest);
 void dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer);
 void dmesh_collect_compact_locations(gchar *sha1, gchar *value);
 gint dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt);

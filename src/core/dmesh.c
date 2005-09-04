@@ -1675,9 +1675,9 @@ dmesh_check_deferred_altlocs(gchar *sha1, GSList *deferred_urls)
  * @return whether we successfully extracted the SHA1.
  */
 gboolean
-dmesh_collect_sha1(gchar *value, gchar *digest)
+dmesh_collect_sha1(const gchar *value, gchar *digest)
 {
-	gchar *p;
+	const gchar *p;
 
 	for (p = value; NULL != p && '\0' != *p; /* NOTHING */) {
 

@@ -459,17 +459,16 @@ http_status_parse(const gchar *line,
  */
 gboolean
 http_extract_version(
-	gchar *request, gint len, guint *major, guint *minor)
+	const gchar *request, gint len, guint *major, guint *minor)
 {
-	gint limit;
-	gchar *p;
-	gint i;
+	const gchar *p;
+	gint limit, i;
 
 	/*
-	 * The smallest request would be "GET / HTTP/1.0".
+	 * The smallest request would be "X / HTTP/1.0".
 	 */
 
-	limit = sizeof("GET / HTTP/1.0") - 1;
+	limit = sizeof("X / HTTP/1.0") - 1;
 
 	if (http_debug > 4)
 		printf("HTTP req (%d bytes): %s\n", len, request);
@@ -482,8 +481,8 @@ http_extract_version(
 	 * chars.  If we don't, it can't be an HTTP request.
 	 */
 
-	for (p = request + len - 1, i = 0; i < limit; p--, i++) {
-		if (*p == ' ')		/* Not isspace(), looking for space only */
+	for (p = &request[len - 1], i = 0; i < limit; p--, i++) {
+		if (' ' == *p)		/* Not isspace(), looking for space only */
 			break;
 	}
 
