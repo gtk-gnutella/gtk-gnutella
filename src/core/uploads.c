@@ -1704,9 +1704,9 @@ upload_file_present(
 }
 
 /**
- * Get the shared_file to upload. Request has been extracted already, and is
- * passed as request. The same holds for the file index, which is passed as
- * index.
+ * Get the shared_file to upload. "/get/<index>/" has already been extracted,
+ * ``uri'' points to the filename after this. The same holds for the
+ * file index, which is passed as ``idx''.
  *
  * @return the shared_file if found, NULL otherwise.
  */
@@ -1718,11 +1718,8 @@ get_file_to_upload_from_index(
 	guint idx)
 {
 	struct shared_file *sf;
-	gchar *buf;
-	gchar *basename;
 	gboolean sent_sha1 = FALSE;
 	gchar digest[SHA1_RAW_SIZE];
-	gchar *p;
 
 	/*
 	 * We must be cautious about file index changing between two scans,
@@ -1737,62 +1734,31 @@ get_file_to_upload_from_index(
 
 	sf = shared_file(idx);
 
-	if (sf == SHARE_REBUILDING) {
+	if (SHARE_REBUILDING == sf) {
 		/* Retry-able by user, hence 503 */
 		upload_error_remove(u, NULL, 503, "Library being rebuilt");
 		return NULL;
 	}
 
-	/*
-	 * Go to the basename of the file requested in the query.
-	 * If we have one, `c' will point to '/' and `buf' to the start
-	 * of the requested filename.
-	 */
-
-	buf = uri;
-	if (!url_unescape(buf, TRUE)) {		/* Index is escape-safe anyway */
+	if (!url_unescape(uri, TRUE)) { /* Index is escape-safe anyway */
 		upload_error_remove(u, NULL, 400, "Malformed Gnutella HTTP request");
 		return NULL;
 	}
 
-	buf = strchr(buf, '/');
-	if (!buf) {
-		if (upload_debug)
-			g_warning("invalid encoded Gnutella HTTP URI: %s", uri);
-		upload_error_remove(u, NULL, 400,
-			"Invalid encoded Gnutella HTTP request");
-		return NULL;
-	}
-
-	/*
-	 * Go patch the first space we encounter before HTTP to be a NUL.
-	 * Indeed, the request shoud be "GET /get/12/foo.txt HTTP/1.0".
-	 *
-	 * Note that if we don't find HTTP/ after the space, it's not an
-	 * error: they're just sending an HTTP/0.9 request, which is awkward
-	 * but we accept it.
-	 */
-
-	p = strrchr(buf, ' ');
-	if (p && p[1]=='H' && p[2]=='T' && p[3]=='T' && p[4]=='P' && p[5]=='/')
-		*p = '\0';
-	else
-		p = NULL;
-
-	buf++; /* Skip the '/' */
-	basename = buf;
-
     if (u->name != NULL)
         atom_str_free(u->name);
-    u->name = atom_str_get(basename);
+    u->name = atom_str_get(uri);
 
 	/*
 	 * If we have a X-Gnutella-Content-Urn, check whether we got a valid
 	 * SHA1 URN in there and extract it.
 	 */
-
-	if ((buf = header_get(header, "X-Gnutella-Content-Urn")))
-		sent_sha1 = dmesh_collect_sha1(buf, digest);
+	{
+		const gchar *urn;
+		
+		if (NULL != (urn = header_get(header, "X-Gnutella-Content-Urn")))
+			sent_sha1 = dmesh_collect_sha1(urn, digest);
+	}
 
 	/*
 	 * If they sent a SHA1, look whether we got a matching file.
@@ -1879,7 +1845,7 @@ get_file_to_upload_from_index(
 				if (upload_debug > 1)
 					g_message("REQUEST FIXED (partial, SHA1 = %s): "
 						"requested \"%s\", serving \"%s\"\n",
-						sha1_base32(digest), basename,
+						sha1_base32(digest), u->name,
 						sfn->file_path);
 				sf = sfn;
 				goto found;
@@ -1921,7 +1887,7 @@ get_file_to_upload_from_index(
 	 */
 
 	if (sf == NULL) {
-		sf = shared_file_by_name(basename);
+		sf = shared_file_by_name(u->name);
 
 		g_assert(sf != SHARE_REBUILDING);	/* Or we'd have trapped above */
 
@@ -1931,11 +1897,11 @@ get_file_to_upload_from_index(
 					idx, sf->file_index, sf->file_path);
 			else
 				g_message("BAD INDEX NOT FIXED: requested %u: %s\n",
-					idx, basename);
+					idx, u->name);
 		}
 
-	} else if (0 != strcmp(basename, sf->name_nfc)) {
-		struct shared_file *sfn = shared_file_by_name(basename);
+	} else if (0 != strcmp(u->name, sf->name_nfc)) {
+		struct shared_file *sfn = shared_file_by_name(u->name);
 
 		g_assert(sfn != SHARE_REBUILDING);	/* Or we'd have trapped above */
 
@@ -1945,17 +1911,17 @@ get_file_to_upload_from_index(
 					idx, sfn->file_index, sfn->file_path);
 			else
 				g_message("INDEX MISMATCH: requested %u: %s (has %s)\n",
-					idx, basename, sf->name_nfc);
+					idx, u->name, sf->name_nfc);
 		}
 
-		if (sfn == NULL) {
+		if (NULL == sfn) {
 			upload_error_remove(u, NULL, 409, "File index/name mismatch");
 			return NULL;
 		} else
 			sf = sfn;
 	}
 
-	if (sf == NULL) {
+	if (NULL == sf) {
 		upload_error_not_found(u, uri);
 		return NULL;
 	}
@@ -1965,9 +1931,6 @@ get_file_to_upload_from_index(
 
 found:
 	g_assert(sf != NULL);
-
-	if (p) *p = ' ';			/* Restore patched space */
-
 	return sf;
 
 urn_not_found:
@@ -2017,7 +1980,7 @@ get_file_to_upload_from_urn(
 
 	u->n2r = TRUE;		/* Remember we saw an N2R request */
 
-	if (g_strlcpy(hash, p, sizeof hash) < SHA1_BASE32_SIZE)
+	if (SHA1_BASE32_SIZE != g_strlcpy(hash, p, sizeof hash))
 		goto malformed;
 
 	if (!urn_get_http_sha1(hash, digest))
@@ -2080,40 +2043,30 @@ not_found:
  * When NULL is returned, we have sent the error back to the client.
  */
 static shared_file_t *
-get_file_to_upload(gnutella_upload_t *u, header_t *header, gchar *request)
+get_file_to_upload(gnutella_upload_t *u, header_t *header, gchar *uri)
 {
-	const gchar *endptr;
-	gchar *uri, *arg;
-
-	/*
-	 * We have either "GET uri" or "HEAD uri" at this point. The following
-	 * will skip the request along with trailing blanks and point to the
-	 * beginning of the requested URI.
-	 */
-
-	uri = is_strprefix(request, "GET ");
-	if (!uri)
-		uri = is_strprefix(request, "HEAD ");
-	g_assert(uri != NULL);
-	uri = skip_ascii_blanks(uri);
+	gchar *arg;
 
     if (u->name == NULL)
         u->name = atom_str_get(uri);
 
 	if (NULL != (arg = is_strprefix(uri, "/get/"))) {
+		const gchar *endptr;
 		guint32 idx;
 		gint error;
 
 		idx = parse_uint32(arg, &endptr, 10, &error);
-		if (!error && *endptr == '/')
+		if (!error && *endptr == '/') {
+			arg = deconstify_gchar(&endptr[1]);
 			return get_file_to_upload_from_index(u, header, arg, idx);
+		}
 	}
 	else if (NULL != (arg = is_strprefix(uri, "/uri-res/N2R?")))
 		return get_file_to_upload_from_urn(u, header, arg);
-	else if (NULL != is_strprefix(uri, "/favicon.ico"))
+	else if (0 == strcmp(uri, "/favicon.ico"))
 		return shared_favicon();
 
-	upload_error_not_found(u, request);
+	upload_error_not_found(u, uri);
 	return NULL;
 }
 
@@ -2437,7 +2390,7 @@ supports_deflate(header_t *header)
  * host and either expect a new request now or terminated the connection.
  */
 static gboolean
-prepare_browsing(gnutella_upload_t *u, header_t *header, gchar *request,
+prepare_browsing(gnutella_upload_t *u, header_t *header, const gchar *method,
 	time_t now, http_extra_desc_t *hev, size_t hevlen,
 	size_t *hevsize, gint *flags)
 {
@@ -2578,7 +2531,7 @@ prepare_browsing(gnutella_upload_t *u, header_t *header, gchar *request,
 	 * If it's a HEAD request, let them know we support Browse Host.
 	 */
 
-	if (NULL != is_strprefix(request, "HEAD ")) {
+	if (0 == strcmp(method, "HEAD")) {
 		static const gchar msg[] = N_("Browse Host Enabled");
 		http_send_status(u->socket, 200, FALSE, hev, hevcnt, msg);
 		upload_remove(u, _(msg));
@@ -2622,8 +2575,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	filesize_t skip = 0, end = 0;
 	const gchar *fpath = NULL;
 	gchar *user_agent = 0;
-	gchar *buf;
-	gchar *request = getline_str(s->getline);
+	gchar *buf, *uri, *request = getline_str(s->getline);
 	GSList *sl;
 	gboolean head_only;
 	gboolean has_end = FALSE;
@@ -2645,6 +2597,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	gint bh_flags = 0;
 	gboolean using_sendfile;
 	gboolean parq_allows = FALSE;
+	const gchar *method;
 
 	u->from_browser = upload_likely_from_browser(header);
 
@@ -2658,6 +2611,12 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		g_message("----");
 	}
 
+	/* @todo TODO: Parse the HTTP request properly:
+	 *		- Check for illegal characters (like NUL)
+	 *		- Check for '?' (can be ignored but marks end of URI)
+	 *		- Canonicalize the path (like /../, /./ // and % HEX HEX encoding).
+	 */
+	
 	/*
 	 * If we remove the upload in upload_remove(), we'll decrement
 	 * running_uploads.  However, for followup-requests, the upload slot
@@ -2685,13 +2644,6 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	u->status = GTA_UL_SENDING;
 	u->last_update = tm_time();		/* Done reading headers */
-
-	/*
-	 * If `head_only' is true, the request was a HEAD and we're only going
-	 * to send back the headers.
-	 */
-
-	head_only = (request[0] == 'H');
 
 	/*
 	 * Extract User-Agent.
@@ -2730,11 +2682,46 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * the request.
 	 */
 
-	if (!upload_http_version(u, request, getline_length(s->getline)))
+	if (!upload_http_version(u, request, getline_length(s->getline))) {
 		return;
+	} else {
+		gchar *end;
+
+		/* Get rid of the trailing HTTP/<whatever> */
+		end = strstr(request, " HTTP/");
+		g_assert(NULL != end);
+		
+		while (end != request && is_ascii_blank(*(end - 1)))
+			*end--;
+		
+		*end = '\0';
+	}
+
+	/* Separate the HTTP method (like GET or HEAD) */
+	{
+		gchar *end = request;
+		
+		while ('\0' != *end && !is_ascii_blank(*end))
+			end++;
+
+		uri = skip_ascii_blanks(end);
+		*end = '\0';
+	}
+	method = request;
+	
+	/*
+	 * If `head_only' is true, the request was a HEAD and we're only going
+	 * to send back the headers.
+	 */
+
+	head_only = 0 == strcmp(method, "HEAD");
+	if (!head_only && 0 != strcmp(method, "GET")) {
+		upload_error_remove(u, NULL, 501, "Not Implemented");
+		return;
+	}
 
 	/*
-	 * IDEA
+	 * Idea:
 	 *
 	 * To prevent people from hammering us, we should setup a priority queue
 	 * coupled to a hash table for fast lookups, where we would record the
@@ -2757,12 +2744,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 *				--RAM, 09/09/2001
 	 */
 
-	if (
-		NULL != is_strprefix(request, "GET / HTTP/") ||
-		NULL != is_strprefix(request, "HEAD / HTTP/")
-	) {
+	if (0 == strcmp(uri, "/")) {
 		if (
-			!prepare_browsing(u, header, request, now,
+			!prepare_browsing(u, header, method, now,
 				hev, G_N_ELEMENTS(hev), &hevcnt, &bh_flags)
 		)
 			return;
@@ -2778,7 +2762,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		u->browse_host = FALSE;
 
-		reqfile = get_file_to_upload(u, header, request);
+		reqfile = get_file_to_upload(u, header, uri);
 		if (!reqfile) {
 			/* get_file_to_upload() has signaled the error already */
 			return;
@@ -3374,7 +3358,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		u->total_requested += end - skip + 1;
 
-		if ((u->total_requested / 11) * 10 > u->file_size) {
+		if (!head_only && (u->total_requested / 11) * 10 > u->file_size) {
 			if (upload_debug) g_warning(
 				"host %s (%s) requesting more than there is to %u (%s)",
 				host_addr_to_string(s->addr), upload_vendor_str(u),
@@ -3383,9 +3367,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			return;
 		}
 
-		/* Open the file for reading , READONLY just in case. */
+		/* Open the file for reading. */
 		if ((u->file_desc = file_open(fpath, O_RDONLY)) < 0) {
-			upload_error_not_found(u, request);
+			upload_error_not_found(u, uri);
 			return;
 		}
 
