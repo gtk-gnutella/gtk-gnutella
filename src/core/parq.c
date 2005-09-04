@@ -2032,11 +2032,22 @@ static gboolean
 parq_upload_quick_continue(struct parq_ul_queued *uq, gint used_slots)
 {
 	guint avg_bps;
-	
+	filesize_t total;
+
 	g_assert(uq);
 
-	if (parq_time_always_continue > 0)
-	{
+	/*
+	 * Compute total amount of data that has been requested by the remote
+	 * host so far, adding the current request size to the already downloaded
+	 * amount.
+	 */
+
+	total = uq->uploaded_size + uq->chunk_size;
+
+	if (total < parq_size_always_continue)
+		return TRUE;
+
+	if (parq_time_always_continue > 0) {
 		avg_bps = bsched_avg_bps(bws.out);
 		avg_bps = MAX(1, avg_bps);
 		
@@ -2045,12 +2056,11 @@ parq_upload_quick_continue(struct parq_ul_queued *uq, gint used_slots)
 		 * number of used_slots to also include this upload in the
 		 * calculation.
 		 */
-		return (uq->uploaded_size + uq->chunk_size)  / 
-			  (avg_bps / (used_slots + 1))
-			<= parq_time_always_continue;
+		if (total * (used_slots + 1) / avg_bps <= parq_time_always_continue)
+			return TRUE;
 	}
-	
-	return uq->uploaded_size + uq->chunk_size < parq_size_always_continue;
+
+	return FALSE;
 }
 
 /**
@@ -3244,15 +3254,12 @@ parq_upload_lookup_queue_no(const gnutella_upload_t *u)
 gboolean
 parq_upload_lookup_quick(const gnutella_upload_t *u)
 {
-	struct parq_ul_queued *parq_ul = NULL;
+	struct parq_ul_queued *parq_ul = parq_upload_find(u);
 
-	parq_ul = parq_upload_find(u);
-
-	if (parq_ul != NULL) {
+	if (parq_ul != NULL)
 		return parq_ul->quick;
-	} else {
-		return FALSE;
-	}
+
+	return FALSE;
 }
 
 /**

@@ -190,10 +190,10 @@ guint32  parq_debug     = 0;
 guint32  parq_debug_def = 0;
 gboolean parq_optimistic     = TRUE;
 gboolean parq_optimistic_def = TRUE;
-guint32  parq_size_always_continue     = 8096;
-guint32  parq_size_always_continue_def = 8096;
-guint32  parq_time_always_continue     = 0;
-guint32  parq_time_always_continue_def = 0;
+guint32  parq_size_always_continue     = 8192;
+guint32  parq_size_always_continue_def = 8192;
+guint32  parq_time_always_continue     = 5;
+guint32  parq_time_always_continue_def = 5;
 guint32  track_props     = 0;
 guint32  track_props_def = 0;
 gboolean stop_host_get     = FALSE;
@@ -2095,7 +2095,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[75].name = "parq_size_always_continue";
-    gnet_property->props[75].desc = _("Maximum size in bytes of an upload which PARQ shall not queue and is always allowed to continue. However, if a client requests small chunks over and over the chunk size previously requested are also counted.Set to 0 to disable this feature.");
+    gnet_property->props[75].desc = _("Maximum size in bytes of an upload which PARQ shall not queue and is always allowed to continue. However, if a client requests small chunks over and over the chunk sizes previously requested and uploaded are also counted.  If the size requested is greater than the threshold then, and only then, we look at the theoretical time it would take to serve the whole amount to see whether we can still bypass queuing. Set to 0 to disable this size-based bypassing feature and only rely on time-based bypassing.");
     gnet_property->props[75].ev_changed = event_new("parq_size_always_continue_changed");
     gnet_property->props[75].save = TRUE;
     gnet_property->props[75].vector_size = 1;
@@ -2115,7 +2115,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[76].name = "parq_time_always_continue";
-    gnet_property->props[76].desc = _("When an upload is expected to take less then this setting in seconds, PARQ will be instructed to not queue the upload. This overrides parq_size_alwayscontinue. Set to 0 to disable this feature.");
+    gnet_property->props[76].desc = _("When an upload is expected to take less then this setting in seconds, PARQ will be instructed to not queue the upload. This check is done AFTER the file size-based bypassing. Set to 0 to disable this time-based bypassing feature.");
     gnet_property->props[76].ev_changed = event_new("parq_time_always_continue_changed");
     gnet_property->props[76].save = TRUE;
     gnet_property->props[76].vector_size = 1;
