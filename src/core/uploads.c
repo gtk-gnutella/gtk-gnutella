@@ -1714,7 +1714,7 @@ static shared_file_t *
 get_file_to_upload_from_index(
 	gnutella_upload_t *u,
 	header_t *header,
-	gchar *uri,
+	const gchar *uri,
 	guint idx)
 {
 	struct shared_file *sf;
@@ -1737,11 +1737,6 @@ get_file_to_upload_from_index(
 	if (SHARE_REBUILDING == sf) {
 		/* Retry-able by user, hence 503 */
 		upload_error_remove(u, NULL, 503, "Library being rebuilt");
-		return NULL;
-	}
-
-	if (!url_unescape(uri, TRUE)) { /* Index is escape-safe anyway */
-		upload_error_remove(u, NULL, 400, "Malformed Gnutella HTTP request");
 		return NULL;
 	}
 
@@ -2039,11 +2034,19 @@ not_found:
  * A dispatcher function to call either get_file_to_upload_from_index or
  * get_file_to_upload_from_sha1 depending on the syntax of the request.
  *
+ * @param u a valid gnutella_upload_t.
+ * @param header a valid header_t.
+ * @param the URI part of the HTTP request, URL-encoding has already been
+ *        decoded.
+ * @param search the search part of the HTTP request or NULL if none. This
+ *        string is still URL-encoded to preserve the '&' boundaries.
+ *
  * @return the shared_file if we got it, or NULL otherwise.
  * When NULL is returned, we have sent the error back to the client.
  */
 static shared_file_t *
-get_file_to_upload(gnutella_upload_t *u, header_t *header, gchar *uri)
+get_file_to_upload(gnutella_upload_t *u, header_t *header,
+	gchar *uri, gchar *search)
 {
 	gchar *arg;
 
@@ -2061,8 +2064,8 @@ get_file_to_upload(gnutella_upload_t *u, header_t *header, gchar *uri)
 			return get_file_to_upload_from_index(u, header, arg, idx);
 		}
 	}
-	else if (NULL != (arg = is_strprefix(uri, "/uri-res/N2R?")))
-		return get_file_to_upload_from_urn(u, header, arg);
+	else if (0 == strcmp(uri, "/uri-res/N2R"))
+		return get_file_to_upload_from_urn(u, header, search);
 	else if (0 == strcmp(uri, "/favicon.ico"))
 		return shared_favicon();
 
@@ -2575,7 +2578,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	filesize_t skip = 0, end = 0;
 	const gchar *fpath = NULL;
 	gchar *user_agent = 0;
-	gchar *buf, *uri, *request = getline_str(s->getline);
+	gchar *buf, *search, *uri, *request = getline_str(s->getline);
 	GSList *sl;
 	gboolean head_only;
 	gboolean has_end = FALSE;
@@ -2613,8 +2616,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	/* @todo TODO: Parse the HTTP request properly:
 	 *		- Check for illegal characters (like NUL)
-	 *		- Check for '?' (can be ignored but marks end of URI)
-	 *		- Canonicalize the path (like /../, /./ // and % HEX HEX encoding).
+	 *		- Canonicalize the path (like /../, /./ //).
 	 */
 	
 	/*
@@ -2720,6 +2722,20 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		return;
 	}
 
+	search = strchr(uri, '?');
+	if (search) {
+		*search++ = '\0';
+		/*
+		 * The search cannot be URL-decoded yet because that could
+		 * destroy the '&' boundaries.
+		 */
+	}
+	
+	if (!url_unescape(uri, TRUE)) {
+		upload_error_remove(u, NULL, 400, "Malformed HTTP request");
+		return NULL;
+	}
+
 	/*
 	 * Idea:
 	 *
@@ -2762,7 +2778,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		u->browse_host = FALSE;
 
-		reqfile = get_file_to_upload(u, header, uri);
+		reqfile = get_file_to_upload(u, header, uri, search);
 		if (!reqfile) {
 			/* get_file_to_upload() has signaled the error already */
 			return;
