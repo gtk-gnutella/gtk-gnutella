@@ -2719,10 +2719,8 @@ canonize_path(gchar *dst, const gchar *path)
   
   g_assert(dst);
   g_assert(path);
-  /** FIXME: Add overlap check. */
+  /** TODO: Add overlap check. */
 
-  g_message("path=\"%s\"", path);
-  
   /* Scan path */
   for (p = path, q = dst; '\0' != (c = *p); q++, p++) {
  
@@ -2768,7 +2766,6 @@ canonize_path(gchar *dst, const gchar *path)
   }
 
   *q = '\0';
-  g_message("dst=\"%s\"", dst);
   
   return 0;
 }
