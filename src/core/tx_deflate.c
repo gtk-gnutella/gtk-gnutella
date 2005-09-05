@@ -111,7 +111,7 @@ static size_t tx_deflate_pending(txdrv_t *tx);
 static void
 deflate_send(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 	struct buffer *b;
 	size_t len;					/**< Amount of bytes to send */
 	ssize_t r;
@@ -177,10 +177,10 @@ deflate_send(txdrv_t *tx)
 static void
 deflate_nagle_start(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	g_assert(!(attr->flags & DF_NAGLE));
-	g_assert(attr->tm_ev == NULL);
+	g_assert(NULL == attr->tm_ev);
 
 	if (!attr->nagle)					/* Nagle not allowed */
 		return;
@@ -195,10 +195,10 @@ deflate_nagle_start(txdrv_t *tx)
 static void
 deflate_nagle_stop(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	g_assert(attr->flags & DF_NAGLE);
-	g_assert(attr->tm_ev != NULL);
+	g_assert(NULL != attr->tm_ev);
 
 	cq_cancel(attr->cq, attr->tm_ev);
 
@@ -213,9 +213,9 @@ deflate_nagle_stop(txdrv_t *tx)
 static void
 deflate_rotate_and_send(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
-	g_assert(attr->send_idx == -1);		/* No pending send */
+	g_assert(-1 == attr->send_idx);		/* No pending send */
 
 	/*
 	 * Cancel any pending Nagle timer.
@@ -250,7 +250,7 @@ deflate_rotate_and_send(txdrv_t *tx)
 static gboolean
 deflate_flush(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 	z_streamp outz = attr->outz;
 	struct buffer *b;
 	gint ret;
@@ -272,7 +272,7 @@ retry:
 	 * be consumed.
 	 */
 
-	outz->next_out = (gpointer) b->wptr;
+	outz->next_out = cast_to_gpointer(b->wptr);
 	outz->avail_out = old_avail = b->end - b->wptr;
 
 	outz->avail_in = 0;
@@ -297,7 +297,7 @@ retry:
 
 	b->wptr += old_avail - outz->avail_out;
 
-	if (attr->cb->add_tx_deflated != NULL)
+	if (NULL != attr->cb->add_tx_deflated)
 		attr->cb->add_tx_deflated(tx->owner, old_avail - outz->avail_out);
 
 	/*
@@ -307,7 +307,7 @@ retry:
 	 * buffer and continue.
 	 */
 
-	if (outz->avail_out == 0) {
+	if (0 == outz->avail_out) {
 		if (attr->send_idx >= 0) {				/* Send buffer not sent yet */
 			attr->flags |= DF_FLOWC|DF_FLUSH;	/* Enter flow control */
 
@@ -348,7 +348,7 @@ deflate_flush_send(txdrv_t *tx)
 	 */
 
 	if (deflate_flush(tx)) {
-		if (attr->send_idx == -1) {			/* No write pending */
+		if (-1 == attr->send_idx) {			/* No write pending */
 			struct buffer *b = &attr->buf[attr->fill_idx];
 
 			if (b->rptr != b->wptr)			/* Something to send */
@@ -365,11 +365,11 @@ deflate_flush_send(txdrv_t *tx)
 static void
 deflate_nagle_timeout(cqueue_t *unused_cq, gpointer arg)
 {
-	txdrv_t *tx = (txdrv_t *) arg;
-	struct attr *attr = (struct attr *) tx->opaque;
+	txdrv_t *tx = arg;
+	struct attr *attr = tx->opaque;
 
 	(void) unused_cq;
-	if (attr->send_idx != -1) {		/* Send buffer still incompletely sent */
+	if (-1 != attr->send_idx) {		/* Send buffer still incompletely sent */
 
 		if (dbg > 9)
 			printf("deflate_nagle_timeout: (%s) buffer #%d unsent,"
@@ -407,7 +407,7 @@ deflate_nagle_timeout(cqueue_t *unused_cq, gpointer arg)
 static gint
 deflate_add(txdrv_t *tx, gpointer data, gint len)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 	z_streamp outz = attr->outz;
 	gint added = 0;
 
@@ -432,10 +432,10 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 		 * Prepare call to deflate().
 		 */
 
-		outz->next_out = (gpointer) b->wptr;
+		outz->next_out = cast_to_gpointer(b->wptr);
 		outz->avail_out = old_avail = b->end - b->wptr;
 
-		outz->next_in = (guchar *) data + added;
+		outz->next_in = cast_to_gpointer(cast_to_gchar_ptr(data) + added);
 		outz->avail_in = len - added;
 
 		g_assert(outz->avail_out > 0);
@@ -450,7 +450,7 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 
 		ret = deflate(outz, flush_started ? Z_SYNC_FLUSH : 0);
 
-		if (ret != Z_OK) {
+		if (Z_OK != ret) {
 			attr->flags |= DF_SHUTDOWN;
 			attr->cb->shutdown(tx->owner, "Compression failed: %s",
 				zlib_strerror(ret));
@@ -461,14 +461,14 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 		 * Update the parameters.
 		 */
 
-		b->wptr = (gpointer) outz->next_out;
-		added = (gchar *) outz->next_in - (gchar *) data;
+		b->wptr = cast_to_gpointer(outz->next_out);
+		added = cast_to_gchar_ptr(outz->next_in) - cast_to_gchar_ptr(data);
 
 		g_assert(added >= old_added);
 
 		attr->unflushed += added - old_added;
 
-		if (attr->cb->add_tx_deflated != NULL)
+		if (NULL != attr->cb->add_tx_deflated)
 			attr->cb->add_tx_deflated(tx->owner, old_avail - outz->avail_out);
 
 		/*
@@ -477,7 +477,7 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 		 * send it now and continue.
 		 */
 
-		if (outz->avail_out == 0) {
+		if (0 == outz->avail_out) {
 			if (attr->send_idx >= 0) {
 				attr->flags |= DF_FLOWC;	/* Enter flow control */
 
@@ -502,13 +502,13 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 		 * space avaialable.
 		 */
 
-		if (flush_started && outz->avail_in == 0) {
+		if (flush_started && 0 == outz->avail_in) {
 			attr->unflushed = 0;
 			attr->flags &= ~DF_FLUSH;
 		}
 	}
 
-	g_assert(outz->avail_in == 0);
+	g_assert(0 == outz->avail_in);
 
 	/*
 	 * Start Nagle if not already on.
@@ -539,8 +539,8 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 static void
 deflate_service(gpointer data)
 {
-	txdrv_t *tx = (txdrv_t *) data;
-	struct attr *attr = (struct attr *) tx->opaque;
+	txdrv_t *tx = data;
+	struct attr *attr = tx->opaque;
 	struct buffer *b;
 
 	g_assert(attr->send_idx < BUFFER_COUNT);
@@ -592,7 +592,7 @@ deflate_service(gpointer data)
 	 * If we were able to send the whole send buffer, disable servicing.
 	 */
 
-	if (attr->send_idx == -1)
+	if (-1 == attr->send_idx)
 		tx_srv_disable(tx->lower);
 
 	/*
@@ -664,15 +664,15 @@ static gpointer
 tx_deflate_init(txdrv_t *tx, gpointer args)
 {
 	struct attr *attr;
-	struct tx_deflate_args *targs = (struct tx_deflate_args *) args;
+	struct tx_deflate_args *targs = args;
 	z_streamp outz;
 	gint ret;
 	gint i;
 
 	g_assert(tx);
-	g_assert(targs->cb != NULL);
+	g_assert(NULL != targs->cb);
 
-	outz = walloc(sizeof(*outz));
+	outz = walloc(sizeof *outz);
 
 	outz->zalloc = NULL;
 	outz->zfree = NULL;
@@ -680,14 +680,14 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 
 	ret = deflateInit(outz, Z_DEFAULT_COMPRESSION);
 
-	if (ret != Z_OK) {
-		wfree(outz, sizeof(*outz));
+	if (Z_OK != ret) {
+		wfree(outz, sizeof *outz);
 		g_warning("unable to initialize compressor for peer %s: %s",
 			host_to_string(&tx->host), zlib_strerror(ret));
 		return NULL;
 	}
 
-	attr = walloc(sizeof(*attr));
+	attr = walloc(sizeof *attr);
 
 	attr->cq = targs->cq;
 	attr->cb = targs->cb;
@@ -703,7 +703,7 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 	for (i = 0; i < BUFFER_COUNT; i++) {
 		struct buffer *b = &attr->buf[i];
 
-		b->arena = b->wptr = b->rptr = (gchar *) g_malloc(attr->buffer_size);
+		b->arena = b->wptr = b->rptr = g_malloc(attr->buffer_size);
 		b->end = b->arena + attr->buffer_size;
 	}
 
@@ -727,7 +727,7 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 static void
 tx_deflate_destroy(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 	gint i;
 	gint ret;
 
@@ -744,16 +744,16 @@ tx_deflate_destroy(txdrv_t *tx)
 
 	ret = deflateEnd(attr->outz);
 
-	if (ret != Z_OK && ret != Z_DATA_ERROR)
+	if (Z_OK != ret && Z_DATA_ERROR != ret)
 		g_warning("while freeing compressor for peer %s: %s",
 			host_to_string(&tx->host), zlib_strerror(ret));
 
-	wfree(attr->outz, sizeof(*attr->outz));
+	wfree(attr->outz, sizeof *attr->outz);
 
 	if (attr->tm_ev)
 		cq_cancel(attr->cq, attr->tm_ev);
 
-	wfree(attr, sizeof(*attr));
+	wfree(attr, sizeof *attr);
 }
 
 /**
@@ -764,7 +764,7 @@ tx_deflate_destroy(txdrv_t *tx)
 static ssize_t
 tx_deflate_write(txdrv_t *tx, gpointer data, size_t len)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	if (dbg > 9)
 		printf("tx_deflate_write: (%s) (buffer #%d, nagle %s, "
@@ -792,7 +792,7 @@ tx_deflate_write(txdrv_t *tx, gpointer data, size_t len)
 static ssize_t
 tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 	gint sent = 0;
 
 	if (dbg > 9)
@@ -815,7 +815,7 @@ tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 
 		ret = deflate_add(tx, iov->iov_base, iov->iov_len);
 
-		if (ret == -1)
+		if (-1 == ret)
 			return -1;
 
 		sent += ret;
@@ -863,7 +863,7 @@ tx_deflate_disable(txdrv_t *unused_tx)
 static size_t
 tx_deflate_pending(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 	struct buffer *b;
 	gint pending;
 
@@ -871,7 +871,7 @@ tx_deflate_pending(txdrv_t *tx)
 	pending = b->wptr - b->rptr;
 	pending += attr->unflushed;		/* Some of those made it to buffer */
 
-	if (attr->send_idx != -1) {
+	if (-1 != attr->send_idx) {
 		b = &attr->buf[attr->send_idx];	/* Buffer we send */
 		pending += b->wptr - b->rptr;
 	}
@@ -885,10 +885,10 @@ tx_deflate_pending(txdrv_t *tx)
 static void
 tx_deflate_flush(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	if (attr->flags & DF_NAGLE) {
-		g_assert(attr->tm_ev != NULL);
+		g_assert(NULL != attr->tm_ev);
 		cq_expire(attr->cq, attr->tm_ev);
 	} else if (!(attr->flags & DF_FLOWC))
 		deflate_flush_send(tx);
@@ -900,7 +900,7 @@ tx_deflate_flush(txdrv_t *tx)
 static void
 tx_deflate_shutdown(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	/*
 	 * Disable firing of the Nagle callback, if registered.
@@ -917,7 +917,7 @@ tx_deflate_shutdown(txdrv_t *tx)
 static void
 tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	g_assert(tx->flags & TX_CLOSING);
 
