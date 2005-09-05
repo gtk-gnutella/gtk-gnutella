@@ -2702,4 +2702,76 @@ html_escape(const gchar *src, gchar *dst, size_t dst_size)
 	return d - dst; 
 }
 
+/**
+ * Creates the canonical representation of a path.
+ *
+ * ``dst'' and ``src'' may be identical but must not overlap otherwise.
+ *
+ * @param dst the destination, must be sufficiently long.
+ * @param path a NUL-terminated string representing the input path.
+ * @return zero on sucess, non-zero on failure.
+ */
+gint
+canonize_path(gchar *dst, const gchar *path)
+{
+  const gchar *p;
+  gchar c, *q, *ep;
+  
+  g_assert(dst);
+  g_assert(path);
+  /** FIXME: Add overlap check. */
+
+  g_message("path=\"%s\"", path);
+  
+  /* Scan path */
+  for (p = path, q = dst; '\0' != (c = *p); q++, p++) {
+ 
+    /* Handle relative paths i.e., /. and /.. */
+    if ('/' != c) {
+      *q = c;
+      continue;
+    }
+
+    /* Special handling for '/' follows */
+
+    do {
+        
+      *q = '/';
+
+      while ('/' == p[1]) {
+        p++;
+      }
+
+      if (0 == strcmp(p, "/.")) {
+        p++;
+        /* Ignoring trailing "/." in URI */
+      } else if (0 == strcmp(p, "/..")) {
+        return -1;
+      } else if (NULL != (ep = is_strprefix(p, "/./"))) {
+        p = ep - 1;
+        /* Ignoring unnecessary "/./" in URI */
+      } else if (NULL != (ep = is_strprefix(p, "/../"))) {
+        p = ep - 1;
+        
+        /* Ascending one component in URI */
+        do {
+          if (q == dst)
+            return -1; /* beyond root */
+        } while ('/' != *--q);
+          
+      } else {
+        break;
+      }
+
+    } while ('/' == p[0] && ('/' == p[1] || '.' == p[1]));
+    
+  }
+
+  *q = '\0';
+  g_message("dst=\"%s\"", dst);
+  
+  return 0;
+}
+
+
 /* vi: set ts=4 sw=4 cindent: */
