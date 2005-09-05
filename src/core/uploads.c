@@ -2404,7 +2404,8 @@ supports_deflate(header_t *header)
  * host and either expect a new request now or terminated the connection.
  */
 static gboolean
-prepare_browsing(gnutella_upload_t *u, header_t *header, const gchar *method,
+prepare_browsing(gnutella_upload_t *u, header_t *header,
+	const gchar *method, const gchar *host,
 	time_t now, http_extra_desc_t *hev, size_t hevlen,
 	size_t *hevsize, gint *flags)
 {
@@ -2433,20 +2434,20 @@ prepare_browsing(gnutella_upload_t *u, header_t *header, const gchar *method,
 	 * addressing our host directly, then redirect them to that.
 	 */
 
-	buf = header_get(header, "Host");
 	if (
-		buf && give_server_hostname && *server_hostname &&
-		!is_strprefix(buf, server_hostname) &&
+		host && give_server_hostname && '\0' != server_hostname[0] &&
+		!is_strprefix(host, server_hostname) &&
 		upload_likely_from_browser(header)
 	) {
 		static const gchar fmt[] = "Location: http://%s:%u/\r\n";
-		static gchar buf[sizeof fmt + UINT16_DEC_BUFLEN + MAX_HOSTLEN];
+		static gchar location[sizeof fmt + UINT16_DEC_BUFLEN + MAX_HOSTLEN];
 
-		gm_snprintf(buf, sizeof buf, fmt, server_hostname, listen_port);
+		gm_snprintf(location, sizeof location, fmt,
+			server_hostname, listen_port);
 
 		g_assert(hevcnt < hevlen);
 		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-		hev[hevcnt].he_msg = buf;
+		hev[hevcnt].he_msg = location;
 		hev[hevcnt++].he_arg = NULL;
 
 		http_send_status(u->socket, 301, FALSE, hev, hevcnt, "Redirecting");
@@ -2612,6 +2613,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean using_sendfile;
 	gboolean parq_allows = FALSE;
 	const gchar *method;
+	gchar host[1 + MAX_HOSTLEN];
 
 	u->from_browser = upload_likely_from_browser(header);
 
@@ -2627,8 +2629,6 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	/* @todo TODO: Parse the HTTP request properly:
 	 *		- Check for illegal characters (like NUL)
-	 *		- Canonicalize the path (like /../, /./ //).
-	 *		- Allow absolute URLs as URIs (like http://example.org/blah/).
 	 */
 	
 	/*
@@ -2745,24 +2745,71 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 */
 	}
 
-	/* Extract the path from an absolute URI */
+	/* Extract the host and path from an absolute URI */
+	host[0] = '\0';
 	{
-		const gchar *host, *ep;
+		const gchar *ep;
 		
-		if (NULL != (host = is_strcaseprefix(uri, "http://"))) {
-			if (string_to_host_or_addr(host, &ep, NULL)) {
-				uri = deconstify_gchar(ep);
-			} else {
-				upload_error_remove(u, NULL, 400, "Malformed HTTP request");
+		if (NULL != (ep = is_strcaseprefix(uri, "http://"))) {
+			const gchar *h = ep;
+			size_t len = ep - h;
+			
+			if (!string_to_host_or_addr(h, &ep, NULL)) {
+				upload_error_remove(u, NULL, 400, "Unparsable Host");
 				return;
 			}
+
+			len = ep - h;
+			if (len >= sizeof host) {
+				upload_error_remove(u, NULL, 400, "Hostname Too Long");
+				return;
+			}
+
+			g_strlcpy(host, h, 1 + len);
+			if (':' == *ep) {
+				guint32 v;
+				gint error;
+
+				ep++; /* Skip ':' */
+				v = parse_uint32(ep, &ep, 10, &error);
+				if (error || v < 1 || v > 65535) {
+					upload_error_remove(u, NULL, 400, "Bad Port");
+					return;
+				}
+			}
+
+			uri = deconstify_gchar(ep);
+		} else if (NULL != (buf = header_get(header, "Host"))) {
+			g_strlcpy(host, buf, sizeof host);
 		}
 	}
 
-	if ('/' != uri[0] || !url_unescape(uri, TRUE)) {
-		upload_error_remove(u, NULL, 400, "Malformed HTTP request");
+	if (
+		'/' != uri[0] ||
+		!url_unescape(uri, TRUE) ||
+		0 != canonize_path(uri, uri)
+	) {
+		upload_error_remove(u, NULL, 400, "Bad Path");
 		return;
 	}
+	
+	/*
+	 * If HTTP/1.1 or above, check the Host header.
+	 *
+	 * We require it because HTTP does, but we don't really care for
+	 * now.  Moreover, we might not know our external IP correctly,
+	 * so we have little ways to check that the Host refers to us.
+	 *
+	 *		--RAM, 11/04/2002
+	 */
+
+	if ((u->http_major == 1 && u->http_minor >= 1) || u->http_major > 1) {
+		if (NULL == header_get(header, "Host")) {
+			upload_error_remove(u, NULL, 400, "Missing Host Header");
+			return;
+		}
+	}
+
 
 	/*
 	 * Idea:
@@ -2790,7 +2837,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	if (0 == strcmp(uri, "/")) {
 		if (
-			!prepare_browsing(u, header, method, now,
+			!prepare_browsing(u, header, method, host, now,
 				hev, G_N_ELEMENTS(hev), &hevcnt, &bh_flags)
 		)
 			return;
@@ -3012,25 +3059,6 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		(void) http_send_status(u->socket, 416, FALSE, hev, hevcnt, msg);
 		upload_remove(u, msg);
 		return;
-	}
-
-	/*
-	 * If HTTP/1.1 or above, check the Host header.
-	 *
-	 * We require it because HTTP does, but we don't really care for
-	 * now.  Moreover, we might not know our external IP correctly,
-	 * so we have little ways to check that the Host refers to us.
-	 *
-	 *		--RAM, 11/04/2002
-	 */
-
-	if ((u->http_major == 1 && u->http_minor >= 1) || u->http_major > 1) {
-		const gchar *host = header_get(header, "Host");
-
-		if (host == NULL) {
-			upload_error_remove(u, NULL, 400, "Missing Host Header");
-			return;
-		}
 	}
 
 	/*
