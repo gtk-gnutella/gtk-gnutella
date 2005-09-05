@@ -147,7 +147,7 @@ static void gwc_seed_cache(gchar *cache_url);
 
 static const gchar * const boot_url[] = {
 	"http://cache.kicks-ass.net:8000/",
-	"http://gwc.nonamer.ath.cx:8080/",
+	"http://galvatron.dyndns.org:59009/gwcache",
 	"http://krill.shacknet.nu:20095/gwc",
 };
 
