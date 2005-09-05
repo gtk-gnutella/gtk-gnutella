@@ -53,6 +53,7 @@ RCSID("$Id$");
 #include "lib/hashlist.h"
 #include "lib/glib-missing.h"
 #include "lib/misc.h"
+#include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
@@ -76,6 +77,14 @@ static struct uhc_context {
 	guint16 port;				/**< Port of selected host cache */
 	gpointer timeout_ev;		/**< Ping timeout */
 } uhc_ctx;
+
+static GList *uhc_avail = NULL;	/**< List of UHCs as string */
+static GList *uhc_used = NULL;	/**< List of used UHCs as ``struct used_uhc'' */
+
+struct used_uhc {
+	gchar 		*host;	/**< An UHC host as <host>:<port> */
+	time_t		stamp;	/**< Timestamp of the last request */
+};
 
 /**
  * The following hosts are there for bootstrapping purposes only.
@@ -110,25 +119,52 @@ static gboolean
 uhc_get_host_port(const gchar *hp, const gchar **host, guint16 *port)
 {
 	static gchar hostname[MAX_HOSTLEN + 1];
-	gchar *p;
-	guint32 iport;
+	const gchar *ep;
+	guint32 u;
 	gint error;
+	size_t len;
 
-	g_strlcpy(hostname, hp, sizeof hostname);
-	p = strchr(hostname, ':');
-	if (!p)
-		return FALSE;			/* No port! */
 
-	*p++ = '\0';
+	g_assert(hp);
+	g_assert(host);
+	g_assert(port);
+	
+	*host = NULL;
+	*port = 0;
+	
+	if (!string_to_host_or_addr(hp, &ep, NULL) || ':' != *ep)
+		return FALSE;
 
-	iport = parse_uint32(p, NULL, 10, &error);
-	if (error || iport < 1 || iport > 0xffff)
+	len = ep - hp;
+	if (len >= sizeof hostname)
+		return FALSE;
+	memcpy(hostname, hp, len);
+	hostname[len] = '\0';
+	
+	g_assert(':' == *ep);
+	ep++;
+
+	u = parse_uint32(ep, NULL, 10, &error);
+	if (error || u < 1 || u > 0xffff)
 		return FALSE;
 
 	*host = hostname;			/* Static data! */
-	*port = iport;
+	*port = u;
 
 	return TRUE;
+}
+
+static void
+add_available_uhc(const gchar *hc)
+{
+	gchar *s;
+	
+	g_assert(hc);
+	
+	s = wcopy(hc, 1 + strlen(hc));
+	uhc_avail = random_value(100) < 50
+		? g_list_append(uhc_avail, s)
+		: g_list_prepend(uhc_avail, s);
 }
 
 /**
@@ -139,12 +175,49 @@ uhc_get_host_port(const gchar *hp, const gchar **host, guint16 *port)
 static gboolean
 uhc_pick(void)
 {
-	gint idx;
-	const gchar *hc;
-	gchar msg[256];
+	gchar *hc;
+	size_t len;
+	guint idx;
+	time_t now = tm_time();
 
-	idx = random_value(G_N_ELEMENTS(boot_hosts) - 1);
-	hc = boot_hosts[idx];
+	/* First check whether used UHCs can added back */
+	while (uhc_used) {
+		struct used_uhc *uu;
+
+		uu = uhc_used->data;
+		g_assert(uu);
+
+		/* Wait 24 hours before the UHC maybe contacted again */
+		if (delta_time(now, uu->stamp) < 24 * 3600)
+			break;
+		
+		add_available_uhc(uu->host);
+
+		uhc_used = g_list_remove(uhc_used, uu);
+		wfree(uu->host, 1 + strlen(uu->host));
+		wfree(uu, sizeof *uu);
+	}
+	
+	len = g_list_length(uhc_avail);
+	if (len < 1) {
+		if (gwc_debug)
+			g_warning("Ran out of UHCs");
+		return FALSE;
+	}
+	
+	idx = random_value(len - 1);
+	hc = g_list_nth_data(uhc_avail, idx);
+	g_assert(hc);
+
+	uhc_avail = g_list_remove(uhc_avail, hc);
+	{
+		struct used_uhc *uu;
+
+		uu = walloc(sizeof *uu);
+		uu->host = hc;
+		uu->stamp = tm_time();
+		uhc_used = g_list_append(uhc_used, uu);
+	}
 
 	if (!uhc_get_host_port(hc, &uhc_ctx.host, &uhc_ctx.port)) {
 		g_warning("cannot parse UDP host cache \"%s\"", hc);
@@ -154,9 +227,12 @@ uhc_pick(void)
 	/*
 	 * Give GUI feedback.
 	 */
-
-	gm_snprintf(msg, sizeof(msg), _("Looking for UDP host cache %s"), hc);
-	gcu_statusbar_message(msg);
+	{
+		gchar msg[256];
+	
+		gm_snprintf(msg, sizeof msg, _("Looking for UDP host cache %s"), hc);
+		gcu_statusbar_message(msg);
+	}
 
 	return TRUE;
 }
@@ -192,10 +268,11 @@ uhc_try_random(void)
 	g_assert(uhc_connecting);
 	g_assert(uhc_ctx.timeout_ev == NULL);
 
-	if (uhc_ctx.attempts++ >= UHC_MAX_ATTEMPTS || !uhc_pick()) {
+	if (uhc_ctx.attempts >= UHC_MAX_ATTEMPTS || !uhc_pick()) {
 		uhc_connecting = FALSE;
 		return;
 	}
+	uhc_ctx.attempts++;
 
 	/*
 	 * The following may recurse if resolution is synchronous, but
@@ -438,6 +515,11 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 void
 uhc_init(void)
 {
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS(boot_hosts); i++)
+		add_available_uhc(boot_hosts[i]);
+		
 	uhc_ctx.guids = g_hash_table_new(guid_hash, guid_eq);
 }
 
