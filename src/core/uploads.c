@@ -53,6 +53,7 @@ RCSID("$Id$");
 #include "ioheader.h"
 #include "ban.h"
 #include "parq.h"
+#include "hcache.h"
 #include "huge.h"
 #include "settings.h"
 #include "features.h"
@@ -1947,9 +1948,12 @@ get_file_to_upload_from_urn(
 	header_t *header,
 	const gchar *uri)
 {
-	static const gchar * const urn_prefixes[] = {
-		"urn:sha1:",
-		"urn:bitprint:",
+	static const struct {
+		const gchar *s;
+		const size_t len;
+	} urn_prefixes[] = {
+		{ "urn:sha1:", SHA1_BASE32_SIZE },
+		{ "urn:bitprint:", BITPRINT_BASE32_SIZE },
 	};
 	gchar hash[SHA1_BASE32_SIZE + 1];
 	gchar digest[SHA1_RAW_SIZE];
@@ -1957,6 +1961,10 @@ get_file_to_upload_from_urn(
 	struct shared_file *sf;
 	guint i;
 	gchar *filename;
+	size_t ret, urn_len = 0;
+
+	if (!uri)
+		goto malformed;
 
 	/*
 	 * We currently only support SHA1, but this allows us to process
@@ -1966,8 +1974,10 @@ get_file_to_upload_from_urn(
 
 	p = NULL; /* dumb compiler */
 	for (i = 0; i < G_N_ELEMENTS(urn_prefixes); i++) {
-		if (NULL != (p = is_strcaseprefix(urn, urn_prefixes[i])))
+		if (NULL != (p = is_strcaseprefix(urn, urn_prefixes[i].s))) {
+			urn_len = urn_prefixes[i].len;
 			break;
+		}
 	}
 
 	if (!p)
@@ -1975,7 +1985,8 @@ get_file_to_upload_from_urn(
 
 	u->n2r = TRUE;		/* Remember we saw an N2R request */
 
-	if (SHA1_BASE32_SIZE != g_strlcpy(hash, p, sizeof hash))
+	ret = g_strlcpy(hash, p, sizeof hash);
+	if (ret != urn_len)
 		goto malformed;
 
 	if (!urn_get_http_sha1(hash, digest))
@@ -2096,7 +2107,7 @@ upload_http_xhost_add(gchar *buf, gint *retval,
 
 	if (host_is_valid(addr, port)) {
 		const gchar *xhost = host_addr_port_to_string(addr, port);
-		size_t needed_room = strlen(xhost) + sizeof("X-Host: \r\n") - 1;
+		size_t needed_room = strlen(xhost) + CONST_STRLEN("X-Host: \r\n");
 
 		if (length > needed_room)
 			rw = gm_snprintf(buf, length, "X-Host: %s\r\n", xhost);
@@ -2617,6 +2628,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	/* @todo TODO: Parse the HTTP request properly:
 	 *		- Check for illegal characters (like NUL)
 	 *		- Canonicalize the path (like /../, /./ //).
+	 *		- Allow absolute URLs as URIs (like http://example.org/blah/).
 	 */
 	
 	/*
@@ -2657,6 +2669,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	token = header_get(header, "X-Token");
 	user_agent = header_get(header, "User-Agent");
+
+	feed_host_cache_from_headers(header, HOST_ANY, FALSE, u->addr);
 
 	/* Maybe they sent a Server: line, thinking they're a server? */
 	if (user_agent == NULL)
@@ -2730,10 +2744,24 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 * destroy the '&' boundaries.
 		 */
 	}
-	
-	if (!url_unescape(uri, TRUE)) {
+
+	/* Extract the path from an absolute URI */
+	{
+		const gchar *host, *ep;
+		
+		if (NULL != (host = is_strcaseprefix(uri, "http://"))) {
+			if (string_to_host_or_addr(host, &ep, NULL)) {
+				uri = deconstify_gchar(ep);
+			} else {
+				upload_error_remove(u, NULL, 400, "Malformed HTTP request");
+				return;
+			}
+		}
+	}
+
+	if ('/' != uri[0] || !url_unescape(uri, TRUE)) {
 		upload_error_remove(u, NULL, 400, "Malformed HTTP request");
-		return NULL;
+		return;
 	}
 
 	/*
