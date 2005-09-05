@@ -39,6 +39,7 @@
 #include "if/core/wrap.h"			/* For wrap_io_t */
 #include "if/core/hsep.h"
 #include "if/core/guid.h"
+#include "if/core/hcache.h"
 #include "if/core/nodes.h"
 
 #include "lib/header.h"
@@ -579,6 +580,10 @@ void node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features);
 
 void node_update_udp_socket(void);
 void node_check_remote_ip_header(const host_addr_t peer, header_t *head);
+
+guint
+feed_host_cache_from_headers(header_t *headers,
+	host_type_t sender, gboolean gnet, const host_addr_t peer);
 
 #endif /* _core_nodes_h_ */
 

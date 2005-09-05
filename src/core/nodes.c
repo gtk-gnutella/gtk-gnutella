@@ -3423,37 +3423,123 @@ node_set_current_peermode(node_peer_t mode)
 	old_mode = mode;
 }
 
+static guint
+feed_host_cache_from_string(const gchar *s, host_type_t type, const gchar *name)
+{
+	guint n;
+
+    g_assert((guint) type < HOST_MAX);
+	g_assert(s);
+
+	for (n = 0; NULL != s; s = strchr(s, ',')) {
+		host_addr_t addr;
+		guint16 port;
+		
+		if (',' == s[0])
+			s++;
+			
+		s = skip_ascii_spaces(s);
+		addr = string_to_host_addr(s, &s);
+		if (!is_host_addr(addr))
+			continue;
+
+		if (':' == s[0]) {
+			guint32 u;
+			gint error;
+
+			s++;
+			u = parse_uint32(s, &s, 10, &error);
+			port = (error || u < 1024 || u > 65535) ? 0 : u;
+		} else {
+			port = GTA_PORT;
+		}
+
+		if (!port)
+			continue;
+
+		hcache_add_caught(type, addr, port, name);
+		n++;
+	}
+
+	return n;
+}
+
 /**
  * Extract host:port information out of a header field and add those to our
- * pong cache.
+ * pong cache. If ``gnet'' is TRUE, the header names without a leading
+ * "X-" are checked as variants as well.
  *
- * @return the amount of valid pongs we parsed.
+ * @param headers a valid header_t.
+ * @param sender the host_type_t of the sender, if unknown use HOST_ANY.
+ * @param gnet should be set to TRUE if the headers come from a Gnutella
+ *			handshake.
+ * @param peer the peer address who sent the headers. 
+ *
+ * @return the amount of valid peer addresses we parsed.
  *
  * The syntax we expect is:
  *
- *   - X-Try: host1:port1, host2:port2; host3:port3
+ *   <header>: <peer> ("," <peer>)*
  *
- * i.e. we're very flexible about the separators which can be "," or ";".
+ *   peer =		<host> [":" <port>] [any except ","]*
+ *   header =	"Alt" | Listen-Ip" | "Listen-Ip" |
+ *				"My-Address" | "Node" | "Try" | "Try-Ultrapeers"
+ *
  */
-static gint
-extract_field_pongs(gchar *field, host_type_t type)
+guint
+feed_host_cache_from_headers(header_t *header,
+	host_type_t sender, gboolean gnet, const host_addr_t peer)
 {
-	const gchar *tok;
-	gint pong = 0;
+	static const struct {
+		const gchar *name;	/**< Name of the header */
+		gboolean sender;	/**< Host type is derived from sender */
+		host_type_t type;	/**< Default type, sender will override */
+	} headers[] = {
+		{ "X-Alt",				FALSE,	HOST_ANY },
+		{ "X-Listen-Ip",		TRUE,	HOST_ANY },
+		{ "X-My-Address",		TRUE,	HOST_ANY },
+		{ "X-Node",				TRUE,	HOST_ANY },
+		{ "X-Try",				FALSE,	HOST_ANY },
+		{ "X-Try-Ultrapeers",	FALSE,	HOST_ULTRA },
+	};
+	guint i, n = 0;
 
-    g_assert((guint) type < HOST_MAX);
+	g_assert(header);
+    g_assert((guint) sender < HOST_MAX);
 
-	for (tok = strtok(field, ",;"); tok; tok = strtok(NULL, ",;")) {
-		guint16 port;
-		host_addr_t addr;
+	for (;;) {
+		for (i = 0; i < G_N_ELEMENTS(headers); i++) {
+			const gchar *val, *name, *p;
+			host_type_t type;
+			guint r;
 
-		if (string_to_host_addr_port(tok, NULL, &addr, &port)) {
-            hcache_add_caught(type, addr, port, "pong");
-			pong++;
+			name = headers[i].name;
+			if (gnet && NULL != (p = is_strprefix(name, "X-")))
+				name = p;
+				
+			type = headers[i].sender ? sender : headers[i].type;
+			val = header_get(header, name);
+			if (!val)
+				continue;
+			
+			r = feed_host_cache_from_string(val, type, name);
+			n += r;
+			
+			if (dbg > 0) {
+				if (r > 0)
+					g_message("Peer %s sent %u pong%s in %s header\n",
+						host_addr_to_string(peer), r, 1 == r ? "" : "s", name);
+				else
+					g_message("Peer %s sent an unparseable %s header\n",
+						host_addr_to_string(peer), name);
+			}
 		}
+		if (!gnet)
+			break;
+		gnet = FALSE;
 	}
 
-	return pong;
+	return n;
 }
 
 /**
@@ -3463,46 +3549,9 @@ extract_field_pongs(gchar *field, host_type_t type)
 static void
 extract_header_pongs(header_t *header, struct gnutella_node *n)
 {
-	gchar *field;
-	gint pong;
-
-	/*
-	 * The X-Try line refers to regular nodes.
-     * (Also allow a plain Try: header, for when it is standardized)
-	 */
-
-	field = header_get(header, "X-Try");
-	if (!field) field = header_get(header, "Try");
-
-	if (field) {
-		pong = extract_field_pongs(field, HOST_ANY);
-		if (dbg > 4)
-			printf("Node %s sent us %d pong%s in header\n",
-				node_addr(n), pong, pong == 1 ? "" : "s");
-		if (pong == 0 && dbg)
-			g_warning("Node %s (%s) sent us unparseable X-Try: \"%s\"",
-				node_addr(n), node_vendor(n), field);
-	}
-
-	/*
-	 * The X-Try-Ultrapeers line refers to ultra-nodes.
-	 * For now, we don't handle ultranodes, so store that as regular pongs.
-     * (Also allow a plain Try-Ultrapeers: header, for when it is standardized)
-	 */
-
-	field = header_get(header, "X-Try-Ultrapeers");
-	if (!field) field = header_get(header, "Try-Ultrapeers");
-
-	if (field) {
-		pong = extract_field_pongs(field, HOST_ULTRA);
-		if (dbg > 4)
-			printf("Node %s sent us %d ultranode pong%s in header\n",
-				node_addr(n), pong, pong == 1 ? "" : "s");
-		if (pong == 0 && dbg)
-			g_warning(
-				"Node %s (%s) sent us unparseable X-Try-Ultrapeers: \"%s\"",
-				node_addr(n), node_vendor(n), field);
-	}
+	feed_host_cache_from_headers(header,
+		NODE_P_ULTRA == n->peermode ? HOST_ULTRA : HOST_ANY,
+		TRUE, n->addr);
 }
 
 /**
