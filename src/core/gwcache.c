@@ -335,7 +335,7 @@ gwc_retrieve(void)
 	FILE *in;
 	gchar tmp[1024];
 
-	file_path_set(&fp[0], settings_config_dir(), gwc_bootfile);
+	file_path_set(&fp[0], settings_config_dir(), gwc_file);
 	file_path_set(&fp[1], PRIVLIB_EXP, gwc_bootfile);
 #ifndef OFFICIAL_BUILD
 	file_path_set(&fp[2], PACKAGE_SOURCE_DIR, gwc_bootfile);
