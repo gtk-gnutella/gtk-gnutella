@@ -37,6 +37,7 @@
 
 RCSID("$Id$");
 
+#include "host_addr.h"
 #include "url.h"
 #include "misc.h"
 #include "walloc.h"
@@ -398,7 +399,7 @@ url_params_free(url_params_t *up)
 }
 
 static gboolean
-url_safe_char(gint c, url_policy_t p)
+url_safe_char(gchar c, url_policy_t p)
 {
 	if (p & URL_POLICY_GWC_RULES) {
 		/* Reject allow anything unreasonable */
@@ -408,16 +409,14 @@ url_safe_char(gint c, url_policy_t p)
 			return FALSE;
 		}
 
-    	if (!isalnum(c)
-        	&& c != '/' && c != '.' && c != '_' && c != '-' && c != '~'
-      	) {
+    	if (!is_ascii_alnum(c) && NULL == strchr("/._-~", c)) {
 			if (url_debug)
       			g_warning("Unsafe character in GWC URL; rejected");
       		return FALSE;
     	}
 	} else {
 		/* XXX: Figure out what's the correct set for this */
-		if (!isascii(c) || iscntrl(c)) {
+		if (!isascii(c) || is_ascii_cntrl(c)) {
 			return FALSE;
 		}
 	}
@@ -441,77 +440,81 @@ url_safe_char(gint c, url_policy_t p)
 gchar *
 url_normalize(gchar *url, url_policy_t pol)
 {
-	gint c, dots = 0;
-	gchar *endptr;
-	const gchar *tld = NULL;
-	guint16 port = 0;
-	gchar *p, *q = url;
-	const gchar *uri;
 	static const char http_prefix[] = "http://";
-	gchar *warn = NULL;
+	const gchar *p, *uri, *endptr, *tld = NULL;
+	gchar c, *q, *warn = NULL;
+	host_addr_t addr;
+	guint16 port = 0;
+	gint dots = 0;
 
 	g_assert(url);
 
-	if (NULL == (q = is_strprefix(q, http_prefix))) {
+	if (NULL == (q = is_strcaseprefix(url, http_prefix))) {
 		if (url_debug)
 			g_warning("URL \"%s\" isn't preceded by \"%s\"", url, http_prefix);
 		return NULL;
 	}
+	/* Make sure the prefix is all-lowercase */
+	memcpy(url, http_prefix, CONST_STRLEN(http_prefix));
 
 	if (!is_ascii_alnum(*q)) {
 		warn = "HTTP prefix MUST be followed by an alphanum";
 		goto bad;
 	}
 
-	if (string_to_ip_strict(q, NULL, (const gchar **) &endptr)) {
+	if (
+		string_to_host_or_addr(q, &endptr, &addr) &&
+		is_host_addr(addr) &&
+		('/' == *endptr || ':' == *endptr || '\0' == *endptr)
+	) {
 		if (!(pol & URL_POLICY_ALLOW_IP_AS_HOST)) {
 			warn = "URLs without hostnames have been disabled";
 			goto bad;
 		}
-		q = endptr;
+		q = deconstify_gchar(endptr);
 
 	} else {
 		/* The ``host'' part is not an IP address */
 
 		for (/* NOTHING */; *q != '\0'; q++) {
 
-		    for (/* NOTHING */; (c = (guchar) *q) != '\0'; q++) {
+		    for (/* NOTHING */; '\0' != (c = *q); q++) {
         		if (is_ascii_alnum(c)) {
           			*q = ascii_tolower(c);
-        		} else if (c != '-') {
+        		} else if ('-' != c) {
           			break;
         		}
       		}
 
-			if (c == '\0') {
+			if ('\0' == c) {
 				if (dots < 1 && !(pol & URL_POLICY_ALLOW_LOCAL_HOSTS)) {
 					warn = "current URL policy forbids local hosts";
 					goto bad;
 				}
 				break;
-			} else if (c == '.') {
+			} else if ('.' == c) {
 
-				if (!(isalnum((guchar) *(q - 1)) && isalnum((guchar) q[1]))) {
+				if ( !(is_ascii_alnum(*(q - 1)) && is_ascii_alnum(q[1]))) {
 					warn = "a dot must be preceded and followed by an alphanum";
 					goto bad;
 				}
 				dots++;
-				if (q[1] == '\0' || q[1] == ':' || q[1] == '/')
+				if ('\0' == q[1] || ':' == q[1] || '/' == q[1])
 					break;
 
 				tld = &q[1];
-			} else if (c == '\0' || c == '/' || c == ':') {
+			} else if ('\0' == c || '/' == c || ':' == c) {
 				break;
 			} else {
 				if (url_debug)
 					g_warning("Bad URL \"%s\": "
 						"invalid character '%c' in ``host:port'' part.",
-						url, isprint(c) ? c : '?');
+						url, is_ascii_print(c) ? c : '?');
 				return NULL;
 			}
 		}
 
-		if (!tld || !(isalpha((guchar) tld[0]) && isalpha((guchar) tld[1]))) {
+		if (!tld || !(is_ascii_alpha(tld[0]) && is_ascii_alpha(tld[1]))) {
 			warn = "no or invalid top-level domain";
 			goto bad;
 		}
@@ -519,96 +522,75 @@ url_normalize(gchar *url, url_policy_t pol)
 	}
 
 	p = q;
-	if (*q == ':' ) {
-		gulong v = 0;
+	if (':' == *q) {
+		guint32 u;
+		gint error;
 
-		q++;
-		/* strtoul() allows leading spaces, +, - and zeroes */
-		if (NULL != strchr("123456789", *q)) {
-			errno = 0;
-			v = strtoul(q, &endptr, 10);
+		q++; /* Skip ':' */
+		
+		/* Reject port numbers with leading zeros */
+		if (!is_ascii_digit(*q) || '0' == *q) {
+			error = EINVAL;
+			u = 0;
+		} else {
+			u = parse_uint32(q, &endptr, 10, &error);
 		}
-		if (v < 1 || v > 65535 || errno) {
+			
+		if (error || u < 1 || u > 65535) {
 			warn = "':' MUST be followed a by port value (1-65535)";
 			goto bad;
 		}
-		port = (guint16) v;
+
+		port = (guint16) u;
 		p = endptr;
 		if (port == /* HTTP_PORT */ 80) {
 			/* We don't want the default port in a URL;
 			 * this does also prevents duplicates. */
 			q--;
 		} else {
-			q = endptr;
+			q = deconstify_gchar(endptr);
 		}
 	}
 
-	if (*p != '/' && *p != '\0') {
+	if ('/' != *p && '\0' != *p) {
 		warn = "host must be followed by ':', '/' or NUL";
 		goto bad;
 	}
 
-	uri = q;
-
+	uri = p;
+	
 	/* Scan path */
-	for (/* NOTHING */; (c = *(guchar *) p) != '\0'; q++, p++) {
+	for (/* NOTHING */; '\0' != (c = *p); p++) {
 		if (!url_safe_char(c, pol)) {
 			warn = "URL contains characters prohibited by policy";
 			goto bad;
 		}
-
-		/* Handle relative paths i.e., /. and /.. */
-		if (c != '/') {
-				*q = c;
-			continue;
-		}
-
-		/* Special handling for '/' follows */
-		do {
-
-			*q = '/';
-
-			while (p[1] == '/')
-				p++;
-
-			if (0 == strcmp(p, "/.")) {
-				p++;
-				if (url_debug)
-					g_message("ignoring trailing \"/.\" in URI");
-			} else if (0 == strcmp(p, "/..")) {
-				if (url_debug)
-					g_message("trailing \"/..\" in URI; rejected");
-				return NULL;
-			} else if (is_strprefix(p, "/./")) {
-				p += 2;
-				if (url_debug)
-					g_message("ignoring unnecessary \"/./\" in URI");
-			} else if (is_strprefix(p, "/../")) {
-				p += 3;
-				if (url_debug)
-					g_message("ascending one component in URI");
-				while (*--q != '/')
-					if (q <= uri) {
-						warn = "URI ascends beyond root per \"/../\"";
-						goto bad;
-					}
-			} else {
-				break;
-			}
-
-		} while (*p == '/' && (p[1] == '/' || p[1] == '.'));
-
 	}
-	*q = '\0';
+
+	if (q != uri) {
+		size_t len;
+		
+		len = strlen(uri);
+		memmove(q, uri, len);
+		q[len] = '\0';
+	}
+	uri = q;
+
+	if (0 != canonize_path(q, q)) {
+		warn = "Could not canonize URI";
+		goto bad;
+	}
 
 	if (pol & URL_POLICY_GWC_RULES) {
 		static const struct {
-			ssize_t len;
 			const gchar *ext;
+			size_t len;
 		} static_types[] = {
-			{ 5, ".html" },
-			{ 4, ".htm" },
-			{ 4, ".txt" }
+#define D(x) { (x), CONST_STRLEN(x) }
+			D(".html"),
+			D(".htm"),
+			D(".txt"),
+#undef D
 		};
 		guint i;
 
@@ -623,17 +605,16 @@ url_normalize(gchar *url, url_policy_t pol)
 	}
 
 	/* Add a trailing slash; if the URI is empty (to prevent dupes) */
-	if (*uri == '\0') {
+	if ('\0' == uri[0]) {
 		ssize_t len = q - url;
+		gchar *s;
 
 		g_assert(len > 0);
-		p = g_malloc(len + sizeof "/");
-		if (p) {
-			memcpy(p, url, len);
-			p[len] = '/';
-			p[len + 1] = '\0';
-		}
-		url = p;
+		s = g_malloc(len + sizeof "/");
+		memcpy(s, url, len);
+		s[len] = '/';
+		s[len + 1] = '\0';
+		url = s;
 	}
 
 	if (url_debug)
