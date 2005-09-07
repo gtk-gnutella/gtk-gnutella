@@ -39,9 +39,9 @@
 #include <glib.h>
 
 void crc_init(void);
-guint32 crc32_update_crc(guint32 crc_accum, const gchar *data, gint len);
+guint32 crc32_update_crc(guint32 crc_accum, gconstpointer data, size_t len);
 
 #endif	/* _crc_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 

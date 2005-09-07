@@ -65,18 +65,18 @@ RCSID("$Id$");
 static guint32 crc_table[256];
 
 /**
- * crc32_gen_crc_table
- *
  * Generates a 256-word table containing all CRC remainders for every
  * possible 8-bit byte.
  */
-static void crc32_gen_crc_table(void)
+static void
+crc32_gen_crc_table(void)
 {
-	gint i, j;
-	guint32 crc_accum;
+	guint32 i, crc_accum;
 
 	for (i = 0; i < 256; i++) {
-		crc_accum = (guint32) i << 24;
+		gint j;
+
+		crc_accum = i << 24;
 		for (j = 0; j < 8; j++) {
 			if (crc_accum & 0x80000000)
 				crc_accum = (crc_accum << 1) ^ POLYNOMIAL;
@@ -88,22 +88,23 @@ static void crc32_gen_crc_table(void)
 }
 
 /**
- * crc32_update_crc
+ * Update the CRC-32 on the data block one byte at a time.
  *
- * Update the CRC on the data block one byte at a time
- *
- * @param crc_accum	no brief description.
- * @param data		no brief description.
+ * @param crc_accum The CRC accumulator, must be initialized to zero.	
+ * @param data		The input data for CRC-32 calculation.
  * @param len		no brief description.
  *
  */
-guint32 crc32_update_crc(guint32 crc_accum, const gchar *data, gint len)
+guint32
+crc32_update_crc(guint32 crc_accum, gconstpointer data, size_t len)
 {
-	gint i, j;
-	guchar *p = (guchar *) data;
+	const guchar *p = data;
+	size_t j;
 
 	for (j = 0; j < len; j++) {
-		i = ((gint) (crc_accum >> 24) ^ *p++) & 0xff;
+		guint8 i;
+		
+		i = (crc_accum >> 24) ^ p[j];
 		crc_accum = (crc_accum << 8) ^ crc_table[i];
 	}
 
@@ -111,12 +112,12 @@ guint32 crc32_update_crc(guint32 crc_accum, const gchar *data, gint len)
 }
 
 /**
- * crc_init
- *
  * Initialize the CRC computations.
  */
-void crc_init(void)
+void
+crc_init(void)
 {
 	crc32_gen_crc_table();
 }
 
+/* vi: set ts=4 sw=4 cindent: */
