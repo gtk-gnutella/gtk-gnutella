@@ -55,10 +55,11 @@
 /**
  * Flags for browse_host_open().
  */
-#define BH_DEFLATE	0x00000001		/**< Deflate output */
-#define BH_CHUNKED	0x00000002		/**< Emit chunked data */
-#define BH_HTML		0x00000004		/**< Emit HTML data */
-#define BH_QHITS	0x00000008		/**< Emit Gnutella query hits */
+#define BH_DEFLATE	(1 << 0)		/**< Deflate output */
+#define BH_GZIP		(1 << 1)		/**< gzip output */
+#define BH_CHUNKED	(1 << 2)		/**< Emit chunked data */
+#define BH_HTML		(1 << 3)		/**< Emit HTML data */
+#define BH_QHITS	(1 << 4)		/**< Emit Gnutella query hits */
 
 struct gnutella_socket;
 struct bio_source;

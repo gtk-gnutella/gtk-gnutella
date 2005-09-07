@@ -552,13 +552,14 @@ browse_host_open(
 	if (flags & BH_CHUNKED)
 		bh->tx = tx_make_above(bh->tx, tx_chunk_get_ops(), 0);
 
-	if (flags & BH_DEFLATE) {
+	if (flags & (BH_DEFLATE | BH_GZIP)) {
 		struct tx_deflate_args args;
 		txdrv_t *ctx;
 
 		args.cq = callout_queue;
 		args.cb = deflate_cb;
 		args.nagle = FALSE;
+		args.gzip = 0 != (flags & BH_GZIP);
 		args.buffer_flush = INT_MAX;		/* Flush only at the end */
 		args.buffer_size = BH_BUFSIZ;
 

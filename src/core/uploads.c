@@ -2378,24 +2378,34 @@ static struct tx_link_cb upload_tx_link_cb = {
 };
 
 /**
- * Check whether remote end supports deflate, using a combination of both
- * HTTP headers and User-Agent to screen out known-to-be-broken agents.
+ * Check whether remote end supports deflate or gzip, using a combination
+ * of both HTTP headers and User-Agent to screen out known-to-be-broken agents.
+ *
+ * @return The chosen compression method.
+ *         0: no compression,
+ *         BH_GZIP: gzip,
+ *         BH_DEFLATE: deflate
  */
-static gboolean
-supports_deflate(header_t *header)
+static gint
+select_encoding(header_t *header)
 {
     const gchar *buf;
 
     /* XXX needs more rigourous parsing */
     buf = header_get(header, "Accept-Encoding");
-    if (!buf || !strstr(buf, "deflate"))
-        return FALSE;
+	if (buf) {
 
-    buf = header_get(header, "User-Agent");
-    if (buf && strstr(buf, "AppleWebKit"))
-        return FALSE;
+		if (strstr(buf, "deflate")) {
+			buf = header_get(header, "User-Agent");
+			if (NULL == buf || NULL == strstr(buf, "AppleWebKit"))
+				return BH_DEFLATE;
+		}
+		
+		if (strstr(buf, "gzip"))
+			return BH_GZIP;
+	}
 
-    return TRUE;
+    return 0;
 }
 
 /**
@@ -2520,12 +2530,14 @@ prepare_browsing(gnutella_upload_t *u, header_t *header,
 	 * Accept-Encoding -- see whether they want compressed output.
 	 */
 
-	if (supports_deflate(header)) {
-		bh_flags |= BH_DEFLATE;
+	bh_flags |= select_encoding(header);
 
+	if (bh_flags & (BH_DEFLATE | BH_GZIP)) {
 		g_assert(hevcnt < hevlen);
 		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-		hev[hevcnt].he_msg = "Content-Encoding: deflate\r\n";
+		hev[hevcnt].he_msg = (bh_flags & BH_GZIP)
+				? "Content-Encoding: gzip\r\n"
+				: "Content-Encoding: deflate\r\n";
 		hev[hevcnt++].he_arg = NULL;
 	}
 
@@ -2562,7 +2574,8 @@ prepare_browsing(gnutella_upload_t *u, header_t *header,
 		gm_snprintf(name, sizeof(name),
 				_("<Browse Host Request> [%s%s%s]"),
 				(bh_flags & BH_HTML) ? "HTML" : _("query hits"),
-				(bh_flags & BH_DEFLATE) ? _(", deflated") : "",
+				(bh_flags & BH_DEFLATE) ? _(", deflate") :
+					(bh_flags & BH_GZIP) ? _(", gzip") : "",
 				(bh_flags & BH_CHUNKED) ? _(", chunked") : "");
 
 		atom_str_free(u->name);
