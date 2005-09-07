@@ -46,6 +46,7 @@ RCSID("$Id$");
 
 #include "if/gnet_property_priv.h"
 
+#include "lib/endian.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -91,6 +92,11 @@ struct attr {
 	tx_closed_t closed;			/**< Callback to invoke when layer closed */
 	gpointer closed_arg;		/**< Argument for closing routine */
 	gboolean nagle;				/**< Whether to use Nagle or not */
+	struct {
+		gboolean	enabled;	/**< Whether to use gzip encapsulation */
+		guint32		size;		/**< Payload size counter for gzip */
+		uLong		crc;		/**< CRC-32 accumlator for gzip */
+	} gzip;
 };
 
 /*
@@ -280,25 +286,33 @@ retry:
 	g_assert(outz->avail_out > 0);
 	g_assert(outz->next_in);		/* We previously wrote something */
 
-	ret = deflate(outz, Z_SYNC_FLUSH);
+	ret = deflate(outz, (tx->flags & TX_CLOSING) ? Z_FINISH : Z_SYNC_FLUSH);
 
 	switch (ret) {
 	case Z_BUF_ERROR:				/* Nothing to flush */
 		return TRUE;
 	case Z_OK:
+	case Z_STREAM_END:
 		break;
 	default:
 		attr->flags |= DF_SHUTDOWN;
 		tx->flags |= TX_ERROR;
+
+		/* XXX: The callback must not destroy the tx! */
 		attr->cb->shutdown(tx->owner, "Compression flush failed: %s",
 				zlib_strerror(ret));
 		return FALSE;
 	}
 
-	b->wptr += old_avail - outz->avail_out;
+	{	
+		size_t written;
+		
+		written = old_avail - outz->avail_out;
+		b->wptr += written;
 
-	if (NULL != attr->cb->add_tx_deflated)
-		attr->cb->add_tx_deflated(tx->owner, old_avail - outz->avail_out);
+		if (NULL != attr->cb->add_tx_deflated)
+			attr->cb->add_tx_deflated(tx->owner, written);
+	}
 
 	/*
 	 * Check whether avail_out is 0.
@@ -405,7 +419,7 @@ deflate_nagle_timeout(cqueue_t *unused_cq, gpointer arg)
  * @return the amount of input bytes that were consumed ("added"), -1 on error.
  */
 static gint
-deflate_add(txdrv_t *tx, gpointer data, gint len)
+deflate_add(txdrv_t *tx, gconstpointer data, gint len)
 {
 	struct attr *attr = tx->opaque;
 	z_streamp outz = attr->outz;
@@ -427,6 +441,7 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 		gint old_added = added;
 		gboolean flush_started = (attr->flags & DF_FLUSH) ? TRUE : FALSE;
 		gint old_avail;
+		const gchar *in, *old_in;
 
 		/*
 		 * Prepare call to deflate().
@@ -435,7 +450,9 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 		outz->next_out = cast_to_gpointer(b->wptr);
 		outz->avail_out = old_avail = b->end - b->wptr;
 
-		outz->next_in = cast_to_gpointer(cast_to_gchar_ptr(data) + added);
+		in = data;
+		old_in = &in[added];
+		outz->next_in = deconstify_gpointer(old_in);
 		outz->avail_in = len - added;
 
 		g_assert(outz->avail_out > 0);
@@ -462,7 +479,7 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 		 */
 
 		b->wptr = cast_to_gpointer(outz->next_out);
-		added = cast_to_gchar_ptr(outz->next_in) - cast_to_gchar_ptr(data);
+		added = cast_to_gchar_ptr(outz->next_in) - in;
 
 		g_assert(added >= old_added);
 
@@ -470,6 +487,15 @@ deflate_add(txdrv_t *tx, gpointer data, gint len)
 
 		if (NULL != attr->cb->add_tx_deflated)
 			attr->cb->add_tx_deflated(tx->owner, old_avail - outz->avail_out);
+
+		if (attr->gzip.enabled) {
+			size_t r;
+		
+			r = cast_to_gchar_ptr(outz->next_in) - old_in;
+			attr->gzip.size += r;
+			attr->gzip.crc = crc32(attr->gzip.crc,
+								cast_to_gconstpointer(old_in), r);
+		}
 
 		/*
 		 * If we filled the output buffer, check whether we have a pending
@@ -678,7 +704,10 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 	outz->zfree = NULL;
 	outz->opaque = NULL;
 
-	ret = deflateInit(outz, Z_DEFAULT_COMPRESSION);
+	ret = targs->gzip
+		? deflateInit2(outz, Z_DEFAULT_COMPRESSION, Z_DEFLATED, (-MAX_WBITS),
+				MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY)
+		: deflateInit(outz, Z_DEFAULT_COMPRESSION);
 
 	if (Z_OK != ret) {
 		wfree(outz, sizeof *outz);
@@ -694,6 +723,7 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 	attr->buffer_size = targs->buffer_size;
 	attr->buffer_flush = targs->buffer_flush;
 	attr->nagle = targs->nagle;
+	attr->gzip.enabled = targs->gzip;
 
 	attr->outz = outz;
 	attr->flags = 0;
@@ -704,11 +734,32 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 		struct buffer *b = &attr->buf[i];
 
 		b->arena = b->wptr = b->rptr = g_malloc(attr->buffer_size);
-		b->end = b->arena + attr->buffer_size;
+		b->end = &b->arena[attr->buffer_size];
 	}
 
 	attr->fill_idx = 0;
 	attr->send_idx = -1;		/* Signals: none ready */
+
+	if (attr->gzip.enabled) {
+		/* See RFC 1952 - GZIP file format specification version 4.3 */
+		static const gchar header[] = {
+			0x1f, 0x8b, /* gzip magic */
+			0x08,		/* compression method: deflate */
+			0,			/* flags: none */
+			0, 0, 0, 0, /* modification time: unavailable */
+			0,			/* extra flags: none */
+			0xff,		/* filesystem: unknown */
+		};
+		struct buffer *b;
+
+		b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
+		g_assert(sizeof header <= (size_t) (b->end - b->wptr));
+		memcpy(b->wptr, header, sizeof header);
+		b->wptr += sizeof header;
+
+		attr->gzip.crc = crc32(0, NULL, 0);
+		attr->gzip.size = 0;
+	}
 
 	tx->opaque = attr;
 
@@ -863,9 +914,9 @@ tx_deflate_disable(txdrv_t *unused_tx)
 static size_t
 tx_deflate_pending(txdrv_t *tx)
 {
-	struct attr *attr = tx->opaque;
-	struct buffer *b;
-	gint pending;
+	const struct attr *attr = tx->opaque;
+	const struct buffer *b;
+	size_t pending;
 
 	b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
 	pending = b->wptr - b->rptr;
@@ -936,6 +987,23 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 	tx_deflate_flush(tx);
 
 	if (0 == tx_deflate_pending(tx)) {
+		if (attr->gzip.enabled) {
+			/* See RFC 1952 - GZIP file format specification version 4.3 */
+			struct buffer *b;
+			guint32 trailer[2]; /* 0: CRC32, 1: SIZE % (1 << 32) */
+
+			attr->send_idx = 0;
+			b = &attr->buf[attr->send_idx];
+			poke_le32(&trailer[0], (guint32) attr->gzip.crc);
+			poke_le32(&trailer[1], attr->gzip.size);
+			
+			g_assert(sizeof trailer <= (size_t) (b->end - b->wptr));
+			memcpy(b->wptr, trailer, sizeof trailer);
+			b->wptr += sizeof trailer;
+
+			deflate_send(tx);
+		}
+
 		if (dbg > 9)
 			printf("tx_deflate_close: flushed everything immediately\n");
 
