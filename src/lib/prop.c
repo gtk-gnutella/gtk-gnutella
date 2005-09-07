@@ -1169,8 +1169,7 @@ void
 prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 {
 	FILE *config;
-	time_t mtime = 0;
-	struct stat buf;
+	struct stat sb;
 	gchar *newfile;
 	gchar *pathname;
 	guint n;
@@ -1188,23 +1187,24 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 	pathname = make_pathname(dir, filename);
 	g_return_if_fail(NULL != pathname);
 
-	if (-1 == stat(pathname, &buf))
+	if (-1 == stat(pathname, &sb)) {
 		g_warning("could not stat \"%s\": %s", pathname, g_strerror(errno));
-	else
-		mtime = buf.st_mtime;
+	} else {
+		/*
+		 * Rename old config file if they changed it whilst we were running.
+		 */
 
-	/*
-	 * Rename old config file if they changed it whilst we were running.
-	 */
-
-	if (ps->mtime && mtime > ps->mtime) {
-		gchar *old = g_strconcat(pathname, ".old", (void *) 0);
-		g_warning("config file \"%s\" changed whilst I was running", pathname);
-		if (-1 == rename(pathname, old))
-			g_warning("unable to rename as \"%s\": %s", old, g_strerror(errno));
-		else
-			g_warning("renamed old copy as \"%s\"", old);
-		G_FREE_NULL(old);
+		if (ps->mtime && delta_time(sb.st_mtime, ps->mtime) > 0) {
+			gchar *old = g_strconcat(pathname, ".old", (void *) 0);
+			g_warning("config file \"%s\" changed whilst I was running",
+				pathname);
+			if (-1 == rename(pathname, old))
+				g_warning("unable to rename as \"%s\": %s",
+					old, g_strerror(errno));
+			else
+				g_warning("renamed old copy as \"%s\"", old);
+			G_FREE_NULL(old);
+		}
 	}
 
 	/*
@@ -1357,7 +1357,7 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		if (-1 == rename(newfile, pathname))
 			g_warning("could not rename %s as %s: %s",
 				newfile, pathname, g_strerror(errno));
-		ps->mtime = tm_time();
+		ps->mtime = tm_time_exact();
 	} else
 		g_warning("could not flush %s: %s", newfile, g_strerror(errno));
 
