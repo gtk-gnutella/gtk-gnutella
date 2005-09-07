@@ -3763,8 +3763,22 @@ download_orphan_new(
 	gchar *file, filesize_t size, gchar *sha1, fileinfo_t *fi)
 {
 	time_t ntime = fi->ntime;
-	(void) create_download(file, NULL, size, 0, zero_host_addr, 0,
-			blank_guid, NULL, sha1, tm_time(), FALSE, TRUE, TRUE, fi, NULL, 0);
+	(void) create_download(file,
+			NULL,	/* uri */
+		   	size,
+			0,		/* record_index */
+			host_addr_set_ipv4(0),	/* for host_addr_initialized() */
+			0,		/* port */
+			blank_guid,
+			NULL,	/* hostname*/
+			sha1,
+			tm_time(),
+			FALSE,	/* push */
+			TRUE,	/* interactive */
+			TRUE,	/* file_size_known */
+			fi,
+			NULL,	/* proxies */
+			0);		/* cflags */
 	fi->ntime = ntime;
 }
 
