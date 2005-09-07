@@ -3093,6 +3093,7 @@ node_is_now_connected(struct gnutella_node *n)
 		args.cq = callout_queue;
 		args.cb = &node_tx_deflate_cb;
 		args.nagle = TRUE;
+		args.gzip = FALSE;
 		args.buffer_size = NODE_TX_BUFSIZ;
 		args.buffer_flush = NODE_TX_FLUSH;
 
