@@ -12,7 +12,8 @@
 Change History
 
  _____________________________________________________________________________
-|Document_Revision|Protocol_Version|Date______|Changes________________________|
+|Document Revision|Protocol Version|Date      |Changes                        |
+|_________________|________________|__________|_______________________________|
 |                 |                |          |                               |
 |                 |                |          |* This GGEP document has a     |
 |                 |                |          |  revision number, the protocol|
@@ -195,14 +196,19 @@ Non-Error Checking Parsing Pseudo Code
 GGEP Block
 
  _______________________
-|GGEP_Extension_Prefix__|
-|GGEP_Extension_Header_0|
-|GGEP_Extension_Data_0__|
+|GGEP Extension Prefix  |
+|_______________________|
+|GGEP Extension Header 0|
+|_______________________|
+|GGEP Extension Data 0  |
+|_______________________|
 |.______________________|
 |.______________________|
 |.______________________|
-|GGEP_Extension_Header_N|
-|GGEP_Extension_Data_N__|
+|GGEP Extension Header N|
+|_______________________|
+|GGEP Extension Data N  |
+|_______________________|
 
 
 Extension Block
@@ -213,12 +219,13 @@ to merge multiple GGEP blocks into a single GGEP block.  If a newer extension
 format is created (either a new version of GGEP or another format altogether),
 they will appear AFTER the last GGEP block of an earlier version.
  ____________
-|GGEP_Block_0|
+|GGEP Block 0|
+|____________|
 |.___________|
 |.___________|
 |.___________|
-|GGEP_Block_N|
-
+|GGEP Block N|
+|____________|
 
 GGEP Extension Prefix
 
@@ -240,7 +247,7 @@ GGEP Extension Header
 |           |              |           |the extension ID.  See Appendix A on |
 |1          |1-15          |ID         |suggestions for creating extension   |
 |           |              |           |IDs.  No byte in the extension header|
-|___________|______________|___________|my_be_0x0.___________________________|
+|___________|______________|___________|may_be_0x0.__________________________|
 |           |              |           |This is the length of the raw        |
 |2          |1-3           |Data Length|extension data.  This field is       |
 |           |              |           |persisted according to the length    |
