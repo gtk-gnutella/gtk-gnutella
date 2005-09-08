@@ -94,7 +94,7 @@ INSTALLFLAGS = -m 444
 local_install::
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
 	for dir in $(PRIVLIB)/pixmaps; do	\
-	(set -x; test -d $(INSTALL_PREFIX)$$dir || \
+		(set -x; test -d $(INSTALL_PREFIX)$$dir || \
 		$(INSTALLDIR) $(INSTALL_PREFIX)$$dir);	\
 	done
 
@@ -105,7 +105,7 @@ local_deinstall::
 	done
 
 local_install:: $(PIXMAPS)
-	case '${MFLAGS}' in *[i]*) set +e;; esac;		\
+	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
 	(set -x; test -d $(INSTALL_PREFIX)$(PRIVLIB)/pixmaps || \
 		$(INSTALLDIR) $(INSTALL_PREFIX)$(PRIVLIB)/pixmaps); \
 	for i in $(PIXMAPS); do \
