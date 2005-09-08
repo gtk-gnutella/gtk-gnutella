@@ -69,6 +69,7 @@ RCSID("$Id$");
 static const gchar config_file[] = "config_gnet";
 static const gchar ul_stats_file[] = "upload_stats";
 
+#define PID_FILE_MODE	(S_IRUSR | S_IWUSR) /* 0600 */ 
 #define CONFIG_DIR_MODE	/* 0755 */ \
 	(S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 
@@ -131,66 +132,132 @@ listen_addr(void)
 /**
  * Look for any existing PID file. If found, look at the pid recorded
  * there and make sure it has died. Abort operations if it hasn't...
+ *
+ * @returns -1 on failure, the file descriptor of the pidfile otherwise.
  */
-static void
+static gint
 ensure_unicity(const gchar *file)
 {
-	FILE *f;
-	pid_t pid;
-	guint64 pid_value;
-	gint error;
-	gchar buf[16];
+	gint fd, e;
+	gboolean locking_failed;
 
-	f = file_fopen_missing(file, "r");
-	if (f == NULL)
-		return;				/* Assume it's missing if can't be opened */
+	g_assert(file);
 
-	buf[0] = '\0';
-	if (NULL == fgets(buf, sizeof(buf), f))
-		return;
-	fclose(f);
-
-	pid_value = parse_uint64(buf, NULL, 10, &error);
-	if (error)
-		return;				/* Can't read it back correctly */
-
-	pid = pid_value;
-
-	/*
-	 * Existence check relies on the existence of signal 0. The kernel
-	 * won't actually send anything, but will perform all the existence
-	 * checks inherent to the kill() syscall for us...
-	 */
-
-	if (-1 == kill(pid, 0)) {
-		if (errno != ESRCH)
-			g_warning("kill() return unexpected error: %s", g_strerror(errno));
-		return;
+	fd = file_create(file, O_RDWR, PID_FILE_MODE);
+	if (-1 == fd) {
+		e = errno;
+		g_warning("Could not access \"%s\": %s", file, g_strerror(e));
+		return -1;
 	}
 
-	fprintf(stderr,
-		"You seem to have left another gtk-gnutella running (pid = %ld)\n",
-		(glong) pid);
-	exit(1);
+/* FIXME: These might be enums, a compile-time check would be better */
+#if defined(F_SETLK) && defined(F_WRLCK)
+	{
+		static const struct flock zero_flock;
+		struct flock fl;
+
+		fl = zero_flock;
+		fl.l_type = F_WRLCK;
+		fl.l_whence = SEEK_SET;
+		fl.l_start = 0;
+		fl.l_len = 0;
+		
+		locking_failed = -1 == fcntl(fd, F_SETLK, &fl);
+		if (locking_failed) {
+			e = errno;
+			
+			locking_failed = TRUE;
+			g_warning("fcntl(%d, F_SETLK, ...) failed for \"%s\": %s",
+				fd, file, g_strerror(e));
+		}
+	}
+#else
+	locking_failed = TRUE;
+	errno = 0;
+#endif /* F_SETLK && F_WRLCK */
+
+	if (!locking_failed) {
+		/* Keep the fd open, otherwise the lock is lost */
+		return fd;
+	}
+	
+	if (EAGAIN == e || EACCES == e) {
+		/* The file appears to be locked */
+		close(fd);
+		return -1;
+	}
+	
+	/* Maybe F_SETLK is not supported by the OS or filesystem,
+	 * fall back to weaker PID locking */
+	{
+		ssize_t r;
+		gchar buf[33];
+
+		r = read(fd, buf, sizeof buf - 1);
+		e = errno;
+
+		if ((ssize_t) -1 == r) {
+			/* This would be odd */
+			g_warning("Could not read pidfile \"%s\": %s",
+					file, g_strerror(e));
+			close(fd);
+			return -1;
+		}
+
+		/* Check the PID in the file */	
+		{	
+			guint64 u;
+			gint error;
+
+			g_assert(r >= 0 && (size_t) r < sizeof buf);
+			buf[r] = '\0';
+
+			u = parse_uint64(buf, NULL, 10, &error);
+			
+			/* If the pidfile seems to be corrupt, ignore it */
+			if (!error && u > 1) {
+				pid_t pid = u;
+
+				if (0 == kill(pid, 0)) {
+					g_warning("Another gtk-gnutella process seems to "
+						"be still running (pid=%lu)", (gulong) pid);
+					close(fd);
+					return -1;
+				}
+			}
+		}
+	}
+
+	/* Keep the fd open, otherwise the lock is lost */
+	return fd;
 }
 
 /**
  * Write our pid to the pidfile.
  */
 static void
-save_pid(const gchar *file)
+save_pid(gint fd)
 {
-	FILE *f;
+	size_t len;
+	gchar buf[32];
 
-	f = file_fopen(file, "w");
-	if (f == NULL)
+	g_assert(-1 != fd);
+	
+	gm_snprintf(buf, sizeof buf, "%lu\n", (gulong) getpid());
+	len = strlen(buf);
+
+	if (-1 == ftruncate(fd, 0))	{
+		g_warning("ftruncate() failed for pidfile: %s", g_strerror(errno));
 		return;
-
-	fprintf(f, "%lu\n", (gulong) getpid());
-
-	if (0 != fclose(f))
-		g_warning("could not flush pidfile \"%s\": %s",
-			file, g_strerror(errno));
+	}
+	
+	if (0 != lseek(fd, 0, SEEK_SET))	{
+		g_warning("lseek() failed for pidfile: %s", g_strerror(errno));
+		return;
+	}
+	
+	if (len != (size_t) write(fd, buf, len))
+		g_warning("could not flush pidfile: %s", g_strerror(errno));
 }
 
 /* ----------------------------------------- */
@@ -351,8 +418,17 @@ settings_init(void)
 	/* Ensure we're the only instance running */
 
 	path = make_pathname(config_dir, pidfile);
-	ensure_unicity(path);
-	save_pid(path);
+	{
+		gint fd;
+		
+		if (-1 == (fd = ensure_unicity(path))) {
+			g_warning(
+				_("You seem to have left another gtk-gnutella running\n"));
+			exit(EXIT_FAILURE);
+		}
+		save_pid(fd);
+		/* The file descriptor must be kept open */
+	}
 	G_FREE_NULL(path);
 
 		/* Parse the configuration */
