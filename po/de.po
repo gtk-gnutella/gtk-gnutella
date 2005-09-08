@@ -880,7 +880,7 @@ msgid ""
 "it here."
 msgstr ""
 "Gtk-gnutella hat eine neuere Version im Gnet gefunden und zeigt hier "
-"Informationen darüberr an."
+"Informationen darüber an."
 
 #: src/if/gnet_property.c:682
 msgid ""
@@ -1147,9 +1147,9 @@ msgid ""
 "for efficient banning."
 msgstr ""
 "Maximaler Anteil an Dateideskriptoren für das Verbannen von Knoten. Falls "
-"das Betriebssystem z.B. 350 Dateideskriptoren zur Verfügung stellt und derr "
+"das Betriebssystem z.B. 350 Dateideskriptoren zur Verfügung stellt und der "
 "eingestellte Wert 10 ist, werden höchstens 35 Deskriptoren zum Bannen "
-"benutzt. Für effizientes Bannen msollten mindestens 100 Deskriptoren zur "
+"benutzt. Für effizientes Bannen sollten mindestens 100 Deskriptoren zur "
 "Verfügung stehen."
 
 #: src/if/gnet_property.c:1401
@@ -1191,7 +1191,7 @@ msgid ""
 "transmitted."
 msgstr ""
 "Dauer in Sekunden nach der eine Gnet-Verbindung abgebrochen wird, wenn keine "
-"Daten mehr übertragen werdenn."
+"Daten mehr übertragen werden."
 
 #: src/if/gnet_property.c:1521
 msgid ""
@@ -4250,7 +4250,7 @@ msgstr "Falls der Dateiname genau \"%s\" ist %s"
 #: src/ui/gtk/filter_core.c:988
 #, c-format
 msgid "If IP address matches %s/%s"
-msgstr "Falls die IP-Addresse auf %s/%s passt"
+msgstr "Falls die IP-Adresse auf %s/%s passt"
 
 #: src/ui/gtk/filter_core.c:997
 #, c-format
@@ -6974,7 +6974,7 @@ msgstr "Proxy-_Typ:"
 #: src/ui/gtk/gtk1/interface-glade.c:11527
 #: src/ui/gtk/gtk2/interface-glade.c:10056
 msgid "Use username and password to _authenticate to proxy"
-msgstr "Mit Benutzername und Password beim Proxy authentifizieren"
+msgstr "Mit Benutzername und Passwort beim Proxy authentifizieren"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11541
 #: src/ui/gtk/gtk2/interface-glade.c:10066
