@@ -346,6 +346,10 @@ do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 		return -1;
 	}
 
+#ifdef O_NOCTTY
+	flags |= O_NOCTTY;
+#endif /* O_NOCTTY */
+
 	fd = open(path, flags, mode);
 	if (fd >= 0)
 		return fd;
