@@ -470,6 +470,12 @@ ban_force(struct gnutella_socket *s)
 	sock_send_buf(s, SOCK_BUFFER, TRUE);
 	sock_recv_buf(s, SOCK_BUFFER, TRUE);
 
+	/*
+	 * Let the kernel discard incoming data; SHUT_WR or SHUT_RDWR
+	 * would cause to sent a FIN which we want to prevent.
+	 */
+	shutdown(s->file_desc, SHUT_RD);
+
 	s->file_desc = -1;				/* Prevent fd close by socket_free() */
 
 	/*
