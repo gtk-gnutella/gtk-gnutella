@@ -159,8 +159,7 @@ ensure_unicity(const gchar *file)
 		fl = zero_flock;
 		fl.l_type = F_WRLCK;
 		fl.l_whence = SEEK_SET;
-		fl.l_start = 0;
-		fl.l_len = 0;
+		/* l_start and l_len are zero, which means the whole is locked */
 		
 		locking_failed = -1 == fcntl(fd, F_SETLK, &fl);
 		if (locking_failed) {
@@ -169,6 +168,20 @@ ensure_unicity(const gchar *file)
 			locking_failed = TRUE;
 			g_warning("fcntl(%d, F_SETLK, ...) failed for \"%s\": %s",
 				fd, file, g_strerror(e));
+
+			/*
+			 * Use F_GETLK to determing the PID of the process, the
+			 * reinitialization of "fl" might be unnecessary but who
+			 * knows.
+			 */
+			fl = zero_flock;
+			fl.l_type = F_WRLCK;
+			fl.l_whence = SEEK_SET;
+
+			if (-1 != fcntl(fd, F_GETLK, &fl)) {
+				g_warning("Another gtk-gnutella process seems to "
+					"be still running (pid=%lu)", (gulong) fl.l_pid);
+			}
 		}
 	}
 #else
