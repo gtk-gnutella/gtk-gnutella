@@ -89,17 +89,22 @@ struct used_uhc {
 /**
  * The following hosts are there for bootstrapping purposes only.
  */
-static const gchar * const boot_hosts[] = {
-	"cache.kicks-ass.net:8000",
-	"crab2.dyndns.org:8003",
-	"g6.dns6.org:1337",
-	"gwc.mine.nu:9999",
-	"gwc1c.olden.ch:3559",
-	"krill.shacknet.nu:20095",
-	"plankton.merseine.nu:20098",
-	"secondary.udp-host-cache.com:9999",
-	"uhc.udp-host-cache.com:9999",
-	"uhc2.limewire.com:20181",
+static const struct {
+	const gchar *uhc;
+} boot_hosts[] = {
+	{ "cache.kicks-ass.net:8000" },
+	{ "crab2.dyndns.org:8003" },
+	{ "g6.dns6.org:1337" },
+	{ "gwc.mine.nu:9999" },
+	{ "gwc1c.olden.ch:3559" },
+	{ "gwc2.mine.nu:9999" },
+	{ "krill.shacknet.nu:20095" },
+	{ "plankton.merseine.nu:20098" },
+	{ "pokerface.bishopston.net:3558" },
+	{ "secondary.udp-host-cache.com:9999" },
+	{ "toadface.bishopston.net:3558" },
+	{ "uhc.udp-host-cache.com:9999" },
+	{ "uhc2.limewire.com:20181" },
 };
 
 static gboolean uhc_connecting = FALSE;
@@ -517,9 +522,24 @@ uhc_init(void)
 {
 	guint i;
 
-	for (i = 0; i < G_N_ELEMENTS(boot_hosts); i++)
-		add_available_uhc(boot_hosts[i]);
+	for (i = 0; i < G_N_ELEMENTS(boot_hosts); i++) {
+		const gchar *host, *ep, *uhc;
+		guint16 port;
 		
+		uhc = boot_hosts[i].uhc;
+
+		/* Some consistency checks */
+		uhc_get_host_port(uhc, &host, &port);
+		g_assert(NULL != host);
+		g_assert(0 != port);
+		
+		ep = is_strprefix(uhc, host);
+		g_assert(NULL != ep);
+		g_assert(':' == ep[0]);
+
+		add_available_uhc(uhc);
+	}
+	
 	uhc_ctx.guids = g_hash_table_new(guid_hash, guid_eq);
 }
 
