@@ -560,20 +560,60 @@ log_init(void)
 	}
 }
 
+/**
+ * Closes all file descriptors greater or equal to ``fd''.
+ */
+static void
+close_fds(gint fd)
+{
+	g_assert(fd >= 0);
+	
+#ifdef F_CLOSEM
+	if (-1 == fcntl(fd, F_CLOSEM))
+#endif
+	{
+		time_t start;
+		struct rlimit lim;
+		gint num_fds;
+	   
+	 	if (-1 != getrlimit(RLIMIT_NOFILE, &lim)) {
+			num_fds = lim.rlim_cur;
+		} else {
+#ifdef OPEN_MAX
+			num_fds = OPEN_MAX;
+#else
+			num_fds = 256;
+#endif
+		}
+
+		start = tm_time_exact();
+		for (/* NOTHING */; fd < num_fds; fd++) {
+			close(fd);
+
+			/* Just in case we're trying to close a bazillion fds on a vax */
+			if (0 == (fd & 0x100)) {
+				time_t now;
+				
+				now = tm_time_exact();
+				/* getrusage() would be much more appropriate */
+				if (delta_time(now, start) > 5)
+					break;
+			}
+		}
+	}
+}
+
 extern char **environ;
 
 int
 main(int argc, char **argv)
 {
-	gint i;
-
 	if (0 == getuid() || 0 == geteuid()) {
 		fprintf(stderr, "Never ever run this as root!\n");
 		exit(EXIT_FAILURE);
 	}
 
-	for (i = 3; i < 256; i++)
-		close(i);					/* Just in case */
+	close_fds(3); /* Just in case */
 
 	set_signal(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
 	set_signal(SIGPIPE, SIG_IGN);
