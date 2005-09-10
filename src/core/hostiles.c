@@ -80,7 +80,7 @@ static void
 hostiles_close_one(hostiles_t which)
 {
 	g_assert((gint) which >= 0 && which < NUM_HOSTILES);
-	
+
 	if (hostile_db[which]) {
 		iprange_free_each(hostile_db[which], NULL);
 		hostile_db[which] = NULL;
@@ -215,7 +215,7 @@ hostiles_retrieve_from_file(FILE *f, hostiles_t which,
 	g_assert(path);
 	g_assert(filename);
 	g_assert((gint) which >= 0 && which < NUM_HOSTILES);
-	
+
 	pathname = make_pathname(path, filename);
 	watcher_register(pathname, hostiles_changed, GUINT_TO_POINTER(which));
 	G_FREE_NULL(pathname);
@@ -269,7 +269,7 @@ hostiles_retrieve(hostiles_t which)
 #endif
 				{ PRIVLIB_EXP, hostiles_file },
 			};
-			
+
 
 			f = file_config_open_read_norename_chosen(
 				hostiles_what, fp, G_N_ELEMENTS(fp), &idx);
@@ -301,7 +301,7 @@ use_global_hostiles_txt_changed(property_t unused_prop)
 	if (use_global_hostiles_txt && !hostile_db[HOSTILE_GLOBAL]) {
 		hostiles_retrieve(HOSTILE_GLOBAL);
 	}
-	
+
     return FALSE;
 }
 
@@ -339,7 +339,7 @@ gboolean
 hostiles_check(const host_addr_t ha)
 {
 	host_addr_t to;
-	
+
 	if (host_addr_convert(ha, &to, NET_TYPE_IPV4)) {
 		guint32 ip;
 		gint i;

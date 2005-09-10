@@ -423,7 +423,7 @@ dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
 			dmesh_url_errno = DMESH_URL_RESERVED_INDEX;
 			return FALSE;				/* Index 0xffffffff is our mark */
 		}
-		
+
 		if (error || *endptr != '/') {
 			dmesh_url_errno = DMESH_URL_NO_FILENAME;
 			return FALSE;				/* Did not have "/get/234/" */
@@ -447,7 +447,7 @@ dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
 	}
 
 	g_assert(file != NULL);
-	
+
 	info->addr = addr;
 	info->port = port;
 	info->idx = idx;
@@ -674,7 +674,7 @@ dmesh_count(const gchar *sha1)
 	struct dmesh *dm;
 
 	g_assert(sha1);
-	
+
 	dm = g_hash_table_lookup(mesh, sha1);
 
 	if (dm)
@@ -1202,7 +1202,7 @@ dmesh_alternate_location(const gchar *sha1,
 
 			if (delta_time(banned->ctime, last_sent) > 0) {
 				const gchar *value;
-			   
+
 				value = host_addr_port_to_string(info->addr, info->port);
 
 				if (!header_fmt_value_fits(fmt, strlen(value), size / 3))

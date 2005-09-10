@@ -1,4 +1,6 @@
 /*
+ * $Id$
+ *
  * Copyright (c) 2004, Thomas Schuerger & Jeroen Asselman
  *
  *----------------------------------------------------------------------
@@ -168,7 +170,7 @@ hsep_check_monotony(hsep_triple *table, unsigned int triples)
 	g_assert(table);
 
 	for (i = 1; i < triples; i++) {
-		
+
 		/* if any triple is not >= the previous one, error will be TRUE */
 		for (j = 0; j < G_N_ELEMENTS(table[0]); j++)
 			error |= table[i - 1][j] > table[i][j];
@@ -307,7 +309,7 @@ hsep_triples_to_send(const hsep_triple *table, unsigned int triples)
 	 */
 
 	for (i = last; i-- > 0; triples--) {
-			
+
 		for (j = 0; j < G_N_ELEMENTS(table[0]); j++)
 	   		changed |= table[i][j] != table[last][j];
 
@@ -346,7 +348,7 @@ hsep_add_global_table_listener(GCallback cb, frequency_t t, guint32 interval)
 {
 	hsep_triple table[G_N_ELEMENTS(hsep_global_table)];
 	hsep_global_listener_t func = (hsep_global_listener_t) cb;
-	
+
 
 	/* add callback to the event subscriber list */
 	event_add_subscriber(hsep_global_table_changed_event, cb, t, interval);
@@ -648,11 +650,11 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 
 			for (j = 0; j < G_N_ELEMENTS(buf); j++)
 				uint64_to_string_buf(messaget[k][j], buf[j], sizeof buf[0]);
-		
-			STATIC_ASSERT(3 == G_N_ELEMENTS(buf));	
+
+			STATIC_ASSERT(3 == G_N_ELEMENTS(buf));
 			printf("(%s, %s, %s) ", buf[0], buf[1], buf[2]);
 		}
-		
+
 		for (j = 0; j < G_N_ELEMENTS(hsep_global_table[0]); j++) {
 			hsep_global_table[i][j] += messaget[k][j] - hsep->table[i][j];
 			hsep->table[i][j] = messaget[k][j];
@@ -670,9 +672,9 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 	/* Go back to last triple */
 	if (k > 0)
 		k--;
-	
+
 	for (/* NOTHING */; i < G_N_ELEMENTS(hsep_global_table); i++) {
-		
+
 		for (j = 0; j < G_N_ELEMENTS(hsep_global_table[0]); j++) {
 			hsep_global_table[i][j] += messaget[k][j] - hsep->table[i][j];
 			hsep->table[i][j] = messaget[k][j];
@@ -797,8 +799,8 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 				v = hsep_own[j] + hsep_global_table[i][j] - hsep->table[i][j];
 				uint64_to_string_buf(v, buf[j], sizeof buf[0]);
 			}
-		
-			STATIC_ASSERT(3 == G_N_ELEMENTS(buf));	
+
+			STATIC_ASSERT(3 == G_N_ELEMENTS(buf));
 			printf("(%s, %s, %s) ", buf[0], buf[1], buf[2]);
 		}
 	}
@@ -846,7 +848,7 @@ hsep_notify_shared(guint64 own_files, guint64 own_kibibytes)
 		own_files != hsep_own[HSEP_IDX_FILES] ||
 		own_kibibytes != hsep_own[HSEP_IDX_KIB]
 	) {
-		
+
 		if (hsep_debug) {
 			printf("HSEP: Shared files changed to %s (%s KiB)\n",
 			    uint64_to_string(own_files), uint64_to_string2(own_kibibytes));
@@ -902,7 +904,7 @@ hsep_get_connection_table(const struct gnutella_node *n,
 
 	maxtriples = MIN(maxtriples, G_N_ELEMENTS(n->hsep->table));
 	memcpy(buffer, n->hsep->table, maxtriples * sizeof buffer[0]);
-	
+
 	return maxtriples;
 }
 

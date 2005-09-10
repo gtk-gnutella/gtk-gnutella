@@ -187,13 +187,13 @@ struct item_count {
 	guint n;
 };
 
-static GList * 
+static GList *
 stats_update(GList *top, gpointer key, guint n)
 {
 	GList *l;
 	struct item_count *item = NULL;
 	guint last_n = 0;
-	
+
 	for (l = top; l != NULL; l = g_list_next(l)) {
 		struct item_count *ic = l->data;
 
@@ -222,7 +222,7 @@ stats_update(GList *top, gpointer key, guint n)
 		item->p = key;
 		item->n = n;
 	}
-	
+
 	for (l = top; l != NULL; l = g_list_next(l)) {
 		struct item_count *ic = l->data;
 
@@ -252,25 +252,25 @@ count_sha1(const gchar *sha1)
 		ht_sha1 = g_hash_table_new_full(NULL, NULL, free_sha1, NULL);
 		if (top_sha1) {
 			GList *l;
-			
+
 			g_message("SHA1 ranking:");
 			for (l = top_sha1; l != NULL; l = g_list_next(l)) {
 				struct item_count *ic = l->data;
-			
+
 				ic->p = atom_sha1_get(ic->p);
 				g_hash_table_insert(ht_sha1, ic->p, GUINT_TO_POINTER(ic->n));
 				g_message("%8u %s", ic->n, sha1_base32(ic->p));
 			}
 		}
 	}
-	
+
 	key = atom_sha1_get(sha1);
 	if (g_hash_table_lookup_extended(ht_sha1, key, NULL, &value)) {
 		n = GPOINTER_TO_UINT(value) + 1;
 	} else {
 		n = 1;
 	}
-			
+
 	g_hash_table_insert(ht_sha1, key, GUINT_TO_POINTER(n));
 	top_sha1 = stats_update(top_sha1, key, n);
 	if (++calls > 1000) {
@@ -278,7 +278,7 @@ count_sha1(const gchar *sha1)
 
 		for (l = top_sha1; l != NULL; l = g_list_next(l)) {
 			struct item_count *ic = l->data;
-			
+
 			ic->p = atom_sha1_get(ic->p);
 		}
 		g_hash_table_destroy(ht_sha1);
@@ -305,20 +305,20 @@ count_host(guint32 ip)
 			g_message("Host ranking:");
 			for (l = top_host; l != NULL; l = g_list_next(l)) {
 				struct item_count *ic = l->data;
-			
+
 				g_hash_table_insert(ht_host, ic->p, GUINT_TO_POINTER(ic->n));
 				g_message("%8d %s", ic->n,
 					ip_to_string(GPOINTER_TO_UINT(ic->p)));
 			}
 		}
 	}
-	
+
 	key = GUINT_TO_POINTER(ip);
 	if (g_hash_table_lookup_extended(ht_host, key, NULL, &value))
 		n = GPOINTER_TO_UINT(value) + 1;
 	else
 		n = 1;
-			
+
 	g_hash_table_insert(ht_host, key, GUINT_TO_POINTER(n));
 	top_host = stats_update(top_host, key, n);
 	if (++calls > 1000) {
@@ -630,7 +630,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 	}
 
 	count_host(rs->addr);
-	
+
 	/* Check for hostile IP addresses */
 
 	if (hostiles_check(rs->addr)) {
@@ -643,7 +643,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 	}
 
 	/* Check for valid IP addresses (unroutable => turn push on) */
-	
+
 	if (is_private_addr(rs->addr))
 		rs->status |= ST_FIREWALL;
 	else if (rs->port == 0 || bogons_check(rs->addr)) {
@@ -1174,7 +1174,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 				case EXT_T_GGEP_GTKG_IPV6:
 					{
 						host_addr_t addr;
-						
+
 						ret = ggept_gtkg_ipv6_extract(e, &addr);
 						if (GGEP_OK == ret) {
 							/* XXX: Check validity, hostiles etc. */
@@ -1629,7 +1629,7 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 	if (is_urn_search) {
 		gchar *query;
 		size_t hash_len;
-	   
+
 		STATIC_ASSERT(25 == sizeof *m);
 		query = cast_to_gpointer(&m[1]);
 		*query = '\0';
@@ -2101,7 +2101,7 @@ search_shutdown(void)
 		g_hash_table_destroy(ht_sha1);
 	if (ht_host)
 		g_hash_table_destroy(ht_host);
-	
+
 	g_hash_table_destroy(searches);
 	g_hash_table_destroy(search_by_muid);
     idtable_destroy(search_handle_map);
@@ -2616,11 +2616,11 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 		qdup = g_strdup(query);
 	} else {
 		const gchar *s;
-		
+
 		s = utf8_is_valid_string(query, 0)
 			? query
 			: locale_to_utf8_full(query);
-		
+
 		g_assert(*s == '\0' || utf8_is_valid_string(s, 0));
 		qdup = UNICODE_CANONIZE(s);
 		g_assert(qdup != s);
@@ -2645,9 +2645,9 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 
 	sch->query = atom_str_get(qdup);
 	sch->frozen = TRUE;
-	
+
 	G_FREE_NULL(qdup);
-	
+
 	if (flags & SEARCH_PASSIVE) {
 		sch->passive = TRUE;
 		search_passive++;

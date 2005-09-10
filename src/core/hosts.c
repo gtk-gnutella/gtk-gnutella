@@ -392,7 +392,7 @@ parse_netmasks(const gchar *str)
 			}
 			else {
 				gint error;
-				
+
 				mask_div = parse_uint32(p, NULL, 10, &error);
 				mask_div = MIN(32, mask_div);
 				if (error)
@@ -426,7 +426,7 @@ host_is_nearby(const host_addr_t addr)
 		for (i = 0; i < number_local_networks; i++) {
 			guint32 m_mask = local_networks[i].mask;
 			guint32 m_ip = local_networks[i].net;
-			
+
 			if ((host_addr_ipv4(addr) & m_mask) == (m_ip & m_mask))
 				return TRUE;
 		}

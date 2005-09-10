@@ -205,7 +205,7 @@ is_local_addr(const host_addr_t addr)
 
 			if (!is_host_addr(loopback))
 				loopback = string_to_host_addr("127.0.0.0", NULL);
-	
+
 			return	host_addr_matches(addr, loopback, 8) ||
 					host_addr_matches(addr, our_addr, 24); /* Same LAN/24 */
 		}
@@ -217,7 +217,7 @@ is_local_addr(const host_addr_t addr)
 	case NET_TYPE_NONE:
 		return FALSE;
 	}
-	g_assert_not_reached();	
+	g_assert_not_reached();
 	return FALSE;
 }
 
@@ -254,7 +254,7 @@ inet_udp_firewalled(void)
 		cq_cancel(callout_queue, incoming_udp_ev);
 		incoming_udp_ev = NULL;
 	}
-	
+
 	node_became_udp_firewalled();
 }
 

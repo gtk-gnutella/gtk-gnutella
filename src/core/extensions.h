@@ -48,7 +48,7 @@ typedef enum ext_type {
 	EXT_HUGE,			/**< Hash/URN Gnutella Extensions */
 	EXT_GGEP,			/**< Gnutella Generic Extension Protocol */
 	EXT_NONE,			/**< Not really an extension, only overhead */
-	
+
 	EXT_TYPE_COUNT
 } ext_type_t;
 
@@ -88,7 +88,7 @@ typedef enum ext_token {
 	EXT_T_GGEP_UP,			/**< UltraPeer information */
 	EXT_T_GGEP_VC,			/**< Vendor Code */
 	EXT_T_GGEP_u,			/**< HUGE URN in ASCII */
-	
+
 	EXT_T_TOKEN_COUNT
 } ext_token_t;
 

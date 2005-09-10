@@ -69,7 +69,7 @@ RCSID("$Id$");
 static const gchar config_file[] = "config_gnet";
 static const gchar ul_stats_file[] = "upload_stats";
 
-#define PID_FILE_MODE	(S_IRUSR | S_IWUSR) /* 0600 */ 
+#define PID_FILE_MODE	(S_IRUSR | S_IWUSR) /* 0600 */
 #define CONFIG_DIR_MODE	/* 0755 */ \
 	(S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 
@@ -160,11 +160,11 @@ ensure_unicity(const gchar *file)
 		fl.l_type = F_WRLCK;
 		fl.l_whence = SEEK_SET;
 		/* l_start and l_len are zero, which means the whole is locked */
-		
+
 		locking_failed = -1 == fcntl(fd, F_SETLK, &fl);
 		if (locking_failed) {
 			e = errno;
-			
+
 			locking_failed = TRUE;
 			g_warning("fcntl(%d, F_SETLK, ...) failed for \"%s\": %s",
 				fd, file, g_strerror(e));
@@ -193,13 +193,13 @@ ensure_unicity(const gchar *file)
 		/* Keep the fd open, otherwise the lock is lost */
 		return fd;
 	}
-	
+
 	if (EAGAIN == e || EACCES == e) {
 		/* The file appears to be locked */
 		close(fd);
 		return -1;
 	}
-	
+
 	/* Maybe F_SETLK is not supported by the OS or filesystem,
 	 * fall back to weaker PID locking */
 	{
@@ -217,8 +217,8 @@ ensure_unicity(const gchar *file)
 			return -1;
 		}
 
-		/* Check the PID in the file */	
-		{	
+		/* Check the PID in the file */
+		{
 			guint64 u;
 			gint error;
 
@@ -226,7 +226,7 @@ ensure_unicity(const gchar *file)
 			buf[r] = '\0';
 
 			u = parse_uint64(buf, NULL, 10, &error);
-			
+
 			/* If the pidfile seems to be corrupt, ignore it */
 			if (!error && u > 1) {
 				pid_t pid = u;
@@ -255,7 +255,7 @@ save_pid(gint fd)
 	gchar buf[32];
 
 	g_assert(-1 != fd);
-	
+
 	gm_snprintf(buf, sizeof buf, "%lu\n", (gulong) getpid());
 	len = strlen(buf);
 
@@ -263,12 +263,12 @@ save_pid(gint fd)
 		g_warning("ftruncate() failed for pidfile: %s", g_strerror(errno));
 		return;
 	}
-	
+
 	if (0 != lseek(fd, 0, SEEK_SET))	{
 		g_warning("lseek() failed for pidfile: %s", g_strerror(errno));
 		return;
 	}
-	
+
 	if (len != (size_t) write(fd, buf, len))
 		g_warning("could not flush pidfile: %s", g_strerror(errno));
 }
@@ -329,7 +329,7 @@ settings_getphysmemsize(void)
 	}
 
 	return amount / 1024;
-	
+
 #elif defined (HAS_SYSCTL) && defined (CTL_HW) && defined (HW_USERMEM)
 /* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
 	int mib[2] = { CTL_HW, HW_USERMEM };
@@ -433,7 +433,7 @@ settings_init(void)
 	path = make_pathname(config_dir, pidfile);
 	{
 		gint fd;
-		
+
 		if (-1 == (fd = ensure_unicity(path))) {
 			g_warning(
 				_("You seem to have left another gtk-gnutella running\n"));
@@ -961,7 +961,7 @@ listen_port_changed(property_t prop)
 
 	do {
 		host_addr_t listen_ha = zero_host_addr;
-		
+
 		if (random_port) {
 			guint32 i, b, r;
 
@@ -1002,7 +1002,7 @@ listen_port_changed(property_t prop)
 		 */
 
 		if (listen_port) {
-			
+
 			switch (network_protocol) {
 			case NET_USE_BOTH:
 			case NET_USE_IPV4:
@@ -1191,13 +1191,13 @@ static gboolean
 file_path_changed(property_t prop)
 {
     gchar *s;
-	
+
 	s = gnet_prop_get_string(prop, NULL, 0);
 	g_assert(s != NULL);
 
 	if (!is_directory(s)) {
 		g_message("Attempt to create directory \"%s\"", s);
-		
+
 		if (0 != create_directory(s))
 			g_message("Attempt failed: \"%s\"", g_strerror(errno));
 	}

@@ -1,4 +1,6 @@
 /*
+ * $Id$
+ *
  * Copyright (c) 2002, Vidar Madsen
  *
  *----------------------------------------------------------------------
@@ -114,7 +116,7 @@ whitelist_retrieve(void)
         if (!is_host_addr(addr)) {
 			guchar c = *endptr;
 			size_t len;
-			
+
 			switch (c) {
 			case '\0':
 			case ':':
@@ -124,8 +126,8 @@ whitelist_retrieve(void)
 				if (!is_ascii_space(c))
 					endptr = NULL;
 			}
-		
-			if (!endptr) {	
+
+			if (!endptr) {
            		g_warning("whitelist_retrieve(): "
 					"Line %d: Expected a hostname or IP address \"%s\"",
 						linenum, line);
@@ -152,18 +154,18 @@ whitelist_retrieve(void)
 		/* Ignore trailing items separated by a space */
 		while ('\0' != *endptr && !is_ascii_space(*endptr)) {
 			guchar c = *endptr++;
-			
+
 			if (':' == c) {
 				gint error;
 				guint32 v;
-		
+
 				if (0 != port) {
 					g_warning("whitelist_retrieve(): Line %d:"
 						"Multiple colons after host", linenum);
 					addr = zero_host_addr;
 					break;
 				}
-					
+
             	v = parse_uint32(endptr, &endptr, 10, &error);
 				port = (error || v > 0xffff) ? 0 : v;
 				if (0 == port) {
@@ -198,11 +200,11 @@ whitelist_retrieve(void)
 						addr = zero_host_addr;
 						break;
 					}
-						
+
 				} else {
 					gint error;
 					guint32 v;
-					
+
             		v = parse_uint32(endptr, &endptr, 10, &error);
 					if (
 						error ||
@@ -228,7 +230,7 @@ whitelist_retrieve(void)
         if (!is_host_addr(addr)) {
 			continue;
 		}
-	
+
 		if (0 == bits)	{
 			/* Default mask */
 			switch (host_addr_net(addr)) {
@@ -246,7 +248,7 @@ whitelist_retrieve(void)
 
 		{
     		struct whitelist *item;
-			
+
         	item = walloc0(sizeof *item);
 			item->addr = addr;
         	item->port = port;
@@ -313,7 +315,7 @@ whitelist_close(void)
 
     for (sl = sl_whitelist; sl; sl = g_slist_next(sl)) {
 		struct whitelist *item;
-		
+
 		item = sl->data;
         wfree(item, sizeof *item);
 	}

@@ -137,12 +137,12 @@ ggept_ip_vec_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
 	struct gnutella_host *vec;
 	const gchar *p;
 	gint tlen, cnt, i;
-	
+
 	g_assert(exv);
 	g_assert(hvec);
 	g_assert(hvcnt);
 	g_assert(EXT_GGEP == exv->ext_type);
-	
+
 	tlen = ext_paylen(exv);
 
 	if (tlen <= 0)
@@ -184,7 +184,7 @@ ggept_alt_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
 {
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_ALT);
-	
+
 	return ggept_ip_vec_extract(exv, hvec, hvcnt);
 }
 
@@ -202,7 +202,7 @@ ggept_push_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
 {
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_PUSH);
-	
+
 	return ggept_ip_vec_extract(exv, hvec, hvcnt);
 }
 
@@ -344,7 +344,7 @@ ggep_vlint_encode(guint64 v, gchar *data)
 gint
 ggept_lf_encode(guint64 filesize, gchar *data)
 {
-	return ggep_vlint_encode(filesize, data); 
+	return ggep_vlint_encode(filesize, data);
 }
 
 /**
@@ -388,7 +388,7 @@ ggept_du_extract(extvec_t *exv, guint32 *uptime)
 gint
 ggept_du_encode(guint32 uptime, gchar *data)
 {
-	return ggep_vlint_encode(uptime, data); 
+	return ggep_vlint_encode(uptime, data);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

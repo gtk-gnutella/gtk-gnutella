@@ -142,8 +142,6 @@ static const gchar *tok_errstr[] = {
 };
 
 /**
- * tok_strerror
- *
  * @return human-readable error string corresponding to error code `errnum'.
  */
 const gchar *tok_strerror(tok_error_t errnum)
@@ -155,10 +153,9 @@ const gchar *tok_strerror(tok_error_t errnum)
 }
 
 /**
- * find_tokkey
- *
  * Based on the timestamp, determine the proper token keys to use.
- * @returns NULL if we cannot locate any suitable keys.
+ *
+ * @return NULL if we cannot locate any suitable keys.
  */
 static const struct tokkey *find_tokkey(time_t now)
 {
@@ -176,8 +173,6 @@ static const struct tokkey *find_tokkey(time_t now)
 }
 
 /**
- * random_key
- *
  * Pickup a key randomly.
  *
  * @returns the key string and the index within the key array into `idx'
@@ -209,8 +204,6 @@ static const gchar *random_key(
 }
 
 /**
- * tok_generate
- *
  * Generate new token for given version string.
  */
 static gchar *tok_generate(time_t now, const gchar *version)
@@ -286,8 +279,6 @@ static gchar *tok_generate(time_t now, const gchar *version)
 }
 
 /**
- * tok_version
- *
  * Get a version token, base64-encoded.
  *
  * @returns a pointer to static data.
@@ -326,8 +317,6 @@ gchar *tok_version(void)
 }
 
 /**
- * tok_short_version
- *
  * Get a version token for the short version string, base64-encoded.
  *
  * @returns a pointer to static data.
@@ -360,8 +349,6 @@ gchar *tok_short_version(void)
 }
 
 /**
- * tok_version_valid
- *
  * Validate a base64-encoded version token `tokenb64' of `len' bytes.
  * The `ip' is given only for clock update operations.
  *
@@ -511,8 +498,6 @@ tok_error_t tok_version_valid(
 }
 
 /**
- * tok_is_ancient
- *
  * Check whether the version is too ancient to be able to generate a proper
  * token string identifiable by remote parties.
  */

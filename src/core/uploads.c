@@ -965,7 +965,7 @@ send_upload_error_v(
 				"</html>"
 					"\r\n",
 					retry, '\0' != href[0] ? index_href : "", href,
-					retry, retry);			
+					retry, retry);
 		}
 	}
 
@@ -1751,7 +1751,7 @@ get_file_to_upload_from_index(
 	 */
 	{
 		const gchar *urn;
-		
+
 		if (NULL != (urn = header_get(header, "X-Gnutella-Content-Urn")))
 			sent_sha1 = dmesh_collect_sha1(urn, digest);
 	}
@@ -2400,7 +2400,7 @@ select_encoding(header_t *header)
 			if (NULL == buf || NULL == strstr(buf, "AppleWebKit"))
 				return BH_DEFLATE;
 		}
-		
+
 		if (strstr(buf, "gzip"))
 			return BH_GZIP;
 	}
@@ -2410,7 +2410,8 @@ select_encoding(header_t *header)
 
 /**
  * Prepare the browse host request.
- * Return TRUE if we may go on, FALSE if we've replied to the remote
+ *
+ * @return TRUE if we may go on, FALSE if we've replied to the remote
  * host and either expect a new request now or terminated the connection.
  */
 static gboolean
@@ -2643,7 +2644,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	/* @todo TODO: Parse the HTTP request properly:
 	 *		- Check for illegal characters (like NUL)
 	 */
-	
+
 	/*
 	 * If we remove the upload in upload_remove(), we'll decrement
 	 * running_uploads.  However, for followup-requests, the upload slot
@@ -2719,17 +2720,17 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		/* Get rid of the trailing HTTP/<whatever> */
 		end = strstr(request, " HTTP/");
 		g_assert(NULL != end);
-		
+
 		while (end != request && is_ascii_blank(*(end - 1)))
 			*end--;
-		
+
 		*end = '\0';
 	}
 
 	/* Separate the HTTP method (like GET or HEAD) */
 	{
 		gchar *end = request;
-		
+
 		while ('\0' != *end && !is_ascii_blank(*end))
 			end++;
 
@@ -2737,7 +2738,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		*end = '\0';
 	}
 	method = request;
-	
+
 	/*
 	 * If `head_only' is true, the request was a HEAD and we're only going
 	 * to send back the headers.
@@ -2762,11 +2763,11 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	host[0] = '\0';
 	{
 		const gchar *ep;
-		
+
 		if (NULL != (ep = is_strcaseprefix(uri, "http://"))) {
 			const gchar *h = ep;
 			size_t len = ep - h;
-			
+
 			if (!string_to_host_or_addr(h, &ep, NULL)) {
 				upload_error_remove(u, NULL, 400, "Unparsable Host");
 				return;
@@ -2805,7 +2806,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		upload_error_remove(u, NULL, 400, "Bad Path");
 		return;
 	}
-	
+
 	/*
 	 * If HTTP/1.1 or above, check the Host header.
 	 *

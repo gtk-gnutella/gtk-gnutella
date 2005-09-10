@@ -187,7 +187,7 @@ parse_chunk(rxdrv_t *rx, const gchar *src, size_t size,
 			while (len > 0) {
 				len--;
 				if ('\n' == *src++) {
-					
+
 					/*
 					 * Pick up the collected hex digits and
 					 * calculate the chunk-size.
@@ -254,7 +254,7 @@ parse_chunk(rxdrv_t *rx, const gchar *src, size_t size,
 				}
 			}
 			break;
-			
+
 		case CHUNK_STATE_END:
 			/*
 			 * We're not supposed to receive data after the chunk stream
@@ -265,7 +265,7 @@ parse_chunk(rxdrv_t *rx, const gchar *src, size_t size,
 
 			error_str = "Remaining data after chunk end";
 			goto error;
-			
+
 		case CHUNK_STATE_DATA:
 		case CHUNK_STATE_ERROR:
 		case NUM_CHUNK_STATES:
@@ -286,9 +286,9 @@ parse_chunk(rxdrv_t *rx, const gchar *src, size_t size,
 		*p_error_str = NULL;
 
 	return size - len;
-	
+
 error:
-	
+
 	if (p_error_str)
 		*p_error_str = error_str;
 
@@ -316,7 +316,7 @@ dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 
 	while (size > 0) {
 		size_t ret;
-		
+
 		g_assert(CHUNK_STATE_ERROR != attr->state);
 
 		/*

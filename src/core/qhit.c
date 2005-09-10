@@ -287,7 +287,7 @@ qhit_send_node(gpointer data, size_t len, gpointer udata)
 	}
 
 	g_assert(len <= INT_MAX);
-	
+
 	/*
 	 * We limit the TTL to the minimal possible value, then add a margin
 	 * of 5 to account for re-routing abilities some day.  We then trim
@@ -473,7 +473,7 @@ flush_match(void)
 	 * Advertise the Browse Host extension in the results if the feature is
 	 * enabled.
      */
-	
+
 	if (browse_host_enabled) {
 		if (!ggep_stream_pack(&gs, GGEP_NAME(BH), NULL, 0, 0))
 			g_warning("could not write GGEP \"BH\" extension into query hit");
@@ -567,7 +567,7 @@ add_file(const struct shared_file *sf)
 	 */
 
 	fs32 = sf->file_size >= (1U << 31) ? ~0U : sf->file_size;
-	
+
 	WRITE_GUINT32_LE(sf->file_index, &idx_le);
 	if (!found_write(&idx_le, sizeof idx_le))
 		return FALSE;

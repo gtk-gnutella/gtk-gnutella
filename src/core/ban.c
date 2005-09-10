@@ -658,7 +658,7 @@ ban_vendor(const gchar *vendor)
 
 	if (vendor[0] == 'G') {
 		const gchar *ver;
-		
+
 		if (NULL != (ver = is_strprefix(vendor, "Gnucleus "))) {
 			if (is_strprefix(ver, "1.6.0.0"))
 				return harmful;

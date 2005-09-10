@@ -2735,11 +2735,11 @@ node_became_udp_firewalled(void)
 
 		if (0 == (n->attrs & NODE_A_CAN_VENDOR))
 			continue;
-		
+
 		vmsg_send_udp_connect_back(n, listen_port);
 		g_message("sent UDP connect back request to %s",
 				host_addr_port_to_string(n->addr, n->port));
-			
+
 		if (3 == ++sent)
 			break;
 	}
@@ -3435,10 +3435,10 @@ feed_host_cache_from_string(const gchar *s, host_type_t type, const gchar *name)
 	for (n = 0; NULL != s; s = strchr(s, ',')) {
 		host_addr_t addr;
 		guint16 port;
-		
+
 		if (',' == s[0])
 			s++;
-			
+
 		s = skip_ascii_spaces(s);
 		addr = string_to_host_addr(s, &s);
 		if (!is_host_addr(addr))
@@ -3474,7 +3474,7 @@ feed_host_cache_from_string(const gchar *s, host_type_t type, const gchar *name)
  * @param sender the host_type_t of the sender, if unknown use HOST_ANY.
  * @param gnet should be set to TRUE if the headers come from a Gnutella
  *			handshake.
- * @param peer the peer address who sent the headers. 
+ * @param peer the peer address who sent the headers.
  *
  * @return the amount of valid peer addresses we parsed.
  *
@@ -3517,15 +3517,15 @@ feed_host_cache_from_headers(header_t *header,
 			name = headers[i].name;
 			if (gnet && NULL != (p = is_strprefix(name, "X-")))
 				name = p;
-				
+
 			type = headers[i].sender ? sender : headers[i].type;
 			val = header_get(header, name);
 			if (!val)
 				continue;
-			
+
 			r = feed_host_cache_from_string(val, type, name);
 			n += r;
-			
+
 			if (dbg > 0) {
 				if (r > 0)
 					g_message("Peer %s sent %u pong%s in %s header\n",
@@ -3587,9 +3587,9 @@ void
 node_check_remote_ip_header(const host_addr_t peer, header_t *head)
 {
 	host_addr_t addr;
-	
+
 	g_assert(head != NULL);
-	
+
 	/*
 	 * Remote-IP -- IP address of this node as seen from remote node
 	 *
@@ -3601,14 +3601,14 @@ node_check_remote_ip_header(const host_addr_t peer, header_t *head)
 
 	if (force_local_ip)
 		return;
-	
+
 	addr = extract_my_addr(head);
 	if (
 		!is_host_addr(addr) ||
 		host_addr_equal(addr, string_to_host_addr(local_ip, NULL))
 	)
 		return;
-	
+
 	if (dbg > 0) {
 		const gchar *ua;
 
@@ -4171,7 +4171,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	field = header_get(head, "X-Query-Routing");
 	if (field) {
 		guint major, minor;
-		
+
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major >= n->qrp_major || minor >= n->qrp_minor)
 			if (dbg) g_warning("node %s <%s> now claims QRP version %u.%u, "
@@ -4503,7 +4503,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	/* Check for (X-)Remote-IP header and handle it */
 	node_check_remote_ip_header(n->addr, head);
-		
+
 	/* X-Live-Since -- time at which the remote node started. */
 	/* Uptime -- the remote host uptime.  Only used by Gnucleus. */
 
@@ -4599,7 +4599,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "Crawler");
 	if (field) {
-		
+
 		n->flags |= NODE_F_CRAWLER;
         gnet_prop_set_guint32_val(PROP_CRAWLER_VISIT_COUNT,
             crawler_visit_count + 1);
@@ -4699,7 +4699,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	field = header_get(head, "X-Ultrapeer-Query-Routing");
 	if (field) {
 		guint major, minor;
-		
+
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || minor > 1)
 			if (dbg) g_warning("node %s <%s> claims Ultra QRP version %u.%u",
@@ -4717,7 +4717,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	field = header_get(head, "X-Dynamic-Querying");
 	if (field) {
 		guint major, minor;
-		
+
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || minor > 1)
 			if (dbg)
@@ -4733,7 +4733,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	if (field) {
 		guint32 value;
 		gint error;
-		
+
 		value = parse_uint32(field, NULL, 10, &error);
 		if (error || value < 1 || value > 255) {
 			value = max_ttl;
@@ -4750,7 +4750,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	if (field) {
 		guint32 value;
 		gint error;
-		
+
 		value = parse_uint32(field, NULL, 10, &error);
 		if (value < 1 || value > 200) {
 			if (dbg) g_warning("node %s <%s> advertises weird degree %s",
@@ -6248,12 +6248,12 @@ node_init_outgoing(struct gnutella_node *n)
 			return;
 		}
 		break;
-		
+
 	case 0:
 		node_remove(n, _("Connection reset during HELLO"));
 		return;
-		
-	default:	
+
+	default:
 		g_assert(sent > 0);
 		g_assert((size_t) sent <= n->hello.len);
 		n->hello.pos += sent;
@@ -7078,7 +7078,7 @@ node_close(void)
 		struct gnutella_node *n = sl_nodes->data;
 
 		g_assert(n->magic == NODE_MAGIC);
-		
+
 		if (n->socket) {
 			if (n->socket->getline)
 				getline_free(n->socket->getline);
@@ -7521,7 +7521,7 @@ node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 
 	if (node->shutdown_delay) {
 		gint d = delta_time(tm_time(), node->shutdown_date);
-		
+
    		status->shutdown_remain = (gint) node->shutdown_delay > d
 			? node->shutdown_delay - d : 0;
 	} else {

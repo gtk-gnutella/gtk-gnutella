@@ -1068,7 +1068,7 @@ recurse_scan(gchar *dir, const gchar *basedir)
 						"\"%s\"", full);
 					break;
 				}
-				
+
 				if (stat(full, &file_stat) == -1) {
 					g_warning("can't stat %s: %s", full, g_strerror(errno));
 					break;
@@ -1093,7 +1093,7 @@ recurse_scan(gchar *dir, const gchar *basedir)
 				found = walloc0(sizeof *found);
 
 				found->file_path = atom_str_get(full);
-				
+
 				q = locale_to_utf8_normalized(name, UNI_NORM_NFC);
 				found->name_nfc = atom_str_get(q);
 				if (q != name)
@@ -1108,7 +1108,7 @@ recurse_scan(gchar *dir, const gchar *basedir)
 				printf("\npath=\"%s\"\nnfc=\"%s\"\ncanonic=\"%s\"\n",
 					found->file_path, found->name_nfc, found->name_canonic);
 #endif
-				
+
 				found->name_nfc_len = strlen(found->name_nfc);
 				found->name_canonic_len = strlen(found->name_canonic);
 

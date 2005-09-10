@@ -100,10 +100,10 @@ static gchar dl_tmp[4096];
 static gint queue_frozen = 0;
 
 static const gchar DL_OK_EXT[] = ".OK";		/**< Extension to mark OK files */
-static const gchar DL_BAD_EXT[] = ".BAD"; 	/**< "Bad" files (SHA1 mismatch) */
+static const gchar DL_BAD_EXT[] = ".BAD";	/**< "Bad" files (SHA1 mismatch) */
 static const gchar DL_UNKN_EXT[] = ".UNKN";		/**< For unchecked files */
 static const gchar file_what[] = "downloads"; /**< What is persisted to file */
-static const gchar no_reason[] = "<no reason>"; /* Don't translate this */
+static const gchar no_reason[] = "<no reason>"; /**< Don't translate this */
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
 static gboolean send_push_request(const gchar *, guint32, guint16);
@@ -973,7 +973,7 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 
 	if (download_debug) {
 		gchar buf[128];
-		
+
 		g_strlcpy(buf, host_addr_to_string(new_addr), sizeof buf);
 		g_message("server <%s> at %s:%u changed its IP from %s to %s",
 			server->vendor == NULL ? "UNKNOWN" : server->vendor,
@@ -1362,7 +1362,7 @@ download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi)
 	for (sl = sl_downloads; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
 		gboolean is_running;
-		
+
 		g_assert(d != NULL);
 
 		if (d->status == GTA_DL_REMOVED)
@@ -3309,7 +3309,7 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	if (host_addr_equal(addr, listen_addr()) && port == listen_port) {
 		if (download_debug)
 			g_warning("create_download(): ignoring download from own address");
-		
+
 		return NULL;
 	}
 
@@ -4136,13 +4136,13 @@ send_push_request(const gchar *guid, guint32 file_id, guint16 port)
 
 	packet = build_push(&size, hard_ttl_limit, 0, guid,
 				listen_addr(), port, file_id);
-		
+
 	if (NULL == packet) {
 		g_warning("Failed to send push to %s (index=%lu)",
 			host_addr_port_to_string(listen_addr(), port), (gulong) file_id);
 		return FALSE;
 	}
-	
+
 	/*
 	 * Send the message to all the nodes that can route our request back
 	 * to the source of the query hit.
@@ -4566,7 +4566,7 @@ download_write_data(struct download *d)
 
 	if (fi->use_swarming) {
 		enum dl_chunk_status status;
-	   
+
 		status = file_info_pos_status(fi, d->pos);
 		switch (status) {
 		case DL_CHUNK_DONE:
@@ -5575,7 +5575,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		gcu_gui_update_download_server(d);
 
 	node_check_remote_ip_header(download_addr(d), header);
-	
+
 	/*
 	 * Check status.
 	 */
@@ -6225,14 +6225,14 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 				gm_snprintf(got, sizeof got, "got %s - %s",
 					uint64_to_string(start), uint64_to_string2(end));
-					
+
 				/* XXX: Should we check whether we can use this range
 				 *		nonetheless? This addresses the problem described
 				 *		here:
 				 *
 				 * 		http://sf.net/mailarchive/message.php?msg_id=10454795
 				 */
-					
+
 				g_message(
 					"File '%s' on %s (%s): Range mismatch: wanted %s - %s, %s",
 					d->file_name,
@@ -7653,7 +7653,7 @@ download_retrieve(void)
 				goto out;
 			}
 			endptr = skip_ascii_blanks(++endptr);
-			
+
 			if (!string_to_host_addr_port(endptr, &endptr, &d_addr, &d_port)) {
 				g_message("download_retrieve(): "
 					"bad IP:port at line #%d: %s", line, dl_tmp);
@@ -7665,12 +7665,12 @@ download_retrieve(void)
 			if (',' == *endptr) {
 				const gchar *end = &d_hostname[sizeof d_hostname - 1];
 				gchar c, *s = d_hostname;
-				
+
 				endptr = skip_ascii_blanks(++endptr);
 				while (end != s && '\0' != (c = *endptr++)) {
 					if (!is_ascii_alnum(c) && '.' != c && '-' != c)
 						break;
-					*s++ = c;	
+					*s++ = c;
 				}
 				*s = '\0';
 			}
@@ -8366,9 +8366,9 @@ download_get_hostname(const struct download *d)
 		port = download_port(d);
 		encrypted = 0 != (d->cflags & CONNECT_F_TLS);
 	}
-	
+
 	enc = encrypted ? " (E)" : "";
-	if (d->server->hostname)	
+	if (d->server->hostname)
 		gm_snprintf(buf, sizeof buf, "%s:%u%s", d->server->hostname, port, enc);
 	else
 		concat_strings(buf, sizeof buf,

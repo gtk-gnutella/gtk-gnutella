@@ -1691,7 +1691,7 @@ static void
 pcache_udp_ping_received(struct gnutella_node *n)
 {
 	g_assert(NODE_IS_UDP(n));
-	
+
 	/*
 	 * If we got a PING whose MUID is our node's GUID, then it's a reply
 	 * to our "UDP Connect Back" message.  Ignore it, we've already

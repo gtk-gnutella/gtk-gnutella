@@ -163,14 +163,14 @@ http_send_status(
 
 	for (i = 0; i < hevcnt; i++) {
 		http_extra_desc_t *he = &hev[i];
-		
+
 		if (HTTP_EXTRA_BODY == he->he_type) {
 			if ('\0' != he->he_msg[0])
 				body = he->he_msg;
 			break;
 		}
 	}
-	
+
 	if (code < 300 || !keep_alive || body)
 		no_content = "";
 
@@ -233,7 +233,7 @@ http_send_status(
 	if (rw < header_size)
 		rw += gm_snprintf(&header[rw], header_size - rw, "\r\n");
 
-	if (body)	
+	if (body)
 		rw += gm_snprintf(&header[rw], header_size - rw, "%s", body);
 
 	if (rw >= header_size && hev) {
@@ -744,7 +744,7 @@ http_content_range_parse(const gchar *buf,
 	 * According to the HTTP/1.1 specs, start <= end < total
 	 * must be true, otherwise the range is invalid.
 	 */
-	
+
 	if (error || *start > *end || *end >= *total)
 		return -1;
 
@@ -800,14 +800,14 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 			/* Ensure range is not overlapping with previous */
 			if (prev != NULL) {
 				http_range_t *pr = (http_range_t *) prev->data;
-				
+
 				if (pr->end >= start) {
 					gchar start_buf[UINT64_DEC_BUFLEN];
 					gchar end_buf[UINT64_DEC_BUFLEN];
 
 					uint64_to_string_buf(start, start_buf, sizeof start_buf);
 					uint64_to_string_buf(end, end_buf, sizeof end_buf);
-					
+
 					g_warning("vendor <%s> sent us overlapping range %s-%s "
 						"(with previous %s-%s) in the %s header -- ignoring",
 						vendor, start_buf, end_buf,
@@ -825,10 +825,10 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 				if (nr->start <= end) {
 					gchar start_buf[UINT64_DEC_BUFLEN];
 				   	gchar end_buf[UINT64_DEC_BUFLEN];
-					
+
 					uint64_to_string_buf(start, start_buf, sizeof start_buf);
 					uint64_to_string_buf(end, end_buf, sizeof end_buf);
-					
+
 					g_warning("vendor <%s> sent us overlapping range %s-%s "
 						"(with next %s-%s) in the %s header -- ignoring",
 						vendor, start_buf, end_buf,
@@ -846,10 +846,10 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 		if (r->end >= start) {
 			gchar start_buf[UINT64_DEC_BUFLEN];
 			gchar end_buf[UINT64_DEC_BUFLEN];
-			
+
 			uint64_to_string_buf(start, start_buf, sizeof start_buf);
 			uint64_to_string_buf(end, end_buf, sizeof end_buf);
-			
+
 			g_warning("vendor <%s> sent us overlapping range %s-%s "
 				"(with %s-%s) in the %s header -- ignoring",
 				vendor, start_buf, end_buf, uint64_to_string(r->start),

@@ -79,7 +79,7 @@ static gchar gwc_tmp[1024];
 
 struct gwc {
 	gchar *url;					/**< atom */
-	time_t stamp;				/**< time of last access */	
+	time_t stamp;				/**< time of last access */
 } gwc_url[MAX_GWC_URLS];		/**< Holds string atoms */
 
 static gint gwc_url_slot = -1;
@@ -253,7 +253,7 @@ gwc_pick(void)
 	idx = random_value(count - 1);
 	for (i = 0; i < count; i++) {
 		time_t stamp = gwc_url[idx].stamp;
-	
+
 		if (0 == stamp || delta_time(now, stamp) > 3900) {
 			url = gwc_url[idx].url;
 			gwc_url[idx].stamp = now;
@@ -298,7 +298,7 @@ gwc_store(void)
 
 	for (j = 0; j < MAX_GWC_URLS; j++) {
 		gchar *url = gwc_url[i].url;
-		
+
 		i = (i + 1) % MAX_GWC_URLS;
 		if (url == NULL)
 			continue;

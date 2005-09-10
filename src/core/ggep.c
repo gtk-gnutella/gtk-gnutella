@@ -125,7 +125,7 @@ ggep_stream_avail(ggep_stream_t *gs)
 {
 	size_t avail = gs->end - gs->o;
 	g_assert(avail <= gs->size);
-	return avail; 
+	return avail;
 }
 
 /**
@@ -655,7 +655,7 @@ ggep_stream_packv(ggep_stream_t *gs,
 	const gchar *id, const struct iovec *iov, gint iovcnt, guint32 wflags)
 {
 	g_assert(iovcnt >= 0);
-	
+
 	if (!ggep_stream_begin(gs, id, wflags))
 		return FALSE;
 

@@ -1066,9 +1066,9 @@ static gboolean
 looks_like_urn(const gchar *filename)
 {
 	static const gchar * const prefixes[] = {
-		"urn:", 
-		"sha1:", 
-		"bitprint:", 
+		"urn:",
+		"sha1:",
+		"bitprint:",
 	};
 	const gchar *p;
 	gint c;
@@ -1163,7 +1163,7 @@ file_info_shared_sha1(const gchar *sha1)
 		sf->name_canonic = atom_str_get(q);
 		if (q != sf->name_nfc)
 			G_FREE_NULL(q);
-		
+
 		sf->name_nfc_len = strlen(sf->name_nfc);
 		sf->name_canonic_len = strlen(sf->name_canonic);
 
@@ -1173,7 +1173,7 @@ file_info_shared_sha1(const gchar *sha1)
 			wfree(sf, sizeof *sf);
 			return NULL;
 		}
-		
+
 		path = make_pathname(fi->path, fi->file_name);
 		g_assert(NULL != path);
 
@@ -1298,7 +1298,7 @@ G_STMT_START {				\
 	reason = (x);			\
 	goto bailout;			\
 	/* NOTREACHED */		\
-} G_STMT_END 
+} G_STMT_END
 
 	g_assert(NULL != file);
 	g_assert(NULL != path);
@@ -1615,7 +1615,7 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 		fprintf(f, "SHA1 %s\n", sha1_base32(fi->sha1));
 	if (fi->cha1)
 		fprintf(f, "CHA1 %s\n", sha1_base32(fi->cha1));
-	
+
 	fprintf(f, "SIZE %s\n", uint64_to_string(fi->size));
 	fprintf(f, "FSKN %d\n", fi->file_size_known ? 1 : 0);
 	fprintf(f, "DONE %s\n", uint64_to_string(fi->done));
@@ -2338,11 +2338,11 @@ file_info_string_to_tag(const gchar *s)
 	return fi_tag_map[(i)].tag; \
 	/* NOTREACHED */ \
 } G_STMT_END
-	
+
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(const gchar *, s, G_N_ELEMENTS(fi_tag_map), strcmp,
 		GET_KEY, FOUND);
-	
+
 #undef FOUND
 #undef GET_KEY
 	return FI_TAG_UNKNOWN;
@@ -2741,7 +2741,7 @@ file_info_retrieve(void)
 					convert_spaces, convert_evil_chars);
 				fi->file_name = atom_str_get(s);
 				if (s != value) {
-					
+
 					if (0 != strcmp(s, value)) {
 						g_warning("fileinfo database contained an "
 						"unsanitized filename: \"%s\" -> \"%s\"", value, s);
@@ -3360,10 +3360,10 @@ file_info_merge_adjacent(fileinfo_t *fi)
 	filesize_t done;
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
-	
+
 	do {
 		struct dl_file_chunk *fc1, *fc2;
-		
+
 		restart = FALSE;
 		done = 0;
 		fc2 = NULL;
@@ -3584,7 +3584,7 @@ again:
 			"(%s) Didn't find matching chunk for <%s-%s> (%u)",
 			fi->file_name, uint64_to_string(from),
 			uint64_to_string2(to), status);
-		
+
 		for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 			fc = fclist->data;
 			g_warning("... %s %s %u", uint64_to_string(fc->from),
@@ -3755,7 +3755,7 @@ file_info_pos_status(fileinfo_t *fi, filesize_t pos /* XXX,
 	if (end)
 		*end = 0;
 #endif
-	
+
 	return DL_CHUNK_DONE;
 }
 

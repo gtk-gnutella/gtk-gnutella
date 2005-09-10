@@ -151,7 +151,7 @@ add_volatile_cache_entry(const char *filename, filesize_t size, time_t mtime,
 	const char *digest, gboolean known_to_be_shared)
 {
 	struct sha1_cache_entry *new_entry = g_malloc(sizeof *new_entry);
-	
+
 	new_entry->file_name = atom_str_get(filename);
 	new_entry->size = size;
 	new_entry->mtime = mtime;
@@ -179,13 +179,13 @@ cache_entry_print(FILE *f, const char *filename, const gchar *digest,
 {
 	const gchar *sha1;
 	gchar size_buf[UINT64_DEC_BUFLEN], mtime_buf[UINT64_DEC_BUFLEN];
-	
+
 	uint64_to_string_buf(size, size_buf, sizeof size_buf);
 	uint64_to_string_buf(mtime, mtime_buf, sizeof mtime_buf);
 
 	sha1 = sha1_base32(digest);
 	g_assert(NULL != sha1);
-	
+
 	fprintf(f, "%s\t%s\t%s\t%s\n", sha1, size_buf, mtime_buf, filename);
 }
 
@@ -216,7 +216,7 @@ add_persistent_cache_entry(const char *filename, filesize_t size,
 			persistent_cache_file_name);
 		return;
 	}
-	
+
 	if (0 == sb.st_size)
 		fputs(sha1_persistent_cache_file_header, f);
 

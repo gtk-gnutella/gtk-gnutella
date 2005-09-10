@@ -157,7 +157,7 @@ results_make(
 	num_oob_records++;
 	if (query_debug > 1)
 		g_message("results_make: num_oob_records=%d", num_oob_records);
-	
+
 	return r;
 }
 
@@ -172,12 +172,12 @@ results_free_remove(struct oob_results *r)
 	g_assert(r->refcount > 0);
 
 	r->refcount--;
-	
+
 	if (NULL == r->ev_expire || 0 == r->refcount) {
 		if (r->muid) {
 			g_assert(r == g_hash_table_lookup(results_by_muid, r->muid));
 			g_hash_table_remove(results_by_muid, r->muid);
-		
+
 			atom_guid_free(r->muid);
 			r->muid = NULL;
 		}
@@ -501,7 +501,7 @@ oob_pmsg_free(pmsg_t *mb, gpointer arg)
 	 */
 
 	if (pmsg_was_sent(mb)) {
-	
+
 		/* There may have been up to OOB_MAX_RETRY in the queue, ``r''
 		 * is shared between all of them. So r->ev_timeout may have been
 		 * set already.
@@ -509,7 +509,7 @@ oob_pmsg_free(pmsg_t *mb, gpointer arg)
 		if (r->ev_timeout) {
 			results_free_remove(r);
 		} else {
-			
+
 			if (query_debug || udp_debug)
 				printf("OOB query %s, notified %s about %d hit%s\n",
 						guid_hex_str(r->muid),
@@ -625,7 +625,7 @@ free_oob_kv(gpointer key, gpointer value, gpointer unused_udata)
 	atom_guid_free(r->muid);
 	r->muid = NULL;
 
-	r->refcount = 1; /* Enforce release */	
+	r->refcount = 1; /* Enforce release */
 	results_free_remove(r);
 }
 

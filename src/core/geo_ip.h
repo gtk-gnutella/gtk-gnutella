@@ -37,7 +37,7 @@
 #define _core_geo_ip_h_
 
 #include <glib.h>
-#include "lib/host_addr.h" 
+#include "lib/host_addr.h"
 
 gint gip_country(const host_addr_t addr);
 void gip_init(void);

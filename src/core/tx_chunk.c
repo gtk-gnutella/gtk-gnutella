@@ -142,7 +142,7 @@ chunk_begin(txdrv_t *tx, size_t len, gboolean final)
 {
 	struct attr *attr = tx->opaque;
 	gint hlen = 0;
-	
+
 	g_assert(0 == attr->data_remain);
 	g_assert(0 == attr->head_remain);
 	g_assert(final || ((size_t) -1 != len && len > 0));
@@ -163,7 +163,7 @@ chunk_begin(txdrv_t *tx, size_t len, gboolean final)
 
 	if (!attr->first)
 		hlen = gm_snprintf(attr->head, sizeof(attr->head), "\r\n");
-	
+
 	if (final)
 		hlen += gm_snprintf(&attr->head[hlen], sizeof(attr->head) - hlen,
 			"0\r\n\r\n");
@@ -324,7 +324,7 @@ tx_chunk_write(txdrv_t *tx, gpointer data, size_t len)
 
 		if (acceptable == 0)	/* Could not flush header probably */
 			break;
-		
+
 		r = tx_write(tx->lower, ptr, acceptable);
 
 		if (r > 0) {

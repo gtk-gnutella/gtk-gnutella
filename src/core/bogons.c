@@ -189,7 +189,7 @@ bogons_retrieve(void)
 #else
 	static file_path_t fp[2];
 #endif
-	
+
 	file_path_set(&fp[0], settings_config_dir(), bogons_file);
 	file_path_set(&fp[1], PRIVLIB_EXP, bogons_file);
 #ifndef OFFICIAL_BUILD
@@ -244,7 +244,7 @@ bogons_check(const host_addr_t ha)
 		return bogons_db != NULL && THERE == iprange_get(bogons_db, ip);
 	} else if (NET_TYPE_IPV6 == host_addr_net(ha)) {
 		host_addr_t to;
-		
+
 		if (host_addr_convert(ha, &to, NET_TYPE_IPV4))
 			return bogons_check(to);
 	}

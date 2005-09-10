@@ -494,7 +494,7 @@ vmsg_send_messages_supported(struct gnutella_node *n)
 
 	paysize = count * VMS_ITEM_SIZE	+ sizeof count;
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof v_tmp);
-	
+
 	gmsg_sendto_one(n, m, msgsize);
 }
 
@@ -704,7 +704,7 @@ vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port)
 	gchar *payload;
 
 	g_return_if_fail(0 != port);
-	
+
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof v_tmp);
 	payload = vmsg_fill_type(&m->data, T_GTKG, 7, 1);
 
@@ -1250,7 +1250,7 @@ vmsg_time_sync_req_stamp(pmsg_t *mb, struct mqueue *unused_q)
 
 	muid = poke_be32(muid, now.tv_sec);
 	muid = poke_be32(muid, now.tv_usec);
-	
+
 	/*
 	 * Inform the tsync layer that the "T1" timestamp is not the one
 	 * we registered in vmsg_send_time_sync_req().  Tagging via the

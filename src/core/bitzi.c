@@ -430,7 +430,7 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 
 		for (cur_attr = node->properties; cur_attr; cur_attr = cur_attr->next) {
 			const gchar *name = xmlChar_to_gchar(cur_attr->name);
-			
+
 			g_message("bitzi rdf attrib: %s, type %d = %s",
 				name, cur_attr->type, xml_get_string(node, name));
 		}

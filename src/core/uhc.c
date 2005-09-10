@@ -133,10 +133,10 @@ uhc_get_host_port(const gchar *hp, const gchar **host, guint16 *port)
 	g_assert(hp);
 	g_assert(host);
 	g_assert(port);
-	
+
 	*host = NULL;
 	*port = 0;
-	
+
 	if (!string_to_host_or_addr(hp, &ep, NULL) || ':' != *ep)
 		return FALSE;
 
@@ -145,7 +145,7 @@ uhc_get_host_port(const gchar *hp, const gchar **host, guint16 *port)
 		return FALSE;
 	memcpy(hostname, hp, len);
 	hostname[len] = '\0';
-	
+
 	g_assert(':' == *ep);
 	ep++;
 
@@ -163,9 +163,9 @@ static void
 add_available_uhc(const gchar *hc)
 {
 	gchar *s;
-	
+
 	g_assert(hc);
-	
+
 	s = wcopy(hc, 1 + strlen(hc));
 	uhc_avail = random_value(100) < 50
 		? g_list_append(uhc_avail, s)
@@ -195,21 +195,21 @@ uhc_pick(void)
 		/* Wait 24 hours before the UHC maybe contacted again */
 		if (delta_time(now, uu->stamp) < 24 * 3600)
 			break;
-		
+
 		add_available_uhc(uu->host);
 
 		uhc_used = g_list_remove(uhc_used, uu);
 		wfree(uu->host, 1 + strlen(uu->host));
 		wfree(uu, sizeof *uu);
 	}
-	
+
 	len = g_list_length(uhc_avail);
 	if (len < 1) {
 		if (gwc_debug)
 			g_warning("Ran out of UHCs");
 		return FALSE;
 	}
-	
+
 	idx = random_value(len - 1);
 	hc = g_list_nth_data(uhc_avail, idx);
 	g_assert(hc);
@@ -234,7 +234,7 @@ uhc_pick(void)
 	 */
 	{
 		gchar msg[256];
-	
+
 		gm_snprintf(msg, sizeof msg, _("Looking for UDP host cache %s"), hc);
 		gcu_statusbar_message(msg);
 	}
@@ -525,21 +525,21 @@ uhc_init(void)
 	for (i = 0; i < G_N_ELEMENTS(boot_hosts); i++) {
 		const gchar *host, *ep, *uhc;
 		guint16 port;
-		
+
 		uhc = boot_hosts[i].uhc;
 
 		/* Some consistency checks */
 		uhc_get_host_port(uhc, &host, &port);
 		g_assert(NULL != host);
 		g_assert(0 != port);
-		
+
 		ep = is_strprefix(uhc, host);
 		g_assert(NULL != ep);
 		g_assert(':' == ep[0]);
 
 		add_available_uhc(uhc);
 	}
-	
+
 	uhc_ctx.guids = g_hash_table_new(guid_hash, guid_eq);
 }
 

@@ -367,7 +367,7 @@ get_params(struct pproxy *pp, gchar *request,
 	attr = NULL;
 	for (i = 0; i < G_N_ELEMENTS(req_types); i++) {
 		gchar *q;
-		
+
 		if (NULL != (q = is_strprefix(req_types[i].req, uri))) {
 			attr = req_types[i].attr;
 			uri = q;
@@ -501,11 +501,11 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 	size_t len = 0, size = sizeof packet;
 	ggep_stream_t gs;
 	guint32 ip;
-	
+
 	g_assert(size_ptr);
 	g_assert(guid);
 	g_assert(0 != port);
-	
+
 	message_set_muid(&packet.m.header, GTA_MSG_PUSH_REQUEST);
 
 	packet.m.header.function = GTA_MSG_PUSH_REQUEST;
@@ -517,9 +517,9 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 	p += sizeof packet.m;
 	size -= sizeof packet.m;
 	len += sizeof packet.m.request;	/* Exclude the header size */
-	
+
 	ggep_stream_init(&gs, p, size);
-	
+
 #ifdef HAS_GNUTLS
 	if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0)) {
 		g_warning("could not write GGEP \"GTKG.TLS\" extension into PUSH");
@@ -527,7 +527,7 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 			return NULL;
 	}
 #endif /* HAS_GNUTLS */
-	
+
 	ip = 0;
 	switch (host_addr_net(addr)) {
 	case NET_TYPE_IPV6:
@@ -540,20 +540,20 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 
 			if (!host_addr_convert(from, &addr, NET_TYPE_IPV4)) {
 				const guint8 *ipv6 = host_addr_ipv6(&from);
-				
+
 				if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6), ipv6, 16, 0)) {
 					g_warning("could not write GGEP \"GTKG.IPV6\" extension "
 						"into PUSH");
 					ggep_stream_close(&gs);
 					return NULL;
 				}
-			
+
 				break;
 			}
 		}
-		
+
 #endif	/* !USE_IPV6 */
-		
+
 		/* FALL THROUGH */
 	case NET_TYPE_IPV4:
 		ip = host_addr_ipv4(addr);
@@ -565,7 +565,7 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 
 	{
 		size_t glen;
-		
+
 		glen = ggep_stream_close(&gs);
 		g_assert(size >= glen);
 
@@ -575,7 +575,7 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 	}
 	g_assert(len < size);
 	g_assert(len < sizeof packet);
-	
+
 	poke_le32(packet.m.request.file_id, file_idx == URN_INDEX ? 0 : file_idx);
 	poke_be32(packet.m.request.host_ip, ip);
 	poke_le16(packet.m.request.host_port, port);
@@ -748,7 +748,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 				(gulong) pp->file_idx);
 		} else {
 			gint cnt;
-			
+
 			gmsg_sendto_all(nodes, packet, size);
 			gnet_stats_count_general(GNR_PUSH_PROXY_BROADCASTED, 1);
 

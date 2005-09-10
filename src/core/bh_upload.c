@@ -79,7 +79,7 @@ enum bh_state {
 	BH_STATE_REBUILDING,	/* If the library is suddenly rebuild */
 	BH_STATE_TRAILER,		/* Sending trailer data */
 	BH_STATE_EOF,			/* All data sent (End Of File) */
-	
+
 	NUM_BH_STATES,
 };
 
@@ -166,7 +166,7 @@ browse_host_next_state(struct browse_host_ctx *bh, enum bh_state state)
  *         was zero. On success, the amount of bytes copied to ``dest''
  *         is returned.
  */
-static ssize_t 
+static ssize_t
 browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 {
 	static const gchar header[] =
@@ -174,17 +174,17 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 		"<html><head><title>Browse Host</title></head><body>\r\n";
 	static const gchar trailer[] = "</ul></body></html>";
 	struct browse_host_ctx *bh = ctx;
-	gchar *p = dest; 
+	gchar *p = dest;
 
 	g_assert(NULL != bh);
 	g_assert(NULL != dest);
 	g_assert(size <= INT_MAX);
-	
+
 	g_assert((gint) bh->state >= 0 && bh->state < NUM_BH_STATES);
 	g_assert(bh->b_size <= INT_MAX);
 	g_assert(bh->b_offset <= bh->b_size);
 
-	do {	
+	do {
 		switch (bh->state) {
 		case BH_STATE_HEADER:
 			if (!bh->b_data) {
@@ -236,7 +236,7 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 				bh->w_buf_size = 0;
 				bh->b_data = NULL;
 			}
-		
+
 			if (!bh->b_data) {
 				shared_file_t *sf;
 
@@ -251,11 +251,11 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 				} else {
 					size_t html_size;
 					gchar *html_name;
-					
+
 					html_size = 1 + html_escape(sf->name_nfc, NULL, 0);
 					html_name = walloc(html_size);
 					html_escape(sf->name_nfc, html_name, html_size);
-					
+
 					if (sha1_hash_available(sf)) {
 						bh->b_size = w_concat_strings(&bh->w_buf,
 							"<li><a href=\"/uri-res/N2R?urn:sha1:",
@@ -290,7 +290,7 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 				p += browse_host_read_data(bh, p, &size);
 
 			break;
-			
+
 		case BH_STATE_REBUILDING:
 			if (!bh->b_data) {
 				static const gchar msg[] =
@@ -308,10 +308,10 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 			if (bh->b_size == bh->b_offset)
 				browse_host_next_state(bh, BH_STATE_TRAILER);
 			break;
-			
+
 		case BH_STATE_EOF:
 			return p - cast_to_gchar_ptr(dest);
-			
+
 		case NUM_BH_STATES:
 			g_assert_not_reached();
 		}
@@ -347,7 +347,7 @@ browse_host_record_hit(gpointer data, size_t len, gpointer udata)
  *         was zero. On success, the amount of bytes copied to ``dest''
  *         is returned.
  */
-static ssize_t 
+static ssize_t
 browse_host_read_qhits(gpointer ctx, gpointer const dest, size_t size)
 {
 	struct browse_host_ctx *bh = ctx;

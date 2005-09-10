@@ -52,18 +52,18 @@ typedef struct shared_file {
 	const gchar *name_nfc;		/**< UTF-8 NFC version of filename (atom!) */
 	const gchar *name_canonic;	/**< UTF-8 canonized ver. of filename (atom)! */
 	const gchar *content_type;	/**< MIME content type (static string) */
-	
+
 	struct dl_file_info *fi;	/**< PFSP-server: the holding fileinfo */
-	
+
 	filesize_t file_size;		/**< File size in Bytes */
 	guint32 file_index;			/**< the files index within our local DB */
-	
+
 	gint refcnt;				/**< Reference count */
 	guint32 flags;				/**< See below for definition */
-	
+
 	size_t name_nfc_len;		/**< strlen(name_nfc) */
 	size_t name_canonic_len;	/**< strlen(name_canonic) */
-	
+
 	time_t mtime;				/**< Last modif. time, for SHA1 computation */
 	gchar sha1_digest[SHA1_RAW_SIZE];	/**< SHA1 digest, binary form */
 } shared_file_t;

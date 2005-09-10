@@ -80,7 +80,7 @@ tsync_free(struct tsync *ts)
 {
 	g_assert(ts);
 	g_assert(ts->magic == TSYNC_MAGIC);
-	
+
 	if (ts->expire_ev)
 		cq_cancel(callout_queue, ts->expire_ev);
 
@@ -101,7 +101,7 @@ tsync_expire(cqueue_t *unused_cq, gpointer obj)
 
 	g_assert(ts);
 	g_assert(ts->magic == TSYNC_MAGIC);
-	
+
 	if (dbg > 1)
 		printf("TSYNC expiring time %d.%d\n",
 			(gint) ts->sent.tv_sec, (gint) ts->sent.tv_usec);
@@ -190,7 +190,7 @@ tsync_send_timestamp(tm_t *orig, tm_t *final)
 
 	g_assert(ts);
 	g_assert(ts->magic == TSYNC_MAGIC);
-	
+
 	g_hash_table_remove(tsync_by_time, orig);
 	ts->sent = *final;
 	g_hash_table_insert(tsync_by_time, &ts->sent, ts);
@@ -265,7 +265,7 @@ tsync_got_reply(struct gnutella_node *n,
 
 		g_assert(ts);
 		g_assert(ts->magic == TSYNC_MAGIC);
-	
+
 		/*
 		 * Compute the clock offset: ((received - sent) + (replied - got)) / 2
 		 */
@@ -333,10 +333,10 @@ free_tsync_kv(gpointer unused_key, gpointer value, gpointer unused_udata)
 
 	(void) unused_key;
 	(void) unused_udata;
-	
+
 	g_assert(ts);
 	g_assert(ts->magic == TSYNC_MAGIC);
-	
+
 	tsync_free(ts);
 }
 

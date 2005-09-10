@@ -37,8 +37,8 @@
 #ifndef _core_hostiles_h_
 #define _core_hostiles_h_
 
-#include "common.h" 
-#include "lib/host_addr.h" 
+#include "common.h"
+#include "lib/host_addr.h"
 
 gboolean hostiles_check(const host_addr_t addr);
 void hostiles_init(void);

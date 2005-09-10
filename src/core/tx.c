@@ -322,7 +322,7 @@ static txdrv_t *
 tx_deep_bottom(txdrv_t *tx)
 {
 	g_assert(tx);
-	
+
 	if (tx->lower)
 		return tx_deep_bottom(tx->lower);
 

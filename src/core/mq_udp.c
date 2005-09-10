@@ -367,7 +367,7 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, gnet_host_t *to)
 
 cleanup:
 
-#if 0 
+#if 0
 	/* XXX: This is a temporary additional check for debugging purposes */
 	{
 		gint i;
@@ -375,7 +375,7 @@ cleanup:
 		for (i = 0; i < q->qlink_count; i++) {
 			GList *l;
 			gpointer found;
-			
+
 			l = q->qlink[i];
 			g_assert(l != NULL);
 			found = g_list_find(l, mb);
@@ -383,7 +383,7 @@ cleanup:
 		}
 	}
 #endif
-	
+
 	pmsg_free(mb);
 	return;
 }

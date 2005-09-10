@@ -160,14 +160,14 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 			"assuming EAGAIN", func, attr->wio->fd(attr->wio), errno,
 			g_strerror(errno));
 		return 0;
-		
+
 	case EPIPE:
 	case ECONNRESET:
 		tx->flags |= TX_ERROR;
 		attr->cb->eof_remove(tx->owner,
 			_("Write failed: %s"), g_strerror(errno));
 		return -1;
-		
+
 	case ENOSPC:
 #ifdef EDQUOT
 	case EDQUOT:

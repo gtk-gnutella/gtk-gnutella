@@ -1415,16 +1415,16 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	(void) in_fd;
 	(void) offset;
 	(void) len;
-	
+
 	g_assert_not_reached();
 	/* NOTREACHED */
 
 	errno = ENOSYS;
 
 	return (ssize_t) -1;
-	
+
 #else /* USE_MMAP || HAS_SENDFILE */
-	
+
 	/*
 	 * amount is only declared volatile to shut up the bogus warning by GCC
 	 * 2.95.x that ``amount'' *might* be clobbered by sigsetjmp - which is
@@ -1445,7 +1445,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 
 	start = *offset;
 	out_fd = bio->wio->fd(bio->wio);
-	
+
 	/*
 	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN
 	 * to signal that we cannot perform any I/O right now.
@@ -1475,7 +1475,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 			set_signal(SIGBUS, signal_handler);
 			set_signal(SIGSEGV, signal_handler);
 		}
-			
+
 		if (
 			ctx->map == NULL ||
 			start < ctx->map_start ||
@@ -1654,7 +1654,7 @@ bws_write(bsched_t *bs, wrap_io_t *wio, gconstpointer data, size_t len)
 	g_assert(wio);
 	g_assert(wio->write);
 	g_assert(len <= INT_MAX);
-	
+
 	r = wio->write(wio, data, len);
 	if (r > 0)
 		bsched_bw_update(bs, r, len);

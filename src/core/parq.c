@@ -1,4 +1,6 @@
 /*
+ * $Id$
+ *
  * Copyright (c) 2003 - 2004, Raphael Manfredi
  * Copyright (c) 2003 - 2005, Jeroen Asselman
  *
@@ -1396,7 +1398,7 @@ parq_upload_create(gnutella_upload_t *u)
 	parq_ul->ban_timeout = 0;
 	parq_ul->disc_timeout = 0;
 	parq_ul->uploaded_size = 0;
-	
+
 	/* Save into hash table so we can find the current parq ul later */
 	g_hash_table_insert(ul_all_parq_by_id, parq_ul->id, parq_ul);
 
@@ -1627,12 +1629,12 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 			continue;			/* Skip already uploading uploads */
 
 		/* Recalculate ETA */
-		if (parq_optimistic)		
+		if (parq_optimistic)
 			eta += (parq_ul->file_size / avg_bps * max_uploads) /
 				(parq_ul->sha1 != NULL ? dmesh_count(parq_ul->sha1) + 1 : 1);
 		else
 			eta += parq_ul->file_size / avg_bps * max_uploads;
-				
+
 	}
 }
 
@@ -2050,7 +2052,7 @@ parq_upload_quick_continue(struct parq_ul_queued *uq, gint used_slots)
 	if (parq_time_always_continue > 0) {
 		avg_bps = bsched_avg_bps(bws.out);
 		avg_bps = MAX(1, avg_bps);
-		
+
 		/*
 		 * Determine the time this upload would need. Add + 1 to the
 		 * number of used_slots to also include this upload in the
@@ -2073,7 +2075,7 @@ parq_upload_continue(struct parq_ul_queued *uq, gint used_slots)
 	gint free_slots = max_uploads - used_slots;
 	gint slots_free = max_uploads;	/* Free slot calculater */
 	gboolean quick_allowed = FALSE;
-	
+
 	/*
 	 * max_uploads holds the number of upload slots a queue may currently
 	 * use. This is the lowest number of upload slots used by a queue + 1.
@@ -2098,7 +2100,7 @@ parq_upload_continue(struct parq_ul_queued *uq, gint used_slots)
 	 */
 	if ((guint32) uq->by_addr->uploading >= max_uploads_ip) {
 		if (parq_debug >= 5)
-			g_message("[PARQ UL] parq_upload_continue, " 
+			g_message("[PARQ UL] parq_upload_continue, "
 				"max_uploads_ip per single host reached %d/%d",
 				uq->by_addr->uploading, max_uploads_ip);
 		goto check_quick;
@@ -2219,7 +2221,7 @@ check_quick:
 	 */
 
 	quick_allowed = parq_upload_quick_continue(uq, used_slots);
-	
+
 	/*
 	 * If uploads are stalling, we're already short in bandwidth.  Don't
 	 * add to the clogging of the output link.
@@ -2239,7 +2241,7 @@ check_quick:
 		uq->quick = TRUE;
 		return TRUE;
 	}
-	
+
 	return FALSE;
 }
 
@@ -2384,7 +2386,7 @@ parq_upload_get(gnutella_upload_t *u, header_t *header, gboolean replacing)
 		g_assert(parq_ul != NULL);
 
 		if (parq_debug >= 3)
-			g_message("[PARQ UL] Q %d/%d (%3d[%3d]/%3d) "  
+			g_message("[PARQ UL] Q %d/%d (%3d[%3d]/%3d) "
 				"ETA: %s Added: %s '%s'",
 				g_list_position(ul_parqs,
 					g_list_find(ul_parqs, parq_ul->queue)) + 1,
@@ -2754,7 +2756,7 @@ parq_upload_collect_stats(const gnutella_upload_t *u)
 
 	if (!u->parq_opaque)
 		return;
-	
+
 	/*
 	 * Data is only expected to be sent when the upload had a slot
 	 */
@@ -2765,7 +2767,7 @@ parq_upload_collect_stats(const gnutella_upload_t *u)
 
 	uq->uploaded_size += u->sent;
 }
-	
+
 /**
  * When an upload is removed this function should be called so parq
  * knows the current upload status of an upload.
@@ -3641,11 +3643,11 @@ parq_string_to_tag(const gchar *s)
 	return parq_tag_map[(i)].tag; \
 	/* NOTREACHED */ \
 } G_STMT_END
-	
+
 	/* Perform a binary search to find ``s'' */
 	BINARY_SEARCH(const gchar *, s, G_N_ELEMENTS(parq_tag_map), strcmp,
 		GET_ITEM, FOUND);
-	
+
 #undef FOUND
 #undef GET_ITEM
 	return PARQ_TAG_UNKNOWN;
@@ -3686,7 +3688,7 @@ parq_upload_load_queue(void)
 	gint error;
 	const gchar *endptr;
 	gchar tag_used[NUM_PARQ_TAGS];
-	
+
 	file_path_set(fp, settings_config_dir(), file_parq_file);
 	f = file_config_open_read("PARQ upload queue data", fp, G_N_ELEMENTS(fp));
 	if (!f)
@@ -3704,9 +3706,9 @@ parq_upload_load_queue(void)
 		gchar *colon, *nl;
 		gboolean damaged;
 		parq_tag_t tag;
-	
+
 		line_no++;
-	
+
 		damaged = FALSE;
 		nl = strchr(line, '\n');
 		if (!nl) {
@@ -3752,13 +3754,13 @@ parq_upload_load_queue(void)
 				tag_name, line_no);
 			break;
 		}
-	
+
 		switch (tag) {
 		case PARQ_TAG_IP:
 		case PARQ_TAG_XIP:
 			{
 				host_addr_t addr;
-				
+
 				addr = string_to_host_addr(value, NULL);
 				if (!is_host_addr(addr)) {
 					damaged = TRUE;
@@ -3768,7 +3770,7 @@ parq_upload_load_queue(void)
 					case PARQ_TAG_IP:
 						entry.addr = addr;
 						break;
-						
+
 					case PARQ_TAG_XIP:
 						/* Ignore zero for backwards compatibility */
 						entry.x_addr = addr;
@@ -3786,19 +3788,19 @@ parq_upload_load_queue(void)
 			damaged |= error != 0 || v > INT_MAX || *endptr != '\0';
 			entry.queue = v;
 			break;
-			
+
 		case PARQ_TAG_POS:
 			v = parse_uint64(value, &endptr, 10, &error);
 			damaged |= error != 0 || v > INT_MAX || *endptr != '\0';
 			entry.pos = v;
 			break;
-			
+
 		case PARQ_TAG_ENTERED:
 			v = parse_uint64(value, &endptr, 10, &error);
 			damaged |= error != 0 || v > INT_MAX || *endptr != '\0';
 			entry.entered = v;
 			break;
-			
+
 		case PARQ_TAG_EXPIRE:
 			v = parse_uint64(value, &endptr, 10, &error);
 			damaged |= error != 0 || *endptr != '\0';
@@ -3817,14 +3819,14 @@ parq_upload_load_queue(void)
 			damaged |= error != 0 ||
 				(v > UINT_MAX && sizeof entry.filesize <= 4) ||
 				*endptr != '\0';
-			entry.filesize = v; 
+			entry.filesize = v;
 			break;
 
 		case PARQ_TAG_ID:
 			if (g_strlcpy(entry.id, value, sizeof entry.id) >= sizeof entry.id)
 				damaged = TRUE;
 			break;
-		
+
 		case PARQ_TAG_SHA1:
 			{
 				if (strlen(value) != SHA1_BASE32_SIZE) {
@@ -3832,7 +3834,7 @@ parq_upload_load_queue(void)
 					g_warning("Value has wrong length.");
 				} else {
 					const gchar *raw;
-					
+
 					raw = base32_sha1(value);
 					if (!raw)
 						damaged = TRUE;
@@ -3853,9 +3855,9 @@ parq_upload_load_queue(void)
 				next = TRUE;
 			}
 			break;
-			
+
 		case PARQ_TAG_UNKNOWN:
-			damaged = TRUE;	
+			damaged = TRUE;
 			break;
 
 		case NUM_PARQ_TAGS:

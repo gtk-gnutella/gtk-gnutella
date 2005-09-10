@@ -304,9 +304,9 @@ retry:
 		return FALSE;
 	}
 
-	{	
+	{
 		size_t written;
-		
+
 		written = old_avail - outz->avail_out;
 		b->wptr += written;
 
@@ -490,7 +490,7 @@ deflate_add(txdrv_t *tx, gconstpointer data, gint len)
 
 		if (attr->gzip.enabled) {
 			size_t r;
-		
+
 			r = cast_to_gchar_ptr(outz->next_in) - old_in;
 			attr->gzip.size += r;
 			attr->gzip.crc = crc32(attr->gzip.crc,
@@ -996,7 +996,7 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 			b = &attr->buf[attr->send_idx];
 			poke_le32(&trailer[0], (guint32) attr->gzip.crc);
 			poke_le32(&trailer[1], attr->gzip.size);
-			
+
 			g_assert(sizeof trailer <= (size_t) (b->end - b->wptr));
 			memcpy(b->wptr, trailer, sizeof trailer);
 			b->wptr += sizeof trailer;
@@ -1010,7 +1010,7 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 		(*cb)(tx, arg);
 		return;
 	}
-		
+
 	/*
 	 * We were unable to flush everything.
 	 */

@@ -233,7 +233,7 @@ qrp_hashcode(const gchar *s)
 			} else {
 				/* ``uc'' will hold two surrogates */
 				uc = utf16_encode_char_compact(uc);
-				
+
 				/* Surrogates don't need to be lowercased */
 				x ^= (uc & 0xff) << (j & 24);
 				j += 8;
@@ -247,7 +247,7 @@ qrp_hashcode(const gchar *s)
 	/*
 	 * Multiplication-based hash function.
 	 *
-	 * See Chapter 12.3.2. of "Introduction to Algorithms" by 
+	 * See Chapter 12.3.2. of "Introduction to Algorithms" by
 	 * (Cormen, Leiserson, and Rivest) [CLR]
 	 */
 
@@ -1210,10 +1210,10 @@ qrp_add_file(struct shared_file *sf)
 
 	g_assert(utf8_is_valid_string(sf->name_nfc, sf->name_nfc_len));
 	g_assert(utf8_is_valid_string(sf->name_canonic, sf->name_canonic_len));
-		
+
 	wocnt = word_vec_make(sf->name_canonic, &wovec);
 
-#if 0	
+#if 0
 	else {
 
 		if (sf->file_name_len >= (size_t) buffer.len) {
@@ -4192,10 +4192,10 @@ test_hash(void)
 		gchar buf[1024];
 		size_t n;
 		guint32 h;
-		
+
 		n = utf32_to_utf8(tests[i].s, buf, G_N_ELEMENTS(buf));
 		g_assert(n < G_N_ELEMENTS(buf));
-		
+
 		h = qrp_hash(buf, 10);
 		if (h != tests[i].hash) {
 			g_warning("qrp_hash() failed: i=%d, h=%u, buf=\"%s\"", i, h, buf);

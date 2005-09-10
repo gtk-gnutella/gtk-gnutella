@@ -1118,11 +1118,11 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
 
 		*addr = zero_host_addr;
 		got_recent = pcache_get_recent(type, &first_addr, &first_port);
-		
+
 		while (got_recent) {
 			if (host_addr_equal(*addr, first_addr) && *port == first_port)
 				break;
-			  
+
 			if (host_is_nearby(*addr))
 				return TRUE;
 

@@ -306,7 +306,7 @@ st_insert_item(search_table_t *table, const gchar *s, struct shared_file *sf)
 	len = utf8_is_valid_string(s, 0);
 	if (len < 2)
 		return;
-	
+
 	string = g_strdup(s);
 
 #if 0
@@ -382,7 +382,7 @@ entry_match(gchar *text, size_t tlen,
 
 		for (j = 0; j < amount; j++) {
 			const gchar *pos;
-			
+
 			pos = pattern_qsearch(pw[i], text, tlen, offset, qs_begin);
 			if (pos)
 				offset = (pos - text) + pw[i]->len;

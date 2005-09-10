@@ -349,7 +349,7 @@ get_prop_stub_by_name(const gchar *tok_prop, prop_set_stub_t **stub_ptr)
 
 	g_return_val_if_fail(NULL != tok_prop, NO_PROP);
 	g_return_val_if_fail(NULL != stub_ptr, NO_PROP);
-	
+
 	for (i = 0; i < G_N_ELEMENTS(stub_getter); i++) {
 		property_t prop;
 		prop_set_stub_t *stub;
@@ -692,17 +692,17 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 		case 3:
 			{
 				guint j = 0;
-				
+
 				switch (m) {
 				case 1: j = HSEP_IDX_NODES; break;
 				case 2: j = HSEP_IDX_FILES; break;
 				case 3: j = HSEP_IDX_KIB; break;
 				}
-				
+
 				n = strlen(uint64_to_string(t[i][j] + non_hsep[j]));
 			}
 			break;
-			
+
 		default:
 			n = 0;
 			g_assert_not_reached();
@@ -729,11 +729,11 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 
 	for (i = 0; i < triples; i++) {
 		const gchar *s1, *s2, *s3;
-		
+
 		s1 = uint64_to_string(t[i][HSEP_IDX_NODES] + non_hsep[HSEP_IDX_NODES]);
 		s2 = uint64_to_string2(t[i][HSEP_IDX_FILES] + non_hsep[HSEP_IDX_FILES]);
 		s3 = short_kb_size(t[i][HSEP_IDX_KIB] + non_hsep[HSEP_IDX_KIB]);
-		
+
 		gm_snprintf(buf, sizeof buf, "%*d  %*s  %*s  %*s\n",
 			maxlen[0], i + 1,
 			maxlen[1], s1,
@@ -848,7 +848,7 @@ shell_write_data(gnutella_shell_t *sh)
 			shell_shutdown(sh);
 		sh->outpos = 0;
 		break;
-		
+
 	default:
 		memmove(sh->outbuf, &sh->outbuf[written], sh->outpos - written);
 		sh->outpos -= written;
@@ -936,15 +936,15 @@ shell_read_data(gnutella_shell_t *sh)
 		if (CMD_NOOP != reply_code) {
 			gchar *buf = NULL;
 			size_t len;
-			
+
 			len = w_concat_strings(&buf, uint32_to_string(reply_code),
 					" ", sh->msg ? sh->msg : "", "\n", (void *) 0);
-			
+
 			shell_write(sh, buf); /* XXX: Let shell_write() own ``buf'' */
 			wfree(buf, 1 + len);
 			buf = NULL;
 		}
-		
+
 		sh->msg = NULL;
 		getline_reset(s->getline);
 	}
@@ -1077,7 +1077,7 @@ shell_free(gnutella_shell_t *sh)
 {
 	g_assert(NULL == sh->socket); /* must have called shell_destroy before */
 	g_assert(NULL == sh->outbuf); /* must have called shell_destroy before */
-	
+
 	wfree(sh, sizeof *sh);
 }
 
