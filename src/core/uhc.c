@@ -82,7 +82,7 @@ static GList *uhc_avail = NULL;	/**< List of UHCs as string */
 static GList *uhc_used = NULL;	/**< List of used UHCs as ``struct used_uhc'' */
 
 struct used_uhc {
-	gchar 		*host;	/**< An UHC host as <host>:<port> */
+	gchar 		*host;	/**< An UHC host as "<host>:<port>" */
 	time_t		stamp;	/**< Timestamp of the last request */
 };
 

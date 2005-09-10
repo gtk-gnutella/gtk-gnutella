@@ -3470,7 +3470,7 @@ feed_host_cache_from_string(const gchar *s, host_type_t type, const gchar *name)
  * pong cache. If ``gnet'' is TRUE, the header names without a leading
  * "X-" are checked as variants as well.
  *
- * @param headers a valid header_t.
+ * @param header a valid header_t.
  * @param sender the host_type_t of the sender, if unknown use HOST_ANY.
  * @param gnet should be set to TRUE if the headers come from a Gnutella
  *			handshake.

@@ -502,8 +502,10 @@ browse_host_close(gpointer ctx)
  *
  * @param owner			the owner of the TX stack (the upload)
  * @param host			the host to which we're talking to
+ * @param writable		no document
  * @param deflate_cb	callbacks for the deflate layer
  * @param link_cb		callbacks for the link layer
+ * @param wio			no document
  * @param flags			opening flags
  *
  * @return An initialized browse host context.

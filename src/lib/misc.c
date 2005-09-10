@@ -2661,9 +2661,9 @@ html_escape_replacement(gchar c, size_t *len)
  * Copies the NUL-terminated string ``src'' to ``dst'' replacing all
  * characters which are reserved in HTML with a replacement string.
  *
- * @param dst the destination buffer, may be NULL if ``size'' is zero.
- * @param size the size in bytes of the destination buffer.
  * @param src a NUL-terminated string.
+ * @param dst the destination buffer, may be NULL if ``size'' is zero.
+ * @param dst_size the size in bytes of the destination buffer.
  * @return the length in bytes of resulting string assuming size was
  *         sufficiently large.
  */

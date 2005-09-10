@@ -2047,8 +2047,8 @@ not_found:
  *
  * @param u a valid gnutella_upload_t.
  * @param header a valid header_t.
- * @param the URI part of the HTTP request, URL-encoding has already been
- *        decoded.
+ * @param uri the URI part of the HTTP request, URL-encoding has already
+ *        been decoded.
  * @param search the search part of the HTTP request or NULL if none. This
  *        string is still URL-encoded to preserve the '&' boundaries.
  *

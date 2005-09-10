@@ -184,7 +184,7 @@ chunk_begin(txdrv_t *tx, size_t len, gboolean final)
 
 /**
  * Compute how much data we can still send within the current chunk, knowing
- * that we're offered `len' bytes from the upper layer..
+ * that we're offered `len' bytes from the upper layer.
  */
 static ssize_t
 chunk_acceptable(txdrv_t *tx, size_t len)

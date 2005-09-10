@@ -525,7 +525,7 @@ settings_remove_pidfile(void)
  *		--RAM, 13/01/2002
  *
  * @param `new_addr' the newly suggested address.
- * @param `peer_addr' the IP address of peer which reported the new IP address.
+ * @param `peer' the IP address of peer which reported the new IP address.
  *
  * There must be 3 peers from 3 different /16 networks before a change is
  * accepted. Otherwise, it would be very easy to confuse GTKG by connecting

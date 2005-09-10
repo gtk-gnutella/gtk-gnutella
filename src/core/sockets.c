@@ -106,7 +106,7 @@ typedef union socket_addr {
  * Initializes addr with an IPv4 address and a port number.
  *
  * @param addr a pointer to a socket_addr_t
- * @param ip an IPv4 address in host(!) byte order
+ * @param ha an IPv4 address in host(!) byte order
  * @param port a 16-bit port number in host byte order
  */
 static void
@@ -189,7 +189,7 @@ socket_addr_get_port(const socket_addr_t *addr)
 
 /**
  * Grab a generic sockaddr structure pointer from the socket address `addr'
- * which can be either an IPv4 or IPv6 socket address..
+ * which can be either an IPv4 or IPv6 socket address.
  *
  * @return the length of the generic sockaddr structure, with `p_sa' filled
  * with the pointer to the start of the structure.

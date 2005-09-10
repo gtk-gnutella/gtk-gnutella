@@ -480,6 +480,7 @@ error:
  * it does not come from our node really.  The file ID may be set to 0, but
  * it should be ignored when the GIV is received anyway.
  *
+ * @param size_ptr no document
  * @param ttl the TTL to use for the packet header.
  * @param hops the hops value to use for the packet header.
  * @param guid the hops value to use for the packet header.

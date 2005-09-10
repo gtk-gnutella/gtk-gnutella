@@ -76,15 +76,18 @@ struct attr {
 #define IF_NO_CRLF	0x00000002		/**< Set when missing CRLF after data */
 
 /**
- * Decodes "chunked" data. The function returns as soon as it needs more
- * data to proceed, on error, if the state CHUNK_STATE_END was reached,
- * or if the state CHUNK_STATE_DATA was reached. In the latter case the
- * chunk payload itself must be consumed and this function must not be
- * called again until the state CHUNK_STATE_DATA_CRLF is reached.
+ * Decodes "chunked" data.
+ *
+ * The function returns as soon as it needs more data to proceed, on
+ * error, if the state CHUNK_STATE_END was reached, or if the state
+ * CHUNK_STATE_DATA was reached. In the latter case the chunk payload
+ * itself must be consumed and this function must not be called again
+ * until the state CHUNK_STATE_DATA_CRLF is reached.
  *
  * @param rx is the current RX driver.
  * @param src the chunk data.
- * @param error_str if not NULL and parse_chunk() fails, it will point to
+ * @param size no document.
+ * @param p_error_str if not NULL and parse_chunk() fails, it will point to
  *        an informational error message.
  *
  * @return 0 on failure; non-zero amount of consumed bytes on success.

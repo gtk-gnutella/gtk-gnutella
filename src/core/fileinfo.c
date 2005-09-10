@@ -419,7 +419,9 @@ file_info_checksum(guint32 *checksum, gchar *d, int len)
 /**
  * Checks the chunklist of fi.
  *
- * @param fi the fileinfo struct to check.
+ * @param fi		the fileinfo struct to check.
+ * @param assertion	no document
+ *
  * @return TRUE if chunklist is consistent, FALSE otherwise.
  */
 static gboolean
