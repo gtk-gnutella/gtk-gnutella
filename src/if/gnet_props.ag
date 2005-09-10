@@ -916,7 +916,7 @@ prop = {
 
 prop = {
 	name = "parq_time_always_continue";
-	desc = "When an upload is expected to take less then this setting "
+	desc = "When an upload is expected to take less than this setting "
 	       "in seconds, PARQ will be instructed to not queue the upload. "
 	       "This check is done AFTER the file size-based bypassing. "
 	       "Set to 0 to disable this time-based bypassing feature.";

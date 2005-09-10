@@ -2115,7 +2115,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[76].name = "parq_time_always_continue";
-    gnet_property->props[76].desc = _("When an upload is expected to take less then this setting in seconds, PARQ will be instructed to not queue the upload. This check is done AFTER the file size-based bypassing. Set to 0 to disable this time-based bypassing feature.");
+    gnet_property->props[76].desc = _("When an upload is expected to take less than this setting in seconds, PARQ will be instructed to not queue the upload. This check is done AFTER the file size-based bypassing. Set to 0 to disable this time-based bypassing feature.");
     gnet_property->props[76].ev_changed = event_new("parq_time_always_continue_changed");
     gnet_property->props[76].save = TRUE;
     gnet_property->props[76].vector_size = 1;
