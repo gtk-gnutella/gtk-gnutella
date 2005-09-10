@@ -51,6 +51,7 @@ RCSID("$Id$");
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
 #include "lib/tm.h"
+#include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define SECS_PER_DAY	86400
@@ -338,22 +339,26 @@ version_new_found(const gchar *text, gboolean stable)
 {
     static gchar last_stable[256] = "";
     static gchar last_dev[256] = "";
-    static gchar s[1024];
+	gchar s[1024];
 
     if (stable)
-        g_strlcpy(last_stable, text, sizeof(last_stable));
+        utf8_strlcpy(last_stable, text, sizeof last_stable);
     else
-        g_strlcpy(last_dev, text, sizeof(last_dev));
+        utf8_strlcpy(last_dev, text, sizeof last_dev);
 
-	gm_snprintf(s, sizeof s,
-		"%s - Newer version%s available: %s%s%s%s%s",
-		GTA_WEBSITE,
-		last_stable[0] && last_dev[0] ? "s" : "",
-		last_stable[0] ? "release " : "",
-		last_stable[0] ? last_stable : "",
-		last_stable[0] && last_dev[0] ? " / " : "",
-		last_dev[0] ? "from CVS " : "",
-		last_dev[0] ? last_dev : "");
+	if ('\0' != last_stable[0] && '\0' != last_dev[0]) {
+		gm_snprintf(s, sizeof s,
+			_(" - Newer versions available: release %s / from CVS %s"),
+			last_stable, last_dev);
+	} else if ('\0' != last_stable[0]) {
+		gm_snprintf(s, sizeof s,
+			_(" - Newer version available: release %s"),
+			last_stable);
+	} else if ('\0' != last_dev[0]) {
+		gm_snprintf(s, sizeof s,
+			_(" - Newer version available: from CVS %s"),
+			last_dev);
+	}
 
     gnet_prop_set_string(PROP_NEW_VERSION_STR, s);
 }
@@ -747,4 +752,4 @@ version_close(void)
 			version_str(&last_dev_version));
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
