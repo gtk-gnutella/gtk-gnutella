@@ -567,7 +567,7 @@ static void
 close_fds(gint fd)
 {
 	g_assert(fd >= 0);
-	
+
 #ifdef F_CLOSEM
 	if (-1 == fcntl(fd, F_CLOSEM))
 #endif
@@ -575,7 +575,7 @@ close_fds(gint fd)
 		time_t start;
 		struct rlimit lim;
 		gint num_fds;
-	   
+
 	 	if (-1 != getrlimit(RLIMIT_NOFILE, &lim)) {
 			num_fds = lim.rlim_cur;
 		} else {
@@ -593,7 +593,7 @@ close_fds(gint fd)
 			/* Just in case we're trying to close a bazillion fds on a vax */
 			if (0 == (fd & 0x100)) {
 				time_t now;
-				
+
 				now = tm_time_exact();
 				/* getrusage() would be much more appropriate */
 				if (delta_time(now, start) > 5)
@@ -638,7 +638,7 @@ main(int argc, char **argv)
 	/* If one of the two below fails, the GLib installation is broken. */
 	STATIC_ASSERT(sizeof(size_t) == sizeof(gsize));
 	STATIC_ASSERT(sizeof(ssize_t) == sizeof(gssize));
-	
+
 	tiger_init();
 	random_init();
 	locale_init();

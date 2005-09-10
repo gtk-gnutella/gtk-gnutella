@@ -233,7 +233,7 @@ do {				\
 #if HAVE_GCC(4, 0)
 #define WARN_NEED_SENTINEL __attribute__((sentinel))
 #else /* GCC < 4 */
-#define WARN_NEED_SENTINEL 
+#define WARN_NEED_SENTINEL
 #endif /* GCC >= 4 */
 
 /**
