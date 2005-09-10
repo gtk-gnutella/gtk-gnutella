@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-09-10 23:05+0900\n"
+"POT-Creation-Date: 2005-09-11 01:11+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -778,6 +778,21 @@ msgstr ""
 
 #: src/core/uploads.c:4035
 msgid "IP denying uploads"
+msgstr ""
+
+#: src/core/version.c:351
+#, c-format
+msgid " - Newer versions available: release %s / from CVS %s"
+msgstr ""
+
+#: src/core/version.c:355
+#, c-format
+msgid " - Newer version available: release %s"
+msgstr ""
+
+#: src/core/version.c:359
+#, c-format
+msgid " - Newer version available: from CVS %s"
 msgstr ""
 
 #: src/if/gnet_property.c:250

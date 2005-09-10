@@ -60,8 +60,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-09-10 23:05+0900\n"
-"PO-Revision-Date: 2005-09-10 14:37+0900\n"
+"POT-Creation-Date: 2005-09-11 01:11+0900\n"
+"PO-Revision-Date: 2005-09-11 01:14+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -834,6 +834,21 @@ msgstr "明示的に中断されました"
 #: src/core/uploads.c:4035
 msgid "IP denying uploads"
 msgstr "IP がアップロードを拒否します"
+
+#: src/core/version.c:351
+#, c-format
+msgid " - Newer versions available: release %s / from CVS %s"
+msgstr " - 新しいバージョンが利用可能です: リリース %s / CVS %s から"
+
+#: src/core/version.c:355
+#, c-format
+msgid " - Newer version available: release %s"
+msgstr " - 新しいバージョンが利用可能です: リリース %s"
+
+#: src/core/version.c:359
+#, c-format
+msgid " - Newer version available: from CVS %s"
+msgstr " - 新しいバージョンが利用可能です: CVS %s から"
 
 #: src/if/gnet_property.c:250
 msgid "No proxy"
@@ -9484,13 +9499,3 @@ msgstr "QUEUE 送信、折り返し接続中..."
 #: src/ui/gtk/uploads_common.c:205
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE 送信完了、ヘッダ待受中..."
-
-#~ msgid "%s - Newer version available: %s%s%s%s%s"
-#~ msgid_plural "%s - Newer versions available: %s%s%s%s%s"
-#~ msgstr[0] "%s - より新しいバージョンが利用可能です: %s%s%s%s%s"
-
-#~ msgid "release "
-#~ msgstr "リリース "
-
-#~ msgid "from CVS "
-#~ msgstr "CVS "

@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-09-10 23:05+0900\n"
+"POT-Creation-Date: 2005-09-11 01:11+0900\n"
 "PO-Revision-Date: 2005-08-15 00:46+0900\n"
 "Last-Translator: T'aZ <tazdev@punkass.com>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -805,6 +805,21 @@ msgstr "Remis dans la file explicitement"
 #, fuzzy
 msgid "IP denying uploads"
 msgstr "Nombre d'envois en cours"
+
+#: src/core/version.c:351
+#, c-format
+msgid " - Newer versions available: release %s / from CVS %s"
+msgstr ""
+
+#: src/core/version.c:355
+#, c-format
+msgid " - Newer version available: release %s"
+msgstr ""
+
+#: src/core/version.c:359
+#, c-format
+msgid " - Newer version available: from CVS %s"
+msgstr ""
 
 #: src/if/gnet_property.c:250
 #, fuzzy
