@@ -301,14 +301,13 @@ gboolean search_gui_new_search(
 	const gchar *query, flag_t flags, search_t **search)
 {
     guint32 timeout;
-    gint sort_col = SORT_NO_COL;
-	gint sort_order = SORT_NONE;
 
     gnet_prop_get_guint32_val
 		(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
+	/* Sort by number of sources as default */
     return search_gui_new_search_full(query, timeout,
-		sort_col, sort_order, flags | SEARCH_ENABLED, search);
+		c_sr_count, SORT_ASC, flags | SEARCH_ENABLED, search);
 }
 
 
@@ -1057,11 +1056,11 @@ search_gui_sort_column(search_t *search, gint column)
     /* create new arrow */
     switch (search->sort_order) {
     case SORT_ASC:
-        search->arrow = create_pixmap(main_window, "arrow_up.xpm");
+        search->arrow = create_pixmap(main_window, "arrow_down.xpm");
 		ascending = TRUE;
         break;
     case SORT_DESC:
-        search->arrow = create_pixmap(main_window, "arrow_down.xpm");
+        search->arrow = create_pixmap(main_window, "arrow_up.xpm");
 		ascending = FALSE;
         break;
     case SORT_NONE:
