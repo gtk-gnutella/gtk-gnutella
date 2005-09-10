@@ -64,8 +64,6 @@ RCSID("$Id$");
 
 #define MAX_TAG_SHOWN	60		/**< Show only first chars of tag */
 
-static gchar tmpstr[4096];
-
 static GList *searches = NULL;	/**< List of search structs */
 
 static GtkTreeView *tree_view_search = NULL;
@@ -540,13 +538,14 @@ search_gui_add_record(
 		parent = find_parent_with_sha1(sch->parents, key);
 		gtk_tree_store_append(model, &iter, parent);
 		if (NULL != parent) {
+			gchar buf[64];
 			guint n;
 
 			n = (guint) gtk_tree_model_iter_n_children(
                                 (GtkTreeModel *) model, parent) + 1;
 			/* Use a string to suppress showing 0 in the # column */
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%u", n);
-			gtk_tree_store_set(model, parent, c_sr_count, tmpstr, (-1));
+			gm_snprintf(buf, sizeof buf, "%u", n);
+			gtk_tree_store_set(model, parent, c_sr_count, buf, (-1));
  			/* we need only the reference for the parent */
 			atom_sha1_free(key);
 		} else
@@ -1368,6 +1367,11 @@ add_results_columns(GtkTreeView *treeview)
 		add_results_column(treeview, _(columns[i].title), columns[i].id,
 			width[columns[i].id], columns[i].align, columns[i].func);
 	}
+
+	/* Sort the treeview by number of sources as default */	
+	gtk_tree_sortable_set_sort_column_id(
+		GTK_TREE_SORTABLE(gtk_tree_view_get_model(treeview)),
+		c_sr_count, GTK_SORT_ASCENDING);
 }
 
 static gboolean
@@ -1500,18 +1504,18 @@ gui_search_force_update_tab_label(search_t *sch, time_t now)
 {
     search_t *search;
 	GtkTreeModel *model;
+	gchar buf[4096];
 
     search = search_gui_get_current_search();
 
 	if (sch == search || sch->unseen_items == 0)
-		gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d)", sch->query,
-				   sch->items);
+		gm_snprintf(buf, sizeof buf, "%s\n(%d)", sch->query, sch->items);
 	else
-		gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d, %d)", sch->query,
-				   sch->items, sch->unseen_items);
+		gm_snprintf(buf, sizeof buf, "%s\n(%d, %d)", sch->query,
+		   sch->items, sch->unseen_items);
 	sch->last_update_items = sch->items;
-	gtk_notebook_set_tab_label_text
-        (notebook_search_results, sch->scrolled_window, tmpstr);
+	gtk_notebook_set_tab_label_text(notebook_search_results,
+		sch->scrolled_window, buf);
 	model = gtk_tree_view_get_model(tree_view_search);
 	gtk_tree_model_foreach(model, tree_view_search_update, sch);
 	sch->last_update_time = now;
