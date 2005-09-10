@@ -848,9 +848,9 @@ search_matched(search_t *sch, results_set_t *rs)
 		if (vinfo->len)
 			g_string_append(vinfo, ", ");
 		if (host_addr_equal(rs->addr, rs->udp_addr))
-			g_string_append(vinfo, "udp");
+			g_string_append(vinfo, _("udp"));
 		else {
-			g_string_append(vinfo, "udp ");
+			g_string_append(vinfo, _("udp "));
 			g_string_append(vinfo, host_addr_to_string(rs->udp_addr));
 		}
 	} else
@@ -859,7 +859,7 @@ search_matched(search_t *sch, results_set_t *rs)
 	if (rs->status & ST_TLS)
 		g_string_append(vinfo, vinfo->len ? ", TLS" : "TLS");
 	if (rs->status & ST_BH)
-		g_string_append(vinfo, vinfo->len ? ", browsable" : "browsable");
+		g_string_append(vinfo, vinfo->len ? _(", browsable") : _("browsable"));
 	flags = (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
 
 	/*

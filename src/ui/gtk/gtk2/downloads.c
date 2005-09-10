@@ -887,7 +887,7 @@ download_gui_add(download_t *d)
 
 				progress = 100.0 * guc_download_total_progress(d);
 				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"[%d/%d]  TR:  -",
+					_("[%d/%d]  TR:  -"),
 					d->file_info->recvcount, d->file_info->lifecount);
 
 				/* Clear the old info */
@@ -1313,7 +1313,7 @@ gui_update_download(download_t *d, gboolean force)
 				guint s = (fi->size - fi->done) / fi->recv_last_rate;
 
 				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"(%s)  [%d/%d]  TR:  %s",
+					_("(%s)  [%d/%d]  TR:  %s"),
 					short_rate(fi->recv_last_rate),
 					fi->recvcount, fi->lifecount, short_time(s));
 			} else {
@@ -1611,7 +1611,7 @@ gui_update_download(download_t *d, gboolean force)
 				}
 
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-					" TR: %s", s ? short_time(s) : "-");
+					_(" TR: %s"), s ? short_time(s) : "-");
 
 				if (!has_header && fi->recv_last_rate) {
 					s = (fi->size - fi->done) / fi->recv_last_rate;

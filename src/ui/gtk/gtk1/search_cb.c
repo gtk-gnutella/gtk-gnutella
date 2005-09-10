@@ -366,8 +366,9 @@ search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
 
     if (sel_sources > 1) {
         statusbar_gui_message(15,
-            "%d files auto selected with %d sources %s",
-            sel_files, sel_sources, "by urn:sha1.");
+            NG_("%d file auto selected with %d sources %s",
+                "%d files auto selected with %d sources %s", sel_files),
+            sel_files, sel_sources, _("by urn:sha1."));
     }
 
     /* The quest for reduced gui flickering...
@@ -723,7 +724,7 @@ on_clist_search_results_button_press_event(GtkWidget *widget,
                 &search_results_show_tabs);
 
             gm_snprintf(tmpstr, sizeof(tmpstr), (search_results_show_tabs) ?
-                "Show search list" : "Show tabs");
+                _("Show search list") : _("Show tabs"));
 
         	gtk_label_set(GTK_LABEL((GTK_MENU_ITEM
             	(lookup_widget(popup_search, "popup_search_toggle_tabs"))

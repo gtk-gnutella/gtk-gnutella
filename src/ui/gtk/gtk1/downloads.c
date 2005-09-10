@@ -1264,7 +1264,7 @@ gui_update_download(struct download *d, gboolean force)
 						" (%s)", short_rate(bps));
 
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-					" [%d/%d] TR: %s", fi->recvcount, fi->lifecount,
+					_(" [%d/%d] TR: %s"), fi->recvcount, fi->lifecount,
 					s ? short_time(s) : "-");
 
 				if (fi->recv_last_rate) {
@@ -1377,13 +1377,13 @@ gui_update_download(struct download *d, gboolean force)
 
 							if (s) {
 								gm_snprintf(tmpstr, sizeof(tmpstr),
-									"%4.02f%%  (%s)  [%d/%d]  TR:  %s",
+									_("%4.02f%%  (%s)  [%d/%d]  TR:  %s"),
 									percent_done,
 									short_rate(fi->recv_last_rate),
 									active_src, tot_src, short_time(s));
 							} else {
 								gm_snprintf(tmpstr, sizeof(tmpstr),
-									"%4.02f%%  (%s)  [%d/%d]  TR:  -",
+									_("%4.02f%%  (%s)  [%d/%d]  TR:  -"),
 									percent_done,
 									short_rate(fi->recv_last_rate),
 									active_src, tot_src);
@@ -1450,12 +1450,12 @@ gui_update_download(struct download *d, gboolean force)
 
 							if (s) {
 								gm_snprintf(tmpstr, sizeof(tmpstr),
-									"(%s)  [%d/%d]  TR:  %s",
+									_("(%s)  [%d/%d]  TR:  %s"),
 									short_rate(fi->recv_last_rate),
 									active_src, tot_src, short_time(s));
 							} else {
 								gm_snprintf(tmpstr, sizeof(tmpstr),
-									"(%s)  [%d/%d]  TR:  -",
+									_("(%s)  [%d/%d]  TR:  -"),
 									short_rate(fi->recv_last_rate),
 									active_src, tot_src);
 							}
