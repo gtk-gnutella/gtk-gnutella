@@ -183,7 +183,7 @@ cobs_decode_into(const gchar *buf, size_t len, gchar *out,
 		code--;
 		if (code > end - p || code > oend - o)
 			return FALSE;			/* Reached end of some buffer */
-		
+
 		while (code-- > 0) {
 			if (0 == (*o++ = *p++))
 				return FALSE;		/* There must not be any NUL */
@@ -206,7 +206,7 @@ cobs_decode_into(const gchar *buf, size_t len, gchar *out,
 	/* The last trailing NUL is stripped from data */
 	if (0xFF != last_code)
 		o--;
-	
+
 	*retlen = o - out;
 
 	g_assert(*retlen <= outlen);

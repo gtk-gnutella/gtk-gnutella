@@ -45,7 +45,7 @@ typedef enum {
 	INPUT_EVENT_R			= 1 << 0,	/* poll for Read events */
 	INPUT_EVENT_W			= 1 << 1,	/* poll for Write events */
 	INPUT_EVENT_EXCEPTION	= 1 << 2,	/* poll for exceptions */
-		
+
 	INPUT_EVENT_RX = ((guint) INPUT_EVENT_R | (guint) INPUT_EVENT_EXCEPTION),
 	INPUT_EVENT_WX = ((guint) INPUT_EVENT_W | (guint) INPUT_EVENT_EXCEPTION),
 	INPUT_EVENT_RW = ((guint) INPUT_EVENT_R | (guint) INPUT_EVENT_W),

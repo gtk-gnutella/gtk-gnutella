@@ -107,15 +107,15 @@ typedef enum {
 	UNI_GC_LETTER_TITLECASE,
 	UNI_GC_LETTER_MODIFIER,
 	UNI_GC_LETTER_OTHER,
-	
+
 	UNI_GC_MARK_NONSPACING,
 	UNI_GC_MARK_SPACING_COMBINE,
 	UNI_GC_MARK_ENCLOSING,
-	
+
 	UNI_GC_NUMBER_DECIMAL,
 	UNI_GC_NUMBER_LETTER,
 	UNI_GC_NUMBER_OTHER,
-	
+
 	UNI_GC_PUNCT_CONNECTOR,
 	UNI_GC_PUNCT_DASH,
 	UNI_GC_PUNCT_OPEN,
@@ -123,16 +123,16 @@ typedef enum {
 	UNI_GC_PUNCT_INIT_QUOTE,
 	UNI_GC_PUNCT_FINAL_QUOTE,
 	UNI_GC_PUNCT_OTHER,
-	
+
 	UNI_GC_SYMBOL_MATH,
 	UNI_GC_SYMBOL_CURRENCY,
 	UNI_GC_SYMBOL_MODIFIER,
 	UNI_GC_SYMBOL_OTHER,
-	
+
 	UNI_GC_SEPARATOR_SPACE,
 	UNI_GC_SEPARATOR_LINE,
 	UNI_GC_SEPARATOR_PARAGRAPH,
-	
+
 	UNI_GC_OTHER_CONTROL,
 	UNI_GC_OTHER_FORMAT,
 	UNI_GC_OTHER_SURROGATE,
@@ -7752,7 +7752,7 @@ static const guint32 utf32_composition_exclusions[] = {
 /*
  * The table is extracted from UnicodeData.txt - the 3rd column is
  * relevant.
- 
+
 	gawk 'BEGIN {
 		FS=";"; start=0; last=0; n=0; p_gc="";
 	}
@@ -9794,7 +9794,7 @@ static const struct utf32_general_category {
 		end = $1;
 		sub("^[^.]*[.][.]", "", end);
 		printf("\t{ 0x%s, 0x%s },\n", start, end)
-	}' Blocks.txt 
+	}' Blocks.txt
  *
  */
 static const struct {
@@ -9947,6 +9947,6 @@ static const struct {
 	{ 0xF0000, 0xFFFFF },
 	{ 0x100000, 0x10FFFF },
 };
-	
+
 #endif /* _utf8_tables_h_ */
 /* vi: set ts=4 sw=4 cindent: */

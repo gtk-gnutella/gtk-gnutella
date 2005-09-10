@@ -125,23 +125,23 @@ inputevt_add(gint source, inputevt_cond_t condition,
 
 	switch (condition) {
 	case INPUT_EVENT_RX:
-		cond |= EXCEPTION_CONDITION; 
+		cond |= EXCEPTION_CONDITION;
 	case INPUT_EVENT_R:
 		cond |= READ_CONDITION;
 		break;
-		
+
 	case INPUT_EVENT_WX:
-		cond |= EXCEPTION_CONDITION; 
+		cond |= EXCEPTION_CONDITION;
 	case INPUT_EVENT_W:
 		cond |= WRITE_CONDITION;
 		break;
-		
+
 	case INPUT_EVENT_RWX:
-		cond |= EXCEPTION_CONDITION; 
+		cond |= EXCEPTION_CONDITION;
 	case INPUT_EVENT_RW:
 		cond |= (READ_CONDITION | WRITE_CONDITION);
 		break;
-		
+
 	case INPUT_EVENT_EXCEPTION:
 		g_error("must not specify INPUT_EVENT_EXCEPTION only!");
 	}

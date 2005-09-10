@@ -93,7 +93,7 @@ tt_endian(gchar *s)
 	guint64 *p;
 
 	p = (guint64 *) s;
-	
+
 	p[0] = guint64_to_LE(p[0]);
 	p[1] = guint64_to_LE(p[1]);
 	p[2] = guint64_to_LE(p[2]);

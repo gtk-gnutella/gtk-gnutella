@@ -566,8 +566,6 @@ stripped_strlen(const gchar *s, gint len)
 }
 
 /**
- * header_fmt_make
- *
  * Create a new formatting context for a header line.
  *
  * @param `field' is the header field name, without trailing ':'.

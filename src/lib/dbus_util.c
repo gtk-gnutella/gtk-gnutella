@@ -57,7 +57,7 @@ RCSID("$Id$");
 
 static DBusConnection *bus = NULL; /**< D-Bus connection to the message bus */
 
-/** 
+/**
  * Initialize the bus connection
  */
 void
@@ -79,15 +79,15 @@ dbus_util_init(void)
 	}
 }
 
-/** 
+/**
  * Close down the D-BUS connection and send final event.
  */
-void 
-dbus_util_close(void) 
+void
+dbus_util_close(void)
 {
 	/** @todo Include a timestamp or some other useful info */
 	dbus_util_send_message(DBS_EVT, "stopped");
-	
+
 	/**
 	 * @todo It's not really clear to me how I can free the bus that
 	 * we have, but since we are shutting down now anyway it does not
@@ -107,29 +107,29 @@ dbus_util_send_message(const char *signal_name, const char *text)
 {
 	DBusMessage *message;  /**< The dbus message to send */
 
-	/* 
+	/*
 	 * If the bus could not be initialized earlier then we should not
 	 * attempt to send a message now.
 	 */
-	if (NULL == bus) 
+	if (NULL == bus)
 		return;
-	
+
 	/* Create a new message on the DBUS_INTERFACE */
 	message = dbus_message_new_signal(DBUS_PATH, DBUS_INTERFACE, signal_name);
-	
+
 	if (NULL == message) {
 		g_message("Could not create D-BUS message!");
 	} else {
-			
+
 		/* Add the message to the Events signal */
-		dbus_message_append_args(message, DBUS_TYPE_STRING, &text, 
+		dbus_message_append_args(message, DBUS_TYPE_STRING, &text,
 								 DBUS_TYPE_INVALID);
 
 		/* Send the message */
 		dbus_connection_send(bus, message, NULL);
-		
+
 		g_message("Sent D-BUS signal '%s': %s", signal_name, text);
-		
+
 		/* Free the message */
 		dbus_message_unref(message);
     }

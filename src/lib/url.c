@@ -527,7 +527,7 @@ url_normalize(gchar *url, url_policy_t pol)
 		gint error;
 
 		q++; /* Skip ':' */
-		
+
 		/* Reject port numbers with leading zeros */
 		if (!is_ascii_digit(*q) || '0' == *q) {
 			error = EINVAL;
@@ -535,7 +535,7 @@ url_normalize(gchar *url, url_policy_t pol)
 		} else {
 			u = parse_uint32(q, &endptr, 10, &error);
 		}
-			
+
 		if (error || u < 1 || u > 65535) {
 			warn = "':' MUST be followed a by port value (1-65535)";
 			goto bad;
@@ -558,7 +558,7 @@ url_normalize(gchar *url, url_policy_t pol)
 	}
 
 	uri = p;
-	
+
 	/* Scan path */
 	for (/* NOTHING */; '\0' != (c = *p); p++) {
 		if (!url_safe_char(c, pol)) {
@@ -569,7 +569,7 @@ url_normalize(gchar *url, url_policy_t pol)
 
 	if (q != uri) {
 		size_t len;
-		
+
 		len = strlen(uri);
 		memmove(q, uri, len);
 		q[len] = '\0';

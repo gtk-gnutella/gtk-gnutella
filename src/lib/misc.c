@@ -62,8 +62,8 @@ RCSID("$Id$");
 static const char hex_alphabet[] = "0123456789ABCDEF";
 static const char hex_alphabet_lower[] = "0123456789abcdef";
 
-		
-	
+
+
 #ifndef HAS_STRLCPY
 size_t
 strlcpy(gchar *dst, const gchar *src, size_t dst_size)
@@ -114,14 +114,14 @@ concat_strings(gchar *dst, size_t size, const gchar *s, ...)
 	gchar *p = dst;
 
 	g_assert(0 == size || NULL != dst);
-	
+
 	va_start(ap, s);
 
 	if (size > 0) {
 		if (!s)
 			*p = '\0';
-		
-		while (NULL != s) {	
+
+		while (NULL != s) {
 			size_t len;
 
 			len = g_strlcpy(p, s, size);
@@ -134,12 +134,12 @@ concat_strings(gchar *dst, size_t size, const gchar *s, ...)
 			size -= len;
 		}
 	}
-	
-	while (NULL != s) {	
+
+	while (NULL != s) {
 		p += strlen(s);
 		s = va_arg(ap, const gchar *);
 	}
-	
+
 	va_end(ap);
 
 	return p - dst;
@@ -168,18 +168,18 @@ w_concat_strings(gchar **dst_ptr, const gchar *first, ...)
 
 	va_start(ap, first);
 	VA_COPY(ap2, ap);
-	
+
 	for (s = first, len = 0; NULL != s; /* NOTHING */) {
 		len += strlen(s);
 		s = va_arg(ap, const gchar *);
 	}
 
 	va_end(ap);
-	
+
 	if (dst_ptr) {
 		gchar *p;
 		size_t n, size = 1 + len;
-		
+
 		*dst_ptr = p = walloc(size);
 		for (s = first; NULL != s; p += n, size -= n) {
 			n = g_strlcpy(p, s, size);
@@ -193,7 +193,7 @@ w_concat_strings(gchar **dst_ptr, const gchar *first, ...)
 
 	return len;
 }
-	
+
 /**
  * Checks whether ``prefix'' is a prefix of ``str''.
  * Maybe skip_prefix() would be a better name.
@@ -279,13 +279,13 @@ print_uint16_hex(gchar *dst, guint16 v)
 
 	for (i = 0; i < 3; i++, v <<= 4) {
 		guint8 d;
-		
+
 		d = v >> 12;
 		if (0 != d || p != dst)
 			*p++ = hex_alphabet_lower[d];
 	}
 	*p++ = hex_alphabet_lower[v >> 12];
-	
+
 	*p = '\0';
 	return p - dst;
 }
@@ -344,7 +344,7 @@ ipv6_to_string_buf(const uint8_t *ipv6, gchar *dst, size_t size)
 		}
 	}
 
-  
+
 	for (i = 0; i < 16; /* NOTHING */) {
 		guint16 v = peek_be16(&ipv6[i]);
 
@@ -404,7 +404,7 @@ ipv6_to_string(const guint8 *ipv6)
 {
 	static gchar buf[IPV6_ADDR_BUFLEN];
 	size_t n;
-	
+
 	n = ipv6_to_string_buf(ipv6, buf, sizeof buf);
 	g_assert(n < sizeof buf);
 	return buf;
@@ -471,7 +471,7 @@ guint32
 string_to_ip(const gchar *s)
 {
 	guint32 ip;
-	
+
 	s = skip_ascii_spaces(s);
 	return string_to_ip_strict(s, &ip, NULL) ? ip : 0;
 }
@@ -495,16 +495,16 @@ parse_ipv6_addr(const gchar *s, guint8 *dst, const gchar **endptr)
 	guchar c = 0, last;
 	gint dc_start = -1;
 	gint error;
-	
+
 	g_assert(s);
 
 	for (i = 0; i < 16; /* NOTHING */) {
 		const gchar *ep;
 		guint32 v;
-		
+
 		last = c;
 		c = *s;
-		
+
 		if (':' == c) {
 			if (':' == last) {
 				if (dc_start >= 0) {
@@ -522,7 +522,7 @@ parse_ipv6_addr(const gchar *s, guint8 *dst, const gchar **endptr)
 			/* "Expected hexdigit" */
 			break;
 		}
-		
+
 		v = parse_uint32(s, &ep, 16, &error);
 		if (error || v > 0xffff) {
 			/* parse_uint32() failed */
@@ -531,7 +531,7 @@ parse_ipv6_addr(const gchar *s, guint8 *dst, const gchar **endptr)
 
 		if (*ep == '.' && i <= 12) {
 			guint32 ip;
-			
+
 			if (string_to_ip_strict(s, &ip, &ep)) {
 				s = ep;
 				poke_be32(&buf[i], ip);
@@ -540,23 +540,23 @@ parse_ipv6_addr(const gchar *s, guint8 *dst, const gchar **endptr)
 			/* IPv4 found */
 			break;
 		}
-					
+
 		buf[i++] = v >> 8;
 		buf[i++] = v & 0xff;
 
 		s = ep;
-		
+
 		if ('\0' == *s) {
 			/* NUL reached */
 			break;
 		}
-	
+
 		last = 0;
 	}
 
 	if (endptr)
 		*endptr = s;
-	
+
 	if (dc_start >= 0) {
 		gint z, n, j;
 
@@ -1668,7 +1668,7 @@ gint
 ascii_strcasecmp(const gchar *s1, const gchar *s2)
 {
 	gint a, b;
-	
+
 	g_assert(s1 != NULL);
 	g_assert(s2 != NULL);
 
@@ -1680,7 +1680,7 @@ ascii_strcasecmp(const gchar *s1, const gchar *s2)
 			b = ascii_tolower(b);
 		}
 	} while (a != '\0' && a == b);
-	
+
 	return a - b;
 }
 
@@ -1691,7 +1691,7 @@ gint
 ascii_strncasecmp(const gchar *s1, const gchar *s2, size_t len)
 {
 	gint a, b;
-	
+
 	g_assert(s1 != NULL);
 	g_assert(s2 != NULL);
 	g_assert(len <= INT_MAX);
@@ -1707,7 +1707,7 @@ ascii_strncasecmp(const gchar *s1, const gchar *s2, size_t len)
 			b = ascii_tolower(b);
 		}
 	} while (a != '\0' && a == b && --len > 0);
-		
+
 	return a - b;
 }
 
@@ -2110,7 +2110,7 @@ gchar *
 short_filename(gchar *fullname)
 {
 	gchar *s;
-	
+
 	s = is_strprefix(fullname, SRC_PREFIX);
 	return s ? s : fullname;
 }
@@ -2214,7 +2214,7 @@ uint32_to_string_buf(guint64 v, gchar *dst, size_t size)
 	gchar buf[UINT32_DEC_BUFLEN];
 	gchar *p;
 	size_t len;
-	
+
 	g_assert(0 == size || NULL != dst);
 	g_assert(size <= INT_MAX);
 
@@ -2228,7 +2228,7 @@ uint32_to_string_buf(guint64 v, gchar *dst, size_t size)
 	if (size > 0) {
 		const gchar *end = &dst[size - 1];
 		gchar *q;
-		
+
 		for (q = dst; q != end && p != buf; q++)
 			*q = *--p;
 
@@ -2245,7 +2245,7 @@ uint64_to_string_buf(guint64 v, gchar *dst, size_t size)
 	gchar buf[UINT64_DEC_BUFLEN];
 	gchar *p;
 	size_t len;
-	
+
 	g_assert(0 == size || NULL != dst);
 	g_assert(size <= INT_MAX);
 
@@ -2259,7 +2259,7 @@ uint64_to_string_buf(guint64 v, gchar *dst, size_t size)
 	if (size > 0) {
 		const gchar *end = &dst[size - 1];
 		gchar *q;
-		
+
 		for (q = dst; q != end && p != buf; q++)
 			*q = *--p;
 
@@ -2461,7 +2461,7 @@ parse_major_minor(const gchar *src, gchar const **endptr,
 	const gchar *ep;
 	gint error;
 	guint32 maj, min;
-	
+
 	g_assert(src);
 
 	maj = parse_uint32(src, &ep, 10, &error);
@@ -2637,7 +2637,7 @@ html_escape_replacement(gchar c, size_t *len)
 	static gchar r;
 
 #define REPLACE(x) { *len = CONST_STRLEN(x); return (x); }
-	
+
 	switch (c) {
 	case '&':
 		REPLACE("&amp;");
@@ -2681,7 +2681,7 @@ html_escape(const gchar *src, gchar *dst, size_t dst_size)
 		for (/* NOTHING*/; '\0' != (c = *s); s++) {
 			const gchar *r;
 			size_t len;
-		
+
 			r = html_escape_replacement(c, &len);
 			if (len > dst_size)
 				break;
@@ -2699,7 +2699,7 @@ html_escape(const gchar *src, gchar *dst, size_t dst_size)
 		d += len;
 	}
 
-	return d - dst; 
+	return d - dst;
 }
 
 /**
@@ -2716,14 +2716,14 @@ canonize_path(gchar *dst, const gchar *path)
 {
   const gchar *p;
   gchar c, *q, *ep;
-  
+
   g_assert(dst);
   g_assert(path);
   /** TODO: Add overlap check. */
 
   /* Scan path */
   for (p = path, q = dst; '\0' != (c = *p); q++, p++) {
- 
+
     /* Handle relative paths i.e., /. and /.. */
     if ('/' != c) {
       *q = c;
@@ -2733,7 +2733,7 @@ canonize_path(gchar *dst, const gchar *path)
     /* Special handling for '/' follows */
 
     do {
-        
+
       *q = '/';
 
       while ('/' == p[1]) {
@@ -2750,23 +2750,23 @@ canonize_path(gchar *dst, const gchar *path)
         /* Ignoring unnecessary "/./" in URI */
       } else if (NULL != (ep = is_strprefix(p, "/../"))) {
         p = ep - 1;
-        
+
         /* Ascending one component in URI */
         do {
           if (q == dst)
             return -1; /* beyond root */
         } while ('/' != *--q);
-          
+
       } else {
         break;
       }
 
     } while ('/' == p[0] && ('/' == p[1] || '.' == p[1]));
-    
+
   }
 
   *q = '\0';
-  
+
   return 0;
 }
 

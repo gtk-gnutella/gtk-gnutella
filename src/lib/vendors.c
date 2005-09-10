@@ -142,8 +142,8 @@ find_vendor(guchar raw[4])
 
 	BINARY_SEARCH(guint32, code, G_N_ELEMENTS(vendor_map), VENDOR_CODE_CMP,
 		GET_KEY, FOUND);
-	
-#undef FOUND 
+
+#undef FOUND
 #undef GET_KEY
 	return NULL; /* not found */
 }

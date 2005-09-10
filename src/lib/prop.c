@@ -359,14 +359,14 @@ prop_get_def(prop_set_t *ps, property_t p)
 			PROP(ps,p).data.guint64.value,
 			sizeof(guint64) * PROP(ps,p).vector_size);
 		break;
-		
+
 	case PROP_TYPE_STRING:
 		buf->data.string.def	= g_new(gchar*, 1);
 		*buf->data.string.def   = g_strdup(*PROP(ps,p).data.string.def);
 		buf->data.string.value  = g_new(gchar*, 1);
 		*buf->data.string.value = g_strdup(*PROP(ps,p).data.string.value);
 		break;
-		
+
 	case PROP_TYPE_STORAGE:
 		buf->data.storage.value = g_memdup
 			(PROP(ps,p).data.storage.value, PROP(ps,p).vector_size);
@@ -1254,8 +1254,8 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		case PROP_TYPE_BOOLEAN:
 			for (i = 0; i < p->vector_size; i++) {
 				gboolean v;
-			
-				v = p->data.boolean.value[i];	
+
+				v = p->data.boolean.value[i];
 				if (v != p->data.boolean.def[i])
 					defaultvalue = FALSE;
 				vbuf[i] = g_strdup(config_boolean(v));
@@ -1384,10 +1384,10 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const gchar *val,
 	g_assert(NULL != ps);
 	g_assert(NULL != val);
 	g_return_if_fail(prop >= ps->offset && prop < ps->offset + ps->size);
-	
+
 	p = &PROP(ps, prop);
 	g_return_if_fail(NULL != p);
-	
+
 	if (!p->save && saved_only) {
 		g_warning("Refusing to load run-time only property \"%s\"", p->name);
 		return;
@@ -1627,7 +1627,7 @@ prop_get_by_regex(prop_set_t *ps, const gchar *pattern, gint *error)
 			*error = ret;
 		return NULL;
 	}
-	
+
 	for (i = 0; i < ps->size; i++) {
 		if (0 == regexec(&re, ps->props[i].name, 0, NULL, 0))
 			sl = g_slist_prepend(sl, GUINT_TO_POINTER(ps->offset + i));

@@ -94,7 +94,7 @@ host_addr_is_routable(const host_addr_t addr)
 
 	if (!host_addr_convert(addr, &ha, NET_TYPE_IPV4))
 		ha = addr;
-	
+
 	switch (host_addr_net(ha)) {
 	case NET_TYPE_IPV4:
 		{
@@ -116,13 +116,13 @@ host_addr_is_routable(const host_addr_t addr)
 				return FALSE;
 		}
 		return TRUE;
-		
+
 	case NET_TYPE_IPV6:
 #ifdef USE_IPV6
 		return 	!host_addr_matches(ha, ipv6_unspecified, 8) &&
 				!host_addr_matches(ha, ipv6_multicast, 8);
 #endif /* USE_IPV6 */
-		
+
 	case NET_TYPE_NONE:
 		break;
 	}
@@ -143,7 +143,7 @@ host_addr_can_convert(const host_addr_t from, enum net_type to_net)
 		switch (from.net) {
 		case NET_TYPE_IPV6:
 			return host_addr_matches(from, ipv6_ipv4_mapped, 96) ||
-					(	
+					(
 					 	0 != from.addr.ipv6[12] &&
 					 	host_addr_matches(from, ipv6_unspecified, 96)
 					);
@@ -151,7 +151,7 @@ host_addr_can_convert(const host_addr_t from, enum net_type to_net)
 			break;
 		}
 		break;
-		
+
 	case NET_TYPE_IPV6:
 		switch (from.net) {
 		case NET_TYPE_IPV4:
@@ -164,7 +164,7 @@ host_addr_can_convert(const host_addr_t from, enum net_type to_net)
 	case NET_TYPE_NONE:
 		break;
 	}
-	
+
 	return FALSE;
 }
 
@@ -191,7 +191,7 @@ host_addr_convert(const host_addr_t from, host_addr_t *to,
 			break;
 		}
 		break;
-		
+
 	case NET_TYPE_IPV6:
 		switch (from.net) {
 		case NET_TYPE_IPV4:
@@ -209,7 +209,7 @@ host_addr_convert(const host_addr_t from, host_addr_t *to,
 	case NET_TYPE_NONE:
 		break;
 	}
-	
+
 	*to = zero_host_addr;
 	return FALSE;
 }
@@ -298,7 +298,7 @@ host_addr_port_to_string_buf(const host_addr_t ha, guint16 port,
 	} else {
 		n = concat_strings(dst, size, host_buf, ":", port_buf, (void *) 0);
 	}
-	
+
 	return n;
 }
 
@@ -389,7 +389,7 @@ string_to_host_or_addr(const char *s, const gchar **endptr, host_addr_t *ha)
 #else
 				/* If IPv6 is disabled, consider [::] a hostname */
 				*ha = zero_host_addr;
-#endif
+#endif /* USE_IPV6 */
 			}
 			if (endptr)
 				*endptr = ++ep;
@@ -397,7 +397,7 @@ string_to_host_or_addr(const char *s, const gchar **endptr, host_addr_t *ha)
 			return TRUE;
 		}
 	}
-	
+
 	addr = string_to_host_addr(s, endptr);
 	if (is_host_addr(addr)) {
 		if (ha)
@@ -427,12 +427,12 @@ string_to_host_addr_port(const gchar *str, const gchar **endptr,
 	host_addr_t addr;
 	gboolean ret;
 	guint16 port;
-	
+
 	ret = string_to_host_or_addr(str, &ep, &addr);
 	if (ret && ':' == *ep && is_host_addr(addr)) {
 		guint32 u;
 		gint error;
-		
+
 		ep++;
 		u = parse_uint32(ep, &ep, 10, &error);
 		port = error || u > 65535 ? 0 : u;
@@ -483,31 +483,31 @@ host_addr_to_name(const host_addr_t ha)
 	case NET_TYPE_IPV4:
 		{
 			static const struct in_addr zero_addr;
-			
+
 			type = AF_INET;
 			a.in = zero_addr;
 			a.in.s_addr = htonl(host_addr_ipv4(ha));
-			
+
 			addr = cast_to_gpointer(&a.in);
 			len = sizeof a.in;
 		}
 		break;
 
-#ifdef USE_IPV6	
+#ifdef USE_IPV6
 	case NET_TYPE_IPV6:
 		{
 			static const struct in6_addr zero_addr;
-				
+
 			type = AF_INET6;
 			a.in6 = zero_addr;
 			memcpy(&a.in6, host_addr_ipv6(&ha), 16);
-			
+
 			addr = cast_to_gpointer(&a.in6);
 			len = sizeof a.in6;
 		}
 		break;
 #endif /* USE_IPV6 */
-		
+
 	default:
 		addr = NULL;
 		type = 0;
@@ -540,7 +540,7 @@ host_addr_to_name(const host_addr_t ha)
 host_addr_t
 name_to_host_addr(const gchar *host)
 {
-#if defined(HAS_GETADDRINFO) 
+#if defined(HAS_GETADDRINFO)
 	static const struct addrinfo zero_hints;
 	struct addrinfo hints, *ai, *ai0 = NULL;
 	gboolean finished = FALSE;
@@ -555,7 +555,7 @@ name_to_host_addr(const gchar *host)
 #else
 	hints.ai_family = PF_INET;
 #endif /* USE_IPV6 */
-	
+
 	error = getaddrinfo(host, NULL, &hints, &ai0);
 	if (error) {
 		g_message("getaddrinfo() failed for \"%s\": %s",
@@ -567,12 +567,12 @@ name_to_host_addr(const gchar *host)
 	for (ai = ai0; ai && !finished; ai = ai->ai_next) {
 		if (!ai->ai_addr)
 			continue;
-		
+
 		switch (ai->ai_family) {
 		case PF_INET:
 			if (ai->ai_addrlen >= 4) {
 				const struct sockaddr_in *sin;
-				
+
 				sin = cast_to_gconstpointer(ai->ai_addr);
 				addr = host_addr_set_ipv4(ntohl(sin->sin_addr.s_addr));
 				finished = TRUE;
@@ -583,7 +583,7 @@ name_to_host_addr(const gchar *host)
 		case PF_INET6:
 			if (ai->ai_addrlen >= 16) {
 				const struct sockaddr_in6 *sin6;
-				
+
 				sin6 = cast_to_gconstpointer(ai->ai_addr);
 				host_addr_set_ipv6(&addr,
 					cast_to_gconstpointer(sin6->sin6_addr.s6_addr));
@@ -633,7 +633,7 @@ name_to_host_addr(const gchar *host)
 
 		addr = host_addr_set_ipv4(peek_be32(he->h_addr_list[0]));
 		return addr;
-		
+
 #ifdef USE_IPV6
 	case AF_INET6:
 		if (16 != he->h_length) {
@@ -645,7 +645,7 @@ name_to_host_addr(const gchar *host)
 		return addr;
 #endif /* !USE_IPV6 */
 	}
-	
+
 	return zero_host_addr;
 }
 

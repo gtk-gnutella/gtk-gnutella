@@ -36,7 +36,7 @@
 #ifndef _dbus_h_
 #define _dbus_h_
 
-/** 
+/**
  * Notification events. These should not be translated, they are part
  * of the machine protocol on dbus.
  */

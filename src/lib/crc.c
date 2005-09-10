@@ -90,7 +90,7 @@ crc32_gen_crc_table(void)
 /**
  * Update the CRC-32 on the data block one byte at a time.
  *
- * @param crc_accum The CRC accumulator, must be initialized to zero.	
+ * @param crc_accum The CRC accumulator, must be initialized to zero.
  * @param data		The input data for CRC-32 calculation.
  * @param len		no brief description.
  *
@@ -103,7 +103,7 @@ crc32_update_crc(guint32 crc_accum, gconstpointer data, size_t len)
 
 	for (j = 0; j < len; j++) {
 		guint8 i;
-		
+
 		i = (crc_accum >> 24) ^ p[j];
 		crc_accum = (crc_accum << 8) ^ crc_table[i];
 	}

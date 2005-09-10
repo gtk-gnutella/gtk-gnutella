@@ -130,7 +130,7 @@ static inline host_addr_t
 host_addr_set_ipv4(guint32 ip)
 {
 	host_addr_t ha;
-	
+
 	ha.net = NET_TYPE_IPV4;
 	ha.addr.ipv4 = ip;
 	return ha;
@@ -159,14 +159,14 @@ host_addr_equal(const host_addr_t a, const host_addr_t b)
 					a_ipv4.addr.ipv4 == b_ipv4.addr.ipv4;
 			}
 			return TRUE;
-			
+
 		case NET_TYPE_NONE:
 			return TRUE;
 		}
 		g_assert_not_reached();
 	} else {
 		host_addr_t to;
-		
+
 		return host_addr_convert(a, &to, b.net) && host_addr_equal(to, b);
 	}
 	return FALSE;
@@ -180,12 +180,12 @@ host_addr_cmp(host_addr_t a, host_addr_t b)
 	r = CMP(a.net, b.net);
 	if (0 != r) {
 		host_addr_t to;
-		
+
 		if (!host_addr_convert(b, &to, a.net))
 			return r;
 		b = to;
 	}
-	
+
 	switch (a.net) {
 	case NET_TYPE_IPV4:
 		return CMP(a.addr.ipv4, b.addr.ipv4);
@@ -212,19 +212,19 @@ host_addr_matches(const host_addr_t a, const host_addr_t b, guint8 bits)
 {
 	host_addr_t to;
 	guint8 shift;
-	
+
 	if (!host_addr_convert(b, &to, a.net))
 		return FALSE;
-		
+
 	switch (a.net) {
 	case NET_TYPE_IPV4:
 		shift = bits < 32 ? 32 - bits : 0;
 		return (a.addr.ipv4 >> shift) == (to.addr.ipv4 >> shift);
-		
+
 	case NET_TYPE_IPV6:
 		{
 			gint i;
-		
+
 			bits = MIN(128, bits);
 			for (i = 0; bits >= 8; i++, bits -= 8) {
 				if (a.addr.ipv6[i] != to.addr.ipv6[i])
@@ -235,7 +235,7 @@ host_addr_matches(const host_addr_t a, const host_addr_t b, guint8 bits)
 				guint8 shift = 8 - bits;
 				return (a.addr.ipv6[i] >> shift) == (to.addr.ipv6[i] >> shift);
 			}
-			
+
 		}
 		return TRUE;
 
@@ -264,7 +264,7 @@ is_host_addr(const host_addr_t ha)
 	return FALSE;
 }
 
-static inline int 
+static inline int
 host_addr_family(const host_addr_t ha)
 {
 	switch (ha.net) {
@@ -306,7 +306,7 @@ host_addr_hash(host_addr_t ha)
 		return 0;
 	}
 	g_assert_not_reached();
-	return -1; 
+	return -1;
 }
 
 #else
@@ -315,7 +315,7 @@ host_addr_hash(host_addr_t ha)
 
 #define host_addr_initialized(x)	TRUE
 #define host_addr_net(x) (((void) (x)), NET_TYPE_IPV4)
-#define host_addr_family(x) (((void) (x)), AF_INET) 
+#define host_addr_family(x) (((void) (x)), AF_INET)
 #define host_addr_ipv4(x) (x)
 #define host_addr_set_ipv4(x) (x)
 #define host_addr_set_net(x, y) G_STMT_START { (void) ((x), (y)) } G_STMT_END
@@ -341,11 +341,11 @@ static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
 host_addr_matches(guint32 a, guint32 b, guint8 bits)
 {
 	guint8 shift;
-	
+
 	shift = bits < 32 ? 32 - bits : 0;
 	return (a >> shift) == (b >> shift);
 }
-	
+
 #endif /* USE_IPV6 */
 
 guint host_addr_hash_func(gconstpointer key);

@@ -153,7 +153,7 @@ static inline gpointer
 poke_be16(gpointer p, guint16 v)
 {
 	guint8 *q = p;
-	
+
 	q[0] = v >> 8;
 	q[1] = v;
 
@@ -164,7 +164,7 @@ static inline gpointer
 poke_be32(gpointer p, guint32 v)
 {
 	guint8 *q = p;
-	
+
 	q[0] = v >> 24;
 	q[1] = v >> 16;
 	q[2] = v >> 8;
@@ -177,7 +177,7 @@ static inline gpointer
 poke_le16(gpointer p, guint16 v)
 {
 	guint8 *q = p;
-	
+
 	q[0] = v;
 	q[1] = v >> 8;
 
@@ -188,7 +188,7 @@ static inline gpointer
 poke_le32(gpointer p, guint32 v)
 {
 	guint8 *q = p;
-	
+
 	q[0] = v;
 	q[1] = v >> 8;
 	q[2] = v >> 16;

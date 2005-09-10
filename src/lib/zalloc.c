@@ -94,9 +94,8 @@ static struct zone *zn_create(zone_t *, gint, gint);
 static gchar **zn_extend(zone_t *);
 
 /**
- * zalloc
- *
  * Allcate memory with fixed size blocks (zone allocation).
+ *
  * Returns a pointer to a block containing at least 'size' bytes of
  * memory.  It is a fatal error if memory cannot be allocated.
  *
@@ -175,8 +174,6 @@ gpointer zalloc(zone_t *zone)
 
 #ifdef TRACK_ZALLOC
 /**
- * zalloc_track
- *
  * Tracking version of zalloc().
  */
 gpointer zalloc_track(zone_t *zone, gchar *file, gint line)
@@ -193,8 +190,6 @@ gpointer zalloc_track(zone_t *zone, gchar *file, gint line)
 }
 
 /**
- * zblock_log
- *
  * Log information about block, `p' being the physical start of the block, not
  * the user part of it.  The block is known to be of size `size' and should
  * be also recorded in the `leakset' for summarizing of all the leaks.
@@ -217,8 +212,6 @@ static void zblock_log(gchar *p, gint size, gpointer leakset)
 }
 
 /**
- * zdump_used
- *
  * Go through the whole zone and dump all the used blocks.
  */
 static void zdump_used(zone_t *zone)
@@ -259,8 +252,6 @@ static void zdump_used(zone_t *zone)
 #endif	/* TRACK_ZALLOC */
 
 /**
- * zfree
- *
  * Return block to its zone, hence freeing it. Previous content of the
  * block is lost.
  *
@@ -297,8 +288,6 @@ void zfree(zone_t *zone, gpointer ptr)
 #endif	/* !REMAP_ZALLOC */
 
 /**
- * zcreate
- *
  * Create a new zone able to hold items of 'size' bytes. Returns
  * NULL if no new zone can be created.
  *
@@ -317,8 +306,6 @@ zone_t *zcreate(gint size, gint hint)
 }
 
 /**
- * zn_create
- *
  * Create a new zone able to hold items of 'size' bytes.
  */
 static zone_t *zn_create(zone_t *zone, gint size, gint hint)
@@ -398,8 +385,6 @@ static zone_t *zn_create(zone_t *zone, gint size, gint hint)
 }
 
 /**
- * zdestroy
- *
  * Destroy a zone chunk by releasing its memory to the system if possible,
  * converting it into a malloc chunk otherwise.
  */
@@ -438,8 +423,6 @@ void zdestroy(zone_t *zone)
 }
 
 /**
- * zget
- *
  * Get a zone suitable for allocating blocks of 'size' bytes.
  * `hint' represents the desired amount of blocks per subzone.
  *
@@ -501,8 +484,6 @@ zone_t *zget(gint size, gint hint)
 }
 
 /**
- * zn_cram
- *
  * Cram a new zone in chunk.
  *
  * A zone consists of linked blocks, where the address of the next free block
@@ -521,10 +502,10 @@ static void zn_cram(zone_t *zone, gchar *arena, gint size)
 
 #ifndef REMAP_ZALLOC
 /**
- * zn_extend
+ * Extend zone by allocating a new zone chunk.
  *
- * Extend zone by allocating a new zone chunk. Returns the address of the
- * first new free block within the extended chunk arena.
+ * @return the address of the first new free block within the extended
+ *         chunk arena.
  */
 static gchar **zn_extend(zone_t *zone)
 {

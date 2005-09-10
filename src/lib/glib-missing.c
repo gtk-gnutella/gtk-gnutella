@@ -163,8 +163,6 @@ g_list_delete_link(GList *l, GList *lnk)
 
 
 /**
- * gm_vsnprintf
- *
  * This version implements the correct FIXED semantics of the 1.2.10 glib:
  */
 size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args)
@@ -184,8 +182,6 @@ size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args)
 }
 
 /**
- * gm_snprintf
- *
  * This version implements the correct FIXED semantics of the 1.2.10 glib:
  * It returns the length of the output string, and it is GUARANTEED to
  * be one less than `n' (last position occupied by the trailing NUL).
@@ -214,8 +210,6 @@ static gchar **orig_argv;
 static gchar **orig_env;
 
 /**
- * gm_savemain
- *
  * Save the original main() arguments.
  */
 void gm_savemain(gint argc, gchar **argv, gchar **env)
@@ -226,8 +220,6 @@ void gm_savemain(gint argc, gchar **argv, gchar **env)
 }
 
 /**
- * gm_setproctitle
- *
  * Change the process title as seen by "ps".
  */
 void gm_setproctitle(gchar *title)
@@ -292,8 +284,6 @@ void gm_setproctitle(gchar *title)
 }
 
 /**
- * gm_atoul
- *
  * @returns the nul-terminated string `str' converted to an unsigned long.
  * If successful `errorcode' will be set to 0 (zero), otherwise it will
  * contain an errno(2) code and the function returns 0 (zero).
@@ -331,7 +321,7 @@ unsigned long gm_atoul(const char *str, char **endptr, int *errorcode)
 #ifdef USE_GLIB1
 /**
  * Appends len bytes of val to string. Because len is provided, val may
- * contain embedded nuls and need not be nul-terminated. 
+ * contain embedded nuls and need not be nul-terminated.
  */
 GString *g_string_append_len(GString *gs, const gchar *val,  gssize len)
 {
@@ -361,7 +351,7 @@ gchar *
 gm_sanitize_filename(const gchar *filename,
 		gboolean no_spaces, gboolean no_evil)
 {
-	static const uni_norm_t norm = 
+	static const uni_norm_t norm =
 #if defined(__APPLE__) && defined(__MACH__) /* Darwin */
 		UNI_NORM_NFD;
 #else /* !Darwin */

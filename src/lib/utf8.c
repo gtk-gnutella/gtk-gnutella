@@ -197,11 +197,11 @@ utf32_combining_class(guint32 uc)
 	return utf32_comb_class_lut[(i)].cc; \
 	/* NOTREACHED */ \
 } G_STMT_END
-	
+
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_comb_class_lut), CMP,
 		GET_ITEM, FOUND);
-	
+
 #undef FOUND
 #undef GET_ITEM
 	return 0;
@@ -214,7 +214,7 @@ block_id_cmp(size_t i, guint32 uc)
 		return 1;
 	if (uc > utf32_block_id_lut[i].end)
 		return -1;
-	
+
 	return 0;
 }
 
@@ -230,7 +230,7 @@ utf32_block_id(guint32 uc)
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_block_id_lut), block_id_cmp,
 		GET_ITEM, FOUND);
-	
+
 #undef FOUND
 #undef GET_ITEM
 	return 0;
@@ -244,11 +244,11 @@ utf32_composition_exclude(guint32 uc)
 	return TRUE; \
 	/* NOTREACHED */ \
 } G_STMT_END
-	
+
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_composition_exclusions), CMP,
 		GET_ITEM, FOUND);
-	
+
 #undef FOUND
 #undef GET_ITEM
 	return FALSE;
@@ -257,7 +257,7 @@ utf32_composition_exclude(guint32 uc)
 /**
  * Checks whether the character is a non-character which is not the
  * same as an unassigned character.
- * 
+ *
  * @param uc an UTF-32 character
  * @return TRUE if the the character is a non-character, FALSE otherwise.
  */
@@ -271,13 +271,13 @@ static inline gint
 general_category_cmp(size_t i, guint32 uc)
 {
 	guint32 uc2, uc3;
-	
+
 	uc2 = utf32_general_category_lut[i].uc;
 	if (uc == uc2)
 		return 0;
 	if (uc < uc2)
 		return 1;
-	
+
 	uc3 = uc2 + utf32_general_category_lut[i].len;
 	return uc < uc3 ? 0 : -1;
 }
@@ -333,7 +333,7 @@ utf8_is_valid_string(const gchar *s, size_t len)
 
 	if (len != 0) {
 		const gchar *s_end;
-		
+
 		s_end = s + len;
 		for (x = s; x < s_end; n++, x += clen) {
 			if (0 == (clen = utf8_is_valid_char(x)))
@@ -459,8 +459,8 @@ utf8_encode_char(guint32 uc, gchar *buf)
 gint
 utf16_encode_char(guint32 uc, guint16 *dst)
 {
-	g_assert(dst != NULL);	
-	
+	g_assert(dst != NULL);
+
 	if (uc <= 0xFFFF) {
 		*dst = uc;
 		return 1;
@@ -924,7 +924,7 @@ textdomain_init(const char *codeset)
 #ifdef ENABLE_NLS
 	{
 		const gchar *nlspath;
-		
+
 		nlspath = getenv("NLSPATH");
 		bindtextdomain(PACKAGE, nlspath ? nlspath : LOCALE_EXP);
 	}
@@ -1025,7 +1025,7 @@ locale_init(void)
 		}
 	}
 #endif
-	
+
 	unicode_compose_init();
 	unicode_decompose_init();
 }
@@ -1070,7 +1070,7 @@ complete_iconv(iconv_t cd, const char *inbuf, size_t inbytes_left,
 		outbuf[0] = '\0';
 
 	iconv(cd, NULL, NULL, NULL, NULL);	/* reset state*/
-	
+
 	while (inbytes_left > 0 && outbytes_left > 1) {
 		size_t ret;
 
@@ -1125,7 +1125,7 @@ utf8_enforce(gchar *dst, size_t size, const gchar *src)
 {
 	const gchar *s = src;
 	gchar *d = dst;
-	
+
 	g_assert(0 == size || NULL != dst);
 	g_assert(NULL != src);
 	g_assert(size <= INT_MAX);
@@ -1222,11 +1222,11 @@ locale_to_utf8_full(const gchar *str)
 	len = strlen(str);
 	if (0 == len || utf8_is_valid_string(str, len))
 		return deconstify_gchar(str);
-	
+
 	if (locale_is_utf8()) {
 		size_t size, n;
 		gchar *s;
-	
+
 		size = 1 + utf8_enforce(NULL, 0, str);
 		s = g_malloc(size);
 		n = utf8_enforce(s, size, str);
@@ -1235,7 +1235,7 @@ locale_to_utf8_full(const gchar *str)
 	} else {
 		size_t utf8_len;
 		gchar *s;
-	
+
    		utf8_len = len * 6 + 1;
 		g_assert((utf8_len - 1) / 6 == len);
 		s = g_malloc(utf8_len);
@@ -1270,7 +1270,7 @@ locale_to_utf8_normalized(const gchar *str, uni_norm_t norm)
 	} else if (locale_is_utf8()) {
 		size_t size;
 		gchar *p;
-	
+
 		size = 1 + utf8_enforce(NULL, 0, str);
 		p = size < sizeof sbuf ? sbuf : g_malloc(size);
 		utf8_enforce(p, size, str);
@@ -1306,7 +1306,7 @@ utf8_to_locale(const gchar *str, size_t len)
 	/* No need to convert from UTF-8 to UTF-8 */
 	if (locale_is_utf8())
 		return str;
-	else		
+	else
 		return complete_iconv(cd_utf8_to_locale,
 				str, len != 0 ? len : strlen(str), outbuf, sizeof(outbuf) - 7);
 }
@@ -1333,7 +1333,7 @@ lazy_iso8859_1_to_utf8(const gchar *s)
 
 	if ('\0' == *s || utf8_is_valid_string(s, 0))
 		return s;
-	
+
 	t = complete_iconv(cd_latin_to_utf8, s, strlen(s), outbuf, sizeof outbuf);
 	if (!t) {
 		utf8_enforce(outbuf, sizeof outbuf, s);
@@ -1381,7 +1381,7 @@ lazy_locale_to_utf8(const gchar *str)
 
 		return buf;
 	}
-	
+
 	return "<Cannot convert to UTF-8>";
 }
 
@@ -1490,7 +1490,7 @@ utf32_strdup(const guint32 *s)
 
 	if (!s)
 		return NULL; /* Just because g_strdup() does it like this */
-	
+
 	n = (1 + utf32_strlen(s)) * sizeof *p;
 	p = g_malloc(n);
 	memcpy(p, s, n);
@@ -1501,7 +1501,7 @@ gint64
 utf32_strcmp(const guint32 *s1, const guint32 *s2)
 {
 	guint32 uc;
-		
+
 	g_assert(NULL != s1);
 	g_assert(NULL != s2);
 
@@ -1535,11 +1535,11 @@ utf32_decompose_lookup(guint32 uc, gboolean nfkd)
 		: utf32_nfkd_lut[(i)].d; \
 	/* NOTREACHED */ \
 } G_STMT_END
-	
+
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_nfkd_lut), CMP,
 		GET_ITEM, FOUND);
-	
+
 #undef FOUND
 #undef GET_ITEM
 	return NULL;
@@ -1562,11 +1562,11 @@ utf32_uppercase(guint32 uc)
 	return utf32_uppercase_lut[(i)].upper; \
 	/* NOTREACHED */ \
 } G_STMT_END
-	
+
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_uppercase_lut), CMP,
 		GET_ITEM, FOUND);
-	
+
 #undef FOUND
 #undef GET_ITEM
 
@@ -1593,11 +1593,11 @@ utf32_lowercase(guint32 uc)
 	return utf32_lowercase_lut[(i)].lower; \
 	/* NOTREACHED */ \
 } G_STMT_END
-	
+
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_lowercase_lut), CMP,
 		GET_ITEM, FOUND);
-	
+
 #undef FOUND
 #undef GET_ITEM
 
@@ -1624,7 +1624,7 @@ utf32_compose_char(guint32 a, guint32 b)
 {
 	GSList *sl;
 	gpointer key;
-	
+
 	key = GUINT_TO_POINTER(a);
 	sl = g_hash_table_lookup(utf32_compose_roots, key);
 	for (/* NOTHING */; sl; sl = g_slist_next(sl)) {
@@ -1691,7 +1691,7 @@ utf32_is_decomposed_char(guint32 uc, gboolean nfkd)
 }
 
 /**
- * Checks whether an UTF-32 string is decomposed. 
+ * Checks whether an UTF-32 string is decomposed.
  */
 gboolean
 utf32_is_decomposed(const guint32 *src, gboolean nfkd)
@@ -1727,7 +1727,7 @@ utf32_sort_canonical(guint32 *src)
 			s++;
 		} else {
 			guint32 *p;
-			
+
 			while (0 != utf32_combining_class(*++s))
 				;
 
@@ -1752,7 +1752,7 @@ utf32_sort_canonical(guint32 *src)
 				g_assert(q != s);
 				*q = uc;
 			}
-			
+
 			stable = s;
 			cc = 0;
 		}
@@ -1762,7 +1762,7 @@ utf32_sort_canonical(guint32 *src)
 }
 
 /**
- * Checks whether an UTF-8 encoded string is decomposed 
+ * Checks whether an UTF-8 encoded string is decomposed.
  */
 gboolean
 utf8_is_decomposed(const gchar *src, gboolean nfkd)
@@ -1777,7 +1777,7 @@ utf8_is_decomposed(const gchar *src, gboolean nfkd)
 		} else {
 			guint32 uc;
 			gint retlen;
-		
+
 			uc = utf8_decode_char_fast(src, &retlen);
 			if (uc == 0x0000)
 				break;
@@ -1816,11 +1816,11 @@ utf8_canonical_sorted(const gchar *src)
 			uc = utf8_decode_char_fast(src, &retlen);
 			if (uc == 0x0000)
 				break;
-		
+
 			cc = utf32_combining_class(uc);
 			if (cc != 0 && prev > cc)
 				return FALSE;
-		
+
 			src += retlen;
 		}
 	}
@@ -1844,7 +1844,7 @@ utf8_sort_canonical(gchar *src)
 	 *		could be converting only between stable code points. However,
 	 *		in the worst case, that's still the whole string.
 	 */
-	
+
 	size8 = 1 + strlen(src);
 	size32 = 1 + utf8_to_utf32(src, NULL, 0);
 
@@ -1856,13 +1856,13 @@ utf8_sort_canonical(gchar *src)
 		d = NULL;
 		buf32 = a;
 	}
-	
+
 	n = utf8_to_utf32(src, buf32, size32);
 	g_assert(n == size32 - 1);
 	utf32_sort_canonical(buf32);
 	n = utf32_to_utf8(buf32, src, size8);
 	g_assert(n == size8 - 1);
-	
+
 	G_FREE_NULL(d);
 
 	return src;
@@ -1929,7 +1929,7 @@ utf32_compose_hangul(guint32 *src)
 
 	for (p = ++s; 0 != (uc = *s); s++) {
 		gint l_index, s_index;
-	
+
 		l_index	= prev - l_base;
 		if (0 <= l_index && l_index < L_COUNT) {
 			gint v_index = uc - v_base;
@@ -1955,12 +1955,12 @@ utf32_compose_hangul(guint32 *src)
 		prev = uc;
 		*p++ = uc;
 	}
-	
+
 #undef N_COUNT
 #undef V_COUNT
 #undef T_COUNT
 #undef L_COUNT
-	
+
 	*p = 0x0000;
 	return p - src;
 }
@@ -2045,10 +2045,10 @@ utf32_decompose_char(guint32 uc, size_t *len, gboolean nfkd)
 	old = buf[1];
 	start = 0;
 
-	for (;;) {	
+	for (;;) {
 		size_t avail, i;
 		const guint32 *mod;
-		
+
 		mod = NULL;
 		p = &cur[start];
 		avail = G_N_ELEMENTS(buf[0]) - start;
@@ -2056,11 +2056,11 @@ utf32_decompose_char(guint32 uc, size_t *len, gboolean nfkd)
 		for (i = start; i < size; i++) {
 			const guint32 *q;
 			size_t n;
-		
+
 			q = utf32_decompose_single_char(old[i], &n, nfkd);
 			if (!mod && (n > 1 || *q != old[i]))
 				mod = &old[i];
-				   	
+
 			g_assert(n <= avail);
 			avail -= n;
 			while (n-- > 0)
@@ -2191,7 +2191,7 @@ utf8_decompose(const gchar *src, gchar *out, size_t size, gboolean nfkd)
 			dst += utf8_len;
 		}
 		*dst = '\0';
-		
+
 		if (!utf8_canonical_sorted(out))
 			utf8_sort_canonical(out);
 		g_assert(utf8_canonical_sorted(out));
@@ -2201,7 +2201,7 @@ utf8_decompose(const gchar *src, gchar *out, size_t size, gboolean nfkd)
 		uc = utf8_decode_char_fast(src, &retlen);
 		if (uc == 0x0000)
 			break;
-		
+
 		src += retlen;
 		d = utf32_decompose_char(uc, &d_len, nfkd);
 		while (d_len-- > 0)
@@ -2315,7 +2315,7 @@ utf32_decompose_nfkd(const guint32 *in, guint32 *out, size_t size)
 }
 
 typedef guint32 (* utf32_remap_func)(guint32 uc);
-	
+
 /**
  * Copies the UTF-8 string ``src'' to ``dst'' remapping all characters
  * using ``remap''.
@@ -2368,7 +2368,7 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 			new_len += utf8_len;
 			if (new_len > size)
 				break;
-			
+
 			if (nuc == uc)
 				memcpy(dst, src - retlen, retlen);
 			else
@@ -2422,7 +2422,7 @@ utf32_remap(guint32 *dst, const guint32 *src, size_t size,
 
 	if (size > 0) {
 		guint32 *end, uc;
-		
+
 		end = &dst[size - 1];
 		for (p = dst; p != end && 0x0000 != (uc = *s); p++, s++) {
 			*p = remap(uc);
@@ -2456,7 +2456,7 @@ utf32_strlower(guint32 *dst, const guint32 *src, size_t size)
 	g_assert(size <= INT_MAX);
 
 	return utf32_remap(dst, src, size, utf32_lowercase);
-}	
+}
 
 /**
  * Copies ``src'' to ``dst'' converting all characters to uppercase. If
@@ -2478,7 +2478,7 @@ utf32_strupper(guint32 *dst, const guint32 *src, size_t size)
 	g_assert(size <= INT_MAX);
 
 	return utf32_remap(dst, src, size, utf32_uppercase);
-}	
+}
 
 /**
  * Copies ``src'' to ``dst'' converting all characters to lowercase. If
@@ -2501,7 +2501,7 @@ utf8_strlower(gchar *dst, const gchar *src, size_t size)
 	g_assert(size <= INT_MAX);
 
 	return utf8_remap(dst, src, size, utf32_lowercase);
-}	
+}
 
 /**
  * Copies ``src'' to ``dst'' converting all characters to uppercase. If
@@ -2524,14 +2524,14 @@ utf8_strupper(gchar *dst, const gchar *src, size_t size)
 	g_assert(size <= INT_MAX);
 
 	return utf8_remap(dst, src, size, utf32_uppercase);
-}	
+}
 
 /**
  * Copies the UTF-8 string ``src'' to a newly allocated buffer converting all
  * characters to lowercase.
  *
  * @param src an UTF-8 string
- * @return a newly allocated buffer containing the lowercased string. 
+ * @return a newly allocated buffer containing the lowercased string.
  */
 gchar *
 utf8_strlower_copy(const gchar *src)
@@ -2540,7 +2540,7 @@ utf8_strlower_copy(const gchar *src)
 	size_t len, size;
 
 	g_assert(src != NULL);
-	
+
 	len = utf8_strlower(&c, src, sizeof c);
 	g_assert(c == '\0');
 	size = len + 1;
@@ -2557,7 +2557,7 @@ utf8_strlower_copy(const gchar *src)
  * characters to uppercase.
  *
  * @param src an UTF-8 string
- * @return a newly allocated buffer containing the uppercased string. 
+ * @return a newly allocated buffer containing the uppercased string.
  */
 gchar *
 utf8_strupper_copy(const gchar *src)
@@ -2566,7 +2566,7 @@ utf8_strupper_copy(const gchar *src)
 	size_t len, size;
 
 	g_assert(src != NULL);
-	
+
 	len = utf8_strupper(&c, src, sizeof c);
 	g_assert(c == '\0');
 	size = len + 1;
@@ -2601,7 +2601,7 @@ utf32_filter_char(guint32 uc, gboolean *space, gboolean last)
 		gc = UNI_GC_OTHER_PRIVATE_USE;	/* XXX: hack but good enough */
 	else
 		gc = utf32_general_category(uc);
-	
+
 	switch (gc) {
 	case UNI_GC_LETTER_LOWERCASE:
 	case UNI_GC_LETTER_OTHER:
@@ -2701,7 +2701,7 @@ utf32_filter_char(guint32 uc, gboolean *space, gboolean last)
 			return uc;
 		/* FALLTHRU */
 #endif
-		
+
 	case UNI_GC_LETTER_UPPERCASE:
 	case UNI_GC_LETTER_TITLECASE:
 
@@ -2732,7 +2732,7 @@ utf32_filter_char(guint32 uc, gboolean *space, gboolean last)
 	case UNI_GC_SYMBOL_OTHER:
 		{
 			gboolean prev = *space;
-			
+
 			*space = TRUE;
 			return prev || last ? 0 : 0x0020;
 		}
@@ -2765,10 +2765,10 @@ utf32_filter(const guint32 *src, guint32 *dst, size_t size)
 
 	s = src;
 	p = dst;
-	
+
 	if (size > 0) {
 		guint32 *end;
-		
+
 		for (end = &dst[size - 1]; p != end && 0x0000 != (uc = *s); s++) {
 			if (0 != (uc = utf32_filter_char(uc, &space, 0x0000 == s[1])))
 				*p++ = uc;
@@ -2810,19 +2810,19 @@ utf32_split_blocks(const guint32 *src, guint32 *dst, size_t size)
 	p = dst;
 	last_uc = s[0];
 	last_id = utf32_block_id(s[0]);
-	
+
 	if (size > 0) {
 		guint32 *end;
-		
+
 		for (end = &dst[size - 1]; p != end && 0x0000 != (uc = *s); s++) {
 			gboolean change;
 			guint id = utf32_block_id(uc);
-			
+
 			change = last_id != id && uc != 0x0020 && last_uc != 0x0020;
 			last_uc = uc;
 			last_id = id;
-		
-			if (change) {	
+
+			if (change) {
 				*p++ = 0x0020;
 				if (end == p) {
 					s++;
@@ -3001,7 +3001,7 @@ unicode_filters(const UChar *source, gint32 len, UChar *result)
 
 	for (i = 0, j = 0; i < len; i++) {
 		UChar uc = source[i];
-		
+
 		switch (u_charType(uc)) {
 		case U_LOWERCASE_LETTER :
 		case U_OTHER_LETTER :
@@ -3221,10 +3221,10 @@ utf32_compose(guint32 *src)
 	 * can cause a ``hole''. Instead of rejoining the string each time,
 	 * the erased composite character is replaced with a NUL which is then
 	 * skipped when scanning the same position again.
-     */	   
+     */
 	end = s + utf32_strlen(s);
 	p = s;
-		
+
 	while (s != end) {
 		guint32 *q = s;
 
@@ -3234,15 +3234,15 @@ utf32_compose(guint32 *src)
 
 			/* We must skip over previously erased characters but
 			 * not run over ``end''. */
-			do {	
+			do {
 				uc2 = *++q;
 			} while (uc2 == 0 && q != end);
-		
+
 			c = utf32_compose_char(uc, uc2);
 			if (!c) {
 				guint cc = utf32_combining_class(uc2), cc2;
-			
-				/* Now check whether the uc2 is a blocker */	
+
+				/* Now check whether the uc2 is a blocker */
 
 				cc2 = q == end ? 0 : utf32_combining_class(q[1]);
 				/* The following is ensured by canonical decomposition */
@@ -3269,7 +3269,7 @@ utf32_compose(guint32 *src)
 			} else {
 				*q = 0;	/* Erase the composite character */
 				uc = c;	/* The preliminary composition */
-				
+
 				/* However, there might be a composition for this
 				 * character as well. Thus, restart. */
 				q = s;
@@ -3289,9 +3289,9 @@ utf32_normalize(const guint32 *src, uni_norm_t norm)
 	guint32 buf[1024], *dst;
 	size_t size, n;
 	gboolean compat = FALSE;
-	
+
 	g_assert((gint) norm >= 0 && norm < NUM_UNI_NORM);
-	
+
 	switch (norm) {
 	case UNI_NORM_NFKC:
 	case UNI_NORM_NFKD:
@@ -3304,7 +3304,7 @@ utf32_normalize(const guint32 *src, uni_norm_t norm)
 	case NUM_UNI_NORM:
 		g_assert_not_reached();
 	}
-	
+
 	/* Decompose string to NFD or NFKD  */
 	n = utf32_decompose(src, buf, G_N_ELEMENTS(buf), compat);
 	size = n + 1;
@@ -3321,21 +3321,21 @@ utf32_normalize(const guint32 *src, uni_norm_t norm)
 	case UNI_NORM_NFKC:
 		{
 			guint32 *ret;
-			
+
 			/* Compose string */
 			n = utf32_compose(dst);
 			n = utf32_compose_hangul(dst);
 			ret = utf32_strdup(dst);
 			if (buf != dst)
 				G_FREE_NULL(dst);
-			
+
 			return ret;
 		}
-		
+
 	case UNI_NORM_NFD:
 	case UNI_NORM_NFKD:
 		return dst != buf ? dst : utf32_strdup(buf);
-		
+
 	case NUM_UNI_NORM:
 		g_assert_not_reached();
 	}
@@ -3361,17 +3361,17 @@ utf8_normalize(const gchar *src, uni_norm_t norm)
 	g_assert((gint) norm >= 0 && norm < NUM_UNI_NORM);
 	g_assert('\0' == *src || utf8_is_valid_string(src, 0));
 
-	{	
+	{
 		size_t n;
 		guint32 buf[1024];
 		guint32 *s;
-		
+
 		n = utf8_to_utf32(src, buf, G_N_ELEMENTS(buf));
 		if (n < G_N_ELEMENTS(buf)) {
 			s = buf;
 		} else {
 			size_t size = n + 1;
-			
+
 			s = g_malloc(size * sizeof *s);
 			n = utf8_to_utf32(src, s, size);
 			g_assert(size - 1 == n);
@@ -3387,7 +3387,7 @@ utf8_normalize(const gchar *src, uni_norm_t norm)
 	{
 		size_t size, n;
 		gchar *dst;
-		
+
 		size = 1 + utf32_to_utf8(dst32, NULL, 0);
 		dst = g_malloc(size * sizeof *dst);
 		n = utf32_to_utf8(dst32, dst, size);
@@ -3407,7 +3407,7 @@ utf32_canonize(const guint32 *src)
 	guint32 nfkd_buf[1024], nfd_buf[1024];
 	guint32 *nfkd, *nfd, *nfc;
 	size_t size, n;
-	
+
 	/* Convert to NFKD */
 	n = utf32_decompose(src, nfkd_buf, G_N_ELEMENTS(nfkd_buf), TRUE);
 	size = n + 1;
@@ -3445,7 +3445,7 @@ utf32_canonize(const guint32 *src)
 	n = utf32_compose(nfd);
 	n = utf32_compose_hangul(nfd);
 
-	/* Insert an ASCII space at block changes, this keeps NFC */	
+	/* Insert an ASCII space at block changes, this keeps NFC */
 	n = utf32_split_blocks(nfd, NULL, 0);
 	size = n + 1;
 	nfc = g_malloc(size * sizeof *nfc);
@@ -3467,23 +3467,23 @@ utf8_canonize(const gchar *src)
 	guint32 *dst32;
 
 	g_assert('\0' == *src || utf8_is_valid_string(src, 0));
-	
-	{	
+
+	{
 		size_t n;
 		guint32 buf[1024];
 		guint32 *s;
-		
+
 		n = utf8_to_utf32(src, buf, G_N_ELEMENTS(buf));
 		if (n < G_N_ELEMENTS(buf)) {
 			s = buf;
 		} else {
 			size_t size = n + 1;
-			
+
 			s = g_malloc(size * sizeof *s);
 			n = utf8_to_utf32(src, s, size);
 			g_assert(size - 1 == n);
 		}
-		
+
 		dst32 = utf32_canonize(s);
 		g_assert(dst32 != s);
 		if (s != buf)
@@ -3493,7 +3493,7 @@ utf8_canonize(const gchar *src)
 	{
 		size_t size, n;
 		gchar *dst;
-		
+
 		size = 1 + utf32_to_utf8(dst32, NULL, 0);
 		dst = g_malloc(size * sizeof *dst);
 		n = utf32_to_utf8(dst32, dst, size);
@@ -3501,7 +3501,7 @@ utf8_canonize(const gchar *src)
 
 		G_FREE_NULL(dst32);
 
-#if 0 
+#if 0
 		g_message("\nsrc=\"%s\"\ndst=\"%s\"\n", src, dst);
 #endif
 		return dst;
@@ -3527,7 +3527,7 @@ compose_root_cmp(gconstpointer a, gconstpointer b)
  * decomposition sequence is used as key, the index into the
  * ``utf32_nfkd_lut'' is used as value.
  */
-static void 
+static void
 unicode_compose_add(guint idx)
 {
 	GSList *sl, *new_sl;
@@ -3555,7 +3555,7 @@ unicode_compose_init(void)
 		uc = utf32_general_category_lut[i].uc;
 		gc = utf32_general_category_lut[i].gc;
 		len = utf32_general_category_lut[i].len;
-		
+
 		g_assert(len > 0); /* entries are at least one character large */
 
 		if (i > 0) {
@@ -3566,20 +3566,20 @@ unicode_compose_init(void)
 			prev_uc = utf32_general_category_lut[i - 1].uc;
 			prev_gc = utf32_general_category_lut[i - 1].gc;
 			prev_len = utf32_general_category_lut[i - 1].len;
-			
+
 			g_assert(prev_uc < uc);	/* ordered */
 			g_assert(prev_uc + prev_len <= uc); /* non-overlapping */
 			/* The category must changed with each entry, unless
 			 * there's a gap */
 			g_assert(prev_gc != gc || prev_uc + prev_len < uc);
 		}
-		
+
 		do {
 			g_assert(gc == utf32_general_category(uc));
 			uc++;
 		} while (--len != 0);
 	}
-	
+
 	/* Check order and consistency of the composition exclusions table */
 	for (i = 0; i < G_N_ELEMENTS(utf32_composition_exclusions); i++) {
 		guint32 uc;
@@ -3588,7 +3588,7 @@ unicode_compose_init(void)
 		g_assert(i == 0 || uc > utf32_composition_exclusions[i - 1]);
 		g_assert(utf32_composition_exclude(uc));
 	}
-	
+
 	/* Check order and consistency of the block ID lookup table */
 	for (i = 0; i < G_N_ELEMENTS(utf32_block_id_lut); i++) {
 		guint32 start, end;
@@ -3600,26 +3600,26 @@ unicode_compose_init(void)
 		g_assert(1 + i == utf32_block_id(start));
 		g_assert(1 + i == utf32_block_id(end));
 	}
-	
+
 	/* Create the composition lookup table */
 	utf32_compose_roots = g_hash_table_new(NULL, NULL);
 
 	for (i = 0; i < G_N_ELEMENTS(utf32_nfkd_lut); i++) {
 		guint32 uc;
-		
+
 		uc = utf32_nfkd_lut[i].c;
-		
+
 		g_assert(i == 0 ||
 			(uc & ~UTF32_F_MASK) > (utf32_nfkd_lut[i - 1].c & ~UTF32_F_MASK));
 
 		if (!(uc & UTF32_F_NFKD)) {
 			const guint32 *s;
-			
+
 			uc &= ~UTF32_F_MASK;
 			s = utf32_decompose_lookup(uc, FALSE);
 			g_assert(s);
 			g_assert(s[0] != 0);
-			
+
 			/* Singletons are excluded from compositions */
 			if (0 == s[1])
 				continue;
@@ -3637,14 +3637,14 @@ unicode_compose_init(void)
 	 		 *		eliminates at most one character.
 			 */
 			g_assert(s[0] != 0 && s[1] != 0 && s[2] == 0);
-			
+
 			unicode_compose_add(i);
 		}
 	}
 
 #if 1
 	{
-		/* 
+		/*
 		 * See: http://www.unicode.org/review/pr-29.html
 		 */
 		static const struct {
@@ -3654,7 +3654,7 @@ unicode_compose_init(void)
 			{ { 0x1100, 0x0300, 0x1161, 0 } },
 			{ { 0x1100, 0x0300, 0x1161, 0x0323, 0 } },
 		};
-		
+
 		for (i = 0; i < G_N_ELEMENTS(tests); i++) {
 			guint32 *s, *t;
 			gboolean eq;
@@ -3778,17 +3778,17 @@ unicode_compose_init(void)
 	}
 #endif
 
-#if 0 && defined(USE_GLIB2)	
-	for (;;) {	
+#if 0 && defined(USE_GLIB2)
+	for (;;) {
 		guint32 test[32];
 		guint32 q[1024], *x, *y;
 		gchar s[1024], t[1024], *s_nfc;
 		size_t size;
 
-#if 1 
+#if 1
 		for (i = 0; i < G_N_ELEMENTS(test) - 1; i++) {
 			guint32 uc;
-			
+
 			do {
 				uc = random_value(0x10FFFF);
 			} while (
@@ -3802,34 +3802,34 @@ unicode_compose_init(void)
 		test[i] = 0;
 #endif
 
-#if 0 
+#if 0
 		test[0] = 0x3271;
 		test[1] = 0x26531;
 		test[2] = 0;
 #endif
-	
-#if 0 
+
+#if 0
 		test[0] = 0x1ed;
 	   	test[1] = 0x945e4;
 		test[2] = 0;
 #endif
 
-#if 0 
+#if 0
 		test[0] = 0x00a8;
 	   	test[1] = 0x0711;
 		test[2] = 0x301;
 		test[3] = 0;
 #endif
-		
-#if 0 
+
+#if 0
 		test[0] = 0xef0b8;
 		test[1] = 0x56ecd;
 	   	test[2] = 0x6b325;
 	   	test[3] = 0x46fe6;
 	   	test[4] = 0;
 #endif
-		
-#if 0 
+
+#if 0
 		test[0] = 0x40d;
 		test[1] = 0x3d681;
 	   	test[2] = 0x1087ae;
@@ -3837,7 +3837,7 @@ unicode_compose_init(void)
 	   	test[4] = 0;
 #endif
 
-#if 0 
+#if 0
 		test[0] = 0x32b;
 		test[1] = 0x93c;
 	   	test[2] = 0x22f0;
@@ -3845,7 +3845,7 @@ unicode_compose_init(void)
 	   	test[4] = 0;
 #endif
 
-#if 0 
+#if 0
 		/* This fails with GLib 2.6.0 because g_utf8_normalize() 
 		 * eats the Hangul Jamo character when using G_NORMALIZE_NFC. */
 		test[0] = 0x1112;
@@ -3853,7 +3853,7 @@ unicode_compose_init(void)
 	   	test[2] = 0x11a7;
 	   	test[3] = 0;
 #endif
-	
+
 		size = 1 + utf32_decompose_nfkd(test, NULL, 0);
 		y = g_malloc(size * sizeof *y);
 		utf32_decompose_nfkd(test, y, size);
@@ -3861,16 +3861,16 @@ unicode_compose_init(void)
 		utf32_compose(x);
 		utf32_compose_hangul(x);
 		utf32_to_utf8(x, t, sizeof t);
-		
+
 		utf32_to_utf8(test, s, sizeof s);
-		
+
 #if 1  /* !defined(xxxUSE_ICU) */
 		s_nfc = g_utf8_normalize(s, (gssize) -1, G_NORMALIZE_NFKC);
 #else
 		{
 			size_t len, maxlen;
 			UChar *qtmp1, *qtmp2;
-			
+
 			maxlen = strlen(s) * 6 + 1;
 			qtmp1 = (UChar *) g_malloc(maxlen * sizeof(UChar));
 			qtmp2 = (UChar *) g_malloc(maxlen * sizeof(UChar));
@@ -3890,9 +3890,9 @@ unicode_compose_init(void)
 		if (0 != strcmp(s_nfc, t))
 			G_BREAKPOINT();
 
-		G_FREE_NULL(x);	
-		G_FREE_NULL(y);	
-		G_FREE_NULL(s_nfc);	
+		G_FREE_NULL(x);
+		G_FREE_NULL(y);
+		G_FREE_NULL(s_nfc);
 	}
 #endif
 }
@@ -3909,7 +3909,7 @@ unicode_decompose_init(void)
 		const char *s;
 		size_t len, chars;
 		guint32 *u;
-	
+
 		s = lazy_locale_to_utf8(bad);
 		len = strlen(s);
 		chars = utf8_is_valid_string(s, 0);
@@ -3921,7 +3921,7 @@ unicode_decompose_init(void)
 		utf8_to_utf32(s, u, len + 1);
 		G_FREE_NULL(u);
 	}
-		
+
 #if 0 && defined(USE_GLIB2)
 	size_t i;
 
@@ -3950,7 +3950,7 @@ unicode_decompose_init(void)
 		{
 			size_t len, maxlen;
 			UChar *qtmp1, *qtmp2;
-			
+
 			maxlen = 1024;
 			qtmp1 = (UChar *) g_malloc(maxlen * sizeof(UChar));
 			qtmp2 = (UChar *) g_malloc(maxlen * sizeof(UChar));
@@ -3983,7 +3983,7 @@ unicode_decompose_init(void)
 	}
 
 	g_message("random value: %u", (guint) random_value(~0));
-	
+
 	/* Check random Unicode strings */
 	for (i = 0; i < 10000000; i++) {
 		gchar buf[256 * 7];
@@ -4012,7 +4012,7 @@ unicode_decompose_init(void)
 		test[j] = 0;
 
 #if 0
-		/* This test case checks that the canonical sorting works i.e., 
+		/* This test case checks that the canonical sorting works i.e.,
 		 * 0x0ACD must appear before all 0x05AF. */
 		j = 0;
 		test[j++] = 0x00B3;
@@ -4049,8 +4049,8 @@ unicode_decompose_init(void)
 		g_assert(!utf32_canonical_sorted(test));
 #endif
 
-#if 0 
-		j = 0;	
+#if 0
+		j = 0;
 		test[j++] = 0x32b;
 		test[j++] = 0x93c;
 		test[j++] = 0x22f0;
@@ -4060,7 +4060,7 @@ unicode_decompose_init(void)
 #endif
 
 #if 1
-		j = 0;	
+		j = 0;
 		test[j++] = 0x239f;
 		test[j++] = 0xcd5c;
 		test[j++] = 0x11a7;
@@ -4073,29 +4073,29 @@ unicode_decompose_init(void)
 		utf8_len = utf32_to_utf8(test, buf, G_N_ELEMENTS(buf));
 		g_assert(utf8_len < sizeof buf);
 		g_assert(utf32_len <= utf8_len);
-	
+
 		n = utf8_is_valid_string(buf, 0);
 		g_assert(utf8_len >= n);
 		g_assert(utf32_len == n);
 		g_assert(n == utf8_is_valid_string(buf, utf8_len));
-				
+
 		n = utf8_to_utf32(buf, out, G_N_ELEMENTS(out));
 		g_assert(n == utf32_len);
 		g_assert(0 == memcmp(test, out, n * sizeof test[0]));
-		
+
 		n = utf8_decompose_nfkd(buf, NULL, 0) + 1;
 		t = g_malloc(n);
 		m = utf8_decompose_nfkd(buf, t, n);
 		g_assert(m == n - 1);
 		g_assert(utf8_canonical_sorted(t));
-	
+
 #if 1  /* !defined(xxxUSE_ICU) */
 		s = g_utf8_normalize(buf, -1, G_NORMALIZE_NFKD);
 #else
 		{
 			size_t len, maxlen;
 			UChar *qtmp1, *qtmp2;
-			
+
 			maxlen = strlen(buf) * 6 + 1;
 			qtmp1 = (UChar *) g_malloc(maxlen * sizeof(UChar));
 			qtmp2 = (UChar *) g_malloc(maxlen * sizeof(UChar));
@@ -4112,14 +4112,14 @@ unicode_decompose_init(void)
 		if (0 != strcmp(s, t)) {
 			const gchar *x, *y;
 			guint32 *zx, *zy;
-		
+
 			/* Convert to UTF-32 so that the characters can be easily
-			 * checked from a debugger */	
+			 * checked from a debugger */
 			zx = g_malloc0(1024 * sizeof *zx);
 			utf8_to_utf32(s, zx, 1024);
 			zy = g_malloc0(1024 * sizeof *zy);
 			utf8_to_utf32(t, zy, 1024);
-			
+
 			printf("s=\"%s\"\nt=\"%s\"\n", s, t);
 
 			for (x = s, y = t; *x != '\0'; x++, y++)
@@ -4130,7 +4130,7 @@ unicode_decompose_init(void)
 				x, y,
 				utf8_decode_char(x, strlen(x), NULL, FALSE),
 				utf8_decode_char(y, strlen(y), NULL, FALSE));
-			
+
 #if GLIB_CHECK_VERSION(2, 4, 0) /* Glib >= 2.4.0 */
 			/*
 			 * The normalized strings should be identical. However, older
@@ -4138,7 +4138,7 @@ unicode_decompose_init(void)
 			 */
 			G_BREAKPOINT();
 #endif /* GLib >= 2.4.0 */
-			
+
 			G_FREE_NULL(zx);
 			G_FREE_NULL(zy);
 

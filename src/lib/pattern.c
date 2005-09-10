@@ -136,7 +136,7 @@ pattern_compile_fast(const gchar *pattern, size_t plen)
 		*pd++ = plen;
 
 	plen--;			/* Restore original pattern length */
-	
+
  	c = cast_to_gconstpointer(pattern);
 	for (pd = p->delta, i = 0; i < plen; c++, i++)
 		pd[*c] = plen - i;
