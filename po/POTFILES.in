@@ -9,6 +9,7 @@ src/core/sockets.c
 src/core/tx_link.c
 src/core/uhc.c
 src/core/uploads.c
+src/core/version.c
 src/if/gnet_property.c
 src/if/gui_property.c
 src/lib/iso3166.c
@@ -20,7 +21,6 @@ src/ui/gtk/drop.c
 src/ui/gtk/filter.c
 src/ui/gtk/filter_core.c
 src/ui/gtk/gnet_stats_common.c
-src/ui/gtk/gtk-shared/callbacks.c
 src/ui/gtk/gtk1/callbacks.c
 src/ui/gtk/gtk1/downloads.c
 src/ui/gtk/gtk1/downloads_cb.c
