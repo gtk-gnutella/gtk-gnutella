@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-09-02 17:00+0900\n"
+"POT-Creation-Date: 2005-09-10 23:05+0900\n"
 "PO-Revision-Date: 2005-08-15 00:45+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -82,99 +82,99 @@ msgstr "Doble SHA1 durante la creación"
 msgid "Stopped (Index changed)"
 msgstr "Parado (El índice cambió)"
 
-#: src/core/downloads.c:4013
+#: src/core/downloads.c:4027
 msgid "Explicitly requeued"
 msgstr "Reencolado explícitamente"
 
-#: src/core/downloads.c:4183
+#: src/core/downloads.c:4197
 #, c-format
 msgid "Stopped (%s)"
 msgstr "Parado (%s)"
 
-#: src/core/downloads.c:4186 src/core/downloads.c:4221
+#: src/core/downloads.c:4200 src/core/downloads.c:4235
 #, c-format
 msgid "Too many attempts (%d times)"
 msgstr "Demasiados intentos (%d veces)"
 
-#: src/core/downloads.c:4188 src/core/downloads.c:5449
-#: src/core/downloads.c:6528
+#: src/core/downloads.c:4202 src/core/downloads.c:5463
+#: src/core/downloads.c:6544
 #, c-format
 msgid "Failed (Read error: %s)"
 msgstr "Falló (Error de lectura: %s)"
 
-#: src/core/downloads.c:4217
+#: src/core/downloads.c:4231
 msgid "Connection not kept-alive (EOF)"
 msgstr "Conexión no mantenida (EOF)"
 
-#: src/core/downloads.c:4218
+#: src/core/downloads.c:4232
 msgid "Stopped (EOF)"
 msgstr "Detenido (EOF)"
 
-#: src/core/downloads.c:4335 src/core/downloads.c:6347
+#: src/core/downloads.c:4349 src/core/downloads.c:6363
 msgid "Stopped (Output file size changed)"
 msgstr "Parado (Cambió el tamaño del archivo de salida)"
 
-#: src/core/downloads.c:4529
+#: src/core/downloads.c:4543
 #, c-format
 msgid "Can't save data: %s"
 msgstr "No se pudo guardar: %s"
 
-#: src/core/downloads.c:4585
+#: src/core/downloads.c:4599
 msgid "Requeued by competing download"
 msgstr "Reencolado por bajada de un tercero en competencia"
 
-#: src/core/downloads.c:4649
+#: src/core/downloads.c:4663
 msgid "Requeued after trimmed data"
 msgstr "Reencolado tras datos recortados"
 
-#: src/core/downloads.c:4651
+#: src/core/downloads.c:4665
 msgid "Chunk done, connection closed"
 msgstr "Bloque completado, conexión cerrada"
 
-#: src/core/downloads.c:4830
+#: src/core/downloads.c:4844
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Estado HTTP desconocido (¿desincronización del protocolo?)"
 
-#: src/core/downloads.c:5151
+#: src/core/downloads.c:5165
 msgid "No URN on server, waiting for overlap"
 msgstr "No hay URN en el servidor, esperando el solapamiento"
 
-#: src/core/downloads.c:5157
+#: src/core/downloads.c:5171
 msgid "No URN on server to validate"
 msgstr "No hay URN en el servidor para validar"
 
-#: src/core/downloads.c:5203
+#: src/core/downloads.c:5217
 msgid "URN fileinfo mismatch"
 msgstr "Información de archivo URN no coincide"
 
-#: src/core/downloads.c:5223
+#: src/core/downloads.c:5237
 msgid "Discovered dup SHA1"
 msgstr "Descubierto un SHA1 doble"
 
-#: src/core/downloads.c:5431 src/core/downloads.c:5439
-#: src/core/downloads.c:6478 src/core/downloads.c:6518
+#: src/core/downloads.c:5445 src/core/downloads.c:5453
+#: src/core/downloads.c:6494 src/core/downloads.c:6534
 msgid "Stopped data (EOF)"
 msgstr "Datos parados (EOF)"
 
-#: src/core/downloads.c:5822 src/core/downloads.c:6327
+#: src/core/downloads.c:5838 src/core/downloads.c:6343
 msgid "Partial file on server, waiting"
 msgstr "Archivo parcial en el servidor, esperando"
 
-#: src/core/downloads.c:5923
+#: src/core/downloads.c:5939
 #, c-format
 msgid "Queued (slot %d/%d) ETA: %s"
 msgstr "Encolado (ranura %d/%d) ETA: %s"
 
-#: src/core/downloads.c:6486
+#: src/core/downloads.c:6502
 msgid "Stopped (Read buffer full)"
 msgstr "Parado (Búfer de lectura lleno)"
 
-#: src/core/downloads.c:6525
+#: src/core/downloads.c:6541
 #, c-format
 msgid "Stopped data (%s)"
 msgstr "Datos parados (%s)"
 
-#: src/core/downloads.c:7786
+#: src/core/downloads.c:7802
 msgid "SHA1 mismatch detected"
 msgstr "Detectado distinto SHA1"
 
@@ -314,187 +314,187 @@ msgid_plural "Got %d connection pongs"
 msgstr[0] "Recibido %d pong de conexión"
 msgstr[1] "Recibidos %d pongs de conexiones"
 
-#: src/core/nodes.c:2934 src/core/nodes.c:5077 src/core/nodes.c:5101
+#: src/core/nodes.c:2934 src/core/nodes.c:5127 src/core/nodes.c:5151
 msgid "Sent crawling info"
 msgstr ""
 
-#: src/core/nodes.c:3102
+#: src/core/nodes.c:3103
 msgid "Cannot setup compressing TX stack"
 msgstr "Imposible configurar la pila de TX comprimida"
 
-#: src/core/nodes.c:3316
+#: src/core/nodes.c:3317
 #, c-format
 msgid "Got BYE %d %.*s"
 msgstr "Recibido BYE  %d %.*s"
 
-#: src/core/nodes.c:3657
+#: src/core/nodes.c:3707
 #, c-format
 msgid "Weird HELLO %s"
 msgstr "HELLO extraño %s"
 
-#: src/core/nodes.c:3669
+#: src/core/nodes.c:3719
 #, c-format
 msgid "HELLO %s error %d (%s)"
 msgstr "HELLO %s error %d (%s)"
 
-#: src/core/nodes.c:3673
+#: src/core/nodes.c:3723
 msgid "Shielded node"
 msgstr "Nodo acorazado"
 
-#: src/core/nodes.c:3704
+#: src/core/nodes.c:3754
 msgid "Gnet connections disabled"
 msgstr "Conexiones Gnet deshabilitadas"
 
-#: src/core/nodes.c:3729
+#: src/core/nodes.c:3779
 msgid "Unstable IP address"
 msgstr "Dirección IP inestable"
 
-#: src/core/nodes.c:3732
+#: src/core/nodes.c:3782
 msgid "Servent version appears unstable"
 msgstr "La versión del nodo parece inestable"
 
-#: src/core/nodes.c:3735
+#: src/core/nodes.c:3785
 msgid "No vendor string supplied"
 msgstr "Texto del servidor no suministrado"
 
-#: src/core/nodes.c:3740
+#: src/core/nodes.c:3790
 #, c-format
 msgid "Not connecting: %s"
 msgstr "No conectando: %s"
 
-#: src/core/nodes.c:3772 src/core/nodes.c:3810 src/core/nodes.c:3854
-#: src/core/nodes.c:3904 src/core/nodes.c:3958
+#: src/core/nodes.c:3822 src/core/nodes.c:3860 src/core/nodes.c:3904
+#: src/core/nodes.c:3954 src/core/nodes.c:4008
 msgid "Connection not compressed"
 msgstr "Conexión sin comprimir"
 
-#: src/core/nodes.c:3787
+#: src/core/nodes.c:3837
 #, c-format
 msgid "Too many leaves (%d max)"
 msgstr "Demasiadas hojas (%d max)"
 
-#: src/core/nodes.c:3824 src/core/nodes.c:3941
+#: src/core/nodes.c:3874 src/core/nodes.c:3991
 #, c-format
 msgid "Too many ultra nodes (%d max)"
 msgstr "Demasiados nodos ultra (%d max)"
 
-#: src/core/nodes.c:3873
+#: src/core/nodes.c:3923
 #, c-format
 msgid "Rejected normal node (%d max)"
 msgstr "Nodo normal rechazado (%d max)"
 
-#: src/core/nodes.c:3886
+#: src/core/nodes.c:3936
 msgid "Rejected leaf node"
 msgstr "Nodo hoja rechazado"
 
-#: src/core/nodes.c:3892
+#: src/core/nodes.c:3942
 #, c-format
 msgid "Too many nodes (%d max)"
 msgstr "Demasiados nodos (%d max)"
 
-#: src/core/nodes.c:3928
+#: src/core/nodes.c:3978
 msgid "Sent shielded indication"
 msgstr ""
 
-#: src/core/nodes.c:3934
+#: src/core/nodes.c:3984
 msgid "Not an ultra node"
 msgstr "No es un nodo ultra"
 
-#: src/core/nodes.c:4008
+#: src/core/nodes.c:4058
 msgid "Protocol not acceptable"
 msgstr "Protocolo no aceptable"
 
-#: src/core/nodes.c:4289
+#: src/core/nodes.c:4339
 msgid "Servent Shutdown"
 msgstr "Nodo Cerrado"
 
-#: src/core/nodes.c:4562
+#: src/core/nodes.c:4612
 msgid "Too frequent crawling"
 msgstr ""
 
-#: src/core/nodes.c:4729
+#: src/core/nodes.c:4779
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
 msgstr "El tipo de servidor excedería %d%% de las ranuras"
 
-#: src/core/nodes.c:4739
+#: src/core/nodes.c:4789
 msgid "Reserved slot"
 msgstr "Ranura reservada"
 
-#: src/core/nodes.c:4776
+#: src/core/nodes.c:4826
 msgid "Too ancient Gnutella protocol"
 msgstr "Protocolo Gnutella demasiado antiguo"
 
-#: src/core/nodes.c:4794
+#: src/core/nodes.c:4844
 msgid "Cannot connect to a crawler"
 msgstr ""
 
-#: src/core/nodes.c:4829
+#: src/core/nodes.c:4879
 #, fuzzy
 msgid "Not becoming a leaf node"
 msgstr "ultra nodo"
 
-#: src/core/nodes.c:5001
+#: src/core/nodes.c:5051
 #, c-format
 msgid "Failed (Cannot send %s: %s)"
 msgstr "Fracasado (Imposible enviar %s: %s)"
 
-#: src/core/nodes.c:5008
+#: src/core/nodes.c:5058
 #, c-format
 msgid "Failed (Cannot send %s atomically)"
 msgstr "Fracasado (Imposible enviar %s atómicamente)"
 
-#: src/core/nodes.c:5056
+#: src/core/nodes.c:5106
 msgid "Failed (Header line too long)"
 msgstr "Fracasado (Línea de cabecera demasiado larga)"
 
-#: src/core/nodes.c:5068 src/core/uploads.c:1292
+#: src/core/nodes.c:5118 src/core/uploads.c:1293
 #, c-format
 msgid "Failed (%s)"
 msgstr "Fracasado (%s)"
 
-#: src/core/nodes.c:5077 src/core/uploads.c:1298
+#: src/core/nodes.c:5127 src/core/uploads.c:1299
 msgid "Failed (Input Exception)"
 msgstr "Fracasado (Excepción de entrada)"
 
-#: src/core/nodes.c:5083
+#: src/core/nodes.c:5133
 msgid "Failed (Input buffer full)"
 msgstr "Fracasado (Búfer de entrada lleno)"
 
-#: src/core/nodes.c:5089 src/core/uploads.c:1310
+#: src/core/nodes.c:5139 src/core/uploads.c:1311
 #, c-format
 msgid "Failed (Input error: %s)"
 msgstr "Fracasado (Error de entrada: %s)"
 
-#: src/core/nodes.c:5101 src/core/uploads.c:1318
+#: src/core/nodes.c:5151 src/core/uploads.c:1319
 msgid "Failed (EOF)"
 msgstr "Fracasado (EOF)"
 
-#: src/core/nodes.c:5107
+#: src/core/nodes.c:5157
 msgid "Failed (Extra HELLO data)"
 msgstr "Fracasado (datos HELLO adicionales)"
 
-#: src/core/nodes.c:5157
+#: src/core/nodes.c:5207
 msgid "Pseudo UDP node"
 msgstr "Pseudo-nodo UDP"
 
-#: src/core/nodes.c:5495
+#: src/core/nodes.c:5545
 msgid "Already connected"
 msgstr "Ya está conectado"
 
-#: src/core/nodes.c:6013 src/core/nodes.c:6196
+#: src/core/nodes.c:6063 src/core/nodes.c:6246
 #, c-format
 msgid "Write error during HELLO: %s"
 msgstr "Error de escritura durante HELLO: %s"
 
-#: src/core/nodes.c:6108
+#: src/core/nodes.c:6158
 msgid "Out of memory"
 msgstr "Memoria agotada"
 
-#: src/core/nodes.c:6203
+#: src/core/nodes.c:6253
 msgid "Connection reset during HELLO"
 msgstr "Conexión reiniciada durante HELLO"
 
-#: src/core/nodes.c:6443
+#: src/core/nodes.c:6493
 #, c-format
 msgid "Kicked: %s message too big (%d bytes)"
 msgstr "Pateado: mensaje %s demasiado grande (%d bytes)"
@@ -508,20 +508,24 @@ msgstr "Lectura fallida (Excepción de entrada)"
 msgid "Read error: %s"
 msgstr "Error de lectura: %s"
 
-#: src/core/settings.c:332
+#: src/core/settings.c:412
 msgid "Can't find your home directory!"
 msgstr "¡Directorio de usuario no encontrado!"
 
-#: src/core/settings.c:341
+#: src/core/settings.c:421
 #, c-format
 msgid "creating configuration directory \"%s\""
 msgstr "creando directorio de configuración \"%s\""
 
-#: src/core/settings.c:386
+#: src/core/settings.c:439
+msgid "You seem to have left another gtk-gnutella running\n"
+msgstr ""
+
+#: src/core/settings.c:475
 msgid "Cannot proceed without valid configuration directory"
 msgstr "No se puede continuar sin una configuración de directorio válida"
 
-#: src/core/settings.c:1354
+#: src/core/settings.c:1443
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr ""
 "Sólo se puede ejecutar en modo hoja cuando se está tras uncortafuegos TCP"
@@ -648,11 +652,11 @@ msgstr "Adiós"
 msgid "Unknown command"
 msgstr "Comando desconocido"
 
-#: src/core/sockets.c:1588
+#: src/core/sockets.c:1589
 msgid "Read error"
 msgstr "Error de lectura"
 
-#: src/core/sockets.c:1813 src/core/sockets.c:1894 src/core/sockets.c:2441
+#: src/core/sockets.c:1814 src/core/sockets.c:1895 src/core/sockets.c:2442
 msgid "Connection failed"
 msgstr "Conexión fallida"
 
@@ -665,117 +669,121 @@ msgstr "Escritura fallida (Excepción de entrada)"
 msgid "Write failed: %s"
 msgstr "Escritura fallida: %s"
 
-#: src/core/uhc.c:154
+#: src/core/uhc.c:238
 #, c-format
 msgid "Looking for UDP host cache %s"
 msgstr "Buscando caché de nodos UDP %s"
 
-#: src/core/uhc.c:258
+#: src/core/uhc.c:344
 #, c-format
 msgid "Sent ping to UDP host cache %s:%u"
 msgstr "Ping enviado a la caché de nodos UDP %s:%u"
 
-#: src/core/uhc.c:422
+#: src/core/uhc.c:508
 #, c-format
 msgid "Got %d host from UDP host cache %s:%u"
 msgid_plural "Got %d hosts from UDP host cache %s:%u"
 msgstr[0] "Recibido %d nodo de la caché de nodos UDP %s:%u"
 msgstr[1] "Recibidos %d nodos de la caché de nodos UDP %s:%u"
 
-#: src/core/uploads.c:421
+#: src/core/uploads.c:422
 #, fuzzy
 msgid "Connect back timeout"
 msgstr "Caducidad de la conexión"
 
-#: src/core/uploads.c:428
+#: src/core/uploads.c:429
 msgid "Lifetime expired"
 msgstr "Tiempo de vida expirado"
 
-#: src/core/uploads.c:510
+#: src/core/uploads.c:511
 #, c-format
 msgid "Banned: %s"
 msgstr "Baneado: %s"
 
-#: src/core/uploads.c:512
+#: src/core/uploads.c:513
 #, c-format
 msgid "Banned for %s"
 msgstr "Baneado por %s"
 
-#: src/core/uploads.c:1632
+#: src/core/uploads.c:1633
 msgid "Unable to send GIV"
 msgstr "Incapaz de enviar GIV"
 
-#: src/core/uploads.c:2451
+#: src/core/uploads.c:2430
 msgid "<Browse Host Request>"
 msgstr "<Petición de Consultar Nodo>"
 
-#: src/core/uploads.c:2582
+#: src/core/uploads.c:2563
 msgid "Browse Host Enabled"
 msgstr "Consultar Nodo Activado"
 
-#: src/core/uploads.c:2595
+#: src/core/uploads.c:2576
 #, fuzzy, c-format
 msgid "<Browse Host Request> [%s%s%s]"
 msgstr "<Petición de Consultar Nodo>"
 
-#: src/core/uploads.c:2596
+#: src/core/uploads.c:2577
 msgid "query hits"
 msgstr ""
 
-#: src/core/uploads.c:2597
-msgid ", deflated"
+#: src/core/uploads.c:2578
+msgid ", deflate"
 msgstr ""
 
-#: src/core/uploads.c:2598
+#: src/core/uploads.c:2579
+msgid ", gzip"
+msgstr ""
+
+#: src/core/uploads.c:2580
 msgid ", chunked"
 msgstr ""
 
-#: src/core/uploads.c:3170
+#: src/core/uploads.c:3240
 msgid "Stalling upload replaced"
 msgstr "Subida atascándose reemplazada"
 
-#: src/core/uploads.c:3333
+#: src/core/uploads.c:3403
 #, c-format
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "Encolado (ranura %d, ETA: %s)"
 
-#: src/core/uploads.c:3565
+#: src/core/uploads.c:3635
 msgid "Cannot send whole HTTP status"
 msgstr "Imposible enviar el estado completo HTTP"
 
-#: src/core/uploads.c:3666
+#: src/core/uploads.c:3736
 msgid "Write exception"
 msgstr "Excepción de escritura"
 
-#: src/core/uploads.c:3737
+#: src/core/uploads.c:3807
 #, c-format
 msgid "File read error: %s"
 msgstr "Error de lectura de archivo: %s"
 
-#: src/core/uploads.c:3741
+#: src/core/uploads.c:3811
 #, fuzzy
 msgid "File EOF?"
 msgstr "Fracasado (EOF)"
 
-#: src/core/uploads.c:3774
+#: src/core/uploads.c:3844
 #, c-format
 msgid "Data write error: %s"
 msgstr "Error de lectura de datos: %s"
 
-#: src/core/uploads.c:3778
+#: src/core/uploads.c:3848
 msgid "No bytes written, source may be gone"
 msgstr ""
 
-#: src/core/uploads.c:3897
+#: src/core/uploads.c:3967
 #, fuzzy, c-format
 msgid "Special read error: %s"
 msgstr "Error de lectura de archivo: %s"
 
-#: src/core/uploads.c:3940
+#: src/core/uploads.c:4010
 msgid "Explicitly killed"
 msgstr "Matado explícitamente"
 
-#: src/core/uploads.c:3965
+#: src/core/uploads.c:4035
 msgid "IP denying uploads"
 msgstr "IP denegando subidas"
 
@@ -1328,15 +1336,19 @@ msgstr ""
 msgid ""
 "Maximum size in bytes of an upload which PARQ shall not queue and is always "
 "allowed to continue. However, if a client requests small chunks over and "
-"over the chunk size previously requested are also counted.Set to 0 to "
-"disable this feature."
+"over the chunk sizes previously requested and uploaded are also counted.  If "
+"the size requested is greater than the threshold then, and only then, we "
+"look at the theoretical time it would take to serve the whole amount to see "
+"whether we can still bypass queuing. Set to 0 to disable this size-based "
+"bypassing feature and only rely on time-based bypassing."
 msgstr ""
 
 #: src/if/gnet_property.c:2118
 msgid ""
-"When an upload is expected to take less then this setting in seconds, PARQ "
-"will be instructed to not queue the upload. This overrides "
-"parq_size_alwayscontinue. Set to 0 to disable this feature."
+"When an upload is expected to take less than this setting in seconds, PARQ "
+"will be instructed to not queue the upload. This check is done AFTER the "
+"file size-based bypassing. Set to 0 to disable this time-based bypassing "
+"feature."
 msgstr ""
 
 #: src/if/gnet_property.c:2138
@@ -4041,7 +4053,7 @@ msgstr "%u Bytes"
 msgid "%sB/s"
 msgstr "%sB/s"
 
-#: src/main.c:593
+#: src/main.c:633
 msgid "This is an unofficial build which accesses files in this directory:"
 msgstr ""
 "Este ejecutable ha sido compilado de forma no oficial y accede a los "
@@ -4569,23 +4581,19 @@ msgid_plural "files"
 msgstr[0] "archivo"
 msgstr[1] "archivos"
 
-#: src/ui/gtk/gtk-shared/callbacks.c:273 src/ui/gtk/gtk1/callbacks.c:273
-#: src/ui/gtk/gtk2/callbacks.c:273
+#: src/ui/gtk/gtk1/callbacks.c:273 src/ui/gtk/gtk2/callbacks.c:273
 msgid "Please choose where to store files while downloading"
 msgstr "Directorio donde se almacenarán los archivos temporales"
 
-#: src/ui/gtk/gtk-shared/callbacks.c:339 src/ui/gtk/gtk1/callbacks.c:339
-#: src/ui/gtk/gtk2/callbacks.c:339
+#: src/ui/gtk/gtk1/callbacks.c:339 src/ui/gtk/gtk2/callbacks.c:339
 msgid "Please choose where to move files after successful download"
 msgstr "Directorio donde se moverán los archivos completados"
 
-#: src/ui/gtk/gtk-shared/callbacks.c:406 src/ui/gtk/gtk1/callbacks.c:406
-#: src/ui/gtk/gtk2/callbacks.c:406
+#: src/ui/gtk/gtk1/callbacks.c:406 src/ui/gtk/gtk2/callbacks.c:406
 msgid "Please choose where to move corrupted files"
 msgstr "Directorio donde se moverán los archivos corruptos"
 
-#: src/ui/gtk/gtk-shared/callbacks.c:470 src/ui/gtk/gtk1/callbacks.c:470
-#: src/ui/gtk/gtk2/callbacks.c:470
+#: src/ui/gtk/gtk1/callbacks.c:470 src/ui/gtk/gtk2/callbacks.c:470
 msgid "Please choose a directory to share"
 msgstr "Elija un directorio para compartir"
 
@@ -4604,7 +4612,7 @@ msgstr[1] "%u nodos"
 
 #: src/ui/gtk/gtk1/downloads.c:1018 src/ui/gtk/gtk1/downloads.c:1049
 #: src/ui/gtk/gtk1/interface-glade.c:2232 src/ui/gtk/gtk2/downloads.c:1377
-#: src/ui/gtk/gtk2/gnet_stats.c:57 src/ui/gtk/uploads_common.c:178
+#: src/ui/gtk/gtk2/gnet_stats.c:57 src/ui/gtk/uploads_common.c:180
 msgid "Queued"
 msgstr "Encolado"
 
@@ -4730,6 +4738,11 @@ msgstr "; Movidos (%s) %s"
 msgid "(stalled)"
 msgstr "(atascado)"
 
+#: src/ui/gtk/gtk1/downloads.c:1267
+#, fuzzy, c-format
+msgid " [%d/%d] TR: %s"
+msgstr ", ETA: %s"
+
 #: src/ui/gtk/gtk1/downloads.c:1297 src/ui/gtk/gtk1/nodes.c:252
 #: src/ui/gtk/gtk2/downloads.c:1644 src/ui/gtk/nodes_common.c:279
 msgid "Connected"
@@ -4754,6 +4767,26 @@ msgstr "Vaciando (%s bytes left)"
 #: src/ui/gtk/gtk2/upload_stats.c:271
 msgid "Complete"
 msgstr "Completados"
+
+#: src/ui/gtk/gtk1/downloads.c:1380
+#, c-format
+msgid "%4.02f%%  (%s)  [%d/%d]  TR:  %s"
+msgstr ""
+
+#: src/ui/gtk/gtk1/downloads.c:1386
+#, c-format
+msgid "%4.02f%%  (%s)  [%d/%d]  TR:  -"
+msgstr ""
+
+#: src/ui/gtk/gtk1/downloads.c:1453 src/ui/gtk/gtk2/downloads.c:1316
+#, c-format
+msgid "(%s)  [%d/%d]  TR:  %s"
+msgstr ""
+
+#: src/ui/gtk/gtk1/downloads.c:1458
+#, c-format
+msgid "(%s)  [%d/%d]  TR:  -"
+msgstr ""
 
 #: src/ui/gtk/gtk1/downloads_cb.c:53 src/ui/gtk/gtk2/downloads_cb.c:259
 #, c-format
@@ -4795,7 +4828,7 @@ msgid "Queued (%d active, %d passive)"
 msgstr "Encolado (%d activos, %d pasivos)"
 
 #: src/ui/gtk/gtk1/fileinfo.c:146 src/ui/gtk/gtk2/fileinfo.c:320
-#: src/ui/gtk/uploads_common.c:178
+#: src/ui/gtk/uploads_common.c:180
 msgid "Waiting"
 msgstr "Esperando"
 
@@ -6289,7 +6322,7 @@ msgstr "Reiniciar esta búsqueda"
 msgid "Duplicate this search"
 msgstr "Duplicar esta búsqueda"
 
-#: src/ui/gtk/gtk1/interface-glade.c:6825
+#: src/ui/gtk/gtk1/interface-glade.c:6825 src/ui/gtk/gtk1/search_cb.c:727
 #: src/ui/gtk/gtk2/interface-glade.c:689 src/ui/gtk/gtk2/search_cb.c:386
 msgid "Show tabs"
 msgstr "Mostrar pestañas"
@@ -8430,6 +8463,22 @@ msgstr "Petición encolada"
 msgid "<none>"
 msgstr "<nada>"
 
+#: src/ui/gtk/gtk1/search_cb.c:369
+#, c-format
+msgid "%d file auto selected with %d sources %s"
+msgid_plural "%d files auto selected with %d sources %s"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/ui/gtk/gtk1/search_cb.c:371
+#, fuzzy
+msgid "by urn:sha1."
+msgstr "urn:sha1"
+
+#: src/ui/gtk/gtk1/search_cb.c:727 src/ui/gtk/gtk2/search_cb.c:386
+msgid "Show search list"
+msgstr "Mostrar lista de búsquedas"
+
 #: src/ui/gtk/gtk1/search_stats.c:446 src/ui/gtk/gtk2/search_stats.c:479
 #, c-format
 msgid "%u term counted"
@@ -8448,7 +8497,12 @@ msgstr "No se pùdo encontrar la imagen: %s"
 msgid "Error loading pixmap file: %s"
 msgstr "Error durante la carga de la imagen: %s"
 
-#: src/ui/gtk/gtk2/downloads.c:1504 src/ui/gtk/uploads_common.c:113
+#: src/ui/gtk/gtk2/downloads.c:890
+#, c-format
+msgid "[%d/%d]  TR:  -"
+msgstr ""
+
+#: src/ui/gtk/gtk2/downloads.c:1504 src/ui/gtk/uploads_common.c:114
 msgid "< 1s"
 msgstr "< 1º"
 
@@ -8471,6 +8525,11 @@ msgstr "CORRECTO"
 #: src/ui/gtk/gtk2/downloads.c:1536
 msgid "FAILED"
 msgstr "FALLIDO"
+
+#: src/ui/gtk/gtk2/downloads.c:1614
+#, fuzzy, c-format
+msgid " TR: %s"
+msgstr ", ETA: %s"
 
 #: src/ui/gtk/gtk2/downloads.c:1670
 #, c-format
@@ -8807,10 +8866,6 @@ msgstr "Resolución inversa de nombre para %s fracasada"
 msgid "Reverse lookup in progress..."
 msgstr "Resolución inversa de nombre en progreso..."
 
-#: src/ui/gtk/gtk2/search_cb.c:386
-msgid "Show search list"
-msgstr "Mostrar lista de búsquedas"
-
 #: src/ui/gtk/gtk2/search_cb.c:658
 msgid "Passive"
 msgstr "Pasivo"
@@ -8962,6 +9017,23 @@ msgstr ""
 #: src/ui/gtk/search_common.c:843
 msgid "<unparsed>"
 msgstr "<sin analizar>"
+
+#: src/ui/gtk/search_common.c:851
+msgid "udp"
+msgstr ""
+
+#: src/ui/gtk/search_common.c:853
+msgid "udp "
+msgstr ""
+
+#: src/ui/gtk/search_common.c:862
+msgid ", browsable"
+msgstr ""
+
+#: src/ui/gtk/search_common.c:862
+#, fuzzy
+msgid "browsable"
+msgstr "estable"
 
 #: src/ui/gtk/search_common.c:1075
 msgid "(passive search) "
@@ -9139,47 +9211,52 @@ msgid "Got push, connecting back..."
 msgstr "Recibido 'push', conectando..."
 
 #: src/ui/gtk/uploads_common.c:112
-#, c-format
-msgid "Completed (%s) %s"
+#, fuzzy, c-format
+msgid "%sCompleted (%s) %s"
 msgstr "Completado (%s) %s"
 
-#: src/ui/gtk/uploads_common.c:130
+#: src/ui/gtk/uploads_common.c:129
+#, c-format
+msgid "%s%s(%s) TR: %s"
+msgstr ""
+
+#: src/ui/gtk/uploads_common.c:132
 msgid "stalled"
 msgstr "atascado"
 
-#: src/ui/gtk/uploads_common.c:136
+#: src/ui/gtk/uploads_common.c:138
 msgid "Waiting for headers..."
 msgstr "Esperando las cabeceras..."
 
-#: src/ui/gtk/uploads_common.c:139
+#: src/ui/gtk/uploads_common.c:141
 msgid "Waiting for further request..."
 msgstr "Esperando de nuevo la conexión..."
 
-#: src/ui/gtk/uploads_common.c:142
+#: src/ui/gtk/uploads_common.c:144
 msgid "Unavailable range, waiting retry..."
 msgstr "Rango no disponible, esperando el reintento..."
 
-#: src/ui/gtk/uploads_common.c:145
+#: src/ui/gtk/uploads_common.c:147
 msgid "Transmission aborted"
 msgstr "Trnasmisión abortada"
 
-#: src/ui/gtk/uploads_common.c:148
+#: src/ui/gtk/uploads_common.c:150
 msgid "Transmission complete"
 msgstr "Transmisión abortada"
 
-#: src/ui/gtk/uploads_common.c:177
+#: src/ui/gtk/uploads_common.c:179
 #, fuzzy, c-format
 msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr "%s [%d] (ranura %d/%d)"
 
-#: src/ui/gtk/uploads_common.c:183
+#: src/ui/gtk/uploads_common.c:185
 msgid "lifetime:"
 msgstr "tiempo de vida:"
 
-#: src/ui/gtk/uploads_common.c:195
+#: src/ui/gtk/uploads_common.c:197
 msgid "Sending QUEUE, connecting back..."
 msgstr "Enviando QUEUE, reconectando..."
 
-#: src/ui/gtk/uploads_common.c:203
+#: src/ui/gtk/uploads_common.c:205
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
