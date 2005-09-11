@@ -432,16 +432,82 @@ on_button_search_download_selected_clicked(GtkButton *unused_button,
 }
 
 gboolean
-on_tree_view_search_results_click_column(GtkTreeViewColumn *unused_column,
-	gpointer unused_udata)
+on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
+	gpointer udata)
 {
-	/* FIXME:
-	 * 			+--> sort descending -> sort ascending -> unsorted -+
+	GtkTreeSortable *model;
+	search_t *sch = udata;
+	GtkSortType order;
+	gint sort_col;
+
+	/* The default treeview is empty */
+	if (!sch)	
+		return FALSE;
+
+	/* N.B.: column->tree_view is not really documented but it works. */
+	model = GTK_TREE_SORTABLE(
+				gtk_tree_view_get_model(GTK_TREE_VIEW(column->tree_view)));
+	
+	/*
+	 * Here we enforce a tri-state sorting. Normally, Gtk+ would only
+	 * switch between ascending and descending but never switch back
+	 * to the unsorted state.
+	 *
+	 * 			+--> sort ascending -> sort descending -> unsorted -+
      *      	|                                                   |
      *      	+-----------------------<---------------------------+
      */
-	(void) unused_column;
-	(void) unused_udata;
+
+	/*
+	 * "order" is set to the current sort-order, not the previous one
+	 * i.e., Gtk+ has already changed the order
+	 */
+	g_object_get(G_OBJECT(column), "sort-order", &order, (void *) 0);
+
+	gtk_tree_sortable_get_sort_column_id(model, &sort_col, NULL);
+
+	/* If the user switched to another sort column, reset the sort order. */
+	if (sch->sort_col != sort_col)
+		sch->sort_order = SORT_NONE;
+
+	sch->sort_col = sort_col;
+
+	/* The search has to keep state about the sort order itself because
+	 * Gtk+ knows only ASCENDING/DESCENDING but not NONE (unsorted). */
+	switch (sch->sort_order) {
+	case SORT_NONE:
+	case SORT_NO_COL:
+		sch->sort_order = SORT_ASC;
+		break;
+	case SORT_ASC:
+		sch->sort_order = SORT_DESC;
+		break;
+	case SORT_DESC:
+		sch->sort_order = SORT_NONE;
+		break;
+	}
+	
+	if (SORT_NONE == sch->sort_order) {
+		/*
+		 * Reset the sorting and let the arrow disappear from the
+		 * header. Gtk+ actually seems to change the order of the
+		 * rows back to the original order (i.e., chronological).
+		 */
+		gtk_tree_view_column_set_sort_indicator(column, FALSE);
+		gtk_tree_sortable_set_sort_column_id(model,
+			GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order);
+	} else {
+		/*
+		 * Enforce the order as decided from the search state. Gtk+
+		 * might disagree but it'll do as told.
+		 */
+		gtk_tree_sortable_set_sort_column_id(model, sort_col,
+			SORT_ASC == sch->sort_order
+				? GTK_SORT_ASCENDING : GTK_SORT_DESCENDING);
+	}
+	/* Make the column stays clickable. */
+	gtk_tree_view_column_set_clickable(column, TRUE);
+	
 	return FALSE;
 }
 

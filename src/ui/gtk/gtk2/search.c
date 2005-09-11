@@ -78,6 +78,8 @@ static gboolean search_gui_shutting_down = FALSE;
  */
 static GtkTreeViewColumn *add_column(GtkTreeView *treeview, const gchar *name,
 	gint id, gint width, gfloat xalign, gint fg_column, gint bg_column);
+static void
+gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv, gpointer udata);
 
 /*
  * If no search are currently allocated
@@ -281,6 +283,8 @@ do_atom_sha1_free(gpointer sha1)
 }
 
 
+
+
 /**
  * @returns TRUE if search was sucessfully created and FALSE if an error
  * happened. If the "search" argument is not NULL a pointer to the new
@@ -343,7 +347,8 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 
 	if (searches) {
 		/* We have to create a new TreeView for this search */
-		gui_search_create_tree_view(&sch->scrolled_window, &sch->tree_view);
+		gui_search_create_tree_view(&sch->scrolled_window,
+			&sch->tree_view, sch);
 
 		gtk_object_set_user_data(GTK_OBJECT(sch->scrolled_window), sch);
 
@@ -908,7 +913,8 @@ add_results_column(
 	gint id,
 	gint width,
 	gfloat xalign,
-	GtkTreeIterCompareFunc sortfunc)
+	GtkTreeIterCompareFunc sortfunc,
+	gpointer udata)
 {
     GtkTreeViewColumn *column;
 	GtkTreeModel *model;
@@ -920,7 +926,7 @@ add_results_column(
 			GTK_TREE_SORTABLE(model), id, sortfunc, NULL, NULL);
 	g_signal_connect(G_OBJECT(column), "clicked",
 		G_CALLBACK(on_tree_view_search_results_click_column),
-		GINT_TO_POINTER(id));
+		udata);
 }
 
 static GtkTreeModel *
@@ -982,7 +988,7 @@ search_gui_init(void)
 		NULL);
 
 	gui_search_create_tree_view(&default_scrolled_window,
-		&default_search_tree_view);
+		&default_search_tree_view, NULL);
     gtk_notebook_remove_page(notebook_search_results, 0);
 	gtk_notebook_set_scrollable(notebook_search_results, TRUE);
 	gtk_notebook_append_page
@@ -1336,7 +1342,7 @@ add_column(
 }
 
 static void
-add_results_columns(GtkTreeView *treeview)
+add_results_columns(GtkTreeView *treeview, gpointer udata)
 {
 	static const struct {
 		const gchar * const title;
@@ -1361,7 +1367,7 @@ add_results_columns(GtkTreeView *treeview)
 		G_N_ELEMENTS(width));
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
 		add_results_column(treeview, _(columns[i].title), columns[i].id,
-			width[columns[i].id], columns[i].align, columns[i].func);
+			width[columns[i].id], columns[i].align, columns[i].func, udata);
 	}
 }
 
@@ -1402,52 +1408,6 @@ search_by_regex(GtkTreeModel *model, gint column, const gchar *key,
 	G_FREE_NULL(filename);
 
 	return 0 == ret ? found : !found;
-}
-
-/**
- * Create a new GtkTreeView for search results.
- */
-void
-gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
-{
-	GtkTreeModel *model = create_results_model();
-	GtkTreeSelection *selection;
-	GtkTreeView	*treeview;
-
-	*sw = gtk_scrolled_window_new(NULL, NULL);
-
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(*sw),
-        GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
-
-	treeview = GTK_TREE_VIEW(gtk_tree_view_new_with_model(model));
-	*tv = GTK_WIDGET(treeview);
-	g_object_unref(model);
-
-	selection = gtk_tree_view_get_selection(treeview);
-	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
-	gtk_tree_view_set_headers_visible(treeview, TRUE);
-	gtk_tree_view_set_headers_clickable(treeview, TRUE);
-	gtk_tree_view_set_enable_search(treeview, TRUE);
-	gtk_tree_view_set_rules_hint(treeview, TRUE);
-	gtk_tree_view_set_search_equal_func(treeview, search_by_regex, NULL, NULL);
-
-      /* add columns to the tree view */
-	add_results_columns(treeview);
-
-	gtk_container_add(GTK_CONTAINER(*sw), *tv);
-
-	if (!GTK_WIDGET_VISIBLE (*sw))
-		gtk_widget_show_all(*sw);
-
-	g_signal_connect(GTK_OBJECT(treeview), "cursor-changed",
-		G_CALLBACK(on_tree_view_search_results_select_row), treeview);
-	g_signal_connect(GTK_OBJECT(treeview), "button_press_event",
-		G_CALLBACK(on_tree_view_search_results_button_press_event), NULL);
-    g_signal_connect(GTK_OBJECT(treeview), "key_press_event",
-		G_CALLBACK(on_tree_view_search_results_key_press_event), NULL);
-    g_signal_connect(GTK_OBJECT(treeview), "leave-notify-event",
-		G_CALLBACK(on_leave_notify), NULL);
-	g_object_freeze_notify(G_OBJECT(treeview));
 }
 
 static gboolean
@@ -1708,5 +1668,50 @@ search_gui_metadata_update(const bitzi_data_t *data)
 	G_FREE_NULL(text);
 }
 
+/**
+ * Create a new GtkTreeView for search results.
+ */
+static void
+gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv, gpointer udata)
+{
+	GtkTreeModel *model = create_results_model();
+	GtkTreeSelection *selection;
+	GtkTreeView	*treeview;
+
+	*sw = gtk_scrolled_window_new(NULL, NULL);
+
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(*sw),
+        GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+
+	treeview = GTK_TREE_VIEW(gtk_tree_view_new_with_model(model));
+	*tv = GTK_WIDGET(treeview);
+	g_object_unref(model);
+
+	selection = gtk_tree_view_get_selection(treeview);
+	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
+	gtk_tree_view_set_headers_visible(treeview, TRUE);
+	gtk_tree_view_set_headers_clickable(treeview, TRUE);
+	gtk_tree_view_set_enable_search(treeview, TRUE);
+	gtk_tree_view_set_rules_hint(treeview, TRUE);
+	gtk_tree_view_set_search_equal_func(treeview, search_by_regex, NULL, NULL);
+
+      /* add columns to the tree view */
+	add_results_columns(treeview, udata);
+
+	gtk_container_add(GTK_CONTAINER(*sw), *tv);
+
+	if (!GTK_WIDGET_VISIBLE (*sw))
+		gtk_widget_show_all(*sw);
+
+	g_signal_connect(GTK_OBJECT(treeview), "cursor-changed",
+		G_CALLBACK(on_tree_view_search_results_select_row), treeview);
+	g_signal_connect(GTK_OBJECT(treeview), "button_press_event",
+		G_CALLBACK(on_tree_view_search_results_button_press_event), NULL);
+    g_signal_connect(GTK_OBJECT(treeview), "key_press_event",
+		G_CALLBACK(on_tree_view_search_results_key_press_event), NULL);
+    g_signal_connect(GTK_OBJECT(treeview), "leave-notify-event",
+		G_CALLBACK(on_leave_notify), NULL);
+	g_object_freeze_notify(G_OBJECT(treeview));
+}
 /* -*- mode: cc-mode; tab-width:4; -*- */
 /* vi: set ts=4 sw=4 cindent: */
