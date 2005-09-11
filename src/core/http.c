@@ -2536,11 +2536,13 @@ http_async_connected(gpointer handle)
 }
 
 /**
- * Default error indication callback which logs the error by listing the
- * initial HTTP request and the reported error cause.
+ * Error indication callback which logs the error by listing the
+ * initial HTTP request and the reported error cause.  The specified
+ * debugging level is explicitly given.
  */
 void
-http_async_log_error(gpointer handle, http_errtype_t type, gpointer v)
+http_async_log_error_dbg(
+	gpointer handle, http_errtype_t type, gpointer v, guint32 dbg_level)
 {
 	const gchar *url;
 	const gchar *req;
@@ -2553,46 +2555,58 @@ http_async_log_error(gpointer handle, http_errtype_t type, gpointer v)
 
 	switch (type) {
 	case HTTP_ASYNC_SYSERR:
-        if (http_debug) {
+        if (dbg_level) {
             g_message("aborting \"%s %s\" at %s on system error: %s",
                 req, url, host_addr_port_to_string(addr, port),
 				g_strerror(error));
         }
-		break;
+		return;
 	case HTTP_ASYNC_ERROR:
 		if (error == HTTP_ASYNC_CANCELLED) {
-			if (http_debug > 3)
-				printf("explicitly cancelled \"%s %s\" at %s\n", req, url,
+			if (dbg_level > 3)
+				g_message("explicitly cancelled \"%s %s\" at %s", req, url,
 					host_addr_port_to_string(addr, port));
 		} else if (error == HTTP_ASYNC_CLOSED) {
-			if (http_debug > 3)
-				printf("connection closed for \"%s %s\" at %s\n", req, url,
+			if (dbg_level > 3)
+				g_message("connection closed for \"%s %s\" at %s", req, url,
 					host_addr_port_to_string(addr, port));
 		} else
-            if (http_debug) {
+            if (dbg_level) {
                 g_message("aborting \"%s %s\" at %s on error: %s", req, url,
                     host_addr_port_to_string(addr, port),
 					http_async_strerror(error));
             }
-		break;
+		return;
 	case HTTP_ASYNC_HEADER:
-        if (http_debug) {
+        if (dbg_level) {
             g_message("aborting \"%s %s\" at %s on header parsing error: %s",
                 req, url, host_addr_port_to_string(addr, port),
 				header_strerror(error));
         }
-		break;
+		return;
 	case HTTP_ASYNC_HTTP:
-        if (http_debug) {
+        if (dbg_level) {
             g_message("stopping \"%s %s\" at %s: HTTP %d %s", req, url,
                 host_addr_port_to_string(addr, port),
 				herror->code, herror->message);
         }
-		break;
-	default:
-		g_error("unhandled HTTP request error type %d", type);
-		/* NOTREACHED */
+		return;
+	/* No default clause, let the compiler warn us about missing cases. */
 	}
+
+	/* In case the error was not trapped at compile time... */
+	g_error("unhandled HTTP request error type %d", type);
+	/* NOTREACHED */
+}
+
+/**
+ * Default error indication callback which logs the error by listing the
+ * initial HTTP request and the reported error cause.
+ */
+void
+http_async_log_error(gpointer handle, http_errtype_t type, gpointer v)
+{
+	return http_async_log_error_dbg(handle, type, v, http_debug);
 }
 
 /***

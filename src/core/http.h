@@ -266,6 +266,8 @@ http_state_t http_async_state(gpointer handle);
 void http_async_set_opaque(gpointer handle, gpointer data, http_user_free_t fn);
 gpointer http_async_get_opaque(gpointer handle);
 void http_async_log_error(gpointer handle, http_errtype_t type, gpointer v);
+void http_async_log_error_dbg(
+	gpointer handle, http_errtype_t type, gpointer v, guint32 dbg_level);
 
 void http_async_on_state_change(gpointer handle, http_state_change_t fn);
 void http_async_allow_redirects(gpointer handle, gboolean allow);
