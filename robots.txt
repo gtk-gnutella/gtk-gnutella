@@ -1,0 +1,10 @@
+#
+# $Id$
+#
+# Disable scanning from all robots.
+#
+# You may supersede this default setting by copying this file into your
+# private ~/.gtk-gnutella directory and editing it there.
+#
+User-agent: *
+Disallow: /

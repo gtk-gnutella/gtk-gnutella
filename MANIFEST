@@ -186,6 +186,7 @@ po/ja.po
 po/nl.po
 po/quot.sed
 po/remove-potcdate.sin
+robots.txt                   Default hints for web crawlers
 scripts/gtkg-dbus-listener.py
 src/Jmakefile
 src/Makefile.SH
