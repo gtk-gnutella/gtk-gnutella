@@ -483,7 +483,7 @@
       <signal name="activate" handler="on_popup_search_download_activate" last_modification_time="Sun, 30 Mar 2003 12:52:08 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image533">
+	<widget class="GtkImage" id="image580">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-save</property>
 	  <property name="icon_size">1</property>
@@ -503,7 +503,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image534">
+	<widget class="GtkImage" id="image581">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -555,7 +555,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image535">
+	<widget class="GtkImage" id="image582">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -613,7 +613,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image536">
+	<widget class="GtkImage" id="image583">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-execute</property>
 	  <property name="icon_size">1</property>
@@ -635,7 +635,7 @@
 	      <signal name="activate" handler="on_popup_search_autodownload_sha1_activate"/>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image537">
+		<widget class="GtkImage" id="image584">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-execute</property>
 		  <property name="icon_size">1</property>
@@ -656,7 +656,7 @@
 	      <signal name="activate" handler="on_popup_search_autodownload_name_activate"/>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image538">
+		<widget class="GtkImage" id="image585">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-execute</property>
 		  <property name="icon_size">1</property>
@@ -687,7 +687,7 @@
       <signal name="activate" handler="on_popup_search_new_from_selected_activate" last_modification_time="Sun, 15 Sep 2002 11:07:06 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image539">
+	<widget class="GtkImage" id="image586">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-new</property>
 	  <property name="icon_size">1</property>
@@ -714,7 +714,7 @@
       <signal name="activate" handler="on_popup_search_expand_all_activate" last_modification_time="Thu, 01 Jan 2004 05:01:39 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image540">
+	<widget class="GtkImage" id="image587">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
@@ -735,7 +735,7 @@
       <signal name="activate" handler="on_popup_search_collapse_all_activate" last_modification_time="Thu, 01 Jan 2004 05:01:39 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image541">
+	<widget class="GtkImage" id="image588">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-remove</property>
 	  <property name="icon_size">1</property>
@@ -762,7 +762,7 @@
       <signal name="activate" handler="on_popup_search_toggle_tabs_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image542">
+	<widget class="GtkImage" id="image589">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-index</property>
 	  <property name="icon_size">1</property>
@@ -783,9 +783,30 @@
       <signal name="activate" handler="on_popup_search_config_cols_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image543">
+	<widget class="GtkImage" id="image590">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-preferences</property>
+	  <property name="icon_size">1</property>
+	  <property name="xalign">0.5</property>
+	  <property name="yalign">0.5</property>
+	  <property name="xpad">0</property>
+	  <property name="ypad">0</property>
+	</widget>
+      </child>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkImageMenuItem" id="popup_search_sort_defaults">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">Make current sorting default</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="on_popup_search_sort_defaults_activate" last_modification_time="Sun, 11 Sep 2005 12:55:56 GMT"/>
+
+      <child internal-child="image">
+	<widget class="GtkImage" id="image591">
+	  <property name="visible">True</property>
+	  <property name="stock">gtk-media-record</property>
 	  <property name="icon_size">1</property>
 	  <property name="xalign">0.5</property>
 	  <property name="yalign">0.5</property>
@@ -810,7 +831,7 @@
       <signal name="activate" handler="on_popup_search_metadata_activate" last_modification_time="Thu, 02 Sep 2004 08:35:41 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image544">
+	<widget class="GtkImage" id="image592">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-dialog-info</property>
 	  <property name="icon_size">1</property>
@@ -831,7 +852,7 @@
       <signal name="activate" handler="on_popup_search_browse_host_activate" last_modification_time="Mon, 01 Aug 2005 22:15:56 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image545">
+	<widget class="GtkImage" id="image593">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-zoom-in</property>
 	  <property name="icon_size">1</property>

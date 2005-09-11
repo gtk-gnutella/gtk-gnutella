@@ -28,8 +28,9 @@
 RCSID("$Id$");
 
 #include "gtk/misc.h"
-#include "gtk/statusbar.h"
+#include "gtk/search.h"
 #include "gtk/search_stats.h"
+#include "gtk/statusbar.h"
 
 #include "if/bridge/ui2c.h"
 #include "if/gui_property.h"
@@ -531,6 +532,16 @@ on_popup_search_browse_host_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
 	g_message("on_popup_search_browse_host_activate");
+}
+
+void
+on_popup_search_sort_defaults_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+	
+	search_gui_set_sort_defaults();
 }
 
 #ifdef USE_GTK2

@@ -37,8 +37,8 @@
 #include "gtk/hcache.h"
 #include "gtk/fileinfo.h"
 #include "gtk/downloads.h"
-#include "gtk/visual_progress.h"
 #include "gtk/upload_stats_cb.h"
+#include "gtk/visual_progress.h"
 
 #ifdef USE_GTK1
 #include "gtk/gtk1/nodes_cb.h"
@@ -119,6 +119,7 @@ void on_clist_search_resize_column(GtkCList * clist, gint column, gint width, gp
 void
 on_popup_search_browse_host_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata);
+void on_popup_search_sort_defaults_activate(GtkMenuItem *unused_menuitem, gpointer unused_udata);
 
 void
 on_menu_faq_activate                   (GtkMenuItem     *menuitem,

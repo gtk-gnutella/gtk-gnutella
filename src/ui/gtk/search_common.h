@@ -137,6 +137,7 @@ gboolean search_gui_result_is_dup(search_t *sch, record_t *rc);
 search_t *search_gui_find(gnet_search_t sh);
 record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r) ;
 void search_gui_check_alt_locs(results_set_t *rs, record_t *rc);
+void search_gui_set_sort_defaults(void);
 void search_gui_store_searches(void);
 void search_gui_retrieve_searches(void);
 void search_gui_restart_search(search_t *sch);

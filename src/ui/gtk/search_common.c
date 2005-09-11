@@ -104,27 +104,9 @@ search_gui_new_search(const gchar *query, flag_t flags, search_t **search)
     guint32 timeout;
 
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
-
-	/* XXX In GTK1, there is no sorting by default, and it's possible to
-	 * XXX disable all sorting by clicking a third time on a column header.
-	 * XXX This behaviour is not in GTK2, halas.  Also, even though the
-	 * XXX default was now set, there was no arrow beside the '#' column.
-	 * XXX There should be a way to disable all sorting, and to specify
-	 * XXX the column on which searches should sort, with "none" being an
-	 * XXX option so that this #ifder be removed in common code.
-	 * XXX		--RAM, 2005-09-11
-	 */
-#ifdef USE_GTK1
-	/* No sorting by default, results are appended as they are received */
     return search_gui_new_search_full(query, timeout,
-			SORT_NO_COL, SORT_NONE, flags | SEARCH_ENABLED, search);
-	
-#endif /* GTK1 */
-#ifdef USE_GTK2
-	/* Sort by number of sources as default */
-    return search_gui_new_search_full(query, timeout,
-			c_sr_count, SORT_DESC, flags | SEARCH_ENABLED, search);
-#endif /* GTK2 */
+			search_sort_default_column, search_sort_default_order,
+			flags | SEARCH_ENABLED, search);
 }
 
 
@@ -735,43 +717,29 @@ search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 }
 
 /**
+ * Makes the sort column and order of the current search the default settings.
+ */
+void
+search_gui_set_sort_defaults(void)
+{
+	const search_t *sch;
+	
+	sch = current_search;
+	if (sch) {
+		gui_prop_set_guint32_val(PROP_SEARCH_SORT_DEFAULT_COLUMN,
+			sch->sort_col);
+		gui_prop_set_guint32_val(PROP_SEARCH_SORT_DEFAULT_ORDER,
+			sch->sort_order);
+	}
+}
+
+/**
  * Persist searches to disk.
  */
 void
 search_gui_store_searches(void)
 {
 	char *path;
-
-#if GTK_CHECK_VERSION(2, 0, 0)
-	{
-		const GList *l;
-
-		/* Update the search column ID and order before storing the search */
-		for (l = search_gui_get_searches(); NULL != l; l = g_list_next(l)) {
-			search_t *sch = l->data;
-			gint col = -1;
-			GtkSortType order;
-
-			g_assert(sch);
-			g_assert(sch->model);
-
-			if (
-				gtk_tree_sortable_get_sort_column_id(
-					GTK_TREE_SORTABLE(sch->model), &col, &order)
-			) {
-				switch (order) {
-				case GTK_SORT_ASCENDING:
-					sch->sort_order = SORT_ASC;
-					break;
-				case GTK_SORT_DESCENDING:
-					sch->sort_order = SORT_DESC;
-					break;
-				}
-				sch->sort_col = col;
-			}
-		}
-	}
-#endif
 
 	search_store_xml();
 

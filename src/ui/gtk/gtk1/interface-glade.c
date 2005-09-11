@@ -6572,6 +6572,7 @@ create_popup_search (void)
   GtkWidget *separator2;
   GtkWidget *popup_search_toggle_tabs;
   GtkWidget *popup_search_config_cols;
+  GtkWidget *popup_search_sort_defaults;
   GtkWidget *separator19;
   GtkWidget *popup_search_metadata;
   GtkWidget *popup_search_browse_host;
@@ -6838,6 +6839,14 @@ create_popup_search (void)
   gtk_widget_show (popup_search_config_cols);
   gtk_container_add (GTK_CONTAINER (popup_search), popup_search_config_cols);
 
+  popup_search_sort_defaults = gtk_menu_item_new_with_label (_("Make current sorting default"));
+  gtk_widget_set_name (popup_search_sort_defaults, "popup_search_sort_defaults");
+  gtk_widget_ref (popup_search_sort_defaults);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_sort_defaults", popup_search_sort_defaults,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_sort_defaults);
+  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_sort_defaults);
+
   separator19 = gtk_menu_item_new ();
   gtk_widget_set_name (separator19, "separator19");
   gtk_widget_ref (separator19);
@@ -6916,6 +6925,9 @@ create_popup_search (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_config_cols), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_config_cols_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_sort_defaults), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_sort_defaults_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_metadata), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_metadata_activate),

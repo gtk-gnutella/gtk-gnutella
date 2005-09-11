@@ -319,8 +319,20 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	sch = g_malloc(sizeof *sch);
 	*sch = zero_sch;
 
-	sch->sort_col = sort_col;
-	sch->sort_order = sort_order;
+	if (sort_col >= 0 && (guint) sort_col < SEARCH_RESULTS_VISIBLE_COLUMNS)
+		sch->sort_col = sort_col;
+	else
+		sch->sort_col = -1;
+
+	switch (sort_order) {
+	case SORT_ASC:
+	case SORT_DESC:
+		sch->sort_order = sort_order;
+		break;
+	default:
+		sch->sort_order = SORT_NONE;
+	}
+ 
 	sch->query = atom_str_get(query);
 	sch->enabled = (flags & SEARCH_ENABLED) ? TRUE : FALSE;
 	sch->search_handle = sch_id;
