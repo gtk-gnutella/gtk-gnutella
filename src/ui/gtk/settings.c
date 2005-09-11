@@ -5386,6 +5386,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
+        PROP_BOOTSTRAP_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_bootstrap_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
         PROP_HTTP_DEBUG,
         update_spinbutton,
         TRUE,
