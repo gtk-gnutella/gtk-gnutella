@@ -129,7 +129,7 @@ search_gui_free_alt_locs(record_t *rc)
 		for (i = 0; i < alt->hvcnt; i++)
 			g_assert(host_addr_initialized(alt->hvec[i].addr));
 	}
-	
+
 	wfree(alt->hvec, alt->hvcnt * sizeof *alt->hvec);
 	wfree(alt, sizeof *alt);
 
@@ -305,7 +305,7 @@ search_gui_free_r_set(results_set_t *rs)
 	g_assert(rs->num_recs == g_slist_length(rs->records));
 	for (sl = rs->records; sl != NULL; sl = g_slist_next(sl)) {
 		record_t *rc = (record_t *) sl->data;
-		
+
 		g_assert(rc->magic == RECORD_MAGIC);
 		g_assert(rc->results_set == rs);
 		rc->results_set = NULL;
@@ -442,7 +442,7 @@ guint
 search_gui_hash_func(gconstpointer p)
 {
 	const record_t *rc = p;
-	
+
 	g_assert(rc->magic == RECORD_MAGIC);
 	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
 
@@ -460,7 +460,7 @@ gint
 search_gui_hash_key_compare(gconstpointer a, gconstpointer b)
 {
 	const record_t *rc1 = a, *rc2 = b;
-	
+
 	/* Must compare same fields as search_hash_func() --RAM */
 	return rc1->size == rc2->size
 		&& host_addr_equal(rc1->results_set->addr, rc2->results_set->addr)
@@ -605,7 +605,7 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 			for (i = 0; i < r->alt_locs->hvcnt; i++)
 				g_assert(host_addr_initialized(r->alt_locs->hvec[i].addr));
 		}
-		
+
 		rc->alt_locs = wcopy(r->alt_locs, sizeof *r->alt_locs);
 		rc->alt_locs->hvec = wcopy(r->alt_locs->hvec,
 								r->alt_locs->hvcnt * sizeof *r->alt_locs->hvec);
@@ -737,7 +737,7 @@ search_gui_store_searches(void)
 
 			g_assert(sch);
 			g_assert(sch->model);
-			
+
 			if (
 				gtk_tree_sortable_get_sort_column_id(
 					GTK_TREE_SORTABLE(sch->model), &col, &order)
@@ -755,7 +755,7 @@ search_gui_store_searches(void)
 		}
 	}
 #endif
-	
+
 	search_store_xml();
 
 	path = make_pathname(settings_gui_config_dir(), search_file);
@@ -935,7 +935,7 @@ search_matched(search_t *sch, results_set_t *rs)
 
 		g_assert(rc->magic == RECORD_MAGIC);
 		g_assert(rc->refcount >= 0);
-		
+
         if (gui_debug > 7)
             printf("search_matched: [%s] considering %s (%s)\n",
 				sch->query, rc->name, vinfo->str);
@@ -953,11 +953,11 @@ search_matched(search_t *sch, results_set_t *rs)
 		 * we detect a change.
 		 */
 
-		
+
 		g_assert(rc->refcount >= 0);
 		is_dup = search_gui_result_is_dup(sch, rc);
 		g_assert(rc->refcount >= 0);
-		
+
 		if (is_dup) {
 			sch->duplicates++;
 			continue;
@@ -1352,7 +1352,7 @@ search_gui_parse_text_query(const gchar *s, struct query *query)
 
 	*query = zero_query;
 	dst = query->text = g_strdup(s);
-	
+
 	for (p = s; *p != '\0'; p = q) {
 		gboolean neg;
 		gint n;
@@ -1387,7 +1387,7 @@ search_gui_parse_text_query(const gchar *s, struct query *query)
 				g_message("pos: \"%s\"", dst);
 			dst += n;
 		}
-	
+
 		if (*q != '\0')
 			q = skip_ascii_blanks(++q);
 	}
@@ -1500,9 +1500,9 @@ search_gui_parse_query(const gchar *querystr, GList **rules,
 
 		target = filter_get_drop_target();
 		g_assert(target != NULL);
-		for (l = qs.neg; l != NULL; l = g_list_next(l)) {		
+		for (l = qs.neg; l != NULL; l = g_list_next(l)) {
 			gchar *w;
-		
+
 			w = l->data;
 			g_assert(w != NULL);
 			if (rules) {
@@ -1520,7 +1520,7 @@ search_gui_parse_query(const gchar *querystr, GList **rules,
 		g_list_free(qs.neg);
 
 	G_FREE_NULL(qs.text);
-	
+
 	return query;
 }
 
@@ -1583,7 +1583,7 @@ search_xml_indent(const gchar *s)
 			gs = g_string_append_len(gs, q, p - q);
 		if ('\0' == *p)
 			break;
-		
+
 		/* Find the end of the tag */
 		q = strchr(p, '>');
 		if (!q)
@@ -1591,7 +1591,7 @@ search_xml_indent(const gchar *s)
 
 		if (p[1] != '/') {
 			/* Something like <start> */
-			
+
 			for (i = 0; i < depth; i++)
 				gs = g_string_append_c(gs, '\t');
 			gs = g_string_append_len(gs, p, (q - p) + 1);
@@ -1606,7 +1606,7 @@ search_xml_indent(const gchar *s)
 			if (depth > 0) {
 				depth--;
 			}
-			
+
 			for (i = 0; i < depth; i++)
 				gs = g_string_append_c(gs, '\t');
 			gs = g_string_append_len(gs, p, (q - p) + 1);
@@ -1616,7 +1616,7 @@ search_xml_indent(const gchar *s)
 		if ('>' == *q)
 			q++;
 	}
-	
+
 	res = gs->str;
 	g_string_free(gs, FALSE);		/* glib1.x returns nothing here */
 

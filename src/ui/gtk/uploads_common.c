@@ -167,7 +167,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			gnet_prop_get_guint32_val(PROP_MAX_UPLOADS, &max_up);
 			gnet_prop_get_guint32_val(PROP_UL_RUNNING, &cur_up);
 			queued = u->parq_position > max_up - cur_up;
-				
+
 			/* position 1 should always get an upload slot */
 			if (u->parq_retry > 0) {
 				gm_snprintf(tbuf, sizeof tbuf,
@@ -181,10 +181,10 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 						u->parq_queue_no,
 						u->parq_position,
 						u->parq_size,
-						tbuf,		
+						tbuf,
 						_("lifetime:"),
 						short_time(u->parq_lifetime));
-						
+
 		}
 		break;
 

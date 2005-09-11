@@ -56,7 +56,7 @@ RCSID("$Id$");
 #include "lib/override.h"	/* Must be the last header included */
 
 /** The height of the indicator arrows in visual progress */
-#define VP_ARROW_HEIGHT 7 
+#define VP_ARROW_HEIGHT 7
 
 /**
  * The context for drawing, including location to draw.
@@ -470,7 +470,7 @@ vp_create_chunk(filesize_t from, filesize_t to,
 #ifdef VP_DEBUG
 	printf("VP adding: ");
 	vp_print_chunk(chunk, TRUE);
-#endif
+#endif /* VP_DEBUG */
 
 	return chunk;
 }

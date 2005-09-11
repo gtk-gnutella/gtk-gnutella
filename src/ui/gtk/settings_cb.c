@@ -109,9 +109,9 @@ on_entry_config_proxy_hostname_activate_helper(const host_addr_t *addr,
 		gpointer unused_udata)
 {
 	const gchar *s;
-	
+
 	(void) unused_udata;
-	
+
 	if (addr) {
 		s = host_addr_to_string(*addr);
     	gnet_prop_set_string(PROP_PROXY_ADDR, s);
@@ -193,7 +193,7 @@ on_button_config_remove_dir_clicked(GtkButton *unused_button,
 	GtkTreeIter iter;
 	GtkTreeSelection *selection;
 	GString *gs;
-	
+
 	(void) unused_button;
 	(void) unused_udata;
 
@@ -202,11 +202,11 @@ on_button_config_remove_dir_clicked(GtkButton *unused_button,
 
 	if (!gtk_tree_model_get_iter_first(model, &iter))
 		return;
-	
+
 	/* Regenerate the string property holding a list of paths */
 	selection = gtk_tree_view_get_selection(tv);
 	gs = g_string_new("");
-	
+
 	do {
 		gchar *dir = NULL;
 
@@ -296,21 +296,21 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 	GtkTreeIter iter;
 	property_t prop;
 	guint u;
-	
+
 	g_assert(tv != NULL);
-	
+
 	if (!path) {
 		GtkWidget *w;
-		
+
 		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
 			_("Move the cursor over a row to see details."), NULL);
 		w = settings_gui_tooltips()->tip_window;
 		if (w)
 			gtk_widget_hide(w);
-		
+
 		return;
 	}
-	
+
 	model = gtk_tree_view_get_model(tv);
 	if (!gtk_tree_model_get_iter(model, &iter, path)) {
 		g_warning("gtk_tree_model_get_iter() failed");
@@ -321,7 +321,7 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 	gtk_tree_model_get(model, &iter, 3, &u, (-1));
 	g_assert(0 != u);
 
-	prop = (property_t) u;	
+	prop = (property_t) u;
 	gtk_tooltips_set_tip(settings_gui_tooltips(),
 		GTK_WIDGET(tv), gnet_prop_description(prop), NULL);
 }
@@ -331,7 +331,7 @@ on_enter_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
 	gpointer data)
 {
 	GtkTreeView *tv;
-	
+
 	(void) unused_event;
 
 	tv = GTK_TREE_VIEW(data);
@@ -345,7 +345,7 @@ on_leave_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
 	gpointer data)
 {
 	GtkTreeView *tv;
-	
+
 	(void) unused_event;
 
 	tv = GTK_TREE_VIEW(data);
@@ -378,7 +378,7 @@ on_cell_edited(GtkCellRendererText *unused_renderer, const gchar *path_str,
 
 	path = gtk_tree_path_new_from_string(path_str);
 	gtk_tree_model_get_iter(model, &iter, path);
-	
+
 	u = 0;
 	gtk_tree_model_get(model, &iter, 3, &u, (-1));
 	g_assert(0 != u);
@@ -401,7 +401,7 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 
 	(void) unused_editable;
 	(void) unused_udata;
-	
+
 	tv = GTK_TREE_VIEW(lookup_widget(dlg_prefs, "treeview_dbg_property"));
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(tv));
 	if (!store) {
@@ -424,11 +424,11 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 
 		gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store));
 		g_object_unref(store);
-		
+
 		for (i = 0; i < G_N_ELEMENTS(columns); i++) {
 	    	GtkTreeViewColumn *column;
 			GtkCellRenderer *renderer;
-			
+
 			if (!columns[i].title)
 				continue;
 
@@ -441,12 +441,12 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 					"editable", TRUE,
 					(void *) 0);
 			}
-		
+
 			column = gtk_tree_view_column_new_with_attributes(
 				_(columns[i].title), renderer,
 				"text", i,
 				(void *) 0);
-			
+
 			g_object_set(renderer,
 					"xalign", 0.0,
 					"xpad", GUI_CELL_RENDERER_XPAD,
@@ -469,7 +469,7 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 		g_signal_connect(GTK_OBJECT(tv),
 			"leave-notify-event", G_CALLBACK(on_leave_notify), tv);
 	}
-	
+
 	e = STRTRACK(gtk_editable_get_chars(
         GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_dbg_property_pattern")),
         0, -1));
@@ -478,9 +478,9 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 	if (0 == strcmp(e, old_pattern))
 		return;
 
-	g_strlcpy(old_pattern, e, sizeof old_pattern);	
+	g_strlcpy(old_pattern, e, sizeof old_pattern);
 	gtk_list_store_clear(store);
-	
+
 	props = gnet_prop_get_by_regex(e, NULL);
 	if (!props)
 		g_message("nothing matched \"%s\"", e);
@@ -488,9 +488,9 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
 		GtkTreeIter iter;
 		property_t prop;
-		
+
 		prop = GPOINTER_TO_UINT(sl->data);
-		
+
 		gtk_list_store_append(store, &iter);
 		gtk_list_store_set(store, &iter,
 			0, gnet_prop_name(prop),
@@ -501,7 +501,7 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 	}
 	g_slist_free(props);
 	props = NULL;
-		
+
 	G_FREE_NULL(e);
 }
 FOCUS_TO_ACTIVATE(entry_dbg_property_pattern)

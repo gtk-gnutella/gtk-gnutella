@@ -45,7 +45,7 @@ typedef struct upload_row_data {
 	gchar         *user_agent;	/**< atom */
 	gchar         *name;		/**< atom */
 	gint          country;
-#endif
+#endif /* USE_GTK2 */
 } upload_row_data_t;
 
 void uploads_gui_early_init(void);

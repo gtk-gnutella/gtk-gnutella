@@ -237,11 +237,11 @@ gui_create_main_window(void)
 	tab_window[nb_main_page_uploads] = create_main_window_uploads_tab();
 	tab_window[nb_main_page_uploads_stats] =
 		create_main_window_upload_stats_tab();
-	
+
 	tab_window[nb_main_page_dl_active] = create_main_window_dl_active_tab();
 	tab_window[nb_main_page_dl_files] = create_main_window_dl_files_tab();
 	tab_window[nb_main_page_dl_queue] = create_main_window_dl_queue_tab();
-	
+
 	tab_window[nb_main_page_search] = create_main_window_search_tab();
 	tab_window[nb_main_page_monitor] = create_main_window_monitor_tab();
 	tab_window[nb_main_page_search_stats] =
@@ -283,7 +283,7 @@ gui_init_menu(void)
 	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
 		GtkCTreeNode *node;
 		const gchar *title[1];
-		
+
 		title[0] = _(menu[i].title);
     	node = gtk_ctree_insert_node(ctree_menu,
 					menu[i].parent ? NULL : parent_node, NULL,
@@ -565,11 +565,11 @@ main_gui_init(void)
     gtk_clist_set_compare_func(
         GTK_CLIST(lookup_widget(main_window, "clist_ul_stats")),
         compare_ul_norm);
-#endif
+#endif /* USE_GTK1 */
 
 #ifdef USE_GTK2
 	GTK_WINDOW(main_window)->allow_shrink = TRUE;
-#endif
+#endif /* USE_GTK2 */
 
     /* FIXME: those gtk_widget_set_sensitive should become obsolete when
      * all property-change callbacks are set up properly
@@ -619,7 +619,7 @@ main_gui_run(void)
 
     gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, G_N_ELEMENTS(coord));
 	gui_fix_coords(coord);
-		
+
     main_gui_timer(now);
 
     /*
@@ -628,11 +628,11 @@ main_gui_run(void)
      * resized widgets).
      *      -- Richard, 8/9/2002
      */
-	
+
     gtk_window_set_default_size(GTK_WINDOW(main_window), coord[2], coord[3]);
 
     gtk_widget_show(main_window);		/* Display the main window */
-	
+
     icon_init();
 
 #ifdef USE_GTK2
@@ -681,14 +681,14 @@ main_gui_run(void)
 		dy = (gint) coord[1] - y;
 		if (dx || dy)
         	gdk_window_move(main_window->window, coord[0] + dx, coord[1] + dy);
-		
+
 	}
 
     gtk_widget_fix_width(
         lookup_widget(main_window, "frame_statusbar_uptime"),
         lookup_widget(main_window, "label_statusbar_uptime"),
         8, 8);
-#endif
+#endif /* USE_GTK2 */
 
     gtk_widget_show(main_window);		/* Display the main window */
 
@@ -713,7 +713,7 @@ main_gui_run(void)
 		if (node != NULL)
 			gtk_ctree_select(ctree_menu, node);
 	}
-#endif
+#endif /* USE_GTK1 */
 
     settings_gui_init_late();
 
@@ -760,7 +760,7 @@ main_gui_update_coords(void)
 #else
 	gtk_window_get_position(GTK_WINDOW(main_window), &x, &y);
 	gtk_window_get_size(GTK_WINDOW(main_window), &w, &h);
-#endif
+#endif /* USE_GTK1 */
 	coord[0] = x;
 	coord[1] = y;
 	coord[2] = w;

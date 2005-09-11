@@ -394,13 +394,13 @@ static void
 add_node_helper(const host_addr_t *addr, gpointer data)
 {
 	struct add_node_context *ctx = data;
-		
+
 	g_assert(ctx);
 	g_assert(0 != ctx->port);
-	
+
 	if (addr)
 		guc_node_add(*addr, ctx->port, ctx->flags);
-	
+
 	wfree(ctx, sizeof *ctx);
 }
 
@@ -422,31 +422,31 @@ nodes_gui_common_connect_by_name(const gchar *line)
 		host_addr_t addr;
 		guint32 flags;
     	guint16 port;
-		
+
 		q = skip_ascii_spaces(q);
 		if (',' == *q) {
 			q++;
 			continue;
 		}
-	
-		addr = zero_host_addr;	
+
+		addr = zero_host_addr;
 		port = GTA_PORT;
 		flags = CONNECT_F_FORCE;
 		endptr = NULL;
 		hostname = NULL;
 		hostname_len = 0;
-	
+
 		endptr = is_strcaseprefix(q, "tls:");
 		if (endptr) {
 			flags |= CONNECT_F_TLS;
 			q = endptr;
 		}
-		
+
 		if (!string_to_host_or_addr(q, &endptr, &addr)) {
 			g_message("Expected hostname or IP address");
 			break;
 		}
-		
+
 		if (!is_host_addr(addr)) {
 			hostname = q;
 			hostname_len = endptr - q;
@@ -479,16 +479,16 @@ nodes_gui_common_connect_by_name(const gchar *line)
 		} else {
 			struct add_node_context *ctx;
 			gchar *p;
-		
+
 			if ('\0' == hostname[hostname_len])	{
 				p = NULL;
 			} else {
 				size_t n = 1 + hostname_len;
-			
-				g_assert(n > hostname_len);	
+
+				g_assert(n > hostname_len);
 				p = g_malloc(n);
 				g_strlcpy(p, hostname, n);
-				hostname = p; 
+				hostname = p;
 			}
 
 			ctx = walloc(sizeof *ctx);

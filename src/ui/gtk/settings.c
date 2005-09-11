@@ -511,7 +511,7 @@ get_shared_dirs_model(void)
 {
 	GtkTreeView *tv;
 	GtkTreeModel *model;
-	
+
 	tv = GTK_TREE_VIEW(lookup_widget(dlg_prefs, "treeview_shared_dirs"));
 	model = gtk_tree_view_get_model(tv);
 
@@ -525,13 +525,13 @@ get_shared_dirs_model(void)
 
 		gtk_tree_view_set_model(tv, model);
 		g_object_unref(model);
-		
+
 		selection = gtk_tree_view_get_selection(tv);
 		gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
 		renderer = gtk_cell_renderer_text_new();
 		column = gtk_tree_view_column_new_with_attributes(NULL, renderer,
 					"text", 1, (void *) 0);
-			
+
 		g_object_set(renderer,
 			"xalign", 0.0,
 			"xpad", GUI_CELL_RENDERER_XPAD,
@@ -566,15 +566,15 @@ update_shared_dirs(property_t prop)
    	str = gnet_prop_get_string(prop, NULL, 0);
 	for (p = str; '\0' != *p; p = '\0' == *end ? end : ++end) {
 		size_t len;
-			
+
 		end = strchr(p, ':');
 		if (!end)
 			end = strchr(p, '\0');
-			
+
 		len = end - p;
 		if (len > 0) {
 			gchar *dir;
-				
+
 			dir = g_malloc(1 + len);
 			memcpy(dir, p, len);
 			dir[len] = '\0';
@@ -588,7 +588,7 @@ update_shared_dirs(property_t prop)
 	for (l = dirs; NULL != l; l = g_list_next(l)) {
 		GtkTreeIter iter;
 		gchar *dir, *dir_utf8;
-				
+
 		dir = l->data;
 		dir_utf8 = locale_to_utf8_normalized(dir, UNI_NORM_NFC);
 		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
@@ -611,7 +611,7 @@ update_shared_dirs(property_t prop)
     return FALSE;
 }
 #endif /* USE_GTK2 */
-	
+
 #ifdef USE_GTK1
 static gboolean update_clist_col_widths(property_t prop)
 {
@@ -694,13 +694,13 @@ static gboolean update_window_geometry(property_t prop)
     return FALSE;
 }
 
-/*
- * update_bandwidth_spinbutton:
+/**
+ * This is not really a generic updater.
  *
- * This is not really a generic updater. It's just here because it's used
- * by all bandwidths spinbuttons. It divides the property value by 1024
- * before setting the value to the widget, just like the callbacks of those
- * widget multiply the widget value by 1024 before setting the property.
+ * It's just here because it's used by all bandwidths spinbuttons. It
+ * divides the property value by 1024 before setting the value to the
+ * widget, just like the callbacks of those widget multiply the widget
+ * value by 1024 before setting the property.
  */
 static gboolean update_bandwidth_spinbutton(property_t prop)
 {
@@ -746,7 +746,7 @@ shake_vpane_sidebar(void)
 {
 	GtkPaned *paned;
 	guint pos;
-	
+
 	/* Shake the vpane a little so that the widgets are readjusted */
 	paned = GTK_PANED(lookup_widget(main_window, "vpaned_sidebar"));
 	pos = gtk_paned_get_position(paned);
@@ -906,7 +906,7 @@ shrink_frame_status(void)
 
 	gtk_widget_hide(w);
 	gtk_widget_show(w);
-#endif
+#endif /* USE_GTK1 */
 }
 
 static gboolean
@@ -1781,13 +1781,13 @@ search_results_show_tabs_changed(property_t prop)
 	w = lookup_widget(main_window, "notebook_search_results");
 	gtk_notebook_set_show_tabs(GTK_NOTEBOOK(w), val);
 
-	w = lookup_widget(main_window, "sw_searches"); 
+	w = lookup_widget(main_window, "sw_searches");
 	if (search_results_show_tabs)
     	gtk_widget_hide(w);
 	else
     	gtk_widget_show(w);
 
-#ifdef USE_GTK1 
+#ifdef USE_GTK1
     gtk_notebook_set_page(
         GTK_NOTEBOOK(lookup_widget(main_window, "notebook_sidebar")),
         search_results_show_tabs ? 1 : 0);
@@ -1982,7 +1982,7 @@ update_address_information(void)
 
 	{
 		gchar *val;
-		
+
     	val = gnet_prop_get_string(
 				force_local_addr ? PROP_FORCED_LOCAL_IP : PROP_LOCAL_IP,
 				NULL, 0);
@@ -2006,7 +2006,7 @@ update_address_information(void)
 #else
         gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_nodes_ip")), s);
-#endif
+#endif /* USE_GTK2 */
     }
 
     return FALSE;
@@ -2163,7 +2163,7 @@ guid_changed(property_t prop)
     gtk_entry_set_text(
         GTK_ENTRY(lookup_widget(main_window, "entry_nodes_guid")),
         guid_hex_str(guid_buf));
-#endif
+#endif /* USE_GTK2 */
 
     return FALSE;
 }
@@ -2265,7 +2265,7 @@ expert_mode_changed(property_t prop)
       gtk_widget_show(w);
     else
       gtk_widget_hide(w);
- 
+
     return FALSE;
 }
 
@@ -2405,7 +2405,7 @@ config_toolbar_style_changed(property_t prop)
 			style = GTK_TOOLBAR_BOTH_HORIZ;
 #else
 			style = GTK_TOOLBAR_BOTH;
-#endif
+#endif /* USE_GTK2 */
 			break;
 		default:
 			style = GTK_TOOLBAR_BOTH;
@@ -2643,7 +2643,7 @@ spinbutton_adjustment_value_changed(GtkAdjustment *adj, gpointer user_data)
 #ifdef USE_GTK1
             gtk_clist_unselect_all(GTK_CLIST(
                 lookup_widget(main_window, "ctree_downloads_queue")));
-#endif
+#endif /* USE_GTK1 */
         }
     }
 
@@ -2726,7 +2726,7 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
              */
 #ifdef USE_GTK2
 			if (!GTK_IS_TREE_VIEW(w))
-#endif
+#endif /* USE_GTK2 */
 			{
             	gtk_tooltips_set_tip(tooltips, w, def->desc, "");
 				if (gui_debug >= 9)
@@ -2878,7 +2878,7 @@ static prop_map_t property_map[] = {
         "checkbutton_fi_regex_case",
         FREQ_UPDATES, 0
     ),
-#endif
+#endif /* USE_GTK1 */
     PROP_ENTRY(
         get_main_window,
         PROP_MAIN_DIVIDER_POS,
@@ -2912,7 +2912,7 @@ static prop_map_t property_map[] = {
         "vpaned_fileinfo",
         FREQ_UPDATES, 0
     ),
-#endif
+#endif /* USE_GTK1 */
     PROP_ENTRY(
         get_filter_dialog,
         PROP_FILTER_MAIN_DIVIDER_POS,
@@ -2958,7 +2958,7 @@ static prop_map_t property_map[] = {
         "combo_config_toolbar_style",
         FREQ_UPDATES, 0
     ),
-#endif
+#endif /* 0 */
 #ifdef USE_GTK1
     PROP_ENTRY(
         get_main_window,
@@ -4503,7 +4503,7 @@ static prop_map_t property_map[] = {
         "label_nodes_guid",
         FREQ_UPDATES, 0
     ),
-#endif
+#endif /* USE_GTK2 */
 #ifdef USE_GTK1
     PROP_ENTRY(
         get_main_window,
@@ -4513,7 +4513,7 @@ static prop_map_t property_map[] = {
         "entry_nodes_guid",
         FREQ_UPDATES, 0
     ),
-#endif
+#endif /* USE_GTK1 */
     PROP_ENTRY(
         NULL,
         PROP_LOCAL_IP,
@@ -4643,7 +4643,7 @@ static prop_map_t property_map[] = {
         "checkbutton_gnet_stats_hops",
         FREQ_UPDATES, 0
     ),
-#endif
+#endif /* USE_GTK2 */
     PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_WITH_HEADERS,
@@ -5594,15 +5594,13 @@ static prop_map_t property_map[] = {
         "checkbutton_search_sort_casesense",
         FREQ_UPDATES, 0
     ),
-#endif
+#endif /* USE_GTK1 */
 };
 
 /* Not needed any longer */
 #undef PROP_ENTRY
 
 /**
- * settings_gui_get_map_entry:
- *
  * Fetches a pointer to the map entry which handles the given
  * property. This can be use only when settings_gui_init_prop_map
  * has successfully been called before.
@@ -5634,14 +5632,14 @@ settings_gui_get_map_entry(property_t prop)
 
 
 /**
- * settings_gui_init_prop_map:
+ * Use information from property_map to connect callbacks to signals
+ * from the backend.
  *
- * Use information from property_map to connect callbacks to
- * signals from the backend.
  * You can't connect more then one callback to a single property change.
  * You can however IGNORE a property change to suppress a warning in
  * debugging mode. This is done by settings the cb field (callback) in
  * property_map to IGNORE.
+ *
  * The tooltips for the widgets are set from to the description from the
  * property definition.
  */
@@ -5755,8 +5753,6 @@ settings_gui_init_prop_map(void)
 }
 
 /**
- * settings_gui_init_prop_map_late:
- *
  * Must be called after settings_gui_init_prop_map() and initializes
  * properties requiring update_split_pane. This is used to set up
  * the positions _after_ the window is resized and visible.
@@ -5818,7 +5814,7 @@ settings_gui_init(void)
 		GtkWidget *w = lookup_widget(dlg_prefs, "checkbutton_enable_shell");
 		gtk_widget_set_sensitive(w, FALSE);
 	}
-#endif
+#endif /* USE_REMOTE_CTRL */
 }
 
 void

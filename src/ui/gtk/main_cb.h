@@ -71,7 +71,7 @@ void on_main_gui_treeview_menu_row_collapsed(
 	GtkTreeView *, GtkTreeIter *, GtkTreePath *, gpointer);
 void on_main_gui_treeview_menu_row_expanded(
 	GtkTreeView *, GtkTreeIter *, GtkTreePath *, gpointer);
-#endif
+#endif /* USE_GTK2 */
 
 
 #endif /* _gtk_main_cb_h_ */

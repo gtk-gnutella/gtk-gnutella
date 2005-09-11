@@ -49,7 +49,7 @@ struct search {
 										 so it can be detached from it */
 #else
 	GtkCTree   *ctree;			   	/**< GtkCTree for this search */
-#endif
+#endif /* USE_GTK2 */
 
 	GHashTable *parents;			/**< table of mount iterators for
 										 any seen SHA1 */
@@ -105,7 +105,7 @@ typedef struct gui_record {
 	gint num_children;				/**< Number of children under this node */
 } gui_record_t;
 
-#endif
+#endif /* USE_GTK1 */
 
 
 /*
@@ -144,7 +144,7 @@ GtkTreeIter * find_parent_with_sha1(GHashTable *ht, gpointer key);
 void gui_search_create_ctree(GtkWidget **sw, GtkCTree **ctree);
 void gui_search_force_update_tab_label(struct search *);
 GtkCTreeNode *find_parent_with_sha1(GHashTable *ht, gpointer key);
-#endif
+#endif /* USE_GTK2 */
 
 void search_gui_expand_all(void);
 void search_gui_collapse_all(void);

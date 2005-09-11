@@ -152,7 +152,7 @@ dump_shadow(shadow_t *shadow)
 		cast_to_gconstpointer(shadow->filter->search),
 		shadow->refcount,
 		shadow->filter->refcount);
-		
+
     dump_ruleset(shadow->added);
     g_message("  Removed:");
     dump_ruleset(shadow->removed);
@@ -518,8 +518,8 @@ filter_new_text_rule(const gchar *match, gint type,
 	} else {
 		memcpy(buf, match, buf_len + 1);
 	}
-	
-	r->u.text.matchlen = buf_len; 
+
+	r->u.text.matchlen = buf_len;
 	r->u.text.match = buf;
 
     buf = g_strdup(r->u.text.match);
@@ -1801,7 +1801,7 @@ filter_replace_rule_in_session(filter_t *f,
     if (gui_debug >= 4) {
         gchar f1[4096];
 		const gchar *f2;
-	   
+
 		g_strlcpy(f1, filter_rule_to_gchar(old_rule), sizeof f1);
         f2 = filter_rule_to_gchar(new_rule);
 

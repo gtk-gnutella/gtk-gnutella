@@ -77,7 +77,7 @@ void
 bitzi_gui_update(const bitzi_data_t *bitzi_data)
 {
 	guint32 bitzi_debug;
-	
+
 	g_assert(bitzi_data != NULL);
 
     gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);

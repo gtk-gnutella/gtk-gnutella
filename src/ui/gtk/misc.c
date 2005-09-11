@@ -94,7 +94,7 @@ gui_general_timer(time_t now)
 #ifdef USE_GTK2
 	{
 		gchar buf[128];
-		
+
 		gm_snprintf(buf, sizeof buf, "<tt> %s </tt>", uptime);
 		gtk_label_set_use_markup(label, TRUE);
 		gtk_label_set_markup(label, buf);
@@ -102,7 +102,7 @@ gui_general_timer(time_t now)
 #else
 
 	gtk_label_set_text(label, uptime);
-#endif
+#endif /* USE_GTK2 */
 }
 
 static void
@@ -329,12 +329,12 @@ gui_fix_coords(guint32 *coord)
 	gint screen_w, screen_h;
 
 	g_assert(coord != NULL);
-	
+
 	screen_w = gdk_screen_width();
 	screen_h = gdk_screen_height();
 	if (gui_debug)
 		g_message("screen: %dx%d", screen_w, screen_h);
-	
+
 	x = coord[0];
 	y = coord[1];
 	w = coord[2];
@@ -426,7 +426,7 @@ gui_merge_window_as_tab(GtkWidget *toplvl,
 
 	params.target = toplvl;
 	params.source = window;
-	
+
 	/*
 	 * First recursively steal widget dictionary.
 	 */
@@ -451,5 +451,6 @@ gui_merge_window_as_tab(GtkWidget *toplvl,
 	}
 }
 
-/* vi: set ts=4 sw=4 cindent: */
 #endif	/* USE_GTK2 */
+
+/* vi: set ts=4 sw=4 cindent: */

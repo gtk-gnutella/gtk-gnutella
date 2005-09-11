@@ -214,7 +214,7 @@ parse_number(const gchar *buf, gint *error)
 		g_message("buf=\"%s\"", buf);
 		return 0;
 	}
-	
+
 	return ret;
 }
 
@@ -239,7 +239,7 @@ parse_target(const gchar *buf, gint *error)
 	g_assert(error != NULL);
 
 	if ('0' == buf[0] && 'x' == buf[1]) {
-		/* 
+		/*
 		 * In previous versions, targets were printed using "%p". This format
 		 * is implementation-specific and thus causes a non-portable
 		 * configuration. We expect a hexadecimal value that is optionally
@@ -292,13 +292,13 @@ target_new_id(gboolean do_reset)
 		/* 4 billion filters/searches should be enough for everyone */
 		g_assert(0 != id_counter);
 	}
-	
+
 	ret = id_counter;
 	return GUINT_TO_POINTER(ret);
 }
 
 /**
- * Resets the target ID counter and frees target_map if it was created. 
+ * Resets the target ID counter and frees target_map if it was created.
  */
 static void
 target_map_reset(void)
@@ -331,9 +331,9 @@ target_to_string(filter_t *target)
 		value = target_new_id(FALSE);
 		g_hash_table_insert(target_map, target, value);
 	}
-	
+
     gm_snprintf(buf, sizeof buf, "0x%x", GPOINTER_TO_UINT(value));
-	
+
 	return buf;
 }
 
@@ -350,7 +350,7 @@ xml_prop_set(xmlNodePtr node, const gchar *name, const char *value)
 {
     return xmlSetProp(node, string_to_xmlChar(name), string_to_xmlChar(value));
 }
-	
+
 /**
  * A wrapper to set use xmlSetProp() through a printf-like interface. The
  * length of the created string is limited to 4096 byte and truncation occurs
@@ -388,7 +388,7 @@ search_store_xml(void)
 
 
 	/* Free target_map and reset the target ID counter */
-	target_map_reset();	
+	target_map_reset();
 
     /*
      * Create new xml document with version 1.0
@@ -460,7 +460,7 @@ search_store_xml(void)
 	xmlFreeDoc(doc);
 
 	/* Free target_map and reset the target ID counter */
-	target_map_reset();	
+	target_map_reset();
 }
 
 /**
@@ -775,7 +775,7 @@ filter_to_xml(xmlNodePtr parent, filter_t *f)
 	if (name != f->name)
 		G_FREE_NULL(name);
 
-	
+
     xml_prop_printf(newxml, TAG_FILTER_ACTIVE,
 		"%u", TO_BOOL(filter_is_active(f)));
 
@@ -821,7 +821,7 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
     case RULE_TEXT:
 		{
 			gchar *match;
-			
+
            	if (NULL == (match = locale_to_utf8_full(r->u.text.match))) {
 				g_warning("rule_to_xml: Cannot convert string to UTF-8. "
 					"Omitting rule (\"%s\")", r->u.text.match);
@@ -846,7 +846,7 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
     case RULE_SIZE:
 		{
 			gchar buf[UINT64_DEC_BUFLEN];
-			
+
 			uint64_to_string_buf(r->u.size.lower, buf, sizeof buf);
         	newxml = xml_new_empty_child(parent, NODE_RULE_SIZE);
         	xml_prop_printf(newxml, TAG_RULE_SIZE_LOWER, "%s", buf);
@@ -864,7 +864,7 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
     case RULE_SHA1:
 		{
 			gchar *name;
-			
+
         	newxml = xml_new_empty_child(parent, NODE_RULE_SHA1);
 
         	if (r->u.sha1.hash != NULL)
@@ -1087,7 +1087,7 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 
 	if (!(flags & SEARCH_PASSIVE) && !override)
 		flags &= ~SEARCH_ENABLED;
-	
+
     if (gui_debug >= 4) {
         g_message("adding new %s %s search: %s",
 			(flags & SEARCH_ENABLED) ? "enabled" : "disabled",

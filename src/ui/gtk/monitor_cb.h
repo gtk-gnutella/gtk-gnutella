@@ -34,12 +34,12 @@ void on_popup_monitor_add_search_activate(GtkMenuItem *menuitem,
 #ifdef USE_GTK1
 gboolean on_clist_monitor_button_press_event(GtkWidget *widget,
 	GdkEventButton *event, gpointer user_data);
-#endif
+#endif /* USE_GTK1 */
 
 #ifdef USE_GTK2
 gboolean on_treeview_monitor_button_press_event(GtkWidget *widget,
 	GdkEventButton *event, gpointer user_data);
-#endif
+#endif /* USE_GTK2 */
 
 #endif /* _gtk_monitor_cb_h_ */
 

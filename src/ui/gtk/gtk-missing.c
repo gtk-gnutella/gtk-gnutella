@@ -382,7 +382,7 @@ GtkTreeIter *
 w_tree_iter_new(void)
 {
 	GtkTreeIter *iter;
-	
+
 	iter = walloc(sizeof *iter);
 	return iter;
 }
@@ -486,7 +486,7 @@ tree_selection_unselect_helper(gpointer data, gpointer user_data)
 {
 	GtkTreeSelection *s = user_data;
 	GtkTreeIter *iter = data;
-	
+
 	gtk_tree_selection_unselect_iter(s, iter);
 	w_tree_iter_free(iter);
 }
@@ -684,7 +684,7 @@ on_tree_view_motion_notify(GtkWidget *widget,
 				(gint) event->x_root, (gint) event->y_root);
 	}
 #endif /* 0 */
-	
+
 	tvm->x = event->x;
 	tvm->y = event->y;
 	tvm->ready = TRUE;
@@ -710,7 +710,7 @@ tree_view_motion_timeout(gpointer data)
 		if (path)
 			gtk_tree_path_free(path);
 	}
-	
+
 	return TRUE;
 }
 

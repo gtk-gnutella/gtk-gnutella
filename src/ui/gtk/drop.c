@@ -268,7 +268,7 @@ handle_magnet(gchar *url)
 
 	/* FIXME:	As long as downloading of files without a known size is
 	 *			defective, we cannot initiate downloads this way. */
-#if 1 
+#if 1
 	if (dl.ready) {
 		gchar *filename;
 

@@ -89,7 +89,7 @@ compare_ul_size(GtkCList *unused_clist, gconstpointer ptr1, gconstpointer ptr2)
 }
 
 /**
- * first by complete, then by attempts
+ * First by complete, then by attempts.
  */
 static gint
 compare_ul_complete(GtkCList *unused_clist,
@@ -110,7 +110,7 @@ compare_ul_complete(GtkCList *unused_clist,
 }
 
 /**
- * first by normalized, then by complete
+ * First by normalized, then by complete.
  */
 gint
 compare_ul_norm(GtkCList *clist, gconstpointer ptr1, gconstpointer ptr2)
@@ -126,7 +126,7 @@ compare_ul_norm(GtkCList *clist, gconstpointer ptr1, gconstpointer ptr2)
 }
 
 /**
- * first by attempts, then by complete
+ * First by attempts, then by complete.
  */
 static gint
 compare_ul_attempts(GtkCList *unused_clist,
@@ -195,7 +195,7 @@ on_clist_ul_stats_resize_column(GtkCList *unused_clist,
 	*(gint *) &ul_stats_col_widths[column] = width;
 }
 
-#endif /* USE_GTK1*/
+#endif /* USE_GTK1 */
 
 #ifdef USE_GTK2
 void

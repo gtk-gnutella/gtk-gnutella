@@ -1518,7 +1518,7 @@ filter_update_size(GtkEntry *entry)
 	guint64 size = 0;
 	gint error = 0;
     const gchar *endptr, *p;
-	
+
 	p = skip_ascii_blanks(text);
 	size = parse_uint64(p, &endptr, 10, &error);
 	p = skip_ascii_blanks(endptr);
@@ -1542,11 +1542,11 @@ filter_update_size(GtkEntry *entry)
 		guint i;
 
 		error = EINVAL;
-		
+
 		for (i = 0; i < G_N_ELEMENTS(suffixes); i++) {
 			gboolean base2 = 0 != (i & 1);
 			const gchar *q;
-			
+
 			if (base2) {
 				m2 *= 1024;
 			} else {
@@ -1555,7 +1555,7 @@ filter_update_size(GtkEntry *entry)
 			q = is_strcaseprefix(p, suffixes[i]);
 			if (NULL != q) {
 				guint64 v, mp = base2 ? m2 : m10;
-				
+
 				v = size * mp;
 				if ((size == 0 || v > size) && size == v / mp) {
 					size = v;
@@ -1567,7 +1567,7 @@ filter_update_size(GtkEntry *entry)
 				break;
 			}
 		}
-		
+
 		p = skip_ascii_blanks(p);
 		if (!error && *p != '\0')
 			error = EINVAL;
