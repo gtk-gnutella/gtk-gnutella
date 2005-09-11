@@ -274,21 +274,6 @@ search_gui_close_search(search_t *sch)
 	G_FREE_NULL(sch);
 }
 
-/**
- * Create a new search and start it. Use default reissue timeout.
- */
-gboolean search_gui_new_search(
-	const gchar *query, flag_t flags, search_t **search)
-{
-    guint32 timeout;
-
-    gnet_prop_get_guint32_val
-		(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
-	return search_gui_new_search_full(query, timeout, SORT_NO_COL, SORT_NONE,
-		flags | SEARCH_ENABLED, search);
-}
-
-
 void
 do_atom_sha1_free(gpointer sha1)
 {
@@ -306,8 +291,8 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	gint sort_col, gint sort_order, flag_t flags, search_t **search)
 {
 	static const search_t zero_sch;
-	search_t *sch;
 	const gchar *query, *error;
+	search_t *sch;
 	GList *rules;
 	gnet_search_t sch_id;
 	GtkListStore *model;
@@ -330,8 +315,8 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	sch = g_malloc(sizeof *sch);
 	*sch = zero_sch;
 
-	sch->sort_col = sort_col;		/* Unused in GTK2 currently */
-	sch->sort_order = sort_order;	/* Unused in GTK2 currently */
+	sch->sort_col = sort_col;
+	sch->sort_order = sort_order;
 	sch->query = atom_str_get(query);
 	sch->enabled = (flags & SEARCH_ENABLED) ? TRUE : FALSE;
 	sch->search_handle = sch_id;
@@ -380,6 +365,16 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	}
 	sch->model = gtk_tree_view_get_model(GTK_TREE_VIEW(sch->tree_view));
 
+	if (
+		SORT_NONE != sch->sort_order &&
+		sch->sort_col >= 0 &&
+		(guint) sch->sort_col < SEARCH_RESULTS_VISIBLE_COLUMNS
+	) {
+		gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(sch->model),
+			sch->sort_col, SORT_ASC == sch->sort_order
+							? GTK_SORT_ASCENDING : GTK_SORT_DESCENDING);
+	}
+
 	/* Add the search to the TreeView in pane on the left */
 	model = GTK_LIST_STORE(gtk_tree_view_get_model(tree_view_search));
 	gtk_list_store_append(model, &iter);
@@ -425,23 +420,24 @@ static gint
 search_gui_compare_size_func(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data)
 {
-    record_t *rec_a = NULL;
-	record_t *rec_b = NULL;
+    record_t *rec_a = NULL, *rec_b = NULL;
 
 	(void) user_data;
     gtk_tree_model_get(model, a, c_sr_record, &rec_a, (-1));
     gtk_tree_model_get(model, b, c_sr_record, &rec_b, (-1));
-	return CMP(rec_b->size, rec_a->size);
+	return CMP(rec_a->size, rec_b->size);
 }
 
 static gint
 search_gui_compare_count_func(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data)
 {
-	guint m = (guint) gtk_tree_model_iter_n_children(model, a);
-	guint n = (guint) gtk_tree_model_iter_n_children(model, b);
+	guint m, n;
+   
+	m = gtk_tree_model_iter_n_children(model, a);
+	n = gtk_tree_model_iter_n_children(model, b);
 	return m == n ?
-		search_gui_compare_size_func(model, a, b, user_data) : CMP(n, m);
+		search_gui_compare_size_func(model, a, b, user_data) : CMP(m, n);
 }
 
 #if 0
@@ -1033,7 +1029,7 @@ search_gui_shutdown(void)
 	tree_view_save_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
 
     while (searches != NULL)
-        search_gui_close_search((search_t *) searches->data);
+        search_gui_close_search(searches->data);
 
 	tree_view_save_widths(tree_view_search, PROP_SEARCH_LIST_COL_WIDTHS);
 	search_gui_common_shutdown();
@@ -1367,11 +1363,6 @@ add_results_columns(GtkTreeView *treeview)
 		add_results_column(treeview, _(columns[i].title), columns[i].id,
 			width[columns[i].id], columns[i].align, columns[i].func);
 	}
-
-	/* Sort the treeview by number of sources as default */	
-	gtk_tree_sortable_set_sort_column_id(
-		GTK_TREE_SORTABLE(gtk_tree_view_get_model(treeview)),
-		c_sr_count, GTK_SORT_ASCENDING);
 }
 
 static gboolean
