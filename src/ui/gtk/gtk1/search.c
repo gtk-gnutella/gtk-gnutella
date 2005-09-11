@@ -295,23 +295,6 @@ search_gui_close_search(search_t *sch)
 
 
 /**
- * Create a new search and start it. Use default reissue timeout.
- */
-gboolean search_gui_new_search(
-	const gchar *query, flag_t flags, search_t **search)
-{
-    guint32 timeout;
-
-    gnet_prop_get_guint32_val
-		(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
-
-	/* Sort by number of sources as default */
-    return search_gui_new_search_full(query, timeout,
-		c_sr_count, SORT_ASC, flags | SEARCH_ENABLED, search);
-}
-
-
-/**
  * Create a new search and start it.
  *
  * @returns TRUE if search was sucessfully created and FALSE if an error
