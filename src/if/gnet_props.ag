@@ -1464,7 +1464,7 @@ prop = {
 prop = {
     name = "hops_random_factor";
     desc = "Random factor for the hops field in search packets we send "
-           "between 0 and 3 inclusive).";
+           "(between 0 and 3 inclusive).";
     type = guint32;
     data = {
         default = 0;

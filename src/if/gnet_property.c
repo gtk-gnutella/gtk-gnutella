@@ -3002,7 +3002,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[123].name = "hops_random_factor";
-    gnet_property->props[123].desc = _("Random factor for the hops field in search packets we send between 0 and 3 inclusive).");
+    gnet_property->props[123].desc = _("Random factor for the hops field in search packets we send (between 0 and 3 inclusive).");
     gnet_property->props[123].ev_changed = event_new("hops_random_factor_changed");
     gnet_property->props[123].save = TRUE;
     gnet_property->props[123].vector_size = 1;

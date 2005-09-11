@@ -11,8 +11,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-09-11 01:11+0900\n"
-"PO-Revision-Date: 2005-08-15 00:45+0900\n"
+"POT-Creation-Date: 2005-09-11 17:15+0900\n"
+"PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -635,11 +635,11 @@ msgstr "Archivos"
 #: src/ui/gtk/gtk1/interface-glade.c:3773
 #: src/ui/gtk/gtk1/interface-glade.c:4252
 #: src/ui/gtk/gtk1/interface-glade.c:5533
-#: src/ui/gtk/gtk1/interface-glade.c:12749 src/ui/gtk/gtk1/search.c:2237
-#: src/ui/gtk/gtk1/search.c:2243 src/ui/gtk/gtk2/downloads.c:438
+#: src/ui/gtk/gtk1/interface-glade.c:12749 src/ui/gtk/gtk1/search.c:2219
+#: src/ui/gtk/gtk1/search.c:2225 src/ui/gtk/gtk2/downloads.c:438
 #: src/ui/gtk/gtk2/downloads.c:483 src/ui/gtk/gtk2/fileinfo.c:560
 #: src/ui/gtk/gtk2/gnet_stats.c:475 src/ui/gtk/gtk2/interface-glade.c:11312
-#: src/ui/gtk/gtk2/search.c:1354 src/ui/gtk/gtk2/upload_stats.c:269
+#: src/ui/gtk/gtk2/search.c:1349 src/ui/gtk/gtk2/upload_stats.c:269
 #: src/ui/gtk/gtk2/uploads.c:84
 msgid "Size"
 msgstr "Tamaño"
@@ -787,17 +787,17 @@ msgstr "Matado explícitamente"
 msgid "IP denying uploads"
 msgstr "IP denegando subidas"
 
-#: src/core/version.c:351
+#: src/core/version.c:353
 #, c-format
 msgid " - Newer versions available: release %s / from CVS %s"
 msgstr ""
 
-#: src/core/version.c:355
+#: src/core/version.c:357
 #, c-format
 msgid " - Newer version available: release %s"
 msgstr ""
 
-#: src/core/version.c:359
+#: src/core/version.c:361
 #, c-format
 msgid " - Newer version available: from CVS %s"
 msgstr ""
@@ -1610,7 +1610,7 @@ msgstr ""
 
 #: src/if/gnet_property.c:3005
 msgid ""
-"Random factor for the hops field in search packets we send between 0 and 3 "
+"Random factor for the hops field in search packets we send (between 0 and 3 "
 "inclusive)."
 msgstr ""
 "Factor de aleatoriedad para el campo de saltos en paquetes de búsquedas, "
@@ -4370,8 +4370,8 @@ msgstr ""
 
 #: src/ui/gtk/gnet_stats_common.c:46 src/ui/gtk/gtk1/interface-glade.c:13474
 #: src/ui/gtk/gtk2/interface-glade.c:9509
-#: src/ui/gtk/gtk2/interface-glade.c:11931 src/ui/gtk/gtk2/nodes.c:302
-#: src/ui/gtk/gtk2/nodes.c:355 src/ui/gtk/gtk2/search_cb.c:481
+#: src/ui/gtk/gtk2/interface-glade.c:11931 src/ui/gtk/gtk2/nodes.c:300
+#: src/ui/gtk/gtk2/nodes.c:353 src/ui/gtk/gtk2/search_cb.c:481
 msgid "Unknown"
 msgstr "Desconocido"
 
@@ -4969,18 +4969,18 @@ msgstr "Navegador"
 #: src/ui/gtk/gtk1/interface-glade.c:1090
 #: src/ui/gtk/gtk1/interface-glade.c:1420
 #: src/ui/gtk/gtk1/interface-glade.c:3362
-#: src/ui/gtk/gtk1/interface-glade.c:5220 src/ui/gtk/gtk2/search.c:891
+#: src/ui/gtk/gtk1/interface-glade.c:5220 src/ui/gtk/gtk2/search.c:886
 #: src/ui/gtk/main.c:135
 msgid "Search"
 msgstr "Buscar"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1099
 #: src/ui/gtk/gtk1/interface-glade.c:2716 src/ui/gtk/gtk2/hcache.c:46
-#: src/ui/gtk/gtk2/search.c:892
+#: src/ui/gtk/gtk2/search.c:887
 msgid "Hits"
 msgstr "Total"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1107 src/ui/gtk/gtk2/search.c:893
+#: src/ui/gtk/gtk1/interface-glade.c:1107 src/ui/gtk/gtk2/search.c:888
 msgid "New"
 msgstr "Nuevos"
 
@@ -5069,7 +5069,7 @@ msgstr "Conexiones GnutellaNet"
 #: src/ui/gtk/gtk1/interface-glade.c:3757
 #: src/ui/gtk/gtk1/interface-glade.c:4236 src/ui/gtk/gtk1/nodes.c:247
 #: src/ui/gtk/gtk2/downloads.c:439 src/ui/gtk/gtk2/downloads.c:484
-#: src/ui/gtk/gtk2/nodes.c:166 src/ui/gtk/gtk2/uploads.c:82
+#: src/ui/gtk/gtk2/nodes.c:164 src/ui/gtk/gtk2/uploads.c:82
 msgid "Host"
 msgstr "Nodo"
 
@@ -5077,9 +5077,9 @@ msgstr "Nodo"
 #: src/ui/gtk/gtk1/interface-glade.c:2977
 #: src/ui/gtk/gtk1/interface-glade.c:3765
 #: src/ui/gtk/gtk1/interface-glade.c:4244 src/ui/gtk/gtk1/nodes.c:248
-#: src/ui/gtk/gtk1/search.c:2253 src/ui/gtk/gtk1/search.c:2259
+#: src/ui/gtk/gtk1/search.c:2235 src/ui/gtk/gtk1/search.c:2241
 #: src/ui/gtk/gtk2/downloads.c:440 src/ui/gtk/gtk2/downloads.c:485
-#: src/ui/gtk/gtk2/nodes.c:167 src/ui/gtk/gtk2/search.c:1356
+#: src/ui/gtk/gtk2/nodes.c:165 src/ui/gtk/gtk2/search.c:1351
 #: src/ui/gtk/gtk2/uploads.c:83
 msgid "Loc"
 msgstr "País"
@@ -5098,34 +5098,34 @@ msgstr "País"
 #: src/ui/gtk/gtk2/interface-glade.c:7285
 #: src/ui/gtk/gtk2/interface-glade.c:7523
 #: src/ui/gtk/gtk2/interface-glade.c:7848
-#: src/ui/gtk/gtk2/interface-glade.c:8514 src/ui/gtk/gtk2/nodes.c:168
+#: src/ui/gtk/gtk2/interface-glade.c:8514 src/ui/gtk/gtk2/nodes.c:166
 msgid "Flags"
 msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:1556
 #: src/ui/gtk/gtk1/interface-glade.c:3001 src/ui/gtk/gtk1/nodes.c:250
-#: src/ui/gtk/gtk2/nodes.c:169 src/ui/gtk/gtk2/uploads.c:86
+#: src/ui/gtk/gtk2/nodes.c:167 src/ui/gtk/gtk2/uploads.c:86
 msgid "User-Agent"
 msgstr "Tipo de servidor"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1564 src/ui/gtk/gtk1/nodes.c:251
-#: src/ui/gtk/gtk2/nodes.c:170
+#: src/ui/gtk/gtk2/nodes.c:168
 msgid "Ver"
 msgstr "Ver"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1572 src/ui/gtk/gtk2/nodes.c:171
+#: src/ui/gtk/gtk1/interface-glade.c:1572 src/ui/gtk/gtk2/nodes.c:169
 msgid "Connected time"
 msgstr "Tiempo conectado"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1580
 #: src/ui/gtk/gtk1/interface-glade.c:5867 src/ui/gtk/gtk1/nodes.c:253
-#: src/ui/gtk/gtk2/nodes.c:172
+#: src/ui/gtk/gtk2/nodes.c:170
 msgid "Uptime"
 msgstr "Tiempo en ejecución"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1588 src/ui/gtk/gtk1/nodes.c:254
-#: src/ui/gtk/gtk1/search.c:2270 src/ui/gtk/gtk1/search.c:2276
-#: src/ui/gtk/gtk2/nodes.c:173 src/ui/gtk/gtk2/search.c:1358
+#: src/ui/gtk/gtk1/search.c:2252 src/ui/gtk/gtk1/search.c:2258
+#: src/ui/gtk/gtk2/nodes.c:171 src/ui/gtk/gtk2/search.c:1353
 msgid "Info"
 msgstr "Info"
 
@@ -5589,9 +5589,9 @@ msgstr "Archivos para descargar"
 msgid "case sensitive"
 msgstr "Coincidencia mayúsc/minúsc"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3410 src/ui/gtk/gtk1/search.c:2221
-#: src/ui/gtk/gtk1/search.c:2227 src/ui/gtk/gtk2/fileinfo.c:559
-#: src/ui/gtk/gtk2/search.c:1352
+#: src/ui/gtk/gtk1/interface-glade.c:3410 src/ui/gtk/gtk1/search.c:2203
+#: src/ui/gtk/gtk1/search.c:2209 src/ui/gtk/gtk2/fileinfo.c:559
+#: src/ui/gtk/gtk2/search.c:1347
 msgid "File"
 msgstr "Archivo"
 
@@ -5876,10 +5876,10 @@ msgstr "Búsqueda actual:"
 msgid "Cl_ose search"
 msgstr "_Cerrar búsqueda"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4516 src/ui/gtk/gtk1/search.c:426
-#: src/ui/gtk/gtk1/search.c:1898 src/ui/gtk/gtk1/search.c:2016
-#: src/ui/gtk/gtk2/interface-glade.c:4890 src/ui/gtk/gtk2/search.c:405
-#: src/ui/gtk/gtk2/search.c:996 src/ui/gtk/gtk2/search.c:1128
+#: src/ui/gtk/gtk1/interface-glade.c:4516 src/ui/gtk/gtk1/search.c:408
+#: src/ui/gtk/gtk1/search.c:1880 src/ui/gtk/gtk1/search.c:1998
+#: src/ui/gtk/gtk2/interface-glade.c:4890 src/ui/gtk/gtk2/search.c:398
+#: src/ui/gtk/gtk2/search.c:991 src/ui/gtk/gtk2/search.c:1123
 msgid "(no search)"
 msgstr "(ninguna búsqueda)"
 
@@ -5939,12 +5939,12 @@ msgid "Received:"
 msgstr "Recibido:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4759
-#: src/ui/gtk/gtk2/interface-glade.c:5045 src/ui/gtk/gtk2/nodes.c:354
+#: src/ui/gtk/gtk2/interface-glade.c:5045 src/ui/gtk/gtk2/nodes.c:352
 #: src/ui/gtk/gtk2/search_cb.c:536
 msgid "Vendor:"
 msgstr "Cliente:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4781 src/ui/gtk/gtk2/nodes.c:351
+#: src/ui/gtk/gtk1/interface-glade.c:4781 src/ui/gtk/gtk2/nodes.c:349
 #: src/ui/gtk/gtk2/search_cb.c:533
 msgid "Country:"
 msgstr "País:"
@@ -8424,51 +8424,51 @@ msgstr ""
 msgid "Debugging"
 msgstr "Depuración"
 
-#: src/ui/gtk/gtk1/search.c:348 src/ui/gtk/gtk2/search.c:328
+#: src/ui/gtk/gtk1/search.c:330 src/ui/gtk/gtk2/search.c:311
 msgid "Failed to create the search"
 msgstr "Imposible crear la búsqueda"
 
-#: src/ui/gtk/gtk1/search.c:1752
+#: src/ui/gtk/gtk1/search.c:1734
 #, c-format
 msgid "Created %u download"
 msgid_plural "Created %u downloads"
 msgstr[0] "Creada %u descarga"
 msgstr[1] "Creadas %u descargas"
 
-#: src/ui/gtk/gtk1/search.c:1755
+#: src/ui/gtk/gtk1/search.c:1737
 #, fuzzy, c-format
 msgid "%s from the %u selected item"
 msgid_plural "%s from the %u selected items"
 msgstr[0] "Información sobre el archivo seleccionado"
 msgstr[1] "Información sobre el archivo seleccionado"
 
-#: src/ui/gtk/gtk1/search.c:1781
+#: src/ui/gtk/gtk1/search.c:1763
 #, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "Descartado %u resultado"
 msgstr[1] "Descartados %u resultados"
 
-#: src/ui/gtk/gtk1/search.c:2229 src/ui/gtk/gtk1/search.c:2235
-#: src/ui/gtk/gtk2/search.c:1353
+#: src/ui/gtk/gtk1/search.c:2211 src/ui/gtk/gtk1/search.c:2217
+#: src/ui/gtk/gtk2/search.c:1348
 msgid "Extension"
 msgstr "Extensión"
 
-#: src/ui/gtk/gtk1/search.c:2245 src/ui/gtk/gtk1/search.c:2251
-#: src/ui/gtk/gtk2/search.c:1355
+#: src/ui/gtk/gtk1/search.c:2227 src/ui/gtk/gtk1/search.c:2233
+#: src/ui/gtk/gtk2/search.c:1350
 msgid "#"
 msgstr "#"
 
-#: src/ui/gtk/gtk1/search.c:2262 src/ui/gtk/gtk1/search.c:2268
-#: src/ui/gtk/gtk2/search.c:1357
+#: src/ui/gtk/gtk1/search.c:2244 src/ui/gtk/gtk1/search.c:2250
+#: src/ui/gtk/gtk2/search.c:1352
 msgid "Metadata"
 msgstr "Metadatos"
 
-#: src/ui/gtk/gtk1/search.c:2582 src/ui/gtk/gtk2/search.c:1708
+#: src/ui/gtk/gtk1/search.c:2564 src/ui/gtk/gtk2/search.c:1703
 msgid "Not in database"
 msgstr "No está en la base de datos"
 
-#: src/ui/gtk/gtk1/search.c:2616 src/ui/gtk/gtk2/search_cb.c:1026
+#: src/ui/gtk/gtk1/search.c:2598 src/ui/gtk/gtk2/search_cb.c:1026
 msgid "Query queued..."
 msgstr "Petición encolada"
 
@@ -8501,8 +8501,8 @@ msgid_plural "%u terms counted"
 msgstr[0] "%u término contado"
 msgstr[1] "%u términos contados"
 
-#: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:90
-#: src/ui/gtk/gtk2/support-glade.c:114
+#: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:92
+#: src/ui/gtk/gtk2/support-glade.c:116
 #, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "No se pùdo encontrar la imagen: %s"
@@ -8830,54 +8830,54 @@ msgstr ""
 msgid "Select all matching regex from queue"
 msgstr "Selecionar de la cola los que coinciden con la expresión regular"
 
-#: src/ui/gtk/gtk2/nodes.c:288
+#: src/ui/gtk/gtk2/nodes.c:286
 msgid "Leaf"
 msgstr "Hoja"
 
-#: src/ui/gtk/gtk2/nodes.c:290
+#: src/ui/gtk/gtk2/nodes.c:288
 msgid "Ultrapeer"
 msgstr "Ultranodo"
 
-#: src/ui/gtk/gtk2/nodes.c:292
+#: src/ui/gtk/gtk2/nodes.c:290
 msgid "Legacy"
 msgstr "Antiguo"
 
-#: src/ui/gtk/gtk2/nodes.c:294
+#: src/ui/gtk/gtk2/nodes.c:292
 #, fuzzy
 msgid "Crawler"
 msgstr "Limpiar"
 
-#: src/ui/gtk/gtk2/nodes.c:296
+#: src/ui/gtk/gtk2/nodes.c:294
 msgid "UDP"
 msgstr "UDP"
 
-#: src/ui/gtk/gtk2/nodes.c:329 src/ui/gtk/gtk2/search_cb.c:517
+#: src/ui/gtk/gtk2/nodes.c:327 src/ui/gtk/gtk2/search_cb.c:517
 #: src/ui/gtk/settings_cb.c:306
 msgid "Move the cursor over a row to see details."
 msgstr "Mueve el cursor sobre una fila para ver detalles."
 
-#: src/ui/gtk/gtk2/nodes.c:346 src/ui/gtk/gtk2/search_cb.c:531
+#: src/ui/gtk/gtk2/nodes.c:344 src/ui/gtk/gtk2/search_cb.c:531
 msgid "Peer:"
 msgstr "Nodo:"
 
-#: src/ui/gtk/gtk2/nodes.c:348
+#: src/ui/gtk/gtk2/nodes.c:346
 msgid "Peermode:"
 msgstr "Modo:"
 
-#: src/ui/gtk/gtk2/nodes.c:350
+#: src/ui/gtk/gtk2/nodes.c:348
 msgid "incoming"
 msgstr "entrada"
 
-#: src/ui/gtk/gtk2/nodes.c:350
+#: src/ui/gtk/gtk2/nodes.c:348
 msgid "outgoing"
 msgstr "salida"
 
-#: src/ui/gtk/gtk2/nodes.c:409
+#: src/ui/gtk/gtk2/nodes.c:407
 #, c-format
 msgid "Reverse lookup for %s failed"
 msgstr "Resolución inversa de nombre para %s fracasada"
 
-#: src/ui/gtk/gtk2/nodes.c:789
+#: src/ui/gtk/gtk2/nodes.c:787
 msgid "Reverse lookup in progress..."
 msgstr "Resolución inversa de nombre en progreso..."
 
@@ -8999,7 +8999,7 @@ msgstr "proxy"
 msgid "bogus"
 msgstr "erróneo"
 
-#: src/ui/gtk/search_common.c:724
+#: src/ui/gtk/search_common.c:770
 #, c-format
 msgid ""
 "Found old searches file. The search information has been\n"
@@ -9010,7 +9010,7 @@ msgstr ""
 "búsquedas se ha guardado con el nuevo formato XML y el archivo\n"
 "antiguo se ha renombrado a %s"
 
-#: src/ui/gtk/search_common.c:728
+#: src/ui/gtk/search_common.c:774
 #, c-format
 msgid ""
 "could not rename %s as %s: %s\n"
@@ -9019,7 +9019,7 @@ msgstr ""
 "No se pudo renombrar %s como %s: %s\n"
 "El archivo XML no se usará hasta que este problema esté resuelto."
 
-#: src/ui/gtk/search_common.c:790
+#: src/ui/gtk/search_common.c:836
 msgid ""
 "Found old searches file. Loaded it.\n"
 "On exit the searches will be saved in the new XML format\n"
@@ -9029,32 +9029,32 @@ msgstr ""
 "Al salir las búsquedas se guardarán en el nuevo formato XML\n"
 "Puede borrar \"searches.orig\"."
 
-#: src/ui/gtk/search_common.c:843
+#: src/ui/gtk/search_common.c:889
 msgid "<unparsed>"
 msgstr "<sin analizar>"
 
-#: src/ui/gtk/search_common.c:851
+#: src/ui/gtk/search_common.c:897
 msgid "udp"
 msgstr ""
 
-#: src/ui/gtk/search_common.c:853
+#: src/ui/gtk/search_common.c:899
 msgid "udp "
 msgstr ""
 
-#: src/ui/gtk/search_common.c:862
+#: src/ui/gtk/search_common.c:908
 msgid ", browsable"
 msgstr ""
 
-#: src/ui/gtk/search_common.c:862
+#: src/ui/gtk/search_common.c:908
 #, fuzzy
 msgid "browsable"
 msgstr "estable"
 
-#: src/ui/gtk/search_common.c:1075
+#: src/ui/gtk/search_common.c:1121
 msgid "(passive search) "
 msgstr "(búsqueda pasiva)"
 
-#: src/ui/gtk/search_common.c:1077
+#: src/ui/gtk/search_common.c:1123
 #, c-format
 msgid ""
 "%s%s%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%"
@@ -9063,40 +9063,40 @@ msgstr ""
 "%s%s%u %s (%u saltados, %u ignorados, %uocultos, %u auto-descarga, %u %s)"
 "Hits: %u (%u TCP, %u UDP)"
 
-#: src/ui/gtk/search_common.c:1080
+#: src/ui/gtk/search_common.c:1126
 msgid "[stopped] "
 msgstr "[parado]"
 
-#: src/ui/gtk/search_common.c:1082
+#: src/ui/gtk/search_common.c:1128
 #, fuzzy
 msgid "item"
 msgid_plural "items"
 msgstr[0] "Filtro"
 msgstr[1] "Filtro"
 
-#: src/ui/gtk/search_common.c:1084
+#: src/ui/gtk/search_common.c:1130
 msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] "duplicado"
 msgstr[1] "duplicados"
 
-#: src/ui/gtk/search_common.c:1087
+#: src/ui/gtk/search_common.c:1133
 msgid "No search"
 msgstr "Ninguna búsqueda"
 
-#: src/ui/gtk/search_common.c:1386
+#: src/ui/gtk/search_common.c:1432
 msgid "The entered query is too long"
 msgstr "La petición es demasiado larga"
 
-#: src/ui/gtk/search_common.c:1403
+#: src/ui/gtk/search_common.c:1449
 msgid "The SHA1 of the magnet is not validly encoded"
 msgstr ""
 
-#: src/ui/gtk/search_common.c:1408
+#: src/ui/gtk/search_common.c:1454
 msgid "Cannot parse magnet"
 msgstr ""
 
-#: src/ui/gtk/search_common.c:1444
+#: src/ui/gtk/search_common.c:1490
 msgid "The SHA1 query is not validly encoded"
 msgstr "La petición SHA1 no está codificada correctamente"
 
