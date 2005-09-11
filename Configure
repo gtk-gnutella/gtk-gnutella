@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Thu Sep  1 20:10:09 MEST 2005 [metaconfig 3.0 PL70]
+# Generated on Sun Sep 11 18:42:35 MEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -175,6 +175,7 @@ d_eunice=''
 d_linux=''
 d_os2=''
 d_xenix=''
+_exe=''
 eunicefix=''
 Mcc=''
 ar=''
@@ -264,7 +265,6 @@ Revision=''
 Source=''
 State=''
 _a=''
-_exe=''
 _o=''
 archobjs=''
 firstmakefile=''
@@ -470,12 +470,13 @@ elif test -n "$DJGPP"; then
 elif test -d c:/. ; then
 	: OS/2 or cygwin
 	_exe=".exe"
+else
+	: All other UNIX systems
+	_exe=""
 fi
 
 ccname=''
 ccversion=''
-: No trailing extension on UNIX executables
-_exe='' 
 : Extra object files, if any, needed on this platform.
 archobjs=''
 : Possible local include directories to search.

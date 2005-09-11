@@ -43,6 +43,7 @@ INSTALLDIR = $INSTALLDIR
 BINDIR = $installbin
 CC = $cc
 CTAGS = ctags
+_EXE = $_exe
 JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
 JLDFLAGS = \$(LDFLAGS) $optimize $ldflags
 L = $manext
@@ -61,13 +62,13 @@ USRINC = $usrinc
 SOURCES =   \$(SRC)
 GTK_CFLAGS =  $gtkcflags
 GNUTLS_LDFLAGS =  $gnutlsldflags
+GNUTLS_CFLAGS =  $gnutlscflags
 DBUS_LDFLAGS =  $dbusldflags
 XML2_LDFLAGS =  $xmlldflags
 GTK_LDFLAGS =  $gtkldflags
 OBJECTS =   \$(OBJ) \$(EXTRA)
-XML2_CFLAGS =  $xmlcflags
 DBUS_CFLAGS =  $dbuscflags
-GNUTLS_CFLAGS =  $gnutlscflags
+XML2_CFLAGS =  $xmlcflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -91,7 +92,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.32 2005/08/13 08:23:37 graaff Exp $
+# $X-Id: Jmakefile,v 1.33 2005/08/13 19:13:26 cbiere Exp $
 
 all::
 
@@ -222,17 +223,18 @@ local_realclean::
 
 gtk-gnutella:  $(OBJ) $(EXTRA)
 	$(RM) $@
-	if test -f $@; then $(MV) $@ $@~; fi
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@  $(OBJ) $(EXTRA) $(JLDFLAGS) $(LIBS)
 
 local_install:: gtk-gnutella
 	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
 	(set -x; test -d $(INSTALL_PREFIX)$(BINDIR) || \
 		$(INSTALLDIR) $(INSTALL_PREFIX)$(BINDIR)); \
-	$(INSTALL) -c -s -m 555  gtk-gnutella $(INSTALL_PREFIX)$(BINDIR)
+	$(INSTALL) -c -s -m 555  gtk-gnutella$(_EXE) $(INSTALL_PREFIX)$(BINDIR)
 
 local_deinstall::
-	$(RM) $(INSTALL_PREFIX)$(BINDIR)/gtk-gnutella
+	$(RM) $(INSTALL_PREFIX)$(BINDIR)/gtk-gnutella$(_EXE)
 
 local_install.man:: gtk-gnutella.man
 	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
