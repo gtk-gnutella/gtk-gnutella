@@ -32,7 +32,8 @@ EXTRA_FILES = \
 	favicon.png \
 	gwcache.boot \
 	geo-ip.txt \
-	hostiles.txt
+	hostiles.txt \
+	robots.txt
 
 PIXMAP_FILES = \
 	gtk-gnutella.png	\
