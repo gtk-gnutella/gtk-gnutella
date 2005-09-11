@@ -210,15 +210,17 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 	atom = atom_str_get(hostname);
 	found = g_hash_table_lookup_extended(cache->hashtab, atom, &key, &val);
 	g_assert(!found || atom == key);
-	atom_str_free(atom); /* Do not yet nullify for the assertion below */
 
-	if (!found)
+	if (!found) {
+		atom_str_free(atom);
 		return FALSE;
+	}
 
 	i = GPOINTER_TO_UINT(val);
 	g_assert(i < cache->size);
 	entry = &cache->entries[i];
 	g_assert(atom == entry->hostname);
+	atom_str_free(atom);
 	atom = NULL;
 
 	if (delta_time(now, entry->timestamp) < cache->timeout) {
