@@ -1,5 +1,5 @@
 /*
- * $Id: ui_core_interface.c,v 1.0
+ * $Id$
  *
  * Copyright (c) 2004, Emile Roberts
  *
