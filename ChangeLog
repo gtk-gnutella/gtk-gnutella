@@ -1,5 +1,10 @@
 # since last version
 
+- (2005-09-11 - RAM)
+ * Added robots.txt file to forbit all web crawlers from browsing us.
+ * The mechanism to add special shared files was made generic.  The table
+   listing them is specials[] in core/share.c.
+
 - (2005-09-04 - JA)
  * [PARQ] Implemented option to always allow uploads which would take less
    than a certain amount of seconds to complete.
