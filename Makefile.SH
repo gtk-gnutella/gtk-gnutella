@@ -60,14 +60,15 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.15 2005/08/28 20:30:50 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.16 2005/09/11 08:18:50 rmanfredi Exp $
 
 EXTRA_FILES = \
 	bogons.txt \
 	favicon.png \
 	gwcache.boot \
 	geo-ip.txt \
-	hostiles.txt
+	hostiles.txt \
+	robots.txt
 
 PIXMAP_FILES = \
 	gtk-gnutella.png	\
