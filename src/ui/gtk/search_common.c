@@ -108,14 +108,14 @@ search_gui_new_search(const gchar *query, flag_t flags, search_t **search)
 	/* XXX In GTK1, there is no sorting by default, and it's possible to
 	 * XXX disable all sorting by clicking a third time on a column header.
 	 * XXX This behaviour is not in GTK2, halas.  Also, even though the
-	 * XXX default was now set, there was no array beside the '#' column.
+	 * XXX default was now set, there was no arrow beside the '#' column.
 	 * XXX There should be a way to disable all sorting, and to specify
 	 * XXX the column on which searches should sort, with "none" being an
 	 * XXX option so that this #ifder be removed in common code.
 	 * XXX		--RAM, 2005-09-11
 	 */
 #ifdef USE_GTK1
-	/* Sort by number of sources as default */
+	/* No sorting by default, results are appended as they are received */
     return search_gui_new_search_full(query, timeout,
 			SORT_NO_COL, SORT_NONE, flags | SEARCH_ENABLED, search);
 	
