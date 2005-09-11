@@ -137,11 +137,9 @@ void gui_search_clear_results(void);
 void gui_search_history_add(gchar *s);
 
 #ifdef USE_GTK2
-void gui_search_create_tree_view(GtkWidget **sw, GtkWidget **tree_view);
 void gui_search_force_update_tab_label(struct search *, time_t now);
 GtkTreeIter * find_parent_with_sha1(GHashTable *ht, gpointer key);
 #else
-void gui_search_create_ctree(GtkWidget **sw, GtkCTree **ctree);
 void gui_search_force_update_tab_label(struct search *);
 GtkCTreeNode *find_parent_with_sha1(GHashTable *ht, gpointer key);
 #endif /* USE_GTK2 */

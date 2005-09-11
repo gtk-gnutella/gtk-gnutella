@@ -91,6 +91,7 @@ static gint search_results_compare_func
     (GtkCList * clist, gconstpointer ptr1, gconstpointer ptr2);
 #endif
 static void set_search_color(struct search *sch);
+static void gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree);
 
 
 /*
@@ -326,12 +327,12 @@ search_gui_new_search_full(const gchar *querystr,
 		return FALSE;
 	}
     sch_id = guc_search_new(query, reissue_timeout, flags);
-	if (-1 == (gint) sch_id) {
+	if ((guint) -1 == sch_id) {
 		statusbar_gui_warning(5, "%s", _("Failed to create the search"));
 		return FALSE;
 	}
 
-	sch = g_new0(search_t, 1);
+	sch = g_malloc0(sizeof *sch); 
 	sch->sort_col = sort_col;
 	sch->sort_order = sort_order;
 	sch->query = atom_str_get(query);
@@ -374,8 +375,7 @@ search_gui_new_search_full(const gchar *querystr,
 		/* We have to create a new ctree for this search */
 		gui_search_create_ctree(&sch->scrolled_window, &sch->ctree);
 
-		gtk_object_set_user_data((GtkObject *) sch->scrolled_window,
-								 (gpointer) sch);
+		gtk_object_set_user_data((GtkObject *) sch->scrolled_window, sch);
 
 		gtk_notebook_append_page(GTK_NOTEBOOK(notebook_search_results),
 								 sch->scrolled_window, NULL);
@@ -391,8 +391,7 @@ search_gui_new_search_full(const gchar *querystr,
 			g_warning
 				("new_search(): No current search but no default ctree !?\n");
 
-		gtk_object_set_user_data((GtkObject *) sch->scrolled_window,
-								 (gpointer) sch);
+		gtk_object_set_user_data((GtkObject *) sch->scrolled_window, sch);
 	}
 
 	gui_search_update_tab_label(sch);
@@ -410,7 +409,7 @@ search_gui_new_search_full(const gchar *querystr,
 
 	gtk_signal_connect(GTK_OBJECT(sch->list_item), "select",
 					   GTK_SIGNAL_FUNC(on_search_selected),
-					   (gpointer) sch);
+					   sch);
 
 	search_gui_sort_column(sch, sort_col);
 	search_gui_set_current_search(sch);
@@ -422,9 +421,9 @@ search_gui_new_search_full(const gchar *querystr,
     gtk_widget_set_sensitive(
         lookup_widget(main_window, "button_search_collapse_all"), TRUE);
 
-    gtk_entry_set_text(GTK_ENTRY(entry_search),"");
+    gtk_entry_set_text(GTK_ENTRY(entry_search), "");
 
-	searches = g_list_append(searches, (gpointer) sch);
+	searches = g_list_append(searches, sch);
 
 	if (sch->enabled)
 		guc_search_start(sch->search_handle);
@@ -2165,11 +2164,10 @@ void search_gui_set_current_search(search_t *sch)
 
 
 /**
- *	gui_search_create_ctree
- *
  *	Create a new GtkCTree for search results
  */
-void gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
+static void
+gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 {
 	GtkWidget *label;
     GtkWidget *hbox;
