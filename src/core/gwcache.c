@@ -769,7 +769,7 @@ static gboolean
 gwc_url_line(struct parse_context *ctx, gchar *buf, gint len)
 {
 	if (gwc_debug > 3)
-		printf("GWC URL line (%d bytes): %s\n", len, buf);
+		g_message("GWC URL line (%d bytes): %s", len, buf);
 
 	if (is_strprefix(buf, "ERROR")) {
 		g_warning("GWC cache \"%s\" returned %s",
@@ -797,7 +797,7 @@ static void
 gwc_url_eof(struct parse_context *ctx)
 {
 	if (gwc_debug > 2)
-		printf("GWC URL all done (%d/%d lines processed)\n",
+		g_message("GWC URL all done (%d/%d lines processed)",
 			ctx->processed, ctx->lines);
 
 	if (ctx->processed < MIN_URL_LINES) {
@@ -830,7 +830,7 @@ gwc_url_data_ind(gpointer handle, gchar *data, gint len)
 static void
 gwc_url_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 {
-	http_async_log_error(handle, type, v);
+	http_async_log_error_dbg(handle, type, v, gwc_debug);
 
 	clear_current_url(TRUE);		/* This webcache is not good */
 
@@ -864,7 +864,7 @@ gwc_get_urls(void)
 		"%s?urlfile=1&%s", current_url, CLIENT_INFO);
 
 	if (gwc_debug > 2)
-		printf("GWC URL request: %s\n", gwc_tmp);
+		g_message("GWC URL request: %s", gwc_tmp);
 
 	/*
 	 * Launch the asynchronous request and attach parsing information.
@@ -906,8 +906,8 @@ gwc_is_waiting(void)
 static gboolean
 gwc_host_line(struct parse_context *ctx, gchar *buf, gint len)
 {
-	if (gwc_debug > 3)
-		printf("GWC host line (%d bytes): %s\n", len, buf);
+	if (gwc_debug > 3 || bootstrap_debug > 2)
+		g_message("BOOT GWC host line (%d bytes): %s", len, buf);
 
 	if (is_strprefix(buf, "ERROR")) {
 		g_warning("GWC cache \"%s\" returned %s",
@@ -923,6 +923,11 @@ gwc_host_line(struct parse_context *ctx, gchar *buf, gint len)
 		if (string_to_host_addr_port(buf, NULL, &addr, &port)) {
 			ctx->processed++;
 			hcache_add_caught(HOST_ULTRA, addr, port, "GWC");
+
+			if (bootstrap_debug > 1)
+				g_message("BOOT collected %s from GWC %s",
+					host_addr_to_string(addr),
+					http_async_info(ctx->handle, NULL, NULL, NULL, NULL));
 		}
 	}
 
@@ -936,7 +941,7 @@ static void
 gwc_host_eof(struct parse_context *ctx)
 {
 	if (gwc_debug > 2)
-		printf("GWC host all done (%d/%d lines processed)\n",
+		g_message("GWC host all done (%d/%d lines processed)",
 			ctx->processed, ctx->lines);
 
 	/*
@@ -948,6 +953,10 @@ gwc_host_eof(struct parse_context *ctx)
 		ctx->processed, current_url);
 
 	gcu_statusbar_message(gwc_tmp);
+
+	if (bootstrap_debug)
+		g_message("BOOT got %d host%s from GWC %s",
+			ctx->processed, ctx->processed == 1 ? "" : "s", current_url);
 
 	/*
 	 * If we did not get enough addresses, try to feed the cache with ours.
@@ -976,7 +985,7 @@ gwc_host_data_ind(gpointer handle, gchar *data, gint len)
 static void
 gwc_host_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 {
-	http_async_log_error(handle, type, v);
+	http_async_log_error_dbg(handle, type, v, MAX(gwc_debug, bootstrap_debug));
 	hostfile_running = FALSE;
 
 	clear_current_url(TRUE);			/* This webcache is not good */
@@ -1030,6 +1039,9 @@ gwc_get_hosts(void)
 		_("Connecting to web cache %s"), current_url);
 
 	gcu_statusbar_message(gwc_tmp);
+
+	if (bootstrap_debug)
+		g_message("BOOT connecting to web cache %s", current_url);
 
 	/*
 	 * Launch the asynchronous request and attach parsing information.
@@ -1101,7 +1113,7 @@ gwc_update_data_ind(gpointer handle, gchar *data, gint len)
 static void
 gwc_update_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 {
-	http_async_log_error(handle, type, v);
+	http_async_log_error_dbg(handle, type, v, gwc_debug);
 	clear_current_url(TRUE);			/* This webcache is not good */
 }
 
@@ -1225,7 +1237,7 @@ gwc_seed_cache(gchar *cache_url)
 		return;
 
 	if (gwc_debug > 2)
-		printf("GWC seeding cache \"%s\"\n", cache_url);
+		g_message("GWC seeding cache \"%s\"", cache_url);
 
 	gwc_update_this(cache_url);
 }

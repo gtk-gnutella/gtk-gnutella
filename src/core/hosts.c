@@ -217,8 +217,8 @@ host_timer(void)
 						gwc_get_hosts(); 	/* Get from web host cache */
 					else
 						uhc_get_hosts();	/* Get from UDP pong caches */
-				} else if (dbg > 10)
-					g_message("host_timer - waiting for reply from %s",
+				} else if (bootstrap_debug > 2)
+					g_message("BOOT host_timer - waiting for reply from %s",
 						uhc_is_waiting() ? "UDP host cache" : "web cache");
 			}
 		}

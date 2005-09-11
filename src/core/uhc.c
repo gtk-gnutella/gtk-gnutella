@@ -62,6 +62,7 @@ RCSID("$Id$");
 
 #define UHC_MAX_ATTEMPTS	3	/**< Maximum connection / resolution attempts */
 #define UHC_TIMEOUT			20	/**< Host cache timeout, in seconds */
+#define UHC_RETRY_AFTER		600	/**< Frequency of contacts for an UHC (secs) */
 
 /**
  * Request context, used when we decide to get hosts via the UDP host caches.
@@ -192,8 +193,15 @@ uhc_pick(void)
 		uu = uhc_used->data;
 		g_assert(uu);
 
-		/* Wait 24 hours before the UHC maybe contacted again */
-		if (delta_time(now, uu->stamp) < 24 * 3600)
+		/*
+		 * Wait UHC_RETRY_AFTER secs before contacting the UHC again.
+		 * Can't be too long because the UDP reply may get lost if the
+		 * requesting host already has a saturated b/w.
+		 * If we come here, it's because we're lacking hosts for establishing
+		 * a Gnutella connection, after we exhausted our caches.
+		 */
+
+		if (delta_time(now, uu->stamp) < UHC_RETRY_AFTER)
 			break;
 
 		add_available_uhc(uu->host);
@@ -205,8 +213,8 @@ uhc_pick(void)
 
 	len = g_list_length(uhc_avail);
 	if (len < 1) {
-		if (gwc_debug)
-			g_warning("Ran out of UHCs");
+		if (gwc_debug || bootstrap_debug)
+			g_warning("BOOT ran out of UHCs");
 		return FALSE;
 	}
 
@@ -333,8 +341,8 @@ uhc_send_ping(const host_addr_t addr, guint16 port)
 	else
 		g_hash_table_insert(uhc_ctx.guids, muid, GUINT_TO_POINTER(1));
 
-	if (gwc_debug)
-		g_message("sent UDP SCP ping %s to %s",
+	if (gwc_debug || bootstrap_debug)
+		g_message("BOOT sent UDP SCP ping %s to %s",
 			guid_hex_str(muid), host_addr_port_to_string(addr, port));
 
 	/*
@@ -377,8 +385,8 @@ uhc_host_resolved(const host_addr_t *addr, gpointer uu_udata)
 		return;
 	}
 
-	if (gwc_debug)
-		g_message("UDP host cache \"%s\" resolved to %s",
+	if (gwc_debug || bootstrap_debug)
+		g_message("BOOT UDP host cache \"%s\" resolved to %s",
 			uhc_ctx.host, host_addr_to_string(*addr));
 
 	uhc_ctx.addr = *addr;
@@ -449,7 +457,7 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 
 	cnt = paylen / 6;
 
-	if (gwc_debug)
+	if (gwc_debug || bootstrap_debug)
 		g_message("extracting %d host%s in UDP IPP pong %s from %s (%s)",
 			cnt, cnt == 1 ? "" : "s",
 			guid_hex_str(n->header.muid), node_addr(n),
@@ -465,6 +473,10 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 		p += 2;
 
 		hcache_add_caught(HOST_ULTRA, ha, port, "UDP-HC");
+
+		if (bootstrap_debug > 1)
+			g_message("BOOT collected %s from UDP IPP pong from %s",
+				host_addr_to_string(ha), node_addr(n));
 	}
 
 	/*
@@ -478,8 +490,9 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 	if (uhc_connecting && g_hash_table_lookup(uhc_ctx.guids, n->header.muid)) {
 		g_assert(uhc_ctx.timeout_ev != NULL);
 
-		if (gwc_debug)
-			g_message("UDP cache \"%s\" (%s) replied: got %d host%s from %s",
+		if (gwc_debug || bootstrap_debug)
+			g_message("BOOT UDP cache \"%s\" (%s) replied: "
+				"got %d host%s from %s",
 				uhc_ctx.host,
 				host_addr_port_to_string(uhc_ctx.addr, uhc_ctx.port),
 				cnt, cnt == 1 ? "" : "s", node_addr(n));
