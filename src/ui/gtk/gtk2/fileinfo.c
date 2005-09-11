@@ -170,7 +170,7 @@ on_treeview_fileinfo_cursor_changed(GtkTreeView *tv,
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 	GtkTreePath *path;
-	
+
 	(void) unused_udata;
 
 	gtk_tree_view_get_cursor(tv, &path, NULL);
@@ -439,13 +439,13 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 	gchar **url_ptr = udata;
 
 	(void) unused_drag_ctx;
-	
+
 	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-begin");
 
 	g_assert(url_ptr != NULL);
 	if (NULL != *url_ptr)
 		G_FREE_NULL(*url_ptr);
-	
+
 	tv = GTK_TREE_VIEW(treeview_fileinfo);
 	gtk_tree_view_get_cursor(tv, &tpath, NULL);
 	if (!tpath)
@@ -464,7 +464,7 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 		if (fis.done > 0) {
 			const gchar *path;
 			gchar *save_path = NULL;
-			
+
 			fi = guc_fi_get_info(fih);
 			g_assert(fi != NULL);
 			if (fis.done < fis.size) {
@@ -492,7 +492,7 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 				G_FREE_NULL(escaped);
 			}
 			G_FREE_NULL(save_path);
-			
+
     		guc_fi_free_info(fi);
 		}
 	}
@@ -506,17 +506,17 @@ drag_data_get(GtkWidget *widget, GdkDragContext *unused_drag_ctx,
 	gpointer udata)
 {
 	gchar **url_ptr = udata;
-	
+
 	(void) unused_drag_ctx;
 	(void) unused_info;
 	(void) unused_stamp;
 
 	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-data-get");
-	
+
 	g_assert(url_ptr != NULL);
 	if (NULL == *url_ptr)
 		return;
-	
+
 	gtk_selection_data_set_text(data, *url_ptr, -1);
 	G_FREE_NULL(*url_ptr);
 }
@@ -525,15 +525,15 @@ static void
 drag_end(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 {
 	gchar **url_ptr = udata;
-	
+
 	(void) unused_drag_ctx;
 	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-end");
-	
+
 	g_assert(url_ptr != NULL);
 	if (NULL != *url_ptr)
 		G_FREE_NULL(*url_ptr);
 }
-	
+
 void
 fi_gui_update_display(time_t now)
 {
@@ -626,17 +626,17 @@ fi_gui_init(void)
 	gtk_tree_view_set_model(treeview_fi_aliases, GTK_TREE_MODEL(store_aliases));
 
 	/* Initialize drag support */
-	gtk_tree_view_enable_model_drag_source(treeview_fileinfo, 
+	gtk_tree_view_enable_model_drag_source(treeview_fileinfo,
 		0, targets, G_N_ELEMENTS(targets),
 		GDK_ACTION_COPY | GDK_ACTION_ASK);
-	
+
     g_signal_connect(G_OBJECT(treeview_fileinfo), "drag-data-get",
         G_CALLBACK(drag_data_get), &dnd_url);
     g_signal_connect(G_OBJECT(treeview_fileinfo), "drag-begin",
         G_CALLBACK(drag_begin), &dnd_url);
     g_signal_connect(G_OBJECT(treeview_fileinfo), "drag-end",
         G_CALLBACK(drag_end), &dnd_url);
-	
+
     add_column(treeview_fi_aliases, 0, _("Aliases"), 0.0);
 
     guc_fi_add_listener(fi_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);

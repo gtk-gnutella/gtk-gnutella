@@ -200,7 +200,7 @@ on_button_search_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
 	GtkWidget *widget;
 	gchar *e;
-	
+
 	(void) unused_button;
 	(void) unused_udata;
 
@@ -441,13 +441,13 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 	gint sort_col;
 
 	/* The default treeview is empty */
-	if (!sch)	
+	if (!sch)
 		return FALSE;
 
 	/* N.B.: column->tree_view is not really documented but it works. */
 	model = GTK_TREE_SORTABLE(
 				gtk_tree_view_get_model(GTK_TREE_VIEW(column->tree_view)));
-	
+
 	/*
 	 * Here we enforce a tri-state sorting. Normally, Gtk+ would only
 	 * switch between ascending and descending but never switch back
@@ -486,7 +486,7 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 		sch->sort_order = SORT_NONE;
 		break;
 	}
-	
+
 	if (SORT_NONE == sch->sort_order) {
 		/*
 		 * Reset the sorting and let the arrow disappear from the
@@ -507,7 +507,7 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 	}
 	/* Make the column stays clickable. */
 	gtk_tree_view_column_set_clickable(column, TRUE);
-	
+
 	return FALSE;
 }
 
@@ -527,7 +527,7 @@ search_get_record_at_path(GtkTreeView *tv, GtkTreePath *path)
 		}
 	}
 	g_return_val_if_fail(NULL != sch, NULL);
-	
+
 	model = GTK_TREE_MODEL(sch->model);
 	gtk_tree_model_get_iter(model, &iter, path);
 	gtk_tree_model_get(model, &iter, c_sr_record, &rc, (-1));
@@ -540,12 +540,12 @@ search_get_vendor_from_record(const record_t *rc)
 {
 	gchar *s;
 
-	g_assert(rc != NULL);	
+	g_assert(rc != NULL);
 
 	s = lookup_vendor_name(rc->results_set->vendor);
 	if (s == NULL)
 		return _("Unknown");
-	
+
 	if (rc->results_set->version) {
 		static gchar buf[128];
 
@@ -578,7 +578,7 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 
 	if (!rc) {
 		GtkWidget *w;
-		
+
 		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
 			_("Move the cursor over a row to see details."), NULL);
 		w = settings_gui_tooltips()->tip_window;
@@ -607,7 +607,7 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			guid_hex_str(rc->results_set->guid),
 			_("Size:"),
 			short_size(rc->size));
-		
+
 		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
 			text, NULL);
 	}
@@ -675,7 +675,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 			rc->tag ? lazy_locale_to_utf8(rc->tag) : _("<none>"));
 
 	txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget(main_window,
-					"textview_result_info_xml"))); 
+					"textview_result_info_xml")));
 	xml_txt = rc->xml ? search_xml_indent(rc->xml) : NULL;
 	gtk_text_buffer_set_text(txt, xml_txt ? xml_txt : _("<none>"), -1);
 	G_FREE_NULL(xml_txt);
@@ -1048,7 +1048,7 @@ on_popup_search_collapse_all_activate (GtkMenuItem *unused_menuitem,
 
 
 /**
- * Queue a bitzi query
+ * Queue a bitzi query.
  */
 void
 on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,

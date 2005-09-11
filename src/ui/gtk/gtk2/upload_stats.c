@@ -75,7 +75,7 @@ static GtkTreeView *upload_stats_treeview = NULL;
 static GtkWidget *popup_upload_stats = NULL;
 
 /**
- * Private callbacks
+ * Private callbacks.
  */
 static gboolean
 on_button_press_event(GtkWidget *unused_widget, GdkEventButton *event,

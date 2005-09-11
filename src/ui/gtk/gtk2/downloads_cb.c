@@ -234,7 +234,7 @@ dl_action_select(const gchar *treeview_name, dl_action_type_t action)
 
 	ctx.action = action;
 	ctx.sl = NULL;
-	
+
 	g_assert((gint) action >= 0 && action <= NUM_DL_ACTION);
  	g_assert(treeview_name && treeview_name[0] != '\0');
 
@@ -287,7 +287,7 @@ push_activate(gboolean active)
 
 
 /**
- *	Causes all selected active downloads to fall back to push
+ * Causes all selected active downloads to fall back to push.
  */
 void
 on_popup_downloads_push_activate(GtkMenuItem *unused_menuitem,
@@ -300,7 +300,7 @@ on_popup_downloads_push_activate(GtkMenuItem *unused_menuitem,
 }
 
 /**
- *	Causes all selected queued downloads to fall back to push
+ * Causes all selected queued downloads to fall back to push.
  */
 void
 on_popup_queue_push_activate(GtkMenuItem *unused_menuitem,
@@ -314,7 +314,8 @@ on_popup_queue_push_activate(GtkMenuItem *unused_menuitem,
 
 
 /**
- *	For all selected active downloads, remove all downloads with the same name
+ * For all selected active downloads, remove all downloads with
+ * the same name.
  */
 void
 on_popup_downloads_abort_named_activate(GtkMenuItem *unused_menuitem,
@@ -341,7 +342,8 @@ on_popup_downloads_abort_named_activate(GtkMenuItem *unused_menuitem,
 
 
 /**
- *	For all selected active downloads, remove all downloads with the same host
+ * For all selected active downloads, remove all downloads with
+ * the same host.
  */
 /* XXX: routing misnamed: we're "forgetting" here, not "aborting" */
 void
@@ -372,7 +374,8 @@ on_popup_downloads_abort_host_activate(GtkMenuItem *unused_menuitem,
 
 
 /**
- *	For all selected active downloads, remove all downloads with the same sha1
+ * For all selected active downloads, remove all downloads with
+ * the same sha1.
  */
 void
 on_popup_downloads_abort_sha1_activate(GtkMenuItem *unused_menuitem,
@@ -401,7 +404,7 @@ on_popup_downloads_abort_sha1_activate(GtkMenuItem *unused_menuitem,
 
 
 /**
- *	For all selected active downloads, remove file
+ * For all selected active downloads, remove file.
  */
 void on_popup_downloads_remove_file_activate(GtkMenuItem *unused_menuitem,
      gpointer unused_udata)
@@ -436,7 +439,7 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem *unused_menuitem,
 
 
 /**
- *	For all selected active downloads, send back to queue
+ * For all selected active downloads, send back to queue.
  */
 void
 on_popup_downloads_queue_activate(GtkMenuItem *unused_menuitem,
@@ -485,7 +488,7 @@ copy_selection_to_clipboard(const gchar *treeview_name,
 }
 
 /**
- *	For selected download, copy URL to clipboard
+ * For selected download, copy URL to clipboard.
  */
 void
 on_popup_downloads_copy_url_activate(GtkMenuItem *unused_menuitem,
@@ -499,7 +502,7 @@ on_popup_downloads_copy_url_activate(GtkMenuItem *unused_menuitem,
 
 
 /**
- *	For all selected active downloads connect to host
+ * For all selected active downloads connect to host.
  */
 void
 on_popup_downloads_connect_activate(GtkMenuItem *unused_menuitem,
@@ -529,7 +532,7 @@ on_popup_downloads_connect_activate(GtkMenuItem *unused_menuitem,
 
 
 /**
- *	For all selected queued downloads, activate them
+ * For all selected queued downloads, activate them.
  */
 void
 on_popup_queue_start_now_activate(GtkMenuItem *unused_menuitem,
@@ -554,7 +557,7 @@ on_popup_queue_start_now_activate(GtkMenuItem *unused_menuitem,
 
 
 /**
- *	For all selected queued downloads, forget them
+ * For all selected queued downloads, forget them.
  */
 void
 on_popup_queue_abort_activate(GtkMenuItem *unused_menuitem,
@@ -579,7 +582,8 @@ on_popup_queue_abort_activate(GtkMenuItem *unused_menuitem,
 
 
 /**
- *	For all selected queued downloads, remove all downloads with same name
+ * For all selected queued downloads, remove all downloads with
+ * same name.
  */
 void
 on_popup_queue_abort_named_activate(GtkMenuItem *unused_menuitem,
@@ -607,7 +611,8 @@ on_popup_queue_abort_named_activate(GtkMenuItem *unused_menuitem,
 
 
 /**
- *	For all selected queued downloads, remove all downloads with same host
+ * For all selected queued downloads, remove all downloads with
+ * same host.
  */
 void
 on_popup_queue_abort_host_activate(GtkMenuItem *unused_menuitem,
@@ -637,7 +642,8 @@ on_popup_queue_abort_host_activate(GtkMenuItem *unused_menuitem,
 
 
 /**
- *	For all selected queued downloads, remove all downloads with same sha1
+ * For all selected queued downloads, remove all downloads with
+ * same sha1.
  */
 void
 on_popup_queue_abort_sha1_activate(GtkMenuItem *unused_menuitem,
@@ -667,7 +673,7 @@ on_popup_queue_abort_sha1_activate(GtkMenuItem *unused_menuitem,
 
 
 /**
- *	For all selected queued download, copy url to clipboard
+ * For all selected queued download, copy url to clipboard.
  */
 void
 on_popup_queue_copy_url_activate(GtkMenuItem *unused_menuitem,
@@ -682,7 +688,7 @@ on_popup_queue_copy_url_activate(GtkMenuItem *unused_menuitem,
 
 
 /**
- *	For all selected queued download, connect to host
+ * For all selected queued download, connect to host.
  */
 void
 on_popup_queue_connect_activate(GtkMenuItem *unused_menuitem,
@@ -714,7 +720,7 @@ on_popup_queue_connect_activate(GtkMenuItem *unused_menuitem,
 
 
 /**
- *	For all selected active downloads, forget them
+ * For all selected active downloads, forget them.
  */
 void
 on_button_downloads_abort_clicked(GtkButton *unused_button,
@@ -739,7 +745,7 @@ on_button_downloads_abort_clicked(GtkButton *unused_button,
 
 
 /**
- *	For all selected active downloads, resume
+ * For all selected active downloads, resume.
  */
 void
 on_button_downloads_resume_clicked(GtkButton *unused_button,
@@ -786,7 +792,7 @@ on_popup_downloads_config_cols_activate(GtkMenuItem *unused_menuitem,
 
 
 /**
- *	Select all queued downloads that match given regex in editable
+ * Select all queued downloads that match given regex in editable.
  */
 void
 on_entry_queue_regex_activate(GtkEditable *editable, gpointer unused_udata)
@@ -879,8 +885,8 @@ on_entry_queue_regex_activate(GtkEditable *editable, gpointer unused_udata)
 
 
 /**
- *	When the right mouse button is clicked on the active downloads treeview,
- *	show the popup with the context menu
+ * When the right mouse button is clicked on the active downloads
+ * treeview, show the popup with the context menu.
  */
 gboolean
 on_treeview_downloads_button_press_event(GtkWidget *widget,
@@ -904,8 +910,8 @@ on_treeview_downloads_button_press_event(GtkWidget *widget,
 
 
 /**
- *	When the right mouse button is clicked on the queued downloads treeview,
- *	show the popup with the context menu
+ * When the right mouse button is clicked on the queued downloads
+ * treeview, show the popup with the context menu.
  */
 gboolean
 on_treeview_downloads_queue_button_press_event(GtkWidget *widget,
@@ -1022,8 +1028,8 @@ on_treeview_downloads_queue_select_row(GtkTreeView *unused_tv,
 }
 
 
-/*
- *	on_popup_downloads_expand_all_activate
+/**
+ * on_popup_downloads_expand_all_activate
  */
 void on_popup_downloads_expand_all_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)

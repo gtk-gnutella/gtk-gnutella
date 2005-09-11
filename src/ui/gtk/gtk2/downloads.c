@@ -406,7 +406,7 @@ compare_size_func(GtkTreeModel *model,
 
 	iter[0] = a;
 	iter[1] = b;
-	
+
 	for (i = 0; i < G_N_ELEMENTS(rec); i++) {
     	gtk_tree_model_get(model, iter[i], column, &rec[i], (-1));
 		if (DL_GUI_IS_HEADER == rec[i]) {
@@ -508,7 +508,7 @@ create_downloads_model(void)
 	static GType columns[c_dl_num];
 	GtkTreeStore *store;
 	guint i;
-	
+
 	STATIC_ASSERT(c_dl_num == G_N_ELEMENTS(columns));
 #define SET(c, x) case (c): columns[i] = (x); break
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
@@ -559,7 +559,7 @@ create_queue_model(void)
 		}
 	}
 #undef SET
-	
+
 	store = gtk_tree_store_newv(G_N_ELEMENTS(columns), columns);
 	return GTK_TREE_MODEL(store);
 }
@@ -581,7 +581,7 @@ downloads_gui_init(void)
 {
 	GtkTreeSelection *selection;
 	GtkTreeView	*treeview;
-	
+
 	parents = g_hash_table_new(NULL, NULL);
 	parents_queue = g_hash_table_new(NULL, NULL);
 	ht_dl_iters = g_hash_table_new(NULL, NULL);
@@ -954,7 +954,7 @@ download_gui_add(download_t *d)
 		add_parent_with_fi_handle(ht, d->file_info->fi_handle, child);
 	} else {
 		guint hosts = d->file_info->lifecount;
-		
+
 		gm_snprintf(tmpstr, sizeof tmpstr,
 			NG_("%u host", "%u hosts", hosts), hosts);
 		gtk_tree_store_set(model, parent, host_column, tmpstr, (-1));

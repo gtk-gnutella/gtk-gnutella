@@ -126,8 +126,6 @@ static gpointer parent_class;
 
 
 /**
- * gtk_cell_renderer_progress_get_type
- *
  * Register the new type 'gtk_cell_renderer_progress' with
  * the GTK type system and return the unique integer id
  * associated with this type.
@@ -166,8 +164,6 @@ gtk_cell_renderer_progress_get_type(void)
 
 
 /**
- * gtk_cell_renderer_progress_init
- *
  * Initialize the progress bar private data.
  *
  * @param cellprogress The GtkCellRendererProgress to init.
@@ -184,8 +180,6 @@ gtk_cell_renderer_progress_init(GtkCellRendererProgress *cellprogress)
 }
 
 /**
- * gtk_cell_renderer_progress_class_init
- *
  * Initialize the progress bar class data.
  *
  * @param class The GtkCellRendererProgressClass - internal
@@ -221,10 +215,7 @@ gtk_cell_renderer_progress_class_init (GtkCellRendererProgressClass *class)
 
 
 /**
- * gtk_cell_renderer_progress_get_property
- *
- * This retreives the value of a property which the
- * object widget has.
+ * This retreives the value of a property which the object widget has.
  *
  * @param object The object to get a property of.
  * @param param_id The id of the property we wish to get.

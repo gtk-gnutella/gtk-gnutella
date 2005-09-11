@@ -89,8 +89,6 @@ static void nodes_gui_node_info_changed(gnet_node_t);
 static void nodes_gui_node_flags_changed(gnet_node_t);
 
 /**
- * add_column
- *
  * Create a column, associating the attribute ``attr'' (usually "text") of the
  * cell_renderer to the first column of the model. Also associate the
  * foreground color with the c_gnet_fg column, so that we can set
@@ -229,7 +227,7 @@ find_node(gnet_node_t n)
 }
 
 /**
- * Updates vendor, version and info column
+ * Updates vendor, version and info column.
  */
 static inline void
 nodes_gui_update_node_info(gnet_node_info_t *n, GtkTreeIter *iter)
@@ -324,7 +322,7 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 
 	if ((gnet_node_t) -1 == n || !find_node(n)) {
 		GtkWidget *w;
-		
+
 		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
 			_("Move the cursor over a row to see details."), NULL);
 		w = settings_gui_tooltips()->tip_window;
@@ -417,7 +415,7 @@ static void
 on_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 {
 	GtkTreePath *path = NULL;
-	
+
 	(void) unused_udata;
 	g_assert(tv != NULL);
 
@@ -748,7 +746,7 @@ nodes_gui_node_flags_changed(gnet_node_t n)
 }
 
 /**
- * Removes all selected nodes from the treeview and disconnects them
+ * Removes all selected nodes from the treeview and disconnects them.
  */
 void
 nodes_gui_remove_selected(void)
@@ -795,7 +793,7 @@ nodes_gui_reverse_lookup_selected_helper(GtkTreeModel *model,
 }
 
 /**
- * Performs a reverse lookup for all selected nodes
+ * Performs a reverse lookup for all selected nodes.
  */
 void
 nodes_gui_reverse_lookup_selected(void)

@@ -328,14 +328,14 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	sch->massive_update = FALSE;
 	sch->dups = g_hash_table_new_full(search_gui_hash_func,
 					search_gui_hash_key_compare, ht_unref_record, NULL);
-	
+
 	sch->parents = g_hash_table_new_full(NULL, NULL,
 						do_atom_sha1_free, ht_w_tree_iter_free);
 
 	search_gui_filter_new(sch, rules);
 	g_list_free(rules);
 	rules = NULL;
-	
+
 	/* Create the list item */
 
 	sch->list_item = gtk_list_item_new_with_label(sch->query);
@@ -438,7 +438,7 @@ search_gui_compare_count_func(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data)
 {
 	guint m, n;
-   
+
 	m = gtk_tree_model_iter_n_children(model, a);
 	n = gtk_tree_model_iter_n_children(model, b);
 	return m == n ?
@@ -491,7 +491,7 @@ search_gui_add_record(
 	 * have open
 	 *		-- JA, 6/11/2003
 	 */
-	
+
 	g_assert(rc->magic == RECORD_MAGIC);
 	g_assert(rc->refcount >= 1);
 
@@ -899,7 +899,7 @@ add_list_columns(GtkTreeView *treeview)
 
     gui_prop_get_guint32(PROP_SEARCH_LIST_COL_WIDTHS, width, 0,
 		G_N_ELEMENTS(width));
-	
+
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
 		add_column(treeview, _(columns[i].title), columns[i].id,
 			width[i], columns[i].align, c_sl_fg, c_sl_bg);
@@ -1253,7 +1253,7 @@ search_gui_set_current_search(search_t *sch)
 
 	tvm_search = tree_view_motion_set_callback(GTK_TREE_VIEW(sch->tree_view),
 		search_update_tooltip);
-	
+
     /*
      * Search results notebook
      */
@@ -1394,16 +1394,16 @@ search_by_regex(GtkTreeModel *model, gint column, const gchar *key,
 			regfree(&re);
 			G_FREE_NULL(last_key);
 		}
-		
+
 		ret = regcomp(&re, key, REG_EXTENDED | REG_NOSUB | REG_ICASE);
 		g_return_val_if_fail(0 == ret, !found);
-		
+
 		last_key = g_strdup(key);
 	}
-	
+
 	gtk_tree_model_get(model, iter, c_sr_filename, &filename, (-1));
 	g_return_val_if_fail(NULL != filename, !found);
-	
+
 	ret = regexec(&re, filename, 0, NULL, 0);
 	G_FREE_NULL(filename);
 

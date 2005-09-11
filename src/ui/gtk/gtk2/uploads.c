@@ -509,7 +509,7 @@ create_uploads_model(void)
 		}
 	}
 #undef SET
-	
+
 	store = gtk_list_store_newv(G_N_ELEMENTS(columns), columns);
 	return GTK_LIST_STORE(store);
 }
@@ -561,7 +561,7 @@ uploads_gui_init(void)
 
 	tree_view_restore_widths(treeview_uploads, PROP_UPLOADS_COL_WIDTHS);
 	tree_view_restore_visibility(treeview_uploads, PROP_UPLOADS_COL_VISIBLE);
-	
+
 	upload_handles = g_hash_table_new(NULL, NULL);
 
     guc_upload_add_upload_added_listener(upload_added);
@@ -664,7 +664,7 @@ uploads_gui_update_display(time_t now)
     if (last_update != now) {
     	static gboolean locked = FALSE;
 		remove_row_ctx_t ctx;
-		
+
     	last_update = now;
 		ctx.force = FALSE;
 		ctx.now = now;
