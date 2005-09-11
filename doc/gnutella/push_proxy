@@ -99,7 +99,7 @@ Payload: 6 bytes.  The IP/Port the FS should use for this proxy server.
 The format of the IP/Port is a 4 byte address followed by a 2 byte port.
 The IP address is given because the proxy server may be multi-honed.
 VM GUID: 16 byte ServentId of the FS, the same as sent in the
-corresponding PushProxyRequest message.
+corresponding PushProxyRequest message.  All fields are little-endian.
 
 4 Advertising ones Proxy Servers
 ================================
@@ -121,7 +121,7 @@ FS's proxies.  The format of the IP/Port is a 4 byte address followed by a
 ======================
 During a HTTP session a FS MUST tell its downloader the most
 up-to-date proxy information.  This is communicated via the new HTTP
-Header 'X-PushProxies', whose format is a comma delineated list of
+Header 'X-Push-Proxies', whose format is a comma delineated list of
 DottedIPAddress:Port combinations.  A servent that receives this list
 MUST immediately replace its known list of proxy servers for the FS with
 this updated list.
@@ -144,7 +144,7 @@ section 4.
 
 The resource name is:
 
-/gnutella/pushproxy?
+/gnutella/push-proxy?
 	ServerId=<ServentIdAsGivenInTheQueryHitAsABase32UrlEncodedString>
 
 The D MUST also include the X-Node header in this HTTP request.
