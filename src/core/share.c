@@ -69,7 +69,6 @@ RCSID("$Id$");
 #include "lib/glib-missing.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
-#include "lib/watcher.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -336,14 +335,31 @@ static const guchar macroman[126] = {
 	'y',			/**< 255 - LATIN SMALL LETTER Y WITH DIAERESIS */
 };
 
+/**
+ * Describes special files which are served by GTKG.
+ */
+struct special_file {
+	const gchar *path;			/* URL path */
+	const gchar *file;			/* File name to load from disk */
+	enum share_mime_type type;	/* MIME type of the file */
+	const gchar *what;			/* Description of the file for traces */
+};
+
+static struct special_file specials[] = {
+	{ "/favicon.ico",
+			"favicon.png",	SHARE_M_IMAGE_PNG,	"Favorite web icon" },
+	{ "/robots.txt",
+			"robots.txt",	SHARE_M_TEXT_PLAIN,	"Robot exclusion" },
+};
+
+/**
+ * Maps special names (e.g. "/favicon.ico") to the shared_file_t structure.
+ */
+static GHashTable *special_names = NULL;
 
 static guint64 files_scanned = 0;
 static guint64 kbytes_scanned = 0;
 static guint64 bytes_scanned = 0;
-
-static shared_file_t *favicon = NULL;	/* Favorite icon for web browsing */
-static const gchar favicon_file[] = "favicon.png";
-static const gchar favicon_what[] = "Favorite web icon";
 
 GSList *extensions = NULL;
 GSList *shared_dirs = NULL;
@@ -549,66 +565,16 @@ use_map_on_query(gchar *query, int len)
 /* ----------------------------------------- */
 
 /**
- * Update file-specific information about the favorite icon.
+ * Initialize special file entry, returning shared_file_t structure if
+ * the file exists, NULL otherwise.
  */
-static void
-share_favicon_load(FILE *f, shared_file_t *sf)
-{
-	struct stat file_stat;
-	gchar buf[80];
-
-	g_assert(sf == favicon);
-
-	sf->file_size = 0;
-
-	if (-1 == fstat(fileno(f), &file_stat)) {
-		g_warning("can't stat %s: %s", sf->file_path, g_strerror(errno));
-		return;
-	}
-
-	if (!S_ISREG(file_stat.st_mode)) {
-		g_warning("favorite icon %s is not a plain file", sf->file_path);
-		return;
-	}
-
-	sf->file_size = file_stat.st_size;
-	sf->mtime = file_stat.st_mtime;
-
-	gm_snprintf(buf, sizeof(buf), "Reloaded web favorite icon (%lu bytes).",
-		(gulong) sf->file_size);
-	gcu_statusbar_message(buf);
-}
-
-/**
- * Watcher callback, invoked when the file from which we created the
- * favorite icon sharing structure changed.
- */
-static void
-share_favicon_changed(const gchar *filename, gpointer unused)
-{
-	FILE *f;
-
-	(void) unused;
-	g_assert(NULL != favicon);
-
-	f = file_fopen(filename, "r");
-	if (f == NULL)
-		return;
-
-	share_favicon_load(f, favicon);
-
-	fclose(f);
-}
-
-/**
- * Initialize favorite icon sharing.
- */
-static void
-share_favicon_init(void)
+static shared_file_t *
+share_special_load(struct special_file *sp)
 {
 	FILE *f;
 	gint idx;
 	gchar *filename;
+	shared_file_t *sf;
 
 #ifndef OFFICIAL_BUILD
 	file_path_t fp[3];
@@ -616,49 +582,96 @@ share_favicon_init(void)
 	file_path_t fp[2];
 #endif
 
-	g_assert(NULL == favicon);
-
-	file_path_set(&fp[0], settings_config_dir(), favicon_file);
-	file_path_set(&fp[1], PRIVLIB_EXP, favicon_file);
+	file_path_set(&fp[0], settings_config_dir(), sp->file);
+	file_path_set(&fp[1], PRIVLIB_EXP, sp->file);
 #ifndef OFFICIAL_BUILD
-	file_path_set(&fp[2], PACKAGE_SOURCE_DIR, favicon_file);
+	file_path_set(&fp[2], PACKAGE_SOURCE_DIR, sp->file);
 #endif
 
 	f = file_config_open_read_norename_chosen(
-			favicon_what, fp, G_N_ELEMENTS(fp), &idx);
+			sp->what, fp, G_N_ELEMENTS(fp), &idx);
 
 	if (!f)
-		return;
+		return NULL;
 
 	filename = make_pathname(fp[idx].dir, fp[idx].name);
-	watcher_register(filename, share_favicon_changed, NULL);
 
 	/*
-	 * Create fake favorite icon sharing structure, so that we can
+	 * Create fake special file sharing structure, so that we can
 	 * upload it if requested.
 	 */
 
-	favicon = walloc0(sizeof *favicon);
-	favicon->file_path = atom_str_get(filename);
-	favicon->name_nfc = atom_str_get(favicon_file);		/* ASCII is UTF-8 */
-	favicon->name_canonic = atom_str_get(favicon_file);
-	favicon->name_nfc_len = strlen(favicon->name_nfc);
-	favicon->name_canonic_len = strlen(favicon->name_canonic);
-	favicon->content_type = share_mime_type(SHARE_M_IMAGE_PNG);
-
-	share_favicon_load(f, favicon);
+	sf = walloc0(sizeof *sf);
+	sf->file_path = atom_str_get(filename);
+	sf->name_nfc = atom_str_get(sp->file);		/* ASCII is UTF-8 */
+	sf->name_canonic = atom_str_get(sp->file);
+	sf->name_nfc_len = strlen(sf->name_nfc);
+	sf->name_canonic_len = strlen(sf->name_canonic);
+	sf->content_type = share_mime_type(sp->type);
 
 	G_FREE_NULL(filename);
 	fclose(f);
+
+	return sf;
 }
 
 /**
- * Returns information about shared file icon, if any.
+ * Initialize the special files we're sharing.
+ */
+static void
+share_special_init(void)
+{
+	guint i;
+
+	special_names = g_hash_table_new(g_str_hash, g_str_equal);
+
+	for (i = 0; i < G_N_ELEMENTS(specials); i++) {
+		shared_file_t *sf = share_special_load(&specials[i]);
+		if (sf != NULL)
+			g_hash_table_insert(special_names,
+				deconstify_gchar(specials[i].path), sf);
+	}
+}
+
+/**
+ * Look up a possibly shared special file, updating the entry with current
+ * file size and modification time.
+ *
+ * @param path	the URL path on the server (case sensitive, of course)
+ *
+ * @return the shared file information if there is something shared at path,
+ * or NULL if the path is invalid.
  */
 shared_file_t *
-shared_favicon(void)
+shared_special(const gchar *path)
 {
-	return favicon;
+	shared_file_t *sf;
+	struct stat file_stat;
+
+	sf = g_hash_table_lookup(special_names, path);
+
+	if (sf == NULL)
+		return NULL;
+
+	if (-1 == stat(sf->file_path, &file_stat)) {
+		g_warning("can't stat %s: %s", sf->file_path, g_strerror(errno));
+		return NULL;
+	}
+
+	if (!S_ISREG(file_stat.st_mode)) {
+		g_warning("file %s is no longer a plain file", sf->file_path);
+		return NULL;
+	}
+
+	/*
+	 * Update information in case the file changed since the last time
+	 * we served it.
+	 */
+
+	sf->file_size = file_stat.st_size;
+	sf->mtime = file_stat.st_mtime;
+
+	return sf;
 }
 
 /**
@@ -674,7 +687,7 @@ share_init(void)
 	qhit_init();
 	oob_init();
 	oob_proxy_init();
-	share_favicon_init();
+	share_special_init();
 
 	/**
 	 * We allocate an empty search_table, which will be de-allocated when we
@@ -746,6 +759,7 @@ share_mime_type(enum share_mime_type type)
 	switch (type) {
 	case SHARE_M_APPLICATION_BINARY:	return "application/binary";
 	case SHARE_M_IMAGE_PNG:				return "image/png";
+	case SHARE_M_TEXT_PLAIN:			return "text/plain";
 	}
 
 	g_error("unknown MIME type %d", (gint) type);
@@ -1369,13 +1383,25 @@ share_scan(void)
 }
 
 /**
- * Get rid of the favicon description, if any.
+ * Hash table iterator callback to free the value.
  */
 static void
-share_favicon_close(void)
+special_free_kv(gpointer unused_key, gpointer val, gpointer unused_udata)
 {
-	if (favicon != NULL)
-		shared_file_free(favicon);
+	(void) unused_key;
+	(void) unused_udata;
+
+	shared_file_free(val);
+}
+
+/**
+ * Get rid of the special file descriptions, if any.
+ */
+static void
+share_special_close(void)
+{
+	g_hash_table_foreach(special_names, special_free_kv, NULL);
+	g_hash_table_destroy(special_names);
 }
 
 /**
@@ -1384,7 +1410,7 @@ share_favicon_close(void)
 void
 share_close(void)
 {
-	share_favicon_close();
+	share_special_close();
 	free_extensions();
 	share_free();
 	shared_dirs_free();

@@ -1648,8 +1648,8 @@ static void
 upload_error_not_found(gnutella_upload_t *u, const gchar *request)
 {
 	if (upload_debug) g_warning(
-		"returned 404 for %s: %s", host_addr_to_string(u->socket->addr),
-		request);
+		"returned 404 for %s <%s>: %s", host_addr_to_string(u->socket->addr),
+		upload_vendor_str(u), request);
 	upload_error_remove(u, NULL, 404, "Not Found");
 }
 
@@ -2077,8 +2077,11 @@ get_file_to_upload(gnutella_upload_t *u, header_t *header,
 	}
 	else if (0 == strcmp(uri, "/uri-res/N2R"))
 		return get_file_to_upload_from_urn(u, header, search);
-	else if (0 == strcmp(uri, "/favicon.ico"))
-		return shared_favicon();
+	else {
+		shared_file_t *sf = shared_special(uri);
+		if (sf != NULL)
+			return sf;
+	}
 
 	upload_error_not_found(u, uri);
 	return NULL;
