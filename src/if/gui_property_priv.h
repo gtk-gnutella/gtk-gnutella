@@ -102,6 +102,8 @@ extern const gboolean progressbar_bws_gout_avg;
 extern const gboolean progressbar_bws_glin_avg;
 extern const gboolean progressbar_bws_glout_avg;
 extern const gboolean search_sort_casesense;
+extern const guint32  search_sort_default_order;
+extern const guint32  search_sort_default_column;
 extern const gboolean show_search_results_settings;
 extern const gboolean show_dl_settings;
 extern const guint32  search_stats_mode;

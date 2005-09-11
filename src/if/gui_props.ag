@@ -624,6 +624,24 @@ prop = {
 };
 
 prop = {
+    name = "search_sort_default_order";
+    desc = "Default sort order for search results.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "search_sort_default_column";
+    desc = "Default sort column for search results.";
+    type = guint32;
+    data = {
+        default = -1;
+    };
+};
+
+prop = {
     name = "show_search_results_settings";
     desc = "Display search settings.";
     type = boolean;
