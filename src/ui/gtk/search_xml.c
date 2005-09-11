@@ -413,14 +413,14 @@ search_store_xml(void)
      * Iterate over the searches and add them to the tree
      */
     for (l = search_gui_get_searches(); l; l = g_list_next(l))
-        search_to_xml(root, (search_t *) l->data);
+        search_to_xml(root, l->data);
 
     /*
      * Iterate over the rulesets and add them to the tree.
      * Only those that are not bound to a search.
      */
     for (l = filters; l; l = g_list_next(l))
-        filter_to_xml(root, (filter_t *) l->data);
+        filter_to_xml(root, l->data);
 
     /*
      * Try to save the file
@@ -566,7 +566,7 @@ search_retrieve_xml(void)
 
     for (f = filters; f != NULL; f = f_next) {
 		gboolean damaged = FALSE;
-        filter_t *filter = (filter_t *) f->data;
+        filter_t *filter = f->data;
         GList *r;
         gint n = 0;
 
@@ -580,7 +580,7 @@ search_retrieve_xml(void)
         if (!filter_is_builtin(filter)) {
 
             for (r = filter->ruleset; r != NULL; r = g_list_next(r)) {
-                rule_t *rule = (rule_t *) r->data;
+                rule_t *rule = r->data;
                 gpointer new_target;
 
                 g_assert(rule->target != NULL);
@@ -636,7 +636,7 @@ search_retrieve_xml(void)
             g_message("verifying bindings...");
 
         for (s = search_gui_get_searches(); s != NULL; s = g_list_next(s)) {
-            search_t *search = (search_t *) s->data;
+            search_t *search = s->data;
 
             if (search->filter->search == search) {
                 if (gui_debug >= 6)
@@ -732,7 +732,7 @@ search_to_xml(xmlNodePtr parent, search_t *s)
     xml_prop_printf(newxml, TAG_SEARCH_SORT_ORDER, "%i", s->sort_order);
 
     for (l = s->filter->ruleset; l != NULL; l = g_list_next(l))
-        rule_to_xml(newxml, (rule_t *) l->data);
+        rule_to_xml(newxml, l->data);
 }
 
 
@@ -801,7 +801,7 @@ filter_to_xml(xmlNodePtr parent, filter_t *f)
      * application.
      */
     for (l = f->ruleset; l != NULL; l = g_list_next(l))
-        rule_to_xml(newxml, (rule_t *) l->data);
+        rule_to_xml(newxml, l->data);
 }
 
 static void
