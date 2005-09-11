@@ -666,6 +666,15 @@ prop = {
 };
 
 prop = {
+    name = "bootstrap_debug";
+    desc = "Debug level for bootstraping into the network.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
     name = "http_debug";
     desc = "Debug level for HTTP code.";
     type = guint32;
