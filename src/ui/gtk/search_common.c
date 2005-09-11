@@ -95,6 +95,21 @@ search_t *search_gui_get_current_search(void)	{ return current_search; }
 void search_gui_forget_current_search(void)		{ current_search = NULL; }
 void search_gui_current_search(search_t *sch)	{ current_search = sch; }
 
+/**
+ * Create a new search and start it. Use default reissue timeout.
+ */
+gboolean
+search_gui_new_search(const gchar *query, flag_t flags, search_t **search)
+{
+    guint32 timeout;
+
+    gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
+
+	/* Sort by number of sources as default */
+    return search_gui_new_search_full(query, timeout,
+			c_sr_count, SORT_DESC, flags | SEARCH_ENABLED, search);
+}
+
 
 /**
  * Free the alternate locations held within a file record.
@@ -561,7 +576,7 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     rc->refcount = 0;
 
     filename = r->name;
-#ifdef USE_GTK2
+#if GTK_CHECK_VERSION(2, 0, 0)
     /* Gtk2 extracts this in search_gui2.c because of UTF8 issues. */
     rc->ext  = NULL;
 #else
@@ -710,6 +725,37 @@ search_gui_store_searches(void)
 {
 	char *path;
 
+#if GTK_CHECK_VERSION(2, 0, 0)
+	{
+		const GList *l;
+
+		/* Update the search column ID and order before storing the search */
+		for (l = search_gui_get_searches(); NULL != l; l = g_list_next(l)) {
+			search_t *sch = l->data;
+			gint col = -1;
+			GtkSortType order;
+
+			g_assert(sch);
+			g_assert(sch->model);
+			
+			if (
+				gtk_tree_sortable_get_sort_column_id(
+					GTK_TREE_SORTABLE(sch->model), &col, &order)
+			) {
+				switch (order) {
+				case GTK_SORT_ASCENDING:
+					sch->sort_order = SORT_ASC;
+					break;
+				case GTK_SORT_DESCENDING:
+					sch->sort_order = SORT_DESC;
+					break;
+				}
+				sch->sort_col = col;
+			}
+		}
+	}
+#endif
+	
 	search_store_xml();
 
 	path = make_pathname(settings_gui_config_dir(), search_file);
@@ -1148,7 +1194,7 @@ search_gui_flush(time_t now)
     }
 
     for (curs = accumulated_rs; curs != NULL; curs = g_slist_next(curs)) {
-        results_set_t *rs = (results_set_t *) curs->data;
+        results_set_t *rs = curs->data;
         GSList *schl = g_slist_copy(rs->schl);
 
         /*
