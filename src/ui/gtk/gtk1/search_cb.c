@@ -45,6 +45,7 @@ RCSID("$Id$");
 #include "gtk/statusbar.h"
 #include "gtk/gtk-missing.h"
 #include "gtk/bitzi.h"			/* Bitzi GTK functions */
+#include "gtk/columns.h"
 #include "gtk/misc.h"
 #include "search_cb.h"
 
@@ -71,44 +72,38 @@ extern search_t *search_selected;
 static void
 refresh_popup(void)
 {
+	/*
+	 * The following popup items are set insensitive if nothing is currently
+	 * selected.
+	 */
+	static const struct {
+		const gchar *name;
+	} menu[] = {
+		{	"popup_search_drop" },
+		{	"popup_search_drop_global" },
+		{	"popup_search_autodownload" },
+		{	"popup_search_new_from_selected" },
+		{	"popup_search_metadata" },
+		{	"popup_search_browse_host" },
+	};
+	search_t *search = search_gui_get_current_search();
 	gboolean sensitive;
-    search_t *search;
+	guint i;
 
-    search = search_gui_get_current_search();
+	sensitive = NULL != search && NULL != GTK_CLIST(search->ctree)->selection;
+	gtk_widget_set_sensitive(
+			lookup_widget(main_window, "button_search_download"),
+			sensitive);
 
-	sensitive = search &&
-        (NULL != (GTK_CLIST(search->ctree))->selection);
-	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_search_download"), sensitive);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_drop_name"), sensitive);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_drop_sha1"), sensitive);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_drop_host"), sensitive);
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_drop_name_global"),
-        sensitive);
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_drop_sha1_global"),
-        sensitive);
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_drop_host_global"),
-        sensitive);
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_autodownload_name"),
-        sensitive);
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_autodownload_sha1"),
-        sensitive);
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_new_from_selected"),
-        sensitive);
+	for (i = 0; i < G_N_ELEMENTS(menu); i++)
+		gtk_widget_set_sensitive(lookup_widget(popup_search, menu[i].name),
+			sensitive);
 
+	sensitive = NULL != search;	
     gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_restart"), NULL != search);
+        lookup_widget(popup_search, "popup_search_restart"), sensitive);
     gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_duplicate"), NULL != search);
+        lookup_widget(popup_search, "popup_search_duplicate"), sensitive);
 
     if (search) {
         gtk_widget_set_sensitive(
@@ -1323,6 +1318,16 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	data_list = search_cb_collect_ctree_data(search->ctree,
 					node_list, gui_record_sha1_eq);
 
+	/* Make sure the column is actually visible. */
+	{
+		static const gint min_width = 80;
+		GtkCList *clist = GTK_CLIST(search->ctree);
+
+    	gtk_clist_set_column_visibility(clist, c_sr_meta, TRUE);
+		if (clist->column[c_sr_meta].width < min_width)
+    		gtk_clist_set_column_width(clist, c_sr_meta, min_width);
+	}
+	
 	/* Queue up our requests */
     gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
 	if (bitzi_debug)
