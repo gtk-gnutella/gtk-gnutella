@@ -766,7 +766,7 @@ bitzi_query_byurnsha1(const gchar *urnsha1)
 
 		bitzi_rq = g_slist_append(bitzi_rq, request);
 		if (bitzi_debug) {
-			g_message("bitzy_queryby_urnsha1: queued query, %d in queue",
+			g_message("bitzi_queryby_urnsha1: queued query, %d in queue",
 				g_slist_position(bitzi_rq, g_slist_last(bitzi_rq)) + 1);
 		}
 
@@ -896,7 +896,9 @@ bitzi_init(void)
 		fclose(old_data);
 	} /* if (old_data) */
 
-	g_message("Loaded %d bitzi ticket(s) from \"%s\"", ticket_count, oldpath);
+	if (bitzi_debug)
+		g_message("Loaded %d bitzi ticket(s) from \"%s\"",
+			ticket_count, oldpath);
 
 	/* clean-up */
 	G_FREE_NULL(path);
