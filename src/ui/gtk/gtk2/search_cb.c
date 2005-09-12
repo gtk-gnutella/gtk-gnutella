@@ -440,7 +440,7 @@ on_button_search_filter_clicked(GtkButton *unused_button, gpointer unused_udata)
 }
 
 void
-on_button_search_download_selected_clicked(GtkButton *unused_button,
+on_button_search_download_clicked(GtkButton *unused_button,
 	gpointer unused_udata)
 {
 	(void) unused_button;
