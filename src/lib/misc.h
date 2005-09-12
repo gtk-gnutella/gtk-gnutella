@@ -467,7 +467,8 @@ signal_handler_t set_signal(gint signo, signal_handler_t handler);
 
 gchar *ascii_strcasestr(const gchar *haystack, const gchar *needle);
 
-#define NULL_STRING(s) (s != NULL ? s : "(null)")
+#define NULL_STRING(s) (NULL != (s) ? (s) : "(null)")
+#define EMPTY_STRING(s) (NULL != (s) ? (s) : "")
 
 /**
  * Swap endianness of a guint32.
