@@ -60,8 +60,6 @@ RCSID("$Id$");
 
 extern search_t *search_selected;
 
-static gchar tmpstr[4096];
-
 /***
  *** Private functions
  ***/
@@ -135,129 +133,161 @@ refresh_popup(void)
  * Set or clear (when rc == NULL) the information about the search.
  */
 static void
-search_gui_set_details(record_t *rc)
+search_gui_set_details(const record_t *rc)
 {
-	static GtkEntry *info_filename = NULL;
-	static GtkEntry *info_sha1 = NULL;
-	static GtkEntry *info_source = NULL;
-	static GtkEntry *info_size = NULL;
-	static GtkEntry *info_guid = NULL;
-	static GtkEntry *info_timestamp = NULL;
-	static GtkEntry *info_vendor = NULL;
-	static GtkEntry *info_index = NULL;
-	static GtkEntry *info_tag = NULL;
-	static GtkEntry *info_country = NULL;
-	static GtkEntry *info_speed = NULL;
-	static GtkText *info_xml = NULL;
-	const gchar *vendor;
-	gchar *xml_text;
-	gchar bytes[32];
+	enum info_idx {
+		info_filename = 0,
+		info_sha1,
+		info_source,
+		info_size,
+		info_guid,
+		info_timestamp,
+		info_vendor,
+		info_index,
+		info_tag,
+		info_country,
+		info_speed,
 
-	if (info_filename == NULL) {		/* First time */
-		info_filename =
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename"));
-		info_sha1 =
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1"));
-		info_source =
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_source"));
-		info_size =
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_size"));
-		info_guid =
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_guid"));
-		info_timestamp =
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_timestamp"));
-		info_vendor =
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_vendor"));
-		info_index =
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_index"));
-		info_tag =
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag"));
-		info_country =
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_country"));
-		info_speed =
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_speed"));
-		info_xml =
-			GTK_TEXT(lookup_widget(main_window, "text_result_info_xml"));
+		num_infos
+	};
+	static GtkEntry *entry[num_infos];
+	static GtkText *xml;
+	static gboolean initialized;
+	gchar *xml_text;
+	guint j;
+
+	if (!initialized) {
+		static const struct {
+			const gchar *name;
+		} widgets[] = {
+#define D(x) STRINGIFY(CAT2(entry_result_,x))
+			{ D(info_filename) },
+			{ D(info_sha1) },
+			{ D(info_source) },
+			{ D(info_size) },
+			{ D(info_guid) },
+			{ D(info_timestamp) },
+			{ D(info_vendor) },
+			{ D(info_index) },
+			{ D(info_tag) },
+			{ D(info_country) },
+			{ D(info_speed) },
+#undef D
+		};
+		guint i;
+		
+		STATIC_ASSERT(G_N_ELEMENTS(widgets) == G_N_ELEMENTS(entry));
+		STATIC_ASSERT(G_N_ELEMENTS(widgets) == num_infos);
+		
+		initialized = TRUE;
+
+		for (i = 0; i < G_N_ELEMENTS(entry); i++)
+			entry[i] = GTK_ENTRY(lookup_widget(main_window, widgets[i].name));
+
+		xml = GTK_TEXT(lookup_widget(main_window,
+							STRINGIFY(CAT2(text_result_,info_xml))));
 	}
 
-	if (rc == NULL) {
-		gchar *empty = "";
+	if (NULL == rc) {
+		guint i;
 
-		gtk_entry_set_text(info_filename, empty);
-		gtk_entry_set_text(info_sha1, empty);
-		gtk_entry_set_text(info_source, empty);
-		gtk_entry_set_text(info_size, empty);
-		gtk_entry_set_text(info_guid, empty);
-		gtk_entry_set_text(info_timestamp, empty);
-		gtk_entry_set_text(info_vendor, empty);
-		gtk_entry_set_text(info_index, empty);
-		gtk_entry_set_text(info_tag, empty);
-		gtk_entry_set_text(info_country, empty);
-		gtk_entry_set_text(info_speed, empty);
+		for (i = 0; i < G_N_ELEMENTS(entry); i++)
+			gtk_entry_set_text(entry[i], "");
 
-		gtk_text_freeze(info_xml);
-		gtk_text_set_point(info_xml, 0);
-		gtk_text_forward_delete(info_xml, gtk_text_get_length(info_xml));
-		gtk_text_thaw(info_xml);
+		gtk_text_freeze(xml);
+		gtk_text_set_point(xml, 0);
+		gtk_text_forward_delete(xml, gtk_text_get_length(xml));
+		gtk_text_thaw(xml);
 
 		return;
 	}
 
-	gtk_entry_set_text(info_filename, rc->name);
+	for (j = 0; j < num_infos; j++) {
+		GtkEntry *e = entry[j];
 
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
-		rc->sha1 ? "urn:sha1:" : _("<none>"),
-		rc->sha1 ? sha1_base32(rc->sha1) : "");
-	gtk_entry_set_text(info_sha1, tmpstr);
+		switch ((enum info_idx) j) {
+		case info_filename:
+			gtk_entry_set_text(e, rc->name);
+			break;
+			
+		case info_sha1:
+			gtk_entry_printf(e, "%s%s",
+				rc->sha1 ? "urn:sha1:" : _("<no SHA1 known>"),
+				rc->sha1 ? sha1_base32(rc->sha1) : "");
+			break;
+			
+		case info_source:
+			gtk_entry_set_text(e,
+				rc->results_set->hostname
+					? hostname_port_to_gchar(rc->results_set->hostname,
+						rc->results_set->port)
+					: host_addr_port_to_string(rc->results_set->addr,
+						rc->results_set->port));
+			break;
 
-	if (rc->results_set->hostname)
-		gtk_entry_set_text(info_source, hostname_port_to_gchar(
-			rc->results_set->hostname, rc->results_set->port));
-	else
-		gtk_entry_set_text(info_source, host_addr_port_to_string(
-			rc->results_set->addr, rc->results_set->port));
+		case info_country:
+			gtk_entry_printf(e, "%s (%s)",
+				iso3166_country_name(rc->results_set->country),
+				iso3166_country_cc(rc->results_set->country));
+			break;
 
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s)",
-		iso3166_country_name(rc->results_set->country),
-		iso3166_country_cc(rc->results_set->country));
-	gtk_entry_set_text(info_country, tmpstr);
+		case info_size:
+			{
+				gchar bytes[32];
+				
+				uint64_to_string_buf(rc->size, bytes, sizeof bytes);
+				gtk_entry_printf(e, _("%s (%s bytes)"),
+					short_size(rc->size), bytes);
+			}
+			break;
 
-	uint64_to_string_buf(rc->size, bytes, sizeof bytes);
-	gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%s bytes)"),
-		short_size(rc->size), bytes);
-	gtk_entry_set_text(info_size, tmpstr);
+		case info_guid:
+			gtk_entry_set_text(e, guid_hex_str(rc->results_set->guid));
+			break;
 
-	gtk_entry_set_text(info_guid, guid_hex_str(rc->results_set->guid));
+		case info_timestamp:
+			/* The ".25" is there to discard the trailing '\n' (see ctime(3) */
+			gtk_entry_printf(entry[info_timestamp], "%.25s",
+				ctime(&rc->results_set->stamp));
+			break;
 
-	g_strlcpy(tmpstr, ctime(&rc->results_set->stamp),
-		MIN(25U, sizeof tmpstr));	/* discard trailing '\n' (see ctime(3) */
-	gtk_entry_set_text(info_timestamp, tmpstr);
+		case info_vendor:
+			{	
+				const gchar *vendor, *ver;
 
-	vendor = lookup_vendor_name(rc->results_set->vendor);
-	if (vendor == NULL)
-		*tmpstr = '\0';
-	else if (rc->results_set->version)
-		gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s",
-			vendor, rc->results_set->version);
-	else
-		g_strlcpy(tmpstr, vendor, sizeof tmpstr);
-	gtk_entry_set_text(info_vendor, tmpstr);
+				vendor = lookup_vendor_name(rc->results_set->vendor);
+				ver = vendor ? rc->results_set->version : NULL;
+				gtk_entry_printf(e, "%s%s%s",
+					EMPTY_STRING(vendor),
+					ver ? "/" : "",
+					EMPTY_STRING(ver));
+			}
+			break;
 
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%lu", (gulong) rc->index);
-	gtk_entry_set_text(info_index, tmpstr);
+		case info_index:
+			gtk_entry_printf(e, "%lu", (gulong) rc->index);
+			break;
 
-	gtk_entry_set_text(info_tag, rc->tag ? rc->tag : "");
+		case info_tag:
+			gtk_entry_set_text(e, EMPTY_STRING(rc->tag));
+			break;
+			
+		case info_speed:
+			gtk_entry_printf(e, "%u", rc->results_set->speed);
+			break;
 
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%u", rc->results_set->speed);
-	gtk_entry_set_text(info_speed, tmpstr);
+		case num_infos:
+			g_assert_not_reached();
+		}
+	}
 
 	xml_text = rc->xml ? search_xml_indent(rc->xml) : NULL;
-	if (xml_text != NULL) {
-		gtk_text_freeze(info_xml);
-		gtk_text_set_point(info_xml, 0);
-		gtk_text_insert(info_xml, NULL, NULL, NULL,
+	if (NULL != xml_text) {
+		gtk_text_freeze(xml);
+		gtk_text_set_point(xml, 0);
+		gtk_text_insert(xml, NULL, NULL, NULL,
 			lazy_utf8_to_locale(xml_text), -1);
-		gtk_text_thaw(info_xml);
+		gtk_text_thaw(xml);
 	}
 	G_FREE_NULL(xml_text);
 }
@@ -717,18 +747,19 @@ on_clist_search_results_button_press_event(GtkWidget *widget,
 	case 3:
         /* right click section (popup menu) */
     	if (search_gui_get_current_search()) {
+			GtkMenuItem *item;
             gboolean search_results_show_tabs;
 
         	refresh_popup();
             gui_prop_get_boolean_val(PROP_SEARCH_RESULTS_SHOW_TABS,
                 &search_results_show_tabs);
 
-            gm_snprintf(tmpstr, sizeof(tmpstr), (search_results_show_tabs) ?
-                _("Show search list") : _("Show tabs"));
-
-        	gtk_label_set(GTK_LABEL((GTK_MENU_ITEM
-            	(lookup_widget(popup_search, "popup_search_toggle_tabs"))
-                	->item.bin.child)), tmpstr);
+			item = GTK_MENU_ITEM(lookup_widget(popup_search,
+									"popup_search_toggle_tabs"));
+        	gtk_label_set(GTK_LABEL(item->item.bin.child),
+				search_results_show_tabs
+					? _("Show search list")
+					: _("Show tabs"));
 			gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL,
                      event->button, event->time);
         }
