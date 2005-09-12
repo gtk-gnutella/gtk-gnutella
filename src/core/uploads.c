@@ -3488,7 +3488,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		if (u->buffer == NULL) {
 			u->buf_size = READ_BUF_SIZE;
-			u->buffer = (gchar *) g_malloc(u->buf_size);
+			u->buffer = g_malloc(u->buf_size);
 		}
 	}
 
