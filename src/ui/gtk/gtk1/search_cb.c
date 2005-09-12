@@ -246,8 +246,8 @@ search_gui_set_details(const record_t *rc)
 			break;
 
 		case info_timestamp:
-			/* The ".25" is there to discard the trailing '\n' (see ctime(3) */
-			gtk_entry_printf(entry[info_timestamp], "%.25s",
+			/* The ".24" is there to discard the trailing '\n' (see ctime(3) */
+			gtk_entry_printf(entry[info_timestamp], "%24.24s",
 				ctime(&rc->results_set->stamp));
 			break;
 
