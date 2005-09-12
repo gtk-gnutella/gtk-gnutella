@@ -7154,7 +7154,7 @@
 			    <xpad>0</xpad>
 			    <ypad>0</ypad>
 			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
+			    <yexpand>True</yexpand>
 			    <xshrink>False</xshrink>
 			    <yshrink>False</yshrink>
 			    <xfill>True</xfill>
@@ -8864,13 +8864,13 @@
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>drop1</name>
+    <name>popup_search_drop</name>
     <label>Drop results...</label>
     <right_justify>False</right_justify>
 
     <widget>
       <class>GtkMenu</class>
-      <name>drop1_menu</name>
+      <name>popup_search_drop_menu</name>
 
       <widget>
 	<class>GtkMenuItem</class>
@@ -8914,13 +8914,13 @@
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>globally_drop1</name>
+    <name>popup_search_drop_global</name>
     <label>Globally drop results...</label>
     <right_justify>False</right_justify>
 
     <widget>
       <class>GtkMenu</class>
-      <name>globally_drop1_menu</name>
+      <name>popup_search_drop_global_menu</name>
 
       <widget>
 	<class>GtkMenuItem</class>
@@ -8970,13 +8970,13 @@
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>auto-download_selected_by1</name>
+    <name>popup_search_autodownload</name>
     <label>Auto-download selected by...</label>
     <right_justify>False</right_justify>
 
     <widget>
       <class>GtkMenu</class>
-      <name>auto-download_selected_by1_menu</name>
+      <name>popup_search_autodownload_menu</name>
 
       <widget>
 	<class>GtkMenuItem</class>
