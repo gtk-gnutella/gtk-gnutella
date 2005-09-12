@@ -275,7 +275,7 @@ adns_do_transfer(gint fd, gpointer buf, size_t len, gboolean do_write)
 			return FALSE;
 		} else if (0 == ret) {
 			/*
-			 * Don't warn on EOF if we're the children process and our
+			 * Don't warn on EOF if this is the child process and the
 			 * parent is gone.
 			 */
 			if (!do_write && !(is_helper && getppid() == 1))
