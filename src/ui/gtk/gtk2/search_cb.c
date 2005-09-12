@@ -71,23 +71,40 @@ static search_t *search_selected = NULL;
 static void
 refresh_popups(void)
 {
-	static const char * const popup_names[] = {
-		"popup_search_download",
-		"popup_search_drop_name",
-		"popup_search_drop_sha1",
-		"popup_search_drop_host",
-		"popup_search_drop_name_global",
-		"popup_search_drop_host_global",
-		"popup_search_autodownload_name",
-		"popup_search_autodownload_sha1",
-		"popup_search_new_from_selected",
+	/*
+	 * The following popup items are set insensitive if nothing is currently
+	 * selected (actually if the cursor is unset).
+	 */
+	static const struct {
+		const gchar *name;
+	} menu[] = {
+		{	"popup_search_download" },
+		{	"popup_search_drop" },
+		{	"popup_search_drop_global" },
+		{	"popup_search_autodownload" },
+		{	"popup_search_new_from_selected" },
+		{	"popup_search_metadata" },
+		{	"popup_search_browse_host" },
 	};
 	search_t *search = search_gui_get_current_search();
-	gboolean sensitive = NULL != search;
+	gboolean sensitive;
 	guint i;
 
-	for (i = 0; i < G_N_ELEMENTS(popup_names); i++)
-		gtk_widget_set_sensitive(lookup_widget(popup_search, popup_names[i]),
+	if (!search) {
+		sensitive = FALSE;
+	} else {
+		GtkTreePath *path;
+		
+		gtk_tree_view_get_cursor(GTK_TREE_VIEW(search->tree_view), &path, NULL);
+		sensitive = NULL != path;	
+	}
+	
+	gtk_widget_set_sensitive(
+		lookup_widget(main_window, "button_search_download"),
+		sensitive);
+
+	for (i = 0; i < G_N_ELEMENTS(menu); i++)
+		gtk_widget_set_sensitive(lookup_widget(popup_search, menu[i].name),
 			sensitive);
 
     if (search) {
@@ -672,12 +689,12 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 
 	gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag")),
-			rc->tag ? lazy_locale_to_utf8(rc->tag) : _("<none>"));
+			rc->tag ? lazy_locale_to_utf8(rc->tag) : _("<no SHA1 known>"));
 
 	txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget(main_window,
 					"textview_result_info_xml")));
 	xml_txt = rc->xml ? search_xml_indent(rc->xml) : NULL;
-	gtk_text_buffer_set_text(txt, xml_txt ? xml_txt : _("<none>"), -1);
+	gtk_text_buffer_set_text(txt, EMPTY_STRING(xml_txt), -1);
 	G_FREE_NULL(xml_txt);
 }
 
@@ -1078,13 +1095,28 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	if (bitzi_debug)
 		g_message("on_search_meta_data: %d items", g_slist_length(sl_records));
 
+	/* Make sure the column is actually visible. */
+	{
+		static const int min_width = 80;
+		GtkTreeViewColumn *col;
+		gint w;
+		
+		col = gtk_tree_view_get_column(GTK_TREE_VIEW(search->tree_view),
+				c_sr_meta);
+		g_assert(NULL != col);
+		gtk_tree_view_column_set_visible(col, TRUE);
+		w = gtk_tree_view_column_get_width(col);
+		if (w < min_width)
+			gtk_tree_view_column_set_fixed_width(col, min_width);
+	}
+			
 	for (sl = sl_records; sl; sl = g_slist_next(sl)) {
 		record_t *rec;
 
 		rec = sl->data;
 		if (rec->sha1) {
 			GtkTreeIter *parent;
-
+			
 			/* set the feedback */
 			parent = find_parent_with_sha1(search->parents, rec->sha1);
 			g_assert(parent != NULL);
@@ -1094,12 +1126,10 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 
 			/* then send the query... */
 	    	guc_query_bitzi_by_urn(rec->sha1);
-
 		}
     }
 
 	g_slist_free(sl_records);
-
 }
 
 
