@@ -1343,7 +1343,7 @@ add_column(
 	g_object_set(G_OBJECT(column),
 		"fixed-width", MAX(1, width),
 		"min-width", 1,
-		"reorderable", TRUE,
+		"reorderable", FALSE,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		(void *) 0);
