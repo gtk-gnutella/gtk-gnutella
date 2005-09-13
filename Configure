@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Sep 11 18:42:35 MEST 2005 [metaconfig 3.0 PL70]
+# Generated on Tue Sep 13 16:19:51 MEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -3376,8 +3376,8 @@ case "$ccname" in
 '') ccname="$cc" ;;
 esac
 
-# gcc 3.1 complains about adding -Idirectories that it already knows about,
-# so we will take those off from locincpth.
+: gcc 3.1 complains about adding -Idirectories that it already knows about,
+: so we will take those off from locincpth.
 case "$gccversion" in
 3*)
     echo "main(){}">try.c
@@ -3575,6 +3575,10 @@ none|recommended)
 			dflt="$dflt -posix"
 		fi
 		;;
+	esac
+	case "$gccversion" in
+	1*|2*) dflt="$dflt -Wall";;
+	*) dflt="$dflt -W -Wall -Wformat=2";;
 	esac
 	;;
 esac
