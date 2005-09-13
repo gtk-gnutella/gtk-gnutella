@@ -62,7 +62,7 @@ RCSID("$Id$");
 
 #define UHC_MAX_ATTEMPTS	3	/**< Maximum connection / resolution attempts */
 #define UHC_TIMEOUT			20	/**< Host cache timeout, in seconds */
-#define UHC_RETRY_AFTER		600	/**< Frequency of contacts for an UHC (secs) */
+#define UHC_RETRY_AFTER		3600 /**< Frequency of contacts for an UHC (secs) */
 
 /**
  * Request context, used when we decide to get hosts via the UDP host caches.
