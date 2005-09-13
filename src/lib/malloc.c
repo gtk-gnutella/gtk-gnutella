@@ -1221,6 +1221,15 @@ GString *string_append_c_track(
 	return string_str_track(s, old, file, line);
 }
 
+GString *string_append_len_track(
+	GString *s, const gchar *val,  gssize len, gchar *file, gint line)
+{
+	gchar *old = s->str;
+
+	s = g_string_append_len(s, val, len);
+	return string_str_track(s, old, file, line);
+}
+
 GString *string_assign_track(
 	GString *s, const gchar *p, gchar *file, gint line)
 {

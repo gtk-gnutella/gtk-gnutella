@@ -145,6 +145,8 @@
 #define g_string_prepend(s,p)	string_prepend_track((s),(p),_WHERE_,__LINE__)
 #define g_string_prepend_c(s,c) string_prepend_c_track(s),(c),_WHERE_,__LINE__)
 
+#define g_string_append_len(s,v,l) \
+	string_append_len_track((s),(v),(l),_WHERE_,__LINE__)
 #define g_string_insert(s,i,p)	\
 	string_insert_track((s),(i),(p),_WHERE_,__LINE__)
 #define g_string_insert_c(s,i,c) \
@@ -241,6 +243,8 @@ GString *string_append_track(
 	GString *s, const gchar *p, gchar *file, gint line);
 GString *string_append_c_track(
 	GString *s, gchar c, gchar *file, gint line);
+GString *string_append_len_track(
+	GString *s, const gchar *val,  gssize len, gchar *file, gint line);
 GString *string_assign_track(
 	GString *s, const gchar *p, gchar *file, gint line);
 void string_free_track(GString *s, gint freestr, gchar *file, gint line);
