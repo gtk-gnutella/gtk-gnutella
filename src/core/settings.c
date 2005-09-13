@@ -146,7 +146,7 @@ ensure_unicity(const gchar *file)
 	fd = file_create(file, O_RDWR, PID_FILE_MODE);
 	if (-1 == fd) {
 		e = errno;
-		g_warning("Could not access \"%s\": %s", file, g_strerror(e));
+		g_warning("could not access \"%s\": %s", file, g_strerror(e));
 		return -1;
 	}
 
@@ -179,7 +179,7 @@ ensure_unicity(const gchar *file)
 			fl.l_whence = SEEK_SET;
 
 			if (-1 != fcntl(fd, F_GETLK, &fl)) {
-				g_warning("Another gtk-gnutella process seems to "
+				g_warning("another gtk-gnutella process seems to "
 					"be still running (pid=%lu)", (gulong) fl.l_pid);
 			}
 		}
@@ -189,16 +189,11 @@ ensure_unicity(const gchar *file)
 	errno = 0;
 #endif /* F_SETLK && F_WRLCK */
 
-	if (!locking_failed) {
-		/* Keep the fd open, otherwise the lock is lost */
-		return fd;
-	}
+	if (!locking_failed)
+		goto done;
 
-	if (EAGAIN == e || EACCES == e) {
-		/* The file appears to be locked */
-		close(fd);
-		return -1;
-	}
+	if (EAGAIN == e || EACCES == e)
+		goto failed;		/* The file appears to be locked */
 
 	/* Maybe F_SETLK is not supported by the OS or filesystem,
 	 * fall back to weaker PID locking */
@@ -211,10 +206,8 @@ ensure_unicity(const gchar *file)
 
 		if ((ssize_t) -1 == r) {
 			/* This would be odd */
-			g_warning("Could not read pidfile \"%s\": %s",
-					file, g_strerror(e));
-			close(fd);
-			return -1;
+			g_warning("could not read pidfile \"%s\": %s", file, g_strerror(e));
+			goto failed;
 		}
 
 		/* Check the PID in the file */
@@ -232,17 +225,21 @@ ensure_unicity(const gchar *file)
 				pid_t pid = u;
 
 				if (0 == kill(pid, 0)) {
-					g_warning("Another gtk-gnutella process seems to "
+					g_warning("another gtk-gnutella process seems to "
 						"be still running (pid=%lu)", (gulong) pid);
-					close(fd);
-					return -1;
+					goto failed;
 				}
 			}
 		}
 	}
 
+done:
 	/* Keep the fd open, otherwise the lock is lost */
 	return fd;
+
+failed:
+	close(fd);
+	return -1;
 }
 
 /**
