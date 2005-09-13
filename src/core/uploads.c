@@ -1533,6 +1533,7 @@ expect_http_header(gnutella_upload_t *u, upload_stage_t new_status)
 	struct gnutella_socket *s = u->socket;
 
 	g_assert(s->resource.upload == u);
+	g_assert(-1 == u->file_desc);		/* File not opened */
 
 	/*
 	 * Cleanup data structures if not already done.
@@ -1575,7 +1576,16 @@ expect_http_header(gnutella_upload_t *u, upload_stage_t new_status)
 static void
 upload_wait_new_request(gnutella_upload_t *u)
 {
-	socket_tos_normal(u->socket);
+	/*
+	 * File will be re-opened each time a new request is made.
+	 */
+
+	if (u->file_desc != -1) {
+		close(u->file_desc);
+		u->file_desc = -1;
+	}
+
+ 	socket_tos_normal(u->socket);
 	expect_http_header(u, GTA_UL_WAITING);
 }
 
@@ -3455,6 +3465,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			upload_error_remove(u, NULL, 400, "Requesting Too Much");
 			return;
 		}
+
+		g_assert(-1 == u->file_desc);		/* File opened each time */
 
 		/* Open the file for reading. */
 		if ((u->file_desc = file_open(fpath, O_RDONLY)) < 0) {
