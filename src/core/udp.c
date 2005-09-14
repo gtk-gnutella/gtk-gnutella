@@ -61,7 +61,7 @@ RCSID("$Id$");
  * Look whether the datagram we received is a valid Gnutella packet.
  */
 static gboolean
-udp_is_valid_gnet(struct gnutella_socket *s)
+udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 {
 	struct gnutella_node *n = node_udp_get_addr_port(s->addr, s->port);
 	struct gnutella_header *head;
@@ -81,6 +81,18 @@ udp_is_valid_gnet(struct gnutella_socket *s)
 
 	gnet_stats_count_received_header(n);
 	gnet_stats_count_received_payload(n);
+
+	/*
+	 * If the message was truncated, then there is also going to be a
+	 * size mismatch, but we want to flag truncated messages as being
+	 * "too large" because this is mainly why we reject them.  They may
+	 * be legitimate Gnutella packets, too bad.
+	 */
+
+	if (truncated) {
+		msg = "Too large (truncated)";
+		goto too_large;
+	}
 
 	if (size + GTA_HEADER_SIZE != s->pos) {
 		msg = "Size mismatch";
@@ -115,6 +127,11 @@ drop:
 	gnet_stats_count_general(GNR_UDP_UNPROCESSED_MESSAGE, 1);
 	goto log;
 
+too_large:
+	gnet_stats_count_dropped(n, MSG_DROP_TOO_LARGE);
+	gnet_stats_count_general(GNR_UDP_UNPROCESSED_MESSAGE, 1);
+	goto log;
+
 not:
 	gnet_stats_count_general(GNR_UDP_ALIEN_MESSAGE, 1);
 	/* FALL THROUGH */
@@ -132,9 +149,12 @@ log:
 
 /**
  * Notification from the socket layer that we got a new datagram.
+ *
+ * If `truncated' is true, then the message was too large for the
+ * socket buffer.
  */
 void
-udp_received(struct gnutella_socket *s)
+udp_received(struct gnutella_socket *s, gboolean truncated)
 {
 	gboolean bogus = FALSE;
 
@@ -167,14 +187,15 @@ udp_received(struct gnutella_socket *s)
 		bogus = TRUE;
 
 		if (udp_debug) {
-			g_warning("UDP datagram (%d byte%s) received from bogus IP %s",
+			g_warning("UDP %sdatagram (%d byte%s) received from bogus IP %s",
+				truncated ? "truncated " : "",
 				(gint) s->pos, s->pos == 1 ? "" : "s",
 				host_addr_to_string(s->addr));
 		}
 		gnet_stats_count_general(GNR_UDP_BOGUS_SOURCE_IP, 1);
 	}
 
-	if (!udp_is_valid_gnet(s))
+	if (!udp_is_valid_gnet(s, truncated))
 		return;
 
 	/*

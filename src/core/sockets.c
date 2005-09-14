@@ -2200,6 +2200,7 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	gpointer from;
 	socklen_t from_len;
 	ssize_t r;
+	gboolean truncated = FALSE;
 
 	(void) unused_source;
 	g_assert(s->flags & SOCK_F_UDP);
@@ -2241,11 +2242,25 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	g_assert(from);
 	g_assert(from_len > 0);
 
-	r = recvfrom(s->file_desc, s->buffer, sizeof s->buffer, 0, from, &from_len);
+	/*
+	 * Detect truncation of the UDP message via MSG_TRUNC.
+	 *
+	 * We won't be rejecting truncated messages yet because we want to
+	 * log them as being "too large", so we'll pass a flag along to
+	 * indicate whether the message is truncated.
+	 */
+
+	r = recvfrom(s->file_desc, s->buffer, sizeof s->buffer,
+			MSG_TRUNC, from, &from_len);
 
 	if ((ssize_t) -1 == r) {
 		g_warning("ignoring datagram reception error: %s", g_strerror(errno));
 		return;
+	}
+
+	if ((size_t) r > sizeof s->buffer) {
+		truncated = TRUE;				/* Message truncated */
+		r = sizeof s->buffer;			/* Kernel only filled that much */
 	}
 
 	bws_udp_count_read(r);
@@ -2262,7 +2277,7 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * Signal reception of a datagram to the UDP layer.
 	 */
 
-	udp_received(s);
+	udp_received(s, truncated);
 }
 
 static inline void
