@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Sep 13 16:19:51 MEST 2005 [metaconfig 3.0 PL70]
+# Generated on Wed Sep 14 16:20:09 MEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -5540,24 +5540,28 @@ echo " "
 echo "Ok, let's see how we can create nested directories..." >&4
 case "$installdir" in
 '')
-	case "$creatdir" in
-	'')
-		$mkdir -p foo/bar >/dev/null 2>&1
-		if $test -d foo/bar; then
-			echo "Great, we can build them using 'mkdir -p'."
-			creatdir='mkdir -p'
-		elif eval "$install -d foo/bar"; $test -d foo/bar; then
-			creatdir="install -d"
-			echo "It looks like '$creatdir' will do it for us."
-		fi
-		;;
-	*)
-		eval "$creatdir foo/bar" >/dev/null 2>&1
-		if $test -d foo/bar; then
-			echo "Ah! We can use '$creatdir' to do just that."
-		fi
-		;;
-	esac
+	$mkdir -p foo/bar >/dev/null 2>&1
+	if $test -d foo/bar; then
+		echo "Great, we can build them using 'mkdir -p'."
+		creatdir='mkdir -p'
+	else
+		case "$creatdir" in
+		'')
+			if eval "$install -d foo/bar"; $test -d foo/bar; then
+				creatdir="install -d"
+				echo "It looks like '$creatdir' will do it for us."
+			fi
+			;;
+		*)
+			eval "$creatdir foo/bar" >/dev/null 2>&1
+			if $test -d foo/bar; then
+				echo "Ah! We can use '$creatdir' to do just that."
+			else
+				creatdir=''
+			fi
+			;;
+		esac
+	fi
 	$rm -rf foo
 	case "$creatdir" in
 	'')
