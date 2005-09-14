@@ -60,8 +60,11 @@ struct query_hash {
 typedef struct query_hashvec {
 	gint count;				/**< Amount of slots actually taken */
 	gint size;				/**< Amount of slots in vector */
+	gboolean has_urn;		/**< Whether an URN is present in the query */
 	struct query_hash *vec;	/**< Vector of at most `size' entries */
 } query_hashvec_t;
+
+#define qhvec_has_urn(x)	((x)->has_urn)
 
 typedef struct qrt_info {
 	gint slots;				/**< Amount of slots */
@@ -107,7 +110,6 @@ struct query_hashvec *qhvec_alloc(gint size);
 void qhvec_free(struct query_hashvec *qhvec);
 void qhvec_reset(struct query_hashvec *qhvec);
 query_hashvec_t * qhvec_clone(const query_hashvec_t *qsrc);
-gboolean qhvec_has_source(query_hashvec_t *qhvec, enum query_hsrc src);
 void qhvec_add(struct query_hashvec *qhvec, const gchar *word,
 	enum query_hsrc src);
 

@@ -580,7 +580,7 @@ qrt_step_compress(gpointer h, gpointer u, gint ticks)
 	chunklen = ticks * QRT_TICK_CHUNK;
 
 	if (qrp_debug > 4)
-		printf("QRP qrt_step_compress: ticks = %d => chunk = %d bytes\n",
+		g_message("QRP qrt_step_compress: ticks = %d => chunk = %d bytes",
 			ticks, chunklen);
 
 	ret = zlib_deflate(ctx->zd, chunklen);
@@ -596,7 +596,7 @@ qrt_step_compress(gpointer h, gpointer u, gint ticks)
 		 */
 
 		if (qrp_debug > 2) {
-			printf("QRP patch: len=%d, compressed=%d (ratio %.2f%%)\n",
+			g_message("QRP patch: len=%d, compressed=%d (ratio %.2f%%)",
 				ctx->rp->len, zlib_deflater_outlen(ctx->zd),
 				100.0 * (ctx->rp->len - zlib_deflater_outlen(ctx->zd)) /
 					ctx->rp->len);
@@ -742,7 +742,7 @@ qrt_create(const gchar *name, gchar *arena, gint slots, gint max)
 	rt->digest = atom_sha1_get(qrt_sha1(rt));
 
 	if (qrp_debug > 1)
-		printf("QRP \"%s\" ready: gen=%d, slots=%d, SHA1=%s\n",
+		g_message("QRP \"%s\" ready: gen=%d, slots=%d, SHA1=%s",
 			rt->name, rt->generation, rt->slots, sha1_base32(rt->digest));
 
 	return rt;
@@ -1271,7 +1271,7 @@ qrp_add_file(struct shared_file *sf)
 		g_hash_table_insert(ht_seen_words, g_strdup(word), GINT_TO_POINTER(1));
 
 		if (qrp_debug > 8)
-			printf("new QRP word \"%s\" [from %s]\n", word, sf->name_nfc);
+			g_message("new QRP word \"%s\" [from %s]", word, sf->name_nfc);
 	}
 
 	word_vec_free(wovec, wocnt);
@@ -1512,7 +1512,7 @@ qrp_step_substring(gpointer unused_h, gpointer u, gint unused_ticks)
 	dispose_ht_seen_words();
 
 	if (qrp_debug > 1)
-		printf("QRP unique subwords: %d\n", ctx->substrings);
+		g_message("QRP unique subwords: %d", ctx->substrings);
 
 	return BGR_NEXT;		/* All done for this step */
 }
@@ -1592,7 +1592,7 @@ qrp_step_compute(gpointer h, gpointer u, gint unused_ticks)
 			table[idx] = 1;
 			filled++;
 			if (qrp_debug > 7)
-				printf("QRP added subword: \"%s\"\n", word);
+				g_message("QRP added subword: \"%s\"", word);
 		}
 
 		/*
@@ -1612,8 +1612,8 @@ qrp_step_compute(gpointer h, gpointer u, gint unused_ticks)
 		(gint) (100.0 * (ctx->substrings - filled) / ctx->substrings);
 
 	if (qrp_debug > 1)
-		printf("QRP [seqno=%d] size=%d, filled=%d, hashed=%d, "
-			"ratio=%d%%, conflicts=%d%%%s\n",
+		g_message("QRP [seqno=%d] size=%d, filled=%d, hashed=%d, "
+			"ratio=%d%%, conflicts=%d%%%s",
 			bg_task_seqno(h), slots, filled, hashed,
 			(gint) (100.0 * filled / slots),
 			conflict_ratio, full ? " FULL" : "");
@@ -1627,7 +1627,7 @@ qrp_step_compute(gpointer h, gpointer u, gint unused_ticks)
 		(!full && conflict_ratio < MAX_CONFLICT_RATIO)
 	) {
 		if (qrp_debug)
-			printf("QRP final table size: %d bytes\n", slots);
+			g_message("QRP final table size: %d bytes", slots);
 
 		gnet_prop_set_guint32_val(PROP_QRP_SLOTS, (guint32) slots);
 		gnet_prop_set_guint32_val(PROP_QRP_SLOTS_FILLED, (guint32) filled);
@@ -1647,7 +1647,7 @@ qrp_step_compute(gpointer h, gpointer u, gint unused_ticks)
 
 		if (routing_table && qrt_eq(routing_table, table, slots)) {
 			if (qrp_debug)
-				printf("no change in QRP table\n");
+				g_message("no change in QRP table");
 			G_FREE_NULL(table);
 			bg_task_exit(h, 0);	/* Abort processing */
 		}
@@ -2081,7 +2081,7 @@ qrt_patch_computed(gpointer unused_h, gpointer unused_u,
 	g_assert(ctx->rpp != NULL);
 
 	if (qrp_debug > 2)
-		printf("QRP global default patch computed (status = %d)\n", status);
+		g_message("QRP global default patch computed (status = %d)", status);
 
 	qrt_patch_ctx = NULL;			/* Indicates that we're done */
 
@@ -2262,7 +2262,7 @@ qrp_send_reset(struct gnutella_node *n, gint slots, gint infinity)
 	gmsg_sendto_one(n, &m, sizeof m);
 
 	if (qrp_debug > 4)
-		printf("QRP sent RESET slots=%d, infinity=%d to %s\n",
+		g_message("QRP sent RESET slots=%d, infinity=%d to %s",
 			slots, infinity, node_addr(n));
 }
 
@@ -2321,7 +2321,7 @@ qrp_send_patch(struct gnutella_node *n,
 		G_FREE_NULL(m);
 
 	if (qrp_debug > 4)
-		printf("QRP sent PATCH #%d/%d (%d bytes) to %s\n",
+		g_message("QRP sent PATCH #%d/%d (%d bytes) to %s",
 			seqno, seqsize, len, node_addr(n));
 }
 
@@ -2538,7 +2538,7 @@ qrt_patch_available(gpointer arg, struct routing_patch *rp)
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
 	if (qrp_debug > 2)
-		printf("QRP global routing patch %s (node %s)\n",
+		g_message("QRP global routing patch %s (node %s)",
 			rp == NULL ? "computation was cancelled" : "is now available",
 			node_addr(qup->node));
 
@@ -2603,14 +2603,15 @@ qrt_update_create(struct gnutella_node *n, gpointer query_table)
 
 		if (routing_patch != NULL) {
 			if (qrp_debug > 2)
-				printf("QRP default routing patch is already there (node %s)\n",
+				g_message(
+					"QRP default routing patch is already there (node %s)",
 					node_addr(n));
 
 			qup->patch = qrt_patch_ref(routing_patch);
 			qrt_compressed(NULL, NULL, BGS_OK, qup);
 		} else {
 			if (qrp_debug > 2)
-				printf("QRP must wait for routing patch (node %s)\n",
+				g_message("QRP must wait for routing patch (node %s)",
 					node_addr(n));
 
 			qup->listener =
@@ -2936,8 +2937,9 @@ qrt_apply_patch(struct qrt_receive *qrcv, guchar *data, gint len)
 
 	if (qrcv->current_index >= rt->slots) {
 		struct gnutella_node *n = qrcv->node;
-		g_warning("node %s <%s> overflowed its QRP patch of %s slots"
+		g_warning("%s node %s <%s> overflowed its QRP patch of %s slots"
 			" (spurious message?)",
+			NODE_IS_LEAF(n) ? "leaf" : "ultra",
 			node_addr(n), node_vendor(n), compact_size(rt->client_slots));
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
 			compact_size(rt->client_slots));
@@ -3108,8 +3110,10 @@ qrt_apply_patch(struct qrt_receive *qrcv, guchar *data, gint len)
 			if ((guint) qrcv->current_slot >= rt->client_slots) {
 				if (j != (epb - 1) || i != (len - 1)) {
 					struct gnutella_node *n = qrcv->node;
-					g_warning("node %s <%s> overflowed its QRP patch"
-						" of %s slots", node_addr(n), node_vendor(n),
+					g_warning(
+						"%s node %s <%s> overflowed its QRP patch of %s slots",
+						NODE_IS_LEAF(n) ? "leaf" : "ultra",
+						node_addr(n), node_vendor(n),
 						compact_size(rt->client_slots));
 					node_bye_if_writable(n, 413,
 						"QRP patch overflowed table (%s slots)",
@@ -3320,8 +3324,9 @@ qrt_handle_patch(
 	 */
 
 	if (qrcv->entry_bits != patch->entry_bits) {
-		g_warning("node %s <%s> changed QRP patch entry bits to %u "
+		g_warning("%s node %s <%s> changed QRP patch entry bits to %u "
 			"at message #%d (started with %u)",
+			NODE_IS_LEAF(n) ? "leaf" : "ultra",
 			node_addr(n), node_vendor(n),
 			(guint) patch->entry_bits, qrcv->seqno, qrcv->entry_bits);
 		node_bye_if_writable(n, 413,
@@ -3357,8 +3362,9 @@ qrt_handle_patch(
 
 			if (ret != Z_OK) {
 				g_warning("decompression of QRP patch #%u/%u failed for "
-					"node %s <%s>: %s",
+					"%s node %s <%s>: %s",
 					(guint) patch->seq_no, (guint) patch->seq_size,
+					NODE_IS_LEAF(n) ? "leaf" : "ultra",
 					node_addr(n), node_vendor(n), zlib_strerror(ret));
 				node_bye_if_writable(n, 413,
 					"QRP patch #%u/%u decompression failed: %s",
@@ -3381,8 +3387,9 @@ qrt_handle_patch(
 
 		if (seen_end && qrcv->seqno <= qrcv->seqsize) {
 			g_warning("saw end of compressed QRP patch at #%u/%u for "
-				"node %s <%s>",
+				"%s node %s <%s>",
 				(guint) patch->seq_no, (guint) patch->seq_size,
+				NODE_IS_LEAF(n) ? "leaf" : "ultra",
 				node_addr(n), node_vendor(n));
 			node_bye_if_writable(n, 413,
 				"Early end of compressed QRP patch at #%u/%u",
@@ -3408,10 +3415,10 @@ qrt_handle_patch(
 		 */
 
 		if (qrcv->current_index < rt->slots) {
-			g_warning("QRP %d-bit patch from node %s <%s> covered only "
+			g_warning("QRP %d-bit patch from %s node %s <%s> covered only "
 				"%d/%d slots",
-				qrcv->entry_bits, node_addr(n), node_vendor(n),
-				qrcv->current_index, rt->slots);
+				qrcv->entry_bits, NODE_IS_LEAF(n) ? "leaf" : "ultra",
+				node_addr(n), node_vendor(n), qrcv->current_index, rt->slots);
 			node_bye_if_writable(n, 413,
 				"Incomplete %d-bit QRP patch covered %d/%d slots",
 				qrcv->entry_bits, qrcv->current_index, rt->slots);
@@ -3457,9 +3464,9 @@ qrt_handle_patch(
 			rt->pass_throw = 100;		/* Always forward if QRT says so */
 
 		if (qrp_debug > 2)
-			printf("QRP got whole %d-bit patch "
+			g_message("QRP got whole %d-bit patch "
 				"(gen=%d, slots=%d (*%d), fill=%d%%, throw=%d) "
-				"from %s <%s>: SHA1=%s\n",
+				"from %s <%s>: SHA1=%s",
 				qrcv->entry_bits, rt->generation, rt->slots,
 				qrcv->shrink_factor, rt->fill_ratio, rt->pass_throw,
 				node_addr(n), node_vendor(n), sha1_base32(rt->digest));
@@ -3762,6 +3769,7 @@ qhvec_alloc(gint size)
 
 	qhvec->count = 0;
 	qhvec->size = size;
+	qhvec->has_urn = FALSE;
 	qhvec->vec = walloc(size * sizeof qhvec->vec[0]);
 
 	return qhvec;
@@ -3784,6 +3792,7 @@ void
 qhvec_reset(query_hashvec_t *qhvec)
 {
 	qhvec->count = 0;
+	qhvec->has_urn = FALSE;
 }
 
 /**
@@ -3801,6 +3810,7 @@ qhvec_clone(const query_hashvec_t *qsrc)
 
 	qhvec->count = qsrc->count;
 	qhvec->size = qsrc->size;
+	qhvec->has_urn = qsrc->has_urn;
 	vecsize = qsrc->size * sizeof qhvec->vec[0];
 	qhvec->vec = walloc(vecsize);
 
@@ -3824,40 +3834,46 @@ qhvec_add(query_hashvec_t *qhvec, const gchar *word, enum query_hsrc src)
 	qh = &qhvec->vec[qhvec->count++];
 	qh->hashcode = qrp_hashcode(word);
 	qh->source = src;
-}
 
-/**
- * Check whether there is a specific type of source in the query vector.
- */
-gboolean
-qhvec_has_source(query_hashvec_t *qhv, enum query_hsrc src)
-{
-	struct query_hash *qh;
-	gint i;
+	/*
+	 * IF we add an URN, remember it, as we're going to route those
+	 * queries differently than those made of just words.
+	 */
 
-	for (i = qhv->count, qh = qhv->vec; i > 0; i--, qh++) {
-		if (qh->source == src)
-			return TRUE;
-	}
-
-	return FALSE;
+	if (src == QUERY_H_URN)
+		qhvec->has_urn = TRUE;
 }
 
 /**
  * Check whether we can route a query identified by its hash vector
  * to a node given its routing table.
+ *
+ * @param qhv			the query hit vector containing QRP hashes and types
+ * @param rt			the routing table of the target node
  */
 static gboolean
 qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 {
 	gboolean can_route = TRUE;
-	gboolean sha1_query = FALSE;
 	gboolean sha1_in_qrt = FALSE;
 	struct query_hash *qh;
 	gint i;
+	gint bits;
+	gint slots;
+	guint8 *arena;
+
+	/*
+	 * This routine is a hot spot when running as an ultra node.
+	 * Prefetch constant items in local variables.
+	 */
+
+	bits = rt->bits;
+	slots = rt->slots;
+	arena = rt->arena;
 
 	for (i = qhv->count, qh = qhv->vec; i > 0; i--, qh++) {
-		guint32 idx = QRP_HASH_RESTRICT(qh->hashcode, rt->bits);
+		guint32 idx = QRP_HASH_RESTRICT(qh->hashcode, bits);
+		enum query_hsrc source = qh->source;
 
 		/*
 		 * If there is an entry in the table and the source is an URN,
@@ -3865,19 +3881,16 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 		 * Otherwise, ALL the keywords must be present.
 		 */
 
-		g_assert(idx < (guint32) rt->slots);
+		g_assert(idx < (guint32) slots);
 
-		if (qh->source == QUERY_H_URN)
-			sha1_query = TRUE;
-
-		if (RT_SLOT_READ(rt->arena, idx)) {
-			if (qh->source == QUERY_H_URN) {	/* URN present */
+		if (RT_SLOT_READ(arena, idx)) {
+			if (source == QUERY_H_URN) {		/* URN present */
 				sha1_in_qrt = TRUE;
 				can_route = TRUE;				/* Force routing */
 				break;							/* Will forward */
 			}
 		} else {
-			if (qh->source == QUERY_H_WORD)		/* Word NOT present */
+			if (source == QUERY_H_WORD)			/* Word NOT present */
 				can_route = FALSE;				/* A priori, don't route */
 		}
 	}
@@ -3890,7 +3903,7 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 	 * multiple SHA1 URN present did not match the QRT, don't forward.
 	 */
 
-	if (sha1_query && !sha1_in_qrt)
+	if (qhv->has_urn && !sha1_in_qrt)
 		return FALSE;
 
 	return TRUE;
@@ -3958,7 +3971,7 @@ qrt_build_query_target(
 		return NULL;
 	}
 
-	sha1_query = qhvec_has_source(qhvec, QUERY_H_URN);
+	sha1_query = qhvec_has_urn(qhvec);
 
 	/*
 	 * We need to special case processing of queries with TTL=1 so that they
@@ -3977,16 +3990,10 @@ qrt_build_query_target(
 		if (dn == source)		/* This is the node that sent us the query */
 			continue;
 
-		if (!NODE_IS_WRITABLE(dn))
-			continue;
-
-		if (!NODE_IS_LEAF(dn) && !process_ultra)
-			continue;
-
 		if (hops >= dn->hops_flow)		/* Hops-flow prevents sending */
 			continue;
 
-		if (rt == NULL && NODE_IS_LEAF(dn))
+		if (!NODE_IS_WRITABLE(dn))
 			continue;
 
 		/*
@@ -3994,10 +4001,14 @@ qrt_build_query_target(
 		 * a last-hop QRP capable ultra node).
 		 */
 
-		if (rt != NULL)
-			node_inc_qrp_query(dn);
-
-		if (!NODE_IS_LEAF(dn)) {
+		if (NODE_IS_LEAF(dn)) {
+			/* Leaf node */
+			if (rt == NULL)				/* No QRT yet */
+				continue;				/* Don't send anything */
+		} else {
+			/* Ultra node */
+			if (!process_ultra)
+				continue;
 			if (ttl == 0)				/* Message expired here */
 				continue;				/* Don't forward to non-leaves */
 			if (!NODE_UP_QRP(dn))		/* QRP-unaware host? */
@@ -4005,6 +4016,8 @@ qrt_build_query_target(
 			if (rt == NULL)				/* UP has not sent us its table */
 				goto can_send;			/* Forward everything then */
 		}
+
+		node_inc_qrp_query(dn);			/* We have a QRT, mark we try routing */
 
 		if (!qrp_can_route(qhvec, rt))
 			continue;

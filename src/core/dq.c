@@ -1373,7 +1373,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 		(guchar *) &n->header, n->data,
 		n->size + sizeof(struct gnutella_header));
 	dq->qhv = qhvec_clone(qhv);
-	if (qhvec_has_source(qhv, QUERY_H_URN))
+	if (qhvec_has_urn(qhv))
 		dq->max_results = DQ_LEAF_RESULTS / DQ_SHA1_DECIMATOR;
 	else
 		dq->max_results = DQ_LEAF_RESULTS;
@@ -1453,7 +1453,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	dq->mb = mb;
 	dq->qhv = qhv;
 	dq->sh = handle;
-	if (qhvec_has_source(qhv, QUERY_H_URN))
+	if (qhvec_has_urn(qhv))
 		dq->max_results = DQ_LOCAL_RESULTS / DQ_SHA1_DECIMATOR;
 	else
 		dq->max_results = DQ_LOCAL_RESULTS;
