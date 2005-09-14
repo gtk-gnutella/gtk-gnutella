@@ -2250,7 +2250,6 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * whether the message is truncated.
 	 */
 
-#ifdef HAVE_RECVMSG
 	{
 		static const struct msghdr zero_msg;
 		struct msghdr msg;
@@ -2268,26 +2267,13 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 		r = recvmsg(s->file_desc, &msg, 0);
 		truncated = 0 != (MSG_TRUNC & msg.msg_flags);
 	}
-#else
-	truncated = FALSE;
-	/*
-	 * This has no defined behaviour on non-Linux systems due to
-	 * passing MSG_TRUNC as flag. On (some) Linux systems it makes recvfrom()
-	 * the original length of the truncated packet.
-	 */
-	r = recvfrom(s->file_desc, s->buffer, sizeof s->buffer, MSG_TRUNC,
-			from, &from_len);
-#endif
 
 	if ((ssize_t) -1 == r) {
 		g_warning("ignoring datagram reception error: %s", g_strerror(errno));
 		return;
 	}
 
-	if ((size_t) r > sizeof s->buffer) {
-		truncated = TRUE;				/* Message truncated */
-		r = sizeof s->buffer;			/* Kernel only filled that much */
-	}
+	g_assert((size_t) r <= sizeof s->buffer);
 
 	bws_udp_count_read(r);
 	s->pos = r;
