@@ -2200,7 +2200,7 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	gpointer from;
 	socklen_t from_len;
 	ssize_t r;
-	gboolean truncated = FALSE;
+	gboolean truncated;
 
 	(void) unused_source;
 	g_assert(s->flags & SOCK_F_UDP);
@@ -2246,12 +2246,27 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * Detect truncation of the UDP message via MSG_TRUNC.
 	 *
 	 * We won't be rejecting truncated messages yet because we want to
-	 * log them as being "too large", so we'll pass a flag along to
-	 * indicate whether the message is truncated.
+	 * log them as being "too large", so we'll check msg_flag to see
+	 * whether the message is truncated.
 	 */
 
-	r = recvfrom(s->file_desc, s->buffer, sizeof s->buffer,
-			MSG_TRUNC, from, &from_len);
+	{
+		static const struct msghdr zero_msg;
+		struct msghdr msg;
+		struct iovec iov;
+		
+		iov.iov_base = s->buffer;
+		iov.iov_len = sizeof s->buffer;
+		
+		msg = zero_msg;
+		msg.msg_name = from;
+		msg.msg_namelen = from_len;
+		msg.msg_iov = &iov;
+		msg.msg_iovlen = 1;
+		
+		r = recvmsg(s->file_desc, &msg, 0);
+		truncated = 0 != (MSG_TRUNC & msg.msg_flags);
+	}
 
 	if ((ssize_t) -1 == r) {
 		g_warning("ignoring datagram reception error: %s", g_strerror(errno));
