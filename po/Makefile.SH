@@ -52,8 +52,7 @@ localedir = $localeexp
 
 INSTALL = $INSTALL
 INSTALL_DATA = \$(INSTALL) -m 644
-MKINSTALLDIRS = $INSTALLDIR
-mkinstalldirs = \$(MKINSTALLDIRS)
+mkinstalldirs = $INSTALLDIR
 DESTDIR = \$(INSTALL_PREFIX)
 
 GMSGFMT = $gmsgfmt
