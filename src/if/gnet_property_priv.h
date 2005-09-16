@@ -96,6 +96,12 @@ extern const guint32  max_ttl;
 extern const guint32  my_ttl;
 extern const guint32  hard_ttl_limit;
 extern const guint32  dbg;
+extern const guint32  ban_debug;
+extern const guint32  dmesh_debug;
+extern const guint32  gmsg_debug;
+extern const guint32  share_debug;
+extern const guint32  node_debug;
+extern const guint32  socket_debug;
 extern const guint32  bootstrap_debug;
 extern const guint32  http_debug;
 extern const guint32  download_debug;
@@ -300,6 +306,7 @@ extern const gboolean use_so_linger;
 extern const gboolean browse_host_enabled;
 extern const guint32  html_browse_count;
 extern const guint32  qhits_browse_count;
+extern const gboolean overloaded_cpu;
 
 
 prop_set_t *gnet_prop_init(void);
