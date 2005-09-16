@@ -1,9 +1,26 @@
 # since last version
 
+- (2005-09-16 - RAM)
+ * Now monitors the CPU usage and lower consumption if we detect overloads.
+ * Reduce amount of GUI refreshing done when CPU overloaded.
+ * Added chip.xpm icon, lighted on when CPU is overloaded.
+ * Optimized query routing via QRT.
+
+- (2005-09-14 - RAM)
+ * Configure will now use "mkdir -p" over "install -d" if possible to create
+   directories (fixes bug #972777).
+ * Detect too large UDP messages explicitly to log their dropping in the
+   proper category.
+
+- (2005-09-13 - RAM)
+ * Fixed file descriptor leak in uploads (bug #1285670).
+
 - (2005-09-11 - RAM)
  * Added robots.txt file to forbit all web crawlers from browsing us.
  * The mechanism to add special shared files was made generic.  The table
    listing them is specials[] in core/share.c.
+ * Added property "bootstrap_debug" to monitor the bootstraping process.
+ * [GTK1] Added GUI settting for bootstrap_debug.
 
 - (2005-09-04 - JA)
  * [PARQ] Implemented option to always allow uploads which would take less
