@@ -1133,7 +1133,7 @@ shell_add(struct gnutella_socket *s)
 		host_addr_port_to_string(s->addr, s->port));
 
 	s->type = SOCK_TYPE_SHELL;
-	socket_tos_default(s);			/* Set proper Type of Service */
+	socket_tos_lowdelay(s);			/* Set proper Type of Service */
 
 	sh = shell_new(s);
 
