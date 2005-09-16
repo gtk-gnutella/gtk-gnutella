@@ -77,6 +77,7 @@ cq_make(time_t now)
 
 	cq->cq_hash = (struct chash *) g_malloc0(HASH_SIZE * sizeof(struct chash));
 	cq->cq_items = 0;
+	cq->cq_ticks = 0;
 	cq->cq_time = now;
 	cq->cq_last_bucket = EV_HASH(now);
 	cq->cq_current = NULL;
@@ -362,6 +363,7 @@ cq_clock(cqueue_t *cq, gint elapsed)
 	g_assert(elapsed >= 0);
 	g_assert(cq->cq_current == NULL);
 
+	cq->cq_ticks++;
 	cq->cq_time += elapsed;
 	now = cq->cq_time;
 
@@ -459,6 +461,20 @@ callout_timer(gpointer p)
 	cq_clock(callout_queue, delay);
 
 	return TRUE;
+}
+
+/**
+ * Returns percentage of coverage of the callout timer, i.e. the real amount
+ * of ticks we processed divided by the theoretical number, yielding a number
+ * between 0.0 and 1.0.
+ *
+ * @param old_ticks	the previous amount of processed ticks
+ */
+gdouble
+callout_queue_coverage(gint old_ticks)
+{
+	return 
+		(callout_queue->cq_ticks - old_ticks) * CALLOUT_PERIOD / 1000.0;
 }
 
 /**
