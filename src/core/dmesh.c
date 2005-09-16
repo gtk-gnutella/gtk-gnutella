@@ -508,8 +508,8 @@ dm_expire(struct dmesh *dm, guint32 agemax, const gchar *sha1)
 
 		g_assert(dm->count > 0);
 
-		if (dbg > 4)
-			printf("MESH %s: EXPIRED \"%s\", age=%d\n",
+		if (dmesh_debug > 4)
+			g_message("MESH %s: EXPIRED \"%s\", age=%d",
 				sha1_base32(sha1),
 				dmesh_urlinfo_to_gchar(&dme->url),
 				(gint) delta_time(now, dme->stamp));
@@ -777,8 +777,8 @@ dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	dme->url.idx = idx;
 	dme->url.name = atom_str_get(name);
 
-    if (dbg)
-		printf("dmesh entry created, name %p: %s\n",
+    if (dmesh_debug)
+		g_message("dmesh entry created, name %p: %s",
 				dme->url.name, dme->url.name);
 
 	/*
@@ -1461,8 +1461,8 @@ dmesh_defer_nonurn_altloc(GSList *list, dmesh_urlinfo_t *url, time_t stamp)
     defer->dmesh_url->name = atom_str_get(url->name);
     defer->stamp = stamp;
 
-	if (dbg)
-		printf("Defering nonurn altloc str=%px:%s\n",
+	if (dmesh_debug)
+		g_message("defering nonurn altloc str=%px:%s",
 			defer->dmesh_url->name, defer->dmesh_url->name);
 
     /* Add to list */
@@ -1515,8 +1515,8 @@ dmesh_check_deferred_against_existing(gchar *sha1,
 		dmesh_deferred_url_t *d = def->data;
 		matches = 0;
 
-		if (dbg > 4)
-			printf("Checking deferred url %p (str=%p:%s)\n",
+		if (dmesh_debug > 4)
+			g_message("checking deferred url %p (str=%p:%s)",
 				cast_to_gconstpointer(d),
 				cast_to_gconstpointer(d->dmesh_url->name),
 				d->dmesh_url->name);
@@ -1540,7 +1540,7 @@ dmesh_check_deferred_against_existing(gchar *sha1,
 			adding = g_slist_prepend(adding, d);
 		else {
 			dmesh_urlinfo_t *url = d->dmesh_url;
-			if (dbg)
+			if (dmesh_debug)
 				g_warning("dumped potential dmesh entry:\n%s\n\t"
 					"(only matched %d of the others, needed %d)",
 					url->name, matches, threshold);
@@ -1554,8 +1554,8 @@ dmesh_check_deferred_against_existing(gchar *sha1,
 
 		ok = dmesh_raw_add(sha1, url, d->stamp);
 
-		if (dbg > 4) {
-			printf("MESH %s: %s deferred \"%s\", stamp=%u age=%d\n",
+		if (dmesh_debug > 4) {
+			g_message("MESH %s: %s deferred \"%s\", stamp=%u age=%d",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
 				dmesh_urlinfo_to_gchar(url), (guint) d->stamp,
@@ -1585,8 +1585,8 @@ dmesh_check_deferred_against_themselves(gchar *sha1, GSList *deferred_urls)
     sl = g_slist_next(sl);
 
 	if (NULL == sl) { /* It's probably correct, should we bin it? */
-		if (dbg > 4)
-			printf("Only one altloc to check, currently dumping:\n%s\n",
+		if (dmesh_debug > 4)
+			g_message("only one altloc to check, currently dumping:\n%s",
 				first->dmesh_url->name);
 		return;
 	}
@@ -1598,9 +1598,9 @@ dmesh_check_deferred_against_themselves(gchar *sha1, GSList *deferred_urls)
 		score = fuzzy_compare(first->dmesh_url->name, current->dmesh_url->name);
 		if (score < FUZZY_DROP) {
 			/* When anything fails, it's all over */
-			if (dbg > 4)
-				printf("dmesh_check_deferred_against_themselves failed with:\n"
-					"%s\n\t"
+			if (dmesh_debug > 4)
+				g_message("dmesh_check_deferred_against_themselves failed with:"
+					" %s\n\t"
 					"(only scoring %lu against:\n\t"
 					"%s\n",
 					current->dmesh_url->name, score, first->dmesh_url->name);
@@ -1616,8 +1616,8 @@ dmesh_check_deferred_against_themselves(gchar *sha1, GSList *deferred_urls)
 
 		ok = dmesh_raw_add(sha1, url, def->stamp);
 
-		if (dbg > 4) {
-			printf("MESH %s: %s consistent deferred \"%s\", stamp=%u age=%d\n",
+		if (dmesh_debug > 4) {
+			g_message("MESH %s: %s consistent deferred \"%s\", stamp=%u age=%d",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
 				dmesh_urlinfo_to_gchar(url), (guint32) def->stamp,
@@ -1754,12 +1754,12 @@ dmesh_collect_compact_locations(gchar *sha1, gchar *value)
 					dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
 					ok = dmesh_raw_add(sha1, &info, now);
 
-					if (dbg > 4)
-						printf("MESH %s: %s compact \"%s\", stamp=%u\n",
+					if (dmesh_debug > 4)
+						g_message("MESH %s: %s compact \"%s\", stamp=%u",
 							sha1_base32(sha1),
 							ok ? "added" : "rejected",
 							dmesh_urlinfo_to_gchar(&info), (guint) now);
-				} else if (dbg)
+				} else if (dmesh_debug)
 					g_warning("ignoring invalid compact alt-loc \"%s\"", start);
 
 				*p = c;
@@ -1895,8 +1895,8 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 		*p = '\0';
 		ok = dmesh_url_parse(url, &info);
 
-		if (dbg > 6)
-			printf("MESH (parsed=%d): \"%s\"\n", ok, url);
+		if (dmesh_debug > 6)
+			g_message("MESH (parsed=%d): \"%s\"", ok, url);
 
 		if (!ok)
 			g_warning("cannot parse Alternate-Location URL \"%s\": %s",
@@ -1965,8 +1965,8 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 			*p = '\0';
 			stamp = date2time(date, now);
 
-			if (dbg > 6)
-				printf("MESH (stamp=%u): \"%s\"\n", (guint) stamp, date);
+			if (dmesh_debug > 6)
+				g_message("MESH (stamp=%u): \"%s\"", (guint) stamp, date);
 
 			if (stamp == (time_t) -1) {
 				g_warning("cannot parse Alternate-Location date: %s", date);
@@ -2023,8 +2023,8 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 		}
 
 	skip_add:
-		if (dbg > 4)
-			printf("MESH %s: %s \"%s\", stamp=%u age=%d\n",
+		if (dmesh_debug > 4)
+			g_message("MESH %s: %s \"%s\", stamp=%u age=%d",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
 				dmesh_urlinfo_to_gchar(&info), (guint) stamp,
@@ -2192,8 +2192,8 @@ dmesh_multiple_downloads(gchar *sha1, filesize_t size, fileinfo_t *fi)
 	now = tm_time();
 
 	for (p = buffer; n > 0; n--, p++) {
-		if (dbg > 2)
-			printf("ALT-LOC queuing from MESH: %s\n",
+		if (dmesh_debug > 2)
+			g_message("ALT-LOC queuing from MESH: %s",
 				dmesh_urlinfo_to_gchar(p));
 
 		download_auto_new(p->name, size, p->idx, p->addr, p->port,
