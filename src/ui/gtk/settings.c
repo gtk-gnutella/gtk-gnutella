@@ -1458,6 +1458,31 @@ ancient_version_changed(property_t prop)
 }
 
 static gboolean
+overloaded_cpu_changed(property_t prop)
+{
+    gboolean b;
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    w = lookup_widget(top, map_entry->wid);
+
+    stub->boolean.get(prop, &b, 0, 1);
+
+    if (b) {
+        statusbar_gui_message(15,
+			_("*** CPU OVERLOADED -- TRYING TO SAVE CYCLES ***"));
+        gtk_widget_show(w);
+    } else {
+        gtk_widget_hide(w);
+		shrink_frame_status();
+    }
+
+    return FALSE;
+}
+
+static gboolean
 uploads_stalling_changed(property_t prop)
 {
     gboolean b;
@@ -5342,6 +5367,15 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_main_window,
+        PROP_OVERLOADED_CPU,
+        overloaded_cpu_changed,
+        TRUE,
+        "eventbox_image_chip",
+        /* need eventbox because image has no tooltip */
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
         PROP_UPLOADS_STALLING,
         uploads_stalling_changed,
         TRUE,
@@ -5382,6 +5416,54 @@ static prop_map_t property_map[] = {
         update_spinbutton,
         TRUE,
         "spinbutton_config_parq_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_BAN_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_ban_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_DMESH_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_dmesh_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_GMSG_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_gmsg_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_SHARE_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_share_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_NODE_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_node_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_SOCKET_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_socket_debug",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
