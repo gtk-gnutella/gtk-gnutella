@@ -61,9 +61,12 @@ RCSID("$Id$");
 void
 gui_update_files_scanned(void)
 {
-    GtkLabel *label_files_scanned =
-        GTK_LABEL(lookup_widget(dlg_prefs, "label_files_scanned"));
+    static GtkLabel *label_files_scanned = NULL;
 	gulong n = guc_shared_files_scanned();
+
+	if (label_files_scanned == NULL)
+		label_files_scanned =
+			GTK_LABEL(lookup_widget(dlg_prefs, "label_files_scanned"));
 
 	gtk_label_printf(label_files_scanned,
 		NG_("%lu file shared (%s)", "%lu files shared (%s)", n),
@@ -83,10 +86,12 @@ gui_allow_rescan_dir(gboolean flag)
 void
 gui_general_timer(time_t now)
 {
-	GtkLabel *label = GTK_LABEL(lookup_widget(
-				main_window, "label_statusbar_uptime"));
+	static GtkLabel *label = NULL;
 	const gchar *uptime;
 	guint64 val;
+
+	if (label == NULL)
+		label = GTK_LABEL(lookup_widget(main_window, "label_statusbar_uptime"));
 
 	gnet_prop_get_guint64_val(PROP_START_STAMP, &val);
 	uptime = short_uptime(delta_time(now, (time_t) val));
@@ -160,19 +165,27 @@ gui_update_traffic_stats(void)
     static guint32 leaf_out_max = 0;
     gnet_bw_stats_t s;
     gnet_bw_stats_t s2;
+    static GtkProgressBar *pg_http_in = NULL;
+    static GtkProgressBar *pg_http_out = NULL;
+    static GtkProgressBar *pg_gnet_in = NULL;
+    static GtkProgressBar *pg_gnet_out = NULL;
+    static GtkProgressBar *pg_leaf_in = NULL;
+    static GtkProgressBar *pg_leaf_out = NULL;
 
-    GtkProgressBar *pg_http_in = GTK_PROGRESS_BAR
-        (lookup_widget(main_window, "progressbar_bws_in"));
-    GtkProgressBar *pg_http_out = GTK_PROGRESS_BAR
-        (lookup_widget(main_window, "progressbar_bws_out"));
-    GtkProgressBar *pg_gnet_in = GTK_PROGRESS_BAR
-        (lookup_widget(main_window, "progressbar_bws_gin"));
-    GtkProgressBar *pg_gnet_out = GTK_PROGRESS_BAR
-        (lookup_widget(main_window, "progressbar_bws_gout"));
-    GtkProgressBar *pg_leaf_in = GTK_PROGRESS_BAR
-        (lookup_widget(main_window, "progressbar_bws_lin"));
-    GtkProgressBar *pg_leaf_out = GTK_PROGRESS_BAR
-        (lookup_widget(main_window, "progressbar_bws_lout"));
+	if (pg_http_in == NULL) {
+		pg_http_in = GTK_PROGRESS_BAR(
+			lookup_widget(main_window, "progressbar_bws_in"));
+		pg_http_out = GTK_PROGRESS_BAR
+			(lookup_widget(main_window, "progressbar_bws_out"));
+		pg_gnet_in = GTK_PROGRESS_BAR
+			(lookup_widget(main_window, "progressbar_bws_gin"));
+		pg_gnet_out = GTK_PROGRESS_BAR
+			(lookup_widget(main_window, "progressbar_bws_gout"));
+		pg_leaf_in = GTK_PROGRESS_BAR
+			(lookup_widget(main_window, "progressbar_bws_lin"));
+		pg_leaf_out = GTK_PROGRESS_BAR
+			(lookup_widget(main_window, "progressbar_bws_lout"));
+	}
 
   	/*
 	 * Since gtk_progress does not give us enough control over the format
@@ -188,7 +201,7 @@ gui_update_traffic_stats(void)
 	 *		--RAM, 16/04/2002
 	 */
 
-    guc_gnet_get_bw_stats(BW_HTTP_IN,&s);
+    guc_gnet_get_bw_stats(BW_HTTP_IN, &s);
     update_stat(&http_in_max, pg_http_in, &s, progressbar_bws_in_avg, 1);
     guc_gnet_get_bw_stats(BW_HTTP_OUT, &s);
     update_stat(&http_out_max, pg_http_out, &s, progressbar_bws_out_avg, 0);
@@ -209,35 +222,36 @@ gui_update_traffic_stats(void)
 void
 gui_update_stats_frames(void)
 {
-    GtkWidget *frame_bws_inout =
-        lookup_widget(main_window, "frame_bws_inout");
-    GtkWidget *frame_bws_ginout =
-        lookup_widget(main_window, "frame_bws_ginout");
-    GtkWidget *frame_bws_glinout =
-        lookup_widget(main_window, "frame_bws_glinout");
+    static GtkWidget *frame_bws_inout = NULL;
+    static GtkWidget *frame_bws_ginout = NULL;
+    static GtkWidget *frame_bws_glinout = NULL;
     guint32 peermode;
+
+	if (frame_bws_inout == NULL) {
+		frame_bws_inout = lookup_widget(main_window, "frame_bws_inout");
+		frame_bws_ginout = lookup_widget(main_window, "frame_bws_ginout");
+		frame_bws_glinout = lookup_widget(main_window, "frame_bws_glinout");
+	}
 
    	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &peermode);
 
-    if (progressbar_bws_in_visible || progressbar_bws_out_visible) {
+    if (progressbar_bws_in_visible || progressbar_bws_out_visible)
         gtk_widget_show(frame_bws_inout);
-    } else {
+    else
         gtk_widget_hide(frame_bws_inout);
-    }
 
-    if (progressbar_bws_gin_visible || progressbar_bws_gout_visible) {
+    if (progressbar_bws_gin_visible || progressbar_bws_gout_visible)
         gtk_widget_show(frame_bws_ginout);
-    } else {
+    else
         gtk_widget_hide(frame_bws_ginout);
-    }
 
-    if ((progressbar_bws_glin_visible || progressbar_bws_glout_visible) &&
-        (peermode == NODE_P_ULTRA || !autohide_bws_gleaf)) {
+    if (
+		(progressbar_bws_glin_visible || progressbar_bws_glout_visible) &&
+        (peermode == NODE_P_ULTRA || !autohide_bws_gleaf)
+	)
         gtk_widget_show(frame_bws_glinout);
-    } else {
+    else
         gtk_widget_hide(frame_bws_glinout);
-    }
-
 }
 
 /**
