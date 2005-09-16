@@ -2746,6 +2746,31 @@ http://maxmind.com/</property>
 		      <property name="spacing">2</property>
 
 		      <child>
+			<widget class="GtkEventBox" id="eventbox_image_chip">
+			  <property name="visible">True</property>
+			  <property name="tooltip" translatable="yes">Your uploads are stalling at an abnormal rate, indicating that your bandwidth is probably saturated. You should not run as an ultra node, and try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating both your incoming and outgoing paths.</property>
+			  <property name="visible_window">True</property>
+			  <property name="above_child">False</property>
+
+			  <child>
+			    <widget class="GtkImage" id="image_chip">
+			      <property name="visible">True</property>
+			      <property name="pixbuf">chip.xpm</property>
+			      <property name="xalign">0.5</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			    </widget>
+			  </child>
+			</widget>
+			<packing>
+			  <property name="padding">0</property>
+			  <property name="expand">True</property>
+			  <property name="fill">True</property>
+			</packing>
+		      </child>
+
+		      <child>
 			<widget class="GtkEventBox" id="eventbox_image_warning">
 			  <property name="visible">True</property>
 			  <property name="tooltip" translatable="yes">Your uploads are stalling at an abnormal rate, indicating that your bandwidth is probably saturated. You should not run as an ultra node, and try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating both your incoming and outgoing paths.</property>
@@ -3374,7 +3399,7 @@ http://maxmind.com/</property>
 				      <property name="visible">True</property>
 				      <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				      <property name="fraction">0</property>
-				      <property name="pulse_step">0.1</property>
+				      <property name="pulse_step">0.10000000149</property>
 				    </widget>
 				    <packing>
 				      <property name="padding">0</property>
@@ -3426,7 +3451,7 @@ http://maxmind.com/</property>
 				      <property name="visible">True</property>
 				      <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				      <property name="fraction">0</property>
-				      <property name="pulse_step">0.1</property>
+				      <property name="pulse_step">0.10000000149</property>
 				    </widget>
 				    <packing>
 				      <property name="padding">0</property>
@@ -3478,7 +3503,7 @@ http://maxmind.com/</property>
 				      <property name="visible">True</property>
 				      <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				      <property name="fraction">0</property>
-				      <property name="pulse_step">0.1</property>
+				      <property name="pulse_step">0.10000000149</property>
 				    </widget>
 				    <packing>
 				      <property name="padding">0</property>
@@ -3523,7 +3548,7 @@ http://maxmind.com/</property>
 				  <property name="events">GDK_BUTTON_PRESS_MASK</property>
 				  <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				  <property name="fraction">0</property>
-				  <property name="pulse_step">0.1</property>
+				  <property name="pulse_step">0.10000000149</property>
 				  <signal name="button_press_event" handler="on_progressbar_bws_in_button_press_event"/>
 				</widget>
 				<packing>
@@ -3540,7 +3565,7 @@ http://maxmind.com/</property>
 				  <property name="events">GDK_BUTTON_PRESS_MASK</property>
 				  <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				  <property name="fraction">0</property>
-				  <property name="pulse_step">0.1</property>
+				  <property name="pulse_step">0.10000000149</property>
 				  <signal name="button_press_event" handler="on_progressbar_bws_out_button_press_event"/>
 				</widget>
 				<packing>
@@ -3598,7 +3623,7 @@ http://maxmind.com/</property>
 				  <property name="events">GDK_BUTTON_PRESS_MASK</property>
 				  <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				  <property name="fraction">0</property>
-				  <property name="pulse_step">0.1</property>
+				  <property name="pulse_step">0.10000000149</property>
 				  <signal name="button_press_event" handler="on_progressbar_bws_gin_button_press_event"/>
 				</widget>
 				<packing>
@@ -3615,7 +3640,7 @@ http://maxmind.com/</property>
 				  <property name="events">GDK_BUTTON_PRESS_MASK</property>
 				  <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				  <property name="fraction">0</property>
-				  <property name="pulse_step">0.1</property>
+				  <property name="pulse_step">0.10000000149</property>
 				  <signal name="button_press_event" handler="on_progressbar_bws_gout_button_press_event"/>
 				</widget>
 				<packing>
@@ -3673,7 +3698,7 @@ http://maxmind.com/</property>
 				  <property name="events">GDK_BUTTON_PRESS_MASK</property>
 				  <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				  <property name="fraction">0</property>
-				  <property name="pulse_step">0.1</property>
+				  <property name="pulse_step">0.10000000149</property>
 				  <signal name="button_press_event" handler="on_progressbar_bws_lin_button_press_event" last_modification_time="Wed, 16 Apr 2003 19:04:07 GMT"/>
 				</widget>
 				<packing>
@@ -3690,7 +3715,7 @@ http://maxmind.com/</property>
 				  <property name="events">GDK_BUTTON_PRESS_MASK</property>
 				  <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				  <property name="fraction">0</property>
-				  <property name="pulse_step">0.1</property>
+				  <property name="pulse_step">0.10000000149</property>
 				  <signal name="button_press_event" handler="on_progressbar_bws_lout_button_press_event" last_modification_time="Wed, 16 Apr 2003 19:04:37 GMT"/>
 				</widget>
 				<packing>
@@ -5096,7 +5121,7 @@ http://maxmind.com/</property>
 				  <property name="justify">GTK_JUSTIFY_CENTER</property>
 				  <property name="wrap">False</property>
 				  <property name="selectable">False</property>
-				  <property name="xalign">7.45058e-09</property>
+				  <property name="xalign">7.45058015283e-09</property>
 				  <property name="yalign">0.5</property>
 				  <property name="xpad">0</property>
 				  <property name="ypad">0</property>
@@ -7742,7 +7767,7 @@ http://maxmind.com/</property>
 					      <property name="visible">True</property>
 					      <property name="xalign">0</property>
 					      <property name="yalign">0.5</property>
-					      <property name="xscale">0.15</property>
+					      <property name="xscale">0.15000000596</property>
 					      <property name="yscale">1</property>
 					      <property name="top_padding">0</property>
 					      <property name="bottom_padding">0</property>
@@ -8524,7 +8549,7 @@ http://maxmind.com/</property>
 		      <property name="justify">GTK_JUSTIFY_CENTER</property>
 		      <property name="wrap">False</property>
 		      <property name="selectable">False</property>
-		      <property name="xalign">7.45058e-09</property>
+		      <property name="xalign">7.45058015283e-09</property>
 		      <property name="yalign">0.5</property>
 		      <property name="xpad">5</property>
 		      <property name="ypad">0</property>
@@ -12055,7 +12080,7 @@ http://maxmind.com/</property>
 	<widget class="GtkAlignment" id="alignment24">
 	  <property name="visible">True</property>
 	  <property name="xalign">0.5</property>
-	  <property name="yalign">7.45058e-09</property>
+	  <property name="yalign">7.45058015283e-09</property>
 	  <property name="xscale">1</property>
 	  <property name="yscale">1</property>
 	  <property name="top_padding">0</property>
@@ -14422,7 +14447,7 @@ http://maxmind.com/</property>
 		    <widget class="GtkAlignment" id="alignment23">
 		      <property name="visible">True</property>
 		      <property name="xalign">0</property>
-		      <property name="yalign">7.45058e-09</property>
+		      <property name="yalign">7.45058015283e-09</property>
 		      <property name="xscale">1</property>
 		      <property name="yscale">0</property>
 		      <property name="top_padding">0</property>
@@ -15557,7 +15582,7 @@ http://maxmind.com/</property>
 		      <property name="visible">True</property>
 		      <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 		      <property name="fraction">0</property>
-		      <property name="pulse_step">0.1</property>
+		      <property name="pulse_step">0.10000000149</property>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
@@ -15654,7 +15679,7 @@ http://maxmind.com/</property>
 		      <property name="visible">True</property>
 		      <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 		      <property name="fraction">0</property>
-		      <property name="pulse_step">0.1</property>
+		      <property name="pulse_step">0.10000000149</property>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
@@ -15751,7 +15776,7 @@ http://maxmind.com/</property>
 		      <property name="visible">True</property>
 		      <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 		      <property name="fraction">0</property>
-		      <property name="pulse_step">0.1</property>
+		      <property name="pulse_step">0.10000000149</property>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
@@ -19293,7 +19318,7 @@ http://maxmind.com/</property>
 				  <property name="justify">GTK_JUSTIFY_CENTER</property>
 				  <property name="wrap">False</property>
 				  <property name="selectable">False</property>
-				  <property name="xalign">7.45058e-09</property>
+				  <property name="xalign">7.45058015283e-09</property>
 				  <property name="yalign">0.5</property>
 				  <property name="xpad">0</property>
 				  <property name="ypad">0</property>
@@ -19317,7 +19342,7 @@ http://maxmind.com/</property>
 				  <property name="justify">GTK_JUSTIFY_CENTER</property>
 				  <property name="wrap">False</property>
 				  <property name="selectable">False</property>
-				  <property name="xalign">7.45058e-09</property>
+				  <property name="xalign">7.45058015283e-09</property>
 				  <property name="yalign">0.5</property>
 				  <property name="xpad">4</property>
 				  <property name="ypad">0</property>
@@ -23967,7 +23992,7 @@ message</property>
 			      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
 			      <property name="snap_to_ticks">False</property>
 			      <property name="wrap">False</property>
-			      <property name="adjustment">1 0 6.71089e+07 1 10 10</property>
+			      <property name="adjustment">1 0 67108900 1 10 10</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
@@ -23988,7 +24013,7 @@ message</property>
 			      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
 			      <property name="snap_to_ticks">False</property>
 			      <property name="wrap">False</property>
-			      <property name="adjustment">1 0 6.71089e+07 1 10 10</property>
+			      <property name="adjustment">1 0 67108900 1 10 10</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
@@ -24637,7 +24662,7 @@ message</property>
 			      <property name="justify">GTK_JUSTIFY_CENTER</property>
 			      <property name="wrap">False</property>
 			      <property name="selectable">False</property>
-			      <property name="xalign">7.45058e-09</property>
+			      <property name="xalign">7.45058015283e-09</property>
 			      <property name="yalign">0.5</property>
 			      <property name="xpad">0</property>
 			      <property name="ypad">0</property>
@@ -24850,7 +24875,7 @@ message</property>
 			      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
 			      <property name="snap_to_ticks">False</property>
 			      <property name="wrap">False</property>
-			      <property name="adjustment">0 0 6.71089e+07 1 10 10</property>
+			      <property name="adjustment">0 0 67108900 1 10 10</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
@@ -25118,7 +25143,7 @@ message</property>
 			      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
 			      <property name="snap_to_ticks">False</property>
 			      <property name="wrap">False</property>
-			      <property name="adjustment">0 0 6.71089e+07 1 10 10</property>
+			      <property name="adjustment">0 0 67108900 1 10 10</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
@@ -25189,7 +25214,7 @@ message</property>
 			      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
 			      <property name="snap_to_ticks">False</property>
 			      <property name="wrap">False</property>
-			      <property name="adjustment">0 0 6.71089e+07 1 10 10</property>
+			      <property name="adjustment">0 0 67108900 1 10 10</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>

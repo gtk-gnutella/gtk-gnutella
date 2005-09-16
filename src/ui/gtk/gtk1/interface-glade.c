@@ -585,6 +585,8 @@ create_main_window (void)
   GtkWidget *label_statusbar_horizon_kb_count;
   GtkWidget *frame_status_images;
   GtkWidget *hbox199;
+  GtkWidget *eventbox_image_chip;
+  GtkWidget *image_chip;
   GtkWidget *eventbox_image_warning;
   GtkWidget *image_warning;
   GtkWidget *eventbox_image_fd_shortage;
@@ -5555,6 +5557,24 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox199);
   gtk_container_add (GTK_CONTAINER (frame_status_images), hbox199);
+
+  eventbox_image_chip = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_chip, "eventbox_image_chip");
+  gtk_widget_ref (eventbox_image_chip);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_chip", eventbox_image_chip,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_chip);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_chip, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_chip, _("Your uploads are stalling at an abnormal rate, indicating that your bandwidth is probably saturated. You should not run as an ultra node, and try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating both your incoming and outgoing paths."), NULL);
+
+  image_chip = create_pixmap (main_window, "chip.xpm");
+  gtk_widget_set_name (image_chip, "image_chip");
+  gtk_widget_ref (image_chip);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_chip", image_chip,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_chip);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_chip), image_chip);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_chip), FALSE);
 
   eventbox_image_warning = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_warning, "eventbox_image_warning");
@@ -11179,6 +11199,24 @@ create_dlg_prefs (void)
   GtkWidget *label754;
   GtkObject *spinbutton_config_bootstrap_debug_adj;
   GtkWidget *spinbutton_config_bootstrap_debug;
+  GtkWidget *label755;
+  GtkObject *spinbutton_config_node_debug_adj;
+  GtkWidget *spinbutton_config_node_debug;
+  GtkWidget *label756;
+  GtkObject *spinbutton_config_socket_debug_adj;
+  GtkWidget *spinbutton_config_socket_debug;
+  GtkWidget *label757;
+  GtkObject *spinbutton_config_share_debug_adj;
+  GtkWidget *spinbutton_config_share_debug;
+  GtkWidget *label758;
+  GtkObject *spinbutton_config_ban_debug_adj;
+  GtkWidget *spinbutton_config_ban_debug;
+  GtkObject *spinbutton_config_gmsg_debug_adj;
+  GtkWidget *spinbutton_config_gmsg_debug;
+  GtkWidget *label759;
+  GtkWidget *label760;
+  GtkObject *spinbutton_config_dmesh_debug_adj;
+  GtkWidget *spinbutton_config_dmesh_debug;
   GtkWidget *frame_expert_unmapped;
   GtkWidget *table57;
   GtkWidget *label465;
@@ -16791,7 +16829,7 @@ create_dlg_prefs (void)
   gtk_box_pack_start (GTK_BOX (hbox206), frame134, FALSE, TRUE, 0);
   gtk_frame_set_shadow_type (GTK_FRAME (frame134), GTK_SHADOW_OUT);
 
-  table92 = gtk_table_new (7, 6, FALSE);
+  table92 = gtk_table_new (9, 6, FALSE);
   gtk_widget_set_name (table92, "table92");
   gtk_widget_ref (table92);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table92", table92,
@@ -17276,6 +17314,138 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_config_bootstrap_debug);
   gtk_table_attach (GTK_TABLE (table92), spinbutton_config_bootstrap_debug, 5, 6, 6, 7,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label755 = gtk_label_new (_("Node debug"));
+  gtk_widget_set_name (label755, "label755");
+  gtk_widget_ref (label755);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label755", label755,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label755);
+  gtk_table_attach (GTK_TABLE (table92), label755, 0, 1, 7, 8,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label755), 0, 0.5);
+
+  spinbutton_config_node_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_node_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_node_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_node_debug, "spinbutton_config_node_debug");
+  gtk_widget_ref (spinbutton_config_node_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_node_debug", spinbutton_config_node_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_node_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_node_debug, 1, 2, 7, 8,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label756 = gtk_label_new (_("Socket debug"));
+  gtk_widget_set_name (label756, "label756");
+  gtk_widget_ref (label756);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label756", label756,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label756);
+  gtk_table_attach (GTK_TABLE (table92), label756, 2, 3, 7, 8,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label756), 0, 0.5);
+
+  spinbutton_config_socket_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_socket_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_socket_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_socket_debug, "spinbutton_config_socket_debug");
+  gtk_widget_ref (spinbutton_config_socket_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_socket_debug", spinbutton_config_socket_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_socket_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_socket_debug, 3, 4, 7, 8,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label757 = gtk_label_new (_("Sharing debug"));
+  gtk_widget_set_name (label757, "label757");
+  gtk_widget_ref (label757);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label757", label757,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label757);
+  gtk_table_attach (GTK_TABLE (table92), label757, 4, 5, 7, 8,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label757), 0, 0.5);
+
+  spinbutton_config_share_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_share_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_share_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_share_debug, "spinbutton_config_share_debug");
+  gtk_widget_ref (spinbutton_config_share_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_share_debug", spinbutton_config_share_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_share_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_share_debug, 5, 6, 7, 8,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label758 = gtk_label_new (_("Banning debug"));
+  gtk_widget_set_name (label758, "label758");
+  gtk_widget_ref (label758);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label758", label758,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label758);
+  gtk_table_attach (GTK_TABLE (table92), label758, 0, 1, 8, 9,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label758), 0, 0.5);
+
+  spinbutton_config_ban_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_ban_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_ban_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_ban_debug, "spinbutton_config_ban_debug");
+  gtk_widget_ref (spinbutton_config_ban_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_ban_debug", spinbutton_config_ban_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_ban_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_ban_debug, 1, 2, 8, 9,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_config_gmsg_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_gmsg_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_gmsg_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_gmsg_debug, "spinbutton_config_gmsg_debug");
+  gtk_widget_ref (spinbutton_config_gmsg_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_gmsg_debug", spinbutton_config_gmsg_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_gmsg_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_gmsg_debug, 3, 4, 8, 9,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label759 = gtk_label_new (_("Gnutella messages"));
+  gtk_widget_set_name (label759, "label759");
+  gtk_widget_ref (label759);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label759", label759,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label759);
+  gtk_table_attach (GTK_TABLE (table92), label759, 2, 3, 8, 9,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label759), 0, 0.5);
+
+  label760 = gtk_label_new (_("Download mesh"));
+  gtk_widget_set_name (label760, "label760");
+  gtk_widget_ref (label760);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label760", label760,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label760);
+  gtk_table_attach (GTK_TABLE (table92), label760, 4, 5, 8, 9,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label760), 0, 0.5);
+
+  spinbutton_config_dmesh_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_dmesh_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_dmesh_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_dmesh_debug, "spinbutton_config_dmesh_debug");
+  gtk_widget_ref (spinbutton_config_dmesh_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_dmesh_debug", spinbutton_config_dmesh_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_dmesh_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_dmesh_debug, 5, 6, 8, 9,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
