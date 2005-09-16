@@ -241,7 +241,7 @@ gmsg_mb_sendto_all(const GSList *sl, pmsg_t *mb)
 {
 	g_assert(((struct gnutella_header *) pmsg_start(mb))->ttl > 0);
 
-	if (dbg > 5 && gmsg_hops(pmsg_start(mb)) == 0)
+	if (gmsg_debug > 5 && gmsg_hops(pmsg_start(mb)) == 0)
 		gmsg_dump(stdout, pmsg_start(mb), pmsg_size(mb));
 
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
@@ -267,7 +267,7 @@ gmsg_mb_sendto_one(struct gnutella_node *n, pmsg_t *mb)
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
-	if (dbg > 5 && gmsg_hops(pmsg_start(mb)) == 0)
+	if (gmsg_debug > 5 && gmsg_hops(pmsg_start(mb)) == 0)
 		gmsg_dump(stdout, pmsg_start(mb), pmsg_size(mb));
 
 	mq_putq(n->outq, mb);
@@ -284,7 +284,7 @@ gmsg_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size)
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
-	if (dbg > 5 && gmsg_hops(msg) == 0)
+	if (gmsg_debug > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
 	mq_putq(n->outq, gmsg_to_pmsg(msg, size));
@@ -303,7 +303,7 @@ gmsg_sendto_one_ggep(struct gnutella_node *n,
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
-	if (dbg > 5 && gmsg_hops(msg) == 0)
+	if (gmsg_debug > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
 	if (NODE_CAN_GGEP(n))
@@ -325,7 +325,7 @@ gmsg_ctrl_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size)
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
-	if (dbg > 6 && gmsg_hops(msg) == 0)
+	if (gmsg_debug > 6 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
 	mq_putq(n->outq, gmsg_to_ctrl_pmsg(msg, size));
@@ -345,7 +345,7 @@ gmsg_ctrl_sendto_one_ggep(struct gnutella_node *n,
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
-	if (dbg > 6 && gmsg_hops(msg) == 0)
+	if (gmsg_debug > 6 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
 	if (NODE_CAN_GGEP(n))
@@ -367,7 +367,7 @@ gmsg_search_sendto_one(
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
-	if (dbg > 5 && gmsg_hops(msg) == 0)
+	if (gmsg_debug > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
 	sq_putq(n->searchq, sh, gmsg_to_pmsg(msg, size));
@@ -385,7 +385,7 @@ gmsg_split_sendto_one(struct gnutella_node *n,
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
-	if (dbg > 6)
+	if (gmsg_debug > 6)
 		gmsg_split_dump(stdout, head, data, size);
 
 	mq_putq(n->outq, gmsg_split_to_pmsg(head, data, size));
@@ -401,7 +401,7 @@ gmsg_sendto_all(const GSList *sl, gconstpointer msg, guint32 size)
 
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 
-	if (dbg > 5 && gmsg_hops(msg) == 0)
+	if (gmsg_debug > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
@@ -428,7 +428,7 @@ gmsg_sendto_all_ggep(const GSList *sl,
 
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 
-	if (dbg > 5 && gmsg_hops(msg) == 0)
+	if (gmsg_debug > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
@@ -461,7 +461,7 @@ gmsg_search_sendto_all(
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 	g_assert(((struct gnutella_header *) msg)->hops <= hops_random_factor);
 
-	if (dbg > 5 && gmsg_hops(msg) == 0)
+	if (gmsg_debug > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
@@ -732,7 +732,7 @@ gmsg_query_can_send(pmsg_t *mb, mqueue_t *q)
 	g_assert(head->function == GTA_MSG_SEARCH);
 
 	if (!node_query_hops_ok(n, head->hops)) {
-		if (dbg > 4)
+		if (gmsg_debug > 4)
 			gmsg_log_dropped(start, "to node %s due to hops-flow",
 				node_addr(n));
 		return FALSE;
@@ -742,7 +742,7 @@ gmsg_query_can_send(pmsg_t *mb, mqueue_t *q)
 		return TRUE;
 
 	if (!route_exists_for_reply(start, head->function)) {
-		if (dbg > 4)
+		if (gmsg_debug > 4)
 			gmsg_log_dropped(start, "to node %s due to no route for hits",
 				node_addr(n));
 		return FALSE;
