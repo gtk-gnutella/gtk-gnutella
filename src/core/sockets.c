@@ -1055,7 +1055,7 @@ connect_socksv5(struct gnutella_socket *s)
 				g_strerror(errno));
 			return ECONNREFUSED;
 		}
-		if (dbg)
+		if (socket_debug)
 			g_message("connect_socksv5: Step 5, bytes recv'd %d\n", (int) ret);
 		if ((size_t) ret != size) {
 			g_warning("Short reply from SOCKS server");
@@ -1125,7 +1125,7 @@ socket_timer(time_t now)
 		 */
 		delta = delta_time(now, s->last_update);
 		if (delta > (gint32) incoming_connecting_timeout) {
-			if (dbg) {
+			if (socket_debug) {
 				g_warning("connection from %s timed out (%d bytes read)",
 					  host_addr_to_string(s->addr), (int) s->pos);
 				if (s->pos > 0)
@@ -1666,7 +1666,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		{
 			gchar *msg = ban_message(s->addr);
 
-            if (dbg) {
+            if (socket_debug) {
                 g_message("rejecting connection from banned %s (%s still): %s",
                     host_addr_to_string(s->addr),
 					short_time(ban_delay(s->addr)), msg);
@@ -1708,7 +1708,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	banlimit = parq_banned_source_expire(s->addr);
 
 	if (banlimit > 0) {
-		if (dbg)
+		if (socket_debug)
 			g_warning("[sockets] PARQ has banned ip %s until %d",
 				host_addr_to_string(s->addr), (gint) banlimit);
 		ban_force(s);
@@ -1725,7 +1725,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	if (hostiles_check(s->addr)) {
 		static const gchar msg[] = "Hostile IP address banned";
 
-		if (dbg)
+		if (socket_debug)
 			g_warning("denying connection from hostile %s: \"%s\"",
 				host_addr_to_string(s->addr), first);
 		if (is_strprefix(first, GNUTELLA_HELLO))
@@ -1773,7 +1773,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	return;
 
 unknown:
-	if (dbg) {
+	if (socket_debug) {
 		gint len = getline_length(s->getline);
 		g_warning("socket_read(): got unknown incoming connection from %s, "
 			"dropping!", host_addr_to_string(s->addr));
@@ -2578,7 +2578,7 @@ socket_connect_by_name(const gchar *host, guint16 port,
 		&& (s->adns & SOCK_ADNS_FAILED)
 	) {
 		/*	socket_connect_by_name_helper() was already invoked! */
-		if (dbg > 0)
+		if (socket_debug > 0)
 			g_warning("socket_connect_by_name: "
 				"adns_resolve() failed in synchronous mode");
 		socket_destroy(s, s->adns_msg);
@@ -2824,8 +2824,9 @@ sock_set_intern(gint fd, gint option, gint size, gchar *type, gboolean shrink)
 #endif
 
 	if (!shrink && old_len >= size) {
-		if (dbg > 5)
-			printf("socket %s buffer on fd #%d NOT shrank to %d bytes (is %d)\n",
+		if (socket_debug > 5)
+			g_message(
+				"socket %s buffer on fd #%d NOT shrank to %d bytes (is %d)",
 				type, fd, size, old_len);
 		return;
 	}
@@ -2843,8 +2844,8 @@ sock_set_intern(gint fd, gint option, gint size, gchar *type, gboolean shrink)
 	new_len >>= 1;		/* Linux returns twice the real amount */
 #endif
 
-	if (dbg > 5)
-		printf("socket %s buffer on fd #%d: %d -> %d bytes (now %d) %s\n",
+	if (socket_debug > 5)
+		g_message("socket %s buffer on fd #%d: %d -> %d bytes (now %d) %s",
 			type, fd, old_len, size, new_len,
 			(new_len == size) ? "OK" : "FAILED");
 }
