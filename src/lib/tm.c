@@ -176,27 +176,42 @@ tm_equal(gconstpointer a, gconstpointer b)
  *** CPU time computation.
  ***/
 
-#if defined(HAS_TIMES) && !defined(HAS_GETRUSAGE)
+#if defined(HAS_TIMES)
 /**
  * Return amount of clock ticks per second.
  */
-static
-gint clock_hz(void)
+static long 
+clock_hz(void)
 {
-	static gint hz = 0;		/* Cached amount of clock ticks per second */
+	static long freq = 0;	/* Cached amount of clock ticks per second */
 
-	if (hz > 0)
-		return hz;
+	if (freq <= 0) {
 
 #ifdef _SC_CLK_TCK
-	hz = sysconf(_SC_CLK_TCK);
-#else
-	hz = HZ;				/* From <sys/param.h> ususally */
+		errno = 0;
+		freq = sysconf(_SC_CLK_TCK);
+		if (-1L == freq)
+			g_warning("sysconf(_SC_CLK_TCK) failed: %s",
+				errno ? g_strerror(errno) : "unsupported");
 #endif
 
-	return hz;
+		if (freq <= 0)
+#if defined(CLK_TCK)
+			freq = CLK_TCK;			/* From <time.h> */
+#elif defined(HZ)
+			freq = HZ;				/* From <sys/param.h> ususally */
+#elif defined(CLOCKS_PER_SEC)
+			/* This is actually for clock() but should be OK. */
+			freq = CLOCKS_PER_SEC;	/* From <time.h> */
+#else
+			freq = 1;
+#error	"unable to determine clock frequency base"
+#endif
+	}
+
+	return freq;
 }
-#endif	/* HAS_TIMES && !HAS_GETRUSAGE */
+#endif	/* HAS_TIMES */
 
 /**
  * Fill supplied variables with CPU usage time (user and kernel), if not NULL.
@@ -206,26 +221,41 @@ gint clock_hz(void)
 gdouble
 tm_cputime(gdouble *user, gdouble *sys)
 {
+	static gboolean getrusage_failed;
 	gdouble u;
 	gdouble s;
 
-#if defined(HAS_GETRUSAGE)
-	struct rusage usage;
-
-	getrusage(RUSAGE_SELF, &usage);
-
-	u = tm2f(&usage.ru_utime);
-	s = tm2f(&usage.ru_stime);
-#elif defined(HAS_TIMES)
-	struct tms time;
-
-	(void) times(&time);
-
-	u = (gdouble) time.tms_utime / (gdouble) clock_hz();
-	s = (gdouble) time.tms_stime / (gdouble) clock_hz();
-#else
+#if !defined(HAS_GETRUSAGE) && !defined(HAS_TIMES)
 #error "missing getrusage() or times()"
-#endif	/* HAS_GETRUSAGE */
+#endif	/* !defined(HAS_GETRUSAGE) && !defined(HAS_TIMES) */
+
+	if (!getrusage_failed) {
+#if defined(HAS_GETRUSAGE)
+		struct rusage usage;
+
+		if (-1 == getrusage(RUSAGE_SELF, &usage)) {
+			u = s = 0;
+			g_warning("getrusage(RUSAGE_SELF, ...) failed: %s",
+				g_strerror(errno));
+		} else {
+			u = tm2f(&usage.ru_utime);
+			s = tm2f(&usage.ru_stime);
+		}
+#else
+		getrusage_failed = TRUE;
+#endif /* HAS_GETRUSAGE */
+	}
+
+	if (getrusage_failed) {	
+#if defined(HAS_TIMES)
+		struct tms t;
+
+		(void) times(&t);
+
+		u = (gdouble) t.tms_utime / (gdouble) clock_hz();
+		s = (gdouble) t.tms_stime / (gdouble) clock_hz();
+#endif	/* HAS_TIMES */
+	}
 
 	if (user) *user = u;
 	if (sys)  *sys  = s;
@@ -233,3 +263,4 @@ tm_cputime(gdouble *user, gdouble *sys)
 	return u + s;
 }
 
+/* vi: set ts=4 sw=4 cindent: */
