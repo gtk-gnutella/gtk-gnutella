@@ -3872,14 +3872,26 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 	arena = rt->arena;
 
 	for (i = qhv->count, qh = qhv->vec; i > 0; i--, qh++) {
-		guint32 idx = QRP_HASH_RESTRICT(qh->hashcode, bits);
+		guint32 idx;
 		enum query_hsrc source = qh->source;
+
+		/*
+		 * When "can_route" is FALSE, it means a word did not match
+		 * in the table, yet we did not return because the query has
+		 * URNs and we must make sure those will not match either.
+		 * But we can skip further word matches.
+		 */
+
+		if (!can_route && source == QUERY_H_WORD)
+			continue;
 
 		/*
 		 * If there is an entry in the table and the source is an URN,
 		 * we have to forward the query, as those are OR-ed.
 		 * Otherwise, ALL the keywords must be present.
 		 */
+
+		idx = QRP_HASH_RESTRICT(qh->hashcode, bits);
 
 		g_assert(idx < (guint32) slots);
 
@@ -3890,8 +3902,11 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 				break;							/* Will forward */
 			}
 		} else {
-			if (source == QUERY_H_WORD)			/* Word NOT present */
+			if (source == QUERY_H_WORD) {		/* Word NOT present */
+				if (!qhv->has_urn)				/* No URN to match against? */
+					return FALSE;				/* All words did not match */
 				can_route = FALSE;				/* A priori, don't route */
+			}
 		}
 	}
 
