@@ -738,7 +738,7 @@ close_fds(gint fd)
 	if (-1 == fcntl(fd, F_CLOSEM))
 #endif
 	{
-		time_t start;
+		gdouble start;
 		struct rlimit lim;
 		gint num_fds;
 
@@ -752,18 +752,15 @@ close_fds(gint fd)
 #endif
 		}
 
-		start = tm_time_exact();
+		start = tm_cputime(NULL, NULL);
 		for (/* NOTHING */; fd < num_fds; fd++) {
 			close(fd);
 
 			/* Just in case we're trying to close a bazillion fds on a vax */
-			if (0 == (fd & 0x100)) {
-				time_t now;
-
-				now = tm_time_exact();
-				/* getrusage() would be much more appropriate */
-				if (delta_time(now, start) > 5)
-					break;
+			if (0 == (fd & 0xff) && tm_cputime(NULL, NULL) - start > 5) {
+				g_warning("Aborted closing file descriptors after "
+					"exceeding 5s CPU time (fd=%d)", fd);
+				break;
 			}
 		}
 	}
