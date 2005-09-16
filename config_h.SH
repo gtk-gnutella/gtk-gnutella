@@ -126,6 +126,20 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_memcpy HAS_MEMCPY	/**/
 
+/* HAS_GETRUSAGE:
+ *	This symbol, if defined, indicates that the getrusage() routine is
+ *	available to get process statistics with a sub-second accuracy.
+ *	Inclusion of <sys/resource.h> and <sys/time.h> may be necessary.
+ */
+#$d_rusage HAS_GETRUSAGE		/**/
+
+/* HAS_TIMES:
+ *	This symbol, if defined, indicates that the times() routine exists.
+ *	Note that this became obsolete on some systems (SUNOS), which now
+ * use getrusage(). It may be necessary to include <sys/times.h>.
+ */
+#$d_times HAS_TIMES		/**/
+
 /* HASVOLATILE:
  *	This symbol, if defined, indicates that this C compiler knows about
  *	the volatile declaration.
@@ -146,6 +160,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	include <sys/param.h>.
  */
 #$i_sysparam I_SYS_PARAM		/**/
+
+/* I_SYS_TIMES:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/times.h>.
+ */
+#$i_systimes	I_SYS_TIMES		/**/
 
 /* I_TIME:
  *	This symbol, if defined, indicates to the C program that it should

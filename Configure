@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Sep 14 16:20:09 MEST 2005 [metaconfig 3.0 PL70]
+# Generated on Fri Sep 16 14:23:20 MEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -310,12 +310,15 @@ d_nls=''
 d_open3=''
 d_portable=''
 d_random=''
+d_rusage=''
 d_sendfile=''
 d_srandom=''
 d_index=''
 d_strchr=''
 d_strlcpy=''
 d_sysctl=''
+clocktype=''
+d_times=''
 d_volatile=''
 d_vsnprintf=''
 d_dbus=''
@@ -360,6 +363,7 @@ strings=''
 i_sysparam=''
 i_syssendfile=''
 i_syssysctl=''
+i_systimes=''
 i_systime=''
 i_systimek=''
 i_time=''
@@ -5091,6 +5095,10 @@ $rm -f open3*
 set random d_random
 eval $inlibc
 
+: see if getrusage exists
+set getrusage d_rusage
+eval $inlibc
+
 : see if sendfile exists
 set sendfile d_sendfile
 eval $inlibc
@@ -5161,6 +5169,54 @@ eval $inlibc
 : see if sysctl exists
 set sysctl d_sysctl
 eval $inlibc
+
+: define an is-a-typedef? function
+typedef='type=$1; var=$2; def=$3; shift; shift; shift; inclist=$@;
+case "$inclist" in
+"") inclist="sys/types.h";;
+esac;
+eval "varval=\$$var";
+case "$varval" in
+"")
+	$rm -f temp.c;
+	for inc in $inclist; do
+		echo "#include <$inc>" >>temp.c;
+	done;
+	$cppstdin $cppflags $cppminus < temp.c >temp.E 2>/dev/null;
+	if $contains $type temp.E >/dev/null 2>&1; then
+		eval "$var=\$type";
+	else
+		eval "$var=\$def";
+	fi;
+	$rm -f temp.?;;
+*) eval "$var=\$varval";;
+esac'
+
+: see if this is a sys/times.h system
+set sys/times.h i_systimes
+eval $inhdr
+
+: see if times exists
+echo " "
+if set times val -f d_times; eval $csym; $val; then
+	echo 'times() found.' >&4
+	d_times="$define"
+	inc=''
+	case "$i_systimes" in
+	"$define") inc='sys/times.h';;
+	esac
+	set clock_t clocktype long stdio.h sys/types.h $inc
+	eval $typedef
+	dflt="$clocktype"
+	echo " "
+	rp="What type is returned by times() on this system?"
+	. ./myread
+	clocktype="$ans"
+else
+	echo 'times() NOT found, hope that will do.' >&4
+	d_times="$undef"
+	clocktype='int'
+fi
 
 : check for volatile keyword
 echo " "
@@ -6498,6 +6554,7 @@ cf_time='$cf_time'
 chgrp='$chgrp'
 chmod='$chmod'
 chown='$chown'
+clocktype='$clocktype'
 comm='$comm'
 compress='$compress'
 contains='$contains'
@@ -6544,11 +6601,13 @@ d_os2='$d_os2'
 d_portable='$d_portable'
 d_random='$d_random'
 d_remotectrl='$d_remotectrl'
+d_rusage='$d_rusage'
 d_sendfile='$d_sendfile'
 d_srandom='$d_srandom'
 d_strchr='$d_strchr'
 d_strlcpy='$d_strlcpy'
 d_sysctl='$d_sysctl'
+d_times='$d_times'
 d_useglib1='$d_useglib1'
 d_useglib2='$d_useglib2'
 d_usegtk1='$d_usegtk1'
@@ -6611,6 +6670,7 @@ i_syssendfile='$i_syssendfile'
 i_syssysctl='$i_syssysctl'
 i_systime='$i_systime'
 i_systimek='$i_systimek'
+i_systimes='$i_systimes'
 i_time='$i_time'
 i_unistd='$i_unistd'
 i_zlib='$i_zlib'

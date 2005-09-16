@@ -54,7 +54,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.7 2004/09/23 17:14:25 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.8 2005/09/16 21:48:34 rmanfredi Exp $
 
 PIXMAPS = \
 	arrow_down.xpm \
@@ -62,6 +62,7 @@ PIXMAPS = \
 	booklib.xpm \
 	booksha.xpm \
 	bookshav.xpm \
+	chip.xpm \
 	clanbomber_red.xpm \
 	clanbomber_yellow.xpm \
 	download.xpm \
