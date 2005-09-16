@@ -37,6 +37,10 @@
 
 RCSID("$Id$");
 
+#ifdef I_SYS_TIMES
+#include <sys/times.h>
+#endif
+
 #include "tm.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -166,5 +170,66 @@ tm_equal(gconstpointer a, gconstpointer b)
 	const tm_t *ta = a, *tb = b;
 
 	return ta->tv_sec == tb->tv_sec && ta->tv_usec == tb->tv_usec;
+}
+
+/***
+ *** CPU time computation.
+ ***/
+
+#if defined(HAS_TIMES) && !defined(HAS_GETRUSAGE)
+/**
+ * Return amount of clock ticks per second.
+ */
+static
+gint clock_hz(void)
+{
+	static gint hz = 0;		/* Cached amount of clock ticks per second */
+
+	if (hz > 0)
+		return hz;
+
+#ifdef _SC_CLK_TCK
+	hz = sysconf(_SC_CLK_TCK);
+#else
+	hz = HZ;				/* From <sys/param.h> ususally */
+#endif
+
+	return hz;
+}
+#endif	/* HAS_TIMES && !HAS_GETRUSAGE */
+
+/**
+ * Fill supplied variables with CPU usage time (user and kernel), if not NULL.
+ *
+ * @return total CPU time used so far (user + kernel).
+ */
+gdouble
+tm_cputime(gdouble *user, gdouble *sys)
+{
+	gdouble u;
+	gdouble s;
+
+#if defined(HAS_GETRUSAGE)
+	struct rusage usage;
+
+	getrusage(RUSAGE_SELF, &usage);
+
+	u = tm2f(&usage.ru_utime);
+	s = tm2f(&usage.ru_stime);
+#elif defined(HAS_TIMES)
+	struct tms time;
+
+	(void) times(&time);
+
+	u = (gdouble) time.tms_utime / (gdouble) clock_hz();
+	s = (gdouble) time.tms_stime / (gdouble) clock_hz();
+#else
+#error "missing getrusage() or times()"
+#endif	/* HAS_GETRUSAGE */
+
+	if (user) *user = u;
+	if (sys)  *sys  = s;
+
+	return u + s;
 }
 

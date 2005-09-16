@@ -116,7 +116,7 @@
 #include "if/ui/gtk/search.h"
 #endif /* GTK */
 
-
+#include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
 
@@ -132,12 +132,16 @@ RCSID("$Id$");
 #define EXIT_GRACE				30	/**< Seconds to wait before exiting */
 #define ATEXIT_TIMEOUT			20	/**< Final cleanup must not take longer */
 
+#define LOAD_HIGH_WATERMARK		90	/**< % amount over which we're overloaded */
+#define LOAD_LOW_WATERMARK		55	/**< lower threshold to clear condition */
+
 static guint main_slow_update = 0;
 static gboolean exiting = FALSE;
 static gboolean from_atexit = FALSE;
 static gint signal_received = 0;
 static jmp_buf atexit_env;
 static volatile gchar *exit_step = "gtk_gnutella_exit";
+static tm_t start_time;
 
 void gtk_gnutella_exit(gint n);
 
@@ -170,6 +174,41 @@ sig_malloc(int n)
 	}
 }
 #endif /* MALLOC_STATS */
+
+/**
+ * Are we debugging anything at a level greater than some threshold "t"?
+ */
+gboolean
+debugging(guint t)
+{
+	return
+		bitzi_debug > t ||
+		bootstrap_debug > t ||
+		dbg > t ||
+		dh_debug > t ||
+		download_debug > t ||
+		dq_debug > t ||
+		fileinfo_debug > t ||
+		ggep_debug > t ||
+		gwc_debug > t ||
+		hsep_debug > t ||
+		http_debug > t ||
+		lib_debug > t ||
+		parq_debug > t ||
+		pcache_debug > t ||
+		qrp_debug > t ||
+		query_debug > t ||
+		routing_debug > t ||
+		search_debug > t ||
+		tls_debug > t ||
+		udp_debug > t ||
+		upload_debug > t ||
+		url_debug > t ||
+		vmsg_debug > t ||
+
+		/* Above line left blank for easy "!}sort" under vi */
+		0;
+}
 
 /**
  * Invoked as an atexit() callback when someone does an exit().
@@ -272,6 +311,32 @@ gtk_gnutella_exit(gint n)
 	settings_gui_shutdown();
 
 	/*
+	 * Show total CPU used, and the amount spent in user / kernel, before
+	 * we start the grace period...
+	 */
+
+	{
+		gdouble user;
+		gdouble sys;
+		gdouble total;
+		tm_t end_time;
+		tm_t elapsed_time;
+		gdouble elapsed;
+
+		tm_now_exact(&end_time);
+		total = tm_cputime(&user, &sys);
+
+		tm_elapsed(&elapsed_time, &end_time, &start_time);
+		elapsed = tm2f(&elapsed_time);
+
+		if (debugging(0)) {
+			g_message("CPU time: total = %.2f secs (user = %.2f, sys = %.2f)",
+				total, user, sys);
+			g_message("average CPU used: %.3f%%", 100.0 * total / elapsed);
+		}
+	}
+
+	/*
 	 * Wait at most EXIT_GRACE seconds, so that BYE messages can go through.
 	 * This amount of time is doubled when running in Ultra mode since we
 	 * have more connections to flush.
@@ -336,7 +401,7 @@ gtk_gnutella_exit(gint n)
 #endif
 
 
-	if (dbg || signal_received)
+	if (debugging(0) || signal_received)
 		g_message("gtk-gnutella shut down cleanly.");
 
 #if defined(USE_GTK1) || defined(USE_GTK2)
@@ -410,18 +475,112 @@ void icon_timer(void);
 #endif /* USE_TOPLESS */
 
 /**
+ * Check CPU usage.
+ *
+ * @return current (exact) system time.
+ */
+static time_t
+check_cpu_usage(void)
+{
+	static tm_t last_tm;
+	static gdouble last_cpu = 0.0;
+	static gint ticks = 0;
+	static gint load_avg = 0;
+	tm_t cur_tm;
+	tm_t elapsed_tm;
+	gint load = 0;
+	gdouble cpu;
+	gdouble elapsed;
+	gdouble cpu_percent;
+	gdouble coverage;
+
+	/*
+	 * Compute CPU time used this period.
+	 */
+
+	tm_now_exact(&cur_tm);
+	cpu = tm_cputime(NULL, NULL);
+	tm_elapsed(&elapsed_tm, &cur_tm, &last_tm);
+
+	elapsed = tm2f(&elapsed_tm);
+	if (elapsed == 0.0)
+		elapsed = 0.000001;			/* Paranoid: avoid division by zero */
+
+	cpu_percent = 100.0 * (cpu - last_cpu) / elapsed,
+
+	coverage = callout_queue_coverage(ticks);
+	if (coverage == 0.0)
+		coverage = 0.001;			/* Paranoid again */
+
+	/*
+	 * Correct the percentage of CPU that would have been actually used
+	 * if we had had 100% of the CPU scheduling time.  We use the callout
+	 * queue as a rough estimation of the CPU running time we had: the less
+	 * ticks were received by the callout queue, the busier the CPU was
+	 * running other things.  But we can be busy running our own code,
+	 * not really because the CPU is used by other processes, so we cannot
+	 * just divide by the coverage ratio.
+	 *
+	 * The average load is computed using a medium exponential moving average.
+	 */
+
+	if (coverage <= 0.1)
+		cpu_percent *= 4;
+	else if (coverage <= 0.2)
+		cpu_percent *= 3;
+	else if (coverage <= 0.5)
+		cpu_percent *= 1.5;
+
+	load = (gint) cpu_percent;
+	load_avg += (load >> 3) - (load_avg >> 3);
+
+	if (dbg > 1 && last_cpu)
+		g_message("CPU: %.3f secs in %.3f secs (~%.3f%% @ cover=%.2f) avg=%d%%",
+			cpu - last_cpu, elapsed, cpu_percent, coverage, load_avg);
+
+	/*
+	 * Update for next time.
+	 */
+
+	last_cpu = cpu;
+	last_tm = cur_tm;		/* Struct copy */
+	ticks = cq_ticks(callout_queue);
+
+	/*
+	 * Check whether we're overloaded, or if we were, whether we decreased
+	 * the average load enough to disable the "overloaded" condition.
+	 */
+
+	if (load_avg >= LOAD_HIGH_WATERMARK && !overloaded_cpu) {
+		if (debugging(0))
+			g_message("high average CPU load (%d%%), entering overloaded state",
+				load_avg);
+		gnet_prop_set_boolean_val(PROP_OVERLOADED_CPU, TRUE);
+	} else if (overloaded_cpu && load_avg < LOAD_LOW_WATERMARK) {
+		if (debugging(0))
+			g_message("average CPU load (%d%%) low, leaving overloaded state",
+				load_avg);
+		gnet_prop_set_boolean_val(PROP_OVERLOADED_CPU, FALSE);
+	}
+
+	return tm_time();		/* Exact, since tm_now_exact() called on entry */
+}
+
+/**
  * Main timer routine, called once per second.
  */
 static gboolean
 main_timer(gpointer p)
 {
-	time_t now = tm_time_exact();
+	time_t now;
 
 	(void) p;
 	if (signal_received) {
 		g_warning("caught signal #%d, exiting...", signal_received);
 		gtk_gnutella_exit(1);
 	}
+
+	now = check_cpu_usage();
 
 #ifdef MALLOC_STATS
 	if (signal_malloc) {
@@ -467,8 +626,15 @@ main_timer(gpointer p)
 		}
 	}
 
-	icon_timer();
-	bg_sched_timer();				/* Background tasks */
+	/*
+	 * The following are low-priority tasks, not called if we've
+	 * detected a high CPU load.
+	 */
+
+	if (!overloaded_cpu) {
+		icon_timer();
+		bg_sched_timer();			/* Background tasks */
+	}
 
 	return TRUE;
 }
@@ -608,6 +774,8 @@ extern char **environ;
 int
 main(int argc, char **argv)
 {
+	tm_now_exact(&start_time);
+
 	if (0 == getuid() || 0 == geteuid()) {
 		fprintf(stderr, "Never ever run this as root!\n");
 		exit(EXIT_FAILURE);
