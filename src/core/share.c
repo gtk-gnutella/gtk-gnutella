@@ -1074,7 +1074,7 @@ recurse_scan(gchar *dir, const gchar *basedir)
 				struct shared_file *found = NULL;
 				gchar *q;
 
-				if (dbg > 5)
+				if (share_debug > 5)
 					g_message("recurse_scan: full=\"%s\"", full);
 
 				if (contains_control_chars(full)) {
@@ -1089,7 +1089,7 @@ recurse_scan(gchar *dir, const gchar *basedir)
 				}
 
 				if (0 == file_stat.st_size) {
-					if (dbg > 5)
+					if (share_debug > 5)
 						g_warning("Not sharing empty file: \"%s\"", full);
 					break;
 				}
@@ -1451,8 +1451,8 @@ do {												\
 	p += word_length;								\
 } while (0)
 
-	if (dbg > 4)
-		printf("original: [%s]\n", search);
+	if (share_debug > 4)
+		g_message("original: [%s]", search);
 
 	word = is_ascii_blank(*search) ? NULL : search;
 	p = s = search;
@@ -1487,8 +1487,8 @@ do {												\
 	if ('\0' != *p)
 		*p = '\0'; /* terminate mangled query */
 
-	if (dbg > 4)
-		printf("mangled: [%s]\n", search);
+	if (share_debug > 4)
+		g_message("mangled: [%s]", search);
 
 	/* search does no longer contain unnecessary whitespace */
 	return p - search;
@@ -1595,7 +1595,8 @@ query_strip_oob_flag(gnutella_node_t *n, gchar *data)
 	gnet_stats_count_general(GNR_OOB_QUERIES_STRIPPED, 1);
 
 	if (query_debug)
-		printf("QUERY from node %s <%s>: removed OOB delivery (speed = 0x%x)\n",
+		g_message(
+			"QUERY from node %s <%s>: removed OOB delivery (speed = 0x%x)",
 			node_addr(n), node_vendor(n), speed);
 }
 
@@ -1612,7 +1613,8 @@ query_set_oob_flag(gnutella_node_t *n, gchar *data)
 	WRITE_GUINT16_LE(speed, data);
 
 	if (query_debug)
-		printf("QUERY %s from node %s <%s>: set OOB delivery (speed = 0x%x)\n",
+		g_message(
+			"QUERY %s from node %s <%s>: set OOB delivery (speed = 0x%x)",
 			guid_hex_str(n->header.muid), node_addr(n), node_vendor(n), speed);
 }
 
@@ -1675,11 +1677,11 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 		if (search_len > max_len) {
 			g_assert(n->data[n->size - 1] != '\0');
-			if (dbg)
+			if (share_debug)
 				g_warning("query (hops=%d, ttl=%d) had no NUL (%d byte%s)",
 					n->header.hops, n->header.ttl, n->size - 2,
 					n->size == 3 ? "" : "s");
-			if (dbg > 4)
+			if (share_debug > 4)
 				dump_hex(stderr, "Query Text", search, MIN(n->size - 2, 256));
 
             gnet_stats_count_dropped(n, MSG_DROP_QUERY_NO_NUL);
@@ -1776,15 +1778,15 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		if (exvcnt == MAX_EXTVEC) {
 			g_warning("%s has %d extensions!",
 				gmsg_infostr(&n->header), exvcnt);
-			if (dbg)
+			if (share_debug)
 				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
-			if (dbg > 1)
+			if (share_debug > 1)
 				dump_hex(stderr, "Query", search, n->size - 2);
 		}
 
-		if (exvcnt && dbg > 3) {
-			printf("Query with extensions: %s\n", search);
-			ext_dump(stdout, exv, exvcnt, "> ", "\n", dbg > 4);
+		if (exvcnt && share_debug > 3) {
+			g_message("query with extensions: %s\n", search);
+			ext_dump(stderr, exv, exvcnt, "> ", "\n", share_debug > 4);
 		}
 
 		/*
@@ -1796,7 +1798,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			extvec_t *e = &exv[i];
 
 			if (e->ext_token == EXT_T_OVERHEAD) {
-				if (dbg > 6)
+				if (share_debug > 6)
 					dump_hex(stderr, "Query Packet (BAD: has overhead)",
 						search, MIN(n->size - 2, 256));
 				gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
@@ -1823,8 +1825,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				exv_sha1[exv_sha1cnt].matched = FALSE;
 				exv_sha1cnt++;
 
-				if (dbg > 4)
-					printf("Valid SHA1 #%d in query: %32s\n",
+				if (share_debug > 4)
+					g_message("valid SHA1 #%d in query: %32s",
 						exv_sha1cnt, ext_payload(e));
 
 				/*
@@ -1921,7 +1923,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			seen = (time_t) GPOINTER_TO_INT(seenp);
 
 		if (delta_time(now, (time_t) 0) - seen < node_requery_threshold) {
-			if (dbg) g_warning("node %s (%s) re-queried \"%s\" after %d secs",
+			if (share_debug) g_warning(
+				"node %s (%s) re-queried \"%s\" after %d secs",
 				node_addr(n), node_vendor(n), query, (gint) (now - seen));
 			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
 			return TRUE;		/* Drop the message! */
@@ -1965,7 +1968,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			found = g_hash_table_lookup(n->qrelayed, stmp_1);
 
 		if (found != NULL) {
-			if (dbg) g_warning("dropping query \"%s%s\" (hops=%d, TTL=%d) "
+			if (share_debug) g_warning(
+				"dropping query \"%s%s\" (hops=%d, TTL=%d) "
 				"already seen recently from %s (%s)",
 				last_sha1_digest == NULL ? "" : "urn:sha1:",
 				last_sha1_digest == NULL ?
@@ -2051,7 +2055,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				gnet_stats_count_general(GNR_GTKG_REQUERIES, 1);
 
 			if (query_debug > 3)
-				printf("GTKG %s%squery from %d.%d%s\n",
+				g_message("GTKG %s%squery from %d.%d%s",
 					oob ? "OOB " : "", requery ? "re-" : "",
 					major, minor, release ? "" : "u");
 		}
@@ -2097,8 +2101,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			gnet_stats_count_dropped(n, MSG_DROP_BAD_RETURN_ADDRESS);
 
 			if (query_debug)
-				printf("QUERY dropped from node %s <%s>: invalid OOB flag "
-					"(return address mismatch: %s, node: %s)\n",
+				g_message("QUERY dropped from node %s <%s>: invalid OOB flag "
+					"(return address mismatch: %s, node: %s)",
 					node_addr(n), node_vendor(n),
 					host_addr_port_to_string(addr, port), node_gnet_addr(n));
 
@@ -2114,8 +2118,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			oob = FALSE;
 
 			if (query_debug)
-				printf("QUERY %s node %s <%s>: removed OOB flag "
-					"(invalid return address: %s)\n",
+				g_message("QUERY %s node %s <%s>: removed OOB flag "
+					"(invalid return address: %s)",
 					guid_hex_str(n->header.muid), node_addr(n), node_vendor(n),
 					host_addr_port_to_string(addr, port));
 		}
@@ -2131,8 +2135,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			oob = FALSE;
 
 			if (query_debug)
-				printf("QUERY %s node %s <%s>: removed OOB flag "
-					"(leaf node is TCP-firewalled)\n",
+				g_message("QUERY %s node %s <%s>: removed OOB flag "
+					"(leaf node is TCP-firewalled)",
 					guid_hex_str(n->header.muid), node_addr(n), node_vendor(n));
 		}
 
@@ -2150,8 +2154,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			oob = FALSE;
 
 			if (query_debug)
-				printf("QUERY %s node %s <%s>: removed OOB flag "
-					"(no leaf guidance)\n",
+				g_message("QUERY %s node %s <%s>: removed OOB flag "
+					"(no leaf guidance)",
 					guid_hex_str(n->header.muid), node_addr(n), node_vendor(n));
 		}
 	}
@@ -2312,8 +2316,9 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			if (isochars != utf8_len)		/* Not fully ISO-8859-1 */
 				ignore = TRUE;
 
-			if (dbg > 4)
-				printf("UTF-8 query, len=%d, utf8-len=%d, iso-len=%d: \"%s\"\n",
+			if (share_debug > 4)
+				g_message(
+					"UTF-8 query, len=%d, utf8-len=%d, iso-len=%d: \"%s\"",
 					search_len, utf8_len, isochars, stmp_1);
 		}
 #endif
@@ -2329,26 +2334,24 @@ finish:
 		if (current_peermode == NODE_P_LEAF && node_ultra_received_qrp(n))
 			node_inc_qrp_match(n);
 
-		if (dbg > 3) {
-			printf("Share HIT %u files '%s'%s ", qctx->found,
+		if (share_debug > 3) {
+			g_message("share HIT %u files '%s'%s ", qctx->found,
 				search + offset,
 				skip_file_search ? " (skipped)" : "");
 			if (exv_sha1cnt) {
 				gint i;
 				for (i = 0; i < exv_sha1cnt; i++)
-					printf("\n\t%c(%32s)",
+					g_message("\t%c(%32s)",
 						exv_sha1[i].matched ? '+' : '-',
 						sha1_base32(exv_sha1[i].sha1_digest));
-				printf("\n\t");
 			}
-			printf("req_speed=%u ttl=%d hops=%d\n", (guint) req_speed,
+			g_message("\treq_speed=%u ttl=%d hops=%d", (guint) req_speed,
 				(gint) n->header.ttl, (gint) n->header.hops);
-			fflush(stdout);
 		}
 	}
 
-	if (dbg > 3)
-		printf("QUERY %s \"%s\" has %u hit%s\n",
+	if (share_debug > 3)
+		g_message("QUERY %s \"%s\" has %u hit%s",
 			guid_hex_str(n->header.muid), search, qctx->found,
 			qctx->found == 1 ? "" : "s");
 
