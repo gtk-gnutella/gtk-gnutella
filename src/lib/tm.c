@@ -186,7 +186,6 @@ clock_hz(void)
 	static long freq = 0;	/* Cached amount of clock ticks per second */
 
 	if (freq <= 0) {
-
 #ifdef _SC_CLK_TCK
 		errno = 0;
 		freq = sysconf(_SC_CLK_TCK);
@@ -194,17 +193,18 @@ clock_hz(void)
 			g_warning("sysconf(_SC_CLK_TCK) failed: %s",
 				errno ? g_strerror(errno) : "unsupported");
 #endif
+	}
 
-		if (freq <= 0)
+	if (freq <= 0) {
 #if defined(CLK_TCK)
-			freq = CLK_TCK;			/* From <time.h> */
+		freq = CLK_TCK;			/* From <time.h> */
 #elif defined(HZ)
-			freq = HZ;				/* From <sys/param.h> ususally */
+		freq = HZ;				/* From <sys/param.h> ususally */
 #elif defined(CLOCKS_PER_SEC)
-			/* This is actually for clock() but should be OK. */
-			freq = CLOCKS_PER_SEC;	/* From <time.h> */
+		/* This is actually for clock() but should be OK. */
+		freq = CLOCKS_PER_SEC;	/* From <time.h> */
 #else
-			freq = 1;
+		freq = 1;
 #error	"unable to determine clock frequency base"
 #endif
 	}
@@ -233,10 +233,11 @@ tm_cputime(gdouble *user, gdouble *sys)
 #if defined(HAS_GETRUSAGE)
 		struct rusage usage;
 
+		errno = 0;
 		if (-1 == getrusage(RUSAGE_SELF, &usage)) {
 			u = s = 0;
 			g_warning("getrusage(RUSAGE_SELF, ...) failed: %s",
-				g_strerror(errno));
+				errno ? g_strerror(errno) : "unsupported");
 		} else {
 			u = tm2f(&usage.ru_utime);
 			s = tm2f(&usage.ru_stime);
@@ -254,6 +255,26 @@ tm_cputime(gdouble *user, gdouble *sys)
 
 		u = (gdouble) t.tms_utime / (gdouble) clock_hz();
 		s = (gdouble) t.tms_stime / (gdouble) clock_hz();
+#else
+		static gboolean warned = FALSE;
+		static tm_t prev_tm;
+		tm_t elapsed_time;
+		gdouble elapsed;
+
+		g_get_current_time(&now);
+		tm_elapsed(&elapsed_time, &now, &prev_tm);
+		elapsed = tm2f(&elapsed_time);
+		prev_tm = now;
+
+		if (!warned) {
+			g_warning("getrusage() is unusable and times() is missing");
+			g_warning("will be unable to monitor CPU usage; using wall clock.");
+			warned = TRUE;
+			elapsed = 0.5;		/* First time, take a guess */
+		}
+
+		u = elapsed;			/* Wall clock */
+		s = 0;					/* We have no way of knowing that */
 #endif	/* HAS_TIMES */
 	}
 
