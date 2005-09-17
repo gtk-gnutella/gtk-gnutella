@@ -257,24 +257,15 @@ tm_cputime(gdouble *user, gdouble *sys)
 		s = (gdouble) t.tms_stime / (gdouble) clock_hz();
 #else
 		static gboolean warned = FALSE;
-		static tm_t prev_tm;
-		tm_t elapsed_time;
-		gdouble elapsed;
-
-		g_get_current_time(&now);
-		tm_elapsed(&elapsed_time, &now, &prev_tm);
-		elapsed = tm2f(&elapsed_time);
-		prev_tm = now;
 
 		if (!warned) {
 			g_warning("getrusage() is unusable and times() is missing");
 			g_warning("will be unable to monitor CPU usage; using wall clock.");
 			warned = TRUE;
-			elapsed = 0.5;		/* First time, take a guess */
 		}
 
-		u = elapsed;			/* Wall clock */
-		s = 0;					/* We have no way of knowing that */
+		u = (gdouble) tm_time_exact();	/* Wall clock */
+		s = 0.0;						/* We have no way of knowing that */
 #endif	/* HAS_TIMES */
 	}
 
