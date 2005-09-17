@@ -2177,7 +2177,7 @@ http_data_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 		socket_eof(s);
 		http_got_data(ha, TRUE);			/* Signals EOF */
 		return;
-	} else if (r < 0 && errno == EAGAIN)
+	} else if (r < 0 && errno == VAL_EAGAIN)
 		return;
 	else if (r < 0) {
 		socket_eof(s);

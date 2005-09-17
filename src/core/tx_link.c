@@ -147,6 +147,9 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 
 	switch (errno) {
 	case EAGAIN:
+#if defined(EWOULDBLOCK) && (EAGAIN != EWOULDBLOCK)
+	case EWOULDBLOCK:
+#endif
 	case EINTR:
 	case ENOBUFS:
 		return 0;

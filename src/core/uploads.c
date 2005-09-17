@@ -3844,7 +3844,7 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 		if (
 			using_sendfile &&
 			e != EINTR &&
-			e != EAGAIN &&
+			e != VAL_EAGAIN &&
 			e != EPIPE &&
 			e != ECONNRESET &&
 			e != ENOTCONN &&
@@ -3854,7 +3854,7 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 				"disabling sendfile() for this session", g_strerror(e));
 			sendfile_failed = TRUE;
 		}
-		if (e != EAGAIN && e != EINTR) {
+		if (e != VAL_EAGAIN && e != EINTR) {
 			socket_eof(u->socket);
 			upload_remove(u, _("Data write error: %s"), g_strerror(e));
 		}

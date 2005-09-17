@@ -1154,7 +1154,7 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
 	available = bw_available(bio, len);
 
 	if (available == 0) {
-		errno = EAGAIN;
+		errno = VAL_EAGAIN;
 		return -1;
 	}
 
@@ -1177,7 +1177,7 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
 	if ((ssize_t) -1 == r && 0 == errno) {
 		g_warning("wio->write(fd=%d, len=%d) returned -1 with errno = 0, "
 			"assuming EAGAIN", bio->wio->fd(bio->wio), (gint) len);
-		errno = EAGAIN;
+		errno = VAL_EAGAIN;
 	}
 
 	if (r > 0) {
@@ -1220,7 +1220,7 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 	available = bw_available(bio, len);
 
 	if (available == 0) {
-		errno = EAGAIN;
+		errno = VAL_EAGAIN;
 		return -1;
 	}
 
@@ -1291,7 +1291,7 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 	if ((ssize_t) -1 == r && 0 == errno) {
 		g_warning("writev(fd=%d, len=%d) returned -1 with errno = 0, "
 			"assuming EAGAIN", bio->wio->fd(bio->wio), (gint) len);
-		errno = EAGAIN;
+		errno = VAL_EAGAIN;
 	}
 
 	if (r > 0) {
@@ -1342,7 +1342,7 @@ bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, size_t len)
 	available = bw_available(bio, len);
 
 	if (available == 0 || available + BW_UDP_OVERSIZE < len) {
-		errno = EAGAIN;
+		errno = VAL_EAGAIN;
 		return -1;
 	}
 
@@ -1365,7 +1365,7 @@ bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, size_t len)
 	if ((ssize_t) -1 == r && 0 == errno) {
 		g_warning("wio->sendto(fd=%d, len=%d) returned -1 with errno = 0, "
 			"assuming EAGAIN", bio->wio->fd(bio->wio), (gint) len);
-		errno = EAGAIN;
+		errno = VAL_EAGAIN;
 	}
 
 	if (r > 0) {
@@ -1454,7 +1454,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	available = bw_available(bio, len);
 
 	if (available == 0) {
-		errno = EAGAIN;
+		errno = VAL_EAGAIN;
 		return -1;
 	}
 
@@ -1559,7 +1559,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 
 		r = sendfile(in_fd, out_fd, start, amount, NULL, &written, 0);
 		if ((ssize_t) -1 == r) {
-			if (errno == EAGAIN || errno == EINTR)
+			if (errno == VAL_EAGAIN || errno == EINTR)
 				r = written > 0 ? (ssize_t) written : (ssize_t) -1;
 		} else {
 			r = amount;			/* Everything written, but returns 0 if OK */
@@ -1618,7 +1618,7 @@ bio_read(bio_source_t *bio, gpointer data, size_t len)
 
 	available = bw_available(bio, len);
 	if (available == 0) {
-		errno = EAGAIN;
+		errno = VAL_EAGAIN;
 		return -1;
 	}
 

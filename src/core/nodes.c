@@ -6247,7 +6247,7 @@ node_init_outgoing(struct gnutella_node *n)
 	switch (sent) {
 	case (ssize_t) -1:
 		g_message("bws_write() failed: %s", g_strerror(errno));
-		if (errno != EAGAIN) {
+		if (errno != VAL_EAGAIN) {
 			node_remove(n, _("Write error during HELLO: %s"),
 				g_strerror(errno));
 			return;

@@ -91,7 +91,7 @@ is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 		attr->cb->got_eof(rx->owner);
 		goto error;
 	} else if ((ssize_t) -1 == r) {
-		if (errno != EAGAIN)
+		if (errno != VAL_EAGAIN)
 			attr->cb->read_error(rx->owner, _("Read error: %s"),
 				g_strerror(errno));
 		goto error;
