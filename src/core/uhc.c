@@ -93,13 +93,13 @@ struct used_uhc {
 static const struct {
 	const gchar *uhc;
 } boot_hosts[] = {
+	{ "abacustechnology.net:1254" },
+	{ "abacustechnology.org:1254" },
 	{ "cache.kicks-ass.net:8000" },
-	{ "crab2.dyndns.org:8003" },
 	{ "g6.dns6.org:1337" },
 	{ "gwc.mine.nu:9999" },
 	{ "gwc1c.olden.ch:3559" },
 	{ "gwc2.mine.nu:9999" },
-	{ "gwebcache.abacustechnology.net:1254" },
 	{ "krill.shacknet.nu:20095" },
 	{ "plankton.merseine.nu:20098" },
 	{ "pokerface.bishopston.net:3558" },
