@@ -84,6 +84,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #include "Bletch: How does this C preprocessor catenate tokens?"
 #endif
 
+/* getdtablesize:
+ *	This catches use of the getdtablesize() subroutine, and remaps it
+ *	to either ulimit(4,0) or NOFILE, if getdtablesize() isn't available.
+ */
+#$d_gettblsz getdtablesize() $tablesize	/**/
+
 /* HASATTRIBUTE:
  *	This symbol indicates the C compiler can check for function attributes,
  *	such as printf formats. This is normally only supported by GNU cc.
@@ -183,6 +189,20 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #$i_systime I_SYS_TIME		/**/
 #$i_systimek I_SYS_TIME_KERNEL		/**/
 
+/* VAL_O_NONBLOCK:
+ *	This symbol is to be used during open() or fcntl(F_SETFL) to turn on
+ *	non-blocking I/O for the file descriptor. Note that there is no way
+ *	back, i.e. you cannot turn it blocking again this way. If you wish to
+ *	alternatively switch between blocking and non-blocking, use the
+ *	ioctl(FIOSNBIO) call instead, but that is not supported by all devices.
+ */
+/* VAL_EAGAIN:
+ *	This symbol holds the errno error code set by read() when no data was
+ *	present on the non-blocking file descriptor.
+ */
+#define VAL_O_NONBLOCK $o_nonblock
+#define VAL_EAGAIN $eagain
+
 /* PACKAGE:
  *	This variable contains the name of the package being built.
  */
@@ -278,6 +298,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	I_NETINET_IP is defined.
  */
 #$d_iptos USE_IP_TOS		/**/
+
+/* HAS_MSGHDR_MSG_FLAGS:
+ *	This symbol, if defined, indicates that struct msghdr has a
+ *	member msg_flags.
+ */
+#$d_msghdr_msg_flags HAS_MSGHDR_MSG_FLAGS		/**/
 
 /* HAS_RANDOM:
  *	This symbol, if defined, indicates that the random routine is

@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Fri Sep 16 14:23:20 MEST 2005 [metaconfig 3.0 PL70]
+# Generated on Sun Sep 18 00:10:39 MEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -290,6 +290,9 @@ cpplast=''
 cppminus=''
 cpprun=''
 cppstdin=''
+d_gettblsz=''
+nofile=''
+tablesize=''
 d_attribut=''
 d_bcopy=''
 d_bindtxtcode=''
@@ -306,6 +309,7 @@ d_inflate=''
 d_iptos=''
 d_isascii=''
 d_memcpy=''
+d_msghdr_msg_flags=''
 d_nls=''
 d_open3=''
 d_portable=''
@@ -319,6 +323,8 @@ d_strlcpy=''
 d_sysctl=''
 clocktype=''
 d_times=''
+d_voidsig=''
+signal_t=''
 d_volatile=''
 d_vsnprintf=''
 d_dbus=''
@@ -405,6 +411,10 @@ split=''
 msgmerge_update=''
 c=''
 n=''
+d_eofnblk=''
+eagain=''
+o_nonblock=''
+rd_nodata=''
 d_official=''
 official=''
 orderlib=''
@@ -4778,6 +4788,90 @@ eval $setvar
 set getinvent d_getinvent
 eval $inlibc
 
+: see if getdtablesize exists
+echo " "
+case "$d_gettblsz" in
+$define) d_gettblsz="$undef";;
+$undef) d_gettblsz="$define";;
+esac
+if set getdtablesize val -f d_gettblsz; eval $csym; $val; then
+	echo 'getdtablesize() found.' >&4
+	d_gettblsz="$undef"
+	tablesize=''
+else
+	echo 'getdtablesize() NOT found...' >&4
+	if set ulimit val -f; eval $csym; $val; then
+		echo 'Maybe ulimit(4,0) will work...'
+		$cat >nofile.c <<'EOCP'
+#include <stdio.h>
+#ifdef GETPARAM_H
+#include <sys/param.h>
+#endif
+int main()
+{
+	printf("%d %d\n",
+#ifdef NOFILE
+		NOFILE,
+#else
+		0,
+#endif
+		ulimit(4,0));
+		exit(0);
+}
+EOCP
+		if $cc $ccflags -DGETPARAM_H -o nofile nofile.c $libs >/dev/null 2>&1 \
+			|| $cc $ccflags -o nofile nofile.c $libs >/dev/null 2>&1 ; then
+			set `./nofile`
+			d_gettblsz=$1
+			d_ulimit4=$2
+			if $test "$d_ulimit4" -lt 0; then
+				echo "Your ulimit() call doesn't tell me what I want to know."
+				echo "We'll just use NOFILE in this case."
+				nofile=$d_gettblsz
+				d_gettblsz="$define"
+				tablesize='NOFILE'
+			else
+				if $test "$d_gettblsz" -gt 0; then
+				echo "Your system defines NOFILE to be $d_gettblsz, and" >&4
+				else
+				echo "I had trouble getting NOFILE from your system, but" >&4
+				fi
+echo "ulimit returns $d_ulimit4 as the number of available file descriptors." >&4
+				dflt='y';
+				echo " "
+	rp='Should I use ulimit to get the number of available file descriptors?'
+				. ./myread
+				case "$ans" in
+				y*)
+					nofile=$d_ulimit4
+					d_gettblsz="$define"
+					tablesize='ulimit(4, 0L)'
+					echo "Using ulimit(4,0)."
+					;;
+				*)
+					nofile=$d_gettblsz
+					d_gettblsz="$define"
+					tablesize='NOFILE'
+					echo "Using NOFILE."
+					;;
+				esac
+			fi
+		else
+			echo "Strange, I couldn't get my test program to compile."
+			echo "We'll just use NOFILE in this case."
+			d_gettblsz="$define"
+			tablesize='NOFILE'
+			nofile=''
+		fi
+	else
+		echo 'Using NOFILE instead.'
+		d_gettblsz="$define"
+		tablesize='NOFILE'
+		nofile=''
+	fi
+fi
+$rm -f nofile*
+
 : how can we find information about GNU TLS?
 echo " "
 case "$d_gnutls" in
@@ -5034,6 +5128,36 @@ esac
 : see if memcpy exists
 set memcpy d_memcpy
 eval $inlibc
+
+: check for msg_flags in struct msghdr
+echo " "
+$cat << 'EOM'
+Checking whether "struct msghdr" has a member "msg_flags" ..." >&4
+EOM
+$cat >try.c <<EOC
+#include <sys/types.h>
+#include <sys/socket.h>
+int main(void)
+{
+	struct msghdr msg;
+	msg.msg_flags |= 1;
+	return 0;
+}
+EOC
+if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+	$cat <<'EOM'
+Yes, "struct msghdr" has a "msg_flags" member.
+EOM
+	val="$define"
+else
+	$cat <<'EOM'
+No, there's no "msg_flags" in your "struct msghdr".
+EOM
+	val="$undef"
+fi
+$rm -f try.c try
+set d_msghdr_msg_flags
+eval $setvar
 
 : Initialize h_fcntl
 h_fcntl=false
@@ -5368,6 +5492,217 @@ EOM
 	cpp_stuff="/* Help! How do we handle cpp_stuff? */*/"
 fi
 $rm -f cpp_stuff.*
+
+: see if signal is declared as pointer to function returning int or void
+echo " "
+xxx=`./findhdr signal.h`
+$test "$xxx" && $cppstdin $cppminus $cppflags < $xxx >$$.tmp 2>/dev/null
+if $contains 'int.*\*[ 	]*signal' $$.tmp >/dev/null 2>&1 ; then
+	echo "You have int (*signal())() instead of void." >&4
+	val="$undef"
+elif $contains 'void.*\*[ 	]*signal' $$.tmp >/dev/null 2>&1 ; then
+	echo "You have void (*signal())() instead of int." >&4
+	val="$define"
+elif $contains 'extern[ 	]*[(\*]*signal' $$.tmp >/dev/null 2>&1 ; then
+	echo "You have int (*signal())() instead of void." >&4
+	val="$undef"
+else
+	case "$d_voidsig" in
+	'')
+	echo "I can't determine whether signal handler returns void or int..." >&4
+		dflt=void
+		rp="What type does your signal handler return?"
+		. ./myread
+		case "$ans" in
+		v*) val="$define";;
+		*) val="$undef";;
+		esac;;
+	"$define")
+		echo "As you already told me, signal handler returns void." >&4;;
+	*)
+		echo "As you already told me, signal handler returns int." >&4;;
+	esac
+fi
+set d_voidsig
+eval $setvar
+case "$d_voidsig" in
+"$define") signal_t="void";;
+*) signal_t="int";;
+esac
+$rm -f $$.tmp
+
+: check for non-blocking I/O stuff
+case "$h_sysfile" in
+true) echo "#include <sys/file.h>" > head.c;;
+*)
+	case "$h_fcntl" in
+	true) echo "#include <fcntl.h>" > head.c;;
+	*) echo "#include <sys/fcntl.h>" > head.c;;
+	esac
+	;;
+esac
+echo " "
+echo "Figuring out the flag used by open() for non-blocking I/O..." >&4
+case "$o_nonblock" in
+'')
+	$cat head.c > try.c
+	$cat >>try.c <<'EOCP'
+int main() {
+#ifdef O_NONBLOCK
+	printf("O_NONBLOCK\n");
+	exit(0);
+#endif
+#ifdef O_NDELAY
+	printf("O_NDELAY\n");
+	exit(0);
+#endif
+#ifdef FNDELAY
+	printf("FNDELAY\n");
+	exit(0);
+#endif
+	exit(0);
+}
+EOCP
+	if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+		o_nonblock=`./try`
+		case "$o_nonblock" in
+		'') echo "I can't figure it out, assuming O_NONBLOCK will do.";;
+		*) echo "Seems like we can use $o_nonblock.";;
+		esac
+	else
+		echo "(I can't compile the test program; pray O_NONBLOCK is right!)"
+	fi
+	;;
+*) echo "Using $hint value $o_nonblock.";;
+esac
+$rm -f try try.* .out core
+
+echo " "
+echo "Let's see what value errno gets from read() on a $o_nonblock file..." >&4
+case "$eagain" in
+'')
+	$cat head.c > try.c
+	$cat >>try.c <<EOCP
+#include <errno.h>
+#include <sys/types.h>
+#include <signal.h>
+#define MY_O_NONBLOCK $o_nonblock
+extern int errno;
+$signal_t blech(x) int x; { exit(3); }
+EOCP
+	$cat >> try.c <<'EOCP'
+int main()
+{
+	int pd[2];
+	int pu[2];
+	char buf[1];
+	char string[100];
+
+	pipe(pd);	/* Down: child -> parent */
+	pipe(pu);	/* Up: parent -> child */
+	if (0 != fork()) {
+		int ret;
+		close(pd[1]);	/* Parent reads from pd[0] */
+		close(pu[0]);	/* Parent writes (blocking) to pu[1] */
+		if (-1 == fcntl(pd[0], F_SETFL, MY_O_NONBLOCK))
+			exit(1);
+		signal(SIGALRM, blech);
+		alarm(5);
+		if ((ret = read(pd[0], buf, 1)) > 0)	/* Nothing to read! */
+			exit(2);
+		sprintf(string, "%d\n", ret);
+		write(2, string, strlen(string));
+		alarm(0);
+#ifdef EAGAIN
+		if (errno == EAGAIN) {
+			printf("EAGAIN\n");
+			goto ok;
+		}
+#endif
+#ifdef EWOULDBLOCK
+		if (errno == EWOULDBLOCK)
+			printf("EWOULDBLOCK\n");
+#endif
+	ok:
+		write(pu[1], buf, 1);	/* Unblocks child, tell it to close our pipe */
+		sleep(2);				/* Give it time to close our pipe */
+		alarm(5);
+		ret = read(pd[0], buf, 1);	/* Should read EOF */
+		alarm(0);
+		sprintf(string, "%d\n", ret);
+		write(3, string, strlen(string));
+		exit(0);
+	}
+
+	close(pd[0]);			/* We write to pd[1] */
+	close(pu[1]);			/* We read from pu[0] */
+	read(pu[0], buf, 1);	/* Wait for parent to signal us we may continue */
+	close(pd[1]);			/* Pipe pd is now fully closed! */
+	exit(0);				/* Bye bye, thank you for playing! */
+}
+EOCP
+	if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+		echo "$startsh" >mtry
+		echo "./try >try.out 2>try.ret 3>try.err || exit 4" >>mtry
+		chmod +x mtry
+		./mtry >/dev/null 2>&1
+		case $? in
+		0) eagain=`$cat try.out`;;
+		1) echo "Could not perform non-blocking setting!";;
+		2) echo "I did a successful read() for something that was not there!";;
+		3) echo "Hmm... non-blocking I/O does not seem to be working!";;
+		*) echo "Something terribly wrong happened during testing.";;
+		esac
+		rd_nodata=`$cat try.ret`
+		echo "A read() system call with no data present returns $rd_nodata."
+		case "$rd_nodata" in
+		0|-1) ;;
+		*)
+			echo "(That's peculiar, fixing that to be -1.)"
+			rd_nodata=-1
+			;;
+		esac
+		case "$eagain" in
+		'')
+			echo "Forcing errno EAGAIN on read() with no data available."
+			eagain=EAGAIN
+			;;
+		*)
+			echo "Your read() sets errno to $eagain when no data is available."
+			;;
+		esac
+		status=`$cat try.err`
+		case "$status" in
+		0) echo "And it correctly returns 0 to signal EOF.";;
+		-1) echo "But it also returns -1 to signal EOF, so be careful!";;
+		*) echo "However, your read() returns '$status' on EOF??";;
+		esac
+		val="$define"
+		if test "$status" = "$rd_nodata"; then
+			./warn "your read() can't distinguish between EOF and no data!"
+			val="$undef"
+		fi
+	else
+		echo "I can't compile the test program--assuming errno EAGAIN will do."
+		eagain=EAGAIN
+	fi
+	set d_eofnblk
+	eval $setvar
+	;;
+*)
+	echo "Using $hint value $eagain."
+	echo "Your read() returns $rd_nodata when no data is present."
+	case "$d_eofnblk" in
+	"$define") echo "And you can see EOF because read() returns 0.";;
+	"$undef") echo "But you can't see EOF status from read() returned value.";;
+	*)
+		echo "(Assuming you can't see EOF status from read anyway.)"
+		d_eofnblk=$undef
+		;;
+	esac
+	;;
+esac
+$rm -f try try.* .out core head.c mtry
 
 : derive which glade to use based on the configured GTK+
 echo " "
@@ -6578,9 +6913,11 @@ d_dbus='$d_dbus'
 d_deflate='$d_deflate'
 d_dos='$d_dos'
 d_enablenls='$d_enablenls'
+d_eofnblk='$d_eofnblk'
 d_eunice='$d_eunice'
 d_getaddrinfo='$d_getaddrinfo'
 d_getinvent='$d_getinvent'
+d_gettblsz='$d_gettblsz'
 d_gettext='$d_gettext'
 d_gnulibc='$d_gnulibc'
 d_gnutls='$d_gnutls'
@@ -6594,6 +6931,7 @@ d_isascii='$d_isascii'
 d_libxml2='$d_libxml2'
 d_linux='$d_linux'
 d_memcpy='$d_memcpy'
+d_msghdr_msg_flags='$d_msghdr_msg_flags'
 d_nls='$d_nls'
 d_official='$d_official'
 d_open3='$d_open3'
@@ -6612,6 +6950,7 @@ d_useglib1='$d_useglib1'
 d_useglib2='$d_useglib2'
 d_usegtk1='$d_usegtk1'
 d_usegtk2='$d_usegtk2'
+d_voidsig='$d_voidsig'
 d_volatile='$d_volatile'
 d_vsnprintf='$d_vsnprintf'
 d_xenix='$d_xenix'
@@ -6620,6 +6959,7 @@ dbuscflags='$dbuscflags'
 dbusconfig='$dbusconfig'
 dbusldflags='$dbusldflags'
 defvoidused='$defvoidused'
+eagain='$eagain'
 echo='$echo'
 egrep='$egrep'
 emacs='$emacs'
@@ -6729,7 +7069,9 @@ n='$n'
 nm='$nm'
 nm_opt='$nm_opt'
 nm_so_opt='$nm_so_opt'
+nofile='$nofile'
 nroff='$nroff'
+o_nonblock='$o_nonblock'
 official='$official'
 optimize='$optimize'
 orderlib='$orderlib'
@@ -6748,6 +7090,7 @@ privlib='$privlib'
 privlibexp='$privlibexp'
 prototype='$prototype'
 ranlib='$ranlib'
+rd_nodata='$rd_nodata'
 remotectrl='$remotectrl'
 rm='$rm'
 rmail='$rmail'
@@ -6759,6 +7102,7 @@ sh='$sh'
 shar='$shar'
 sharpbang='$sharpbang'
 shsharp='$shsharp'
+signal_t='$signal_t'
 sleep='$sleep'
 smail='$smail'
 small='$small'
@@ -6772,6 +7116,7 @@ startsh='$startsh'
 strings='$strings'
 submit='$submit'
 sysman='$sysman'
+tablesize='$tablesize'
 tail='$tail'
 tar='$tar'
 targetarch='$targetarch'
