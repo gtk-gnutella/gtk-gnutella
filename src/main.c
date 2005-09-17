@@ -182,24 +182,30 @@ gboolean
 debugging(guint t)
 {
 	return
+		ban_debug > t ||
 		bitzi_debug > t ||
 		bootstrap_debug > t ||
 		dbg > t ||
 		dh_debug > t ||
+		dmesh_debug > t ||
 		download_debug > t ||
 		dq_debug > t ||
 		fileinfo_debug > t ||
 		ggep_debug > t ||
+		gmsg_debug > t ||
 		gwc_debug > t ||
 		hsep_debug > t ||
 		http_debug > t ||
 		lib_debug > t ||
+		node_debug > t ||
 		parq_debug > t ||
 		pcache_debug > t ||
 		qrp_debug > t ||
 		query_debug > t ||
 		routing_debug > t ||
 		search_debug > t ||
+		share_debug > t ||
+		socket_debug > t ||
 		tls_debug > t ||
 		udp_debug > t ||
 		upload_debug > t ||
@@ -739,7 +745,6 @@ close_fds(gint fd)
 #endif
 	{
 		gdouble start;
-		struct rlimit lim;
 		gint num_fds = getdtablesize();
 
 		start = tm_cputime(NULL, NULL);
