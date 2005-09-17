@@ -595,7 +595,7 @@ proxy_connect(int fd)
 		}
 
 		if (in_progress) {
-			errno = EAGAIN;
+			errno = VAL_EAGAIN;
 			return -1;
 		}
 	}
@@ -1241,7 +1241,7 @@ socket_linger_cb(gpointer data, gint fd, inputevt_cond_t unused_cond)
 	if (close(fd)) {
 		gint e = errno;
 
-		if (EAGAIN != e && EINTR != e)
+		if (VAL_EAGAIN != e && EINTR != e)
 			g_warning("close(%d) failed: %s", fd, g_strerror(e));
 
 		/* remove the handler in case of EBADF because it would
@@ -1322,7 +1322,7 @@ socket_free(struct gnutella_socket *s)
 		if (close(s->file_desc)) {
 			gint e = errno;
 
-			if (EAGAIN != e && EINTR != e)
+			if (VAL_EAGAIN != e && EINTR != e)
 				g_warning("close(%d) failed: %s", s->file_desc, g_strerror(e));
 
 			if (EBADF != e) /* just in case, as it would cause looping */
@@ -1544,9 +1544,8 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			}
 		} else {
 
-			if (ret == 0 || (errno != EINTR && errno != EAGAIN)) {
+			if (ret == 0 || (errno != EINTR && errno != VAL_EAGAIN))
 				socket_destroy(s, "Connection reset");
-			}
 
 			/* If recv() failed only temporarily, wait for further data. */
 			return;
@@ -1585,7 +1584,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		socket_destroy(s, "Got EOF");
 		return;
 	case (ssize_t) -1:
-		if (errno != EAGAIN)
+		if (errno != VAL_EAGAIN)
 			socket_destroy(s, _("Read error"));
 		return;
 	default:
@@ -2128,9 +2127,12 @@ accepted:
 	if (!local_ip)
 		guess_local_addr(sd);
 
-	/* Create a new struct socket for this incoming connection */
+	/*
+	 * Create a new struct socket for this incoming connection
+	 */
 
-	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
+	/* Set the file descriptor non blocking */
+	fcntl(sd, F_SETFL, VAL_O_NONBLOCK);
 
 	t = walloc0(sizeof *t);
 
@@ -2392,7 +2394,7 @@ created:
 	socket_set_linger(s->file_desc);
 
 	/* Set the file descriptor non blocking */
-	fcntl(s->file_desc, F_SETFL, O_NONBLOCK);
+	fcntl(s->file_desc, F_SETFL, VAL_O_NONBLOCK);
 
 	socket_tos_normal(s);
 	return 0;
@@ -2457,7 +2459,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 
 	if (-1 == res && EINPROGRESS != errno) {
 		if (proxy_protocol != PROXY_NONE && (!proxy_addr || !proxy_port)) {
-			if (errno != EAGAIN) {
+			if (errno != VAL_EAGAIN) {
 				g_warning("Proxy isn't properly configured (%s:%u)",
 					proxy_addr, proxy_port);
 			}
@@ -2479,7 +2481,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	bws_sock_connect(s->type);
 
 	/* Set the file descriptor non blocking */
-	fcntl(s->file_desc, F_SETFL, O_NONBLOCK);
+	fcntl(s->file_desc, F_SETFL, VAL_O_NONBLOCK);
 
 	g_assert(0 == s->gdk_tag);
 
@@ -2636,7 +2638,8 @@ socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
 
 	socket_set_linger(s->file_desc);
 
-	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
+	/* Set the file descriptor non blocking */
+	fcntl(sd, F_SETFL, VAL_O_NONBLOCK);
 
 	s->net = host_addr_net(ha);
 
@@ -2722,7 +2725,8 @@ socket_udp_listen(const host_addr_t ha, guint16 port)
 	option = 1;
 	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof option);
 
-	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
+	/* Set the file descriptor non blocking */
+	fcntl(sd, F_SETFL, VAL_O_NONBLOCK);
 
 	/* bind() the socket */
 
@@ -3067,7 +3071,7 @@ socket_tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 				s->tls.snarf = len;
 				ret = len;
 			} else {
-				errno = EAGAIN;
+				errno = VAL_EAGAIN;
 				ret = -1;
 			}
 			break;
@@ -3086,7 +3090,7 @@ socket_tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 	} else {
 		if (0 != s->tls.snarf) {
 			s->tls.snarf -= ret;
-			errno = EAGAIN;
+			errno = VAL_EAGAIN;
 			ret = -1;
 		}
 	}
@@ -3118,7 +3122,7 @@ socket_tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 		case GNUTLS_E_AGAIN:
 			cond = gnutls_record_get_direction(s->tls.session)
 					? INPUT_EVENT_WX : INPUT_EVENT_RX;
-			errno = EAGAIN;
+			errno = VAL_EAGAIN;
 			break;
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
@@ -3157,7 +3161,7 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 			g_assert((ssize_t) s->tls.snarf >= ret);
 			s->tls.snarf -= ret;
 			if (0 != s->tls.snarf) {
-				errno = EAGAIN;
+				errno = VAL_EAGAIN;
 				ret = -1;
 				goto done;
 			}
@@ -3170,7 +3174,7 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 			case GNUTLS_E_AGAIN:
 				cond = gnutls_record_get_direction(s->tls.session)
 						? INPUT_EVENT_WX : INPUT_EVENT_RX;
-				errno = EAGAIN;
+				errno = VAL_EAGAIN;
 				break;
 			case GNUTLS_E_PULL_ERROR:
 			case GNUTLS_E_PUSH_ERROR:
@@ -3276,7 +3280,7 @@ socket_tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 			if (0 != rcvd) {
 				ret = rcvd;
 			} else {
-				errno = EAGAIN;
+				errno = VAL_EAGAIN;
 				ret = -1;
 			}
 			break;

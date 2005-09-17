@@ -266,7 +266,7 @@ adns_do_transfer(gint fd, gpointer buf, size_t len, gboolean do_write)
 		else
 			ret = read(fd, buf, n);
 
-		if ((ssize_t) -1 == ret && errno != EAGAIN && errno != EINTR) {
+		if ((ssize_t) -1 == ret && errno != VAL_EAGAIN && errno != EINTR) {
             /* Ignore the failure, if the parent process is gone.
                This prevents an unnecessary warning when quitting. */
             if (!is_helper || getppid() != 1)
@@ -439,7 +439,7 @@ again:
 		}
 		/* FALL THROUGH */
 		if ((ssize_t) -1 == ret) {
-			if (errno != EAGAIN && errno != EINTR) {
+			if (errno != VAL_EAGAIN && errno != EINTR) {
 				g_warning("adns_reply_callback: read() failed: %s",
 					g_strerror(errno));
 				inputevt_remove(adns_reply_event_id);
@@ -540,7 +540,7 @@ adns_query_callback(gpointer data, gint dest, inputevt_cond_t condition)
 		}
 		/* FALL THROUGH */
 		if ((ssize_t) -1 == ret) {
-			if (errno != EAGAIN && errno != EINTR)
+			if (errno != VAL_EAGAIN && errno != EINTR)
 				goto error;
 			return;
 		}
@@ -611,8 +611,8 @@ adns_init(void)
 	close(fd_query[0]);
 	close(fd_reply[1]);
 	adns_query_fd = fd_query[1];
-	fcntl(adns_query_fd, F_SETFL, O_NONBLOCK);
-	fcntl(fd_reply[0], F_SETFL, O_NONBLOCK);
+	fcntl(adns_query_fd, F_SETFL, VAL_O_NONBLOCK);
+	fcntl(fd_reply[0], F_SETFL, VAL_O_NONBLOCK);
 	adns_cache = adns_cache_init();
 	adns_reply_event_id = inputevt_add(fd_reply[0], INPUT_EVENT_RX,
 							adns_reply_callback, NULL);
@@ -647,7 +647,7 @@ adns_send_query(const adns_query_t *query)
 
 	written = write(adns_query_fd, &q, sizeof(q));
 	if (written == (ssize_t) -1) {
-		if (errno != EINTR && errno != EAGAIN) {
+		if (errno != EINTR && errno != VAL_EAGAIN) {
 			g_warning("adns_resolve: write() failed: %s",
 				g_strerror(errno));
 			adns_helper_alive = FALSE;
