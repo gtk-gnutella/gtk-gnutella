@@ -740,17 +740,7 @@ close_fds(gint fd)
 	{
 		gdouble start;
 		struct rlimit lim;
-		gint num_fds;
-
-	 	if (-1 != getrlimit(RLIMIT_NOFILE, &lim)) {
-			num_fds = lim.rlim_cur;
-		} else {
-#ifdef OPEN_MAX
-			num_fds = OPEN_MAX;
-#else
-			num_fds = 256;
-#endif
-		}
+		gint num_fds = getdtablesize();
 
 		start = tm_cputime(NULL, NULL);
 		for (/* NOTHING */; fd < num_fds; fd++) {
