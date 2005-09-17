@@ -1930,12 +1930,20 @@ unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 #define ESCAPE_CHAR		'\\'
 
 /*
+ * CHAR_IS_SPACE
+ *
+ * Allow spaces, tabs or new-lines as "spacing" chars.
+ */
+#define CHAR_IS_SPACE(c) \
+	((c) == ' ' || (c) == '\t' || (c) == '\n')
+
+/*
  * CHAR_IS_SAFE
  *
  * Nearly the same as isprint() but allows additional safe chars if !strict.
  */
 #define CHAR_IS_SAFE(c, strict) \
-	(isprint((c)) || (!(strict) && ((c) == ' ' || (c) == '\t' || (c) == '\n')))
+	(isprint((c)) || (!(strict) && CHAR_IS_SPACE(c)))
 
 
 /**
@@ -1991,16 +1999,16 @@ control_escape(const gchar *s)
 	gchar *new;
 
 	for (p = s; '\0' != (c = *p); p++)
-		if (is_ascii_cntrl(c) || iscntrl(c))
+		if ((is_ascii_cntrl(c) || iscntrl(c)) && !CHAR_IS_SPACE(c))
 			need_escape++;
 
 	if (0 == need_escape)
 		return deconstify_gchar(s);
 
-	new = g_malloc(p - s + 3 * need_escape);
+	new = g_malloc(p - s + 1 + 3 * need_escape);
 
 	for (p = s, q = new; '\0' != (c = *p); p++) {
-		if (!is_ascii_cntrl(c) && !iscntrl(c))
+		if ((!is_ascii_cntrl(c) && !iscntrl(c)) || CHAR_IS_SPACE(c))
 			*q++ = c;
 		else {
 			*q++ = ESCAPE_CHAR;
