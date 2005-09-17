@@ -2735,7 +2735,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		g_assert(NULL != end);
 
 		while (end != request && is_ascii_blank(*(end - 1)))
-			*end--;
+			end--;
 
 		*end = '\0';
 	}
