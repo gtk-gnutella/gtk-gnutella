@@ -691,7 +691,7 @@ log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 		level = "UNKNOWN";
 	}
 
-	safer = hex_escape(message, FALSE); /* non-strict escaping */
+	safer = control_escape(message);
 
 	fprintf(stderr, "%.2d/%.2d/%.2d %.2d:%.2d:%.2d (%s): %s\n",
 		ct->tm_year % 100, ct->tm_mon + 1, ct->tm_mday,

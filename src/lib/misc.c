@@ -1977,6 +1977,45 @@ hex_escape(const gchar *name, gboolean strict)
 }
 
 /**
+ * Escape all control chars into the hexadecimal "\xhh" form.
+ *
+ * @returns new escaped string, or the original string if no escaping occurred.
+ */
+gchar *
+control_escape(const gchar *s)
+{
+	const gchar *p;
+	gchar *q;
+	guchar c;
+	gint need_escape = 0;
+	gchar *new;
+
+	for (p = s; '\0' != (c = *p); p++)
+		if (is_ascii_cntrl(c) || iscntrl(c))
+			need_escape++;
+
+	if (0 == need_escape)
+		return deconstify_gchar(s);
+
+	new = g_malloc(p - s + 3 * need_escape);
+
+	for (p = s, q = new; '\0' != (c = *p); p++) {
+		if (!is_ascii_cntrl(c) && !iscntrl(c))
+			*q++ = c;
+		else {
+			*q++ = ESCAPE_CHAR;
+			*q++ = 'x';
+			*q++ = hex_alphabet[c >> 4];
+			*q++ = hex_alphabet[c & 0xf];
+		}
+	}
+	*q = '\0';
+
+	return new;
+}
+
+
+/**
  * Extracts the IP address into `ip' and the netmask into `netmask'.
  *
  * @returns whether the supplied string represents a valid ip/mask combination.
