@@ -2265,7 +2265,12 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 		msg.msg_iovlen = 1;
 		
 		r = recvmsg(s->file_desc, &msg, 0);
+#ifdef HAS_MSGHDR_MSG_FLAGS
 		truncated = 0 != (MSG_TRUNC & msg.msg_flags);
+#else
+		/* This is missing at least in some versions of IRIX. */
+		truncated = FALSE;
+#endif /* HAS_MSGHDR_MSG_FLAGS */
 	}
 
 	if ((ssize_t) -1 == r) {
