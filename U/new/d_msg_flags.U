@@ -13,13 +13,14 @@
 ?C:	This symbol, if defined, indicates that struct msghdr has a
 ?C:	member msg_flags.
 ?C:.
-?H:#$d_msghdr_msg_flags MSGHDR_MSG_FLAGS		/**/
+?H:#$d_msghdr_msg_flags HAS_MSGHDR_MSG_FLAGS		/**/
 ?H:.
 ?LINT:set d_msghdr_msg_flags
 : check for msg_flags in struct msghdr
 echo " "
-echo "Checking whether struct msghdr has a member msg_flags ..." >&4
-val="$define"
+$cat << 'EOM'
+Checking whether "struct msghdr" has a member "msg_flags" ..." >&4
+EOM
 $cat >try.c <<EOC
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -31,14 +32,16 @@ int main(void)
 }
 EOC
 if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-    $cat <<'EOM'
-struct msghdr has a member named msg_flags.
+	$cat <<'EOM'
+Yes, "struct msghdr" has a "msg_flags" member.
 EOM
+	val="$define"
 else
-	echo "struct msghdr has no member msg_flags."
+	$cat <<'EOM'
+No, there's no "msg_flags" in your "struct msghdr".
+EOM
 	val="$undef"
 fi
-
 $rm -f try.c try
 set d_msghdr_msg_flags
 eval $setvar
