@@ -1985,41 +1985,54 @@ hex_escape(const gchar *name, gboolean strict)
 }
 
 /**
- * Escape all control chars into the hexadecimal "\xhh" form.
+ * Checks whether the given character is a control character that should
+ * be escaped.
+ *
+ * @return TRUE if "c" should be escaped, FALSE otherwise.
+ */
+static inline gboolean
+escape_control_char(guchar c)
+{
+	return is_ascii_cntrl(c) && !CHAR_IS_SPACE(c);
+}
+
+/**
+ * Escape all ASCII control chars (except into the hexadecimal "\xhh" form.
  *
  * @returns new escaped string, or the original string if no escaping occurred.
  */
 gchar *
 control_escape(const gchar *s)
 {
+	size_t need_escape = 0;
 	const gchar *p;
-	gchar *q;
 	guchar c;
-	gint need_escape = 0;
-	gchar *new;
 
 	for (p = s; '\0' != (c = *p); p++)
-		if ((is_ascii_cntrl(c) || iscntrl(c)) && !CHAR_IS_SPACE(c))
+		if (escape_control_char(c))
 			need_escape++;
 
-	if (0 == need_escape)
-		return deconstify_gchar(s);
+	if (need_escape > 0) {
+		gchar *q, *escaped;
 
-	new = g_malloc(p - s + 1 + 3 * need_escape);
+		q = escaped = g_malloc(p - s + 1 + 3 * need_escape);
 
-	for (p = s, q = new; '\0' != (c = *p); p++) {
-		if ((!is_ascii_cntrl(c) && isprint(c)) || CHAR_IS_SPACE(c))
-			*q++ = c;
-		else {
-			*q++ = ESCAPE_CHAR;
-			*q++ = 'x';
-			*q++ = hex_alphabet[c >> 4];
-			*q++ = hex_alphabet[c & 0xf];
+		for (p = s; '\0' != (c = *p); p++) {
+			if (escape_control_char(c)) {
+				*q++ = ESCAPE_CHAR;
+				*q++ = 'x';
+				*q++ = hex_alphabet[c >> 4];
+				*q++ = hex_alphabet[c & 0xf];
+			} else {
+				*q++ = c;
+			}
 		}
-	}
-	*q = '\0';
+		*q = '\0';
 
-	return new;
+		return escaped;
+	}
+	
+	return deconstify_gchar(s);
 }
 
 
