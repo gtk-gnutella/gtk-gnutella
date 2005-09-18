@@ -2008,7 +2008,7 @@ control_escape(const gchar *s)
 	new = g_malloc(p - s + 1 + 3 * need_escape);
 
 	for (p = s, q = new; '\0' != (c = *p); p++) {
-		if ((!is_ascii_cntrl(c) && !iscntrl(c)) || CHAR_IS_SPACE(c))
+		if ((!is_ascii_cntrl(c) && isprint(c)) || CHAR_IS_SPACE(c))
 			*q++ = c;
 		else {
 			*q++ = ESCAPE_CHAR;
