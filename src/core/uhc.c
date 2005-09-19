@@ -100,6 +100,7 @@ static const struct {
 	{ "gwc.mine.nu:9999" },
 	{ "gwc1c.olden.ch:3559" },
 	{ "gwc2.mine.nu:9999" },
+	{ "kisama.ath.cx:8080" },
 	{ "plankton.merseine.nu:20098" },
 	{ "pokerface.bishopston.net:3558" },
 	{ "secondary.udp-host-cache.com:9999" },
