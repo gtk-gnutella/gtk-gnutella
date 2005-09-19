@@ -511,8 +511,10 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 		 * rows back to the original order (i.e., chronological).
 		 */
 		gtk_tree_view_column_set_sort_indicator(column, FALSE);
+#if GTK_CHECK_VERSION(2,6,0)
 		gtk_tree_sortable_set_sort_column_id(model,
 			GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order);
+#endif /* Gtk+ >= 2.6.0 */
 	} else {
 		/*
 		 * Enforce the order as decided from the search state. Gtk+
