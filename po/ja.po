@@ -8,9 +8,10 @@
 #
 # 対訳一覧:
 #
-# Partial File Sharing Protocol 部分ファイル共有プロトコル
-# Passive/Active Remote Queuing 受動/能動遠隔キューイング
-# Swarming                      多源ダウンロード
+# Horizon Size Estimation Protocol    到達領域サイズ推計プロトコル (HSEP)
+# Partial File Sharing Protocol       部分ファイル共有プロトコル (PFSP)
+# Passive/Active Remote Queuing       受動/能動遠隔キューイング (RARQ)
+# Swarming                            多源ダウンロード
 #
 # TX/RX               送信/受信
 # activated           有効にする
@@ -27,7 +28,7 @@
 # global              大域、全般、システム用
 # inactive            動作していない、無効
 # incoming/outgoing   内への/外への
-# invalid             不適切な
+# invalid             無効な
 # jump                分岐
 # matching            一致
 # query, queries      検索式、検索語、問合わせ (クエリ)
@@ -47,11 +48,12 @@
 # TODO:
 #
 # フィルターに関する訳がきわめて不明瞭なので、これを何とかする。
+# まだ各ペインの情報欄に翻訳不可能な文字列が存在するので、対処可能
+# なコードを考える。
 #
 # NOTE:
 #
 # 可読性を増すために英字との間にはスペースを入れています。
-# GTK1で使用する場合、ツールチップが不適切に改行されます。
 # アクセラレータキーの割り当てに関して改善の余地があります。
 #
 # 誤訳の指摘・P2P用語のより正確な訳 (より分かり易い訳)・パッチの
@@ -62,7 +64,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-09-18 21:01+0900\n"
-"PO-Revision-Date: 2005-09-18 05:42+0900\n"
+"PO-Revision-Date: 2005-09-22 13:25+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -86,7 +88,7 @@ msgstr "タイムアウト"
 
 #: src/core/downloads.c:1429
 msgid "Requeued by file info change"
-msgstr "待機列に戻されました (ファイル情報変更)"
+msgstr "再びキューに戻されました (ファイル情報変更)"
 
 #: src/core/downloads.c:1508 src/core/downloads.c:2572
 #: src/core/downloads.c:3474
@@ -137,7 +139,7 @@ msgstr "中止 (インデックス変更)"
 
 #: src/core/downloads.c:4027
 msgid "Explicitly requeued"
-msgstr "待機列に戻されました (手動)"
+msgstr "キューに戻されました (手動)"
 
 #: src/core/downloads.c:4197
 #, c-format
@@ -174,11 +176,11 @@ msgstr "データを保存できません: %s"
 
 #: src/core/downloads.c:4599
 msgid "Requeued by competing download"
-msgstr "待機列に戻されました (競合ダウンロード)"
+msgstr "キューに戻されました (競合ダウンロード)"
 
 #: src/core/downloads.c:4663
 msgid "Requeued after trimmed data"
-msgstr "待機列に戻されました (データ整理後)"
+msgstr "キューに戻されました (データ整理後)"
 
 #: src/core/downloads.c:4665
 msgid "Chunk done, connection closed"
@@ -261,7 +263,7 @@ msgstr "TTL がゼロの送信メッセージ"
 
 #: src/core/gnet_stats.c:63
 msgid "Improper hops/ttl combination"
-msgstr "ホップ数/TTL の組合せが不適切"
+msgstr "ホップ数/TTL の組合せが無効"
 
 #: src/core/gnet_stats.c:64 src/ui/gtk/gnet_stats_common.c:91
 msgid "Max TTL exceeded"
@@ -585,7 +587,7 @@ msgstr "ノードが追加されました"
 
 #: src/core/shell.c:269
 msgid "Invalid IP/Port"
-msgstr "不適切な IP/ポートです"
+msgstr "無効な IP/ポートです"
 
 #: src/core/shell.c:275 src/core/shell.c:323
 msgid "Unknown operation"
@@ -643,12 +645,12 @@ msgstr "不明なパラメータです"
 #: src/core/shell.c:606
 #, c-format
 msgid "Total horizon size (%u/%u nodes support HSEP):"
-msgstr "合計水平分布サイズ (%u/%u 基のHSEP対応ノード):"
+msgstr "到達領域サイズの合計 (%u/%u 基のHSEP対応ノード):"
 
 #: src/core/shell.c:628
 #, c-format
 msgid "Horizon size via HSEP node %s (%s):"
-msgstr "HSEPノード %s (%s) 経由の水平分布サイズ:"
+msgstr "HSEPノード %s (%s) 経由の到達領域サイズ:"
 
 #: src/core/shell.c:630
 msgid "leaf"
@@ -2800,7 +2802,7 @@ msgstr "Gnet のフロー制御ホップステータス一覧表の欄幅です�
 
 #: src/if/gui_property.c:789
 msgid "Widths of the columns in the Gnet horizon stats table."
-msgstr "Gnet の水平分布ステータス一覧表の欄幅です。"
+msgstr "Gnet の到達領域ステータス一覧表の欄幅です。"
 
 #: src/if/gui_property.c:809 src/if/gui_property.c:829
 msgid "Widths of the columns in the Gnet stats drop reasons table."
@@ -4500,7 +4502,7 @@ msgstr "(非活生化)"
 
 #: src/ui/gtk/filter_core.c:1176
 msgid "(invalid)"
-msgstr "(不適切)"
+msgstr "(無効)"
 
 #: src/ui/gtk/filter_core.c:2337
 msgid "Global (pre)"
@@ -4571,7 +4573,7 @@ msgstr "合計"
 
 #: src/ui/gtk/gnet_stats_common.c:90
 msgid "Improper hops/TTL combination"
-msgstr "ホップ数/TTL の組合せが不適切"
+msgstr "ホップ数/TTL の組合せが無効"
 
 #: src/ui/gtk/gnet_stats_common.c:101
 msgid "Flow control"
@@ -5554,7 +5556,7 @@ msgstr "プロトコルを表示:"
 #: src/ui/gtk/gtk1/interface-glade.c:2580
 #: src/ui/gtk/gtk2/interface-glade.c:6180
 msgid "Horizon stats"
-msgstr "水平分布ステータス"
+msgstr "到達領域ステータス"
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
 #: src/ui/gtk/gtk1/interface-glade.c:2655
@@ -5930,7 +5932,7 @@ msgstr "失敗したもの"
 #: src/ui/gtk/gtk1/interface-glade.c:3993
 #: src/ui/gtk/gtk2/interface-glade.c:4392
 msgid "Unavailable"
-msgstr "無効なもの"
+msgstr "利用できないもの"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4011
 #: src/ui/gtk/gtk2/interface-glade.c:4438
@@ -6476,7 +6478,7 @@ msgstr "再開する"
 #: src/ui/gtk/gtk1/interface-glade.c:6273
 #: src/ui/gtk/gtk2/interface-glade.c:123
 msgid "Move back to queue"
-msgstr "待機列へ戻す"
+msgstr "キューへ戻す"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6290
 #: src/ui/gtk/gtk2/interface-glade.c:139 src/ui/gtk/gtk2/interface-glade.c:356
