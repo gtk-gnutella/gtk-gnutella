@@ -97,6 +97,7 @@ static const struct {
 	{ "abacustechnology.org:1254" },
 	{ "cache.kicks-ass.net:8000" },
 	{ "g6.dns6.org:1337" },
+	{ "gwc.jooz.net:8010" },
 	{ "gwc.mine.nu:9999" },
 	{ "gwc1c.olden.ch:3559" },
 	{ "gwc2.mine.nu:9999" },
