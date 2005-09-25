@@ -5556,14 +5556,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		check_push_proxies(d, header);
 	}
 
-	/*
-	 * One cannot assume that the same port will always be used for Gnutella
-	 * connections and HTTP connections.  Do not collect addresses from
-	 * headers unless we're low on pongs.
-	 */
-
-	if (host_low_on_pongs)
-		feed_host_cache_from_headers(header, HOST_ANY, FALSE, download_addr(d));
+	feed_host_cache_from_headers(header, HOST_ANY, FALSE, download_addr(d));
 
 	/*
 	 * If we get an X-Hostname header, we know the remote end is not

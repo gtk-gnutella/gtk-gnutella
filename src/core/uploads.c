@@ -2696,14 +2696,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	token = header_get(header, "X-Token");
 	user_agent = header_get(header, "User-Agent");
 
-	/*
-	 * One cannot assume that the same port will always be used for Gnutella
-	 * connections and HTTP connections.  Do not collect addresses from
-	 * headers unless we're low on pongs.
-	 */
-
-	if (host_low_on_pongs)
-		feed_host_cache_from_headers(header, HOST_ANY, FALSE, u->addr);
+	feed_host_cache_from_headers(header, HOST_ANY, FALSE, u->addr);
 
 	/* Maybe they sent a Server: line, thinking they're a server? */
 	if (user_agent == NULL)

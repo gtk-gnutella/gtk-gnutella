@@ -3511,14 +3511,15 @@ feed_host_cache_from_headers(header_t *header,
 	static const struct {
 		const gchar *name;	/**< Name of the header */
 		gboolean sender;	/**< Host type is derived from sender */
+		gboolean gnet;		/**< Definitely a Gnutella network header */
 		host_type_t type;	/**< Default type, sender will override */
 	} headers[] = {
-		{ "X-Alt",				FALSE,	HOST_ANY },
-		{ "X-Listen-Ip",		TRUE,	HOST_ANY },
-		{ "X-My-Address",		TRUE,	HOST_ANY },
-		{ "X-Node",				TRUE,	HOST_ANY },
-		{ "X-Try",				FALSE,	HOST_ANY },
-		{ "X-Try-Ultrapeers",	FALSE,	HOST_ULTRA },
+		{ "X-Alt",				FALSE,	FALSE, HOST_ANY },
+		{ "X-Listen-Ip",		TRUE,	TRUE,  HOST_ANY },
+		{ "X-My-Address",		TRUE,	TRUE,  HOST_ANY },
+		{ "X-Node",				TRUE,	TRUE,  HOST_ANY },
+		{ "X-Try",				FALSE,	TRUE,  HOST_ANY },
+		{ "X-Try-Ultrapeers",	FALSE,	TRUE,  HOST_ULTRA },
 	};
 	guint i, n = 0;
 
@@ -3530,6 +3531,15 @@ feed_host_cache_from_headers(header_t *header,
 			const gchar *val, *name, *p;
 			host_type_t type;
 			guint r;
+
+			/*
+			 * One cannot assume that the same port will always be used for
+			 * Gnutella connections and HTTP connections.  Do not collect
+			 * addresses from ambiguous headers unless we're low on pongs.
+			 */
+
+			if (!gnet && !headers[i].gnet && !host_low_on_pongs)
+				continue;
 
 			name = headers[i].name;
 			if (gnet && NULL != (p = is_strprefix(name, "X-")))
