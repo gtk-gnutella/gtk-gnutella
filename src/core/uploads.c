@@ -1651,14 +1651,111 @@ upload_connect_conf(gnutella_upload_t *u)
 }
 
 /**
+ * Compute the offset at which the base32 SHA1 representation starts
+ * in the "urn:sha1" or "urn:bitprint" URN.
+ *
+ * @param uri		the URI to parse
+ * @param length	filled with expected length of URN, if not NULL
+ *
+ * @return the offset at which the SHA1 starts with a filled-in `length',
+ * or -1 if it's not a recognized URN.
+ */
+static ssize_t
+sha1_offset_in_uri(const gchar *uri, size_t *length)
+{
+	static const struct {
+		const gchar *s;
+		const ssize_t offset;
+		const size_t len;
+	} urn_prefixes[] = {
+		{ "urn:sha1:",		9,	SHA1_BASE32_SIZE },
+		{ "urn:bitprint:",	13,	BITPRINT_BASE32_SIZE },
+	};
+	guint i;
+
+	g_assert(uri != NULL);
+
+	/*
+	 * We currently only support SHA1, but this allows us to process
+	 * both "urn:sha1:" and "urn:bitprint:" URNs.
+	 *		--RAM, 16/11/2002
+	 */
+
+	for (i = 0; i < G_N_ELEMENTS(urn_prefixes); i++) {
+		if (NULL != is_strcaseprefix(uri, urn_prefixes[i].s)) {
+			if (length)
+				*length = urn_prefixes[i].len;
+			return urn_prefixes[i].offset;
+		}
+	}
+
+	return -1;
+}
+
+/**
+ * Extract the SHA1 digest out of a "urn:sha1" or "urn:bitprint" URN.
+ *
+ * @param uri		the URI from which we wish to extract the SHA1 digest
+ * @param digest	a SHA1_RAW_SIZE array where digest is written.
+ * @param malformed	only set when returning FALSE, to indicate malformation
+ * 
+ * @return TRUE if we correctly figured out the SHA1 digest, otherwise set
+ * `malformed' to TRUE if we expected a valid SHA1 but were not able to
+ * properly decode it, and set `malformed' to FALSE if the URI was not
+ * an URN form we recognize as bearing a SHA1.
+ */
+static gboolean
+sha1_extract_from_uri(const gchar *uri, gchar *digest, gboolean *malformed)
+{
+	gchar hash[SHA1_BASE32_SIZE + 1];
+	size_t ret, urn_len = 0;
+	ssize_t offset;
+
+	g_assert(uri != NULL);
+
+	offset = sha1_offset_in_uri(uri, &urn_len);
+
+	if (offset < 0) {
+		if (malformed)
+			*malformed = FALSE;		/* Not an URN we recognize */
+		return FALSE;				/* Could not figure out the SHA1 */
+	}
+
+	ret = g_strlcpy(hash, uri + offset, sizeof hash);
+	if (ret != urn_len)
+		goto malformed;
+
+	if (!urn_get_http_sha1(hash, digest))
+		goto malformed;
+
+	return TRUE;					/* Recognized URN, SHA1 extracted OK */
+
+malformed:
+	if (malformed)
+		*malformed = TRUE;			/* Expected a SHA1, could not decode it */
+	return FALSE;					/* Unable to figure out the SHA1 */
+}
+
+/**
  * Send back an HTTP error 404: file not found,
+ * We try to pretty-print SHA1 URNs for PFSP files we no longer share...
  */
 static void
 upload_error_not_found(gnutella_upload_t *u, const gchar *request)
 {
-	if (upload_debug) g_warning(
-		"returned 404 for %s <%s>: %s", host_addr_to_string(u->socket->addr),
-		upload_vendor_str(u), request);
+	if (upload_debug) {
+		const gchar *filename = NULL;
+		gchar digest[SHA1_RAW_SIZE];
+
+		if (sha1_extract_from_uri(request, digest, NULL))
+			filename = ignore_sha1_filename(digest);
+
+		g_warning("returned 404 to %s <%s>: %s (%s)",
+			host_addr_to_string(u->socket->addr),
+			upload_vendor_str(u), filename ? filename : request,
+			filename ? request : "verbatim");
+	}
+
 	upload_error_remove(u, NULL, 404, "Not Found");
 }
 
@@ -1957,49 +2054,21 @@ get_file_to_upload_from_urn(
 	header_t *header,
 	const gchar *uri)
 {
-	static const struct {
-		const gchar *s;
-		const size_t len;
-	} urn_prefixes[] = {
-		{ "urn:sha1:", SHA1_BASE32_SIZE },
-		{ "urn:bitprint:", BITPRINT_BASE32_SIZE },
-	};
-	gchar hash[SHA1_BASE32_SIZE + 1];
 	gchar digest[SHA1_RAW_SIZE];
-	const gchar *p, *urn = uri;
 	struct shared_file *sf;
-	guint i;
 	gchar *filename;
-	size_t ret, urn_len = 0;
+	gboolean malformed;
 
 	if (!uri)
 		goto malformed;
 
-	/*
-	 * We currently only support SHA1, but this allows us to process
-	 * both "urn:sha1:" and "urn:bitprint:" URNs.
-	 *		--RAM, 16/11/2002
-	 */
-
-	p = NULL; /* dumb compiler */
-	for (i = 0; i < G_N_ELEMENTS(urn_prefixes); i++) {
-		if (NULL != (p = is_strcaseprefix(urn, urn_prefixes[i].s))) {
-			urn_len = urn_prefixes[i].len;
-			break;
-		}
-	}
-
-	if (!p)
-		goto not_found;
-
 	u->n2r = TRUE;		/* Remember we saw an N2R request */
 
-	ret = g_strlcpy(hash, p, sizeof hash);
-	if (ret != urn_len)
-		goto malformed;
-
-	if (!urn_get_http_sha1(hash, digest))
-		goto malformed;
+	if (!sha1_extract_from_uri(uri, digest, &malformed)) {
+		if (malformed)
+			goto malformed;
+		goto not_found;
+	}
 
 	huge_collect_locations(digest, header);
 
@@ -2015,7 +2084,7 @@ get_file_to_upload_from_urn(
 
 	if (sf == NULL || sf == SHARE_REBUILDING) {
 		filename = ignore_sha1_filename(digest);
-		filename = filename == NULL ? atom_str_get(urn) :
+		filename = filename == NULL ? atom_str_get(uri) :
 			atom_str_get(filename);
 	} else
 		filename = atom_str_get(sf->name_nfc);
