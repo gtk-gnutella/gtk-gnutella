@@ -463,6 +463,8 @@ src/lib/malloc.h
 src/lib/misc.c
 src/lib/misc.h
 src/lib/override.h
+src/lib/palloc.c
+src/lib/palloc.h
 src/lib/pattern.c
 src/lib/pattern.h
 src/lib/prop.c
