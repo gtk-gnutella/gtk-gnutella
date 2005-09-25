@@ -154,13 +154,13 @@ struct download {
 	struct dl_file_info *file_info;
 	guint32 record_index;		/**< Index of the file on the Gnutella server */
 	gchar *file_name;			/**< Name of the file on the Gnutella server */
-	gchar *escaped_name;		/**< Same as file_name, with control chars escaped */
+	gchar *escaped_name;		/**< As file_name, with control chars escaped */
 	filesize_t file_size;		/**< Total size of the file, in bytes */
 
 	filesize_t size;			/**< Total size of the next request, in bytes */
-	filesize_t skip;			/**< Number of bytes for file we had before start */
-	filesize_t pos;				/**< Number of bytes of the file we currently have */
-	filesize_t range_end;		/**< First byte offset AFTER the requested range */
+	filesize_t skip;			/**< # of bytes for file we had before start */
+	filesize_t pos;				/**< # of bytes of the file we currently have */
+	filesize_t range_end;		/**< 1st byte offset AFTER requested range */
 
 	struct gnutella_socket *socket;
 	gint file_desc;				/**< FD for writing into downloaded file */
@@ -171,8 +171,8 @@ struct download {
 	time_t last_update;			/**< Last status update or I/O */
 	time_t last_gui_update;		/**< Last stats update on the GUI */
 	time_t record_stamp;		/**< Stamp of the query hit that launched us */
-	time_t retry_after;			/**< Time at which we may retry for this download */
-	tm_t header_sent;			/**< When we sent the headers, for latency measures */
+	time_t retry_after;			/**< Time at which we may retry this download */
+	tm_t header_sent;			/**< When we sent headers, for latency */
 
 	guint32 retries;
 	guint32 timeout_delay;
@@ -184,7 +184,7 @@ struct download {
 								 **< file download */
 	guint32 last_dmesh;			/**< Time when last download mesh was sent */
 
-	GSList *ranges;				/**< PFSP -- known list of ranges, NULL if none */
+	GSList *ranges;				/**< PFSP -- known list of ranges, or NULL */
 	filesize_t ranges_size;		/**< PFSP -- size of remotely available data */
 	filesize_t sinkleft;		/**< Amount of data left to sink */
 
@@ -195,8 +195,8 @@ struct download {
 	gboolean keep_alive;		/**< Keep HTTP connection? */
 	gboolean visible;			/**< The download is visible in the GUI */
 	gboolean push;				/**< Currently in push mode */
-	gboolean always_push;		/**< Always use the push method for this download */
-	gboolean got_giv;			/**< Whether download created from GIV reception */
+	gboolean always_push;		/**< Always use the push method for this */
+	gboolean got_giv;			/**< Whether initiated from GIV reception */
 	gboolean unavailable;		/**< Set on Timout, Push route lost */
 
 	struct cproxy *cproxy;		/**< Push proxy being used currently */
@@ -226,7 +226,7 @@ struct download {
  */
 
 #define DLS_A_UNUSED_1		0x00000001	/**< UNUSED */
-#define DLS_A_PUSH_IGN		0x00000002	/**< Ignore pushes and connect directly */
+#define DLS_A_PUSH_IGN		0x00000002	/**< Ignore pushes, connect directly */
 #define DLS_A_UNUSED_2		0x00000004	/**< UNUSED */
 #define DLS_A_HTTP_1_1		0x00000008	/**< Server supports HTTP/1.1 */
 #define DLS_A_MINIMAL_HTTP	0x00000010	/**< Use minimalist HTTP with server */
