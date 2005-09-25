@@ -584,7 +584,7 @@ download_timer(time_t now)
 		case GTA_DL_PASSIVE_QUEUED:
 		case GTA_DL_QUEUED:
 			g_error("found queued download in sl_unqueued list: \"%s\"",
-				d->file_name);
+				download_outname(d));
 			break;
 		}
 	}
@@ -3207,7 +3207,7 @@ download_fallback_to_push(struct download *d,
 
 	if (!d->socket) {
 		g_warning("download_fallback_to_push(): no socket for '%s'",
-				  d->file_name);
+			download_outname(d));
     } else {
 		/*
 		 * If a DNS lookup error occurred, discard the hostname we have.
@@ -3673,8 +3673,8 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
 				 * since we check the matching between the index and the file
 				 * name, but some peers might not bother.
 				 */
-				g_message("stopping request for '%s': index changed",
-					d->file_name);
+				g_message("stopping request for \"%s\": index changed",
+					download_outname(d));
 				to_stop = g_slist_prepend(to_stop, d);
 				break;
 			case GTA_DL_RECEIVING:
@@ -3682,16 +3682,17 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
 				 * Ouch.  Pray and hope that the change occurred after we
 				 * requested the file.	There's nothing we can do now.
 				 */
-				g_message("index of '%s' changed during reception",
-					d->file_name);
+				g_message("index of \"%s\" changed during reception",
+					download_outname(d));
 				break;
 			default:
 				/*
 				 * Queued or other state not needing special notice
 				 */
 				if (download_debug > 3) {
-					g_message("noted index change from %u to %u at %s for %s",
-						from, to, guid_hex_str(guid), d->file_name);
+					g_message("noted index change "
+						"from %u to %u at %s for \"%s\"",
+						from, to, guid_hex_str(guid), download_outname(d));
                 }
 				break;
 			}
@@ -4386,7 +4387,8 @@ download_overlap_check(struct download *d)
 		if (download_debug > 1) {
 			g_message("%d overlapping bytes UNMATCHED at offset %s for \"%s\"",
 				(gint) d->overlap_size,
-				uint64_to_string(d->skip - d->overlap_size), d->file_name);
+				uint64_to_string(d->skip - d->overlap_size),
+				download_outname(d));
         }
 
 		download_bad_source(d);		/* Until proven otherwise if we resume it */
@@ -4416,7 +4418,7 @@ download_overlap_check(struct download *d)
 			file_info_update(d, begin, end, DL_CHUNK_EMPTY);
 			g_message("resuming data mismatch on %s, backed out %d bytes block"
 				" from %s to %s",
-				 d->file_name, (gint) backout,
+				 download_outname(d), (gint) backout,
 				 uint64_to_string(begin), uint64_to_string2(end));
 
 			/*
@@ -4452,7 +4454,7 @@ download_overlap_check(struct download *d)
 		g_message("%d overlapping bytes MATCHED "
 			"at offset %s for \"%s\"",
 			d->overlap_size, uint64_to_string(d->skip - d->overlap_size),
-			d->file_name);
+			download_outname(d));
 
 	return TRUE;
 
@@ -4714,12 +4716,12 @@ download_moved_permanently(struct download *d, header_t *header)
 
 	if (!host_addr_equal(info.addr, addr) || info.port != port) {
 		g_warning("server %s (file \"%s\") redirecting us to alien %s",
-			host_addr_port_to_string(addr, port), d->file_name, buf);
+			host_addr_port_to_string(addr, port), download_outname(d), buf);
     }
 
 	if (!is_host_addr(info.addr)) {
 		g_warning("server %s (file \"%s\") would redirect us to invalid %s",
-			host_addr_port_to_string(addr, port), d->file_name, buf);
+			host_addr_port_to_string(addr, port), download_outname(d), buf);
 		atom_str_free(info.name);
 		return FALSE;
 	}
@@ -4736,7 +4738,7 @@ download_moved_permanently(struct download *d, header_t *header)
 
 	if (URN_INDEX == info.idx) {
 		g_message("server %s (file \"%s\") would redirect us to %s",
-			host_addr_port_to_string(addr, port), d->file_name, buf);
+			host_addr_port_to_string(addr, port), download_outname(d), buf);
 		atom_str_free(info.name);
 		return FALSE;
 	}
@@ -6131,9 +6133,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			return;
 		} else if (content_size != requested_size) {
 			if (content_size == fi->size) {
-				g_message("File '%s': server seems to have "
+				g_message("file \"%s\": server seems to have "
 					"ignored our range request of %s-%s.",
-					d->file_name,
+					download_outname(d),
 					uint64_to_string(d->skip - d->overlap_size),
 					uint64_to_string2(d->range_end - 1));
 				download_bad_source(d);
@@ -6162,9 +6164,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			if (check_content_range > total) {
                 if (download_debug)
                     g_message(
-						"file '%s' on %s (%s): total size mismatch: got %s, "
+						"file \"%s\" on %s (%s): total size mismatch: got %s, "
 						"for a served content of %s",
-                        d->file_name,
+                        download_outname(d),
                         host_addr_port_to_string(download_addr(d),
 							download_port(d)),
                         download_vendor_str(d),
@@ -6178,9 +6180,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 			if (start != d->skip - d->overlap_size) {
                 if (download_debug)
-                    g_message("file '%s' on %s (%s): start byte mismatch: "
+                    g_message("file \"%s\" on %s (%s): start byte mismatch: "
 						"wanted %s, got %s",
-                        d->file_name,
+                        download_outname(d),
                         host_addr_port_to_string(download_addr(d),
 							download_port(d)),
                         download_vendor_str(d),
@@ -6193,9 +6195,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			}
 			if (total != fi->size) {
                 if (download_debug) {
-                        g_message("file '%s' on %s (%s): file size mismatch: "
-						"expected %s, got %s",
-                        d->file_name,
+                        g_message("file \"%s\" on %s (%s): file size mismatch:"
+						" expected %s, got %s",
+                        download_outname(d),
                         host_addr_port_to_string(download_addr(d),
 							download_port(d)),
                         download_vendor_str(d),
@@ -6207,9 +6209,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			}
 			if (end > d->range_end - 1) {
                 if (download_debug) {
-                    g_message("file '%s' on %s (%s): end byte too large: "
+                    g_message("file \"%s\" on %s (%s): end byte too large: "
 						"expected %s, got %s",
-                        d->file_name,
+                        download_outname(d),
                         host_addr_port_to_string(download_addr(d),
 							download_port(d)),
                         download_vendor_str(d),
@@ -6233,9 +6235,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				 * 		http://sf.net/mailarchive/message.php?msg_id=10454795
 				 */
 
-				g_message(
-					"File '%s' on %s (%s): Range mismatch: wanted %s - %s, %s",
-					d->file_name,
+				g_message("file \"%s\" on %s (%s): "
+					"Range mismatch: wanted %s - %s, %s",
+					download_outname(d),
 					host_addr_port_to_string(download_addr(d),
 						download_port(d)),
 					download_vendor_str(d),
@@ -6248,9 +6250,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			if (end < d->range_end - 1) {
                 if (download_debug)
                     g_message(
-						"file '%s' on %s (%s): end byte short: wanted %s, "
+						"file \"%s\" on %s (%s): end byte short: wanted %s, "
 						"got %s (continuing anyway)",
-                        d->file_name,
+                        download_outname(d),
                         host_addr_port_to_string(download_addr(d),
 							download_port(d)),
                         download_vendor_str(d),
@@ -6278,8 +6280,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			check_content_range = 0;		/* We validated the served range */
 		} else {
             if (download_debug) {
-                g_message("file '%s' on %s (%s): malformed Content-Range: %s",
-                    d->file_name,
+                g_message("file \"%s\" on %s (%s): malformed Content-Range: %s",
+					download_outname(d),
 					host_addr_port_to_string(download_addr(d),
 						download_port(d)),
 					download_vendor_str(d), buf);
@@ -6293,8 +6295,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	 */
 
 	if (check_content_range != 0) {
-		g_message("File '%s': expected content of %s, server %s (%s) said %s",
-			d->file_name, uint64_to_string(requested_size),
+		g_message("file \"%s\": expected content of %s, server %s (%s) said %s",
+			download_outname(d), uint64_to_string(requested_size),
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			download_vendor_str(d),
 			uint64_to_string2(check_content_range));
@@ -6693,7 +6695,8 @@ download_send_request(struct download *d)
 	g_assert(fi->lifecount <= fi->refcount);
 
 	if (!s)
-		g_error("download_send_request(): No socket for '%s'", d->file_name);
+		g_error("download_send_request(): no socket for \"%s\"",
+			download_outname(d));
 
 	/*
 	 * If we have a hostname for this server, check the IP address of the
@@ -7021,8 +7024,8 @@ download_push_ready(struct download *d, getline_t *empty)
 	gint len = getline_length(empty);
 
 	if (len != 0) {
-		g_message("File '%s': push reply was not followed by an empty line",
-			d->file_name);
+		g_message("file \"%s\": push reply was not followed by an empty line",
+			download_outname(d));
 		dump_hex(stderr, "Extra GIV data", getline_str(empty), MIN(len, 80));
 		download_stop(d, GTA_DL_ERROR, "Malformed push reply");
 		return;
@@ -7083,8 +7086,8 @@ select_push_download(GSList *servers)
 
 			if (d->socket == NULL && DOWNLOAD_IS_EXPECTING_GIV(d)) {
 				if (download_debug > 1) g_message(
-					"GIV: selected active download '%s' from %s at %s <%s>",
-					d->file_name, guid_hex_str(server->key->guid),
+					"GIV: selected active download \"%s\" from %s at %s <%s>",
+					download_outname(d), guid_hex_str(server->key->guid),
 					host_addr_port_to_string(download_addr(d),
 						download_port(d)),
 					download_vendor_str(d));
@@ -7122,8 +7125,8 @@ select_push_download(GSList *servers)
 				continue;
 
 			if (download_debug > 2) g_message(
-				"GIV: trying alternate download '%s' from %s at %s <%s>",
-				d->file_name, guid_hex_str(server->key->guid),
+				"GIV: trying alternate download \"%s\" from %s at %s <%s>",
+				download_outname(d), guid_hex_str(server->key->guid),
 				host_addr_port_to_string(download_addr(d),
 					download_port(d)),
 				download_vendor_str(d));
@@ -7147,9 +7150,9 @@ select_push_download(GSList *servers)
 				gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT,
 					count_running_downloads());
 
-				if (download_debug > 1) g_message(
-					"GIV: selected alternate download '%s' from %s at %s <%s>",
-					d->file_name, guid_hex_str(server->key->guid),
+				if (download_debug > 1) g_message("GIV: "
+					"selected alternate download \"%s\" from %s at %s <%s>",
+					download_outname(d), guid_hex_str(server->key->guid),
 					host_addr_port_to_string(download_addr(d),
 						download_port(d)),
 					download_vendor_str(d));
@@ -7311,7 +7314,7 @@ download_push_ack(struct gnutella_socket *s)
 
 	if (download_debug)
 		g_message("mapped GIV \"%s\" to \"%s\" from %s <%s>",
-			giv, d->file_name, host_addr_to_string(s->addr),
+			giv, download_outname(d), host_addr_to_string(s->addr),
 			download_vendor_str(d));
 
 	/*
