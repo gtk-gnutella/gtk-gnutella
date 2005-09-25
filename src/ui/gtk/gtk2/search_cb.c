@@ -653,7 +653,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 	gtk_entry_printf(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1")),
 			"%s%s",
-			rc->sha1 ? "urn:sha1:" : _("<none>"),
+			rc->sha1 ? "urn:sha1:" : _("<no SHA1 known>"),
 			rc->sha1 ? sha1_base32(rc->sha1) : "");
 
 	if (rc->results_set->hostname)
@@ -691,7 +691,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 
 	gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag")),
-			rc->tag ? lazy_locale_to_utf8(rc->tag) : _("<no SHA1 known>"));
+			rc->tag ? lazy_locale_to_utf8(rc->tag) : "");
 
 	txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget(main_window,
 					"textview_result_info_xml")));
