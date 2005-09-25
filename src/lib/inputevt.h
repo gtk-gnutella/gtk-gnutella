@@ -72,9 +72,13 @@ void inputevt_close(void);
  * This emulates the GDK input interface.
  */
 guint inputevt_add(gint source, inputevt_cond_t condition,
-	inputevt_handler_t handler, gpointer data) ;
+	inputevt_handler_t handler, gpointer data);
 
+#ifdef HAS_EPOLL
+void inputevt_remove(guint id);
+#else
 #define inputevt_remove(source) (g_source_remove(source))
+#endif /* HAS_EPOLL */
 
 #endif  /* _inputevt_h_ */
 /* vi: set ts=4 sw=4 cindent: */
