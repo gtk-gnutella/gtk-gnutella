@@ -7,6 +7,12 @@
  * Don't use alternate locations as source for "semi-pongs" when we're not
    low on pongs: we can't know for sure that those nodes have free slots and
    that their HTTP port is the same as their Gnutella port.
+ * Disable "monopoly protection" when we're low on pongs (fixes #1177512).
+ * [GTK1] Buffer updates to fileinfos to avoid too frequent GUI redrawing,
+   like GTK2 is already doing.  Update every second though, don't enforce a
+   3 second limit. (fixes #967781)
+ * Only redraw visual progress if the currently shown fileinfo is updated.
+   (fixes #967781)
 
 - (2005-09-16 - RAM)
  * Now monitors the CPU usage and lower consumption if we detect overloads.
