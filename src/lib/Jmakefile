@@ -55,6 +55,7 @@ LSRC = \
 	iso3166.c \
 	malloc.c \
 	misc.c \
+	palloc.c \
 	pattern.c \
 	prop.c \
 	sha1.c \
