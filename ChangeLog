@@ -1,5 +1,13 @@
 # since last version
 
+- (2005-09-25 - RAM)
+ * Don't honour settings for monitoring node "bad IP / unstable" addresses
+   when we're low on pongs: we don't want to discard IP addresses or
+   connections and end up being forced to contact web caches for new addresses.
+ * Don't use alternate locations as source for "semi-pongs" when we're not
+   low on pongs: we can't know for sure that those nodes have free slots and
+   that their HTTP port is the same as their Gnutella port.
+
 - (2005-09-16 - RAM)
  * Now monitors the CPU usage and lower consumption if we detect overloads.
  * Reduce amount of GUI refreshing done when CPU overloaded.
