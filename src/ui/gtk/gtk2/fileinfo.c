@@ -543,15 +543,11 @@ drag_end(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 }
 
 void
-fi_gui_update_display(time_t now)
+fi_gui_update_display(time_t unused_now)
 {
-	static time_t last;
+	(void) unused_now;
 
-	if (!last || delta_time(now, last) > 3) {
-		last = now;
-
-		g_hash_table_foreach_remove(fi_updates, fi_gui_update_queued, NULL);
-	}
+	g_hash_table_foreach_remove(fi_updates, fi_gui_update_queued, NULL);
 }
 
 void
@@ -651,7 +647,7 @@ fi_gui_init(void)
     guc_fi_add_listener(fi_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
     guc_fi_add_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED,
 		FREQ_SECS, 0);
-    guc_fi_add_listener(fi_gui_fi_status_changed,
+    guc_fi_add_listener(fi_gui_fi_status_changed_transient,
 		EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
 }
 
