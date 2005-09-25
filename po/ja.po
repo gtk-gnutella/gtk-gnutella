@@ -44,6 +44,7 @@
 # source              送信源
 # status, stats       ステータス
 # timeout             タイムアウト
+# vendor              ベンダー
 #
 # TODO:
 #
@@ -63,8 +64,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-09-25 11:07+0900\n"
-"PO-Revision-Date: 2005-09-25 11:04+0900\n"
+"POT-Creation-Date: 2005-09-25 11:24+0900\n"
+"PO-Revision-Date: 2005-09-25 11:21+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -408,7 +409,7 @@ msgstr "このサーバントは不安定です"
 
 #: src/core/nodes.c:3784
 msgid "No vendor string supplied"
-msgstr "ベンダ文字列を送ってきません"
+msgstr "ベンダー文字列を送ってきません"
 
 #: src/core/nodes.c:3789
 #, c-format
@@ -467,7 +468,7 @@ msgstr "クローリングの頻度が多すぎます"
 #: src/core/nodes.c:4785
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
-msgstr "このベンダはスロットの %d%% を越えます"
+msgstr "このベンダーはスロットの %d%% を越えます"
 
 #: src/core/nodes.c:4795
 msgid "Reserved slot"
@@ -1367,7 +1368,7 @@ msgstr "動的検索式のバグ解析レベルです。"
 
 #: src/if/gnet_property.c:2017
 msgid "Debug level for vendor messages."
-msgstr "ベンダメッセージのバグ解析レベルです。"
+msgstr "ベンダーメッセージのバグ解析レベルです。"
 
 #: src/if/gnet_property.c:2037
 msgid "Debug level for queries."
@@ -2155,8 +2156,8 @@ msgid ""
 "from them.  This only works when gtk-gnutella already keeps track of "
 "unstable IP addresses."
 msgstr ""
-"不安定で、それらへ/からの一層の接続を妨げるサーバントの種類 (ベンダ文字列で識"
-"別されます) を検知するかどうかを選択します。これは gtk-gnutella が不安定な "
+"不安定で、それらへ/からの一層の接続を妨げるサーバントの種類 (ベンダー文字列で"
+"識別されます) を検知するかどうかを選択します。これは gtk-gnutella が不安定な "
 "IP アドレスの記録を既に保持している場合にのみ有効です。"
 
 #: src/if/gnet_property.c:4437
@@ -2211,7 +2212,7 @@ msgstr "gtk-gnutella ノード用に予約する接続数の割合です。"
 
 #: src/if/gnet_property.c:4532
 msgid "Maximum percentage of slots a vendor can occupy."
-msgstr "他のベンダが占有できる受口の最大割合です。"
+msgstr "他のベンダーが占有できる受口の最大割合です。"
 
 #: src/if/gnet_property.c:4552
 msgid ""
@@ -4545,11 +4546,11 @@ msgstr "HSEP"
 
 #: src/ui/gtk/gnet_stats_common.c:52
 msgid "Vendor spec."
-msgstr "ベンダ特定"
+msgstr "ベンダー特定"
 
 #: src/ui/gtk/gnet_stats_common.c:53
 msgid "Vendor std."
-msgstr "ベンダ標準"
+msgstr "ベンダー標準"
 
 #: src/ui/gtk/gnet_stats_common.c:54 src/ui/gtk/gtk1/interface-glade.c:8945
 #: src/ui/gtk/gtk2/interface-glade.c:7914
@@ -6126,7 +6127,7 @@ msgstr "選択したファイルに関する情報"
 #: src/ui/gtk/gtk2/interface-glade.c:5093
 #: src/ui/gtk/gtk2/interface-glade.c:16455 src/ui/gtk/gtk2/search_cb.c:623
 msgid "SHA1:"
-msgstr "SHA1ハッシュ:"
+msgstr "SHA1:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4705
 #: src/ui/gtk/gtk2/interface-glade.c:5264
@@ -6147,7 +6148,7 @@ msgstr "受信時刻:"
 #: src/ui/gtk/gtk2/interface-glade.c:5256 src/ui/gtk/gtk2/nodes.c:352
 #: src/ui/gtk/gtk2/search_cb.c:621
 msgid "Vendor:"
-msgstr "ベンダ:"
+msgstr "ベンダー:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4783 src/ui/gtk/gtk2/nodes.c:349
 #: src/ui/gtk/gtk2/search_cb.c:618
@@ -7725,7 +7726,7 @@ msgstr "gtk-gnutella ノードに予約される接続数"
 #: src/ui/gtk/gtk1/interface-glade.c:13400
 #: src/ui/gtk/gtk2/interface-glade.c:11783
 msgid "Max connections allowed per unique vendor"
-msgstr "個別ベンダ毎に許される最大接続数"
+msgstr "個別ベンダー毎に許される最大接続数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13412
 #: src/ui/gtk/gtk2/interface-glade.c:11854
@@ -8566,7 +8567,7 @@ msgstr "動的検索式ヒット(_H)"
 #: src/ui/gtk/gtk1/interface-glade.c:16896
 #: src/ui/gtk/gtk2/interface-glade.c:16011
 msgid "_Vendor messages"
-msgstr "ベンダメッセージ(_V)"
+msgstr "ベンダーメッセージ(_V)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16909
 #: src/ui/gtk/gtk2/interface-glade.c:15931
@@ -9109,7 +9110,7 @@ msgstr "秒 (0 - 無効)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:11808
 msgid "Maximum percentage of connection slots a vendor can occupy."
-msgstr "ベンダが占有できる接続受口の最大割合です。"
+msgstr "ベンダーが占有できる接続受口の最大割合です。"
 
 #: src/ui/gtk/gtk2/interface-glade.c:13958
 msgid "_Remove directory"
