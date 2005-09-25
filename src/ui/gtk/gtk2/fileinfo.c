@@ -343,7 +343,8 @@ fi_gui_update(gnet_fi_t fih, gboolean full)
 
     fi_gui_update_row(store_fileinfo, iter, titles);
 
-	vp_draw_fi_progress(last_shown_valid, last_shown);
+	if (fih == last_shown)
+		vp_draw_fi_progress(last_shown_valid, last_shown);
 }
 
 static void
@@ -362,6 +363,13 @@ static void
 fi_gui_fi_status_changed(gnet_fi_t fih)
 {
 	g_hash_table_insert(fi_updates, GUINT_TO_POINTER(fih), GINT_TO_POINTER(1));
+}
+
+static void
+fi_gui_fi_status_changed_transient(gnet_fi_t fih)
+{
+	if (fih == last_shown)
+		fi_gui_fi_status_changed(fih);
 }
 
 static gboolean
@@ -643,6 +651,8 @@ fi_gui_init(void)
     guc_fi_add_listener(fi_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
     guc_fi_add_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED,
 		FREQ_SECS, 0);
+    guc_fi_add_listener(fi_gui_fi_status_changed,
+		EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
 }
 
 void
