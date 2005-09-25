@@ -1753,7 +1753,12 @@ node_mark_bad_vendor(struct gnutella_node *n)
  * Make sure that the vendor of the connecting node does not already use
  * more than "unique_nodes" percent of the slots of its kind.
  *
- * @return TRUE if accepting the node would make the uses more slot that
+ * @return TRUE if accepting the node would make us use more slots than
+ * what the user has configured as acceptable.
+ *
+ * @note when low on pongs, monopoly protection is disabled to avoid the
+ * host contacting the web caches just because it cannot fulfill its
+ * anti-monopoly requirements.
  */
 static gboolean
 node_avoid_monopoly(struct gnutella_node *n)
@@ -1764,6 +1769,10 @@ node_avoid_monopoly(struct gnutella_node *n)
 	GSList *sl;
 
 	g_assert((gint) unique_nodes >= 0 && unique_nodes <= 100);
+
+	if (host_low_on_pongs)
+		return FALSE;
+
 	if (!n->vendor || (n->flags & NODE_F_CRAWLER) || unique_nodes == 100)
 		return FALSE;
 
