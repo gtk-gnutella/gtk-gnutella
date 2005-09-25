@@ -134,6 +134,20 @@ bit_array_clear(gulong *base, size_t i)
 }
 
 static inline void 
+bit_array_clear_range(gulong *base, size_t from, size_t to)
+{
+	g_assert(from <= to);
+
+	if (from <= to) {
+		size_t i = from;
+	
+		do
+			bit_array_clear(base, i);
+		while (i++ != from);
+	}
+}
+
+static inline void 
 bit_array_flip(gulong *base, size_t i)
 {
 	base[i / sizeof (base[0])] ^= 1UL << (i % (8 * sizeof base[0]));
@@ -374,8 +388,7 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
 
 			size = (epoll_ctx.num_ev * sizeof epoll_ctx.used[0]) / 8 + 1;
 			epoll_ctx.used = g_realloc(epoll_ctx.used, size);
-			for (i = n; i < epoll_ctx.num_ev; i++)
-				epoll_ctx.used[i] = 0;
+			bit_array_clear_range(epoll_ctx.used, n, epoll_ctx.num_ev - 1);
 
 			size = epoll_ctx.num_ev * sizeof epoll_ctx.relay[0];
 			epoll_ctx.relay = g_realloc(epoll_ctx.relay, size);
