@@ -51,6 +51,7 @@ RCSID("$Id$");
 
 static gnet_fi_t last_shown = 0;
 static gboolean  last_shown_valid = FALSE;
+static GHashTable *fi_updates = NULL;
 
 /*
  * Together visible_fi and hidden_fi are a list of all fileinfo handles
@@ -60,6 +61,8 @@ static GSList *visible_fi = NULL;
 static GSList *hidden_fi  = NULL;
 
 static regex_t filter_re;
+
+static GtkCList *clist_fileinfo = NULL;		/* Cached lookup_widget() */
 
 void
 on_clist_fileinfo_resize_column(GtkCList *unused_clist,
@@ -248,7 +251,7 @@ fi_gui_match_filter(const gchar *s)
 static void
 fi_gui_add_row(gnet_fi_t fih)
 {
-    GtkCList *clist;
+    GtkCList *clist = clist_fileinfo;
     gint row;
     guint n;
     gchar *titles[c_fi_num];
@@ -284,8 +287,6 @@ fi_gui_add_row(gnet_fi_t fih)
 
     fi_gui_fill_status(fih, titles);
 
-    clist = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
-
     for (n = 0; n < G_N_ELEMENTS(titles); n ++) {
         if (titles[n] == NULL)
             titles[n] = "";
@@ -303,10 +304,8 @@ fi_gui_add_row(gnet_fi_t fih)
 static void
 fi_gui_remove_row(gnet_fi_t fih, gboolean hide)
 {
-    GtkCList *clist;
+    GtkCList *clist = clist_fileinfo;
     gint row;
-
-    clist = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
 
     row = gtk_clist_find_row_from_data(clist, GUINT_TO_POINTER(fih));
     gtk_clist_remove(clist, row);
@@ -353,8 +352,7 @@ fi_gui_set_filter_regex(gchar *s)
         g_assert(!err);
     }
 
-    clist_fi = GTK_CLIST(
-        lookup_widget(main_window, "clist_fileinfo"));
+    clist_fi = clist_fileinfo;
 
     /* now really apply the filter */
     gtk_clist_unselect_all(clist_fi);
@@ -392,12 +390,10 @@ fi_gui_set_filter_regex(gchar *s)
 static void
 fi_gui_update(gnet_fi_t fih, gboolean full)
 {
-    GtkCList *clist;
+    GtkCList *clist = clist_fileinfo;
 	gchar    *titles[c_fi_num];
     gint      row;
     guint     n;
-
-    clist = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
 
     row = gtk_clist_find_row_from_data(clist, GUINT_TO_POINTER(fih));
     if (row == -1) {
@@ -418,7 +414,9 @@ fi_gui_update(gnet_fi_t fih, gboolean full)
     /*
      * If this entry is currently selected we should also update the progress
      */
-	vp_draw_fi_progress(last_shown_valid, last_shown);
+
+	if (fih == last_shown)
+		vp_draw_fi_progress(last_shown_valid, last_shown);
 }
 
 static void
@@ -430,9 +428,9 @@ fi_gui_fi_added(gnet_fi_t fih)
 static void
 fi_gui_fi_removed(gnet_fi_t fih)
 {
-	if (fih == last_shown) {
+	g_hash_table_remove(fi_updates, GUINT_TO_POINTER(fih));
+	if (fih == last_shown)
 		last_shown_valid = FALSE;
-	}
 
     fi_gui_remove_row(fih, FALSE);
 }
@@ -440,7 +438,34 @@ fi_gui_fi_removed(gnet_fi_t fih)
 static void
 fi_gui_fi_status_changed(gnet_fi_t fih)
 {
-    fi_gui_update(fih, FALSE);
+	/*
+	 * Buffer update, delaying GUI refresh.
+	 */
+
+	g_hash_table_insert(fi_updates, GUINT_TO_POINTER(fih), GINT_TO_POINTER(1));
+}
+
+static void
+fi_gui_fi_status_changed_transient(gnet_fi_t fih)
+{
+	if (fih == last_shown)
+		fi_gui_fi_status_changed(fih);
+}
+
+/**
+ * Hash table iterator to update the display for each queued entry.
+ */
+/* XXX -- move to new fileinfo_common.c */
+static gboolean
+fi_gui_update_queued(gpointer key, gpointer unused_value, gpointer unused_udata)
+{
+	gnet_fi_t fih = GPOINTER_TO_UINT(key);
+
+	(void) unused_value;
+	(void) unused_udata;
+
+	fi_gui_update(fih, FALSE);
+	return TRUE;	/* Remove the handle from the hashtable */
 }
 
 void
@@ -472,8 +497,7 @@ void
 on_button_fi_purge_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
     GSList *sl_handles = NULL;
-    GtkCList *clist = GTK_CLIST(
-        lookup_widget(main_window, "clist_fileinfo"));
+    GtkCList *clist = clist_fileinfo;
 
 	(void) unused_button;
 	(void) unused_udata;
@@ -509,19 +533,21 @@ on_entry_fi_regex_activate(GtkEditable *editable, gpointer unused_udata)
 void
 fi_gui_init(void)
 {
-    GtkCList *clist;
+	fi_updates = g_hash_table_new(NULL, NULL);
 
     guc_fi_add_listener(fi_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
     guc_fi_add_listener(fi_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
     guc_fi_add_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED,
 		FREQ_SECS, 0);
+    guc_fi_add_listener(fi_gui_fi_status_changed_transient,
+		EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
 
-    clist = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
+    clist_fileinfo = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
 
-    gtk_clist_set_column_justification(clist,
+    gtk_clist_set_column_justification(clist_fileinfo,
         c_fi_size, GTK_JUSTIFY_RIGHT);
 
-    gtk_clist_column_titles_passive(clist);
+    gtk_clist_column_titles_passive(clist_fileinfo);
 
     /* Initialize the row filter */
     fi_gui_set_filter_regex(NULL);
@@ -540,6 +566,7 @@ fi_gui_shutdown(void)
     if (last_fi != NULL)
         guc_fi_free_info(last_fi);
 
+	g_hash_table_destroy(fi_updates);
     regfree(&filter_re);
 }
 
@@ -558,9 +585,13 @@ fi_gui_shutdown(void)
 void
 fi_gui_update_display(time_t now)
 {
+    gtk_clist_freeze(clist_fileinfo);
+	g_hash_table_foreach_remove(fi_updates, fi_gui_update_queued, NULL);
+    gtk_clist_thaw(clist_fileinfo);
+
 #if 0
     static time_t last_update = 0;
-	GtkCList *clist;
+	GtkCList *clist = clist_fileinfo;
 	GList *l;
 	gint row = 0;
 
@@ -569,7 +600,6 @@ fi_gui_update_display(time_t now)
 
     last_update = now;
 
-    clist = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
     gtk_clist_freeze(clist);
 
 	for (l = clist->row_list, row = 0; l; l = l->next, row++) {
