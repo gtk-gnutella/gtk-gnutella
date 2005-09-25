@@ -44,7 +44,7 @@
  */
 
 #define FI_F_SUSPEND		0x00000001U	/**< Marked "suspended" new downloads */
-#define FI_F_DISCARD		0x00000002U	/**< Discard fileinfo when refcount = 0 */
+#define FI_F_DISCARD		0x00000002U	/**< Discard fileinfo if refcount = 0 */
 #define FI_F_MARK			0x80000000U	/**< Marked during traversal */
 
 /*
