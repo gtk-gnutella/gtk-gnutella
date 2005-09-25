@@ -323,8 +323,8 @@ qrt_compact(struct routing_table *rt)
 	g_assert(!rt->compacted);
 
 	if (qrp_debug > 4) {
-		printf("Dumping QRT before compaction...\n");
-		token = qrt_dump(stdout, rt, qrp_debug > 19);
+		g_message("dumping QRT before compaction...");
+		token = qrt_dump(stderr, rt, qrp_debug > 19);
 	}
 
 	nsize = rt->slots / 8;
@@ -367,8 +367,8 @@ qrt_compact(struct routing_table *rt)
 
 	if (qrp_debug > 4) {
 		guint32 token2;
-		printf("Dumping QRT after compaction...\n");
-		token2 = qrt_dump(stdout, rt, qrp_debug > 19);
+		g_message("dumping QRT after compaction...");
+		token2 = qrt_dump(stderr, rt, qrp_debug > 19);
 
 		if (token2 != token)
 			g_warning("BUG in QRT compaction!");
@@ -1211,31 +1211,12 @@ qrp_add_file(struct shared_file *sf)
 	g_assert(utf8_is_valid_string(sf->name_nfc, sf->name_nfc_len));
 	g_assert(utf8_is_valid_string(sf->name_canonic, sf->name_canonic_len));
 
+	/*
+	 * The words in the QRP must be lowercased, but the pre-computed canonic
+	 * representation of the filename is already in lowercase form.
+	 */
+
 	wocnt = word_vec_make(sf->name_canonic, &wovec);
-
-#if 0
-	else {
-
-		if (sf->file_name_len >= (size_t) buffer.len) {
-			gint grow = MAX(MIN_BUF_GROW, sf->file_name_len - buffer.len + 1);
-
-			buffer.arena = g_realloc(buffer.arena, buffer.len + grow);
-			buffer.len += grow;
-		}
-		g_assert(sf->file_name_len < (size_t) buffer.len);
-
-		strncpy(buffer.arena, sf->file_name, buffer.len);
-
-		/*
-		 * Apply our mapping filter, which will keep only words and
-		 * lowercase everything.  All other letters are replaced by spaces,
-		 * so that we may use word_vec_make() to break them up.
-		 */
-
-		(void) match_map_string(qrp_map, buffer.arena);
-		wocnt = word_vec_make(buffer.arena, &wovec);
-	}
-#endif
 
 	if (wocnt == 0)
 		return;
@@ -4124,7 +4105,8 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 				ultras++;
 		}
 
-		printf("QRP %s (%d word/hash) forwarded to %d/%d leaves, %d ultra%s\n",
+		g_message(
+			"QRP %s (%d word/hash) forwarded to %d/%d leaves, %d ultra%s",
 			gmsg_infostr(&n->header), qhvec->count, leaves, node_leaf_count,
 			ultras, ultras == 1 ? "" : "s");
 	}
