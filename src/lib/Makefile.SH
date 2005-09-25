@@ -80,7 +80,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.13 2005/08/18 20:41:46 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.14 2005/09/25 21:40:46 rmanfredi Exp $
 
 LSRC = \
 	adns.c \
@@ -110,6 +110,7 @@ LSRC = \
 	iso3166.c \
 	malloc.c \
 	misc.c \
+	palloc.c \
 	pattern.c \
 	prop.c \
 	sha1.c \
@@ -155,6 +156,7 @@ LOBJ = \
 	iso3166.o \
 	malloc.o \
 	misc.o \
+	palloc.o \
 	pattern.o \
 	prop.o \
 	sha1.o \
