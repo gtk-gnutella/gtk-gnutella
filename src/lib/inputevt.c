@@ -44,9 +44,12 @@
 RCSID("$Id$");
 
 #ifdef HAS_EPOLL
-#include <sys/epoll.h>
 
-#if 0
+#ifndef FAKE_EPOLL
+#include <sys/epoll.h>
+#endif /* FAKE_EPOLL */
+
+#if FAKE_EPOLL 
 /* This is just for faking the existence of epoll() to check whether
  * things compile.
  */
@@ -117,23 +120,31 @@ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)
  * bounds checks are performed. "base" must point to an array of an
  * integer type (like guint8, guint16, guint32 etc.).
  */
-#define BIT_ARRAY_SET(base, i) \
-G_STMT_START { \
-	base[(i) / sizeof (base[0])] |= 1 << ((i) % (8 * sizeof base[0])); \
-} G_STMT_END
 
-#define BIT_ARRAY_CLEAR(base, i) \
-G_STMT_START { \
-	base[(i) / sizeof (base[0])] &= ~(1 << ((i) % (8 * sizeof base[0]))); \
-} G_STMT_END
+static inline void
+bit_array_set(gulong *base, size_t i)
+{
+	base[i / sizeof base[0]] |= 1UL << (i % (8 * sizeof base[0]));
+}
 
-#define BIT_ARRAY_FLIP(base, i) \
-G_STMT_START { \
-	base[(i) / sizeof (base[0])] ^= 1 << ((i) % (8 * sizeof base[0])); \
-} G_STMT_END
+static inline void 
+bit_array_clear(gulong *base, size_t i)
+{
+	base[i / sizeof base[0]] &= ~(1UL << (i % (8 * sizeof base[0])));
+}
 
-#define BIT_ARRAY_GET(base, i) \
-	(0 != (base[(i) / sizeof (base[0])] & (1 << ((i) % (8 * sizeof base[0])))))
+static inline void 
+bit_array_flip(gulong *base, size_t i)
+{
+	base[i / sizeof (base[0])] ^= 1UL << (i % (8 * sizeof base[0]));
+}
+
+static inline gboolean
+bit_array_get(const gulong *base, size_t i)
+{
+	return 0 != (base[i / sizeof base[0]] &
+					(1UL << (i % (8 * sizeof base[0]))));
+}
 
 /*
  * The following defines map the GDK-compatible input condition flags
@@ -272,7 +283,7 @@ inputevt_remove(guint id)
 		inputevt_relay_t *relay;
 		
 		g_assert(id < epoll_ctx.num_ev);
-		g_assert(0 != BIT_ARRAY_GET(epoll_ctx.used, id));
+		g_assert(0 != bit_array_get(epoll_ctx.used, id));
 
 		relay = epoll_ctx.relay[id];
 		g_assert(NULL != relay);
@@ -284,7 +295,7 @@ inputevt_remove(guint id)
 
 		epoll_ctx.relay[id] = NULL;
 		wfree(relay, sizeof *relay);
-		BIT_ARRAY_CLEAR(epoll_ctx.used, id);
+		bit_array_clear(epoll_ctx.used, id);
 	}
 }
 #endif /* !HAS_EPOLL*/
@@ -341,7 +352,7 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
 
 		/* Find a free ID */
 		for (id = 0; id < epoll_ctx.num_ev; id++) {
-			if (!BIT_ARRAY_GET(epoll_ctx.used, id))
+			if (!bit_array_get(epoll_ctx.used, id))
 				break;
 		}
 
@@ -352,8 +363,11 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
 		if (epoll_ctx.num_ev == id) {
 			size_t size;
 			guint i, n = epoll_ctx.num_ev;
-			
-			epoll_ctx.num_ev <<= 1;
+
+			if (0 != epoll_ctx.num_ev)			
+				epoll_ctx.num_ev <<= 1;
+			else
+				epoll_ctx.num_ev = 32;
 
 			size = epoll_ctx.num_ev * sizeof epoll_ctx.ev[0];
 			epoll_ctx.ev = g_realloc(epoll_ctx.ev, size);
@@ -370,7 +384,7 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
 		}
 
 		g_assert(id < epoll_ctx.num_ev);
-		BIT_ARRAY_SET(epoll_ctx.used, id);
+		bit_array_set(epoll_ctx.used, id);
 		epoll_ctx.relay[id] = relay;
 	}
 
