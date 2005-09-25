@@ -1070,13 +1070,17 @@ upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
 
 	if (!UPLOAD_IS_COMPLETE(u) && upload_debug > 1) {
 		if (u->name) {
-			g_message("cancelling upload for \"%s\" from %s (%s): %s",
+			g_message(
+				"ending upload of \"%s\" [%s bytes out] from %s (%s): %s",
 				u->name,
+				uint64_to_string(u->sent),
 				u->socket ? host_addr_to_string(u->socket->addr) : "<no socket>",
 				upload_vendor_str(u),
 				logreason);
 		} else {
-			g_message("cancelling upload from %s (%s): %s",
+			g_message(
+				"ending upload [%s bytes out] from %s (%s): %s",
+				uint64_to_string(u->sent),
 				u->socket ? host_addr_to_string(u->socket->addr) : "<no socket>",
 				upload_vendor_str(u),
 				logreason);
