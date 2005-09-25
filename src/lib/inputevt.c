@@ -44,75 +44,173 @@
 RCSID("$Id$");
 
 #ifdef HAS_EPOLL
-
-#ifndef FAKE_EPOLL
 #include <sys/epoll.h>
-#endif /* FAKE_EPOLL */
-
-#if FAKE_EPOLL 
-/* This is just for faking the existence of epoll() to check whether
- * things compile.
- */
-typedef union epoll_data {
-	void *ptr;
-	int fd;
-	guint32 u32;
-	guint64 u64;
-} epoll_data_t;
-
-enum {
-	EPOLLIN		= (1 << 0),
-	EPOLLOUT	= (1 << 1),
-	EPOLLERR	= (1 << 2),
-	EPOLLHUP	= (1 << 3),
-	EPOLLPRI	= (1 << 4),
-	EPOLLET		= (1 << 5),
-};
-
-enum {
-	EPOLL_CTL_ADD,
-	EPOLL_CTL_MOD,
-	EPOLL_CTL_DEL,
-};
-
-struct epoll_event {
-	guint32 events;      /* Epoll events */
-	epoll_data_t data;      /* User data variable */
-};
-
-int epoll_create(int n)
-{
-	(void) n;
-	errno = ENOSYS;
-	return -1;
-}
-
-int epoll_wait(int fd, struct epoll_event *events, int maxevents, int timeout)
-{
-	(void) fd;
-	(void) events;
-	(void) maxevents;
-	(void) timeout;
-	errno = ENOSYS;
-	return -1;
-}
-
-int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)
-{
-	(void) epfd;
-	(void) op;
-	(void) fd;
-	(void) event;
-	errno = ENOSYS;
-	return -1;
-}
-#endif /* 0 */
-
 #endif /* HAS_EPOLL */
+
+#ifdef HAS_KQUEUE
+#include <sys/event.h>
+#endif /* HAS_KQUEUE */
 
 #include "inputevt.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
+
+/*
+ * The following defines map the GDK-compatible input condition flags
+ * to those used by GLIB.
+ *
+ * Interesting remark found in gdkevents.c :
+ * What do we do with G_IO_NVAL ?
+ */
+#define READ_CONDITION		(G_IO_IN | G_IO_PRI)
+#define WRITE_CONDITION		(G_IO_OUT)
+#define EXCEPTION_CONDITION	(G_IO_ERR | G_IO_HUP | G_IO_NVAL)
+
+/**
+ * The relay structure is used as a bridge to provide GDK-compatible
+ * input condition flags.
+ */
+typedef struct {
+	inputevt_cond_t condition;
+	inputevt_handler_t handler;
+	gpointer data;
+	gint fd;
+} inputevt_relay_t;
+
+
+#if defined(HAS_EPOLL) || defined(HAS_KQUEUE)
+
+static inline gpointer
+get_poll_event_udata(gpointer p)
+#ifdef HAS_KQUEUE 
+{
+	struct kevent *ev = p;
+	return (gpointer) (gulong) ev->udata;
+}
+#else /* !HAS_KQUEUE */
+{
+	struct epoll_event *ev = p;
+	return ev->data.ptr;
+}
+#endif /* HAS_KQUEUE */
+
+static inline GIOCondition
+get_poll_event_cond(gpointer p)
+#ifdef HAS_KQUEUE 
+{
+	struct kevent *ev = p;
+	GIOCondition cond;
+	
+	cond = ev->flags & EV_ERROR ? EXCEPTION_CONDITION : 0;
+	switch (ev->filter) {
+	case EVFILT_READ:
+		cond |= READ_CONDITION;
+		break;
+	case EVFILT_WRITE:
+		cond |= WRITE_CONDITION;
+		break;
+	}
+	return cond;
+}
+#else /* !HAS_KQUEUE */
+{
+	struct epoll_event *ev = p;
+	return ((EPOLLIN | EPOLLPRI | EPOLLHUP) & ev->events ? READ_CONDITION : 0)
+		| (EPOLLOUT & ev->events ? WRITE_CONDITION : 0)
+		| (EPOLLERR & ev->events ? EXCEPTION_CONDITION: 0);
+}
+#endif /* HAS_KQUEUE */
+
+
+static gint
+add_poll_event(gint pfd, gint fd, GIOCondition cond, gpointer udata)
+#ifdef HAS_KQUEUE
+{
+	static const struct timespec zero_ts;
+	struct kevent kev[2];
+	int i = 0;
+
+	if (READ_CONDITION & cond) {
+		EV_SET(&kev[i], fd, EVFILT_READ, EV_ADD | EV_ENABLE,
+			0, 0, (gulong) (gpointer) udata);
+		i++;
+	}
+	if (WRITE_CONDITION & cond) {
+		EV_SET(&kev[i], fd, EVFILT_WRITE, EV_ADD | EV_ENABLE,
+			0, 0, (gulong) (gpointer) udata);
+		i++;
+	}
+	return kevent(pfd, kev, i, NULL, 0, &zero_ts);
+}
+#else /* !HAS_KQUEUE */
+{
+	static const struct epoll_event zero_ev;
+	struct epoll_event ev;
+
+	ev = zero_ev;
+	ev.data.ptr = udata;
+	ev.events = (cond & EXCEPTION_CONDITION ? EPOLLERR : 0) |
+				(cond & READ_CONDITION ? EPOLLIN : 0) |
+				(cond & WRITE_CONDITION ? EPOLLOUT : 0);
+
+	return epoll_ctl(poll_ctx.fd, EPOLL_CTL_ADD, fd, &ev);
+}
+#endif /* HAS_KQUEUE */
+
+static gint
+remove_poll_event(gint pfd, gint fd)
+#ifdef HAS_KQUEUE
+{
+	static const struct timespec zero_ts;
+	struct kevent kev;
+
+	EV_SET(&kev, fd, EVFILT_READ, EV_DELETE | EV_DISABLE, 0, 0, 0);
+	kevent(pfd, &kev, 1, NULL, 0, &zero_ts);
+	EV_SET(&kev, fd, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, 0);
+	kevent(pfd, &kev, 1, NULL, 0, &zero_ts);
+	return 0;
+}
+#else /* !HAS_KQUEUE */
+{
+	return epoll_ctl(poll_ctx.fd, EPOLL_CTL_DEL, fd, NULL);
+}
+#endif /* HAS_KQUEUE */
+
+static int
+create_poll_fd(void)
+#ifdef HAS_KQUEUE 
+{
+	return kqueue();
+}
+#else /* !HAS_KQUEUE */
+{
+	return epoll_create(1024 /* Just an arbitrary value as hint */);
+}
+#endif /* HAS_KQUEUE */
+
+static int
+check_poll_events(int fd, gpointer events, int n)
+#ifdef HAS_KQUEUE 
+{
+	static const struct timespec zero_ts;
+	
+	g_assert(-1 != fd);
+	g_assert(n >= 0);
+	g_assert(0 == n || NULL != events);
+	
+	return kevent(fd, NULL, 0, events, n, &zero_ts);
+}
+#else /* !HAS_KQUEUE */
+{
+	g_assert(-1 != fd);
+	g_assert(n >= 0);
+	g_assert(0 == n || NULL != events);
+	
+	return epoll_wait(fd, events, n, 0);
+}
+#endif /* HAS_KQUEUE */
+
+#endif /* HAS_EPOLL || HAS_KQUEUE */
 
 /*
  * Macros for setting and getting bits of bit arrays. Parameters may be
@@ -160,27 +258,14 @@ bit_array_get(const gulong *base, size_t i)
 					(1UL << (i % (8 * sizeof base[0]))));
 }
 
-/*
- * The following defines map the GDK-compatible input condition flags
- * to those used by GLIB.
- *
- * Interesting remark found in gdkevents.c :
- * What do we do with G_IO_NVAL ?
- */
-#define READ_CONDITION		(G_IO_IN | G_IO_PRI)
-#define WRITE_CONDITION		(G_IO_OUT)
-#define EXCEPTION_CONDITION	(G_IO_ERR | G_IO_HUP | G_IO_NVAL)
-
-/**
- * The relay structure is used as a bridge to provide GDK-compatible
- * input condition flags.
- */
-typedef struct {
-	inputevt_cond_t condition;
-	inputevt_handler_t handler;
-	gpointer data;
-	gint fd;
-} inputevt_relay_t;
+static inline gulong *
+bit_array_realloc(gulong *base, size_t n)
+{
+	size_t size;
+	
+	size = n / (8 * sizeof base[0]);
+	return g_realloc(base, size);
+}
 
 /**
  * Frees the relay structure when its time comes.
@@ -237,19 +322,24 @@ inputevt_add_source_with_glib(gint fd,
 	return id;
 }
 
-#ifdef HAS_EPOLL
+#if defined(HAS_EPOLL) || defined(HAS_KQUEUE)
 
 static struct {
+#ifdef HAS_KQUEUE
+	struct kevent *ev; 			/**< Used by kevent() */
+#else /* HAS_KQUEUE */
 	struct epoll_event *ev; 	/**< Used by epoll_wait() */
+#endif /* !HAS_KQUEUE */
+
 	inputevt_relay_t **relay;	/**< The relay contexts */
 	gulong *used;				/**< A bit array, which ID slots are used */
 	guint num_ev;				/**< Length of the "ev" and "relay" arrays */
-	gint fd;					/**< The ``master'' fd for epoll() */
+	gint fd;					/**< The ``master'' fd for epoll or kqueue */
 	gboolean initialized;		/**< TRUE if the context has been initialized */
-} epoll_ctx;
+} poll_ctx;
 
 static gboolean
-dispatch_epoll(GIOChannel *source,
+dispatch_poll(GIOChannel *source,
 	GIOCondition unused_cond, gpointer unused_data)
 {
 	gint n, i;
@@ -258,27 +348,22 @@ dispatch_epoll(GIOChannel *source,
 	(void) unused_data;
 	g_assert(source);
 
-	g_assert(epoll_ctx.initialized);
-	g_assert(-1 != epoll_ctx.fd);
+	g_assert(poll_ctx.initialized);
+	g_assert(-1 != poll_ctx.fd);
 
-	n = epoll_wait(epoll_ctx.fd, epoll_ctx.ev, epoll_ctx.num_ev, 0);
+	n = check_poll_events(poll_ctx.fd, poll_ctx.ev, poll_ctx.num_ev);
 	if (-1 == n) {
-		g_warning("epoll_wait(%d) failed: %s",
-			epoll_ctx.fd, g_strerror(errno));
+		g_warning("check_poll_events(%d) failed: %s",
+			poll_ctx.fd, g_strerror(errno));
 	}
 
 	for (i = 0; i < n; i++) {
-		const struct epoll_event *ev;
 		inputevt_relay_t *relay;
 		GIOCondition cond;
 
-		ev = &epoll_ctx.ev[i];
-		relay = ev->data.ptr;
-		cond =
-			((EPOLLIN | EPOLLPRI | EPOLLHUP) & ev->events ? READ_CONDITION : 0)
-			| (EPOLLOUT & ev->events ? WRITE_CONDITION : 0)
-			| (EPOLLERR & ev->events ? EXCEPTION_CONDITION : 0);
-			
+		relay = get_poll_event_udata(&poll_ctx.ev[i]);
+		cond = get_poll_event_cond(&poll_ctx.ev[i]);
+
 		if (relay->condition & cond)
 			relay->handler(relay->data, relay->fd, cond);
 	}
@@ -289,45 +374,46 @@ dispatch_epoll(GIOChannel *source,
 void
 inputevt_remove(guint id)
 {
-	g_assert(epoll_ctx.initialized);
+	g_assert(poll_ctx.initialized);
 
-	if (-1 == epoll_ctx.fd) {
+	if (-1 == poll_ctx.fd) {
 		g_source_remove(id);
 	} else {
 		inputevt_relay_t *relay;
 		
-		g_assert(id < epoll_ctx.num_ev);
-		g_assert(0 != bit_array_get(epoll_ctx.used, id));
+		g_assert(id < poll_ctx.num_ev);
+		g_assert(0 != bit_array_get(poll_ctx.used, id));
 
-		relay = epoll_ctx.relay[id];
+		relay = poll_ctx.relay[id];
 		g_assert(NULL != relay);
 
-		if (-1 == epoll_ctl(epoll_ctx.fd, EPOLL_CTL_DEL, relay->fd, NULL)) {
-			g_warning("epoll_ctl(%d, EPOLL_CTL_DEL, %d, ...) failed: %s",
-				epoll_ctx.fd, relay->fd, g_strerror(errno));
+		
+		if (-1 == remove_poll_event(poll_ctx.fd, relay->fd)) {
+			g_warning("remove_poll_event(%d, %d) failed: %s",
+				poll_ctx.fd, relay->fd, g_strerror(errno));
 		}
 
-		epoll_ctx.relay[id] = NULL;
+		poll_ctx.relay[id] = NULL;
 		wfree(relay, sizeof *relay);
-		bit_array_clear(epoll_ctx.used, id);
+		bit_array_clear(poll_ctx.used, id);
 	}
 }
-#endif /* !HAS_EPOLL*/
+#endif /* HAS_EPOLL || HAS_KQUEUE*/
 
 static guint 
 inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
-#ifdef HAS_EPOLL
+#if defined(HAS_EPOLL) || defined(HAS_KQUEUE)
 {
 	guint id;
 
 	g_assert(-1 != fd);
 	g_assert(relay);
 	
-	if (!epoll_ctx.initialized) {
-		epoll_ctx.initialized = TRUE;
+	if (!poll_ctx.initialized) {
+		poll_ctx.initialized = TRUE;
 
-		if (-1 == (epoll_ctx.fd = epoll_create(1024))) {
-			g_warning("epoll_create() failed: %s", g_strerror(errno));
+		if (-1 == (poll_ctx.fd = create_poll_fd())) {
+			g_warning("create_poll_fd() failed: %s", g_strerror(errno));
 		} else {
 			GIOChannel *ch;
 			
@@ -337,36 +423,28 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
 			g_io_channel_set_encoding(ch, NULL, NULL); /* binary data */
 #endif /* GLib >= 2.0 */
 
-			(void) g_io_add_watch(ch, READ_CONDITION,
-					dispatch_epoll, GINT_TO_POINTER(epoll_ctx.fd));
+			(void) g_io_add_watch(ch, WRITE_CONDITION | READ_CONDITION,
+								  dispatch_poll, NULL);
 		}
 	}
 
-	if (-1 == epoll_ctx.fd) {
+	if (-1 == poll_ctx.fd) {
 		/*
 		 * Linux systems with 2.4 kernels usually have all epoll stuff
 		 * in their headers but the system calls just return ENOSYS.
 		 */
 		id = inputevt_add_source_with_glib(fd, cond, relay);
 	} else {
-		static const struct epoll_event zero_ev;
-		struct epoll_event ev;
 
-		ev = zero_ev;
-		ev.data.ptr = relay;
-		ev.events = (cond & EXCEPTION_CONDITION ? EPOLLERR : 0) |
-					(cond & READ_CONDITION ? EPOLLIN : 0) |
-					(cond & WRITE_CONDITION ? EPOLLOUT : 0);
-
-		if (-1 == epoll_ctl(epoll_ctx.fd, EPOLL_CTL_ADD, fd, &ev)) {
+		if (-1 == add_poll_event(poll_ctx.fd, fd, cond, relay)) {
 			g_error("epoll_ctl(%d, EPOLL_CTL_ADD, %d, ...) failed: %s",
-				epoll_ctx.fd, fd, g_strerror(errno));
+				poll_ctx.fd, fd, g_strerror(errno));
 			return -1;
 		}
 
 		/* Find a free ID */
-		for (id = 0; id < epoll_ctx.num_ev; id++) {
-			if (!bit_array_get(epoll_ctx.used, id))
+		for (id = 0; id < poll_ctx.num_ev; id++) {
+			if (!bit_array_get(poll_ctx.used, id))
 				break;
 		}
 
@@ -374,40 +452,39 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
 		 * If there was no free ID, the arrays are resized to the
 		 * double size.
 		 */
-		if (epoll_ctx.num_ev == id) {
+		if (poll_ctx.num_ev == id) {
+			guint i, n = poll_ctx.num_ev;
 			size_t size;
-			guint i, n = epoll_ctx.num_ev;
 
-			if (0 != epoll_ctx.num_ev)			
-				epoll_ctx.num_ev <<= 1;
+			if (0 != poll_ctx.num_ev)			
+				poll_ctx.num_ev <<= 1;
 			else
-				epoll_ctx.num_ev = 32;
+				poll_ctx.num_ev = 32;
 
-			size = epoll_ctx.num_ev * sizeof epoll_ctx.ev[0];
-			epoll_ctx.ev = g_realloc(epoll_ctx.ev, size);
+			size = poll_ctx.num_ev * sizeof poll_ctx.ev[0];
+			poll_ctx.ev = g_realloc(poll_ctx.ev, size);
 
-			size = (epoll_ctx.num_ev * sizeof epoll_ctx.used[0]) / 8 + 1;
-			epoll_ctx.used = g_realloc(epoll_ctx.used, size);
-			bit_array_clear_range(epoll_ctx.used, n, epoll_ctx.num_ev - 1);
+			poll_ctx.used = bit_array_realloc(poll_ctx.used, poll_ctx.num_ev);
+			bit_array_clear_range(poll_ctx.used, n, poll_ctx.num_ev - 1);
 
-			size = epoll_ctx.num_ev * sizeof epoll_ctx.relay[0];
-			epoll_ctx.relay = g_realloc(epoll_ctx.relay, size);
-			for (i = n; i < epoll_ctx.num_ev; i++)
-				epoll_ctx.relay[i] = NULL;
+			size = poll_ctx.num_ev * sizeof poll_ctx.relay[0];
+			poll_ctx.relay = g_realloc(poll_ctx.relay, size);
+			for (i = n; i < poll_ctx.num_ev; i++)
+				poll_ctx.relay[i] = NULL;
 		}
 
-		g_assert(id < epoll_ctx.num_ev);
-		bit_array_set(epoll_ctx.used, id);
-		epoll_ctx.relay[id] = relay;
+		g_assert(id < poll_ctx.num_ev);
+		bit_array_set(poll_ctx.used, id);
+		poll_ctx.relay[id] = relay;
 	}
 
 	return id;
 }
-#else /* !HAS_EPOLL */
+#else /* !(HAS_EPOLL || HAS_KQUEUE) */
 {
 	return inputevt_add_source_with_glib(fd, cond, relay);
 }
-#endif /* HAS_EPOLL */
+#endif /* HAS_EPOLL || HAS_KQUEUE */
 
 /**
  * Adds an event source to the main GLIB monitor queue.

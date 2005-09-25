@@ -74,11 +74,11 @@ void inputevt_close(void);
 guint inputevt_add(gint source, inputevt_cond_t condition,
 	inputevt_handler_t handler, gpointer data);
 
-#ifdef HAS_EPOLL
+#if defined(HAS_EPOLL) || defined(HAS_KQUEUE)
 void inputevt_remove(guint id);
-#else
+#else /* !(HAS_EPOLL || HAS_KQUEUE) */
 #define inputevt_remove(source) (g_source_remove(source))
-#endif /* HAS_EPOLL */
+#endif /* HAS_EPOLL || HAS_KQUEUE */
 
 #endif  /* _inputevt_h_ */
 /* vi: set ts=4 sw=4 cindent: */
