@@ -63,8 +63,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-09-18 21:01+0900\n"
-"PO-Revision-Date: 2005-09-22 13:25+0900\n"
+"POT-Creation-Date: 2005-09-25 11:07+0900\n"
+"PO-Revision-Date: 2005-09-25 11:04+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -720,17 +720,17 @@ msgstr "書込み失敗 (入力例外が発生しました)"
 msgid "Write failed: %s"
 msgstr "書込み失敗: %s"
 
-#: src/core/uhc.c:246
+#: src/core/uhc.c:249
 #, c-format
 msgid "Looking for UDP host cache %s"
 msgstr "UDP ホストキャッシュ %s を探しています。"
 
-#: src/core/uhc.c:352
+#: src/core/uhc.c:355
 #, c-format
 msgid "Sent ping to UDP host cache %s:%u"
 msgstr "UDP ホストキャッシュ %s:%u に ping を送信しました。"
 
-#: src/core/uhc.c:521
+#: src/core/uhc.c:524
 #, c-format
 msgid "Got %d host from UDP host cache %s:%u"
 msgid_plural "Got %d hosts from UDP host cache %s:%u"
@@ -3489,7 +3489,7 @@ msgstr "仏領ポリネシア"
 
 #: src/lib/iso3166.c:137
 msgid "French Southern Territories"
-msgstr "仏南方領"
+msgstr "仏領極南諸島"
 
 #: src/lib/iso3166.c:138
 msgid "Gabon, Gabonese Republic"
@@ -3561,7 +3561,7 @@ msgstr "豪領ハード・マクドナルド諸島"
 
 #: src/lib/iso3166.c:155
 msgid "Holy See (Vatican City State)"
-msgstr "法王聖座 (バチカン市国)"
+msgstr "聖座 (バチカン市国)"
 
 #: src/lib/iso3166.c:156
 msgid "Honduras, Republic of"
@@ -3617,7 +3617,7 @@ msgstr "ジャマイカ"
 
 #: src/lib/iso3166.c:169
 msgid "Japan"
-msgstr "日本"
+msgstr "日本国"
 
 #: src/lib/iso3166.c:170
 msgid "Jordan, Hashemite Kingdom of"
@@ -4519,7 +4519,7 @@ msgstr "リターン"
 #: src/ui/gtk/gnet_stats_common.c:46 src/ui/gtk/gtk1/interface-glade.c:13527
 #: src/ui/gtk/gtk2/interface-glade.c:9542
 #: src/ui/gtk/gtk2/interface-glade.c:11964 src/ui/gtk/gtk2/nodes.c:300
-#: src/ui/gtk/gtk2/nodes.c:353 src/ui/gtk/gtk2/search_cb.c:564
+#: src/ui/gtk/gtk2/nodes.c:353 src/ui/gtk/gtk2/search_cb.c:566
 msgid "Unknown"
 msgstr "不明"
 
@@ -5003,7 +5003,7 @@ msgid "Waiting"
 msgstr "待受中"
 
 #: src/ui/gtk/gtk1/fileinfo.c:180 src/ui/gtk/gtk1/search_cb.c:234
-#: src/ui/gtk/gtk2/fileinfo.c:128 src/ui/gtk/gtk2/search_cb.c:671
+#: src/ui/gtk/gtk2/fileinfo.c:128 src/ui/gtk/gtk2/search_cb.c:673
 #, c-format
 msgid "%s (%s bytes)"
 msgstr "%s (%s バイト)"
@@ -5380,7 +5380,7 @@ msgid "Local node"
 msgstr "ローカルノード"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1907
-#: src/ui/gtk/gtk2/interface-glade.c:3476 src/ui/gtk/gtk2/search_cb.c:623
+#: src/ui/gtk/gtk2/interface-glade.c:3476 src/ui/gtk/gtk2/search_cb.c:625
 msgid "GUID:"
 msgstr "GUID:"
 
@@ -5814,7 +5814,7 @@ msgstr "ファイル名:"
 #: src/ui/gtk/gtk1/interface-glade.c:3492
 #: src/ui/gtk/gtk1/interface-glade.c:4879
 #: src/ui/gtk/gtk2/interface-glade.c:5210
-#: src/ui/gtk/gtk2/interface-glade.c:16432 src/ui/gtk/gtk2/search_cb.c:625
+#: src/ui/gtk/gtk2/interface-glade.c:16432 src/ui/gtk/gtk2/search_cb.c:627
 msgid "Size:"
 msgstr "大きさ:"
 
@@ -6124,7 +6124,7 @@ msgstr "選択したファイルに関する情報"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4693
 #: src/ui/gtk/gtk2/interface-glade.c:5093
-#: src/ui/gtk/gtk2/interface-glade.c:16455 src/ui/gtk/gtk2/search_cb.c:621
+#: src/ui/gtk/gtk2/interface-glade.c:16455 src/ui/gtk/gtk2/search_cb.c:623
 msgid "SHA1:"
 msgstr "SHA1ハッシュ:"
 
@@ -6145,12 +6145,12 @@ msgstr "受信時刻:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4761
 #: src/ui/gtk/gtk2/interface-glade.c:5256 src/ui/gtk/gtk2/nodes.c:352
-#: src/ui/gtk/gtk2/search_cb.c:619
+#: src/ui/gtk/gtk2/search_cb.c:621
 msgid "Vendor:"
 msgstr "ベンダ:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4783 src/ui/gtk/gtk2/nodes.c:349
-#: src/ui/gtk/gtk2/search_cb.c:616
+#: src/ui/gtk/gtk2/search_cb.c:618
 msgid "Country:"
 msgstr "国・地域:"
 
@@ -8763,11 +8763,11 @@ msgstr "メタデータ"
 msgid "Not in database"
 msgstr "データベースにありません"
 
-#: src/ui/gtk/gtk1/search.c:2609 src/ui/gtk/gtk2/search_cb.c:1124
+#: src/ui/gtk/gtk1/search.c:2609 src/ui/gtk/gtk2/search_cb.c:1126
 msgid "Query queued..."
 msgstr "検索式をキューに入れます..."
 
-#: src/ui/gtk/gtk1/search_cb.c:210 src/ui/gtk/gtk2/search_cb.c:692
+#: src/ui/gtk/gtk1/search_cb.c:210 src/ui/gtk/gtk2/search_cb.c:694
 msgid "<no SHA1 known>"
 msgstr "<未知の SHA1>"
 
@@ -8843,8 +8843,8 @@ msgstr " 残り時間: %s"
 msgid "Unknown status %u"
 msgstr "不明なステータス %u"
 
-#: src/ui/gtk/gtk2/fileinfo.c:131 src/ui/gtk/gtk2/search_cb.c:622
-#: src/ui/gtk/gtk2/search_cb.c:654
+#: src/ui/gtk/gtk2/fileinfo.c:131 src/ui/gtk/gtk2/search_cb.c:624
+#: src/ui/gtk/gtk2/search_cb.c:656
 msgid "<none>"
 msgstr "<無し>"
 
@@ -9167,12 +9167,12 @@ msgstr "クロウラー"
 msgid "UDP"
 msgstr "UDP"
 
-#: src/ui/gtk/gtk2/nodes.c:327 src/ui/gtk/gtk2/search_cb.c:600
+#: src/ui/gtk/gtk2/nodes.c:327 src/ui/gtk/gtk2/search_cb.c:602
 #: src/ui/gtk/settings_cb.c:306
 msgid "Move the cursor over a row to see details."
 msgstr "表示したい行にカーソルを移動すると詳細が見られます。"
 
-#: src/ui/gtk/gtk2/nodes.c:344 src/ui/gtk/gtk2/search_cb.c:614
+#: src/ui/gtk/gtk2/nodes.c:344 src/ui/gtk/gtk2/search_cb.c:616
 msgid "Peer:"
 msgstr "ピア:"
 
@@ -9197,7 +9197,7 @@ msgstr "%s の逆引き検索に失敗しました。"
 msgid "Reverse lookup in progress..."
 msgstr "逆引き検索を実行中..."
 
-#: src/ui/gtk/gtk2/search_cb.c:741
+#: src/ui/gtk/gtk2/search_cb.c:743
 msgid "Passive"
 msgstr "受動検索"
 
