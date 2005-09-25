@@ -1604,6 +1604,9 @@ node_remove_by_handle(gnet_node_t n)
  * Check whether node has been identified as having a bad IP or vendor string.
  *
  * @return NODE_BAD_OK if node is OK, the reason why the node is bad otherwise.
+ *
+ * @note when we're low on pongs, we never refuse a connection, so this
+ * routine always returns NODE_BAD_OK.
  */
 static enum
 node_bad node_is_bad(struct gnutella_node *n)
@@ -1614,12 +1617,17 @@ node_bad node_is_bad(struct gnutella_node *n)
 	g_assert(n != NULL);
 
 	if (!node_monitor_unstable_ip)
-		/* User disabled monitoring of unstable IPs. */
-		return FALSE;
+		return NODE_BAD_OK;		/* User disabled monitoring of unstable IPs */
+
+	if (host_low_on_pongs)
+		return NODE_BAD_OK;		/* Can't refuse connection */
 
 	if (n->vendor == NULL) {
 		if (node_debug)
-			g_warning("[nodes up] Got no vendor name!");
+			g_warning("no vendor name in %s node headers from %s",
+				NODE_IS_LEAF(n) ? "leaf" :
+				NODE_IS_ULTRA(n) ? "ultra" : "legacy",
+				node_addr(n));
 		return NODE_BAD_NO_VENDOR;
 	}
 
@@ -1638,8 +1646,7 @@ node_bad node_is_bad(struct gnutella_node *n)
     }
 
 	if (!node_monitor_unstable_servents)
-		/* User doesn't want us to monitor unstable servents */
-		return FALSE;
+		return NODE_BAD_OK;	/* No monitoring of unstable servents */
 
 	bad_client = g_hash_table_lookup(unstable_servent, n->vendor);
 
@@ -1668,31 +1675,33 @@ node_mark_bad_vendor(struct gnutella_node *n)
 	if (in_shutdown)
 		return;
 
+	/*
+	 * If the user doesn't want us to protect against unstable IPs, then we
+	 * can stop right now. Protecting against unstable servent name will
+	 * also be ignored, to prevent marking a servent as unstable while we
+	 * are actually connecting to the same IP over and over again
+	 */
+
 	if (!node_monitor_unstable_ip)
-		/*
-		 * If the user doesn't want us to protect against unstable IPs, then we
-		 * can stop right now. Protecting against unstable servent name will
-		 * also be ignored, to prevent marking a servent as unstable while we
-		 * are actually connecting to the same IP over and over again
-		 */
 		return;
 
 	g_assert(n != NULL);
 	g_assert(is_host_addr(n->addr));
 
+	/*
+	 * Only mark Ultrapeers as bad nodes. Leaves aren't expected to have
+	 * high uptimes
+	 */
+
 	if (!(n->attrs & NODE_A_ULTRA))
-		/*
-		 * Only mark Ultrapeers as bad nodes. Leaves aren't expected to have
-		 * high uptimes
-		 */
 		return;
 
+	/*
+	 * Do not mark nodes as bad with which we did not connect at all, we
+	 * don't know it's behaviour in this case.
+	 */
 
 	if (n->connect_date == 0)
-		/*
-		 * Do not mark nodes as bad with which we did not connect at all, we
-		 * don't know it's behaviour in this case.
-		 */
 		return;
 
 	now = tm_time();
@@ -1714,8 +1723,7 @@ node_mark_bad_vendor(struct gnutella_node *n)
     hcache_add(HCACHE_UNSTABLE, n->addr, 0, "vendor banned");
 
 	if (!node_monitor_unstable_servents)
-		/* The user doesn't want us to monitor unstable servents. */
-		return;
+		return;	/* The user doesn't want us to monitor unstable servents. */
 
 	if (n->vendor == NULL)
 		return;
@@ -3528,10 +3536,10 @@ feed_host_cache_from_headers(header_t *header,
 
 			if (node_debug > 0) {
 				if (r > 0)
-					g_message("Peer %s sent %u pong%s in %s header\n",
+					g_message("peer %s sent %u pong%s in %s header\n",
 						host_addr_to_string(peer), r, 1 == r ? "" : "s", name);
 				else
-					g_message("Peer %s sent an unparseable %s header\n",
+					g_message("peer %s sent an unparseable %s header\n",
 						host_addr_to_string(peer), name);
 			}
 		}

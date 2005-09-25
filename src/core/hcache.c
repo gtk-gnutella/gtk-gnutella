@@ -356,6 +356,14 @@ hcache_node_is_bad(const host_addr_t addr)
     hostcache_entry_t *hce;
     gnet_host_t h;
 
+	/*
+	 * When we're low on pongs, we cannot afford the luxury of discarding
+	 * any IP address, or we'll end up contacting web caches for more.
+	 */
+
+	if (host_low_on_pongs)
+		return FALSE;
+
     h.addr = addr;
     h.port = 0;
     hce = hcache_get_metadata(&h);
@@ -554,9 +562,18 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
 
 	g_assert((guint) type < HCACHE_MAX && type != HCACHE_NONE);
 
-    if ((type == HCACHE_UNSTABLE) && (!node_monitor_unstable_ip)) {
-        return FALSE;
-    }
+	/*
+	 * Don't add anything to the "unstable" cache if they don't want to
+	 * monitor unstable servents or when we're low on pongs (thereby
+	 * automatically disabling this monitoring).  The aim is to avoid
+	 * the host discarding the last few IP addresses it has, forcing it
+	 * to contact the web caches...
+	 */
+
+    if (type == HCACHE_UNSTABLE) {
+    	if (!node_monitor_unstable_ip || host_low_on_pongs)
+			return FALSE;
+	}
 
 	if (host_addr_equal(addr, listen_addr()) && port == listen_port) {
         stats[HCACHE_LOCAL_INSTANCE]++;
