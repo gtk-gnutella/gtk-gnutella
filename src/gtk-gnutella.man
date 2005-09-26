@@ -79,7 +79,7 @@ you can select several files and then click "Download selected files"
 to put them all in the download queue at once.
 .SH CONFIGURATION
 Most of the configuration can be done via the "Config" pane.  You will
-find several tabs there, each tab regroupping common information.
+find several tabs there, each tab regrouping common information.
 But some specific information pertaining to downloads or searches are
 directly available on the "Downloads" and "Uploads" panes.
 .PP
