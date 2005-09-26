@@ -155,6 +155,7 @@ add_poll_event(gint pfd, gint fd, GIOCondition cond, gpointer udata)
 {
 	static const struct epoll_event zero_ev;
 	struct epoll_event ev;
+	gint ret;
 
 	ev = zero_ev;
 	ev.data.ptr = udata;
@@ -162,7 +163,11 @@ add_poll_event(gint pfd, gint fd, GIOCondition cond, gpointer udata)
 				(cond & READ_CONDITION ? EPOLLIN : 0) |
 				(cond & WRITE_CONDITION ? EPOLLOUT : 0);
 
-	return epoll_ctl(pfd, EPOLL_CTL_ADD, fd, &ev);
+	if (-1 == epoll_ctl(pfd, EPOLL_CTL_ADD, fd, &ev) && EEXIST != errno)
+		return -1;
+
+	return 0;
+	
 }
 #endif /* HAS_KQUEUE */
 
