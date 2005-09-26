@@ -1563,9 +1563,6 @@ http_async_free_recursive(struct http_async *ha)
 
 	g_assert(sl_outgoing);
 
-	if (ha->socket)
-		socket_free(ha->socket);
-
 	atom_str_free(ha->url);
 	atom_str_free(ha->path);
 
@@ -1575,6 +1572,8 @@ http_async_free_recursive(struct http_async *ha)
 		io_free(ha->io_opaque);
 	if (ha->bio)
 		bsched_source_remove(ha->bio);
+	if (ha->socket)
+		socket_free(ha->socket);
 	if (ha->user_free)
 		(*ha->user_free)(ha->user_opaque);
 	if (ha->delayed)
