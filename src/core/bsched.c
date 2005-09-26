@@ -73,70 +73,6 @@ static gint bws_in_ema = 0;
 
 #define BW_UDP_OVERSIZE	512	 /**< Allow that many bytes over available b/w */
 
-/*
- * Determine how large an I/O vector the kernel can accept.
- */
-
-#if defined(MAXIOV)
-#define MAX_IOV_COUNT	MAXIOV			/**< Regular */
-#elif defined(UIO_MAXIOV)
-#define MAX_IOV_COUNT	UIO_MAXIOV		/**< Linux */
-#elif defined(IOV_MAX)
-#define MAX_IOV_COUNT	IOV_MAX			/**< Solaris */
-#else
-#define MAX_IOV_COUNT	16				/**< Unknown, use required minimum */
-#endif
-
-/**
- * Wrapper over writev() ensuring that we don't request more than
- * MAX_IOV_COUNT entries at a time.
- */
-static ssize_t
-safe_writev(wrap_io_t *wio, struct iovec *iov, gint iovcnt)
-{
-	size_t sent = 0;
-	struct iovec *end = iov + iovcnt;
-	struct iovec *siov;
-	gint siovcnt = MAX_IOV_COUNT;
-	gint iovsent = 0;
-
-	for (siov = iov; siov < end; siov += siovcnt) {
-		ssize_t r;
-		size_t size;
-		struct iovec *xiv;
-		struct iovec *xend;
-
-		siovcnt = iovcnt - iovsent;
-		if (siovcnt > MAX_IOV_COUNT)
-			siovcnt = MAX_IOV_COUNT;
-		g_assert(siovcnt > 0);
-
-		r = wio->writev(wio, siov, siovcnt);
-
-		if ((ssize_t) -1 == r || 0 == r) {
-			if (r == 0 || sent)
-				break;				/* Don't flag error if bytes sent */
-			return -1;				/* Propagate error */
-		}
-
-		sent += r;
-		iovsent += siovcnt;		/* We'll break out if we did not send it all */
-
-		/*
-		 * How much did we sent?  If not the whole vector, we're blocking,
-		 * so stop writing and return amount we sent.
-		 */
-
-		for (size = 0, xiv = siov, xend = siov + siovcnt; xiv < xend; xiv++)
-			size += xiv->iov_len;
-
-		if ((size_t) r < size)
-			break;
-	}
-
-	return sent;
-}
-
 /**
  * Create a new bandwidth scheduler.
  *
@@ -1189,7 +1125,8 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
 }
 
 /**
- * Write at most `len' bytes from `iov' to source's fd, as bandwidth permits.
+ * Write at most `len' bytes from `iov' to source's fd, as bandwidth permits,
+ * `len' being determined by the size of the supplied I/O vector.
  * If we cannot write anything due to bandwidth constraints, return -1 with
  * errno set to EAGAIN.
  */
@@ -1632,6 +1569,132 @@ bio_read(bio_source_t *bio, gpointer data, size_t len)
 		bsched_bw_update(bio->bs, r, amount);
 		bio->bw_actual += r;
 		bio->bs->flags |= BS_F_DATA_READ;
+	}
+
+	return r;
+}
+
+/**
+ * Read at most `len' bytes from `iov' to source's fd, as bandwidth permits,
+ * `len' being determined by the size of the supplied I/O vector.
+ * If we cannot write anything due to bandwidth constraints, return -1 with
+ * errno set to EAGAIN.
+ */
+ssize_t
+bio_readv(bio_source_t *bio, struct iovec *iov, gint iovcnt)
+{
+	size_t available;
+	ssize_t r;
+	size_t len;
+	struct iovec *siov;
+	gint slen = -1;			/* Avoid "may be used uninitialized" warning */
+
+	g_assert(bio);
+	g_assert(bio->flags & BIO_F_READ);
+
+	/*
+	 * Compute I/O vector's length.
+	 */
+
+	for (r = 0, siov = iov, len = 0; r < iovcnt; r++, siov++)
+		len += siov->iov_len;
+
+	/*
+	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN
+	 * to signal that we cannot perform any I/O right now.
+	 */
+
+	available = bw_available(bio, len);
+
+	if (available == 0) {
+		errno = VAL_EAGAIN;
+		return -1;
+	}
+
+	/*
+	 * If we cannot read the whole vector, we need to trim it.
+	 * Because we promise to not corrupt the original I/O vector, we
+	 * save the original length of the last I/O entry, should we modify it.
+	 */
+
+	if (len > available) {
+		size_t curlen;
+
+		for (r = 0, siov = iov, curlen = 0; r < iovcnt; r++, siov++) {
+			curlen += siov->iov_len;
+
+			/*
+			 * Exact size reached, we just need to adjust down the iov count.
+			 * Force siov to NULL before leaving the loop to indicate we did
+			 * not have to alter it.
+			 */
+
+			if (curlen == available) {
+				siov = NULL;
+				iovcnt = r + 1;
+				break;
+			}
+
+			/*
+			 * Maximum size reached...  Need to adjust both the iov count
+			 * and the length of the current siov entry.
+			 */
+
+			if (curlen > available) {
+				slen = siov->iov_len;		/* Save for later restore */
+				siov->iov_len -= (curlen - available);
+				iovcnt = r + 1;
+				g_assert(siov->iov_len > 0);
+				break;
+			}
+		}
+	}
+
+	/*
+	 * Read into I/O vector, updating used bandwidth.
+	 *
+	 * When `iovcnt' is greater than MAX_IOV_COUNT, use our custom readv()
+	 * wrapper to avoid failure with EINVAL.
+	 *		--RAM, 17/03/2002
+	 */
+
+	if (dbg > 7)
+		printf("bio_readv(fd=%d, len=%d) available=%d\n",
+			bio->wio->fd(bio->wio), (gint) len, (gint) available);
+
+	if (iovcnt > MAX_IOV_COUNT)
+		r = safe_readv(bio->wio, iov, iovcnt);
+	else
+		r = bio->wio->readv(bio->wio, iov, iovcnt);
+
+	/*
+	 * XXX hack for broken libc, which can return -1 with errno = 0!
+	 *
+	 * Apparently, when compiling with gcc-3.3.x, one can have a system
+	 * call return -1 with errno set to EOK.
+	 *		--RAM, 05/10/2003
+	 */
+
+	if ((ssize_t) -1 == r && 0 == errno) {
+		g_warning("readv(fd=%d, len=%d) returned -1 with errno = 0, "
+			"assuming EAGAIN", bio->wio->fd(bio->wio), (gint) len);
+		errno = VAL_EAGAIN;
+	}
+
+	if (r > 0) {
+		g_assert((size_t) r <= available);
+		bsched_bw_update(bio->bs, r, MIN(len, available));
+		bio->bw_actual += r;
+		bio->bs->flags |= BS_F_DATA_READ;
+	}
+
+	/*
+	 * Restore original I/O vector if we trimmed it.
+	 */
+
+	if (len > available && siov) {
+		g_assert(slen >= 0);			/* Ensure it was initialized */
+		siov->iov_len = slen;
 	}
 
 	return r;

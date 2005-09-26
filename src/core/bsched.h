@@ -186,6 +186,7 @@ ssize_t bio_sendto(bio_source_t *bio, gnet_host_t *to,
 ssize_t bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd,
 	off_t *offset, size_t len);
 ssize_t bio_read(bio_source_t *bio, gpointer data, size_t len);
+ssize_t bio_readv(bio_source_t *bio, struct iovec *iov, gint iovcnt);
 ssize_t bws_write(bsched_t *bs, wrap_io_t *wio, gconstpointer data, size_t len);
 ssize_t bws_read(bsched_t *bs, wrap_io_t *wio, gpointer data, size_t len);
 void bsched_timer(void);

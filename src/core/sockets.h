@@ -209,6 +209,10 @@ gboolean socket_bad_hostname(struct gnutella_socket *s);
 void socket_timer(time_t now);
 void socket_shutdown(void);
 
+ssize_t safe_readv(wrap_io_t *wio, struct iovec *iov, gint iovcnt);
+ssize_t safe_writev(wrap_io_t *wio, struct iovec *iov, gint iovcnt);
+ssize_t safe_writev_fd(gint fd, struct iovec *iov, gint iovcnt);
+
 #endif /* _core_sockets_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
