@@ -94,20 +94,20 @@ get_poll_event_udata(gpointer p)
 }
 #endif /* HAS_KQUEUE */
 
-static inline GIOCondition
+static inline inputevt_cond_t 
 get_poll_event_cond(gpointer p)
 #ifdef HAS_KQUEUE 
 {
 	struct kevent *ev = p;
 	GIOCondition cond;
 	
-	cond = ev->flags & EV_ERROR ? EXCEPTION_CONDITION : 0;
+	cond = EV_ERROR & ev->flags ? INPUT_EVENT_EXCEPTION : 0;
 	switch (ev->filter) {
 	case EVFILT_READ:
-		cond |= READ_CONDITION;
+		cond |= INPUT_EVENT_R;
 		break;
 	case EVFILT_WRITE:
-		cond |= WRITE_CONDITION;
+		cond |= INPUT_EVENT_W;
 		break;
 	}
 	return cond;
@@ -115,9 +115,9 @@ get_poll_event_cond(gpointer p)
 #else /* !HAS_KQUEUE */
 {
 	struct epoll_event *ev = p;
-	return ((EPOLLIN | EPOLLPRI | EPOLLHUP) & ev->events ? READ_CONDITION : 0)
-		| (EPOLLOUT & ev->events ? WRITE_CONDITION : 0)
-		| (EPOLLERR & ev->events ? EXCEPTION_CONDITION: 0);
+	return ((EPOLLIN | EPOLLPRI | EPOLLHUP) & ev->events ? INPUT_EVENT_R : 0)
+		| (EPOLLOUT & ev->events ? INPUT_EVENT_W : 0)
+		| (EPOLLERR & ev->events ? INPUT_EVENT_EXCEPTION : 0);
 }
 #endif /* HAS_KQUEUE */
 
@@ -128,15 +128,17 @@ add_poll_event(gint pfd, gint fd, GIOCondition cond, gpointer udata)
 {
 	static const struct timespec zero_ts;
 	struct kevent kev[2];
-	int i = 0;
+	size_t i = 0;
 
 	if (READ_CONDITION & cond) {
-		EV_SET(&kev[i], fd, EVFILT_READ, EV_ADD | EV_ENABLE,
+		g_message("add_poll_event(%d, %d, EVFILT_READ, ...)", pfd, fd);
+		EV_SET(&kev[i], fd, EVFILT_READ, EV_ADD,
 			0, 0, (gulong) (gpointer) udata);
 		i++;
 	}
 	if (WRITE_CONDITION & cond) {
-		EV_SET(&kev[i], fd, EVFILT_WRITE, EV_ADD | EV_ENABLE,
+		g_message("add_poll_event(%d, %d, EVFILT_WRITE, ...)", pfd, fd);
+		EV_SET(&kev[i], fd, EVFILT_WRITE, EV_ADD,
 			0, 0, (gulong) (gpointer) udata);
 		i++;
 	}
@@ -153,7 +155,7 @@ add_poll_event(gint pfd, gint fd, GIOCondition cond, gpointer udata)
 				(cond & READ_CONDITION ? EPOLLIN : 0) |
 				(cond & WRITE_CONDITION ? EPOLLOUT : 0);
 
-	return epoll_ctl(poll_ctx.fd, EPOLL_CTL_ADD, fd, &ev);
+	return epoll_ctl(pfd, EPOLL_CTL_ADD, fd, &ev);
 }
 #endif /* HAS_KQUEUE */
 
@@ -172,7 +174,7 @@ remove_poll_event(gint pfd, gint fd)
 }
 #else /* !HAS_KQUEUE */
 {
-	return epoll_ctl(poll_ctx.fd, EPOLL_CTL_DEL, fd, NULL);
+	return epoll_ctl(pfd, EPOLL_CTL_DEL, fd, NULL);
 }
 #endif /* HAS_KQUEUE */
 
@@ -198,6 +200,7 @@ check_poll_events(int fd, gpointer events, int n)
 	g_assert(n >= 0);
 	g_assert(0 == n || NULL != events);
 	
+	g_message("%s(%d, %p, %d)", __func__, fd, events, n);
 	return kevent(fd, NULL, 0, events, n, &zero_ts);
 }
 #else /* !HAS_KQUEUE */
@@ -338,15 +341,10 @@ static struct {
 	gboolean initialized;		/**< TRUE if the context has been initialized */
 } poll_ctx;
 
-static gboolean
-dispatch_poll(GIOChannel *source,
-	GIOCondition unused_cond, gpointer unused_data)
+void
+inputevt_timer(void)
 {
 	gint n, i;
-
-	(void) unused_cond;
-	(void) unused_data;
-	g_assert(source);
 
 	g_assert(poll_ctx.initialized);
 	g_assert(-1 != poll_ctx.fd);
@@ -367,7 +365,18 @@ dispatch_poll(GIOChannel *source,
 		if (relay->condition & cond)
 			relay->handler(relay->data, relay->fd, cond);
 	}
-		
+}
+
+static gboolean
+dispatch_poll(GIOChannel *unused_source,
+	GIOCondition unused_cond, gpointer unused_data)
+{
+	(void) unused_cond;
+	(void) unused_data;
+	(void) unused_source;
+
+	inputevt_timer();
+
 	return TRUE;
 }
 
@@ -406,28 +415,10 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
 {
 	guint id;
 
+	g_assert(poll_ctx.initialized);
 	g_assert(-1 != fd);
 	g_assert(relay);
 	
-	if (!poll_ctx.initialized) {
-		poll_ctx.initialized = TRUE;
-
-		if (-1 == (poll_ctx.fd = create_poll_fd())) {
-			g_warning("create_poll_fd() failed: %s", g_strerror(errno));
-		} else {
-			GIOChannel *ch;
-			
-			ch = g_io_channel_unix_new(fd);
-
-#if GLIB_CHECK_VERSION(2, 0, 0)
-			g_io_channel_set_encoding(ch, NULL, NULL); /* binary data */
-#endif /* GLib >= 2.0 */
-
-			(void) g_io_add_watch(ch, WRITE_CONDITION | READ_CONDITION,
-								  dispatch_poll, NULL);
-		}
-	}
-
 	if (-1 == poll_ctx.fd) {
 		/*
 		 * Linux systems with 2.4 kernels usually have all epoll stuff
@@ -538,7 +529,26 @@ inputevt_add(gint fd, inputevt_cond_t condition,
 void
 inputevt_init(void)
 {
-	/* no initialization required */
+#if defined(HAS_EPOLL) || defined(HAS_KQUEUE)
+	g_assert(!poll_ctx.initialized);
+	
+	poll_ctx.initialized = TRUE;
+
+	if (-1 == (poll_ctx.fd = create_poll_fd())) {
+		g_warning("create_poll_fd() failed: %s", g_strerror(errno));
+		/* This is no hard error, we fall back to the GLib source watcher */
+	} else {
+		GIOChannel *ch;
+			
+		ch = g_io_channel_unix_new(poll_ctx.fd);
+
+#if GLIB_CHECK_VERSION(2, 0, 0)
+		g_io_channel_set_encoding(ch, NULL, NULL); /* binary data */
+#endif /* GLib >= 2.0 */
+
+		(void) g_io_add_watch(ch, READ_CONDITION, dispatch_poll, NULL);
+	}
+#endif /* HAS_EPOLL || HAS_KQUEUE */
 }
 
 /**

@@ -439,6 +439,7 @@ slow_main_timer(time_t now)
 	static guint i = 0;
 	static time_t last_warn = 0;
 
+
 	switch (i) {
 	case 0:
 		dmesh_store();
@@ -799,6 +800,7 @@ main(int argc, char **argv)
 	STATIC_ASSERT(sizeof(size_t) == sizeof(gsize));
 	STATIC_ASSERT(sizeof(ssize_t) == sizeof(gssize));
 
+	inputevt_init();
 	tiger_init();
 	random_init();
 	locale_init();
