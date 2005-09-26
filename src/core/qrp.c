@@ -2659,7 +2659,7 @@ qrt_update_send_next(gpointer handle)
 	gint i;
 	struct gnutella_node *n;
 
-	g_assert(qup->magic == QRT_UPDATE_MAGIC);
+	g_assert(QRT_UPDATE_MAGIC == qup->magic);
 
 	if (!qup->ready)				/* Still compressing or waiting */
 		return TRUE;
@@ -2704,6 +2704,8 @@ qrt_update_send_next(gpointer handle)
 
 	for (qup->last_sent = 0, i = 0; i < 5 && qup->seqno <= qup->seqsize; i++) {
 		len = qup->chunksize;
+
+		g_assert(QRT_UPDATE_MAGIC == qup->magic);
 
 		if (qup->offset + len >= qup->patch->len) {
 			len = qup->patch->len - qup->offset;
