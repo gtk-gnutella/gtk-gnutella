@@ -244,9 +244,7 @@ bit_array_realloc(gulong *base, size_t n)
 {
 	size_t size;
 	
-	size = n / (8 * sizeof base[0]);
-	size += n % (8 * sizeof base[0]) ? 1 : 0;
-	size *= sizeof base[0];
+	size = (n / 8) + (n % (8 * sizeof base[0]) ? sizeof base[0] : 0);
 	return g_realloc(base, size);
 }
 
