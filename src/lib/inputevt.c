@@ -216,11 +216,13 @@ check_poll_events(int fd, gpointer events, int n)
 #endif /* HAS_EPOLL || HAS_KQUEUE */
 
 /*
- * Macros for setting and getting bits of bit arrays. Parameters may be
- * evaluated multiple times, thus pass only constants or variables. No
- * bounds checks are performed. "base" must point to an array of an
- * integer type (like guint8, guint16, guint32 etc.).
+ * Functions for handling arrays of bits. On BSD systems, the * macros from
+ * <bitstring.h> could be used for better efficiency. So far, the following
+ * implementation does not eliminate loop overhead by handling all bits
+ * of a "gulong" at once where possible.
  */
+
+/* @todo TODO: Move these functions to bit_array.h */
 
 static inline void
 bit_array_set(gulong *base, size_t i)
@@ -268,6 +270,20 @@ bit_array_realloc(gulong *base, size_t n)
 	
 	size = n / (8 * sizeof base[0]);
 	return g_realloc(base, size);
+}
+
+static inline size_t
+bit_array_first_clear(gulong *base, size_t from, size_t to)
+{
+	size_t i;
+
+	g_assert(from <= to);
+	for (i = from; i < to; i++) {
+		if (!bit_array_get(base, i))
+			return i;
+	}
+
+	return (size_t) -1;
 }
 
 /**
@@ -428,6 +444,7 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
 		 */
 		id = inputevt_add_source_with_glib(fd, cond, relay);
 	} else {
+		size_t f;
 
 		if (-1 == add_poll_event(poll_ctx.fd, fd, cond, relay)) {
 			g_error("epoll_ctl(%d, EPOLL_CTL_ADD, %d, ...) failed: %s",
@@ -436,16 +453,16 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
 		}
 
 		/* Find a free ID */
-		for (id = 0; id < poll_ctx.num_ev; id++) {
-			if (!bit_array_get(poll_ctx.used, id))
-				break;
-		}
+		f = bit_array_first_clear(poll_ctx.used, 0, poll_ctx.num_ev);
+		g_assert((size_t) -1 == f || f < poll_ctx.num_ev);
 
 		/*
 		 * If there was no free ID, the arrays are resized to the
 		 * double size.
 		 */
-		if (poll_ctx.num_ev == id) {
+		if ((size_t) -1 != f) {
+			id = f;
+		} else {
 			guint i, n = poll_ctx.num_ev;
 			size_t size;
 
@@ -456,10 +473,13 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
 
 			poll_ctx.used = bit_array_realloc(poll_ctx.used, poll_ctx.num_ev);
 			bit_array_clear_range(poll_ctx.used, n, poll_ctx.num_ev - 1);
+
 			if (0 == n) {
 				/* ID 0 is reserved for compatibility with GLib's IDs */
 				bit_array_set(poll_ctx.used, 0);
 				id = 1;
+			} else {
+				id = n;
 			}
 
 			size = poll_ctx.num_ev * sizeof poll_ctx.relay[0];
