@@ -661,8 +661,7 @@ inputevt_init(void)
 		g_io_channel_set_encoding(ch, NULL, NULL); /* binary data */
 #endif /* GLib >= 2.0 */
 
-		(void) g_io_add_watch(ch, WRITE_CONDITION | READ_CONDITION,
-					dispatch_poll, NULL);
+		(void) g_io_add_watch(ch, READ_CONDITION, dispatch_poll, NULL);
 	}
 #endif /* HAS_EPOLL || HAS_KQUEUE */
 }
