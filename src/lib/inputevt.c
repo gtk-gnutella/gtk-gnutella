@@ -321,7 +321,8 @@ inputevt_add_source_with_glib(gint fd,
 	id = g_io_add_watch_full(ch, G_PRIORITY_DEFAULT, cond,
 				 inputevt_dispatch, relay, inputevt_relay_destroy);
 	g_io_channel_unref(ch);
-	
+
+	g_assert(0 != id);	
 	return id;
 }
 
@@ -384,6 +385,7 @@ void
 inputevt_remove(guint id)
 {
 	g_assert(poll_ctx.initialized);
+	g_assert(0 != id);
 
 	if (-1 == poll_ctx.fd) {
 		g_source_remove(id);
@@ -447,16 +449,18 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
 			guint i, n = poll_ctx.num_ev;
 			size_t size;
 
-			if (0 != poll_ctx.num_ev)			
-				poll_ctx.num_ev <<= 1;
-			else
-				poll_ctx.num_ev = 32;
+			poll_ctx.num_ev = 0 != n ? n << 1 : 32;
 
 			size = poll_ctx.num_ev * sizeof poll_ctx.ev[0];
 			poll_ctx.ev = g_realloc(poll_ctx.ev, size);
 
 			poll_ctx.used = bit_array_realloc(poll_ctx.used, poll_ctx.num_ev);
 			bit_array_clear_range(poll_ctx.used, n, poll_ctx.num_ev - 1);
+			if (0 == n) {
+				/* ID 0 is reserved for compatibility with GLib's IDs */
+				bit_array_set(poll_ctx.used, 0);
+				id = 1;
+			}
 
 			size = poll_ctx.num_ev * sizeof poll_ctx.relay[0];
 			poll_ctx.relay = g_realloc(poll_ctx.relay, size);
@@ -469,6 +473,7 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
 		poll_ctx.relay[id] = relay;
 	}
 
+	g_assert(0 != id);	
 	return id;
 }
 #else /* !(HAS_EPOLL || HAS_KQUEUE) */
