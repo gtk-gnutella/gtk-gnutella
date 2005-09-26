@@ -91,6 +91,7 @@ pool_free(pool_t *p)
  */
 gpointer palloc(pool_t *p)
 {
+	g_assert(p != NULL);
 
 	/*
 	 * If we have a buffer available, we're done.
@@ -122,6 +123,9 @@ gpointer palloc(pool_t *p)
 void
 pfree(pool_t *p, gpointer obj)
 {
+	g_assert(p != NULL);
+	g_assert(obj != NULL);
+
 	/*
 	 * If we already have enough buffers in the pool, free it.
 	 */
