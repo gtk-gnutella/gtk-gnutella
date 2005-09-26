@@ -38,6 +38,28 @@
 
 #include "config.h"
 
+/*
+ * Constants
+ */
+
+#define GTA_VERSION 0			  /**< major version */
+#define GTA_SUBVERSION 96		  /**< minor version */
+#define GTA_PATCHLEVEL 0		  /**< patch level or teeny version */
+#define GTA_REVISION "unstable"	  /**< unstable, beta, stable */
+#define GTA_REVCHAR "u"			  /**< u - unstable, b - beta, none - stable */
+#define GTA_RELEASE "2005-09-26"  /**< ISO 8601 format YYYY-MM-DD */
+#define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
+
+#if defined(USE_GTK1)
+#define GTA_INTERFACE "GTK1"
+#elif defined(USE_GTK2)
+#define GTA_INTERFACE "GTK2"
+#elif defined(USE_TOPLESS)
+#define GTA_INTERFACE "Topless"
+#else
+#define GTA_INTERFACE "X11"
+#endif
+
 #ifndef HAS_LIBXML2
 #error "You need libxml2 (http://www.xmlsoft.org/) to compile Gtk-Gnutella"
 #endif
@@ -125,6 +147,20 @@
 #undef G_INLINE_FUNC
 #define G_INLINE_FUNC
 #define inline
+#endif
+
+/*
+ * Determine how large an I/O vector the kernel can accept.
+ */
+
+#if defined(MAXIOV)
+#define MAX_IOV_COUNT	MAXIOV			/**< Regular */
+#elif defined(UIO_MAXIOV)
+#define MAX_IOV_COUNT	UIO_MAXIOV		/**< Linux */
+#elif defined(IOV_MAX)
+#define MAX_IOV_COUNT	IOV_MAX			/**< Solaris */
+#else
+#define MAX_IOV_COUNT	16				/**< Unknown, use required minimum */
 #endif
 
 #include <glib.h>
@@ -256,28 +292,6 @@ do {				\
  */
 #define STATIC_ASSERT(x) \
 	do { switch (0) { case ((x) ? 1 : 0): case 0: break; } } while(0)
-
-/*
- * Constants
- */
-
-#define GTA_VERSION 0			  /**< major version */
-#define GTA_SUBVERSION 96		  /**< minor version */
-#define GTA_PATCHLEVEL 0		  /**< patch level or teeny version */
-#define GTA_REVISION "unstable"	  /**< unstable, beta, stable */
-#define GTA_REVCHAR "u"			  /**< u - unstable, b - beta, none - stable */
-#define GTA_RELEASE "2005-09-25"  /**< ISO 8601 format YYYY-MM-DD */
-#define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
-
-#if defined(USE_GTK1)
-#define GTA_INTERFACE "GTK1"
-#elif defined(USE_GTK2)
-#define GTA_INTERFACE "GTK2"
-#elif defined(USE_TOPLESS)
-#define GTA_INTERFACE "Topless"
-#else
-#define GTA_INTERFACE "X11"
-#endif
 
 #define xstr(x) STRINGIFY(x)
 
