@@ -142,6 +142,13 @@ add_poll_event(gint pfd, gint fd, GIOCondition cond, gpointer udata)
 			0, 0, (gulong) (gpointer) udata);
 		i++;
 	}
+
+	/* @todo TODO:
+	 * Instead of adding each single event, we could probably accumulate them
+	 * and then add all of them in check_poll_events(). However, events may be
+	 * removed before ever polled etc., so it may be more complex as it sounds.
+	 * It would save many syscalls though.
+	 */
 	return kevent(pfd, kev, i, NULL, 0, &zero_ts);
 }
 #else /* !HAS_KQUEUE */
@@ -238,6 +245,8 @@ bit_array_realloc(gulong *base, size_t n)
 	size_t size;
 	
 	size = n / (8 * sizeof base[0]);
+	size += n % (8 * sizeof base[0]) ? 1 : 0;
+	size *= sizeof base[0];
 	return g_realloc(base, size);
 }
 
