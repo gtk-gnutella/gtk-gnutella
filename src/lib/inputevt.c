@@ -232,16 +232,40 @@ check_poll_events(int fd, gpointer events, int n)
 
 /* @todo TODO: Move these functions to bit_array.h */
 
+static inline gulong *
+bit_array_realloc(gulong *base, size_t n)
+{
+	size_t size;
+	
+	size = n / (8 * sizeof base[0]);
+	return g_realloc(base, size);
+}
+
+#define BIT_ARRAY_BYTE(base, i) base[i / (8 * sizeof base[0])]
+#define BIT_ARRAY_BIT(base, i) (1UL << (i % (8 * sizeof base[0]))) 
+
 static inline void
 bit_array_set(gulong *base, size_t i)
 {
-	base[i / sizeof base[0]] |= 1UL << (i % (8 * sizeof base[0]));
+	BIT_ARRAY_BYTE(base, i) |= BIT_ARRAY_BIT(base, i);
 }
 
 static inline void 
 bit_array_clear(gulong *base, size_t i)
 {
-	base[i / sizeof base[0]] &= ~(1UL << (i % (8 * sizeof base[0])));
+	BIT_ARRAY_BYTE(base, i) &= ~BIT_ARRAY_BIT(base, i);
+}
+
+static inline void 
+bit_array_flip(gulong *base, size_t i)
+{
+	BIT_ARRAY_BYTE(base, i) ^= BIT_ARRAY_BIT(base, i);
+}
+
+static inline gboolean
+bit_array_get(const gulong *base, size_t i)
+{
+	return 0 != (BIT_ARRAY_BYTE(base, i) & BIT_ARRAY_BIT(base, i));
 }
 
 static inline void 
@@ -256,28 +280,6 @@ bit_array_clear_range(gulong *base, size_t from, size_t to)
 			bit_array_clear(base, i);
 		while (i++ != to);
 	}
-}
-
-static inline void 
-bit_array_flip(gulong *base, size_t i)
-{
-	base[i / sizeof (base[0])] ^= 1UL << (i % (8 * sizeof base[0]));
-}
-
-static inline gboolean
-bit_array_get(const gulong *base, size_t i)
-{
-	return 0 != (base[i / sizeof base[0]] &
-					(1UL << (i % (8 * sizeof base[0]))));
-}
-
-static inline gulong *
-bit_array_realloc(gulong *base, size_t n)
-{
-	size_t size;
-	
-	size = n / (8 * sizeof base[0]);
-	return g_realloc(base, size);
 }
 
 static inline size_t
@@ -401,8 +403,17 @@ inputevt_timer(void)
 		g_assert(relay);
 		g_assert(relay->fd >= 0);
 
+#if 0
+		g_message("relay: fd=%d, cond=%s, handler=%p",
+			relay->fd, inputevt_cond_to_string(cond), relay->handler);
+#endif
+		
 		if (relay->condition & cond)
 			relay->handler(relay->data, relay->fd, cond);
+#if 0
+		else
+			g_message("IGNORED!!!");
+#endif
 	}
 	poll_ctx.dispatch_id = 0;
 }
@@ -528,6 +539,7 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
 
 		g_assert(id < poll_ctx.num_ev);
 		bit_array_set(poll_ctx.used, id);
+		g_assert(0 != bit_array_get(poll_ctx.used, id));
 		poll_ctx.relay[id] = relay;
 	}
 
@@ -584,6 +596,23 @@ inputevt_add(gint fd, inputevt_cond_t condition,
 	g_assert(0 != cond);
 
 	return inputevt_add_source(fd, cond, relay);
+}
+
+const gchar *
+inputevt_cond_to_string(inputevt_cond_t cond)
+{
+	switch (cond) {
+#define CASE(x) case x: return STRINGIFY(x)
+	CASE(INPUT_EVENT_EXCEPTION);
+	CASE(INPUT_EVENT_R);
+	CASE(INPUT_EVENT_W);
+	CASE(INPUT_EVENT_RW);
+	CASE(INPUT_EVENT_RX);
+	CASE(INPUT_EVENT_WX);
+	CASE(INPUT_EVENT_RWX);
+#undef CASE
+	}
+	return "?";
 }
 
 /**
