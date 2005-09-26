@@ -713,11 +713,6 @@ upload_free_resources(gnutella_upload_t *u)
 		u->sendfile_ctx.map = NULL;
 	}
 #endif /* USE_MMAP */
-	if (u->socket != NULL) {
-		g_assert(u->socket->resource.upload == u);
-		socket_free(u->socket);
-		u->socket = NULL;
-	}
 	if (u->buffer != NULL) {
 		g_free(u->buffer);
 		u->buffer = NULL;
@@ -729,6 +724,11 @@ upload_free_resources(gnutella_upload_t *u)
 	if (u->bio != NULL) {
 		bsched_source_remove(u->bio);
 		u->bio = NULL;
+	}
+	if (u->socket != NULL) {
+		g_assert(u->socket->resource.upload == u);
+		socket_free(u->socket);
+		u->socket = NULL;
 	}
 	if (u->user_agent) {
 		atom_str_free(u->user_agent);
