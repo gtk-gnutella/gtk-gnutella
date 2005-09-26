@@ -3030,7 +3030,6 @@ prop = {
 prop = {
 	name = "allow_auto_requeries";
 	desc = "If set to TRUE, automatic requeries are allowed.";
-	save = TRUE;
 	type = boolean;
 	data = {
 		default = TRUE;
@@ -3043,7 +3042,6 @@ prop = {
 			"private $GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate "
 			"your private ban list from the global one distributed with "
 			"Gtk-Gnutella.";
-	save = TRUE;
 	type = boolean;
 	data = {
 		default = TRUE;
@@ -3053,7 +3051,6 @@ prop = {
 prop = {
 	name = "use_so_linger";
 	desc = "If set to TRUE, SO_LINGER is used for sockets.";
-	save = TRUE;
 	type = boolean;
 	data = {
 		default = FALSE;
@@ -3064,7 +3061,6 @@ prop = {
 	name = "browse_host_enabled";
 	desc = "If TRUE, other hosts can request a complete list of all "
 		   "shared files.";
-	save = TRUE;
 	type = boolean;
 	data = {
 		default = FALSE;
@@ -3103,6 +3099,42 @@ prop = {
     type = boolean;
     data = {
         default = FALSE;
+    };
+};
+
+prop = {
+    name = "download_buffer_size";
+    desc = "Amount of data per downloading source that gtk-gnutella will "
+		"buffer before writing to disk.  When swarming from many sources, "
+		"a larger value will help avoid using too many system calls and "
+		"should also reduce the fragmentation on the filesystem.  The downside "
+		"is that it uses more memory per active source.  Use 0 to disable all "
+		"buffering, i.e. have gtk-gnutella write to disk as soon as it "
+		"receives some data. Increase to maximum value if you have RAM.";
+    type = guint32;
+    data = {
+        default = 32768;
+        min = 0;
+        max = 131072;
+    };
+};
+
+prop = {
+    name = "download_buffer_read_ahead";
+    desc = "Extra amount of data per downloading source that gtk-gnutella "
+		"will try to read-ahead.  This gives more room for reading large "
+		"amount of data without issuing too many system calls. "
+		"It complements buffering nicely because it prevents reading a few "
+		"bytes before committing the buffered data to disk: when read-ahead "
+		"space is available, it will be used in addition to buffering, but "
+		"read-ahead data is committed to disk immediately.  If you don't "
+		"wish to reserve more memory per active source, you can disable this "
+		"feature by setting the read-ahead buffer size to 0.";
+    type = guint32;
+    data = {
+        default = 4096;
+        min = 0;
+        max = 16384;
     };
 };
 

@@ -307,6 +307,8 @@ extern const gboolean browse_host_enabled;
 extern const guint32  html_browse_count;
 extern const guint32  qhits_browse_count;
 extern const gboolean overloaded_cpu;
+extern const guint32  download_buffer_size;
+extern const guint32  download_buffer_read_ahead;
 
 
 prop_set_t *gnet_prop_init(void);

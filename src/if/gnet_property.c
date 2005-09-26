@@ -598,6 +598,10 @@ guint32  qhits_browse_count     = 0;
 guint32  qhits_browse_count_def = 0;
 gboolean overloaded_cpu     = FALSE;
 gboolean overloaded_cpu_def = FALSE;
+guint32  download_buffer_size     = 32768;
+guint32  download_buffer_size_def = 32768;
+guint32  download_buffer_read_ahead     = 4096;
+guint32  download_buffer_read_ahead_def = 4096;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -5658,6 +5662,46 @@ gnet_prop_init(void) {
     gnet_property->props[263].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[263].data.boolean.def   = &overloaded_cpu_def;
     gnet_property->props[263].data.boolean.value = &overloaded_cpu;
+
+
+    /*
+     * PROP_DOWNLOAD_BUFFER_SIZE:
+     *
+     * General data:
+     */
+    gnet_property->props[264].name = "download_buffer_size";
+    gnet_property->props[264].desc = _("Amount of data per downloading source that gtk-gnutella will buffer before writing to disk.  When swarming from many sources, a larger value will help avoid using too many system calls and should also reduce the fragmentation on the filesystem.  The downside is that it uses more memory per active source.  Use 0 to disable all buffering, i.e. have gtk-gnutella write to disk as soon as it receives some data. Increase to maximum value if you have RAM.");
+    gnet_property->props[264].ev_changed = event_new("download_buffer_size_changed");
+    gnet_property->props[264].save = TRUE;
+    gnet_property->props[264].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[264].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[264].data.guint32.def   = &download_buffer_size_def;
+    gnet_property->props[264].data.guint32.value = &download_buffer_size;
+    gnet_property->props[264].data.guint32.choices = NULL;
+    gnet_property->props[264].data.guint32.max   = 131072;
+    gnet_property->props[264].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_DOWNLOAD_BUFFER_READ_AHEAD:
+     *
+     * General data:
+     */
+    gnet_property->props[265].name = "download_buffer_read_ahead";
+    gnet_property->props[265].desc = _("Extra amount of data per downloading source that gtk-gnutella will try to read-ahead.  This gives more room for reading large amount of data without issuing too many system calls. It complements buffering nicely because it prevents reading a few bytes before committing the buffered data to disk: when read-ahead space is available, it will be used in addition to buffering, but read-ahead data is committed to disk immediately.  If you don't wish to reserve more memory per active source, you can disable this feature by setting the read-ahead buffer size to 0.");
+    gnet_property->props[265].ev_changed = event_new("download_buffer_read_ahead_changed");
+    gnet_property->props[265].save = TRUE;
+    gnet_property->props[265].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[265].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[265].data.guint32.def   = &download_buffer_read_ahead_def;
+    gnet_property->props[265].data.guint32.value = &download_buffer_read_ahead;
+    gnet_property->props[265].data.guint32.choices = NULL;
+    gnet_property->props[265].data.guint32.max   = 16384;
+    gnet_property->props[265].data.guint32.min   = 0;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
