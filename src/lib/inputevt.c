@@ -167,9 +167,17 @@ remove_poll_event(gint pfd, gint fd)
 	struct kevent kev;
 
 	EV_SET(&kev, fd, EVFILT_READ, EV_DELETE | EV_DISABLE, 0, 0, 0);
-	kevent(pfd, &kev, 1, NULL, 0, &zero_ts);
+	if (-1 == kevent(pfd, &kev, 1, NULL, 0, &zero_ts) && ENOENT != errno) {
+		g_warning("kevent() failed (fd=%d, EVFIL_READ): %s",
+			fd, g_strerror(errno));
+		raise(SIGTRAP);
+	}
 	EV_SET(&kev, fd, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, 0);
-	kevent(pfd, &kev, 1, NULL, 0, &zero_ts);
+	if (-1 == kevent(pfd, &kev, 1, NULL, 0, &zero_ts) && ENOENT != errno) {
+		g_warning("kevent() failed (fd=%d, EVFIL_WRITE): %s",
+			fd, g_strerror(errno));
+		raise(SIGTRAP);
+	}
 	return 0;
 }
 #else /* !HAS_KQUEUE */
@@ -196,7 +204,7 @@ check_poll_events(int fd, gpointer events, int n)
 {
 	static const struct timespec zero_ts;
 	
-	g_assert(-1 != fd);
+	g_assert(fd >= 0);
 	g_assert(n >= 0);
 	g_assert(0 == n || NULL != events);
 	
@@ -205,7 +213,7 @@ check_poll_events(int fd, gpointer events, int n)
 }
 #else /* !HAS_KQUEUE */
 {
-	g_assert(-1 != fd);
+	g_assert(fd >= 0);
 	g_assert(n >= 0);
 	g_assert(0 == n || NULL != events);
 	
@@ -246,7 +254,7 @@ bit_array_clear_range(gulong *base, size_t from, size_t to)
 	
 		do
 			bit_array_clear(base, i);
-		while (i++ != from);
+		while (i++ != to);
 	}
 }
 
@@ -275,12 +283,15 @@ bit_array_realloc(gulong *base, size_t n)
 static inline size_t
 bit_array_first_clear(gulong *base, size_t from, size_t to)
 {
-	size_t i;
-
 	g_assert(from <= to);
-	for (i = from; i < to; i++) {
-		if (!bit_array_get(base, i))
-			return i;
+
+	if (from <= to) {
+		size_t i = from;
+	
+		do
+			if (0 == bit_array_get(base, i))
+				return i;
+		while (i++ != to);
 	}
 
 	return (size_t) -1;
@@ -356,6 +367,7 @@ static struct {
 	guint num_ev;				/**< Length of the "ev" and "relay" arrays */
 	gint fd;					/**< The ``master'' fd for epoll or kqueue */
 	gboolean initialized;		/**< TRUE if the context has been initialized */
+	guint dispatch_id;			/**< ID of the currently dispatched event */
 } poll_ctx;
 
 void
@@ -365,6 +377,9 @@ inputevt_timer(void)
 
 	g_assert(poll_ctx.initialized);
 	g_assert(-1 != poll_ctx.fd);
+
+	/* Maybe this must safely fail for general use, thus no assertion */
+	g_return_if_fail(0 == poll_ctx.dispatch_id);
 
 	n = check_poll_events(poll_ctx.fd, poll_ctx.ev, poll_ctx.num_ev);
 	if (-1 == n) {
@@ -376,12 +391,20 @@ inputevt_timer(void)
 		inputevt_relay_t *relay;
 		GIOCondition cond;
 
-		relay = get_poll_event_udata(&poll_ctx.ev[i]);
+		/* A relay handler might remove any of the other registered events */
+		if (0 == bit_array_get(poll_ctx.used, i))
+			continue;
+
+		poll_ctx.dispatch_id = i;
 		cond = get_poll_event_cond(&poll_ctx.ev[i]);
+		relay = get_poll_event_udata(&poll_ctx.ev[i]);
+		g_assert(relay);
+		g_assert(relay->fd >= 0);
 
 		if (relay->condition & cond)
 			relay->handler(relay->data, relay->fd, cond);
 	}
+	poll_ctx.dispatch_id = 0;
 }
 
 static gboolean
@@ -434,7 +457,7 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
 	guint id;
 
 	g_assert(poll_ctx.initialized);
-	g_assert(-1 != fd);
+	g_assert(fd >= 0);
 	g_assert(relay);
 	
 	if (-1 == poll_ctx.fd) {
@@ -444,7 +467,7 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
 		 */
 		id = inputevt_add_source_with_glib(fd, cond, relay);
 	} else {
-		size_t f;
+		size_t f, h;
 
 		if (-1 == add_poll_event(poll_ctx.fd, fd, cond, relay)) {
 			g_error("epoll_ctl(%d, EPOLL_CTL_ADD, %d, ...) failed: %s",
@@ -452,8 +475,23 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
 			return -1;
 		}
 
-		/* Find a free ID */
-		f = bit_array_first_clear(poll_ctx.used, 0, poll_ctx.num_ev);
+		if (poll_ctx.num_ev > 0) {
+			/*
+			 * A relay handler can remove and register any event whilst we
+			 * iterate in inputevt_timer(). Therefore, not yet dispatched
+			 * events must not be recycled because this could cause emission
+			 * of a bogus event for the wrong file descriptor.
+			 */
+			if (0 != poll_ctx.dispatch_id)
+				h = poll_ctx.dispatch_id - 1;
+			else 
+				h = poll_ctx.num_ev - 1;
+
+			/* Find a free ID */
+			f = bit_array_first_clear(poll_ctx.used, 0, h);
+		} else {
+			f = (size_t) -1;
+		}
 		g_assert((size_t) -1 == f || f < poll_ctx.num_ev);
 
 		/*
