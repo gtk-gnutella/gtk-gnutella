@@ -270,6 +270,7 @@ socket_evt_set(struct gnutella_socket *s,
 	g_assert(s);
 	g_assert(handler);
 	g_assert(INPUT_EVENT_EXCEPTION != cond);
+	g_assert((0 != (INPUT_EVENT_R & cond)) ^ (0 != (INPUT_EVENT_W & cond)));
 	g_assert(0 == s->gdk_tag);
 
 	fd = socket_evt_fd(s);
@@ -1246,7 +1247,7 @@ socket_linger_close(gint fd)
 	g_assert(fd >= 0);
 
 	ctx = walloc(sizeof *ctx);
-	ctx->tag = inputevt_add(fd, INPUT_EVENT_RWX, socket_linger_cb, ctx);
+	ctx->tag = inputevt_add(fd, INPUT_EVENT_RX, socket_linger_cb, ctx);
 	g_assert(0 != ctx->tag);
 }
 
@@ -1819,7 +1820,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 				}
 
 				s->direction = SOCK_CONN_OUTGOING;
-				socket_evt_set(s, INPUT_EVENT_RWX, socket_connected, s);
+				socket_evt_set(s, INPUT_EVENT_WX, socket_connected, s);
 				return;
 			} else if (proxy_protocol == PROXY_SOCKSV5) {
 				if (connect_socksv5(s) != 0) {
@@ -1829,7 +1830,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 				if (s->pos > 5) {
 					s->direction = SOCK_CONN_OUTGOING;
-					socket_evt_set(s, INPUT_EVENT_RWX, socket_connected, s);
+					socket_evt_set(s, INPUT_EVENT_WX, socket_connected, s);
 				} else {
 					socket_evt_set(s, INPUT_EVENT_WX, socket_connected, s);
 				}
@@ -1844,7 +1845,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 				if (s->pos > 2) {
 					s->direction = SOCK_CONN_OUTGOING;
-					socket_evt_set(s, INPUT_EVENT_RWX, socket_connected, s);
+					socket_evt_set(s, INPUT_EVENT_WX, socket_connected, s);
 				} else {
 					socket_evt_set(s, INPUT_EVENT_RX, socket_connected, s);
 				}
@@ -2392,7 +2393,6 @@ static gint
 socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 {
 	socket_addr_t addr;
-	inputevt_cond_t cond;
 	gint res;
 
 	g_assert(NULL != s);
@@ -2467,8 +2467,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 
 	g_assert(0 == s->gdk_tag);
 
-	cond = PROXY_NONE != proxy_protocol ? INPUT_EVENT_RWX : INPUT_EVENT_WX;
-	socket_evt_set(s, cond, socket_connected, s);
+	socket_evt_set(s, INPUT_EVENT_WX, socket_connected, s);
 	return 0;
 }
 
