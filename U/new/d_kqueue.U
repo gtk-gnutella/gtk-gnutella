@@ -1,0 +1,56 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_kqueue: Myread Setvar cat rm +cc +ccflags +ldflags
+?MAKE:	-pick add $@ %<
+?S:d_kqueue:
+?S:	This variable conditionally defines the HAS_KQUEUE symbol, which
+?S:	indicates to the C program that kqueue() support is available.
+?S:.
+?C:HAS_KQUEUE:
+?C:	This symbol is defined when kqueue() can be used.
+?C:.
+?H:#$d_kqueue HAS_KQUEUE
+?H:.
+?LINT: set d_kqueue
+: can we use kqueue?
+echo " "
+echo "Checking whether kqueue() is available ..." >&4
+val="$define"
+$cat >try.c <<'EOC'
+#include <sys/types.h>
+#include <sys/event.h>
+#include <sys/time.h>
+
+int
+main(void) {
+  static struct kevent changes[1], events[1];
+  static struct timespec ts;
+  static unsigned long filters[] = { EVFILT_READ, EVFILT_WRITE,
+    EVFILT_TIMER, EVFILT_SIGNAL, EVFILT_PROC, EVFILT_VNODE };
+  int kq = kqueue();
+  int fd = 0;
+  unsigned long flags;
+
+  flags = EV_ADD | EV_ENABLE | EV_ONESHOT;
+  flags &= ~(EV_CLEAR | EV_EOF | EV_ERROR | EV_DISABLE | EV_DELETE);
+  EV_SET(&changes[0], fd, filters[0], flags, 0, 0, 0);
+  kevent(kq, changes, 1, events, 1, &ts);
+
+  return 0;
+}
+EOC
+if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+    $cat <<'EOM'
+It looks like kqueue() is usable on your system, good.
+EOM
+
+else
+	echo "Sorry, I will not be using kqueue()."
+	val="$undef"
+fi
+$rm -f try try.c
+set d_kqueue
+eval $setvar
+
