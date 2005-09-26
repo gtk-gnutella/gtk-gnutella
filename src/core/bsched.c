@@ -527,7 +527,7 @@ bio_disable(bio_source_t *bio)
 	g_assert(bio->io_tag);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
 
-	g_source_remove(bio->io_tag);
+	inputevt_remove(bio->io_tag);
 	bio->io_tag = 0;
 }
 
@@ -826,7 +826,7 @@ bsched_source_remove(bio_source_t *bio)
 	if (bs)
 		bsched_bio_remove(bs, bio);
 	if (bio->io_tag)
-		g_source_remove(bio->io_tag);
+		inputevt_remove(bio->io_tag);
 
 	wfree(bio, sizeof *bio);
 }
