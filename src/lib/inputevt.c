@@ -186,7 +186,7 @@ remove_poll_event(gint pfd, gint fd, inputevt_cond_t cond)
 }
 #else /* !HAS_KQUEUE */
 {
-	(void) ev;
+	(void) cond;
 	return epoll_ctl(pfd, EPOLL_CTL_DEL, fd, NULL);
 }
 #endif /* HAS_KQUEUE */
@@ -482,6 +482,7 @@ inputevt_remove(guint id)
 
 		relay = poll_ctx.relay[id];
 		g_assert(NULL != relay);
+		g_assert(relay->fd >= 0);
 		
 		if (-1 == remove_poll_event(poll_ctx.fd, relay->fd, relay->condition)) {
 			g_warning("remove_poll_event(%d, %d) failed: %s",
