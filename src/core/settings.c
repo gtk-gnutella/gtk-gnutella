@@ -52,6 +52,7 @@
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
+#include "if/core/main.h"		/* For debugging() */
 #include "if/core/net_stats.h"
 
 #include "if/bridge/c2ui.h"
@@ -387,11 +388,6 @@ settings_init(void)
 	struct rlimit lim;
 	char *path = NULL;
 
-	if (debug > 0) {
-		g_message("detected amount of physical RAM: %lu KB", memory);
-		g_message("process can use %u file descriptors", maxfd);
-	}
-
 	if (-1 != getrlimit(RLIMIT_DATA, &lim)) {
 		guint32 maxdata = lim.rlim_cur >> 10;
 		amount = MIN(amount, maxdata);		/* For our purposes */
@@ -443,6 +439,12 @@ settings_init(void)
 
 		/* Parse the configuration */
 	prop_load_from_file(properties, config_dir, config_file);
+
+	if (debugging(0)) {
+		g_message("detected amount of physical RAM: %lu KB", memory);
+		g_message("process can use %u file descriptors", maxfd);
+		g_message("max I/O vector size is %d items", MAX_IOV_COUNT);
+	}
 
 	path = make_pathname(config_dir, ul_stats_file);
 	upload_stats_load_history(path);	/* Loads the upload statistics */
