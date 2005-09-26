@@ -8252,18 +8252,19 @@ download_close(void)
 	download_free_removed();
 
 	for (l = sl_downloads; l; l = g_slist_next(l)) {
-		struct download *d = (struct download *) l->data;
+		struct download *d = l->data;
+
 		g_assert(d != NULL);
 		if (DOWNLOAD_IS_VISIBLE(d))
 			gcu_download_gui_remove(d);
-		if (d->socket)
-			socket_free(d->socket);
 		if (d->push)
 			download_push_remove(d);
 		if (d->io_opaque)
 			io_free(d->io_opaque);
 		if (d->bio)
 			bsched_source_remove(d->bio);
+		if (d->socket)
+			socket_free(d->socket);
 		if (d->sha1)
 			atom_sha1_free(d->sha1);
 		if (d->ranges)
