@@ -1540,7 +1540,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label498), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label498), 10, 0);
 
-  label494 = gtk_label_new ("Rapha\303\253l Manfredi");
+  label494 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_table_attach (GTK_TABLE (table105), label494, 1, 2, 1, 2,
@@ -1567,7 +1567,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label704), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label704), 4, 0);
 
-  label493 = gtk_label_new ("Rapha\303\253l Manfredi");
+  label493 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_table_attach (GTK_TABLE (table105), label493, 4, 5, 0, 1,
@@ -12908,6 +12908,14 @@ create_dlg_prefs_dl_tab (void)
   GtkWidget *label369;
   GtkWidget *label918;
   GtkWidget *label919;
+  GtkWidget *label934;
+  GtkWidget *label935;
+  GtkObject *spinbutton_download_buffer_size_adj;
+  GtkWidget *spinbutton_download_buffer_size;
+  GtkObject *spinbutton_download_buffer_read_ahead_adj;
+  GtkWidget *spinbutton_download_buffer_read_ahead;
+  GtkWidget *label936;
+  GtkWidget *label937;
   GtkWidget *viewport117;
   GtkWidget *frame103;
   GtkWidget *table93;
@@ -13461,14 +13469,14 @@ create_dlg_prefs_dl_tab (void)
   gtk_widget_show (hbox282);
   gtk_container_add (GTK_CONTAINER (frame51), hbox282);
 
-  table94 = gtk_table_new (3, 3, TRUE);
+  table94 = gtk_table_new (5, 3, TRUE);
   gtk_widget_set_name (table94, "table94");
   gtk_widget_show (table94);
   gtk_box_pack_start (GTK_BOX (hbox282), table94, TRUE, TRUE, 0);
   gtk_table_set_row_spacings (GTK_TABLE (table94), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table94), 4);
 
-  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 6.71089e+07, 1, 10, 10);
+  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 67108900, 1, 10, 10);
   spinbutton_dl_minchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_minchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_minchunksize, "spinbutton_dl_minchunksize");
   gtk_widget_show (spinbutton_dl_minchunksize);
@@ -13477,7 +13485,7 @@ create_dlg_prefs_dl_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_minchunksize), TRUE);
 
-  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 6.71089e+07, 1, 10, 10);
+  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 67108900, 1, 10, 10);
   spinbutton_dl_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_maxchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_maxchunksize, "spinbutton_dl_maxchunksize");
   gtk_widget_show (spinbutton_dl_maxchunksize);
@@ -13533,6 +13541,54 @@ create_dlg_prefs_dl_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_label_set_justify (GTK_LABEL (label919), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label919), 0, 0.5);
+
+  label934 = gtk_label_new (_("Write buffer size"));
+  gtk_widget_set_name (label934, "label934");
+  gtk_widget_show (label934);
+  gtk_table_attach (GTK_TABLE (table94), label934, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label934), 0, 0.5);
+
+  label935 = gtk_label_new (_("Read-ahead buffer"));
+  gtk_widget_set_name (label935, "label935");
+  gtk_widget_show (label935);
+  gtk_table_attach (GTK_TABLE (table94), label935, 0, 1, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label935), 0, 0.5);
+
+  spinbutton_download_buffer_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_download_buffer_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_download_buffer_size_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_download_buffer_size, "spinbutton_download_buffer_size");
+  gtk_widget_show (spinbutton_download_buffer_size);
+  gtk_table_attach (GTK_TABLE (table94), spinbutton_download_buffer_size, 1, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_download_buffer_read_ahead_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_download_buffer_read_ahead = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_download_buffer_read_ahead_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_download_buffer_read_ahead, "spinbutton_download_buffer_read_ahead");
+  gtk_widget_show (spinbutton_download_buffer_read_ahead);
+  gtk_table_attach (GTK_TABLE (table94), spinbutton_download_buffer_read_ahead, 1, 2, 4, 5,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label936 = gtk_label_new (_("bytes"));
+  gtk_widget_set_name (label936, "label936");
+  gtk_widget_show (label936);
+  gtk_table_attach (GTK_TABLE (table94), label936, 2, 3, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label936), 0, 0.5);
+
+  label937 = gtk_label_new (_("bytes"));
+  gtk_widget_set_name (label937, "label937");
+  gtk_widget_show (label937);
+  gtk_table_attach (GTK_TABLE (table94), label937, 2, 3, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label937), 0, 0.5);
 
   viewport117 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport117, "viewport117");
@@ -13697,6 +13753,12 @@ create_dlg_prefs_dl_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label369, "label369");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label918, "label918");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label919, "label919");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label934, "label934");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label935, "label935");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_download_buffer_size, "spinbutton_download_buffer_size");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_download_buffer_read_ahead, "spinbutton_download_buffer_read_ahead");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label936, "label936");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label937, "label937");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, viewport117, "viewport117");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, frame103, "frame103");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, table93, "table93");
@@ -14054,7 +14116,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label726), 0, 0.5);
 
-  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
+  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
   spinbutton_pfsp_first_chunk = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_first_chunk_adj), 1, 0);
   gtk_widget_set_name (spinbutton_pfsp_first_chunk, "spinbutton_pfsp_first_chunk");
   gtk_widget_show (spinbutton_pfsp_first_chunk);
@@ -14156,7 +14218,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label928), 0, 0.5);
 
-  spinbutton_parq_min_size_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
+  spinbutton_parq_min_size_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
   spinbutton_parq_min_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_parq_min_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_parq_min_size, "spinbutton_parq_min_size");
   gtk_widget_show (spinbutton_parq_min_size);
@@ -14179,7 +14241,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
 
-  spinbutton_parq_min_time_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
+  spinbutton_parq_min_time_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
   spinbutton_parq_min_time = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_parq_min_time_adj), 1, 0);
   gtk_widget_set_name (spinbutton_parq_min_time, "spinbutton_parq_min_time");
   gtk_widget_show (spinbutton_parq_min_time);

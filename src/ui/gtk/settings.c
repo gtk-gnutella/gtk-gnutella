@@ -4049,6 +4049,22 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
+        PROP_DOWNLOAD_BUFFER_SIZE,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_download_buffer_size",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_DOWNLOAD_BUFFER_READ_AHEAD,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_download_buffer_read_ahead",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
         PROP_FUZZY_THRESHOLD,
         update_spinbutton,
         TRUE,

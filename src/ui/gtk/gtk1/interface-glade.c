@@ -10908,12 +10908,21 @@ create_dlg_prefs (void)
   GtkWidget *label283;
   guint label284_key;
   GtkWidget *label284;
+  GtkWidget *label732;
+  GtkWidget *label733;
+  GtkWidget *vseparator6;
   GtkObject *spinbutton_dl_minchunksize_adj;
   GtkWidget *spinbutton_dl_minchunksize;
   GtkObject *spinbutton_dl_maxchunksize_adj;
   GtkWidget *spinbutton_dl_maxchunksize;
-  GtkWidget *label732;
-  GtkWidget *label733;
+  GtkWidget *label761;
+  GtkWidget *label762;
+  GtkObject *spinbutton_download_buffer_size_adj;
+  GtkWidget *spinbutton_download_buffer_size;
+  GtkWidget *label763;
+  GtkObject *spinbutton_download_buffer_read_ahead_adj;
+  GtkWidget *spinbutton_download_buffer_read_ahead;
+  GtkWidget *label764;
   GtkWidget *hseparator12;
   GtkWidget *table52;
   guint checkbutton_config_strict_sha1_matching_key;
@@ -14873,7 +14882,7 @@ create_dlg_prefs (void)
   gtk_widget_show (hseparator11);
   gtk_box_pack_start (GTK_BOX (vbox99), hseparator11, FALSE, TRUE, 0);
 
-  table51 = gtk_table_new (2, 5, FALSE);
+  table51 = gtk_table_new (2, 9, FALSE);
   gtk_widget_set_name (table51, "table51");
   gtk_widget_ref (table51);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table51", table51,
@@ -14933,31 +14942,6 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label284), 0, 0.5);
 
-  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 100, 1, 1024, 1024);
-  spinbutton_dl_minchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_minchunksize_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_dl_minchunksize, "spinbutton_dl_minchunksize");
-  gtk_widget_ref (spinbutton_dl_minchunksize);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_dl_minchunksize", spinbutton_dl_minchunksize,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_dl_minchunksize);
-  gtk_table_attach (GTK_TABLE (table51), spinbutton_dl_minchunksize, 3, 4, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_widget_set_usize (spinbutton_dl_minchunksize, 128, -2);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_minchunksize), TRUE);
-
-  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 100, 1, 1024, 1024);
-  spinbutton_dl_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_maxchunksize_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_dl_maxchunksize, "spinbutton_dl_maxchunksize");
-  gtk_widget_ref (spinbutton_dl_maxchunksize);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_dl_maxchunksize", spinbutton_dl_maxchunksize,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_dl_maxchunksize);
-  gtk_table_attach (GTK_TABLE (table51), spinbutton_dl_maxchunksize, 3, 4, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_maxchunksize), TRUE);
-
   label732 = gtk_label_new (_("bytes"));
   gtk_widget_set_name (label732, "label732");
   gtk_widget_ref (label732);
@@ -14979,6 +14963,108 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label733), 7.45058e-09, 0.5);
+
+  vseparator6 = gtk_vseparator_new ();
+  gtk_widget_set_name (vseparator6, "vseparator6");
+  gtk_widget_ref (vseparator6);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "vseparator6", vseparator6,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vseparator6);
+  gtk_table_attach (GTK_TABLE (table51), vseparator6, 5, 6, 0, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+
+  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 100, 1, 1024, 1024);
+  spinbutton_dl_minchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_minchunksize_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_dl_minchunksize, "spinbutton_dl_minchunksize");
+  gtk_widget_ref (spinbutton_dl_minchunksize);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_dl_minchunksize", spinbutton_dl_minchunksize,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_dl_minchunksize);
+  gtk_table_attach (GTK_TABLE (table51), spinbutton_dl_minchunksize, 3, 4, 0, 1,
+                    (GtkAttachOptions) (0),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (spinbutton_dl_minchunksize, 90, -2);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_minchunksize), TRUE);
+
+  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 100, 1, 1024, 1024);
+  spinbutton_dl_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_maxchunksize_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_dl_maxchunksize, "spinbutton_dl_maxchunksize");
+  gtk_widget_ref (spinbutton_dl_maxchunksize);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_dl_maxchunksize", spinbutton_dl_maxchunksize,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_dl_maxchunksize);
+  gtk_table_attach (GTK_TABLE (table51), spinbutton_dl_maxchunksize, 3, 4, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_maxchunksize), TRUE);
+
+  label761 = gtk_label_new (_("Write buffer size"));
+  gtk_widget_set_name (label761, "label761");
+  gtk_widget_ref (label761);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label761", label761,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label761);
+  gtk_table_attach (GTK_TABLE (table51), label761, 6, 7, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label761), 0, 0.5);
+
+  label762 = gtk_label_new (_("Read-ahead buffer"));
+  gtk_widget_set_name (label762, "label762");
+  gtk_widget_ref (label762);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label762", label762,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label762);
+  gtk_table_attach (GTK_TABLE (table51), label762, 6, 7, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label762), 0, 0.5);
+
+  spinbutton_download_buffer_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_download_buffer_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_download_buffer_size_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_download_buffer_size, "spinbutton_download_buffer_size");
+  gtk_widget_ref (spinbutton_download_buffer_size);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_download_buffer_size", spinbutton_download_buffer_size,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_download_buffer_size);
+  gtk_table_attach (GTK_TABLE (table51), spinbutton_download_buffer_size, 7, 8, 0, 1,
+                    (GtkAttachOptions) (0),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (spinbutton_download_buffer_size, 90, -2);
+
+  label763 = gtk_label_new (_("bytes"));
+  gtk_widget_set_name (label763, "label763");
+  gtk_widget_ref (label763);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label763", label763,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label763);
+  gtk_table_attach (GTK_TABLE (table51), label763, 8, 9, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label763), 0, 0.5);
+
+  spinbutton_download_buffer_read_ahead_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_download_buffer_read_ahead = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_download_buffer_read_ahead_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_download_buffer_read_ahead, "spinbutton_download_buffer_read_ahead");
+  gtk_widget_ref (spinbutton_download_buffer_read_ahead);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_download_buffer_read_ahead", spinbutton_download_buffer_read_ahead,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_download_buffer_read_ahead);
+  gtk_table_attach (GTK_TABLE (table51), spinbutton_download_buffer_read_ahead, 7, 8, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label764 = gtk_label_new (_("bytes"));
+  gtk_widget_set_name (label764, "label764");
+  gtk_widget_ref (label764);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label764", label764,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label764);
+  gtk_table_attach (GTK_TABLE (table51), label764, 8, 9, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label764), 0, 0.5);
 
   hseparator12 = gtk_hseparator_new ();
   gtk_widget_set_name (hseparator12, "hseparator12");
