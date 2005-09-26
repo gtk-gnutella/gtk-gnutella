@@ -1479,12 +1479,6 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 	if (n->status == GTA_NODE_SHUTDOWN)
 		shutdown_nodes--;
 
-	if (n->socket) {
-		g_assert(n->socket->resource.node == n);
-		socket_free(n->socket);
-		n->socket = NULL;
-	}
-
 	if (n->hello.ptr) {
 		wfree(n->hello.ptr, n->hello.size);
 		n->hello.ptr = NULL;
@@ -1507,6 +1501,12 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 		node_disable_read(n);
 	if (n->outq)				/* TX stack freed by node_real_remove() */
 		mq_shutdown(n->outq);	/* Prevents any further output */
+
+	if (n->socket) {
+		g_assert(n->socket->resource.node == n);
+		socket_free(n->socket);
+		n->socket = NULL;
+	}
 
 	if (n->gnet_guid) {
 		atom_guid_free(n->gnet_guid);
