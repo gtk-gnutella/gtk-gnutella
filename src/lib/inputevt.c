@@ -169,28 +169,22 @@ add_poll_event(gint pfd, gint fd, inputevt_cond_t cond, gpointer udata)
 #endif /* HAS_KQUEUE */
 
 static gint
-remove_poll_event(gint pfd, gint fd)
+remove_poll_event(gint pfd, gint fd, inputevt_cond_t cond)
 #ifdef HAS_KQUEUE
 {
 	static const struct timespec zero_ts;
 	struct kevent kev;
 
-	EV_SET(&kev, fd, EVFILT_READ, EV_DELETE | EV_DISABLE, 0, 0, 0);
-	if (-1 == kevent(pfd, &kev, 1, NULL, 0, &zero_ts) && ENOENT != errno) {
-		g_warning("kevent() failed (fd=%d, EVFIL_READ): %s",
-			fd, g_strerror(errno));
-		raise(SIGTRAP);
-	}
-	EV_SET(&kev, fd, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, 0);
-	if (-1 == kevent(pfd, &kev, 1, NULL, 0, &zero_ts) && ENOENT != errno) {
-		g_warning("kevent() failed (fd=%d, EVFIL_WRITE): %s",
-			fd, g_strerror(errno));
-		raise(SIGTRAP);
-	}
-	return 0;
+	g_assert((INPUT_EVENT_R | INPUT_EVENT_W) & cond);
+	g_assert((0 != (INPUT_EVENT_R & cond)) ^ (0 != (INPUT_EVENT_W & cond)));
+
+	EV_SET(&kev, fd, (INPUT_EVENT_R & cond) ? EVFILT_READ : EVFILT_WRITE,
+		EV_DELETE | EV_DISABLE, 0, 0, 0);
+	return kevent(pfd, &kev, 1, NULL, 0, &zero_ts);
 }
 #else /* !HAS_KQUEUE */
 {
+	(void) cond;
 	return epoll_ctl(pfd, EPOLL_CTL_DEL, fd, NULL);
 }
 #endif /* HAS_KQUEUE */
@@ -472,7 +466,7 @@ inputevt_remove(guint id)
 		relay = poll_ctx.relay[id];
 		g_assert(NULL != relay);
 		
-		if (-1 == remove_poll_event(poll_ctx.fd, relay->fd)) {
+		if (-1 == remove_poll_event(poll_ctx.fd, relay->fd, relay->condition)) {
 			g_warning("remove_poll_event(%d, %d) failed: %s",
 				poll_ctx.fd, relay->fd, g_strerror(errno));
 		}
