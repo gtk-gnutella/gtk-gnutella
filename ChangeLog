@@ -1,5 +1,11 @@
 # since last version
 
+- (2005-09-26 - RAM)
+ * Added "download_buffer_size" and "download_buffer_read_ahead" properties.
+ * Buffer more data per download to avoid endless lseek()/write() system
+   calls when swarming with lots of sources, and try to reduce filesystem
+   fragmentation by writing more data at once.
+
 - (2005-09-25 - RAM)
  * Don't honour settings for monitoring node "bad IP / unstable" addresses
    when we're low on pongs: we don't want to discard IP addresses or
