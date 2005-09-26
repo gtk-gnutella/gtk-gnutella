@@ -99,7 +99,7 @@ get_poll_event_cond(gpointer p)
 #ifdef HAS_KQUEUE 
 {
 	struct kevent *ev = p;
-	GIOCondition cond;
+	inputevt_cond_t cond;
 	
 	cond = EV_ERROR & ev->flags ? INPUT_EVENT_EXCEPTION : 0;
 	switch (ev->filter) {
@@ -123,25 +123,23 @@ get_poll_event_cond(gpointer p)
 
 
 static gint
-add_poll_event(gint pfd, gint fd, GIOCondition cond, gpointer udata)
+add_poll_event(gint pfd, gint fd, inputevt_cond_t cond, gpointer udata)
 #ifdef HAS_KQUEUE
 {
 	static const struct timespec zero_ts;
-	struct kevent kev[2];
-	size_t i = 0;
+	struct kevent kev;
 
-	if (READ_CONDITION & cond) {
+	g_assert((INPUT_EVENT_R | INPUT_EVENT_W) & cond);
+	g_assert((0 != (INPUT_EVENT_R & cond)) ^ (0 != (INPUT_EVENT_W & cond)));
+	
+	if (INPUT_EVENT_R & cond) {
 		g_message("add_poll_event(%d, %d, EVFILT_READ, ...)", pfd, fd);
-		EV_SET(&kev[i], fd, EVFILT_READ, EV_ADD,
-			0, 0, (gulong) (gpointer) udata);
-		i++;
-	}
-	if (WRITE_CONDITION & cond) {
+	} else if (INPUT_EVENT_W & cond) {
 		g_message("add_poll_event(%d, %d, EVFILT_WRITE, ...)", pfd, fd);
-		EV_SET(&kev[i], fd, EVFILT_WRITE, EV_ADD,
-			0, 0, (gulong) (gpointer) udata);
-		i++;
 	}
+
+	EV_SET(&kev, fd, (INPUT_EVENT_R & cond) ? EVFILT_READ : EVFILT_WRITE,
+		EV_ADD, 0, 0, (gulong) (gpointer) udata);
 
 	/* @todo TODO:
 	 * Instead of adding each single event, we could probably accumulate them
@@ -149,19 +147,18 @@ add_poll_event(gint pfd, gint fd, GIOCondition cond, gpointer udata)
 	 * removed before ever polled etc., so it may be more complex as it sounds.
 	 * It would save many syscalls though.
 	 */
-	return kevent(pfd, kev, i, NULL, 0, &zero_ts);
+	return kevent(pfd, &kev, 1, NULL, 0, &zero_ts);
 }
 #else /* !HAS_KQUEUE */
 {
 	static const struct epoll_event zero_ev;
 	struct epoll_event ev;
-	gint ret;
 
 	ev = zero_ev;
 	ev.data.ptr = udata;
-	ev.events = (cond & EXCEPTION_CONDITION ? EPOLLERR : 0) |
-				(cond & READ_CONDITION ? EPOLLIN : 0) |
-				(cond & WRITE_CONDITION ? EPOLLOUT : 0);
+	ev.events = (cond & INPUT_EVENT_EXCEPTION ? EPOLLERR : 0) |
+				(cond & INPUT_EVENT_R ? (EPOLLIN | EPOLLPRI) : 0) |
+				(cond & INPUT_EVENT_W ? EPOLLOUT : 0);
 
 	if (-1 == epoll_ctl(pfd, EPOLL_CTL_ADD, fd, &ev) && EEXIST != errno)
 		return -1;
@@ -348,7 +345,7 @@ inputevt_dispatch(GIOChannel *source, GIOCondition condition, gpointer data)
 
 static guint
 inputevt_add_source_with_glib(gint fd,
-	GIOCondition cond, inputevt_relay_t *relay)
+	inputevt_cond_t cond, inputevt_relay_t *relay)
 {
 	GIOChannel *ch;
 	guint id;
@@ -359,8 +356,11 @@ inputevt_add_source_with_glib(gint fd,
 	g_io_channel_set_encoding(ch, NULL, NULL); /* binary data */
 #endif /* GLib >= 2.0 */
 	
-	id = g_io_add_watch_full(ch, G_PRIORITY_DEFAULT, cond,
-				 inputevt_dispatch, relay, inputevt_relay_destroy);
+	id = g_io_add_watch_full(ch, G_PRIORITY_DEFAULT,
+			(INPUT_EVENT_R & cond ? READ_CONDITION : 0) |
+			(INPUT_EVENT_W & cond ? WRITE_CONDITION : 0) |
+			(INPUT_EVENT_EXCEPTION & cond ? EXCEPTION_CONDITION : 0),
+			inputevt_dispatch, relay, inputevt_relay_destroy);
 	g_io_channel_unref(ch);
 
 	g_assert(0 != id);	
@@ -414,7 +414,7 @@ inputevt_timer(void)
 
 	for (i = 0; i < n; i++) {
 		inputevt_relay_t *relay;
-		GIOCondition cond;
+		inputevt_cond_t cond;
 
 		/* A relay handler might remove any of the other registered events */
 		if (0 == bit_array_get(poll_ctx.used, i))
@@ -516,7 +516,7 @@ inputevt_get_free_id(void)
 #endif /* HAS_EPOLL || HAS_KQUEUE*/
 
 static guint 
-inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
+inputevt_add_source(gint fd, inputevt_cond_t cond, inputevt_relay_t *relay)
 #if defined(HAS_EPOLL) || defined(HAS_KQUEUE)
 {
 	guint id;
@@ -601,40 +601,28 @@ inputevt_add_source(gint fd, GIOCondition cond, inputevt_relay_t *relay)
  * been removed (since gtkg does not use it).
  */
 guint
-inputevt_add(gint fd, inputevt_cond_t condition,
+inputevt_add(gint fd, inputevt_cond_t cond,
 	inputevt_handler_t handler, gpointer data)
 {
 	inputevt_relay_t *relay = walloc(sizeof *relay);
-	GIOCondition cond = 0;
+	gboolean ok;
 
-	relay->condition = condition;
+	relay->condition = cond;
 	relay->handler = handler;
 	relay->data = data;
 	relay->fd = fd;
 
-	switch (condition) {
+	switch (cond) {
 	case INPUT_EVENT_RX:
-		cond |= EXCEPTION_CONDITION;
 	case INPUT_EVENT_R:
-		cond |= READ_CONDITION;
-		break;
-
 	case INPUT_EVENT_WX:
-		cond |= EXCEPTION_CONDITION;
 	case INPUT_EVENT_W:
-		cond |= WRITE_CONDITION;
+		ok = TRUE;
 		break;
-
-	case INPUT_EVENT_RWX:
-		cond |= EXCEPTION_CONDITION;
-	case INPUT_EVENT_RW:
-		cond |= (READ_CONDITION | WRITE_CONDITION);
-		break;
-
 	case INPUT_EVENT_EXCEPTION:
 		g_error("must not specify INPUT_EVENT_EXCEPTION only!");
 	}
-	g_assert(0 != cond);
+	g_assert(ok);
 
 	return inputevt_add_source(fd, cond, relay);
 }
@@ -647,10 +635,8 @@ inputevt_cond_to_string(inputevt_cond_t cond)
 	CASE(INPUT_EVENT_EXCEPTION);
 	CASE(INPUT_EVENT_R);
 	CASE(INPUT_EVENT_W);
-	CASE(INPUT_EVENT_RW);
 	CASE(INPUT_EVENT_RX);
 	CASE(INPUT_EVENT_WX);
-	CASE(INPUT_EVENT_RWX);
 #undef CASE
 	}
 	return "?";
@@ -679,7 +665,8 @@ inputevt_init(void)
 		g_io_channel_set_encoding(ch, NULL, NULL); /* binary data */
 #endif /* GLib >= 2.0 */
 
-		(void) g_io_add_watch(ch, READ_CONDITION, dispatch_poll, NULL);
+		(void) g_io_add_watch(ch, WRITE_CONDITION | READ_CONDITION,
+					dispatch_poll, NULL);
 	}
 #endif /* HAS_EPOLL || HAS_KQUEUE */
 }
