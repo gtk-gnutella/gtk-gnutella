@@ -139,6 +139,28 @@ typedef struct download download_t;
 struct bio_source;
 struct http_buffer;
 
+enum dl_bufmode {
+	DL_BUF_READING = 0,
+	DL_BUF_WRITING,
+};
+
+/**
+ * Structure used to control read buffering for active downloads.
+ * Each buffer in this pool is of SOCK_BUFSZ bytes, and the first
+ * buffer is always the buffer from the socket structure.
+ */
+struct dl_buffers {
+	enum dl_bufmode mode;		/**< I/O vector mode */
+	gint count;					/**< Number of buffers for reading */
+	gchar **buffers;			/**< Array of `count' buffers */
+	struct iovec *iov;			/**< I/O vector of buffers */
+	struct iovec *iov_cur;		/**< Current base of I/O vector for reading */
+	gint iovcnt;				/**< Remaining entries in I/O vector */
+	size_t size;				/**< Total size of buffers */
+	size_t amount;				/**< Amount to buffer (extra is read-ahead) */
+	size_t held;				/**< Amount of data held in read buffers */
+};
+
 struct download {
     gnet_src_t src_handle;      /**< Handle */
 
@@ -166,6 +188,7 @@ struct download {
 	gint file_desc;				/**< FD for writing into downloaded file */
 	guint32 overlap_size;		/**< Size of the overlapping window on resume */
 	struct http_buffer *req;	/**< HTTP request, when partially sent */
+	struct dl_buffers *buffers;	/**< Buffers for reading, only when active */
 
 	time_t start_date;			/**< Download start date */
 	time_t last_update;			/**< Last status update or I/O */
