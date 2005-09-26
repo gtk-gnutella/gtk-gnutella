@@ -123,6 +123,9 @@ typedef struct dl_file_info {
 
 #define FILE_INFO_COMPLETE(x)	((x)->done == (x)->size && (x)->file_size_known)
 
+#define FILE_INFO_COMPLETE_AFTER(x,z)	\
+	((x)->done + (z) >= (x)->size && (x)->file_size_known)
+
 typedef void (*fi_listener_t) (gnet_fi_t);
 typedef void (*fi_src_listener_t) (gnet_fi_t, gnet_src_t);
 
