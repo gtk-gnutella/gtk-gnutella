@@ -186,15 +186,8 @@ remove_poll_event(gint pfd, gint fd, inputevt_cond_t cond)
 }
 #else /* !HAS_KQUEUE */
 {
-	static const struct epoll_event zero_ev;
-	struct epoll_event ev;
-
-	ev = zero_ev;
-	ev.events = (cond & INPUT_EVENT_EXCEPTION ? EPOLLERR : 0) |
-				(cond & INPUT_EVENT_R ? (EPOLLIN | EPOLLPRI) : 0) |
-				(cond & INPUT_EVENT_W ? EPOLLOUT : 0);
-
-	return epoll_ctl(pfd, EPOLL_CTL_DEL, fd, &ev);
+	(void) ev;
+	return epoll_ctl(pfd, EPOLL_CTL_DEL, fd, NULL);
 }
 #endif /* HAS_KQUEUE */
 
