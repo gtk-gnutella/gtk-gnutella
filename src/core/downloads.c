@@ -2169,21 +2169,21 @@ download_stop_v(struct download *d, guint32 new_status,
 	} else
 		d->remove_msg = NULL;
 
-	if (d->file_desc != -1) {		/* Close output file */
-		close(d->file_desc);
-		d->file_desc = -1;
+	if (d->bio) {
+		bsched_source_remove(d->bio);
+		d->bio = NULL;
 	}
 	if (d->socket) {				/* Close socket */
 		socket_free(d->socket);
 		d->socket = NULL;
 	}
+	if (d->file_desc != -1) {		/* Close output file */
+		close(d->file_desc);
+		d->file_desc = -1;
+	}
 	if (d->io_opaque) {				/* I/O data */
 		io_free(d->io_opaque);
 		g_assert(d->io_opaque == NULL);
-	}
-	if (d->bio) {
-		bsched_source_remove(d->bio);
-		d->bio = NULL;
 	}
 	if (d->req) {
 		http_buffer_free(d->req);
