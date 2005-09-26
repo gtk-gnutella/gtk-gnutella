@@ -220,24 +220,6 @@ socket_addr_get(const socket_addr_t *addr, const struct sockaddr **p_sa)
 	return len;
 }
 
-#ifdef HAS_GNUTLS
-static const gchar *
-cond_to_string(inputevt_cond_t cond)
-{
-#define CASE(x) case x: return STRINGIFY(x)
-	switch (cond) {
-	CASE(INPUT_EVENT_EXCEPTION);
-	CASE(INPUT_EVENT_R);
-	CASE(INPUT_EVENT_W);
-	CASE(INPUT_EVENT_RW);
-	CASE(INPUT_EVENT_RX);
-	CASE(INPUT_EVENT_WX);
-	CASE(INPUT_EVENT_RWX);
-	}
-	return "?";
-}
-#endif /* HAS_GNUTLS */
-
 /**
  * Return the file descriptor to use for I/O monitoring callbacks on
  * the socket.
@@ -299,7 +281,7 @@ socket_evt_set(struct gnutella_socket *s,
 
 	if (tls_debug > 1)
 		g_message("socket_evt_set: fd=%d, cond=%s, handler=%p",
-			fd, cond_to_string(cond), handler);
+			fd, inputevt_cond_to_string(cond), handler);
 #endif /* HAS_GNUTLS */
 
 	s->gdk_tag = inputevt_add(fd, cond, handler, data);
@@ -319,7 +301,7 @@ socket_evt_clear(struct gnutella_socket *s)
 		if (tls_debug > 1) {
 			gint fd = socket_evt_fd(s);
 			g_message("socket_evt_clear: fd=%d, cond=%s, handler=%p",
-				fd, cond_to_string(s->tls.cb_cond), s->tls.cb_handler);
+				fd, inputevt_cond_to_string(s->tls.cb_cond), s->tls.cb_handler);
 		}
 
 		s->tls.cb_cond = 0;
@@ -352,8 +334,8 @@ socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
 		if (tls_debug > 1) {
 			gint fd = socket_evt_fd(s);
 			g_message("socket_evt_change: fd=%d, cond=%s -> %s, handler=%p",
-				fd, cond_to_string(s->tls.cb_cond), cond_to_string(cond),
-				s->tls.cb_handler);
+				fd, inputevt_cond_to_string(s->tls.cb_cond),
+				inputevt_cond_to_string(cond), s->tls.cb_handler);
 		}
 		if (s->gdk_tag) {
 			inputevt_remove(s->gdk_tag);

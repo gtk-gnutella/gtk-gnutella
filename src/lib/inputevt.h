@@ -74,6 +74,8 @@ void inputevt_close(void);
 guint inputevt_add(gint source, inputevt_cond_t condition,
 	inputevt_handler_t handler, gpointer data);
 
+const gchar *inputevt_cond_to_string(inputevt_cond_t cond);
+
 #if defined(HAS_EPOLL) || defined(HAS_KQUEUE)
 void inputevt_remove(guint id);
 void inputevt_timer(void);
