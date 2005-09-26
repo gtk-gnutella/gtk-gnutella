@@ -76,6 +76,7 @@
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/idtable.h"
+#include "lib/palloc.h"
 #include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/walloc.h"
@@ -90,6 +91,8 @@ RCSID("$Id$");
 #define DOWNLOAD_SERVER_HOLD	15		/**< Space requests to same server */
 #define DOWNLOAD_DNS_LOOKUP		7200	/**< Period of server DNS lookups */
 
+#define BUFFER_POOL_MAX			300		/**< Max amount of buffers to keep */
+
 #define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
 
 static GSList *sl_downloads = NULL;	/**< All downloads (queued + unqueued) */
@@ -98,6 +101,7 @@ GSList *sl_removed = NULL;			/**< Removed downloads only */
 GSList *sl_removed_servers = NULL;	/**< Removed servers only */
 static gchar dl_tmp[4096];
 static gint queue_frozen = 0;
+static pool_t *buffer_pool;			/**< Memory pool for read buffers */
 
 static const gchar DL_OK_EXT[] = ".OK";		/**< Extension to mark OK files */
 static const gchar DL_BAD_EXT[] = ".BAD";	/**< "Bad" files (SHA1 mismatch) */
@@ -125,6 +129,8 @@ static void download_queue_delay(struct download *d, guint32 delay,
 static void download_queue_hold(struct download *d, guint32 hold,
 	const gchar *fmt, ...) G_GNUC_PRINTF(3, 4);
 static void download_reparent(struct download *d, struct dl_server *new_server);
+static gboolean download_flush(
+	struct download *d, gboolean *trimmed, gboolean may_stop);
 
 static gboolean download_dirty = FALSE;
 static void download_store(void);
@@ -424,6 +430,7 @@ download_init(void)
 	dl_by_host = g_hash_table_new(dl_key_hash, dl_key_eq);
 	dl_by_addr = g_hash_table_new(dl_addr_hash, dl_addr_eq);
 	dl_count_by_name = g_hash_table_new(g_str_hash, g_str_equal);
+	buffer_pool = pool_create(SOCK_BUFSZ, BUFFER_POOL_MAX);
 
 	src_init();
 }
@@ -446,6 +453,382 @@ download_restore_state(void)
 	file_info_store();
 }
 
+/* ----------------------------------------- */
+
+/**
+ * Allocate a set of buffers for data reception.
+ */
+static void
+buffers_alloc(struct download *d)
+{
+	struct dl_buffers *b;
+	gint count;
+	guint32 total_size;
+	guint32 size;
+	gint i;
+
+	g_assert(d != NULL);
+	g_assert(d->buffers == NULL);
+	g_assert(d->socket != NULL);
+	g_assert(d->status == GTA_DL_RECEIVING);
+
+	d->buffers = b = walloc0(sizeof *b);
+
+	/*
+	 * How many buffers do we need to allocate?
+	 *
+	 * The first buffer in the I/O vector is going to be the socket's one.
+	 * Other buffers will be allocated from the buffer pool.
+	 */
+
+	STATIC_ASSERT(sizeof(d->socket->buffer) == SOCK_BUFSZ);
+
+	total_size = download_buffer_size + download_buffer_read_ahead;
+	if (total_size < SOCK_BUFSZ)
+		total_size = SOCK_BUFSZ;	/* Since this one is already allocated */
+
+	count = (gint) (total_size / SOCK_BUFSZ);
+	size = count * SOCK_BUFSZ;
+	if (size != total_size)			/* Fractional amount truncated? */
+		count++;					/* Last one will be incompletely filled */
+
+	/*
+	 * Allocate the buffer array and the buffers.
+	 */
+
+	b->buffers = walloc(count * sizeof(gchar *));
+	b->count = count;
+	b->buffers[0] = d->socket->buffer;
+
+	for (i = 1; i < count; i++)
+		b->buffers[i] = palloc(buffer_pool);
+
+	b->size = count * SOCK_BUFSZ;
+	b->amount = download_buffer_size;
+
+	/*
+	 * Allocate the I/O vector used for reading.
+	 */
+
+	b->iov = walloc(count * sizeof(*b->iov));
+	b->iov_cur = b->iov;
+	b->iovcnt = count;
+}
+
+/**
+ * Dispose of the buffers used for reading.
+ */
+static void
+buffers_free(struct download *d)
+{
+	gint i;
+	struct dl_buffers *b;
+
+	g_assert(d != NULL);
+	g_assert(d->buffers != NULL);
+	g_assert(d->buffers->held == 0);	/* No pending data */
+
+	/*
+	 * The first buffer is the socket's buffer, so it must not be freed.
+	 */
+
+	b = d->buffers;
+
+	for (i = b->count - 1; i > 0; i--)
+		pfree(buffer_pool, b->buffers[i]);
+
+	wfree(b->buffers, b->count * sizeof(gchar *));
+	wfree(b->iov, b->count * sizeof(*b->iov));
+	wfree(b, sizeof(*b));
+
+	d->buffers = NULL;
+}
+
+/**
+ * Reset the I/O vector for reading from the start.
+ */
+static void
+buffers_reset_reading(struct download *d)
+{
+	struct dl_buffers *b;
+	gint i;
+	gint count;
+	struct iovec *iov;
+
+	g_assert(d != NULL);
+	g_assert(d->buffers != NULL);
+	g_assert(d->socket != NULL);
+	g_assert(d->status == GTA_DL_RECEIVING);
+	g_assert(d->buffers->held == 0);
+
+	b = d->buffers;
+	count = b->count;
+
+	for (i = 0, iov = b->iov; i < count; i++, iov++) {
+		iov->iov_base = b->buffers[i];
+		iov->iov_len = SOCK_BUFSZ;
+	}
+
+	b->iov_cur = b->iov;
+	b->iovcnt = count;			/* Amount of buffers holding data to be read */
+	b->mode = DL_BUF_READING;
+}
+
+/**
+ * Reset the I/O vector for writing the whole data held in the buffer.
+ */
+static void
+buffers_reset_writing(struct download *d)
+{
+	struct dl_buffers *b;
+	gint i;
+	gint n;
+	struct iovec *iov;
+
+	g_assert(d != NULL);
+	g_assert(d->buffers != NULL);
+	g_assert(d->socket != NULL);
+	g_assert(d->status == GTA_DL_RECEIVING);
+
+	b = d->buffers;
+
+	g_assert(b->held > 0);
+	g_assert(b->held <= d->buffers->size);
+	g_assert(b->mode == DL_BUF_READING);
+
+
+	for (i = 0, n = b->held, iov = b->iov; n > 0; i++, iov++) {
+		iov->iov_base = b->buffers[i];
+		iov->iov_len = MIN(SOCK_BUFSZ, n);
+		n -= iov->iov_len;
+	}
+
+	b->iov_cur = b->iov;
+	b->iovcnt = i;				/* Amount of buffers holding data to write */
+	b->mode = DL_BUF_WRITING;
+}
+
+/**
+ * Discard all read data from buffers.
+ */
+static inline void
+buffers_discard(struct download *d)
+{
+	struct dl_buffers *b = d->buffers;
+
+	g_assert(b);
+	g_assert(b->held <= b->size);
+
+	b->held = 0;
+	buffers_reset_reading(d);
+}
+
+/**
+ * Check whether reception buffers are full.
+ */
+static inline gboolean
+buffers_full(struct download *d)
+{
+	struct dl_buffers *b = d->buffers;
+
+	g_assert(b);
+	g_assert(b->held <= b->size);
+
+	return b->held == b->size;
+}
+
+/**
+ * Check whether we should request flushing of the buffered data.
+ */
+static inline gboolean
+buffers_should_flush(struct download *d)
+{
+	struct dl_buffers *b = d->buffers;
+
+	g_assert(b);
+	g_assert(b->held <= b->size);
+
+	return b->held >= b->amount;
+}
+
+/**
+ * Update the buffer structure after having read "amount" more bytes:
+ * prepare `iov_cur' and `iovcnt' for the next read and increase
+ * the amount of data held.
+ */
+static void
+buffers_add_read(struct download *d, ssize_t amount)
+{
+	struct dl_buffers *b;
+	ssize_t n;
+	struct iovec *iov;
+	gint cnt;
+
+	g_assert(d != NULL);
+	g_assert(amount >= 0);
+	g_assert(d->buffers != NULL);
+	g_assert(d->socket != NULL);
+	g_assert(d->status == GTA_DL_RECEIVING);
+
+	b = d->buffers;
+
+	g_assert(b->held + amount <= b->size);
+	g_assert(b->mode == DL_BUF_READING);
+
+	/*
+	 * b->iov_cur is where readv() started to fill data, into at most
+	 * b->iovcnt buffers..
+	 */
+
+	for (n = amount, cnt = 0, iov = b->iov_cur; n > 0; iov++, cnt++) {
+		if (iov->iov_len > (size_t) n) {
+			iov->iov_base += n;		/* Buffer incompletely filled */
+			iov->iov_len -= n;
+			break;					/* Can still fill this buffer */
+		} else {
+			n -= iov->iov_len;		/* Whole buffer was filled */
+			iov->iov_len = 0;
+		}
+	}
+
+	/*
+	 * Update the amount of buffers remaining, and the next place where
+	 * readv() will start filling data.
+	 */
+
+	b->iov_cur = iov;
+	b->iovcnt -= cnt;
+
+	g_assert(b->iovcnt >= 0);
+
+	/*
+	 * Update read statistics.
+	 */
+
+	b->held += amount;
+
+	g_assert(b->held <= b->size);
+	g_assert(b->iovcnt != 0 || b->held == b->size);
+	g_assert(b->held != b->size || b->iovcnt == 0);
+}
+
+/**
+ * Compare data held in the read buffers with the data chunk supplied.
+ *
+ * @return TRUE if data match.
+ *
+ * @note precondition is: len <= SOCK_BUFSZ, the size of the socket buffer.
+ */
+static gboolean
+buffers_match(struct download *d, gchar *data, size_t len)
+{
+	struct dl_buffers *b;
+
+	g_assert(d != NULL);
+	g_assert(d->buffers != NULL);
+	g_assert(d->socket != NULL);
+	g_assert(d->status == GTA_DL_RECEIVING);
+
+	b = d->buffers;
+
+	g_assert(len <= b->held);
+	g_assert(len <= SOCK_BUFSZ);		/* Simplifies our work */
+
+	return 0 == memcmp(b->buffers[0], data, len);
+}
+
+/**
+ * Strip leading `amount' bytes from the read buffers.
+ */
+static void
+buffers_strip_leading(struct download *d, size_t amount)
+{
+	struct dl_buffers *b;
+	gint i;
+	struct iovec *iov;
+
+	g_assert(d != NULL);
+	g_assert(d->buffers != NULL);
+
+	b = d->buffers;
+
+	g_assert(b->mode == DL_BUF_READING);
+	g_assert(amount <= b->held);
+	g_assert(amount <= SOCK_BUFSZ);		/* Simplifies our work */
+
+	if (b->held <= amount) {
+		buffers_discard(d);
+		return;
+	}
+
+	/*
+	 * Since we know the shifting amount is less than each buffer's size,
+	 * there is no leading buffer to drop.
+	 *
+	 * We're going to simply shift down all the data in all the buffers,
+	 * taking care of the cross-overs.
+	 */
+
+	for (i = 0, iov = b->iov; i < b->count; i++, iov++) {
+		gchar *buf = b->buffers[i];
+		size_t held = SOCK_BUFSZ - iov->iov_len;	/* Data held in iov */
+
+		/*
+		 * Move the leading `amount' bytes (or whatever we have if less)
+		 * to the tail of the previous buffer.  Naturally not for the
+		 * first buffer, whose leading data are discarded.
+		 */
+
+		if (i > 0) {
+			size_t move = MIN(held, amount);
+			struct iovec *piov = iov - 1;
+
+			/* Either we don't hold anything, or previous buffer was full */
+			g_assert(held == 0 || piov->iov_len == amount);
+
+			/*
+			 * Move `held' bytes in the trailing `amount' bytes of the
+			 * previous buffer, fixing its length (which is the amount of
+			 * data it can still absorb during reading).
+			 */
+
+			if (move)
+				memmove(piov->iov_base, buf, move);
+
+			piov->iov_len -= move;
+			piov->iov_base += move;
+
+			/*
+			 * We're done if there was at most `amount' bytes in the
+			 * buffer: everything was moved down to the previous one and
+			 * the current buffer is now empty.
+			 */
+
+			if (held <= amount) {
+				iov->iov_len = SOCK_BUFSZ;
+				iov->iov_base = buf;
+				break;
+			}
+		}
+
+		/*
+		 * Shift back the current buffer by `amount' bytes.
+		 */
+
+		g_assert(held > amount);		/* Or we'd have exited above */
+
+		memmove(buf, buf + amount, held - amount);
+
+		/*
+		 * Update current iov.
+		 */
+
+		iov->iov_len += amount;			/* We just freed that much */
+		iov->iov_base = buf + SOCK_BUFSZ - iov->iov_len;
+	}
+
+	b->held -= amount;
+}
 
 /* ----------------------------------------- */
 
@@ -2130,9 +2513,22 @@ download_stop_v(struct download *d, guint32 new_status,
 		g_assert(d->file_info->recvcount <= d->file_info->refcount);
 		g_assert(d->file_info->recvcount <= d->file_info->lifecount);
 
+		/*
+		 * If there is unflushed downloaded data, try to flush it now.
+		 */
+
+		if (d->buffers != NULL) {
+			if (d->buffers->held)
+				download_flush(d, NULL, FALSE);
+
+			buffers_free(d);
+		}
+
 		d->file_info->recvcount--;
 		d->file_info->dirty_status = TRUE;
 	}
+
+	g_assert(d->buffers == NULL);
 
 	switch (new_status) {
 	case GTA_DL_COMPLETED:
@@ -3571,6 +3967,8 @@ download_clone(struct download *d)
 	fileinfo_t *fi;
 
 	g_assert(!(d->flags & (DL_F_ACTIVE_QUEUED|DL_F_PASSIVE_QUEUED)));
+	g_assert(d->buffers != NULL);
+	g_assert(d->buffers->held == 0);		/* All data flushed */
 
 	fi = d->file_info;
 
@@ -3614,6 +4012,12 @@ download_clone(struct download *d)
 		cproxy_reparent(d, cd);
 
 	g_assert(d->queue_status == NULL);	/* Cleared by parq_dl_reparent_id() */
+
+	/*
+	 * The following copied data are cleared in the child.
+	 */
+
+	cd->buffers = NULL;		/* Allocated at each new request */
 
 	/*
 	 * The following have been copied and appropriated by the cloned download.
@@ -3873,6 +4277,7 @@ download_remove(struct download *d)
 	}
 
 	g_assert(d->io_opaque == NULL);
+	g_assert(d->buffers == NULL);
 
 	if (d->push)
 		download_push_remove(d);
@@ -4294,7 +4699,7 @@ call_download_push_ready(gpointer o, header_t *unused_header)
 #undef DOWNLOAD
 
 /**
- * Check that the leading overlapping data in the socket buffer match with
+ * Check that the leading overlapping data in the read buffers match with
  * the last ones in the downloaded file.  Then remove them.
  *
  * @returns TRUE if the data match, FALSE if they don't, in which case the
@@ -4304,7 +4709,6 @@ static gboolean
 download_overlap_check(struct download *d)
 {
 	gchar *path;
-	struct gnutella_socket *s = d->socket;
 	fileinfo_t *fi = d->file_info;
 	gint fd = -1;
 	struct stat buf;
@@ -4364,7 +4768,7 @@ download_overlap_check(struct download *d)
 	 * We're now at the overlapping start.	Read the data.
 	 */
 
-	data = g_malloc(d->overlap_size);
+	data = walloc(d->overlap_size);
 	r = read(fd, data, d->overlap_size);
 
 	if ((ssize_t) -1 == r) {
@@ -4383,7 +4787,7 @@ download_overlap_check(struct download *d)
 		goto out;
 	}
 
-	if (0 != memcmp(s->buffer, data, d->overlap_size)) {
+	if (!buffers_match(d, data, d->overlap_size)) {
 		if (download_debug > 1) {
 			g_message("%d overlapping bytes UNMATCHED at offset %s for \"%s\"",
 				(gint) d->overlap_size,
@@ -4391,6 +4795,7 @@ download_overlap_check(struct download *d)
 				download_outname(d));
         }
 
+		buffers_discard(d);			/* Discard everything we read so far */
 		download_bad_source(d);		/* Until proven otherwise if we resume it */
 
 		if (dl_remove_file_on_mismatch) {
@@ -4439,15 +4844,12 @@ download_overlap_check(struct download *d)
 	}
 
 	/*
-	 * Remove the overlapping data from the socket buffer.
+	 * Remove the overlapping data from the read buffers.
 	 */
 
-	if (s->pos > d->overlap_size)
-		memmove(s->buffer, &s->buffer[d->overlap_size],
-			s->pos - d->overlap_size);
-	s->pos -= d->overlap_size;
+	buffers_strip_leading(d, d->overlap_size);
 
-	G_FREE_NULL(data);
+	wfree(data, d->overlap_size);
 	close(fd);
 
 	if (download_debug > 3)
@@ -4462,9 +4864,123 @@ out:
 	if (fd != -1)
 		close(fd);
 	if (data)
-		G_FREE_NULL(data);
+		wfree(data, d->overlap_size);
 
 	return FALSE;
+}
+
+/**
+ * Flush buffered data to disk.
+ *
+ * @param d			the download to flush
+ * @param trimmed	if not NULL, filled with whether we trimmed data or not
+ * @param may_stop	whether we can stop the download on errors
+ *
+ * @return TRUE if OK, FALSE on failure.
+ */
+static gboolean
+download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
+{
+	struct dl_buffers *b = d->buffers;
+	off_t offset;
+	ssize_t written;
+
+	g_assert(b != NULL);
+
+	if (download_debug > 1)
+		g_message("flushing %u bytes for \"%s\"%s",
+			b->held, download_outname(d), may_stop ? "" : " on stop");
+
+	offset = d->pos;
+	if (
+		offset < 0 ||
+		(guint64) offset != d->pos ||
+		offset != lseek(d->file_desc, offset, SEEK_SET)
+	) {
+		const char *error = g_strerror(errno);
+
+		g_warning("failed to seek at offset %s (%s) for \"%s\" "
+			"-- discarding %u bytes",
+			uint64_to_string(d->pos), error, download_outname(d), b->held);
+
+		b->held = 0;	/* Prevent download_stop() from trying flushing again */
+
+		if (may_stop)
+			download_stop(d, GTA_DL_ERROR, "Can't seek to offset %s: %s",
+				uint64_to_string(d->pos), error);
+
+		return FALSE;
+	}
+
+	/*
+	 * We can't have data going farther than what we requested from the
+	 * server.  But if we do, trim and warn.  And mark the server as not
+	 * being capable of handling keep-alive connections correctly!
+	 */
+
+	if (d->pos + b->held > d->range_end) {
+		filesize_t extra = (d->pos + b->held) - d->range_end;
+
+		if (download_debug) g_message(
+			"server %s (%s) gave us %s more byte%s than requested for \"%s\"",
+			host_addr_port_to_string(download_addr(d), download_port(d)),
+			download_vendor_str(d), uint64_to_string(extra),
+			extra == 1 ? "" : "s", download_outname(d));
+
+		b->held -= extra;
+		if (trimmed)
+			*trimmed = TRUE;
+
+		g_assert(b->held > 0);	/* We had not reached range_end previously */
+	} else if (trimmed)
+		*trimmed = FALSE;
+
+	/*
+	 * Prepare I/O vector for writing.
+	 */
+
+	buffers_reset_writing(d);
+
+	if (b->iovcnt > MAX_IOV_COUNT)
+		written = safe_writev_fd(d->file_desc, b->iov, b->iovcnt);
+	else
+		written = writev(d->file_desc, b->iov, b->iovcnt);
+
+	if ((ssize_t) -1 == written) {
+		const char *error = g_strerror(errno);
+
+		g_warning("write of %u bytes to file \"%s\" failed: %s",
+			b->held, download_outname(d), error);
+
+		if (may_stop)
+			download_queue_delay(d, download_retry_busy_delay,
+				_("Can't save data: %s"), error);
+
+		return FALSE;
+	}
+
+	g_assert((size_t) written <= b->held);
+
+	file_info_update(d, d->pos, d->pos + written, DL_CHUNK_DONE);
+	gnet_prop_set_guint64_val(PROP_DL_BYTE_COUNT, dl_byte_count + written);
+
+	if ((size_t) written < b->held) {
+		g_warning("partial write of %d out of %u bytes to file \"%s\"",
+			(int) written, b->held, download_outname(d));
+
+		if (may_stop)
+			download_queue_delay(d, download_retry_busy_delay,
+				"Partial write to file");
+
+		return FALSE;
+	}
+
+	g_assert((size_t) written == b->held);
+
+	d->pos += written;
+	buffers_discard(d);			/* Since we wrote everything... */
+
+	return TRUE;
 }
 
 /**
@@ -4473,14 +4989,14 @@ out:
 static void
 download_write_data(struct download *d)
 {
-	struct gnutella_socket *s = d->socket;
+	struct dl_buffers *b = d->buffers;
 	fileinfo_t *fi = d->file_info;
-	ssize_t written;
 	gboolean trimmed = FALSE;
 	struct download *cd;					/* Cloned download, if completed */
-	off_t offset;
+	enum dl_chunk_status status = DL_CHUNK_BUSY;
+	gboolean should_flush;
 
-	g_assert(s->pos > 0);
+	g_assert(b->held > 0);
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
 
@@ -4492,84 +5008,53 @@ download_write_data(struct download *d)
 
 	if (d->overlap_size && !(d->flags & DL_F_OVERLAPPED)) {
 		g_assert(d->pos == d->skip);
-		if (s->pos < d->overlap_size)		/* Not enough bytes yet */
+		if (b->held < d->overlap_size)		/* Not enough bytes yet */
 			return;							/* Don't even write anything */
 		if (!download_overlap_check(d))		/* Mismatch on overlapped bytes? */
 			return;							/* Download was stopped */
 		d->flags |= DL_F_OVERLAPPED;		/* Don't come here again */
-		if (s->pos == 0)					/* No bytes left to write */
+		if (b->held == 0)					/* No bytes left to write */
 			return;
 		/* FALL THROUGH */
 	}
 
-	offset = d->pos;
-	if (
-		offset < 0 ||
-		(guint64) offset != d->pos ||
-		offset != lseek(d->file_desc, offset, SEEK_SET)
-	) {
-		const char *error = g_strerror(errno);
-		g_message("download_write_data(): failed to seek at offset %s (%s)",
-			uint64_to_string(d->pos), error);
-		download_stop(d, GTA_DL_ERROR, "Can't seek to offset %s: %s",
-			uint64_to_string(d->pos), error);
-		return;
-	}
-
 	/*
-	 * We can't have data going farther than what we requested from the
-	 * server.  But if we do, trim and warn.  And mark the server as not
-	 * being capable of handling keep-alive connections correctly!
+	 * Determine whether we should flush the data we have in the file
+	 * buffer.  We do so when we reach the configured buffering limit,
+	 * or when we determine that we have enough data to complete the
+	 * chunk or the file.
 	 */
 
-	if (d->pos + s->pos > d->range_end) {
-		filesize_t extra = (d->pos + s->pos) - d->range_end;
+	g_assert(b->held > 0);
 
-		if (download_debug) g_message(
-			"server %s (%s) gave us %s more byte%s than requested for \"%s\"",
-			host_addr_port_to_string(download_addr(d), download_port(d)),
-			download_vendor_str(d), uint64_to_string(extra),
-			extra == 1 ? "" : "s", download_outname(d));
-		s->pos -= extra;
-		trimmed = TRUE;
-		g_assert(s->pos > 0);	/* We had not reached range_end previously */
+	should_flush = buffers_should_flush(d);		/* Enough buffered data? */
+
+	if (!should_flush) {
+		if (fi->use_swarming) {
+			status = file_info_pos_status(fi, d->pos + b->held);
+			if (status != DL_CHUNK_BUSY || d->pos + b->held >= d->range_end)
+				should_flush = TRUE;
+		} else if (FILE_INFO_COMPLETE_AFTER(fi, b->held))
+			should_flush = TRUE;
 	}
 
-	if ((ssize_t) -1 == (written = write(d->file_desc, s->buffer, s->pos))) {
-		const char *error = g_strerror(errno);
-		g_message("write to file failed (%s) !", error);
-		g_message("tried to write(%d, %p, %d)",
-			  (int) d->file_desc, cast_to_gconstpointer(s->buffer),
-			  (int) s->pos);
-		download_queue_delay(d, download_retry_busy_delay,
-			_("Can't save data: %s"), error);
+	if (!should_flush) {
+		if (download_debug > 5)
+			g_message("not flushing pending %u bytes for \"%s\"",
+				b->held, download_outname(d));
 		return;
 	}
 
-	file_info_update(d, d->pos, d->pos + written, DL_CHUNK_DONE);
-	gnet_prop_set_guint64_val(PROP_DL_BYTE_COUNT, dl_byte_count + written);
-
-	if ((size_t) written < s->pos) {
-		g_message("partial write of %d out of %d bytes to file '%s'",
-			(int) written, (int) s->pos, fi->file_name);
-		download_queue_delay(d, download_retry_busy_delay,
-			"Partial write to file");
+	if (!download_flush(d, &trimmed, TRUE))
 		return;
-	}
-
-	g_assert((size_t) written == s->pos);
-
-	d->pos += written;
-	s->pos = 0;
 
 	/*
 	 * End download if we have completed it.
 	 */
 
 	if (fi->use_swarming) {
-		enum dl_chunk_status status;
+		/* status was computed above, before trying to flush */
 
-		status = file_info_pos_status(fi, d->pos);
 		switch (status) {
 		case DL_CHUNK_DONE:
 			/*
@@ -6414,6 +6899,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	d->start_date = tm_time();
 	d->status = GTA_DL_RECEIVING;
 
+	buffers_alloc(d);				/* Prepare reading buffers */
+	buffers_reset_reading(d);
+
 	if (fi->recvcount == 0) {		/* First source to begin receiving */
 		fi->recv_last_time = d->start_date;
 		fi->recv_last_rate = 0;
@@ -6447,12 +6935,21 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	/*
 	 * If we have something in the input buffer, write the data to the
-	 * file immediately.  Note that this may close the download immediately
-	 * if the whole file was already read in the socket buffer.
+	 * file now (unless they want buffering in which case we may delay).
+	 * Note that this may close the download immediately if the whole file
+	 * was already read in the socket buffer.
 	 */
 
 	if (s->pos > 0) {
+		/*
+		 * The first buffer in our reception set is the socket's buffer.
+		 * Reset the I/O vector for reading and tell it we read
+		 * the amount of bytes currently present inside.
+		 */
+
+		buffers_add_read(d, s->pos);
 		fi->recv_amount += s->pos;
+
 		download_write_data(d);
 	}
 }
@@ -6477,8 +6974,8 @@ download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 	struct download *d = (struct download *) data;
 	struct gnutella_socket *s;
 	ssize_t r;
-	filesize_t to_read, remains;
 	fileinfo_t *fi;
+	struct dl_buffers *b;
 
 	(void) unused_source;
 	g_assert(d);
@@ -6497,9 +6994,7 @@ download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	g_assert((gint) s->pos >= 0 && s->pos <= sizeof(s->buffer));
-
-	if (s->pos == sizeof(s->buffer)) {
+	if (buffers_full(d)) {
 		download_queue_delay(d, download_retry_stopped_delay,
 			_("Stopped (Read buffer full)"));
 		return;
@@ -6515,12 +7010,12 @@ download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	remains = sizeof(s->buffer) - s->pos;
-	to_read = fi->size - d->pos;
-	if (remains < to_read)
-		to_read = remains;			/* Only read to fill buffer */
+	/*
+	 * Prepare read buffers if they don't hold any data yet.
+	 */
 
-	r = bio_read(d->bio, s->buffer + s->pos, to_read);
+	b = d->buffers;
+	r = bio_readv(d->bio, b->iov_cur, b->iovcnt);
 
 	/*
 	 * Don't hammer remote server if we get an EOF during data reception.
@@ -6548,11 +7043,19 @@ download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	s->pos += r;
+	/*
+	 * Update reception stats, preparing buffers for the next readv().
+	 */
+
+	buffers_add_read(d, r);
+
 	d->last_update = tm_time();
 	fi->recv_amount += r;
 
-	g_assert(s->pos > 0);
+	/*
+	 * Possibly write data if we reached the end of the chunk we requested,
+	 * or if the buffers hold enough data.
+	 */
 
 	download_write_data(d);
 }
@@ -8257,6 +8760,8 @@ download_close(void)
 		g_assert(d != NULL);
 		if (DOWNLOAD_IS_VISIBLE(d))
 			gcu_download_gui_remove(d);
+		if (d->buffers)
+			buffers_free(d);
 		if (d->push)
 			download_push_remove(d);
 		if (d->io_opaque)
@@ -8299,6 +8804,9 @@ download_close(void)
 	sl_downloads = NULL;
 	g_slist_free(sl_unqueued);
 	sl_unqueued = NULL;
+
+	pool_free(buffer_pool);
+	buffer_pool = NULL;
 
 	/* XXX free & check other hash tables as well.
 	 * dl_by_addr, dl_by_host
