@@ -153,12 +153,14 @@
  * Determine how large an I/O vector the kernel can accept.
  */
 
-#if defined(MAXIOV)
-#define MAX_IOV_COUNT	MAXIOV			/**< Regular */
+#if defined(IOV_MAX)
+#define MAX_IOV_COUNT	IOV_MAX			/**< POSIX */
+#elif defined(MAXIOV)
+#define MAX_IOV_COUNT	MAXIOV			/**< HP-UX */
 #elif defined(UIO_MAXIOV)
 #define MAX_IOV_COUNT	UIO_MAXIOV		/**< Linux */
-#elif defined(IOV_MAX)
-#define MAX_IOV_COUNT	IOV_MAX			/**< Solaris */
+#elif defined(_XOPEN_IOV_MAX)
+#define MAX_IOV_COUNT	_XOPEN_IOV_MAX	/**< X/Open */
 #else
 #define MAX_IOV_COUNT	16				/**< Unknown, use required minimum */
 #endif
