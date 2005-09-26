@@ -43,13 +43,19 @@
 
 RCSID("$Id$");
 
+#ifdef HAS_KQUEUE
+#include <sys/event.h>
+
+/* In case any system has both, kqueue() is preferred */
+#ifdef HAS_EPOLL
+#undef HAS_EPOLL
+#endif /* HAS_EPOLL */
+
+#endif /* HAS_KQUEUE */
+
 #ifdef HAS_EPOLL
 #include <sys/epoll.h>
 #endif /* HAS_EPOLL */
-
-#ifdef HAS_KQUEUE
-#include <sys/event.h>
-#endif /* HAS_KQUEUE */
 
 #include "inputevt.h"
 #include "walloc.h"
@@ -372,11 +378,11 @@ static struct {
 
 	inputevt_relay_t **relay;	/**< The relay contexts */
 	gulong *used;				/**< A bit array, which ID slots are used */
+	GSList *removed;			/**< List of removed IDs */
 	guint num_ev;				/**< Length of the "ev" and "relay" arrays */
-	guint max_ev;				/**< Highest ID currently used */
 	gint fd;					/**< The ``master'' fd for epoll or kqueue */
 	gboolean initialized;		/**< TRUE if the context has been initialized */
-	guint dispatch_max;			/**< Highest ID currently dispatched */
+	gboolean dispatching;		/**< TRUE if dispatching events */
 } poll_ctx;
 
 void
@@ -388,7 +394,7 @@ inputevt_timer(void)
 	g_assert(-1 != poll_ctx.fd);
 
 	/* Maybe this must safely fail for general use, thus no assertion */
-	g_return_if_fail(0 == poll_ctx.dispatch_max);
+	g_return_if_fail(!poll_ctx.dispatching);
 
 	n = check_poll_events(poll_ctx.fd, poll_ctx.ev, poll_ctx.num_ev);
 	if (-1 == n) {
@@ -403,36 +409,52 @@ inputevt_timer(void)
 	g_assert(n > 0);
 	g_assert((guint) n <= poll_ctx.num_ev);
 	
-	g_assert(poll_ctx.max_ev < poll_ctx.num_ev);
-	poll_ctx.dispatch_max = poll_ctx.max_ev;
+	poll_ctx.dispatching = TRUE;
 
 	for (i = 0; i < n; i++) {
 		inputevt_relay_t *relay;
 		inputevt_cond_t cond;
-
-		/* A relay handler might remove any of the other registered events */
-		if (0 == bit_array_get(poll_ctx.used, i))
-			continue;
+		guint id;
 
 		cond = get_poll_event_cond(&poll_ctx.ev[i]);
-		relay = get_poll_event_udata(&poll_ctx.ev[i]);
+		id = GPOINTER_TO_UINT(get_poll_event_udata(&poll_ctx.ev[i]));
+
+		g_assert(id > 0);
+		g_assert(id < poll_ctx.num_ev);
+		g_assert(0 != bit_array_get(poll_ctx.used, id));
+		
+		/* A relay handler might remove any of the other registered events */
+		relay = poll_ctx.relay[id];
+		if (!relay)
+			continue;
+		
 		g_assert(relay);
 		g_assert(relay->fd >= 0);
 
-#if 0
-		g_message("relay: fd=%d, cond=%s, handler=%p",
-			relay->fd, inputevt_cond_to_string(cond), relay->handler);
-#endif
-		
 		if (relay->condition & cond)
 			relay->handler(relay->data, relay->fd, cond);
-#if 0
-		else
-			g_message("IGNORED!!!");
-#endif
 	}
+	
+	if (poll_ctx.removed) {
+		GSList *sl;
 
-	poll_ctx.dispatch_max = 0;
+		i = 0;
+		for (sl = poll_ctx.removed; NULL != sl; sl = g_slist_next(sl), i++) {
+			guint id = GPOINTER_TO_UINT(sl->data);
+
+			g_assert(0 != id);
+			g_assert(id < poll_ctx.num_ev);
+			g_assert(NULL == poll_ctx.relay[id]);
+
+			bit_array_clear(poll_ctx.used, id);
+		}
+		g_message("Removed %u events", i);
+
+		g_slist_free(poll_ctx.removed);
+		poll_ctx.removed = NULL;
+	}
+	
+	poll_ctx.dispatching = FALSE;
 }
 
 static gboolean
@@ -460,7 +482,6 @@ inputevt_remove(guint id)
 		inputevt_relay_t *relay;
 		
 		g_assert(id < poll_ctx.num_ev);
-		g_assert(id <= poll_ctx.max_ev);
 		g_assert(0 != bit_array_get(poll_ctx.used, id));
 
 		relay = poll_ctx.relay[id];
@@ -473,11 +494,16 @@ inputevt_remove(guint id)
 
 		poll_ctx.relay[id] = NULL;
 		wfree(relay, sizeof *relay);
-		bit_array_clear(poll_ctx.used, id);
 
-		if (id == poll_ctx.max_ev) {
-			while (0 == bit_array_get(poll_ctx.used, --poll_ctx.max_ev))
-				continue;
+		if (poll_ctx.dispatching) {
+			/*
+			 * Don't clear the "used" bit yet because this slot must
+			 * not be recycled whilst dispatching events.
+			 */
+			poll_ctx.removed = g_slist_prepend(poll_ctx.removed,
+									GUINT_TO_POINTER(id));
+		} else {
+			bit_array_clear(poll_ctx.used, id);
 		}
 	}
 }
@@ -485,27 +511,10 @@ inputevt_remove(guint id)
 static inline guint
 inputevt_get_free_id(void)
 {
-	guint low, high;
-	
 	if (0 == poll_ctx.num_ev)
 		return (guint) -1;
 	
-	/*
-	 * A relay handler can remove and register any event whilst we
-	 * iterate in inputevt_timer(). Therefore, not yet dispatched
-	 * events must not be recycled because this could cause emission
-	 * of a bogus event for the wrong file descriptor.
-	 */
-	if (0 == poll_ctx.dispatch_max) {
-		low = 0;
-		high = poll_ctx.num_ev - 1;
-	} else {
-		low = poll_ctx.dispatch_max + 1;
-		high = poll_ctx.num_ev - 1;
-	}
-
-	return low > high	? (guint) -1
-						: bit_array_first_clear(poll_ctx.used, low, high);
+	return bit_array_first_clear(poll_ctx.used, 0, poll_ctx.num_ev - 1);
 }
 #endif /* HAS_EPOLL || HAS_KQUEUE*/
 
@@ -527,12 +536,6 @@ inputevt_add_source(gint fd, inputevt_cond_t cond, inputevt_relay_t *relay)
 		id = inputevt_add_source_with_glib(fd, cond, relay);
 	} else {
 		guint f;
-
-		if (-1 == add_poll_event(poll_ctx.fd, fd, cond, relay)) {
-			g_error("epoll_ctl(%d, EPOLL_CTL_ADD, %d, ...) failed: %s",
-				poll_ctx.fd, fd, g_strerror(errno));
-			return -1;
-		}
 
 		f = inputevt_get_free_id();
 		g_assert((guint) -1 == f || f < poll_ctx.num_ev);
@@ -574,9 +577,12 @@ inputevt_add_source(gint fd, inputevt_cond_t cond, inputevt_relay_t *relay)
 		bit_array_set(poll_ctx.used, id);
 		g_assert(0 != bit_array_get(poll_ctx.used, id));
 		poll_ctx.relay[id] = relay;
+		
+		if (-1 == add_poll_event(poll_ctx.fd, fd, cond, GUINT_TO_POINTER(id))) {
+			g_error("add_poll_event(%d, %d, ...) failed: %s",
+				poll_ctx.fd, fd, g_strerror(errno));
+		}
 	}
-
-	poll_ctx.max_ev = MAX(poll_ctx.max_ev, id);
 
 	g_assert(0 != id);	
 	return id;
