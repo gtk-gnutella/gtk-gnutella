@@ -106,6 +106,7 @@ fi_gui_fill_info(gnet_fi_t fih, gchar *titles[c_fi_num])
 	return last_fi;
 }
 
+/* XXX -- factorize this code with GTK2's one */
 static void
 fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
 {
@@ -137,7 +138,32 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
             _("Downloading (%s)"), short_rate(s.recv_last_rate));
         titles[c_fi_status] = fi_status;
     } else if (s.done == s.size){
-        titles[c_fi_status] = _("Finished");
+		gint rw;
+
+		rw = gm_snprintf(fi_status, sizeof(fi_status),
+				"%s", _("Finished"));
+
+		if (s.has_sha1) {
+			if (s.sha1_hashed == s.size)
+				rw += gm_snprintf(&fi_status[rw], sizeof(fi_status)-rw,
+						"; SHA1 %s", s.sha1_matched ? _("OK") : _("failed"));
+			else if (s.sha1_hashed == 0)
+				rw += gm_snprintf(&fi_status[rw], sizeof(fi_status)-rw,
+						"; %s", _("Waiting for SHA1 check"));
+			else
+				rw += gm_snprintf(&fi_status[rw], sizeof(fi_status)-rw,
+						"; %s %s (%.1f%%)", _("Computing SHA1"),
+						short_size(s.sha1_hashed),
+						((float) s.sha1_hashed / s.size) * 100.0);
+		}
+
+		if (s.copied > 0 && s.copied < s.size) 
+			rw += gm_snprintf(&fi_status[rw], sizeof(fi_status)-rw,
+					"; %s %s (%.1f%%)", _("Moving"),
+					short_size(s.copied),
+					((float) s.copied / s.size) * 100.0);
+
+        titles[c_fi_status] = fi_status;
     } else if (s.lifecount == 0) {
         titles[c_fi_status] = _("No sources");
     } else if (s.aqueued_count || s.pqueued_count) {
