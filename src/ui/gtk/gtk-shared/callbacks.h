@@ -114,6 +114,17 @@ void on_clist_search_stats_resize_column(GtkCList * clist, gint column, gint wid
  ***/
 #ifdef USE_GTK1
 void on_clist_search_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
+gboolean
+on_ctree_downloads_queue_button_release_event
+                                        (GtkWidget       *widget,
+                                        GdkEventButton  *event,
+                                        gpointer         user_data);
+
+gboolean
+on_ctree_downloads_button_release_event
+                                        (GtkWidget       *widget,
+                                        GdkEventButton  *event,
+                                        gpointer         user_data);
 #endif /* USE_GTK1 */
 
 void
@@ -168,3 +179,4 @@ on_menu_wizard_connection_modem_activate
                                         gpointer         user_data);
 
 #endif	/* _callbacks_h_ */
+

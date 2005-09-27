@@ -792,6 +792,7 @@ main_gui_timer(time_t now)
 		gnet_stats_gui_update(now);
 		search_stats_gui_update(now);
 		nodes_gui_update_nodes_display(now);
+		downloads_gui_update_display(now);
 		uploads_gui_update_display(now);
 		fi_gui_update_display(now);
 		statusbar_gui_clear_timeouts(now);
@@ -799,7 +800,7 @@ main_gui_timer(time_t now)
 	} else {
 		static gint counter = 0;
 
-		switch (counter++ % 8) {
+		switch (counter++ % 9) {
 		case 0: hcache_gui_update(now);					break;
 		case 1: gnet_stats_gui_update(now);				break;
 		case 2: search_stats_gui_update(now);			break;
@@ -808,6 +809,7 @@ main_gui_timer(time_t now)
 		case 5: fi_gui_update_display(now);				break;
 		case 6: statusbar_gui_clear_timeouts(now);		break;
 		case 7: filter_timer();							break;
+		case 8: downloads_gui_update_display(now);		break;
 		default:
 			g_error("bad modulus computation (counter was %d)", counter - 1);
 			break;

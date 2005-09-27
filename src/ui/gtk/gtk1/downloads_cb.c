@@ -40,6 +40,7 @@ RCSID("$Id$");
 #include "lib/override.h"	/* Must be the last header included */
 
 static gchar *selected_url = NULL;
+static gboolean refresh_on_release = FALSE;
 
 /**
  * Informs the user about the number of removed downloads.
@@ -114,6 +115,9 @@ on_ctree_downloads_button_press_event(GtkWidget *widget,
     GList *selection;
 
 	(void) unused_udata;
+
+	refresh_on_release = event->button == 1;
+
 	if (event->button != 3)
 		return FALSE;
 
@@ -169,6 +173,20 @@ on_ctree_downloads_button_press_event(GtkWidget *widget,
         event->button, event->time);
 
 	return TRUE;
+}
+
+gboolean
+on_ctree_downloads_button_release_event(GtkWidget *unused_widget,
+	GdkEventButton *unused_event, gpointer unused_data)
+{
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_data;
+
+	if (refresh_on_release)
+		downloads_update_active_pane();
+
+	return FALSE;
 }
 
 /***
@@ -821,6 +839,20 @@ on_popup_queue_connect_activate(GtkMenuItem *unused_menuitem,
     guc_node_add(download_addr(d), download_port(d), CONNECT_F_FORCE);
 }
 
+gboolean
+on_ctree_downloads_queue_button_release_event(GtkWidget *unused_widget,
+	GdkEventButton *unused_event, gpointer unused_data)
+{
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_data;
+
+	if (refresh_on_release)
+		downloads_update_queue_pane();
+
+	return FALSE;
+}
+
 /***
  *** downloads pane
  ***/
@@ -1089,6 +1121,9 @@ on_ctree_downloads_queue_button_press_event(GtkWidget *widget,
     GList *selection;
 
 	(void) unused_udata;
+
+	refresh_on_release = event->button == 1;
+
 	if (event->button != 3)
 		return FALSE;
 
@@ -1171,6 +1206,7 @@ on_popup_downloads_expand_all_activate(GtkMenuItem *unused_menuitem,
 
 	(void) unused_menuitem;
 	(void) unused_udata;
+
     downloads_gui_expand_all(ctree_downloads);
 }
 

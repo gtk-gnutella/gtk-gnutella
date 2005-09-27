@@ -6096,6 +6096,9 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (ctree_downloads), "resize_column",
                       GTK_SIGNAL_FUNC (on_ctree_downloads_resize_column),
                       NULL);
+  gtk_signal_connect_after (GTK_OBJECT (ctree_downloads), "button_release_event",
+                            GTK_SIGNAL_FUNC (on_ctree_downloads_button_release_event),
+                            NULL);
   gtk_signal_connect (GTK_OBJECT (button_downloads_abort), "clicked",
                       GTK_SIGNAL_FUNC (on_button_downloads_abort_clicked),
                       NULL);
@@ -6126,6 +6129,9 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (ctree_downloads_queue), "drag_end",
                       GTK_SIGNAL_FUNC (on_ctree_downloads_queue_drag_end),
                       NULL);
+  gtk_signal_connect_after (GTK_OBJECT (ctree_downloads_queue), "button_release_event",
+                            GTK_SIGNAL_FUNC (on_ctree_downloads_queue_button_release_event),
+                            NULL);
   gtk_signal_connect (GTK_OBJECT (togglebutton_queue_freeze), "toggled",
                       GTK_SIGNAL_FUNC (on_togglebutton_queue_freeze_toggled),
                       NULL);

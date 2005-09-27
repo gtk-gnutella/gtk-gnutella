@@ -4961,6 +4961,12 @@
 		    <handler>on_ctree_downloads_resize_column</handler>
 		    <last_modification_time>Fri, 02 Jan 2004 03:20:38 GMT</last_modification_time>
 		  </signal>
+		  <signal>
+		    <name>button_release_event</name>
+		    <handler>on_ctree_downloads_button_release_event</handler>
+		    <after>True</after>
+		    <last_modification_time>Tue, 27 Sep 2005 16:56:08 GMT</last_modification_time>
+		  </signal>
 		  <columns>8</columns>
 		  <column_widths>80,80,36,80,80,80,80,80</column_widths>
 		  <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
@@ -5814,6 +5820,12 @@
 		    <name>drag_end</name>
 		    <handler>on_ctree_downloads_queue_drag_end</handler>
 		    <last_modification_time>Fri, 02 Jan 2004 03:21:59 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>button_release_event</name>
+		    <handler>on_ctree_downloads_queue_button_release_event</handler>
+		    <after>True</after>
+		    <last_modification_time>Tue, 27 Sep 2005 16:52:55 GMT</last_modification_time>
 		  </signal>
 		  <columns>6</columns>
 		  <column_widths>80,80,36,80,80,80</column_widths>

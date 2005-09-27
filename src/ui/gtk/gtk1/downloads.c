@@ -71,9 +71,13 @@ static GHashTable *parents_queue_children;
 
 static GtkCTree *ctree_downloads = NULL;
 static GtkCTree *ctree_downloads_queue = NULL;
+static GtkNotebook *notebook = NULL;
+
+static gboolean ctree_downloads_frozen = FALSE;
+static gboolean ctree_downloads_queue_frozen = FALSE;
 
 #define IO_STALLED			60	/**< If nothing exchanged after that many secs */
-#define DL_GUI_TREE_SPACE	5	/**< The space between a child node and a parent */
+#define DL_GUI_TREE_SPACE	5	/**< Space between a child node and a parent */
 
 /***
  *** Private functions
@@ -335,8 +339,6 @@ downloads_gui_any_status(struct download *d, download_status_t status)
 	gpointer key;
 	GtkCTreeNode *node, *parent;
 	GtkCTreeRow *row;
-    GtkCTree *ctree_downloads =
-		GTK_CTREE(lookup_widget(main_window, "ctree_downloads"));
 
 	if (!d->file_info)
 		return FALSE;
@@ -376,9 +378,6 @@ downloads_gui_all_aborted(struct download *d)
 	gboolean all_aborted = FALSE;
 	GtkCTreeNode *node, *parent;
 	GtkCTreeRow *row;
-    GtkCTree *ctree_downloads = GTK_CTREE
-            (lookup_widget(main_window, "ctree_downloads"));
-
 
 	if (NULL != d->file_info) {
 
@@ -426,8 +425,6 @@ downloads_gui_update_parent_status(struct download *d, time_t now,
 
 	GdkColor *color;
 	GtkCTreeNode *parent;
-    GtkCTree *ctree_downloads = GTK_CTREE
-            (lookup_widget(main_window, "ctree_downloads"));
 
 
     if (NULL != d->file_info) {
@@ -466,8 +463,6 @@ void gui_update_download_hostcount(struct download *d)
 {
 	gpointer key;
 	GtkCTreeNode *parent;
-    GtkCTree *ctree_downloads = GTK_CTREE
-            (lookup_widget(main_window, "ctree_downloads"));
 
     if (NULL != d->file_info) {
 
@@ -503,6 +498,7 @@ void downloads_gui_init(void)
 
 	clist = GTK_CLIST(ctree_downloads);
 	clist_queue = GTK_CLIST(ctree_downloads_queue);
+	notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
 
     gtk_clist_column_titles_passive(clist);
     gtk_clist_column_titles_passive(clist_queue);
@@ -957,10 +953,10 @@ gui_update_download(struct download *d, gboolean force)
 	gint active_src, tot_src;
 	gdouble percent_done = 0;
 	guint32 s = 0;
+	gboolean copy_status_to_parent = FALSE;
 
 	gint rw;
     gint current_page;
-	static GtkNotebook *notebook = NULL;
 	gboolean looking = TRUE;
 
     if (d->last_gui_update == now && !force)
@@ -976,9 +972,6 @@ gui_update_download(struct download *d, gboolean force)
 	 * looking because we don't periodically update the GUI for all the
 	 * states...
 	 */
-
-	if (notebook == NULL)
-		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
 
     current_page = gtk_notebook_get_current_page(notebook);
     if (current_page != nb_main_page_dl_active)
@@ -1173,6 +1166,7 @@ gui_update_download(struct download *d, gboolean force)
 	case GTA_DL_VERIFY_WAIT:
 		g_assert(FILE_INFO_COMPLETE(fi));
 		g_strlcpy(tmpstr, _("Waiting for SHA1 checking..."), sizeof(tmpstr));
+		copy_status_to_parent = TRUE;		/* In active pane */
 		a = tmpstr;
 		break;
 
@@ -1180,6 +1174,7 @@ gui_update_download(struct download *d, gboolean force)
 		g_assert(FILE_INFO_COMPLETE(fi));
 		gm_snprintf(tmpstr, sizeof(tmpstr),
 			_("Computing SHA1 (%.02f%%)"), fi->cha1_hashed * 100.0 / fi->size);
+		copy_status_to_parent = TRUE;		/* In active pane */
 		a = tmpstr;
 		break;
 
@@ -1189,6 +1184,7 @@ gui_update_download(struct download *d, gboolean force)
 	case GTA_DL_DONE:
 		g_assert(FILE_INFO_COMPLETE(fi));
 		g_assert(fi->cha1_hashed <= fi->size);
+		copy_status_to_parent = TRUE;		/* In active pane */
 		{
 			gboolean sha1_ok = fi->cha1 &&
 				(fi->sha1 == NULL || sha1_eq(fi->sha1, fi->cha1));
@@ -1428,13 +1424,11 @@ gui_update_download(struct download *d, gboolean force)
 					gtk_ctree_node_set_text(ctree_downloads, parent,
 						c_dl_progress, download_progress_to_string(d));
 					
-					/* Download is done */
-					if (GTA_DL_DONE == d->status) {
+					if (copy_status_to_parent) {
+						/* Download is done */
 
-						gm_snprintf(tmpstr, sizeof(tmpstr),
-							_("Complete"));
 						gtk_ctree_node_set_text(ctree_downloads, parent,
-							c_dl_status, tmpstr);
+							c_dl_status, a);
 						record_parent_gui_update(key, now);
 
 					} else {
@@ -1794,6 +1788,7 @@ void
 downloads_gui_expand_all(GtkCTree *ctree)
 {
 	gtk_ctree_expand_recursive(ctree, NULL);
+	downloads_update_active_pane();
 }
 
 
@@ -1804,6 +1799,90 @@ void
 downloads_gui_collapse_all(GtkCTree *ctree)
 {
 	gtk_ctree_collapse_recursive(ctree, NULL);
+	downloads_update_active_pane();
+}
+
+/**
+ * Update "active" pane if needed.
+ */
+void
+downloads_update_active_pane(void)
+{
+	GtkCList *clist = GTK_CLIST(ctree_downloads);
+
+	if (!ctree_downloads_frozen)
+		return;
+
+	gtk_clist_thaw(clist);
+	gtk_clist_freeze(clist);
+}
+
+/**
+ * Update "queue" pane if needed.
+ */
+void
+downloads_update_queue_pane(void)
+{
+	GtkCList *clist = GTK_CLIST(ctree_downloads_queue);
+
+	if (!ctree_downloads_queue_frozen)
+		return;
+
+	gtk_clist_thaw(clist);
+	gtk_clist_freeze(clist);
+}
+
+/**
+ * Periodically called to update downloads display.
+ */
+void
+downloads_gui_update_display(time_t unused_now)
+{
+	GtkCList *clist = NULL;
+	gboolean *frozen = NULL;
+    gint current_page;
+
+	(void) unused_now;
+
+    current_page = gtk_notebook_get_current_page(notebook);
+
+	/*
+	 * We make sure the trees are frozen, so that no GUI redrawing ever
+	 * takes place until we're called here and they are watching.
+	 */
+
+    if (current_page == nb_main_page_dl_active) {
+		frozen = &ctree_downloads_frozen;
+		clist = GTK_CLIST(ctree_downloads);
+	} else if (current_page == nb_main_page_dl_queue) {
+		frozen = &ctree_downloads_queue_frozen;
+		clist = GTK_CLIST(ctree_downloads_queue);
+	} else {
+		/*
+		 * They're not looking, no need to update the visuals!
+		 */
+
+		if (!ctree_downloads_frozen) {
+			clist = GTK_CLIST(ctree_downloads);
+			gtk_clist_freeze(clist);
+			ctree_downloads_frozen = TRUE;
+		}
+		if (!ctree_downloads_queue_frozen) {
+			clist = GTK_CLIST(ctree_downloads_queue);
+			gtk_clist_freeze(clist);
+			ctree_downloads_queue_frozen = TRUE;
+		}
+
+		return;
+	}
+
+	g_assert(frozen != NULL);
+
+	if (*frozen)
+		gtk_clist_thaw(clist);		/* Will update visuals */
+
+	gtk_clist_freeze(clist);
+	*frozen = TRUE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

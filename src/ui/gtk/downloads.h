@@ -40,12 +40,15 @@ struct download;
 
 void downloads_gui_init(void);
 void downloads_gui_shutdown(void);
+void downloads_gui_update_display(time_t now);
 
 #ifdef USE_GTK1
 GList *downloads_gui_collect_ctree_data(GtkCTree *ctree, GList *node_list,
 	gboolean unselect, gboolean add_children);
 void downloads_gui_expand_all(GtkCTree *ctree);
 void downloads_gui_collapse_all(GtkCTree *ctree);
+void downloads_update_active_pane(void);
+void downloads_update_queue_pane(void);
 #else
 void downloads_gui_expand_all(GtkTreeView *tree_view);
 void downloads_gui_collapse_all(GtkTreeView *tree_view);

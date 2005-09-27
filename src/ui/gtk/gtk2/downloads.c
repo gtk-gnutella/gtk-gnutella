@@ -1885,4 +1885,15 @@ downloads_gui_collapse_all(GtkTreeView *tree_view)
 	gtk_tree_view_collapse_all(tree_view);
 }
 
+/**
+ * Periodically called to update downloads display.
+ */
+void
+downloads_gui_update_display(time_t unused_now)
+{
+	(void) unused_now;
+
+	/* Nothing needed for GTK2 */
+}
+
 /* vi: set ts=4 sw=4 cindent: */
