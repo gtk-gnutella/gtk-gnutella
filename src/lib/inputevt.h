@@ -76,7 +76,6 @@ const gchar *inputevt_cond_to_string(inputevt_cond_t cond);
 
 #if defined(HAS_EPOLL) || defined(HAS_KQUEUE)
 void inputevt_remove(guint id);
-void inputevt_timer(void);
 #else /* !(HAS_EPOLL || HAS_KQUEUE) */
 #define inputevt_remove(source) (g_source_remove(source))
 #define inputevt_timer()
