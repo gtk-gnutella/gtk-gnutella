@@ -218,8 +218,10 @@ update_poll_event(struct poll_ctx *poll_ctx, gint fd,
 {
 	static const struct epoll_event zero_ev;
 	struct epoll_event ev;
+	gint op;
 
-	if ((INPUT_EVENT_RW & old) == (INPUT_EVENT_RW & cur))
+	old &= INPUT_EVENT_RW;
+	if ((INPUT_EVENT_RW & cur) == old)
 		return 0;
 
 	ev = zero_ev;
@@ -234,9 +236,15 @@ update_poll_event(struct poll_ctx *poll_ctx, gint fd,
 			ev.events |= EPOLLOUT;
 	}
 
-	return epoll_ctl(poll_ctx->fd,
-			ev.events ? (old ? EPOLL_CTL_MOD : EPOLL_CTL_ADD) : EPOLL_CTL_DEL,
-			fd, &ev);
+	if (0 != ev.events) {
+		op = 0 != old ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
+	} else if (0 != old) {
+		op = EPOLL_CTL_DEL;
+	} else {
+		return 0;
+	}
+
+	return epoll_ctl(poll_ctx->fd, op, fd, &ev);
 }
 #endif /* HAS_KQUEUE */
 
