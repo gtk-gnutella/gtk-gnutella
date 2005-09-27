@@ -89,9 +89,9 @@ typedef struct relay_list {
 	size_t writers;
 } relay_list_t;
 
-#if defined(HAS_EPOLL) || defined(HAS_KQUEUE)
-
 static const inputevt_handler_t zero_handler;
+
+#if defined(HAS_EPOLL) || defined(HAS_KQUEUE)
 
 static inline gpointer
 get_poll_event_udata(gpointer p)
