@@ -77,14 +77,21 @@ RCSID("$Id$");
  * input condition flags.
  */
 typedef struct {
-	inputevt_cond_t condition;
 	inputevt_handler_t handler;
 	gpointer data;
+	inputevt_cond_t condition;
 	gint fd;
 } inputevt_relay_t;
 
+typedef struct relay_list {
+	GSList *sl;
+	size_t readers;
+	size_t writers;
+} relay_list_t;
 
 #if defined(HAS_EPOLL) || defined(HAS_KQUEUE)
+
+static const inputevt_handler_t zero_handler;
 
 static inline gpointer
 get_poll_event_udata(gpointer p)
@@ -127,33 +134,35 @@ get_poll_event_cond(gpointer p)
 }
 #endif /* HAS_KQUEUE */
 
-
 static gint
-add_poll_event(gint pfd, gint fd, inputevt_cond_t cond, gpointer udata)
+update_poll_event(gint pfd, gint fd, inputevt_cond_t old, inputevt_cond_t cur)
 #ifdef HAS_KQUEUE
 {
 	static const struct timespec zero_ts;
-	struct kevent kev;
-
-	g_assert((INPUT_EVENT_R | INPUT_EVENT_W) & cond);
-	g_assert((0 != (INPUT_EVENT_R & cond)) ^ (0 != (INPUT_EVENT_W & cond)));
-	
-	if (INPUT_EVENT_R & cond) {
-		g_message("add_poll_event(%d, %d, EVFILT_READ, ...)", pfd, fd);
-	} else if (INPUT_EVENT_W & cond) {
-		g_message("add_poll_event(%d, %d, EVFILT_WRITE, ...)", pfd, fd);
-	}
-
-	EV_SET(&kev, fd, (INPUT_EVENT_R & cond) ? EVFILT_READ : EVFILT_WRITE,
-		EV_ADD, 0, 0, (gulong) (gpointer) udata);
+	struct kevent kev[2];
+	size_t i = 0;
+	gulong udata = (gulong) GINT_TO_POINTER(fd);
 
 	/* @todo TODO:
-	 * Instead of adding each single event, we could probably accumulate them
+	 * Instead of updating each single event, we could probably accumulate them
 	 * and then add all of them in check_poll_events(). However, events may be
 	 * removed before ever polled etc., so it may be more complex as it sounds.
 	 * It would save many syscalls though.
 	 */
-	return kevent(pfd, &kev, 1, NULL, 0, &zero_ts);
+	
+	if ((INPUT_EVENT_R & old) != (INPUT_EVENT_R & cur)) {
+		EV_SET(&kev[i], fd, EVFILT_READ,
+			(INPUT_EVENT_R & cur) ? EV_ADD : (EV_DELETE | EV_DISABLE),
+			0, 0, udata);
+		i++;
+	}
+	if ((INPUT_EVENT_W & old) != (INPUT_EVENT_W & cur)) {
+		EV_SET(&kev[i], fd, EVFILT_WRITE,
+			(INPUT_EVENT_W & cur) ? EV_ADD : (EV_DELETE | EV_DISABLE),
+			0, 0, udata);
+		i++;
+	}
+	return kevent(pfd, kev, i, NULL, 0, &zero_ts);
 }
 #else /* !HAS_KQUEUE */
 {
@@ -161,33 +170,20 @@ add_poll_event(gint pfd, gint fd, inputevt_cond_t cond, gpointer udata)
 	struct epoll_event ev;
 
 	ev = zero_ev;
-	ev.data.ptr = udata;
-	ev.events = (cond & INPUT_EVENT_EXCEPTION ? EPOLLERR : 0) |
-				(cond & INPUT_EVENT_R ? (EPOLLIN | EPOLLPRI) : 0) |
-				(cond & INPUT_EVENT_W ? EPOLLOUT : 0);
+	ev.data.ptr = GINT_TO_POINTER(fd);
 
-	return epoll_ctl(pfd, EPOLL_CTL_ADD, fd, &ev);
-}
-#endif /* HAS_KQUEUE */
+	if ((INPUT_EVENT_R & old) != (INPUT_EVENT_R & cur)) {
+		if (INPUT_EVENT_R & cur)
+			ev.events |= EPOLLIN | EPOLLPRI;
+	}
+	if ((INPUT_EVENT_W & old) != (INPUT_EVENT_W & cur)) {
+		if (INPUT_EVENT_W & cur)
+			ev.events |= EPOLLOUT;
+	}
 
-static gint
-remove_poll_event(gint pfd, gint fd, inputevt_cond_t cond)
-#ifdef HAS_KQUEUE
-{
-	static const struct timespec zero_ts;
-	struct kevent kev;
-
-	g_assert((INPUT_EVENT_R | INPUT_EVENT_W) & cond);
-	g_assert((0 != (INPUT_EVENT_R & cond)) ^ (0 != (INPUT_EVENT_W & cond)));
-
-	EV_SET(&kev, fd, (INPUT_EVENT_R & cond) ? EVFILT_READ : EVFILT_WRITE,
-		EV_DELETE | EV_DISABLE, 0, 0, 0);
-	return kevent(pfd, &kev, 1, NULL, 0, &zero_ts);
-}
-#else /* !HAS_KQUEUE */
-{
-	(void) cond;
-	return epoll_ctl(pfd, EPOLL_CTL_DEL, fd, NULL);
+	return epoll_ctl(pfd,
+			ev.events ? (old ? EPOLL_CTL_MOD : EPOLL_CTL_ADD) : EPOLL_CTL_DEL,
+			fd, &ev);
 }
 #endif /* HAS_KQUEUE */
 
@@ -213,7 +209,6 @@ check_poll_events(int fd, gpointer events, int n)
 	g_assert(n >= 0);
 	g_assert(0 == n || NULL != events);
 	
-	g_message("%s(%d, %p, %d)", __func__, fd, events, n);
 	return kevent(fd, NULL, 0, events, n, &zero_ts);
 }
 #else /* !HAS_KQUEUE */
@@ -375,6 +370,7 @@ static struct {
 	inputevt_relay_t **relay;	/**< The relay contexts */
 	gulong *used;				/**< A bit array, which ID slots are used */
 	GSList *removed;			/**< List of removed IDs */
+	GHashTable *ht;				/**< Records file descriptors */
 	guint num_ev;				/**< Length of the "ev" and "relay" arrays */
 	gint fd;					/**< The ``master'' fd for epoll or kqueue */
 	gboolean initialized;		/**< TRUE if the context has been initialized */
@@ -408,43 +404,77 @@ inputevt_timer(void)
 	poll_ctx.dispatching = TRUE;
 
 	for (i = 0; i < n; i++) {
-		inputevt_relay_t *relay;
 		inputevt_cond_t cond;
-		guint id;
+		relay_list_t *rl;
+		GSList *sl;
+		gint fd;
 
 		cond = get_poll_event_cond(&poll_ctx.ev[i]);
-		id = GPOINTER_TO_UINT(get_poll_event_udata(&poll_ctx.ev[i]));
-
-		g_assert(id > 0);
-		g_assert(id < poll_ctx.num_ev);
-		g_assert(0 != bit_array_get(poll_ctx.used, id));
+		fd = GPOINTER_TO_INT(get_poll_event_udata(&poll_ctx.ev[i]));
+		g_assert(fd >= 0);
 		
-		/* A relay handler might remove any of the other registered events */
-		relay = poll_ctx.relay[id];
-		if (!relay)
-			continue;
-		
-		g_assert(relay);
-		g_assert(relay->fd >= 0);
+		rl = g_hash_table_lookup(poll_ctx.ht, GINT_TO_POINTER(fd));
+		g_assert(NULL != rl);
+		g_assert((NULL != rl->sl) ^ (0 == rl->readers && 0 == rl->writers));
 
-		if (relay->condition & cond)
-			relay->handler(relay->data, relay->fd, cond);
+		for (sl = rl->sl; NULL != sl; /* NOTHING */) {
+			inputevt_relay_t *relay;
+			guint id;
+
+			id = GPOINTER_TO_UINT(sl->data);
+			sl = g_slist_next(sl);
+
+			g_assert(id > 0);
+			g_assert(id < poll_ctx.num_ev);
+
+			relay = poll_ctx.relay[id];
+			g_assert(relay);
+			g_assert(relay->fd == fd);
+
+			if (zero_handler == relay->handler)
+				continue;
+
+			if (relay->condition & cond)
+				relay->handler(relay->data, fd, cond);
+		}
 	}
 	
 	if (poll_ctx.removed) {
 		GSList *sl;
 
-		i = 0;
-		for (sl = poll_ctx.removed; NULL != sl; sl = g_slist_next(sl), i++) {
-			guint id = GPOINTER_TO_UINT(sl->data);
+		for (sl = poll_ctx.removed; NULL != sl; sl = g_slist_next(sl)) {
+			inputevt_relay_t *relay;
+			relay_list_t *rl;
+			guint id;
+			gint fd;
 
-			g_assert(0 != id);
+			id = GPOINTER_TO_UINT(sl->data);
+			g_assert(id > 0);
 			g_assert(id < poll_ctx.num_ev);
-			g_assert(NULL == poll_ctx.relay[id]);
 
+			g_assert(0 != bit_array_get(poll_ctx.used, id));
 			bit_array_clear(poll_ctx.used, id);
+
+			relay = poll_ctx.relay[id];
+			g_assert(relay);
+			g_assert(zero_handler == relay->handler);
+
+			fd = relay->fd;
+			g_assert(fd >= 0);
+			wfree(relay, sizeof *relay);
+			poll_ctx.relay[id] = NULL;
+			
+			rl = g_hash_table_lookup(poll_ctx.ht, GINT_TO_POINTER(fd));
+			g_assert(NULL != rl);
+			g_assert(NULL != rl->sl);
+		
+			rl->sl = g_slist_remove(rl->sl, GUINT_TO_POINTER(id));
+			if (NULL == rl->sl) {
+				g_assert(0 == rl->readers && 0 == rl->writers);
+				wfree(rl, sizeof *rl);
+				g_hash_table_remove(poll_ctx.ht, GINT_TO_POINTER(fd));
+			}
 		}
-		g_message("Removed %u events", i);
 
 		g_slist_free(poll_ctx.removed);
 		poll_ctx.removed = NULL;
@@ -476,22 +506,47 @@ inputevt_remove(guint id)
 		g_source_remove(id);
 	} else {
 		inputevt_relay_t *relay;
-		
+		relay_list_t *rl;
+		inputevt_cond_t old, cur;
+		gint fd;
+
 		g_assert(id < poll_ctx.num_ev);
 		g_assert(0 != bit_array_get(poll_ctx.used, id));
 
 		relay = poll_ctx.relay[id];
 		g_assert(NULL != relay);
+		g_assert(zero_handler != relay->handler);
 		g_assert(relay->fd >= 0);
-		
-		if (-1 == remove_poll_event(poll_ctx.fd, relay->fd, relay->condition)) {
-			g_warning("remove_poll_event(%d, %d) failed: %s",
-				poll_ctx.fd, relay->fd, g_strerror(errno));
+
+		fd = relay->fd;
+		rl = g_hash_table_lookup(poll_ctx.ht, GINT_TO_POINTER(fd));
+		g_assert(NULL != rl);
+		g_assert(NULL != rl->sl);
+
+		g_assert(rl->readers > 0 || rl->writers > 0);
+		old = (rl->readers ? INPUT_EVENT_R : 0) |
+			(rl->writers ? INPUT_EVENT_W : 0);
+
+		if (INPUT_EVENT_R & relay->condition) {
+			g_assert(rl->readers > 0);
+			--rl->readers;
+		}
+		if (INPUT_EVENT_W & relay->condition) {
+			g_assert(rl->writers > 0);
+			--rl->writers;
 		}
 
-		poll_ctx.relay[id] = NULL;
-		wfree(relay, sizeof *relay);
-
+		cur = (rl->readers ? INPUT_EVENT_R : 0) |
+			(rl->writers ? INPUT_EVENT_W : 0);
+	
+		if (-1 == update_poll_event(poll_ctx.fd, fd, old, cur)) {
+			g_warning("update_poll_event(%d, %d) failed: %s",
+				poll_ctx.fd, fd, g_strerror(errno));
+		}
+	
+		/* Mark as removed */
+		relay->handler = zero_handler;
+		
 		if (poll_ctx.dispatching) {
 			/*
 			 * Don't clear the "used" bit yet because this slot must
@@ -500,6 +555,16 @@ inputevt_remove(guint id)
 			poll_ctx.removed = g_slist_prepend(poll_ctx.removed,
 									GUINT_TO_POINTER(id));
 		} else {
+			wfree(relay, sizeof *relay);
+			
+			rl->sl = g_slist_remove(rl->sl, GUINT_TO_POINTER(id));
+			if (NULL == rl->sl) {
+				g_assert(0 == rl->readers && 0 == rl->writers);
+				wfree(rl, sizeof *rl);
+				g_hash_table_remove(poll_ctx.ht, GINT_TO_POINTER(fd));
+				g_message("Removing fd %d", fd);
+			}
+
 			bit_array_clear(poll_ctx.used, id);
 		}
 	}
@@ -524,6 +589,7 @@ inputevt_add_source(gint fd, inputevt_cond_t cond, inputevt_relay_t *relay)
 	g_assert(poll_ctx.initialized);
 	g_assert(fd >= 0);
 	g_assert(relay);
+	g_assert(relay->fd == fd);
 	
 	if (-1 == poll_ctx.fd) {
 		/*
@@ -532,6 +598,7 @@ inputevt_add_source(gint fd, inputevt_cond_t cond, inputevt_relay_t *relay)
 		 */
 		id = inputevt_add_source_with_glib(fd, cond, relay);
 	} else {
+		inputevt_cond_t old;
 		guint f;
 
 		f = inputevt_get_free_id();
@@ -573,10 +640,55 @@ inputevt_add_source(gint fd, inputevt_cond_t cond, inputevt_relay_t *relay)
 		g_assert(id < poll_ctx.num_ev);
 		bit_array_set(poll_ctx.used, id);
 		g_assert(0 != bit_array_get(poll_ctx.used, id));
+
 		poll_ctx.relay[id] = relay;
+
+		{
+			gpointer key = GINT_TO_POINTER(fd);
+			relay_list_t *rl;
+
+			rl = g_hash_table_lookup(poll_ctx.ht, key);
+			if (rl) {
+				if (rl->writers || rl->readers)	{
+					inputevt_relay_t *r;
+					guint x;
 		
-		if (-1 == add_poll_event(poll_ctx.fd, fd, cond, GUINT_TO_POINTER(id))) {
-			g_error("add_poll_event(%d, %d, ...) failed: %s",
+			 		g_assert(NULL != rl->sl);
+				
+					x = GPOINTER_TO_UINT(rl->sl->data);
+					g_assert(x != id);
+					g_assert(x > 0);
+					g_assert(x < poll_ctx.num_ev);
+
+					r = poll_ctx.relay[x];
+					g_assert(r);
+					g_assert(r->fd == fd);
+				}
+				old = (rl->readers ? INPUT_EVENT_R : 0) |
+					(rl->writers ? INPUT_EVENT_W : 0);
+			} else {
+				rl = walloc(sizeof *rl);
+				rl->readers = 0;
+				rl->writers = 0;
+				rl->sl = NULL;
+				old = 0;
+			}
+
+			if (INPUT_EVENT_R & cond)
+				rl->readers++;
+			if (INPUT_EVENT_W & cond)
+				rl->writers++;
+
+			rl->sl = g_slist_prepend(rl->sl, GUINT_TO_POINTER(id));
+			g_hash_table_insert(poll_ctx.ht, key, rl);
+		}
+
+		cond |= old;
+		if (
+			cond != old &&
+			-1 == update_poll_event(poll_ctx.fd, fd, old, cond)
+		) {
+			g_error("update_poll_event(%d, %d, ...) failed: %s",
 				poll_ctx.fd, fd, g_strerror(errno));
 		}
 	}
@@ -655,7 +767,8 @@ inputevt_init(void)
 		/* This is no hard error, we fall back to the GLib source watcher */
 	} else {
 		GIOChannel *ch;
-			
+
+		poll_ctx.ht = g_hash_table_new(NULL, NULL);
 		ch = g_io_channel_unix_new(poll_ctx.fd);
 
 #if GLIB_CHECK_VERSION(2, 0, 0)
