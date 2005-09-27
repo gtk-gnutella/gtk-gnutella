@@ -419,7 +419,7 @@ inputevt_timer(struct poll_ctx *poll_ctx)
 	g_return_if_fail(!poll_ctx->dispatching);
 
 	n = check_poll_events(poll_ctx);
-	if (-1 == n) {
+	if (-1 == n && EINTR != errno) {
 		g_warning("check_poll_events(%d) failed: %s",
 			poll_ctx->fd, g_strerror(errno));
 	}
