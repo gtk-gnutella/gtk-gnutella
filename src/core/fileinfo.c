@@ -4103,6 +4103,7 @@ file_info_find_available_hole(
 	filesize_t chunksize;
 	GSList *cklist;
 	gboolean cloned = FALSE;
+	gint src_count;
 
 	g_assert(d);
 	g_assert(ranges);
@@ -4178,7 +4179,9 @@ file_info_find_available_hole(
 	return FALSE;
 
 found:
-	chunksize = fi->size / fi->lifecount;
+	src_count = fi->aqueued_count + fi->pqueued_count + fi->recvcount;
+	src_count = MAX(1, src_count);
+	chunksize = fi->size / src_count;
 
 	if (chunksize < dl_minchunksize) chunksize = dl_minchunksize;
 	if (chunksize > dl_maxchunksize) chunksize = dl_maxchunksize;
