@@ -562,7 +562,6 @@ inputevt_remove(guint id)
 				g_assert(0 == rl->readers && 0 == rl->writers);
 				wfree(rl, sizeof *rl);
 				g_hash_table_remove(poll_ctx.ht, GINT_TO_POINTER(fd));
-				g_message("Removing fd %d", fd);
 			}
 
 			bit_array_clear(poll_ctx.used, id);
