@@ -1816,6 +1816,17 @@ file_info_free_outname_kv(gpointer key, gpointer val, gpointer unused_x)
 }
 
 /**
+ * Signals that some information in the fileinfo has changed, warranting
+ * a display update in the GUI.
+ */
+void
+file_info_changed(fileinfo_t *fi)
+{
+    event_trigger(fi_events[EV_FI_STATUS_CHANGED],
+        T_NORMAL(fi_listener_t, (fi->fi_handle)));
+}
+
+/**
  * Pre-close some file_info information.
  * This should be separate from file_info_close so that we can avoid circular
  * dependencies with other close routines, in this case with download_close.
@@ -1825,7 +1836,6 @@ file_info_close_pre(void)
 {
 	src_remove_listener(fi_update_seen_on_network, EV_SRC_RANGES_CHANGED);
 }
-
 
 /**
  * Close and free all file_info structs in the list.
@@ -3609,8 +3619,7 @@ again:
 	else if (fi->dirty)
 		file_info_store_binary(d->file_info);
 
-    event_trigger(fi_events[EV_FI_STATUS_CHANGED],
-        T_NORMAL(fi_listener_t, (fi->fi_handle)));
+	file_info_changed(fi);
 }
 
 /**
@@ -4421,6 +4430,16 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
     s->size           = fi->size;
     s->aqueued_count  = fi->aqueued_count;
     s->pqueued_count  = fi->pqueued_count;
+
+	if (fi->done == fi->size) {
+		s->has_sha1 = fi->sha1 != NULL;
+		if (fi->sha1) {
+			s->sha1_hashed = fi->cha1_hashed;
+			s->sha1_matched = fi->sha1 == fi->cha1;		/* Atoms... */
+		}
+		if (fi->copied)
+			s->copied = fi->copied;
+	}
 }
 
 /**
@@ -4627,9 +4646,7 @@ fi_notify_helper(gpointer unused_key, gpointer value, gpointer unused_udata)
         return;
 
     fi->dirty_status = FALSE;
-
-    event_trigger(fi_events[EV_FI_STATUS_CHANGED],
-        T_NORMAL(fi_listener_t, (fi->fi_handle)));
+	file_info_changed(fi);
 }
 
 void

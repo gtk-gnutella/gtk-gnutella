@@ -61,6 +61,15 @@ typedef struct gnet_fi_status {
 	guint32  	recv_last_rate;
 	guint32  	aqueued_count;
 	guint32  	pqueued_count;
+
+	/*
+	 * The following are set only when file has been completely downloaded.
+	 */
+
+	gboolean	has_sha1;
+	gboolean	sha1_matched;
+	filesize_t  sha1_hashed;
+	filesize_t	copied;
 } gnet_fi_status_t;
 
 typedef struct gnet_fi_chunks {

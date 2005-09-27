@@ -8447,6 +8447,7 @@ download_move_progress(struct download *d, filesize_t copied)
 	g_assert(d->status == GTA_DL_MOVING);
 
 	d->file_info->copied = copied;
+	file_info_changed(d->file_info);
 }
 
 /**
@@ -8461,6 +8462,8 @@ download_move_done(struct download *d, guint elapsed)
 
 	d->status = GTA_DL_DONE;
 	fi->copy_elapsed = elapsed;
+	fi->copied = fi->size;
+	file_info_changed(fi);
 	gcu_gui_update_download(d, TRUE);
 
 	/*
@@ -8571,6 +8574,7 @@ download_verify_progress(struct download *d, guint32 hashed)
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
 	d->file_info->cha1_hashed = hashed;
+	file_info_changed(d->file_info);
 }
 
 /**
@@ -8588,7 +8592,9 @@ download_verify_done(struct download *d, gchar *digest, guint elapsed)
 
 	fi->cha1 = atom_sha1_get(digest);
 	fi->cha1_elapsed = elapsed;
+	fi->cha1_hashed = fi->size;
 	file_info_store_binary(fi);		/* Resync with computed SHA1 */
+	file_info_changed(fi);
 
 	d->status = GTA_DL_VERIFIED;
 	gcu_gui_update_download(d, TRUE);
@@ -8622,13 +8628,15 @@ download_verify_error(struct download *d)
 	g_assert(d->status == GTA_DL_VERIFYING);
 
 	if (0 == strcmp(fi->file_name, name))
-		g_message("Error while verifying SHA1 for \"%s\"", fi->file_name);
+		g_message("error while verifying SHA1 for \"%s\"", fi->file_name);
 	else {
-		g_message("Error while verifying SHA1 for \"%s\" (aka \"%s\")",
+		g_message("error while verifying SHA1 for \"%s\" (aka \"%s\")",
 			fi->file_name, name);
     }
 
 	d->status = GTA_DL_VERIFIED;
+	fi->cha1_hashed = fi->size;
+	file_info_changed(fi);
 
 	ignore_add_filesize(name, fi->size);
 	queue_remove_downloads_with_file(fi, d);
