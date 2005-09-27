@@ -225,7 +225,7 @@ update_poll_event(struct poll_ctx *poll_ctx, gint fd,
 			ev.events |= EPOLLOUT;
 	}
 
-	return epoll_ctl(pfd,
+	return epoll_ctl(poll_ctx->fd,
 			ev.events ? (old ? EPOLL_CTL_MOD : EPOLL_CTL_ADD) : EPOLL_CTL_DEL,
 			fd, &ev);
 }
