@@ -2,6 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2002, ko (ko-@wanadoo.fr)
+ * Copyright (c) 2005, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -37,6 +38,8 @@
  *
  * @author ko (ko-@wanadoo.fr)
  * @date 2002
+ * @author Christian Biere
+ * @date 2005
  */
 
 #include "common.h"
