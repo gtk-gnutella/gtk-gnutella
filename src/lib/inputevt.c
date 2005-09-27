@@ -176,25 +176,18 @@ get_poll_event_cond(gpointer p)
 }
 #endif /* HAS_KQUEUE */
 
-static int
-flush_kevents(gint pfd, const struct kevent *kev, size_t n)
-{
-	static const struct timespec zero_ts;
-
-	if (-1 == kevent(pfd, kev, n, NULL, 0, &zero_ts)) {
-		g_error("flush_kevents(): kevent() failed: %s", g_strerror(errno));
-	}
-	return 0;
-}
-
 static gint
 update_poll_event(struct poll_ctx *poll_ctx, gint fd,
 	inputevt_cond_t old, inputevt_cond_t cur)
 #ifdef HAS_KQUEUE
 {
-	struct kevent *kev;
+	static const struct timespec zero_ts;
+	struct kevent kev[2];
 	size_t i = 0;
-	gulong udata = (gulong) GINT_TO_POINTER(fd);
+	gulong udata;
+	gint ret;
+
+	udata = (gulong) GINT_TO_POINTER(fd);
 
 	if ((INPUT_EVENT_R & old) != (INPUT_EVENT_R & cur)) {
 		EV_SET(&kev[i], fd, EVFILT_READ,
@@ -210,7 +203,10 @@ update_poll_event(struct poll_ctx *poll_ctx, gint fd,
 		i++;
 	}
 
-	return flush_kevents(poll_ctx->fd, kev, i);
+	if (-1 == (ret = kevent(poll_ctx->fd, kev, i, NULL, 0, &zero_ts)))
+		g_error("kevent() failed: %s", g_strerror(errno));
+
+	return ret;
 }
 #else /* !HAS_KQUEUE */
 {
