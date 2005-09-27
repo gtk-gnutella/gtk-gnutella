@@ -3929,6 +3929,39 @@ list_clone_shift(fileinfo_t *fi)
 }
 
 /**
+ * Compute chunksize to be used for the current request.
+ */
+static filesize_t
+fi_chunksize(fileinfo_t *fi)
+{
+	filesize_t chunksize;
+	gint src_count;
+
+	/*
+	 * Chunk size is estimated based on the amount of potential concurrent
+	 * downloads we can face (roughly given by the amount of queued sources
+	 * plus the amount of active ones).  We also consider the amount of data
+	 * that still needs to be fetched, since sources will compete for that.
+	 *
+	 * The aim is to reduce the chunksize as we progress, to avoid turning
+	 * on aggressive swarming if possible since that forces us to close the
+	 * connection to the source (and therefore lose the slot, at best, if
+	 * the source is not firewalled) whenever we bump into another active
+	 * chunk.
+	 *		--RAM, 2005-09-27
+	 */
+
+	src_count = fi->aqueued_count + fi->pqueued_count + fi->recvcount;
+	src_count = MAX(1, src_count);
+	chunksize = (fi->size - fi->done) / src_count;
+
+	if (chunksize < dl_minchunksize) chunksize = dl_minchunksize;
+	if (chunksize > dl_maxchunksize) chunksize = dl_maxchunksize;
+
+	return chunksize;
+}
+
+/**
  * Finds a range to download, and stores it in *from and *to.
  * If "aggressive" is off, it will return only ranges that are
  * EMPTY. If on, and no EMPTY ranges are available, it will
@@ -3982,10 +4015,7 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 
 	g_assert(fi->lifecount > 0);
 
-	chunksize = fi->size / fi->lifecount;
-
-	if (chunksize < dl_minchunksize) chunksize = dl_minchunksize;
-	if (chunksize > dl_maxchunksize) chunksize = dl_maxchunksize;
+	chunksize = fi_chunksize(fi);
 
 	/*
 	 * If PFSP-server is enabled, we can serve partially downloaded files.
@@ -4012,12 +4042,8 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 
 		*from = fc->from;
 		*to = fc->to;
-#if 0
-		if (*from && ((*to - *from) > (chunksize * 2)))
-			*from = (*from + *to) / 2;
-#endif /* 0 */
-		if ((*to - *from) > chunksize)
-			*to = *from + chunksize;
+		if ((fc->to - fc->from) > chunksize)
+			*to = fc->from + chunksize;
 
 		file_info_update(d, *from, *to, DL_CHUNK_BUSY);
 		goto selected;
@@ -4103,7 +4129,6 @@ file_info_find_available_hole(
 	filesize_t chunksize;
 	GSList *cklist;
 	gboolean cloned = FALSE;
-	gint src_count;
 
 	g_assert(d);
 	g_assert(ranges);
@@ -4179,12 +4204,7 @@ file_info_find_available_hole(
 	return FALSE;
 
 found:
-	src_count = fi->aqueued_count + fi->pqueued_count + fi->recvcount;
-	src_count = MAX(1, src_count);
-	chunksize = fi->size / src_count;
-
-	if (chunksize < dl_minchunksize) chunksize = dl_minchunksize;
-	if (chunksize > dl_maxchunksize) chunksize = dl_maxchunksize;
+	chunksize = fi_chunksize(fi);
 
 	if ((*to - *from) > chunksize)
 		*to = *from + chunksize;
