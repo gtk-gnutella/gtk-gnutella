@@ -3749,7 +3749,9 @@ file_info_pos_status(fileinfo_t *fi, filesize_t pos /* XXX,
 	}
 
 	if (pos > fi->size)
-		g_warning("file_info_pos_status(): Unreachable pos??");
+		g_warning("file_info_pos_status(): unreachable position %lu "
+			"in %lu-byte file \"%s\"", (gulong) pos, (gulong) fi->size,
+			fi->file_name);
 
 #if 0
 	if (start)
