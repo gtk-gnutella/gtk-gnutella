@@ -415,7 +415,7 @@ inputevt_timer(void)
 		
 		rl = g_hash_table_lookup(poll_ctx.ht, GINT_TO_POINTER(fd));
 		g_assert(NULL != rl);
-		g_assert((NULL != rl->sl) ^ (0 == rl->readers && 0 == rl->writers));
+		g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
 
 		for (sl = rl->sl; NULL != sl; /* NOTHING */) {
 			inputevt_relay_t *relay;
@@ -716,10 +716,8 @@ inputevt_add(gint fd, inputevt_cond_t cond,
 	inputevt_relay_t *relay = walloc(sizeof *relay);
 	gboolean ok;
 
-	relay->condition = cond;
-	relay->handler = handler;
-	relay->data = data;
-	relay->fd = fd;
+	g_assert(fd >= 0);
+	g_assert(zero_handler != handler);
 
 	switch (cond) {
 	case INPUT_EVENT_RX:
@@ -732,6 +730,11 @@ inputevt_add(gint fd, inputevt_cond_t cond,
 		g_error("must not specify INPUT_EVENT_EXCEPTION only!");
 	}
 	g_assert(ok);
+
+	relay->condition = cond;
+	relay->handler = handler;
+	relay->data = data;
+	relay->fd = fd;
 
 	return inputevt_add_source(fd, cond, relay);
 }
