@@ -221,28 +221,24 @@ update_poll_event(struct poll_ctx *poll_ctx, gint fd,
 	gint op;
 
 	old &= INPUT_EVENT_RW;
-	if ((INPUT_EVENT_RW & cur) == old)
+	cur &= INPUT_EVENT_RW;
+	if (cur == old)
 		return 0;
 
 	ev = zero_ev;
 	ev.data.ptr = GINT_TO_POINTER(fd);
 
-	if ((INPUT_EVENT_R & old) != (INPUT_EVENT_R & cur)) {
-		if (INPUT_EVENT_R & cur)
-			ev.events |= EPOLLIN | EPOLLPRI;
-	}
-	if ((INPUT_EVENT_W & old) != (INPUT_EVENT_W & cur)) {
-		if (INPUT_EVENT_W & cur)
-			ev.events |= EPOLLOUT;
-	}
+	if (INPUT_EVENT_R & cur)
+		ev.events |= EPOLLIN | EPOLLPRI;
+	if (INPUT_EVENT_W & cur)
+		ev.events |= EPOLLOUT;
 
-	if (0 != ev.events) {
-		op = 0 != old ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
-	} else if (0 != old) {
+	if (0 == old)
+		op = EPOLL_CTL_ADD;
+	else if (0 == cur)
 		op = EPOLL_CTL_DEL;
-	} else {
-		return 0;
-	}
+	else
+		op = EPOLL_CTL_MOD;
 
 	return epoll_ctl(poll_ctx->fd, op, fd, &ev);
 }
