@@ -268,6 +268,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bindtxtcode HAS_BIND_TEXTDOMAIN_CODESET		/**/
 
+/* HAS_EPOLL:
+ *	This symbol is defined when epoll() can be used.
+ */
+#$d_epoll HAS_EPOLL
+
 /* HAS_GETADDRINFO:
  *	This symbol is defined when getaddrinfo() can be used.
  */
@@ -298,6 +303,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	I_NETINET_IP is defined.
  */
 #$d_iptos USE_IP_TOS		/**/
+
+/* HAS_KQUEUE:
+ *	This symbol is defined when kqueue() can be used.
+ */
+#$d_kqueue HAS_KQUEUE
 
 /* HAS_MSGHDR_MSG_FLAGS:
  *	This symbol, if defined, indicates that struct msghdr has a
