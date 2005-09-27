@@ -1,10 +1,22 @@
 # since last version
 
+- (2005-09-27 - RAM)
+ * Flush pending download buffers at exit time.
+ * [GTK1] When download is done / checking SHA1 / moved, update parent's
+   status in case tree is collapsed.
+ * [GTK1] Always freeze the Active and Queue pane trees, updating them only
+   once per second, as controlled via main_gui_timer(), or when a button press
+ * Show SHA1 checking status and file moving feedback in the Download pane.
+ * Revisited chunk size computation: use a more realistic estimate of the
+   potential concurrency we'll get, and account for the shrinking size of
+   the remaining data to be downloaded.
+
 - (2005-09-26 - RAM)
  * Added "download_buffer_size" and "download_buffer_read_ahead" properties.
  * Buffer more data per download to avoid endless lseek()/write() system
    calls when swarming with lots of sources, and try to reduce filesystem
    fragmentation by writing more data at once.
+   was done that should trigger a display refresh.
 
 - (2005-09-25 - RAM)
  * Don't honour settings for monitoring node "bad IP / unstable" addresses
