@@ -5032,8 +5032,19 @@ download_write_data(struct download *d)
 	if (!should_flush) {
 		if (fi->use_swarming) {
 			status = file_info_pos_status(fi, d->pos + b->held);
-			if (status != DL_CHUNK_BUSY || d->pos + b->held >= d->range_end)
+			switch (status) {
+			case DL_CHUNK_BUSY:
+				if (d->pos + b->held >= d->range_end)
+					should_flush = TRUE;		/* Moving past our range */
+				break;
+			case DL_CHUNK_DONE:
+				/* May supersede old data in the buffered span -- that's OK */
 				should_flush = TRUE;
+				break;
+			case DL_CHUNK_EMPTY:
+				/* In virgin territory, continue buffering */
+				break;
+			}
 		} else if (FILE_INFO_COMPLETE_AFTER(fi, b->held))
 			should_flush = TRUE;
 	}
@@ -8760,8 +8771,10 @@ download_close(void)
 		g_assert(d != NULL);
 		if (DOWNLOAD_IS_VISIBLE(d))
 			gcu_download_gui_remove(d);
-		if (d->buffers)
+		if (d->buffers) {
+			download_flush(d, NULL, FALSE);
 			buffers_free(d);
+		}
 		if (d->push)
 			download_push_remove(d);
 		if (d->io_opaque)
