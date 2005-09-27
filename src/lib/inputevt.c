@@ -82,6 +82,8 @@ inputevt_cond_to_string(inputevt_cond_t cond)
 	CASE(INPUT_EVENT_W);
 	CASE(INPUT_EVENT_RX);
 	CASE(INPUT_EVENT_WX);
+	CASE(INPUT_EVENT_RW);
+	CASE(INPUT_EVENT_RWX);
 #undef CASE
 	}
 	return "?";
@@ -183,10 +185,14 @@ update_poll_event(struct poll_ctx *poll_ctx, gint fd,
 {
 	static const struct timespec zero_ts;
 	struct kevent kev[2];
-	size_t i = 0;
+	size_t i;
 	gulong udata;
 	gint ret;
 
+	if ((INPUT_EVENT_RW & old) == (INPUT_EVENT_RW & cur))
+		return 0;
+
+	i = 0;
 	udata = (gulong) GINT_TO_POINTER(fd);
 
 	if ((INPUT_EVENT_R & old) != (INPUT_EVENT_R & cur)) {
@@ -212,6 +218,9 @@ update_poll_event(struct poll_ctx *poll_ctx, gint fd,
 {
 	static const struct epoll_event zero_ev;
 	struct epoll_event ev;
+
+	if ((INPUT_EVENT_RW & old) == (INPUT_EVENT_RW & cur))
+		return 0;
 
 	ev = zero_ev;
 	ev.data.ptr = GINT_TO_POINTER(fd);
@@ -712,7 +721,6 @@ inputevt_add_source(inputevt_relay_t *relay)
 		}
 
 		if (
-			old != (relay->condition | old) &&
 			-1 == update_poll_event(poll_ctx, relay->fd,
 					old, (old | relay->condition))
 		) {
@@ -752,6 +760,8 @@ inputevt_add(gint fd, inputevt_cond_t cond,
 	case INPUT_EVENT_R:
 	case INPUT_EVENT_WX:
 	case INPUT_EVENT_W:
+	case INPUT_EVENT_RWX:
+	case INPUT_EVENT_RW:
 		ok = TRUE;
 		break;
 	case INPUT_EVENT_EXCEPTION:
