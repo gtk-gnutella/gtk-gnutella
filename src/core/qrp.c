@@ -3809,22 +3809,37 @@ qhvec_clone(const query_hashvec_t *qsrc)
 void
 qhvec_add(query_hashvec_t *qhvec, const gchar *word, enum query_hsrc src)
 {
-	struct query_hash *qh;
+	struct query_hash *qh = NULL;
 
 	if (qhvec->count >= qhvec->size)
 		return;
 
-	qh = &qhvec->vec[qhvec->count++];
-	qh->hashcode = qrp_hashcode(word);
-	qh->source = src;
-
 	/*
-	 * IF we add an URN, remember it, as we're going to route those
-	 * queries differently than those made of just words.
+	 * To make qrp_can_route() efficient, we put first the items that are
+	 * optional (URNs) and last items that are mandatory (a word not matching
+	 * means we don't have to continue since we AND words).  If we did not put
+	 * optional items first, we'd still have to loop through all the words
+	 * until we find an URN.  Also, a matching URN means we can route the
+	 * the query immediately.
 	 */
 
-	if (src == QUERY_H_URN)
+	switch (src) {
+	case QUERY_H_URN:			/* Prepend */
 		qhvec->has_urn = TRUE;
+		if (qhvec->count)
+			memmove(&qhvec->vec[1], &qhvec->vec[0],
+				qhvec->count * sizeof(qhvec->vec[0]));
+		qh = &qhvec->vec[0];
+		break;
+	case QUERY_H_WORD:			/* Append */
+		qh = &qhvec->vec[qhvec->count++];
+		break;
+	}
+
+	g_assert(qh != NULL);
+
+	qh->hashcode = qrp_hashcode(word);
+	qh->source = src;
 }
 
 /**
@@ -3833,12 +3848,13 @@ qhvec_add(query_hashvec_t *qhvec, const gchar *word, enum query_hsrc src)
  *
  * @param qhv			the query hit vector containing QRP hashes and types
  * @param rt			the routing table of the target node
+ *
+ * @note thie routine expects the query hash vector to be sorted with URNs
+ * coming first and words later.
  */
 static gboolean
 qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 {
-	gboolean can_route = TRUE;
-	gboolean sha1_in_qrt = FALSE;
 	struct query_hash *qh;
 	gint i;
 	gint bits;
@@ -3855,54 +3871,31 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 	arena = rt->arena;
 
 	for (i = qhv->count, qh = qhv->vec; i > 0; i--, qh++) {
-		guint32 idx;
-		enum query_hsrc source = qh->source;
+		guint32 idx = QRP_HASH_RESTRICT(qh->hashcode, bits);
 
-		/*
-		 * When "can_route" is FALSE, it means a word did not match
-		 * in the table, yet we did not return because the query has
-		 * URNs and we must make sure those will not match either.
-		 * But we can skip further word matches.
-		 */
-
-		if (!can_route && source == QUERY_H_WORD)
-			continue;
+		/* Tight loop -- g_assert(idx < (guint32) slots); */
 
 		/*
 		 * If there is an entry in the table and the source is an URN,
 		 * we have to forward the query, as those are OR-ed.
 		 * Otherwise, ALL the keywords must be present.
+		 *
+		 * When facing a SHA1 query, we require that at least one of the
+		 * URN matches or we don't forward the query.
 		 */
 
-		idx = QRP_HASH_RESTRICT(qh->hashcode, bits);
-
-		g_assert(idx < (guint32) slots);
-
 		if (RT_SLOT_READ(arena, idx)) {
-			if (source == QUERY_H_URN) {		/* URN present */
-				sha1_in_qrt = TRUE;
-				can_route = TRUE;				/* Force routing */
+			if (qh->source == QUERY_H_URN)		/* URN present */
 				break;							/* Will forward */
-			}
+			else if (qhv->has_urn)				/* We passed all the URNs */
+				return FALSE;					/* And none matched */
 		} else {
-			if (source == QUERY_H_WORD) {		/* Word NOT present */
-				if (!qhv->has_urn)				/* No URN to match against? */
-					return FALSE;				/* All words did not match */
-				can_route = FALSE;				/* A priori, don't route */
+			if (qh->source == QUERY_H_WORD) {	/* Word NOT present */
+				/* We know no URN matched already because qhv is sorted */
+				return FALSE;					/* All words did not match */
 			}
 		}
 	}
-
-	if (!can_route)
-		return FALSE;
-
-	/*
-	 * When facing a SHA1 query, if not at least one of the possibly
-	 * multiple SHA1 URN present did not match the QRT, don't forward.
-	 */
-
-	if (qhv->has_urn && !sha1_in_qrt)
-		return FALSE;
 
 	return TRUE;
 }
