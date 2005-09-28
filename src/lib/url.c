@@ -444,7 +444,6 @@ url_normalize(gchar *url, url_policy_t pol)
 	const gchar *p, *uri, *endptr, *tld = NULL;
 	gchar c, *q, *warn = NULL;
 	host_addr_t addr;
-	gint dots = 0;
 
 	g_assert(url);
 
@@ -473,6 +472,8 @@ url_normalize(gchar *url, url_policy_t pol)
 		q = deconstify_gchar(endptr);
 
 	} else {
+		size_t dots = 0;
+
 		/* The ``host'' part is not an IP address */
 
 		for (/* NOTHING */; *q != '\0'; q++) {
@@ -522,8 +523,7 @@ url_normalize(gchar *url, url_policy_t pol)
 
 	p = q;
 	if (':' == *q) {
-		guint16 port;
-		guint32 u;
+		guint32 port;
 		gint error;
 
 		q++; /* Skip ':' */
@@ -531,17 +531,15 @@ url_normalize(gchar *url, url_policy_t pol)
 		/* Reject port numbers with leading zeros */
 		if (!is_ascii_digit(*q) || '0' == *q) {
 			error = EINVAL;
-			u = 0;
+			port = 0;
 		} else {
-			u = parse_uint32(q, &endptr, 10, &error);
+			port = parse_uint32(q, &endptr, 10, &error);
 		}
 
-		if (error || u < 1 || u > 65535) {
+		if (error || port < 1 || port > 65535) {
 			warn = "':' MUST be followed a by port value (1-65535)";
 			goto bad;
 		}
-
-		port = (guint16) u;
 
 		if (!(URL_POLICY_ALLOW_ANY_PORT & pol) && 80 != port && port < 1024) {
 			warn = "Ports below 1024 other than 80 are disallowed";
