@@ -3832,12 +3832,13 @@ qhvec_add(query_hashvec_t *qhvec, const gchar *word, enum query_hsrc src)
 		qh = &qhvec->vec[0];
 		break;
 	case QUERY_H_WORD:			/* Append */
-		qh = &qhvec->vec[qhvec->count++];
+		qh = &qhvec->vec[qhvec->count];
 		break;
 	}
 
 	g_assert(qh != NULL);
 
+	qhvec->count++;
 	qh->hashcode = qrp_hashcode(word);
 	qh->source = src;
 }
