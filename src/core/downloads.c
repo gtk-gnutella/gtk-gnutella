@@ -815,9 +815,10 @@ buffers_strip_leading(struct download *d, size_t amount)
 		 * Shift back the current buffer by `amount' bytes.
 		 */
 
-		g_assert(held > amount);		/* Or we'd have exited above */
+		g_assert(i == 0 || held > amount);	/* Or we'd have exited above */
 
-		memmove(buf, buf + amount, held - amount);
+		if (held != amount)
+			memmove(buf, buf + amount, held - amount);
 
 		/*
 		 * Update current iov.
