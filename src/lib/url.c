@@ -43,10 +43,7 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-/**
- * @bug XXX -- needs to initialze the debug level of the lib functions -- RAM
- */
-static gboolean url_debug = TRUE;
+extern guint32 lib_debug;
 
 #define ESCAPE_CHAR		'%'
 #define TRANSPARENT_CHAR(x,m) \
@@ -404,13 +401,13 @@ url_safe_char(gchar c, url_policy_t p)
 	if (p & URL_POLICY_GWC_RULES) {
 		/* Reject allow anything unreasonable */
 		if (!isascii(c)) {
-			if (url_debug)
+			if (lib_debug)
 				g_warning("Non-ASCII character in GWC URL; rejected");
 			return FALSE;
 		}
 
     	if (!is_ascii_alnum(c) && NULL == strchr("/._-~", c)) {
-			if (url_debug)
+			if (lib_debug)
       			g_warning("Unsafe character in GWC URL; rejected");
       		return FALSE;
     	}
@@ -448,7 +445,7 @@ url_normalize(gchar *url, url_policy_t pol)
 	g_assert(url);
 
 	if (NULL == (q = is_strcaseprefix(url, http_prefix))) {
-		if (url_debug)
+		if (lib_debug)
 			g_warning("URL \"%s\" isn't preceded by \"%s\"", url, http_prefix);
 		return NULL;
 	}
@@ -506,7 +503,7 @@ url_normalize(gchar *url, url_policy_t pol)
 			} else if ('\0' == c || '/' == c || ':' == c) {
 				break;
 			} else {
-				if (url_debug)
+				if (lib_debug)
 					g_warning("Bad URL \"%s\": "
 						"invalid character '%c' in ``host:port'' part.",
 						url, is_ascii_print(c) ? c : '?');
@@ -621,13 +618,13 @@ url_normalize(gchar *url, url_policy_t pol)
 		url = s;
 	}
 
-	if (url_debug)
+	if (lib_debug > 1)
 		g_message("url=\"%s\"", url);
 
 	return url;
 
 bad:
-	if (url_debug)
+	if (lib_debug)
 		g_warning("invalid URL \"%s\": %s", url, warn);
 	return NULL;
 }
