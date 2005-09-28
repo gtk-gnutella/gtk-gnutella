@@ -83,7 +83,7 @@ RCSID("$Id$");
 #define DQ_PERCENT_KEPT		5		/**< Assume 5% of results kept, worst case */
 
 #define DQ_MAX_TTL			5		/**< Max TTL we can use */
-#define DQ_AVG_ULTRA_NODES	2		/**< Average # of ultranodes a leaf queries */
+#define DQ_AVG_ULTRA_NODES	2		/**< Avg # of ultranodes a leaf queries */
 
 #define DQ_MQ_EPSILON		2048	/**< Queues identical at +/- 2K */
 #define DQ_FUZZY_FACTOR		0.80	/**< Corrector for theoretical horizon */
@@ -93,6 +93,25 @@ RCSID("$Id$");
  * The "+2" skips the "speed" field in the query.
  */
 #define QUERY_TEXT(m)	((m) + sizeof(struct gnutella_header) + 2)
+
+/**
+ * Structure produced by dq_fill_next_up, representing the nodes to which
+ * we could send the query, along with routing information to be able to favor
+ * UPs that report a QRP match early in the querying process.
+ *
+ * Because we save the last array of nodes computed and sorted at each
+ * invocation of the querying steps (to avoid costly calls to the
+ * qrp_node_can_route() routine if possible), we store both the selected
+ * node ID (nodes can disappear between invocations but the ID is unique)
+ * and cache the result of qrp_node_can_route() calls into `can_route'.
+ */
+struct next_up {
+	gnutella_node_t *node;	/**< Selected node */
+	guint32 nid;			/**< Selected node ID */
+	query_hashvec_t *qhv;	/**< Query hash vector for the query */
+	gint can_route;			/**< -1 = unknown, otherwise TRUE / FALSE */
+	gint queue_pending;		/**< -1 = unknown, otherwise cached queue size */
+};
 
 /**
  * The dynamic query.
@@ -122,6 +141,9 @@ typedef struct dquery {
 	gpointer alive;			/**< Alive ping stats for computing timeouts */
 	time_t start;			/**< Time at which it started */
 	time_t stop;			/**< Time at which it was terminated */
+	struct next_up *nv;		/**< Previous "next UP vector" */
+	gint nvcount;			/**< Number of items allocated for `nv' */
+	gint nvfound;			/**< Valid entries in `nv' */
 	pmsg_t *by_ttl[DQ_MAX_TTL];	/**< Copied mesages, one for each TTL */
 } dquery_t;
 
@@ -175,18 +197,6 @@ struct pmsg_info {
 	guint32 node_id;		/**< The ID of the node we sent it to */
 	guint16 degree;			/**< The advertised degree of the destination node */
 	guint8 ttl;				/**< The TTL used for that query */
-};
-
-/**
- * Structure produced by dq_fill_next_up, representing the nodes to which
- * we could send the query, along with routing information to be able to favor
- * UPs that report a QRP match early in the querying process.
- */
-struct next_up {
-	gnutella_node_t *node;	/**< Selected node */
-	query_hashvec_t *qhv;	/**< Query hash vector for the query */
-	gint can_route;			/**< -1 = unknown, otherwise TRUE / FALSE */
-	gint queue_pending;		/**< -1 = unknown, otherwise cached queue size */
 };
 
 /*
@@ -334,7 +344,7 @@ dq_select_ttl(dquery_t *dq, gnutella_node_t *node, gint connections)
  * Create a pmsg_info structure, giving meta-information about the message
  * we're about to send.
  *
- * @param dq      DOCUMENT THIS!
+ * @param dq      the dynamic query
  * @param degree  the degree of the node to which the message is sent
  * @param ttl     the TTL at which the message is sent
  * @param node_id the ID of the node to which we send the message
@@ -514,7 +524,7 @@ dq_pmsg_by_ttl(dquery_t *dq, gint ttl)
 /**
  * Fill node vector with UP hosts to which we could send our probe query.
  *
- * @param dq     DOCUMENT THIS!
+ * @param dq     the dynamic query
  * @param nv     the pre-allocated node vector
  * @param ncount the size of the vector
  *
@@ -563,9 +573,9 @@ dq_fill_probe_up(dquery_t *dq, gnutella_node_t **nv, gint ncount)
 /**
  * Fill node vector with UP hosts to which we could send our next query.
  *
- * @param dq DOCUMENT THIS!
- * @param nv the pre-allocated node vector
- * @param ncount the size of the vector
+ * @param dq		the dynamic query
+ * @param nv		the pre-allocated new node vector
+ * @param ncount	the size of the vector
  *
  * @return amount of nodes we found.
  */
@@ -574,10 +584,33 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 {
 	const GSList *sl;
 	gint i = 0;
+	GHashTable *old = NULL;
+
+	/*
+	 * To save time and avoid too many calls to qrp_node_can_route(), we
+	 * look at a previous node vector that we could have filled and record
+	 * the associations between the node IDs and the "next_up" structure.
+	 */
+
+	if (dq->nv != NULL) {
+		gint j;
+
+		old = g_hash_table_new(NULL, NULL);
+
+		for (j = 0; j < dq->nvfound; j++) {
+			struct next_up *nup = &dq->nv[j];
+			g_hash_table_insert(old, GUINT_TO_POINTER(nup->nid), nup);
+		}
+	}
+
+	/*
+	 * Select candidate ultra peers for sending query.
+	 */
 
 	for (sl = node_all_nodes(); i < ncount && sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = (struct gnutella_node *) sl->data;
 		struct next_up *nup;
+		struct next_up *old_nup;
 
 		if (!NODE_IS_ULTRA(n) || !NODE_IS_WRITABLE(n))
 			continue;
@@ -605,10 +638,44 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 
 		nup = &nv[i++];
 
+		/*
+		 * If there's an old entry known for this node, copy its `can_route'
+		 * information, assuming it did not change since last time (reasonable
+		 * assumption, and we use this only for sorting so it's not critical
+		 * to not have it accurate).
+		 */
+
 		nup->node = n;
+		nup->nid = n->id;		/* To be able to compare later */
 		nup->qhv = dq->qhv;
-		nup->can_route = -1;		/* We don't know yet */
+
+		if (
+			old &&
+			(old_nup = g_hash_table_lookup(old, GUINT_TO_POINTER(n->id)))
+		) {
+			g_assert(n->id == old_nup->nid);
+			g_assert(n == old_nup->node);
+
+			nup->can_route = old_nup->can_route;
+		} else
+			nup->can_route = -1;	/* We don't know yet */
 	}
+
+	/*
+	 * Discard old vector and save new.
+	 */
+
+	if (old) {
+		g_assert(dq->nv != NULL);
+		g_assert(dq->nvcount);
+
+		wfree(dq->nv, dq->nvcount * sizeof dq->nv[0]);
+		g_hash_table_destroy(old);
+	}
+
+	dq->nv = nv;
+	dq->nvcount = ncount;
+	dq->nvfound = i;
 
 	return i;
 }
@@ -694,6 +761,11 @@ dq_free(dquery_t *dq)
 	g_hash_table_destroy(dq->queried);
 
 	qhvec_free(dq->qhv);
+
+	if (dq->nv != NULL) {
+		g_assert(dq->nvcount);
+		wfree(dq->nv, dq->nvcount * sizeof dq->nv[0]);
+	}
 
 	for (i = 0; i < DQ_MAX_TTL; i++) {
 		if (dq->by_ttl[i] != NULL)
@@ -1118,6 +1190,8 @@ dq_send_next(dquery_t *dq)
 	nv = walloc(ncount * sizeof(struct next_up));
 	found = dq_fill_next_up(dq, nv, ncount);
 
+	g_assert(dq->nv == nv);		/* Saved for next time */
+
 	if (dq_debug > 19)
 		printf("DQ[%d] still %d UP%s to query (results %sso far: %u)\n",
 			dq->qid, found, found == 1 ? "" : "s",
@@ -1125,7 +1199,7 @@ dq_send_next(dquery_t *dq)
 
 	if (found == 0) {
 		dq_terminate(dq);	/* Terminate query: no more UP to send it to */
-		goto cleanup;
+		return;
 	}
 
 	/*
@@ -1165,7 +1239,7 @@ dq_send_next(dquery_t *dq)
 
 	if (!sent) {
 		dq_terminate(dq);
-		goto cleanup;
+		return;
 	}
 
 	/*
@@ -1195,9 +1269,6 @@ dq_send_next(dquery_t *dq)
 			dq->qid, (gint) (tm_time() - dq->start), timeout, dq->pending);
 
 	dq->results_ev = cq_insert(callout_queue, timeout, dq_results_expired, dq);
-
-cleanup:
-	wfree(nv, ncount * sizeof(struct next_up));
 	return;
 
 terminate:
