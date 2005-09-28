@@ -541,6 +541,11 @@ url_normalize(gchar *url, url_policy_t pol)
 			goto bad;
 		}
 
+		if (!(URL_POLICY_ALLOW_ANY_PORT & pol) && 80 != port && port < 1024) {
+			warn = "Ports below 1024 other than 80 are disallowed";
+			goto bad;
+		}
+
 		port = (guint16) u;
 		p = endptr;
 		if (port == /* HTTP_PORT */ 80) {
