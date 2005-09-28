@@ -3124,7 +3124,6 @@ download_pick_available(struct download *d)
 
 	g_assert(d->ranges != NULL);
 
-
 	d->overlap_size = 0;
 	d->last_update = tm_time();
 
@@ -8780,7 +8779,8 @@ download_close(void)
 		if (DOWNLOAD_IS_VISIBLE(d))
 			gcu_download_gui_remove(d);
 		if (d->buffers) {
-			download_flush(d, NULL, FALSE);
+			if (d->buffers->held)
+				download_flush(d, NULL, FALSE);
 			buffers_free(d);
 		}
 		if (d->push)
