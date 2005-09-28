@@ -703,9 +703,11 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 		head->hops, MAX(head->ttl, 2), source);
 
 	if (dq_debug > 4)
-		g_message("DQ QRP %s (%d word/hash) forwarded to %d/%d leaves",
-			gmsg_infostr_full(payload), dq->qhv->count, g_slist_length(nodes),
-			node_leaf_count);
+		g_message("DQ QRP %s (%d word%s%s) forwarded to %d/%d leaves",
+			gmsg_infostr_full(payload), dq->qhv->count,
+			dq->qhv->count == 1 ? "" : "s",
+			dq->qhv->has_urn ? " + URN" : "",
+			g_slist_length(nodes), node_leaf_count);
 
 	gmsg_mb_sendto_all(nodes, dq->mb);
 
