@@ -46,7 +46,7 @@ RCSID("$Id$");
 /**
  * @bug XXX -- needs to initialze the debug level of the lib functions -- RAM
  */
-static gboolean url_debug = FALSE;
+static gboolean url_debug = TRUE;
 
 #define ESCAPE_CHAR		'%'
 #define TRANSPARENT_CHAR(x,m) \
@@ -444,7 +444,6 @@ url_normalize(gchar *url, url_policy_t pol)
 	const gchar *p, *uri, *endptr, *tld = NULL;
 	gchar c, *q, *warn = NULL;
 	host_addr_t addr;
-	guint16 port = 0;
 	gint dots = 0;
 
 	g_assert(url);
@@ -523,6 +522,7 @@ url_normalize(gchar *url, url_policy_t pol)
 
 	p = q;
 	if (':' == *q) {
+		guint16 port;
 		guint32 u;
 		gint error;
 
@@ -541,12 +541,13 @@ url_normalize(gchar *url, url_policy_t pol)
 			goto bad;
 		}
 
+		port = (guint16) u;
+
 		if (!(URL_POLICY_ALLOW_ANY_PORT & pol) && 80 != port && port < 1024) {
 			warn = "Ports below 1024 other than 80 are disallowed";
 			goto bad;
 		}
 
-		port = (guint16) u;
 		p = endptr;
 		if (port == /* HTTP_PORT */ 80) {
 			/* We don't want the default port in a URL;
