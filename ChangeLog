@@ -1,5 +1,9 @@
 # since last version
 
+- (2005-09-28 - RAM)
+ * At exit time, one must not try to flush download buffers holding nothing.
+ * Performance improvement, especially when running as ultra peer.
+
 - (2005-09-27 - RAM)
  * Flush pending download buffers at exit time.
  * [GTK1] When download is done / checking SHA1 / moved, update parent's
