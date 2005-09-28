@@ -739,11 +739,13 @@ qrt_create(const gchar *name, gchar *arena, gint slots, gint max)
 
 	qrt_compact(rt);
 
-	rt->digest = atom_sha1_get(qrt_sha1(rt));
+	if (qrp_debug > 2)
+		rt->digest = atom_sha1_get(qrt_sha1(rt));
 
 	if (qrp_debug > 1)
 		g_message("QRP \"%s\" ready: gen=%d, slots=%d, SHA1=%s",
-			rt->name, rt->generation, rt->slots, sha1_base32(rt->digest));
+			rt->name, rt->generation, rt->slots,
+			rt->digest ? sha1_base32(rt->digest) : "<not computed>");
 
 	return rt;
 }
@@ -2921,9 +2923,8 @@ qrt_apply_patch(struct qrt_receive *qrcv, guchar *data, gint len)
 	if (qrcv->current_index >= rt->slots) {
 		struct gnutella_node *n = qrcv->node;
 		g_warning("%s node %s <%s> overflowed its QRP patch of %s slots"
-			" (spurious message?)",
-			NODE_IS_LEAF(n) ? "leaf" : "ultra",
-			node_addr(n), node_vendor(n), compact_size(rt->client_slots));
+			" (spurious message?)", node_type(n), node_addr(n), node_vendor(n),
+			compact_size(rt->client_slots));
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
 			compact_size(rt->client_slots));
 		return FALSE;
@@ -3095,8 +3096,7 @@ qrt_apply_patch(struct qrt_receive *qrcv, guchar *data, gint len)
 					struct gnutella_node *n = qrcv->node;
 					g_warning(
 						"%s node %s <%s> overflowed its QRP patch of %s slots",
-						NODE_IS_LEAF(n) ? "leaf" : "ultra",
-						node_addr(n), node_vendor(n),
+						node_type(n), node_addr(n), node_vendor(n),
 						compact_size(rt->client_slots));
 					node_bye_if_writable(n, 413,
 						"QRP patch overflowed table (%s slots)",
@@ -3258,8 +3258,9 @@ qrt_handle_patch(
 	 */
 
 	if (patch->seq_no != qrcv->seqno) {
-		g_warning("node %s <%s> sent us invalid QRP seqno %u (expected %u)",
-			node_addr(n), node_vendor(n), (guint) patch->seq_no, qrcv->seqno);
+		g_warning("%s node %s <%s> sent us invalid QRP seqno %u (expected %u)",
+			node_type(n), node_addr(n), node_vendor(n),
+			(guint) patch->seq_no, qrcv->seqno);
 		node_bye_if_writable(n, 413, "Invalid QRP seq number %u (expected %u)",
 			(guint) patch->seq_no, qrcv->seqno);
 		return FALSE;
@@ -3309,8 +3310,7 @@ qrt_handle_patch(
 	if (qrcv->entry_bits != patch->entry_bits) {
 		g_warning("%s node %s <%s> changed QRP patch entry bits to %u "
 			"at message #%d (started with %u)",
-			NODE_IS_LEAF(n) ? "leaf" : "ultra",
-			node_addr(n), node_vendor(n),
+			node_type(n), node_addr(n), node_vendor(n),
 			(guint) patch->entry_bits, qrcv->seqno, qrcv->entry_bits);
 		node_bye_if_writable(n, 413,
 			"Changed QRP patch entry bits to %u at message #%d (began with %u)",
@@ -3347,8 +3347,8 @@ qrt_handle_patch(
 				g_warning("decompression of QRP patch #%u/%u failed for "
 					"%s node %s <%s>: %s",
 					(guint) patch->seq_no, (guint) patch->seq_size,
-					NODE_IS_LEAF(n) ? "leaf" : "ultra",
-					node_addr(n), node_vendor(n), zlib_strerror(ret));
+					node_type(n), node_addr(n), node_vendor(n),
+					zlib_strerror(ret));
 				node_bye_if_writable(n, 413,
 					"QRP patch #%u/%u decompression failed: %s",
 					(guint) patch->seq_no, (guint) patch->seq_size,
@@ -3372,8 +3372,7 @@ qrt_handle_patch(
 			g_warning("saw end of compressed QRP patch at #%u/%u for "
 				"%s node %s <%s>",
 				(guint) patch->seq_no, (guint) patch->seq_size,
-				NODE_IS_LEAF(n) ? "leaf" : "ultra",
-				node_addr(n), node_vendor(n));
+				node_type(n), node_addr(n), node_vendor(n));
 			node_bye_if_writable(n, 413,
 				"Early end of compressed QRP patch at #%u/%u",
 				(guint) patch->seq_no, (guint) patch->seq_size);
@@ -3400,7 +3399,7 @@ qrt_handle_patch(
 		if (qrcv->current_index < rt->slots) {
 			g_warning("QRP %d-bit patch from %s node %s <%s> covered only "
 				"%d/%d slots",
-				qrcv->entry_bits, NODE_IS_LEAF(n) ? "leaf" : "ultra",
+				qrcv->entry_bits, node_type(n),
 				node_addr(n), node_vendor(n), qrcv->current_index, rt->slots);
 			node_bye_if_writable(n, 413,
 				"Incomplete %d-bit QRP patch covered %d/%d slots",
@@ -3410,10 +3409,14 @@ qrt_handle_patch(
 
 		g_assert(qrcv->current_index == rt->slots);
 
-		if (rt->digest)
+		if (rt->digest) {
 			atom_sha1_free(rt->digest);
+			rt->digest = NULL;
+		}
 
-		rt->digest = atom_sha1_get(qrt_sha1(rt));
+		if (qrp_debug > 2)
+			rt->digest = atom_sha1_get(qrt_sha1(rt));
+
 		rt->fill_ratio = (gint) (100.0 * rt->set_count / rt->slots);
 
 		/*
@@ -3449,10 +3452,11 @@ qrt_handle_patch(
 		if (qrp_debug > 2)
 			g_message("QRP got whole %d-bit patch "
 				"(gen=%d, slots=%d (*%d), fill=%d%%, throw=%d) "
-				"from %s <%s>: SHA1=%s",
+				"from %s %s <%s>: SHA1=%s",
 				qrcv->entry_bits, rt->generation, rt->slots,
 				qrcv->shrink_factor, rt->fill_ratio, rt->pass_throw,
-				node_addr(n), node_vendor(n), sha1_base32(rt->digest));
+				node_type(n), node_addr(n), node_vendor(n),
+				rt->digest ? sha1_base32(rt->digest) : "<not computed>");
 
 		/*
 		 * Install the table in the node, if it was a generation 0 table.
@@ -3859,7 +3863,6 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 	struct query_hash *qh;
 	gint i;
 	gint bits;
-	gint slots;
 	guint8 *arena;
 
 	/*
@@ -3868,13 +3871,12 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 	 */
 
 	bits = rt->bits;
-	slots = rt->slots;
 	arena = rt->arena;
 
 	for (i = qhv->count, qh = qhv->vec; i > 0; i--, qh++) {
 		guint32 idx = QRP_HASH_RESTRICT(qh->hashcode, bits);
 
-		/* Tight loop -- g_assert(idx < (guint32) slots); */
+		/* Tight loop -- g_assert(idx < (guint32) rt->slots); */
 
 		/*
 		 * If there is an entry in the table and the source is an URN,
@@ -3887,7 +3889,7 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 
 		if (RT_SLOT_READ(arena, idx)) {
 			if (qh->source == QUERY_H_URN)		/* URN present */
-				break;							/* Will forward */
+				return TRUE;					/* Will forward */
 			else if (qhv->has_urn)				/* We passed all the URNs */
 				return FALSE;					/* And none matched */
 		} else {
@@ -3898,7 +3900,12 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 		}
 	}
 
-	return TRUE;
+	/*
+	 * If we had no URN, all the words matched, so route query!
+	 * If we had some URNs, none matched so don't forward.
+	 */
+
+	return !qhv->has_urn;
 }
 
 /**
@@ -4102,8 +4109,10 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 		}
 
 		g_message(
-			"QRP %s (%d word/hash) forwarded to %d/%d leaves, %d ultra%s",
-			gmsg_infostr(&n->header), qhvec->count, leaves, node_leaf_count,
+			"QRP %s (%d word%s%s) forwarded to %d/%d leaves, %d ultra%s",
+			gmsg_infostr(&n->header),
+			qhvec->count, qhvec->count == 1 ? "" : "s",
+			qhvec->has_urn ? " + URN" : "", leaves, node_leaf_count,
 			ultras, ultras == 1 ? "" : "s");
 	}
 
