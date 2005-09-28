@@ -257,7 +257,7 @@ typedef struct gnutella_node {
 	guint32 rx_qhits;			/**< Total amount of hits received */
 	guint32 tx_qhits;			/**< Total amount of hits sent */
 
-	hsep_ctx_t *hsep;	/**< Horizon size estimation (HSEP) -- TSC, 11/02/2004. */
+	hsep_ctx_t *hsep;	/**< Horizon size estimation (HSEP) -- TSC, 11/02/2004 */
 
 } gnutella_node_t;
 
@@ -265,56 +265,56 @@ typedef struct gnutella_node {
  * Node flags.
  */
 
-#define NODE_F_HDSK_PING	0x00000001	/**< Expecting handshake ping */
-#define NODE_F_STALE_QRP	0x00000002	/**< Is sending a stale QRP patch */
-#define NODE_F_INCOMING		0x00000004	/**< Incoming (permanent) connection */
-#define NODE_F_ESTABLISHED	0x00000008	/**< Gnutella connection established */
-#define NODE_F_VALID		0x00000010	/**< We handshaked with a Gnutella node */
-#define NODE_F_ALIEN_IP		0x00000020	/**< Pong-IP does not match TCP/IP addr */
-#define NODE_F_WRITABLE		0x00000040	/**< Node is writable */
-#define NODE_F_READABLE		0x00000080	/**< Node is readable, process queries */
-#define NODE_F_BYE_SENT		0x00000100	/**< Bye message was queued */
-#define NODE_F_NODELAY		0x00000200	/**< TCP_NODELAY was activated */
-#define NODE_F_NOREAD		0x00000400	/**< Prevent further reading from node */
-#define NODE_F_EOF_WAIT		0x00000800	/**< During final shutdown, waiting EOF */
-#define NODE_F_CLOSING		0x00001000	/**< Initiated bye or shutdown */
-#define NODE_F_ULTRA		0x00002000	/**< Is one of our ultra nodes */
-#define NODE_F_LEAF			0x00004000	/**< Is one of our leaves */
-#define NODE_F_CRAWLER		0x00008000	/**< Is a Gnutella Crawler */
-#define NODE_F_FAKE_NAME	0x00010000	/**< Was unable to validate GTKG name */
-#define NODE_F_PROXY		0x00020000	/**< We sent a push-proxy request to it */
-#define NODE_F_PROXIED		0x00040000	/**< We are the push-proxy of that node */
-#define NODE_F_QRP_SENT		0x00080000	/**< Undergone one complete QRP sending */
-#define NODE_F_TLS			0x00100000	/**< TLS-tunneled */
-#define NODE_F_TSYNC_WAIT	0x00200000	/**< Time sync pending via TCP */
-#define NODE_F_TSYNC_TCP	0x00400000	/**< No replies via UDP, use TCP */
-#define NODE_F_GTKG			0x00800000	/**< Node is another gtk-gnutella */
+#define NODE_F_HDSK_PING	0x00000001 /**< Expecting handshake ping */
+#define NODE_F_STALE_QRP	0x00000002 /**< Is sending a stale QRP patch */
+#define NODE_F_INCOMING		0x00000004 /**< Incoming (permanent) connection */
+#define NODE_F_ESTABLISHED	0x00000008 /**< Gnutella connection established */
+#define NODE_F_VALID		0x00000010 /**< Handshaked with a Gnutella node */
+#define NODE_F_ALIEN_IP		0x00000020 /**< Pong-IP did not match TCP/IP addr */
+#define NODE_F_WRITABLE		0x00000040 /**< Node is writable */
+#define NODE_F_READABLE		0x00000080 /**< Node is readable, process queries */
+#define NODE_F_BYE_SENT		0x00000100 /**< Bye message was queued */
+#define NODE_F_NODELAY		0x00000200 /**< TCP_NODELAY was activated */
+#define NODE_F_NOREAD		0x00000400 /**< Prevent further reading from node */
+#define NODE_F_EOF_WAIT		0x00000800 /**< At final shutdown, waiting EOF */
+#define NODE_F_CLOSING		0x00001000 /**< Initiated bye or shutdown */
+#define NODE_F_ULTRA		0x00002000 /**< Is one of our ultra nodes */
+#define NODE_F_LEAF			0x00004000 /**< Is one of our leaves */
+#define NODE_F_CRAWLER		0x00008000 /**< Is a Gnutella Crawler */
+#define NODE_F_FAKE_NAME	0x00010000 /**< Was unable to validate GTKG name */
+#define NODE_F_PROXY		0x00020000 /**< Sent a push-proxy request to it */
+#define NODE_F_PROXIED		0x00040000 /**< We are push-proxy for that node */
+#define NODE_F_QRP_SENT		0x00080000 /**< Undergone 1 complete QRP sending */
+#define NODE_F_TLS			0x00100000 /**< TLS-tunneled */
+#define NODE_F_TSYNC_WAIT	0x00200000 /**< Time sync pending via TCP */
+#define NODE_F_TSYNC_TCP	0x00400000 /**< No replies via UDP, use TCP */
+#define NODE_F_GTKG			0x00800000 /**< Node is another gtk-gnutella */
 
 /*
  * Node attributes.
  */
 
-#define NODE_A_BYE_PACKET	0x00000001	/**< Supports Bye-Packet */
-#define NODE_A_PONG_CACHING	0x00000002	/**< Supports Pong-Caching */
-#define NODE_A_PONG_ALIEN	0x00000004	/**< Alien Pong-Caching scheme */
-#define NODE_A_QHD_NO_VTAG	0x00000008	/**< Servent has no vendor tag in QHD */
-#define NODE_A_RX_INFLATE	0x00000010	/**< Reading compressed data */
-#define NODE_A_TX_DEFLATE	0x00000020	/**< Sending compressed data */
-#define NODE_A_ULTRA		0x00000040	/**< Node wants to be an Ultrapeer */
-#define NODE_A_NO_ULTRA		0x00000080	/**< Node is NOT ultra capable */
-#define NODE_A_UP_QRP		0x00000100	/**< Supports intra-UP QRP */
-#define NODE_A_LEAF_GUIDE	0x00000200	/**< Supports leaf-guided dyn queries */
-#define NODE_A_TIME_SYNC	0x00000400	/**< Supports time sync */
-#define NODE_A_CRAWLABLE	0x00000800	/**< Node can be UDP-crawled */
-#define NODE_A_DYN_QUERY	0x00001000	/**< Node can perform dynamic queries */
-
-#define NODE_A_CAN_HSEP		0x04000000	/**< Node supports HSEP */
-#define NODE_A_CAN_QRP		0x08000000	/**< Node supports query routing */
-#define NODE_A_CAN_VENDOR	0x10000000	/**< Node supports vendor messages */
-#define NODE_A_CAN_GGEP		0x20000000	/**< Node supports big pongs, etc.. */
-#define NODE_A_CAN_ULTRA	0x40000000	/**< Node is ultra capable */
-#define NODE_A_CAN_INFLATE	0x80000000	/**< Node capable of inflating */
-
+#define NODE_A_BYE_PACKET	0x00000001 /**< Supports Bye-Packet */
+#define NODE_A_PONG_CACHING	0x00000002 /**< Supports Pong-Caching */
+#define NODE_A_PONG_ALIEN	0x00000004 /**< Alien Pong-Caching scheme */
+#define NODE_A_QHD_NO_VTAG	0x00000008 /**< Servent has no vendor tag in QHD */
+#define NODE_A_RX_INFLATE	0x00000010 /**< Reading compressed data */
+#define NODE_A_TX_DEFLATE	0x00000020 /**< Sending compressed data */
+#define NODE_A_ULTRA		0x00000040 /**< Node wants to be an Ultrapeer */
+#define NODE_A_NO_ULTRA		0x00000080 /**< Node is NOT ultra capable */
+#define NODE_A_UP_QRP		0x00000100 /**< Supports intra-UP QRP */
+#define NODE_A_LEAF_GUIDE	0x00000200 /**< Supports leaf-guided dyn queries */
+#define NODE_A_TIME_SYNC	0x00000400 /**< Supports time sync */
+#define NODE_A_CRAWLABLE	0x00000800 /**< Node can be UDP-crawled */
+#define NODE_A_DYN_QUERY	0x00001000 /**< Node can perform dynamic queries */
+ 
+#define NODE_A_CAN_HSEP		0x04000000 /**< Node supports HSEP */
+#define NODE_A_CAN_QRP		0x08000000 /**< Node supports query routing */
+#define NODE_A_CAN_VENDOR	0x10000000 /**< Node supports vendor messages */
+#define NODE_A_CAN_GGEP		0x20000000 /**< Node supports big pongs, etc.. */
+#define NODE_A_CAN_ULTRA	0x40000000 /**< Node is ultra capable */
+#define NODE_A_CAN_INFLATE	0x80000000 /**< Node capable of inflating */
+ 
 /*
  * UDP crawling "feature" flags.
  */
@@ -418,6 +418,8 @@ typedef struct gnutella_node {
  */
 
 #define node_vendor(n)		((n)->vendor != NULL ? (n)->vendor : "????")
+#define node_type(n)		\
+	(NODE_IS_LEAF(n) ? "leaf" : NODE_IS_ULTRA(n) ? "ultra" : "legacy")
 
 #define node_inc_sent(n)            node_add_sent(n, 1)
 #define node_inc_txdrop(n)          node_add_txdrop(n, 1)
