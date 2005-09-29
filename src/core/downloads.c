@@ -807,6 +807,19 @@ buffers_strip_leading(struct download *d, size_t amount)
 			if (held <= amount) {
 				iov->iov_len = SOCK_BUFSZ;
 				iov->iov_base = buf;
+
+				/*
+				 * If there is room left in the previous buffer and the
+				 * current I/O vector is not the previous one, update it.
+				 */
+
+				if (piov->iov_len && b->iov_cur != piov) {
+					g_assert(b->iov_cur == iov);
+
+					b->iov_cur = piov;
+					b->iovcnt++;
+				}
+
 				break;
 			}
 		}
