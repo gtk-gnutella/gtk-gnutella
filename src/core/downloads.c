@@ -3093,8 +3093,8 @@ download_pick_chunk(struct download *d)
 
 	status = file_info_find_hole(d, &from, &to);
 
-	if (status == DL_CHUNK_EMPTY) {
-
+	switch (status) {
+	case DL_CHUNK_EMPTY:
 		d->skip = d->pos = from;
 		d->size = to - from;
 
@@ -3104,14 +3104,11 @@ download_pick_chunk(struct download *d)
 				from - download_overlap_range, from) == DL_CHUNK_DONE
 		)
 			d->overlap_size = download_overlap_range;
-
-	} else if (status == DL_CHUNK_BUSY) {
-
+		break;
+	case DL_CHUNK_BUSY:
 		download_queue_delay(d, 10, _("Waiting for a free chunk"));
 		return FALSE;
-
-	} else if (status == DL_CHUNK_DONE) {
-
+	case DL_CHUNK_DONE:
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			gcu_download_gui_add(d);
 
