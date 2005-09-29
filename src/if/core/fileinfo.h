@@ -37,9 +37,9 @@ struct download;
  * These used to be in fileinfo.h, but we need them now at several places.
  */
 enum dl_chunk_status {
-    DL_CHUNK_EMPTY = 0,
-    DL_CHUNK_BUSY  = 1,
-    DL_CHUNK_DONE  = 2
+    DL_CHUNK_EMPTY = 0,			/**< No data available yet */
+    DL_CHUNK_BUSY  = 1,			/**< Being downloaded */
+    DL_CHUNK_DONE  = 2,			/**< Downloaded */
 };
 
 typedef guint32 gnet_fi_t;
