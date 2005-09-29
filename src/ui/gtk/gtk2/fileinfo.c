@@ -300,10 +300,18 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
     titles[c_fi_idone] = GUINT_TO_POINTER(idone);
 
     if (s.recvcount) {
-		titles[c_fi_istatus] = GUINT_TO_POINTER(3 * 100 + idone_percent);
-		gm_snprintf(fi_status, sizeof(fi_status),
-            _("Downloading (%s)"), short_rate(s.recv_last_rate));
+		guint32 secs = 0;
+
+		if (s.recv_last_rate)
+			secs = (s.size - s.done) / s.recv_last_rate;
+
+        gm_snprintf(fi_status, sizeof(fi_status),
+            _("Downloading (%s)  TR: %s"),
+			short_rate(s.recv_last_rate),
+			secs ? short_time(secs) : "-");
+
         titles[c_fi_status] = fi_status;
+		titles[c_fi_istatus] = GUINT_TO_POINTER(3 * 100 + idone_percent);
     } else if (s.done == s.size) {
 		gint rw;
 
