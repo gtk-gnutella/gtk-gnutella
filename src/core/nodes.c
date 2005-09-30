@@ -3265,13 +3265,13 @@ node_got_bye(struct gnutella_node *n)
 	/*
 	 * Codes are supposed to be 2xx, 4xx or 5xx.
 	 *
-	 * But GnucDNA is bugged enough to forget about the code and
-	 * starts to emit the message right away.  Fortunately, we can
+	 * But older GnucDNA wer bugged enough to forget about the code and
+	 * started to emit the message right away.  Fortunately, we can
 	 * detect this because the two ASCII bytes will make the code
 	 * appear out of range...  We force code 901 when we detect and
 	 * correct this bug.
 	 *
-	 *		--RAM, 2004-10-19
+	 *		--RAM, 2004-10-19, revised 2005-09-30
 	 */
 
 	if (code > 999) {
@@ -3295,7 +3295,7 @@ node_got_bye(struct gnutella_node *n)
 		c = *p;
 		if (c == '\0') {			/* NUL marks the end of the message */
 			if (node_debug && cnt != message_len - 1)
-				g_warning("Bye message %u from %s <%s> has early NUL",
+				g_warning("BYE message %u from %s <%s> has early NUL",
 					code, node_addr(n), node_vendor(n));
 			break;
 		} else if (c == '\r') {
@@ -3314,7 +3314,7 @@ node_got_bye(struct gnutella_node *n)
 		if (c && c < ' ' && !warned) {
 			warned = TRUE;
 			if (node_debug)
-				g_warning("Bye message %u from %s <%s> contains control chars",
+				g_warning("BYE message %u from %s <%s> contains control chars",
 					code, node_addr(n), node_vendor(n));
 		}
 	}
@@ -3327,12 +3327,12 @@ node_got_bye(struct gnutella_node *n)
 	}
 
 	if (node_debug)
-		g_warning("node %s (%s) sent us BYE %d %.*s",
-			node_addr(n), node_vendor(n), code, (int) MIN(80, message_len),
-				message);
+		g_warning("%s node %s (%s) sent us BYE %d %.*s",
+			node_type(n), node_addr(n), node_vendor(n),
+			code, (int) MIN(120, message_len), message);
 
-	node_remove(n, _("Got BYE %d %.*s"), code, (int) MIN(80, message_len),
-		message);
+	node_remove(n, _("Got BYE %d %.*s"), code,
+		(int) MIN(120, message_len), message);
 }
 
 
