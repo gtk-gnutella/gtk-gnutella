@@ -245,6 +245,48 @@ gtk_gnutella_atexit(void)
 }
 
 /**
+ * Log cpu used since last time.
+ *
+ * @param since_time	time at which the measurement period started, updated
+ * @param prev_user		previous total user time, updated if not NULL
+ * @param prev_sys		previous total system time, updated if not NULL
+ */
+static void
+log_cpu_usage(tm_t *since_time, gdouble *prev_user, gdouble *prev_sys)
+{
+	gdouble user;
+	gdouble sys;
+	gdouble total;
+	tm_t cur_time;
+	tm_t elapsed_time;
+	gdouble elapsed;
+
+	tm_now_exact(&cur_time);
+	total = tm_cputime(&user, &sys);
+	if (prev_user) {
+		gdouble v = *prev_user;
+		*prev_user = user;
+		user -= v;
+		total -= v;
+	}
+	if (prev_sys) {
+		gdouble v = *prev_sys;
+		*prev_sys = sys;
+		sys -= v;
+		total -= v;
+	}
+
+	tm_elapsed(&elapsed_time, &cur_time, since_time);
+	elapsed = tm2f(&elapsed_time);
+	*since_time = cur_time;
+
+	g_message("average CPU used: %.3f%% over %.2f secs",
+		100.0 * total / elapsed, elapsed);
+	g_message("CPU usage: total = %.2f secs (user = %.2f, sys = %.2f)",
+		total, user, sys);
+}
+
+/**
  * Exit program, return status `n' to parent process.
  *
  * Shutdown systems, so we can track memory leaks, and wait for EXIT_GRACE
@@ -321,25 +363,9 @@ gtk_gnutella_exit(gint n)
 	 * we start the grace period...
 	 */
 
-	{
-		gdouble user;
-		gdouble sys;
-		gdouble total;
-		tm_t end_time;
-		tm_t elapsed_time;
-		gdouble elapsed;
-
-		tm_now_exact(&end_time);
-		total = tm_cputime(&user, &sys);
-
-		tm_elapsed(&elapsed_time, &end_time, &start_time);
-		elapsed = tm2f(&elapsed_time);
-
-		if (debugging(0)) {
-			g_message("CPU time: total = %.2f secs (user = %.2f, sys = %.2f)",
-				total, user, sys);
-			g_message("average CPU used: %.3f%%", 100.0 * total / elapsed);
-		}
+	if (debugging(0)) {
+		tm_t since = start_time;
+		log_cpu_usage(&since, NULL, NULL);
 	}
 
 	/*
@@ -439,6 +465,16 @@ slow_main_timer(time_t now)
 	static guint i = 0;
 	static time_t last_warn = 0;
 
+	if (debugging(0)) {
+		static tm_t since = { 0, 0 };
+		static gdouble user = 0.0;
+		static gdouble sys = 0.0;
+
+		if (since.tv_sec == 0)
+			since = start_time;
+
+		log_cpu_usage(&since, &user, &sys);
+	}
 
 	switch (i) {
 	case 0:
@@ -492,7 +528,8 @@ check_cpu_usage(void)
 	static tm_t last_tm;
 	static gdouble last_cpu = 0.0;
 	static gint ticks = 0;
-	static gint load_avg = 0;
+	static gint load_avg = 0;		/* 100 * cpu% for integer arithmetic */
+	static gint avg = 0;			/* cpu% */
 	tm_t cur_tm;
 	tm_t elapsed_tm;
 	gint load = 0;
@@ -538,12 +575,13 @@ check_cpu_usage(void)
 	else if (coverage <= 0.5)
 		cpu_percent *= 1.5;
 
-	load = (gint) cpu_percent;
+	load = (gint) cpu_percent * 100;
 	load_avg += (load >> 3) - (load_avg >> 3);
+	avg = load_avg / 100;
 
 	if (dbg > 1 && last_cpu)
 		g_message("CPU: %.3f secs in %.3f secs (~%.3f%% @ cover=%.2f) avg=%d%%",
-			cpu - last_cpu, elapsed, cpu_percent, coverage, load_avg);
+			cpu - last_cpu, elapsed, cpu_percent, coverage, avg);
 
 	/*
 	 * Update for next time.
@@ -558,15 +596,15 @@ check_cpu_usage(void)
 	 * the average load enough to disable the "overloaded" condition.
 	 */
 
-	if (load_avg >= LOAD_HIGH_WATERMARK && !overloaded_cpu) {
+	if (avg >= LOAD_HIGH_WATERMARK && !overloaded_cpu) {
 		if (debugging(0))
 			g_message("high average CPU load (%d%%), entering overloaded state",
-				load_avg);
+				avg);
 		gnet_prop_set_boolean_val(PROP_OVERLOADED_CPU, TRUE);
-	} else if (overloaded_cpu && load_avg < LOAD_LOW_WATERMARK) {
+	} else if (overloaded_cpu && avg < LOAD_LOW_WATERMARK) {
 		if (debugging(0))
 			g_message("average CPU load (%d%%) low, leaving overloaded state",
-				load_avg);
+				avg);
 		gnet_prop_set_boolean_val(PROP_OVERLOADED_CPU, FALSE);
 	}
 
