@@ -537,6 +537,23 @@ dispatch_poll(GIOChannel *unused_source,
 	return TRUE;
 }
 
+/**
+ * @todo TODO:
+ *
+ * epoll/kqueue automagically unregister events on close(). Therefore, we
+ * should indicate when we are going to close() a file descriptor. This
+ * way, we don't need to call kevent() resp. epoll_ctl(..., EPOLL_CTL_DEL, ...)
+ * to unregister the event. We only need to remove the handler for it, just
+ * in case that are still non-dispatched events before the descriptor is
+ * finally close()d.
+ *
+ * For kqueue it might be possible to queue up kevent changes until the
+ * next kevent() polling call but use the above mentioned hinting to
+ * flush the kevent calls. This useful because unlike epoll, kqueue allows to
+ * add/modify/delete multiple events per syscall. The knowledge about closed
+ * descriptors is necessary as kevent() fails with EBADF otherwise and it
+ * must be kept in mind, that file descriptor numbers are recycled.
+ */
 void
 inputevt_remove(guint id)
 {
