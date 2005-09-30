@@ -3864,6 +3864,7 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 	gint i;
 	gint bits;
 	guint8 *arena;
+	gboolean has_urn;
 
 	/*
 	 * This routine is a hot spot when running as an ultra node.
@@ -3872,6 +3873,7 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 
 	bits = rt->bits;
 	arena = rt->arena;
+	has_urn = qhv->has_urn;
 
 	for (i = qhv->count, qh = qhv->vec; i > 0; i--, qh++) {
 		guint32 idx = QRP_HASH_RESTRICT(qh->hashcode, bits);
@@ -3890,7 +3892,7 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 		if (RT_SLOT_READ(arena, idx)) {
 			if (qh->source == QUERY_H_URN)		/* URN present */
 				return TRUE;					/* Will forward */
-			else if (qhv->has_urn)				/* We passed all the URNs */
+			else if (has_urn)					/* We passed all the URNs */
 				return FALSE;					/* And none matched */
 		} else {
 			if (qh->source == QUERY_H_WORD) {	/* Word NOT present */
@@ -3905,7 +3907,7 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 	 * If we had some URNs, none matched so don't forward.
 	 */
 
-	return !qhv->has_urn;
+	return !has_urn;
 }
 
 /**
@@ -3985,14 +3987,15 @@ qrt_build_query_target(
 		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
 		struct routing_table *rt =
 			(struct routing_table *) dn->recv_query_table;
+		gboolean is_leaf;
 
-		if (dn == source)		/* This is the node that sent us the query */
+		if (!NODE_IS_WRITABLE(dn))
 			continue;
 
 		if (hops >= dn->hops_flow)		/* Hops-flow prevents sending */
 			continue;
 
-		if (!NODE_IS_WRITABLE(dn))
+		if (dn == source)		/* This is the node that sent us the query */
 			continue;
 
 		/*
@@ -4000,7 +4003,9 @@ qrt_build_query_target(
 		 * a last-hop QRP capable ultra node).
 		 */
 
-		if (NODE_IS_LEAF(dn)) {
+		is_leaf = NODE_IS_LEAF(dn);
+
+		if (is_leaf) {
 			/* Leaf node */
 			if (rt == NULL)				/* No QRT yet */
 				continue;				/* Don't send anything */
@@ -4010,10 +4015,10 @@ qrt_build_query_target(
 				continue;
 			if (ttl == 0)				/* Message expired here */
 				continue;				/* Don't forward to non-leaves */
-			if (!NODE_UP_QRP(dn))		/* QRP-unaware host? */
-				goto can_send;			/* Broadcast to that node */
 			if (rt == NULL)				/* UP has not sent us its table */
 				goto can_send;			/* Forward everything then */
+			if (!NODE_UP_QRP(dn))		/* QRP-unaware host? */
+				goto can_send;			/* Broadcast to that node */
 		}
 
 		node_inc_qrp_query(dn);			/* We have a QRT, mark we try routing */
@@ -4021,7 +4026,7 @@ qrt_build_query_target(
 		if (!qrp_can_route(qhvec, rt))
 			continue;
 
-		if (NODE_IS_ULTRA(dn))
+		if (!is_leaf)
 			goto can_send;			/* Avoid indentation of remaining code */
 
 		/*
