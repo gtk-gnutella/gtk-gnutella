@@ -52,6 +52,8 @@ typedef enum {
 	URL_POLICY_ALLOW_IP_AS_HOST		= (1 << 0),
 	URL_POLICY_ALLOW_LOCAL_HOSTS	= (1 << 1),
 	URL_POLICY_ALLOW_ANY_PORT		= (1 << 2),
+	URL_POLICY_ALLOW_STATIC_FILES	= (1 << 3),
+	URL_POLICY_ALLOW_ANY_CHAR		= (1 << 4),
 
 	URL_POLICY_GWC_RULES			= 0 
 } url_policy_t;

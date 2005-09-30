@@ -313,7 +313,7 @@ url_params_parse(gchar *query)
 	gchar *value = NULL;
 	gboolean in_value = FALSE;
 
-	up = walloc(sizeof(*up));
+	up = walloc(sizeof *up);
 	up->params = g_hash_table_new(g_str_hash, g_str_equal);
 	up->count = 0;
 
@@ -392,31 +392,27 @@ url_params_free(url_params_t *up)
 	g_hash_table_foreach(up->params, free_params_kv, NULL);
 	g_hash_table_destroy(up->params);
 
-	wfree(up, sizeof(*up));
+	wfree(up, sizeof *up);
 }
 
 static gboolean
 url_safe_char(gchar c, url_policy_t p)
 {
-	if (p & URL_POLICY_GWC_RULES) {
-		/* Reject allow anything unreasonable */
-		if (!isascii(c)) {
-			if (lib_debug)
-				g_warning("Non-ASCII character in GWC URL; rejected");
-			return FALSE;
-		}
+	if (!isascii(c) || is_ascii_cntrl(c))
+		return FALSE;
 
-    	if (!is_ascii_alnum(c) && NULL == strchr("/._-~", c)) {
+	if (!(p & URL_POLICY_ALLOW_ANY_CHAR)) {
+    	if (
+			!is_ascii_lower(c) &&
+			!is_ascii_digit(c) &&
+			NULL == strchr("/._-~", c)
+		) {
 			if (lib_debug)
       			g_warning("Unsafe character in GWC URL; rejected");
       		return FALSE;
     	}
-	} else {
-		/* XXX: Figure out what's the correct set for this */
-		if (!isascii(c) || is_ascii_cntrl(c)) {
-			return FALSE;
-		}
 	}
+
 	return TRUE;
 }
 
@@ -582,7 +578,7 @@ url_normalize(gchar *url, url_policy_t pol)
 		goto bad;
 	}
 
-	if (pol & URL_POLICY_GWC_RULES) {
+	if (!(URL_POLICY_ALLOW_STATIC_FILES & pol)) {
 		static const struct {
 			const gchar *ext;
 			size_t len;
