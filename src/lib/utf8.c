@@ -162,6 +162,7 @@ static const guint8 utf8len_mark[] = {
 	(v) <  0x800U 		? 2 :	\
 	(v) <  0x10000U 	? 3 :	\
 	(v) <  0x200000U	? 4 :	\
+	/* XXX: Unicode has no codepoints beyond 0x10FFFF! */	\
 	(v) <  0x4000000U	? 5 :	\
 	(v) <  0x80000000U	? 6 : 7)
 
@@ -396,15 +397,15 @@ utf8_strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 
 /**
  * @param uc the unicode character to encode.
- * @returns 0 if the unicode character is invalid. Otherwise the
+ * @returns 0 if the unicode codepoint is invalid. Otherwise the
  *          length of the UTF-8 character is returned.
  */
-static inline gint
+static inline guint
 utf8_encoded_char_len(guint32 uc)
 {
 	guint len;
 
-	if (UNICODE_IS_SURROGATE(uc))
+	if (UNICODE_IS_SURROGATE(uc) || UNICODE_IS_ILLEGAL(uc))
 		return 0;
 
 	len = UNISKIP(uc);
