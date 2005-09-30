@@ -404,20 +404,15 @@ utf8_encoded_char_len(guint32 uc)
 {
 	guint len;
 
-	if (UNICODE_IS_SURROGATE(uc)) {
+	if (UNICODE_IS_SURROGATE(uc))
 		return 0;
-	}
 
 	len = UNISKIP(uc);
-	if (len > 4) {
-		len = 2;
-		uc = UNI_REPLACEMENT;
-	}
+
 	g_assert(len > 0 && len <= 6);
 
 	return len;
 }
-
 
 /**
  * @param uc the unicode character to encode.
@@ -2369,8 +2364,13 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 			if (new_len > size)
 				break;
 
-			if (nuc == uc)
-				memcpy(dst, src - retlen, retlen);
+			if (nuc == uc) {			/* Not remapped, kept as-is */
+				if (retlen == 1)		/* ASCII char */
+					*dst = *(src - 1);
+				else
+					memcpy(dst, src - retlen, retlen);
+			} else if (utf8_len == 1)
+				*dst = *utf8_buf;
 			else
 				memcpy(dst, utf8_buf, utf8_len);
 			dst += utf8_len;
