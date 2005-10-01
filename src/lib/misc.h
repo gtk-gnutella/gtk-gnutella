@@ -465,6 +465,7 @@ gint canonize_path(gchar *dst, const gchar *path);
 guint compat_max_fd(void);
 gint compat_mkdir(const gchar *path, guint /* mode_t */ mode);
 glong compat_pagesize(void);
+gboolean compat_is_superuser(void);
 
 typedef void (*signal_handler_t)(gint signo);
 signal_handler_t set_signal(gint signo, signal_handler_t handler);

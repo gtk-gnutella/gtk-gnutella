@@ -2887,4 +2887,20 @@ compat_pagesize(void)
 }
 #endif /* _SC_PAGE_SIZE */
 
+gboolean
+compat_is_superuser(void)
+{
+	gboolean ret = FALSE;	/* Assume luser by default */
+	
+#ifdef HAS_GETUID
+	ret |= 0 == getuid();
+#endif /* HAS_GETUID */
+
+#ifdef HAS_GETEUID
+	ret |= 0 == geteuid();
+#endif /* HAS_GETEUID */
+
+	return ret;
+}
+	
 /* vi: set ts=4 sw=4 cindent: */
