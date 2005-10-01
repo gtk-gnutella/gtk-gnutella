@@ -33,15 +33,20 @@ RCSID("$Id$");
  *  Sets a socket to non-blocking behaviour
  */
 void 
-socket_set_nonblocking(int fd)
-{
+socket_set_nonblocking(gint fd)
 #ifdef MINGW32
+{
 	gulong nonblock = 1;
+
 	ioctlsocket(fd, FIONBIO, &nonblock);
-	ioctlsocket(fd, FIONBIO, &nonblock);
-#else
-	fcntl(fd, F_SETFL, VAL_O_NONBLOCK);
-	fcntl(fd, F_SETFL, VAL_O_NONBLOCK);
-#endif
+	ioctlsocket(fd, FIONBIO, &nonblock); /* Twice? */
 }
+#else
+{
+	gint flags;
+
+	flags = fcntl(fd, F_GETFL, 0);
+	fcntl(fd, F_SETFL, flags | VAL_O_NONBLOCK);
+}
+#endif
 
