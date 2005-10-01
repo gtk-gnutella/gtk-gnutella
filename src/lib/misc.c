@@ -37,10 +37,6 @@
 
 RCSID("$Id$");
 
-#ifndef MINGW32
-#include <sys/times.h>			/* For times() */
-#endif
-
 #include "base32.h"
 #include "endian.h"
 #include "misc.h"
@@ -1427,9 +1423,6 @@ random_init(void)
 	SHA1Context ctx;
 	struct stat buf;
 	tm_t start, end;
-#ifndef MINGW32
-	struct tms ticks;
-#endif
 	guint32 seed;
 	guint8 digest[SHA1HashSize];
 	guint32 sys[17];
@@ -1495,13 +1488,13 @@ random_init(void)
 	sys[i++] = start.tv_sec;
 	sys[i++] = start.tv_usec;
 
-#ifndef MINGW32
-	/* FIXME WIN32: We can't just leave things out! */
-	
-	sys[i++] = times(&ticks);
-	sys[i++] = ticks.tms_utime;
-	sys[i++] = ticks.tms_stime;
-#endif
+	{
+		gdouble u, s;
+	   	
+		sys[i++] = tm_cputime(&u, &s);
+		sys[i++] = u;
+		sys[i++] = s;
+	}
 
 	tm_now_exact(&end);
 	sys[i++] = end.tv_sec - start.tv_sec;
