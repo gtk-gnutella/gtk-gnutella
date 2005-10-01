@@ -115,11 +115,14 @@
 #define S_IRWXG _S_IREAD
 #define S_IRWXO _S_IREAD
 
-#else
+#else /* !MINGW32 */
+
 #include <sys/resource.h>
 #include <sys/socket.h>
 #endif
+
 #include <sys/stat.h>
+
 #ifdef MINGW32
 struct iovec 
 {
@@ -131,18 +134,24 @@ struct passwd
 {
 	char *pw_name;                /* Username.  */
 	char *pw_passwd;              /* Password.  */
-//	__uid_t pw_uid;               /* User ID.  */
-//	__gid_t pw_gid;               /* Group ID.  */
-//	char *pw_gecos;               /* Real name.  */
-//	char *pw_dir;                 /* Home directory.  */
-//	char *pw_shell;               /* Shell program.  */
+#if 0
+	__uid_t pw_uid;               /* User ID.  */
+	__gid_t pw_gid;               /* Group ID.  */
+	char *pw_gecos;               /* Real name.  */
+	char *pw_dir;                 /* Home directory.  */
+	char *pw_shell;               /* Shell program.  */
+#endif /* 0 */
 };
-#else
+
+#else /* !MINGW32 */
+
 #include <sys/uio.h>		/* For writev(), readv(), struct iovec */
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>		/* For ntohl(), htonl() */
-#endif
+
+#endif /* MINGW32 */
+
 #include <ctype.h>
 #include <fcntl.h>
 #include <string.h>
