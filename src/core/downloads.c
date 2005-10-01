@@ -85,6 +85,12 @@
 
 RCSID("$Id$");
 
+#if defined(S_IROTH)
+#define DOWNLOAD_FILE_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) /* 0644 */
+#else
+#define DOWNLOAD_FILE_MODE (S_IRUSR | S_IWUSR | S_IRGRP) /* 0640 */
+#endif
+
 #define DOWNLOAD_MIN_OVERLAP	64		/**< Minimum overlap for safety */
 #define DOWNLOAD_SHORT_DELAY	2		/**< Shortest retry delay */
 #define DOWNLOAD_MAX_SINK		16384	/**< Max amount of data to sink */
@@ -6925,13 +6931,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			G_FREE_NULL(path);
 			return;
 		}
-#ifdef MINGW32
-		d->file_desc = file_create(path, O_WRONLY,
-			S_IRUSR | S_IWUSR | S_IRGRP);
-#else
-		d->file_desc = file_create(path, O_WRONLY,
-			S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH); /* 0644 */
-#endif
+		d->file_desc = file_create(path, O_WRONLY, DOWNLOAD_FILE_MODE);
 	}
 
 	if (d->file_desc == -1) {
