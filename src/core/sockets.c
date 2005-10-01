@@ -2239,8 +2239,7 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * log them as being "too large", so we'll check msg_flag to see
 	 * whether the message is truncated.
 	 */
-#ifndef MINGW32
-	/* FIXME WIN32: can we just ignore recvmsg? */
+#ifdef HAS_MSGHDR_MSG_FLAGS
 	{
 		static const struct msghdr zero_msg;
 		struct msghdr msg;
@@ -2256,14 +2255,16 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 		msg.msg_iovlen = 1;
 		
 		r = recvmsg(s->file_desc, &msg, 0);
-#ifdef HAS_MSGHDR_MSG_FLAGS
 		truncated = 0 != (MSG_TRUNC & msg.msg_flags);
-#else
-		/* This is missing at least in some versions of IRIX. */
-		truncated = FALSE;
-#endif /* HAS_MSGHDR_MSG_FLAGS */
 	}
-#endif
+#else
+	{
+		/* msg_flags is missing at least in some versions of IRIX. */
+		truncated = FALSE;	/* We can't detect truncation with recvfrom() */
+		r = recvfrom(s->file_desc, s->buffer, sizeof s->buffer, 0,
+				from, from_len);
+	}
+#endif /* HAS_MSGHDR_MSG_FLAGS */
 	
 	if ((ssize_t) -1 == r) {
 		g_warning("ignoring datagram reception error: %s", g_strerror(errno));
