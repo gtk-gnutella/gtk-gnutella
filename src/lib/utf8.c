@@ -48,10 +48,12 @@ RCSID("$Id$");
 
 #if defined(I_LIBCHARSET)
 #include <libcharset.h>
-#else
-#ifndef MINGW32
+#else /* !I_LIBCHARSET */
+
+#if defined(I_LANGINFO)
 #include <langinfo.h>
 #endif
+
 #endif /* I_LIBCHARSET */
 
 #include <iconv.h>
