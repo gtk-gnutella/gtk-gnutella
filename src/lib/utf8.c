@@ -2386,7 +2386,7 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 
 		src += retlen;
 		nuc = remap(uc);
-		new_len += nuc == uc ? retlen : utf8_encoded_char_len(nuc);
+		new_len += nuc == uc ? (guint) retlen : utf8_encoded_char_len(nuc);
 	}
 
 	return new_len;
