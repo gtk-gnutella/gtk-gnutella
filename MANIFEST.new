@@ -35,6 +35,7 @@ U/new/d_strcasestr.U
 U/new/d_strlcpy.U
 U/new/d_sysctl.U
 U/new/d_ucnv_open_2_6.U
+U/new/d_uname.U
 U/new/d_vsnprintf.U
 U/new/enablenls.U
 U/new/i_invent.U
@@ -45,6 +46,7 @@ U/new/i_netdb.U
 U/new/i_niip.U
 U/new/i_syssendfile.U
 U/new/i_syssysctl.U
+U/new/i_sysutsname.U
 U/new/i_uni_putil.U
 U/new/i_zlib.U
 U/new/icu.U
