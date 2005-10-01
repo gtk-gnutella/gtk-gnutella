@@ -672,8 +672,9 @@ buffers_add_read(struct download *d, ssize_t amount)
 
 	b = d->buffers;
 
-	g_assert(b->held + amount <= b->size);
 	g_assert(b->mode == DL_BUF_READING);
+	g_assert(b->held + amount <= b->size);
+	g_assert(b->iovcnt != 0);
 
 	/*
 	 * b->iov_cur is where readv() started to fill data, into at most
@@ -746,6 +747,7 @@ buffers_strip_leading(struct download *d, size_t amount)
 	struct dl_buffers *b;
 	gint i;
 	struct iovec *iov;
+	size_t pos;
 
 	g_assert(d != NULL);
 	g_assert(d->buffers != NULL);
@@ -769,9 +771,13 @@ buffers_strip_leading(struct download *d, size_t amount)
 	 * taking care of the cross-overs.
 	 */
 
-	for (i = 0, iov = b->iov; i < b->count; i++, iov++) {
+	for (i = 0, iov = b->iov, pos = 0; i < b->count; i++, iov++) {
 		gchar *buf = b->buffers[i];
 		size_t held = SOCK_BUFSZ - iov->iov_len;	/* Data held in iov */
+
+		pos += held;		/* Position at the end of this buffer */
+
+		g_assert(pos <= b->held);
 
 		/*
 		 * Move the leading `amount' bytes (or whatever we have if less)
@@ -799,29 +805,54 @@ buffers_strip_leading(struct download *d, size_t amount)
 			piov->iov_base += move;
 
 			/*
-			 * We're done if there was at most `amount' bytes in the
-			 * buffer: everything was moved down to the previous one and
-			 * the current buffer is now empty.
+			 * Check whether we are done scanning, and exit the loop if
+			 * we moved at most "amount" bytes back, meaning there's
+			 * nothing left in the buffer to shift down..
 			 */
 
-			if (held <= amount) {
+			if (pos == b->held && held <= amount) {
+				/*
+				 * This is the last I/O vector we'll scan, and it's now
+				 * completely empty if the amount of bytes initially held
+				 * is less than "amount".
+				 */
+
 				iov->iov_len = SOCK_BUFSZ;
 				iov->iov_base = buf;
 
 				/*
 				 * If there is room left in the previous buffer and the
 				 * current I/O vector is not the previous one, update it.
+				 *
+				 * This can't happen when we shift by SOCK_BUFSZ bytes: the
+				 * previous buffer is necessarily full.  However, in that
+				 * case it is the current buffer that is completely empty now.
 				 */
 
 				if (piov->iov_len && b->iov_cur != piov) {
 					g_assert(b->iov_cur == iov);
+					g_assert(amount != SOCK_BUFSZ);
 
 					b->iov_cur = piov;
 					b->iovcnt++;
+				} else if (amount == SOCK_BUFSZ) {
+					b->iov_cur = iov;	/* This buffer was fully emptied */
+					b->iovcnt++;
 				}
 
-				break;
+				break;		/* Nothing left to shift back in that buffer */
 			}
+
+			/*
+			 * We did not break out of the loop because "held > amount":
+			 * If pos != b->held, there is necessarily a vector after us,
+			 * meaning we necessarily held more than the shifting amount
+			 * because the shifting amount is at most one buffer size and
+			 * data are contiguous.
+			 *
+			 * Hence we can assert here that "held > amount", which is going
+			 * to be checked just below (since here, i > 0).
+			 */
 		}
 
 		/*
@@ -839,6 +870,19 @@ buffers_strip_leading(struct download *d, size_t amount)
 
 		iov->iov_len += amount;			/* We just freed that much */
 		iov->iov_base = buf + SOCK_BUFSZ - iov->iov_len;
+
+		/*
+		 * Continue, even if pos == b->held.  We'll break out of the loop
+		 * because the next buffer won't hold anything, or because we were
+		 * at the last buffer in the vector.
+		 *
+		 * Note that if amount == SOCK_BUFSZ, we can't be at the last buffer
+		 * because we would have exited above.  That's an important assertion
+		 * because we need to run through the explicit "break" above to
+		 * increase the iovcnt (when the last buffer is completely emptied).
+		 */
+
+		g_assert(amount != SOCK_BUFSZ || pos != b->held);
 	}
 
 	b->held -= amount;
