@@ -63,10 +63,10 @@ struct search {
     gint        sort_order;
     gboolean    sort;
 
-	time_t      last_update_time;	/**< last time the notebook tab was updated */
-	guint32     last_update_items;	/**< Number of items included in last update */
-	gint        tab_updating;		/**< token for timeout func. to be cancelled */
-	guint32     unseen_items;		/**< How many items haven't been seen yet. */
+	time_t      last_update_time;	/**< last time notebook tab was updated */
+	guint32     last_update_items;	/**< # of items included in last update */
+	gint        tab_updating;		/**< ID for timeout func. to be cancelled */
+	guint32     unseen_items;		/**< How many items haven't been seen yet */
 
 	gboolean    passive;			/**< Is this a passive search? */
 	gboolean    massive_update;		/**< massive update in process */
