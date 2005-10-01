@@ -2194,10 +2194,12 @@ short_filename(gchar *fullname)
 gint
 create_directory(const gchar *dir)
 {
-#ifndef MINGW32
-	static const mode_t mode =
-		S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH; /* 0755 */
-#endif
+	static const mode_t mode = S_IRWXU | S_IRGRP | S_IXGRP
+#if defined(S_IROTH) && defined(S_IXOTH)
+		| S_IROTH | S_IXOTH;	/* 0755 */
+#else
+		;	/* 0750 */
+#endif /* S_IROTH && S_IXOTH */
 	gchar *path = NULL;
 	size_t len, i;
 
@@ -2236,11 +2238,7 @@ create_directory(const gchar *dir)
 				goto failure;
 
 			g_message("mkdir(\"%s\")", path);
-#if MINGW32
-			if (mkdir(path)) {
-#else
-			if (mkdir(path, mode)) {
-#endif
+			if (compat_mkdir(path, mode)) {
 				g_message("mkdir() failed: %s", g_strerror(errno));
 				goto failure;
 			}
@@ -2857,7 +2855,7 @@ compat_max_fd(void)
 }
 
 gint
-compat_mkdir(const gchar *path, guint /* mode_t */ mode)
+compat_mkdir(const gchar *path, mode_t mode)
 {
 #ifdef MINGW32
 	/* FIXME WIN32 */
