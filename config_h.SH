@@ -161,6 +161,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_inttypes I_INTTYPES		/**/
 
+/* I_PWD:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <pwd.h>.
+ */
+#$i_pwd I_PWD		/**/
+
 /* I_SYS_PARAM:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <sys/param.h>.
@@ -368,6 +374,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	include <libcharset.h>.
  */
 #$i_libcharset I_LIBCHARSET		/**/
+
+/* I_NETDB:
+ *    This symbol, if defined, indicates to the C program that it should
+ *    include <netdb.h>.
+ */
+#$i_netdb I_NETDB         /**/
 
 /* I_NETINET_IP:
  *	This symbol, if defined, indicates to the C program that it should

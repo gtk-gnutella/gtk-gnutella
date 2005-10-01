@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Sep 27 22:06:49 MEST 2005 [metaconfig 3.0 PL70]
+# Generated on Sat Oct  1 15:07:39 MEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -363,9 +363,17 @@ i_inttypes=''
 i_invent=''
 i_libcharset=''
 i_libintl=''
+i_netdb=''
 i_niin=''
 i_sysin=''
 i_niip=''
+d_pwage=''
+d_pwchange=''
+d_pwclass=''
+d_pwcomment=''
+d_pwexpire=''
+d_pwquota=''
+i_pwd=''
 i_string=''
 strings=''
 i_sysparam=''
@@ -6681,6 +6689,80 @@ eval $inhdr
 set libcharset.h i_libcharset
 eval $inhdr
 
+: see if this is a netdb.h system
+set netdb.h i_netdb
+eval $inhdr
+
+: see if this is a pwd.h system
+set pwd.h i_pwd
+eval $inhdr
+
+case "$i_pwd" in
+$define)
+	xxx=`./findhdr pwd.h`
+	$cppstdin $cppflags $cppminus < $xxx >$$.h
+
+	if $contains 'pw_quota' $$.h >/dev/null 2>&1; then
+		val="$define"
+	else
+		val="$undef"
+	fi
+	set d_pwquota
+	eval $setvar
+
+	if $contains 'pw_age' $$.h >/dev/null 2>&1; then
+		val="$define"
+	else
+		val="$undef"
+	fi
+	set d_pwage
+	eval $setvar
+
+	if $contains 'pw_change' $$.h >/dev/null 2>&1; then
+		val="$define"
+	else
+		val="$undef"
+	fi
+	set d_pwchange
+	eval $setvar
+
+	if $contains 'pw_class' $$.h >/dev/null 2>&1; then
+		val="$define"
+	else
+		val="$undef"
+	fi
+	set d_pwclass
+	eval $setvar
+
+	if $contains 'pw_expire' $$.h >/dev/null 2>&1; then
+		val="$define"
+	else
+		val="$undef"
+	fi
+	set d_pwexpire
+	eval $setvar
+
+	if $contains 'pw_comment' $$.h >/dev/null 2>&1; then
+		val="$define"
+	else
+		val="$undef"
+	fi
+	set d_pwcomment
+	eval $setvar
+
+	$rm -f $$.h
+	;;
+*)
+	val="$undef"; 
+	set d_pwquota; eval $setvar
+	set d_pwage; eval $setvar
+	set d_pwchange; eval $setvar
+	set d_pwclass; eval $setvar
+	set d_pwexpire; eval $setvar
+	set d_pwcomment; eval $setvar
+	;;
+esac
+
 : see if this is a sys/param system
 set sys/param.h i_sysparam
 eval $inhdr
@@ -7021,6 +7103,12 @@ d_official='$d_official'
 d_open3='$d_open3'
 d_os2='$d_os2'
 d_portable='$d_portable'
+d_pwage='$d_pwage'
+d_pwchange='$d_pwchange'
+d_pwclass='$d_pwclass'
+d_pwcomment='$d_pwcomment'
+d_pwexpire='$d_pwexpire'
+d_pwquota='$d_pwquota'
 d_random='$d_random'
 d_remotectrl='$d_remotectrl'
 d_rusage='$d_rusage'
@@ -7085,8 +7173,10 @@ i_inttypes='$i_inttypes'
 i_invent='$i_invent'
 i_libcharset='$i_libcharset'
 i_libintl='$i_libintl'
+i_netdb='$i_netdb'
 i_niin='$i_niin'
 i_niip='$i_niip'
+i_pwd='$i_pwd'
 i_string='$i_string'
 i_sysin='$i_sysin'
 i_sysparam='$i_sysparam'
