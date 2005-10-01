@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Oct  1 15:07:39 MEST 2005 [metaconfig 3.0 PL70]
+# Generated on Sat Oct  1 18:54:34 MEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -300,8 +300,14 @@ d_const=''
 d_deflate=''
 d_epoll=''
 d_getaddrinfo=''
+d_geteuid=''
+aphostname=''
+d_gethname=''
+d_phostname=''
+d_uname=''
 d_getinvent=''
 d_gettext=''
+d_getuid=''
 d_gnulibc=''
 gnulibc_version=''
 d_herror=''
@@ -361,6 +367,7 @@ h_fcntl=''
 h_sysfile=''
 i_inttypes=''
 i_invent=''
+i_langinfo=''
 i_libcharset=''
 i_libintl=''
 i_netdb=''
@@ -380,6 +387,7 @@ i_sysparam=''
 i_syssendfile=''
 i_syssysctl=''
 i_systimes=''
+i_sysutsname=''
 i_systime=''
 i_systimek=''
 i_time=''
@@ -419,12 +427,18 @@ models=''
 small=''
 split=''
 msgmerge_update=''
+mydomain=''
+myhostname=''
+phostname=''
 c=''
 n=''
 d_eofnblk=''
 eagain=''
 o_nonblock=''
 rd_nodata=''
+groupcat=''
+hostcat=''
+passcat=''
 d_official=''
 official=''
 orderlib=''
@@ -512,6 +526,7 @@ locincpth="$locincpth /opt/gnu/include /usr/GNU/include /opt/GNU/include"
 inclwanted=''
 
 i_sysselct=''
+i_whoami=''
 libnames=''
 : change the next line if compiling for Xenix/286 on Xenix/386
 xlibpth='/usr/lib/386 /lib/386'
@@ -4776,11 +4791,9 @@ main(void) {
 }
 EOC
 if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-    $cat <<'EOM'
-It looks like epoll() is usable on your system, good.
-EOM
+	echo 'It looks like epoll() is usable on your system, good.'
 else
-	echo "Sorry, I will not be using epoll()."
+	echo 'Sorry, I will not be using epoll().'
 	val="$undef"
 fi
 $rm -f try try.c
@@ -4833,6 +4846,29 @@ else
 fi
 $rm -f try try.c
 set d_getaddrinfo
+eval $setvar
+
+: can we use geteuid?
+echo " "
+echo "Checking whether geteuid() is available ..." >&4
+val="$define"
+$cat >try.c <<'EOC'
+#include <sys/types.h>
+#include <unistd.h>
+int
+main(void) {
+  (void) geteuid();
+  return 0;
+}
+EOC
+if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+	echo 'It looks like geteuid() exists on your system, good.'
+else
+	echo 'Sorry, geteuid() does not seem to exist.'
+	val="$undef"
+fi
+$rm -f try try.c
+set d_geteuid
 eval $setvar
 
 : see if getinvent exists
@@ -4922,6 +4958,29 @@ echo "ulimit returns $d_ulimit4 as the number of available file descriptors." >&
 	fi
 fi
 $rm -f nofile*
+
+: can we use getuid?
+echo " "
+echo "Checking whether getuid() is available ..." >&4
+val="$define"
+$cat >try.c <<'EOC'
+#include <sys/types.h>
+#include <unistd.h>
+int
+main(void) {
+  (void) getuid();
+  return 0;
+}
+EOC
+if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+	echo 'It looks like getuid() exists on your system, good.'
+else
+	echo 'Sorry, getuid() does not seem to exist.'
+	val="$undef"
+fi
+$rm -f try try.c
+set d_getuid
+eval $setvar
 
 : how can we find information about GNU TLS?
 echo " "
@@ -5431,6 +5490,208 @@ else
 	d_times="$undef"
 	clocktype='int'
 fi
+
+: see if we have to deal with yellow pages, now NIS.
+if $test -d /usr/etc/yp || $test -d /etc/yp || $test -d /usr/lib/yp; then
+	if $test -f /usr/etc/nibindd; then
+		echo " "
+		echo "I'm fairly confident you're on a NeXT."
+		echo " "
+		rp='Do you get the hosts file via NetInfo?'
+		dflt=y
+		case "$hostcat" in
+		nidump*) ;;
+		'') ;;
+		*) dflt=n;;
+		esac
+		. ./myread
+		case "$ans" in
+		y*) hostcat='nidump hosts .';;
+		*)	case "$hostcat" in
+			nidump*) hostcat='';;
+			esac
+			;;
+		esac
+	fi
+	case "$hostcat" in
+	nidump*) ;;
+	*)
+		case "$hostcat" in
+		*ypcat*) dflt=y;;
+		'') if $contains '^\+' /etc/passwd >/dev/null 2>&1; then
+				dflt=y
+			else
+				dflt=n
+			fi;;
+		*) dflt=n;;
+		esac
+		echo " "
+		rp='Are you getting the hosts file via yellow pages?'
+		. ./myread
+		case "$ans" in
+		y*) hostcat='ypcat hosts';;
+		*) hostcat='cat /etc/hosts';;
+		esac
+		;;
+	esac
+fi
+case "$hostcat" in
+'') hostcat=':'
+	$test -f /etc/hosts && hostcat='cat /etc/hosts';;
+esac
+case "$groupcat" in
+'')	groupcat=':'
+	$test -f /etc/group && groupcat='cat /etc/group';;
+esac
+case "$passcat" in
+'') passcat=':'
+	$test -f /etc/passwd && passcat='cat /etc/passwd';;
+esac
+
+: now get the host name
+echo " "
+echo "Figuring out host name..." >&4
+case "$myhostname" in
+'') cont=true
+	echo 'Maybe "hostname" will work...'
+	if tans=`sh -c hostname 2>&1` ; then
+		myhostname=$tans
+		phostname=hostname
+		cont=''
+	fi
+	;;
+*) cont='';;
+esac
+if $test "$cont"; then
+	if ./xenix; then
+		echo 'Oh, dear.  Maybe "/etc/systemid" is the key...'
+		if tans=`cat /etc/systemid 2>&1` ; then
+			myhostname=$tans
+			phostname='cat /etc/systemid'
+			echo "Whadyaknow.  Xenix always was a bit strange..."
+			cont=''
+		fi
+	elif $test -r /etc/systemid; then
+		echo "(What is a non-Xenix system doing with /etc/systemid?)"
+	fi
+fi
+if $test "$cont"; then
+	echo 'No, maybe "uuname -l" will work...'
+	if tans=`sh -c 'uuname -l' 2>&1` ; then
+		myhostname=$tans
+		phostname='uuname -l'
+	else
+		echo 'Strange.  Maybe "uname -n" will work...'
+		if tans=`sh -c 'uname -n' 2>&1` ; then
+			myhostname=$tans
+			phostname='uname -n'
+		else
+			echo 'Oh well, maybe I can mine it out of whoami.h...'
+			if tans=`sh -c $contains' sysname $usrinc/whoami.h' 2>&1` ; then
+				myhostname=`echo "$tans" | $sed 's/^.*"\(.*\)"/\1/'`
+				phostname="sed -n -e '"'/sysname/s/^.*\"\\(.*\\)\"/\1/{'"' -e p -e q -e '}' <$usrinc/whoami.h"
+			else
+				case "$myhostname" in
+				'') echo "Does this machine have an identity crisis or something?"
+					phostname='';;
+				*)
+					echo "Well, you said $myhostname before..."
+					phostname='echo $myhostname';;
+				esac
+			fi
+		fi
+	fi
+fi
+case "$myhostname" in
+'') myhostname=noname ;;
+esac
+: you do not want to know about this
+set $myhostname
+myhostname=$1
+
+: verify guess
+if $test "$myhostname" ; then
+	dflt=y
+	rp='Your host name appears to be "'$myhostname'".'" Right?"
+	. ./myread
+	case "$ans" in
+	y*) ;;
+	*) myhostname='';;
+	esac
+fi
+
+: bad guess or no guess
+while $test "X$myhostname" = X ; do
+	dflt=''
+	rp="Please type the (one word) name of your host:"
+	. ./myread
+	myhostname="$ans"
+done
+
+: translate upper to lower if necessary
+case "$myhostname" in
+*[A-Z]*)
+	echo "(Normalizing case in your host name)"
+	myhostname=`echo $myhostname | ./tr '[A-Z]' '[a-z]'`
+	;;
+esac
+
+: a little sanity check here
+case "$phostname" in
+'') ;;
+*)
+	case `$phostname | ./tr '[A-Z]' '[a-z]'` in
+	$myhostname$mydomain|$myhostname) ;;
+	*)
+		case "$phostname" in
+		sed*)
+			echo "(That doesn't agree with your whoami.h file, by the way.)"
+			;;
+		*)
+			echo "(That doesn't agree with your $phostname command, by the way.)"
+			;;
+		esac
+	;;
+	esac
+	;;
+esac
+
+: see how we will look up host name
+echo " "
+if false; then
+	: dummy stub to allow use of elif
+elif set uname val -f d_uname; eval $csym; $val; then
+	if ./xenix; then
+		$cat <<'EOM'
+uname() was found, but you're running xenix, and older versions of xenix
+have a broken uname(). If you don't really know whether your xenix is old
+enough to have a broken system call, use the default answer.
+
+EOM
+		dflt=y
+		case "$d_uname" in
+		"$define") dflt=n;;
+		esac
+		rp='Is your uname() broken?'
+		. ./myread
+		case "$ans" in
+		n*) d_uname="$define"; call=uname;;
+		esac
+	else
+		echo 'uname() found.' >&4
+		d_uname="$define"
+		call=uname
+	fi
+fi
+case "$d_gethname" in
+'') d_gethname="$undef";;
+esac
+case "$d_uname" in
+'') d_uname="$undef";;
+esac
+case "$d_phostname" in
+'') d_phostname="$undef";;
+esac
 
 : check for volatile keyword
 echo " "
@@ -6685,6 +6946,10 @@ eval $inhdr
 set invent.h i_invent
 eval $inhdr
 
+: see if this is a langinfo system
+set langinfo.h i_langinfo
+eval $inhdr
+
 : see if this is a libcharset system
 set libcharset.h i_libcharset
 eval $inhdr
@@ -6857,6 +7122,10 @@ case "$flags" in
 *) i_systime="$undef";;
 esac
 $rm -f try.c try
+
+: see if this is a sys/utsname system
+set sys/utsname.h i_sysutsname
+eval $inhdr
 
 : see if deflate exists
 set deflate d_deflate
@@ -7034,6 +7303,7 @@ _o='$_o'
 afs='$afs'
 afsroot='$afsroot'
 alignbytes='$alignbytes'
+aphostname='$aphostname'
 ar='$ar'
 archobjs='$archobjs'
 awk='$awk'
@@ -7081,9 +7351,12 @@ d_eofnblk='$d_eofnblk'
 d_epoll='$d_epoll'
 d_eunice='$d_eunice'
 d_getaddrinfo='$d_getaddrinfo'
+d_geteuid='$d_geteuid'
+d_gethname='$d_gethname'
 d_getinvent='$d_getinvent'
 d_gettblsz='$d_gettblsz'
 d_gettext='$d_gettext'
+d_getuid='$d_getuid'
 d_gnulibc='$d_gnulibc'
 d_gnutls='$d_gnutls'
 d_herror='$d_herror'
@@ -7102,6 +7375,7 @@ d_nls='$d_nls'
 d_official='$d_official'
 d_open3='$d_open3'
 d_os2='$d_os2'
+d_phostname='$d_phostname'
 d_portable='$d_portable'
 d_pwage='$d_pwage'
 d_pwchange='$d_pwchange'
@@ -7118,6 +7392,7 @@ d_strchr='$d_strchr'
 d_strlcpy='$d_strlcpy'
 d_sysctl='$d_sysctl'
 d_times='$d_times'
+d_uname='$d_uname'
 d_useglib1='$d_useglib1'
 d_useglib2='$d_useglib2'
 d_usegtk1='$d_usegtk1'
@@ -7158,6 +7433,7 @@ gnutlscflags='$gnutlscflags'
 gnutlsconfig='$gnutlsconfig'
 gnutlsldflags='$gnutlsldflags'
 grep='$grep'
+groupcat='$groupcat'
 gtkcflags='$gtkcflags'
 gtkconfig='$gtkconfig'
 gtkgversion='$gtkgversion'
@@ -7168,9 +7444,11 @@ gzip='$gzip'
 h_fcntl='$h_fcntl'
 h_sysfile='$h_sysfile'
 hint='$hint'
+hostcat='$hostcat'
 huge='$huge'
 i_inttypes='$i_inttypes'
 i_invent='$i_invent'
+i_langinfo='$i_langinfo'
 i_libcharset='$i_libcharset'
 i_libintl='$i_libintl'
 i_netdb='$i_netdb'
@@ -7185,6 +7463,7 @@ i_syssysctl='$i_syssysctl'
 i_systime='$i_systime'
 i_systimek='$i_systimek'
 i_systimes='$i_systimes'
+i_sysutsname='$i_sysutsname'
 i_time='$i_time'
 i_unistd='$i_unistd'
 i_zlib='$i_zlib'
@@ -7238,6 +7517,8 @@ msgfmt='$msgfmt'
 msgmerge='$msgmerge'
 msgmerge_update='$msgmerge_update'
 mv='$mv'
+mydomain='$mydomain'
+myhostname='$myhostname'
 myuname='$myuname'
 n='$n'
 nm='$nm'
@@ -7252,8 +7533,10 @@ orderlib='$orderlib'
 osname='$osname'
 osvers='$osvers'
 package='$package'
+passcat='$passcat'
 perl='$perl'
 pg='$pg'
+phostname='$phostname'
 pkgsrc='$pkgsrc'
 plibpth='$plibpth'
 pmake='$pmake'

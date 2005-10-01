@@ -116,6 +116,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #define const
 #endif
 
+/* HAS_UNAME:
+ *	This symbol, if defined, indicates that the C program may use the
+ *	uname() routine to derive the host name.  See also HAS_GETHOSTNAME
+ *	and PHOSTNAME.
+ */
+#$d_uname HAS_UNAME		/**/
+
 #if defined(HAS_GNULIBC) && !defined(_GNU_SOURCE)
 #define _GNU_SOURCE
 #endif
@@ -284,11 +291,21 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_getaddrinfo HAS_GETADDRINFO
 
+/* HAS_GETEUID:
+ *	This symbol is defined when geteuid() can be used.
+ */
+#$d_geteuid HAS_GETEUID
+
 /* HAS_GETINVENT:
  *    This symbol, if defined, indicates that the getinvent routine is
  *    available.
  */
 #$d_getinvent       HAS_GETINVENT           /**/
+
+/* HAS_GETUID:
+ *	This symbol is defined when getuid() can be used.
+ */
+#$d_getuid HAS_GETUID
 
 /* HAS_HERROR:
  *	This symbol, if defined, indicates that the herror routine is
@@ -369,6 +386,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_invent I_INVENT         /**/
 
+/* I_LANGINFO:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <langinfo.h>.
+ */
+#$i_langinfo I_LANGINFO		/**/
+
 /* I_LIBCHARSET:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <libcharset.h>.
@@ -398,6 +421,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	include <sys/sysctl.h>.
  */
 #$i_syssysctl I_SYS_SYSCTL		/**/
+
+/* I_SYS_UTSNAME:
+ *    This symbol, if defined, indicates to the C program that it should
+ *    include <sys/utsname.h>.
+ */
+#$i_sysutsname I_SYS_UTSNAME         /**/
 
 /* USE_IPV6:
  *  This symbol is defined when IPv6 can be used
