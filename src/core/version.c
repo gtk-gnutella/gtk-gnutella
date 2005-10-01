@@ -37,7 +37,9 @@
 
 RCSID("$Id$");
 
+#ifndef MINGW32
 #include <sys/utsname.h>		/* For uname() */
+#endif
 
 #include "version.h"
 #include "token.h"
@@ -539,21 +541,27 @@ version_check(const gchar *str, const gchar *token, const host_addr_t addr)
 void
 version_init(void)
 {
+#ifndef MINGW32
 	struct utsname un;
+#endif
 	gchar buf[128];
 	gboolean ok;
 	time_t now = tm_time();
-
+#ifndef MINGW32
 	if (uname(&un)) {
 		memset(&un, 0, sizeof un);
 		g_warning("uname() failed: %s:", g_strerror(errno));
 	}
+#endif
 
 	gm_snprintf(buf, sizeof(buf),
 		"gtk-gnutella/%s (%s; %s; %s %s)",
 		GTA_VERSION_NUMBER, GTA_RELEASE, GTA_INTERFACE,
+#ifdef MINGW32
+		"","");
+#else
 		un.sysname, un.machine);
-
+#endif
 	version_string = atom_str_get(buf);
 	ok = version_parse(version_string, &our_version);
 	g_assert(ok);

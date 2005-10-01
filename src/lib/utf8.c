@@ -49,7 +49,9 @@ RCSID("$Id$");
 #if defined(I_LIBCHARSET)
 #include <libcharset.h>
 #else
+#ifndef MINGW32
 #include <langinfo.h>
+#endif
 #endif /* I_LIBCHARSET */
 
 #include <iconv.h>

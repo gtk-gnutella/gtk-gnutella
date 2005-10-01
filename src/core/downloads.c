@@ -6881,8 +6881,13 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			G_FREE_NULL(path);
 			return;
 		}
+#ifdef MINGW32
+		d->file_desc = file_create(path, O_WRONLY,
+			S_IRUSR | S_IWUSR | S_IRGRP);
+#else
 		d->file_desc = file_create(path, O_WRONLY,
 			S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH); /* 0644 */
+#endif
 	}
 
 	if (d->file_desc == -1) {

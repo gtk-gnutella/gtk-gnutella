@@ -36,7 +36,9 @@
 
 #include "common.h"
 
+#ifndef MINGW32
 #include <netdb.h>
+#endif
 
 #include "lib/eval.h"
 
@@ -71,8 +73,13 @@ static const gchar config_file[] = "config_gnet";
 static const gchar ul_stats_file[] = "upload_stats";
 
 #define PID_FILE_MODE	(S_IRUSR | S_IWUSR) /* 0600 */
+#ifdef MINGW32
+#define CONFIG_DIR_MODE /* 0755 */ \
+    (S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP)
+#else
 #define CONFIG_DIR_MODE	/* 0755 */ \
 	(S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
+#endif
 
 static gchar *home_dir = NULL;
 static gchar *config_dir = NULL;
@@ -382,16 +389,26 @@ settings_getphysmemsize(void)
 void
 settings_init(void)
 {
+#ifdef MINGW32
+	/* FIXME WIN32 */
+	guint32 maxfd = 1024;
+#else
 	guint32 maxfd = (guint32) sysconf(_SC_OPEN_MAX);
+#endif
 	gulong memory = settings_getphysmemsize();
 	guint32 amount = (guint32) memory;
+#ifndef MINGW32
 	struct rlimit lim;
+#endif
 	char *path = NULL;
 
+#ifndef MINGW32
+	/* FIXME WIN32 */
 	if (-1 != getrlimit(RLIMIT_DATA, &lim)) {
 		guint32 maxdata = lim.rlim_cur >> 10;
 		amount = MIN(amount, maxdata);		/* For our purposes */
 	}
+#endif
 
     properties = gnet_prop_init();
 
@@ -412,8 +429,11 @@ settings_init(void)
 
 	if (!is_directory(config_dir)) {
 		g_warning(_("creating configuration directory \"%s\""), config_dir);
-
+#if MINGW32
+		if (mkdir(config_dir) == -1) {
+#else
 		if (mkdir(config_dir, CONFIG_DIR_MODE) == -1) {
+#endif
 			g_warning("mkdir(\"%s\") failed: \"%s\"",
 				config_dir, g_strerror(errno));
 			goto no_config_dir;

@@ -475,6 +475,8 @@ src/lib/sha1.c
 src/lib/sha1.h
 src/lib/stats.c
 src/lib/stats.h
+src/lib/socket.c
+src/lib/socket.h
 src/lib/tiger.c
 src/lib/tiger.h
 src/lib/tiger_sboxes.h

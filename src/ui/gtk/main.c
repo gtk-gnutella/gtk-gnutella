@@ -38,7 +38,9 @@
 
 RCSID("$Id$");
 
+#ifndef MINGW32
 #include <pwd.h>
+#endif
 
 #ifdef USE_GTK1
 #include "gtk1/interface-glade.h"

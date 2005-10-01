@@ -37,7 +37,9 @@
 
 RCSID("$Id$");
 
+#ifndef MINGW32
 #include <pwd.h>
+#endif
 
 #include "eval.h"
 #include "atoms.h"
@@ -223,6 +225,9 @@ eval_subst(const gchar *str)
 static gchar *
 get_home(void)
 {
+#ifdef MINGW32
+	return atom_str_get(".");
+#else
 	gchar *v;
 	struct passwd *pp;
 
@@ -236,6 +241,7 @@ get_home(void)
 
 	g_warning("Could not determine home directory");
 	return atom_str_get("/");
+#endif
 }
 
 /**

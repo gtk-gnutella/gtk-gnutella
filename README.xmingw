@@ -63,5 +63,15 @@ Neither do we use python, nor readline. Also I want my xml package to install in
 
 
 
+Compiling gtk-gnutella
 
+As Configure currently doesn't handle cross compiling very well, there is a template config.sh available, named config.sh.xmingw.
+Copy the config.sh.xmingw as being the correct config.sh. 
+cp config.sh.xmingw config.sh
+Remember,  the config.sh assumes the layout in /opt/xmingw and /opt/xmingw/local as described above.
+Next tell Configure to read the config.sh and recreate the makefiles.
+./Configure -S && make depend
+
+The final step is of course to build gtk-gnutella
+make
 

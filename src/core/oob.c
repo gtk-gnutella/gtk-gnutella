@@ -93,14 +93,14 @@ static GHashTable *results_by_muid = NULL;
  * messages and sending them at a rate of 1 message every OOB_DELIVER_MS, to
  * avoid UDP flooding on the remote side.
  *
- * This hash table records gnet_host_t => "struct servent"
+ * This hash table records gnet_host_t => "struct gservent"
  */
 static GHashTable *servent_by_host = NULL;
 
 /**
  * A servent entry, used as values in the `servent_by_host' table.
  */
-struct servent {
+struct gservent {
 	gpointer ev_service;	/**< Callout event for servicing FIFO */
 	gnet_host_t *host;		/**< The servent host (also used as key for table) */
 	fifo_t *fifo;			/**< The servent's FIFO, holding pmsg_t items */
@@ -122,7 +122,7 @@ struct servent {
  */
 
 static void results_destroy(cqueue_t *cq, gpointer obj);
-static void servent_free(struct servent *s);
+static void servent_free(struct gservent *s);
 static void oob_send_reply_ind(struct oob_results *r);
 
 static gint num_oob_records;	/**< Leak and duplicate free detector */
@@ -258,7 +258,7 @@ results_timeout(cqueue_t *unused_cq, gpointer obj)
  * Dispose of servent, removing entry from the `servent_by_host' table.
  */
 static void
-servent_free_remove(struct servent *s)
+servent_free_remove(struct gservent *s)
 {
 	g_hash_table_remove(servent_by_host, s->host);
 	servent_free(s);
@@ -271,7 +271,7 @@ servent_free_remove(struct servent *s)
 static void
 servent_service(cqueue_t *cq, gpointer obj)
 {
-	struct servent *s = obj;
+	struct gservent *s = obj;
 	pmsg_t *mb;
 	mqueue_t *q;
 
@@ -313,10 +313,10 @@ remove:
  *
  * @param host the servent's IP:port.  Caller may free it upon return.
  */
-static struct servent *
+static struct gservent *
 servent_make(gnet_host_t *host)
 {
-	struct servent *s;
+	struct gservent *s;
 
 	s = walloc(sizeof *s);
 	s->host = walloc(sizeof *s->host);
@@ -344,7 +344,7 @@ free_pmsg(gpointer item, gpointer unused_udata)
  * Free servent structure.
  */
 static void
-servent_free(struct servent *s)
+servent_free(struct gservent *s)
 {
 	if (s->ev_service)
 		cq_cancel(callout_queue, s->ev_service);
@@ -360,7 +360,7 @@ servent_free(struct servent *s)
 static void
 oob_record_hit(gpointer data, size_t len, gpointer udata)
 {
-	struct servent *s = (struct servent *) udata;
+	struct gservent *s = (struct gservent *) udata;
 
 	g_assert(len <= INT_MAX);
 	fifo_put(s->fifo, gmsg_to_pmsg(data, len));
@@ -378,7 +378,7 @@ void
 oob_deliver_hits(struct gnutella_node *n, gchar *muid, guint8 wanted)
 {
 	struct oob_results *r;
-	struct servent *s;
+	struct gservent *s;
 	gint deliver_count;
 	gboolean servent_created = FALSE;
 
@@ -636,7 +636,7 @@ static void
 free_servent_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
 	gnet_host_t *host = (gnet_host_t *) key;
-	struct servent *s = (struct servent *) value;
+	struct gservent *s = (struct gservent *) value;
 
 	(void) unused_udata;
 	g_assert(host == s->host);		/* Key is same as servent's host */

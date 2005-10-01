@@ -37,7 +37,9 @@
 
 RCSID("$Id$");
 
+#ifndef MINGW32
 #include <sys/times.h>			/* For times() */
+#endif
 
 #include "base32.h"
 #include "endian.h"
@@ -741,10 +743,14 @@ is_regular(const gchar *path)
 gboolean
 is_symlink(const gchar *path)
 {
+#ifdef MINGW32
+	return FALSE;
+#else
 	struct stat st;
 	if (-1 == lstat(path, &st))
 		return FALSE;
 	return (st.st_mode & S_IFMT) == S_IFLNK;
+#endif
 }
 
 const gchar *
@@ -1421,7 +1427,9 @@ random_init(void)
 	SHA1Context ctx;
 	struct stat buf;
 	tm_t start, end;
+#ifndef MINGW32
 	struct tms ticks;
+#endif
 	guint32 seed;
 	guint8 digest[SHA1HashSize];
 	guint32 sys[17];
@@ -1487,15 +1495,18 @@ random_init(void)
 	sys[i++] = start.tv_sec;
 	sys[i++] = start.tv_usec;
 
+#ifndef MINGW32
+	/* FIXME WIN32: We can't just leave things out! */
+	
 	sys[i++] = times(&ticks);
 	sys[i++] = ticks.tms_utime;
 	sys[i++] = ticks.tms_stime;
+#endif
 
 	tm_now_exact(&end);
-
 	sys[i++] = end.tv_sec - start.tv_sec;
 	sys[i++] = end.tv_usec - start.tv_usec;
-
+	
 	/* Add some host/user dependent noise */	
 	sys[i++] = getuid();
 	sys[i++] = getgid();
@@ -2190,8 +2201,10 @@ short_filename(gchar *fullname)
 gint
 create_directory(const gchar *dir)
 {
+#ifndef MINGW32
 	static const mode_t mode =
 		S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH; /* 0755 */
+#endif
 	gchar *path = NULL;
 	size_t len, i;
 
@@ -2230,7 +2243,11 @@ create_directory(const gchar *dir)
 				goto failure;
 
 			g_message("mkdir(\"%s\")", path);
+#if MINGW32
+			if (mkdir(path)) {
+#else
 			if (mkdir(path, mode)) {
+#endif
 				g_message("mkdir() failed: %s", g_strerror(errno));
 				goto failure;
 			}
@@ -2673,9 +2690,10 @@ ip_range_split(
 signal_handler_t
 set_signal(gint signo, signal_handler_t handler)
 {
+#ifndef MINGW32
 	static const struct sigaction zero_sa;
 	struct sigaction sa, osa;
-
+	
 	g_assert(handler != SIG_ERR);
 
 	sa = zero_sa;
@@ -2689,6 +2707,10 @@ set_signal(gint signo, signal_handler_t handler)
 #endif
 
 	return sigaction(signo, &sa, &osa) ? SIG_ERR : osa.sa_handler;
+#else
+	/* FIXME WIN32: We can't just ignore all signal logic */
+	return NULL;
+#endif
 }
 
 static inline const gchar *

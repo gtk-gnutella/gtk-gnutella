@@ -44,6 +44,7 @@ RCSID("$Id$");
 #include "glib-missing.h"
 #include "tm.h"
 #include "walloc.h"
+#include "socket.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -360,7 +361,9 @@ adns_helper(gint fd_in, gint fd_out)
 	g_set_prgname(ADNS_PROCESS_TITLE);
 	gm_setproctitle(g_get_prgname());
 
+#ifndef MINGW32
 	set_signal(SIGQUIT, SIG_IGN);		/* Avoid core dumps on SIGQUIT */
+#endif
 
 	is_helper = TRUE;
 
@@ -585,7 +588,9 @@ adns_init(void)
 		g_warning("adns_init: pipe() failed: %s", g_strerror(errno));
 		goto prefork_failure;
 	}
+#ifndef MINGW32
 	set_signal(SIGCHLD, SIG_IGN); /* prevent a zombie */
+#endif
 	pid = fork();
 	if ((pid_t) -1 == pid) {
 		g_warning("adns_init: fork() failed: %s", g_strerror(errno));
@@ -611,8 +616,10 @@ adns_init(void)
 	close(fd_query[0]);
 	close(fd_reply[1]);
 	adns_query_fd = fd_query[1];
-	fcntl(adns_query_fd, F_SETFL, VAL_O_NONBLOCK);
-	fcntl(fd_reply[0], F_SETFL, VAL_O_NONBLOCK);
+
+	socket_set_nonblocking(adns_query_fd);
+	socket_set_nonblocking(fd_reply[0]);
+	
 	adns_cache = adns_cache_init();
 	adns_reply_event_id = inputevt_add(fd_reply[0], INPUT_EVENT_RX,
 							adns_reply_callback, NULL);

@@ -28,6 +28,7 @@
 ;# $Id$
 
 LSRC = \
+	socket.c \
 	adns.c \
 	aging.c \
 	atoms.c \

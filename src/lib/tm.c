@@ -221,6 +221,9 @@ clock_hz(void)
 gdouble
 tm_cputime(gdouble *user, gdouble *sys)
 {
+#ifdef MINGW32
+	return 0;
+#else
 	static gboolean getrusage_failed;
 	gdouble u;
 	gdouble s;
@@ -273,6 +276,7 @@ tm_cputime(gdouble *user, gdouble *sys)
 	if (sys)  *sys  = s;
 
 	return u + s;
+#endif
 }
 
 /* vi: set ts=4 sw=4 cindent: */

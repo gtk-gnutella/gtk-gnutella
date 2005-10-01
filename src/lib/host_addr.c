@@ -38,7 +38,9 @@
 
 RCSID("$Id$");
 
+#ifndef MINGW32
 #include <netdb.h>				/* For gethostbyname() */
+#endif
 
 #include "host_addr.h"
 #include "misc.h"

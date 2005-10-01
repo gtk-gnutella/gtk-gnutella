@@ -84,13 +84,65 @@
 #undef KERNEL
 #endif
 
+
+#ifdef MINGW32
+#include <ws2tcpip.h>
+#include <winsock.h>
+#define ECONNRESET WSAECONNRESET
+#define ECONNREFUSED WSAECONNREFUSED
+#define ECONNABORTED WSAECONNABORTED
+#define ENETUNREACH WSAENETUNREACH
+#define EHOSTUNREACH WSAEHOSTUNREACH
+#define ETIMEDOUT WSAETIMEDOUT
+#define EINPROGRESS WSAEINPROGRESS
+#define ENOTCONN WSAENOTCONN
+#define ENOBUFS WSAENOBUFS
+#define EADDRNOTAVAIL WSAEADDRNOTAVAIL
+#define ENETRESET WSAENETRESET
+#define ENETDOWN WSAENETDOWN
+#define EHOSTDOWN WSAEHOSTDOWN
+#define ENOPROTOOPT WSAENOPROTOOPT
+#define EPROTONOSUPPORT WSAEPROTONOSUPPORT
+
+#define SHUT_RD   SD_RECEIVE
+#define SHUT_WR   SD_SEND
+#define SHUT_RDWR SD_BOTH
+
+#define S_IXGRP  _S_IEXEC
+#define S_IWGRP  _S_IWRITE
+#define S_IRGRP  _S_IREAD
+
+#define S_IRWXG _S_IREAD
+#define S_IRWXO _S_IREAD
+
+#else
 #include <sys/resource.h>
 #include <sys/socket.h>
+#endif
 #include <sys/stat.h>
+#ifdef MINGW32
+struct iovec 
+{
+	char  *iov_base;
+	int  iov_len; 
+};
+
+struct passwd
+{
+	char *pw_name;                /* Username.  */
+	char *pw_passwd;              /* Password.  */
+//	__uid_t pw_uid;               /* User ID.  */
+//	__gid_t pw_gid;               /* Group ID.  */
+//	char *pw_gecos;               /* Real name.  */
+//	char *pw_dir;                 /* Home directory.  */
+//	char *pw_shell;               /* Shell program.  */
+};
+#else
 #include <sys/uio.h>		/* For writev(), readv(), struct iovec */
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>		/* For ntohl(), htonl() */
+#endif
 #include <ctype.h>
 #include <fcntl.h>
 #include <string.h>

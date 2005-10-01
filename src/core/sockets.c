@@ -40,8 +40,10 @@
 
 RCSID("$Id$");
 
+#ifndef MINGW32
 #include <netdb.h>
 #include <pwd.h>
+#endif
 
 #include "sockets.h"
 #include "downloads.h"
@@ -64,6 +66,7 @@ RCSID("$Id$");
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
+#include "lib/socket.h"
 #include "lib/adns.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
@@ -436,6 +439,8 @@ sol_ip(void)
 static void
 socket_tos(struct gnutella_socket *s, gint tos)
 {
+#ifndef MINGW32
+	/* FIXME WIN32 */
 	if (!use_ip_tos || NET_TYPE_IPV4 != s->net)
 		return;
 
@@ -454,6 +459,7 @@ socket_tos(struct gnutella_socket *s, gint tos)
 			g_warning("unable to set IP_TOS to %s (%d) on fd#%d: %s",
 				tosname, tos, s->file_desc, g_strerror(errno));
 	}
+#endif
 }
 
 /**
@@ -511,7 +517,9 @@ socket_tos_normal(struct gnutella_socket *s)
 void
 socket_tos_lowdelay(struct gnutella_socket *s)
 {
+#ifndef MINGW32
 	socket_tos(s, IPTOS_LOWDELAY);
+#endif
 }
 
 /**
@@ -523,7 +531,9 @@ socket_tos_lowdelay(struct gnutella_socket *s)
 void
 socket_tos_throughput(struct gnutella_socket *s)
 {
+#ifndef MINGW32
 	socket_tos(s, IPTOS_THROUGHPUT);
+#endif
 }
 
 /**
@@ -2115,7 +2125,7 @@ accepted:
 	 */
 
 	/* Set the file descriptor non blocking */
-	fcntl(sd, F_SETFL, VAL_O_NONBLOCK);
+	socket_set_nonblocking(sd);
 
 	t = walloc0(sizeof *t);
 
@@ -2234,7 +2244,8 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * log them as being "too large", so we'll check msg_flag to see
 	 * whether the message is truncated.
 	 */
-
+#ifndef MINGW32
+	/* FIXME WIN32: can we just ignore recvmsg? */
 	{
 		static const struct msghdr zero_msg;
 		struct msghdr msg;
@@ -2257,7 +2268,8 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 		truncated = FALSE;
 #endif /* HAS_MSGHDR_MSG_FLAGS */
 	}
-
+#endif
+	
 	if ((ssize_t) -1 == r) {
 		g_warning("ignoring datagram reception error: %s", g_strerror(errno));
 		return;
@@ -2377,7 +2389,7 @@ created:
 	socket_set_linger(s->file_desc);
 
 	/* Set the file descriptor non blocking */
-	fcntl(s->file_desc, F_SETFL, VAL_O_NONBLOCK);
+	socket_set_nonblocking(s->file_desc);
 
 	socket_tos_normal(s);
 	return 0;
@@ -2463,7 +2475,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	bws_sock_connect(s->type);
 
 	/* Set the file descriptor non blocking */
-	fcntl(s->file_desc, F_SETFL, VAL_O_NONBLOCK);
+	socket_set_nonblocking(s->file_desc);
 
 	g_assert(0 == s->gdk_tag);
 
@@ -2620,7 +2632,7 @@ socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
 	socket_set_linger(s->file_desc);
 
 	/* Set the file descriptor non blocking */
-	fcntl(sd, F_SETFL, VAL_O_NONBLOCK);
+	socket_set_nonblocking(sd);
 
 	s->net = host_addr_net(ha);
 
@@ -2707,7 +2719,7 @@ socket_udp_listen(const host_addr_t ha, guint16 port)
 	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof option);
 
 	/* Set the file descriptor non blocking */
-	fcntl(sd, F_SETFL, VAL_O_NONBLOCK);
+	socket_set_nonblocking(sd);
 
 	/* bind() the socket */
 

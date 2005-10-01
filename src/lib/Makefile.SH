@@ -83,6 +83,7 @@ all:: .FORCE_DEPEND
 # $X-Id: Jmakefile,v 1.14 2005/09/25 21:40:46 rmanfredi Exp $
 
 LSRC = \
+	socket.c \
 	adns.c \
 	aging.c \
 	atoms.c \
@@ -129,6 +130,7 @@ LSRC = \
 	zlib_util.c
 
 LOBJ = \
+	socket.o \
 	adns.o \
 	aging.o \
 	atoms.o \

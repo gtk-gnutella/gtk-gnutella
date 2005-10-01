@@ -232,7 +232,9 @@ gtk_gnutella_atexit(void)
 	if (!exiting) {
 		g_warning("trapped foreign exit(), cleaning up...");
 		from_atexit = TRUE;
+#ifndef MINGW32
 		set_signal(SIGALRM, sig_alarm);
+#endif
 		if (setjmp(atexit_env)) {
 			g_warning("cleanup aborted while in %s().", exit_step);
 			return;
@@ -807,15 +809,19 @@ main(int argc, char **argv)
 {
 	tm_now_exact(&start_time);
 
+#ifndef MINGW32
 	if (0 == getuid() || 0 == geteuid()) {
 		fprintf(stderr, "Never ever run this as root!\n");
 		exit(EXIT_FAILURE);
 	}
+#endif
 
 	close_fds(3); /* Just in case */
 
 	set_signal(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
+#ifndef MINGW32
 	set_signal(SIGPIPE, SIG_IGN);
+#endif
 
 #ifdef MALLOC_STATS
 	set_signal(SIGUSR1, sig_malloc);
