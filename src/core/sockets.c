@@ -40,8 +40,10 @@
 
 RCSID("$Id$");
 
-#ifndef MINGW32
+#ifdef I_NETDB
 #include <netdb.h>
+#endif
+#ifdef I_PWD
 #include <pwd.h>
 #endif
 

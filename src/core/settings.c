@@ -36,7 +36,7 @@
 
 #include "common.h"
 
-#ifndef MINGW32
+#ifdef I_NETDB
 #include <netdb.h>
 #endif
 
