@@ -424,8 +424,8 @@ prop_def_choice_t current_peermode_choices[] = {
 };
 guint32  sys_nofile     = 1024;
 guint32  sys_nofile_def = 1024;
-guint32  sys_physmem     = 65536;
-guint32  sys_physmem_def = 65536;
+guint64  sys_physmem     = 65536;
+guint64  sys_physmem_def = 65536;
 guint32  dl_queue_count     = 0;
 guint32  dl_queue_count_def = 0;
 guint32  dl_running_count     = 0;
@@ -4042,12 +4042,12 @@ gnet_prop_init(void) {
     gnet_property->props[177].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[177].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[177].data.guint32.def   = &sys_physmem_def;
-    gnet_property->props[177].data.guint32.value = &sys_physmem;
-    gnet_property->props[177].data.guint32.choices = NULL;
-    gnet_property->props[177].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[177].data.guint32.min   = 0x00000000;
+    gnet_property->props[177].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[177].data.guint64.def   = &sys_physmem_def;
+    gnet_property->props[177].data.guint64.value = &sys_physmem;
+    gnet_property->props[177].data.guint64.choices = NULL;
+    gnet_property->props[177].data.guint64.max   = (guint64) -1;
+    gnet_property->props[177].data.guint64.min   = 0x0000000000000000;
 
 
     /*

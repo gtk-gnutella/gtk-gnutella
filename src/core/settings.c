@@ -73,13 +73,8 @@ static const gchar config_file[] = "config_gnet";
 static const gchar ul_stats_file[] = "upload_stats";
 
 #define PID_FILE_MODE	(S_IRUSR | S_IWUSR) /* 0600 */
-#ifdef MINGW32
-#define CONFIG_DIR_MODE /* 0755 */ \
+#define CONFIG_DIR_MODE /* 0750 */ \
     (S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP)
-#else
-#define CONFIG_DIR_MODE	/* 0755 */ \
-	(S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
-#endif
 
 static gchar *home_dir = NULL;
 static gchar *config_dir = NULL;
@@ -280,36 +275,14 @@ save_pid(gint fd)
 
 /* ----------------------------------------- */
 
-#if !defined(_SC_PAGE_SIZE) && defined(_SC_PAGESIZE)
-#define _SC_PAGE_SIZE _SC_PAGESIZE
-#endif
-
-#if defined (_SC_PAGE_SIZE) && defined (_SC_PHYS_PAGES)
-static glong
-settings_getpagesize(void)
-{
-	glong ret;
-
-	errno = 0;
-	ret = sysconf(_SC_PAGE_SIZE);
-	if ((glong) -1 == ret && 0 != errno) {
-		g_warning("sysconf(_SC_PHYS_PAGES) failed: %s", g_strerror(errno));
-		return 0;
-	}
-	return ret;
-}
-#else
-#define settings_getpagesize() ((glong) getpagesize())
-#endif /* _SC_PAGE_SIZE && _SC_PHYS_PAGES */
-
 /**
  * @return the amount of physical RAM in KB, or zero in case of failure
  */
-static gulong
+static guint64
 settings_getphysmemsize(void)
-{
 #if defined (_SC_PHYS_PAGES)
-	guint32 pagesize = settings_getpagesize();
+{
+	guint32 pagesize = compat_pagesize();
 	glong pages;
 
 	errno = 0;
@@ -319,8 +292,9 @@ settings_getphysmemsize(void)
 		return 0;
 	}
 	return (pagesize >> 10) * (gulong) pages;
-
+}
 #elif defined (HAS_SYSCTL) && defined (CTL_HW) && defined (HW_USERMEM64)
+{
 /* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
 	int mib[2] = { CTL_HW, HW_USERMEM64 };
 	guint64 amount = 0;
@@ -334,8 +308,9 @@ settings_getphysmemsize(void)
 	}
 
 	return amount / 1024;
-
+}
 #elif defined (HAS_SYSCTL) && defined (CTL_HW) && defined (HW_USERMEM)
+{
 /* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
 	int mib[2] = { CTL_HW, HW_USERMEM };
 	guint32 amount = 0;
@@ -349,9 +324,9 @@ settings_getphysmemsize(void)
 	}
 
 	return amount / 1024;
-
-
+}
 #elif defined (HAS_GETINVENT)
+{
 	inventory_t *inv;
 	long physmem = 0;
 
@@ -377,43 +352,38 @@ settings_getphysmemsize(void)
 	}
 
 	return physmem * 1024;
-
+}
 #else /* ! _SC_PHYS_PAGES && ! HAS_SYSCTL && ! HAS_GETINVENT */
-
+{
 	g_warning("Unable to determine amount of physical RAM");
 	return 0;
-
-#endif /* _SC_PHYS_PAGES */
 }
+#endif /* _SC_PHYS_PAGES */
 
 void
 settings_init(void)
 {
-#ifdef MINGW32
-	/* FIXME WIN32 */
-	guint32 maxfd = 1024;
-#else
-	guint32 maxfd = (guint32) sysconf(_SC_OPEN_MAX);
-#endif
-	gulong memory = settings_getphysmemsize();
-	guint32 amount = (guint32) memory;
-#ifndef MINGW32
-	struct rlimit lim;
-#endif
+	guint64 memory = settings_getphysmemsize();
+	guint64 amount = memory; 
 	char *path = NULL;
+	guint max_fd;
 
-#ifndef MINGW32
-	/* FIXME WIN32 */
-	if (-1 != getrlimit(RLIMIT_DATA, &lim)) {
-		guint32 maxdata = lim.rlim_cur >> 10;
-		amount = MIN(amount, maxdata);		/* For our purposes */
+#ifdef RLIMIT_DATA 
+	{
+		struct rlimit lim;
+	
+		if (-1 != getrlimit(RLIMIT_DATA, &lim)) {
+			guint32 maxdata = lim.rlim_cur >> 10;
+			amount = MIN(amount, maxdata);		/* For our purposes */
+		}
 	}
-#endif
+#endif /* RLIMIT_DATA */
 
     properties = gnet_prop_init();
-
-	gnet_prop_set_guint32_val(PROP_SYS_NOFILE, maxfd);
-	gnet_prop_set_guint32_val(PROP_SYS_PHYSMEM, amount);
+	max_fd = compat_max_fd();
+	
+	gnet_prop_set_guint32_val(PROP_SYS_NOFILE, max_fd);
+	gnet_prop_set_guint64_val(PROP_SYS_PHYSMEM, amount);
 
 	memset(deconstify_gchar(servent_guid), 0, sizeof servent_guid);
 	config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
@@ -429,11 +399,7 @@ settings_init(void)
 
 	if (!is_directory(config_dir)) {
 		g_warning(_("creating configuration directory \"%s\""), config_dir);
-#if MINGW32
-		if (mkdir(config_dir) == -1) {
-#else
-		if (mkdir(config_dir, CONFIG_DIR_MODE) == -1) {
-#endif
+		if (-1 == compat_mkdir(config_dir, CONFIG_DIR_MODE)) {
 			g_warning("mkdir(\"%s\") failed: \"%s\"",
 				config_dir, g_strerror(errno));
 			goto no_config_dir;
@@ -461,8 +427,9 @@ settings_init(void)
 	prop_load_from_file(properties, config_dir, config_file);
 
 	if (debugging(0)) {
-		g_message("detected amount of physical RAM: %lu KB", memory);
-		g_message("process can use %u file descriptors", maxfd);
+		g_message("detected amount of physical RAM: %s", short_kb_size(memory));
+		g_message("process can use at maximum: %s", short_kb_size(amount));
+		g_message("process can use %u file descriptors", max_fd);
 		g_message("max I/O vector size is %d items", MAX_IOV_COUNT);
 	}
 

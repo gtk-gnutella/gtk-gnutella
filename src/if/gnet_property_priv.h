@@ -220,7 +220,7 @@ extern const guint32  search_handle_ignored_files;
 extern const guint32  configured_peermode;
 extern const guint32  current_peermode;
 extern const guint32  sys_nofile;
-extern const guint32  sys_physmem;
+extern const guint64  sys_physmem;
 extern const guint32  dl_queue_count;
 extern const guint32  dl_running_count;
 extern const guint32  dl_active_count;

@@ -2120,7 +2120,7 @@ prop = {
     name = "sys_physmem";
     desc = "How much physical memory is available.";
 	save = FALSE;
-    type = guint32;
+    type = guint64;
     data = {
         default = 65536;
     };

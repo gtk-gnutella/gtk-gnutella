@@ -2852,5 +2852,46 @@ canonize_path(gchar *dst, const gchar *path)
   return 0;
 }
 
+guint
+compat_max_fd(void)
+{
+#ifdef MINGW32
+	/* FIXME WIN32 */
+	return 1024;
+#else
+	return getdtablesize();
+#endif
+}
+
+gint
+compat_mkdir(const gchar *path, guint /* mode_t */ mode)
+{
+#ifdef MINGW32
+	/* FIXME WIN32 */
+	return mkdir(path);
+#else
+	return mkdir(path, mode);
+#endif
+}
+
+glong
+compat_pagesize(void)
+#if defined (_SC_PAGE_SIZE)
+{
+	glong ret;
+
+	errno = 0;
+	ret = sysconf(_SC_PAGE_SIZE);
+	if ((glong) -1 == ret && 0 != errno) {
+		g_warning("sysconf(_SC_PAGE_SIZE) failed: %s", g_strerror(errno));
+		return 0;
+	}
+	return ret;
+}
+#else
+{
+	return getpagesize();
+}
+#endif /* _SC_PAGE_SIZE */
 
 /* vi: set ts=4 sw=4 cindent: */

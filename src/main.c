@@ -786,7 +786,7 @@ close_fds(gint fd)
 #endif
 	{
 		gdouble start;
-		gint num_fds = getdtablesize();
+		gint num_fds = compat_max_fd();
 
 		start = tm_cputime(NULL, NULL);
 		for (/* NOTHING */; fd < num_fds; fd++) {
