@@ -37,7 +37,6 @@ U/new/d_strcasestr.U
 U/new/d_strlcpy.U
 U/new/d_sysctl.U
 U/new/d_ucnv_open_2_6.U
-U/new/d_uname.U
 U/new/d_vsnprintf.U
 U/new/enablenls.U
 U/new/i_invent.U
