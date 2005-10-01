@@ -41,6 +41,7 @@ U/new/i_invent.U
 U/new/i_langinfo.U
 U/new/i_libcharset.U
 U/new/i_libintl.U
+U/new/i_netdb.U
 U/new/i_niip.U
 U/new/i_syssendfile.U
 U/new/i_syssysctl.U
