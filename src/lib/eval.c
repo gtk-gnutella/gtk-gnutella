@@ -37,7 +37,7 @@
 
 RCSID("$Id$");
 
-#ifndef MINGW32
+#ifdef I_PWD
 #include <pwd.h>
 #endif
 
@@ -225,23 +225,29 @@ eval_subst(const gchar *str)
 static gchar *
 get_home(void)
 {
-#ifdef MINGW32
-	return atom_str_get(".");
-#else
-	gchar *v;
-	struct passwd *pp;
+	const char *dir;
 
-	v = getenv("HOME");
-	if (v != NULL)
-		return atom_str_get(v);
+	dir = getenv("HOME");
+	
+#if HAS_GETUID
+	if (!dir) {
+		static struct passwd *pp;
+		
+		pp = getpwuid(getuid());
+		if (pp)
+			dir = pp->pw_dir;
+	}
+#endif /* HAS_GETUID */
 
-	pp = getpwuid(getuid());
-	if (pp != NULL)
-		return atom_str_get(pp->pw_dir);
+	if (!dir)
+		dir = g_get_home_dir();
 
-	g_warning("Could not determine home directory");
-	return atom_str_get("/");
-#endif
+	if (!dir) {
+		g_warning("Could not determine home directory");
+		dir = "/";
+	}
+
+	return atom_str_get(dir);
 }
 
 /**
@@ -250,7 +256,8 @@ get_home(void)
  * @return variable's value, or "" if not found and set `end' to the address
  * of the character right after the variable name.
  */
-static gchar *get_variable(gchar *s, gchar **end)
+static gchar *
+get_variable(gchar *s, gchar **end)
 {
 	guchar *p = (guchar *) s;
 	guchar c;
