@@ -169,6 +169,8 @@ search_gui_free_record(record_t *rc)
 	g_assert(NULL == rc->results_set);
 
 	atom_str_free(rc->name);
+	if (rc->l_name)					/* Set if we ran filtering rules on text */
+		atom_str_free(rc->l_name);
 	if (rc->ext != NULL)
         atom_str_free(rc->ext);
 	if (rc->tag != NULL)
@@ -596,6 +598,7 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 	rc->info = NULL;
    	rc->flags = r->flags;
 	rc->alt_locs = NULL;
+	rc->l_name = NULL;
 
 	if (NULL != r->alt_locs) {
 		{

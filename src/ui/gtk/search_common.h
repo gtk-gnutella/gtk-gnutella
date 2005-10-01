@@ -106,6 +106,12 @@ typedef struct record {
 	gchar  *info;				/**< Short version of tag (atom) */
 	gnet_host_vec_t *alt_locs;	/**< Optional alternate locations for record */
     flag_t  flags;              /**< same flags as in gnet_record_t */
+
+	/*
+	 * Cache for filtering: avoids recomputation at each filtering rule.
+	 */
+
+	gchar * l_name;				/**< Lower-cased file name */
 } record_t;
 
 /*

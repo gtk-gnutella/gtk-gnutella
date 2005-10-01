@@ -53,6 +53,7 @@ RCSID("$Id$");
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
 
+#include "lib/atoms.h"
 #include "lib/walloc.h"
 #include "lib/utf8.h"
 #include "lib/glib-missing.h"
@@ -1943,8 +1944,6 @@ do {																\
 static int
 filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
 {
-    size_t namelen;
-	char *l_name;
     GList *list;
     gint prop_count = 0;
     gboolean do_abort = FALSE;
@@ -1966,24 +1965,6 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
 
     list = filter->ruleset;
 
-	namelen = strlen(rec->name);
-	l_name = g_malloc(namelen + 1);
-	if (0 != utf8_is_valid_string(rec->name, 0)) {
-		size_t len;
-
-		len = utf8_strlower(l_name, rec->name, namelen + 1);
-		if (len > namelen) {
-			namelen = len;
-			l_name = g_realloc(l_name, namelen + 1);
-			len = utf8_strlower(l_name, rec->name, namelen + 1);
-			g_assert(len == namelen);
-		}
-		namelen = len;
-	} else {
-		/* Assume the string is encoded for the current locale */
-		locale_strlower(l_name, rec->name);
-	}
-
 	list = g_list_first(list);
 	while ((list != NULL) && (res->props_set < MAX_FILTER_PROP) && !do_abort) {
 		size_t n;
@@ -1996,11 +1977,47 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
             g_message("trying to match against: %s", filter_rule_to_gchar(r));
 
         if (RULE_IS_ACTIVE(r)) {
-            switch (r->type) {
+            switch (r->type){
             case RULE_JUMP:
                 match = TRUE;
                 break;
-            case RULE_TEXT:
+            case RULE_TEXT: {
+				size_t namelen = -1;
+				char *l_name = rec->l_name;
+
+				if (NULL == l_name) {
+					namelen = strlen(rec->name);
+					l_name = g_malloc(namelen + 1);
+					if (0 != utf8_is_valid_string(rec->name, 0)) {
+						size_t len;
+
+						len = utf8_strlower(l_name, rec->name, namelen + 1);
+						if (len > namelen) {
+							namelen = len;
+							l_name = g_realloc(l_name, namelen + 1);
+							len = utf8_strlower(l_name, rec->name, namelen + 1);
+							g_assert(len == namelen);
+						}
+						namelen = len;
+					} else {
+						/* Assume string is encoded for the current locale */
+						locale_strlower(l_name, rec->name);
+					}
+
+					/*
+					 * Cache for further rules, to avoid costly utf8
+					 * lowercasing transformation for each text-matching
+					 * rule they have configured.
+					 */
+
+					{
+						struct record *wrec = deconstify_gpointer(rec);
+						wrec->l_name = atom_str_get(l_name);
+					}
+					G_FREE_NULL(l_name);
+					l_name = rec->l_name;
+				}
+
                 switch (r->u.text.type) {
                 case RULE_TEXT_EXACT:
                     if (strcmp(r->u.text.case_sensitive ? rec->name : l_name,
@@ -2035,6 +2052,8 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
                     break;
                 case RULE_TEXT_SUFFIX:
                     n = r->u.text.matchlen;
+					if (namelen == (size_t) -1)
+						namelen = strlen(rec->name);
                     if (namelen > n
                         && strcmp((r->u.text.case_sensitive
                                ? rec->name : l_name) + namelen
@@ -2057,10 +2076,10 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
                         g_warning("regexp memory overflow");
                     break;
                 default:
-                    g_error("Unknown text rule type: %d",
-                        r->u.text.type);
+                    g_error("Unknown text rule type: %d", r->u.text.type);
                 }
                 break;
+			}
             case RULE_IP:
 				{
 					guint32 ip;
@@ -2205,7 +2224,6 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
 
 		list = g_list_next(list);
 	}
-    G_FREE_NULL(l_name);
 
     filter->visited = FALSE;
     filter->fail_count += MAX_FILTER_PROP - prop_count;
