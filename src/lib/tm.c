@@ -221,16 +221,9 @@ clock_hz(void)
 gdouble
 tm_cputime(gdouble *user, gdouble *sys)
 {
-#ifdef MINGW32
-	return 0;
-#else
 	static gboolean getrusage_failed;
 	gdouble u;
 	gdouble s;
-
-#if !defined(HAS_GETRUSAGE) && !defined(HAS_TIMES)
-#error "missing getrusage() or times()"
-#endif	/* !defined(HAS_GETRUSAGE) && !defined(HAS_TIMES) */
 
 	if (!getrusage_failed) {
 #if defined(HAS_GETRUSAGE)
@@ -276,7 +269,6 @@ tm_cputime(gdouble *user, gdouble *sys)
 	if (sys)  *sys  = s;
 
 	return u + s;
-#endif
 }
 
 /* vi: set ts=4 sw=4 cindent: */
