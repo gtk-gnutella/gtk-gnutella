@@ -441,8 +441,6 @@ sol_ip(void)
 static void
 socket_tos(struct gnutella_socket *s, gint tos)
 {
-#ifndef MINGW32
-	/* FIXME WIN32 */
 	if (!use_ip_tos || NET_TYPE_IPV4 != s->net)
 		return;
 
@@ -450,18 +448,17 @@ socket_tos(struct gnutella_socket *s, gint tos)
 		const gchar *tosname = "default";
 
 		switch (tos) {
-			case 0: break;
-			case IPTOS_LOWDELAY: tosname = "low delay"; break;
-			case IPTOS_THROUGHPUT: tosname = "throughput"; break;
-			default:
-				g_assert_not_reached();
+		case 0: break;
+		case IPTOS_LOWDELAY: tosname = "low delay"; break;
+		case IPTOS_THROUGHPUT: tosname = "throughput"; break;
+		default:
+			g_assert_not_reached();
 		}
 
 		if (errno != ECONNRESET)
 			g_warning("unable to set IP_TOS to %s (%d) on fd#%d: %s",
 				tosname, tos, s->file_desc, g_strerror(errno));
 	}
-#endif
 }
 
 /**
@@ -519,9 +516,7 @@ socket_tos_normal(struct gnutella_socket *s)
 void
 socket_tos_lowdelay(struct gnutella_socket *s)
 {
-#ifndef MINGW32
 	socket_tos(s, IPTOS_LOWDELAY);
-#endif
 }
 
 /**
@@ -533,9 +528,7 @@ socket_tos_lowdelay(struct gnutella_socket *s)
 void
 socket_tos_throughput(struct gnutella_socket *s)
 {
-#ifndef MINGW32
 	socket_tos(s, IPTOS_THROUGHPUT);
-#endif
 }
 
 /**
