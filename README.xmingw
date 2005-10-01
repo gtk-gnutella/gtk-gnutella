@@ -1,0 +1,67 @@
+NOTE: This document isn't finished at all. This contains the first instruction to build gtk-gnutella for win32.
+
+This document describes how to setup gtk-gnutella for crosscompiling on a linux system, using xmingw to compile as a windows program.
+
+As my linux distribution is based on gentoo, I'll describe the steps involved to setup xmingw, the necessary libraries and finally how to build gtk-gnutella.
+
+I have made the assumption that your xmingw installation will be under
+/opt/xmingw
+and all extra installed libraries, include files etc. will be installed in
+/opt/xmingw/local
+
+First, the xmingw cross compile environment needs to setup. Under gentoo this is as easy as:
+emerge xmingw-binutils xmingw-gcc xmingw-w32api xmingw-runtime
+(ps. If you also want a c++ compiler under your xmingw, you need to emerge xmingw-gcc twice)
+
+Next thing we need is the gtk+ devel packages for mingw. You could either compile all needed packages by hand, or take the easy road and grab them from the gaim project:
+http://prdownloads.sourceforge.net/gaim/gtk-dev-2.6.9-rev-a.tar.gz
+(from http://gaim.sourceforge.net/win32/build.php)
+
+extract the sources, and move everything from the gtk_2_0 directory to /opt/xmingw/local
+You should now have something like this:
+# ls /opt/xmingw/local/
+bin  build.sh  include  lib  version.sh
+
+# ls /opt/xmingw/local/lib/
+asprintf.lib        gmodule-2.0.lib      libfreetype.dll.a        libpango-1.0.dll.a       libz-bcc.lib
+atk-1.0.lib         gobject-2.0.def      libfreetype.lib          libpangoft2-1.0.dll.a    libz.dll.a
+charset.lib         gobject-2.0.lib      libgdk_pixbuf-2.0.dll.a  libpangowin32-1.0.dll.a  libz.lib
+fontconfig.def      gthread-2.0.def      libgdk-win32-2.0.dll.a   libpng13.a               pango-1.0.def
+fontconfig.lib      gthread-2.0.lib      libglib-2.0.dll.a        libpng13.dll.a           pango-1.0.lib
+freetype.def        gtk-2.0              libgmodule-2.0.dll.a     libpng.a                 pangoft2-1.0.def
+gdk_pixbuf-2.0.def  gtk-win32-2.0.def    libgobject-2.0.dll.a     libpng.dll.a             pangoft2-1.0.lib
+gdk_pixbuf-2.0.lib  gtk-win32-2.0.lib    libgthread-2.0.dll.a     libpng.lib               pangowin32-1.0.def
+gdk-win32-2.0.def   iconv.lib            libgtk-win32-2.0.dll.a   libregex.a               pangowin32-1.0.lib
+gdk-win32-2.0.lib   intl.lib             libiconv.a               libtiff3.def             pkgconfig
+gettextpo.lib       jpeg62.def           libintl.a                libtiff.a                zlib-bcc.lib
+glib-2.0            libatk-1.0.dll.a     libjpeg.a                libtiff-bcc.lib          zlib.def
+glib-2.0.def        libfontconfig.dll.a  libjpeg-bcc.lib          libtiff.dll.a            zlib.lib
+glib-2.0.lib        libfreetype.a        libjpeg.dll.a            libtiff.lib
+gmodule-2.0.def     libfreetype-bcc.lib  libjpeg.lib              libz.a
+
+
+As gtk-gnutella has a dependicy on regex. Grep regex from ftp://ftp.gnu.org/gnu/regex
+extract it and compile it as following:
+PATH=/opt/xmingw/bin:$PATH CC=i386-mingw32msvc-gcc ./configure --host=i386-mingw32msvc --prefix=/usr/local/ 
+make
+and last, build a library:
+/opt/xmingw/i386-mingw32msvc/bin/ar ru libregex.a regex.o
+
+Now copy libregex.a to /opt/xmingw/local/lib
+and copy regex.h to /opt/xmingw/local/include
+
+
+Next thing to do is to compile libxml2 using xmingw. I picked the libxml2-2.6.19 package from
+http://xmlsoft.org/downloads.html
+I was unsuccesfull with the win32 packages, that's why I choose to crosscompile the package myself.
+First we need to compile the package
+PATH=/opt/xmingw/bin:$PATH LDFLAGS=-L/opt/xmingw/local/lib CPPFLAGS=-I/opt/xmingw/local/include ./configure --host=i386-mingw32msvc --target=i386-mingw32msvc --without-python --without-readline --prefix=/opt/xmingw/local/
+
+What we are doing here is set the PATH to start with the xmingw binary directory. This is where the cross compiler lives and must be found. As I took the non-standerd route to place my own packages in /opt/xmingw/local I needed to setup the LDFLAGS and CPPFLAGS to point them in the right direction.
+--host and --target tell configure for which host we are going to build. Note that we are _not_ using the --build flag, as we are building on the machine which configure can detect itself.
+Neither do we use python, nor readline. Also I want my xml package to install in /opt/xmingw/local
+
+
+
+
+
