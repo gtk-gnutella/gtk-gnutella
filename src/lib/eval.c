@@ -229,7 +229,7 @@ get_home(void)
 
 	dir = getenv("HOME");
 	
-#if HAS_GETUID
+#if defined(HAS_GETUID)
 	if (!dir) {
 		static struct passwd *pp;
 		
