@@ -1046,18 +1046,29 @@ static void
 purge_dangling_references(struct message *m)
 {
 	GSList *l;
+	GSList *t;
 
-	for (l = m->routes; l; /* empty */) {
+	for (l = m->routes, t = m->ttls; l; /* empty */) {
 		struct route_data *rd = (struct route_data *) l->data;
 
 		if (rd->node == NULL) {
-			GSList *next = l->next;
+			GSList *next = g_slist_next(l);
 			m->routes = g_slist_remove_link(m->routes, l);
 			remove_one_message_reference(rd);
 			g_slist_free_1(l);
 			l = next;
-		} else
-			l = l->next;
+
+			if (t) {
+				next = g_slist_next(t);
+				m->ttls = g_slist_remove_link(m->ttls, t);
+				g_slist_free_1(t);
+				t = next;
+			}
+		} else {
+			l = g_slist_next(l);
+			if (t)
+				t = g_slist_next(t);
+		}
 	}
 }
 
@@ -1675,6 +1686,13 @@ route_query_hit(struct route_log *log,
 			route = get_routing_data(sender);
 
 			g_assert(route != NULL);
+
+			/*
+			 * A query hit is not a broadcasted message, so there's
+			 * no recording of the TTLs at which we see it.
+			 */
+
+			g_assert(m->ttls == NULL);
 
 			m->routes = g_slist_append(m->routes, route);
 			route->saved_messages++;
