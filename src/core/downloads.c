@@ -832,15 +832,10 @@ buffers_strip_leading(struct download *d, size_t amount)
 				/*
 				 * If there is room left in the previous buffer and the
 				 * current I/O vector is not the previous one, update it.
-				 *
-				 * This can't happen when we shift by SOCK_BUFSZ bytes: the
-				 * previous buffer is necessarily full.  However, in that
-				 * case it is the current buffer that is completely empty now.
 				 */
 
 				if (piov->iov_len && b->iov_cur != piov) {
 					g_assert(b->iov_cur == iov);
-					g_assert(amount != SOCK_BUFSZ);
 
 					b->iov_cur = piov;
 					b->iovcnt++;
