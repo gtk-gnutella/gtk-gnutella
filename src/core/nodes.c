@@ -153,6 +153,7 @@ RCSID("$Id$");
 gchar *start_rfc822_date = NULL;		/**< RFC822 format of start_time */
 
 static GSList *sl_nodes = NULL;
+static GSList *sl_nodes_without_broken_gtkg = NULL;
 static GHashTable *nodes_by_id = NULL;
 static gnutella_node_t *udp_node = NULL;
 
@@ -1316,6 +1317,8 @@ node_real_remove(gnutella_node_t *n)
     node_fire_node_removed(n);
 
 	sl_nodes = g_slist_remove(sl_nodes, n);
+	sl_nodes_without_broken_gtkg =
+		g_slist_remove(sl_nodes_without_broken_gtkg, n);
 	g_hash_table_remove(nodes_by_id, GUINT_TO_POINTER(n->id));
     node_drop_handle(n->node_handle);
 
@@ -2932,6 +2935,14 @@ node_is_now_connected(struct gnutella_node *n)
 	gnet_host_t host;
 
 	/*
+	 * Temporary: if node is not a broken GTKG node, record it.
+	 */
+
+	if (!(n->attrs & NODE_A_NO_DUPS))
+		sl_nodes_without_broken_gtkg =
+			g_slist_prepend(sl_nodes_without_broken_gtkg, n);
+
+	/*
 	 * Cleanup hanshaking objects.
 	 */
 
@@ -4390,8 +4401,19 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		if (
 			is_strprefix(n->vendor, gtkg_vendor) ||
 			(*n->vendor == '!' && is_strprefix(&n->vendor[1], gtkg_vendor))
-		)
+		) {
+			version_t rver;
+
 			n->flags |= NODE_F_GTKG;
+
+			/*
+			 * Look whether this version is known to be broken wrt duplicates.
+			 * That's all versions prior 0.96u of 2005-10-02.
+			 */
+
+			if (version_fill(n->vendor, &rver) && rver.timestamp < 1128204000)
+				n->attrs |= NODE_A_NO_DUPS;
+		}
 	}
 
 	/* Pong-Caching -- ping/pong reduction scheme */
@@ -7193,6 +7215,7 @@ node_close(void)
 	node_real_remove(udp_node);
 	udp_node = NULL;
 
+	g_slist_free(sl_nodes_without_broken_gtkg);
 	g_slist_free(sl_proxies);
     g_hash_table_destroy(ht_connected_nodes);
     ht_connected_nodes = NULL;
@@ -7894,6 +7917,18 @@ node_all_nodes(void)
 {
 	return (const GSList *) sl_nodes;
 }
+
+/**
+ * @return list of all nodes without any broken GTKG (those nodes that must
+ * not be forwarded any duplicate message, even with a higher TTL than
+ * previously sent).
+ */
+const GSList *
+node_all_but_broken_gtkg(void)
+{
+	return (const GSList *) sl_nodes_without_broken_gtkg;
+}
+
 
 /**
  * @return writable node given its ID, or NULL if we can't reach that node.

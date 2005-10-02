@@ -628,26 +628,31 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 
 	switch (rt->type) {
 	case ROUTE_NONE:
-		break;
+		return;
 	case ROUTE_ONE:
 		gmsg_split_sendto_one(rt_node,
 			(guchar *) &n->header, n->data, n->size + GTA_HEADER_SIZE);
-		break;
+		return;
 	case ROUTE_ALL_BUT_ONE:
 		g_assert(n == rt_node);
 		gmsg_split_sendto_all_but_one(node_all_nodes(), rt_node,
 			(guchar *) &n->header, n->data, n->size + GTA_HEADER_SIZE);
-		break;
+		return;
+	case ROUTE_NO_DUPS_BUT_ONE:
+		g_assert(n == rt_node);
+		gmsg_split_sendto_all_but_one(node_all_but_broken_gtkg(), rt_node,
+			(guchar *) &n->header, n->data, n->size + GTA_HEADER_SIZE);
+		return;
 	case ROUTE_MULTI:
 		for (sl = rt->ur.u_nodes; sl; sl = g_slist_next(sl)) {
 			rt_node = (struct gnutella_node *) sl->data;
 			gmsg_split_sendto_one(rt_node,
 				(guchar *) &n->header, n->data, n->size + GTA_HEADER_SIZE);
 		}
-		break;
-	default:
-		g_error("unknown route destination: %d", rt->type);
+		return;
 	}
+
+	g_error("unknown route destination: %d", rt->type);
 }
 
 /**
@@ -685,25 +690,31 @@ gmsg_sendto_route_ggep(
 
 	switch (rt->type) {
 	case ROUTE_NONE:
-		break;
+		return;
 	case ROUTE_ONE:
 		sendto_ggep(n, rt_node, regular_size);
-		break;
+		return;
 	case ROUTE_ALL_BUT_ONE:
 		g_assert(n == rt_node);
 		gmsg_split_sendto_all_but_one_ggep(node_all_nodes(), rt_node,
 			(guchar *) &n->header, n->data, n->size + GTA_HEADER_SIZE,
 			regular_size);
-		break;
+		return;
+	case ROUTE_NO_DUPS_BUT_ONE:
+		g_assert(n == rt_node);
+		gmsg_split_sendto_all_but_one_ggep(node_all_but_broken_gtkg(), rt_node,
+			(guchar *) &n->header, n->data, n->size + GTA_HEADER_SIZE,
+			regular_size);
+		return;
 	case ROUTE_MULTI:
 		for (sl = rt->ur.u_nodes; sl; sl = g_slist_next(sl)) {
 			rt_node = (struct gnutella_node *) sl->data;
 			sendto_ggep(n, rt_node, regular_size);
 		}
-		break;
-	default:
-		g_error("unknown route destination: %d", rt->type);
+		return;
 	}
+
+	g_error("unknown route destination: %d", rt->type);
 }
 
 /***

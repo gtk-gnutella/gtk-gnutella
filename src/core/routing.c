@@ -74,6 +74,7 @@ struct message {
 	gchar muid[GUID_RAW_SIZE];	/**< Message UID */
 	struct message **slot;		/**< Place where we're referenced from */
 	GSList *routes;	            /**< route_data from where the message came */
+	GSList *ttls;				/**< For broadcasted messages: TTL by route */
 	guint8 function;			/**< Type of the message */
 	guint8 ttl;					/**< Max TTL we saw for this message */
 };
@@ -305,6 +306,10 @@ route_string(struct route_dest *dest, const host_addr_t origin_addr)
 		gm_snprintf(msg, sizeof msg, "all but %s",
 			host_addr_to_string(origin_addr));
 		break;
+	case ROUTE_NO_DUPS_BUT_ONE:
+		gm_snprintf(msg, sizeof msg, "all but %s and broken GTKG",
+			host_addr_to_string(origin_addr));
+		break;
 	case ROUTE_MULTI:
 		{
 			gint count = g_slist_length(dest->ur.u_nodes);
@@ -401,7 +406,9 @@ clean_entry(struct message *entry)
 	if (entry->routes != NULL)
 		free_route_list(entry);
 
-	entry->routes = NULL;
+	g_assert(entry->ttls == NULL);		/* Cleaned by free_route_list() */
+	g_assert(entry->routes == NULL);	/* Idem */
+
 	entry->ttl = 0;
 }
 
@@ -629,6 +636,49 @@ node_sent_message(struct gnutella_node *n, struct message *m)
 }
 
 /**
+ * For a broadcasted message which is known to have already been sent,
+ * check whether the TTL of the message previously seen is less than the
+ * one we just got.  Update the highest TTL value if needed.
+ *
+ * @return FALSE if the message is really a duplicate (current TTL not greater)
+ * and the node should not have broadcasted this message again.
+ */
+static gboolean
+node_ttl_higher(struct gnutella_node *n, struct message *m, guint8 ttl)
+{
+	GSList *l;
+	gint i;
+	struct route_data * route;
+
+	g_assert(n != fake_node);
+	g_assert(
+		m->function == GTA_MSG_PUSH_REQUEST || m->function == GTA_MSG_SEARCH);
+	g_assert(m->ttls != NULL);
+
+	route = get_routing_data(n);
+
+	g_assert(route != NULL);
+
+	for (l = m->routes, i = 0; l; l = l->next, i++) {
+		if (route == ((struct route_data *) l->data)) {
+			GSList *t = g_slist_nth(m->ttls, i);
+			guint8 old_ttl;
+
+			g_assert(t != NULL);
+			old_ttl = GPOINTER_TO_INT(t->data);
+			if (old_ttl >= ttl)
+				return FALSE;
+
+			t->data = GUINT_TO_POINTER((guint) ttl);
+			return TRUE;
+		}
+	}
+
+	g_error("route not found -- message was supposed to be a duplicate");
+	return FALSE;
+}
+
+/**
  * compares two message structures
  */
 static gint
@@ -836,6 +886,16 @@ free_route_list(struct message *m)
 
 	g_slist_free(m->routes);
 	m->routes = NULL;
+
+	/*
+	 * If the message was a broadcasted one, we kept track of the TTL of
+	 * each message along the route.  This needs to be freed as well.
+	 */
+
+	if (m->ttls) {
+		g_slist_free(m->ttls);		/* Data is are integers, nothing to free */
+		m->ttls = NULL;
+	}
 }
 
 /**
@@ -945,6 +1005,23 @@ message_add(const gchar *muid, guint8 function, struct gnutella_node *node)
 	if (!found || !node_sent_message(node, m)) {
 		route->saved_messages++;
 		entry->routes = g_slist_append(entry->routes, route);
+
+		/*
+		 * If message is typically broadcasted, also record the TTL of
+		 * that route, since a node is allowed to resend us a message
+		 * if it comes with a higher TTL than previously seen.
+		 *		--RAM, 2005-10-02
+		 */
+
+		if (node != fake_node) {
+			switch (function) {
+			case GTA_MSG_PUSH_REQUEST:
+			case GTA_MSG_SEARCH:
+				entry->ttls = g_slist_append(entry->ttls,
+					GUINT_TO_POINTER((guint) node->header.ttl));
+				break;
+			}
+		}
 	}
 
 	if (found)
@@ -1073,7 +1150,8 @@ static gboolean
 forward_message(
 	struct route_log *log,
 	struct gnutella_node **node,
-	struct gnutella_node *target, struct route_dest *dest, GSList *routes)
+	struct gnutella_node *target, struct route_dest *dest, GSList *routes,
+	gboolean duplicate)
 {
 	struct gnutella_node *sender = *node;
 
@@ -1140,6 +1218,23 @@ forward_message(
 				struct route_data *rd = (struct route_data *) l->data;
 				if (rd->node == sender)
 					continue;
+
+				/*
+				 * There is a bug in GTKG 0.95.x: because it did not track
+				 * the TTL of messages received on a connection basis, it
+				 * wrongfully recorded the message as being duplicates when
+				 * a message with a higher TTL was received from a connection,
+				 * if the TTL was lower than the maximum ever seen for that
+				 * message (accross all the connections).
+				 *
+				 * To avoid the remote end from disconnecting, we now flag
+				 * those old broken nodes and don't forward them ANY duplicate.
+				 *		--RAM, 2005-08-02
+				 */
+
+				if (rd->node->attrs & NODE_A_NO_DUPS)
+					continue;
+
 				nodes = g_slist_prepend(nodes, rd->node);
 			}
 
@@ -1177,7 +1272,7 @@ forward_message(
 						"TTL trimmed down to %d ", sender->header.ttl);
 			}
 
-			dest->type = ROUTE_ALL_BUT_ONE;
+			dest->type = duplicate ? ROUTE_NO_DUPS_BUT_ONE : ROUTE_ALL_BUT_ONE;
 			dest->ur.u_node = sender;
 		}
 	}
@@ -1206,6 +1301,7 @@ check_duplicate(struct route_log *log,
 
 	if (find_message(sender->header.muid, sender->header.function, mp)) {
 		struct message *m = *mp;
+		gboolean forward = FALSE;
 
 		g_assert(m != NULL);		/* find_message() succeeded */
 
@@ -1226,14 +1322,34 @@ check_duplicate(struct route_log *log,
 
 			m->ttl = sender->header.ttl;	/* Remember highest TTL */
 
-			return TRUE;			/* Forward but don't handle */
+			forward = TRUE;			/* Forward but don't handle */
 		}
 
-		gnet_stats_count_dropped(sender, MSG_DROP_DUPLICATE);
+		if (!forward)
+			gnet_stats_count_dropped(sender, MSG_DROP_DUPLICATE);
+
+		/*
+		 * Even if we decided to forward the message, we must continue
+		 * to update the highest TTL seen for a given message along
+		 * each route.
+		 */
 
 		if (m->routes && node_sent_message(sender, m)) {
-			/* The same node has sent us a message twice ! */
-			routing_log_extra(log, "dup message (from the same node!)");
+			gboolean higher_ttl;
+
+			/*
+			 * The same node has sent us a message twice!
+			 *
+			 * Check whether we have a higher TTL this time, and update
+			 * the highest TTL seen along this route.
+			 */
+
+			higher_ttl = node_ttl_higher(sender, m, sender->header.ttl);
+
+			if (higher_ttl)
+				routing_log_extra(log, "dup message (same node, higher TTL)");
+			else
+				routing_log_extra(log, "dup message (same node)");
 
 			/*
 			 * That is a really good reason to kick the offender
@@ -1242,12 +1358,15 @@ check_duplicate(struct route_log *log,
 			 * dups to be sure it's not bad luck in MUID generation.
 			 * Finally, check the ratio of dups on received messages,
 			 * because a dup once in a while is nothing.
-			 *				--RAM, 08/09/2001
+			 *		--RAM, 08/09/2001
+			 *
+			 * Don't count duplicates coming with a higher TTL, those are OK!
+			 *		--RAM, 2005-10-02
 			 */
 
 			/* XXX max_dup_msg & max_dup_ratio XXX ***/
 
-			if (++(sender->n_dups) > min_dup_msg &&
+			if (!higher_ttl && ++(sender->n_dups) > min_dup_msg &&
 				!NODE_IS_UDP(sender) &&
 				connected_nodes() > MAX(2, up_connections) &&
 				sender->n_dups > (guint16)
@@ -1271,7 +1390,7 @@ check_duplicate(struct route_log *log,
 				routing_log_extra(log, "dup message");
 		}
 
-		return FALSE;			/* Don't forward and don't handle */
+		return forward;
 	}
 
 	/*
@@ -1338,7 +1457,7 @@ check_duplicate(struct route_log *log,
  */
 static gboolean
 route_push(struct route_log *log,
-	struct gnutella_node **node, struct route_dest *dest)
+	struct gnutella_node **node, struct route_dest *dest, gboolean duplicate)
 {
 	struct gnutella_node *sender = *node;
 	struct message *m;
@@ -1418,7 +1537,7 @@ route_push(struct route_log *log,
 	 */
 
 	revitalize_entry(m, FALSE);
-	forward_message(log, node, NULL, dest, m->routes);
+	forward_message(log, node, NULL, dest, m->routes, duplicate);
 
 	return FALSE;		/* We are not the target, don't handle it */
 }
@@ -1430,7 +1549,7 @@ route_push(struct route_log *log,
  */
 static gboolean
 route_query(struct route_log *log,
-	struct gnutella_node **node, struct route_dest *dest)
+	struct gnutella_node **node, struct route_dest *dest, gboolean duplicate)
 {
 	struct gnutella_node *sender = *node;
 	gboolean is_oob_query;
@@ -1505,7 +1624,8 @@ route_query(struct route_log *log,
 			sender->header.ttl);
 	}
 
-	return forward_message(log, node, NULL, dest, NULL);	/* Broadcast */
+	/* Broadcast */
+	return forward_message(log, node, NULL, dest, NULL, duplicate);
 }
 
 /**
@@ -1815,10 +1935,10 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 
 	switch (sender->header.function) {
 	case GTA_MSG_PUSH_REQUEST:
-		handle_it = route_push(&log, node, dest);
+		handle_it = route_push(&log, node, dest, duplicate);
 		break;
 	case GTA_MSG_SEARCH:
-		handle_it = route_query(&log, node, dest);
+		handle_it = route_query(&log, node, dest, duplicate);
 		break;
 	case GTA_MSG_SEARCH_RESULTS:
 		handle_it = route_query_hit(&log, node, dest);

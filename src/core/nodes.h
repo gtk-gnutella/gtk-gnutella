@@ -308,6 +308,7 @@ typedef struct gnutella_node {
 #define NODE_A_CRAWLABLE	0x00000800 /**< Node can be UDP-crawled */
 #define NODE_A_DYN_QUERY	0x00001000 /**< Node can perform dynamic queries */
  
+#define NODE_A_NO_DUPS		0x02000000 /**< For broken old GTKG: no dups! */
 #define NODE_A_CAN_HSEP		0x04000000 /**< Node supports HSEP */
 #define NODE_A_CAN_QRP		0x08000000 /**< Node supports query routing */
 #define NODE_A_CAN_VENDOR	0x10000000 /**< Node supports vendor messages */
@@ -565,6 +566,7 @@ void node_http_proxies_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 GSList *node_push_proxies(void);
 const GSList *node_all_nodes(void);
+const GSList *node_all_but_broken_gtkg(void);
 gnutella_node_t *node_active_by_id(guint32 id);
 
 void node_became_firewalled(void);
