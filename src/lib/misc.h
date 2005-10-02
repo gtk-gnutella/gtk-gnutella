@@ -463,7 +463,7 @@ gchar *is_strcaseprefix(const gchar *s, const gchar *prefix) WARN_UNUSED_RESULT;
 size_t html_escape(const gchar *src, gchar *dst, size_t dst_size);
 gint canonize_path(gchar *dst, const gchar *path);
 guint compat_max_fd(void);
-gint compat_mkdir(const gchar *path, guint /* mode_t */ mode);
+gint compat_mkdir(const gchar *path, mode_t mode);
 glong compat_pagesize(void);
 gboolean compat_is_superuser(void);
 
