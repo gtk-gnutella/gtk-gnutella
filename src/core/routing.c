@@ -659,7 +659,7 @@ node_ttl_higher(struct gnutella_node *n, struct message *m, guint8 ttl)
 
 	g_assert(route != NULL);
 
-	for (l = m->routes, i = 0; l; l = l->next, i++) {
+	for (l = m->routes, i = 0; l; l = g_slist_next(l), i++) {
 		if (route == ((struct route_data *) l->data)) {
 			GSList *t = g_slist_nth(m->ttls, i);
 			guint8 old_ttl;
@@ -1003,6 +1003,8 @@ message_add(const gchar *muid, guint8 function, struct gnutella_node *node)
 	 */
 
 	if (!found || !node_sent_message(node, m)) {
+		guint ttl;
+
 		route->saved_messages++;
 		entry->routes = g_slist_append(entry->routes, route);
 
@@ -1013,14 +1015,13 @@ message_add(const gchar *muid, guint8 function, struct gnutella_node *node)
 		 *		--RAM, 2005-10-02
 		 */
 
-		if (node != fake_node) {
-			switch (function) {
-			case GTA_MSG_PUSH_REQUEST:
-			case GTA_MSG_SEARCH:
-				entry->ttls = g_slist_append(entry->ttls,
-					GUINT_TO_POINTER((guint) node->header.ttl));
-				break;
-			}
+		ttl = node == fake_node ? my_ttl : node->header.ttl;
+
+		switch (function) {
+		case GTA_MSG_PUSH_REQUEST:
+		case GTA_MSG_SEARCH:
+			entry->ttls = g_slist_append(entry->ttls, GUINT_TO_POINTER(ttl));
+			break;
 		}
 	}
 
