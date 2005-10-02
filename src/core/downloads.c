@@ -754,6 +754,7 @@ buffers_strip_leading(struct download *d, size_t amount)
 	gint i;
 	struct iovec *iov;
 	size_t pos;
+	gint old_iovcnt;			/* For assertions */
 
 	g_assert(d != NULL);
 	g_assert(d->buffers != NULL);
@@ -768,6 +769,8 @@ buffers_strip_leading(struct download *d, size_t amount)
 		buffers_discard(d);
 		return;
 	}
+
+	old_iovcnt = b->iovcnt;
 
 	/*
 	 * Since we know the shifting amount is less than each buffer's size,
@@ -892,6 +895,9 @@ buffers_strip_leading(struct download *d, size_t amount)
 	}
 
 	b->held -= amount;
+
+	/* If striping amount was exactly the buffer size, we must one more now */
+	g_assert(amount != SOCK_BUFSZ || old_iovcnt + 1 == b->iovcnt);
 }
 
 /* ----------------------------------------- */
