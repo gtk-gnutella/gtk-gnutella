@@ -848,14 +848,10 @@ buffers_strip_leading(struct download *d, size_t amount)
 			}
 
 			/*
-			 * We did not break out of the loop because "held > amount":
 			 * If pos != b->held, there is necessarily a vector after us,
 			 * meaning we necessarily held more than the shifting amount
 			 * because the shifting amount is at most one buffer size and
 			 * data are contiguous.
-			 *
-			 * Hence we can assert here that "held > amount", which is going
-			 * to be checked just below (since here, i > 0).
 			 */
 		}
 
@@ -863,7 +859,7 @@ buffers_strip_leading(struct download *d, size_t amount)
 		 * Shift back the current buffer by `amount' bytes.
 		 */
 
-		g_assert(i == 0 || held > amount);	/* Or we'd have exited above */
+		g_assert(i == 0 || held >= amount);	/* Or we'd have exited above */
 
 		if (held != amount)
 			memmove(buf, buf + amount, held - amount);
