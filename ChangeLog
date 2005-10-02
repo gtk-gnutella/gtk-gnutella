@@ -1,5 +1,14 @@
 # since last version
 
+- (2005-10-02 - RAM)
+ * GTKG was not tracking the TTL of broadcasted messages received along a
+   given connection, thereby leading it to believe it was receiving undue
+   duplicates whereas the node was simply resending it with a higher TTL.
+   This unfortunate bug was introduced on 2004-08-28 so all 0.95.x suffer
+   from it...
+ * Added workaround to allow ultra connections to old (broken) GTKGs to be kept
+   without remote ending it abruptly: simply never send duplicates to those...
+
 - (2005-10-01 - RAM)
  * Fixed buffers_strip_leading() when the stripped size equals the buffer size.
 
