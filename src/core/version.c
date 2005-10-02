@@ -543,7 +543,8 @@ version_init(void)
 {
 	gchar buf[128];
 	time_t now = tm_time();
-	const gchar *sysname, *machine;
+	const gchar *sysname = "Unknown";
+	const gchar *machine = NULL;
 	gboolean ok;
 
 #ifdef HAS_UNAME
@@ -556,11 +557,6 @@ version_init(void)
 		} else {
 			g_warning("uname() failed: %s:", g_strerror(errno));
 		}
-	}
-#else /* !HAS_UNAME */
-	{
-		sysname = "Unknown";
-		machine = NULL;
 	}
 #endif /* HAS_UNAME */
 
