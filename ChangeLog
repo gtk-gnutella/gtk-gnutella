@@ -1,5 +1,12 @@
 # since last version
 
+- (2005-10-01 - RAM)
+ * Fixed buffers_strip_leading() when the stripped size equals the buffer size.
+
+- (2005-09-29 - RAM)
+ * Fixed buffers_strip_leading() when trailing I/O vector is emptied.
+ * Show estimated remaining time in the Download pane as well.
+
 - (2005-09-28 - RAM)
  * At exit time, one must not try to flush download buffers holding nothing.
  * Performance improvement, especially when running as ultra peer.
