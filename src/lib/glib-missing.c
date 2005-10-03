@@ -411,14 +411,15 @@ gm_sanitize_filename(const gchar *filename,
 
 	/* Replace shell meta characters and likely problematic characters */
 	for (p = s; (c = *(guchar *) p) != '\0'; ++p) {
-		static const gchar evil[] = "$&*/\\`:;()'\"<>?|~\177";
+		static const gchar evil[] = "$&*\\`:;()'\"<>?|~\177";
 
 		if (
 			c < 32
 			|| is_ascii_cntrl(c)
-			|| c == G_DIR_SEPARATOR
-			|| (c == ' ' && no_spaces)
-			|| (p == s && c == '.')
+			|| G_DIR_SEPARATOR == c
+			|| '/' == c 
+			|| (' ' == c && no_spaces)
+			|| (p == s && '.' == c)
 			|| (no_evil && NULL != strchr(evil, c))
 		) {
 			if (!q) {
