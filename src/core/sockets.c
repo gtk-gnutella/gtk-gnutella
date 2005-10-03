@@ -2262,7 +2262,7 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 		/* msg_flags is missing at least in some versions of IRIX. */
 		truncated = FALSE;	/* We can't detect truncation with recvfrom() */
 		r = recvfrom(s->file_desc, s->buffer, sizeof s->buffer, 0,
-				from, from_len);
+				from, &from_len);
 	}
 #endif /* HAS_MSGHDR_MSG_FLAGS */
 	
