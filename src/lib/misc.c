@@ -738,16 +738,18 @@ is_regular(const gchar *path)
  */
 gboolean
 is_symlink(const gchar *path)
+#if defined(HAS_LSTAT)
 {
-#ifdef MINGW32
-	return FALSE;
-#else
 	struct stat st;
 	if (-1 == lstat(path, &st))
 		return FALSE;
 	return (st.st_mode & S_IFMT) == S_IFLNK;
-#endif
 }
+#else /* !HAS_LSTAT */
+{
+	return FALSE;
+}
+#endif /* HAS_LSTAT */
 
 const gchar *
 short_size(guint64 size)
