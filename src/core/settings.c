@@ -1564,8 +1564,6 @@ typedef struct prop_map {
     gboolean init;              /**< init widget with current value */
 } prop_map_t;
 
-#define IGNORESETTING NULL
-
 static prop_map_t property_map[] = {
     {
         PROP_NODE_SENDQUEUE_SIZE,
@@ -1810,7 +1808,7 @@ settings_callbacks_init(void)
             g_warning("settings_callbacks_init:"
                 " property %d already mapped", n);
 
-        if (property_map[n].cb != IGNORESETTING) {
+        if (property_map[n].cb) {
             gnet_prop_add_prop_changed_listener(
                 property_map[n].prop,
                 property_map[n].cb,
@@ -1845,7 +1843,7 @@ settings_callbacks_shutdown(void)
 	}
 
     for (n = 0; n < PROPERTY_MAP_SIZE; n ++) {
-        if (property_map[n].cb != IGNORESETTING) {
+        if (property_map[n].cb) {
             gnet_prop_remove_prop_changed_listener(
                 property_map[n].prop,
                 property_map[n].cb);
