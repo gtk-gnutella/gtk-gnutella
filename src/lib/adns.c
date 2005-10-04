@@ -361,7 +361,7 @@ adns_helper(gint fd_in, gint fd_out)
 	g_set_prgname(ADNS_PROCESS_TITLE);
 	gm_setproctitle(g_get_prgname());
 
-#ifndef MINGW32
+#ifndef SIGQUIT 
 	set_signal(SIGQUIT, SIG_IGN);		/* Avoid core dumps on SIGQUIT */
 #endif
 
@@ -588,9 +588,11 @@ adns_init(void)
 		g_warning("adns_init: pipe() failed: %s", g_strerror(errno));
 		goto prefork_failure;
 	}
-#ifndef MINGW32
+	
+#ifndef SIGCHLD 
 	set_signal(SIGCHLD, SIG_IGN); /* prevent a zombie */
 #endif
+
 	pid = fork();
 	if ((pid_t) -1 == pid) {
 		g_warning("adns_init: fork() failed: %s", g_strerror(errno));
