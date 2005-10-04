@@ -516,7 +516,9 @@ socket_tos_normal(struct gnutella_socket *s)
 void
 socket_tos_lowdelay(struct gnutella_socket *s)
 {
+#ifndef MINGW32
 	socket_tos(s, IPTOS_LOWDELAY);
+#endif
 }
 
 /**
@@ -528,7 +530,9 @@ socket_tos_lowdelay(struct gnutella_socket *s)
 void
 socket_tos_throughput(struct gnutella_socket *s)
 {
+#ifndef MINGW32
 	socket_tos(s, IPTOS_THROUGHPUT);
+#endif
 }
 
 /**
