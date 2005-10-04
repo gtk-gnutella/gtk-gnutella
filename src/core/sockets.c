@@ -438,13 +438,14 @@ sol_ip(void)
  * Set the TOS on the socket.  Routers can use this information to
  * better route the IP datagrams.
  */
-static void
-socket_tos(struct gnutella_socket *s, gint tos)
+static gint
+socket_tos(const struct gnutella_socket *s, gint tos)
 {
-	if (!use_ip_tos || NET_TYPE_IPV4 != s->net)
-		return;
-
-	if (-1 == setsockopt(s->file_desc, sol_ip(), IP_TOS, &tos, sizeof tos)) {
+	if (
+		use_ip_tos &&
+		NET_TYPE_IPV4 == s->net &&
+		-1 == setsockopt(s->file_desc, sol_ip(), IP_TOS, &tos, sizeof tos)
+	) {
 		const gchar *tosname = "default";
 
 		switch (tos) {
@@ -455,17 +456,21 @@ socket_tos(struct gnutella_socket *s, gint tos)
 			g_assert_not_reached();
 		}
 
-		if (errno != ECONNRESET)
+		if (ECONNRESET != errno)
 			g_warning("unable to set IP_TOS to %s (%d) on fd#%d: %s",
 				tosname, tos, s->file_desc, g_strerror(errno));
+		return -1;
 	}
+
+	return 0;
 }
 
 /**
  * Pick an appropriate default TOS for packets on the socket, based
  * on the socket's type.
  */
-void socket_tos_default(struct gnutella_socket *s)
+void
+socket_tos_default(const struct gnutella_socket *s)
 {
 	switch (s->type) {
 	case SOCK_TYPE_DOWNLOAD: /* ACKs w/ low latency => higher transfer rates */
@@ -482,16 +487,16 @@ void socket_tos_default(struct gnutella_socket *s)
 	}
 }
 #else
-static void
-socket_tos(struct gnutella_socket *unused_s, gint unused_tos)
+static gint 
+socket_tos(const struct gnutella_socket *unused_s, gint unused_tos)
 {
 	(void) unused_s;
 	(void) unused_tos;
-	/* Empty */
+	return 0;
 }
 
 void
-socket_tos_default(struct gnutella_socket *unused_s)
+socket_tos_default(const struct gnutella_socket *unused_s)
 {
 	(void) unused_s;
 	/* Empty */
@@ -502,7 +507,7 @@ socket_tos_default(struct gnutella_socket *unused_s)
  * Set the Type of Service (TOS) field to "normal."
  */
 void
-socket_tos_normal(struct gnutella_socket *s)
+socket_tos_normal(const struct gnutella_socket *s)
 {
 	socket_tos(s, 0);
 }
@@ -514,11 +519,12 @@ socket_tos_normal(struct gnutella_socket *s)
  * latency path without regard for bandwidth.
  */
 void
-socket_tos_lowdelay(struct gnutella_socket *s)
+socket_tos_lowdelay(const struct gnutella_socket *s)
 {
-#ifndef MINGW32
-	socket_tos(s, IPTOS_LOWDELAY);
-#endif
+	static gboolean failed;
+	
+	if (!failed)
+		failed = 0 != socket_tos(s, IPTOS_LOWDELAY);
 }
 
 /**
@@ -528,11 +534,12 @@ socket_tos_lowdelay(struct gnutella_socket *s)
  * bandwidth path without regard for latency.
  */
 void
-socket_tos_throughput(struct gnutella_socket *s)
+socket_tos_throughput(const struct gnutella_socket *s)
 {
-#ifndef MINGW32
-	socket_tos(s, IPTOS_THROUGHPUT);
-#endif
+	static gboolean failed;
+	
+	if (!failed)
+		failed = 0 != socket_tos(s, IPTOS_THROUGHPUT);
 }
 
 /**
