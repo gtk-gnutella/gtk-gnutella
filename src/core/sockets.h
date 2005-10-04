@@ -200,10 +200,10 @@ void sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink);
 void sock_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink);
 void sock_nodelay(struct gnutella_socket *s, gboolean on);
 void sock_tx_shutdown(struct gnutella_socket *s);
-void socket_tos_default(struct gnutella_socket *s);
-void socket_tos_throughput(struct gnutella_socket *s);
-void socket_tos_lowdelay(struct gnutella_socket *s);
-void socket_tos_normal(struct gnutella_socket *s);
+void socket_tos_default(const struct gnutella_socket *s);
+void socket_tos_throughput(const struct gnutella_socket *s);
+void socket_tos_lowdelay(const struct gnutella_socket *s);
+void socket_tos_normal(const struct gnutella_socket *s);
 gboolean socket_bad_hostname(struct gnutella_socket *s);
 
 void socket_timer(time_t now);
