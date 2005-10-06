@@ -50,8 +50,12 @@ enum net_type {
 typedef struct host_addr {
 	guint32 net;	/**< The address network type */
 	union {
-		guint8 ipv6[16];	/**< This is valid if "net == NET_TYPE_IPV6" */
-		guint32 ipv4;	/**< @attention: Always in host byte order! */
+		guint8	ipv6[16];	/**< This is valid if "net == NET_TYPE_IPV6" */
+		guint32 ipv4;		/**< @attention: Always in host byte order! */
+
+		guint8	u8[16];
+		guint16 u16[8];
+		guint32 u32[4];
 	} addr;
 } host_addr_t;
 
@@ -68,7 +72,12 @@ static const host_addr_t ipv6_unspecified = {	/* :: */
 	{ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
 };
 
-static const host_addr_t ipv6_ipv4_mapped = {	/* ::ffff:0 */
+static const host_addr_t ipv6_loopback = {	/* ::1 */
+	NET_TYPE_IPV6,
+	{ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 } },
+};
+
+static const host_addr_t ipv6_ipv4_mapped = {	/* ::ffff:0:0 */
 	NET_TYPE_IPV6,
 	{ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0, 0, 0, 0 } },
 };
@@ -87,6 +96,12 @@ static const host_addr_t ipv6_site_local = {	/* fec0:: */
 	NET_TYPE_IPV6,
 	{ { 0xfe, 0xc0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
 };
+
+static const host_addr_t ipv6_6to4 = {			/* 2002:: */
+	NET_TYPE_IPV6,
+	{ { 0x20, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
+};
+
 
 static const host_addr_t zero_host_addr;
 
