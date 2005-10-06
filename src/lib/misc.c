@@ -747,6 +747,7 @@ is_symlink(const gchar *path)
 }
 #else /* !HAS_LSTAT */
 {
+	(void) path;
 	return FALSE;
 }
 #endif /* HAS_LSTAT */
