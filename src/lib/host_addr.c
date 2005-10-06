@@ -76,10 +76,46 @@ is_private_addr(const host_addr_t ha)
 		if ((ip & 0xffff0000) == 0xc0a80000)
 			return TRUE;
 	} else if (NET_TYPE_IPV6 == host_addr_net(ha)) {
-		/* XXX: Implement this! */
+		return host_addr_equal(ha, ipv6_loopback);
 	}
 
 	return FALSE;
+}
+
+static inline gboolean
+ipv4_addr_is_routable(guint32 ip)
+{
+	static const struct {
+		const guint32 addr, mask;
+	} net[] = {
+		{ 0x00000000UL, 0xff000000UL },	/* 0.0.0.0/8		"This" Network */
+		{ 0xe0000000UL, 0xe0000000UL },	/* 224.0.0.0/4		Multicast and Reserved */
+		{ 0x7f000000UL,	0xff000000UL },	/* 127.0.0.0/8		Loopback */
+		{ 0xc0000200UL, 0xffffff00UL },	/* 192.0.2.0/24		Test-Net [RFC 3330] */
+		{ 0xc0586300UL, 0xffffff00UL },	/* 192.88.99.0/24	6to4 Relay Anycast [RFC 3068] */
+		{ 0xc6120000UL, 0xfffe0000UL },	/* 198.18.0.0/15	Network Interconnect [RFC 2544] */
+	};
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS(net); i++) {
+		if ((ip & net[i].mask) == net[i].addr)
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+static inline guint32
+host_addr_is_6to4(const host_addr_t ha)
+{
+	return NET_TYPE_IPV6 == host_addr_net(ha) && 0x2002 == ha.addr.u16[0];
+}
+
+
+static inline guint32
+host_addr_6to4_ipv4(const host_addr_t ha)
+{
+	return peek_be32(&ha.addr.u16[1]);	/* 2002:AABBCCDD::/48 */
 }
 
 /**
@@ -99,30 +135,13 @@ host_addr_is_routable(const host_addr_t addr)
 
 	switch (host_addr_net(ha)) {
 	case NET_TYPE_IPV4:
-		{
-			guint32 ip = host_addr_ipv4(ha);
-
-			if (
-					ip == 0x00000000UL ||
-					/* 0.0.0.0 / 7 */
-					(ip & 0xFE000000UL) == 0x00000000UL ||
-					/* 224..239.0.0 / 8 (multicast) */
-					(ip & 0xF0000000UL) == 0xE0000000UL ||
-					/* 127.0.0.0 / 8 */
-					(ip & 0xFF000000UL) == 0x7F000000UL ||
-					/* 192.0.2.0 -- (192.0.2/24 prefix) TEST-NET [RFC 3330] */
-					(ip & 0xFFFFFF00UL) == 0xC0000200UL ||
-					/* 255.0.0.0 / 8 */
-					(ip & 0xFF000000UL) == 0xFF000000UL
-			)
-				return FALSE;
-		}
-		return TRUE;
+		return ipv4_addr_is_routable(host_addr_ipv4(ha));
 
 	case NET_TYPE_IPV6:
 #ifdef USE_IPV6
 		return 	!host_addr_matches(ha, ipv6_unspecified, 8) &&
-				!host_addr_matches(ha, ipv6_multicast, 8);
+				!host_addr_matches(ha, ipv6_multicast, 8) &&
+				!(host_addr_is_6to4(ha) && !ipv4_addr_is_routable(host_addr_6to4_ipv4(ha)));
 #endif /* USE_IPV6 */
 
 	case NET_TYPE_NONE:
