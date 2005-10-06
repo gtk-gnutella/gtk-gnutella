@@ -108,7 +108,8 @@ ipv4_addr_is_routable(guint32 ip)
 static inline guint32
 host_addr_is_6to4(const host_addr_t ha)
 {
-	return NET_TYPE_IPV6 == host_addr_net(ha) && 0x2002 == ha.addr.u16[0];
+	return NET_TYPE_IPV6 == host_addr_net(ha) &&
+		0x2002 == peek_le16(&ha.addr.u16[0]);
 }
 
 
