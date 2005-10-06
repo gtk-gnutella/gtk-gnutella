@@ -582,10 +582,13 @@ proxy_connect(int fd)
 	socket_addr_t server;
 	const struct sockaddr *sa;
 	socklen_t len;
+	host_addr_t addr;
 
-	if (!proxy_addr &&
-		proxy_port != 0 &&
-		proxy_hostname[0] != '\0'
+	addr = string_to_host_addr(proxy_addr, NULL);
+	if (
+		!is_host_addr(addr) &&
+		0 != proxy_port &&
+		'\0' != proxy_hostname[0]
 	) {
 		if (!in_progress) {
 			in_progress = TRUE;
@@ -599,12 +602,12 @@ proxy_connect(int fd)
 		}
 	}
 
-	if (!proxy_addr || !proxy_port) {
+	if (!is_host_addr(addr) || !proxy_port) {
 		errno = EINVAL;
 		return -1;
 	}
 
-	socket_addr_set(&server, string_to_host_addr(proxy_addr, NULL), proxy_port);
+	socket_addr_set(&server, addr, proxy_port);
 	len = socket_addr_get(&server, &sa);
 
 	return connect(fd, sa, len);
