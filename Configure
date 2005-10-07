@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Mon Oct  3 20:30:13 MEST 2005 [metaconfig 3.0 PL70]
+# Generated on Fri Oct  7 22:52:42 MEST 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -316,6 +316,7 @@ d_inflate=''
 d_iptos=''
 d_isascii=''
 d_kqueue=''
+d_lstat=''
 d_memcpy=''
 d_msghdr_msg_flags=''
 d_nls=''
@@ -5274,6 +5275,10 @@ case "$version" in
 	;;
 esac
 
+: see if lstat exists
+set lstat d_lstat
+eval $inlibc
+
 : see if memcpy exists
 set memcpy d_memcpy
 eval $inlibc
@@ -7369,6 +7374,7 @@ d_isascii='$d_isascii'
 d_kqueue='$d_kqueue'
 d_libxml2='$d_libxml2'
 d_linux='$d_linux'
+d_lstat='$d_lstat'
 d_memcpy='$d_memcpy'
 d_msghdr_msg_flags='$d_msghdr_msg_flags'
 d_nls='$d_nls'

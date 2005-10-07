@@ -133,6 +133,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_isascii HAS_ISASCII		/**/
 
+/* HAS_LSTAT:
+ *	This symbol, if defined, indicates that the lstat routine is
+ *	available to do file stats on symbolic links.
+ */
+#$d_lstat HAS_LSTAT		/**/
+
 /* HAS_MEMCPY:
  *	This symbol, if defined, indicates that the memcpy routine is available
  *	to copy blocks of memory.
