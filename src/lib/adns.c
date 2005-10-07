@@ -361,8 +361,8 @@ adns_helper(gint fd_in, gint fd_out)
 	g_set_prgname(ADNS_PROCESS_TITLE);
 	gm_setproctitle(g_get_prgname());
 
-#ifndef SIGQUIT 
-	set_signal(SIGQUIT, SIG_IGN);		/* Avoid core dumps on SIGQUIT */
+#ifdef SIGQUIT 
+	set_signal(SIGQUIT, SIG_IGN);	/* Avoid core dumps on SIGQUIT */
 #endif
 
 	is_helper = TRUE;
@@ -589,7 +589,7 @@ adns_init(void)
 		goto prefork_failure;
 	}
 	
-#ifndef SIGCHLD 
+#ifdef SIGCHLD 
 	set_signal(SIGCHLD, SIG_IGN); /* prevent a zombie */
 #endif
 
