@@ -161,6 +161,7 @@ EOF
 %{_datadir}/icons/hicolor/*/apps/gtk-gnutella.*
 %{_datadir}/locale
 %{_datadir}/pixmaps/gtk-gnutella.png
+${_datadir}/pixmaps/gtk-gnutella.svg
 %{_mandir}/man1
 
 %if %{mdk}
@@ -173,6 +174,8 @@ EOF
 %doc README TODO AUTHORS ChangeLog LICENSE doc/other/remote-shell.txt
 
 %changelog
+* Fri Oct 07 2005 Gary Lawrence Murphy <garym@maya.dyndns.org>
+- Appended gtk-gnutella.svg file.
 * Fri Aug 14 2004 Murphy <eqom14@users.sourceforge.net>
 - Try and make a universal spec for fedora or mdk.
 * Tue Dec 11 2001 Sam Varshavchik <mrsam@courier-mta.com>
