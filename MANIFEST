@@ -84,6 +84,7 @@ doc/devguide/STYLE
 doc/gnutella/GGEP
 doc/gnutella/GUESS
 doc/gnutella/HSEP
+doc/gnutella/IPv6
 doc/gnutella/PARQ
 doc/gnutella/PFSP
 doc/gnutella/QRP
@@ -477,10 +478,10 @@ src/lib/prop.c
 src/lib/prop.h
 src/lib/sha1.c
 src/lib/sha1.h
-src/lib/stats.c
-src/lib/stats.h
 src/lib/socket.c
 src/lib/socket.h
+src/lib/stats.c
+src/lib/stats.h
 src/lib/tiger.c
 src/lib/tiger.h
 src/lib/tiger_sboxes.h

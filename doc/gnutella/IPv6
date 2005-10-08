@@ -1,0 +1,110 @@
+From: Christian Biere <christianbiere@gmx.de>
+Newsgroups: ml.gnutella.dev-forum
+Subject: IPv6 for Gnutella
+Message-ID: <20051007145221.GA5238@cyclonus>
+X-To: the_gdf@yahoogroups.com
+User-Agent: Mutt/1.4.2.1i
+Content-Length: 5053
+Lines: 126
+
+Hi,
+
+consider this a follow-up to the below mentioned thread:
+http://groups.yahoo.com/group/the_gdf/messages/8898
+
+Gtk-Gnutella ( http://gtk-gnutella.sourceforge.net/ ) has been
+extended to support IPv6 in current CVS. While it's working, it should
+still be considered experimental. Therefore, the relevant new GGEP
+extensions are only defined in the GTKG namespace:
+
+GGEP "GTKG.IPV6"
+
+  Carries a single IPv6 address [16 bytes]. This is used in all
+  messages in which an IPv4 address may appear whether in a extension or
+  directly.  If a mandatory IPv4 is zeroed out, this indicates that only
+  the IPv6 address should be used. Otherwise, both addresses may be
+  usable depending on whether the receiver has IPv4 and IPv6 support
+  respectively connectivity. As a special case, a zero-length payload
+  may be used to indicate support (including connectivity) for IPv6.
+
+
+GGEP "GTKG.IPP6"
+
+  An array of <IPv6>:<port> in binary format. So far it is only used
+  in pongs and serves exactly the same purpose as the UHC-related GGEP
+  IPP extension.
+
+
+Gnutella and HTTP headers
+
+  Furthermore, all headers used by the Gnutella handshake and HTTP
+  transactions in which IPv4 address may appear must be expected to
+  contain IPv6 address as well. The human-readable format used for IPv6
+  address is explained in defined in "IP Version 6 (IPv6) Addressing
+  Architecture" [RFC 3513]. Zero-compression and the IPv4-mixed form
+  make this a bit complicated to parse and to print. Related routines
+  must be well-tested.
+
+  Finally, URLs must be expected to carry an IPv6 address as host
+  part. Since URLs may contain an explicit port number separated by a
+  colon ':', the format of IPv6 addresses clashes with URLs. Therefore,
+  IPv6 addresses must be embraced with brackets ('[' and ']') to prevent
+  ambiguity. This is specified by "Format for Literal IPv6 Addresses in
+  URL's" [RFC 2732]. However, this problem is not unique to URLs but
+  occurs also with <IPv6 address>:<port> pairs. Thus, this format using
+  brackets should also be used in all headers in which IPv6 address are
+  or may be paired with a port number.
+
+
+DNS
+
+  It might be required to change the routines used to resolve
+  hostnames, if the current ones handle only IPv4 addresses. You will
+  also have to decide at runtime whether the resolved IPv4 or IPv6 can
+  actually be used due to missing IPv4 or IPv6 connectivity. DNS
+  resolution requests should be issued to allow both IPv4 and IPv6
+  addresses unless it is known respectively configured that the local
+  peer has no IPv4 or IPv6 connectivity.
+
+
+Uniqueness of Addresses
+
+  Unlike with IPv4, in an IPv6 environment every end-user typically
+  has a network range of of 2^32 - 2^80 addresses assigned to his
+  account/site. This makes it more difficult to ensure fairness as a
+  single peer could in theory use a huge amount of addresses. This
+  should also be considered with respect to the diversity of the local
+  host cache.
+
+  When filtering certain IPv4 addresses, make sure IPv6 "aliases" are
+  filtered as well. This includes IPv4-mapped addresses (::ffff/96) but
+  also addresses under the 6to4 IPv6 prefix (2002::/16).
+  IPv4-compatible addresses (::/96) might be considered as well but
+  these are actually deprecated and are best ignored respectively
+  discarded.
+
+
+Getting IPv6 connectivity
+
+  Many, probably most, ISPs do not provide IPv6 support at least not
+  to end-users. There are two easy ways to get IPv6 connectivity
+  nonetheless. The first is using a so-called "tunnel broker".
+
+  Another and probably the easiest option is to use 6to4 routing. The
+  latter does not require to sign-up for a IPv6 tunnel but simply
+  support by the operating system respectively its network stack and a
+  proper configuration. It is not required to know about a certain
+  router or gateway that can be used, the anycast range 192.88.99.0/24
+  is used for this purpose. A disadvantage of this solution is that the
+  assigned range of IPv6 addresses is as stable or dynamic as the used
+  IPv4 address. The relevant specifications are "Connection of IPv6
+  Domains via IPv4 Clouds" [RFC 3056] and "An Anycast Prefix for 6to4
+  Relay Routers" [RFC 3068].
+
+  A third option is to use a HTTP or better a SOCKS5 proxy that is
+  IPv6-capable. This is probably the least-desired solution but it does
+  not require any kind of support by the operating system for IPv6 and
+  for some people this might even be the only way to use IPv6.
+
+-- 
+Christian
