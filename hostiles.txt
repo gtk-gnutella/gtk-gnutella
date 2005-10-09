@@ -119,6 +119,12 @@
 64.15.0.0/16
 66.186.39.0/26
 
+# Media Sentry
+64.124.145.0/25
+
+# ServerBeach (Peer 1 network)
+64.34.160.0/27
+
 # Minnesota valley television
 65.160.241.0/25
 
@@ -129,6 +135,9 @@
 67.19.6.0/24
 67.19.8.0/24
 205.177.73.0/24
+
+# Subnet of Time Warner Telecom
+168.215.129.64/27
 
 # sBoOb.net, pr0n spammer
 194.146.227.8
@@ -193,6 +202,13 @@
 206.251.8.0/25
 207.234.131.147
 207.234.131.148
+
+# Time Warner Telecom
+206.169.0.0/16
+209.203.64.0/18
+66.162.178.96/28
+216.110.48.48/29
+168.215.129.64/27
 
 # fsh1.xcite.net and fsh2.xcite.net, reply to queries with $search + .exe
 216.169.118.81
