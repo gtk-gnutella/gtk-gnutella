@@ -123,10 +123,13 @@
 64.124.145.0/25
 
 # ServerBeach (Peer 1 network)
-64.34.160.0/27
+64.34.160.0/19
 
 # Minnesota valley television
 65.160.241.0/25
+
+# DONet, Inc.
+65.171.151.0/24
 
 # Share dozens or hundreds of completely corrupted WMVs
 67.18.128.0/24
@@ -135,9 +138,6 @@
 67.19.6.0/24
 67.19.8.0/24
 205.177.73.0/24
-
-# Subnet of Time Warner Telecom
-168.215.129.64/27
 
 # sBoOb.net, pr0n spammer
 194.146.227.8
@@ -204,11 +204,12 @@
 207.234.131.148
 
 # Time Warner Telecom
-206.169.0.0/16
-209.203.64.0/18
 66.162.178.96/28
-216.110.48.48/29
 168.215.129.64/27
+206.169.0.0/16
+207.170.229.96/28
+209.203.64.0/18
+216.110.48.48/29
 
 # fsh1.xcite.net and fsh2.xcite.net, reply to queries with $search + .exe
 216.169.118.81
@@ -265,6 +266,9 @@
 209.225.43.224/27
 216.64.217.224/27
 216.69.229.0/24
+
+# Spamming subnets from Cogent Communications
+216.28.31.0/24
 
 ###
 ### The following come from an htaccess denying RIAA/MPAA access
