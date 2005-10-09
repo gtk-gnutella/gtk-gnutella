@@ -119,6 +119,9 @@
 64.15.0.0/16
 66.186.39.0/26
 
+# Minnesota valley television
+65.160.241.0/25
+
 # Share dozens or hundreds of completely corrupted WMVs
 67.18.128.0/24
 67.18.129.0/24
@@ -176,6 +179,9 @@
 216.55.178.165
 # vidlock.com
 217.116.225.250
+
+# University of Mississippi
+130.74.0.0/16
 
 # reserved range
 79.79.55.0/24
