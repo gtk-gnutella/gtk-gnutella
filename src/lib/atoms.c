@@ -415,7 +415,13 @@ atom_get(gint type, gconstpointer key)
 	atom_t *a;
 	gint len;
 
-	STATIC_ASSERT(ARENA_OFFSET % MEM_ALIGNBYTES == 0);
+#ifdef __GNUC__
+	STATIC_ASSERT(0 == ARENA_OFFSET % MEM_ALIGNBYTES);
+#else
+	/* ARENA_OFFSET is no constant expression with some Sun compiler */
+	g_assert(0 == ARENA_OFFSET % MEM_ALIGNBYTES);
+#endif /* __GNUC__ */
+	
     g_assert(key != NULL);
 	g_assert(type >= 0 && (guint) type < G_N_ELEMENTS(atoms));
 
