@@ -58,11 +58,15 @@
 extern const char *assert_msg_;
 extern char *assert_trigger_;
 
+#ifndef G_UNLIKELY
+#define G_UNLIKELY(x)	(x)
+#endif
+
 #define g_assert(x)							  								  \
 G_STMT_START {								  								  \
-	if (G_LIKELY(!(x))) {													  \
+	if (G_UNLIKELY(!(x))) {													  \
 		assert_msg_ = "\nAssertion failure \""				  				  \
-			G_STRINGIFY(x) "\" in " __FILE__ "(" G_STRINGIFY(__LINE__) ")\n"; \
+			StGiFy(x) "\" in " __FILE__ "(" StGiFy(__LINE__) ")\n";			  \
 		*assert_trigger_ = 0;	/* ignite a SIGSEGV */				  		  \
 	}																		  \
 } G_STMT_END
