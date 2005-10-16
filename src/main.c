@@ -807,7 +807,6 @@ extern char **environ;
 
 #ifdef FAST_ASSERTIONS
 const char *assert_msg_;
-char *assert_trigger_;
 
 /**
  * This a SIGSEGV signal handler used for "fast" assertions.
