@@ -761,8 +761,10 @@ bsched_source_remove(bio_source_t *bio)
 
 	if (bs)
 		bsched_bio_remove(bs, bio);
-	if (bio->io_tag)
+	if (bio->io_tag) {
 		inputevt_remove(bio->io_tag);
+		bio->io_tag = 0;
+	}
 
 	wfree(bio, sizeof *bio);
 }
@@ -1316,19 +1318,38 @@ bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, size_t len)
 #ifdef USE_MMAP
 static sigjmp_buf mmap_env;
 static sig_atomic_t mmap_access;
+static signal_handler_t old_sigbus_handler;
+static signal_handler_t old_sigsegv_handler;
 
 /**
- * Handles SIGBUS or SIGSEGV when accessing mmap()ed areas.
+ * Handles SIGBUS or SIGSEGV when accessing mmap()ed areas. This may
+ * happen when the underlying file gets truncated or the device fails
+ * with an I/O error. When using read() one would see "errno == EIO"
+ * or similar. With mmap() we have to catch this ourselves.
  */
 static void
-signal_handler(int n)
+signal_handler(int signo)
 {
 	if (mmap_access) {
 		mmap_access = 0;
-		siglongjmp(mmap_env, n);
+		siglongjmp(mmap_env, signo);
 	}
-	set_signal(n, SIG_DFL);
-	raise(n);
+	
+	/*
+	 * If this signal did not occur whilst accessing a mmap()ed area,
+	 * there is something wrong and we delegate the signal to the old
+	 * handler.
+	 */
+
+	switch (n) {
+	case SIGBUS:
+		set_signal(signo, old_sigbus_handler);
+		break;
+	case SIGSEGV:
+		set_signal(signo, old_sigsegv_handler);
+		break;
+	}
+	raise(signo);
 }
 #endif /* !USE_MMAP */
 
@@ -1409,8 +1430,15 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 
 		if (first_call) {
 			first_call = FALSE;
-			set_signal(SIGBUS, signal_handler);
-			set_signal(SIGSEGV, signal_handler);
+			
+			/*
+			 * It would be a waste to change the signal handler each
+			 * time. Therefore, the handler is set up only once and
+			 * signals that do not occur whilst mmap_access is set
+			 * are delegated to the original handler.
+			 */
+			old_sigbus_handler = set_signal(SIGBUS, signal_handler);
+			old_sigsegv_handler = set_signal(SIGSEGV, signal_handler);
 		}
 
 		if (
@@ -1456,7 +1484,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 			default:
 				g_assert_not_reached();
 			}
-			errno = EPIPE;
+			errno = EPIPE;	/* Don't consider this fatal, keep mmap() enabled */
 			return -1;
 		}
 
