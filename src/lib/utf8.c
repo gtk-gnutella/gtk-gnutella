@@ -1193,7 +1193,7 @@ locale_to_utf8(const gchar *str, size_t len)
 	if (0 == len || utf8_is_valid_string(str, len))
 		return str;
 
-	if (locale_is_utf8()) {
+	if (locale_is_utf8() || (iconv_t) -1 == cd_locale_to_utf8) {
 		utf8_enforce(outbuf, sizeof outbuf, str);
 		return outbuf;
 	}
@@ -1223,7 +1223,7 @@ locale_to_utf8_full(const gchar *str)
 	if (0 == len || utf8_is_valid_string(str, len))
 		return deconstify_gchar(str);
 
-	if (locale_is_utf8()) {
+	if (locale_is_utf8() || (iconv_t) -1 == cd_locale_to_utf8) {
 		size_t size, n;
 		gchar *s;
 
@@ -1267,7 +1267,7 @@ locale_to_utf8_normalized(const gchar *str, uni_norm_t norm)
 
 	if (utf8_is_valid_string(str, 0)) {
 		s = str;
-	} else if (locale_is_utf8()) {
+	} else if (locale_is_utf8() || (iconv_t) -1 == cd_locale_to_utf8) {
 		size_t size;
 		gchar *p;
 
@@ -1311,16 +1311,19 @@ utf8_to_locale(const gchar *str, size_t len)
 				str, len != 0 ? len : strlen(str), outbuf, sizeof(outbuf) - 7);
 }
 
+#if CHAR_BIT == 8
+#define IS_NON_NUL_ASCII(p) (*(const gint8 *) (p) > 0)
+#else
+#define IS_NON_NUL_ASCII(p) (!(*(p) & ~0x7f) && (*(p) > 0))
+#endif
+
 gboolean
-is_ascii_string(const gchar *str)
+is_ascii_string(const gchar *s)
 {
-	gint c;
+	while (IS_NON_NUL_ASCII(s))
+		++s;
 
-	while ((c = (guchar) *str++))
-		if (c & ~0x7f)
-	        return FALSE;
-
-    return TRUE;
+	return '\0' == *s;
 }
 
 const gchar *
