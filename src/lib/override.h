@@ -58,9 +58,6 @@
 extern const char *assert_msg_;
 extern char *assert_trigger_;
 
-#ifndef G_UNLIKELY
-#define G_UNLIKELY(x)	(x)
-#endif
 
 #define g_assert(x)							  								  \
 G_STMT_START {								  								  \
