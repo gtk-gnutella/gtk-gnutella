@@ -805,9 +805,43 @@ close_fds(gint fd)
 
 extern char **environ;
 
+#ifdef FAST_ASSERTIONS
+const char *assert_msg_;
+char *assert_trigger_;
+
+/**
+ * This a SIGSEGV signal handler used for "fast" assertions.
+ *
+ * NOTE: The code inside must be signal-safe. See also:
+ * http://www.opengroup.org/onlinepubs/009695399/functions/xsh_chap02_04.html
+ */
+static void
+assertion_failure(int signo)
+{
+	(void) signo;
+
+	/* Prevent looping, if the following crashes. */
+	set_signal(SIGSEGV, SIG_DFL);
+	if (assert_msg_)
+		write(STDERR_FILENO, assert_msg_, strlen(assert_msg_));
+
+	abort();
+}
+#endif /* FAST_ASSERTIONS */
+
+static void
+assertion_init(void)
+{
+#ifdef FAST_ASSERTIONS
+	set_signal(SIGSEGV, assertion_failure);
+#endif /* FAST_ASSERTIONS */
+}
+
 int
 main(int argc, char **argv)
 {
+	
+	assertion_init();
 	tm_now_exact(&start_time);
 
 	if (compat_is_superuser()) {
