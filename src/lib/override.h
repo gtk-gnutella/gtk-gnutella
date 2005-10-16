@@ -51,24 +51,38 @@
  * Look at the generated code for hex2dec() to see the difference. It does
  * not seem to make difference overall though as it seems but that might
  * heavily architecture-dependent.
+ *
+ * Taking advantage of it may require using -momit-leaf-frame-pointer or
+ * -fomit-frame-pointer for GCC.
  */
 #undef g_assert
 #undef g_assert_not_reached
 
 extern const char *assert_msg_;
-extern char *assert_trigger_;
 
+static inline G_GNUC_NORETURN void
+raise_sigsegv(void)
+{
+	static char *assert_trigger_;
+	*assert_trigger_ = 0;	/* ignite a SIGSEGV */
+}
 
-#define g_assert(x)							  								  \
-G_STMT_START {								  								  \
-	if (G_UNLIKELY(!(x))) {													  \
-		assert_msg_ = "\nAssertion failure \""				  				  \
-			StGiFy(x) "\" in " __FILE__ "(" StGiFy(__LINE__) ")\n";			  \
-		*assert_trigger_ = 0;	/* ignite a SIGSEGV */				  		  \
-	}																		  \
+#define g_assert(x)														\
+G_STMT_START {															\
+	if (G_UNLIKELY(!(x))) {												\
+		assert_msg_ = "\nAssertion failure \""							\
+			StGiFy(x) "\" in " __FILE__ "(" STRINGIFY(__LINE__) ")\n";	\
+		raise_sigsegv();												\
+	}																	\
 } G_STMT_END
 
-#define g_assert_not_reached() g_assert(0)
+#define g_assert_not_reached(x)							\
+G_STMT_START {								  			\
+	assert_msg_ = "\nCode should not be reached in "	\
+			__FILE__ "(" STRINGIFY(__LINE__) ")\n";		\
+	raise_sigsegv();									\
+} G_STMT_END
+
 #endif /* FAST_ASSERTIONS */
 
 #include "malloc.h"		/* Must be the last header included */
