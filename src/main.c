@@ -809,10 +809,6 @@ extern char **environ;
 const char *assert_msg_;
 char *assert_trigger_;
 
-#ifdef STDERR_FILENO
-#define STDERR_FILENO 2
-#endif
-
 /**
  * This a SIGSEGV signal handler used for "fast" assertions.
  *
@@ -827,7 +823,7 @@ assertion_failure(int signo)
 	/* Prevent looping, if the following crashes. */
 	set_signal(SIGSEGV, SIG_DFL);
 	if (!assert_msg_)
-		assert_msg_ = "Segmentation fault";
+		assert_msg_ = "\nSegmentation fault\n";
 	write(STDERR_FILENO, assert_msg_, strlen(assert_msg_));
 
 	abort();
