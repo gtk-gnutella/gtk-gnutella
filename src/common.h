@@ -268,6 +268,23 @@ typedef void (*GCallback) (void);
 #endif
 
 /*
+ * Standard file descriptor numbers
+ */
+
+#ifndef STDIN_FILENO
+#define STDIN_FILENO 0
+#endif /* STDIN_FILENO */
+
+#ifndef STDOUT_FILENO
+#define STDOUT_FILENO 1
+#endif /* STDOUT_FILENO */
+
+#ifndef STDERR_FILENO
+#define STDERR_FILENO 2
+#endif /* STDERR_FILENO */
+
+
+/*
  * Other common macros.
  */
 
@@ -334,6 +351,19 @@ do {				\
 #else /* GCC < 4 */
 #define WARN_NEED_SENTINEL
 #endif /* GCC >= 4 */
+
+/* Define G_LIKELY() and G_UNLIKELY() so that they are available when
+ * using GLib 1.2 as well. These allow optimization by static branch
+ * prediction with GCC. */
+#ifndef G_LIKELY
+#if HAVE_GCC(3, 4)	/* Just a guess, a Configure check would be better */
+#define G_LIKELY(x)		(__builtin_expect(x, 1))
+#define G_UNLIKELY(x)	(__builtin_expect(x, 0))
+#else /* !GCC >= 3.4 */
+#define G_LIKELY(x)		(x)
+#define G_UNLIKELY(x)	(x)
+#endif /* GCC >= 3.4 */
+#endif /* !G_LIKELY */
 
 /**
  * CMP() returns the sign of a-b, that means -1, 0, or 1.
