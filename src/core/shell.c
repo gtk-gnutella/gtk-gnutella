@@ -258,7 +258,11 @@ shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 		tok_buf = shell_get_token(cmd, &pos);
 
 		if (tok_buf) {
-			port = atol(tok_buf);
+			gint error;
+			guint32 u;
+			
+			u = parse_uint32(tok_buf, NULL, 10, &error);
+			port = error || u > 65535 ? 0 : u;
 			G_FREE_NULL(tok_buf);
 		}
 
@@ -429,13 +433,13 @@ shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 	tok_prop = shell_get_token(cmd, &pos);
 	if (!tok_prop) {
 		sh->msg = _("Property missing");
-		goto error;
+		goto failure;
 	}
 
 	prop = get_prop_stub_by_name(tok_prop, &stub);
 	if (prop == NO_PROP) {
 		sh->msg = _("Unknown property");
-		goto error;
+		goto failure;
 	}
 
 	prop_buf = stub->get_def (prop);
@@ -446,51 +450,70 @@ shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 	if (!tok_value) {
 		prop_free_def (prop_buf);
 		sh->msg = _("Value missing");
-		goto error;
+		goto failure;
 	}
 
 	switch (prop_buf->type) {
-	case PROP_TYPE_BOOLEAN: {
-		gboolean val;
-		if (ascii_strcasecmp(tok_value, "true") == 0) {
-			val = TRUE;
+	case PROP_TYPE_BOOLEAN:
+		{
+			gboolean val;
+			
+			if (0 == ascii_strcasecmp(tok_value, "true")) {
+				val = TRUE;
+			} else if (0 == ascii_strcasecmp(tok_value, "false")) {
+				val = FALSE;
+			} else {
+				guint64 u;
+				gint error;
+			
+				u = parse_uint64(tok_value, NULL, 10, &error);
+				if (error)
+					goto failure;
+
+				val = u ? TRUE : FALSE;
+			}
+			stub->boolean.set(prop, &val, 0, 1);
 		}
-		else if (ascii_strcasecmp(tok_value, "false") == 0) {
-			val = FALSE;
-		}
-		else {
-			val = (atol(tok_value) != 0) ? TRUE : FALSE;
-		}
-		stub->boolean.set (prop, &val, 0, 1);
 		break;
-	}
 	case PROP_TYPE_MULTICHOICE:
-	case PROP_TYPE_GUINT32: {
-		guint32 val;
-		val = atol(tok_value);
-		stub->guint32.set (prop, &val, 0, 1);
+	case PROP_TYPE_GUINT32:
+		{
+			guint32 val;
+			gint error;
+
+			val = parse_uint32(tok_value, NULL, 10, &error);
+			if (error)
+				goto failure;
+		
+			stub->guint32.set(prop, &val, 0, 1);
+		}
 		break;
-	}
-	case PROP_TYPE_GUINT64: {
-		guint32 val;
-		val = atol(tok_value);
-		stub->guint32.set (prop, &val, 0, 1);
+	case PROP_TYPE_GUINT64:
+		{
+			guint64 val;
+			gint error;
+
+			val = parse_uint64(tok_value, NULL, 10, &error);
+			if (error)
+				goto failure;
+
+			stub->guint64.set(prop, &val, 0, 1);
+		}
 		break;
-	}
-	case PROP_TYPE_STRING: {
-		stub->string.set (prop, tok_value);
+	case PROP_TYPE_STRING:
+		stub->string.set(prop, tok_value);
 		break;
-	}
-	case PROP_TYPE_STORAGE: {
-		gchar guid[GUID_RAW_SIZE];
-		hex_to_guid(tok_value, guid);
-		stub->storage.set (prop, guid, prop_buf->vector_size);
+	case PROP_TYPE_STORAGE:
+		{
+			gchar guid[GUID_RAW_SIZE];
+			hex_to_guid(tok_value, guid);
+			stub->storage.set (prop, guid, prop_buf->vector_size);
+		}
 		break;
-	}
 	default:
 		prop_free_def (prop_buf);
 		sh->msg = _("Type not supported");
-		goto error;
+		goto failure;
 	}
 
 	sh->msg = _("Value found and set");
@@ -503,10 +526,10 @@ shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 
 	return reply_code;
 
-error:
+failure:
 	G_FREE_NULL(stub);
 	G_FREE_NULL(tok_prop);
-	if (sh->msg == NULL)
+	if (!sh->msg)
 		sh->msg = _("Malformed command");
 
 	return REPLY_ERROR;
