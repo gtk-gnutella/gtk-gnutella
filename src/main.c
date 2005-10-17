@@ -499,7 +499,7 @@ slow_main_timer(time_t now)
 		hcache_store_if_dirty(HOST_ULTRA);
 		break;
 	default:
-		g_assert(0);
+		g_assert_not_reached();
 	}
 	i = (i + 1) % 5;
 
@@ -820,12 +820,12 @@ assertion_failure(int signo)
 	(void) signo;
 
 	/* Prevent looping, if the following crashes. */
-	set_signal(SIGSEGV, SIG_DFL);
+	set_signal(signo, SIG_DFL);
 	if (!assert_msg_)
-		assert_msg_ = "\nSegmentation fault\n";
+		assert_msg_ = SIGSEGV == signo ? "\nSegmentation fault\n" : "\nTrap\n";
 	write(STDERR_FILENO, assert_msg_, strlen(assert_msg_));
 
-	abort();
+	raise(signo);
 }
 #endif /* FAST_ASSERTIONS */
 
@@ -833,15 +833,20 @@ static void
 assertion_init(void)
 {
 #ifdef FAST_ASSERTIONS
+#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
+	set_signal(SIGTRAP, assertion_failure);
+#else
 	set_signal(SIGSEGV, assertion_failure);
-#endif /* FAST_ASSERTIONS */
+#endif	/* GCC/x86 */
+#endif	/* FAST_ASSERTIONS */
 }
 
 int
 main(int argc, char **argv)
 {
-	
 	assertion_init();
+	misc_init();
+
 	tm_now_exact(&start_time);
 
 	if (compat_is_superuser()) {

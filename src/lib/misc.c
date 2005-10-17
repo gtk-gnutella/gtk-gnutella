@@ -1059,29 +1059,84 @@ data_hex_str(const gchar *data, size_t len)
 	return buf;
 }
 
-static inline gint
-hex2dec_invalid(void)
-{
-	g_assert_not_reached();
-	return -1;
-}
+static gint8 hex2dec_tab[(size_t) (guchar) -1 + 1];
 
 /**
- * Convert an hexadecimal char (0-9, A-F, a-f) into decimal.
+ * Converts a hexadecimal char (0-9, A-F, a-f) to an integer.
+ *
+ * @param c the character to convert.
+ * @return 0..15 for valid hexadecimal ASCII characters, -1 otherwise.
  */
 static inline gint
 hex2dec_inline(guchar c)
 {
-	return c >= '0' && c <= '9' ? c - '0'
-		 : c >= 'a' && c <= 'f' ? c - 'a' + 10
-		 : c >= 'A' && c <= 'F' ? c - 'A' + 10
-		 : hex2dec_invalid();
+	return hex2dec_tab[c];
 }
 
+/**
+ * Converts a hexadecimal char (0-9, A-F, a-f) to an integer. Passing a
+ * character which is not a hexadecimal ASCII character causes an
+ * assertion failure.
+ *
+ * @param c the hexadecimal ASCII character to convert.
+ * @return 0..15 for valid hexadecimal ASCII characters.
+ */
 gint
 hex2dec(guchar c)
 {
-	return hex2dec_inline(c);
+	gint ret;
+	
+	ret = hex2dec_inline(c);
+	g_assert(-1 != ret);
+	return ret;
+}
+
+/**
+ * Initializes the lookup table for hex2dec().
+ */
+static void
+hex2dec_init(void)
+{
+	size_t i;
+
+	/* Initialize hex2dec_tab */
+	
+	for (i = 0; i < G_N_ELEMENTS(hex2dec_tab); i++) {
+		static const char hexa[] = "0123456789abcdef";
+		hex2dec_tab[i] = is_ascii_xdigit(i)
+			? strchr(hexa, ascii_tolower(i)) - hexa
+			: -1;
+	}
+	
+	/* Check consistency of hex2dec_tab */
+
+	for (i = 0; i <= (guchar) -1; i++)
+		switch (i) {
+		case '0': g_assert(0 == hex2dec(i)); break;
+		case '1': g_assert(1 == hex2dec(i)); break;
+		case '2': g_assert(2 == hex2dec(i)); break;
+		case '3': g_assert(3 == hex2dec(i)); break;
+		case '4': g_assert(4 == hex2dec(i)); break;
+		case '5': g_assert(5 == hex2dec(i)); break;
+		case '6': g_assert(6 == hex2dec(i)); break;
+		case '7': g_assert(7 == hex2dec(i)); break;
+		case '8': g_assert(8 == hex2dec(i)); break;
+		case '9': g_assert(9 == hex2dec(i)); break;
+		case 'A':
+		case 'a': g_assert(10 == hex2dec(i)); break;
+		case 'B':
+		case 'b': g_assert(11 == hex2dec(i)); break;
+		case 'C':
+		case 'c': g_assert(12 == hex2dec(i)); break;
+		case 'D':
+		case 'd': g_assert(13 == hex2dec(i)); break;
+		case 'E':
+		case 'e': g_assert(14 == hex2dec(i)); break;
+		case 'F':
+		case 'f': g_assert(15 == hex2dec(i)); break;
+		default:
+				  g_assert(-1 == hex2dec_inline(i));
+		}
 }
 
 /**
@@ -2903,5 +2958,11 @@ compat_is_superuser(void)
 
 	return ret;
 }
-	
+
+void
+misc_init(void)
+{
+	hex2dec_init();
+}
+
 /* vi: set ts=4 sw=4 cindent: */

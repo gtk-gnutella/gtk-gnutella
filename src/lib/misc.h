@@ -431,6 +431,7 @@ void guid_random_fill(gchar *xuid);
 /*
  * Stuff
  */
+void misc_init(void);
 gint str_chomp(gchar *str, gint len);
 gint hex2dec(guchar c);
 gboolean is_printable(const gchar *buf, gint len);

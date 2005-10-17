@@ -61,18 +61,25 @@
 extern const char *assert_msg_;
 
 static inline G_GNUC_NORETURN void
-raise_sigsegv(void)
+raise_assert_failure(void)
+#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
 {
-	static char *assert_trigger_;
+	/* This should raise a SIGTRAP with minimum code */
+	__asm__ __volatile__ ("int $03");
+}
+#else
+{
+	static volatile gint *assert_trigger_;
 	*assert_trigger_ = 0;	/* ignite a SIGSEGV */
 }
+#endif /* GCC/x86 */
 
 #define g_assert(x)														\
 G_STMT_START {															\
 	if (G_UNLIKELY(!(x))) {												\
 		assert_msg_ = "\nAssertion failure \""							\
 			StGiFy(x) "\" in " __FILE__ "(" STRINGIFY(__LINE__) ")\n";	\
-		raise_sigsegv();												\
+		raise_assert_failure();											\
 	}																	\
 } G_STMT_END
 
@@ -80,7 +87,7 @@ G_STMT_START {															\
 G_STMT_START {								  			\
 	assert_msg_ = "\nCode should not be reached in "	\
 			__FILE__ "(" STRINGIFY(__LINE__) ")\n";		\
-	raise_sigsegv();									\
+	raise_assert_failure();								\
 } G_STMT_END
 
 #endif /* FAST_ASSERTIONS */
