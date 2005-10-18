@@ -206,9 +206,10 @@ static const guint8 utf8len_mark[] = {
 
 #define UNICODE_IS_ASCII(x)				((x) < 0x0080U)
 #define UNICODE_IS_REPLACEMENT(x)		((x) == UNI_REPLACEMENT)
-#define UNICODE_IS_BYTE_ORDER_MARK(x)	((x) == UNI_BYTE_ORDER_MARK)
+#define UNICODE_IS_BYTE_ORDER_MARK(x)	((0xFFFFU & (x)) == UNI_BYTE_ORDER_MARK)
+#define UNICODE_IS_BOM(x) 				UNICODE_IS_BYTE_ORDER_MARK(x)
 #define UNICODE_IS_ILLEGAL(x) \
-	(((x) & UNI_ILLEGAL) == UNI_ILLEGAL || (x) > 0x10FFFFU)
+	((UNI_ILLEGAL & (x)) == UNI_ILLEGAL || (x) > 0x10FFFFU)
 
 static inline guint
 utf32_combining_class(guint32 uc)
@@ -428,7 +429,11 @@ utf8_encoded_char_len(guint32 uc)
 {
 	guint len;
 
-	if (UNICODE_IS_SURROGATE(uc) || UNICODE_IS_ILLEGAL(uc))
+	if (
+		UNICODE_IS_SURROGATE(uc) ||
+		UNICODE_IS_ILLEGAL(uc) ||
+		UNICODE_IS_BOM(uc)
+	)
 		return 0;
 
 	len = UNISKIP(uc);
@@ -671,8 +676,11 @@ malformed:
  * If `s' does not point to a well-formed UTF-8 character, `retlen' is
  * set to -1 and the function returns 0.
  */
+
+#if 0
+/* Slower but correct, keep it around for consistency checks. */
 static guint32
-utf8_decode_char_fast(const gchar *s, gint *retlen)
+utf8_decode_char_less_fast(const gchar *s, gint *retlen)
 {
 	guint32 v = *s;
 	guint32 nv;
@@ -681,9 +689,6 @@ utf8_decode_char_fast(const gchar *s, gint *retlen)
 	gint expectlen = 0;
 
 	g_assert(s);
-
-	if (v == 0)
-		goto malformed;
 
 	if (UTF8_IS_ASCII(v)) {
 		if (retlen)
@@ -739,14 +744,10 @@ malformed:
 
 	return 0;
 }
+#endif
 
-/**
- * Replacement for utf8_decode_char_fast().
- *
- * XXX: Not tested yet!
- */
 guint32
-utf8_decode_char_faster(const gchar *s, gint *retlen)
+utf8_decode_char_fast(const gchar *s, gint *retlen)
 {
 	guint32 uc = (guchar) *s;
 	guint n;
@@ -765,44 +766,71 @@ utf8_decode_char_faster(const gchar *s, gint *retlen)
 		guchar base, mask, c;
 
 		/* Minimum penalty for ASCII */
-		if (n < 1)
+		if (n-- < 1)
 			goto failure;
 
 		/* The second byte needs special handling */
 		c = *++s;
-		base = 0x80;
-		mask = 0xC0;	/* 0x80..0xBF */
 
 		/* In the four cases below "base" and "mask" may be overriden; this is
 		 * OK and gains smaller code and is faster on average. */
-		switch (uc) {
-		case 0xE0:			/* 0xA0..0xBF */
-			base = 0xA0;
-			/* FALL THROUGH */
-		case 0xED:			/* 0x80..0x9F */
-			mask = 0xE0;
-			break;
-		case 0xF4:			/* 0x80..0x8F */
-			mask = 0xF0;
-			break;
-		case 0xF0:			/* 0x90..0xBF */
-			if (c < 0x90)
+		if (uc < 0xE0) {
+			/* The default valid range for the second byte is 0x80..0xBF */
+			base = 0x80;
+			mask = 0xC0;
+		} else {
+			static const struct {
+				const guchar base;
+				const guchar mask;
+			} tab[32] = {
+				{ 0xA0, 0xE0 },	/* 0xE0 0xA0..0xBF */
+				{ 0x80, 0xC0 },	/* 0xE1 */
+				{ 0x80, 0xC0 },	/* 0xE2 */
+				{ 0x80, 0xC0 }, /* 0xE3 */
+				{ 0x80, 0xC0 }, /* 0xE4 */
+				{ 0x80, 0xC0 }, /* 0xE5 */
+				{ 0x80, 0xC0 }, /* 0xE6 */
+				{ 0x80, 0xC0 }, /* 0xE7 */
+				{ 0x80, 0xC0 }, /* 0xE8 */
+				{ 0x80, 0xC0 }, /* 0xE9 */
+				{ 0x80, 0xC0 }, /* 0xEA */
+				{ 0x80, 0xC0 }, /* 0xEB */
+				{ 0x80, 0xC0 }, /* 0xEC */
+				{ 0x80, 0xE0 }, /* 0xED 0x80..0x9F */
+				{ 0x80, 0xC0 }, /* 0xEE */
+				{ 0x80, 0xC0 }, /* 0xEF */
+				{ 0x80, 0xC0 }, /* 0xF0 0x90..0xBF */
+				{ 0x80, 0xC0 }, /* 0xF1 */
+				{ 0x80, 0xC0 }, /* 0xF2 */
+				{ 0x80, 0xC0 }, /* 0xF3 */
+				{ 0x80, 0xF0 }, /* 0xF4 0x80..0x8F */
+
+				/* Values beyond are already filtered by utf8_skip(). */
+			};
+
+			/* Worst case; a mask alone is insufficient. */
+			if (0xF0 == uc && c < 0x90)
 				goto failure;
+			
+			base = tab[uc - 0xE0].base;
+			mask = tab[uc - 0xE0].mask;
 		}
+
+		uc &= 0x3F >> n;
 
 		if ((mask & c) != base)
 			goto failure;
 
-		uc = UTF8_ACCUMULATE((0x3f & uc), c);
-	
-		/* Further bytes must be within 0x80...0xBF */
-		while (0 != --n) {
+		for (;;) {
+			uc = UTF8_ACCUMULATE(uc, c);
+			if (0 == --n)
+				break;
+
 			c = *++s;
 
-			/* 0x80..0xBF */
+			/* Any further bytes must be in the range 0x80...0xBF. */
 			if (0x80 != (0xC0 & c))
 				goto failure;
-			uc = UTF8_ACCUMULATE(uc, c);
 		}
 
 		/* Check for BOMs (*FFFE) and invalid codepoints (*FFFF) */
@@ -4024,6 +4052,71 @@ unicode_decompose_init(void)
 		utf8_to_utf32(s, u, len + 1);
 		G_FREE_NULL(u);
 	}
+
+#if 0 
+	{
+		guint32 uc;
+
+		/*
+		 * Verify that each UTF-8 encoded codepoint is decoded to the same
+		 * codepoint.
+		 */
+		for (uc = 0; uc <= 0x10FFFF; uc++) {
+			static gchar utf8_char[7];
+			gint len, len1, len2;
+			guint32 uc1, uc2;
+
+			len = utf8_encode_char(uc, utf8_char);
+			if (!len)
+				continue;
+			g_assert(len > 0 && len <= 4);
+
+			uc1 = utf8_decode_char_fast(utf8_char, &len1); 
+			printf("uc=%x uc1=%x, len=%d, len1=%d\n", uc, uc1, len, len1);
+			g_assert(uc == uc1);
+			g_assert(len == len1);
+
+			uc2 = utf8_decode_char_less_fast(utf8_char, &len2); 
+			g_assert(uc1 == uc2);
+			g_assert(len1 == len2);
+		}
+	}
+#endif
+
+#if 0
+	{
+		guint32 uc = 0;
+
+		/* Check utf8_decode_char_fast() for all 4-byte combinations. */
+		do {
+			gint len1, len2;
+			guint32 uc1, uc2;
+
+			uc1 = utf8_decode_char_fast(cast_to_gconstpointer(&uc), &len1); 
+			uc2 = utf8_decode_char_less_fast(cast_to_gconstpointer(&uc), &len2);
+
+#if 0	
+			printf("uc1=%x, uc2=%x, len1=%d, len1=%d\n", uc1, uc2, len1, len2);
+#endif
+
+			g_assert(uc1 < 0x10FFFFF);
+			g_assert(uc1 == uc2);
+			g_assert(len1 == len2);
+
+			if (-1 != len1) {
+				static gchar utf8_char[7];
+				gint len;
+				gboolean eq;
+				
+				len = utf8_encode_char(uc1, utf8_char);
+				g_assert(len1 == len);
+				eq = 0 == memcmp(cast_to_gconstpointer(&uc), utf8_char, len);
+				g_assert(eq);
+			}
+		} while (0 != ++uc); /* while (!0xc0ffee) */
+	}
+#endif
+
 
 #if 0 && defined(USE_GLIB2)
 	size_t i;
