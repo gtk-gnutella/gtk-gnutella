@@ -115,16 +115,35 @@ utf8_skip(guchar c)
 {
 	/*
 	 * How wide is an UTF-8 encoded char, depending on its first byte?
+	 *
+	 * See Unicode 4.1.0, Chapter 3.10, Table 3-6
 	 */
-	static const guint8 utf8len[64] = {
-		2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,		/* 192-207 */
-		2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,		/* 208-223 */
-		3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,		/* 224-239 */
-		4,4,4,4,4,4,4,4,5,5,5,5,6,6,			/* 240-253 */
-		7,7										/* 254-255: special */
+	static const guint8 utf8len[(size_t) (guchar) -1 + 1] = {
+		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,	/* 0x00-0x0F */
+		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,	/* 0x10-0x1F */
+		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,	/* 0x20-0x2F */
+		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,	/* 0x30-0x3F */
+		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,	/* 0x40-0x4F */
+		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,	/* 0x50-0x5F */
+		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,	/* 0x60-0x6F */
+		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,	/* 0x70-0x7F */
+		
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,	/* 0x80-0x8F */
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,	/* 0x90-0x9F */
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,	/* 0xA0-0xAF */
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,	/* 0xB0-0xBF */
+
+		0,0,								/* 0xC0-0xC1 */
+		    2,2,2,2,2,2,2,2,2,2,2,2,2,2,	/* 0xC2-0xCF */
+		2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,	/* 0xD0-0xDF */
+		
+		3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,	/* 0xE0-0xEF */
+		
+		4,4,4,4,4,							/* 0xF0-0xF4 */
+				  0,0,0,0,0,0,0,0,0,0,0,	/* 0xF5-0xFF */
 	};
 
-	return c < 0xC0 ? 1 : utf8len[c & 63];
+	return utf8len[c];
 }
 
 static const guint8 utf8len_mark[] = {
@@ -721,9 +740,85 @@ malformed:
 	return 0;
 }
 
-/*
- * utf8_to_iso8859
+/**
+ * Replacement for utf8_decode_char_fast().
  *
+ * XXX: Not tested yet!
+ */
+guint32
+utf8_decode_char_faster(const gchar *s, gint *retlen)
+{
+	guint32 uc = (guchar) *s;
+	guint n;
+	
+	n = utf8_skip(uc);
+
+	/*
+	 * utf8_skip() returns zero for an invalid initial byte.
+	 * It rejects also surrogates (U+D800..U+DFFF) implicitely.
+	 */
+
+	if (retlen)
+		*retlen = n;
+
+	if (1 != n) {
+		guchar base, mask, c;
+
+		/* Minimum penalty for ASCII */
+		if (n < 1)
+			goto failure;
+
+		/* The second byte needs special handling */
+		c = *++s;
+		base = 0x80;
+		mask = 0xC0;	/* 0x80..0xBF */
+
+		/* In the four cases below "base" and "mask" may be overriden; this is
+		 * OK and gains smaller code and is faster on average. */
+		switch (uc) {
+		case 0xE0:			/* 0xA0..0xBF */
+			base = 0xA0;
+			/* FALL THROUGH */
+		case 0xED:			/* 0x80..0x9F */
+			mask = 0xE0;
+			break;
+		case 0xF4:			/* 0x80..0x8F */
+			mask = 0xF0;
+			break;
+		case 0xF0:			/* 0x90..0xBF */
+			if (c < 0x90)
+				goto failure;
+		}
+
+		if ((mask & c) != base)
+			goto failure;
+
+		uc = UTF8_ACCUMULATE((0x3f & uc), c);
+	
+		/* Further bytes must be within 0x80...0xBF */
+		while (0 != --n) {
+			c = *++s;
+
+			/* 0x80..0xBF */
+			if (0x80 != (0xC0 & c))
+				goto failure;
+			uc = UTF8_ACCUMULATE(uc, c);
+		}
+
+		/* Check for BOMs (*FFFE) and invalid codepoints (*FFFF) */
+		if (0xFFFE == (0xFFFE & uc))
+			goto failure;
+	}
+
+	return uc;
+
+failure:
+	if (retlen)
+		*retlen = -1;
+	return 0;
+}
+
+/**
  * Convert UTF-8 string to ISO-8859-1 inplace.  If `space' is TRUE, all
  * characters outside the U+0000 .. U+00FF range are turned to space U+0020.
  * Otherwise, we stop at the first out-of-range character.
@@ -2123,15 +2218,15 @@ size_t
 utf32_strmaxlen(const guint32 *s, size_t maxlen)
 {
 	const guint32 *p = s;
+	size_t i = 0;
 
 	g_assert(s != NULL);
 	g_assert(maxlen <= INT_MAX);
 
-	while (maxlen-- > 0 && *p != 0x0000) {
-		p++;
-	}
+	while (i < maxlen && p[i])
+		++i;
 
-	return p - s;
+	return i;
 }
 
 /**
