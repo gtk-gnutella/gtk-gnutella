@@ -204,7 +204,7 @@ parse_chunk(rxdrv_t *rx, const gchar *src, size_t size,
 						guint i;
 
 						for (i = 0; i < attr->hex_pos; i++)
-							v = (v << 4) | hex2dec(attr->hex_buf[i]);
+							v = (v << 4) | hex2int_inline(attr->hex_buf[i]);
 
 						attr->data_remain = v;
 						attr->hex_pos = 0;
