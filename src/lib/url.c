@@ -274,9 +274,9 @@ url_unescape(gchar *url, gboolean inplace)
 			*q++ = c;
 		else {
 			if ((c = *p++)) {
-				gint v = (hex2dec(c) << 4);
+				gint v = hex2int_inline(c) << 4;
 				if ((c = *p++))
-					v += hex2dec(c);
+					v += hex2int_inline(c);
 				else
 					g_assert_not_reached();	/* Handled in pre-scan above */
 
