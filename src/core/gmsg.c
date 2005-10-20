@@ -53,7 +53,22 @@ RCSID("$Id$");
 #include "lib/override.h"		/* Must be the last header included */
 
 static const gchar *msg_name[256];
-static gint msg_weight[256];	/**< For gmsg_cmp() */
+static guint8 msg_weight[256];	/**< For gmsg_cmp() */
+
+/**
+ * Ensure that the gnutella message header has the correct size,
+ * a TTL greater than zero and that size is at least 23 (GTA_HEADER_SIZE).
+ *
+ * @param the gnutella message header to check.
+ * @param the payload plus header size of the gnutella message.
+ */
+static inline void
+gmsg_header_check(const struct gnutella_header *h, guint32 size)
+{
+	g_assert(h->ttl > 0);
+	g_assert(size >= GTA_HEADER_SIZE);
+	g_assert(peek_le32(h->size) == size - GTA_HEADER_SIZE);
+}
 
 /**
  * Log an hexadecimal dump of the message `data'.
@@ -239,13 +254,14 @@ gmsg_split_to_pmsg_extend(gconstpointer head, gconstpointer data,
 void
 gmsg_mb_sendto_all(const GSList *sl, pmsg_t *mb)
 {
-	g_assert(((struct gnutella_header *) pmsg_start(mb))->ttl > 0);
+	gmsg_header_check(cast_to_gconstpointer(pmsg_start(mb)),
+		pmsg_size(mb) - GTA_HEADER_SIZE);
 
 	if (gmsg_debug > 5 && gmsg_hops(pmsg_start(mb)) == 0)
 		gmsg_dump(stdout, pmsg_start(mb), pmsg_size(mb));
 
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
+		struct gnutella_node *dn = sl->data;
 		if (!NODE_IS_ESTABLISHED(dn))
 			continue;
 		mq_putq(dn->outq, pmsg_clone(mb));
@@ -262,7 +278,7 @@ void
 gmsg_mb_sendto_one(struct gnutella_node *n, pmsg_t *mb)
 {
 	g_assert(!pmsg_was_sent(mb));
-	g_assert(((struct gnutella_header *) pmsg_start(mb))->ttl > 0);
+	gmsg_header_check(cast_to_gconstpointer(pmsg_start(mb)), pmsg_size(mb));
 
 	if (!NODE_IS_WRITABLE(n))
 		return;
@@ -279,10 +295,10 @@ gmsg_mb_sendto_one(struct gnutella_node *n, pmsg_t *mb)
 void
 gmsg_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size)
 {
-	g_assert(((struct gnutella_header *) msg)->ttl > 0);
-
 	if (!NODE_IS_WRITABLE(n))
 		return;
+
+	gmsg_header_check(msg, size);
 
 	if (gmsg_debug > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
@@ -298,7 +314,8 @@ void
 gmsg_sendto_one_ggep(struct gnutella_node *n,
 	gconstpointer msg, guint32 size, guint32 regular_size)
 {
-	g_assert(((struct gnutella_header *) msg)->ttl > 0);
+	g_assert(size >= regular_size);
+	gmsg_header_check(msg, size);
 
 	if (!NODE_IS_WRITABLE(n))
 		return;
@@ -306,10 +323,24 @@ gmsg_sendto_one_ggep(struct gnutella_node *n,
 	if (gmsg_debug > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
-	if (NODE_CAN_GGEP(n))
+	if (NODE_CAN_GGEP(n)) {
 		mq_putq(n->outq, gmsg_to_pmsg(msg, size));
-	else
-		mq_putq(n->outq, gmsg_to_pmsg(msg, regular_size));
+	} else {
+		const struct gnutella_header *msg_head = msg;
+		struct gnutella_header head;
+		pmsg_t *mb;
+
+		/*
+		 * Create a copy of message with the trailing GGEP data
+		 * stripped and a corrected size field in the header
+		 */
+
+		head = *msg_head;
+		WRITE_GUINT32_LE(regular_size - GTA_HEADER_SIZE, head.size);
+		mb = gmsg_split_to_pmsg(&head, &msg_head[1], regular_size);
+		mq_putq(n->outq, pmsg_clone(mb));
+		pmsg_free(mb);
+	}
 }
 
 /**
@@ -320,7 +351,7 @@ gmsg_sendto_one_ggep(struct gnutella_node *n,
 void
 gmsg_ctrl_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size)
 {
-	g_assert(((struct gnutella_header *) msg)->ttl > 0);
+	gmsg_header_check(msg, size);
 
 	if (!NODE_IS_WRITABLE(n))
 		return;
@@ -340,7 +371,7 @@ void
 gmsg_ctrl_sendto_one_ggep(struct gnutella_node *n,
 	gconstpointer msg, guint32 size, guint32 regular_size)
 {
-	g_assert(((struct gnutella_header *) msg)->ttl > 0);
+	gmsg_header_check(msg, size);
 
 	if (!NODE_IS_WRITABLE(n))
 		return;
@@ -361,7 +392,7 @@ void
 gmsg_search_sendto_one(
 	struct gnutella_node *n, gnet_search_t sh, gconstpointer msg, guint32 size)
 {
-	g_assert(((struct gnutella_header *) msg)->ttl > 0);
+	gmsg_header_check(msg, size);
 	g_assert(((struct gnutella_header *) msg)->hops <= hops_random_factor);
 
 	if (!NODE_IS_WRITABLE(n))
@@ -380,7 +411,7 @@ void
 gmsg_split_sendto_one(struct gnutella_node *n,
 	gconstpointer head, gconstpointer data, guint32 size)
 {
-	g_assert(((struct gnutella_header *) head)->ttl > 0);
+	gmsg_header_check(head, size);
 
 	if (!NODE_IS_WRITABLE(n))
 		return;
@@ -399,13 +430,13 @@ gmsg_sendto_all(const GSList *sl, gconstpointer msg, guint32 size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(msg, size);
 
-	g_assert(((struct gnutella_header *) msg)->ttl > 0);
+	gmsg_header_check(msg, size);
 
 	if (gmsg_debug > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
+		struct gnutella_node *dn = sl->data;
 		if (!NODE_IS_ESTABLISHED(dn))
 			continue;
 		mq_putq(dn->outq, pmsg_clone(mb));
@@ -426,13 +457,13 @@ gmsg_sendto_all_ggep(const GSList *sl,
 	pmsg_t *mb = gmsg_to_pmsg(msg, size);
 	pmsg_t *mb_stripped = NULL;
 
-	g_assert(((struct gnutella_header *) msg)->ttl > 0);
+	gmsg_header_check(msg, size);
 
 	if (gmsg_debug > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
+		struct gnutella_node *dn = sl->data;
 		if (!NODE_IS_ESTABLISHED(dn))
 			continue;
 		if (NODE_CAN_GGEP(dn))
@@ -458,7 +489,7 @@ gmsg_search_sendto_all(
 {
 	pmsg_t *mb = gmsg_to_pmsg(msg, size);
 
-	g_assert(((struct gnutella_header *) msg)->ttl > 0);
+	gmsg_header_check(msg, size);
 	g_assert(((struct gnutella_header *) msg)->hops <= hops_random_factor);
 
 	if (gmsg_debug > 5 && gmsg_hops(msg) == 0)
@@ -488,7 +519,7 @@ gmsg_search_sendto_all(
  * We never broadcast anything to a leaf node.  Those are handled specially.
  */
 void
-gmsg_split_sendto_all_but_one(const GSList *sl, struct gnutella_node *n,
+gmsg_split_sendto_all_but_one(const GSList *sl, const struct gnutella_node *n,
 	gconstpointer head, gconstpointer data, guint32 size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
@@ -505,12 +536,12 @@ gmsg_split_sendto_all_but_one(const GSList *sl, struct gnutella_node *n,
 	)
 		skip_up_with_qrp = TRUE;
 
-	g_assert(((struct gnutella_header *) head)->ttl > 0);
+	gmsg_header_check(head, size);
 
 	/* relayed broadcasted message, cannot be sent with hops=0 */
 
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
+		struct gnutella_node *dn = sl->data;
 		if (dn == n)
 			continue;
 		if (!NODE_IS_ESTABLISHED(dn) || NODE_IS_LEAF(dn))
@@ -532,12 +563,12 @@ gmsg_split_sendto_all(
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
 
-	g_assert(((struct gnutella_header *) head)->ttl > 0);
+	gmsg_header_check(head, size);
 
 	/* relayed broadcasted message, cannot be sent with hops=0 */
 
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
+		struct gnutella_node *dn = sl->data;
 
 		if (!NODE_IS_ESTABLISHED(dn))
 			continue;
@@ -560,19 +591,26 @@ gmsg_split_sendto_all(
  * We never broadcast anything to a leaf node.  Those are handled specially.
  * In UP mode, we never broadcast queries with TTL=1 to ultra nodes that
  * support the last-hop QRP.
+ *
+ * @param sl 			a list of destination nodes.
+ * @param n 			the source node which will be skipped.
+ * @param head 			the gnutella message header.
+ * @param data 			the gnutella message payload.
+ * @param size			the length of "data" plus the size of the header.
+ * @param regular_size	the length of "data" excluding trailing GGEP data.
  */
 static void
 gmsg_split_sendto_all_but_one_ggep(
 	const GSList *sl,
-	struct gnutella_node *n,
-	gconstpointer head, gconstpointer data, guint32 size, gint regular_size)
+	const struct gnutella_node *n,
+	gconstpointer head, gconstpointer data, guint32 size, guint32 regular_size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
 	pmsg_t *mb_stripped = NULL;
 	gboolean skip_up_with_qrp = FALSE;
 
-	g_assert(((struct gnutella_header *) head)->ttl > 0);
-	g_assert(size >= (guint32) regular_size);
+	gmsg_header_check(head, size);
+	g_assert(size >= regular_size);
 
 	/*
 	 * Special treatment for TTL=1 queries in UP mode.
@@ -588,7 +626,7 @@ gmsg_split_sendto_all_but_one_ggep(
 	/* relayed broadcasted message, cannot be sent with hops=0 */
 
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
+		struct gnutella_node *dn = sl->data;
 		if (dn == n)
 			continue;
 		if (!NODE_IS_ESTABLISHED(dn) || NODE_IS_LEAF(dn))
@@ -599,12 +637,12 @@ gmsg_split_sendto_all_but_one_ggep(
 			mq_putq(dn->outq, pmsg_clone(mb));
 		else {
 			if (mb_stripped == NULL) {
+				const struct gnutella_header *h = head;
 				struct gnutella_header nhead;
 
-				memcpy(&nhead, head, GTA_HEADER_SIZE);
-				WRITE_GUINT32_LE(regular_size, nhead.size);
-				mb_stripped =
-					gmsg_split_to_pmsg((guchar *) &nhead, data, regular_size);
+				nhead = *h;
+				WRITE_GUINT32_LE(regular_size - GTA_HEADER_SIZE, nhead.size);
+				mb_stripped = gmsg_split_to_pmsg(&nhead, data, regular_size);
 			}
 			mq_putq(dn->outq, pmsg_clone(mb_stripped));
 		}
@@ -630,8 +668,8 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 	case ROUTE_NONE:
 		return;
 	case ROUTE_ONE:
-		gmsg_split_sendto_one(rt_node,
-			(guchar *) &n->header, n->data, n->size + GTA_HEADER_SIZE);
+		gmsg_split_sendto_one(rt_node, &n->header,
+				n->data, n->size + GTA_HEADER_SIZE);
 		return;
 	case ROUTE_ALL_BUT_ONE:
 		g_assert(n == rt_node);
@@ -656,20 +694,25 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 }
 
 /**
- * Send message from `n' to single node `sn'.  If target node cannot
+ * Send message from `n' to destination node `dn'.  If target node cannot
  * understand extra GGEP payloads, trim message before sending.
+ *
+ * @param n the source node.
+ * @param dn the destination node.
+ * @param regular_size	the size of the message including the header 
+ *						and trailing GGEP data.
  */
 static void
-sendto_ggep(
-	struct gnutella_node *n, struct gnutella_node *sn, gint regular_size)
+sendto_ggep(struct gnutella_node *n, struct gnutella_node *dn,
+	guint32 regular_size)
 {
-	if (NODE_CAN_GGEP(sn))
-		gmsg_split_sendto_one(sn,
-			(guchar *) &n->header, n->data, n->size + GTA_HEADER_SIZE);
-	else {
+	if (NODE_CAN_GGEP(dn)) {
+		gmsg_split_sendto_one(dn, &n->header,
+				n->data, n->size + GTA_HEADER_SIZE);
+	} else {
 		WRITE_GUINT32_LE(regular_size, n->header.size);
-		gmsg_split_sendto_one(sn,
-			(guchar *) &n->header, n->data, regular_size + GTA_HEADER_SIZE);
+		gmsg_split_sendto_one(dn, &n->header,
+				n->data, regular_size + GTA_HEADER_SIZE);
 		WRITE_GUINT32_LE(n->size, n->header.size);
 	}
 }
@@ -678,15 +721,20 @@ sendto_ggep(
  * Same as gmsg_sendto_route() but if the node did not claim support of GGEP
  * extensions in pings, pongs and pushes, strip the GGEP payload before
  * forwarding the message.
+ *
+ * @param n the source node.
+ * @param rt the destination route.
+ * @param regular_size	the size of the message including the header 
+ *						and trailing GGEP data.
  */
 void
-gmsg_sendto_route_ggep(
-	struct gnutella_node *n, struct route_dest *rt, gint regular_size)
+gmsg_sendto_route_ggep(struct gnutella_node *n, struct route_dest *rt,
+	guint32 regular_size)
 {
 	struct gnutella_node *rt_node = rt->ur.u_node;
 	const GSList *sl;
 
-	g_assert(regular_size >= 0);
+	g_assert(regular_size <= INT_MAX);
 
 	switch (rt->type) {
 	case ROUTE_NONE:
@@ -697,18 +745,16 @@ gmsg_sendto_route_ggep(
 	case ROUTE_ALL_BUT_ONE:
 		g_assert(n == rt_node);
 		gmsg_split_sendto_all_but_one_ggep(node_all_nodes(), rt_node,
-			(guchar *) &n->header, n->data, n->size + GTA_HEADER_SIZE,
-			regular_size);
+			&n->header, n->data, n->size + GTA_HEADER_SIZE, regular_size);
 		return;
 	case ROUTE_NO_DUPS_BUT_ONE:
 		g_assert(n == rt_node);
 		gmsg_split_sendto_all_but_one_ggep(node_all_but_broken_gtkg(), rt_node,
-			(guchar *) &n->header, n->data, n->size + GTA_HEADER_SIZE,
-			regular_size);
+			&n->header, n->data, n->size + GTA_HEADER_SIZE, regular_size);
 		return;
 	case ROUTE_MULTI:
 		for (sl = rt->ur.u_nodes; sl; sl = g_slist_next(sl)) {
-			rt_node = (struct gnutella_node *) sl->data;
+			rt_node = sl->data;
 			sendto_ggep(n, rt_node, regular_size);
 		}
 		return;
@@ -734,11 +780,11 @@ gmsg_sendto_route_ggep(
  * route.
  */
 static gboolean
-gmsg_query_can_send(pmsg_t *mb, mqueue_t *q)
+gmsg_query_can_send(const pmsg_t *mb, const mqueue_t *q)
 {
 	gnutella_node_t *n = mq_node(q);
-	gchar *start = pmsg_start(mb);
-	struct gnutella_header *head = (struct gnutella_header *) start;
+	gconstpointer start = pmsg_start(mb);
+	const struct gnutella_header *head = start;
 
 	g_assert(head->function == GTA_MSG_SEARCH);
 
@@ -769,7 +815,7 @@ void
 gmsg_install_presend(pmsg_t *mb)
 {
 	gchar *start = pmsg_start(mb);
-	struct gnutella_header *head = (struct gnutella_header *) start;
+	struct gnutella_header *head = start;
 
 	if (head->function == GTA_MSG_SEARCH) {
 		pmsg_check_t old = pmsg_set_check(mb, gmsg_query_can_send);
@@ -787,7 +833,7 @@ gmsg_install_presend(pmsg_t *mb)
 gboolean
 gmsg_can_drop(gconstpointer pdu, gint size)
 {
-	const struct gnutella_header *head = (const struct gnutella_header *) pdu;
+	const struct gnutella_header *head = pdu;
 
 	if ((size_t) size < sizeof(struct gnutella_header))
 		return TRUE;
@@ -810,10 +856,8 @@ gmsg_can_drop(gconstpointer pdu, gint size)
 gint
 gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2)
 {
-	const struct gnutella_header *h1 = (const struct gnutella_header *) pdu1;
-	const struct gnutella_header *h2 = (const struct gnutella_header *) pdu2;
-	gint w1 = msg_weight[h1->function];
-	gint w2 = msg_weight[h2->function];
+	const struct gnutella_header *h1 = pdu1, *h2 = pdu2;
+	gint w1 = msg_weight[h1->function], w2 = msg_weight[h2->function];
 
 	/*
 	 * The more weight a message type has, the more prioritary it is.
@@ -1012,7 +1056,7 @@ gmsg_log_bad(const struct gnutella_node *n, const gchar *reason, ...)
 gboolean
 gmsg_is_oob_query(gconstpointer msg)
 {
-	const struct gnutella_header *h = (const struct gnutella_header *) msg;
+	const struct gnutella_header *h = msg;
 	gconstpointer data = (const gchar *) msg + GTA_HEADER_SIZE;
 	guint16 req_speed;
 
@@ -1031,7 +1075,7 @@ gmsg_is_oob_query(gconstpointer msg)
 gboolean
 gmsg_split_is_oob_query(gconstpointer head, gconstpointer data)
 {
-	const struct gnutella_header *h = (const struct gnutella_header *) head;
+	const struct gnutella_header *h = head;
 	guint16 req_speed;
 
 	g_assert(h->function == GTA_MSG_SEARCH);

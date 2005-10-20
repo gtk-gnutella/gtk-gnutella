@@ -75,7 +75,8 @@ void gmsg_split_sendto_one(struct gnutella_node *n,
 void gmsg_sendto_all(const GSList *l, gconstpointer msg, guint32 size);
 void gmsg_split_sendto_all(const GSList *l,
 	gconstpointer head, gconstpointer data, guint32 size);
-void gmsg_split_sendto_all_but_one(const GSList *l, struct gnutella_node *n,
+void gmsg_split_sendto_all_but_one(const GSList *sl,
+	const struct gnutella_node *n,
 	gconstpointer head, gconstpointer data, guint32 size);
 void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt);
 
@@ -95,7 +96,7 @@ void gmsg_log_bad(const struct gnutella_node *n,
 	const gchar *reason, ...) G_GNUC_PRINTF(2, 3);
 
 void gmsg_sendto_route_ggep(
-	struct gnutella_node *n, struct route_dest *rt, gint regular_size);
+	struct gnutella_node *n, struct route_dest *rt, guint32 regular_size);
 void gmsg_sendto_one_ggep(struct gnutella_node *n,
 	gconstpointer msg, guint32 size, guint32 regular_size);
 void gmsg_ctrl_sendto_one_ggep(struct gnutella_node *n,
