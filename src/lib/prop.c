@@ -276,7 +276,7 @@ prop_parse_storage(const gchar *name, const gchar *str, size_t size, gchar *t)
 				"storage is damaged: \"%s\"", name, str);
 			return;
 		}
-		t[i] = (hex2dec(h) << 4) + hex2dec(l);
+		t[i] = (hex2int(h) << 4) + hex2int(l);
 	}
 }
 
