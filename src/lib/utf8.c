@@ -180,15 +180,6 @@ static const guint8 utf8len_mark[] = {
 #define UTF8_ACCUMULATE(o,n)	\
 	(((o) << UTF8_ACCU_SHIFT) | (CHAR(n) & UTF8_CONT_MASK))
 
-#define UNISKIP(v) (			\
-	(v) <  0x80U 		? 1 :	\
-	(v) <  0x800U 		? 2 :	\
-	(v) <  0x10000U 	? 3 :	\
-	(v) <  0x200000U	? 4 :	\
-	/* XXX: Unicode has no codepoints beyond 0x10FFFF! */	\
-	(v) <  0x4000000U	? 5 :	\
-	(v) <  0x80000000U	? 6 : 7)
-
 #define UNI_SURROGATE_FIRST		0xd800
 #define UNI_SURROGATE_SECOND	0xdc00
 #define UNI_SURROGATE_LAST		0xdfff
@@ -210,6 +201,57 @@ static const guint8 utf8len_mark[] = {
 #define UNICODE_IS_BOM(x) 				UNICODE_IS_BYTE_ORDER_MARK(x)
 #define UNICODE_IS_ILLEGAL(x) \
 	((UNI_ILLEGAL & (x)) == UNI_ILLEGAL || (x) > 0x10FFFFU)
+
+static inline G_GNUC_CONST gint
+uniskip(guint32 v)
+{
+	return v < 0x80U ? 1 : v < 0x800 ? 2 : v < 0x10000 ? 3 : 4;
+}
+
+/**
+ * @param uc the unicode character to encode.
+ * @returns 0 if the unicode codepoint is invalid. Otherwise the
+ *          length of the UTF-8 character is returned.
+ */
+static inline guint
+utf8_encoded_char_len(guint32 uc)
+{
+	if (
+		UNICODE_IS_SURROGATE(uc) ||
+		UNICODE_IS_ILLEGAL(uc) ||
+		UNICODE_IS_BOM(uc)
+	)
+		return 0;
+
+	return uniskip(uc);
+}
+
+/**
+ * @param uc the unicode character to encode.
+ * @param buf the destination buffer. MUST BE at least 4 bytes long.
+ * @returns 0 if the unicode character is invalid. Otherwise the
+ *          length of the UTF-8 character is returned.
+ */
+guint
+utf8_encode_char(guint32 uc, gchar *buf)
+{
+	guint len;
+
+	g_assert(buf);
+
+	len = utf8_encoded_char_len(uc);
+	if (len > 0) {
+		guint i = len;
+
+		while (0 != --i) {
+			buf[i] = (uc | UTF8_BYTE_MARK) & UTF8_BYTE_MASK;
+			uc >>= UTF8_ACCU_SHIFT;
+		}
+		buf[0] = uc | UTF8_LENGTH_MARK(len);
+	}
+
+	return len;
+}
 
 static inline guint
 utf32_combining_class(guint32 uc)
@@ -420,58 +462,6 @@ utf8_strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 }
 
 /**
- * @param uc the unicode character to encode.
- * @returns 0 if the unicode codepoint is invalid. Otherwise the
- *          length of the UTF-8 character is returned.
- */
-static inline guint
-utf8_encoded_char_len(guint32 uc)
-{
-	guint len;
-
-	if (
-		UNICODE_IS_SURROGATE(uc) ||
-		UNICODE_IS_ILLEGAL(uc) ||
-		UNICODE_IS_BOM(uc)
-	)
-		return 0;
-
-	len = UNISKIP(uc);
-
-	g_assert(len > 0 && len <= 6);
-
-	return len;
-}
-
-/**
- * @param uc the unicode character to encode.
- * @param buf the destination buffer. MUST BE at least 6 bytes long.
- * @returns 0 if the unicode character is invalid. Otherwise the
- *          length of the UTF-8 character is returned.
- */
-gint
-utf8_encode_char(guint32 uc, gchar *buf)
-{
-	guint len;
-	gchar *p;
-
-	g_assert(buf);
-
-	len = utf8_encoded_char_len(uc);
-	if (len > 0) {
-		g_assert(len > 0 && len <= 6);
-
-		p = &buf[len];
-		while (--p > buf) {
-			*p = (uc | UTF8_BYTE_MARK) & UTF8_BYTE_MASK;
-			uc >>= UTF8_ACCU_SHIFT;
-		}
-		*p = uc | UTF8_LENGTH_MARK(len);
-	}
-	return len;
-}
-
-/**
  * Encodes a single UTF-32 character as UTF-16 into a buffer.
  * See also RFC 2781.
  *
@@ -596,7 +586,7 @@ utf8_decode_char(const gchar *s, gint len, gint *retlen, gboolean warn)
 	} else if (UNICODE_IS_BYTE_ORDER_MARK(v)) {
 		warning = UTF8_WARN_BOM;
 		goto malformed;
-	} else if (expectlen > UNISKIP(v)) {
+	} else if (expectlen > uniskip(v)) {
 		warning = UTF8_WARN_LONG;
 		goto malformed;
 	} else if (UNICODE_IS_ILLEGAL(v)) {
@@ -646,7 +636,7 @@ malformed:
 		break;
 	case UTF8_WARN_LONG:
 		gm_snprintf(msg, sizeof(msg), "%d byte%s, need %d",
-			expectlen, expectlen == 1 ? "" : "s", UNISKIP(v));
+			expectlen, expectlen == 1 ? "" : "s", uniskip(v));
 		break;
 	case UTF8_WARN_ILLEGAL:
 		gm_snprintf(msg, sizeof(msg), "character 0x%04lx", (gulong) v);
@@ -677,7 +667,7 @@ malformed:
  * set to -1 and the function returns 0.
  */
 
-#if 0
+#if 0 
 /* Slower but correct, keep it around for consistency checks. */
 static guint32
 utf8_decode_char_less_fast(const gchar *s, gint *retlen)
@@ -733,7 +723,7 @@ utf8_decode_char_less_fast(const gchar *s, gint *retlen)
 
 	if (UNICODE_IS_SURROGATE(v))		goto malformed;
 	if (UNICODE_IS_BYTE_ORDER_MARK(v))	goto malformed;
-	if (expectlen > UNISKIP(v))			goto malformed;
+	if (expectlen > uniskip(v))			goto malformed;
 	if (UNICODE_IS_ILLEGAL(v))			goto malformed;
 
 	return v;
@@ -2490,7 +2480,8 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 
 			src += retlen;
 			nuc = remap(uc);
-			utf8_len = nuc == uc ? retlen : utf8_encode_char(nuc, utf8_buf);
+			utf8_len = nuc == uc
+				? retlen : (gint) utf8_encode_char(nuc, utf8_buf);
 			new_len += utf8_len;
 			if (new_len > size)
 				break;
