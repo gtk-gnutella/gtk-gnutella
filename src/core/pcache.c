@@ -152,16 +152,14 @@ build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 	static union {
 		struct gnutella_msg_init s;
 		gchar buf[256];
+		guint64 align8;
 	} msg_init;
 	struct gnutella_msg_init *m = &msg_init.s;
-	guchar *ggep;
-	ggep_stream_t gs;
 	guint32 sz;
 
 	g_assert(ttl);
 	STATIC_ASSERT(sizeof *m <= sizeof msg_init.buf);
 	STATIC_ASSERT(23 == sizeof *m);
-	ggep = cast_to_gpointer(&m[1]);
 
 	if (muid)
 		memcpy(&m->header, muid, 16);
@@ -174,8 +172,6 @@ build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 
 	sz = 0;			/* Payload size if no extensions */
 
-	ggep_stream_init(&gs, ggep, sizeof msg_init.buf - sizeof *m);
-
 	/*
 	 * If we're not sending an "alive" ping (TTL=1), then tell them we
 	 * support "IPP" groupping in pongs by sending "SCP".  Also include
@@ -183,28 +179,36 @@ build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 	 */
 
 	if (uhc || ttl > 1) {
+		guchar *ggep;
+		ggep_stream_t gs;
+		gboolean ok;
 		gchar spp;
 
+		ggep = cast_to_gpointer(&m[1]);
+		ggep_stream_init(&gs, ggep, sizeof msg_init.buf - sizeof *m);
+		
 		spp = (current_peermode == NODE_P_LEAF) ? 0x0 : 0x1;
-		ggep_stream_pack(&gs, GGEP_NAME(SCP), &spp, sizeof spp, 0);
+		ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), &spp, sizeof spp, 0);
+		g_assert(ok);
+
+		/*
+		 * Add vendor code if we're building an UDP host cache ping.
+		 * This allows the host cache to perform vendor clustering.
+		 */
+
+		if (uhc) {
+			pong_meta_t *meta = &local_meta;
+
+			ok = ok &&
+				ggep_stream_begin(&gs, GGEP_NAME(VC), 0) &&
+				ggep_stream_write(&gs, meta->vendor, sizeof meta->vendor) &&
+				ggep_stream_write(&gs, &meta->version_ua, 1) &&
+				ggep_stream_end(&gs);
+			g_assert(ok);
+		}
+
+		sz += ggep_stream_close(&gs);
 	}
-
-	/*
-	 * Add vendor code if we're building an UDP host cache ping.
-	 * This allows the host cache to perform vendor clustering.
-	 */
-
-	if (uhc) {
-		pong_meta_t *meta = &local_meta;
-		gboolean ok;
-
-		ok = ggep_stream_begin(&gs, GGEP_NAME(VC), 0) &&
-		ggep_stream_write(&gs, meta->vendor, sizeof meta->vendor) &&
-		ggep_stream_write(&gs, &meta->version_ua, 1) &&
-		ggep_stream_end(&gs);
-	}
-
-	sz += ggep_stream_close(&gs);
 
 	WRITE_GUINT32_LE(sz, m->header.size);
 
@@ -228,6 +232,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 	static union {
 		struct gnutella_msg_init_response s;
 		gchar buf[1024];
+		guint64 align8;
 	} msg_pong;
 	struct gnutella_msg_init_response *pong = &msg_pong.s;
 	ggep_stream_t gs;
