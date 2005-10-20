@@ -254,8 +254,7 @@ gmsg_split_to_pmsg_extend(gconstpointer head, gconstpointer data,
 void
 gmsg_mb_sendto_all(const GSList *sl, pmsg_t *mb)
 {
-	gmsg_header_check(cast_to_gconstpointer(pmsg_start(mb)),
-		pmsg_size(mb) - GTA_HEADER_SIZE);
+	gmsg_header_check(cast_to_gconstpointer(pmsg_start(mb)), pmsg_size(mb));
 
 	if (gmsg_debug > 5 && gmsg_hops(pmsg_start(mb)) == 0)
 		gmsg_dump(stdout, pmsg_start(mb), pmsg_size(mb));
