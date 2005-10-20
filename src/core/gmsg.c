@@ -780,7 +780,7 @@ gmsg_sendto_route_ggep(struct gnutella_node *n, struct route_dest *rt,
  * route.
  */
 static gboolean
-gmsg_query_can_send(const pmsg_t *mb, const mqueue_t *q)
+gmsg_query_can_send(pmsg_t *mb, const mqueue_t *q)
 {
 	gnutella_node_t *n = mq_node(q);
 	gconstpointer start = pmsg_start(mb);
@@ -814,12 +814,12 @@ gmsg_query_can_send(const pmsg_t *mb, const mqueue_t *q)
 void
 gmsg_install_presend(pmsg_t *mb)
 {
-	gchar *start = pmsg_start(mb);
-	struct gnutella_header *head = start;
+	gconstpointer start = pmsg_start(mb);
+	const struct gnutella_header *head = start;
 
-	if (head->function == GTA_MSG_SEARCH) {
+	if (GTA_MSG_SEARCH == head->function) {
 		pmsg_check_t old = pmsg_set_check(mb, gmsg_query_can_send);
-		g_assert(old == NULL);
+		g_assert(NULL == old);
 	}
 }
 

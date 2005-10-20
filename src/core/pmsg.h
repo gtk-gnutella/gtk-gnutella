@@ -80,7 +80,7 @@ typedef struct pdata {
 struct mqueue;
 
 typedef struct pmsg pmsg_t;
-typedef gboolean (*pmsg_check_t)(pmsg_t *mb, struct mqueue *q);
+typedef gboolean (*pmsg_check_t)(pmsg_t *mb, const struct mqueue *q);
 
 struct pmsg {
 	gchar *m_rptr;					/**< First unread byte in buffer */

@@ -1228,7 +1228,7 @@ handle_time_sync_reply(struct gnutella_node *n,
  * Writes current time in the first half of the MUID.
  */
 static gboolean
-vmsg_time_sync_req_stamp(pmsg_t *mb, struct mqueue *unused_q)
+vmsg_time_sync_req_stamp(pmsg_t *mb, const struct mqueue *unused_q)
 {
 	tm_t old;
 	tm_t now;
@@ -1319,10 +1319,10 @@ vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *sent)
  * Writes current time in the second half of the MUID.
  */
 static gboolean
-vmsg_time_sync_reply_stamp(pmsg_t *mb, struct mqueue *unused_q)
+vmsg_time_sync_reply_stamp(pmsg_t *mb, const struct mqueue *unused_q)
 {
-	tm_t now;
 	gchar *muid = pmsg_start(mb);
+	tm_t now;
 
 	(void) unused_q;
 	g_assert(pmsg_is_writable(mb));

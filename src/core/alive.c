@@ -170,13 +170,13 @@ alive_ping_drop(struct alive *a, const gchar *muid)
  * We send only the LATEST registered one.
  */
 static gboolean
-alive_ping_can_send(pmsg_t *mb, mqueue_t *q)
+alive_ping_can_send(pmsg_t *mb, const mqueue_t *q)
 {
-	gnutella_node_t *n = mq_node(q);
-	gchar *muid = pmsg_start(mb);
+	const gnutella_node_t *n = mq_node(q);
 	struct alive *a = n->alive_pings;
+	gchar *muid = pmsg_start(mb);
 
-	g_assert(((struct gnutella_header *) muid)->function == GTA_MSG_INIT);
+	g_assert(((const struct gnutella_header *) muid)->function == GTA_MSG_INIT);
 	g_assert(a->count == 0 || a->pings != NULL);
 
 	/*
@@ -185,8 +185,8 @@ alive_ping_can_send(pmsg_t *mb, mqueue_t *q)
 	 */
 
 	if (a->count) {
-		GSList *l = g_slist_last(a->pings);
-		struct alive_ping *ap = (struct alive_ping *) l->data;
+		const GSList *l = g_slist_last(a->pings);
+		const struct alive_ping *ap = l->data;
 
 		if (guid_eq(ap->muid, muid))		/* It's the latest one */
 			return TRUE;					/* We can send it */
