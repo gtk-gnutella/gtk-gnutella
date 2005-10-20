@@ -151,6 +151,45 @@ gint ascii_strcasecmp(const gchar *s1, const gchar *s2);
 gint ascii_strncasecmp(const gchar *s1, const gchar *s2, size_t len);
 
 /**
+ * Converts a hexadecimal char (0-9, A-F, a-f) to an integer.
+ *
+ * @param c the character to convert.
+ * @return 0..15 for valid hexadecimal ASCII characters, -1 otherwise.
+ */
+static inline gint
+hex2int_inline(guchar c)
+{
+	extern const gint8 hex2int_tab[(size_t) (guchar) -1 + 1];
+	return hex2int_tab[c];
+}
+
+/**
+ * Converts a decimal char (0-9) to an integer.
+ *
+ * @param c the character to convert.
+ * @return 0..9 for valid decimal ASCII characters, -1 otherwise.
+ */
+static inline gint
+dec2int_inline(guchar c)
+{
+	extern const gint8 dec2int_tab[(size_t) (guchar) -1 + 1];
+	return dec2int_tab[c];
+}
+
+/**
+ * Converts an alphanumeric char (0-9, A-Z, a-z) to an integer.
+ *
+ * @param c the character to convert.
+ * @return 0..9 for valid alphanumeric ASCII characters, -1 otherwise.
+ */
+static inline gint
+alnum2int_inline(guchar c)
+{
+	extern const gint8 alnum2int_tab[(size_t) (guchar) -1 + 1];
+	return alnum2int_tab[c];
+}
+
+/**
  * ctype-like functions that allow only ASCII characters whereas the locale
  * would allow others. The parameter doesn't have to be casted to (unsigned
  * char) because these functions return false for everything out of [0..127].
@@ -179,9 +218,7 @@ is_ascii_digit(gint c)
 static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
 is_ascii_xdigit(gint c)
 {
-	return is_ascii_digit(c) ||			/* 0-9 */
-			(c >= 65 && c <= 70) ||		/* A-F */
-			(c >= 97 && c <= 102);		/* a-f */
+	return -1 != hex2int_inline(c) && !(c & ~0x7f);
 }
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
@@ -205,7 +242,7 @@ is_ascii_alpha(gint c)
 static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
 is_ascii_alnum(gint c)
 {
-	return is_ascii_alpha(c) || is_ascii_digit(c);	/* A-Z, a-z, 0-9 */
+	return -1 != alnum2int_inline(c) && !(c & ~0x7f); /* A-Z, a-z, 0-9 */
 }
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
@@ -417,9 +454,15 @@ guint32 next_pow2(guint32 n);
  */
 static inline G_GNUC_CONST gboolean
 is_pow2(guint32 value)
+#ifdef HAVE_BUILTIN_POPCOUNT
+{
+	return 0 == __builtin_popcount(value);
+}
+#else /* !HAVE_BUILTIN_POPCOUNT */
 {
 	return value && !(value & (value - 1));
 }
+#endif /* HAVE_BUILTIN_POPCOUNT */
 
 /*
  * Random numbers
@@ -433,7 +476,7 @@ void guid_random_fill(gchar *xuid);
  */
 void misc_init(void);
 gint str_chomp(gchar *str, gint len);
-gint hex2dec(guchar c);
+gint hex2int(guchar c);
 gboolean is_printable(const gchar *buf, gint len);
 void dump_hex(FILE *, const gchar *, gconstpointer, gint);
 void locale_strlower(gchar *, const gchar *);
@@ -450,8 +493,9 @@ gchar *short_filename(gchar *fullname);
 gchar *data_hex_str(const gchar *data, size_t len);
 gint create_directory(const gchar *dir);
 gboolean filepath_exists(const gchar *dir, const gchar *file);
-guint32 parse_uint32(const gchar *, gchar const **, gint, gint *);
-guint64 parse_uint64(const gchar *, gchar const **, gint, gint *);
+guint16 parse_uint16(const gchar *, gchar const **, guint, gint *);
+guint32 parse_uint32(const gchar *, gchar const **, guint, gint *);
+guint64 parse_uint64(const gchar *, gchar const **, guint, gint *);
 size_t uint32_to_string_buf(guint64 v, gchar *dst, size_t size);
 size_t uint64_to_string_buf(guint64 v, gchar *dst, size_t size);
 const gchar *uint32_to_string(guint32 v);
@@ -504,6 +548,11 @@ swap_guint32(guint32 i)
  */
 static inline G_GNUC_CONST WARN_UNUSED_RESULT guint8
 netmask_to_cidr(guint32 netmask)
+#ifdef HAVE_BUILTIN_POPCOUNT
+{
+	__builtin_popcount(netmask);
+}
+#else	/* HAVE_BUILTIN_POPCOUNT */
 {
 	guint8 bits = 32;
 
@@ -513,6 +562,7 @@ netmask_to_cidr(guint32 netmask)
 	}
 	return bits;
 }
+#endif /* HAVE_BUILTIN_POPCOUNT */
 
 /*
  * Syscall wrappers for errno == 0 bug. --RAM, 27/10/2003

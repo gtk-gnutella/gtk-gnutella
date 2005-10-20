@@ -592,41 +592,47 @@ gboolean
 string_to_ip_strict(const gchar *s, guint32 *addr, const gchar **endptr)
 {
 	const gchar *p = s;
-	gboolean is_valid = TRUE;
-	gint i, j, v;
 	guint32 a = 0; /* 'pid compiler */
+	gboolean valid;
+	gint i;
 
 	g_assert(s);
 
-	for (i = 0; i < 4; i++) {
-		v = 0;
-		for (j = 0; j < 3; j++) {
-			if (*p < '0' || *p > '9') {
-				is_valid = j > 0;
-				break;
-			}
-			v *= 10;
-			v += *p++ - '0';
-		}
-		if (!is_valid)
+	i = 0;
+	for (;;) {
+		gint d, v;
+		
+		v = dec2int_inline(*p);
+		if (-1 == v)
 			break;
-		if (i < 3) {
-			if (*p != '.') {
-				is_valid = FALSE;
-				break; /* failure */
+
+		d = dec2int_inline(*++p);
+		if (-1 != d) {
+			v = v * 10 + d;
+		
+			d = dec2int_inline(*++p);
+			if (-1 != d) {
+				v = v * 10 + d;
+				p++;
 			}
-			p++;
 		}
+
 		a = (a << 8) | v;
+		
+		if (3 == i++ || '.' != *p)
+			break;
+		p++;
 	}
 
+	valid = 4 == i;
+	
 	if (endptr)
 		*endptr = p;
 
 	if (addr)
-		*addr = is_valid ? a : 0;
+		*addr = valid ? a : 0;
 
-	return is_valid;
+	return valid; 
 }
 
 /**
@@ -1059,19 +1065,9 @@ data_hex_str(const gchar *data, size_t len)
 	return buf;
 }
 
-static gint8 hex2dec_tab[(size_t) (guchar) -1 + 1];
-
-/**
- * Converts a hexadecimal char (0-9, A-F, a-f) to an integer.
- *
- * @param c the character to convert.
- * @return 0..15 for valid hexadecimal ASCII characters, -1 otherwise.
- */
-static inline gint
-hex2dec_inline(guchar c)
-{
-	return hex2dec_tab[c];
-}
+gint8 hex2int_tab[(size_t) (guchar) -1 + 1];
+gint8 dec2int_tab[(size_t) (guchar) -1 + 1];
+gint8 alnum2int_tab[(size_t) (guchar) -1 + 1];
 
 /**
  * Converts a hexadecimal char (0-9, A-F, a-f) to an integer. Passing a
@@ -1082,62 +1078,163 @@ hex2dec_inline(guchar c)
  * @return 0..15 for valid hexadecimal ASCII characters.
  */
 gint
-hex2dec(guchar c)
+hex2int(guchar c)
 {
 	gint ret;
 	
-	ret = hex2dec_inline(c);
+	ret = hex2int_inline(c);
 	g_assert(-1 != ret);
 	return ret;
 }
 
 /**
- * Initializes the lookup table for hex2dec().
+ * Converts a decimal char (0-9) to an integer. Passing a
+ * character which is not a decimal ASCII character causes an
+ * assertion failure.
+ *
+ * @param c the decimal ASCII character to convert.
+ * @return 0..9 for valid decimal ASCII characters.
+ */
+gint
+dec2int(guchar c)
+{
+	gint ret;
+	
+	ret = dec2int_inline(c);
+	g_assert(-1 != ret);
+	return ret;
+}
+
+/**
+ * Converts an alphanumeric char (0-9, A-Z, a-z) to an integer. Passing a
+ * character which is not an alphanumeric ASCII character causes an
+ * assertion failure.
+ *
+ * @param c the decimal ASCII character to convert.
+ * @return 0..36 for valid decimal ASCII characters.
+ */
+gint
+alnum2int(guchar c)
+{
+	gint ret;
+	
+	ret = alnum2int_inline(c);
+	g_assert(-1 != ret);
+	return ret;
+}
+
+/**
+ * Initializes the lookup table for hex2int().
  */
 static void
-hex2dec_init(void)
+hex2int_init(void)
 {
 	size_t i;
 
-	/* Initialize hex2dec_tab */
+	/* Initialize hex2int_tab */
 	
-	for (i = 0; i < G_N_ELEMENTS(hex2dec_tab); i++) {
-		static const char hexa[] = "0123456789abcdef";
-		hex2dec_tab[i] = is_ascii_xdigit(i)
-			? strchr(hexa, ascii_tolower(i)) - hexa
-			: -1;
+	for (i = 0; i < G_N_ELEMENTS(hex2int_tab); i++) {
+		static const gchar hexa[] = "0123456789abcdef";
+		const gchar *p = i ? strchr(hexa, ascii_tolower(i)): NULL;
+		
+		hex2int_tab[i] = p ? (p - hexa) : -1;
 	}
 	
-	/* Check consistency of hex2dec_tab */
+	/* Check consistency of hex2int_tab */
 
 	for (i = 0; i <= (guchar) -1; i++)
 		switch (i) {
-		case '0': g_assert(0 == hex2dec(i)); break;
-		case '1': g_assert(1 == hex2dec(i)); break;
-		case '2': g_assert(2 == hex2dec(i)); break;
-		case '3': g_assert(3 == hex2dec(i)); break;
-		case '4': g_assert(4 == hex2dec(i)); break;
-		case '5': g_assert(5 == hex2dec(i)); break;
-		case '6': g_assert(6 == hex2dec(i)); break;
-		case '7': g_assert(7 == hex2dec(i)); break;
-		case '8': g_assert(8 == hex2dec(i)); break;
-		case '9': g_assert(9 == hex2dec(i)); break;
+		case '0': g_assert(0 == hex2int(i)); break;
+		case '1': g_assert(1 == hex2int(i)); break;
+		case '2': g_assert(2 == hex2int(i)); break;
+		case '3': g_assert(3 == hex2int(i)); break;
+		case '4': g_assert(4 == hex2int(i)); break;
+		case '5': g_assert(5 == hex2int(i)); break;
+		case '6': g_assert(6 == hex2int(i)); break;
+		case '7': g_assert(7 == hex2int(i)); break;
+		case '8': g_assert(8 == hex2int(i)); break;
+		case '9': g_assert(9 == hex2int(i)); break;
 		case 'A':
-		case 'a': g_assert(10 == hex2dec(i)); break;
+		case 'a': g_assert(10 == hex2int(i)); break;
 		case 'B':
-		case 'b': g_assert(11 == hex2dec(i)); break;
+		case 'b': g_assert(11 == hex2int(i)); break;
 		case 'C':
-		case 'c': g_assert(12 == hex2dec(i)); break;
+		case 'c': g_assert(12 == hex2int(i)); break;
 		case 'D':
-		case 'd': g_assert(13 == hex2dec(i)); break;
+		case 'd': g_assert(13 == hex2int(i)); break;
 		case 'E':
-		case 'e': g_assert(14 == hex2dec(i)); break;
+		case 'e': g_assert(14 == hex2int(i)); break;
 		case 'F':
-		case 'f': g_assert(15 == hex2dec(i)); break;
+		case 'f': g_assert(15 == hex2int(i)); break;
 		default:
-				  g_assert(-1 == hex2dec_inline(i));
+				  g_assert(-1 == hex2int_inline(i));
 		}
 }
+
+/**
+ * Initializes the lookup table for dec2int().
+ */
+static void
+dec2int_init(void)
+{
+	size_t i;
+
+	/* Initialize dec2int_tab */
+	
+	for (i = 0; i < G_N_ELEMENTS(dec2int_tab); i++) {
+		static const gchar deca[] = "0123456789";
+		const gchar *p = i ? strchr(deca, i): NULL;
+		
+		dec2int_tab[i] = p ? (p - deca) : -1;
+	}
+	
+	/* Check consistency of hex2int_tab */
+
+	for (i = 0; i <= (guchar) -1; i++)
+		switch (i) {
+		case '0': g_assert(0 == dec2int(i)); break;
+		case '1': g_assert(1 == dec2int(i)); break;
+		case '2': g_assert(2 == dec2int(i)); break;
+		case '3': g_assert(3 == dec2int(i)); break;
+		case '4': g_assert(4 == dec2int(i)); break;
+		case '5': g_assert(5 == dec2int(i)); break;
+		case '6': g_assert(6 == dec2int(i)); break;
+		case '7': g_assert(7 == dec2int(i)); break;
+		case '8': g_assert(8 == dec2int(i)); break;
+		case '9': g_assert(9 == dec2int(i)); break;
+		default:
+				  g_assert(-1 == dec2int_inline(i));
+		}
+}
+
+/**
+ * Initializes the lookup table for alnum2int().
+ */
+static void
+alnum2int_init(void)
+{
+	static const gchar abc[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+	size_t i;
+
+	/* Initialize alnum2int_tab */
+	
+	for (i = 0; i < G_N_ELEMENTS(alnum2int_tab); i++) {
+		const gchar *p = i ? strchr(abc, ascii_tolower(i)): NULL;
+		
+		alnum2int_tab[i] = p ? (p - abc) : -1;
+	}
+	
+	/* Check consistency of hex2int_tab */
+
+	for (i = 0; i <= (guchar) -1; i++) {
+		const gchar *p = i ? strchr(abc, ascii_tolower(i)): NULL;
+		gint v = p ? (p - abc) : -1;
+	
+		g_assert(alnum2int_inline(i) == v);
+		g_assert(!p || alnum2int(i) >= 0);
+	}
+}
+
 
 /**
  * Converts hexadecimal string into a GUID.
@@ -1164,7 +1261,7 @@ hex_to_guid(const gchar *hexguid, gchar *guid)
 		if (!is_ascii_xdigit(b))
 			return FALSE;
 
-		guid[i] = (hex2dec_inline(a) << 4) + hex2dec_inline(b);
+		guid[i] = (hex2int_inline(a) << 4) + hex2int_inline(b);
 	}
 
 	return TRUE;
@@ -2429,7 +2526,7 @@ uint64_to_string2(guint64 v)
 }
 
 /**
- * Parses an unsigned 64-bit integer from an ASCII string.
+ * Parses an unsigned X-bit integer from an ASCII string.
  *
  * @param src
  *    The string to parse.
@@ -2442,143 +2539,63 @@ uint64_to_string2(guint64 v)
  * @param errorptr
  *    Indicates a parse error if not zero. EINVAL means there was no
  *    number with respect to the used base at all. ERANGE means the
- *    number would exceed (2^64)-1.
+ *    number would exceed (2^X)-1.
  *
  * @return
  *    The parsed value or zero in case of an error. If zero is returned
  *    error must be checked to determine whether there was an error
  *    or whether the parsed value was zero.
  */
-guint64
-parse_uint64(const gchar *src, gchar const **endptr, gint base, gint *errorptr)
-{
-	const gchar *p;
-	guint64 v = 0;
-	gint error = 0, c;
 
-	g_assert(src != NULL);
-	g_assert(errorptr != NULL);
-	g_assert(base >= 2 && base <= 36);
-
-	if (base < 2 || base > 36) {
-		*errorptr = EINVAL;
-		return 0;
-	}
-
-	for (p = src; (c = (guchar) *p) != '\0'; ++p) {
-		guint64 d, w;
-
-		if (!isascii(c))
-			break;
-
-		if (isdigit(c))
-			d = c - '0';
-		else if (isalpha(c)) {
-			c = ascii_tolower(c);
-			d = c - 'a' + 10;
-		} else
-			break;
-
-		if (d >= (guint) base)
-			break;
-
-		w = v * base;
-		if (w / base != v) {
-			error = ERANGE;
-			break;
-		}
-		v = w + d;
-		if (v < w) {
-			error = ERANGE;
-			break;
-		}
-	}
-
-	if (NULL != endptr)
-		*endptr = p;
-
-	if (!error && p == src)
-		error = EINVAL;
-
-	*errorptr = error;
-	return error ? 0 : v;
+#define GENERATE_PARSE_UNSIGNED(NAME, TYPE) 								\
+TYPE 																		\
+NAME(const gchar *src, gchar const **endptr, guint base, gint *errorptr) 	\
+{																			\
+	const gchar *p;															\
+	TYPE v = 0, mm;															\
+	gint error = 0;															\
+	guint d;																\
+																			\
+	STATIC_ASSERT((TYPE) -1 > 35); /* works for unsigned integers only */	\
+																			\
+	g_assert(src);															\
+	g_assert(errorptr);														\
+	g_assert(base >= 2 && base <= 36);										\
+																			\
+	p = src;																\
+	if (base < 2 || base > 36) {											\
+		error = EINVAL;														\
+		goto finish;														\
+	}																		\
+	mm = ((TYPE) -1) / base;	/* determine maximum multiplicand */		\
+																			\
+	for (/* NOTHING */; (d = alnum2int_inline(*p)) < base; ++p) {			\
+		TYPE w;																\
+																			\
+		w = v * base;														\
+		if (v > mm || ((TYPE) -1) - w < (TYPE) d) {							\
+			error = ERANGE;													\
+			goto finish;													\
+		}																	\
+		v = w + d;															\
+	}																		\
+																			\
+	if (p == src)															\
+		error = EINVAL;														\
+																			\
+finish:																		\
+	if (endptr)																\
+		*endptr = p;														\
+																			\
+	*errorptr = error;														\
+	return error ? 0 : v;													\
 }
 
-/**
- * Parses an unsigned 32-bit integer from an ASCII string.
- *
- * @param src
- *    The string to parse.
- * @param endptr
- *    May be NULL. Otherwise, it will be set to address of the first invalid
- *    character.
- * @param base
- *    The base system to be assumed e.g., 10 for decimal numbers 16 for
- *    hexadecimal numbers. The value MUST be 2..36.
- * @param errorptr
- *    Indicates a parse error if not zero. EINVAL means there was no
- *    number with respect to the used base at all. ERANGE means the
- *    number would exceed (2^32)-1.
- *
- * @return
- *    The parsed value or zero in case of an error. If zero is returned
- *    error must be checked to determine whether there was an error
- *    or whether the parsed value was zero.
- */
-guint32
-parse_uint32(const gchar *src, gchar const **endptr, gint base, gint *errorptr)
-{
-	const gchar *p;
-	guint32 v = 0;
-	gint error = 0, c;
-
-	g_assert(src != NULL);
-	g_assert(errorptr != NULL);
-	g_assert(base >= 2 && base <= 36);
-
-	if (base < 2 || base > 36) {
-		*errorptr = EINVAL;
-		return 0;
-	}
-
-	for (p = src; (c = (guchar) *p) != '\0'; ++p) {
-		guint32 d, w;
-
-		if (!isascii(c))
-			break;
-
-		if (isdigit(c))
-			d = c - '0';
-		else if (isalpha(c)) {
-			c = ascii_tolower(c);
-			d = c - 'a' + 10;
-		} else
-			break;
-
-		if (d >= (guint) base)
-			break;
-
-		w = v * base;
-		if (w / base != v) {
-			error = ERANGE;
-			break;
-		}
-		v = w + d;
-		if (v < w) {
-			error = ERANGE;
-			break;
-		}
-	}
-
-	if (NULL != endptr)
-		*endptr = p;
-
-	if (!error && p == src)
-		error = EINVAL;
-
-	*errorptr = error;
-	return error ? 0 : v;
-}
+#define GENERATE_PARSE_UINTX(bits) \
+	GENERATE_PARSE_UNSIGNED(CAT2(parse_uint,bits), CAT2(guint,bits))
+GENERATE_PARSE_UINTX(64)
+GENERATE_PARSE_UINTX(32)
+GENERATE_PARSE_UINTX(16)
 
 gint
 parse_major_minor(const gchar *src, gchar const **endptr,
@@ -2962,7 +2979,81 @@ compat_is_superuser(void)
 void
 misc_init(void)
 {
-	hex2dec_init();
+	hex2int_init();
+	dec2int_init();
+	alnum2int_init();
+
+	{
+		static const struct {
+			const gchar *s;
+			const guint64 v;
+			const guint base;
+			const gint error;
+		} tests[] = {
+			{ "", 					0,				10, EINVAL },
+			{ "1111",				1111,			10, 0 },
+			{ "z",					35, 			36, 0 },
+			{ "Z",					35,				36, 0 },
+			{ "0ff",				0xff,			16, 0 },
+			{ "-1",					0,				10, EINVAL },
+			{ "aBcDE",				0xabcde,		16, 0 },
+			{ "ffff",				0xffff,			16, 0 },
+			{ "fffff",				0xfffff,		16, 0 },
+			{ "ffffffff",			0xffffffffU,	16, 0 },
+			{ "ffffffffffffffff",	(guint64) -1,	16, 0 },
+			{ "1111111111111111",	0xffff,			2,  0 },
+			{ "11111111111111111",	0x1ffff,		2,  0 },
+			{ "111111111111111111",	0x3ffff,		2,  0 },
+			{ "ZZZ0",				1679580,		36, 0 },
+			{ "2",					0,				2, EINVAL },
+			{ "3",					0,				3, EINVAL },
+			{ "4",					0,				4, EINVAL },
+			{ "5",					0,				5, EINVAL },
+			{ "6",					0,				6, EINVAL },
+			{ "7",					0,				7, EINVAL },
+			{ "8",					0,				8, EINVAL },
+			{ "9",					0,				9, EINVAL },
+		};
+		guint i;
+
+		for (i = 0; i < G_N_ELEMENTS(tests); i++) {
+			const gchar *endptr;
+			gint error;
+			guint64 v;
+
+			g_assert((0 == tests[i].v) ^ (0 == tests[i].error));
+			
+			error = EAGAIN;
+			endptr = GINT_TO_POINTER(-1);
+			v = parse_uint64(tests[i].s, &endptr, tests[i].base, &error);
+			g_assert(tests[i].v == v);
+			g_assert(tests[i].error == error);
+			
+			error = EAGAIN;
+			endptr = GINT_TO_POINTER(-1);
+			v = parse_uint32(tests[i].s, &endptr, tests[i].base, &error);
+			if (tests[i].v > (guint32) -1) {
+				g_assert(0 == v);
+				g_assert(ERANGE == error);
+			} else {
+				g_assert(tests[i].v == v);
+				g_assert(tests[i].error == error);
+			}
+
+			error = EAGAIN;
+			endptr = GINT_TO_POINTER(-1);
+			v = parse_uint16(tests[i].s, &endptr, tests[i].base, &error);
+			if (tests[i].v > (guint16) -1) {
+				g_assert(0 == v);
+				g_assert(ERANGE == error);
+			} else {
+				g_assert(tests[i].v == v);
+				g_assert(tests[i].error == error);
+			}
+		}
+
+		
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
