@@ -96,6 +96,7 @@ RCSID("$Id$");
 #define DOWNLOAD_MAX_SINK		16384	/**< Max amount of data to sink */
 #define DOWNLOAD_SERVER_HOLD	15		/**< Space requests to same server */
 #define DOWNLOAD_DNS_LOOKUP		7200	/**< Period of server DNS lookups */
+#define DOWNLOAD_MIN_SOURCES	5		/**< Always include ourselves if less */
 
 #define BUFFER_POOL_MAX			300		/**< Max amount of buffers to keep */
 
@@ -7494,11 +7495,18 @@ picked:
 			 * we don't generate an URL for ourselves (if PFSP-server is on)
 			 * which would attract even more HTTP traffic.
 			 *		--RAM, 12/10/2003
+			 *
+			 * If there are only a few sources known for that file, we always
+			 * propagate ourselves however (if PFSP is enabled) because we
+			 * need to attract uploaders that will tell us about the locations
+			 * they know.
+			 *		--RAM, 2005-10-20
 			 */
 
 			if (bsched_saturated(bws.out)) {
 				altloc_size = MIN(altloc_size, 160);
-				file_info = NULL;
+				if (dmesh_count(sha1) > DOWNLOAD_MIN_SOURCES)
+					file_info = NULL;
 			}
 
 			wmesh = dmesh_alternate_location(sha1,
