@@ -1986,7 +1986,7 @@ done:
  * @returns boolean indicating whether we have such a route.
  */
 gboolean
-route_exists_for_reply(gchar *muid, guint8 function)
+route_exists_for_reply(const gchar *muid, guint8 function)
 {
 	struct message *m;
 
