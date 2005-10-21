@@ -280,7 +280,7 @@ alive_send_ping(gpointer obj)
  * Acknowledge alive_ping `ap', and update roundtrip statistics in `a'.
  */
 static void
-ap_ack(struct alive_ping *ap, struct alive *a)
+ap_ack(const struct alive_ping *ap, struct alive *a)
 {
 	GTimeVal now;
 	gint delay;					/**< Between sending and reception, in ms */
@@ -325,19 +325,16 @@ static void
 alive_trim_upto(struct alive *a, GSList *item)
 {
 	GSList *sl;
+	gboolean found = FALSE;
 
 	g_assert(a->count && a->pings != NULL);
 
-	for (sl = a->pings; sl; sl = a->pings) {
+	for (sl = a->pings; sl && !found; sl = a->pings) {
+		found = sl == item;
 		alive_remove_link(a, sl);
-
-		if (sl == item) {		/* Found it, removed it */
-			g_assert(a->count >= 0);
-			return;
-		}
 	}
-
-	g_assert_not_reached();				/* Must have found the item */
+	g_assert(found); /* Must have found the item */
+	g_assert(a->count >= 0);
 }
 
 /**
@@ -354,7 +351,7 @@ alive_ack_ping(gpointer obj, gchar *muid)
 	g_assert(a->count == 0 || a->pings != NULL);
 
 	for (sl = a->pings; sl; sl = g_slist_next(sl)) {
-		struct alive_ping *ap = sl->data;
+		const struct alive_ping *ap = sl->data;
 
 		if (guid_eq(ap->muid, muid)) {		/* Found it! */
 			if (dbg > 1)
@@ -414,7 +411,7 @@ alive_ack_first(gpointer obj, gchar *muid)
  * Values are expressed in milliseconds.
  */
 void
-alive_get_roundtrip_ms(gpointer obj, guint32 *avg, guint32 *last)
+alive_get_roundtrip_ms(gconstpointer obj, guint32 *avg, guint32 *last)
 {
 	const struct alive *a = obj;
 

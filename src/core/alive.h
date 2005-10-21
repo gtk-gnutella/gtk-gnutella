@@ -49,7 +49,7 @@ void alive_free(gpointer obj);
 gboolean alive_send_ping(gpointer obj);
 gboolean alive_ack_ping(gpointer obj, gchar *muid);
 void alive_ack_first(gpointer obj, gchar *muid);
-void alive_get_roundtrip_ms(gpointer obj, guint32 *avg, guint32 *last);
+void alive_get_roundtrip_ms(gconstpointer obj, guint32 *avg, guint32 *last);
 
 #endif /* _core_alive_h_ */
 
