@@ -67,12 +67,17 @@
  */
 #ifndef USE_GLIB2
 
-#ifndef HAVE_STRLCPY
+#ifndef HAS_STRLCPY
 size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
-#endif
+#endif /* HAS_STRLCPY */
+
+#ifndef HAS_STRLCAT
+size_t strlcat(gchar *dst, const gchar *src, size_t dst_size);
+#endif /* HAS_STRLCAT */
 
 #define g_string_printf g_string_sprintf
 #define g_strlcpy strlcpy
+#define g_strlcat strlcat
 #endif
 
 size_t concat_strings(gchar *dst, size_t size,

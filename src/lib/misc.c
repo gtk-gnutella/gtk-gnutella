@@ -88,6 +88,26 @@ strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 }
 #endif /* HAS_STRLCPY */
 
+#ifndef HAS_STRLCAT
+size_t
+strlcat(gchar *dst, const gchar *src, size_t dst_size)
+{
+	size_t n;
+	
+	g_assert(NULL != dst);
+	g_assert(NULL != src);
+
+	n = strlen(dst);	
+	if (n < dst_size) {
+		dst_size -= n;
+	} else if (dst_size > 0) {
+		dst[dst_size - 1] = '\0';
+		dst_size = 0;
+	}
+	return n += g_strlcpy(&dst[n], src, dst_size);
+}
+#endif /* HAS_STRLCAT */
+
 /**
  * Concatenates a variable number of NUL-terminated strings into ``dst''.
  * The resulting string will be NUL-terminated unless ``size'' is zero. The
@@ -758,31 +778,61 @@ is_symlink(const gchar *path)
 }
 #endif /* HAS_LSTAT */
 
+/**
+ * Scales v so that quotient and reminder are both in the range 0..1023.
+ *
+ * @param q pointer to a guint; will hold the quotient.
+ * @param r pointer to a guint; will hold the reminder.
+ * @param s a string holding the scale prefixes; must be sufficiently long.
+ * @return the appropriate prefix character from "s".
+ */
+static inline gchar
+size_scale(guint64 v, guint *q, guint *r, const gchar *s)
+{
+	if (v < 1024) {
+		*q = v;
+		*r = 0;
+	} else {
+		for (s++; v >= (1 << 20); v /= 1024)
+			s++;
+	
+		*q = (guint) v / 1024;
+		*r = (guint) v % 1024;
+	}
+	return *s;
+}
+
+static inline gchar
+norm_size_scale(guint64 v, guint *q, guint *r)
+{
+	return size_scale(v, q, r, "\0KMGTPEZ");
+}
+
+/**
+ * Same as norm_size_scale() but assumes v is already divided by 1024.
+ */
+static inline gchar
+kb_size_scale(guint64 v, guint *q, guint *r)
+{
+	return size_scale(v, q, r, "KMGTPEZ");
+}
+
 const gchar *
 short_size(guint64 size)
 {
 	static gchar b[SIZE_FIELD_MAX];
 
 	if (size < 1024) {
-		if (size == 1)
-			gm_snprintf(b, sizeof(b), _("1 Byte"));
-		else
-			gm_snprintf(b, sizeof(b), _("%u Bytes"), (guint) size);
-	} else if (size < 1048576)
-		gm_snprintf(b, sizeof(b), "%.2f KiB", (gfloat) size / 1024.0);
-	else if (size < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f MiB", (gfloat) size / 1048576.0);
-	else if ((size >> 10) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f GiB", (gfloat) size / 1073741824.0);
-	else if ((size >> 20) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f TiB",
-			(gfloat) (size >> 10) / 1073741824.0);
-	else if ((size >> 30) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f PiB",
-			(gfloat) (size >> 20) / 1073741824.0);
-	else
-		gm_snprintf(b, sizeof(b), "%.2f EiB",
-			(gfloat) (size >> 30) / 1073741824.0);
+		guint n = size;
+		gm_snprintf(b, sizeof b, NG_("%u Byte", "%u Bytes", n), n);
+	} else {
+		guint q, r;
+		gchar c;
+
+		c = norm_size_scale(size, &q, &r);
+		r /= 10.24;
+		gm_snprintf(b, sizeof b, "%u.%02u %ciB", q, r, c);
+	}
 
 	return b;
 }
@@ -796,25 +846,16 @@ short_html_size(guint64 size)
 	static gchar b[SIZE_FIELD_MAX];
 
 	if (size < 1024) {
-		if (size == 1)
-			gm_snprintf(b, sizeof(b), _("1&nbsp;Byte"));
-		else
-			gm_snprintf(b, sizeof(b), _("%u&nbsp;Bytes"), (guint) size);
-	} else if (size < 1048576)
-		gm_snprintf(b, sizeof(b), "%.2f&nbsp;KiB", (gfloat) size / 1024.0);
-	else if (size < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f&nbsp;MiB", (gfloat) size / 1048576.0);
-	else if ((size >> 10) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f&nbsp;GiB", (gfloat) size / 1073741824.0);
-	else if ((size >> 20) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f&nbsp;TiB",
-			(gfloat) (size >> 10) / 1073741824.0);
-	else if ((size >> 30) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f&nbsp;PiB",
-			(gfloat) (size >> 20) / 1073741824.0);
-	else
-		gm_snprintf(b, sizeof(b), "%.2f&nbsp;EiB",
-			(gfloat) (size >> 30) / 1073741824.0);
+		guint n = size;
+		gm_snprintf(b, sizeof b, NG_("%u&nbsp;Byte", "%u&nbsp;Bytes", n), n);
+	} else {
+		guint q, r;
+		gchar c;
+
+		c = norm_size_scale(size, &q, &r);
+		r /= 10.24;
+		gm_snprintf(b, sizeof b, "%u.%02u&nbsp;%ciB", q, r, c);
+	}
 
 	return b;
 }
@@ -823,119 +864,18 @@ const gchar *
 short_kb_size(guint64 size)
 {
 	static gchar b[SIZE_FIELD_MAX];
-
-	if (size < 1024)
-		gm_snprintf(b, sizeof(b), "%u KiB", (guint) size);
-	else if (size < 1048576)
-		gm_snprintf(b, sizeof(b), "%.2f MiB", (gfloat) size / 1024.0);
-	else if (size < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f GiB", (gfloat) size / 1048576.0);
-	else if ((size >> 10) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f TiB", (gfloat) size / 1073741824.0);
-	else if ((size >> 20) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f PiB",
-			(gfloat) (size >> 10) / 1073741824.0);
-	else if ((size >> 30) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f EiB",
-			(gfloat) (size >> 20) / 1073741824.0);
-	else
-		gm_snprintf(b, sizeof(b), "%.2f ZiB",
-			(gfloat) (size >> 30) / 1073741824.0);
+	guint q, r;
+	gchar c;
+	
+	if (size < 1024) {
+		gm_snprintf(b, sizeof b, "%u KiB", (guint) size);
+	} else {
+		c = kb_size_scale(size, &q, &r);
+		r /= 10.24;
+		gm_snprintf(b, sizeof b, "%u.%02u %ciB", q, r, c);
+	}
 
 	return b;
-}
-
-gchar *
-compact_value(gchar *buf, size_t size, guint64 v)
-{
-	if (v < 1024) {
-		gm_snprintf(buf, size, "%u", (guint) v);
-	} else if (v < 1048576) {
-		if (v & 0x3ff)
-			gm_snprintf(buf, size, "%.1fKi",
-				(gfloat) (guint32) v / 1024.0);
-		else
-			gm_snprintf(buf, size, "%uKi", (guint32) v >> 10);
-	} else if (v < 1073741824) {
-		if (v & 0xfffff)
-			gm_snprintf(buf, size, "%.1fMi",
-				(gfloat) (guint32) v / 1048576.0);
-		else
-			gm_snprintf(buf, size, "%uMi", (guint32) v >> 20);
-	} else if ((v >> 10) < 1073741824) {
-		if (v & 0x3fffffff)
-			gm_snprintf(buf, size, "%.1fGi", (gfloat) v / 1073741824.0);
-		else
-			gm_snprintf(buf, size, "%uGi", (guint32) (v >> 30));
-	} else {
-		gm_snprintf(buf, size, "%.1fTi", (gfloat) (v >> 10) / 1073741824.0);
-	}
-
-	return buf;
-}
-
-gchar *
-short_value(gchar *buf, size_t size, guint64 v)
-{
-	if (v < 1024) {
-		gm_snprintf(buf, size, "%u ", (guint) v);
-	} else if (v < 1048576) {
-		if (v & 0x3ff)
-			gm_snprintf(buf, size, "%.2f Ki",
-				(gfloat) (guint32) v / 1024.0);
-		else
-			gm_snprintf(buf, size, "%u Ki", (guint32) v >> 10);
-	} else if (v < 1073741824) {
-		if (v & 0xfffff)
-			gm_snprintf(buf, size, "%.2f Mi",
-				(gfloat) (guint32) v / 1048576.0);
-		else
-			gm_snprintf(buf, size, "%u Mi", (guint32) v >> 20);
-	} else if ((v >> 10) < 1073741824) {
-		if (v & 0x3fffffff)
-			gm_snprintf(buf, size, "%.2f Gi", (gfloat) v / 1073741824.0);
-		else
-			gm_snprintf(buf, size, "%u Gi", (guint32) (v >> 30));
-	} else {
-		gm_snprintf(buf, size, "%.2f Ti", (gfloat) (v >> 10) / 1073741824.0);
-	}
-
-	return buf;
-}
-
-const gchar *
-compact_size(guint64 size)
-{
-	static gchar buf[64];
-	gchar sizebuf[48];
-
-	gm_snprintf(buf, sizeof buf, "%sB",
-		compact_value(sizebuf, sizeof sizebuf, size));
-	return buf;
-}
-
-const gchar *
-compact_rate(guint64 rate)
-{
-	static gchar buf[64];
-	gchar ratebuf[48];
-
-	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
-	gm_snprintf(buf, sizeof buf, _("%sB/s"),
-		compact_value(ratebuf, sizeof ratebuf, rate));
-	return buf;
-}
-
-const gchar *
-short_rate(guint64 rate)
-{
-	static gchar buf[64];
-	gchar ratebuf[48];
-
-	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
-	gm_snprintf(buf, sizeof buf, _("%sB/s"),
-		short_value(ratebuf, sizeof ratebuf, rate));
-	return buf;
 }
 
 /**
@@ -944,28 +884,86 @@ short_rate(guint64 rate)
 const gchar *
 compact_kb_size(guint32 size)
 {
-	static gchar b[64];
+	static gchar b[SIZE_FIELD_MAX];
+	guint q, r;
+	gchar c;
 
-	if (size < 1024)
-		gm_snprintf(b, sizeof(b), "%uKi", size);
-	else if (size < 1048576) {
-		if (size & 0x3ff)
-			gm_snprintf(b, sizeof(b), "%.1fMi", (gfloat) size / 1024.0);
-		else
-			gm_snprintf(b, sizeof(b), "%dMi", size >> 10);
-	} else if (size < 1073741824)
-		if (size & 0xfffff)
-			gm_snprintf(b, sizeof(b), "%.1fGi", (gfloat) size / 1048576.0);
-		else
-			gm_snprintf(b, sizeof(b), "%dGi", size >> 20);
-	else {
-		if (size & 0x3fffffff)
-			gm_snprintf(b, sizeof(b), "%.1fTi", (gfloat) size / 1073741824.0);
-		else
-			gm_snprintf(b, sizeof(b), "%dTi", size >> 30);
+	c = kb_size_scale(size, &q, &r);
+	if (0 != r) {
+		r /= 102.4;
+		gm_snprintf(b, sizeof b, "%u.%u%ciB", q, r, c);
+	} else {
+		gm_snprintf(b, sizeof b, "%u%ciB", q, c);
 	}
 
 	return b;
+}
+
+
+gchar *
+compact_value(gchar *buf, size_t size, guint64 v)
+{
+	guint q, r;
+	gchar c;
+
+	c = norm_size_scale(v, &q, &r);
+	if (0 != r) {
+		r /= 102.4;
+		gm_snprintf(buf, size, "%u.%u%ci", q, r, c);
+	} else {
+		gm_snprintf(buf, size, "%u%ci", q, c);
+	}
+
+	return buf;
+}
+
+gchar *
+short_value(gchar *buf, size_t size, guint64 v)
+{
+	guint q, r;
+	gchar c;
+
+	c = norm_size_scale(v, &q, &r);
+	if (0 != r) {
+		r /= 10.24;
+		gm_snprintf(buf, size, "%u.%02u %ci", q, r, c);
+	} else {
+		gm_snprintf(buf, size, "%u %ci", q, c);
+	}
+	
+	return buf;
+}
+
+const gchar *
+compact_size(guint64 size)
+{
+	static gchar buf[SIZE_FIELD_MAX];
+
+	compact_value(buf, sizeof buf, size);
+	g_strlcat(buf, "B", sizeof buf);
+	return buf;
+}
+
+const gchar *
+compact_rate(guint64 rate)
+{
+	static gchar buf[SIZE_FIELD_MAX];
+
+	compact_value(buf, sizeof buf, rate);
+	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
+	g_strlcat(buf, _("B/s"), sizeof buf);
+	return buf;
+}
+
+const gchar *
+short_rate(guint64 rate)
+{
+	static gchar buf[SIZE_FIELD_MAX];
+
+	short_value(buf, sizeof buf, rate);
+	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
+	g_strlcat(buf, _("B/s"), sizeof buf);
+	return buf;
 }
 
 /**
@@ -1018,7 +1016,7 @@ guid_hex_str(const gchar *guid)
 {
 	static gchar buf[33];
 	const guint8 *g = cast_to_gconstpointer(guid);
-	gulong i;
+	guint i;
 
 	for (i = 0; i < 32; g++) {
 		buf[i++] = hex_alphabet_lower[*g >> 4];
@@ -2211,8 +2209,6 @@ gboolean
 string_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
 {
 	const gchar *ep, *s = str;
-	gint error;
-	glong v;
 
 	if (!string_to_ip_strict(s, ip, &ep))
 		return FALSE;
@@ -2230,14 +2226,18 @@ string_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
 	if (!is_ascii_digit(*s))
 		return FALSE;
 
-	if (string_to_ip_strict(s, netmask, &ep))
+	if (string_to_ip_strict(s, netmask, &ep)) {
 		return 0 != *netmask;
+	} else {
+		guint32 u;
+		gint error;
+		
+		u = parse_uint32(s, &ep, 10, &error);
+		if (error || u < 1 || u > 32 || *ep != '\0')
+			return FALSE;
 
-	v = gm_atoul(s, (gchar **) &ep, &error);
-	if (error || v < 1 || v > 32 || *ep != '\0')
-		return FALSE;
-
-	*netmask = ~0U << (32 - v);
+		*netmask = ~0U << (32 - u);
+	}
 	return TRUE;
 }
 
@@ -2766,7 +2766,7 @@ set_signal(gint signo, signal_handler_t handler)
 	sa.sa_handler = handler;
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = signo != SIGALRM ? SA_RESTART
-#if defined(HAVE_SA_INTERRUPT) || defined(SA_INTERRUPT)
+#if defined(HAS_SA_INTERRUPT) || defined(SA_INTERRUPT)
 		: SA_INTERRUPT;
 #else
 		: 0;
@@ -3051,9 +3051,8 @@ misc_init(void)
 				g_assert(tests[i].error == error);
 			}
 		}
-
-		
 	}
+
 }
 
 /* vi: set ts=4 sw=4 cindent: */
