@@ -197,11 +197,11 @@ handle_magnet(gchar *url)
 			if (':' == *p) {
 				gchar *ep2;
 				gint error;
-				gulong v;
+				guint16 u;
 
 				*p++ = '\0'; /* Terminate hostname */
-				v = gm_atoul(p, &ep2, &error);
-				if (error || v >= 65535) {
+				u = parse_uint16(p, &ep2, 10, &error);
+				if (error) {
 					g_message("TCP port is out of range");
 					/* Skip this parameter */
 					continue;
