@@ -328,6 +328,7 @@ d_sendfile=''
 d_srandom=''
 d_index=''
 d_strchr=''
+d_strlcat=''
 d_strlcpy=''
 d_sysctl=''
 clocktype=''
@@ -5440,6 +5441,10 @@ set d_strchr; eval $setvar
 val="$vali"
 set d_index; eval $setvar
 
+: see if strlcat exists
+set strlcat d_strlcat
+eval $inlibc
+
 : see if strlcpy exists
 set strlcpy d_strlcpy
 eval $inlibc
@@ -7395,6 +7400,7 @@ d_rusage='$d_rusage'
 d_sendfile='$d_sendfile'
 d_srandom='$d_srandom'
 d_strchr='$d_strchr'
+d_strlcat='$d_strlcat'
 d_strlcpy='$d_strlcpy'
 d_sysctl='$d_sysctl'
 d_times='$d_times'
