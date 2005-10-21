@@ -187,6 +187,7 @@ po/Makevars
 po/POTFILES.in
 po/boldquot.sed
 po/de.po
+po/el.po
 po/es.po
 po/fr.po
 po/gtk-gnutella.pot
@@ -194,6 +195,8 @@ po/hu.po
 po/insert-header.sin
 po/ja.po
 po/nl.po
+po/uk.po
+po/zh_CN.po
 po/quot.sed
 po/remove-potcdate.sin
 robots.txt                   Default hints for web crawlers
