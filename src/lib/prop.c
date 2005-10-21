@@ -65,192 +65,182 @@ G_STMT_START {														\
 	}																\
 } G_STMT_END
 
-/**
- * Parse comma delimited numeric vector.
- */
-static void
-prop_parse_ip_vector(const gchar *name,
-	const gchar *str, size_t size, guint32 *t)
+typedef gint (* prop_parse_func_t)(const gchar *name,
+	const gchar *str, const gchar **endptr, gpointer vec, size_t i);
+
+static gint
+prop_parse_guint64(const gchar *name,
+	const gchar *str, const gchar **endptr, gpointer vec, size_t i)
 {
-	/* Parse comma delimited settings */
-
-	gchar **h;
-	size_t i;
-
-	g_assert(str != NULL);
-	g_assert(t != NULL);
-
-	h = g_strsplit(str, ",", size + 1);
-
-	for (i = 0; i < size; i++) {
-		if (!h[i])
-			break;
-
-		t[i] = string_to_ip(h[i]);
+	gint error;
+	guint64 u;
+	
+	u = parse_uint64(str, endptr, 10, &error);
+	if (error) {
+		g_warning("prop_parse_guint64: (prop=\"%s\") "
+			"str=\"%s\": \"%s\"", name, str, g_strerror(error));
+	} else if (vec) {
+		((guint64 *) vec)[i] = u;
 	}
 
-	if (i < size)
-		g_warning("prop_parse_ip_vector: (prop=\"%s\") "
-			"target initialization incomplete!", name);
-
-	g_strfreev(h);
+	return error;
 }
 
-/**
- * Parse comma delimited numeric vector.
- */
-static void
-prop_parse_guint64_vector(const gchar *name,
-	const gchar *str, size_t size, guint64 *t)
+static gint
+prop_parse_guint32(const gchar *name,
+	const gchar *str, const gchar **endptr, gpointer vec, size_t i)
 {
-	/* Parse comma delimited settings */
-
-	gchar **h;
-	size_t i;
-
-	g_assert(str != NULL);
-	g_assert(t != NULL);
-
-	h = g_strsplit(str, ",", size + 1);
-
-	for (i = 0; i < size; i++) {
-		int error;
-		gulong v;
-
-		if (!h[i])
-			break;
-
-		/* TODO: long is most likely a 32-bit integer! */
-		v = gm_atoul(h[i], NULL, &error);
-		if (error) {
-			g_warning("prop_parse_guint64_vector: (prop=\"%s\") "
-				"h[i]=\"%s\": \"%s\"", name, h[i], g_strerror(error));
-			continue;
-		}
-
-		t[i] = v;
+	gint error;
+	guint32 u;
+	
+	u = parse_uint32(str, endptr, 10, &error);
+	if (error) {
+		g_warning("prop_parse_guint32: (prop=\"%s\") "
+			"str=\"%s\": \"%s\"", name, str, g_strerror(error));
+	} else if (vec) {
+		((guint32 *) vec)[i] = u;
 	}
 
-	if (i < size)
-		g_warning("prop_parse_guint64_vector: (prop=\"%s\") "
-			"target initialization incomplete!", name);
-
-	g_strfreev(h);
+	return error;
 }
 
-/**
- * Parse comma delimited numeric vector.
- */
-static void
-prop_parse_guint32_vector(const gchar *name,
-	const gchar *str, size_t size, guint32 *t)
+static gint
+prop_parse_ip(const gchar *name,
+	const gchar *str, const gchar **endptr, gpointer vec, size_t i)
 {
-	/* Parse comma delimited settings */
+	guint32 ip;
+	gint error;
+	
+	g_assert(name);
+	g_assert(str);
 
-	gchar **h;
-	size_t i;
-
-	g_assert(str != NULL);
-	g_assert(t != NULL);
-
-	h = g_strsplit(str, ",", size + 1);
-
-	for (i = 0; i < size; i++) {
-		int error;
-		gulong v;
-
-		if (!h[i])
-			break;
-
-		v = gm_atoul(h[i], NULL, &error);
-		if (!error && (guint32) v != v)
-			error = ERANGE;
-
-		if (error) {
-			g_warning("prop_parse_guint32_vector: "
-				"(prop=\"%s\") h[i]=\"%s\": \"%s\"",
-				name, h[i], g_strerror(error));
-			continue;
-		}
-
-		t[i] = v;
+	error = string_to_ip_strict(str, &ip, endptr) ? 0 : EINVAL;
+	if (error) {
+		g_warning("prop_parse_ip: (prop=\"%s\") "
+			"str=\"%s\": \"%s\"", name, str, g_strerror(error));
+	} else if (vec) {
+		((guint32 *) vec)[i] = ip;
 	}
-
-	if (i < size)
-		g_warning("prop_parse_guint32_vector: (prop=\"%s\") "
-			"target initialization incomplete!", name);
-
-	g_strfreev(h);
+	
+	return error;
 }
 
 /**
  * Parse comma delimited boolean vector (TRUE/FALSE list).
  */
-static void
-prop_parse_boolean_vector(const gchar *name,
-	const gchar *str, size_t size, gboolean *t)
+static gint
+prop_parse_boolean(const gchar *name,
+	const gchar *str, const gchar **endptr, gpointer vec, size_t i)
 {
-	/* Parse comma delimited settings */
+	static const struct {
+		const gchar *s;
+		const gboolean v;
+	} tab[] = {
+		{ "0",		FALSE },
+		{ "1",		TRUE },
+		{ "FALSE",	FALSE },
+		{ "TRUE",	TRUE },
+	};
+	gboolean b = FALSE;
+	const gchar *p = NULL;
+	guint j;
+	gint error = 0;
+	
+	g_assert(name);
+	g_assert(str);
 
-	const gchar *a, *b, *p = str;
-	size_t i;
-
-	g_assert(str != NULL);
-	g_assert(t != NULL);
-
-	for (i = 0; *p != '\0' && i < size; i++) {
-		size_t l;
-		gboolean valid;
-
-		p = skip_ascii_spaces(p);
-		if (*p == '\0')
+	for (j = 0; j < G_N_ELEMENTS(tab); j++) {
+		if (NULL != (p = is_strcaseprefix(str, tab[j].s))) {
+			b = tab[j].v;
 			break;
-
-		a = p;
-		b = strchr(p, ',');
-		if (!b)
-			b = strchr(p, '\0');
-		p = b--;
-		g_assert(*p == ',' || *p == '\0');
-		p++;
-
-		while (b > a && is_ascii_space(*b))
-			b--;
-
-		l = (b - a) + 1;
-		valid = FALSE;
-		switch (l) {
-		case CONST_STRLEN("TRUE"):
-			if (0 == ascii_strncasecmp(a, "TRUE", l)) {
-				t[i] = TRUE;
-				valid = TRUE;
-			}
-			break;
-		case CONST_STRLEN("FALSE"):
-			if (0 == ascii_strncasecmp(a, "FALSE", l)) {
-				t[i] = FALSE;
-				valid = TRUE;
-			}
-			break;
-		case CONST_STRLEN("1"):
-			if (*a == '1') {
-				t[i] = TRUE;
-				valid = TRUE;
-			} else if (*a == '0') {
-				t[i] = FALSE;
-				valid = TRUE;
-			}
-			break;
-		}
-		if (!valid) {
-			g_warning("Not a boolean value (prop=\"%s\"): \"%s\"", name, a);
 		}
 	}
 
-	if (i != size)
-		g_warning("prop_parse_boolean_vector: (prop=\"%s\") "
+	if (!p) {
+		p = str;
+		error = EINVAL;
+	}
+
+	if (error) {
+		g_warning("Not a boolean value (prop=\"%s\"): \"%s\"", name, str);
+	} else if (vec) {
+		((gboolean *) vec)[i] = b;
+	}
+
+	if (endptr)
+		*endptr = p;
+
+	return error;
+}
+
+/**
+ * Parse prop vector.
+ */
+static void
+prop_parse_vector(const gchar *name, const gchar *str,
+	size_t size, gpointer vec, prop_parse_func_t parser)
+{
+	const gchar *p = str;
+	size_t i;
+
+	g_assert(str != NULL);
+	g_assert(vec != NULL);
+
+	for (i = 0; i < size && p; i++) {
+		const gchar *endptr;
+		gint error;
+
+		p = skip_ascii_spaces(p);
+		if ('\0' == *p)
+			break;
+
+		error = (*parser)(name, p, &endptr, vec, i);
+		endptr = skip_ascii_spaces(endptr);
+		if (!error)
+			error = ('\0' != *endptr && ',' != *endptr) ? EINVAL : 0;
+
+		if (error)
+			g_warning("prop_parse_vector: (prop=\"%s\") "
+				"str=\"%s\": \"%s\"", name, p, g_strerror(error));
+
+		p = strchr(endptr, ',');
+		if (p)
+			p++;
+	}
+
+	if (i < size)
+		g_warning("prop_parse_vector: (prop=\"%s\") "
 			"target initialization incomplete!", name);
 }
+
+static void
+prop_parse_guint64_vector(const gchar *name, const gchar *str,
+	size_t size, guint64 *vec)
+{
+	prop_parse_vector(name, str, size, vec, prop_parse_guint64);
+}
+
+static void
+prop_parse_guint32_vector(const gchar *name, const gchar *str,
+	size_t size, guint32 *vec)
+{
+	prop_parse_vector(name, str, size, vec, prop_parse_guint32);
+}
+
+static void
+prop_parse_ip_vector(const gchar *name, const gchar *str,
+	size_t size, guint32 *vec)
+{
+	prop_parse_vector(name, str, size, vec, prop_parse_ip);
+}
+
+static void
+prop_parse_boolean_vector(const gchar *name, const gchar *str,
+	size_t size, gboolean *vec)
+{
+	prop_parse_vector(name, str, size, vec, prop_parse_boolean);
+}
+
 
 /**
  * Parse a hex string into a gchar array.
