@@ -1341,7 +1341,7 @@ signal_handler(int signo)
 	 * handler.
 	 */
 
-	switch (n) {
+	switch (signo) {
 	case SIGBUS:
 		set_signal(signo, old_sigbus_handler);
 		break;
