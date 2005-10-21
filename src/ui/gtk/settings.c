@@ -444,6 +444,7 @@ update_entry_date(property_t prop)
     GtkWidget *top = map_entry->fn_toplevel();
 	time_t t;
 	gchar buf[128];
+	size_t len;
 
     if (!top)
         return FALSE;
@@ -457,7 +458,8 @@ update_entry_date(property_t prop)
     }
 
     t = *stub->guint64.get(prop, NULL, 0, 0);
-	strftime(buf, sizeof buf, date_fmt, localtime(&t));
+	len = strftime(buf, sizeof buf, date_fmt, localtime(&t));
+	buf[len] = '\0';
     gtk_entry_set_text(GTK_ENTRY(w), buf);
 
     return FALSE;
@@ -1138,10 +1140,12 @@ update_label_date(property_t prop)
 	if (val == 0)
 		gtk_label_set_text(GTK_LABEL(w), _("Never"));
 	else {
-		time_t t = val;
 		gchar buf[128];
+		time_t t = val;
+		size_t len;
 
-		strftime(buf, sizeof buf, date_fmt, localtime(&t));
+		len = strftime(buf, sizeof buf, date_fmt, localtime(&t));
+		buf[len] = '\0';
 		gtk_label_set_text(GTK_LABEL(w), buf);
 	}
 

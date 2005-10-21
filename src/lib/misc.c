@@ -1347,10 +1347,11 @@ date_to_iso_gchar(time_t date)
 {
 	static gchar buf[80];
 	struct tm *tm;
+	size_t len;
 
 	tm = gmtime(&date);
-	strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", tm);
-	buf[sizeof(buf)-1] = '\0';		/* Be really sure */
+	len = strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", tm);
+	buf[len] = '\0';		/* Be really sure */
 
 	return buf;
 }
