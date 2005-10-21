@@ -498,9 +498,12 @@ gchar *short_filename(gchar *fullname);
 gchar *data_hex_str(const gchar *data, size_t len);
 gint create_directory(const gchar *dir);
 gboolean filepath_exists(const gchar *dir, const gchar *file);
-guint16 parse_uint16(const gchar *, gchar const **, guint, gint *);
-guint32 parse_uint32(const gchar *, gchar const **, guint, gint *);
-guint64 parse_uint64(const gchar *, gchar const **, guint, gint *);
+guint16 parse_uint16(const gchar *, gchar const **, guint, gint *)
+	NON_NULL_PARAM((1, 4));
+guint32 parse_uint32(const gchar *, gchar const **, guint, gint *)
+	NON_NULL_PARAM((1, 4));
+guint64 parse_uint64(const gchar *, gchar const **, guint, gint *)
+	NON_NULL_PARAM((1, 4));
 size_t uint32_to_string_buf(guint64 v, gchar *dst, size_t size);
 size_t uint64_to_string_buf(guint64 v, gchar *dst, size_t size);
 const gchar *uint32_to_string(guint32 v);
