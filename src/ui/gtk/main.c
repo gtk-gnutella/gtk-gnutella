@@ -402,6 +402,7 @@ gui_create_dlg_about(void)
         "Globuz",
 		"Daichi Kawahata <daichik@users.sourceforge.net>",
 		"Dave Rutherford <polymath69@users.sourceforge.net>",
+		"Ian Sheldon <shellgeekorguk@users.sourceforge.net>",
     };
     GtkWidget *dlg = create_dlg_about();
     guint i;
