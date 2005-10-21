@@ -152,14 +152,14 @@ g_list_delete_link(GList *l, GList *lnk)
 		retval = n - 1;						\
 	}										\
 } while (0)
-#else	/* !HAVE_VSNPRINTF */
+#else	/* !HAS_VSNPRINTF */
 #define DO_VSNPRINTF() do {							\
 	gchar *printed = g_strdup_vprintf(fmt, args);	\
 	size_t l = g_strlcpy(str, printed, n);			\
 	retval = MIN((n - 1), l);						\
 	G_FREE_NULL(printed);							\
 } while (0)
-#endif	/* HAVE_VSNPRINTF */
+#endif	/* HAS_VSNPRINTF */
 
 
 /**
