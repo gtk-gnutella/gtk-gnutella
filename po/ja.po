@@ -68,8 +68,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-10-10 06:09+0900\n"
-"PO-Revision-Date: 2005-09-30 21:47+0900\n"
+"POT-Creation-Date: 2005-10-22 07:16+0900\n"
+"PO-Revision-Date: 2005-10-22 07:24+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -82,159 +82,159 @@ msgstr ""
 "X-Poedit-KeywordsList: N_;Q_;NG_:1,2\n"
 "X-Poedit-Basepath: /opt/src/network/gnutella/gtk-gnutella-devel\n"
 
-#: src/core/downloads.c:949 src/core/downloads.c:1007
+#: src/core/downloads.c:950 src/core/downloads.c:1008
 msgid "No longer connected"
 msgstr "もう接続していません"
 
 # FIXME: separation (src/core/downloads.c src/core/nodes.c)
-#: src/core/downloads.c:996 src/core/nodes.c:848 src/ui/gtk/hcache_common.c:43
+#: src/core/downloads.c:997 src/core/nodes.c:848 src/ui/gtk/hcache_common.c:43
 msgid "Timeout"
 msgstr "タイムアウト"
 
-#: src/core/downloads.c:1874
+#: src/core/downloads.c:1875
 msgid "Requeued by file info change"
 msgstr "再びキューに戻されました (ファイル情報変更)"
 
-#: src/core/downloads.c:1953 src/core/downloads.c:3030
-#: src/core/downloads.c:3928
+#: src/core/downloads.c:1954 src/core/downloads.c:3031
+#: src/core/downloads.c:3929
 msgid "Suspended (SHA1 checking)"
 msgstr "一時休止 (SHA1 確認中)"
 
-#: src/core/downloads.c:3157
+#: src/core/downloads.c:3158
 msgid "Waiting for a free chunk"
 msgstr "空きチャンクを待受中"
 
-#: src/core/downloads.c:3311 src/core/downloads.c:3938
+#: src/core/downloads.c:3312 src/core/downloads.c:3939
 msgid "No download slot"
 msgstr "ダウンロード受口がありません"
 
-#: src/core/downloads.c:3357
+#: src/core/downloads.c:3358
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "接続失敗 (ファイル記述子は足りていますか？)"
 
-#: src/core/downloads.c:3577
+#: src/core/downloads.c:3578
 msgid "Ignoring Push flag"
 msgstr "PUSH フラッグを無視します"
 
-#: src/core/downloads.c:3608
+#: src/core/downloads.c:3609
 #, c-format
-msgid "No direct connection yet (%d retry)"
-msgid_plural "No direct connection yet (%d retries)"
-msgstr[0] "まだ直接接続していません (%d 回目)"
+msgid "No direct connection yet (%u retry)"
+msgid_plural "No direct connection yet (%u retries)"
+msgstr[0] "まだ直接接続していません (%u 回目)"
 
-#: src/core/downloads.c:3615 src/core/downloads.c:3629
+#: src/core/downloads.c:3616 src/core/downloads.c:3630
 #, c-format
-msgid "Timeout (%d retry)"
-msgid_plural "Timeout (%d retries)"
-msgstr[0] "タイムアウトしました (%d 回目)"
+msgid "Timeout (%u retry)"
+msgid_plural "Timeout (%u retries)"
+msgstr[0] "タイムアウトしました (%u 回目)"
 
-#: src/core/downloads.c:3619
+#: src/core/downloads.c:3620
 #, c-format
-msgid "Connection refused (%d retry)"
-msgid_plural "Connection refused (%d retries)"
-msgstr[0] "接続を拒否されました (%d 回目)"
+msgid "Connection refused (%u retry)"
+msgid_plural "Connection refused (%u retries)"
+msgstr[0] "接続を拒否されました (%u 回目)"
 
-#: src/core/downloads.c:3919
+#: src/core/downloads.c:3920
 msgid "Dup SHA1 during creation"
 msgstr "作成中に SHA1 を複製します"
 
-#: src/core/downloads.c:4167
+#: src/core/downloads.c:4169
 msgid "Stopped (Index changed)"
 msgstr "中止 (インデックス変更)"
 
-#: src/core/downloads.c:4491
+#: src/core/downloads.c:4494
 msgid "Explicitly requeued"
 msgstr "キューに戻されました (手動)"
 
-#: src/core/downloads.c:4661
+#: src/core/downloads.c:4664
 #, c-format
 msgid "Stopped (%s)"
 msgstr "中止されました (%s)"
 
-#: src/core/downloads.c:4664 src/core/downloads.c:4699
+#: src/core/downloads.c:4667 src/core/downloads.c:4702
 #, c-format
-msgid "Too many attempts (%d times)"
-msgstr "要求回数が多すぎます (%d 回)"
+msgid "Too many attempts (%u times)"
+msgstr "要求回数が多すぎます (%u 回)"
 
-#: src/core/downloads.c:4666 src/core/downloads.c:6019
-#: src/core/downloads.c:7109
+#: src/core/downloads.c:4669 src/core/downloads.c:6022
+#: src/core/downloads.c:7112
 #, c-format
 msgid "Failed (Read error: %s)"
 msgstr "失敗しました (読込エラー: %s)"
 
-#: src/core/downloads.c:4695
+#: src/core/downloads.c:4698
 msgid "Connection not kept-alive (EOF)"
 msgstr "接続が Keep-Alive ではありません (EOF)"
 
-#: src/core/downloads.c:4696
+#: src/core/downloads.c:4699
 msgid "Stopped (EOF)"
 msgstr "中止されました (EOF)"
 
-#: src/core/downloads.c:4812 src/core/downloads.c:6919
+#: src/core/downloads.c:4815 src/core/downloads.c:6922
 msgid "Stopped (Output file size changed)"
 msgstr "中止されました (出力ファイルサイズ変更)"
 
-#: src/core/downloads.c:5015
+#: src/core/downloads.c:5018
 #, c-format
 msgid "Can't save data: %s"
 msgstr "データを保存できません: %s"
 
-#: src/core/downloads.c:5155
+#: src/core/downloads.c:5158
 msgid "Requeued by competing download"
 msgstr "キューに戻されました (競合ダウンロード)"
 
-#: src/core/downloads.c:5219
+#: src/core/downloads.c:5222
 msgid "Requeued after trimmed data"
 msgstr "キューに戻されました (データ整理後)"
 
-#: src/core/downloads.c:5221
+#: src/core/downloads.c:5224
 msgid "Chunk done, connection closed"
 msgstr "チャンク完了、接続を閉じます"
 
-#: src/core/downloads.c:5400
+#: src/core/downloads.c:5403
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "おかしな HTTP ステータス (プロトコルが非同期？)"
 
-#: src/core/downloads.c:5721
+#: src/core/downloads.c:5724
 msgid "No URN on server, waiting for overlap"
 msgstr "サーバーに URN がありません、オーバーラップ待受中"
 
-#: src/core/downloads.c:5727
+#: src/core/downloads.c:5730
 msgid "No URN on server to validate"
 msgstr "サーバーに確認するための URN がありません"
 
-#: src/core/downloads.c:5773
+#: src/core/downloads.c:5776
 msgid "URN fileinfo mismatch"
 msgstr "URN ファイル情報が一致しません"
 
-#: src/core/downloads.c:5793
+#: src/core/downloads.c:5796
 msgid "Discovered dup SHA1"
 msgstr "重複する SHA1 を発見しました"
 
-#: src/core/downloads.c:6001 src/core/downloads.c:6009
-#: src/core/downloads.c:7061 src/core/downloads.c:7099
+#: src/core/downloads.c:6004 src/core/downloads.c:6012
+#: src/core/downloads.c:7064 src/core/downloads.c:7102
 msgid "Stopped data (EOF)"
 msgstr "データ転送が中止されました (EOF)"
 
-#: src/core/downloads.c:6394 src/core/downloads.c:6899
+#: src/core/downloads.c:6397 src/core/downloads.c:6902
 msgid "Partial file on server, waiting"
 msgstr "サーバーの部分ファイルを待受中"
 
-#: src/core/downloads.c:6495
+#: src/core/downloads.c:6498
 #, c-format
-msgid "Queued (slot %d/%d) ETA: %s"
-msgstr "待機中 (受口 %d/%d) 予定時間: %s"
+msgid "Queued (slot %u/%u) ETA: %s"
+msgstr "待機中 (受口 %u/%u) 予定時間: %s"
 
-#: src/core/downloads.c:7067
+#: src/core/downloads.c:7070
 msgid "Stopped (Read buffer full)"
 msgstr "中止されました (読込バッファが一杯です)"
 
-#: src/core/downloads.c:7106
+#: src/core/downloads.c:7109
 #, c-format
 msgid "Stopped data (%s)"
 msgstr "データ転送が中止されました (%s)"
 
-#: src/core/downloads.c:8376
+#: src/core/downloads.c:8386
 msgid "SHA1 mismatch detected"
 msgstr "SHA1 の不一致を検出しました"
 
@@ -586,108 +586,108 @@ msgstr "適当な設定フォルダが無いと先に進めません"
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "TCP がファイアウォール内にある場合はリーフとしてのみ動作します"
 
-#: src/core/shell.c:267
+#: src/core/shell.c:271
 msgid "Node added"
 msgstr "ノードが追加されました"
 
-#: src/core/shell.c:269
+#: src/core/shell.c:273
 msgid "Invalid IP/Port"
 msgstr "無効な IP/ポートです"
 
-#: src/core/shell.c:275 src/core/shell.c:323
+#: src/core/shell.c:279 src/core/shell.c:327
 msgid "Unknown operation"
 msgstr "不明な操作です"
 
-#: src/core/shell.c:286 src/core/shell.c:334 src/core/shell.c:410
-#: src/core/shell.c:510 src/core/shell.c:564 src/core/shell.c:647
+#: src/core/shell.c:290 src/core/shell.c:338 src/core/shell.c:414
+#: src/core/shell.c:533 src/core/shell.c:587 src/core/shell.c:670
 msgid "Malformed command"
 msgstr "おかしなコマンドです"
 
-#: src/core/shell.c:311
+#: src/core/shell.c:315
 msgid "Query string missing"
 msgstr "検索式文字列がありません"
 
-#: src/core/shell.c:318
+#: src/core/shell.c:322
 msgid "Search added"
 msgstr "検索が追加されました"
 
-#: src/core/shell.c:384 src/core/shell.c:431 src/core/shell.c:533
+#: src/core/shell.c:388 src/core/shell.c:435 src/core/shell.c:556
 msgid "Property missing"
 msgstr "プロパティがありません"
 
-#: src/core/shell.c:390 src/core/shell.c:437 src/core/shell.c:539
+#: src/core/shell.c:394 src/core/shell.c:441 src/core/shell.c:562
 msgid "Unknown property"
 msgstr "不明なプロパティです"
 
-#: src/core/shell.c:394
+#: src/core/shell.c:398
 msgid "Value: "
 msgstr "値: "
 
-#: src/core/shell.c:398
+#: src/core/shell.c:402
 msgid "Value found and displayed"
 msgstr "値発見、表示します"
 
-#: src/core/shell.c:448
+#: src/core/shell.c:452
 msgid "Value missing"
 msgstr "値がありません"
 
-#: src/core/shell.c:492
+#: src/core/shell.c:515
 msgid "Type not supported"
 msgstr "この種類は対応されません"
 
-#: src/core/shell.c:496
+#: src/core/shell.c:519
 msgid "Value found and set"
 msgstr "値発見、設定します"
 
-#: src/core/shell.c:547
+#: src/core/shell.c:570
 msgid "Help: "
 msgstr "へルプ: "
 
-#: src/core/shell.c:593
+#: src/core/shell.c:616
 msgid "Unknown parameter"
 msgstr "不明なパラメータです"
 
-#: src/core/shell.c:606
+#: src/core/shell.c:629
 #, c-format
 msgid "Total horizon size (%u/%u nodes support HSEP):"
 msgstr "到達領域サイズの合計 (%u/%u 基のHSEP対応ノード):"
 
-#: src/core/shell.c:628
+#: src/core/shell.c:651
 #, c-format
 msgid "Horizon size via HSEP node %s (%s):"
 msgstr "HSEPノード %s (%s) 経由の到達領域サイズ:"
 
-#: src/core/shell.c:630
+#: src/core/shell.c:653
 msgid "leaf"
 msgstr "リーフ"
 
-#: src/core/shell.c:631
+#: src/core/shell.c:654
 msgid "ultrapeer"
 msgstr "ウルトラピア"
 
-#: src/core/shell.c:631 src/if/gnet_property.c:421
+#: src/core/shell.c:654 src/if/gnet_property.c:421
 msgid "normal node"
 msgstr "通常ノード"
 
 # FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
-#: src/core/shell.c:657 src/ui/gtk/gtk1/interface-glade.c:2619
+#: src/core/shell.c:680 src/ui/gtk/gtk1/interface-glade.c:2619
 #: src/ui/gtk/gtk2/gnet_stats.c:472
 msgid "Hops"
 msgstr "ホップ"
 
 # FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
-#: src/core/shell.c:658 src/ui/gtk/gtk1/interface-glade.c:2628
+#: src/core/shell.c:681 src/ui/gtk/gtk1/interface-glade.c:2628
 #: src/ui/gtk/gtk1/interface-glade.c:5499 src/ui/gtk/gtk2/gnet_stats.c:473
 msgid "Nodes"
 msgstr "ノード"
 
 # FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
-#: src/core/shell.c:659 src/ui/gtk/gtk1/interface-glade.c:2637
+#: src/core/shell.c:682 src/ui/gtk/gtk1/interface-glade.c:2637
 #: src/ui/gtk/gtk1/interface-glade.c:5517 src/ui/gtk/gtk2/gnet_stats.c:474
 msgid "Files"
 msgstr "ファイル"
 
-#: src/core/shell.c:660 src/ui/gtk/gtk1/interface-glade.c:2646
+#: src/core/shell.c:683 src/ui/gtk/gtk1/interface-glade.c:2646
 #: src/ui/gtk/gtk1/interface-glade.c:2987
 #: src/ui/gtk/gtk1/interface-glade.c:3188
 #: src/ui/gtk/gtk1/interface-glade.c:3421
@@ -703,11 +703,11 @@ msgstr "ファイル"
 msgid "Size"
 msgstr "大きさ"
 
-#: src/core/shell.c:782
+#: src/core/shell.c:805
 msgid "Good bye"
 msgstr "Good bye"
 
-#: src/core/shell.c:815
+#: src/core/shell.c:838
 msgid "Unknown command"
 msgstr "不明なコマンドエラーです"
 
@@ -4194,31 +4194,24 @@ msgstr "ザンビア共和国"
 msgid "Zimbabwe"
 msgstr "ジンバブエ共和国"
 
-#: src/lib/misc.c:762
-msgid "1 Byte"
-msgstr "1 バイト"
-
-#: src/lib/misc.c:764
+#: src/lib/misc.c:827
 #, c-format
-msgid "%u Bytes"
-msgstr "%u バイト"
+msgid "%u Byte"
+msgid_plural "%u Bytes"
+msgstr[0] "%u バイト"
 
-#: src/lib/misc.c:794
-msgid "1&nbsp;Byte"
-msgstr "1&nbsp;バイト"
-
-#: src/lib/misc.c:796
+#: src/lib/misc.c:850
 #, c-format
-msgid "%u&nbsp;Bytes"
-msgstr "%u&nbsp;バイト"
+msgid "%u&nbsp;Byte"
+msgid_plural "%u&nbsp;Bytes"
+msgstr[0] "%u&nbsp;バイト"
 
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
-#: src/lib/misc.c:918 src/lib/misc.c:930
-#, c-format
-msgid "%sB/s"
-msgstr "%sB/秒"
+#: src/lib/misc.c:954 src/lib/misc.c:965
+msgid "B/s"
+msgstr "B/秒"
 
-#: src/main.c:837
+#: src/main.c:876
 msgid "This is an unofficial build which accesses files in this directory:"
 msgstr "これは非公式ビルドです、このフォルダのファイルにアクセスします:"
 
@@ -6078,8 +6071,8 @@ msgid ")"
 msgstr ")"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4139
-#: src/ui/gtk/gtk1/interface-glade.c:5071 src/ui/gtk/settings.c:1986
-#: src/ui/gtk/settings.c:2023
+#: src/ui/gtk/gtk1/interface-glade.c:5071 src/ui/gtk/settings.c:1990
+#: src/ui/gtk/settings.c:2027
 msgid "Show settings"
 msgstr "設定の表示"
 
@@ -7246,7 +7239,7 @@ msgstr "確認します:"
 msgid "Do you really want to quit?"
 msgstr "本当に終了しますか?"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10419 src/ui/gtk/settings.c:1200
+#: src/ui/gtk/gtk1/interface-glade.c:10419 src/ui/gtk/settings.c:1204
 msgid "Yes"
 msgstr "はい"
 
@@ -9278,22 +9271,22 @@ msgstr "逆引き検索を実行中..."
 msgid "Passive"
 msgstr "受動検索"
 
-# FIXME: il-translation
+# FIXME: ill-translation
 #: src/ui/gtk/hcache_common.c:39
 msgid "Fresh regular"
 msgstr "通常ノード(新規)"
 
-# FIXME: il-translation
+# FIXME: ill-translation
 #: src/ui/gtk/hcache_common.c:40
 msgid "Valid regular"
 msgstr "通常ノード(有効)"
 
-# FIXME: il-translation
+# FIXME: ill-translation
 #: src/ui/gtk/hcache_common.c:41
 msgid "Fresh ultra"
 msgstr "ウルトラノード(新規)"
 
-# FIXME: il-translation
+# FIXME: ill-translation
 #: src/ui/gtk/hcache_common.c:42
 msgid "Valid ultra"
 msgstr "ウルトラノード(有効)"
@@ -9499,105 +9492,105 @@ msgstr "マグネットを解析できません"
 msgid "The SHA1 query is not validly encoded"
 msgstr "この SHA1 検索式は適切にエンコードされていません"
 
-#: src/ui/gtk/settings.c:1139
+#: src/ui/gtk/settings.c:1141
 msgid "Never"
 msgstr "未発生"
 
-#: src/ui/gtk/settings.c:1200
+#: src/ui/gtk/settings.c:1204
 msgid "No"
 msgstr "いいえ"
 
-#: src/ui/gtk/settings.c:1331
+#: src/ui/gtk/settings.c:1335
 #, c-format
 msgid "%u/%u host (%u%%)"
 msgid_plural "%u/%u hosts (%u%%)"
 msgstr[0] "%u/%u 基のホスト (%u%%)"
 
-#: src/ui/gtk/settings.c:1417 src/ui/gtk/settings.c:1439
+#: src/ui/gtk/settings.c:1421 src/ui/gtk/settings.c:1443
 msgid "loading..."
 msgstr "読込み中..."
 
-#: src/ui/gtk/settings.c:1418
+#: src/ui/gtk/settings.c:1422
 msgid "Reading host cache..."
 msgstr "ホストキャッシュ読込み中..."
 
-#: src/ui/gtk/settings.c:1440
+#: src/ui/gtk/settings.c:1444
 msgid "Reading ultra cache..."
 msgstr "ウルトラキャッシュ読込み中..."
 
-#: src/ui/gtk/settings.c:1484
+#: src/ui/gtk/settings.c:1488
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "*** 古いバージョンが動作中です！ ***"
 
-#: src/ui/gtk/settings.c:1509
+#: src/ui/gtk/settings.c:1513
 msgid "*** CPU OVERLOADED -- TRYING TO SAVE CYCLES ***"
 msgstr "** CPU が過負荷になっています --- サイクルの節約を試みます ***"
 
-#: src/ui/gtk/settings.c:1534
+#: src/ui/gtk/settings.c:1538
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
 msgstr "*** アップロードが停滞しています、帯域幅が不足していませんか？ ***"
 
-#: src/ui/gtk/settings.c:1566
+#: src/ui/gtk/settings.c:1570
 msgid "*** FILE DESCRIPTORS HAVE RUN OUT! ***"
 msgstr "*** ファイル記述子の数が尽きました！ ***"
 
-#: src/ui/gtk/settings.c:1571
+#: src/ui/gtk/settings.c:1575
 msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr "*** ファイル記述子の数が尽きかけています！ ***"
 
-#: src/ui/gtk/settings.c:1586
+#: src/ui/gtk/settings.c:1590
 msgid "*** VERSION WILL SOON BECOME OLD! ***"
 msgstr "*** このバージョンはもうすぐ古いものになります！ ***"
 
-#: src/ui/gtk/settings.c:1589
+#: src/ui/gtk/settings.c:1593
 #, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
 msgid_plural "*** VERSION WILL BECOME OLD IN %d DAYS! ***"
 msgstr[0] "*** このバージョンはあと %d 日で古いものになります！ ***"
 
-#: src/ui/gtk/settings.c:1980 src/ui/gtk/settings.c:2017
+#: src/ui/gtk/settings.c:1984 src/ui/gtk/settings.c:2021
 msgid "Hide settings"
 msgstr "設定を隠す"
 
-#: src/ui/gtk/settings.c:2058
+#: src/ui/gtk/settings.c:2062
 #, c-format
 msgid "Address/port changed to: %s"
 msgstr "アドレス/ポートが変更されました: %s"
 
 # MERGEBLE: not yet reported
-#: src/ui/gtk/settings.c:2388
+#: src/ui/gtk/settings.c:2392
 msgid "no sources"
 msgstr "送信源はありません"
 
-#: src/ui/gtk/settings.c:2392
+#: src/ui/gtk/settings.c:2396
 #, c-format
 msgid "%u source"
 msgid_plural "%u sources"
 msgstr[0] "%u 基の送信源"
 
-#: src/ui/gtk/settings.c:2407
+#: src/ui/gtk/settings.c:2411
 #, c-format
 msgid "%u active"
 msgstr "%u 件が動作中"
 
-#: src/ui/gtk/settings.c:2435
+#: src/ui/gtk/settings.c:2439
 #, c-format
 msgid "%u queued"
 msgstr "%u 件が待機中"
 
-#: src/ui/gtk/settings.c:2556
+#: src/ui/gtk/settings.c:2560
 #, c-format
 msgid "%u/%u connection"
 msgid_plural "%u/%u connections"
 msgstr[0] "%u/%u 件の接続"
 
-#: src/ui/gtk/settings.c:2593
+#: src/ui/gtk/settings.c:2597
 #, c-format
 msgid "%u/%u upload"
 msgid_plural "%u/%u uploads"
 msgstr[0] "%u/%u 件のアップロード"
 
-#: src/ui/gtk/settings.c:2618
+#: src/ui/gtk/settings.c:2622
 #, c-format
 msgid "%u/%u download"
 msgid_plural "%u/%u downloads"
