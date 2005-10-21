@@ -1356,6 +1356,25 @@ date_to_iso_gchar(time_t date)
 	return buf;
 }
 
+/**
+ * Convert time to a human-readable string using the time representation
+ * of the current locale.
+ *
+ * @param date time to convert.
+ * @param dst buffer to hold the resulting string.
+ * @param size the size of the dst buffer.
+ * @return passed in dst
+ */
+gchar *
+date_to_locale_time(time_t date, gchar *dst, size_t size)
+{
+	const struct tm *tm = localtime(&date);
+	size_t len;
+	
+	len = strftime(dst, size, "%X", tm);
+	dst[len] = '\0';
+	return dst;
+}
 
 /**
  * Compute the difference in seconds between two tm structs (a - b).

@@ -1011,8 +1011,14 @@ download_timer(time_t now)
 
 			if (delta_time(now, d->last_update) > d->timeout_delay)
 				download_start(d, TRUE);
-			else
+			else {
+				/* Move the download back to the waiting queue.
+				 * It will be rescheduled automatically later.
+				 */
+				download_queue_delay(d, download_retry_timeout_delay,
+				    _("Requeued due to timeout"));
 				gcu_gui_update_download(d, FALSE);
+			}
 			break;
 		case GTA_DL_VERIFYING:
 		case GTA_DL_MOVING:
@@ -2754,8 +2760,18 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	 */
 
 	if (fmt) {
-		gm_vsnprintf(d->error_str, sizeof d->error_str, fmt, ap);
+		size_t len;
+		gchar event[80], resched[80];
+
+		len = gm_vsnprintf(d->error_str, sizeof d->error_str, fmt, ap);
 		/* d->remove_msg updated below */
+
+		/* Append times of event/reschedule */
+		date_to_locale_time(tm_time(), event, sizeof event);
+		date_to_locale_time(d->retry_after, resched, sizeof resched);
+
+		gm_snprintf(&d->error_str[len], sizeof d->error_str - len,
+			_(" at %s - rescheduled for %s"), event, resched);
 	}
 
 	if (DOWNLOAD_IS_VISIBLE(d))
@@ -3309,7 +3325,7 @@ download_start(struct download *d, gboolean check_allowed)
 			count_running_downloads_with_name(download_outname(d)) != 0))
 	) {
 		if (!DOWNLOAD_IS_QUEUED(d))
-			download_queue(d, _("No download slot"));
+			download_queue(d, _("No download slot (start)"));
 		return;
 	}
 
@@ -3936,7 +3952,9 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 		download_start(d, FALSE);		/* Start the download immediately */
 	} else {
 		/* Max number of downloads reached, we have to queue it */
-		download_queue(d, _("No download slot"));
+		/* Ensure it has a time for status display */
+		d->retry_after = tm_time();
+		download_queue(d, _("No download slot (create)"));
 	}
 
 	return d;
