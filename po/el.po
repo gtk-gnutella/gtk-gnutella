@@ -1,14 +1,17 @@
-# translation of gtk-gnutella.po to Greek
+# $Id$
+#
+# Greek translations for gtk-gnutella package.
+# Copyright (C) 2000-2001 Yann Grossel.
+# Copyright (C) 2001-2005 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
-# Copyright (C) 2005 Raphael Manfredi.
 # Bouklis Panos <panos@echidna-band.com>, 2005.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.95.4\n"
+"Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-10-10 06:09+0900\n"
-"PO-Revision-Date: 2005-10-21 17:36+0300\n"
+"POT-Creation-Date: 2005-10-22 07:16+0900\n"
+"PO-Revision-Date: 2005-10-22 07:20+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
 "MIME-Version: 1.0\n"
@@ -17,161 +20,161 @@ msgstr ""
 "Plural-Forms:  nplurals=2; plural=(n>1);\n"
 "X-Generator: KBabel 1.10.2\n"
 
-#: src/core/downloads.c:949 src/core/downloads.c:1007
+#: src/core/downloads.c:950 src/core/downloads.c:1008
 msgid "No longer connected"
 msgstr "Όχι συνδεδεμένο πια"
 
-#: src/core/downloads.c:996 src/core/nodes.c:848 src/ui/gtk/hcache_common.c:43
+#: src/core/downloads.c:997 src/core/nodes.c:848 src/ui/gtk/hcache_common.c:43
 msgid "Timeout"
 msgstr "Τέλος χρόνου"
 
-#: src/core/downloads.c:1874
+#: src/core/downloads.c:1875
 msgid "Requeued by file info change"
 msgstr "Ξαναμπήκε στη λίστα αναμονής λόγω αλλαγής πληροφοριών αρχείου"
 
-#: src/core/downloads.c:1953 src/core/downloads.c:3030
-#: src/core/downloads.c:3928
+#: src/core/downloads.c:1954 src/core/downloads.c:3031
+#: src/core/downloads.c:3929
 msgid "Suspended (SHA1 checking)"
 msgstr "Αναβλήθηκε (Έλεγχος SHA1)"
 
-#: src/core/downloads.c:3157
+#: src/core/downloads.c:3158
 msgid "Waiting for a free chunk"
 msgstr "Αναμονή για ελεύθερο κομμάτι"
 
-#: src/core/downloads.c:3311 src/core/downloads.c:3938
+#: src/core/downloads.c:3312 src/core/downloads.c:3939
 msgid "No download slot"
 msgstr "Δεν υπάρχει υποδοχή λήψης"
 
-#: src/core/downloads.c:3357
+#: src/core/downloads.c:3358
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "Αποτυχία σύνδεσης (Τέλος περιγραφέων;)"
 
-#: src/core/downloads.c:3577
+#: src/core/downloads.c:3578
 msgid "Ignoring Push flag"
 msgstr "Παράβλεψη σημαίας Ώθησης"
 
-#: src/core/downloads.c:3608
-#, c-format
-msgid "No direct connection yet (%d retry)"
-msgid_plural "No direct connection yet (%d retries)"
+#: src/core/downloads.c:3609
+#, fuzzy, c-format
+msgid "No direct connection yet (%u retry)"
+msgid_plural "No direct connection yet (%u retries)"
 msgstr[0] "Δεν υπάρχει άμεση σύνδεση ακόμα (%d προσπάθεια)"
 msgstr[1] "Δεν υπάρχει άμεση σύνδεση ακόμα (%d προσπάθειες)"
 
-#: src/core/downloads.c:3615 src/core/downloads.c:3629
-#, c-format
-msgid "Timeout (%d retry)"
-msgid_plural "Timeout (%d retries)"
+#: src/core/downloads.c:3616 src/core/downloads.c:3630
+#, fuzzy, c-format
+msgid "Timeout (%u retry)"
+msgid_plural "Timeout (%u retries)"
 msgstr[0] "Τέλος χρόνου (%d προσπάθεια)"
 msgstr[1] "Τέλος χρόνου (%d προσπάθειες)"
 
-#: src/core/downloads.c:3619
-#, c-format
-msgid "Connection refused (%d retry)"
-msgid_plural "Connection refused (%d retries)"
+#: src/core/downloads.c:3620
+#, fuzzy, c-format
+msgid "Connection refused (%u retry)"
+msgid_plural "Connection refused (%u retries)"
 msgstr[0] "Άρνηση σύνδεσης (%d προσπάθεια)"
 msgstr[1] "Άρνηση σύνδεσης (%d προσπάθειες)"
 
-#: src/core/downloads.c:3919
+#: src/core/downloads.c:3920
 msgid "Dup SHA1 during creation"
 msgstr ""
 
-#: src/core/downloads.c:4167
+#: src/core/downloads.c:4169
 msgid "Stopped (Index changed)"
 msgstr "Διακόπηκε (Το ευρετήριο άλλαξε)"
 
-#: src/core/downloads.c:4491
+#: src/core/downloads.c:4494
 msgid "Explicitly requeued"
 msgstr "Ξαναμπήκε κατηγορηματικά στη λίστα αναμονής"
 
-#: src/core/downloads.c:4661
+#: src/core/downloads.c:4664
 #, c-format
 msgid "Stopped (%s)"
 msgstr "Διακόπηκε (%s)"
 
-#: src/core/downloads.c:4664 src/core/downloads.c:4699
-#, c-format
-msgid "Too many attempts (%d times)"
+#: src/core/downloads.c:4667 src/core/downloads.c:4702
+#, fuzzy, c-format
+msgid "Too many attempts (%u times)"
 msgstr "Πάρα πολλές προσπάθειες (%d φορές)"
 
-#: src/core/downloads.c:4666 src/core/downloads.c:6019
-#: src/core/downloads.c:7109
+#: src/core/downloads.c:4669 src/core/downloads.c:6022
+#: src/core/downloads.c:7112
 #, c-format
 msgid "Failed (Read error: %s)"
 msgstr "Απέτυχε (Σφάλμα ανάγνωσης: %s)"
 
-#: src/core/downloads.c:4695
+#: src/core/downloads.c:4698
 msgid "Connection not kept-alive (EOF)"
 msgstr "Η σύνδεση δε διατηρήθηκε (EOF)"
 
-#: src/core/downloads.c:4696
+#: src/core/downloads.c:4699
 msgid "Stopped (EOF)"
 msgstr "Διακόπηκε (EOF)"
 
-#: src/core/downloads.c:4812 src/core/downloads.c:6919
+#: src/core/downloads.c:4815 src/core/downloads.c:6922
 msgid "Stopped (Output file size changed)"
 msgstr "Διακόπηκε (Το μέγεθος του αρχείου εξόδου άλλαξε)"
 
-#: src/core/downloads.c:5015
+#: src/core/downloads.c:5018
 #, c-format
 msgid "Can't save data: %s"
 msgstr "Δεν είναι δυνατή η αποθήκευση δεδομένων: %s"
 
-#: src/core/downloads.c:5155
+#: src/core/downloads.c:5158
 msgid "Requeued by competing download"
 msgstr "Ξαναμπήκε στην λίστα αναμονής από ανταγωνιστική λήψη"
 
-#: src/core/downloads.c:5219
+#: src/core/downloads.c:5222
 msgid "Requeued after trimmed data"
 msgstr "Ξαναμπήκε στη λίστα αναμονής μετά από περικοπή δεδομένων"
 
-#: src/core/downloads.c:5221
+#: src/core/downloads.c:5224
 msgid "Chunk done, connection closed"
 msgstr "Επιτυχία κομματιού, η σύνδεση έκλεισε"
 
-#: src/core/downloads.c:5400
+#: src/core/downloads.c:5403
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Παράξενη κατάσταση HTTP (ασυγχρονία πρωτοκόλλου;)"
 
-#: src/core/downloads.c:5721
+#: src/core/downloads.c:5724
 msgid "No URN on server, waiting for overlap"
 msgstr "Δεν υπάρχει URN στον εξυπηρετητή, αναμονή για επικάλυψη"
 
-#: src/core/downloads.c:5727
+#: src/core/downloads.c:5730
 msgid "No URN on server to validate"
 msgstr "Δεν υπάρχει URN στο εξυπηρετητή για έγκριση"
 
-#: src/core/downloads.c:5773
+#: src/core/downloads.c:5776
 msgid "URN fileinfo mismatch"
 msgstr "Αταίριαστες πληροφορίες αρχείου URN"
 
-#: src/core/downloads.c:5793
+#: src/core/downloads.c:5796
 msgid "Discovered dup SHA1"
 msgstr ""
 
-#: src/core/downloads.c:6001 src/core/downloads.c:6009
-#: src/core/downloads.c:7061 src/core/downloads.c:7099
+#: src/core/downloads.c:6004 src/core/downloads.c:6012
+#: src/core/downloads.c:7064 src/core/downloads.c:7102
 msgid "Stopped data (EOF)"
 msgstr "Παύση δεδομένων (EOF)"
 
-#: src/core/downloads.c:6394 src/core/downloads.c:6899
+#: src/core/downloads.c:6397 src/core/downloads.c:6902
 msgid "Partial file on server, waiting"
 msgstr "Μερικό αρχείο στον εξυπηρετητή, αναμονή"
 
-#: src/core/downloads.c:6495
-#, c-format
-msgid "Queued (slot %d/%d) ETA: %s"
+#: src/core/downloads.c:6498
+#, fuzzy, c-format
+msgid "Queued (slot %u/%u) ETA: %s"
 msgstr "Μπήκε στη λίστα αναμονής (υποδοχή %d/%d) ETA: %s"
 
-#: src/core/downloads.c:7067
+#: src/core/downloads.c:7070
 msgid "Stopped (Read buffer full)"
 msgstr "Διακόπηκε (Προσωρινή μνήμη ανάγνωσης πλήρης)"
 
-#: src/core/downloads.c:7106
+#: src/core/downloads.c:7109
 #, c-format
 msgid "Stopped data (%s)"
 msgstr "Παύση δεδομένων (%s)"
 
-#: src/core/downloads.c:8376
+#: src/core/downloads.c:8386
 msgid "SHA1 mismatch detected"
 msgstr "Εντοπίστηκαν αταίριαστα SHA1"
 
@@ -525,105 +528,105 @@ msgstr "Δεν είναι δυνατή η συνέχεια χωρίς έναν �
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "Τρέχει μόνο ως δικτυακός όταν έχει τοίχος προστασίας TCP"
 
-#: src/core/shell.c:267
+#: src/core/shell.c:271
 msgid "Node added"
 msgstr "Προστέθηκε κόμβος"
 
-#: src/core/shell.c:269
+#: src/core/shell.c:273
 msgid "Invalid IP/Port"
 msgstr "Λανθασμένη IP/Θύρα"
 
-#: src/core/shell.c:275 src/core/shell.c:323
+#: src/core/shell.c:279 src/core/shell.c:327
 msgid "Unknown operation"
 msgstr "Άγνωστη διαδικασία"
 
-#: src/core/shell.c:286 src/core/shell.c:334 src/core/shell.c:410
-#: src/core/shell.c:510 src/core/shell.c:564 src/core/shell.c:647
+#: src/core/shell.c:290 src/core/shell.c:338 src/core/shell.c:414
+#: src/core/shell.c:533 src/core/shell.c:587 src/core/shell.c:670
 msgid "Malformed command"
 msgstr "Παραμορφωμένη εντολή"
 
-#: src/core/shell.c:311
+#: src/core/shell.c:315
 msgid "Query string missing"
 msgstr "Λείπει η ετικέτα ερωτήματος"
 
-#: src/core/shell.c:318
+#: src/core/shell.c:322
 msgid "Search added"
 msgstr "Προστέθηκε αναζήτηση"
 
-#: src/core/shell.c:384 src/core/shell.c:431 src/core/shell.c:533
+#: src/core/shell.c:388 src/core/shell.c:435 src/core/shell.c:556
 msgid "Property missing"
 msgstr "Λείπει ιδιότητα"
 
-#: src/core/shell.c:390 src/core/shell.c:437 src/core/shell.c:539
+#: src/core/shell.c:394 src/core/shell.c:441 src/core/shell.c:562
 msgid "Unknown property"
 msgstr "Άγνωστη ιδιότητα"
 
-#: src/core/shell.c:394
+#: src/core/shell.c:398
 msgid "Value: "
 msgstr "Τιμή: "
 
-#: src/core/shell.c:398
+#: src/core/shell.c:402
 msgid "Value found and displayed"
 msgstr "Η τιμή βρέθηκε και εμφανίστηκε"
 
-#: src/core/shell.c:448
+#: src/core/shell.c:452
 msgid "Value missing"
 msgstr "Λείπει η τιμή"
 
-#: src/core/shell.c:492
+#: src/core/shell.c:515
 msgid "Type not supported"
 msgstr "Ο τύπος δεν υποστηρίζεται"
 
-#: src/core/shell.c:496
+#: src/core/shell.c:519
 msgid "Value found and set"
 msgstr "Η τιμή βρέθηκε και ορίστηκε"
 
-#: src/core/shell.c:547
+#: src/core/shell.c:570
 msgid "Help: "
 msgstr "Βοήθεια: "
 
-#: src/core/shell.c:593
+#: src/core/shell.c:616
 msgid "Unknown parameter"
 msgstr "Άγνωστη παράμετρος"
 
-#: src/core/shell.c:606
+#: src/core/shell.c:629
 #, c-format
 msgid "Total horizon size (%u/%u nodes support HSEP):"
 msgstr "Ολικό μέγεθος ορίζοντα (%u/%u κόμβοι υποστηρίζουν HSEP):"
 
-#: src/core/shell.c:628
+#: src/core/shell.c:651
 #, c-format
 msgid "Horizon size via HSEP node %s (%s):"
 msgstr "Μέγεθος ορίζοντα μέσω κόμβου HSEP %s (%s):"
 
-#: src/core/shell.c:630
+#: src/core/shell.c:653
 msgid "leaf"
 msgstr "δικτυακός"
 
-#: src/core/shell.c:631
+#: src/core/shell.c:654
 msgid "ultrapeer"
 msgstr ""
 
-#: src/core/shell.c:631 src/if/gnet_property.c:421
+#: src/core/shell.c:654 src/if/gnet_property.c:421
 msgid "normal node"
 msgstr "κανονικός κόμβος"
 
-#: src/core/shell.c:657 src/ui/gtk/gtk1/interface-glade.c:2619
+#: src/core/shell.c:680 src/ui/gtk/gtk1/interface-glade.c:2619
 #: src/ui/gtk/gtk2/gnet_stats.c:472
 msgid "Hops"
 msgstr ""
 
-#: src/core/shell.c:658 src/ui/gtk/gtk1/interface-glade.c:2628
+#: src/core/shell.c:681 src/ui/gtk/gtk1/interface-glade.c:2628
 #: src/ui/gtk/gtk1/interface-glade.c:5499 src/ui/gtk/gtk2/gnet_stats.c:473
 msgid "Nodes"
 msgstr "Κόμβοι"
 
-#: src/core/shell.c:659 src/ui/gtk/gtk1/interface-glade.c:2637
+#: src/core/shell.c:682 src/ui/gtk/gtk1/interface-glade.c:2637
 #: src/ui/gtk/gtk1/interface-glade.c:5517 src/ui/gtk/gtk2/gnet_stats.c:474
 msgid "Files"
 msgstr "Αρχεία"
 
-#: src/core/shell.c:660 src/ui/gtk/gtk1/interface-glade.c:2646
+#: src/core/shell.c:683 src/ui/gtk/gtk1/interface-glade.c:2646
 #: src/ui/gtk/gtk1/interface-glade.c:2987
 #: src/ui/gtk/gtk1/interface-glade.c:3188
 #: src/ui/gtk/gtk1/interface-glade.c:3421
@@ -639,11 +642,11 @@ msgstr "Αρχεία"
 msgid "Size"
 msgstr "Μέγεθος"
 
-#: src/core/shell.c:782
+#: src/core/shell.c:805
 msgid "Good bye"
 msgstr "Αντίο"
 
-#: src/core/shell.c:815
+#: src/core/shell.c:838
 msgid "Unknown command"
 msgstr "Άγνωστη εντολή"
 
@@ -678,8 +681,10 @@ msgstr ""
 #, c-format
 msgid "Got %d host from UDP host cache %s:%u"
 msgid_plural "Got %d hosts from UDP host cache %s:%u"
-msgstr[0] "Ελήφθη %d υπολογιστής από την λανθάνουσα μνήμη UDP υπολογιστών %s:%u"
-msgstr[1] "Ελήφθη %d υπολογιστές από την λανθάνουσα μνήμη UDP υπολογιστών %s:%u"
+msgstr[0] ""
+"Ελήφθη %d υπολογιστής από την λανθάνουσα μνήμη UDP υπολογιστών %s:%u"
+msgstr[1] ""
+"Ελήφθη %d υπολογιστές από την λανθάνουσα μνήμη UDP υπολογιστών %s:%u"
 
 #: src/core/uploads.c:421
 #, fuzzy
@@ -865,18 +870,18 @@ msgid ""
 "features."
 msgstr ""
 "Προσδιορίζει ότι το gtk-gnutella που τρέχετε είναι πολύ ΠΟΛΥ παλιά. Πρέπει "
-"να την αναβαθμίσετε το συντομότερο δυνατό για να μην υποφέρετε από τη μη υποστήριξη "
-"Gnutella μπου μπορεί όχι μόνο να καταστρέψει τις ικανότητές σας να αναζητήτε και "
-"να κατεβάζετε αλλά επίσης βλάπτει το δίκτυο καθώς δεν υποστηρίζετε τα νεότερα "
-"χαρακτηριστικά."
+"να την αναβαθμίσετε το συντομότερο δυνατό για να μην υποφέρετε από τη μη "
+"υποστήριξη Gnutella μπου μπορεί όχι μόνο να καταστρέψει τις ικανότητές σας "
+"να αναζητήτε και να κατεβάζετε αλλά επίσης βλάπτει το δίκτυο καθώς δεν "
+"υποστηρίζετε τα νεότερα χαρακτηριστικά."
 
 #: src/if/gnet_property.c:681
 msgid ""
 "Gtk-Gnutella found a newer version on the Gnet and gives information about "
 "it here."
 msgstr ""
-"Το Gtk-Gnutella βρήκε μία νεότερη έκδοση στο Gnet και δίνει πληροφορίες εκεί σχετικά "
-"με αυτήν."
+"Το Gtk-Gnutella βρήκε μία νεότερη έκδοση στο Gnet και δίνει πληροφορίες εκεί "
+"σχετικά με αυτήν."
 
 #: src/if/gnet_property.c:702
 msgid ""
@@ -886,11 +891,12 @@ msgid ""
 "that the default TTL on Gnutella is 4, so this needs to be more than 30 to "
 "provide decent range for searches."
 msgstr ""
-"Προσπαθείστε να διατηρήσετε τουλάχιστον αυτό τον αριθμό συνδέσεων με άλλους πελάτες "
-"του ίδιου είδους με εμάς (κανονικοί ή υπερ-κόμβοι). Αυτός πρέπει να είναι μικρότερος "
-"από τον μέγιστο αριθμό συνδέσεων για να επιτρέπονται οι εισερχόμενες συνδέσεις.  Να θυμάστε "
-"ότι το προεπιλεγμένο TTL στο Gnutella είναι 4, έτσι αυτό πρέπει να είναι πάνω από 30 για να "
-"παρέχει ένα αξιοπρεπές εύρος αναζητήσεων."
+"Προσπαθείστε να διατηρήσετε τουλάχιστον αυτό τον αριθμό συνδέσεων με άλλους "
+"πελάτες του ίδιου είδους με εμάς (κανονικοί ή υπερ-κόμβοι). Αυτός πρέπει να "
+"είναι μικρότερος από τον μέγιστο αριθμό συνδέσεων για να επιτρέπονται οι "
+"εισερχόμενες συνδέσεις.  Να θυμάστε ότι το προεπιλεγμένο TTL στο Gnutella "
+"είναι 4, έτσι αυτό πρέπει να είναι πάνω από 30 για να παρέχει ένα αξιοπρεπές "
+"εύρος αναζητήσεων."
 
 #: src/if/gnet_property.c:722
 msgid ""
@@ -906,10 +912,11 @@ msgid ""
 "up all your bandwidth, leave a little space for TCP/IP overhead. It's not "
 "advisable that you set this to a value smaller than 30."
 msgstr ""
-"Δεν επιτρέπονται περισσότερες από αυτόν τον αριθμό συνδέσεις με άλλους πελάτες. Κατά "
-"κανόνα πρέπει να παραχωρείτε εύρος 256 b/s ανά σύνδεση. Μη χρησιμοποιείτε ποτέ όλο "
-"το εύρος σύνδεσής σας, αφήστε λίγο χώρο για την επιβάρυνση TCP/IP. Δεν είναι φρόνιμο να το ορίσετε "
-"σε μία τιμή μικρότερη από 30."
+"Δεν επιτρέπονται περισσότερες από αυτόν τον αριθμό συνδέσεις με άλλους "
+"πελάτες. Κατά κανόνα πρέπει να παραχωρείτε εύρος 256 b/s ανά σύνδεση. Μη "
+"χρησιμοποιείτε ποτέ όλο το εύρος σύνδεσής σας, αφήστε λίγο χώρο για την "
+"επιβάρυνση TCP/IP. Δεν είναι φρόνιμο να το ορίσετε σε μία τιμή μικρότερη από "
+"30."
 
 #: src/if/gnet_property.c:762
 msgid "Number of leaf nodes currently connected."
@@ -928,28 +935,33 @@ msgid ""
 "Don't start more than this number of parallel downloads.  Others will remain "
 "in the queue waiting for a download slot."
 msgstr ""
-"Δεν ξεκινάνε περισσότερες από αυτό τον αριθμό παράλληλες λήψεις.  Οι άλλες θα "
-"παραμένουν στη λίστα αναμονής περιμένοντας μία υποδοχή λήψης."
+"Δεν ξεκινάνε περισσότερες από αυτό τον αριθμό παράλληλες λήψεις.  Οι άλλες "
+"θα παραμένουν στη λίστα αναμονής περιμένοντας μία υποδοχή λήψης."
 
 #: src/if/gnet_property.c:842
 msgid ""
 "Don't make more connections than given here to a single host to download a "
 "file.  Be nice to others, and leave it at the default value (1)."
 msgstr ""
-"Δε γίνονται περισσότερες συνδέσεις από αυτές που δίνονται εδώ σε έναν υπολογιστή για λήψη "
-"ενός αρχείου.  Να είστε ευγενικοί με τους άλλους, και αφήστε το στη προεπιλεγμένη τιμή (1)."
+"Δε γίνονται περισσότερες συνδέσεις από αυτές που δίνονται εδώ σε έναν "
+"υπολογιστή για λήψη ενός αρχείου.  Να είστε ευγενικοί με τους άλλους, και "
+"αφήστε το στη προεπιλεγμένη τιμή (1)."
 
 #: src/if/gnet_property.c:862
 msgid ""
 "Don't allow more than this number of uploads in total. This also defines the "
 "amount of PARQ queues that will be used. You should at least set it to 2."
 msgstr ""
-"Δεν επιτρέπονται περισσότερες από αυτόν τον αριθμό αποστολές συνολικά. Αυτό επίσης "
-"ορίζει το μέγεθος των λιστών αναμονής PARQ που θα χρησιμοποιηθούν. Πρέπει να το ορίσετε τουλάχιστον σε 2."
+"Δεν επιτρέπονται περισσότερες από αυτόν τον αριθμό αποστολές συνολικά. Αυτό "
+"επίσης ορίζει το μέγεθος των λιστών αναμονής PARQ που θα χρησιμοποιηθούν. "
+"Πρέπει να το ορίσετε τουλάχιστον σε 2."
 
 #: src/if/gnet_property.c:882
-msgid "Don't upload more than this number of files in parallel to a single host."
-msgstr "Δεν αποστέλλονται περισσότερα από αυτόν τον αριθμό αρχεία παράλληλα σε έναν υπολογιστή."
+msgid ""
+"Don't upload more than this number of files in parallel to a single host."
+msgstr ""
+"Δεν αποστέλλονται περισσότερα από αυτόν τον αριθμό αρχεία παράλληλα σε έναν "
+"υπολογιστή."
 
 #: src/if/gnet_property.c:902
 msgid "Local IP address last determined."
@@ -979,23 +991,26 @@ msgid ""
 "port forwarding / opening, as necessary.  Note that by default, the TCP port "
 "6346 is not used to guard against undue censorship."
 msgstr ""
-"Τοπική θύρα ακρόασης TCP του gtk-gnutella. Ο προμηθευτής υπηρεσιών διαδικτύου σας ίσως "
-"φράξει ή περικόψει την κυκλοφορία στη θύρα TCP 6346 έτσι θα ήταν καλή ιδέα να το αλλάξετε "
-"σε κάτι στο εύρος 1024-65535.  Μην ξεχάσετε να ανανεώσετε ανάλογα την προώθηση/άνοιγμα θυρών "
-"του τοίχους προστασίας σας.  Σημειώστε ότι προεπιλεγμένα, η θύρα TCP 6346 δε χρησιμοποιείται "
-"για την προστασία από άδικη λογοκρισία."
+"Τοπική θύρα ακρόασης TCP του gtk-gnutella. Ο προμηθευτής υπηρεσιών "
+"διαδικτύου σας ίσως φράξει ή περικόψει την κυκλοφορία στη θύρα TCP 6346 έτσι "
+"θα ήταν καλή ιδέα να το αλλάξετε σε κάτι στο εύρος 1024-65535.  Μην ξεχάσετε "
+"να ανανεώσετε ανάλογα την προώθηση/άνοιγμα θυρών του τοίχους προστασίας "
+"σας.  Σημειώστε ότι προεπιλεγμένα, η θύρα TCP 6346 δε χρησιμοποιείται για "
+"την προστασία από άδικη λογοκρισία."
 
 #: src/if/gnet_property.c:1023
 msgid "Use this IP address as source address if 'force local ip' is activated."
-msgstr "Χρήση αυτής της διεύθυνσης IP ως πηγαία διεύθυνση αν είναι ενεργό το 'εξαναγκασμός τοπικής ip'."
+msgstr ""
+"Χρήση αυτής της διεύθυνσης IP ως πηγαία διεύθυνση αν είναι ενεργό το "
+"'εξαναγκασμός τοπικής ip'."
 
 #: src/if/gnet_property.c:1044
 msgid ""
 "The connection bandwidth reported to other hosts. This is the speed at which "
 "you can upload things to others."
 msgstr ""
-"Το εύρος σύνδεσης που αναφέρεται στους άλλους υπολογιστές. Αυτή είναι η ταχύτητα "
-"με την οποία θα στέλνετε διάφορα στους άλλους."
+"Το εύρος σύνδεσης που αναφέρεται στους άλλους υπολογιστές. Αυτή είναι η "
+"ταχύτητα με την οποία θα στέλνετε διάφορα στους άλλους."
 
 #: src/if/gnet_property.c:1064
 #, fuzzy
@@ -1007,12 +1022,13 @@ msgid ""
 "divided by the number of upload slots. When it is ON (recommended setting), "
 "the hardwired connection speed is not used."
 msgstr ""
-"Αν το εύρος σύνδεσης που αναφέρεται στους άλλους υπολογιστές πρέπει να υπολογιστεί "
-"βάσεις της μέσης ταχύτητας αποστολής αυτή τη στιγμή. Η ταχύτητα που αναφέρεται "
-"είναι η διαθέσιμη ταχύτητας  για μία νέα αποστολή, όχι η θεωρητική μέγιστη που ρυθμίστηκε, είναι "
-"το μέσο εύρος (ή το μέγιστο εύρος που ρυθμίστηκε αν δεν υπάρχει κυκλοφορία) διαιρεμένο "
-"με τον αριθμό των υποδοχών αποστολής. Όταν είναι ON (προτεινόμενη ρύθμιση), "
-"η ταχύτητα σύνδεσης υλικού δε χρησιμοποιείται."
+"Αν το εύρος σύνδεσης που αναφέρεται στους άλλους υπολογιστές πρέπει να "
+"υπολογιστεί βάσεις της μέσης ταχύτητας αποστολής αυτή τη στιγμή. Η ταχύτητα "
+"που αναφέρεται είναι η διαθέσιμη ταχύτητας  για μία νέα αποστολή, όχι η "
+"θεωρητική μέγιστη που ρυθμίστηκε, είναι το μέσο εύρος (ή το μέγιστο εύρος "
+"που ρυθμίστηκε αν δεν υπάρχει κυκλοφορία) διαιρεμένο με τον αριθμό των "
+"υποδοχών αποστολής. Όταν είναι ON (προτεινόμενη ρύθμιση), η ταχύτητα "
+"σύνδεσης υλικού δε χρησιμοποιείται."
 
 #: src/if/gnet_property.c:1081
 msgid ""
@@ -1020,17 +1036,17 @@ msgid ""
 "packets as necessary.  To avoid network flooding, keep this to a reasonable "
 "value."
 msgstr ""
-"Επιστροφή το πολύ αυτού του αριθμού αποτελεσμάτων σε ένα ερώτημα, χρησιμοποιώντας "
-"όσα πακέτα ερωτήματος χρειάζεται.  Για να αποφύγετε το υπερχείλισμα του δικτύου, διατηρήστε "
-"το σε μία λογική τιμή."
+"Επιστροφή το πολύ αυτού του αριθμού αποτελεσμάτων σε ένα ερώτημα, "
+"χρησιμοποιώντας όσα πακέτα ερωτήματος χρειάζεται.  Για να αποφύγετε το "
+"υπερχείλισμα του δικτύου, διατηρήστε το σε μία λογική τιμή."
 
 #: src/if/gnet_property.c:1101
 msgid ""
 "Unless this percentage or more of the upload bandwidth is used, allow "
 "additional upload slots."
 msgstr ""
-"Επιτρέπονται επιπλέον υποδοχές αποστολής εκτός αν χρησιμοποιείται αυτό το ποσοστό ή περισσότερο "
-"του εύρους αποστολής."
+"Επιτρέπονται επιπλέον υποδοχές αποστολής εκτός αν χρησιμοποιείται αυτό το "
+"ποσοστό ή περισσότερο του εύρους αποστολής."
 
 #: src/if/gnet_property.c:1121
 msgid "Number of seconds before a download connect attempt times out."
@@ -1042,15 +1058,21 @@ msgstr "Αριθμός δευτερολέπτων πριν το χρονικό �
 
 #: src/if/gnet_property.c:1161
 msgid "Number of seconds before a download times out if no data is received."
-msgstr "Αριθμός δευτερολέπτων πριν το χρονικό όριο μίας λήψης όταν δεν λαμβάνονται δεδομένα."
+msgstr ""
+"Αριθμός δευτερολέπτων πριν το χρονικό όριο μίας λήψης όταν δεν λαμβάνονται "
+"δεδομένα."
 
 #: src/if/gnet_property.c:1181
 msgid "Minimum number of seconds to wait on auto-retry timeouts."
-msgstr "Ελάχιστος αριθμός δευτερολέπτων αναμονής για να γίνει αυτόματη προσπάθεια ξανά."
+msgstr ""
+"Ελάχιστος αριθμός δευτερολέπτων αναμονής για να γίνει αυτόματη προσπάθεια "
+"ξανά."
 
 #: src/if/gnet_property.c:1201
 msgid "Maximum number of seconds to wait on auto-retry timeouts."
-msgstr "Μέγιστος αριθμός δευτερολέπτων αναμονής για να γίνει αυτόματη προσπάθεια ξανά."
+msgstr ""
+"Μέγιστος αριθμός δευτερολέπτων αναμονής για να γίνει αυτόματη προσπάθεια "
+"ξανά."
 
 #: src/if/gnet_property.c:1221
 msgid ""
@@ -1062,21 +1084,24 @@ msgstr ""
 
 #: src/if/gnet_property.c:1241
 msgid "Delay in seconds before retrying after a connection timed out."
-msgstr "Καθυστέρηση σε δευτερόλεπτα πριν γίνει προσπάθεια ξανά μετά το τέλος χρόνου μίας σύνδεσης."
+msgstr ""
+"Καθυστέρηση σε δευτερόλεπτα πριν γίνει προσπάθεια ξανά μετά το τέλος χρόνου "
+"μίας σύνδεσης."
 
 #: src/if/gnet_property.c:1261
-msgid "Delay in seconds before retrying after getting a 'busy' response from a host."
+msgid ""
+"Delay in seconds before retrying after getting a 'busy' response from a host."
 msgstr ""
-"Καθυστέρηση σε δευτερόλεπτα πριν γίνει προσπάθεια ξανά μετά τη λήψη ανταπόκρισης "
-"'απασχολημένο' από έναν υπολογιστή."
+"Καθυστέρηση σε δευτερόλεπτα πριν γίνει προσπάθεια ξανά μετά τη λήψη "
+"ανταπόκρισης 'απασχολημένο' από έναν υπολογιστή."
 
 #: src/if/gnet_property.c:1281
 msgid ""
 "Delay in seconds before retrying after getting a 'connection refused' "
 "response from a host."
 msgstr ""
-"Καθυστέρηση σε δευτερόλεπτα πριν γίνει προσπάθεια ξανά μετά τη λήψη ανταπόκρισης "
-"'άρνηση σύνδεσης' από έναν υπολογιστή."
+"Καθυστέρηση σε δευτερόλεπτα πριν γίνει προσπάθεια ξανά μετά τη λήψη "
+"ανταπόκρισης 'άρνηση σύνδεσης' από έναν υπολογιστή."
 
 #: src/if/gnet_property.c:1301
 msgid ""
@@ -1090,9 +1115,10 @@ msgid ""
 "64 bytes for safe resuming, otherwise gtk-gnutella will not accept to resume "
 "a file for which we had no SHA1 known, after a server gives one back."
 msgstr ""
-"Αριθμός bytes που επικαλύπτονται για τη συνέχεια μίας λήψης. Πρέπει να είναι τουλάχιστον "
-"64 bytes για ασφαλή συνέχεια, αλλιώς το gtk-gnutella δε θα δεχτεί να συνεχίσει ένα αρχείο "
-"το οποίο δεν έχει γνωστό SHA1, μετά τη λήψη ενός από τον εξυπηρετητή."
+"Αριθμός bytes που επικαλύπτονται για τη συνέχεια μίας λήψης. Πρέπει να είναι "
+"τουλάχιστον 64 bytes για ασφαλή συνέχεια, αλλιώς το gtk-gnutella δε θα "
+"δεχτεί να συνεχίσει ένα αρχείο το οποίο δεν έχει γνωστό SHA1, μετά τη λήψη "
+"ενός από τον εξυπηρετητή."
 
 #: src/if/gnet_property.c:1341
 msgid ""
@@ -1100,13 +1126,16 @@ msgid ""
 "established during a push.  It is also the maximum amount of time we wait to "
 "get the whole HTTP request."
 msgstr ""
-"Αριθμός δευτερολέπτων πριν το χρονικό όριο μιας αποστολής αν δεν υπάρχει σύνδεση "
-"κατά τη διάρκεια μιας ώθησης.  Είναι επίσης ο μέγιστος χρόνος αναμονής της λήψης ολόκληρου "
-"του αιτήματος HTTP."
+"Αριθμός δευτερολέπτων πριν το χρονικό όριο μιας αποστολής αν δεν υπάρχει "
+"σύνδεση κατά τη διάρκεια μιας ώθησης.  Είναι επίσης ο μέγιστος χρόνος "
+"αναμονής της λήψης ολόκληρου του αιτήματος HTTP."
 
 #: src/if/gnet_property.c:1361
-msgid "Number of seconds after which an upload times out if no data is transmitted."
-msgstr "Αριθμός δευτερολέπτων πριν το χρονικό όριο μιας αποστολής αν δεν μεταφέρονται δεδομένα."
+msgid ""
+"Number of seconds after which an upload times out if no data is transmitted."
+msgstr ""
+"Αριθμός δευτερολέπτων πριν το χρονικό όριο μιας αποστολής αν δεν "
+"μεταφέρονται δεδομένα."
 
 #: src/if/gnet_property.c:1381
 msgid ""
@@ -1115,10 +1144,10 @@ msgid ""
 "it too low or you will damage the Gnutella network.  A delay of half an hour "
 "is fine."
 msgstr ""
-"Αριθμός δευτερολέπτων αναμονής πριν μία αναζήτηση καταχωρείται ξανά για "
-"να δούμε αν υπάρχουν νέα αποτελέσματα διαθέσιμα.  Να είστε προσεκτικοί με αυτή την "
-"παράμετρο, και μην την ορίζετε πολύ χαμηλά αλλιώς μπορεί να βλάψετε το δίκτυο Gnutella.  Μία "
-"καθυστέρηση μιας ώρας είναι εντάξει."
+"Αριθμός δευτερολέπτων αναμονής πριν μία αναζήτηση καταχωρείται ξανά για να "
+"δούμε αν υπάρχουν νέα αποτελέσματα διαθέσιμα.  Να είστε προσεκτικοί με αυτή "
+"την παράμετρο, και μην την ορίζετε πολύ χαμηλά αλλιώς μπορεί να βλάψετε το "
+"δίκτυο Gnutella.  Μία καθυστέρηση μιας ώρας είναι εντάξει."
 
 #: src/if/gnet_property.c:1401
 msgid ""
@@ -1127,10 +1156,10 @@ msgid ""
 "35 file descriptors.  You should ensure you have around 100 file descriptors "
 "for efficient banning."
 msgstr ""
-"Μέγιστος συντελεστής περιγραφέων αρχείων που παραχωρούνται για απαγόρευση. Για παράδειγμα "
-"αν το λειρουργικό σας σας δίνει 350 περιγραφείς αρχείων, ένας συντελεστής 10 θα παραχωρεί "
-"το πολύ 35 περιγραφείς αρχείων.  Πρέπει να έχετε περίπου 100 περιγραφείς για αποτελεσματική "
-"απαγόρευση."
+"Μέγιστος συντελεστής περιγραφέων αρχείων που παραχωρούνται για απαγόρευση. "
+"Για παράδειγμα αν το λειρουργικό σας σας δίνει 350 περιγραφείς αρχείων, ένας "
+"συντελεστής 10 θα παραχωρεί το πολύ 35 περιγραφείς αρχείων.  Πρέπει να έχετε "
+"περίπου 100 περιγραφείς για αποτελεσματική απαγόρευση."
 
 #: src/if/gnet_property.c:1421
 msgid "Maximum number of file descriptors reserved for banning."
@@ -1141,28 +1170,29 @@ msgid ""
 "Amount of file descriptors currently used for banning, i.e. which are "
 "currently kept open for delayed close."
 msgstr ""
-"Αριθμός περιγραφέων αρχείων που χρησιμοποιούνται για απαγόρευση αυτή τη στιγμή, "
-"π.χ. που διατηρούνται ανοικτοί για ένα καθυστερημένο κλεισιμό."
+"Αριθμός περιγραφέων αρχείων που χρησιμοποιούνται για απαγόρευση αυτή τη "
+"στιγμή, π.χ. που διατηρούνται ανοικτοί για ένα καθυστερημένο κλεισιμό."
 
 #: src/if/gnet_property.c:1461
 msgid "Number of file descriptors we'll actually be using for banning."
-msgstr "Αριθμός περιγραφέων αρχείων που πραγματικά χρησιμοποιούνται για απαγόρευση."
+msgstr ""
+"Αριθμός περιγραφέων αρχείων που πραγματικά χρησιμοποιούνται για απαγόρευση."
 
 #: src/if/gnet_property.c:1481
 msgid ""
 "Number of seconds an incoming connection has to start sending out its "
 "request."
 msgstr ""
-"Αριθμός δευτερολέπτων που μια εισερχόμενη σύνδεση πρέπει να ξεκινήσει "
-"να στέλνει το αίτημα."
+"Αριθμός δευτερολέπτων που μια εισερχόμενη σύνδεση πρέπει να ξεκινήσει να "
+"στέλνει το αίτημα."
 
 #: src/if/gnet_property.c:1501
 msgid ""
 "Number of seconds before a Gnet connect attempt times out if no connection "
 "can be established."
 msgstr ""
-"Αριθμός δευτερολέπτων πριν το χρονικό όριο μιας προσπάθειας σύνδεσης στο Gnet "
-"αν δεν μπορεί να δημιουργηθεί καμία σύνδεση."
+"Αριθμός δευτερολέπτων πριν το χρονικό όριο μιας προσπάθειας σύνδεσης στο "
+"Gnet αν δεν μπορεί να δημιουργηθεί καμία σύνδεση."
 
 #: src/if/gnet_property.c:1521
 msgid ""
@@ -1183,8 +1213,8 @@ msgid ""
 "Maximum number of seconds a node can remain in transmit flow control before "
 "being kicked out."
 msgstr ""
-"Μέγιστος αριθμός δευτερολέπτων που ένας κόμβος μπορεί να παραμείνει σε έλεγχο ροής "
-"μεταφοράς πριν εκδιωχθεί."
+"Μέγιστος αριθμός δευτερολέπτων που ένας κόμβος μπορεί να παραμείνει σε "
+"έλεγχο ροής μεταφοράς πριν εκδιωχθεί."
 
 #: src/if/gnet_property.c:1581
 msgid ""
@@ -1199,9 +1229,10 @@ msgid ""
 "TTL greater than that, it will be trimmed down to that value.  On Gnutella, "
 "the standard is TTL=4, so you cannot set a value lower than that."
 msgstr ""
-"Μέγιστο TTL που επιτρέπουμε στα μηνύματα που μεταδίδουμε.  Αν ένα ερώτημα έρθει "
-"με TTL μεγαλύτερο από αυτό, θα περικοπεί σε αυτή την τιμή.  Στο Gnutella, η "
-"συνηθισμένη τιμή είναι TTL=4, έτσι δεν μπορείτε να ορίσετε μία χαμηλότερη τιμή από αυτή."
+"Μέγιστο TTL που επιτρέπουμε στα μηνύματα που μεταδίδουμε.  Αν ένα ερώτημα "
+"έρθει με TTL μεγαλύτερο από αυτό, θα περικοπεί σε αυτή την τιμή.  Στο "
+"Gnutella, η συνηθισμένη τιμή είναι TTL=4, έτσι δεν μπορείτε να ορίσετε μία "
+"χαμηλότερη τιμή από αυτή."
 
 #: src/if/gnet_property.c:1621
 msgid ""
@@ -1209,9 +1240,10 @@ msgid ""
 "If you set it to too large a value, you run the risk of being trimmed down "
 "by fellow gtk-gnutella nodes, or kicked out by some other servent."
 msgstr ""
-"Το TTL που χρησιμοποιούμε στα μηνύματα που δημιουργούμε.  Το προεπιλεγμένο στο Gnutella "
-"είναι TTL=4.  Αν το ορίσετε σε μια πολύ μεγάλη τιμή, έχετε το ρίσκο να περικοπείτε "
-"από τους άλλους κόμβους gtk-gnutella, ή να εκδιωχθείτε από κάποιον άλλο πελάτη."
+"Το TTL που χρησιμοποιούμε στα μηνύματα που δημιουργούμε.  Το προεπιλεγμένο "
+"στο Gnutella είναι TTL=4.  Αν το ορίσετε σε μια πολύ μεγάλη τιμή, έχετε το "
+"ρίσκο να περικοπείτε από τους άλλους κόμβους gtk-gnutella, ή να εκδιωχθείτε "
+"από κάποιον άλλο πελάτη."
 
 #: src/if/gnet_property.c:1641
 msgid ""
@@ -1273,7 +1305,8 @@ msgstr "Επίπεδο αποσφαλμάτωσης αποστολών."
 
 #: src/if/gnet_property.c:1901
 msgid "Debug level for code shared between gui and core."
-msgstr "Επίπεδο αποσφαλμάτωσης κώδικα επικοινωνίας γραφικού ενδιαμέσου και πυρήνα."
+msgstr ""
+"Επίπεδο αποσφαλμάτωσης κώδικα επικοινωνίας γραφικού ενδιαμέσου και πυρήνα."
 
 #: src/if/gnet_property.c:1921
 msgid "Verbosity of Bitzi related debug messages."
@@ -1305,7 +1338,8 @@ msgstr "Επίπεδο αποσφαλμάτωσης ερωτημάτων."
 
 #: src/if/gnet_property.c:2061
 msgid "Debug level for searches and search results management."
-msgstr "Επίπεδο αποσφαλμάτωσης διαχείρησης αναζητήσεων και αποτελεσμάτων αναζητήσεων."
+msgstr ""
+"Επίπεδο αποσφαλμάτωσης διαχείρησης αναζητήσεων και αποτελεσμάτων αναζητήσεων."
 
 #: src/if/gnet_property.c:2081
 msgid "Debug level for the UDP traffic layer."
@@ -1345,9 +1379,9 @@ msgid ""
 "not set PARQ will caclulate using a worst case scenario.  The default is to "
 "be optimistic."
 msgstr ""
-"Αν οριστεί, το PARQ θα υπολογίζει το ETA του και τους χρόνους προσπαθειών πιο αισιόδοξα.  Αν "
-"δεν οριστεί, το PARQ θα τα υπολογίζει χρησιμοποιώντας το χειρότερο σενάριο.  Η προεπιλογή είναι "
-"να είναι αισιόδοξο."
+"Αν οριστεί, το PARQ θα υπολογίζει το ETA του και τους χρόνους προσπαθειών "
+"πιο αισιόδοξα.  Αν δεν οριστεί, το PARQ θα τα υπολογίζει χρησιμοποιώντας το "
+"χειρότερο σενάριο.  Η προεπιλογή είναι να είναι αισιόδοξο."
 
 #: src/if/gnet_property.c:2258
 msgid ""
@@ -1374,7 +1408,8 @@ msgstr "Για ανάπτυξη: ιδιότητες κομματιού."
 
 #: src/if/gnet_property.c:2318
 msgid "For development use: don't add new hosts to the hostcatcher."
-msgstr "Για ανάπτυξη: μην περοσθέτετε νέους υπολογιστές στο συλλέκτη υπολογιστών."
+msgstr ""
+"Για ανάπτυξη: μην περοσθέτετε νέους υπολογιστές στο συλλέκτη υπολογιστών."
 
 #: src/if/gnet_property.c:2335
 msgid "Enable bandwidth limitation for incoming HTTP traffic."
@@ -1390,7 +1425,8 @@ msgstr "Ενεργοποίηση περιορισμού εύρους για τη
 
 #: src/if/gnet_property.c:2386
 msgid "Enable bandwidth limitation for incoming Gnet leaf traffic."
-msgstr "Ενεργοποίηση περιορισμού εύρους για την εισερχόμενη δικτυακή κυκλοφορία Gnet."
+msgstr ""
+"Ενεργοποίηση περιορισμού εύρους για την εισερχόμενη δικτυακή κυκλοφορία Gnet."
 
 #: src/if/gnet_property.c:2403
 msgid "Enable bandwidth limitation for outgoing Gnet traffic."
@@ -1398,7 +1434,8 @@ msgstr "Ενεργοποίηση περιορισμού εύρους για τη
 
 #: src/if/gnet_property.c:2420
 msgid "Enable bandwidth limitation for outgoing Gnet leaf traffic."
-msgstr "Ενεργοποίηση περιορισμού εύρους για την εισερχόμενη δικτυακή κυκλοφορία Gnet."
+msgstr ""
+"Ενεργοποίηση περιορισμού εύρους για την εισερχόμενη δικτυακή κυκλοφορία Gnet."
 
 #: src/if/gnet_property.c:2437
 msgid "Enable dynamic upload slots allocation."
@@ -1409,8 +1446,9 @@ msgid ""
 "Allow HTTP and Gnutella to grab whatever bandwidth the other is not using.  "
 "If FALSE, unused bandwidth is lost."
 msgstr ""
-"Επιτρέπεται το HTTP και το Gnutella να χρησιμοποιούν ότι εύρος δε χρησιμοποιείται από το άλλο.  "
-"Αν είναι ΑΝΕΝΕΡΓΟ, το εύρος που δε χρησιμοποιείται χάνεται."
+"Επιτρέπεται το HTTP και το Gnutella να χρησιμοποιούν ότι εύρος δε "
+"χρησιμοποιείται από το άλλο.  Αν είναι ΑΝΕΝΕΡΓΟ, το εύρος που δε "
+"χρησιμοποιείται χάνεται."
 
 #: src/if/gnet_property.c:2471
 msgid "Auto clear completed downloads."
@@ -1421,16 +1459,16 @@ msgid ""
 "Auto clear failed downloads (HTTP error, failure to resume, write error, "
 "etc...)."
 msgstr ""
-"Αυτόματος καθαρισμός αποτυχημένων λήψεων (σφάλμα HTTP, αποτυχία συνέχειας, σφάλμα "
-"εγγραφής, κτλ...)."
+"Αυτόματος καθαρισμός αποτυχημένων λήψεων (σφάλμα HTTP, αποτυχία συνέχειας, "
+"σφάλμα εγγραφής, κτλ...)."
 
 #: src/if/gnet_property.c:2505
 msgid ""
 "Auto clear unavailable downloads (connection timeout, push route lost, "
 "etc...)."
 msgstr ""
-"Αυτόματος καθαρισμός μη διαθέσιμων λήψεων (τέλος χρόνου σύνδεσης, απώλεια δρομολόγησης ώθησης, "
-"κτλ...)."
+"Αυτόματος καθαρισμός μη διαθέσιμων λήψεων (τέλος χρόνου σύνδεσης, απώλεια "
+"δρομολόγησης ώθησης, κτλ...)."
 
 #: src/if/gnet_property.c:2522
 msgid "Remove downloaded files from the search result."
@@ -1449,8 +1487,8 @@ msgid ""
 "Check this button if you want to use Gtk-Gnutella on your Local Area "
 "Network. RFC1918 will be ignored."
 msgstr ""
-"Ενεργοποιήστε αυτό το κουμπί αν θέλετε να χρησιμοποιήσετε το Gtk-Gnutella στο τοπικό "
-"σας δίκτυο. Θα γίνει παράβλεψη του RFC1918."
+"Ενεργοποιήστε αυτό το κουμπί αν θέλετε να χρησιμοποιήσετε το Gtk-Gnutella "
+"στο τοπικό σας δίκτυο. Θα γίνει παράβλεψη του RFC1918."
 
 #: src/if/gnet_property.c:2590
 msgid ""
@@ -1518,7 +1556,9 @@ msgstr "Μέγιστος αριθμός υπολογιστών στο συλλέ
 
 #: src/if/gnet_property.c:2885
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
-msgstr "Μέγιστος αριθμός υπολογιστών στις λίστες ΑΠΑΣΧΟΛΗΜΕΝΟ, ΑΣΤΑΘΕΣ και ΤΕΛΟΣ ΧΡΟΝΟΥ."
+msgstr ""
+"Μέγιστος αριθμός υπολογιστών στις λίστες ΑΠΑΣΧΟΛΗΜΕΝΟ, ΑΣΤΑΘΕΣ και ΤΕΛΟΣ "
+"ΧΡΟΝΟΥ."
 
 #: src/if/gnet_property.c:2905
 msgid ""
@@ -1554,9 +1594,9 @@ msgid ""
 "an ultra node, this bandwidth is stolen from the regular HTTP traffic if the "
 "shaper for leaves is enabled."
 msgstr ""
-"Όριο εύρους εισερχόμενης δικτυακής κυκλοφορίας Gnet σε bytes/sec. Όταν τρέχει "
-"ως υπερ-κόμβος, αυτό το εύρος αφαιρείται από τη συνήθη κυκλοφορία HTTP αν είναι ενεργός ο "
-"διαμορφωτής δικτυακών κόμβων."
+"Όριο εύρους εισερχόμενης δικτυακής κυκλοφορίας Gnet σε bytes/sec. Όταν "
+"τρέχει ως υπερ-κόμβος, αυτό το εύρος αφαιρείται από τη συνήθη κυκλοφορία "
+"HTTP αν είναι ενεργός ο διαμορφωτής δικτυακών κόμβων."
 
 #: src/if/gnet_property.c:3045
 msgid ""
@@ -1565,32 +1605,38 @@ msgid ""
 "the shaper for leaves is enabled."
 msgstr ""
 "Όριο εύρους εξερχόμενης δικτυακής κυκλοφορίας Gnet σε bytes/sec. Όταν τρέχει "
-"ως υπερ-κόμβος, αυτό το εύρος αφαιρείται από τη συνήθη κυκλοφορία HTTP αν είναι ενεργός ο "
-"διαμορφωτής δικτυακών κόμβων."
+"ως υπερ-κόμβος, αυτό το εύρος αφαιρείται από τη συνήθη κυκλοφορία HTTP αν "
+"είναι ενεργός ο διαμορφωτής δικτυακών κόμβων."
 
 #: src/if/gnet_property.c:3065
-msgid "Maximum size of search queries messages we forward to others  (in bytes)."
-msgstr "Μέγιστο μέγεθος των μηνυμάτων ερωτημάτων αναζήτησης που προωθούνται στους άλλους (σε bytes)."
+msgid ""
+"Maximum size of search queries messages we forward to others  (in bytes)."
+msgstr ""
+"Μέγιστο μέγεθος των μηνυμάτων ερωτημάτων αναζήτησης που προωθούνται στους "
+"άλλους (σε bytes)."
 
 #: src/if/gnet_property.c:3085
 msgid ""
 "Maximum size of search queries messages we allow, otherwise close the "
 "connection (in bytes)."
 msgstr ""
-"Μέγιστο μέγεθος μηνυμάτων ερωτημάτων αναζήτησης που επιτρέπονται, αλλιώς γίνεται "
-"κλείσιμο της σύνδεσης (σε bytes)."
+"Μέγιστο μέγεθος μηνυμάτων ερωτημάτων αναζήτησης που επιτρέπονται, αλλιώς "
+"γίνεται κλείσιμο της σύνδεσης (σε bytes)."
 
 #: src/if/gnet_property.c:3105
-msgid "Maximum size of search answers messages we forward to others (in bytes)."
-msgstr "Μέγιστο μέγεθος μηνυμάτων απαντήσεων αναζήτησης που προωθούνται στους άλλους (σε bytes)."
+msgid ""
+"Maximum size of search answers messages we forward to others (in bytes)."
+msgstr ""
+"Μέγιστο μέγεθος μηνυμάτων απαντήσεων αναζήτησης που προωθούνται στους άλλους "
+"(σε bytes)."
 
 #: src/if/gnet_property.c:3125
 msgid ""
 "Maximum size of search answers messages we allow, otherwise close the "
 "connection (in bytes)."
 msgstr ""
-"Μέγιστο μέγεθος μηνυμάτων απαντήσεων αναζητήσεων που επιτρέπονται, αλλιώς γίνεται "
-"κλείσιμο της σύνδεσης (σε bytes)."
+"Μέγιστο μέγεθος μηνυμάτων απαντήσεων αναζητήσεων που επιτρέπονται, αλλιώς "
+"γίνεται κλείσιμο της σύνδεσης (σε bytes)."
 
 #: src/if/gnet_property.c:3145
 msgid ""
@@ -1612,9 +1658,10 @@ msgid ""
 "will never send push requests anyway.  If you don't let gtk-gnutella send "
 "pushes, it will not show search results that would require a push."
 msgstr ""
-"Να στέλνονται ή όχι αιτήματα ώθησης.  Αν έχετε τοίχος προστασίας, το gtk-gnutella "
-"δε θα στείλει ποτέ αιτήματα ώθησης ούτως ή άλλως.  Αν δεν αφήσετε το gtk-gnutella να στέλνει "
-"ωθήσεις, δε θα εμφανίζει αποτελέσματα αναζήτησης που απαιτούν ώθηση."
+"Να στέλνονται ή όχι αιτήματα ώθησης.  Αν έχετε τοίχος προστασίας, το gtk-"
+"gnutella δε θα στείλει ποτέ αιτήματα ώθησης ούτως ή άλλως.  Αν δεν αφήσετε "
+"το gtk-gnutella να στέλνει ωθήσεις, δε θα εμφανίζει αποτελέσματα αναζήτησης "
+"που απαιτούν ώθηση."
 
 #: src/if/gnet_property.c:3202
 msgid ""
@@ -1635,17 +1682,21 @@ msgid ""
 "extension matches all files, even if they don't have any extension.  Use "
 "with care."
 msgstr ""
-"Μόνο τα αρχεία με τις επεκτάσεις που έχουν δοθεί θα ανταλλάσσονται. Η ειδική επέκταση "
-"--all-- ταιριάζει με όλα τα αρχεία, ακόμα και αν δεν έχουν καμία επέκταση.  Χρησιμοποιήστε "
-"το με προσοχή."
+"Μόνο τα αρχεία με τις επεκτάσεις που έχουν δοθεί θα ανταλλάσσονται. Η ειδική "
+"επέκταση --all-- ταιριάζει με όλα τα αρχεία, ακόμα και αν δεν έχουν καμία "
+"επέκταση.  Χρησιμοποιήστε το με προσοχή."
 
 #: src/if/gnet_property.c:3263
 msgid "Ignore symbolically linked directories when scanning files to share."
-msgstr "Παράβλεψη συμβολικά συνδεδεμένων καταλόγων κατά τη σάρωση αρχείων για ανταλλαγή."
+msgstr ""
+"Παράβλεψη συμβολικά συνδεδεμένων καταλόγων κατά τη σάρωση αρχείων για "
+"ανταλλαγή."
 
 #: src/if/gnet_property.c:3280
 msgid "Ignore symbolically linked regular files when scanning files to share."
-msgstr "Παράβλεψη συμβολικά συνδεδεμένων συνηθισμένων αρχείων κατά τη σάρωση αρχείων για ανταλλαγή."
+msgstr ""
+"Παράβλεψη συμβολικά συνδεδεμένων συνηθισμένων αρχείων κατά τη σάρωση αρχείων "
+"για ανταλλαγή."
 
 #: src/if/gnet_property.c:3297
 msgid "Store incomplete files in this directory."
@@ -1657,9 +1708,9 @@ msgid ""
 "as the incomplete or corrupted files, files will be renamed with a trailing ."
 "OK"
 msgstr ""
-"Μετακίνηση ολοκληρωμένων αρχείων σε αυτό τον κατάλογο. Αν αυτό οριστεί ως ο ΙΔΙΟΣ "
-"κατάλογος με τα ανολοκλήρωτα ή κατεστραμμένα αρχεία, τα αρχεία θα μετονομάζονται με "
-"ένα ακόλουθο .OK"
+"Μετακίνηση ολοκληρωμένων αρχείων σε αυτό τον κατάλογο. Αν αυτό οριστεί ως ο "
+"ΙΔΙΟΣ κατάλογος με τα ανολοκλήρωτα ή κατεστραμμένα αρχεία, τα αρχεία θα "
+"μετονομάζονται με ένα ακόλουθο .OK"
 
 #: src/if/gnet_property.c:3339
 msgid ""
@@ -1667,9 +1718,9 @@ msgid ""
 "SAME directory as the incomplete or completed files, files will be renamed "
 "with a trailing .BAD"
 msgstr ""
-"Μετακίνηση κατεστραμμένων ληφθέντων αρχείων σε αυτό τον κατάλογο. Αν αυτό οριστεί ως ο ΙΔΙΟΣ "
-"κατάλογος με τα ανολοκλήρωτα ή ολοκληρωμένα αρχεία, τα αρχεία θα μετονομάζονται με "
-"ένα ακόλουθο .BAD"
+"Μετακίνηση κατεστραμμένων ληφθέντων αρχείων σε αυτό τον κατάλογο. Αν αυτό "
+"οριστεί ως ο ΙΔΙΟΣ κατάλογος με τα ανολοκλήρωτα ή ολοκληρωμένα αρχεία, τα "
+"αρχεία θα μετονομάζονται με ένα ακόλουθο .BAD"
 
 #: src/if/gnet_property.c:3360
 msgid "Directories which contain shared files."
@@ -1683,9 +1734,10 @@ msgid ""
 "instance, 192.168.0.1/24 would represent the whole 192.168.0.* network."
 msgstr ""
 "Λίστα δικτύων που θεωρούνται τοπικές.  Αυτή είναι μία λίστα διευθύνσεων IP, "
-"χωρισμένες με ';'.  Οι διευθύνσεις IP μπορούν να είναι ολόκληρες, όπως η 192.168.0.1, "
-"ή προαιρετικά να ακολουθούνται από '/' και το μέγεθος του προθέματος της μάσκας δικτύου. Για "
-"παράδειγμα, το 192.168.0.1/24 θα αναπαριστούσε ολόκληρο το δίκτυο 192.168.0.* ."
+"χωρισμένες με ';'.  Οι διευθύνσεις IP μπορούν να είναι ολόκληρες, όπως η "
+"192.168.0.1, ή προαιρετικά να ακολουθούνται από '/' και το μέγεθος του "
+"προθέματος της μάσκας δικτύου. Για παράδειγμα, το 192.168.0.1/24 θα "
+"αναπαριστούσε ολόκληρο το δίκτυο 192.168.0.* ."
 
 #: src/if/gnet_property.c:3402
 msgid "Total number of completed downloads in this session."
@@ -1716,16 +1768,17 @@ msgid ""
 "Whether or not to launch competing downloads when swarming and there are "
 "many sources available with a few chunks left."
 msgstr ""
-"Να ξεκινούν ή όχι ανταγωνιστικές λήψεις κατά την εξάπλωση και όταν υπάρχουν αρκετές "
-"πηγές και έχουν μείνει λίγα κομμάτια."
+"Να ξεκινούν ή όχι ανταγωνιστικές λήψεις κατά την εξάπλωση και όταν υπάρχουν "
+"αρκετές πηγές και έχουν μείνει λίγα κομμάτια."
 
 #: src/if/gnet_property.c:3533
 msgid ""
 "Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will "
 "download less if you only have a few bytes to get for a file..."
 msgstr ""
-"Ελάχιστο μέγεθος κομματιού κατά την εξάπλωση.  Αυτό είναι μόνο σαν συμβουλή αφού "
-"το gtk-gnutella θα λάβει λιγότερο αν έχουν απομείνει μόνο μερικά bytes για τη λήψη του αρχείου."
+"Ελάχιστο μέγεθος κομματιού κατά την εξάπλωση.  Αυτό είναι μόνο σαν συμβουλή "
+"αφού το gtk-gnutella θα λάβει λιγότερο αν έχουν απομείνει μόνο μερικά bytes "
+"για τη λήψη του αρχείου."
 
 #: src/if/gnet_property.c:3553
 msgid "Maximum chunk size when swarming."
@@ -1736,8 +1789,8 @@ msgid ""
 "Whether or not to automatically queue search results that match a file in "
 "the download queue."
 msgstr ""
-"Αν πρέπει να μπαίνουν αυτόματα ή όχι στη λίστα αναμονής τα αποτελέσματα της αναζήτησης "
-"που ταιριάζουν με ένα αρχείο στη λίστα αναμονής λήψεων."
+"Αν πρέπει να μπαίνουν αυτόματα ή όχι στη λίστα αναμονής τα αποτελέσματα της "
+"αναζήτησης που ταιριάζουν με ένα αρχείο στη λίστα αναμονής λήψεων."
 
 #: src/if/gnet_property.c:3590
 msgid ""
@@ -1745,21 +1798,25 @@ msgid ""
 "from the query hits that flow through our node. This looks for new entries "
 "for files we are sharing or already have in our mesh."
 msgstr ""
-"Να γίνεται ή όχι αυτόματη τροφοδοσία του πλέγματος λήψεων με δεδομένα που έχουν "
-"συλλεχθεί από τα χτυπήματα ερωτημάτων που ρέουν από τον κόμβο σας. Αναζητά νέες "
-"καταχωρήσεις για αρχεία που ήδη ανταλλάσσουμε ή είναι ήδη στο πλέγμα μας."
+"Να γίνεται ή όχι αυτόματη τροφοδοσία του πλέγματος λήψεων με δεδομένα που "
+"έχουν συλλεχθεί από τα χτυπήματα ερωτημάτων που ρέουν από τον κόμβο σας. "
+"Αναζητά νέες καταχωρήσεις για αρχεία που ήδη ανταλλάσσουμε ή είναι ήδη στο "
+"πλέγμα μας."
 
 #: src/if/gnet_property.c:3607
-msgid "When enabled, SHA1s must match. Otherwise, name and size will be sufficient."
-msgstr "Όταν είναι ενεργοποιημένο, τα SHA1 πρέπει να ταιριάζουν. Αλλιώς, το όνομα και το αρχείο θα είναι επαρκή."
+msgid ""
+"When enabled, SHA1s must match. Otherwise, name and size will be sufficient."
+msgstr ""
+"Όταν είναι ενεργοποιημένο, τα SHA1 πρέπει να ταιριάζουν. Αλλιώς, το όνομα "
+"και το αρχείο θα είναι επαρκή."
 
 #: src/if/gnet_property.c:3624
 msgid ""
 "Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching "
 "to be safe)."
 msgstr ""
-"Χρήση ταιριάσματος ονομάτων αρχείων κατά προσέγγιση (προτεινόμενο = ΟΧΙ, στηριχτείτε μόνο στο "
-"ταίριασμα SHA1 για να είστε ασφαλείς)."
+"Χρήση ταιριάσματος ονομάτων αρχείων κατά προσέγγιση (προτεινόμενο = ΟΧΙ, "
+"στηριχτείτε μόνο στο ταίριασμα SHA1 για να είστε ασφαλείς)."
 
 #: src/if/gnet_property.c:3641
 msgid ""
@@ -1797,34 +1854,41 @@ msgid ""
 "result in overlap problems later if the first chunk was actually from a "
 "different file. Use with caution."
 msgstr ""
-"Χρήση και των πηγών που δεν παρέχουν τιμή SHA1 για το πρώτο κομμάτι ενός αρχείου. Αυτό "
-"μειώνει δραματικά τα μηνύματα 'Δεν υπάρχει URN στον εξυπηρετητή', αλλά μπορεί να "
-"καταλήξει σε προβλήματα επικάλυψης αν το πρώτο κομμάτι ήταν πραγματικά από διαφορετικό "
-"αρχείο. Χρησιμοποιήστε με προσοχή."
+"Χρήση και των πηγών που δεν παρέχουν τιμή SHA1 για το πρώτο κομμάτι ενός "
+"αρχείου. Αυτό μειώνει δραματικά τα μηνύματα 'Δεν υπάρχει URN στον "
+"εξυπηρετητή', αλλά μπορεί να καταλήξει σε προβλήματα επικάλυψης αν το πρώτο "
+"κομμάτι ήταν πραγματικά από διαφορετικό αρχείο. Χρησιμοποιήστε με προσοχή."
 
 #: src/if/gnet_property.c:3763
-msgid "Whether gtk-gnutella is currently rebuilding its library in the background."
-msgstr "Αν το gtk-gnutella ανασυγκροτεί τη βιβλιοθήκη του αυτή τη στιγμή στο παρασκήνιο."
+msgid ""
+"Whether gtk-gnutella is currently rebuilding its library in the background."
+msgstr ""
+"Αν το gtk-gnutella ανασυγκροτεί τη βιβλιοθήκη του αυτή τη στιγμή στο "
+"παρασκήνιο."
 
 #: src/if/gnet_property.c:3780
 msgid ""
 "Whether gtk-gnutella is currently computing SHA1 of shared files in the "
 "background."
-msgstr "Αν το gtk-gnutella υπολογίζει τα SHA1 των αρχείων για ανταλλαγή αυτή τη στιγμή στο παρασκήνιο."
+msgstr ""
+"Αν το gtk-gnutella υπολογίζει τα SHA1 των αρχείων για ανταλλαγή αυτή τη "
+"στιγμή στο παρασκήνιο."
 
 #: src/if/gnet_property.c:3797
 msgid ""
 "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the "
 "background."
-msgstr "Αν το gtk-gnutella εγκρίνει τα SHA1 των ληφθέντων αρχείων αυτή τη στιγμή στο παρασκήνιο."
+msgstr ""
+"Αν το gtk-gnutella εγκρίνει τα SHA1 των ληφθέντων αρχείων αυτή τη στιγμή στο "
+"παρασκήνιο."
 
 #: src/if/gnet_property.c:3814
 msgid ""
 "Whether gtk-gnutella is currently moving files across filesystems or simply "
 "copying in the background."
 msgstr ""
-"Αν το gtk-gnutella μετακινεί αρχεία ανάμεσα στα συστήματα αρχείων ή απλώς αντιγράφει "
-"αυτή τη στιγμή στο παρασκήνιο."
+"Αν το gtk-gnutella μετακινεί αρχεία ανάμεσα στα συστήματα αρχείων ή απλώς "
+"αντιγράφει αυτή τη στιγμή στο παρασκήνιο."
 
 #: src/if/gnet_property.c:3831
 msgid ""
@@ -1832,9 +1896,9 @@ msgid ""
 "minimum number of connections has been established. Always allows for one "
 "non-compressed connection."
 msgstr ""
-"Αν είναι ενεργό, μόνο οι συμπιεσμένες εισερχόμενες συνδέσεις θα επιτρέπονται μετά από "
-"τη δημιουργία ενός ελάχιστου αριθμού συνδέσεων. Αφήνει πάντα χώρο για μία μη-συμπιεσμένη "
-"σύνδεση."
+"Αν είναι ενεργό, μόνο οι συμπιεσμένες εισερχόμενες συνδέσεις θα επιτρέπονται "
+"μετά από τη δημιουργία ενός ελάχιστου αριθμού συνδέσεων. Αφήνει πάντα χώρο "
+"για μία μη-συμπιεσμένη σύνδεση."
 
 #: src/if/gnet_property.c:3848
 msgid ""
@@ -1867,16 +1931,17 @@ msgid ""
 "To connect more quickly, gtk-gnutella will allow up to this many connections "
 "to be active while trying to fill up the connection slots."
 msgstr ""
-"Για να γίνεται πιο γρήγορα η σύνδεση, το gtk-gnutella θα επιτρέπει τόσες πολλές συνδέσεις να είναι "
-"ενεργές καθώς θα προσπαθεί να γεμίσει τις υποδοχές λήψης."
+"Για να γίνεται πιο γρήγορα η σύνδεση, το gtk-gnutella θα επιτρέπει τόσες "
+"πολλές συνδέσεις να είναι ενεργές καθώς θα προσπαθεί να γεμίσει τις υποδοχές "
+"λήψης."
 
 #: src/if/gnet_property.c:3939
 msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
 "reserve 32 bytes of bandwidth per leaf."
 msgstr ""
-"Μέγιστος αριθμός δικτυακών κόμβων που γίνονται αποδεκτοί.  Για να προαχθείτε σε υπερ-κόμβο, πρέπει "
-"να παραχωρείτε 32-bytes εύρους ανά δικτυακό κόμβο."
+"Μέγιστος αριθμός δικτυακών κόμβων που γίνονται αποδεκτοί.  Για να προαχθείτε "
+"σε υπερ-κόμβο, πρέπει να παραχωρείτε 32-bytes εύρους ανά δικτυακό κόμβο."
 
 #: src/if/gnet_property.c:3959
 msgid "What to do with files that will be ignored for downloading."
@@ -1935,8 +2000,8 @@ msgid ""
 "How many queued downloads are currently responsive (remote servent answering "
 "requests)."
 msgstr ""
-"Πόσες λήψεις στη λίστα αναμονής ανταποκρίνονται (ο απομακρυσμένος πελάτης απαντά "
-"στα αιτήματα) αυτή τη στιγμή."
+"Πόσες λήψεις στη λίστα αναμονής ανταποκρίνονται (ο απομακρυσμένος πελάτης "
+"απαντά στα αιτήματα) αυτή τη στιγμή."
 
 #: src/if/gnet_property.c:4219
 msgid "Amount of bytes downloaded so far, HTTP headers notwithstanding."
@@ -1944,7 +2009,8 @@ msgstr "Αριθμός bytes που έχουν ληφθεί μέχρι τώρα,
 
 #: src/if/gnet_property.c:4239
 msgid "Amount of bytes uploaded so far, HTTP headers notwithstanding."
-msgstr "Αριθμός bytes που έχουν αποσταλεί μέχρι τώρα, χωρίς τις κεφαλίδες HTTP."
+msgstr ""
+"Αριθμός bytes που έχουν αποσταλεί μέχρι τώρα, χωρίς τις κεφαλίδες HTTP."
 
 #: src/if/gnet_property.c:4259
 msgid ""
@@ -1953,9 +2019,10 @@ msgid ""
 "already share many files, in which case it does no harm to leave it in, but "
 "will not matter as much."
 msgstr ""
-"Αν το gtk-gnutella πρέπει να εξυπηρετεί ανολοκλήρωτα αρχεία τα οποία δεν έχουν ληφθεί "
-"πλήρως.  Προτείνεται για την υγεία του δικτύου εκτός αν μοιράζεστε ήδη πολλά αρχεία, που "
-"στην περίπτωση αυτή δεν κάνει κακό, αλλά δεν παίζει και τόσο μεγάλο ρόλο."
+"Αν το gtk-gnutella πρέπει να εξυπηρετεί ανολοκλήρωτα αρχεία τα οποία δεν "
+"έχουν ληφθεί πλήρως.  Προτείνεται για την υγεία του δικτύου εκτός αν "
+"μοιράζεστε ήδη πολλά αρχεία, που στην περίπτωση αυτή δεν κάνει κακό, αλλά "
+"δεν παίζει και τόσο μεγάλο ρόλο."
 
 #: src/if/gnet_property.c:4276
 msgid ""
@@ -1975,11 +2042,12 @@ msgid ""
 "more consistent at the cost of extra CPU time, and at the cost of losing "
 "some valid entries in the process."
 msgstr ""
-"Να εφαρμόζεται ή όχι το φίλτρο κατά προσέγγιση στις καταχωρήσεις του πλέγματος λήψεων.  Ο "
-"σκοπός αυτού του φιλτραρίσματος είναι η αφαίρεση των καταχωρήσεων των οποίων οι ονομασίας "
-"είναι πολύ διαφορετικές για να είναι μέρη του ίδιου πλέγματος. Όταν ενεργοποιηθεί, το πλέγμα μας "
-"πιθανώς να χρειάζεται περισσότερο χρόνο από την κεντρική μονάδα επεξεργασίας, και το κόστος της "
-"απώλειας κάποιων έγκυρων καταχωρήσεων στη διεργασία."
+"Να εφαρμόζεται ή όχι το φίλτρο κατά προσέγγιση στις καταχωρήσεις του "
+"πλέγματος λήψεων.  Ο σκοπός αυτού του φιλτραρίσματος είναι η αφαίρεση των "
+"καταχωρήσεων των οποίων οι ονομασίας είναι πολύ διαφορετικές για να είναι "
+"μέρη του ίδιου πλέγματος. Όταν ενεργοποιηθεί, το πλέγμα μας πιθανώς να "
+"χρειάζεται περισσότερο χρόνο από την κεντρική μονάδα επεξεργασίας, και το "
+"κόστος της απώλειας κάποιων έγκυρων καταχωρήσεων στη διεργασία."
 
 #: src/if/gnet_property.c:4313
 msgid "Number of crawler visits during this session."
@@ -2013,8 +2081,8 @@ msgid ""
 "Whether gtk-gnutella should keep track of the IP of unstable servents it "
 "encounters, preventing further connections attempts to/from them."
 msgstr ""
-"Αν το gtk-gnutella πρέπει να θυμάται τις IP των ασταθών πελατών που "
-"συναντά, αποτρέποντας άλλες προσπάθειες σύνδεσης από/προς αυτούς."
+"Αν το gtk-gnutella πρέπει να θυμάται τις IP των ασταθών πελατών που συναντά, "
+"αποτρέποντας άλλες προσπάθειες σύνδεσης από/προς αυτούς."
 
 #: src/if/gnet_property.c:4424
 msgid ""
@@ -2023,10 +2091,10 @@ msgid ""
 "from them.  This only works when gtk-gnutella already keeps track of "
 "unstable IP addresses."
 msgstr ""
-"Αν το gtk-gnutella πρέπει να προσδιορίζει τους τύπους πελατών (όπως αναγνωρίζονται "
-"από τις ετικέτες κατασκευαστή) που είναι ασταθείς, και να αποτρέπει άλλες συνδέσεις "
-"από/προς αυτούς.  Αυτό λειτουργεί μόνο όταν το gtk-gnutella ήδη θυμάται τις ασταθείς "
-"διευθύνσεις IP."
+"Αν το gtk-gnutella πρέπει να προσδιορίζει τους τύπους πελατών (όπως "
+"αναγνωρίζονται από τις ετικέτες κατασκευαστή) που είναι ασταθείς, και να "
+"αποτρέπει άλλες συνδέσεις από/προς αυτούς.  Αυτό λειτουργεί μόνο όταν το gtk-"
+"gnutella ήδη θυμάται τις ασταθείς διευθύνσεις IP."
 
 #: src/if/gnet_property.c:4441
 msgid ""
@@ -2063,8 +2131,8 @@ msgid ""
 "Percentage of the number of connections we should reserve for gtk-gnutella "
 "nodes."
 msgstr ""
-"Ποσοστό του αριθμού των συνδέσεων που πρέπει να παραχωρούνται σε κόμβους "
-"gtk-gnutella."
+"Ποσοστό του αριθμού των συνδέσεων που πρέπει να παραχωρούνται σε κόμβους gtk-"
+"gnutella."
 
 #: src/if/gnet_property.c:4536
 msgid "Maximum percentage of slots a vendor can occupy."
@@ -2079,11 +2147,13 @@ msgid ""
 "greater value. Remember: the smaller the value, the more you will be able to "
 "precisely control the incoming rate."
 msgstr ""
-"Μέγεθος της προσωρινής μνήμης της υποδοχής RX  που χρησιμοποιείται για τις λήψεις, σε "
-" kbytes. Αν επιθυμείτε να αποτρέψετε το Gnutella από το να χρησιμοποιεί όλο το εύρος της σύνδεσής "
-"σας, ορίστε το σε μία χαμηλή τιμή (το προεπιλεγμένο 64K, που είναι καλό). Αν δεν σας νοιάζει να καταστρέψετε "
-"όλο το διαθέσιμο εύρος, αυξάνοντας την καθυστέρηση της σύνδεσής σας, ορίστε το σε μία υψηλότερη τιμή. Να "
-"θυμάστε ότι όσο χαμηλότερη είναι η τιμή τόσο περισσότερο θα μπορείτε να ελέγχετε το εισερχόμενο εύρος."
+"Μέγεθος της προσωρινής μνήμης της υποδοχής RX  που χρησιμοποιείται για τις "
+"λήψεις, σε  kbytes. Αν επιθυμείτε να αποτρέψετε το Gnutella από το να "
+"χρησιμοποιεί όλο το εύρος της σύνδεσής σας, ορίστε το σε μία χαμηλή τιμή (το "
+"προεπιλεγμένο 64K, που είναι καλό). Αν δεν σας νοιάζει να καταστρέψετε όλο "
+"το διαθέσιμο εύρος, αυξάνοντας την καθυστέρηση της σύνδεσής σας, ορίστε το "
+"σε μία υψηλότερη τιμή. Να θυμάστε ότι όσο χαμηλότερη είναι η τιμή τόσο "
+"περισσότερο θα μπορείτε να ελέγχετε το εισερχόμενο εύρος."
 
 #: src/if/gnet_property.c:4576
 msgid ""
@@ -2107,13 +2177,17 @@ msgstr ""
 
 #: src/if/gnet_property.c:4636
 msgid "Last time an automatic switch between ultra and leaf mode occurred."
-msgstr "Τελευταία φορά που έγινε αυτόματη μετατροπή ανάμεσα σε υπέρ- και δικτυακή λειτουργία."
+msgstr ""
+"Τελευταία φορά που έγινε αυτόματη μετατροπή ανάμεσα σε υπέρ- και δικτυακή "
+"λειτουργία."
 
 #: src/if/gnet_property.c:4656
 msgid ""
 "Whether we meet the sufficient average uptime requirement to become an Ultra "
 "node."
-msgstr "Αν καλύπτεται ο απαιτούμενος μέσος χρόνος λειτουργίας για αναβάθμιση σε υπερ-κόμβο."
+msgstr ""
+"Αν καλύπτεται ο απαιτούμενος μέσος χρόνος λειτουργίας για αναβάθμιση σε υπερ-"
+"κόμβο."
 
 #: src/if/gnet_property.c:4673
 msgid ""
@@ -2127,11 +2201,15 @@ msgstr ""
 msgid ""
 "Whether we meet the sufficient node uptime requirement to become an Ultra "
 "node."
-msgstr "Αν καλύπτεται ο απαιτούμενος χρόνος λειτουργίας κόμβου για αναβάθμιση σε υπερ-κόμβο."
+msgstr ""
+"Αν καλύπτεται ο απαιτούμενος χρόνος λειτουργίας κόμβου για αναβάθμιση σε "
+"υπερ-κόμβο."
 
 #: src/if/gnet_property.c:4707
 msgid "Whether we meet the non-firewalled requirement to become an Ultra node."
-msgstr "Αν καλύπτεται η απαίτηση απουσίας τοίχους προστασίας για αναβάθμιση σε υπερ-κόμβο."
+msgstr ""
+"Αν καλύπτεται η απαίτηση απουσίας τοίχους προστασίας για αναβάθμιση σε υπερ-"
+"κόμβο."
 
 #: src/if/gnet_property.c:4724
 msgid ""
@@ -2144,8 +2222,8 @@ msgid ""
 "Whether we meet the amount of file descriptor requirement to become an Ultra "
 "node."
 msgstr ""
-"Αν καλύπτεται ο απαιτούμενος αριθμός περιγραφέων αρχείων για αναβάθμιση "
-"σε υπερ-κόμβο."
+"Αν καλύπτεται ο απαιτούμενος αριθμός περιγραφέων αρχείων για αναβάθμιση σε "
+"υπερ-κόμβο."
 
 #: src/if/gnet_property.c:4758
 msgid "Whether we meet the memory requirements to become an Ultra node."
@@ -2153,7 +2231,8 @@ msgstr "Αν καλύπτεται η απαιτούμενοη μνήμη για 
 
 #: src/if/gnet_property.c:4775
 msgid "Whether we meet the bandwidth requirements to become an Ultra node."
-msgstr "Αν καλύπτεται το απαιτούμενο εύρος σύνδεσης για αναβάθμιση σε υπερ-κόμβο."
+msgstr ""
+"Αν καλύπτεται το απαιτούμενο εύρος σύνδεσης για αναβάθμιση σε υπερ-κόμβο."
 
 #: src/if/gnet_property.c:4792
 msgid ""
@@ -2162,10 +2241,10 @@ msgid ""
 "without being sent.  Set it so that it is slightly larger than the amount of "
 "opened searches."
 msgstr ""
-"Μέγεθος της λίστας αναμονής αναζήτησης των τοπικά δημιουργημένων ερωτημάτων πριν "
-"αποσταλούν σε μία δοσμένη σύνδεση.  Όταν είναι πλήρης, το παλαιότερο ερώτημα διαγράφεται "
-"χωρίς να αποσταλεί.  Ορίστε το λίγο περισσότερο από το μέγεθος των ανοικτών "
-"αναζητήσεων."
+"Μέγεθος της λίστας αναμονής αναζήτησης των τοπικά δημιουργημένων ερωτημάτων "
+"πριν αποσταλούν σε μία δοσμένη σύνδεση.  Όταν είναι πλήρης, το παλαιότερο "
+"ερώτημα διαγράφεται χωρίς να αποσταλεί.  Ορίστε το λίγο περισσότερο από το "
+"μέγεθος των ανοικτών αναζητήσεων."
 
 #: src/if/gnet_property.c:4812
 msgid ""
@@ -2187,8 +2266,9 @@ msgid ""
 "Amount of seconds to leave 'dead' entries around so that they can still be "
 "displayed by the GUI along with the termination status."
 msgstr ""
-"Αριθμός δευτερολέπτων που αφήνονται οι 'νεκρές' καταχωρήσεις έτσι ώστε να μπορούν "
-"να εμφανίζονται από το γραφικό ενδιάμεσο μαζί με την κατάσταση τερματισμού."
+"Αριθμός δευτερολέπτων που αφήνονται οι 'νεκρές' καταχωρήσεις έτσι ώστε να "
+"μπορούν να εμφανίζονται από το γραφικό ενδιάμεσο μαζί με την κατάσταση "
+"τερματισμού."
 
 #: src/if/gnet_property.c:4869
 msgid ""
@@ -2218,13 +2298,15 @@ msgid ""
 "can lower the constraint significantly. Deviations from the default of 1700 "
 "have exponential effects on the network traffic."
 msgstr ""
-"Ο ελάχιστος αριθμός δευτερολέπτων για εξαναγκασμό ανάμεσα σε δύο ίδια ερωτήματα από "
-"τους δικτυακούς κόμβους.  Αν η υποβολή του ερωτήματος ξανά είναι πολύ νωρίς, απορρίπτεται "
-"και προσμετράται στο μετρητή 'Περιορισμού μηνυμάτων'.  Πολύ συχνές υποβολές ερωτημάτων ξανά "
-"μπορεί να βλάψουν το δίκτυο, αλλά πρέπει να υπάρχει ένας αριθμός δυνατότητας υποβολής ερωτημάτων "
-"ξανά λόγω της δυναμικής φύσης των συνδέσεων Gnutella.  Δεν μπορείτε να απενεργοποιήσετε αυτή την "
-"επιλογή, αλλά μπορείτε να μειώσετε την τιμή της σημαντικά. Αποκλείσεις από το προεπιλεγμένο 1700 έχουν "
-"απρόβλεπτες συνέπειες στην κυκλοφορία δικτύου."
+"Ο ελάχιστος αριθμός δευτερολέπτων για εξαναγκασμό ανάμεσα σε δύο ίδια "
+"ερωτήματα από τους δικτυακούς κόμβους.  Αν η υποβολή του ερωτήματος ξανά "
+"είναι πολύ νωρίς, απορρίπτεται και προσμετράται στο μετρητή 'Περιορισμού "
+"μηνυμάτων'.  Πολύ συχνές υποβολές ερωτημάτων ξανά μπορεί να βλάψουν το "
+"δίκτυο, αλλά πρέπει να υπάρχει ένας αριθμός δυνατότητας υποβολής ερωτημάτων "
+"ξανά λόγω της δυναμικής φύσης των συνδέσεων Gnutella.  Δεν μπορείτε να "
+"απενεργοποιήσετε αυτή την επιλογή, αλλά μπορείτε να μειώσετε την τιμή της "
+"σημαντικά. Αποκλείσεις από το προεπιλεγμένο 1700 έχουν απρόβλεπτες συνέπειες "
+"στην κυκλοφορία δικτύου."
 
 #: src/if/gnet_property.c:4926
 msgid "Time at which we started the last scan of the library."
@@ -2260,7 +2342,9 @@ msgstr "Χρόνος έναρξης υπολογισμού του μπαλώμα
 
 #: src/if/gnet_property.c:5086
 msgid "Time spent computing the QRP table patch, in seconds."
-msgstr "Χρόνος που αναλώθηκε στον υπολογισμό του μπαλώματος του πίνακα QRP, σε δευτερόλεπτα."
+msgstr ""
+"Χρόνος που αναλώθηκε στον υπολογισμό του μπαλώματος του πίνακα QRP, σε "
+"δευτερόλεπτα."
 
 #: src/if/gnet_property.c:5106
 msgid "Query routing table generation number."
@@ -2296,7 +2380,8 @@ msgstr "Τελικό μέγεθος μπαλώματος QRP, μετά από π
 
 #: src/if/gnet_property.c:5266
 msgid "QRP table patch compression ratio, in percent, 0 means none."
-msgstr "Δείκτης συμπίεσης μπαλώματος πίνακα QRP, τοις εκατό, 0 σημαίνει καθόλου."
+msgstr ""
+"Δείκτης συμπίεσης μπαλώματος πίνακα QRP, τοις εκατό, 0 σημαίνει καθόλου."
 
 #: src/if/gnet_property.c:5286
 msgid ""
@@ -2323,17 +2408,19 @@ msgid ""
 "necessarily degraded, if not impossible. The condition automatically clears "
 "itself after 10 minutes past the last occurance."
 msgstr ""
-"Όταν οριστεί, τελειώνουν οι περιγραφείς αρχείων του gtk-gnutella, και οι διαδικασίες "
-"αναγκαστικά υποβαθμίζονται, αν δε γίνονται αδύνατες. Η συνθήκη καθαρίζεται αυτόματα "
-"μετά από 10 λεπτά από το τελευταίο συμβάν."
+"Όταν οριστεί, τελειώνουν οι περιγραφείς αρχείων του gtk-gnutella, και οι "
+"διαδικασίες αναγκαστικά υποβαθμίζονται, αν δε γίνονται αδύνατες. Η συνθήκη "
+"καθαρίζεται αυτόματα μετά από 10 λεπτά από το τελευταίο συμβάν."
 
 #: src/if/gnet_property.c:5361
 msgid "When set, gtk-gnutella will accept and handle G2 connections. "
-msgstr "Όταν οριστεί, το gtk-gnutella θα αποδεχτεία και θα χειριστείτις συνδέσεις G2."
+msgstr ""
+"Όταν οριστεί, το gtk-gnutella θα αποδεχτεία και θα χειριστείτις συνδέσεις G2."
 
 #: src/if/gnet_property.c:5378
 msgid "If set, spaces in filenames are replaced with underscores."
-msgstr "Αν οριστεί, τα κενά στα ονόματα αρχείων αντικαθιστούνται με κάτω παύλες."
+msgstr ""
+"Αν οριστεί, τα κενά στα ονόματα αρχείων αντικαθιστούνται με κάτω παύλες."
 
 #: src/if/gnet_property.c:5395
 msgid ""
@@ -2355,7 +2442,8 @@ msgstr "Αν οριστεί, όλες οι εξερχόμενες συνδέσε
 
 #: src/if/gnet_property.c:5446
 msgid "If not set, support for Gnutella connection compression is disabled."
-msgstr "Αν δεν οριστεί, απενεργοποιείται η υποστήριξη συμπιεσμένης σύνδεσης Gnutella."
+msgstr ""
+"Αν δεν οριστεί, απενεργοποιείται η υποστήριξη συμπιεσμένης σύνδεσης Gnutella."
 
 #: src/if/gnet_property.c:5463
 msgid ""
@@ -2365,10 +2453,11 @@ msgid ""
 "received via TCP.  It is safe to leave this set, which is the default "
 "behaviour."
 msgstr ""
-"Αν το UDP θα πρέπει να χρησιμοποιείται σε συμβατότητα με το TCP.  Αν οριστεί, το gtk-gnutella "
-"θα ακούει επίσης για κυκλοφορία UDP στην ίδια θύρα που είναι ρυθμισμένη για TCP και θα επεξεργάζεται "
-"την εισερχόμενη κυκλοφορία Gnutella σχεδόν με τον ίδιο τρόπο σαν να λαμβάνεται μέσω TCP.  Είναι "
-"ασφαλές να το αφήσετε ενεργό, που είναι η προεπιλεγμένη συμπεριφορά."
+"Αν το UDP θα πρέπει να χρησιμοποιείται σε συμβατότητα με το TCP.  Αν "
+"οριστεί, το gtk-gnutella θα ακούει επίσης για κυκλοφορία UDP στην ίδια θύρα "
+"που είναι ρυθμισμένη για TCP και θα επεξεργάζεται την εισερχόμενη κυκλοφορία "
+"Gnutella σχεδόν με τον ίδιο τρόπο σαν να λαμβάνεται μέσω TCP.  Είναι ασφαλές "
+"να το αφήσετε ενεργό, που είναι η προεπιλεγμένη συμπεριφορά."
 
 #: src/if/gnet_property.c:5480
 msgid ""
@@ -2426,7 +2515,9 @@ msgstr ""
 
 #: src/if/gnet_property.c:5599
 msgid "If TRUE, other hosts can request a complete list of all shared files."
-msgstr "Αν είναι ΕΝΕΡΓΟ, οι άλλοι υπολογιστές μπορούν να ζητήσουν μία πλήρη λίστα των αρχείων ανταλλαγής."
+msgstr ""
+"Αν είναι ΕΝΕΡΓΟ, οι άλλοι υπολογιστές μπορούν να ζητήσουν μία πλήρη λίστα "
+"των αρχείων ανταλλαγής."
 
 #: src/if/gnet_property.c:5616
 msgid "Number of HTML browsing requests received in this session."
@@ -2434,7 +2525,8 @@ msgstr "Αριθμός αιτημάτων εξερεύνησης HTML που λ�
 
 #: src/if/gnet_property.c:5636
 msgid "Number of Gnutella browsing requests received in this session."
-msgstr "Αριθμός αιτημάτων εξερεύνησης Gnutella που λήφθηκαν σε αυτή τη συνεδρία."
+msgstr ""
+"Αριθμός αιτημάτων εξερεύνησης Gnutella που λήφθηκαν σε αυτή τη συνεδρία."
 
 #: src/if/gnet_property.c:5656
 msgid ""
@@ -2445,12 +2537,13 @@ msgid ""
 "persists, GUI refreshing is reduced and background tasks (SHA1 computation, "
 "file moving) are suspended."
 msgstr ""
-"Η μέση χρήση της κεντρικής μονάδας επεξεργασίας συνιστά υπερφόρτωση, έτσι το gtk-gnutella "
-"μειώνει τον αριθμό των μη κρίσιμων διεργασιών του. Σημειώστε ότι η υποερφόρτωση μπορεί να "
-"προκύψει αν το gtk-gnutella δε λαμβάνει αρκετό χρόνο της κεντρικής μονάδας επεξεργασίας επειδή "
-"μια άλλη διεργασία το ανταγωνίζεται. Κατά τη διάρκεια της υπερφόρτωσης ο ρυθμός ανανέωσης του "
-"γραφικού ενδιαμέσου μειώνεται και οι εργασίες του παρασκηνίου (υπολογισμός SHA1, μετακίνηση αρχείων) "
-"αναβάλλονται."
+"Η μέση χρήση της κεντρικής μονάδας επεξεργασίας συνιστά υπερφόρτωση, έτσι το "
+"gtk-gnutella μειώνει τον αριθμό των μη κρίσιμων διεργασιών του. Σημειώστε "
+"ότι η υποερφόρτωση μπορεί να προκύψει αν το gtk-gnutella δε λαμβάνει αρκετό "
+"χρόνο της κεντρικής μονάδας επεξεργασίας επειδή μια άλλη διεργασία το "
+"ανταγωνίζεται. Κατά τη διάρκεια της υπερφόρτωσης ο ρυθμός ανανέωσης του "
+"γραφικού ενδιαμέσου μειώνεται και οι εργασίες του παρασκηνίου (υπολογισμός "
+"SHA1, μετακίνηση αρχείων) αναβάλλονται."
 
 #: src/if/gnet_property.c:5673
 msgid ""
@@ -2462,13 +2555,14 @@ msgid ""
 "disk as soon as it receives some data. Increase to maximum value if you have "
 "RAM."
 msgstr ""
-"Ελάχιστο μέγεθος δεδομένων ανά πηγή λήψης που θα αποθηκεύει προσωρινά το gtk-gnutella πριν "
-"την εγγραφή στο δίσκο.  Κατά την εξάπλωση σε πολλές πηγές, μία μεγαλύτερη τιμή θα βοηθήσει στην "
-"αποφυγή των πολλών κλήσεων συστήματος και επίσης θα μειώσει τον κατακερματισμό του συστήματος "
-"αρχείων.  Το μειονέκτημα είναι ότι χρησιμοποιεί περισσότερη μνήμη ανά ενεργή πηγή.  Χρησιμοποιήστε "
-"το 0 για να απενεργοποιήσετε την προσωρινή αποθήκευση, π.χ. το gtk-gnutella να γράφει στο δίσκο "
-"αμέσως μόλις λάβει δεδομένα. Αυξήστε το στη μέγιστη τιμή αν έχετε"
-"RAM."
+"Ελάχιστο μέγεθος δεδομένων ανά πηγή λήψης που θα αποθηκεύει προσωρινά το gtk-"
+"gnutella πριν την εγγραφή στο δίσκο.  Κατά την εξάπλωση σε πολλές πηγές, μία "
+"μεγαλύτερη τιμή θα βοηθήσει στην αποφυγή των πολλών κλήσεων συστήματος και "
+"επίσης θα μειώσει τον κατακερματισμό του συστήματος αρχείων.  Το μειονέκτημα "
+"είναι ότι χρησιμοποιεί περισσότερη μνήμη ανά ενεργή πηγή.  Χρησιμοποιήστε το "
+"0 για να απενεργοποιήσετε την προσωρινή αποθήκευση, π.χ. το gtk-gnutella να "
+"γράφει στο δίσκο αμέσως μόλις λάβει δεδομένα. Αυξήστε το στη μέγιστη τιμή αν "
+"έχετεRAM."
 
 #: src/if/gnet_property.c:5693
 msgid ""
@@ -2482,13 +2576,15 @@ msgid ""
 "feature by setting the read-ahead buffer size to 0."
 msgstr ""
 "Επιπλέον μέγεθος δεδομένων ανά πηγή λήψης που το gtk-gnutella θα προσπαθεία "
-"να διαβάσει από πριν.  Αυτό δίνει περισσότερο χώρο για την ανάγνωση μεγάλου μεγέθους "
-"δεδομένων χωρίς την χρήση πολλών κλήσεων συστήματος. Συμλπηρώνει ωραία την προσωρινή "
-"μνήμη καθώς αποτρέπει την ανάγνωση λίγων bytes πριν την καταχώριση των δεδομένων από την "
-"προσωρινή μνήμη στο δίσκο: όταν υπάρχει χώρος, θα χρησιμοποιηθεί επιπρόσθετα στην προσωρινή "
-"μνήμη, αλλά τα δεδομένα που έχουν διαβαστεί από πριν καταχωρούνται αμέσως στο δίσκο.  Αν δεν "
-"επιθυμείτε να παραχωρείε περισσότερη μνήμη ανά ενεργή πηγή, μπορείτε να απενεργοποιήσετε αυτό "
-"το χαρακτηριστικό θέτοντας το μέγεθος προσωρινής μνήμης ανάγνωσης από πριν σε 0."
+"να διαβάσει από πριν.  Αυτό δίνει περισσότερο χώρο για την ανάγνωση μεγάλου "
+"μεγέθους δεδομένων χωρίς την χρήση πολλών κλήσεων συστήματος. Συμλπηρώνει "
+"ωραία την προσωρινή μνήμη καθώς αποτρέπει την ανάγνωση λίγων bytes πριν την "
+"καταχώριση των δεδομένων από την προσωρινή μνήμη στο δίσκο: όταν υπάρχει "
+"χώρος, θα χρησιμοποιηθεί επιπρόσθετα στην προσωρινή μνήμη, αλλά τα δεδομένα "
+"που έχουν διαβαστεί από πριν καταχωρούνται αμέσως στο δίσκο.  Αν δεν "
+"επιθυμείτε να παραχωρείε περισσότερη μνήμη ανά ενεργή πηγή, μπορείτε να "
+"απενεργοποιήσετε αυτό το χαρακτηριστικό θέτοντας το μέγεθος προσωρινής "
+"μνήμης ανάγνωσης από πριν σε 0."
 
 #: src/if/gui_property.c:173
 msgid "disable"
@@ -2555,8 +2651,8 @@ msgid ""
 "Whether to hide hits that have been considered for auto-downloading based on "
 "the SHA1 or your filters."
 msgstr ""
-"Αν θα πρέπει να αποκρύπτονται τα χτυπήματα που έχουν σχέση με την αυτόματη λήψη βάσει "
-"του SHA1 ή των φίλτρων σας."
+"Αν θα πρέπει να αποκρύπτονται τα χτυπήματα που έχουν σχέση με την αυτόματη "
+"λήψη βάσει του SHA1 ή των φίλτρων σας."
 
 #: src/if/gui_property.c:387
 msgid "Widths of the columns in the nodes table."
@@ -2680,7 +2776,8 @@ msgstr "Θέση του διαχωριστή στο παράθυρο αποτε�
 
 #: src/if/gui_property.c:1009
 msgid "Maximum number of results to show in any search."
-msgstr "Μέγιστος αριθμός αποτελεσμάτων που εμφανίζονται σε οποιαδήποτε αναζήτηση."
+msgstr ""
+"Μέγιστος αριθμός αποτελεσμάτων που εμφανίζονται σε οποιαδήποτε αναζήτηση."
 
 #: src/if/gui_property.c:1029
 msgid "Debug level for the gui."
@@ -2788,7 +2885,9 @@ msgstr "Εμφάνιση ρυθμίσεων λήψης."
 
 #: src/if/gui_property.c:1483
 msgid "Collect statistics about searches that go through this node."
-msgstr "Συλλογή στατιστικών σχετικά με τις αναζητήσεις που περνούν από αυτόν τον κόμβο."
+msgstr ""
+"Συλλογή στατιστικών σχετικά με τις αναζητήσεις που περνούν από αυτόν τον "
+"κόμβο."
 
 #: src/if/gui_property.c:1503
 msgid "Interval in which the search stats are updated."
@@ -2800,7 +2899,8 @@ msgid ""
 "dropped.  The lower it is, the more search statistics will be kept in memory."
 msgstr ""
 "Ένας συντελεστής διαγραφής, έτσι ώστε τα μικρά ασήμαντα αποτελέσματα να "
-"απορρίπτονται.  Όσο χαμηλότερο είναι, τόσο περισσότερα στατιστικά θα διατηρούνται στη μνήμη."
+"απορρίπτονται.  Όσο χαμηλότερο είναι, τόσο περισσότερα στατιστικά θα "
+"διατηρούνται στη μνήμη."
 
 #: src/if/gui_property.c:1543
 msgid "Show confirmation dialog when leaving gtk-gnutella."
@@ -2808,7 +2908,9 @@ msgstr "Εμφάνιση διαλόγου επιβεβαίωσης κατά το
 
 #: src/if/gui_property.c:1560
 msgid "Show a helpful message when the mouse pointer lingers over a widget."
-msgstr "Εμφάνιση βοηθητικών μηνυμάτων όταν ο δείκτης του ποντικιού μένει για λίγη ώρα πάνω από ένα εργαλείο."
+msgstr ""
+"Εμφάνιση βοηθητικών μηνυμάτων όταν ο δείκτης του ποντικιού μένει για λίγη "
+"ώρα πάνω από ένα εργαλείο."
 
 #: src/if/gui_property.c:1577
 msgid ""
@@ -2837,8 +2939,10 @@ msgid "Include Gnutella packet header size to the volume."
 msgstr ""
 
 #: src/if/gui_property.c:1682
-msgid "Show percentages instead of absolute values in the Gnet stats (drop reasons)."
-msgstr "Εμφάνιση ποσοστών αντί απόλυτων τιμών στα στατιστικά Gnet (αιτίες απόρριψης)."
+msgid ""
+"Show percentages instead of absolute values in the Gnet stats (drop reasons)."
+msgstr ""
+"Εμφάνιση ποσοστών αντί απόλυτων τιμών στα στατιστικά Gnet (αιτίες απόρριψης)."
 
 #: src/if/gui_property.c:1699
 msgid "Widths of the columns in the Gnet stats general table."
@@ -2857,8 +2961,8 @@ msgid ""
 "Whether the node's uptime should be shown (not all nodes provide this "
 "information)."
 msgstr ""
-"Αν πρέπει να εμφανίζεται ο χρόνος λειτουργίας του κόμβου (δεν παρέχουν "
-"όλοι οι κόμβοι αυτή την πληροφορία)."
+"Αν πρέπει να εμφανίζεται ο χρόνος λειτουργίας του κόμβου (δεν παρέχουν όλοι "
+"οι κόμβοι αυτή την πληροφορία)."
 
 #: src/if/gui_property.c:1770
 msgid "Whether the handshaking version number should be displayed."
@@ -2871,10 +2975,11 @@ msgid ""
 "When disabled, only TX and RX message counts are displayed, followed by the "
 "message queue info."
 msgstr ""
-"Αν πρέπει να εμφανίζονται αναλυτικές πληροφορίες της κυκλοφορίας του κόμβου.  Όταν "
-"είναι ενεργό, είναι δυνατόν να προσαρμοστούν πόσες πληροφορίες θα εμφανίζονται.  Όταν "
-"είναι ανενεργό, εμφανίζονται μόνο οι μετρήσεις των μηνυμάτων TX και RX, ακολουθούμενες από "
-"πληροφορίες μηνυμάτων λίστας αναμονής."
+"Αν πρέπει να εμφανίζονται αναλυτικές πληροφορίες της κυκλοφορίας του "
+"κόμβου.  Όταν είναι ενεργό, είναι δυνατόν να προσαρμοστούν πόσες πληροφορίες "
+"θα εμφανίζονται.  Όταν είναι ανενεργό, εμφανίζονται μόνο οι μετρήσεις των "
+"μηνυμάτων TX και RX, ακολουθούμενες από πληροφορίες μηνυμάτων λίστας "
+"αναμονής."
 
 #: src/if/gui_property.c:1804
 msgid "Whether TX traffic compression ratio should be displayed."
@@ -2886,11 +2991,13 @@ msgstr "Αν πρέπει να εμφανίζεται ο συντελεστής 
 
 #: src/if/gui_property.c:1838
 msgid "Whether to display the amount of bytes sent on the TX wire."
-msgstr "Αν πρέπει να εμφανίζεται ο αριθμός των bytes που στέλνονται στο κανάλι TX."
+msgstr ""
+"Αν πρέπει να εμφανίζεται ο αριθμός των bytes που στέλνονται στο κανάλι TX."
 
 #: src/if/gui_property.c:1855
 msgid "Whether to display the amount of bytes received on the RX wire."
-msgstr "Αν πρέπει να εμφανίζεται ο αριθμός των bytes που λαμβάνονται στο κανάλι RX."
+msgstr ""
+"Αν πρέπει να εμφανίζεται ο αριθμός των bytes που λαμβάνονται στο κανάλι RX."
 
 #: src/if/gui_property.c:1872
 msgid "Whether TX instantaneous transmission speed should be displayed."
@@ -2910,19 +3017,26 @@ msgstr "Αν πρέπει να εμφανίζεται οι μέτρηση των
 
 #: src/if/gui_property.c:1940
 msgid "Whether count of transmitted query hits should be displayed."
-msgstr "Αν πρέπει να εμφανίζεται η μέτρηση των χτυπημάτων των μεταφερόμενων ερωτημάτων."
+msgstr ""
+"Αν πρέπει να εμφανίζεται η μέτρηση των χτυπημάτων των μεταφερόμενων "
+"ερωτημάτων."
 
 #: src/if/gui_property.c:1957
 msgid "Whether count of received query hits should be displayed."
-msgstr "Αν πρέπει να εμφανίζεται η μέτρηση των χτυπημάτων των ληφθέντων ερωτημάτων."
+msgstr ""
+"Αν πρέπει να εμφανίζεται η μέτρηση των χτυπημάτων των ληφθέντων ερωτημάτων."
 
 #: src/if/gui_property.c:1974
 msgid "Whether count of locally generated queries should be displayed."
-msgstr "Αν πρέπει να εμφανίζεται η μέτρηση των τοπικά δημιουργημένων ερωτημάτων."
+msgstr ""
+"Αν πρέπει να εμφανίζεται η μέτρηση των τοπικά δημιουργημένων ερωτημάτων."
 
 #: src/if/gui_property.c:1991
-msgid "Whether count of local queries pending transmission should be displayed."
-msgstr "Αν πρέπει να εμφανίζεται η μέτρηση των τοπικών ερωτημάτων που αναμένουν μεταφορά."
+msgid ""
+"Whether count of local queries pending transmission should be displayed."
+msgstr ""
+"Αν πρέπει να εμφανίζεται η μέτρηση των τοπικών ερωτημάτων που αναμένουν "
+"μεταφορά."
 
 #: src/if/gui_property.c:2008
 msgid "Whether count of dropped messages on TX should be displayed."
@@ -2947,8 +3061,8 @@ msgid ""
 "Whether we should display message counts for duplicate, bad, weird and "
 "messages bearing an hostile IP address."
 msgstr ""
-"Αν πρέπει να εμφανίζονται οι μετρήσεις των μηνυμάτων προς ανατύπωση, των κακών, των παράξενων "
-"και των μηνυμάτων από εχθρική διεύθυνση IP."
+"Αν πρέπει να εμφανίζονται οι μετρήσεις των μηνυμάτων προς ανατύπωση, των "
+"κακών, των παράξενων και των μηνυμάτων από εχθρική διεύθυνση IP."
 
 #: src/if/gui_property.c:2076
 msgid ""
@@ -2960,15 +3074,17 @@ msgstr ""
 msgid ""
 "Whether we should display the size of the node's library, when it is known "
 "to us."
-msgstr "Αν πρέπει να εμφανίζεται το μέγεθος της βιβλιοθήκης του κόμβου, όταν είναι γνωστό."
+msgstr ""
+"Αν πρέπει να εμφανίζεται το μέγεθος της βιβλιοθήκης του κόμβου, όταν είναι "
+"γνωστό."
 
 #: src/if/gui_property.c:2110
 msgid ""
 "Whether we should display the amount of files shared by nodes, when that is "
 "known to us."
 msgstr ""
-"Αν πρέπει να εμφανίζεται ο αριθμός των αρχείων για ανταλλαγή από τους κόμβους, όταν "
-"είναι γνωστός."
+"Αν πρέπει να εμφανίζεται ο αριθμός των αρχείων για ανταλλαγή από τους "
+"κόμβους, όταν είναι γνωστός."
 
 #: src/if/gui_property.c:2127
 msgid ""
@@ -2978,10 +3094,10 @@ msgid ""
 "pane."
 msgstr ""
 "Ο χρόνος σε δευτερόλεπτα που πρέπει να αποθηκεύονται στην προσωρινή μνήμη τα "
-"αποτελέσματα αναζητήσεων από το γραφικό ενδιάμεσο.  Αυτό αποτρέπει τις πολύ συχνές "
-"ανανεώσεις που μπορεί να προκαλέσουν τρεμοπαίξιμο της οθόνης, καθώς επίσης κάνει οικονομία "
-"σε κύκλους της κεντρικής μονάδας επεξεργασίας αφού χρειάζεται λιγότερος επανασχεδιασμός στο "
-"παράθυρο αναζήτησης."
+"αποτελέσματα αναζητήσεων από το γραφικό ενδιάμεσο.  Αυτό αποτρέπει τις πολύ "
+"συχνές ανανεώσεις που μπορεί να προκαλέσουν τρεμοπαίξιμο της οθόνης, καθώς "
+"επίσης κάνει οικονομία σε κύκλους της κεντρικής μονάδας επεξεργασίας αφού "
+"χρειάζεται λιγότερος επανασχεδιασμός στο παράθυρο αναζήτησης."
 
 #: src/if/gui_property.c:2147
 msgid "Expanded stati of the nodes in the treemenu."
@@ -2989,11 +3105,13 @@ msgstr ""
 
 #: src/if/gui_property.c:2167
 msgid "Widths of the columns in the Gnet packet stats table (pkg). [GTK2]"
-msgstr "Πλάτη των στηλών στον πίνακα στατιστικών των πακέτων Gnet (pkg). [GTK2]"
+msgstr ""
+"Πλάτη των στηλών στον πίνακα στατιστικών των πακέτων Gnet (pkg). [GTK2]"
 
 #: src/if/gui_property.c:2187
 msgid "Widths of the columns in the Gnet packet stats table (byte). [GTK2]"
-msgstr "Πλάτη των στηλών στον πίνακα στατιστικών των πακέτων Gnet (byte). [GTK2]"
+msgstr ""
+"Πλάτη των στηλών στον πίνακα στατιστικών των πακέτων Gnet (byte). [GTK2]"
 
 #: src/if/gui_property.c:2207
 msgid "Configures the appearance of the toolbar."
@@ -3976,33 +4094,30 @@ msgstr "Ζάμπια, Δημοκρατία της"
 msgid "Zimbabwe"
 msgstr "Ζιμπάμπουε"
 
-#: src/lib/misc.c:762
-msgid "1 Byte"
-msgstr "1 Byte"
+#: src/lib/misc.c:827
+#, fuzzy, c-format
+msgid "%u Byte"
+msgid_plural "%u Bytes"
+msgstr[0] "%u Bytes"
+msgstr[1] "%u Bytes"
 
-#: src/lib/misc.c:764
-#, c-format
-msgid "%u Bytes"
-msgstr "%u Bytes"
-
-#: src/lib/misc.c:794
-msgid "1&nbsp;Byte"
-msgstr "1&nbsp;Byte"
-
-#: src/lib/misc.c:796
-#, c-format
-msgid "%u&nbsp;Bytes"
-msgstr "%u&nbsp;Bytes"
+#: src/lib/misc.c:850
+#, fuzzy, c-format
+msgid "%u&nbsp;Byte"
+msgid_plural "%u&nbsp;Bytes"
+msgstr[0] "%u&nbsp;Bytes"
+msgstr[1] "%u&nbsp;Bytes"
 
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
-#: src/lib/misc.c:918 src/lib/misc.c:930
-#, c-format
-msgid "%sB/s"
+#: src/lib/misc.c:954 src/lib/misc.c:965
+#, fuzzy
+msgid "B/s"
 msgstr "%sB/s"
 
-#: src/main.c:837
+#: src/main.c:876
 msgid "This is an unofficial build which accesses files in this directory:"
-msgstr "Αυτή είναι ανεπίσημη έκδοση που έχει πρόσβαση στα αρχεία αυτού του καταλόγου:"
+msgstr ""
+"Αυτή είναι ανεπίσημη έκδοση που έχει πρόσβαση στα αρχεία αυτού του καταλόγου:"
 
 #: src/ui/gtk/bitzi.c:56
 msgid "Bitzi|Unknown"
@@ -4058,7 +4173,8 @@ msgstr "Αυτό το πρωτόκολλο δεν υποστηρίζεται α�
 
 #: src/ui/gtk/drop.c:181
 msgid "MAGNET URI contained source URL for an unsupported protocol"
-msgstr "Το MAGNET URI περιείχε ένα πηγαίο URL για ένα μη υποστηριζόμενο πρωτόκολλο"
+msgstr ""
+"Το MAGNET URI περιείχε ένα πηγαίο URL για ένα μη υποστηριζόμενο πρωτόκολλο"
 
 #: src/ui/gtk/drop.c:254
 #, fuzzy
@@ -4152,8 +4268,7 @@ msgid "If filename ends with \"%s\" %s"
 msgstr "αν το όνομα αρχείου τελειώνει με \"%s\" %s"
 
 #: src/ui/gtk/filter_core.c:959
-#, c-format
-#, fuzzy
+#, fuzzy, c-format
 msgid "If filename contains the substring \"%s\" %s"
 msgstr "αν το όνομα αρχείου περιέχει την υποετικέτα \"%s\" %s"
 
@@ -4472,7 +4587,8 @@ msgstr "Τα δυναμικά ερωτήματα τελείωσαν χωρίς �
 
 #: src/ui/gtk/gnet_stats_common.c:156
 msgid "Fully completed dynamic queries getting late results"
-msgstr "Πλήρως ολοκληρωμένα δυναμικά ερωτήματα με λήψη καθυστερημένων αποτελεσμάτων"
+msgstr ""
+"Πλήρως ολοκληρωμένα δυναμικά ερωτήματα με λήψη καθυστερημένων αποτελεσμάτων"
 
 #: src/ui/gtk/gnet_stats_common.c:157
 msgid "Dynamic queries with partial late results"
@@ -4532,7 +4648,8 @@ msgstr "Παρακαλούμε επιλέξτε που θα αποθηκεύον
 
 #: src/ui/gtk/gtk1/callbacks.c:340 src/ui/gtk/gtk2/callbacks.c:340
 msgid "Please choose where to move files after successful download"
-msgstr "Παρακαλούμε επιλέξτε που θα μετακινούνται τα αρχεία μετά από επιτυχή λήψη"
+msgstr ""
+"Παρακαλούμε επιλέξτε που θα μετακινούνται τα αρχεία μετά από επιτυχή λήψη"
 
 #: src/ui/gtk/gtk1/callbacks.c:407 src/ui/gtk/gtk2/callbacks.c:407
 msgid "Please choose where to move corrupted files"
@@ -5005,7 +5122,9 @@ msgstr "_Παθητικό"
 #: src/ui/gtk/gtk1/interface-glade.c:1468
 #: src/ui/gtk/gtk2/interface-glade.c:2709
 msgid "A passive search matches any search results routed through this node"
-msgstr "Μία παθητική αναζήτησης ταιριάζει με τα αποτελέσματα αναζήτησης που δρομολογούνται από αυτόν τον κόμβο"
+msgstr ""
+"Μία παθητική αναζήτησης ταιριάζει με τα αποτελέσματα αναζήτησης που "
+"δρομολογούνται από αυτόν τον κόμβο"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1487
 #: src/ui/gtk/gtk2/interface-glade.c:3449
@@ -5176,8 +5295,8 @@ msgid ""
 "The current IP address and listening port for this node. To change these go "
 "to Settings->Preferences->Network."
 msgstr ""
-"Η τρέχουσα διεύθυνση IP και η θύρα ακρόασης αυτού του κόμβου. Για να τα αλλάξετε "
-"πηγαίνετε Ρυθμίσεις->Προτιμήσεις->Δίκτυο."
+"Η τρέχουσα διεύθυνση IP και η θύρα ακρόασης αυτού του κόμβου. Για να τα "
+"αλλάξετε πηγαίνετε Ρυθμίσεις->Προτιμήσεις->Δίκτυο."
 
 #: src/ui/gtk/gtk1/interface-glade.c:1954
 msgid "#|Gnet"
@@ -5584,11 +5703,12 @@ msgid ""
 "a triangle. Red chunks have not been downloaded yet. The blue line indicates "
 "which parts of the file have been seen on the network in this session."
 msgstr ""
-"Εμφανίζει οπτικές πληροφορίες για την πρόοδο της λήψης. Τα πράσινα κομμάτια έχουν ληφθεί, "
-"με τα ελαφρώς πιο ανοικτά πράσιντα κομμάτια να έχουν αγγιχτεί κατά τη διάρκεια αυτής της συνεδρίας. "
-"Τα κίτρινα κομμάτια είναι ενεργά αυτή τη στιγμή, αυτά τα ενεργά κομμάτια επίσης σημαδεύονται και με "
-"ένα τρίγωνο. Τα κόκκινα κομμάτια δεν έχουν ληφθεί ακόμα. Οι μπλε γραμμές προσδιορίζουν ποια "
-"κομμάτια του αρχείου έχουν βρεθεί στο δίκτυο σε αυτή τη συνεδρία."
+"Εμφανίζει οπτικές πληροφορίες για την πρόοδο της λήψης. Τα πράσινα κομμάτια "
+"έχουν ληφθεί, με τα ελαφρώς πιο ανοικτά πράσιντα κομμάτια να έχουν αγγιχτεί "
+"κατά τη διάρκεια αυτής της συνεδρίας. Τα κίτρινα κομμάτια είναι ενεργά αυτή "
+"τη στιγμή, αυτά τα ενεργά κομμάτια επίσης σημαδεύονται και με ένα τρίγωνο. "
+"Τα κόκκινα κομμάτια δεν έχουν ληφθεί ακόμα. Οι μπλε γραμμές προσδιορίζουν "
+"ποια κομμάτια του αρχείου έχουν βρεθεί στο δίκτυο σε αυτή τη συνεδρία."
 
 #: src/ui/gtk/gtk1/interface-glade.c:3583
 #: src/ui/gtk/gtk2/interface-glade.c:16559
@@ -5709,7 +5829,8 @@ msgstr "Ο καθαρισμός διακόπηκε"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4045
 msgid "Clear completed, failed and unavailable downloads from list"
-msgstr "Ο καθαρισμός ολοκληρώθηκε, αποτυχημένες και μη διαθέσιμες λήψεις από τη λίστα"
+msgstr ""
+"Ο καθαρισμός ολοκληρώθηκε, αποτυχημένες και μη διαθέσιμες λήψεις από τη λίστα"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4080
 msgid "[running]"
@@ -5752,8 +5873,8 @@ msgid ")"
 msgstr ")"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4139
-#: src/ui/gtk/gtk1/interface-glade.c:5071 src/ui/gtk/settings.c:1986
-#: src/ui/gtk/settings.c:2023
+#: src/ui/gtk/gtk1/interface-glade.c:5071 src/ui/gtk/settings.c:1990
+#: src/ui/gtk/settings.c:2027
 msgid "Show settings"
 msgstr "Εμφάνιση ρυθμίσεων"
 
@@ -6042,8 +6163,8 @@ msgid ""
 "try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating "
 "both your incoming and outgoing paths."
 msgstr ""
-"Οι αποστολές σας σταματούν με ασυνήθιστη συχνότητα, δείχνοντας ότι το  "
-"εύρος σας πιθανώς έχει κορεστεί. Δεν πρέπει να τρέχετε ως υπερ-κόμβος, και "
+"Οι αποστολές σας σταματούν με ασυνήθιστη συχνότητα, δείχνοντας ότι το  εύρος "
+"σας πιθανώς έχει κορεστεί. Δεν πρέπει να τρέχετε ως υπερ-κόμβος, και "
 "προσπαθείστε να μειώσετε το εύρος που προορίζεται για  gtk-gnutella για να "
 "αποφύγετε τον κορεσμό των εισερχόμενων και εξερχόμενων διαδρομών."
 
@@ -6073,9 +6194,10 @@ msgid ""
 "download files. You will not see push results, which may prevent you from "
 "seeing a large amount of results."
 msgstr ""
-"Φαίνεται ότι έχετε τοίχος προστασίας TCP, π.χ. οι άλλοι δεν μπορούν να συνδεθούν "
-"με εσάς για να λάβουν αρχεία. Δε θα βλέπετε αποτελέσματα ωθήσεων, το οποίο μπορεί να "
-"σας αποτρέψει από το να βλέπετε μεγάλο μέρος αποτελεσμάτων."
+"Φαίνεται ότι έχετε τοίχος προστασίας TCP, π.χ. οι άλλοι δεν μπορούν να "
+"συνδεθούν με εσάς για να λάβουν αρχεία. Δε θα βλέπετε αποτελέσματα ωθήσεων, "
+"το οποίο μπορεί να σας αποτρέψει από το να βλέπετε μεγάλο μέρος "
+"αποτελεσμάτων."
 
 #: src/ui/gtk/gtk1/interface-glade.c:5776
 #: src/ui/gtk/gtk2/interface-glade.c:2310
@@ -6109,7 +6231,9 @@ msgstr "Τρέχει ως δικτυακός κόμβος"
 #: src/ui/gtk/gtk1/interface-glade.c:5849
 #: src/ui/gtk/gtk2/interface-glade.c:2376
 msgid "Running in legacy mode. Consider switching to auto mode."
-msgstr "Τρέχει σε παραδοσιακή λειτουργία. Συνίσταται να αλλάξετε σε αυόματη λειτουργία."
+msgstr ""
+"Τρέχει σε παραδοσιακή λειτουργία. Συνίσταται να αλλάξετε σε αυόματη "
+"λειτουργία."
 
 #: src/ui/gtk/gtk1/interface-glade.c:5867
 #: src/ui/gtk/gtk2/interface-glade.c:2352
@@ -6215,16 +6339,16 @@ msgid ""
 "Adds \"don't display\" rules matching the selected files names to the search "
 "filter."
 msgstr ""
-"Προσθέτει κανόνες \"χωρίς εμφάνιση\" που ταιριάζουν στα επιλεγμένα ονόματα αρχείων στο "
-"φίλτρο αναζήτησης."
+"Προσθέτει κανόνες \"χωρίς εμφάνιση\" που ταιριάζουν στα επιλεγμένα ονόματα "
+"αρχείων στο φίλτρο αναζήτησης."
 
 #: src/ui/gtk/gtk1/interface-glade.c:6667
 msgid ""
 "Adds \"don't display\" rules matching the selected files urn:sha1 to the "
 "search filter."
 msgstr ""
-"Προσθέτει κανόνες \"χωρίς εμφάνιση\" που ταιριάζουν στα επιλεγμένα urn:sha1 αρχείων στο "
-"φίλτρο αναζήτησης."
+"Προσθέτει κανόνες \"χωρίς εμφάνιση\" που ταιριάζουν στα επιλεγμένα urn:sha1 "
+"αρχείων στο φίλτρο αναζήτησης."
 
 #: src/ui/gtk/gtk1/interface-glade.c:6677
 #: src/ui/gtk/gtk2/interface-glade.c:574
@@ -6236,16 +6360,16 @@ msgid ""
 "Adds \"don't display\" rules matching the selected files names to the global "
 "pre-filter."
 msgstr ""
-"Προσθέτει κανόνες \"χωρίς εμφάνιση\" που ταιριάζουν στα επιλεγμένα ονόματα αρχείων στο "
-"παγκόσμιο προ-φίλτρο."
+"Προσθέτει κανόνες \"χωρίς εμφάνιση\" που ταιριάζουν στα επιλεγμένα ονόματα "
+"αρχείων στο παγκόσμιο προ-φίλτρο."
 
 #: src/ui/gtk/gtk1/interface-glade.c:6709
 msgid ""
 "Adds \"don't display\" rules matching the selected files urn:sha1 to the "
 "global pre-filter."
 msgstr ""
-"Προσθέτει κανόνες \"χωρίς εμφάνιση\" που ταιριάζουν στα επιλεγμένα urn:sha1 αρχείων στο "
-"παγκόσμιο προ-φίλτρο."
+"Προσθέτει κανόνες \"χωρίς εμφάνιση\" που ταιριάζουν στα επιλεγμένα urn:sha1 "
+"αρχείων στο παγκόσμιο προ-φίλτρο."
 
 #: src/ui/gtk/gtk1/interface-glade.c:6728
 #: src/ui/gtk/gtk2/interface-glade.c:609
@@ -6591,7 +6715,8 @@ msgid ""
 msgstr ""
 "Δεν υπάρχει συνθήκη. Αν οριστεί αυτός ο κανόνας, το ταίριασμα θα συνεχιστεί "
 "στο ορισμένο φίλτρο στόχου. Αυτός είναι και ο λόγος που δεν μπορείτε να "
-"αντιστρέψετε αυτή τη συνθήκη. Αν μπορούσαν, αυτός ο κανόνας καλύτερα να παραβλεθεί."
+"αντιστρέψετε αυτή τη συνθήκη. Αν μπορούσαν, αυτός ο κανόνας καλύτερα να "
+"παραβλεθεί."
 
 #: src/ui/gtk/gtk1/interface-glade.c:8614
 msgid "#|Jump"
@@ -6665,7 +6790,9 @@ msgstr "#|Σημαίες"
 #: src/ui/gtk/gtk1/interface-glade.c:9309
 #: src/ui/gtk/gtk2/interface-glade.c:8829
 msgid "Condition: If current filter result properties match"
-msgstr "Συνθήκη: Αν οι ιδιότητες του αποτελέσματος του τρέχοντος φίλτρου ταιριάζουν με"
+msgstr ""
+"Συνθήκη: Αν οι ιδιότητες του αποτελέσματος του τρέχοντος φίλτρου ταιριάζουν "
+"με"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9360
 #: src/ui/gtk/gtk1/interface-glade.c:9451
@@ -6801,8 +6928,11 @@ msgstr "Συνέβαλλαν:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10228
 #: src/ui/gtk/gtk2/interface-glade.c:1673
-msgid "==> We are looking for people who want to contribute to this fine tool. <=="
-msgstr "==> Αναζητούμε ανθρώπους που να θέλουν να συμβάλλουν σε αυτό το ωραίο εργαλείο. <=="
+msgid ""
+"==> We are looking for people who want to contribute to this fine tool. <=="
+msgstr ""
+"==> Αναζητούμε ανθρώπους που να θέλουν να συμβάλλουν σε αυτό το ωραίο "
+"εργαλείο. <=="
 
 #: src/ui/gtk/gtk1/interface-glade.c:10236
 #: src/ui/gtk/gtk2/interface-glade.c:1679
@@ -6812,7 +6942,8 @@ msgstr "Επισκευτείτε το http://gtk-gnutella.sourceforge.net/."
 #: src/ui/gtk/gtk1/interface-glade.c:10244
 #: src/ui/gtk/gtk2/interface-glade.c:1686
 msgid "Join the users or developers mailing lists."
-msgstr "Συμμετέχετε στις ταχυδρομικές λίστες χρηστών ή υπεύθυνων για την ανάπτυξη."
+msgstr ""
+"Συμμετέχετε στις ταχυδρομικές λίστες χρηστών ή υπεύθυνων για την ανάπτυξη."
 
 #: src/ui/gtk/gtk1/interface-glade.c:10252
 #: src/ui/gtk/gtk2/interface-glade.c:1691
@@ -6825,7 +6956,8 @@ msgid ""
 "This product includes GeoIP data created by MaxMind, available from\n"
 "http://maxmind.com/"
 msgstr ""
-"Αυτό το προϊόν περιέχει δεδομένα GeoIP δημιουργημένα από το MaxMind, διαθέσιμο στο\n"
+"Αυτό το προϊόν περιέχει δεδομένα GeoIP δημιουργημένα από το MaxMind, "
+"διαθέσιμο στο\n"
 "http://maxmind.com/"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10302
@@ -6859,7 +6991,7 @@ msgstr "Παρακαλούμε επιβεβαιώστε:"
 msgid "Do you really want to quit?"
 msgstr "Θέλετε πραγματικά να φύγετε;"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10419 src/ui/gtk/settings.c:1200
+#: src/ui/gtk/gtk1/interface-glade.c:10419 src/ui/gtk/settings.c:1204
 msgid "Yes"
 msgstr "Ναι"
 
@@ -6935,7 +7067,8 @@ msgstr "_Τύπος διαμεσολαβητή:"
 #: src/ui/gtk/gtk1/interface-glade.c:11595
 #: src/ui/gtk/gtk2/interface-glade.c:10089
 msgid "Use username and password to _authenticate to proxy"
-msgstr "Χρήση ονόματος χρήστη και κωδικού για την π_ιστοποίηση στο διαμεσολαβητή"
+msgstr ""
+"Χρήση ονόματος χρήστη και κωδικού για την π_ιστοποίηση στο διαμεσολαβητή"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11609
 #: src/ui/gtk/gtk2/interface-glade.c:10099
@@ -6994,7 +7127,9 @@ msgstr ""
 #: src/ui/gtk/gtk1/interface-glade.c:11822
 #: src/ui/gtk/gtk2/interface-glade.c:10266
 msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
-msgstr "Πραγματικός αριθμός χρησιμοποιούμενων περιγραφέων αρχείων -- δε γίνεται να αλλάξει κατά τη λειτουργία"
+msgstr ""
+"Πραγματικός αριθμός χρησιμοποιούμενων περιγραφέων αρχείων -- δε γίνεται να "
+"αλλάξει κατά τη λειτουργία"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11825
 #: src/ui/gtk/gtk2/interface-glade.c:10232
@@ -7206,8 +7341,8 @@ msgid ""
 "This limits how many results gnutella returns to other people searching your "
 "files."
 msgstr ""
-"Αυτό περιορίζει τα αποτελέσματα που το gnutella επιστρέφει στους άλλους ανθρώπους "
-"που αναζητούν τα αρχεία σας."
+"Αυτό περιορίζει τα αποτελέσματα που το gnutella επιστρέφει στους άλλους "
+"ανθρώπους που αναζητούν τα αρχεία σας."
 
 #: src/ui/gtk/gtk1/interface-glade.c:12702
 #: src/ui/gtk/gtk2/interface-glade.c:11255
@@ -7576,8 +7711,8 @@ msgid ""
 "Until the configured percentage of outgoing HTTP bandwidth is in use, open "
 "additional upload slots on request."
 msgstr ""
-"Μέχρι να είναι σε χρήση το ρυθμισμένο ποσοστό εξερχόμενου εύρους HTPP, άνοιγμα "
-"επιπλέον υποδοχών αποστολής όταν απαιτείται."
+"Μέχρι να είναι σε χρήση το ρυθμισμένο ποσοστό εξερχόμενου εύρους HTPP, "
+"άνοιγμα επιπλέον υποδοχών αποστολής όταν απαιτείται."
 
 #: src/ui/gtk/gtk1/interface-glade.c:14212
 #: src/ui/gtk/gtk2/interface-glade.c:12686
@@ -7669,7 +7804,9 @@ msgstr "Μέγιστος αριθμός που γίνεται προσπάθει
 #: src/ui/gtk/gtk1/interface-glade.c:14522
 #: src/ui/gtk/gtk2/interface-glade.c:13265
 msgid "Maximum attempts to make, not counting HTTP busy indications"
-msgstr "Μέγιστος αριθμός προσπαθειών, χωρίς τον υπολογισμό ενδείξεων HTTP απασχολημένου"
+msgstr ""
+"Μέγιστος αριθμός προσπαθειών, χωρίς τον υπολογισμό ενδείξεων HTTP "
+"απασχολημένου"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14536
 #: src/ui/gtk/gtk2/interface-glade.c:13235
@@ -7739,7 +7876,8 @@ msgstr "Χρονικό όριο _ώθησης"
 #: src/ui/gtk/gtk1/interface-glade.c:14745
 #: src/ui/gtk/gtk2/interface-glade.c:13293
 msgid "Delay in seconds to wait when running download stops"
-msgstr "Καθυστέρηση αναμονής σε δευτερόλεπτα όταν μία τρέχουσα λήψη διακόπτεται"
+msgstr ""
+"Καθυστέρηση αναμονής σε δευτερόλεπτα όταν μία τρέχουσα λήψη διακόπτεται"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14759
 #: src/ui/gtk/gtk2/interface-glade.c:13303
@@ -7749,7 +7887,8 @@ msgstr "Καθυστέρηση αναμονής σε δευτερόλεπτα ό
 #: src/ui/gtk/gtk1/interface-glade.c:14772
 #: src/ui/gtk/gtk2/interface-glade.c:13313
 msgid "Delay in seconds to wait after HTTP busy indication"
-msgstr "Καθυστέρηση αναμονής σε δευτερόλεπτα μετά από ένδειξη απασχολημένου HTTP"
+msgstr ""
+"Καθυστέρηση αναμονής σε δευτερόλεπτα μετά από ένδειξη απασχολημένου HTTP"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14786
 #: src/ui/gtk/gtk2/interface-glade.c:13323
@@ -7759,22 +7898,29 @@ msgstr "Καθυστέρηση αναμονής σε δευτερόλεπτα μ
 #: src/ui/gtk/gtk1/interface-glade.c:14799
 #: src/ui/gtk/gtk2/interface-glade.c:13333
 msgid "Maximum seconds to wait on auto-retry timeouts"
-msgstr "Μέγιστος αριθμός δευτερολέπτων χρονικού ορίου αναμονής αυτόματης προσπάθειας ξανά"
+msgstr ""
+"Μέγιστος αριθμός δευτερολέπτων χρονικού ορίου αναμονής αυτόματης προσπάθειας "
+"ξανά"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14812
 #: src/ui/gtk/gtk2/interface-glade.c:13343
 msgid "Minimum seconds to wait on auto-retry timeouts"
-msgstr "Ελάχιστος αριθμός δευτερολέπτων χρονικού ορίου αναμονής αυτόματης προσπάθειας ξανά"
+msgstr ""
+"Ελάχιστος αριθμός δευτερολέπτων χρονικού ορίου αναμονής αυτόματης "
+"προσπάθειας ξανά"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14825
 #: src/ui/gtk/gtk2/interface-glade.c:13353
 msgid "Number of seconds before timeout for a connecting download"
-msgstr "Αριθμός δευτερολέπτων πριν το χρονικό όριο μιας λήψης με την οποία γίνεται σύνδεση"
+msgstr ""
+"Αριθμός δευτερολέπτων πριν το χρονικό όριο μιας λήψης με την οποία γίνεται "
+"σύνδεση"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14838
 #: src/ui/gtk/gtk2/interface-glade.c:13363
 msgid "Number of seconds before timeout for a 'push sent' download"
-msgstr "Αριθμός δευτερολέπτων πριν το χρονικό όριο μιας λήψης με απεσταλμένη ώθηση"
+msgstr ""
+"Αριθμός δευτερολέπτων πριν το χρονικό όριο μιας λήψης με απεσταλμένη ώθηση"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14851
 #: src/ui/gtk/gtk2/interface-glade.c:13373
@@ -7834,7 +7980,8 @@ msgstr ""
 #: src/ui/gtk/gtk1/interface-glade.c:15146
 #: src/ui/gtk/gtk2/interface-glade.c:13621
 msgid "_Apply fuzzy filter on download mesh entries"
-msgstr "Ε_φαρμογή προσεγγιστικού φίλτρου στις καταχωρήσεις του πλέγματος λήψεων"
+msgstr ""
+"Ε_φαρμογή προσεγγιστικού φίλτρου στις καταχωρήσεις του πλέγματος λήψεων"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15160
 #: src/ui/gtk/gtk2/interface-glade.c:13186
@@ -8063,7 +8210,8 @@ msgstr "Λειτουργία για προχωρημένους"
 #: src/ui/gtk/gtk1/interface-glade.c:16460
 #: src/ui/gtk/gtk2/interface-glade.c:15179
 msgid "Show additional information and settings for advanced and _expert users"
-msgstr "Εμφάνιση επιπλέον πληροφοριών και ρυθμίσεων για τους προχωρημένους χρήστες"
+msgstr ""
+"Εμφάνιση επιπλέον πληροφοριών και ρυθμίσεων για τους προχωρημένους χρήστες"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16472
 #: src/ui/gtk/gtk2/interface-glade.c:15363
@@ -8534,16 +8682,17 @@ msgid ""
 "Aborts the download from sources matching the selected criteria but not the "
 "download of the file itself."
 msgstr ""
-"Εγκαταλείπει τη λήψη από τις πηγές που ταιριάζουν με τα επιλεγμένα κριτήρια αλλά ότι "
-"την ίδια τη λήψη του αρχείου."
+"Εγκαταλείπει τη λήψη από τις πηγές που ταιριάζουν με τα επιλεγμένα κριτήρια "
+"αλλά ότι την ίδια τη λήψη του αρχείου."
 
 #: src/ui/gtk/gtk2/interface-glade.c:143
 msgid ""
 "If the source appears to be firewalled, it may help to enforce push mode to "
 "let the source connect back to us."
 msgstr ""
-"Αν η πηγή φαίνεται να έχει τοίχος προστασίας, μπορεί να βοηθήσει να εξαναγκάσετε "
-"λειτουργία ώθησης για να επιτρέψετε στην πηγή να συνδεθεί πίσω με εμάς."
+"Αν η πηγή φαίνεται να έχει τοίχος προστασίας, μπορεί να βοηθήσει να "
+"εξαναγκάσετε λειτουργία ώθησης για να επιτρέψετε στην πηγή να συνδεθεί πίσω "
+"με εμάς."
 
 #: src/ui/gtk/gtk2/interface-glade.c:535
 msgid "Download selected files"
@@ -8583,7 +8732,9 @@ msgstr "Χρήση μέχρι"
 
 #: src/ui/gtk/gtk2/interface-glade.c:3443
 msgid "connections to connect more quickly while not all slots are used."
-msgstr "συνδέσεις για να γίνει πιο γρήγορα η σύνδεση όταν δε χρησιμοποιούνται όλες οι υποδοχές."
+msgstr ""
+"συνδέσεις για να γίνει πιο γρήγορα η σύνδεση όταν δε χρησιμοποιούνται όλες "
+"οι υποδοχές."
 
 #: src/ui/gtk/gtk2/interface-glade.c:3487
 msgid ""
@@ -8671,8 +8822,11 @@ msgid "Gtk-Gnutella Configuration Wizard"
 msgstr "Μάγος Ρύθμισης Gtk-Gnutella"
 
 #: src/ui/gtk/gtk2/interface-glade.c:9389
-msgid "<span weight=\"heavy\" size=\"xx-large\">Welcome to Gtk-Gnutella!</span>"
-msgstr "<span weight=\"heavy\" size=\"xx-large\">Καλως Ήρθατε στο Gtk-Gnutella!</span>"
+msgid ""
+"<span weight=\"heavy\" size=\"xx-large\">Welcome to Gtk-Gnutella!</span>"
+msgstr ""
+"<span weight=\"heavy\" size=\"xx-large\">Καλως Ήρθατε στο Gtk-Gnutella!</"
+"span>"
 
 #: src/ui/gtk/gtk2/interface-glade.c:9439
 msgid "Select a directory to save _downloads to"
@@ -8680,7 +8834,8 @@ msgstr "Επιλέξτε έναν κατάλογο για την απο_θήκε
 
 #: src/ui/gtk/gtk2/interface-glade.c:9488
 msgid "Select one or more directories to be _shared on the Gnutella network:"
-msgstr "Επιλέξτε έναν ή περισσότερους καταλόγους για ανταλλαγή με το δίκτυο Gnutella:"
+msgstr ""
+"Επιλέξτε έναν ή περισσότερους καταλόγους για ανταλλαγή με το δίκτυο Gnutella:"
 
 #: src/ui/gtk/gtk2/interface-glade.c:9504
 msgid "Listen on TCP _port:"
@@ -8752,7 +8907,8 @@ msgstr "δευτερόλεπτα (0 - απενεργοποίηση)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:11808
 msgid "Maximum percentage of connection slots a vendor can occupy."
-msgstr "Μέγιστο ποσοστό υποδοχών σύνδεσης που μπορεί να απασχολεί ένας κατασκευαστής."
+msgstr ""
+"Μέγιστο ποσοστό υποδοχών σύνδεσης που μπορεί να απασχολεί ένας κατασκευαστής."
 
 #: src/ui/gtk/gtk2/interface-glade.c:14020
 msgid "_Remove directory"
@@ -9017,8 +9173,8 @@ msgid ""
 "%s%s%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%"
 "u TCP, %u UDP)"
 msgstr ""
-"%s%s%u %s (%u ξεπερασμένα, %u αγνοημένα, %u κρυφά, %u αυτόματο-d/l, %u %s) Χτυπήματα: %u (%"
-"u TCP, %u UDP)"
+"%s%s%u %s (%u ξεπερασμένα, %u αγνοημένα, %u κρυφά, %u αυτόματο-d/l, %u %s) "
+"Χτυπήματα: %u (%u TCP, %u UDP)"
 
 #: src/ui/gtk/search_common.c:1114
 msgid "[stopped] "
@@ -9056,109 +9212,109 @@ msgstr ""
 msgid "The SHA1 query is not validly encoded"
 msgstr "Το ερώτημα SHA1 δεν είναι έγκυρα κωδικοποιημένο"
 
-#: src/ui/gtk/settings.c:1139
+#: src/ui/gtk/settings.c:1141
 msgid "Never"
 msgstr "Ποτέ"
 
-#: src/ui/gtk/settings.c:1200
+#: src/ui/gtk/settings.c:1204
 msgid "No"
 msgstr "Όχι"
 
-#: src/ui/gtk/settings.c:1331
+#: src/ui/gtk/settings.c:1335
 #, c-format
 msgid "%u/%u host (%u%%)"
 msgid_plural "%u/%u hosts (%u%%)"
 msgstr[0] "%u/%u υπολογιστής (%u%%)"
 msgstr[1] "%u/%u υπολογιστές (%u%%)"
 
-#: src/ui/gtk/settings.c:1417 src/ui/gtk/settings.c:1439
+#: src/ui/gtk/settings.c:1421 src/ui/gtk/settings.c:1443
 msgid "loading..."
 msgstr "φόρτωση..."
 
-#: src/ui/gtk/settings.c:1418
+#: src/ui/gtk/settings.c:1422
 msgid "Reading host cache..."
 msgstr "Ανάγνωση λανθάνουσας μνήμης υπολογιστών..."
 
-#: src/ui/gtk/settings.c:1440
+#: src/ui/gtk/settings.c:1444
 msgid "Reading ultra cache..."
 msgstr "Ανάγνωση λανθάνουσας μνήμης υπερ-κόμβων..."
 
-#: src/ui/gtk/settings.c:1484
+#: src/ui/gtk/settings.c:1488
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "*** ΤΡΕΧΕΤΕ ΠΑΛΙΑ ΕΚΔΟΣΗ! ***"
 
-#: src/ui/gtk/settings.c:1509
+#: src/ui/gtk/settings.c:1513
 msgid "*** CPU OVERLOADED -- TRYING TO SAVE CYCLES ***"
 msgstr "*** ΥΠΕΡΦΟΡΤΩΣΗ ΕΠΕΞΕΡΓΑΣΤΗ -- ΠΡΟΣΠΑΘΕΙΑ ΟΙΚΟΝΟΜΙΑΣ ΚΥΚΛΩΝ ***"
 
-#: src/ui/gtk/settings.c:1534
+#: src/ui/gtk/settings.c:1538
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
 msgstr "*** ΣΤΑΜΑΤΗΜΑ ΑΠΟΣΤΟΛΩΝ, ΣΥΡΡΙΚΝΩΣΗ ΕΥΡΟΥΣ; ***"
 
-#: src/ui/gtk/settings.c:1566
+#: src/ui/gtk/settings.c:1570
 msgid "*** FILE DESCRIPTORS HAVE RUN OUT! ***"
 msgstr "*** ΟΙ ΠΕΡΙΓΡΑΦΕΙΣ ΑΡΧΕΙΩΝ ΤΕΛΕΙΩΣΑΝ! ***"
 
-#: src/ui/gtk/settings.c:1571
+#: src/ui/gtk/settings.c:1575
 msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr "*** ΟΙ ΠΕΡΙΓΡΑΦΕΙΣ ΑΡΧΕΙΩΝ ΕΙΝΑΙ ΠΟΛΥ ΛΙΓΟΙ! ***"
 
-#: src/ui/gtk/settings.c:1586
+#: src/ui/gtk/settings.c:1590
 msgid "*** VERSION WILL SOON BECOME OLD! ***"
 msgstr "*** Η ΕΚΔΟΣΗ ΣΥΝΤΟΜΑ ΘΑ ΓΙΝΕΙ ΠΑΛΙΑ! ***"
 
-#: src/ui/gtk/settings.c:1589
+#: src/ui/gtk/settings.c:1593
 #, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
 msgid_plural "*** VERSION WILL BECOME OLD IN %d DAYS! ***"
 msgstr[0] "*** Η ΕΚΔΟΣΗ ΘΑ ΓΙΝΕΙ ΠΑΛΙΑ ΣΕ %d ΜΕΡΑ! ***"
 msgstr[1] "*** Η ΕΚΔΟΣΗ ΘΑ ΓΙΝΕΙ ΠΑΛΙΑ ΣΕ %d ΜΕΡΕΣ! ***"
 
-#: src/ui/gtk/settings.c:1980 src/ui/gtk/settings.c:2017
+#: src/ui/gtk/settings.c:1984 src/ui/gtk/settings.c:2021
 msgid "Hide settings"
 msgstr "Απόκρυψη ρυθμίσεων"
 
-#: src/ui/gtk/settings.c:2058
+#: src/ui/gtk/settings.c:2062
 #, c-format
 msgid "Address/port changed to: %s"
 msgstr "Διεύθυνση/θύρα άλλαξε σε: %s"
 
-#: src/ui/gtk/settings.c:2388
+#: src/ui/gtk/settings.c:2392
 msgid "no sources"
 msgstr "χωρίς πηγές"
 
-#: src/ui/gtk/settings.c:2392
+#: src/ui/gtk/settings.c:2396
 #, c-format
 msgid "%u source"
 msgid_plural "%u sources"
 msgstr[0] "%u πηγή"
 msgstr[1] "%u πηγή"
 
-#: src/ui/gtk/settings.c:2407
+#: src/ui/gtk/settings.c:2411
 #, c-format
 msgid "%u active"
 msgstr "%u εν ενεργεία"
 
-#: src/ui/gtk/settings.c:2435
+#: src/ui/gtk/settings.c:2439
 #, c-format
 msgid "%u queued"
 msgstr "%u στη λίστα αναμονής"
 
-#: src/ui/gtk/settings.c:2556
+#: src/ui/gtk/settings.c:2560
 #, c-format
 msgid "%u/%u connection"
 msgid_plural "%u/%u connections"
 msgstr[0] "%u/%u σύνδεση"
 msgstr[1] "%u/%u συνδέσεις"
 
-#: src/ui/gtk/settings.c:2593
+#: src/ui/gtk/settings.c:2597
 #, c-format
 msgid "%u/%u upload"
 msgid_plural "%u/%u uploads"
 msgstr[0] "%u/%u αποστολή"
 msgstr[1] "%u/%u αποστολές"
 
-#: src/ui/gtk/settings.c:2618
+#: src/ui/gtk/settings.c:2622
 #, c-format
 msgid "%u/%u download"
 msgid_plural "%u/%u downloads"
@@ -9235,4 +9391,3 @@ msgstr "Αποστολή ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ, σύνδεση πίσω.
 #: src/ui/gtk/uploads_common.c:205
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδων..."
-
