@@ -245,6 +245,7 @@ typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
 
 #ifdef USE_GLIB1
 typedef void (*GCallback) (void);
+#define G_STRLOC __FILE__ ":" STRINGIFY(__LINE__)
 #endif
 #ifdef USE_GLIB2
 #include <glib-object.h>
@@ -334,6 +335,20 @@ do {				\
 	 (__GNUC__ == (major) && __GNUC_MINOR__ >= (minor)))
 #else
 #define HAVE_GCC(major, minor) 0
+#endif
+
+/*
+ * If functions have this attribute GCC warns if it one of the specified
+ * parameters is NULL. This macro takes a list of parameter indices. The
+ * list must be embraced with parentheses for compatibility with C89
+ * compilers. Example:
+ *
+ * void my_memcpy(void *dst, const void *src, size_t n) NON_NULL_PARAM((1, 2));
+ */
+#if HAVE_GCC(3, 3)
+#define NON_NULL_PARAM(x) __attribute__((nonnull x))
+#else /* GCC < 3.3 */
+#define NON_NULL_PARAM(x)
 #endif
 
 /* Functions using this attribute cause a warning if the returned
