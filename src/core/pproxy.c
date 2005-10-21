@@ -334,14 +334,24 @@ get_params(struct pproxy *pp, gchar *request,
 	url_params_t *up;
 	guint i;
 
+	g_assert(pp);
+	g_assert(request);
+	g_assert(guid_atom);
+	g_assert(file_idx);
+	
 	/*
 	 * Move to the start of the requested path.  Note that sizeof("GET")
 	 * accounts for the trailing NUL in the string.
 	 */
 
-	uri = request + ((request[0] == 'G') ? sizeof("GET") : sizeof("HEAD"));
-	while (is_ascii_blank(*uri))
-		uri++;
+	uri = is_strprefix(request, "GET");
+	if (!uri)
+		uri = is_strprefix(request, "HEAD");
+	if (!uri) {
+		pproxy_error_remove(pp, 501, "Not Implemented");
+		return FALSE;
+	}
+	uri = skip_ascii_blanks(uri);
 
 	/*
 	 * Go patch the first space we encounter before HTTP to be a NUL.
@@ -353,7 +363,7 @@ get_params(struct pproxy *pp, gchar *request,
 	 */
 
 	p = strrchr(uri, ' ');
-	if (p && p[1]=='H' && p[2]=='T' && p[3]=='T' && p[4]=='P' && p[5]=='/')
+	if (p && is_strprefix(&p[1], "HTTP/"))
 		*p = '\0';
 
 	/*
@@ -453,19 +463,21 @@ get_params(struct pproxy *pp, gchar *request,
 		}
 
 		*guid_atom = atom_guid_get(guid);
-	} else
+	} else {
 		g_error("unhandled parameter \"%s\"", attr);
+	}
 
 	/*
 	 * Extract the optional "file=" parameter.
 	 */
 
 	value = url_params_get(up, "file");
+	{
+		gint error;
 
-	if (value == NULL)
-		*file_idx = 0;
-	else
-		*file_idx = (guint32) atoi(value);		/* Silent about errors */
+		/* Ignore errors; parse_uint32() returns 0 on error. */
+		*file_idx = value ? parse_uint32(value, NULL, 10, &error) : 0;
+	}
 
 	url_params_free(up);
 	return TRUE;
