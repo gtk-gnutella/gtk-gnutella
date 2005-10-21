@@ -41,55 +41,58 @@
 
 #ifdef FAST_ASSERTIONS
 /*
- * The following variant should be faster than the usual g_assert()
- * because leaf functions stay leaf functions as it does not add function
- * calls and the additional code is close to the possible minimum which
- * allows better optimization. However, it abuses deferencing a null pointer
- * to cause a SIGSEGV which is then caught by a signal handler. This is
- * provokes undefined behaviour but happens to work usually.
+ * The following variant should be faster than the usual g_assert() because
+ * leaf functions stay leaf functions as it does not add function calls and the
+ * generated code is smaller which allows better optimization. However, it
+ * abuses deferencing a null pointer to cause a SIGSEGV or for x86 the "int
+ * 0x03" assembler opcode to cause a SIGTRAP which is then caught by a signal
+ * handler. This is provokes undefined behaviour and is not portable but
+ * happens to work usually.
  *
- * Look at the generated code for hex2dec() to see the difference. It does
- * not seem to make difference overall though as it seems but that might be
- * heavily architecture-dependent.
+ * Look at the generated code for functions which use assertion checks to see
+ * the difference. It does not seem to make a significant difference in
+ * performance overall though as it seems but that might be heavily
+ * architecture-dependent.
  *
  * Taking advantage of it may require using -momit-leaf-frame-pointer or
- * -fomit-frame-pointer for GCC.
+ * -fomit-frame-pointer for GCC and an appropriate -march option is also
+ * recommended.
  */
 #undef g_assert
 #undef g_assert_not_reached
 
-extern const char *assert_msg_;
+/**
+ * eject_() is the userland equivalent of panic(). Don't use it directly,
+ * it should only used by assertion checks.
+ */
+static inline G_GNUC_NORETURN NON_NULL_PARAM((1)) void
+eject_(const gchar *msg)
+{
+	extern const char *assert_msg_;
 
-static inline G_GNUC_NORETURN void
-raise_assert_failure(void)
+	assert_msg_ = msg;
+	
 #if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
-{
-	/* This should raise a SIGTRAP with minimum code */
-	__asm__ __volatile__ ("int $03");
-}
+	{
+		/* This should raise a SIGTRAP with minimum code */
+		__asm__ __volatile__ ("int $03");
+	}
 #else
-{
-	static volatile gint *assert_trigger_;
-	*assert_trigger_ = 0;	/* ignite a SIGSEGV */
-}
+	{
+		static volatile gint *assert_trigger_;
+		*assert_trigger_ = 0;	/* ignite a SIGSEGV */
+	}
 #endif /* GCC/x86 */
+}
 
-#define g_assert(x)														\
-G_STMT_START {															\
-	if (G_UNLIKELY(!(x))) {												\
-		assert_msg_ = "\nAssertion failure \""							\
-			STRINGIFY(x) "\" in "										\
-			__FILE__ "(" STRINGIFY(__LINE__) ")\n";						\
-		raise_assert_failure();											\
-	}																	\
+#define g_assert(x)															  \
+G_STMT_START {																  \
+	if (G_UNLIKELY(!(x)))												 	  \
+		eject_("\nAssertion failure \"" STRINGIFY(x) "\" in " G_STRLOC "\n"); \
 } G_STMT_END
 
-#define g_assert_not_reached(x)							\
-G_STMT_START {								  			\
-	assert_msg_ = "\nCode should not be reached in "	\
-			__FILE__ "(" STRINGIFY(__LINE__) ")\n";		\
-	raise_assert_failure();								\
-} G_STMT_END
+#define g_assert_not_reached(x)												\
+	eject_("\nCode should not be reached in " G_STRLOC "\n");				\
 
 #endif /* FAST_ASSERTIONS */
 
