@@ -728,9 +728,9 @@ buffers_add_read(struct download *d, ssize_t amount)
  * @note precondition is: len <= SOCK_BUFSZ, the size of the socket buffer.
  */
 static gboolean
-buffers_match(struct download *d, gchar *data, size_t len)
+buffers_match(const struct download *d, const gchar *data, size_t len)
 {
-	struct dl_buffers *b;
+	const struct dl_buffers *b;
 
 	g_assert(d != NULL);
 	g_assert(d->buffers != NULL);
@@ -900,21 +900,21 @@ buffers_strip_leading(struct download *d, size_t amount)
 void
 download_timer(time_t now)
 {
-	GSList *l = sl_unqueued;		/* Only downloads not in the queue */
+	GSList *sl = sl_unqueued;		/* Only downloads not in the queue */
 
 	if (queue_frozen > 0) {
 		gcu_gui_update_download_clear_now();
 		return;
 	}
 
-	while (l) {
-		struct download *d = (struct download *) l->data;
+	while (sl) {
+		struct download *d = sl->data;
 		guint32 t;
 
 		g_assert(d != NULL);
 		g_assert(dl_server_valid(d->server));
 
-		l = l->next;
+		sl = g_slist_next(sl);
 
 		switch (d->status) {
 		case GTA_DL_RECEIVING:
@@ -2606,7 +2606,7 @@ download_stop_v(struct download *d, guint32 new_status,
 		list_target = DL_LIST_WAITING;
 		break;
 	default:
-		g_error("unexpected new status %d !", new_status);
+		g_error("unexpected new status %u !", (guint) new_status);
 		return;
 	}
 
@@ -3606,19 +3606,19 @@ attempt_retry:
 				download_guid(d), download_addr(d), download_port(d), TRUE);
 		} else
 			download_queue_hold(d, download_retry_refused_delay,
-				NG_("No direct connection yet (%d retry)",
-					"No direct connection yet (%d retries)", d->retries),
+				NG_("No direct connection yet (%u retry)",
+					"No direct connection yet (%u retries)", d->retries),
 					 d->retries);
 	} else if (d->retries < download_max_retries) {
 		d->retries++;
 		if (on_timeout)
 			download_queue_hold(d, download_retry_timeout_delay,
-				NG_("Timeout (%d retry)",
-					"Timeout (%d retries)", d->retries), d->retries);
+				NG_("Timeout (%u retry)",
+					"Timeout (%u retries)", d->retries), d->retries);
 		else
 			download_queue_hold(d, download_retry_refused_delay,
-				NG_("Connection refused (%d retry)",
-					"Connection refused (%d retries)", d->retries),
+				NG_("Connection refused (%u retry)",
+					"Connection refused (%u retries)", d->retries),
 					 d->retries);
 	} else {
 		/*
@@ -3627,8 +3627,8 @@ attempt_retry:
 		 */
 
 		download_unavailable(d, GTA_DL_ERROR,
-				NG_("Timeout (%d retry)",
-					"Timeout (%d retries)", d->retries), d->retries);
+				NG_("Timeout (%u retry)",
+					"Timeout (%u retries)", d->retries), d->retries);
 
 		download_remove_all_from_peer(
 			download_guid(d), download_addr(d), download_port(d), TRUE);
@@ -3990,7 +3990,8 @@ download_auto_new(gchar *file, filesize_t size, guint32 record_index,
 		reason = "SHA1 is already in library";
 		goto abort_download;
 	default:
-		g_error("ignore_is_requested() returned unexpected %d", ign_reason);
+		g_error("ignore_is_requested() returned unexpected %u",
+			(guint) ign_reason);
 	}
 
 	/*
@@ -4100,7 +4101,7 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
 {
 	struct dl_server *server = get_server(guid, addr, port, FALSE);
 	GList *l;
-	gint nfound = 0;
+	guint nfound = 0;
 	GSList *to_stop = NULL;
 	GSList *sl;
 	guint n;
@@ -4113,7 +4114,7 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
 
 	for (n = 0; n < G_N_ELEMENTS(listnum); n++) {
 		for (l = server->list[n]; l; l = g_list_next(l)) {
-			struct download *d = (struct download *) l->data;
+			struct download *d = l->data;
 			g_assert(d != NULL);
 
 			if (d->record_index != from)
@@ -4163,7 +4164,7 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
 	}
 
 	for (sl = to_stop; sl; sl = g_slist_next(sl)) {
-		struct download *d = (struct download *) sl->data;
+		struct download *d = sl->data;
 		download_queue_delay(d, download_retry_stopped_delay,
 			_("Stopped (Index changed)"));
 	}
@@ -4174,8 +4175,9 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
 	 */
 
 	if (nfound > 1) {
-		g_message("found %d requests for index %d (now %d) at %s",
-			nfound, from, to, host_addr_port_to_string(addr, port));
+		g_message("found %u requests for index %u (now %u) at %s",
+			nfound, (guint) from, (guint) to,
+			host_addr_port_to_string(addr, port));
     }
 }
 
@@ -4662,7 +4664,7 @@ err_header_read_error(gpointer o, gint error)
 				_("Stopped (%s)"), g_strerror(error));
 		else
 			download_unavailable(d, GTA_DL_ERROR,
-				_("Too many attempts (%d times)"), d->retries - 1);
+				_("Too many attempts (%u times)"), d->retries - 1);
 	} else
 		download_stop(d, GTA_DL_ERROR, _("Failed (Read error: %s)"),
 			g_strerror(error));
@@ -4697,7 +4699,7 @@ err_header_read_eof(gpointer o)
 			_("Stopped (EOF)"));
 	else
 		download_unavailable(d, GTA_DL_ERROR,
-			_("Too many attempts (%d times)"), d->retries - 1);
+			_("Too many attempts (%u times)"), d->retries - 1);
 }
 
 static struct io_error download_io_error = {
@@ -4840,16 +4842,16 @@ download_overlap_check(struct download *d)
 
 	if ((size_t) r != d->overlap_size) {
 		g_message(
-            "short read (%d instead of %d bytes) on resuming data "
-			"for \"%s\"", (gint) r, (gint) d->overlap_size, fi->file_name);
+            "short read (%u instead of %u bytes) on resuming data "
+			"for \"%s\"", (guint) r, (guint) d->overlap_size, fi->file_name);
 		download_stop(d, GTA_DL_ERROR, "Short read on resume data");
 		goto out;
 	}
 
 	if (!buffers_match(d, data, d->overlap_size)) {
 		if (download_debug > 1) {
-			g_message("%d overlapping bytes UNMATCHED at offset %s for \"%s\"",
-				(gint) d->overlap_size,
+			g_message("%u overlapping bytes UNMATCHED at offset %s for \"%s\"",
+				(guint) d->overlap_size,
 				uint64_to_string(d->skip - d->overlap_size),
 				download_outname(d));
         }
@@ -4880,9 +4882,9 @@ download_overlap_check(struct download *d)
 			else
 				begin = 0;
 			file_info_update(d, begin, end, DL_CHUNK_EMPTY);
-			g_message("resuming data mismatch on %s, backed out %d bytes block"
+			g_message("resuming data mismatch on %s, backed out %u bytes block"
 				" from %s to %s",
-				 download_outname(d), (gint) backout,
+				 download_outname(d), (guint) backout,
 				 uint64_to_string(begin), uint64_to_string2(end));
 
 			/*
@@ -4912,10 +4914,10 @@ download_overlap_check(struct download *d)
 	close(fd);
 
 	if (download_debug > 3)
-		g_message("%d overlapping bytes MATCHED "
+		g_message("%u overlapping bytes MATCHED "
 			"at offset %s for \"%s\"",
-			d->overlap_size, uint64_to_string(d->skip - d->overlap_size),
-			download_outname(d));
+			(guint) d->overlap_size,
+			uint64_to_string(d->skip - d->overlap_size), download_outname(d));
 
 	return TRUE;
 
@@ -5024,8 +5026,8 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	gnet_prop_set_guint64_val(PROP_DL_BYTE_COUNT, dl_byte_count + written);
 
 	if ((size_t) written < b->held) {
-		g_warning("partial write of %d out of %u bytes to file \"%s\"",
-			(int) written, b->held, download_outname(d));
+		g_warning("partial write of %u out of %u bytes to file \"%s\"",
+			(guint) written, b->held, download_outname(d));
 
 		if (may_stop)
 			download_queue_delay(d, download_retry_busy_delay,
@@ -5472,7 +5474,7 @@ guint
 extract_retry_after(struct download *d, const header_t *header)
 {
 	const gchar *buf;
-	gulong delay;
+	guint32 delay;
 	gint error;
 
 	/*
@@ -5484,12 +5486,12 @@ extract_retry_after(struct download *d, const header_t *header)
 	if (!buf)
 		return 0;
 
-	delay = gm_atoul(buf, NULL, &error);
+	delay = parse_uint32(buf, NULL, 10, &error);
 	if (error || delay > INT_MAX) {
 		time_t now = tm_time();
 		time_t retry = date2time(buf, now);
 
-		if (retry == (time_t) -1) {
+		if ((time_t) -1 == retry) {
 			g_warning("cannot parse Retry-After \"%s\" sent by %s <%s>",
 				buf,
 				host_addr_port_to_string(download_addr(d), download_port(d)),
@@ -6041,7 +6043,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 {
 	struct gnutella_socket *s = d->socket;
 	const gchar *status;
-	gint ack_code;
+	guint ack_code;
 	const gchar *ack_message = "";
 	gchar *buf;
 	struct stat st;
@@ -6184,9 +6186,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	if (ok)
 		short_read[0] = '\0';
 	else {
-		gint count = HEADER_LINES(header);
-		gm_snprintf(short_read, sizeof(short_read),
-			"[short %d line%s header] ", count, count == 1 ? "" : "s");
+		guint count = HEADER_LINES(header);
+		gm_snprintf(short_read, sizeof short_read,
+			"[short %u line%s header] ", count, count == 1 ? "" : "s");
 	}
 
 #ifdef TIGERTREE
@@ -6318,7 +6320,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 				if (buf == NULL) {
 					g_message("No Content-Length with keep-alive reply "
-						"%d \"%s\" from %s <%s>", ack_code, ack_message,
+						"%u \"%s\" from %s <%s>", ack_code, ack_message,
 						host_addr_port_to_string(download_addr(d),
 							download_port(d)),
 						download_vendor_str(d));
@@ -6333,7 +6335,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 				if (d->sinkleft > DOWNLOAD_MAX_SINK) {
 					g_message("Too much data to sink (%s bytes) on reply "
-						"%d \"%s\" from %s <%s>",
+						"%u \"%s\" from %s <%s>",
 						uint64_to_string(d->sinkleft), ack_code, ack_message,
 						host_addr_port_to_string(download_addr(d),
 							download_port(d)),
@@ -6411,7 +6413,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 		if (!ok) {
 			download_queue_delay(d, download_retry_busy_delay,
-				"%sHTTP %d %s", short_read, ack_code, ack_message);
+				"%sHTTP %u %s", short_read, ack_code, ack_message);
 			return;
 		}
 	} else {
@@ -6443,7 +6445,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			) {
 				download_queue_hold(d,
 					delay == 0 ?  1200 : delay,
-					"%sHTTP %d %s", short_read, ack_code, ack_message);
+					"%sHTTP %u %s", short_read, ack_code, ack_message);
 				return;
 			}
 		}
@@ -6454,7 +6456,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			download_passively_queued(d, FALSE);
 			download_queue_delay(d,
 				delay ? delay : download_retry_busy_delay,
-				"%sHTTP %d %s", short_read, ack_code, ack_message);
+				"%sHTTP %u %s", short_read, ack_code, ack_message);
 			return;
 		case 416:				/* Requested range not available */
 			/*
@@ -6493,7 +6495,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				download_passively_queued(d, TRUE);
 				download_queue_delay(d,
 					delay ? delay : download_retry_busy_delay,
-						_("Queued (slot %d/%d) ETA: %s"),
+						_("Queued (slot %u/%u) ETA: %s"),
 							get_parq_dl_position(d),
 							get_parq_dl_queue_length(d),
 							short_time(get_parq_dl_eta(d))
@@ -6503,14 +6505,14 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				download_passively_queued(d, FALSE);
 				download_queue_hold(d,
 					delay ? delay : download_retry_busy_delay,
-					"%sHTTP %d %s", short_read, ack_code, ack_message);
+					"%sHTTP %u %s", short_read, ack_code, ack_message);
 			}
 			return;
 		case 550:				/* Banned */
 			download_passively_queued(d, FALSE);
 			download_queue_hold(d,
 				delay ? delay : download_retry_refused_delay,
-				"%sHTTP %d %s", short_read, ack_code, ack_message);
+				"%sHTTP %u %s", short_read, ack_code, ack_message);
 			return;
 		default:
 			break;
@@ -6580,11 +6582,11 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 				if (hold)
 					download_queue_hold(d, hold,
-						"%sHTTP %d %s", short_read, ack_code, ack_message);
+						"%sHTTP %u %s", short_read, ack_code, ack_message);
 				else
 					download_queue_delay(d,
 						delay ? delay : download_retry_busy_delay,
-						"%sHTTP %d %s", short_read, ack_code, ack_message);
+						"%sHTTP %u %s", short_read, ack_code, ack_message);
 
 				return;
 			}
@@ -6622,7 +6624,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	report_error:
 		download_stop(d, GTA_DL_ERROR,
-			"%sHTTP %d %s", short_read, ack_code, ack_message);
+			"%sHTTP %u %s", short_read, ack_code, ack_message);
 		return;
 	}
 
@@ -7217,7 +7219,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	} else if (download_debug > 2) {
 		g_message(
-			"----Sent Request (%s) completely to %s (%d bytes):\n%.*s----\n",
+			"----Sent Request (%s) completely to %s (%u bytes):\n%.*s----\n",
 			d->keep_alive ? "follow-up" : "initial",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			http_buffer_length(r), http_buffer_length(r), http_buffer_base(r));
@@ -7228,7 +7230,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 */
 
 	if (download_debug) {
-		g_message("flushed partially written HTTP request to %s (%d bytes)",
+		g_message("flushed partially written HTTP request to %s (%u bytes)",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			http_buffer_length(r));
     }
@@ -7561,9 +7563,9 @@ picked:
 		 * path is clogged.
 		 */
 
-		g_message("Partial HTTP request write to %s: wrote %d out of %d bytes",
+		g_message("Partial HTTP request write to %s: wrote %u out of %u bytes",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
-			(int) sent, (int) rw);
+			(guint) sent, (guint) rw);
 
 		g_assert(d->req == NULL);
 
@@ -7578,14 +7580,14 @@ picked:
 		socket_evt_set(s, INPUT_EVENT_WX, download_write_request, d);
 		return;
 	} else if (download_debug > 2) {
-		g_message("----Sent Request (%s%s%s%s%s) to %s (%d bytes):\n%.*s----\n",
+		g_message("----Sent Request (%s%s%s%s%s) to %s (%u bytes):\n%.*s----\n",
 			d->keep_alive ? "follow-up" : "initial",
 			(d->server->attrs & DLS_A_HTTP_1_1) ? ", http/1.1" : "",
 			(d->server->attrs & DLS_A_PUSH_IGN) ? ", ign-push" : "",
 			(d->server->attrs & DLS_A_MINIMAL_HTTP) ? ", minimal" : "",
 			(d->server->attrs & DLS_A_FAKE_G2) ? ", g2" : "",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
-			(int) rw, (int) rw, dl_tmp);
+			(guint) rw, (gint) rw, dl_tmp);
 	}
 
 	download_request_sent(d);
@@ -7869,11 +7871,11 @@ download_push_ack(struct gnutella_socket *s)
 			count, hex_guid, host_addr_to_string(s->addr));
 		if (download_debug) {
 			GSList *sl;
-			gint i;
+			guint i;
 
 			for (sl = servers, i = 0; sl; sl = g_slist_next(sl), i++) {
 				struct dl_server *serv = sl->data;
-				g_message("  #%d is GUID %s at %s <%s>",
+				g_message("  #%u is GUID %s at %s <%s>",
 					i + 1, guid_hex_str(serv->key->guid),
 					host_addr_port_to_string(serv->key->addr, serv->key->port),
 					serv->vendor ? serv->vendor : "");
@@ -8102,7 +8104,7 @@ download_retrieve(void)
 	gchar d_hexguid[33];
 	gchar d_hostname[256];	/* Server hostname */
 	gint recline;			/* Record line number */
-	gint line;				/* File line number */
+	guint line;				/* File line number */
 	gchar d_guid[GUID_RAW_SIZE];
 	gchar sha1_digest[SHA1_RAW_SIZE];
 	gboolean has_sha1 = FALSE;
@@ -8159,7 +8161,7 @@ download_retrieve(void)
 				continue;			/* Allow arbitrary blank lines */
 
 			g_message("download_retrieve(): "
-				"Unexpected empty line #%d, aborting", line);
+				"Unexpected empty line #%u, aborting", line);
 			goto out;
 		}
 
@@ -8171,7 +8173,7 @@ download_retrieve(void)
 			/* Un-escape in place */
 			if (!url_unescape(dl_tmp, TRUE)) {
 				g_message("download_retrieve(): "
-					"Invalid escaping in line #%d, aborting", line);
+					"Invalid escaping in line #%u, aborting", line);
 				goto out;
 			}
 			d_name = atom_str_get(dl_tmp);
@@ -8194,14 +8196,14 @@ download_retrieve(void)
 			size64 = parse_uint64(dl_tmp, &endptr, 10, &error);
 			if (error || ',' != *endptr) {
 				g_message("download_retrieve(): "
-					"cannot parse line #%d: %s", line, dl_tmp);
+					"cannot parse line #%u: %s", line, dl_tmp);
 				goto out;
 			}
 
 			d_size = size64;
 			if ((guint64) d_size != size64) {
 				g_message("download_retrieve(): "
-					"filesize is too large in line #%d: %s", line, dl_tmp);
+					"filesize is too large in line #%u: %s", line, dl_tmp);
 				goto out;
 			}
 
@@ -8213,7 +8215,7 @@ download_retrieve(void)
 			d_index = parse_uint32(endptr, &endptr, 10, &error);
 			if (error || NULL == strchr(":,", *endptr)) {
 				g_message("download_retrieve(): "
-					"cannot parse index in line #%d: %s", line, dl_tmp);
+					"cannot parse index in line #%u: %s", line, dl_tmp);
 				goto out;
 			}
 
@@ -8231,14 +8233,14 @@ download_retrieve(void)
 
 			if (',' != *endptr) {
 				g_message("download_retrieve(): "
-					"expected ',' in line #%d: %s", line, dl_tmp);
+					"expected ',' in line #%u: %s", line, dl_tmp);
 				goto out;
 			}
 			endptr = skip_ascii_blanks(++endptr);
 
 			if (!string_to_host_addr_port(endptr, &endptr, &d_addr, &d_port)) {
 				g_message("download_retrieve(): "
-					"bad IP:port at line #%d: %s", line, dl_tmp);
+					"bad IP:port at line #%u: %s", line, dl_tmp);
 				d_port = 0;
 				d_addr = host_addr_set_ipv4(0);
 				d_push = TRUE;		/* Will drop download when scheduling it */
@@ -8269,7 +8271,7 @@ download_retrieve(void)
 					sha1_digest, sizeof(sha1_digest))
 			) {
 				g_message("download_retrieve(): "
-					"bad base32 SHA1 '%32s' at line #%d, ignoring",
+					"bad base32 SHA1 '%32s' at line #%u, ignoring",
 					dl_tmp, line);
 			} else
 				has_sha1 = TRUE;
@@ -8290,7 +8292,7 @@ download_retrieve(void)
 			break;
 		default:
 			g_message("download_retrieve(): "
-				"Too many lines for record at line #%d, aborting", line);
+				"Too many lines for record at line #%u, aborting", line);
 			goto out;
 		}
 
@@ -8299,7 +8301,7 @@ download_retrieve(void)
 		 */
 
 		if (!hex_to_guid(d_hexguid, d_guid)) {
-			g_message("download_rerieve(): Malformed GUID %s near line #%d",
+			g_message("download_rerieve(): Malformed GUID %s near line #%u",
 				d_hexguid, line);
         }
 
@@ -8311,8 +8313,8 @@ download_retrieve(void)
 		 */
 
 		if (dbg)
-			g_message("DOWNLOAD '%s' (%ld bytes) from %s (%s) SHA1=%s",
-				d_name, (glong) d_size, host_addr_to_string(d_addr),
+			g_message("DOWNLOAD '%s' (%s bytes) from %s (%s) SHA1=%s",
+				d_name, uint64_to_string(d_size), host_addr_to_string(d_addr),
 				d_hostname, has_sha1 ? sha1_base32(sha1_digest) : "<none>");
 
 		d = create_download(d_name, NULL, d_size, d_index, d_addr,
