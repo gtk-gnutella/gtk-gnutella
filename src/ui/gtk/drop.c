@@ -195,7 +195,7 @@ handle_magnet(gchar *url)
 			p += ep - p;
 
 			if (':' == *p) {
-				gchar *ep2;
+				const gchar *ep2;
 				gint error;
 				guint16 u;
 
@@ -207,8 +207,8 @@ handle_magnet(gchar *url)
 					continue;
 				}
 
-				port = v;
-				p = ep2;
+				port = u;
+				p += ep2 - p;
 			} else {
 				port = 80;
 			}
