@@ -1063,9 +1063,11 @@ data_hex_str(const gchar *data, size_t len)
 	return buf;
 }
 
-gint8 hex2int_tab[(size_t) (guchar) -1 + 1];
-gint8 dec2int_tab[(size_t) (guchar) -1 + 1];
-gint8 alnum2int_tab[(size_t) (guchar) -1 + 1];
+static gint8 char2int_tabs[3][(size_t) (guchar) -1 + 1];
+
+const gint8 *hex2int_tab = char2int_tabs[0];
+const gint8 *dec2int_tab = char2int_tabs[1];
+const gint8 *alnum2int_tab = char2int_tabs[2];
 
 /**
  * Converts a hexadecimal char (0-9, A-F, a-f) to an integer. Passing a
@@ -1131,11 +1133,11 @@ hex2int_init(void)
 
 	/* Initialize hex2int_tab */
 	
-	for (i = 0; i < G_N_ELEMENTS(hex2int_tab); i++) {
+	for (i = 0; i < G_N_ELEMENTS(char2int_tabs[0]); i++) {
 		static const gchar hexa[] = "0123456789abcdef";
 		const gchar *p = i ? strchr(hexa, ascii_tolower(i)): NULL;
 		
-		hex2int_tab[i] = p ? (p - hexa) : -1;
+		char2int_tabs[0][i] = p ? (p - hexa) : -1;
 	}
 	
 	/* Check consistency of hex2int_tab */
@@ -1179,11 +1181,11 @@ dec2int_init(void)
 
 	/* Initialize dec2int_tab */
 	
-	for (i = 0; i < G_N_ELEMENTS(dec2int_tab); i++) {
+	for (i = 0; i < G_N_ELEMENTS(char2int_tabs[1]); i++) {
 		static const gchar deca[] = "0123456789";
 		const gchar *p = i ? strchr(deca, i): NULL;
 		
-		dec2int_tab[i] = p ? (p - deca) : -1;
+		char2int_tabs[1][i] = p ? (p - deca) : -1;
 	}
 	
 	/* Check consistency of hex2int_tab */
@@ -1216,10 +1218,10 @@ alnum2int_init(void)
 
 	/* Initialize alnum2int_tab */
 	
-	for (i = 0; i < G_N_ELEMENTS(alnum2int_tab); i++) {
+	for (i = 0; i < G_N_ELEMENTS(char2int_tabs[2]); i++) {
 		const gchar *p = i ? strchr(abc, ascii_tolower(i)): NULL;
 		
-		alnum2int_tab[i] = p ? (p - abc) : -1;
+		char2int_tabs[2][i] = p ? (p - abc) : -1;
 	}
 	
 	/* Check consistency of hex2int_tab */

@@ -164,7 +164,7 @@ gint ascii_strncasecmp(const gchar *s1, const gchar *s2, size_t len);
 static inline gint
 hex2int_inline(guchar c)
 {
-	extern gint8 hex2int_tab[(size_t) (guchar) -1 + 1];
+	extern const gint8 *hex2int_tab;
 	return hex2int_tab[c];
 }
 
@@ -177,7 +177,7 @@ hex2int_inline(guchar c)
 static inline gint
 dec2int_inline(guchar c)
 {
-	extern gint8 dec2int_tab[(size_t) (guchar) -1 + 1];
+	extern const gint8 *dec2int_tab;
 	return dec2int_tab[c];
 }
 
@@ -190,7 +190,7 @@ dec2int_inline(guchar c)
 static inline gint
 alnum2int_inline(guchar c)
 {
-	extern gint8 alnum2int_tab[(size_t) (guchar) -1 + 1];
+	extern const gint8 *alnum2int_tab;
 	return alnum2int_tab[c];
 }
 
