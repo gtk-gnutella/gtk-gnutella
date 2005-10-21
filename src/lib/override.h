@@ -49,7 +49,7 @@
  * provokes undefined behaviour but happens to work usually.
  *
  * Look at the generated code for hex2dec() to see the difference. It does
- * not seem to make difference overall though as it seems but that might
+ * not seem to make difference overall though as it seems but that might be
  * heavily architecture-dependent.
  *
  * Taking advantage of it may require using -momit-leaf-frame-pointer or
@@ -78,7 +78,8 @@ raise_assert_failure(void)
 G_STMT_START {															\
 	if (G_UNLIKELY(!(x))) {												\
 		assert_msg_ = "\nAssertion failure \""							\
-			StGiFy(x) "\" in " __FILE__ "(" STRINGIFY(__LINE__) ")\n";	\
+			STRINGIFY(x) "\" in "										\
+			__FILE__ "(" STRINGIFY(__LINE__) ")\n";						\
 		raise_assert_failure();											\
 	}																	\
 } G_STMT_END
