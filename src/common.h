@@ -401,15 +401,14 @@ do {				\
 #define STATIC_ASSERT(x) \
 	do { switch (0) { case ((x) ? 1 : 0): case 0: break; } } while(0)
 
-#define xstr(x) STRINGIFY(x)
-
 #if defined(GTA_PATCHLEVEL) && (GTA_PATCHLEVEL != 0)
 #define GTA_VERSION_NUMBER \
-	xstr(GTA_VERSION) "." xstr(GTA_SUBVERSION) "." xstr(GTA_PATCHLEVEL) \
-		GTA_REVCHAR
+	STRINGIFY(GTA_VERSION) "." \
+	STRINGIFY(GTA_SUBVERSION) "." \
+	STRINGIFY(GTA_PATCHLEVEL) GTA_REVCHAR
 #else
 #define GTA_VERSION_NUMBER \
-	xstr(GTA_VERSION) "." xstr(GTA_SUBVERSION) GTA_REVCHAR
+	STRINGIFY(GTA_VERSION) "." STRINGIFY(GTA_SUBVERSION) GTA_REVCHAR
 #endif
 
 #define GTA_PORT			6346	/**< Default "standard" port */
