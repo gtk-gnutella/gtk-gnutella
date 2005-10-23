@@ -2059,7 +2059,7 @@ unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	filename = g_strconcat(path, sep, file, ext, extra_bytes, (void *) 0);
 	size = strlen(filename);
 	g_assert(size > sizeof extra_bytes);
-	len = size - (sizeof extra_bytes - 1);
+	len = size - CONST_STRLEN(extra_bytes);
 	g_assert(filename[len] == extra_bytes[0]);
 	filename[len] = '\0';
 
@@ -2086,7 +2086,7 @@ unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	 */
 
 	for (i = 0; i < 100; i++) {
-		guint32 rnum = random_value(~((guint32) 0));
+		guint32 rnum = random_value((guint32) -1);
 		gm_snprintf(&filename[len], size - len, ".%x%s", rnum, ext);
 		if (-1 == do_stat(filename, &buf) && ENOENT == do_errno)
 			return filename;
