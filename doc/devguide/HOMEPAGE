@@ -64,7 +64,7 @@ Gtk-Gnutella homepage at http://gtk-gnutella.sourceforge.net.
   should be kept as-is. The translation does not have to be 1:1, it
   should capture the intention and spirit of the original English text.
   Sometimes translation shows that the original text is sub-optimal. In
-  such a case you should also modify the orignal text instead of
+  such a case you should also modify the original text instead of
   translating it as-is. All documents must be UTF-8 encoded. If your
   editor does not support UTF-8 properly convert the files manually:
 
