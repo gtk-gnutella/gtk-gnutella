@@ -103,21 +103,16 @@ search_gui_new_search(const gchar *query, flag_t flags, search_t **search)
 {
     guint32 timeout;
 	gboolean ret;
-	gchar *to_free;
 
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
-	if (SEARCH_PASSIVE & flags) {
-		to_free = NULL;
-	} else {
-		to_free = ui_string_to_utf8(query);
-		query = to_free;
-	}
+	if (!(SEARCH_PASSIVE & flags))
+		query = lazy_ui_string_to_utf8(query);
+
     ret = search_gui_new_search_full(query, timeout,
 			search_sort_default_column, search_sort_default_order,
 			flags | SEARCH_ENABLED, search);
 
-	G_FREE_NULL(to_free);
 	return ret;
 }
 
