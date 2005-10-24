@@ -122,23 +122,30 @@ utf16_encode_char_compact(guint32 uc)
 	return 0;
 }
 
-const gchar *lazy_iso8859_1_to_utf8(const gchar *s);
-const gchar *lazy_locale_to_utf8(const gchar *str);
-gchar *locale_to_utf8(const gchar *str);
-gchar *locale_to_utf8_normalized(const gchar *str, uni_norm_t norm);
-gchar *filename_to_utf8_normalized(const gchar *str, uni_norm_t norm);
-gchar *ui_string_to_utf8(const gchar *str);
-
-gboolean is_ascii_string(const gchar *str);
-const gchar *lazy_utf8_to_locale(const gchar *str);
-gchar *utf8_to_filename(const gchar *s);
-gchar *utf8_to_locale(const gchar *s);
+/**
+ * Lazy converters either return a pointer to a static buffer or manage
+ * the allocated memory themselves. They may also return the original
+ * pointer. Copy the result before calling them again unless you don't
+ * need the previous result anymore.
+ */
+const gchar *lazy_iso8859_1_to_utf8(const gchar *src);
+const gchar *lazy_locale_to_utf8(const gchar *src);
+const gchar *lazy_ui_string_to_utf8(const gchar *src);
+const gchar *lazy_utf8_to_locale(const gchar *src);
 
 static inline const gchar *
 lazy_vendor_to_utf8(const gchar *s)
 {
 	return !s || utf8_is_valid_string(s, 0) ? s : lazy_iso8859_1_to_utf8(s);
 }
+
+gchar *locale_to_utf8(const gchar *str);
+gchar *locale_to_utf8_normalized(const gchar *str, uni_norm_t norm);
+gchar *filename_to_utf8_normalized(const gchar *str, uni_norm_t norm);
+
+gboolean is_ascii_string(const gchar *str);
+gchar *utf8_to_filename(const gchar *s);
+gchar *utf8_to_locale(const gchar *s);
 
 static inline gchar *
 utf8_or_locale_normalize(const gchar *s, uni_norm_t norm)

@@ -1762,8 +1762,14 @@ filename_to_utf8_normalized(const gchar *src, uni_norm_t norm)
 	return filename;
 }
 
-gchar *
-ui_string_to_utf8(const gchar *src)
+/**
+ * Converts a string as returned by the UI toolkit to UTF-8 but returns the
+ * original pointer if no conversion is necessary.  Do not free the returned
+ * string. The previously returned pointer may become invalid when calling this
+ * function again. 
+ */
+const gchar *
+lazy_ui_string_to_utf8(const gchar *src)
 #ifdef USE_GTK2
 {
 	g_assert(src);
@@ -1773,7 +1779,7 @@ ui_string_to_utf8(const gchar *src)
 #else /* USE_GTK2 */
 {
 	g_assert(src);
-	return locale_to_utf8(src);
+	return lazy_locale_to_utf8(src);
 }
 #endif /* USE_GTK2 */
 

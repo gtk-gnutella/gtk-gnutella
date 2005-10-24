@@ -732,7 +732,6 @@ filter_to_xml(xmlNodePtr parent, filter_t *f)
 {
     xmlNodePtr newxml;
     GList *l;
-	gchar *name;
 
     g_assert(f != NULL);
     g_assert(f->name != NULL);
@@ -755,13 +754,8 @@ filter_to_xml(xmlNodePtr parent, filter_t *f)
 			cast_to_gconstpointer(f->search));
     }
 
-	name = ui_string_to_utf8(f->name);
     newxml = xml_new_empty_child(parent, NODE_FILTER);
-    xml_prop_set(newxml, TAG_FILTER_NAME, name);
-	if (name != f->name)
-		G_FREE_NULL(name);
-
-
+    xml_prop_set(newxml, TAG_FILTER_NAME, lazy_ui_string_to_utf8(f->name));
     xml_prop_printf(newxml, TAG_FILTER_ACTIVE,
 		"%u", TO_BOOL(filter_is_active(f)));
 
@@ -806,16 +800,11 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
     switch (r->type) {
     case RULE_TEXT:
 		{
-			gchar *match;
-
-			match = ui_string_to_utf8(r->u.text.match);
 			newxml = xml_new_empty_child(parent, NODE_RULE_TEXT);
         	xml_prop_set(newxml, TAG_RULE_TEXT_CASE,
 				r->u.text.case_sensitive ? "1" : "0");
-        	xml_prop_set(newxml, TAG_RULE_TEXT_MATCH, match);
-			if (match != r->u.text.match)
-				G_FREE_NULL(match);
-
+        	xml_prop_set(newxml, TAG_RULE_TEXT_MATCH,
+				lazy_ui_string_to_utf8(r->u.text.match));
         	xml_prop_printf(newxml, TAG_RULE_TEXT_TYPE, "%u", r->u.text.type);
 		}
         break;
@@ -844,18 +833,14 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
         break;
     case RULE_SHA1:
 		{
-			gchar *name;
-
         	newxml = xml_new_empty_child(parent, NODE_RULE_SHA1);
 
         	if (r->u.sha1.hash != NULL)
             	xml_prop_set(newxml, TAG_RULE_SHA1_HASH,
 					sha1_base32(r->u.sha1.hash));
 
-        	name = ui_string_to_utf8(r->u.sha1.filename);
-			xml_prop_set(newxml, TAG_RULE_SHA1_FILENAME, name);
-			if (name != r->u.sha1.filename)
-				G_FREE_NULL(name);
+			xml_prop_set(newxml, TAG_RULE_SHA1_FILENAME,
+				lazy_ui_string_to_utf8(r->u.sha1.filename));
 		}
         /*
          * r->u.sha1.hash is NULL, we just omit the hash.
