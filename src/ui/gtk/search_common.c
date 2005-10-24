@@ -566,6 +566,61 @@ search_gui_find(gnet_search_t sh)
 }
 
 /**
+ * Extract the filename extensions - if any - from the given UTF-8
+ * encoded filename and convert it to lowercase. If the extension
+ * exceeds a certain length, it is assumed that it's no extension
+ * but just a non-specific dot inside a filename.
+ *
+ * @return NULL if there's no filename extension, otherwise a pointer
+ *         to a static string holding the lowercased extension.
+ */
+gchar *
+search_gui_get_filename_extension(const gchar *filename_utf8)
+{
+	const gchar *p = strrchr(filename_utf8, '.');
+	static gchar ext[32];
+
+	if (!p || utf8_strlower(ext, &p[1], sizeof ext) >= sizeof ext) {
+		/* If the guessed extension is really this long, assume the
+		 * part after the dot isn't an extension at all. */
+		return NULL;
+	}
+	return ext;
+}
+
+/**
+ * Converts the record filename to UTF-8 if necessary and normalizes it
+ * for displaying purposes. The conversion is a best effort scheme, it
+ * may still result in rubbish.
+ *
+ * @return a newly allocated UTF-8 encoded string normalized for the GUI.
+ */
+gchar *
+search_gui_record_name_to_utf8(const record_t *rc)
+{
+	gchar *s;
+	
+	g_assert(rc);
+	g_assert(rc->name);
+
+	if (utf8_is_valid_string(rc->name, 0)) {
+		/* UTF-8 is the standard encoding */
+		s = utf8_normalize(rc->name, UNI_NORM_GUI);
+	} else if (locale_is_utf8()) {
+		/* Many vendors still sent strings encoded with the users'
+		 * locale character set. Assume ISO-8859-1. */
+		s = latin_to_utf8_normalized(rc->name, UNI_NORM_GUI);
+	} else {
+		/* Assume our user expects content of his own language/charset
+		 * if it's not UTF-8. */
+		s = locale_to_utf8_normalized(rc->name, UNI_NORM_GUI);
+	}
+
+	return s;
+}
+
+
+/**
  * Create a new GUI record within `rs' from a Gnutella record.
  */
 record_t *

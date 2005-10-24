@@ -1086,6 +1086,7 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 {
   	GString *info = g_string_sized_new(80);
   	const gchar *titles[c_sr_num];
+	const gchar *ext;
 	gint count;
 	gpointer key = NULL;
 	gboolean is_parent = FALSE;
@@ -1145,21 +1146,9 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 
 	g_string_free(info, TRUE);
 
-	filename_utf8 = utf8_is_valid_string(rc->name, 0)
-		? utf8_normalize(rc->name, UNI_NORM_GUI)
-		: locale_to_utf8_normalized(rc->name, UNI_NORM_GUI);
-
-	{
-		const gchar *p = strrchr(filename_utf8, '.');
-		gchar ext[32];
-
-		if (!p || utf8_strlower(ext, &p[1], sizeof ext) >= sizeof ext) {
-			/* If the guessed extension is really this long, assume the
-			 * part after the dot isn't an extension at all. */
-			ext[0] = '\0';
-		}
-		rc->ext = atom_str_get(lazy_utf8_to_locale(ext));
-	}
+	filename_utf8 = search_gui_record_name_to_utf8(rc);
+	ext = search_gui_get_filename_extension(filename_utf8);
+	rc->ext = atom_str_get(ext ? lazy_utf8_to_locale(ext) : "");
 
 	/* Setup text for node.  Note only parent nodes will have # and size shown*/
 	titles[c_sr_filename] = lazy_utf8_to_locale(filename_utf8);

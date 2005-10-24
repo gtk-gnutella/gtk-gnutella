@@ -489,9 +489,9 @@ search_gui_add_record(
 	GtkTreeIter iter;
 	GtkTreeStore *model = GTK_TREE_STORE(sch->model);
     const struct results_set *rs = rc->results_set;
-	gchar *name_utf8;
+	gchar *filename_utf8;
 	size_t rw = 0;
-  	gchar info[1024], ext[32];
+  	gchar info[1024];
 
 	info[0] = '\0';
 
@@ -571,23 +571,10 @@ search_gui_add_record(
 
 	g_assert(rc->refcount >= 2);
 
-	name_utf8 = utf8_is_valid_string(rc->name, 0)
-		? utf8_normalize(rc->name, UNI_NORM_GUI)
-		: locale_to_utf8_normalized(rc->name, UNI_NORM_GUI);
-
-	{
-		const gchar *p = strrchr(name_utf8, '.');
-
-		if (!p || utf8_strlower(ext, &p[1], sizeof ext) >= sizeof ext) {
-			/* If the guessed extension is really this long, assume the
-			 * part after the dot isn't an extension at all. */
-			ext[0] = '\0';
-		}
-	}
-
+	filename_utf8 = search_gui_record_name_to_utf8(rc);
 	gtk_tree_store_set(model, &iter,
-		      c_sr_filename, name_utf8,
-		      c_sr_ext, ext[0] != '\0' ? ext : NULL,
+		      c_sr_filename, filename_utf8,
+		      c_sr_ext, search_gui_get_filename_extension(filename_utf8),
 		      c_sr_size, NULL != parent ? NULL : short_size(rc->size),
 			  c_sr_loc, iso3166_country_cc(rs->country),
 			  c_sr_meta, NULL,
@@ -596,6 +583,8 @@ search_gui_add_record(
 		      c_sr_bg, bg,
 		      c_sr_record, rc,
 		      (-1));
+
+	G_FREE_NULL(filename_utf8);
 
 	/*
 	 * There might be some metadata about this record already in the
