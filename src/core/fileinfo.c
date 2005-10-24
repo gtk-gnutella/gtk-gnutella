@@ -1138,7 +1138,7 @@ file_info_shared_sha1(const gchar *sha1)
 
 	fi = g_hash_table_lookup(fi_by_sha1, sha1);
 
-	if (NULL == fi || 0 == fi->done)
+	if (NULL == fi || 0 == fi->done || fi->size < pfsp_minimum_filesize)
 		return NULL;
 
 	g_assert(NULL != fi->sha1);

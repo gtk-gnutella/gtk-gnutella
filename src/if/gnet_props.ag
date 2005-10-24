@@ -2251,9 +2251,21 @@ prop = {
 			"file.  Don't set it too large.";
     type = guint32;
     data = {
-        default = 524288;
+        default = 524288; /* 512 KiB */
     };
 };
+
+prop = {
+    name = "pfsp_minimum_filesize";
+    desc = "When partial file sharing (PFSP) is enabled, gtk-gnutella will "
+			"not share partial files below this filesize. "
+			"Don't set it too large.";
+    type = guint32;
+    data = {
+        default = 524288; /* 512 KiB */
+    };
+};
+
 
 prop = {
     name = "fuzzy_filter_dmesh";

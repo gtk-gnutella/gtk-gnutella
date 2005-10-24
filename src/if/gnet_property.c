@@ -450,6 +450,8 @@ gboolean pfsp_server     = TRUE;
 gboolean pfsp_server_def = TRUE;
 guint32  pfsp_first_chunk     = 524288;
 guint32  pfsp_first_chunk_def = 524288;
+guint32  pfsp_minimum_filesize     = 524288;
+guint32  pfsp_minimum_filesize_def = 524288;
 gboolean fuzzy_filter_dmesh     = FALSE;
 gboolean fuzzy_filter_dmesh_def = FALSE;
 guint32  crawler_visit_count     = 0;
@@ -4288,20 +4290,40 @@ gnet_prop_init(void) {
 
 
     /*
-     * PROP_FUZZY_FILTER_DMESH:
+     * PROP_PFSP_MINIMUM_FILESIZE:
      *
      * General data:
      */
-    gnet_property->props[190].name = "fuzzy_filter_dmesh";
-    gnet_property->props[190].desc = _("Whether to apply a fuzzy filter on download mesh entries.  The purpose of this filtering is to remove entries whose names are too different to be sensibly part of the same mesh. When activated, your mesh will probably be more consistent at the cost of extra CPU time, and at the cost of losing some valid entries in the process.");
-    gnet_property->props[190].ev_changed = event_new("fuzzy_filter_dmesh_changed");
+    gnet_property->props[190].name = "pfsp_minimum_filesize";
+    gnet_property->props[190].desc = _("When partial file sharing (PFSP) is enabled, gtk-gnutella will not share partial files below this filesize. Don't set it too large.");
+    gnet_property->props[190].ev_changed = event_new("pfsp_minimum_filesize_changed");
     gnet_property->props[190].save = TRUE;
     gnet_property->props[190].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[190].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[190].data.boolean.def   = &fuzzy_filter_dmesh_def;
-    gnet_property->props[190].data.boolean.value = &fuzzy_filter_dmesh;
+    gnet_property->props[190].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[190].data.guint32.def   = &pfsp_minimum_filesize_def;
+    gnet_property->props[190].data.guint32.value = &pfsp_minimum_filesize;
+    gnet_property->props[190].data.guint32.choices = NULL;
+    gnet_property->props[190].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[190].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_FUZZY_FILTER_DMESH:
+     *
+     * General data:
+     */
+    gnet_property->props[191].name = "fuzzy_filter_dmesh";
+    gnet_property->props[191].desc = _("Whether to apply a fuzzy filter on download mesh entries.  The purpose of this filtering is to remove entries whose names are too different to be sensibly part of the same mesh. When activated, your mesh will probably be more consistent at the cost of extra CPU time, and at the cost of losing some valid entries in the process.");
+    gnet_property->props[191].ev_changed = event_new("fuzzy_filter_dmesh_changed");
+    gnet_property->props[191].save = TRUE;
+    gnet_property->props[191].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[191].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[191].data.boolean.def   = &fuzzy_filter_dmesh_def;
+    gnet_property->props[191].data.boolean.value = &fuzzy_filter_dmesh;
 
 
     /*
@@ -4309,19 +4331,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[191].name = "crawler_visit_count";
-    gnet_property->props[191].desc = _("Number of crawler visits during this session.");
-    gnet_property->props[191].ev_changed = event_new("crawler_visit_count_changed");
-    gnet_property->props[191].save = FALSE;
-    gnet_property->props[191].vector_size = 1;
+    gnet_property->props[192].name = "crawler_visit_count";
+    gnet_property->props[192].desc = _("Number of crawler visits during this session.");
+    gnet_property->props[192].ev_changed = event_new("crawler_visit_count_changed");
+    gnet_property->props[192].save = FALSE;
+    gnet_property->props[192].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[191].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[191].data.guint32.def   = &crawler_visit_count_def;
-    gnet_property->props[191].data.guint32.value = &crawler_visit_count;
-    gnet_property->props[191].data.guint32.choices = NULL;
-    gnet_property->props[191].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[191].data.guint32.min   = 0x00000000;
+    gnet_property->props[192].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[192].data.guint32.def   = &crawler_visit_count_def;
+    gnet_property->props[192].data.guint32.value = &crawler_visit_count;
+    gnet_property->props[192].data.guint32.choices = NULL;
+    gnet_property->props[192].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[192].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -4329,19 +4351,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[192].name = "udp_crawler_visit_count";
-    gnet_property->props[192].desc = _("Number of UDP crawler visits during this session.");
-    gnet_property->props[192].ev_changed = event_new("udp_crawler_visit_count_changed");
-    gnet_property->props[192].save = FALSE;
-    gnet_property->props[192].vector_size = 1;
+    gnet_property->props[193].name = "udp_crawler_visit_count";
+    gnet_property->props[193].desc = _("Number of UDP crawler visits during this session.");
+    gnet_property->props[193].ev_changed = event_new("udp_crawler_visit_count_changed");
+    gnet_property->props[193].save = FALSE;
+    gnet_property->props[193].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[192].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[192].data.guint32.def   = &udp_crawler_visit_count_def;
-    gnet_property->props[192].data.guint32.value = &udp_crawler_visit_count;
-    gnet_property->props[192].data.guint32.choices = NULL;
-    gnet_property->props[192].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[192].data.guint32.min   = 0x00000000;
+    gnet_property->props[193].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[193].data.guint32.def   = &udp_crawler_visit_count_def;
+    gnet_property->props[193].data.guint32.value = &udp_crawler_visit_count;
+    gnet_property->props[193].data.guint32.choices = NULL;
+    gnet_property->props[193].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[193].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -4349,16 +4371,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[193].name = "host_runs_ntp";
-    gnet_property->props[193].desc = _("Whether the clock of this host is kept accurate via NTP. When set, the computed clock skew is ignored. Normally, gtk-gnutella automatically determines whether you are running NTP locally, but it won't be able to determine whether your host is kept synchronized by regular calls to ntpdate, for instance.");
-    gnet_property->props[193].ev_changed = event_new("host_runs_ntp_changed");
-    gnet_property->props[193].save = TRUE;
-    gnet_property->props[193].vector_size = 1;
+    gnet_property->props[194].name = "host_runs_ntp";
+    gnet_property->props[194].desc = _("Whether the clock of this host is kept accurate via NTP. When set, the computed clock skew is ignored. Normally, gtk-gnutella automatically determines whether you are running NTP locally, but it won't be able to determine whether your host is kept synchronized by regular calls to ntpdate, for instance.");
+    gnet_property->props[194].ev_changed = event_new("host_runs_ntp_changed");
+    gnet_property->props[194].save = TRUE;
+    gnet_property->props[194].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[193].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[193].data.boolean.def   = &host_runs_ntp_def;
-    gnet_property->props[193].data.boolean.value = &host_runs_ntp;
+    gnet_property->props[194].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[194].data.boolean.def   = &host_runs_ntp_def;
+    gnet_property->props[194].data.boolean.value = &host_runs_ntp;
 
 
     /*
@@ -4366,16 +4388,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[194].name = "ntp_detected";
-    gnet_property->props[194].desc = _("Whether a running NTP daemon was detected locally.");
-    gnet_property->props[194].ev_changed = event_new("ntp_detected_changed");
-    gnet_property->props[194].save = FALSE;
-    gnet_property->props[194].vector_size = 1;
+    gnet_property->props[195].name = "ntp_detected";
+    gnet_property->props[195].desc = _("Whether a running NTP daemon was detected locally.");
+    gnet_property->props[195].ev_changed = event_new("ntp_detected_changed");
+    gnet_property->props[195].save = FALSE;
+    gnet_property->props[195].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[194].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[194].data.boolean.def   = &ntp_detected_def;
-    gnet_property->props[194].data.boolean.value = &ntp_detected;
+    gnet_property->props[195].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[195].data.boolean.def   = &ntp_detected_def;
+    gnet_property->props[195].data.boolean.value = &ntp_detected;
 
 
     /*
@@ -4383,19 +4405,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[195].name = "clock_skew";
-    gnet_property->props[195].desc = _("The signed clock skew of this host compared to absolute time. Adding this skew to the host clock should give the true time.");
-    gnet_property->props[195].ev_changed = event_new("clock_skew_changed");
-    gnet_property->props[195].save = TRUE;
-    gnet_property->props[195].vector_size = 1;
+    gnet_property->props[196].name = "clock_skew";
+    gnet_property->props[196].desc = _("The signed clock skew of this host compared to absolute time. Adding this skew to the host clock should give the true time.");
+    gnet_property->props[196].ev_changed = event_new("clock_skew_changed");
+    gnet_property->props[196].save = TRUE;
+    gnet_property->props[196].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[195].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[195].data.guint32.def   = &clock_skew_def;
-    gnet_property->props[195].data.guint32.value = &clock_skew;
-    gnet_property->props[195].data.guint32.choices = NULL;
-    gnet_property->props[195].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[195].data.guint32.min   = 0x00000000;
+    gnet_property->props[196].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[196].data.guint32.def   = &clock_skew_def;
+    gnet_property->props[196].data.guint32.value = &clock_skew;
+    gnet_property->props[196].data.guint32.choices = NULL;
+    gnet_property->props[196].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[196].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -4403,16 +4425,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[196].name = "node_monitor_unstable_ip";
-    gnet_property->props[196].desc = _("Whether gtk-gnutella should keep track of the IP of unstable servents it encounters, preventing further connections attempts to/from them.");
-    gnet_property->props[196].ev_changed = event_new("node_monitor_unstable_ip_changed");
-    gnet_property->props[196].save = TRUE;
-    gnet_property->props[196].vector_size = 1;
+    gnet_property->props[197].name = "node_monitor_unstable_ip";
+    gnet_property->props[197].desc = _("Whether gtk-gnutella should keep track of the IP of unstable servents it encounters, preventing further connections attempts to/from them.");
+    gnet_property->props[197].ev_changed = event_new("node_monitor_unstable_ip_changed");
+    gnet_property->props[197].save = TRUE;
+    gnet_property->props[197].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[196].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[196].data.boolean.def   = &node_monitor_unstable_ip_def;
-    gnet_property->props[196].data.boolean.value = &node_monitor_unstable_ip;
+    gnet_property->props[197].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[197].data.boolean.def   = &node_monitor_unstable_ip_def;
+    gnet_property->props[197].data.boolean.value = &node_monitor_unstable_ip;
 
 
     /*
@@ -4420,16 +4442,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[197].name = "node_monitor_unstable_servents";
-    gnet_property->props[197].desc = _("Whether gtk-gnutella should determine the servent types (as identified by their vendor string) that are unstable, preventing further connections to/from them.  This only works when gtk-gnutella already keeps track of unstable IP addresses.");
-    gnet_property->props[197].ev_changed = event_new("node_monitor_unstable_servents_changed");
-    gnet_property->props[197].save = TRUE;
-    gnet_property->props[197].vector_size = 1;
+    gnet_property->props[198].name = "node_monitor_unstable_servents";
+    gnet_property->props[198].desc = _("Whether gtk-gnutella should determine the servent types (as identified by their vendor string) that are unstable, preventing further connections to/from them.  This only works when gtk-gnutella already keeps track of unstable IP addresses.");
+    gnet_property->props[198].ev_changed = event_new("node_monitor_unstable_servents_changed");
+    gnet_property->props[198].save = TRUE;
+    gnet_property->props[198].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[197].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[197].data.boolean.def   = &node_monitor_unstable_servents_def;
-    gnet_property->props[197].data.boolean.value = &node_monitor_unstable_servents;
+    gnet_property->props[198].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[198].data.boolean.def   = &node_monitor_unstable_servents_def;
+    gnet_property->props[198].data.boolean.value = &node_monitor_unstable_servents;
 
 
     /*
@@ -4437,16 +4459,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[198].name = "dl_remove_file_on_mismatch";
-    gnet_property->props[198].desc = _("Whether gtk-gnutella should automatically remove the file whenever it gets a resuming mismatch and retry from scratch. Until Tiger Tree Hashes are widespread, this is the easiest option.");
-    gnet_property->props[198].ev_changed = event_new("dl_remove_file_on_mismatch_changed");
-    gnet_property->props[198].save = TRUE;
-    gnet_property->props[198].vector_size = 1;
+    gnet_property->props[199].name = "dl_remove_file_on_mismatch";
+    gnet_property->props[199].desc = _("Whether gtk-gnutella should automatically remove the file whenever it gets a resuming mismatch and retry from scratch. Until Tiger Tree Hashes are widespread, this is the easiest option.");
+    gnet_property->props[199].ev_changed = event_new("dl_remove_file_on_mismatch_changed");
+    gnet_property->props[199].save = TRUE;
+    gnet_property->props[199].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[198].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[198].data.boolean.def   = &dl_remove_file_on_mismatch_def;
-    gnet_property->props[198].data.boolean.value = &dl_remove_file_on_mismatch;
+    gnet_property->props[199].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[199].data.boolean.def   = &dl_remove_file_on_mismatch_def;
+    gnet_property->props[199].data.boolean.value = &dl_remove_file_on_mismatch;
 
 
     /*
@@ -4454,19 +4476,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[199].name = "dl_mismatch_backout";
-    gnet_property->props[199].desc = _("The amount of bytes which gtk-gnutella will strip off the already downloaded bytes after a resuming mismatch, in the hope that only this amount was corrupted, preventing proper resuming. Most of the time, a resuming mismatch indicates bad data on the server, but if the already downloaded data is bad then backing out some of it may allow us to recover from the problem.");
-    gnet_property->props[199].ev_changed = event_new("dl_mismatch_backout_changed");
-    gnet_property->props[199].save = TRUE;
-    gnet_property->props[199].vector_size = 1;
+    gnet_property->props[200].name = "dl_mismatch_backout";
+    gnet_property->props[200].desc = _("The amount of bytes which gtk-gnutella will strip off the already downloaded bytes after a resuming mismatch, in the hope that only this amount was corrupted, preventing proper resuming. Most of the time, a resuming mismatch indicates bad data on the server, but if the already downloaded data is bad then backing out some of it may allow us to recover from the problem.");
+    gnet_property->props[200].ev_changed = event_new("dl_mismatch_backout_changed");
+    gnet_property->props[200].save = TRUE;
+    gnet_property->props[200].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[199].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[199].data.guint32.def   = &dl_mismatch_backout_def;
-    gnet_property->props[199].data.guint32.value = &dl_mismatch_backout;
-    gnet_property->props[199].data.guint32.choices = NULL;
-    gnet_property->props[199].data.guint32.max   = 250000;
-    gnet_property->props[199].data.guint32.min   = 0;
+    gnet_property->props[200].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[200].data.guint32.def   = &dl_mismatch_backout_def;
+    gnet_property->props[200].data.guint32.value = &dl_mismatch_backout;
+    gnet_property->props[200].data.guint32.choices = NULL;
+    gnet_property->props[200].data.guint32.max   = 250000;
+    gnet_property->props[200].data.guint32.min   = 0;
 
 
     /*
@@ -4474,19 +4496,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[200].name = "server_hostname";
-    gnet_property->props[200].desc = _("The hostname of the server that can be used by downloaders to find the IP address via a DNS resolution.  If you have a dynamic IP address coupled with a dynamic DNS service, then this is valuable to downloaders: they may find your node even after a few rotations of your IP address.");
-    gnet_property->props[200].ev_changed = event_new("server_hostname_changed");
-    gnet_property->props[200].save = TRUE;
-    gnet_property->props[200].vector_size = 1;
+    gnet_property->props[201].name = "server_hostname";
+    gnet_property->props[201].desc = _("The hostname of the server that can be used by downloaders to find the IP address via a DNS resolution.  If you have a dynamic IP address coupled with a dynamic DNS service, then this is valuable to downloaders: they may find your node even after a few rotations of your IP address.");
+    gnet_property->props[201].ev_changed = event_new("server_hostname_changed");
+    gnet_property->props[201].save = TRUE;
+    gnet_property->props[201].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[200].type               = PROP_TYPE_STRING;
-    gnet_property->props[200].data.string.def    = &server_hostname_def;
-    gnet_property->props[200].data.string.value  = &server_hostname;
-    if (gnet_property->props[200].data.string.def) {
-        *gnet_property->props[200].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[200].data.string.def));
+    gnet_property->props[201].type               = PROP_TYPE_STRING;
+    gnet_property->props[201].data.string.def    = &server_hostname_def;
+    gnet_property->props[201].data.string.value  = &server_hostname;
+    if (gnet_property->props[201].data.string.def) {
+        *gnet_property->props[201].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[201].data.string.def));
     }
 
 
@@ -4495,16 +4517,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[201].name = "give_server_hostname";
-    gnet_property->props[201].desc = _("Whether gtk-gnutella should advertise the hostname of your server to downloaders and in query hits.");
-    gnet_property->props[201].ev_changed = event_new("give_server_hostname_changed");
-    gnet_property->props[201].save = TRUE;
-    gnet_property->props[201].vector_size = 1;
+    gnet_property->props[202].name = "give_server_hostname";
+    gnet_property->props[202].desc = _("Whether gtk-gnutella should advertise the hostname of your server to downloaders and in query hits.");
+    gnet_property->props[202].ev_changed = event_new("give_server_hostname_changed");
+    gnet_property->props[202].save = TRUE;
+    gnet_property->props[202].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[201].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[201].data.boolean.def   = &give_server_hostname_def;
-    gnet_property->props[201].data.boolean.value = &give_server_hostname;
+    gnet_property->props[202].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[202].data.boolean.def   = &give_server_hostname_def;
+    gnet_property->props[202].data.boolean.value = &give_server_hostname;
 
 
     /*
@@ -4512,19 +4534,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[202].name = "reserve_gtkg_nodes";
-    gnet_property->props[202].desc = _("Percentage of the number of connections we should reserve for gtk-gnutella nodes.");
-    gnet_property->props[202].ev_changed = event_new("reserve_gtkg_nodes_changed");
-    gnet_property->props[202].save = TRUE;
-    gnet_property->props[202].vector_size = 1;
+    gnet_property->props[203].name = "reserve_gtkg_nodes";
+    gnet_property->props[203].desc = _("Percentage of the number of connections we should reserve for gtk-gnutella nodes.");
+    gnet_property->props[203].ev_changed = event_new("reserve_gtkg_nodes_changed");
+    gnet_property->props[203].save = TRUE;
+    gnet_property->props[203].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[202].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[202].data.guint32.def   = &reserve_gtkg_nodes_def;
-    gnet_property->props[202].data.guint32.value = &reserve_gtkg_nodes;
-    gnet_property->props[202].data.guint32.choices = NULL;
-    gnet_property->props[202].data.guint32.max   = 90;
-    gnet_property->props[202].data.guint32.min   = 0;
+    gnet_property->props[203].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[203].data.guint32.def   = &reserve_gtkg_nodes_def;
+    gnet_property->props[203].data.guint32.value = &reserve_gtkg_nodes;
+    gnet_property->props[203].data.guint32.choices = NULL;
+    gnet_property->props[203].data.guint32.max   = 90;
+    gnet_property->props[203].data.guint32.min   = 0;
 
 
     /*
@@ -4532,19 +4554,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[203].name = "unique_nodes";
-    gnet_property->props[203].desc = _("Maximum percentage of slots a vendor can occupy.");
-    gnet_property->props[203].ev_changed = event_new("unique_nodes_changed");
-    gnet_property->props[203].save = TRUE;
-    gnet_property->props[203].vector_size = 1;
+    gnet_property->props[204].name = "unique_nodes";
+    gnet_property->props[204].desc = _("Maximum percentage of slots a vendor can occupy.");
+    gnet_property->props[204].ev_changed = event_new("unique_nodes_changed");
+    gnet_property->props[204].save = TRUE;
+    gnet_property->props[204].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[203].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[203].data.guint32.def   = &unique_nodes_def;
-    gnet_property->props[203].data.guint32.value = &unique_nodes;
-    gnet_property->props[203].data.guint32.choices = NULL;
-    gnet_property->props[203].data.guint32.max   = 100;
-    gnet_property->props[203].data.guint32.min   = 10;
+    gnet_property->props[204].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[204].data.guint32.def   = &unique_nodes_def;
+    gnet_property->props[204].data.guint32.value = &unique_nodes;
+    gnet_property->props[204].data.guint32.choices = NULL;
+    gnet_property->props[204].data.guint32.max   = 100;
+    gnet_property->props[204].data.guint32.min   = 10;
 
 
     /*
@@ -4552,19 +4574,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[204].name = "download_rx_size";
-    gnet_property->props[204].desc = _("Size of the RX socket buffer to be used for downloads, in kbytes. If you wish to avoid Gnutella downloads using up all your bandwidth, set it to a low value (default is 64K, which is fine). If you don't mind sucking up all the available bandwidth, increasing your connection latency, set it to a greater value. Remember: the smaller the value, the more you will be able to precisely control the incoming rate.");
-    gnet_property->props[204].ev_changed = event_new("download_rx_size_changed");
-    gnet_property->props[204].save = TRUE;
-    gnet_property->props[204].vector_size = 1;
+    gnet_property->props[205].name = "download_rx_size";
+    gnet_property->props[205].desc = _("Size of the RX socket buffer to be used for downloads, in kbytes. If you wish to avoid Gnutella downloads using up all your bandwidth, set it to a low value (default is 64K, which is fine). If you don't mind sucking up all the available bandwidth, increasing your connection latency, set it to a greater value. Remember: the smaller the value, the more you will be able to precisely control the incoming rate.");
+    gnet_property->props[205].ev_changed = event_new("download_rx_size_changed");
+    gnet_property->props[205].save = TRUE;
+    gnet_property->props[205].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[204].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[204].data.guint32.def   = &download_rx_size_def;
-    gnet_property->props[204].data.guint32.value = &download_rx_size;
-    gnet_property->props[204].data.guint32.choices = NULL;
-    gnet_property->props[204].data.guint32.max   = 128;
-    gnet_property->props[204].data.guint32.min   = 2;
+    gnet_property->props[205].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[205].data.guint32.def   = &download_rx_size_def;
+    gnet_property->props[205].data.guint32.value = &download_rx_size;
+    gnet_property->props[205].data.guint32.choices = NULL;
+    gnet_property->props[205].data.guint32.max   = 128;
+    gnet_property->props[205].data.guint32.min   = 2;
 
 
     /*
@@ -4572,19 +4594,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[205].name = "node_rx_size";
-    gnet_property->props[205].desc = _("Size of the RX socket buffer to be used for nodes, in kbytes. The lower the value, the faster the remote end will flow-control at the TCP/IP level if you don't read quickly enough, which would be the case if you limit the incoming bandwidth.");
-    gnet_property->props[205].ev_changed = event_new("node_rx_size_changed");
-    gnet_property->props[205].save = TRUE;
-    gnet_property->props[205].vector_size = 1;
+    gnet_property->props[206].name = "node_rx_size";
+    gnet_property->props[206].desc = _("Size of the RX socket buffer to be used for nodes, in kbytes. The lower the value, the faster the remote end will flow-control at the TCP/IP level if you don't read quickly enough, which would be the case if you limit the incoming bandwidth.");
+    gnet_property->props[206].ev_changed = event_new("node_rx_size_changed");
+    gnet_property->props[206].save = TRUE;
+    gnet_property->props[206].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[205].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[205].data.guint32.def   = &node_rx_size_def;
-    gnet_property->props[205].data.guint32.value = &node_rx_size;
-    gnet_property->props[205].data.guint32.choices = NULL;
-    gnet_property->props[205].data.guint32.max   = 128;
-    gnet_property->props[205].data.guint32.min   = 2;
+    gnet_property->props[206].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[206].data.guint32.def   = &node_rx_size_def;
+    gnet_property->props[206].data.guint32.value = &node_rx_size;
+    gnet_property->props[206].data.guint32.choices = NULL;
+    gnet_property->props[206].data.guint32.max   = 128;
+    gnet_property->props[206].data.guint32.min   = 2;
 
 
     /*
@@ -4592,19 +4614,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[206].name = "dl_http_latency";
-    gnet_property->props[206].desc = _("Average recent latency between the sending of the HTTP request and the reception of the reply from the remote server, in msecs.");
-    gnet_property->props[206].ev_changed = event_new("dl_http_latency_changed");
-    gnet_property->props[206].save = FALSE;
-    gnet_property->props[206].vector_size = 1;
+    gnet_property->props[207].name = "dl_http_latency";
+    gnet_property->props[207].desc = _("Average recent latency between the sending of the HTTP request and the reception of the reply from the remote server, in msecs.");
+    gnet_property->props[207].ev_changed = event_new("dl_http_latency_changed");
+    gnet_property->props[207].save = FALSE;
+    gnet_property->props[207].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[206].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[206].data.guint32.def   = &dl_http_latency_def;
-    gnet_property->props[206].data.guint32.value = &dl_http_latency;
-    gnet_property->props[206].data.guint32.choices = NULL;
-    gnet_property->props[206].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[206].data.guint32.min   = 0x00000000;
+    gnet_property->props[207].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[207].data.guint32.def   = &dl_http_latency_def;
+    gnet_property->props[207].data.guint32.value = &dl_http_latency;
+    gnet_property->props[207].data.guint32.choices = NULL;
+    gnet_property->props[207].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[207].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -4612,19 +4634,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[207].name = "node_last_ultra_check";
-    gnet_property->props[207].desc = _("Last time at which we performed the ultrapeer requirement checks.");
-    gnet_property->props[207].ev_changed = event_new("node_last_ultra_check_changed");
-    gnet_property->props[207].save = TRUE;
-    gnet_property->props[207].vector_size = 1;
+    gnet_property->props[208].name = "node_last_ultra_check";
+    gnet_property->props[208].desc = _("Last time at which we performed the ultrapeer requirement checks.");
+    gnet_property->props[208].ev_changed = event_new("node_last_ultra_check_changed");
+    gnet_property->props[208].save = TRUE;
+    gnet_property->props[208].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[207].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[207].data.guint64.def   = &node_last_ultra_check_def;
-    gnet_property->props[207].data.guint64.value = &node_last_ultra_check;
-    gnet_property->props[207].data.guint64.choices = NULL;
-    gnet_property->props[207].data.guint64.max   = (guint64) -1;
-    gnet_property->props[207].data.guint64.min   = 0x0000000000000000;
+    gnet_property->props[208].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[208].data.guint64.def   = &node_last_ultra_check_def;
+    gnet_property->props[208].data.guint64.value = &node_last_ultra_check;
+    gnet_property->props[208].data.guint64.choices = NULL;
+    gnet_property->props[208].data.guint64.max   = (guint64) -1;
+    gnet_property->props[208].data.guint64.min   = 0x0000000000000000;
 
 
     /*
@@ -4632,19 +4654,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[208].name = "node_last_ultra_leaf_switch";
-    gnet_property->props[208].desc = _("Last time an automatic switch between ultra and leaf mode occurred.");
-    gnet_property->props[208].ev_changed = event_new("node_last_ultra_leaf_switch_changed");
-    gnet_property->props[208].save = FALSE;
-    gnet_property->props[208].vector_size = 1;
+    gnet_property->props[209].name = "node_last_ultra_leaf_switch";
+    gnet_property->props[209].desc = _("Last time an automatic switch between ultra and leaf mode occurred.");
+    gnet_property->props[209].ev_changed = event_new("node_last_ultra_leaf_switch_changed");
+    gnet_property->props[209].save = FALSE;
+    gnet_property->props[209].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[208].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[208].data.guint64.def   = &node_last_ultra_leaf_switch_def;
-    gnet_property->props[208].data.guint64.value = &node_last_ultra_leaf_switch;
-    gnet_property->props[208].data.guint64.choices = NULL;
-    gnet_property->props[208].data.guint64.max   = (guint64) -1;
-    gnet_property->props[208].data.guint64.min   = 0x0000000000000000;
+    gnet_property->props[209].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[209].data.guint64.def   = &node_last_ultra_leaf_switch_def;
+    gnet_property->props[209].data.guint64.value = &node_last_ultra_leaf_switch;
+    gnet_property->props[209].data.guint64.choices = NULL;
+    gnet_property->props[209].data.guint64.max   = (guint64) -1;
+    gnet_property->props[209].data.guint64.min   = 0x0000000000000000;
 
 
     /*
@@ -4652,16 +4674,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[209].name = "up_req_avg_servent_uptime";
-    gnet_property->props[209].desc = _("Whether we meet the sufficient average uptime requirement to become an Ultra node.");
-    gnet_property->props[209].ev_changed = event_new("up_req_avg_servent_uptime_changed");
-    gnet_property->props[209].save = FALSE;
-    gnet_property->props[209].vector_size = 1;
+    gnet_property->props[210].name = "up_req_avg_servent_uptime";
+    gnet_property->props[210].desc = _("Whether we meet the sufficient average uptime requirement to become an Ultra node.");
+    gnet_property->props[210].ev_changed = event_new("up_req_avg_servent_uptime_changed");
+    gnet_property->props[210].save = FALSE;
+    gnet_property->props[210].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[209].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[209].data.boolean.def   = &up_req_avg_servent_uptime_def;
-    gnet_property->props[209].data.boolean.value = &up_req_avg_servent_uptime;
+    gnet_property->props[210].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[210].data.boolean.def   = &up_req_avg_servent_uptime_def;
+    gnet_property->props[210].data.boolean.value = &up_req_avg_servent_uptime;
 
 
     /*
@@ -4669,16 +4691,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[210].name = "up_req_avg_ip_uptime";
-    gnet_property->props[210].desc = _("Whether we meet the sufficient average IP address uptime requirement to become an Ultra node.");
-    gnet_property->props[210].ev_changed = event_new("up_req_avg_ip_uptime_changed");
-    gnet_property->props[210].save = FALSE;
-    gnet_property->props[210].vector_size = 1;
+    gnet_property->props[211].name = "up_req_avg_ip_uptime";
+    gnet_property->props[211].desc = _("Whether we meet the sufficient average IP address uptime requirement to become an Ultra node.");
+    gnet_property->props[211].ev_changed = event_new("up_req_avg_ip_uptime_changed");
+    gnet_property->props[211].save = FALSE;
+    gnet_property->props[211].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[210].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[210].data.boolean.def   = &up_req_avg_ip_uptime_def;
-    gnet_property->props[210].data.boolean.value = &up_req_avg_ip_uptime;
+    gnet_property->props[211].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[211].data.boolean.def   = &up_req_avg_ip_uptime_def;
+    gnet_property->props[211].data.boolean.value = &up_req_avg_ip_uptime;
 
 
     /*
@@ -4686,16 +4708,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[211].name = "up_req_node_uptime";
-    gnet_property->props[211].desc = _("Whether we meet the sufficient node uptime requirement to become an Ultra node.");
-    gnet_property->props[211].ev_changed = event_new("up_req_node_uptime_changed");
-    gnet_property->props[211].save = FALSE;
-    gnet_property->props[211].vector_size = 1;
+    gnet_property->props[212].name = "up_req_node_uptime";
+    gnet_property->props[212].desc = _("Whether we meet the sufficient node uptime requirement to become an Ultra node.");
+    gnet_property->props[212].ev_changed = event_new("up_req_node_uptime_changed");
+    gnet_property->props[212].save = FALSE;
+    gnet_property->props[212].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[211].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[211].data.boolean.def   = &up_req_node_uptime_def;
-    gnet_property->props[211].data.boolean.value = &up_req_node_uptime;
+    gnet_property->props[212].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[212].data.boolean.def   = &up_req_node_uptime_def;
+    gnet_property->props[212].data.boolean.value = &up_req_node_uptime;
 
 
     /*
@@ -4703,16 +4725,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[212].name = "up_req_not_firewalled";
-    gnet_property->props[212].desc = _("Whether we meet the non-firewalled requirement to become an Ultra node.");
-    gnet_property->props[212].ev_changed = event_new("up_req_not_firewalled_changed");
-    gnet_property->props[212].save = FALSE;
-    gnet_property->props[212].vector_size = 1;
+    gnet_property->props[213].name = "up_req_not_firewalled";
+    gnet_property->props[213].desc = _("Whether we meet the non-firewalled requirement to become an Ultra node.");
+    gnet_property->props[213].ev_changed = event_new("up_req_not_firewalled_changed");
+    gnet_property->props[213].save = FALSE;
+    gnet_property->props[213].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[212].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[212].data.boolean.def   = &up_req_not_firewalled_def;
-    gnet_property->props[212].data.boolean.value = &up_req_not_firewalled;
+    gnet_property->props[213].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[213].data.boolean.def   = &up_req_not_firewalled_def;
+    gnet_property->props[213].data.boolean.value = &up_req_not_firewalled;
 
 
     /*
@@ -4720,16 +4742,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[213].name = "up_req_enough_conn";
-    gnet_property->props[213].desc = _("Whether we meet the minimum amount of peer connections requirement to become an Ultra node.");
-    gnet_property->props[213].ev_changed = event_new("up_req_enough_conn_changed");
-    gnet_property->props[213].save = FALSE;
-    gnet_property->props[213].vector_size = 1;
+    gnet_property->props[214].name = "up_req_enough_conn";
+    gnet_property->props[214].desc = _("Whether we meet the minimum amount of peer connections requirement to become an Ultra node.");
+    gnet_property->props[214].ev_changed = event_new("up_req_enough_conn_changed");
+    gnet_property->props[214].save = FALSE;
+    gnet_property->props[214].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[213].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[213].data.boolean.def   = &up_req_enough_conn_def;
-    gnet_property->props[213].data.boolean.value = &up_req_enough_conn;
+    gnet_property->props[214].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[214].data.boolean.def   = &up_req_enough_conn_def;
+    gnet_property->props[214].data.boolean.value = &up_req_enough_conn;
 
 
     /*
@@ -4737,16 +4759,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[214].name = "up_req_enough_fd";
-    gnet_property->props[214].desc = _("Whether we meet the amount of file descriptor requirement to become an Ultra node.");
-    gnet_property->props[214].ev_changed = event_new("up_req_enough_fd_changed");
-    gnet_property->props[214].save = FALSE;
-    gnet_property->props[214].vector_size = 1;
+    gnet_property->props[215].name = "up_req_enough_fd";
+    gnet_property->props[215].desc = _("Whether we meet the amount of file descriptor requirement to become an Ultra node.");
+    gnet_property->props[215].ev_changed = event_new("up_req_enough_fd_changed");
+    gnet_property->props[215].save = FALSE;
+    gnet_property->props[215].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[214].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[214].data.boolean.def   = &up_req_enough_fd_def;
-    gnet_property->props[214].data.boolean.value = &up_req_enough_fd;
+    gnet_property->props[215].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[215].data.boolean.def   = &up_req_enough_fd_def;
+    gnet_property->props[215].data.boolean.value = &up_req_enough_fd;
 
 
     /*
@@ -4754,16 +4776,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[215].name = "up_req_enough_mem";
-    gnet_property->props[215].desc = _("Whether we meet the memory requirements to become an Ultra node.");
-    gnet_property->props[215].ev_changed = event_new("up_req_enough_mem_changed");
-    gnet_property->props[215].save = FALSE;
-    gnet_property->props[215].vector_size = 1;
+    gnet_property->props[216].name = "up_req_enough_mem";
+    gnet_property->props[216].desc = _("Whether we meet the memory requirements to become an Ultra node.");
+    gnet_property->props[216].ev_changed = event_new("up_req_enough_mem_changed");
+    gnet_property->props[216].save = FALSE;
+    gnet_property->props[216].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[215].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[215].data.boolean.def   = &up_req_enough_mem_def;
-    gnet_property->props[215].data.boolean.value = &up_req_enough_mem;
+    gnet_property->props[216].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[216].data.boolean.def   = &up_req_enough_mem_def;
+    gnet_property->props[216].data.boolean.value = &up_req_enough_mem;
 
 
     /*
@@ -4771,16 +4793,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[216].name = "up_req_enough_bw";
-    gnet_property->props[216].desc = _("Whether we meet the bandwidth requirements to become an Ultra node.");
-    gnet_property->props[216].ev_changed = event_new("up_req_enough_bw_changed");
-    gnet_property->props[216].save = FALSE;
-    gnet_property->props[216].vector_size = 1;
+    gnet_property->props[217].name = "up_req_enough_bw";
+    gnet_property->props[217].desc = _("Whether we meet the bandwidth requirements to become an Ultra node.");
+    gnet_property->props[217].ev_changed = event_new("up_req_enough_bw_changed");
+    gnet_property->props[217].save = FALSE;
+    gnet_property->props[217].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[216].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[216].data.boolean.def   = &up_req_enough_bw_def;
-    gnet_property->props[216].data.boolean.value = &up_req_enough_bw;
+    gnet_property->props[217].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[217].data.boolean.def   = &up_req_enough_bw_def;
+    gnet_property->props[217].data.boolean.value = &up_req_enough_bw;
 
 
     /*
@@ -4788,19 +4810,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[217].name = "search_queue_size";
-    gnet_property->props[217].desc = _("Size of the search queue holding the locally generated queries before they are sent on a given connection.  When full, the oldest query is dropped without being sent.  Set it so that it is slightly larger than the amount of opened searches.");
-    gnet_property->props[217].ev_changed = event_new("search_queue_size_changed");
-    gnet_property->props[217].save = TRUE;
-    gnet_property->props[217].vector_size = 1;
+    gnet_property->props[218].name = "search_queue_size";
+    gnet_property->props[218].desc = _("Size of the search queue holding the locally generated queries before they are sent on a given connection.  When full, the oldest query is dropped without being sent.  Set it so that it is slightly larger than the amount of opened searches.");
+    gnet_property->props[218].ev_changed = event_new("search_queue_size_changed");
+    gnet_property->props[218].save = TRUE;
+    gnet_property->props[218].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[217].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[217].data.guint32.def   = &search_queue_size_def;
-    gnet_property->props[217].data.guint32.value = &search_queue_size;
-    gnet_property->props[217].data.guint32.choices = NULL;
-    gnet_property->props[217].data.guint32.max   = 512;
-    gnet_property->props[217].data.guint32.min   = 32;
+    gnet_property->props[218].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[218].data.guint32.def   = &search_queue_size_def;
+    gnet_property->props[218].data.guint32.value = &search_queue_size;
+    gnet_property->props[218].data.guint32.choices = NULL;
+    gnet_property->props[218].data.guint32.max   = 512;
+    gnet_property->props[218].data.guint32.min   = 32;
 
 
     /*
@@ -4808,19 +4830,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[218].name = "search_queue_spacing";
-    gnet_property->props[218].desc = _("Minimum amount of seconds between two consecutive queries sent to a given connection (for locally generated queries only!). The larger the value, the less negative impact it has on the network.");
-    gnet_property->props[218].ev_changed = event_new("search_queue_spacing_changed");
-    gnet_property->props[218].save = TRUE;
-    gnet_property->props[218].vector_size = 1;
+    gnet_property->props[219].name = "search_queue_spacing";
+    gnet_property->props[219].desc = _("Minimum amount of seconds between two consecutive queries sent to a given connection (for locally generated queries only!). The larger the value, the less negative impact it has on the network.");
+    gnet_property->props[219].ev_changed = event_new("search_queue_spacing_changed");
+    gnet_property->props[219].save = TRUE;
+    gnet_property->props[219].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[218].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[218].data.guint32.def   = &search_queue_spacing_def;
-    gnet_property->props[218].data.guint32.value = &search_queue_spacing;
-    gnet_property->props[218].data.guint32.choices = NULL;
-    gnet_property->props[218].data.guint32.max   = 60;
-    gnet_property->props[218].data.guint32.min   = 10;
+    gnet_property->props[219].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[219].data.guint32.def   = &search_queue_spacing_def;
+    gnet_property->props[219].data.guint32.value = &search_queue_spacing;
+    gnet_property->props[219].data.guint32.choices = NULL;
+    gnet_property->props[219].data.guint32.max   = 60;
+    gnet_property->props[219].data.guint32.min   = 10;
 
 
     /*
@@ -4828,16 +4850,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[219].name = "enable_shell";
-    gnet_property->props[219].desc = _("Whether connection to gtk-gnutella via the 'shell' control interface should be allowed.");
-    gnet_property->props[219].ev_changed = event_new("enable_shell_changed");
-    gnet_property->props[219].save = TRUE;
-    gnet_property->props[219].vector_size = 1;
+    gnet_property->props[220].name = "enable_shell";
+    gnet_property->props[220].desc = _("Whether connection to gtk-gnutella via the 'shell' control interface should be allowed.");
+    gnet_property->props[220].ev_changed = event_new("enable_shell_changed");
+    gnet_property->props[220].save = TRUE;
+    gnet_property->props[220].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[219].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[219].data.boolean.def   = &enable_shell_def;
-    gnet_property->props[219].data.boolean.value = &enable_shell;
+    gnet_property->props[220].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[220].data.boolean.def   = &enable_shell_def;
+    gnet_property->props[220].data.boolean.value = &enable_shell;
 
 
     /*
@@ -4845,19 +4867,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[220].name = "entry_removal_timeout";
-    gnet_property->props[220].desc = _("Amount of seconds to leave 'dead' entries around so that they can still be displayed by the GUI along with the termination status.");
-    gnet_property->props[220].ev_changed = event_new("entry_removal_timeout_changed");
-    gnet_property->props[220].save = TRUE;
-    gnet_property->props[220].vector_size = 1;
+    gnet_property->props[221].name = "entry_removal_timeout";
+    gnet_property->props[221].desc = _("Amount of seconds to leave 'dead' entries around so that they can still be displayed by the GUI along with the termination status.");
+    gnet_property->props[221].ev_changed = event_new("entry_removal_timeout_changed");
+    gnet_property->props[221].save = TRUE;
+    gnet_property->props[221].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[220].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[220].data.guint32.def   = &entry_removal_timeout_def;
-    gnet_property->props[220].data.guint32.value = &entry_removal_timeout;
-    gnet_property->props[220].data.guint32.choices = NULL;
-    gnet_property->props[220].data.guint32.max   = 60;
-    gnet_property->props[220].data.guint32.min   = 1;
+    gnet_property->props[221].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[221].data.guint32.def   = &entry_removal_timeout_def;
+    gnet_property->props[221].data.guint32.value = &entry_removal_timeout;
+    gnet_property->props[221].data.guint32.choices = NULL;
+    gnet_property->props[221].data.guint32.max   = 60;
+    gnet_property->props[221].data.guint32.min   = 1;
 
 
     /*
@@ -4865,16 +4887,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[221].name = "node_watch_similar_queries";
-    gnet_property->props[221].desc = _("Whether gtk-gnutella should actively monitor query strings by TTL and hop count and drop duplicates.  Only applies when not running as a leaf node, and only for queries with hop count > 0, i.e. not from our immediate neighbour.  Dropped queries will be accounted for in the 'Message throttle' counter.");
-    gnet_property->props[221].ev_changed = event_new("node_watch_similar_queries_changed");
-    gnet_property->props[221].save = TRUE;
-    gnet_property->props[221].vector_size = 1;
+    gnet_property->props[222].name = "node_watch_similar_queries";
+    gnet_property->props[222].desc = _("Whether gtk-gnutella should actively monitor query strings by TTL and hop count and drop duplicates.  Only applies when not running as a leaf node, and only for queries with hop count > 0, i.e. not from our immediate neighbour.  Dropped queries will be accounted for in the 'Message throttle' counter.");
+    gnet_property->props[222].ev_changed = event_new("node_watch_similar_queries_changed");
+    gnet_property->props[222].save = TRUE;
+    gnet_property->props[222].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[221].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[221].data.boolean.def   = &node_watch_similar_queries_def;
-    gnet_property->props[221].data.boolean.value = &node_watch_similar_queries;
+    gnet_property->props[222].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[222].data.boolean.def   = &node_watch_similar_queries_def;
+    gnet_property->props[222].data.boolean.value = &node_watch_similar_queries;
 
 
     /*
@@ -4882,19 +4904,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[222].name = "node_queries_half_life";
-    gnet_property->props[222].desc = _("Half the duration during which gtk-gnutella should remember the recently relayed queries by TTL and hop count.  The default value of 5 should be just fine, but you can experiment with different settings if you want.  The higher it is set, the more likely you are to drop legitimate queries, so be careful.");
-    gnet_property->props[222].ev_changed = event_new("node_queries_half_life_changed");
-    gnet_property->props[222].save = TRUE;
-    gnet_property->props[222].vector_size = 1;
+    gnet_property->props[223].name = "node_queries_half_life";
+    gnet_property->props[223].desc = _("Half the duration during which gtk-gnutella should remember the recently relayed queries by TTL and hop count.  The default value of 5 should be just fine, but you can experiment with different settings if you want.  The higher it is set, the more likely you are to drop legitimate queries, so be careful.");
+    gnet_property->props[223].ev_changed = event_new("node_queries_half_life_changed");
+    gnet_property->props[223].save = TRUE;
+    gnet_property->props[223].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[222].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[222].data.guint32.def   = &node_queries_half_life_def;
-    gnet_property->props[222].data.guint32.value = &node_queries_half_life;
-    gnet_property->props[222].data.guint32.choices = NULL;
-    gnet_property->props[222].data.guint32.max   = 10;
-    gnet_property->props[222].data.guint32.min   = 1;
+    gnet_property->props[223].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[223].data.guint32.def   = &node_queries_half_life_def;
+    gnet_property->props[223].data.guint32.value = &node_queries_half_life;
+    gnet_property->props[223].data.guint32.choices = NULL;
+    gnet_property->props[223].data.guint32.max   = 10;
+    gnet_property->props[223].data.guint32.min   = 1;
 
 
     /*
@@ -4902,19 +4924,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[223].name = "node_requery_threshold";
-    gnet_property->props[223].desc = _("The minimum amount of seconds to enforce between two identical queries from leaf nodes.  If the requery too early, it is dropped and accounted for in the 'Message throttle' counter.  Too frequent requeries are harmful for the network, yet we must allow some amount of requerying given the dynamic nature of Gnutella connections.  You can't disable this checking, but you can lower the constraint significantly. Deviations from the default of 1700 have exponential effects on the network traffic.");
-    gnet_property->props[223].ev_changed = event_new("node_requery_threshold_changed");
-    gnet_property->props[223].save = TRUE;
-    gnet_property->props[223].vector_size = 1;
+    gnet_property->props[224].name = "node_requery_threshold";
+    gnet_property->props[224].desc = _("The minimum amount of seconds to enforce between two identical queries from leaf nodes.  If the requery too early, it is dropped and accounted for in the 'Message throttle' counter.  Too frequent requeries are harmful for the network, yet we must allow some amount of requerying given the dynamic nature of Gnutella connections.  You can't disable this checking, but you can lower the constraint significantly. Deviations from the default of 1700 have exponential effects on the network traffic.");
+    gnet_property->props[224].ev_changed = event_new("node_requery_threshold_changed");
+    gnet_property->props[224].save = TRUE;
+    gnet_property->props[224].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[223].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[223].data.guint32.def   = &node_requery_threshold_def;
-    gnet_property->props[223].data.guint32.value = &node_requery_threshold;
-    gnet_property->props[223].data.guint32.choices = NULL;
-    gnet_property->props[223].data.guint32.max   = 1800;
-    gnet_property->props[223].data.guint32.min   = 1200;
+    gnet_property->props[224].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[224].data.guint32.def   = &node_requery_threshold_def;
+    gnet_property->props[224].data.guint32.value = &node_requery_threshold;
+    gnet_property->props[224].data.guint32.choices = NULL;
+    gnet_property->props[224].data.guint32.max   = 1800;
+    gnet_property->props[224].data.guint32.min   = 1200;
 
 
     /*
@@ -4922,19 +4944,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[224].name = "library_rescan_started";
-    gnet_property->props[224].desc = _("Time at which we started the last scan of the library.");
-    gnet_property->props[224].ev_changed = event_new("library_rescan_started_changed");
-    gnet_property->props[224].save = FALSE;
-    gnet_property->props[224].vector_size = 1;
+    gnet_property->props[225].name = "library_rescan_started";
+    gnet_property->props[225].desc = _("Time at which we started the last scan of the library.");
+    gnet_property->props[225].ev_changed = event_new("library_rescan_started_changed");
+    gnet_property->props[225].save = FALSE;
+    gnet_property->props[225].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[224].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[224].data.guint64.def   = &library_rescan_started_def;
-    gnet_property->props[224].data.guint64.value = &library_rescan_started;
-    gnet_property->props[224].data.guint64.choices = NULL;
-    gnet_property->props[224].data.guint64.max   = (guint64) -1;
-    gnet_property->props[224].data.guint64.min   = 0x0000000000000000;
+    gnet_property->props[225].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[225].data.guint64.def   = &library_rescan_started_def;
+    gnet_property->props[225].data.guint64.value = &library_rescan_started;
+    gnet_property->props[225].data.guint64.choices = NULL;
+    gnet_property->props[225].data.guint64.max   = (guint64) -1;
+    gnet_property->props[225].data.guint64.min   = 0x0000000000000000;
 
 
     /*
@@ -4942,19 +4964,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[225].name = "library_rescan_finished";
-    gnet_property->props[225].desc = _("Time at which the last scan of the library finished.");
-    gnet_property->props[225].ev_changed = event_new("library_rescan_finished_changed");
-    gnet_property->props[225].save = FALSE;
-    gnet_property->props[225].vector_size = 1;
+    gnet_property->props[226].name = "library_rescan_finished";
+    gnet_property->props[226].desc = _("Time at which the last scan of the library finished.");
+    gnet_property->props[226].ev_changed = event_new("library_rescan_finished_changed");
+    gnet_property->props[226].save = FALSE;
+    gnet_property->props[226].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[225].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[225].data.guint64.def   = &library_rescan_finished_def;
-    gnet_property->props[225].data.guint64.value = &library_rescan_finished;
-    gnet_property->props[225].data.guint64.choices = NULL;
-    gnet_property->props[225].data.guint64.max   = (guint64) -1;
-    gnet_property->props[225].data.guint64.min   = 0x0000000000000000;
+    gnet_property->props[226].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[226].data.guint64.def   = &library_rescan_finished_def;
+    gnet_property->props[226].data.guint64.value = &library_rescan_finished;
+    gnet_property->props[226].data.guint64.choices = NULL;
+    gnet_property->props[226].data.guint64.max   = (guint64) -1;
+    gnet_property->props[226].data.guint64.min   = 0x0000000000000000;
 
 
     /*
@@ -4962,19 +4984,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[226].name = "library_rescan_duration";
-    gnet_property->props[226].desc = _("The number of seconds the last scan of the library took.");
-    gnet_property->props[226].ev_changed = event_new("library_rescan_duration_changed");
-    gnet_property->props[226].save = FALSE;
-    gnet_property->props[226].vector_size = 1;
+    gnet_property->props[227].name = "library_rescan_duration";
+    gnet_property->props[227].desc = _("The number of seconds the last scan of the library took.");
+    gnet_property->props[227].ev_changed = event_new("library_rescan_duration_changed");
+    gnet_property->props[227].save = FALSE;
+    gnet_property->props[227].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[226].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[226].data.guint32.def   = &library_rescan_duration_def;
-    gnet_property->props[226].data.guint32.value = &library_rescan_duration;
-    gnet_property->props[226].data.guint32.choices = NULL;
-    gnet_property->props[226].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[226].data.guint32.min   = 0x00000000;
+    gnet_property->props[227].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[227].data.guint32.def   = &library_rescan_duration_def;
+    gnet_property->props[227].data.guint32.value = &library_rescan_duration;
+    gnet_property->props[227].data.guint32.choices = NULL;
+    gnet_property->props[227].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[227].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -4982,19 +5004,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[227].name = "qrp_indexing_started";
-    gnet_property->props[227].desc = _("Time at which we started shared file indexing.");
-    gnet_property->props[227].ev_changed = event_new("qrp_indexing_started_changed");
-    gnet_property->props[227].save = FALSE;
-    gnet_property->props[227].vector_size = 1;
+    gnet_property->props[228].name = "qrp_indexing_started";
+    gnet_property->props[228].desc = _("Time at which we started shared file indexing.");
+    gnet_property->props[228].ev_changed = event_new("qrp_indexing_started_changed");
+    gnet_property->props[228].save = FALSE;
+    gnet_property->props[228].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[227].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[227].data.guint64.def   = &qrp_indexing_started_def;
-    gnet_property->props[227].data.guint64.value = &qrp_indexing_started;
-    gnet_property->props[227].data.guint64.choices = NULL;
-    gnet_property->props[227].data.guint64.max   = (guint64) -1;
-    gnet_property->props[227].data.guint64.min   = 0x0000000000000000;
+    gnet_property->props[228].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[228].data.guint64.def   = &qrp_indexing_started_def;
+    gnet_property->props[228].data.guint64.value = &qrp_indexing_started;
+    gnet_property->props[228].data.guint64.choices = NULL;
+    gnet_property->props[228].data.guint64.max   = (guint64) -1;
+    gnet_property->props[228].data.guint64.min   = 0x0000000000000000;
 
 
     /*
@@ -5002,19 +5024,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[228].name = "qrp_indexing_duration";
-    gnet_property->props[228].desc = _("Time spent indexing shared files.");
-    gnet_property->props[228].ev_changed = event_new("qrp_indexing_duration_changed");
-    gnet_property->props[228].save = FALSE;
-    gnet_property->props[228].vector_size = 1;
+    gnet_property->props[229].name = "qrp_indexing_duration";
+    gnet_property->props[229].desc = _("Time spent indexing shared files.");
+    gnet_property->props[229].ev_changed = event_new("qrp_indexing_duration_changed");
+    gnet_property->props[229].save = FALSE;
+    gnet_property->props[229].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[228].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[228].data.guint32.def   = &qrp_indexing_duration_def;
-    gnet_property->props[228].data.guint32.value = &qrp_indexing_duration;
-    gnet_property->props[228].data.guint32.choices = NULL;
-    gnet_property->props[228].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[228].data.guint32.min   = 0x00000000;
+    gnet_property->props[229].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[229].data.guint32.def   = &qrp_indexing_duration_def;
+    gnet_property->props[229].data.guint32.value = &qrp_indexing_duration;
+    gnet_property->props[229].data.guint32.choices = NULL;
+    gnet_property->props[229].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[229].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5022,19 +5044,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[229].name = "qrp_timestamp";
-    gnet_property->props[229].desc = _("Time at which we started query routing table generation.");
-    gnet_property->props[229].ev_changed = event_new("qrp_timestamp_changed");
-    gnet_property->props[229].save = FALSE;
-    gnet_property->props[229].vector_size = 1;
+    gnet_property->props[230].name = "qrp_timestamp";
+    gnet_property->props[230].desc = _("Time at which we started query routing table generation.");
+    gnet_property->props[230].ev_changed = event_new("qrp_timestamp_changed");
+    gnet_property->props[230].save = FALSE;
+    gnet_property->props[230].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[229].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[229].data.guint64.def   = &qrp_timestamp_def;
-    gnet_property->props[229].data.guint64.value = &qrp_timestamp;
-    gnet_property->props[229].data.guint64.choices = NULL;
-    gnet_property->props[229].data.guint64.max   = (guint64) -1;
-    gnet_property->props[229].data.guint64.min   = 0x0000000000000000;
+    gnet_property->props[230].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[230].data.guint64.def   = &qrp_timestamp_def;
+    gnet_property->props[230].data.guint64.value = &qrp_timestamp;
+    gnet_property->props[230].data.guint64.choices = NULL;
+    gnet_property->props[230].data.guint64.max   = (guint64) -1;
+    gnet_property->props[230].data.guint64.min   = 0x0000000000000000;
 
 
     /*
@@ -5042,19 +5064,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[230].name = "qrp_computation_time";
-    gnet_property->props[230].desc = _("Time spent computing the QRP table, in seconds.");
-    gnet_property->props[230].ev_changed = event_new("qrp_computation_time_changed");
-    gnet_property->props[230].save = FALSE;
-    gnet_property->props[230].vector_size = 1;
+    gnet_property->props[231].name = "qrp_computation_time";
+    gnet_property->props[231].desc = _("Time spent computing the QRP table, in seconds.");
+    gnet_property->props[231].ev_changed = event_new("qrp_computation_time_changed");
+    gnet_property->props[231].save = FALSE;
+    gnet_property->props[231].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[230].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[230].data.guint32.def   = &qrp_computation_time_def;
-    gnet_property->props[230].data.guint32.value = &qrp_computation_time;
-    gnet_property->props[230].data.guint32.choices = NULL;
-    gnet_property->props[230].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[230].data.guint32.min   = 0x00000000;
+    gnet_property->props[231].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[231].data.guint32.def   = &qrp_computation_time_def;
+    gnet_property->props[231].data.guint32.value = &qrp_computation_time;
+    gnet_property->props[231].data.guint32.choices = NULL;
+    gnet_property->props[231].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[231].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5062,19 +5084,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[231].name = "qrp_patch_timestamp";
-    gnet_property->props[231].desc = _("Time at which we started computing our QRP patch.");
-    gnet_property->props[231].ev_changed = event_new("qrp_patch_timestamp_changed");
-    gnet_property->props[231].save = FALSE;
-    gnet_property->props[231].vector_size = 1;
+    gnet_property->props[232].name = "qrp_patch_timestamp";
+    gnet_property->props[232].desc = _("Time at which we started computing our QRP patch.");
+    gnet_property->props[232].ev_changed = event_new("qrp_patch_timestamp_changed");
+    gnet_property->props[232].save = FALSE;
+    gnet_property->props[232].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[231].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[231].data.guint64.def   = &qrp_patch_timestamp_def;
-    gnet_property->props[231].data.guint64.value = &qrp_patch_timestamp;
-    gnet_property->props[231].data.guint64.choices = NULL;
-    gnet_property->props[231].data.guint64.max   = (guint64) -1;
-    gnet_property->props[231].data.guint64.min   = 0x0000000000000000;
+    gnet_property->props[232].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[232].data.guint64.def   = &qrp_patch_timestamp_def;
+    gnet_property->props[232].data.guint64.value = &qrp_patch_timestamp;
+    gnet_property->props[232].data.guint64.choices = NULL;
+    gnet_property->props[232].data.guint64.max   = (guint64) -1;
+    gnet_property->props[232].data.guint64.min   = 0x0000000000000000;
 
 
     /*
@@ -5082,19 +5104,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[232].name = "qrp_patch_computation_time";
-    gnet_property->props[232].desc = _("Time spent computing the QRP table patch, in seconds.");
-    gnet_property->props[232].ev_changed = event_new("qrp_patch_computation_time_changed");
-    gnet_property->props[232].save = FALSE;
-    gnet_property->props[232].vector_size = 1;
+    gnet_property->props[233].name = "qrp_patch_computation_time";
+    gnet_property->props[233].desc = _("Time spent computing the QRP table patch, in seconds.");
+    gnet_property->props[233].ev_changed = event_new("qrp_patch_computation_time_changed");
+    gnet_property->props[233].save = FALSE;
+    gnet_property->props[233].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[232].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[232].data.guint32.def   = &qrp_patch_computation_time_def;
-    gnet_property->props[232].data.guint32.value = &qrp_patch_computation_time;
-    gnet_property->props[232].data.guint32.choices = NULL;
-    gnet_property->props[232].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[232].data.guint32.min   = 0x00000000;
+    gnet_property->props[233].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[233].data.guint32.def   = &qrp_patch_computation_time_def;
+    gnet_property->props[233].data.guint32.value = &qrp_patch_computation_time;
+    gnet_property->props[233].data.guint32.choices = NULL;
+    gnet_property->props[233].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[233].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5102,19 +5124,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[233].name = "qrp_generation";
-    gnet_property->props[233].desc = _("Query routing table generation number.");
-    gnet_property->props[233].ev_changed = event_new("qrp_generation_changed");
-    gnet_property->props[233].save = FALSE;
-    gnet_property->props[233].vector_size = 1;
+    gnet_property->props[234].name = "qrp_generation";
+    gnet_property->props[234].desc = _("Query routing table generation number.");
+    gnet_property->props[234].ev_changed = event_new("qrp_generation_changed");
+    gnet_property->props[234].save = FALSE;
+    gnet_property->props[234].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[233].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[233].data.guint32.def   = &qrp_generation_def;
-    gnet_property->props[233].data.guint32.value = &qrp_generation;
-    gnet_property->props[233].data.guint32.choices = NULL;
-    gnet_property->props[233].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[233].data.guint32.min   = 0x00000000;
+    gnet_property->props[234].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[234].data.guint32.def   = &qrp_generation_def;
+    gnet_property->props[234].data.guint32.value = &qrp_generation;
+    gnet_property->props[234].data.guint32.choices = NULL;
+    gnet_property->props[234].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[234].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5122,19 +5144,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[234].name = "qrp_slots";
-    gnet_property->props[234].desc = _("Amount of slots used by our QRP table.");
-    gnet_property->props[234].ev_changed = event_new("qrp_slots_changed");
-    gnet_property->props[234].save = FALSE;
-    gnet_property->props[234].vector_size = 1;
+    gnet_property->props[235].name = "qrp_slots";
+    gnet_property->props[235].desc = _("Amount of slots used by our QRP table.");
+    gnet_property->props[235].ev_changed = event_new("qrp_slots_changed");
+    gnet_property->props[235].save = FALSE;
+    gnet_property->props[235].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[234].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[234].data.guint32.def   = &qrp_slots_def;
-    gnet_property->props[234].data.guint32.value = &qrp_slots;
-    gnet_property->props[234].data.guint32.choices = NULL;
-    gnet_property->props[234].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[234].data.guint32.min   = 0x00000000;
+    gnet_property->props[235].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[235].data.guint32.def   = &qrp_slots_def;
+    gnet_property->props[235].data.guint32.value = &qrp_slots;
+    gnet_property->props[235].data.guint32.choices = NULL;
+    gnet_property->props[235].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[235].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5142,19 +5164,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[235].name = "qrp_slots_filled";
-    gnet_property->props[235].desc = _("Amount of slots filled within our QRP table.");
-    gnet_property->props[235].ev_changed = event_new("qrp_slots_filled_changed");
-    gnet_property->props[235].save = FALSE;
-    gnet_property->props[235].vector_size = 1;
+    gnet_property->props[236].name = "qrp_slots_filled";
+    gnet_property->props[236].desc = _("Amount of slots filled within our QRP table.");
+    gnet_property->props[236].ev_changed = event_new("qrp_slots_filled_changed");
+    gnet_property->props[236].save = FALSE;
+    gnet_property->props[236].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[235].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[235].data.guint32.def   = &qrp_slots_filled_def;
-    gnet_property->props[235].data.guint32.value = &qrp_slots_filled;
-    gnet_property->props[235].data.guint32.choices = NULL;
-    gnet_property->props[235].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[235].data.guint32.min   = 0x00000000;
+    gnet_property->props[236].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[236].data.guint32.def   = &qrp_slots_filled_def;
+    gnet_property->props[236].data.guint32.value = &qrp_slots_filled;
+    gnet_property->props[236].data.guint32.choices = NULL;
+    gnet_property->props[236].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[236].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5162,19 +5184,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[236].name = "qrp_fill_ratio";
-    gnet_property->props[236].desc = _("Percentage of slots filled within our QRP table.");
-    gnet_property->props[236].ev_changed = event_new("qrp_fill_ratio_changed");
-    gnet_property->props[236].save = FALSE;
-    gnet_property->props[236].vector_size = 1;
+    gnet_property->props[237].name = "qrp_fill_ratio";
+    gnet_property->props[237].desc = _("Percentage of slots filled within our QRP table.");
+    gnet_property->props[237].ev_changed = event_new("qrp_fill_ratio_changed");
+    gnet_property->props[237].save = FALSE;
+    gnet_property->props[237].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[236].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[236].data.guint32.def   = &qrp_fill_ratio_def;
-    gnet_property->props[236].data.guint32.value = &qrp_fill_ratio;
-    gnet_property->props[236].data.guint32.choices = NULL;
-    gnet_property->props[236].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[236].data.guint32.min   = 0x00000000;
+    gnet_property->props[237].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[237].data.guint32.def   = &qrp_fill_ratio_def;
+    gnet_property->props[237].data.guint32.value = &qrp_fill_ratio;
+    gnet_property->props[237].data.guint32.choices = NULL;
+    gnet_property->props[237].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[237].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5182,19 +5204,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[237].name = "qrp_conflict_ratio";
-    gnet_property->props[237].desc = _("Percentage of hashing conflicts whilst inserting data in our QRP table.");
-    gnet_property->props[237].ev_changed = event_new("qrp_conflict_ratio_changed");
-    gnet_property->props[237].save = FALSE;
-    gnet_property->props[237].vector_size = 1;
+    gnet_property->props[238].name = "qrp_conflict_ratio";
+    gnet_property->props[238].desc = _("Percentage of hashing conflicts whilst inserting data in our QRP table.");
+    gnet_property->props[238].ev_changed = event_new("qrp_conflict_ratio_changed");
+    gnet_property->props[238].save = FALSE;
+    gnet_property->props[238].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[237].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[237].data.guint32.def   = &qrp_conflict_ratio_def;
-    gnet_property->props[237].data.guint32.value = &qrp_conflict_ratio;
-    gnet_property->props[237].data.guint32.choices = NULL;
-    gnet_property->props[237].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[237].data.guint32.min   = 0x00000000;
+    gnet_property->props[238].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[238].data.guint32.def   = &qrp_conflict_ratio_def;
+    gnet_property->props[238].data.guint32.value = &qrp_conflict_ratio;
+    gnet_property->props[238].data.guint32.choices = NULL;
+    gnet_property->props[238].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[238].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5202,19 +5224,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[238].name = "qrp_hashed_keywords";
-    gnet_property->props[238].desc = _("Amount of hashed keywords in our QRP table.");
-    gnet_property->props[238].ev_changed = event_new("qrp_hashed_keywords_changed");
-    gnet_property->props[238].save = FALSE;
-    gnet_property->props[238].vector_size = 1;
+    gnet_property->props[239].name = "qrp_hashed_keywords";
+    gnet_property->props[239].desc = _("Amount of hashed keywords in our QRP table.");
+    gnet_property->props[239].ev_changed = event_new("qrp_hashed_keywords_changed");
+    gnet_property->props[239].save = FALSE;
+    gnet_property->props[239].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[238].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[238].data.guint32.def   = &qrp_hashed_keywords_def;
-    gnet_property->props[238].data.guint32.value = &qrp_hashed_keywords;
-    gnet_property->props[238].data.guint32.choices = NULL;
-    gnet_property->props[238].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[238].data.guint32.min   = 0x00000000;
+    gnet_property->props[239].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[239].data.guint32.def   = &qrp_hashed_keywords_def;
+    gnet_property->props[239].data.guint32.value = &qrp_hashed_keywords;
+    gnet_property->props[239].data.guint32.choices = NULL;
+    gnet_property->props[239].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[239].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5222,19 +5244,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[239].name = "qrp_patch_raw_length";
-    gnet_property->props[239].desc = _("Total raw size of the QRP table patch, in bytes.");
-    gnet_property->props[239].ev_changed = event_new("qrp_patch_raw_length_changed");
-    gnet_property->props[239].save = FALSE;
-    gnet_property->props[239].vector_size = 1;
+    gnet_property->props[240].name = "qrp_patch_raw_length";
+    gnet_property->props[240].desc = _("Total raw size of the QRP table patch, in bytes.");
+    gnet_property->props[240].ev_changed = event_new("qrp_patch_raw_length_changed");
+    gnet_property->props[240].save = FALSE;
+    gnet_property->props[240].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[239].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[239].data.guint32.def   = &qrp_patch_raw_length_def;
-    gnet_property->props[239].data.guint32.value = &qrp_patch_raw_length;
-    gnet_property->props[239].data.guint32.choices = NULL;
-    gnet_property->props[239].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[239].data.guint32.min   = 0x00000000;
+    gnet_property->props[240].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[240].data.guint32.def   = &qrp_patch_raw_length_def;
+    gnet_property->props[240].data.guint32.value = &qrp_patch_raw_length;
+    gnet_property->props[240].data.guint32.choices = NULL;
+    gnet_property->props[240].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[240].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5242,19 +5264,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[240].name = "qrp_patch_length";
-    gnet_property->props[240].desc = _("Final QRP table patch length, after possible compression.");
-    gnet_property->props[240].ev_changed = event_new("qrp_patch_length_changed");
-    gnet_property->props[240].save = FALSE;
-    gnet_property->props[240].vector_size = 1;
+    gnet_property->props[241].name = "qrp_patch_length";
+    gnet_property->props[241].desc = _("Final QRP table patch length, after possible compression.");
+    gnet_property->props[241].ev_changed = event_new("qrp_patch_length_changed");
+    gnet_property->props[241].save = FALSE;
+    gnet_property->props[241].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[240].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[240].data.guint32.def   = &qrp_patch_length_def;
-    gnet_property->props[240].data.guint32.value = &qrp_patch_length;
-    gnet_property->props[240].data.guint32.choices = NULL;
-    gnet_property->props[240].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[240].data.guint32.min   = 0x00000000;
+    gnet_property->props[241].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[241].data.guint32.def   = &qrp_patch_length_def;
+    gnet_property->props[241].data.guint32.value = &qrp_patch_length;
+    gnet_property->props[241].data.guint32.choices = NULL;
+    gnet_property->props[241].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[241].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5262,19 +5284,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[241].name = "qrp_patch_comp_ratio";
-    gnet_property->props[241].desc = _("QRP table patch compression ratio, in percent, 0 means none.");
-    gnet_property->props[241].ev_changed = event_new("qrp_patch_comp_ratio_changed");
-    gnet_property->props[241].save = FALSE;
-    gnet_property->props[241].vector_size = 1;
+    gnet_property->props[242].name = "qrp_patch_comp_ratio";
+    gnet_property->props[242].desc = _("QRP table patch compression ratio, in percent, 0 means none.");
+    gnet_property->props[242].ev_changed = event_new("qrp_patch_comp_ratio_changed");
+    gnet_property->props[242].save = FALSE;
+    gnet_property->props[242].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[241].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[241].data.guint32.def   = &qrp_patch_comp_ratio_def;
-    gnet_property->props[241].data.guint32.value = &qrp_patch_comp_ratio;
-    gnet_property->props[241].data.guint32.choices = NULL;
-    gnet_property->props[241].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[241].data.guint32.min   = 0x00000000;
+    gnet_property->props[242].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[242].data.guint32.def   = &qrp_patch_comp_ratio_def;
+    gnet_property->props[242].data.guint32.value = &qrp_patch_comp_ratio;
+    gnet_property->props[242].data.guint32.choices = NULL;
+    gnet_property->props[242].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[242].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5282,19 +5304,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[242].name = "ancient_version_force";
-    gnet_property->props[242].desc = _("This property must be set to the current version number of gtk-gnutella in order to allow it to run when it is ancient.");
-    gnet_property->props[242].ev_changed = event_new("ancient_version_force_changed");
-    gnet_property->props[242].save = TRUE;
-    gnet_property->props[242].vector_size = 1;
+    gnet_property->props[243].name = "ancient_version_force";
+    gnet_property->props[243].desc = _("This property must be set to the current version number of gtk-gnutella in order to allow it to run when it is ancient.");
+    gnet_property->props[243].ev_changed = event_new("ancient_version_force_changed");
+    gnet_property->props[243].save = TRUE;
+    gnet_property->props[243].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[242].type               = PROP_TYPE_STRING;
-    gnet_property->props[242].data.string.def    = &ancient_version_force_def;
-    gnet_property->props[242].data.string.value  = &ancient_version_force;
-    if (gnet_property->props[242].data.string.def) {
-        *gnet_property->props[242].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[242].data.string.def));
+    gnet_property->props[243].type               = PROP_TYPE_STRING;
+    gnet_property->props[243].data.string.def    = &ancient_version_force_def;
+    gnet_property->props[243].data.string.value  = &ancient_version_force;
+    if (gnet_property->props[243].data.string.def) {
+        *gnet_property->props[243].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[243].data.string.def));
     }
 
 
@@ -5303,19 +5325,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[243].name = "ancient_version_left_days";
-    gnet_property->props[243].desc = _("Indicates that gtk-gnutella will expire in that many days.");
-    gnet_property->props[243].ev_changed = event_new("ancient_version_left_days_changed");
-    gnet_property->props[243].save = FALSE;
-    gnet_property->props[243].vector_size = 1;
+    gnet_property->props[244].name = "ancient_version_left_days";
+    gnet_property->props[244].desc = _("Indicates that gtk-gnutella will expire in that many days.");
+    gnet_property->props[244].ev_changed = event_new("ancient_version_left_days_changed");
+    gnet_property->props[244].save = FALSE;
+    gnet_property->props[244].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[243].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[243].data.guint32.def   = &ancient_version_left_days_def;
-    gnet_property->props[243].data.guint32.value = &ancient_version_left_days;
-    gnet_property->props[243].data.guint32.choices = NULL;
-    gnet_property->props[243].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[243].data.guint32.min   = 0x00000000;
+    gnet_property->props[244].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[244].data.guint32.def   = &ancient_version_left_days_def;
+    gnet_property->props[244].data.guint32.value = &ancient_version_left_days;
+    gnet_property->props[244].data.guint32.choices = NULL;
+    gnet_property->props[244].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[244].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5323,16 +5345,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[244].name = "file_descriptor_shortage";
-    gnet_property->props[244].desc = _("When set, gtk-gnutella is running short on file descriptors, but normal operations are still possible. The condition automatically clears itself after 10 minutes without any more shortage.");
-    gnet_property->props[244].ev_changed = event_new("file_descriptor_shortage_changed");
-    gnet_property->props[244].save = FALSE;
-    gnet_property->props[244].vector_size = 1;
+    gnet_property->props[245].name = "file_descriptor_shortage";
+    gnet_property->props[245].desc = _("When set, gtk-gnutella is running short on file descriptors, but normal operations are still possible. The condition automatically clears itself after 10 minutes without any more shortage.");
+    gnet_property->props[245].ev_changed = event_new("file_descriptor_shortage_changed");
+    gnet_property->props[245].save = FALSE;
+    gnet_property->props[245].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[244].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[244].data.boolean.def   = &file_descriptor_shortage_def;
-    gnet_property->props[244].data.boolean.value = &file_descriptor_shortage;
+    gnet_property->props[245].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[245].data.boolean.def   = &file_descriptor_shortage_def;
+    gnet_property->props[245].data.boolean.value = &file_descriptor_shortage;
 
 
     /*
@@ -5340,16 +5362,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[245].name = "file_descriptor_runout";
-    gnet_property->props[245].desc = _("When set, gtk-gnutella has run out of file descriptors, and operations are necessarily degraded, if not impossible. The condition automatically clears itself after 10 minutes past the last occurance.");
-    gnet_property->props[245].ev_changed = event_new("file_descriptor_runout_changed");
-    gnet_property->props[245].save = FALSE;
-    gnet_property->props[245].vector_size = 1;
+    gnet_property->props[246].name = "file_descriptor_runout";
+    gnet_property->props[246].desc = _("When set, gtk-gnutella has run out of file descriptors, and operations are necessarily degraded, if not impossible. The condition automatically clears itself after 10 minutes past the last occurance.");
+    gnet_property->props[246].ev_changed = event_new("file_descriptor_runout_changed");
+    gnet_property->props[246].save = FALSE;
+    gnet_property->props[246].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[245].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[245].data.boolean.def   = &file_descriptor_runout_def;
-    gnet_property->props[245].data.boolean.value = &file_descriptor_runout;
+    gnet_property->props[246].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[246].data.boolean.def   = &file_descriptor_runout_def;
+    gnet_property->props[246].data.boolean.value = &file_descriptor_runout;
 
 
     /*
@@ -5357,16 +5379,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[246].name = "enable_g2_support";
-    gnet_property->props[246].desc = _("When set, gtk-gnutella will accept and handle G2 connections. ");
-    gnet_property->props[246].ev_changed = event_new("enable_g2_support_changed");
-    gnet_property->props[246].save = TRUE;
-    gnet_property->props[246].vector_size = 1;
+    gnet_property->props[247].name = "enable_g2_support";
+    gnet_property->props[247].desc = _("When set, gtk-gnutella will accept and handle G2 connections. ");
+    gnet_property->props[247].ev_changed = event_new("enable_g2_support_changed");
+    gnet_property->props[247].save = TRUE;
+    gnet_property->props[247].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[246].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[246].data.boolean.def   = &enable_g2_support_def;
-    gnet_property->props[246].data.boolean.value = &enable_g2_support;
+    gnet_property->props[247].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[247].data.boolean.def   = &enable_g2_support_def;
+    gnet_property->props[247].data.boolean.value = &enable_g2_support;
 
 
     /*
@@ -5374,16 +5396,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[247].name = "convert_spaces";
-    gnet_property->props[247].desc = _("If set, spaces in filenames are replaced with underscores.");
-    gnet_property->props[247].ev_changed = event_new("convert_spaces_changed");
-    gnet_property->props[247].save = TRUE;
-    gnet_property->props[247].vector_size = 1;
+    gnet_property->props[248].name = "convert_spaces";
+    gnet_property->props[248].desc = _("If set, spaces in filenames are replaced with underscores.");
+    gnet_property->props[248].ev_changed = event_new("convert_spaces_changed");
+    gnet_property->props[248].save = TRUE;
+    gnet_property->props[248].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[247].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[247].data.boolean.def   = &convert_spaces_def;
-    gnet_property->props[247].data.boolean.value = &convert_spaces;
+    gnet_property->props[248].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[248].data.boolean.def   = &convert_spaces_def;
+    gnet_property->props[248].data.boolean.value = &convert_spaces;
 
 
     /*
@@ -5391,16 +5413,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[248].name = "convert_evil_chars";
-    gnet_property->props[248].desc = _("If set, meta shell characters in filenames are replaced with underscores. (This must also be enabled for FAT partitions.)");
-    gnet_property->props[248].ev_changed = event_new("convert_evil_chars_changed");
-    gnet_property->props[248].save = TRUE;
-    gnet_property->props[248].vector_size = 1;
+    gnet_property->props[249].name = "convert_evil_chars";
+    gnet_property->props[249].desc = _("If set, meta shell characters in filenames are replaced with underscores. (This must also be enabled for FAT partitions.)");
+    gnet_property->props[249].ev_changed = event_new("convert_evil_chars_changed");
+    gnet_property->props[249].save = TRUE;
+    gnet_property->props[249].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[248].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[248].data.boolean.def   = &convert_evil_chars_def;
-    gnet_property->props[248].data.boolean.value = &convert_evil_chars;
+    gnet_property->props[249].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[249].data.boolean.def   = &convert_evil_chars_def;
+    gnet_property->props[249].data.boolean.value = &convert_evil_chars;
 
 
     /*
@@ -5408,16 +5430,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[249].name = "convert_old_filenames";
-    gnet_property->props[249].desc = _("If set, gtk-gnutella will, upon startup, sanitize filenames by converting spaces and/or evil characters in them, according to your settings, on existing filenames in your temporary downloading directory. By default, the above settings apply only on newly created entries, not existing ones.");
-    gnet_property->props[249].ev_changed = event_new("convert_old_filenames_changed");
-    gnet_property->props[249].save = TRUE;
-    gnet_property->props[249].vector_size = 1;
+    gnet_property->props[250].name = "convert_old_filenames";
+    gnet_property->props[250].desc = _("If set, gtk-gnutella will, upon startup, sanitize filenames by converting spaces and/or evil characters in them, according to your settings, on existing filenames in your temporary downloading directory. By default, the above settings apply only on newly created entries, not existing ones.");
+    gnet_property->props[250].ev_changed = event_new("convert_old_filenames_changed");
+    gnet_property->props[250].save = TRUE;
+    gnet_property->props[250].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[249].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[249].data.boolean.def   = &convert_old_filenames_def;
-    gnet_property->props[249].data.boolean.value = &convert_old_filenames;
+    gnet_property->props[250].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[250].data.boolean.def   = &convert_old_filenames_def;
+    gnet_property->props[250].data.boolean.value = &convert_old_filenames;
 
 
     /*
@@ -5425,16 +5447,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[250].name = "tls_enforce";
-    gnet_property->props[250].desc = _("If set, all outgoing connections are tunneled over TLS.");
-    gnet_property->props[250].ev_changed = event_new("tls_enforce_changed");
-    gnet_property->props[250].save = TRUE;
-    gnet_property->props[250].vector_size = 1;
+    gnet_property->props[251].name = "tls_enforce";
+    gnet_property->props[251].desc = _("If set, all outgoing connections are tunneled over TLS.");
+    gnet_property->props[251].ev_changed = event_new("tls_enforce_changed");
+    gnet_property->props[251].save = TRUE;
+    gnet_property->props[251].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[250].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[250].data.boolean.def   = &tls_enforce_def;
-    gnet_property->props[250].data.boolean.value = &tls_enforce;
+    gnet_property->props[251].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[251].data.boolean.def   = &tls_enforce_def;
+    gnet_property->props[251].data.boolean.value = &tls_enforce;
 
 
     /*
@@ -5442,16 +5464,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[251].name = "gnet_deflate_enabled";
-    gnet_property->props[251].desc = _("If not set, support for Gnutella connection compression is disabled.");
-    gnet_property->props[251].ev_changed = event_new("gnet_deflate_enabled_changed");
-    gnet_property->props[251].save = TRUE;
-    gnet_property->props[251].vector_size = 1;
+    gnet_property->props[252].name = "gnet_deflate_enabled";
+    gnet_property->props[252].desc = _("If not set, support for Gnutella connection compression is disabled.");
+    gnet_property->props[252].ev_changed = event_new("gnet_deflate_enabled_changed");
+    gnet_property->props[252].save = TRUE;
+    gnet_property->props[252].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[251].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[251].data.boolean.def   = &gnet_deflate_enabled_def;
-    gnet_property->props[251].data.boolean.value = &gnet_deflate_enabled;
+    gnet_property->props[252].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[252].data.boolean.def   = &gnet_deflate_enabled_def;
+    gnet_property->props[252].data.boolean.value = &gnet_deflate_enabled;
 
 
     /*
@@ -5459,16 +5481,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[252].name = "enable_udp";
-    gnet_property->props[252].desc = _("Whether UDP shall be used in complement to TCP.  When set, gtk-gnutella will also listen for UDP traffic on the same port as the one configured for TCP and process incoming Gnutella traffic in almost the same way as if it was received via TCP.  It is safe to leave this set, which is the default behaviour.");
-    gnet_property->props[252].ev_changed = event_new("enable_udp_changed");
-    gnet_property->props[252].save = TRUE;
-    gnet_property->props[252].vector_size = 1;
+    gnet_property->props[253].name = "enable_udp";
+    gnet_property->props[253].desc = _("Whether UDP shall be used in complement to TCP.  When set, gtk-gnutella will also listen for UDP traffic on the same port as the one configured for TCP and process incoming Gnutella traffic in almost the same way as if it was received via TCP.  It is safe to leave this set, which is the default behaviour.");
+    gnet_property->props[253].ev_changed = event_new("enable_udp_changed");
+    gnet_property->props[253].save = TRUE;
+    gnet_property->props[253].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[252].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[252].data.boolean.def   = &enable_udp_def;
-    gnet_property->props[252].data.boolean.value = &enable_udp;
+    gnet_property->props[253].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[253].data.boolean.def   = &enable_udp_def;
+    gnet_property->props[253].data.boolean.value = &enable_udp;
 
 
     /*
@@ -5476,16 +5498,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[253].name = "process_oob_queries";
-    gnet_property->props[253].desc = _("Whether gtk-gnutella should honour the request for out-of-band delivery of query hits via UDP, provided UDP support is enabled.  It should not be necessary to add a port forwarding to enable this as your node will be the origin of the UDP traffic and can therefore receive replies sent to the transient UDP port opened by a masquerading firewall.  It is enabled by default because it is deemed safe, as your node controls the bulk of the emitted traffic and honours the bandwidth limitations.");
-    gnet_property->props[253].ev_changed = event_new("process_oob_queries_changed");
-    gnet_property->props[253].save = TRUE;
-    gnet_property->props[253].vector_size = 1;
+    gnet_property->props[254].name = "process_oob_queries";
+    gnet_property->props[254].desc = _("Whether gtk-gnutella should honour the request for out-of-band delivery of query hits via UDP, provided UDP support is enabled.  It should not be necessary to add a port forwarding to enable this as your node will be the origin of the UDP traffic and can therefore receive replies sent to the transient UDP port opened by a masquerading firewall.  It is enabled by default because it is deemed safe, as your node controls the bulk of the emitted traffic and honours the bandwidth limitations.");
+    gnet_property->props[254].ev_changed = event_new("process_oob_queries_changed");
+    gnet_property->props[254].save = TRUE;
+    gnet_property->props[254].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[253].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[253].data.boolean.def   = &process_oob_queries_def;
-    gnet_property->props[253].data.boolean.value = &process_oob_queries;
+    gnet_property->props[254].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[254].data.boolean.def   = &process_oob_queries_def;
+    gnet_property->props[254].data.boolean.value = &process_oob_queries;
 
 
     /*
@@ -5493,16 +5515,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[254].name = "send_oob_queries";
-    gnet_property->props[254].desc = _("Whether gtk-gnutella should send queries requesting out-of-band delivery of query hits via UDP.  The setting is ignored if you seem to be UDP-firewalled, i.e. cannot receive unsolicited UDP traffic.  You need to enable UDP support first.  This can cause the reception of vast quantities of UDP replies, so you may choose to disable this feature.  If disabled, your hits will travel through the Gnutella network and can be dropped by any flow-controlled relaying node, limiting the results you can get.");
-    gnet_property->props[254].ev_changed = event_new("send_oob_queries_changed");
-    gnet_property->props[254].save = TRUE;
-    gnet_property->props[254].vector_size = 1;
+    gnet_property->props[255].name = "send_oob_queries";
+    gnet_property->props[255].desc = _("Whether gtk-gnutella should send queries requesting out-of-band delivery of query hits via UDP.  The setting is ignored if you seem to be UDP-firewalled, i.e. cannot receive unsolicited UDP traffic.  You need to enable UDP support first.  This can cause the reception of vast quantities of UDP replies, so you may choose to disable this feature.  If disabled, your hits will travel through the Gnutella network and can be dropped by any flow-controlled relaying node, limiting the results you can get.");
+    gnet_property->props[255].ev_changed = event_new("send_oob_queries_changed");
+    gnet_property->props[255].save = TRUE;
+    gnet_property->props[255].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[254].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[254].data.boolean.def   = &send_oob_queries_def;
-    gnet_property->props[254].data.boolean.value = &send_oob_queries;
+    gnet_property->props[255].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[255].data.boolean.def   = &send_oob_queries_def;
+    gnet_property->props[255].data.boolean.value = &send_oob_queries;
 
 
     /*
@@ -5510,16 +5532,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[255].name = "proxy_oob_queries";
-    gnet_property->props[255].desc = _("Whether gtk-gnutella should, when running as ultrapeer, act as proxy for leaf queries that are not requesting OOB delivery of query hits: gtk-gnutella will claim the hits from the remote nodes and forward the hits to the proper leaf.  This is very beneficial for the leaves, but can cause huge bursts of UDP traffic coming back to you.  If you disable it all ultrapeers connected to you will have to relay the hits, possibly dropping other query messages and lowering the efficiency of the search network.");
-    gnet_property->props[255].ev_changed = event_new("proxy_oob_queries_changed");
-    gnet_property->props[255].save = TRUE;
-    gnet_property->props[255].vector_size = 1;
+    gnet_property->props[256].name = "proxy_oob_queries";
+    gnet_property->props[256].desc = _("Whether gtk-gnutella should, when running as ultrapeer, act as proxy for leaf queries that are not requesting OOB delivery of query hits: gtk-gnutella will claim the hits from the remote nodes and forward the hits to the proper leaf.  This is very beneficial for the leaves, but can cause huge bursts of UDP traffic coming back to you.  If you disable it all ultrapeers connected to you will have to relay the hits, possibly dropping other query messages and lowering the efficiency of the search network.");
+    gnet_property->props[256].ev_changed = event_new("proxy_oob_queries_changed");
+    gnet_property->props[256].save = TRUE;
+    gnet_property->props[256].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[255].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[255].data.boolean.def   = &proxy_oob_queries_def;
-    gnet_property->props[255].data.boolean.value = &proxy_oob_queries;
+    gnet_property->props[256].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[256].data.boolean.def   = &proxy_oob_queries_def;
+    gnet_property->props[256].data.boolean.value = &proxy_oob_queries;
 
 
     /*
@@ -5527,16 +5549,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[256].name = "uploads_stalling";
-    gnet_property->props[256].desc = _("Whether uploads are frequently stalling, indicating that the bandwidth is saturated.  Avoid running as an ultra-node under those conditions.");
-    gnet_property->props[256].ev_changed = event_new("uploads_stalling_changed");
-    gnet_property->props[256].save = FALSE;
-    gnet_property->props[256].vector_size = 1;
+    gnet_property->props[257].name = "uploads_stalling";
+    gnet_property->props[257].desc = _("Whether uploads are frequently stalling, indicating that the bandwidth is saturated.  Avoid running as an ultra-node under those conditions.");
+    gnet_property->props[257].ev_changed = event_new("uploads_stalling_changed");
+    gnet_property->props[257].save = FALSE;
+    gnet_property->props[257].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[256].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[256].data.boolean.def   = &uploads_stalling_def;
-    gnet_property->props[256].data.boolean.value = &uploads_stalling;
+    gnet_property->props[257].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[257].data.boolean.def   = &uploads_stalling_def;
+    gnet_property->props[257].data.boolean.value = &uploads_stalling;
 
 
     /*
@@ -5544,16 +5566,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[257].name = "allow_auto_requeries";
-    gnet_property->props[257].desc = _("If set to TRUE, automatic requeries are allowed.");
-    gnet_property->props[257].ev_changed = event_new("allow_auto_requeries_changed");
-    gnet_property->props[257].save = TRUE;
-    gnet_property->props[257].vector_size = 1;
+    gnet_property->props[258].name = "allow_auto_requeries";
+    gnet_property->props[258].desc = _("If set to TRUE, automatic requeries are allowed.");
+    gnet_property->props[258].ev_changed = event_new("allow_auto_requeries_changed");
+    gnet_property->props[258].save = TRUE;
+    gnet_property->props[258].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[257].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[257].data.boolean.def   = &allow_auto_requeries_def;
-    gnet_property->props[257].data.boolean.value = &allow_auto_requeries;
+    gnet_property->props[258].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[258].data.boolean.def   = &allow_auto_requeries_def;
+    gnet_property->props[258].data.boolean.value = &allow_auto_requeries;
 
 
     /*
@@ -5561,16 +5583,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[258].name = "use_global_hostiles_txt";
-    gnet_property->props[258].desc = _("If set to TRUE, the global hostiles.txt is used as well as the private $GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban list from the global one distributed with Gtk-Gnutella.");
-    gnet_property->props[258].ev_changed = event_new("use_global_hostiles_txt_changed");
-    gnet_property->props[258].save = TRUE;
-    gnet_property->props[258].vector_size = 1;
+    gnet_property->props[259].name = "use_global_hostiles_txt";
+    gnet_property->props[259].desc = _("If set to TRUE, the global hostiles.txt is used as well as the private $GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban list from the global one distributed with Gtk-Gnutella.");
+    gnet_property->props[259].ev_changed = event_new("use_global_hostiles_txt_changed");
+    gnet_property->props[259].save = TRUE;
+    gnet_property->props[259].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[258].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[258].data.boolean.def   = &use_global_hostiles_txt_def;
-    gnet_property->props[258].data.boolean.value = &use_global_hostiles_txt;
+    gnet_property->props[259].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[259].data.boolean.def   = &use_global_hostiles_txt_def;
+    gnet_property->props[259].data.boolean.value = &use_global_hostiles_txt;
 
 
     /*
@@ -5578,16 +5600,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[259].name = "use_so_linger";
-    gnet_property->props[259].desc = _("If set to TRUE, SO_LINGER is used for sockets.");
-    gnet_property->props[259].ev_changed = event_new("use_so_linger_changed");
-    gnet_property->props[259].save = TRUE;
-    gnet_property->props[259].vector_size = 1;
+    gnet_property->props[260].name = "use_so_linger";
+    gnet_property->props[260].desc = _("If set to TRUE, SO_LINGER is used for sockets.");
+    gnet_property->props[260].ev_changed = event_new("use_so_linger_changed");
+    gnet_property->props[260].save = TRUE;
+    gnet_property->props[260].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[259].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[259].data.boolean.def   = &use_so_linger_def;
-    gnet_property->props[259].data.boolean.value = &use_so_linger;
+    gnet_property->props[260].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[260].data.boolean.def   = &use_so_linger_def;
+    gnet_property->props[260].data.boolean.value = &use_so_linger;
 
 
     /*
@@ -5595,16 +5617,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[260].name = "browse_host_enabled";
-    gnet_property->props[260].desc = _("If TRUE, other hosts can request a complete list of all shared files.");
-    gnet_property->props[260].ev_changed = event_new("browse_host_enabled_changed");
-    gnet_property->props[260].save = TRUE;
-    gnet_property->props[260].vector_size = 1;
+    gnet_property->props[261].name = "browse_host_enabled";
+    gnet_property->props[261].desc = _("If TRUE, other hosts can request a complete list of all shared files.");
+    gnet_property->props[261].ev_changed = event_new("browse_host_enabled_changed");
+    gnet_property->props[261].save = TRUE;
+    gnet_property->props[261].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[260].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[260].data.boolean.def   = &browse_host_enabled_def;
-    gnet_property->props[260].data.boolean.value = &browse_host_enabled;
+    gnet_property->props[261].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[261].data.boolean.def   = &browse_host_enabled_def;
+    gnet_property->props[261].data.boolean.value = &browse_host_enabled;
 
 
     /*
@@ -5612,19 +5634,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[261].name = "html_browse_count";
-    gnet_property->props[261].desc = _("Number of HTML browsing requests received in this session.");
-    gnet_property->props[261].ev_changed = event_new("html_browse_count_changed");
-    gnet_property->props[261].save = FALSE;
-    gnet_property->props[261].vector_size = 1;
+    gnet_property->props[262].name = "html_browse_count";
+    gnet_property->props[262].desc = _("Number of HTML browsing requests received in this session.");
+    gnet_property->props[262].ev_changed = event_new("html_browse_count_changed");
+    gnet_property->props[262].save = FALSE;
+    gnet_property->props[262].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[261].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[261].data.guint32.def   = &html_browse_count_def;
-    gnet_property->props[261].data.guint32.value = &html_browse_count;
-    gnet_property->props[261].data.guint32.choices = NULL;
-    gnet_property->props[261].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[261].data.guint32.min   = 0x00000000;
+    gnet_property->props[262].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[262].data.guint32.def   = &html_browse_count_def;
+    gnet_property->props[262].data.guint32.value = &html_browse_count;
+    gnet_property->props[262].data.guint32.choices = NULL;
+    gnet_property->props[262].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[262].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5632,19 +5654,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[262].name = "qhits_browse_count";
-    gnet_property->props[262].desc = _("Number of Gnutella browsing requests received in this session.");
-    gnet_property->props[262].ev_changed = event_new("qhits_browse_count_changed");
-    gnet_property->props[262].save = FALSE;
-    gnet_property->props[262].vector_size = 1;
+    gnet_property->props[263].name = "qhits_browse_count";
+    gnet_property->props[263].desc = _("Number of Gnutella browsing requests received in this session.");
+    gnet_property->props[263].ev_changed = event_new("qhits_browse_count_changed");
+    gnet_property->props[263].save = FALSE;
+    gnet_property->props[263].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[262].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[262].data.guint32.def   = &qhits_browse_count_def;
-    gnet_property->props[262].data.guint32.value = &qhits_browse_count;
-    gnet_property->props[262].data.guint32.choices = NULL;
-    gnet_property->props[262].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[262].data.guint32.min   = 0x00000000;
+    gnet_property->props[263].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[263].data.guint32.def   = &qhits_browse_count_def;
+    gnet_property->props[263].data.guint32.value = &qhits_browse_count;
+    gnet_property->props[263].data.guint32.choices = NULL;
+    gnet_property->props[263].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[263].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5652,16 +5674,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[263].name = "overloaded_cpu";
-    gnet_property->props[263].desc = _("The average CPU usage indicates overloading, so gtk-gnutella is reducing the amount of non-critical processing it is performing. Note that the overloading can result from gtk-gntuella not getting enough CPU time because another process is competing for the CPU. Whilst the overloading condition persists, GUI refreshing is reduced and background tasks (SHA1 computation, file moving) are suspended.");
-    gnet_property->props[263].ev_changed = event_new("overloaded_cpu_changed");
-    gnet_property->props[263].save = FALSE;
-    gnet_property->props[263].vector_size = 1;
+    gnet_property->props[264].name = "overloaded_cpu";
+    gnet_property->props[264].desc = _("The average CPU usage indicates overloading, so gtk-gnutella is reducing the amount of non-critical processing it is performing. Note that the overloading can result from gtk-gntuella not getting enough CPU time because another process is competing for the CPU. Whilst the overloading condition persists, GUI refreshing is reduced and background tasks (SHA1 computation, file moving) are suspended.");
+    gnet_property->props[264].ev_changed = event_new("overloaded_cpu_changed");
+    gnet_property->props[264].save = FALSE;
+    gnet_property->props[264].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[263].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[263].data.boolean.def   = &overloaded_cpu_def;
-    gnet_property->props[263].data.boolean.value = &overloaded_cpu;
+    gnet_property->props[264].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[264].data.boolean.def   = &overloaded_cpu_def;
+    gnet_property->props[264].data.boolean.value = &overloaded_cpu;
 
 
     /*
@@ -5669,19 +5691,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[264].name = "download_buffer_size";
-    gnet_property->props[264].desc = _("Amount of data per downloading source that gtk-gnutella will buffer before writing to disk.  When swarming from many sources, a larger value will help avoid using too many system calls and should also reduce the fragmentation on the filesystem.  The downside is that it uses more memory per active source.  Use 0 to disable all buffering, i.e. have gtk-gnutella write to disk as soon as it receives some data. Increase to maximum value if you have RAM.");
-    gnet_property->props[264].ev_changed = event_new("download_buffer_size_changed");
-    gnet_property->props[264].save = TRUE;
-    gnet_property->props[264].vector_size = 1;
+    gnet_property->props[265].name = "download_buffer_size";
+    gnet_property->props[265].desc = _("Amount of data per downloading source that gtk-gnutella will buffer before writing to disk.  When swarming from many sources, a larger value will help avoid using too many system calls and should also reduce the fragmentation on the filesystem.  The downside is that it uses more memory per active source.  Use 0 to disable all buffering, i.e. have gtk-gnutella write to disk as soon as it receives some data. Increase to maximum value if you have RAM.");
+    gnet_property->props[265].ev_changed = event_new("download_buffer_size_changed");
+    gnet_property->props[265].save = TRUE;
+    gnet_property->props[265].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[264].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[264].data.guint32.def   = &download_buffer_size_def;
-    gnet_property->props[264].data.guint32.value = &download_buffer_size;
-    gnet_property->props[264].data.guint32.choices = NULL;
-    gnet_property->props[264].data.guint32.max   = 131072;
-    gnet_property->props[264].data.guint32.min   = 0;
+    gnet_property->props[265].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[265].data.guint32.def   = &download_buffer_size_def;
+    gnet_property->props[265].data.guint32.value = &download_buffer_size;
+    gnet_property->props[265].data.guint32.choices = NULL;
+    gnet_property->props[265].data.guint32.max   = 131072;
+    gnet_property->props[265].data.guint32.min   = 0;
 
 
     /*
@@ -5689,19 +5711,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[265].name = "download_buffer_read_ahead";
-    gnet_property->props[265].desc = _("Extra amount of data per downloading source that gtk-gnutella will try to read-ahead.  This gives more room for reading large amount of data without issuing too many system calls. It complements buffering nicely because it prevents reading a few bytes before committing the buffered data to disk: when read-ahead space is available, it will be used in addition to buffering, but read-ahead data is committed to disk immediately.  If you don't wish to reserve more memory per active source, you can disable this feature by setting the read-ahead buffer size to 0.");
-    gnet_property->props[265].ev_changed = event_new("download_buffer_read_ahead_changed");
-    gnet_property->props[265].save = TRUE;
-    gnet_property->props[265].vector_size = 1;
+    gnet_property->props[266].name = "download_buffer_read_ahead";
+    gnet_property->props[266].desc = _("Extra amount of data per downloading source that gtk-gnutella will try to read-ahead.  This gives more room for reading large amount of data without issuing too many system calls. It complements buffering nicely because it prevents reading a few bytes before committing the buffered data to disk: when read-ahead space is available, it will be used in addition to buffering, but read-ahead data is committed to disk immediately.  If you don't wish to reserve more memory per active source, you can disable this feature by setting the read-ahead buffer size to 0.");
+    gnet_property->props[266].ev_changed = event_new("download_buffer_read_ahead_changed");
+    gnet_property->props[266].save = TRUE;
+    gnet_property->props[266].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[265].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[265].data.guint32.def   = &download_buffer_read_ahead_def;
-    gnet_property->props[265].data.guint32.value = &download_buffer_read_ahead;
-    gnet_property->props[265].data.guint32.choices = NULL;
-    gnet_property->props[265].data.guint32.max   = 16384;
-    gnet_property->props[265].data.guint32.min   = 0;
+    gnet_property->props[266].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[266].data.guint32.def   = &download_buffer_read_ahead_def;
+    gnet_property->props[266].data.guint32.value = &download_buffer_read_ahead;
+    gnet_property->props[266].data.guint32.choices = NULL;
+    gnet_property->props[266].data.guint32.max   = 16384;
+    gnet_property->props[266].data.guint32.min   = 0;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

@@ -233,6 +233,7 @@ extern const guint64  dl_byte_count;
 extern const guint64  ul_byte_count;
 extern const gboolean pfsp_server;
 extern const guint32  pfsp_first_chunk;
+extern const guint32  pfsp_minimum_filesize;
 extern const gboolean fuzzy_filter_dmesh;
 extern const guint32  crawler_visit_count;
 extern const guint32  udp_crawler_visit_count;
