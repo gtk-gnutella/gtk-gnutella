@@ -518,7 +518,7 @@ setup_char_map(char_map_t map)
 		}
 	}
 
-	if (is_latin_locale()) {
+	if (locale_is_latin()) {
 		gboolean b_iso_8859_1 = FALSE;
 		gboolean b_cp1252 = FALSE;
 		gboolean b_macroman = FALSE;

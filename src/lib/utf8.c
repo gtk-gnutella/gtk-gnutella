@@ -100,7 +100,7 @@ static iconv_t cd_utf8_to_locale = (iconv_t) -1;
 static iconv_t cd_filename_to_utf8 = (iconv_t) -1;
 static iconv_t cd_utf8_to_filename = (iconv_t) -1;
 
-static inline gboolean
+gboolean
 locale_is_utf8(void)
 {
 	static gboolean initialized, is_utf8;
@@ -1559,14 +1559,10 @@ hyper_ascii_enforce(const gchar *src, gchar *dst, size_t dst_size)
 
 
 /**
- * If the string is already valid UTF-8 it will be returned "as-is", otherwise
- * a newly allocated buffer containing the converted string.
- * Non-convertible characters will be replaced by '_'. The returned string
- * WILL be NUL-terminated in any case.
+ * Converts a string from the locale's character set to UTF-8 encoding.
+ * The returned string is in no defined Unicode normalization form.
  *
- * In case of an unrecoverable error, NULL is returned.
- *
- * @param str a NUL-terminated string.
+ * @param src a NUL-terminated string.
  * @return a pointer to the UTF-8 encoded string.
  */
 gchar *
@@ -1581,29 +1577,6 @@ locale_to_utf8(const gchar *src)
 		dst = hyper_utf8_enforce(src, NULL, 0);
 
 	return dst;
-}
-
-/**
- * Non-convertible characters will be replaced by '_'. The returned string
- * WILL be NUL-terminated in any case.
- *
- * In case of an unrecoverable error, NULL is returned.
- *
- * @param str a NUL-terminated string.
- * @return a pointer to a newly allocated buffer holding the converted string.
- */
-static gchar *
-filename_charset_to_utf8(const gchar *src)
-{
-	gchar sbuf[1024], *dst;
-
-	g_assert(src);
-
-	dst = hyper_iconv(cd_filename_to_utf8, src, sbuf, sizeof sbuf);
-	if (!dst)
-		dst = hyper_utf8_enforce(src, sbuf, sizeof sbuf);
-
-	return sbuf != dst ? dst : g_strdup(sbuf);
 }
 
 /**
@@ -1656,25 +1629,15 @@ utf8_to_locale(const gchar *src)
 }
 
 
-/**
- * Converts a string from an unknown character set to UTF-8 encoding and
- * the specified UTF-8 norm. If the string is not valid UTF-8, the string
- * is converted to UTF-8 assuming it is encoded with the current locale.
- *
- * @param str the string to convert.
- * @param norm the UTF-8 encoding normal form to use.
- *
- * @returns a newly allocated string.
- */
-gchar *
-locale_to_utf8_normalized(const gchar *src, uni_norm_t norm)
+static gchar *
+convert_to_utf8_normalized(iconv_t cd, const gchar *src, uni_norm_t norm)
 {
 	gchar sbuf[4096], *dbuf;
 	gchar *dst;
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd_locale_to_utf8, src, sbuf, sizeof sbuf);
+	dst = hyper_iconv(cd, src, sbuf, sizeof sbuf);
 	if (!dst)
 		dst = hyper_utf8_enforce(src, sbuf, sizeof sbuf);
 
@@ -1684,6 +1647,58 @@ locale_to_utf8_normalized(const gchar *src, uni_norm_t norm)
 
 	return dst;
 }
+
+/**
+ * Converts a string from the locale's character set to UTF-8 encoding and
+ * the specified Unicode normalization form.
+ *
+ * @param str the string to convert.
+ * @param norm the Unicode normalization form to use.
+ *
+ * @returns a newly allocated string.
+ */
+gchar *
+locale_to_utf8_normalized(const gchar *src, uni_norm_t norm)
+{
+	g_assert(src);
+
+	return convert_to_utf8_normalized(cd_locale_to_utf8, src, norm);
+}
+
+/**
+ * Converts a string from the filename character set to UTF-8 encoding and
+ * the specified Unicode normalization form.
+ *
+ * @param str the string to convert.
+ * @param norm the Unicode normalization form to use.
+ *
+ * @returns a newly allocated string.
+ */
+gchar *
+filename_to_utf8_normalized(const gchar *src, uni_norm_t norm)
+{
+	g_assert(src);
+
+	return convert_to_utf8_normalized(cd_filename_to_utf8, src, norm);
+}
+
+/**
+ * Converts a string from the ISO-8859-1 character set to UTF-8 encoding and
+ * the specified Unicode normalization form.
+ *
+ * @param str the string to convert.
+ * @param norm the Unicode normalization form to use.
+ *
+ * @returns a newly allocated string.
+ */
+gchar *
+latin_to_utf8_normalized(const gchar *src, uni_norm_t norm)
+{
+	g_assert(src);
+
+	return convert_to_utf8_normalized(cd_latin_to_utf8, src, norm);
+}
+
 
 #if CHAR_BIT == 8
 #define IS_NON_NUL_ASCII(p) (*(const gint8 *) (p) > 0)
@@ -1779,20 +1794,6 @@ utf8_to_filename(const gchar *src)
 		filename = utf8_normalize(p, UNI_NORM_FILESYSTEM);
 		G_FREE_NULL(p);
 	}
-
-	return filename;
-}
-
-gchar *
-filename_to_utf8_normalized(const gchar *src, uni_norm_t norm)
-{
-	gchar *p, *filename;
-
-	g_assert(src);
-
-	p = filename_charset_to_utf8(src);
-	filename = utf8_normalize(p, norm);
-	G_FREE_NULL(p);
 
 	return filename;
 }
@@ -3628,7 +3629,7 @@ icu_enabled(void)
  * Is the locale using the latin alphabet?
  */
 gboolean
-is_latin_locale(void)
+locale_is_latin(void)
 {
 	return latin_locale;
 }
@@ -3796,8 +3797,9 @@ utf8_normalize(const gchar *src, uni_norm_t norm)
 {
 	guint32 *dst32;
 
-	g_assert((gint) norm >= 0 && norm < NUM_UNI_NORM);
+	g_assert(src);
 	g_assert('\0' == *src || utf8_is_valid_string(src, 0));
+	g_assert((gint) norm >= 0 && norm < NUM_UNI_NORM);
 
 	{
 		size_t n;

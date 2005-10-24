@@ -161,6 +161,7 @@ lazy_vendor_to_utf8(const gchar *s)
 gchar *locale_to_utf8(const gchar *str);
 gchar *locale_to_utf8_normalized(const gchar *str, uni_norm_t norm);
 gchar *filename_to_utf8_normalized(const gchar *str, uni_norm_t norm);
+gchar *latin_to_utf8_normalized(const gchar *str, uni_norm_t norm);
 
 gboolean is_ascii_string(const gchar *str);
 gchar *utf8_to_filename(const gchar *s);
@@ -178,7 +179,8 @@ utf8_or_locale_normalize(const gchar *s, uni_norm_t norm)
 
 
 gboolean icu_enabled(void);
-gboolean is_latin_locale(void);
+gboolean locale_is_latin(void);
+gboolean locale_is_utf8(void);
 
 #if 0  /* xxxUSE_ICU */
 
