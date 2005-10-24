@@ -649,7 +649,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 	{
 		gchar *s;
 
-		s = rc->name ? utf8_or_locale_normalize(rc->name, UNI_NORM_NFC) : NULL;
+		s = rc->name ? utf8_or_locale_normalize(rc->name, UNI_NORM_GUI) : NULL;
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename")),
 			s ? s : "");
@@ -698,7 +698,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 	{
 		gchar *s;
 
-		s = rc->tag ? utf8_or_locale_normalize(rc->tag, UNI_NORM_NFC) : NULL;
+		s = rc->tag ? utf8_or_locale_normalize(rc->tag, UNI_NORM_GUI) : NULL;
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag")),
 			s ? s : "");

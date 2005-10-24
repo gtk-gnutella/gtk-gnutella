@@ -122,7 +122,7 @@ fi_gui_set_details(gnet_fi_t fih)
     guc_fi_get_status(fih, &fis);
     aliases = guc_fi_get_aliases(fih);
 
-	filename = filename_to_utf8_normalized(fi->file_name, UNI_NORM_NFC);
+	filename = filename_to_utf8_normalized(fi->file_name, UNI_NORM_GUI);
     gtk_entry_set_text(entry_fi_filename, filename);
 	G_FREE_NULL(filename);
 
@@ -139,7 +139,7 @@ fi_gui_set_details(gnet_fi_t fih)
 		gtk_tree_store_append(store_aliases, &iter, NULL);
 		s = utf8_is_valid_string(aliases[i], 0)
 			? aliases[i]
-			: filename_to_utf8_normalized(aliases[i], UNI_NORM_NFC);
+			: filename_to_utf8_normalized(aliases[i], UNI_NORM_GUI);
 
 		gtk_tree_store_set(store_aliases, &iter, 0, s, (-1));
 		if (s != aliases[i])
@@ -269,7 +269,7 @@ fi_gui_fill_info(gnet_fi_t fih, gchar *titles[c_fi_num])
 	if (utf8_is_valid_string(fi->file_name, 0)) {
     	titles[c_fi_filename] = fi->file_name;
 	} else {
-		gchar *s = filename_to_utf8_normalized(fi->file_name, UNI_NORM_NFC);
+		gchar *s = filename_to_utf8_normalized(fi->file_name, UNI_NORM_GUI);
 		utf8_strlcpy(filename_buf, s, sizeof filename_buf);
     	titles[c_fi_filename] = filename_buf;
 	}

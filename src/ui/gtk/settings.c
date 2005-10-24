@@ -606,7 +606,7 @@ update_shared_dirs(property_t prop)
 		gchar *dir, *dir_utf8;
 
 		dir = l_iter->data;
-		dir_utf8 = filename_to_utf8_normalized(dir, UNI_NORM_NFC);
+		dir_utf8 = filename_to_utf8_normalized(dir, UNI_NORM_GUI);
 		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
 		gtk_list_store_set(GTK_LIST_STORE(model), &iter,
 			0, dir,	/* The actual pathname, not necessarily UTF-8 encoded */

@@ -1163,7 +1163,7 @@ file_info_shared_sha1(const gchar *sha1)
 
 		filename = file_info_readable_filename(fi);
 
-		q = filename_to_utf8_normalized(filename, UNI_NORM_NFC);
+		q = filename_to_utf8_normalized(filename, UNI_NORM_NETWORK);
 		sf->name_nfc = atom_str_get(q);
 		if (q != filename)
 			G_FREE_NULL(q);
@@ -3185,7 +3185,7 @@ file_info_get(gchar *file, const gchar *path, filesize_t size,
 	 */
 	
 	if (!utf8_is_valid_string(file, 0)) {
-		to_free = locale_to_utf8_normalized(file, UNI_NORM_NFC);
+		to_free = locale_to_utf8_normalized(file, UNI_NORM_NETWORK);
 		file = to_free;
 	}
 	

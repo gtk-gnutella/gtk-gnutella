@@ -572,8 +572,8 @@ search_gui_add_record(
 	g_assert(rc->refcount >= 2);
 
 	name_utf8 = utf8_is_valid_string(rc->name, 0)
-		? utf8_normalize(rc->name, UNI_NORM_NFC)
-		: locale_to_utf8_normalized(rc->name, UNI_NORM_NFC);
+		? utf8_normalize(rc->name, UNI_NORM_GUI)
+		: locale_to_utf8_normalized(rc->name, UNI_NORM_GUI);
 
 	{
 		const gchar *p = strrchr(name_utf8, '.');

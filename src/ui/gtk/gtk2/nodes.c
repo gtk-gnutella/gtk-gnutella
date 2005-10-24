@@ -405,7 +405,7 @@ host_lookup_callback(const gchar *hostname, gpointer data)
 			to_free = NULL;
 			host = hostname;
 		} else {
-			to_free = locale_to_utf8_normalized(hostname, UNI_NORM_NFC);
+			to_free = locale_to_utf8_normalized(hostname, UNI_NORM_GUI);
 			host = to_free;
 		}
 		

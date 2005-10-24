@@ -739,7 +739,7 @@ download_gui_add(download_t *d)
 		 */
 		if (!parent) {
 			d_file_name = guc_file_info_readable_filename(d->file_info);
-			to_free = filename_to_utf8_normalized(d_file_name, UNI_NORM_NFC);
+			to_free = filename_to_utf8_normalized(d_file_name, UNI_NORM_GUI);
 			d_file_name = to_free;
 
 			if (d->file_info->file_size_known)
@@ -836,7 +836,7 @@ download_gui_add(download_t *d)
 
 		if (!parent) {
 			d_file_name = guc_file_info_readable_filename(d->file_info);
-			to_free = filename_to_utf8_normalized(d_file_name, UNI_NORM_NFC);
+			to_free = filename_to_utf8_normalized(d_file_name, UNI_NORM_GUI);
 			d_file_name = to_free;
 
 			if (d->file_info->file_size_known)

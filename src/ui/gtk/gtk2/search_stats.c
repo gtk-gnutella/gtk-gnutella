@@ -218,7 +218,7 @@ stats_hash_to_treeview(gpointer key, gpointer value, gpointer unused_udata)
 
 	s = !key || utf8_is_valid_string(key, 0)
 		? key
-		: locale_to_utf8_normalized(key, UNI_NORM_NFC);
+		: locale_to_utf8_normalized(key, UNI_NORM_GUI);
 
 	gtk_list_store_append(store_search_stats, &iter);
 	gtk_list_store_set(store_search_stats, &iter,

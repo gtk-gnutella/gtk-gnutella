@@ -341,7 +341,7 @@ upload_stats_gui_add(const struct ul_stats *us)
 
 	g_assert(us != NULL);
 
-	filename = filename_to_utf8_normalized(us->filename, UNI_NORM_NFC);
+	filename = filename_to_utf8_normalized(us->filename, UNI_NORM_GUI);
 
 	upload_stats_gui_init_intern(TRUE);
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(upload_stats_treeview));

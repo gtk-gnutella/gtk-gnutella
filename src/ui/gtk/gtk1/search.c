@@ -1146,8 +1146,8 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 	g_string_free(info, TRUE);
 
 	filename_utf8 = utf8_is_valid_string(rc->name, 0)
-		? utf8_normalize(rc->name, UNI_NORM_NFC)
-		: locale_to_utf8_normalized(rc->name, UNI_NORM_NFC);
+		? utf8_normalize(rc->name, UNI_NORM_GUI)
+		: locale_to_utf8_normalized(rc->name, UNI_NORM_GUI);
 
 	{
 		const gchar *p = strrchr(filename_utf8, '.');

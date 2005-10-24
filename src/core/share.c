@@ -1108,7 +1108,11 @@ recurse_scan(gchar *dir, const gchar *basedir)
 
 				found->file_path = atom_str_get(full);
 
-				q = filename_to_utf8_normalized(name, UNI_NORM_NFC);
+				/*
+				 * Explicitely NFC for better inter-vendor support
+				 * and because it's tighter.
+				 */
+				q = filename_to_utf8_normalized(name, UNI_NORM_NETWORK);
 				found->name_nfc = atom_str_get(q);
 				if (q != name)
 					G_FREE_NULL(q);

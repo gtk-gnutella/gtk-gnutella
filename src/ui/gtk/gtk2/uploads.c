@@ -301,7 +301,7 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 			atom_str_free(rd->name);
 		rd->name = atom_str_get(u->name);
 
-		filename = filename_to_utf8_normalized(rd->name, UNI_NORM_NFC);
+		filename = filename_to_utf8_normalized(rd->name, UNI_NORM_GUI);
 		gtk_list_store_set(store_uploads, &rd->iter,
 			c_ul_filename, filename,
 			(-1));
@@ -413,7 +413,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 	titles[c_ul_loc] = iso3166_country_cc(u->country);
 
 	filename = u->name
-		? filename_to_utf8_normalized(u->name, UNI_NORM_NFC) : NULL;
+		? filename_to_utf8_normalized(u->name, UNI_NORM_GUI) : NULL;
 	
 	titles[c_ul_filename] = filename ? filename : "...";
 	titles[c_ul_host] = uploads_gui_host_string(u);
