@@ -268,11 +268,9 @@ handle_magnet(gchar *url)
 
 	/* FIXME:	As long as downloading of files without a known size is
 	 *			defective, we cannot initiate downloads this way. */
-#if 1
+#if 0 
 	if (dl.ready) {
 		gchar *filename;
-
-		filename = gm_sanitize_filename(dl.file, FALSE, FALSE);
 
 		g_message("Starting download from magnet");
 		guc_download_new_unknown_size(filename, URN_INDEX, dl.ha,

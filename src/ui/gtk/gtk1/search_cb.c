@@ -545,8 +545,9 @@ on_button_search_clicked(GtkButton *unused_button, gpointer unused_udata)
          * If we should set a default filter, we do that.
          */
         if (res && (default_filter != NULL)) {
-            rule_t *rule = filter_new_jump_rule
-                (default_filter, RULE_FLAG_ACTIVE);
+            rule_t *rule;
+		   
+			rule = filter_new_jump_rule(default_filter, RULE_FLAG_ACTIVE);
 
             /*
              * Since we don't want to distrub the shadows and
@@ -913,14 +914,13 @@ on_button_search_passive_clicked(GtkButton *unused_button,
         option_menu_get_selected_data
             (lookup_widget(main_window, "optionmenu_search_filter"));
 
-	search_gui_new_search("Passive", SEARCH_PASSIVE, &search);
+	search_gui_new_search(_("Passive"), SEARCH_PASSIVE, &search);
 
     /*
      * If we should set a default filter, we do that.
      */
     if (default_filter != NULL) {
-        rule_t *rule = filter_new_jump_rule
-            (default_filter, RULE_FLAG_ACTIVE);
+        rule_t *rule = filter_new_jump_rule(default_filter, RULE_FLAG_ACTIVE);
 
         /*
          * Since we don't want to distrub the shadows and

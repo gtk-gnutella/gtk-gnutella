@@ -1067,28 +1067,36 @@ file_info_lookup_dup(fileinfo_t *fi)
 static gboolean
 looks_like_urn(const gchar *filename)
 {
-	static const gchar * const prefixes[] = {
-		"urn:",
-		"sha1:",
-		"bitprint:",
-	};
-	const gchar *p;
-	gint c;
+	const gchar *p, *q;
 	guint i;
 
-	for (i = 0; i < G_N_ELEMENTS(prefixes); i++) {
-		if (is_strcaseprefix(filename, prefixes[i]))
-			return TRUE;
+	/* Check for the following pattern:
+	 *
+	 * (urn.)?(sha1|bitprint).[a-zA-Z0-9]{SHA1_BASE32_SIZE,}
+	 */
+	
+	p = is_strcaseprefix(filename, "urn");
+	/* Skip a single character after the prefix */
+	if (p) {
+	   	if ('\0' == *p++)
+			return FALSE;
+	} else {
+		p = filename;
 	}
+	
+	q = is_strcaseprefix(p, "sha1");
+	if (!q)
+		q = is_strcaseprefix(p, "bitprint");
 
-	for (p = filename; '\0' != (c = *p++); /* NOTHING */) {
-		if (!is_ascii_alnum(c))
-			break;
-		if (p - filename >= SHA1_BASE32_SIZE)
-			return TRUE;
-	}
+	/* Skip a single character after the prefix */
+	if (!q || '\0' == *q++)
+		return FALSE;
 
-	return FALSE;
+	i = 0;
+	while (i < SHA1_BASE32_SIZE && is_ascii_alnum(q[i]))
+		i++;
+
+	return i < SHA1_BASE32_SIZE ? FALSE : TRUE;
 }
 
 /**
@@ -1103,13 +1111,12 @@ file_info_readable_filename(const fileinfo_t *fi)
 {
 	const GSList *sl;
 
-	if (!looks_like_urn(fi->file_name))
-		return fi->file_name;
-
-	for (sl = fi->alias; sl; sl = g_slist_next(sl)) {
-		const gchar *name = sl->data;
-		if (!looks_like_urn(name))
-			return name;
+	if (looks_like_urn(fi->file_name)) {
+		for (sl = fi->alias; sl; sl = g_slist_next(sl)) {
+			const gchar *name = sl->data;
+			if (!looks_like_urn(name))
+				return name;
+		}
 	}
 
 	return fi->file_name;
@@ -1156,7 +1163,7 @@ file_info_shared_sha1(const gchar *sha1)
 
 		filename = file_info_readable_filename(fi);
 
-		q = locale_to_utf8_normalized(filename, UNI_NORM_NFC);
+		q = filename_to_utf8_normalized(filename, UNI_NORM_NFC);
 		sf->name_nfc = atom_str_get(q);
 		if (q != filename)
 			G_FREE_NULL(q);
@@ -1566,8 +1573,8 @@ eof:
 static void
 file_info_store_one(FILE *f, fileinfo_t *fi)
 {
-	GSList *fclist;
-	GSList *a;
+	const GSList *fclist;
+	const GSList *a;
 	struct dl_file_chunk *fc;
 
 	if (fi->use_swarming && fi->dirty)
@@ -1601,7 +1608,7 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 		guid_hex_str(fi->guid),
 		fi->generation);
 
-	for (a = fi->alias; a; a = a->next) {
+	for (a = fi->alias; a; a = g_slist_next(a)) {
 		const gchar *alias = a->data;
 
 		g_assert(NULL != alias);
@@ -1778,8 +1785,8 @@ file_info_free_guid_kv(gpointer key, gpointer val, gpointer unused_x)
 static void
 file_info_free_outname_kv(gpointer key, gpointer val, gpointer unused_x)
 {
-	const gchar *name = (const gchar *) key;
-	fileinfo_t *fi = (fileinfo_t *) val;
+	const gchar *name = key;
+	fileinfo_t *fi = val;
 
 	(void) unused_x;
 	g_assert(name == fi->file_name);	/* name shared with fi's, don't free */
@@ -2940,28 +2947,31 @@ file_info_retrieve(void)
 static gchar *
 file_info_new_outname(const gchar *name, const gchar *dir)
 {
-	gint i;
+	static const gchar empty[] = "noname";
 	gchar xuid[GUID_RAW_SIZE];
-	size_t flen;
-	const gchar *escaped;
-	gchar *result;
-	const gchar empty[] = "noname";
 	gchar ext[32] = "";
+	gchar *s, *result, *to_free = NULL;
+	size_t flen;
+	gint i;
 
-	escaped = gm_sanitize_filename(name, convert_spaces, convert_evil_chars);
+	s = gm_sanitize_filename(name, convert_spaces, convert_evil_chars);
+	if (name != s) {
+		to_free = s;
+		name = s;
+	}
 
-	if ('\0' == *escaped)			/* Don't allow empty names */
-		escaped = empty;
+	if ('\0' == *name)			/* Don't allow empty names */
+		name = empty;
 
 	/*
-	 * If `name' (escaped form) is not taken yet, it will do.
+	 * If `name' (sanitized form) is not taken yet, it will do.
 	 */
 
 	if (
-		NULL == g_hash_table_lookup(fi_by_outname, escaped) &&
-		!filepath_exists(dir, escaped)
+		NULL == g_hash_table_lookup(fi_by_outname, name) &&
+		!filepath_exists(dir, name)
 	) {
-		result = atom_str_get(escaped);
+		result = atom_str_get(name);
 		goto ok;
 	}
 
@@ -2969,16 +2979,16 @@ file_info_new_outname(const gchar *name, const gchar *dir)
 	 * OK, insert .01 before the extension (if any), then .02, etc...
 	 */
 
-	flen = utf8_strlcpy(fi_tmp, escaped, sizeof fi_tmp);
+	flen = utf8_strlcpy(fi_tmp, name, sizeof fi_tmp);
 	if ((size_t) flen >= sizeof fi_tmp) {
 		g_warning("file_info_new_outname: filename was truncated: \"%s\"",
 			fi_tmp);
 	}
 
 	for (i = flen; i > 0; i--) {
-		if ('.' != escaped[i])
+		if ('.' != name[i])
 			continue;
-		if (utf8_strlcpy(ext, &escaped[i], sizeof ext) >= sizeof ext) {
+		if (utf8_strlcpy(ext, &name[i], sizeof ext) >= sizeof ext) {
 			ext[0] = '\0'; /* Probably not an extension, don't preserve */
 		} else {
 			flen = i;
@@ -3019,11 +3029,7 @@ file_info_new_outname(const gchar *name, const gchar *dir)
 	return NULL;
 
 ok:
-	if (escaped != name && escaped != empty) {
-		g_free(deconstify_gchar(escaped));
-		escaped = NULL; /* Don't use G_FREE_NULL b/c of lvalue cast */
-	}
-
+	G_FREE_NULL(to_free);
 	return result;
 }
 
@@ -3133,11 +3139,11 @@ done:
  * name, size and/or SHA1. A new struct will be allocated if necessary.
  */
 fileinfo_t *
-file_info_get(gchar *file, const gchar *path, filesize_t size, gchar *sha1,
-	gboolean file_size_known)
+file_info_get(gchar *file, const gchar *path, filesize_t size,
+	gchar *sha1, gboolean file_size_known)
 {
 	fileinfo_t *fi;
-	gchar *outname;
+	gchar *outname, *s, *to_free = NULL;
 
 	/*
 	 * See if we know anything about the file already.
@@ -3177,6 +3183,18 @@ file_info_get(gchar *file, const gchar *path, filesize_t size, gchar *sha1,
 	 * Compute new output name.  If the filename is not taken yet, this
 	 * will be exactly `file'.  Otherwise, it will be a variant.
 	 */
+	
+	if (!utf8_is_valid_string(file, 0)) {
+		to_free = locale_to_utf8_normalized(file, UNI_NORM_NFC);
+		file = to_free;
+	}
+	
+	s = utf8_to_filename(file);
+	if (file != s) {
+		G_FREE_NULL(to_free);
+		to_free = s;
+		file = s;
+	}
 
 	outname = file_info_new_outname(file, path);
 
@@ -3255,6 +3273,7 @@ file_info_get(gchar *file, const gchar *path, filesize_t size, gchar *sha1,
 		dmesh_multiple_downloads(sha1, size, fi);
 
 	atom_str_free(outname);
+	G_FREE_NULL(to_free);
 
 	return fi;
 }

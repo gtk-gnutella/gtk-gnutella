@@ -307,12 +307,6 @@ search_gui_new_search_full(const gchar *querystr,
 	guint32 reissue_timeout, gint sort_col,
 	gint sort_order, flag_t flags, search_t **search)
 {
-    search_t *sch;
-	gnet_search_t sch_id;
-    GList *rules;
-    const gchar *titles[c_sl_num];
-    gint row;
-    const gchar *query, *error;
     GtkWidget *combo_searches = lookup_widget(main_window, "combo_searches");
     GtkWidget *clist_search = lookup_widget(main_window, "clist_search");
     GtkWidget *notebook_search_results =
@@ -320,6 +314,12 @@ search_gui_new_search_full(const gchar *querystr,
     GtkWidget *button_search_close =
         lookup_widget(main_window, "button_search_close");
     GtkWidget *entry_search = lookup_widget(main_window, "entry_search");
+    const gchar *titles[c_sl_num];
+    const gchar *error, *query, *query_locale;
+    search_t *sch;
+	gnet_search_t sch_id;
+    GList *rules;
+    gint row;
 
 	query = search_gui_parse_query(querystr, &rules, &error);
 	if (!query) {
@@ -363,20 +363,13 @@ search_gui_new_search_full(const gchar *querystr,
 
 	/* Create the list item */
 
-	if (utf8_is_valid_string(query, 0)) {
-		const gchar *q;
-		
-		q = utf8_to_locale(query, 0);
-		if (NULL != q && *q != '\0')
-			query = q;
-	}
-
-	sch->list_item = gtk_list_item_new_with_label(query);
+	query_locale = lazy_utf8_to_locale(query);
+	sch->list_item = gtk_list_item_new_with_label(query_locale);
 	gtk_widget_show(sch->list_item);
 	gtk_list_prepend_items(GTK_LIST(GTK_COMBO(combo_searches)->list),
 		g_list_prepend(NULL, sch->list_item));
 
-    titles[c_sl_name] = query;
+    titles[c_sl_name] = query_locale;
     titles[c_sl_hit] = "0";
     titles[c_sl_new] = "0";
     row = gtk_clist_append(GTK_CLIST(clist_search), (gchar **) titles);
@@ -1102,6 +1095,7 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 	gui_record_t *grc2;
     struct results_set *rs = rc->results_set;
 	gchar *empty = "";
+	gchar *filename_utf8;
 
 	GtkCTreeNode *parent;
 	GtkCTreeNode *node;
@@ -1151,9 +1145,25 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 
 	g_string_free(info, TRUE);
 
+	filename_utf8 = utf8_is_valid_string(rc->name, 0)
+		? utf8_normalize(rc->name, UNI_NORM_NFC)
+		: locale_to_utf8_normalized(rc->name, UNI_NORM_NFC);
+
+	{
+		const gchar *p = strrchr(filename_utf8, '.');
+		gchar ext[32];
+
+		if (!p || utf8_strlower(ext, &p[1], sizeof ext) >= sizeof ext) {
+			/* If the guessed extension is really this long, assume the
+			 * part after the dot isn't an extension at all. */
+			ext[0] = '\0';
+		}
+		rc->ext = atom_str_get(lazy_utf8_to_locale(ext));
+	}
+
 	/* Setup text for node.  Note only parent nodes will have # and size shown*/
-	titles[c_sr_filename] = (NULL != rc->name) ?  rc->name : empty;
-	titles[c_sr_ext] = (NULL != rc->ext) ? rc->ext : empty;
+	titles[c_sr_filename] = lazy_utf8_to_locale(filename_utf8);
+	titles[c_sr_ext] = rc->ext;
 	titles[c_sr_meta] = empty;
 	titles[c_sr_info] = (NULL != rc->info) ?  rc->info : empty;
 	titles[c_sr_size] = empty;
@@ -1321,6 +1331,8 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
         gtk_ctree_node_set_foreground(ctree, node, fg);
     if (bg != NULL)
         gtk_ctree_node_set_background(ctree, node, bg);
+
+	G_FREE_NULL(filename_utf8);
 }
 
 
@@ -1495,7 +1507,6 @@ download_selection_of_ctree(
 	guint32 flags;
 	GtkCTreeNode *node;
 	GtkCTreeRow *row;
-	gchar *filename;
 	search_t *current_search = search_gui_get_current_search();
 
     gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED,
@@ -1529,16 +1540,12 @@ download_selection_of_ctree(
 		need_push = 0 != (rs->status & ST_FIREWALL);
 		flags = (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
 
-		filename = gm_sanitize_filename(rc->name, FALSE, FALSE);
-		if (guc_download_new(filename, rc->size, rc->index,
+		if (guc_download_new(rc->name, rc->size, rc->index,
 				rs->addr, rs->port, rs->guid, rs->hostname,
 				rc->sha1, rs->stamp, need_push, NULL, rs->proxies, flags)
 		) {
 			created++;
 		}
-
-		if (filename != rc->name)
-			G_FREE_NULL(filename);
 
 		if (rs->proxies != NULL)
 			search_gui_free_proxies(rs);
@@ -2297,30 +2304,27 @@ gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
  *	Like search_update_tab_label but always update the label
  *
  */
-void gui_search_force_update_tab_label(struct search *sch)
+void
+gui_search_force_update_tab_label(struct search *sch)
 {
     GtkNotebook *notebook_search_results = GTK_NOTEBOOK
         (lookup_widget(main_window, "notebook_search_results"));
     GtkCList *clist_search = GTK_CLIST
         (lookup_widget(main_window, "clist_search"));
 	search_t *current_search = search_gui_get_current_search();
-	const gchar *query = sch->query;
     gint row;
-	
-	if (utf8_is_valid_string(query, 0)) {
-		const gchar *q;
-		
-		q = utf8_to_locale(query, 0);
-		if (NULL != q && *q != '\0')
-			query = q;
-	}
 
-	if (sch == current_search || sch->unseen_items == 0)
-		gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d)", query,
-				   sch->items);
-	else
-		gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d, %d)", query,
-				   sch->items, sch->unseen_items);
+	{
+		const gchar *query_locale;
+		query_locale = lazy_utf8_to_locale(sch->query);
+		if (sch == current_search || sch->unseen_items == 0)
+			gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d)",
+					query_locale, sch->items);
+		else
+			gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d, %d)",
+					query_locale, sch->items, sch->unseen_items);
+	}
+	
 	sch->last_update_items = sch->items;
 	gtk_notebook_set_tab_label_text
         (notebook_search_results, sch->scrolled_window, tmpstr);

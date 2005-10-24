@@ -102,11 +102,23 @@ gboolean
 search_gui_new_search(const gchar *query, flag_t flags, search_t **search)
 {
     guint32 timeout;
+	gboolean ret;
+	gchar *to_free;
 
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
-    return search_gui_new_search_full(query, timeout,
+
+	if (SEARCH_PASSIVE & flags) {
+		to_free = NULL;
+	} else {
+		to_free = ui_string_to_utf8(query);
+		query = to_free;
+	}
+    ret = search_gui_new_search_full(query, timeout,
 			search_sort_default_column, search_sort_default_order,
 			flags | SEARCH_ENABLED, search);
+
+	G_FREE_NULL(to_free);
+	return ret;
 }
 
 
@@ -564,7 +576,6 @@ search_gui_find(gnet_search_t sh)
 record_t *
 search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 {
-	const gchar *filename;
     record_t *rc;
 
     g_assert(r != NULL);
@@ -576,20 +587,8 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     rc->results_set = rs;
     rc->refcount = 0;
 
-    filename = r->name;
-#if GTK_CHECK_VERSION(2, 0, 0)
-    /* Gtk2 extracts this in search_gui2.c because of UTF8 issues. */
-    rc->ext  = NULL;
-#else
-	if (!is_ascii_string(filename)) {
-		if (utf8_is_valid_string(filename, 0))
-    		filename = utf8_to_locale(filename, 0);
-		if (!filename)
-			filename = r->name;
-	}
-    rc->ext  = atom_str_get(search_gui_extract_ext(filename));
-#endif
-	rc->name = atom_str_get(filename);
+    rc->ext = NULL;
+	rc->name = atom_str_get(r->name);
     rc->size = r->size;
     rc->index = r->index;
     rc->sha1 = r->sha1 != NULL ? atom_sha1_get(r->sha1) : NULL;
@@ -1398,7 +1397,6 @@ search_gui_parse_query(const gchar *querystr, GList **rules,
 {
 	static const gchar urnsha1[] = "urn:sha1:";
 	static gchar query[512];
-	size_t len;
 	struct query qs;
 
 	g_assert(querystr != NULL);
@@ -1408,6 +1406,11 @@ search_gui_parse_query(const gchar *querystr, GList **rules,
 	if (rules)
 		*rules = NULL;
 
+	if (!utf8_is_valid_string(querystr, 0)) {
+		*error = _("The query string is not UTF-8 encoded");
+		return NULL;
+	}
+	
 	/*
 	 * If the text is a magnet link we extract the SHA1 urn
 	 * and put it back into the search field string so that the
@@ -1415,8 +1418,7 @@ search_gui_parse_query(const gchar *querystr, GList **rules,
 	 *		--DBelius   11/11/2002
 	 */
 
-	len = g_strlcpy(query, querystr, sizeof query);
-	if (len >= sizeof query) {
+	if (utf8_strlcpy(query, querystr, sizeof query) >= sizeof query) {
 		*error = _("The entered query is too long");
 		return NULL;
 	}

@@ -294,13 +294,18 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 
 	/* Exploit that u->name is an atom! */
 	if (u->name != rd->name) {
+		gchar *filename;
+
 		g_assert(NULL != u->name);
 		if (NULL != rd->name)
 			atom_str_free(rd->name);
 		rd->name = atom_str_get(u->name);
+
+		filename = filename_to_utf8_normalized(rd->name, UNI_NORM_NFC);
 		gtk_list_store_set(store_uploads, &rd->iter,
-			c_ul_filename, lazy_locale_to_utf8(rd->name),
+			c_ul_filename, filename,
 			(-1));
+		G_FREE_NULL(filename);
 	}
 
 	/* Exploit that u->user_agent is an atom! */
@@ -310,7 +315,7 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 			atom_str_free(rd->user_agent);
 		rd->user_agent = atom_str_get(u->user_agent);
 		gtk_list_store_set(store_uploads, &rd->iter,
-			c_ul_agent, lazy_iso8859_1_to_utf8(rd->user_agent),
+			c_ul_agent, lazy_vendor_to_utf8(rd->user_agent),
 			(-1));
 	}
 
@@ -350,6 +355,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
     upload_row_data_t *rd = walloc(sizeof *rd);
 	gnet_upload_status_t status;
 	static gchar size_tmp[256];
+	gchar *filename;
 
 	memset(titles, 0, sizeof titles);
 
@@ -395,7 +401,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 		static gchar str[256];	/* MUST be static! */
 		const gchar *agent;
 
-		agent = lazy_iso8859_1_to_utf8(u->user_agent);
+		agent = lazy_vendor_to_utf8(u->user_agent);
 		if (u->user_agent != agent) {
 			utf8_strlcpy(str, agent, sizeof str);
 			agent = str;
@@ -406,8 +412,10 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 
 	titles[c_ul_loc] = iso3166_country_cc(u->country);
 
-	titles[c_ul_filename] = NULL != u->name
-								? lazy_locale_to_utf8(u->name) : "...";
+	filename = u->name
+		? filename_to_utf8_normalized(u->name, UNI_NORM_NFC) : NULL;
+	
+	titles[c_ul_filename] = filename ? filename : "...";
 	titles[c_ul_host] = uploads_gui_host_string(u);
 	titles[c_ul_status] = uploads_gui_status_str(&status, rd);
 
@@ -425,6 +433,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 		c_ul_fg, NULL,
 		c_ul_data, rd,
 		(-1));
+	G_FREE_NULL(filename);
 	g_hash_table_insert(upload_handles, GUINT_TO_POINTER(rd->handle), rd);
 }
 

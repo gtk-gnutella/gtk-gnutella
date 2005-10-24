@@ -243,12 +243,11 @@ nodes_gui_update_node_info(gnet_node_info_t *n, GtkTreeIter *iter)
 	g_assert(NULL != iter);
 
     guc_node_get_status(n->node_handle, &status);
-    gm_snprintf(version, sizeof(version), "%d.%d",
+    gm_snprintf(version, sizeof version, "%d.%d",
 		n->proto_major, n->proto_minor);
 
 	gtk_list_store_set(nodes_model, iter,
-		c_gnet_user_agent, n->vendor
-							? lazy_iso8859_1_to_utf8(n->vendor) : NULL,
+		c_gnet_user_agent, lazy_vendor_to_utf8(n->vendor),
 		c_gnet_loc, iso3166_country_cc(n->country),
 		c_gnet_version, version,
 		c_gnet_info, nodes_gui_common_status_str(&status),
@@ -350,7 +349,7 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			iso3166_country_name(info.country),
 			iso3166_country_cc(info.country),
 			_("Vendor:"),
-			info.vendor ? lazy_iso8859_1_to_utf8(info.vendor) : _("Unknown"));
+			info.vendor ? lazy_vendor_to_utf8(info.vendor) : _("Unknown"));
 
 		guc_node_clear_info(&info);
 		gtk_tooltips_set_tip(settings_gui_tooltips(),
@@ -399,9 +398,21 @@ host_lookup_callback(const gchar *hostname, gpointer data)
 	guc_node_clear_info(&info);
 
 	if (hostname) {
+		const gchar *host;
+		gchar *to_free;
+
+		if (utf8_is_valid_string(hostname, 0)) {
+			to_free = NULL;
+			host = hostname;
+		} else {
+			to_free = locale_to_utf8_normalized(hostname, UNI_NORM_NFC);
+			host = to_free;
+		}
+		
 		gm_snprintf(buf, sizeof buf, "%s (%s)",
-			lazy_locale_to_utf8(hostname),
-			host_addr_port_to_string(addr, port));
+			host, host_addr_port_to_string(addr, port));
+
+		G_FREE_NULL(to_free);
 	} else {
 		statusbar_gui_warning(10,
 			_("Reverse lookup for %s failed"), host_addr_to_string(addr));
@@ -549,14 +560,13 @@ nodes_gui_add_node(gnet_node_info_t *n)
 
     g_assert(n != NULL);
 
-   	gm_snprintf(proto_tmp, sizeof(proto_tmp), "%d.%d",
+   	gm_snprintf(proto_tmp, sizeof proto_tmp, "%d.%d",
 		n->proto_major, n->proto_minor);
     gtk_list_store_append(nodes_model, iter);
     gtk_list_store_set(nodes_model, iter,
         c_gnet_host,    host_addr_port_to_string(n->addr, n->port),
         c_gnet_flags,    NULL,
-        c_gnet_user_agent, n->vendor
-							? lazy_iso8859_1_to_utf8(n->vendor) : NULL,
+        c_gnet_user_agent, lazy_vendor_to_utf8(n->vendor),
         c_gnet_loc, 	iso3166_country_cc(n->country),
         c_gnet_version, proto_tmp,
         c_gnet_connected, NULL,

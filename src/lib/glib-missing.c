@@ -300,10 +300,9 @@ GString *g_string_append_len(GString *gs, const gchar *val,  gssize len)
 #endif	/* USE_GLIB1 */
 
 /**
- * Creates a valid and sanitized filename from the supplied string. This is
- * necessary for platforms which have certain requirements for filenames. For
- * most Unix-like platforms anything goes but for security reasons, shell
- * meta characters are replaced by harmless characters.
+ * Creates a valid and sanitized filename from the supplied string. For most
+ * Unix-like platforms anything goes but for security reasons, shell meta
+ * characters are replaced by harmless characters.
  *
  * @param filename the suggested filename.
  * @param no_spaces if TRUE, spaces are replaced with underscores.
@@ -316,30 +315,20 @@ gchar *
 gm_sanitize_filename(const gchar *filename,
 		gboolean no_spaces, gboolean no_evil)
 {
-	static const uni_norm_t norm =
-#if defined(__APPLE__) && defined(__MACH__) /* Darwin */
-		UNI_NORM_NFD;
-#else /* !Darwin */
-		UNI_NORM_NFC;
-#endif /* Darwin */
-	gint c;
+	const gchar *s = filename;
 	gchar *q = NULL;
-	const gchar *p, *s = filename;
 
-	g_assert(filename != NULL);
-
-	q = locale_to_utf8_normalized(filename, norm);
-	s = q;
+	g_assert(filename);
 
 /** Maximum bytes in filename i.e., including NUL */
 #define	FILENAME_MAXBYTES 256
 
 	/* Make sure the filename isn't too long */
 	if (strlen(s) >= FILENAME_MAXBYTES) {
-		gchar *buf, *ext;
 		size_t ext_size = 0;
+		gchar *ext;
 
-		buf = g_malloc(FILENAME_MAXBYTES);
+		q = g_malloc(FILENAME_MAXBYTES);
 
 		/* Try to preserve the filename extension */
 		ext = strrchr(s, '.');
@@ -357,40 +346,36 @@ gm_sanitize_filename(const gchar *filename,
 		}
 
 		g_assert(ext_size < FILENAME_MAXBYTES);
-		utf8_strlcpy(buf, s, FILENAME_MAXBYTES - ext_size);
+		utf8_strlcpy(q, s, FILENAME_MAXBYTES - ext_size);
 
 		/* Append the filename extension */
-		if (ext) {
-			size_t len;
+		if (ext)
+			g_strlcat(q, ext, FILENAME_MAXBYTES);
 
-			len = strlen(buf);
-			g_assert(len + ext_size <= FILENAME_MAXBYTES);
-			memcpy(&buf[len], ext, ext_size);
-			buf[len + ext_size - 1] = '\0';
-		}
-
-		g_assert(strlen(buf) < FILENAME_MAXBYTES);
-		G_FREE_NULL(q);
-		s = q = buf;
+		g_assert(strlen(q) < FILENAME_MAXBYTES);
+		s = q;
 	}
 
 	/* Replace shell meta characters and likely problematic characters */
-	for (p = s; (c = *(guchar *) p) != '\0'; ++p) {
+	{
 		static const gchar evil[] = "$&*\\`:;()'\"<>?|~\177";
-
-		if (
-			c < 32
-			|| is_ascii_cntrl(c)
-			|| G_DIR_SEPARATOR == c
-			|| '/' == c 
-			|| (' ' == c && no_spaces)
-			|| (p == s && '.' == c)
-			|| (no_evil && NULL != strchr(evil, c))
-		) {
-			if (!q) {
-				q = g_strdup(s);
+		size_t i;
+		guchar c;
+		
+		for (i = 0; '\0' != (c = s[i]); ++i) {
+			if (
+				c < 32
+				|| is_ascii_cntrl(c)
+				|| G_DIR_SEPARATOR == c
+				|| '/' == c 
+				|| (0 == i && '.' == c)
+				|| (no_spaces && is_ascii_space(c))
+				|| (no_evil && NULL != strchr(evil, c))
+		   ) {
+				if (!q)
+					q = g_strdup(s);
+				q[i] = '_';
 			}
-			q[p - s] = '_';
 		}
 	}
 

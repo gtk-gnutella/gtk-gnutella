@@ -92,10 +92,13 @@ static UConverter *conv_icu_utf8 = NULL;
 #endif /* xxxUSE_ICU */
 
 static const gchar *charset = NULL;
+static const GSList *sl_filename_charsets = NULL;
 
+static iconv_t cd_latin_to_utf8	= (iconv_t) -1;
 static iconv_t cd_locale_to_utf8 = (iconv_t) -1;
 static iconv_t cd_utf8_to_locale = (iconv_t) -1;
-static iconv_t cd_latin_to_utf8	= (iconv_t) -1;
+static iconv_t cd_filename_to_utf8 = (iconv_t) -1;
+static iconv_t cd_utf8_to_filename = (iconv_t) -1;
 
 static inline gboolean
 locale_is_utf8(void)
@@ -103,9 +106,34 @@ locale_is_utf8(void)
 	static gboolean initialized, is_utf8;
 
 	if (!initialized) {
+		initialized = TRUE;
 		g_assert(NULL != charset);
 		is_utf8 = 0 == strcmp(charset, "UTF-8");
+	}
+	return is_utf8;
+}
+
+const gchar *
+filename_charset(void)
+{
+	g_assert(sl_filename_charsets);
+	g_assert(sl_filename_charsets->data);
+	
+	return sl_filename_charsets->data;
+}
+
+static inline gboolean
+filename_charset_is_utf8(void)
+{
+	static gboolean initialized, is_utf8;
+
+	if (!initialized) {
+		const gchar *cs;
+		
 		initialized = TRUE;
+		cs = filename_charset();
+		g_assert(cs);
+		is_utf8 = 0 == strcmp(cs, "UTF-8");
 	}
 	return is_utf8;
 }
@@ -882,23 +910,6 @@ utf8_to_iso8859(gchar *s, gint len, gboolean space)
 }
 
 
-#if defined(USE_GLIB2)
-
-static const char *
-get_locale_charset(void)
-{
-	const char *cs = NULL;
-
-	g_get_charset(&cs);
-	return cs;
-}
-
-#else /* !USE_GLIB2 */
-
-#if defined(I_LIBCHARSET)
-#define get_locale_charset() locale_charset()
-#else /* !I_LIBCHARSET */
-
 /* List of known codesets. The first word of each string is the alias to be
  * returned. The words are seperated by whitespaces.
  */
@@ -983,15 +994,12 @@ static const char *codesets[] = {
  * @returns a string representing the current locale as an alias which is
  * understood by GNU iconv. The returned pointer points to a static buffer.
  */
-const char *
-get_locale_charset(void)
+const gchar *
+get_iconv_charset_alias(const gchar *cs)
 {
-	int i = 0;
-	const char *cs;
-	const char *start = codesets[0];
-	const char *first_end = NULL;
+	const gchar *start = codesets[0], *first_end = NULL;
+	gint i = 0;
 
-	cs = nl_langinfo(CODESET);
 	if (NULL == cs || '\0' == *cs)
 		return NULL;
 
@@ -1021,14 +1029,87 @@ get_locale_charset(void)
 	}
 	return NULL;
 }
-#endif /* I_LIBCHARSET */
 
+static const gchar *
+get_locale_charset(void)
+{
+	const char *cs;
+
+#if defined(USE_GLIB2)
+	cs = NULL;
+	g_get_charset(&cs);
+#else /* !USE_GLIB2 */
+#if defined(I_LIBCHARSET)
+	cs = locale_charset();
+#else /* !I_LIBCHARSET */
+	cs = get_iconv_charset_alias(nl_langinfo(CODESET));
+#endif /* I_LIBCHARSET */
 #endif /* USE_GLIB2 */
+	
+	return cs;
+}
 
 const gchar *
 locale_get_charset(void)
 {
 	return charset;
+}
+
+/**
+ * Emulate GLib 2.x behaviour and select the appropriate character set
+ * for filenames.
+ *
+ * @param locale the name of the current locale character set.
+ * @return	a list of newly allocated strings holding the names of the
+ * 			used character sets. The first is the one that should be
+ *			used when creating files.
+ */
+GSList *
+get_filename_charsets(const gchar *locale)
+{
+	const gchar *utf8_cs = "UTF-8", *s, *next;
+	GSList *sl = NULL;
+
+	g_assert(locale);
+
+	for (s = getenv("G_FILENAME_ENCODING"); s && '\0' != *s; s = next) {
+		const gchar *ep;
+
+		/* Skip empty elements and leading blanks */
+		while (',' == *s || is_ascii_blank(*s))
+			++s;
+
+		next = strchr(s, ',');
+		ep = next ? next : strchr(s, '\0');
+
+		/* Skip backwards over trailing blanks */
+		while (ep != s && is_ascii_blank(*(ep - 1)))
+			--ep;
+
+		if (ep != s) {
+			const gchar *cs;
+
+			if (is_strcaseprefix(s, "@locale") == ep) {
+				cs = locale;
+			} else {
+				gchar *q = g_strndup(s, ep - s);
+				cs = get_iconv_charset_alias(q);
+				G_FREE_NULL(q);
+			}
+			if (cs) {
+				if (utf8_cs && 0 == strcmp(cs, utf8_cs))
+					utf8_cs = NULL;
+
+				sl = g_slist_prepend(sl, g_strdup(cs));
+			}
+		}
+	}
+
+	/* If UTF-8 wasn't in the list, add it as last option */
+	if (utf8_cs)
+		sl = g_slist_prepend(sl, g_strdup(utf8_cs));
+
+	return g_slist_reverse(sl);
 }
 
 static void
@@ -1088,17 +1169,29 @@ locale_init(void)
 		struct utf32_general_category, uc, CMP, uint32_to_string);
 
 	setlocale(LC_ALL, "");
-	charset = get_locale_charset();
+	charset = g_strdup(get_locale_charset());
+	sl_filename_charsets = get_filename_charsets(charset ? charset : "ASCII");
+	g_assert(sl_filename_charsets);
+	g_assert(sl_filename_charsets->data);
 
 	if (charset == NULL) {
 		/* Default locale codeset */
-		charset = "ISO-8859-1";
+		charset = g_strdup("ISO-8859-1");
 		g_warning("locale_init: Using default codeset %s as fallback.",
 			charset);
 	}
 
-	g_message("using locale charset \"%s\"", charset);
+	g_message("using locale character set \"%s\"", charset);
 	textdomain_init(charset);
+
+	{
+		const GSList *sl = sl_filename_charsets;
+		
+		g_message("primary filename character set \"%s\"", filename_charset());
+		while (NULL != (sl = g_slist_next(sl)))
+			g_message("additional filename character set \"%s\"",
+				cast_to_gchar_ptr(deconstify_gpointer(sl->data)));
+	}
 
 	for (i = 0; i < G_N_ELEMENTS(latin_sets); i++)
 		if (0 == ascii_strcasecmp(charset, latin_sets[i])) {
@@ -1114,9 +1207,39 @@ locale_init(void)
 	} else {
 		cd_locale_to_utf8 = cd_latin_to_utf8;
 	}
-	if ((iconv_t)-1 == (cd_utf8_to_locale = iconv_open(charset, "UTF-8")))
+	if ((iconv_t) -1 == (cd_utf8_to_locale = iconv_open(charset, "UTF-8")))
 		g_warning("iconv_open(\"%s\", \"UTF-8\") failed.", charset);
 
+	/*
+	 * We don't need cd_utf8_to_filename if the filename character set
+	 * is ASCII or UTF-8. In the former case we fall back to ascii_enforce()
+	 * and in the latter conversion is nonsense.
+	 */
+	{
+		const gchar *cs = filename_charset();
+		iconv_t cd_from, cd_to;
+
+		if (0 == strcmp(cs, "ASCII") || 0 == strcmp(cs, "UTF-8")) {
+			cd_from = (iconv_t) -1;
+			cd_to = (iconv_t) -1;
+		} else if (0 == strcmp("ISO-8859-1", cs)) {
+			cd_from = cd_latin_to_utf8;
+			if ((iconv_t) -1 == (cd_to = iconv_open("ISO-8859-1", "UTF-8")))
+				g_warning("iconv_open(\"UTF-8\", \"ISO-8859-1\") failed.");
+		} else if (0 == strcmp(charset, cs)) {
+			cd_from = cd_locale_to_utf8;
+			cd_to = cd_utf8_to_locale;
+		} else {
+			if ((iconv_t) -1 == (cd_from = iconv_open("UTF-8", cs)))
+				g_warning("iconv_open(\"%s\", \"UTF-8\") failed.", cs);
+			if ((iconv_t) -1 == (cd_to = iconv_open(cs, "UTF-8")))
+				g_warning("iconv_open(\"UTF-8\", \"%s\") failed.", cs);
+		}
+
+		cd_filename_to_utf8 = cd_from;
+		cd_utf8_to_filename = cd_to;
+	}
+	
 #if 0  /* xxxUSE_ICU */
 	{
 		UErrorCode errorCode = U_ZERO_ERROR;
@@ -1161,64 +1284,102 @@ locale_close(void)
 #endif
 }
 
-static inline char *
-complete_iconv(iconv_t cd, const char *inbuf, size_t inbytes_left,
-	char *outbuf, size_t outbytes_left)
+/**
+ * NOTE: This assumes 8-bit (char-based) encodings.
+ *
+ * @return the size of the converting string including the trailing NUL.
+ */
+static size_t
+complete_iconv(iconv_t cd, const gchar *src, gchar *dst, size_t dst_left)
 {
-#if 0
-	/* This is the appropriate replacement unicode character 0xFFFD but
-	 * it looks awkward (a modified question mark) in a non-unicode
-	 * context. So rather use a underscore for filenames.
-	 */
-	static const gchar replacement[] = { 0xEF, 0xBF, 0xBD };
-#else
-	static const gchar replacement[] = { '_' };
-#endif
-	gchar *result = outbuf;
+	const gchar * const dst0 = dst;
+	size_t src_left;
+	
+	g_assert(src);
 
-	if ((iconv_t) -1 == cd)
-		return NULL;
+	if ((iconv_t) -1 == cd) {
+		errno = EBADF;
+		goto error;
+	}
 
-	if (outbytes_left > 0)
-		outbuf[0] = '\0';
+	if ((size_t) -1 == iconv(cd, NULL, NULL, NULL, NULL))	/* reset state */
+		goto error;
+	
+	src_left = strlen(src);
 
-	iconv(cd, NULL, NULL, NULL, NULL);	/* reset state*/
+	while (src_left > 0) {
+		gchar buf[256];
+		size_t ret, n;
 
-	while (inbytes_left > 0 && outbytes_left > 1) {
-		size_t ret;
+		{
+			size_t buf_size = sizeof buf;
+			gchar *p = buf;
 
-		ret = iconv(cd, cast_to_gpointer(&inbuf), &inbytes_left,
-		    &outbuf, &outbytes_left);
+			ret = iconv(cd, cast_to_gpointer(&src), &src_left, &p, &buf_size);
+			n = p - buf;
+		}
+
+		if (dst0 && dst_left > 1) {
+			size_t m = MIN(n, dst_left - 1);
+			memcpy(dst, buf, m);
+			dst_left -= m;
+		}
+		dst += n;
 
 		if ((size_t) -1 == ret) {
-			switch (errno) {
-			case EILSEQ:
-			case EINVAL:
-				if (common_dbg > 1)
-					g_warning("complete_iconv: iconv() failed soft: %s",
-						g_strerror(errno));
+			gint e = errno;
 
-				if (outbytes_left > sizeof replacement) {
-					inbuf++;
-					inbytes_left--;
-					memcpy(outbuf, replacement, sizeof replacement);
-					outbuf += sizeof replacement;
-					outbytes_left -= sizeof replacement;
-				} else {
-					outbytes_left = 1;
-				}
-				break;
-			default:
-				if (common_dbg > 1)
-					g_warning("complete_iconv(): iconv() failed hard: %s",
-						g_strerror(errno));
-				return NULL;
+			if (common_dbg > 1)
+				g_warning("complete_iconv: iconv() failed: %s", g_strerror(e));
+
+			if (EILSEQ != e && EINVAL != e) {
+				errno = e;
+				goto error;
 			}
-			iconv(cd, NULL, NULL, NULL, NULL);	/* reset state*/
+			/* reset state */
+			if ((size_t) -1 == iconv(cd, NULL, NULL, NULL, NULL))
+				goto error;
+			
+			if (dst0 && dst_left > 1)
+				--dst_left, *dst = '_';
+
+			--src_left, ++src, ++dst;
 		}
 	}
-	*outbuf = '\0';
-	return result;
+
+	if (dst0 && dst_left > 0)
+		*dst = '\0';
+
+	return (dst - dst0) + 1;
+
+error:
+	return 0;
+}
+
+static gchar *
+hyper_iconv(iconv_t cd, const gchar *src, gchar *dst, size_t dst_size)
+{
+	size_t size;
+
+	/* Don't assert cd != -1, we allow this */
+	g_assert(src);
+	g_assert(0 == dst_size || dst);
+	
+	size = complete_iconv(cd, src, dst, dst_size);
+	if (0 == size) {
+		dst = NULL;
+	} else if (size > dst_size) {
+		size_t n;
+
+		dst = g_malloc(size);
+		n = complete_iconv(cd, src, dst, size);
+		if (n != size) {
+			g_error("size=%ld, n=%ld, src=\"%s\" dst=\"%s\"",
+				(gulong) size, (gulong) n, src, dst);
+		}
+		g_assert(n == size);
+	}
+	return dst;
 }
 
 /**
@@ -1227,14 +1388,14 @@ complete_iconv(iconv_t cd, const char *inbuf, size_t inbytes_left,
  * but must not overlap otherwise. If ``dst'' is to small, the resulting string
  * will be truncated but the UTF-8 encoding is preserved in any case.
  *
+ * @param src a NUL-terminated string.
  * @param dst the destination buffer.
  * @param size the size in bytes of the destination buffer.
- * @param src a NUL-terminated string.
  * @return the length in bytes of resulting string assuming size was
  *         sufficiently large.
  */
 size_t
-utf8_enforce(gchar *dst, size_t size, const gchar *src)
+utf8_enforce(const gchar *src, gchar *dst, size_t size)
 {
 	const gchar *s = src;
 	gchar *d = dst;
@@ -1280,39 +1441,81 @@ utf8_enforce(gchar *dst, size_t size, const gchar *src)
 }
 
 /**
- * If ``len'' is 0 the length will be calculated using strlen(), otherwise
- * only ``len'' characters will be converted.
- * If the string is already valid UTF-8 it will be returned "as-is".
- * The function might return a pointer to a STATIC buffer! If the output
- * string is longer than 4095 characters it will be truncated.
- * Non-convertible characters will be replaced by '_'. The returned string
- * WILL be NUL-terminated in any case.
+ * Copies the NUL-terminated string ``src'' to ``dst'' replacing all invalid
+ * characters (non-ASCII) with underscores. ``src'' and ``dst'' may be identical
+ * but must not overlap otherwise. If ``dst'' is to small, the resulting string
+ * will be truncated.
  *
- * In case of an unrecoverable error, NULL is returned.
- *
- * ATTENTION:	Don't use this function for anything but *uncritical*
- *				strings	e.g., to view strings in the GUI. The conversion
- *				MAY be inappropriate!
+ * @param src a NUL-terminated string.
+ * @param dst the destination buffer.
+ * @param size the size in bytes of the destination buffer.
+ * @return the length in bytes of resulting string assuming size was
+ *         sufficiently large.
  */
-const gchar *
-locale_to_utf8(const gchar *str, size_t len)
+size_t
+ascii_enforce(const gchar *src, gchar *dst, size_t size)
 {
-	static gchar outbuf[4096]; /* an UTF-8 char is max. 6 bytes large */
+	const gchar *s = src;
+	gchar *d = dst;
 
-	g_assert(NULL != str);
+	g_assert(0 == size || NULL != dst);
+	g_assert(NULL != src);
+	g_assert(size <= INT_MAX);
+	/** TODO: Add overlap check */
 
-	if (0 == len)
-		len = strlen(str);
-	if (0 == len || utf8_is_valid_string(str, len))
-		return str;
+	if (size > 0) {
+		guchar c;
+		
+		for (/* NOTHING */; --size > 0 && '\0' != (c = *s); s++, size)
+			*d++ = isascii(c) ? c : '_';
 
-	if (locale_is_utf8() || (iconv_t) -1 == cd_locale_to_utf8) {
-		utf8_enforce(outbuf, sizeof outbuf, str);
-		return outbuf;
+		*d = '\0';
 	}
 
-	return complete_iconv(cd_locale_to_utf8, str, len, outbuf, sizeof outbuf);
+ 	while ('\0' != *s++)
+		d++;
+
+	return d - dst;
 }
+
+gchar *
+hyper_utf8_enforce(const gchar *src, gchar *dst, size_t dst_size)
+{
+	size_t n;
+
+	g_assert(src);
+	g_assert(0 == dst_size || dst);
+	
+	n = utf8_enforce(src, dst, dst_size);
+	if (n >= dst_size) {
+		size_t size = 1 + n;
+
+		dst = g_malloc(size);
+		n = utf8_enforce(src, dst, size);
+		g_assert(size - 1 == n);
+	}
+	return dst;
+}
+
+gchar *
+hyper_ascii_enforce(const gchar *src, gchar *dst, size_t dst_size)
+{
+	size_t n;
+
+	g_assert(src);
+	g_assert(0 == dst_size || dst);
+	
+	n = ascii_enforce(src, dst, dst_size);
+	if (n >= dst_size) {
+		size_t size = 1 + n;
+
+		dst = g_malloc(size);
+		n = ascii_enforce(src, dst, size);
+		g_assert(size - 1 == n);
+	}
+	return dst;
+}
+
 
 /**
  * If the string is already valid UTF-8 it will be returned "as-is", otherwise
@@ -1326,102 +1529,119 @@ locale_to_utf8(const gchar *str, size_t len)
  * @return a pointer to the UTF-8 encoded string.
  */
 gchar *
-locale_to_utf8_full(const gchar *str)
+locale_to_utf8(const gchar *src)
 {
-	size_t len;
+	gchar *dst;
+	
+	g_assert(src);
 
-	g_assert(NULL != str);
+	dst = hyper_iconv(cd_locale_to_utf8, src, NULL, 0);
+	if (!dst)
+		dst = hyper_utf8_enforce(src, NULL, 0);
 
-	len = strlen(str);
-	if (0 == len || utf8_is_valid_string(str, len))
-		return deconstify_gchar(str);
-
-	if (locale_is_utf8() || (iconv_t) -1 == cd_locale_to_utf8) {
-		size_t size, n;
-		gchar *s;
-
-		size = 1 + utf8_enforce(NULL, 0, str);
-		s = g_malloc(size);
-		n = utf8_enforce(s, size, str);
-		g_assert(1 + size == n);
-		return s;
-	} else {
-		size_t utf8_len;
-		gchar *s;
-
-   		utf8_len = len * 6 + 1;
-		g_assert((utf8_len - 1) / 6 == len);
-		s = g_malloc(utf8_len);
-
-		return complete_iconv(cd_locale_to_utf8, str, len, s, utf8_len);
-	}
+	return dst;
 }
 
 /**
- * Converts a string from the current locale encoding to UTF-8 encoding
- * with all characters decomposed.
+ * Non-convertible characters will be replaced by '_'. The returned string
+ * WILL be NUL-terminated in any case.
+ *
+ * In case of an unrecoverable error, NULL is returned.
+ *
+ * @param str a NUL-terminated string.
+ * @return a pointer to a newly allocated buffer holding the converted string.
+ */
+static gchar *
+filename_charset_to_utf8(const gchar *src)
+{
+	gchar sbuf[1024], *dst;
+
+	g_assert(src);
+
+	dst = hyper_iconv(cd_filename_to_utf8, src, sbuf, sizeof sbuf);
+	if (!dst)
+		dst = hyper_utf8_enforce(src, sbuf, sizeof sbuf);
+
+	return sbuf != dst ? dst : g_strdup(sbuf);
+}
+
+/**
+ * Non-convertible characters will be replaced by '_'. The returned string
+ * WILL be NUL-terminated in any case.
+ *
+ * In case of an unrecoverable error, NULL is returned.
+ *
+ * @param str a NUL-terminated string.
+ * @return a pointer to a newly allocated buffer holding the converted string.
+ */
+static gchar *
+utf8_to_filename_charset(const gchar *src)
+{
+	gchar sbuf[1024], *dst;
+
+	g_assert(src);
+
+	dst = hyper_iconv(cd_utf8_to_filename, src, sbuf, sizeof sbuf);
+	if (!dst)
+		dst = filename_charset_is_utf8()
+			? hyper_utf8_enforce(src, sbuf, sizeof sbuf)
+			: hyper_ascii_enforce(src, sbuf, sizeof sbuf);
+
+	return sbuf != dst ? dst : g_strdup(sbuf);
+}
+
+/**
+ * Non-convertible characters will be replaced by '_'. The returned string
+ * WILL be NUL-terminated in any case.
+ *
+ * In case of an unrecoverable error, NULL is returned.
+ *
+ * @param str a NUL-terminated string.
+ * @return a pointer to a newly allocated buffer holding the converted string.
+ */
+gchar *
+utf8_to_locale(const gchar *src)
+{
+	gchar *dst;
+
+	g_assert(src);
+
+	dst = hyper_iconv(cd_utf8_to_locale, src, NULL, 0);
+	if (!dst)
+		dst = locale_is_utf8()
+			? hyper_utf8_enforce(src, NULL, 0)
+			: hyper_ascii_enforce(src, NULL, 0);
+	return dst;
+}
+
+
+/**
+ * Converts a string from an unknown character set to UTF-8 encoding and
+ * the specified UTF-8 norm. If the string is not valid UTF-8, the string
+ * is converted to UTF-8 assuming it is encoded with the current locale.
  *
  * @param str the string to convert.
- * @param norm no brief description.
+ * @param norm the UTF-8 encoding normal form to use.
  *
  * @returns a newly allocated string.
  */
 gchar *
-locale_to_utf8_normalized(const gchar *str, uni_norm_t norm)
+locale_to_utf8_normalized(const gchar *src, uni_norm_t norm)
 {
-	gchar sbuf[4096];
-	const gchar *s;
-	gchar *ret;
+	gchar sbuf[4096], *dbuf;
+	gchar *dst;
 
-	g_assert(NULL != str);
+	g_assert(src);
 
-	if ('\0' == str[0])
-		return g_strdup("");
+	dst = hyper_iconv(cd_locale_to_utf8, src, sbuf, sizeof sbuf);
+	if (!dst)
+		dst = hyper_utf8_enforce(src, sbuf, sizeof sbuf);
 
-	if (utf8_is_valid_string(str, 0)) {
-		s = str;
-	} else if (locale_is_utf8() || (iconv_t) -1 == cd_locale_to_utf8) {
-		size_t size;
-		gchar *p;
+	dbuf = sbuf != dst ? dst : NULL;
+	dst = utf8_normalize(dst, norm);
+	G_FREE_NULL(dbuf);
 
-		size = 1 + utf8_enforce(NULL, 0, str);
-		p = size < sizeof sbuf ? sbuf : g_malloc(size);
-		utf8_enforce(p, size, str);
-		s = p;
-	} else {
-		size_t size, len;
-		gchar *p;
-
-		len = strlen(str);
-   		size = len * 6 + 1;
-		g_assert((size - 1) / 6 == len);
-		p = size < sizeof sbuf ? sbuf : g_malloc(size);
-		s = complete_iconv(cd_locale_to_utf8, str, len, p, size);
-	}
-
-	ret = utf8_normalize(s, norm);
-
-	if (s != str && s != sbuf) {
-		g_free(deconstify_gchar(s));
-		s = NULL;
-	}
-
-	return ret;
-}
-
-const gchar *
-utf8_to_locale(const gchar *str, size_t len)
-{
-	static gchar outbuf[4096 + 6]; /* a multibyte char is max. 6 bytes large */
-
-	g_assert(NULL != str);
-
-	/* No need to convert from UTF-8 to UTF-8 */
-	if (locale_is_utf8())
-		return str;
-	else
-		return complete_iconv(cd_utf8_to_locale,
-				str, len != 0 ? len : strlen(str), outbuf, sizeof(outbuf) - 7);
+	return dst;
 }
 
 #if CHAR_BIT == 8
@@ -1440,29 +1660,30 @@ is_ascii_string(const gchar *s)
 }
 
 const gchar *
-lazy_iso8859_1_to_utf8(const gchar *s)
+lazy_iso8859_1_to_utf8(const gchar *src)
 {
-	static gchar outbuf[4096]; /* a multibyte char is max. 6 bytes large */
-	const gchar *t;
+	static gchar buf[4096];
 
-	g_assert(NULL != s);
+	g_assert(src);
+	
+	if (0 == complete_iconv(cd_latin_to_utf8, src, buf, sizeof buf))
+		utf8_enforce(src, buf, sizeof buf);
 
-	if ('\0' == *s || utf8_is_valid_string(s, 0))
-		return s;
-
-	t = complete_iconv(cd_latin_to_utf8, s, strlen(s), outbuf, sizeof outbuf);
-	if (!t) {
-		utf8_enforce(outbuf, sizeof outbuf, s);
-		t = outbuf;
-	}
-	return t;
+	return buf;
 }
 
 const gchar *
-lazy_utf8_to_locale(const gchar *str)
+lazy_utf8_to_locale(const gchar *src)
 {
-	const gchar *t = utf8_to_locale(str, 0);
-	return NULL != t ? t : "<Cannot convert to locale>";
+	static gchar *dst;
+	gchar *old;
+  
+	g_assert(src);
+
+	old = dst;
+	dst = utf8_to_locale(src);
+	G_FREE_NULL(old);
+	return dst;
 }
 
 /**
@@ -1473,33 +1694,88 @@ lazy_utf8_to_locale(const gchar *str)
  * @returns the converted string or ``str'' if no conversion was necessary.
  */
 const gchar *
-lazy_locale_to_utf8(const gchar *str)
+lazy_locale_to_utf8(const gchar *src)
 {
-	const gchar *s;
+	const gchar *ret;
+	
+	g_assert(src);
 
 	/* Let's assume that most of the supplied strings are pure ASCII. */
-	if (is_ascii_string(str))
-		return str;
+	if (is_ascii_string(src)) {
+		ret = src;
+	} else {
+		static gchar *dst;
+		gchar *q, *old = dst;
 
-	s = locale_to_utf8(str, 0);
-	if (NULL != s) {
-		static gchar buf[4096];
-		gchar *nfc;
-
-		/* Enforce UTF-8 NFC because GTK+ would render a decomposed string
-		 * otherwise (if the string is not in NFC). This is a known GTK+ bug.
+		/*
+		 * Enforce UTF-8 NFC because GTK+ would render a decomposed string
+		 * otherwise (if the string is not in NFC). This is a known
+		 * GTK+ bug.
 		 */
 
-		nfc = utf8_normalize(s, UNI_NORM_NFC);
-		utf8_strlcpy(buf, nfc, sizeof buf);
-		if (nfc != s)
-			G_FREE_NULL(nfc);
-
-		return buf;
+		q = locale_to_utf8(src);
+		ret = dst = utf8_normalize(q, UNI_NORM_NFC);
+		if (q != src)
+			G_FREE_NULL(q);
+		G_FREE_NULL(old);
 	}
 
-	return "<Cannot convert to UTF-8>";
+	return ret;
 }
+
+gchar *
+utf8_to_filename(const gchar *src)
+{
+	gchar *filename;
+	
+	g_assert(src);
+
+	filename = utf8_to_filename_charset(src);
+	if (filename_charset_is_utf8()) {
+		static const uni_norm_t norm =
+#if defined(__APPLE__) && defined(__MACH__) /* Darwin */
+			UNI_NORM_NFD;
+#else /* !Darwin */
+			UNI_NORM_NFC;
+#endif /* Darwin */
+		gchar *p;
+
+		p = filename;
+		filename = utf8_normalize(p, norm);
+		G_FREE_NULL(p);
+	}
+
+	return filename;
+}
+
+gchar *
+filename_to_utf8_normalized(const gchar *src, uni_norm_t norm)
+{
+	gchar *p, *filename;
+
+	g_assert(src);
+
+	p = filename_charset_to_utf8(src);
+	filename = utf8_normalize(p, norm);
+	G_FREE_NULL(p);
+
+	return filename;
+}
+
+gchar *
+ui_string_to_utf8(const gchar *src)
+#ifdef USE_GTK2
+{
+	g_assert(src);
+	g_assert('\0' == src[0] || utf8_is_valid_string(src, 0));
+	return deconstify_gchar(src);
+}
+#else /* USE_GTK2 */
+{
+	g_assert(src);
+	return locale_to_utf8(src);
+}
+#endif /* USE_GTK2 */
 
 /**
  * Converts a UTF-8 encoded string to a UTF-32 encoded string. The
@@ -1989,9 +2265,9 @@ utf8_sort_canonical(gchar *src)
  *
  * @param uc must be a Hangul character
  * @param buf must be at least three elements large
- * @return a pointer to the last written character in buf
+ * @return the length of the decomposed character.
  */
-static inline guint32 *
+static inline guint
 utf32_decompose_hangul_char(guint32 uc, guint32 *buf)
 {
 	/*
@@ -2007,20 +2283,19 @@ utf32_decompose_hangul_char(guint32 uc, guint32 *buf)
 	static const guint32 v_base = 0x1161;
 	static const guint32 t_base = 0x11A7;
 	const guint32 i = uc - UNI_HANGUL_FIRST;
-	guint32 l = l_base + i / N_COUNT;
-	guint32 v = v_base + (i % N_COUNT) / T_COUNT;
-	guint32 t = t_base + i % T_COUNT;
-
-	*buf++ = l;
-	*buf++ = v;
-
-	if (t != t_base) {
-		*buf++ = t;
-	}
+	guint32 t_mod = i % T_COUNT;
+	
+	buf[0] = l_base + i / N_COUNT;
+	buf[1] = v_base + (i % N_COUNT) / T_COUNT;
 #undef N_COUNT
 #undef V_COUNT
 #undef T_COUNT
-	return buf;
+
+	if (!t_mod)
+		return 2;
+
+	buf[2] = t_base + t_mod;
+	return 3;
 }
 
 /**
@@ -2109,7 +2384,7 @@ utf32_decompose_single_char(guint32 uc, size_t *len, gboolean nfkd)
 	if (UNICODE_IS_ASCII(uc)) {
 		*p++ = uc;
 	} else if (UNICODE_IS_HANGUL(uc)) {
-		p = utf32_decompose_hangul_char(uc, p);
+		p += utf32_decompose_hangul_char(uc, p);
 	} else if (NULL != (q = utf32_decompose_lookup(uc, nfkd))) {
 		*len = utf32_strmaxlen(q, UTF32_NFKD_REPLACE_MAXLEN);
 		return q;

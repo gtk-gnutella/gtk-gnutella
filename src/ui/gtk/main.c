@@ -406,28 +406,34 @@ gui_create_dlg_about(void)
     };
     GtkWidget *dlg = create_dlg_about();
     guint i;
+	
 #ifdef USE_GTK2
-    GtkTextBuffer *textbuf;
+	{
+		GtkTextBuffer *textbuf;
 
-    textbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(
-        lookup_widget(dlg, "textview_about_contributors")));
+		textbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(
+					lookup_widget(dlg, "textview_about_contributors")));
 
-    for (i = 0; i < G_N_ELEMENTS(contributors); i++) {
-        if (i > 0)
-            gtk_text_buffer_insert_at_cursor(textbuf, "\n", (-1));
-        gtk_text_buffer_insert_at_cursor(textbuf, contributors[i], (-1));
-    }
-#else
-    GtkText *text = GTK_TEXT(lookup_widget(dlg, "text_about_contributors"));
-    static char s[256];
+		for (i = 0; i < G_N_ELEMENTS(contributors); i++) {
+			if (i > 0)
+				gtk_text_buffer_insert_at_cursor(textbuf, "\n", (-1));
+			gtk_text_buffer_insert_at_cursor(textbuf, contributors[i], (-1));
+		}
+	}
+#else /* !USE_GTK2 */
+	{
+		GtkText *text = GTK_TEXT(lookup_widget(dlg, "text_about_contributors"));
+		static char s[256];
 
-    for (i = 0; i < G_N_ELEMENTS(contributors); i++) {
-        if (i > 0)
-            gtk_text_insert(text, NULL, NULL, NULL, "\n", (-1));
-        utf8_strlcpy(s, contributors[i], sizeof s);
-        gtk_text_insert(text, NULL, NULL, NULL, lazy_utf8_to_locale(s), (-1));
-    }
-#endif
+		for (i = 0; i < G_N_ELEMENTS(contributors); i++) {
+			if (i > 0)
+				gtk_text_insert(text, NULL, NULL, NULL, "\n", (-1));
+			utf8_strlcpy(s, contributors[i], sizeof s);
+			gtk_text_insert(text, NULL, NULL, NULL,
+				lazy_utf8_to_locale(s), (-1));
+		}
+	}
+#endif /* USE_GTK2 */
 
     gtk_label_set_text(
         GTK_LABEL(lookup_widget(dlg, "label_about_title")),

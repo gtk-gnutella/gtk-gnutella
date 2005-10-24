@@ -3784,11 +3784,20 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 		return NULL;
 	}
 
-	/* An empty filename would create a corrupt download entry */
-	if (interactive && '\0' == file[0])
-		file = "noname";
+	if (interactive) {
+		gchar *s;
+		
+		s = gm_sanitize_filename(file, FALSE, FALSE);
+		
+		/* An empty filename would create a corrupt download entry */
+    	file_name = atom_str_get('\0' != s[0] ? s : "noname");
 
-    file_name = interactive ? atom_str_get(file) : file;
+		if (file != s)
+			G_FREE_NULL(s);
+	} else {
+    	file_name = file;
+	}
+
 
     if (uri)
 	    file_uri = atom_str_get(uri);
@@ -3818,7 +3827,7 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	 * Refuse to queue the same download twice. --RAM, 04/11/2001
 	 */
 
-	if ((d = has_same_download(file_name, sha1, guid, addr, port))) {
+	if (NULL != (d = has_same_download(file_name, sha1, guid, addr, port))) {
 		if (interactive)
 			g_message("rejecting duplicate download for %s", file_name);
 		atom_str_free(file_name);

@@ -333,24 +333,29 @@ upload_stats_gui_init_intern(gboolean intern)
  *
  */
 void
-upload_stats_gui_add(struct ul_stats *us)
+upload_stats_gui_add(const struct ul_stats *us)
 {
     GtkListStore *store;
 	GtkTreeIter iter;
+	gchar *filename;
 
 	g_assert(us != NULL);
+
+	filename = filename_to_utf8_normalized(us->filename, UNI_NORM_NFC);
 
 	upload_stats_gui_init_intern(TRUE);
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(upload_stats_treeview));
 	gtk_list_store_append(store, &iter);
 	gtk_list_store_set(store, &iter,
-		c_us_filename, locale_to_utf8(us->filename, 0),
+		c_us_filename, filename,
 		c_us_attempts, us->attempts,
 		c_us_complete, us->complete,
 		c_us_size, (guint) us->size,
 		c_us_norm, (gfloat) us->norm,
 		c_us_stat, us,
 		(-1));
+	
+	G_FREE_NULL(filename);
 }
 
 void

@@ -645,10 +645,16 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 
 	rc = search_get_record_at_path(tv, path);
 	g_return_if_fail(rc != NULL);
+	
+	{
+		gchar *s;
 
-	gtk_entry_set_text(
+		s = rc->name ? utf8_or_locale_normalize(rc->name, UNI_NORM_NFC) : NULL;
+		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename")),
-			lazy_locale_to_utf8(rc->name));
+			s ? s : "");
+		G_FREE_NULL(s);
+	}
 
 	gtk_entry_printf(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1")),
@@ -689,9 +695,15 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_index")),
 			"%lu", (gulong) rc->index);
 
-	gtk_entry_set_text(
+	{
+		gchar *s;
+
+		s = rc->tag ? utf8_or_locale_normalize(rc->tag, UNI_NORM_NFC) : NULL;
+		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag")),
-			rc->tag ? lazy_locale_to_utf8(rc->tag) : "");
+			s ? s : "");
+		G_FREE_NULL(s);
+	}
 
 	txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget(main_window,
 					"textview_result_info_xml")));

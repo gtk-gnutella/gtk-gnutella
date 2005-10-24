@@ -89,11 +89,10 @@ fi_gui_fi_removed(gnet_fi_t fih)
 static void
 fi_gui_update_row(GtkTreeStore *store, GtkTreeIter *iter, gchar **titles)
 {
-	if (NULL != titles[c_fi_filename]) {
+	if (NULL != titles[c_fi_filename])
 		gtk_tree_store_set(store, iter,
-			c_fi_filename, lazy_locale_to_utf8(titles[c_fi_filename]),
-			(-1));
-	}
+			c_fi_filename, titles[c_fi_filename], (-1));
+
 	gtk_tree_store_set(store, iter,
 		c_fi_size, titles[c_fi_size],
 		c_fi_done, titles[c_fi_done],
@@ -113,8 +112,9 @@ fi_gui_set_details(gnet_fi_t fih)
     gnet_fi_status_t fis;
     gchar **aliases;
 	GtkTreeIter iter;
-	gint i;
 	gchar bytes[UINT64_DEC_BUFLEN];
+	gchar *filename;
+	gint i;
 
     fi = guc_fi_get_info(fih);
     g_assert(fi != NULL);
@@ -122,8 +122,10 @@ fi_gui_set_details(gnet_fi_t fih)
     guc_fi_get_status(fih, &fis);
     aliases = guc_fi_get_aliases(fih);
 
-    gtk_entry_set_text(entry_fi_filename,
-		lazy_locale_to_utf8(fi->file_name));
+	filename = filename_to_utf8_normalized(fi->file_name, UNI_NORM_NFC);
+    gtk_entry_set_text(entry_fi_filename, filename);
+	G_FREE_NULL(filename);
+
 	uint64_to_string_buf(fis.size, bytes, sizeof bytes);
     gtk_label_printf(label_fi_size, _("%s (%s bytes)"),
 		short_size(fis.size), bytes);
@@ -133,9 +135,15 @@ fi_gui_set_details(gnet_fi_t fih)
 
     gtk_tree_store_clear(store_aliases);
 	for (i = 0; NULL != aliases[i]; i++) {
+		gchar *s;
 		gtk_tree_store_append(store_aliases, &iter, NULL);
-		gtk_tree_store_set(store_aliases, &iter, 0,
-			lazy_locale_to_utf8(aliases[i]), (-1));
+		s = utf8_is_valid_string(aliases[i], 0)
+			? aliases[i]
+			: filename_to_utf8_normalized(aliases[i], UNI_NORM_NFC);
+
+		gtk_tree_store_set(store_aliases, &iter, 0, s, (-1));
+		if (s != aliases[i])
+			G_FREE_NULL(s);
 	}
     g_strfreev(aliases);
     guc_fi_free_info(fi);
@@ -245,6 +253,7 @@ static void
 fi_gui_fill_info(gnet_fi_t fih, gchar *titles[c_fi_num])
 {
     static gnet_fi_info_t *fi = NULL;
+	static gchar filename_buf[4096];
 
     /* Clear info from last call. We keep this around so we don't
      * have to strdup entries from it when passing them to the
@@ -257,7 +266,13 @@ fi_gui_fill_info(gnet_fi_t fih, gchar *titles[c_fi_num])
     fi = guc_fi_get_info(fih);
     g_assert(fi != NULL);
 
-    titles[c_fi_filename] = fi->file_name;
+	if (utf8_is_valid_string(fi->file_name, 0)) {
+    	titles[c_fi_filename] = fi->file_name;
+	} else {
+		gchar *s = filename_to_utf8_normalized(fi->file_name, UNI_NORM_NFC);
+		utf8_strlcpy(filename_buf, s, sizeof filename_buf);
+    	titles[c_fi_filename] = filename_buf;
+	}
 }
 
 /* XXX -- factorize thiw code with GTK1's one */

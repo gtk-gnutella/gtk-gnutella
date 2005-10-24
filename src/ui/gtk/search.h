@@ -40,7 +40,7 @@
 struct search {
     gnet_search_t search_handle;	/**< Search handle */
 
-	gchar      *query;				/**< The search query */
+	gchar      *query;				/**< The query string; always UTF-8 */
 	gboolean    enabled;
 
 #ifdef USE_GTK2

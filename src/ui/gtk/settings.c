@@ -573,7 +573,7 @@ update_shared_dirs(property_t prop)
 	GtkTreeModel *model;
 	gchar *str;
 	const gchar *p, *end;
-	GList *l, *dirs = NULL;
+	GList *l_iter, *dirs = NULL;
 
 	model = get_shared_dirs_model();
 	gtk_list_store_clear(GTK_LIST_STORE(model));
@@ -601,12 +601,12 @@ update_shared_dirs(property_t prop)
 
 	/* Feed the sorted list of directories to the GtkListStore */
 	dirs = g_list_sort(dirs, str_cmp_func);
-	for (l = dirs; NULL != l; l = g_list_next(l)) {
+	for (l_iter = dirs; NULL != l_iter; l_iter = g_list_next(l_iter)) {
 		GtkTreeIter iter;
 		gchar *dir, *dir_utf8;
 
-		dir = l->data;
-		dir_utf8 = locale_to_utf8_normalized(dir, UNI_NORM_NFC);
+		dir = l_iter->data;
+		dir_utf8 = filename_to_utf8_normalized(dir, UNI_NORM_NFC);
 		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
 		gtk_list_store_set(GTK_LIST_STORE(model), &iter,
 			0, dir,	/* The actual pathname, not necessarily UTF-8 encoded */

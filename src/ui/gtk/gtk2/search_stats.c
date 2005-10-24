@@ -194,6 +194,7 @@ stats_hash_to_treeview(gpointer key, gpointer value, gpointer unused_udata)
 {
 	struct term_counts *val = value;
 	GtkTreeIter iter;
+	gchar *s;
 
 	(void) unused_udata;
 
@@ -215,12 +216,19 @@ stats_hash_to_treeview(gpointer key, gpointer value, gpointer unused_udata)
 
 	/* update the display */
 
+	s = !key || utf8_is_valid_string(key, 0)
+		? key
+		: locale_to_utf8_normalized(key, UNI_NORM_NFC);
+
 	gtk_list_store_append(store_search_stats, &iter);
 	gtk_list_store_set(store_search_stats, &iter,
-		0, locale_to_utf8(key, 0),
+		0, s,
 		1, (gulong) val->period_cnt,
 		2, (gulong) val->total_cnt,
 		(-1));
+
+	if (key != s)
+		G_FREE_NULL(s);
 
 	/* new period begins */
 	val->period_cnt = 0;

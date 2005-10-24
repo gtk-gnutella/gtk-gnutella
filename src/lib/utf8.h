@@ -122,29 +122,34 @@ utf16_encode_char_compact(guint32 uc)
 	return 0;
 }
 
-/*
- * Necessary for GTK+ 2.x version because it expects almost any string
- * to be encoded as UTF-8.
- */
 const gchar *lazy_iso8859_1_to_utf8(const gchar *s);
 const gchar *lazy_locale_to_utf8(const gchar *str);
-const gchar *locale_to_utf8(const gchar *str, size_t len);
-gchar *locale_to_utf8_full(const gchar *str);
-
-/* Necessary for Mac OS X, as it requires filenames to be UTF-8 encoded
- * with all characters decomposed (NFD).
- */
+gchar *locale_to_utf8(const gchar *str);
 gchar *locale_to_utf8_normalized(const gchar *str, uni_norm_t norm);
-
-
-/*
- * Necessary for GTK+ 1.2 version because it expects almost any string
- * to be in locale, but xml is stored in utf-8
- */
+gchar *filename_to_utf8_normalized(const gchar *str, uni_norm_t norm);
+gchar *ui_string_to_utf8(const gchar *str);
 
 gboolean is_ascii_string(const gchar *str);
-const gchar *utf8_to_locale(const gchar *str, size_t len);
 const gchar *lazy_utf8_to_locale(const gchar *str);
+gchar *utf8_to_filename(const gchar *s);
+gchar *utf8_to_locale(const gchar *s);
+
+static inline const gchar *
+lazy_vendor_to_utf8(const gchar *s)
+{
+	return !s || utf8_is_valid_string(s, 0) ? s : lazy_iso8859_1_to_utf8(s);
+}
+
+static inline gchar *
+utf8_or_locale_normalize(const gchar *s, uni_norm_t norm)
+{
+	g_assert(s);
+
+	return '\0' == s[0] || utf8_is_valid_string(s, 0)
+		? utf8_normalize(s, norm)
+		: locale_to_utf8_normalized(s, norm);
+}
+
 
 gboolean icu_enabled(void);
 gboolean is_latin_locale(void);

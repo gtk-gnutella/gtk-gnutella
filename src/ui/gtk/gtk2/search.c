@@ -489,11 +489,10 @@ search_gui_add_record(
 	GtkTreeIter iter;
 	GtkTreeStore *model = GTK_TREE_STORE(sch->model);
     const struct results_set *rs = rc->results_set;
-	const gchar *name_utf8;
+	gchar *name_utf8;
 	size_t rw = 0;
-  	gchar info[1024], ext_utf8[32];
+  	gchar info[1024], ext[32];
 
-	ext_utf8[0] = '\0';
 	info[0] = '\0';
 
 	/*
@@ -572,26 +571,23 @@ search_gui_add_record(
 
 	g_assert(rc->refcount >= 2);
 
-	name_utf8 = lazy_locale_to_utf8(rc->name);
-	if (name_utf8) {
+	name_utf8 = utf8_is_valid_string(rc->name, 0)
+		? utf8_normalize(rc->name, UNI_NORM_NFC)
+		: locale_to_utf8_normalized(rc->name, UNI_NORM_NFC);
+
+	{
 		const gchar *p = strrchr(name_utf8, '.');
 
-		rw = g_strlcpy(ext_utf8, p ? ++p : "", sizeof ext_utf8);
-		if (rw >= sizeof ext_utf8) {
+		if (!p || utf8_strlower(ext, &p[1], sizeof ext) >= sizeof ext) {
 			/* If the guessed extension is really this long, assume the
 			 * part after the dot isn't an extension at all. */
-			ext_utf8[0] = '\0';
-		} else {
-			/* Using g_utf8_strdown() would be cleaner but it allocates
-			 * a new string which is ugly. Nobody uses such file extensions
-			 * anyway. */
-			ascii_strlower(ext_utf8, ext_utf8);
+			ext[0] = '\0';
 		}
 	}
 
 	gtk_tree_store_set(model, &iter,
 		      c_sr_filename, name_utf8,
-		      c_sr_ext, ext_utf8[0] != '\0' ? ext_utf8 : NULL,
+		      c_sr_ext, ext[0] != '\0' ? ext : NULL,
 		      c_sr_size, NULL != parent ? NULL : short_size(rc->size),
 			  c_sr_loc, iso3166_country_cc(rs->country),
 			  c_sr_meta, NULL,
@@ -629,7 +625,6 @@ download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 	struct record *rc = NULL;
 	guint32 flags;
 	gboolean need_push;
-	gchar *filename;
 
 	g_assert(model != NULL);
 	g_assert(iter != NULL);
@@ -645,13 +640,9 @@ download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 	need_push = 0 != (rs->status & ST_FIREWALL);
 	flags = (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
 
-	filename = gm_sanitize_filename(rc->name, FALSE, FALSE);
-	guc_download_new(filename, rc->size, rc->index, rs->addr,
+	guc_download_new(rc->name, rc->size, rc->index, rs->addr,
 		rs->port, rs->guid, rs->hostname, rc->sha1, rs->stamp,
 		need_push, NULL, rs->proxies, flags);
-
-	if (filename != rc->name)
-		G_FREE_NULL(filename);
 
 	if (rs->proxies != NULL)
 		search_gui_free_proxies(rs);
@@ -741,13 +732,11 @@ download_selected_all_files(GtkTreeModel *model, GtkTreePath *path,
 {
 	struct selection_ctx *ctx = data;
 
-	g_assert(ctx != NULL);
+	g_assert(ctx);
+	g_assert(iter);
 
 	download_selected_file(model, iter, ctx->iters);
-    if (
-            gtk_tree_model_iter_has_child(model, iter) &&
-            !gtk_tree_view_row_expanded(ctx->tv, path)
-    ) {
+    if (!gtk_tree_view_row_expanded(ctx->tv, path)) {
         GtkTreeIter child;
         gint i = 0;
 

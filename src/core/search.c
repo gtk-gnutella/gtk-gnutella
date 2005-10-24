@@ -2619,7 +2619,7 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 
 		s = utf8_is_valid_string(query, 0)
 			? query
-			: locale_to_utf8_full(query);
+			: locale_to_utf8(query);
 
 		g_assert(*s == '\0' || utf8_is_valid_string(s, 0));
 		qdup = UNICODE_CANONIZE(s);

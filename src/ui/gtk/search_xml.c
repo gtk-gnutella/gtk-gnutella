@@ -697,7 +697,6 @@ search_to_xml(xmlNodePtr parent, search_t *s)
 {
     xmlNodePtr newxml;
     GList *l;
-	gchar *query;
 
     g_assert(s != NULL);
     g_assert(s->query != NULL);
@@ -713,16 +712,8 @@ search_to_xml(xmlNodePtr parent, search_t *s)
 			cast_to_gconstpointer(s));
     }
 
-	if (NULL == (query = locale_to_utf8_full(s->query))) {
-		g_warning("search_to_xml: Cannot convert search string to UTF-8. "
-			"Search won't be saved. (query=\"%s\")", s->query);
-		return;
-	}
-
     newxml = xml_new_empty_child(parent, NODE_SEARCH);
-    xml_prop_set(newxml, TAG_SEARCH_QUERY, query);
-	if (query != s->query)
-		G_FREE_NULL(query);
+    xml_prop_set(newxml, TAG_SEARCH_QUERY, s->query);
 
 	xml_prop_printf(newxml, TAG_SEARCH_ENABLED, "%u", s->enabled);
     xml_prop_printf(newxml, TAG_SEARCH_PASSIVE, "%u", TO_BOOL(s->passive));
@@ -764,12 +755,7 @@ filter_to_xml(xmlNodePtr parent, filter_t *f)
 			cast_to_gconstpointer(f->search));
     }
 
-	if (NULL == (name = locale_to_utf8_full(f->name))) {
-		g_warning("filter_to_xml: Cannot convert search string to UTF-8. "
-			"Filter won't be saved. (name=\"%s\")", f->name);
-		return;
-	}
-
+	name = ui_string_to_utf8(f->name);
     newxml = xml_new_empty_child(parent, NODE_FILTER);
     xml_prop_set(newxml, TAG_FILTER_NAME, name);
 	if (name != f->name)
@@ -822,12 +808,7 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
 		{
 			gchar *match;
 
-           	if (NULL == (match = locale_to_utf8_full(r->u.text.match))) {
-				g_warning("rule_to_xml: Cannot convert string to UTF-8. "
-					"Omitting rule (\"%s\")", r->u.text.match);
-				return;
-			}
-
+			match = ui_string_to_utf8(r->u.text.match);
 			newxml = xml_new_empty_child(parent, NODE_RULE_TEXT);
         	xml_prop_set(newxml, TAG_RULE_TEXT_CASE,
 				r->u.text.case_sensitive ? "1" : "0");
@@ -871,14 +852,10 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
             	xml_prop_set(newxml, TAG_RULE_SHA1_HASH,
 					sha1_base32(r->u.sha1.hash));
 
-        	if (NULL == (name = locale_to_utf8_full(r->u.sha1.filename))) {
-				g_warning("rule_to_xml: Cannot convert filename to UTF-8. "
-					"Omitting filename (\"%s\")", r->u.sha1.filename);
-			} else {
-				xml_prop_set(newxml, TAG_RULE_SHA1_FILENAME, name);
-				if (name != r->u.sha1.filename)
-					G_FREE_NULL(name);
-			}
+        	name = ui_string_to_utf8(r->u.sha1.filename);
+			xml_prop_set(newxml, TAG_RULE_SHA1_FILENAME, name);
+			if (name != r->u.sha1.filename)
+				G_FREE_NULL(name);
 		}
         /*
          * r->u.sha1.hash is NULL, we just omit the hash.
