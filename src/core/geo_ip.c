@@ -301,7 +301,7 @@ gip_retrieve(void)
 	file_path_set(&fp[0], settings_config_dir(), gip_file);
 	file_path_set(&fp[1], PRIVLIB_EXP, gip_file);
 #ifndef OFFICIAL_BUILD
-	file_path_set(&fp[2], PACKAGE_SOURCE_DIR, gip_file);
+	file_path_set(&fp[2], PACKAGE_EXTRA_SOURCE_DIR, gip_file);
 #endif
 
 	f = file_config_open_read_norename_chosen(
