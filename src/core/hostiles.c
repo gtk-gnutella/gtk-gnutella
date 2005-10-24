@@ -265,7 +265,7 @@ hostiles_retrieve(hostiles_t which)
 			gint idx;
 			static const file_path_t fp[] = {
 #ifndef OFFICIAL_BUILD
-				{ PACKAGE_SOURCE_DIR, hostiles_file },
+				{ PACKAGE_EXTRA_SOURCE_DIR, hostiles_file },
 #endif
 				{ PRIVLIB_EXP, hostiles_file },
 			};

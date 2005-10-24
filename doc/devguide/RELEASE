@@ -44,7 +44,7 @@ Release steps
 
 5. Update and commit debian/changelog.
 
-6. Update and commit gwcache.boot.
+6. Update and commit extra_files/gwcache.boot.
 
 7. From the "top directory", run:
 

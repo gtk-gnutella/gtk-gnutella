@@ -66,7 +66,6 @@ U/packages/gtkversion.U
 U/packages/remotectrl.U
 U/packages/xmlconfig.U
 U/specific/gtkgversion.U
-bogons.txt
 config_h.SH                  Produces config.h
 configure.gnu                GNU configure-like wrapper
 debian/README.debian
@@ -138,16 +137,18 @@ doc/public/GGEP/bin_format
 doc/public/GGEP/u
 doc/public/README
 doc/public/bye_codes
-favicon.png                  GTKG's favorite web icon
-geo-ip.txt
-gtk-gnutella.16.png
-gtk-gnutella.32.png
-gtk-gnutella.desktop
-gtk-gnutella.png
-gtk-gnutella.svg
+extra_files/bogons.txt
+extra_files/favicon.png                  GTKG's favorite web icon
+extra_files/geo-ip.txt
+extra_files/gtk-gnutella.16.png
+extra_files/gtk-gnutella.32.png
+extra_files/gtk-gnutella.desktop
+extra_files/gtk-gnutella.png
+extra_files/gtk-gnutella.svg
+extra_files/gwcache.boot
+extra_files/hostiles.txt
+extra_files/robots.txt                   Default hints for web crawlers
 gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
-gwcache.boot
-hostiles.txt
 install.SH                   BSD-compatible install program
 pixmaps/Jmakefile
 pixmaps/Makefile.SH
@@ -199,7 +200,6 @@ po/uk.po
 po/zh_CN.po
 po/quot.sed
 po/remove-potcdate.sin
-robots.txt                   Default hints for web crawlers
 scripts/gtkg-dbus-listener.py
 src/Jmakefile
 src/Makefile.SH

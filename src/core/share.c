@@ -585,7 +585,7 @@ share_special_load(struct special_file *sp)
 	file_path_set(&fp[0], settings_config_dir(), sp->file);
 	file_path_set(&fp[1], PRIVLIB_EXP, sp->file);
 #ifndef OFFICIAL_BUILD
-	file_path_set(&fp[2], PACKAGE_SOURCE_DIR, sp->file);
+	file_path_set(&fp[2], PACKAGE_EXTRA_SOURCE_DIR, sp->file);
 #endif
 
 	f = file_config_open_read_norename_chosen(

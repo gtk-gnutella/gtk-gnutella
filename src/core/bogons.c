@@ -173,7 +173,7 @@ bogons_changed(const gchar *filename, gpointer unused_udata)
  *
  *	-# ~/.gtk-gnutella/bogons.txt
  *	-# /usr/share/gtk-gnutella/bogons.txt
- *	-# PACKAGE_SOURCE_DIR/bogons.txt
+ *	-# PACKAGE_EXTRA_SOURCE_DIR/bogons.txt
  *
  * The selected file will then be monitored and a reloading will occur
  * shortly after a modification.
@@ -193,7 +193,7 @@ bogons_retrieve(void)
 	file_path_set(&fp[0], settings_config_dir(), bogons_file);
 	file_path_set(&fp[1], PRIVLIB_EXP, bogons_file);
 #ifndef OFFICIAL_BUILD
-	file_path_set(&fp[2], PACKAGE_SOURCE_DIR, bogons_file);
+	file_path_set(&fp[2], PACKAGE_EXTRA_SOURCE_DIR, bogons_file);
 #endif
 
 	f = file_config_open_read_norename_chosen(

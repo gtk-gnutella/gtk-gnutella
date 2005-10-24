@@ -302,6 +302,17 @@ typedef void (*GCallback) (void);
 #define _WHERE_	__FILE__
 #endif
 
+/*
+ * PACKAGE_EXTRA_SOURCE_DIR is set to $srcdir/extra_files when not compiling an
+ * official build so it's not required to install these files for testing.
+ */
+#ifdef OFFICIAL_BUILD
+#undef PACKAGE_EXTRA_SOURCE_DIR
+#else
+#define PACKAGE_EXTRA_SOURCE_DIR \
+	PACKAGE_SOURCE_DIR G_DIR_SEPARATOR_S "extra_files"
+#endif
+
 /**
  * Calls g_free() and sets the pointer to NULL afterwards. You should use
  * this instead of a bare g_free() to prevent double-free bugs and dangling
@@ -421,6 +432,7 @@ do {				\
 #define BITPRINT_BASE32_SIZE 	72	/**< 352 bits in base32 representation
 									 **  includes dot between sha1 and tiger */
 #define BITPRINT_RAW_SIZE		44	/**< 352 bits in binary representation */
+
 
 /*
  * Forbidden glib calls.

@@ -63,16 +63,19 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 # $X-Id: Jmakefile,v 1.16 2005/09/11 08:18:50 rmanfredi Exp $
 
 EXTRA_FILES = \
-	bogons.txt \
-	favicon.png \
-	gwcache.boot \
-	geo-ip.txt \
-	hostiles.txt \
-	robots.txt
+	extra_files/bogons.txt \
+	extra_files/favicon.png \
+	extra_files/gwcache.boot \
+	extra_files/geo-ip.txt \
+	extra_files/hostiles.txt \
+	extra_files/robots.txt
 
 PIXMAP_FILES = \
-	gtk-gnutella.png	\
-	gtk-gnutella.svg
+	extra_files/gtk-gnutella.png	\
+	extra_files/gtk-gnutella.svg
+
+DESKTOP_FILES = \
+	extra_files/gtk-gnutella.desktop
 
 all::
 
@@ -117,18 +120,18 @@ local_deinstall::
 		(set -x; $(RM) $(INSTALL_PREFIX)$(PRIVLIB)/$$i); \
 	done
 
-local_install:: gtk-gnutella.desktop
+local_install:: $(DESKTOP_FILES) 
 	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
 	(set -x; test -d $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/applications || \
 		$(INSTALLDIR) $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/applications); \
-	for i in gtk-gnutella.desktop; do \
+	for i in $(DESKTOP_FILES); do \
 		(set -x; $(INSTALL) -c $(INSTALLFLAGS) \
 			$$i $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/applications) || exit 1;\
 	done
 
 local_deinstall::
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
-	for i in gtk-gnutella.desktop; do \
+	for i in $(DESKTOP_FILES); do \
 		(set -x; $(RM) $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/applications/$$i); \
 	done
 

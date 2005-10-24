@@ -99,30 +99,30 @@ features.
 %{__make} install.man INSTALL_PREFIX=$RPM_BUILD_ROOT
 
 # desktop entry file
-%{__install} -D -m 644 gtk-gnutella.desktop \
+%{__install} -D -m 644 extra_files/gtk-gnutella.desktop \
 	$RPM_BUILD_ROOT/%{_datadir}/applications/gtk-gnutella.desktop
 
 # icons
 %{__install} -D -d -m 755 $RPM_BUILD_ROOT/%{_datadir}/pixmaps
-%{__install} -D -m 644 gtk-gnutella.png \
+%{__install} -D -m 644 extra_files/gtk-gnutella.png \
 	$RPM_BUILD_ROOT/%{_datadir}/pixmaps/gtk-gnutella.png
 
 # freedesktop.org icon theme specification locations.
-%{__install} -D -m 644 gtk-gnutella.16.png \
+%{__install} -D -m 644 extra_files/gtk-gnutella.16.png \
 	$RPM_BUILD_ROOT/%{_datadir}/icons/hicolor/16x16/apps/gtk-gnutella.png
-%{__install} -D -m 644 gtk-gnutella.32.png \
+%{__install} -D -m 644 extra_files/gtk-gnutella.32.png \
 	$RPM_BUILD_ROOT/%{_datadir}/icons/hicolor/32x32/apps/gtk-gnutella.png
-%{__install} -D -m 644 gtk-gnutella.png \
+%{__install} -D -m 644 extra_files/gtk-gnutella.png \
 	$RPM_BUILD_ROOT/%{_datadir}/icons/hicolor/48x48/apps/gtk-gnutella.png
-%{__install} -D -m 644 gtk-gnutella.svg \
+%{__install} -D -m 644 extra_files/gtk-gnutella.svg \
 	$RPM_BUILD_ROOT/%{_datadir}/icons/hicolor/scalable/apps/gtk-gnutella.svg
 
 %if %{mdk}
-%{__install} -D -m 644 gtk-gnutella.16.png \
+%{__install} -D -m 644 extra_files/gtk-gnutella.16.png \
 	$RPM_BUILD_ROOT/%{_miconsdir}/gtk-gnutella.png
-%{__install} -D -m 644 gtk-gnutella.32.png \
+%{__install} -D -m 644 extra_files/gtk-gnutella.32.png \
 	$RPM_BUILD_ROOT/%{_iconsdir}/gtk-gnutella.png
-%{__install} -D -m 644 gtk-gnutella.png \
+%{__install} -D -m 644 extra_files/gtk-gnutella.png \
 	$RPM_BUILD_ROOT/%{_liconsdir}/gtk-gnutella.png
 %endif
 

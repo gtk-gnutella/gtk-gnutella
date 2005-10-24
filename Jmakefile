@@ -28,16 +28,19 @@
 ;# $Id$
 
 EXTRA_FILES = \
-	bogons.txt \
-	favicon.png \
-	gwcache.boot \
-	geo-ip.txt \
-	hostiles.txt \
-	robots.txt
+	extra_files/bogons.txt \
+	extra_files/favicon.png \
+	extra_files/gwcache.boot \
+	extra_files/geo-ip.txt \
+	extra_files/hostiles.txt \
+	extra_files/robots.txt
 
 PIXMAP_FILES = \
-	gtk-gnutella.png	\
-	gtk-gnutella.svg
+	extra_files/gtk-gnutella.png	\
+	extra_files/gtk-gnutella.svg
+
+DESKTOP_FILES = \
+	extra_files/gtk-gnutella.desktop
 
 all::		/* So that default target is not clobber! */
 
@@ -49,7 +52,7 @@ INSTALLFLAGS = -m 444
 
 MakeInstallDirectories($(PRIVLIB))
 InstallMultiple($(EXTRA_FILES), $(PRIVLIB))
-InstallMultiple(gtk-gnutella.desktop, $(INSTALLPREFIX)/share/applications)
+InstallMultiple($(DESKTOP_FILES), $(INSTALLPREFIX)/share/applications)
 InstallMultiple($(PIXMAP_FILES), $(INSTALLPREFIX)/share/pixmaps)
 
 ;#
@@ -58,10 +61,10 @@ InstallMultiple($(PIXMAP_FILES), $(INSTALLPREFIX)/share/pixmaps)
 
 update:
 	wget http://www.completewhois.com/bogons/data/bogons-cidr-all.txt \
-		-O bogons.txt
+		-O extra_files/bogons.txt
 	rm -f GeoIPCountryCSV.zip
 	wget http://www.maxmind.com/download/geoip/database/GeoIPCountryCSV.zip
 	rm -f GeoIPCountryWhois.csv
 	unzip GeoIPCountryCSV.zip
-	./geo-to-db.pl -c GeoIPCountryWhois.csv >geo-ip.txt
+	scripts/geo-to-db.pl -c GeoIPCountryWhois.csv >extra_files/geo-ip.txt
 
