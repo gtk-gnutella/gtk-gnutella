@@ -964,9 +964,6 @@ node_timer(time_t now)
 					delta_time(now, n->last_alive_ping) > period &&
 					!alive_send_ping(n->alive_pings)
 				) {
-					g_message("now=%lu last_alive_ping=%lu last=%u period=%u",
-						(gulong) now, (gulong) n->last_alive_ping,
-						(guint) last, (guint) period);
 					node_bye(n, 406, "No reply to alive pings");
 					return;
 				}
