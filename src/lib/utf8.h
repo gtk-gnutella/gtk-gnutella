@@ -56,6 +56,25 @@ typedef enum {
 	NUM_UNI_NORM
 } uni_norm_t;
 
+/*
+ * Gtk+ renderers want UTF-8 NFC
+ */
+#define UNI_NORM_GUI UNI_NORM_NFC
+
+/*
+ * NFC is more dense than NFD, thus it's the normalization of choice when
+ * passing text over the wire.
+ */
+#define UNI_NORM_NETWORK UNI_NORM_NFC
+
+#if defined(__APPLE__) && defined(__MACH__) /* Darwin */
+/* Mac OS X (Darwin) wants filenames always in UTF-8 NFD */
+#define UNI_NORM_FILESYSTEM UNI_NORM_NFD
+#else /* !Darwin */
+/* Unix systems usually use NFC for UTF-8 filenames */
+#define UNI_NORM_FILESYSTEM UNI_NORM_NFC
+#endif /* Darwin */
+
 void locale_init(void);
 void locale_close(void);
 const gchar *locale_get_charset(void);
