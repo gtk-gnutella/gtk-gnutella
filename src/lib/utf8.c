@@ -1030,29 +1030,33 @@ get_iconv_charset_alias(const gchar *cs)
 	return NULL;
 }
 
-static const gchar *
-get_locale_charset(void)
-{
-	const char *cs;
-
-#if defined(USE_GLIB2)
-	cs = NULL;
-	g_get_charset(&cs);
-#else /* !USE_GLIB2 */
-#if defined(I_LIBCHARSET)
-	cs = locale_charset();
-#else /* !I_LIBCHARSET */
-	cs = get_iconv_charset_alias(nl_langinfo(CODESET));
-#endif /* I_LIBCHARSET */
-#endif /* USE_GLIB2 */
-	
-	return cs;
-}
-
+/**
+ * NOTE:	The internal variable "charset" can be used to override
+ * 			the initially detected character set name.
+ *
+ * @return the name of current locale's character set.
+ */
 const gchar *
 locale_get_charset(void)
 {
-	return charset;
+	static gboolean initialized;
+	static const char *cs;
+	
+	if (!initialized) {
+#if defined(USE_GLIB2)
+		g_get_charset(&cs);
+#else /* !USE_GLIB2 */
+#if defined(I_LIBCHARSET)
+		cs = locale_charset();
+#else /* !I_LIBCHARSET */
+		cs = get_iconv_charset_alias(nl_langinfo(CODESET));
+#endif /* I_LIBCHARSET */
+#endif /* USE_GLIB2 */
+
+		cs = g_strdup(cs);
+	}
+	
+	return charset ? charset : cs;
 }
 
 /**
@@ -1169,7 +1173,13 @@ locale_init(void)
 		struct utf32_general_category, uc, CMP, uint32_to_string);
 
 	setlocale(LC_ALL, "");
-	charset = g_strdup(get_locale_charset());
+	charset = locale_get_charset();
+
+	/*
+	 * If the character set could not be properly detected, use ASCII as
+	 * default for the filename character set, even though we use ISO-8859-1 as
+	 * default locale character set.
+	 */
 	sl_filename_charsets = get_filename_charsets(charset ? charset : "ASCII");
 	g_assert(sl_filename_charsets);
 	g_assert(sl_filename_charsets->data);
@@ -1285,9 +1295,20 @@ locale_close(void)
 }
 
 /**
+ * Converts the string in "src" into the buffer "dst" using the iconv
+ * context "cd". If "dst_size" is too small, the resulting string will
+ * be truncated. complete_iconv() returns the necessary buffer size.
+ * IFF "dst_size" is zero, "dst" may be NULL.
+ *
  * NOTE: This assumes 8-bit (char-based) encodings.
  *
- * @return the size of the converting string including the trailing NUL.
+ * @param cd an iconv context; if it is (iconv_t) -1, NULL will be returned.
+ * @param src the source string to convert.
+ * @param dst the destination buffer; may be NULL IFF dst_size is zero.
+ * @param dst_size the size of the dst buffer.
+ *
+ * @return On success the size of the converting string including the
+ *         trailing NUL. Otherwise, zero is returned.
  */
 static size_t
 complete_iconv(iconv_t cd, const gchar *src, gchar *dst, size_t dst_left)
@@ -1296,6 +1317,7 @@ complete_iconv(iconv_t cd, const gchar *src, gchar *dst, size_t dst_left)
 	size_t src_left;
 	
 	g_assert(src);
+	g_assert(0 == dst_left || dst);
 
 	if ((iconv_t) -1 == cd) {
 		errno = EBADF;
@@ -1356,6 +1378,25 @@ error:
 	return 0;
 }
 
+/**
+ * Converts the string in "src" to "dst" using the iconv context "cd".
+ * If complete_iconv() iconv fails, NULL is returned. Otherwise, the
+ * converted string is returned. If "dst" was sufficiently large, "dst"
+ * will be returned. If not, a newly allocated string is returned. In
+ * the latter case complete_iconv() has to run twice. IFF dst_size is
+ * zero "dst" won't be touched and may be NULL. For best performance
+ * a small local buffer should be used as "dst" so that complete_iconv()
+ * does not have to run twice, especially if the result is only used
+ * temporary and copying is not necessary.
+ *
+ * @param cd an iconv context; if it is (iconv_t) -1, NULL will be returned.
+ * @param src the source string to convert.
+ * @param dst the destination buffer; may be NULL IFF dst_size is zero.
+ * @param dst_size the size of the dst buffer.
+ *
+ * @return On success the converted string, either "dst" or a newly
+ *         allocated string. Returns NULL on failure.
+ */
 static gchar *
 hyper_iconv(iconv_t cd, const gchar *src, gchar *dst, size_t dst_size)
 {
@@ -1714,7 +1755,7 @@ lazy_locale_to_utf8(const gchar *src)
 		 */
 
 		q = locale_to_utf8(src);
-		ret = dst = utf8_normalize(q, UNI_NORM_NFC);
+		ret = dst = utf8_normalize(q, UNI_NORM_GUI);
 		if (q != src)
 			G_FREE_NULL(q);
 		G_FREE_NULL(old);
@@ -1732,16 +1773,10 @@ utf8_to_filename(const gchar *src)
 
 	filename = utf8_to_filename_charset(src);
 	if (filename_charset_is_utf8()) {
-		static const uni_norm_t norm =
-#if defined(__APPLE__) && defined(__MACH__) /* Darwin */
-			UNI_NORM_NFD;
-#else /* !Darwin */
-			UNI_NORM_NFC;
-#endif /* Darwin */
 		gchar *p;
 
 		p = filename;
-		filename = utf8_normalize(p, norm);
+		filename = utf8_normalize(p, UNI_NORM_FILESYSTEM);
 		G_FREE_NULL(p);
 	}
 
