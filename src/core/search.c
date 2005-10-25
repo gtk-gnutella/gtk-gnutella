@@ -2607,7 +2607,7 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 	search_ctrl_t *sch;
 	gchar *qdup;
 
-	g_assert(*s == '\0' || utf8_is_valid_string(s, 0));
+	g_assert('\0' == query[0] || utf8_is_valid_string(query, 0));
 	
 	/*
 	 * Canonicalize the query we're sending.
