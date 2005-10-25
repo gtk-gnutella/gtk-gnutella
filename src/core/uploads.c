@@ -725,11 +725,6 @@ upload_free_resources(gnutella_upload_t *u)
 		bsched_source_remove(u->bio);
 		u->bio = NULL;
 	}
-	if (u->socket != NULL) {
-		g_assert(u->socket->resource.upload == u);
-		socket_free(u->socket);
-		u->socket = NULL;
-	}
 	if (u->user_agent) {
 		atom_str_free(u->user_agent);
 		u->user_agent = NULL;
@@ -741,6 +736,15 @@ upload_free_resources(gnutella_upload_t *u)
 	if (u->special) {
 		u->special->close(u->special);
 		u->special = NULL;
+	}
+	/*
+	 * Close the socket at last because update_poll_event() needs a valid fd
+	 * and some of the above may cause a close(u->socket->fd).
+	 */
+	if (u->socket != NULL) {
+		g_assert(u->socket->resource.upload == u);
+		socket_free(u->socket);
+		u->socket = NULL;
 	}
 
     upload_free_handle(u->upload_handle);
