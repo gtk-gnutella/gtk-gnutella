@@ -1166,7 +1166,8 @@ gui_update_download_column(download_t *d, GtkTreeView *tree_view,
 		return;
 	}
 
-	gtk_tree_store_set(model, iter, column, lazy_locale_to_utf8(value), (-1));
+	gtk_tree_store_set(model, iter,
+		column, lazy_locale_to_utf8_normalized(value, UNI_NORM_GUI), (-1));
 }
 
 
