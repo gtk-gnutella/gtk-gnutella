@@ -1086,7 +1086,6 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 {
   	GString *info = g_string_sized_new(80);
   	const gchar *titles[c_sr_num];
-	const gchar *ext;
 	gint count;
 	gpointer key = NULL;
 	gboolean is_parent = FALSE;
@@ -1096,7 +1095,6 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 	gui_record_t *grc2;
     struct results_set *rs = rc->results_set;
 	gchar *empty = "";
-	gchar *filename_utf8;
 
 	GtkCTreeNode *parent;
 	GtkCTreeNode *node;
@@ -1146,12 +1144,20 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 
 	g_string_free(info, TRUE);
 
-	filename_utf8 = search_gui_record_name_to_utf8(rc);
-	ext = search_gui_get_filename_extension(filename_utf8);
-	rc->ext = atom_str_get(ext ? lazy_utf8_to_locale(ext) : "");
+	/* Setup text for node. Note only parent nodes will have # and size shown */
+	{
+		const gchar *ext;
+		gchar *filename_utf8;
+		
+		filename_utf8 = unknown_to_utf8_normalized(rc->name, UNI_NORM_GUI);
+		ext = search_gui_get_filename_extension(filename_utf8);
+		rc->ext = atom_str_get(ext ? lazy_utf8_to_locale(ext) : "");
 
-	/* Setup text for node.  Note only parent nodes will have # and size shown*/
-	titles[c_sr_filename] = lazy_utf8_to_locale(filename_utf8);
+		titles[c_sr_filename] = lazy_utf8_to_locale(filename_utf8);
+		if (rc->name != filename_utf8)
+			G_FREE_NULL(filename_utf8);
+	}
+
 	titles[c_sr_ext] = rc->ext;
 	titles[c_sr_meta] = empty;
 	titles[c_sr_info] = (NULL != rc->info) ?  rc->info : empty;
@@ -1320,8 +1326,6 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
         gtk_ctree_node_set_foreground(ctree, node, fg);
     if (bg != NULL)
         gtk_ctree_node_set_background(ctree, node, bg);
-
-	G_FREE_NULL(filename_utf8);
 }
 
 
