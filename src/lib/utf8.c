@@ -1747,7 +1747,7 @@ is_ascii_string(const gchar *s)
 static inline const gchar *
 ascii_rewind(const gchar * const s0, const gchar *p)
 {
-	while (s0 != p && isascii(*p))
+	while (s0 != p && (guchar) *p < 0x80)
 		p--;
 	return p;
 }
@@ -1806,14 +1806,14 @@ iso8859_6_is_valid_char(guchar c)
 gboolean
 looks_like_iso8859_6(const gchar *src)
 {
-	const gchar *s = src;
+	const gchar *s;
 	size_t n = 0;
 	guchar c;
 	
 	for (s = src; iso8859_6_is_valid_char(c = *s); s++)
 		n += iso8859_6_is_arabic_char(c);
 	
-	/* Rewind over trailing ASCII for better ration detection */
+	/* Rewind over trailing ASCII for better ratio detection */
 	s = ascii_rewind(src, s);
 
 	return '\0' == c && n > 0 && (s - src) > 8 && (s - src) / n < 2;
@@ -1829,14 +1829,14 @@ iso8859_7_is_greek_char(guchar c)
 gboolean
 looks_like_iso8859_7(const gchar *src)
 {
-	const gchar *s = src;
+	const gchar *s;
 	size_t n = 0;
 	guchar c;
 	
 	for (s = src; iso8859_is_valid_char(c = *s) && 0xD2 != c; s++)
 		n += iso8859_7_is_greek_char(c);
 	
-	/* Rewind over trailing ASCII for better ration detection */
+	/* Rewind over trailing ASCII for better ratio detection */
 	s = ascii_rewind(src, s);
 
 	return '\0' == c && n > 0 && (s - src) > 8 && (s - src) / n < 2;
@@ -1864,14 +1864,14 @@ iso8859_8_is_valid_char(guchar c)
 gboolean
 looks_like_iso8859_8(const gchar *src)
 {
-	const gchar *s = src;
+	const gchar *s;
 	size_t n = 0;
 	guchar c;
 	
 	for (s = src; iso8859_8_is_valid_char(c = *s); s++)
 		n += iso8859_8_is_hebrew_char(c);
 
-	/* Rewind over trailing ASCII for better ration detection */
+	/* Rewind over trailing ASCII for better ratio detection */
 	s = ascii_rewind(src, s);
 
 	return '\0' == c && n > 0 && (s - src) > 8 && (s - src) / n < 2;
@@ -1887,10 +1887,10 @@ looks_like_iso2022(const gchar *src)
 	for (s = src; '\0' != (c = *s); s++)
 		n += 0x1B == *s;
 	
-	/* Rewind over trailing ASCII for better ration detection */
+	/* Rewind over trailing ASCII for better ratio detection */
 	s = ascii_rewind(src, s);
 
-	return '\0' == *s && n > 0 && (s - src) / n < 5;
+	return '\0' == c && n > 0 && (s - src) / n < 5;
 }
 
 gboolean
