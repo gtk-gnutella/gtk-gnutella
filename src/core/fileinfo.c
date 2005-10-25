@@ -3143,7 +3143,7 @@ file_info_get(gchar *file, const gchar *path, filesize_t size,
 	gchar *sha1, gboolean file_size_known)
 {
 	fileinfo_t *fi;
-	gchar *outname, *s, *to_free = NULL;
+	gchar *outname, *to_free = NULL;
 
 	/*
 	 * See if we know anything about the file already.
@@ -3179,22 +3179,29 @@ file_info_get(gchar *file, const gchar *path, filesize_t size,
 		return fi;
 	}
 
-	/*
-	 * Compute new output name.  If the filename is not taken yet, this
-	 * will be exactly `file'.  Otherwise, it will be a variant.
-	 */
-	
-	if (!utf8_is_valid_string(file, 0)) {
-		to_free = locale_to_utf8_normalized(file, UNI_NORM_NETWORK);
-		file = to_free;
+
+	/* First convert the filename to what the GUI used */
+	{
+		gchar *s = unknown_to_utf8_normalized(file, UNI_NORM_NETWORK);
+		if (file != s) {
+			file = s;
+			to_free = s;
+		}
 	}
-	
-	s = utf8_to_filename(file);
-	if (file != s) {
+
+	/* Now convert the UTF-8 to what the filesystem wants */
+	{
+		gchar *s = utf8_to_filename(file);
+		g_assert(s != file);
 		G_FREE_NULL(to_free);
 		to_free = s;
 		file = s;
 	}
+
+	/*
+	 * Compute new output name.  If the filename is not taken yet, this
+	 * will be exactly `file'.  Otherwise, it will be a variant.
+	 */
 
 	outname = file_info_new_outname(file, path);
 
