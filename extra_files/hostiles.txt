@@ -179,6 +179,9 @@
 70.86.48.0/24
 70.86.75.0/24
 
+# ZIP files containing setup.exe, uses Shareaza, hosted by surfplanet.de
+85.88.9.0/26
+
 # Spammer hosted by pie.us
 206.223.156.160/29
 206.223.156.149
