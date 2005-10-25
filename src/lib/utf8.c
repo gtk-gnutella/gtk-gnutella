@@ -94,11 +94,89 @@ static UConverter *conv_icu_utf8 = NULL;
 static const gchar *charset = NULL;
 static const GSList *sl_filename_charsets = NULL;
 
-static iconv_t cd_latin_to_utf8	= (iconv_t) -1;
 static iconv_t cd_locale_to_utf8 = (iconv_t) -1;
-static iconv_t cd_utf8_to_locale = (iconv_t) -1;
 static iconv_t cd_filename_to_utf8 = (iconv_t) -1;
+
+static iconv_t cd_utf8_to_locale = (iconv_t) -1;
 static iconv_t cd_utf8_to_filename = (iconv_t) -1;
+
+
+enum utf8_cd {
+	UTF8_CD_ISO8859_1,
+	UTF8_CD_ISO8859_6,
+	UTF8_CD_ISO8859_7,
+	UTF8_CD_ISO8859_8,
+	UTF8_CD_ISO2022_JP,
+	UTF8_CD_EUC_JP,
+	UTF8_CD_KOI8_R,
+
+	NUM_UTF8_CDS,
+	UTF8_CD_INVALID		= -1
+};
+
+static struct {
+	iconv_t cd;
+	const gchar *name;
+	const enum utf8_cd id;
+	gboolean initialized;
+} utf8_cd_tab[] = {
+#define D(name, id) (iconv_t) -1, (name), (id), FALSE
+	{ D("ISO-8859-1",	UTF8_CD_ISO8859_1) },
+	{ D("ISO-8859-6",	UTF8_CD_ISO8859_6) },
+	{ D("ISO-8859-7",	UTF8_CD_ISO8859_7) },
+	{ D("ISO-8859-8",	UTF8_CD_ISO8859_8) },
+	{ D("ISO-2022-JP",	UTF8_CD_ISO2022_JP) },
+	{ D("EUC-JP",		UTF8_CD_EUC_JP) },
+	{ D("KOI8-R",		UTF8_CD_KOI8_R) },
+#undef D
+};
+
+static enum utf8_cd
+utf8_name_to_cd(const gchar *name)
+{
+	guint i;
+
+	STATIC_ASSERT(G_N_ELEMENTS(utf8_cd_tab) == NUM_UTF8_CDS);
+	for (i = 0; i < G_N_ELEMENTS(utf8_cd_tab); i++)
+		if (0 == strcmp(name, utf8_cd_tab[i].name))
+			return utf8_cd_tab[i].id;
+
+	return UTF8_CD_INVALID;
+}
+
+const gchar *
+utf8_cd_to_name(enum utf8_cd id)
+{
+	guint i = (guint) id;
+	
+	g_assert(i < G_N_ELEMENTS(utf8_cd_tab));
+	STATIC_ASSERT(G_N_ELEMENTS(utf8_cd_tab) == NUM_UTF8_CDS);
+	
+	g_assert(utf8_cd_tab[i].id == id);
+	return utf8_cd_tab[i].name;
+}
+
+
+static iconv_t
+utf8_cd_get(enum utf8_cd id)
+{
+	guint i = (guint) id;
+
+	g_assert(i < G_N_ELEMENTS(utf8_cd_tab));
+	
+	if (!utf8_cd_tab[i].initialized) {
+		const gchar *cs;
+		
+		utf8_cd_tab[i].initialized = TRUE;
+		cs = utf8_cd_tab[i].name;
+		g_assert(cs);
+
+		if ((iconv_t) -1 == (utf8_cd_tab[i].cd = iconv_open("UTF-8", cs)))
+			g_warning("iconv_open(\"UTF-8\", \"%s\") failed.", cs);
+	}
+	
+	return utf8_cd_tab[i].cd;
+}
 
 gboolean
 locale_is_utf8(void)
@@ -1208,15 +1286,14 @@ locale_init(void)
 			latin_locale = TRUE;
 			break;
 		}
-
-	if ((iconv_t) -1 == (cd_latin_to_utf8 = iconv_open("UTF-8", "ISO-8859-1")))
-		g_warning("iconv_open(\"UTF-8\", \"ISO-8859-1\") failed.");
-	if (0 != strcmp("ISO-8859-1", charset)) {
+	
+	if (UTF8_CD_INVALID != utf8_name_to_cd(charset)) {
+		cd_locale_to_utf8 = utf8_cd_get(utf8_name_to_cd(charset));
+	} else {
 		if ((iconv_t) -1 == (cd_locale_to_utf8 = iconv_open("UTF-8", charset)))
 			g_warning("iconv_open(\"UTF-8\", \"%s\") failed.", charset);
-	} else {
-		cd_locale_to_utf8 = cd_latin_to_utf8;
 	}
+	
 	if ((iconv_t) -1 == (cd_utf8_to_locale = iconv_open(charset, "UTF-8")))
 		g_warning("iconv_open(\"%s\", \"UTF-8\") failed.", charset);
 
@@ -1232,18 +1309,18 @@ locale_init(void)
 		if (0 == strcmp(cs, "ASCII") || 0 == strcmp(cs, "UTF-8")) {
 			cd_from = (iconv_t) -1;
 			cd_to = (iconv_t) -1;
-		} else if (0 == strcmp("ISO-8859-1", cs)) {
-			cd_from = cd_latin_to_utf8;
-			if ((iconv_t) -1 == (cd_to = iconv_open("ISO-8859-1", "UTF-8")))
-				g_warning("iconv_open(\"UTF-8\", \"ISO-8859-1\") failed.");
+		} else if (UTF8_CD_INVALID != utf8_name_to_cd(cs)) {
+			cd_from = utf8_cd_get(utf8_name_to_cd(cs));
+			if ((iconv_t) -1 == (cd_to = iconv_open(cs, "UTF-8")))
+				g_warning("iconv_open(\"%s\", \"UTF-8\") failed.", cs);
 		} else if (0 == strcmp(charset, cs)) {
 			cd_from = cd_locale_to_utf8;
 			cd_to = cd_utf8_to_locale;
 		} else {
 			if ((iconv_t) -1 == (cd_from = iconv_open("UTF-8", cs)))
-				g_warning("iconv_open(\"%s\", \"UTF-8\") failed.", cs);
-			if ((iconv_t) -1 == (cd_to = iconv_open(cs, "UTF-8")))
 				g_warning("iconv_open(\"UTF-8\", \"%s\") failed.", cs);
+			if ((iconv_t) -1 == (cd_to = iconv_open(cs, "UTF-8")))
+				g_warning("iconv_open(\"%s\", \"UTF-8\") failed.", cs);
 		}
 
 		cd_filename_to_utf8 = cd_from;
@@ -1559,27 +1636,6 @@ hyper_ascii_enforce(const gchar *src, gchar *dst, size_t dst_size)
 
 
 /**
- * Converts a string from the locale's character set to UTF-8 encoding.
- * The returned string is in no defined Unicode normalization form.
- *
- * @param src a NUL-terminated string.
- * @return a pointer to the UTF-8 encoded string.
- */
-gchar *
-locale_to_utf8(const gchar *src)
-{
-	gchar *dst;
-	
-	g_assert(src);
-
-	dst = hyper_iconv(cd_locale_to_utf8, src, NULL, 0);
-	if (!dst)
-		dst = hyper_utf8_enforce(src, NULL, 0);
-
-	return dst;
-}
-
-/**
  * Non-convertible characters will be replaced by '_'. The returned string
  * WILL be NUL-terminated in any case.
  *
@@ -1628,11 +1684,10 @@ utf8_to_locale(const gchar *src)
 	return dst;
 }
 
-
 static gchar *
-convert_to_utf8_normalized(iconv_t cd, const gchar *src, uni_norm_t norm)
+convert_to_utf8(iconv_t cd, const gchar *src)
 {
-	gchar sbuf[4096], *dbuf;
+	gchar sbuf[4096];
 	gchar *dst;
 
 	g_assert(src);
@@ -1641,9 +1696,305 @@ convert_to_utf8_normalized(iconv_t cd, const gchar *src, uni_norm_t norm)
 	if (!dst)
 		dst = hyper_utf8_enforce(src, sbuf, sizeof sbuf);
 
-	dbuf = sbuf != dst ? dst : NULL;
-	dst = utf8_normalize(dst, norm);
-	G_FREE_NULL(dbuf);
+	return sbuf != dst ? dst : g_strdup(sbuf);
+}
+
+/**
+ * Converts a string from the locale's character set to UTF-8 encoding.
+ * The returned string is in no defined Unicode normalization form.
+ *
+ * @param src a NUL-terminated string.
+ * @return a newly allocated UTF-8 encoded string.
+ */
+gchar *
+locale_to_utf8(const gchar *src)
+{
+	g_assert(src);
+
+	return convert_to_utf8(cd_locale_to_utf8, src);
+}
+
+/**
+ * Converts a string from ISO-8859-1 to UTF-8 encoding.
+ * The returned string is in no defined Unicode normalization form.
+ *
+ * @param src a NUL-terminated string.
+ * @return a newly allocated UTF-8 encoded string.
+ */
+gchar *
+iso8859_1_to_utf8(const gchar *src)
+{
+	g_assert(src);
+
+	return convert_to_utf8(utf8_cd_get(UTF8_CD_ISO8859_1), src);
+}
+
+#if CHAR_BIT == 8
+#define IS_NON_NUL_ASCII(p) (*(const gint8 *) (p) > 0)
+#else
+#define IS_NON_NUL_ASCII(p) (!(*(p) & ~0x7f) && (*(p) > 0))
+#endif
+
+gboolean
+is_ascii_string(const gchar *s)
+{
+	while (IS_NON_NUL_ASCII(s))
+		++s;
+
+	return '\0' == *s;
+}
+
+static inline const gchar *
+ascii_rewind(const gchar * const s0, const gchar *p)
+{
+	while (s0 != p && isascii(*p))
+		p--;
+	return p;
+}
+
+static inline gboolean
+koi8_is_cyrillic_char(guchar c)
+{
+	return c >= 0xC0;
+}
+
+gboolean
+looks_like_koi8(const gchar *src)
+{
+	const gchar *s = src;
+	size_t n = 0;
+	guchar c;
+	
+	for (s = src; (c = *s) >= 0x20; s++)
+		n += koi8_is_cyrillic_char(c);
+	
+	return '\0' == c && n > 0 && (s - src) > 10 && (s - src) / n < 2;
+
+}
+
+/* Checks for the common codepoint range of ISO8859-x encodings */
+static inline gboolean
+iso8859_is_valid_char(guchar c)
+{
+	/* 0x20..0x7E and 0xA0..0xFF are valid */
+	return 0 != (0x60 & c) && (0x7f != c);
+
+}
+
+static inline gboolean
+iso8859_6_is_arabic_char(guchar c)
+{
+	return c >= 0xC1; /* Ignore 0xF3..0xFF here */
+}
+
+static inline gboolean
+iso8859_6_is_valid_char(guchar c)
+{
+	return iso8859_is_valid_char(c) && (
+				c < 0x80 ||
+				(c >= 0xC1 && c <= 0xDA) ||
+				(c >= 0xE0 && c <= 0xF2) ||
+				0xA0 == c ||
+				0xA4 == c ||
+				0xAC == c ||
+				0xAD == c ||
+				0xBB == c ||
+				0xBF == c
+			);
+}
+
+gboolean
+looks_like_iso8859_6(const gchar *src)
+{
+	const gchar *s = src;
+	size_t n = 0;
+	guchar c;
+	
+	for (s = src; iso8859_6_is_valid_char(c = *s); s++)
+		n += iso8859_6_is_arabic_char(c);
+	
+	/* Rewind over trailing ASCII for better ration detection */
+	s = ascii_rewind(src, s);
+
+	return '\0' == c && n > 0 && (s - src) > 8 && (s - src) / n < 2;
+}
+
+
+static inline gboolean
+iso8859_7_is_greek_char(guchar c)
+{
+	return c >= 0xB0; /* Ignore 0xFF here */
+}
+
+gboolean
+looks_like_iso8859_7(const gchar *src)
+{
+	const gchar *s = src;
+	size_t n = 0;
+	guchar c;
+	
+	for (s = src; iso8859_is_valid_char(c = *s) && 0xD2 != c; s++)
+		n += iso8859_7_is_greek_char(c);
+	
+	/* Rewind over trailing ASCII for better ration detection */
+	s = ascii_rewind(src, s);
+
+	return '\0' == c && n > 0 && (s - src) > 8 && (s - src) / n < 2;
+}
+
+static inline gboolean
+iso8859_8_is_hebrew_char(guchar c)
+{
+	return c >= 0xE0; /* Ignore 0xFB..0xFF here */
+}
+
+static inline gboolean
+iso8859_8_is_valid_char(guchar c)
+{
+	return iso8859_is_valid_char(c) && (
+			 	c < 0x80 ||
+			 	(c >= 0xA2 && c <= 0xBE) ||
+			 	(c >= 0xDF && c <= 0xFA) ||
+			 	0xA0 == c ||
+			 	0xFD == c ||
+			 	0xFE == c
+			);
+}
+
+gboolean
+looks_like_iso8859_8(const gchar *src)
+{
+	const gchar *s = src;
+	size_t n = 0;
+	guchar c;
+	
+	for (s = src; iso8859_8_is_valid_char(c = *s); s++)
+		n += iso8859_8_is_hebrew_char(c);
+
+	/* Rewind over trailing ASCII for better ration detection */
+	s = ascii_rewind(src, s);
+
+	return '\0' == c && n > 0 && (s - src) > 8 && (s - src) / n < 2;
+}
+
+gboolean
+looks_like_iso2022(const gchar *src)
+{
+	const gchar *s;
+	size_t n = 0;
+	guchar c;
+	
+	for (s = src; '\0' != (c = *s); s++)
+		n += 0x1B == *s;
+	
+	/* Rewind over trailing ASCII for better ration detection */
+	s = ascii_rewind(src, s);
+
+	return '\0' == *s && n > 0 && (s - src) / n < 5;
+}
+
+gboolean
+iso8859_is_valid_string(const gchar *src)
+{
+	while (iso8859_is_valid_char(*src))
+		src++;
+	
+	return '\0' == *src;
+}
+
+/**
+ * Converts the string to UTF-8 assuming an appropriate character set. The
+ * conversion result might still be rubbish but is guaranteed to be UTF-8
+ * encoded.
+ *
+ * The returned string is in no defined Unicode normalization form.
+ *
+ * @param src a NUL-terminated string.
+ * @return the original pointer or a newly allocated UTF-8 encoded string.
+ */
+gchar *
+unknown_to_utf8(const gchar *src)
+{
+	enum utf8_cd id = UTF8_CD_INVALID;
+	iconv_t cd;
+	gchar *dst;
+	
+	g_assert(src);
+
+	if (utf8_is_valid_string(src, 0))
+		return deconstify_gchar(src);
+
+	if ( looks_like_iso2022(src))
+		id = UTF8_CD_ISO2022_JP;
+	
+	if (iso8859_is_valid_string(src)) {
+		const gchar *s;
+
+		/* Skip leading ASCII for better ratio detection */		
+		for (s = src; IS_NON_NUL_ASCII(s); s++)
+			continue;
+
+		/* ISO8859-8 has the smallest range of special codepoints and many
+		 * invalid codepoints are valid in ISO8859-6 or ISO8859-7.
+		 */
+		if (looks_like_iso8859_8(s))
+			id = UTF8_CD_ISO8859_8;
+		else if (looks_like_iso8859_6(s))
+			id = UTF8_CD_ISO8859_6;
+		else if (looks_like_iso8859_7(s))
+			id = UTF8_CD_ISO8859_7;
+		else
+		 	id = UTF8_CD_ISO8859_1;
+	}
+
+	if (UTF8_CD_INVALID == id && looks_like_koi8(src))
+		id = UTF8_CD_KOI8_R;
+
+	if (UTF8_CD_INVALID != id)
+		cd = utf8_cd_get(id);
+
+	if (UTF8_CD_INVALID == id || (iconv_t) -1 == cd)
+		cd = cd_locale_to_utf8;
+
+	dst = convert_to_utf8(cd, src);
+	g_assert('\0' == *dst || utf8_is_valid_string(dst, 0));
+
+#if 0
+	/* Prepend " <charset> " to the returned string for debugging. When
+	 * sorting by filename, these should appear on top. */
+	{
+		gchar *p = g_strconcat(" <",
+						UTF8_CD_INVALID == id ? "locale" : utf8_cd_to_name(id),
+						"> ", convert_to_utf8(cd, src), (void *) 0);
+		G_FREE_NULL(dst);
+		dst = p;
+	}
+#endif /* 0 */
+	
+	return dst;
+}
+
+static gchar *
+convert_to_utf8_normalized(iconv_t cd, const gchar *src, uni_norm_t norm)
+{
+	gchar sbuf[4096];
+	gchar *dst;
+
+	g_assert(src);
+
+	dst = hyper_iconv(cd, src, sbuf, sizeof sbuf);
+	if (!dst)
+		dst = hyper_utf8_enforce(src, sbuf, sizeof sbuf);
+
+	/*
+	 * If a new buffer was allocated, check whether the string is ASCII now
+	 * to skip normalization and a further allocation.
+	 */
+	if (sbuf == dst || is_ascii_string(dst)) {
+		gchar *dbuf = sbuf != dst ? dst : NULL;
+		dst = utf8_normalize(dst, norm);
+		G_FREE_NULL(dbuf);
+	}
 
 	return dst;
 }
@@ -1692,40 +2043,50 @@ filename_to_utf8_normalized(const gchar *src, uni_norm_t norm)
  * @returns a newly allocated string.
  */
 gchar *
-latin_to_utf8_normalized(const gchar *src, uni_norm_t norm)
+iso8859_1_to_utf8_normalized(const gchar *src, uni_norm_t norm)
 {
 	g_assert(src);
 
-	return convert_to_utf8_normalized(cd_latin_to_utf8, src, norm);
+	return convert_to_utf8_normalized(utf8_cd_get(UTF8_CD_ISO8859_1),
+				src, norm);
 }
 
-
-#if CHAR_BIT == 8
-#define IS_NON_NUL_ASCII(p) (*(const gint8 *) (p) > 0)
-#else
-#define IS_NON_NUL_ASCII(p) (!(*(p) & ~0x7f) && (*(p) > 0))
-#endif
-
-gboolean
-is_ascii_string(const gchar *s)
+/**
+ * Converts a string from the ISO-8859-1 character set to UTF-8 encoding and
+ * the specified Unicode normalization form.
+ *
+ * @param str the string to convert.
+ * @param norm the Unicode normalization form to use.
+ *
+ * @returns Either the original src pointer or a newly allocated string.
+ */
+gchar *
+unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm)
 {
-	while (IS_NON_NUL_ASCII(s))
-		++s;
+	gchar *s_utf8, *s_norm;
 
-	return '\0' == *s;
+	s_utf8 = unknown_to_utf8(src); /* May return src */
+	if (is_ascii_string(s_utf8))
+		return s_utf8;
+	
+	s_norm = utf8_normalize(s_utf8, norm);
+	if (src != s_utf8)
+		G_FREE_NULL(s_utf8);
+	return s_norm;
 }
 
 const gchar *
 lazy_iso8859_1_to_utf8(const gchar *src)
 {
-	static gchar buf[4096];
-
+	static gchar *dst;
+	gchar *old;
+  
 	g_assert(src);
-	
-	if (0 == complete_iconv(cd_latin_to_utf8, src, buf, sizeof buf))
-		utf8_enforce(src, buf, sizeof buf);
 
-	return buf;
+	old = dst;
+	dst = iso8859_1_to_utf8(src);
+	G_FREE_NULL(old);
+	return dst;
 }
 
 const gchar *
@@ -1750,35 +2111,59 @@ lazy_utf8_to_locale(const gchar *src)
  * @returns the converted string or ``str'' if no conversion was necessary.
  */
 const gchar *
-lazy_locale_to_utf8(const gchar *src)
+lazy_locale_to_utf8_normalized(const gchar *src, uni_norm_t norm)
 {
-	const gchar *ret;
+	static gchar *prev; /* Previous conversion result */
 	
 	g_assert(src);
+	g_assert(prev != src);
 
-	/* Let's assume that most of the supplied strings are pure ASCII. */
-	if (is_ascii_string(src)) {
-		ret = src;
-	} else {
-		static gchar *dst;
-		gchar *q, *old = dst;
+	G_FREE_NULL(prev);
 
-		/*
-		 * Enforce UTF-8 NFC because GTK+ would render a decomposed string
-		 * otherwise (if the string is not in NFC). This is a known
-		 * GTK+ bug.
-		 */
+	/*
+	 * Let's assume that most of the supplied strings are pure ASCII.
+	 * ASCII matches any UTF-8 in any Unicode normalization form.
+	 */
+	if (is_ascii_string(src))
+		return src;
 
-		q = locale_to_utf8(src);
-		ret = dst = utf8_normalize(q, UNI_NORM_GUI);
-		if (q != src)
-			G_FREE_NULL(q);
-		G_FREE_NULL(old);
-	}
-
-	return ret;
+	prev = locale_to_utf8_normalized(src, norm);
+	g_assert(prev != src);
+	return prev;
 }
 
+/**
+ * Converts the supplied string ``str'' from the current locale encoding
+ * to an UTF-8 NFC string.
+ *
+ * @param str the string to convert.
+ * @returns the converted string or ``str'' if no conversion was necessary.
+ */
+const gchar *
+lazy_locale_to_utf8(const gchar *src)
+{
+	static gchar *prev; /* Previous conversion result */
+	
+	g_assert(src);
+	g_assert(prev != src);
+
+	G_FREE_NULL(prev);
+
+	if (utf8_is_valid_string(src, 0))
+		return src;
+
+	prev = locale_to_utf8(src);
+	g_assert(prev != src);
+	return prev;
+}
+
+/**
+ * Converts the UTF-8 encoded src string to a string encoded in the
+ * primary filename character set.
+ *
+ * @param src a NUL-terminated UTF-8 encoded string.
+ * @return a pointer to a newly allocated buffer holding the converted string.
+ */
 gchar *
 utf8_to_filename(const gchar *src)
 {
@@ -1787,10 +2172,8 @@ utf8_to_filename(const gchar *src)
 	g_assert(src);
 
 	filename = utf8_to_filename_charset(src);
-	if (filename_charset_is_utf8()) {
-		gchar *p;
-
-		p = filename;
+	if (filename_charset_is_utf8() && !is_ascii_string(filename)) {
+		gchar *p = filename;
 		filename = utf8_normalize(p, UNI_NORM_FILESYSTEM);
 		G_FREE_NULL(p);
 	}
@@ -3801,7 +4184,12 @@ utf8_normalize(const gchar *src, uni_norm_t norm)
 	g_assert('\0' == *src || utf8_is_valid_string(src, 0));
 	g_assert((gint) norm >= 0 && norm < NUM_UNI_NORM);
 
-	{
+	if (is_ascii_string(src)) {
+		/*
+		 * Optimize this later and return the original src pointer.
+		 */
+		return g_strdup(src);
+	} else {
 		size_t n;
 		guint32 buf[1024];
 		guint32 *s;
@@ -4350,7 +4738,7 @@ unicode_decompose_init(void)
 		size_t len, chars;
 		guint32 *u;
 
-		s = lazy_locale_to_utf8(bad);
+		s = lazy_locale_to_utf8_normalized(bad, UNI_NORM_NFC);
 		len = strlen(s);
 		chars = utf8_is_valid_string(s, 0);
 		g_assert(len != 0);

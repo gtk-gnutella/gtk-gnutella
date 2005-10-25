@@ -79,6 +79,7 @@ void locale_init(void);
 void locale_close(void);
 const gchar *locale_get_charset(void);
 gint utf8_is_valid_char(const gchar *s);
+gboolean is_ascii_string(const gchar *str);
 size_t utf8_is_valid_string(const gchar *s, size_t len);
 size_t utf8_strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 guint32 utf8_decode_char(const gchar *s, gint len, gint *retlen, gboolean warn);
@@ -151,19 +152,27 @@ const gchar *lazy_iso8859_1_to_utf8(const gchar *src);
 const gchar *lazy_locale_to_utf8(const gchar *src);
 const gchar *lazy_ui_string_to_utf8(const gchar *src);
 const gchar *lazy_utf8_to_locale(const gchar *src);
+const gchar *lazy_locale_to_utf8_normalized(const gchar *src, uni_norm_t norm);
 
 static inline const gchar *
 lazy_vendor_to_utf8(const gchar *s)
 {
-	return !s || utf8_is_valid_string(s, 0) ? s : lazy_iso8859_1_to_utf8(s);
+	return !s || is_ascii_string(s) ? s : lazy_iso8859_1_to_utf8(s);
+}
+
+static inline const gchar *
+lazy_vendor_to_locale(const gchar *s)
+{
+	return s ? lazy_utf8_to_locale(lazy_vendor_to_utf8(s)) : NULL;
 }
 
 gchar *locale_to_utf8(const gchar *str);
+gchar *unknown_to_utf8(const gchar *str);
 gchar *locale_to_utf8_normalized(const gchar *str, uni_norm_t norm);
 gchar *filename_to_utf8_normalized(const gchar *str, uni_norm_t norm);
-gchar *latin_to_utf8_normalized(const gchar *str, uni_norm_t norm);
+gchar *iso8859_1_to_utf8_normalized(const gchar *str, uni_norm_t norm);
+gchar *unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm);
 
-gboolean is_ascii_string(const gchar *str);
 gchar *utf8_to_filename(const gchar *s);
 gchar *utf8_to_locale(const gchar *s);
 
