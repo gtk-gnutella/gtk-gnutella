@@ -202,7 +202,16 @@ search_gui_set_details(const record_t *rc)
 
 		switch ((enum info_idx) j) {
 		case info_filename:
-			gtk_entry_set_text(e, rc->name);
+			{	
+				gchar *s = NULL;
+				
+				if (rc->name)
+					s = unknown_to_utf8_normalized(rc->name, UNI_NORM_GUI);
+
+				gtk_entry_set_text(e, s ? lazy_utf8_to_locale(s) : "");
+				if (rc->name != s)
+					G_FREE_NULL(s);
+			}
 			break;
 			
 		case info_sha1:
