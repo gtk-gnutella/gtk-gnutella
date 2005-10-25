@@ -2593,6 +2593,9 @@ search_get_reissue_timeout(gnet_search_t sh)
 /**
  * Create a new suspended search and return a handle which identifies it.
  *
+ * @param query an UTF-8 encoded query string.
+ * @param reissue_timeout delay in seconds before requerying.
+ * @param flags option flags for the search.
  * @return -1 if the search could not be created, a valid handle for the
  *			search otherwise.
  */
@@ -2604,6 +2607,8 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 	search_ctrl_t *sch;
 	gchar *qdup;
 
+	g_assert(*s == '\0' || utf8_is_valid_string(s, 0));
+	
 	/*
 	 * Canonicalize the query we're sending.
 	 */
@@ -2615,17 +2620,8 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 		}
 		qdup = g_strdup(query);
 	} else {
-		const gchar *s;
-
-		s = utf8_is_valid_string(query, 0)
-			? query
-			: locale_to_utf8(query);
-
-		g_assert(*s == '\0' || utf8_is_valid_string(s, 0));
-		qdup = UNICODE_CANONIZE(s);
-		g_assert(qdup != s);
-		if (s != query)
-			g_free(deconstify_gchar(s));
+		qdup = UNICODE_CANONIZE(query);
+		g_assert(qdup != query);
 	}
 
 	compact_query(qdup);
