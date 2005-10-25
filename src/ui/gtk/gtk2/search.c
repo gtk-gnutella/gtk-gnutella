@@ -489,7 +489,6 @@ search_gui_add_record(
 	GtkTreeIter iter;
 	GtkTreeStore *model = GTK_TREE_STORE(sch->model);
     const struct results_set *rs = rc->results_set;
-	gchar *filename_utf8;
 	size_t rw = 0;
   	gchar info[1024];
 
@@ -537,10 +536,8 @@ search_gui_add_record(
 		const gchar *s;
 
 		g_assert(rw < sizeof info);
-		s = lazy_locale_to_utf8(info);
-		if (s != info) {
-			utf8_strlcpy(info, s, sizeof info);
-		}
+		utf8_strlcpy(info,
+			lazy_locale_to_utf8_normalized(info, UNI_NORM_GUI), sizeof info);
 	}
 
 	if (NULL != rc->sha1) {
@@ -571,20 +568,25 @@ search_gui_add_record(
 
 	g_assert(rc->refcount >= 2);
 
-	filename_utf8 = search_gui_record_name_to_utf8(rc);
-	gtk_tree_store_set(model, &iter,
-		      c_sr_filename, filename_utf8,
-		      c_sr_ext, search_gui_get_filename_extension(filename_utf8),
-		      c_sr_size, NULL != parent ? NULL : short_size(rc->size),
-			  c_sr_loc, iso3166_country_cc(rs->country),
-			  c_sr_meta, NULL,
-		      c_sr_info, info[0] != '\0' ? info : NULL,
-		      c_sr_fg, fg,
-		      c_sr_bg, bg,
-		      c_sr_record, rc,
-		      (-1));
+	{
+		gchar *filename_utf8;
 
-	G_FREE_NULL(filename_utf8);
+		filename_utf8 = unknown_to_utf8_normalized(rc->name, UNI_NORM_GUI);
+		gtk_tree_store_set(model, &iter,
+				c_sr_filename, filename_utf8,
+				c_sr_ext, search_gui_get_filename_extension(filename_utf8),
+				c_sr_size, NULL != parent ? NULL : short_size(rc->size),
+				c_sr_loc, iso3166_country_cc(rs->country),
+				c_sr_meta, NULL,
+				c_sr_info, info[0] != '\0' ? info : NULL,
+				c_sr_fg, fg,
+				c_sr_bg, bg,
+				c_sr_record, rc,
+				(-1));
+
+		if (rc->name != filename_utf8)
+			G_FREE_NULL(filename_utf8);
+	}
 
 	/*
 	 * There might be some metadata about this record already in the
