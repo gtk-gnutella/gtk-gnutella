@@ -647,13 +647,15 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 	g_return_if_fail(rc != NULL);
 	
 	{
-		gchar *s;
+		gchar *s = NULL;
 
-		s = rc->name ? utf8_or_locale_normalize(rc->name, UNI_NORM_GUI) : NULL;
+		if (rc->name)
+			s = unknown_to_utf8_normalized(rc->name, UNI_NORM_GUI);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename")),
 			s ? s : "");
-		G_FREE_NULL(s);
+		if (rc->name != s)
+			G_FREE_NULL(s);
 	}
 
 	gtk_entry_printf(
@@ -707,7 +709,14 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 
 	txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget(main_window,
 					"textview_result_info_xml")));
-	xml_txt = rc->xml ? search_xml_indent(rc->xml) : NULL;
+	if (rc->xml) {
+		gchar *s = unknown_to_utf8_normalized(rc->xml, UNI_NORM_GUI);
+		xml_txt = search_xml_indent(s);
+		if (rc->xml != s)
+			G_FREE_NULL(s);
+	} else {
+		xml_txt = NULL;
+	}
 	gtk_text_buffer_set_text(txt, EMPTY_STRING(xml_txt), -1);
 	G_FREE_NULL(xml_txt);
 }
