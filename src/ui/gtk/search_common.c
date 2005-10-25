@@ -589,38 +589,6 @@ search_gui_get_filename_extension(const gchar *filename_utf8)
 }
 
 /**
- * Converts the record filename to UTF-8 if necessary and normalizes it
- * for displaying purposes. The conversion is a best effort scheme, it
- * may still result in rubbish.
- *
- * @return a newly allocated UTF-8 encoded string normalized for the GUI.
- */
-gchar *
-search_gui_record_name_to_utf8(const record_t *rc)
-{
-	gchar *s;
-	
-	g_assert(rc);
-	g_assert(rc->name);
-
-	if (utf8_is_valid_string(rc->name, 0)) {
-		/* UTF-8 is the standard encoding */
-		s = utf8_normalize(rc->name, UNI_NORM_GUI);
-	} else if (locale_is_utf8()) {
-		/* Many vendors still sent strings encoded with the users'
-		 * locale character set. Assume ISO-8859-1. */
-		s = latin_to_utf8_normalized(rc->name, UNI_NORM_GUI);
-	} else {
-		/* Assume our user expects content of his own language/charset
-		 * if it's not UTF-8. */
-		s = locale_to_utf8_normalized(rc->name, UNI_NORM_GUI);
-	}
-
-	return s;
-}
-
-
-/**
  * Create a new GUI record within `rs' from a Gnutella record.
  */
 record_t *

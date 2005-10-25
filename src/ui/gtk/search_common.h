@@ -142,7 +142,6 @@ void search_gui_remove_r_set(search_t *sch, results_set_t *rs);
 gboolean search_gui_result_is_dup(search_t *sch, record_t *rc);
 search_t *search_gui_find(gnet_search_t sh);
 gchar *search_gui_get_filename_extension(const gchar *filename_utf8);
-gchar *search_gui_record_name_to_utf8(const record_t *rc);
 record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r) ;
 void search_gui_check_alt_locs(results_set_t *rs, record_t *rc);
 void search_gui_set_sort_defaults(void);
