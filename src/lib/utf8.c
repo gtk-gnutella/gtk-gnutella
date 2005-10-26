@@ -476,12 +476,13 @@ utf32_general_category(guint32 uc)
 /**
  * Are the first bytes of string `s' forming a valid UTF-8 character?
  *
+ * @param s a NUL-terminated string or at minimum a buffer with 4 bytes.
  * @return amount of bytes used to encode that character, or 0 if invalid.
  */
-gint
-utf8_is_valid_char(const gchar *s)
+guint
+utf8_char_len(const gchar *s)
 {
-	if (UTF8_IS_ASCII((guchar) *s)) {
+	if (UTF8_IS_ASCII(*s)) {
 		return 1;
 	} else {
 		gint clen;
@@ -493,33 +494,66 @@ utf8_is_valid_char(const gchar *s)
  * @return amount of UTF-8 chars when first `len' bytes of the given string
  * `s' form valid a UTF-8 string, 0 meaning the string is not valid UTF-8.
  *
+ * @param src a NUL-terminated string.
+ */
+gboolean
+utf8_is_valid_string(const gchar *src)
+{
+	const gchar *s;
+	guint clen;
+
+	for (s = src; '\0' != *s; s += clen)
+		if (0 == (clen = utf8_char_len(s)))
+				return FALSE;
+
+	return TRUE;
+}
+
+/**
+ * @return amount of UTF-8 chars when first `len' bytes of the given string
+ * `s' form valid a UTF-8 string, 0 meaning the string is not valid UTF-8.
+ *
  * @note
  * If `len' is 0, the string must be NUL-terminated.
  */
-size_t
-utf8_is_valid_string(const gchar *s, size_t len)
+
+gboolean
+utf8_is_valid_data(const gchar *src, size_t len)
 {
-	const gchar *x;
-	gint clen, n = 0;
+	const gchar *s;
+	size_t clen = 0;
 
-	g_assert(len <= INT_MAX);
+	for (s = src; (clen = utf8_skip((guchar) *s)) >= len; s += clen)
+		if (0 == utf8_char_len(s))
+			return FALSE;
 
-	if (len != 0) {
-		const gchar *s_end;
+	return TRUE;
+}
 
-		s_end = s + len;
-		for (x = s; x < s_end; n++, x += clen) {
-			if (0 == (clen = utf8_is_valid_char(x)))
-				return 0;
-		}
-		if (x != s_end)
-			return 0;
-	} else {
-		for (x = s; *x != '\0'; n++, x += clen) {
-			if (0 == (clen = utf8_is_valid_char(x)))
-				return 0;
-		}
-	}
+size_t
+utf8_char_count(const gchar *src)
+{
+	const gchar *s;
+	guint clen;
+	size_t n;
+
+	for (s = src, n = 0; '\0' != *s; s += clen, n++)
+		if (0 == (clen = utf8_char_len(s)))
+			return (size_t) -1;
+
+	return n;
+}
+
+size_t
+utf8_data_char_count(const gchar *src, size_t len)
+{
+	const gchar *s;
+	guint clen;
+	size_t n;
+
+	for (s = src, n = 0; (clen = utf8_skip(*s)) >= len; s += clen, n++)
+		if (0 == (utf8_char_len(s)))
+			return (size_t) -1;
 
 	return n;
 }
@@ -545,7 +579,7 @@ utf8_strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 		while ('\0' != *s) {
 			size_t clen;
 
-			clen = utf8_is_valid_char(s);
+			clen = utf8_char_len(s);
 			clen = MAX(1, clen);
 			if (clen > dst_size)
 				break;
@@ -1526,20 +1560,13 @@ utf8_enforce(const gchar *src, gchar *dst, size_t size)
 	if (size-- > 0) {
 		while ('\0' != *s) {
 			size_t clen;
-			gchar c;
 
-			clen = utf8_is_valid_char(s);
-			if (0 == clen) {
-				c = '_';
-				clen = 1;
-			} else {
-				c = *s;
-			}
-			if (clen > size)
+			clen = utf8_char_len(s);
+			if (MAX(1, clen) > size)
 				break;
 
-			if (1 == clen) {
-				*d++ = c;
+			if (clen < 2) {
+				*d++ = 0 == clen ? '_' : *s;
 				s++;
 				size--;
 			} else {
@@ -1910,10 +1937,12 @@ iso8859_is_valid_string(const gchar *src)
  * The returned string is in no defined Unicode normalization form.
  *
  * @param src a NUL-terminated string.
+ * @param add_charset	If TRUE, the name of the charset used to convert
+ *						the string is prepended to the result.
  * @return the original pointer or a newly allocated UTF-8 encoded string.
  */
 gchar *
-unknown_to_utf8(const gchar *src)
+unknown_to_utf8(const gchar *src, gboolean add_charset)
 {
 	enum utf8_cd id = UTF8_CD_INVALID;
 	iconv_t cd;
@@ -1921,7 +1950,7 @@ unknown_to_utf8(const gchar *src)
 	
 	g_assert(src);
 
-	if (utf8_is_valid_string(src, 0))
+	if (utf8_is_valid_string(src))
 		return deconstify_gchar(src);
 
 	if ( looks_like_iso2022(src))
@@ -1957,20 +1986,23 @@ unknown_to_utf8(const gchar *src)
 		cd = cd_locale_to_utf8;
 
 	dst = convert_to_utf8(cd, src);
-	g_assert('\0' == *dst || utf8_is_valid_string(dst, 0));
+	g_assert(utf8_is_valid_string(dst));
 
-#if 0
-	/* Prepend " <charset> " to the returned string for debugging. When
-	 * sorting by filename, these should appear on top. */
-	{
-		gchar *p = g_strconcat(" <",
-						UTF8_CD_INVALID == id ? "locale" : utf8_cd_to_name(id),
-						"> ", convert_to_utf8(cd, src), (void *) 0);
+	if (add_charset) {
+		const gchar *cs;
+		gchar *p;
+		
+		/*
+		 * Prepend " <charset> " to the returned string for debugging. When
+	 	 * sorting by filename, these should appear on top.
+		 */
+		
+		cs = UTF8_CD_INVALID == id ? "locale" : utf8_cd_to_name(id);
+		p = g_strconcat(" <", cs, "> ", convert_to_utf8(cd, src), (void *) 0);
 		G_FREE_NULL(dst);
 		dst = p;
 	}
-#endif /* 0 */
-	
+
 	return dst;
 }
 
@@ -2061,11 +2093,12 @@ iso8859_1_to_utf8_normalized(const gchar *src, uni_norm_t norm)
  * @returns Either the original src pointer or a newly allocated string.
  */
 gchar *
-unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm)
+unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
+	gboolean add_charset)
 {
 	gchar *s_utf8, *s_norm;
 
-	s_utf8 = unknown_to_utf8(src); /* May return src */
+	s_utf8 = unknown_to_utf8(src, add_charset); /* May return src */
 	if (is_ascii_string(s_utf8))
 		return s_utf8;
 	
@@ -2149,7 +2182,7 @@ lazy_locale_to_utf8(const gchar *src)
 
 	G_FREE_NULL(prev);
 
-	if (utf8_is_valid_string(src, 0))
+	if (utf8_is_valid_string(src))
 		return src;
 
 	prev = locale_to_utf8(src);
@@ -2192,7 +2225,7 @@ lazy_ui_string_to_utf8(const gchar *src)
 #ifdef USE_GTK2
 {
 	g_assert(src);
-	g_assert('\0' == src[0] || utf8_is_valid_string(src, 0));
+	g_assert(utf8_is_valid_string(src));
 	return deconstify_gchar(src);
 }
 #else /* USE_GTK2 */
@@ -3974,7 +4007,7 @@ unicode_canonize(const gchar *in)
 	len = strlen(in);
 	maxlen = (len + 1) * 6; /* Max 6 bytes for one char in utf8 */
 
-	g_assert(utf8_is_valid_string(in, len));
+	g_assert(utf8_is_valid_data(in, len));
 
 	qtmp1 = (UChar *) g_malloc(maxlen * sizeof(UChar));
 	qtmp2 = (UChar *) g_malloc(maxlen * sizeof(UChar));
@@ -4181,7 +4214,7 @@ utf8_normalize(const gchar *src, uni_norm_t norm)
 	guint32 *dst32;
 
 	g_assert(src);
-	g_assert('\0' == *src || utf8_is_valid_string(src, 0));
+	g_assert(utf8_is_valid_string(src));
 	g_assert((gint) norm >= 0 && norm < NUM_UNI_NORM);
 
 	if (is_ascii_string(src)) {
@@ -4294,7 +4327,7 @@ utf8_canonize(const gchar *src)
 {
 	guint32 *dst32;
 
-	g_assert('\0' == *src || utf8_is_valid_string(src, 0));
+	g_assert(utf8_is_valid_string(src));
 
 	{
 		size_t n;
@@ -4740,7 +4773,7 @@ unicode_decompose_init(void)
 
 		s = lazy_locale_to_utf8_normalized(bad, UNI_NORM_NFC);
 		len = strlen(s);
-		chars = utf8_is_valid_string(s, 0);
+		chars = utf8_char_count(s);
 		g_assert(len != 0);
 		g_assert(len >= chars);
 		len = utf8_to_utf32(s, NULL, 0);
@@ -4967,10 +5000,11 @@ unicode_decompose_init(void)
 		g_assert(utf8_len < sizeof buf);
 		g_assert(utf32_len <= utf8_len);
 
-		n = utf8_is_valid_string(buf, 0);
+		n = utf8_is_valid_string(buf);
 		g_assert(utf8_len >= n);
 		g_assert(utf32_len == n);
-		g_assert(n == utf8_is_valid_string(buf, utf8_len));
+		g_assert(utf8_is_valid_data(buf, utf8_len));
+		g_assert(n == utf8_data_char_count(buf, utf8_len));
 
 		n = utf8_to_utf32(buf, out, G_N_ELEMENTS(out));
 		g_assert(n == utf32_len);

@@ -78,9 +78,11 @@ typedef enum {
 void locale_init(void);
 void locale_close(void);
 const gchar *locale_get_charset(void);
-gint utf8_is_valid_char(const gchar *s);
+guint utf8_char_len(const gchar *s);
 gboolean is_ascii_string(const gchar *str);
-size_t utf8_is_valid_string(const gchar *s, size_t len);
+gboolean utf8_is_valid_string(const gchar *s);
+gboolean utf8_is_valid_data(const gchar *s, size_t n);
+size_t utf8_char_count(const gchar *s);
 size_t utf8_strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 guint32 utf8_decode_char(const gchar *s, gint len, gint *retlen, gboolean warn);
 gint utf8_to_iso8859(gchar *s, gint len, gboolean space);
@@ -167,11 +169,12 @@ lazy_vendor_to_locale(const gchar *s)
 }
 
 gchar *locale_to_utf8(const gchar *str);
-gchar *unknown_to_utf8(const gchar *str);
+gchar *unknown_to_utf8(const gchar *str, gboolean add_charset);
 gchar *locale_to_utf8_normalized(const gchar *str, uni_norm_t norm);
 gchar *filename_to_utf8_normalized(const gchar *str, uni_norm_t norm);
 gchar *iso8859_1_to_utf8_normalized(const gchar *str, uni_norm_t norm);
-gchar *unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm);
+gchar *unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
+			gboolean add_charset);
 
 gchar *utf8_to_filename(const gchar *s);
 gchar *utf8_to_locale(const gchar *s);
@@ -181,7 +184,7 @@ utf8_or_locale_normalize(const gchar *s, uni_norm_t norm)
 {
 	g_assert(s);
 
-	return '\0' == s[0] || utf8_is_valid_string(s, 0)
+	return utf8_is_valid_string(s)
 		? utf8_normalize(s, norm)
 		: locale_to_utf8_normalized(s, norm);
 }
