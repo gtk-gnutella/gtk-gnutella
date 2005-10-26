@@ -21,8 +21,6 @@ CURRENT=.
 DIR=`echo $CURRENT/ | sed -e 's/\.\///g'`
 echo "Extracting ${DIR}Makefile (with variable substitutions)"
 
-INSTALL=`echo $install | sed -e 's,\./i,\$(TOP)/i,'`
-INSTALLDIR=`echo $installdir | sed -e 's,\./i,\$(TOP)/i,'`
 DATE=`date`
 
 $spitshell >Makefile <<!GROK!THIS!
@@ -34,22 +32,18 @@ JMAKE = jmake
 TOP = .
 CURRENT = $CURRENT
 DIR = $DIR
-INSTALL = $INSTALL
-INSTALLDIR = $INSTALLDIR
 
 ########################################################################
 # Parameters set by Configure -- edit config.sh if changes are needed
 
 CTAGS = ctags
-INSTALLPREFIX = $prefix
 MV = $mv
-PRIVLIB = $installprivlib
 RM = $rm -f
 
 ########################################################################
 # Automatically generated parameters -- do not edit
 
-SUBDIRS = src pixmaps po
+SUBDIRS = src pixmaps po extra_files
 
 !GROK!THIS!
 $spitshell >>Makefile <<'!NO!SUBS!'
@@ -60,22 +54,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.16 2005/09/11 08:18:50 rmanfredi Exp $
-
-EXTRA_FILES = \
-	extra_files/bogons.txt \
-	extra_files/favicon.png \
-	extra_files/gwcache.boot \
-	extra_files/geo-ip.txt \
-	extra_files/hostiles.txt \
-	extra_files/robots.txt
-
-PIXMAP_FILES = \
-	extra_files/gtk-gnutella.png	\
-	extra_files/gtk-gnutella.svg
-
-DESKTOP_FILES = \
-	extra_files/gtk-gnutella.desktop
+# $X-Id: Jmakefile,v 1.18 2005/10/26 08:31:04 rmanfredi Exp $
 
 all::
 
@@ -89,79 +68,6 @@ depend::
 
 local_clobber::
 	$(RM) install gtk-gnutella.spec
-
-INSTALLFLAGS = -m 444
-
-local_install::
-	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
-	for dir in $(PRIVLIB); do	\
-		(set -x; test -d $(INSTALL_PREFIX)$$dir || \
-		$(INSTALLDIR) $(INSTALL_PREFIX)$$dir);	\
-	done
-
-local_deinstall::
-	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
-	for dir in $(PRIVLIB); do \
-		(set -x; test -d $$dir && $(RM) -r $(INSTALL_PREFIX)$$dir); \
-	done
-
-local_install:: $(EXTRA_FILES)
-	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
-	(set -x; test -d $(INSTALL_PREFIX)$(PRIVLIB) || \
-		$(INSTALLDIR) $(INSTALL_PREFIX)$(PRIVLIB)); \
-	for i in $(EXTRA_FILES); do \
-		(set -x; $(INSTALL) -c $(INSTALLFLAGS) \
-			$$i $(INSTALL_PREFIX)$(PRIVLIB)) || exit 1;\
-	done
-
-local_deinstall::
-	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
-	for i in $(EXTRA_FILES); do \
-		(set -x; $(RM) $(INSTALL_PREFIX)$(PRIVLIB)/$$i); \
-	done
-
-local_install:: $(DESKTOP_FILES) 
-	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
-	(set -x; test -d $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/applications || \
-		$(INSTALLDIR) $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/applications); \
-	for i in $(DESKTOP_FILES); do \
-		(set -x; $(INSTALL) -c $(INSTALLFLAGS) \
-			$$i $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/applications) || exit 1;\
-	done
-
-local_deinstall::
-	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
-	for i in $(DESKTOP_FILES); do \
-		(set -x; $(RM) $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/applications/$$i); \
-	done
-
-local_install:: $(PIXMAP_FILES)
-	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
-	(set -x; test -d $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/pixmaps || \
-		$(INSTALLDIR) $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/pixmaps); \
-	for i in $(PIXMAP_FILES); do \
-		(set -x; $(INSTALL) -c $(INSTALLFLAGS) \
-			$$i $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/pixmaps) || exit 1;\
-	done
-
-local_deinstall::
-	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
-	for i in $(PIXMAP_FILES); do \
-		(set -x; $(RM) $(INSTALL_PREFIX)$(INSTALLPREFIX)/share/pixmaps/$$i); \
-	done
-
-#
-# Update the bogons and GeoIp databases
-#
-
-update:
-	wget http://www.completewhois.com/bogons/data/bogons-cidr-all.txt \
-		-O bogons.txt
-	rm -f GeoIPCountryCSV.zip
-	wget http://www.maxmind.com/download/geoip/database/GeoIPCountryCSV.zip
-	rm -f GeoIPCountryWhois.csv
-	unzip GeoIPCountryCSV.zip
-	./geo-to-db.pl -c GeoIPCountryWhois.csv >geo-ip.txt
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit
