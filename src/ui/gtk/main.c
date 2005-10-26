@@ -545,9 +545,11 @@ main_gui_early_init(gint argc, gchar **argv)
 
 	gui_init_window_title();
 
+#ifdef USE_GTK1
     /* search history combo stuff */
     gtk_combo_disable_activate
         (GTK_COMBO(lookup_widget(main_window, "combo_search")));
+#endif /* USE_GTK1 */
 
     /* copy url selection stuff */
     gtk_selection_add_target

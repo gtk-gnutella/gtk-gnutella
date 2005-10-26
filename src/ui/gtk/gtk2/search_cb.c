@@ -216,7 +216,7 @@ void
 on_button_search_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
 	GtkWidget *widget;
-	gchar *e;
+	const gchar *text;
 
 	(void) unused_button;
 	(void) unused_udata;
@@ -228,10 +228,10 @@ on_button_search_clicked(GtkButton *unused_button, gpointer unused_udata)
 	 *              --patch from Mark Schreiber, 10/01/2002
 	 */
 
-	widget = lookup_widget(main_window, "entry_search");
-	e = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(widget), 0, -1));
-    g_strstrip(e);
-    if ('\0' != *e) {
+	widget = lookup_widget(main_window, "comboboxentry_search");
+	text = gtk_entry_get_text(GTK_ENTRY(GTK_BIN(widget)->child));
+	
+    if ('\0' != text[0]) {
         filter_t *default_filter;
         search_t *search;
         gboolean res;
@@ -242,7 +242,7 @@ on_button_search_clicked(GtkButton *unused_button, gpointer unused_udata)
 		 * cleared.
 		 *      --BLUE, 04/05/2002
 		 */
-		gui_search_history_add(e);
+		gui_search_history_add(text);
 
 
 		/*
@@ -253,7 +253,7 @@ on_button_search_clicked(GtkButton *unused_button, gpointer unused_udata)
 		default_filter = (filter_t *)option_menu_get_selected_data
 				(lookup_widget(main_window, "optionmenu_search_filter"));
 
-		res = search_gui_new_search(e, 0, &search);
+		res = search_gui_new_search(text, 0, &search);
 
 		/*
 		 * If we should set a default filter, we do that.
@@ -278,31 +278,34 @@ on_button_search_clicked(GtkButton *unused_button, gpointer unused_udata)
 	}
 
 	gtk_widget_grab_focus(widget);
-	G_FREE_NULL(e);
 }
 
 void
-on_entry_search_activate(GtkEditable *unused_editable, gpointer user_data)
+on_combobox_search_activate(GtkWidget *unused_widget, gpointer unused_udata)
 {
     /*
      * Delegate to: on_button_search_clicked.
      *      --BLUE, 30/04/2002
      */
 
-	(void) unused_editable;
-	on_button_search_clicked(NULL, user_data);
+	(void) unused_widget;
+	(void) unused_udata;
+	on_button_search_clicked(NULL, NULL);
 }
 
 void
-on_entry_search_changed(GtkEditable * editable, gpointer unused_udata)
+on_combobox_search_changed(GtkWidget *unused_widget, gpointer unused_udata)
 {
-	gchar *e = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
-
+	GtkComboBox *combo;
+	const gchar *text;
+	
+	(void) unused_widget;
 	(void) unused_udata;
-	g_strstrip(e);
+
+	combo = GTK_COMBO_BOX(lookup_widget(main_window, "comboboxentry_search"));
+	text = gtk_entry_get_text(GTK_ENTRY(GTK_BIN(combo)->child));
 	gtk_widget_set_sensitive(
-		lookup_widget(main_window, "button_search"), '\0' != *e);
-	G_FREE_NULL(e);
+		lookup_widget(main_window, "button_search"), '\0' != text[0]);
 }
 
 void
@@ -650,7 +653,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 		gchar *s = NULL;
 
 		if (rc->name)
-			s = unknown_to_utf8_normalized(rc->name, UNI_NORM_GUI);
+			s = unknown_to_utf8_normalized(rc->name, UNI_NORM_GUI, FALSE);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename")),
 			s ? s : "");
@@ -710,7 +713,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 	txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget(main_window,
 					"textview_result_info_xml")));
 	if (rc->xml) {
-		gchar *s = unknown_to_utf8_normalized(rc->xml, UNI_NORM_GUI);
+		gchar *s = unknown_to_utf8_normalized(rc->xml, UNI_NORM_GUI, FALSE);
 		xml_txt = search_xml_indent(s);
 		if (rc->xml != s)
 			G_FREE_NULL(s);

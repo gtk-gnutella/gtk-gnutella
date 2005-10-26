@@ -70,7 +70,6 @@ static GtkTreeView *tree_view_search = NULL;
 static GtkNotebook *notebook_search_results = NULL;
 static GtkButton *button_search_clear = NULL;
 
-static GList *list_search_history = NULL;
 static gboolean search_gui_shutting_down = FALSE;
 
 /**
@@ -301,10 +300,7 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	gnet_search_t sch_id;
 	GtkListStore *model;
 	GtkTreeIter iter;
-    GtkWidget *button_search_close =
-        lookup_widget(main_window, "button_search_close");
-    GtkWidget *entry_search = lookup_widget(main_window, "entry_search");
-
+	
 	query = search_gui_parse_query(querystr, &rules, &error);
 	if (!query) {
 		statusbar_gui_warning(5, "%s", error);
@@ -312,7 +308,13 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	}
 	sch_id = guc_search_new(query, reissue_timeout, flags);
 	if ((gnet_search_t) -1 == sch_id) {
-		statusbar_gui_warning(5, "%s", _("Failed to create the search"));
+		/*
+		 * An invalidly encoded SHA1 is already detected by
+		 * search_gui_parse_query(), so a too short query is the only reason
+		 * this may fail at the moment.
+		 */
+		statusbar_gui_warning(5, "%s",
+			_("The normalized search text is too short."));
 		return FALSE;
 	}
 
@@ -418,8 +420,11 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	g_signal_connect(GTK_OBJECT(sch->list_item), "select",
 		G_CALLBACK(on_search_selected), sch);
 	search_gui_set_current_search(sch);
-	gtk_widget_set_sensitive(button_search_close, TRUE);
-    gtk_entry_set_text(GTK_ENTRY(entry_search), "");
+	gtk_widget_set_sensitive(lookup_widget(main_window, "button_search_close"),
+		TRUE);
+	gtk_entry_set_text(GTK_ENTRY(GTK_BIN(
+			lookup_widget(main_window, "comboboxentry_search"))->child), "");
+
 	searches = g_list_append(searches, sch);
 
 	if (sch->enabled)
@@ -533,8 +538,6 @@ search_gui_add_record(
 
 	/* Don't care if it's truncated. It's usually very short anyways. */
 	if (info[0] != '\0') {
-		const gchar *s;
-
 		g_assert(rw < sizeof info);
 		utf8_strlcpy(info,
 			lazy_locale_to_utf8_normalized(info, UNI_NORM_GUI), sizeof info);
@@ -571,7 +574,8 @@ search_gui_add_record(
 	{
 		gchar *filename_utf8;
 
-		filename_utf8 = unknown_to_utf8_normalized(rc->name, UNI_NORM_GUI);
+		filename_utf8 = unknown_to_utf8_normalized(rc->name,
+							UNI_NORM_GUI, TRUE);
 		gtk_tree_store_set(model, &iter,
 				c_sr_filename, filename_utf8,
 				c_sr_ext, search_gui_get_filename_extension(filename_utf8),
@@ -974,19 +978,17 @@ search_gui_init(void)
 
 	gtk_tree_view_set_model(tree_view_search, create_searches_model());
 	add_list_columns(tree_view_search);
-	g_signal_connect(G_OBJECT(tree_view_search),
-		"cursor-changed",
-		G_CALLBACK(on_tree_view_search_select_row),
-		NULL);
+	g_signal_connect(G_OBJECT(tree_view_search), "cursor-changed",
+		G_CALLBACK(on_tree_view_search_select_row), NULL);
 
 	gui_search_create_tree_view(&default_scrolled_window,
 		&default_search_tree_view, NULL);
     gtk_notebook_remove_page(notebook_search_results, 0);
 	gtk_notebook_set_scrollable(notebook_search_results, TRUE);
-	gtk_notebook_append_page
-        (notebook_search_results, default_scrolled_window, NULL);
-  	gtk_notebook_set_tab_label_text
-        (notebook_search_results, default_scrolled_window, _("(no search)"));
+	gtk_notebook_append_page(notebook_search_results,
+		default_scrolled_window, NULL);
+  	gtk_notebook_set_tab_label_text(notebook_search_results,
+		default_scrolled_window, _("(no search)"));
 
 	g_signal_connect(GTK_OBJECT(notebook_search_results), "switch_page",
 		G_CALLBACK(on_search_notebook_switch), NULL);
@@ -1000,6 +1002,13 @@ search_gui_init(void)
 	tree_view_restore_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
 	search_gui_retrieve_searches();
     search_add_got_results_listener(search_gui_got_results);
+
+	g_signal_connect(GTK_OBJECT(GTK_BIN(
+				lookup_widget(main_window, "comboboxentry_search"))->child),
+			"activate", G_CALLBACK(on_combobox_search_activate), NULL);
+	g_signal_connect(GTK_OBJECT(
+				lookup_widget(main_window, "comboboxentry_search")),
+			"changed", G_CALLBACK(on_combobox_search_changed), NULL);
 }
 
 void
@@ -1520,37 +1529,12 @@ gui_search_get_colors(
  * it's moved to the beginning of the history list.
  */
 void
-gui_search_history_add(gchar *s)
+gui_search_history_add(const gchar *text)
 {
-    GList *new_hist = NULL;
-    GList *cur_hist = list_search_history;
-    guint n = 0;
-
-    g_return_if_fail(s);
-
-    while (cur_hist != NULL) {
-        if (n < 9 && 0 != g_ascii_strcasecmp(s, cur_hist->data)) {
-            /* copy up to the first 9 items */
-            new_hist = g_list_append(new_hist, cur_hist->data);
-            n ++;
-        } else {
-            /* and free the rest */
-            G_FREE_NULL(cur_hist->data);
-        }
-        cur_hist = cur_hist->next;
-    }
-    /* put the new item on top */
-    new_hist = g_list_prepend(new_hist, g_strdup(s));
-
-    /* set new history */
-    gtk_combo_set_popdown_strings(
-        GTK_COMBO(lookup_widget(main_window, "combo_search")),
-        new_hist);
-
-    /* free old list structure */
-    g_list_free(list_search_history);
-
-    list_search_history = new_hist;
+    GtkWidget *widget;
+		
+	widget = lookup_widget(main_window, "comboboxentry_search");
+	gtk_combo_box_append_text(GTK_COMBO_BOX(widget), text);
 }
 
 

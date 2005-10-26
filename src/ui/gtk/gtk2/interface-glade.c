@@ -1540,7 +1540,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label498), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label498), 10, 0);
 
-  label494 = gtk_label_new ("Raphaël Manfredi");
+  label494 = gtk_label_new ("Rapha\303\253l Manfredi");
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_table_attach (GTK_TABLE (table105), label494, 1, 2, 1, 2,
@@ -1567,7 +1567,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label704), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label704), 4, 0);
 
-  label493 = gtk_label_new ("Raphaël Manfredi");
+  label493 = gtk_label_new ("Rapha\303\253l Manfredi");
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_table_attach (GTK_TABLE (table105), label493, 4, 5, 0, 1,
@@ -1908,9 +1908,7 @@ create_main_window (void)
   GtkWidget *image401;
   GtkWidget *label903;
   GtkWidget *frame129;
-  GtkWidget *combo_search;
-  GList *combo_search_items = NULL;
-  GtkWidget *entry_search;
+  GtkWidget *comboboxentry_search;
   GtkWidget *button_search_passive;
   GtkWidget *alignment110;
   GtkWidget *hbox9292;
@@ -2685,20 +2683,10 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_frame_set_shadow_type (GTK_FRAME (frame129), GTK_SHADOW_NONE);
 
-  combo_search = gtk_combo_new ();
-  g_object_set_data (G_OBJECT (GTK_COMBO (combo_search)->popwin),
-                     "GladeParentKey", combo_search);
-  gtk_widget_set_name (combo_search, "combo_search");
-  gtk_widget_show (combo_search);
-  gtk_container_add (GTK_CONTAINER (frame129), combo_search);
-  gtk_combo_set_use_arrows_always (GTK_COMBO (combo_search), TRUE);
-  combo_search_items = g_list_append (combo_search_items, (gpointer) "");
-  gtk_combo_set_popdown_strings (GTK_COMBO (combo_search), combo_search_items);
-  g_list_free (combo_search_items);
-
-  entry_search = GTK_COMBO (combo_search)->entry;
-  gtk_widget_set_name (entry_search, "entry_search");
-  gtk_widget_show (entry_search);
+  comboboxentry_search = gtk_combo_box_entry_new_text ();
+  gtk_widget_set_name (comboboxentry_search, "comboboxentry_search");
+  gtk_widget_show (comboboxentry_search);
+  gtk_container_add (GTK_CONTAINER (frame129), comboboxentry_search);
 
   button_search_passive = gtk_button_new ();
   gtk_widget_set_name (button_search_passive, "button_search_passive");
@@ -2921,12 +2909,6 @@ create_main_window (void)
   g_signal_connect ((gpointer) button_search, "clicked",
                     G_CALLBACK (on_button_search_clicked),
                     NULL);
-  g_signal_connect ((gpointer) entry_search, "changed",
-                    G_CALLBACK (on_entry_search_changed),
-                    NULL);
-  g_signal_connect ((gpointer) entry_search, "activate",
-                    G_CALLBACK (on_entry_search_activate),
-                    NULL);
   g_signal_connect ((gpointer) button_search_passive, "clicked",
                     G_CALLBACK (on_button_search_passive_clicked),
                     NULL);
@@ -3061,8 +3043,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image401, "image401");
   GLADE_HOOKUP_OBJECT (main_window, label903, "label903");
   GLADE_HOOKUP_OBJECT (main_window, frame129, "frame129");
-  GLADE_HOOKUP_OBJECT (main_window, combo_search, "combo_search");
-  GLADE_HOOKUP_OBJECT (main_window, entry_search, "entry_search");
+  GLADE_HOOKUP_OBJECT (main_window, comboboxentry_search, "comboboxentry_search");
   GLADE_HOOKUP_OBJECT (main_window, button_search_passive, "button_search_passive");
   GLADE_HOOKUP_OBJECT (main_window, alignment110, "alignment110");
   GLADE_HOOKUP_OBJECT (main_window, hbox9292, "hbox9292");
@@ -13476,7 +13457,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table94), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table94), 4);
 
-  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 67108900, 1, 10, 10);
+  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 6.71089e+07, 1, 10, 10);
   spinbutton_dl_minchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_minchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_minchunksize, "spinbutton_dl_minchunksize");
   gtk_widget_show (spinbutton_dl_minchunksize);
@@ -13485,7 +13466,7 @@ create_dlg_prefs_dl_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_minchunksize), TRUE);
 
-  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 67108900, 1, 10, 10);
+  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 6.71089e+07, 1, 10, 10);
   spinbutton_dl_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_maxchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_maxchunksize, "spinbutton_dl_maxchunksize");
   gtk_widget_show (spinbutton_dl_maxchunksize);
@@ -14116,7 +14097,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label726), 0, 0.5);
 
-  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
+  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
   spinbutton_pfsp_first_chunk = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_first_chunk_adj), 1, 0);
   gtk_widget_set_name (spinbutton_pfsp_first_chunk, "spinbutton_pfsp_first_chunk");
   gtk_widget_show (spinbutton_pfsp_first_chunk);
@@ -14218,7 +14199,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label928), 0, 0.5);
 
-  spinbutton_parq_min_size_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
+  spinbutton_parq_min_size_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
   spinbutton_parq_min_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_parq_min_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_parq_min_size, "spinbutton_parq_min_size");
   gtk_widget_show (spinbutton_parq_min_size);
@@ -14241,7 +14222,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
 
-  spinbutton_parq_min_time_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
+  spinbutton_parq_min_time_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
   spinbutton_parq_min_time = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_parq_min_time_adj), 1, 0);
   gtk_widget_set_name (spinbutton_parq_min_time, "spinbutton_parq_min_time");
   gtk_widget_show (spinbutton_parq_min_time);

@@ -134,7 +134,7 @@ void search_gui_add_record(
 
 gboolean gui_search_update_tab_label(struct search *);
 void gui_search_clear_results(void);
-void gui_search_history_add(gchar *s);
+void gui_search_history_add(const gchar *text);
 
 #ifdef USE_GTK2
 void gui_search_force_update_tab_label(struct search *, time_t now);
