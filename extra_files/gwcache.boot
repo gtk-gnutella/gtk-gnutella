@@ -13,7 +13,6 @@ http://gcache.cloppy.net/
 http://gcache.sexter.com:8080/gwc/
 http://gwc.jooz.net:8010/gwc/
 http://gwc.mine.nu:3333/
-http://gwc.nonamer.ath.cx:8080/
 http://gwc1c.olden.ch.3557.nyud.net:8090/gwc/
 http://gwc2.mine.nu:3333/
 http://gwcrab.sarcastro.com:8001/
