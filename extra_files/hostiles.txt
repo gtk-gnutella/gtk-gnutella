@@ -157,9 +157,8 @@
 
 # hosted by voxel.net, massive spamming, uploaded file contains also GWebCache
 # URLs and possibly a trojan, SHA1 match fails continously
-69.9.187.0/24
-69.9.188.0/24
-69.9.189.0/24
+69.9.186.0/23
+69.9.188.0/23
 
 # hosted by net-sentry.net, suspicious GWebCache polling
 69.26.174.0/24
