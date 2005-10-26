@@ -359,7 +359,7 @@ update_multichoice(property_t prop)
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
     prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
-    GList *l;
+    GList *l_iter;
 
     if (!top)
         return FALSE;
@@ -383,18 +383,14 @@ update_multichoice(property_t prop)
                 prop_type_str[map_entry->type]);
     }
 
-    l = GTK_LIST(GTK_COMBO(w)->list)->children;
-    while (l) {
-        gpointer cur;
-
-        cur = gtk_object_get_user_data(GTK_OBJECT(l->data));
+    l_iter = GTK_LIST(GTK_COMBO(w)->list)->children;
+	for (/* NOTHING */; NULL != l_iter; l_iter = g_list_next(l_iter)) {
+        gpointer cur = gtk_object_get_user_data(GTK_OBJECT(l_iter->data));
 
         if (GPOINTER_TO_UINT(cur) == val) {
-            gtk_list_item_select(GTK_LIST_ITEM(l->data));
+            gtk_list_item_select(GTK_LIST_ITEM(l_iter->data));
             break;
         }
-
-        l = g_list_next(l);
     }
 
     return FALSE;
@@ -2870,7 +2866,11 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
 
 				if (gui_debug >= 9)
 					printf("\t...connected multichoice signal\n");
-            }
+			}
+#if GTK_CHECK_VERSION(2, 0, 0)
+            if (top && GTK_IS_COMBO_BOX(w)) {
+			}
+#endif /* Gtk+ 2.0 */
         }
         if (gui_debug >= 8)
             printf("\t...all done for %s.\n", def->name);
