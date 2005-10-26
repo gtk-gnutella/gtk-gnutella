@@ -6221,6 +6221,17 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			"[short %u line%s header] ", count, count == 1 ? "" : "s");
 	}
 
+	{
+		const gchar *s;
+		
+		s = is_strcaseprefix(download_vendor_str(d), "LimeWire/");
+		if (s && (is_strprefix(s, "3.6.") || is_strprefix(s, "4.8.10."))) {
+			download_bad_source(d);
+			download_stop(d, GTA_DL_ERROR, "%s", _("Spammer detected"));
+			return;
+		}
+	}
+
 #ifdef TIGERTREE
 	/* FIXME TIGERTREE:
 	 * Temporary
