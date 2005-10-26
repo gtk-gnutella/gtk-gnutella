@@ -2587,9 +2587,12 @@ download_stop_v(struct download *d, guint32 new_status,
 		 */
 
 		if (d->buffers != NULL) {
-			if (d->buffers->held)
-				download_flush(d, NULL, FALSE);
-
+			if (d->buffers->held > 0) {
+				if (DL_BUF_READING == d->buffers->mode)
+					download_flush(d, NULL, FALSE);
+				else
+					d->buffers->held = 0;
+			}
 			buffers_free(d);
 		}
 
@@ -8874,8 +8877,12 @@ download_close(void)
 		if (DOWNLOAD_IS_VISIBLE(d))
 			gcu_download_gui_remove(d);
 		if (d->buffers) {
-			if (d->buffers->held)
-				download_flush(d, NULL, FALSE);
+			if (d->buffers->held > 0) {
+			   	if (DL_BUF_READING == d->buffers->mode)
+					download_flush(d, NULL, FALSE);
+				else
+					d->buffers->held = 0;
+			}
 			buffers_free(d);
 		}
 		if (d->push)
