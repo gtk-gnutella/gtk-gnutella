@@ -303,8 +303,8 @@ st_insert_item(search_table_t *table, const gchar *s, struct shared_file *sf)
 	GHashTable *seen_keys;
 	gchar *string;
 
-	len = utf8_is_valid_string(s, 0);
-	if (len < 2)
+	len = utf8_char_count(s);
+	if ((size_t) -1 == len || len < 2)
 		return;
 
 	string = g_strdup(s);
