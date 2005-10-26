@@ -1461,9 +1461,9 @@ do {												\
 	word = is_ascii_blank(*search) ? NULL : search;
 	p = s = search;
 	while ('\0' != *s) {
-		gint clen;
+		guint clen;
 
-		clen = utf8_is_valid_char(s);
+		clen = utf8_char_len(s);
 		clen = MAX(1, clen);	/* In case of invalid UTF-8 */
 
 		if (is_ascii_blank(*s)) {
@@ -1499,18 +1499,15 @@ do {												\
 }
 
 /**
- * Given a query `text' of `len' bytes:
- *
- * If query is UTF8, compute its length and store it in `retlen'.
+ * Determine whether the given string is UTF-8 encoded.
  * If query starts with a BOM mark, skip it and set `retoff' accordingly.
  *
- * @returns FALSE on bad UTF-8, TRUE otherwise.
+ * @returns TRUE if the string is valid UTF-8, FALSE otherwise.
  */
-static gboolean
-query_utf8_decode(const gchar *text, gint len, gint *retlen, gint *retoff)
+static gboolean 
+query_utf8_decode(const gchar *text, guint *retoff)
 {
-	gint offset = 0;
-	gint utf8_len = -1;
+	const gchar *p;
 
 	/*
 	 * Look whether we're facing an UTF-8 query.
@@ -1519,28 +1516,14 @@ query_utf8_decode(const gchar *text, gint len, gint *retlen, gint *retoff)
 	 * it is clearly UTF-8.  If we can't decode it, it is bad UTF-8.
 	 */
 
-	if (len >= 3) {
-		const guchar *p = (guchar *) text;
-		if (p[0] == 0xef && p[1] == 0xbb && p[2] == 0xbf) {
-			offset = 3;				/* Is UTF-8, skip BOM */
-			if (
-				len == offset ||
-				!(utf8_len = utf8_is_valid_string(text + offset, len - offset))
-			)
-				return FALSE;		/* Bad UTF-8 encoding */
-		}
-	}
+	if (!(p = is_strprefix(text, "\xef\xbb\xbf")))
+		p = text;
+	
+	if (retoff)
+		*retoff = p - text;
 
-	if (utf8_len == -1) {
-		utf8_len = utf8_is_valid_string(text, len);
-		if (utf8_len && utf8_len == len)			/* Is pure ASCII */
-			utf8_len = 0;							/* Not fully UTF-8 */
-	}
-
-	*retlen = utf8_len;
-	*retoff = offset;
-
-	return TRUE;
+	/* Disallow BOM followed by an empty string */	
+	return (p == text || '\0' != p[0]) && utf8_is_valid_string(p);
 }
 
 /**
@@ -1548,19 +1531,17 @@ query_utf8_decode(const gchar *text, gint len, gint *retlen, gint *retoff)
  *
  * @returns new query string length.
  */
-guint
+size_t
 compact_query(gchar *search)
 {
-	gint utf8_len = -1;
-	gint offset = 0;			/* Query string start offset */
-	guint32 mangled_search_len;
-	gint search_len = strlen(search);
+	size_t mangled_search_len, orig_len = strlen(search);
+	guint offset;			/* Query string start offset */
 
 	/*
 	 * Look whether we're facing an UTF-8 query.
 	 */
 
-	if (!query_utf8_decode(search, search_len, &utf8_len, &offset))
+	if (!query_utf8_decode(search, &offset))
 		g_error("found invalid UTF-8 after a leading BOM");
 
 	/*
@@ -1570,16 +1551,16 @@ compact_query(gchar *search)
 	 * gratuitous bloat).
 	 */
 
-	mangled_search_len = compact_query_utf8(search + offset);
+	mangled_search_len = compact_query_utf8(&search[offset]);
 
-	g_assert(mangled_search_len <= (size_t) search_len - offset);
+	g_assert(mangled_search_len <= (size_t) orig_len - offset);
 
 	/*
 	 * Get rid of BOM, if any.
 	 */
 
 	if (offset > 0)
-		memmove(search, search + offset, mangled_search_len);
+		memmove(search, &search[offset], mangled_search_len);
 
 	return mangled_search_len;
 }
@@ -1637,7 +1618,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 {
 	guint16 req_speed;
 	gchar *search;
-	guint32 search_len;
+	size_t search_len;
+	gboolean decoded = FALSE;
 	guint32 max_replies;
 	gboolean skip_file_search = FALSE;
 	extvec_t exv[MAX_EXTVEC];
@@ -1648,8 +1630,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	} exv_sha1[MAX_EXTVEC];
 	gchar *last_sha1_digest = NULL;
 	gint exv_sha1cnt = 0;
-	gint utf8_len = -1;
-	gint offset = 0;			/**< Query string start offset */
+	guint offset = 0;			/**< Query string start offset */
 	gboolean drop_it = FALSE;
 	gboolean oob = FALSE;		/**< Wants out-of-band query hit delivery? */
 	gboolean use_ggep_h = FALSE;
@@ -1673,6 +1654,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 	/* open a block, since C doesn't allow variables to be declared anywhere */
 	{
+		static const gchar qtrax2_con[] = "QTRAX2_CONNECTION";
 		gchar *s = search;
 		guint32 max_len = n->size - 3;		/* Payload size - Speed - NUL */
 
@@ -1697,20 +1679,13 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 * Drop the "QTRAX2_CONNECTION" queries as being "overhead".
 		 */
 
-#define QTRAX2_CON	"QTRAX2_CONNECTION"
-
 		if (
-			search_len >= CONST_STRLEN(QTRAX2_CON) &&
-			search[0] == 'Q' &&
-			search[1] == 'T' &&
-			is_strprefix(search, QTRAX2_CON)
+			search_len >= CONST_STRLEN(qtrax2_con) &&
+			is_strprefix(search, qtrax2_con)
 		) {
             gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
 			return TRUE;		/* Drop the message! */
 		}
-
-#undef QTRAX2_CON
-
     }
 
 	/*
@@ -1722,16 +1697,19 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		n->header.ttl &&
 		current_peermode != NODE_P_LEAF
 	) {
-		guint32 mangled_search_len;
+		size_t mangled_search_len;
 
 		/*
 		 * Look whether we're facing an UTF-8 query.
 		 */
 
-		if (!query_utf8_decode(search, search_len, &utf8_len, &offset)) {
+		if (!query_utf8_decode(search, &offset)) {
 			gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
 			return TRUE;					/* Drop message! */
-		} else if (utf8_len)
+		}
+		decoded = TRUE;
+
+		if (!is_ascii_string(search))
 			gnet_stats_count_general(GNR_QUERY_UTF8, 1);
 
 		/*
@@ -1741,7 +1719,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 * gratuitous bloat).
 		 */
 
-		mangled_search_len = compact_query_utf8(search + offset);
+		mangled_search_len = compact_query_utf8(&search[offset]);
 
 		g_assert(mangled_search_len <= search_len - offset);
 
@@ -1757,15 +1735,15 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 */
 
 		g_memmove(
-			search+offset+mangled_search_len, /* new end of query string */
-			search+search_len,                /* old end of query string */
+			&search[offset + mangled_search_len], /* new end of query string */
+			&search[search_len],                  /* old end of query string */
 			n->size - (search - n->data) - search_len); /* trailer len */
 
 		n->size -= search_len - offset - mangled_search_len;
 		WRITE_GUINT32_LE(n->size, n->header.size);
 		search_len = mangled_search_len + offset;
 
-		g_assert(search[search_len] == '\0');
+		g_assert('\0' == search[search_len]);
 	}
 
 	/*
@@ -2251,23 +2229,19 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 * Keep only UTF8 encoded queries (This includes ASCII)
 		 */
 
-		g_assert(search[search_len] == '\0');
+		g_assert('\0' == search[search_len]);
 
-		if (
-			utf8_len == -1 &&
-			!query_utf8_decode(search, search_len, &utf8_len, &offset)
-		) {
-			gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
-			drop_it = TRUE;					/* Drop message! */
-			goto finish;					/* Flush any SHA1 result we have */
-		} else if (utf8_len)
-			gnet_stats_count_general(GNR_QUERY_UTF8, 1);
-
-		/* NB:	If ``search'' contains only ASCII, utf8_len is zero.
-		 *  	Otherwise, utf8_len is greater than zero. See
-		 *		query_utf8_decode().
-		 */
-		g_assert(utf8_len >= 0);
+		if (!decoded) {
+		   	if (!query_utf8_decode(search, &offset)) {
+				gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
+				drop_it = TRUE;				/* Drop message! */
+				goto finish;				/* Flush any SHA1 result we have */
+			}
+			decoded = TRUE;
+		
+			if (!is_ascii_string(search))
+				gnet_stats_count_general(GNR_QUERY_UTF8, 1);
+		}
 
 		/*
 		 * Because st_search() will apply a character map over the string,
@@ -2279,55 +2253,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 */
 
 		search_len -= offset;
-		memcpy(stmp_1, search + offset, search_len + 1);
-
-#if 0   /* xxxUSE_ICU */
-
-/* XXX: Don't handle ISO-8859-1 encoded queries graciously any longer. UTF-8
- * is the _only_ valid encoding.
- *			- cbiere, 2004-12-06 */
-#if 0
-		if (!is_utf8) {
-			const gchar *stmp_2;
-
-			stmp_2 = iso_8859_1_to_utf8(stmp_1);
-			if (!stmp_2 || (strlen(stmp_2) < search_len)) {
-				/* COUNT MARK : Not an utf8 and not an iso-8859-1 query */
-				ignore = TRUE;
-			} else {
-				/* COUNT MARK : We received an ISO-8859-1 query */
-				use_map_on_query(stmp_1, search_len);
-			}
-		}
-#endif
-
-		/*
-		 * Here we suppose that the peer has the same NFKD/NFC keyword algo
-		 * than us, see unicode_canonize() in utf8.c.
-		 * (It must anyway, for compatibility with the QRP)
-		 */
-#else
-
-/* XXX: Why should search strings be limited to ASCII or ISO-8859-1?
- *		This doesn't make any sense. Thus, disabled.
- *			- cbiere, 2004-12-06 */
-#if 0
-		if (is_utf8) {
-			gint isochars;
-
-			isochars = utf8_to_iso8859(stmp_1, search_len, TRUE);
-
-			if (isochars != utf8_len)		/* Not fully ISO-8859-1 */
-				ignore = TRUE;
-
-			if (share_debug > 4)
-				g_message(
-					"UTF-8 query, len=%d, utf8-len=%d, iso-len=%d: \"%s\"",
-					search_len, utf8_len, isochars, stmp_1);
-		}
-#endif
-
-#endif
+		memcpy(stmp_1, &search[offset], search_len + 1);
 
 		st_search(&search_table, stmp_1, got_match, qctx, max_replies, qhv);
 	}
