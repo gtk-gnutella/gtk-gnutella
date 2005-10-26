@@ -1210,8 +1210,8 @@ qrp_add_file(struct shared_file *sf)
 	 * Copy filename to buffer, since we're going to map it inplace.
 	 */
 
-	g_assert(utf8_is_valid_string(sf->name_nfc, sf->name_nfc_len));
-	g_assert(utf8_is_valid_string(sf->name_canonic, sf->name_canonic_len));
+	g_assert(utf8_is_valid_data(sf->name_nfc, sf->name_nfc_len));
+	g_assert(utf8_is_valid_data(sf->name_canonic, sf->name_canonic_len));
 
 	/*
 	 * The words in the QRP must be lowercased, but the pre-computed canonic
@@ -1220,7 +1220,7 @@ qrp_add_file(struct shared_file *sf)
 
 	wocnt = word_vec_make(sf->name_canonic, &wovec);
 
-	if (wocnt == 0)
+	if (0 == wocnt)
 		return;
 
 	/*
