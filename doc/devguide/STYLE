@@ -329,6 +329,20 @@ Ladies and gentleman, here's the
             /* Body */
         }
 
+4.6  When writing simple variable equality tests against a constant, do NOT
+     put the constant at the head of the test.  This is different from
+	 rules 4.2 and 4.3 in that those deal with potentially long function
+	 calls, where it is best to highlight how we're going to use the
+	 function's value.
+
+		if (var == 4)	RIGHT
+		if (4 == var)	WRONG
+
+	 If the expression being tested is large, then it may be OK to
+	 put the constant at the front.
+
+		if (4 == (ax + by) / cz^wt)		OK
+
 5. NAMING **************************************************************
 
 5.1   Exported functions should be named after the package they appear
