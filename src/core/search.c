@@ -908,7 +908,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 						len = MIN((size_t) paylen, sizeof buf - 1);
 						memcpy(buf, payload, len);
 						buf[len] = '\0';
-						if (utf8_is_valid_string(buf, 0))
+						if (utf8_is_valid_string(buf))
 							rc->xml = atom_str_get(buf);
 					}
 					break;
@@ -1268,7 +1268,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 							len = MIN((size_t) paylen, sizeof buf - 1);
 							memcpy(buf, payload, len);
 							buf[len] = '\0';
-							if (utf8_is_valid_string(buf, 0))
+							if (utf8_is_valid_string(buf))
 								rc->xml = atom_str_get(buf);
 						}
 					}
@@ -2607,7 +2607,7 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 	search_ctrl_t *sch;
 	gchar *qdup;
 
-	g_assert('\0' == query[0] || utf8_is_valid_string(query, 0));
+	g_assert(utf8_is_valid_string(query));
 	
 	/*
 	 * Canonicalize the query we're sending.
@@ -2625,9 +2625,9 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 	}
 
 	compact_query(qdup);
-	if ('\0' == *qdup) {
+	if (strlen(qdup) < 3) {
+		g_warning("Rejected too short query string: \"%s\"", qdup);
 		G_FREE_NULL(qdup);
-		g_warning("Rejected empty string as search");
 		return (gnet_search_t) -1;
 	}
 
