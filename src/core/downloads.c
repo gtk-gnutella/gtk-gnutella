@@ -2587,12 +2587,8 @@ download_stop_v(struct download *d, guint32 new_status,
 		 */
 
 		if (d->buffers != NULL) {
-			if (d->buffers->held > 0) {
-				if (DL_BUF_READING == d->buffers->mode)
-					download_flush(d, NULL, FALSE);
-				else
-					d->buffers->held = 0;
-			}
+			if (d->buffers->held > 0)
+				download_flush(d, NULL, FALSE);
 			buffers_free(d);
 		}
 
@@ -4994,7 +4990,8 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 			"-- discarding %u bytes",
 			uint64_to_string(d->pos), error, download_outname(d), b->held);
 
-		b->held = 0;	/* Prevent download_stop() from trying flushing again */
+		/* Prevent download_stop() from trying flushing again */
+		buffers_discard(d);
 
 		if (may_stop)
 			download_stop(d, GTA_DL_ERROR, "Can't seek to offset %s: %s",
@@ -5043,6 +5040,9 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		g_warning("write of %u bytes to file \"%s\" failed: %s",
 			b->held, download_outname(d), error);
 
+		/* Prevent download_stop() from trying flushing again */
+		buffers_discard(d);
+		
 		if (may_stop)
 			download_queue_delay(d, download_retry_busy_delay,
 				_("Can't save data: %s"), error);
@@ -5414,7 +5414,7 @@ download_get_server_name(struct download *d, header_t *header)
 static gboolean
 download_check_status(struct download *d, getline_t *line, gint code)
 {
-	if (code == -1) {
+	if (-1 == code) {
 		g_message("weird HTTP acknowledgment status line from %s (%s)",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			download_vendor_str(d));
@@ -8888,12 +8888,8 @@ download_close(void)
 		if (DOWNLOAD_IS_VISIBLE(d))
 			gcu_download_gui_remove(d);
 		if (d->buffers) {
-			if (d->buffers->held > 0) {
-			   	if (DL_BUF_READING == d->buffers->mode)
-					download_flush(d, NULL, FALSE);
-				else
-					d->buffers->held = 0;
-			}
+			if (d->buffers->held > 0)
+				download_flush(d, NULL, FALSE);
 			buffers_free(d);
 		}
 		if (d->push)
