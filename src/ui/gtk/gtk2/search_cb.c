@@ -703,11 +703,14 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 	{
 		gchar *s;
 
-		s = rc->tag ? utf8_or_locale_normalize(rc->tag, UNI_NORM_GUI) : NULL;
+		s = rc->tag
+				? unknown_to_utf8_normalized(rc->tag, UNI_NORM_GUI, FALSE)
+				: NULL;
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag")),
 			s ? s : "");
-		G_FREE_NULL(s);
+		if (rc->tag != s)
+			G_FREE_NULL(s);
 	}
 
 	txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget(main_window,

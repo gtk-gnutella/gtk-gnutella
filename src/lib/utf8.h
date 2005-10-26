@@ -179,17 +179,6 @@ gchar *unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
 gchar *utf8_to_filename(const gchar *s);
 gchar *utf8_to_locale(const gchar *s);
 
-static inline gchar *
-utf8_or_locale_normalize(const gchar *s, uni_norm_t norm)
-{
-	g_assert(s);
-
-	return utf8_is_valid_string(s)
-		? utf8_normalize(s, norm)
-		: locale_to_utf8_normalized(s, norm);
-}
-
-
 gboolean icu_enabled(void);
 gboolean locale_is_latin(void);
 gboolean locale_is_utf8(void);
