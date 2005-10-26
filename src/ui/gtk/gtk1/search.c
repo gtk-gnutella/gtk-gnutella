@@ -1149,7 +1149,8 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 		const gchar *ext;
 		gchar *filename_utf8;
 		
-		filename_utf8 = unknown_to_utf8_normalized(rc->name, UNI_NORM_GUI);
+		filename_utf8 = unknown_to_utf8_normalized(rc->name,
+							UNI_NORM_GUI, TRUE);
 		ext = search_gui_get_filename_extension(filename_utf8);
 		rc->ext = atom_str_get(ext ? lazy_utf8_to_locale(ext) : "");
 
@@ -2401,7 +2402,7 @@ gui_search_get_colors(
  * it's moved to the beginning of the history list.
  */
 void
-gui_search_history_add(gchar *s)
+gui_search_history_add(const gchar *s)
 {
     GList *new_hist = NULL;
     GList *cur_hist = list_search_history;
@@ -2410,7 +2411,7 @@ gui_search_history_add(gchar *s)
     g_return_if_fail(s);
 
     while (cur_hist != NULL) {
-        if (n < 9 && 0 != g_ascii_strcasecmp(s,cur_hist->data)) {
+        if (n < 9 && 0 != g_ascii_strcasecmp(s, cur_hist->data)) {
             /* copy up to the first 9 items */
             new_hist = g_list_append(new_hist, cur_hist->data);
             n ++;

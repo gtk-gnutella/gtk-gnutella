@@ -3182,7 +3182,7 @@ file_info_get(gchar *file, const gchar *path, filesize_t size,
 
 	/* First convert the filename to what the GUI used */
 	{
-		gchar *s = unknown_to_utf8_normalized(file, UNI_NORM_NETWORK);
+		gchar *s = unknown_to_utf8_normalized(file, UNI_NORM_NETWORK, FALSE);
 		if (file != s) {
 			file = s;
 			to_free = s;
