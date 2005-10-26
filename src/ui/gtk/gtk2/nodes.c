@@ -401,7 +401,7 @@ host_lookup_callback(const gchar *hostname, gpointer data)
 		const gchar *host;
 		gchar *to_free;
 
-		if (utf8_is_valid_string(hostname, 0)) {
+		if (utf8_is_valid_string(hostname)) {
 			to_free = NULL;
 			host = hostname;
 		} else {

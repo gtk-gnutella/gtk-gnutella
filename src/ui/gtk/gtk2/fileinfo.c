@@ -137,7 +137,7 @@ fi_gui_set_details(gnet_fi_t fih)
 	for (i = 0; NULL != aliases[i]; i++) {
 		gchar *s;
 		gtk_tree_store_append(store_aliases, &iter, NULL);
-		s = utf8_is_valid_string(aliases[i], 0)
+		s = utf8_is_valid_string(aliases[i])
 			? aliases[i]
 			: filename_to_utf8_normalized(aliases[i], UNI_NORM_GUI);
 
@@ -266,7 +266,7 @@ fi_gui_fill_info(gnet_fi_t fih, gchar *titles[c_fi_num])
     fi = guc_fi_get_info(fih);
     g_assert(fi != NULL);
 
-	if (utf8_is_valid_string(fi->file_name, 0)) {
+	if (utf8_is_valid_string(fi->file_name)) {
     	titles[c_fi_filename] = fi->file_name;
 	} else {
 		gchar *s = filename_to_utf8_normalized(fi->file_name, UNI_NORM_GUI);

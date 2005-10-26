@@ -148,7 +148,6 @@ search_gui_set_details(const record_t *rc)
 	static GtkEntry *entry[num_infos];
 	static GtkText *xml;
 	static gboolean initialized;
-	gchar *xml_text;
 	guint j;
 
 	if (!initialized) {
@@ -206,7 +205,8 @@ search_gui_set_details(const record_t *rc)
 				gchar *s = NULL;
 				
 				if (rc->name)
-					s = unknown_to_utf8_normalized(rc->name, UNI_NORM_GUI);
+					s = unknown_to_utf8_normalized(rc->name,
+							UNI_NORM_GUI, FALSE);
 
 				gtk_entry_set_text(e, s ? lazy_utf8_to_locale(s) : "");
 				if (rc->name != s)
@@ -285,15 +285,17 @@ search_gui_set_details(const record_t *rc)
 		}
 	}
 
-	xml_text = rc->xml ? search_xml_indent(rc->xml) : NULL;
-	if (NULL != xml_text) {
-		gtk_text_freeze(xml);
-		gtk_text_set_point(xml, 0);
-		gtk_text_insert(xml, NULL, NULL, NULL,
-			lazy_utf8_to_locale(xml_text), -1);
-		gtk_text_thaw(xml);
+	if (rc->xml) {
+		gchar *xml_text = search_xml_indent(rc->xml);
+		if (xml_text) {
+			gtk_text_freeze(xml);
+			gtk_text_set_point(xml, 0);
+			gtk_text_insert(xml, NULL, NULL, NULL,
+					lazy_utf8_to_locale(xml_text), -1);
+			gtk_text_thaw(xml);
+			G_FREE_NULL(xml_text);
+		}
 	}
-	G_FREE_NULL(xml_text);
 }
 
 /**

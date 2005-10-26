@@ -500,7 +500,7 @@ filter_new_text_rule(const gchar *match, gint type,
 	buf_len = strlen(match);
 	buf = g_malloc(buf_len + 1);
     if (!r->u.text.case_sensitive) {
-		if (0 != utf8_is_valid_string(buf, 0)) {
+		if (utf8_is_valid_string(buf)) {
 			size_t len;
 
 			len = utf8_strlower(buf, match, buf_len + 1);
@@ -1988,7 +1988,7 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
 				if (NULL == l_name) {
 					namelen = strlen(rec->name);
 					l_name = g_malloc(namelen + 1);
-					if (0 != utf8_is_valid_string(rec->name, 0)) {
+					if (utf8_is_valid_string(rec->name)) {
 						size_t len;
 
 						len = utf8_strlower(l_name, rec->name, namelen + 1);

@@ -1424,7 +1424,7 @@ search_gui_parse_query(const gchar *querystr, GList **rules,
 	if (rules)
 		*rules = NULL;
 
-	if (!utf8_is_valid_string(querystr, 0)) {
+	if (!utf8_is_valid_string(querystr)) {
 		*error = _("The query string is not UTF-8 encoded");
 		return NULL;
 	}
