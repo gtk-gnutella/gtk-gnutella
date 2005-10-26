@@ -185,7 +185,7 @@
 # Spammer hosted by pie.us
 206.223.156.128/26
 # The same spammer at another location
-69.50.170.210/26
+69.50.170.192/26
 
 # DRM spam
 64.40.98.106
