@@ -48,7 +48,6 @@ RCSID("$Id$");
 #include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-static guint32 monitor_items = 0;
 static GtkListStore *monitor_model = NULL;
 
 enum {
@@ -63,44 +62,47 @@ enum {
  ***/
 
 static void
-monitor_gui_append(query_type_t type, const gchar *item,
+monitor_gui_add(query_type_t type, const gchar *item,
 	const host_addr_t addr, guint16 port)
 {
+	gint n;
+
 	(void) addr;
 	(void) port;
 
 	/* The user might have changed the max. number of items to
 	 * show, that's why we don't just the remove the first item. */
-	for (/* empty */; monitor_items >= monitor_max_items; monitor_items--) {
+	n = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(monitor_model), NULL);
+
+	if (n > 0 && (guint) n >= monitor_max_items) {
 		GtkTreeIter iter;
+		gboolean ok;
 
-        /* Get the first iter in the list */
-        if (
-			!gtk_tree_model_get_iter_first(GTK_TREE_MODEL(monitor_model),
-					&iter)
-			) {
-				break;
-			}
-
-		gtk_list_store_remove(monitor_model, &iter);
-    }
+		/* Children are enumerated from 0 to number-1 */
+		ok = gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(monitor_model),
+					&iter, NULL, MAX(1, monitor_max_items) - 1);
+		while (ok) {
+			GtkTreeIter next = iter;
+			ok = gtk_tree_model_iter_next(GTK_TREE_MODEL(monitor_model), &next);
+			gtk_list_store_remove(monitor_model, &iter);
+			iter = next;
+		}
+	}
 
 	if (monitor_max_items > 0) {
 		GtkTreeIter iter;
 		gchar buf[128];
 
     	/* Aquire an iterator */
-    	gtk_list_store_append(monitor_model, &iter);
-    	monitor_items++;
+    	gtk_list_store_prepend(monitor_model, &iter);
 
 		/* If the query is empty and we have a SHA1 extension,
 	 	 * we print a urn:sha1-query instead. */
 		concat_strings(buf, sizeof buf,
 			QUERY_SHA1 == type ? "urn:sha1:" : "", item, (void *) 0);
 
-   		gtk_list_store_set(monitor_model, &iter,
-			QUERY_COLUMN, lazy_locale_to_utf8_normalized(buf, UNI_NORM_GUI),
-			(-1));
+   		gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN,
+			lazy_unknown_to_utf8_normalized(buf, UNI_NORM_GUI, TRUE), (-1));
 	}
 }
 
@@ -138,7 +140,7 @@ monitor_gui_init(void)
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
 
     /* Add the column to the view. */
-    gtk_tree_view_append_column (GTK_TREE_VIEW(tree), column);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
 	g_signal_connect(G_OBJECT(tree), "button_press_event",
 		G_CALLBACK(on_treeview_monitor_button_press_event), NULL);
@@ -158,22 +160,22 @@ void
 share_gui_clear_monitor(void)
 {
     gtk_list_store_clear(monitor_model);
-	monitor_items = 0;
 }
 #endif
 
 /**
  * Enable/disable monitor.
  */
-void monitor_gui_enable_monitor(const gboolean val)
+void
+monitor_gui_enable_monitor(const gboolean val)
 {
     static gboolean registered = FALSE;
 
     if (val != registered) {
         if (val)
-            guc_share_add_search_request_listener(monitor_gui_append);
+            guc_share_add_search_request_listener(monitor_gui_add);
         else
-            guc_share_remove_search_request_listener(monitor_gui_append);
+            guc_share_remove_search_request_listener(monitor_gui_add);
         registered = val;
     }
 }
