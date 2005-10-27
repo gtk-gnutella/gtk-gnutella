@@ -49,7 +49,7 @@ Here's the links:
       http://i18n.kde.org/tools/kbabel/
 
 If you are going to keep contributing your translation work, you might
-want to learn one of above.
+want to be familiar with one of those above.
 
 
 3. Extract the translatable strings from the source files:
@@ -196,6 +196,10 @@ encoded character sets.
 First, verify that your PO file is correct:
 
     $ msgfmt --check --strict utf8.po -o output.mo
+
+Second, check your PO file has any missing accelerator keys:
+
+    $ msgfmt --check-accelerators=_ utf8.po -o output.mo
 
 You should get no warnings but find a file ``output.mo'' which is
 binary version of the ``utf8.po'' which will be installed by the
