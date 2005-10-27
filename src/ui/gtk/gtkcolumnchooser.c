@@ -103,15 +103,70 @@ on_column_popup_activate(GtkCheckMenuItem *unused_checkmenuitem,
     gtk_menu_popdown(GTK_MENU(user_data));
 }
 
+static gboolean
+has_nth_column(GtkWidget *widget, gint i)
+{
+#if (GTK_MAJOR_VERSION >= 2)
+	return NULL != gtk_tree_view_get_column(GTK_TREE_VIEW(widget), i);
+#else
+	return i < GTK_CLIST(widget)->columns;
+#endif /* Gtk+ >= 2.0 */
+}
+
+static gpointer
+get_nth_column(GtkWidget *widget, gint i, GtkWidget **menuitem_ptr)
+#if (GTK_MAJOR_VERSION >= 2)
+{
+	GtkWidget *menuitem = NULL;
+	GtkTreeViewColumn *col;
+
+	g_assert(widget);
+	g_assert(i >= 0);
+	
+	col = gtk_tree_view_get_column(GTK_TREE_VIEW(widget), i);
+	if (col) {
+		const gchar *title;
+		gboolean visible;
+
+		title = gtk_tree_view_column_get_title(col);
+		visible = gtk_tree_view_column_get_visible(col);
+		menuitem = gtk_check_menu_item_new_with_label(title);
+		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menuitem), visible);
+	}
+	if (menuitem_ptr)
+		*menuitem_ptr = menuitem;
+
+	return col;
+}
+#else
+{
+	GtkWidget *menuitem = NULL;
+
+	g_assert(widget);
+	g_assert(i >= 0);
+	
+	if (i < GTK_CLIST(widget)->columns)
+		gchar *title;
+		gboolean visible;
+
+		title = gtk_clist_get_column_title(GTK_CLIST(widget), i);
+		menuitem = gtk_check_menu_item_new_with_label(title);
+		visible = GTK_CLIST(widget)->column[i].visible;
+		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menuitem), visible);
+	}
+	if (menuitem_ptr)
+		*menuitem_ptr = menuitem;
+		
+	return GINT_TO_POINTER(i);
+}
+#endif /* Gtk+ >= 2.0 */
+
 GtkWidget *
 gtk_column_chooser_new(GtkWidget *widget)
 {
     GtkColumnChooser * cc;
     GtkMenu * menu;
     GtkWidget * menuitem;
-#if (GTK_MAJOR_VERSION >= 2)
-	GtkTreeViewColumn *col;
-#endif
 	gint i;
 
     g_assert(NULL != widget);
@@ -121,26 +176,10 @@ gtk_column_chooser_new(GtkWidget *widget)
 
     menu = GTK_MENU(cc);
 
-#if (GTK_MAJOR_VERSION >= 2)
-	for (
-		i = 0;
-		(col = gtk_tree_view_get_column(GTK_TREE_VIEW(widget), i));
-		i++
-	) {
-        menuitem = gtk_check_menu_item_new_with_label(
-			gtk_tree_view_column_get_title(col));
-        gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menuitem),
-			gtk_tree_view_column_get_visible(col));
+	for (i = 0; has_nth_column(widget, i); i++) {
+		gpointer p;
 
-#else
-    for (i = 0; i < GTK_CLIST(widget)->columns; i ++) {
-        gchar * title = gtk_clist_get_column_title(GTK_CLIST(widget), i);
-
-        menuitem = gtk_check_menu_item_new_with_label(title);
-        gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menuitem),
-			GTK_CLIST(widget)->column[i].visible);
-#endif
-
+		p = get_nth_column(widget, i, &menuitem);
 
         /*
          * Set the GtkColumnChooser instance as user_data, so
@@ -154,11 +193,7 @@ gtk_column_chooser_new(GtkWidget *widget)
         gtk_menu_append(menu, menuitem);
 
         /* map the menu item to the corresponding column */
-#if (GTK_MAJOR_VERSION >= 2)
-        g_hash_table_insert(cc->col_map, menuitem, col);
-#else
-        g_hash_table_insert(cc->col_map, menuitem, GINT_TO_POINTER(i));
-#endif
+        g_hash_table_insert(cc->col_map, menuitem, p);
     }
 
     /*
