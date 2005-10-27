@@ -60,8 +60,8 @@ static GtkEntry *entry_fi_filename = NULL;
 static GtkLabel *label_fi_sha1 = NULL;
 static GtkLabel *label_fi_size = NULL;
 
-static GtkTreeStore *store_fileinfo = NULL;
-static GtkTreeStore *store_aliases = NULL;
+static GtkListStore *store_fileinfo = NULL;
+static GtkListStore *store_aliases = NULL;
 static GHashTable *fi_gui_handles = NULL;
 static GHashTable *fi_updates = NULL;
 
@@ -82,18 +82,18 @@ fi_gui_fi_removed(gnet_fi_t fih)
         return;
     }
 
-    gtk_tree_store_remove(store_fileinfo, iter);
+    gtk_list_store_remove(store_fileinfo, iter);
 	g_hash_table_remove(fi_gui_handles, GUINT_TO_POINTER(fih));
 }
 
 static void
-fi_gui_update_row(GtkTreeStore *store, GtkTreeIter *iter, gchar **titles)
+fi_gui_update_row(GtkListStore *store, GtkTreeIter *iter, gchar **titles)
 {
 	if (NULL != titles[c_fi_filename])
-		gtk_tree_store_set(store, iter,
+		gtk_list_store_set(store, iter,
 			c_fi_filename, titles[c_fi_filename], (-1));
 
-	gtk_tree_store_set(store, iter,
+	gtk_list_store_set(store, iter,
 		c_fi_size, titles[c_fi_size],
 		c_fi_done, titles[c_fi_done],
 		c_fi_sources, titles[c_fi_sources],
@@ -133,15 +133,15 @@ fi_gui_set_details(gnet_fi_t fih)
 		fi->sha1 ? "urn:sha1:" : _("<none>"),
 		fi->sha1 ? sha1_base32(fi->sha1) : "");
 
-    gtk_tree_store_clear(store_aliases);
+    gtk_list_store_clear(store_aliases);
 	for (i = 0; NULL != aliases[i]; i++) {
 		gchar *s;
-		gtk_tree_store_append(store_aliases, &iter, NULL);
+		gtk_list_store_append(store_aliases, &iter);
 		s = utf8_is_valid_string(aliases[i])
 			? aliases[i]
 			: filename_to_utf8_normalized(aliases[i], UNI_NORM_GUI);
 
-		gtk_tree_store_set(store_aliases, &iter, 0, s, (-1));
+		gtk_list_store_set(store_aliases, &iter, 0, s, (-1));
 		if (s != aliases[i])
 			G_FREE_NULL(s);
 	}
@@ -162,7 +162,7 @@ fi_gui_clear_details(void)
 {
     gtk_entry_set_text(entry_fi_filename, "");
     gtk_label_set_text(label_fi_size, "");
-    gtk_tree_store_clear(store_aliases);
+    gtk_list_store_clear(store_aliases);
 
     gtk_widget_set_sensitive(
         lookup_widget(main_window, "button_fi_purge"), FALSE);
@@ -234,14 +234,14 @@ on_button_fi_purge_clicked(GtkButton *unused_button, gpointer unused_udata)
 }
 
 static void
-fi_gui_append_row(GtkTreeStore *store, gnet_fi_t fih, gchar **titles)
+fi_gui_append_row(GtkListStore *store, gnet_fi_t fih, gchar **titles)
 {
 	GtkTreeIter iter;
 
-	gtk_tree_store_append(store, &iter, NULL);
+	gtk_list_store_append(store, &iter);
 	g_hash_table_insert(fi_gui_handles,
         GUINT_TO_POINTER(fih), w_tree_iter_copy(&iter));
-	gtk_tree_store_set(store, &iter, c_fi_handle, fih, (-1));
+	gtk_list_store_set(store, &iter, c_fi_handle, fih, (-1));
 	fi_gui_update_row(store, &iter, titles);
 }
 
@@ -653,7 +653,7 @@ fi_gui_init(void)
 	label_fi_size = GTK_LABEL(lookup_widget(main_window,
 		"label_fi_size"));
 
-	store_fileinfo = gtk_tree_store_newv(G_N_ELEMENTS(types), types);
+	store_fileinfo = gtk_list_store_newv(G_N_ELEMENTS(types), types);
 	gtk_tree_view_set_model(treeview_fileinfo, GTK_TREE_MODEL(store_fileinfo));
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(treeview_fileinfo),
 		GTK_SELECTION_MULTIPLE);
@@ -675,7 +675,7 @@ fi_gui_init(void)
 	}
 	tree_view_restore_widths(treeview_fileinfo, PROP_FILE_INFO_COL_WIDTHS);
 
-	store_aliases = gtk_tree_store_new(1, G_TYPE_STRING);
+	store_aliases = gtk_list_store_new(1, G_TYPE_STRING);
 	gtk_tree_view_set_model(treeview_fi_aliases, GTK_TREE_MODEL(store_aliases));
 
 	/* Initialize drag support */
@@ -708,11 +708,11 @@ fi_gui_shutdown(void)
     guc_fi_remove_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
 
 	tree_view_save_widths(treeview_fileinfo, PROP_FILE_INFO_COL_WIDTHS);
-	gtk_tree_store_clear(store_fileinfo);
+	gtk_list_store_clear(store_fileinfo);
 	g_object_unref(G_OBJECT(store_fileinfo));
 	gtk_tree_view_set_model(treeview_fileinfo, NULL);
 	store_fileinfo = NULL;
-	gtk_tree_store_clear(store_aliases);
+	gtk_list_store_clear(store_aliases);
 	g_object_unref(G_OBJECT(store_aliases));
 	store_aliases = NULL;
 	gtk_tree_view_set_model(treeview_fi_aliases, NULL);
