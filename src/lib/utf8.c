@@ -1321,15 +1321,27 @@ locale_init(void)
 			break;
 		}
 	
-	if (UTF8_CD_INVALID != utf8_name_to_cd(charset)) {
-		cd_locale_to_utf8 = utf8_cd_get(utf8_name_to_cd(charset));
-	} else {
-		if ((iconv_t) -1 == (cd_locale_to_utf8 = iconv_open("UTF-8", charset)))
-			g_warning("iconv_open(\"UTF-8\", \"%s\") failed.", charset);
+	/*
+	 * Don't use iconv() for UTF-8 -> UTF-8 conversion, it's
+	 * pointless and apparently some implementations don't filter
+	 * invalid codepoints beyond U+10FFFF.
+	 */
+
+	if (!locale_is_utf8()) {
+		/* locale -> UTF-8 */
+		if (UTF8_CD_INVALID != utf8_name_to_cd(charset))
+			cd_locale_to_utf8 = utf8_cd_get(utf8_name_to_cd(charset));
+			
+		if ((iconv_t) -1 == cd_locale_to_utf8) {
+			cd_locale_to_utf8 = iconv_open("UTF-8", charset);
+			if ((iconv_t) -1 == cd_locale_to_utf8)
+				g_warning("iconv_open(\"UTF-8\", \"%s\") failed.", charset);
+		}
+
+		/* UTF-8 -> locale */
+		if ((iconv_t) -1 == (cd_utf8_to_locale = iconv_open(charset, "UTF-8")))
+			g_warning("iconv_open(\"%s\", \"UTF-8\") failed.", charset);
 	}
-	
-	if ((iconv_t) -1 == (cd_utf8_to_locale = iconv_open(charset, "UTF-8")))
-		g_warning("iconv_open(\"%s\", \"UTF-8\") failed.", charset);
 
 	/*
 	 * We don't need cd_utf8_to_filename if the filename character set
@@ -1340,7 +1352,7 @@ locale_init(void)
 		const gchar *cs = filename_charset();
 		iconv_t cd_from, cd_to;
 
-		if (0 == strcmp(cs, "ASCII") || 0 == strcmp(cs, "UTF-8")) {
+		if (locale_is_utf8() || 0 == strcmp(cs, "ASCII")) {
 			cd_from = (iconv_t) -1;
 			cd_to = (iconv_t) -1;
 		} else if (UTF8_CD_INVALID != utf8_name_to_cd(cs)) {
@@ -2018,14 +2030,15 @@ convert_to_utf8_normalized(iconv_t cd, const gchar *src, uni_norm_t norm)
 	if (!dst)
 		dst = hyper_utf8_enforce(src, sbuf, sizeof sbuf);
 
-	/*
-	 * If a new buffer was allocated, check whether the string is ASCII now
-	 * to skip normalization and a further allocation.
-	 */
-	if (sbuf == dst || is_ascii_string(dst)) {
-		gchar *dbuf = sbuf != dst ? dst : NULL;
-		dst = utf8_normalize(dst, norm);
-		G_FREE_NULL(dbuf);
+	g_assert(dst);
+	g_assert(dst != src);
+
+	{	
+		gchar *s = utf8_normalize(dst, norm);
+		g_assert(s != dst);
+		if (dst != sbuf)
+			G_FREE_NULL(dst);
+		dst = s;
 	}
 
 	return dst;
@@ -2163,6 +2176,38 @@ lazy_locale_to_utf8_normalized(const gchar *src, uni_norm_t norm)
 	prev = locale_to_utf8_normalized(src, norm);
 	g_assert(prev != src);
 	return prev;
+}
+
+/**
+ * Converts the supplied string ``str'' from a guessed encoding
+ * to an UTF-8 string using the given normalization form.
+ *
+ * @param str the string to convert.
+ * @returns the converted string or ``str'' if no conversion was necessary.
+ */
+const gchar *
+lazy_unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
+	gboolean add_charset)
+{
+	static gchar *prev; /* Previous conversion result */
+	gchar *s;
+	
+	g_assert(src);
+	g_assert(prev != src);
+
+	G_FREE_NULL(prev);
+
+	/*
+	 * Let's assume that most of the supplied strings are pure ASCII.
+	 * ASCII matches any UTF-8 in any Unicode normalization form.
+	 */
+	if (is_ascii_string(src))
+		return src;
+
+	s = unknown_to_utf8_normalized(src, norm, add_charset);
+	if (s != src)
+		prev = s;
+	return s;
 }
 
 /**
@@ -4781,6 +4826,21 @@ unicode_decompose_init(void)
 		u = g_malloc0((len + 1) * sizeof *u);
 		utf8_to_utf32(s, u, len + 1);
 		G_FREE_NULL(u);
+	}
+
+	/*
+	 * Regression: Some iconv()s let invalid UTF-8 with codepoints
+	 * beyond U+10FFFF slip through, when converting from UTF-8 to UTF-8.
+	 * Thus, use utf8_enforce() for UTF-8 -> UTF-8 instead.
+	 */
+	{
+		const guchar s[] = { 
+			0xa1, 0xbe, 0xb4, 0xba, 0xc7, 0xef, 0xd3, 0xe9, 0xc0, 0xd6, 0xd6,
+			0xc6, 0xd7, 0xf7, 0xa1, 0xbf, 0xb3, 0xfe, 0xc3, 0xc5, 0xb5, 0xc4,
+			0xca, 0xc0, 0xbd, 0xe7, 0x0
+		};
+
+		(void) lazy_locale_to_utf8_normalized(s, UNI_NORM_NFC);
 	}
 
 #if 0 

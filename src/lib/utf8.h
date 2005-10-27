@@ -155,6 +155,8 @@ const gchar *lazy_locale_to_utf8(const gchar *src);
 const gchar *lazy_ui_string_to_utf8(const gchar *src);
 const gchar *lazy_utf8_to_locale(const gchar *src);
 const gchar *lazy_locale_to_utf8_normalized(const gchar *src, uni_norm_t norm);
+const gchar *lazy_unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
+			gboolean add_charset);
 
 static inline const gchar *
 lazy_vendor_to_utf8(const gchar *s)
