@@ -11,13 +11,13 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-10-27 23:50+0900\n"
-"PO-Revision-Date: 2005-10-27 23:52+0900\n"
+"PO-Revision-Date: 2005-10-27 18:57+0200\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);"
 
 #: src/core/downloads.c:950 src/core/downloads.c:1008
 msgid "No longer connected"
@@ -2754,7 +2754,7 @@ msgid ""
 "and process incoming Gnutella traffic in almost the same way as if it was "
 "received via TCP.  It is safe to leave this set, which is the default "
 "behaviour."
-msgstr ""
+msgstr "Of naast TCP ook UDP gebruikt kan worden. Indien geactiveerd zal gtk-gnutella ook voor UDP verkeer luisteren op dezelfde poort zoals ingesteld bij TCP. Ontvangen verkeer zal net zoals bij TCP behandeld worden. Het is veilig om dit actief te laten, wat tevens de standaard waarde is."
 
 #: src/if/gnet_property.c:5502
 msgid ""
@@ -2765,7 +2765,7 @@ msgid ""
 "transient UDP port opened by a masquerading firewall.  It is enabled by "
 "default because it is deemed safe, as your node controls the bulk of the "
 "emitted traffic and honours the bandwidth limitations."
-msgstr ""
+msgstr "Of gtk-gnutella out-of-band verzoeken voor zoek resultaten via UDP moet toestaan indien UDP ondersteuning is ingeschakeld. De firewall hoeft hier niet speciaal voor te worden ingesteld aangezien jouw node de bron is van het UDP verkeer. Dit is standaard aan aangezien dit als veilig wordt geacht, dit doordat jouw node bepaalt hoeveel verkeer er wordt verstuurd, tevens wordt de bandbreedte limiet gehandhaaft."
 
 #: src/if/gnet_property.c:5519
 msgid ""
@@ -2776,7 +2776,7 @@ msgid ""
 "replies, so you may choose to disable this feature.  If disabled, your hits "
 "will travel through the Gnutella network and can be dropped by any flow-"
 "controlled relaying node, limiting the results you can get."
-msgstr ""
+msgstr "Of gtk-gnutella zoek opdrachten moet versturen met daarin het verzoek voor een out-of-band bezorging van zoek resultaten via UDP. Deze instelling is genegeerd als het erop lijkt dat je bent afgeschermd voor ongesoliciteerd UDP verkeer. UDP ondersteuning dient eerst te worden geactiveerd. Dit kan als gevolg hebben dat je veel UDP antwoorden krijgt, om die reden zou je ervoor te kunnen kiezen het uit te schakelen. Indien uitgeschakeld, dan zullen resultaten via het Gnutella netwerk binnen komen, deze kunnen worden verwijderd door een node die in flow-control mode staat. Daardoor kan het aantal resultaten verminderen."
 
 #: src/if/gnet_property.c:5536
 msgid ""
@@ -2788,16 +2788,18 @@ msgid ""
 "connected to you will have to relay the hits, possibly dropping other query "
 "messages and lowering the efficiency of the search network."
 msgstr ""
+"Of gtk-gnutella, indien in ultrapeer mode, als proxy dient te fungeren voor leaf zoek opdrachten die geen OOB resultaten verzoeken. Gtk-gnutella doet alsof deze de resultaten wilt ontvangen en stuurt ze vervolgens alsnog door naar de correcte leaf-node. Dit is positief voor de leaf-nodes, maar kan er voor zorgen dat jouw ultrapeer veel UDP verkeer te verwerken krijgt. Indien je dit uitzet, dan moeten dan andere ultrapeers de resultaten doorsturen, mogelijk worden hierdoor resultaten en opdrachten verwijderd waardoor het netwerk minder efficient opereert."
 
 #: src/if/gnet_property.c:5553
 msgid ""
 "Whether uploads are frequently stalling, indicating that the bandwidth is "
 "saturated.  Avoid running as an ultra-node under those conditions."
 msgstr ""
+"Of uploads vaak stil staan, dit kan er op duiden dat de bandbreedte verzadigd is. Draai in dit geval niet als ultra-node."
 
 #: src/if/gnet_property.c:5570
 msgid "If set to TRUE, automatic requeries are allowed."
-msgstr ""
+msgstr "Indien actief dan worden automatische zoekopdrachten toegestaan."
 
 #: src/if/gnet_property.c:5587
 msgid ""
@@ -2805,14 +2807,15 @@ msgid ""
 "$GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban "
 "list from the global one distributed with Gtk-Gnutella."
 msgstr ""
+"Indien TRUE, dan zal zowel de algemene hostiles.txt als de $GTK_GNUTELLA_DIR/hostiles.txt worden gebruikt. Op deze manier is het mogelijk een eigen prive ban lijst bij te houden naast de algemene lijst welke met gtk-gnutella mee komt."
 
 #: src/if/gnet_property.c:5604
 msgid "If set to TRUE, SO_LINGER is used for sockets."
-msgstr ""
+msgstr "Indien TRUE dan wordt SO_LINGER gebruikt voor sockets."
 
 #: src/if/gnet_property.c:5621
 msgid "If TRUE, other hosts can request a complete list of all shared files."
-msgstr ""
+msgstr "Indien TRUE dan kunnen andere hosts een complete lijst opvragen met alle gedeelde bestanden."
 
 #: src/if/gnet_property.c:5638
 #, fuzzy
@@ -2833,6 +2836,7 @@ msgid ""
 "persists, GUI refreshing is reduced and background tasks (SHA1 computation, "
 "file moving) are suspended."
 msgstr ""
+"Het gemiddelde CPU verbruik duidt op te zware belasting. Gtk-gnutella vermindert het verbruikt van niet kritische taken. Een te zware belasting kan komen doordat een ander proces meer CPU nodig heeft en gtk-gnutella daardoor te weinigkrijgt. Zolang deze overbelasting actief is, dan wordt het bijwerken van de GUI vermindert en achtergrond taken (SHA1 berekenen, bestanden verplaatsen) worden gepauzeerd."
 
 #: src/if/gnet_property.c:5695
 msgid ""
@@ -2844,6 +2848,7 @@ msgid ""
 "disk as soon as it receives some data. Increase to maximum value if you have "
 "RAM."
 msgstr ""
+"De hoeveelheid data per bron die aan het downloaden is dat gtk-gnutella zal bufferen voordat het naar de schijf wordt geschreven. Wanneer er gebruik wordt gemaakt van zwermen met veel bronnen dan zou dit ook fragmentatie van het bestandssysteem moeten tegengaan. De keerzijde is dat dit meer geheugen gebruikt per actieve bron. Om dit uit te zetten, kier hier 0, data wordt dan weggeschreven op het moment dat het wordt ontvangen. Zet dit op zijn maximale waarde als e genoeg RAM hebt."
 
 #: src/if/gnet_property.c:5715
 msgid ""
@@ -9130,9 +9135,7 @@ msgstr[1] "Informatie over het geselecteerde bestand"
 #: src/ui/gtk/gtk1/search.c:1776
 #, c-format
 msgid "Discarded %u result"
-msgid_plural "Discarded %u results"
-msgstr[0] ""
-msgstr[1] ""
+msgstr ""
 
 #: src/ui/gtk/gtk1/search.c:2223 src/ui/gtk/gtk1/search.c:2229
 #: src/ui/gtk/gtk2/search.c:1355
@@ -9165,9 +9168,7 @@ msgstr ""
 #: src/ui/gtk/gtk1/search_cb.c:405
 #, c-format
 msgid "%d file auto selected with %d sources %s"
-msgid_plural "%d files auto selected with %d sources %s"
-msgstr[0] ""
-msgstr[1] ""
+msgstr ""
 
 #: src/ui/gtk/gtk1/search_cb.c:407
 #, fuzzy
@@ -9783,9 +9784,7 @@ msgstr[1] "item"
 
 #: src/ui/gtk/search_common.c:1135
 msgid "dupe"
-msgid_plural "dupes"
-msgstr[0] ""
-msgstr[1] ""
+msgstr ""
 
 #: src/ui/gtk/search_common.c:1138
 msgid "No search"
@@ -9993,3 +9992,4 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 #: src/ui/gtk/uploads_common.c:205
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
+
