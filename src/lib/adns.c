@@ -100,7 +100,7 @@ static guint adns_query_event_id = 0;
 static guint adns_reply_event_id = 0;
 static gboolean is_helper = FALSE;		/**< Are we the DNS helper process? */
 
-static gboolean adns_helper_alive = TRUE;
+static gboolean adns_helper_alive = FALSE;
 
 /**
  * Private macros.
@@ -137,7 +137,7 @@ adns_cache_init(void)
 /**
  * Frees all memory allocated by the cache and returns NULL.
  */
-adns_cache_t *
+void
 adns_cache_free(adns_cache_t *cache)
 {
 	guint i;
@@ -148,8 +148,7 @@ adns_cache_free(adns_cache_t *cache)
 		if (NULL != cache->entries[i].hostname)
 			atom_str_free(cache->entries[i].hostname);
 	cache->size = 0;
-	g_free(cache);
-	return NULL;
+	G_FREE_NULL(cache);
 }
 
 /* these are not needed anywhere else so undefine them */
@@ -556,6 +555,7 @@ adns_query_callback(gpointer data, gint dest, inputevt_cond_t condition)
 
 	inputevt_remove(adns_query_event_id);
 	adns_query_event_id = 0;
+	
 	adns_async_write_free(remain);
 
 	return;
@@ -607,7 +607,8 @@ adns_init(void)
    		close(STDIN_FILENO);  /* Just in case */
 		null = open("/dev/null", O_RDONLY);
 		if (-1 == null)
-			g_error("adns_init: Could not open() /dev/null");
+			g_error("adns_init: Could not open() /dev/null: %s",
+				g_strerror(errno));
 		g_assert(STDIN_FILENO == null);
 		adns_helper(fd_query[0], fd_reply[1]);
 		g_assert_not_reached();
@@ -622,17 +623,20 @@ adns_init(void)
 	socket_set_nonblocking(adns_query_fd);
 	socket_set_nonblocking(fd_reply[0]);
 	
-	adns_cache = adns_cache_init();
 	adns_reply_event_id = inputevt_add(fd_reply[0], INPUT_EVENT_RX,
 							adns_reply_callback, NULL);
-	return;
-
+	/* FALL THROUGH */
 prefork_failure:
 
-	CLOSE_IF_VALID(fd_query[0]);
-	CLOSE_IF_VALID(fd_query[1]);
-	CLOSE_IF_VALID(fd_reply[0]);
-	CLOSE_IF_VALID(fd_reply[1]);
+	if (!adns_reply_event_id) {
+		CLOSE_IF_VALID(fd_query[0]);
+		CLOSE_IF_VALID(fd_query[1]);
+		CLOSE_IF_VALID(fd_reply[0]);
+		CLOSE_IF_VALID(fd_reply[1]);
+		adns_helper_alive = FALSE;
+	}
+
+	adns_cache = adns_cache_init();
 }
 
 /**
@@ -654,7 +658,7 @@ adns_send_query(const adns_query_t *query)
 	 * Try to write the query atomically into the pipe.
 	 */
 
-	written = write(adns_query_fd, &q, sizeof(q));
+	written = write(adns_query_fd, &q, sizeof q);
 	if (written == (ssize_t) -1) {
 		if (errno != EINTR && errno != VAL_EAGAIN) {
 			g_warning("adns_resolve: write() failed: %s",
@@ -741,8 +745,9 @@ adns_resolve(const gchar *hostname,
 	if (adns_send_query(&query))
 		return TRUE; /* asynchronous */
 
-	g_warning("adns_resolve: using synchronous resolution for \"%s\"",
-		query.hostname);
+	if (adns_helper_alive)
+		g_warning("adns_resolve: using synchronous resolution for \"%s\"",
+			query.hostname);
 
 	adns_fallback(&query);
 
@@ -793,8 +798,15 @@ adns_reverse_lookup(const host_addr_t addr,
 void
 adns_close(void)
 {
-	inputevt_remove(adns_reply_event_id);
-	adns_cache = adns_cache_free(adns_cache);
+	if (adns_helper_alive) {
+		g_assert(adns_reply_event_id);
+		inputevt_remove(adns_reply_event_id);
+	}
+	if (adns_query_event_id)
+		inputevt_remove(adns_query_event_id);
+	
+	adns_cache_free(adns_cache);
+	adns_cache = NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
