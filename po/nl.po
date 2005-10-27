@@ -4,21 +4,20 @@
 # Copyright (C) 2000-2001 Yann Grossel.
 # Copyright (C) 2001-2005 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
-# Jeroen Asselman <jeroen@asselman.com>, 2003-2005
-# 
-# 
+# Jeroen Asselman <jeroen@asselman.com>, 2003-2005.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-10-27 16:06+0900\n"
-"PO-Revision-Date: 2005-10-27 16:43+0200\n"
+"POT-Creation-Date: 2005-10-27 23:50+0900\n"
+"PO-Revision-Date: 2005-10-27 23:52+0900\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: src/core/downloads.c:950 src/core/downloads.c:1008
 msgid "No longer connected"
@@ -707,8 +706,8 @@ msgstr "Ping naar UDP host cache %s verzonden: %u"
 #, c-format
 msgid "Got %d host from UDP host cache %s:%u"
 msgid_plural "Got %d hosts from UDP host cache %s:%u"
-msgstr[0] "Ontving %d host van de UDP host cache %s:%u%d"
-msgstr[1] "Ontving %d hosts van de UDP host cache %s:%u%d"
+msgstr[0] "Ontving %d host van de UDP host cache %s:%u"
+msgstr[1] "Ontving %d hosts van de UDP host cache %s:%u"
 
 #: src/core/uploads.c:421
 msgid "Connect back timeout"
@@ -899,7 +898,11 @@ msgid ""
 "download but also harm the network since you're not supporting the newest "
 "features."
 msgstr ""
-"Geeft aan dat gtk-gnutella vind dat de versie die je draait heel erg oud is. Je zou zo spoedig mogelijk moeten upgraden om te voorkomen dat je te maken krijgt met niet-optimaal Gnutella ondersteuning. Dit is niet alleen gelimiteerd tot het zoeken en downloaden, maar beschadigd ook het netwerk doordat je niet de nieuwste features ondersteunt."
+"Geeft aan dat gtk-gnutella vind dat de versie die je draait heel erg oud is. "
+"Je zou zo spoedig mogelijk moeten upgraden om te voorkomen dat je te maken "
+"krijgt met niet-optimaal Gnutella ondersteuning. Dit is niet alleen "
+"gelimiteerd tot het zoeken en downloaden, maar beschadigd ook het netwerk "
+"doordat je niet de nieuwste features ondersteunt."
 
 #: src/if/gnet_property.c:683
 #, fuzzy
@@ -922,8 +925,8 @@ msgstr ""
 "Probeer tenminste dit aantal connecties te handhaven naar andere servents "
 "die van het zelfde type zijn (normale-, of ultra-nodes). Om inkomende "
 "connecties te accepteren moet deze waarde lager zijn dat het maximaal aantal "
-"connecties."
-"Hou er rekening mee dat de standaard TTL op Gnutella 4 is, daarom moet dit tenminste 30 zijn for goede zoek resultaten"
+"connecties.Hou er rekening mee dat de standaard TTL op Gnutella 4 is, daarom "
+"moet dit tenminste 30 zijn for goede zoek resultaten"
 
 #: src/if/gnet_property.c:724
 msgid ""
@@ -1038,7 +1041,8 @@ msgstr ""
 #: src/if/gnet_property.c:1025
 #, fuzzy
 msgid "Use this IP address as source address if 'force local ip' is activated."
-msgstr "Gebruik dit IP-adres als bron adres als 'forceer lokaal ip' is geactiveerd."
+msgstr ""
+"Gebruik dit IP-adres als bron adres als 'forceer lokaal ip' is geactiveerd."
 
 #: src/if/gnet_property.c:1046
 msgid ""
@@ -1072,7 +1076,9 @@ msgid ""
 "packets as necessary.  To avoid network flooding, keep this to a reasonable "
 "value."
 msgstr ""
-"Maximaal dit aantal resultaten terug sturen bij een zoek opdracht, door gebruik te maken van zoveel zoekresultaten pakketten als nodig is. Laat dit op een redelijke waarde om netwerk 'flooding' te voorkomen."
+"Maximaal dit aantal resultaten terug sturen bij een zoek opdracht, door "
+"gebruik te maken van zoveel zoekresultaten pakketten als nodig is. Laat dit "
+"op een redelijke waarde om netwerk 'flooding' te voorkomen."
 
 #: src/if/gnet_property.c:1103
 #, fuzzy
@@ -1086,7 +1092,8 @@ msgstr ""
 #: src/if/gnet_property.c:1123
 #, fuzzy
 msgid "Number of seconds before a download connect attempt times out."
-msgstr "De tijd in seconden voordat een download-verbinden poging wordt opgegeven."
+msgstr ""
+"De tijd in seconden voordat een download-verbinden poging wordt opgegeven."
 
 #: src/if/gnet_property.c:1143
 #, fuzzy
@@ -1096,17 +1103,23 @@ msgstr "De tijd in seconden voordat een push-aanvraag wordt opgegeven."
 #: src/if/gnet_property.c:1163
 #, fuzzy
 msgid "Number of seconds before a download times out if no data is received."
-msgstr "De tijd in seconden voordat een download wordt opgegeven als er geen data is ontvangen."
+msgstr ""
+"De tijd in seconden voordat een download wordt opgegeven als er geen data is "
+"ontvangen."
 
 #: src/if/gnet_property.c:1183
 #, fuzzy
 msgid "Minimum number of seconds to wait on auto-retry timeouts."
-msgstr "De tijd in seconden dat gewacht moet worden bij het automatisch opnieuw proberen van opgegeven pogingen."
+msgstr ""
+"De tijd in seconden dat gewacht moet worden bij het automatisch opnieuw "
+"proberen van opgegeven pogingen."
 
 #: src/if/gnet_property.c:1203
 #, fuzzy
 msgid "Maximum number of seconds to wait on auto-retry timeouts."
-msgstr "De tijd in seconden voordat een automatisch opnieuw proberen poging wordt opgegeven."
+msgstr ""
+"De tijd in seconden voordat een automatisch opnieuw proberen poging wordt "
+"opgegeven."
 
 #: src/if/gnet_property.c:1223
 #, fuzzy
@@ -1114,19 +1127,23 @@ msgid ""
 "Maximum number of attempts to download a file not counting HTTP busy "
 "indications."
 msgstr ""
-"Maximaal aantal keren dat er opnieuw geprobeerd moet worden een bestand te downloaden. Hierbij worden de HTTP bezig indicaties niet meegeteld."
+"Maximaal aantal keren dat er opnieuw geprobeerd moet worden een bestand te "
+"downloaden. Hierbij worden de HTTP bezig indicaties niet meegeteld."
 
 #: src/if/gnet_property.c:1243
 #, fuzzy
 msgid "Delay in seconds before retrying after a connection timed out."
-msgstr "De vertraging in seconden voordat een opgegeven verbinding opnieuw wordt geprobeerd."
+msgstr ""
+"De vertraging in seconden voordat een opgegeven verbinding opnieuw wordt "
+"geprobeerd."
 
 #: src/if/gnet_property.c:1263
 #, fuzzy
 msgid ""
 "Delay in seconds before retrying after getting a 'busy' response from a host."
 msgstr ""
-"Vertraging in seconden voordat een download opnieuw wordt geprobeerd na een 'bezig' antwoord van een host."
+"Vertraging in seconden voordat een download opnieuw wordt geprobeerd na een "
+"'bezig' antwoord van een host."
 
 #: src/if/gnet_property.c:1283
 #, fuzzy
@@ -1134,7 +1151,8 @@ msgid ""
 "Delay in seconds before retrying after getting a 'connection refused' "
 "response from a host."
 msgstr ""
-"Vertraging in seconden voordat een geweigerd antwoord van een host opnieuw wordt geprobeerd."
+"Vertraging in seconden voordat een geweigerd antwoord van een host opnieuw "
+"wordt geprobeerd."
 
 #: src/if/gnet_property.c:1303
 #, fuzzy
@@ -1142,7 +1160,8 @@ msgid ""
 "Delay in seconds before retrying after a retry stopped (timed out, "
 "connection reset by peer, etc...)."
 msgstr ""
-"Vertraging in seconden voordat een opnieuw proberen gestopte download (time out, verbinding verbroken door peer, etc...) opnieuw wordt geprobeerd."
+"Vertraging in seconden voordat een opnieuw proberen gestopte download (time "
+"out, verbinding verbroken door peer, etc...) opnieuw wordt geprobeerd."
 
 #: src/if/gnet_property.c:1323
 msgid ""
@@ -1158,10 +1177,13 @@ msgstr ""
 #: src/if/gnet_property.c:1343
 #, fuzzy
 msgid ""
+"Number of seconds before an upload times out if no connection can be "
+"established during a push.  It is also the maximum amount of time we wait to "
+"get the whole HTTP request."
 msgstr ""
 "Aantal seconden dat gewacht moet worden als er geen verbinding kan worden "
-"gemaakt tijdens een push. Dit is tevens de maximale wachtijd om de "
-"volledige HTTP aanvraag te verkrijgen."
+"gemaakt tijdens een push. Dit is tevens de maximale wachtijd om de volledige "
+"HTTP aanvraag te verkrijgen."
 
 #: src/if/gnet_property.c:1363
 #, fuzzy
@@ -1179,7 +1201,8 @@ msgid ""
 "it too low or you will damage the Gnutella network.  A delay of half an hour "
 "is fine."
 msgstr ""
-"Aantal seconden dat gewacht moet worden voordat een zoek opdracht opnieuw wordt verstuurd om nieuwe resultaten te verkrijgen. Wees voorzichtig met "
+"Aantal seconden dat gewacht moet worden voordat een zoek opdracht opnieuw "
+"wordt verstuurd om nieuwe resultaten te verkrijgen. Wees voorzichtig met "
 "deze instelling en zet deze waarde niet te laag, anders beschadig je het "
 "Gnutella netwerk. Een vertraging van minimaal een half uur is voldoende."
 
@@ -1213,7 +1236,8 @@ msgstr ""
 #: src/if/gnet_property.c:1463
 #, fuzzy
 msgid "Number of file descriptors we'll actually be using for banning."
-msgstr "Aantal file descriptors dat daadwerkelijk gebruikt zal worden voor bannen."
+msgstr ""
+"Aantal file descriptors dat daadwerkelijk gebruikt zal worden voor bannen."
 
 #: src/if/gnet_property.c:1483
 #, fuzzy
@@ -1230,7 +1254,8 @@ msgid ""
 "Number of seconds before a Gnet connect attempt times out if no connection "
 "can be established."
 msgstr ""
-"Aantal seconden voordat een Gnet verbindings poging wordt opgegeven als er geen verbinding kon worden gemaakt."
+"Aantal seconden voordat een Gnet verbindings poging wordt opgegeven als er "
+"geen verbinding kon worden gemaakt."
 
 #: src/if/gnet_property.c:1523
 #, fuzzy
@@ -1238,14 +1263,16 @@ msgid ""
 "Number of seconds before a Gnet connection times out if no data is "
 "transmitted."
 msgstr ""
-"Aantal seconden voordat een Gnet bezig met verbinden poging wordt opgegeven indien er geen data is verstuurd."
+"Aantal seconden voordat een Gnet bezig met verbinden poging wordt opgegeven "
+"indien er geen data is verstuurd."
 
 #: src/if/gnet_property.c:1543
 msgid ""
 "Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150 "
 "percent of the maximum message size."
 msgstr ""
-"Maximum grootte van de verzend rij voor de nodes (in bytes). Dit moet tenminste 150 procent zijn van de maximum bericht grootte."
+"Maximum grootte van de verzend rij voor de nodes (in bytes). Dit moet "
+"tenminste 150 procent zijn van de maximum bericht grootte."
 
 #: src/if/gnet_property.c:1563
 msgid ""
@@ -1275,7 +1302,8 @@ msgid ""
 "the standard is TTL=4, so you cannot set a value lower than that."
 msgstr ""
 "Maximale TTL waardie die wordt toegestaan in berichten die worden "
-"gebroadcast. Als een bericht binnen komt met een TTL groter dan deze waarde, dan zal die waarde worden aangepast naar deze waarde. Op Gnutella is de TTL "
+"gebroadcast. Als een bericht binnen komt met een TTL groter dan deze waarde, "
+"dan zal die waarde worden aangepast naar deze waarde. Op Gnutella is de TTL "
 "waarde standaard 4 en kan daar niet lager dan 4 worden gezet."
 
 #: src/if/gnet_property.c:1623
@@ -1301,8 +1329,10 @@ msgid ""
 "parameter."
 msgstr ""
 "Maximale harde TTL limiet (hops + TTL) voor berichten die we doorsturen. "
-"Deze moet groter zijn dan de standaard TTL waarde van 4, omdat deze ook van toepassing is op berichten die terug worden gestuurd (zoekresultaten). "
-"Standaard gebroadcaste berichten hebben hun TTL gelimiteerd met de maximum TTL die je hebt ingesteld, en die limiet moet een stuk lager zijn dan deze "
+"Deze moet groter zijn dan de standaard TTL waarde van 4, omdat deze ook van "
+"toepassing is op berichten die terug worden gestuurd (zoekresultaten). "
+"Standaard gebroadcaste berichten hebben hun TTL gelimiteerd met de maximum "
+"TTL die je hebt ingesteld, en die limiet moet een stuk lager zijn dan deze "
 "waarde."
 
 #: src/if/gnet_property.c:1663
@@ -1451,7 +1481,9 @@ msgid ""
 "not set PARQ will caclulate using a worst case scenario.  The default is to "
 "be optimistic."
 msgstr ""
-"PARQ zal de geschatte eindtijd en opnieuw proberen tijden optimistischer bereknen indien dit is geactiveerd. Anders wordt er uit gegaan van het ergste scenario. Standaard is om optimistisch te zijn."
+"PARQ zal de geschatte eindtijd en opnieuw proberen tijden optimistischer "
+"bereknen indien dit is geactiveerd. Anders wordt er uit gegaan van het "
+"ergste scenario. Standaard is om optimistisch te zijn."
 
 #: src/if/gnet_property.c:2260
 msgid ""
@@ -1463,7 +1495,12 @@ msgid ""
 "whether we can still bypass queuing. Set to 0 to disable this size-based "
 "bypassing feature and only rely on time-based bypassing."
 msgstr ""
-"De maximum grootte in bytes van een upload zodat deze niet door PARQ in de wacht wordt gezet maar direct mag doorgaan. Als een client echter meerdere kleine brokken achter elkaar vraagt en de som van deze blokken is alsnog groter dan deze waarde, dan wordt de upload alsnog in de wacht gezet. Zet dit op 0 om dit uit te zetten en alleen de tijd-gerelateerde PARQ omzeiling te gebruiken"
+"De maximum grootte in bytes van een upload zodat deze niet door PARQ in de "
+"wacht wordt gezet maar direct mag doorgaan. Als een client echter meerdere "
+"kleine brokken achter elkaar vraagt en de som van deze blokken is alsnog "
+"groter dan deze waarde, dan wordt de upload alsnog in de wacht gezet. Zet "
+"dit op 0 om dit uit te zetten en alleen de tijd-gerelateerde PARQ omzeiling "
+"te gebruiken"
 
 #: src/if/gnet_property.c:2280
 msgid ""
@@ -1472,7 +1509,10 @@ msgid ""
 "file size-based bypassing. Set to 0 to disable this time-based bypassing "
 "feature."
 msgstr ""
-"Als er verwacht wordt dat een upload korter dan dit aantal seconden in beslag zal nemen, dan zal PARQ deze upload niet in de wachtrij zetten. Deze controle wordt gedaan NA de bestandsgrootte omzeiling. Om dit uit te schakelen kies hier 0."
+"Als er verwacht wordt dat een upload korter dan dit aantal seconden in "
+"beslag zal nemen, dan zal PARQ deze upload niet in de wachtrij zetten. Deze "
+"controle wordt gedaan NA de bestandsgrootte omzeiling. Om dit uit te "
+"schakelen kies hier 0."
 
 #: src/if/gnet_property.c:2300
 #, fuzzy
@@ -1502,7 +1542,8 @@ msgstr "Activeer het limiteren van bandbreedte voor inkomend Gnet verkeer."
 #: src/if/gnet_property.c:2388
 #, fuzzy
 msgid "Enable bandwidth limitation for incoming Gnet leaf traffic."
-msgstr "Activeer het limiteren van bandbreedte voor inkomend Gnet leaf verkeer."
+msgstr ""
+"Activeer het limiteren van bandbreedte voor inkomend Gnet leaf verkeer."
 
 #: src/if/gnet_property.c:2405
 #, fuzzy
@@ -1512,7 +1553,8 @@ msgstr "Activeer het limiteren van bandbreedte voor uitgaand Gnet verkeer."
 #: src/if/gnet_property.c:2422
 #, fuzzy
 msgid "Enable bandwidth limitation for outgoing Gnet leaf traffic."
-msgstr "Activeer het limiteren van bandbreedte voor uitgaand Gnet leaf verkeer."
+msgstr ""
+"Activeer het limiteren van bandbreedte voor uitgaand Gnet leaf verkeer."
 
 #: src/if/gnet_property.c:2439
 #, fuzzy
@@ -1592,7 +1634,8 @@ msgstr "Verwijder afgebroken downloads bestanden van de schijf."
 
 #: src/if/gnet_property.c:2626
 msgid "Use username and password to authenticate to proxy."
-msgstr "Gebruik een gebruikersnaam en wachtwoord om te authenticeren bij een proxy."
+msgstr ""
+"Gebruik een gebruikersnaam en wachtwoord om te authenticeren bij een proxy."
 
 #: src/if/gnet_property.c:2643
 msgid "Username for proxy."
@@ -1644,7 +1687,8 @@ msgstr "Maximum aantal hosts in de ultra node catcher."
 
 #: src/if/gnet_property.c:2887
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
-msgstr "Maximum aantal hosts in de BEZET, INSTABIEL en TIJD VERSTREKEN lijsten."
+msgstr ""
+"Maximum aantal hosts in de BEZET, INSTABIEL en TIJD VERSTREKEN lijsten."
 
 #: src/if/gnet_property.c:2907
 msgid ""
@@ -1719,7 +1763,8 @@ msgstr ""
 msgid ""
 "Maximum size of search answers messages we forward to others (in bytes)."
 msgstr ""
-"Maximale grootte van de antwoorden op zoek opdrachten die we doorsturen naar anderen (in bytes)."
+"Maximale grootte van de antwoorden op zoek opdrachten die we doorsturen naar "
+"anderen (in bytes)."
 
 #: src/if/gnet_property.c:3127
 msgid ""
@@ -1942,7 +1987,9 @@ msgid ""
 "100 means the filenames must be 100% identical.  A value of 0 means any two "
 "filenames will always be considered to be identical.  The minimum is 50%."
 msgstr ""
-"Overeenkomst fuzziness drempel voor bestandsnamen. Een drempel waarde van 100 betekent dat de bestandsnaam 100% gelijk moet zijn. Een drempel waarde van 0 betekent dat elke bestandsnaam overeenkomt. Het minimum is 50%."
+"Overeenkomst fuzziness drempel voor bestandsnamen. Een drempel waarde van "
+"100 betekent dat de bestandsnaam 100% gelijk moet zijn. Een drempel waarde "
+"van 0 betekent dat elke bestandsnaam overeenkomt. Het minimum is 50%."
 
 #: src/if/gnet_property.c:3663
 #, fuzzy
@@ -2204,7 +2251,9 @@ msgid ""
 "When partial file sharing (PFSP) is enabled, gtk-gnutella will not share "
 "partial files below this filesize. Don't set it too large."
 msgstr ""
-"Als gedeeltelijke bestands deling (PFSP) geactiveerd is, dan zal gtk-gnutella geen gedeeltelijke bestanden delen die kleiner zijn dan deze bestandsgrootte. Zet dit niet te groot."
+"Als gedeeltelijke bestands deling (PFSP) geactiveerd is, dan zal gtk-"
+"gnutella geen gedeeltelijke bestanden delen die kleiner zijn dan deze "
+"bestandsgrootte. Zet dit niet te groot."
 
 #: src/if/gnet_property.c:4318
 #, fuzzy
@@ -2240,7 +2289,11 @@ msgid ""
 "determine whether your host is kept synchronized by regular calls to "
 "ntpdate, for instance."
 msgstr ""
-"Of de klok op deze host accuraat wordt bijgehouden dmv NTP. Als dit is geactiveerd dan wordt de berekende klok afwijking genegeerd. Normaal gesproken detecteert gtk-gnutella automatisch of NTP lokaal wordt gebruikt. Maar het is niet in staat om andere methodes, zoals regelmatige ntpdates te detecteren."
+"Of de klok op deze host accuraat wordt bijgehouden dmv NTP. Als dit is "
+"geactiveerd dan wordt de berekende klok afwijking genegeerd. Normaal "
+"gesproken detecteert gtk-gnutella automatisch of NTP lokaal wordt gebruikt. "
+"Maar het is niet in staat om andere methodes, zoals regelmatige ntpdates te "
+"detecteren."
 
 #: src/if/gnet_property.c:4392
 msgid "Whether a running NTP daemon was detected locally."
@@ -2655,18 +2708,21 @@ msgstr ""
 
 #: src/if/gnet_property.c:5383
 msgid "When set, gtk-gnutella will accept and handle G2 connections. "
-msgstr "Gtk-gnutella zal G2 verbindingen accepteren en behandelen indien geactiveerd."
+msgstr ""
+"Gtk-gnutella zal G2 verbindingen accepteren en behandelen indien geactiveerd."
 
 #: src/if/gnet_property.c:5400
 msgid "If set, spaces in filenames are replaced with underscores."
-msgstr "Spaties in bestandsnamen vervangen door underscores indien geactiveerd."
+msgstr ""
+"Spaties in bestandsnamen vervangen door underscores indien geactiveerd."
 
 #: src/if/gnet_property.c:5417
 msgid ""
 "If set, meta shell characters in filenames are replaced with underscores. "
 "(This must also be enabled for FAT partitions.)"
 msgstr ""
-"meta shell karakters in bestandsnamen worden vervangen door underscores indien geactiveerd. (Dit moet ook geactiveerd worden voor FAT partities)"
+"meta shell karakters in bestandsnamen worden vervangen door underscores "
+"indien geactiveerd. (Dit moet ook geactiveerd worden voor FAT partities)"
 
 #: src/if/gnet_property.c:5434
 msgid ""
@@ -2675,15 +2731,21 @@ msgid ""
 "existing filenames in your temporary downloading directory. By default, the "
 "above settings apply only on newly created entries, not existing ones."
 msgstr ""
-"Indien geactiveerd zal gtk-gnutella tijdens het opstarten bestandsnamen opschonen door spaties en/of gevaarlijke karakters te vervangen, overeenkomstig met je download instellingen. Standaard wordt dit alleen toegepast op nieuwe items, niet op bestaande."
+"Indien geactiveerd zal gtk-gnutella tijdens het opstarten bestandsnamen "
+"opschonen door spaties en/of gevaarlijke karakters te vervangen, "
+"overeenkomstig met je download instellingen. Standaard wordt dit alleen "
+"toegepast op nieuwe items, niet op bestaande."
 
 #: src/if/gnet_property.c:5451
 msgid "If set, all outgoing connections are tunneled over TLS."
-msgstr "Indien geactiveerd worden alle uitgaande verbindingen getunneld via TLS."
+msgstr ""
+"Indien geactiveerd worden alle uitgaande verbindingen getunneld via TLS."
 
 #: src/if/gnet_property.c:5468
 msgid "If not set, support for Gnutella connection compression is disabled."
-msgstr "Indien niet geactiveerd dan wordt de ondersteuning voor compressie over gnutella verbindingen uitgeschakeld."
+msgstr ""
+"Indien niet geactiveerd dan wordt de ondersteuning voor compressie over "
+"gnutella verbindingen uitgeschakeld."
 
 #: src/if/gnet_property.c:5485
 msgid ""
@@ -5211,8 +5273,8 @@ msgstr[1] "%u downloads vergeten"
 msgid "Selected %u of %u queued download matching \"%s\"."
 msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
 msgstr[0] ""
-"%u van %u wachtende downloads geselecteerd die overeenkwamen met \"%s\"."
-"%u van %u wachtende downloads geselecteerd die overeenkwamen met \"%s\"."
+"%u van %u wachtende downloads geselecteerd die overeenkwamen met \"%s\".%u "
+"van %u wachtende downloads geselecteerd die overeenkwamen met \"%s\"."
 
 #: src/ui/gtk/gtk1/fileinfo.c:143 src/ui/gtk/gtk2/fileinfo.c:324
 #, fuzzy, c-format
@@ -9068,7 +9130,9 @@ msgstr[1] "Informatie over het geselecteerde bestand"
 #: src/ui/gtk/gtk1/search.c:1776
 #, c-format
 msgid "Discarded %u result"
-msgstr ""
+msgid_plural "Discarded %u results"
+msgstr[0] ""
+msgstr[1] ""
 
 #: src/ui/gtk/gtk1/search.c:2223 src/ui/gtk/gtk1/search.c:2229
 #: src/ui/gtk/gtk2/search.c:1355
@@ -9101,7 +9165,9 @@ msgstr ""
 #: src/ui/gtk/gtk1/search_cb.c:405
 #, c-format
 msgid "%d file auto selected with %d sources %s"
-msgstr ""
+msgid_plural "%d files auto selected with %d sources %s"
+msgstr[0] ""
+msgstr[1] ""
 
 #: src/ui/gtk/gtk1/search_cb.c:407
 #, fuzzy
@@ -9717,7 +9783,9 @@ msgstr[1] "item"
 
 #: src/ui/gtk/search_common.c:1135
 msgid "dupe"
-msgstr ""
+msgid_plural "dupes"
+msgstr[0] ""
+msgstr[1] ""
 
 #: src/ui/gtk/search_common.c:1138
 msgid "No search"
@@ -9925,4 +9993,3 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 #: src/ui/gtk/uploads_common.c:205
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
-
