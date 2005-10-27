@@ -4,8 +4,9 @@
 # Copyright (C) 2000-2001 Yann Grossel.
 # Copyright (C) 2001-2005 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
-# Jeroen Asselman <jeroen@asselman.com>, 2003-2004.
-#
+# Jeroen Asselman <jeroen@asselman.com>, 2003-2005
+# 
+# 
 msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
@@ -17,7 +18,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);"
 
 #: src/core/downloads.c:950 src/core/downloads.c:1008
 msgid "No longer connected"
@@ -50,7 +51,7 @@ msgstr ""
 #: src/core/downloads.c:3173
 #, fuzzy
 msgid "Waiting for a free chunk"
-msgstr "Wacht op een aanvullend verzoek..."
+msgstr ""
 
 #: src/core/downloads.c:3327
 #, fuzzy
@@ -60,7 +61,7 @@ msgstr "Geen download slot"
 #: src/core/downloads.c:3373
 #, fuzzy
 msgid "Connection failed (Out of file descriptors?)"
-msgstr "Harde limiet van het aantal \"file descriptors\" in gebruik"
+msgstr "Connectie mislukt (Niet genoeg file-descriptors?)"
 
 #: src/core/downloads.c:3593
 msgid "Ignoring Push flag"
@@ -70,22 +71,22 @@ msgstr "Push vlag wordt gengeerd"
 #, c-format
 msgid "No direct connection yet (%u retry)"
 msgid_plural "No direct connection yet (%u retries)"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Nog geen directe verbinding (%u poging)"
+msgstr[1] "Nog geen directe verbinding (%u pogingen)"
 
 #: src/core/downloads.c:3631 src/core/downloads.c:3645
 #, c-format
 msgid "Timeout (%u retry)"
 msgid_plural "Timeout (%u retries)"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Timeout (%u pogingen)"
+msgstr[1] "Timeout (%u pogingen)"
 
 #: src/core/downloads.c:3635
 #, fuzzy, c-format
 msgid "Connection refused (%u retry)"
 msgid_plural "Connection refused (%u retries)"
-msgstr[0] "Connectie instellingen"
-msgstr[1] "Connectie instellingen"
+msgstr[0] "Verbinding geweigerd (%u poging)"
+msgstr[1] "Verbinding geweigerd (%u pogingen)"
 
 #: src/core/downloads.c:3944
 msgid "Dup SHA1 during creation"
@@ -98,7 +99,7 @@ msgstr "Geen download slot"
 
 #: src/core/downloads.c:4195
 msgid "Stopped (Index changed)"
-msgstr ""
+msgstr "Gestopped (Index veranderd)"
 
 #: src/core/downloads.c:4520
 msgid "Explicitly requeued"
@@ -107,36 +108,36 @@ msgstr "Uitdrukkelijk opnieuw in de wachtrij gezet"
 #: src/core/downloads.c:4690
 #, fuzzy, c-format
 msgid "Stopped (%s)"
-msgstr "Afgeronde verwijderen"
+msgstr "Gestopt (%s)"
 
 #: src/core/downloads.c:4693 src/core/downloads.c:4728
 #, c-format
 msgid "Too many attempts (%u times)"
-msgstr ""
+msgstr "Teveel pogingen (%u keer)"
 
 #: src/core/downloads.c:4695 src/core/downloads.c:6052
 #: src/core/downloads.c:7153
 #, c-format
 msgid "Failed (Read error: %s)"
-msgstr ""
+msgstr "Gefaalt (Leesfout: %s)"
 
 #: src/core/downloads.c:4724
 msgid "Connection not kept-alive (EOF)"
-msgstr ""
+msgstr "Connectie bleef niet leven (EOF)"
 
 #: src/core/downloads.c:4725
 #, fuzzy
 msgid "Stopped (EOF)"
-msgstr "Afgeronde verwijderen"
+msgstr "Gestopt (EOF)"
 
 #: src/core/downloads.c:4841 src/core/downloads.c:6963
 msgid "Stopped (Output file size changed)"
-msgstr ""
+msgstr "Gestopt (Bestandsgrootte uitvoerbestand gewijzigd)"
 
 #: src/core/downloads.c:5048
 #, c-format
 msgid "Can't save data: %s"
-msgstr ""
+msgstr "Kon data niet opslaan: %s"
 
 #: src/core/downloads.c:5188
 msgid "Requeued by competing download"
@@ -156,11 +157,11 @@ msgstr "Afwijkende HTTP status (protocol asynchroon?)"
 
 #: src/core/downloads.c:5754
 msgid "No URN on server, waiting for overlap"
-msgstr ""
+msgstr "Geen URN op server, wacht op overlap"
 
 #: src/core/downloads.c:5760
 msgid "No URN on server to validate"
-msgstr ""
+msgstr "Geen verifieerbare URN op de server"
 
 #: src/core/downloads.c:5806
 msgid "URN fileinfo mismatch"
@@ -173,7 +174,7 @@ msgstr "Dubbele SHA1 ontdekt"
 #: src/core/downloads.c:6034 src/core/downloads.c:6042
 #: src/core/downloads.c:7105 src/core/downloads.c:7143
 msgid "Stopped data (EOF)"
-msgstr ""
+msgstr "Data gestopt (EOF)"
 
 #: src/core/downloads.c:6230
 #, fuzzy
@@ -183,21 +184,21 @@ msgstr "SHA1 komt niet overeen"
 #: src/core/downloads.c:6438 src/core/downloads.c:6943
 #, fuzzy
 msgid "Partial file on server, waiting"
-msgstr "Partial File Sharing (zwermen)"
+msgstr "Bestand gedeeltelijk op server, wacht..."
 
 #: src/core/downloads.c:6539
 #, fuzzy, c-format
 msgid "Queued (slot %u/%u) ETA: %s"
-msgstr "In de wacht (%d) (slot %d / %d), maximale tijd: %s"
+msgstr "In de wacht (slot %u / %u), geschatte resterende tijd: %s"
 
 #: src/core/downloads.c:7111
 msgid "Stopped (Read buffer full)"
-msgstr ""
+msgstr "Gestopped (less buffer vol)"
 
 #: src/core/downloads.c:7150
 #, c-format
 msgid "Stopped data (%s)"
-msgstr ""
+msgstr "Data gestopt (%s)"
 
 #: src/core/downloads.c:8427
 msgid "SHA1 mismatch detected"
@@ -305,7 +306,7 @@ msgstr "Zoek resultaat ongeldig"
 
 #: src/core/gnet_stats.c:81 src/ui/gtk/gnet_stats_common.c:108
 msgid "Bad return address"
-msgstr ""
+msgstr "Fout antwoord adres."
 
 #: src/core/gnet_stats.c:82 src/ui/gtk/gnet_stats_common.c:109
 msgid "Hostile IP address"
@@ -315,232 +316,223 @@ msgstr "Vijandig IP adres"
 #, c-format
 msgid "Got %d host from %s"
 msgid_plural "Got %d hosts from %s"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d host ontvangen van %s"
+msgstr[1] "%d hosts ontvangen van %s"
 
 #: src/core/gwcache.c:1039
-#, fuzzy, c-format
+#, c-format
 msgid "Connecting to web cache %s"
-msgstr "Verbinden met host"
+msgstr "Aan het verbinden met web cache %s"
 
 #: src/core/gwcache.c:1221
 msgid "Updated web cache "
-msgstr ""
+msgstr "Web cache bijgewerkt"
 
 #: src/core/nodes.c:856
 #, c-format
 msgid "Shutdown (%s)"
-msgstr ""
+msgstr "Afsluiten (%s)"
 
 #: src/core/nodes.c:2913
-#, fuzzy, c-format
+#, c-format
 msgid "Got %d connection pong"
 msgid_plural "Got %d connection pongs"
-msgstr[0] "totaal aantal verbonden connecties."
-msgstr[1] "totaal aantal verbonden connecties."
+msgstr[0] "%d connectie pong ontvangen"
+msgstr[1] "%d connectie pongs ontvangen"
 
 #: src/core/nodes.c:2962 src/core/nodes.c:5181 src/core/nodes.c:5205
 msgid "Sent crawling info"
-msgstr ""
+msgstr "Crawling informatie verstuurd"
 
 #: src/core/nodes.c:3131
 msgid "Cannot setup compressing TX stack"
-msgstr ""
+msgstr "Kon TX compressie niet initialiseren."
 
 #: src/core/nodes.c:3345
 #, c-format
 msgid "Got BYE %d %.*s"
-msgstr ""
+msgstr "Ontving BYE %d %.*s"
 
 #: src/core/nodes.c:3744
 #, c-format
 msgid "Weird HELLO %s"
-msgstr ""
+msgstr "Vreemde HELLO %s"
 
 #: src/core/nodes.c:3756
 #, c-format
 msgid "HELLO %s error %d (%s)"
-msgstr ""
+msgstr "HELLO %s fout %d (%s)"
 
 #: src/core/nodes.c:3760
-#, fuzzy
 msgid "Shielded node"
-msgstr "Lokale node"
+msgstr "Afgeschermde node"
 
 #: src/core/nodes.c:3791
-#, fuzzy
 msgid "Gnet connections disabled"
-msgstr "gNet connecties"
+msgstr "Gnet connecties uitgeschakeld"
 
 #: src/core/nodes.c:3816
-#, fuzzy
 msgid "Unstable IP address"
-msgstr "Vijandig IP adres"
+msgstr "Instabiel IP-adres"
 
 #: src/core/nodes.c:3819
 msgid "Servent version appears unstable"
-msgstr ""
+msgstr "Servent versie lijkt instabiel"
 
 #: src/core/nodes.c:3822
 msgid "No vendor string supplied"
-msgstr ""
+msgstr "Geen vendor omschrijving gegeven"
 
 #: src/core/nodes.c:3827
-#, fuzzy, c-format
+#, c-format
 msgid "Not connecting: %s"
-msgstr "gNet connecties"
+msgstr "Niet verbinden met: %s"
 
 #: src/core/nodes.c:3859 src/core/nodes.c:3897 src/core/nodes.c:3941
 #: src/core/nodes.c:3991 src/core/nodes.c:4045
 msgid "Connection not compressed"
-msgstr ""
+msgstr "Verbinding niet gecomprimeerd"
 
 #: src/core/nodes.c:3874
 #, c-format
 msgid "Too many leaves (%d max)"
-msgstr ""
+msgstr "Teveel leaves (maximaal %d)"
 
 #: src/core/nodes.c:3911 src/core/nodes.c:4028
 #, c-format
 msgid "Too many ultra nodes (%d max)"
-msgstr ""
+msgstr "Teveel ultra-nodes (maximaal %d)"
 
 #: src/core/nodes.c:3960
 #, c-format
 msgid "Rejected normal node (%d max)"
-msgstr ""
+msgstr "Normale-node gewijgerd (maximaal %d)"
 
 #: src/core/nodes.c:3973
-#, fuzzy
 msgid "Rejected leaf node"
-msgstr "Lokale node"
+msgstr "Leaf node gewijgerd"
 
 #: src/core/nodes.c:3979
 #, c-format
 msgid "Too many nodes (%d max)"
-msgstr ""
+msgstr "Teveel nodes (max %d)"
 
 #: src/core/nodes.c:4015
 msgid "Sent shielded indication"
-msgstr ""
+msgstr "Afgeschermd indicatie verzonden"
 
 #: src/core/nodes.c:4021
-#, fuzzy
 msgid "Not an ultra node"
-msgstr "Ultrapeer modus"
+msgstr "Geen ultranode"
 
 #: src/core/nodes.c:4095
-#, fuzzy
 msgid "Protocol not acceptable"
 msgstr "Protocol wordt niet ondersteund"
 
 #: src/core/nodes.c:4378
 msgid "Servent Shutdown"
-msgstr ""
+msgstr "Servent afgesloten"
 
 #: src/core/nodes.c:4664
 msgid "Too frequent crawling"
-msgstr ""
+msgstr "Te snel crawling"
 
 #: src/core/nodes.c:4834
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
-msgstr ""
+msgstr "Vendor zou %d%% van onze sloten overschrijden"
 
 #: src/core/nodes.c:4844
 msgid "Reserved slot"
-msgstr ""
+msgstr "Gereserveerd slot"
 
 #: src/core/nodes.c:4881
 msgid "Too ancient Gnutella protocol"
-msgstr ""
+msgstr "Te oud Gnutella protocol"
 
 #: src/core/nodes.c:4899
 msgid "Cannot connect to a crawler"
-msgstr ""
+msgstr "Kan niet met crawler verbinden"
 
 #: src/core/nodes.c:4934
-#, fuzzy
 msgid "Not becoming a leaf node"
-msgstr "Ultrapeer modus"
+msgstr "Wordt geen leaf node"
 
 #: src/core/nodes.c:5106
-#, fuzzy, c-format
+#, c-format
 msgid "Failed (Cannot send %s: %s)"
-msgstr "\"push\" verzenden mislukt"
+msgstr "Mislukt (Kon '%s' niet versturen: %s)"
 
 #: src/core/nodes.c:5113
 #, c-format
 msgid "Failed (Cannot send %s atomically)"
-msgstr ""
+msgstr "Mislukt (Kan %s niet uitzichzelf versturen)"
 
 #: src/core/nodes.c:5160
 msgid "Failed (Header line too long)"
-msgstr ""
+msgstr "Mislukt (Header regel te lang)"
 
 #: src/core/nodes.c:5172 src/core/uploads.c:1300
 #, fuzzy, c-format
 msgid "Failed (%s)"
-msgstr "Gefaalt"
+msgstr "Gefaalt (%s)"
 
 #: src/core/nodes.c:5181 src/core/uploads.c:1306
 msgid "Failed (Input Exception)"
-msgstr ""
+msgstr "Mislukt (Invoer exceptie)"
 
 #: src/core/nodes.c:5187
 msgid "Failed (Input buffer full)"
-msgstr ""
+msgstr "Mislukt (Invoer buffer vol)"
 
 #: src/core/nodes.c:5193 src/core/uploads.c:1318
 #, c-format
 msgid "Failed (Input error: %s)"
-msgstr ""
+msgstr "Mislukt (Invoer fout: %s)"
 
 #: src/core/nodes.c:5205 src/core/uploads.c:1326
 #, fuzzy
 msgid "Failed (EOF)"
-msgstr "Gefaalt"
+msgstr "Mislukt (EOF)"
 
 #: src/core/nodes.c:5211
 msgid "Failed (Extra HELLO data)"
-msgstr ""
+msgstr "Mislukt (Extra HELLO data)"
 
 #: src/core/nodes.c:5261
 msgid "Pseudo UDP node"
-msgstr ""
+msgstr "Pseudo UDP node"
 
 #: src/core/nodes.c:5599
-#, fuzzy
 msgid "Already connected"
-msgstr "Niet langer verbonden"
+msgstr "Reeds verbonden"
 
 #: src/core/nodes.c:6117 src/core/nodes.c:6300
 #, c-format
 msgid "Write error during HELLO: %s"
-msgstr ""
+msgstr "Schrijf fout tijdens HELLO: %s"
 
 #: src/core/nodes.c:6212
 msgid "Out of memory"
-msgstr ""
+msgstr "Niet genoeg geheugen"
 
 #: src/core/nodes.c:6307
-#, fuzzy
 msgid "Connection reset during HELLO"
-msgstr "Connectie instellingen"
+msgstr "Connectie werd verbroken tijdens HELLO"
 
 #: src/core/nodes.c:6546
 #, c-format
 msgid "Kicked: %s message too big (%d bytes)"
-msgstr ""
+msgstr "Verwijderd: %s bericht te groot (%d bytes)"
 
 #: src/core/rx_link.c:79
 msgid "Read failed (Input Exception)"
-msgstr ""
+msgstr "Lezen mislukt (Invoer fout)"
 
 #: src/core/rx_link.c:95
 #, c-format
 msgid "Read error: %s"
-msgstr ""
+msgstr "Lees fout: %s"
 
 #: src/core/settings.c:392
 msgid "Can't find your home directory!"
@@ -553,7 +545,7 @@ msgstr "configuraties directory \"%s\" wordt gecreëerd"
 
 #: src/core/settings.c:418
 msgid "You seem to have left another gtk-gnutella running\n"
-msgstr ""
+msgstr "Het ziet er naar uit dat je nog een andere gtk-gnutella hebt draaien\n"
 
 #: src/core/settings.c:461
 msgid "Cannot proceed without valid configuration directory"
@@ -561,7 +553,7 @@ msgstr "Kan niet doorgaan zonder geldige configuratie directorie"
 
 #: src/core/settings.c:1429
 msgid "Can only run as a leaf when TCP-firewalled"
-msgstr ""
+msgstr "Als TCP-firewalled kan er alleen als leaf worden geopereerd"
 
 #: src/core/shell.c:271
 msgid "Node added"
@@ -621,9 +613,8 @@ msgid "Help: "
 msgstr "Help:"
 
 #: src/core/shell.c:616
-#, fuzzy
 msgid "Unknown parameter"
-msgstr "Onbekende eigenschap"
+msgstr "Onbekende parameter"
 
 #: src/core/shell.c:629
 #, c-format
@@ -633,21 +624,19 @@ msgstr "Horizon grote (%u/%u node ondersteunen HSEP):"
 #: src/core/shell.c:651
 #, c-format
 msgid "Horizon size via HSEP node %s (%s):"
-msgstr ""
+msgstr "Horizon grootte via HSEP node %s (%s):"
 
 #: src/core/shell.c:653
 msgid "leaf"
 msgstr "leaf"
 
 #: src/core/shell.c:654
-#, fuzzy
 msgid "ultrapeer"
-msgstr "ultrapeers"
+msgstr "ultrapeer"
 
 #: src/core/shell.c:654 src/if/gnet_property.c:421
-#, fuzzy
 msgid "normal node"
-msgstr "Lokale node"
+msgstr "Normale node"
 
 #: src/core/shell.c:680 src/ui/gtk/gtk1/interface-glade.c:2619
 #: src/ui/gtk/gtk2/gnet_stats.c:472
@@ -690,93 +679,90 @@ msgstr "Commando onbekend"
 
 #: src/core/sockets.c:1590
 msgid "Read error"
-msgstr ""
+msgstr "Lees fout"
 
 #: src/core/sockets.c:1815 src/core/sockets.c:1896 src/core/sockets.c:2480
-#, fuzzy
 msgid "Connection failed"
-msgstr "Verbonden"
+msgstr "Verbinding mislukt"
 
 #: src/core/tx_link.c:76
 msgid "Write failed (Input Exception)"
-msgstr ""
+msgstr "Schrijf fout (Invoer fout)"
 
 #: src/core/tx_link.c:171 src/core/tx_link.c:187
 #, c-format
 msgid "Write failed: %s"
-msgstr ""
+msgstr "Schrijven mislukt: %s"
 
 #: src/core/uhc.c:249
 #, c-format
 msgid "Looking for UDP host cache %s"
-msgstr ""
+msgstr "Zoeken naar UDP host cache %s"
 
 #: src/core/uhc.c:355
 #, c-format
 msgid "Sent ping to UDP host cache %s:%u"
-msgstr ""
+msgstr "Ping naar UDP host cache %s verzonden: %u"
 
 #: src/core/uhc.c:524
 #, c-format
 msgid "Got %d host from UDP host cache %s:%u"
 msgid_plural "Got %d hosts from UDP host cache %s:%u"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Ontving %d host van de UDP host cache %s:%u%d"
+msgstr[1] "Ontving %d hosts van de UDP host cache %s:%u%d"
 
 #: src/core/uploads.c:421
-#, fuzzy
 msgid "Connect back timeout"
-msgstr "Verbonden timeout"
+msgstr "Terug verbinden tijd verstreken"
 
 #: src/core/uploads.c:428
-#, fuzzy
 msgid "Lifetime expired"
-msgstr "verstreken"
+msgstr "Levenstijd verstreken"
 
 #: src/core/uploads.c:510
 #, c-format
 msgid "Banned: %s"
-msgstr ""
+msgstr "Verbannen: %s"
 
 #: src/core/uploads.c:512
 #, c-format
 msgid "Banned for %s"
-msgstr ""
+msgstr "Verbannen voor %s"
 
 #: src/core/uploads.c:1650
 #, fuzzy
 msgid "Unable to send GIV"
-msgstr "\"push\" verzenden mislukt"
+msgstr "Niet mogelijk om GIV te verzenden"
 
 #: src/core/uploads.c:2519
 msgid "<Browse Host Request>"
-msgstr ""
+msgstr "<Browse host verzoek>"
 
 #: src/core/uploads.c:2652
 msgid "Browse Host Enabled"
-msgstr ""
+msgstr "Browse host geactiveerd"
 
 #: src/core/uploads.c:2665
 #, c-format
 msgid "<Browse Host Request> [%s%s%s]"
-msgstr ""
+msgstr "<Browse host verzoek> [%s%s%s]"
 
 #: src/core/uploads.c:2666
 #, fuzzy
 msgid "query hits"
-msgstr "TX zoekresultaten"
+msgstr "zoek resultaten"
 
 #: src/core/uploads.c:2667
 msgid ", deflate"
-msgstr ""
+msgstr ", deflate"
 
 #: src/core/uploads.c:2668
 msgid ", gzip"
-msgstr ""
+msgstr ", gzip"
 
 #: src/core/uploads.c:2669
 msgid ", chunked"
-msgstr ""
+msgstr ", chunked"
 
 #: src/core/uploads.c:3329
 msgid "Stalling upload replaced"
@@ -785,121 +771,116 @@ msgstr ""
 #: src/core/uploads.c:3492
 #, fuzzy, c-format
 msgid "Queued (slot %d, ETA: %s)"
-msgstr "In de wacht (%d) (slot %d / %d), maximale tijd: %s"
+msgstr "In de wacht (slot %d, geschatte resterende tijd: %s)"
 
 #: src/core/uploads.c:3726
 msgid "Cannot send whole HTTP status"
-msgstr ""
+msgstr "Kon niet de hele HTTP status versturen"
 
 #: src/core/uploads.c:3827
 msgid "Write exception"
-msgstr ""
+msgstr "Schrijf exceptie"
 
 #: src/core/uploads.c:3898
 #, c-format
 msgid "File read error: %s"
-msgstr ""
+msgstr "Bestand lees fout: %s"
 
 #: src/core/uploads.c:3902
 #, fuzzy
 msgid "File EOF?"
-msgstr "Gefaalt"
+msgstr "Bestand EOF?"
 
 #: src/core/uploads.c:3935
 #, c-format
 msgid "Data write error: %s"
-msgstr ""
+msgstr "Data schrijf fout: %s"
 
 #: src/core/uploads.c:3939
 msgid "No bytes written, source may be gone"
-msgstr ""
+msgstr "Geen bytes geschreven, bron weg?"
 
 #: src/core/uploads.c:4058
 #, c-format
 msgid "Special read error: %s"
-msgstr ""
+msgstr "Speciale lees fout: %s"
 
 #: src/core/uploads.c:4101
 #, fuzzy
 msgid "Explicitly killed"
-msgstr "Uitdrukkelijk opnieuw in de wachtrij gezet"
+msgstr "Uitdrukkelijk gedood"
 
 #: src/core/uploads.c:4126
 #, fuzzy
 msgid "IP denying uploads"
-msgstr "Aantal uploads die draaien"
+msgstr "IP weigert uploads"
 
 #: src/core/version.c:353
 #, c-format
 msgid " - Newer versions available: release %s / from CVS %s"
-msgstr ""
+msgstr " - Nieuwere versie beschikbaar: Versie %s / van CVS %s"
 
 #: src/core/version.c:357
 #, c-format
 msgid " - Newer version available: release %s"
-msgstr ""
+msgstr " - Nieuwere versie beschikbaar: versie %s"
 
 #: src/core/version.c:361
 #, c-format
 msgid " - Newer version available: from CVS %s"
-msgstr ""
+msgstr " - Nieuwere versie beschikbaar van CVS %s"
 
 #: src/if/gnet_property.c:264
-#, fuzzy
 msgid "No proxy"
-msgstr "proxy"
+msgstr "Geen proxy"
 
 #: src/if/gnet_property.c:265
 msgid "HTTP"
-msgstr ""
+msgstr "HTTP"
 
 #: src/if/gnet_property.c:266
 msgid "SOCKS v4"
-msgstr ""
+msgstr "SOCKS v4"
 
 #: src/if/gnet_property.c:267
 msgid "SOCKS v5"
-msgstr ""
+msgstr "SOCKS v5"
 
 #: src/if/gnet_property.c:273
 msgid "IPv4 only"
-msgstr ""
+msgstr "Alleen IPv4"
 
 #: src/if/gnet_property.c:274
 msgid "IPv6 only"
-msgstr ""
+msgstr "Alleen IPv6"
 
 #: src/if/gnet_property.c:275
 msgid "IPv4 and IPv6"
-msgstr ""
+msgstr "IPv4 en IPv6"
 
 #: src/if/gnet_property.c:404
 msgid "displayed normally"
-msgstr ""
+msgstr "normaal weergegeven"
 
 #: src/if/gnet_property.c:405
 msgid "displayed marked"
-msgstr ""
+msgstr "gemarkeerd weergeven"
 
 #: src/if/gnet_property.c:406
-#, fuzzy
 msgid "not displayed"
-msgstr "gnutellaNet weergave"
+msgstr "niet weergegeven"
 
 #: src/if/gnet_property.c:412
-#, fuzzy
 msgid "auto (recommended)"
-msgstr "Aanbevolen"
+msgstr "automatisch (aanbevolen)"
 
 #: src/if/gnet_property.c:413 src/if/gnet_property.c:420
-#, fuzzy
 msgid "ultra node"
-msgstr "Ultrapeer modus"
+msgstr "ultra-node"
 
 #: src/if/gnet_property.c:414 src/if/gnet_property.c:422
-#, fuzzy
 msgid "leaf node"
-msgstr "Lokale node"
+msgstr "leaf node"
 
 #: src/if/gnet_property.c:632
 #, fuzzy
@@ -919,6 +900,7 @@ msgid ""
 "download but also harm the network since you're not supporting the newest "
 "features."
 msgstr ""
+"Geeft aan dat gtk-gnutella vind dat de versie die je draait heel erg oud is. Je zou zo spoedig mogelijk moeten upgraden om te voorkomen dat je te maken krijgt met niet-optimaal Gnutella ondersteuning. Dit is niet alleen gelimiteerd tot het zoeken en downloaden, maar beschadigd ook het netwerk doordat je niet de nieuwste features ondersteunt."
 
 #: src/if/gnet_property.c:683
 #, fuzzy
@@ -939,9 +921,10 @@ msgid ""
 "provide decent range for searches."
 msgstr ""
 "Probeer tenminste dit aantal connecties te handhaven naar andere servents "
-"die van het zelfde type zijn (normale of ultra nodes). Om inkomende "
+"die van het zelfde type zijn (normale-, of ultra-nodes). Om inkomende "
 "connecties te accepteren moet deze waarde lager zijn dat het maximaal aantal "
 "connecties."
+"Hou er rekening mee dat de standaard TTL op Gnutella 4 is, daarom moet dit tenminste 30 zijn for goede zoek resultaten"
 
 #: src/if/gnet_property.c:724
 msgid ""
@@ -1011,32 +994,32 @@ msgstr ""
 #, fuzzy
 msgid ""
 "Don't upload more than this number of files in parallel to a single host."
-msgstr "Upload niet meer dan dit aantal bestanden tegelijk naar één host"
+msgstr "Upload niet meer dan dit aantal bestanden tegelijk naar één host."
 
 #: src/if/gnet_property.c:904
 #, fuzzy
 msgid "Local IP address last determined."
-msgstr "Lokaal IP adres laatst bepaald"
+msgstr "Laatst bekende IP-adres."
 
 #: src/if/gnet_property.c:925
 #, fuzzy
 msgid "When the current IP address was determined."
-msgstr "Wanneer het hudige IP adres voor het laatst is vastgesteld"
+msgstr "Wanneer het hudige IP adres voor het laatst is vastgesteld."
 
 #: src/if/gnet_property.c:945
 #, fuzzy
 msgid "Average uptime with the same IP address."
-msgstr "Gemiddelde uptime met hetzelfde IP adres"
+msgstr "Gemiddelde uptime met hetzelfde IP-adres"
 
 #: src/if/gnet_property.c:965
 #, fuzzy
 msgid "Timestamp at which servent was started."
-msgstr "Tijd markering op het moment dat de servent werd gestart"
+msgstr "Tijd markering op het moment dat de servent werd gestart."
 
 #: src/if/gnet_property.c:985
 #, fuzzy
 msgid "Average servent uptime."
-msgstr "Gemiddelde servent uptime in seconden"
+msgstr "Gemiddelde servent uptime."
 
 #: src/if/gnet_property.c:1005
 #, fuzzy
@@ -1056,8 +1039,7 @@ msgstr ""
 #: src/if/gnet_property.c:1025
 #, fuzzy
 msgid "Use this IP address as source address if 'force local ip' is activated."
-msgstr ""
-"Gebruik dit IP adres als bron adres als 'forceer lokaal ip' is geactiveerd"
+msgstr "Gebruik dit IP-adres als bron adres als 'forceer lokaal ip' is geactiveerd."
 
 #: src/if/gnet_property.c:1046
 msgid ""
@@ -1091,9 +1073,7 @@ msgid ""
 "packets as necessary.  To avoid network flooding, keep this to a reasonable "
 "value."
 msgstr ""
-"Maximaal dit aantal resultaten terug sturen bij een query, door gebruik te "
-"maken van zoveel query hit pakketten als nodig is. Laat dit op een redelijke "
-"waarde om netwerk 'flooding' te voorkomen."
+"Maximaal dit aantal resultaten terug sturen bij een zoek opdracht, door gebruik te maken van zoveel zoekresultaten pakketten als nodig is. Laat dit op een redelijke waarde om netwerk 'flooding' te voorkomen."
 
 #: src/if/gnet_property.c:1103
 #, fuzzy
@@ -1102,36 +1082,32 @@ msgid ""
 "additional upload slots."
 msgstr ""
 "Sta aanvullende uploads toe zolang dit percentage van de bandbreedte niet is "
-"gebruikt"
+"gebruikt."
 
 #: src/if/gnet_property.c:1123
 #, fuzzy
 msgid "Number of seconds before a download connect attempt times out."
-msgstr "Timeout in seconden voor een download connectie poging"
+msgstr "De tijd in seconden voordat een download-verbinden poging wordt opgegeven."
 
 #: src/if/gnet_property.c:1143
 #, fuzzy
 msgid "Number of seconds before a push request times out."
-msgstr "Timeout in seconden voor een push aanvraag"
+msgstr "De tijd in seconden voordat een push-aanvraag wordt opgegeven."
 
 #: src/if/gnet_property.c:1163
 #, fuzzy
 msgid "Number of seconds before a download times out if no data is received."
-msgstr "Timeout in seconden voor een download als er geen data wordt ontvangen"
+msgstr "De tijd in seconden voordat een download wordt opgegeven als er geen data is ontvangen."
 
 #: src/if/gnet_property.c:1183
 #, fuzzy
 msgid "Minimum number of seconds to wait on auto-retry timeouts."
-msgstr ""
-"Minimaal aantal seconden dat gewacht moet worden bij een timeout voor "
-"automatisch opnieuw proberen"
+msgstr "De tijd in seconden dat gewacht moet worden bij het automatisch opnieuw proberen van opgegeven pogingen."
 
 #: src/if/gnet_property.c:1203
 #, fuzzy
 msgid "Maximum number of seconds to wait on auto-retry timeouts."
-msgstr ""
-"Maximaal aantal seconden dat gewacht moet worden bij een timeout voor "
-"automatisch opnieuw proberen"
+msgstr "De tijd in seconden voordat een automatisch opnieuw proberen poging wordt opgegeven."
 
 #: src/if/gnet_property.c:1223
 #, fuzzy
@@ -1139,22 +1115,19 @@ msgid ""
 "Maximum number of attempts to download a file not counting HTTP busy "
 "indications."
 msgstr ""
-"Maximaal aantal keren dat er opnieuw geprobeerd moet worden een bestand te "
-"downloaden. Hierbij worden de HTTP bezig indicaties niet meegeteld"
+"Maximaal aantal keren dat er opnieuw geprobeerd moet worden een bestand te downloaden. Hierbij worden de HTTP bezig indicaties niet meegeteld."
 
 #: src/if/gnet_property.c:1243
 #, fuzzy
 msgid "Delay in seconds before retrying after a connection timed out."
-msgstr ""
-"Vertraging in seconden voordat een connectie timeout opnieuw wordt geprobeerd"
+msgstr "De vertraging in seconden voordat een opgegeven verbinding opnieuw wordt geprobeerd."
 
 #: src/if/gnet_property.c:1263
 #, fuzzy
 msgid ""
 "Delay in seconds before retrying after getting a 'busy' response from a host."
 msgstr ""
-"Vertraging in seconden voordat een download opnieuw wordt geprobeerd na een "
-"'bezig' antwoord van een host"
+"Vertraging in seconden voordat een download opnieuw wordt geprobeerd na een 'bezig' antwoord van een host."
 
 #: src/if/gnet_property.c:1283
 #, fuzzy
@@ -1162,8 +1135,7 @@ msgid ""
 "Delay in seconds before retrying after getting a 'connection refused' "
 "response from a host."
 msgstr ""
-"Vertraging in seconden voordat een download opnieuw wordt geprobeerd nadat "
-"er een 'verbinding geweigerd' antwoord kwam van een host"
+"Vertraging in seconden voordat een geweigerd antwoord van een host opnieuw wordt geprobeerd."
 
 #: src/if/gnet_property.c:1303
 #, fuzzy
@@ -1171,8 +1143,7 @@ msgid ""
 "Delay in seconds before retrying after a retry stopped (timed out, "
 "connection reset by peer, etc...)."
 msgstr ""
-"Vertraging in seconden voordat een opnieuw proberen gestopte download (time "
-"out, verbinding verbroken door peer, etc...) opnieuw wordt geprobeerd"
+"Vertraging in seconden voordat een opnieuw proberen gestopte download (time out, verbinding verbroken door peer, etc...) opnieuw wordt geprobeerd."
 
 #: src/if/gnet_property.c:1323
 msgid ""
@@ -1187,13 +1158,12 @@ msgstr ""
 
 #: src/if/gnet_property.c:1343
 #, fuzzy
-msgid ""
 "Number of seconds before an upload times out if no connection can be "
 "established during a push.  It is also the maximum amount of time we wait to "
 "get the whole HTTP request."
 msgstr ""
-"Aantal seconden dat gewacht moet worden als er geen connectie kan worden "
-"gecreëerd tijdens een push. Dit is tevens de maximale wachtijd om de "
+"Aantal seconden dat gewacht moet worden als er geen verbinding kan worden "
+"gemaakt tijdens een push. Dit is tevens de maximale wachtijd om de "
 "volledige HTTP aanvraag te verkrijgen."
 
 #: src/if/gnet_property.c:1363
@@ -1202,7 +1172,7 @@ msgid ""
 "Number of seconds after which an upload times out if no data is transmitted."
 msgstr ""
 "Aantal seconden dat gewacht moet voordat een verbinding wordt gesloten als "
-"er geen data wordt verstuurd"
+"er geen data wordt verstuurd."
 
 #: src/if/gnet_property.c:1383
 #, fuzzy
@@ -1212,10 +1182,9 @@ msgid ""
 "it too low or you will damage the Gnutella network.  A delay of half an hour "
 "is fine."
 msgstr ""
-"Aantal seconden dat gewacht moet worden voordat een zoek opdracht opnieuw "
-"wordt gegenereerd om nieuwe resultaten te verkrijgen. Wees voorzichtig met "
+"Aantal seconden dat gewacht moet worden voordat een zoek opdracht opnieuw wordt verstuurd om nieuwe resultaten te verkrijgen. Wees voorzichtig met "
 "deze instelling en zet deze waarde niet te laag, anders beschadig je het "
-"Gnutella netwerk. Een vertraging van een half uur is voldoende."
+"Gnutella netwerk. Een vertraging van minimaal een half uur is voldoende."
 
 #: src/if/gnet_property.c:1403
 #, fuzzy
@@ -1228,13 +1197,13 @@ msgstr ""
 "Maximum verhouding van \"file descriptors\" dat gereserveerd moet worden "
 "voor een ban. Bijvoorbeeld: als je OS beschikking heeft over 350 \"file "
 "descriptors\" dan zal een verhouding van 10 maximaal 35 \"file descriptors\" "
-"reserveren. Om efficient te bannen diennen er ongeveer 100 \"descriptors\" "
+"reserveren. Om efficient te bannen dienen er ongeveer 100 \"descriptors\" "
 "beschikbaar te zijn."
 
 #: src/if/gnet_property.c:1423
 #, fuzzy
 msgid "Maximum number of file descriptors reserved for banning."
-msgstr "Maximaal aantal \"file descriptors\" gereserveerd voor banning."
+msgstr "Maximaal aantal \"file descriptors\" gereserveerd voor bannen."
 
 #: src/if/gnet_property.c:1443
 msgid ""
@@ -1247,8 +1216,7 @@ msgstr ""
 #: src/if/gnet_property.c:1463
 #, fuzzy
 msgid "Number of file descriptors we'll actually be using for banning."
-msgstr ""
-"Aantal \"file descriptors\" dat werkelijk gebruikt zal worden voor banning."
+msgstr "Aantal file descriptors dat daadwerkelijk gebruikt zal worden voor bannen."
 
 #: src/if/gnet_property.c:1483
 #, fuzzy
@@ -1265,8 +1233,7 @@ msgid ""
 "Number of seconds before a Gnet connect attempt times out if no connection "
 "can be established."
 msgstr ""
-"Tijd in seconden wanneer een Gnet connectie wordt verbroken als er geen "
-"connectie kon worden gecreëerd"
+"Aantal seconden voordat een Gnet verbindings poging wordt opgegeven als er geen verbinding kon worden gemaakt."
 
 #: src/if/gnet_property.c:1523
 #, fuzzy
@@ -1274,8 +1241,7 @@ msgid ""
 "Number of seconds before a Gnet connection times out if no data is "
 "transmitted."
 msgstr ""
-"Tijd in seconden voordat een Gnet connectie wordt verbroken als er geen data "
-"is verstuurd"
+"Aantal seconden voordat een Gnet bezig met verbinden poging wordt opgegeven indien er geen data is verstuurd."
 
 #: src/if/gnet_property.c:1543
 msgid ""
@@ -1301,7 +1267,7 @@ msgstr ""
 "Maximale percentage over 5 minuten tijd dat deze node in flow control modus "
 "mag blijven bij een remote host voordat de connectie wordt verbroken. Dit "
 "zal echter alleen werken als de remote node waarmee we verbonden zijn hops-"
-"flow berichten stuurt als we worden geflow-controlled"
+"flow berichten stuurt als we worden geflow-controlled."
 
 #: src/if/gnet_property.c:1603
 #, fuzzy
@@ -1311,9 +1277,8 @@ msgid ""
 "the standard is TTL=4, so you cannot set a value lower than that."
 msgstr ""
 "Maximale TTL waardie die wordt toegestaan in berichten die worden "
-"gebroadcast. Als een bericht binnen komt met een TTL groter dan deze waarde, "
-"dan zal die waarde worden aangepast naar deze waarde. Op Gnutella is de TTL "
-"waarde standaard 7 en kan daar niet lager dan 7 worden gezet."
+"gebroadcast. Als een bericht binnen komt met een TTL groter dan deze waarde, dan zal die waarde worden aangepast naar deze waarde. Op Gnutella is de TTL "
+"waarde standaard 4 en kan daar niet lager dan 4 worden gezet."
 
 #: src/if/gnet_property.c:1623
 #, fuzzy
@@ -1323,7 +1288,7 @@ msgid ""
 "by fellow gtk-gnutella nodes, or kicked out by some other servent."
 msgstr ""
 "De TTL waarde die gebruikt zal worden in berichten die verstuurd worden. De "
-"standaard op Gnutella is een TTL van 7. Als je deze waarde te hoog zet loop "
+"standaard op Gnutella is een TTL van 4. Als je deze waarde te hoog zet loop "
 "je het risico dat deze waarden naar beneden wordt bijgesteld door een andere "
 "gtk-gnutella node, of dat je wordt verwijderd door een andere servent."
 
@@ -1338,76 +1303,74 @@ msgid ""
 "parameter."
 msgstr ""
 "Maximale harde TTL limiet (hops + TTL) voor berichten die we doorsturen. "
-"Deze moet groter zijn dan de standaard TTL waarde van 7, omdat deze ook van "
-"toepassing is op berichten die terug worden gestuurd (zoekresultaten). "
-"Standaard gebroadcaste berichten hebben hun TTL gelimiteerd met de maximum "
-"TTL die je hebt ingesteld, en die limiet moet een stuk lager zijn dan deze "
+"Deze moet groter zijn dan de standaard TTL waarde van 4, omdat deze ook van toepassing is op berichten die terug worden gestuurd (zoekresultaten). "
+"Standaard gebroadcaste berichten hebben hun TTL gelimiteerd met de maximum TTL die je hebt ingesteld, en die limiet moet een stuk lager zijn dan deze "
 "waarde."
 
 #: src/if/gnet_property.c:1663
 #, fuzzy
 msgid "For development use: debug level."
-msgstr "Voor ontwikkeling: Debug level"
+msgstr "Voor ontwikkeling: Debug level."
 
 #: src/if/gnet_property.c:1683
 #, fuzzy
 msgid "Debug level for banning code."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor de ban code."
 
 #: src/if/gnet_property.c:1703
 #, fuzzy
 msgid "Debug level for download mesh management."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor de download mesh beheer."
 
 #: src/if/gnet_property.c:1723
 #, fuzzy
 msgid "Debug level for Gnutella messages."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor Gnutella berichten."
 
 #: src/if/gnet_property.c:1743
 #, fuzzy
 msgid "Debug level for file sharing code."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor de bestanden delen code."
 
 #: src/if/gnet_property.c:1763
 #, fuzzy
 msgid "Debug level for Gnutella nodes."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor Gnutella nodes."
 
 #: src/if/gnet_property.c:1783
 #, fuzzy
 msgid "Debug level for sockets."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor sockets."
 
 #: src/if/gnet_property.c:1803
 #, fuzzy
 msgid "Debug level for bootstraping into the network."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor de eerste keer verbinden met het netwerk."
 
 #: src/if/gnet_property.c:1823
 #, fuzzy
 msgid "Debug level for HTTP code."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor de HTTP-code."
 
 #: src/if/gnet_property.c:1843
 #, fuzzy
 msgid "Debug level for downloads."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor de downloads."
 
 #: src/if/gnet_property.c:1863
 #, fuzzy
 msgid "Debug level for fileinfo."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor de bestandsinformatie."
 
 #: src/if/gnet_property.c:1883
 #, fuzzy
 msgid "Debug level for uploads."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor de uploads."
 
 #: src/if/gnet_property.c:1903
 #, fuzzy
 msgid "Debug level for code shared between gui and core."
-msgstr "Debug level voor code die wordt gedeelt tussen de GUI en de core"
+msgstr "Debug level voor code die wordt gedeelt tussen de GUI en de core."
 
 #: src/if/gnet_property.c:1923
 msgid "Verbosity of Bitzi related debug messages."
@@ -1424,22 +1387,22 @@ msgstr ""
 #: src/if/gnet_property.c:1983
 #, fuzzy
 msgid "Debug level for dynamic query hit routing."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor de dynamische zoekresulte routering."
 
 #: src/if/gnet_property.c:2003
 #, fuzzy
 msgid "Debug level for dynamic queries."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor de dynamische zoekopdrachten."
 
 #: src/if/gnet_property.c:2023
 #, fuzzy
 msgid "Debug level for vendor messages."
-msgstr "Debug level voor de GUI"
+msgstr ""
 
 #: src/if/gnet_property.c:2043
 #, fuzzy
 msgid "Debug level for queries."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor zoekopdrachten."
 
 #: src/if/gnet_property.c:2063
 msgid "Debug level for searches and search results management."
@@ -1448,42 +1411,42 @@ msgstr ""
 #: src/if/gnet_property.c:2083
 #, fuzzy
 msgid "Debug level for the UDP traffic layer."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor de UDP verkeerslaag."
 
 #: src/if/gnet_property.c:2103
 #, fuzzy
 msgid "Debug level for the Query Routing Protocol."
-msgstr "Query Routing Protocol"
+msgstr "Debug level voor de Zoekopdrachten routering protocol (QRP)."
 
 #: src/if/gnet_property.c:2123
 #, fuzzy
 msgid "Debug level for message routing."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor de berichting routering."
 
 #: src/if/gnet_property.c:2143
 #, fuzzy
 msgid "Debug level for GGEP."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor GGEP."
 
 #: src/if/gnet_property.c:2163
 #, fuzzy
 msgid "Debug level for pong caching."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor pong caching."
 
 #: src/if/gnet_property.c:2183
 #, fuzzy
 msgid "Debug level for HSEP."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor HSEP."
 
 #: src/if/gnet_property.c:2203
 #, fuzzy
 msgid "Debug level for TLS."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor TLS."
 
 #: src/if/gnet_property.c:2223
 #, fuzzy
 msgid "Debug level for PARQ."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor PARQ."
 
 #: src/if/gnet_property.c:2243
 msgid ""
@@ -1514,47 +1477,47 @@ msgstr ""
 #: src/if/gnet_property.c:2300
 #, fuzzy
 msgid "For development use: track properties."
-msgstr "Voor ontwikkeling: Track properties"
+msgstr "Voor ontwikkeling: Track properties."
 
 #: src/if/gnet_property.c:2320
 #, fuzzy
 msgid "For development use: don't add new hosts to the hostcatcher."
-msgstr "Voor ontwikkeling: Voeg geen nieuwe hosts toe aan de hostcatcher"
+msgstr "Voor ontwikkeling: Voeg geen nieuwe hosts toe aan de hostcatcher."
 
 #: src/if/gnet_property.c:2337
 #, fuzzy
 msgid "Enable bandwidth limitation for incoming HTTP traffic."
-msgstr "Activeer het limiteren van bandbreedte voor inkomend HTTP verkeer"
+msgstr "Activeer het limiteren van bandbreedte voor inkomend HTTP verkeer."
 
 #: src/if/gnet_property.c:2354
 #, fuzzy
 msgid "Enable bandwidth limitation for outgoing HTTP traffic."
-msgstr "Activeer het limiteren van bandbreedte voor uitgaand HTTP verkeer"
+msgstr "Activeer het limiteren van bandbreedte voor uitgaand HTTP verkeer."
 
 #: src/if/gnet_property.c:2371
 #, fuzzy
 msgid "Enable bandwidth limitation for incoming Gnet traffic."
-msgstr "Activeer het limiteren van bandbreedte voor inkomend Gnet verkeer"
+msgstr "Activeer het limiteren van bandbreedte voor inkomend Gnet verkeer."
 
 #: src/if/gnet_property.c:2388
 #, fuzzy
 msgid "Enable bandwidth limitation for incoming Gnet leaf traffic."
-msgstr "Activeer het limiteren van bandbreedte voor inkomend Gnet leaf verkeer"
+msgstr "Activeer het limiteren van bandbreedte voor inkomend Gnet leaf verkeer."
 
 #: src/if/gnet_property.c:2405
 #, fuzzy
 msgid "Enable bandwidth limitation for outgoing Gnet traffic."
-msgstr "Activeer het limiteren van bandbreedte voor uitgaand Gnet verkeer"
+msgstr "Activeer het limiteren van bandbreedte voor uitgaand Gnet verkeer."
 
 #: src/if/gnet_property.c:2422
 #, fuzzy
 msgid "Enable bandwidth limitation for outgoing Gnet leaf traffic."
-msgstr "Activeer het limiteren van bandbreedte voor uitgaand Gnet leaf verkeer"
+msgstr "Activeer het limiteren van bandbreedte voor uitgaand Gnet leaf verkeer."
 
 #: src/if/gnet_property.c:2439
 #, fuzzy
 msgid "Enable dynamic upload slots allocation."
-msgstr "Activeer dynamische slot toewijzing"
+msgstr "Activeer dynamische upload slot toewijzing."
 
 #: src/if/gnet_property.c:2456
 #, fuzzy
@@ -1563,16 +1526,14 @@ msgid ""
 "If FALSE, unused bandwidth is lost."
 msgstr ""
 "Sta toe dat HTTP en Gnutella elkaars bandbreedte gebruiken dat de ander "
-"momenteel niet gebruikt. Als deze waarde NIET WAAR is dan zal ongebruikte "
+"momenteel niet gebruikt. Als deze waarde NIET WAAR is, dan zal ongebruikte "
 "bandbreedte verloren gaan."
 
 #: src/if/gnet_property.c:2473
-#, fuzzy
 msgid "Auto clear completed downloads."
-msgstr "Afgeronde downloads automatisch opschonen"
+msgstr "Afgeronde downloads automatisch opschonen."
 
 #: src/if/gnet_property.c:2490
-#, fuzzy
 msgid ""
 "Auto clear failed downloads (HTTP error, failure to resume, write error, "
 "etc...)."
@@ -1581,7 +1542,6 @@ msgstr ""
 "etc...) automatisch opschonen."
 
 #: src/if/gnet_property.c:2507
-#, fuzzy
 msgid ""
 "Auto clear unavailable downloads (connection timeout, push route lost, "
 "etc...)."
@@ -1592,17 +1552,17 @@ msgstr ""
 #: src/if/gnet_property.c:2524
 #, fuzzy
 msgid "Remove downloaded files from the search result."
-msgstr "Verwijder gedownloade bestand van de zoekresultaten"
+msgstr "Verberg gedownloade bestanden in de zoekresultaten."
 
 #: src/if/gnet_property.c:2541
 #, fuzzy
 msgid "Enable to use [forced_local_ip] as local ip."
-msgstr "Activeer het gebruik van [forced_local_ip] als lokaal ip"
+msgstr "Activeer het gebruik van [forced_local_ip] als lokaal ip."
 
 #: src/if/gnet_property.c:2558
 #, fuzzy
 msgid "Try to connect to local networks first."
-msgstr "Probeer eerst te verbinden met een lokaal netwerk"
+msgstr "Probeer eerst te verbinden met een lokaal netwerk."
 
 #: src/if/gnet_property.c:2575 src/ui/gtk/gtk2/interface-glade.c:10135
 #, fuzzy
@@ -1611,7 +1571,7 @@ msgid ""
 "Network. RFC1918 will be ignored."
 msgstr ""
 "Activeer dit als je GTK-Gnutella wilt gebruiken op je Lokale Netwerk (LAN). "
-"De RFC1918 zal dan worden genegeerd"
+"De RFC1918 zal dan worden genegeerd."
 
 #: src/if/gnet_property.c:2592
 #, fuzzy
@@ -1627,81 +1587,64 @@ msgstr ""
 "gecondigureerde host, LAN of ISP."
 
 #: src/if/gnet_property.c:2609
-#, fuzzy
 msgid "Remove files of aborted downloads from disk."
-msgstr "Verwijder de bestanden van afgebroken downloads van de schijf"
+msgstr "Verwijder afgebroken downloads bestanden van de schijf."
 
 #: src/if/gnet_property.c:2626
-#, fuzzy
 msgid "Use username and password to authenticate to proxy."
-msgstr ""
-"Gebruik een gebruikersnaam en wachtwoord om te authenticeren bij een proxy"
+msgstr "Gebruik een gebruikersnaam en wachtwoord om te authenticeren bij een proxy."
 
 #: src/if/gnet_property.c:2643
-#, fuzzy
 msgid "Username for proxy."
-msgstr "Gebruikersnaam voor de proxy"
+msgstr "Gebruikersnaam voor de proxy."
 
 #: src/if/gnet_property.c:2664
-#, fuzzy
 msgid "Password for proxy."
-msgstr "Wachtwoord voor de proxy"
+msgstr "Wachtwoord voor de proxy."
 
 #: src/if/gnet_property.c:2685
-#, fuzzy
 msgid "Address of the proxy."
-msgstr "IP adres van de proxy"
+msgstr "Adres van de proxy."
 
 #: src/if/gnet_property.c:2706
-#, fuzzy
 msgid "Hostname of the proxy."
-msgstr "Hostname adres van de proxy"
+msgstr "Hostnaam van de proxy."
 
 #: src/if/gnet_property.c:2727
-#, fuzzy
 msgid "TCP Port the proxy is listening on."
-msgstr "De TCP poort waarop de proxy luistert"
+msgstr "De TCP poort waarop de proxy luistert."
 
 #: src/if/gnet_property.c:2747
-#, fuzzy
 msgid "Protocol the proxy uses."
-msgstr "Protocol dat de proxy gebruikt"
+msgstr "Protocol dat door de proxy gebruikt."
 
 #: src/if/gnet_property.c:2767
-#, fuzzy
 msgid "Network protocols to use."
-msgstr "Protocol dat de proxy gebruikt"
+msgstr "Protocol door de proxy te gebruikten."
 
 #: src/if/gnet_property.c:2787
-#, fuzzy
 msgid "Current number of hosts in regular node caches."
-msgstr "Het aantal \"hosts\" in de reguliere node caches"
+msgstr "Het aantal hosts in de reguliere node caches."
 
 #: src/if/gnet_property.c:2807
-#, fuzzy
 msgid "Current number of hosts in ultra node caches."
-msgstr "Het aantal \"hosts\" in de ultra node caches"
+msgstr "Het aantal hosts in de ultra node caches."
 
 #: src/if/gnet_property.c:2827
-#, fuzzy
 msgid "Current number of hosts in bad node caches."
-msgstr "Het aantal \"hosts\" in de foute node caches"
+msgstr "Het aantal hosts in de foute node caches."
 
 #: src/if/gnet_property.c:2847
-#, fuzzy
 msgid "Maximum number of hosts in the regular node catcher."
-msgstr "Maximum aantal of hosts in de normale node catcher"
+msgstr "Maximum aantal of hosts in de normale node catcher."
 
 #: src/if/gnet_property.c:2867
-#, fuzzy
 msgid "Maximum number of hosts in the ultra node catcher."
-msgstr "Maximum aantal hosts in de ultra node catcher"
+msgstr "Maximum aantal hosts in de ultra node catcher."
 
 #: src/if/gnet_property.c:2887
-#, fuzzy
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
-msgstr ""
-"Maximum aantal hosts in de BEZET, INSTABIEL en TIJD VERSTREKEN lijsten."
+msgstr "Maximum aantal hosts in de BEZET, INSTABIEL en TIJD VERSTREKEN lijsten."
 
 #: src/if/gnet_property.c:2907
 msgid ""
@@ -1712,33 +1655,28 @@ msgstr ""
 "tevens MAX_HIGH_TTL_RADIUS"
 
 #: src/if/gnet_property.c:2927
-#, fuzzy
 msgid ""
 "Hop radius for counting high TTL limit messages (# hops lower than...). See "
 "also MAX_HIGH_TTL_MSG"
 msgstr ""
-"De rijkwijdte for het tellen van hoge TTK-limiet berichten (# hops kleiner "
+"De rijkwijdte for het tellen van hoge TTL-limiet berichten (# hops kleiner "
 "dan...) Zie ook MAX_HIGH_TTL_MSG"
 
 #: src/if/gnet_property.c:2947
-#, fuzzy
 msgid "Bandwidth limit for incoming HTTP traffic in bytes/sec."
-msgstr "Bandbreedte limiet voor inkomend HTTP verkeer in bytes/sec"
+msgstr "Bandbreedte limiet voor inkomend HTTP verkeer in bytes/sec."
 
 #: src/if/gnet_property.c:2967
-#, fuzzy
 msgid "Bandwidth limit for outgoing HTTP traffic in bytes/sec."
-msgstr "Bandbreedte limiet voor uitgaand HTTP verkeer in bytes/sec"
+msgstr "Bandbreedte limiet voor uitgaand HTTP verkeer in bytes/sec."
 
 #: src/if/gnet_property.c:2987
-#, fuzzy
 msgid "Bandwidth limit for incoming Gnet traffic in bytes/sec."
-msgstr "Bandbreedte limiet voor inkomend gNet verkeer in bytes/sec"
+msgstr "Bandbreedte limiet voor inkomend gNet verkeer in bytes/sec."
 
 #: src/if/gnet_property.c:3007
-#, fuzzy
 msgid "Bandwidth limit for outgoing Gnet traffic in bytes/sec."
-msgstr "Bandbreedte limiet voor uitgaand gNet verkeer in bytes/sec"
+msgstr "Bandbreedte limiet voor uitgaand Gnet verkeer in bytes/sec."
 
 #: src/if/gnet_property.c:3027
 msgid ""
@@ -1763,47 +1701,41 @@ msgstr ""
 "geactiveerd."
 
 #: src/if/gnet_property.c:3067
-#, fuzzy
 msgid ""
 "Maximum size of search queries messages we forward to others  (in bytes)."
 msgstr ""
 "Maximale grootte van zoek opdracht berichten die we doorsturen naar anderen "
-"(in bytes)"
+"(in bytes)."
 
 #: src/if/gnet_property.c:3087
-#, fuzzy
 msgid ""
 "Maximum size of search queries messages we allow, otherwise close the "
 "connection (in bytes)."
 msgstr ""
-"Maximale grootte van zoek opdracht die we accepteren, anders wordt de "
-"verbinding gesloten (in bytes)"
+"Maximale grootte van zoek opdrachten die we accepteren, anders wordt de "
+"verbinding gesloten (in bytes)."
 
 #: src/if/gnet_property.c:3107
-#, fuzzy
 msgid ""
 "Maximum size of search answers messages we forward to others (in bytes)."
 msgstr ""
-"Maximale grootte van de antwoorden op zoek opdrachten die we doorsturen naar "
-"anderen (in bytes)"
+"Maximale grootte van de antwoorden op zoek opdrachten die we doorsturen naar anderen (in bytes)."
 
 #: src/if/gnet_property.c:3127
-#, fuzzy
 msgid ""
 "Maximum size of search answers messages we allow, otherwise close the "
 "connection (in bytes)."
 msgstr ""
 "Maximale grootte van de antwoorden op zoek opdrachten die we accepteren, "
-"anders wordt de verbinding gesloten (in bytes)"
+"anders wordt de verbinding gesloten (in bytes)."
 
 #: src/if/gnet_property.c:3147
-#, fuzzy
 msgid ""
 "Maximum size of unknown messages we allow, otherwise close the connection "
 "(in bytes)."
 msgstr ""
 "Maximale grootte van onbekende bericht die we accepteren, anders wordt de "
-"verbinding gesloten (in bytes)"
+"verbinding gesloten (in bytes)."
 
 #: src/if/gnet_property.c:3167
 msgid ""
@@ -5275,7 +5207,6 @@ msgid "Selected %u of %u queued download matching \"%s\"."
 msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
 msgstr[0] ""
 "%u van %u wachtende downloads geselecteerd die overeenkwamen met \"%s\"."
-msgstr[1] ""
 "%u van %u wachtende downloads geselecteerd die overeenkwamen met \"%s\"."
 
 #: src/ui/gtk/gtk1/fileinfo.c:143 src/ui/gtk/gtk2/fileinfo.c:324
@@ -9132,9 +9063,7 @@ msgstr[1] "Informatie over het geselecteerde bestand"
 #: src/ui/gtk/gtk1/search.c:1776
 #, c-format
 msgid "Discarded %u result"
-msgid_plural "Discarded %u results"
-msgstr[0] ""
-msgstr[1] ""
+msgstr ""
 
 #: src/ui/gtk/gtk1/search.c:2223 src/ui/gtk/gtk1/search.c:2229
 #: src/ui/gtk/gtk2/search.c:1355
@@ -9167,9 +9096,7 @@ msgstr ""
 #: src/ui/gtk/gtk1/search_cb.c:405
 #, c-format
 msgid "%d file auto selected with %d sources %s"
-msgid_plural "%d files auto selected with %d sources %s"
-msgstr[0] ""
-msgstr[1] ""
+msgstr ""
 
 #: src/ui/gtk/gtk1/search_cb.c:407
 #, fuzzy
@@ -9785,9 +9712,7 @@ msgstr[1] "item"
 
 #: src/ui/gtk/search_common.c:1135
 msgid "dupe"
-msgid_plural "dupes"
-msgstr[0] ""
-msgstr[1] ""
+msgstr ""
 
 #: src/ui/gtk/search_common.c:1138
 msgid "No search"
@@ -9995,3 +9920,4 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 #: src/ui/gtk/uploads_common.c:205
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
+
