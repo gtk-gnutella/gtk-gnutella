@@ -12,7 +12,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-10-27 16:06+0900\n"
-"PO-Revision-Date: 2005-09-11 17:19+0900\n"
+"PO-Revision-Date: 2005-10-27 16:43+0200\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
@@ -46,12 +46,11 @@ msgstr "Ingeslapen (SHA1 verifieren)"
 #: src/core/downloads.c:2773
 #, c-format
 msgid " at %s - rescheduled for %s"
-msgstr ""
+msgstr " op %s - opnieuw gepland voor %s"
 
 #: src/core/downloads.c:3173
-#, fuzzy
 msgid "Waiting for a free chunk"
-msgstr ""
+msgstr "Wacht op een vrije chunk"
 
 #: src/core/downloads.c:3327
 #, fuzzy
@@ -766,7 +765,7 @@ msgstr ", chunked"
 
 #: src/core/uploads.c:3329
 msgid "Stalling upload replaced"
-msgstr ""
+msgstr "Hangende upload vervangen"
 
 #: src/core/uploads.c:3492
 #, fuzzy, c-format
@@ -1158,9 +1157,7 @@ msgstr ""
 
 #: src/if/gnet_property.c:1343
 #, fuzzy
-"Number of seconds before an upload times out if no connection can be "
-"established during a push.  It is also the maximum amount of time we wait to "
-"get the whole HTTP request."
+msgid ""
 msgstr ""
 "Aantal seconden dat gewacht moet worden als er geen verbinding kan worden "
 "gemaakt tijdens een push. Dit is tevens de maximale wachtijd om de "
@@ -1248,6 +1245,7 @@ msgid ""
 "Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150 "
 "percent of the maximum message size."
 msgstr ""
+"Maximum grootte van de verzend rij voor de nodes (in bytes). Dit moet tenminste 150 procent zijn van de maximum bericht grootte."
 
 #: src/if/gnet_property.c:1563
 msgid ""
@@ -1374,15 +1372,15 @@ msgstr "Debug level voor code die wordt gedeelt tussen de GUI en de core."
 
 #: src/if/gnet_property.c:1923
 msgid "Verbosity of Bitzi related debug messages."
-msgstr ""
+msgstr "Detail level voor Bitiz gerelateerde debug berichten."
 
 #: src/if/gnet_property.c:1943
 msgid "Verbosity of GWebCache related debug messages."
-msgstr ""
+msgstr "Detail level voor GWebCache gerelateerde debug berichten."
 
 #: src/if/gnet_property.c:1963
 msgid "Verbosity of URL handling related debug messages."
-msgstr ""
+msgstr "Detail level voor URL afhandeling gerelateerde debug berichten."
 
 #: src/if/gnet_property.c:1983
 #, fuzzy
@@ -1395,9 +1393,8 @@ msgid "Debug level for dynamic queries."
 msgstr "Debug level voor de dynamische zoekopdrachten."
 
 #: src/if/gnet_property.c:2023
-#, fuzzy
 msgid "Debug level for vendor messages."
-msgstr ""
+msgstr "Detail level voor vendor berichten."
 
 #: src/if/gnet_property.c:2043
 #, fuzzy
@@ -1406,7 +1403,7 @@ msgstr "Debug level voor zoekopdrachten."
 
 #: src/if/gnet_property.c:2063
 msgid "Debug level for searches and search results management."
-msgstr ""
+msgstr "Debug level voor zoekopdrachten en zoekresultaten beheer."
 
 #: src/if/gnet_property.c:2083
 #, fuzzy
@@ -1454,6 +1451,7 @@ msgid ""
 "not set PARQ will caclulate using a worst case scenario.  The default is to "
 "be optimistic."
 msgstr ""
+"PARQ zal de geschatte eindtijd en opnieuw proberen tijden optimistischer bereknen indien dit is geactiveerd. Anders wordt er uit gegaan van het ergste scenario. Standaard is om optimistisch te zijn."
 
 #: src/if/gnet_property.c:2260
 msgid ""
@@ -1465,6 +1463,7 @@ msgid ""
 "whether we can still bypass queuing. Set to 0 to disable this size-based "
 "bypassing feature and only rely on time-based bypassing."
 msgstr ""
+"De maximum grootte in bytes van een upload zodat deze niet door PARQ in de wacht wordt gezet maar direct mag doorgaan. Als een client echter meerdere kleine brokken achter elkaar vraagt en de som van deze blokken is alsnog groter dan deze waarde, dan wordt de upload alsnog in de wacht gezet. Zet dit op 0 om dit uit te zetten en alleen de tijd-gerelateerde PARQ omzeiling te gebruiken"
 
 #: src/if/gnet_property.c:2280
 msgid ""
@@ -1473,6 +1472,7 @@ msgid ""
 "file size-based bypassing. Set to 0 to disable this time-based bypassing "
 "feature."
 msgstr ""
+"Als er verwacht wordt dat een upload korter dan dit aantal seconden in beslag zal nemen, dan zal PARQ deze upload niet in de wachtrij zetten. Deze controle wordt gedaan NA de bestandsgrootte omzeiling. Om dit uit te schakelen kies hier 0."
 
 #: src/if/gnet_property.c:2300
 #, fuzzy
@@ -1942,6 +1942,7 @@ msgid ""
 "100 means the filenames must be 100% identical.  A value of 0 means any two "
 "filenames will always be considered to be identical.  The minimum is 50%."
 msgstr ""
+"Overeenkomst fuzziness drempel voor bestandsnamen. Een drempel waarde van 100 betekent dat de bestandsnaam 100% gelijk moet zijn. Een drempel waarde van 0 betekent dat elke bestandsnaam overeenkomt. Het minimum is 50%."
 
 #: src/if/gnet_property.c:3663
 #, fuzzy
@@ -2203,6 +2204,7 @@ msgid ""
 "When partial file sharing (PFSP) is enabled, gtk-gnutella will not share "
 "partial files below this filesize. Don't set it too large."
 msgstr ""
+"Als gedeeltelijke bestands deling (PFSP) geactiveerd is, dan zal gtk-gnutella geen gedeeltelijke bestanden delen die kleiner zijn dan deze bestandsgrootte. Zet dit niet te groot."
 
 #: src/if/gnet_property.c:4318
 #, fuzzy
@@ -2238,10 +2240,11 @@ msgid ""
 "determine whether your host is kept synchronized by regular calls to "
 "ntpdate, for instance."
 msgstr ""
+"Of de klok op deze host accuraat wordt bijgehouden dmv NTP. Als dit is geactiveerd dan wordt de berekende klok afwijking genegeerd. Normaal gesproken detecteert gtk-gnutella automatisch of NTP lokaal wordt gebruikt. Maar het is niet in staat om andere methodes, zoals regelmatige ntpdates te detecteren."
 
 #: src/if/gnet_property.c:4392
 msgid "Whether a running NTP daemon was detected locally."
-msgstr ""
+msgstr "Of er lokaal een draaiende NTP daemon is gedetecteerd."
 
 #: src/if/gnet_property.c:4409
 msgid ""
@@ -2652,17 +2655,18 @@ msgstr ""
 
 #: src/if/gnet_property.c:5383
 msgid "When set, gtk-gnutella will accept and handle G2 connections. "
-msgstr ""
+msgstr "Gtk-gnutella zal G2 verbindingen accepteren en behandelen indien geactiveerd."
 
 #: src/if/gnet_property.c:5400
 msgid "If set, spaces in filenames are replaced with underscores."
-msgstr ""
+msgstr "Spaties in bestandsnamen vervangen door underscores indien geactiveerd."
 
 #: src/if/gnet_property.c:5417
 msgid ""
 "If set, meta shell characters in filenames are replaced with underscores. "
 "(This must also be enabled for FAT partitions.)"
 msgstr ""
+"meta shell karakters in bestandsnamen worden vervangen door underscores indien geactiveerd. (Dit moet ook geactiveerd worden voor FAT partities)"
 
 #: src/if/gnet_property.c:5434
 msgid ""
@@ -2671,14 +2675,15 @@ msgid ""
 "existing filenames in your temporary downloading directory. By default, the "
 "above settings apply only on newly created entries, not existing ones."
 msgstr ""
+"Indien geactiveerd zal gtk-gnutella tijdens het opstarten bestandsnamen opschonen door spaties en/of gevaarlijke karakters te vervangen, overeenkomstig met je download instellingen. Standaard wordt dit alleen toegepast op nieuwe items, niet op bestaande."
 
 #: src/if/gnet_property.c:5451
 msgid "If set, all outgoing connections are tunneled over TLS."
-msgstr ""
+msgstr "Indien geactiveerd worden alle uitgaande verbindingen getunneld via TLS."
 
 #: src/if/gnet_property.c:5468
 msgid "If not set, support for Gnutella connection compression is disabled."
-msgstr ""
+msgstr "Indien niet geactiveerd dan wordt de ondersteuning voor compressie over gnutella verbindingen uitgeschakeld."
 
 #: src/if/gnet_property.c:5485
 msgid ""
