@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-10-27 23:50+0900\n"
-"PO-Revision-Date: 2005-10-28 13:37+0200\n"
+"PO-Revision-Date: 2005-10-28 21:19+0200\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
@@ -28,9 +28,8 @@ msgid "Timeout"
 msgstr "Tijd verstreken"
 
 #: src/core/downloads.c:1019
-#, fuzzy
 msgid "Requeued due to timeout"
-msgstr "Opnieuw in de wachtrij gezet na het afkappen van data"
+msgstr "Opnieuw in de wacht omdat de tijd is verstreken"
 
 #: src/core/downloads.c:1881
 msgid "Requeued by file info change"
@@ -52,12 +51,10 @@ msgid "Waiting for a free chunk"
 msgstr "Wacht op een vrije chunk"
 
 #: src/core/downloads.c:3327
-#, fuzzy
 msgid "No download slot (start)"
-msgstr "Geen download slot"
+msgstr "Geen download slot (start)"
 
 #: src/core/downloads.c:3373
-#, fuzzy
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "Connectie mislukt (Niet genoeg file-descriptors?)"
 
@@ -80,7 +77,7 @@ msgstr[0] "Timeout (%u pogingen)"
 msgstr[1] "Timeout (%u pogingen)"
 
 #: src/core/downloads.c:3635
-#, fuzzy, c-format
+#, c-format
 msgid "Connection refused (%u retry)"
 msgid_plural "Connection refused (%u retries)"
 msgstr[0] "Verbinding geweigerd (%u poging)"
@@ -91,9 +88,8 @@ msgid "Dup SHA1 during creation"
 msgstr "Dubbele SHA1 tijdens creatie"
 
 #: src/core/downloads.c:3965
-#, fuzzy
 msgid "No download slot (create)"
-msgstr "Geen download slot"
+msgstr "Geen download slot (aanmaken)"
 
 #: src/core/downloads.c:4195
 msgid "Stopped (Index changed)"
@@ -104,7 +100,7 @@ msgid "Explicitly requeued"
 msgstr "Uitdrukkelijk opnieuw in de wachtrij gezet"
 
 #: src/core/downloads.c:4690
-#, fuzzy, c-format
+#, c-format
 msgid "Stopped (%s)"
 msgstr "Gestopt (%s)"
 
@@ -124,7 +120,6 @@ msgid "Connection not kept-alive (EOF)"
 msgstr "Connectie bleef niet leven (EOF)"
 
 #: src/core/downloads.c:4725
-#, fuzzy
 msgid "Stopped (EOF)"
 msgstr "Gestopt (EOF)"
 
@@ -175,17 +170,15 @@ msgid "Stopped data (EOF)"
 msgstr "Data gestopt (EOF)"
 
 #: src/core/downloads.c:6230
-#, fuzzy
 msgid "Spammer detected"
-msgstr "SHA1 komt niet overeen"
+msgstr "Spammer gedetecteerd"
 
 #: src/core/downloads.c:6438 src/core/downloads.c:6943
-#, fuzzy
 msgid "Partial file on server, waiting"
-msgstr "Bestand gedeeltelijk op server, wacht..."
+msgstr "Gedeeltelijk bestand op de server, aan het wachten"
 
 #: src/core/downloads.c:6539
-#, fuzzy, c-format
+#, c-format
 msgid "Queued (slot %u/%u) ETA: %s"
 msgstr "In de wacht (slot %u / %u), geschatte resterende tijd: %s"
 
@@ -471,7 +464,7 @@ msgid "Failed (Header line too long)"
 msgstr "Mislukt (Header regel te lang)"
 
 #: src/core/nodes.c:5172 src/core/uploads.c:1300
-#, fuzzy, c-format
+#, c-format
 msgid "Failed (%s)"
 msgstr "Gefaalt (%s)"
 
@@ -489,7 +482,6 @@ msgid "Failed (Input error: %s)"
 msgstr "Mislukt (Invoer fout: %s)"
 
 #: src/core/nodes.c:5205 src/core/uploads.c:1326
-#, fuzzy
 msgid "Failed (EOF)"
 msgstr "Mislukt (EOF)"
 
@@ -728,7 +720,6 @@ msgid "Banned for %s"
 msgstr "Verbannen voor %s"
 
 #: src/core/uploads.c:1650
-#, fuzzy
 msgid "Unable to send GIV"
 msgstr "Niet mogelijk om GIV te verzenden"
 
@@ -746,7 +737,6 @@ msgid "<Browse Host Request> [%s%s%s]"
 msgstr "<Browse host verzoek> [%s%s%s]"
 
 #: src/core/uploads.c:2666
-#, fuzzy
 msgid "query hits"
 msgstr "zoek resultaten"
 
@@ -767,7 +757,7 @@ msgid "Stalling upload replaced"
 msgstr "Hangende upload vervangen"
 
 #: src/core/uploads.c:3492
-#, fuzzy, c-format
+#, c-format
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "In de wacht (slot %d, geschatte resterende tijd: %s)"
 
@@ -785,7 +775,6 @@ msgid "File read error: %s"
 msgstr "Bestand lees fout: %s"
 
 #: src/core/uploads.c:3902
-#, fuzzy
 msgid "File EOF?"
 msgstr "Bestand EOF?"
 
@@ -804,12 +793,10 @@ msgid "Special read error: %s"
 msgstr "Speciale lees fout: %s"
 
 #: src/core/uploads.c:4101
-#, fuzzy
 msgid "Explicitly killed"
 msgstr "Uitdrukkelijk gedood"
 
 #: src/core/uploads.c:4126
-#, fuzzy
 msgid "IP denying uploads"
 msgstr "IP weigert uploads"
 
@@ -881,14 +868,12 @@ msgid "leaf node"
 msgstr "leaf node"
 
 #: src/if/gnet_property.c:632
-#, fuzzy
 msgid "Indicates whether the hostcache file is being read."
-msgstr "Geeft aan of het hostcache bestand word gelezen"
+msgstr "Geeft aan of het hostcache bestand word gelezen."
 
 #: src/if/gnet_property.c:649
-#, fuzzy
 msgid "Indicates whether the ultracache file is being read."
-msgstr "Geeft aan of het ultracache bestand word gelezen"
+msgstr "Geeft aan of het ultracache bestand word gelezen."
 
 #: src/if/gnet_property.c:666
 msgid ""
@@ -905,16 +890,14 @@ msgstr ""
 "doordat je niet de nieuwste features ondersteunt."
 
 #: src/if/gnet_property.c:683
-#, fuzzy
 msgid ""
 "Gtk-Gnutella found a newer version on the Gnet and gives information about "
 "it here."
 msgstr ""
 "Gtk-gnutella heeft een nieuwere versie gevonden op het gNet en geeft deze "
-"informatie hier weer"
+"informatie hier weer."
 
 #: src/if/gnet_property.c:704
-#, fuzzy
 msgid ""
 "Try to keep at least this number of connections to other servents of the "
 "same kind as we are (normal or ultra nodes). This should be smaller than the "
@@ -939,7 +922,6 @@ msgstr ""
 "maximum aantal inkomende connecties."
 
 #: src/if/gnet_property.c:744
-#, fuzzy
 msgid ""
 "Don't allow more than this number of connections to other servents.  As a "
 "rule of thumb you should reserve 256 b/s bandwidth per connection. Never use "
@@ -947,10 +929,10 @@ msgid ""
 "advisable that you set this to a value smaller than 30."
 msgstr ""
 "Sta niet meer dan dit aantal connecties toe naar andere servents. Ter "
-"indicatie, er dient rekening te worden gehouden met 512 b/s aan bandbreedte "
+"indicatie, er dient rekening te worden gehouden met 256 b/s aan bandbreedte "
 "per connectie. Gebruik nooit alle beschikbare bandbreedte, laat wat ruimte "
-"over voor de TCP/IP overhead. Het wordt afgeraden om deze waarde groter te "
-"zetten dan 40."
+"over voor de TCP/IP overhead. Het wordt afgeraden om deze waarde kleiner te "
+"zetten dan 30."
 
 #: src/if/gnet_property.c:764
 msgid "Number of leaf nodes currently connected."
@@ -965,7 +947,6 @@ msgid "Number of ultra nodes currently connected."
 msgstr "Aantal momenteel verbonden ultra nodes"
 
 #: src/if/gnet_property.c:824
-#, fuzzy
 msgid ""
 "Don't start more than this number of parallel downloads.  Others will remain "
 "in the queue waiting for a download slot."
@@ -974,7 +955,6 @@ msgstr ""
 "totdat er een download slot beschikbaar komt."
 
 #: src/if/gnet_property.c:844
-#, fuzzy
 msgid ""
 "Don't make more connections than given here to a single host to download a "
 "file.  Be nice to others, and leave it at the default value (1)."
@@ -993,38 +973,31 @@ msgstr ""
 "deze waarde minimaal op 2 te zetten."
 
 #: src/if/gnet_property.c:884
-#, fuzzy
 msgid ""
 "Don't upload more than this number of files in parallel to a single host."
 msgstr "Upload niet meer dan dit aantal bestanden tegelijk naar één host."
 
 #: src/if/gnet_property.c:904
-#, fuzzy
 msgid "Local IP address last determined."
 msgstr "Laatst bekende IP-adres."
 
 #: src/if/gnet_property.c:925
-#, fuzzy
 msgid "When the current IP address was determined."
-msgstr "Wanneer het hudige IP adres voor het laatst is vastgesteld."
+msgstr "Wanneer het huidige IP adres voor het laatst is vastgesteld."
 
 #: src/if/gnet_property.c:945
-#, fuzzy
 msgid "Average uptime with the same IP address."
-msgstr "Gemiddelde uptime met hetzelfde IP-adres"
+msgstr "Gemiddelde uptime met hetzelfde IP-adres."
 
 #: src/if/gnet_property.c:965
-#, fuzzy
 msgid "Timestamp at which servent was started."
-msgstr "Tijd markering op het moment dat de servent werd gestart."
+msgstr "Tijdstip op het moment dat de servent werd gestart."
 
 #: src/if/gnet_property.c:985
-#, fuzzy
 msgid "Average servent uptime."
 msgstr "Gemiddelde servent uptime."
 
 #: src/if/gnet_property.c:1005
-#, fuzzy
 msgid ""
 "Local TCP port gtk-gnutella is listening on. Your ISP may block or choke "
 "traffic on TCP port 6346 so it would be a good idea to change it to "
@@ -1034,12 +1007,11 @@ msgid ""
 msgstr ""
 "De lokale poort waarop gtk-gnutella luistert. Uw ISP kan verkeer op poort "
 "6346 blokkeren of vertragen zodat het een goed idee is om dit te veranderen "
-"naar iets in de reeks 1024-65535.  Vergeet niet, indien nodig, je firewall "
+"naar iets in de reeks 1024-65535. Vergeet niet, indien nodig, je firewall "
 "hiervoor in te stellen. Standaard wordt poort 6346 niet gebruikt als "
 "voorzorgsmaatregel tegen onnodige censuur."
 
 #: src/if/gnet_property.c:1025
-#, fuzzy
 msgid "Use this IP address as source address if 'force local ip' is activated."
 msgstr ""
 "Gebruik dit IP-adres als bron adres als 'forceer lokaal ip' is geactiveerd."
@@ -1070,7 +1042,6 @@ msgstr ""
 "instelling) dan wordt de geconfigureerde bandbreedte niet gebruikt."
 
 #: src/if/gnet_property.c:1083
-#, fuzzy
 msgid ""
 "Return at most this number of results to a query, using as many query hit "
 "packets as necessary.  To avoid network flooding, keep this to a reasonable "
@@ -1081,7 +1052,6 @@ msgstr ""
 "op een redelijke waarde om netwerk 'flooding' te voorkomen."
 
 #: src/if/gnet_property.c:1103
-#, fuzzy
 msgid ""
 "Unless this percentage or more of the upload bandwidth is used, allow "
 "additional upload slots."
@@ -1090,39 +1060,33 @@ msgstr ""
 "gebruikt."
 
 #: src/if/gnet_property.c:1123
-#, fuzzy
 msgid "Number of seconds before a download connect attempt times out."
 msgstr ""
-"De tijd in seconden voordat een download-verbinden poging wordt opgegeven."
+"Tijd in seconden voordat een download-verbinden poging wordt opgegeven."
 
 #: src/if/gnet_property.c:1143
-#, fuzzy
 msgid "Number of seconds before a push request times out."
-msgstr "De tijd in seconden voordat een push-aanvraag wordt opgegeven."
+msgstr "Secondes voordat een push-aanvraag wordt opgegeven."
 
 #: src/if/gnet_property.c:1163
-#, fuzzy
 msgid "Number of seconds before a download times out if no data is received."
 msgstr ""
-"De tijd in seconden voordat een download wordt opgegeven als er geen data is "
+"Secondes voordat een download wordt opgegeven als er geen gegevens zijn "
 "ontvangen."
 
 #: src/if/gnet_property.c:1183
-#, fuzzy
 msgid "Minimum number of seconds to wait on auto-retry timeouts."
 msgstr ""
-"De tijd in seconden dat gewacht moet worden bij het automatisch opnieuw "
+"Secondes dat gewacht moet worden bij het automatisch opnieuw "
 "proberen van opgegeven pogingen."
 
 #: src/if/gnet_property.c:1203
-#, fuzzy
 msgid "Maximum number of seconds to wait on auto-retry timeouts."
 msgstr ""
-"De tijd in seconden voordat een automatisch opnieuw proberen poging wordt "
+"Secondes voordat een automatisch opnieuw proberen poging wordt "
 "opgegeven."
 
 #: src/if/gnet_property.c:1223
-#, fuzzy
 msgid ""
 "Maximum number of attempts to download a file not counting HTTP busy "
 "indications."
@@ -1131,14 +1095,12 @@ msgstr ""
 "downloaden. Hierbij worden de HTTP bezig indicaties niet meegeteld."
 
 #: src/if/gnet_property.c:1243
-#, fuzzy
 msgid "Delay in seconds before retrying after a connection timed out."
 msgstr ""
-"De vertraging in seconden voordat een opgegeven verbinding opnieuw wordt "
+"Vertraging in seconden voordat een opgegeven verbinding opnieuw wordt "
 "geprobeerd."
 
 #: src/if/gnet_property.c:1263
-#, fuzzy
 msgid ""
 "Delay in seconds before retrying after getting a 'busy' response from a host."
 msgstr ""
@@ -1146,16 +1108,14 @@ msgstr ""
 "'bezig' antwoord van een host."
 
 #: src/if/gnet_property.c:1283
-#, fuzzy
 msgid ""
 "Delay in seconds before retrying after getting a 'connection refused' "
 "response from a host."
 msgstr ""
-"Vertraging in seconden voordat een geweigerd antwoord van een host opnieuw "
+"Vertraging in seconden voordat een 'verbinding geweigerd' antwoord van een host opnieuw "
 "wordt geprobeerd."
 
 #: src/if/gnet_property.c:1303
-#, fuzzy
 msgid ""
 "Delay in seconds before retrying after a retry stopped (timed out, "
 "connection reset by peer, etc...)."
@@ -1175,7 +1135,6 @@ msgstr ""
 "teruggegeven."
 
 #: src/if/gnet_property.c:1343
-#, fuzzy
 msgid ""
 "Number of seconds before an upload times out if no connection can be "
 "established during a push.  It is also the maximum amount of time we wait to "
@@ -1186,28 +1145,25 @@ msgstr ""
 "HTTP aanvraag te verkrijgen."
 
 #: src/if/gnet_property.c:1363
-#, fuzzy
 msgid ""
 "Number of seconds after which an upload times out if no data is transmitted."
 msgstr ""
-"Aantal seconden dat gewacht moet voordat een verbinding wordt gesloten als "
+"Secondes dat gewacht moet voordat een verbinding wordt gesloten als "
 "er geen data wordt verstuurd."
 
 #: src/if/gnet_property.c:1383
-#, fuzzy
 msgid ""
 "Amount of seconds to wait before a search is issued again to see if new "
 "results are available.  Be very careful with this parameter, and do not set "
 "it too low or you will damage the Gnutella network.  A delay of half an hour "
 "is fine."
 msgstr ""
-"Aantal seconden dat gewacht moet worden voordat een zoek opdracht opnieuw "
+"Secondes dat gewacht moet worden voordat een zoek opdracht opnieuw "
 "wordt verstuurd om nieuwe resultaten te verkrijgen. Wees voorzichtig met "
 "deze instelling en zet deze waarde niet te laag, anders beschadig je het "
 "Gnutella netwerk. Een vertraging van minimaal een half uur is voldoende."
 
 #: src/if/gnet_property.c:1403
-#, fuzzy
 msgid ""
 "Maximum ratio of file descriptors reserved for banning. For instance, if "
 "your OS gives you 350 file descriptors, a ratio of 10 will reserve at most "
@@ -1221,7 +1177,6 @@ msgstr ""
 "beschikbaar te zijn."
 
 #: src/if/gnet_property.c:1423
-#, fuzzy
 msgid "Maximum number of file descriptors reserved for banning."
 msgstr "Maximaal aantal \"file descriptors\" gereserveerd voor bannen."
 
@@ -1234,22 +1189,17 @@ msgstr ""
 "v. het aantal dat momenteel open is om de verbinding vertraagd te sluiten."
 
 #: src/if/gnet_property.c:1463
-#, fuzzy
 msgid "Number of file descriptors we'll actually be using for banning."
-msgstr ""
-"Aantal file descriptors dat daadwerkelijk gebruikt zal worden voor bannen."
+msgstr "Aantal file descriptors dat daadwerkelijk gebruikt zal worden voor bannen."
 
 #: src/if/gnet_property.c:1483
-#, fuzzy
 msgid ""
 "Number of seconds an incoming connection has to start sending out its "
 "request."
 msgstr ""
-"Hoe snel, in seconden, een inkomende connectie moet beginnen met het "
-"verzenden van zijn aanvraag."
+"Seconds dat een inkomende verbinding moet beginnen met het verzenden van zijn verzoek."
 
 #: src/if/gnet_property.c:1503
-#, fuzzy
 msgid ""
 "Number of seconds before a Gnet connect attempt times out if no connection "
 "can be established."
@@ -1258,7 +1208,6 @@ msgstr ""
 "geen verbinding kon worden gemaakt."
 
 #: src/if/gnet_property.c:1523
-#, fuzzy
 msgid ""
 "Number of seconds before a Gnet connection times out if no data is "
 "transmitted."
@@ -1283,7 +1232,6 @@ msgstr ""
 "voordat deze wordt verwijderd."
 
 #: src/if/gnet_property.c:1583
-#, fuzzy
 msgid ""
 "Maximum percentage of time over 5 minutes that our node can remain in flow "
 "control remotely before dropping the connection.  This only works with nodes "
@@ -1292,10 +1240,9 @@ msgstr ""
 "Maximale percentage over 5 minuten tijd dat deze node in flow control modus "
 "mag blijven bij een remote host voordat de connectie wordt verbroken. Dit "
 "zal echter alleen werken als de remote node waarmee we verbonden zijn hops-"
-"flow berichten stuurt als we worden geflow-controlled."
+"flow berichten stuurt op het moment dat we worden geflow-controlled."
 
 #: src/if/gnet_property.c:1603
-#, fuzzy
 msgid ""
 "Maximum TTL we allow in messages we broadcast.  If a query comes in with a "
 "TTL greater than that, it will be trimmed down to that value.  On Gnutella, "
@@ -1307,7 +1254,6 @@ msgstr ""
 "waarde standaard 4 en kan daar niet lager dan 4 worden gezet."
 
 #: src/if/gnet_property.c:1623
-#, fuzzy
 msgid ""
 "The TTL we use in messages we generate.  The default on Gnutella is TTL=4.  "
 "If you set it to too large a value, you run the risk of being trimmed down "
@@ -1319,7 +1265,6 @@ msgstr ""
 "gtk-gnutella node, of dat je wordt verwijderd door een andere servent."
 
 #: src/if/gnet_property.c:1643
-#, fuzzy
 msgid ""
 "Maximum hard TTL limit (hops + TTL) on messages we relay.  This should be "
 "greater than the standard TTL=4, because it is also applied to routed-back "
@@ -1336,67 +1281,54 @@ msgstr ""
 "waarde."
 
 #: src/if/gnet_property.c:1663
-#, fuzzy
 msgid "For development use: debug level."
-msgstr "Voor ontwikkeling: Debug level."
+msgstr "Voor ontwikkeling: debug level."
 
 #: src/if/gnet_property.c:1683
-#, fuzzy
 msgid "Debug level for banning code."
 msgstr "Debug level voor de ban code."
 
 #: src/if/gnet_property.c:1703
-#, fuzzy
 msgid "Debug level for download mesh management."
 msgstr "Debug level voor de download mesh beheer."
 
 #: src/if/gnet_property.c:1723
-#, fuzzy
 msgid "Debug level for Gnutella messages."
 msgstr "Debug level voor Gnutella berichten."
 
 #: src/if/gnet_property.c:1743
-#, fuzzy
 msgid "Debug level for file sharing code."
 msgstr "Debug level voor de bestanden delen code."
 
 #: src/if/gnet_property.c:1763
-#, fuzzy
 msgid "Debug level for Gnutella nodes."
 msgstr "Debug level voor Gnutella nodes."
 
 #: src/if/gnet_property.c:1783
-#, fuzzy
 msgid "Debug level for sockets."
 msgstr "Debug level voor sockets."
 
 #: src/if/gnet_property.c:1803
-#, fuzzy
 msgid "Debug level for bootstraping into the network."
 msgstr "Debug level voor de eerste keer verbinden met het netwerk."
 
 #: src/if/gnet_property.c:1823
-#, fuzzy
 msgid "Debug level for HTTP code."
 msgstr "Debug level voor de HTTP-code."
 
 #: src/if/gnet_property.c:1843
-#, fuzzy
 msgid "Debug level for downloads."
 msgstr "Debug level voor de downloads."
 
 #: src/if/gnet_property.c:1863
-#, fuzzy
 msgid "Debug level for fileinfo."
 msgstr "Debug level voor de bestandsinformatie."
 
 #: src/if/gnet_property.c:1883
-#, fuzzy
 msgid "Debug level for uploads."
 msgstr "Debug level voor de uploads."
 
 #: src/if/gnet_property.c:1903
-#, fuzzy
 msgid "Debug level for code shared between gui and core."
 msgstr "Debug level voor code die wordt gedeelt tussen de GUI en de core."
 
@@ -1413,12 +1345,10 @@ msgid "Verbosity of URL handling related debug messages."
 msgstr "Detail level voor URL afhandeling gerelateerde debug berichten."
 
 #: src/if/gnet_property.c:1983
-#, fuzzy
 msgid "Debug level for dynamic query hit routing."
-msgstr "Debug level voor de dynamische zoekresulte routering."
+msgstr "Debug level voor de dynamische zoekresultaten routering."
 
 #: src/if/gnet_property.c:2003
-#, fuzzy
 msgid "Debug level for dynamic queries."
 msgstr "Debug level voor de dynamische zoekopdrachten."
 
@@ -1427,7 +1357,6 @@ msgid "Debug level for vendor messages."
 msgstr "Detail level voor vendor berichten."
 
 #: src/if/gnet_property.c:2043
-#, fuzzy
 msgid "Debug level for queries."
 msgstr "Debug level voor zoekopdrachten."
 
@@ -1436,42 +1365,34 @@ msgid "Debug level for searches and search results management."
 msgstr "Debug level voor zoekopdrachten en zoekresultaten beheer."
 
 #: src/if/gnet_property.c:2083
-#, fuzzy
 msgid "Debug level for the UDP traffic layer."
 msgstr "Debug level voor de UDP verkeerslaag."
 
 #: src/if/gnet_property.c:2103
-#, fuzzy
 msgid "Debug level for the Query Routing Protocol."
-msgstr "Debug level voor de Zoekopdrachten routering protocol (QRP)."
+msgstr "Debug level voor de zoekopdrachten routering protocol (QRP)."
 
 #: src/if/gnet_property.c:2123
-#, fuzzy
 msgid "Debug level for message routing."
 msgstr "Debug level voor de berichting routering."
 
 #: src/if/gnet_property.c:2143
-#, fuzzy
 msgid "Debug level for GGEP."
 msgstr "Debug level voor GGEP."
 
 #: src/if/gnet_property.c:2163
-#, fuzzy
 msgid "Debug level for pong caching."
 msgstr "Debug level voor pong caching."
 
 #: src/if/gnet_property.c:2183
-#, fuzzy
 msgid "Debug level for HSEP."
 msgstr "Debug level voor HSEP."
 
 #: src/if/gnet_property.c:2203
-#, fuzzy
 msgid "Debug level for TLS."
 msgstr "Debug level voor TLS."
 
 #: src/if/gnet_property.c:2223
-#, fuzzy
 msgid "Debug level for PARQ."
 msgstr "Debug level voor PARQ."
 
@@ -1515,59 +1436,46 @@ msgstr ""
 "schakelen kies hier 0."
 
 #: src/if/gnet_property.c:2300
-#, fuzzy
 msgid "For development use: track properties."
-msgstr "Voor ontwikkeling: Track properties."
+msgstr "Voor ontwikkeling: volg eigenschappen."
 
 #: src/if/gnet_property.c:2320
-#, fuzzy
 msgid "For development use: don't add new hosts to the hostcatcher."
-msgstr "Voor ontwikkeling: Voeg geen nieuwe hosts toe aan de hostcatcher."
+msgstr "Voor ontwikkeling: voeg geen nieuwe hosts toe aan de hostcatcher."
 
 #: src/if/gnet_property.c:2337
-#, fuzzy
 msgid "Enable bandwidth limitation for incoming HTTP traffic."
 msgstr "Activeer het limiteren van bandbreedte voor inkomend HTTP verkeer."
 
 #: src/if/gnet_property.c:2354
-#, fuzzy
 msgid "Enable bandwidth limitation for outgoing HTTP traffic."
 msgstr "Activeer het limiteren van bandbreedte voor uitgaand HTTP verkeer."
 
 #: src/if/gnet_property.c:2371
-#, fuzzy
 msgid "Enable bandwidth limitation for incoming Gnet traffic."
 msgstr "Activeer het limiteren van bandbreedte voor inkomend Gnet verkeer."
 
 #: src/if/gnet_property.c:2388
-#, fuzzy
 msgid "Enable bandwidth limitation for incoming Gnet leaf traffic."
-msgstr ""
-"Activeer het limiteren van bandbreedte voor inkomend Gnet leaf verkeer."
+msgstr "Activeer het limiteren van bandbreedte voor inkomend Gnet leaf verkeer."
 
 #: src/if/gnet_property.c:2405
-#, fuzzy
 msgid "Enable bandwidth limitation for outgoing Gnet traffic."
 msgstr "Activeer het limiteren van bandbreedte voor uitgaand Gnet verkeer."
 
 #: src/if/gnet_property.c:2422
-#, fuzzy
 msgid "Enable bandwidth limitation for outgoing Gnet leaf traffic."
-msgstr ""
-"Activeer het limiteren van bandbreedte voor uitgaand Gnet leaf verkeer."
+msgstr "Activeer het limiteren van bandbreedte voor uitgaand Gnet leaf verkeer."
 
 #: src/if/gnet_property.c:2439
-#, fuzzy
 msgid "Enable dynamic upload slots allocation."
 msgstr "Activeer dynamische upload slot toewijzing."
 
 #: src/if/gnet_property.c:2456
-#, fuzzy
 msgid ""
 "Allow HTTP and Gnutella to grab whatever bandwidth the other is not using.  "
 "If FALSE, unused bandwidth is lost."
-msgstr ""
-"Sta toe dat HTTP en Gnutella elkaars bandbreedte gebruiken dat de ander "
+msgstr "Sta toe dat HTTP en Gnutella elkaars bandbreedte gebruiken dat de ander "
 "momenteel niet gebruikt. Als deze waarde NIET WAAR is, dan zal ongebruikte "
 "bandbreedte verloren gaan."
 
@@ -1592,22 +1500,18 @@ msgstr ""
 "etc...) automatisch opschonen."
 
 #: src/if/gnet_property.c:2524
-#, fuzzy
 msgid "Remove downloaded files from the search result."
 msgstr "Verberg gedownloade bestanden in de zoekresultaten."
 
 #: src/if/gnet_property.c:2541
-#, fuzzy
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "Activeer het gebruik van [forced_local_ip] als lokaal ip."
 
 #: src/if/gnet_property.c:2558
-#, fuzzy
 msgid "Try to connect to local networks first."
 msgstr "Probeer eerst te verbinden met een lokaal netwerk."
 
 #: src/if/gnet_property.c:2575 src/ui/gtk/gtk2/interface-glade.c:10135
-#, fuzzy
 msgid ""
 "Check this button if you want to use Gtk-Gnutella on your Local Area "
 "Network. RFC1918 will be ignored."
@@ -1616,7 +1520,6 @@ msgstr ""
 "De RFC1918 zal dan worden genegeerd."
 
 #: src/if/gnet_property.c:2592
-#, fuzzy
 msgid ""
 "Check this button if you want Gtk-Gnutella to use IP TOS to differentiate "
 "interactive, normal and bulk data. This is probably a good idea in most "
@@ -1791,7 +1694,6 @@ msgstr ""
 "tussen 0 en 3."
 
 #: src/if/gnet_property.c:3187
-#, fuzzy
 msgid ""
 "Whether or not to send push requests.  If you are firewalled, gtk-gnutella "
 "will never send push requests anyway.  If you don't let gtk-gnutella send "
@@ -1803,7 +1705,6 @@ msgstr ""
 "dan zullen er geen resultaten worden weergegeven waarbij een push vereist is."
 
 #: src/if/gnet_property.c:3204
-#, fuzzy
 msgid ""
 "Minimum amount of dup messages to enable kicking, per node (also see "
 "[min_dup_ratio])."
@@ -1812,7 +1713,6 @@ msgstr ""
 "wordt verbroken (zie ook [min_dup_ratio])"
 
 #: src/if/gnet_property.c:3224
-#, fuzzy
 msgid ""
 "Minimum ratio of dups on received messages, per node (between 0.00 and "
 "100.00) (also see [min_dup_msg]) Note: the value is stored between 0 (0.0) "
@@ -1824,15 +1724,14 @@ msgstr ""
 "(100.0))"
 
 #: src/if/gnet_property.c:3244
-#, fuzzy
 msgid ""
 "Only files with the given extensions will be shared. The special --all-- "
 "extension matches all files, even if they don't have any extension.  Use "
 "with care."
 msgstr ""
-"Alleen de bestanden met deze extensie zullen worden gedeelt. De speciale --"
+"Alleen de bestanden met deze extensie zullen worden gedeeld. De speciale --"
 "al-- extensie komt overeen met alle bestanden, ook als ze geen extensie "
-"hebben. Gebruik voorzichtig."
+"hebben. Voorzichtig gebruiken."
 
 #: src/if/gnet_property.c:3265
 msgid "Ignore symbolically linked directories when scanning files to share."
@@ -1847,9 +1746,8 @@ msgstr ""
 "bestanden om te delen."
 
 #: src/if/gnet_property.c:3299
-#, fuzzy
 msgid "Store incomplete files in this directory."
-msgstr "Bewaar incomplete bestanden in deze directory"
+msgstr "Bewaar incomplete bestanden in deze directory."
 
 #: src/if/gnet_property.c:3320
 msgid ""
@@ -1873,54 +1771,45 @@ msgstr ""
 "extensie .BAD"
 
 #: src/if/gnet_property.c:3362
-#, fuzzy
 msgid "Directories which contain shared files."
-msgstr "Directories waar gedeelde bestanden staan"
+msgstr "Directories waar gedeelde bestanden staan."
 
 #: src/if/gnet_property.c:3383
-#, fuzzy
 msgid ""
 "List of networks considered local.  This is a list of IP addresses, "
 "separated by ';'.  The IP address can be given out fully, as in 192.168.0.1, "
 "or be optionally followed by '/' and a network mask prefix length. For "
 "instance, 192.168.0.1/24 would represent the whole 192.168.0.* network."
 msgstr ""
-"Lijst met netwerken welken als lokaal worden beschouwd. Dit is een lijst met "
+"Lijst met netwerken welke als lokaal worden beschouwd. Dit is een lijst met "
 "IP adressen, gescheiden door een ';'. Het IP adres mag volledig worden "
 "gegeven, bijvoorbeeld 192.168.0.1. Eventueel kan het gevolgd  worden met een "
 "netwerk mask lengte. Bijvoorbeeld: 192.168.0.1/24 staat voor het hele "
 "192.168.0.* netwerk."
 
 #: src/if/gnet_property.c:3404
-#, fuzzy
 msgid "Total number of completed downloads in this session."
-msgstr "Totaal aantal afgeronde downloads tijdens deze sessie"
+msgstr "Totaal aantal afgeronde downloads tijdens deze sessie."
 
 #: src/if/gnet_property.c:3424
-#, fuzzy
 msgid "Number of running uploads."
-msgstr "Aantal uploads die draaien"
+msgstr "Aantal uploads die draaien."
 
 #: src/if/gnet_property.c:3444
-#, fuzzy
 msgid "Number of registered (pending) uploads."
-msgstr "Aantal geregistreerde uploads (welke nog verwerkt moeten worden)"
+msgstr "Aantal geregistreerde uploads (welke nog verwerkt moeten worden)."
 
 #: src/if/gnet_property.c:3464
-#, fuzzy
 msgid "Total number of completed uploads in this session."
-msgstr "Aantal afgeronde uploads tijdens deze sessie"
+msgstr "Aantal afgeronde uploads tijdens deze sessie."
 
 #: src/if/gnet_property.c:3484
-#, fuzzy
 msgid "Global Unique IDentifier of this node."
-msgstr "Globale Unieke IDentiteit van deze node"
+msgstr "Globale Unieke IDentiteit van deze node."
 
 #: src/if/gnet_property.c:3501
-#, fuzzy
 msgid "Whether or not to use swarming (recommended = YES)."
-msgstr ""
-"Of er wel of geen gebruik moet worden gebruikt van 'swarming' (aangeraden)"
+msgstr "Of er wel of geen gebruik moet worden gebruikt van 'swarming' (aangeraden)."
 
 #: src/if/gnet_property.c:3518
 msgid ""
@@ -1931,22 +1820,19 @@ msgstr ""
 "gestart als er nog maar een klein beetje gedaan moet worden."
 
 #: src/if/gnet_property.c:3535
-#, fuzzy
 msgid ""
 "Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will "
 "download less if you only have a few bytes to get for a file..."
 msgstr ""
-"Maximale fragment grootte tijdens 'swarming'. Dit is alleen een indicatie "
+"Maximale fragment grootte tijdens zwermen. Dit is alleen een indicatie "
 "voor gtk-gnutella, aangezien er minder bytes gedownload zullen worden als er "
 "minder nodig zijn voor een bestand."
 
 #: src/if/gnet_property.c:3555
-#, fuzzy
 msgid "Maximum chunk size when swarming."
-msgstr "Maximale fragment grootte tijdens 'swarming'"
+msgstr "Maximale fragment grootte tijdens zwemmen."
 
 #: src/if/gnet_property.c:3575
-#, fuzzy
 msgid ""
 "Whether or not to automatically queue search results that match a file in "
 "the download queue."
@@ -1965,21 +1851,19 @@ msgstr ""
 "bestanden die we delen of die we al in de mesh hebben."
 
 #: src/if/gnet_property.c:3609
-#, fuzzy
 msgid ""
 "When enabled, SHA1s must match. Otherwise, name and size will be sufficient."
 msgstr ""
-"Als deze aan staat, dan moet de SHA1 overeenkomen. Anders is de naam en "
-"grootte voldoende"
+"Als deze aan staat, dan moeten de SHA1s overeenkomen. Anders is de naam en "
+"grootte voldoende."
 
 #: src/if/gnet_property.c:3626
-#, fuzzy
 msgid ""
 "Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching "
 "to be safe)."
 msgstr ""
 "Gebruik 'fuzzy' bestandsnaam vergelijking (dit wordt afgeraden; vertrouw "
-"alleen de SHA1 om zeker te zijn)"
+"alleen de SHA1 om zeker te zijn)."
 
 #: src/if/gnet_property.c:3643
 msgid ""
@@ -1992,29 +1876,22 @@ msgstr ""
 "van 0 betekent dat elke bestandsnaam overeenkomt. Het minimum is 50%."
 
 #: src/if/gnet_property.c:3663
-#, fuzzy
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
-msgstr "Of gtk-gnutella denkt dat deze host achter een firewall zit of niet"
+msgstr "Of gtk-gnutella denkt dat deze host op TCP niveau achter een firewall zit of niet"
 
 #: src/if/gnet_property.c:3680
-#, fuzzy
 msgid "Whether gtk-gnutella thinks it's connected to the Internet."
-msgstr ""
-"Of gtk-gnutella denkt dat deze host met het internet verbonden is of niet"
+msgstr "Of gtk-gnutella denkt dat deze host met het internet verbonden is of niet."
 
 #: src/if/gnet_property.c:3697
-#, fuzzy
 msgid "Whether gtk-gnutella thinks you're currently firewalled, UDP-wise."
-msgstr "Of gtk-gnutella denkt dat deze host achter een firewall zit of niet"
+msgstr "Of gtk-gnutella denkt dat deze host op UDP niveau achter een firewall zit."
 
 #: src/if/gnet_property.c:3714
-#, fuzzy
 msgid "Whether gtk-gnutella determined it could receive solicited UDP."
-msgstr ""
-"Of gtk-gnutella denkt dat deze host met het internet verbonden is of niet"
+msgstr "Of gtk-gnutella bepaald heeft dat het UDP verkeer kan ontvangen."
 
 #: src/if/gnet_property.c:3731
-#, fuzzy
 msgid ""
 "Remove unnecessary ballast from query string before processing or forwarding "
 "them. Reduces traffic at the cost of little CPU time."
@@ -2037,15 +1914,13 @@ msgstr ""
 "deze optie gebruikt."
 
 #: src/if/gnet_property.c:3765
-#, fuzzy
 msgid ""
 "Whether gtk-gnutella is currently rebuilding its library in the background."
 msgstr ""
 "Of gtk-gnutella momenteel in de achtergrond bezig is met het opnieuw "
-"opbouwen van zijn library"
+"opbouwen van zijn bibliotheek."
 
 #: src/if/gnet_property.c:3782
-#, fuzzy
 msgid ""
 "Whether gtk-gnutella is currently computing SHA1 of shared files in the "
 "background."
@@ -2054,16 +1929,14 @@ msgstr ""
 "de SHA1 waarden van de gedeelde bestanden."
 
 #: src/if/gnet_property.c:3799
-#, fuzzy
 msgid ""
 "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the "
 "background."
 msgstr ""
-"Of gtk-gnutella momenteel in de achtergrond bezig is met het verifiveren van "
+"Of gtk-gnutella momenteel in de achtergrond bezig is met het verifiëren van "
 "de SHA1 waarde van een afgeronde download."
 
 #: src/if/gnet_property.c:3816
-#, fuzzy
 msgid ""
 "Whether gtk-gnutella is currently moving files across filesystems or simply "
 "copying in the background."
@@ -2081,7 +1954,6 @@ msgstr ""
 "gecomprimeerde connectie toegestaan."
 
 #: src/if/gnet_property.c:3850
-#, fuzzy
 msgid ""
 "If deactivated, only uploads and downloads will continue. All Gnet "
 "connections are disabled/terminated."
@@ -2090,7 +1962,6 @@ msgstr ""
 "Alle uploads en downloads zullen gewoon doorgaan."
 
 #: src/if/gnet_property.c:3867
-#, fuzzy
 msgid ""
 "Whether gtk-gnutella should make sure the server confirms the URN of the "
 "file we're requesting when it is known locally and a traditional request by "
@@ -2126,7 +1997,6 @@ msgstr ""
 "verbinden."
 
 #: src/if/gnet_property.c:3941
-#, fuzzy
 msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
 "reserve 32 bytes of bandwidth per leaf."
@@ -2139,7 +2009,6 @@ msgid "What to do with files that will be ignored for downloading."
 msgstr "Wat te doen met bestanden die voor downloading genegeerd worden."
 
 #: src/if/gnet_property.c:3981
-#, fuzzy
 msgid ""
 "The peer mode you want to operate as for gtk-gnutella.  When auto is "
 "selected, gtk-gnutella will start as a leaf node and may be promoted to an "
@@ -2153,19 +2022,16 @@ msgstr ""
 "ultrapeer."
 
 #: src/if/gnet_property.c:4001
-#, fuzzy
 msgid "Current peer mode for gtk-gnutella."
-msgstr "Huidige peer modus voor gtk-gnutella"
+msgstr "Huidige peer modus voor gtk-gnutella."
 
 #: src/if/gnet_property.c:4021
-#, fuzzy
 msgid "How many file descriptors this process can open."
-msgstr "Hoe veel \"file descriptors\" een proces kan openen."
+msgstr "Hoeveel \"file descriptors\" een proces kan openen."
 
 #: src/if/gnet_property.c:4041
-#, fuzzy
 msgid "How much physical memory is available."
-msgstr "Hoeveel fyisch geheugen (in KB) beschikbaar is."
+msgstr "Hoeveel fysiek geheugen er beschikbaar is."
 
 #: src/if/gnet_property.c:4061
 msgid "How many downloads are currently held in the queue."
@@ -2217,7 +2083,6 @@ msgstr ""
 "headers."
 
 #: src/if/gnet_property.c:4261
-#, fuzzy
 msgid ""
 "Whether gtk-gnutella should serve partial files whilst they are still "
 "incompletely downloaded.  Recommended for network's health unless you "
@@ -2225,12 +2090,11 @@ msgid ""
 "will not matter as much."
 msgstr ""
 "Of gtk-gnutella gedeeltelijke bestanden moet delen als ze nog niet volledig "
-"gedownload zijn.  Aanbevolen voor de gezondheid van het netwerk tenzij je al "
-"veel bestanden deelt.  In dat geval kan het geen kwaad dit aan te zetten, "
+"gedownload zijn. Aanbevolen voor de gezondheid van het netwerk tenzij je al "
+"veel bestanden deelt. In dat geval kan het geen kwaad dit aan te zetten, "
 "maar zal het niet zo veel uitmaken."
 
 #: src/if/gnet_property.c:4278
-#, fuzzy
 msgid ""
 "When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to "
 "download chunks in a random order, to maximize the spreading of the file in "
@@ -2239,7 +2103,7 @@ msgid ""
 "of data that should be continuously downloaded at the beginning of the "
 "file.  Don't set it too large."
 msgstr ""
-"Zodra 'Partial File Sharing' (PFSP) is ingeschakeld zal gtk-gnutella "
+"Zodra 'gedeeltelijke bestanden delen' (PFSP) is ingeschakeld zal gtk-gnutella "
 "proberen om in willekeurige volgorde fragmenten te downloaden zodat een "
 "bestand zoveel mogelijk over het netwerk verspreid. Dit maakt het beoordelen "
 "van een bestand (bestandstype, pre-view, etc...) echter onmogelijk. Stel "
@@ -2256,7 +2120,6 @@ msgstr ""
 "bestandsgrootte. Zet dit niet te groot."
 
 #: src/if/gnet_property.c:4318
-#, fuzzy
 msgid ""
 "Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
 "this filtering is to remove entries whose names are too different to be "
@@ -2264,22 +2127,20 @@ msgid ""
 "more consistent at the cost of extra CPU time, and at the cost of losing "
 "some valid entries in the process."
 msgstr ""
-"Of een difuus filter toegepast moet worden op de items in de download mesh.. "
+"Of een wazig filter toegepast moet worden op de items in de download mesh.. "
 "Het doel van dit filter is om items te verwijderen wiens namen te "
 "verschillend zijn om hetzelfde bestand aan te duiden. Als je deze optie "
 "activeert dan zal je mesh waarschijnlijk meer consistent zijn, hetgeen ten "
 "koste gaat van extra CPU tijd en het waarschijnlijke verlies van een aantal "
-"valide items."
+"geldige items."
 
 #: src/if/gnet_property.c:4335
-#, fuzzy
 msgid "Number of crawler visits during this session."
-msgstr "Aantal bezoeken van crawlers gedurende deze sessie"
+msgstr "Aantal bezoeken van crawlers gedurende deze sessie."
 
 #: src/if/gnet_property.c:4355
-#, fuzzy
 msgid "Number of UDP crawler visits during this session."
-msgstr "Aantal bezoeken van crawlers gedurende deze sessie"
+msgstr "Aantal bezoeken van crawlers gedurende deze sessie."
 
 #: src/if/gnet_property.c:4375
 msgid ""
@@ -2317,14 +2178,13 @@ msgstr ""
 "voorkomen."
 
 #: src/if/gnet_property.c:4446
-#, fuzzy
 msgid ""
 "Whether gtk-gnutella should determine the servent types (as identified by "
 "their vendor string) that are unstable, preventing further connections to/"
 "from them.  This only works when gtk-gnutella already keeps track of "
 "unstable IP addresses."
 msgstr ""
-"Of gtk-gnutella moet bepalen welke servent types (zoals geidentificeerd door "
+"Of gtk-gnutella moet bepalen welke servent types (zoals geïndentificeerd door "
 "hun leveranciersnaam) instabiel zijn, en zorgen dat we geen nieuwe "
 "connecties van of naar ze maken.  Dit werkt alleen als gtk-gnutella al "
 "bepaalt welke IP adressen instabiel zijn."
@@ -2355,7 +2215,6 @@ msgstr ""
 "verwijderen zorgen dat we het probleem oplossen."
 
 #: src/if/gnet_property.c:4500
-#, fuzzy
 msgid ""
 "The hostname of the server that can be used by downloaders to find the IP "
 "address via a DNS resolution.  If you have a dynamic IP address coupled with "
@@ -2385,12 +2244,10 @@ msgstr ""
 "gnutella nodes."
 
 #: src/if/gnet_property.c:4558
-#, fuzzy
 msgid "Maximum percentage of slots a vendor can occupy."
-msgstr "Maximum percentage van slots dat een leverancier kan gebruiken"
+msgstr "Maximum percentage van slots dat een leverancier kan gebruiken."
 
 #: src/if/gnet_property.c:4578
-#, fuzzy
 msgid ""
 "Size of the RX socket buffer to be used for downloads, in kbytes. If you "
 "wish to avoid Gnutella downloads using up all your bandwidth, set it to a "
@@ -2467,13 +2324,11 @@ msgstr ""
 "Ultra node te kunnen worden."
 
 #: src/if/gnet_property.c:4746
-#, fuzzy
 msgid ""
 "Whether we meet the minimum amount of peer connections requirement to become "
 "an Ultra node."
 msgstr ""
-"Of we voldoende \"file descriptors\" hebben om een Ultra node te kunnen "
-"worden."
+"Of we voldoen aan het minimale aantal van peer connecties om een ultra-node te worden."
 
 #: src/if/gnet_property.c:4763
 msgid ""
@@ -2493,7 +2348,6 @@ msgstr ""
 "Of we voldoen aan de voorwaarden aan bandbreedte om een Ultra node te worden."
 
 #: src/if/gnet_property.c:4814
-#, fuzzy
 msgid ""
 "Size of the search queue holding the locally generated queries before they "
 "are sent on a given connection.  When full, the oldest query is dropped "
@@ -2503,7 +2357,7 @@ msgstr ""
 "De grootte van de zoekopdrachten wachtrij die de lokaal gegenereerde "
 "zoekopdrachten bevat voordat deze naar een specifieke verbinding gestuurd "
 "worden.  Als de wachtrij vol is wordt de oudste zoekopdracht verwijderd "
-"zonder verzonden te zijn.  Zet de grootte zo dat het een beetje groter is "
+"zonder verzonden te zijn. Zet de grootte zo dat het een beetje groter is "
 "dan het aantal geopende zoekopdrachten."
 
 #: src/if/gnet_property.c:4834
@@ -2534,7 +2388,6 @@ msgstr ""
 "zijn met de status waarmee ze gestopt zijn."
 
 #: src/if/gnet_property.c:4891
-#, fuzzy
 msgid ""
 "Whether gtk-gnutella should actively monitor query strings by TTL and hop "
 "count and drop duplicates.  Only applies when not running as a leaf node, "
@@ -2549,7 +2402,6 @@ msgstr ""
 "worden geteld in de 'Message throttle' teller."
 
 #: src/if/gnet_property.c:4908
-#, fuzzy
 msgid ""
 "Half the duration during which gtk-gnutella should remember the recently "
 "relayed queries by TTL and hop count.  The default value of 5 should be just "
@@ -2560,12 +2412,10 @@ msgstr ""
 "De halve tijd waarin gtk-gnutella de recentelijke doorgestuurde "
 "zoekopdrachten moet herinneren aan de TTL en de hop count.  De standaard "
 "waarde van 5 zou precies goed moeten zijn, maar je kunt met verschillende "
-"instellingen experimenteren als je wilt.  Hoe hoger de waarde is, hoe meer "
-"waarschijnlijk het is dat je legitieme zoekopdrachten laat vallen, dus pas "
-"goed op."
+"instellingen experimenteren als je wilt.  Hoe hoger de waarde is, hoe "
+"waarschijnlijker het is dat je legitieme zoekopdrachten laat vallen, pas dus goed op."
 
 #: src/if/gnet_property.c:4928
-#, fuzzy
 msgid ""
 "The minimum amount of seconds to enforce between two identical queries from "
 "leaf nodes.  If the requery too early, it is dropped and accounted for in "
@@ -2590,14 +2440,12 @@ msgid "Time at which we started the last scan of the library."
 msgstr "De tijd waarop we de laatste scan van de bibliotheek gestart hebben."
 
 #: src/if/gnet_property.c:4968
-#, fuzzy
 msgid "Time at which the last scan of the library finished."
-msgstr "De tijd waarop we de laatste scan van de bibliotheek gestart hebben."
+msgstr "Tijdstip waarop we de laatste scan van de bibliotheek is afgerond."
 
 #: src/if/gnet_property.c:4988
-#, fuzzy
 msgid "The number of seconds the last scan of the library took."
-msgstr "De tijd waarop we de laatste scan van de bibliotheek gestart hebben."
+msgstr "Aantal seconden dat de laatste scan van de bibliotheek in beslag nam."
 
 #: src/if/gnet_property.c:5008
 msgid "Time at which we started shared file indexing."
@@ -2656,9 +2504,8 @@ msgid "Amount of hashed keywords in our QRP table."
 msgstr "Aantal 'hashed' sleutelwoorden in onze QRP tabel."
 
 #: src/if/gnet_property.c:5248
-#, fuzzy
 msgid "Total raw size of the QRP table patch, in bytes."
-msgstr "Totale ruwe grootte van de QRP tabelaanpassingen, in bytes"
+msgstr "Totale ruwe grootte van de QRP tabelaanpassingen, in bytes."
 
 #: src/if/gnet_property.c:5268
 msgid "Final QRP table patch length, after possible compression."
@@ -2669,13 +2516,12 @@ msgid "QRP table patch compression ratio, in percent, 0 means none."
 msgstr "QRP tabelaanpassing compressie percentage, 0 betekent geen compressie."
 
 #: src/if/gnet_property.c:5308
-#, fuzzy
 msgid ""
 "This property must be set to the current version number of gtk-gnutella in "
 "order to allow it to run when it is ancient."
 msgstr ""
 "Deze eigenschap moet het huidige versienummer van gtk-gnutella bevatten om "
-"te zorgen dat het kan blijven draaien als het erg oud is"
+"te zorgen dat het kan blijven draaien als het erg oud is."
 
 #: src/if/gnet_property.c:5329
 msgid "Indicates that gtk-gnutella will expire in that many days."
@@ -2695,7 +2541,6 @@ msgstr ""
 "resetten."
 
 #: src/if/gnet_property.c:5366
-#, fuzzy
 msgid ""
 "When set, gtk-gnutella has run out of file descriptors, and operations are "
 "necessarily degraded, if not impossible. The condition automatically clears "
@@ -2818,14 +2663,12 @@ msgid "If TRUE, other hosts can request a complete list of all shared files."
 msgstr "Indien TRUE dan kunnen andere hosts een complete lijst opvragen met alle gedeelde bestanden."
 
 #: src/if/gnet_property.c:5638
-#, fuzzy
 msgid "Number of HTML browsing requests received in this session."
-msgstr "Aantal bezoeken van crawlers gedurende deze sessie"
+msgstr "Aantal ontvangen HTML bladeren verzoeken tijdens deze sessie."
 
 #: src/if/gnet_property.c:5658
-#, fuzzy
 msgid "Number of Gnutella browsing requests received in this session."
-msgstr "Aantal bezoeken van crawlers gedurende deze sessie"
+msgstr "Aantal bezoeken van crawlers gedurende deze sessie."
 
 #: src/if/gnet_property.c:5678
 msgid ""
@@ -2863,23 +2706,20 @@ msgid ""
 msgstr "Hoeveelheid data dat gtk-gnutella vooruit moet proberen te lezen per bron die aan het downloaden is. Dit voorkomt teveel systeem aanroepen tijdens het lezen van grote hoeveelheid data. Dit vult bufferen mooi aan, aangezien dit voorkomt dat er een paar bytes worden gelezen en vervolgens de gebufferde data naar de schijf wordt weggeschreven terwijl er nog ruimte is voor het vooruit lezen. Als je dit wilt uitzetten, dan kan je vooruit lees buffer op 0 zetten."
 
 #: src/if/gui_property.c:173
-#, fuzzy
 msgid "disable"
-msgstr "stabiel"
+msgstr "uitschakelen"
 
 #: src/if/gui_property.c:174
-#, fuzzy
 msgid "by words"
-msgstr "Sleutelwoorden"
+msgstr "op woorden"
 
 #: src/if/gui_property.c:175
 msgid "by whole query"
 msgstr "op hele zoekopdracht"
 
 #: src/if/gui_property.c:176
-#, fuzzy
 msgid "by router"
-msgstr "Geen route"
+msgstr "per router"
 
 #: src/if/gui_property.c:198
 msgid "TCP & UDP"
@@ -2894,9 +2734,8 @@ msgid "UDP only"
 msgstr "Alleen UDP"
 
 #: src/if/gui_property.c:268
-#, fuzzy
 msgid "Icons"
-msgstr "seconden"
+msgstr "Iconen"
 
 #: src/if/gui_property.c:269
 msgid "Text"
@@ -2911,29 +2750,23 @@ msgid "Both (horizontal)"
 msgstr "Beide (horizontaal)"
 
 #: src/if/gui_property.c:299
-#, fuzzy
 msgid "Search monitor enabled."
-msgstr "Zoek monitor geactiveerd"
+msgstr "Zoek monitor geactiveerd."
 
 #: src/if/gui_property.c:316
-#, fuzzy
 msgid "Maximum number of queries visible in search monitor."
 msgstr ""
 "Maximum aantal zoek opdrachten die zichtbaar zullen zijn in de zoek monitor."
 
 #: src/if/gui_property.c:336
-#, fuzzy
 msgid "Match queue selection by regexp case sensitive."
 msgstr ""
-"Maak een selectie uit de wachtrij op basis van reguliere expressie "
-"(Hoofdletters zijn verschillend van kleine letters)"
+"Maak een selectie uit de wachtrij op basis van reguliere hoofdlettergevoelige expressie"
 
 #: src/if/gui_property.c:353
-#, fuzzy
 msgid "Match fileinfo selection by regexp case sensitive."
 msgstr ""
-"Selecteer uit de download lijst op basis van een reguliere expressie "
-"(hoofdletter gevoelig)"
+"Selecteer uit de download lijst op basis van een reguliere hoofdletter gevoelige expressie "
 
 #: src/if/gui_property.c:370
 msgid ""
@@ -2944,272 +2777,215 @@ msgstr ""
 "de SHA1 van je filters verborgen moeten worden."
 
 #: src/if/gui_property.c:387
-#, fuzzy
 msgid "Widths of the columns in the nodes table."
 msgstr "Breedte van de kolommen in de nodes tabel."
 
 #: src/if/gui_property.c:407
-#, fuzzy
 msgid "Which columns are visible in the nodes pane."
-msgstr "De kolommen die zichtbaar zijn in het node paneel"
+msgstr "De kolommen die zichtbaar zijn in het node paneel."
 
 #: src/if/gui_property.c:424
-#, fuzzy
 msgid "Widths of the columns in the active downloads table."
-msgstr "Breedte van de kolommen in de actieve downloads tabel"
+msgstr "Breedte van de kolommen in de actieve downloads tabel."
 
 #: src/if/gui_property.c:444
-#, fuzzy
 msgid "Which columns are visible in the active downloads table."
-msgstr "De kolommen die zichtbaar zijn in de actieve downloads tabel"
+msgstr "De kolommen die zichtbaar zijn in de actieve downloads tabel."
 
 #: src/if/gui_property.c:461
-#, fuzzy
 msgid "Widths of the columns in the queued downloads table."
-msgstr "Breedte van de kolommen in de downloads wachtrij tabel"
+msgstr "Breedte van de kolommen in de downloads wachtrij tabel."
 
 #: src/if/gui_property.c:481
-#, fuzzy
 msgid "Which columns are visible in the queued downloads table."
-msgstr "De kolommen die zichtbaar zijn in de wachtrij download tabel"
+msgstr "De kolommen die zichtbaar zijn in de wachtrij download tabel."
 
 #: src/if/gui_property.c:498
-#, fuzzy
 msgid "Widths of the columns in the file info table."
-msgstr "Breedte van de kolommen in de file info tabel"
+msgstr "Breedte van de kolommen in de file info tabel."
 
 #: src/if/gui_property.c:518
-#, fuzzy
 msgid "Widths of the columns in the search list on the sidebar."
-msgstr "Breedte van de kolommen in de zoekopdrachten lijst in de sidebar"
+msgstr "Breedte van de kolommen in de zoekopdrachten lijst in het zijpaneel."
 
 #: src/if/gui_property.c:538
-#, fuzzy
 msgid "Which columns are visible in the search results tables."
-msgstr "Welke kolommen zijn zichtbar in de zoekresultaten tabel"
+msgstr "Welke kolommen zichtbaar zijn in de zoekresultaten tabel."
 
 #: src/if/gui_property.c:555
-#, fuzzy
 msgid "Widths of the columns in the search results tables."
-msgstr "Breedte van de kolommen in de zoekopdrachten tabel"
+msgstr "Breedte van de kolommen in de zoekopdrachten tabel."
 
 #: src/if/gui_property.c:575
-#, fuzzy
 msgid "Widths of the columns in the search stats table."
-msgstr "Breedte van de kolommen in de zoekopdrachten statistiektabel"
+msgstr "Breedte van de kolommen in de zoekopdrachten statistiektabel."
 
 #: src/if/gui_property.c:595
-#, fuzzy
 msgid "Widths of the columns in the upload stats table."
-msgstr "Breedte van de kolommen in de tabel met upload statistieken"
+msgstr "Breedte van de kolommen in de tabel met upload statistieken."
 
 #: src/if/gui_property.c:615
-#, fuzzy
 msgid "Which columns are visible in the upload stats table."
-msgstr "De kolommen die zichtbaar zijn in de upload statistieken tabel"
+msgstr "De kolommen die zichtbaar zijn in de upload statistieken tabel."
 
 #: src/if/gui_property.c:632
-#, fuzzy
 msgid "Widths of the columns in the uploads table."
-msgstr "Breedte van de kolommen in de upload tabel"
+msgstr "Breedte van de kolommen in de upload tabel."
 
 #: src/if/gui_property.c:652
-#, fuzzy
 msgid "Which columns are visible in the uploads table."
-msgstr "De kolommen die zichtbaar zijn in de upload tabel"
+msgstr "De kolommen die zichtbaar zijn in de upload tabel."
 
 #: src/if/gui_property.c:669
-#, fuzzy
 msgid "Widths of the columns in the rules table in the filter dialog."
-msgstr "Breedte van de kolommen in de regels tabel in de filter dialoog"
+msgstr "Breedte van de kolommen in de regels tabel in de filter dialoog."
 
 #: src/if/gui_property.c:689
-#, fuzzy
 msgid "Widths of the columns in the filter table in the filter dialog."
-msgstr "Breedte van de kolommen in de filter tabel in de filter dialoog"
+msgstr "Breedte van de kolommen in de filter tabel in de filter dialoog."
 
 #: src/if/gui_property.c:709
-#, fuzzy
 msgid "Widths of the columns in the Gnet packet stats table."
-msgstr "Breedte van de kolommen in de gnet pakket statistieken tabel"
+msgstr "Breedte van de kolommen in de gnet pakket statistieken tabel."
 
 #: src/if/gui_property.c:729
-#, fuzzy
 msgid "Widths of the columns in the Gnet fc ttl stats table."
-msgstr "Breedte van de kolommen in de gNet fc ttl statistieken tabel"
+msgstr "Breedte van de kolommen in de gNet fc ttl statistieken tabel."
 
 #: src/if/gui_property.c:749 src/if/gui_property.c:769
-#, fuzzy
 msgid "Widths of the columns in the Gnet fc hops stats table."
-msgstr "Breedte van de kolommen in de gNet fc hops statistieken tabel"
+msgstr "Breedte van de kolommen in de gNet fc hops statistieken tabel."
 
 #: src/if/gui_property.c:789
-#, fuzzy
 msgid "Widths of the columns in the Gnet horizon stats table."
-msgstr "Breedte van de kolommen in de gNet horizon statistieken tabel."
+msgstr "Breedte van de kolommen in de Gnet horizon statistieken tabel."
 
 #: src/if/gui_property.c:809 src/if/gui_property.c:829
-#, fuzzy
 msgid "Widths of the columns in the Gnet stats drop reasons table."
-msgstr ""
-"Breedte van de kolommen in de gNet statistieken tabel met redenen voor het "
-"laten vallen van berichten"
+msgstr "Breedte van de kolommen in de gNet statistieken tabel met redenen voor het "
+"laten vallen van berichten."
 
 #: src/if/gui_property.c:849
-#, fuzzy
 msgid "Widths of the columns in the hostcache table."
-msgstr "Breedte van de kolommen in de hostcache tabel"
+msgstr "Breedte van de kolommen in de hostcache tabel."
 
 #: src/if/gui_property.c:869
-#, fuzzy
 msgid "Position and size of the main window."
-msgstr "De grootte an de positie van het hoofd venster"
+msgstr "De grootte en de positie van het hoofd venster."
 
 #: src/if/gui_property.c:889
-#, fuzzy
 msgid "Position and size of the filter dialog."
-msgstr "De grootte en de positie van het filter dialoog"
+msgstr "De grootte en de positie van het filter dialoog."
 
 #: src/if/gui_property.c:909
-#, fuzzy
 msgid "Position of the divider in the fileinfo panel."
-msgstr "Positie van de scheidingsmarkering in het download paneel"
+msgstr "Positie van de scheidingsmarkering in het download paneel."
 
 #: src/if/gui_property.c:929
-#, fuzzy
 msgid "Size of the sidebar."
-msgstr "Grootte van het zijpaneel"
+msgstr "Grootte van het zijpaneel."
 
 #: src/if/gui_property.c:949
-#, fuzzy
 msgid "Position of the divider in the Gnet stats pane."
-msgstr "Positie van de scheidingsmarkering in het gNet statistieken paneel"
+msgstr "Positie van de scheidingsmarkering in het Gnet statistieken paneel."
 
 #: src/if/gui_property.c:969
-#, fuzzy
 msgid "Size of the menu in the sidebar."
-msgstr "Grootte van het menu in het zijpaneel"
+msgstr "Grootte van het menu in het zijpaneel."
 
 #: src/if/gui_property.c:989
-#, fuzzy
 msgid "Position of the divider in the search results pane."
-msgstr "Positie van de scheidingsmarkering in het paneel met de zoekresultaten"
+msgstr "Positie van de scheidingsmarkering in het paneel met de zoekresultaten."
 
 #: src/if/gui_property.c:1009
-#, fuzzy
 msgid "Maximum number of results to show in any search."
-msgstr ""
-"Het maximum aantal resultaten dat weergegeven mag worden bij een zoekopdracht"
+msgstr "Het maximum aantal resultaten dat weergegeven mag worden bij een zoekopdracht."
 
 #: src/if/gui_property.c:1029
-#, fuzzy
 msgid "Debug level for the gui."
-msgstr "Debug level voor de GUI"
+msgstr "Debug level voor de gui."
 
 #: src/if/gui_property.c:1049
-#, fuzzy
 msgid "Size of the filter tree in the filter dialog."
-msgstr "Grootte van de filter boom in het filter dialoog"
+msgstr "Grootte van de filter boom in het filter dialoog."
 
 #: src/if/gui_property.c:1069
-#, fuzzy
 msgid "Show tabs or search list."
-msgstr "Gebruik tabs of een zoek lijst"
+msgstr "Gebruik tabs of een zoek lijst."
 
 #: src/if/gui_property.c:1086
-#, fuzzy
 msgid "Display toolbar."
-msgstr "Werkbalk tonen"
+msgstr "Werkbalk tonen."
 
 #: src/if/gui_property.c:1103
-#, fuzzy
 msgid "Display statusbar."
-msgstr "Statusbalk tonen"
+msgstr "Statusbalk tonen."
 
 #: src/if/gui_property.c:1120
-#, fuzzy
 msgid "Display upload statistics in sidebar."
-msgstr "Upload statistieken in het zijpaneel tonen"
+msgstr "Upload statistieken in het zijpaneel tonen."
 
 #: src/if/gui_property.c:1137
-#, fuzzy
 msgid "Display download statistics in sidebar."
-msgstr "Download statistieken in het zijpanel tonen"
+msgstr "Download statistieken in het zijpanel tonen."
 
 #: src/if/gui_property.c:1154
-#, fuzzy
 msgid "Display connection statistics in sidebar."
-msgstr "Connectie statistieken in het zijpaneel tonen"
+msgstr "Verbindings statistieken in het zijpaneel tonen."
 
 #: src/if/gui_property.c:1171
-#, fuzzy
 msgid "Display incoming HTTP traffic bandwidth usage."
-msgstr "Bandbreedte gebruik voor het inkomend HTTP verkeer tonen"
+msgstr "Bandbreedte gebruik voor het inkomend HTTP verkeer tonen."
 
 #: src/if/gui_property.c:1188
-#, fuzzy
 msgid "Display outgoing HTTP traffic bandwidth usage."
-msgstr "Bandbreedte gebruik voor het uitgaand HTTP verkeer tonen"
+msgstr "Bandbreedte gebruik voor het uitgaand HTTP verkeer tonen."
 
 #: src/if/gui_property.c:1205
-#, fuzzy
 msgid "Display incoming Gnet traffic bandwidth usage."
-msgstr "Bandbreedte gebruik voor het inkomend gNet verkeer weergeven"
+msgstr "Bandbreedte gebruik voor het inkomend Gnet verkeer weergeven."
 
 #: src/if/gui_property.c:1222
-#, fuzzy
 msgid "Display outgoing Gnet traffic bandwidth usage."
-msgstr "Bandbreedte gebruik voor het uitgaand gNet verkeer weergeven"
+msgstr "Bandbreedte gebruik voor het uitgaand Gnet verkeer weergeven."
 
 #: src/if/gui_property.c:1239
-#, fuzzy
 msgid "Display incoming Gnet leaf traffic bandwidth usage."
-msgstr "Bandbreedte gebruik voor het inkomende gNet leaf verkeer weergeven"
+msgstr "Bandbreedte gebruik voor het inkomende Gnet leaf verkeer weergeven."
 
 #: src/if/gui_property.c:1256
-#, fuzzy
 msgid "Display outgoing Gnet leaf traffic bandwidth usage."
-msgstr "Bandbreedte gebruik voor het uitgaand gNet leaf verkeer weergeven"
+msgstr "Bandbreedte gebruik voor het uitgaand Gnet leaf verkeer weergeven."
 
 #: src/if/gui_property.c:1273
-#, fuzzy
 msgid "Automatically hide leaf bandwidth display when not in ultrapeer mode."
 msgstr ""
 "Verberg de weergave van de bandbreedte van de leafs automatisch als we niet "
 "in Ultrapeer modus zijn."
 
 #: src/if/gui_property.c:1290
-#, fuzzy
 msgid "Display incoming HTTP traffic bandwidth average."
-msgstr "Toon het gemiddelde bandbreedte verkeer voor het inkomend HTTP verkeer"
+msgstr "Toon het gemiddelde bandbreedte verkeer voor het inkomend HTTP verkeer."
 
 #: src/if/gui_property.c:1307
-#, fuzzy
 msgid "Display outgoing HTTP traffic bandwidth average."
-msgstr "Toon het gemiddelde bandbreedte verkeer voor het uitgaand HTTP verkeer"
+msgstr "Toon het gemiddelde bandbreedte verkeer voor het uitgaand HTTP verkeer."
 
 #: src/if/gui_property.c:1324
-#, fuzzy
 msgid "Display incoming Gnet traffic bandwidth average."
-msgstr ""
-"Geef het gemiddelde bandbreedte verbruik voor het inkomend gNet verkeer weer"
+msgstr "Geef het gemiddelde bandbreedte verbruik voor het inkomend gNet verkeer weer."
 
 #: src/if/gui_property.c:1341
-#, fuzzy
 msgid "Display outgoing Gnet traffic bandwidth average."
-msgstr ""
-"Geef het gemiddelde bandbreedte verbruik voor uitgaand gNet verkeer weer"
+msgstr "Geef het gemiddelde bandbreedte verbruik voor uitgaand gNet verkeer weer."
 
 #: src/if/gui_property.c:1358
-#, fuzzy
 msgid "Display incoming Gnet leaf traffic bandwidth average."
-msgstr ""
-"Geef het gemiddelde bandbreedte verbruik voor inkomend gNet leaf verkeer weer"
+msgstr "Geef het gemiddelde bandbreedte verbruik voor inkomend Gnet leaf verkeer weer."
 
 #: src/if/gui_property.c:1375
-#, fuzzy
 msgid "Display outgoing Gnet leaf traffic bandwidth average."
-msgstr "Geef het gemiddelde bandbreedte verbruik voor gNet leaf verkeer weer"
+msgstr "Geef het gemiddelde bandbreedte verbruik voor Gnet leaf verkeer weer."
 
 #: src/if/gui_property.c:1392
 msgid "Do a case sensitive sorting."
@@ -3220,27 +2996,22 @@ msgid "Default sort order for search results."
 msgstr "Standaard sorteer volgorde voor zoekresultaten."
 
 #: src/if/gui_property.c:1429
-#, fuzzy
 msgid "Default sort column for search results."
-msgstr "Breedte van de kolommen in de zoekopdrachten tabel"
+msgstr "Breedte van de kolommen in de zoekopdrachten tabel."
 
 #: src/if/gui_property.c:1449
-#, fuzzy
 msgid "Display search settings."
-msgstr "Zoek instellingen weergeven"
+msgstr "Zoek instellingen weergeven."
 
 #: src/if/gui_property.c:1466
-#, fuzzy
 msgid "Display download settings."
-msgstr "Download instellingen weergeven"
+msgstr "Download instellingen weergeven."
 
 #: src/if/gui_property.c:1483
-#, fuzzy
 msgid "Collect statistics about searches that go through this node."
-msgstr "Verzamel statistieken over zoekopdrachten die door deze node komen"
+msgstr "Verzamel statistieken over zoekopdrachten die door deze node komen."
 
 #: src/if/gui_property.c:1503
-#, fuzzy
 msgid "Interval in which the search stats are updated."
 msgstr "Interval waarmee de zoekstatistieken aangepast worden."
 
@@ -3254,74 +3025,59 @@ msgstr ""
 "statistieken in het geheugen worden gehouden."
 
 #: src/if/gui_property.c:1543
-#, fuzzy
 msgid "Show confirmation dialog when leaving gtk-gnutella."
-msgstr "Toon een bevestigingsdialoog als gtk-gnutella afgesloten wordt."
+msgstr "Toon een bevestigingsdialoog als gtk-gnutella wordt afgesloten."
 
 #: src/if/gui_property.c:1560
-#, fuzzy
 msgid "Show a helpful message when the mouse pointer lingers over a widget."
-msgstr ""
-"Toon een behulpzame uitleg als de muis over een deel van de interface "
-"geplaatst is."
+msgstr "Toon een behulpzame uitleg als de muis over een deel van de interface is "
+"geplaatst."
 
 #: src/if/gui_property.c:1577
-#, fuzzy
 msgid ""
 "Show a lot more settings to tweak. If you tamper with them be sure to read "
 "up on what they are doing."
-msgstr ""
-"Toon veel meer settings om aan te prutsen. Als je er mee gaat rommelen zorg "
+msgstr "Toon veel meer settings om mee te prutsen. Als je er mee gaat rommelen zorg "
 "dan dat je weet wat ze doen."
 
 #: src/if/gui_property.c:1594
-#, fuzzy
 msgid "Show percentages instead of absolute values in the Gnet stats."
-msgstr ""
-"Geef percentages in plaats van absolute waardes in de gnet statistieken weer"
+msgstr "Geef percentages in plaats van absolute waardes in de Gnet statistieken weer."
 
 #: src/if/gui_property.c:1611
-#, fuzzy
 msgid "Show bytes instead of packets in the Gnet stats."
-msgstr "Geef bytes in plaats van paketten in de gnet statistieken weer"
+msgstr "Geef bytes in plaats van paketten in de Gnet statistieken weer."
 
 #: src/if/gui_property.c:1628
-#, fuzzy
 msgid "Show stats per hops instead of per TTL."
-msgstr "Toon statistieken per hop i.p.v. per TTL"
+msgstr "Toon statistieken per hop i.p.v. per TTL."
 
 #: src/if/gui_property.c:1645
-#, fuzzy
 msgid "Choose source of stats to be displayed."
-msgstr "Of het aantal verzonden zoekopdrachten getoond moet worden."
+msgstr "Kies de teweer geven statistiek bron."
 
 #: src/if/gui_property.c:1665
-#, fuzzy
 msgid "Include Gnutella packet header size to the volume."
-msgstr "Voeg de headers toe aan het volume"
+msgstr "Voeg Gnutella paketten de headers toe aan het volume."
 
 #: src/if/gui_property.c:1682
-#, fuzzy
 msgid ""
 "Show percentages instead of absolute values in the Gnet stats (drop reasons)."
 msgstr ""
 "Geef percentages in plaats van absolute waarden in de gnet statistieken "
-"(redenen voor laten vallen) weer"
+"(redenen voor laten vallen) weer."
 
 #: src/if/gui_property.c:1699
-#, fuzzy
 msgid "Widths of the columns in the Gnet stats general table."
-msgstr "Breedte van de kolommen in de gnet statistieken algemene tabel"
+msgstr "Breedte van de kolommen in de gnet statistieken algemene tabel."
 
 #: src/if/gui_property.c:1719
-#, fuzzy
 msgid "Auto clear completed uploads."
-msgstr "Automatisch afgeronde uploads opschonen"
+msgstr "Afgeronde uploads automatisch opschonen."
 
 #: src/if/gui_property.c:1736
-#, fuzzy
 msgid "Auto clear failed uploads."
-msgstr "Automatisch gefaalde uploads opschonen"
+msgstr "Gefaalde uploads automatisch opschonen."
 
 #: src/if/gui_property.c:1753
 msgid ""
@@ -3356,18 +3112,14 @@ msgid "Whether RX traffic compression ratio should be displayed."
 msgstr "Of het percentage compressie van RX verkeer getoond moet worden"
 
 #: src/if/gui_property.c:1838
-#, fuzzy
 msgid "Whether to display the amount of bytes sent on the TX wire."
 msgstr ""
-"Als de grootte van het aantal gedeelde bestanden door andere \"nodes\" "
-"bekend is, of deze dan moet worden weergegeven"
+"Of de hoeveelheid bytes verzonden moet worden weergegeven."
 
 #: src/if/gui_property.c:1855
-#, fuzzy
 msgid "Whether to display the amount of bytes received on the RX wire."
 msgstr ""
-"Als de grootte van het aantal gedeelde bestanden door andere \"nodes\" "
-"bekend is, of deze dan moet worden weergegeven"
+"Of de hoeveelheid bytes ontvangen moet worden weergegeven."
 
 #: src/if/gui_property.c:1872
 msgid "Whether TX instantaneous transmission speed should be displayed."
@@ -3413,7 +3165,6 @@ msgid "Whether count of dropped messages on RX should be displayed."
 msgstr "Of het aantal berichten op RX die we laten vallen getoond moet worden."
 
 #: src/if/gui_property.c:2042
-#, fuzzy
 msgid ""
 "Whether Query Routing Protocol statistics should be displayed. For a leaf "
 "node, this is simply the ratio of queries that generated a hit over the "
@@ -3474,26 +3225,20 @@ msgstr ""
 "minder vaak opnieuw weergegeven moet worden."
 
 #: src/if/gui_property.c:2147
-#, fuzzy
 msgid "Expanded stati of the nodes in the treemenu."
-msgstr "Uitgebreide statistieken van de nodes in het treemenu"
+msgstr "Uitgebreide statistieken van de nodes in het treemenu."
 
 #: src/if/gui_property.c:2167
-#, fuzzy
 msgid "Widths of the columns in the Gnet packet stats table (pkg). [GTK2]"
-msgstr ""
-"Breedte van de kolommen in de gnet pakket statistieken tabel (pkg)[GTK2]"
+msgstr "Breedte van de kolommen in de Gnet pakket statistieken tabel (pkg).[GTK2]"
 
 #: src/if/gui_property.c:2187
-#, fuzzy
 msgid "Widths of the columns in the Gnet packet stats table (byte). [GTK2]"
-msgstr ""
-"Breedte van de kolommen in de gnet pakket statistieken tabel (byte)[GTK2]"
+msgstr "Breedte van de kolommen in de gnet pakket statistieken tabel (byte). [GTK2]"
 
 #: src/if/gui_property.c:2207
-#, fuzzy
 msgid "Configures the appearance of the toolbar."
-msgstr "Configureert hoe de toolbar er uit ziet."
+msgstr "Configureert het uiterlijk van de werkbalk."
 
 #: src/lib/iso3166.c:58
 msgid "Anonymizing proxies"
@@ -3780,9 +3525,8 @@ msgid "Ethiopia"
 msgstr "Ethiopië"
 
 #: src/lib/iso3166.c:129
-#, fuzzy
 msgid "Europe"
-msgstr "verwijderd"
+msgstr "Europa"
 
 #: src/lib/iso3166.c:130
 msgid "Faeroe Islands"
@@ -4309,9 +4053,8 @@ msgid "South Georgia and the South Sandwich Islands"
 msgstr "Zuid-Georgia en de Zuidelijke Sandwicheilanden"
 
 #: src/lib/iso3166.c:261
-#, fuzzy
 msgid "Spain, Kingdom of"
-msgstr "Nederlanden, Koninkrijk der"
+msgstr "Spanje"
 
 #: src/lib/iso3166.c:262
 msgid "Sri Lanka, Democratic Socialist Republic of"
@@ -4474,33 +4217,31 @@ msgid "Zimbabwe"
 msgstr "Zimbabwe"
 
 #: src/lib/misc.c:827
-#, fuzzy, c-format
+#, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
-msgstr[0] "Bytes"
-msgstr[1] "Bytes"
+msgstr[0] "%u Byte"
+msgstr[1] "%u Bytes"
 
 #: src/lib/misc.c:850
-#, fuzzy, c-format
+#, c-format
 msgid "%u&nbsp;Byte"
 msgid_plural "%u&nbsp;Bytes"
-msgstr[0] "Bytes"
-msgstr[1] "Bytes"
+msgstr[0] "%u&nbsp;Byte"
+msgstr[1] "%u&nbsp;Bytes"
 
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
 #: src/lib/misc.c:954 src/lib/misc.c:965
-#, fuzzy
 msgid "B/s"
-msgstr "K/s"
+msgstr "B/s"
 
 #: src/main.c:876
 msgid "This is an unofficial build which accesses files in this directory:"
 msgstr "Dit is een officieel gebouwde versie en haalt zijn bestanden uit deze directorie:"
 
 #: src/ui/gtk/bitzi.c:56
-#, fuzzy
 msgid "Bitzi|Unknown"
-msgstr "Onbekend"
+msgstr "Bitzi|Onbekend"
 
 #: src/ui/gtk/bitzi.c:57
 msgid "Bitzi|Dangerous/Misleading"
@@ -4515,29 +4256,24 @@ msgid "Bitzi|Substandard"
 msgstr "Bitzi|Sub-standaard"
 
 #: src/ui/gtk/bitzi.c:60
-#, fuzzy
 msgid "Bitzi|Overrated"
-msgstr "Overgewaardeerd"
+msgstr "Bitzi|Overgewaardeerd"
 
 #: src/ui/gtk/bitzi.c:61
-#, fuzzy
 msgid "Bitzi|Normal"
-msgstr "Normaal"
+msgstr "Bitzi|Normaal"
 
 #: src/ui/gtk/bitzi.c:62
-#, fuzzy
 msgid "Bitzi|Underrated"
-msgstr "Ondergewaardeerd"
+msgstr "Bitzi|Ondergewaardeerd"
 
 #: src/ui/gtk/bitzi.c:63
-#, fuzzy
 msgid "Bitzi|Complete"
-msgstr "Compleet"
+msgstr "Bitzi|Compleet"
 
 #: src/ui/gtk/bitzi.c:64
-#, fuzzy
 msgid "Bitzi|Recommended"
-msgstr "Aanbevolen"
+msgstr "Bitzi|Aanbevolen"
 
 #: src/ui/gtk/bitzi.c:65
 msgid "Bitzi|Best Version"
@@ -4556,12 +4292,10 @@ msgid "Support for this protocol is not yet implemented"
 msgstr "Ondersteuning voor die protocol is niet geïmplementeerd."
 
 #: src/ui/gtk/drop.c:181
-#, fuzzy
 msgid "MAGNET URI contained source URL for an unsupported protocol"
 msgstr "MAGNET URL bevatte een bron URL voor een niet ondersteund protocol"
 
 #: src/ui/gtk/drop.c:254
-#, fuzzy
 msgid "MAGNET URI contained exact topic search other than urn:sha1:"
 msgstr "MAGNET URL bevatte een gedefinieerd onderwerp anders dan urn:sha1:"
 
@@ -4637,14 +4371,13 @@ msgstr "Als de bestandsnaam begint met \"%s\" %s"
 #: src/ui/gtk/filter_core.c:940 src/ui/gtk/filter_core.c:947
 #: src/ui/gtk/filter_core.c:954 src/ui/gtk/filter_core.c:961
 #: src/ui/gtk/filter_core.c:968 src/ui/gtk/filter_core.c:975
-#, fuzzy
 msgid "(case-sensitive)"
-msgstr "hoofdletter gevoelig"
+msgstr "(hoofdletter gevoelig)"
 
 #: src/ui/gtk/filter_core.c:945
-#, fuzzy, c-format
+#, c-format
 msgid "If filename contains the words \"%s\" %s"
-msgstr "bevat de woorden"
+msgstr "Als de bestandsnaam de woorden \"%s\" %s bevat."
 
 #: src/ui/gtk/filter_core.c:952
 #, c-format
@@ -4652,9 +4385,9 @@ msgid "If filename ends with \"%s\" %s"
 msgstr "Als de bestandsnaam eindigt met \"%s\" %s"
 
 #: src/ui/gtk/filter_core.c:959
-#, fuzzy, c-format
+#, c-format
 msgid "If filename contains the substring \"%s\" %s"
-msgstr "bevat de zin"
+msgstr "Als de bestandsnaam de subtext \"%s\" %s bevat"
 
 #: src/ui/gtk/filter_core.c:966
 #, c-format
@@ -4667,9 +4400,9 @@ msgid "If filename is \"%s\" %s"
 msgstr "Als de bestandsnaam gelijk is aan \"%s\" %s"
 
 #: src/ui/gtk/filter_core.c:989
-#, fuzzy, c-format
+#, c-format
 msgid "If IP address matches %s/%s"
-msgstr "Voorwaarde: Als IP adres overeenkomt"
+msgstr "Als het IP-adres overeenkomt met %s/%s"
 
 #: src/ui/gtk/filter_core.c:998
 #, c-format
@@ -4696,33 +4429,28 @@ msgid "If urn:sha1 is not available"
 msgstr "Als de urn:sha1 niet beschikbaar is"
 
 #: src/ui/gtk/filter_core.c:1032
-#, fuzzy
 msgid "Always"
-msgstr "Alias"
+msgstr "Altijd"
 
 #: src/ui/gtk/filter_core.c:1045
-#, fuzzy
 msgid "busy is set"
-msgstr "\"Push\" verzonden"
+msgstr "bezig als gezet"
 
 #: src/ui/gtk/filter_core.c:1049
 msgid "busy is not set"
 msgstr "Bezig indien niet gezet"
 
 #: src/ui/gtk/filter_core.c:1059
-#, fuzzy
 msgid "push is set"
-msgstr "\"Push\" verzonden"
+msgstr "push is gezet"
 
 #: src/ui/gtk/filter_core.c:1064
-#, fuzzy
 msgid "push is not set"
-msgstr "Timeout voor gestuurde \"push\""
+msgstr "push is niet gezet"
 
 #: src/ui/gtk/filter_core.c:1074
-#, fuzzy
 msgid "stable is set"
-msgstr "stabiel"
+msgstr "stabiel is gezet"
 
 #: src/ui/gtk/filter_core.c:1079
 msgid "stable is not set"
@@ -4738,9 +4466,8 @@ msgid "Always (all flags ignored)"
 msgstr "Altijd (alle vlaggen genegeerd)"
 
 #: src/ui/gtk/filter_core.c:1104
-#, fuzzy
 msgid "DISPLAY is undefined"
-msgstr "ongedefinieerd"
+msgstr "DISPLAY is ongedefinieerd"
 
 #: src/ui/gtk/filter_core.c:1108 src/ui/gtk/filter_core.c:2357
 #: src/ui/gtk/gtk1/interface-glade.c:9388
@@ -4749,14 +4476,12 @@ msgid "DISPLAY"
 msgstr "GEEF WEER"
 
 #: src/ui/gtk/filter_core.c:1112 src/ui/gtk/filter_core.c:2358
-#, fuzzy
 msgid "DON'T DISPLAY"
-msgstr "GEEF WEER"
+msgstr "NIET TONEN"
 
 #: src/ui/gtk/filter_core.c:1124
-#, fuzzy
 msgid "DOWNLOAD is undefined"
-msgstr "ongedefinieerd"
+msgstr "DOWNLOAD is ongedefinieerd"
 
 #: src/ui/gtk/filter_core.c:1129 src/ui/gtk/filter_core.c:2359
 #: src/ui/gtk/gtk1/interface-glade.c:9337
@@ -4765,9 +4490,8 @@ msgid "DOWNLOAD"
 msgstr "DOWNLOAD"
 
 #: src/ui/gtk/filter_core.c:1134 src/ui/gtk/filter_core.c:2360
-#, fuzzy
 msgid "DON'T DOWNLOAD"
-msgstr "DOWNLOAD"
+msgstr "NIET DOWNLOADEN"
 
 #: src/ui/gtk/filter_core.c:1144
 #, c-format
@@ -4784,28 +4508,24 @@ msgid "%s%s %s jump to \"%s\""
 msgstr "%s%s %s spring naar \"%s\""
 
 #: src/ui/gtk/filter_core.c:1174
-#, fuzzy
 msgid "(Negated) "
-msgstr "(geblokkeerd)"
+msgstr "(Ontkend)"
 
 #: src/ui/gtk/filter_core.c:1175
-#, fuzzy
 msgid "(deactivated)"
-msgstr "actief"
+msgstr "(gedeactiveerd)"
 
 #: src/ui/gtk/filter_core.c:1177
 msgid "(invalid)"
 msgstr "(ongeldig)"
 
 #: src/ui/gtk/filter_core.c:2355
-#, fuzzy
 msgid "Global (pre)"
-msgstr "Algemene filters"
+msgstr "Algemeen (vooraf)"
 
 #: src/ui/gtk/filter_core.c:2356
-#, fuzzy
 msgid "Global (post)"
-msgstr "Algemene filters"
+msgstr "Algemeen (achteraf)"
 
 #: src/ui/gtk/filter_core.c:2361
 msgid "RETURN"
@@ -4839,14 +4559,12 @@ msgid "HSEP"
 msgstr "HSEP"
 
 #: src/ui/gtk/gnet_stats_common.c:52
-#, fuzzy
 msgid "Vendor spec."
-msgstr "berichten"
+msgstr "Verkoper spec."
 
 #: src/ui/gtk/gnet_stats_common.c:53
-#, fuzzy
 msgid "Vendor std."
-msgstr "Maker:"
+msgstr "Verkoper:"
 
 #: src/ui/gtk/gnet_stats_common.c:54 src/ui/gtk/gtk1/interface-glade.c:8951
 #: src/ui/gtk/gtk2/interface-glade.c:7895
@@ -4905,9 +4623,8 @@ msgid "Stripped OOB flag on queries"
 msgstr "De OOB vlag verwijderd van opdrachten"
 
 #: src/ui/gtk/gnet_stats_common.c:136
-#, fuzzy
 msgid "Duplicates with higher TTL"
-msgstr "Dupliceer deze zoekopdracht"
+msgstr "Duplicaten met een hogere TTL"
 
 #: src/ui/gtk/gnet_stats_common.c:137
 msgid "Duplicate OOB-proxied queries"
@@ -4962,14 +4679,12 @@ msgid "Push proxy lookup failures"
 msgstr "Push proxy kon niet worden opgezocht"
 
 #: src/ui/gtk/gnet_stats_common.c:150
-#, fuzzy
 msgid "Locally generated dynamic queries"
-msgstr "Gegenereerde zoekopdrachten"
+msgstr "Lokaal dynamisch gegenereerde opdrachten"
 
 #: src/ui/gtk/gnet_stats_common.c:151
-#, fuzzy
 msgid "Leaf-generated dynamic queries"
-msgstr "Gegenereerde zoekopdrachten"
+msgstr "Leaf dynamisch gegenereerde opdrachten"
 
 #: src/ui/gtk/gnet_stats_common.c:152
 msgid "OOB-proxied leaf queries"
@@ -5032,18 +4747,16 @@ msgid "Unprocessed UDP Gnutella messages"
 msgstr "Niet verwerkte UDP Gnutella berichten"
 
 #: src/ui/gtk/gnet_stats_common.c:244
-#, fuzzy
 msgid "node"
 msgid_plural "nodes"
 msgstr[0] "node"
-msgstr[1] "node"
+msgstr[1] "nodes"
 
 #: src/ui/gtk/gnet_stats_common.c:249
-#, fuzzy
 msgid "file"
 msgid_plural "files"
 msgstr[0] "bestand"
-msgstr[1] "bestand"
+msgstr[1] "bestanden"
 
 #: src/ui/gtk/gtk1/callbacks.c:274 src/ui/gtk/gtk2/callbacks.c:274
 msgid "Please choose where to store files while downloading"
@@ -5068,17 +4781,16 @@ msgid "Please choose a directory to share"
 msgstr "Geef een directory om te delen"
 
 #: src/ui/gtk/gtk1/downloads.c:542
-#, fuzzy
 msgid "no size"
-msgstr "Verkeerde grootte"
+msgstr "geen grootte"
 
 #: src/ui/gtk/gtk1/downloads.c:685 src/ui/gtk/gtk1/downloads.c:826
 #: src/ui/gtk/gtk1/downloads.c:1664 src/ui/gtk/gtk1/downloads.c:1759
 #: src/ui/gtk/gtk2/downloads.c:964 src/ui/gtk/gtk2/downloads.c:1028
-#, fuzzy, c-format
+#, c-format
 msgid "%u host"
 msgid_plural "%u hosts"
-msgstr[0] "%u hosts"
+msgstr[0] "%u host"
 msgstr[1] "%u hosts"
 
 #: src/ui/gtk/gtk1/downloads.c:1011 src/ui/gtk/gtk1/downloads.c:1042
@@ -5200,15 +4912,14 @@ msgid "; Moving (%.02f%%)"
 msgstr "; Bezig met verplaatsen (%.02f%%)"
 
 #: src/ui/gtk/gtk1/downloads.c:1218 src/ui/gtk/gtk2/downloads.c:1563
-#, fuzzy, c-format
+#, c-format
 msgid "; Moved (%s) %s"
-msgstr "; Verplaatsts (%.1f k/s) %s"
+msgstr "; Verplaatsts (%s) %s"
 
 #: src/ui/gtk/gtk1/downloads.c:1257 src/ui/gtk/gtk1/downloads.c:1279
 #: src/ui/gtk/gtk2/downloads.c:1609 src/ui/gtk/gtk2/downloads.c:1637
-#, fuzzy
 msgid "(stalled)"
-msgstr " (geblokkeerd)"
+msgstr " (hangt)"
 
 #: src/ui/gtk/gtk1/downloads.c:1263
 #, c-format
@@ -5221,7 +4932,6 @@ msgid "Connected"
 msgstr "Verbonden"
 
 #: src/ui/gtk/gtk1/downloads.c:1297 src/ui/gtk/gtk2/downloads.c:1654
-#, fuzzy
 msgid "Unknown error"
 msgstr "Onbekende error"
 
@@ -5231,7 +4941,7 @@ msgid "Retry in %ds"
 msgstr "Opnieuw proberen in %ds;"
 
 #: src/ui/gtk/gtk1/downloads.c:1314 src/ui/gtk/gtk2/downloads.c:1671
-#, fuzzy, c-format
+#, c-format
 msgid "Sinking (%s bytes left)"
 msgstr "Verzinken (%u bytes resterend)"
 
@@ -5261,31 +4971,30 @@ msgid "(%s)  [%d/%d]  TR:  -"
 msgstr "(%s)  [%d/%d]  Resterende tijd:  -"
 
 #: src/ui/gtk/gtk1/downloads_cb.c:54 src/ui/gtk/gtk2/downloads_cb.c:259
-#, fuzzy, c-format
+#, c-format
 msgid "Removed %u download"
 msgid_plural "Removed %u downloads"
-msgstr[0] "%u downloads verwijderd."
-msgstr[1] "%u downloads verwijderd."
+msgstr[0] "%u download verwijderd"
+msgstr[1] "%u downloads verwijderd"
 
 #: src/ui/gtk/gtk1/downloads_cb.c:328 src/ui/gtk/gtk2/downloads_cb.c:371
-#, fuzzy, c-format
+#, c-format
 msgid "Forgot %u download"
 msgid_plural "Forgot %u downloads"
-msgstr[0] "%u downloads vergeten"
+msgstr[0] "%u download vergeten"
 msgstr[1] "%u downloads vergeten"
 
 #: src/ui/gtk/gtk1/downloads_cb.c:1104 src/ui/gtk/gtk2/downloads_cb.c:873
-#, fuzzy, c-format
+#, c-format
 msgid "Selected %u of %u queued download matching \"%s\"."
 msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
-msgstr[0] ""
-"%u van %u wachtende downloads geselecteerd die overeenkwamen met \"%s\".%u "
-"van %u wachtende downloads geselecteerd die overeenkwamen met \"%s\"."
+msgstr[0] "%u van %u wachtende download overeenkomend met \"%s\" geselecteerd."
+msgstr[1] "%u van %u wachtende downloads overeenkomend met \"%s\" geselecteerd."
 
 #: src/ui/gtk/gtk1/fileinfo.c:143 src/ui/gtk/gtk2/fileinfo.c:324
-#, fuzzy, c-format
+#, c-format
 msgid "Downloading (%s)  TR: %s"
-msgstr "Bezig met downloaden (%.1f k/s)"
+msgstr "Bezig met downloaden (%s) Resterende tijd: %s"
 
 #: src/ui/gtk/gtk1/fileinfo.c:152 src/ui/gtk/gtk2/fileinfo.c:334
 msgid "Finished"
@@ -5297,24 +5006,20 @@ msgid "OK"
 msgstr "OK"
 
 #: src/ui/gtk/gtk1/fileinfo.c:157 src/ui/gtk/gtk2/fileinfo.c:339
-#, fuzzy
 msgid "failed"
-msgstr "Gefaalt"
+msgstr "Mislukt"
 
 #: src/ui/gtk/gtk1/fileinfo.c:160 src/ui/gtk/gtk2/fileinfo.c:342
-#, fuzzy
 msgid "Waiting for SHA1 check"
-msgstr "Wacht op SHA1 controle..."
+msgstr "Wacht op SHA1 controle"
 
 #: src/ui/gtk/gtk1/fileinfo.c:163 src/ui/gtk/gtk2/fileinfo.c:345
-#, fuzzy
 msgid "Computing SHA1"
-msgstr "SHA1 wordt gecontroleerd (%.02f%%)"
+msgstr "SHA1 wordt gecontroleerd"
 
 #: src/ui/gtk/gtk1/fileinfo.c:170 src/ui/gtk/gtk2/fileinfo.c:352
-#, fuzzy
 msgid "Moving"
-msgstr "Bezig met verwijderen"
+msgstr "Bezig met verwijderenAan het verpla"
 
 #: src/ui/gtk/gtk1/fileinfo.c:176 src/ui/gtk/gtk2/fileinfo.c:360
 msgid "No sources"
@@ -5328,13 +5033,13 @@ msgstr "In de wacht(%d actief, %d passief)"
 #: src/ui/gtk/gtk1/fileinfo.c:183 src/ui/gtk/gtk2/fileinfo.c:369
 #: src/ui/gtk/uploads_common.c:180
 msgid "Waiting"
-msgstr "Is aan het wachten"
+msgstr "Aan het wachten"
 
 #: src/ui/gtk/gtk1/fileinfo.c:217 src/ui/gtk/gtk1/search_cb.c:243
 #: src/ui/gtk/gtk2/fileinfo.c:130 src/ui/gtk/gtk2/search_cb.c:684
-#, fuzzy, c-format
+#, c-format
 msgid "%s (%s bytes)"
-msgstr "%s (%lu byte)"
+msgstr "%s (%s bytes)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:636
 msgid "gtk-gnutella"
@@ -5353,9 +5058,8 @@ msgstr "Afsluiten"
 
 #: src/ui/gtk/gtk1/interface-glade.c:703
 #: src/ui/gtk/gtk2/interface-glade.c:1993
-#, fuzzy
 msgid "_Settings"
-msgstr "Geef instellingen weer"
+msgstr "Toon instellingen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:726
 #: src/ui/gtk/gtk2/interface-glade.c:2002
@@ -5428,9 +5132,8 @@ msgstr "Statistieken voor gNet leaf verkeer "
 
 #: src/ui/gtk/gtk1/interface-glade.c:943
 #: src/ui/gtk/gtk2/interface-glade.c:2105
-#, fuzzy
 msgid "auto-hide leaf traffic stats"
-msgstr "Statistieken voor gNet leaf verkeer automatisch verbergen"
+msgstr "Leaf verkeer statistieken automatisch verbergen."
 
 #: src/ui/gtk/gtk1/interface-glade.c:952
 #: src/ui/gtk/gtk2/interface-glade.c:2110
@@ -5524,9 +5227,8 @@ msgstr "uitgaand"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1316
 #: src/ui/gtk/gtk2/interface-glade.c:2578
-#, fuzzy
 msgid "GnutellaNet traffic"
-msgstr "gnutellaNet verkeer"
+msgstr "GnutellaNet verkeer"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1356
 #: src/ui/gtk/gtk2/interface-glade.c:2609
@@ -5547,9 +5249,8 @@ msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:1487
 #: src/ui/gtk/gtk2/interface-glade.c:3430
-#, fuzzy
 msgid "GnutellaNet connections"
-msgstr "gnutellaNet connecties"
+msgstr "gnutellaNet verbindingen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1533
 #: src/ui/gtk/gtk1/interface-glade.c:2971
@@ -5601,9 +5302,8 @@ msgid "Ver"
 msgstr "Ver"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1574 src/ui/gtk/gtk2/nodes.c:169
-#, fuzzy
 msgid "Connected time"
-msgstr "Verbonden timeout"
+msgstr "Tijd verbonden"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1582
 #: src/ui/gtk/gtk1/interface-glade.c:5887 src/ui/gtk/gtk1/nodes.c:254
@@ -5666,19 +5366,16 @@ msgid "Quick-connect pool size"
 msgstr "Snelverbinden pool grootte"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1771
-#, fuzzy
 msgid "Transferred data"
 msgstr "Data verstuurd/ontvangen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1790
-#, fuzzy
 msgid "Uploaded:"
-msgstr "Geupload"
+msgstr "Geupload:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1802
-#, fuzzy
 msgid "Downloaded:"
-msgstr "Gedownload"
+msgstr "Gedownload:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1823
 #: src/ui/gtk/gtk1/interface-glade.c:1835
@@ -5690,16 +5387,14 @@ msgstr "Is er een toepasselijke tooltip voor deze?"
 #: src/ui/gtk/gtk1/interface-glade.c:1838
 #: src/ui/gtk/gtk2/interface-glade.c:3781
 #: src/ui/gtk/gtk2/interface-glade.c:4564
-#, fuzzy
 msgid "Chunks/Files:"
-msgstr "Fragmenten/Bestanden"
+msgstr "Fragmenten/Bestanden:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1848
 #: src/ui/gtk/gtk2/interface-glade.c:3772
 #: src/ui/gtk/gtk2/interface-glade.c:4573
-#, fuzzy
 msgid "Volume:"
-msgstr "Volume"
+msgstr "Volume:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1880
 #: src/ui/gtk/gtk2/interface-glade.c:3499
@@ -5717,18 +5412,16 @@ msgstr "IP:Poort:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1951
 #: src/ui/gtk/gtk2/interface-glade.c:3489
-#, fuzzy
 msgid ""
 "The current IP address and listening port for this node. To change these go "
 "to Settings->Preferences->Network."
 msgstr ""
 "Het huidge IP adres en de luisterende poort voor deze node. Om deze waarde "
-"te wijgen ga dan naar: Configuratie->Netwerk"
+"te wijzigen ga dan naar: Configuratie->Netwerk."
 
 #: src/ui/gtk/gtk1/interface-glade.c:1954
-#, fuzzy
 msgid "#|Gnet"
-msgstr "gNet"
+msgstr "#|Gnet"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1989
 #: src/ui/gtk/gtk2/interface-glade.c:5922
@@ -5793,14 +5486,12 @@ msgid "Relayed"
 msgstr "Omgeleid"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2250 src/ui/gtk/gtk2/gnet_stats.c:59
-#, fuzzy
 msgid "Gen. queued"
-msgstr "In de wacht"
+msgstr "Gen. in de wacht"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2258 src/ui/gtk/gtk2/gnet_stats.c:60
-#, fuzzy
 msgid "Gen. sent"
-msgstr "gNet"
+msgstr "Gen verzonden"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2266
 msgid "Messages"
@@ -5866,9 +5557,8 @@ msgstr "Toon bytes"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2534
 #: src/ui/gtk/gtk2/interface-glade.c:6083
-#, fuzzy
 msgid "Include headers"
-msgstr "Koppen worden ontvangen"
+msgstr "Inclusief headers"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2554
 #: src/ui/gtk/gtk2/interface-glade.c:6104
@@ -5881,9 +5571,8 @@ msgid "Horizon stats"
 msgstr "Horizone statistieken"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2655
-#, fuzzy
 msgid "#|Gnet Stats"
-msgstr "gNet Statistieken"
+msgstr "#|Gnet statistieken"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2672
 #: src/ui/gtk/gtk2/interface-glade.c:9108
@@ -5938,9 +5627,8 @@ msgid "Bad hosts"
 msgstr "Slechte hosts"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2909
-#, fuzzy
 msgid "#|Hostcache"
-msgstr "Hostcache"
+msgstr "#|Hostcache"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2917
 #: src/ui/gtk/gtk1/interface-glade.c:16268
@@ -6017,14 +5705,12 @@ msgstr "Max. gelijktijdige uploads"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3095
 #: src/ui/gtk/gtk2/interface-glade.c:3723
-#, fuzzy
 msgid "Max. uploads to a single host"
 msgstr "Maximum uploads naar één host"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3130
-#, fuzzy
 msgid "#|Uploads"
-msgstr "Uploads"
+msgstr "#|Uploads"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3138
 #: src/ui/gtk/gtk2/interface-glade.c:4025
@@ -6050,9 +5736,8 @@ msgstr "Opschonen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3262
 #: src/ui/gtk/gtk2/interface-glade.c:3999
-#, fuzzy
 msgid "Served "
-msgstr "Server"
+msgstr "Geserveerd"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3271
 #: src/ui/gtk/gtk2/interface-glade.c:4005
@@ -6075,9 +5760,8 @@ msgid " Gnutella browse requests"
 msgstr " Gnutella verzoek tot browsen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3303
-#, fuzzy
 msgid "#|Upload Stats"
-msgstr "Upload statistieken"
+msgstr "#|Upload statistieken"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3311
 #: src/ui/gtk/gtk2/interface-glade.c:16392
@@ -6133,7 +5817,6 @@ msgstr "Voortgang:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3580
 #: src/ui/gtk/gtk2/interface-glade.c:16472
-#, fuzzy
 msgid ""
 "Shows visual information on the download progress. Green chunks have been "
 "downloaded, with the brighter green chunks touched during this session. "
@@ -6154,7 +5837,6 @@ msgstr "Alternatieve bestandsnamen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3629
 #: src/ui/gtk/gtk2/interface-glade.c:16582
-#, fuzzy
 msgid "_Purge selected"
 msgstr "Verwijder de selectie voorgoed"
 
@@ -6177,9 +5859,8 @@ msgid " with sources"
 msgstr " met bronnen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3698
-#, fuzzy
 msgid "#|Downloads"
-msgstr "Downloads"
+msgstr "#|Downloads"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3706
 #: src/ui/gtk/gtk2/interface-glade.c:4587
@@ -6304,9 +5985,8 @@ msgstr ",."
 
 #: src/ui/gtk/gtk1/interface-glade.c:4114
 #: src/ui/gtk/gtk1/interface-glade.c:4399
-#, fuzzy
 msgid "queued"
-msgstr "In de wacht"
+msgstr "in de wacht"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4122
 msgid ")"
@@ -6319,9 +5999,8 @@ msgid "Show settings"
 msgstr "Geef instellingen weer"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4147
-#, fuzzy
 msgid "#|Active"
-msgstr "actief"
+msgstr "#|Actief"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4155
 #: src/ui/gtk/gtk2/interface-glade.c:16858
@@ -6365,9 +6044,8 @@ msgid " passive)"
 msgstr " passief)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4415
-#, fuzzy
 msgid "#|Queue"
-msgstr "In de wacht"
+msgstr "#|In de wacht"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4423
 #: src/ui/gtk/gtk2/interface-glade.c:5446
@@ -6376,9 +6054,8 @@ msgstr "Zoekresultaten"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4449
 #: src/ui/gtk/gtk2/interface-glade.c:4864
-#, fuzzy
 msgid "Current search:"
-msgstr "Huidige zoekopdracht"
+msgstr "Huidige zoekopdracht:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4475
 #: src/ui/gtk/gtk2/interface-glade.c:4859
@@ -6444,9 +6121,8 @@ msgstr "Bron:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4739
 #: src/ui/gtk/gtk2/interface-glade.c:5058
-#, fuzzy
 msgid "Received:"
-msgstr "Ontvangen"
+msgstr "Ontvangen:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4761
 #: src/ui/gtk/gtk2/interface-glade.c:5237 src/ui/gtk/gtk2/nodes.c:351
@@ -6456,9 +6132,8 @@ msgstr "Maker:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4783 src/ui/gtk/gtk2/nodes.c:348
 #: src/ui/gtk/gtk2/search_cb.c:621
-#, fuzzy
 msgid "Country:"
-msgstr "Aantal"
+msgstr "Land:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4795
 #: src/ui/gtk/gtk2/interface-glade.c:5127
@@ -6466,15 +6141,13 @@ msgid "Tag:"
 msgstr "Tag:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4817
-#, fuzzy
 msgid "Speed:"
-msgstr "Snelheid"
+msgstr "Snelheid:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4911
 #: src/ui/gtk/gtk2/interface-glade.c:5229
-#, fuzzy
 msgid "Servent ID:"
-msgstr "ServentID:"
+msgstr "Verkoper ID:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4923
 #: src/ui/gtk/gtk2/interface-glade.c:5166
@@ -6500,7 +6173,6 @@ msgstr "Download de geselecteerde bestanden"
 #: src/ui/gtk/gtk1/interface-glade.c:6616
 #: src/ui/gtk/gtk1/interface-glade.c:18021
 #: src/ui/gtk/gtk2/interface-glade.c:5382
-#, fuzzy
 msgid "_Edit filters"
 msgstr "Bewerk filters"
 
@@ -6528,9 +6200,8 @@ msgid "_Clear results"
 msgstr "Verwijder resultaten"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5129
-#, fuzzy
 msgid "#|Search"
-msgstr "Zoek"
+msgstr "#|Zoek"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5156
 #: src/ui/gtk/gtk2/interface-glade.c:5610
@@ -6548,9 +6219,8 @@ msgid "searches"
 msgstr "zoek opdrachten"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5232
-#, fuzzy
 msgid "#|Monitor"
-msgstr "Monitor"
+msgstr "#|Monitor"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5275
 #: src/ui/gtk/gtk2/interface-glade.c:5727
@@ -6595,9 +6265,8 @@ msgid "0 terms counted"
 msgstr "0 termen geteld"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5414
-#, fuzzy
 msgid "#|Search Stats"
-msgstr "Zoek statistieken"
+msgstr "#|Zoek statistieken"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5463
 #: src/ui/gtk/gtk2/interface-glade.c:2759
@@ -6618,7 +6287,6 @@ msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:5721
 #: src/ui/gtk/gtk2/interface-glade.c:2271
-#, fuzzy
 msgid ""
 "You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
 "any push results, which may prevent you from seeing a large amount of "
@@ -6643,7 +6311,6 @@ msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:5758
 #: src/ui/gtk/gtk2/interface-glade.c:2296
-#, fuzzy
 msgid ""
 "You appear to be TCP-firewalled, i.e. others cannot connect to you to "
 "download files. You will not see push results, which may prevent you from "
@@ -6688,11 +6355,10 @@ msgstr "Draait momenteel in leaf mode."
 
 #: src/ui/gtk/gtk1/interface-glade.c:5849
 #: src/ui/gtk/gtk2/interface-glade.c:2374
-#, fuzzy
 msgid "Running in legacy mode. Consider switching to auto mode."
 msgstr ""
 "Draait momenteel in legacy (oude) modus. Overweeg om over te schakelen naar "
-"automatische modus (Configuratie->gNet instellingen->Huidige peermodus)"
+"automatische modus."
 
 #: src/ui/gtk/gtk1/interface-glade.c:5867
 #: src/ui/gtk/gtk2/interface-glade.c:2350
@@ -6731,9 +6397,8 @@ msgstr "Alles afbreken..."
 #: src/ui/gtk/gtk1/interface-glade.c:6693 src/ui/gtk/gtk2/interface-glade.c:88
 #: src/ui/gtk/gtk2/interface-glade.c:335 src/ui/gtk/gtk2/interface-glade.c:559
 #: src/ui/gtk/gtk2/interface-glade.c:588
-#, fuzzy
 msgid "with the same name"
-msgstr "met als naam"
+msgstr "met dezelfde naam"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6247
 #: src/ui/gtk/gtk1/interface-glade.c:6465
@@ -6741,9 +6406,8 @@ msgstr "met als naam"
 #: src/ui/gtk/gtk1/interface-glade.c:6702 src/ui/gtk/gtk2/interface-glade.c:93
 #: src/ui/gtk/gtk2/interface-glade.c:340 src/ui/gtk/gtk2/interface-glade.c:564
 #: src/ui/gtk/gtk2/interface-glade.c:593
-#, fuzzy
 msgid "with the same urn:sha1"
-msgstr "met urn:sha1"
+msgstr "met dezelfde urn:sha1"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6255
 #: src/ui/gtk/gtk1/interface-glade.c:6473
@@ -6751,9 +6415,8 @@ msgstr "met urn:sha1"
 #: src/ui/gtk/gtk1/interface-glade.c:6711 src/ui/gtk/gtk2/interface-glade.c:98
 #: src/ui/gtk/gtk2/interface-glade.c:345 src/ui/gtk/gtk2/interface-glade.c:569
 #: src/ui/gtk/gtk2/interface-glade.c:598
-#, fuzzy
 msgid "from the same host"
-msgstr "van host"
+msgstr "van dezelfde host"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6263
 msgid "Remove file"
@@ -6777,7 +6440,6 @@ msgstr "Forceer push modus"
 #: src/ui/gtk/gtk1/interface-glade.c:6313
 #: src/ui/gtk/gtk1/interface-glade.c:6490
 #: src/ui/gtk/gtk2/interface-glade.c:151 src/ui/gtk/gtk2/interface-glade.c:367
-#, fuzzy
 msgid "Copy URL to clipboard"
 msgstr "Kopieer de url naar het klembord"
 
@@ -6794,9 +6456,8 @@ msgstr "Start nu"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6635
 #: src/ui/gtk/gtk2/interface-glade.c:545
-#, fuzzy
 msgid "Drop results..."
-msgstr "Redenen voor laten vallen"
+msgstr "Resultaten laten vervallen..."
 
 #: src/ui/gtk/gtk1/interface-glade.c:6658
 msgid ""
@@ -6816,9 +6477,8 @@ msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:6677
 #: src/ui/gtk/gtk2/interface-glade.c:574
-#, fuzzy
 msgid "Globally drop results..."
-msgstr "Algemeen negeren..."
+msgstr "Algemeen verwijderen..."
 
 #: src/ui/gtk/gtk1/interface-glade.c:6700
 msgid ""
@@ -6838,9 +6498,8 @@ msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:6728
 #: src/ui/gtk/gtk2/interface-glade.c:609
-#, fuzzy
 msgid "Auto-download selected by..."
-msgstr "Automatisch het geselecteerde item downloaden op"
+msgstr "Automatisch het geselecteerde item downloaden op..."
 
 #: src/ui/gtk/gtk1/interface-glade.c:6744
 #: src/ui/gtk/gtk2/interface-glade.c:633
@@ -6898,15 +6557,13 @@ msgstr "Zet de huidige sortering als standaard"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6885
 #: src/ui/gtk/gtk2/interface-glade.c:727
-#, fuzzy
 msgid "Bitzi Metadata"
-msgstr "Zoek statistieken"
+msgstr "Bitzi Metadata"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6893
 #: src/ui/gtk/gtk2/interface-glade.c:737
-#, fuzzy
 msgid "Browse Host"
-msgstr "_Bladeren"
+msgstr "Host bladeren"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6982
 #: src/ui/gtk/gtk2/interface-glade.c:856
@@ -6929,7 +6586,6 @@ msgstr "Regelset editor"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7413
 #: src/ui/gtk/gtk2/interface-glade.c:994
-#, fuzzy
 msgid "_Create filter"
 msgstr "Creëer filter"
 
@@ -7067,9 +6723,8 @@ msgid "Add state rule"
 msgstr "Voeg regel toe"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7749
-#, fuzzy
 msgid "#|Add/Remove"
-msgstr "Toevoegen/verwijderen"
+msgstr "#|Toevoegen/verwijderen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7798
 #: src/ui/gtk/gtk1/interface-glade.c:8014
@@ -7115,9 +6770,8 @@ msgid "Add/Replace"
 msgstr "Voeg toe / vervang"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7965
-#, fuzzy
 msgid "#|Filename"
-msgstr "Bestandsnaam"
+msgstr "#|Bestandsnaam"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8038
 #: src/ui/gtk/gtk2/interface-glade.c:6781
@@ -7135,9 +6789,8 @@ msgid "network mask"
 msgstr "netwerk mask"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8190
-#, fuzzy
 msgid "#|IP address"
-msgstr "IP adres"
+msgstr "#|IP adres"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8263
 #: src/ui/gtk/gtk2/interface-glade.c:7085
@@ -7146,15 +6799,13 @@ msgstr "Voorwaarde: Als de bestandsgrootte overeen komt"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8291
 #: src/ui/gtk/gtk2/interface-glade.c:7022
-#, fuzzy
 msgid "Minimum size:"
-msgstr "minimale grootte"
+msgstr "minimale grootte:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8302
 #: src/ui/gtk/gtk2/interface-glade.c:7032
-#, fuzzy
 msgid "Maximum size:"
-msgstr "maximale grootte"
+msgstr "maximale grootte:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8313
 #: src/ui/gtk/gtk1/interface-glade.c:8324
@@ -7174,9 +6825,8 @@ msgid "bytes"
 msgstr "bytes"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8438
-#, fuzzy
 msgid "#|Filesize"
-msgstr "Bestanden"
+msgstr "#|Bestanden"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8495
 #: src/ui/gtk/gtk2/interface-glade.c:7323
@@ -7196,9 +6846,8 @@ msgstr ""
 "genegeerd worden."
 
 #: src/ui/gtk/gtk1/interface-glade.c:8614
-#, fuzzy
 msgid "#|Jump"
-msgstr "Spring naar"
+msgstr "#|Spring naar"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8686
 #: src/ui/gtk/gtk2/interface-glade.c:7597
@@ -7216,9 +6865,8 @@ msgid "Originally obtained from"
 msgstr "Oorspronkelijk verkregen van"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8847
-#, fuzzy
 msgid "#|SHA1"
-msgstr "SHA1:"
+msgstr "#|SHA1"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8912
 #: src/ui/gtk/gtk2/interface-glade.c:8183
@@ -7263,9 +6911,8 @@ msgid "Stable"
 msgstr "Stabiel"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9236
-#, fuzzy
 msgid "#|Flags"
-msgstr "Vlag"
+msgstr "#|Vlag"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9309
 #: src/ui/gtk/gtk2/interface-glade.c:8810
@@ -7302,9 +6949,8 @@ msgid "ignore"
 msgstr "negeer"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9602
-#, fuzzy
 msgid "#|State"
-msgstr "Status"
+msgstr "#|Status"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9626
 msgid "Apply"
@@ -7330,7 +6976,6 @@ msgstr "gtk-gnutella afsluiten"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9879
 #: src/ui/gtk/gtk2/interface-glade.c:1349
-#, fuzzy
 msgid ""
 "Gtk-Gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
@@ -7395,7 +7040,6 @@ msgstr "Richard Eckhart"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10140
 #: src/ui/gtk/gtk1/interface-glade.c:10162
-#, fuzzy
 msgid "Raphael Manfredi"
 msgstr "Raphaël Manfredi"
 
@@ -7414,18 +7058,16 @@ msgstr "Contributors"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10228
 #: src/ui/gtk/gtk2/interface-glade.c:1673
-#, fuzzy
 msgid ""
 "==> We are looking for people who want to contribute to this fine tool. <=="
 msgstr ""
-"==&gt; We zijn op zoek naar mensen die een steentje bij willen dragen aan "
-"dit fijne programma.&lt;=="
+"==> We zijn op zoek naar mensen die een steentje bij willen dragen aan "
+"dit fijne programma.<=="
 
 #: src/ui/gtk/gtk1/interface-glade.c:10236
 #: src/ui/gtk/gtk2/interface-glade.c:1679
-#, fuzzy
 msgid "Visit http://gtk-gnutella.sourceforge.net/."
-msgstr "Bezoek http://gtk-gnutella.sourceforge.net."
+msgstr "Bezoek http://gtk-gnutella.sourceforge.net/."
 
 #: src/ui/gtk/gtk1/interface-glade.c:10244
 #: src/ui/gtk/gtk2/interface-glade.c:1686
@@ -7507,9 +7149,8 @@ msgstr "nog niet bepaald"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11382
 #: src/ui/gtk/gtk2/interface-glade.c:9943
-#, fuzzy
 msgid "Force local _IP to"
-msgstr "Forceer het lokale IP naar"
+msgstr "Forceer het lokale _IP naar"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11396
 #: src/ui/gtk/gtk2/interface-glade.c:9964
@@ -7518,21 +7159,18 @@ msgstr "_Luisterende poort"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11407
 #: src/ui/gtk/gtk2/interface-glade.c:9902
-#, fuzzy
 msgid "Disable: 0, Random: 1"
-msgstr "Standaard: 6346, Willekeurig: 0"
+msgstr "Uitschakelen: 0, Willekeurig: 1"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11419
 #: src/ui/gtk/gtk2/interface-glade.c:9950
-#, fuzzy
 msgid "Public _hostname"
-msgstr "Publieke host naam"
+msgstr "Publieke hostnaam"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11466
 #: src/ui/gtk/gtk2/interface-glade.c:9974
-#, fuzzy
 msgid "Enable _UDP"
-msgstr "Activeer"
+msgstr "Activeer _UDP"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11478
 #: src/ui/gtk/gtk2/interface-glade.c:10103
@@ -7583,9 +7221,8 @@ msgstr "Probeer eerst te verbinden met een lokaal netwerk"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11694
 #: src/ui/gtk/gtk2/interface-glade.c:10131
-#, fuzzy
 msgid "Allow connections from and to _LAN addresses"
-msgstr "Sta connecties van en naar LAN adressen toe"
+msgstr "Sta connecties van en naar _LAN adressen toe"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11727
 #: src/ui/gtk/gtk2/interface-glade.c:10152
@@ -7605,21 +7242,18 @@ msgstr "Bannen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11750
 #: src/ui/gtk/gtk2/interface-glade.c:10173
-#, fuzzy
 msgid "Max. file _descriptors reserved"
 msgstr "Maximaal aantal \"file descriptors\" reserveren"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11763
 #: src/ui/gtk/gtk2/interface-glade.c:10181
-#, fuzzy
 msgid "Max. _percentage of file descriptors"
-msgstr "Harde limiet van het aantal \"file descriptors\" in gebruik"
+msgstr "Max. _percentage van 'file descriptors'"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11801
 #: src/ui/gtk/gtk2/interface-glade.c:10189
-#, fuzzy
 msgid "Hard limit of _file descriptors used"
-msgstr "Harde limiet aan het aantal \"file descriptors\" in gebruik"
+msgstr "Harde limiet van het aantal \"file descriptors\" in gebruik"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11822
 #: src/ui/gtk/gtk2/interface-glade.c:10247
@@ -7680,9 +7314,8 @@ msgstr "Klok synchronisatie"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11887
 #: src/ui/gtk/gtk2/interface-glade.c:10295
-#, fuzzy
 msgid "Host runs _NTP"
-msgstr "Host draait NTP"
+msgstr "Host draait _NTP"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11899
 #: src/ui/gtk/gtk2/interface-glade.c:10287
@@ -7700,7 +7333,6 @@ msgstr "Overige"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11949
 #: src/ui/gtk/gtk2/interface-glade.c:10335
-#, fuzzy
 msgid "Enable \"_shell\" control interface"
 msgstr "Maak de \"shell\" controle interface beschikbaar"
 
@@ -7716,21 +7348,18 @@ msgstr "Buffergrootte voor de ontvangst \"socket\""
 
 #: src/ui/gtk/gtk1/interface-glade.c:11992
 #: src/ui/gtk/gtk2/interface-glade.c:10406
-#, fuzzy
 msgid "_Gnutella RX buffer:"
-msgstr "Gnutella RX buffer: "
+msgstr "_Gnutella RX buffer:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12003
 #: src/ui/gtk/gtk1/interface-glade.c:12014
-#, fuzzy
 msgid "KiB"
-msgstr "KB"
+msgstr "KiB"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12027
 #: src/ui/gtk/gtk2/interface-glade.c:10398
-#, fuzzy
 msgid "_Download RX buffer:"
-msgstr "Download RX buffer: "
+msgstr "_Download RX buffer:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12062
 #: src/ui/gtk/gtk2/interface-glade.c:9838
@@ -7824,9 +7453,8 @@ msgstr "Voldoende gemiddelde uptime"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12608
 #: src/ui/gtk/gtk2/interface-glade.c:11173
-#, fuzzy
 msgid "Enough min # of connections"
-msgstr "Inkomende verbindingen"
+msgstr "Genoeg min aantal verbindingen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12640
 #: src/ui/gtk/gtk2/interface-glade.c:11272
@@ -7897,9 +7525,8 @@ msgstr "Ruimte"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12864
 #: src/ui/gtk/gtk2/interface-glade.c:11453
-#, fuzzy
 msgid "GnutellaNet timeouts (all values in seconds)"
-msgstr "gnutellaNet timeouts (alle waarden in seconden)"
+msgstr "GnutellaNet timeouts (alle waarden in seconden)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12885
 #: src/ui/gtk/gtk1/interface-glade.c:14698
@@ -7907,9 +7534,8 @@ msgstr "gnutellaNet timeouts (alle waarden in seconden)"
 #: src/ui/gtk/gtk2/interface-glade.c:11380
 #: src/ui/gtk/gtk2/interface-glade.c:13384
 #: src/ui/gtk/gtk2/interface-glade.c:14133
-#, fuzzy
 msgid "Connectin_g timeout"
-msgstr "Opzetten van verbinding timeout"
+msgstr "Verbinding timeout"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12898
 #: src/ui/gtk/gtk1/interface-glade.c:14724
@@ -7932,9 +7558,8 @@ msgstr "Timeout voor binnenkomende verbinding"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12991
 #: src/ui/gtk/gtk2/interface-glade.c:11578
-#, fuzzy
 msgid "GnutellaNet TTL settings"
-msgstr "gnutellaNet TTL instellingen"
+msgstr "GnutellaNet TTL instellingen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13012
 #: src/ui/gtk/gtk2/interface-glade.c:11495
@@ -7990,7 +7615,6 @@ msgstr "Kwaliteits beheer"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13171
 #: src/ui/gtk/gtk2/interface-glade.c:11623
-#, fuzzy
 msgid "Ratio of tolerable duplicate messages per _node"
 msgstr "Percentage acceptabele gedupliceerde berichten per node"
 
@@ -8067,9 +7691,8 @@ msgstr "Schoon zoek opdrachten op voordat ze verder worden verwerkt"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13479
 #: src/ui/gtk/gtk2/interface-glade.c:11953
-#, fuzzy
 msgid "GnutellaNet message size limits"
-msgstr "gnutellaNet limieten van de grootte van berichten"
+msgstr "GnutellaNet limieten van de grootte van berichten"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13498
 #: src/ui/gtk/gtk2/interface-glade.c:11920
@@ -8117,21 +7740,18 @@ msgstr "Algemeen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13691
 #: src/ui/gtk/gtk2/interface-glade.c:12258
-#, fuzzy
 msgid "Use _surplus bandwidth"
-msgstr "Gebruik 'surplus' bandbreedte"
+msgstr "Gebruik '_surplus' bandbreedte"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13703
 #: src/ui/gtk/gtk2/interface-glade.c:12265
-#, fuzzy
 msgid "Prefer _compressed connections"
 msgstr "Geef voorkeur aan gecomprimeerde verbindingen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13715
 #: src/ui/gtk/gtk2/interface-glade.c:12272
-#, fuzzy
 msgid "Use IP _Type of Service (TOS)"
-msgstr "Gebruik 'IP Type Of Service' (TOS)"
+msgstr "Gebruik 'IP _Type Of Service' (TOS)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13725
 #: src/ui/gtk/gtk2/interface-glade.c:12392
@@ -8151,9 +7771,8 @@ msgstr "Totale input bandbreedte limiet:"
 #: src/ui/gtk/gtk1/interface-glade.c:14038
 #: src/ui/gtk/gtk1/interface-glade.c:14096
 #: src/ui/gtk/gtk1/interface-glade.c:14199
-#, fuzzy
 msgid "KiB/s"
-msgstr "K/s"
+msgstr "KiB/s"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13767
 #: src/ui/gtk/gtk2/interface-glade.c:12307
@@ -8172,21 +7791,18 @@ msgstr "seconden"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13869
 #: src/ui/gtk/gtk2/interface-glade.c:12562
-#, fuzzy
 msgid "Bandwidth limits for GnutellaNet traffic"
-msgstr "Bandbreedte controle voor gnutellaNet verkeer"
+msgstr "Bandbreedte voor GnutellaNet verkeer limiteren"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13955
 #: src/ui/gtk/gtk2/interface-glade.c:12476
-#, fuzzy
 msgid "_Outgoing traffic"
-msgstr "Geef uitgaand HTTP verkeer weer"
+msgstr "Uitgaand verkeer"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13969
 #: src/ui/gtk/gtk2/interface-glade.c:12469
-#, fuzzy
 msgid "_Incoming traffic"
-msgstr "Geef inkomend HTTP verkeer weer"
+msgstr "Inkomend verkeer"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13981
 #: src/ui/gtk/gtk2/interface-glade.c:12557
@@ -8195,21 +7811,18 @@ msgstr "Ultrapeer modus"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14051
 #: src/ui/gtk/gtk2/interface-glade.c:12550
-#, fuzzy
 msgid "Outgoing traffic to lea_ves"
-msgstr "Limiteer de uitgaande bandbreedte van 'leaves' op"
+msgstr "Uitgaand verkeer naar lea_ves"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14065
 #: src/ui/gtk/gtk2/interface-glade.c:12543
-#, fuzzy
 msgid "Incoming traffic from _leaves"
-msgstr "Limiteer de inkomende bandbreedte van 'leaves' op"
+msgstr "Inkomend verkeer van _leaves"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14077
 #: src/ui/gtk/gtk2/interface-glade.c:12705
-#, fuzzy
 msgid "Bandwidth limits for HTTP traffic"
-msgstr "Bandbreedte controle voor HTTP verkeer"
+msgstr "Bandbreedte voor HTTP verkeer limiteren"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14135
 #: src/ui/gtk/gtk2/interface-glade.c:12698
@@ -8223,20 +7836,18 @@ msgstr "Cumulatief _upload ratio"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14163
 #: src/ui/gtk/gtk2/interface-glade.c:12683
-#, fuzzy
 msgid "Enable dynamic upload slots _allocation"
 msgstr "Activeer dynamische slot toewijzing"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14185
 #: src/ui/gtk/gtk2/interface-glade.c:12629
 #: src/ui/gtk/gtk2/interface-glade.c:12689
-#, fuzzy
 msgid ""
 "Until the configured percentage of outgoing HTTP bandwidth is in use, open "
 "additional upload slots on request."
 msgstr ""
 "Sta aanvullende uploads toe zolang dit percentage van de bandbreedte niet is "
-"gebruikt"
+"gebruikt."
 
 #: src/ui/gtk/gtk1/interface-glade.c:14212
 #: src/ui/gtk/gtk2/interface-glade.c:12667
@@ -8250,13 +7861,11 @@ msgstr "Wat anderen zullen zien als jouw verbindings snelheid"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14237
 #: src/ui/gtk/gtk2/interface-glade.c:12651
-#, fuzzy
 msgid "kbps to peers"
-msgstr "kbits/s naar peer"
+msgstr "kbps naar peers"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14260
 #: src/ui/gtk/gtk2/interface-glade.c:12676
-#, fuzzy
 msgid "_Compute upload connection speed"
 msgstr "Bereken upload verbindingssnelheid"
 
@@ -8349,9 +7958,8 @@ msgstr "Optimistisch eerste stuk"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14585
 #: src/ui/gtk/gtk2/interface-glade.c:13143
-#, fuzzy
 msgid "Require _URN"
-msgstr "URN noodzakelijk"
+msgstr "URN vereist"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14599
 #: src/ui/gtk/gtk2/interface-glade.c:13150
@@ -8478,15 +8086,13 @@ msgstr "Maximale stuk grootte"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15008
 #: src/ui/gtk/gtk2/interface-glade.c:13526
-#, fuzzy
 msgid "Write buffer size"
-msgstr "Buffergrootte voor de ontvangst \"socket\""
+msgstr "Schrijf buffer grootte"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15019
 #: src/ui/gtk/gtk2/interface-glade.c:13534
-#, fuzzy
 msgid "Read-ahead buffer"
-msgstr "Koppen worden gelezen"
+msgstr "Vooruitlees buffer"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15095
 #: src/ui/gtk/gtk2/interface-glade.c:13172
@@ -8510,9 +8116,8 @@ msgstr "Pas een difuus filter toe op items in de download mesh"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15160
 #: src/ui/gtk/gtk2/interface-glade.c:13167
-#, fuzzy
 msgid "Watch hits for _alternate sources"
-msgstr "Kijk uit naar alternatieve bronnen"
+msgstr "Kijk uit naar alternatieve bronnen in resultaten."
 
 #: src/ui/gtk/gtk1/interface-glade.c:15174
 #: src/ui/gtk/gtk2/interface-glade.c:13177
@@ -8532,7 +8137,6 @@ msgstr "Pad(en) naar bestanden"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15255
 #: src/ui/gtk/gtk2/interface-glade.c:13976
-#, fuzzy
 msgid "_Add directory"
 msgstr "Directory toevoegen"
 
@@ -8548,15 +8152,13 @@ msgstr "Bestanden gevonden"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15304
 #: src/ui/gtk/gtk2/interface-glade.c:14059
-#, fuzzy
 msgid "Ignore symbolically linked _directories"
-msgstr "Negeer symbolic links naar directories"
+msgstr "Negeer symbolische verwijzigen naar _directories"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15316
 #: src/ui/gtk/gtk2/interface-glade.c:14064
-#, fuzzy
 msgid "Ignore symbolically linked regular _files"
-msgstr "Negeer symbolic linked bestanden"
+msgstr "Negeer symbolische verwijzende bestanden"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15336
 #: src/ui/gtk/gtk2/interface-glade.c:14043
@@ -8570,21 +8172,18 @@ msgstr "Timeouts (alle waarden in seconden)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15421
 #: src/ui/gtk/gtk2/interface-glade.c:14115
-#, fuzzy
 msgid "Partial File Sharing"
-msgstr "Partial File Sharing (zwermen)"
+msgstr "Gedeeltelijke bestand delen (PFS)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15442
 #: src/ui/gtk/gtk2/interface-glade.c:14092
-#, fuzzy
 msgid "First chunk _size"
 msgstr "Eerste stuk grootte"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15455
 #: src/ui/gtk/gtk2/interface-glade.c:14108
-#, fuzzy
 msgid "Enable upload of _partially downloaded files"
-msgstr "Verwijder handmatig gedownloade bestanden"
+msgstr "Sta het uploaden van gedeeltelijke bestanden toe"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15479
 #: src/ui/gtk/gtk2/interface-glade.c:14233
@@ -8593,12 +8192,10 @@ msgstr "Wachtrij gegevens"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15498
 #: src/ui/gtk/gtk2/interface-glade.c:14210
-#, fuzzy
 msgid "Minimum upload time"
-msgstr "Minimale stuk grootte"
+msgstr "Minimale upload tijd"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15521
-#, fuzzy
 msgid "Minimum chunk size"
 msgstr "Minimale stuk grootte"
 
@@ -8609,39 +8206,33 @@ msgstr "Gebruik realistische PARQ schattingen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15554
 #: src/ui/gtk/gtk2/interface-glade.c:14804
-#, fuzzy
 msgid "Statistics:"
-msgstr "Statistieken"
+msgstr "Statistieken:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15587
 #: src/ui/gtk/gtk2/interface-glade.c:14323
-#, fuzzy
 msgid "Library scanning:"
-msgstr "Scannen van de bibliotheek"
+msgstr "Bibliotheek scannen:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15607
 #: src/ui/gtk/gtk2/interface-glade.c:14273
-#, fuzzy
 msgid "Last scan initiated on:"
-msgstr "Laatste scan gestart op"
+msgstr "Laatste scan gestart op:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15618
 #: src/ui/gtk/gtk2/interface-glade.c:14282
-#, fuzzy
 msgid "File scanning time:"
-msgstr "Duur van het scannen"
+msgstr "Bestand scan tijd:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15671
 #: src/ui/gtk/gtk2/interface-glade.c:14695
-#, fuzzy
 msgid "Query Routing Protocol:"
-msgstr "Query Routing Protocol"
+msgstr "Query Routing Protocol:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15691
 #: src/ui/gtk/gtk2/interface-glade.c:14548
-#, fuzzy
 msgid "Indexing started on:"
-msgstr "Indexeren is gestart op"
+msgstr "Indexeren is gestart op:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15702
 #: src/ui/gtk/gtk1/interface-glade.c:15724
@@ -8654,81 +8245,68 @@ msgstr "en duurde"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15713
 #: src/ui/gtk/gtk2/interface-glade.c:14557
-#, fuzzy
 msgid "Table generation started on:"
-msgstr "Tabel generatie gestart op"
+msgstr "Tabel generatie gestart op:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15735
 #: src/ui/gtk/gtk2/interface-glade.c:14566
-#, fuzzy
 msgid "Patch generation started on:"
-msgstr "Generatie van aanpassingen gestart op"
+msgstr "Generatie van aanpassingen gestart op:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15899
 #: src/ui/gtk/gtk2/interface-glade.c:14519
-#, fuzzy
 msgid "Query routing table information:"
-msgstr "Query routerings tabel informatie"
+msgstr "Query routerings tabel informatie:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15918
 #: src/ui/gtk/gtk2/interface-glade.c:14397
-#, fuzzy
 msgid "Keywords:"
-msgstr "Sleutelwoorden"
+msgstr "Sleutelwoorden:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15929
 #: src/ui/gtk/gtk2/interface-glade.c:14406
-#, fuzzy
 msgid "Slots:"
-msgstr "Slots"
+msgstr "Sloten:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15940
 #: src/ui/gtk/gtk2/interface-glade.c:14415
-#, fuzzy
 msgid "Filled slots:"
-msgstr "Gevulde slots"
+msgstr "Gevulde sloten:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15951
 #: src/ui/gtk/gtk2/interface-glade.c:14370
-#, fuzzy
 msgid "Generation:"
-msgstr "Generatie"
+msgstr "Generatie:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15962
 #: src/ui/gtk/gtk2/interface-glade.c:14379
-#, fuzzy
 msgid "Filled ratio:"
-msgstr "Perc. gevuld"
+msgstr "Vullings ratio:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15973
 #: src/ui/gtk/gtk2/interface-glade.c:14388
-#, fuzzy
 msgid "Conflict ratio:"
-msgstr "Perc. conflicten"
+msgstr "Conflicten ratio:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16142
 #: src/ui/gtk/gtk2/interface-glade.c:14799
-#, fuzzy
 msgid "Query routing patch information:"
-msgstr "Query Routing Patch informatie"
+msgstr "Query Routing Patch informatie:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16161
 #: src/ui/gtk/gtk2/interface-glade.c:14719
-#, fuzzy
 msgid "Raw length:"
-msgstr "Ruwe lengte"
+msgstr "Ruwe lengte:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16172
 #: src/ui/gtk/gtk2/interface-glade.c:14727
-#, fuzzy
 msgid "Compressed length:"
-msgstr "Gecomprimeerde lengte"
+msgstr "Gecomprimeerde lengte:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16183
 #: src/ui/gtk/gtk2/interface-glade.c:14735
-#, fuzzy
 msgid "Compression ratio:"
-msgstr "Compressie verhouding"
+msgstr "Compressie verhouding:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16323
 #: src/ui/gtk/gtk2/interface-glade.c:15135
@@ -8762,17 +8340,13 @@ msgstr "Geavanceerde modus."
 
 #: src/ui/gtk/gtk1/interface-glade.c:16460
 #: src/ui/gtk/gtk2/interface-glade.c:15160
-#, fuzzy
 msgid "Show additional information and settings for advanced and _expert users"
-msgstr ""
-"Toon aanvullende informatie en instellingen voor geavanceerde en expert "
-"gebruikers."
+msgstr "Toon aanvullende informatie en instellingen voor geavanceerde en _expert gebruikers"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16472
 #: src/ui/gtk/gtk2/interface-glade.c:15344
-#, fuzzy
 msgid "GnutellaNet display"
-msgstr "gnutellaNet weergave"
+msgstr "GnutellaNet weergave"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16505
 #: src/ui/gtk/gtk2/interface-glade.c:15182
@@ -8870,15 +8444,13 @@ msgstr "Bibliotheek aantal bestanden"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16711
 #: src/ui/gtk/gtk2/interface-glade.c:15337
-#, fuzzy
 msgid "RX wire bytes"
-msgstr "toon bytes"
+msgstr "RX draad bytes"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16721
 #: src/ui/gtk/gtk2/interface-glade.c:15330
-#, fuzzy
 msgid "TX wire bytes"
-msgstr "toon bytes"
+msgstr "TX draad bytes"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16731
 #: src/ui/gtk/gtk2/interface-glade.c:15025
@@ -8892,9 +8464,8 @@ msgstr "Debug niveau's"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16781
 #: src/ui/gtk/gtk2/interface-glade.c:15846
-#, fuzzy
 msgid "Global"
-msgstr "Algemene filters"
+msgstr "Algemeen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16803
 #: src/ui/gtk/gtk2/interface-glade.c:15787
@@ -8908,9 +8479,8 @@ msgstr "GUI debug niveau"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16841
 #: src/ui/gtk/gtk2/interface-glade.c:15805
-#, fuzzy
 msgid "_Lib debug level"
-msgstr "GUI debug niveau"
+msgstr "Bibliotheek debug level"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16866
 #: src/ui/gtk/gtk2/interface-glade.c:15814
@@ -8919,9 +8489,8 @@ msgstr "Volg eigenschappen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16903
 #: src/ui/gtk/gtk2/interface-glade.c:15839
-#, fuzzy
 msgid "_Stop collecting hosts"
-msgstr "Stop het verzamelen van hosts in de host catcher"
+msgstr "Hosts verzamelen _stoppen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16915
 #: src/ui/gtk/gtk2/interface-glade.c:16070
@@ -8930,9 +8499,8 @@ msgstr "Functionaliteit"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16936
 #: src/ui/gtk/gtk2/interface-glade.c:16022
-#, fuzzy
 msgid "_GWebCache"
-msgstr "Cache"
+msgstr "_GWebCache"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16949
 #: src/ui/gtk/gtk2/interface-glade.c:16046
@@ -8941,57 +8509,48 @@ msgstr "UR_L afhandeling"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16962
 #: src/ui/gtk/gtk2/interface-glade.c:16038
-#, fuzzy
 msgid "Dynamic _querying"
-msgstr "TX zoekresultaten"
+msgstr "Dynamische routering"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16975
 #: src/ui/gtk/gtk2/interface-glade.c:16030
-#, fuzzy
 msgid "Dynamic query _hits"
-msgstr "TX zoekresultaten"
+msgstr "Dynamische resultaten"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16988
 #: src/ui/gtk/gtk2/interface-glade.c:16054
-#, fuzzy
 msgid "_Vendor messages"
-msgstr "berichten"
+msgstr "Verkoper berichten"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17001
 #: src/ui/gtk/gtk2/interface-glade.c:15974
-#, fuzzy
 msgid "_Search management"
-msgstr "Kwaliteits beheer"
+msgstr "Zoek beheer"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17014
 #: src/ui/gtk/gtk2/interface-glade.c:15990
-#, fuzzy
 msgid "_UDP traffic"
-msgstr "HTTP verkeer"
+msgstr "_UDP verkeer"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17027
 #: src/ui/gtk/gtk2/interface-glade.c:15982
-#, fuzzy
 msgid "QR_P management"
-msgstr "Kwaliteits beheer"
+msgstr "QR_P verkeer"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17126
 #: src/ui/gtk/gtk2/interface-glade.c:15998
-#, fuzzy
 msgid "Query management"
-msgstr "Kwaliteits beheer"
+msgstr "Resultaten beheer"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17148
 #: src/ui/gtk/gtk2/interface-glade.c:16006
-#, fuzzy
 msgid "Message routing"
-msgstr "Berichten smoren"
+msgstr "Berichten routeren"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17170
 #: src/ui/gtk/gtk2/interface-glade.c:16062
-#, fuzzy
 msgid "GGEP extensions"
-msgstr "Extenties"
+msgstr "GGEP Extenties"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17192
 #: src/ui/gtk/gtk2/interface-glade.c:16014
@@ -8999,9 +8558,8 @@ msgid "Pong caching"
 msgstr "Pong cache"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17214
-#, fuzzy
 msgid "TLS connection"
-msgstr "Legacy verbindingen"
+msgstr "TLS verbindingen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17225
 msgid "Bitzi debug"
@@ -9016,33 +8574,28 @@ msgid "HTTP debug"
 msgstr "HTTP debug"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17302
-#, fuzzy
 msgid "Upload debug"
-msgstr "Geupload"
+msgstr "Upload debug"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17324
-#, fuzzy
 msgid "Download debug"
-msgstr "Gedownload"
+msgstr "Download debug"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17346
 msgid "PARQ debug"
 msgstr "PARQ debug"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17368
-#, fuzzy
 msgid "Fileinfo debug"
-msgstr "Geupload"
+msgstr "Bestandsinformatie debug"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17390
-#, fuzzy
 msgid "Bootstrap debug"
-msgstr "Gedownload"
+msgstr "Opstarten debug"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17412
-#, fuzzy
 msgid "Node debug"
-msgstr "Geupload"
+msgstr "Node debug"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17434
 msgid "Socket debug"
@@ -9053,43 +8606,36 @@ msgid "Sharing debug"
 msgstr "Delen debug"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17478
-#, fuzzy
 msgid "Banning debug"
-msgstr "Bannen"
+msgstr "Bannen debug"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17511
-#, fuzzy
 msgid "Gnutella messages"
-msgstr "gnutellaNet limieten van de grootte van berichten"
+msgstr "Gnutella berichten"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17522
-#, fuzzy
 msgid "Download mesh"
-msgstr "Downloads"
+msgstr "Download mesh"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17544
 #: src/ui/gtk/gtk2/interface-glade.c:15725
-#, fuzzy
 msgid "Diverse properties"
-msgstr "Volg eigenschappen"
+msgstr "Diverse eigenschappen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17563
 #: src/ui/gtk/gtk2/interface-glade.c:15675
-#, fuzzy
 msgid "The current IP address was set at:"
-msgstr "Wanneer het hudige IP adres voor het laatst is vastgesteld"
+msgstr "Het huidige IP-adres is ingesteld op:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17574
 #: src/ui/gtk/gtk2/interface-glade.c:15666
-#, fuzzy
 msgid "Avg. time between IP address changes:"
-msgstr "Gemiddelde uptime met hetzelfde IP adres"
+msgstr "Gemiddelde uptime met hetzelfde IP adres:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17585
 #: src/ui/gtk/gtk2/interface-glade.c:15657
-#, fuzzy
 msgid "Running since:"
-msgstr "Draait momenteel in leaf mode."
+msgstr "Draait sinds:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17596
 #: src/ui/gtk/gtk2/interface-glade.c:15684
@@ -9098,15 +8644,13 @@ msgstr "Gem. uptime van deze servent:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17607
 #: src/ui/gtk/gtk2/interface-glade.c:15581
-#, fuzzy
 msgid "Max. number of open files:"
-msgstr "Max. aantal resultaten"
+msgstr "Max. aantal open bestanden:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17618
 #: src/ui/gtk/gtk2/interface-glade.c:15590
-#, fuzzy
 msgid "Available physical memory:"
-msgstr "Voldoende physiek geheugen"
+msgstr "Voldoende physiek geheugen:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17629
 #: src/ui/gtk/gtk2/interface-glade.c:15599
@@ -9124,23 +8668,22 @@ msgid "Debugging"
 msgstr "Debuggen"
 
 #: src/ui/gtk/gtk1/search.c:331
-#, fuzzy
 msgid "Failed to create the search"
-msgstr "Dupliceer deze zoekopdracht"
+msgstr "Aanmaken zoekopdracht mislukt"
 
 #: src/ui/gtk/gtk1/search.c:1747
-#, fuzzy, c-format
+#, c-format
 msgid "Created %u download"
 msgid_plural "Created %u downloads"
-msgstr[0] "%u downloads verwijderd."
-msgstr[1] "%u downloads verwijderd."
+msgstr[0] "%u download aangemaakt"
+msgstr[1] "%u downloads aangemaakt"
 
 #: src/ui/gtk/gtk1/search.c:1750
-#, fuzzy, c-format
+#, c-format
 msgid "%s from the %u selected item"
 msgid_plural "%s from the %u selected items"
-msgstr[0] "Informatie over het geselecteerde bestand"
-msgstr[1] "Informatie over het geselecteerde bestand"
+msgstr[0] "%s van de %u geselecteerde item"
+msgstr[1] "%s van de %u geselecteerde items"
 
 #: src/ui/gtk/gtk1/search.c:1776
 #, c-format
@@ -9167,9 +8710,8 @@ msgid "Not in database"
 msgstr "Niet in de database"
 
 #: src/ui/gtk/gtk1/search.c:2607 src/ui/gtk/gtk2/search_cb.c:1153
-#, fuzzy
 msgid "Query queued..."
-msgstr "%u wachtende"
+msgstr "Opdracht in de wacht gezet..."
 
 #: src/ui/gtk/gtk1/search_cb.c:219 src/ui/gtk/gtk2/search_cb.c:667
 msgid "<no SHA1 known>"
@@ -9181,9 +8723,8 @@ msgid "%d file auto selected with %d sources %s"
 msgstr "%d bestand automatisch geselecteerd met %d bronnen %s"
 
 #: src/ui/gtk/gtk1/search_cb.c:407
-#, fuzzy
 msgid "by urn:sha1."
-msgstr "urn:sha1"
+msgstr "op urn:sha1"
 
 #: src/ui/gtk/gtk1/search_cb.c:768 src/ui/gtk/gtk2/search_cb.c:406
 msgid "Show search list"
@@ -9194,11 +8735,11 @@ msgid "Passive"
 msgstr "Passief"
 
 #: src/ui/gtk/gtk1/search_stats.c:446 src/ui/gtk/gtk2/search_stats.c:485
-#, fuzzy, c-format
+#, c-format
 msgid "%u term counted"
 msgid_plural "%u terms counted"
-msgstr[0] "0 termen geteld"
-msgstr[1] "0 termen geteld"
+msgstr[0] "%u term geteld"
+msgstr[1] "%u termen geteld"
 
 #: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:92
 #: src/ui/gtk/gtk2/support-glade.c:116
@@ -9266,13 +8807,10 @@ msgstr ""
 "Breekt de download van de geselecteerde bron af, maar niet de download van het bestand zelf."
 
 #: src/ui/gtk/gtk2/interface-glade.c:82
-#, fuzzy
 msgid ""
 "Aborts the download from sources matching the selected criteria but not the "
 "download of the file itself."
-msgstr ""
-"Voegt een \"niet weergeven\" regel toe aan het algemene eerste filter als de "
-"urn:sha1 overeenkomt."
+msgstr "Breekt de download af met bronnen die overeenkomen met de geselecteerde criteria maar niet met de download van het bestand zelf."
 
 #: src/ui/gtk/gtk2/interface-glade.c:143
 msgid ""
@@ -9286,14 +8824,12 @@ msgid "Download selected files"
 msgstr "Download de geselecteerde bestanden"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2120
-#, fuzzy
 msgid "_Help"
-msgstr "Help"
+msgstr "_Help"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2673
-#, fuzzy
 msgid "_Search"
-msgstr "Zoek:"
+msgstr "Zoek"
 
 #: src/ui/gtk/gtk2/interface-glade.c:3316
 msgid "Connect to"
@@ -9337,9 +8873,8 @@ msgid "Address/Port:"
 msgstr "Adres/Poort:"
 
 #: src/ui/gtk/gtk2/interface-glade.c:3822
-#, fuzzy
 msgid "Uploaded data:"
-msgstr "Geupload"
+msgstr "Geuploade data:"
 
 #: src/ui/gtk/gtk2/interface-glade.c:3964
 msgid "Clear non-existent files"
@@ -9365,9 +8900,8 @@ msgid "Sho_w settings"
 msgstr "Geef instellingen _weer"
 
 #: src/ui/gtk/gtk2/interface-glade.c:4582
-#, fuzzy
 msgid "Downloaded data:"
-msgstr "Gedownload"
+msgstr "Gedownloade data:"
 
 #: src/ui/gtk/gtk2/interface-glade.c:5008
 msgid "Displaying"
@@ -9410,12 +8944,10 @@ msgid "Reverse DNS lookup"
 msgstr "DNS Omgekeerd opzoeken"
 
 #: src/ui/gtk/gtk2/interface-glade.c:9358
-#, fuzzy
 msgid "Gtk-Gnutella Configuration Wizard"
-msgstr "GTK-Gnutella Configuratie Wizard"
+msgstr "Gtk-Gnutella Configuratie Wizard"
 
 #: src/ui/gtk/gtk2/interface-glade.c:9370
-#, fuzzy
 msgid ""
 "<span weight=\"heavy\" size=\"xx-large\">Welcome to Gtk-Gnutella!</span>"
 msgstr ""
@@ -9494,9 +9026,8 @@ msgstr ""
 "lokale netwerk."
 
 #: src/ui/gtk/gtk2/interface-glade.c:10142
-#, fuzzy
 msgid "_Addresses of local network(s)"
-msgstr "A_dressen van (het) Lokale Netwerk(en)"
+msgstr "_Adressen van (het) Lokale Netwerk(en)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:11264
 msgid "seconds (0 - disable)"
@@ -9507,12 +9038,10 @@ msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "Maximum percentage verbindingen dat een leverancier kan bezetten."
 
 #: src/ui/gtk/gtk2/interface-glade.c:14001
-#, fuzzy
 msgid "_Remove directory"
-msgstr "Directory toevoegen"
+msgstr "Verwijder directory"
 
 #: src/ui/gtk/gtk2/interface-glade.c:14194
-#, fuzzy
 msgid "Minimum chunk _size"
 msgstr "Minimale stuk grootte"
 
@@ -9521,18 +9050,16 @@ msgid "Propery pattern:"
 msgstr "Eigenschap patroon:"
 
 #: src/ui/gtk/gtk2/interface-glade.c:15563
-#, fuzzy
 msgid "Property browser"
-msgstr "Property mist"
+msgstr "Eigenschap browser"
 
 #: src/ui/gtk/gtk2/interface-glade.c:16202
 msgid "Edit filters"
 msgstr "Bewerk filters"
 
 #: src/ui/gtk/gtk2/interface-glade.c:16253
-#, fuzzy
 msgid "Close this search"
-msgstr "Sluit zoekopdracht"
+msgstr "Sluit deze zoekopdracht"
 
 #: src/ui/gtk/gtk2/interface-glade.c:16565
 msgid ""
@@ -9546,23 +9073,20 @@ msgid "Select all matching regex from queue"
 msgstr "Selecteer alle overeenkomstige regex in de wachtrij"
 
 #: src/ui/gtk/gtk2/nodes.c:285
-#, fuzzy
 msgid "Leaf"
-msgstr "leaf"
+msgstr "Leaf"
 
 #: src/ui/gtk/gtk2/nodes.c:287
-#, fuzzy
 msgid "Ultrapeer"
-msgstr "Ultrapeers"
+msgstr "Ultrapeer"
 
 #: src/ui/gtk/gtk2/nodes.c:289
 msgid "Legacy"
 msgstr "Legacy"
 
 #: src/ui/gtk/gtk2/nodes.c:291
-#, fuzzy
 msgid "Crawler"
-msgstr "Leeg"
+msgstr "Crawler"
 
 #: src/ui/gtk/gtk2/nodes.c:293
 msgid "UDP"
@@ -9574,14 +9098,12 @@ msgid "Move the cursor over a row to see details."
 msgstr "Beweeg de cursor over een rij om de details te zien"
 
 #: src/ui/gtk/gtk2/nodes.c:343 src/ui/gtk/gtk2/search_cb.c:619
-#, fuzzy
 msgid "Peer:"
-msgstr "Nooit"
+msgstr "Peer:"
 
 #: src/ui/gtk/gtk2/nodes.c:345
-#, fuzzy
 msgid "Peermode:"
-msgstr "Ultrapeer modus"
+msgstr "Peermode:"
 
 #: src/ui/gtk/gtk2/nodes.c:347
 msgid "incoming"
@@ -9637,12 +9159,10 @@ msgid "History"
 msgstr "Geschiedenis"
 
 #: src/ui/gtk/main.c:135
-#, fuzzy
 msgid "Active"
-msgstr "actief"
+msgstr "Actief"
 
 #: src/ui/gtk/main.c:136
-#, fuzzy
 msgid "Queue"
 msgstr "In de wacht"
 
@@ -9657,18 +9177,18 @@ msgid "translation_credit|"
 msgstr "vertaling credit|"
 
 #: src/ui/gtk/main.c:843
-#, fuzzy, c-format
+#, c-format
 msgid "%d second"
 msgid_plural "%d seconds"
-msgstr[0] "seconden"
-msgstr[1] "seconden"
+msgstr[0] "%d seconde"
+msgstr[1] "%d seconden"
 
 #: src/ui/gtk/misc.c:72
-#, fuzzy, c-format
+#, c-format
 msgid "%lu file shared (%s)"
 msgid_plural "%lu files shared (%s)"
 msgstr[0] "%lu bestand gedeeld (%s)"
-msgstr[1] "%lu bestand gedeeld (%s)"
+msgstr[1] "%lu bestanden gedeeld (%s)"
 
 #: src/ui/gtk/misc.c:140
 msgid "(avg)"
@@ -9716,9 +9236,8 @@ msgid "proxy"
 msgstr "proxy"
 
 #: src/ui/gtk/search_common.c:91
-#, fuzzy
 msgid "bogus"
-msgstr "bezig"
+msgstr "onzin"
 
 #: src/ui/gtk/search_common.c:775
 #, c-format
@@ -9768,9 +9287,8 @@ msgid ", browsable"
 msgstr ", bladerbaar"
 
 #: src/ui/gtk/search_common.c:913
-#, fuzzy
 msgid "browsable"
-msgstr "stabiel"
+msgstr "bladerbaar"
 
 #: src/ui/gtk/search_common.c:1126
 msgid "(passive search) "
@@ -9786,16 +9304,14 @@ msgstr ""
 "u TCP, %u UDP)"
 
 #: src/ui/gtk/search_common.c:1131
-#, fuzzy
 msgid "[stopped] "
-msgstr "Afgeronde verwijderen"
+msgstr "[gestopped] "
 
 #: src/ui/gtk/search_common.c:1133
-#, fuzzy
 msgid "item"
 msgid_plural "items"
 msgstr[0] "item"
-msgstr[1] "item"
+msgstr[1] "items"
 
 #: src/ui/gtk/search_common.c:1135
 msgid "dupe"
@@ -9834,11 +9350,11 @@ msgid "No"
 msgstr "Nee"
 
 #: src/ui/gtk/settings.c:1331
-#, fuzzy, c-format
+#, c-format
 msgid "%u/%u host (%u%%)"
 msgid_plural "%u/%u hosts (%u%%)"
-msgstr[0] "%u/%u host%s (%u%%)"
-msgstr[1] "%u/%u host%s (%u%%)"
+msgstr[0] "%u/%u host (%u%%)"
+msgstr[1] "%u/%u hosts (%u%%)"
 
 #: src/ui/gtk/settings.c:1417 src/ui/gtk/settings.c:1439
 msgid "loading..."
@@ -9877,10 +9393,10 @@ msgid "*** VERSION WILL SOON BECOME OLD! ***"
 msgstr "*** VERSIE WORDT BINNENKORT TE OUD! ***"
 
 #: src/ui/gtk/settings.c:1589
-#, fuzzy, c-format
+#, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
 msgid_plural "*** VERSION WILL BECOME OLD IN %d DAYS! ***"
-msgstr[0] "*** VERSIE WORDT TE OUD IN %d DAGEN! ***"
+msgstr[0] "*** VERSIE WORDT TE OUD IN %d DAG! ***"
 msgstr[1] "*** VERSIE WORDT TE OUD IN %d DAGEN! ***"
 
 #: src/ui/gtk/settings.c:1980 src/ui/gtk/settings.c:2017
@@ -9897,11 +9413,11 @@ msgid "no sources"
 msgstr "geen bronnen"
 
 #: src/ui/gtk/settings.c:2392
-#, fuzzy, c-format
+#, c-format
 msgid "%u source"
 msgid_plural "%u sources"
-msgstr[0] "%u bron%s"
-msgstr[1] "%u bron%s"
+msgstr[0] "%u bron"
+msgstr[1] "%u bronnen"
 
 #: src/ui/gtk/settings.c:2407
 #, c-format
@@ -9914,35 +9430,33 @@ msgid "%u queued"
 msgstr "%u wachtende"
 
 #: src/ui/gtk/settings.c:2556
-#, fuzzy, c-format
+#, c-format
 msgid "%u/%u connection"
 msgid_plural "%u/%u connections"
-msgstr[0] "%u/%u verbinding%s"
-msgstr[1] "%u/%u verbinding%s"
+msgstr[0] "%u/%u verbinding"
+msgstr[1] "%u/%u verbindingen"
 
 #: src/ui/gtk/settings.c:2593
-#, fuzzy, c-format
+#, c-format
 msgid "%u/%u upload"
 msgid_plural "%u/%u uploads"
-msgstr[0] "%u/%u upload%s"
-msgstr[1] "%u/%u upload%s"
+msgstr[0] "%u/%u upload"
+msgstr[1] "%u/%u uploads"
 
 #: src/ui/gtk/settings.c:2618
-#, fuzzy, c-format
+#, c-format
 msgid "%u/%u download"
 msgid_plural "%u/%u downloads"
-msgstr[0] "%u/%u download%s"
-msgstr[1] "%u/%u download%s"
+msgstr[0] "%u/%u downloads"
+msgstr[1] "%u/%u downloads"
 
 #: src/ui/gtk/settings_cb.c:412
-#, fuzzy
 msgid "Property"
-msgstr "Property mist"
+msgstr "Eigenschap"
 
 #: src/ui/gtk/settings_cb.c:413
-#, fuzzy
 msgid "Value"
-msgstr "Waarde:"
+msgstr "Waarde"
 
 #: src/ui/gtk/settings_cb.c:414
 msgid "Description"
@@ -9957,9 +9471,9 @@ msgid "Got push, connecting back..."
 msgstr "Ontving een 'push', probeert een verbinding terug te maken..."
 
 #: src/ui/gtk/uploads_common.c:112
-#, fuzzy, c-format
+#, c-format
 msgid "%sCompleted (%s) %s"
-msgstr "Afgerond (%.1f k/s) %s"
+msgstr "%sAfgerond (%s) %s"
 
 #: src/ui/gtk/uploads_common.c:129
 #, c-format
@@ -9967,9 +9481,8 @@ msgid "%s%s(%s) TR: %s"
 msgstr "%s%s(%s) Resterende tijd: %s"
 
 #: src/ui/gtk/uploads_common.c:132
-#, fuzzy
 msgid "stalled"
-msgstr " (geblokkeerd)"
+msgstr "hangt"
 
 #: src/ui/gtk/uploads_common.c:138
 msgid "Waiting for headers..."
@@ -9992,9 +9505,9 @@ msgid "Transmission complete"
 msgstr "Versturen afgerond"
 
 #: src/ui/gtk/uploads_common.c:179
-#, fuzzy, c-format
+#, c-format
 msgid "%s [%d] (slot %d/%d)%s %s %s"
-msgstr "In de wacht (%d) (slot %d / %d), maximale tijd: %s"
+msgstr "%s [%d] (slot %d/%d)%s %s %s"
 
 #: src/ui/gtk/uploads_common.c:185
 msgid "lifetime:"
