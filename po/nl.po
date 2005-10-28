@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-10-27 23:50+0900\n"
-"PO-Revision-Date: 2005-10-27 18:57+0200\n"
+"PO-Revision-Date: 2005-10-28 11:43+0200\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
@@ -2860,7 +2860,7 @@ msgid ""
 "buffering, but read-ahead data is committed to disk immediately.  If you "
 "don't wish to reserve more memory per active source, you can disable this "
 "feature by setting the read-ahead buffer size to 0."
-msgstr ""
+msgstr "Hoeveelheid data dat gtk-gnutella vooruit moet proberen te lezen per bron die aan het downloaden is. Dit voorkomt teveel systeem aanroepen tijdens het lezen van grote hoeveelheid data. Dit vult bufferen mooi aan, aangezien dit voorkomt dat er een paar bytes worden gelezen en vervolgens de gebufferde data naar de schijf wordt weggeschreven terwijl er nog ruimte is voor het vooruit lezen. Als je dit wilt uitzetten, dan kan je vooruit lees buffer op 0 zetten."
 
 #: src/if/gui_property.c:173
 #, fuzzy
@@ -2874,7 +2874,7 @@ msgstr "Sleutelwoorden"
 
 #: src/if/gui_property.c:175
 msgid "by whole query"
-msgstr ""
+msgstr "op hele zoekopdracht"
 
 #: src/if/gui_property.c:176
 #, fuzzy
@@ -2883,15 +2883,15 @@ msgstr "Geen route"
 
 #: src/if/gui_property.c:198
 msgid "TCP & UDP"
-msgstr ""
+msgstr "TCP & UDP"
 
 #: src/if/gui_property.c:199
 msgid "TCP only"
-msgstr ""
+msgstr "Alleen TCP"
 
 #: src/if/gui_property.c:200
 msgid "UDP only"
-msgstr ""
+msgstr "Alleen UDP"
 
 #: src/if/gui_property.c:268
 #, fuzzy
@@ -2904,11 +2904,11 @@ msgstr "Tekst"
 
 #: src/if/gui_property.c:270
 msgid "Both (vertical)"
-msgstr ""
+msgstr "Beide (verticaal)"
 
 #: src/if/gui_property.c:271
 msgid "Both (horizontal)"
-msgstr ""
+msgstr "Beide (horizontaal)"
 
 #: src/if/gui_property.c:299
 #, fuzzy
@@ -3217,7 +3217,7 @@ msgstr "Sorteer op alfabet, hoofdletter gevoelig."
 
 #: src/if/gui_property.c:1409
 msgid "Default sort order for search results."
-msgstr ""
+msgstr "Standaard sorteer volgorde voor zoekresultaten."
 
 #: src/if/gui_property.c:1429
 #, fuzzy
@@ -3435,6 +3435,7 @@ msgid ""
 "Whether we should display message counts for duplicate, bad, weird and "
 "messages bearing an hostile IP address."
 msgstr ""
+"Of we de berichten teller voor duplicaten, foute en rare berichten van een vijandig IP adres moeten tonen."
 
 #: src/if/gui_property.c:2076
 msgid ""
@@ -3496,55 +3497,55 @@ msgstr "Configureert hoe de toolbar er uit ziet."
 
 #: src/lib/iso3166.c:58
 msgid "Anonymizing proxies"
-msgstr ""
+msgstr "Anonieme proxies"
 
 #: src/lib/iso3166.c:59
 msgid "Satellite providers"
-msgstr ""
+msgstr "Sateliet providers"
 
 #: src/lib/iso3166.c:60
 msgid "Afghanistan"
-msgstr ""
+msgstr "Afganistan"
 
 #: src/lib/iso3166.c:61
 msgid "Albania, People's Socialist Republic of"
-msgstr ""
+msgstr "Albanië"
 
 #: src/lib/iso3166.c:62
 msgid "Algeria, People's Democratic Republic of"
-msgstr ""
+msgstr "Algerije"
 
 #: src/lib/iso3166.c:63
 msgid "American Samoa"
-msgstr ""
+msgstr "Amerikaans Samoa"
 
 #: src/lib/iso3166.c:64
 msgid "Andorra, Principality of"
-msgstr ""
+msgstr "Andorra"
 
 #: src/lib/iso3166.c:65
 msgid "Angola, Republic of"
-msgstr ""
+msgstr "Angola"
 
 #: src/lib/iso3166.c:66
 msgid "Anguilla"
-msgstr ""
+msgstr "Anguilla"
 
 #: src/lib/iso3166.c:67
 msgid "Antarctica (the territory South of 60 deg S)"
-msgstr ""
+msgstr "Antarctica"
 
 #: src/lib/iso3166.c:68
 msgid "Antigua and Barbuda"
-msgstr ""
+msgstr "Antigua en Barbuda"
 
 #: src/lib/iso3166.c:69
 msgid "Argentina, Argentine Republic"
-msgstr ""
+msgstr "Argentinië"
 
 #: src/lib/iso3166.c:70
 msgid "Armenia"
-msgstr ""
+msgstr "Armenië"
 
 #: src/lib/iso3166.c:71
 msgid "Aruba"
@@ -3552,31 +3553,31 @@ msgstr "Aruba"
 
 #: src/lib/iso3166.c:72
 msgid "Asia/Pacific Region"
-msgstr ""
+msgstr "Asië/Pacific regio"
 
 #: src/lib/iso3166.c:73
 msgid "Australia, Commonwealth of"
-msgstr ""
+msgstr "Oostenrijk"
 
 #: src/lib/iso3166.c:74
 msgid "Austria, Republic of"
-msgstr ""
+msgstr "Oostenrijk, republiek"
 
 #: src/lib/iso3166.c:75
 msgid "Azerbaijan, Republic of"
-msgstr ""
+msgstr "Azerbeidzjan, Republiek van"
 
 #: src/lib/iso3166.c:76
 msgid "Bahamas, Commonwealth of the"
-msgstr ""
+msgstr "Bahama's"
 
 #: src/lib/iso3166.c:77
 msgid "Bahrain, Kingdom of"
-msgstr ""
+msgstr "Bahrein, Koninkrijk van"
 
 #: src/lib/iso3166.c:78
 msgid "Bangladesh, People's Republic of"
-msgstr ""
+msgstr "Bangladesh"
 
 #: src/lib/iso3166.c:79
 msgid "Barbados"
@@ -3588,7 +3589,7 @@ msgstr "Wit-Rusland"
 
 #: src/lib/iso3166.c:81
 msgid "Belgium, Kingdom of"
-msgstr ""
+msgstr "België"
 
 #: src/lib/iso3166.c:82
 msgid "Belize"
@@ -3596,7 +3597,7 @@ msgstr "Belize"
 
 #: src/lib/iso3166.c:83
 msgid "Benin, People's Republic of"
-msgstr ""
+msgstr "Benin"
 
 #: src/lib/iso3166.c:84
 msgid "Bermuda"
@@ -3604,59 +3605,59 @@ msgstr "Bermuda"
 
 #: src/lib/iso3166.c:85
 msgid "Bhutan, Kingdom of"
-msgstr ""
+msgstr "Bhutan"
 
 #: src/lib/iso3166.c:86
 msgid "Bolivia, Republic of"
-msgstr ""
+msgstr "Bolivia"
 
 #: src/lib/iso3166.c:87
 msgid "Bosnia and Herzegovina"
-msgstr ""
+msgstr "Bosnië-Herzegovina"
 
 #: src/lib/iso3166.c:88
 msgid "Botswana, Republic of"
-msgstr ""
+msgstr "Botswana"
 
 #: src/lib/iso3166.c:89
 msgid "Bouvet Island (Bouvetoya)"
-msgstr ""
+msgstr "Bouvet (eiland)"
 
 #: src/lib/iso3166.c:90
 msgid "Brazil, Federative Republic of"
-msgstr ""
+msgstr "Brazilië"
 
 #: src/lib/iso3166.c:91
 msgid "British Indian Ocean Territory (Chagos Archipelago)"
-msgstr ""
+msgstr "Britse gebiedsdelen in de Indische Oceaan: Chagos Archipel"
 
 #: src/lib/iso3166.c:92
 msgid "British Virgin Islands"
-msgstr ""
+msgstr "Britse maagden eilanden"
 
 #: src/lib/iso3166.c:93
 msgid "Brunei Darussalam"
-msgstr ""
+msgstr "Brunei"
 
 #: src/lib/iso3166.c:94
 msgid "Bulgaria, People's Republic of"
-msgstr ""
+msgstr "Bulgarije"
 
 #: src/lib/iso3166.c:95
 msgid "Burkina Faso"
-msgstr ""
+msgstr "Burnika Faso"
 
 #: src/lib/iso3166.c:96
 msgid "Burundi, Republic of"
-msgstr ""
+msgstr "Burundi"
 
 #: src/lib/iso3166.c:97
 msgid "Cambodia, Kingdom of"
-msgstr ""
+msgstr "Cambodja"
 
 #: src/lib/iso3166.c:98
 msgid "Cameroon, United Republic of"
-msgstr ""
+msgstr "Kameroen"
 
 #: src/lib/iso3166.c:99
 msgid "Canada"
@@ -3668,107 +3669,107 @@ msgstr "Kaapverdische eilanden"
 
 #: src/lib/iso3166.c:101
 msgid "Cayman Islands"
-msgstr ""
+msgstr "Caymaneilanden"
 
 #: src/lib/iso3166.c:102
 msgid "Central African Republic"
-msgstr ""
+msgstr "Centraal-Afrikaanse republiek"
 
 #: src/lib/iso3166.c:103
 msgid "Chad, Republic of"
-msgstr ""
+msgstr "Tsjaad"
 
 #: src/lib/iso3166.c:104
 msgid "Chile, Republic of"
-msgstr ""
+msgstr "Chili"
 
 #: src/lib/iso3166.c:105
 msgid "China, People's Republic of"
-msgstr ""
+msgstr "China (Zhongguo)"
 
 #: src/lib/iso3166.c:106
 msgid "Christmas Island"
-msgstr ""
+msgstr "Christmaseiland"
 
 #: src/lib/iso3166.c:107
 msgid "Cocos (Keeling) Islands"
-msgstr ""
+msgstr "Cocos (Keeling)"
 
 #: src/lib/iso3166.c:108
 msgid "Colombia, Republic of"
-msgstr ""
+msgstr "Colombia"
 
 #: src/lib/iso3166.c:109
 msgid "Comoros, Union of the"
-msgstr ""
+msgstr "Comoren"
 
 #: src/lib/iso3166.c:110
 msgid "Congo, Democratic Republic of"
-msgstr ""
+msgstr "Congo"
 
 #: src/lib/iso3166.c:111
 msgid "Congo, People's Republic of"
-msgstr ""
+msgstr "Congo, Republiek"
 
 #: src/lib/iso3166.c:112
 msgid "Cook Islands"
-msgstr ""
+msgstr "Cookeilanden"
 
 #: src/lib/iso3166.c:113
 msgid "Costa Rica, Republic of"
-msgstr ""
+msgstr "Costa Rica"
 
 #: src/lib/iso3166.c:114
 msgid "Cote D'Ivoire, Ivory Coast, Republic of the"
-msgstr ""
+msgstr "Ivoorkust"
 
 #: src/lib/iso3166.c:115
 msgid "Cuba, Republic of"
-msgstr ""
+msgstr "Cuba"
 
 #: src/lib/iso3166.c:116
 msgid "Cyprus, Republic of"
-msgstr ""
+msgstr "Cyprus"
 
 #: src/lib/iso3166.c:117
 msgid "Czech Republic"
-msgstr ""
+msgstr "Tsjechië"
 
 #: src/lib/iso3166.c:118
 msgid "Denmark, Kingdom of"
-msgstr ""
+msgstr "Denemarken"
 
 #: src/lib/iso3166.c:119
 msgid "Djibouti, Republic of"
-msgstr ""
+msgstr "Djibouti"
 
 #: src/lib/iso3166.c:120
 msgid "Dominica, Commonwealth of"
-msgstr ""
+msgstr "Dominica"
 
 #: src/lib/iso3166.c:121
 msgid "Dominican Republic"
-msgstr ""
+msgstr "Dominicaanse republiek"
 
 #: src/lib/iso3166.c:122
 msgid "Ecuador, Republic of"
-msgstr ""
+msgstr "Ecuador"
 
 #: src/lib/iso3166.c:123
 msgid "Egypt, Arab Republic of"
-msgstr ""
+msgstr "Egypte"
 
 #: src/lib/iso3166.c:124
 msgid "El Salvador, Republic of"
-msgstr ""
+msgstr "El Salvador"
 
 #: src/lib/iso3166.c:125
 msgid "Equatorial Guinea, Republic of"
-msgstr ""
+msgstr "Equatoriaal-Guinea"
 
 #: src/lib/iso3166.c:126
 msgid "Eritrea"
-msgstr ""
+msgstr "Eritrea"
 
 #: src/lib/iso3166.c:127
 msgid "Estonia"
@@ -3785,47 +3786,47 @@ msgstr "verwijderd"
 
 #: src/lib/iso3166.c:130
 msgid "Faeroe Islands"
-msgstr ""
+msgstr "Faeröer"
 
 #: src/lib/iso3166.c:131
 msgid "Falkland Islands (Malvinas)"
-msgstr ""
+msgstr "Falklandeilanden"
 
 #: src/lib/iso3166.c:132
 msgid "Fiji, Republic of the Fiji Islands"
-msgstr ""
+msgstr "Fiji"
 
 #: src/lib/iso3166.c:133
 msgid "Finland, Republic of"
-msgstr ""
+msgstr "Finland (Suomi Finland)"
 
 #: src/lib/iso3166.c:134
 msgid "France, French Republic"
-msgstr ""
+msgstr "Frankrijk"
 
 #: src/lib/iso3166.c:135
 msgid "French Guiana"
-msgstr ""
+msgstr "Frans-Guyana"
 
 #: src/lib/iso3166.c:136
 msgid "French Polynesia"
-msgstr ""
+msgstr "Frans Polynesië (Tahiti)"
 
 #: src/lib/iso3166.c:137
 msgid "French Southern Territories"
-msgstr ""
+msgstr "Franse Zuidelijke gebieden (Terres Australes et Antarctiques Francaises)"
 
 #: src/lib/iso3166.c:138
 msgid "Gabon, Gabonese Republic"
-msgstr ""
+msgstr "Gabon"
 
 #: src/lib/iso3166.c:139
 msgid "Gambia, Republic of the"
-msgstr ""
+msgstr "Gambia"
 
 #: src/lib/iso3166.c:140
 msgid "Georgia"
-msgstr ""
+msgstr "Geogrië"
 
 #: src/lib/iso3166.c:141
 msgid "Germany"
@@ -3833,15 +3834,15 @@ msgstr "Duitsland"
 
 #: src/lib/iso3166.c:142
 msgid "Ghana, Republic of"
-msgstr ""
+msgstr "Ghana"
 
 #: src/lib/iso3166.c:143
 msgid "Gibraltar"
-msgstr ""
+msgstr "Gibraltar"
 
 #: src/lib/iso3166.c:144
 msgid "Greece, Hellenic Republic"
-msgstr ""
+msgstr "Griekenland"
 
 #: src/lib/iso3166.c:145
 msgid "Greenland"
@@ -3853,75 +3854,75 @@ msgstr "Grenada"
 
 #: src/lib/iso3166.c:147
 msgid "Guadaloupe"
-msgstr ""
+msgstr "Guadeloupe"
 
 #: src/lib/iso3166.c:148
 msgid "Guam"
-msgstr ""
+msgstr "Guam"
 
 #: src/lib/iso3166.c:149
 msgid "Guatemala, Republic of"
-msgstr ""
+msgstr "Guatemala"
 
 #: src/lib/iso3166.c:150
 msgid "Guinea, Revolutionary People's Rep'c of"
-msgstr ""
+msgstr "Republiek Guinee"
 
 #: src/lib/iso3166.c:151
 msgid "Guinea-Bissau, Republic of"
-msgstr ""
+msgstr "Guinee-Bissau"
 
 #: src/lib/iso3166.c:152
 msgid "Guyana, Republic of"
-msgstr ""
+msgstr "Guyana"
 
 #: src/lib/iso3166.c:153
 msgid "Haiti, Republic of"
-msgstr ""
+msgstr "Haïti"
 
 #: src/lib/iso3166.c:154
 msgid "Heard and McDonald Islands"
-msgstr ""
+msgstr "Heard en McDonald"
 
 #: src/lib/iso3166.c:155
 msgid "Holy See (Vatican City State)"
-msgstr ""
+msgstr "Holy See"
 
 #: src/lib/iso3166.c:156
 msgid "Honduras, Republic of"
-msgstr ""
+msgstr "Honduras"
 
 #: src/lib/iso3166.c:157
 msgid "Hong Kong, Special Administrative Region of China"
-msgstr ""
+msgstr "Honkong"
 
 #: src/lib/iso3166.c:158
 msgid "Hrvatska (Croatia)"
-msgstr ""
+msgstr "Hrvatska (Croatië)"
 
 #: src/lib/iso3166.c:159
 msgid "Hungary, Hungarian People's Republic"
-msgstr ""
+msgstr "Hongarije"
 
 #: src/lib/iso3166.c:160
 msgid "Iceland, Republic of"
-msgstr ""
+msgstr "IJsland"
 
 #: src/lib/iso3166.c:161
 msgid "India, Republic of"
-msgstr ""
+msgstr "India"
 
 #: src/lib/iso3166.c:162
 msgid "Indonesia, Republic of"
-msgstr ""
+msgstr "Indonesië"
 
 #: src/lib/iso3166.c:163
 msgid "Iran, Islamic Republic of"
-msgstr ""
+msgstr "Iran"
 
 #: src/lib/iso3166.c:164
 msgid "Iraq, Republic of"
-msgstr ""
+msgstr "Irak"
 
 #: src/lib/iso3166.c:165
 msgid "Ireland"
@@ -3929,191 +3930,191 @@ msgstr "Ierland"
 
 #: src/lib/iso3166.c:166
 msgid "Israel, State of"
-msgstr ""
+msgstr "Israël"
 
 #: src/lib/iso3166.c:167
 msgid "Italy, Italian Republic"
-msgstr ""
+msgstr "Italië"
 
 #: src/lib/iso3166.c:168
 msgid "Jamaica"
-msgstr ""
+msgstr "Jamaica"
 
 #: src/lib/iso3166.c:169
 msgid "Japan"
-msgstr ""
+msgstr "Japan"
 
 #: src/lib/iso3166.c:170
 msgid "Jordan, Hashemite Kingdom of"
-msgstr ""
+msgstr "Jordanië"
 
 #: src/lib/iso3166.c:171
 msgid "Kazakhstan, Republic of"
-msgstr ""
+msgstr "Kazachstan"
 
 #: src/lib/iso3166.c:172
 msgid "Kenya, Republic of"
-msgstr ""
+msgstr "Kenya"
 
 #: src/lib/iso3166.c:173
 msgid "Kiribati, Republic of"
-msgstr ""
+msgstr "Kiribati"
 
 #: src/lib/iso3166.c:174
 msgid "Korea, Democratic People's Republic of"
-msgstr ""
+msgstr "Korea"
 
 #: src/lib/iso3166.c:175
 msgid "Korea, Republic of"
-msgstr ""
+msgstr "Korea, Republiek"
 
 #: src/lib/iso3166.c:176
 msgid "Kuwait, State of"
-msgstr ""
+msgstr "Koeweit"
 
 #: src/lib/iso3166.c:177
 msgid "Kyrgyz Republic"
-msgstr ""
+msgstr "Kirgizië"
 
 #: src/lib/iso3166.c:178
 msgid "Lao People's Democratic Republic"
-msgstr ""
+msgstr "Laos"
 
 #: src/lib/iso3166.c:179
 msgid "Latvia"
-msgstr ""
+msgstr "Letland"
 
 #: src/lib/iso3166.c:180
 msgid "Lebanon, Lebanese Republic"
-msgstr ""
+msgstr "Libanon"
 
 #: src/lib/iso3166.c:181
 msgid "Lesotho, Kingdom of"
-msgstr ""
+msgstr "Lesotho"
 
 #: src/lib/iso3166.c:182
 msgid "Liberia, Republic of"
-msgstr ""
+msgstr "Liberia"
 
 #: src/lib/iso3166.c:183
 msgid "Libyan Arab Jamahiriya"
-msgstr ""
+msgstr "Libië"
 
 #: src/lib/iso3166.c:184
 msgid "Liechtenstein, Principality of"
-msgstr ""
+msgstr "Liechtenstein"
 
 #: src/lib/iso3166.c:185
 msgid "Lithuania"
-msgstr ""
+msgstr "Litouwen (Lietuva)"
 
 #: src/lib/iso3166.c:186
 msgid "Luxembourg, Grand Duchy of"
-msgstr ""
+msgstr "Luxemburg"
 
 #: src/lib/iso3166.c:187
 msgid "Macao, Special Administrative Region of China"
-msgstr ""
+msgstr "Macau (Aomen)"
 
 #: src/lib/iso3166.c:188
 msgid "Macedonia, the former Yugoslav Republic of"
-msgstr ""
+msgstr "Macedonie"
 
 #: src/lib/iso3166.c:189
 msgid "Madagascar, Republic of"
-msgstr ""
+msgstr "Madagaskar"
 
 #: src/lib/iso3166.c:190
 msgid "Malawi, Republic of"
-msgstr ""
+msgstr "Malawi"
 
 #: src/lib/iso3166.c:191
 msgid "Malaysia"
-msgstr ""
+msgstr "Maleisië"
 
 #: src/lib/iso3166.c:192
 msgid "Maldives, Republic of"
-msgstr ""
+msgstr "Maldiven"
 
 #: src/lib/iso3166.c:193
 msgid "Mali, Republic of"
-msgstr ""
+msgstr "Mali"
 
 #: src/lib/iso3166.c:194
 msgid "Malta, Republic of"
-msgstr ""
+msgstr "Malta"
 
 #: src/lib/iso3166.c:195
 msgid "Marshall Islands"
-msgstr ""
+msgstr "Marshalleilanden"
 
 #: src/lib/iso3166.c:196
 msgid "Martinique"
-msgstr ""
+msgstr "Martinique"
 
 #: src/lib/iso3166.c:197
 msgid "Mauritania, Islamic Republic of"
-msgstr ""
+msgstr "Mauritanië"
 
 #: src/lib/iso3166.c:198
 msgid "Mauritius"
-msgstr ""
+msgstr "Mauritius"
 
 #: src/lib/iso3166.c:199
 msgid "Mayotte"
-msgstr ""
+msgstr "Mayotte"
 
 #: src/lib/iso3166.c:200
 msgid "Mexico, United Mexican States"
-msgstr ""
+msgstr "Mexico"
 
 #: src/lib/iso3166.c:201
 msgid "Micronesia, Federated States of"
-msgstr ""
+msgstr "Micronesia"
 
 #: src/lib/iso3166.c:202
 msgid "Moldova, Republic of"
-msgstr ""
+msgstr "Moldova"
 
 #: src/lib/iso3166.c:203
 msgid "Monaco, Principality of"
-msgstr ""
+msgstr "Monaco"
 
 #: src/lib/iso3166.c:204
 msgid "Mongolia, Mongolian People's Republic"
-msgstr ""
+msgstr "Mongolië"
 
 #: src/lib/iso3166.c:205
 msgid "Montserrat"
-msgstr ""
+msgstr "Montserrat"
 
 #: src/lib/iso3166.c:206
 msgid "Morocco, Kingdom of"
-msgstr ""
+msgstr "Marokko"
 
 #: src/lib/iso3166.c:207
 msgid "Mozambique, People's Republic of"
-msgstr ""
+msgstr "Mozambique"
 
 #: src/lib/iso3166.c:208
 msgid "Myanmar"
-msgstr ""
+msgstr "Myanmar"
 
 #: src/lib/iso3166.c:209
 msgid "Namibia"
-msgstr ""
+msgstr "Namibië"
 
 #: src/lib/iso3166.c:210
 msgid "Nauru, Republic of"
-msgstr ""
+msgstr "Nauru"
 
 #: src/lib/iso3166.c:211
 msgid "Nepal, Kingdom of"
-msgstr ""
+msgstr "Nepal"
 
 #: src/lib/iso3166.c:212
 msgid "Netherlands Antilles"
-msgstr ""
+msgstr "Nederlandse Antillen"
 
 #: src/lib/iso3166.c:213
 msgid "Netherlands, Kingdom of the"
@@ -4121,95 +4122,95 @@ msgstr "Nederlanden, Koninkrijk der"
 
 #: src/lib/iso3166.c:214
 msgid "New Caledonia"
-msgstr ""
+msgstr "Nieuw-Caledonië"
 
 #: src/lib/iso3166.c:215
 msgid "New Zealand"
-msgstr ""
+msgstr "Nieuw-Zeeland"
 
 #: src/lib/iso3166.c:216
 msgid "Nicaragua, Republic of"
-msgstr ""
+msgstr "Nicaragua"
 
 #: src/lib/iso3166.c:217
 msgid "Niger, Republic of the"
-msgstr ""
+msgstr "Niger"
 
 #: src/lib/iso3166.c:218
 msgid "Nigeria, Federal Republic of"
-msgstr ""
+msgstr "Nigeria"
 
 #: src/lib/iso3166.c:219
 msgid "Niue, Republic of"
-msgstr ""
+msgstr "Niue"
 
 #: src/lib/iso3166.c:220
 msgid "Norfolk Island"
-msgstr ""
+msgstr "Norfolk (eiland)"
 
 #: src/lib/iso3166.c:221
 msgid "Northern Mariana Islands"
-msgstr ""
+msgstr "Noordelijke Marianen-eilanden"
 
 #: src/lib/iso3166.c:222
 msgid "Norway, Kingdom of"
-msgstr ""
+msgstr "Noorwegen"
 
 #: src/lib/iso3166.c:223
 msgid "Oman, Sultanate of"
-msgstr ""
+msgstr "Oman"
 
 #: src/lib/iso3166.c:224
 msgid "Pakistan, Islamic Republic of"
-msgstr ""
+msgstr "Pakistan"
 
 #: src/lib/iso3166.c:225
 msgid "Palau"
-msgstr ""
+msgstr "Palau"
 
 #: src/lib/iso3166.c:226
 msgid "Palestinian Territory, Occupied"
-msgstr ""
+msgstr "Palestijnse bezette gebieden"
 
 #: src/lib/iso3166.c:227
 msgid "Panama, Republic of"
-msgstr ""
+msgstr "Panama"
 
 #: src/lib/iso3166.c:228
 msgid "Papua New Guinea"
-msgstr ""
+msgstr "Papua Nieuw-Guinea"
 
 #: src/lib/iso3166.c:229
 msgid "Paraguay, Republic of"
-msgstr ""
+msgstr "Paraguay"
 
 #: src/lib/iso3166.c:230
 msgid "Peru, Republic of"
-msgstr ""
+msgstr "Peru"
 
 #: src/lib/iso3166.c:231
 msgid "Philippines, Republic of the"
-msgstr ""
+msgstr "Filipijnen"
 
 #: src/lib/iso3166.c:232
 msgid "Pitcairn Island"
-msgstr ""
+msgstr "Pitcairn (eiland)"
 
 #: src/lib/iso3166.c:233
 msgid "Poland, Polish People's Republic"
-msgstr ""
+msgstr "Polen"
 
 #: src/lib/iso3166.c:234
 msgid "Portugal, Portuguese Republic"
-msgstr ""
+msgstr "Portugal"
 
 #: src/lib/iso3166.c:235
 msgid "Puerto Rico"
-msgstr ""
+msgstr "Puerto Rico"
 
 #: src/lib/iso3166.c:236
 msgid "Qatar, State of"
-msgstr ""
+msgstr "Qatar"
 
 #: src/lib/iso3166.c:237
 msgid "Reunion"
@@ -4217,95 +4218,95 @@ msgstr "Reunion"
 
 #: src/lib/iso3166.c:238
 msgid "Romania, Socialist Republic of"
-msgstr ""
+msgstr "Roemenië"
 
 #: src/lib/iso3166.c:239
 msgid "Russian Federation"
-msgstr ""
+msgstr "Rusland"
 
 #: src/lib/iso3166.c:240
 msgid "Rwanda, Rwandese Republic"
-msgstr ""
+msgstr "Rwanda"
 
 #: src/lib/iso3166.c:241
 msgid "St. Helena"
-msgstr ""
+msgstr "Sint Helena"
 
 #: src/lib/iso3166.c:242
 msgid "St. Kitts and Nevis"
-msgstr ""
+msgstr "Sint Kitss en Nevis"
 
 #: src/lib/iso3166.c:243
 msgid "St. Lucia"
-msgstr ""
+msgstr "Sint Lucia"
 
 #: src/lib/iso3166.c:244
 msgid "St. Pierre and Miquelon"
-msgstr ""
+msgstr "Sint Pierre en Miquelon"
 
 #: src/lib/iso3166.c:245
 msgid "St. Vincent and the Grenadines"
-msgstr ""
+msgstr "Sint Vincent en de Grenadinen"
 
 #: src/lib/iso3166.c:246
 msgid "Samoa, Independent State of"
-msgstr ""
+msgstr "Samoa"
 
 #: src/lib/iso3166.c:247
 msgid "San Marino, Republic of"
-msgstr ""
+msgstr "San Marino"
 
 #: src/lib/iso3166.c:248
 msgid "Sao Tome and Principe, Democratic Republic of"
-msgstr ""
+msgstr "Sao Tomé en Principe (eilanden)"
 
 #: src/lib/iso3166.c:249
 msgid "Saudi Arabia, Kingdom of"
-msgstr ""
+msgstr "Saoedi-Arabië"
 
 #: src/lib/iso3166.c:250
 msgid "Senegal, Republic of"
-msgstr ""
+msgstr "Senegal"
 
 #: src/lib/iso3166.c:251
 msgid "Serbia and Montenegro"
-msgstr ""
+msgstr "Servië & Montenegro"
 
 #: src/lib/iso3166.c:252
 msgid "Seychelles, Republic of"
-msgstr ""
+msgstr "Seychellen"
 
 #: src/lib/iso3166.c:253
 msgid "Sierra Leone, Republic of"
-msgstr ""
+msgstr "Sierra Leone"
 
 #: src/lib/iso3166.c:254
 msgid "Singapore, Republic of"
-msgstr ""
+msgstr "Singapore"
 
 #: src/lib/iso3166.c:255
 msgid "Slovakia (Slovak Republic)"
-msgstr ""
+msgstr "Slowakije"
 
 #: src/lib/iso3166.c:256
 msgid "Slovenia"
-msgstr ""
+msgstr "Slovenië"
 
 #: src/lib/iso3166.c:257
 msgid "Solomon Islands"
-msgstr ""
+msgstr "Salomnseilanden"
 
 #: src/lib/iso3166.c:258
 msgid "Somalia, Somali Republic"
-msgstr ""
+msgstr "Somalië"
 
 #: src/lib/iso3166.c:259
 msgid "South Africa, Republic of"
-msgstr ""
+msgstr "Zuid-Afrika"
 
 #: src/lib/iso3166.c:260
 msgid "South Georgia and the South Sandwich Islands"
-msgstr ""
+msgstr "Zuid-Georgia en de Zuidelijke Sandwicheilanden"
 
 #: src/lib/iso3166.c:261
 #, fuzzy
@@ -4314,163 +4315,163 @@ msgstr "Nederlanden, Koninkrijk der"
 
 #: src/lib/iso3166.c:262
 msgid "Sri Lanka, Democratic Socialist Republic of"
-msgstr ""
+msgstr "Sri Lanka"
 
 #: src/lib/iso3166.c:263
 msgid "Sudan, Democratic Republic of the"
-msgstr ""
+msgstr "Soedan"
 
 #: src/lib/iso3166.c:264
 msgid "Suriname, Republic of"
-msgstr ""
+msgstr "Suriname"
 
 #: src/lib/iso3166.c:265
 msgid "Svalbard & Jan Mayen Islands"
-msgstr ""
+msgstr "Svalbard en Jan Mayen (eilanden)"
 
 #: src/lib/iso3166.c:266
 msgid "Swaziland, Kingdom of"
-msgstr ""
+msgstr "Swaziland"
 
 #: src/lib/iso3166.c:267
 msgid "Sweden, Kingdom of"
-msgstr ""
+msgstr "Zweden"
 
 #: src/lib/iso3166.c:268
 msgid "Switzerland, Swiss Confederation"
-msgstr ""
+msgstr "Zwitserland"
 
 #: src/lib/iso3166.c:269
 msgid "Syrian Arab Republic"
-msgstr ""
+msgstr "Syrië"
 
 #: src/lib/iso3166.c:270
 msgid "Taiwan, Province of China"
-msgstr ""
+msgstr "Taiwan"
 
 #: src/lib/iso3166.c:271
 msgid "Tajikistan"
-msgstr ""
+msgstr "Tadzjikistan"
 
 #: src/lib/iso3166.c:272
 msgid "Tanzania, United Republic of"
-msgstr ""
+msgstr "Tanzania"
 
 #: src/lib/iso3166.c:273
 msgid "Thailand, Kingdom of"
-msgstr ""
+msgstr "Thailand"
 
 #: src/lib/iso3166.c:274
 msgid "Timor-Leste, Democratic Republic of"
-msgstr ""
+msgstr "Oost-Timor"
 
 #: src/lib/iso3166.c:275
 msgid "Togo, Togolese Republic"
-msgstr ""
+msgstr "Togo"
 
 #: src/lib/iso3166.c:276
 msgid "Tokelau (Tokelau Islands)"
-msgstr ""
+msgstr "Tokelau"
 
 #: src/lib/iso3166.c:277
 msgid "Tonga, Kingdom of"
-msgstr ""
+msgstr "Tonga"
 
 #: src/lib/iso3166.c:278
 msgid "Trinidad and Tobago, Republic of"
-msgstr ""
+msgstr "Trinidad en Tobago"
 
 #: src/lib/iso3166.c:279
 msgid "Tunisia, Republic of"
-msgstr ""
+msgstr "Tunesië"
 
 #: src/lib/iso3166.c:280
 msgid "Turkey, Republic of"
-msgstr ""
+msgstr "Turkije"
 
 #: src/lib/iso3166.c:281
 msgid "Turkmenistan"
-msgstr ""
+msgstr "Turkmenistan"
 
 #: src/lib/iso3166.c:282
 msgid "Turks and Caicos Islands"
-msgstr ""
+msgstr "Turks- en Caicoseilanden"
 
 #: src/lib/iso3166.c:283
 msgid "Tuvalu"
-msgstr ""
+msgstr "Tuvalu"
 
 #: src/lib/iso3166.c:284
 msgid "US Virgin Islands"
-msgstr ""
+msgstr "VS Maagden eilanden"
 
 #: src/lib/iso3166.c:285
 msgid "Uganda, Republic of"
-msgstr ""
+msgstr "Oeganda"
 
 #: src/lib/iso3166.c:286
 msgid "Ukraine"
-msgstr ""
+msgstr "Oekraïne"
 
 #: src/lib/iso3166.c:287
 msgid "United Arab Emirates"
-msgstr ""
+msgstr "Verenigde Arabische Emiraten (Abu Dhabi, Dubai)"
 
 #: src/lib/iso3166.c:288
 msgid "United Kingdom of Great Britain & N. Ireland"
-msgstr ""
+msgstr "Verenigd koninkrijk (Groot-Brittanië)"
 
 #: src/lib/iso3166.c:289
 msgid "United States Minor Outlying Islands"
-msgstr ""
+msgstr "Verenigde staten Minor Outlying eilanden"
 
 #: src/lib/iso3166.c:290
 msgid "United States of America"
-msgstr ""
+msgstr "Verenigde staten van Amerika"
 
 #: src/lib/iso3166.c:291
 msgid "Uruguay, Eastern Republic of"
-msgstr ""
+msgstr "Uruguay"
 
 #: src/lib/iso3166.c:292
 msgid "Uzbekistan"
-msgstr ""
+msgstr "Oezbekistan"
 
 #: src/lib/iso3166.c:293
 msgid "Vanuatu"
-msgstr ""
+msgstr "Vanuatu"
 
 #: src/lib/iso3166.c:294
 msgid "Venezuela, Bolivarian Republic of"
-msgstr ""
+msgstr "Venezuela"
 
 #: src/lib/iso3166.c:295
 msgid "Viet Nam, Socialist Republic of"
-msgstr ""
+msgstr "Vietnam"
 
 #: src/lib/iso3166.c:296
 msgid "Wallis and Futuna Islands"
-msgstr ""
+msgstr "Wallis en Futuna (eilanden)"
 
 #: src/lib/iso3166.c:297
 msgid "Western Sahara"
-msgstr ""
+msgstr "West-Sahara"
 
 #: src/lib/iso3166.c:298
 msgid "Yemen"
-msgstr ""
+msgstr "Jemen"
 
 #: src/lib/iso3166.c:299
 msgid "Yugoslavia"
-msgstr ""
+msgstr "Joegoslavië"
 
 #: src/lib/iso3166.c:300
 msgid "Zambia, Republic of"
-msgstr ""
+msgstr "Zambia"
 
 #: src/lib/iso3166.c:301
 msgid "Zimbabwe"
-msgstr ""
+msgstr "Zimbabwe"
 
 #: src/lib/misc.c:827
 #, fuzzy, c-format
