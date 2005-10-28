@@ -215,7 +215,7 @@ tt_copy(TT_CONTEXT *dest, TT_CONTEXT *src)
 	dest->count = src->count;
 	memcpy(dest->block, src->block, BLOCKSIZE);
 	dest->index = src->index;
-	memcpy(dest->nodes, src->nodes, STACKSIZE);
+	memcpy(dest->nodes, src->nodes, sizeof dest->nodes);
 	dest->top = src->top;
 }
 

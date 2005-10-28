@@ -65,10 +65,10 @@
 #define NODESIZE (TIGERSIZE * 2)
 
 /**
- * default size of interim values stack, in TIGERSIZE
+ * The default size of interim values stack, in TIGERSIZE
  * blocks. If this overflows (as it will for input
- * longer than 2^64 in size), havoc may ensue. */
-#define STACKSIZE (TIGERSIZE * 56)
+ * longer than 2^64 in size), havoc may ensue.
+ */
 
 typedef struct tt_context {
 	gchar *top;					/**< top (next empty) stack slot */
@@ -77,7 +77,7 @@ typedef struct tt_context {
 	int index;					/**< index into block */
 	gchar leaf[1 + BLOCKSIZE];	/**< leaf in progress */
 	gchar node[1 + NODESIZE];	/**< node scratch space */
-	gchar nodes[STACKSIZE];		/**< stack of interim node values */
+	gchar nodes[TIGERSIZE * 56];/**< stack of interim node values */
 } TT_CONTEXT;
 
 void tt_init(TT_CONTEXT *ctx);
