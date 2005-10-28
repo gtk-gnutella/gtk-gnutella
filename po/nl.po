@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-10-27 23:50+0900\n"
-"PO-Revision-Date: 2005-10-28 11:43+0200\n"
+"PO-Revision-Date: 2005-10-28 13:37+0200\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
@@ -4495,7 +4495,7 @@ msgstr "K/s"
 
 #: src/main.c:876
 msgid "This is an unofficial build which accesses files in this directory:"
-msgstr ""
+msgstr "Dit is een officieel gebouwde versie en haalt zijn bestanden uit deze directorie:"
 
 #: src/ui/gtk/bitzi.c:56
 #, fuzzy
@@ -4504,15 +4504,15 @@ msgstr "Onbekend"
 
 #: src/ui/gtk/bitzi.c:57
 msgid "Bitzi|Dangerous/Misleading"
-msgstr ""
+msgstr "Bitizi|Gevaarlijk/Misleidend"
 
 #: src/ui/gtk/bitzi.c:58
 msgid "Bitzi|Incomplete/Damaged"
-msgstr ""
+msgstr "Bitzi|Incompleet/Beschadigd"
 
 #: src/ui/gtk/bitzi.c:59
 msgid "Bitzi|Substandard"
-msgstr ""
+msgstr "Bitzi|Sub-standaard"
 
 #: src/ui/gtk/bitzi.c:60
 #, fuzzy
@@ -4541,15 +4541,15 @@ msgstr "Aanbevolen"
 
 #: src/ui/gtk/bitzi.c:65
 msgid "Bitzi|Best Version"
-msgstr ""
+msgstr "Bitzi|Beste versie"
 
 #: src/ui/gtk/bitzi.c:126
 msgid "No other data"
-msgstr ""
+msgstr "Geen andere gegevens"
 
 #: src/ui/gtk/downloads_common.c:108
 msgid "Queue frozen"
-msgstr ""
+msgstr "Wachtrij bevroren"
 
 #: src/ui/gtk/drop.c:89
 msgid "Support for this protocol is not yet implemented"
@@ -4632,7 +4632,7 @@ msgstr "[geen hash]"
 #: src/ui/gtk/filter_core.c:938
 #, c-format
 msgid "If filename begins with \"%s\" %s"
-msgstr ""
+msgstr "Als de bestandsnaam begint met \"%s\" %s"
 
 #: src/ui/gtk/filter_core.c:940 src/ui/gtk/filter_core.c:947
 #: src/ui/gtk/filter_core.c:954 src/ui/gtk/filter_core.c:961
@@ -4649,7 +4649,7 @@ msgstr "bevat de woorden"
 #: src/ui/gtk/filter_core.c:952
 #, c-format
 msgid "If filename ends with \"%s\" %s"
-msgstr ""
+msgstr "Als de bestandsnaam eindigt met \"%s\" %s"
 
 #: src/ui/gtk/filter_core.c:959
 #, fuzzy, c-format
@@ -4659,12 +4659,12 @@ msgstr "bevat de zin"
 #: src/ui/gtk/filter_core.c:966
 #, c-format
 msgid "If filename matches the regex \"%s\" %s"
-msgstr ""
+msgstr "Als de bestandsnaam overeenkomst met de regex \"%s\" %s"
 
 #: src/ui/gtk/filter_core.c:973
 #, c-format
 msgid "If filename is \"%s\" %s"
-msgstr ""
+msgstr "Als de bestandsnaam gelijk is aan \"%s\" %s"
 
 #: src/ui/gtk/filter_core.c:989
 #, fuzzy, c-format
@@ -4674,26 +4674,26 @@ msgstr "Voorwaarde: Als IP adres overeenkomt"
 #: src/ui/gtk/filter_core.c:998
 #, c-format
 msgid "If filesize is exactly %s (%s)"
-msgstr ""
+msgstr "Als de bestandsgrootte even groot is als %s (%s)"
 
 #: src/ui/gtk/filter_core.c:1005
 #, c-format
 msgid "If filesize is smaller than %s (%s)"
-msgstr ""
+msgstr "Als de bestandsgrootte kleiner is dan %s (%s)"
 
 #: src/ui/gtk/filter_core.c:1017
 #, c-format
 msgid "If filesize is between %s and %s (%s - %s)"
-msgstr ""
+msgstr "Als de bestandsgrootte tussen de %s en de %s (%s - %s) ligt"
 
 #: src/ui/gtk/filter_core.c:1024
 #, c-format
 msgid "If urn:sha1 is same as for \"%s\""
-msgstr ""
+msgstr "Als de urn:sha1 hetzelfde is als bij \"%s\""
 
 #: src/ui/gtk/filter_core.c:1028
 msgid "If urn:sha1 is not available"
-msgstr ""
+msgstr "Als de urn:sha1 niet beschikbaar is"
 
 #: src/ui/gtk/filter_core.c:1032
 #, fuzzy
@@ -4707,7 +4707,7 @@ msgstr "\"Push\" verzonden"
 
 #: src/ui/gtk/filter_core.c:1049
 msgid "busy is not set"
-msgstr ""
+msgstr "Bezig indien niet gezet"
 
 #: src/ui/gtk/filter_core.c:1059
 #, fuzzy
@@ -4726,16 +4726,16 @@ msgstr "stabiel"
 
 #: src/ui/gtk/filter_core.c:1079
 msgid "stable is not set"
-msgstr ""
+msgstr "stabiel is niet gezet"
 
 #: src/ui/gtk/filter_core.c:1087
 #, c-format
 msgid "If flag %s%s%s%s%s"
-msgstr ""
+msgstr "Als de flag %s%s%s%s%s"
 
 #: src/ui/gtk/filter_core.c:1091
 msgid "Always (all flags ignored)"
-msgstr ""
+msgstr "Altijd (alle vlaggen genegeerd)"
 
 #: src/ui/gtk/filter_core.c:1104
 #, fuzzy
@@ -4772,16 +4772,16 @@ msgstr "DOWNLOAD"
 #: src/ui/gtk/filter_core.c:1144
 #, c-format
 msgid "If flag %s%s%s"
-msgstr ""
+msgstr "Als vlag %s%s%s"
 
 #: src/ui/gtk/filter_core.c:1148
 msgid "Always (all states ignored)"
-msgstr ""
+msgstr "Altijd (alle staten genegeerd)"
 
 #: src/ui/gtk/filter_core.c:1173
 #, c-format
 msgid "%s%s %s jump to \"%s\""
-msgstr ""
+msgstr "%s%s %s spring naar \"%s\""
 
 #: src/ui/gtk/filter_core.c:1174
 #, fuzzy
@@ -4795,7 +4795,7 @@ msgstr "actief"
 
 #: src/ui/gtk/filter_core.c:1177
 msgid "(invalid)"
-msgstr ""
+msgstr "(ongeldig)"
 
 #: src/ui/gtk/filter_core.c:2355
 #, fuzzy
@@ -4809,7 +4809,7 @@ msgstr "Algemene filters"
 
 #: src/ui/gtk/filter_core.c:2361
 msgid "RETURN"
-msgstr ""
+msgstr "TERUG"
 
 #: src/ui/gtk/gnet_stats_common.c:46 src/ui/gtk/gtk1/interface-glade.c:13542
 #: src/ui/gtk/gtk2/interface-glade.c:9523
@@ -4836,7 +4836,7 @@ msgstr "QRP"
 
 #: src/ui/gtk/gnet_stats_common.c:51
 msgid "HSEP"
-msgstr ""
+msgstr "HSEP"
 
 #: src/ui/gtk/gnet_stats_common.c:52
 #, fuzzy
@@ -4890,19 +4890,19 @@ msgstr "Zoek resultaten tegen lokale DB"
 
 #: src/ui/gtk/gnet_stats_common.c:132
 msgid "Query hits received for local queries"
-msgstr ""
+msgstr "Resultaten ontvangen voor lokale opdrachten"
 
 #: src/ui/gtk/gnet_stats_common.c:133
 msgid "Query hits received for OOB-proxied queries"
-msgstr ""
+msgstr "Resultaten ontvangen voor OOB geproxiede opdrachten"
 
 #: src/ui/gtk/gnet_stats_common.c:134
 msgid "Queries requesting OOB hit delivery"
-msgstr ""
+msgstr "Opdrachten die OOB bezorging verzoeken"
 
 #: src/ui/gtk/gnet_stats_common.c:135
 msgid "Stripped OOB flag on queries"
-msgstr ""
+msgstr "De OOB vlag verwijderd van opdrachten"
 
 #: src/ui/gtk/gnet_stats_common.c:136
 #, fuzzy
@@ -4911,23 +4911,23 @@ msgstr "Dupliceer deze zoekopdracht"
 
 #: src/ui/gtk/gnet_stats_common.c:137
 msgid "Duplicate OOB-proxied queries"
-msgstr ""
+msgstr "Dubbele OOB geproxiede opdrachten"
 
 #: src/ui/gtk/gnet_stats_common.c:138
 msgid "OOB hits received for OOB-proxied queries"
-msgstr ""
+msgstr "OOB resultaat ontvangen voor OOB geproxiede opdrachten"
 
 #: src/ui/gtk/gnet_stats_common.c:139
 msgid "OOB hits bearing alien IP address"
-msgstr ""
+msgstr "OOB resultaten welke een vreemd IP-adres dragen"
 
 #: src/ui/gtk/gnet_stats_common.c:140
 msgid "Unclaimed locally-generated OOB hits"
-msgstr ""
+msgstr "Ongevraagde lokaal gegenereerde OOB resultaat"
 
 #: src/ui/gtk/gnet_stats_common.c:141
 msgid "Partially claimed locally-generated OOB hits"
-msgstr ""
+msgstr "Gedeeltelijke toegeeiste lokaal gegenereerde OOB resultaten"
 
 #: src/ui/gtk/gnet_stats_common.c:142
 msgid "Compacted queries"
@@ -4973,63 +4973,63 @@ msgstr "Gegenereerde zoekopdrachten"
 
 #: src/ui/gtk/gnet_stats_common.c:152
 msgid "OOB-proxied leaf queries"
-msgstr ""
+msgstr "OOB geproxiede leaf opdrachten"
 
 #: src/ui/gtk/gnet_stats_common.c:153
 msgid "Fully completed dynamic queries"
-msgstr ""
+msgstr "Volledig afgeronde dynamische opdrachten"
 
 #: src/ui/gtk/gnet_stats_common.c:154
 msgid "Partially completed dynamic queries"
-msgstr ""
+msgstr "Gedeeltelijk afgeronde dynamische opdrachten"
 
 #: src/ui/gtk/gnet_stats_common.c:155
 msgid "Dynamic queries ended with no results"
-msgstr ""
+msgstr "Dynamische opdracht beïndigd zonder resultaten"
 
 #: src/ui/gtk/gnet_stats_common.c:156
 msgid "Fully completed dynamic queries getting late results"
-msgstr ""
+msgstr "Volledig afgeronde dynamische opdrachten die laatte resultaten ontvangen"
 
 #: src/ui/gtk/gnet_stats_common.c:157
 msgid "Dynamic queries with partial late results"
-msgstr ""
+msgstr "Dynamische opdrachten met gedeeltelijke verlate resultaten"
 
 #: src/ui/gtk/gnet_stats_common.c:158
 msgid "Dynamic queries completed by late results"
-msgstr ""
+msgstr "Dynamische opdrachten afgerond met verlate resultaten"
 
 #: src/ui/gtk/gnet_stats_common.c:159
 msgid "Queries seen from GTKG"
-msgstr ""
+msgstr "Opdrachten gezien vanuit GTKG"
 
 #: src/ui/gtk/gnet_stats_common.c:160
 msgid "Queries seen from GTKG that were re-queries"
-msgstr ""
+msgstr "Opdrachten gezien vanuit GTKG die opnieuw werden uitgevoerd"
 
 #: src/ui/gtk/gnet_stats_common.c:161
 msgid "Queries advertising support of GGEP \"H\""
-msgstr ""
+msgstr "Opdrachten die ondersteuning voor GGEP \"H\" aangaven"
 
 #: src/ui/gtk/gnet_stats_common.c:162
 msgid "GIV callbacks received"
-msgstr ""
+msgstr "GIV terug verbinden ontvangen"
 
 #: src/ui/gtk/gnet_stats_common.c:163
 msgid "QUEUE callbacks received"
-msgstr ""
+msgstr "QUEUE terug verbinden ontvangen"
 
 #: src/ui/gtk/gnet_stats_common.c:164
 msgid "UDP messages with bogus source IP"
-msgstr ""
+msgstr "UDP berichten met ongeldig bron IP"
 
 #: src/ui/gtk/gnet_stats_common.c:165
 msgid "Alien UDP messages (non-Gnutella)"
-msgstr ""
+msgstr "Vreemde UDP berichten (niet-Gnutella)"
 
 #: src/ui/gtk/gnet_stats_common.c:166
 msgid "Unprocessed UDP Gnutella messages"
-msgstr ""
+msgstr "Niet verwerkte UDP Gnutella berichten"
 
 #: src/ui/gtk/gnet_stats_common.c:244
 #, fuzzy
@@ -5090,12 +5090,12 @@ msgstr "In de wacht"
 #: src/ui/gtk/gtk1/downloads.c:1016 src/ui/gtk/gtk2/downloads.c:1388
 #, c-format
 msgid " (slot %d"
-msgstr ""
+msgstr " slot( %d"
 
 #: src/ui/gtk/gtk1/downloads.c:1026 src/ui/gtk/gtk2/downloads.c:1398
 #, c-format
 msgid ", ETA: %s"
-msgstr ""
+msgstr ", geschatte resterende tijd: %s"
 
 #: src/ui/gtk/gtk1/downloads.c:1035 src/ui/gtk/gtk2/downloads.c:1407
 #, c-format
@@ -5128,7 +5128,7 @@ msgstr "\"push\" wordt verstuurd"
 #: src/ui/gtk/gtk1/downloads.c:1079 src/ui/gtk/gtk2/downloads.c:1439
 #, c-format
 msgid " via %s"
-msgstr ""
+msgstr " via %s"
 
 #: src/ui/gtk/gtk1/downloads.c:1085 src/ui/gtk/gtk2/downloads.c:1445
 msgid "Connecting"
@@ -5213,7 +5213,7 @@ msgstr " (geblokkeerd)"
 #: src/ui/gtk/gtk1/downloads.c:1263
 #, c-format
 msgid " [%d/%d] TR: %s"
-msgstr ""
+msgstr " [%d/%d] Resterende tijd: %s"
 
 #: src/ui/gtk/gtk1/downloads.c:1293 src/ui/gtk/gtk1/nodes.c:253
 #: src/ui/gtk/gtk2/downloads.c:1650 src/ui/gtk/nodes_common.c:279
@@ -5243,22 +5243,22 @@ msgstr "Compleet"
 #: src/ui/gtk/gtk1/downloads.c:1376
 #, c-format
 msgid "%4.02f%%  (%s)  [%d/%d]  TR:  %s"
-msgstr ""
+msgstr "%4.02f%%  (%s)  [%d/%d]  Resterende tijd:  %s"
 
 #: src/ui/gtk/gtk1/downloads.c:1382
 #, c-format
 msgid "%4.02f%%  (%s)  [%d/%d]  TR:  -"
-msgstr ""
+msgstr "%4.02f%%  (%s)  [%d/%d]  Resterende tijd:  -"
 
 #: src/ui/gtk/gtk1/downloads.c:1447 src/ui/gtk/gtk2/downloads.c:1322
 #, c-format
 msgid "(%s)  [%d/%d]  TR:  %s"
-msgstr ""
+msgstr "(%s)  [%d/%d]  Resterende tijd:  %s"
 
 #: src/ui/gtk/gtk1/downloads.c:1452
 #, c-format
 msgid "(%s)  [%d/%d]  TR:  -"
-msgstr ""
+msgstr "(%s)  [%d/%d]  Resterende tijd:  -"
 
 #: src/ui/gtk/gtk1/downloads_cb.c:54 src/ui/gtk/gtk2/downloads_cb.c:259
 #, fuzzy, c-format
@@ -5360,7 +5360,7 @@ msgstr "Geef instellingen weer"
 #: src/ui/gtk/gtk1/interface-glade.c:726
 #: src/ui/gtk/gtk2/interface-glade.c:2002
 msgid "_Preferences"
-msgstr ""
+msgstr "Voorkeuren"
 
 #: src/ui/gtk/gtk1/interface-glade.c:741
 #: src/ui/gtk/gtk2/interface-glade.c:2015
@@ -5569,7 +5569,7 @@ msgstr "Host"
 #: src/ui/gtk/gtk2/nodes.c:165 src/ui/gtk/gtk2/search.c:1358
 #: src/ui/gtk/gtk2/uploads.c:83
 msgid "Loc"
-msgstr ""
+msgstr "Lok"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1550
 #: src/ui/gtk/gtk1/interface-glade.c:7781
@@ -5873,7 +5873,7 @@ msgstr "Koppen worden ontvangen"
 #: src/ui/gtk/gtk1/interface-glade.c:2554
 #: src/ui/gtk/gtk2/interface-glade.c:6104
 msgid "Show protocol:"
-msgstr ""
+msgstr "Toon protocol:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2580
 #: src/ui/gtk/gtk2/interface-glade.c:6161
@@ -6057,22 +6057,22 @@ msgstr "Server"
 #: src/ui/gtk/gtk1/interface-glade.c:3271
 #: src/ui/gtk/gtk2/interface-glade.c:4005
 msgid "[BH HTML]"
-msgstr ""
+msgstr "[BH HTML]"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3279
 #: src/ui/gtk/gtk2/interface-glade.c:4010
 msgid " HTML and "
-msgstr ""
+msgstr " HTML en"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3287
 #: src/ui/gtk/gtk2/interface-glade.c:4015
 msgid "[BH qhits]"
-msgstr ""
+msgstr "[BH qhits]"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3295
 #: src/ui/gtk/gtk2/interface-glade.c:4020
 msgid " Gnutella browse requests"
-msgstr ""
+msgstr " Gnutella verzoek tot browsen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3303
 #, fuzzy
@@ -6479,7 +6479,7 @@ msgstr "ServentID:"
 #: src/ui/gtk/gtk1/interface-glade.c:4923
 #: src/ui/gtk/gtk2/interface-glade.c:5166
 msgid "XML data:"
-msgstr ""
+msgstr "XML gegevens:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4997
 #: src/ui/gtk/gtk2/interface-glade.c:5312
@@ -6614,6 +6614,7 @@ msgid ""
 "try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating "
 "both your incoming and outgoing paths."
 msgstr ""
+"Je uploads blijven abnormaal vaak hangen. Dit kan er op wijzen dat al je bandbreedte is gebruikt. Je zou niet als ultra-node moeten draaien. Probeer de hoeveelheid bandbreedte die gtk-gnutella mag gebruikte te verminderen om te voorkomen dat zowel je ingaande als je uitgaande verbindingen overbelast raken."
 
 #: src/ui/gtk/gtk1/interface-glade.c:5721
 #: src/ui/gtk/gtk2/interface-glade.c:2271
@@ -6638,6 +6639,7 @@ msgid ""
 "delivery of query hits. However, it is possible to punch a hole into the UDP "
 "firewall, so you will be able to send out-of-band query hits."
 msgstr ""
+"Het ziet er naar uit dat je voor zowel TCP als UDP bent afgeschermt. Je zal geen push resultaten zien wat je kan belemmeren grootte hoeveelheden resultaten te zien. Je zal niet in staat zijn om opdrachten met OOB verzoeken te sturen voor het ontvangen van resultaten. Het is echter mogelijk een gat te maken in je afscherming (firewall) so dat je wel OOB resultaten kan versturen."
 
 #: src/ui/gtk/gtk1/interface-glade.c:5758
 #: src/ui/gtk/gtk2/interface-glade.c:2296
@@ -6659,6 +6661,7 @@ msgid ""
 "via UDP. You will not be able to send queries requesting out-of-band "
 "delivery of query hits."
 msgstr ""
+"Gtk-gnutella vermoed dat je afgeschermd bent voor UDP, oftewel, je kan geen ongevraagd UDP verkeer ontvangen. Je kan geen opdrachten versturen met OOB verzoeken."
 
 #: src/ui/gtk/gtk1/interface-glade.c:5794
 #: src/ui/gtk/gtk2/interface-glade.c:2320
@@ -6668,6 +6671,7 @@ msgid ""
 "UDP packets.  You will be able to send out-of-band query hits, but you won't "
 "be able to receive any."
 msgstr ""
+"Mensen kunnen met je verbinden via TCP, maar je bent afgeschermd voor UDP verkeer. Er kan echter een gat in de firewall worden gemaakt waardoor het ontvangen van antwoorden van jouw UDP pakketen wel mogelijk is. Je kan wel OOB resultaten verzenden, maar je kan ze niet ontvangen."
 
 #: src/ui/gtk/gtk1/interface-glade.c:5812
 #: src/ui/gtk/gtk2/interface-glade.c:2333
@@ -6675,6 +6679,7 @@ msgid ""
 "People can connect to you, using both TCP and UDP. Push should work and you "
 "will be able to receive out-of-band results for your queries."
 msgstr ""
+"Mensen kunnen zowel over TCP als over UDP met je verbinden. Push zou moeten werken en je bent ook in staat om OOB resultaten te ontvangen."
 
 #: src/ui/gtk/gtk1/interface-glade.c:5831
 #: src/ui/gtk/gtk2/interface-glade.c:2362
@@ -6889,7 +6894,7 @@ msgstr "Configureer kolommen"
 #: src/ui/gtk/gtk1/interface-glade.c:6868
 #: src/ui/gtk/gtk2/interface-glade.c:711
 msgid "Make current sorting default"
-msgstr ""
+msgstr "Zet de huidige sortering als standaard"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6885
 #: src/ui/gtk/gtk2/interface-glade.c:727
@@ -7438,6 +7443,8 @@ msgid ""
 "This product includes GeoIP data created by MaxMind, available from\n"
 "http://maxmind.com/"
 msgstr ""
+"Dit produkt bevat GeoIP gegevens, gemaakt door MaxMind, beschikbaar van\n"
+"http://maxmind.com"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10302
 #: src/ui/gtk/gtk1/interface-glade.c:17763
@@ -7481,7 +7488,7 @@ msgstr "Nee, breng me terug!"
 #: src/ui/gtk/gtk1/interface-glade.c:11268
 #: src/ui/gtk/gtk2/interface-glade.c:9685
 msgid "Preferences"
-msgstr ""
+msgstr "Voorkeuren"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11311
 #: src/ui/gtk/gtk2/interface-glade.c:9981
@@ -7659,12 +7666,12 @@ msgstr "Momenteel gebruikt"
 #: src/ui/gtk/gtk1/interface-glade.c:16237
 #: src/ui/gtk/gtk1/interface-glade.c:16258
 msgid "[place holder]"
-msgstr ""
+msgstr "[place holder]"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11856
 #: src/ui/gtk/gtk2/interface-glade.c:10252
 msgid "Use global hostiles.txt"
-msgstr ""
+msgstr "Gebruike algemene hostiles.txt"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11866
 #: src/ui/gtk/gtk2/interface-glade.c:10317
@@ -7700,7 +7707,7 @@ msgstr "Maak de \"shell\" controle interface beschikbaar"
 #: src/ui/gtk/gtk1/interface-glade.c:11961
 #: src/ui/gtk/gtk2/interface-glade.c:10340
 msgid "Enable \"_Browse Host\" feature"
-msgstr ""
+msgstr "Activeer \"Host bladeren\" ondersteuning"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11971
 #: src/ui/gtk/gtk2/interface-glade.c:10414
@@ -7861,22 +7868,22 @@ msgstr "seconden"
 #: src/ui/gtk/gtk1/interface-glade.c:12749
 #: src/ui/gtk/gtk2/interface-glade.c:11310
 msgid "Out of Band Querying"
-msgstr ""
+msgstr "Out of Band (OOB) zoeken"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12766
 #: src/ui/gtk/gtk2/interface-glade.c:11288
 msgid "Queries ask for OOB results"
-msgstr ""
+msgstr "Opdrachten die om OOB resultaten vragen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12774
 #: src/ui/gtk/gtk2/interface-glade.c:11295
 msgid "Honour OOB flag in queries"
-msgstr ""
+msgstr "Respecteer OOB vlag in opdrachten"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12782
 #: src/ui/gtk/gtk2/interface-glade.c:11303
 msgid "Act as OOB proxy for leaves"
-msgstr ""
+msgstr "Gedraag als een OOB-proxy voor leaves"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12798
 #: src/ui/gtk/gtk2/interface-glade.c:11361
@@ -8207,12 +8214,12 @@ msgstr "Bandbreedte controle voor HTTP verkeer"
 #: src/ui/gtk/gtk1/interface-glade.c:14135
 #: src/ui/gtk/gtk2/interface-glade.c:12698
 msgid "Cumulative _download rate"
-msgstr ""
+msgstr "Cumulatief _download_ ratio"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14149
 #: src/ui/gtk/gtk2/interface-glade.c:12691
 msgid "Cumulative _upload rate"
-msgstr ""
+msgstr "Cumulatief _upload ratio"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14163
 #: src/ui/gtk/gtk2/interface-glade.c:12683
@@ -8287,7 +8294,7 @@ msgstr "Verplaats corrupte downloads naar"
 #: src/ui/gtk/gtk1/interface-glade.c:14436
 #: src/ui/gtk/gtk2/interface-glade.c:13087
 msgid "Convert spaces to underscores in generated filenames"
-msgstr ""
+msgstr "Zet spaties naar underscores om in gegenereerde bestandsnamen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14446
 #: src/ui/gtk/gtk2/interface-glade.c:13094
@@ -8295,6 +8302,7 @@ msgid ""
 "Convert \"evil\" characters (like shell meta characters) to underscores in "
 "generated filenames"
 msgstr ""
+"Vertaal \"slechte\" karakters, zoals shell meta karakters, naar underscores in gegenereerde bestandsnamen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14456
 #: src/ui/gtk/gtk2/interface-glade.c:13101
@@ -8302,6 +8310,7 @@ msgid ""
 "Apply above conversions, upon startup, to existing files in the downloading "
 "directory"
 msgstr ""
+"Pas bovenstaande conversies toe, tijdens het opstarten op bestaande bestanden in de download directorie."
 
 #: src/ui/gtk/gtk1/interface-glade.c:14466
 #: src/ui/gtk/gtk2/interface-glade.c:13249
@@ -8580,7 +8589,7 @@ msgstr "Verwijder handmatig gedownloade bestanden"
 #: src/ui/gtk/gtk1/interface-glade.c:15479
 #: src/ui/gtk/gtk2/interface-glade.c:14233
 msgid "Queuing details"
-msgstr ""
+msgstr "Wachtrij gegevens"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15498
 #: src/ui/gtk/gtk2/interface-glade.c:14210
@@ -8596,7 +8605,7 @@ msgstr "Minimale stuk grootte"
 #: src/ui/gtk/gtk1/interface-glade.c:15544
 #: src/ui/gtk/gtk2/interface-glade.c:14218
 msgid "Use realistic PARQ estimates"
-msgstr ""
+msgstr "Gebruik realistische PARQ schattingen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15554
 #: src/ui/gtk/gtk2/interface-glade.c:14804
@@ -8917,7 +8926,7 @@ msgstr "Stop het verzamelen van hosts in de host catcher"
 #: src/ui/gtk/gtk1/interface-glade.c:16915
 #: src/ui/gtk/gtk2/interface-glade.c:16070
 msgid "Functionality"
-msgstr ""
+msgstr "Functionaliteit"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16936
 #: src/ui/gtk/gtk2/interface-glade.c:16022
@@ -8928,7 +8937,7 @@ msgstr "Cache"
 #: src/ui/gtk/gtk1/interface-glade.c:16949
 #: src/ui/gtk/gtk2/interface-glade.c:16046
 msgid "UR_L handling"
-msgstr ""
+msgstr "UR_L afhandeling"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16962
 #: src/ui/gtk/gtk2/interface-glade.c:16038
@@ -8987,7 +8996,7 @@ msgstr "Extenties"
 #: src/ui/gtk/gtk1/interface-glade.c:17192
 #: src/ui/gtk/gtk2/interface-glade.c:16014
 msgid "Pong caching"
-msgstr ""
+msgstr "Pong cache"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17214
 #, fuzzy
@@ -8996,15 +9005,15 @@ msgstr "Legacy verbindingen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17225
 msgid "Bitzi debug"
-msgstr ""
+msgstr "Bitzi debug"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17236
 msgid "HSEP debug"
-msgstr ""
+msgstr "HSEP debug"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17280
 msgid "HTTP debug"
-msgstr ""
+msgstr "HTTP debug"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17302
 #, fuzzy
@@ -9018,7 +9027,7 @@ msgstr "Gedownload"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17346
 msgid "PARQ debug"
-msgstr ""
+msgstr "PARQ debug"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17368
 #, fuzzy
@@ -9037,11 +9046,11 @@ msgstr "Geupload"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17434
 msgid "Socket debug"
-msgstr ""
+msgstr "Socket debug"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17456
 msgid "Sharing debug"
-msgstr ""
+msgstr "Delen debug"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17478
 #, fuzzy
@@ -9085,7 +9094,7 @@ msgstr "Draait momenteel in leaf mode."
 #: src/ui/gtk/gtk1/interface-glade.c:17596
 #: src/ui/gtk/gtk2/interface-glade.c:15684
 msgid "Avg. uptime of this servent:"
-msgstr ""
+msgstr "Gem. uptime van deze servent:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17607
 #: src/ui/gtk/gtk2/interface-glade.c:15581
@@ -9102,12 +9111,12 @@ msgstr "Voldoende physiek geheugen"
 #: src/ui/gtk/gtk1/interface-glade.c:17629
 #: src/ui/gtk/gtk2/interface-glade.c:15599
 msgid "TCP crawler visits:"
-msgstr ""
+msgstr "TCP crawler bezoeken:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17640
 #: src/ui/gtk/gtk2/interface-glade.c:15632
 msgid "UDP crawler visits:"
-msgstr ""
+msgstr "UDP crawler bezoeken"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17739
 #: src/ui/gtk/gtk2/interface-glade.c:15501
@@ -9136,7 +9145,7 @@ msgstr[1] "Informatie over het geselecteerde bestand"
 #: src/ui/gtk/gtk1/search.c:1776
 #, c-format
 msgid "Discarded %u result"
-msgstr ""
+msgstr "%u resultaten genegeerd"
 
 #: src/ui/gtk/gtk1/search.c:2223 src/ui/gtk/gtk1/search.c:2229
 #: src/ui/gtk/gtk2/search.c:1355
@@ -9151,11 +9160,11 @@ msgstr "#"
 #: src/ui/gtk/gtk1/search.c:2256 src/ui/gtk/gtk1/search.c:2262
 #: src/ui/gtk/gtk2/search.c:1359
 msgid "Metadata"
-msgstr ""
+msgstr "Metagegevens"
 
 #: src/ui/gtk/gtk1/search.c:2573 src/ui/gtk/gtk2/search.c:1639
 msgid "Not in database"
-msgstr ""
+msgstr "Niet in de database"
 
 #: src/ui/gtk/gtk1/search.c:2607 src/ui/gtk/gtk2/search_cb.c:1153
 #, fuzzy
@@ -9164,12 +9173,12 @@ msgstr "%u wachtende"
 
 #: src/ui/gtk/gtk1/search_cb.c:219 src/ui/gtk/gtk2/search_cb.c:667
 msgid "<no SHA1 known>"
-msgstr ""
+msgstr "<geen SHA1 bekend>"
 
 #: src/ui/gtk/gtk1/search_cb.c:405
 #, c-format
 msgid "%d file auto selected with %d sources %s"
-msgstr ""
+msgstr "%d bestand automatisch geselecteerd met %d bronnen %s"
 
 #: src/ui/gtk/gtk1/search_cb.c:407
 #, fuzzy
@@ -9205,11 +9214,11 @@ msgstr "Fout tijdens het laden van pixmap bestand \"%s\""
 #: src/ui/gtk/gtk2/downloads.c:894
 #, c-format
 msgid "[%d/%d]  TR:  -"
-msgstr ""
+msgstr "[%d/%d]  Resterende tijd:  -"
 
 #: src/ui/gtk/gtk2/downloads.c:1510 src/ui/gtk/uploads_common.c:114
 msgid "< 1s"
-msgstr ""
+msgstr "< 1s"
 
 #: src/ui/gtk/gtk2/downloads.c:1539
 msgid "SHA1 figure"
@@ -9230,12 +9239,12 @@ msgstr "MISLUKT"
 #: src/ui/gtk/gtk2/downloads.c:1620
 #, c-format
 msgid " TR: %s"
-msgstr ""
+msgstr " Resterende tijd: %s"
 
 #: src/ui/gtk/gtk2/downloads.c:1676
 #, c-format
 msgid "Unknown status %u"
-msgstr ""
+msgstr "Onbekende status %u"
 
 #: src/ui/gtk/gtk2/fileinfo.c:133 src/ui/gtk/gtk2/search_cb.c:627
 msgid "<none>"
@@ -9254,6 +9263,7 @@ msgid ""
 "Aborts the download from the selected source but not the download of the "
 "file itself."
 msgstr ""
+"Breekt de download van de geselecteerde bron af, maar niet de download van het bestand zelf."
 
 #: src/ui/gtk/gtk2/interface-glade.c:82
 #, fuzzy
@@ -9269,6 +9279,7 @@ msgid ""
 "If the source appears to be firewalled, it may help to enforce push mode to "
 "let the source connect back to us."
 msgstr ""
+"Als de bron afgeschermd lijkt te zijn, dan kan het helpen om een push mode te forceren zodat de bron naar ons terug verbind."
 
 #: src/ui/gtk/gtk2/interface-glade.c:535
 msgid "Download selected files"
@@ -9392,11 +9403,11 @@ msgstr "Verwijder"
 
 #: src/ui/gtk/gtk2/interface-glade.c:7076
 msgid "You can use suffixes such as KB, KiB, MB, MiB, GB, GiB etc."
-msgstr ""
+msgstr "Je kan de volgende suffixes gebruiken KB, KiB, MB, MiB, GB, GiB etc."
 
 #: src/ui/gtk/gtk2/interface-glade.c:9005
 msgid "Reverse DNS lookup"
-msgstr ""
+msgstr "DNS Omgekeerd opzoeken"
 
 #: src/ui/gtk/gtk2/interface-glade.c:9358
 #, fuzzy
@@ -9507,7 +9518,7 @@ msgstr "Minimale stuk grootte"
 
 #: src/ui/gtk/gtk2/interface-glade.c:15538
 msgid "Propery pattern:"
-msgstr ""
+msgstr "Eigenschap patroon:"
 
 #: src/ui/gtk/gtk2/interface-glade.c:15563
 #, fuzzy
@@ -9528,6 +9539,7 @@ msgid ""
 "Erases all selected files as far as they are incomplete and discontinues the "
 "download of the selected files."
 msgstr ""
+"Verwijder alle geselecteerde bestanden zover ze zijn ze zijn incompleet en stopt met het downloaden van de geselecteerde bestanden."
 
 #: src/ui/gtk/gtk2/interface-glade.c:16799
 msgid "Select all matching regex from queue"
@@ -9545,7 +9557,7 @@ msgstr "Ultrapeers"
 
 #: src/ui/gtk/gtk2/nodes.c:289
 msgid "Legacy"
-msgstr ""
+msgstr "Legacy"
 
 #: src/ui/gtk/gtk2/nodes.c:291
 #, fuzzy
@@ -9554,12 +9566,12 @@ msgstr "Leeg"
 
 #: src/ui/gtk/gtk2/nodes.c:293
 msgid "UDP"
-msgstr ""
+msgstr "UDP"
 
 #: src/ui/gtk/gtk2/nodes.c:326 src/ui/gtk/gtk2/search_cb.c:605
 #: src/ui/gtk/settings_cb.c:306
 msgid "Move the cursor over a row to see details."
-msgstr ""
+msgstr "Beweeg de cursor over een rij om de details te zien"
 
 #: src/ui/gtk/gtk2/nodes.c:343 src/ui/gtk/gtk2/search_cb.c:619
 #, fuzzy
@@ -9573,24 +9585,24 @@ msgstr "Ultrapeer modus"
 
 #: src/ui/gtk/gtk2/nodes.c:347
 msgid "incoming"
-msgstr ""
+msgstr "inkomend"
 
 #: src/ui/gtk/gtk2/nodes.c:347
 msgid "outgoing"
-msgstr ""
+msgstr "uitgaand"
 
 #: src/ui/gtk/gtk2/nodes.c:418
 #, c-format
 msgid "Reverse lookup for %s failed"
-msgstr ""
+msgstr "Omgekeerd opzoeken van %s is mislukt"
 
 #: src/ui/gtk/gtk2/nodes.c:797
 msgid "Reverse lookup in progress..."
-msgstr ""
+msgstr "Bezig met omgekeerd opzoeken..."
 
 #: src/ui/gtk/gtk2/search.c:317
 msgid "The normalized search text is too short."
-msgstr ""
+msgstr "The opgeschoonde zoek tekst is te kort."
 
 #: src/ui/gtk/hcache_common.c:39
 msgid "Fresh regular"
@@ -9642,7 +9654,7 @@ msgstr "Monitor"
 #. and append your name to the list.
 #: src/ui/gtk/main.c:446
 msgid "translation_credit|"
-msgstr ""
+msgstr "vertaling credit|"
 
 #: src/ui/gtk/main.c:843
 #, fuzzy, c-format
@@ -9745,15 +9757,15 @@ msgstr "<niet verwerkt>"
 
 #: src/ui/gtk/search_common.c:902
 msgid "udp"
-msgstr ""
+msgstr "udp"
 
 #: src/ui/gtk/search_common.c:904
 msgid "udp "
-msgstr ""
+msgstr "udp "
 
 #: src/ui/gtk/search_common.c:913
 msgid ", browsable"
-msgstr ""
+msgstr ", bladerbaar"
 
 #: src/ui/gtk/search_common.c:913
 #, fuzzy
@@ -9770,6 +9782,8 @@ msgid ""
 "%s%s%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%"
 "u TCP, %u UDP)"
 msgstr ""
+"%s%s%u %s (%u geskipped, %u genegeerd, %u verborgen, %u auto-d/l, %u %s) Resultaten: %u (%"
+"u TCP, %u UDP)"
 
 #: src/ui/gtk/search_common.c:1131
 #, fuzzy
@@ -9785,7 +9799,7 @@ msgstr[1] "item"
 
 #: src/ui/gtk/search_common.c:1135
 msgid "dupe"
-msgstr ""
+msgstr "dupl."
 
 #: src/ui/gtk/search_common.c:1138
 msgid "No search"
@@ -9793,23 +9807,23 @@ msgstr "Geen zoekopdrachten"
 
 #: src/ui/gtk/search_common.c:1428
 msgid "The query string is not UTF-8 encoded"
-msgstr ""
+msgstr "De opdracht tekst is niet in UTF-8 gecodeerd"
 
 #: src/ui/gtk/search_common.c:1440
 msgid "The entered query is too long"
-msgstr ""
+msgstr "De opgegeven opdracht is te lang"
 
 #: src/ui/gtk/search_common.c:1457
 msgid "The SHA1 of the magnet is not validly encoded"
-msgstr ""
+msgstr "De SHA1 van de magneet is niet geldig geencodeerd"
 
 #: src/ui/gtk/search_common.c:1462
 msgid "Cannot parse magnet"
-msgstr ""
+msgstr "Kon de magneet niet verwerken"
 
 #: src/ui/gtk/search_common.c:1498
 msgid "The SHA1 query is not validly encoded"
-msgstr ""
+msgstr "De SHA1 opdracht is ongeldig gecodeerd"
 
 #: src/ui/gtk/settings.c:1137
 msgid "Never"
@@ -9844,11 +9858,11 @@ msgstr "*** ER DRAAIT EEN OUDE VERSIE! ***"
 
 #: src/ui/gtk/settings.c:1509
 msgid "*** CPU OVERLOADED -- TRYING TO SAVE CYCLES ***"
-msgstr ""
+msgstr "*** CPU OVERBELAST --- ER WORDT GEPOOGD KRACHT TE BESPAREN ***"
 
 #: src/ui/gtk/settings.c:1534
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
-msgstr ""
+msgstr "*** UPLOADS BLIJVEN HANGEN, TE KORT AAN BANDBREEDTE? ***"
 
 #: src/ui/gtk/settings.c:1566
 msgid "*** FILE DESCRIPTORS HAVE RUN OUT! ***"
@@ -9932,7 +9946,7 @@ msgstr "Waarde:"
 
 #: src/ui/gtk/settings_cb.c:414
 msgid "Description"
-msgstr ""
+msgstr "Omschrijving"
 
 #: src/ui/gtk/uploads_common.c:100
 msgid "No output yet..."
@@ -9950,7 +9964,7 @@ msgstr "Afgerond (%.1f k/s) %s"
 #: src/ui/gtk/uploads_common.c:129
 #, c-format
 msgid "%s%s(%s) TR: %s"
-msgstr ""
+msgstr "%s%s(%s) Resterende tijd: %s"
 
 #: src/ui/gtk/uploads_common.c:132
 #, fuzzy
@@ -9984,7 +9998,7 @@ msgstr "In de wacht (%d) (slot %d / %d), maximale tijd: %s"
 
 #: src/ui/gtk/uploads_common.c:185
 msgid "lifetime:"
-msgstr ""
+msgstr "resterende leeftijd:"
 
 #: src/ui/gtk/uploads_common.c:197
 msgid "Sending QUEUE, connecting back..."
