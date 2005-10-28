@@ -4943,7 +4943,7 @@ msgstr "Opnieuw proberen in %ds;"
 #: src/ui/gtk/gtk1/downloads.c:1314 src/ui/gtk/gtk2/downloads.c:1671
 #, c-format
 msgid "Sinking (%s bytes left)"
-msgstr "Verzinken (%u bytes resterend)"
+msgstr "Verzinken (%s bytes resterend)"
 
 #: src/ui/gtk/gtk1/downloads.c:1357 src/ui/gtk/gtk1/interface-glade.c:3204
 #: src/ui/gtk/gtk2/downloads.c:1315 src/ui/gtk/gtk2/upload_stats.c:271
