@@ -376,7 +376,7 @@ msgstr "Η έκδοση του πελάτη φαίνεται ασταθής"
 
 #: src/core/nodes.c:3822
 msgid "No vendor string supplied"
-msgstr "Δεν προμήθευσε ετικέτα κατασκευαστή"
+msgstr "Δεν προμήθευσε συμβολοσειρά κατασκευαστή"
 
 #: src/core/nodes.c:3827
 #, c-format
@@ -568,7 +568,7 @@ msgstr "Παραμορφωμένη εντολή"
 
 #: src/core/shell.c:315
 msgid "Query string missing"
-msgstr "Λείπει η ετικέτα ερωτήματος"
+msgstr "Λείπει η συμβολοσειρά ερωτήματος"
 
 #: src/core/shell.c:322
 msgid "Search added"
@@ -626,7 +626,7 @@ msgstr "δικτυακός"
 
 #: src/core/shell.c:654
 msgid "ultrapeer"
-msgstr ""
+msgstr "υπερκόμβος"
 
 #: src/core/shell.c:654 src/if/gnet_property.c:421
 msgid "normal node"
@@ -925,6 +925,9 @@ msgid ""
 "normal servents.  This should be smaller than the maximum amount of "
 "connections to allow incoming connections."
 msgstr ""
+"Όταν είστε σε λειτουργία υπερ-κόμβου, προσπαθείστε να διατηρήσετε τουλάχιστον "
+"αυτόν τον αριθμό συνδέσεων με κανονικούς πελάτες.  Ο αριθμός αυτός πρέπει να είναι "
+"μικρότερο από το μέγιστο επιτρεπόμενο αριθμό εισερχόμενων συνδέσεω."
 
 #: src/if/gnet_property.c:744
 msgid ""
@@ -1945,7 +1948,7 @@ msgstr ""
 
 #: src/if/gnet_property.c:3901
 msgid "Maximum amount of Ultrapeers we should connect to as a leaf."
-msgstr ""
+msgstr "Μέγιστος αριθμός συνδέσεων με υπερ-κόμβους κατά την δικτυακή λειτουργία."
 
 #: src/if/gnet_property.c:3921
 msgid ""
@@ -1975,6 +1978,10 @@ msgid ""
 "ultra node if bandwidth and uptime permits, provided that you are not "
 "firewalled."
 msgstr ""
+"Η λειτουργία κόμβου που θα τρέχετε το gtk-gnutella.  Όταν επιλεγίε η αυτόματη "
+"το  gtk-gnutella θα ξεκινήσει ως δικτυακός κόμβος και ίσως να προαχθεί σε"
+"υπερ-κόμβο αν το επιτρέπουν το εύρος και ο χρόνος λειτουργίας, καθώς επίσης "
+"και εφόσον δεν έχετε τοίχος προστασίας."
 
 #: src/if/gnet_property.c:4001
 msgid "Current peer mode for gtk-gnutella."
@@ -2118,11 +2125,11 @@ msgid ""
 "from them.  This only works when gtk-gnutella already keeps track of "
 "unstable IP addresses."
 msgstr ""
-"Αν το gtk-gnutella πρέπει να προσδιορίζει τους τύπους πελατών (όπως "
-"αναγνωρίζονται από τις ετικέτες κατασκευαστή) που είναι ασταθείς, και να "
-"αποτρέπει άλλες συνδέσεις από/προς αυτούς.  Αυτό λειτουργεί μόνο όταν το gtk-"
-"gnutella ήδη θυμάται τις ασταθείς διευθύνσεις IP."
-
+"Αν το gtk-gnutella πρέπει να προσδιορίζει τους τύπους πελατών (όπως αναγνωρίζονται "
+"από τις συμβολοσειρές κατασκευαστή) που είναι ασταθείς, και να αποτρέπει άλλες συνδέσεις "
+"από/προς αυτούς.  Αυτό λειτουργεί μόνο όταν το gtk-gnutella ήδη θυμάται τις ασταθείς "
+"διευθύνσεις IP."
+ 
 #: src/if/gnet_property.c:4463
 msgid ""
 "Whether gtk-gnutella should automatically remove the file whenever it gets a "
@@ -2200,7 +2207,7 @@ msgstr ""
 
 #: src/if/gnet_property.c:4638
 msgid "Last time at which we performed the ultrapeer requirement checks."
-msgstr ""
+msgstr "Τελευταία φορά ελέγχου απαιτήσεων υπερ-κόμβου."
 
 #: src/if/gnet_property.c:4658
 msgid "Last time an automatic switch between ultra and leaf mode occurred."
@@ -2243,6 +2250,8 @@ msgid ""
 "Whether we meet the minimum amount of peer connections requirement to become "
 "an Ultra node."
 msgstr ""
+"Αν καλύπτεται ο ελάχιστος απαιτούμενος αριθμός κομβικών συνδέσεων για αναβάθμισε "
+"σε υπερ-κόμβο."
 
 #: src/if/gnet_property.c:4763
 msgid ""
@@ -2428,6 +2437,13 @@ msgid ""
 "operations are still possible. The condition automatically clears itself "
 "after 10 minutes without any more shortage."
 msgstr ""
+"Αν πρέπει το gtk-gnutella, όταν τρέχει ως υπερ-κόμβος, να λειτουργή ως διαμεσολαβητής "
+"για τους δικτυακούς κόμβους που δεν αιτούνται παράδοση OOB για τα χτυπήματα ερωτημάτων: "
+"το gtk-gnutella θα δεχθεί τα χτυπήματα από τους απομακρυσμένους κόμβους και θα τα προωθήσει "
+"στον κατάλληλο δικτυακό κόμβο.  Αυτό έχει πλεονεκτήματα για τους δικτυακούς κόμβους αλλά "
+"μπορεί να προκαλέσει μεγάλο κύμα κυκλοφορίας UDP προς εσάς.  Αν το απενεργοποιήσετε "
+"όλοι οι συνδεδεμένοι σε εσάς κόμβοι πρέπει να βασίζονται στα χτυπήματα, με την πιθανότητα "
+"να απορρίψουν κάποια μηνύματα ερωτημάτων και να υποβαθμίζουν τη λειτουργικότητα των αναζητήσεων."
 
 #: src/if/gnet_property.c:5366
 msgid ""
@@ -2480,11 +2496,11 @@ msgid ""
 "received via TCP.  It is safe to leave this set, which is the default "
 "behaviour."
 msgstr ""
-"Αν το UDP θα πρέπει να χρησιμοποιείται σε συμβατότητα με το TCP.  Αν "
-"οριστεί, το gtk-gnutella θα ακούει επίσης για κυκλοφορία UDP στην ίδια θύρα "
-"που είναι ρυθμισμένη για TCP και θα επεξεργάζεται την εισερχόμενη κυκλοφορία "
-"Gnutella σχεδόν με τον ίδιο τρόπο σαν να λαμβάνεται μέσω TCP.  Είναι ασφαλές "
-"να το αφήσετε ενεργό, που είναι η προεπιλεγμένη συμπεριφορά."
+"Αν το UDP θα πρέπει να χρησιμοποιείται σε συμβατότητα με το TCP.  Αν οριστεί, "
+"το gtk-gnutella θα ακούει επίσης για κυκλοφορία UDP στην ίδια θύρα που είναι "
+"ρυθμισμένη για TCP και θα επεξεργάζεται την εισερχόμενη κυκλοφορία Gnutella "
+"σχεδόν με τον ίδιο τρόπο σαν να λαμβάνεται μέσω TCP.  Είναι ασφαλές να το "
+"αφήσετε ενεργό, που είναι ο προεπιλεγμένος τρόπος λειτουργίας."
 
 #: src/if/gnet_property.c:5502
 msgid ""
@@ -2824,7 +2840,7 @@ msgstr "Εμφάνιση εργαλειοθήκης."
 
 #: src/if/gui_property.c:1103
 msgid "Display statusbar."
-msgstr "Εμφάνιση πίνακα κατάστασης."
+msgstr "Εμφάνιση γραμμής κατάστασης."
 
 #: src/if/gui_property.c:1120
 msgid "Display upload statistics in sidebar."
@@ -2864,7 +2880,7 @@ msgstr "Εμφάνιση χρήσης εύρους εξερχόμενης δικ
 
 #: src/if/gui_property.c:1273
 msgid "Automatically hide leaf bandwidth display when not in ultrapeer mode."
-msgstr ""
+msgstr "Αυτόματη απόκρυψη εμφάνισης δικτυακού εύρους όταν δεν τρέχει ως υπερ-κόμβος."
 
 #: src/if/gui_property.c:1290
 msgid "Display incoming HTTP traffic bandwidth average."
@@ -4229,9 +4245,8 @@ msgid "ends with"
 msgstr "τελειώνει με"
 
 #: src/ui/gtk/filter.c:74
-#, fuzzy
 msgid "contains the substring"
-msgstr "περιέχει την υποετικέτα"
+msgstr "περιέχει την υποσυμβολοσειρά"
 
 #: src/ui/gtk/filter.c:75
 msgid "matches regex"
@@ -4295,9 +4310,9 @@ msgid "If filename ends with \"%s\" %s"
 msgstr "αν το όνομα αρχείου τελειώνει με \"%s\" %s"
 
 #: src/ui/gtk/filter_core.c:959
-#, fuzzy, c-format
+#, c-format
 msgid "If filename contains the substring \"%s\" %s"
-msgstr "αν το όνομα αρχείου περιέχει την υποετικέτα \"%s\" %s"
+msgstr "αν το όνομα αρχείου περιέχει την υποσυμβολοσειρά \"%s\" %s"
 
 #: src/ui/gtk/filter_core.c:966
 #, c-format
@@ -4984,7 +4999,7 @@ msgstr "εμφάνιση _Εργαλειοθήκης"
 #: src/ui/gtk/gtk1/interface-glade.c:780
 #: src/ui/gtk/gtk2/interface-glade.c:2024
 msgid "show _Statusbar"
-msgstr "εμφάνιση _Πίνακα κατάστασης"
+msgstr "εμφάνιση _Γραμμής κατάστασης"
 
 #: src/ui/gtk/gtk1/interface-glade.c:806
 #: src/ui/gtk/gtk2/interface-glade.c:2036
@@ -5149,9 +5164,8 @@ msgstr "_Παθητικό"
 #: src/ui/gtk/gtk1/interface-glade.c:1468
 #: src/ui/gtk/gtk2/interface-glade.c:2697
 msgid "A passive search matches any search results routed through this node"
-msgstr ""
-"Μία παθητική αναζήτησης ταιριάζει με τα αποτελέσματα αναζήτησης που "
-"δρομολογούνται από αυτόν τον κόμβο"
+msgstr "Μία παθητική αναζήτηση ταιριάζει με τα αποτελέσματα αναζήτησης που "
+"δρομολογούνται από αυτόν τον κόμβο γούνται από αυτόν τον κόμβο"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1487
 #: src/ui/gtk/gtk2/interface-glade.c:3430
@@ -5265,7 +5279,7 @@ msgstr "Μέγιστο"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1709
 msgid "Ultrapeers in leaf mode"
-msgstr ""
+msgstr "Υπερ-κόμβοι σε δικτυακοί λειτουργία"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1752
 msgid "Quick-connect pool size"
@@ -5525,7 +5539,7 @@ msgstr "Καθαρισμός"
 #: src/ui/gtk/gtk1/interface-glade.c:2830
 #: src/ui/gtk/gtk2/interface-glade.c:9175
 msgid "Ultrapeers"
-msgstr ""
+msgstr "Υπερ-κόμβοι"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2882
 #: src/ui/gtk/gtk2/interface-glade.c:9209
@@ -5731,11 +5745,11 @@ msgid ""
 "which parts of the file have been seen on the network in this session."
 msgstr ""
 "Εμφανίζει οπτικές πληροφορίες για την πρόοδο της λήψης. Τα πράσινα κομμάτια "
-"έχουν ληφθεί, με τα ελαφρώς πιο ανοικτά πράσιντα κομμάτια να έχουν αγγιχτεί "
+"έχουν ληφθεί, με τα ελαφρώς πιο ανοικτά πράσινα κομμάτια να έχουν αγγιχτεί "
 "κατά τη διάρκεια αυτής της συνεδρίας. Τα κίτρινα κομμάτια είναι ενεργά αυτή "
 "τη στιγμή, αυτά τα ενεργά κομμάτια επίσης σημαδεύονται και με ένα τρίγωνο. "
-"Τα κόκκινα κομμάτια δεν έχουν ληφθεί ακόμα. Οι μπλε γραμμές προσδιορίζουν "
-"ποια κομμάτια του αρχείου έχουν βρεθεί στο δίκτυο σε αυτή τη συνεδρία."
+"Τα κόκκινα κομμάτια δεν έχουν ληφθεί ακόμα. Οι μπλε γραμμές προσδιορίζουν ποια "
+"κομμάτια του αρχείου έχουν βρεθεί στο δίκτυο σε αυτή τη συνεδρία."
 
 #: src/ui/gtk/gtk1/interface-glade.c:3583
 #: src/ui/gtk/gtk2/interface-glade.c:16540
@@ -6265,7 +6279,7 @@ msgstr ""
 #: src/ui/gtk/gtk1/interface-glade.c:5867
 #: src/ui/gtk/gtk2/interface-glade.c:2350
 msgid "Running in ultrapeer mode."
-msgstr ""
+msgstr "Τρέχει σε λειτουργία υπερ-κόμβου"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6215
 #: src/ui/gtk/gtk1/interface-glade.c:6433
@@ -7006,7 +7020,7 @@ msgstr "Επικόλληση κανόνα"
 #: src/ui/gtk/gtk1/interface-glade.c:10384
 #: src/ui/gtk/gtk2/interface-glade.c:3096
 msgid "gtk-gnutella: Quit?"
-msgstr "gtk-gnutella: Έξοδος?"
+msgstr "gtk-gnutella: Έξοδος;"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10395
 #: src/ui/gtk/gtk2/interface-glade.c:3123
@@ -7285,7 +7299,7 @@ msgstr "Επίβλεψη και αυτόματη απαγόρευση ασταθ
 #: src/ui/gtk/gtk1/interface-glade.c:12190
 #: src/ui/gtk/gtk2/interface-glade.c:10847
 msgid "Ultrapeer mode settings"
-msgstr ""
+msgstr "Ρυθμίσεις λειτουργίας υπερ-κόμβου"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12210
 #: src/ui/gtk/gtk2/interface-glade.c:10839
@@ -7300,7 +7314,7 @@ msgstr "Μέγιστος αριθμός δικτυακών κόμβων"
 #: src/ui/gtk/gtk1/interface-glade.c:12261
 #: src/ui/gtk/gtk2/interface-glade.c:11182
 msgid "Ultrapeer promotion statistics"
-msgstr ""
+msgstr "Στατιστικά προώθησης υπερ-κόμβου"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12289
 #: src/ui/gtk/gtk2/interface-glade.c:10919
@@ -7699,7 +7713,7 @@ msgstr "Ε_ισερχόμενη κυκλοφορία"
 #: src/ui/gtk/gtk1/interface-glade.c:13981
 #: src/ui/gtk/gtk2/interface-glade.c:12557
 msgid "Ultrapeer mode"
-msgstr ""
+msgstr "Λειτουργία υπερ-κόμβου"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14051
 #: src/ui/gtk/gtk2/interface-glade.c:12550
@@ -7962,7 +7976,7 @@ msgstr "Λήψη από πολλαπλές πηγές (εξάπλωση)"
 #: src/ui/gtk/gtk1/interface-glade.c:14873
 #: src/ui/gtk/gtk2/interface-glade.c:13485
 msgid "Enable s_warming"
-msgstr ""
+msgstr "Ενεργοποίηση εξάπλωσης"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14903
 #: src/ui/gtk/gtk2/interface-glade.c:13478
@@ -8743,7 +8757,7 @@ msgstr "Σύνδεση σε"
 
 #: src/ui/gtk/gtk2/interface-glade.c:3328
 msgid "ultrapeers"
-msgstr ""
+msgstr "υπερ-κόμβοι"
 
 #: src/ui/gtk/gtk2/interface-glade.c:3374
 msgid "Try to keep at least"
@@ -8983,7 +8997,7 @@ msgstr "Δικτυακός κόμβος"
 
 #: src/ui/gtk/gtk2/nodes.c:287
 msgid "Ultrapeer"
-msgstr ""
+msgstr "Υπερ-κόμβος"
 
 #: src/ui/gtk/gtk2/nodes.c:289
 msgid "Legacy"
@@ -9097,7 +9111,7 @@ msgstr[1] "%lu αρχεία για ανταλλαγή (%s)"
 
 #: src/ui/gtk/misc.c:140
 msgid "(avg)"
-msgstr "(Μ.Τ.)"
+msgstr "(Μ.Ό.)"
 
 #: src/ui/gtk/nodes_common.c:73
 msgid "Hello sent"
