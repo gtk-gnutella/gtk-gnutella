@@ -8,12 +8,12 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-10-27 16:06+0900\n"
+"POT-Creation-Date: 2005-10-29 13:38+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
@@ -4127,7 +4127,7 @@ msgid "Push"
 msgstr ""
 
 #: src/ui/gtk/gnet_stats_common.c:55 src/ui/gtk/gtk1/interface-glade.c:13520
-#: src/ui/gtk/gtk2/interface-glade.c:11929 src/ui/gtk/gtk2/monitor.c:137
+#: src/ui/gtk/gtk2/interface-glade.c:11929 src/ui/gtk/gtk2/monitor.c:139
 msgid "Query"
 msgstr ""
 
@@ -5328,7 +5328,7 @@ msgid "File"
 msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:3429 src/ui/gtk/gtk2/fileinfo.c:614
-#: src/ui/gtk/gtkcolumnchooser.c:171
+#: src/ui/gtk/gtkcolumnchooser.c:206
 msgid "Done"
 msgstr ""
 

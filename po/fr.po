@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-10-27 16:06+0900\n"
+"POT-Creation-Date: 2005-10-29 13:38+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: T'aZ <tazdev@punkass.com>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -4897,7 +4897,7 @@ msgid "Push"
 msgstr ""
 
 #: src/ui/gtk/gnet_stats_common.c:55 src/ui/gtk/gtk1/interface-glade.c:13520
-#: src/ui/gtk/gtk2/interface-glade.c:11929 src/ui/gtk/gtk2/monitor.c:137
+#: src/ui/gtk/gtk2/interface-glade.c:11929 src/ui/gtk/gtk2/monitor.c:139
 msgid "Query"
 msgstr ""
 
@@ -6141,7 +6141,7 @@ msgid "File"
 msgstr "Fichier"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3429 src/ui/gtk/gtk2/fileinfo.c:614
-#: src/ui/gtk/gtkcolumnchooser.c:171
+#: src/ui/gtk/gtkcolumnchooser.c:206
 msgid "Done"
 msgstr "Finis"
 
