@@ -145,7 +145,7 @@ get_nth_column(GtkWidget *widget, gint i, GtkWidget **menuitem_ptr)
 	g_assert(widget);
 	g_assert(i >= 0);
 	
-	if (i < GTK_CLIST(widget)->columns)
+	if (i < GTK_CLIST(widget)->columns) {
 		gchar *title;
 		gboolean visible;
 
