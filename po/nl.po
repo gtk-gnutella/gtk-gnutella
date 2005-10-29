@@ -5071,7 +5071,7 @@ msgstr[1] "%u downloads vergeten"
 msgid "Selected %u of %u queued download matching \"%s\"."
 msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
 msgstr[0] "%u van %u wachtende download overeenkomend met \"%s\" geselecteerd."
-"%u van %u wachtende downloads overeenkomend met \"%s\" geselecteerd."
+msgstr[1] "%u van %u wachtende downloads overeenkomend met \"%s\" geselecteerd."
 
 #: src/ui/gtk/gtk1/fileinfo.c:143 src/ui/gtk/gtk2/fileinfo.c:324
 #, c-format
