@@ -11,13 +11,13 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-10-29 13:38+0900\n"
-"PO-Revision-Date: 2005-10-28 21:19+0200\n"
+"PO-Revision-Date: 2005-10-29 12:20+0200\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);"
 
 #: src/core/downloads.c:950 src/core/downloads.c:1008
 msgid "No longer connected"
@@ -5071,7 +5071,6 @@ msgstr[1] "%u downloads vergeten"
 msgid "Selected %u of %u queued download matching \"%s\"."
 msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
 msgstr[0] "%u van %u wachtende download overeenkomend met \"%s\" geselecteerd."
-msgstr[1] ""
 "%u van %u wachtende downloads overeenkomend met \"%s\" geselecteerd."
 
 #: src/ui/gtk/gtk1/fileinfo.c:143 src/ui/gtk/gtk2/fileinfo.c:324
@@ -8788,10 +8787,10 @@ msgstr[0] "%s van de %u geselecteerde item"
 msgstr[1] "%s van de %u geselecteerde items"
 
 #: src/ui/gtk/gtk1/search.c:1776
-#, fuzzy, c-format
+#, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
-msgstr[0] "%u resultaten genegeerd"
+msgstr[0] "%u resultaat genegeerd"
 msgstr[1] "%u resultaten genegeerd"
 
 #: src/ui/gtk/gtk1/search.c:2223 src/ui/gtk/gtk1/search.c:2229
@@ -8822,11 +8821,11 @@ msgid "<no SHA1 known>"
 msgstr "<geen SHA1 bekend>"
 
 #: src/ui/gtk/gtk1/search_cb.c:405
-#, fuzzy, c-format
+#, c-format
 msgid "%d file auto selected with %d sources %s"
 msgid_plural "%d files auto selected with %d sources %s"
 msgstr[0] "%d bestand automatisch geselecteerd met %d bronnen %s"
-msgstr[1] "%d bestand automatisch geselecteerd met %d bronnen %s"
+msgstr[1] "%d bestanden automatisch geselecteerd met %d bronnen %s"
 
 #: src/ui/gtk/gtk1/search_cb.c:407
 msgid "by urn:sha1."
@@ -9425,7 +9424,6 @@ msgstr[0] "item"
 msgstr[1] "items"
 
 #: src/ui/gtk/search_common.c:1135
-#, fuzzy
 msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] "dupl."
@@ -9634,3 +9632,4 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 #: src/ui/gtk/uploads_common.c:205
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
+
