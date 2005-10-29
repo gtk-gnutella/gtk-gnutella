@@ -27,6 +27,8 @@
 
 ;# $Id$
 
+all::		/* So that default target is not clobber! */
+
 EXTRA_FILES = \
 	bogons.txt \
 	favicon.png \

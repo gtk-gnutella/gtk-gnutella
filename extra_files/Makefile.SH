@@ -197,6 +197,8 @@ local_clobber::
 ########################################################################
 # Empty rules for directories with no sub-directories -- do not edit
 
+all:
+
 local_install::
 	@echo "install in $(CURRENT) done."
 
