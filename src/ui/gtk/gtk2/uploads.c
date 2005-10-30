@@ -315,7 +315,7 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 			atom_str_free(rd->user_agent);
 		rd->user_agent = atom_str_get(u->user_agent);
 		gtk_list_store_set(store_uploads, &rd->iter,
-			c_ul_agent, lazy_vendor_to_utf8(rd->user_agent),
+			c_ul_agent, rd->user_agent,
 			(-1));
 	}
 
@@ -401,12 +401,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 		static gchar str[256];	/* MUST be static! */
 		const gchar *agent;
 
-		agent = lazy_vendor_to_utf8(u->user_agent);
-		if (u->user_agent != agent) {
-			utf8_strlcpy(str, agent, sizeof str);
-			agent = str;
-		}
-    	titles[c_ul_agent] = agent;
+    	titles[c_ul_agent] = u->user_agent;
 	} else
 		titles[c_ul_agent] = "...";
 

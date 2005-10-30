@@ -79,6 +79,7 @@
 #include "lib/palloc.h"
 #include "lib/tm.h"
 #include "lib/url.h"
+#include "lib/utf8.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -5380,26 +5381,35 @@ download_get_server_name(struct download *d, header_t *header)
 
 	if (buf) {
 		struct dl_server *server = d->server;
-		gboolean faked = !version_check(buf, header_get(header, "X-Token"),
-								download_addr(d));
-
+		const gchar *vendor;
+		gchar *wbuf = NULL;
+		size_t size = 0;
+		gboolean faked;
+	   
 		g_assert(dl_server_valid(server));
 
-		if (server->vendor == NULL) {
-			if (faked) {
-				gchar name[1024];
+		faked = !version_check(buf, header_get(header, "X-Token"),
+					download_addr(d));
 
-				name[0] = '!';
-				g_strlcpy(&name[1], buf, sizeof name - 1);
-				server->vendor = atom_str_get(name);
-			} else
-				server->vendor = atom_str_get(buf);
+		if (server->vendor == NULL) {
 			got_new_server = TRUE;
+			if (faked)
+				size = w_concat_strings(&wbuf, "!", buf, (void *) 0);
+			vendor = wbuf ? wbuf : buf;
 		} else if (!faked && 0 != strcmp(server->vendor, buf)) {
 			/* Name changed? */
-			atom_str_free(server->vendor);
-			server->vendor = atom_str_get(buf);
 			got_new_server = TRUE;
+			atom_str_free(server->vendor);
+			vendor = buf;
+		} else {
+			vendor = NULL;
+		}
+	
+		if (vendor)	
+			server->vendor = atom_str_get(lazy_iso8859_1_to_utf8(vendor));
+		if (wbuf) {
+			wfree(wbuf, size);
+			wbuf = NULL;
 		}
 	}
 

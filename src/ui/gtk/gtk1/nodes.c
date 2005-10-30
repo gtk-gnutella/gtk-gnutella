@@ -167,7 +167,7 @@ nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
         guc_node_get_status(n->node_handle, &status);
 
         gtk_clist_set_text(clist, row, c_gnet_user_agent,
-			n->vendor ? lazy_vendor_to_locale(n->vendor) : "...");
+			n->vendor ? lazy_utf8_to_locale(n->vendor) : "...");
 
         gtk_clist_set_text(clist, row, c_gnet_loc,
 			deconstify_gchar(iso3166_country_cc(n->country)));
@@ -335,7 +335,7 @@ nodes_gui_add_node(gnet_node_info_t *n)
     titles[c_gnet_host]       = host_addr_port_to_string(n->addr, n->port);
     titles[c_gnet_flags]      = "...";
     titles[c_gnet_user_agent] = n->vendor
-									? lazy_vendor_to_locale(n->vendor)
+									? lazy_utf8_to_locale(n->vendor)
 									: "...";
     titles[c_gnet_loc]        = iso3166_country_cc(n->country);
     titles[c_gnet_version]    = proto_tmp;

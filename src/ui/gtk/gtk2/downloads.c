@@ -689,6 +689,7 @@ download_gui_add(download_t *d)
 {
 	static const gchar unknown_size_str[] = "no size";
 	const gchar *vendor;
+	gchar vendor_ban_buf[256];
 	GHashTable *ht;
 	GtkTreeView *treeview;
 	GtkTreeIter *parent;
@@ -703,11 +704,9 @@ download_gui_add(download_t *d)
 
 	vendor = download_vendor_str(d);
 	if (d->server->attrs & DLS_A_BANNING) {
-		static gchar buf[256]; /* MUST be static to survive this frame */
-
-		buf[0] = '*';
-		g_strlcpy(&buf[1], vendor, sizeof buf - 1);	/* Mind the -1 */
-		vendor = buf;
+		concat_strings(vendor_ban_buf, sizeof vendor_ban_buf,
+			"*", vendor, (void *) 0);
+		vendor = vendor_ban_buf;
 	}
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
@@ -822,7 +821,7 @@ download_gui_add(download_t *d)
 		  	c_queue_host, guc_download_get_hostname(d),
 		  	c_queue_loc, guc_download_get_country(d),
 	      	c_queue_size, d_file_size,
-	      	c_queue_server, lazy_vendor_to_utf8(vendor),
+	      	c_queue_server, vendor,
 	      	c_queue_status, NULL,
 		  	c_queue_record, d,
    	      	(-1));
@@ -935,7 +934,7 @@ download_gui_add(download_t *d)
 			c_dl_loc, guc_download_get_country(d),
 			c_dl_size, d_file_size,
 			c_dl_range, NULL,
-			c_dl_server, lazy_vendor_to_utf8(vendor),
+			c_dl_server, vendor,
 			c_dl_progress, CLAMP(progress, 0, 100),
 			c_dl_status, NULL,
 			c_dl_record, d,
@@ -1179,6 +1178,8 @@ void
 gui_update_download_server(download_t *d)
 {
 	const gchar *server;
+	gchar buf[256];
+
 
 	g_assert(d);
 	g_assert(!DOWNLOAD_IS_QUEUED(d));
@@ -1192,10 +1193,7 @@ gui_update_download_server(download_t *d)
 	 */
 	server = download_vendor(d);
 	if (d->server->attrs & DLS_A_BANNING) {
-		static gchar buf[256]; /* MUST be static to survive this frame */
-
-		buf[0] = '*';
-		g_strlcpy(&buf[1], server, sizeof buf - 1); /* Mind the -1 */
+		concat_strings(buf, sizeof buf, "*", server, (void *) 0);
 		server = buf;
 	}
 	gui_update_download_column(d, treeview_downloads, c_dl_server, server);

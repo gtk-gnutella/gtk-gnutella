@@ -100,6 +100,7 @@ RCSID("$Id$");
 #include "lib/listener.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
+#include "lib/utf8.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
 
@@ -1780,7 +1781,7 @@ node_avoid_monopoly(struct gnutella_node *n)
 		return FALSE;
 
 	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *node = (struct gnutella_node *) sl->data;
+		struct gnutella_node *node = sl->data;
 
 		if (node->status != GTA_NODE_CONNECTED || node->vendor == NULL)
 			continue;
@@ -7256,18 +7257,22 @@ node_add_rxdrop(gnutella_node_t *n, gint x)
 
 /**
  * Record vendor name (user-agent string).
+ *
+ * @param n The gnutella node.
+ * @param vendor The payload of the User-Agent header; the assumed character
+ *				 encoding is ISO-8859-1.
  */
 void
 node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 {
-	gchar buf[128];
+	gchar *wbuf = NULL;
+	size_t size = 0;
 
 	if (n->flags & NODE_F_FAKE_NAME) {
-		buf[0] = '!';
-		g_strlcpy(&buf[1], vendor, sizeof buf - 1);
-		n->vendor = atom_str_get(buf);
+		size = w_concat_strings(&wbuf, "!", vendor, (void *) 0);
 	} else {
 		static const char full[] = "Morpheus";
+		gboolean fix;
 
 		/*
 		 * Morpheus names its servents as "morph350" or "morph461" and
@@ -7275,16 +7280,17 @@ node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 		 * as all different whereas they are really incarnations of the
 		 * same servent.  Normalize their name.
 		 */
+		
+		fix = is_strcaseprefix(vendor, "morph") &&
+				0 != strcmp_delimit(vendor, full, " /");
+		if (fix)
+			size = w_concat_strings(&wbuf, full, " (", vendor, ")", (void *) 0);
+	}
 
-		if (
-			is_strcaseprefix(vendor, "morph") &&
-			0 != strcmp_delimit(vendor, full, " /")
-		) {
-			gm_snprintf(buf, sizeof buf, "%s (%s)", full, vendor);
-			vendor = buf;
-		}
-
-		n->vendor = atom_str_get(vendor);
+	n->vendor = atom_str_get(lazy_iso8859_1_to_utf8(wbuf ? wbuf : vendor));
+	if (wbuf) {
+		wfree(wbuf, size);
+		wbuf = NULL;
 	}
 
     node_fire_node_info_changed(n);
@@ -7410,7 +7416,7 @@ node_fill_info(const gnet_node_t n, gnet_node_info_t *info)
     info->proto_minor = node->proto_minor;
     info->vendor = node->vendor ? atom_str_get(node->vendor) : NULL;
     info->country = node->country;
-    memcpy(info->vcode, node->vcode, 4);
+    info->vcode = node->vcode;
 
     info->addr = node->addr;
     info->port = node->port;
@@ -7955,8 +7961,8 @@ node_active_by_id(guint32 id)
 static gint
 node_ua_cmp(const void *np1, const void *np2)
 {
-	gnutella_node_t *n1 = *(gnutella_node_t **) np1;
-	gnutella_node_t *n2 = *(gnutella_node_t **) np2;
+	const gnutella_node_t *n1 = *(const gnutella_node_t **) np1;
+	const gnutella_node_t *n2 = *(const gnutella_node_t **) np2;
 
 	/*
 	 * Put gtk-gnutella nodes at the beginning of the array.

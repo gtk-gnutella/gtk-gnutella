@@ -38,6 +38,7 @@ RCSID("$Id$");
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/tm.h"
+#include "lib/utf8.h"
 #include "lib/override.h"	/* Must be the last header included */
 
 #define UPDATE_MIN	300		/**< Update screen every 5 minutes at least */
@@ -217,7 +218,7 @@ uploads_gui_update_upload_info(gnet_upload_info_t *u)
 	gtk_clist_set_text(clist_uploads, row, c_ul_host,
 			uploads_gui_host_string(u));
 	gtk_clist_set_text(clist_uploads, row, c_ul_agent,
-		(u->user_agent != NULL) ? u->user_agent : "...");
+		(u->user_agent != NULL) ? lazy_utf8_to_locale(u->user_agent) : "...");
 
 	guc_upload_get_status(u->upload_handle, &status);
 
@@ -288,7 +289,8 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 	titles[c_ul_filename] = (u->name != NULL) ? u->name : "...";
 	titles[c_ul_host]     = uploads_gui_host_string(u);
 	titles[c_ul_loc]      = iso3166_country_cc(u->country);
-    titles[c_ul_agent]    = (u->user_agent != NULL) ? u->user_agent : "...";
+    titles[c_ul_agent]    = (u->user_agent != NULL) ?
+								lazy_utf8_to_locale(u->user_agent) : "...";
 	titles[c_ul_progress]   = "...";
 	titles[c_ul_status]   = "...";
 

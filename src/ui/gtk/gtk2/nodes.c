@@ -247,7 +247,7 @@ nodes_gui_update_node_info(gnet_node_info_t *n, GtkTreeIter *iter)
 		n->proto_major, n->proto_minor);
 
 	gtk_list_store_set(nodes_model, iter,
-		c_gnet_user_agent, lazy_vendor_to_utf8(n->vendor),
+		c_gnet_user_agent, n->vendor,
 		c_gnet_loc, iso3166_country_cc(n->country),
 		c_gnet_version, version,
 		c_gnet_info, nodes_gui_common_status_str(&status),
@@ -349,7 +349,7 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			iso3166_country_name(info.country),
 			iso3166_country_cc(info.country),
 			_("Vendor:"),
-			info.vendor ? lazy_vendor_to_utf8(info.vendor) : _("Unknown"));
+			info.vendor ? info.vendor : _("Unknown"));
 
 		guc_node_clear_info(&info);
 		gtk_tooltips_set_tip(settings_gui_tooltips(),
@@ -566,7 +566,7 @@ nodes_gui_add_node(gnet_node_info_t *n)
     gtk_list_store_set(nodes_model, iter,
         c_gnet_host,    host_addr_port_to_string(n->addr, n->port),
         c_gnet_flags,    NULL,
-        c_gnet_user_agent, lazy_vendor_to_utf8(n->vendor),
+        c_gnet_user_agent, n->vendor,
         c_gnet_loc, 	iso3166_country_cc(n->country),
         c_gnet_version, proto_tmp,
         c_gnet_connected, NULL,

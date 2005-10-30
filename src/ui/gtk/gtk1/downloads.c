@@ -41,6 +41,7 @@ RCSID("$Id$");
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
 #include "lib/tm.h"
+#include "lib/utf8.h"
 #include "lib/override.h"	/* Must be the last header included */
 
 static gchar tmpstr[4096];
@@ -569,15 +570,15 @@ download_gui_add(struct download *d)
 
 	file_name = guc_file_info_readable_filename(d->file_info);
 
-	gm_snprintf(vendor, sizeof(vendor), "%s%s",
-		(d->server->attrs & DLS_A_BANNING) ? "*" : "",
-		download_vendor_str(d));
+	concat_strings(vendor, sizeof vendor,
+		(d->server->attrs & DLS_A_BANNING) ? "*" : "", download_vendor_str(d),
+		(void *) 0);
 
 	color = &(gtk_widget_get_style(GTK_WIDGET(ctree_downloads))
 				->fg[GTK_STATE_INSENSITIVE]);
 
 	titles[c_queue_filename] = file_name;
-    titles[c_queue_server] = vendor;
+    titles[c_queue_server] = lazy_utf8_to_locale(vendor);
 	titles[c_queue_status] = "";
 
 	if (d->file_info->file_size_known)
@@ -711,7 +712,7 @@ download_gui_add(struct download *d)
 	} else {					/* This is an active download */
 
 		titles[c_dl_filename] = file_name;
-		titles[c_dl_server] = vendor;
+		titles[c_dl_server] = lazy_utf8_to_locale(vendor);
 		titles[c_dl_status] = "";
 
 		if (d->file_info->file_size_known)
@@ -868,19 +869,21 @@ gui_update_download_server(struct download *d)
 	g_assert(d->server);
 	g_assert(download_vendor(d));
 
-	/*
-	 * Prefix vendor name with a '*' if they are considered as potentially
-	 * banning us and we activated anti-banning features.
-	 *		--RAM, 05/07/2003
-	 */
+	node = gtk_ctree_find_by_row_data(ctree_downloads, NULL, d);
+	if (NULL != node) {
+		/*
+		 * Prefix vendor name with a '*' if they are considered as potentially
+		 * banning us and we activated anti-banning features.
+		 *		--RAM, 05/07/2003
+		 */
 
-	(void) gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
-		(d->server->attrs & DLS_A_BANNING) ? "*" : "",
-		download_vendor(d));
+		concat_strings(tmpstr, sizeof tmpstr,
+			(d->server->attrs & DLS_A_BANNING) ? "*" : "", download_vendor(d),
+			(void *) 0);
 
-	node = gtk_ctree_find_by_row_data(ctree_downloads, NULL, (gpointer) d);
-	if (NULL != node)
-		gtk_ctree_node_set_text(ctree_downloads, node, c_dl_server, tmpstr);
+		gtk_ctree_node_set_text(ctree_downloads, node, c_dl_server,
+			lazy_utf8_to_locale(tmpstr));
+	}
 }
 
 void
