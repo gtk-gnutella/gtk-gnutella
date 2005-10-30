@@ -154,7 +154,7 @@ extern filter_t *work_filter;
  */
 filter_t *filter_new(const gchar *);
 filter_result_t *filter_record(struct search *, const struct record *);
-gchar *filter_rule_condition_to_gchar(const rule_t *r);
+gchar *filter_rule_condition_to_string(const rule_t *r);
 gchar *filter_rule_to_gchar(rule_t *f);
 gboolean filter_is_builtin(filter_t *f);
 gboolean filter_is_global(filter_t *f);
