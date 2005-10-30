@@ -160,12 +160,30 @@ void
 on_entry_search_changed(GtkEditable *editable, gpointer unused_udata)
 {
 	gchar *s = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
+	gchar *normalized;
+	gboolean changed;
 
 	(void) unused_udata;
+
+	/* Gimmick: Normalize the input on the fly because Gtk+ currently
+	 * renders them differently (for example decomposed) if they're are
+	 * not in Normalization Form Canonic (NFC)
+	 */
+	normalized = utf8_normalize(s, UNI_NORM_GUI);
+	changed = normalized != s && 0 != strcmp(s, normalized);
 	
-	g_strstrip(s);
-	gtk_widget_set_sensitive(lookup_widget(main_window, "button_search"),
-		s[0] != '\0');
+	if (changed)
+		gtk_entry_set_text(
+			GTK_ENTRY(lookup_widget(main_window, "entry_search")), normalized);
+
+	if (normalized != s)
+		G_FREE_NULL(normalized);
+
+	if (!changed) {
+		g_strstrip(s);
+		gtk_widget_set_sensitive(lookup_widget(main_window, "button_search"),
+			s[0] != '\0');
+	}
 	G_FREE_NULL(s);
 }
 
