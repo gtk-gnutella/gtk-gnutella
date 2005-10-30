@@ -100,8 +100,6 @@ static guint adns_query_event_id = 0;
 static guint adns_reply_event_id = 0;
 static gboolean is_helper = FALSE;		/**< Are we the DNS helper process? */
 
-static gboolean adns_helper_alive = FALSE;
-
 /**
  * Private macros.
  */
@@ -445,6 +443,7 @@ again:
 				g_warning("adns_reply_callback: read() failed: %s",
 					g_strerror(errno));
 				inputevt_remove(adns_reply_event_id);
+				adns_reply_event_id = 0;
 				g_warning("adns_reply_callback: removed myself");
 				close(source);
 				return;
@@ -563,9 +562,9 @@ adns_query_callback(gpointer data, gint dest, inputevt_cond_t condition)
 error:
 	g_warning("adns_query_callback: write() failed: %s", g_strerror(errno));
 abort:
-	inputevt_remove(adns_query_event_id);
 	g_warning("adns_query_callback: removed myself");
-	adns_helper_alive = FALSE;
+	inputevt_remove(adns_query_event_id);
+	adns_query_event_id = 0;
 	CLOSE_IF_VALID(adns_query_fd);
 	g_warning("adns_query_callback: using fallback");
 	adns_fallback(remain->query);
@@ -629,11 +628,11 @@ adns_init(void)
 prefork_failure:
 
 	if (!adns_reply_event_id) {
+		g_warning("Cannot use ADNS; DNS lookups may cause stalling");
 		CLOSE_IF_VALID(fd_query[0]);
 		CLOSE_IF_VALID(fd_query[1]);
 		CLOSE_IF_VALID(fd_reply[0]);
 		CLOSE_IF_VALID(fd_reply[1]);
-		adns_helper_alive = FALSE;
 	}
 
 	adns_cache = adns_cache_init();
@@ -648,7 +647,7 @@ adns_send_query(const adns_query_t *query)
 	ssize_t written;
 	adns_query_t q;
 
-	if (!adns_helper_alive || 0 != adns_query_event_id)
+	if (!adns_reply_event_id || 0 != adns_query_event_id)
 		return FALSE;
 
 	g_assert(adns_query_fd >= 0);
@@ -663,7 +662,8 @@ adns_send_query(const adns_query_t *query)
 		if (errno != EINTR && errno != VAL_EAGAIN) {
 			g_warning("adns_resolve: write() failed: %s",
 				g_strerror(errno));
-			adns_helper_alive = FALSE;
+			inputevt_remove(adns_reply_event_id);
+			adns_reply_event_id = 0;
 			CLOSE_IF_VALID(adns_query_fd);
 			return FALSE;
 		}
@@ -745,7 +745,7 @@ adns_resolve(const gchar *hostname,
 	if (adns_send_query(&query))
 		return TRUE; /* asynchronous */
 
-	if (adns_helper_alive)
+	if (adns_reply_event_id)
 		g_warning("adns_resolve: using synchronous resolution for \"%s\"",
 			query.hostname);
 
@@ -798,12 +798,14 @@ adns_reverse_lookup(const host_addr_t addr,
 void
 adns_close(void)
 {
-	if (adns_helper_alive) {
-		g_assert(adns_reply_event_id);
+	if (adns_reply_event_id) {
 		inputevt_remove(adns_reply_event_id);
+		adns_reply_event_id = 0;
 	}
-	if (adns_query_event_id)
+	if (adns_query_event_id) {
 		inputevt_remove(adns_query_event_id);
+		adns_query_event_id = 0;
+	}
 	
 	adns_cache_free(adns_cache);
 	adns_cache = NULL;
