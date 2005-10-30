@@ -39,6 +39,7 @@ RCSID("$Id$");
 
 #include "search.h"
 #include "settings.h"
+#include "gtk-missing.h"
 
 #include "search_xml.h"
 #include <libxml/parser.h>
@@ -73,6 +74,7 @@ static const gchar search_file[] = "searches"; /**< "old" file to searches */
 static gchar tmpstr[1024];
 
 static GSList *accumulated_rs = NULL;
+static GList *list_search_history = NULL;
 
 static GtkLabel *label_items_found = NULL;
 
@@ -681,6 +683,14 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
     return rs;
 }
 
+void
+on_search_entry_activate(GtkWidget *unused_widget, gpointer unused_udata)
+{
+	(void) unused_widget;
+	(void) unused_udata;
+	search_gui_new_search_entered();
+}
+
 /**
  * Initialize common structures.
  */
@@ -704,6 +714,9 @@ search_gui_common_shutdown(void)
 	zdestroy(rc_zone);
 
 	rs_zone = rc_zone = NULL;
+
+    g_list_free(list_search_history);
+    list_search_history = NULL;
 }
 
 /**
@@ -1630,5 +1643,107 @@ search_xml_indent(const gchar *s)
 
 	return res;
 }
+
+/**
+ * Adds a search string to the search history combo. Makes
+ * sure we do not get more than 10 entries in the history.
+ * Also makes sure we don't get duplicate history entries.
+ * If a string is already in history and it's added again,
+ * it's moved to the beginning of the history list.
+ */
+static void
+search_gui_history_add(const gchar *s)
+{
+    GList *new_hist = NULL, *cur_hist = list_search_history;
+    guint n = 0;
+
+    g_return_if_fail(s);
+
+    while (cur_hist != NULL) {
+        if (n < 9 && 0 != g_ascii_strcasecmp(s, cur_hist->data)) {
+            /* copy up to the first 9 items */
+            new_hist = g_list_prepend(new_hist, cur_hist->data);
+            n++;
+        } else {
+            /* and free the rest */
+            G_FREE_NULL(cur_hist->data);
+        }
+        cur_hist = g_list_next(cur_hist);
+    }
+	new_hist = g_list_reverse(new_hist);
+
+    /* put the new item on top */
+    new_hist = g_list_prepend(new_hist, g_strdup(s));
+
+    /* set new history */
+    gtk_combo_set_popdown_strings(
+        GTK_COMBO(lookup_widget(main_window, "combo_search")),
+        new_hist);
+
+    /* free old list structure */
+    g_list_free(list_search_history);
+
+    list_search_history = new_hist;
+}
+
+void
+search_gui_new_search_entered(void)
+{
+	GtkWidget *widget;
+	gchar *text;
+	
+    widget = lookup_widget(main_window, "entry_search");
+   	text = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(widget), 0, -1));
+    g_strstrip(text);
+    if ('\0' != text[0]) {
+        filter_t *default_filter;
+        search_t *search;
+        gboolean res;
+
+        /*
+         * It's important gui_search_history_add is called before
+         * new_search, otherwise the search entry will not be
+         * cleared.
+         *      --BLUE, 04/05/2002
+         */
+        search_gui_history_add(text);
+
+        /*
+         * We have to capture the selection here already, because
+         * new_search will trigger a rebuild of the menu as a
+         * side effect.
+         */
+        default_filter = option_menu_get_selected_data
+            (lookup_widget(main_window, "optionmenu_search_filter"));
+
+		res = search_gui_new_search(text, 0, &search);
+
+        /*
+         * If we should set a default filter, we do that.
+         */
+        if (res && (default_filter != NULL)) {
+            rule_t *rule;
+		   
+			rule = filter_new_jump_rule(default_filter, RULE_FLAG_ACTIVE);
+
+            /*
+             * Since we don't want to distrub the shadows and
+             * do a "force commit" without the user having pressed
+             * the "ok" button in the dialog, we add the rule
+             * manually.
+             */
+            search->filter->ruleset =
+					g_list_append(search->filter->ruleset, rule);
+            rule->target->refcount++;
+        }
+
+        if (!res)
+        	gdk_beep();
+    }
+
+	gtk_widget_grab_focus(widget);
+	G_FREE_NULL(text);
+}
+
 
 /* vi: set ts=4 sw=4 cindent: */

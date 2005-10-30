@@ -429,18 +429,15 @@ search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
 /***
  *** Glade callbacks
  ***/
+
 void
 on_combo_entry_searches_activate(GtkEditable *unused_editable,
 	gpointer unused_udata)
 {
-    /* FIXME */
 	(void) unused_editable;
 	(void) unused_udata;
 }
 
-
-/**
- */
 void
 on_search_popdown_switch(GtkWidget *unused_w, gpointer unused_data)
 {
@@ -513,77 +510,15 @@ on_search_selected(GtkItem *unused_item, gpointer data)
 void
 on_button_search_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
-	GtkWidget *widget;
-	gchar *e;
-
-	/*
-	 * Even though we might not be on_the_net() yet, record the search.
-	 * There is a callback mechanism when a new node is connected, which
-	 * will launch the search there if it has not been sent already.
-	 *		--patch from Mark Schreiber, 10/01/2002
-	 */
-
 	(void) unused_button;
 	(void) unused_udata;
 
-    widget = lookup_widget(main_window, "entry_search");
-   	e = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(widget), 0, -1));
-    g_strstrip(e);
-    if (*e) {
-        filter_t *default_filter;
-        search_t *search;
-        gboolean res;
-
-        /*
-         * It's important gui_search_history_add is called before
-         * new_search, otherwise the search entry will not be
-         * cleared.
-         *      --BLUE, 04/05/2002
-         */
-        gui_search_history_add(e);
-
-        /*
-         * We have to capture the selection here already, because
-         * new_search will trigger a rebuild of the menu as a
-         * side effect.
-         */
-        default_filter = (filter_t *)option_menu_get_selected_data
-            (lookup_widget(main_window, "optionmenu_search_filter"));
-
-		res = search_gui_new_search(e, 0, &search);
-
-        /*
-         * If we should set a default filter, we do that.
-         */
-        if (res && (default_filter != NULL)) {
-            rule_t *rule;
-		   
-			rule = filter_new_jump_rule(default_filter, RULE_FLAG_ACTIVE);
-
-            /*
-             * Since we don't want to distrub the shadows and
-             * do a "force commit" without the user having pressed
-             * the "ok" button in the dialog, we add the rule
-             * manually.
-             */
-            search->filter->ruleset =
-                g_list_append(search->filter->ruleset, rule);
-            rule->target->refcount ++;
-        }
-
-        if (!res)
-        	gdk_beep();
-    }
-
-	gtk_widget_grab_focus(widget);
-	G_FREE_NULL(e);
+	search_gui_new_search_entered();
 }
 
 
-/**
- */
 void
-on_entry_search_activate(GtkEditable *unused_editable, gpointer user_data)
+on_entry_search_activate(GtkEditable *unused_editable, gpointer unused_udata)
 {
     /*
      * Delegate to: on_button_search_clicked.
@@ -591,8 +526,9 @@ on_entry_search_activate(GtkEditable *unused_editable, gpointer user_data)
      */
 
 	(void) unused_editable;
+	(void) unused_udata;
 
-	on_button_search_clicked(NULL, user_data);
+	search_gui_new_search_entered();
 }
 
 
@@ -602,13 +538,14 @@ on_entry_search_activate(GtkEditable *unused_editable, gpointer user_data)
 void
 on_entry_search_changed(GtkEditable *editable, gpointer unused_udata)
 {
-	gchar *e = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
+	gchar *s = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 
 	(void) unused_udata;
-	g_strstrip(e);
-	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_search"), *e != 0);
-	G_FREE_NULL(e);
+	
+	g_strstrip(s);
+	gtk_widget_set_sensitive(lookup_widget(main_window, "button_search"),
+		s[0] != '\0');
+	G_FREE_NULL(s);
 }
 
 

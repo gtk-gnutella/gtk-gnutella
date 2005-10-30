@@ -158,6 +158,7 @@ struct filter;
 void search_gui_add_targetted_search(
     struct record *rec, struct filter *noneed);
 void search_gui_update_items(struct search *);
+void search_gui_new_search_entered(void);
 
 gchar *search_xml_indent(const gchar *s);
 

@@ -68,7 +68,6 @@ static gchar tmpstr[4096];
 
 GList *searches = NULL;		/* List of search structs */
 search_t *search_selected = NULL;
-static GList *list_search_history = NULL;
 
 /**
  * Characteristics of data in search results columns, used for sorting.
@@ -1935,9 +1934,6 @@ void search_gui_shutdown(void)
         search_gui_close_search((search_t *) searches->data);
 
 	search_gui_common_shutdown();
-
-    g_list_free(list_search_history);
-    list_search_history = NULL;
 }
 
 
@@ -2393,47 +2389,6 @@ gui_search_get_colors(
         ->fg[GTK_STATE_ACTIVE]);
 }
 
-
-/**
- * Adds a search string to the search history combo. Makes
- * sure we do not get more than 10 entries in the history.
- * Also makes sure we don't get duplicate history entries.
- * If a string is already in history and it's added again,
- * it's moved to the beginning of the history list.
- */
-void
-gui_search_history_add(const gchar *s)
-{
-    GList *new_hist = NULL;
-    GList *cur_hist = list_search_history;
-    guint n = 0;
-
-    g_return_if_fail(s);
-
-    while (cur_hist != NULL) {
-        if (n < 9 && 0 != g_ascii_strcasecmp(s, cur_hist->data)) {
-            /* copy up to the first 9 items */
-            new_hist = g_list_append(new_hist, cur_hist->data);
-            n ++;
-        } else {
-            /* and free the rest */
-            g_free(cur_hist->data);
-        }
-        cur_hist = cur_hist->next;
-    }
-    /* put the new item on top */
-    new_hist = g_list_prepend(new_hist, g_strdup(s));
-
-    /* set new history */
-    gtk_combo_set_popdown_strings(
-        GTK_COMBO(lookup_widget(main_window, "combo_search")),
-        new_hist);
-
-    /* free old list structure */
-    g_list_free(list_search_history);
-
-    list_search_history = new_hist;
-}
 
 
 /**

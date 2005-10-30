@@ -134,11 +134,40 @@ void
 on_combo_entry_searches_activate(GtkEditable *unused_editable,
 	gpointer unused_udata)
 {
-    /* FIXME */
 	(void) unused_editable;
 	(void) unused_udata;
 }
 
+void
+on_entry_search_activate(GtkEditable *unused_editable,
+	gpointer unused_udata)
+{
+    /*
+     * Delegate to: on_button_search_clicked.
+     *      --BLUE, 30/04/2002
+     */
+
+	(void) unused_editable;
+	(void) unused_udata;
+
+	search_gui_new_search_entered();
+}
+
+/**
+ *	When a search string is entered, activate the search button
+ */
+void
+on_entry_search_changed(GtkEditable *editable, gpointer unused_udata)
+{
+	gchar *s = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
+
+	(void) unused_udata;
+	
+	g_strstrip(s);
+	gtk_widget_set_sensitive(lookup_widget(main_window, "button_search"),
+		s[0] != '\0');
+	G_FREE_NULL(s);
+}
 
 void
 on_search_popdown_switch(GtkWidget *unused_w, gpointer unused_data)
@@ -215,97 +244,9 @@ on_search_selected(GtkItem *unused_item, gpointer data)
 void
 on_button_search_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
-	GtkWidget *widget;
-	const gchar *text;
-
 	(void) unused_button;
 	(void) unused_udata;
-
-	/*
-	 * Even though we might not be on_the_net() yet, record the search.
-	 * There is a callback mechanism when a new node is connected, which
-	 * will launch the search there if it has not been sent already.
-	 *              --patch from Mark Schreiber, 10/01/2002
-	 */
-
-	widget = lookup_widget(main_window, "comboboxentry_search");
-	text = gtk_entry_get_text(GTK_ENTRY(GTK_BIN(widget)->child));
-	
-    if ('\0' != text[0]) {
-        filter_t *default_filter;
-        search_t *search;
-        gboolean res;
-
-		/*
-		 * It's important gui_search_history_add is called before
-		 * new_search, otherwise the search entry will not be
-		 * cleared.
-		 *      --BLUE, 04/05/2002
-		 */
-		gui_search_history_add(text);
-
-
-		/*
-		 * We have to capture the selection here already, because
-		 * new_search will trigger a rebuild of the menu as a
-		 * side effect.
-		 */
-		default_filter = (filter_t *)option_menu_get_selected_data
-				(lookup_widget(main_window, "optionmenu_search_filter"));
-
-		res = search_gui_new_search(text, 0, &search);
-
-		/*
-		 * If we should set a default filter, we do that.
-		 */
-		if (res && (default_filter != NULL)) {
-			rule_t *rule = filter_new_jump_rule(
-				default_filter, RULE_FLAG_ACTIVE);
-
-			/*
-			 * Since we don't want to distrub the shadows and
-			 * do a "force commit" without the user having pressed
-			 * the "ok" button in the dialog, we add the rule
-			 * manually.
-			 */
-			search->filter->ruleset =
-                g_list_append(search->filter->ruleset, rule);
-			rule->target->refcount ++;
-		}
-
-		if (!res)
-			gdk_beep();
-	}
-
-	gtk_widget_grab_focus(widget);
-}
-
-void
-on_combobox_search_activate(GtkWidget *unused_widget, gpointer unused_udata)
-{
-    /*
-     * Delegate to: on_button_search_clicked.
-     *      --BLUE, 30/04/2002
-     */
-
-	(void) unused_widget;
-	(void) unused_udata;
-	on_button_search_clicked(NULL, NULL);
-}
-
-void
-on_combobox_search_changed(GtkWidget *unused_widget, gpointer unused_udata)
-{
-	GtkComboBox *combo;
-	const gchar *text;
-	
-	(void) unused_widget;
-	(void) unused_udata;
-
-	combo = GTK_COMBO_BOX(lookup_widget(main_window, "comboboxentry_search"));
-	text = gtk_entry_get_text(GTK_ENTRY(GTK_BIN(combo)->child));
-	gtk_widget_set_sensitive(
-		lookup_widget(main_window, "button_search"), '\0' != text[0]);
+	search_gui_new_search_entered();
 }
 
 void

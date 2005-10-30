@@ -1908,7 +1908,8 @@ create_main_window (void)
   GtkWidget *image401;
   GtkWidget *label903;
   GtkWidget *frame129;
-  GtkWidget *comboboxentry_search;
+  GtkWidget *combo_search;
+  GtkWidget *entry_search;
   GtkWidget *button_search_passive;
   GtkWidget *alignment110;
   GtkWidget *hbox9292;
@@ -2683,10 +2684,16 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_frame_set_shadow_type (GTK_FRAME (frame129), GTK_SHADOW_NONE);
 
-  comboboxentry_search = gtk_combo_box_entry_new_text ();
-  gtk_widget_set_name (comboboxentry_search, "comboboxentry_search");
-  gtk_widget_show (comboboxentry_search);
-  gtk_container_add (GTK_CONTAINER (frame129), comboboxentry_search);
+  combo_search = gtk_combo_new ();
+  g_object_set_data (G_OBJECT (GTK_COMBO (combo_search)->popwin),
+                     "GladeParentKey", combo_search);
+  gtk_widget_set_name (combo_search, "combo_search");
+  gtk_widget_show (combo_search);
+  gtk_container_add (GTK_CONTAINER (frame129), combo_search);
+
+  entry_search = GTK_COMBO (combo_search)->entry;
+  gtk_widget_set_name (entry_search, "entry_search");
+  gtk_widget_show (entry_search);
 
   button_search_passive = gtk_button_new ();
   gtk_widget_set_name (button_search_passive, "button_search_passive");
@@ -2909,6 +2916,12 @@ create_main_window (void)
   g_signal_connect ((gpointer) button_search, "clicked",
                     G_CALLBACK (on_button_search_clicked),
                     NULL);
+  g_signal_connect ((gpointer) entry_search, "activate",
+                    G_CALLBACK (on_entry_search_activate),
+                    NULL);
+  g_signal_connect ((gpointer) entry_search, "changed",
+                    G_CALLBACK (on_entry_search_changed),
+                    NULL);
   g_signal_connect ((gpointer) button_search_passive, "clicked",
                     G_CALLBACK (on_button_search_passive_clicked),
                     NULL);
@@ -3043,7 +3056,8 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image401, "image401");
   GLADE_HOOKUP_OBJECT (main_window, label903, "label903");
   GLADE_HOOKUP_OBJECT (main_window, frame129, "frame129");
-  GLADE_HOOKUP_OBJECT (main_window, comboboxentry_search, "comboboxentry_search");
+  GLADE_HOOKUP_OBJECT (main_window, combo_search, "combo_search");
+  GLADE_HOOKUP_OBJECT (main_window, entry_search, "entry_search");
   GLADE_HOOKUP_OBJECT (main_window, button_search_passive, "button_search_passive");
   GLADE_HOOKUP_OBJECT (main_window, alignment110, "alignment110");
   GLADE_HOOKUP_OBJECT (main_window, hbox9292, "hbox9292");

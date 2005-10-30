@@ -422,8 +422,8 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	search_gui_set_current_search(sch);
 	gtk_widget_set_sensitive(lookup_widget(main_window, "button_search_close"),
 		TRUE);
-	gtk_entry_set_text(GTK_ENTRY(GTK_BIN(
-			lookup_widget(main_window, "comboboxentry_search"))->child), "");
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget(main_window, "entry_search")),
+		"");
 
 	searches = g_list_append(searches, sch);
 
@@ -1002,13 +1002,6 @@ search_gui_init(void)
 	tree_view_restore_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
 	search_gui_retrieve_searches();
     search_add_got_results_listener(search_gui_got_results);
-
-	g_signal_connect(GTK_OBJECT(GTK_BIN(
-				lookup_widget(main_window, "comboboxentry_search"))->child),
-			"activate", G_CALLBACK(on_combobox_search_activate), NULL);
-	g_signal_connect(GTK_OBJECT(
-				lookup_widget(main_window, "comboboxentry_search")),
-			"changed", G_CALLBACK(on_combobox_search_changed), NULL);
 }
 
 void
@@ -1520,23 +1513,6 @@ gui_search_get_colors(
     *download_color =  &(gtk_widget_get_style(GTK_WIDGET(sch->tree_view))
         ->fg[GTK_STATE_ACTIVE]);
 }
-
-/**
- * Adds a search string to the search history combo. Makes
- * sure we do not get more than 10 entries in the history.
- * Also makes sure we don't get duplicate history entries.
- * If a string is already in history and it's added again,
- * it's moved to the beginning of the history list.
- */
-void
-gui_search_history_add(const gchar *text)
-{
-    GtkWidget *widget;
-		
-	widget = lookup_widget(main_window, "comboboxentry_search");
-	gtk_combo_box_append_text(GTK_COMBO_BOX(widget), text);
-}
-
 
 /**
  * Flag whether search is enabled.

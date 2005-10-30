@@ -29,14 +29,14 @@
 #include <gtk/gtk.h>
 
 void on_combo_entry_searches_activate(GtkEditable *editable, gpointer user_data);
+void on_entry_search_activate(GtkEditable *editable, gpointer user_data);
+void on_entry_search_changed(GtkEditable *editable, gpointer unused_udata);
 void on_search_popdown_switch(GtkWidget * w, gpointer data);
 void on_search_notebook_switch(GtkNotebook * notebook, GtkNotebookPage * page, gint page_num, gpointer user_data);
 void on_search_notebook_focus_tab(GtkNotebook * notebook, GtkNotebookTab arg1, gpointer user_data);
 void on_tree_view_search_select_row(GtkTreeView * tree_view, gpointer user_data);
 void on_search_selected(GtkItem * i, gpointer data);
 void on_button_search_clicked(GtkButton *button, gpointer user_data);
-void on_combobox_search_activate(GtkWidget *editable, gpointer user_data);
-void on_combobox_search_changed(GtkWidget *widget, gpointer user_data);
 void on_button_search_clear_clicked(GtkButton * button, gpointer user_data);
 void on_button_search_close_clicked(GtkButton *button, gpointer user_data);
 void on_button_search_download_clicked(GtkButton *button, gpointer user_data);
