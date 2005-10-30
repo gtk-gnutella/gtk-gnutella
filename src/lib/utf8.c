@@ -996,7 +996,7 @@ utf8_to_iso8859(gchar *s, gint len, gboolean space)
 	s_end = s + len;
 
 	while (x < s_end) {
-		gint clen;
+		guint clen;
 		guint32 v = utf8_decode_char(x, len, &clen, FALSE);
 
 		if (clen == 0)
@@ -1956,7 +1956,7 @@ gchar *
 unknown_to_utf8(const gchar *src, gboolean add_charset)
 {
 	enum utf8_cd id = UTF8_CD_INVALID;
-	iconv_t cd;
+	iconv_t cd = (iconv_t) -1;
 	gchar *dst;
 
 	g_assert(src);
@@ -1964,7 +1964,7 @@ unknown_to_utf8(const gchar *src, gboolean add_charset)
 	if (utf8_is_valid_string(src))
 		return deconstify_gchar(src);
 
-	if ( looks_like_iso2022(src))
+	if (looks_like_iso2022(src))
 		id = UTF8_CD_ISO2022_JP;
 
 	if (iso8859_is_valid_string(src)) {
@@ -4828,7 +4828,8 @@ regression_iconv_utf8_to_utf8(void)
 		0xca, 0xc0, 0xbd, 0xe7, 0x0
 	};
 
-	(void) lazy_locale_to_utf8_normalized(s, UNI_NORM_NFC);
+	(void) lazy_locale_to_utf8_normalized(cast_to_gconstpointer(s),
+				UNI_NORM_NFC);
 }
 
 /*
@@ -4842,7 +4843,7 @@ regression_utf8_bijection(void)
 
 	for (uc = 0; uc <= 0x10FFFF; uc++) {
 		static gchar utf8_char[4];
-		gint len, len1;
+		guint len, len1;
 		guint32 uc1;
 
 		len = utf8_encode_char(uc, utf8_char, sizeof utf8_char);
@@ -4859,7 +4860,7 @@ regression_utf8_bijection(void)
 #if defined(TEST_UTF8_DECODER)
 		{
 			guint32 uc2;
-			gint len2;
+			guint len2;
 
 			uc2 = utf8_decode_char_less_fast(utf8_char, &len2);
 			g_assert(uc1 == uc2);
