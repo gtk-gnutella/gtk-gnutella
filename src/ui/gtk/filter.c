@@ -1346,7 +1346,7 @@ filter_gui_set_ruleset(GList *ruleset)
         g_assert(r != NULL);
         count++;
         titles[0] = RULE_IS_NEGATED(r) ? "X" : "";
-        titles[1] = filter_rule_condition_to_gchar(r);
+        titles[1] = filter_rule_condition_to_string(r);
         titles[2] = lazy_utf8_to_ui_string(r->target->name);
         titles[3] = "...";
 
