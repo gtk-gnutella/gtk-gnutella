@@ -134,7 +134,7 @@ gchar *get_file_path(gint);
 void shared_dirs_update_prop(void);
 gboolean shared_dirs_parse(const gchar *);
 
-guint compact_query(gchar *search);
+size_t compact_query(gchar *search);
 void query_strip_oob_flag(struct gnutella_node *n, gchar *data);
 void query_set_oob_flag(struct gnutella_node *n, gchar *data);
 

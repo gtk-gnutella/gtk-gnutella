@@ -1530,7 +1530,7 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 	struct gnutella_msg_search *m;
 	guint32 size;
 	guint32 plen;			/* Length of payload */
-	gint qlen;				/* Length of query text */
+	size_t qlen;			/* Length of query text */
 	gboolean is_urn_search = FALSE;
 	guint16 speed;
 
@@ -1638,7 +1638,7 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 		query[hash_len + 1] = '\0';
 	} else {
 		gchar *query;
-		gint new_len;
+		size_t new_len;
 
 		STATIC_ASSERT(25 == sizeof *m);
 		query = cast_to_gpointer(&m[1]);
@@ -2624,8 +2624,7 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 		g_assert(qdup != query);
 	}
 
-	compact_query(qdup);
-	if (strlen(qdup) < 3) {
+	if (compact_query(qdup) < 3) {
 		g_warning("Rejected too short query string: \"%s\"", qdup);
 		G_FREE_NULL(qdup);
 		return (gnet_search_t) -1;
