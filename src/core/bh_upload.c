@@ -198,7 +198,7 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 
 		case BH_STATE_LIBRARY_INFO:
 			if (!bh->b_data) {
-				bh->b_size = w_concat_strings(&bh->w_buf,
+				bh->w_buf_size = w_concat_strings(&bh->w_buf,
 					"<h1>Gtk-Gnutella</h1>\r\n"
 					"<h3>", version_get_string(),
 				   	" sharing ",
@@ -210,7 +210,7 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 					" total</h3>\r\n"
 					"<ul>\r\n", (void *) 0);
 				bh->b_data = bh->w_buf;
-				bh->w_buf_size = 1 + bh->b_size;
+				bh->b_size = bh->w_buf_size - 1; /* minus trailing NUL */
 				bh->b_offset = 0;
 			}
 			p += browse_host_read_data(bh, p, &size);
@@ -257,7 +257,7 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 					html_escape(sf->name_nfc, html_name, html_size);
 
 					if (sha1_hash_available(sf)) {
-						bh->b_size = w_concat_strings(&bh->w_buf,
+						bh->w_buf_size = w_concat_strings(&bh->w_buf,
 							"<li><a href=\"/uri-res/N2R?urn:sha1:",
 							sha1_base32(sf->sha1_digest),
 							"\">", html_name, "</a>&nbsp;[",
@@ -268,7 +268,7 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 						gchar *escaped;
 
 						escaped = url_escape(sf->name_nfc);
-						bh->b_size = w_concat_strings(&bh->w_buf,
+						bh->w_buf_size = w_concat_strings(&bh->w_buf,
 							"<li><a href=\"/get/",
 							uint64_to_string(sf->file_index),
 							"/", escaped, "\">", html_name, "</a>"
@@ -281,7 +281,7 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 
 					wfree(html_name, html_size);
 					bh->b_data = bh->w_buf;
-					bh->w_buf_size = 1 + bh->b_size;
+					bh->b_size = bh->w_buf_size - 1; /* minus trailing NUL */
 					bh->b_offset = 0;
 				}
 			}

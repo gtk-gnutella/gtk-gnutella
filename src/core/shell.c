@@ -958,13 +958,13 @@ shell_read_data(gnutella_shell_t *sh)
 		reply_code = shell_exec(sh, getline_str(s->getline));
 		if (CMD_NOOP != reply_code) {
 			gchar *buf = NULL;
-			size_t len;
+			size_t size;
 
-			len = w_concat_strings(&buf, uint32_to_string(reply_code),
+			size = w_concat_strings(&buf, uint32_to_string(reply_code),
 					" ", sh->msg ? sh->msg : "", "\n", (void *) 0);
 
 			shell_write(sh, buf); /* XXX: Let shell_write() own ``buf'' */
-			wfree(buf, 1 + len);
+			wfree(buf, size);
 			buf = NULL;
 		}
 

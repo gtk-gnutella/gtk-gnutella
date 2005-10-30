@@ -166,29 +166,29 @@ concat_strings(gchar *dst, size_t size, const gchar *s, ...)
 /**
  * Concatenates a variable number of NUL-terminated strings into buffer
  * which will be allocated using walloc().
- * The returned value is the length of the resulting string. The buffer
- * is exactly one byte larger than this to hold the terminating NUL.
  *
  * The list of strings must be terminated by a NULL pointer. The first
- * list element may be NULL in which case zero is returned.
+ * list element may be NULL in which case 1 is returned.
  *
  * @param dst_ptr if not NULL, it will point to the allocated buffer.
  * @param first the first source string or NULL.
  *
- * @return the sum of the lengths of all passed strings.
+ * @return The sum of the lengths of all passed strings plus 1 for the
+ *         the trailing NUL. Use this as size argument for wfree() to
+ *		   release the allocated buffer.
  */
 size_t
 w_concat_strings(gchar **dst_ptr, const gchar *first, ...)
 {
 	va_list ap, ap2;
 	const gchar *s;
-	size_t len;
+	size_t size;
 
 	va_start(ap, first);
 	VA_COPY(ap2, ap);
 
-	for (s = first, len = 0; NULL != s; /* NOTHING */) {
-		len += strlen(s);
+	for (s = first, size = 1; NULL != s; /* NOTHING */) {
+		size += strlen(s);
 		s = va_arg(ap, const gchar *);
 	}
 
@@ -196,20 +196,21 @@ w_concat_strings(gchar **dst_ptr, const gchar *first, ...)
 
 	if (dst_ptr) {
 		gchar *p;
-		size_t n, size = 1 + len;
+		size_t n, len = size - 1;
 
 		*dst_ptr = p = walloc(size);
-		for (s = first; NULL != s; p += n, size -= n) {
-			n = g_strlcpy(p, s, size);
+		for (s = first; NULL != s; p += n, len -= n) {
+			n = g_strlcpy(p, s, len + 1);
 			s = va_arg(ap2, const gchar *);
-			g_assert(n < size);
+			g_assert(n <= len);
 		}
-		g_assert(1 == size);
+		*p = '\0';
+		g_assert(0 == len);
 	}
 
 	va_end(ap2);
 
-	return len;
+	return size;
 }
 
 /**
