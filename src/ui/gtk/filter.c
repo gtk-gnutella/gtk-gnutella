@@ -54,6 +54,7 @@ RCSID("$Id$");
 #include "if/gui_property_priv.h"
 
 #include "lib/glib-missing.h"
+#include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define DEFAULT_TARGET (filter_get_drop_target())
@@ -67,7 +68,7 @@ GtkWidget *popup_filter_rule = NULL;
 /*
  * Private variables
  */
-static gchar * rule_text_type_labels[] = {
+static const gchar * const rule_text_type_labels[] = {
     N_("starts with"),
     N_("contains the words"),
     N_("ends with"),
@@ -76,7 +77,6 @@ static gchar * rule_text_type_labels[] = {
     N_("is exactly")
 };
 
-static gchar fg_tmp[1024];
 static GtkCTreeNode *fl_node_global = NULL;
 static GtkCTreeNode *fl_node_bound = NULL;
 static GtkCTreeNode *fl_node_free = NULL;
@@ -100,7 +100,8 @@ static GtkCTreeNode *getFilterRoot(filter_t *f);
 /**
  * Fetch the proper root node for a given filter in the filter tree.
  */
-static GtkCTreeNode *getFilterRoot(filter_t *f)
+static GtkCTreeNode *
+getFilterRoot(filter_t *f)
 {
     if (filter_is_global(f)) {
         return fl_node_global;
@@ -117,7 +118,8 @@ static GtkCTreeNode *getFilterRoot(filter_t *f)
  * Initialize the contents of the dialog editor and some
  * internal variables like the roots in the filter list etc.
  */
-void filter_gui_init(void)
+void
+filter_gui_init(void)
 {
     GtkMenu *m;
     gint i;
@@ -148,22 +150,22 @@ void filter_gui_init(void)
     m = GTK_MENU(gtk_menu_new());
     menu_new_item_with_data(
         m, _(rule_text_type_labels[RULE_TEXT_PREFIX]),
-        (gpointer) RULE_TEXT_PREFIX);
+        GUINT_TO_POINTER(RULE_TEXT_PREFIX));
     menu_new_item_with_data(
         m, _(rule_text_type_labels[RULE_TEXT_WORDS]),
-        (gpointer) RULE_TEXT_WORDS);
+        GUINT_TO_POINTER(RULE_TEXT_WORDS));
     menu_new_item_with_data(
         m, _(rule_text_type_labels[RULE_TEXT_SUFFIX]),
-        (gpointer)RULE_TEXT_SUFFIX);
+        GUINT_TO_POINTER(RULE_TEXT_SUFFIX));
     menu_new_item_with_data(
         m, _(rule_text_type_labels[RULE_TEXT_SUBSTR]),
-        (gpointer) RULE_TEXT_SUBSTR);
+        GUINT_TO_POINTER(RULE_TEXT_SUBSTR));
     menu_new_item_with_data(
         m, _(rule_text_type_labels[RULE_TEXT_REGEXP]),
-        (gpointer) RULE_TEXT_REGEXP);
+        GUINT_TO_POINTER(RULE_TEXT_REGEXP));
     menu_new_item_with_data(
         m, _(rule_text_type_labels[RULE_TEXT_EXACT]),
-        (gpointer) RULE_TEXT_EXACT);
+        GUINT_TO_POINTER(RULE_TEXT_EXACT));
 
     gtk_option_menu_set_menu(
         GTK_OPTION_MENU
@@ -176,41 +178,41 @@ void filter_gui_init(void)
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
             (filter_dialog, "radiobutton_filter_flag_stable_set")),
-        (gpointer) RULE_FLAG_SET);
+		GUINT_TO_POINTER(RULE_FLAG_SET));
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
             (filter_dialog, "radiobutton_filter_flag_stable_unset")),
-        (gpointer) RULE_FLAG_UNSET);
+        GUINT_TO_POINTER(RULE_FLAG_UNSET));
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
             (filter_dialog, "radiobutton_filter_flag_stable_ignore")),
-        (gpointer) RULE_FLAG_IGNORE);
+        GUINT_TO_POINTER(RULE_FLAG_IGNORE));
 
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
             (filter_dialog, "radiobutton_filter_flag_busy_set")),
-        (gpointer) RULE_FLAG_SET);
+        GUINT_TO_POINTER(RULE_FLAG_SET));
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
             (filter_dialog, "radiobutton_filter_flag_busy_unset")),
-        (gpointer) RULE_FLAG_UNSET);
+        GUINT_TO_POINTER(RULE_FLAG_UNSET));
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
             (filter_dialog, "radiobutton_filter_flag_busy_ignore")),
-        (gpointer) RULE_FLAG_IGNORE);
+        GUINT_TO_POINTER(RULE_FLAG_IGNORE));
 
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
             (filter_dialog, "radiobutton_filter_flag_push_set")),
-        (gpointer) RULE_FLAG_SET);
+        GUINT_TO_POINTER(RULE_FLAG_SET));
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
             (filter_dialog, "radiobutton_filter_flag_push_unset")),
-        (gpointer) RULE_FLAG_UNSET);
+        GUINT_TO_POINTER(RULE_FLAG_UNSET));
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
             (filter_dialog, "radiobutton_filter_flag_push_ignore")),
-        (gpointer) RULE_FLAG_IGNORE);
+        GUINT_TO_POINTER(RULE_FLAG_IGNORE));
 
     /*
      * The user_data set here is later relevant for filter_gui_get_state_rule()
@@ -218,43 +220,44 @@ void filter_gui_init(void)
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
             (filter_dialog, "radiobutton_filter_state_display_do")),
-        (gpointer) FILTER_PROP_STATE_DO);
+        GUINT_TO_POINTER(FILTER_PROP_STATE_DO));
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
         (filter_dialog, "radiobutton_filter_state_display_dont")),
-        (gpointer) FILTER_PROP_STATE_DONT);
+        GUINT_TO_POINTER(FILTER_PROP_STATE_DONT));
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
             (filter_dialog, "radiobutton_filter_state_display_ignore")),
-        (gpointer) FILTER_PROP_STATE_IGNORE);
+        GUINT_TO_POINTER(FILTER_PROP_STATE_IGNORE));
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
             (filter_dialog, "radiobutton_filter_state_display_undef")),
-        (gpointer) FILTER_PROP_STATE_UNKNOWN);
+        GUINT_TO_POINTER(FILTER_PROP_STATE_UNKNOWN));
 
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
             (filter_dialog, "radiobutton_filter_state_download_do")),
-        (gpointer) FILTER_PROP_STATE_DO);
+        GUINT_TO_POINTER(FILTER_PROP_STATE_DO));
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
             (filter_dialog, "radiobutton_filter_state_download_dont")),
-        (gpointer) FILTER_PROP_STATE_DONT);
+        GUINT_TO_POINTER(FILTER_PROP_STATE_DONT));
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
             (filter_dialog, "radiobutton_filter_state_download_ignore")),
-        (gpointer) FILTER_PROP_STATE_IGNORE);
+        GUINT_TO_POINTER(FILTER_PROP_STATE_IGNORE));
     gtk_object_set_user_data(
         GTK_OBJECT(lookup_widget
             (filter_dialog, "radiobutton_filter_state_download_undef")),
-        (gpointer) FILTER_PROP_STATE_UNKNOWN);
+        GUINT_TO_POINTER(FILTER_PROP_STATE_UNKNOWN));
 
 }
 
 /**
  * Show the dialog on screen and set position.
  */
-void filter_gui_show_dialog(void)
+void
+filter_gui_show_dialog(void)
 {
     guint32 coord[4] = { 0, 0, 0, 0 };
 
@@ -264,7 +267,7 @@ void filter_gui_show_dialog(void)
     gui_prop_get_guint32(PROP_FILTER_DLG_COORDS, coord, 0, 4);
 	gui_fix_coords(coord);
 
-    if ((coord[2] != 0) && (coord[3] != 0))
+    if (coord[2] != 0 && coord[3] != 0)
         gtk_window_set_default_size(GTK_WINDOW(filter_dialog),
 	    coord[2], coord[3]);
 
@@ -281,7 +284,8 @@ void filter_gui_show_dialog(void)
 /**
  * Remove all entries from the filter tree.
  */
-void filter_gui_filter_clear_list(void)
+void
+filter_gui_filter_clear_list(void)
 {
     gchar *titles[3];
     GdkColor *bg_color;
@@ -297,17 +301,13 @@ void filter_gui_filter_clear_list(void)
         ->bg[GTK_STATE_ACTIVE]);
 
     if (fl_node_global != NULL)
-        gtk_ctree_remove_node(GTK_CTREE(ctree_filter_filters),
-            fl_node_global);
+        gtk_ctree_remove_node(GTK_CTREE(ctree_filter_filters), fl_node_global);
     if (fl_node_bound != NULL)
-        gtk_ctree_remove_node(GTK_CTREE(ctree_filter_filters),
-            fl_node_bound);
+        gtk_ctree_remove_node(GTK_CTREE(ctree_filter_filters), fl_node_bound);
     if (fl_node_free != NULL)
-        gtk_ctree_remove_node(GTK_CTREE(ctree_filter_filters),
-            fl_node_free);
+        gtk_ctree_remove_node(GTK_CTREE(ctree_filter_filters), fl_node_free);
     if (fl_node_builtin != NULL)
-        gtk_ctree_remove_node(GTK_CTREE(ctree_filter_filters),
-            fl_node_builtin);
+        gtk_ctree_remove_node(GTK_CTREE(ctree_filter_filters), fl_node_builtin);
 
 
     titles[0] = _("Builtin targets (not editable)");
@@ -358,13 +358,15 @@ void filter_gui_filter_clear_list(void)
  * shadow, shadow->current should be set as ruleset. If ruleset is NULL,
  * default to filter->ruleset.
  */
-void filter_gui_filter_add(filter_t *f, GList *ruleset)
+void
+filter_gui_filter_add(filter_t *f, GList *ruleset)
 {
-    gchar *titles[3];
+    const gchar *titles[3];
     GtkCTreeNode *node;
     GtkCTreeNode *parent;
-    guint buf;
+    guint count;
     GtkCTree *ctree_filter_filters;
+	gchar buf[G_N_ELEMENTS(titles)][256];
 
     g_assert(f != NULL);
 
@@ -377,18 +379,19 @@ void filter_gui_filter_add(filter_t *f, GList *ruleset)
     if (ruleset == NULL)
         ruleset = f->ruleset;
 
-    titles[0] = f->name;
-    gm_snprintf(fg_tmp, sizeof(fg_tmp), "%d", g_list_length(ruleset));
-    titles[1] = g_strdup(fg_tmp);
-    buf = f->match_count+f->fail_count;
-    if (buf != 0) {
+    titles[0] = lazy_utf8_to_ui_string(f->name);
+    gm_snprintf(buf[1], sizeof buf[1], "%d", g_list_length(ruleset));
+    titles[1] = buf[1];
+    count = f->match_count + f->fail_count;
+    if (count != 0) {
         if (filter_is_builtin(f)) {
-            gm_snprintf(fg_tmp, sizeof(fg_tmp), "%d", f->match_count);
+            gm_snprintf(buf[2], sizeof buf[2], "%d", f->match_count);
         } else {
-            gm_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
-                f->match_count, buf, (gint)((float)f->match_count/buf*100));
+            gm_snprintf(buf[2], sizeof buf[2], "%d/%d (%d%%)",
+                f->match_count, count,
+				(gint)(f->match_count / (count * 100.0)));
         }
-        titles[2] = fg_tmp;
+        titles[2] = buf[2];
     } else {
         titles[2] = "...";
     }
@@ -396,17 +399,15 @@ void filter_gui_filter_add(filter_t *f, GList *ruleset)
     parent = getFilterRoot(f);
 
     node = gtk_ctree_insert_node(
-        GTK_CTREE(ctree_filter_filters), parent, NULL, titles,
-        0, NULL, NULL, NULL, NULL, TRUE, TRUE);
-    gtk_ctree_node_set_row_data
-        (GTK_CTREE(ctree_filter_filters), node, (gpointer) f);
+        GTK_CTREE(ctree_filter_filters), parent, NULL,
+		deconstify_gpointer(titles),
+		0, NULL, NULL, NULL, NULL, TRUE, TRUE);
+    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_filter_filters), node, f);
 
-    if (parent == fl_node_builtin) {
-        gtk_ctree_node_set_selectable
-            (GTK_CTREE(ctree_filter_filters), node, FALSE);
-    }
+    if (parent == fl_node_builtin)
+        gtk_ctree_node_set_selectable(GTK_CTREE(ctree_filter_filters),
+			node, FALSE);
 
-    G_FREE_NULL(titles[1]);
 }
 
 
@@ -414,7 +415,8 @@ void filter_gui_filter_add(filter_t *f, GList *ruleset)
 /**
  * Update the rule count of a filter in the filter table.
  */
-void filter_gui_update_rule_count(filter_t *f, GList *ruleset)
+void
+filter_gui_update_rule_count(filter_t *f, GList *ruleset)
 {
     GtkCTreeNode *parent;
     GtkCTreeNode *node;
@@ -432,9 +434,11 @@ void filter_gui_update_rule_count(filter_t *f, GList *ruleset)
     node = gtk_ctree_find_by_row_data(ctree_filter_filters, parent, f);
 
     if (node != NULL) {
-        gm_snprintf(fg_tmp, sizeof(fg_tmp), "%d", g_list_length(ruleset));
-        gtk_ctree_node_set_text
-            (GTK_CTREE(ctree_filter_filters), node, 1, fg_tmp);
+		gchar buf[32];
+		
+        gm_snprintf(buf, sizeof buf, "%d", g_list_length(ruleset));
+        gtk_ctree_node_set_text(GTK_CTREE(ctree_filter_filters),
+			node, 1, buf);
     }
 }
 
@@ -443,7 +447,8 @@ void filter_gui_update_rule_count(filter_t *f, GList *ruleset)
 /**
  * Removes a filter from the list in the dialog.
  */
-void filter_gui_filter_remove(filter_t *f)
+void
+filter_gui_filter_remove(filter_t *f)
 {
     GtkCTreeNode *parent;
     GtkCTreeNode *node;
@@ -474,21 +479,21 @@ void filter_gui_filter_remove(filter_t *f)
  * @note
  * This does not rebuild the target combos.
  */
-void filter_gui_filter_set
-    (filter_t *f, gboolean removable, gboolean active, GList *ruleset)
+void
+filter_gui_filter_set(filter_t *f, gboolean removable,
+	gboolean active, GList *ruleset)
 {
-    gchar * widgets[] = {
-        "checkbutton_filter_enabled",
-        "button_filter_reset",
-        "button_filter_add_rule_text",
-        "button_filter_add_rule_ip",
-        "button_filter_add_rule_size",
-        "button_filter_add_rule_jump",
-        "button_filter_add_rule_flag",
-        "button_filter_add_rule_state",
-        "clist_filter_rules",
-        "entry_filter_name",
-        NULL
+    static const gchar * const widgets[] = {
+		"checkbutton_filter_enabled",
+		"button_filter_reset",
+		"button_filter_add_rule_text",
+		"button_filter_add_rule_ip",
+		"button_filter_add_rule_size",
+		"button_filter_add_rule_jump",
+		"button_filter_add_rule_flag",
+		"button_filter_add_rule_state",
+		"clist_filter_rules",
+		"entry_filter_name",
     };
     GtkCTree *ctree_filter_filters;
 
@@ -505,7 +510,8 @@ void filter_gui_filter_set
     if (f != NULL) {
         GtkCTreeNode *node;
 
-        gtk_mass_widget_set_sensitive(filter_dialog, widgets, TRUE);
+        gtk_mass_widget_set_sensitive(filter_dialog,
+			widgets, G_N_ELEMENTS(widgets), TRUE);
 
         gtk_widget_set_sensitive
             (lookup_widget(filter_dialog, "button_filter_remove"), removable);
@@ -515,7 +521,7 @@ void filter_gui_filter_set
             active);
         gtk_entry_set_text(
             GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_name")),
-            f->name);
+            lazy_utf8_to_ui_string(f->name));
 
         filter_gui_filter_set_enabled(f, active);
 
@@ -543,7 +549,8 @@ void filter_gui_filter_set
 
         gtk_widget_set_sensitive
             (lookup_widget(filter_dialog, "button_filter_remove"), FALSE);
-        gtk_mass_widget_set_sensitive(filter_dialog, widgets, FALSE);
+        gtk_mass_widget_set_sensitive(filter_dialog,
+			widgets, G_N_ELEMENTS(widgets), FALSE);
     }
 }
 
@@ -553,7 +560,8 @@ void filter_gui_filter_set
  * Tell the gui a given filter is enabled/disabled. If the filter given
  * is NULL, then the widget will be set insensitive and inactive.
  */
-void filter_gui_filter_set_enabled(filter_t *f, gboolean active)
+void
+filter_gui_filter_set_enabled(filter_t *f, gboolean active)
 {
     GtkCTreeNode *node;
     GtkCTreeNode *parent;
@@ -597,10 +605,11 @@ void filter_gui_filter_set_enabled(filter_t *f, gboolean active)
 /**
  * Update the filter list with the current stats data from the filters.
  */
-void filter_gui_update_filter_stats(void)
+void
+filter_gui_update_filter_stats(void)
 {
-    gint row;
     GtkCTree *ctree_filter_filters;
+    gint row;
 
     if (filter_dialog == NULL)
         return;
@@ -614,7 +623,7 @@ void filter_gui_update_filter_stats(void)
         gchar *title;
         filter_t *filter;
         GtkCTreeNode *node;
-        gint buf;
+		gchar buf[256];
 
         node = gtk_ctree_node_nth(GTK_CTREE(ctree_filter_filters), row);
         filter = gtk_ctree_node_get_row_data
@@ -626,24 +635,25 @@ void filter_gui_update_filter_stats(void)
         if (filter_is_shadowed(filter)) {
             title = _("new");
         } else {
-            buf = filter->match_count+filter->fail_count;
-            if (buf != 0) {
+			guint n;
+			
+            n = filter->match_count + filter->fail_count;
+            if (n != 0) {
                 if (filter_is_builtin(filter)) {
-                    gm_snprintf(fg_tmp, sizeof(fg_tmp), "%d",
-                        filter->match_count);
+                    gm_snprintf(buf, sizeof buf, "%d", filter->match_count);
                 } else {
-                    gm_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
-                        filter->match_count, buf,
-                        (gint)((float)filter->match_count/buf*100));
+                    gm_snprintf(buf, sizeof buf, "%d/%d (%d%%)",
+                        filter->match_count, n,
+                        (gint)(filter->match_count / (n * 100.0)));
                 }
-                title = fg_tmp;
+                title = buf;
             } else {
                 title = _("none yet");
             }
         }
 
-        gtk_ctree_node_set_text(
-            GTK_CTREE(ctree_filter_filters), node, 2, title);
+        gtk_ctree_node_set_text(GTK_CTREE(ctree_filter_filters),
+			node, 2, title);
     }
 
     gtk_clist_thaw(GTK_CLIST(ctree_filter_filters));
@@ -654,26 +664,27 @@ void filter_gui_update_filter_stats(void)
 /**
  * Update the rules list with the current stats data from the rules.
  */
-void filter_gui_update_rule_stats(void)
+void
+filter_gui_update_rule_stats(void)
 {
-    gint row;
     GtkCList *clist_filter_rules;
+    gint row;
 
-    if ((filter_dialog == NULL) || (work_filter == NULL))
+    if (filter_dialog == NULL || work_filter == NULL)
         return;
 
-    clist_filter_rules = GTK_CLIST
-        (lookup_widget(filter_dialog, "clist_filter_rules"));
+    clist_filter_rules = GTK_CLIST(lookup_widget(filter_dialog,
+													"clist_filter_rules"));
 
     gtk_clist_freeze(GTK_CLIST(clist_filter_rules));
 
-    for (row = 0; row < GTK_CLIST(clist_filter_rules)->rows; row ++) {
+    for (row = 0; row < GTK_CLIST(clist_filter_rules)->rows; row++) {
         gchar *title;
         rule_t *rule;
-        gint buf;
+		gchar buf[256];
+        gint n;
 
-        rule = (rule_t *) gtk_clist_get_row_data
-            (GTK_CLIST(clist_filter_rules), row);
+        rule = gtk_clist_get_row_data(GTK_CLIST(clist_filter_rules), row);
 
         if (rule == NULL)
             continue;
@@ -681,12 +692,12 @@ void filter_gui_update_rule_stats(void)
         if (RULE_IS_SHADOWED(rule)) {
             title = _("new");
         } else {
-            buf = rule->match_count+rule->fail_count;
-            if (buf != 0) {
-                gm_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
-                    rule->match_count, buf,
-                    (gint)((float)rule->match_count/buf*100));
-                title = fg_tmp;
+            n = rule->match_count + rule->fail_count;
+            if (n != 0) {
+                gm_snprintf(buf, sizeof buf, "%d/%d (%d%%)",
+                    rule->match_count, n,
+                    (gint)(rule->match_count / (n * 100.0)));
+                title = buf;
             } else {
                 title = _("none yet");
             }
@@ -700,30 +711,32 @@ void filter_gui_update_rule_stats(void)
 
 
 
-void filter_gui_rebuild_target_combos(GList *filters)
+void
+filter_gui_rebuild_target_combos(GList *filters)
 {
-    GtkMenu *m;
-    GList *l;
-    GList *buf = NULL;
-    gchar *opt_menus[] = {
-        "optionmenu_filter_text_target",
-        "optionmenu_filter_ip_target",
-        "optionmenu_filter_size_target",
-        "optionmenu_filter_jump_target",
-        "optionmenu_filter_sha1_target",
-        "optionmenu_filter_flag_target",
-        "optionmenu_filter_state_target",
-        NULL };
-    gpointer bufptr;
-    gint i;
+    static const struct {
+		const gchar *name;
+	} opt_menus[] = {
+		{ "optionmenu_filter_text_target"  },
+		{ "optionmenu_filter_ip_target"    },
+		{ "optionmenu_filter_size_target"  },
+		{ "optionmenu_filter_jump_target"  },
+		{ "optionmenu_filter_sha1_target"  },
+		{ "optionmenu_filter_flag_target"  },
+		{ "optionmenu_filter_state_target" },
+	};
     GtkWidget *optionmenu_search_filter;
+    GtkMenu *m;
+    GList *l_iter;
+    GList *buf = NULL;
+    gpointer bufptr;
 
     /*
      * Prepare a list of unbound filters and also leave
      * out the global and builtin filters.
      */
-    for (l = filters; l != NULL; l = l->next) {
-        filter_t *filter = (filter_t *)l->data;
+    for (l_iter = filters; l_iter != NULL; l_iter = g_list_next(l_iter)) {
+        filter_t *filter = l_iter->data;
 
         if (!filter_is_bound(filter) && !filter_is_global(filter))
             buf = g_list_append(buf, filter);
@@ -733,18 +746,22 @@ void filter_gui_rebuild_target_combos(GList *filters)
      * These can only be updated if there is a dialog.
      */
     if (filter_dialog != NULL) {
-        for (i = 0; opt_menus[i] != NULL; i ++) {
+    	guint i;
+
+        for (i = 0; i < G_N_ELEMENTS(opt_menus); i++) {
             m = GTK_MENU(gtk_menu_new());
 
-            for (l = buf; l != NULL; l = l->next) {
-                filter_t *filter = (filter_t *)l->data;
-                if (filter != work_filter)
-                    menu_new_item_with_data(m, filter->name, filter);
+            for (l_iter = buf; l_iter != NULL; l_iter = g_list_next(l_iter)) {
+                filter_t *filter = l_iter->data;
+                if (filter != work_filter) {
+					const gchar *s = lazy_utf8_to_ui_string(filter->name);
+                    menu_new_item_with_data(m, deconstify_gchar(s), filter);
+				}
             }
 
             gtk_option_menu_set_menu(
-                GTK_OPTION_MENU(lookup_widget(filter_dialog, opt_menus[i])),
-                GTK_WIDGET(m));
+               GTK_OPTION_MENU(lookup_widget(filter_dialog, opt_menus[i].name)),
+               GTK_WIDGET(m));
         }
     }
 
@@ -760,19 +777,21 @@ void filter_gui_rebuild_target_combos(GList *filters)
     m = GTK_MENU(gtk_menu_new());
 
     menu_new_item_with_data(m, _("no default filter"), NULL);
-    for (l = buf; l != NULL; l = l->next) {
-        filter_t *filter = (filter_t *)l->data;
+    for (l_iter = buf; l_iter != NULL; l_iter = g_list_next(l_iter)) {
+        filter_t *filter = l_iter->data;
         /*
          * This is no need to create a query which should not
          * display anything, also we can't advertise a filter
          * as target that does not really exist yet.
          */
-        if (!filter_is_builtin(filter) && !filter_is_shadowed(filter))
-            menu_new_item_with_data(m, filter->name, filter);
+        if (!filter_is_builtin(filter) && !filter_is_shadowed(filter)) {
+			const gchar *s = lazy_utf8_to_ui_string(filter->name);
+            menu_new_item_with_data(m, deconstify_gchar(s), filter);
+		}
     }
 
-    gtk_option_menu_set_menu
-        (GTK_OPTION_MENU(optionmenu_search_filter), GTK_WIDGET(m));
+    gtk_option_menu_set_menu(GTK_OPTION_MENU(optionmenu_search_filter),
+		GTK_WIDGET(m));
 
     option_menu_select_item_by_data(optionmenu_search_filter, bufptr);
 
@@ -784,7 +803,8 @@ void filter_gui_rebuild_target_combos(GList *filters)
 /**
  * Load the given rule into the detail view.
  */
-void filter_gui_edit_rule(rule_t *r)
+void
+filter_gui_edit_rule(rule_t *r)
 {
     if (filter_dialog == NULL)
         return;
@@ -830,16 +850,17 @@ void filter_gui_edit_rule(rule_t *r)
 /**
  * Load a ip rule into the rule edtior or clear it if the rule is NULL.
  */
-void filter_gui_edit_ip_rule(rule_t *r)
+void
+filter_gui_edit_ip_rule(rule_t *r)
 {
     gchar *ip       = NULL;
     gchar *mask     = NULL;
-    gpointer target = (gpointer) DEFAULT_TARGET;
+    gpointer target = DEFAULT_TARGET;
     gboolean invert = FALSE;
     gboolean active = TRUE;
     gboolean soft   = FALSE;
 
-    g_assert((r == NULL) ||(r->type == RULE_IP));
+    g_assert(r == NULL || r->type == RULE_IP);
 
     if (filter_dialog == NULL)
         return;
@@ -847,7 +868,7 @@ void filter_gui_edit_ip_rule(rule_t *r)
     if (r != NULL) {
         ip     = g_strdup(ip_to_string(r->u.ip.addr));
         mask   = g_strdup(ip_to_string(r->u.ip.mask));
-        target = (gpointer) r->target;
+        target = r->target;
         invert = RULE_IS_NEGATED(r);
         active = RULE_IS_ACTIVE(r);
         soft   = RULE_IS_SOFT(r);
@@ -882,8 +903,7 @@ void filter_gui_edit_ip_rule(rule_t *r)
    	G_FREE_NULL(mask);
 
     gtk_notebook_set_page(
-        GTK_NOTEBOOK
-            (lookup_widget(filter_dialog, "notebook_filter_detail")),
+        GTK_NOTEBOOK(lookup_widget(filter_dialog, "notebook_filter_detail")),
         nb_filt_page_ip);
 }
 
@@ -892,11 +912,12 @@ void filter_gui_edit_ip_rule(rule_t *r)
 /**
  * Load a sha1 rule into the rule edtior or clear it if the rule is NULL.
  */
-void filter_gui_edit_sha1_rule(rule_t *r)
+void
+filter_gui_edit_sha1_rule(rule_t *r)
 {
     gchar *hash     = "";
     gchar *origfile = "";
-    gpointer target = (gpointer) DEFAULT_TARGET;
+    gpointer target = DEFAULT_TARGET;
     gboolean invert = FALSE;
     gboolean active = TRUE;
     gboolean soft   = FALSE;
@@ -910,7 +931,7 @@ void filter_gui_edit_sha1_rule(rule_t *r)
         hash = r->u.sha1.hash != NULL ?
             sha1_base32(r->u.sha1.hash) : _("[no hash]");
         origfile = r->u.sha1.filename;
-        target = (gpointer) r->target;
+        target = r->target;
         invert = RULE_IS_NEGATED(r);
         active = RULE_IS_ACTIVE(r);
         soft   = RULE_IS_SOFT(r);
@@ -921,7 +942,7 @@ void filter_gui_edit_sha1_rule(rule_t *r)
         hash);
     gtk_entry_set_text(
         GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_sha1_origfile")),
-        origfile);
+        lazy_utf8_to_ui_string(origfile));
     option_menu_select_item_by_data(
         lookup_widget(filter_dialog, "optionmenu_filter_sha1_target"),
         target);
@@ -950,12 +971,13 @@ void filter_gui_edit_sha1_rule(rule_t *r)
  * Load a ip rule into the rule edtior or clear it if the rule is NULL.
  */
 
-void filter_gui_edit_text_rule(rule_t *r)
+void
+filter_gui_edit_text_rule(rule_t *r)
 {
     gchar *pattern  = "";
     guint type      = RULE_TEXT_WORDS;
     gboolean tcase  = FALSE;
-    gpointer target = (gpointer) DEFAULT_TARGET;
+    gpointer target = DEFAULT_TARGET;
     gboolean invert = FALSE;
     gboolean active = TRUE;
     gboolean soft   = FALSE;
@@ -969,7 +991,7 @@ void filter_gui_edit_text_rule(rule_t *r)
         pattern = r->u.text.match;
         type    = r->u.text.type;
         tcase   = r->u.text.case_sensitive;
-        target  = (gpointer) r->target;
+        target  = r->target;
         invert  = RULE_IS_NEGATED(r);
         active  = RULE_IS_ACTIVE(r);
         soft    = RULE_IS_SOFT(r);
@@ -977,7 +999,7 @@ void filter_gui_edit_text_rule(rule_t *r)
 
     gtk_entry_set_text(
         GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_text_pattern")),
-        pattern);
+        lazy_utf8_to_ui_string(pattern));
     gtk_toggle_button_set_active(
         GTK_TOGGLE_BUTTON
             (lookup_widget(filter_dialog, "checkbutton_filter_text_case")),
@@ -1013,11 +1035,12 @@ void filter_gui_edit_text_rule(rule_t *r)
 /**
  * Load a ip rule into the rule edtior or clear it if the rule is NULL.
  */
-void filter_gui_edit_size_rule(rule_t *r)
+void
+filter_gui_edit_size_rule(rule_t *r)
 {
     filesize_t min     = 0;
     filesize_t max     = 0;
-    gpointer target = (gpointer) DEFAULT_TARGET;
+    gpointer target = DEFAULT_TARGET;
     gboolean invert = FALSE;
     gboolean active = TRUE;
     gboolean soft   = FALSE;
@@ -1030,7 +1053,7 @@ void filter_gui_edit_size_rule(rule_t *r)
     if (r != NULL) {
         min    = r->u.size.lower;
         max    = r->u.size.upper;
-        target = (gpointer) r->target;
+        target = r->target;
         invert = RULE_IS_NEGATED(r);
         active = RULE_IS_ACTIVE(r);
         soft   = RULE_IS_SOFT(r);
@@ -1069,9 +1092,10 @@ void filter_gui_edit_size_rule(rule_t *r)
 /**
  * Load a ip rule into the rule edtior or clear it if the rule is NULL.
  */
-void filter_gui_edit_jump_rule(rule_t *r)
+void
+filter_gui_edit_jump_rule(rule_t *r)
 {
-    gpointer target = (gpointer) DEFAULT_TARGET;
+    gpointer target = DEFAULT_TARGET;
     gboolean active = TRUE;
 
     g_assert((r == NULL) || (r->type == RULE_JUMP));
@@ -1080,7 +1104,7 @@ void filter_gui_edit_jump_rule(rule_t *r)
         return;
 
     if (r != NULL) {
-        target = (gpointer) r->target;
+        target = r->target;
         active = RULE_IS_ACTIVE(r);
     }
 
@@ -1103,15 +1127,15 @@ void filter_gui_edit_jump_rule(rule_t *r)
 /**
  * Load a flag rule into the rule edtior or clear it if the rule is NULL.
  */
-void filter_gui_edit_flag_rule(rule_t *r)
+void
+filter_gui_edit_flag_rule(rule_t *r)
 {
     guint stable    = RULE_FLAG_IGNORE;
     guint busy      = RULE_FLAG_IGNORE;
     guint push      = RULE_FLAG_IGNORE;
-    gpointer target = (gpointer) DEFAULT_TARGET;
+    gpointer target = DEFAULT_TARGET;
     gboolean active = TRUE;
     gboolean soft   = FALSE;
-
     gchar *widget   = NULL;
 
     g_assert((r == NULL) || (r->type == RULE_FLAG));
@@ -1199,11 +1223,12 @@ void filter_gui_edit_flag_rule(rule_t *r)
 /**
  * Load a state rule into the rule edtior or clear it if the rule is NULL.
  */
-void filter_gui_edit_state_rule(rule_t *r)
+void
+filter_gui_edit_state_rule(rule_t *r)
 {
     guint display   = FILTER_PROP_STATE_IGNORE;
     guint download  = FILTER_PROP_STATE_IGNORE;
-    gpointer target = (gpointer) DEFAULT_TARGET;
+    gpointer target = DEFAULT_TARGET;
     gboolean active = TRUE;
     gboolean soft   = FALSE;
     gboolean invert = FALSE;
@@ -1217,7 +1242,7 @@ void filter_gui_edit_state_rule(rule_t *r)
     if (r != NULL) {
         display  = r->u.state.display;
         download = r->u.state.download;
-        target   = (gpointer) r->target;
+        target   = r->target;
         invert   = RULE_IS_NEGATED(r);
         active   = RULE_IS_ACTIVE(r);
         soft     = RULE_IS_SOFT(r);
@@ -1288,9 +1313,10 @@ void filter_gui_edit_state_rule(rule_t *r)
 /**
  * Display the given ruleset in the table.
  */
-void filter_gui_set_ruleset(GList *ruleset)
+void
+filter_gui_set_ruleset(GList *ruleset)
 {
-    GList *l;
+    GList *l_iter;
     gint count = 0;
     GdkColor *color;
     GtkCList *clist_filter_rules;
@@ -1312,22 +1338,22 @@ void filter_gui_set_ruleset(GList *ruleset)
             (lookup_widget(filter_dialog, "button_filter_reset_all_rules")),
         ruleset != NULL);
 
-    for (l = ruleset; l != NULL; l = l->next) {
-        rule_t *r = (rule_t *)l->data;
-        gchar *titles[4];
+    for (l_iter = ruleset; l_iter != NULL; l_iter = g_list_next(l_iter)) {
+        rule_t *r = l_iter->data;
+        const gchar *titles[4];
         gint row;
 
         g_assert(r != NULL);
-        count ++;
+        count++;
         titles[0] = RULE_IS_NEGATED(r) ? "X" : "";
         titles[1] = filter_rule_condition_to_gchar(r);
-        titles[2] = r->target->name;
+        titles[2] = lazy_utf8_to_ui_string(r->target->name);
         titles[3] = "...";
 
-        row = gtk_clist_append(clist_filter_rules, titles);
+        row = gtk_clist_append(clist_filter_rules, deconstify_gpointer(titles));
         if (!RULE_IS_ACTIVE(r))
              gtk_clist_set_foreground(clist_filter_rules, row, color);
-        gtk_clist_set_row_data(clist_filter_rules, row, (gpointer) r);
+        gtk_clist_set_row_data(clist_filter_rules, row, r);
     }
     gtk_clist_thaw(clist_filter_rules);
 
@@ -1346,7 +1372,8 @@ void filter_gui_set_ruleset(GList *ruleset)
  *
  * @returns a completely new rule_t item in new memory.
  */
-rule_t *filter_gui_get_rule(void)
+rule_t *
+filter_gui_get_rule(void)
 {
     gint page;
     rule_t *r;
@@ -1397,7 +1424,8 @@ rule_t *filter_gui_get_rule(void)
  *
  * @warning NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
-static rule_t *filter_gui_get_text_rule(void)
+static rule_t *
+filter_gui_get_text_rule(void)
 {
   	rule_t *r;
     gchar *match;
@@ -1412,8 +1440,8 @@ static rule_t *filter_gui_get_text_rule(void)
     g_return_val_if_fail(filter_dialog != NULL, NULL);
 
 	type = (enum rule_text_type)
-        option_menu_get_selected_data
-            (lookup_widget(filter_dialog, "optionmenu_filter_text_type"));
+        GPOINTER_TO_UINT(option_menu_get_selected_data
+            (lookup_widget(filter_dialog, "optionmenu_filter_text_type")));
 
 	match = STRTRACK(gtk_editable_get_chars(
         GTK_EDITABLE
@@ -1437,8 +1465,8 @@ static rule_t *filter_gui_get_text_rule(void)
         GTK_TOGGLE_BUTTON
             (lookup_widget(filter_dialog, "checkbutton_filter_text_soft")));
 
-    target = (filter_t *)option_menu_get_selected_data
-        (lookup_widget(filter_dialog, "optionmenu_filter_text_target"));
+    target = option_menu_get_selected_data(lookup_widget(filter_dialog,
+				"optionmenu_filter_text_target"));
 
     flags =
         (negate ? RULE_FLAG_NEGATE : 0) |
@@ -1459,7 +1487,8 @@ static rule_t *filter_gui_get_text_rule(void)
  *
  * @warning NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
-static rule_t *filter_gui_get_ip_rule(void)
+static rule_t *
+filter_gui_get_ip_rule(void)
 {
     gchar *s;
     guint32 addr;
@@ -1499,8 +1528,8 @@ static rule_t *filter_gui_get_ip_rule(void)
         GTK_TOGGLE_BUTTON
             (lookup_widget(filter_dialog, "checkbutton_filter_ip_soft")));
 
-    target = (filter_t *)option_menu_get_selected_data
-        (lookup_widget(filter_dialog, "optionmenu_filter_ip_target"));
+    target = option_menu_get_selected_data(lookup_widget(filter_dialog,
+					"optionmenu_filter_ip_target"));
 
     flags =
         (negate ? RULE_FLAG_NEGATE : 0) |
@@ -1590,7 +1619,8 @@ filter_update_size(GtkEntry *entry)
  *
  * @warning NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
-static rule_t *filter_gui_get_size_rule(void)
+static rule_t *
+filter_gui_get_size_rule(void)
 {
     filesize_t lower;
     filesize_t upper;
@@ -1622,8 +1652,8 @@ static rule_t *filter_gui_get_size_rule(void)
         GTK_TOGGLE_BUTTON
             (lookup_widget(filter_dialog, "checkbutton_filter_size_soft")));
 
-    target = (filter_t *)option_menu_get_selected_data
-        (lookup_widget(filter_dialog, "optionmenu_filter_size_target"));
+    target = option_menu_get_selected_data(lookup_widget(filter_dialog,
+					"optionmenu_filter_size_target"));
 
     flags =
         (negate ? RULE_FLAG_NEGATE : 0) |
@@ -1647,7 +1677,8 @@ static rule_t *filter_gui_get_size_rule(void)
  *
  * @warning NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
-static rule_t *filter_gui_get_jump_rule(void)
+static rule_t *
+filter_gui_get_jump_rule(void)
 {
     filter_t *target;
     gboolean active;
@@ -1660,8 +1691,8 @@ static rule_t *filter_gui_get_jump_rule(void)
         GTK_TOGGLE_BUTTON
             (lookup_widget(filter_dialog, "checkbutton_filter_jump_active")));
 
-    target = (filter_t *)option_menu_get_selected_data
-        (lookup_widget(filter_dialog, "optionmenu_filter_jump_target"));
+    target = option_menu_get_selected_data(lookup_widget(filter_dialog,
+					"optionmenu_filter_jump_target"));
 
     flags = (active ? RULE_FLAG_ACTIVE : 0);
 
@@ -1675,7 +1706,8 @@ static rule_t *filter_gui_get_jump_rule(void)
  *
  * @warning NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
-static rule_t *filter_gui_get_flag_rule(void)
+static rule_t *
+filter_gui_get_flag_rule(void)
 {
     filter_t *target;
     enum rule_flag_action stable = 2;
@@ -1689,26 +1721,26 @@ static rule_t *filter_gui_get_flag_rule(void)
     if (filter_dialog == NULL)
         return NULL;
 
-    target = (filter_t *)option_menu_get_selected_data
-        (lookup_widget(filter_dialog, "optionmenu_filter_flag_target"));
+    target = option_menu_get_selected_data(lookup_widget(filter_dialog,
+					"optionmenu_filter_flag_target"));
 
     act = radiobutton_get_active_in_group
         (GTK_RADIO_BUTTON(lookup_widget
             (filter_dialog, "radiobutton_filter_flag_stable_set")));
     stable = (enum rule_flag_action)
-        gtk_object_get_user_data(GTK_OBJECT(act));
+        GPOINTER_TO_UINT(gtk_object_get_user_data(GTK_OBJECT(act)));
 
     act = radiobutton_get_active_in_group
         (GTK_RADIO_BUTTON(lookup_widget
             (filter_dialog, "radiobutton_filter_flag_busy_set")));
     busy = (enum rule_flag_action)
-        gtk_object_get_user_data(GTK_OBJECT(act));
+        GPOINTER_TO_UINT(gtk_object_get_user_data(GTK_OBJECT(act)));
 
     act = radiobutton_get_active_in_group
         (GTK_RADIO_BUTTON(lookup_widget
             (filter_dialog, "radiobutton_filter_flag_push_set")));
     push = (enum rule_flag_action)
-        gtk_object_get_user_data(GTK_OBJECT(act));
+        GPOINTER_TO_UINT(gtk_object_get_user_data(GTK_OBJECT(act)));
 
     active = gtk_toggle_button_get_active
         (GTK_TOGGLE_BUTTON
@@ -1731,7 +1763,8 @@ static rule_t *filter_gui_get_flag_rule(void)
  *
  * @warning NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
-static rule_t *filter_gui_get_state_rule(void)
+static rule_t *
+filter_gui_get_state_rule(void)
 {
     filter_t *target;
     enum filter_prop_state display  = FILTER_PROP_STATE_IGNORE;
@@ -1745,20 +1778,20 @@ static rule_t *filter_gui_get_state_rule(void)
     if (filter_dialog == NULL)
         return NULL;
 
-    target = (filter_t *)option_menu_get_selected_data
-        (lookup_widget(filter_dialog, "optionmenu_filter_state_target"));
+    target = option_menu_get_selected_data(lookup_widget(filter_dialog,
+					"optionmenu_filter_state_target"));
 
     act = radiobutton_get_active_in_group
         (GTK_RADIO_BUTTON(lookup_widget
             (filter_dialog, "radiobutton_filter_state_display_do")));
     display = (enum filter_prop_state)
-        gtk_object_get_user_data(GTK_OBJECT(act));
+        GPOINTER_TO_UINT(gtk_object_get_user_data(GTK_OBJECT(act)));
 
     act = radiobutton_get_active_in_group
         (GTK_RADIO_BUTTON(lookup_widget
             (filter_dialog, "radiobutton_filter_state_download_do")));
     download = (enum filter_prop_state)
-        gtk_object_get_user_data(GTK_OBJECT(act));
+        GPOINTER_TO_UINT(gtk_object_get_user_data(GTK_OBJECT(act)));
 
     active = gtk_toggle_button_get_active
         (GTK_TOGGLE_BUTTON(lookup_widget
@@ -1779,7 +1812,8 @@ static rule_t *filter_gui_get_state_rule(void)
     return filter_new_state_rule(display, download, target, flags);
 }
 
-void filter_gui_freeze_rules(void)
+void
+filter_gui_freeze_rules(void)
 {
     if (filter_dialog == NULL)
         return;
@@ -1788,7 +1822,8 @@ void filter_gui_freeze_rules(void)
         (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
 }
 
-void filter_gui_thaw_rules(void)
+void
+filter_gui_thaw_rules(void)
 {
     if (filter_dialog == NULL)
         return;
@@ -1797,7 +1832,8 @@ void filter_gui_thaw_rules(void)
         (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
 }
 
-void filter_gui_freeze_filters(void)
+void
+filter_gui_freeze_filters(void)
 {
     if (filter_dialog == NULL)
         return;
@@ -1806,7 +1842,8 @@ void filter_gui_freeze_filters(void)
         (GTK_CLIST(lookup_widget(filter_dialog, "ctree_filter_filters")));
 }
 
-void filter_gui_thaw_filters(void)
+void
+filter_gui_thaw_filters(void)
 {
     if (filter_dialog == NULL)
         return;
@@ -1824,7 +1861,8 @@ void filter_gui_thaw_filters(void)
  * the rules notebook.
  *
  */
-GtkWidget *filter_gui_create_dlg_filters(void)
+GtkWidget *
+filter_gui_create_dlg_filters(void)
 {
 	GtkWidget *dialog;
     GtkWidget *notebook;
