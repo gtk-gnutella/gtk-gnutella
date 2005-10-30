@@ -148,10 +148,10 @@ const gchar *
 utf8_cd_to_name(enum utf8_cd id)
 {
 	guint i = (guint) id;
-	
+
 	g_assert(i < G_N_ELEMENTS(utf8_cd_tab));
 	STATIC_ASSERT(G_N_ELEMENTS(utf8_cd_tab) == NUM_UTF8_CDS);
-	
+
 	g_assert(utf8_cd_tab[i].id == id);
 	return utf8_cd_tab[i].name;
 }
@@ -163,10 +163,10 @@ utf8_cd_get(enum utf8_cd id)
 	guint i = (guint) id;
 
 	g_assert(i < G_N_ELEMENTS(utf8_cd_tab));
-	
+
 	if (!utf8_cd_tab[i].initialized) {
 		const gchar *cs;
-		
+
 		utf8_cd_tab[i].initialized = TRUE;
 		cs = utf8_cd_tab[i].name;
 		g_assert(cs);
@@ -174,7 +174,7 @@ utf8_cd_get(enum utf8_cd id)
 		if ((iconv_t) -1 == (utf8_cd_tab[i].cd = iconv_open("UTF-8", cs)))
 			g_warning("iconv_open(\"UTF-8\", \"%s\") failed.", cs);
 	}
-	
+
 	return utf8_cd_tab[i].cd;
 }
 
@@ -196,7 +196,7 @@ filename_charset(void)
 {
 	g_assert(sl_filename_charsets);
 	g_assert(sl_filename_charsets->data);
-	
+
 	return sl_filename_charsets->data;
 }
 
@@ -207,7 +207,7 @@ filename_charset_is_utf8(void)
 
 	if (!initialized) {
 		const gchar *cs;
-		
+
 		initialized = TRUE;
 		cs = filename_charset();
 		g_assert(cs);
@@ -233,7 +233,7 @@ utf8_skip(guchar c)
 		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,	/* 0x50-0x5F */
 		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,	/* 0x60-0x6F */
 		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,	/* 0x70-0x7F */
-		
+
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,	/* 0x80-0x8F */
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,	/* 0x90-0x9F */
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,	/* 0xA0-0xAF */
@@ -242,9 +242,9 @@ utf8_skip(guchar c)
 		0,0,								/* 0xC0-0xC1 */
 		    2,2,2,2,2,2,2,2,2,2,2,2,2,2,	/* 0xC2-0xCF */
 		2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,	/* 0xD0-0xDF */
-		
+
 		3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,	/* 0xE0-0xEF */
-		
+
 		4,4,4,4,4,							/* 0xF0-0xF4 */
 				  0,0,0,0,0,0,0,0,0,0,0,	/* 0xF5-0xFF */
 	};
@@ -1152,7 +1152,7 @@ locale_get_charset(void)
 {
 	static gboolean initialized;
 	static const char *cs;
-	
+
 	if (!initialized) {
 #if defined(USE_GLIB2)
 		g_get_charset(&cs);
@@ -1166,7 +1166,7 @@ locale_get_charset(void)
 
 		cs = g_strdup(cs);
 	}
-	
+
 	return charset ? charset : cs;
 }
 
@@ -1307,7 +1307,7 @@ locale_init(void)
 
 	{
 		const GSList *sl = sl_filename_charsets;
-		
+
 		g_message("primary filename character set \"%s\"", filename_charset());
 		while (NULL != (sl = g_slist_next(sl)))
 			g_message("additional filename character set \"%s\"",
@@ -1319,7 +1319,7 @@ locale_init(void)
 			latin_locale = TRUE;
 			break;
 		}
-	
+
 	/*
 	 * Don't use iconv() for UTF-8 -> UTF-8 conversion, it's
 	 * pointless and apparently some implementations don't filter
@@ -1330,7 +1330,7 @@ locale_init(void)
 		/* locale -> UTF-8 */
 		if (UTF8_CD_INVALID != utf8_name_to_cd(charset))
 			cd_locale_to_utf8 = utf8_cd_get(utf8_name_to_cd(charset));
-			
+
 		if ((iconv_t) -1 == cd_locale_to_utf8) {
 			cd_locale_to_utf8 = iconv_open("UTF-8", charset);
 			if ((iconv_t) -1 == cd_locale_to_utf8)
@@ -1371,7 +1371,7 @@ locale_init(void)
 		cd_filename_to_utf8 = cd_from;
 		cd_utf8_to_filename = cd_to;
 	}
-	
+
 #if 0  /* xxxUSE_ICU */
 	{
 		UErrorCode errorCode = U_ZERO_ERROR;
@@ -1437,7 +1437,7 @@ complete_iconv(iconv_t cd, const gchar *src, gchar *dst, size_t dst_left)
 {
 	const gchar * const dst0 = dst;
 	size_t src_left;
-	
+
 	g_assert(src);
 	g_assert(0 == dst_left || dst);
 
@@ -1448,7 +1448,7 @@ complete_iconv(iconv_t cd, const gchar *src, gchar *dst, size_t dst_left)
 
 	if ((size_t) -1 == iconv(cd, NULL, NULL, NULL, NULL))	/* reset state */
 		goto error;
-	
+
 	src_left = strlen(src);
 
 	while (src_left > 0) {
@@ -1483,7 +1483,7 @@ complete_iconv(iconv_t cd, const gchar *src, gchar *dst, size_t dst_left)
 			/* reset state */
 			if ((size_t) -1 == iconv(cd, NULL, NULL, NULL, NULL))
 				goto error;
-			
+
 			if (dst0 && dst_left > 1)
 				--dst_left, *dst = '_';
 
@@ -1527,7 +1527,7 @@ hyper_iconv(iconv_t cd, const gchar *src, gchar *dst, size_t dst_size)
 	/* Don't assert cd != -1, we allow this */
 	g_assert(src);
 	g_assert(0 == dst_size || dst);
-	
+
 	size = complete_iconv(cd, src, dst, dst_size);
 	if (0 == size) {
 		dst = NULL;
@@ -1621,7 +1621,7 @@ ascii_enforce(const gchar *src, gchar *dst, size_t size)
 
 	if (size > 0) {
 		guchar c;
-		
+
 		for (/* NOTHING */; --size > 0 && '\0' != (c = *s); s++, size)
 			*d++ = isascii(c) ? c : '_';
 
@@ -1641,7 +1641,7 @@ hyper_utf8_enforce(const gchar *src, gchar *dst, size_t dst_size)
 
 	g_assert(src);
 	g_assert(0 == dst_size || dst);
-	
+
 	n = utf8_enforce(src, dst, dst_size);
 	if (n >= dst_size) {
 		size_t size = 1 + n;
@@ -1660,7 +1660,7 @@ hyper_ascii_enforce(const gchar *src, gchar *dst, size_t dst_size)
 
 	g_assert(src);
 	g_assert(0 == dst_size || dst);
-	
+
 	n = ascii_enforce(src, dst, dst_size);
 	if (n >= dst_size) {
 		size_t size = 1 + n;
@@ -1802,10 +1802,10 @@ looks_like_koi8(const gchar *src)
 	const gchar *s = src;
 	size_t n = 0;
 	guchar c;
-	
+
 	for (s = src; (c = *s) >= 0x20; s++)
 		n += koi8_is_cyrillic_char(c);
-	
+
 	return '\0' == c && n > 0 && (s - src) > 10 && (s - src) / n < 2;
 
 }
@@ -1847,10 +1847,10 @@ looks_like_iso8859_6(const gchar *src)
 	const gchar *s;
 	size_t n = 0;
 	guchar c;
-	
+
 	for (s = src; iso8859_6_is_valid_char(c = *s); s++)
 		n += iso8859_6_is_arabic_char(c);
-	
+
 	/* Rewind over trailing ASCII for better ratio detection */
 	s = ascii_rewind(src, s);
 
@@ -1870,10 +1870,10 @@ looks_like_iso8859_7(const gchar *src)
 	const gchar *s;
 	size_t n = 0;
 	guchar c;
-	
+
 	for (s = src; iso8859_is_valid_char(c = *s) && 0xD2 != c; s++)
 		n += iso8859_7_is_greek_char(c);
-	
+
 	/* Rewind over trailing ASCII for better ratio detection */
 	s = ascii_rewind(src, s);
 
@@ -1905,7 +1905,7 @@ looks_like_iso8859_8(const gchar *src)
 	const gchar *s;
 	size_t n = 0;
 	guchar c;
-	
+
 	for (s = src; iso8859_8_is_valid_char(c = *s); s++)
 		n += iso8859_8_is_hebrew_char(c);
 
@@ -1921,10 +1921,10 @@ looks_like_iso2022(const gchar *src)
 	const gchar *s;
 	size_t n = 0;
 	guchar c;
-	
+
 	for (s = src; '\0' != (c = *s); s++)
 		n += 0x1B == *s;
-	
+
 	/* Rewind over trailing ASCII for better ratio detection */
 	s = ascii_rewind(src, s);
 
@@ -1936,7 +1936,7 @@ iso8859_is_valid_string(const gchar *src)
 {
 	while (iso8859_is_valid_char(*src))
 		src++;
-	
+
 	return '\0' == *src;
 }
 
@@ -1958,7 +1958,7 @@ unknown_to_utf8(const gchar *src, gboolean add_charset)
 	enum utf8_cd id = UTF8_CD_INVALID;
 	iconv_t cd;
 	gchar *dst;
-	
+
 	g_assert(src);
 
 	if (utf8_is_valid_string(src))
@@ -1966,11 +1966,11 @@ unknown_to_utf8(const gchar *src, gboolean add_charset)
 
 	if ( looks_like_iso2022(src))
 		id = UTF8_CD_ISO2022_JP;
-	
+
 	if (iso8859_is_valid_string(src)) {
 		const gchar *s;
 
-		/* Skip leading ASCII for better ratio detection */		
+		/* Skip leading ASCII for better ratio detection */
 		for (s = src; IS_NON_NUL_ASCII(s); s++)
 			continue;
 
@@ -2002,12 +2002,12 @@ unknown_to_utf8(const gchar *src, gboolean add_charset)
 	if (add_charset) {
 		const gchar *cs;
 		gchar *p;
-		
+
 		/*
 		 * Prepend " <charset> " to the returned string for debugging. When
 	 	 * sorting by filename, these should appear on top.
 		 */
-		
+
 		cs = UTF8_CD_INVALID == id ? "locale" : utf8_cd_to_name(id);
 		p = g_strconcat(" <", cs, "> ", convert_to_utf8(cd, src), (void *) 0);
 		G_FREE_NULL(dst);
@@ -2032,7 +2032,7 @@ convert_to_utf8_normalized(iconv_t cd, const gchar *src, uni_norm_t norm)
 	g_assert(dst);
 	g_assert(dst != src);
 
-	{	
+	{
 		gchar *s = utf8_normalize(dst, norm);
 		g_assert(s != dst);
 		if (dst != sbuf)
@@ -2113,7 +2113,7 @@ unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
 	s_utf8 = unknown_to_utf8(src, add_charset); /* May return src */
 	if (is_ascii_string(s_utf8))
 		return s_utf8;
-	
+
 	s_norm = utf8_normalize(s_utf8, norm);
 	if (src != s_utf8)
 		G_FREE_NULL(s_utf8);
@@ -2125,7 +2125,7 @@ lazy_iso8859_1_to_utf8(const gchar *src)
 {
 	static gchar *dst;
 	gchar *old;
-  
+
 	g_assert(src);
 
 	old = dst;
@@ -2139,7 +2139,7 @@ lazy_utf8_to_locale(const gchar *src)
 {
 	static gchar *dst;
 	gchar *old;
-  
+
 	g_assert(src);
 
 	old = dst;
@@ -2159,7 +2159,7 @@ const gchar *
 lazy_locale_to_utf8_normalized(const gchar *src, uni_norm_t norm)
 {
 	static gchar *prev; /* Previous conversion result */
-	
+
 	g_assert(src);
 	g_assert(prev != src);
 
@@ -2190,7 +2190,7 @@ lazy_unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
 {
 	static gchar *prev; /* Previous conversion result */
 	gchar *s;
-	
+
 	g_assert(src);
 	g_assert(prev != src);
 
@@ -2220,7 +2220,7 @@ const gchar *
 lazy_locale_to_utf8(const gchar *src)
 {
 	static gchar *prev; /* Previous conversion result */
-	
+
 	g_assert(src);
 	g_assert(prev != src);
 
@@ -2245,7 +2245,7 @@ gchar *
 utf8_to_filename(const gchar *src)
 {
 	gchar *filename;
-	
+
 	g_assert(src);
 
 	filename = utf8_to_filename_charset(src);
@@ -2262,7 +2262,7 @@ utf8_to_filename(const gchar *src)
  * Converts a string as returned by the UI toolkit to UTF-8 but returns the
  * original pointer if no conversion is necessary.  Do not free the returned
  * string. The previously returned pointer may become invalid when calling this
- * function again. 
+ * function again.
  */
 const gchar *
 lazy_ui_string_to_utf8(const gchar *src)
@@ -2306,7 +2306,7 @@ utf8_to_utf32(const gchar *in, guint32 *out, size_t size)
 
 	if (size > 0) {
 		guint32 uc;
-		
+
 		while (--size > 0) {
 			uc = utf8_decode_char_fast(s, &retlen);
 			if (!uc)
@@ -2353,10 +2353,10 @@ utf32_to_utf8(const guint32 *src, gchar *dst, size_t size)
 
 	if (size > 0) {
 		guint retlen;
-	
-		size--;	
+
+		size--;
 		while (0x0000 != (uc = *src) && size > 0) {
-			
+
 			retlen = utf8_encode_char(uc, p, size);
 			if (retlen == 0 || retlen > size)
 				break;
@@ -2452,7 +2452,7 @@ utf32_decompose_lookup(guint32 uc, gboolean nfkd)
 {
 	/* utf32_nfkd_lut contains UTF-32 strings, so we return a pointer
 	 * to the respective entry instead of copying the string */
-	
+
 #define GET_ITEM(i) (utf32_nfkd_lut[(i)].c & ~UTF32_F_MASK)
 #define FOUND(i) G_STMT_START { \
 	return utf32_nfkd_lut[(i)].c & (nfkd ? 0 : UTF32_F_NFKD) \
@@ -2817,7 +2817,7 @@ utf32_decompose_hangul_char(guint32 uc, guint32 *buf)
 	static const guint32 t_base = 0x11A7;
 	const guint32 i = uc - UNI_HANGUL_FIRST;
 	guint32 t_mod = i % T_COUNT;
-	
+
 	buf[0] = l_base + i / N_COUNT;
 	buf[1] = v_base + (i % N_COUNT) / T_COUNT;
 #undef N_COUNT
@@ -3101,7 +3101,7 @@ utf8_decompose(const gchar *src, gchar *out, size_t size, gboolean nfkd)
 			q = buf;
 			while (d_len-- > 0) {
 				gchar *p = utf8_buf;
-				
+
 				utf8_len = utf8_encode_char(*d++, utf8_buf, sizeof utf8_buf);
 				g_assert((size_t) (&buf[sizeof buf] - q) >= utf8_len);
 				while (utf8_len-- > 0)
@@ -3111,7 +3111,7 @@ utf8_decompose(const gchar *src, gchar *out, size_t size, gboolean nfkd)
 			utf8_len = q - buf;
 			if (size - new_len < utf8_len)
 				break;
-			
+
 			new_len += utf8_len;
 			q = buf;
 			while (utf8_len-- > 0)
@@ -3254,7 +3254,7 @@ typedef guint32 (* utf32_remap_func)(guint32 uc);
  *
  * @param dst the target buffer
  * @param src an UTF-8 string
- * @param size the size of dst in bytes 
+ * @param size the size of dst in bytes
  * @param remap a function that takes a single UTF-32 character and returns
  *        a single UTF-32 character.
  * @return the length in bytes of the converted string ``src''.
@@ -3276,7 +3276,7 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 		new_len = 0;
 	} else {
 		const gchar *dst0 = dst;
-		
+
 		size--;	/* Reserve one byte for the NUL */
 		while (*src != '\0') {
 			guint utf8_len;
@@ -3296,15 +3296,15 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 			if (nuc == uc) {
 				if (retlen > size)
 					break;
-			
-				utf8_len = retlen;				
+
+				utf8_len = retlen;
 				while (retlen-- > 0);
 					*dst++ = *src++;
 			} else {
 				utf8_len = utf8_encode_char(nuc, dst, size);
 				if (utf8_len == 0 || utf8_len > size)
 					break;
-			
+
 				src += retlen;
 				dst += utf8_len;
 			}
@@ -3339,7 +3339,7 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
  *
  * @param dst the target buffer
  * @param src an UTF-8 string
- * @param size the size of dst in bytes 
+ * @param size the size of dst in bytes
  * @param remap a function that takes a single UTF-32 character and returns
  *        a single UTF-32 character.
  * @return the length in bytes of the converted string ``src''.
@@ -3381,7 +3381,7 @@ utf32_remap(guint32 *dst, const guint32 *src, size_t size,
  *
  * @param dst the target buffer
  * @param src an UTF-32 string
- * @param size the size of dst in bytes 
+ * @param size the size of dst in bytes
  * @return the length in characters of the converted string ``src''.
  */
 size_t
@@ -3403,7 +3403,7 @@ utf32_strlower(guint32 *dst, const guint32 *src, size_t size)
  *
  * @param dst the target buffer
  * @param src an UTF-32 string
- * @param size the size of dst in bytes 
+ * @param size the size of dst in bytes
  * @return the length in characters of the converted string ``src''.
  */
 size_t
@@ -3426,7 +3426,7 @@ utf32_strupper(guint32 *dst, const guint32 *src, size_t size)
  *
  * @param dst the target buffer
  * @param src an UTF-8 string
- * @param size the size of dst in bytes 
+ * @param size the size of dst in bytes
  * @return the length in bytes of the converted string ``src''.
  */
 size_t
@@ -3449,7 +3449,7 @@ utf8_strlower(gchar *dst, const gchar *src, size_t size)
  *
  * @param dst the target buffer
  * @param src an UTF-8 string
- * @param size the size of dst in bytes 
+ * @param size the size of dst in bytes
  * @return the length in bytes of the converted string ``src''.
  */
 size_t
@@ -4165,7 +4165,7 @@ utf32_compose(guint32 *src)
 		guint32 *q;
 
 	retry:
-		for (last_cc = -1, q = s; ++q != end; /* NOTHING */) {	
+		for (last_cc = -1, q = s; ++q != end; /* NOTHING */) {
 			guint32 uc2, composite;
 			gint cc;
 
@@ -4195,7 +4195,7 @@ utf32_compose(guint32 *src)
 		while (++s != q) {
 			if (0 != (uc = *s))
 				*p++ = uc;
-		}	
+		}
 	}
 	*p = 0x0000;
 
@@ -4591,7 +4591,7 @@ regression_normalization_test_txt(void)
 			c[j] = src;
 		}
 
-		{			
+		{
 			guint32 *nfc;
 
 			/* c2 == NFC(c1) */
@@ -4822,7 +4822,7 @@ regression_bug_1211413(void)
 static void
 regression_iconv_utf8_to_utf8(void)
 {
-	const guchar s[] = { 
+	const guchar s[] = {
 		0xa1, 0xbe, 0xb4, 0xba, 0xc7, 0xef, 0xd3, 0xe9, 0xc0, 0xd6, 0xd6,
 		0xc6, 0xd7, 0xf7, 0xa1, 0xbf, 0xb3, 0xfe, 0xc3, 0xc5, 0xb5, 0xc4,
 		0xca, 0xc0, 0xbd, 0xe7, 0x0
@@ -4850,7 +4850,7 @@ regression_utf8_bijection(void)
 			continue;
 		g_assert(len > 0 && len <= 4);
 
-		uc1 = utf8_decode_char_fast(utf8_char, &len1); 
+		uc1 = utf8_decode_char_fast(utf8_char, &len1);
 		if (uc != uc1 || len != len1)
 			g_message("uc=%x uc1=%x, len=%d, len1=%d\n", uc, uc1, len, len1);
 		g_assert(uc == uc1);
@@ -4860,8 +4860,8 @@ regression_utf8_bijection(void)
 		{
 			guint32 uc2;
 			gint len2;
-			
-			uc2 = utf8_decode_char_less_fast(utf8_char, &len2); 
+
+			uc2 = utf8_decode_char_less_fast(utf8_char, &len2);
 			g_assert(uc1 == uc2);
 			g_assert(len1 == len2);
 		}
@@ -4883,10 +4883,10 @@ regression_utf8_decoder(void)
 		guint len1, len2;
 		guint32 uc1, uc2;
 
-		uc1 = utf8_decode_char_fast(cast_to_gconstpointer(&uc), &len1); 
+		uc1 = utf8_decode_char_fast(cast_to_gconstpointer(&uc), &len1);
 		uc2 = utf8_decode_char_less_fast(cast_to_gconstpointer(&uc), &len2);
 
-#if 0	
+#if 0
 			printf("uc=%08X uc1=%x, uc2=%x, len1=%u, len2=%u\n",
 				uc, uc1, uc2, len1, len2);
 #endif
@@ -4899,7 +4899,7 @@ regression_utf8_decoder(void)
 			static gchar utf8_char[4];
 			guint len;
 			gboolean eq;
-			
+
 			len = utf8_encode_char(uc1, utf8_char, sizeof utf8_char);
 			g_assert(len1 == len);
 			eq = 0 == memcmp(cast_to_gconstpointer(&uc), utf8_char, len);
@@ -5086,7 +5086,7 @@ regression_utf8_vs_glib2(void)
 #endif
 
 #if 0
-		/* This fails with GLib 2.6.0 because g_utf8_normalize() 
+		/* This fails with GLib 2.6.0 because g_utf8_normalize()
 		 * eats the Hangul Jamo character when using G_NORMALIZE_NFC. */
 		test[0] = 0x1112;
 		test[1] = 0x1174;
@@ -5134,7 +5134,7 @@ regression_utf8_vs_glib2(void)
 		G_FREE_NULL(y);
 		G_FREE_NULL(s_nfc);
 	}
-	
+
 
 	/* Check all single Unicode characters */
 	for (i = 0; i <= 0x10FFFF; i++) {
@@ -5181,7 +5181,7 @@ regression_utf8_vs_glib2(void)
 		if (0 != strcmp(s, buf)) {
 			const gchar *p;
 			guint retlen;
-			
+
 			g_message("\n0x%04X\nbuf=\"%s\"\ns=\"%s\"", i, buf, s);
 			for (p = buf; '\0' != *p; p += retlen) {
 				guint32 uc;
@@ -5380,7 +5380,7 @@ regression_utf8_vs_glib2(void)
 #endif /* USE_GLIB2 */
 }
 #endif /* 0 */
-	
+
 
 #define REGRESSION(func) \
 G_STMT_START { \
@@ -5389,7 +5389,7 @@ G_STMT_START { \
 	CAT2(regression_,func)(); \
 	printf(" PASSED\n"); \
 } G_STMT_END
-	
+
 static void
 regression_checks(void)
 {
