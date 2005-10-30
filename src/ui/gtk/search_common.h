@@ -58,7 +58,7 @@ typedef struct results_set {
 	guint16 status;				/**< Parsed status bits from trailer */
 	guint16 speed;
 	time_t  stamp;				/**< Reception time of the hit */
-	guchar  vendor[4];			/**< Vendor code */
+	union vendor_code vcode;	/**< Vendor code */
 	gchar *version;				/**< Version information (atom) */
 	gint country;				/**< Country code -- encoded ISO3166 */
 	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
