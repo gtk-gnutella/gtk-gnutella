@@ -259,7 +259,7 @@ search_gui_set_details(const record_t *rc)
 			{	
 				const gchar *vendor, *ver;
 
-				vendor = lookup_vendor_name(rc->results_set->vendor);
+				vendor = lookup_vendor_name(rc->results_set->vcode);
 				ver = vendor ? rc->results_set->version : NULL;
 				gtk_entry_printf(e, "%s%s%s",
 					EMPTY_STRING(vendor),

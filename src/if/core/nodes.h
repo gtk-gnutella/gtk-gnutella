@@ -29,6 +29,7 @@
 #include "common.h"
 
 #include "if/core/hosts.h"
+#include "lib/vendors.h"
 
 /**
  * Gnet node specific types.
@@ -119,9 +120,9 @@ typedef struct gnet_node_info {
     gchar *error_str;       /**< To sprintf() error strings with vars */
 	gint proto_major;		/**< Protocol major number */
 	gint proto_minor;		/**< Protocol minor number */
-	gchar *vendor;			/**< Vendor information */
+	gchar *vendor;			/**< Vendor information (always UTF-8) */
 	gint country;			/**< Country information */
-	guchar vcode[4];		/**< Vendor code (vcode[0] == NUL when unknown) */
+	union vendor_code vcode;/**< Vendor code (vcode.u32 == 0 when unknown) */
 
 	host_addr_t addr;		/**< ip of the node */
 	guint16 port;			/**< port of the node */

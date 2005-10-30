@@ -129,11 +129,23 @@
  */
 #define VENDOR_CODE_CMP(a, b) CMP(a, b)
 
-gchar *vendor_code_str(guint32 code);
-gchar *lookup_vendor_name(guchar code[4]);
-gboolean is_vendor_known(guchar code[4]);
+union vendor_code {
+	guint32	be32;
+	guchar	b[4];
+};
 
+const gchar *vendor_code_str(union vendor_code code);
+const gchar *lookup_vendor_name(union vendor_code code);
+gboolean is_vendor_known(union vendor_code code);
+
+static inline const gchar *
+vendor_code_be32_str(guint32 code_be32)
+{
+	union vendor_code vc;
+	vc.be32 = code_be32;
+	return vendor_code_str(vc);
+}
 void vendor_init(void);
 
 #endif /* _vendors_h_ */
-
+/* vi: set ts=4 sw=4 cindent: */

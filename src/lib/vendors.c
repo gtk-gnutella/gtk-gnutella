@@ -128,19 +128,15 @@ struct vendor {
  * @returns vendor string if found, NULL otherwise.
  */
 static gchar *
-find_vendor(guchar raw[4])
+find_vendor(guint32 code_be32)
 {
-	guint32 code;
-
-    READ_GUINT32_BE(raw, code);
-
 #define GET_KEY(i) (vendor_map[(i)].code)
 #define FOUND(i) G_STMT_START { \
 	return vendor_map[(i)].name; \
 	/* NOTREACHED */ \
 } G_STMT_END
 
-	BINARY_SEARCH(guint32, code, G_N_ELEMENTS(vendor_map), VENDOR_CODE_CMP,
+	BINARY_SEARCH(guint32, code_be32, G_N_ELEMENTS(vendor_map), VENDOR_CODE_CMP,
 		GET_KEY, FOUND);
 
 #undef FOUND
@@ -152,12 +148,12 @@ find_vendor(guchar raw[4])
  * @return true is gtk-gnutella knows the given 4-byte vendor code.
  */
 gboolean
-is_vendor_known(guchar raw[4])
+is_vendor_known(union vendor_code code)
 {
-    if (raw[0] == '\0')
+    if (code.be32 == 0)
         return FALSE;
 
-	return find_vendor(raw) != NULL;
+	return find_vendor(code.be32) != NULL;
 }
 
 /**
@@ -165,23 +161,22 @@ is_vendor_known(guchar raw[4])
  *
  * @return pointer to static data.
  */
-gchar *
-vendor_code_str(guint32 code)
+const gchar *
+vendor_code_str(union vendor_code code)
 {
-	static gchar temp[5];
-    gint i;
+	static gchar temp[1 + G_N_ELEMENTS(code.b)];
+    guint i;
 
-	if (code == 0)
+	STATIC_ASSERT(5 == G_N_ELEMENTS(temp));
+
+	if (code.be32 == 0)
 		return "null";
 
-	WRITE_GUINT32_BE(code, temp);
-	temp[4] = '\0';
-
-	for (i = 0; i < 4; i++) {
-        guchar c = temp[i];
-		if (!is_ascii_print(c))
-			temp[i] = '.';
+	for (i = 0; i < G_N_ELEMENTS(temp); i++) {
+        guchar c = code.b[i];
+		temp[i] = is_ascii_print(c) ? c : '.';
 	}
+	temp[4] = '\0';
 
 	return temp;
 }
@@ -191,25 +186,27 @@ vendor_code_str(guint32 code)
  * If we can't understand the code return NULL or if the 4-byte code
  * consists only of printable characters, return the code as a string.
  */
-gchar *
-lookup_vendor_name(guchar raw[4])
+const gchar *
+lookup_vendor_name(union vendor_code code)
 {
-	static gchar temp[5];
+	static gchar temp[1 + G_N_ELEMENTS(code.b)];
 	gchar *name;
     guint i;
 
-    if (raw[0] == '\0')
+	STATIC_ASSERT(5 == G_N_ELEMENTS(temp));
+	
+    if (code.be32 == 0)
         return NULL;
 
-	name = find_vendor(raw);
+	name = find_vendor(code.be32);
 	if (name != NULL)
 		return name;
 
+	
 	/* Unknown type, look whether we have all printable ASCII */
-	for (i = 0; i < sizeof(raw); i++) {
-        guchar c = raw[i];
-		if (is_ascii_print(c))
-            temp[i] = c;
+	for (i = 0; i < G_N_ELEMENTS(code.b); i++) {
+		if (is_ascii_print(code.b[i]))
+            temp[i] = code.b[i];
 		else {
             temp[0] = '\0';
 			break;
@@ -227,7 +224,7 @@ void
 vendor_init(void)
 {
 	BINARY_ARRAY_SORTED(vendor_map, struct vendor, code,
-		VENDOR_CODE_CMP, vendor_code_str);
+		VENDOR_CODE_CMP, vendor_code_be32_str);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

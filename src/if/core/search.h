@@ -29,6 +29,7 @@
 #include "common.h"
 
 #include "lib/misc.h"
+#include "lib/vendors.h"
 #include "if/core/nodes.h"
 
 /***
@@ -87,7 +88,7 @@ typedef struct gnet_results_set {
 	guint16 status;				/**< Parsed status bits from trailer */
 	guint32 speed;
 	time_t  stamp;				/**< Reception time of the hit */
-	guchar  vendor[4];			/**< Vendor code */
+	union vendor_code vcode;	/**< Vendor code */
 	gchar *version;				/**< Version information (atom) */
 	gint country;				/**< Country code -- encoded ISO3166 */
     flag_t  flags;

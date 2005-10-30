@@ -656,7 +656,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
     rs->status = r_set->status;
     rs->speed = r_set->speed;
     rs->stamp = r_set->stamp;
-    memcpy(rs->vendor, r_set->vendor, sizeof rs->vendor);
+    rs->vcode = r_set->vcode;
 	rs->version = r_set->version ? atom_str_get(r_set->version) : NULL;
 	rs->hostname = r_set->hostname ? atom_str_get(r_set->hostname) : NULL;
 	rs->country = r_set->country;
@@ -820,7 +820,7 @@ search_matched(search_t *sch, results_set_t *rs)
    	gboolean need_push;			/* Would need a push to get this file? */
 	gboolean skip_records;		/* Shall we skip those records? */
 	GString *vinfo = g_string_sized_new(40);
-	gchar *vendor;
+	const gchar *vendor;
     GdkColor *download_color;
     GdkColor *ignore_color;
     GdkColor *mark_color;
@@ -835,7 +835,7 @@ search_matched(search_t *sch, results_set_t *rs)
 
 	gui_search_get_colors(sch, &mark_color, &ignore_color, &download_color);
 
-    vendor = lookup_vendor_name(rs->vendor);
+    vendor = lookup_vendor_name(rs->vcode);
 
    	if (vendor) {
 		g_string_append(vinfo, vendor);

@@ -494,8 +494,7 @@ static gint search_gui_compare_records(
             break;
 
         case c_sr_info:
-			result = strncmp(cast_to_gpointer(rs1->vendor),
-						cast_to_gpointer(rs2->vendor), sizeof rs1->vendor);
+			result = CMP(rs1->vcode.be32, rs2->vcode.be32);
 			if (result)
 				break;
             result = CMP(rs1->status, rs2->status);

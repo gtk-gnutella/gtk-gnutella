@@ -577,7 +577,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 	gboolean seen_bitprint = FALSE;
 	gboolean multiple_sha1 = FALSE;
 	gint multiple_alt = 0;
-	gchar *vendor = NULL;
+	const gchar *vendor = NULL;
 	gchar hostname[256];
 
 	/* We shall try to detect malformed packets as best as we can */
@@ -594,7 +594,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 
 	rs = zalloc(rs_zone);
 
-	rs->vendor[0] = '\0';
+	rs->vcode.be32 = 0;
 	rs->records   = NULL;
 	rs->guid      = NULL;
 	rs->version   = NULL;
@@ -1014,7 +1014,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 			trailer = s;
 
 		if (trailer)
-			memcpy(rs->vendor, trailer, sizeof(rs->vendor));
+			rs->vcode.be32 = peek_be32(trailer);
 		else {
 			g_warning(
 				"UNKNOWN %d-byte trailer at offset %d in %s from %s "
@@ -1050,9 +1050,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 		guint32 enabler_mask = (guint32) trailer[5];
 		guint32 flags_mask = (guint32) trailer[6];
 
-        vendor = lookup_vendor_name(rs->vendor);
+        vendor = lookup_vendor_name(rs->vcode);
 
-        if ((vendor != NULL) && is_vendor_known(rs->vendor))
+        if ((vendor != NULL) && is_vendor_known(rs->vcode))
             rs->status |= ST_KNOWN_VENDOR;
 
 		READ_GUINT32_BE(trailer, t);
@@ -1383,12 +1383,12 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 static void
 update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 {
-	gchar *vendor;
+	const gchar *vendor;
 	guint32 old_weird = n->n_weird;
 
 	g_assert(n->header.hops == 1);
 
-    vendor = lookup_vendor_name(rs->vendor);
+    vendor = lookup_vendor_name(rs->vcode);
 
 	if (n->attrs & NODE_A_QHD_NO_VTAG) {	/* Known to have no tag */
 		if (vendor) {
@@ -1410,13 +1410,13 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		if (vendor == NULL)
 			n->attrs |= NODE_A_QHD_NO_VTAG;	/* No vendor tag */
 
-		if (n->vcode[0] != '\0' && vendor == NULL) {
+		if (n->vcode.be32 != 0 && vendor == NULL) {
 			n->n_weird++;
 			if (search_debug > 1) g_warning("[weird #%d] "
 				"node %s (%s) had tag %c%c%c%c in its query hits, "
 				"now has none in %s",
 				n->n_weird, node_addr(n), node_vendor(n),
-				n->vcode[0], n->vcode[1], n->vcode[2], n->vcode[3],
+				n->vcode.b[0], n->vcode.b[1], n->vcode.b[2], n->vcode.b[3],
 				gmsg_infostr(&n->header));
 		}
 	}
@@ -1426,24 +1426,21 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 	 */
 
 	if (vendor != NULL) {
-		g_assert(sizeof(n->vcode) == sizeof(rs->vendor));
+		STATIC_ASSERT(sizeof n->vcode == sizeof rs->vcode);
 
-		if (
-			n->vcode[0] != '\0' &&
-			0 != memcmp(n->vcode, rs->vendor, sizeof(n->vcode))
-		) {
+		if (n->vcode.be32 != 0 && n->vcode.be32 != rs->vcode.be32) {
 			n->n_weird++;
 			if (search_debug > 1) g_warning("[weird #%d] "
 				"node %s (%s) moved from tag %c%c%c%c to %c%c%c%c in %s",
 				n->n_weird, node_addr(n), node_vendor(n),
-				n->vcode[0], n->vcode[1], n->vcode[2], n->vcode[3],
-				rs->vendor[0], rs->vendor[1], rs->vendor[2], rs->vendor[3],
+				n->vcode.b[0], n->vcode.b[1], n->vcode.b[2], n->vcode.b[3],
+				rs->vcode.b[0], rs->vcode.b[1], rs->vcode.b[2], rs->vcode.b[3],
 				gmsg_infostr(&n->header));
 		}
 
-		memcpy(n->vcode, rs->vendor, sizeof(n->vcode));
+		n->vcode = rs->vcode;
 	} else
-		n->vcode[0] = '\0';
+		n->vcode.be32 = 0;
 
 	/*
 	 * Save node's GUID.
@@ -2371,7 +2368,7 @@ search_check_alt_locs(
 	search_free_alt_locs(rc);
 
 	if (ignored) {
-    	gchar *vendor = lookup_vendor_name(rs->vendor);
+    	const gchar *vendor = lookup_vendor_name(rs->vcode);
 		g_warning("ignored %d invalid alt-loc%s in hits from %s (%s)",
 			ignored, ignored == 1 ? "" : "s",
 			host_addr_port_to_string(rs->addr, rs->port),

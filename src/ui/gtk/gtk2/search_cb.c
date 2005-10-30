@@ -501,11 +501,11 @@ search_get_record_at_path(GtkTreeView *tv, GtkTreePath *path)
 static const gchar *
 search_get_vendor_from_record(const record_t *rc)
 {
-	gchar *s;
+	const gchar *s;
 
 	g_assert(rc != NULL);
 
-	s = lookup_vendor_name(rc->results_set->vendor);
+	s = lookup_vendor_name(rc->results_set->vcode);
 	if (s == NULL)
 		return _("Unknown");
 
