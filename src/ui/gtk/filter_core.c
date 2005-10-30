@@ -487,6 +487,7 @@ filter_new_text_rule(const gchar *match, gint type,
 
     g_assert(match != NULL);
     g_assert(target != NULL);
+    g_assert(utf8_is_valid_string(match));
 
   	r = g_new0(rule_t, 1);
 
@@ -649,6 +650,8 @@ filter_new_sha1_rule(const gchar *sha1, const gchar *filename,
 
     g_assert(target != NULL);
     g_assert(filename != NULL);
+    g_assert(sha1 == NULL || utf8_is_valid_string(sha1));
+    g_assert(utf8_is_valid_string(filename));
 
     f = g_new0(rule_t, 1);
 
@@ -917,13 +920,27 @@ filter_revert_changes(void)
     filter_update_targets();
 }
 
+static const gchar *
+filter_lazy_utf8_to_ui_string(const gchar *src)
+{
+	static gchar *prev;
+	gchar *dst;
 
+	g_assert(src);	
+	g_assert(prev != src);
+
+	dst = utf8_to_ui_string(src);
+	G_FREE_NULL(prev);
+	if (dst != src)
+		prev = dst;
+	return dst;
+}
 
 /**
  * Convert a rule condition to a human readable string.
  */
 gchar *
-filter_rule_condition_to_gchar(const rule_t *r)
+filter_rule_condition_to_string(const rule_t *r)
 {
     static gchar tmp[4096];
 
@@ -931,77 +948,64 @@ filter_rule_condition_to_gchar(const rule_t *r)
 
     switch (r->type) {
     case RULE_TEXT:
-        switch (r->u.text.type) {
-        case RULE_TEXT_PREFIX:
-           	gm_snprintf(
-                tmp, sizeof(tmp),
-                _("If filename begins with \"%s\" %s"),
-                r->u.text.match,
-                r->u.text.case_sensitive ? _("(case-sensitive)") : "");
-            break;
-        case RULE_TEXT_WORDS:
-           	gm_snprintf(
-                tmp, sizeof(tmp),
-                _("If filename contains the words \"%s\" %s"),
-                r->u.text.match,
-                r->u.text.case_sensitive ? _("(case-sensitive)") : "");
-            break;
-        case RULE_TEXT_SUFFIX:
-          	gm_snprintf(
-                tmp, sizeof(tmp),
-                _("If filename ends with \"%s\" %s"),
-                r->u.text.match,
-                r->u.text.case_sensitive ? _("(case-sensitive)") : "");
-            break;
-        case RULE_TEXT_SUBSTR:
-           	gm_snprintf(
-                tmp, sizeof(tmp),
-                _("If filename contains the substring \"%s\" %s"),
-                r->u.text.match,
-                r->u.text.case_sensitive ? _("(case-sensitive)") : "");
-            break;
-        case RULE_TEXT_REGEXP:
-           	gm_snprintf(
-                tmp, sizeof(tmp),
-                _("If filename matches the regex \"%s\" %s"),
-                r->u.text.match,
-                r->u.text.case_sensitive ? _("(case-sensitive)") : "");
-            break;
-        case RULE_TEXT_EXACT:
-           	gm_snprintf(
-                tmp, sizeof(tmp),
-                _("If filename is \"%s\" %s"),
-                r->u.text.match,
-                r->u.text.case_sensitive ? _("(case-sensitive)") : "");
-            break;
-        default:
-            g_error("filter_rule_condition_to_gchar:"
-                    "unknown text rule type: %d", r->u.text.type);
-        };
+		{
+			const gchar *match, *cs;
+			
+			match = filter_lazy_utf8_to_ui_string(r->u.text.match);
+			cs = r->u.text.case_sensitive ? _("(case-sensitive)") : "";
+			
+			switch (r->u.text.type) {
+				case RULE_TEXT_PREFIX:
+					gm_snprintf(tmp, sizeof tmp,
+						_("If filename begins with \"%s\" %s"),
+						match, cs);
+					break;
+				case RULE_TEXT_WORDS:
+					gm_snprintf(tmp, sizeof tmp,
+						_("If filename contains the words \"%s\" %s"),
+						match, cs);
+					break;
+				case RULE_TEXT_SUFFIX:
+					gm_snprintf(tmp, sizeof tmp,
+						_("If filename ends with \"%s\" %s"),
+						match, cs);
+					break;
+				case RULE_TEXT_SUBSTR:
+					gm_snprintf(tmp, sizeof tmp,
+						_("If filename contains the substring \"%s\" %s"),
+						match, cs);
+					break;
+				case RULE_TEXT_REGEXP:
+					gm_snprintf(tmp, sizeof tmp,
+						_("If filename matches the regex \"%s\" %s"),
+						match, cs);
+					break;
+				case RULE_TEXT_EXACT:
+					gm_snprintf(tmp, sizeof tmp, _("If filename is \"%s\" %s"),
+						match, cs);
+					break;
+				default:
+					g_error("filter_rule_condition_to_string:"
+							"unknown text rule type: %d", r->u.text.type);
+			}
+		}
         break;
     case RULE_IP:
-        {
-            const gchar *addr, *mask;
-
-            addr = ip_to_string(r->u.ip.addr);
-            mask = ip_to_string2(r->u.ip.mask);
-            gm_snprintf(tmp, sizeof(tmp),
-                _("If IP address matches %s/%s"), addr, mask);
-        }
+		gm_snprintf(tmp, sizeof tmp, _("If IP address matches %s/%s"),
+			ip_to_string(r->u.ip.addr), ip_to_string2(r->u.ip.mask));
         break;
     case RULE_SIZE:
 		if (r->u.size.upper == r->u.size.lower) {
             gchar smax_64[UINT64_DEC_BUFLEN];
 
 			uint64_to_string_buf(r->u.size.upper, smax_64, sizeof smax_64);
-			gm_snprintf(tmp, sizeof(tmp),
-				_("If filesize is exactly %s (%s)"),
+			gm_snprintf(tmp, sizeof tmp , _("If filesize is exactly %s (%s)"),
 				smax_64, short_size(r->u.size.upper));
 		} else if (r->u.size.lower == 0) {
             gchar smax_64[UINT64_DEC_BUFLEN];
 
 			uint64_to_string_buf(r->u.size.upper + 1, smax_64, sizeof smax_64);
-			gm_snprintf(tmp, sizeof(tmp),
+			gm_snprintf(tmp, sizeof tmp,
 				_("If filesize is smaller than %s (%s)"),
 				smax_64, short_size(r->u.size.upper + 1));
 		} else {
@@ -1013,23 +1017,23 @@ filter_rule_condition_to_gchar(const rule_t *r)
 			uint64_to_string_buf(r->u.size.lower, smin_64, sizeof smin_64);
 			uint64_to_string_buf(r->u.size.upper, smax_64, sizeof smax_64);
 
-			gm_snprintf(tmp, sizeof(tmp),
+			gm_snprintf(tmp, sizeof tmp,
 				_("If filesize is between %s and %s (%s - %s)"),
 				smin_64, smax_64, smin, smax);
         }
         break;
     case RULE_SHA1:
         if (r->u.sha1.hash != NULL) {
-            gm_snprintf(tmp, sizeof(tmp),
+            gm_snprintf(tmp, sizeof tmp,
 				_("If urn:sha1 is same as for \"%s\""),
-                r->u.sha1.filename);
+                filter_lazy_utf8_to_ui_string(r->u.sha1.filename));
         } else {
-            gm_snprintf(tmp, sizeof(tmp), "%s",
+            gm_snprintf(tmp, sizeof tmp, "%s",
 				_("If urn:sha1 is not available"));
 		}
         break;
     case RULE_JUMP:
-       	gm_snprintf(tmp, sizeof(tmp), "%s", _("Always"));
+       	gm_snprintf(tmp, sizeof tmp, "%s", _("Always"));
         break;
     case RULE_FLAG:
         {
@@ -1084,10 +1088,10 @@ filter_rule_condition_to_gchar(const rule_t *r)
             }
 
             if (b) {
-                gm_snprintf(tmp, sizeof(tmp), _("If flag %s%s%s%s%s"),
+                gm_snprintf(tmp, sizeof tmp, _("If flag %s%s%s%s%s"),
                     busy_str, s1, push_str, s2, stable_str);
 			} else {
-                 gm_snprintf(tmp, sizeof(tmp), "%s",
+                 gm_snprintf(tmp, sizeof tmp, "%s",
 					_("Always (all flags ignored)"));
 			}
         }
@@ -1141,17 +1145,17 @@ filter_rule_condition_to_gchar(const rule_t *r)
             }
 
             if (b) {
-                gm_snprintf(tmp, sizeof(tmp), _("If flag %s%s%s"),
+                gm_snprintf(tmp, sizeof tmp , _("If flag %s%s%s"),
                     display_str, s1, download_str);
 			} else {
-	             gm_snprintf(tmp, sizeof(tmp), "%s",
+	             gm_snprintf(tmp, sizeof tmp, "%s",
 					_("Always (all states ignored)"));
 			}
         }
         break;
     default:
-        g_error("filter_rule_condition_to_gchar: "
-                "unknown rule type: %d", r->type);
+        g_error("filter_rule_condition_to_string: unknown rule type: %d",
+			r->type);
         return NULL;
     }
 
@@ -1170,10 +1174,10 @@ filter_rule_to_gchar(rule_t *r)
 
     g_assert(r != NULL);
 
-	gm_snprintf(tmp, sizeof(tmp), _("%s%s %s jump to \"%s\""),
+	gm_snprintf(tmp, sizeof tmp, _("%s%s %s jump to \"%s\""),
         RULE_IS_NEGATED(r) ? _("(Negated) ") : "",
         RULE_IS_ACTIVE(r) ? "" : _("(deactivated)"),
-        filter_rule_condition_to_gchar(r),
+        filter_rule_condition_to_string(r),
         RULE_IS_VALID(r) ? r->target->name : _("(invalid)"));
 
     return tmp;
@@ -1189,9 +1193,10 @@ filter_new(const gchar *name)
 {
     filter_t *f;
 
-    g_assert(name != NULL);
+    g_assert(name);
+    g_assert(utf8_is_valid_string(name));
 
-    f = g_new0(filter_t, 1);
+    f = g_malloc0(sizeof *f);
     f->name = g_strdup(name);
     f->ruleset = NULL;
     f->search = NULL;
@@ -1246,6 +1251,7 @@ filter_new_for_search(search_t *s)
 
     g_assert(s != NULL);
     g_assert(s->query != NULL);
+    g_assert(utf8_is_valid_string(s->query));
 
     f = g_new0(filter_t, 1);
     f->name = g_strdup(s->query);
@@ -1966,13 +1972,13 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
     list = filter->ruleset;
 
 	list = g_list_first(list);
-	while ((list != NULL) && (res->props_set < MAX_FILTER_PROP) && !do_abort) {
+	while (list != NULL && res->props_set < MAX_FILTER_PROP && !do_abort) {
 		size_t n;
 		int i;
 		rule_t *r;
         gboolean match = FALSE;
 
-        r = (rule_t *)list->data;
+        r = list->data;
         if (gui_debug >= 10)
             g_message("trying to match against: %s", filter_rule_to_gchar(r));
 
@@ -2504,10 +2510,10 @@ filter_is_valid_in_session(filter_t *f)
 filter_t *
 filter_find_by_name_in_session(const gchar *name)
 {
-    GList *l;
+    GList *iter;
 
-    for (l = filters_current; l != NULL; l = l->next) {
-        filter_t *filter = (filter_t *) l->data;
+    for (iter = filters_current; iter != NULL; iter = g_list_next(iter)) {
+        filter_t *filter = iter->data;
 
         if (strcmp(filter->name, name) == 0)
             return filter;
