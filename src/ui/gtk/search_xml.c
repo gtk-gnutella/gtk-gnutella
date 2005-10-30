@@ -799,14 +799,12 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
 
     switch (r->type) {
     case RULE_TEXT:
-		{
-			newxml = xml_new_empty_child(parent, NODE_RULE_TEXT);
-        	xml_prop_set(newxml, TAG_RULE_TEXT_CASE,
-				r->u.text.case_sensitive ? "1" : "0");
-        	xml_prop_set(newxml, TAG_RULE_TEXT_MATCH,
-				lazy_ui_string_to_utf8(r->u.text.match));
-        	xml_prop_printf(newxml, TAG_RULE_TEXT_TYPE, "%u", r->u.text.type);
-		}
+		newxml = xml_new_empty_child(parent, NODE_RULE_TEXT);
+       	xml_prop_set(newxml, TAG_RULE_TEXT_CASE,
+			r->u.text.case_sensitive ? "1" : "0");
+       	xml_prop_set(newxml, TAG_RULE_TEXT_MATCH,
+			lazy_ui_string_to_utf8(r->u.text.match));
+       	xml_prop_printf(newxml, TAG_RULE_TEXT_TYPE, "%u", r->u.text.type);
         break;
     case RULE_IP:
         newxml = xml_new_empty_child(parent, NODE_RULE_IP);
@@ -832,16 +830,14 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
          */
         break;
     case RULE_SHA1:
-		{
-        	newxml = xml_new_empty_child(parent, NODE_RULE_SHA1);
+       	newxml = xml_new_empty_child(parent, NODE_RULE_SHA1);
 
-        	if (r->u.sha1.hash != NULL)
-            	xml_prop_set(newxml, TAG_RULE_SHA1_HASH,
-					sha1_base32(r->u.sha1.hash));
+       	if (r->u.sha1.hash != NULL)
+           	xml_prop_set(newxml, TAG_RULE_SHA1_HASH,
+				sha1_base32(r->u.sha1.hash));
 
-			xml_prop_set(newxml, TAG_RULE_SHA1_FILENAME,
+		xml_prop_set(newxml, TAG_RULE_SHA1_FILENAME,
 				lazy_ui_string_to_utf8(r->u.sha1.filename));
-		}
         /*
          * r->u.sha1.hash is NULL, we just omit the hash.
          */
