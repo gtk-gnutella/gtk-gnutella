@@ -154,6 +154,7 @@ utf16_encode_char_compact(guint32 uc)
 const gchar *lazy_iso8859_1_to_utf8(const gchar *src);
 const gchar *lazy_locale_to_utf8(const gchar *src);
 const gchar *lazy_ui_string_to_utf8(const gchar *src);
+const gchar *lazy_utf8_to_ui_string(const gchar *src);
 const gchar *lazy_utf8_to_locale(const gchar *src);
 const gchar *lazy_locale_to_utf8_normalized(const gchar *src, uni_norm_t norm);
 const gchar *lazy_unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,

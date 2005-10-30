@@ -2279,6 +2279,18 @@ lazy_ui_string_to_utf8(const gchar *src)
 }
 #endif /* USE_GTK2 */
 
+const gchar *
+lazy_utf8_to_ui_string(const gchar *src)
+{
+	g_assert(src);
+	g_assert(utf8_is_valid_string(src));
+#ifdef USE_GTK2
+	return deconstify_gchar(src);
+#else /* USE_GTK2 */
+	return lazy_utf8_to_locale(src);
+#endif /* USE_GTK2 */
+}
+
 /**
  * Converts a UTF-8 encoded string to a UTF-32 encoded string. The
  * target string ``out'' is always be zero-terminated unless ``size''
