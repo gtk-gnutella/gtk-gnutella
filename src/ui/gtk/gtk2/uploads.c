@@ -51,7 +51,6 @@
 
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
-#include "lib/utf8.h"
 #include "lib/iso3166.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
@@ -294,18 +293,14 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 
 	/* Exploit that u->name is an atom! */
 	if (u->name != rd->name) {
-		gchar *filename;
-
 		g_assert(NULL != u->name);
 		if (NULL != rd->name)
 			atom_str_free(rd->name);
 		rd->name = atom_str_get(u->name);
 
-		filename = filename_to_utf8_normalized(rd->name, UNI_NORM_GUI);
 		gtk_list_store_set(store_uploads, &rd->iter,
-			c_ul_filename, filename,
+			c_ul_filename, rd->name,
 			(-1));
-		G_FREE_NULL(filename);
 	}
 
 	/* Exploit that u->user_agent is an atom! */
@@ -355,7 +350,6 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
     upload_row_data_t *rd = walloc(sizeof *rd);
 	gnet_upload_status_t status;
 	static gchar size_tmp[256];
-	gchar *filename;
 
 	memset(titles, 0, sizeof titles);
 
@@ -397,20 +391,9 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 	g_strlcpy(size_tmp, short_size(u->file_size), sizeof size_tmp);
     titles[c_ul_size] = size_tmp;
 
-	if (NULL != u->user_agent) {
-		static gchar str[256];	/* MUST be static! */
-		const gchar *agent;
-
-    	titles[c_ul_agent] = u->user_agent;
-	} else
-		titles[c_ul_agent] = "...";
-
+   	titles[c_ul_agent] = u->user_agent ? u->user_agent : "...";
 	titles[c_ul_loc] = iso3166_country_cc(u->country);
-
-	filename = u->name
-		? filename_to_utf8_normalized(u->name, UNI_NORM_GUI) : NULL;
-	
-	titles[c_ul_filename] = filename ? filename : "...";
+	titles[c_ul_filename] = u->name ? u->name : "...";
 	titles[c_ul_host] = uploads_gui_host_string(u);
 	titles[c_ul_status] = uploads_gui_status_str(&status, rd);
 
@@ -428,7 +411,6 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 		c_ul_fg, NULL,
 		c_ul_data, rd,
 		(-1));
-	G_FREE_NULL(filename);
 	g_hash_table_insert(upload_handles, GUINT_TO_POINTER(rd->handle), rd);
 }
 
