@@ -152,24 +152,33 @@ utf16_encode_char_compact(guint32 uc)
  * need the previous result anymore.
  */
 const gchar *lazy_iso8859_1_to_utf8(const gchar *src);
-const gchar *lazy_locale_to_utf8(const gchar *src);
+
 const gchar *lazy_ui_string_to_utf8(const gchar *src);
 const gchar *lazy_utf8_to_ui_string(const gchar *src);
+
 const gchar *lazy_utf8_to_locale(const gchar *src);
+const gchar *lazy_locale_to_utf8(const gchar *src);
+
 const gchar *lazy_locale_to_utf8_normalized(const gchar *src, uni_norm_t norm);
 const gchar *lazy_unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
 			gboolean add_charset);
 
-gchar *locale_to_utf8(const gchar *str);
-gchar *unknown_to_utf8(const gchar *str, gboolean add_charset);
-gchar *locale_to_utf8_normalized(const gchar *str, uni_norm_t norm);
-gchar *filename_to_utf8_normalized(const gchar *str, uni_norm_t norm);
 gchar *iso8859_1_to_utf8_normalized(const gchar *str, uni_norm_t norm);
+
+gchar *utf8_to_ui_string(const gchar *src);
+gchar *ui_string_to_utf8(const gchar *src);
+
+gchar *utf8_to_locale(const gchar *s);
+gchar *locale_to_utf8(const gchar *str);
+gchar *locale_to_utf8_normalized(const gchar *str, uni_norm_t norm);
+
+gchar *utf8_to_filename(const gchar *s);
+gchar *filename_to_utf8_normalized(const gchar *str, uni_norm_t norm);
+
+gchar *unknown_to_utf8(const gchar *str, gboolean add_charset);
 gchar *unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
 			gboolean add_charset);
 
-gchar *utf8_to_filename(const gchar *s);
-gchar *utf8_to_locale(const gchar *s);
 
 gboolean icu_enabled(void);
 gboolean locale_is_latin(void);

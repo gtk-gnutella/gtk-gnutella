@@ -65,6 +65,21 @@ RCSID("$Id$");
 #include "glib-missing.h"
 #include "override.h"		/* Must be the last header included */
 
+/**
+ * If UI_USES_UTF8_ENCODING is defined, it is assumed that the user-interface
+ * passes only valid UTF-8 strings. It affects only those functions that are
+ * explicitely defined to handle UI strings as input or output. This allows to
+ * reduce the number of conversions. For example, if a function specification
+ * permits that the original string may be returned, we will do that instead of
+ * creating a copy. If UI_USES_UTF8_ENCODING is undefined, it is assumed that
+ * the user-interface uses the locale's encoding for its strings.
+ */
+#ifdef USE_GTK2 
+#define UI_USES_UTF8_ENCODING
+#else  /* !USE_GTK2 */
+#undef UI_USES_UTF8_ENCODING
+#endif /* USE_GTK2 */
+
 static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
 
 static void unicode_compose_init(void);
@@ -1699,6 +1714,30 @@ utf8_to_filename_charset(const gchar *src)
 }
 
 /**
+ * Converts the UTF-8 encoded src string to a string encoded in the
+ * primary filename character set.
+ *
+ * @param src a NUL-terminated UTF-8 encoded string.
+ * @return a pointer to a newly allocated buffer holding the converted string.
+ */
+gchar *
+utf8_to_filename(const gchar *src)
+{
+	gchar *filename;
+
+	g_assert(src);
+
+	filename = utf8_to_filename_charset(src);
+	if (filename_charset_is_utf8() && !is_ascii_string(filename)) {
+		gchar *p = filename;
+		filename = utf8_normalize(p, UNI_NORM_FILESYSTEM);
+		G_FREE_NULL(p);
+	}
+
+	return filename;
+}
+
+/**
  * Non-convertible characters will be replaced by '_'. The returned string
  * WILL be NUL-terminated in any case.
  *
@@ -2111,7 +2150,7 @@ unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
 	gchar *s_utf8, *s_norm;
 
 	s_utf8 = unknown_to_utf8(src, add_charset); /* May return src */
-	if (is_ascii_string(s_utf8))
+	if (s_utf8 == src || is_ascii_string(s_utf8))
 		return s_utf8;
 
 	s_norm = utf8_normalize(s_utf8, norm);
@@ -2120,32 +2159,66 @@ unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
 	return s_norm;
 }
 
-const gchar *
-lazy_iso8859_1_to_utf8(const gchar *src)
+gchar *
+utf8_to_ui_string(const gchar *src)
 {
-	static gchar *dst;
-	gchar *old;
-
 	g_assert(src);
+	g_assert(utf8_is_valid_string(src));
 
-	old = dst;
-	dst = iso8859_1_to_utf8(src);
-	G_FREE_NULL(old);
-	return dst;
+#ifndef UI_USES_UTF8_ENCODING
+	if (!locale_is_utf8())
+		return utf8_to_locale(src);
+#endif /* UI_USES_UTF8_ENCODING */
+	
+	return deconstify_gchar(src);
 }
 
-const gchar *
-lazy_utf8_to_locale(const gchar *src)
+gchar *
+ui_string_to_utf8(const gchar *src)
 {
-	static gchar *dst;
-	gchar *old;
-
 	g_assert(src);
 
-	old = dst;
-	dst = utf8_to_locale(src);
-	G_FREE_NULL(old);
-	return dst;
+#ifndef UI_USES_UTF8_ENCODING
+	if (!locale_is_utf8())
+		return locale_to_utf8(src);
+#endif /* UI_USES_UTF8_ENCODING */
+
+	g_assert(utf8_is_valid_string(src));
+	return deconstify_gchar(src);
+}
+
+/**
+ * This macro is used to generate "lazy" variants of the converter functions.
+ * In this context "lazy" means that the function will either return the
+ * original string (if appropriate) or a newly allocated string but the newly
+ * allocated string MUST NOT be freed. Instead the memory will be released
+ * when the function is used again. Thus the handling is similar to that of
+ * functions which return static buffers except that the functions are not
+ * limited to a fixed buffer size. The return type has a const qualifier so
+ * that a blatant attempt to free the memory is usually caught at compile
+ * time. If the result is not the original string, it MUST NOT be passed as
+ * parameter to this function. The last allocated buffer will normally be
+ * leaked at exit time. However, if you pass an empty string, the last
+ * allocated buffer is released and the empty string itself is returned. This
+ * is not strictly necessary but it may be used to get rid of useless
+ * warnings about a "memory leak" or to keep the memory foot-print lower.
+ */
+#define LAZY_CONVERT(func, proto,params) \
+const gchar * \
+CAT2(lazy_,func) proto \
+{ \
+	static gchar *prev; /* Previous conversion result */ \
+	gchar *dst; \
+ \
+	g_assert(src); \
+	g_assert(prev != src); \
+ \
+	G_FREE_NULL(prev); \
+ \
+	dst = func params; \
+	if (dst != src) \
+		prev = dst; \
+	return dst; \
 }
 
 /**
@@ -2155,27 +2228,12 @@ lazy_utf8_to_locale(const gchar *src)
  * @param str the string to convert.
  * @returns the converted string or ``str'' if no conversion was necessary.
  */
-const gchar *
-lazy_locale_to_utf8_normalized(const gchar *src, uni_norm_t norm)
-{
-	static gchar *prev; /* Previous conversion result */
+LAZY_CONVERT(locale_to_utf8_normalized,
+		(const gchar *src, uni_norm_t norm), (src, norm))
+LAZY_CONVERT(locale_to_utf8, (const gchar *src), (src))
+LAZY_CONVERT(utf8_to_locale, (const gchar *src), (src))
 
-	g_assert(src);
-	g_assert(prev != src);
-
-	G_FREE_NULL(prev);
-
-	/*
-	 * Let's assume that most of the supplied strings are pure ASCII.
-	 * ASCII matches any UTF-8 in any Unicode normalization form.
-	 */
-	if (is_ascii_string(src))
-		return src;
-
-	prev = locale_to_utf8_normalized(src, norm);
-	g_assert(prev != src);
-	return prev;
-}
+LAZY_CONVERT(iso8859_1_to_utf8, (const gchar *src), (src))
 
 /**
  * Converts the supplied string ``str'' from a guessed encoding
@@ -2184,79 +2242,9 @@ lazy_locale_to_utf8_normalized(const gchar *src, uni_norm_t norm)
  * @param str the string to convert.
  * @returns the converted string or ``str'' if no conversion was necessary.
  */
-const gchar *
-lazy_unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
-	gboolean add_charset)
-{
-	static gchar *prev; /* Previous conversion result */
-	gchar *s;
-
-	g_assert(src);
-	g_assert(prev != src);
-
-	G_FREE_NULL(prev);
-
-	/*
-	 * Let's assume that most of the supplied strings are pure ASCII.
-	 * ASCII matches any UTF-8 in any Unicode normalization form.
-	 */
-	if (is_ascii_string(src))
-		return src;
-
-	s = unknown_to_utf8_normalized(src, norm, add_charset);
-	if (s != src)
-		prev = s;
-	return s;
-}
-
-/**
- * Converts the supplied string ``str'' from the current locale encoding
- * to an UTF-8 NFC string.
- *
- * @param str the string to convert.
- * @returns the converted string or ``str'' if no conversion was necessary.
- */
-const gchar *
-lazy_locale_to_utf8(const gchar *src)
-{
-	static gchar *prev; /* Previous conversion result */
-
-	g_assert(src);
-	g_assert(prev != src);
-
-	G_FREE_NULL(prev);
-
-	if (utf8_is_valid_string(src))
-		return src;
-
-	prev = locale_to_utf8(src);
-	g_assert(prev != src);
-	return prev;
-}
-
-/**
- * Converts the UTF-8 encoded src string to a string encoded in the
- * primary filename character set.
- *
- * @param src a NUL-terminated UTF-8 encoded string.
- * @return a pointer to a newly allocated buffer holding the converted string.
- */
-gchar *
-utf8_to_filename(const gchar *src)
-{
-	gchar *filename;
-
-	g_assert(src);
-
-	filename = utf8_to_filename_charset(src);
-	if (filename_charset_is_utf8() && !is_ascii_string(filename)) {
-		gchar *p = filename;
-		filename = utf8_normalize(p, UNI_NORM_FILESYSTEM);
-		G_FREE_NULL(p);
-	}
-
-	return filename;
-}
+LAZY_CONVERT(unknown_to_utf8_normalized,
+		(const gchar *src, uni_norm_t norm, gboolean add_charset),
+		(src, norm, add_charset))
 
 /**
  * Converts a string as returned by the UI toolkit to UTF-8 but returns the
@@ -2264,32 +2252,8 @@ utf8_to_filename(const gchar *src)
  * string. The previously returned pointer may become invalid when calling this
  * function again.
  */
-const gchar *
-lazy_ui_string_to_utf8(const gchar *src)
-#ifdef USE_GTK2
-{
-	g_assert(src);
-	g_assert(utf8_is_valid_string(src));
-	return deconstify_gchar(src);
-}
-#else /* USE_GTK2 */
-{
-	g_assert(src);
-	return lazy_locale_to_utf8(src);
-}
-#endif /* USE_GTK2 */
-
-const gchar *
-lazy_utf8_to_ui_string(const gchar *src)
-{
-	g_assert(src);
-	g_assert(utf8_is_valid_string(src));
-#ifdef USE_GTK2
-	return deconstify_gchar(src);
-#else /* USE_GTK2 */
-	return lazy_utf8_to_locale(src);
-#endif /* USE_GTK2 */
-}
+LAZY_CONVERT(ui_string_to_utf8, (const gchar *src), (src))
+LAZY_CONVERT(utf8_to_ui_string, (const gchar *src), (src))
 
 /**
  * Converts a UTF-8 encoded string to a UTF-32 encoded string. The
