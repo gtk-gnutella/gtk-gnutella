@@ -800,48 +800,6 @@ search_gui_store_searches(void)
 }
 
 /**
- * Retrieve search list and restart searches.
- * The searches are normally retrieved from ~/.gtk-gnutella/searches.
- */
-static gboolean
-search_retrieve_old(void)
-{
-	FILE *in;
-	gint line;				/* File line number */
-	file_path_t fp;
-
-	file_path_set(&fp, settings_gui_config_dir(), search_file);
-	in = file_config_open_read("old searches (gtkg pre v0.90)", &fp, 1);
-	if (!in)
-		return FALSE;
-
-	/*
-	 * Retrieval of each searches.
-	 */
-
-	line = 0;
-
-	while (fgets(tmpstr, sizeof(tmpstr) - 1, in)) {	/* Room for trailing NUL */
-		line++;
-
-		if (tmpstr[0] == '#')
-			continue;				/* Skip comments */
-
-		if (tmpstr[0] == '\n')
-			continue;				/* Allow arbitrary blank lines */
-
-		(void) str_chomp(tmpstr, 0);	/* The search string */
-
-		search_gui_new_search(tmpstr, 0, NULL);
-		tmpstr[0] = '\0';
-	}
-
-	fclose(in);
-
-    return TRUE;
-}
-
-/**
  * Retrieve searches from disk.
  */
 void
@@ -849,13 +807,7 @@ search_gui_retrieve_searches(void)
 {
 	LIBXML_TEST_VERSION
 
-    if (!search_retrieve_xml()) {
-		if (search_retrieve_old()) {
-        	g_warning(_("Found old searches file. Loaded it.\n"
-            	"On exit the searches will be saved in the new XML format\n"
-            	"You may remove \"searches.orig\"."));
-    	}
-	}
+    search_retrieve_xml();
 }
 
 /**
