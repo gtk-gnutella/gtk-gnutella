@@ -160,18 +160,6 @@ const gchar *lazy_locale_to_utf8_normalized(const gchar *src, uni_norm_t norm);
 const gchar *lazy_unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
 			gboolean add_charset);
 
-static inline const gchar *
-lazy_vendor_to_utf8(const gchar *s)
-{
-	return !s || is_ascii_string(s) ? s : lazy_iso8859_1_to_utf8(s);
-}
-
-static inline const gchar *
-lazy_vendor_to_locale(const gchar *s)
-{
-	return s ? lazy_utf8_to_locale(lazy_vendor_to_utf8(s)) : NULL;
-}
-
 gchar *locale_to_utf8(const gchar *str);
 gchar *unknown_to_utf8(const gchar *str, gboolean add_charset);
 gchar *locale_to_utf8_normalized(const gchar *str, uni_norm_t norm);
