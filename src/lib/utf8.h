@@ -84,8 +84,8 @@ gboolean utf8_is_valid_string(const gchar *s);
 gboolean utf8_is_valid_data(const gchar *s, size_t n);
 size_t utf8_char_count(const gchar *s);
 size_t utf8_strlcpy(gchar *dst, const gchar *src, size_t dst_size);
-guint32
-utf8_decode_char(const gchar *s, gint len, gint *retlen, gboolean warn);
+guint32 utf8_decode_char_fast(const gchar *s, guint *retlen)
+	NON_NULL_PARAM((1,2));
 gint utf8_to_iso8859(gchar *s, gint len, gboolean space);
 size_t utf8_strlower(gchar *dst, const gchar *src, size_t size);
 gchar *utf8_strlower_copy(const gchar *src);

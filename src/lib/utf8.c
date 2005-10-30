@@ -68,14 +68,14 @@ RCSID("$Id$");
 static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
 
 static void unicode_compose_init(void);
-static void unicode_decompose_init(void);
+static gboolean unicode_compose_init_passed;
+
+static void regression_checks(void);
 size_t utf8_decompose_nfd(const gchar *in, gchar *out, size_t size);
 size_t utf8_decompose_nfkd(const gchar *in, gchar *out, size_t size);
 size_t utf32_strmaxlen(const guint32 *s, size_t maxlen);
 size_t utf32_to_utf8(const guint32 *in, gchar *out, size_t size);
 size_t utf32_strlen(const guint32 *s);
-
-static guint32 utf8_decode_char_fast(const gchar *s, gint *retlen);
 
 /**
  * use_icu is set to TRUE if the initialization of ICU succeeded.
@@ -306,12 +306,34 @@ static const guint8 utf8len_mark[] = {
 #define UNICODE_IS_BYTE_ORDER_MARK(x)	((0xFFFFU & (x)) == UNI_BYTE_ORDER_MARK)
 #define UNICODE_IS_BOM(x) 				UNICODE_IS_BYTE_ORDER_MARK(x)
 #define UNICODE_IS_ILLEGAL(x) \
-	((UNI_ILLEGAL & (x)) == UNI_ILLEGAL || (x) > 0x10FFFFU)
+	((x) > 0x10FFFFU || (UNI_ILLEGAL & (x)) == UNI_ILLEGAL)
 
-static inline G_GNUC_CONST gint
-uniskip(guint32 v)
+/**
+ * Determines the UTF-8 byte length for the given Unicode codepoint.
+ *
+ * @param uc an UTF-32 codepoint.
+ * @return	The exact amount of bytes necessary to store this codepoint in
+ *			UTF-8 encoding.
+ */
+static inline G_GNUC_CONST guint
+uniskip(guint32 uc)
 {
-	return v < 0x80U ? 1 : v < 0x800 ? 2 : v < 0x10000 ? 3 : 4;
+	return uc < 0x80U ? 1 : uc < 0x800 ? 2 : uc < 0x10000 ? 3 : 4;
+}
+
+/**
+ * Determines whether the given UTF-32 codepoint is valid in Unicode.
+ *
+ * @param uc an UTF-32 codepoint.
+ * @return	If the given codepoint is a surrogate, a BOM, out of range
+ *			or an invalid codepoint FALSE is returned; otherwise TRUE.
+ */
+static inline G_GNUC_CONST gboolean
+utf32_bad_codepoint(guint32 uc)
+{
+	return	uc > 0x10FFFF ||
+		0xFFFE == (uc & 0xFFFE) || /* Check for BOM and illegal xxFFFF */
+		UNICODE_IS_SURROGATE(uc);
 }
 
 /**
@@ -322,14 +344,7 @@ uniskip(guint32 v)
 static inline guint
 utf8_encoded_char_len(guint32 uc)
 {
-	if (
-		UNICODE_IS_SURROGATE(uc) ||
-		UNICODE_IS_ILLEGAL(uc) ||
-		UNICODE_IS_BOM(uc)
-	)
-		return 0;
-
-	return uniskip(uc);
+	return utf32_bad_codepoint(uc) ? 0 : uniskip(uc);
 }
 
 /**
@@ -338,18 +353,16 @@ utf8_encoded_char_len(guint32 uc)
  * @returns 0 if the unicode character is invalid. Otherwise the
  *          length of the UTF-8 character is returned.
  */
-guint
-utf8_encode_char(guint32 uc, gchar *buf)
+static guint NON_NULL_PARAM((2))
+utf8_encode_char(guint32 uc, gchar *buf, size_t size)
 {
-	guint len;
-
-	g_assert(buf);
+	guint len, i;
 
 	len = utf8_encoded_char_len(uc);
-	if (len > 0) {
-		guint i = len;
-
-		while (0 != --i) {
+	if (len <= size) {
+		i = len;
+		while (i > 1) {
+			i--;
 			buf[i] = (uc | UTF8_BYTE_MARK) & UTF8_BYTE_MASK;
 			uc >>= UTF8_ACCU_SHIFT;
 		}
@@ -473,6 +486,341 @@ utf32_general_category(guint32 uc)
 	return UNI_GC_OTHER_NOT_ASSIGNED;
 }
 
+static inline gint
+normalization_special_cmp(size_t i, guint32 uc)
+{
+	guint32 uc2, uc3;
+
+	uc2 = utf32_normalization_specials[i].uc;
+	if (uc == uc2)
+		return 0;
+	if (uc < uc2)
+		return 1;
+
+	uc3 = uc2 + utf32_normalization_specials[i].len;
+	return uc < uc3 ? 0 : -1;
+}
+
+static inline gboolean
+utf32_is_normalization_special(guint32 uc)
+{
+#define GET_ITEM(i) (i)
+#define FOUND(i) G_STMT_START { \
+	return TRUE; \
+	/* NOTREACHED */ \
+} G_STMT_END
+
+	/* Perform a binary search to find ``uc'' */
+	BINARY_SEARCH(size_t, uc, G_N_ELEMENTS(utf32_normalization_specials),
+		normalization_special_cmp, GET_ITEM, FOUND);
+
+#undef FOUND
+#undef GET_ITEM
+	return FALSE;
+}
+
+/**
+ * @returns the character value of the first character in the string `s',
+ * which is assumed to be in UTF-8 encoding and no longer than `len'.
+ * `retlen' will be set to the length, in bytes, of that character.
+ *
+ * If `s' does not point to a well-formed UTF-8 character, the behaviour
+ * is dependent on the value of `warn'.  When FALSE, it is assumed that
+ * the caller will raise a warning, and this function will silently just
+ * set `retlen' to 0 and return zero.
+ */
+guint32
+utf8_decode_char(const gchar *s, gint len, guint *retlen, gboolean warn)
+{
+	guint32 v = *s;
+	guint32 ov = 0;
+	gint clen = 1;
+	gint expectlen = 0;
+	gint warning = -1;
+	char msg[128];
+
+	g_assert(s);
+
+#define UTF8_WARN_EMPTY				0
+#define UTF8_WARN_CONTINUATION		1
+#define UTF8_WARN_NON_CONTINUATION	2
+#define UTF8_WARN_FE_FF				3
+#define UTF8_WARN_SHORT				4
+#define UTF8_WARN_OVERFLOW			5
+#define UTF8_WARN_SURROGATE			6
+#define UTF8_WARN_BOM				7
+#define UTF8_WARN_LONG				8
+#define UTF8_WARN_ILLEGAL			9
+
+	if (len == 0) {
+		warning = UTF8_WARN_EMPTY;
+		goto malformed;
+	}
+
+	if (UTF8_IS_ASCII(v)) {
+		if (retlen)
+			*retlen = 1;
+		return *s;
+	}
+
+	if (UTF8_IS_CONTINUATION(v)) {
+		warning = UTF8_WARN_CONTINUATION;
+		goto malformed;
+	}
+
+	if (UTF8_IS_START(v) && len > 1 && !UTF8_IS_CONTINUATION(s[1])) {
+		warning = UTF8_WARN_NON_CONTINUATION;
+		goto malformed;
+	}
+
+	if (v == 0xfe || v == 0xff) {
+		warning = UTF8_WARN_FE_FF;
+		goto malformed;
+	}
+
+	if      (!(v & 0x20)) { clen = 2; v &= 0x1f; }
+	else if (!(v & 0x10)) { clen = 3; v &= 0x0f; }
+	else if (!(v & 0x08)) { clen = 4; v &= 0x07; }
+	else if (!(v & 0x04)) { clen = 5; v &= 0x03; }
+	else if (!(v & 0x02)) { clen = 6; v &= 0x01; }
+	else if (!(v & 0x01)) { clen = 7; v = 0; }
+
+	if (retlen)
+		*retlen = clen;
+
+	expectlen = clen;
+
+	if (len < expectlen) {
+		warning = UTF8_WARN_SHORT;
+		goto malformed;
+	}
+
+	for (clen--, s++, ov = v; clen; clen--, s++, ov = v) {
+		if (!UTF8_IS_CONTINUATION(*s)) {
+			s--;
+			warning = UTF8_WARN_NON_CONTINUATION;
+			goto malformed;
+		} else
+			v = UTF8_ACCUMULATE(v, *s);
+
+		if (v < ov) {
+			warning = UTF8_WARN_OVERFLOW;
+			goto malformed;
+		} else if (v == ov) {
+			warning = UTF8_WARN_LONG;
+			goto malformed;
+		}
+	}
+
+	if (UNICODE_IS_SURROGATE(v)) {
+		warning = UTF8_WARN_SURROGATE;
+		goto malformed;
+	} else if (UNICODE_IS_BYTE_ORDER_MARK(v)) {
+		warning = UTF8_WARN_BOM;
+		goto malformed;
+	} else if ((guint) expectlen > uniskip(v)) {
+		warning = UTF8_WARN_LONG;
+		goto malformed;
+	} else if (UNICODE_IS_ILLEGAL(v)) {
+		warning = UTF8_WARN_ILLEGAL;
+		goto malformed;
+	}
+
+	return v;
+
+malformed:
+
+	if (!warn) {
+		if (retlen)
+			*retlen = 0;
+		return 0;
+	}
+
+	switch (warning) {
+	case UTF8_WARN_EMPTY:
+		gm_snprintf(msg, sizeof(msg), "empty string");
+		break;
+	case UTF8_WARN_CONTINUATION:
+		gm_snprintf(msg, sizeof(msg),
+			"unexpected continuation byte 0x%02lx", (gulong) v);
+		break;
+	case UTF8_WARN_NON_CONTINUATION:
+		gm_snprintf(msg, sizeof(msg),
+			"unexpected non-continuation byte 0x%02lx "
+			"after start byte 0x%02lx", (gulong) s[1], (gulong) v);
+		break;
+	case UTF8_WARN_FE_FF:
+		gm_snprintf(msg, sizeof(msg), "byte 0x%02lx", (gulong) v);
+		break;
+	case UTF8_WARN_SHORT:
+		gm_snprintf(msg, sizeof(msg), "%d byte%s, need %d",
+			len, len == 1 ? "" : "s", expectlen);
+		break;
+	case UTF8_WARN_OVERFLOW:
+		gm_snprintf(msg, sizeof(msg), "overflow at 0x%02lx, byte 0x%02lx",
+			(gulong) ov, (gulong) *s);
+		break;
+	case UTF8_WARN_SURROGATE:
+		gm_snprintf(msg, sizeof(msg), "UTF-16 surrogate 0x04%lx", (gulong) v);
+		break;
+	case UTF8_WARN_BOM:
+		gm_snprintf(msg, sizeof(msg), "byte order mark 0x%04lx", (gulong) v);
+		break;
+	case UTF8_WARN_LONG:
+		gm_snprintf(msg, sizeof(msg), "%d byte%s, need %d",
+			expectlen, expectlen == 1 ? "" : "s", uniskip(v));
+		break;
+	case UTF8_WARN_ILLEGAL:
+		gm_snprintf(msg, sizeof(msg), "character 0x%04lx", (gulong) v);
+		break;
+	default:
+		gm_snprintf(msg, sizeof(msg), "unknown reason");
+		break;
+	}
+
+	g_warning("malformed UTF-8 character: %s", msg);
+
+	if (retlen)
+		*retlen = expectlen ? expectlen : len;
+
+	return 0;
+}
+
+/**
+ * This routine is the same as utf8_decode_char() but it is more specialized
+ * and is aimed at being fast.  Use it when you don't need warnings and you
+ * don't know the length of the string you're reading from.
+ *
+ * @returns the character value of the first character in the string `s',
+ * which is assumed to be in UTF-8 encoding, and ending with a NUL byte.
+ * `retlen' will be set to the length, in bytes, of that character.
+ *
+ * If `s' does not point to a well-formed UTF-8 character, `retlen' is
+ * set to 0 and the function returns 0.
+ */
+
+#if defined(TEST_UTF8_DECODER)
+/* Slower but correct, keep it around for consistency checks. */
+static guint32
+utf8_decode_char_less_fast(const gchar *s, guint *retlen)
+{
+	guint32 v = *s;
+	guint32 nv;
+	guint32 ov = 0;
+	gint clen = 1;
+	gint expectlen = 0;
+
+	g_assert(s);
+
+	if (UTF8_IS_ASCII(v)) {
+		if (retlen)
+			*retlen = 1;
+		return *s;
+	}
+
+	if (UTF8_IS_CONTINUATION(v))
+		goto malformed;
+
+	nv = s[1];
+
+	if (UTF8_IS_START(v) && !UTF8_IS_CONTINUATION(nv))
+		goto malformed;
+
+	if (v == 0xfe || v == 0xff)
+		goto malformed;
+
+	if      (!(v & 0x20)) { clen = 2; v &= 0x1f; }
+	else if (!(v & 0x10)) { clen = 3; v &= 0x0f; }
+	else if (!(v & 0x08)) { clen = 4; v &= 0x07; }
+	else if (!(v & 0x04)) { clen = 5; v &= 0x03; }
+	else if (!(v & 0x02)) { clen = 6; v &= 0x01; }
+	else if (!(v & 0x01)) { clen = 7; v = 0; }
+
+	if (retlen)
+		*retlen = clen;
+
+	expectlen = clen;
+
+	/* nv was already set above as s[1], no need to read it again */
+
+	for (clen--, s++, ov = v; clen; clen--, nv = *(++s), ov = v) {
+		if (!UTF8_IS_CONTINUATION(nv))
+			goto malformed;
+
+		v = UTF8_ACCUMULATE(v, nv);
+
+		if (v <= ov)
+			goto malformed;
+	}
+
+	if (UNICODE_IS_SURROGATE(v))		goto malformed;
+	if (UNICODE_IS_BYTE_ORDER_MARK(v))	goto malformed;
+	if ((guint) expectlen > uniskip(v))	goto malformed;
+	if (UNICODE_IS_ILLEGAL(v))			goto malformed;
+
+	return v;
+
+malformed:
+	if (retlen)
+		*retlen = 0;
+
+	return 0;
+}
+#endif
+
+guint32
+utf8_decode_char_fast(const gchar *s, guint *retlen)
+{
+	guint32 uc = (guchar) *s;
+	guint n = utf8_skip(uc);
+
+	/*
+	 * utf8_skip() returns zero for an invalid initial byte.
+	 * It rejects also surrogates (U+D800..U+DFFF) implicitely.
+	 */
+
+	*retlen = n;
+
+	if (1 != n) {
+		guchar c;
+		guint i;
+
+		if (0 == n)
+			goto failure;
+
+		/* The second byte needs special handling */
+
+		c = *++s;
+		i = uc & 0x3F;
+		if (c > utf8_2nd_byte_tab[i].end || c < utf8_2nd_byte_tab[i].start)
+			goto failure;
+
+		n--;
+		uc &= 0x3F >> n;
+
+		for (;;) {
+			uc = UTF8_ACCUMULATE(uc, c);
+			if (--n == 0)
+				break;
+			c = *++s;
+
+			/* Any further bytes must be in the range 0x80...0xBF. */
+			if (0x80 != (0xC0 & c))
+				goto failure;
+		}
+
+		/* Check for BOMs (*FFFE) and invalid codepoints (*FFFF) */
+		if (0xFFFE == (0xFFFE & uc))
+			goto failure;
+	}
+
+	return uc;
+
+failure:
+	*retlen = 0;
+	return 0;
+}
+
 /**
  * Are the first bytes of string `s' forming a valid UTF-8 character?
  *
@@ -482,13 +830,13 @@ utf32_general_category(guint32 uc)
 guint
 utf8_char_len(const gchar *s)
 {
-	if (UTF8_IS_ASCII(*s)) {
+	guint clen;
+	if (UTF8_IS_ASCII(*s))
 		return 1;
-	} else {
-		gint clen;
-		return 0 != utf8_decode_char_fast(s, &clen) ? clen : 0;
-	}
+	(void) utf8_decode_char_fast(s, &clen);
+	return clen;
 }
+
 
 /**
  * @return amount of UTF-8 chars when first `len' bytes of the given string
@@ -628,355 +976,6 @@ utf16_encode_char(guint32 uc, guint16 *dst)
 }
 
 /**
- * @returns the character value of the first character in the string `s',
- * which is assumed to be in UTF-8 encoding and no longer than `len'.
- * `retlen' will be set to the length, in bytes, of that character.
- *
- * If `s' does not point to a well-formed UTF-8 character, the behaviour
- * is dependent on the value of `warn'.  When FALSE, it is assumed that
- * the caller will raise a warning, and this function will silently just
- * set `retlen' to -1 and return zero.
- */
-guint32
-utf8_decode_char(const gchar *s, gint len, gint *retlen, gboolean warn)
-{
-	guint32 v = *s;
-	guint32 ov = 0;
-	gint clen = 1;
-	gint expectlen = 0;
-	gint warning = -1;
-	char msg[128];
-
-	g_assert(s);
-
-#define UTF8_WARN_EMPTY				0
-#define UTF8_WARN_CONTINUATION		1
-#define UTF8_WARN_NON_CONTINUATION	2
-#define UTF8_WARN_FE_FF				3
-#define UTF8_WARN_SHORT				4
-#define UTF8_WARN_OVERFLOW			5
-#define UTF8_WARN_SURROGATE			6
-#define UTF8_WARN_BOM				7
-#define UTF8_WARN_LONG				8
-#define UTF8_WARN_ILLEGAL			9
-
-	if (len == 0) {
-		warning = UTF8_WARN_EMPTY;
-		goto malformed;
-	}
-
-	if (UTF8_IS_ASCII(v)) {
-		if (retlen)
-			*retlen = 1;
-		return *s;
-	}
-
-	if (UTF8_IS_CONTINUATION(v)) {
-		warning = UTF8_WARN_CONTINUATION;
-		goto malformed;
-	}
-
-	if (UTF8_IS_START(v) && len > 1 && !UTF8_IS_CONTINUATION(s[1])) {
-		warning = UTF8_WARN_NON_CONTINUATION;
-		goto malformed;
-	}
-
-	if (v == 0xfe || v == 0xff) {
-		warning = UTF8_WARN_FE_FF;
-		goto malformed;
-	}
-
-	if      (!(v & 0x20)) { clen = 2; v &= 0x1f; }
-	else if (!(v & 0x10)) { clen = 3; v &= 0x0f; }
-	else if (!(v & 0x08)) { clen = 4; v &= 0x07; }
-	else if (!(v & 0x04)) { clen = 5; v &= 0x03; }
-	else if (!(v & 0x02)) { clen = 6; v &= 0x01; }
-	else if (!(v & 0x01)) { clen = 7; v = 0; }
-
-	if (retlen)
-		*retlen = clen;
-
-	expectlen = clen;
-
-	if (len < expectlen) {
-		warning = UTF8_WARN_SHORT;
-		goto malformed;
-	}
-
-	for (clen--, s++, ov = v; clen; clen--, s++, ov = v) {
-		if (!UTF8_IS_CONTINUATION(*s)) {
-			s--;
-			warning = UTF8_WARN_NON_CONTINUATION;
-			goto malformed;
-		} else
-			v = UTF8_ACCUMULATE(v, *s);
-
-		if (v < ov) {
-			warning = UTF8_WARN_OVERFLOW;
-			goto malformed;
-		} else if (v == ov) {
-			warning = UTF8_WARN_LONG;
-			goto malformed;
-		}
-	}
-
-	if (UNICODE_IS_SURROGATE(v)) {
-		warning = UTF8_WARN_SURROGATE;
-		goto malformed;
-	} else if (UNICODE_IS_BYTE_ORDER_MARK(v)) {
-		warning = UTF8_WARN_BOM;
-		goto malformed;
-	} else if (expectlen > uniskip(v)) {
-		warning = UTF8_WARN_LONG;
-		goto malformed;
-	} else if (UNICODE_IS_ILLEGAL(v)) {
-		warning = UTF8_WARN_ILLEGAL;
-		goto malformed;
-	}
-
-	return v;
-
-malformed:
-
-	if (!warn) {
-		if (retlen)
-			*retlen = -1;
-		return 0;
-	}
-
-	switch (warning) {
-	case UTF8_WARN_EMPTY:
-		gm_snprintf(msg, sizeof(msg), "empty string");
-		break;
-	case UTF8_WARN_CONTINUATION:
-		gm_snprintf(msg, sizeof(msg),
-			"unexpected continuation byte 0x%02lx", (gulong) v);
-		break;
-	case UTF8_WARN_NON_CONTINUATION:
-		gm_snprintf(msg, sizeof(msg),
-			"unexpected non-continuation byte 0x%02lx "
-			"after start byte 0x%02lx", (gulong) s[1], (gulong) v);
-		break;
-	case UTF8_WARN_FE_FF:
-		gm_snprintf(msg, sizeof(msg), "byte 0x%02lx", (gulong) v);
-		break;
-	case UTF8_WARN_SHORT:
-		gm_snprintf(msg, sizeof(msg), "%d byte%s, need %d",
-			len, len == 1 ? "" : "s", expectlen);
-		break;
-	case UTF8_WARN_OVERFLOW:
-		gm_snprintf(msg, sizeof(msg), "overflow at 0x%02lx, byte 0x%02lx",
-			(gulong) ov, (gulong) *s);
-		break;
-	case UTF8_WARN_SURROGATE:
-		gm_snprintf(msg, sizeof(msg), "UTF-16 surrogate 0x04%lx", (gulong) v);
-		break;
-	case UTF8_WARN_BOM:
-		gm_snprintf(msg, sizeof(msg), "byte order mark 0x%04lx", (gulong) v);
-		break;
-	case UTF8_WARN_LONG:
-		gm_snprintf(msg, sizeof(msg), "%d byte%s, need %d",
-			expectlen, expectlen == 1 ? "" : "s", uniskip(v));
-		break;
-	case UTF8_WARN_ILLEGAL:
-		gm_snprintf(msg, sizeof(msg), "character 0x%04lx", (gulong) v);
-		break;
-	default:
-		gm_snprintf(msg, sizeof(msg), "unknown reason");
-		break;
-	}
-
-	g_warning("malformed UTF-8 character: %s", msg);
-
-	if (retlen)
-		*retlen = expectlen ? expectlen : len;
-
-	return 0;
-}
-
-/**
- * This routine is the same as utf8_decode_char() but it is more specialized
- * and is aimed at being fast.  Use it when you don't need warnings and you
- * don't know the length of the string you're reading from.
- *
- * @returns the character value of the first character in the string `s',
- * which is assumed to be in UTF-8 encoding, and ending with a NUL byte.
- * `retlen' will be set to the length, in bytes, of that character.
- *
- * If `s' does not point to a well-formed UTF-8 character, `retlen' is
- * set to -1 and the function returns 0.
- */
-
-#if 0 
-/* Slower but correct, keep it around for consistency checks. */
-static guint32
-utf8_decode_char_less_fast(const gchar *s, gint *retlen)
-{
-	guint32 v = *s;
-	guint32 nv;
-	guint32 ov = 0;
-	gint clen = 1;
-	gint expectlen = 0;
-
-	g_assert(s);
-
-	if (UTF8_IS_ASCII(v)) {
-		if (retlen)
-			*retlen = 1;
-		return *s;
-	}
-
-	if (UTF8_IS_CONTINUATION(v))
-		goto malformed;
-
-	nv = s[1];
-
-	if (UTF8_IS_START(v) && !UTF8_IS_CONTINUATION(nv))
-		goto malformed;
-
-	if (v == 0xfe || v == 0xff)
-		goto malformed;
-
-	if      (!(v & 0x20)) { clen = 2; v &= 0x1f; }
-	else if (!(v & 0x10)) { clen = 3; v &= 0x0f; }
-	else if (!(v & 0x08)) { clen = 4; v &= 0x07; }
-	else if (!(v & 0x04)) { clen = 5; v &= 0x03; }
-	else if (!(v & 0x02)) { clen = 6; v &= 0x01; }
-	else if (!(v & 0x01)) { clen = 7; v = 0; }
-
-	if (retlen)
-		*retlen = clen;
-
-	expectlen = clen;
-
-	/* nv was already set above as s[1], no need to read it again */
-
-	for (clen--, s++, ov = v; clen; clen--, nv = *(++s), ov = v) {
-		if (!UTF8_IS_CONTINUATION(nv))
-			goto malformed;
-
-		v = UTF8_ACCUMULATE(v, nv);
-
-		if (v <= ov)
-			goto malformed;
-	}
-
-	if (UNICODE_IS_SURROGATE(v))		goto malformed;
-	if (UNICODE_IS_BYTE_ORDER_MARK(v))	goto malformed;
-	if (expectlen > uniskip(v))			goto malformed;
-	if (UNICODE_IS_ILLEGAL(v))			goto malformed;
-
-	return v;
-
-malformed:
-	if (retlen)
-		*retlen = -1;
-
-	return 0;
-}
-#endif
-
-guint32
-utf8_decode_char_fast(const gchar *s, gint *retlen)
-{
-	guint32 uc = (guchar) *s;
-	guint n;
-	
-	n = utf8_skip(uc);
-
-	/*
-	 * utf8_skip() returns zero for an invalid initial byte.
-	 * It rejects also surrogates (U+D800..U+DFFF) implicitely.
-	 */
-
-	if (retlen)
-		*retlen = n;
-
-	if (1 != n) {
-		guchar base, mask, c;
-
-		/* Minimum penalty for ASCII */
-		if (n-- < 1)
-			goto failure;
-
-		/* The second byte needs special handling */
-		c = *++s;
-
-		/* In the four cases below "base" and "mask" may be overriden; this is
-		 * OK and gains smaller code and is faster on average. */
-		if (uc < 0xE0) {
-			/* The default valid range for the second byte is 0x80..0xBF */
-			base = 0x80;
-			mask = 0xC0;
-		} else {
-			static const struct {
-				const guchar base;
-				const guchar mask;
-			} tab[32] = {
-				{ 0xA0, 0xE0 },	/* 0xE0 0xA0..0xBF */
-				{ 0x80, 0xC0 },	/* 0xE1 */
-				{ 0x80, 0xC0 },	/* 0xE2 */
-				{ 0x80, 0xC0 }, /* 0xE3 */
-				{ 0x80, 0xC0 }, /* 0xE4 */
-				{ 0x80, 0xC0 }, /* 0xE5 */
-				{ 0x80, 0xC0 }, /* 0xE6 */
-				{ 0x80, 0xC0 }, /* 0xE7 */
-				{ 0x80, 0xC0 }, /* 0xE8 */
-				{ 0x80, 0xC0 }, /* 0xE9 */
-				{ 0x80, 0xC0 }, /* 0xEA */
-				{ 0x80, 0xC0 }, /* 0xEB */
-				{ 0x80, 0xC0 }, /* 0xEC */
-				{ 0x80, 0xE0 }, /* 0xED 0x80..0x9F */
-				{ 0x80, 0xC0 }, /* 0xEE */
-				{ 0x80, 0xC0 }, /* 0xEF */
-				{ 0x80, 0xC0 }, /* 0xF0 0x90..0xBF */
-				{ 0x80, 0xC0 }, /* 0xF1 */
-				{ 0x80, 0xC0 }, /* 0xF2 */
-				{ 0x80, 0xC0 }, /* 0xF3 */
-				{ 0x80, 0xF0 }, /* 0xF4 0x80..0x8F */
-
-				/* Values beyond are already filtered by utf8_skip(). */
-			};
-
-			/* Worst case; a mask alone is insufficient. */
-			if (0xF0 == uc && c < 0x90)
-				goto failure;
-			
-			base = tab[uc - 0xE0].base;
-			mask = tab[uc - 0xE0].mask;
-		}
-
-		uc &= 0x3F >> n;
-
-		if ((mask & c) != base)
-			goto failure;
-
-		for (;;) {
-			uc = UTF8_ACCUMULATE(uc, c);
-			if (0 == --n)
-				break;
-
-			c = *++s;
-
-			/* Any further bytes must be in the range 0x80...0xBF. */
-			if (0x80 != (0xC0 & c))
-				goto failure;
-		}
-
-		/* Check for BOMs (*FFFE) and invalid codepoints (*FFFF) */
-		if (0xFFFE == (0xFFFE & uc))
-			goto failure;
-	}
-
-	return uc;
-
-failure:
-	if (retlen)
-		*retlen = -1;
-	return 0;
-}
-
-/**
  * Convert UTF-8 string to ISO-8859-1 inplace.  If `space' is TRUE, all
  * characters outside the U+0000 .. U+00FF range are turned to space U+0020.
  * Otherwise, we stop at the first out-of-range character.
@@ -1000,7 +999,7 @@ utf8_to_iso8859(gchar *s, gint len, gboolean space)
 		gint clen;
 		guint32 v = utf8_decode_char(x, len, &clen, FALSE);
 
-		if (clen == -1)
+		if (clen == 0)
 			break;
 
 		g_assert(clen >= 1);
@@ -1396,7 +1395,7 @@ locale_init(void)
 #endif
 
 	unicode_compose_init();
-	unicode_decompose_init();
+	regression_checks();
 }
 
 /**
@@ -2299,29 +2298,30 @@ utf8_to_utf32(const gchar *in, guint32 *out, size_t size)
 {
 	const gchar *s = in;
 	guint32 *p = out;
-	gint retlen;
-	size_t len = 0;
+	guint retlen;
 
 	g_assert(in != NULL);
 	g_assert(size == 0 || out != NULL);
 	g_assert(size <= INT_MAX);
 
 	if (size > 0) {
-		while (*s != '\0' && --size > 0) {
-			len = utf8_decode_lookahead(s, len);
-			*p++ = utf8_decode_char(s, len, &retlen, TRUE);
+		guint32 uc;
+		
+		while (--size > 0) {
+			uc = utf8_decode_char_fast(s, &retlen);
+			if (!uc)
+				break;
+			*p++ = uc;
 			s += retlen;
-			len -= retlen;
 		}
 		*p = 0x0000;
 	}
 
-	while (*s != '\0') {
-		len = utf8_decode_lookahead(s, len);
-		utf8_decode_char(s, len, &retlen, TRUE);
-		s += retlen;
-		len -= retlen;
-		p++;
+	if (*s != '\0') {
+		while (utf8_decode_char_fast(s, &retlen)) {
+			s += retlen;
+			p++;
+		}
 	}
 
 	return p - out;
@@ -2342,36 +2342,65 @@ utf8_to_utf32(const gchar *in, guint32 *out, size_t size)
  * @returns the length in bytes of completely converted string.
  */
 size_t
-utf32_to_utf8(const guint32 *in, gchar *out, size_t size)
+utf32_to_utf8(const guint32 *src, gchar *dst, size_t size)
 {
-	const guint32 *s = in;
-	gchar *p = out;
-	guint retlen;
+	gchar *p = dst;
 	guint32 uc;
-	gchar utf8_buf[7];
 
-	g_assert(in != NULL);
-	g_assert(size == 0 || out != NULL);
+	g_assert(src != NULL);
+	g_assert(size == 0 || dst != NULL);
 	g_assert(size <= INT_MAX);
 
-	if (size-- > 0) {
-		do {
-			uc = *s;
-			retlen = utf8_encode_char(uc, utf8_buf);
-			if (uc == 0x0000 || retlen > size)
+	if (size > 0) {
+		guint retlen;
+	
+		size--;	
+		while (0x0000 != (uc = *src) && size > 0) {
+			
+			retlen = utf8_encode_char(uc, p, size);
+			if (retlen == 0 || retlen > size)
 				break;
-			memcpy(p, utf8_buf, retlen);
+
+			src++;
 			p += retlen;
 			size -= retlen;
-			s++;
-		} while (size > 0);
+		}
 		*p = '\0';
 	}
 
-	while (0x0000 != (uc = *s++))
+	while (0x0000 != (uc = *src++))
 		p += utf8_encoded_char_len(uc);
 
-	return p - out;
+	return p - dst;
+}
+
+/**
+ * Converts a UTF-32 encoded string to a UTF-8 encoded string. The
+ * target string ``out'' is always be zero-terminated unless ``size''
+ * is zero.
+ *
+ * @param buf the UTF-32 input string.
+ *
+ * @returns the length in bytes of completely converted string.
+ */
+size_t
+utf32_to_utf8_inplace(guint32 *buf)
+{
+	const guint32 *src = buf;
+	gchar *dst = cast_to_gchar_ptr(buf);
+	guint32 uc;
+	guint len;
+
+	g_assert(buf != NULL);
+
+	for (src = buf; 0x0000 != (uc = *src++); dst += len) {
+		len = utf8_encode_char(uc, dst, sizeof *buf);
+		if (len == 0)
+			break;
+	}
+	*dst = '\0';
+
+	return dst - cast_to_gchar_ptr(buf);
 }
 
 /**
@@ -2423,6 +2452,7 @@ utf32_decompose_lookup(guint32 uc, gboolean nfkd)
 {
 	/* utf32_nfkd_lut contains UTF-32 strings, so we return a pointer
 	 * to the respective entry instead of copying the string */
+	
 #define GET_ITEM(i) (utf32_nfkd_lut[(i)].c & ~UTF32_F_MASK)
 #define FOUND(i) G_STMT_START { \
 	return utf32_nfkd_lut[(i)].c & (nfkd ? 0 : UTF32_F_NFKD) \
@@ -2543,7 +2573,7 @@ utf32_compose_char(guint32 a, guint32 b)
  * Finds the next ``starter'' character (combining class zero) in the
  * string starting at ``s''. Note that NUL is also a ``starter''.
  *
- * @param s an NUL-terminated UTF-32 string.
+ * @param s a NUL-terminated UTF-32 string.
  * @return a pointer to the next ``starter'' character in ``s''.
  */
 static inline guint32 *
@@ -2671,7 +2701,7 @@ utf8_is_decomposed(const gchar *src, gboolean nfkd)
 			cc = 0;
 		} else {
 			guint32 uc;
-			gint retlen;
+			guint retlen;
 
 			uc = utf8_decode_char_fast(src, &retlen);
 			if (uc == 0x0000)
@@ -2706,7 +2736,7 @@ utf8_canonical_sorted(const gchar *src)
 			cc = 0;
 		} else {
 			guint32 uc;
-			gint retlen;
+			guint retlen;
 
 			uc = utf8_decode_char_fast(src, &retlen);
 			if (uc == 0x0000)
@@ -3048,7 +3078,7 @@ utf8_decompose(const gchar *src, gchar *out, size_t size, gboolean nfkd)
 {
 	const guint32 *d;
 	guint32 uc;
-	gint retlen;
+	guint retlen;
 	size_t d_len, new_len = 0;
 
 	g_assert(src != NULL);
@@ -3059,8 +3089,8 @@ utf8_decompose(const gchar *src, gchar *out, size_t size, gboolean nfkd)
 		gchar *dst = out;
 
 		while (*src != '\0') {
+			gchar buf[256], utf8_buf[4], *q;
 			size_t utf8_len;
-			gchar buf[256], utf8_buf[7], *q;
 
 			uc = utf8_decode_char_fast(src, &retlen);
 			if (uc == 0x0000)
@@ -3070,19 +3100,22 @@ utf8_decompose(const gchar *src, gchar *out, size_t size, gboolean nfkd)
 			d = utf32_decompose_char(uc, &d_len, nfkd);
 			q = buf;
 			while (d_len-- > 0) {
-				utf8_len = utf8_encode_char(*d++, utf8_buf);
+				gchar *p = utf8_buf;
+				
+				utf8_len = utf8_encode_char(*d++, utf8_buf, sizeof utf8_buf);
 				g_assert((size_t) (&buf[sizeof buf] - q) >= utf8_len);
-				memcpy(q, utf8_buf, utf8_len);
-				q += utf8_len;
+				while (utf8_len-- > 0)
+					*q++ = *p++;
 			}
 
 			utf8_len = q - buf;
-			new_len += utf8_len;
-			if (new_len > size)
+			if (size - new_len < utf8_len)
 				break;
-
-			memcpy(dst, buf, utf8_len);
-			dst += utf8_len;
+			
+			new_len += utf8_len;
+			q = buf;
+			while (utf8_len-- > 0)
+				*dst++ = *q++;
 		}
 		*dst = '\0';
 
@@ -3099,7 +3132,7 @@ utf8_decompose(const gchar *src, gchar *out, size_t size, gboolean nfkd)
 		src += retlen;
 		d = utf32_decompose_char(uc, &d_len, nfkd);
 		while (d_len-- > 0)
-			new_len += utf8_encoded_char_len(*d++);
+			new_len += uniskip(*d++);
 	}
 
 	return new_len;
@@ -3121,7 +3154,7 @@ utf8_decompose(const gchar *src, gchar *out, size_t size, gboolean nfkd)
  * @returns the length in bytes (not characters!) of completely decomposed
  *			string.
  */
-	size_t
+size_t
 utf8_decompose_nfd(const gchar *src, gchar *out, size_t size)
 {
 	return utf8_decompose(src, out, size, FALSE);
@@ -3143,7 +3176,7 @@ utf8_decompose_nfd(const gchar *src, gchar *out, size_t size)
  * @returns the length in bytes (not characters!) of completely decomposed
  *			string.
  */
-	size_t
+size_t
 utf8_decompose_nfkd(const gchar *src, gchar *out, size_t size)
 {
 	return utf8_decompose(src, out, size, TRUE);
@@ -3153,7 +3186,7 @@ utf8_decompose_nfkd(const gchar *src, gchar *out, size_t size)
  * Decomposes an UTF-32 encoded string.
  *
  */
-	static inline size_t
+static inline size_t
 utf32_decompose(const guint32 *in, guint32 *out, size_t size, gboolean nfkd)
 {
 	const guint32 *d, *s = in;
@@ -3171,9 +3204,8 @@ utf32_decompose(const guint32 *in, guint32 *out, size_t size, gboolean nfkd)
 			if (d_len > size)
 				break;
 			size -= d_len;
-			while (d_len-- > 0) {
+			while (d_len-- > 0)
 				*p++ = *d++;
-			}
 		}
 		*p = 0x0000;
 
@@ -3232,18 +3264,22 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 {
 	guint32 uc;
 	guint32 nuc;
-	gint retlen;
-	size_t new_len = 0;
+	guint retlen;
+	size_t new_len;
 
 	g_assert(dst != NULL);
 	g_assert(src != NULL);
 	g_assert(remap != NULL);
 	g_assert(size <= INT_MAX);
 
-	if (size-- > 0) {
+	if (size <= 0) {
+		new_len = 0;
+	} else {
+		const gchar *dst0 = dst;
+		
+		size--;	/* Reserve one byte for the NUL */
 		while (*src != '\0') {
-			gint utf8_len;
-			gchar utf8_buf[7];
+			guint utf8_len;
 
 			uc = utf8_decode_char_fast(src, &retlen);
 			if (uc == 0x0000)
@@ -3256,25 +3292,25 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 			 *		--RAM, 2005-08-28
 			 */
 
-			src += retlen;
 			nuc = remap(uc);
-			utf8_len = nuc == uc
-				? retlen : (gint) utf8_encode_char(nuc, utf8_buf);
-			new_len += utf8_len;
-			if (new_len > size)
-				break;
-
-			if (nuc == uc) {			/* Not remapped, kept as-is */
-				if (retlen == 1)		/* ASCII char */
-					*dst = *(src - 1);
-				else
-					memcpy(dst, src - retlen, retlen);
-			} else if (utf8_len == 1)
-				*dst = *utf8_buf;
-			else
-				memcpy(dst, utf8_buf, utf8_len);
-			dst += utf8_len;
+			if (nuc == uc) {
+				if (retlen > size)
+					break;
+			
+				utf8_len = retlen;				
+				while (retlen-- > 0);
+					*dst++ = *src++;
+			} else {
+				utf8_len = utf8_encode_char(nuc, dst, size);
+				if (utf8_len == 0 || utf8_len > size)
+					break;
+			
+				src += retlen;
+				dst += utf8_len;
+			}
+			size -= utf8_len;
 		}
+		new_len = dst - dst0;
 		*dst = '\0';
 	}
 
@@ -3285,7 +3321,7 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 
 		src += retlen;
 		nuc = remap(uc);
-		new_len += nuc == uc ? (guint) retlen : utf8_encoded_char_len(nuc);
+		new_len += nuc == uc ? retlen : uniskip(nuc);
 	}
 
 	return new_len;
@@ -4109,72 +4145,57 @@ locale_is_latin(void)
 size_t
 utf32_compose(guint32 *src)
 {
-	guint32 *s, *p, uc, *end;
+	guint32 *s, *p, *end, uc;
 
 	g_assert(src != NULL);
 
-	s = utf32_next_starter(src);
-	if (0 == *s)
-		return s - src;
+	s = utf32_next_starter(src); /* Skip over initial combining marks */
+	p = s;
 
-	/* The end of the string is determined in advance because a composition
+	end = &s[utf32_strlen(s)];
+
+	/* The end is determined in advance because a composition
 	 * can cause a ``hole''. Instead of rejoining the string each time,
 	 * the erased composite character is replaced with a NUL which is then
 	 * skipped when scanning the same position again.
      */
-	end = s + utf32_strlen(s);
-	p = s;
 
-	while (s != end) {
-		guint32 *q = s;
+	while (0 != (uc = *s)) {
+		gint last_cc;
+		guint32 *q;
 
-		uc = *s;
-		for (;;) {
-			guint32 c, uc2;
+	retry:
+		for (last_cc = -1, q = s; ++q != end; /* NOTHING */) {	
+			guint32 uc2, composite;
+			gint cc;
 
-			/* We must skip over previously erased characters but
-			 * not run over ``end''. */
-			do {
-				uc2 = *++q;
-			} while (uc2 == 0 && q != end);
+			if (0 == (uc2 = *q))	/* Skip already used characters */
+				continue;
 
-			c = utf32_compose_char(uc, uc2);
-			if (!c) {
-				guint cc = utf32_combining_class(uc2), cc2;
-
-				/* Now check whether the uc2 is a blocker */
-
-				cc2 = q == end ? 0 : utf32_combining_class(q[1]);
-				/* The following is ensured by canonical decomposition */
-				g_assert(0 == cc2 || cc <= cc2);
-
-				/* If uc2 is a starter or has the same or a higher combining 
-				 * as the next character, uc2 blocks any further composition.
-				 * This includes the case in which the next character is a
-				 * starter.
-				 */
-				if (0 == cc || cc >= cc2) {
-					/* Record the final composition and go to the next
-					 * write position */
-					*p++ = uc;
-
-					/* Make sure we fill possibly created holes */
-					while (++s != q) {
-						if (0 != (c = *s))
-							*p++ = c;
-					}
-
+			cc = utf32_combining_class(uc2);
+			composite = utf32_compose_char(uc, uc2);
+			if (!composite) {
+				if (cc == 0)
 					break;
-				}
+				last_cc = cc;
 			} else {
-				*q = 0;	/* Erase the composite character */
-				uc = c;	/* The preliminary composition */
+				if (last_cc >= cc)
+					break;
 
-				/* However, there might be a composition for this
-				 * character as well. Thus, restart. */
-				q = s;
+				*q = 0;			/* Erase used character */
+				uc = composite;	/* Replace starter with composition */
+				goto retry;		/* Retry with the new starter */
 			}
 		}
+		*p++ = uc;
+
+		/*
+		 * Pick-up unused combining characters between s and q
+		 */
+		while (++s != q) {
+			if (0 != (uc = *s))
+				*p++ = uc;
+		}	
 	}
 	*p = 0x0000;
 
@@ -4189,6 +4210,7 @@ utf32_normalize(const guint32 *src, uni_norm_t norm)
 	guint32 buf[1024], *dst;
 	size_t size, n;
 	gboolean compat = FALSE;
+	gboolean ok = FALSE;
 
 	g_assert((gint) norm >= 0 && norm < NUM_UNI_NORM);
 
@@ -4199,10 +4221,15 @@ utf32_normalize(const guint32 *src, uni_norm_t norm)
 		/* FALLTHRU */
 	case UNI_NORM_NFC:
 	case UNI_NORM_NFD:
+		ok = TRUE;
 		break;
 
 	case NUM_UNI_NORM:
+		break;
+	}
+	if (!ok) {
 		g_assert_not_reached();
+		return NULL;
 	}
 
 	/* Decompose string to NFD or NFKD  */
@@ -4237,8 +4264,9 @@ utf32_normalize(const guint32 *src, uni_norm_t norm)
 		return dst != buf ? dst : utf32_strdup(buf);
 
 	case NUM_UNI_NORM:
-		g_assert_not_reached();
+		break;
 	}
+	g_assert_not_reached();
 
 	/* NOTREACHED */
 	return NULL;
@@ -4290,18 +4318,8 @@ utf8_normalize(const gchar *src, uni_norm_t norm)
 			G_FREE_NULL(s);
 	}
 
-	{
-		size_t size, n;
-		gchar *dst;
-
-		size = 1 + utf32_to_utf8(dst32, NULL, 0);
-		dst = g_malloc(size * sizeof *dst);
-		n = utf32_to_utf8(dst32, dst, size);
-		g_assert(size - 1 == n);
-
-		G_FREE_NULL(dst32);
-		return dst;
-	}
+	(void) utf32_to_utf8_inplace(dst32);
+	return cast_to_gchar_ptr(dst32);
 }
 
 /**
@@ -4396,22 +4414,8 @@ utf8_canonize(const gchar *src)
 			G_FREE_NULL(s);
 	}
 
-	{
-		size_t size, n;
-		gchar *dst;
-
-		size = 1 + utf32_to_utf8(dst32, NULL, 0);
-		dst = g_malloc(size * sizeof *dst);
-		n = utf32_to_utf8(dst32, dst, size);
-		g_assert(size - 1 == n);
-
-		G_FREE_NULL(dst32);
-
-#if 0
-		g_message("\nsrc=\"%s\"\ndst=\"%s\"\n", src, dst);
-#endif
-		return dst;
-	}
+	(void) utf32_to_utf8_inplace(dst32);
+	return cast_to_gchar_ptr(dst32);
 }
 
 /**
@@ -4548,40 +4552,374 @@ unicode_compose_init(void)
 		}
 	}
 
-#if 1
-	{
+	unicode_compose_init_passed = TRUE;
+}
+
+#if defined(TEST_NORMALIZATION_TEST_TXT)
+/**
+ * Checks all cases listed in NormalizationTest.txt. This does not take
+ * very long but the table is pretty huge.
+ */
+static void
+regression_normalization_test_txt(void)
+{
+	size_t i;
+
+	for (i = 0; i < G_N_ELEMENTS(normalization_test_txt); i++) {
+		const guint32 *c[6];
+		size_t j;
+
 		/*
-		 * See: http://www.unicode.org/review/pr-29.html
+		 * Skip 0 for better readability because NormalizationTest.txt
+		 * refers to the columns as c1..c5.
 		 */
-		static const struct {
-			guint32 s[8];
-		} tests[] = {
-			{ { 0x0b47, 0x0300, 0x0b3e, 0 } },
-			{ { 0x1100, 0x0300, 0x1161, 0 } },
-			{ { 0x1100, 0x0300, 0x1161, 0x0323, 0 } },
-		};
+		c[0] = NULL;
+		for (j = 1; j < G_N_ELEMENTS(c); j++) {
+			const guint32 *src;
+			guint32 buf[256];
+			guchar chars[256];
+			size_t len, n;
 
-		for (i = 0; i < G_N_ELEMENTS(tests); i++) {
-			guint32 *s, *t;
-			gboolean eq;
+			src = normalization_test_txt[i].c[j - 1];
+			len = utf32_to_utf8(src, chars, sizeof chars);
+			g_assert(len > 0);
+			g_assert(len < sizeof chars);
+			n = utf8_to_utf32(chars, buf, G_N_ELEMENTS(buf));
+			g_assert(n == utf32_strlen(src));
+			g_assert(0 == utf32_strcmp(src, buf));
 
-			s = utf32_normalize(tests[i].s, UNI_NORM_NFC);
-			eq = 0 == utf32_strcmp(s, tests[i].s);
-			g_assert(eq);
+			c[j] = src;
+		}
 
-			t = utf32_normalize(s, UNI_NORM_NFC);
-			eq = 0 == utf32_strcmp(t, tests[i].s);
-			g_assert(eq);
+		{			
+			guint32 *nfc;
 
-			G_FREE_NULL(s);
-			G_FREE_NULL(t);
+			/* c2 == NFC(c1) */
+			nfc = utf32_normalize(c[1], UNI_NORM_NFC);
+			g_assert(0 == utf32_strcmp(c[2], nfc));
+			G_FREE_NULL(nfc);
+
+			/* c2 == NFC(c2) */
+			nfc = utf32_normalize(c[2], UNI_NORM_NFC);
+			g_assert(0 == utf32_strcmp(c[2], nfc));
+			G_FREE_NULL(nfc);
+
+			/* c2 == NFC(c3) */
+			nfc = utf32_normalize(c[3], UNI_NORM_NFC);
+			g_assert(0 == utf32_strcmp(c[2], nfc));
+			G_FREE_NULL(nfc);
+
+			/* c4 == NFC(c4) */
+			nfc = utf32_normalize(c[4], UNI_NORM_NFC);
+			g_assert(0 == utf32_strcmp(c[4], nfc));
+			G_FREE_NULL(nfc);
+
+			/* c4 == NFC(c5) */
+			nfc = utf32_normalize(c[5], UNI_NORM_NFC);
+			g_assert(0 == utf32_strcmp(c[4], nfc));
+			G_FREE_NULL(nfc);
+		}
+
+		{
+			guint32 *nfd;
+
+			/* c3 == NFD(c1) */
+			nfd = utf32_normalize(c[1], UNI_NORM_NFD);
+			g_assert(0 == utf32_strcmp(c[3], nfd));
+			G_FREE_NULL(nfd);
+
+			/* c3 == NFD(c2) */
+			nfd = utf32_normalize(c[2], UNI_NORM_NFD);
+			g_assert(0 == utf32_strcmp(c[3], nfd));
+			G_FREE_NULL(nfd);
+
+			/* c3 == NFD(c3) */
+			nfd = utf32_normalize(c[3], UNI_NORM_NFD);
+			g_assert(0 == utf32_strcmp(c[3], nfd));
+			G_FREE_NULL(nfd);
+
+			/* c5 == NFD(c4) */
+			nfd = utf32_normalize(c[4], UNI_NORM_NFD);
+			g_assert(0 == utf32_strcmp(c[5], nfd));
+			G_FREE_NULL(nfd);
+
+			/* c5 == NFD(c5) */
+			nfd = utf32_normalize(c[5], UNI_NORM_NFD);
+			g_assert(0 == utf32_strcmp(c[5], nfd));
+			G_FREE_NULL(nfd);
+		}
+
+		{
+			guint32 *nfkc;
+
+			/* c4 == NFKC(c1) */
+			nfkc = utf32_normalize(c[1], UNI_NORM_NFKC);
+			g_assert(0 == utf32_strcmp(c[4], nfkc));
+			G_FREE_NULL(nfkc);
+
+			/* c4 == NFKC(c2) */
+			nfkc = utf32_normalize(c[2], UNI_NORM_NFKC);
+			g_assert(0 == utf32_strcmp(c[4], nfkc));
+			G_FREE_NULL(nfkc);
+
+			/* c4 == NFKC(c3) */
+			nfkc = utf32_normalize(c[3], UNI_NORM_NFKC);
+			g_assert(0 == utf32_strcmp(c[4], nfkc));
+			G_FREE_NULL(nfkc);
+
+			/* c4 == NFKC(c4) */
+			nfkc = utf32_normalize(c[4], UNI_NORM_NFKC);
+			g_assert(0 == utf32_strcmp(c[4], nfkc));
+			G_FREE_NULL(nfkc);
+
+			/* c4 == NFKC(c5) */
+			nfkc = utf32_normalize(c[5], UNI_NORM_NFKC);
+			g_assert(0 == utf32_strcmp(c[4], nfkc));
+			G_FREE_NULL(nfkc);
+		}
+
+		{
+			guint32 *nfkd;
+
+			/* c5 == NFKD(c1) */
+			nfkd = utf32_normalize(c[1], UNI_NORM_NFKD);
+			g_assert(0 == utf32_strcmp(c[5], nfkd));
+			G_FREE_NULL(nfkd);
+
+			/* c5 == NFKD(c2) */
+			nfkd = utf32_normalize(c[2], UNI_NORM_NFKD);
+			g_assert(0 == utf32_strcmp(c[5], nfkd));
+			G_FREE_NULL(nfkd);
+
+			/* c5 == NFKD(c3) */
+			nfkd = utf32_normalize(c[3], UNI_NORM_NFKD);
+			g_assert(0 == utf32_strcmp(c[5], nfkd));
+			G_FREE_NULL(nfkd);
+
+			/* c5 == NFKD(c4) */
+			nfkd = utf32_normalize(c[4], UNI_NORM_NFKD);
+			g_assert(0 == utf32_strcmp(c[5], nfkd));
+			G_FREE_NULL(nfkd);
+
+			/* c5 == NFKD(c5) */
+			nfkd = utf32_normalize(c[5], UNI_NORM_NFKD);
+			g_assert(0 == utf32_strcmp(c[5], nfkd));
+			G_FREE_NULL(nfkd);
 		}
 	}
+}
+#endif /* TEST_NORMALIZATION_TEST_TXT */
+
+/**
+ * Checks that the following holds except for the characters
+ * the appear in column 1 in Part 1 of NormalizationTest.txt:
+ *
+ * X == NFC(X) == NFD(X) == NFKC(X) == NFKD(X)
+ */
+static void
+regression_normalization_character_identity(void)
+{
+	size_t i;
+
+	for (i = 0; i < 0x10FFFF; i++) {
+		static guint32 s[2];
+		guint32 *nfc, *nfd, *nfkc, *nfkd;
+
+		if (utf32_bad_codepoint(i) || utf32_is_normalization_special(i))
+			continue;
+
+		s[0] = i;
+		nfc = utf32_normalize(s, UNI_NORM_NFC);
+		nfd = utf32_normalize(s, UNI_NORM_NFD);
+		nfkc = utf32_normalize(s, UNI_NORM_NFKC);
+		nfkd = utf32_normalize(s, UNI_NORM_NFKD);
+		g_assert(0 == utf32_strcmp(s, nfc));
+		g_assert(0 == utf32_strcmp(s, nfd));
+		g_assert(0 == utf32_strcmp(s, nfkc));
+		g_assert(0 == utf32_strcmp(s, nfkd));
+		G_FREE_NULL(nfc);
+		G_FREE_NULL(nfd);
+		G_FREE_NULL(nfkc);
+		G_FREE_NULL(nfkd);
+	}
+}
+
+/**
+ * See: http://www.unicode.org/review/pr-29.html
+ */
+static void
+regression_normalization_issue(void)
+{
+	static const struct {
+		guint32 s[8];
+	} tests[] = {
+		{ { 0x0b47, 0x0300, 0x0b3e, 0 } },
+		{ { 0x1100, 0x0300, 0x1161, 0 } },
+		{ { 0x1100, 0x0300, 0x1161, 0x0323, 0 } },
+	};
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
+		guint32 *s, *t;
+		gboolean eq;
+
+		s = utf32_normalize(tests[i].s, UNI_NORM_NFC);
+		eq = 0 == utf32_strcmp(s, tests[i].s);
+		g_assert(eq);
+
+		t = utf32_normalize(s, UNI_NORM_NFC);
+		eq = 0 == utf32_strcmp(t, tests[i].s);
+		g_assert(eq);
+
+		G_FREE_NULL(s);
+		G_FREE_NULL(t);
+	}
+}
+
+static void
+regression_utf8_strlower(void)
+{
+	const gchar blah[] = "some lowercase ascii";
+	gchar buf[sizeof blah];
+	size_t len;
+
+	len = utf8_strlower(buf, blah, sizeof buf);
+	g_assert(len == CONST_STRLEN(blah));
+	g_assert(0 == strcmp(blah, buf));
+}
+
+/**
+ * The following code is supposed to reproduce bug #1211413.
+ */
+static void
+regression_bug_1211413(void)
+{
+	static const char bad[] = "\201y\223\220\216B\201znaniwa "
+		"\224\xfc\217\217\227\202\xcc\220\xab "
+		"\202\xb5\202\xcc"
+		"18\215\xce\201@\202d\203J\203b\203v.mpg";
+	const char *s;
+	size_t len, chars;
+	guint32 *u;
+
+	s = lazy_locale_to_utf8_normalized(bad, UNI_NORM_NFC);
+	len = strlen(s);
+	chars = utf8_char_count(s);
+	g_assert(len != 0);
+	g_assert(len >= chars);
+	len = utf8_to_utf32(s, NULL, 0);
+	g_assert(len <= chars);
+	u = g_malloc0((len + 1) * sizeof *u);
+	utf8_to_utf32(s, u, len + 1);
+	G_FREE_NULL(u);
+}
+
+/**
+ * Some iconv()s let invalid UTF-8 with codepoints
+ * beyond U+10FFFF slip through, when converting from UTF-8 to UTF-8.
+ * Thus, use utf8_enforce() for UTF-8 -> UTF-8 instead.
+ */
+static void
+regression_iconv_utf8_to_utf8(void)
+{
+	const guchar s[] = { 
+		0xa1, 0xbe, 0xb4, 0xba, 0xc7, 0xef, 0xd3, 0xe9, 0xc0, 0xd6, 0xd6,
+		0xc6, 0xd7, 0xf7, 0xa1, 0xbf, 0xb3, 0xfe, 0xc3, 0xc5, 0xb5, 0xc4,
+		0xca, 0xc0, 0xbd, 0xe7, 0x0
+	};
+
+	(void) lazy_locale_to_utf8_normalized(s, UNI_NORM_NFC);
+}
+
+/*
+ * Verify that each UTF-8 encoded codepoint is decoded to the same
+ * codepoint.
+ */
+static void
+regression_utf8_bijection(void)
+{
+	guint32 uc;
+
+	for (uc = 0; uc <= 0x10FFFF; uc++) {
+		static gchar utf8_char[4];
+		gint len, len1;
+		guint32 uc1;
+
+		len = utf8_encode_char(uc, utf8_char, sizeof utf8_char);
+		if (!len)
+			continue;
+		g_assert(len > 0 && len <= 4);
+
+		uc1 = utf8_decode_char_fast(utf8_char, &len1); 
+		if (uc != uc1 || len != len1)
+			g_message("uc=%x uc1=%x, len=%d, len1=%d\n", uc, uc1, len, len1);
+		g_assert(uc == uc1);
+		g_assert(len == len1);
+
+#if defined(TEST_UTF8_DECODER)
+		{
+			guint32 uc2;
+			gint len2;
+			
+			uc2 = utf8_decode_char_less_fast(utf8_char, &len2); 
+			g_assert(uc1 == uc2);
+			g_assert(len1 == len2);
+		}
+#endif /* TEST_UTF8_DECODER */
+	}
+}
+
+#if defined(TEST_UTF8_DECODER)
+/**
+ * Check utf8_decode_char_fast() for all 4-byte combinations. This
+ * takes about 3 minutes of CPU time on an Athlon Duron 1.4GHz.
+ */
+static void
+regression_utf8_decoder(void)
+{
+	guint32 uc = 0;
+
+	do {
+		guint len1, len2;
+		guint32 uc1, uc2;
+
+		uc1 = utf8_decode_char_fast(cast_to_gconstpointer(&uc), &len1); 
+		uc2 = utf8_decode_char_less_fast(cast_to_gconstpointer(&uc), &len2);
+
+#if 0	
+			printf("uc=%08X uc1=%x, uc2=%x, len1=%u, len2=%u\n",
+				uc, uc1, uc2, len1, len2);
 #endif
 
-	/* The following checks are broken as GLib does not implement Unicode 4.1.0
-	 * at the moment. --cbiere, 2005-08-02 */
-#if 0 && defined(USE_GLIB2)
+		g_assert(!UNICODE_IS_ILLEGAL(uc1));
+		g_assert(uc1 == uc2);
+		g_assert(len1 == len2);
+
+		if (0 != len1) {
+			static gchar utf8_char[4];
+			guint len;
+			gboolean eq;
+			
+			len = utf8_encode_char(uc1, utf8_char, sizeof utf8_char);
+			g_assert(len1 == len);
+			eq = 0 == memcmp(cast_to_gconstpointer(&uc), utf8_char, len);
+			g_assert(eq);
+		}
+	} while (0 != ++uc); /* while (!0xc0ffee) */
+}
+#endif /* TEST_UTF8_DECODER */
+
+#if 0
+/**
+ * The following checks are broken as GLib does not implement Unicode 4.1.0
+ * at the moment. --cbiere, 2005-08-02
+ */
+static void
+regression_utf8_vs_glib2(void)
+{
+#if defined(USE_GLIB2)
+	size_t i;
+
 	for (i = 0; i <= 0x10FFFD; i++) {
 		guint32 uc;
 		GUnicodeType gt;
@@ -4682,16 +5020,13 @@ unicode_compose_init(void)
 			break;
 		}
 	}
-#endif
 
-#if 0 && defined(USE_GLIB2)
 	for (;;) {
 		guint32 test[32];
 		guint32 q[1024], *x, *y;
 		gchar s[1024], t[1024], *s_nfc;
 		size_t size;
 
-#if 1
 		for (i = 0; i < G_N_ELEMENTS(test) - 1; i++) {
 			guint32 uc;
 
@@ -4706,7 +5041,6 @@ unicode_compose_init(void)
 			test[i] = uc;
 		}
 		test[i] = 0;
-#endif
 
 #if 0
 		test[0] = 0x3271;
@@ -4800,122 +5134,13 @@ unicode_compose_init(void)
 		G_FREE_NULL(y);
 		G_FREE_NULL(s_nfc);
 	}
-#endif
-}
-
-static void
-unicode_decompose_init(void)
-{
-	/* The following code is supposed to reproduce bug #1211413. */
-	{
-		static const char bad[] = "\201y\223\220\216B\201znaniwa "
-			"\224\xfc\217\217\227\202\xcc\220\xab "
-			"\202\xb5\202\xcc"
-			"18\215\xce\201@\202d\203J\203b\203v.mpg";
-		const char *s;
-		size_t len, chars;
-		guint32 *u;
-
-		s = lazy_locale_to_utf8_normalized(bad, UNI_NORM_NFC);
-		len = strlen(s);
-		chars = utf8_char_count(s);
-		g_assert(len != 0);
-		g_assert(len >= chars);
-		len = utf8_to_utf32(s, NULL, 0);
-		g_assert(len == chars);
-		u = g_malloc0((len + 1) * sizeof *u);
-		utf8_to_utf32(s, u, len + 1);
-		G_FREE_NULL(u);
-	}
-
-	/*
-	 * Regression: Some iconv()s let invalid UTF-8 with codepoints
-	 * beyond U+10FFFF slip through, when converting from UTF-8 to UTF-8.
-	 * Thus, use utf8_enforce() for UTF-8 -> UTF-8 instead.
-	 */
-	{
-		const guchar s[] = { 
-			0xa1, 0xbe, 0xb4, 0xba, 0xc7, 0xef, 0xd3, 0xe9, 0xc0, 0xd6, 0xd6,
-			0xc6, 0xd7, 0xf7, 0xa1, 0xbf, 0xb3, 0xfe, 0xc3, 0xc5, 0xb5, 0xc4,
-			0xca, 0xc0, 0xbd, 0xe7, 0x0
-		};
-
-		(void) lazy_locale_to_utf8_normalized(s, UNI_NORM_NFC);
-	}
-
-#if 0 
-	{
-		guint32 uc;
-
-		/*
-		 * Verify that each UTF-8 encoded codepoint is decoded to the same
-		 * codepoint.
-		 */
-		for (uc = 0; uc <= 0x10FFFF; uc++) {
-			static gchar utf8_char[7];
-			gint len, len1, len2;
-			guint32 uc1, uc2;
-
-			len = utf8_encode_char(uc, utf8_char);
-			if (!len)
-				continue;
-			g_assert(len > 0 && len <= 4);
-
-			uc1 = utf8_decode_char_fast(utf8_char, &len1); 
-			printf("uc=%x uc1=%x, len=%d, len1=%d\n", uc, uc1, len, len1);
-			g_assert(uc == uc1);
-			g_assert(len == len1);
-
-			uc2 = utf8_decode_char_less_fast(utf8_char, &len2); 
-			g_assert(uc1 == uc2);
-			g_assert(len1 == len2);
-		}
-	}
-#endif
-
-#if 0
-	{
-		guint32 uc = 0;
-
-		/* Check utf8_decode_char_fast() for all 4-byte combinations. */
-		do {
-			gint len1, len2;
-			guint32 uc1, uc2;
-
-			uc1 = utf8_decode_char_fast(cast_to_gconstpointer(&uc), &len1); 
-			uc2 = utf8_decode_char_less_fast(cast_to_gconstpointer(&uc), &len2);
-
-#if 0	
-			printf("uc1=%x, uc2=%x, len1=%d, len1=%d\n", uc1, uc2, len1, len2);
-#endif
-
-			g_assert(uc1 < 0x10FFFFF);
-			g_assert(uc1 == uc2);
-			g_assert(len1 == len2);
-
-			if (-1 != len1) {
-				static gchar utf8_char[7];
-				gint len;
-				gboolean eq;
-				
-				len = utf8_encode_char(uc1, utf8_char);
-				g_assert(len1 == len);
-				eq = 0 == memcmp(cast_to_gconstpointer(&uc), utf8_char, len);
-				g_assert(eq);
-			}
-		} while (0 != ++uc); /* while (!0xc0ffee) */
-	}
-#endif
-
-
-#if 0 && defined(USE_GLIB2)
-	size_t i;
+	
 
 	/* Check all single Unicode characters */
-	for (i = 0; i <= 0x10FFFD; i++) {
+	for (i = 0; i <= 0x10FFFF; i++) {
 		guint size;
 		gchar buf[256];
-		gchar utf8_char[7];
+		gchar utf8_char[6];	/* GLib wants 6 bytes, also 4 should be enough */
 		gchar *s;
 
 		if (
@@ -4953,8 +5178,27 @@ unicode_decompose_init(void)
 		}
 #endif
 
-		if (strcmp(s, buf)) {
+		if (0 != strcmp(s, buf)) {
+			const gchar *p;
+			guint retlen;
+			
 			g_message("\n0x%04X\nbuf=\"%s\"\ns=\"%s\"", i, buf, s);
+			for (p = buf; '\0' != *p; p += retlen) {
+				guint32 uc;
+
+				uc = utf8_decode_char_fast(p, &retlen);
+				if (!uc)
+					break;
+				g_message("buf: U+%04X", uc);
+			}
+			for (p = s; '\0' != *p; p += retlen) {
+				guint32 uc;
+
+				uc = utf8_decode_char_fast(p, &retlen);
+				if (!uc)
+					break;
+				g_message("s: U+%04X", uc);
+			}
 
 #if GLIB_CHECK_VERSION(2, 4, 0) /* Glib >= 2.4.0 */
 			/*
@@ -5098,7 +5342,8 @@ unicode_decompose_init(void)
 
 		if (0 != strcmp(s, t)) {
 			const gchar *x, *y;
-			guint32 *zx, *zy;
+			guint32 *zx, *zy, uc1, uc2;
+			guint retlen;
 
 			/* Convert to UTF-32 so that the characters can be easily
 			 * checked from a debugger */
@@ -5113,10 +5358,9 @@ unicode_decompose_init(void)
 				if (*x != *y)
 					break;
 
-			g_message("x=\"%s\"\ny=\"%s\"\n, *x=%x, *y=%x\n",
-				x, y,
-				utf8_decode_char(x, strlen(x), NULL, FALSE),
-				utf8_decode_char(y, strlen(y), NULL, FALSE));
+			uc1 = utf8_decode_char_fast(x, &retlen);
+			uc2 = utf8_decode_char(x, strlen(x), &retlen, TRUE);
+			g_message("x=\"%s\"\ny=\"%s\"\n, *x=%x, *y=%x\n", x, y, uc1, uc2);
 
 #if GLIB_CHECK_VERSION(2, 4, 0) /* Glib >= 2.4.0 */
 			/*
@@ -5134,6 +5378,43 @@ unicode_decompose_init(void)
 		G_FREE_NULL(t);
 	}
 #endif /* USE_GLIB2 */
+}
+#endif /* 0 */
+	
+
+#define REGRESSION(func) \
+G_STMT_START { \
+	printf("REGRESSION: regression_%s", STRINGIFY(func)); \
+	fflush(stdout); \
+	CAT2(regression_,func)(); \
+	printf(" PASSED\n"); \
+} G_STMT_END
+	
+static void
+regression_checks(void)
+{
+	/* unicode_compose_init() must be called before this */
+	g_assert(unicode_compose_init_passed);
+
+#if defined(TEST_NORMALIZATION_TEST_TXT)
+	REGRESSION(normalization_test_txt);
+#endif /* TEST_NORMALIZATION_TEST_TXT */
+
+	REGRESSION(normalization_character_identity);
+	REGRESSION(normalization_issue);
+	REGRESSION(utf8_strlower);
+	REGRESSION(bug_1211413);
+	REGRESSION(iconv_utf8_to_utf8);
+	REGRESSION(utf8_bijection);
+
+#if defined(TEST_UTF8_DECODER)
+	REGRESSION(utf8_decoder);
+#endif /* TEST_UTF8_DECODER */
+
+#if 0 /* GLib 2.x implements an older version of Unicode */
+	REGRESSION(utf8_vs_glib);
+#endif
+
 }
 
 /* vi: set ts=4 sw=4 cindent: */
