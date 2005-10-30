@@ -290,22 +290,19 @@ void gtk_label_printf(GtkLabel *label, const gchar *format, ...)
 }
 
 /**
- * Takes a NULL terminated array of strings which are supposed to
- * be widgets names found with the given top-level widget. Sets all
- * to the given sentitivity state.
+ * Takes an array of strings which are supposed to be widgets names found with
+ * the given top-level widget. Sets all to the given sentitivity state.
  */
 void
-gtk_mass_widget_set_sensitive(GtkWidget *toplevel, gchar *list[], gboolean b)
+gtk_mass_widget_set_sensitive(GtkWidget *toplevel,
+	const gchar * const list[], guint n, gboolean b)
 {
-    guint n;
-    GtkWidget *w;
+    guint i;
 
     g_assert(toplevel != NULL);
 
-    for (n = 0; list[n] != NULL; n ++) {
-        w = lookup_widget(toplevel, list[n]);
-        gtk_widget_set_sensitive(w, b);
-    }
+    for (i = 0; i < n; i++)
+        gtk_widget_set_sensitive(lookup_widget(toplevel, list[i]), b);
 }
 
 /**

@@ -109,7 +109,8 @@ gpointer option_menu_get_selected_data(GtkWidget *m);
 /**
  * GtkWidget
  */
-void gtk_mass_widget_set_sensitive(GtkWidget *tl, gchar *list[], gboolean b);
+void gtk_mass_widget_set_sensitive(GtkWidget *tl,
+	const gchar * const list[], guint n, gboolean b);
 
 /*
  * GtkTreeView
