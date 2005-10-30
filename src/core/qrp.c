@@ -192,9 +192,9 @@ install_merged_table(struct routing_table *rt)
 static inline guint32
 qrp_hashcode(const gchar *s)
 {
-	size_t len, j;
-	guint32 uc;
 	guint32 x = 0;		/* The running total */
+	guint32 uc;
+	guint j;			/* The bit position in xor */
 
 	/*
 	 * First turn x[0...end-1] into a number by treating all 4-byte
@@ -207,27 +207,21 @@ qrp_hashcode(const gchar *s)
 	 */
 
 
-	j = 0;	/* The byte position in xor */
-	len = 0;
-	while ('\0' != (uc = (guchar) *s)) {
+	for (j = 0; '\0' != (uc = (guchar) *s); j = (j + 8) & 24) {
 		/* Optimize for ASCII as the most common encoding for searches */
 		if (uc < 0x80U) {
-			x ^= ((guint32) ascii_tolower(uc)) << (j & 24);
-			j += 8;
+			uc = ascii_tolower(uc);
 			s++;
-			len = 0;	/* Reset */
 		} else {
-			gint retlen;
+			guint retlen;
 
-			len = utf8_decode_lookahead(s, len);
-			uc = utf8_decode_char(s, len, &retlen, FALSE);
-			if (!uc) {
-				break;	/* Invalid encoding */
-			}
+			uc = utf8_decode_char_fast(s, &retlen);
 			s += retlen;
-			len -= retlen;
 
 			if (uc <= 0xffffU) {
+				if (!uc)
+					break;	/* Invalid encoding */
+
 				/* It's a BMP character */
 				uc = utf32_lowercase(uc);
 			} else {
@@ -235,13 +229,13 @@ qrp_hashcode(const gchar *s)
 				uc = utf16_encode_char_compact(uc);
 
 				/* Surrogates don't need to be lowercased */
-				x ^= (uc & 0xff) << (j & 24);
-				j += 8;
+				x ^= (uc & 0xff) << j;
+				j = (j + 8) & 24;
 				uc >>= 16;	/* move to the second surrogate */
 			}
-			x ^= (uc & 0xff) << (j & 24);
-			j += 8;
+			uc &= 0xff;
 		}
+		x ^= uc << j;
 	}
 
 	/*
