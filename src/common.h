@@ -36,6 +36,9 @@
 #ifndef _common_h_
 #define _common_h_
 
+#error "Broken"
+;;BROKEN;;
+
 #include "config.h"
 
 /*
