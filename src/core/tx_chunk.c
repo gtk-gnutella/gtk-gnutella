@@ -148,10 +148,10 @@ chunk_begin(txdrv_t *tx, size_t len, gboolean final)
 	g_assert(final || ((size_t) -1 != len && len > 0));
 
 	if (dbg > 9)
-		printf("chunk_begin: %s chunk %d byte%s\n",
+		printf("chunk_begin: %s chunk %lu byte%s\n",
 			final ? "final" :
 			attr->first ? "first" :
-			"next", len, len == 1 ? "" : "s");
+			"next", (gulong) len, len == 1 ? "" : "s");
 
 	/*
 	 * Build the chunk header, committing on sending `len' bytes of data.
@@ -162,14 +162,14 @@ chunk_begin(txdrv_t *tx, size_t len, gboolean final)
 	 */
 
 	if (!attr->first)
-		hlen = gm_snprintf(attr->head, sizeof(attr->head), "\r\n");
+		hlen = gm_snprintf(attr->head, sizeof attr->head, "\r\n");
 
 	if (final)
-		hlen += gm_snprintf(&attr->head[hlen], sizeof(attr->head) - hlen,
+		hlen += gm_snprintf(&attr->head[hlen], sizeof attr->head - hlen,
 			"0\r\n\r\n");
 	else
-		hlen += gm_snprintf(&attr->head[hlen], sizeof(attr->head) - hlen,
-			"%x\r\n", len);
+		hlen += gm_snprintf(&attr->head[hlen], sizeof attr->head - hlen,
+			"%lx\r\n", (gulong) len);
 
 	attr->head_len = attr->head_remain = hlen;
 	attr->data_remain = len;
@@ -272,7 +272,7 @@ tx_chunk_init(txdrv_t *tx, gpointer unused_args)
 	(void) unused_args;
 	g_assert(tx);
 
-	attr = walloc(sizeof(*attr));
+	attr = walloc(sizeof *attr);
 
 	attr->head_remain = 0;		/* No committed length yet */
 	attr->data_remain = 0;		/* No data yet */
@@ -295,9 +295,9 @@ tx_chunk_init(txdrv_t *tx, gpointer unused_args)
 static void
 tx_chunk_destroy(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
-	wfree(attr, sizeof(*attr));
+	wfree(attr, sizeof *attr);
 }
 
 /**
@@ -308,7 +308,7 @@ tx_chunk_destroy(txdrv_t *tx)
 static ssize_t
 tx_chunk_write(txdrv_t *tx, gpointer data, size_t len)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 	size_t remain = len;
 	gchar *ptr = data;
 	size_t written = 0;
@@ -407,7 +407,7 @@ tx_chunk_disable(txdrv_t *unused_tx)
 static size_t
 tx_chunk_pending(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	return attr->head_remain;
 }
@@ -418,7 +418,7 @@ tx_chunk_pending(txdrv_t *tx)
 static void
 tx_chunk_flush(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	/*
 	 * Try to flush pending header data.
@@ -434,7 +434,7 @@ tx_chunk_flush(txdrv_t *tx)
 static void
 tx_chunk_shutdown(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	/*
 	 * Discard header / data remaining to be sent.
@@ -451,7 +451,7 @@ tx_chunk_shutdown(txdrv_t *tx)
 static void
 tx_chunk_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	g_assert(tx->flags & TX_CLOSING);
 

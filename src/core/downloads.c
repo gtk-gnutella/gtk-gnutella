@@ -4976,8 +4976,8 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	g_assert(b != NULL);
 
 	if (download_debug > 1)
-		g_message("flushing %u bytes for \"%s\"%s",
-			b->held, download_outname(d), may_stop ? "" : " on stop");
+		g_message("flushing %lu bytes for \"%s\"%s",
+			(gulong) b->held, download_outname(d), may_stop ? "" : " on stop");
 
 	offset = d->pos;
 	if (
@@ -4988,8 +4988,9 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		const char *error = g_strerror(errno);
 
 		g_warning("failed to seek at offset %s (%s) for \"%s\" "
-			"-- discarding %u bytes",
-			uint64_to_string(d->pos), error, download_outname(d), b->held);
+			"-- discarding %lu bytes",
+			uint64_to_string(d->pos), error, download_outname(d),
+			(gulong) b->held);
 
 		/* Prevent download_stop() from trying flushing again */
 		buffers_discard(d);
@@ -5038,8 +5039,8 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	if ((ssize_t) -1 == written) {
 		const char *error = g_strerror(errno);
 
-		g_warning("write of %u bytes to file \"%s\" failed: %s",
-			b->held, download_outname(d), error);
+		g_warning("write of %lu bytes to file \"%s\" failed: %s",
+			(gulong) b->held, download_outname(d), error);
 
 		/* Prevent download_stop() from trying flushing again */
 		buffers_discard(d);
@@ -5057,8 +5058,8 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	gnet_prop_set_guint64_val(PROP_DL_BYTE_COUNT, dl_byte_count + written);
 
 	if ((size_t) written < b->held) {
-		g_warning("partial write of %u out of %u bytes to file \"%s\"",
-			(guint) written, b->held, download_outname(d));
+		g_warning("partial write of %lu out of %lu bytes to file \"%s\"",
+			(gulong) written, (gulong) b->held, download_outname(d));
 
 		if (may_stop)
 			download_queue_delay(d, download_retry_busy_delay,
@@ -5143,8 +5144,8 @@ download_write_data(struct download *d)
 
 	if (!should_flush) {
 		if (download_debug > 5)
-			g_message("not flushing pending %u bytes for \"%s\"",
-				b->held, download_outname(d));
+			g_message("not flushing pending %lu bytes for \"%s\"",
+				(gulong) b->held, download_outname(d));
 		return;
 	}
 

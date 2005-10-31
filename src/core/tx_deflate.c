@@ -426,10 +426,10 @@ deflate_add(txdrv_t *tx, gconstpointer data, gint len)
 	gint added = 0;
 
 	if (dbg > 9) {
-		printf("deflate_add: (%s) given %d bytes (buffer #%d, nagle %s, "
-			"unflushed %d) [%c%c]\n",
-			host_to_string(&tx->host), len, attr->fill_idx,
-			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
+		printf("deflate_add: (%s) given %lu bytes (buffer #%d, nagle %s, "
+			"unflushed %lu) [%c%c]\n",
+			host_to_string(&tx->host), (gulong) len, attr->fill_idx,
+			(attr->flags & DF_NAGLE) ? "on" : "off", (gulong) attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 		fflush(stdout);
@@ -819,9 +819,9 @@ tx_deflate_write(txdrv_t *tx, gpointer data, size_t len)
 
 	if (dbg > 9)
 		printf("tx_deflate_write: (%s) (buffer #%d, nagle %s, "
-			"unflushed %d) [%c%c]\n",
+			"unflushed %lu) [%c%c]\n",
 			host_to_string(&tx->host), attr->fill_idx,
-			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
+			(attr->flags & DF_NAGLE) ? "on" : "off", (gulong) attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -848,9 +848,9 @@ tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 
 	if (dbg > 9)
 		printf("tx_deflate_writev: (%s) (buffer #%d, nagle %s, "
-			"unflushed %d) [%c%c]\n",
+			"unflushed %lu) [%c%c]\n",
 			host_to_string(&tx->host), attr->fill_idx,
-			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
+			(attr->flags & DF_NAGLE) ? "on" : "off", (gulong) attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -878,10 +878,10 @@ tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 	}
 
 	if (dbg > 9)
-		printf("tx_deflate_writev: (%s) sent %d bytes (buffer #%d, nagle %s, "
-			"unflushed %d) [%c%c]\n",
-			host_to_string(&tx->host), sent, attr->fill_idx,
-			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
+		printf("tx_deflate_writev: (%s) sent %lu bytes (buffer #%d, nagle %s, "
+			"unflushed %lu) [%c%c]\n",
+			host_to_string(&tx->host), (gulong) sent, attr->fill_idx,
+			(attr->flags & DF_NAGLE) ? "on" : "off", (gulong) attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -974,9 +974,9 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 
 	if (dbg > 9)
 		printf("tx_deflate_close: (%s) send=%d buffer #%d, nagle %s, "
-			"unflushed %d) [%c%c]\n",
+			"unflushed %lu) [%c%c]\n",
 			host_to_string(&tx->host), attr->send_idx, attr->fill_idx,
-			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
+			(attr->flags & DF_NAGLE) ? "on" : "off", (gulong) attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -1020,9 +1020,10 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 
 	if (dbg > 9)
 		printf("tx_deflate_close: (%s) delayed! send=%d buffer #%d, nagle %s, "
-			"unflushed %d) [%c%c]\n",
-			host_to_string(&tx->host), attr->send_idx, attr->fill_idx,
-			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
+			"unflushed %lu) [%c%c]\n",
+			host_to_string(&tx->host),
+			attr->send_idx, attr->fill_idx,
+			(attr->flags & DF_NAGLE) ? "on" : "off", (gulong) attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 }
