@@ -3243,7 +3243,7 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 	guint retlen;
 	size_t new_len;
 
-	g_assert(dst != NULL);
+	g_assert(size == 0 || dst != NULL);
 	g_assert(src != NULL);
 	g_assert(remap != NULL);
 	g_assert(size <= INT_MAX);
@@ -3255,7 +3255,6 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 
 		size--;	/* Reserve one byte for the NUL */
 		while (*src != '\0') {
-			guint utf8_len;
 
 			uc = utf8_decode_char_fast(src, &retlen);
 			if (uc == 0x0000)
@@ -3273,18 +3272,20 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 				if (retlen > size)
 					break;
 
-				utf8_len = retlen;
-				while (retlen-- > 0);
+				size -= retlen;
+				while (retlen-- > 0)
 					*dst++ = *src++;
 			} else {
+				guint utf8_len;
+
 				utf8_len = utf8_encode_char(nuc, dst, size);
 				if (utf8_len == 0 || utf8_len > size)
 					break;
 
 				src += retlen;
 				dst += utf8_len;
+				size -= utf8_len;
 			}
-			size -= utf8_len;
 		}
 		new_len = dst - dst0;
 		*dst = '\0';
@@ -3385,7 +3386,7 @@ utf32_strlower(guint32 *dst, const guint32 *src, size_t size)
 size_t
 utf32_strupper(guint32 *dst, const guint32 *src, size_t size)
 {
-	g_assert(dst != NULL);
+	g_assert(size == 0 || dst != NULL);
 	g_assert(src != NULL);
 	g_assert(size <= INT_MAX);
 
@@ -3408,7 +3409,7 @@ utf32_strupper(guint32 *dst, const guint32 *src, size_t size)
 size_t
 utf8_strlower(gchar *dst, const gchar *src, size_t size)
 {
-	g_assert(dst != NULL);
+	g_assert(size == 0 || dst != NULL);
 	g_assert(src != NULL);
 	g_assert(size <= INT_MAX);
 
@@ -3448,13 +3449,12 @@ utf8_strupper(gchar *dst, const gchar *src, size_t size)
 gchar *
 utf8_strlower_copy(const gchar *src)
 {
-	gchar c, *dst;
+	gchar *dst;
 	size_t len, size;
 
 	g_assert(src != NULL);
 
-	len = utf8_strlower(&c, src, sizeof c);
-	g_assert(c == '\0');
+	len = utf8_strlower(NULL, src, 0);
 	size = len + 1;
 	dst = g_malloc(size);
 	len = utf8_strlower(dst, src, size);
@@ -4755,13 +4755,31 @@ regression_normalization_issue(void)
 static void
 regression_utf8_strlower(void)
 {
-	const gchar blah[] = "some lowercase ascii";
-	gchar buf[sizeof blah];
-	size_t len;
+	{
+		const gchar blah[] = "some lowercase ascii";
+		gchar buf[sizeof blah];
+		size_t len;
 
-	len = utf8_strlower(buf, blah, sizeof buf);
-	g_assert(len == CONST_STRLEN(blah));
-	g_assert(0 == strcmp(blah, buf));
+		len = utf8_strlower(buf, blah, sizeof buf);
+		g_assert(len == CONST_STRLEN(blah));
+		g_assert(0 == strcmp(blah, buf));
+	}
+	
+	{
+		const guchar s[] = {
+			0xc3, 0xb6, 0xc3, 0xa4, 0xc3, 0xb6, 0xc3, 0xa4, 0xc3,
+			0xb6, 0xc3, 0xb6, 0xc3, 0xb6, 0xc3, 0xb6, 0xc3, 0xbc, 0x0,
+		};
+		size_t len, size;
+		gchar *dst;
+		
+		len = utf8_strlower(NULL, cast_to_gconstpointer(s), 0);
+		size = len + 1;
+		dst = g_malloc(size);
+		len = utf8_strlower(dst, cast_to_gconstpointer(s), size);
+		g_assert(len == size - 1);
+		G_FREE_NULL(dst);
+	}
 }
 
 /**
