@@ -286,7 +286,9 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
         titles[c_ul_range]    = range_tmp;
     }
 
-	titles[c_ul_filename] = (u->name != NULL) ? u->name : "...";
+	titles[c_ul_filename] = u->name
+							? lazy_utf8_to_ui_string(u->name)
+							: "...";
 	titles[c_ul_host]     = uploads_gui_host_string(u);
 	titles[c_ul_loc]      = iso3166_country_cc(u->country);
     titles[c_ul_agent]    = (u->user_agent != NULL) ?
