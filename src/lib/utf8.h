@@ -123,7 +123,7 @@ utf8_decode_lookahead(const gchar *s, size_t len)
  * See also RFC 2781.
  *
  * @param uc the unicode character to encode.
- * @returns 0 if the unicode character is invalid. Otherwise the
+ * @returns (guint32) -1 if the unicode character is invalid. Otherwise the
  *         	UTF-16 encoded character is returned in a compact form:
  *			The lower 16 bits are the first UTF-16 character, the
  *			upper 16 bits are the second one. If the upper bits are
@@ -142,7 +142,7 @@ utf16_encode_char_compact(guint32 uc)
 		w2 = (uc & 0x3ff) | 0xdc00;
 		return (w2 << 16) | w1;
 	}
-	return 0;
+	return (guint32) -1;
 }
 
 /**
