@@ -2670,6 +2670,8 @@ qrt_update_send_next(gpointer handle)
 
 	n = qup->node;
 
+	g_assert(NODE_IS_CONNECTED(n));
+
 	if (NODE_MQUEUE_PERCENT_USED(n) > QRT_MIN_QUEUE_FILL)
 		return TRUE;
 
@@ -2713,6 +2715,21 @@ qrt_update_send_next(gpointer handle)
 		qrp_send_patch(n, qup->seqno++, qup->seqsize,
 			qup->patch->compressed, qup->patch->entry_bits,
 			(gchar *) qup->patch->arena + qup->offset, len);
+
+		/*
+		 * Break immediately if node is no longer connected, since then
+		 * the QRT structure has been freed.  We MUST return TRUE as if
+		 * the routine should be called again, but it won't since the
+		 * node's QRT sending structure is gone.
+		 *
+		 * The reason for returning TRUE is that we don't want the caller
+		 * to start performing any cleanup required when the sending of
+		 * the QRT patches is complete.
+		 *		--RAM, 2005-10-31
+		 */
+
+		if (!NODE_IS_CONNECTED(n))
+			return TRUE;
 
 		qup->offset += len;
 		qup->last_sent += len;
@@ -3465,7 +3482,8 @@ qrt_handle_patch(
 		if (NODE_IS_LEAF(n))
 			qrp_leaf_changed();
 
-		(void) qrt_dump(stdout, rt, qrp_debug > 19);
+		if (qrp_debug > 1)
+			(void) qrt_dump(stdout, rt, qrp_debug > 19);
 	}
 
 	return TRUE;
