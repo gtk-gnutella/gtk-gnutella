@@ -198,6 +198,17 @@ host_addr_can_convert(const host_addr_t from, enum net_type to_net)
 	return FALSE;
 }
 
+/**
+ * Tries to convert the host address "from" to the network type "to_net"
+ * and stores the converted address in "*to". If conversion is not possible,
+ * FALSE is returned and "*to" is set to zero_host_addr.
+ *
+ * @param from The address to convert.
+ * @param to Will hold the converted address.
+ * @param to_net The network type to convert the address to.
+ * 
+ * @return TRUE if the address could be converted, FALSE otherwise.
+ */
 gboolean
 host_addr_convert(const host_addr_t from, host_addr_t *to,
 	enum net_type to_net)
