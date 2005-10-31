@@ -2867,10 +2867,6 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
 				if (gui_debug >= 9)
 					printf("\t...connected multichoice signal\n");
 			}
-#if GTK_CHECK_VERSION(2, 0, 0)
-            if (top && GTK_IS_COMBO_BOX(w)) {
-			}
-#endif /* Gtk+ 2.0 */
         }
         if (gui_debug >= 8)
             printf("\t...all done for %s.\n", def->name);
