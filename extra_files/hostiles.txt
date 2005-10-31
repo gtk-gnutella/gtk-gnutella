@@ -210,6 +210,10 @@
 207.234.131.147
 207.234.131.148
 
+# Strange client pool of Windoze(?) machines; they connect in hordes; most
+# of them identify as LimeWire/4.0.5
+154.37.66.0/24
+
 # Foundation of Research and Technology (Greece)
 139.91.0.0/16
 
