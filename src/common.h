@@ -36,9 +36,6 @@
 #ifndef _common_h_
 #define _common_h_
 
-#error "Broken"
-;;BROKEN;;
-
 #include "config.h"
 
 /*
@@ -50,7 +47,7 @@
 #define GTA_PATCHLEVEL 0		  /**< patch level or teeny version */
 #define GTA_REVISION "unstable"	  /**< unstable, beta, stable */
 #define GTA_REVCHAR "u"			  /**< u - unstable, b - beta, none - stable */
-#define GTA_RELEASE "2005-10-30"  /**< ISO 8601 format YYYY-MM-DD */
+#define GTA_RELEASE "2005-10-31"  /**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)
