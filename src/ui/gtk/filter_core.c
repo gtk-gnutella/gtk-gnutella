@@ -483,7 +483,6 @@ filter_new_text_rule(const gchar *match, gint type,
 {
   	rule_t *r;
 	gchar *buf;
-	size_t buf_len;
 
     g_assert(match != NULL);
     g_assert(target != NULL);
@@ -498,31 +497,12 @@ filter_new_text_rule(const gchar *match, gint type,
     r->u.text.type           = type;
     set_flags(r->flags, RULE_FLAG_VALID);
 
-	buf_len = strlen(match);
-	buf = g_malloc(buf_len + 1);
-    if (!r->u.text.case_sensitive) {
-		if (utf8_is_valid_string(buf)) {
-			size_t len;
+    buf = r->u.text.case_sensitive
+		? g_strdup(match)
+		: utf8_strlower_copy(match);
 
-			len = utf8_strlower(buf, match, buf_len + 1);
-			if (len > buf_len) {
-				buf_len = len;
-				buf = g_realloc(buf, buf_len + 1);
-				len = utf8_strlower(buf, match, buf_len + 1);
-				g_assert(len == buf_len);
-			}
-			g_assert(len <= buf_len);
-			buf_len = len;
-		} else {
-			/* Assume the string is encoded for the current locale */
-        	locale_strlower(buf, match);
-		}
-	} else {
-		memcpy(buf, match, buf_len + 1);
-	}
-
-	r->u.text.matchlen = buf_len;
 	r->u.text.match = buf;
+	r->u.text.matchlen = strlen(buf);
 
     buf = g_strdup(r->u.text.match);
 
@@ -814,13 +794,13 @@ filter_close_search(search_t *s)
 void
 filter_apply_changes(void)
 {
-    GList *s;
+    GList *iter;
 
     /*
      * Free memory for all removed filters;
      */
-    for (s = shadow_filters; s != NULL; s = shadow_filters)
-        shadow_commit((shadow_t*)s->data);
+    for (iter = shadow_filters; iter != NULL; iter = shadow_filters)
+        shadow_commit(iter->data);
 
     g_list_free(filters);
     filters = g_list_copy(filters_current);
@@ -828,8 +808,10 @@ filter_apply_changes(void)
     /*
      * Remove the SHADOW flag from all added filters
      */
-    for (s = filters_added; s != NULL; s = s->next)
-        clear_flags(((filter_t *)s->data)->flags, FILTER_FLAG_SHADOW);
+    for (iter = filters_added; iter != NULL; iter = g_list_next(iter)) {
+		filter_t *f = iter->data;
+        clear_flags(f->flags, FILTER_FLAG_SHADOW);
+	}
 
     g_list_free(filters_added);
     filters_added = NULL;
@@ -838,8 +820,8 @@ filter_apply_changes(void)
      * Free all removed filters. Don't iterate since filter_free removes
      * the filter from filters_removed.
      */
-    for (s = filters_removed; s != NULL; s = filters_removed) {
-        filter_free(s->data);
+    for (iter = filters_removed; iter != NULL; iter = filters_removed) {
+        filter_free(iter->data);
     }
     g_assert(filters_removed == NULL);
 
@@ -856,7 +838,7 @@ filter_apply_changes(void)
 void
 filter_revert_changes(void)
 {
-    GList *s;
+    GList *iter;
 
     if (gui_debug >= 5)
         g_message("Canceling all changes to filters/rules");
@@ -867,8 +849,8 @@ filter_revert_changes(void)
     /*
      * Free memory for all added filters and for the shadows.
      */
-    for (s = shadow_filters; s != NULL; s = shadow_filters)
-        shadow_cancel((shadow_t *) s->data);
+    for (iter = shadow_filters; iter != NULL; iter = shadow_filters)
+        shadow_cancel(iter->data);
 
     if (g_list_find(filters, work_filter) != NULL)
         filter_set(work_filter);
@@ -883,8 +865,8 @@ filter_revert_changes(void)
      * because filter_free removes the added filter from filters_added
      * for us.
      */
-    for (s = filters_added; s != NULL; s = filters_added) {
-        filter_t *filter = (filter_t *) s->data;
+    for (iter = filters_added; iter != NULL; iter = filters_added) {
+        filter_t *filter = iter->data;
 
         filter_gui_filter_remove(filter);
         filter_free(filter);
@@ -894,8 +876,8 @@ filter_revert_changes(void)
     /*
      * Restore all removed filters.
      */
-    for (s = filters_removed; s != NULL; s = g_list_next(s)) {
-        filter_t *filter = (filter_t *) s->data;
+    for (iter = filters_removed; iter != NULL; iter = g_list_next(iter)) {
+        filter_t *filter = iter->data;
 
         filter_gui_filter_add(filter, filter->ruleset);
     }
@@ -907,8 +889,8 @@ filter_revert_changes(void)
      * can just use f->ruleset. Also update the 'enabled' state of the
      * filters while we are at it.
      */
-    for (s = filters_current; s != NULL; s = g_list_next(s)) {
-        filter_t *filter = (filter_t *) s->data;
+    for (iter = filters_current; iter != NULL; iter = g_list_next(iter)) {
+        filter_t *filter = iter->data;
 
         filter_gui_update_rule_count(filter, filter->ruleset);
         filter_gui_filter_set_enabled(filter, filter_is_active(filter));
@@ -955,38 +937,34 @@ filter_rule_condition_to_string(const rule_t *r)
 			cs = r->u.text.case_sensitive ? _("(case-sensitive)") : "";
 			
 			switch (r->u.text.type) {
-				case RULE_TEXT_PREFIX:
-					gm_snprintf(tmp, sizeof tmp,
-						_("If filename begins with \"%s\" %s"),
-						match, cs);
-					break;
-				case RULE_TEXT_WORDS:
-					gm_snprintf(tmp, sizeof tmp,
-						_("If filename contains the words \"%s\" %s"),
-						match, cs);
-					break;
-				case RULE_TEXT_SUFFIX:
-					gm_snprintf(tmp, sizeof tmp,
-						_("If filename ends with \"%s\" %s"),
-						match, cs);
-					break;
-				case RULE_TEXT_SUBSTR:
-					gm_snprintf(tmp, sizeof tmp,
-						_("If filename contains the substring \"%s\" %s"),
-						match, cs);
-					break;
-				case RULE_TEXT_REGEXP:
-					gm_snprintf(tmp, sizeof tmp,
-						_("If filename matches the regex \"%s\" %s"),
-						match, cs);
-					break;
-				case RULE_TEXT_EXACT:
-					gm_snprintf(tmp, sizeof tmp, _("If filename is \"%s\" %s"),
-						match, cs);
-					break;
-				default:
-					g_error("filter_rule_condition_to_string:"
-							"unknown text rule type: %d", r->u.text.type);
+			case RULE_TEXT_PREFIX:
+				gm_snprintf(tmp, sizeof tmp,
+					_("If filename begins with \"%s\" %s"), match, cs);
+				break;
+			case RULE_TEXT_WORDS:
+				gm_snprintf(tmp, sizeof tmp,
+					_("If filename contains the words \"%s\" %s"), match, cs);
+				break;
+			case RULE_TEXT_SUFFIX:
+				gm_snprintf(tmp, sizeof tmp,
+					_("If filename ends with \"%s\" %s"), match, cs);
+				break;
+			case RULE_TEXT_SUBSTR:
+				gm_snprintf(tmp, sizeof tmp,
+					_("If filename contains the substring \"%s\" %s"),
+					match, cs);
+				break;
+			case RULE_TEXT_REGEXP:
+				gm_snprintf(tmp, sizeof tmp,
+					_("If filename matches the regex \"%s\" %s"), match, cs);
+				break;
+			case RULE_TEXT_EXACT:
+				gm_snprintf(tmp, sizeof tmp, _("If filename is \"%s\" %s"),
+					match, cs);
+				break;
+			default:
+				g_error("filter_rule_condition_to_string:"
+					"unknown text rule type: %d", r->u.text.type);
 			}
 		}
         break;
@@ -1026,7 +1004,7 @@ filter_rule_condition_to_string(const rule_t *r)
         if (r->u.sha1.hash != NULL) {
             gm_snprintf(tmp, sizeof tmp,
 				_("If urn:sha1 is same as for \"%s\""),
-                filter_lazy_utf8_to_ui_string(r->u.sha1.filename));
+				filter_lazy_utf8_to_ui_string(r->u.sha1.filename));
         } else {
             gm_snprintf(tmp, sizeof tmp, "%s",
 				_("If urn:sha1 is not available"));
@@ -1037,11 +1015,11 @@ filter_rule_condition_to_string(const rule_t *r)
         break;
     case RULE_FLAG:
         {
-            gchar *busy_str = "";
-            gchar *push_str = "";
-            gchar *stable_str = "";
-            gchar *s1 = "";
-            gchar *s2 = "";
+            const gchar *busy_str = "";
+            const gchar *push_str = "";
+            const gchar *stable_str = "";
+            const gchar *s1 = "";
+            const gchar *s2 = "";
             gboolean b = FALSE;
 
             switch (r->u.flag.busy) {
@@ -1098,9 +1076,9 @@ filter_rule_condition_to_string(const rule_t *r)
         break;
     case RULE_STATE:
         {
-            gchar *display_str = "";
-            gchar *download_str = "";
-            gchar *s1 = "";
+            const gchar *display_str = "";
+            const gchar *download_str = "";
+            const gchar *s1 = "";
             gboolean b = FALSE;
 
             switch (r->u.state.display) {
@@ -1994,7 +1972,7 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
 				if (NULL == l_name) {
 					namelen = strlen(rec->name);
 					l_name = g_malloc(namelen + 1);
-					if (utf8_is_valid_string(rec->name)) {
+					{
 						size_t len;
 
 						len = utf8_strlower(l_name, rec->name, namelen + 1);
@@ -2005,9 +1983,6 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
 							g_assert(len == namelen);
 						}
 						namelen = len;
-					} else {
-						/* Assume string is encoded for the current locale */
-						locale_strlower(l_name, rec->name);
 					}
 
 					/*

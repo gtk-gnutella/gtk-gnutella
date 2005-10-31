@@ -46,6 +46,7 @@ RCSID("$Id$");
 
 #include "if/gui_property_priv.h"
 
+#include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
@@ -472,13 +473,15 @@ void
 on_entry_filter_new_activate(GtkEditable *editable, gpointer unused_udata)
 {
     gchar *name = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
+	const gchar *nfc;
     filter_t *filter;
 
 	(void) unused_udata;
 
     g_strstrip(name);
-    if (name[0] != '\0' && filter_find_by_name_in_session(name) == NULL) {
-        filter = filter_new(name);
+	nfc = lazy_ui_string_to_utf8(name);
+    if (nfc[0] != '\0' && filter_find_by_name_in_session(nfc) == NULL) {
+        filter = filter_new(nfc);
         filter_add_to_session(filter);
         gtk_entry_set_text(GTK_ENTRY(editable), "");
         filter_set(filter);

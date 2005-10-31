@@ -626,8 +626,8 @@ filter_gui_update_filter_stats(void)
 		gchar buf[256];
 
         node = gtk_ctree_node_nth(GTK_CTREE(ctree_filter_filters), row);
-        filter = gtk_ctree_node_get_row_data
-            (GTK_CTREE(ctree_filter_filters), node);
+        filter = gtk_ctree_node_get_row_data(GTK_CTREE(ctree_filter_filters),
+					node);
 
         if (filter == NULL)
             continue;
@@ -922,7 +922,7 @@ filter_gui_edit_sha1_rule(rule_t *r)
     gboolean active = TRUE;
     gboolean soft   = FALSE;
 
-    g_assert((r == NULL) ||(r->type == RULE_SHA1));
+    g_assert(r == NULL || r->type == RULE_SHA1);
 
     if (filter_dialog == NULL)
         return;
@@ -1411,7 +1411,7 @@ filter_gui_get_rule(void)
         r = NULL;
     };
 
-    if ((r != NULL) && (gui_debug >= 5))
+    if (r != NULL && gui_debug >= 5)
         printf("got rule: %s\n", filter_rule_to_gchar(r));
 
     return r;
@@ -1473,7 +1473,8 @@ filter_gui_get_text_rule(void)
         (active ? RULE_FLAG_ACTIVE : 0) |
         (soft   ? RULE_FLAG_SOFT   : 0);
 
-    r = filter_new_text_rule(match, type, case_sensitive, target, flags);
+    r = filter_new_text_rule(lazy_ui_string_to_utf8(match),
+			type, case_sensitive, target, flags);
 
     G_FREE_NULL(match);
 
@@ -1502,9 +1503,9 @@ filter_gui_get_ip_rule(void)
     g_return_val_if_fail(filter_dialog != NULL, NULL);
 
 	s = STRTRACK(gtk_editable_get_chars(
-        GTK_EDITABLE
-            (lookup_widget(filter_dialog, "entry_filter_ip_address")),
-        0, -1));
+        	GTK_EDITABLE(lookup_widget(filter_dialog,
+								"entry_filter_ip_address")),
+        	0, -1));
 	addr = ntohl(inet_addr(s));
 	G_FREE_NULL(s);
 
