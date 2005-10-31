@@ -1950,10 +1950,9 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
 
 	list = g_list_first(list);
 	while (list != NULL && res->props_set < MAX_FILTER_PROP && !do_abort) {
-		size_t n;
-		int i;
-		rule_t *r;
         gboolean match = FALSE;
+		rule_t *r;
+		gint i;
 
         r = list->data;
         if (gui_debug >= 10)
