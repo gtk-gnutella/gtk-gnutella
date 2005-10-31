@@ -1263,25 +1263,30 @@ search_gui_add_targetted_search(record_t *rec, filter_t *unused_filter)
 {
     search_t *new_search;
     rule_t *rule;
+	gchar *s;
 
 	(void) unused_filter;
     g_assert(rec != NULL);
     g_assert(rec->name != NULL);
 
+	s = unknown_to_utf8_normalized(rec->name, UNI_NORM_NFC, FALSE);
+	
     /* create new search item with search string set to filename */
-    search_gui_new_search(rec->name, 0, &new_search);
+    search_gui_new_search(s, 0, &new_search);
     g_assert(new_search != NULL);
 
     if (rec->sha1) {
-        rule = filter_new_sha1_rule(rec->sha1, rec->name,
-            filter_get_download_target(), RULE_FLAG_ACTIVE);
+        rule = filter_new_sha1_rule(rec->sha1, s,
+            		filter_get_download_target(), RULE_FLAG_ACTIVE);
     } else {
-        rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE,
-            filter_get_download_target(), RULE_FLAG_ACTIVE);
+        rule = filter_new_text_rule(s, RULE_TEXT_EXACT, TRUE,
+            		filter_get_download_target(), RULE_FLAG_ACTIVE);
     }
     g_assert(rule != NULL);
 
     filter_append_rule(new_search->filter, rule);
+	if (s != rec->name)
+		G_FREE_NULL(s);
 }
 
 /**

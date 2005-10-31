@@ -630,7 +630,6 @@ filter_new_sha1_rule(const gchar *sha1, const gchar *filename,
 
     g_assert(target != NULL);
     g_assert(filename != NULL);
-    g_assert(sha1 == NULL || utf8_is_valid_string(sha1));
     g_assert(utf8_is_valid_string(filename));
 
     f = g_new0(rule_t, 1);
@@ -1967,23 +1966,12 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
                 break;
             case RULE_TEXT: {
 				size_t namelen = -1;
-				char *l_name = rec->l_name;
+				gchar *l_name = rec->l_name;
 
 				if (NULL == l_name) {
-					namelen = strlen(rec->name);
-					l_name = g_malloc(namelen + 1);
-					{
-						size_t len;
-
-						len = utf8_strlower(l_name, rec->name, namelen + 1);
-						if (len > namelen) {
-							namelen = len;
-							l_name = g_realloc(l_name, namelen + 1);
-							len = utf8_strlower(l_name, rec->name, namelen + 1);
-							g_assert(len == namelen);
-						}
-						namelen = len;
-					}
+					l_name = utf8_strlower_copy(lazy_unknown_to_utf8_normalized(
+								rec->name, UNI_NORM_GUI, FALSE));
+					namelen = strlen(l_name);
 
 					/*
 					 * Cache for further rules, to avoid costly utf8
@@ -2021,7 +2009,7 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
                             l = g_list_next(l)
                         ) {
                             if (
-								pattern_qsearch((cpattern_t *)l->data,
+								pattern_qsearch(l->data,
                                  r->u.text.case_sensitive ? rec->name : l_name,
 								 0, 0, qs_any) == NULL
 							)
@@ -2032,6 +2020,8 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
                     }
                     break;
                 case RULE_TEXT_SUFFIX:
+/* FIXME */
+#if 0
                     n = r->u.text.matchlen;
 					if (namelen == (size_t) -1)
 						namelen = strlen(rec->name);
@@ -2040,6 +2030,7 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
                                ? rec->name : l_name) + namelen
                               - n, r->u.text.match) == 0)
                         match = TRUE;
+#endif
                     break;
                 case RULE_TEXT_SUBSTR:
                     if (
@@ -2559,16 +2550,20 @@ void
 filter_add_drop_sha1_rule(const struct record *rec, filter_t *filter)
 {
     rule_t *rule;
+	gchar *s;
 
     g_assert(rec != NULL);
     g_assert(filter != NULL);
 	g_assert(rec->magic == RECORD_MAGIC);
 	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
-    rule = filter_new_sha1_rule(rec->sha1, rec->name,
+	s = unknown_to_utf8_normalized(rec->name, UNI_NORM_GUI, FALSE);
+    rule = filter_new_sha1_rule(rec->sha1, s,
         filter_get_drop_target(), RULE_FLAG_ACTIVE);
 
     filter_append_rule(filter, rule);
+	if (s != rec->name)
+		G_FREE_NULL(s);
 }
 
 /**
@@ -2578,16 +2573,20 @@ void
 filter_add_drop_name_rule(const struct record *rec, filter_t *filter)
 {
     rule_t *rule;
+	gchar *s;
 
     g_assert(rec != NULL);
     g_assert(filter != NULL);
 	g_assert(rec->magic == RECORD_MAGIC);
 	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
-    rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE,
+	s = unknown_to_utf8_normalized(rec->name, UNI_NORM_GUI, FALSE);
+    rule = filter_new_text_rule(s, RULE_TEXT_EXACT, TRUE,
         filter_get_drop_target(), RULE_FLAG_ACTIVE);
 
     filter_append_rule(filter, rule);
+	if (s != rec->name)
+		G_FREE_NULL(s);
 }
 
 /**
@@ -2624,11 +2623,15 @@ filter_add_download_sha1_rule(const struct record *rec, filter_t *filter)
 
     if (rec->sha1) {
         rule_t *rule;
+		gchar *s;
 
-        rule = filter_new_sha1_rule(rec->sha1, rec->name,
+		s = unknown_to_utf8_normalized(rec->name, UNI_NORM_GUI, FALSE);
+        rule = filter_new_sha1_rule(rec->sha1, s,
             filter_get_download_target(), RULE_FLAG_ACTIVE);
 
         filter_append_rule(filter, rule);
+		if (s != rec->name)
+			G_FREE_NULL(s);
     }
 }
 
@@ -2639,16 +2642,20 @@ void
 filter_add_download_name_rule(const struct record *rec, filter_t *filter)
 {
     rule_t *rule;
+	gchar *s;
 
     g_assert(rec != NULL);
     g_assert(filter != NULL);
 	g_assert(rec->magic == RECORD_MAGIC);
 	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
-    rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE,
+	s = unknown_to_utf8_normalized(rec->name, UNI_NORM_GUI, FALSE);
+    rule = filter_new_text_rule(s, RULE_TEXT_EXACT, TRUE,
         filter_get_download_target(), RULE_FLAG_ACTIVE);
 
     filter_append_rule(filter, rule);
+	if (s != rec->name)
+		G_FREE_NULL(s);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
