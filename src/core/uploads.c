@@ -81,6 +81,7 @@ RCSID("$Id$");
 #include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/urn.h"
+#include "lib/utf8.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -4198,13 +4199,20 @@ upload_get_info(gnet_upload_t uh)
 
     info = walloc(sizeof *info);
 
-    info->name          = u->name ? atom_str_get(u->name) : NULL;
+   	info->name 			= u->name
+		? atom_str_get(lazy_unknown_to_utf8_normalized(u->name,
+						UNI_NORM_GUI, FALSE))
+		: NULL;
+	
+    info->user_agent    = u->user_agent
+		? atom_str_get(lazy_iso8859_1_to_utf8(u->user_agent))
+		: NULL;
+
     info->addr          = u->addr;
     info->file_size     = u->file_size;
     info->range_start   = u->skip;
     info->range_end     = u->end;
     info->start_date    = u->start_date;
-    info->user_agent    = u->user_agent ? atom_str_get(u->user_agent) : NULL;
     info->country       = u->country;
     info->upload_handle = u->upload_handle;
 	info->push          = u->push;
