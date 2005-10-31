@@ -754,8 +754,9 @@ filter_to_xml(xmlNodePtr parent, filter_t *f)
 			cast_to_gconstpointer(f->search));
     }
 
+	g_assert(utf8_is_valid_string(f->name));
     newxml = xml_new_empty_child(parent, NODE_FILTER);
-    xml_prop_set(newxml, TAG_FILTER_NAME, lazy_ui_string_to_utf8(f->name));
+    xml_prop_set(newxml, TAG_FILTER_NAME, f->name);
     xml_prop_printf(newxml, TAG_FILTER_ACTIVE,
 		"%u", TO_BOOL(filter_is_active(f)));
 
@@ -799,11 +800,11 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
 
     switch (r->type) {
     case RULE_TEXT:
+		g_assert(utf8_is_valid_string(r->u.text.match));
 		newxml = xml_new_empty_child(parent, NODE_RULE_TEXT);
        	xml_prop_set(newxml, TAG_RULE_TEXT_CASE,
 			r->u.text.case_sensitive ? "1" : "0");
-       	xml_prop_set(newxml, TAG_RULE_TEXT_MATCH,
-			lazy_ui_string_to_utf8(r->u.text.match));
+       	xml_prop_set(newxml, TAG_RULE_TEXT_MATCH, r->u.text.match);
        	xml_prop_printf(newxml, TAG_RULE_TEXT_TYPE, "%u", r->u.text.type);
         break;
     case RULE_IP:
@@ -836,8 +837,8 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
            	xml_prop_set(newxml, TAG_RULE_SHA1_HASH,
 				sha1_base32(r->u.sha1.hash));
 
-		xml_prop_set(newxml, TAG_RULE_SHA1_FILENAME,
-				lazy_ui_string_to_utf8(r->u.sha1.filename));
+		g_assert(utf8_is_valid_string(r->u.sha1.filename));
+		xml_prop_set(newxml, TAG_RULE_SHA1_FILENAME, r->u.sha1.filename);
         /*
          * r->u.sha1.hash is NULL, we just omit the hash.
          */
