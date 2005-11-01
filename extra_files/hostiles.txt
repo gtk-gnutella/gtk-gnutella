@@ -212,13 +212,14 @@
 
 # Strange client pool of Windoze(?) machines; they connect in hordes; most
 # of them identify as LimeWire/4.0.5; Macrovision and Xeex are behind this.
+63.219.21.0/24
 154.37.66.0/24
+204.193.134.0/24
+204.193.136.0/24
 208.49.28.0/24
 209.10.143.0/24
 209.11.134.0/24
-208.49.28.0/24
-209.193.134.0/24
-209.193.136.0/24
+209.195.16.0/24
 209.195.58.0/24
 216.151.154.0/24
 
