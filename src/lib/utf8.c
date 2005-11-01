@@ -83,7 +83,9 @@ RCSID("$Id$");
 static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
 
 static void unicode_compose_init(void);
+
 static gboolean unicode_compose_init_passed;
+static gboolean locale_init_passed;
 
 static void regression_checks(void);
 size_t utf8_decompose_nfd(const gchar *in, gchar *out, size_t size);
@@ -1186,6 +1188,21 @@ locale_get_charset(void)
 }
 
 /**
+ *  Determine the current language.
+ *
+ *	@return A two-letter ISO 639 of the language currently used for
+ *			messages.
+ */
+const gchar *
+locale_get_language(void)
+{
+	/**
+	 * TRANSLATORS: Put the two-letter ISO 639 code here.
+	 */
+	return Q_("locale_get_language|en_US");
+}
+
+/**
  * Emulate GLib 2.x behaviour and select the appropriate character set
  * for filenames.
  *
@@ -1270,6 +1287,20 @@ textdomain_init(const char *codeset)
 #endif /* NLS */
 }
 
+static void
+locale_init_show_results(void)
+{
+	const GSList *sl = sl_filename_charsets;
+
+	g_message("language code: \"%s\"", locale_get_language());
+	g_message("using locale character set \"%s\"", charset);
+	g_message("primary filename character set \"%s\"", filename_charset());
+
+	while (NULL != (sl = g_slist_next(sl)))
+		g_message("additional filename character set \"%s\"",
+			cast_to_gchar_ptr(deconstify_gpointer(sl->data)));
+}
+
 void
 locale_init(void)
 {
@@ -1290,6 +1321,9 @@ locale_init(void)
 		"ISO-8859-14",
 	};
 	guint i;
+
+	/* Must not be called multiple times */
+	g_return_if_fail(!locale_init_passed);
 
 	BINARY_ARRAY_SORTED(utf32_nfkd_lut,
 		struct utf32_nfkd, c & ~UTF32_F_MASK, CMP, uint32_to_string);
@@ -1317,17 +1351,7 @@ locale_init(void)
 			charset);
 	}
 
-	g_message("using locale character set \"%s\"", charset);
 	textdomain_init(charset);
-
-	{
-		const GSList *sl = sl_filename_charsets;
-
-		g_message("primary filename character set \"%s\"", filename_charset());
-		while (NULL != (sl = g_slist_next(sl)))
-			g_message("additional filename character set \"%s\"",
-				cast_to_gchar_ptr(deconstify_gpointer(sl->data)));
-	}
 
 	for (i = 0; i < G_N_ELEMENTS(latin_sets); i++)
 		if (0 == ascii_strcasecmp(charset, latin_sets[i])) {
@@ -1410,7 +1434,16 @@ locale_init(void)
 #endif
 
 	unicode_compose_init();
-	regression_checks();
+
+	/*
+	 * Skip regression_checks() if the current revision is known
+	 * to be alright.
+	 */
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c,v 1.82 "))
+		regression_checks();
+
+	locale_init_passed = TRUE;
+	locale_init_show_results();
 }
 
 /**
