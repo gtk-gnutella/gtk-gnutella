@@ -162,14 +162,29 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
 	 * If reply comes from the NTP port, notify that they're running NTP.
 	 */
 
-	if (
-		NET_TYPE_IPV4 == host_addr_net(s->addr) &&
-		0x7f000001 == host_addr_ipv4(s->addr) &&
-		NTP_PORT == s->port
-	)
-	{	/* from 127.0.0.1:123 */
-		ntp_got_reply(s);
-		return;
+	if (NTP_PORT == s->port) {
+		host_addr_t addr;
+		gboolean got_reply = FALSE;
+		
+		if (!host_addr_convert(s->addr, &addr, NET_TYPE_IPV4))
+			addr = s->addr;
+
+		switch (host_addr_net(addr)) {
+		case NET_TYPE_IPV4:
+			got_reply = 0x7f000001 == host_addr_ipv4(addr); /* 127.0.0.1:123 */
+			break;
+		case NET_TYPE_IPV6:
+			/* Only the loopback address (::1) qualifies as private */
+			got_reply = is_private_addr(addr); /* [::1]:123 */
+			break;
+		case NET_TYPE_NONE:
+			g_assert_not_reached();
+		}
+		if (got_reply) {
+			g_message("NTP detected");
+			ntp_got_reply(s);
+			return;
+		}
 	}
 
 	/*
