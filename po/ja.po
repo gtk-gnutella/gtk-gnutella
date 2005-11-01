@@ -69,7 +69,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-11-01 18:26+0900\n"
-"PO-Revision-Date: 2005-10-27 16:10+0900\n"
+"PO-Revision-Date: 2005-11-01 18:36+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -1328,7 +1328,7 @@ msgstr "禁止処理コードのバグ解析レベルです。"
 
 #: src/if/gnet_property.c:1705
 msgid "If not zero, periodic messages show the used CPU time."
-msgstr ""
+msgstr "0 でない場合は、利用 CPU 時間が定期的に表示されます。"
 
 #: src/if/gnet_property.c:1725
 msgid "Debug level for download mesh management."
@@ -8610,8 +8610,8 @@ msgstr "インターフェイス"
 msgid "Property browser"
 msgstr "プロパティの参照"
 
+# MERGEBLE:
 #: src/ui/gtk/gtk1/interface-glade.c:16691
-#, fuzzy
 msgid "Property pattern:"
 msgstr "プロパティのパターン:"
 
@@ -8629,7 +8629,7 @@ msgstr "説明"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16762
 msgid "Edit value of property"
-msgstr ""
+msgstr "プロパティの値を編集"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16786
 #: src/ui/gtk/gtk2/interface-glade.c:15729
@@ -9565,14 +9565,13 @@ msgid_plural "%u/%u downloads"
 msgstr[0] "%u/%u 件のダウンロード"
 
 #: src/ui/gtk/settings_cb.c:485 src/ui/gtk/settings_cb.c:599
-#, fuzzy
 msgid "<none selected>"
-msgstr "選択したものを撤去(_P)"
+msgstr "<選択されていません>"
 
 #: src/ui/gtk/settings_cb.c:628
-#, fuzzy, c-format
+#, c-format
 msgid "No property name matches the pattern \"%s\"."
-msgstr "ファイル名が正規表現 \"%s\" %s に一致する"
+msgstr "パターン \"%s\" に一致するプロパティはありません。"
 
 #: src/ui/gtk/uploads_common.c:100
 msgid "No output yet..."
@@ -9678,12 +9677,3 @@ msgstr "QUEUE 送信完了、ヘッダ待受中..."
 
 #~ msgid "Download mesh"
 #~ msgstr "ダウンロード・メッシュ"
-
-#~ msgid ""
-#~ "Found old searches file. Loaded it.\n"
-#~ "On exit the searches will be saved in the new XML format\n"
-#~ "You may remove \"searches.orig\"."
-#~ msgstr ""
-#~ "古い検索ファイルがありました。これを読込みます。\n"
-#~ "終了の際には検索は新しい XML 形式で保存されます。\n"
-#~ "\"searches.orig\" は削除しても構いません。"
