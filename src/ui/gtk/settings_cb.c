@@ -482,7 +482,7 @@ dbg_property_show_list(const GSList *props)
 		GtkLabel *label;
 		
 		label = GTK_LABEL(lookup_widget(dlg_prefs, "label_dbg_property_name"));
-		gtk_label_set_text(GTK_LABEL(widget), _("<none selected>"));
+		gtk_label_set_text(label, _("<none selected>"));
 	}
 
 	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
@@ -547,40 +547,7 @@ dbg_property_show_list(const GSList *props)
 
 	gtk_clist_thaw(clist);
 }
-#endif /* USE_GTK1 */
 
-void
-on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
-	gpointer unused_udata)
-{
-	static gchar old_pattern[1024];
-   	gchar *text;
-
-	(void) unused_editable;
-	(void) unused_udata;
-
-	text = STRTRACK(gtk_editable_get_chars(
-        GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_dbg_property_pattern")),
-        0, -1));
-	g_strstrip(text);
-
-	if (0 != strcmp(text, old_pattern)) {
-		GSList *props;
-
-		g_strlcpy(old_pattern, text, sizeof old_pattern);
-		props = gnet_prop_get_by_regex(text, NULL);
-		if (!props)
-			statusbar_gui_warning(10,
-				_("No property name matches the pattern \"%s\"."), text);
-		
-		dbg_property_show_list(props);
-		g_slist_free(props);
-		props = NULL;
-	}
-	G_FREE_NULL(text);
-}
-FOCUS_TO_ACTIVATE(entry_dbg_property_pattern)
-	
 void
 on_entry_dbg_property_value_activate(GtkEditable *editable,
 	gpointer unused_udata)
@@ -634,6 +601,40 @@ on_clist_dbg_property_select_row(GtkCList *clist, gint row, gint unused_column,
 	}
 }
 
+#endif /* USE_GTK1 */
+
+void
+on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
+	gpointer unused_udata)
+{
+	static gchar old_pattern[1024];
+   	gchar *text;
+
+	(void) unused_editable;
+	(void) unused_udata;
+
+	text = STRTRACK(gtk_editable_get_chars(
+        GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_dbg_property_pattern")),
+        0, -1));
+	g_strstrip(text);
+
+	if (0 != strcmp(text, old_pattern)) {
+		GSList *props;
+
+		g_strlcpy(old_pattern, text, sizeof old_pattern);
+		props = gnet_prop_get_by_regex(text, NULL);
+		if (!props)
+			statusbar_gui_warning(10,
+				_("No property name matches the pattern \"%s\"."), text);
+		
+		dbg_property_show_list(props);
+		g_slist_free(props);
+		props = NULL;
+	}
+	G_FREE_NULL(text);
+}
+FOCUS_TO_ACTIVATE(entry_dbg_property_pattern)
+	
 void
 on_menu_toolbar_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 {
