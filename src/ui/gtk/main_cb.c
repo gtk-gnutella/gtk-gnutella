@@ -195,6 +195,46 @@ on_dlg_quit_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 
 #ifdef USE_GTK2
 void
+on_main_gui_treeview_menu_motion(GtkTreeView *tv, GtkTreePath *path)
+{
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+
+	g_assert(tv != NULL);
+
+	if (!path) {
+		gtk_tree_view_collapse_all(tv);
+		return;
+	}
+	
+	model = gtk_tree_view_get_model(tv);
+	g_return_if_fail(model);
+	
+	if (!gtk_tree_model_get_iter(model, &iter, path))
+		return;
+
+	if (gtk_tree_model_iter_has_child(model, &iter)) {
+		gtk_tree_view_expand_row(tv, path, FALSE);
+		while (gtk_tree_model_iter_next(model, &iter)) {
+			GtkTreePath *p = gtk_tree_model_get_path(model, &iter);
+			gtk_tree_view_collapse_row(tv, p);
+			gtk_tree_path_free(p);
+		}
+	}
+}
+
+gboolean
+on_main_gui_treeview_menu_leave_notify(GtkWidget *widget,
+	GdkEventCrossing *unused_event, gpointer unused_udata)
+{
+	(void) unused_event;
+	(void) unused_udata;
+
+	on_main_gui_treeview_menu_motion(GTK_TREE_VIEW(widget), NULL);
+	return FALSE;
+}
+
+void
 on_main_gui_treeview_menu_cursor_changed(GtkTreeView *treeview,
 	gpointer unused_udata)
 {

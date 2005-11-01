@@ -1859,8 +1859,6 @@ create_main_window (void)
   GtkWidget *image_legacy;
   GtkWidget *hpaned_main;
   GtkWidget *vbox138;
-  GtkWidget *vpaned_sidebar;
-  GtkWidget *scrolledwindow58;
   GtkWidget *viewport23;
   GtkWidget *treeview_menu;
   GtkWidget *sw_searches;
@@ -1896,6 +1894,7 @@ create_main_window (void)
   GtkWidget *progressbar_bws_lin;
   GtkWidget *progressbar_bws_lout;
   GtkWidget *label605;
+  GtkWidget *vpaned_sidebar;
   GtkWidget *vbox_right;
   GtkWidget *viewport470;
   GtkWidget *table107;
@@ -2391,23 +2390,10 @@ create_main_window (void)
   gtk_widget_show (vbox138);
   gtk_paned_pack1 (GTK_PANED (hpaned_main), vbox138, FALSE, FALSE);
 
-  vpaned_sidebar = gtk_vpaned_new ();
-  gtk_widget_set_name (vpaned_sidebar, "vpaned_sidebar");
-  gtk_widget_show (vpaned_sidebar);
-  gtk_box_pack_start (GTK_BOX (vbox138), vpaned_sidebar, TRUE, TRUE, 0);
-  gtk_paned_set_position (GTK_PANED (vpaned_sidebar), 30);
-
-  scrolledwindow58 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow58, "scrolledwindow58");
-  gtk_widget_show (scrolledwindow58);
-  gtk_paned_pack1 (GTK_PANED (vpaned_sidebar), scrolledwindow58, FALSE, TRUE);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow58), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow58), GTK_SHADOW_OUT);
-
   viewport23 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport23, "viewport23");
   gtk_widget_show (viewport23);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow58), viewport23);
+  gtk_box_pack_start (GTK_BOX (vbox138), viewport23, FALSE, TRUE, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport23), GTK_SHADOW_NONE);
 
   treeview_menu = gtk_tree_view_new ();
@@ -2420,7 +2406,7 @@ create_main_window (void)
   sw_searches = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (sw_searches, "sw_searches");
   gtk_widget_show (sw_searches);
-  gtk_paned_pack2 (GTK_PANED (vpaned_sidebar), sw_searches, TRUE, TRUE);
+  gtk_box_pack_start (GTK_BOX (vbox138), sw_searches, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw_searches), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (sw_searches), GTK_SHADOW_IN);
 
@@ -2611,6 +2597,11 @@ create_main_window (void)
   gtk_widget_set_name (label605, "label605");
   gtk_widget_show (label605);
   gtk_frame_set_label_widget (GTK_FRAME (frame_bws_glinout), label605);
+
+  vpaned_sidebar = gtk_vpaned_new ();
+  gtk_widget_set_name (vpaned_sidebar, "vpaned_sidebar");
+  gtk_box_pack_start (GTK_BOX (vbox138), vpaned_sidebar, TRUE, TRUE, 0);
+  gtk_paned_set_position (GTK_PANED (vpaned_sidebar), 30);
 
   vbox_right = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox_right, "vbox_right");
@@ -3007,8 +2998,6 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image_legacy, "image_legacy");
   GLADE_HOOKUP_OBJECT (main_window, hpaned_main, "hpaned_main");
   GLADE_HOOKUP_OBJECT (main_window, vbox138, "vbox138");
-  GLADE_HOOKUP_OBJECT (main_window, vpaned_sidebar, "vpaned_sidebar");
-  GLADE_HOOKUP_OBJECT (main_window, scrolledwindow58, "scrolledwindow58");
   GLADE_HOOKUP_OBJECT (main_window, viewport23, "viewport23");
   GLADE_HOOKUP_OBJECT (main_window, treeview_menu, "treeview_menu");
   GLADE_HOOKUP_OBJECT (main_window, sw_searches, "sw_searches");
@@ -3044,6 +3033,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, progressbar_bws_lin, "progressbar_bws_lin");
   GLADE_HOOKUP_OBJECT (main_window, progressbar_bws_lout, "progressbar_bws_lout");
   GLADE_HOOKUP_OBJECT (main_window, label605, "label605");
+  GLADE_HOOKUP_OBJECT (main_window, vpaned_sidebar, "vpaned_sidebar");
   GLADE_HOOKUP_OBJECT (main_window, vbox_right, "vbox_right");
   GLADE_HOOKUP_OBJECT (main_window, viewport470, "viewport470");
   GLADE_HOOKUP_OBJECT (main_window, table107, "table107");
