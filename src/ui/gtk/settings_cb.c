@@ -38,10 +38,11 @@
 
 RCSID("$Id$");
 
+#include "gtk-missing.h"
 #include "settings_cb.h"
 #include "settings.h"
 #include "search.h"
-#include "gtk-missing.h"
+#include "statusbar.h"
 
 #include "if/gnet_property.h"
 #include "if/bridge/ui2c.h"
@@ -78,15 +79,17 @@ on_spinbutton_search_reissue_timeout_changed(GtkEditable *editable,
 
 	(void) unused_udata;
 
-    if (lock)
+    if (lock)		/* Prevents recursion */
         return;
 
     lock = TRUE;
 
     current_search = search_gui_get_current_search();
 
-    if (!current_search || guc_search_is_passive
-		(current_search->search_handle)) {
+    if (
+		!current_search ||
+		guc_search_is_passive(current_search->search_handle)
+	) {
         lock = FALSE;
         return;
     }
@@ -122,15 +125,15 @@ void
 on_entry_config_proxy_hostname_activate(GtkEditable *editable,
 		gpointer unused_udata)
 {
-   	gchar *e = g_strstrip(STRTRACK(gtk_editable_get_chars(editable, 0, -1)));
+   	gchar *text = g_strstrip(STRTRACK(gtk_editable_get_chars(editable, 0, -1)));
 
 	(void) unused_udata;
-    gnet_prop_set_string(PROP_PROXY_HOSTNAME, e);
-	if (e[0] != '\0') {
-		guc_adns_resolve
-			(e, &on_entry_config_proxy_hostname_activate_helper, NULL);
+    gnet_prop_set_string(PROP_PROXY_HOSTNAME, text);
+	if (text[0] != '\0') {
+		guc_adns_resolve(text,
+			on_entry_config_proxy_hostname_activate_helper, NULL);
 	}
-	g_free(e);
+	G_FREE_NULL(text);
 }
 FOCUS_TO_ACTIVATE(entry_config_proxy_hostname)
 
@@ -138,11 +141,11 @@ void
 on_entry_config_socks_username_activate(GtkEditable *editable,
 		gpointer unused_udata)
 {
-   	gchar *e = g_strstrip(STRTRACK(gtk_editable_get_chars(editable, 0, -1)));
+   	gchar *text = g_strstrip(STRTRACK(gtk_editable_get_chars(editable, 0, -1)));
 
 	(void) unused_udata;
-    gnet_prop_set_string(PROP_SOCKS_USER, e);
-    g_free(e);
+    gnet_prop_set_string(PROP_SOCKS_USER, text);
+    G_FREE_NULL(text);
 }
 FOCUS_TO_ACTIVATE(entry_config_socks_username)
 
@@ -150,11 +153,11 @@ void
 on_entry_config_socks_password_activate(GtkEditable * editable,
 		gpointer unused_udata)
 {
-   	gchar *e = g_strstrip(STRTRACK(gtk_editable_get_chars(editable, 0, -1)));
+   	gchar *text = g_strstrip(STRTRACK(gtk_editable_get_chars(editable, 0, -1)));
 
 	(void) unused_udata;
-    gnet_prop_set_string(PROP_SOCKS_PASS, e);
-    g_free(e);
+    gnet_prop_set_string(PROP_SOCKS_PASS, text);
+    G_FREE_NULL(text);
 }
 FOCUS_TO_ACTIVATE(entry_config_socks_password)
 
@@ -230,60 +233,61 @@ void
 on_entry_config_force_ip_activate(GtkEditable *unused_editable,
 		gpointer unused_udata)
 {
-   	gchar *e;
+   	gchar *text;
 
 	(void) unused_editable;
 	(void) unused_udata;
-	e = STRTRACK(gtk_editable_get_chars(
+	text = STRTRACK(gtk_editable_get_chars(
         GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_config_force_ip")),
         0, -1));
-	g_strstrip(e);
-	gnet_prop_set_string(PROP_FORCED_LOCAL_IP, e);
-	G_FREE_NULL(e);
+	g_strstrip(text);
+	gnet_prop_set_string(PROP_FORCED_LOCAL_IP, text);
+	G_FREE_NULL(text);
 }
 FOCUS_TO_ACTIVATE(entry_config_force_ip)
 
 void
 on_entry_config_force_ip_changed(GtkEditable *editable, gpointer unused_udata)
 {
-    gchar *e = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
+    gchar *text = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 
 	(void) unused_udata;
-	g_strstrip(e);
+	g_strstrip(text);
 	gtk_widget_set_sensitive(
         lookup_widget(dlg_prefs, "checkbutton_config_force_ip"),
-        is_host_addr(string_to_host_addr(e, NULL)));
-	G_FREE_NULL(e);
+        is_host_addr(string_to_host_addr(text, NULL)));
+	G_FREE_NULL(text);
 }
 
 void
 on_entry_server_hostname_activate(GtkEditable *unused_editable,
 		gpointer unused_udata)
 {
-   	gchar *e;
+   	gchar *text;
 
 	(void) unused_editable;
 	(void) unused_udata;
-	e = STRTRACK(gtk_editable_get_chars(
+	text = STRTRACK(gtk_editable_get_chars(
         GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_server_hostname")),
         0, -1));
-	g_strstrip(e);
-	gnet_prop_set_string(PROP_SERVER_HOSTNAME, e);
-	g_free(e);
+	g_strstrip(text);
+	gnet_prop_set_string(PROP_SERVER_HOSTNAME, text);
+	G_FREE_NULL(text);
 }
 FOCUS_TO_ACTIVATE(entry_server_hostname)
 
 void
 on_entry_server_hostname_changed(GtkEditable *editable, gpointer unused_udata)
 {
-    gchar *e = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
+    gchar *text = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 
 	(void) unused_udata;
-	g_strstrip(e);
+	
+	g_strstrip(text);
 	gtk_widget_set_sensitive(
         lookup_widget(dlg_prefs, "checkbutton_give_server_hostname"),
-        strlen(e) > 3);		/* Minimum: "x.cx" */
-	g_free(e);
+        strlen(text) > 3);		/* Minimum: "x.cx" */
+	G_FREE_NULL(text);
 }
 
 #ifdef USE_GTK2
@@ -336,7 +340,7 @@ on_enter_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
 
 	tv = GTK_TREE_VIEW(data);
 	update_tooltip(GTK_TREE_VIEW(widget), NULL);
-	tvm_dbg_property = tree_view_motion_set_callback(tv, update_tooltip);
+	tvm_dbg_property = tree_view_motion_set_callback(tv, update_tooltip, 400);
 	return FALSE;
 }
 
@@ -389,101 +393,97 @@ on_cell_edited(GtkCellRendererText *unused_renderer, const gchar *path_str,
 		(-1));
 }
 
-void
-on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
-	gpointer unused_udata)
+static void
+dbg_tree_init(void)
 {
-	static gchar old_pattern[1024];
-   	gchar *e;
-	GSList *sl, *props;
-	GtkTreeView *tv;
+	static const struct {
+		const gchar *title;
+		gboolean editable;
+	} columns[] = {
+		{ N_("Property"),		FALSE },
+		{ N_("Value"),			TRUE  },
+		{ N_("Description"),	FALSE },
+		{ NULL,					FALSE },
+	};
 	GtkListStore *store;
-
-	(void) unused_editable;
-	(void) unused_udata;
+	GtkTreeView *tv;
+	guint i;
 
 	tv = GTK_TREE_VIEW(lookup_widget(dlg_prefs, "treeview_dbg_property"));
-	store = GTK_LIST_STORE(gtk_tree_view_get_model(tv));
-	if (!store) {
-		static const struct {
-			const gchar *title;
-			gboolean editable;
-		} columns[] = {
-			{ N_("Property"),		FALSE },
-			{ N_("Value"),			TRUE  },
-			{ N_("Description"),	FALSE },
-			{ NULL,					FALSE },
-		};
-		guint i;
+	store = GTK_LIST_STORE(gtk_list_store_new(G_N_ELEMENTS(columns),
+				G_TYPE_STRING,
+				G_TYPE_STRING,
+				G_TYPE_STRING,
+				G_TYPE_UINT));
 
-		store = GTK_LIST_STORE(gtk_list_store_new(G_N_ELEMENTS(columns),
-					G_TYPE_STRING,
-					G_TYPE_STRING,
-					G_TYPE_STRING,
-					G_TYPE_UINT));
+	gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store));
+	g_object_unref(store);
 
-		gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store));
-		g_object_unref(store);
+	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+		GtkTreeViewColumn *column;
+		GtkCellRenderer *renderer;
 
-		for (i = 0; i < G_N_ELEMENTS(columns); i++) {
-	    	GtkTreeViewColumn *column;
-			GtkCellRenderer *renderer;
+		if (!columns[i].title)
+			continue;
 
-			if (!columns[i].title)
-				continue;
+		renderer = gtk_cell_renderer_text_new();
 
-			renderer = gtk_cell_renderer_text_new();
-
-			if (columns[i].editable) {
-				g_signal_connect(renderer, "edited",
+		if (columns[i].editable) {
+			g_signal_connect(renderer, "edited",
 					G_CALLBACK(on_cell_edited), NULL);
-				g_object_set(renderer,
+			g_object_set(renderer,
 					"editable", TRUE,
 					(void *) 0);
-			}
+		}
 
-			column = gtk_tree_view_column_new_with_attributes(
+		column = gtk_tree_view_column_new_with_attributes(
 				_(columns[i].title), renderer,
 				"text", i,
 				(void *) 0);
 
-			g_object_set(renderer,
-					"xalign", 0.0,
-					"xpad", GUI_CELL_RENDERER_XPAD,
-					"ypad", GUI_CELL_RENDERER_YPAD,
-					(void *) 0);
-			g_object_set(column,
-					"fixed-width", 200,
-					"min-width", 1,
-					"resizable", TRUE,
-					"reorderable", FALSE,
-					"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
-					(void *) 0);
+		g_object_set(renderer,
+				"xalign", 0.0,
+				"xpad", GUI_CELL_RENDERER_XPAD,
+				"ypad", GUI_CELL_RENDERER_YPAD,
+				(void *) 0);
+		g_object_set(column,
+				"fixed-width", 200,
+				"min-width", 1,
+				"resizable", TRUE,
+				"reorderable", FALSE,
+				"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
+				(void *) 0);
 
-   			gtk_tree_view_column_set_sort_column_id(column, i);
-    		gtk_tree_view_append_column(tv, column);
-		}
-
-		g_signal_connect(GTK_OBJECT(tv),
-			"enter-notify-event", G_CALLBACK(on_enter_notify), tv);
-		g_signal_connect(GTK_OBJECT(tv),
-			"leave-notify-event", G_CALLBACK(on_leave_notify), tv);
+		gtk_tree_view_column_set_sort_column_id(column, i);
+		gtk_tree_view_append_column(tv, column);
 	}
 
-	e = STRTRACK(gtk_editable_get_chars(
-        GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_dbg_property_pattern")),
-        0, -1));
-	g_strstrip(e);
+	g_signal_connect(GTK_OBJECT(tv),
+			"enter-notify-event", G_CALLBACK(on_enter_notify), tv);
+	g_signal_connect(GTK_OBJECT(tv),
+			"leave-notify-event", G_CALLBACK(on_leave_notify), tv);
+}
 
-	if (0 == strcmp(e, old_pattern))
-		return;
-
-	g_strlcpy(old_pattern, e, sizeof old_pattern);
+void
+dbg_property_show_list(const GSList *props)
+{
+	const GSList *sl;
+	GtkTreeView *tv;
+	GtkListStore *store;
+	
+	tv = GTK_TREE_VIEW(lookup_widget(dlg_prefs, "treeview_dbg_property"));
+	if (!gtk_tree_view_get_model(tv))
+		dbg_tree_init();
+		
+	store = GTK_LIST_STORE(gtk_tree_view_get_model(tv));
 	gtk_list_store_clear(store);
 
-	props = gnet_prop_get_by_regex(e, NULL);
-	if (!props)
-		g_message("nothing matched \"%s\"", e);
+	if (!props) {
+		GtkLabel *label;
+		
+		label = GTK_LABEL(lookup_widget(dlg_prefs, "label_dbg_property_name"));
+		gtk_label_set_text(GTK_LABEL(widget), _("<none selected>"));
+	}
 
 	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
 		GtkTreeIter iter;
@@ -499,13 +499,140 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 			3, (guint) prop,
 			(-1));
 	}
-	g_slist_free(props);
-	props = NULL;
+}
+#endif /* USE_GTK2 */
 
-	G_FREE_NULL(e);
+#ifdef USE_GTK1
+static void
+dbg_property_set_row(GtkCList *clist, gint row, property_t prop)
+{
+	gint i;
+
+	g_assert(clist);
+	g_assert(row != -1);
+
+	for (i = 0; i < 3; i++) {
+		const gchar *text;
+		switch (i) {
+		case 0: text = gnet_prop_name(prop); break;
+		case 1: text = gnet_prop_to_string(prop); break;
+		case 2: text = gnet_prop_description(prop); break;
+		default:
+			g_assert_not_reached();
+			text = "(null)";
+		}
+		gtk_clist_set_text(clist, row, i, text);
+	}
+   	gtk_clist_set_row_data(clist, row, GUINT_TO_POINTER(prop));
+}
+
+static void
+dbg_property_show_list(const GSList *props)
+{
+	GtkCList *clist;
+	const GSList *sl;
+
+   	clist = GTK_CLIST(lookup_widget(dlg_prefs, "clist_dbg_property"));
+	gtk_clist_freeze(clist);
+	gtk_clist_clear(clist);
+
+	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
+		static const gchar * const titles[3] = { "", "", "" };
+		property_t prop = GPOINTER_TO_UINT(sl->data);
+		gint row;
+		
+    	row = gtk_clist_append(clist, deconstify_gpointer(titles));
+		dbg_property_set_row(clist, row, prop);	
+	}
+
+	gtk_clist_thaw(clist);
+}
+#endif /* USE_GTK1 */
+
+void
+on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
+	gpointer unused_udata)
+{
+	static gchar old_pattern[1024];
+   	gchar *text;
+
+	(void) unused_editable;
+	(void) unused_udata;
+
+	text = STRTRACK(gtk_editable_get_chars(
+        GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_dbg_property_pattern")),
+        0, -1));
+	g_strstrip(text);
+
+	if (0 != strcmp(text, old_pattern)) {
+		GSList *props;
+
+		g_strlcpy(old_pattern, text, sizeof old_pattern);
+		props = gnet_prop_get_by_regex(text, NULL);
+		if (!props)
+			statusbar_gui_warning(10,
+				_("No property name matches the pattern \"%s\"."), text);
+		
+		dbg_property_show_list(props);
+		g_slist_free(props);
+		props = NULL;
+	}
+	G_FREE_NULL(text);
 }
 FOCUS_TO_ACTIVATE(entry_dbg_property_pattern)
-#endif /* USE_GTK2 */
+	
+void
+on_entry_dbg_property_value_activate(GtkEditable *editable,
+	gpointer unused_udata)
+{
+	GtkCList *clist;
+
+	(void) unused_udata;
+
+   	clist = GTK_CLIST(lookup_widget(dlg_prefs, "clist_dbg_property"));
+
+    if (clist->selection) {
+   		gchar *text;
+		property_t prop;
+		gint row;
+
+		text = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
+		row = GPOINTER_TO_INT(clist->selection->data);
+		prop = GPOINTER_TO_UINT(gtk_clist_get_row_data(clist, row));
+		gnet_prop_set_from_string(prop,	text);
+		dbg_property_set_row(clist, row, prop);
+		G_FREE_NULL(text);
+	}
+}
+
+void
+on_clist_dbg_property_select_row(GtkCList *clist, gint row, gint unused_column,
+	GdkEvent *unused_event, gpointer unused_udata)
+{
+	GtkLabel *label;
+	GtkEntry *entry;
+	gpointer data;
+	
+	(void) unused_column;
+	(void) unused_event;
+	(void) unused_udata;
+    g_assert(clist != NULL);
+
+	label = GTK_LABEL(lookup_widget(dlg_prefs, "label_dbg_property_name"));
+    entry = GTK_ENTRY(lookup_widget(dlg_prefs, "entry_dbg_property_value"));
+
+    if (
+		clist->selection &&
+		NULL != (data = gtk_clist_get_row_data(clist, row))
+	) {
+		property_t prop = GPOINTER_TO_UINT(data);
+		gtk_label_printf(label, "\"%s\"", gnet_prop_name(prop));
+		gtk_entry_set_text(entry, gnet_prop_to_string(prop));
+	} else {
+		gtk_label_set_text(label, _("<none selected>"));
+		gtk_entry_set_text(entry, "");
+	}
+}
 
 void
 on_menu_toolbar_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)

@@ -55,6 +55,9 @@ void on_entry_server_hostname_changed(GtkEditable *editable, gpointer user_data)
 
 gboolean on_entry_dbg_property_pattern_focus_out_event(GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 void on_entry_dbg_property_pattern_activate(GtkEditable *editable, gpointer user_data);
+void on_entry_dbg_property_value_activate(GtkEditable *editable, gpointer user_data);
+void on_clist_dbg_property_select_row(GtkCList *clist, gint row, gint unused_column,
+	GdkEvent *unused_event, gpointer unused_udata);
 
 void on_menu_statusbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_toolbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
