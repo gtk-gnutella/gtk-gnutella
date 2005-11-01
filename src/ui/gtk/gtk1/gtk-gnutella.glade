@@ -4318,69 +4318,6 @@
 		    <spacing>2</spacing>
 
 		    <widget>
-		      <class>GtkHBox</class>
-		      <name>hbox196</name>
-		      <homogeneous>False</homogeneous>
-		      <spacing>4</spacing>
-		      <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>True</fill>
-		      </child>
-
-		      <widget>
-			<class>GtkLabel</class>
-			<name>label656</name>
-			<label>Search</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0.5</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkEntry</class>
-			<name>entry_fi_regex</name>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>activate</name>
-			  <handler>on_entry_fi_regex_activate</handler>
-			  <last_modification_time>Sat, 13 Mar 2004 20:02:14 GMT</last_modification_time>
-			</signal>
-			<editable>True</editable>
-			<text_visible>True</text_visible>
-			<text_max_length>0</text_max_length>
-			<text></text>
-			<child>
-			  <padding>0</padding>
-			  <expand>True</expand>
-			  <fill>True</fill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkCheckButton</class>
-			<name>checkbutton_fi_regex_case</name>
-			<can_focus>True</can_focus>
-			<label>case sensitive</label>
-			<active>False</active>
-			<draw_indicator>True</draw_indicator>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
-		    </widget>
-
-		    <widget>
 		      <class>GtkScrolledWindow</class>
 		      <name>scrolledwindow42</name>
 		      <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
@@ -4482,6 +4419,69 @@
 			  <xpad>0</xpad>
 			  <ypad>0</ypad>
 			</widget>
+		      </widget>
+		    </widget>
+
+		    <widget>
+		      <class>GtkHBox</class>
+		      <name>hbox196</name>
+		      <homogeneous>False</homogeneous>
+		      <spacing>4</spacing>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>True</fill>
+		      </child>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label656</name>
+			<label>Filename filter:</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <padding>0</padding>
+			  <expand>False</expand>
+			  <fill>False</fill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkEntry</class>
+			<name>entry_fi_regex</name>
+			<can_focus>True</can_focus>
+			<signal>
+			  <name>activate</name>
+			  <handler>on_entry_fi_regex_activate</handler>
+			  <last_modification_time>Sat, 13 Mar 2004 20:02:14 GMT</last_modification_time>
+			</signal>
+			<editable>True</editable>
+			<text_visible>True</text_visible>
+			<text_max_length>0</text_max_length>
+			<text></text>
+			<child>
+			  <padding>0</padding>
+			  <expand>True</expand>
+			  <fill>True</fill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_fi_regex_case</name>
+			<can_focus>True</can_focus>
+			<label>case-sensitive</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <padding>0</padding>
+			  <expand>False</expand>
+			  <fill>False</fill>
+			</child>
 		      </widget>
 		    </widget>
 		  </widget>
@@ -5712,69 +5712,6 @@
 	      <spacing>2</spacing>
 
 	      <widget>
-		<class>GtkHBox</class>
-		<name>hbox86</name>
-		<homogeneous>False</homogeneous>
-		<spacing>4</spacing>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>True</fill>
-		</child>
-
-		<widget>
-		  <class>GtkLabel</class>
-		  <name>label149</name>
-		  <label>Select</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
-		  <wrap>False</wrap>
-		  <xalign>0.5</xalign>
-		  <yalign>0.5</yalign>
-		  <xpad>0</xpad>
-		  <ypad>0</ypad>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkEntry</class>
-		  <name>entry_queue_regex</name>
-		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>activate</name>
-		    <handler>on_entry_queue_regex_activate</handler>
-		    <last_modification_time>Sat, 11 May 2002 15:32:31 GMT</last_modification_time>
-		  </signal>
-		  <editable>True</editable>
-		  <text_visible>True</text_visible>
-		  <text_max_length>0</text_max_length>
-		  <text></text>
-		  <child>
-		    <padding>0</padding>
-		    <expand>True</expand>
-		    <fill>True</fill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkCheckButton</class>
-		  <name>checkbutton_queue_regex_case</name>
-		  <can_focus>True</can_focus>
-		  <label>case sensitive</label>
-		  <active>False</active>
-		  <draw_indicator>True</draw_indicator>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
-		</widget>
-	      </widget>
-
-	      <widget>
 		<class>GtkScrolledWindow</class>
 		<name>scrolledwindow13</name>
 		<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
@@ -5910,6 +5847,69 @@
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
 		  </widget>
+		</widget>
+	      </widget>
+
+	      <widget>
+		<class>GtkHBox</class>
+		<name>hbox86</name>
+		<homogeneous>False</homogeneous>
+		<spacing>4</spacing>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkLabel</class>
+		  <name>label149</name>
+		  <label>Select</label>
+		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <wrap>False</wrap>
+		  <xalign>0.5</xalign>
+		  <yalign>0.5</yalign>
+		  <xpad>0</xpad>
+		  <ypad>0</ypad>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkEntry</class>
+		  <name>entry_queue_regex</name>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_entry_queue_regex_activate</handler>
+		    <last_modification_time>Sat, 11 May 2002 15:32:31 GMT</last_modification_time>
+		  </signal>
+		  <editable>True</editable>
+		  <text_visible>True</text_visible>
+		  <text_max_length>0</text_max_length>
+		  <text></text>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_queue_regex_case</name>
+		  <can_focus>True</can_focus>
+		  <label>case sensitive</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
 		</widget>
 	      </widget>
 

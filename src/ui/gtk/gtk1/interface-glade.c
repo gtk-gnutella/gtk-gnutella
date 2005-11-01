@@ -327,10 +327,6 @@ create_main_window (void)
   GtkWidget *vpaned_fileinfo;
   GtkWidget *viewport48;
   GtkWidget *vbox111;
-  GtkWidget *hbox196;
-  GtkWidget *label656;
-  GtkWidget *entry_fi_regex;
-  GtkWidget *checkbutton_fi_regex_case;
   GtkWidget *scrolledwindow42;
   GtkWidget *clist_fileinfo;
   GtkWidget *label512;
@@ -338,6 +334,10 @@ create_main_window (void)
   GtkWidget *label514;
   GtkWidget *label515;
   GtkWidget *label516;
+  GtkWidget *hbox196;
+  GtkWidget *label656;
+  GtkWidget *entry_fi_regex;
+  GtkWidget *checkbutton_fi_regex_case;
   GtkWidget *frame78;
   GtkWidget *vbox110;
   GtkWidget *table59;
@@ -421,10 +421,6 @@ create_main_window (void)
   GtkWidget *label734;
   GtkWidget *frame4;
   GtkWidget *vbox15;
-  GtkWidget *hbox86;
-  GtkWidget *label149;
-  GtkWidget *entry_queue_regex;
-  GtkWidget *checkbutton_queue_regex_case;
   GtkWidget *scrolledwindow13;
   GtkWidget *ctree_downloads_queue;
   GtkWidget *label645;
@@ -433,6 +429,10 @@ create_main_window (void)
   GtkWidget *label647;
   GtkWidget *label648;
   GtkWidget *label649;
+  GtkWidget *hbox86;
+  GtkWidget *label149;
+  GtkWidget *entry_queue_regex;
+  GtkWidget *checkbutton_queue_regex_case;
   GtkWidget *hbox162;
   GtkWidget *togglebutton_queue_freeze;
   GtkWidget *hbox159;
@@ -3353,38 +3353,6 @@ create_main_window (void)
   gtk_widget_show (vbox111);
   gtk_container_add (GTK_CONTAINER (viewport48), vbox111);
 
-  hbox196 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_set_name (hbox196, "hbox196");
-  gtk_widget_ref (hbox196);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox196", hbox196,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox196);
-  gtk_box_pack_start (GTK_BOX (vbox111), hbox196, FALSE, TRUE, 0);
-
-  label656 = gtk_label_new (_("Search"));
-  gtk_widget_set_name (label656, "label656");
-  gtk_widget_ref (label656);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label656", label656,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label656);
-  gtk_box_pack_start (GTK_BOX (hbox196), label656, FALSE, FALSE, 0);
-
-  entry_fi_regex = gtk_entry_new ();
-  gtk_widget_set_name (entry_fi_regex, "entry_fi_regex");
-  gtk_widget_ref (entry_fi_regex);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_fi_regex", entry_fi_regex,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_fi_regex);
-  gtk_box_pack_start (GTK_BOX (hbox196), entry_fi_regex, TRUE, TRUE, 0);
-
-  checkbutton_fi_regex_case = gtk_check_button_new_with_label (_("case sensitive"));
-  gtk_widget_set_name (checkbutton_fi_regex_case, "checkbutton_fi_regex_case");
-  gtk_widget_ref (checkbutton_fi_regex_case);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_fi_regex_case", checkbutton_fi_regex_case,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_fi_regex_case);
-  gtk_box_pack_start (GTK_BOX (hbox196), checkbutton_fi_regex_case, FALSE, FALSE, 0);
-
   scrolledwindow42 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow42, "scrolledwindow42");
   gtk_widget_ref (scrolledwindow42);
@@ -3449,6 +3417,38 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label516);
   gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 4, label516);
+
+  hbox196 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox196, "hbox196");
+  gtk_widget_ref (hbox196);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox196", hbox196,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox196);
+  gtk_box_pack_start (GTK_BOX (vbox111), hbox196, FALSE, TRUE, 0);
+
+  label656 = gtk_label_new (_("Filename filter:"));
+  gtk_widget_set_name (label656, "label656");
+  gtk_widget_ref (label656);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label656", label656,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label656);
+  gtk_box_pack_start (GTK_BOX (hbox196), label656, FALSE, FALSE, 0);
+
+  entry_fi_regex = gtk_entry_new ();
+  gtk_widget_set_name (entry_fi_regex, "entry_fi_regex");
+  gtk_widget_ref (entry_fi_regex);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_fi_regex", entry_fi_regex,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_fi_regex);
+  gtk_box_pack_start (GTK_BOX (hbox196), entry_fi_regex, TRUE, TRUE, 0);
+
+  checkbutton_fi_regex_case = gtk_check_button_new_with_label (_("case-sensitive"));
+  gtk_widget_set_name (checkbutton_fi_regex_case, "checkbutton_fi_regex_case");
+  gtk_widget_ref (checkbutton_fi_regex_case);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_fi_regex_case", checkbutton_fi_regex_case,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_fi_regex_case);
+  gtk_box_pack_start (GTK_BOX (hbox196), checkbutton_fi_regex_case, FALSE, FALSE, 0);
 
   frame78 = gtk_frame_new (_("Detail information"));
   gtk_widget_set_name (frame78, "frame78");
@@ -4170,38 +4170,6 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame4), vbox15);
   gtk_container_set_border_width (GTK_CONTAINER (vbox15), 2);
 
-  hbox86 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_set_name (hbox86, "hbox86");
-  gtk_widget_ref (hbox86);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox86", hbox86,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox86);
-  gtk_box_pack_start (GTK_BOX (vbox15), hbox86, FALSE, TRUE, 0);
-
-  label149 = gtk_label_new (_("Select"));
-  gtk_widget_set_name (label149, "label149");
-  gtk_widget_ref (label149);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label149", label149,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label149);
-  gtk_box_pack_start (GTK_BOX (hbox86), label149, FALSE, FALSE, 0);
-
-  entry_queue_regex = gtk_entry_new ();
-  gtk_widget_set_name (entry_queue_regex, "entry_queue_regex");
-  gtk_widget_ref (entry_queue_regex);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_queue_regex", entry_queue_regex,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_queue_regex);
-  gtk_box_pack_start (GTK_BOX (hbox86), entry_queue_regex, TRUE, TRUE, 0);
-
-  checkbutton_queue_regex_case = gtk_check_button_new_with_label (_("case sensitive"));
-  gtk_widget_set_name (checkbutton_queue_regex_case, "checkbutton_queue_regex_case");
-  gtk_widget_ref (checkbutton_queue_regex_case);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_queue_regex_case", checkbutton_queue_regex_case,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_queue_regex_case);
-  gtk_box_pack_start (GTK_BOX (hbox86), checkbutton_queue_regex_case, FALSE, FALSE, 0);
-
   scrolledwindow13 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow13, "scrolledwindow13");
   gtk_widget_ref (scrolledwindow13);
@@ -4274,6 +4242,38 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label649);
   gtk_clist_set_column_widget (GTK_CLIST (ctree_downloads_queue), 5, label649);
+
+  hbox86 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox86, "hbox86");
+  gtk_widget_ref (hbox86);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox86", hbox86,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox86);
+  gtk_box_pack_start (GTK_BOX (vbox15), hbox86, FALSE, TRUE, 0);
+
+  label149 = gtk_label_new (_("Select"));
+  gtk_widget_set_name (label149, "label149");
+  gtk_widget_ref (label149);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label149", label149,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label149);
+  gtk_box_pack_start (GTK_BOX (hbox86), label149, FALSE, FALSE, 0);
+
+  entry_queue_regex = gtk_entry_new ();
+  gtk_widget_set_name (entry_queue_regex, "entry_queue_regex");
+  gtk_widget_ref (entry_queue_regex);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_queue_regex", entry_queue_regex,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_queue_regex);
+  gtk_box_pack_start (GTK_BOX (hbox86), entry_queue_regex, TRUE, TRUE, 0);
+
+  checkbutton_queue_regex_case = gtk_check_button_new_with_label (_("case sensitive"));
+  gtk_widget_set_name (checkbutton_queue_regex_case, "checkbutton_queue_regex_case");
+  gtk_widget_ref (checkbutton_queue_regex_case);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_queue_regex_case", checkbutton_queue_regex_case,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_queue_regex_case);
+  gtk_box_pack_start (GTK_BOX (hbox86), checkbutton_queue_regex_case, FALSE, FALSE, 0);
 
   hbox162 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox162, "hbox162");
@@ -6063,9 +6063,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (button_ul_stats_clear_all), "clicked",
                       GTK_SIGNAL_FUNC (on_button_ul_stats_clear_all_clicked),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_fi_regex), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_fi_regex_activate),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (clist_fileinfo), "resize_column",
                       GTK_SIGNAL_FUNC (on_clist_fileinfo_resize_column),
                       NULL);
@@ -6074,6 +6071,9 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_fileinfo), "unselect_row",
                       GTK_SIGNAL_FUNC (on_clist_fileinfo_unselect_row),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_fi_regex), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_fi_regex_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (drawingarea_fi_progress), "realize",
                       GTK_SIGNAL_FUNC (on_drawingarea_fi_progress_realize),
@@ -6108,9 +6108,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (button_downloads_clear_stopped), "clicked",
                       GTK_SIGNAL_FUNC (on_button_downloads_clear_stopped_clicked),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_queue_regex), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_queue_regex_activate),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (ctree_downloads_queue), "tree_select_row",
                       GTK_SIGNAL_FUNC (on_ctree_downloads_queue_tree_select_row),
                       NULL);
@@ -6132,6 +6129,9 @@ create_main_window (void)
   gtk_signal_connect_after (GTK_OBJECT (ctree_downloads_queue), "button_release_event",
                             GTK_SIGNAL_FUNC (on_ctree_downloads_queue_button_release_event),
                             NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_queue_regex), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_queue_regex_activate),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (togglebutton_queue_freeze), "toggled",
                       GTK_SIGNAL_FUNC (on_togglebutton_queue_freeze_toggled),
                       NULL);
