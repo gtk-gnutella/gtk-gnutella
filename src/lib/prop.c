@@ -719,9 +719,10 @@ prop_set_guint32(prop_set_t *ps, property_t prop, const guint32 *src,
 			}
 
 			if (invalid) {
-				g_warning("prop_set_guint32: [%s] new value is invalid "
-					"choice %u (leaving at %u)",
-					PROP(ps,prop).name, newval, *src);
+				g_warning("prop_set_guint32: [%s] new value is invalid choice "
+					"%u (leaving at %u)",
+					PROP(ps,prop).name, newval,
+					*PROP(ps,prop).data.guint32.value);
 			} else {
 				*PROP(ps,prop).data.guint32.value = newval;
 			}
