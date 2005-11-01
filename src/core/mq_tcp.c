@@ -97,7 +97,7 @@ mq_tcp_service(gpointer data)
 	gint iovsize;
 	gint iovcnt;
 	gint sent;
-	gint r;
+	ssize_t r;
 	GList *l;
 	gint dropped;
 	gint maxsize;
@@ -178,9 +178,9 @@ again:
 
 	r = tx_writev(q->tx_drv, iov, iovcnt);
 
-	g_assert(-1 == r || !tx_has_error(q->tx_drv));
+	g_assert((ssize_t) -1 == r || !tx_has_error(q->tx_drv));
 
-	if (r <= 0) {
+	if ((ssize_t) -1 == r || r == 0) {
 		q->last_written = 0;
 		if (r == 0)
 			goto update_servicing;
@@ -321,7 +321,7 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 	 */
 
 	if (q->qhead == NULL) {
-		gint written;
+		ssize_t written;
 
 		if (pmsg_check(mb, q)) {
 			if (prioritary)
@@ -329,9 +329,14 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 
 			written = tx_write(q->tx_drv, mbs, size);
 
-			g_assert(-1 == written || !tx_has_error(q->tx_drv));
+			/**
+			 * @fixme
+			 * FIXME: The following assertion check failed.
+			 *			--cbiere, 2005-11-01
+			 */
+			g_assert((ssize_t) -1 == written || !tx_has_error(q->tx_drv));
 
-			if (-1 == written)
+			if ((ssize_t) -1 == written)
 				goto cleanup;
 
 			if (prioritary && written == size) {
