@@ -137,6 +137,70 @@ ntp_no_reply(cqueue_t *unused_cq, gpointer unused_udata)
 	wait_ev = NULL;
 }
 
+static gboolean
+ntp_send_probe(const host_addr_t addr)
+{
+	static const struct ntp_msg zero_m;
+	struct ntp_msg m;
+	gnet_host_t to;
+	tm_t now;
+	ssize_t r;	
+
+	m = zero_m;
+	m.flags = (NTP_VERSION << 3) | NTP_CLIENT;
+	tm_now_exact(&now);
+	ntp_tm_serialize(m.transmit_timestamp, &now);
+
+	to.addr = addr;
+	to.port = NTP_PORT;
+
+	r = s_udp_listen->wio.sendto(&s_udp_listen->wio, &to, &m, sizeof m);
+	/* Reset errno if there was no "real" error to prevent getting a
+	 * bogus and possibly misleading error message later. */
+	if ((ssize_t) -1 != r)
+		errno = 0;
+	return r == sizeof m;
+}
+
+static gboolean
+ntp_send_probes(void)
+{
+	static const struct {
+		const gchar *addr;
+	} hosts[] = {
+		{ "localhost" },
+		{ "::1"		  },
+		{ "127.0.0.1" },
+	};
+	gboolean sent = FALSE;
+	guint i;
+
+	/* TODO:	The name_to_host_addr() could take a while which would
+	 *			delay startup. Thus, use ADNS for this.
+	 */
+
+	for (i = 0; i < G_N_ELEMENTS(hosts); i++) {
+		host_addr_t addr;
+
+		addr = name_to_host_addr(hosts[i].addr);
+		if (!is_host_addr(addr))
+			continue;
+		
+		if (ntp_send_probe(addr)) {
+			/* Send probes to all addresses because a successful sendto()
+			 * does not guarantee anything. */
+			sent = TRUE;
+		} else if (dbg) {
+			g_message("ntp_probe(): sendto() failed for \"%s\" (\"%s\"): %s",
+				hosts[i].addr,
+				host_addr_to_string(addr),
+				g_strerror(errno));
+		}
+	}
+
+	return sent;
+}
+
 /**
  * Send an NTP probe to local host using the loopback 127.0.0.1 address,
  * waiting for a reply within the next NTP_WAIT_MS ms.
@@ -144,22 +208,7 @@ ntp_no_reply(cqueue_t *unused_cq, gpointer unused_udata)
 void
 ntp_probe(void)
 {
-	tm_t now;
-	struct ntp_msg m;
-	gnet_host_t to;
-
-	if (!udp_active())
-		return;
-
-	memset(&m, 0, sizeof(m));
-	m.flags = (NTP_VERSION << 3) | NTP_CLIENT;
-	tm_now_exact(&now);
-	ntp_tm_serialize(m.transmit_timestamp, &now);
-
-	to.addr = name_to_host_addr("localhost");
-	to.port = NTP_PORT;
-
-	if (-1 == s_udp_listen->wio.sendto(&s_udp_listen->wio, &to, &m, sizeof(m)))
+	if (!udp_active() || !ntp_send_probes())
 		return;
 
 	/*
