@@ -52,7 +52,7 @@ void
 on_clist_nodes_unselect_row(GtkCList *clist, gint unused_row,
 		gint unused_col, GdkEvent *unused_event, gpointer unused_udata)
 {
-    gboolean sensitive = GPOINTER_TO_INT(clist->selection);
+    gboolean sensitive = clist->selection != NULL;
 
 	(void) unused_row;
 	(void) unused_col;
