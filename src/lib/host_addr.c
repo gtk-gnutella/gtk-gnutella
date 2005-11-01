@@ -125,6 +125,34 @@ host_addr_6to4_ipv4(const host_addr_t ha)
 #endif /* USE_IPV6 */
 
 /**
+ * Checks whether the given address is 127.0.0.1 or ::1.
+ */
+gboolean
+host_addr_is_loopback(const host_addr_t addr)
+{
+	host_addr_t ha;
+	
+	if (!host_addr_convert(addr, &ha, NET_TYPE_IPV4))
+		ha = addr;
+	
+	switch (host_addr_net(ha)) {
+	case NET_TYPE_IPV4:
+		return host_addr_ipv4(ha) == 0x7f000001; /* 127.0.0.1 in host endian */
+
+	case NET_TYPE_IPV6:
+#ifdef USE_IPV6
+		return host_addr_equal(ha, ipv6_loopback);
+#endif /* USE_IPV6 */
+
+	case NET_TYPE_NONE:
+		break;
+	}
+
+	g_assert_not_reached();
+	return FALSE;
+}
+
+/**
  * Check whether host can be reached from the Internet.
  * We rule out IPs of private networks, plus some other invalid combinations.
  */
@@ -580,22 +608,33 @@ host_addr_to_name(const host_addr_t ha)
 
 host_addr_t
 name_to_host_addr(const gchar *host)
-{
 #if defined(HAS_GETADDRINFO)
+{
 	static const struct addrinfo zero_hints;
 	struct addrinfo hints, *ai, *ai0 = NULL;
 	gboolean finished = FALSE;
 	host_addr_t addr;
+	const gchar *endptr;
 	gint error;
 
 	g_assert(host);
 
+	/* As far as I know, some broken implementations won't resolve numeric
+	 * addresses although getaddrinfo() must support exactly this for protocol
+	 * independence.
+	 */
+
+	addr = string_to_host_addr(host, &endptr);
+	if (is_host_addr(addr) && '\0' == *endptr)
+		return addr;
+	
 	hints = zero_hints;
+	hints.ai_family =
 #ifdef USE_IPV6
-	hints.ai_family = PF_UNSPEC;
-#else
-	hints.ai_family = PF_INET;
-#endif /* USE_IPV6 */
+		PF_UNSPEC;
+#else	/* !USE_IPV6 */
+		PF_INET;
+#endif	/* USE_IPV6 */
 
 	error = getaddrinfo(host, NULL, &hints, &ai0);
 	if (error) {
@@ -642,12 +681,21 @@ name_to_host_addr(const gchar *host)
 
 	return addr;
 }
-
 #else /* !HAS_GETADDRINFO */
-
+{
 	const struct hostent *he;
 	host_addr_t addr;
 
+	/*
+	 * Make sure we can "resolve" stringyfied addresses because some
+	 * gethostbyname() implementations won't do this especially not for IPv6
+	 * although some support IPv6.
+	 */
+
+	addr = string_to_host_addr(host);
+	if (is_host_addr(addr) && '\0' == *endptr)
+		return addr;
+	
    	he = gethostbyname(host);
 	if (!he) {
 		gethostbyname_error(host);
@@ -689,7 +737,6 @@ name_to_host_addr(const gchar *host)
 
 	return zero_host_addr;
 }
-
 #endif /* HAS_GETADDRINFO */
 
 guint

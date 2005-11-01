@@ -369,6 +369,7 @@ void wfree_host_addr(gpointer key, gpointer unused_data);
 
 gboolean is_private_addr(const host_addr_t addr);
 gboolean host_addr_is_routable(const host_addr_t addr);
+gboolean host_addr_is_loopback(const host_addr_t addr);
 const gchar *host_addr_to_string(const host_addr_t addr);
 size_t host_addr_to_string_buf(const host_addr_t addr, gchar *, size_t);
 host_addr_t string_to_host_addr(const gchar *s, const gchar **endptr);
