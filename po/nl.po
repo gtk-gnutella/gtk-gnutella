@@ -11,13 +11,13 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-11-01 18:26+0900\n"
-"PO-Revision-Date: 2005-10-29 12:20+0200\n"
+"PO-Revision-Date: 2005-11-01 11:27+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);"
 
 #: src/core/downloads.c:951 src/core/downloads.c:1009
 msgid "No longer connected"
@@ -1291,7 +1291,7 @@ msgstr "Debug level voor de ban code."
 
 #: src/if/gnet_property.c:1705
 msgid "If not zero, periodic messages show the used CPU time."
-msgstr ""
+msgstr "Geef periodiek de gebruikte CPU tijd weer indien niet nul."
 
 #: src/if/gnet_property.c:1725
 msgid "Debug level for download mesh management."
@@ -5073,7 +5073,6 @@ msgstr[1] "%u downloads vergeten"
 msgid "Selected %u of %u queued download matching \"%s\"."
 msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
 msgstr[0] "%u van %u wachtende download overeenkomend met \"%s\" geselecteerd."
-msgstr[1] ""
 "%u van %u wachtende downloads overeenkomend met \"%s\" geselecteerd."
 
 #: src/ui/gtk/gtk1/fileinfo.c:143 src/ui/gtk/gtk2/fileinfo.c:324
@@ -8567,7 +8566,6 @@ msgid "Property browser"
 msgstr "Eigenschap browser"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16691
-#, fuzzy
 msgid "Property pattern:"
 msgstr "Eigenschap patroon:"
 
@@ -8585,7 +8583,7 @@ msgstr "Omschrijving"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16762
 msgid "Edit value of property"
-msgstr ""
+msgstr "Bewerk de waarde van de eigenschap"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16786
 #: src/ui/gtk/gtk2/interface-glade.c:15729
@@ -9497,14 +9495,13 @@ msgstr[0] "%u/%u downloads"
 msgstr[1] "%u/%u downloads"
 
 #: src/ui/gtk/settings_cb.c:485 src/ui/gtk/settings_cb.c:599
-#, fuzzy
 msgid "<none selected>"
-msgstr "Verwijder de selectie voorgoed"
+msgstr "<niets geselecteerd>"
 
 #: src/ui/gtk/settings_cb.c:628
-#, fuzzy, c-format
+#, c-format
 msgid "No property name matches the pattern \"%s\"."
-msgstr "Als de bestandsnaam overeenkomst met de regex \"%s\" %s"
+msgstr "Als de eigenschapnaam overeenkomst met het patroon \"%s\"."
 
 #: src/ui/gtk/uploads_common.c:100
 msgid "No output yet..."
