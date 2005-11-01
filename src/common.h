@@ -47,7 +47,7 @@
 #define GTA_PATCHLEVEL 0		  /**< patch level or teeny version */
 #define GTA_REVISION "unstable"	  /**< unstable, beta, stable */
 #define GTA_REVCHAR "u"			  /**< u - unstable, b - beta, none - stable */
-#define GTA_RELEASE "2005-10-31"  /**< ISO 8601 format YYYY-MM-DD */
+#define GTA_RELEASE "2005-11-01"  /**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)
@@ -333,12 +333,18 @@ do {				\
  * The RCS IDs can be looked up from the compiled binary with e.g. `what',
  * `ident' or `strings'. See also rcs(1) and ident(1).
  */
-#ifdef __GNUC__
 #define RCSID(x) \
-	static const char rcsid[] __attribute__((__unused__)) = "@(#) " x
-#else
-#define RCSID(x)
-#endif
+static inline const char *	\
+get_rcsid(void)		\
+{	\
+	static const char rcsid[] = "@(#) " x;	\
+	const char *s = rcsid;	\
+	while (*s != '\0') {	\
+		if (*s++ == '$')	\
+			break;	\
+	}	\
+	return s;	\
+}
 
 #if defined(__GNUC__) && defined(__GNUC_MINOR__)
 #define HAVE_GCC(major, minor) \
