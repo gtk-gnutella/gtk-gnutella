@@ -675,6 +675,15 @@ prop = {
 };
 
 prop = {
+    name = "cpu_debug";
+    desc = "If not zero, periodic messages show the used CPU time.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
     name = "dmesh_debug";
     desc = "Debug level for download mesh management.";
     type = guint32;
