@@ -138,7 +138,7 @@ static gint
 find_row(gnet_upload_t u, upload_row_data_t **data)
 {
     GtkCList *clist;
-    GList *l;
+    GList *iter;
     upload_row_data_t fake;
     gint row = 0;
 
@@ -147,10 +147,14 @@ find_row(gnet_upload_t u, upload_row_data_t **data)
 
     clist = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
 
-    for (l = clist->row_list; l != NULL; l = g_list_next(l)) {
-		upload_row_data_t *rd = (upload_row_data_t *)
-            ((GtkCListRow *) l->data)->data;
+    for (iter = clist->row_list; iter != NULL; iter = g_list_next(iter)) {
+        GtkCListRow *r = iter->data;
+		upload_row_data_t *rd;
 
+		g_assert(r);
+		rd = r->data;
+		g_assert(rd);
+		
         if (rd->valid && (rd->handle == u)) {
             /* found */
 
@@ -159,7 +163,7 @@ find_row(gnet_upload_t u, upload_row_data_t **data)
             return row;
         }
 
-        row ++;
+        row++;
     }
 
     g_warning("%s: upload not found [handle=%u]",
@@ -360,7 +364,7 @@ uploads_gui_update_display(time_t now)
 	static GtkNotebook *notebook = NULL;
     static time_t last_update = 0;
 	GtkCList *clist;
-	GList *l;
+	GList *iter;
 	gint row = 0;
     gnet_upload_status_t status;
     GSList *to_remove = NULL;
@@ -391,9 +395,14 @@ uploads_gui_update_display(time_t now)
     clist = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
     gtk_clist_freeze(clist);
 
-	for (l = clist->row_list, row = 0; l; l = l->next, row++) {
-		upload_row_data_t *data = (upload_row_data_t *)
-            ((GtkCListRow *) l->data)->data;
+	row = 0;
+	for (iter = clist->row_list; iter; iter = g_list_next(iter), row++) {
+        GtkCListRow *r = iter->data;
+		upload_row_data_t *data;
+
+		g_assert(r);
+		data = r->data;
+		g_assert(data);
 
         if (data->valid) {
 			gchar tmp[20];
@@ -431,7 +440,7 @@ uploads_gui_update_display(time_t now)
 static gboolean
 uploads_clear_helper(gpointer unused_udata)
 {
-    GList *l;
+    GList *iter;
     GSList *to_remove= NULL;
     GSList *sl;
     guint row = 0;
@@ -440,14 +449,18 @@ uploads_clear_helper(gpointer unused_udata)
 	(void) unused_udata;
     gtk_clist_freeze(clist);
 
-    for (l = clist->row_list; l != NULL; l = g_list_next(l)) {
-		upload_row_data_t *rd = (upload_row_data_t *)
-            ((GtkCListRow *) l->data)->data;
+    for (iter = clist->row_list; iter != NULL; iter = g_list_next(iter)) {
+        GtkCListRow *r = iter->data;
+		upload_row_data_t *rd;
+
+		g_assert(r);
+		rd = r->data;
+		g_assert(rd);
 
         if (!rd->valid)
             to_remove = g_slist_prepend(to_remove, GINT_TO_POINTER(row));
 
-        row ++;
+        row++;
 		if (row > uploads_rows_done) {
 			uploads_rows_done++;
        		if (0 == (uploads_rows_done & 0x7f))
@@ -461,7 +474,7 @@ uploads_clear_helper(gpointer unused_udata)
     g_slist_free(to_remove);
     gtk_clist_thaw(clist);
 
-    if (l == NULL) {
+    if (iter == NULL) {
 		gtk_widget_set_sensitive(lookup_widget(
 			main_window, "button_uploads_clear_completed"), FALSE);
     	uploads_remove_lock = FALSE;
@@ -477,7 +490,7 @@ uploads_gui_clear_completed(void)
 	if (!uploads_remove_lock) {
 		uploads_remove_lock = TRUE;
 		uploads_rows_done = 0;
-		gtk_timeout_add(100, (GtkFunction) uploads_clear_helper, NULL);
+		gtk_timeout_add(100, uploads_clear_helper, NULL);
 	}
 }
 
