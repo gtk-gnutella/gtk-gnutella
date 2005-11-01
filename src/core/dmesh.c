@@ -407,7 +407,9 @@ dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
 		return FALSE;
 	}
 
-	addr = name_to_host_addr(host);
+	addr = name_to_host_addr(host);	/* FIXME: This can block */
+	if (!is_host_addr(addr))
+		return FALSE;
 
 	/*
 	 * Test the first form of resource naming:
