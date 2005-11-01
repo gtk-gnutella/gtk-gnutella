@@ -285,7 +285,7 @@ log_cpu_usage(tm_t *since_time, gdouble *prev_user, gdouble *prev_sys)
 
 	g_message("average CPU used: %.3f%% over %.2f secs",
 		100.0 * total / elapsed, elapsed);
-	g_message("CPU usage: total = %.2f secs (user = %.2f, sys = %.2f)",
+	g_message("CPU usage: total: %.2fs (user: %.2f, sys: %.2f)",
 		total, user, sys);
 }
 
@@ -468,7 +468,7 @@ slow_main_timer(time_t now)
 	static guint i = 0;
 	static time_t last_warn = 0;
 
-	if (debugging(0)) {
+	if (cpu_debug) {
 		static tm_t since = { 0, 0 };
 		static gdouble user = 0.0;
 		static gdouble sys = 0.0;
@@ -741,8 +741,8 @@ log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 
 	safer = control_escape(message);
 
-	fprintf(stderr, "%.2d/%.2d/%.2d %.2d:%.2d:%.2d (%s): %s\n",
-		ct->tm_year % 100, ct->tm_mon + 1, ct->tm_mday,
+	fprintf(stderr, "%04d%02d%02d %.2d:%.2d:%.2d (%s): %s\n",
+		1900 + ct->tm_year, ct->tm_mon + 1, ct->tm_mday,
 		ct->tm_hour, ct->tm_min, ct->tm_sec, level, safer);
 
 	if (safer != message)
