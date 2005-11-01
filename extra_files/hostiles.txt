@@ -211,8 +211,11 @@
 207.234.131.148
 
 # Strange client pool of Windoze(?) machines; they connect in hordes; most
-# of them identify as LimeWire/4.0.5
+# of them identify as LimeWire/4.0.5; Macrovision and Xeex are behind this.
 154.37.66.0/24
+208.49.28.0/24
+209.11.134.0/24
+216.151.154.0/24
 
 # Foundation of Research and Technology (Greece)
 139.91.0.0/16
