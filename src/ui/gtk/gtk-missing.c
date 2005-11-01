@@ -711,8 +711,17 @@ tree_view_motion_timeout(gpointer data)
 	return TRUE;
 }
 
+/**
+ * Registers the callback for the motion-notify-event. Only the last event
+ * seen during any interval will invoke the callback.
+ *
+ * @param tv The GtkTreeView.
+ * @param cb The callback.
+ * @param interval The interval in milliseconds.
+ */
 tree_view_motion_t *
-tree_view_motion_set_callback(GtkTreeView *tv, tree_view_motion_callback cb)
+tree_view_motion_set_callback(GtkTreeView *tv,
+	tree_view_motion_callback cb, guint interval)
 {
 	tree_view_motion_t *tvm;
 
@@ -722,7 +731,7 @@ tree_view_motion_set_callback(GtkTreeView *tv, tree_view_motion_callback cb)
 	tvm = g_malloc(sizeof *tvm);
 	tvm->tv = tv;
 	tvm->cb = cb;
-	tvm->timeout_id = g_timeout_add(400, tree_view_motion_timeout, tvm);
+	tvm->timeout_id = g_timeout_add(interval, tree_view_motion_timeout, tvm);
 	tvm->signal_id = g_signal_connect(GTK_OBJECT(tv),
 		"motion-notify-event", G_CALLBACK(on_tree_view_motion_notify), tvm);
 	return tvm;

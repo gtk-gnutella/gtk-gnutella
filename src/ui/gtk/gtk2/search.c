@@ -1246,7 +1246,7 @@ search_gui_set_current_search(search_t *sch)
 		PROP_SEARCH_RESULTS_COL_WIDTHS);
 
 	tvm_search = tree_view_motion_set_callback(GTK_TREE_VIEW(sch->tree_view),
-		search_update_tooltip);
+					search_update_tooltip, 400);
 
     /*
      * Search results notebook

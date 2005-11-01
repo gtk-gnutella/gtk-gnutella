@@ -488,7 +488,8 @@ nodes_gui_init(void)
 	g_signal_connect(GTK_OBJECT(treeview_nodes), "leave-notify-event",
 		G_CALLBACK(on_leave_notify), treeview_nodes);
 
-	tvm_nodes = tree_view_motion_set_callback(treeview_nodes, update_tooltip);
+	tvm_nodes = tree_view_motion_set_callback(treeview_nodes,
+					update_tooltip, 400);
 }
 
 /**
