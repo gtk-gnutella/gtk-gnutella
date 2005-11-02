@@ -47,7 +47,7 @@
 #define GTA_PATCHLEVEL 0		  /**< patch level or teeny version */
 #define GTA_REVISION "unstable"	  /**< unstable, beta, stable */
 #define GTA_REVCHAR "u"			  /**< u - unstable, b - beta, none - stable */
-#define GTA_RELEASE "2005-11-01"  /**< ISO 8601 format YYYY-MM-DD */
+#define GTA_RELEASE "2005-11-02"  /**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)
@@ -318,13 +318,13 @@ typedef void (*GCallback) (void);
  * this instead of a bare g_free() to prevent double-free bugs and dangling
  * pointers.
  */
-#define G_FREE_NULL(p)		\
-do {				\
-	if (p) {		\
-		g_free(p);	\
-		p = NULL;	\
-	}			\
-} while (0)
+#define G_FREE_NULL(p)	\
+G_STMT_START {			\
+	if (p) {			\
+		g_free(p);		\
+		p = NULL;		\
+	}					\
+} G_STMT_END
 
 /**
  * Stores a RCS ID tag inside the object file. Every .c source file should
