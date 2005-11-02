@@ -4168,7 +4168,7 @@ msgstr "%sB/s"
 
 #: src/lib/utf8.c:1202
 msgid "locale_get_language|en_US"
-msgstr "el_EL"
+msgstr "el_GR"
 
 #: src/main.c:876
 msgid "This is an unofficial build which accesses files in this directory:"
