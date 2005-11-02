@@ -6071,6 +6071,28 @@ download_sink_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 	download_sink(d);
 }
 
+static const gchar *
+lazy_ack_message_to_ui_string(const gchar *src)
+{
+	static gchar *prev;
+	gchar *s;
+	
+	g_assert(src);
+	g_assert(src != prev);
+
+	G_FREE_NULL(prev);
+	
+	if (is_ascii_string(src))
+		return src;
+
+	s = iso8859_1_to_utf8(src);
+	prev = utf8_to_ui_string(s);
+	if (prev != s && src != s)
+		G_FREE_NULL(s);
+	
+	return prev;
+}
+
 /**
  * Called to initiate the download once all the HTTP headers have been read.
  * If `ok' is false, we timed out reading the header, and have therefore
@@ -6185,6 +6207,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	if (!download_check_status(d, s->getline, ack_code))
 		return;
+
+	if (ack_message)
+		ack_message = lazy_ack_message_to_ui_string(ack_message);
 
 	d->retries = 0;				/* Retry successful, we managed to connect */
 	d->flags |= DL_F_REPLIED;
