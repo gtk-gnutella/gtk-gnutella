@@ -462,12 +462,11 @@ gui_create_dlg_faq(void)
 	lang = locale_get_language();
 
 	i = 0;
-	dir = make_pathname(PACKAGE_EXTRA_SOURCE_DIR, lang);
+	dir = make_pathname(PRIVLIB_EXP, lang);
 	file_path_set(&fp[i++], dir, "FAQ");
 	G_FREE_NULL(dir);
 
-	file_path_set(&fp[i++],
-		PACKAGE_EXTRA_SOURCE_DIR G_DIR_SEPARATOR_S "en_US", "FAQ");
+	file_path_set(&fp[i++], PRIVLIB_EXP G_DIR_SEPARATOR_S "en_US", "FAQ");
 	
 #ifndef OFFICIAL_BUILD
 	dir = make_pathname(PACKAGE_EXTRA_SOURCE_DIR, lang);
