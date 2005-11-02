@@ -2215,6 +2215,67 @@ control_escape(const gchar *s)
 	return deconstify_gchar(s);
 }
 
+static guint
+char_to_printf_escape(guchar c, gchar *esc)
+{
+	if (is_ascii_alnum(c) || (c < 0x80 && strchr("._-", c))) {
+		if (esc)
+			*esc = c;
+		
+		return 1;
+	} else {
+		static const gchar hexa[] = "0123456789abcdef";
+		if (esc) {
+			esc[0] = '\\';
+			esc[1] = 'x';
+			esc[2] = hexa[(c >> 4) & 0xf];
+			esc[3] = hexa[c & 0x0f];
+		}
+		return 4;
+	}
+}
+
+/**
+ * Escapes a string so that it can be used careless with the POSIX printf tool.
+ * Therefore it's absolutely paranoid and escapes everything but ASCII
+ * alphanumerics, dots, hyphen and underscores.
+ *
+ * @note Hex sequences are always two digits long, so "\xAAA" is the same as
+ * "\xAA" "A". In C this not necessarily true and could be understood as a
+ * wide-char sequence.
+ *
+ * @param src The string to escape.
+ * @return The escaped string. MUST NOT be freed.
+ */ 
+const gchar *
+lazy_string_to_printf_escape(const gchar *src)
+{
+	static gchar *prev;
+	const gchar *s;
+	gchar *p;
+	guchar c;
+	size_t n;
+
+	g_assert(src);
+	g_assert(src != prev);
+
+	G_FREE_NULL(prev);
+	
+	for (s = src, n = 0; '\0' != (c = *s); s++)
+		n += char_to_printf_escape(c, NULL);
+
+	if (n == (size_t) (s - src))
+		return src;
+	
+	prev = g_malloc(n + 1);
+	for (s = src, p = prev; '\0' != (c = *s); s++) {
+		guint len = char_to_printf_escape(c, p);
+		p += len;
+	}
+	*p = '\0';
+	
+	return prev;	
+}
 
 /**
  * Extracts the IP address into `ip' and the netmask into `netmask'.

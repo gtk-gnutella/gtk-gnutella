@@ -492,6 +492,7 @@ gint strcasecmp_delimit(const gchar *a, const gchar *b, const gchar *delimit);
 char *unique_filename(const gchar *path, const gchar *file, const gchar *ext);
 gchar *hex_escape(const gchar *name, gboolean strict);
 gchar *control_escape(const gchar *s);
+const gchar *lazy_string_to_printf_escape(const gchar *src);
 gint highest_bit_set(guint32 n) G_GNUC_CONST;
 gfloat force_range(gfloat value, gfloat min, gfloat max);
 gchar *make_pathname(const gchar *dir, const gchar *file);
