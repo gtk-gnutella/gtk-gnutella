@@ -51,14 +51,13 @@ RCSID("$Id$");
 #ifndef TRACK_MALLOC
 
 /**
- * gm_slist_insert_after
- *
  * Insert `item' after `lnk' in list `list'.
  * If `lnk' is NULL, insertion happens at the head.
  *
  * @return new list head.
  */
-GSList *gm_slist_insert_after(GSList *list, GSList *lnk, gpointer data)
+GSList *
+gm_slist_insert_after(GSList *list, GSList *lnk, gpointer data)
 {
 	GSList *new;
 
@@ -77,14 +76,13 @@ GSList *gm_slist_insert_after(GSList *list, GSList *lnk, gpointer data)
 }
 
 /**
- * gm_list_insert_after
- *
  * Insert `item' after `lnk' in list `list'.
  * If `lnk' is NULL, insertion happens at the head.
  *
  * @return new list head.
  */
-GList *gm_list_insert_after(GList *list, GList *lnk, gpointer data)
+GList *
+gm_list_insert_after(GList *list, GList *lnk, gpointer data)
 {
 	GList *new;
 
@@ -122,87 +120,119 @@ g_list_delete_link(GList *l, GList *lnk)
 #endif /* !TRACK_MALLOC */
 
 /**
- * @def DO_VSNPRINTF
- *
  * Perform the vsnprintf() operation for the gm_vsnprintf() and gm_snprintf()
- * routines.
+ * routines. The resulting string will not be larger than (size - 1)
+ * and the returned value is always the length of this string. Thus it
+ * will not be equal or greater than size either.
  *
- * We don't use macro arguments on purpose: instead, we hardwire the following
- * that must be provided by the context, to ensure this macro is not reused
- * out of its original intended context.
- *
- * `retval' is the returned value.
- * `str' is the string where printing is done.
- * `n' is the maximum amount of chars that can be held in `str'.
- * `fmt' is the format string.
- * `args' is the arguments to be printed.
+ * @param dst The destination buffer to hold the resulting string.
+ * @param size The size of the destination buffer.
+ * @param fmt The printf-format string.
+ * @param args The variable argument list.
+ * @return The length of the resulting string.
  */
-
+static inline size_t
+buf_vprintf(gchar *dst, size_t size, const gchar *fmt, va_list args)
 #ifdef	HAS_VSNPRINTF
-#define DO_VSNPRINTF() do {					\
-	str[0] = '\0';							\
-	retval = vsnprintf(str, n, fmt, args);	\
-	if (retval < 0) {						\
-		/* Old versions of vsnprintf() */ 	\
-		str[n - 1] = '\0';					\
-		retval = strlen(str);				\
-	} else if ((size_t) retval >= n) {		\
-	/* New versions (compliant with C99) */ \
-		str[n - 1] = '\0';					\
-		retval = n - 1;						\
-	}										\
-} while (0)
+{
+	gint retval;	/* printf()-functions really return int, not size_t */
+	
+	g_assert(size > 0);	
+
+	dst[0] = '\0';
+	retval = vsnprintf(dst, size, fmt, args);
+	if (retval < 0) {
+		/* Old versions of vsnprintf() */
+		dst[size - 1] = '\0';
+		retval = strlen(dst);
+	} else if ((size_t) retval >= size) {
+		/* New versions (compliant with C99) */
+		dst[size - 1] = '\0';
+		retval = size - 1;
+	}
+	return retval;
+}
 #else	/* !HAS_VSNPRINTF */
-#define DO_VSNPRINTF() do {							\
-	gchar *printed = g_strdup_vprintf(fmt, args);	\
-	size_t l = g_strlcpy(str, printed, n);			\
-	retval = MIN((n - 1), l);						\
-	G_FREE_NULL(printed);							\
-} while (0)
+{
+	gchar *buf;
+	size_t len;
+  
+	g_assert(size > 0);	
+	buf	= g_strdup_vprintf(fmt, args);
+	len = g_strlcpy(dst, buf, size);
+	G_FREE_NULL(buf);
+	return MIN((size - 1), len);
+}
 #endif	/* HAS_VSNPRINTF */
 
-
 /**
- * This version implements the correct FIXED semantics of the 1.2.10 glib:
+ * This is the smallest common denominator between the g_vsnprintf() from
+ * GLib 1.2 and the one from GLib 2.x. The older version has no defined
+ * return value, it could be the resulting string length or the size of
+ * the buffer minus one required to hold the resulting string. This
+ * version always returns the length of the resulting string unlike the
+ * vsnprintf() from ISO C99.
+ *
+ * @note:	The function name might be misleading. You cannot measure
+ *			the required buffer size with this!
+ *
+ * @param dst The destination buffer to hold the resulting string.
+ * @param size The size of the destination buffer. It must not exceed INT_MAX.
+ * @param fmt The printf-format string.
+ * @param args The variable argument list.
+ * @return The length of the resulting string.
  */
-size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args)
+size_t
+gm_vsnprintf(gchar *dst, size_t size, const gchar *fmt, va_list args)
 {
-	ssize_t retval;
+	size_t len;
 
-	g_return_val_if_fail (str != NULL, 0);
-	g_return_val_if_fail (fmt != NULL, 0);
-	g_return_val_if_fail ((ssize_t) n > 0, 0);
-	g_return_val_if_fail (n <= (size_t) INT_MAX, 0);
+	g_return_val_if_fail(dst != NULL, 0);
+	g_return_val_if_fail(fmt != NULL, 0);
+	g_return_val_if_fail((ssize_t) size > 0, 0);
+	g_return_val_if_fail(size <= (size_t) INT_MAX, 0);
 
-	DO_VSNPRINTF();
+	len = buf_vprintf(dst, size, fmt, args);
 
-	g_assert((size_t) retval < n);
+	g_assert(len < size);
 
-	return retval;
+	return len;
 }
 
 /**
- * This version implements the correct FIXED semantics of the 1.2.10 glib:
- * It returns the length of the output string, and it is GUARANTEED to
- * be one less than `n' (last position occupied by the trailing NUL).
+ * This is the smallest common denominator between the g_snprintf() from
+ * GLib 1.2 and the one from GLib 2.x. The older version has no defined
+ * return value, it could be the resulting string length or the size of
+ * the buffer minus one required to hold the resulting string. This
+ * version always returns the length of the resulting string unlike the
+ * snprintf() from ISO C99.
+ *
+ * @note:	The function name might be misleading. You cannot measure
+ *			the required buffer size with this!
+ *
+ * @param dst The destination buffer to hold the resulting string.
+ * @param size The size of the destination buffer. It must not exceed INT_MAX.
+ * @param fmt The printf-format string.
+ * @return The length of the resulting string.
  */
-size_t gm_snprintf(gchar *str, size_t n, gchar const *fmt, ...)
+size_t
+gm_snprintf(gchar *dst, size_t size, const gchar *fmt, ...)
 {
 	va_list args;
-	ssize_t retval;
+	size_t len;
 
-	g_return_val_if_fail (str != NULL, 0);
-	g_return_val_if_fail (fmt != NULL, 0);
-	g_return_val_if_fail ((ssize_t) n > 0, 0);
-	g_return_val_if_fail (n <= (size_t) INT_MAX, 0);
+	g_return_val_if_fail(dst != NULL, 0);
+	g_return_val_if_fail(fmt != NULL, 0);
+	g_return_val_if_fail((ssize_t) size > 0, 0);
+	g_return_val_if_fail(size <= (size_t) INT_MAX, 0);
 
-	va_start (args, fmt);
-	DO_VSNPRINTF();
-	va_end (args);
+	va_start(args, fmt);
+	len = buf_vprintf(dst, size, fmt, args);
+	va_end(args);
 
-	g_assert((size_t) retval < n);
+	g_assert(len < size);
 
-	return retval;
+	return len;
 }
 
 static gint orig_argc;
@@ -212,7 +242,8 @@ static gchar **orig_env;
 /**
  * Save the original main() arguments.
  */
-void gm_savemain(gint argc, gchar **argv, gchar **env)
+void
+gm_savemain(gint argc, gchar **argv, gchar **env)
 {
 	orig_argc = argc;
 	orig_argv = argv;
@@ -222,7 +253,8 @@ void gm_savemain(gint argc, gchar **argv, gchar **env)
 /**
  * Change the process title as seen by "ps".
  */
-void gm_setproctitle(gchar *title)
+void
+gm_setproctitle(gchar *title)
 {
 	static gint sysarglen = 0;		/* Length of the exec() arguments */
 	gint tlen;
@@ -288,7 +320,8 @@ void gm_setproctitle(gchar *title)
  * Appends len bytes of val to string. Because len is provided, val may
  * contain embedded nuls and need not be nul-terminated.
  */
-GString *g_string_append_len(GString *gs, const gchar *val,  gssize len)
+GString *
+g_string_append_len(GString *gs, const gchar *val,  gssize len)
 {
 	const gchar *p = val;
 
