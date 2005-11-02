@@ -701,59 +701,60 @@ scan_files_once(gpointer p)
 	return FALSE;
 }
 
+static const gchar * const log_domains[] = {
+	G_LOG_DOMAIN, "Gtk", "GLib", "Pango"
+};
+
 static void
-log_handler(const gchar *log_domain, GLogLevelFlags log_level,
+log_handler(const gchar *domain, GLogLevelFlags level,
 	const gchar *message, gpointer user_data)
 {
 	gint saved_errno = errno;
 	time_t now;
 	struct tm *ct;
-	const char *level;
+	const char *prefix;
 	gchar *safer;
 
-	(void) log_domain;
+	(void) domain;
 	(void) user_data;
 	now = tm_time();
 	ct = localtime(&now);
 
-	switch (log_level) {
-	case G_LOG_LEVEL_CRITICAL:
-		level = "CRITICAL";
-		break;
-	case G_LOG_LEVEL_ERROR:
-		level = "ERROR";
-		break;
-	case G_LOG_LEVEL_WARNING:
-		level = "WARNING";
-		break;
-	case G_LOG_LEVEL_MESSAGE:
-		level = "MESSAGE";
-		break;
-	case G_LOG_LEVEL_INFO:
-		level = "INFO";
-		break;
-	case G_LOG_LEVEL_DEBUG:
-		level = "DEBUG";
-		break;
+	switch (level) {
+#define CASE(x) case CAT2(G_LOG_LEVEL_,x): prefix = STRINGIFY(x); break;
+
+	CASE(CRITICAL)
+	CASE(ERROR)
+	CASE(WARNING)
+	CASE(MESSAGE)
+	CASE(INFO)
+	CASE(DEBUG)
+#undef CASE
 	default:
-		level = "UNKNOWN";
+		prefix = "UNKNOWN";
 	}
 
 	safer = control_escape(message);
 
 	fprintf(stderr, "%04d%02d%02d %.2d:%.2d:%.2d (%s): %s\n",
 		1900 + ct->tm_year, ct->tm_mon + 1, ct->tm_mday,
-		ct->tm_hour, ct->tm_min, ct->tm_sec, level, safer);
+		ct->tm_hour, ct->tm_min, ct->tm_sec, prefix, safer);
 
 	if (safer != message)
 		G_FREE_NULL(safer);
 
-#if 0
+#if 0 
 	/* Define to debug Glib or Gtk problems */
-	if (log_domain &&
-		(!strcmp(log_domain, "Gtk") || !strcmp(log_domain, "GLib"))
-	) {
-		raise(SIGTRAP);
+	if (domain) {
+		guint i;
+
+		for (i = 0; i < G_N_ELEMENTS(log_domains); i++) {
+			const gchar *dom = log_domains[i];
+			if (dom && 0 == strcmp(domain, dom)) {
+				raise(SIGTRAP);
+				break;
+			}
+		}
 	}
 #endif
 
@@ -763,11 +764,10 @@ log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 static void
 log_init(void)
 {
-	const gchar *domains[] = { G_LOG_DOMAIN, "Gtk", "GLib" };
 	guint i;
 
-	for (i = 0; i < G_N_ELEMENTS(domains); i++) {
-		g_log_set_handler(domains[i],
+	for (i = 0; i < G_N_ELEMENTS(log_domains); i++) {
+		g_log_set_handler(log_domains[i],
 			G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING |
 			G_LOG_LEVEL_MESSAGE | G_LOG_LEVEL_INFO | G_LOG_LEVEL_DEBUG,
 			log_handler, NULL);
