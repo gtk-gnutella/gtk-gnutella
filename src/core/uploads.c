@@ -2660,9 +2660,9 @@ prepare_browsing(gnutella_upload_t *u, header_t *header,
 	 * Change the name of the upload for the GUI.
 	 */
 	{
-		gchar name[80];
+		gchar name[1024];
 
-		gm_snprintf(name, sizeof(name),
+		gm_snprintf(name, sizeof name,
 				_("<Browse Host Request> [%s%s%s]"),
 				(bh_flags & BH_HTML) ? "HTML" : _("query hits"),
 				(bh_flags & BH_DEFLATE) ? _(", deflate") :
