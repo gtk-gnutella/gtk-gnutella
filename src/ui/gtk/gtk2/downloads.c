@@ -47,12 +47,12 @@ RCSID("$Id$");
 #include "if/bridge/ui2c.h"
 
 #include "lib/atoms.h"
-#include "lib/tm.h"
-#include "lib/utf8.h"
 #include "lib/glib-missing.h"
+#include "lib/utf8.h"
+#include "lib/tm.h"
+#include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-static gchar tmpstr[4096];
 static GHashTable *parents;			/**< table of parent download iterators */
 static GHashTable *parents_queue;	/**< table of parent queued dl iterators */
 static GHashTable *ht_dl_iters;		/**< table of iters to find downloads */
@@ -275,7 +275,7 @@ static gboolean
 downloads_gui_update_parent_status(download_t *d, const gchar *new_status)
 {
 	GtkTreeIter *parent;
-	GtkTreeStore *model;
+	GtkTreeStore *store;
 
 	if (!d->file_info)
 		return FALSE;
@@ -284,8 +284,8 @@ downloads_gui_update_parent_status(download_t *d, const gchar *new_status)
 	if (!parent)
 		return FALSE;
 
-	model = (GtkTreeStore *) gtk_tree_view_get_model(treeview_downloads);
-	gtk_tree_store_set(model, parent, c_dl_status, new_status, (-1));
+	store = GTK_TREE_STORE(gtk_tree_view_get_model(treeview_downloads));
+	gtk_tree_store_set(store, parent, c_dl_status, new_status, (-1));
 	return TRUE;
 }
 
@@ -689,7 +689,8 @@ download_gui_add(download_t *d)
 {
 	static const gchar unknown_size_str[] = "no size";
 	const gchar *vendor;
-	gchar vendor_ban_buf[256];
+	gchar *vendor_buf = NULL;
+	size_t vendor_size = 0;
 	GHashTable *ht;
 	GtkTreeView *treeview;
 	GtkTreeIter *parent;
@@ -704,9 +705,8 @@ download_gui_add(download_t *d)
 
 	vendor = download_vendor_str(d);
 	if (d->server->attrs & DLS_A_BANNING) {
-		concat_strings(vendor_ban_buf, sizeof vendor_ban_buf,
-			"*", vendor, (void *) 0);
-		vendor = vendor_ban_buf;
+		vendor_size = w_concat_strings(&vendor_buf, "*", vendor, (void *) 0);
+		vendor = vendor_buf;
 	}
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
@@ -856,6 +856,7 @@ download_gui_add(download_t *d)
 				gchar *filename, *host, *size, *range, *status,
 					*server, *country;
 				GtkTreeIter *iter;
+				gchar tmp[1024];
 
 				g_assert(find_download(drecord) != NULL);
 
@@ -889,8 +890,7 @@ download_gui_add(download_t *d)
 		        	(-1));
 
 				progress = 100.0 * guc_download_total_progress(d);
-				gm_snprintf(tmpstr, sizeof(tmpstr),
-					_("[%d/%d]  TR:  -"),
+				gm_snprintf(tmp, sizeof tmp, _("[%u/%u]  TR:  -"),
 					d->file_info->recvcount, d->file_info->lifecount);
 
 				/* Clear the old info */
@@ -902,7 +902,7 @@ download_gui_add(download_t *d)
 					c_dl_range, NULL,
 					c_dl_server, NULL,
 					c_dl_progress, CLAMP(progress, 0, 100),
-					c_dl_status, tmpstr,
+					c_dl_status, tmp,
 					c_dl_record, DL_GUI_IS_HEADER,
 					(-1));
 
@@ -958,14 +958,15 @@ download_gui_add(download_t *d)
 		add_parent_with_fi_handle(ht, d->file_info->fi_handle, child);
 	} else {
 		guint hosts = d->file_info->lifecount;
+		gchar tmp[1024];
 
-		gm_snprintf(tmpstr, sizeof tmpstr,
-			NG_("%u host", "%u hosts", hosts), hosts);
-		gtk_tree_store_set(model, parent, host_column, tmpstr, (-1));
+		gm_snprintf(tmp, sizeof tmp, NG_("%u host", "%u hosts", hosts), hosts);
+		gtk_tree_store_set(model, parent, host_column, tmp, (-1));
 	}
 
 	/* Download was added to either the active or queued downloads treeview */
 	d->visible = TRUE;
+	WFREE_NULL(vendor_buf, vendor_size);
 }
 
 
@@ -1022,10 +1023,11 @@ download_gui_remove(download_t *d)
 		remove_parent_with_fi_handle(ht, d->file_info->fi_handle);
 	} else if (n > 2) {
 		guint hosts = d->file_info->lifecount;
+		gchar tmp[1024];
+
 		g_assert(iter != parent);
-		gm_snprintf(tmpstr, sizeof tmpstr,
-			NG_("%u host", "%u hosts", hosts), hosts);
-		gtk_tree_store_set(store, parent, host_column, tmpstr, (-1));
+		gm_snprintf(tmp, sizeof tmp, NG_("%u host", "%u hosts", hosts), hosts);
+		gtk_tree_store_set(store, parent, host_column, tmp, (-1));
 	} else if (2 == n) {
 		GtkTreeIter *child_iter;
 		gint i;
@@ -1099,7 +1101,7 @@ download_gui_remove(download_t *d)
 				c_dl_range, range,
 				c_dl_server, server,
 				c_dl_progress, CLAMP(progress, 0, 100),
-				c_dl_status, tmpstr,
+				c_dl_status, status,
 				c_dl_record, drecord,
 				(-1));
 
@@ -1177,8 +1179,8 @@ void
 gui_update_download_server(download_t *d)
 {
 	const gchar *server;
-	gchar buf[256];
-
+	gchar *buf = NULL;
+	size_t size = 0;
 
 	g_assert(d);
 	g_assert(!DOWNLOAD_IS_QUEUED(d));
@@ -1192,10 +1194,11 @@ gui_update_download_server(download_t *d)
 	 */
 	server = download_vendor(d);
 	if (d->server->attrs & DLS_A_BANNING) {
-		concat_strings(buf, sizeof buf, "*", server, (void *) 0);
+		size = w_concat_strings(&buf, "*", server, (void *) 0);
 		server = buf;
 	}
 	gui_update_download_column(d, treeview_downloads, c_dl_server, server);
+	WFREE_NULL(buf, size);
 }
 
 
@@ -1206,8 +1209,8 @@ void
 gui_update_download_range(download_t *d)
 {
 	filesize_t len;
-	size_t rw;
 	const gchar *and_more = "";
+	gchar buf[256];
 
 	g_assert(d);
 	g_assert(!DOWNLOAD_IS_QUEUED(d));
@@ -1223,14 +1226,12 @@ gui_update_download_range(download_t *d)
 
 	len += d->overlap_size;
 
-	rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
-			compact_size(len), and_more);
-
+	concat_strings(buf, sizeof buf,
+		compact_size(len), and_more, d->skip ? " @ " : "", (void *) 0);
 	if (d->skip)
-		gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " @ %s",
-			compact_size(d->skip));
+		g_strlcat(buf, compact_size(d->skip), sizeof buf);
 
-	gui_update_download_column(d, treeview_downloads, c_dl_range, tmpstr);
+	gui_update_download_column(d, treeview_downloads, c_dl_range, buf);
 }
 
 
@@ -1258,19 +1259,20 @@ void
 gui_update_download(download_t *d, gboolean force)
 {
 	static GtkNotebook *notebook = NULL;
-	const gchar *a = NULL;
 	time_t now = tm_time();
 	fileinfo_t *fi;
 	download_t *drecord;
-	gint rw;
 	GtkTreeView *treeview;
 	GtkTreeIter *parent;
-	GtkTreeStore *model;
+	GtkTreeStore *store;
 	GHashTable *ht;
     gint current_page;
 	gboolean looking = TRUE;
 	gboolean has_header = FALSE;
 	gboolean is_queued;
+	gchar status_buf[4096];
+	const gchar *status_ptr = status_buf;
+	size_t rw;
 
     if (d->last_gui_update == now && !force)
 		return;
@@ -1291,17 +1293,19 @@ gui_update_download(download_t *d, gboolean force)
 		ht = parents;
 	}
 
-	model = (GtkTreeStore *) gtk_tree_view_get_model(treeview);
+	status_buf[0] = '\0';
+	store = GTK_TREE_STORE(gtk_tree_view_get_model(treeview));
 	parent = find_parent_with_fi_handle(ht, d->file_info->fi_handle);
 	g_assert(parent != NULL);
 
-	gtk_tree_model_get(GTK_TREE_MODEL(model), parent,
+	gtk_tree_model_get(GTK_TREE_MODEL(store), parent,
 		is_queued ? c_queue_record : c_dl_record, &drecord,
 		(-1));
 
 	if (DL_GUI_IS_HEADER == drecord) {
 		/* There is a header entry, we need to update it */
 		const gchar *status = NULL;
+		gchar tmp[1024];
 		gint progress = 0;
 
 		has_header = TRUE;
@@ -1315,21 +1319,20 @@ gui_update_download(download_t *d, gboolean force)
 			if (fi->recvcount && fi->recv_last_rate) {
 				guint s = (fi->size - fi->done) / fi->recv_last_rate;
 
-				gm_snprintf(tmpstr, sizeof(tmpstr),
-					_("(%s)  [%d/%d]  TR:  %s"),
+				gm_snprintf(tmp, sizeof tmp, _("(%s)  [%d/%d]  TR:  %s"),
 					short_rate(fi->recv_last_rate),
 					fi->recvcount, fi->lifecount, short_time(s));
 			} else {
-				gm_snprintf(tmpstr, sizeof(tmpstr), "[%d/%d]",
+				gm_snprintf(tmp, sizeof tmp, "[%d/%d]",
 					fi->recvcount, fi->lifecount);
 			}
 
 			progress = guc_download_total_progress(d) * 100;
-			status = tmpstr;
+			status = tmp;
 		}
 
 		if (status && !is_queued) {
-			gtk_tree_store_set(model, parent,
+			gtk_tree_store_set(store, parent,
 				c_dl_status, status,
 				c_dl_progress, CLAMP(progress, 0, 100),
       			(-1));
@@ -1377,42 +1380,40 @@ gui_update_download(download_t *d, gboolean force)
 	case GTA_DL_ACTIVE_QUEUED:	/* JA, 31 jan 2003 Active queueing */
 		{
 			gint elapsed = delta_time(now, d->last_update);
-			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s", _("Queued"));
+			rw = gm_snprintf(status_buf, sizeof status_buf, "%s", _("Queued"));
 
+			
 			if (guc_get_parq_dl_position(d) > 0) {
 
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-					_(" (slot %d"),		/* ) */
-					guc_get_parq_dl_position(d));
+				rw += gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
+					_(" (slot %u"), (guint) guc_get_parq_dl_position(d));
 
 				if (guc_get_parq_dl_queue_length(d) > 0) {
-					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-						"/%d", guc_get_parq_dl_queue_length(d));
+					rw += gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
+						"/%u", (guint) guc_get_parq_dl_queue_length(d));
 				}
 
-				if (guc_get_parq_dl_eta(d)  > 0) {
-					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				if (guc_get_parq_dl_eta(d) > 0) {
+					rw += gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
 						_(", ETA: %s"),
-						short_time((guc_get_parq_dl_eta(d)
-							- elapsed)));
+						short_time(guc_get_parq_dl_eta(d) - elapsed));
 				}
 
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, /* ( */ ")");
+				rw += gm_snprintf(&status_buf[rw], sizeof status_buf - rw, ")");
 			}
 
-			rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-					_(" retry in %ds"),
-					(gint) (guc_get_parq_dl_retry_delay(d)
-						- elapsed));
+			rw += gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
+					_(" retry in %us"),
+					(guint) (guc_get_parq_dl_retry_delay(d) - elapsed));
 		}
-		a = tmpstr;
+		status_ptr = status_buf;
 		break;
 	case GTA_DL_QUEUED:
-		a = d->remove_msg ? d->remove_msg : "";
+		status_ptr = d->remove_msg ? d->remove_msg : "";
 		break;
 
 	case GTA_DL_CONNECTING:
-		a = _("Connecting...");
+		status_ptr = _("Connecting..."); 
 		break;
 
 	case GTA_DL_PUSH_SENT:
@@ -1423,41 +1424,41 @@ gui_update_download(download_t *d, gboolean force)
 
 				if (cp->done) {
 					if (cp->sent)
-						rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s",
+						rw = gm_snprintf(status_buf, sizeof status_buf, "%s",
 								cp->directly ?
 									_("Push sent directly") : _("Push sent"));
 					else
-						rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s",
+						rw = gm_snprintf(status_buf, sizeof status_buf, "%s",
 								_("Failed to send push"));
 				} else
-					rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s",
+					rw = gm_snprintf(status_buf, sizeof status_buf, "%s",
 							_("Sending push"));
 
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, _(" via %s"),
+				rw += gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
+						_(" via %s"),
 						host_addr_port_to_string(cproxy_addr(cp),
-							cproxy_port(cp)));
+						cproxy_port(cp)));
 
 				if (!cp->done) {
+					const gchar *s;
 					switch (cp->state) {
-					case HTTP_AS_CONNECTING:	a = _("Connecting"); break;
-					case HTTP_AS_REQ_SENDING:	a = _("Sending request"); break;
-					case HTTP_AS_REQ_SENT:		a = _("Request sent"); break;
-					case HTTP_AS_HEADERS:		a = _("Reading headers"); break;
-					default:					a = "..."; break;
+					case HTTP_AS_CONNECTING:	s = _("Connecting"); break;
+					case HTTP_AS_REQ_SENDING:	s = _("Sending request"); break;
+					case HTTP_AS_REQ_SENT:		s = _("Request sent"); break;
+					case HTTP_AS_HEADERS:		s = _("Reading headers"); break;
+					default:					s = "..."; break;
 					}
 
-					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-						": %s", a);
+					rw += gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
+							": %s", s);
 				}
-
-				a = tmpstr;
 			} else {
 				switch (d->status) {
 				case GTA_DL_PUSH_SENT:
-					a = _("Push sent");
+					status_ptr = _("Push sent");
 					break;
 				case GTA_DL_FALLBACK:
-					a = _("Falling back to push");
+					status_ptr = _("Falling back to push");
 					break;
 				default:
 					break;
@@ -1468,23 +1469,24 @@ gui_update_download(download_t *d, gboolean force)
 
 	case GTA_DL_REQ_SENDING:
 		if (d->req != NULL) {
-			gm_snprintf(tmpstr, sizeof(tmpstr), _("Sending request (%d%%)"),
-				(gint) guc_download_get_http_req_percent(d));
-			a = tmpstr;
-		} else
-			a = _("Sending request");
+			gm_snprintf(status_buf, sizeof status_buf,
+				_("Sending request (%u%%)"),
+				(guint) guc_download_get_http_req_percent(d));
+		} else {
+			status_ptr = _("Sending request");
+		}
 		break;
 
 	case GTA_DL_REQ_SENT:
-		a = _("Request sent");
+		status_ptr = _("Request sent");
 		break;
 
 	case GTA_DL_HEADERS:
-		a = _("Receiving headers");
+		status_ptr = _("Receiving headers");
 		break;
 
 	case GTA_DL_ABORTED:
-		a = d->unavailable ? _("Aborted (Server down)") : _("Aborted");
+		status_ptr = d->unavailable ? _("Aborted (Server down)") : _("Aborted");
 
 		/* If this download is aborted, it's possible all the downloads in this
 	     * parent node (if there is one) are aborted too. If so, update parent*/
@@ -1497,29 +1499,27 @@ gui_update_download(download_t *d, gboolean force)
 		if (d->last_update != d->start_date) {
 			guint32 t = d->last_update - d->start_date;
 
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
+			gm_snprintf(status_buf, sizeof status_buf, "%s (%s) %s",
 				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
 				short_rate((d->range_end - d->skip + d->overlap_size) / t),
 				short_time(t));
 		} else {
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s)",
+			gm_snprintf(status_buf, sizeof status_buf, "%s (%s)",
 				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
 				_("< 1s"));
 		}
-		a = tmpstr;
 		break;
 
 	case GTA_DL_VERIFY_WAIT:
 		g_assert(FILE_INFO_COMPLETE(fi));
-		g_strlcpy(tmpstr, _("Waiting for SHA1 checking..."), sizeof(tmpstr));
-		a = tmpstr;
+		utf8_strlcpy(status_buf, _("Waiting for SHA1 checking..."),
+			sizeof status_buf);
 		break;
 
 	case GTA_DL_VERIFYING:
 		g_assert(FILE_INFO_COMPLETE(fi));
-		gm_snprintf(tmpstr, sizeof(tmpstr),
+		gm_snprintf(status_buf, sizeof status_buf,
 			_("Computing SHA1 (%.02f%%)"), fi->cha1_hashed * 100.0 / fi->size);
-		a = tmpstr;
 		break;
 
 	case GTA_DL_VERIFIED:
@@ -1532,14 +1532,14 @@ gui_update_download(download_t *d, gboolean force)
 			gboolean sha1_ok = fi->cha1 &&
 				(fi->sha1 == NULL || sha1_eq(fi->sha1, fi->cha1));
 
-			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s %s",
+			rw = gm_snprintf(status_buf, sizeof status_buf, "%s %s",
 				fi->sha1 == NULL ? _("SHA1 figure") : _("SHA1 check"),
 				fi->cha1 == NULL ?	_("ERROR") :
 				sha1_ok ?			_("OK") :
 									_("FAILED"));
 			if (fi->cha1 && fi->cha1_hashed) {
 				guint elapsed = fi->cha1_elapsed;
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
 					" (%s) %s",
 					short_rate(fi->cha1_hashed / (elapsed ? elapsed : 1)),
 					short_time(fi->cha1_elapsed));
@@ -1547,16 +1547,16 @@ gui_update_download(download_t *d, gboolean force)
 
 			switch (d->status) {
 			case GTA_DL_MOVE_WAIT:
-				g_strlcpy(&tmpstr[rw], _("; Waiting for moving..."),
-					sizeof(tmpstr)-rw);
+				utf8_strlcpy(&status_buf[rw], _("; Waiting for moving..."),
+					sizeof status_buf - rw);
 				break;
 			case GTA_DL_MOVING:
-				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
 					_("; Moving (%.02f%%)"), fi->copied * 100.0 / fi->size);
 				break;
 			case GTA_DL_DONE:
 				if (fi->copy_elapsed) {
-					gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
 						_("; Moved (%s) %s"),
 						short_rate(fi->copied / fi->copy_elapsed),
 						short_time(fi->copy_elapsed));
@@ -1566,7 +1566,6 @@ gui_update_download(download_t *d, gboolean force)
 				break;
 			}
 		}
-		a = tmpstr;
 		break;
 
 	case GTA_DL_RECEIVING:
@@ -1597,40 +1596,41 @@ gui_update_download(download_t *d, gboolean force)
                 s = remain / avg_bps;
 
 				if (progress_source > 1.0) {
-					rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ",
+					rw = gm_snprintf(status_buf, sizeof status_buf, "%.02f%% ",
 						progress_source * 100.0);
 				}
 
 				if (delta_time(now, d->last_update) > IO_STALLED)
-					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr) - rw,
+					rw += gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
 							"%s ", _("(stalled)"));
 				else
-					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr) - rw,
+					rw += gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
 						"(%s) ", short_rate(bps));
 
 				if (!has_header) {
-					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					rw += gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
 						"[%d/%d]", fi->recvcount, fi->lifecount);
 				}
 
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
 					_(" TR: %s"), s ? short_time(s) : "-");
 
 				if (!has_header && fi->recv_last_rate) {
 					s = (fi->size - fi->done) / fi->recv_last_rate;
 
-					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					rw += gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
 						" / %s", short_time(s));
 
 					if (fi->recvcount > 1) {
 						bs = fi->recv_last_rate / 1024.0;
 
-						rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-							" (%s)", short_rate(bps));
+						rw += gm_snprintf(&status_buf[rw],
+								sizeof status_buf - rw,
+								" (%s)", short_rate(bps));
 					}
 				}
 			} else if (delta_time(now, d->last_update) > IO_STALLED) {
-				rw = gm_snprintf(tmpstr, sizeof(tmpstr),
+				rw = gm_snprintf(status_buf, sizeof status_buf,
 						" %s", _("(stalled)"));
 			}
 
@@ -1638,40 +1638,38 @@ gui_update_download(download_t *d, gboolean force)
 			 * If source is a partial source, show it.
 			 */
 			if (d->ranges != NULL) {
-				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
 					" <PFS %.02f%%>", d->ranges_size * 100.0 / fi->size);
 			}
 
-			a = tmpstr;
-		} else
-			a = _("Connected");
+		} else {
+			status_ptr = _("Connected");
+		}
 		break;
 
 	case GTA_DL_ERROR:
-		a = d->remove_msg ? d->remove_msg : _("Unknown error");
+		status_ptr = d->remove_msg ? d->remove_msg : _("Unknown error");
 		break;
 
 	case GTA_DL_TIMEOUT_WAIT:
 		{
 			gint when = d->timeout_delay - delta_time(now, d->last_update);
-			gm_snprintf(tmpstr, sizeof(tmpstr), _("Retry in %ds"),
-				MAX(0, when));
+			gm_snprintf(status_buf, sizeof status_buf, _("Retry in %us"),
+				(guint) MAX(0, when));
 		}
-		a = tmpstr;
 		break;
 	case GTA_DL_SINKING:
 		{
 			gchar bytes[UINT64_DEC_BUFLEN];
 
 			uint64_to_string_buf(d->sinkleft, bytes, sizeof bytes);
-			gm_snprintf(tmpstr, sizeof(tmpstr),
+			gm_snprintf(status_buf, sizeof status_buf,
 				_("Sinking (%s bytes left)"), bytes);
 		}
-		a = tmpstr;
 		break;
 	default:
-		gm_snprintf(tmpstr, sizeof(tmpstr), _("Unknown status %u"), d->status);
-		a = tmpstr;
+		gm_snprintf(status_buf, sizeof status_buf,
+			_("Unknown status %u"), d->status);
 	}
 
 	if (d->status != GTA_DL_TIMEOUT_WAIT)
@@ -1705,8 +1703,11 @@ gui_update_download(download_t *d, gboolean force)
 			progress = 100 * guc_download_source_progress(d);
 			break;
 		}
-		gtk_tree_store_set(model, iter,
-			c_dl_status, (a && a[0] != '\0') ? a : NULL,
+		
+		utf8_enforce(status_buf, sizeof status_buf,
+			status_ptr ? status_ptr : "");
+		gtk_tree_store_set(store, iter,
+			c_dl_status, status_buf[0] != '\0' ? status_buf : NULL,
 			c_dl_progress, CLAMP(progress, 0, 100),
 			(-1));
 	}
@@ -1716,6 +1717,7 @@ gui_update_download(download_t *d, gboolean force)
 
     if (DOWNLOAD_IS_QUEUED(d)) {
 		GtkTreeIter *iter;
+		GtkTreeModel *model;
 
 		iter = find_download(d);
 		if (!iter)
@@ -1725,10 +1727,11 @@ gui_update_download(download_t *d, gboolean force)
 					d->file_info->fi_handle);
 		g_return_if_fail(parent != NULL);
 
-		model =	(GtkTreeStore *) gtk_tree_view_get_model(
-									treeview_downloads_queue);
-		gtk_tree_store_set(model, iter,
-			c_queue_status, (a && a[0] != '\0') ? a : NULL,
+		utf8_enforce(status_buf, sizeof status_buf,
+			status_ptr ? status_ptr : "");
+		model = gtk_tree_view_get_model(treeview_downloads_queue);
+		gtk_tree_store_set(GTK_TREE_STORE(model), iter,
+			c_queue_status, status_buf[0] != '\0' ? status_buf : NULL,
 			(-1));
 		return;
 	}
