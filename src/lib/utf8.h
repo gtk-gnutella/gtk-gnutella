@@ -78,6 +78,7 @@ typedef enum {
 void locale_init(void);
 void locale_close(void);
 const gchar *locale_get_charset(void);
+const gchar * locale_get_language(void);
 guint utf8_char_len(const gchar *s);
 gboolean is_ascii_string(const gchar *str);
 gboolean utf8_is_valid_string(const gchar *s);
@@ -163,6 +164,7 @@ const gchar *lazy_locale_to_utf8_normalized(const gchar *src, uni_norm_t norm);
 const gchar *lazy_unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
 			gboolean add_charset);
 
+gchar *iso8859_1_to_utf8(const gchar *str);
 gchar *iso8859_1_to_utf8_normalized(const gchar *str, uni_norm_t norm);
 
 gchar *utf8_to_ui_string(const gchar *src);
@@ -179,6 +181,8 @@ gchar *unknown_to_utf8(const gchar *str, gboolean add_charset);
 gchar *unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
 			gboolean add_charset);
 
+size_t ascii_enforce(gchar *dst, size_t size, const gchar *src);
+size_t utf8_enforce(gchar *dst, size_t size, const gchar *src);
 
 gboolean icu_enabled(void);
 gboolean locale_is_latin(void);
