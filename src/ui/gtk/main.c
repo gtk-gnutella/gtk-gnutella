@@ -77,6 +77,7 @@ RCSID("$Id$");
 
 #include "if/bridge/ui2c.h"
 
+#include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
@@ -88,6 +89,7 @@ RCSID("$Id$");
 GtkWidget *main_window = NULL;
 GtkWidget *shutdown_window = NULL;
 GtkWidget *dlg_about = NULL;
+GtkWidget *dlg_faq = NULL;
 GtkWidget *dlg_prefs = NULL;
 GtkWidget *dlg_quit = NULL;
 GtkWidget *popup_downloads = NULL;
@@ -214,7 +216,7 @@ gui_init_menu(void)
 		G_CALLBACK(on_main_gui_treeview_menu_leave_notify), NULL);
 	
 	(void) tree_view_motion_set_callback(GTK_TREE_VIEW(treeview),
-				on_main_gui_treeview_menu_motion, 20);
+				on_main_gui_treeview_menu_motion, 100);
 }
 
 /**
@@ -354,6 +356,20 @@ gui_create_dlg_prefs(void)
 	return dialog;
 }
 
+static void
+text_widget_append(GtkWidget *widget, const gchar *line)
+#ifdef USE_GTK2
+{
+	GtkTextBuffer *textbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget));
+
+	gtk_text_buffer_insert_at_cursor(textbuf, line, (-1));
+}
+#else /* !USE_GTK2 */
+{
+	gtk_text_insert(GTK_TEXT(widget), NULL, NULL, NULL, line, (-1));
+}
+#endif /* USE_GTK2 */
+
 static GtkWidget *
 gui_create_dlg_about(void)
 {
@@ -409,47 +425,81 @@ gui_create_dlg_about(void)
 		"Dave Rutherford <polymath69@users.sourceforge.net>",
 		"Ian Sheldon <shellgeekorguk@users.sourceforge.net>",
     };
-    GtkWidget *dlg = create_dlg_about();
+ 	GtkWidget *dlg = create_dlg_about();
+	GtkWidget *text = lookup_widget(dlg, "textview_about_contributors");
     guint i;
 	
-#ifdef USE_GTK2
-	{
-		GtkTextBuffer *textbuf;
-
-		textbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(
-					lookup_widget(dlg, "textview_about_contributors")));
-
-		for (i = 0; i < G_N_ELEMENTS(contributors); i++) {
-			if (i > 0)
-				gtk_text_buffer_insert_at_cursor(textbuf, "\n", (-1));
-			gtk_text_buffer_insert_at_cursor(textbuf, contributors[i], (-1));
-		}
-	}
-#else /* !USE_GTK2 */
-	{
-		GtkText *text = GTK_TEXT(lookup_widget(dlg, "text_about_contributors"));
-		static char s[256];
-
-		for (i = 0; i < G_N_ELEMENTS(contributors); i++) {
-			if (i > 0)
-				gtk_text_insert(text, NULL, NULL, NULL, "\n", (-1));
-			utf8_strlcpy(s, contributors[i], sizeof s);
-			gtk_text_insert(text, NULL, NULL, NULL,
-				lazy_utf8_to_locale(s), (-1));
-		}
-	}
-#endif /* USE_GTK2 */
-
     gtk_label_set_text(
         GTK_LABEL(lookup_widget(dlg, "label_about_title")),
         guc_version_get_version_string());
 
-  	gtk_label_set_text(
+  	for (i = 0; i < G_N_ELEMENTS(contributors); i++) {
+		if (i > 0)
+			text_widget_append(GTK_WIDGET(text), "\n");
+		text_widget_append(GTK_WIDGET(text), contributors[i]);
+	}
+
+	gtk_label_set_text(
 		GTK_LABEL(lookup_widget(dlg, "label_about_translation")),
 		/* TRANSLATORS: Translate this as "Translation provided by" or similar
    	   	   and append your name to the list. */
     	Q_("translation_credit|"));
 
+    return dlg;
+}
+
+static GtkWidget *
+gui_create_dlg_faq(void)
+{
+	FILE *f;
+    GtkWidget *dlg = create_dlg_faq();
+	GtkWidget *text = lookup_widget(dlg, "textview_faq");
+	static file_path_t fp[4];
+	const gchar *lang;
+	gchar *dir;
+	guint i;
+
+	lang = locale_get_language();
+
+	i = 0;
+	dir = make_pathname(PACKAGE_EXTRA_SOURCE_DIR, lang);
+	file_path_set(&fp[i++], dir, "FAQ");
+	G_FREE_NULL(dir);
+
+	file_path_set(&fp[i++],
+		PACKAGE_EXTRA_SOURCE_DIR G_DIR_SEPARATOR_S "en_US", "FAQ");
+	
+#ifndef OFFICIAL_BUILD
+	dir = make_pathname(PACKAGE_EXTRA_SOURCE_DIR, lang);
+	file_path_set(&fp[i++], dir, "FAQ");
+	G_FREE_NULL(dir);
+
+	file_path_set(&fp[i++],
+		PACKAGE_EXTRA_SOURCE_DIR G_DIR_SEPARATOR_S "en_US", "FAQ");
+#endif /* !OFFICIAL_BUILD */
+
+	g_assert(i <= G_N_ELEMENTS(fp));
+
+	f = file_config_open_read_norename("FAQ", fp, i);
+	if (f) {
+		gchar buf[4096];
+
+		while (fgets(buf, sizeof buf, f)) {
+			if (!utf8_is_valid_string(buf)) {
+				text_widget_append(GTK_WIDGET(text),
+					_("\nThe FAQ document is damaged.\n"));
+				break;
+			}
+			text_widget_append(GTK_WIDGET(text), lazy_utf8_to_ui_string(buf));
+		}
+
+		fclose(f);
+	} else {
+		static const gchar msg[] =
+		N_(	"The FAQ document could not be loaded. Please read the online FAQ "
+			"at http://gtk-gnutella.sourceforge.net/?page=faq instead.");
+		text_widget_append(GTK_WIDGET(text), _(msg));
+	}
     return dlg;
 }
 
@@ -530,6 +580,7 @@ main_gui_early_init(gint argc, gchar **argv)
     main_window = gui_create_main_window();
     shutdown_window = create_shutdown_window();
     dlg_about = gui_create_dlg_about();
+    dlg_faq = gui_create_dlg_faq();
     dlg_prefs = gui_create_dlg_prefs();
     dlg_quit = create_dlg_quit();
 

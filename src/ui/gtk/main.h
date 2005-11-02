@@ -33,6 +33,7 @@
 extern GtkWidget *main_window;
 extern GtkWidget *shutdown_window;
 extern GtkWidget *dlg_about;
+extern GtkWidget *dlg_faq;
 extern GtkWidget *dlg_prefs;
 extern GtkWidget *dlg_quit;
 extern GtkWidget *popup_downloads;
