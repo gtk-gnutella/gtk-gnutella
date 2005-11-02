@@ -2196,29 +2196,17 @@ accepted:
 /**
  * Someone is sending us a datagram.
  */
-static void
-socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
+static gboolean
+socket_udp_accept(struct gnutella_socket *s)
 {
-	struct gnutella_socket *s = data;
 	socket_addr_t *from_addr;
 	gpointer from;
 	socklen_t from_len;
 	ssize_t r;
 	gboolean truncated;
 
-	(void) unused_source;
 	g_assert(s->flags & SOCK_F_UDP);
 	g_assert(s->type == SOCK_TYPE_UDP);
-
-	if (cond & INPUT_EVENT_EXCEPTION) {
-		gint error;
-		socklen_t error_len = sizeof error;
-
-		getsockopt(s->file_desc, SOL_SOCKET, SO_ERROR, &error, &error_len);
-		g_warning("Input Exception for UDP listening socket #%d: %s",
-				  s->file_desc, g_strerror(error));
-		return;
-	}
 
 	/*
 	 * Receive the datagram in the socket's buffer.
@@ -2280,10 +2268,8 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	}
 #endif /* HAS_MSGHDR_MSG_FLAGS */
 	
-	if ((ssize_t) -1 == r) {
-		g_warning("ignoring datagram reception error: %s", g_strerror(errno));
-		return;
-	}
+	if ((ssize_t) -1 == r)
+		return TRUE;
 
 	g_assert((size_t) r <= sizeof s->buffer);
 
@@ -2302,6 +2288,40 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 */
 
 	udp_received(s, truncated);
+	return FALSE;
+}
+
+/**
+ * Someone is sending us a datagram.
+ */
+static void
+socket_udp_event(gpointer data, gint unused_source, inputevt_cond_t cond)
+{
+	struct gnutella_socket *s = data;
+	guint i;
+	
+	(void) unused_source;
+
+	if (cond & INPUT_EVENT_EXCEPTION) {
+		gint error;
+		socklen_t error_len = sizeof error;
+
+		getsockopt(s->file_desc, SOL_SOCKET, SO_ERROR, &error, &error_len);
+		g_warning("Input Exception for UDP listening socket #%d: %s",
+				  s->file_desc, g_strerror(error));
+		return;
+	}
+	
+	for (i = 0; i < 1; i++) {
+		if (socket_udp_accept(s)) {
+			if (errno != EAGAIN)
+				g_warning("ignoring datagram reception error: %s",
+					g_strerror(errno));
+			if (i > 1)
+				g_message("%s: i=%u", __func__, i);
+			return;
+		}
+	}
 }
 
 static inline void
@@ -2764,7 +2784,7 @@ socket_udp_listen(const host_addr_t ha, guint16 port)
 	}
 
 	/* Ignore exceptions */
-	socket_evt_set(s, INPUT_EVENT_R, socket_udp_accept, s);
+	socket_evt_set(s, INPUT_EVENT_R, socket_udp_event, s);
 
 	/*
 	 * Enlarge the RX buffer on the UDP socket to avoid loosing incoming
