@@ -1592,7 +1592,7 @@ prop = {
     type = string;
     data = {
         default =
-          "aac;asf;avi;"
+          "aac;avi;"
 		  "bin;bz2;"
 		  "cue;"
 		  "deb;divx;doc;"
@@ -1609,7 +1609,7 @@ prop = {
 		  "s3m;shn;sid;smc;smd;stm;"
 		  "tar;tgz;torrent;txt;"
 		  "vob;voc;vqf;"
-		  "wav;wma;wmv;"
+		  "wav;"
 		  "xm;xvid;"
 		  "zip";
     };
