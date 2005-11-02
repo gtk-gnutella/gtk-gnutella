@@ -1439,7 +1439,7 @@ locale_init(void)
 	 * Skip regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c,v 1.82 "))
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c,v 1.83 "))
 		regression_checks();
 
 	locale_init_passed = TRUE;
@@ -1473,15 +1473,15 @@ locale_close(void)
  * NOTE: This assumes 8-bit (char-based) encodings.
  *
  * @param cd an iconv context; if it is (iconv_t) -1, NULL will be returned.
- * @param src the source string to convert.
  * @param dst the destination buffer; may be NULL IFF dst_size is zero.
  * @param dst_size the size of the dst buffer.
+ * @param src the source string to convert.
  *
  * @return On success the size of the converting string including the
  *         trailing NUL. Otherwise, zero is returned.
  */
 static size_t
-complete_iconv(iconv_t cd, const gchar *src, gchar *dst, size_t dst_left)
+complete_iconv(iconv_t cd, gchar *dst, size_t dst_left, const gchar *src)
 {
 	const gchar * const dst0 = dst;
 	size_t src_left;
@@ -1568,7 +1568,7 @@ error:
  *         allocated string. Returns NULL on failure.
  */
 static gchar *
-hyper_iconv(iconv_t cd, const gchar *src, gchar *dst, size_t dst_size)
+hyper_iconv(iconv_t cd, gchar *dst, size_t dst_size, const gchar *src)
 {
 	size_t size;
 
@@ -1576,14 +1576,14 @@ hyper_iconv(iconv_t cd, const gchar *src, gchar *dst, size_t dst_size)
 	g_assert(src);
 	g_assert(0 == dst_size || dst);
 
-	size = complete_iconv(cd, src, dst, dst_size);
+	size = complete_iconv(cd, dst, dst_size, src);
 	if (0 == size) {
 		dst = NULL;
 	} else if (size > dst_size) {
 		size_t n;
 
 		dst = g_malloc(size);
-		n = complete_iconv(cd, src, dst, size);
+		n = complete_iconv(cd, dst, size, src);
 		if (n != size) {
 			g_error("size=%ld, n=%ld, src=\"%s\" dst=\"%s\"",
 				(gulong) size, (gulong) n, src, dst);
@@ -1606,7 +1606,7 @@ hyper_iconv(iconv_t cd, const gchar *src, gchar *dst, size_t dst_size)
  *         sufficiently large.
  */
 size_t
-utf8_enforce(const gchar *src, gchar *dst, size_t size)
+utf8_enforce(gchar *dst, size_t size, const gchar *src)
 {
 	const gchar *s = src;
 	gchar *d = dst;
@@ -1657,7 +1657,7 @@ utf8_enforce(const gchar *src, gchar *dst, size_t size)
  *         sufficiently large.
  */
 size_t
-ascii_enforce(const gchar *src, gchar *dst, size_t size)
+ascii_enforce(gchar *dst, size_t size, const gchar *src)
 {
 	const gchar *s = src;
 	gchar *d = dst;
@@ -1683,38 +1683,38 @@ ascii_enforce(const gchar *src, gchar *dst, size_t size)
 }
 
 gchar *
-hyper_utf8_enforce(const gchar *src, gchar *dst, size_t dst_size)
+hyper_utf8_enforce(gchar *dst, size_t dst_size, const gchar *src)
 {
 	size_t n;
 
 	g_assert(src);
 	g_assert(0 == dst_size || dst);
 
-	n = utf8_enforce(src, dst, dst_size);
+	n = utf8_enforce(dst, dst_size, src);
 	if (n >= dst_size) {
 		size_t size = 1 + n;
 
 		dst = g_malloc(size);
-		n = utf8_enforce(src, dst, size);
+		n = utf8_enforce(dst, size, src);
 		g_assert(size - 1 == n);
 	}
 	return dst;
 }
 
 gchar *
-hyper_ascii_enforce(const gchar *src, gchar *dst, size_t dst_size)
+hyper_ascii_enforce(gchar *dst, size_t dst_size, const gchar *src)
 {
 	size_t n;
 
 	g_assert(src);
 	g_assert(0 == dst_size || dst);
 
-	n = ascii_enforce(src, dst, dst_size);
+	n = ascii_enforce(dst, dst_size, src);
 	if (n >= dst_size) {
 		size_t size = 1 + n;
 
 		dst = g_malloc(size);
-		n = ascii_enforce(src, dst, size);
+		n = ascii_enforce(dst, size, src);
 		g_assert(size - 1 == n);
 	}
 	return dst;
@@ -1737,11 +1737,11 @@ utf8_to_filename_charset(const gchar *src)
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd_utf8_to_filename, src, sbuf, sizeof sbuf);
+	dst = hyper_iconv(cd_utf8_to_filename, sbuf, sizeof sbuf, src);
 	if (!dst)
 		dst = filename_charset_is_utf8()
-			? hyper_utf8_enforce(src, sbuf, sizeof sbuf)
-			: hyper_ascii_enforce(src, sbuf, sizeof sbuf);
+			? hyper_utf8_enforce(sbuf, sizeof sbuf, src)
+			: hyper_ascii_enforce(sbuf, sizeof sbuf, src);
 
 	return sbuf != dst ? dst : g_strdup(sbuf);
 }
@@ -1786,11 +1786,11 @@ utf8_to_locale(const gchar *src)
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd_utf8_to_locale, src, NULL, 0);
+	dst = hyper_iconv(cd_utf8_to_locale, NULL, 0, src);
 	if (!dst)
 		dst = locale_is_utf8()
-			? hyper_utf8_enforce(src, NULL, 0)
-			: hyper_ascii_enforce(src, NULL, 0);
+			? hyper_utf8_enforce(NULL, 0, src)
+			: hyper_ascii_enforce(NULL, 0, src);
 	return dst;
 }
 
@@ -1802,9 +1802,9 @@ convert_to_utf8(iconv_t cd, const gchar *src)
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd, src, sbuf, sizeof sbuf);
+	dst = hyper_iconv(cd, sbuf, sizeof sbuf, src);
 	if (!dst)
-		dst = hyper_utf8_enforce(src, sbuf, sizeof sbuf);
+		dst = hyper_utf8_enforce(sbuf, sizeof sbuf, src);
 
 	return sbuf != dst ? dst : g_strdup(sbuf);
 }
@@ -2097,9 +2097,9 @@ convert_to_utf8_normalized(iconv_t cd, const gchar *src, uni_norm_t norm)
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd, src, sbuf, sizeof sbuf);
+	dst = hyper_iconv(cd, sbuf, sizeof sbuf, src);
 	if (!dst)
-		dst = hyper_utf8_enforce(src, sbuf, sizeof sbuf);
+		dst = hyper_utf8_enforce(sbuf, sizeof sbuf, src);
 
 	g_assert(dst);
 	g_assert(dst != src);
