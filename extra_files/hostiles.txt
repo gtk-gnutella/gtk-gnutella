@@ -144,6 +144,9 @@
 # sBoOb.net, pr0n spammer
 194.146.227.8
 
+# cumfiesta, pr0n spammer
+207.150.179.0/24
+
 # goudkov.com, spammer
 66.98.252.210
 207.44.144.3
@@ -212,6 +215,8 @@
 
 # Strange client pool of Windoze(?) machines; they connect in hordes; most
 # of them identify as LimeWire/4.0.5; Macrovision and Xeex are behind this.
+63.216.76.0/24
+63.220.57.0/24
 63.219.21.0/24
 154.37.66.0/24
 204.193.134.0/24
