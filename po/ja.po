@@ -69,7 +69,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-11-02 20:51+0900\n"
-"PO-Revision-Date: 2005-11-02 21:36+0900\n"
+"PO-Revision-Date: 2005-11-02 21:10+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -104,6 +104,7 @@ msgstr "再びキューに戻されました (ファイル情報変更)"
 msgid "Suspended (SHA1 checking)"
 msgstr "一時休止 (SHA1 確認中)"
 
+# FIXME: how can it be used?
 #: src/core/downloads.c:2774
 #, c-format
 msgid " at %s - rescheduled for %s"
@@ -113,6 +114,7 @@ msgstr ""
 msgid "Waiting for a free chunk"
 msgstr "空きチャンクを待受中"
 
+# FIXME: what does `start' stand for?
 #: src/core/downloads.c:3328
 msgid "No download slot (start)"
 msgstr "ダウンロード受口がありません (開始)"
@@ -147,6 +149,7 @@ msgstr[0] "接続を拒否されました (%u 回目)"
 msgid "Dup SHA1 during creation"
 msgstr "作成中に SHA1 を複製します"
 
+# FIXME: what does `create' stand for?
 #: src/core/downloads.c:3966
 msgid "No download slot (create)"
 msgstr "ダウンロード受口がありません (作成)"
@@ -489,7 +492,7 @@ msgstr "クローリングの頻度が多すぎます"
 #: src/core/nodes.c:4835
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
-msgstr "このベンダーはスロットの %d%% を越えます"
+msgstr "このベンダーはスロットの予約分 (%d%%) を越えます"
 
 #: src/core/nodes.c:4845
 msgid "Reserved slot"
@@ -2782,11 +2785,11 @@ msgstr "検索モニタに表示する検索式の最大数です。"
 
 #: src/if/gui_property.c:336
 msgid "Match queue selection by regexp case sensitive."
-msgstr "正規表現 (大文字/小文字を区別) で待機列を選択します。"
+msgstr "正規表現 (大文字・小文字を区別) で待機列を選択します。"
 
 #: src/if/gui_property.c:353
 msgid "Match fileinfo selection by regexp case sensitive."
-msgstr "正規表現 (大文字/小文字を区別) でファイル情報を選択します。"
+msgstr "正規表現 (大文字・小文字を区別) でファイル情報を選択します。"
 
 #: src/if/gui_property.c:370
 msgid ""
@@ -3006,7 +3009,7 @@ msgstr "ノード外への Gnet リーフトラフィックの帯域幅平均値
 
 #: src/if/gui_property.c:1392
 msgid "Do a case sensitive sorting."
-msgstr "大文字/小文字を区別して並べ替えます。"
+msgstr "大文字・小文字を区別して並べ替えます。"
 
 #: src/if/gui_property.c:1409
 msgid "Default sort order for search results."
@@ -4421,9 +4424,10 @@ msgstr "標準フィルター無し"
 msgid "[no hash]"
 msgstr "[ハッシュ無し]"
 
+# MERGEBLE:
 #: src/ui/gtk/filter_core.c:936
 msgid "(case-sensitive)"
-msgstr "(大/小文字を区別)"
+msgstr "(大・小文字を区別)"
 
 #: src/ui/gtk/filter_core.c:941
 #, c-format
@@ -5217,12 +5221,12 @@ msgstr "このプログラムについて(_A)"
 #: src/ui/gtk/gtk1/interface-glade.c:1011
 #: src/ui/gtk/gtk2/interface-glade.c:2131
 msgid "_FAQ"
-msgstr ""
+msgstr "_FAQ"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1020
 #: src/ui/gtk/gtk2/interface-glade.c:2135
 msgid "Frequently Asked Questions"
-msgstr ""
+msgstr "よく聞かれる質問"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1070
 msgid "Navigator"
@@ -5898,14 +5902,13 @@ msgid "Sources"
 msgstr "送信源"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3466
-#, fuzzy
 msgid "Filename filter:"
-msgstr "ファイル名:"
+msgstr "ファイル名フィルター::"
 
+# MERGEBLE:
 #: src/ui/gtk/gtk1/interface-glade.c:3482
-#, fuzzy
 msgid "case-sensitive"
-msgstr "(大/小文字を区別)"
+msgstr "大・小文字を区別"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3490
 #: src/ui/gtk/gtk2/interface-glade.c:16567
@@ -6136,12 +6139,13 @@ msgstr "動作していない送信源"
 msgid "Select"
 msgstr "選択"
 
+# MERGEBLE:
 #: src/ui/gtk/gtk1/interface-glade.c:4307
 #: src/ui/gtk/gtk1/interface-glade.c:7915
 #: src/ui/gtk/gtk2/interface-glade.c:6479
 #: src/ui/gtk/gtk2/interface-glade.c:16814
 msgid "case sensitive"
-msgstr "大/小文字を区別"
+msgstr "大・小文字を区別"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4347
 #: src/ui/gtk/gtk2/interface-glade.c:16809
@@ -6218,9 +6222,10 @@ msgstr "結果表示の最大数(_N)"
 msgid "Ignored files are"
 msgstr "無視するファイルは"
 
+# MERGEBLE:
 #: src/ui/gtk/gtk1/interface-glade.c:4607
 msgid "Case-sensitive sorting"
-msgstr "大/小文字を区別して並べ替える"
+msgstr "大・小文字を区別して並べ替える"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4639
 #: src/ui/gtk/gtk2/interface-glade.c:4991
@@ -8711,12 +8716,12 @@ msgstr "バグ解析"
 #: src/ui/gtk/gtk1/interface-glade.c:17328
 #: src/ui/gtk/gtk2/interface-glade.c:16937
 msgid "gtk-gnutella - Frequently Asked Questions"
-msgstr ""
+msgstr "gtk-gnutella - よく聞かれる質問"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17348
 #: src/ui/gtk/gtk2/interface-glade.c:16978
 msgid "Frequently Asked Questions:"
-msgstr ""
+msgstr "よく聞かれる質問:"
 
 #: src/ui/gtk/gtk1/search.c:330
 msgid "Failed to create the search"
@@ -9343,12 +9348,16 @@ msgid ""
 "\n"
 "The FAQ document is damaged.\n"
 msgstr ""
+"\n"
+"FAQ 文書に欠陥があります。\n"
 
 #: src/ui/gtk/main.c:499
 msgid ""
 "The FAQ document could not be loaded. Please read the online FAQ at http://"
 "gtk-gnutella.sourceforge.net/?page=faq instead."
 msgstr ""
+"FAQ 文書を読み込めませんでした。代わりに http://gtk-gnutella.sourceforge."
+"net/?page=faq にあるオンラインの FAQ を御覧下さい。"
 
 #: src/ui/gtk/main.c:897
 #, c-format
