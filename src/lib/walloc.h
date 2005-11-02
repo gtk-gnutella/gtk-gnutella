@@ -93,6 +93,13 @@ gpointer wrealloc_track(gpointer old, size_t old_size, size_t new_size,
 
 void wdestroy(void);
 
-#endif /* _walloc_h_ */
+#define WFREE_NULL(p,size)	\
+G_STMT_START {				\
+	if (p) {				\
+		wfree(p,size);		\
+		p = NULL;			\
+	}						\
+} G_STMT_END
 
+#endif /* _walloc_h_ */
 /* vi: set ts=4 sw=4 cindent: */
