@@ -59,7 +59,11 @@ create_main_window (void)
   GtkWidget *menu_autohide_bws_gleaf;
   GtkWidget *menu_bws_glin_visible;
   GtkWidget *menu_bws_glout_visible;
+  GtkWidget *item2;
+  GtkWidget *item2_menu;
+  GtkAccelGroup *item2_menu_accels;
   GtkWidget *menu_about;
+  GtkWidget *menu_faq;
   GtkWidget *hpaned_main;
   GtkWidget *vbox136;
   GtkWidget *vpaned_sidebar;
@@ -967,20 +971,53 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (menu_gnet_leaf_stats_visible_menu), menu_bws_glout_visible);
   gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_bws_glout_visible), TRUE);
 
+  item2 = gtk_menu_item_new_with_label ("");
+  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (item2)->child),
+                                   _("_Help"));
+  gtk_widget_add_accelerator (item2, "activate_item", accel_group,
+                              tmp_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_set_name (item2, "item2");
+  gtk_widget_ref (item2);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "item2", item2,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (item2);
+  gtk_container_add (GTK_CONTAINER (menubar1), item2);
+
+  item2_menu = gtk_menu_new ();
+  gtk_widget_set_name (item2_menu, "item2_menu");
+  gtk_widget_ref (item2_menu);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "item2_menu", item2_menu,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_menu_item_set_submenu (GTK_MENU_ITEM (item2), item2_menu);
+  item2_menu_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (item2_menu));
+
   menu_about = gtk_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_about)->child),
                                    _("_About"));
-  gtk_widget_add_accelerator (menu_about, "activate_item", accel_group,
-                              tmp_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_add_accelerator (menu_about, "activate_item", item2_menu_accels,
+                              tmp_key, 0, 0);
   gtk_widget_set_name (menu_about, "menu_about");
   gtk_widget_ref (menu_about);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_about", menu_about,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (menu_about);
-  gtk_container_add (GTK_CONTAINER (menubar1), menu_about);
+  gtk_container_add (GTK_CONTAINER (item2_menu), menu_about);
   gtk_widget_add_accelerator (menu_about, "activate", accel_group,
                               GDK_a, GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
+
+  menu_faq = gtk_menu_item_new_with_label ("");
+  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_faq)->child),
+                                   _("_FAQ"));
+  gtk_widget_add_accelerator (menu_faq, "activate_item", item2_menu_accels,
+                              tmp_key, 0, 0);
+  gtk_widget_set_name (menu_faq, "menu_faq");
+  gtk_widget_ref (menu_faq);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_faq", menu_faq,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (menu_faq);
+  gtk_container_add (GTK_CONTAINER (item2_menu), menu_faq);
+  gtk_tooltips_set_tip (tooltips, menu_faq, _("Frequently Asked Questions"), NULL);
 
   hpaned_main = gtk_hpaned_new ();
   gtk_widget_set_name (hpaned_main, "hpaned_main");
@@ -5940,6 +5977,9 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (menu_about), "activate",
                       GTK_SIGNAL_FUNC (on_menu_about_activate),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (menu_faq), "activate",
+                      GTK_SIGNAL_FUNC (on_menu_faq_activate),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (ctree_menu), "tree_select_row",
                       GTK_SIGNAL_FUNC (on_ctree_menu_tree_select_row),
                       NULL);
@@ -9929,7 +9969,7 @@ create_dlg_about (void)
   GtkWidget *label_about_translation;
   GtkWidget *frame46;
   GtkWidget *scrolledwindow18;
-  GtkWidget *text_about_contributors;
+  GtkWidget *textview_about_contributors;
   GtkWidget *vbox133;
   GtkWidget *label719;
   GtkWidget *label716;
@@ -10208,14 +10248,14 @@ create_dlg_about (void)
   gtk_container_set_border_width (GTK_CONTAINER (scrolledwindow18), 2);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow18), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
 
-  text_about_contributors = gtk_text_new (NULL, NULL);
-  gtk_widget_set_name (text_about_contributors, "text_about_contributors");
-  gtk_widget_ref (text_about_contributors);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "text_about_contributors", text_about_contributors,
+  textview_about_contributors = gtk_text_new (NULL, NULL);
+  gtk_widget_set_name (textview_about_contributors, "textview_about_contributors");
+  gtk_widget_ref (textview_about_contributors);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "textview_about_contributors", textview_about_contributors,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (text_about_contributors);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow18), text_about_contributors);
-  gtk_widget_set_usize (text_about_contributors, 240, 100);
+  gtk_widget_show (textview_about_contributors);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow18), textview_about_contributors);
+  gtk_widget_set_usize (textview_about_contributors, 240, 100);
 
   vbox133 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox133, "vbox133");
@@ -17270,5 +17310,73 @@ create_removed_widgets (void)
   gtk_window_add_accel_group (GTK_WINDOW (removed_widgets), accel_group);
 
   return removed_widgets;
+}
+
+GtkWidget*
+create_dlg_faq (void)
+{
+  GtkWidget *dlg_faq;
+  GtkWidget *vbox146;
+  GtkWidget *hseparator20;
+  GtkWidget *frame144;
+  GtkWidget *scrolledwindow493;
+  GtkWidget *textview_faq;
+
+  dlg_faq = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_widget_set_name (dlg_faq, "dlg_faq");
+  gtk_object_set_data (GTK_OBJECT (dlg_faq), "dlg_faq", dlg_faq);
+  gtk_window_set_title (GTK_WINDOW (dlg_faq), _("gtk-gnutella - Frequently Asked Questions"));
+  gtk_window_set_position (GTK_WINDOW (dlg_faq), GTK_WIN_POS_MOUSE);
+  gtk_window_set_default_size (GTK_WINDOW (dlg_faq), 400, 400);
+
+  vbox146 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox146, "vbox146");
+  gtk_widget_ref (vbox146);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_faq), "vbox146", vbox146,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox146);
+  gtk_container_add (GTK_CONTAINER (dlg_faq), vbox146);
+
+  hseparator20 = gtk_hseparator_new ();
+  gtk_widget_set_name (hseparator20, "hseparator20");
+  gtk_widget_ref (hseparator20);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_faq), "hseparator20", hseparator20,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hseparator20);
+  gtk_box_pack_start (GTK_BOX (vbox146), hseparator20, FALSE, TRUE, 0);
+
+  frame144 = gtk_frame_new (_("Frequently Asked Questions:"));
+  gtk_widget_set_name (frame144, "frame144");
+  gtk_widget_ref (frame144);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_faq), "frame144", frame144,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame144);
+  gtk_box_pack_start (GTK_BOX (vbox146), frame144, TRUE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame144), 3);
+
+  scrolledwindow493 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow493, "scrolledwindow493");
+  gtk_widget_ref (scrolledwindow493);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_faq), "scrolledwindow493", scrolledwindow493,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (scrolledwindow493);
+  gtk_container_add (GTK_CONTAINER (frame144), scrolledwindow493);
+  gtk_container_set_border_width (GTK_CONTAINER (scrolledwindow493), 2);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow493), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
+
+  textview_faq = gtk_text_new (NULL, NULL);
+  gtk_widget_set_name (textview_faq, "textview_faq");
+  gtk_widget_ref (textview_faq);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_faq), "textview_faq", textview_faq,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (textview_faq);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow493), textview_faq);
+  gtk_widget_set_usize (textview_faq, 240, 100);
+
+  gtk_signal_connect (GTK_OBJECT (dlg_faq), "delete_event",
+                      GTK_SIGNAL_FUNC (on_dlg_faq_delete_event),
+                      NULL);
+
+  return dlg_faq;
 }
 
