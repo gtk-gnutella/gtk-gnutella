@@ -11,13 +11,13 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-11-02 20:51+0900\n"
-"PO-Revision-Date: 2005-11-01 11:27+0100\n"
+"PO-Revision-Date: 2005-11-02 13:50+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);"
 
 #: src/core/downloads.c:951 src/core/downloads.c:1009
 msgid "No longer connected"
@@ -5077,7 +5077,6 @@ msgstr[1] "%u downloads vergeten"
 msgid "Selected %u of %u queued download matching \"%s\"."
 msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
 msgstr[0] "%u van %u wachtende download overeenkomend met \"%s\" geselecteerd."
-msgstr[1] ""
 "%u van %u wachtende downloads overeenkomend met \"%s\" geselecteerd."
 
 #: src/ui/gtk/gtk1/fileinfo.c:143 src/ui/gtk/gtk2/fileinfo.c:324
@@ -5247,12 +5246,12 @@ msgstr "Over"
 #: src/ui/gtk/gtk1/interface-glade.c:1011
 #: src/ui/gtk/gtk2/interface-glade.c:2131
 msgid "_FAQ"
-msgstr ""
+msgstr "_FAQ"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1020
 #: src/ui/gtk/gtk2/interface-glade.c:2135
 msgid "Frequently Asked Questions"
-msgstr ""
+msgstr "Vaak gestelde vragen (FAQ)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1070
 msgid "Navigator"
@@ -5887,14 +5886,12 @@ msgid "Sources"
 msgstr "Bronnen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3466
-#, fuzzy
 msgid "Filename filter:"
-msgstr "Bestandsnaam:"
+msgstr "Bestandsnaam filter:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3482
-#, fuzzy
 msgid "case-sensitive"
-msgstr "(hoofdletter gevoelig)"
+msgstr "hoofdletter gevoelig"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3490
 #: src/ui/gtk/gtk2/interface-glade.c:16567
@@ -8666,12 +8663,12 @@ msgstr "Debuggen"
 #: src/ui/gtk/gtk1/interface-glade.c:17328
 #: src/ui/gtk/gtk2/interface-glade.c:16937
 msgid "gtk-gnutella - Frequently Asked Questions"
-msgstr ""
+msgstr "gtk-gnutella - Vaak gestelde vragen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17348
 #: src/ui/gtk/gtk2/interface-glade.c:16978
 msgid "Frequently Asked Questions:"
-msgstr ""
+msgstr "Veel gestelde vragen"
 
 #: src/ui/gtk/gtk1/search.c:330
 msgid "Failed to create the search"
@@ -9268,12 +9265,17 @@ msgid ""
 "\n"
 "The FAQ document is damaged.\n"
 msgstr ""
+"\n"
+"Het FAQ document is beschadigd.\n"
+""
 
 #: src/ui/gtk/main.c:499
 msgid ""
 "The FAQ document could not be loaded. Please read the online FAQ at http://"
 "gtk-gnutella.sourceforge.net/?page=faq instead."
 msgstr ""
+"Het FAQ document kon niet worden geladen. Lees in plaats daarvan de FAQ op"
+"http://gtk-gnutella.sourceforge.net/?page=faq"
 
 #: src/ui/gtk/main.c:897
 #, c-format
@@ -9607,3 +9609,4 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 #: src/ui/gtk/uploads_common.c:205
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
+
