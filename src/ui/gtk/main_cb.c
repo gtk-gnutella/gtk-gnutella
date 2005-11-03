@@ -233,6 +233,50 @@ on_dlg_quit_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 }
 
 #ifdef USE_GTK2
+static void
+menu_collapse(GtkTreeView *tv, GtkTreeIter *first)
+{
+	GtkTreeModel *model;
+	GtkTreeSelection *s;
+	GtkTreeIter iter, next;
+	
+	g_return_if_fail(tv);
+	g_return_if_fail(first);
+	
+	model = gtk_tree_view_get_model(tv);
+	s = gtk_tree_view_get_selection(tv);
+
+	g_return_if_fail(model);
+	g_return_if_fail(s);
+	
+	next = *first;
+	do {
+		gboolean blocked = FALSE;
+		
+		iter = next;
+		if (!gtk_tree_selection_iter_is_selected(s, &iter)) {
+			GtkTreeIter child;
+			guint i = 0;
+
+			while (gtk_tree_model_iter_nth_child(model, &child, &iter, i)) {
+				if (gtk_tree_selection_iter_is_selected(s, &child)) {
+					blocked = TRUE;
+					break;
+				}
+				i++;
+			}
+		}
+		if (!blocked) {
+			GtkTreePath *p;
+	
+			p = gtk_tree_model_get_path(model, &iter);
+			gtk_tree_view_collapse_row(tv, p);
+			gtk_tree_path_free(p);
+		}
+		next = iter;
+	} while (gtk_tree_model_iter_next(model, &next));
+}
+	
 void
 on_main_gui_treeview_menu_motion(GtkTreeView *tv, GtkTreePath *path)
 {
@@ -241,24 +285,19 @@ on_main_gui_treeview_menu_motion(GtkTreeView *tv, GtkTreePath *path)
 
 	g_assert(tv != NULL);
 
-	if (!path) {
-		gtk_tree_view_collapse_all(tv);
+	if (!path)
 		return;
-	}
 	
 	model = gtk_tree_view_get_model(tv);
 	g_return_if_fail(model);
-	
+
 	if (!gtk_tree_model_get_iter(model, &iter, path))
 		return;
-
+	
 	if (gtk_tree_model_iter_has_child(model, &iter)) {
 		gtk_tree_view_expand_row(tv, path, FALSE);
-		while (gtk_tree_model_iter_next(model, &iter)) {
-			GtkTreePath *p = gtk_tree_model_get_path(model, &iter);
-			gtk_tree_view_collapse_row(tv, p);
-			gtk_tree_path_free(p);
-		}
+		if (gtk_tree_model_iter_next(model, &iter))
+			menu_collapse(tv, &iter);
 	}
 }
 
@@ -266,10 +305,19 @@ gboolean
 on_main_gui_treeview_menu_leave_notify(GtkWidget *widget,
 	GdkEventCrossing *unused_event, gpointer unused_udata)
 {
+	GtkTreeView *tv;
+	GtkTreeModel *model;
+	GtkTreeIter first;
+		
 	(void) unused_event;
 	(void) unused_udata;
-
-	on_main_gui_treeview_menu_motion(GTK_TREE_VIEW(widget), NULL);
+	
+	tv = GTK_TREE_VIEW(widget);
+	model = gtk_tree_view_get_model(tv);
+	g_assert(model);
+	
+	if (gtk_tree_model_get_iter_first(model, &first))
+		menu_collapse(tv, &first);
 	return FALSE;
 }
 
