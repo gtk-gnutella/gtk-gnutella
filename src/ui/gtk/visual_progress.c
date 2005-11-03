@@ -142,8 +142,8 @@ vp_draw_rectangle(vp_info_t *v, filesize_t from, filesize_t to,
 /**
  * Draw a chunk for visual progress.
  */
-void
-vp_draw_chunk (gpointer data, gpointer user_data)
+static void
+vp_draw_chunk(gpointer data, gpointer user_data)
 {
     gnet_fi_chunks_t *chunk = data;
     vp_info_t *v = user_data;
@@ -167,7 +167,7 @@ vp_draw_chunk (gpointer data, gpointer user_data)
 /**
  * Draw an downward arrow starting at the top.
  */
-void
+static void
 vp_draw_arrow(vp_info_t *v, filesize_t at)
 {
 	guint s_at;
@@ -203,8 +203,8 @@ vp_draw_arrow(vp_info_t *v, filesize_t at)
  * This is done in a separate funtion, because the arrows need to be
  * drawn on top of the chunks.
  */
-void
-vp_draw_arrows (gpointer data, gpointer user_data)
+static void
+vp_draw_arrows(gpointer data, gpointer user_data)
 {
     gnet_fi_chunks_t *chunk = data;
     vp_info_t *v = user_data;
@@ -264,9 +264,9 @@ vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 			v->context = &fi_context;
 
 			if (v->file_size > 0) {
-				g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
-				g_slist_foreach(v->chunks_list, &vp_draw_arrows, v);
-				g_slist_foreach(v->ranges_list, &vp_draw_range, v);
+				g_slist_foreach(v->chunks_list, vp_draw_chunk, v);
+				g_slist_foreach(v->chunks_list, vp_draw_arrows, v);
+				g_slist_foreach(v->ranges_list, vp_draw_range, v);
 			} else {
 				gdk_gc_set_foreground(fi_context.gc, &nosize);
 				gdk_draw_rectangle(fi_context.drawable, fi_context.gc, TRUE,
@@ -417,14 +417,14 @@ vp_gui_fi_removed(gnet_fi_t fih)
  * For debugging: print chunk.
  */
 static void
-vp_print_chunk(gnet_fi_chunks_t *c, gboolean show_old)
+vp_print_chunk(FILE *file, gnet_fi_chunks_t *c, gboolean show_old)
 {
 	if (show_old)
-		printf("%10s - %10s %d [%s]\n",
+		fprintf(file, "%10s - %10s %d [%s]\n",
 			uint64_to_string(c->from), uint64_to_string2(c->to),
 			(gint) c->status, c->old ? "O" : "N");
 	else
-		printf("%10s - %10s %d\n",
+		fprintf(file, "%10s - %10s %d\n",
 			uint64_to_string(c->from), uint64_to_string2(c->to),
 			(gint) c->status);
 }
@@ -433,18 +433,18 @@ vp_print_chunk(gnet_fi_chunks_t *c, gboolean show_old)
  * For debugging: print chunk list.
  */
 static void
-vp_print_chunk_list(GSList *list, gchar *title)
+vp_print_chunk_list(FILE *file, GSList *list, gchar *title)
 {
 	GSList *l;
 
-	printf("Chunk list \"%s\":\n", title);
+	fprintf(file, "Chunk list \"%s\":\n", title);
 
 	for (l = list; l; l = g_slist_next(l)) {
 		gnet_fi_chunks_t *c = l->data;
-		vp_print_chunk(c, FALSE);
+		vp_print_chunk(file, c, FALSE);
 	}
 
-	printf("End of list \"%s\".\n", title);
+	fprintf(file, "End of list \"%s\".\n", title);
 }
 
 /**
@@ -469,7 +469,7 @@ vp_create_chunk(filesize_t from, filesize_t to,
 
 #ifdef VP_DEBUG
 	printf("VP adding: ");
-	vp_print_chunk(chunk, TRUE);
+	vp_print_chunk(stdout, chunk, TRUE);
 #endif /* VP_DEBUG */
 
 	return chunk;
@@ -479,7 +479,7 @@ vp_create_chunk(filesize_t from, filesize_t to,
  * Assert that a chunks list confirms to the assumptions.
  */
 static gboolean
-vp_assert_chunks_list(GSList *list)
+vp_assert_chunks_list(GSList *list, gnet_fi_info_t *fi)
 {
 	GSList *l;
 	gnet_fi_chunks_t *chunk;
@@ -488,8 +488,8 @@ vp_assert_chunks_list(GSList *list)
 	for (l = list; l; l = g_slist_next(l)) {
 		chunk = (gnet_fi_chunks_t *) l->data;
 		if (last != chunk->from) {
-			g_warning("**** Chunks list is not consistent! ");
-			vp_print_chunk_list(list, "Chunks list");
+			g_warning("BAD CHUNK LIST for \"%s\"", fi->file_name);
+			vp_print_chunk_list(stderr, list, "Chunks list");
 			return FALSE;
 			break;
 		}
@@ -539,7 +539,6 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 		v->chunks_initial = vp_get_chunks_initial(fih);
 		v->done_initial = s.done;
 	}
-	guc_fi_free_info(fi);
 
 	/*
 	 * Use the new chunks list to create a composite with the initial
@@ -552,13 +551,11 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 
 	/*
 	 * Check if this chunks list is valid. If not then skip building a
-	 * new list, and do housekeeping stuff here. We may get an invalid
-	 * list due to an obscure bug in the fileinfo core which has not
-	 * been tracked down yet: #1065382
+	 * new list, and do housekeeping stuff here.
 	 */
-	if (! vp_assert_chunks_list(new)) {
+	if (!vp_assert_chunks_list(new, fi)) {
 		guc_fi_free_chunks(keep_new);
-		return;
+		goto cleanup;
 	}
 
 	guc_fi_free_chunks(v->chunks_list);
@@ -701,11 +698,8 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	 */
 	guc_fi_free_chunks(keep_new);
 
-	/*
-	 * This code is not needed right now because we already dump
-	 * debugging info as soon as we detect a problem.
-	 * vp_assert_chunks_list(v->chunks_list);
-     */
+cleanup:
+	guc_fi_free_info(fi);
 }
 
 
@@ -820,9 +814,6 @@ vp_gui_shutdown(void)
     g_hash_table_foreach(vp_info_hash, vp_free_key_value, NULL);
     g_hash_table_destroy(vp_info_hash);
 }
-
-
-
 
 /*
  * Local Variables:
