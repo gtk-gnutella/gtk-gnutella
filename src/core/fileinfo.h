@@ -40,6 +40,12 @@
 #include "if/core/fileinfo.h"
 
 /*
+ * Shared core constants
+ */
+
+#define FI_LOW_SRC_COUNT	5			/**< Few sources known if beneath */
+
+/*
  * Operating flags.
  */
 
@@ -102,6 +108,19 @@ gboolean file_info_restrict_range(
 
 fileinfo_t *file_info_has_identical(
 	gchar *file, filesize_t size, gchar *sha1);
+
+/***
+ *** Inlined routines.
+ ***/
+
+/**
+ * Return amount of currently active sources.
+ */
+static inline G_GNUC_CONST WARN_UNUSED_RESULT guint32
+fi_alive_count(fileinfo_t *fi)
+{
+	return fi->aqueued_count + fi->pqueued_count + fi->recvcount;
+}
 
 #endif /* _core_fileinfo_h_ */
 

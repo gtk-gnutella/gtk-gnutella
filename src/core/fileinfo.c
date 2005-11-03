@@ -3977,9 +3977,14 @@ fi_chunksize(fileinfo_t *fi)
 	 *		--RAM, 2005-09-27
 	 */
 
-	src_count = fi->aqueued_count + fi->pqueued_count + fi->recvcount;
+	src_count = fi_alive_count(fi);
 	src_count = MAX(1, src_count);
 	chunksize = (fi->size - fi->done) / src_count;
+
+	/*
+	 * Finally trim the computed value so it falls between the boundaries
+	 * they want to enforce.
+	 */
 
 	if (chunksize < dl_minchunksize) chunksize = dl_minchunksize;
 	if (chunksize > dl_maxchunksize) chunksize = dl_maxchunksize;
@@ -4041,7 +4046,41 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 
 	g_assert(fi->lifecount > 0);
 
+	/*
+	 * If PFSP is enabled and we know of a small amount of sources,
+	 * try to request a small chunk the first time, in order to help
+	 * the download mesh to propagate: we need to advertise ourselves
+	 * to others, so more will come and we get more alt-loc exchanges.
+	 *
+	 * We do that only the first time we reconnect to a source to force
+	 * a rapid exchange of alt-locs in case the amount the other source
+	 * knows is more that what can fit in the reply (hoping remote will
+	 * perform a random selection among its known set).
+	 *
+	 *		--RAM, 2005-10-27
+	 */
+
 	chunksize = fi_chunksize(fi);
+
+	if (
+		pfsp_server && d->served_reqs == 0 &&
+		fi_alive_count(fi) <= FI_LOW_SRC_COUNT		/* Not enough sources */
+	) {
+		/*
+		 * If we have enough to share the file, we can reduce the chunksize.
+		 * Otherwise, try to get the amount we miss first, to be able
+		 * to advertise ourselves as soon as possible.
+		 */
+
+		if (fi->size >= pfsp_minimum_filesize)
+			chunksize = dl_minchunksize;
+		else {
+			filesize_t missing = pfsp_minimum_filesize - fi->size;
+
+			chunksize = MAX(chunksize, missing);
+			chunksize = MIN(chunksize, dl_maxchunksize);
+		}
+	}
 
 	/*
 	 * If PFSP-server is enabled, we can serve partially downloaded files.

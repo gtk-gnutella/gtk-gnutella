@@ -199,6 +199,7 @@ struct download {
 
 	guint32 retries;
 	guint32 timeout_delay;
+	guint32 served_reqs;		/**< Amount of served requests on connection */
 
 	const gchar *remove_msg;
 

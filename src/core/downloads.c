@@ -97,7 +97,6 @@ RCSID("$Id$");
 #define DOWNLOAD_MAX_SINK		16384	/**< Max amount of data to sink */
 #define DOWNLOAD_SERVER_HOLD	15		/**< Space requests to same server */
 #define DOWNLOAD_DNS_LOOKUP		7200	/**< Period of server DNS lookups */
-#define DOWNLOAD_MIN_SOURCES	5		/**< Always include ourselves if less */
 
 #define BUFFER_POOL_MAX			300		/**< Max amount of buffers to keep */
 
@@ -3061,6 +3060,9 @@ download_start_prepare_running(struct download *d)
 	d->keep_alive = FALSE;	/* Until proven otherwise by server's reply */
 	d->got_giv = FALSE;		/* Don't know yet, assume no GIV */
 
+	if (d->socket == NULL)
+		d->served_reqs = 0;		/* No request served yet, since not connected */
+
 	d->flags &= ~DL_F_OVERLAPPED;		/* Clear overlapping indication */
 	d->flags &= ~DL_F_SHRUNK_REPLY;		/* Clear server shrinking indication */
 
@@ -5242,6 +5244,8 @@ partial_done:
 
 	cd = download_clone(d);
 	download_stop(d, GTA_DL_COMPLETED, no_reason);
+
+	cd->served_reqs++;		/* We got one more served request */
 
 	/*
 	 * If we had to trim the data requested, it means the server did not
@@ -7584,7 +7588,7 @@ picked:
 
 			if (bsched_saturated(bws.out)) {
 				altloc_size = MIN(altloc_size, 160);
-				if (dmesh_count(sha1) > DOWNLOAD_MIN_SOURCES)
+				if (fi_alive_count(file_info) > FI_LOW_SRC_COUNT)
 					file_info = NULL;
 			}
 
