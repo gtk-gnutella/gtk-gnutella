@@ -10043,7 +10043,7 @@ create_dlg_about (void)
   gtk_widget_show (label_about_title);
   gtk_box_pack_start (GTK_BOX (hbox170), label_about_title, TRUE, TRUE, 0);
 
-  label_about_rcsid = gtk_label_new ("$Id$");
+  label_about_rcsid = gtk_label_new (_("$Id$"));
   gtk_widget_set_name (label_about_rcsid, "label_about_rcsid");
   gtk_widget_ref (label_about_rcsid);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label_about_rcsid", label_about_rcsid,
@@ -11025,6 +11025,9 @@ create_dlg_prefs (void)
   GtkWidget *checkbutton_pfsp_server;
   GtkObject *spinbutton_pfsp_first_chunk_adj;
   GtkWidget *spinbutton_pfsp_first_chunk;
+  GtkWidget *label770;
+  GtkObject *spinbutton_pfsp_minimum_filesize_adj;
+  GtkWidget *spinbutton_pfsp_minimum_filesize;
   GtkWidget *frame140;
   GtkWidget *table96;
   GtkWidget *label753;
@@ -15367,7 +15370,7 @@ create_dlg_prefs (void)
   gtk_widget_show (frame_partial_file_sharing);
   gtk_box_pack_start (GTK_BOX (vbox40), frame_partial_file_sharing, FALSE, TRUE, 0);
 
-  table65 = gtk_table_new (1, 3, FALSE);
+  table65 = gtk_table_new (1, 5, FALSE);
   gtk_widget_set_name (table65, "table65");
   gtk_widget_ref (table65);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table65", table65,
@@ -15416,6 +15419,28 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_usize (spinbutton_pfsp_first_chunk, 76, -2);
+
+  label770 = gtk_label_new (_("Minimum file size"));
+  gtk_widget_set_name (label770, "label770");
+  gtk_widget_ref (label770);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label770", label770,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label770);
+  gtk_table_attach (GTK_TABLE (table65), label770, 3, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label770), 0, 0.5);
+
+  spinbutton_pfsp_minimum_filesize_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_pfsp_minimum_filesize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_minimum_filesize_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_pfsp_minimum_filesize, "spinbutton_pfsp_minimum_filesize");
+  gtk_widget_ref (spinbutton_pfsp_minimum_filesize);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_pfsp_minimum_filesize", spinbutton_pfsp_minimum_filesize,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_pfsp_minimum_filesize);
+  gtk_table_attach (GTK_TABLE (table65), spinbutton_pfsp_minimum_filesize, 4, 5, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   frame140 = gtk_frame_new (_("Queuing details"));
   gtk_widget_set_name (frame140, "frame140");

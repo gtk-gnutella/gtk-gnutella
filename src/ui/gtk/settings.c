@@ -3661,6 +3661,14 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_PFSP_MINIMUM_FILESIZE,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_pfsp_minimum_filesize",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_HIDE_DOWNLOADED,
         update_togglebutton,
