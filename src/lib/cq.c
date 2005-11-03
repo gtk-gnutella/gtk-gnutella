@@ -145,6 +145,7 @@ ev_link(cqueue_t *cq, cevent_t *ev)
 	 */
 
 	if (ch->ch_head == NULL) {
+		g_assert(ch->ch_tail == NULL);
 		ch->ch_tail = ch->ch_head = ev;
 		ev->ce_bnext = ev->ce_bprev = NULL;
 		return;
@@ -157,6 +158,8 @@ ev_link(cqueue_t *cq, cevent_t *ev)
 	 */
 
 	hev = ch->ch_tail;
+
+	g_assert(hev->ce_bnext == NULL);
 
 	if (trigger >= hev->ce_time) {
 		hev->ce_bnext = ev;
@@ -171,6 +174,8 @@ ev_link(cqueue_t *cq, cevent_t *ev)
 	 */
 
 	hev = ch->ch_head;
+
+	g_assert(hev->ce_bprev == NULL);
 
 	if (trigger < hev->ce_time) {
 		hev->ce_bprev = ev;
@@ -224,6 +229,9 @@ ev_unlink(cqueue_t *cq, cevent_t *ev)
 		ev->ce_bprev->ce_bnext = ev->ce_bnext;
 	if (ev->ce_bnext)
 		ev->ce_bnext->ce_bprev = ev->ce_bprev;
+
+	g_assert(ch->ch_head == NULL || ch->ch_head->ce_bprev == NULL);
+	g_assert(ch->ch_tail == NULL || ch->ch_tail->ce_bnext == NULL);
 }
 
 /**
@@ -278,7 +286,6 @@ cq_cancel(cqueue_t *cq, gpointer handle)
 
 	ev_unlink(cq, ev);
 	ev->ce_magic = 0;			/* Prevent further use as a valid event */
-	memset(ev, 0, sizeof(*ev));
 	wfree(ev, sizeof(*ev));
 }
 
