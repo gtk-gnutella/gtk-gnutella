@@ -156,7 +156,11 @@ prop_def_t *gui_prop_get_def(property_t);
 property_t gui_prop_get_by_name(const gchar *);
 GSList *gui_prop_get_by_regex(const gchar *, gint *);
 const gchar *gui_prop_name(property_t);
+const gchar *gui_prop_type_to_string(property_t);
+const gchar *gui_prop_to_string(property_t prop);
+const gchar *gui_prop_default_to_string(property_t);
 const gchar *gui_prop_description(property_t);
+gboolean gui_prop_is_saved(property_t);
 void gui_prop_set_from_string(property_t, const gchar *);
 
 /*
@@ -220,8 +224,6 @@ guint64 *gui_prop_get_guint64(
 
 void gui_prop_set_storage(property_t, const gchar *, size_t);
 gchar *gui_prop_get_storage(property_t, gchar *, size_t);
-
-const gchar *gui_prop_to_string(property_t prop);
 
 #endif /* _gui_property_h_ */
 

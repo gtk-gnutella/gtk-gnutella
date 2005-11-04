@@ -5893,15 +5893,33 @@ gnet_prop_to_string(property_t prop)
 }
 
 const gchar *
+gnet_prop_default_to_string(property_t prop)
+{
+    return prop_default_to_string(gnet_property, prop);
+}
+
+const gchar *
 gnet_prop_name(property_t p)
 {
     return prop_name(gnet_property, p);
 }
 
 const gchar *
+gnet_prop_type_to_string(property_t p)
+{
+    return prop_type_to_string(gnet_property, p);
+}
+
+const gchar *
 gnet_prop_description(property_t p)
 {
     return prop_description(gnet_property, p);
+}
+
+gboolean
+gnet_prop_is_saved(property_t p)
+{
+    return prop_is_saved(gnet_property, p);
 }
 
 property_t

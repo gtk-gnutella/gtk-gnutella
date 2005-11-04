@@ -318,7 +318,11 @@ prop_def_t *gnet_prop_get_def(property_t);
 property_t gnet_prop_get_by_name(const gchar *);
 GSList *gnet_prop_get_by_regex(const gchar *, gint *);
 const gchar *gnet_prop_name(property_t);
+const gchar *gnet_prop_type_to_string(property_t);
+const gchar *gnet_prop_to_string(property_t prop);
+const gchar *gnet_prop_default_to_string(property_t);
 const gchar *gnet_prop_description(property_t);
+gboolean gnet_prop_is_saved(property_t);
 void gnet_prop_set_from_string(property_t, const gchar *);
 
 /*
@@ -382,8 +386,6 @@ guint64 *gnet_prop_get_guint64(
 
 void gnet_prop_set_storage(property_t, const gchar *, size_t);
 gchar *gnet_prop_get_storage(property_t, gchar *, size_t);
-
-const gchar *gnet_prop_to_string(property_t prop);
 
 #endif /* _gnet_property_h_ */
 

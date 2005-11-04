@@ -100,7 +100,11 @@ prop_def_t *[=(. func-prefix)=]_get_def(property_t);
 property_t [=(. func-prefix)=]_get_by_name(const gchar *);
 GSList *[=(. func-prefix)=]_get_by_regex(const gchar *, gint *);
 const gchar *[=(. func-prefix)=]_name(property_t);
+const gchar *[=(. func-prefix)=]_type_to_string(property_t);
+const gchar *[=(. func-prefix)=]_to_string(property_t prop);
+const gchar *[=(. func-prefix)=]_default_to_string(property_t);
 const gchar *[=(. func-prefix)=]_description(property_t);
+gboolean [=(. func-prefix)=]_is_saved(property_t);
 void [=(. func-prefix)=]_set_from_string(property_t, const gchar *);
 
 /*
@@ -164,8 +168,6 @@ guint64 *[=(. func-prefix)=]_get_guint64(
 
 void [=(. func-prefix)=]_set_storage(property_t, const gchar *, size_t);
 gchar *[=(. func-prefix)=]_get_storage(property_t, gchar *, size_t);
-
-const gchar *[=(. func-prefix)=]_to_string(property_t prop);
 
 #endif /* _[=(. set-name-down)=]_h_ */
 
@@ -569,15 +571,33 @@ const gchar *
 }
 
 const gchar *
+[=(. func-prefix)=]_default_to_string(property_t prop)
+{
+    return prop_default_to_string([=(. prop-set)=], prop);
+}
+
+const gchar *
 [=(. func-prefix)=]_name(property_t p)
 {
     return prop_name([=(. prop-set)=], p);
 }
 
 const gchar *
+[=(. func-prefix)=]_type_to_string(property_t p)
+{
+    return prop_type_to_string([=(. prop-set)=], p);
+}
+
+const gchar *
 [=(. func-prefix)=]_description(property_t p)
 {
     return prop_description([=(. prop-set)=], p);
+}
+
+gboolean
+[=(. func-prefix)=]_is_saved(property_t p)
+{
+    return prop_is_saved([=(. prop-set)=], p);
 }
 
 property_t

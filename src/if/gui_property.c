@@ -2363,15 +2363,33 @@ gui_prop_to_string(property_t prop)
 }
 
 const gchar *
+gui_prop_default_to_string(property_t prop)
+{
+    return prop_default_to_string(gui_property, prop);
+}
+
+const gchar *
 gui_prop_name(property_t p)
 {
     return prop_name(gui_property, p);
 }
 
 const gchar *
+gui_prop_type_to_string(property_t p)
+{
+    return prop_type_to_string(gui_property, p);
+}
+
+const gchar *
 gui_prop_description(property_t p)
 {
     return prop_description(gui_property, p);
+}
+
+gboolean
+gui_prop_is_saved(property_t p)
+{
+    return prop_is_saved(gui_property, p);
 }
 
 property_t
