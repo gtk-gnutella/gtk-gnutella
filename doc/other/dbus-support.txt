@@ -86,7 +86,7 @@ Which events does Gtk-Gnutella currently support?
   Events                 started          Gtk-Gnutella is started
 						 stopped		  Gtk-Gnutella is stopped
 
-  Peermode				 normal, ultra,	  Type of Gnutella node
+  PeermodeChange		 normal, ultra,	  Type of Gnutella node
 						 leaf
 
 
