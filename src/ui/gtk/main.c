@@ -482,13 +482,31 @@ gui_create_dlg_faq(void)
 	f = file_config_open_read_norename("FAQ", fp, i);
 	if (f) {
 		gchar buf[4096];
+		gboolean tag = FALSE;
 
 		while (fgets(buf, sizeof buf, f)) {
+			const gchar *s;
+			gchar *p;
+
 			if (!utf8_is_valid_string(buf)) {
 				text_widget_append(GTK_WIDGET(text),
 					_("\nThe FAQ document is damaged.\n"));
 				break;
 			}
+
+			/* Strip HTML tags */
+			for (s = buf, p = buf; *s != '\0'; s++) {
+				if (tag) {
+					if (*s == '>')
+						tag = FALSE;
+				} else if (*s != '<') {
+					*p++ = *s;
+				} else {
+					tag = TRUE;
+				}
+			}
+			*p = '\0';
+			
 			text_widget_append(GTK_WIDGET(text), lazy_utf8_to_ui_string(buf));
 		}
 
