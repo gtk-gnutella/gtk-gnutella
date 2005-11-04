@@ -59,6 +59,8 @@ void on_entry_dbg_property_pattern_activate(GtkEditable *editable, gpointer user
 #ifdef USE_GTK1
 void on_entry_dbg_property_value_activate(GtkEditable *editable, gpointer user_data);
 void on_clist_dbg_property_select_row(GtkCList *clist, gint row, gint unused_column, GdkEvent *unused_event, gpointer unused_udata);
+void on_clist_dbg_property_click_column(GtkCList *clist, gint column,
+	gpointer unused_udata);
 #endif /* USE_GTK1*/
 
 void on_menu_statusbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);

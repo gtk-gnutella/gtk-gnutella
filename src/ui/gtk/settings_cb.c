@@ -322,7 +322,7 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 	}
 
 	u = 0;
-	gtk_tree_model_get(model, &iter, 3, &u, (-1));
+	gtk_tree_model_get(model, &iter, 0, &u, (-1));
 	g_assert(0 != u);
 
 	prop = (property_t) u;
@@ -384,7 +384,7 @@ on_cell_edited(GtkCellRendererText *unused_renderer, const gchar *path_str,
 	gtk_tree_model_get_iter(model, &iter, path);
 
 	u = 0;
-	gtk_tree_model_get(model, &iter, 3, &u, (-1));
+	gtk_tree_model_get(model, &iter, 0, &u, (-1));
 	g_assert(0 != u);
 	prop = (property_t) u;
 	gnet_prop_set_from_string(prop,	text);
@@ -394,16 +394,51 @@ on_cell_edited(GtkCellRendererText *unused_renderer, const gchar *path_str,
 }
 
 static void
+dbg_property_update_selection(void)
+{
+	GtkTreeView *tv;
+	GtkTreeSelection *s;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	GtkWidget *widget;
+	const gchar *text;
+
+	tv = GTK_TREE_VIEW(lookup_widget(dlg_prefs, "treeview_dbg_property"));
+	s = gtk_tree_view_get_selection(tv);
+	if (gtk_tree_selection_get_selected(s, &model, &iter)) {
+		guint u;
+
+		gtk_tree_model_get(model, &iter, 0, &u, (-1));
+		text = gnet_prop_default_to_string((property_t) u);
+	} else {
+		text = _("<no property selected>");
+	}
+	
+    widget = lookup_widget(dlg_prefs, "label_dbg_property_default");
+	gtk_label_set_text(GTK_LABEL(widget), text);
+}
+
+static void
+on_cursor_changed(GtkTreeView *unused_tv, gpointer unused_udata)
+{
+	(void) unused_tv;
+	(void) unused_udata;
+	dbg_property_update_selection();
+}
+
+static void
 dbg_tree_init(void)
 {
 	static const struct {
 		const gchar *title;
-		gboolean editable;
+		const guint width;
+		const gboolean editable;
 	} columns[] = {
-		{ N_("Property"),		FALSE },
-		{ N_("Value"),			TRUE  },
-		{ N_("Description"),	FALSE },
-		{ NULL,					FALSE },
+		{ NULL,				  0, FALSE },	/* property_t */
+		{ N_("Saved"),	 	 30, FALSE },
+		{ N_("Type"),		 50, FALSE },
+		{ N_("Property"),	100, FALSE },
+		{ N_("Value"),		200, TRUE  },
 	};
 	GtkListStore *store;
 	GtkTreeView *tv;
@@ -411,15 +446,17 @@ dbg_tree_init(void)
 
 	tv = GTK_TREE_VIEW(lookup_widget(dlg_prefs, "treeview_dbg_property"));
 	store = GTK_LIST_STORE(gtk_list_store_new(G_N_ELEMENTS(columns),
-				G_TYPE_STRING,
-				G_TYPE_STRING,
-				G_TYPE_STRING,
-				G_TYPE_UINT));
+				G_TYPE_UINT,		/* property_t */
+				G_TYPE_STRING,		/* Type */
+				G_TYPE_STRING,		/* Name */
+				G_TYPE_STRING,		/* Value */
+				G_TYPE_STRING));	/* Persistent */
 
 	gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store));
 	g_object_unref(store);
 
-	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+	/* Skip invisible column zero which holds the property_t */
+	for (i = 1; i < G_N_ELEMENTS(columns); i++) {
 		GtkTreeViewColumn *column;
 		GtkCellRenderer *renderer;
 
@@ -462,6 +499,8 @@ dbg_tree_init(void)
 			"enter-notify-event", G_CALLBACK(on_enter_notify), tv);
 	g_signal_connect(GTK_OBJECT(tv),
 			"leave-notify-event", G_CALLBACK(on_leave_notify), tv);
+	g_signal_connect(GTK_OBJECT(tv),
+			"cursor-changed", G_CALLBACK(on_cursor_changed), tv);
 }
 
 void
@@ -479,10 +518,24 @@ dbg_property_show_list(const GSList *props)
 	gtk_list_store_clear(store);
 
 	if (!props) {
-		GtkLabel *label;
+		const gchar *text = _("<no property selected>");
+		GtkWidget *widget;
 		
-		label = GTK_LABEL(lookup_widget(dlg_prefs, "label_dbg_property_name"));
-		gtk_label_set_text(label, _("<none selected>"));
+		widget = lookup_widget(dlg_prefs, "label_dbg_property_name");
+		gtk_label_set_text(GTK_LABEL(widget), text);
+		widget = lookup_widget(dlg_prefs, "label_dbg_property_limits");
+		gtk_label_set_text(GTK_LABEL(widget), text);
+		/* Gtk+ 2.x has editable column cells */
+#ifdef USE_GTK1
+		widget = lookup_widget(dlg_prefs, "entry_dbg_property_value");
+		gtk_entry_set_text(GTK_ENTRY(widget), text);
+		widget = lookup_widget(dlg_prefs, "entry_dbg_property_default");
+		gtk_entry_set_text(GTK_ENTRY(widget), text);
+#endif /* USE_GTK1 */
+#ifdef USE_GTK2
+		widget = lookup_widget(dlg_prefs, "label_dbg_property_default");
+		gtk_label_set_text(GTK_LABEL(widget), text);
+#endif /* USE_GTK2 */
 	}
 
 	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
@@ -493,16 +546,57 @@ dbg_property_show_list(const GSList *props)
 
 		gtk_list_store_append(store, &iter);
 		gtk_list_store_set(store, &iter,
-			0, gnet_prop_name(prop),
-			1, gnet_prop_to_string(prop),
-			2, gnet_prop_description(prop),
-			3, (guint) prop,
+			0, (guint) prop,
+			1, gnet_prop_type_to_string(prop),
+			2, gnet_prop_name(prop),
+			3, gnet_prop_to_string(prop),
+			4, gnet_prop_is_saved(prop) ? _("Yes") : _("No"),
 			(-1));
 	}
 }
 #endif /* USE_GTK2 */
 
 #ifdef USE_GTK1
+static void
+dbg_property_update_selection(void)
+{
+	const gchar *tip, *label_text, *def_text, *value_text;
+	GtkCList *clist;
+	GtkLabel *label;
+	GtkEntry *value, *def;
+	gpointer data;
+	gint row;
+
+   	clist = GTK_CLIST(lookup_widget(dlg_prefs, "clist_dbg_property"));
+	label = GTK_LABEL(lookup_widget(dlg_prefs, "label_dbg_property_name"));
+    value = GTK_ENTRY(lookup_widget(dlg_prefs, "entry_dbg_property_value"));
+    def = GTK_ENTRY(lookup_widget(dlg_prefs, "entry_dbg_property_default"));
+
+    if (
+		clist->selection &&
+		-1 != (row = GPOINTER_TO_INT(clist->selection->data)) &&
+		NULL != (data = gtk_clist_get_row_data(clist, row))
+	) {
+		property_t prop = GPOINTER_TO_UINT(data);
+
+		label_text = gnet_prop_name(prop);
+		value_text = gnet_prop_to_string(prop);
+		def_text = gnet_prop_default_to_string(prop);
+		tip = gnet_prop_description(prop);
+	} else {
+		const gchar *none = _("<no property selected>");
+
+		label_text = none;
+		def_text = none;
+		value_text = none;
+		tip = _("Select a property to see its description.");
+	}
+	gtk_label_set_text(label, label_text);
+	gtk_entry_set_text(def, def_text);
+	gtk_entry_set_text(value, value_text);
+	gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(value), tip, NULL);
+}
+
 static void
 dbg_property_set_row(GtkCList *clist, gint row, property_t prop)
 {
@@ -511,12 +605,14 @@ dbg_property_set_row(GtkCList *clist, gint row, property_t prop)
 	g_assert(clist);
 	g_assert(row != -1);
 
-	for (i = 0; i < 3; i++) {
+	for (i = 0; i < 4; i++) {
 		const gchar *text;
 		switch (i) {
-		case 0: text = gnet_prop_name(prop); break;
-		case 1: text = gnet_prop_to_string(prop); break;
-		case 2: text = gnet_prop_description(prop); break;
+		case 0: text = gnet_prop_type_to_string(prop); break;
+		case 1: text = gnet_prop_name(prop); break;
+		case 2: text = gnet_prop_to_string(prop); break;
+		case 3: text = gnet_prop_is_saved(prop)
+							? _("Yes") : _("No"); break;
 		default:
 			g_assert_not_reached();
 			text = "(null)";
@@ -537,14 +633,15 @@ dbg_property_show_list(const GSList *props)
 	gtk_clist_clear(clist);
 
 	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
-		static const gchar * const titles[3] = { "", "", "" };
+		static const gchar * const titles[4] = { "", "", "" };
 		property_t prop = GPOINTER_TO_UINT(sl->data);
 		gint row;
 		
     	row = gtk_clist_append(clist, deconstify_gpointer(titles));
 		dbg_property_set_row(clist, row, prop);	
 	}
-
+	gtk_clist_sort(clist);
+	gtk_clist_columns_autosize(clist);
 	gtk_clist_thaw(clist);
 }
 
@@ -573,34 +670,89 @@ on_entry_dbg_property_value_activate(GtkEditable *editable,
 }
 
 void
-on_clist_dbg_property_select_row(GtkCList *clist, gint row, gint unused_column,
-	GdkEvent *unused_event, gpointer unused_udata)
+on_clist_dbg_property_select_row(GtkCList *unused_clist, gint unused_row,
+	gint unused_column, GdkEvent *unused_event, gpointer unused_udata)
 {
-	GtkLabel *label;
-	GtkEntry *entry;
-	gpointer data;
-	
+
+	(void) unused_clist;
+	(void) unused_row;
 	(void) unused_column;
 	(void) unused_event;
 	(void) unused_udata;
-    g_assert(clist != NULL);
 
-	label = GTK_LABEL(lookup_widget(dlg_prefs, "label_dbg_property_name"));
-    entry = GTK_ENTRY(lookup_widget(dlg_prefs, "entry_dbg_property_value"));
-
-    if (
-		clist->selection &&
-		NULL != (data = gtk_clist_get_row_data(clist, row))
-	) {
-		property_t prop = GPOINTER_TO_UINT(data);
-		gtk_label_printf(label, "\"%s\"", gnet_prop_name(prop));
-		gtk_entry_set_text(entry, gnet_prop_to_string(prop));
-	} else {
-		gtk_label_set_text(label, _("<none selected>"));
-		gtk_entry_set_text(entry, "");
-	}
+	dbg_property_update_selection();
 }
 
+static gboolean dbg_property_cmp_name_inverted = TRUE;
+static gint 
+dbg_property_cmp_name(GtkCList *unused_clist,
+	gconstpointer ptr1, gconstpointer ptr2)
+{
+    property_t a = GPOINTER_TO_UINT(((const GtkCListRow *) ptr1)->data);
+    property_t b = GPOINTER_TO_UINT(((const GtkCListRow *) ptr2)->data);
+	gint r;
+
+	(void) unused_clist;
+	r = strcmp(gnet_prop_name(a), gnet_prop_name(b));
+	return dbg_property_cmp_name_inverted ? -r : r;
+}
+
+static gboolean dbg_property_cmp_type_inverted = TRUE;
+static gint 
+dbg_property_cmp_type(GtkCList *unused_clist,
+	gconstpointer ptr1, gconstpointer ptr2)
+{
+    property_t a = GPOINTER_TO_UINT(((const GtkCListRow *) ptr1)->data);
+    property_t b = GPOINTER_TO_UINT(((const GtkCListRow *) ptr2)->data);
+	gint r;
+
+	(void) unused_clist;
+	r = strcmp(gnet_prop_type_to_string(a), gnet_prop_type_to_string(b));
+	return dbg_property_cmp_type_inverted ? -r : r;
+}
+
+static gboolean dbg_property_cmp_saved_inverted = TRUE;
+static gint 
+dbg_property_cmp_saved(GtkCList *unused_clist,
+	gconstpointer ptr1, gconstpointer ptr2)
+{
+    property_t a = GPOINTER_TO_UINT(((const GtkCListRow *) ptr1)->data);
+    property_t b = GPOINTER_TO_UINT(((const GtkCListRow *) ptr2)->data);
+	gint r;
+
+	(void) unused_clist;
+	r = gnet_prop_is_saved(a) == gnet_prop_is_saved(b);
+	return dbg_property_cmp_saved_inverted ? -r : r;
+}
+
+
+void
+on_clist_dbg_property_click_column(GtkCList *clist, gint column,
+	gpointer unused_udata)
+{
+
+	(void) unused_udata;
+
+	switch (column) {
+	case 0:
+		gtk_clist_set_compare_func(clist, dbg_property_cmp_type);
+		dbg_property_cmp_type_inverted = !dbg_property_cmp_type_inverted;
+		break;
+	case 1:
+		gtk_clist_set_compare_func(clist, dbg_property_cmp_name);
+		dbg_property_cmp_name_inverted = !dbg_property_cmp_name_inverted;
+		break;
+	case 2:
+		/* Don't sort by values */
+		break;
+	case 3:
+		gtk_clist_set_compare_func(clist, dbg_property_cmp_saved);
+		dbg_property_cmp_saved_inverted = !dbg_property_cmp_saved_inverted;
+		break;
+	}
+			
+	gtk_clist_sort(clist);
+}
 #endif /* USE_GTK1 */
 
 void
@@ -628,13 +780,13 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 				_("No property name matches the pattern \"%s\"."), text);
 		
 		dbg_property_show_list(props);
+		dbg_property_update_selection();
 		g_slist_free(props);
 		props = NULL;
 	}
 	G_FREE_NULL(text);
 }
-FOCUS_TO_ACTIVATE(entry_dbg_property_pattern)
-	
+
 void
 on_menu_toolbar_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 {
