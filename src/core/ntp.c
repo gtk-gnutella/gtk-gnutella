@@ -168,7 +168,11 @@ ntp_send_probes(void)
 	static const struct {
 		const gchar *addr;
 	} hosts[] = {
+#if 0
+		/* Skip this for now. We check replies only against 127.0.0.1 and ::1
+		 * anyway and there is also the minor DNS issue below. */
 		{ "localhost" },
+#endif
 		{ "::1"		  },
 		{ "127.0.0.1" },
 	};
@@ -202,8 +206,8 @@ ntp_send_probes(void)
 }
 
 /**
- * Send an NTP probe to local host using the loopback 127.0.0.1 address,
- * waiting for a reply within the next NTP_WAIT_MS ms.
+ * Send an NTP probe to the local host using the loopback addresses 127.0.0.1
+ * and ::1, waiting for a reply within the next NTP_WAIT_MS ms.
  */
 void
 ntp_probe(void)
