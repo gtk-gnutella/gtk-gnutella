@@ -432,36 +432,6 @@ update_split_pane(property_t prop)
 }
 
 static gboolean
-update_entry_date(property_t prop)
-{
-    GtkWidget *w;
-    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
-    GtkWidget *top = map_entry->fn_toplevel();
-	time_t t;
-	gchar buf[128];
-	size_t len;
-
-    if (!top)
-        return FALSE;
-
-    w = lookup_widget(top, map_entry->wid);
-    if (w == NULL) {
-		if (gui_debug)
-			g_warning("%s - widget not found: [%s]",
-				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
-        return FALSE;
-    }
-
-    t = *stub->guint64.get(prop, NULL, 0, 0);
-	len = strftime(buf, sizeof buf, date_fmt, localtime(&t));
-	buf[len] = '\0';
-    gtk_entry_set_text(GTK_ENTRY(w), buf);
-
-    return FALSE;
-}
-
-static gboolean
 update_entry_duration(property_t prop)
 {
     GtkWidget *w;
@@ -5105,26 +5075,10 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
-        PROP_CURRENT_IP_STAMP,
-        update_entry_date,
-        TRUE,
-        "entry_current_ip_stamp",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_prefs_dialog,
         PROP_AVERAGE_IP_UPTIME,
         update_entry_duration,
         TRUE,
         "entry_average_ip_uptime",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_prefs_dialog,
-        PROP_START_STAMP,
-        update_entry_date,
-        TRUE,
-        "entry_start_stamp",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -5137,34 +5091,10 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
-        PROP_SYS_NOFILE,
-        update_entry,
-        TRUE,
-        "entry_sys_nofile",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_prefs_dialog,
         PROP_SYS_PHYSMEM,
         update_size_entry,
         TRUE,
         "entry_sys_physmem",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_prefs_dialog,
-        PROP_CRAWLER_VISIT_COUNT,
-        update_entry,
-        TRUE,
-        "entry_crawler_visit_count",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_prefs_dialog,
-        PROP_UDP_CRAWLER_VISIT_COUNT,
-        update_entry,
-        TRUE,
-        "entry_udp_crawler_visit_count",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
