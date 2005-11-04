@@ -31,13 +31,6 @@
 
 #define NO_PROP (0)
 
-/**
- * Use this macro access a property instead of ps->props[prop]. It will
- * hide the offset of the properties, so the property array can be
- * accessed.
- */
-#define PROP(ps, p) (ps->props[p-ps->offset])
-
 /*
  * Handle types.
  */
@@ -222,6 +215,10 @@ void prop_free_def(prop_def_t *);
 
 const gchar *prop_name(prop_set_t *ps, property_t prop);
 const gchar *prop_description(prop_set_t *ps, property_t prop);
+const gchar *prop_to_string(prop_set_t *ps, property_t prop);
+const gchar *prop_type_to_string(prop_set_t *ps, property_t prop);
+const gchar *prop_default_to_string(prop_set_t *ps, property_t prop);
+gboolean prop_is_saved(prop_set_t *ps, property_t prop);
 
 void prop_add_prop_changed_listener(
     prop_set_t *, property_t, prop_changed_listener_t, gboolean);
@@ -262,11 +259,36 @@ guint64 *prop_get_guint64(
 void prop_set_storage(prop_set_t *, property_t, const gchar *, size_t);
 gchar *prop_get_storage(prop_set_t *, property_t, gchar *, size_t);
 
-const gchar *prop_to_string(prop_set_t *ps, property_t prop);
 property_t prop_get_by_name(prop_set_t *ps, const char *name);
 GSList *prop_get_by_regex(prop_set_t *ps, const gchar *pattern, gint *error);
 void prop_set_from_string(prop_set_t *ps, property_t prop, const gchar *val,
 	gboolean saved_only);
+
+/*
+ * Checks if a property is part of a property set.
+ */
+static inline gboolean
+prop_in_range(const prop_set_t *ps, property_t prop)
+{
+	return prop >= ps->offset && prop < ps->size + ps->offset;
+}
+
+static inline prop_def_t *
+get_prop(prop_set_t *ps, property_t prop, const gchar *loc)
+{
+	if (!ps)
+		g_error("%s: ps != NULL failed", loc);
+	if (!prop_in_range(ps, prop))
+		g_error("%s: unknown property %u", loc, (guint) prop);
+	return &ps->props[prop - ps->offset];
+}
+
+/**
+ * Use this macro access a property instead of ps->props[prop]. It will
+ * hide the offset of the properties, so the property array can be
+ * accessed.
+ */
+#define PROP(ps, p) (* get_prop((ps), (p), G_STRLOC))
 
 #endif /* _prop_h_ */
 /* vi: set ts=4 sw=4 cindent: */

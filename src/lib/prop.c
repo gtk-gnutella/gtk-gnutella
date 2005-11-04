@@ -38,11 +38,6 @@ RCSID("$Id$");
 static guint32 track_props = 0;	/**< XXX need to init lib's props--RAM */
 static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
 
-/*
- * Checks if a property is part of a property set.
- */
-#define prop_in_range(ps, p) ((p >= ps->offset) && (p < ps->size+ps->offset))
-
 const gchar * const prop_type_str[] = {
 	"boolean",
 	"guint32",
@@ -997,8 +992,34 @@ prop_description(prop_set_t *ps, property_t prop)
 	return PROP(ps,prop).desc;
 }
 
+const gchar *
+prop_type_to_string(prop_set_t *ps, property_t prop)
+{
+	g_assert(ps != NULL);
+	if (!prop_in_range(ps, prop))
+		g_error("prop_get_gchar: unknown property %u", prop);
+	
+	switch (PROP(ps,prop).type) {
+#define CASE(x) case CAT2(PROP_TYPE_,x): return STRINGIFY(x);
+	CASE(GUINT32)
+	CASE(GUINT64)
+	CASE(STRING)
+	CASE(IP)
+	CASE(BOOLEAN)
+	CASE(MULTICHOICE)
+	CASE(STORAGE)
+	}
+	return NULL;
+}
+
+gboolean
+prop_is_saved(prop_set_t *ps, property_t prop)
+{
+	return PROP(ps,prop).save;
+}
+
 /**
- * Helper function for update_label() and update_entry()
+ * Fetches the value of property as a string.
  */
 const gchar *
 prop_to_string(prop_set_t *ps, property_t prop)
@@ -1008,74 +1029,135 @@ prop_to_string(prop_set_t *ps, property_t prop)
 	g_assert(ps != NULL);
 
 	if (!prop_in_range(ps, prop))
-		g_error("prop_get_gchar: unknown property %d", prop);
+		g_error("prop_get_gchar: unknown property %u", prop);
 
 	switch (PROP(ps,prop).type) {
-		case PROP_TYPE_GUINT32: {
+	case PROP_TYPE_GUINT32:
+		{
 			guint32 val;
 
 			prop_get_guint32(ps, prop, &val, 0, 1);
 			gm_snprintf(s, sizeof(s), "%u", val);
-			break;
 		}
-		case PROP_TYPE_GUINT64: {
+		break;
+	case PROP_TYPE_GUINT64:
+		{
 			guint64 val;
 
 			prop_get_guint64(ps, prop, &val, 0, 1);
 			uint64_to_string_buf(val, s, sizeof s);
-			break;
 		}
-		case PROP_TYPE_STRING: {
+		break;
+	case PROP_TYPE_STRING:
+		{
 			gchar *buf = prop_get_string(ps, prop, NULL, 0);
+
 			g_strlcpy(s, buf ? buf : "", sizeof(s));
 			G_FREE_NULL(buf);
-			break;
 		}
-		case PROP_TYPE_IP: {
+		break;
+	case PROP_TYPE_IP:
+		{
 			guint32 val;
 
 			prop_get_guint32(ps, prop, &val, 0, 1);
-
 			g_strlcpy(s, ip_to_string(val), sizeof(s));
-			break;
 		}
-		case PROP_TYPE_BOOLEAN: {
+		break;
+	case PROP_TYPE_BOOLEAN:
+		{
 			gboolean val;
 
 			prop_get_boolean(ps, prop, &val, 0, 1);
-
 			g_strlcpy(s, val ? "TRUE" : "FALSE", sizeof(s));
-			break;
 		}
-		case PROP_TYPE_MULTICHOICE: {
+		break;
+	case PROP_TYPE_MULTICHOICE:
+		{
 			guint n = 0;
 
 			while (
 				(PROP(ps, prop).data.guint32.choices[n].title != NULL) &&
 				(PROP(ps, prop).data.guint32.choices[n].value !=
-					*(PROP(ps, prop).data.guint32.value))
-				)
+				 *(PROP(ps, prop).data.guint32.value))
+			  )
 				n++;
 
 			if (PROP(ps, prop).data.guint32.choices[n].title != NULL)
-				gm_snprintf(s, sizeof(s), "%d: %s",
-					*(PROP(ps, prop).data.guint32.value),
-					PROP(ps,prop).data.guint32.choices[n].title);
+				gm_snprintf(s, sizeof(s), "%u: %s",
+						*(PROP(ps, prop).data.guint32.value),
+						PROP(ps,prop).data.guint32.choices[n].title);
 			else
-				gm_snprintf(s, sizeof(s),
-					"%d: No descriptive string found for this value",
-					*(PROP(ps, prop).data.guint32.value));
-			break;
+				gm_snprintf(s, sizeof s,
+						"%u: No descriptive string found for this value",
+						*(PROP(ps, prop).data.guint32.value));
 		}
-		case PROP_TYPE_STORAGE: {
-			g_strlcpy(s, guid_hex_str(prop_get_storage(ps, prop, NULL,
-							PROP(ps,prop).vector_size)), sizeof(s));
-			break;
+		break;
+	case PROP_TYPE_STORAGE:
+		g_strlcpy(s, guid_hex_str(prop_get_storage(ps, prop, NULL,
+			PROP(ps,prop).vector_size)), sizeof s);
+		break;
+	default:
+		s[0] = '\0';
+		g_error("update_entry_gnet: incompatible type %s",
+			prop_type_str[PROP(ps,prop).type]);
+	}
+
+	return s;
+}
+
+/**
+ * Fetches the default value of property as a string.
+ */
+const gchar *
+prop_default_to_string(prop_set_t *ps, property_t prop)
+{
+	static gchar s[4096];
+	const prop_def_t *p = &PROP(ps, prop);
+	
+	switch (p->type) {
+	case PROP_TYPE_GUINT32:
+		gm_snprintf(s, sizeof s, "%u", (guint) p->data.guint32.def[0]);
+		break;
+	case PROP_TYPE_GUINT64:
+		uint64_to_string_buf(p->data.guint64.def[0], s, sizeof s);
+		break;
+	case PROP_TYPE_STRING:
+		g_strlcpy(s, *p->data.string.def ? *p->data.string.def : "", sizeof s);
+		break;
+	case PROP_TYPE_IP:
+		g_strlcpy(s, ip_to_string(p->data.guint32.def[0]), sizeof s);
+		break;
+	case PROP_TYPE_BOOLEAN:
+		g_strlcpy(s, p->data.boolean.def[0] ? "TRUE" : "FALSE", sizeof s);
+		break;
+	case PROP_TYPE_MULTICHOICE:
+		{
+			guint n = 0;
+
+			while (
+				p->data.guint32.choices[n].title != NULL &&
+				p->data.guint32.choices[n].value != *p->data.guint32.def
+			  )
+				n++;
+
+			if (p->data.guint32.choices[n].title != NULL)
+				gm_snprintf(s, sizeof s, "%u: %s",
+					*(p->data.guint32.def), p->data.guint32.choices[n].title);
+			else
+				gm_snprintf(s, sizeof s,
+					"%u: No descriptive string found for this value",
+					*(p->data.guint32.def));
 		}
-		default:
-			s[0] = '\0';
-			g_error("update_entry_gnet: incompatible type %s",
-				prop_type_str[PROP(ps,prop).type]);
+		break;
+	case PROP_TYPE_STORAGE:
+		g_strlcpy(s, guid_hex_str(prop_get_storage(ps, prop, NULL,
+			PROP(ps,prop).vector_size)), sizeof s);
+		break;
+	default:
+		s[0] = '\0';
+		g_error("update_entry_gnet: incompatible type %s",
+			prop_type_str[PROP(ps,prop).type]);
 	}
 
 	return s;
