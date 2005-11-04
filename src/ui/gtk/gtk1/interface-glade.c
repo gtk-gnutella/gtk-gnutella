@@ -11171,29 +11171,27 @@ create_dlg_prefs (void)
   GtkWidget *clist_dbg_property;
   GtkWidget *label766;
   GtkWidget *label767;
-  GtkWidget *label768;
+  GtkWidget *label_767;
+  GtkWidget *label_768;
   GtkWidget *hbox2103;
   GtkWidget *label769;
   GtkWidget *label_dbg_property_name;
+  GtkWidget *label771;
+  GtkWidget *label_dbg_property_limits;
+  GtkWidget *hbox2104;
+  GtkWidget *label773;
+  GtkWidget *entry_dbg_property_default;
+  GtkWidget *hbox2105;
+  GtkWidget *label774;
   GtkWidget *entry_dbg_property_value;
   GtkWidget *frame_expert_unmapped;
   GtkWidget *table57;
-  GtkWidget *label465;
   GtkWidget *label466;
-  GtkWidget *label467;
   GtkWidget *label468;
-  GtkWidget *label479;
   GtkWidget *label480;
-  GtkWidget *label508;
-  GtkWidget *label713;
-  GtkWidget *entry_current_ip_stamp;
   GtkWidget *entry_average_ip_uptime;
-  GtkWidget *entry_start_stamp;
   GtkWidget *entry_average_servent_uptime;
-  GtkWidget *entry_sys_nofile;
   GtkWidget *entry_sys_physmem;
-  GtkWidget *entry_crawler_visit_count;
-  GtkWidget *entry_udp_crawler_visit_count;
   GtkWidget *label688;
   GtkWidget *dialog_action_area2;
   GtkWidget *hbox205;
@@ -16778,7 +16776,7 @@ create_dlg_prefs (void)
   gtk_box_pack_start (GTK_BOX (vbox139), scrolledwindow492, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow492), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  clist_dbg_property = gtk_clist_new (3);
+  clist_dbg_property = gtk_clist_new (4);
   gtk_widget_set_name (clist_dbg_property, "clist_dbg_property");
   gtk_widget_ref (clist_dbg_property);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "clist_dbg_property", clist_dbg_property,
@@ -16786,8 +16784,9 @@ create_dlg_prefs (void)
   gtk_widget_show (clist_dbg_property);
   gtk_container_add (GTK_CONTAINER (scrolledwindow492), clist_dbg_property);
   gtk_clist_set_column_width (GTK_CLIST (clist_dbg_property), 0, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_dbg_property), 1, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_dbg_property), 2, 80);
+  gtk_clist_set_column_width (GTK_CLIST (clist_dbg_property), 1, 160);
+  gtk_clist_set_column_width (GTK_CLIST (clist_dbg_property), 2, 160);
+  gtk_clist_set_column_width (GTK_CLIST (clist_dbg_property), 3, 80);
   gtk_clist_set_selection_mode (GTK_CLIST (clist_dbg_property), GTK_SELECTION_BROWSE);
   gtk_clist_column_titles_show (GTK_CLIST (clist_dbg_property));
 
@@ -16807,13 +16806,21 @@ create_dlg_prefs (void)
   gtk_widget_show (label767);
   gtk_clist_set_column_widget (GTK_CLIST (clist_dbg_property), 1, label767);
 
-  label768 = gtk_label_new (_("Description"));
-  gtk_widget_set_name (label768, "label768");
-  gtk_widget_ref (label768);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label768", label768,
+  label_767 = gtk_label_new (_("Value"));
+  gtk_widget_set_name (label_767, "label_767");
+  gtk_widget_ref (label_767);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label_767", label_767,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label768);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_dbg_property), 2, label768);
+  gtk_widget_show (label_767);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_dbg_property), 2, label_767);
+
+  label_768 = gtk_label_new (_("Saved"));
+  gtk_widget_set_name (label_768, "label_768");
+  gtk_widget_ref (label_768);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label_768", label_768,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_768);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_dbg_property), 3, label_768);
 
   hbox2103 = gtk_hbox_new (FALSE, 2);
   gtk_widget_set_name (hbox2103, "hbox2103");
@@ -16824,7 +16831,7 @@ create_dlg_prefs (void)
   gtk_box_pack_start (GTK_BOX (vbox139), hbox2103, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (hbox2103), 2);
 
-  label769 = gtk_label_new (_("Edit value of property"));
+  label769 = gtk_label_new (_("Selected property:"));
   gtk_widget_set_name (label769, "label769");
   gtk_widget_ref (label769);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label769", label769,
@@ -16832,13 +16839,77 @@ create_dlg_prefs (void)
   gtk_widget_show (label769);
   gtk_box_pack_start (GTK_BOX (hbox2103), label769, FALSE, TRUE, 0);
 
-  label_dbg_property_name = gtk_label_new ("");
+  label_dbg_property_name = gtk_label_new (_("<no property selected>"));
   gtk_widget_set_name (label_dbg_property_name, "label_dbg_property_name");
   gtk_widget_ref (label_dbg_property_name);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label_dbg_property_name", label_dbg_property_name,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_dbg_property_name);
-  gtk_box_pack_start (GTK_BOX (hbox2103), label_dbg_property_name, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox2103), label_dbg_property_name, FALSE, TRUE, 0);
+  gtk_misc_set_alignment (GTK_MISC (label_dbg_property_name), 7.45058e-09, 0.5);
+
+  label771 = gtk_label_new (_("Min/Max:"));
+  gtk_widget_set_name (label771, "label771");
+  gtk_widget_ref (label771);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label771", label771,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label771);
+  gtk_box_pack_start (GTK_BOX (hbox2103), label771, TRUE, TRUE, 0);
+  gtk_misc_set_alignment (GTK_MISC (label771), 1, 0.5);
+
+  label_dbg_property_limits = gtk_label_new (_("<no property selected>"));
+  gtk_widget_set_name (label_dbg_property_limits, "label_dbg_property_limits");
+  gtk_widget_ref (label_dbg_property_limits);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label_dbg_property_limits", label_dbg_property_limits,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_dbg_property_limits);
+  gtk_box_pack_start (GTK_BOX (hbox2103), label_dbg_property_limits, FALSE, FALSE, 0);
+  gtk_misc_set_alignment (GTK_MISC (label_dbg_property_limits), 7.45058e-09, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label_dbg_property_limits), 4, 0);
+
+  hbox2104 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox2104, "hbox2104");
+  gtk_widget_ref (hbox2104);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "hbox2104", hbox2104,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox2104);
+  gtk_box_pack_start (GTK_BOX (vbox139), hbox2104, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (hbox2104), 2);
+
+  label773 = gtk_label_new (_("Default value:"));
+  gtk_widget_set_name (label773, "label773");
+  gtk_widget_ref (label773);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label773", label773,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label773);
+  gtk_box_pack_start (GTK_BOX (hbox2104), label773, FALSE, FALSE, 0);
+
+  entry_dbg_property_default = gtk_entry_new ();
+  gtk_widget_set_name (entry_dbg_property_default, "entry_dbg_property_default");
+  gtk_widget_ref (entry_dbg_property_default);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_dbg_property_default", entry_dbg_property_default,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_dbg_property_default);
+  gtk_box_pack_start (GTK_BOX (hbox2104), entry_dbg_property_default, TRUE, TRUE, 0);
+  gtk_entry_set_editable (GTK_ENTRY (entry_dbg_property_default), FALSE);
+  gtk_entry_set_text (GTK_ENTRY (entry_dbg_property_default), _("<no property selected>"));
+
+  hbox2105 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox2105, "hbox2105");
+  gtk_widget_ref (hbox2105);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "hbox2105", hbox2105,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox2105);
+  gtk_box_pack_start (GTK_BOX (vbox139), hbox2105, FALSE, FALSE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (hbox2105), 2);
+
+  label774 = gtk_label_new (_("Edit value:"));
+  gtk_widget_set_name (label774, "label774");
+  gtk_widget_ref (label774);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label774", label774,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label774);
+  gtk_box_pack_start (GTK_BOX (hbox2105), label774, FALSE, FALSE, 0);
 
   entry_dbg_property_value = gtk_entry_new ();
   gtk_widget_set_name (entry_dbg_property_value, "entry_dbg_property_value");
@@ -16846,7 +16917,8 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_dbg_property_value", entry_dbg_property_value,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_dbg_property_value);
-  gtk_box_pack_start (GTK_BOX (hbox2103), entry_dbg_property_value, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox2105), entry_dbg_property_value, TRUE, TRUE, 0);
+  gtk_entry_set_text (GTK_ENTRY (entry_dbg_property_value), _("<no property selected>"));
 
   frame_expert_unmapped = gtk_frame_new (_("Diverse properties"));
   gtk_widget_set_name (frame_expert_unmapped, "frame_expert_unmapped");
@@ -16856,7 +16928,7 @@ create_dlg_prefs (void)
   gtk_widget_show (frame_expert_unmapped);
   gtk_box_pack_start (GTK_BOX (vbox75), frame_expert_unmapped, FALSE, TRUE, 0);
 
-  table57 = gtk_table_new (8, 2, FALSE);
+  table57 = gtk_table_new (3, 2, FALSE);
   gtk_widget_set_name (table57, "table57");
   gtk_widget_ref (table57);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table57", table57,
@@ -16867,38 +16939,16 @@ create_dlg_prefs (void)
   gtk_table_set_row_spacings (GTK_TABLE (table57), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table57), 4);
 
-  label465 = gtk_label_new (_("The current IP address was set at:"));
-  gtk_widget_set_name (label465, "label465");
-  gtk_widget_ref (label465);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label465", label465,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label465);
-  gtk_table_attach (GTK_TABLE (table57), label465, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label465), 0, 0.5);
-
   label466 = gtk_label_new (_("Avg. time between IP address changes:"));
   gtk_widget_set_name (label466, "label466");
   gtk_widget_ref (label466);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label466", label466,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label466);
-  gtk_table_attach (GTK_TABLE (table57), label466, 0, 1, 1, 2,
+  gtk_table_attach (GTK_TABLE (table57), label466, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label466), 0, 0.5);
-
-  label467 = gtk_label_new (_("Running since:"));
-  gtk_widget_set_name (label467, "label467");
-  gtk_widget_ref (label467);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label467", label467,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label467);
-  gtk_table_attach (GTK_TABLE (table57), label467, 0, 1, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label467), 0, 0.5);
 
   label468 = gtk_label_new (_("Avg. uptime of this servent:"));
   gtk_widget_set_name (label468, "label468");
@@ -16906,21 +16956,10 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label468", label468,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label468);
-  gtk_table_attach (GTK_TABLE (table57), label468, 0, 1, 3, 4,
+  gtk_table_attach (GTK_TABLE (table57), label468, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label468), 0, 0.5);
-
-  label479 = gtk_label_new (_("Max. number of open files:"));
-  gtk_widget_set_name (label479, "label479");
-  gtk_widget_ref (label479);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label479", label479,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label479);
-  gtk_table_attach (GTK_TABLE (table57), label479, 0, 1, 4, 5,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label479), 0, 0.5);
 
   label480 = gtk_label_new (_("Available physical memory:"));
   gtk_widget_set_name (label480, "label480");
@@ -16928,43 +16967,10 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label480", label480,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label480);
-  gtk_table_attach (GTK_TABLE (table57), label480, 0, 1, 5, 6,
+  gtk_table_attach (GTK_TABLE (table57), label480, 0, 1, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label480), 0, 0.5);
-
-  label508 = gtk_label_new (_("TCP crawler visits:"));
-  gtk_widget_set_name (label508, "label508");
-  gtk_widget_ref (label508);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label508", label508,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label508);
-  gtk_table_attach (GTK_TABLE (table57), label508, 0, 1, 6, 7,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label508), 0, 0.5);
-
-  label713 = gtk_label_new (_("UDP crawler visits:"));
-  gtk_widget_set_name (label713, "label713");
-  gtk_widget_ref (label713);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label713", label713,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label713);
-  gtk_table_attach (GTK_TABLE (table57), label713, 0, 1, 7, 8,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label713), 0, 0.5);
-
-  entry_current_ip_stamp = gtk_entry_new ();
-  gtk_widget_set_name (entry_current_ip_stamp, "entry_current_ip_stamp");
-  gtk_widget_ref (entry_current_ip_stamp);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_current_ip_stamp", entry_current_ip_stamp,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_current_ip_stamp);
-  gtk_table_attach (GTK_TABLE (table57), entry_current_ip_stamp, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_entry_set_editable (GTK_ENTRY (entry_current_ip_stamp), FALSE);
 
   entry_average_ip_uptime = gtk_entry_new ();
   gtk_widget_set_name (entry_average_ip_uptime, "entry_average_ip_uptime");
@@ -16972,21 +16978,10 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_average_ip_uptime", entry_average_ip_uptime,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_average_ip_uptime);
-  gtk_table_attach (GTK_TABLE (table57), entry_average_ip_uptime, 1, 2, 1, 2,
+  gtk_table_attach (GTK_TABLE (table57), entry_average_ip_uptime, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_entry_set_editable (GTK_ENTRY (entry_average_ip_uptime), FALSE);
-
-  entry_start_stamp = gtk_entry_new ();
-  gtk_widget_set_name (entry_start_stamp, "entry_start_stamp");
-  gtk_widget_ref (entry_start_stamp);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_start_stamp", entry_start_stamp,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_start_stamp);
-  gtk_table_attach (GTK_TABLE (table57), entry_start_stamp, 1, 2, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_entry_set_editable (GTK_ENTRY (entry_start_stamp), FALSE);
 
   entry_average_servent_uptime = gtk_entry_new ();
   gtk_widget_set_name (entry_average_servent_uptime, "entry_average_servent_uptime");
@@ -16994,21 +16989,10 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_average_servent_uptime", entry_average_servent_uptime,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_average_servent_uptime);
-  gtk_table_attach (GTK_TABLE (table57), entry_average_servent_uptime, 1, 2, 3, 4,
+  gtk_table_attach (GTK_TABLE (table57), entry_average_servent_uptime, 1, 2, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_entry_set_editable (GTK_ENTRY (entry_average_servent_uptime), FALSE);
-
-  entry_sys_nofile = gtk_entry_new ();
-  gtk_widget_set_name (entry_sys_nofile, "entry_sys_nofile");
-  gtk_widget_ref (entry_sys_nofile);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_sys_nofile", entry_sys_nofile,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_sys_nofile);
-  gtk_table_attach (GTK_TABLE (table57), entry_sys_nofile, 1, 2, 4, 5,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_entry_set_editable (GTK_ENTRY (entry_sys_nofile), FALSE);
 
   entry_sys_physmem = gtk_entry_new ();
   gtk_widget_set_name (entry_sys_physmem, "entry_sys_physmem");
@@ -17016,32 +17000,10 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_sys_physmem", entry_sys_physmem,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_sys_physmem);
-  gtk_table_attach (GTK_TABLE (table57), entry_sys_physmem, 1, 2, 5, 6,
+  gtk_table_attach (GTK_TABLE (table57), entry_sys_physmem, 1, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_entry_set_editable (GTK_ENTRY (entry_sys_physmem), FALSE);
-
-  entry_crawler_visit_count = gtk_entry_new ();
-  gtk_widget_set_name (entry_crawler_visit_count, "entry_crawler_visit_count");
-  gtk_widget_ref (entry_crawler_visit_count);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_crawler_visit_count", entry_crawler_visit_count,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_crawler_visit_count);
-  gtk_table_attach (GTK_TABLE (table57), entry_crawler_visit_count, 1, 2, 6, 7,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_entry_set_editable (GTK_ENTRY (entry_crawler_visit_count), FALSE);
-
-  entry_udp_crawler_visit_count = gtk_entry_new ();
-  gtk_widget_set_name (entry_udp_crawler_visit_count, "entry_udp_crawler_visit_count");
-  gtk_widget_ref (entry_udp_crawler_visit_count);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_udp_crawler_visit_count", entry_udp_crawler_visit_count,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_udp_crawler_visit_count);
-  gtk_table_attach (GTK_TABLE (table57), entry_udp_crawler_visit_count, 1, 2, 7, 8,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_entry_set_editable (GTK_ENTRY (entry_udp_crawler_visit_count), FALSE);
 
   label688 = gtk_label_new (_("Debugging"));
   gtk_widget_set_name (label688, "label688");
@@ -17152,14 +17114,17 @@ create_dlg_prefs (void)
   gtk_signal_connect (GTK_OBJECT (entry_config_extensions), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_config_extensions_focus_out_event),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_dbg_property_pattern), "focus_out_event",
-                      GTK_SIGNAL_FUNC (on_entry_dbg_property_pattern_focus_out_event),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (entry_dbg_property_pattern), "activate",
                       GTK_SIGNAL_FUNC (on_entry_dbg_property_pattern_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_dbg_property), "select_row",
                       GTK_SIGNAL_FUNC (on_clist_dbg_property_select_row),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (clist_dbg_property), "click_column",
+                      GTK_SIGNAL_FUNC (on_clist_dbg_property_click_column),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_dbg_property_default), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_dbg_property_value_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_dbg_property_value), "activate",
                       GTK_SIGNAL_FUNC (on_entry_dbg_property_value_activate),
@@ -17352,7 +17317,7 @@ create_dlg_faq (void)
   gtk_object_set_data (GTK_OBJECT (dlg_faq), "dlg_faq", dlg_faq);
   gtk_window_set_title (GTK_WINDOW (dlg_faq), _("gtk-gnutella - Frequently Asked Questions"));
   gtk_window_set_position (GTK_WINDOW (dlg_faq), GTK_WIN_POS_MOUSE);
-  gtk_window_set_default_size (GTK_WINDOW (dlg_faq), 400, 400);
+  gtk_window_set_default_size (GTK_WINDOW (dlg_faq), 600, 400);
 
   vbox146 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox146, "vbox146");

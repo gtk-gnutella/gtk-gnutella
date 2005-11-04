@@ -24754,11 +24754,6 @@ allowed</label>
 		    <name>entry_dbg_property_pattern</name>
 		    <can_focus>True</can_focus>
 		    <signal>
-		      <name>focus_out_event</name>
-		      <handler>on_entry_dbg_property_pattern_focus_out_event</handler>
-		      <last_modification_time>Tue, 01 Nov 2005 01:00:47 GMT</last_modification_time>
-		    </signal>
-		    <signal>
 		      <name>activate</name>
 		      <handler>on_entry_dbg_property_pattern_activate</handler>
 		      <last_modification_time>Tue, 01 Nov 2005 01:00:56 GMT</last_modification_time>
@@ -24797,8 +24792,13 @@ allowed</label>
 		      <handler>on_clist_dbg_property_select_row</handler>
 		      <last_modification_time>Tue, 01 Nov 2005 05:38:39 GMT</last_modification_time>
 		    </signal>
-		    <columns>3</columns>
-		    <column_widths>80,80,80</column_widths>
+		    <signal>
+		      <name>click_column</name>
+		      <handler>on_clist_dbg_property_click_column</handler>
+		      <last_modification_time>Fri, 04 Nov 2005 17:02:31 GMT</last_modification_time>
+		    </signal>
+		    <columns>4</columns>
+		    <column_widths>80,160,160,80</column_widths>
 		    <selection_mode>GTK_SELECTION_BROWSE</selection_mode>
 		    <show_titles>True</show_titles>
 		    <shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -24832,8 +24832,21 @@ allowed</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <child_name>CList:title</child_name>
-		      <name>label768</name>
-		      <label>Description</label>
+		      <name>label_767</name>
+		      <label>Value</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <child_name>CList:title</child_name>
+		      <name>label_768</name>
+		      <label>Saved</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0.5</xalign>
@@ -24859,7 +24872,7 @@ allowed</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label769</name>
-		    <label>Edit value of property</label>
+		    <label>Selected property:</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0.5</xalign>
@@ -24876,7 +24889,71 @@ allowed</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label_dbg_property_name</name>
-		    <label></label>
+		    <label>&lt;no property selected&gt;</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>7.45058e-09</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>True</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label771</name>
+		    <label>Min/Max:</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>1</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <padding>0</padding>
+		      <expand>True</expand>
+		      <fill>True</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label_dbg_property_limits</name>
+		    <label>&lt;no property selected&gt;</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>7.45058e-09</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>4</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkHBox</class>
+		  <name>hbox2104</name>
+		  <border_width>2</border_width>
+		  <homogeneous>False</homogeneous>
+		  <spacing>4</spacing>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>True</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label773</name>
+		    <label>Default value:</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0.5</xalign>
@@ -24885,8 +24962,58 @@ allowed</label>
 		    <ypad>0</ypad>
 		    <child>
 		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkEntry</class>
+		    <name>entry_dbg_property_default</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>activate</name>
+		      <handler>on_entry_dbg_property_value_activate</handler>
+		      <last_modification_time>Tue, 01 Nov 2005 05:19:19 GMT</last_modification_time>
+		    </signal>
+		    <editable>False</editable>
+		    <text_visible>True</text_visible>
+		    <text_max_length>0</text_max_length>
+		    <text>&lt;no property selected&gt;</text>
+		    <child>
+		      <padding>0</padding>
 		      <expand>True</expand>
 		      <fill>True</fill>
+		    </child>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkHBox</class>
+		  <name>hbox2105</name>
+		  <border_width>2</border_width>
+		  <homogeneous>False</homogeneous>
+		  <spacing>4</spacing>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label774</name>
+		    <label>Edit value:</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
 		    </child>
 		  </widget>
 
@@ -24902,7 +25029,7 @@ allowed</label>
 		    <editable>True</editable>
 		    <text_visible>True</text_visible>
 		    <text_max_length>0</text_max_length>
-		    <text></text>
+		    <text>&lt;no property selected&gt;</text>
 		    <child>
 		      <padding>0</padding>
 		      <expand>True</expand>
@@ -24929,37 +25056,11 @@ allowed</label>
 		<class>GtkTable</class>
 		<name>table57</name>
 		<border_width>2</border_width>
-		<rows>8</rows>
+		<rows>3</rows>
 		<columns>2</columns>
 		<homogeneous>False</homogeneous>
 		<row_spacing>2</row_spacing>
 		<column_spacing>4</column_spacing>
-
-		<widget>
-		  <class>GtkLabel</class>
-		  <name>label465</name>
-		  <label>The current IP address was set at:</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
-		  <wrap>False</wrap>
-		  <xalign>0</xalign>
-		  <yalign>0.5</yalign>
-		  <xpad>0</xpad>
-		  <ypad>0</ypad>
-		  <child>
-		    <left_attach>0</left_attach>
-		    <right_attach>1</right_attach>
-		    <top_attach>0</top_attach>
-		    <bottom_attach>1</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
 
 		<widget>
 		  <class>GtkLabel</class>
@@ -24974,34 +25075,8 @@ allowed</label>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
-		    <top_attach>1</top_attach>
-		    <bottom_attach>2</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkLabel</class>
-		  <name>label467</name>
-		  <label>Running since:</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
-		  <wrap>False</wrap>
-		  <xalign>0</xalign>
-		  <yalign>0.5</yalign>
-		  <xpad>0</xpad>
-		  <ypad>0</ypad>
-		  <child>
-		    <left_attach>0</left_attach>
-		    <right_attach>1</right_attach>
-		    <top_attach>2</top_attach>
-		    <bottom_attach>3</bottom_attach>
+		    <top_attach>0</top_attach>
+		    <bottom_attach>1</bottom_attach>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
 		    <xexpand>False</xexpand>
@@ -25026,34 +25101,8 @@ allowed</label>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
-		    <top_attach>3</top_attach>
-		    <bottom_attach>4</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkLabel</class>
-		  <name>label479</name>
-		  <label>Max. number of open files:</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
-		  <wrap>False</wrap>
-		  <xalign>0</xalign>
-		  <yalign>0.5</yalign>
-		  <xpad>0</xpad>
-		  <ypad>0</ypad>
-		  <child>
-		    <left_attach>0</left_attach>
-		    <right_attach>1</right_attach>
-		    <top_attach>4</top_attach>
-		    <bottom_attach>5</bottom_attach>
+		    <top_attach>1</top_attach>
+		    <bottom_attach>2</bottom_attach>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
 		    <xexpand>False</xexpand>
@@ -25078,60 +25127,8 @@ allowed</label>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
-		    <top_attach>5</top_attach>
-		    <bottom_attach>6</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkLabel</class>
-		  <name>label508</name>
-		  <label>TCP crawler visits:</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
-		  <wrap>False</wrap>
-		  <xalign>0</xalign>
-		  <yalign>0.5</yalign>
-		  <xpad>0</xpad>
-		  <ypad>0</ypad>
-		  <child>
-		    <left_attach>0</left_attach>
-		    <right_attach>1</right_attach>
-		    <top_attach>6</top_attach>
-		    <bottom_attach>7</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkLabel</class>
-		  <name>label713</name>
-		  <label>UDP crawler visits:</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
-		  <wrap>False</wrap>
-		  <xalign>0</xalign>
-		  <yalign>0.5</yalign>
-		  <xpad>0</xpad>
-		  <ypad>0</ypad>
-		  <child>
-		    <left_attach>0</left_attach>
-		    <right_attach>1</right_attach>
-		    <top_attach>7</top_attach>
-		    <bottom_attach>8</bottom_attach>
+		    <top_attach>2</top_attach>
+		    <bottom_attach>3</bottom_attach>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
 		    <xexpand>False</xexpand>
@@ -25145,7 +25142,7 @@ allowed</label>
 
 		<widget>
 		  <class>GtkEntry</class>
-		  <name>entry_current_ip_stamp</name>
+		  <name>entry_average_ip_uptime</name>
 		  <can_focus>True</can_focus>
 		  <editable>False</editable>
 		  <text_visible>True</text_visible>
@@ -25169,7 +25166,7 @@ allowed</label>
 
 		<widget>
 		  <class>GtkEntry</class>
-		  <name>entry_average_ip_uptime</name>
+		  <name>entry_average_servent_uptime</name>
 		  <can_focus>True</can_focus>
 		  <editable>False</editable>
 		  <text_visible>True</text_visible>
@@ -25193,7 +25190,7 @@ allowed</label>
 
 		<widget>
 		  <class>GtkEntry</class>
-		  <name>entry_start_stamp</name>
+		  <name>entry_sys_physmem</name>
 		  <can_focus>True</can_focus>
 		  <editable>False</editable>
 		  <text_visible>True</text_visible>
@@ -25204,126 +25201,6 @@ allowed</label>
 		    <right_attach>2</right_attach>
 		    <top_attach>2</top_attach>
 		    <bottom_attach>3</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkEntry</class>
-		  <name>entry_average_servent_uptime</name>
-		  <can_focus>True</can_focus>
-		  <editable>False</editable>
-		  <text_visible>True</text_visible>
-		  <text_max_length>0</text_max_length>
-		  <text></text>
-		  <child>
-		    <left_attach>1</left_attach>
-		    <right_attach>2</right_attach>
-		    <top_attach>3</top_attach>
-		    <bottom_attach>4</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkEntry</class>
-		  <name>entry_sys_nofile</name>
-		  <can_focus>True</can_focus>
-		  <editable>False</editable>
-		  <text_visible>True</text_visible>
-		  <text_max_length>0</text_max_length>
-		  <text></text>
-		  <child>
-		    <left_attach>1</left_attach>
-		    <right_attach>2</right_attach>
-		    <top_attach>4</top_attach>
-		    <bottom_attach>5</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkEntry</class>
-		  <name>entry_sys_physmem</name>
-		  <can_focus>True</can_focus>
-		  <editable>False</editable>
-		  <text_visible>True</text_visible>
-		  <text_max_length>0</text_max_length>
-		  <text></text>
-		  <child>
-		    <left_attach>1</left_attach>
-		    <right_attach>2</right_attach>
-		    <top_attach>5</top_attach>
-		    <bottom_attach>6</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkEntry</class>
-		  <name>entry_crawler_visit_count</name>
-		  <can_focus>True</can_focus>
-		  <editable>False</editable>
-		  <text_visible>True</text_visible>
-		  <text_max_length>0</text_max_length>
-		  <text></text>
-		  <child>
-		    <left_attach>1</left_attach>
-		    <right_attach>2</right_attach>
-		    <top_attach>6</top_attach>
-		    <bottom_attach>7</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkEntry</class>
-		  <name>entry_udp_crawler_visit_count</name>
-		  <can_focus>True</can_focus>
-		  <editable>False</editable>
-		  <text_visible>True</text_visible>
-		  <text_max_length>0</text_max_length>
-		  <text></text>
-		  <child>
-		    <left_attach>1</left_attach>
-		    <right_attach>2</right_attach>
-		    <top_attach>7</top_attach>
-		    <bottom_attach>8</bottom_attach>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
 		    <xexpand>False</xexpand>
@@ -25459,7 +25336,7 @@ allowed</label>
   <type>GTK_WINDOW_TOPLEVEL</type>
   <position>GTK_WIN_POS_MOUSE</position>
   <modal>False</modal>
-  <default_width>400</default_width>
+  <default_width>600</default_width>
   <default_height>400</default_height>
   <allow_shrink>False</allow_shrink>
   <allow_grow>True</allow_grow>
