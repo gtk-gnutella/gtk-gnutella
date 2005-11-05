@@ -276,7 +276,14 @@ menu_collapse(GtkTreeView *tv, GtkTreeIter *first)
 		next = iter;
 	} while (gtk_tree_model_iter_next(model, &next));
 }
-	
+
+/**
+ * Keeps track of whether the cursor is still inside the menu treeview
+ * because tree motion events are delay and thus can be delivered after
+ * the cursor has left the menu. These events should be discarded.
+ */
+static gboolean menu_has_cursor;
+
 void
 on_main_gui_treeview_menu_motion(GtkTreeView *tv, GtkTreePath *path)
 {
@@ -285,12 +292,18 @@ on_main_gui_treeview_menu_motion(GtkTreeView *tv, GtkTreePath *path)
 
 	g_assert(tv != NULL);
 
-	if (!path)
+	if (!menu_has_cursor)
 		return;
 	
 	model = gtk_tree_view_get_model(tv);
 	g_return_if_fail(model);
 
+	if (!path) {
+		if (gtk_tree_model_get_iter_first(model, &iter))
+			menu_collapse(tv, &iter);
+		return;
+	}
+	
 	if (!gtk_tree_model_get_iter(model, &iter, path))
 		return;
 	
@@ -299,6 +312,17 @@ on_main_gui_treeview_menu_motion(GtkTreeView *tv, GtkTreePath *path)
 		if (gtk_tree_model_iter_next(model, &iter))
 			menu_collapse(tv, &iter);
 	}
+}
+
+gboolean
+on_main_gui_treeview_menu_enter_notify(GtkWidget *unused_widget,
+	GdkEventCrossing *unused_event, gpointer unused_udata)
+{
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+	menu_has_cursor = TRUE;
+	return FALSE;
 }
 
 gboolean
@@ -315,6 +339,8 @@ on_main_gui_treeview_menu_leave_notify(GtkWidget *widget,
 	tv = GTK_TREE_VIEW(widget);
 	model = gtk_tree_view_get_model(tv);
 	g_assert(model);
+	
+	menu_has_cursor = FALSE;
 	
 	if (gtk_tree_model_get_iter_first(model, &first))
 		menu_collapse(tv, &first);
