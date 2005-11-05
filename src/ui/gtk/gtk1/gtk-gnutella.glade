@@ -24807,7 +24807,7 @@ allowed</label>
 		      <class>GtkLabel</class>
 		      <child_name>CList:title</child_name>
 		      <name>label766</name>
-		      <label>Property</label>
+		      <label>Saved</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0.5</xalign>
@@ -24820,7 +24820,7 @@ allowed</label>
 		      <class>GtkLabel</class>
 		      <child_name>CList:title</child_name>
 		      <name>label767</name>
-		      <label>Value</label>
+		      <label>Type</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0.5</xalign>
@@ -24833,7 +24833,7 @@ allowed</label>
 		      <class>GtkLabel</class>
 		      <child_name>CList:title</child_name>
 		      <name>label_767</name>
-		      <label>Value</label>
+		      <label>Property</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0.5</xalign>
@@ -24846,10 +24846,10 @@ allowed</label>
 		      <class>GtkLabel</class>
 		      <child_name>CList:title</child_name>
 		      <name>label_768</name>
-		      <label>Saved</label>
+		      <label>Value</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
-		      <xalign>0.5</xalign>
+		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>

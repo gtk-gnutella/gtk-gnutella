@@ -10043,7 +10043,7 @@ create_dlg_about (void)
   gtk_widget_show (label_about_title);
   gtk_box_pack_start (GTK_BOX (hbox170), label_about_title, TRUE, TRUE, 0);
 
-  label_about_rcsid = gtk_label_new (_("$Id$"));
+  label_about_rcsid = gtk_label_new ("$Id$");
   gtk_widget_set_name (label_about_rcsid, "label_about_rcsid");
   gtk_widget_ref (label_about_rcsid);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label_about_rcsid", label_about_rcsid,
@@ -16790,7 +16790,7 @@ create_dlg_prefs (void)
   gtk_clist_set_selection_mode (GTK_CLIST (clist_dbg_property), GTK_SELECTION_BROWSE);
   gtk_clist_column_titles_show (GTK_CLIST (clist_dbg_property));
 
-  label766 = gtk_label_new (_("Property"));
+  label766 = gtk_label_new (_("Saved"));
   gtk_widget_set_name (label766, "label766");
   gtk_widget_ref (label766);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label766", label766,
@@ -16798,7 +16798,7 @@ create_dlg_prefs (void)
   gtk_widget_show (label766);
   gtk_clist_set_column_widget (GTK_CLIST (clist_dbg_property), 0, label766);
 
-  label767 = gtk_label_new (_("Value"));
+  label767 = gtk_label_new (_("Type"));
   gtk_widget_set_name (label767, "label767");
   gtk_widget_ref (label767);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label767", label767,
@@ -16806,7 +16806,7 @@ create_dlg_prefs (void)
   gtk_widget_show (label767);
   gtk_clist_set_column_widget (GTK_CLIST (clist_dbg_property), 1, label767);
 
-  label_767 = gtk_label_new (_("Value"));
+  label_767 = gtk_label_new (_("Property"));
   gtk_widget_set_name (label_767, "label_767");
   gtk_widget_ref (label_767);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label_767", label_767,
@@ -16814,13 +16814,14 @@ create_dlg_prefs (void)
   gtk_widget_show (label_767);
   gtk_clist_set_column_widget (GTK_CLIST (clist_dbg_property), 2, label_767);
 
-  label_768 = gtk_label_new (_("Saved"));
+  label_768 = gtk_label_new (_("Value"));
   gtk_widget_set_name (label_768, "label_768");
   gtk_widget_ref (label_768);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label_768", label_768,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_768);
   gtk_clist_set_column_widget (GTK_CLIST (clist_dbg_property), 3, label_768);
+  gtk_misc_set_alignment (GTK_MISC (label_768), 0, 0.5);
 
   hbox2103 = gtk_hbox_new (FALSE, 2);
   gtk_widget_set_name (hbox2103, "hbox2103");
