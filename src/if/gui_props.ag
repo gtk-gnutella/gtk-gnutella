@@ -451,6 +451,15 @@ prop = {
 };
 
 prop = {
+    name = "navtree_visible";
+    desc = "Display Navigation Tree.";
+    type = boolean;
+    data = {
+        default     = TRUE;
+    };
+};
+
+prop = {
     name = "toolbar_visible";
     desc = "Display toolbar.";
     type = boolean;

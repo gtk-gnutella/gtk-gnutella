@@ -384,6 +384,19 @@ guint64 *gnet_prop_get_guint64(
 	gnet_prop_get_guint64(p, v, 0, 1); \
 } while (0)
 
+void gnet_prop_set_timestamp(
+    property_t, const time_t *, size_t, size_t);
+time_t *gnet_prop_get_timestamp(
+    property_t, time_t *, size_t, size_t);
+
+#define gnet_prop_set_timestamp_val(p, v) do { \
+	time_t value = v; \
+	gnet_prop_set_timestamp(p, &value, 0, 1); \
+} while (0)
+
+#define gnet_prop_get_timestamp_val(p, v) do { \
+	gnet_prop_get_timestamp(p, v, 0, 1); \
+} while (0)
 void gnet_prop_set_storage(property_t, const gchar *, size_t);
 gchar *gnet_prop_get_storage(property_t, gchar *, size_t);
 

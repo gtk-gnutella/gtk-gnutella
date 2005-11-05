@@ -47,6 +47,7 @@
         ((= type "ip") #t)
         ((= type "string") #t)
         ((= type "storage") #t)
+        ((= type "timestamp") #t)
         ((= type "multichoice") #t)
         (else #f)))
 =][=
@@ -166,6 +167,19 @@ guint64 *[=(. func-prefix)=]_get_guint64(
 	[=(. func-prefix)=]_get_guint64(p, v, 0, 1); \
 } while (0)
 
+void [=(. func-prefix)=]_set_timestamp(
+    property_t, const time_t *, size_t, size_t);
+time_t *[=(. func-prefix)=]_get_timestamp(
+    property_t, time_t *, size_t, size_t);
+
+#define [=(. func-prefix)=]_set_timestamp_val(p, v) do { \
+	time_t value = v; \
+	[=(. func-prefix)=]_set_timestamp(p, &value, 0, 1); \
+} while (0)
+
+#define [=(. func-prefix)=]_get_timestamp_val(p, v) do { \
+	[=(. func-prefix)=]_get_timestamp(p, v, 0, 1); \
+} while (0)
 void [=(. func-prefix)=]_set_storage(property_t, const gchar *, size_t);
 gchar *[=(. func-prefix)=]_get_storage(property_t, gchar *, size_t);
 
@@ -205,6 +219,7 @@ CASE type=][=
 = multichoice=]extern const guint32  [=(. item)=][=
 = string =]extern const gchar   *[=(. item)=][=
 = storage=]extern const gchar    [=(. item)=][=
+= timestamp=]extern const time_t  [=(. item)=][=
 ESAC =][=
 IF (exist? "vector_size") =][[=vector_size=]][=ENDIF=];
 [= ENDFOR prop =]
@@ -255,6 +270,9 @@ gchar   [=(. item)=][[=vector_size=]];[=
                 (define vdef (get "data.default")))
             ((= (get "type") "multichoice")
                 (define vtype "guint32  ")
+                (define vdef (get "data.default")))
+            ((= (get "type") "timestamp")
+                (define vtype "time_t  ")
                 (define vdef (get "data.default")))
             ((= (get "type") "string")
                 (define vtype "gchar   *")
@@ -395,6 +413,22 @@ FOR prop =][=
     [=(. current-prop)=].data.guint64.min   = [=data.min=];[=
     ELSE=]
     [=(. current-prop)=].data.guint64.min   = 0x0000000000000000;[=
+    ENDIF=][=
+
+    = timestamp =]
+    [=(. current-prop)=].type               = PROP_TYPE_TIMESTAMP;
+    [=(. current-prop)=].data.timestamp.def   = [=(. prop-def-var)=];
+    [=(. current-prop)=].data.timestamp.value = [=(. prop-var)=];
+    [=(. current-prop)=].data.timestamp.choices = NULL;[=
+    IF (exist? "data.max")=]
+    [=(. current-prop)=].data.timestamp.max   = [=data.max=];[=
+    ELSE=]
+    [=(. current-prop)=].data.timestamp.max   = (time_t) ((1U << 31) - 1);[=
+    ENDIF=][=
+    IF (exist? "data.min")=]
+    [=(. current-prop)=].data.timestamp.min   = [=data.min=];[=
+    ELSE=]
+    [=(. current-prop)=].data.timestamp.min   = 0x0000000000000000;[=
     ENDIF=][=
 
 	= ip =]
@@ -541,6 +575,20 @@ guint64 *
 }
 
 void
+[=(. func-prefix)=]_set_timestamp(
+    property_t prop, const time_t *src, size_t offset, size_t length)
+{
+    prop_set_timestamp([=(. prop-set)=], prop, src, offset, length);
+}
+
+time_t *
+[=(. func-prefix)=]_get_timestamp(
+    property_t prop, time_t *t, size_t offset, size_t length)
+{
+    return prop_get_timestamp([=(. prop-set)=], prop, t, offset, length);
+}
+
+void
 [=(. func-prefix)=]_set_string(property_t prop, const gchar *val)
 {
     prop_set_string([=(. prop-set)=], prop, val);
@@ -656,6 +704,10 @@ prop_set_stub_t *
 
     stub->storage.get = [=(. func-prefix)=]_get_storage;
     stub->storage.set = [=(. func-prefix)=]_set_storage;
+
+    stub->timestamp.get = [=(. func-prefix)=]_get_timestamp;
+    stub->timestamp.set = [=(. func-prefix)=]_set_timestamp;
+
 
     return stub;
 }

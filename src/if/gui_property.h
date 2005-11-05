@@ -76,6 +76,7 @@ typedef enum {
     PROP_GUI_DEBUG,
     PROP_FILTER_MAIN_DIVIDER_POS,
     PROP_SEARCH_RESULTS_SHOW_TABS,
+    PROP_NAVTREE_VISIBLE,
     PROP_TOOLBAR_VISIBLE,
     PROP_STATUSBAR_VISIBLE,
     PROP_PROGRESSBAR_UPLOADS_VISIBLE,
@@ -222,6 +223,19 @@ guint64 *gui_prop_get_guint64(
 	gui_prop_get_guint64(p, v, 0, 1); \
 } while (0)
 
+void gui_prop_set_timestamp(
+    property_t, const time_t *, size_t, size_t);
+time_t *gui_prop_get_timestamp(
+    property_t, time_t *, size_t, size_t);
+
+#define gui_prop_set_timestamp_val(p, v) do { \
+	time_t value = v; \
+	gui_prop_set_timestamp(p, &value, 0, 1); \
+} while (0)
+
+#define gui_prop_get_timestamp_val(p, v) do { \
+	gui_prop_get_timestamp(p, v, 0, 1); \
+} while (0)
 void gui_prop_set_storage(property_t, const gchar *, size_t);
 gchar *gui_prop_get_storage(property_t, gchar *, size_t);
 

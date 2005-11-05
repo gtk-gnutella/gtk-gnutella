@@ -74,8 +74,8 @@ guint64  current_ip_stamp     = 0;
 guint64  current_ip_stamp_def = 0;
 guint32  average_ip_uptime     = 0;
 guint32  average_ip_uptime_def = 0;
-guint64  start_stamp     = 0;
-guint64  start_stamp_def = 0;
+time_t  start_stamp     = 0;
+time_t  start_stamp_def = 0;
 guint32  average_servent_uptime     = 0;
 guint32  average_servent_uptime_def = 0;
 guint32  listen_port     = 1;
@@ -488,10 +488,10 @@ guint32  node_rx_size     = 16;
 guint32  node_rx_size_def = 16;
 guint32  dl_http_latency     = 0;
 guint32  dl_http_latency_def = 0;
-guint64  node_last_ultra_check     = 0;
-guint64  node_last_ultra_check_def = 0;
-guint64  node_last_ultra_leaf_switch     = 0;
-guint64  node_last_ultra_leaf_switch_def = 0;
+time_t  node_last_ultra_check     = 0;
+time_t  node_last_ultra_check_def = 0;
+time_t  node_last_ultra_leaf_switch     = 0;
+time_t  node_last_ultra_leaf_switch_def = 0;
 gboolean up_req_avg_servent_uptime     = FALSE;
 gboolean up_req_avg_servent_uptime_def = FALSE;
 gboolean up_req_avg_ip_uptime     = FALSE;
@@ -522,22 +522,22 @@ guint32  node_queries_half_life     = 5;
 guint32  node_queries_half_life_def = 5;
 guint32  node_requery_threshold     = 1700;
 guint32  node_requery_threshold_def = 1700;
-guint64  library_rescan_started     = 0;
-guint64  library_rescan_started_def = 0;
-guint64  library_rescan_finished     = 0;
-guint64  library_rescan_finished_def = 0;
+time_t  library_rescan_started     = 0;
+time_t  library_rescan_started_def = 0;
+time_t  library_rescan_finished     = 0;
+time_t  library_rescan_finished_def = 0;
 guint32  library_rescan_duration     = 0;
 guint32  library_rescan_duration_def = 0;
-guint64  qrp_indexing_started     = 0;
-guint64  qrp_indexing_started_def = 0;
+time_t  qrp_indexing_started     = 0;
+time_t  qrp_indexing_started_def = 0;
 guint32  qrp_indexing_duration     = 0;
 guint32  qrp_indexing_duration_def = 0;
-guint64  qrp_timestamp     = 0;
-guint64  qrp_timestamp_def = 0;
+time_t  qrp_timestamp     = 0;
+time_t  qrp_timestamp_def = 0;
 guint32  qrp_computation_time     = 0;
 guint32  qrp_computation_time_def = 0;
-guint64  qrp_patch_timestamp     = 0;
-guint64  qrp_patch_timestamp_def = 0;
+time_t  qrp_patch_timestamp     = 0;
+time_t  qrp_patch_timestamp_def = 0;
 guint32  qrp_patch_computation_time     = 0;
 guint32  qrp_patch_computation_time_def = 0;
 guint32  qrp_generation     = 0;
@@ -970,12 +970,12 @@ gnet_prop_init(void) {
     gnet_property->props[17].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[17].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[17].data.guint64.def   = &start_stamp_def;
-    gnet_property->props[17].data.guint64.value = &start_stamp;
-    gnet_property->props[17].data.guint64.choices = NULL;
-    gnet_property->props[17].data.guint64.max   = (guint64) -1;
-    gnet_property->props[17].data.guint64.min   = 0x0000000000000000;
+    gnet_property->props[17].type               = PROP_TYPE_TIMESTAMP;
+    gnet_property->props[17].data.timestamp.def   = &start_stamp_def;
+    gnet_property->props[17].data.timestamp.value = &start_stamp;
+    gnet_property->props[17].data.timestamp.choices = NULL;
+    gnet_property->props[17].data.timestamp.max   = (time_t) -1;
+    gnet_property->props[17].data.timestamp.min   = 0x0000000000000000;
 
 
     /*
@@ -4663,12 +4663,12 @@ gnet_prop_init(void) {
     gnet_property->props[209].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[209].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[209].data.guint64.def   = &node_last_ultra_check_def;
-    gnet_property->props[209].data.guint64.value = &node_last_ultra_check;
-    gnet_property->props[209].data.guint64.choices = NULL;
-    gnet_property->props[209].data.guint64.max   = (guint64) -1;
-    gnet_property->props[209].data.guint64.min   = 0x0000000000000000;
+    gnet_property->props[209].type               = PROP_TYPE_TIMESTAMP;
+    gnet_property->props[209].data.timestamp.def   = &node_last_ultra_check_def;
+    gnet_property->props[209].data.timestamp.value = &node_last_ultra_check;
+    gnet_property->props[209].data.timestamp.choices = NULL;
+    gnet_property->props[209].data.timestamp.max   = (time_t) -1;
+    gnet_property->props[209].data.timestamp.min   = 0x0000000000000000;
 
 
     /*
@@ -4683,12 +4683,12 @@ gnet_prop_init(void) {
     gnet_property->props[210].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[210].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[210].data.guint64.def   = &node_last_ultra_leaf_switch_def;
-    gnet_property->props[210].data.guint64.value = &node_last_ultra_leaf_switch;
-    gnet_property->props[210].data.guint64.choices = NULL;
-    gnet_property->props[210].data.guint64.max   = (guint64) -1;
-    gnet_property->props[210].data.guint64.min   = 0x0000000000000000;
+    gnet_property->props[210].type               = PROP_TYPE_TIMESTAMP;
+    gnet_property->props[210].data.timestamp.def   = &node_last_ultra_leaf_switch_def;
+    gnet_property->props[210].data.timestamp.value = &node_last_ultra_leaf_switch;
+    gnet_property->props[210].data.timestamp.choices = NULL;
+    gnet_property->props[210].data.timestamp.max   = (time_t) -1;
+    gnet_property->props[210].data.timestamp.min   = 0x0000000000000000;
 
 
     /*
@@ -4973,12 +4973,12 @@ gnet_prop_init(void) {
     gnet_property->props[226].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[226].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[226].data.guint64.def   = &library_rescan_started_def;
-    gnet_property->props[226].data.guint64.value = &library_rescan_started;
-    gnet_property->props[226].data.guint64.choices = NULL;
-    gnet_property->props[226].data.guint64.max   = (guint64) -1;
-    gnet_property->props[226].data.guint64.min   = 0x0000000000000000;
+    gnet_property->props[226].type               = PROP_TYPE_TIMESTAMP;
+    gnet_property->props[226].data.timestamp.def   = &library_rescan_started_def;
+    gnet_property->props[226].data.timestamp.value = &library_rescan_started;
+    gnet_property->props[226].data.timestamp.choices = NULL;
+    gnet_property->props[226].data.timestamp.max   = (time_t) -1;
+    gnet_property->props[226].data.timestamp.min   = 0x0000000000000000;
 
 
     /*
@@ -4993,12 +4993,12 @@ gnet_prop_init(void) {
     gnet_property->props[227].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[227].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[227].data.guint64.def   = &library_rescan_finished_def;
-    gnet_property->props[227].data.guint64.value = &library_rescan_finished;
-    gnet_property->props[227].data.guint64.choices = NULL;
-    gnet_property->props[227].data.guint64.max   = (guint64) -1;
-    gnet_property->props[227].data.guint64.min   = 0x0000000000000000;
+    gnet_property->props[227].type               = PROP_TYPE_TIMESTAMP;
+    gnet_property->props[227].data.timestamp.def   = &library_rescan_finished_def;
+    gnet_property->props[227].data.timestamp.value = &library_rescan_finished;
+    gnet_property->props[227].data.timestamp.choices = NULL;
+    gnet_property->props[227].data.timestamp.max   = (time_t) -1;
+    gnet_property->props[227].data.timestamp.min   = 0x0000000000000000;
 
 
     /*
@@ -5033,12 +5033,12 @@ gnet_prop_init(void) {
     gnet_property->props[229].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[229].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[229].data.guint64.def   = &qrp_indexing_started_def;
-    gnet_property->props[229].data.guint64.value = &qrp_indexing_started;
-    gnet_property->props[229].data.guint64.choices = NULL;
-    gnet_property->props[229].data.guint64.max   = (guint64) -1;
-    gnet_property->props[229].data.guint64.min   = 0x0000000000000000;
+    gnet_property->props[229].type               = PROP_TYPE_TIMESTAMP;
+    gnet_property->props[229].data.timestamp.def   = &qrp_indexing_started_def;
+    gnet_property->props[229].data.timestamp.value = &qrp_indexing_started;
+    gnet_property->props[229].data.timestamp.choices = NULL;
+    gnet_property->props[229].data.timestamp.max   = (time_t) -1;
+    gnet_property->props[229].data.timestamp.min   = 0x0000000000000000;
 
 
     /*
@@ -5073,12 +5073,12 @@ gnet_prop_init(void) {
     gnet_property->props[231].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[231].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[231].data.guint64.def   = &qrp_timestamp_def;
-    gnet_property->props[231].data.guint64.value = &qrp_timestamp;
-    gnet_property->props[231].data.guint64.choices = NULL;
-    gnet_property->props[231].data.guint64.max   = (guint64) -1;
-    gnet_property->props[231].data.guint64.min   = 0x0000000000000000;
+    gnet_property->props[231].type               = PROP_TYPE_TIMESTAMP;
+    gnet_property->props[231].data.timestamp.def   = &qrp_timestamp_def;
+    gnet_property->props[231].data.timestamp.value = &qrp_timestamp;
+    gnet_property->props[231].data.timestamp.choices = NULL;
+    gnet_property->props[231].data.timestamp.max   = (time_t) -1;
+    gnet_property->props[231].data.timestamp.min   = 0x0000000000000000;
 
 
     /*
@@ -5113,12 +5113,12 @@ gnet_prop_init(void) {
     gnet_property->props[233].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[233].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[233].data.guint64.def   = &qrp_patch_timestamp_def;
-    gnet_property->props[233].data.guint64.value = &qrp_patch_timestamp;
-    gnet_property->props[233].data.guint64.choices = NULL;
-    gnet_property->props[233].data.guint64.max   = (guint64) -1;
-    gnet_property->props[233].data.guint64.min   = 0x0000000000000000;
+    gnet_property->props[233].type               = PROP_TYPE_TIMESTAMP;
+    gnet_property->props[233].data.timestamp.def   = &qrp_patch_timestamp_def;
+    gnet_property->props[233].data.timestamp.value = &qrp_patch_timestamp;
+    gnet_property->props[233].data.timestamp.choices = NULL;
+    gnet_property->props[233].data.timestamp.max   = (time_t) -1;
+    gnet_property->props[233].data.timestamp.min   = 0x0000000000000000;
 
 
     /*
@@ -5863,6 +5863,20 @@ gnet_prop_get_guint64(
 }
 
 void
+gnet_prop_set_timestamp(
+    property_t prop, const time_t *src, size_t offset, size_t length)
+{
+    prop_set_timestamp(gnet_property, prop, src, offset, length);
+}
+
+time_t *
+gnet_prop_get_timestamp(
+    property_t prop, time_t *t, size_t offset, size_t length)
+{
+    return prop_get_timestamp(gnet_property, prop, t, offset, length);
+}
+
+void
 gnet_prop_set_string(property_t prop, const gchar *val)
 {
     prop_set_string(gnet_property, prop, val);
@@ -5978,6 +5992,10 @@ gnet_prop_get_stub(void)
 
     stub->storage.get = gnet_prop_get_storage;
     stub->storage.set = gnet_prop_set_storage;
+
+    stub->timestamp.get = gnet_prop_get_timestamp;
+    stub->timestamp.set = gnet_prop_set_timestamp;
+
 
     return stub;
 }
