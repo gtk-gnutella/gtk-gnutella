@@ -753,7 +753,7 @@ dbg_property_cmp_saved(GtkCList *unused_clist,
 	gint r;
 
 	(void) unused_clist;
-	r = gnet_prop_is_saved(a) == gnet_prop_is_saved(b);
+	r = CMP(gnet_prop_is_saved(a), gnet_prop_is_saved(b));
 	return dbg_property_cmp_saved_inverted ? -r : r;
 }
 
@@ -762,6 +762,8 @@ void
 on_clist_dbg_property_click_column(GtkCList *clist, gint column,
 	gpointer unused_udata)
 {
+	gboolean do_sort = FALSE;
+	
 	(void) unused_udata;
 
 	g_assert(column >= 0 && column < num_dbg_cols);
@@ -770,14 +772,17 @@ on_clist_dbg_property_click_column(GtkCList *clist, gint column,
 	case dbg_col_saved:
 		gtk_clist_set_compare_func(clist, dbg_property_cmp_saved);
 		dbg_property_cmp_saved_inverted = !dbg_property_cmp_saved_inverted;
+		do_sort = TRUE;
 		break;
 	case dbg_col_type:
 		gtk_clist_set_compare_func(clist, dbg_property_cmp_type);
 		dbg_property_cmp_type_inverted = !dbg_property_cmp_type_inverted;
+		do_sort = TRUE;
 		break;
 	case dbg_col_name:
 		gtk_clist_set_compare_func(clist, dbg_property_cmp_name);
 		dbg_property_cmp_name_inverted = !dbg_property_cmp_name_inverted;
+		do_sort = TRUE;
 		break;
 	case dbg_col_value:
 		/* Don't sort by values */
