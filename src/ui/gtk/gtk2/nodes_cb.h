@@ -43,6 +43,10 @@ gboolean on_popup_nodes_config_cols_activate(GtkItem *item, gpointer user_data);
 gboolean on_treeview_nodes_button_press_event(
 	GtkWidget *widget, GdkEventButton  *event, gpointer user_data);
 
+gboolean on_popup_nodes_collapse_all_activate(GtkItem *unused_item,
+	gpointer unused_udata);
+gboolean on_popup_nodes_expand_all_activate(GtkItem *unused_item,
+	gpointer unused_udata);
 
 void nodes_gui_remove_selected(void);
 void nodes_gui_reverse_lookup_selected(void);

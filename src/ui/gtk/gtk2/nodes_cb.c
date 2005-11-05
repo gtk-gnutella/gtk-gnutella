@@ -87,6 +87,34 @@ on_popup_nodes_reverse_lookup_activate(GtkItem *unused_item,
 	return TRUE;
 }
 
+gboolean
+on_popup_nodes_collapse_all_activate(GtkItem *unused_item,
+		gpointer unused_udata)
+{
+	GtkTreeView *tv;
+
+	(void) unused_item;
+	(void) unused_udata;
+
+	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
+	gtk_tree_view_collapse_all(tv);
+	return TRUE;
+}
+
+gboolean
+on_popup_nodes_expand_all_activate(GtkItem *unused_item,
+		gpointer unused_udata)
+{
+	GtkTreeView *tv;
+
+	(void) unused_item;
+	(void) unused_udata;
+
+	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
+	gtk_tree_view_expand_all(tv);
+	return TRUE;
+}
+
 void
 on_button_nodes_add_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
@@ -132,6 +160,7 @@ on_treeview_nodes_button_press_event(GtkWidget *unused_widget,
 	return FALSE;
 }
 
+#if 0
 /**
  * Creates and pops up the column chooser for ``treeview_nodes''
  */
@@ -149,5 +178,6 @@ on_popup_nodes_config_cols_activate(GtkItem *unused_menuitem,
     /* GtkColumnChooser takes care of cleaning up itself */
 	return TRUE;
 }
+#endif
 
 /* vi: set ts=4 sw=4 cindent: */
