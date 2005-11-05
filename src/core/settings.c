@@ -728,15 +728,15 @@ gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *s)
 guint32
 get_average_ip_lifetime(time_t now)
 {
-	guint64 current_ip_stamp;
+	time_t current_ip_stamp;
 	guint32 average_ip_uptime;
 	glong lifetime;
 
-	gnet_prop_get_guint64_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
+	gnet_prop_get_timestamp_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
 	gnet_prop_get_guint32_val(PROP_AVERAGE_IP_UPTIME, &average_ip_uptime);
 
 	if (current_ip_stamp) {
-		lifetime = delta_time(now, (time_t) current_ip_stamp);
+		lifetime = delta_time(now, current_ip_stamp);
 		lifetime = MAX(0, lifetime);
 	} else
 		lifetime = 0;
@@ -759,16 +759,16 @@ static void
 update_address_lifetime(void)
 {
 	static host_addr_t old_addr;
-	guint64 current_ip_stamp;
+	time_t current_ip_stamp;
 	host_addr_t addr;
 
 	addr = listen_addr();
 
 	if (!is_host_addr(old_addr)) {				/* First time */
 		old_addr = addr;
-		gnet_prop_get_guint64_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
+		gnet_prop_get_timestamp_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
 		if (0 == current_ip_stamp)
-			gnet_prop_set_guint64_val(PROP_CURRENT_IP_STAMP, tm_time());
+			gnet_prop_set_timestamp_val(PROP_CURRENT_IP_STAMP, tm_time());
 	}
 
 	if (!host_addr_equal(old_addr, addr)) {
@@ -781,13 +781,13 @@ update_address_lifetime(void)
 		now = tm_time();
 		old_addr = addr;
 
-		gnet_prop_get_guint64_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
+		gnet_prop_get_timestamp_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
 
 		if (current_ip_stamp)
 			gnet_prop_set_guint32_val(PROP_AVERAGE_IP_UPTIME,
 					get_average_ip_lifetime(now));
 
-		gnet_prop_set_guint64_val(PROP_CURRENT_IP_STAMP, now);
+		gnet_prop_set_timestamp_val(PROP_CURRENT_IP_STAMP, now);
 	}
 }
 
@@ -799,13 +799,13 @@ guint32
 get_average_servent_uptime(time_t now)
 {
 	guint32 avg_servent_uptime;
-	guint64 val;
+	time_t start;
 	glong uptime;
 
 	gnet_prop_get_guint32_val(PROP_AVERAGE_SERVENT_UPTIME, &avg_servent_uptime);
-	gnet_prop_get_guint64_val(PROP_START_STAMP, &val);
+	gnet_prop_get_timestamp_val(PROP_START_STAMP, &start);
 
-	uptime = delta_time(now, (time_t) val);
+	uptime = delta_time(now, start);
 	uptime = MAX(0, uptime);
 
 	/*

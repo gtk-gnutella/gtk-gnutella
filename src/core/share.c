@@ -1262,7 +1262,7 @@ share_scan(void)
 	started = now = tm_time();
 
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, TRUE);
-	gnet_prop_set_guint64_val(PROP_LIBRARY_RESCAN_STARTED, now);
+	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_STARTED, now);
 
 	files_scanned = 0;
 	bytes_scanned = 0;
@@ -1356,7 +1356,7 @@ share_scan(void)
 	now = tm_time();
 	elapsed = delta_time(now, started);
 	elapsed = MAX(0, elapsed);
-	gnet_prop_set_guint64_val(PROP_LIBRARY_RESCAN_FINISHED, now);
+	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_FINISHED, now);
 	gnet_prop_set_guint32_val(PROP_LIBRARY_RESCAN_DURATION, elapsed);
 
 	/*
@@ -1364,7 +1364,7 @@ share_scan(void)
 	 */
 
 	started = now;
-	gnet_prop_set_guint64_val(PROP_QRP_INDEXING_STARTED, now);
+	gnet_prop_set_timestamp_val(PROP_QRP_INDEXING_STARTED, now);
 
 	qrp_prepare_computation();
 

@@ -88,13 +88,13 @@ gui_general_timer(time_t now)
 {
 	static GtkLabel *label = NULL;
 	const gchar *uptime;
-	guint64 val;
+	time_t start;
 
 	if (label == NULL)
 		label = GTK_LABEL(lookup_widget(main_window, "label_statusbar_uptime"));
 
-	gnet_prop_get_guint64_val(PROP_START_STAMP, &val);
-	uptime = short_uptime(delta_time(now, (time_t) val));
+	gnet_prop_get_timestamp_val(PROP_START_STAMP, &start);
+	uptime = short_uptime(delta_time(now, start));
 
 #ifdef USE_GTK2
 	{

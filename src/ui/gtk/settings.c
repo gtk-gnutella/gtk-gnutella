@@ -122,7 +122,6 @@ static GtkTooltips* tooltips = NULL;
 
 static gchar *home_dir = NULL;
 static const gchar property_file[] = "config_gui";
-static const gchar date_fmt[] = "%Y-%m-%d %H:%M:%S";
 
 static gchar set_tmp[4096];
 
@@ -216,8 +215,8 @@ static gchar *prop_to_string(property_t prop)
         }
         default:
             s[0] = '\0';
-            g_error("update_entry_gnet: incompatible type %s",
-                prop_type_str[map_entry->type]);
+            g_error("update_entry_gnet: incompatible type: %u",
+                (guint) map_entry->type);
     }
 
     return s;
@@ -300,13 +299,13 @@ update_spinbutton(property_t prop)
     }
 
     switch (map_entry->type) {
-        case PROP_TYPE_GUINT32:
-            stub->guint32.get(prop, &val, 0, 1);
-            break;
-         default:
-            val = 0;
-            g_error("update_spinbutton: incompatible type %s",
-                prop_type_str[map_entry->type]);
+	case PROP_TYPE_GUINT32:
+		stub->guint32.get(prop, &val, 0, 1);
+		break;
+	default:
+		val = 0;
+		g_error("update_spinbutton: incompatible type: %u",
+			(guint) map_entry->type);
     }
 
     adj = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(w));
@@ -337,13 +336,13 @@ update_togglebutton(property_t prop)
     }
 
     switch (map_entry->type) {
-        case PROP_TYPE_BOOLEAN:
-            stub->boolean.get(prop, &val, 0, 1);
-            break;
-        default:
-            val = 0;
-            g_error("update_togglebutton: incompatible type %s",
-                prop_type_str[map_entry->type]);
+	case PROP_TYPE_BOOLEAN:
+		stub->boolean.get(prop, &val, 0, 1);
+		break;
+	default:
+		val = 0;
+		g_error("update_togglebutton: incompatible type: %u",
+			(guint) map_entry->type);
     }
 
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
@@ -379,8 +378,8 @@ update_multichoice(property_t prop)
             break;
         default:
             val = 0;
-            g_error("update_multichoice: incompatible type %s",
-                prop_type_str[map_entry->type]);
+            g_error("update_multichoice: incompatible type: %u",
+                (guint) map_entry->type);
     }
 
     l_iter = GTK_LIST(GTK_COMBO(w)->list)->children;
@@ -422,8 +421,8 @@ update_split_pane(property_t prop)
             break;
         default:
             val = 0;
-            g_error("update_split_pane: incompatible type %s",
-                prop_type_str[map_entry->type]);
+            g_error("update_split_pane: incompatible type: %u",
+                (guint) map_entry->type);
     }
 
     gtk_paned_set_position(GTK_PANED(w), val);
@@ -632,8 +631,8 @@ update_clist_col_widths(property_t prop)
         }
         default:
             val = 0;
-            g_error("update_clist_col_widths: incompatible type %s",
-                prop_type_str[map_entry->type]);
+            g_error("update_clist_col_widths: incompatible type: %u",
+				(guint) map_entry->type);
     }
 
     g_free(val);
@@ -662,18 +661,19 @@ update_window_geometry(property_t prop)
     }
 
     switch (map_entry->type) {
-        case PROP_TYPE_GUINT32: {
-            guint32 geo[4];
+	case PROP_TYPE_GUINT32:
+		{
+			guint32 geo[4];
 
-            stub->guint32.get(prop, geo, 0, 4);
-            gdk_window_move_resize(w->window, geo[0], geo[1], geo[2], geo[3]);
+			stub->guint32.get(prop, geo, 0, 4);
+			gdk_window_move_resize(w->window, geo[0], geo[1], geo[2], geo[3]);
 
-            break;
-        }
-        default:
-            g_error("update_window_geometry: incompatible type %s",
-                prop_type_str[map_entry->type]);
-    }
+		}
+		break;
+	default:
+		g_error("update_window_geometry: incompatible type: %u",
+				(guint) map_entry->type);
+	}
 
     return FALSE;
 }
@@ -708,14 +708,14 @@ update_bandwidth_spinbutton(property_t prop)
     }
 
     switch (map_entry->type) {
-        case PROP_TYPE_GUINT32:
-            stub->guint32.get(prop, &val, 0, 1);
-            break;
-         default:
-            val = 0;
-            g_error("update_spinbutton: incompatible type %s",
-                prop_type_str[map_entry->type]);
-    }
+	case PROP_TYPE_GUINT32:
+		stub->guint32.get(prop, &val, 0, 1);
+		break;
+	default:
+		val = 0;
+		g_error("update_spinbutton: incompatible type %u",
+			(guint) map_entry->type);
+	}
 
     gtk_spin_button_set_value(GTK_SPIN_BUTTON(w), (float)val/1024.0);
 
@@ -725,19 +725,6 @@ update_bandwidth_spinbutton(property_t prop)
 /***
  *** III. Special case callbacks
  ***/
-
-static void
-shake_vpane_sidebar(void)
-{
-	GtkPaned *paned;
-	guint pos;
-
-	/* Shake the vpane a little so that the widgets are readjusted */
-	paned = GTK_PANED(lookup_widget(main_window, "vpaned_sidebar"));
-	pos = gtk_paned_get_position(paned);
-    gtk_paned_set_position(paned, pos >= 1 ? pos - 1 : pos + 1);
-    gtk_paned_set_position(paned, pos);
-}
 
 static gboolean
 bw_gnet_lin_enabled_changed(property_t prop)
@@ -1086,9 +1073,8 @@ update_label_date(property_t prop)
 {
     GtkWidget *w;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
-	guint64 val;
+	time_t t;
 
     if (!top)
         return FALSE;
@@ -1102,12 +1088,12 @@ update_label_date(property_t prop)
         return FALSE;
     }
 
-	stub->guint64.get(prop, &val, 0, 1);
-	if (val == 0)
+	gnet_prop_get_timestamp_val(prop, &t);
+	if (t == 0) {
 		gtk_label_set_text(GTK_LABEL(w), _("Never"));
-	else {
+	} else {
+		static const gchar date_fmt[] = "%Y-%m-%d %H:%M:%S";
 		gchar buf[128];
-		time_t t = val;
 		size_t len;
 
 		len = strftime(buf, sizeof buf, date_fmt, localtime(&t));
@@ -1605,6 +1591,23 @@ send_pushes_changed(property_t prop)
 }
 
 static gboolean
+navtree_visible_changed(property_t prop)
+{
+    gboolean b;
+	GtkWidget *widget;
+
+    gui_prop_get_boolean_val(prop, &b);
+
+	widget = lookup_widget(main_window, "menu_navtree_visible");
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), b);
+
+	widget = lookup_widget(main_window, "viewport_menu");
+   	(b ? gtk_widget_show : gtk_widget_hide)(widget);
+
+    return FALSE;
+}
+
+static gboolean
 statusbar_visible_changed(property_t prop)
 {
     gboolean b;
@@ -1654,7 +1657,6 @@ progressbar_bws_in_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
-	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1669,7 +1671,6 @@ progressbar_bws_out_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
-	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1684,7 +1685,6 @@ progressbar_bws_gin_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
-	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1699,7 +1699,6 @@ progressbar_bws_gout_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
-	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1714,7 +1713,6 @@ progressbar_bws_glin_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
-	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1729,7 +1727,6 @@ progressbar_bws_glout_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
-	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1750,7 +1747,6 @@ autohide_bws_gleaf_changed(property_t prop)
     /* The actual evaluation of the property takes place in
        gui_update_stats_frames() */
     gui_update_stats_frames();
-	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1765,7 +1761,6 @@ progressbar_downloads_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
-	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1780,7 +1775,6 @@ progressbar_uploads_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
-	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1795,7 +1789,6 @@ progressbar_connections_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
-	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -2924,6 +2917,7 @@ static prop_map_t property_map[] = {
         "hpaned_gnet_stats",
         FREQ_UPDATES, 0
     ),
+#ifdef USE_GTK1
     PROP_ENTRY(
         get_main_window,
         PROP_SIDE_DIVIDER_POS,
@@ -2932,7 +2926,6 @@ static prop_map_t property_map[] = {
         "vpaned_sidebar",
         FREQ_UPDATES, 0
     ),
-#ifdef USE_GTK1
     PROP_ENTRY(
         get_main_window,
         PROP_FILEINFO_DIVIDER_POS,
@@ -2956,6 +2949,14 @@ static prop_map_t property_map[] = {
         update_split_pane,
         TRUE,
         "vpaned_results",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
+        PROP_NAVTREE_VISIBLE,
+        navtree_visible_changed,
+        TRUE,
+        "menu_navtree_visible",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -5669,9 +5670,11 @@ settings_gui_shutdown(void)
     *(guint32 *) &main_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "hpaned_main")));
+#ifdef USE_GTK1
     *(guint32 *) &side_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_sidebar")));
+#endif /* USE_GTK1 */
     *(guint32 *) &gnet_stats_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "hpaned_gnet_stats")));

@@ -1944,7 +1944,7 @@ qrp_finalize_computation(void)
 	ctx->rtp = &local_table;	/* NOT routing_table, this is for local files */
 	ctx->rpp = &routing_patch;
 
-	gnet_prop_set_guint64_val(PROP_QRP_TIMESTAMP, tm_time());
+	gnet_prop_set_timestamp_val(PROP_QRP_TIMESTAMP, tm_time());
 
 	qrp_comp = bg_task_create("QRP computation",
 		qrp_compute_steps, G_N_ELEMENTS(qrp_compute_steps),
@@ -2180,7 +2180,7 @@ qrt_patch_compute(struct routing_table *rt, struct routing_patch **rpp)
 
 	g_assert(qrt_patch_ctx == NULL);	/* No computation active */
 
-	gnet_prop_set_guint64_val(PROP_QRP_PATCH_TIMESTAMP, tm_time());
+	gnet_prop_set_timestamp_val(PROP_QRP_PATCH_TIMESTAMP, tm_time());
 
 	qrt_patch_ctx = ctx = walloc(sizeof *ctx);
 
