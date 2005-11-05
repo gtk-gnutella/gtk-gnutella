@@ -75,6 +75,8 @@ gboolean on_dlg_quit_delete_event(
 
 #ifdef USE_GTK2
 void on_main_gui_treeview_menu_motion(GtkTreeView *tv, GtkTreePath *path);
+gboolean on_main_gui_treeview_menu_enter_notify(GtkWidget *widget,
+	GdkEventCrossing *unused_event, gpointer unused_udata);
 gboolean on_main_gui_treeview_menu_leave_notify(GtkWidget *widget,
 	GdkEventCrossing *unused_event, gpointer unused_udata);
 void on_main_gui_treeview_menu_cursor_changed(GtkTreeView *, gpointer);
@@ -82,6 +84,30 @@ void on_main_gui_treeview_menu_row_collapsed(
 	GtkTreeView *, GtkTreeIter *, GtkTreePath *, gpointer);
 void on_main_gui_treeview_menu_row_expanded(
 	GtkTreeView *, GtkTreeIter *, GtkTreePath *, gpointer);
+
+void on_menu_net_connections_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
+void on_menu_net_stats_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
+void on_menu_net_hostcache_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
+void on_menu_uploads_transfers_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
+void on_menu_uploads_history_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
+void on_menu_downloads_files_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
+void on_menu_downloads_active_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
+void on_menu_downloads_queue_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
+void on_menu_search_searches_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
+void on_menu_search_monitor_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
+void on_menu_search_stats_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
+
 #endif /* USE_GTK2 */
 
 
