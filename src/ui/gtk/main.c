@@ -212,11 +212,13 @@ gui_init_menu(void)
 		G_CALLBACK(on_main_gui_treeview_menu_row_collapsed), NULL);
 	g_signal_connect(G_OBJECT(treeview), "row-expanded",
 		G_CALLBACK(on_main_gui_treeview_menu_row_expanded), NULL);
+	g_signal_connect(G_OBJECT(treeview), "enter-notify-event",
+		G_CALLBACK(on_main_gui_treeview_menu_enter_notify), NULL);
 	g_signal_connect(G_OBJECT(treeview), "leave-notify-event",
 		G_CALLBACK(on_main_gui_treeview_menu_leave_notify), NULL);
 	
 	(void) tree_view_motion_set_callback(GTK_TREE_VIEW(treeview),
-				on_main_gui_treeview_menu_motion, 100);
+				on_main_gui_treeview_menu_motion, 300);
 }
 
 /**
