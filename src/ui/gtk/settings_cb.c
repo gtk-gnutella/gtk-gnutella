@@ -828,6 +828,13 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 }
 
 void
+on_menu_navtree_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
+{
+	(void) unused_udata;
+	checkmenu_changed(gui, PROP_NAVTREE_VISIBLE, menuitem);
+}
+
+void
 on_menu_toolbar_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 {
 	(void) unused_udata;

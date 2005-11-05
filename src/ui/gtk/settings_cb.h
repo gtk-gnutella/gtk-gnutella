@@ -63,6 +63,7 @@ void on_clist_dbg_property_click_column(GtkCList *clist, gint column,
 	gpointer unused_udata);
 #endif /* USE_GTK1*/
 
+void on_menu_navtree_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_statusbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_toolbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_connections_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
