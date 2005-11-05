@@ -44,13 +44,14 @@ typedef enum {
     PROP_TYPE_BOOLEAN,
     PROP_TYPE_GUINT32,
     PROP_TYPE_GUINT64,
-    PROP_TYPE_STRING,
     PROP_TYPE_IP,
+    PROP_TYPE_MULTICHOICE,
     PROP_TYPE_STORAGE,
-    PROP_TYPE_MULTICHOICE
-} prop_type_t;
+    PROP_TYPE_STRING,
+    PROP_TYPE_TIMESTAMP,
 
-extern const gchar * const prop_type_str[];
+	NUM_PROP_TYPES
+} prop_type_t;
 
 /**
  * Callback signature definition.
@@ -103,6 +104,19 @@ typedef void (*prop_set_guint64_t)
 typedef guint64 *(*prop_get_guint64_t)
     (property_t, guint64 *, size_t, size_t);
 
+typedef struct prop_def_timestamp {
+    time_t *def;		/**< default value */
+    time_t *value;		/**< current value */
+    time_t min;		/**< minimal value */
+    time_t max;		/**< maximal value */
+    prop_def_choice_t *choices;
+} prop_def_timestamp_t;
+
+typedef void (*prop_set_timestamp_t)
+    (property_t, const time_t *, size_t, size_t);
+typedef time_t *(*prop_get_timestamp_t)
+    (property_t, time_t *, size_t, size_t);
+
 
 typedef struct prop_def_storage {
     gchar *value;		/**< current data */
@@ -144,6 +158,7 @@ typedef struct prop_def {
         prop_def_string_t   string;
         prop_def_boolean_t  boolean;
         prop_def_storage_t  storage;
+        prop_def_timestamp_t  timestamp;
     } data;
     gboolean save; /* persist across sessions */
     size_t vector_size; /* number of items in array, 1 for non-vector */
@@ -184,6 +199,10 @@ typedef struct prop_set_stub {
         prop_get_string_t get;
         prop_set_string_t set;
     } string;
+    struct {
+        prop_get_timestamp_t get;
+        prop_set_timestamp_t set;
+    } timestamp;
 } prop_set_stub_t;
 
 /**
@@ -255,6 +274,11 @@ void prop_set_guint64(
     prop_set_t *, property_t, const guint64 *, size_t, size_t);
 guint64 *prop_get_guint64(
     prop_set_t *, property_t, guint64 *, size_t, size_t);
+
+void prop_set_timestamp(
+    prop_set_t *, property_t, const time_t *, size_t, size_t);
+time_t *prop_get_timestamp(
+    prop_set_t *, property_t, time_t *, size_t, size_t);
 
 void prop_set_storage(prop_set_t *, property_t, const gchar *, size_t);
 gchar *prop_get_storage(prop_set_t *, property_t, gchar *, size_t);

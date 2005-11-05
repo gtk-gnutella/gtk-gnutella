@@ -38,14 +38,17 @@ RCSID("$Id$");
 static guint32 track_props = 0;	/**< XXX need to init lib's props--RAM */
 static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
 
-const gchar * const prop_type_str[] = {
-	"boolean",
-	"guint32",
-	"guint64",
-	"string",
-	"ip",
-	"storage",
-	"multichoice"
+const struct {
+	const gchar *name; 
+} prop_type_str[] = {
+	{ "boolean" 	},
+	{ "guint32" 	},
+	{ "guint64" 	},
+	{ "ip" 			},
+	{ "multichoice" },
+	{ "storage" 	},
+	{ "string"		},
+	{ "timestamp"	},
 };
 
 /***
@@ -59,6 +62,21 @@ G_STMT_START {														\
 			PROP(ps, prop).name, STRINGIFY(x));						\
 	}																\
 } G_STMT_END
+
+size_t
+timestamp_to_string_buf(time_t t, gchar *dst, size_t size)
+{
+	static const gchar date_fmt[] = "%Y-%m-%d %H:%M:%S";
+	const struct tm *tm;
+	size_t len;
+
+	g_assert(size > 0);
+	tm = localtime(&t);
+	len = strftime(dst, size, date_fmt, tm);
+	g_assert(len < size);
+	dst[len] = '\0';
+	return len;
+}
 
 typedef gint (* prop_parse_func_t)(const gchar *name,
 	const gchar *str, const gchar **endptr, gpointer vec, size_t i);
@@ -80,6 +98,89 @@ prop_parse_guint64(const gchar *name,
 
 	return error;
 }
+
+static gint
+prop_parse_timestamp(const gchar *name,
+	const gchar *str, const gchar **endptr, gpointer vec, size_t i)
+{
+	const gchar *ep;
+	gint error = 0;
+	guint64 u;
+	time_t t;
+
+	u = parse_uint64(str, &ep, 10, &error);
+	if (error) {
+		g_warning("prop_parse_timestamp: (prop=\"%s\") "
+			"str=\"%s\": \"%s\"", name, str, g_strerror(error));
+	}
+	if (*ep != '-') {
+		t = u;	/* For backwards-compatibility accept raw numeric timestamps */
+	} else {
+		static const struct tm zero_tm;
+		struct tm tm;
+
+		tm = zero_tm;
+		tm.tm_year = u - 1900;
+
+		/* Parse an ISO 8601 date of the variant YYYY-MM-DD HH:MM:SS */
+		if (!error && *ep == '-') {
+			guint16 v;
+			
+			str = &ep[1];
+			v = parse_uint16(str, &ep, 10, &error);
+			if (!error && (v < 1 || v > 12))
+				error = ERANGE;
+			else
+				tm.tm_mon = v - 1; 
+		}
+		if (!error && *ep == '-') {
+			guint16 v;
+
+			str = &ep[1];
+			v = parse_uint16(str, &ep, 10, &error);
+			if (!error && (v < 1 || v > 31))
+				error = ERANGE;
+			else
+				tm.tm_mday = v;
+		}
+		if (!error && (is_ascii_blank(*ep) || *ep == 'T')) {
+			str = skip_ascii_blanks(ep);
+			if (str[0] == 'T')
+				str++;
+			tm.tm_hour = parse_uint16(str, &ep, 10, &error);
+			if (!error && tm.tm_hour > 23)
+				error = ERANGE;
+		}
+		if (!error && *ep == ':') {
+			str = &ep[1];
+			tm.tm_min = parse_uint16(str, &ep, 10, &error);
+			if (!error && tm.tm_min > 59)
+				error = ERANGE;
+		}
+		if (!error && *ep == ':') {
+			str = &ep[1];
+			tm.tm_sec = parse_uint16(str, &ep, 10, &error);
+			if (!error && tm.tm_sec > 61)
+				error = ERANGE;
+		}
+		if (!error) {
+			errno = 0;
+			if ((time_t) -1 == (t = mktime(&tm)))
+				error = errno ? errno : EINVAL;
+			if (error)
+				raise(SIGTRAP);
+		}
+	}
+	
+	if (!error && vec)
+		((time_t *) vec)[i] = t;
+
+	if (endptr)
+		*endptr = ep;
+
+	return error;
+}
+
 
 static gint
 prop_parse_guint32(const gchar *name,
@@ -216,6 +317,14 @@ prop_parse_guint64_vector(const gchar *name, const gchar *str,
 }
 
 static void
+prop_parse_timestamp_vector(const gchar *name, const gchar *str,
+	size_t size, time_t *vec)
+{
+	prop_parse_vector(name, str, size, vec, prop_parse_timestamp);
+}
+
+
+static void
 prop_parse_guint32_vector(const gchar *name, const gchar *str,
 	size_t size, guint32 *vec)
 {
@@ -345,6 +454,15 @@ prop_get_def(prop_set_t *ps, property_t p)
 			sizeof(guint64) * PROP(ps,p).vector_size);
 		break;
 
+	case PROP_TYPE_TIMESTAMP:
+		buf->data.timestamp.def = g_memdup(
+			PROP(ps,p).data.timestamp.def,
+			sizeof(time_t) * PROP(ps,p).vector_size);
+		buf->data.timestamp.value = g_memdup(
+			PROP(ps,p).data.timestamp.value,
+			sizeof(time_t) * PROP(ps,p).vector_size);
+		break;
+
 	case PROP_TYPE_STRING:
 		buf->data.string.def	= g_new(gchar*, 1);
 		*buf->data.string.def   = g_strdup(*PROP(ps,p).data.string.def);
@@ -356,6 +474,9 @@ prop_get_def(prop_set_t *ps, property_t p)
 		buf->data.storage.value = g_memdup
 			(PROP(ps,p).data.storage.value, PROP(ps,p).vector_size);
 		break;
+		
+	case NUM_PROP_TYPES:
+		g_assert_not_reached();
 	}
 
 	return buf;
@@ -391,6 +512,10 @@ prop_free_def(prop_def_t *d)
 		G_FREE_NULL(d->data.guint64.value);
 		G_FREE_NULL(d->data.guint64.def);
 		break;
+	case PROP_TYPE_TIMESTAMP:
+		G_FREE_NULL(d->data.timestamp.value);
+		G_FREE_NULL(d->data.timestamp.def);
+		break;
 	case PROP_TYPE_STRING:
 		if (*d->data.string.value)
 			G_FREE_NULL(*d->data.string.value);
@@ -401,6 +526,9 @@ prop_free_def(prop_def_t *d)
 		break;
 	case PROP_TYPE_STORAGE:
 		G_FREE_NULL(d->data.storage.value);
+		break;
+	case NUM_PROP_TYPES:
+		g_assert_not_reached();
 	}
 	G_FREE_NULL(d->name);
 	G_FREE_NULL(d->desc);
@@ -477,8 +605,8 @@ prop_set_boolean(prop_set_t *ps, property_t prop, const gboolean *src,
 		g_error("Type mismatch setting value for [%s] of type"
 			" %s when %s was expected",
 			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type],
-			prop_type_str[PROP_TYPE_BOOLEAN]);
+			prop_type_str[PROP(ps,prop).type].name,
+			prop_type_str[PROP_TYPE_BOOLEAN].name);
 
 	if (length == 0)
 		length = PROP(ps,prop).vector_size;
@@ -530,8 +658,8 @@ prop_get_boolean(prop_set_t *ps, property_t prop, gboolean *t,
 		g_error("Type mismatch setting value for [%s] of type"
 			" %s when %s was expected",
 			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type],
-			prop_type_str[PROP_TYPE_BOOLEAN]);
+			prop_type_str[PROP(ps,prop).type].name,
+			prop_type_str[PROP_TYPE_BOOLEAN].name);
 
 	if (length == 0)
 		length = PROP(ps,prop).vector_size;
@@ -560,8 +688,8 @@ prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
 		g_error("Type mismatch setting value for [%s] of type"
 			" %s when %s was expected",
 			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type],
-			prop_type_str[PROP_TYPE_GUINT64]);
+			prop_type_str[PROP(ps,prop).type].name,
+			prop_type_str[PROP_TYPE_GUINT64].name);
 
 	if (length == 0)
 		length = PROP(ps,prop).vector_size;
@@ -644,8 +772,8 @@ prop_get_guint64(prop_set_t *ps, property_t prop, guint64 *t,
 		g_error("Type mismatch setting value for [%s] of type"
 			" %s when %s was expected",
 			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type],
-			prop_type_str[PROP_TYPE_GUINT64]);
+			prop_type_str[PROP(ps,prop).type].name,
+			prop_type_str[PROP_TYPE_GUINT64].name);
 
    if (length == 0)
 		length = PROP(ps,prop).vector_size;
@@ -676,10 +804,10 @@ prop_set_guint32(prop_set_t *ps, property_t prop, const guint32 *src,
 		g_error("Type mismatch setting value for [%s] of type"
 			" %s when %s, %s or %s was expected",
 			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type],
-			prop_type_str[PROP_TYPE_GUINT32],
-			prop_type_str[PROP_TYPE_IP],
-			prop_type_str[PROP_TYPE_MULTICHOICE]);
+			prop_type_str[PROP(ps,prop).type].name,
+			prop_type_str[PROP_TYPE_GUINT32].name,
+			prop_type_str[PROP_TYPE_IP].name,
+			prop_type_str[PROP_TYPE_MULTICHOICE].name);
 
 	if (length == 0)
 		length = PROP(ps,prop).vector_size;
@@ -792,10 +920,10 @@ prop_get_guint32(prop_set_t *ps, property_t prop, guint32 *t,
 		g_error("Type mismatch setting value for [%s] of type"
 			" %s when %s, %s or %s was expected",
 			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type],
-			prop_type_str[PROP_TYPE_GUINT32],
-			prop_type_str[PROP_TYPE_IP],
-			prop_type_str[PROP_TYPE_MULTICHOICE]);
+			prop_type_str[PROP(ps,prop).type].name,
+			prop_type_str[PROP_TYPE_GUINT32].name,
+			prop_type_str[PROP_TYPE_IP].name,
+			prop_type_str[PROP_TYPE_MULTICHOICE].name);
 
    	if (length == 0)
 		length = PROP(ps,prop).vector_size;
@@ -808,6 +936,121 @@ prop_get_guint32(prop_set_t *ps, property_t prop, guint32 *t,
 
 	return target;
 }
+
+void
+prop_set_timestamp(prop_set_t *ps, property_t prop, const time_t *src,
+	size_t offset, size_t length)
+{
+	gboolean differ = FALSE;
+
+	g_assert(ps != NULL);
+	g_assert(src != NULL);
+
+	if (!prop_in_range(ps, prop))
+		g_error("prop_set_timestamp: unknown property %d", prop);
+	if ((PROP(ps,prop).type != PROP_TYPE_TIMESTAMP) )
+		g_error("Type mismatch setting value for [%s] of type"
+			" %s when %s was expected",
+			PROP(ps,prop).name,
+			prop_type_str[PROP(ps,prop).type].name,
+			prop_type_str[PROP_TYPE_TIMESTAMP].name);
+
+	if (length == 0)
+		length = PROP(ps,prop).vector_size;
+
+	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
+
+	differ = 0 != memcmp(&PROP(ps,prop).data.timestamp.value[offset], src,
+					length * sizeof *src);
+
+	if (!differ)
+		return;
+
+	/*
+	 * Only do bounds-checking on non-vector properties.
+	 */
+	if (PROP(ps,prop).vector_size == 1) {
+		/*
+		 * Either check multiple choices or min/max.
+		 */
+			prop_assert(ps, prop, PROP(ps,prop).data.timestamp.choices == NULL);
+
+			if (
+				(PROP(ps,prop).data.timestamp.min <= *src) &&
+				(PROP(ps,prop).data.timestamp.max >= *src)
+			) {
+				*PROP(ps,prop).data.timestamp.value = *src;
+			} else {
+				gchar buf[64];
+				time_t newval = *src;
+
+				if (newval > PROP(ps,prop).data.timestamp.max)
+					newval = PROP(ps,prop).data.timestamp.max;
+				if (newval < PROP(ps,prop).data.timestamp.min)
+					newval = PROP(ps,prop).data.timestamp.min;
+
+				concat_strings(buf, sizeof buf,
+					uint64_to_string(PROP(ps,prop).data.timestamp.min), "/",
+					uint64_to_string2(PROP(ps,prop).data.timestamp.max),
+					(void *) 0);
+				g_warning("prop_set_timestamp: [%s] new value out of bounds "
+					"(%s): %s (adjusting to %s)", PROP(ps,prop).name, buf,
+					uint64_to_string(*src), uint64_to_string2(newval));
+
+				*PROP(ps,prop).data.timestamp.value = newval;
+			}
+	} else {
+		memcpy(&PROP(ps,prop).data.timestamp.value[offset], src,
+			length * sizeof *src);
+	}
+
+	if (debug >= 5) {
+		size_t n;
+
+		printf("updated property [%s] = ( ", PROP(ps,prop).name);
+
+		for (n = 0; n < PROP(ps,prop).vector_size; n++) {
+			printf("%s%s ",
+				uint64_to_string(PROP(ps,prop).data.timestamp.value[n]),
+				n < (PROP(ps,prop).vector_size-1) ? "," : "");
+		}
+
+		printf(")\n");
+	}
+
+	prop_emit_prop_changed(ps, prop);
+}
+
+time_t *
+prop_get_timestamp(prop_set_t *ps, property_t prop, time_t *t,
+	size_t offset, size_t length)
+{
+	time_t *target;
+	size_t n;
+
+	g_assert(ps != NULL);
+
+	if (!prop_in_range(ps, prop))
+		g_error("prop_get_timestamp: unknown property %d", prop);
+	if ((PROP(ps,prop).type != PROP_TYPE_TIMESTAMP))
+		g_error("Type mismatch setting value for [%s] of type"
+			" %s when %s was expected",
+			PROP(ps,prop).name,
+			prop_type_str[PROP(ps,prop).type].name,
+			prop_type_str[PROP_TYPE_TIMESTAMP].name);
+
+   if (length == 0)
+		length = PROP(ps,prop).vector_size;
+
+	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
+
+	n = length * sizeof *target;
+	target = t != NULL ? (gpointer) t : g_malloc(n);
+	memcpy(target, &PROP(ps,prop).data.timestamp.value[offset], n);
+
+	return target;
+}
+
 
 void
 prop_set_storage(prop_set_t *ps, property_t prop, const gchar *src,
@@ -824,8 +1067,8 @@ prop_set_storage(prop_set_t *ps, property_t prop, const gchar *src,
 		g_error("Type mismatch setting value for [%s] of type"
 			" %s when %s was expected",
 			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type],
-			prop_type_str[PROP_TYPE_STORAGE]);
+			prop_type_str[PROP(ps,prop).type].name,
+			prop_type_str[PROP_TYPE_STORAGE].name);
 
 	prop_assert(ps, prop, length == PROP(ps,prop).vector_size);
 
@@ -859,8 +1102,8 @@ prop_get_storage(prop_set_t *ps, property_t prop, gchar *t, size_t length)
 		g_error("Type mismatch getting value for [%s] of type"
 			" %s when %s was expected",
 			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type],
-			prop_type_str[PROP_TYPE_STORAGE]);
+			prop_type_str[PROP(ps,prop).type].name,
+			prop_type_str[PROP_TYPE_STORAGE].name);
 
 	prop_assert(ps, prop, length == PROP(ps,prop).vector_size);
 
@@ -884,8 +1127,8 @@ prop_set_string(prop_set_t *ps, property_t prop, const gchar *val)
 		g_error("Type mismatch getting value for [%s] of type"
 			" %s when %s was expected",
 			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type],
-			prop_type_str[PROP_TYPE_STRING]);
+			prop_type_str[PROP(ps,prop).type].name,
+			prop_type_str[PROP_TYPE_STRING].name);
 
 	prop_assert(ps, prop, PROP(ps,prop).vector_size == 1);
 
@@ -948,8 +1191,8 @@ prop_get_string(prop_set_t *ps, property_t prop, gchar *t, size_t size)
 		g_error("Type mismatch getting value for [%s] of type"
 			" %s when %s was expected",
 			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type],
-			prop_type_str[PROP_TYPE_STRING]);
+			prop_type_str[PROP(ps,prop).type].name,
+			prop_type_str[PROP_TYPE_STRING].name);
 
 	s = *PROP(ps,prop).data.string.value;
 
@@ -995,21 +1238,9 @@ prop_description(prop_set_t *ps, property_t prop)
 const gchar *
 prop_type_to_string(prop_set_t *ps, property_t prop)
 {
-	g_assert(ps != NULL);
-	if (!prop_in_range(ps, prop))
-		g_error("prop_get_gchar: unknown property %u", prop);
-	
-	switch (PROP(ps,prop).type) {
-#define CASE(x) case CAT2(PROP_TYPE_,x): return STRINGIFY(x);
-	CASE(GUINT32)
-	CASE(GUINT64)
-	CASE(STRING)
-	CASE(IP)
-	CASE(BOOLEAN)
-	CASE(MULTICHOICE)
-	CASE(STORAGE)
-	}
-	return NULL;
+	g_assert(PROP(ps,prop).type < NUM_PROP_TYPES);
+	STATIC_ASSERT(NUM_PROP_TYPES == G_N_ELEMENTS(prop_type_str));
+	return prop_type_str[PROP(ps,prop).type].name;
 }
 
 gboolean
@@ -1048,11 +1279,19 @@ prop_to_string(prop_set_t *ps, property_t prop)
 			uint64_to_string_buf(val, s, sizeof s);
 		}
 		break;
+	case PROP_TYPE_TIMESTAMP:
+		{
+			time_t val;
+
+			prop_get_timestamp(ps, prop, &val, 0, 1);
+			timestamp_to_string_buf(val, s, sizeof s);
+		}
+		break;
 	case PROP_TYPE_STRING:
 		{
 			gchar *buf = prop_get_string(ps, prop, NULL, 0);
 
-			g_strlcpy(s, buf ? buf : "", sizeof(s));
+			g_strlcpy(s, buf ? buf : "", sizeof s);
 			G_FREE_NULL(buf);
 		}
 		break;
@@ -1061,7 +1300,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 			guint32 val;
 
 			prop_get_guint32(ps, prop, &val, 0, 1);
-			g_strlcpy(s, ip_to_string(val), sizeof(s));
+			g_strlcpy(s, ip_to_string(val), sizeof s);
 		}
 		break;
 	case PROP_TYPE_BOOLEAN:
@@ -1069,7 +1308,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 			gboolean val;
 
 			prop_get_boolean(ps, prop, &val, 0, 1);
-			g_strlcpy(s, val ? "TRUE" : "FALSE", sizeof(s));
+			g_strlcpy(s, val ? "TRUE" : "FALSE", sizeof s);
 		}
 		break;
 	case PROP_TYPE_MULTICHOICE:
@@ -1084,7 +1323,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 				n++;
 
 			if (PROP(ps, prop).data.guint32.choices[n].title != NULL)
-				gm_snprintf(s, sizeof(s), "%u: %s",
+				gm_snprintf(s, sizeof s, "%u: %s",
 						*(PROP(ps, prop).data.guint32.value),
 						PROP(ps,prop).data.guint32.choices[n].title);
 			else
@@ -1100,7 +1339,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 	default:
 		s[0] = '\0';
 		g_error("update_entry_gnet: incompatible type %s",
-			prop_type_str[PROP(ps,prop).type]);
+			prop_type_str[PROP(ps,prop).type].name);
 	}
 
 	return s;
@@ -1121,6 +1360,9 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 		break;
 	case PROP_TYPE_GUINT64:
 		uint64_to_string_buf(p->data.guint64.def[0], s, sizeof s);
+		break;
+	case PROP_TYPE_TIMESTAMP:
+		uint64_to_string_buf(p->data.timestamp.def[0], s, sizeof s);
 		break;
 	case PROP_TYPE_STRING:
 		g_strlcpy(s, *p->data.string.def ? *p->data.string.def : "", sizeof s);
@@ -1157,7 +1399,7 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 	default:
 		s[0] = '\0';
 		g_error("update_entry_gnet: incompatible type %s",
-			prop_type_str[PROP(ps,prop).type]);
+			prop_type_str[PROP(ps,prop).type].name);
 	}
 
 	return s;
@@ -1233,7 +1475,7 @@ prop_save_to_file_if_dirty(prop_set_t *ps, const gchar *dir,
 
 /**
  * Read the all properties from the given property set and stores them
- * along with thier description to the given file in the given directory.
+ * along with their description to the given file in the given directory.
  * If this file was modified since the property set was read from it at
  * startup, the modifies file will be renamed to [filename].old before
  * saving.
@@ -1367,6 +1609,21 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 
 			val = g_strjoinv(",", vbuf);
 			break;
+		case PROP_TYPE_TIMESTAMP:
+			for (i = 0; i < p->vector_size; i++) {
+				time_t t;
+
+				t = p->data.timestamp.value[i];
+				if (t != p->data.timestamp.def[i])
+					defaultvalue = FALSE;
+
+				timestamp_to_string_buf(t, sbuf, sizeof sbuf);
+				vbuf[i] = g_strdup(sbuf);
+			}
+			vbuf[p->vector_size] = NULL;
+			val = g_strjoinv(",", vbuf);
+			quotes = TRUE;
+			break;
 		case PROP_TYPE_STRING:
 			val = g_strdup(*p->data.string.value);
 			if (
@@ -1408,6 +1665,8 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 			/* No default values for storage type properties. */
 			defaultvalue = FALSE;
 			break;
+		case NUM_PROP_TYPES:
+			g_assert_not_reached();
 		}
 
 		g_assert(val != NULL);
@@ -1452,6 +1711,7 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const gchar *val,
 		gboolean	boolean[100];
 		guint32		uint32[100];
 		guint64		uint64[100];
+		time_t		timestamp[100];
 	} vecbuf;
 
 	g_assert(NULL != ps);
@@ -1497,6 +1757,16 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const gchar *val,
 		prop_parse_guint64_vector(p->name, val, p->vector_size, vecbuf.uint64);
 		stub->guint64.set(prop, vecbuf.uint64, 0, 0);
 		break;
+	case PROP_TYPE_TIMESTAMP:
+		prop_assert(ps, prop,
+			p->vector_size * sizeof(time_t) < sizeof(vecbuf.timestamp));
+
+		/* Initialize vector with defaults */
+		stub->timestamp.get(prop, vecbuf.timestamp, 0, 0);
+		prop_parse_timestamp_vector(p->name, val,
+			p->vector_size, vecbuf.timestamp);
+		stub->timestamp.set(prop, vecbuf.timestamp, 0, 0);
+		break;
 	case PROP_TYPE_STRING:
 		stub->string.set(prop, val);
 		break;
@@ -1527,6 +1797,8 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const gchar *val,
 			G_FREE_NULL(d);
 		}
 		break;
+	case NUM_PROP_TYPES:
+		g_assert_not_reached();
 	}
 
 	G_FREE_NULL(stub);
