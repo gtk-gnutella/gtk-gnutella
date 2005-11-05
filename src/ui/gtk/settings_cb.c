@@ -546,12 +546,12 @@ dbg_property_show_list(const GSList *props)
 		const gchar *text = _("<no property selected>");
 		GtkWidget *widget;
 		
-		widget = lookup_widget(dlg_prefs, "label_dbg_property_name");
-		gtk_label_set_text(GTK_LABEL(widget), text);
 		widget = lookup_widget(dlg_prefs, "label_dbg_property_limits");
 		gtk_label_set_text(GTK_LABEL(widget), text);
 		/* Gtk+ 2.x has editable column cells */
 #ifdef USE_GTK1
+		widget = lookup_widget(dlg_prefs, "label_dbg_property_name");
+		gtk_label_set_text(GTK_LABEL(widget), text);
 		widget = lookup_widget(dlg_prefs, "entry_dbg_property_value");
 		gtk_entry_set_text(GTK_ENTRY(widget), text);
 		widget = lookup_widget(dlg_prefs, "entry_dbg_property_default");
