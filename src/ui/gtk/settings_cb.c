@@ -290,6 +290,19 @@ on_entry_server_hostname_changed(GtkEditable *editable, gpointer unused_udata)
 	G_FREE_NULL(text);
 }
 
+enum dbg_cols {
+	dbg_col_saved = 0,
+	dbg_col_type,
+	dbg_col_name,
+	dbg_col_value,
+	
+#ifdef USE_GTK2	
+	dbg_col_property,
+#endif /* USE_GTK2 */
+	
+	num_dbg_cols
+};
+
 #ifdef USE_GTK2
 static tree_view_motion_t *tvm_dbg_property;
 
@@ -322,7 +335,7 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 	}
 
 	u = 0;
-	gtk_tree_model_get(model, &iter, 0, &u, (-1));
+	gtk_tree_model_get(model, &iter, dbg_col_property, &u, (-1));
 	g_assert(0 != u);
 
 	prop = (property_t) u;
@@ -384,12 +397,11 @@ on_cell_edited(GtkCellRendererText *unused_renderer, const gchar *path_str,
 	gtk_tree_model_get_iter(model, &iter, path);
 
 	u = 0;
-	gtk_tree_model_get(model, &iter, 0, &u, (-1));
-	g_assert(0 != u);
+	gtk_tree_model_get(model, &iter, dbg_col_property, &u, (-1));
 	prop = (property_t) u;
 	gnet_prop_set_from_string(prop,	text);
 	gtk_list_store_set(GTK_LIST_STORE(model), &iter,
-		1, gnet_prop_to_string(prop),
+		dbg_col_value, gnet_prop_to_string(prop),
 		(-1));
 }
 
@@ -406,9 +418,9 @@ dbg_property_update_selection(void)
 	tv = GTK_TREE_VIEW(lookup_widget(dlg_prefs, "treeview_dbg_property"));
 	s = gtk_tree_view_get_selection(tv);
 	if (gtk_tree_selection_get_selected(s, &model, &iter)) {
-		guint u;
+		guint u = 0;
 
-		gtk_tree_model_get(model, &iter, 0, &u, (-1));
+		gtk_tree_model_get(model, &iter, dbg_col_property, &u, (-1));
 		text = gnet_prop_default_to_string((property_t) u);
 	} else {
 		text = _("<no property selected>");
@@ -431,35 +443,38 @@ dbg_tree_init(void)
 {
 	static const struct {
 		const gchar *title;
-		const guint width;
+		const gint width;
 		const gboolean editable;
+		const enum dbg_cols id;
 	} columns[] = {
-		{ NULL,				  0, FALSE },	/* property_t */
-		{ N_("Saved"),	 	 30, FALSE },
-		{ N_("Type"),		 50, FALSE },
-		{ N_("Property"),	100, FALSE },
-		{ N_("Value"),		200, TRUE  },
+		{ N_("Saved"),	 	  0, FALSE, dbg_col_saved },
+		{ N_("Type"),		  0, FALSE, dbg_col_type },
+		{ N_("Property"),	  0, FALSE, dbg_col_name },
+		{ N_("Value"),		200, TRUE,  dbg_col_value  },
+		{ NULL,				  0, FALSE, dbg_col_property },	/* property_t */
 	};
 	GtkListStore *store;
 	GtkTreeView *tv;
 	guint i;
 
+	STATIC_ASSERT(G_N_ELEMENTS(columns) == (guint) num_dbg_cols);
+	
 	tv = GTK_TREE_VIEW(lookup_widget(dlg_prefs, "treeview_dbg_property"));
 	store = GTK_LIST_STORE(gtk_list_store_new(G_N_ELEMENTS(columns),
-				G_TYPE_UINT,		/* property_t */
 				G_TYPE_STRING,		/* Type */
 				G_TYPE_STRING,		/* Name */
 				G_TYPE_STRING,		/* Value */
-				G_TYPE_STRING));	/* Persistent */
+				G_TYPE_STRING,		/* Persistent */
+				G_TYPE_UINT));		/* property_t */
 
 	gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store));
 	g_object_unref(store);
 
-	/* Skip invisible column zero which holds the property_t */
-	for (i = 1; i < G_N_ELEMENTS(columns); i++) {
+	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
 		GtkTreeViewColumn *column;
 		GtkCellRenderer *renderer;
 
+		/* Skip invisible column zero which holds the property_t */
 		if (!columns[i].title)
 			continue;
 
@@ -484,12 +499,22 @@ dbg_tree_init(void)
 				"ypad", GUI_CELL_RENDERER_YPAD,
 				(void *) 0);
 		g_object_set(column,
-				"fixed-width", 200,
 				"min-width", 1,
 				"resizable", TRUE,
 				"reorderable", FALSE,
+				(void *) 0);
+		
+		if (columns[i].width) {
+			g_object_set(column,
+				"fixed-width", columns[i].width,
 				"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 				(void *) 0);
+		} else {
+			g_object_set(column,
+				"sizing", GTK_TREE_VIEW_COLUMN_AUTOSIZE,
+				(void *) 0);
+		}
+		
 
 		gtk_tree_view_column_set_sort_column_id(column, i);
 		gtk_tree_view_append_column(tv, column);
@@ -546,11 +571,11 @@ dbg_property_show_list(const GSList *props)
 
 		gtk_list_store_append(store, &iter);
 		gtk_list_store_set(store, &iter,
-			0, (guint) prop,
-			1, gnet_prop_type_to_string(prop),
-			2, gnet_prop_name(prop),
-			3, gnet_prop_to_string(prop),
-			4, gnet_prop_is_saved(prop) ? _("Yes") : _("No"),
+			dbg_col_saved,		gnet_prop_is_saved(prop) ? _("Yes") : _("No"),
+			dbg_col_type,		gnet_prop_type_to_string(prop),
+			dbg_col_name,		gnet_prop_name(prop),
+			dbg_col_value,		gnet_prop_to_string(prop),
+			dbg_col_property,	(guint) prop,
 			(-1));
 	}
 }
@@ -605,14 +630,21 @@ dbg_property_set_row(GtkCList *clist, gint row, property_t prop)
 	g_assert(clist);
 	g_assert(row != -1);
 
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < (gint) num_dbg_cols; i++) {
 		const gchar *text;
-		switch (i) {
-		case 0: text = gnet_prop_type_to_string(prop); break;
-		case 1: text = gnet_prop_name(prop); break;
-		case 2: text = gnet_prop_to_string(prop); break;
-		case 3: text = gnet_prop_is_saved(prop)
-							? _("Yes") : _("No"); break;
+		switch ((enum dbg_cols) i) {
+		case dbg_col_saved:
+			text = gnet_prop_is_saved(prop) ? _("Yes") : _("No");
+			break;
+		case dbg_col_type:
+			text = gnet_prop_type_to_string(prop);
+			break;
+		case dbg_col_name:
+			text = gnet_prop_name(prop);
+			break;
+		case dbg_col_value:
+			text = gnet_prop_to_string(prop);
+			break;
 		default:
 			g_assert_not_reached();
 			text = "(null)";
@@ -633,7 +665,7 @@ dbg_property_show_list(const GSList *props)
 	gtk_clist_clear(clist);
 
 	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
-		static const gchar * const titles[4] = { "", "", "" };
+		static const gchar * const titles[num_dbg_cols] = { "", "", "", "", };
 		property_t prop = GPOINTER_TO_UINT(sl->data);
 		gint row;
 		
@@ -730,25 +762,28 @@ void
 on_clist_dbg_property_click_column(GtkCList *clist, gint column,
 	gpointer unused_udata)
 {
-
 	(void) unused_udata;
 
-	switch (column) {
-	case 0:
-		gtk_clist_set_compare_func(clist, dbg_property_cmp_type);
-		dbg_property_cmp_type_inverted = !dbg_property_cmp_type_inverted;
-		break;
-	case 1:
-		gtk_clist_set_compare_func(clist, dbg_property_cmp_name);
-		dbg_property_cmp_name_inverted = !dbg_property_cmp_name_inverted;
-		break;
-	case 2:
-		/* Don't sort by values */
-		break;
-	case 3:
+	g_assert(column >= 0 && column < num_dbg_cols);
+
+	switch ((enum dbg_cols) column) {
+	case dbg_col_saved:
 		gtk_clist_set_compare_func(clist, dbg_property_cmp_saved);
 		dbg_property_cmp_saved_inverted = !dbg_property_cmp_saved_inverted;
 		break;
+	case dbg_col_type:
+		gtk_clist_set_compare_func(clist, dbg_property_cmp_type);
+		dbg_property_cmp_type_inverted = !dbg_property_cmp_type_inverted;
+		break;
+	case dbg_col_name:
+		gtk_clist_set_compare_func(clist, dbg_property_cmp_name);
+		dbg_property_cmp_name_inverted = !dbg_property_cmp_name_inverted;
+		break;
+	case dbg_col_value:
+		/* Don't sort by values */
+		break;
+	case num_dbg_cols:
+		g_assert_not_reached();
 	}
 			
 	gtk_clist_sort(clist);
