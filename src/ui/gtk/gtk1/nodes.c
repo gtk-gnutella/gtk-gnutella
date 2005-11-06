@@ -250,9 +250,9 @@ nodes_gui_init(void)
     gtk_clist_set_column_name(clist, c_gnet_flags, _("Flags"));
     gtk_clist_set_column_name(clist, c_gnet_user_agent, _("User-Agent"));
     gtk_clist_set_column_name(clist, c_gnet_version, _("Ver"));
-    gtk_clist_set_column_name(clist, c_gnet_connected, _("Connected"));
+    gtk_clist_set_column_name(clist, c_gnet_connected, _("Connected time"));
     gtk_clist_set_column_name(clist, c_gnet_uptime, _("Uptime"));
-    gtk_clist_set_column_name(clist, c_gnet_info, _("Info"));
+    gtk_clist_set_column_name(clist, c_gnet_info, _("Status"));
 	gtk_clist_restore_visibility(clist, PROP_NODES_COL_VISIBLE);
 
     ht_node_info_changed = g_hash_table_new(g_direct_hash, g_direct_equal);

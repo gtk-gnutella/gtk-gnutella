@@ -211,10 +211,10 @@ child_cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	if (column == gtk_tree_view_get_column(tv, 0)) {
 		switch (u) {
 		case c_gnet_loc:		s = _("Location"); break;
-		case c_gnet_connected:	s = _("Connected"); break;
+		case c_gnet_connected:	s = _("Connected time"); break;
 		case c_gnet_uptime:		s = _("Uptime"); break;
 		case c_gnet_flags:		s = _("Flags"); break;
-		case c_gnet_info:		s = _("Info"); break;
+		case c_gnet_info:		s = _("Status"); break;
 		case c_gnet_version:	s = _("Version"); break;
 		default: 				s = NULL; break;
 		}
