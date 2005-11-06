@@ -246,7 +246,7 @@ nodes_gui_init(void)
 
     gtk_clist_column_titles_passive(clist);
     gtk_clist_set_column_name(clist, c_gnet_host, _("Host"));
-    gtk_clist_set_column_name(clist, c_gnet_loc, _("Loc"));
+    gtk_clist_set_column_name(clist, c_gnet_loc, _("Country"));
     gtk_clist_set_column_name(clist, c_gnet_flags, _("Flags"));
     gtk_clist_set_column_name(clist, c_gnet_user_agent, _("User-Agent"));
     gtk_clist_set_column_name(clist, c_gnet_version, _("Ver"));
