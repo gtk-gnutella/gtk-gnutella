@@ -66,9 +66,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96u\n"
+"Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-11-02 20:51+0900\n"
+"POT-Creation-Date: 2005-11-06 09:37+0900\n"
 "PO-Revision-Date: 2005-11-02 21:10+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -82,179 +82,179 @@ msgstr ""
 "X-Poedit-KeywordsList: N_;Q_;NG_:1,2\n"
 "X-Poedit-Basepath: /opt/src/network/gnutella/gtk-gnutella-devel\n"
 
-#: src/core/downloads.c:951 src/core/downloads.c:1009
+#: src/core/downloads.c:950 src/core/downloads.c:1008
 msgid "No longer connected"
 msgstr "もう接続していません"
 
 # FIXME: separation (src/core/downloads.c src/core/nodes.c)
-#: src/core/downloads.c:998 src/core/nodes.c:849 src/ui/gtk/hcache_common.c:43
+#: src/core/downloads.c:997 src/core/nodes.c:849 src/ui/gtk/hcache_common.c:43
 msgid "Timeout"
 msgstr "タイムアウト"
 
-#: src/core/downloads.c:1020
+#: src/core/downloads.c:1019
 msgid "Requeued due to timeout"
 msgstr "キューに戻されました (タイムアウト)"
 
-#: src/core/downloads.c:1882
+#: src/core/downloads.c:1881
 msgid "Requeued by file info change"
 msgstr "再びキューに戻されました (ファイル情報変更)"
 
-#: src/core/downloads.c:1961 src/core/downloads.c:3047
-#: src/core/downloads.c:3954
+#: src/core/downloads.c:1960 src/core/downloads.c:3046
+#: src/core/downloads.c:3956
 msgid "Suspended (SHA1 checking)"
 msgstr "一時休止 (SHA1 確認中)"
 
 # FIXME: how can it be used?
-#: src/core/downloads.c:2774
+#: src/core/downloads.c:2773
 #, c-format
 msgid " at %s - rescheduled for %s"
 msgstr ""
 
-#: src/core/downloads.c:3174
+#: src/core/downloads.c:3176
 msgid "Waiting for a free chunk"
 msgstr "空きチャンクを待受中"
 
 # FIXME: what does `start' stand for?
-#: src/core/downloads.c:3328
+#: src/core/downloads.c:3330
 msgid "No download slot (start)"
 msgstr "ダウンロード受口がありません (開始)"
 
-#: src/core/downloads.c:3374
+#: src/core/downloads.c:3376
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "接続失敗 (ファイル記述子は足りていますか？)"
 
-#: src/core/downloads.c:3594
+#: src/core/downloads.c:3596
 msgid "Ignoring Push flag"
 msgstr "PUSH フラッグを無視します"
 
-#: src/core/downloads.c:3625
+#: src/core/downloads.c:3627
 #, c-format
 msgid "No direct connection yet (%u retry)"
 msgid_plural "No direct connection yet (%u retries)"
 msgstr[0] "まだ直接接続していません (%u 回目)"
 
-#: src/core/downloads.c:3632 src/core/downloads.c:3646
+#: src/core/downloads.c:3634 src/core/downloads.c:3648
 #, c-format
 msgid "Timeout (%u retry)"
 msgid_plural "Timeout (%u retries)"
 msgstr[0] "タイムアウトしました (%u 回目)"
 
-#: src/core/downloads.c:3636
+#: src/core/downloads.c:3638
 #, c-format
 msgid "Connection refused (%u retry)"
 msgid_plural "Connection refused (%u retries)"
 msgstr[0] "接続を拒否されました (%u 回目)"
 
-#: src/core/downloads.c:3945
+#: src/core/downloads.c:3947
 msgid "Dup SHA1 during creation"
 msgstr "作成中に SHA1 を複製します"
 
 # FIXME: what does `create' stand for?
-#: src/core/downloads.c:3966
+#: src/core/downloads.c:3968
 msgid "No download slot (create)"
 msgstr "ダウンロード受口がありません (作成)"
 
-#: src/core/downloads.c:4196
+#: src/core/downloads.c:4198
 msgid "Stopped (Index changed)"
 msgstr "中止 (インデックス変更)"
 
-#: src/core/downloads.c:4521
+#: src/core/downloads.c:4523
 msgid "Explicitly requeued"
 msgstr "キューに戻されました (手動)"
 
-#: src/core/downloads.c:4691
+#: src/core/downloads.c:4693
 #, c-format
 msgid "Stopped (%s)"
 msgstr "中止されました (%s)"
 
-#: src/core/downloads.c:4694 src/core/downloads.c:4729
+#: src/core/downloads.c:4696 src/core/downloads.c:4731
 #, c-format
 msgid "Too many attempts (%u times)"
 msgstr "要求回数が多すぎます (%u 回)"
 
-#: src/core/downloads.c:4696 src/core/downloads.c:6063
-#: src/core/downloads.c:7189
+#: src/core/downloads.c:4698 src/core/downloads.c:6067
+#: src/core/downloads.c:7193
 #, c-format
 msgid "Failed (Read error: %s)"
 msgstr "失敗しました (読込エラー: %s)"
 
-#: src/core/downloads.c:4725
+#: src/core/downloads.c:4727
 msgid "Connection not kept-alive (EOF)"
 msgstr "接続が Keep-Alive ではありません (EOF)"
 
-#: src/core/downloads.c:4726
+#: src/core/downloads.c:4728
 msgid "Stopped (EOF)"
 msgstr "中止されました (EOF)"
 
-#: src/core/downloads.c:4842 src/core/downloads.c:6999
+#: src/core/downloads.c:4844 src/core/downloads.c:7003
 msgid "Stopped (Output file size changed)"
 msgstr "中止されました (出力ファイルサイズ変更)"
 
-#: src/core/downloads.c:5050
+#: src/core/downloads.c:5052
 #, c-format
 msgid "Can't save data: %s"
 msgstr "データを保存できません: %s"
 
-#: src/core/downloads.c:5190
+#: src/core/downloads.c:5192
 msgid "Requeued by competing download"
 msgstr "キューに戻されました (競合ダウンロード)"
 
-#: src/core/downloads.c:5254
+#: src/core/downloads.c:5258
 msgid "Requeued after trimmed data"
 msgstr "キューに戻されました (データ整理後)"
 
-#: src/core/downloads.c:5256
+#: src/core/downloads.c:5260
 msgid "Chunk done, connection closed"
 msgstr "チャンク完了、接続を閉じます"
 
-#: src/core/downloads.c:5444
+#: src/core/downloads.c:5448
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "おかしな HTTP ステータス (プロトコルが非同期？)"
 
-#: src/core/downloads.c:5765
+#: src/core/downloads.c:5769
 msgid "No URN on server, waiting for overlap"
 msgstr "サーバーに URN がありません、オーバーラップ待受中"
 
-#: src/core/downloads.c:5771
+#: src/core/downloads.c:5775
 msgid "No URN on server to validate"
 msgstr "サーバーに確認するための URN がありません"
 
-#: src/core/downloads.c:5817
+#: src/core/downloads.c:5821
 msgid "URN fileinfo mismatch"
 msgstr "URN ファイル情報が一致しません"
 
-#: src/core/downloads.c:5837
+#: src/core/downloads.c:5841
 msgid "Discovered dup SHA1"
 msgstr "重複する SHA1 を発見しました"
 
-#: src/core/downloads.c:6045 src/core/downloads.c:6053
-#: src/core/downloads.c:7141 src/core/downloads.c:7179
+#: src/core/downloads.c:6049 src/core/downloads.c:6057
+#: src/core/downloads.c:7145 src/core/downloads.c:7183
 msgid "Stopped data (EOF)"
 msgstr "データ転送が中止されました (EOF)"
 
-#: src/core/downloads.c:6266
+#: src/core/downloads.c:6270
 msgid "Spammer detected"
 msgstr "迷惑ファイル送信者を検出しました"
 
-#: src/core/downloads.c:6474 src/core/downloads.c:6979
+#: src/core/downloads.c:6478 src/core/downloads.c:6983
 msgid "Partial file on server, waiting"
 msgstr "サーバーの部分ファイルを待受中"
 
-#: src/core/downloads.c:6575
+#: src/core/downloads.c:6579
 #, c-format
 msgid "Queued (slot %u/%u) ETA: %s"
 msgstr "待機中 (受口 %u/%u) 予定時間: %s"
 
-#: src/core/downloads.c:7147
+#: src/core/downloads.c:7151
 msgid "Stopped (Read buffer full)"
 msgstr "中止されました (読込バッファが一杯です)"
 
-#: src/core/downloads.c:7186
+#: src/core/downloads.c:7190
 #, c-format
 msgid "Stopped data (%s)"
 msgstr "データ転送が中止されました (%s)"
 
-#: src/core/downloads.c:8463
+#: src/core/downloads.c:8467
 msgid "SHA1 mismatch detected"
 msgstr "SHA1 の不一致を検出しました"
 
@@ -714,10 +714,10 @@ msgstr "ファイル"
 #: src/ui/gtk/gtk1/interface-glade.c:3812
 #: src/ui/gtk/gtk1/interface-glade.c:4259
 #: src/ui/gtk/gtk1/interface-glade.c:5572
-#: src/ui/gtk/gtk1/interface-glade.c:12758 src/ui/gtk/gtk1/search.c:2226
+#: src/ui/gtk/gtk1/interface-glade.c:12759 src/ui/gtk/gtk1/search.c:2226
 #: src/ui/gtk/gtk1/search.c:2232 src/ui/gtk/gtk2/downloads.c:438
 #: src/ui/gtk/gtk2/downloads.c:483 src/ui/gtk/gtk2/fileinfo.c:613
-#: src/ui/gtk/gtk2/gnet_stats.c:475 src/ui/gtk/gtk2/interface-glade.c:11348
+#: src/ui/gtk/gtk2/gnet_stats.c:475 src/ui/gtk/gtk2/interface-glade.c:11574
 #: src/ui/gtk/gtk2/search.c:1349 src/ui/gtk/gtk2/upload_stats.c:269
 #: src/ui/gtk/gtk2/uploads.c:83
 msgid "Size"
@@ -1556,7 +1556,7 @@ msgstr "入力した「強制ローカル IP」をローカル IP として使�
 msgid "Try to connect to local networks first."
 msgstr "最初にローカルネットへの接続を試みます。"
 
-#: src/if/gnet_property.c:2597 src/ui/gtk/gtk2/interface-glade.c:10157
+#: src/if/gnet_property.c:2597 src/ui/gtk/gtk2/interface-glade.c:10383
 msgid ""
 "Check this button if you want to use Gtk-Gnutella on your Local Area "
 "Network. RFC1918 will be ignored."
@@ -2243,7 +2243,7 @@ msgstr ""
 "あなたのサーバーのホスト名を、ダウンローダや問合わせの成功で知らせるかどうか"
 "を選択します。"
 
-#: src/if/gnet_property.c:4560 src/ui/gtk/gtk2/interface-glade.c:11802
+#: src/if/gnet_property.c:4560 src/ui/gtk/gtk2/interface-glade.c:12028
 msgid ""
 "Percentage of the number of connections we should reserve for gtk-gnutella "
 "nodes."
@@ -2731,67 +2731,67 @@ msgstr ""
 "モリを割り当てたくないのでしたら、先読みバッファサイズを 0 にする事でこの機能"
 "を無効にすることができます。"
 
-#: src/if/gui_property.c:173
+#: src/if/gui_property.c:175
 msgid "disable"
 msgstr "表示しない"
 
-#: src/if/gui_property.c:174
+#: src/if/gui_property.c:176
 msgid "by words"
 msgstr "単語に別けて表示"
 
-#: src/if/gui_property.c:175
+#: src/if/gui_property.c:177
 msgid "by whole query"
 msgstr "完全なクエリで表示"
 
-#: src/if/gui_property.c:176
+#: src/if/gui_property.c:178
 msgid "by router"
 msgstr "接続ノードからのクエリを表示"
 
-#: src/if/gui_property.c:198
+#: src/if/gui_property.c:200
 msgid "TCP & UDP"
 msgstr "TCP と UDP"
 
-#: src/if/gui_property.c:199
+#: src/if/gui_property.c:201
 msgid "TCP only"
 msgstr "TCP のみ"
 
-#: src/if/gui_property.c:200
+#: src/if/gui_property.c:202
 msgid "UDP only"
 msgstr "UDP のみ"
 
-#: src/if/gui_property.c:268
+#: src/if/gui_property.c:270
 msgid "Icons"
 msgstr "アイコンのみ"
 
-#: src/if/gui_property.c:269
+#: src/if/gui_property.c:271
 msgid "Text"
 msgstr "テキストのみ"
 
-#: src/if/gui_property.c:270
+#: src/if/gui_property.c:272
 msgid "Both (vertical)"
 msgstr "両方 (垂直に並べる)"
 
-#: src/if/gui_property.c:271
+#: src/if/gui_property.c:273
 msgid "Both (horizontal)"
 msgstr "両方 (水平に並べる)"
 
-#: src/if/gui_property.c:299
+#: src/if/gui_property.c:301
 msgid "Search monitor enabled."
 msgstr "検索モニタを有効にします。"
 
-#: src/if/gui_property.c:316
+#: src/if/gui_property.c:318
 msgid "Maximum number of queries visible in search monitor."
 msgstr "検索モニタに表示する検索式の最大数です。"
 
-#: src/if/gui_property.c:336
+#: src/if/gui_property.c:338
 msgid "Match queue selection by regexp case sensitive."
 msgstr "正規表現 (大文字・小文字を区別) で待機列を選択します。"
 
-#: src/if/gui_property.c:353
+#: src/if/gui_property.c:355
 msgid "Match fileinfo selection by regexp case sensitive."
 msgstr "正規表現 (大文字・小文字を区別) でファイル情報を選択します。"
 
-#: src/if/gui_property.c:370
+#: src/if/gui_property.c:372
 msgid ""
 "Whether to hide hits that have been considered for auto-downloading based on "
 "the SHA1 or your filters."
@@ -2799,243 +2799,247 @@ msgstr ""
 "SHA1 やフィルターを基にした自動ダウンロードと思われるものはヒットしても表示し"
 "ないようにします。"
 
-#: src/if/gui_property.c:387
+#: src/if/gui_property.c:389
 msgid "Widths of the columns in the nodes table."
 msgstr "ノード一覧表の欄幅です。"
 
-#: src/if/gui_property.c:407
+#: src/if/gui_property.c:409
 msgid "Which columns are visible in the nodes pane."
 msgstr "ノードペインでどの欄を表示するのかを指定します。"
 
-#: src/if/gui_property.c:424
+#: src/if/gui_property.c:426
 msgid "Widths of the columns in the active downloads table."
 msgstr "アクティブ・ダウンロード一覧表の欄幅です。"
 
-#: src/if/gui_property.c:444
+#: src/if/gui_property.c:446
 msgid "Which columns are visible in the active downloads table."
 msgstr "アクティブ・ダウンロード一覧表でどの欄を表示するのかを指定します。"
 
-#: src/if/gui_property.c:461
+#: src/if/gui_property.c:463
 msgid "Widths of the columns in the queued downloads table."
 msgstr "待機ダウンロード一覧表の欄幅です。"
 
-#: src/if/gui_property.c:481
+#: src/if/gui_property.c:483
 msgid "Which columns are visible in the queued downloads table."
 msgstr "待機ダウンロード一覧表でどの欄を表示するのかを指定します。"
 
-#: src/if/gui_property.c:498
+#: src/if/gui_property.c:500
 msgid "Widths of the columns in the file info table."
 msgstr "ファイル情報一覧表の欄幅です。"
 
-#: src/if/gui_property.c:518
+#: src/if/gui_property.c:520
 msgid "Widths of the columns in the search list on the sidebar."
 msgstr "サイドバー上の検索一覧の欄幅です。"
 
-#: src/if/gui_property.c:538
+#: src/if/gui_property.c:540
 msgid "Which columns are visible in the search results tables."
 msgstr "検索結果一覧表のどの欄を表示するのかを指定します。"
 
-#: src/if/gui_property.c:555
+#: src/if/gui_property.c:557
 msgid "Widths of the columns in the search results tables."
 msgstr "検索結果一覧表の欄幅です。"
 
-#: src/if/gui_property.c:575
+#: src/if/gui_property.c:577
 msgid "Widths of the columns in the search stats table."
 msgstr "検索状況一覧表の欄幅です。"
 
-#: src/if/gui_property.c:595
+#: src/if/gui_property.c:597
 msgid "Widths of the columns in the upload stats table."
 msgstr "アップロード状況一覧表の欄幅です。"
 
-#: src/if/gui_property.c:615
+#: src/if/gui_property.c:617
 msgid "Which columns are visible in the upload stats table."
 msgstr "アップロード・ステータス一覧表でどの欄を表示するのかを指定します。"
 
-#: src/if/gui_property.c:632
+#: src/if/gui_property.c:634
 msgid "Widths of the columns in the uploads table."
 msgstr "アップロード一覧表の欄幅です。"
 
-#: src/if/gui_property.c:652
+#: src/if/gui_property.c:654
 msgid "Which columns are visible in the uploads table."
 msgstr "アップロード一覧表でどの欄を表示するのかを指定します。"
 
-#: src/if/gui_property.c:669
+#: src/if/gui_property.c:671
 msgid "Widths of the columns in the rules table in the filter dialog."
 msgstr "フィルターダイアログでのルール一覧表の欄幅です。"
 
-#: src/if/gui_property.c:689
+#: src/if/gui_property.c:691
 msgid "Widths of the columns in the filter table in the filter dialog."
 msgstr "フィルターダイアログでのフィルター一覧表の欄幅です。"
 
-#: src/if/gui_property.c:709
+#: src/if/gui_property.c:711
 msgid "Widths of the columns in the Gnet packet stats table."
 msgstr "Gnet のパケット状況一覧表の欄幅です。"
 
-#: src/if/gui_property.c:729
+#: src/if/gui_property.c:731
 msgid "Widths of the columns in the Gnet fc ttl stats table."
 msgstr "Gnet のフロー制御TTLステータス一覧表の欄幅です。"
 
-#: src/if/gui_property.c:749 src/if/gui_property.c:769
+#: src/if/gui_property.c:751 src/if/gui_property.c:771
 msgid "Widths of the columns in the Gnet fc hops stats table."
 msgstr "Gnet のフロー制御ホップステータス一覧表の欄幅です。"
 
-#: src/if/gui_property.c:789
+#: src/if/gui_property.c:791
 msgid "Widths of the columns in the Gnet horizon stats table."
 msgstr "Gnet の到達領域ステータス一覧表の欄幅です。"
 
-#: src/if/gui_property.c:809 src/if/gui_property.c:829
+#: src/if/gui_property.c:811 src/if/gui_property.c:831
 msgid "Widths of the columns in the Gnet stats drop reasons table."
 msgstr "Gnet ステータスの破棄理由一覧表の欄幅です。"
 
-#: src/if/gui_property.c:849
+#: src/if/gui_property.c:851
 msgid "Widths of the columns in the hostcache table."
 msgstr "ホストキャッシュ一覧表の欄幅です。"
 
-#: src/if/gui_property.c:869
+#: src/if/gui_property.c:871
 msgid "Position and size of the main window."
 msgstr "メインウィンドウの位置と大きさです。"
 
-#: src/if/gui_property.c:889
+#: src/if/gui_property.c:891
 msgid "Position and size of the filter dialog."
 msgstr "フィルターダイアログの位置と大きさです。"
 
-#: src/if/gui_property.c:909
+#: src/if/gui_property.c:911
 msgid "Position of the divider in the fileinfo panel."
 msgstr "ファイル情報パネルの分割位置です。"
 
-#: src/if/gui_property.c:929
+#: src/if/gui_property.c:931
 msgid "Size of the sidebar."
 msgstr "サイドバーの大きさです。"
 
-#: src/if/gui_property.c:949
+#: src/if/gui_property.c:951
 msgid "Position of the divider in the Gnet stats pane."
 msgstr "Gnet ステータス一覧の分割位置です。"
 
-#: src/if/gui_property.c:969
+#: src/if/gui_property.c:971
 msgid "Size of the menu in the sidebar."
 msgstr "サイドバーメニューの大きさです。"
 
-#: src/if/gui_property.c:989
+#: src/if/gui_property.c:991
 msgid "Position of the divider in the search results pane."
 msgstr "検索結果一覧の分割位置です。"
 
-#: src/if/gui_property.c:1009
+#: src/if/gui_property.c:1011
 msgid "Maximum number of results to show in any search."
 msgstr "検索での結果表字の最大数です。"
 
-#: src/if/gui_property.c:1029
+#: src/if/gui_property.c:1031
 msgid "Debug level for the gui."
 msgstr "GUI のバグ解析レベルです。"
 
-#: src/if/gui_property.c:1049
+#: src/if/gui_property.c:1051
 msgid "Size of the filter tree in the filter dialog."
 msgstr "フィルターダイアログ内でのフィルター木の大きさです。"
 
-#: src/if/gui_property.c:1069
+#: src/if/gui_property.c:1071
 msgid "Show tabs or search list."
 msgstr "タブあるいは検索一覧を表示します。"
 
-#: src/if/gui_property.c:1086
+#: src/if/gui_property.c:1088
+msgid "Display Navigation Tree."
+msgstr ""
+
+#: src/if/gui_property.c:1105
 msgid "Display toolbar."
 msgstr "ツールバーを表示します。"
 
-#: src/if/gui_property.c:1103
+#: src/if/gui_property.c:1122
 msgid "Display statusbar."
 msgstr "ステータスバーを表示します。"
 
-#: src/if/gui_property.c:1120
+#: src/if/gui_property.c:1139
 msgid "Display upload statistics in sidebar."
 msgstr "アップロード統計をサイドバーに表示します。"
 
-#: src/if/gui_property.c:1137
+#: src/if/gui_property.c:1156
 msgid "Display download statistics in sidebar."
 msgstr "ダウンロード統計をサイドバーに表示します。"
 
-#: src/if/gui_property.c:1154
+#: src/if/gui_property.c:1173
 msgid "Display connection statistics in sidebar."
 msgstr "接続統計をサイドバーに表示します。"
 
-#: src/if/gui_property.c:1171
+#: src/if/gui_property.c:1190
 msgid "Display incoming HTTP traffic bandwidth usage."
 msgstr "ノード内への HTTP トラフィックの帯域幅使用量を表示します。"
 
-#: src/if/gui_property.c:1188
+#: src/if/gui_property.c:1207
 msgid "Display outgoing HTTP traffic bandwidth usage."
 msgstr "ノード外への HTTP トラフィックの帯域幅使用量を表示します。"
 
-#: src/if/gui_property.c:1205
+#: src/if/gui_property.c:1224
 msgid "Display incoming Gnet traffic bandwidth usage."
 msgstr "ノード内への Gnet トラフィックの帯域幅使用量を表示します。"
 
-#: src/if/gui_property.c:1222
+#: src/if/gui_property.c:1241
 msgid "Display outgoing Gnet traffic bandwidth usage."
 msgstr "ノード外への Gnet トラフィックの帯域幅使用量を表示します。"
 
-#: src/if/gui_property.c:1239
+#: src/if/gui_property.c:1258
 msgid "Display incoming Gnet leaf traffic bandwidth usage."
 msgstr "ノード内への Gnet リーフトラフィックの帯域幅使用量を表示します。"
 
-#: src/if/gui_property.c:1256
+#: src/if/gui_property.c:1275
 msgid "Display outgoing Gnet leaf traffic bandwidth usage."
 msgstr "ノード外への Gnet リーフトラフィックの帯域幅使用量を表示します。"
 
-#: src/if/gui_property.c:1273
+#: src/if/gui_property.c:1292
 msgid "Automatically hide leaf bandwidth display when not in ultrapeer mode."
 msgstr "ウルトラピアモードでない場合はリーフ帯域幅を自動的に隠します。"
 
-#: src/if/gui_property.c:1290
+#: src/if/gui_property.c:1309
 msgid "Display incoming HTTP traffic bandwidth average."
 msgstr "ノード内への HTTP トラフィックの帯域幅平均値を表示します。"
 
-#: src/if/gui_property.c:1307
+#: src/if/gui_property.c:1326
 msgid "Display outgoing HTTP traffic bandwidth average."
 msgstr "ノード外への HTTP トラフィックの帯域幅平均値を表示します。"
 
-#: src/if/gui_property.c:1324
+#: src/if/gui_property.c:1343
 msgid "Display incoming Gnet traffic bandwidth average."
 msgstr "ノード内への Gnet トラフィックの帯域幅平均値を表示します。"
 
-#: src/if/gui_property.c:1341
+#: src/if/gui_property.c:1360
 msgid "Display outgoing Gnet traffic bandwidth average."
 msgstr "ノード外への Gnet トラフィックの帯域幅平均値を表示します。"
 
-#: src/if/gui_property.c:1358
+#: src/if/gui_property.c:1377
 msgid "Display incoming Gnet leaf traffic bandwidth average."
 msgstr "ノード内への Gnet リーフトラフィックの帯域幅平均値を表示します。"
 
-#: src/if/gui_property.c:1375
+#: src/if/gui_property.c:1394
 msgid "Display outgoing Gnet leaf traffic bandwidth average."
 msgstr "ノード外への Gnet リーフトラフィックの帯域幅平均値を表示します。"
 
-#: src/if/gui_property.c:1392
+#: src/if/gui_property.c:1411
 msgid "Do a case sensitive sorting."
 msgstr "大文字・小文字を区別して並べ替えます。"
 
-#: src/if/gui_property.c:1409
+#: src/if/gui_property.c:1428
 msgid "Default sort order for search results."
 msgstr "検索結果ペインでの標準の並び順です。"
 
-#: src/if/gui_property.c:1429
+#: src/if/gui_property.c:1448
 msgid "Default sort column for search results."
 msgstr "検索結果ペインでの標準の表示欄の並び順です。"
 
-#: src/if/gui_property.c:1449
+#: src/if/gui_property.c:1468
 msgid "Display search settings."
 msgstr "検索設定を表示します。"
 
-#: src/if/gui_property.c:1466
+#: src/if/gui_property.c:1485
 msgid "Display download settings."
 msgstr "ダウンロード設定を表示します。"
 
-#: src/if/gui_property.c:1483
+#: src/if/gui_property.c:1502
 msgid "Collect statistics about searches that go through this node."
 msgstr "このノードを通過した検索に関する統計を集めます。"
 
-#: src/if/gui_property.c:1503
+#: src/if/gui_property.c:1522
 msgid "Interval in which the search stats are updated."
 msgstr "検索ステータスが更新されるまでの時間です。"
 
-#: src/if/gui_property.c:1523
+#: src/if/gui_property.c:1542
 msgid ""
 "A deletion coefficient, so that small non-significant results can be "
 "dropped.  The lower it is, the more search statistics will be kept in memory."
@@ -3043,15 +3047,15 @@ msgstr ""
 "無用の結果を破棄するための削除係数です。この値が低い程、多くの検索統計がメモ"
 "リに保持されます。"
 
-#: src/if/gui_property.c:1543
+#: src/if/gui_property.c:1562
 msgid "Show confirmation dialog when leaving gtk-gnutella."
 msgstr "Gtk-Gnutella 終了の際に確認ダイアログを表示します。"
 
-#: src/if/gui_property.c:1560
+#: src/if/gui_property.c:1579
 msgid "Show a helpful message when the mouse pointer lingers over a widget."
 msgstr "マウスポインタがウィジットを通過する際に役立つメッセージを表示します。"
 
-#: src/if/gui_property.c:1577
+#: src/if/gui_property.c:1596
 msgid ""
 "Show a lot more settings to tweak. If you tamper with them be sure to read "
 "up on what they are doing."
@@ -3059,45 +3063,45 @@ msgstr ""
 "ハッカーのためにより多くの設定項目を表示します。これらが何をするのかを徹底的"
 "に調べてから変更するようにして下さい。"
 
-#: src/if/gui_property.c:1594
+#: src/if/gui_property.c:1613
 msgid "Show percentages instead of absolute values in the Gnet stats."
 msgstr "Gnet ステータスにおいて絶対値の代わりに割合を表示します。"
 
-#: src/if/gui_property.c:1611
+#: src/if/gui_property.c:1630
 msgid "Show bytes instead of packets in the Gnet stats."
 msgstr "Gnet ステータスにおいてパケットの代わりにバイトで表示します。"
 
-#: src/if/gui_property.c:1628
+#: src/if/gui_property.c:1647
 msgid "Show stats per hops instead of per TTL."
 msgstr "毎 TTL の代わりに毎ホップで表示します。"
 
-#: src/if/gui_property.c:1645
+#: src/if/gui_property.c:1664
 msgid "Choose source of stats to be displayed."
 msgstr "表示されるステータスのソースを選択します。"
 
-#: src/if/gui_property.c:1665
+#: src/if/gui_property.c:1684
 msgid "Include Gnutella packet header size to the volume."
 msgstr "ボリュームに Gnutella パケットのへッダの大きさを追加します。"
 
-#: src/if/gui_property.c:1682
+#: src/if/gui_property.c:1701
 msgid ""
 "Show percentages instead of absolute values in the Gnet stats (drop reasons)."
 msgstr ""
 "Gnet ステータスで絶対値の代わりに割合を表示します。 (パケット破棄の原因)"
 
-#: src/if/gui_property.c:1699
+#: src/if/gui_property.c:1718
 msgid "Widths of the columns in the Gnet stats general table."
 msgstr "Gnet ステータスの一般表の欄幅です。"
 
-#: src/if/gui_property.c:1719
+#: src/if/gui_property.c:1738
 msgid "Auto clear completed uploads."
 msgstr "完了したアップロードを自動消去します。"
 
-#: src/if/gui_property.c:1736
+#: src/if/gui_property.c:1755
 msgid "Auto clear failed uploads."
 msgstr "失敗したアップロードを自動消去します。"
 
-#: src/if/gui_property.c:1753
+#: src/if/gui_property.c:1772
 msgid ""
 "Whether the node's uptime should be shown (not all nodes provide this "
 "information)."
@@ -3105,11 +3109,11 @@ msgstr ""
 "ノードの稼動時間を表示するかどうか (全てのノード情報が表示される訳ではありま"
 "せん) を選択します。"
 
-#: src/if/gui_property.c:1770
+#: src/if/gui_property.c:1789
 msgid "Whether the handshaking version number should be displayed."
 msgstr "ハンドシェーキング・バージョン番号を表示するかどうかを選択します。"
 
-#: src/if/gui_property.c:1787
+#: src/if/gui_property.c:1806
 msgid ""
 "Whether detailed traffic information should be shown for the node.  When "
 "enabled, it is possible to also customize how much information to display.  "
@@ -3120,64 +3124,64 @@ msgstr ""
 "どの情報を表示するかをカスタマイズする事もできるようになります。無効にする"
 "と、メッセージキュー情報の後に送信と受信メッセージの回数のみが表示されます。"
 
-#: src/if/gui_property.c:1804
+#: src/if/gui_property.c:1823
 msgid "Whether TX traffic compression ratio should be displayed."
 msgstr "送信トラフィックの圧縮比を表示するかどうかを選択します。"
 
-#: src/if/gui_property.c:1821
+#: src/if/gui_property.c:1840
 msgid "Whether RX traffic compression ratio should be displayed."
 msgstr "受信トラフィックの圧縮比を表示するかどうかを選択します。"
 
-#: src/if/gui_property.c:1838
+#: src/if/gui_property.c:1857
 msgid "Whether to display the amount of bytes sent on the TX wire."
 msgstr "送信ワイヤで送信されたバイト量を表示するかどうかを選択します。"
 
-#: src/if/gui_property.c:1855
+#: src/if/gui_property.c:1874
 msgid "Whether to display the amount of bytes received on the RX wire."
 msgstr "受信ワイヤで受信されたバイト量を表示するかどうかを選択します。"
 
-#: src/if/gui_property.c:1872
+#: src/if/gui_property.c:1891
 msgid "Whether TX instantaneous transmission speed should be displayed."
 msgstr "送信瞬間伝達速度を表示するかどうかを選択します。"
 
-#: src/if/gui_property.c:1889
+#: src/if/gui_property.c:1908
 msgid "Whether RX instantaneous transmission speed should be displayed."
 msgstr "受信瞬間伝達速度を表意するかどうかを選択します。"
 
-#: src/if/gui_property.c:1906
+#: src/if/gui_property.c:1925
 msgid "Whether count of transmitted queries should be displayed."
 msgstr "伝達された検索式の回数を表示するかどうかを選択します。"
 
-#: src/if/gui_property.c:1923
+#: src/if/gui_property.c:1942
 msgid "Whether count of received queries should be displayed."
 msgstr "受信した検索式の回数を表示するかどうかを選択します。"
 
-#: src/if/gui_property.c:1940
+#: src/if/gui_property.c:1959
 msgid "Whether count of transmitted query hits should be displayed."
 msgstr "伝達された検索式ヒットの回数を表示するかどうかを選択します。"
 
-#: src/if/gui_property.c:1957
+#: src/if/gui_property.c:1976
 msgid "Whether count of received query hits should be displayed."
 msgstr "受信した検索式ヒットの回数を表示するかどうかを選択します。"
 
-#: src/if/gui_property.c:1974
+#: src/if/gui_property.c:1993
 msgid "Whether count of locally generated queries should be displayed."
 msgstr "ローカルに生成された検索式の回数を表示するかどうかを選択します。"
 
-#: src/if/gui_property.c:1991
+#: src/if/gui_property.c:2010
 msgid ""
 "Whether count of local queries pending transmission should be displayed."
 msgstr "伝達が未解決のローカル検索式の回数を表示するかどうかを選択します。"
 
-#: src/if/gui_property.c:2008
+#: src/if/gui_property.c:2027
 msgid "Whether count of dropped messages on TX should be displayed."
 msgstr "送信において破棄されたメッセージの回数を表示するかどうかを選択します。"
 
-#: src/if/gui_property.c:2025
+#: src/if/gui_property.c:2044
 msgid "Whether count of dropped messages on RX should be displayed."
 msgstr "受信において破棄されたメッセージの回数を表示するかどうかを選択します。"
 
-#: src/if/gui_property.c:2042
+#: src/if/gui_property.c:2061
 msgid ""
 "Whether Query Routing Protocol statistics should be displayed. For a leaf "
 "node, this is simply the ratio of queries that generated a hit over the "
@@ -3192,7 +3196,7 @@ msgstr ""
 "は充足比率、't' は通過の閾値、そして 'e' は効率です。この効率とは、QRP テーブ"
 "ルのフィルター処理の後にリーフノードに送信される検索式の受信率です。"
 
-#: src/if/gui_property.c:2059
+#: src/if/gui_property.c:2078
 msgid ""
 "Whether we should display message counts for duplicate, bad, weird and "
 "messages bearing an hostile IP address."
@@ -3200,7 +3204,7 @@ msgstr ""
 "重複、不正、おかしなメッセージと敵対IPアドレスが送信するメッセージの回数を表"
 "示するかどうかを表します。"
 
-#: src/if/gui_property.c:2076
+#: src/if/gui_property.c:2095
 msgid ""
 "Whether ping/pong roundtrip times (average and last) should be displayed.  "
 "Values shown are in milliseconds."
@@ -3208,7 +3212,7 @@ msgstr ""
 "Ping/Pong の周回時間 (最新の平均値) を表示するかどうかを選択します。値はミリ"
 "秒で表されます。"
 
-#: src/if/gui_property.c:2093
+#: src/if/gui_property.c:2112
 msgid ""
 "Whether we should display the size of the node's library, when it is known "
 "to us."
@@ -3216,7 +3220,7 @@ msgstr ""
 "ノードのライブラリの大きさが明らかになった場合に、それを表示するかどうかを選"
 "択します。"
 
-#: src/if/gui_property.c:2110
+#: src/if/gui_property.c:2129
 msgid ""
 "Whether we should display the amount of files shared by nodes, when that is "
 "known to us."
@@ -3224,7 +3228,7 @@ msgstr ""
 "ノードが共有するファイルの数が明らかになった場合に、それを表示するかどうかを"
 "選択します。"
 
-#: src/if/gui_property.c:2127
+#: src/if/gui_property.c:2146
 msgid ""
 "The amount of time in seconds that the GUI should buffer search results as "
 "they come in.  This prevents too frequent updates that may cause flickering, "
@@ -3234,19 +3238,19 @@ msgstr ""
 "GUI が検索結果を内部にバッファしておく秒数です。検索画面での再描画を減らすの"
 "で、頻繁な更新による画面のちらつきを抑え CPU サイクルも節減します。"
 
-#: src/if/gui_property.c:2147
+#: src/if/gui_property.c:2166
 msgid "Expanded stati of the nodes in the treemenu."
 msgstr "木メニューでの拡張されたノードの統計です。"
 
-#: src/if/gui_property.c:2167
+#: src/if/gui_property.c:2186
 msgid "Widths of the columns in the Gnet packet stats table (pkg). [GTK2]"
 msgstr "Gnet パケット・ステータス一覧表 (pkg) の欄幅です。[GTK2]"
 
-#: src/if/gui_property.c:2187
+#: src/if/gui_property.c:2206
 msgid "Widths of the columns in the Gnet packet stats table (byte). [GTK2]"
 msgstr "Gnet パケット・ステータス一覧表 (バイト単位) の欄幅です。[GTK2]"
 
-#: src/if/gui_property.c:2207
+#: src/if/gui_property.c:2226
 msgid "Configures the appearance of the toolbar."
 msgstr "ツールバーの外見を設定します。"
 
@@ -4531,7 +4535,7 @@ msgstr "\"表示\" が未定義です"
 
 #: src/ui/gtk/filter_core.c:1089 src/ui/gtk/filter_core.c:2328
 #: src/ui/gtk/gtk1/interface-glade.c:9428
-#: src/ui/gtk/gtk2/interface-glade.c:8643
+#: src/ui/gtk/gtk2/interface-glade.c:8852
 msgid "DISPLAY"
 msgstr "表示"
 
@@ -4545,7 +4549,7 @@ msgstr "\"ダウンロード\" が未定義です"
 
 #: src/ui/gtk/filter_core.c:1110 src/ui/gtk/filter_core.c:2330
 #: src/ui/gtk/gtk1/interface-glade.c:9377
-#: src/ui/gtk/gtk2/interface-glade.c:8574
+#: src/ui/gtk/gtk2/interface-glade.c:8783
 msgid "DOWNLOAD"
 msgstr "ダウンロード"
 
@@ -4591,10 +4595,10 @@ msgstr "全般 (事後処理)"
 msgid "RETURN"
 msgstr "リターン"
 
-#: src/ui/gtk/gnet_stats_common.c:46 src/ui/gtk/gtk1/interface-glade.c:13483
-#: src/ui/gtk/gtk2/interface-glade.c:9545
-#: src/ui/gtk/gtk2/interface-glade.c:11967 src/ui/gtk/gtk2/nodes.c:299
-#: src/ui/gtk/gtk2/nodes.c:352 src/ui/gtk/gtk2/search_cb.c:528
+#: src/ui/gtk/gnet_stats_common.c:46 src/ui/gtk/gtk1/interface-glade.c:13484
+#: src/ui/gtk/gtk2/interface-glade.c:9771
+#: src/ui/gtk/gtk2/interface-glade.c:12193 src/ui/gtk/gtk2/nodes.c:399
+#: src/ui/gtk/gtk2/nodes.c:458 src/ui/gtk/gtk2/search_cb.c:528
 msgid "Unknown"
 msgstr "不明"
 
@@ -4627,17 +4631,17 @@ msgid "Vendor std."
 msgstr "ベンダー標準"
 
 #: src/ui/gtk/gnet_stats_common.c:54 src/ui/gtk/gtk1/interface-glade.c:8991
-#: src/ui/gtk/gtk2/interface-glade.c:7917
+#: src/ui/gtk/gtk2/interface-glade.c:8126
 msgid "Push"
 msgstr "Push"
 
-#: src/ui/gtk/gnet_stats_common.c:55 src/ui/gtk/gtk1/interface-glade.c:13461
-#: src/ui/gtk/gtk2/interface-glade.c:11951 src/ui/gtk/gtk2/monitor.c:139
+#: src/ui/gtk/gnet_stats_common.c:55 src/ui/gtk/gtk1/interface-glade.c:13462
+#: src/ui/gtk/gtk2/interface-glade.c:12177 src/ui/gtk/gtk2/monitor.c:139
 msgid "Query"
 msgstr "検索式"
 
-#: src/ui/gtk/gnet_stats_common.c:56 src/ui/gtk/gtk1/interface-glade.c:13472
-#: src/ui/gtk/gtk2/interface-glade.c:11959
+#: src/ui/gtk/gnet_stats_common.c:56 src/ui/gtk/gtk1/interface-glade.c:13473
+#: src/ui/gtk/gtk2/interface-glade.c:12185
 msgid "Query hit"
 msgstr "検索式ヒット"
 
@@ -4838,53 +4842,53 @@ msgstr "大きさ不明"
 
 #: src/ui/gtk/gtk1/downloads.c:686 src/ui/gtk/gtk1/downloads.c:827
 #: src/ui/gtk/gtk1/downloads.c:1667 src/ui/gtk/gtk1/downloads.c:1762
-#: src/ui/gtk/gtk2/downloads.c:963 src/ui/gtk/gtk2/downloads.c:1027
+#: src/ui/gtk/gtk2/downloads.c:963 src/ui/gtk/gtk2/downloads.c:1029
 #, c-format
 msgid "%u host"
 msgid_plural "%u hosts"
 msgstr[0] "%u 基のホスト"
 
 #: src/ui/gtk/gtk1/downloads.c:1014 src/ui/gtk/gtk1/downloads.c:1045
-#: src/ui/gtk/gtk1/interface-glade.c:2271 src/ui/gtk/gtk2/downloads.c:1380
+#: src/ui/gtk/gtk1/interface-glade.c:2271 src/ui/gtk/gtk2/downloads.c:1383
 #: src/ui/gtk/gtk2/gnet_stats.c:57 src/ui/gtk/uploads_common.c:180
 msgid "Queued"
 msgstr "待機中"
 
-#: src/ui/gtk/gtk1/downloads.c:1019 src/ui/gtk/gtk2/downloads.c:1385
+#: src/ui/gtk/gtk1/downloads.c:1019
 #, c-format
 msgid " (slot %d"
 msgstr " (受口 %d"
 
-#: src/ui/gtk/gtk1/downloads.c:1029 src/ui/gtk/gtk2/downloads.c:1395
+#: src/ui/gtk/gtk1/downloads.c:1029 src/ui/gtk/gtk2/downloads.c:1398
 #, c-format
 msgid ", ETA: %s"
 msgstr ", 予定時間: %s"
 
-#: src/ui/gtk/gtk1/downloads.c:1038 src/ui/gtk/gtk2/downloads.c:1404
+#: src/ui/gtk/gtk1/downloads.c:1038
 #, c-format
 msgid " retry in %ds"
 msgstr " %d秒後に再試行"
 
 #: src/ui/gtk/gtk1/downloads.c:1054 src/ui/gtk/gtk1/downloads.c:1060
-#: src/ui/gtk/gtk2/downloads.c:1415 src/ui/gtk/nodes_common.c:69
+#: src/ui/gtk/gtk2/downloads.c:1416 src/ui/gtk/nodes_common.c:69
 msgid "Connecting..."
 msgstr "接続しています..."
 
-#: src/ui/gtk/gtk1/downloads.c:1073 src/ui/gtk/gtk2/downloads.c:1428
+#: src/ui/gtk/gtk1/downloads.c:1073 src/ui/gtk/gtk2/downloads.c:1429
 msgid "Push sent directly"
 msgstr "PUSH を直接送信しました"
 
 #: src/ui/gtk/gtk1/downloads.c:1074 src/ui/gtk/gtk1/downloads.c:1103
-#: src/ui/gtk/gtk1/downloads.c:1111 src/ui/gtk/gtk2/downloads.c:1428
-#: src/ui/gtk/gtk2/downloads.c:1457
+#: src/ui/gtk/gtk1/downloads.c:1111 src/ui/gtk/gtk2/downloads.c:1429
+#: src/ui/gtk/gtk2/downloads.c:1458
 msgid "Push sent"
 msgstr "PUSH を送信しました"
 
-#: src/ui/gtk/gtk1/downloads.c:1077 src/ui/gtk/gtk2/downloads.c:1431
+#: src/ui/gtk/gtk1/downloads.c:1077 src/ui/gtk/gtk2/downloads.c:1432
 msgid "Failed to send push"
 msgstr "PUSH の送信に失敗しました"
 
-#: src/ui/gtk/gtk1/downloads.c:1080 src/ui/gtk/gtk2/downloads.c:1434
+#: src/ui/gtk/gtk1/downloads.c:1080 src/ui/gtk/gtk2/downloads.c:1435
 msgid "Sending push"
 msgstr "PUSH を送信しています"
 
@@ -4895,67 +4899,67 @@ msgstr "PUSH を送信しています"
 # 'Push sent push via 127.0.0.1:6346'
 # 'Sending push via 127.0.0.1:6346'
 #
-#: src/ui/gtk/gtk1/downloads.c:1082 src/ui/gtk/gtk2/downloads.c:1436
+#: src/ui/gtk/gtk1/downloads.c:1082 src/ui/gtk/gtk2/downloads.c:1438
 #, c-format
 msgid " via %s"
 msgstr " (%s 経由)"
 
-#: src/ui/gtk/gtk1/downloads.c:1088 src/ui/gtk/gtk2/downloads.c:1442
+#: src/ui/gtk/gtk1/downloads.c:1088 src/ui/gtk/gtk2/downloads.c:1445
 msgid "Connecting"
 msgstr "接続しています"
 
 #: src/ui/gtk/gtk1/downloads.c:1089 src/ui/gtk/gtk1/downloads.c:1130
-#: src/ui/gtk/gtk2/downloads.c:1443 src/ui/gtk/gtk2/downloads.c:1475
+#: src/ui/gtk/gtk2/downloads.c:1446 src/ui/gtk/gtk2/downloads.c:1476
 msgid "Sending request"
 msgstr "リクエストを送信しています"
 
 #: src/ui/gtk/gtk1/downloads.c:1090 src/ui/gtk/gtk1/downloads.c:1134
-#: src/ui/gtk/gtk2/downloads.c:1444 src/ui/gtk/gtk2/downloads.c:1479
+#: src/ui/gtk/gtk2/downloads.c:1447 src/ui/gtk/gtk2/downloads.c:1481
 msgid "Request sent"
 msgstr "リクエストを送信しました"
 
-#: src/ui/gtk/gtk1/downloads.c:1091 src/ui/gtk/gtk2/downloads.c:1445
+#: src/ui/gtk/gtk1/downloads.c:1091 src/ui/gtk/gtk2/downloads.c:1448
 msgid "Reading headers"
 msgstr "へッダを読込んでいます"
 
-#: src/ui/gtk/gtk1/downloads.c:1114 src/ui/gtk/gtk2/downloads.c:1460
+#: src/ui/gtk/gtk1/downloads.c:1114 src/ui/gtk/gtk2/downloads.c:1461
 msgid "Falling back to push"
 msgstr "代わりに PUSH を送信しています"
 
-#: src/ui/gtk/gtk1/downloads.c:1126 src/ui/gtk/gtk2/downloads.c:1471
+#: src/ui/gtk/gtk1/downloads.c:1126
 #, c-format
 msgid "Sending request (%d%%)"
 msgstr "リクエストを送信しています (%d%%)"
 
-#: src/ui/gtk/gtk1/downloads.c:1138 src/ui/gtk/gtk2/downloads.c:1483
+#: src/ui/gtk/gtk1/downloads.c:1138 src/ui/gtk/gtk2/downloads.c:1485
 msgid "Receiving headers"
 msgstr "ヘッダを受信しています"
 
-#: src/ui/gtk/gtk1/downloads.c:1142 src/ui/gtk/gtk2/downloads.c:1487
+#: src/ui/gtk/gtk1/downloads.c:1142 src/ui/gtk/gtk2/downloads.c:1489
 msgid "Aborted (Server down)"
 msgstr "中止しました (サーバーダウン)"
 
 #: src/ui/gtk/gtk1/downloads.c:1142 src/ui/gtk/gtk1/downloads.c:1150
-#: src/ui/gtk/gtk2/downloads.c:1487 src/ui/gtk/gtk2/downloads.c:1492
+#: src/ui/gtk/gtk2/downloads.c:1489 src/ui/gtk/gtk2/downloads.c:1494
 msgid "Aborted"
 msgstr "中止しました"
 
 #: src/ui/gtk/gtk1/downloads.c:1159 src/ui/gtk/gtk1/downloads.c:1164
-#: src/ui/gtk/gtk1/interface-glade.c:4014 src/ui/gtk/gtk2/downloads.c:1501
-#: src/ui/gtk/gtk2/downloads.c:1506 src/ui/gtk/gtk2/interface-glade.c:4385
+#: src/ui/gtk/gtk1/interface-glade.c:4014 src/ui/gtk/gtk2/downloads.c:1503
+#: src/ui/gtk/gtk2/downloads.c:1508 src/ui/gtk/gtk2/interface-glade.c:4594
 msgid "Completed"
 msgstr "完了したもの"
 
 #: src/ui/gtk/gtk1/downloads.c:1159 src/ui/gtk/gtk1/downloads.c:1164
-#: src/ui/gtk/gtk2/downloads.c:1501 src/ui/gtk/gtk2/downloads.c:1506
+#: src/ui/gtk/gtk2/downloads.c:1503 src/ui/gtk/gtk2/downloads.c:1508
 msgid "Chunk done"
 msgstr "チャンクが完了しました"
 
-#: src/ui/gtk/gtk1/downloads.c:1171 src/ui/gtk/gtk2/downloads.c:1514
+#: src/ui/gtk/gtk1/downloads.c:1171 src/ui/gtk/gtk2/downloads.c:1515
 msgid "Waiting for SHA1 checking..."
 msgstr "SHA1 確認を待っています..."
 
-#: src/ui/gtk/gtk1/downloads.c:1179 src/ui/gtk/gtk2/downloads.c:1521
+#: src/ui/gtk/gtk1/downloads.c:1179 src/ui/gtk/gtk2/downloads.c:1522
 #, c-format
 msgid "Computing SHA1 (%.02f%%)"
 msgstr "SHA1 を算出しています (%.02f%%)"
@@ -4975,7 +4979,7 @@ msgid "; Moved (%s) %s"
 msgstr "; 移動し終えました (%s) %s"
 
 #: src/ui/gtk/gtk1/downloads.c:1260 src/ui/gtk/gtk1/downloads.c:1282
-#: src/ui/gtk/gtk2/downloads.c:1606 src/ui/gtk/gtk2/downloads.c:1634
+#: src/ui/gtk/gtk2/downloads.c:1605 src/ui/gtk/gtk2/downloads.c:1634
 msgid "(stalled)"
 msgstr "(停止状態)"
 
@@ -4987,7 +4991,8 @@ msgstr "[%d/%d] 残り時間: %s"
 
 # FIXME: separation (src/ui/gtk/gtk1/nodes.c)
 #: src/ui/gtk/gtk1/downloads.c:1296 src/ui/gtk/gtk1/nodes.c:253
-#: src/ui/gtk/gtk2/downloads.c:1647 src/ui/gtk/nodes_common.c:279
+#: src/ui/gtk/gtk2/downloads.c:1646 src/ui/gtk/gtk2/nodes.c:214
+#: src/ui/gtk/nodes_common.c:279
 msgid "Connected"
 msgstr "接続しました"
 
@@ -4995,19 +5000,19 @@ msgstr "接続しました"
 msgid "Unknown error"
 msgstr "不明なエラー"
 
-#: src/ui/gtk/gtk1/downloads.c:1307 src/ui/gtk/gtk2/downloads.c:1657
+#: src/ui/gtk/gtk1/downloads.c:1307
 #, c-format
 msgid "Retry in %ds"
 msgstr "%d秒後に再試行"
 
-#: src/ui/gtk/gtk1/downloads.c:1317 src/ui/gtk/gtk2/downloads.c:1668
+#: src/ui/gtk/gtk1/downloads.c:1317 src/ui/gtk/gtk2/downloads.c:1667
 #, c-format
 msgid "Sinking (%s bytes left)"
 msgstr "Sinking (%s バイト残存)"
 
 # FIXME: separation
 #: src/ui/gtk/gtk1/downloads.c:1360 src/ui/gtk/gtk1/interface-glade.c:3241
-#: src/ui/gtk/gtk2/downloads.c:1312 src/ui/gtk/gtk2/upload_stats.c:271
+#: src/ui/gtk/gtk2/downloads.c:1316 src/ui/gtk/gtk2/upload_stats.c:271
 msgid "Complete"
 msgstr "完了"
 
@@ -5024,7 +5029,7 @@ msgid "%4.02f%%  (%s)  [%d/%d]  TR:  -"
 msgstr "%4.02f%% (%s)  [%d/%d]  残り時間:  -"
 
 # MERGEBLE:
-#: src/ui/gtk/gtk1/downloads.c:1450 src/ui/gtk/gtk2/downloads.c:1319
+#: src/ui/gtk/gtk1/downloads.c:1450 src/ui/gtk/gtk2/downloads.c:1322
 #, c-format
 msgid "(%s)  [%d/%d]  TR:  %s"
 msgstr "(%s)  [%d/%d]  残り時間:  %s"
@@ -5109,28 +5114,27 @@ msgid "gtk-gnutella"
 msgstr "Gtk-Gnutella"
 
 #: src/ui/gtk/gtk1/interface-glade.c:669
-#: src/ui/gtk/gtk2/interface-glade.c:1973
 msgid "_File"
 msgstr "ファイル(_F)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:692
-#: src/ui/gtk/gtk1/interface-glade.c:17273
-#: src/ui/gtk/gtk2/interface-glade.c:1982
+#: src/ui/gtk/gtk1/interface-glade.c:17264
+#: src/ui/gtk/gtk2/interface-glade.c:2124
 msgid "_Quit"
 msgstr "終了(_Q)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:707
-#: src/ui/gtk/gtk2/interface-glade.c:1995
+#: src/ui/gtk/gtk2/interface-glade.c:2137
 msgid "_Settings"
 msgstr "設定(_S)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:730
-#: src/ui/gtk/gtk2/interface-glade.c:2004
+#: src/ui/gtk/gtk2/interface-glade.c:2146
 msgid "_Preferences"
 msgstr "環境設定(_P)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:745
-#: src/ui/gtk/gtk2/interface-glade.c:2017
+#: src/ui/gtk/gtk2/interface-glade.c:2159
 msgid "_View"
 msgstr "表示(_V)"
 
@@ -5139,92 +5143,92 @@ msgid "show _Toolbar"
 msgstr "ツールバーを表示(_T)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:784
-#: src/ui/gtk/gtk2/interface-glade.c:2026
+#: src/ui/gtk/gtk2/interface-glade.c:2269
 msgid "show _Statusbar"
 msgstr "ステータスバーを表示(_S)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:810
-#: src/ui/gtk/gtk2/interface-glade.c:2038
+#: src/ui/gtk/gtk2/interface-glade.c:2179
 msgid "show _Downloads"
 msgstr "ダウンロード件数を表示(_D)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:827
-#: src/ui/gtk/gtk2/interface-glade.c:2044
+#: src/ui/gtk/gtk2/interface-glade.c:2185
 msgid "show _Uploads"
 msgstr "アップロード件数を表示(_U)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:844
-#: src/ui/gtk/gtk2/interface-glade.c:2050
+#: src/ui/gtk/gtk2/interface-glade.c:2191
 msgid "show _Connections"
 msgstr "接続件数を表示(_C)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:859
-#: src/ui/gtk/gtk2/interface-glade.c:2056
+#: src/ui/gtk/gtk2/interface-glade.c:2197
 msgid "HTTP traffic stats"
 msgstr "HTTP トラフィックのステータス"
 
 #: src/ui/gtk/gtk1/interface-glade.c:875
-#: src/ui/gtk/gtk2/interface-glade.c:2065
+#: src/ui/gtk/gtk2/interface-glade.c:2206
 msgid "show HTTP incoming traffic"
 msgstr "ノード内への HTTP トラフィックを表示"
 
 #: src/ui/gtk/gtk1/interface-glade.c:885
-#: src/ui/gtk/gtk2/interface-glade.c:2071
+#: src/ui/gtk/gtk2/interface-glade.c:2212
 msgid "show HTTP outgoing traffic"
 msgstr "ノード外への HTTP トラフィックを表示"
 
 #: src/ui/gtk/gtk1/interface-glade.c:895
-#: src/ui/gtk/gtk2/interface-glade.c:2077
+#: src/ui/gtk/gtk2/interface-glade.c:2218
 msgid "Gnet traffic stats"
 msgstr "Gnet トラフィックのステータス"
 
 #: src/ui/gtk/gtk1/interface-glade.c:911
-#: src/ui/gtk/gtk2/interface-glade.c:2086
+#: src/ui/gtk/gtk2/interface-glade.c:2227
 msgid "show Gnet incoming traffic"
 msgstr "ノード内への Gnet トラフィックを表示"
 
 #: src/ui/gtk/gtk1/interface-glade.c:921
-#: src/ui/gtk/gtk2/interface-glade.c:2092
+#: src/ui/gtk/gtk2/interface-glade.c:2233
 msgid "show Gnet outgoing traffic"
 msgstr "ノード外への Gnet トラフィックを表示"
 
 #: src/ui/gtk/gtk1/interface-glade.c:931
-#: src/ui/gtk/gtk2/interface-glade.c:2098
+#: src/ui/gtk/gtk2/interface-glade.c:2239
 msgid "Gnet leaf traffic stats"
 msgstr "Gnet リーフトラフィックのステータス"
 
 #: src/ui/gtk/gtk1/interface-glade.c:947
-#: src/ui/gtk/gtk2/interface-glade.c:2107
+#: src/ui/gtk/gtk2/interface-glade.c:2248
 msgid "auto-hide leaf traffic stats"
 msgstr "ステータスを自動的に隠す"
 
 #: src/ui/gtk/gtk1/interface-glade.c:956
-#: src/ui/gtk/gtk2/interface-glade.c:2112
+#: src/ui/gtk/gtk2/interface-glade.c:2253
 msgid "show leaf incoming traffic"
 msgstr "ノード内へのリーフトラフィックを表示"
 
 #: src/ui/gtk/gtk1/interface-glade.c:965
-#: src/ui/gtk/gtk2/interface-glade.c:2117
+#: src/ui/gtk/gtk2/interface-glade.c:2258
 msgid "show leaf outgoing traffic"
 msgstr "ノード外へのリーフトラフィックを表示"
 
 #: src/ui/gtk/gtk1/interface-glade.c:976
-#: src/ui/gtk/gtk2/interface-glade.c:2122
+#: src/ui/gtk/gtk2/interface-glade.c:2275
 msgid "_Help"
 msgstr "へルプ(_H)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:996
-#: src/ui/gtk/gtk2/interface-glade.c:2142
+#: src/ui/gtk/gtk2/interface-glade.c:2295
 msgid "_About"
 msgstr "このプログラムについて(_A)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1011
-#: src/ui/gtk/gtk2/interface-glade.c:2131
+#: src/ui/gtk/gtk2/interface-glade.c:2284
 msgid "_FAQ"
 msgstr "_FAQ"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1020
-#: src/ui/gtk/gtk2/interface-glade.c:2135
+#: src/ui/gtk/gtk2/interface-glade.c:2288
 msgid "Frequently Asked Questions"
 msgstr "よく聞かれる質問"
 
@@ -5250,7 +5254,7 @@ msgid "New"
 msgstr "新規"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1218
-#: src/ui/gtk/gtk2/interface-glade.c:2464
+#: src/ui/gtk/gtk2/interface-glade.c:2617
 msgid "Gnet connections"
 msgstr "Gnet 接続"
 
@@ -5275,18 +5279,18 @@ msgid "%v/%u downloads"
 msgstr "%v/%u 件のダウンロード"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1311
-#: src/ui/gtk/gtk2/interface-glade.c:2547
+#: src/ui/gtk/gtk2/interface-glade.c:2700
 msgid "HTTP traffic"
 msgstr "HTTP トラフィック"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1336
 #: src/ui/gtk/gtk1/interface-glade.c:1348
-#: src/ui/gtk/gtk2/interface-glade.c:2537
-#: src/ui/gtk/gtk2/interface-glade.c:2544
-#: src/ui/gtk/gtk2/interface-glade.c:2568
-#: src/ui/gtk/gtk2/interface-glade.c:2575
-#: src/ui/gtk/gtk2/interface-glade.c:2599
-#: src/ui/gtk/gtk2/interface-glade.c:2606
+#: src/ui/gtk/gtk2/interface-glade.c:2690
+#: src/ui/gtk/gtk2/interface-glade.c:2697
+#: src/ui/gtk/gtk2/interface-glade.c:2721
+#: src/ui/gtk/gtk2/interface-glade.c:2728
+#: src/ui/gtk/gtk2/interface-glade.c:2752
+#: src/ui/gtk/gtk2/interface-glade.c:2759
 msgid "Click to toggle display."
 msgstr "クリックで表示を切替えます。"
 
@@ -5311,28 +5315,28 @@ msgid "out"
 msgstr "でノード外へ"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1353
-#: src/ui/gtk/gtk2/interface-glade.c:2578
+#: src/ui/gtk/gtk2/interface-glade.c:2731
 msgid "GnutellaNet traffic"
 msgstr "GnutellaNet トラフィック"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1393
-#: src/ui/gtk/gtk2/interface-glade.c:2609
+#: src/ui/gtk/gtk2/interface-glade.c:2762
 msgid "Leaf traffic"
 msgstr "リーフトラフィック"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1496
-#: src/ui/gtk/gtk2/interface-glade.c:2729
+#: src/ui/gtk/gtk2/interface-glade.c:2877
 msgid "_Passive"
 msgstr "受動検索(_P)"
 
 # NOTE: it works as a tooltip
 #: src/ui/gtk/gtk1/interface-glade.c:1505
-#: src/ui/gtk/gtk2/interface-glade.c:2708
+#: src/ui/gtk/gtk2/interface-glade.c:2856
 msgid "A passive search matches any search results routed through this node"
 msgstr "受動検索はこのノードを通過したいずれの検索結果にも適合します。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1524
-#: src/ui/gtk/gtk2/interface-glade.c:3452
+#: src/ui/gtk/gtk2/interface-glade.c:3661
 msgid "GnutellaNet connections"
 msgstr "GnutellaNet 接続"
 
@@ -5341,7 +5345,7 @@ msgstr "GnutellaNet 接続"
 #: src/ui/gtk/gtk1/interface-glade.c:3796
 #: src/ui/gtk/gtk1/interface-glade.c:4243 src/ui/gtk/gtk1/nodes.c:248
 #: src/ui/gtk/gtk2/downloads.c:439 src/ui/gtk/gtk2/downloads.c:484
-#: src/ui/gtk/gtk2/nodes.c:164 src/ui/gtk/gtk2/uploads.c:81
+#: src/ui/gtk/gtk2/nodes.c:267 src/ui/gtk/gtk2/uploads.c:81
 msgid "Host"
 msgstr "ホスト"
 
@@ -5351,8 +5355,7 @@ msgstr "ホスト"
 #: src/ui/gtk/gtk1/interface-glade.c:4251 src/ui/gtk/gtk1/nodes.c:249
 #: src/ui/gtk/gtk1/search.c:2242 src/ui/gtk/gtk1/search.c:2248
 #: src/ui/gtk/gtk2/downloads.c:440 src/ui/gtk/gtk2/downloads.c:485
-#: src/ui/gtk/gtk2/nodes.c:165 src/ui/gtk/gtk2/search.c:1351
-#: src/ui/gtk/gtk2/uploads.c:82
+#: src/ui/gtk/gtk2/search.c:1351 src/ui/gtk/gtk2/uploads.c:82
 msgid "Loc"
 msgstr "場所"
 
@@ -5364,40 +5367,39 @@ msgstr "場所"
 #: src/ui/gtk/gtk1/interface-glade.c:8686
 #: src/ui/gtk/gtk1/interface-glade.c:8919
 #: src/ui/gtk/gtk1/interface-glade.c:9308 src/ui/gtk/gtk1/nodes.c:250
-#: src/ui/gtk/gtk2/interface-glade.c:6436
-#: src/ui/gtk/gtk2/interface-glade.c:6748
-#: src/ui/gtk/gtk2/interface-glade.c:7020
-#: src/ui/gtk/gtk2/interface-glade.c:7321
-#: src/ui/gtk/gtk2/interface-glade.c:7559
-#: src/ui/gtk/gtk2/interface-glade.c:7884
-#: src/ui/gtk/gtk2/interface-glade.c:8550 src/ui/gtk/gtk2/nodes.c:166
+#: src/ui/gtk/gtk2/interface-glade.c:6645
+#: src/ui/gtk/gtk2/interface-glade.c:6957
+#: src/ui/gtk/gtk2/interface-glade.c:7229
+#: src/ui/gtk/gtk2/interface-glade.c:7530
+#: src/ui/gtk/gtk2/interface-glade.c:7768
+#: src/ui/gtk/gtk2/interface-glade.c:8093
+#: src/ui/gtk/gtk2/interface-glade.c:8759 src/ui/gtk/gtk2/nodes.c:216
 msgid "Flags"
 msgstr "フラッグ"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1595
 #: src/ui/gtk/gtk1/interface-glade.c:3040 src/ui/gtk/gtk1/nodes.c:251
-#: src/ui/gtk/gtk2/nodes.c:167 src/ui/gtk/gtk2/uploads.c:85
+#: src/ui/gtk/gtk2/nodes.c:268 src/ui/gtk/gtk2/uploads.c:85
 msgid "User-Agent"
 msgstr "エージェント"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1603 src/ui/gtk/gtk1/nodes.c:252
-#: src/ui/gtk/gtk2/nodes.c:168
 msgid "Ver"
 msgstr "バージョン"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1611 src/ui/gtk/gtk2/nodes.c:169
+#: src/ui/gtk/gtk1/interface-glade.c:1611
 msgid "Connected time"
 msgstr "接続時間"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1619
 #: src/ui/gtk/gtk1/interface-glade.c:5924 src/ui/gtk/gtk1/nodes.c:254
-#: src/ui/gtk/gtk2/nodes.c:170
+#: src/ui/gtk/gtk2/nodes.c:215
 msgid "Uptime"
 msgstr "稼動時間"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1627 src/ui/gtk/gtk1/nodes.c:255
 #: src/ui/gtk/gtk1/search.c:2259 src/ui/gtk/gtk1/search.c:2265
-#: src/ui/gtk/gtk2/nodes.c:171 src/ui/gtk/gtk2/search.c:1353
+#: src/ui/gtk/gtk2/nodes.c:217 src/ui/gtk/gtk2/search.c:1353
 msgid "Info"
 msgstr "情報"
 
@@ -5410,28 +5412,28 @@ msgstr "情報"
 #: src/ui/gtk/gtk1/interface-glade.c:9260
 #: src/ui/gtk/gtk1/interface-glade.c:9626
 #: src/ui/gtk/gtk2/interface-glade.c:103
-#: src/ui/gtk/gtk2/interface-glade.c:3386
-#: src/ui/gtk/gtk2/interface-glade.c:6875
-#: src/ui/gtk/gtk2/interface-glade.c:7179
-#: src/ui/gtk/gtk2/interface-glade.c:7422
-#: src/ui/gtk/gtk2/interface-glade.c:7692
+#: src/ui/gtk/gtk2/interface-glade.c:3595
+#: src/ui/gtk/gtk2/interface-glade.c:7084
+#: src/ui/gtk/gtk2/interface-glade.c:7388
+#: src/ui/gtk/gtk2/interface-glade.c:7631
+#: src/ui/gtk/gtk2/interface-glade.c:7901
 msgid "Remove"
 msgstr "削除"
 
 # NOTE: it works as a tooltip
 #: src/ui/gtk/gtk1/interface-glade.c:1652
-#: src/ui/gtk/gtk2/interface-glade.c:3369
+#: src/ui/gtk/gtk2/interface-glade.c:3578
 msgid "Disconnect from selected nodes"
 msgstr "選択したノードとの接続を解除します。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1654
-#: src/ui/gtk/gtk2/interface-glade.c:3326
+#: src/ui/gtk/gtk2/interface-glade.c:3535
 msgid "Add"
 msgstr "追加"
 
 # NOTE: it works as a tooltip
 #: src/ui/gtk/gtk1/interface-glade.c:1662
-#: src/ui/gtk/gtk2/interface-glade.c:3309
+#: src/ui/gtk/gtk2/interface-glade.c:3518
 msgid "Try to connect to specified address"
 msgstr "指定アドレスへの接続を試みます。"
 
@@ -5468,29 +5470,29 @@ msgstr "ダウンロード:"
 #: src/ui/gtk/gtk1/interface-glade.c:1860
 #: src/ui/gtk/gtk1/interface-glade.c:1872
 #: src/ui/gtk/gtk1/interface-glade.c:3273
-#: src/ui/gtk/gtk2/interface-glade.c:3969
+#: src/ui/gtk/gtk2/interface-glade.c:4178
 msgid "Somebody tell me a sensible tooltip for this."
 msgstr "相応しいツールチップを教えてください。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1875
-#: src/ui/gtk/gtk2/interface-glade.c:3803
-#: src/ui/gtk/gtk2/interface-glade.c:4586
+#: src/ui/gtk/gtk2/interface-glade.c:4012
+#: src/ui/gtk/gtk2/interface-glade.c:4795
 msgid "Chunks/Files:"
 msgstr "チャンク数/ファイル数:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1885
-#: src/ui/gtk/gtk2/interface-glade.c:3794
-#: src/ui/gtk/gtk2/interface-glade.c:4595
+#: src/ui/gtk/gtk2/interface-glade.c:4003
+#: src/ui/gtk/gtk2/interface-glade.c:4804
 msgid "Volume:"
 msgstr "送受信量:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1917
-#: src/ui/gtk/gtk2/interface-glade.c:3521
+#: src/ui/gtk/gtk2/interface-glade.c:3730
 msgid "Local node"
 msgstr "ローカルノード"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1944
-#: src/ui/gtk/gtk2/interface-glade.c:3479 src/ui/gtk/gtk2/search_cb.c:587
+#: src/ui/gtk/gtk2/interface-glade.c:3688 src/ui/gtk/gtk2/search_cb.c:587
 msgid "GUID:"
 msgstr "GUID:"
 
@@ -5499,7 +5501,7 @@ msgid "IP:Port:"
 msgstr "IP:ポート:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1988
-#: src/ui/gtk/gtk2/interface-glade.c:3511
+#: src/ui/gtk/gtk2/interface-glade.c:3720
 msgid ""
 "The current IP address and listening port for this node. To change these go "
 "to Settings->Preferences->Network."
@@ -5513,16 +5515,17 @@ msgid "#|Gnet"
 msgstr "#|Gnet"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2026
-#: src/ui/gtk/gtk2/interface-glade.c:5944
+#: src/ui/gtk/gtk2/interface-glade.c:6153
 msgid "General stats"
 msgstr "一般ステータス"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2064
 #: src/ui/gtk/gtk1/interface-glade.c:2238
 #: src/ui/gtk/gtk1/interface-glade.c:2339
-#: src/ui/gtk/gtk1/interface-glade.c:2455 src/ui/gtk/gtk2/gnet_stats.c:53
+#: src/ui/gtk/gtk1/interface-glade.c:2455
+#: src/ui/gtk/gtk1/interface-glade.c:16801 src/ui/gtk/gtk2/gnet_stats.c:53
 #: src/ui/gtk/gtk2/gnet_stats.c:559 src/ui/gtk/gtk2/gnet_stats.c:632
-#: src/ui/gtk/gtk2/gnet_stats.c:722
+#: src/ui/gtk/gtk2/gnet_stats.c:722 src/ui/gtk/settings_cb.c:451
 msgid "Type"
 msgstr "種類"
 
@@ -5533,12 +5536,12 @@ msgid "Count"
 msgstr "回数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2081
-#: src/ui/gtk/gtk2/interface-glade.c:6004
+#: src/ui/gtk/gtk2/interface-glade.c:6213
 msgid "Drop reasons"
 msgstr "パケット破棄の原因"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2107
-#: src/ui/gtk/gtk2/interface-glade.c:5967
+#: src/ui/gtk/gtk2/interface-glade.c:6176
 msgid "Show reasons for"
 msgstr "原因の表示"
 
@@ -5548,13 +5551,13 @@ msgstr "原因"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2169
 #: src/ui/gtk/gtk1/interface-glade.c:2561
-#: src/ui/gtk/gtk2/interface-glade.c:5975
-#: src/ui/gtk/gtk2/interface-glade.c:6119
+#: src/ui/gtk/gtk2/interface-glade.c:6184
+#: src/ui/gtk/gtk2/interface-glade.c:6328
 msgid "Show percentages"
 msgstr "割合を表示"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2185
-#: src/ui/gtk/gtk2/interface-glade.c:6157
+#: src/ui/gtk/gtk2/interface-glade.c:6366
 msgid "Message/flow control stats"
 msgstr "メッセージ/フロー制御ステータス"
 
@@ -5649,22 +5652,22 @@ msgid "FC/hops"
 msgstr "FC/ホップ"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2551
-#: src/ui/gtk/gtk2/interface-glade.c:6112
+#: src/ui/gtk/gtk2/interface-glade.c:6321
 msgid "Show bytes"
 msgstr "バイト数を表示"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2571
-#: src/ui/gtk/gtk2/interface-glade.c:6105
+#: src/ui/gtk/gtk2/interface-glade.c:6314
 msgid "Include headers"
 msgstr "ヘッダを含む"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2591
-#: src/ui/gtk/gtk2/interface-glade.c:6126
+#: src/ui/gtk/gtk2/interface-glade.c:6335
 msgid "Show protocol:"
 msgstr "プロトコルを表示:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2617
-#: src/ui/gtk/gtk2/interface-glade.c:6183
+#: src/ui/gtk/gtk2/interface-glade.c:6392
 msgid "Horizon stats"
 msgstr "到達領域ステータス"
 
@@ -5674,7 +5677,7 @@ msgid "#|Gnet Stats"
 msgstr "#|Gnet Stats"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2709
-#: src/ui/gtk/gtk2/interface-glade.c:9130
+#: src/ui/gtk/gtk2/interface-glade.c:9356
 msgid "Hostcache statistics"
 msgstr "ホストキャッシュ統計"
 
@@ -5691,7 +5694,7 @@ msgid "Misses"
 msgstr "取り逃した数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2771
-#: src/ui/gtk/gtk2/interface-glade.c:9250
+#: src/ui/gtk/gtk2/interface-glade.c:9476
 msgid "Hostcache capacity"
 msgstr "ホストキャッシュの内容"
 
@@ -5702,26 +5705,26 @@ msgid "%v/%u (%P%%)"
 msgstr "%v/%u (%P%%)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2814
-#: src/ui/gtk/gtk2/interface-glade.c:9163
+#: src/ui/gtk/gtk2/interface-glade.c:9389
 msgid "Regular hosts"
 msgstr "通常のホスト"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2833
 #: src/ui/gtk/gtk1/interface-glade.c:2885
 #: src/ui/gtk/gtk1/interface-glade.c:2938
-#: src/ui/gtk/gtk2/interface-glade.c:9177
-#: src/ui/gtk/gtk2/interface-glade.c:9211
-#: src/ui/gtk/gtk2/interface-glade.c:9245
+#: src/ui/gtk/gtk2/interface-glade.c:9403
+#: src/ui/gtk/gtk2/interface-glade.c:9437
+#: src/ui/gtk/gtk2/interface-glade.c:9471
 msgid "Clear"
 msgstr "クリア"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2867
-#: src/ui/gtk/gtk2/interface-glade.c:9197
+#: src/ui/gtk/gtk2/interface-glade.c:9423
 msgid "Ultrapeers"
 msgstr "ウルトラピア"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2919
-#: src/ui/gtk/gtk2/interface-glade.c:9231
+#: src/ui/gtk/gtk2/interface-glade.c:9457
 msgid "Bad hosts"
 msgstr "不正なホスト"
 
@@ -5731,10 +5734,10 @@ msgid "#|Hostcache"
 msgstr "#|Hostcache"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2954
-#: src/ui/gtk/gtk1/interface-glade.c:16209
-#: src/ui/gtk/gtk2/interface-glade.c:2486
-#: src/ui/gtk/gtk2/interface-glade.c:3849
-#: src/ui/gtk/gtk2/interface-glade.c:13922 src/ui/gtk/main.c:134
+#: src/ui/gtk/gtk1/interface-glade.c:16232
+#: src/ui/gtk/gtk2/interface-glade.c:2639
+#: src/ui/gtk/gtk2/interface-glade.c:4058
+#: src/ui/gtk/gtk2/interface-glade.c:14151 src/ui/gtk/main.c:134
 msgid "Uploads"
 msgstr "アップロード"
 
@@ -5769,44 +5772,44 @@ msgid "Status"
 msgstr "ステータス"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3072
-#: src/ui/gtk/gtk2/interface-glade.c:3691
+#: src/ui/gtk/gtk2/interface-glade.c:3900
 msgid " Kill selected "
 msgstr " 選択したものを削除 "
 
 # NOTE: it works as a tooltip
 #: src/ui/gtk/gtk1/interface-glade.c:3080
-#: src/ui/gtk/gtk2/interface-glade.c:3674
+#: src/ui/gtk/gtk2/interface-glade.c:3883
 msgid "Abort and remove all selected uploads"
 msgstr "選択した全てのアップロードを中止して削除します。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3082
-#: src/ui/gtk/gtk2/interface-glade.c:3718
+#: src/ui/gtk/gtk2/interface-glade.c:3927
 msgid " Clear completed "
 msgstr " 完了したものを消去 "
 
 # NOTE: it works as a tooltip
 #: src/ui/gtk/gtk1/interface-glade.c:3090
-#: src/ui/gtk/gtk2/interface-glade.c:3701
+#: src/ui/gtk/gtk2/interface-glade.c:3910
 msgid "Clear already completed uploads from list"
 msgstr "既に完了したアップロードは一覧から消去します。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3102
-#: src/ui/gtk/gtk2/interface-glade.c:3731
+#: src/ui/gtk/gtk2/interface-glade.c:3940
 msgid "Auto clear completed uploads"
 msgstr "完了したアップロードを自動消去"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3112
-#: src/ui/gtk/gtk2/interface-glade.c:3738
+#: src/ui/gtk/gtk2/interface-glade.c:3947
 msgid "Auto clear failed uploads"
 msgstr "失敗したアップロードを自動消去"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3122
-#: src/ui/gtk/gtk2/interface-glade.c:3754
+#: src/ui/gtk/gtk2/interface-glade.c:3963
 msgid "Max. simultaneous uploads"
 msgstr "同時アップロードの最大数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3132
-#: src/ui/gtk/gtk2/interface-glade.c:3745
+#: src/ui/gtk/gtk2/interface-glade.c:3954
 msgid "Max. uploads to a single host"
 msgstr "一基のホストへの最大アップロード数"
 
@@ -5816,7 +5819,7 @@ msgid "#|Uploads"
 msgstr "#|Uploads"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3175
-#: src/ui/gtk/gtk2/interface-glade.c:4047
+#: src/ui/gtk/gtk2/interface-glade.c:4256
 msgid "Upload history"
 msgstr "アップロード履歴"
 
@@ -5833,7 +5836,7 @@ msgid "Clear nonexistant files"
 msgstr "存在しないファイルを消去"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3275
-#: src/ui/gtk/gtk2/interface-glade.c:4011
+#: src/ui/gtk/gtk2/interface-glade.c:4220
 msgid "Clear all"
 msgstr "全て消去"
 
@@ -5842,13 +5845,13 @@ msgstr "全て消去"
 # 'Served 0 HTML and 0 Gnutella browse requests'
 #
 #: src/ui/gtk/gtk1/interface-glade.c:3299
-#: src/ui/gtk/gtk2/interface-glade.c:4021
+#: src/ui/gtk/gtk2/interface-glade.c:4230
 msgid "Served "
 msgstr " "
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
 #: src/ui/gtk/gtk1/interface-glade.c:3308
-#: src/ui/gtk/gtk2/interface-glade.c:4027
+#: src/ui/gtk/gtk2/interface-glade.c:4236
 msgid "[BH HTML]"
 msgstr "[BH HTML]"
 
@@ -5857,13 +5860,13 @@ msgstr "[BH HTML]"
 # 'Served 0 HTML and 0 Gnutella browse requests'
 #
 #: src/ui/gtk/gtk1/interface-glade.c:3316
-#: src/ui/gtk/gtk2/interface-glade.c:4032
+#: src/ui/gtk/gtk2/interface-glade.c:4241
 msgid " HTML and "
 msgstr " 件の HTML と "
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
 #: src/ui/gtk/gtk1/interface-glade.c:3324
-#: src/ui/gtk/gtk2/interface-glade.c:4037
+#: src/ui/gtk/gtk2/interface-glade.c:4246
 msgid "[BH qhits]"
 msgstr "[BH qhits]"
 
@@ -5872,7 +5875,7 @@ msgstr "[BH qhits]"
 # 'Served 0 HTML and 0 Gnutella browse requests'
 #
 #: src/ui/gtk/gtk1/interface-glade.c:3332
-#: src/ui/gtk/gtk2/interface-glade.c:4042
+#: src/ui/gtk/gtk2/interface-glade.c:4251
 msgid " Gnutella browse requests"
 msgstr " 件の Gnutella 閲覧リクエストを受信しました。"
 
@@ -5882,7 +5885,7 @@ msgid "#|Upload Stats"
 msgstr "#|Upload Stats"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3348
-#: src/ui/gtk/gtk2/interface-glade.c:16414
+#: src/ui/gtk/gtk2/interface-glade.c:16132
 msgid "Files to get"
 msgstr "取得ファイル"
 
@@ -5911,31 +5914,31 @@ msgid "case-sensitive"
 msgstr "大・小文字を区別"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3490
-#: src/ui/gtk/gtk2/interface-glade.c:16567
+#: src/ui/gtk/gtk2/interface-glade.c:16285
 msgid "Detail information"
 msgstr "詳細情報"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3518
 #: src/ui/gtk/gtk1/interface-glade.c:4718
-#: src/ui/gtk/gtk2/interface-glade.c:5072
-#: src/ui/gtk/gtk2/interface-glade.c:16466
+#: src/ui/gtk/gtk2/interface-glade.c:5281
+#: src/ui/gtk/gtk2/interface-glade.c:16184
 msgid "Filename:"
 msgstr "ファイル名:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3529
 #: src/ui/gtk/gtk1/interface-glade.c:4916
-#: src/ui/gtk/gtk2/interface-glade.c:5196
-#: src/ui/gtk/gtk2/interface-glade.c:16497 src/ui/gtk/gtk2/search_cb.c:589
+#: src/ui/gtk/gtk2/interface-glade.c:5405
+#: src/ui/gtk/gtk2/interface-glade.c:16215 src/ui/gtk/gtk2/search_cb.c:589
 msgid "Size:"
 msgstr "大きさ:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3580
-#: src/ui/gtk/gtk2/interface-glade.c:16474
+#: src/ui/gtk/gtk2/interface-glade.c:16192
 msgid "Progress:"
 msgstr "途中経過:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3617
-#: src/ui/gtk/gtk2/interface-glade.c:16494
+#: src/ui/gtk/gtk2/interface-glade.c:16212
 msgid ""
 "Shows visual information on the download progress. Green chunks have been "
 "downloaded, with the brighter green chunks touched during this session. "
@@ -5950,12 +5953,12 @@ msgstr ""
 "ン中のネットワーク上にどの部分のファイルがあるかを示します。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3620
-#: src/ui/gtk/gtk2/interface-glade.c:16562
+#: src/ui/gtk/gtk2/interface-glade.c:16280
 msgid "Alternate filenames"
 msgstr "ファイルの別名"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3666
-#: src/ui/gtk/gtk2/interface-glade.c:16604
+#: src/ui/gtk/gtk2/interface-glade.c:16322
 msgid "_Purge selected"
 msgstr "選択したものを撤去(_P)"
 
@@ -5965,7 +5968,7 @@ msgid "[all count]"
 msgstr "[all count]"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3710
-#: src/ui/gtk/gtk2/interface-glade.c:16630
+#: src/ui/gtk/gtk2/interface-glade.c:16348
 msgid " registered, "
 msgstr " 件が登録済, "
 
@@ -5975,7 +5978,7 @@ msgid "[with source count]"
 msgstr "[with source count]"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3727
-#: src/ui/gtk/gtk2/interface-glade.c:16640
+#: src/ui/gtk/gtk2/interface-glade.c:16358
 msgid " with sources"
 msgstr " 件が送信源有り"
 
@@ -5985,7 +5988,7 @@ msgid "#|Downloads"
 msgstr "#|Downloads"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3743
-#: src/ui/gtk/gtk2/interface-glade.c:4609
+#: src/ui/gtk/gtk2/interface-glade.c:4818
 msgid "Active sources"
 msgstr "動作中の送信源"
 
@@ -5996,74 +5999,74 @@ msgid "Server"
 msgstr "サーバー"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3852
-#: src/ui/gtk/gtk2/interface-glade.c:4405
+#: src/ui/gtk/gtk2/interface-glade.c:4614
 msgid "Download settings"
 msgstr "ダウンロード設定"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3887
-#: src/ui/gtk/gtk2/interface-glade.c:4303
+#: src/ui/gtk/gtk2/interface-glade.c:4512
 msgid "Max. simultaneous downloads"
 msgstr "同時ダウンロードの最大数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3910
-#: src/ui/gtk/gtk2/interface-glade.c:4295
+#: src/ui/gtk/gtk2/interface-glade.c:4504
 msgid "Max. downloads from single host"
 msgstr "一基のホストからの最大ダウンロード数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3933
-#: src/ui/gtk/gtk2/interface-glade.c:4312
+#: src/ui/gtk/gtk2/interface-glade.c:4521
 msgid "Bytes to back off on mismatch"
 msgstr "不一致の際に取消されるバイト"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3958
-#: src/ui/gtk/gtk2/interface-glade.c:4334
+#: src/ui/gtk/gtk2/interface-glade.c:4543
 msgid "Never send a push request"
 msgstr "PUSH リクエストを送らない"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3968
-#: src/ui/gtk/gtk2/interface-glade.c:4320
+#: src/ui/gtk/gtk2/interface-glade.c:4529
 msgid "Delete file on abort"
 msgstr "中止する場合ファイルを削除"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3978
-#: src/ui/gtk/gtk2/interface-glade.c:4327
+#: src/ui/gtk/gtk2/interface-glade.c:4536
 msgid "Remove file on mismatch"
 msgstr "一致しない場合ファイルを削除"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3996
-#: src/ui/gtk/gtk2/interface-glade.c:4400
+#: src/ui/gtk/gtk2/interface-glade.c:4609
 msgid "Auto clear stopped downloads"
 msgstr "中断したダウンロードの自動消去"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4022
-#: src/ui/gtk/gtk2/interface-glade.c:4390
+#: src/ui/gtk/gtk2/interface-glade.c:4599
 msgid "Failed"
 msgstr "失敗したもの"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4030
-#: src/ui/gtk/gtk2/interface-glade.c:4395
+#: src/ui/gtk/gtk2/interface-glade.c:4604
 msgid "Unavailable"
 msgstr "利用できないもの"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4048
-#: src/ui/gtk/gtk2/interface-glade.c:4441
+#: src/ui/gtk/gtk2/interface-glade.c:4650
 msgid "_Abort selected"
 msgstr "選択したものを中止(_A)"
 
 # NOTE: it works as a tooltip
 #: src/ui/gtk/gtk1/interface-glade.c:4058
-#: src/ui/gtk/gtk2/interface-glade.c:4424
+#: src/ui/gtk/gtk2/interface-glade.c:4633
 msgid "Abort all selected downloads"
 msgstr "選択した全てのダウンロードを中止します。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4062
-#: src/ui/gtk/gtk2/interface-glade.c:4470
+#: src/ui/gtk/gtk2/interface-glade.c:4679
 msgid "_Resume selected"
 msgstr "選択したものを再開(_R)"
 
 # NOTE: it works as a tooltip
 #: src/ui/gtk/gtk1/interface-glade.c:4072
-#: src/ui/gtk/gtk2/interface-glade.c:4453
+#: src/ui/gtk/gtk2/interface-glade.c:4662
 msgid "Resume all selected downloads"
 msgstr "選択した全てのダウンロードを再開します。"
 
@@ -6094,19 +6097,19 @@ msgstr "("
 #: src/ui/gtk/gtk1/interface-glade.c:8710
 #: src/ui/gtk/gtk1/interface-glade.c:8936
 #: src/ui/gtk/gtk1/interface-glade.c:9333
-#: src/ui/gtk/gtk2/interface-glade.c:6426
-#: src/ui/gtk/gtk2/interface-glade.c:6738
-#: src/ui/gtk/gtk2/interface-glade.c:7010
-#: src/ui/gtk/gtk2/interface-glade.c:7316
-#: src/ui/gtk/gtk2/interface-glade.c:7549
-#: src/ui/gtk/gtk2/interface-glade.c:7874
-#: src/ui/gtk/gtk2/interface-glade.c:8540
+#: src/ui/gtk/gtk2/interface-glade.c:6635
+#: src/ui/gtk/gtk2/interface-glade.c:6947
+#: src/ui/gtk/gtk2/interface-glade.c:7219
+#: src/ui/gtk/gtk2/interface-glade.c:7525
+#: src/ui/gtk/gtk2/interface-glade.c:7758
+#: src/ui/gtk/gtk2/interface-glade.c:8083
+#: src/ui/gtk/gtk2/interface-glade.c:8749
 msgid "active"
 msgstr "有効"
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
 #: src/ui/gtk/gtk1/interface-glade.c:4143
-#: src/ui/gtk/gtk2/interface-glade.c:4252
+#: src/ui/gtk/gtk2/interface-glade.c:4461
 msgid ", "
 msgstr ", "
 
@@ -6121,8 +6124,8 @@ msgid ")"
 msgstr ")"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4176
-#: src/ui/gtk/gtk1/interface-glade.c:5108 src/ui/gtk/settings.c:1986
-#: src/ui/gtk/settings.c:2023
+#: src/ui/gtk/gtk1/interface-glade.c:5108 src/ui/gtk/settings.c:1949
+#: src/ui/gtk/settings.c:1986
 msgid "Show settings"
 msgstr "設定の表示"
 
@@ -6131,7 +6134,7 @@ msgid "#|Active"
 msgstr "アクティブ"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4192
-#: src/ui/gtk/gtk2/interface-glade.c:16880
+#: src/ui/gtk/gtk2/interface-glade.c:16598
 msgid "Inactive sources"
 msgstr "動作していない送信源"
 
@@ -6142,13 +6145,13 @@ msgstr "選択"
 # MERGEBLE:
 #: src/ui/gtk/gtk1/interface-glade.c:4307
 #: src/ui/gtk/gtk1/interface-glade.c:7915
-#: src/ui/gtk/gtk2/interface-glade.c:6479
-#: src/ui/gtk/gtk2/interface-glade.c:16814
+#: src/ui/gtk/gtk2/interface-glade.c:6688
+#: src/ui/gtk/gtk2/interface-glade.c:16532
 msgid "case sensitive"
 msgstr "大・小文字を区別"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4347
-#: src/ui/gtk/gtk2/interface-glade.c:16809
+#: src/ui/gtk/gtk2/interface-glade.c:16527
 msgid "Freeze queue"
 msgstr "キューの凍結"
 
@@ -6162,7 +6165,7 @@ msgid "[queued downloads]"
 msgstr "[queued downloads]"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4412
-#: src/ui/gtk/gtk2/interface-glade.c:16855
+#: src/ui/gtk/gtk2/interface-glade.c:16573
 msgid " queued ("
 msgstr " 件が待機中 ("
 
@@ -6172,12 +6175,12 @@ msgid "[hosts alive]"
 msgstr "[hosts alive]"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4428
-#: src/ui/gtk/gtk2/interface-glade.c:16865
+#: src/ui/gtk/gtk2/interface-glade.c:16583
 msgid " alive with "
 msgstr " 件が現存, 内 "
 
 #: src/ui/gtk/gtk1/interface-glade.c:4444
-#: src/ui/gtk/gtk2/interface-glade.c:16875
+#: src/ui/gtk/gtk2/interface-glade.c:16593
 msgid " passive)"
 msgstr " 件が受動状態)"
 
@@ -6186,39 +6189,39 @@ msgid "#|Queue"
 msgstr "キュー"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4460
-#: src/ui/gtk/gtk2/interface-glade.c:5468
+#: src/ui/gtk/gtk2/interface-glade.c:5677
 msgid "Search results"
 msgstr "検索結果"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4486
-#: src/ui/gtk/gtk2/interface-glade.c:4886
+#: src/ui/gtk/gtk2/interface-glade.c:5095
 msgid "Current search:"
 msgstr "現在の検索:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4512
-#: src/ui/gtk/gtk2/interface-glade.c:4881
+#: src/ui/gtk/gtk2/interface-glade.c:5090
 msgid "Cl_ose search"
 msgstr "検索を閉じる(_O)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4555 src/ui/gtk/gtk1/search.c:412
 #: src/ui/gtk/gtk1/search.c:1891 src/ui/gtk/gtk1/search.c:2006
-#: src/ui/gtk/gtk2/interface-glade.c:4925 src/ui/gtk/gtk2/search.c:417
+#: src/ui/gtk/gtk2/interface-glade.c:5134 src/ui/gtk/gtk2/search.c:417
 #: src/ui/gtk/gtk2/search.c:991 src/ui/gtk/gtk2/search.c:1123
 msgid "(no search)"
 msgstr "(検索無し)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4563
-#: src/ui/gtk/gtk2/interface-glade.c:5035
+#: src/ui/gtk/gtk2/interface-glade.c:5244
 msgid "General search settings (affect all searches)"
 msgstr "一般検索設定 (全検索に影響します)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4584
-#: src/ui/gtk/gtk2/interface-glade.c:4968
+#: src/ui/gtk/gtk2/interface-glade.c:5177
 msgid "Max. _number of results"
 msgstr "結果表示の最大数(_N)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4595
-#: src/ui/gtk/gtk2/interface-glade.c:4976
+#: src/ui/gtk/gtk2/interface-glade.c:5185
 msgid "Ignored files are"
 msgstr "無視するファイルは"
 
@@ -6228,54 +6231,54 @@ msgid "Case-sensitive sorting"
 msgstr "大・小文字を区別して並べ替える"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4639
-#: src/ui/gtk/gtk2/interface-glade.c:4991
+#: src/ui/gtk/gtk2/interface-glade.c:5200
 msgid "_Remove manually downloaded files"
 msgstr "ダウンロードしたファイルは削除する(_R)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4672
-#: src/ui/gtk/gtk2/interface-glade.c:4984
+#: src/ui/gtk/gtk2/interface-glade.c:5193
 msgid "_Hide downloaded files"
 msgstr "自動ダウンロードファイルは隠す(_H)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4701
-#: src/ui/gtk/gtk2/interface-glade.c:5305
+#: src/ui/gtk/gtk2/interface-glade.c:5514
 msgid "Information about selected file"
 msgstr "選択したファイルに関する情報"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4730
-#: src/ui/gtk/gtk2/interface-glade.c:5096
-#: src/ui/gtk/gtk2/interface-glade.c:16520 src/ui/gtk/gtk2/search_cb.c:585
+#: src/ui/gtk/gtk2/interface-glade.c:5305
+#: src/ui/gtk/gtk2/interface-glade.c:16238 src/ui/gtk/gtk2/search_cb.c:585
 msgid "SHA1:"
 msgstr "SHA1:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4742
-#: src/ui/gtk/gtk2/interface-glade.c:5250
+#: src/ui/gtk/gtk2/interface-glade.c:5459
 msgid "Index:"
 msgstr "インデックス:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4764
-#: src/ui/gtk/gtk2/interface-glade.c:5088
+#: src/ui/gtk/gtk2/interface-glade.c:5297
 msgid "Source:"
 msgstr "送信源:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4776
-#: src/ui/gtk/gtk2/interface-glade.c:5080
+#: src/ui/gtk/gtk2/interface-glade.c:5289
 msgid "Received:"
 msgstr "受信時刻:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4798
-#: src/ui/gtk/gtk2/interface-glade.c:5242 src/ui/gtk/gtk2/nodes.c:351
+#: src/ui/gtk/gtk2/interface-glade.c:5451 src/ui/gtk/gtk2/nodes.c:457
 #: src/ui/gtk/gtk2/search_cb.c:583
 msgid "Vendor:"
 msgstr "ベンダー:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4820 src/ui/gtk/gtk2/nodes.c:348
+#: src/ui/gtk/gtk1/interface-glade.c:4820 src/ui/gtk/gtk2/nodes.c:454
 #: src/ui/gtk/gtk2/search_cb.c:580
 msgid "Country:"
 msgstr "国・地域:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4832
-#: src/ui/gtk/gtk2/interface-glade.c:5149
+#: src/ui/gtk/gtk2/interface-glade.c:5358
 msgid "Tag:"
 msgstr "タグ:"
 
@@ -6284,12 +6287,12 @@ msgid "Speed:"
 msgstr "通信速度:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4948
-#: src/ui/gtk/gtk2/interface-glade.c:5234
+#: src/ui/gtk/gtk2/interface-glade.c:5443
 msgid "Servent ID:"
 msgstr "サーバントID:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4960
-#: src/ui/gtk/gtk2/interface-glade.c:5188
+#: src/ui/gtk/gtk2/interface-glade.c:5397
 msgid "XML data:"
 msgstr "XMLデータ:"
 
@@ -6298,7 +6301,7 @@ msgstr "XMLデータ:"
 # 'Re_try search every <seconds> secs   '
 #
 #: src/ui/gtk/gtk1/interface-glade.c:5034
-#: src/ui/gtk/gtk2/interface-glade.c:5334
+#: src/ui/gtk/gtk2/interface-glade.c:5543
 msgid "Re_try search every"
 msgstr "検索の再試行を(_T)"
 
@@ -6307,19 +6310,19 @@ msgstr "検索の再試行を(_T)"
 # 'Re_try search every <seconds> secs   '
 #
 #: src/ui/gtk/gtk1/interface-glade.c:5054
-#: src/ui/gtk/gtk2/interface-glade.c:5348
+#: src/ui/gtk/gtk2/interface-glade.c:5557
 msgid "secs   "
 msgstr "秒毎に実行   "
 
 #: src/ui/gtk/gtk1/interface-glade.c:5072
-#: src/ui/gtk/gtk2/interface-glade.c:5379
+#: src/ui/gtk/gtk2/interface-glade.c:5588
 msgid "_Download selected"
 msgstr "ダウンロード(_D)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5088
 #: src/ui/gtk/gtk1/interface-glade.c:6656
-#: src/ui/gtk/gtk1/interface-glade.c:17291
-#: src/ui/gtk/gtk2/interface-glade.c:5404
+#: src/ui/gtk/gtk1/interface-glade.c:17282
+#: src/ui/gtk/gtk2/interface-glade.c:5613
 msgid "_Edit filters"
 msgstr "フィルター編集(_E)"
 
@@ -6329,6 +6332,7 @@ msgstr "フィルター編集(_E)"
 #: src/ui/gtk/gtk1/interface-glade.c:6826
 #: src/ui/gtk/gtk2/interface-glade.c:187 src/ui/gtk/gtk2/interface-glade.c:403
 #: src/ui/gtk/gtk2/interface-glade.c:665
+#: src/ui/gtk/gtk2/interface-glade.c:9248
 msgid "Expand all"
 msgstr "全て拡げる"
 
@@ -6338,11 +6342,12 @@ msgstr "全て拡げる"
 #: src/ui/gtk/gtk1/interface-glade.c:6834
 #: src/ui/gtk/gtk2/interface-glade.c:197 src/ui/gtk/gtk2/interface-glade.c:413
 #: src/ui/gtk/gtk2/interface-glade.c:675
+#: src/ui/gtk/gtk2/interface-glade.c:9258
 msgid "Collapse all"
 msgstr "全て折畳む"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5152
-#: src/ui/gtk/gtk2/interface-glade.c:5463
+#: src/ui/gtk/gtk2/interface-glade.c:5672
 msgid "_Clear results"
 msgstr "結果を消去(_C)"
 
@@ -6352,7 +6357,7 @@ msgid "#|Search"
 msgstr "#|Search"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5193
-#: src/ui/gtk/gtk2/interface-glade.c:5632
+#: src/ui/gtk/gtk2/interface-glade.c:5841
 msgid "Search _monitor enabled"
 msgstr "検索モニタを実行する(_M)"
 
@@ -6361,7 +6366,7 @@ msgstr "検索モニタを実行する(_M)"
 # 'Show _last 0 searches'
 #
 #: src/ui/gtk/gtk1/interface-glade.c:5213
-#: src/ui/gtk/gtk2/interface-glade.c:5643
+#: src/ui/gtk/gtk2/interface-glade.c:5852
 msgid "Show _last"
 msgstr "最新(_L)"
 
@@ -6370,7 +6375,7 @@ msgstr "最新(_L)"
 # 'Show _last 0 searches'
 #
 #: src/ui/gtk/gtk1/interface-glade.c:5231
-#: src/ui/gtk/gtk2/interface-glade.c:5656
+#: src/ui/gtk/gtk2/interface-glade.c:5865
 msgid "searches"
 msgstr "件の検索を表示"
 
@@ -6380,12 +6385,12 @@ msgid "#|Monitor"
 msgstr "#|Monitor"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5312
-#: src/ui/gtk/gtk2/interface-glade.c:5749
+#: src/ui/gtk/gtk2/interface-glade.c:5958
 msgid "_Update interval (sec)"
 msgstr "更新する間隔(_U) (秒)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5332
-#: src/ui/gtk/gtk2/interface-glade.c:5761
+#: src/ui/gtk/gtk2/interface-glade.c:5970
 msgid "_Deletion coeff. (0-100)"
 msgstr "削除係数(_D) (0-100) "
 
@@ -6405,19 +6410,19 @@ msgstr "このモニタ間"
 #: src/ui/gtk/gtk1/interface-glade.c:8845
 #: src/ui/gtk/gtk1/interface-glade.c:9234
 #: src/ui/gtk/gtk1/interface-glade.c:9600
-#: src/ui/gtk/gtk2/interface-glade.c:5812
-#: src/ui/gtk/gtk2/interface-glade.c:6523
-#: src/ui/gtk/gtk2/interface-glade.c:6840
-#: src/ui/gtk/gtk2/interface-glade.c:7144
-#: src/ui/gtk/gtk2/interface-glade.c:7387
-#: src/ui/gtk/gtk2/interface-glade.c:7657
-#: src/ui/gtk/gtk2/interface-glade.c:8242
-#: src/ui/gtk/gtk2/interface-glade.c:8869
+#: src/ui/gtk/gtk2/interface-glade.c:6021
+#: src/ui/gtk/gtk2/interface-glade.c:6732
+#: src/ui/gtk/gtk2/interface-glade.c:7049
+#: src/ui/gtk/gtk2/interface-glade.c:7353
+#: src/ui/gtk/gtk2/interface-glade.c:7596
+#: src/ui/gtk/gtk2/interface-glade.c:7866
+#: src/ui/gtk/gtk2/interface-glade.c:8451
+#: src/ui/gtk/gtk2/interface-glade.c:9078
 msgid "_Reset stats"
 msgstr "状態をリセット(_R)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5440
-#: src/ui/gtk/gtk2/interface-glade.c:5823
+#: src/ui/gtk/gtk2/interface-glade.c:6032
 msgid "0 terms counted"
 msgstr "0 語の検索用語数"
 
@@ -6427,14 +6432,14 @@ msgid "#|Search Stats"
 msgstr "#|Search Stats"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5500
-#: src/ui/gtk/gtk2/interface-glade.c:2770
+#: src/ui/gtk/gtk2/interface-glade.c:2918
 msgid "You seem to be offline."
 msgstr "オフラインのようです。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5605
 #: src/ui/gtk/gtk1/interface-glade.c:5623
-#: src/ui/gtk/gtk2/interface-glade.c:2184
-#: src/ui/gtk/gtk2/interface-glade.c:2195
+#: src/ui/gtk/gtk2/interface-glade.c:2337
+#: src/ui/gtk/gtk2/interface-glade.c:2348
 msgid ""
 "Your uploads are stalling at an abnormal rate, indicating that your "
 "bandwidth is probably saturated. You should not run as an ultra node, and "
@@ -6447,7 +6452,7 @@ msgstr ""
 "さい。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5758
-#: src/ui/gtk/gtk2/interface-glade.c:2284
+#: src/ui/gtk/gtk2/interface-glade.c:2437
 msgid ""
 "You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
 "any push results, which may prevent you from seeing a large amount of "
@@ -6459,7 +6464,7 @@ msgstr ""
 "Of-Band) 配送を要求する問い合わせの送信もできません。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5777
-#: src/ui/gtk/gtk2/interface-glade.c:2297
+#: src/ui/gtk/gtk2/interface-glade.c:2450
 msgid ""
 "You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
 "any push results, which may prevent you from seeing a large amount of "
@@ -6474,7 +6479,7 @@ msgstr ""
 "うになります。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5795
-#: src/ui/gtk/gtk2/interface-glade.c:2309
+#: src/ui/gtk/gtk2/interface-glade.c:2462
 msgid ""
 "You appear to be TCP-firewalled, i.e. others cannot connect to you to "
 "download files. You will not see push results, which may prevent you from "
@@ -6485,7 +6490,7 @@ msgstr ""
 "れないので、大量の検索結果を得る事はないでしょう。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5813
-#: src/ui/gtk/gtk2/interface-glade.c:2321
+#: src/ui/gtk/gtk2/interface-glade.c:2474
 msgid ""
 "You appear to be UDP-firewalled, i.e. you cannot receive unsolicited traffic "
 "via UDP. You will not be able to send queries requesting out-of-band "
@@ -6496,7 +6501,7 @@ msgstr ""
 "る問い合わせは送信できません。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5831
-#: src/ui/gtk/gtk2/interface-glade.c:2333
+#: src/ui/gtk/gtk2/interface-glade.c:2486
 msgid ""
 "People can connect to you via TCP, but you are UDP-firewalled.  However, you "
 "can punch a hole into that firewall, allowing reception of replies to your "
@@ -6509,7 +6514,7 @@ msgstr ""
 "トを送信できるようになりますが、何も受信できなくなります。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5849
-#: src/ui/gtk/gtk2/interface-glade.c:2346
+#: src/ui/gtk/gtk2/interface-glade.c:2499
 msgid ""
 "People can connect to you, using both TCP and UDP. Push should work and you "
 "will be able to receive out-of-band results for your queries."
@@ -6519,17 +6524,17 @@ msgstr ""
 "け取ることができます。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5868
-#: src/ui/gtk/gtk2/interface-glade.c:2375
+#: src/ui/gtk/gtk2/interface-glade.c:2528
 msgid "Running in leaf mode."
 msgstr "リーフモードで動作中です。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5886
-#: src/ui/gtk/gtk2/interface-glade.c:2387
+#: src/ui/gtk/gtk2/interface-glade.c:2540
 msgid "Running in legacy mode. Consider switching to auto mode."
 msgstr "レガシーモードで動作中です。自動モードへ切替えみてはどうでしょうか。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5904
-#: src/ui/gtk/gtk2/interface-glade.c:2363
+#: src/ui/gtk/gtk2/interface-glade.c:2516
 msgid "Running in ultrapeer mode."
 msgstr "ウルトラピアモードで動作しています。"
 
@@ -6543,13 +6548,13 @@ msgstr "ウルトラピアモードで動作しています。"
 #: src/ui/gtk/gtk1/interface-glade.c:9268
 #: src/ui/gtk/gtk1/interface-glade.c:9634 src/ui/gtk/gtk2/interface-glade.c:67
 #: src/ui/gtk/gtk2/interface-glade.c:316
-#: src/ui/gtk/gtk2/interface-glade.c:6603
-#: src/ui/gtk/gtk2/interface-glade.c:6880
-#: src/ui/gtk/gtk2/interface-glade.c:7184
-#: src/ui/gtk/gtk2/interface-glade.c:7427
-#: src/ui/gtk/gtk2/interface-glade.c:7697
-#: src/ui/gtk/gtk2/interface-glade.c:8322
-#: src/ui/gtk/gtk2/interface-glade.c:8909
+#: src/ui/gtk/gtk2/interface-glade.c:6812
+#: src/ui/gtk/gtk2/interface-glade.c:7089
+#: src/ui/gtk/gtk2/interface-glade.c:7393
+#: src/ui/gtk/gtk2/interface-glade.c:7636
+#: src/ui/gtk/gtk2/interface-glade.c:7906
+#: src/ui/gtk/gtk2/interface-glade.c:8531
+#: src/ui/gtk/gtk2/interface-glade.c:9118
 msgid "Abort"
 msgstr "中止する"
 
@@ -6685,22 +6690,22 @@ msgid "New search from selected"
 msgstr "新規の検索"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6851
-#: src/ui/gtk/gtk2/interface-glade.c:16240
+#: src/ui/gtk/gtk2/interface-glade.c:15958
 msgid "Stop this search"
 msgstr "この検索を中止する"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6859
-#: src/ui/gtk/gtk2/interface-glade.c:16250
+#: src/ui/gtk/gtk2/interface-glade.c:15968
 msgid "Resume this search"
 msgstr "この検索を再開する(リジューム)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6867
-#: src/ui/gtk/gtk2/interface-glade.c:16260
+#: src/ui/gtk/gtk2/interface-glade.c:15978
 msgid "Restart this search"
 msgstr "この検索を再開する"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6875
-#: src/ui/gtk/gtk2/interface-glade.c:16270
+#: src/ui/gtk/gtk2/interface-glade.c:15988
 msgid "Duplicate this search"
 msgstr "この検索を複製する"
 
@@ -6713,8 +6718,7 @@ msgstr "タブを表示する"
 #: src/ui/gtk/gtk1/interface-glade.c:7068
 #: src/ui/gtk/gtk2/interface-glade.c:177 src/ui/gtk/gtk2/interface-glade.c:393
 #: src/ui/gtk/gtk2/interface-glade.c:701 src/ui/gtk/gtk2/interface-glade.c:882
-#: src/ui/gtk/gtk2/interface-glade.c:9037
-#: src/ui/gtk/gtk2/interface-glade.c:9308
+#: src/ui/gtk/gtk2/interface-glade.c:9534
 msgid "Configure columns"
 msgstr "表示欄の設定"
 
@@ -6739,7 +6743,7 @@ msgid "Add as search"
 msgstr "検索に追加する"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7051
-#: src/ui/gtk/gtk2/interface-glade.c:9017
+#: src/ui/gtk/gtk2/interface-glade.c:9228
 msgid "Disconnect"
 msgstr "接続の解除"
 
@@ -6814,13 +6818,13 @@ msgstr "条件"
 #: src/ui/gtk/gtk1/interface-glade.c:9201
 #: src/ui/gtk/gtk1/interface-glade.c:9567
 #: src/ui/gtk/gtk2/interface-glade.c:1094
-#: src/ui/gtk/gtk2/interface-glade.c:6512
-#: src/ui/gtk/gtk2/interface-glade.c:6829
-#: src/ui/gtk/gtk2/interface-glade.c:7133
-#: src/ui/gtk/gtk2/interface-glade.c:7376
-#: src/ui/gtk/gtk2/interface-glade.c:7646
-#: src/ui/gtk/gtk2/interface-glade.c:8231
-#: src/ui/gtk/gtk2/interface-glade.c:8858
+#: src/ui/gtk/gtk2/interface-glade.c:6721
+#: src/ui/gtk/gtk2/interface-glade.c:7038
+#: src/ui/gtk/gtk2/interface-glade.c:7342
+#: src/ui/gtk/gtk2/interface-glade.c:7585
+#: src/ui/gtk/gtk2/interface-glade.c:7855
+#: src/ui/gtk/gtk2/interface-glade.c:8440
+#: src/ui/gtk/gtk2/interface-glade.c:9067
 msgid "Target"
 msgstr "ターゲット"
 
@@ -6861,32 +6865,32 @@ msgstr ""
 "ステータスをリセット"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7733
-#: src/ui/gtk/gtk2/interface-glade.c:6292
+#: src/ui/gtk/gtk2/interface-glade.c:6501
 msgid "Add name rule"
 msgstr "名前ルールの追加"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7741
-#: src/ui/gtk/gtk2/interface-glade.c:6278
+#: src/ui/gtk/gtk2/interface-glade.c:6487
 msgid "Add size rule"
 msgstr "大きさルールの追加"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7749
-#: src/ui/gtk/gtk2/interface-glade.c:6299
+#: src/ui/gtk/gtk2/interface-glade.c:6508
 msgid "Add flag rule"
 msgstr "フラッグルールの追加"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7765
-#: src/ui/gtk/gtk2/interface-glade.c:6271
+#: src/ui/gtk/gtk2/interface-glade.c:6480
 msgid "Add jump rule"
 msgstr "分岐ルールの追加"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7773
-#: src/ui/gtk/gtk2/interface-glade.c:6285
+#: src/ui/gtk/gtk2/interface-glade.c:6494
 msgid "Add IP rule"
 msgstr "IP ルールの追加"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7781
-#: src/ui/gtk/gtk2/interface-glade.c:6306
+#: src/ui/gtk/gtk2/interface-glade.c:6515
 msgid "Add state rule"
 msgstr "状態ルールの追加"
 
@@ -6900,11 +6904,11 @@ msgstr "#|Add/Remove"
 #: src/ui/gtk/gtk1/interface-glade.c:8279
 #: src/ui/gtk/gtk1/interface-glade.c:8703
 #: src/ui/gtk/gtk1/interface-glade.c:9325
-#: src/ui/gtk/gtk2/interface-glade.c:6421
-#: src/ui/gtk/gtk2/interface-glade.c:6733
-#: src/ui/gtk/gtk2/interface-glade.c:7005
-#: src/ui/gtk/gtk2/interface-glade.c:7545
-#: src/ui/gtk/gtk2/interface-glade.c:8535
+#: src/ui/gtk/gtk2/interface-glade.c:6630
+#: src/ui/gtk/gtk2/interface-glade.c:6942
+#: src/ui/gtk/gtk2/interface-glade.c:7214
+#: src/ui/gtk/gtk2/interface-glade.c:7754
+#: src/ui/gtk/gtk2/interface-glade.c:8744
 msgid "invert condition"
 msgstr "条件を反転"
 
@@ -6914,17 +6918,17 @@ msgstr "条件を反転"
 #: src/ui/gtk/gtk1/interface-glade.c:8719
 #: src/ui/gtk/gtk1/interface-glade.c:8944
 #: src/ui/gtk/gtk1/interface-glade.c:9341
-#: src/ui/gtk/gtk2/interface-glade.c:6431
-#: src/ui/gtk/gtk2/interface-glade.c:6743
-#: src/ui/gtk/gtk2/interface-glade.c:7015
-#: src/ui/gtk/gtk2/interface-glade.c:7555
-#: src/ui/gtk/gtk2/interface-glade.c:7879
-#: src/ui/gtk/gtk2/interface-glade.c:8545
+#: src/ui/gtk/gtk2/interface-glade.c:6640
+#: src/ui/gtk/gtk2/interface-glade.c:6952
+#: src/ui/gtk/gtk2/interface-glade.c:7224
+#: src/ui/gtk/gtk2/interface-glade.c:7764
+#: src/ui/gtk/gtk2/interface-glade.c:8088
+#: src/ui/gtk/gtk2/interface-glade.c:8754
 msgid "mark only"
 msgstr "マークのみ"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7862
-#: src/ui/gtk/gtk2/interface-glade.c:6486
+#: src/ui/gtk/gtk2/interface-glade.c:6695
 msgid "Condition: If filename matches"
 msgstr "条件: ファイル名が一致するかどうか"
 
@@ -6944,17 +6948,17 @@ msgid "#|Filename"
 msgstr "#|Filename"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8078
-#: src/ui/gtk/gtk2/interface-glade.c:6803
+#: src/ui/gtk/gtk2/interface-glade.c:7012
 msgid "Condition: If IP address matches"
 msgstr "条件: IP アドレスが一致するかどうか"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8106
-#: src/ui/gtk/gtk2/interface-glade.c:6772
+#: src/ui/gtk/gtk2/interface-glade.c:6981
 msgid "IP address"
 msgstr "IP アドレス"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8117
-#: src/ui/gtk/gtk2/interface-glade.c:6781
+#: src/ui/gtk/gtk2/interface-glade.c:6990
 msgid "network mask"
 msgstr "ネットマスク"
 
@@ -6964,34 +6968,34 @@ msgid "#|IP address"
 msgstr "#|IP address"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8303
-#: src/ui/gtk/gtk2/interface-glade.c:7107
+#: src/ui/gtk/gtk2/interface-glade.c:7316
 msgid "Condition: If file size matches"
 msgstr "条件: ファイルの大きさが一致するかどうか"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8331
-#: src/ui/gtk/gtk2/interface-glade.c:7044
+#: src/ui/gtk/gtk2/interface-glade.c:7253
 msgid "Minimum size:"
 msgstr "最小の大きさ:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8342
-#: src/ui/gtk/gtk2/interface-glade.c:7054
+#: src/ui/gtk/gtk2/interface-glade.c:7263
 msgid "Maximum size:"
 msgstr "最大の大きさ:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8353
 #: src/ui/gtk/gtk1/interface-glade.c:8364
-#: src/ui/gtk/gtk1/interface-glade.c:14480
-#: src/ui/gtk/gtk1/interface-glade.c:14892
-#: src/ui/gtk/gtk1/interface-glade.c:14903
-#: src/ui/gtk/gtk1/interface-glade.c:14983
-#: src/ui/gtk/gtk1/interface-glade.c:15005
-#: src/ui/gtk/gtk2/interface-glade.c:7064
-#: src/ui/gtk/gtk2/interface-glade.c:7074
-#: src/ui/gtk/gtk2/interface-glade.c:13222
-#: src/ui/gtk/gtk2/interface-glade.c:13530
-#: src/ui/gtk/gtk2/interface-glade.c:13539
-#: src/ui/gtk/gtk2/interface-glade.c:13580
-#: src/ui/gtk/gtk2/interface-glade.c:13588
+#: src/ui/gtk/gtk1/interface-glade.c:14481
+#: src/ui/gtk/gtk1/interface-glade.c:14893
+#: src/ui/gtk/gtk1/interface-glade.c:14904
+#: src/ui/gtk/gtk1/interface-glade.c:14984
+#: src/ui/gtk/gtk1/interface-glade.c:15006
+#: src/ui/gtk/gtk2/interface-glade.c:7273
+#: src/ui/gtk/gtk2/interface-glade.c:7283
+#: src/ui/gtk/gtk2/interface-glade.c:13448
+#: src/ui/gtk/gtk2/interface-glade.c:13756
+#: src/ui/gtk/gtk2/interface-glade.c:13765
+#: src/ui/gtk/gtk2/interface-glade.c:13806
+#: src/ui/gtk/gtk2/interface-glade.c:13814
 msgid "bytes"
 msgstr "バイト"
 
@@ -7001,12 +7005,12 @@ msgid "#|Filesize"
 msgstr "#|Filesize"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8535
-#: src/ui/gtk/gtk2/interface-glade.c:7345
+#: src/ui/gtk/gtk2/interface-glade.c:7554
 msgid "Condition: always"
 msgstr "条件: 常に"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8553
-#: src/ui/gtk/gtk2/interface-glade.c:7338
+#: src/ui/gtk/gtk2/interface-glade.c:7547
 msgid ""
 "There is no condition. When this rule is reached, the matching will continue "
 "in the specified target filter. That's also why you can't invert this "
@@ -7022,17 +7026,17 @@ msgid "#|Jump"
 msgstr "#|Jump"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8726
-#: src/ui/gtk/gtk2/interface-glade.c:7619
+#: src/ui/gtk/gtk2/interface-glade.c:7828
 msgid "Condition: If urn:sha1 matches"
 msgstr "条件: URN:SHA1 が一致するかどうか"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8754
-#: src/ui/gtk/gtk2/interface-glade.c:7583
+#: src/ui/gtk/gtk2/interface-glade.c:7792
 msgid "SHA1 hash (not editable, add from search popup)"
 msgstr "SHA1 ハッシュ (編集不可、検索ポップアップから追加します)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8786
-#: src/ui/gtk/gtk2/interface-glade.c:7607
+#: src/ui/gtk/gtk2/interface-glade.c:7816
 msgid "Originally obtained from"
 msgstr "取得元は"
 
@@ -7042,44 +7046,44 @@ msgid "#|SHA1"
 msgstr "#|SHA1"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8952
-#: src/ui/gtk/gtk2/interface-glade.c:8205
+#: src/ui/gtk/gtk2/interface-glade.c:8414
 msgid "Condition: If result has flags"
 msgstr "条件: 検索結果にフラッグがあるかどうか"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8980
-#: src/ui/gtk/gtk2/interface-glade.c:7908 src/ui/gtk/hcache_common.c:44
+#: src/ui/gtk/gtk2/interface-glade.c:8117 src/ui/gtk/hcache_common.c:44
 msgid "Busy"
 msgstr "使用中"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9014
 #: src/ui/gtk/gtk1/interface-glade.c:9074
 #: src/ui/gtk/gtk1/interface-glade.c:9165
-#: src/ui/gtk/gtk2/interface-glade.c:8011
-#: src/ui/gtk/gtk2/interface-glade.c:8140
-#: src/ui/gtk/gtk2/interface-glade.c:8200
+#: src/ui/gtk/gtk2/interface-glade.c:8220
+#: src/ui/gtk/gtk2/interface-glade.c:8349
+#: src/ui/gtk/gtk2/interface-glade.c:8409
 msgid "unset"
 msgstr "解除"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9034
 #: src/ui/gtk/gtk1/interface-glade.c:9054
 #: src/ui/gtk/gtk1/interface-glade.c:9185
-#: src/ui/gtk/gtk2/interface-glade.c:7951
-#: src/ui/gtk/gtk2/interface-glade.c:7981
-#: src/ui/gtk/gtk2/interface-glade.c:8170
+#: src/ui/gtk/gtk2/interface-glade.c:8160
+#: src/ui/gtk/gtk2/interface-glade.c:8190
+#: src/ui/gtk/gtk2/interface-glade.c:8379
 msgid "ignored"
 msgstr "無視"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9094
 #: src/ui/gtk/gtk1/interface-glade.c:9114
 #: src/ui/gtk/gtk1/interface-glade.c:9145
-#: src/ui/gtk/gtk2/interface-glade.c:8041
-#: src/ui/gtk/gtk2/interface-glade.c:8071
-#: src/ui/gtk/gtk2/interface-glade.c:8110
+#: src/ui/gtk/gtk2/interface-glade.c:8250
+#: src/ui/gtk/gtk2/interface-glade.c:8280
+#: src/ui/gtk/gtk2/interface-glade.c:8319
 msgid "set"
 msgstr "設定"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9122
-#: src/ui/gtk/gtk2/interface-glade.c:8076
+#: src/ui/gtk/gtk2/interface-glade.c:8285
 msgid "Stable"
 msgstr "安定"
 
@@ -7089,35 +7093,35 @@ msgid "#|Flags"
 msgstr "#|Flags"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9349
-#: src/ui/gtk/gtk2/interface-glade.c:8832
+#: src/ui/gtk/gtk2/interface-glade.c:9041
 msgid "Condition: If current filter result properties match"
 msgstr "条件: 現フィルターの検索結果のプロパティが一致するかどうか"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9400
 #: src/ui/gtk/gtk1/interface-glade.c:9491
-#: src/ui/gtk/gtk2/interface-glade.c:8608
-#: src/ui/gtk/gtk2/interface-glade.c:8737
+#: src/ui/gtk/gtk2/interface-glade.c:8817
+#: src/ui/gtk/gtk2/interface-glade.c:8946
 msgid "don't"
 msgstr "しない"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9420
 #: src/ui/gtk/gtk1/interface-glade.c:9511
-#: src/ui/gtk/gtk2/interface-glade.c:8638
-#: src/ui/gtk/gtk2/interface-glade.c:8767
+#: src/ui/gtk/gtk2/interface-glade.c:8847
+#: src/ui/gtk/gtk2/interface-glade.c:8976
 msgid "undefined"
 msgstr "未定義"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9451
 #: src/ui/gtk/gtk1/interface-glade.c:9471
-#: src/ui/gtk/gtk2/interface-glade.c:8677
-#: src/ui/gtk/gtk2/interface-glade.c:8707
+#: src/ui/gtk/gtk2/interface-glade.c:8886
+#: src/ui/gtk/gtk2/interface-glade.c:8916
 msgid "do"
 msgstr "する"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9531
 #: src/ui/gtk/gtk1/interface-glade.c:9551
-#: src/ui/gtk/gtk2/interface-glade.c:8797
-#: src/ui/gtk/gtk2/interface-glade.c:8827
+#: src/ui/gtk/gtk2/interface-glade.c:9006
+#: src/ui/gtk/gtk2/interface-glade.c:9036
 msgid "ignore"
 msgstr "無視"
 
@@ -7268,7 +7272,7 @@ msgstr ""
 "http://maxmind.com/ から取得できます。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10342
-#: src/ui/gtk/gtk1/interface-glade.c:17045
+#: src/ui/gtk/gtk1/interface-glade.c:17033
 #: src/ui/gtk/gtk2/interface-glade.c:1717
 msgid "_Close"
 msgstr "閉じる(_C)"
@@ -7284,21 +7288,22 @@ msgid "Paste rule"
 msgstr "ルールを貼り付け"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10424
-#: src/ui/gtk/gtk2/interface-glade.c:3118
+#: src/ui/gtk/gtk2/interface-glade.c:3327
 msgid "gtk-gnutella: Quit?"
 msgstr "Gtk-Gnutella: 終了しますか?"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10435
-#: src/ui/gtk/gtk2/interface-glade.c:3145
+#: src/ui/gtk/gtk2/interface-glade.c:3354
 msgid "Please confirm:"
 msgstr "確認します:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10444
-#: src/ui/gtk/gtk2/interface-glade.c:3139
+#: src/ui/gtk/gtk2/interface-glade.c:3348
 msgid "Do you really want to quit?"
 msgstr "本当に終了しますか?"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10459 src/ui/gtk/settings.c:1200
+#: src/ui/gtk/gtk1/interface-glade.c:10459 src/ui/gtk/settings.c:1156
+#: src/ui/gtk/settings_cb.c:574 src/ui/gtk/settings_cb.c:637
 msgid "Yes"
 msgstr "はい"
 
@@ -7306,104 +7311,104 @@ msgstr "はい"
 msgid "No, take me back!"
 msgstr "いいえ、止めます!"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11209
-#: src/ui/gtk/gtk2/interface-glade.c:9707
+#: src/ui/gtk/gtk1/interface-glade.c:11210
+#: src/ui/gtk/gtk2/interface-glade.c:9933
 msgid "Preferences"
 msgstr "環境設定"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11252
-#: src/ui/gtk/gtk2/interface-glade.c:10003
+#: src/ui/gtk/gtk1/interface-glade.c:11253
+#: src/ui/gtk/gtk2/interface-glade.c:10229
 msgid "IP settings"
 msgstr "IP 設定"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11277
-#: src/ui/gtk/gtk2/interface-glade.c:9898
+#: src/ui/gtk/gtk1/interface-glade.c:11278
+#: src/ui/gtk/gtk2/interface-glade.c:10124
 msgid "Current IP settings (Address:Port):"
 msgstr "現在の IP 設定 (アドレス:ポート):"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11294
-#: src/ui/gtk/gtk2/interface-glade.c:9904
+#: src/ui/gtk/gtk1/interface-glade.c:11295
+#: src/ui/gtk/gtk2/interface-glade.c:10130
 msgid "not yet determined"
 msgstr "まだ確定していません"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11323
-#: src/ui/gtk/gtk2/interface-glade.c:9965
+#: src/ui/gtk/gtk1/interface-glade.c:11324
+#: src/ui/gtk/gtk2/interface-glade.c:10191
 msgid "Force local _IP to"
 msgstr "強制ローカル IP(_I)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11337
-#: src/ui/gtk/gtk2/interface-glade.c:9986
+#: src/ui/gtk/gtk1/interface-glade.c:11338
+#: src/ui/gtk/gtk2/interface-glade.c:10212
 msgid "_Listen port"
 msgstr "待受ポート(_L)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11348
-#: src/ui/gtk/gtk2/interface-glade.c:9924
+#: src/ui/gtk/gtk1/interface-glade.c:11349
+#: src/ui/gtk/gtk2/interface-glade.c:10150
 msgid "Disable: 0, Random: 1"
 msgstr "無効: 0, ランダム: 1"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11360
-#: src/ui/gtk/gtk2/interface-glade.c:9972
+#: src/ui/gtk/gtk1/interface-glade.c:11361
+#: src/ui/gtk/gtk2/interface-glade.c:10198
 msgid "Public _hostname"
 msgstr "公式ホスト名(_H)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11407
-#: src/ui/gtk/gtk2/interface-glade.c:9996
+#: src/ui/gtk/gtk1/interface-glade.c:11408
+#: src/ui/gtk/gtk2/interface-glade.c:10222
 msgid "Enable _UDP"
 msgstr "UDP を有効にする(_U)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11419
-#: src/ui/gtk/gtk2/interface-glade.c:10125
+#: src/ui/gtk/gtk1/interface-glade.c:11420
+#: src/ui/gtk/gtk2/interface-glade.c:10351
 msgid "Proxy settings"
 msgstr "代理サーバー設定"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11448
-#: src/ui/gtk/gtk2/interface-glade.c:10035
+#: src/ui/gtk/gtk1/interface-glade.c:11449
+#: src/ui/gtk/gtk2/interface-glade.c:10261
 msgid "H_ost:"
 msgstr "ホスト(_O):"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11461
-#: src/ui/gtk/gtk2/interface-glade.c:10043
+#: src/ui/gtk/gtk1/interface-glade.c:11462
+#: src/ui/gtk/gtk2/interface-glade.c:10269
 msgid "TCP _Port:"
 msgstr "TCP ポート(_P):"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11473
-#: src/ui/gtk/gtk2/interface-glade.c:10027
+#: src/ui/gtk/gtk1/interface-glade.c:11474
+#: src/ui/gtk/gtk2/interface-glade.c:10253
 msgid "Proxy _type:"
 msgstr "代理サーバーの種類(_T):"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11536
-#: src/ui/gtk/gtk2/interface-glade.c:10092
+#: src/ui/gtk/gtk1/interface-glade.c:11537
+#: src/ui/gtk/gtk2/interface-glade.c:10318
 msgid "Use username and password to _authenticate to proxy"
 msgstr "代理サーバー認証でユーザ名とパスワードを使用する(_A)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11550
-#: src/ui/gtk/gtk2/interface-glade.c:10102
+#: src/ui/gtk/gtk1/interface-glade.c:11551
+#: src/ui/gtk/gtk2/interface-glade.c:10328
 msgid "_Username"
 msgstr "ユーザ名(_U)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11563
-#: src/ui/gtk/gtk2/interface-glade.c:10114
+#: src/ui/gtk/gtk1/interface-glade.c:11564
+#: src/ui/gtk/gtk2/interface-glade.c:10340
 msgid "Pass_word"
 msgstr "パスワード(_W)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11596
-#: src/ui/gtk/gtk1/interface-glade.c:11653
-#: src/ui/gtk/gtk2/interface-glade.c:10176
+#: src/ui/gtk/gtk1/interface-glade.c:11597
+#: src/ui/gtk/gtk1/interface-glade.c:11654
+#: src/ui/gtk/gtk2/interface-glade.c:10402
 msgid "Local networks"
 msgstr "ローカルネット"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11623
-#: src/ui/gtk/gtk2/interface-glade.c:10147
+#: src/ui/gtk/gtk1/interface-glade.c:11624
+#: src/ui/gtk/gtk2/interface-glade.c:10373
 msgid "_Try to connect to local networks first"
 msgstr "最初にローカルネットへ接続する(_T)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11635
-#: src/ui/gtk/gtk2/interface-glade.c:10153
+#: src/ui/gtk/gtk1/interface-glade.c:11636
+#: src/ui/gtk/gtk2/interface-glade.c:10379
 msgid "Allow connections from and to _LAN addresses"
 msgstr "LAN アドレスから(へ)の接続を許可する(_L)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11668
-#: src/ui/gtk/gtk2/interface-glade.c:10174
+#: src/ui/gtk/gtk1/interface-glade.c:11669
+#: src/ui/gtk/gtk2/interface-glade.c:10400
 msgid ""
 "Enter a semicolon separated list of networks that are local to you in the "
 "form of ip/bits or ip/netmask (eg 192.168.1.0/24 or "
@@ -7413,239 +7418,239 @@ msgstr ""
 "切り、並べて入力して下さい。(例 192.168.1.0/24 または "
 "192.168.1.0/255.255.255.0)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11670
-#: src/ui/gtk/gtk2/interface-glade.c:10281
+#: src/ui/gtk/gtk1/interface-glade.c:11671
+#: src/ui/gtk/gtk2/interface-glade.c:10507
 msgid "Banning"
 msgstr "禁止処理"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11691
-#: src/ui/gtk/gtk2/interface-glade.c:10195
+#: src/ui/gtk/gtk1/interface-glade.c:11692
+#: src/ui/gtk/gtk2/interface-glade.c:10421
 msgid "Max. file _descriptors reserved"
 msgstr "予約するファイル記述子の最高数(_D)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11704
-#: src/ui/gtk/gtk2/interface-glade.c:10203
+#: src/ui/gtk/gtk1/interface-glade.c:11705
+#: src/ui/gtk/gtk2/interface-glade.c:10429
 msgid "Max. _percentage of file descriptors"
 msgstr "ファイル記述子の最大割合(_P)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11742
-#: src/ui/gtk/gtk2/interface-glade.c:10211
+#: src/ui/gtk/gtk1/interface-glade.c:11743
+#: src/ui/gtk/gtk2/interface-glade.c:10437
 msgid "Hard limit of _file descriptors used"
 msgstr "使用するファイル記述子の固定数(_F)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11763
-#: src/ui/gtk/gtk2/interface-glade.c:10269
+#: src/ui/gtk/gtk1/interface-glade.c:11764
+#: src/ui/gtk/gtk2/interface-glade.c:10495
 msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
 msgstr "使用されるファイル記述子の実際の数 -- 実行時には変更できません"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11766
-#: src/ui/gtk/gtk2/interface-glade.c:10235
+#: src/ui/gtk/gtk1/interface-glade.c:11767
+#: src/ui/gtk/gtk2/interface-glade.c:10461
 msgid "Currently used"
 msgstr "現在の使用数"
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
-#: src/ui/gtk/gtk1/interface-glade.c:11788
-#: src/ui/gtk/gtk1/interface-glade.c:11862
-#: src/ui/gtk/gtk1/interface-glade.c:12265
-#: src/ui/gtk/gtk1/interface-glade.c:12285
-#: src/ui/gtk/gtk1/interface-glade.c:12413
-#: src/ui/gtk/gtk1/interface-glade.c:12434
-#: src/ui/gtk/gtk1/interface-glade.c:12455
-#: src/ui/gtk/gtk1/interface-glade.c:12476
-#: src/ui/gtk/gtk1/interface-glade.c:12497
-#: src/ui/gtk/gtk1/interface-glade.c:12518
-#: src/ui/gtk/gtk1/interface-glade.c:12539
-#: src/ui/gtk/gtk1/interface-glade.c:12571
-#: src/ui/gtk/gtk1/interface-glade.c:13760
-#: src/ui/gtk/gtk1/interface-glade.c:13780
-#: src/ui/gtk/gtk1/interface-glade.c:13800
-#: src/ui/gtk/gtk1/interface-glade.c:15581
-#: src/ui/gtk/gtk1/interface-glade.c:15602
-#: src/ui/gtk/gtk1/interface-glade.c:15709
-#: src/ui/gtk/gtk1/interface-glade.c:15730
-#: src/ui/gtk/gtk1/interface-glade.c:15751
-#: src/ui/gtk/gtk1/interface-glade.c:15772
-#: src/ui/gtk/gtk1/interface-glade.c:15793
-#: src/ui/gtk/gtk1/interface-glade.c:15814
-#: src/ui/gtk/gtk1/interface-glade.c:15968
-#: src/ui/gtk/gtk1/interface-glade.c:15989
-#: src/ui/gtk/gtk1/interface-glade.c:16010
-#: src/ui/gtk/gtk1/interface-glade.c:16031
-#: src/ui/gtk/gtk1/interface-glade.c:16052
-#: src/ui/gtk/gtk1/interface-glade.c:16073
-#: src/ui/gtk/gtk1/interface-glade.c:16157
-#: src/ui/gtk/gtk1/interface-glade.c:16178
-#: src/ui/gtk/gtk1/interface-glade.c:16199
+#: src/ui/gtk/gtk1/interface-glade.c:11789
+#: src/ui/gtk/gtk1/interface-glade.c:11863
+#: src/ui/gtk/gtk1/interface-glade.c:12266
+#: src/ui/gtk/gtk1/interface-glade.c:12286
+#: src/ui/gtk/gtk1/interface-glade.c:12414
+#: src/ui/gtk/gtk1/interface-glade.c:12435
+#: src/ui/gtk/gtk1/interface-glade.c:12456
+#: src/ui/gtk/gtk1/interface-glade.c:12477
+#: src/ui/gtk/gtk1/interface-glade.c:12498
+#: src/ui/gtk/gtk1/interface-glade.c:12519
+#: src/ui/gtk/gtk1/interface-glade.c:12540
+#: src/ui/gtk/gtk1/interface-glade.c:12572
+#: src/ui/gtk/gtk1/interface-glade.c:13761
+#: src/ui/gtk/gtk1/interface-glade.c:13781
+#: src/ui/gtk/gtk1/interface-glade.c:13801
+#: src/ui/gtk/gtk1/interface-glade.c:15604
+#: src/ui/gtk/gtk1/interface-glade.c:15625
+#: src/ui/gtk/gtk1/interface-glade.c:15732
+#: src/ui/gtk/gtk1/interface-glade.c:15753
+#: src/ui/gtk/gtk1/interface-glade.c:15774
+#: src/ui/gtk/gtk1/interface-glade.c:15795
+#: src/ui/gtk/gtk1/interface-glade.c:15816
+#: src/ui/gtk/gtk1/interface-glade.c:15837
+#: src/ui/gtk/gtk1/interface-glade.c:15991
+#: src/ui/gtk/gtk1/interface-glade.c:16012
+#: src/ui/gtk/gtk1/interface-glade.c:16033
+#: src/ui/gtk/gtk1/interface-glade.c:16054
+#: src/ui/gtk/gtk1/interface-glade.c:16075
+#: src/ui/gtk/gtk1/interface-glade.c:16096
+#: src/ui/gtk/gtk1/interface-glade.c:16180
+#: src/ui/gtk/gtk1/interface-glade.c:16201
+#: src/ui/gtk/gtk1/interface-glade.c:16222
 msgid "[place holder]"
 msgstr "[place holder]"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11797
-#: src/ui/gtk/gtk2/interface-glade.c:10274
+#: src/ui/gtk/gtk1/interface-glade.c:11798
+#: src/ui/gtk/gtk2/interface-glade.c:10500
 msgid "Use global hostiles.txt"
 msgstr "システム用の hostiles.txt を使用する"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11807
-#: src/ui/gtk/gtk2/interface-glade.c:10339
+#: src/ui/gtk/gtk1/interface-glade.c:11808
+#: src/ui/gtk/gtk2/interface-glade.c:10565
 msgid "Clock synchronisation"
 msgstr "時計の同期化"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11828
-#: src/ui/gtk/gtk2/interface-glade.c:10317
+#: src/ui/gtk/gtk1/interface-glade.c:11829
+#: src/ui/gtk/gtk2/interface-glade.c:10543
 msgid "Host runs _NTP"
 msgstr "ホストが NTP を実行(_N)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11840
-#: src/ui/gtk/gtk2/interface-glade.c:10309
+#: src/ui/gtk/gtk1/interface-glade.c:11841
+#: src/ui/gtk/gtk2/interface-glade.c:10535
 msgid "Clock skew:"
 msgstr "時計の誤差:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11871
-#: src/ui/gtk/gtk1/interface-glade.c:14361
-#: src/ui/gtk/gtk1/interface-glade.c:16243
-#: src/ui/gtk/gtk2/interface-glade.c:10367
-#: src/ui/gtk/gtk2/interface-glade.c:13130
-#: src/ui/gtk/gtk2/interface-glade.c:15164
+#: src/ui/gtk/gtk1/interface-glade.c:11872
+#: src/ui/gtk/gtk1/interface-glade.c:14362
+#: src/ui/gtk/gtk1/interface-glade.c:16266
+#: src/ui/gtk/gtk2/interface-glade.c:10593
+#: src/ui/gtk/gtk2/interface-glade.c:13356
+#: src/ui/gtk/gtk2/interface-glade.c:15411
 msgid "Miscellaneous"
 msgstr "その他"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11890
-#: src/ui/gtk/gtk2/interface-glade.c:10357
+#: src/ui/gtk/gtk1/interface-glade.c:11891
+#: src/ui/gtk/gtk2/interface-glade.c:10583
 msgid "Enable \"_shell\" control interface"
 msgstr "\"シェル\" 管理インターフェイスを有効にする(_S)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11902
-#: src/ui/gtk/gtk2/interface-glade.c:10362
+#: src/ui/gtk/gtk1/interface-glade.c:11903
+#: src/ui/gtk/gtk2/interface-glade.c:10588
 msgid "Enable \"_Browse Host\" feature"
 msgstr "\"ホスト閲覧\" 機能を有効にする(_B)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11912
-#: src/ui/gtk/gtk2/interface-glade.c:10436
+#: src/ui/gtk/gtk1/interface-glade.c:11913
+#: src/ui/gtk/gtk2/interface-glade.c:10662
 msgid "Socket receive buffer size"
 msgstr "ソケット受信バッファサイズ"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11933
-#: src/ui/gtk/gtk2/interface-glade.c:10428
+#: src/ui/gtk/gtk1/interface-glade.c:11934
+#: src/ui/gtk/gtk2/interface-glade.c:10654
 msgid "_Gnutella RX buffer:"
 msgstr "Gnutella 受信バッファ(_G):"
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
-#: src/ui/gtk/gtk1/interface-glade.c:11944
-#: src/ui/gtk/gtk1/interface-glade.c:11955
+#: src/ui/gtk/gtk1/interface-glade.c:11945
+#: src/ui/gtk/gtk1/interface-glade.c:11956
 msgid "KiB"
 msgstr "KiB"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11968
-#: src/ui/gtk/gtk2/interface-glade.c:10420
+#: src/ui/gtk/gtk1/interface-glade.c:11969
+#: src/ui/gtk/gtk2/interface-glade.c:10646
 msgid "_Download RX buffer:"
 msgstr "ダウンロード受信バッファ(_D):"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12003
-#: src/ui/gtk/gtk2/interface-glade.c:9860
+#: src/ui/gtk/gtk1/interface-glade.c:12004
+#: src/ui/gtk/gtk2/interface-glade.c:10086
 msgid "Network"
 msgstr "ネットワーク"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12037
-#: src/ui/gtk/gtk2/interface-glade.c:11210
+#: src/ui/gtk/gtk1/interface-glade.c:12038
+#: src/ui/gtk/gtk2/interface-glade.c:11436
 msgid "Gnutella network mode"
 msgstr "Gnutella ネットワークモード"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12070
-#: src/ui/gtk/gtk2/interface-glade.c:10890
+#: src/ui/gtk/gtk1/interface-glade.c:12071
+#: src/ui/gtk/gtk2/interface-glade.c:11116
 msgid "Configured peermode"
 msgstr "設定するピアモード"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12083
-#: src/ui/gtk/gtk2/interface-glade.c:10874
+#: src/ui/gtk/gtk1/interface-glade.c:12084
+#: src/ui/gtk/gtk2/interface-glade.c:11100
 msgid "Monitor bad node IP addresses"
 msgstr "不正ノードの IP アドレスを監視"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12093
-#: src/ui/gtk/gtk2/interface-glade.c:10882
+#: src/ui/gtk/gtk1/interface-glade.c:12094
+#: src/ui/gtk/gtk2/interface-glade.c:11108
 msgid "Monitor and auto-ban unstable servent types"
 msgstr "不安定なサーバントの種類の監視と自動禁止"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12131
-#: src/ui/gtk/gtk2/interface-glade.c:10869
+#: src/ui/gtk/gtk1/interface-glade.c:12132
+#: src/ui/gtk/gtk2/interface-glade.c:11095
 msgid "Ultrapeer mode settings"
 msgstr "ウルトラピアモードの設定"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12151
-#: src/ui/gtk/gtk2/interface-glade.c:10861
+#: src/ui/gtk/gtk1/interface-glade.c:12152
+#: src/ui/gtk/gtk2/interface-glade.c:11087
 msgid "Legacy connections"
 msgstr "レガシー接続"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12161
-#: src/ui/gtk/gtk2/interface-glade.c:10845
+#: src/ui/gtk/gtk1/interface-glade.c:12162
+#: src/ui/gtk/gtk2/interface-glade.c:11071
 msgid "Maximum # of leaves"
 msgstr "最大リーフ数"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12202
-#: src/ui/gtk/gtk2/interface-glade.c:11204
+#: src/ui/gtk/gtk1/interface-glade.c:12203
+#: src/ui/gtk/gtk2/interface-glade.c:11430
 msgid "Ultrapeer promotion statistics"
 msgstr "ウルトラピアになるための各統計"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12230
-#: src/ui/gtk/gtk2/interface-glade.c:10941
+#: src/ui/gtk/gtk1/interface-glade.c:12231
+#: src/ui/gtk/gtk2/interface-glade.c:11167
 msgid "Last check"
 msgstr "最新の確認時間"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12242
-#: src/ui/gtk/gtk2/interface-glade.c:10950
+#: src/ui/gtk/gtk1/interface-glade.c:12243
+#: src/ui/gtk/gtk2/interface-glade.c:11176
 msgid "Last switch"
 msgstr "最新の切替時間"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12311
-#: src/ui/gtk/gtk2/interface-glade.c:11007
+#: src/ui/gtk/gtk1/interface-glade.c:12312
+#: src/ui/gtk/gtk2/interface-glade.c:11233
 msgid "Large enough uptime"
 msgstr "十分な長期稼動時間"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12333
-#: src/ui/gtk/gtk2/interface-glade.c:11041
+#: src/ui/gtk/gtk1/interface-glade.c:12334
+#: src/ui/gtk/gtk2/interface-glade.c:11267
 msgid "Not firewalled"
 msgstr "ファイアウォール内にはない"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12344
-#: src/ui/gtk/gtk2/interface-glade.c:11016
+#: src/ui/gtk/gtk1/interface-glade.c:12345
+#: src/ui/gtk/gtk2/interface-glade.c:11242
 msgid "Enough file descriptors"
 msgstr "十分なファイル記述子数"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12356
-#: src/ui/gtk/gtk2/interface-glade.c:11050
+#: src/ui/gtk/gtk1/interface-glade.c:12357
+#: src/ui/gtk/gtk2/interface-glade.c:11276
 msgid "Enough physical memory"
 msgstr "十分な物理メモリ量"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12367
-#: src/ui/gtk/gtk2/interface-glade.c:11025
+#: src/ui/gtk/gtk1/interface-glade.c:12368
+#: src/ui/gtk/gtk2/interface-glade.c:11251
 msgid "Enough available bandwidth"
 msgstr "十分な使用可能帯域幅"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12379
-#: src/ui/gtk/gtk2/interface-glade.c:11059
+#: src/ui/gtk/gtk1/interface-glade.c:12380
+#: src/ui/gtk/gtk2/interface-glade.c:11285
 msgid "IP address stability"
 msgstr "IP アドレスの安定性"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12390
-#: src/ui/gtk/gtk2/interface-glade.c:10998
+#: src/ui/gtk/gtk1/interface-glade.c:12391
+#: src/ui/gtk/gtk2/interface-glade.c:11224
 msgid "Sufficient average uptime"
 msgstr "十分な平均稼動時間"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12549
-#: src/ui/gtk/gtk2/interface-glade.c:11195
+#: src/ui/gtk/gtk1/interface-glade.c:12550
+#: src/ui/gtk/gtk2/interface-glade.c:11421
 msgid "Enough min # of connections"
 msgstr "十分な最低接続数"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12581
-#: src/ui/gtk/gtk2/interface-glade.c:11294
+#: src/ui/gtk/gtk1/interface-glade.c:12582
+#: src/ui/gtk/gtk2/interface-glade.c:11520
 msgid "Searches"
 msgstr "検索"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12618
-#: src/ui/gtk/gtk2/interface-glade.c:11267
+#: src/ui/gtk/gtk1/interface-glade.c:12619
+#: src/ui/gtk/gtk2/interface-glade.c:11493
 msgid "Limit search _results to "
 msgstr "検索結果の上限(_R) "
 
-#: src/ui/gtk/gtk1/interface-glade.c:12640
-#: src/ui/gtk/gtk2/interface-glade.c:11246
+#: src/ui/gtk/gtk1/interface-glade.c:12641
+#: src/ui/gtk/gtk2/interface-glade.c:11472
 msgid ""
 "This limits how many results gnutella returns to other people searching your "
 "files."
@@ -7653,226 +7658,226 @@ msgstr ""
 "この数は他の人があなたのファイルを検索した際に、どれだけの結果を返すかを表し"
 "ます。"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12643
-#: src/ui/gtk/gtk2/interface-glade.c:11258
+#: src/ui/gtk/gtk1/interface-glade.c:12644
+#: src/ui/gtk/gtk2/interface-glade.c:11484
 msgid "items"
 msgstr "個のアイテム"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12656
-#: src/ui/gtk/gtk2/interface-glade.c:11277
+#: src/ui/gtk/gtk1/interface-glade.c:12657
+#: src/ui/gtk/gtk2/interface-glade.c:11503
 msgid "Default search _reissue timeout"
 msgstr "標準の再検索タイムアウト(_R)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12679
-#: src/ui/gtk/gtk1/interface-glade.c:16312
-#: src/ui/gtk/gtk1/interface-glade.c:16345
-#: src/ui/gtk/gtk2/interface-glade.c:15110
-#: src/ui/gtk/gtk2/interface-glade.c:15142
+#: src/ui/gtk/gtk1/interface-glade.c:12680
+#: src/ui/gtk/gtk1/interface-glade.c:16335
+#: src/ui/gtk/gtk1/interface-glade.c:16368
+#: src/ui/gtk/gtk2/interface-glade.c:15357
+#: src/ui/gtk/gtk2/interface-glade.c:15389
 msgid "seconds"
 msgstr "秒"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12690
-#: src/ui/gtk/gtk2/interface-glade.c:11332
+#: src/ui/gtk/gtk1/interface-glade.c:12691
+#: src/ui/gtk/gtk2/interface-glade.c:11558
 msgid "Out of Band Querying"
 msgstr "帯域外 (Out-Of-Band) 問合わせ"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12707
-#: src/ui/gtk/gtk2/interface-glade.c:11310
+#: src/ui/gtk/gtk1/interface-glade.c:12708
+#: src/ui/gtk/gtk2/interface-glade.c:11536
 msgid "Queries ask for OOB results"
 msgstr "帯域外結果を要求する検索式"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12715
-#: src/ui/gtk/gtk2/interface-glade.c:11317
+#: src/ui/gtk/gtk1/interface-glade.c:12716
+#: src/ui/gtk/gtk2/interface-glade.c:11543
 msgid "Honour OOB flag in queries"
 msgstr "検索式では帯域外フラッグを遵守する"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12723
-#: src/ui/gtk/gtk2/interface-glade.c:11325
+#: src/ui/gtk/gtk1/interface-glade.c:12724
+#: src/ui/gtk/gtk2/interface-glade.c:11551
 msgid "Act as OOB proxy for leaves"
 msgstr "リーフには帯域外プロキシとして振舞う"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12739
-#: src/ui/gtk/gtk2/interface-glade.c:11383
+#: src/ui/gtk/gtk1/interface-glade.c:12740
+#: src/ui/gtk/gtk2/interface-glade.c:11609
 msgid "Search queue"
 msgstr "検索キュー"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12770
-#: src/ui/gtk/gtk2/interface-glade.c:11358
+#: src/ui/gtk/gtk1/interface-glade.c:12771
+#: src/ui/gtk/gtk2/interface-glade.c:11584
 msgid "Spacing"
 msgstr "間隔"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12805
-#: src/ui/gtk/gtk2/interface-glade.c:11475
+#: src/ui/gtk/gtk1/interface-glade.c:12806
+#: src/ui/gtk/gtk2/interface-glade.c:11701
 msgid "GnutellaNet timeouts (all values in seconds)"
 msgstr "GnutellaNet タイムアウト (値は全て秒単位)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12826
-#: src/ui/gtk/gtk1/interface-glade.c:14639
-#: src/ui/gtk/gtk1/interface-glade.c:15314
-#: src/ui/gtk/gtk2/interface-glade.c:11402
-#: src/ui/gtk/gtk2/interface-glade.c:13406
-#: src/ui/gtk/gtk2/interface-glade.c:14155
+#: src/ui/gtk/gtk1/interface-glade.c:12827
+#: src/ui/gtk/gtk1/interface-glade.c:14640
+#: src/ui/gtk/gtk1/interface-glade.c:15315
+#: src/ui/gtk/gtk2/interface-glade.c:11628
+#: src/ui/gtk/gtk2/interface-glade.c:13632
+#: src/ui/gtk/gtk2/interface-glade.c:14400
 msgid "Connectin_g timeout"
 msgstr "外部接続のタイムアウト(_G)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12839
-#: src/ui/gtk/gtk1/interface-glade.c:14665
-#: src/ui/gtk/gtk1/interface-glade.c:15327
-#: src/ui/gtk/gtk2/interface-glade.c:11422
-#: src/ui/gtk/gtk2/interface-glade.c:13424
-#: src/ui/gtk/gtk2/interface-glade.c:14165
+#: src/ui/gtk/gtk1/interface-glade.c:12840
+#: src/ui/gtk/gtk1/interface-glade.c:14666
+#: src/ui/gtk/gtk1/interface-glade.c:15328
+#: src/ui/gtk/gtk2/interface-glade.c:11648
+#: src/ui/gtk/gtk2/interface-glade.c:13650
+#: src/ui/gtk/gtk2/interface-glade.c:14410
 msgid "Connected time_out"
 msgstr "内部接続のタイムアウト(_O)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12852
-#: src/ui/gtk/gtk2/interface-glade.c:11412
+#: src/ui/gtk/gtk1/interface-glade.c:12853
+#: src/ui/gtk/gtk2/interface-glade.c:11638
 msgid "T_X flow control timeout"
 msgstr "送信フロー制御のタイムアウト(_X)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12902
-#: src/ui/gtk/gtk2/interface-glade.c:11431
+#: src/ui/gtk/gtk1/interface-glade.c:12903
+#: src/ui/gtk/gtk2/interface-glade.c:11657
 msgid "Incoming connecting timeout"
 msgstr "ノード内への接続タイムアウト"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12932
-#: src/ui/gtk/gtk2/interface-glade.c:11600
+#: src/ui/gtk/gtk1/interface-glade.c:12933
+#: src/ui/gtk/gtk2/interface-glade.c:11826
 msgid "GnutellaNet TTL settings"
 msgstr "GnutellaNet TTL 設定"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12953
-#: src/ui/gtk/gtk2/interface-glade.c:11517
+#: src/ui/gtk/gtk1/interface-glade.c:12954
+#: src/ui/gtk/gtk2/interface-glade.c:11743
 msgid "Max _TTL"
 msgstr "最大 TTL(_T)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12966
-#: src/ui/gtk/gtk2/interface-glade.c:11526
+#: src/ui/gtk/gtk1/interface-glade.c:12967
+#: src/ui/gtk/gtk2/interface-glade.c:11752
 msgid "M_y TTL"
 msgstr "今の TTL(_Y)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12979
-#: src/ui/gtk/gtk2/interface-glade.c:11579
+#: src/ui/gtk/gtk1/interface-glade.c:12980
+#: src/ui/gtk/gtk2/interface-glade.c:11805
 msgid "from _nodes within a"
 msgstr "ノード(_N)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12992
-#: src/ui/gtk/gtk2/interface-glade.c:11564
+#: src/ui/gtk/gtk1/interface-glade.c:12993
+#: src/ui/gtk/gtk2/interface-glade.c:11790
 msgid "Max # of _high TTL msg"
 msgstr "高 TTL メッセージの最大数(_H)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13005
-#: src/ui/gtk/gtk2/interface-glade.c:11535
+#: src/ui/gtk/gtk1/interface-glade.c:13006
+#: src/ui/gtk/gtk2/interface-glade.c:11761
 msgid "H_ard TTL limit"
 msgstr "TTL の固定上限(_A)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13039
-#: src/ui/gtk/gtk2/interface-glade.c:11576
+#: src/ui/gtk/gtk1/interface-glade.c:13040
+#: src/ui/gtk/gtk2/interface-glade.c:11802
 msgid "Amount of tolerable messages above hard TTL limit per node"
 msgstr "許容可能なノード毎の固定 TTL 上限以上のメッセージ量"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13052
-#: src/ui/gtk/gtk2/interface-glade.c:11551
+#: src/ui/gtk/gtk1/interface-glade.c:13053
+#: src/ui/gtk/gtk2/interface-glade.c:11777
 msgid "Max hard TTL limit (hop+ttl) on message"
 msgstr "メッセージの最大固定 TTL 上限 (ホップ数+TTL)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13078
-#: src/ui/gtk/gtk2/interface-glade.c:11591
+#: src/ui/gtk/gtk1/interface-glade.c:13079
+#: src/ui/gtk/gtk2/interface-glade.c:11817
 msgid "Hop radius for counting high TTL limit messages (#hops lower than...)"
 msgstr "高 TTL 制限メッセージを数えるホップの半径です (次より低いホップ数...)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13081
-#: src/ui/gtk/gtk2/interface-glade.c:11594
+#: src/ui/gtk/gtk1/interface-glade.c:13082
+#: src/ui/gtk/gtk2/interface-glade.c:11820
 msgid "hops radius"
 msgstr "ホップ半径以内のものから"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13091
-#: src/ui/gtk/gtk2/interface-glade.c:11737
+#: src/ui/gtk/gtk1/interface-glade.c:13092
+#: src/ui/gtk/gtk2/interface-glade.c:11963
 msgid "Quality management"
 msgstr "品質管理"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13112
-#: src/ui/gtk/gtk2/interface-glade.c:11645
+#: src/ui/gtk/gtk1/interface-glade.c:13113
+#: src/ui/gtk/gtk2/interface-glade.c:11871
 msgid "Ratio of tolerable duplicate messages per _node"
 msgstr "ノードにつき受容可能な重複メッセージ比率(_N)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13125
-#: src/ui/gtk/gtk2/interface-glade.c:11654
+#: src/ui/gtk/gtk1/interface-glade.c:13126
+#: src/ui/gtk/gtk2/interface-glade.c:11880
 msgid "Number of tolerable _duplicate messages per node"
 msgstr "ノードにつき受容可能な重複メッセージ数(_D)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13160
-#: src/ui/gtk/gtk2/interface-glade.c:11680
+#: src/ui/gtk/gtk1/interface-glade.c:13161
+#: src/ui/gtk/gtk2/interface-glade.c:11906
 msgid "RX flow control ratio"
 msgstr "受信フロー制御比"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13184
-#: src/ui/gtk/gtk2/interface-glade.c:6046
+#: src/ui/gtk/gtk1/interface-glade.c:13185
+#: src/ui/gtk/gtk2/interface-glade.c:6255
 msgid "_Messages"
 msgstr "メッセージ(_M)"
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
-#: src/ui/gtk/gtk1/interface-glade.c:13195
-#: src/ui/gtk/gtk1/interface-glade.c:13206
-#: src/ui/gtk/gtk1/interface-glade.c:13301
-#: src/ui/gtk/gtk1/interface-glade.c:13312
-#: src/ui/gtk/gtk1/interface-glade.c:14129
-#: src/ui/gtk/gtk1/interface-glade.c:15925
-#: src/ui/gtk/gtk1/interface-glade.c:15936
-#: src/ui/gtk/gtk1/interface-glade.c:16135
+#: src/ui/gtk/gtk1/interface-glade.c:13196
+#: src/ui/gtk/gtk1/interface-glade.c:13207
+#: src/ui/gtk/gtk1/interface-glade.c:13302
+#: src/ui/gtk/gtk1/interface-glade.c:13313
+#: src/ui/gtk/gtk1/interface-glade.c:14130
+#: src/ui/gtk/gtk1/interface-glade.c:15948
+#: src/ui/gtk/gtk1/interface-glade.c:15959
+#: src/ui/gtk/gtk1/interface-glade.c:16158
 msgid "%"
 msgstr "%"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13227
-#: src/ui/gtk/gtk2/interface-glade.c:11730
+#: src/ui/gtk/gtk1/interface-glade.c:13228
+#: src/ui/gtk/gtk2/interface-glade.c:11956
 msgid "Watch for similar queries"
 msgstr "同類の検索式を見張る"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13237
-#: src/ui/gtk/gtk2/interface-glade.c:11696
+#: src/ui/gtk/gtk1/interface-glade.c:13238
+#: src/ui/gtk/gtk2/interface-glade.c:11922
 msgid "Similar query half-life"
 msgstr "類似検索式の半減期"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13259
-#: src/ui/gtk/gtk2/interface-glade.c:11713
+#: src/ui/gtk/gtk1/interface-glade.c:13260
+#: src/ui/gtk/gtk2/interface-glade.c:11939
 msgid "Leaf requery threshold"
 msgstr "リーフ再問合わせの閾値"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13282
-#: src/ui/gtk/gtk2/interface-glade.c:11813
+#: src/ui/gtk/gtk1/interface-glade.c:13283
+#: src/ui/gtk/gtk2/interface-glade.c:12039
 msgid "Connection settings"
 msgstr "接続設定"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13345
-#: src/ui/gtk/gtk2/interface-glade.c:11761
+#: src/ui/gtk/gtk1/interface-glade.c:13346
+#: src/ui/gtk/gtk2/interface-glade.c:11987
 msgid "Connections reserved for gtk-gnutella nodes"
 msgstr "gtk-gnutella ノードに予約される接続数"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13356
-#: src/ui/gtk/gtk2/interface-glade.c:11786
+#: src/ui/gtk/gtk1/interface-glade.c:13357
+#: src/ui/gtk/gtk2/interface-glade.c:12012
 msgid "Max connections allowed per unique vendor"
 msgstr "個別ベンダー毎に許される最大接続数"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13368
-#: src/ui/gtk/gtk2/interface-glade.c:11857
+#: src/ui/gtk/gtk1/interface-glade.c:13369
+#: src/ui/gtk/gtk2/interface-glade.c:12083
 msgid "Other"
 msgstr "その他"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13387
-#: src/ui/gtk/gtk2/interface-glade.c:11841
+#: src/ui/gtk/gtk1/interface-glade.c:13388
+#: src/ui/gtk/gtk2/interface-glade.c:12067
 msgid "Hops random factor"
 msgstr "ホップのランダム因子"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13398
-#: src/ui/gtk/gtk2/interface-glade.c:11850
+#: src/ui/gtk/gtk1/interface-glade.c:13399
+#: src/ui/gtk/gtk2/interface-glade.c:12076
 msgid "Clean up queries before processing"
 msgstr "処理前に検索式を一掃"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13420
-#: src/ui/gtk/gtk2/interface-glade.c:11975
+#: src/ui/gtk/gtk1/interface-glade.c:13421
+#: src/ui/gtk/gtk2/interface-glade.c:12201
 msgid "GnutellaNet message size limits"
 msgstr "GnutellaNet メッセージサイズ制限"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13439
-#: src/ui/gtk/gtk2/interface-glade.c:11942
+#: src/ui/gtk/gtk1/interface-glade.c:13440
+#: src/ui/gtk/gtk2/interface-glade.c:12168
 msgid ""
 "Forwarded\n"
 "message"
@@ -7880,8 +7885,8 @@ msgstr ""
 "転送される\n"
 "メッセージ"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13450
-#: src/ui/gtk/gtk2/interface-glade.c:11885
+#: src/ui/gtk/gtk1/interface-glade.c:13451
+#: src/ui/gtk/gtk2/interface-glade.c:12111
 msgid ""
 "Size threshold\n"
 "before kicking"
@@ -7889,13 +7894,13 @@ msgstr ""
 "除外する\n"
 "大きさの閾値"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13494
-#: src/ui/gtk/gtk2/interface-glade.c:11893
+#: src/ui/gtk/gtk1/interface-glade.c:13495
+#: src/ui/gtk/gtk2/interface-glade.c:12119
 msgid "(not forwarded)"
 msgstr "(転送されない)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13527
-#: src/ui/gtk/gtk2/interface-glade.c:11876
+#: src/ui/gtk/gtk1/interface-glade.c:13528
+#: src/ui/gtk/gtk2/interface-glade.c:12102
 msgid ""
 "Maximum size\n"
 "allowed"
@@ -7903,122 +7908,122 @@ msgstr ""
 "許可する\n"
 "大きさの最大値"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13571
-#: src/ui/gtk/gtk2/interface-glade.c:10782 src/ui/gtk/main.c:131
+#: src/ui/gtk/gtk1/interface-glade.c:13572
+#: src/ui/gtk/gtk2/interface-glade.c:11008 src/ui/gtk/main.c:131
 msgid "GnutellaNet"
 msgstr "GnutellaNet"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13605
-#: src/ui/gtk/gtk1/interface-glade.c:13827
-#: src/ui/gtk/gtk2/interface-glade.c:12419
-#: src/ui/gtk/gtk2/interface-glade.c:12505
+#: src/ui/gtk/gtk1/interface-glade.c:13606
+#: src/ui/gtk/gtk1/interface-glade.c:13828
+#: src/ui/gtk/gtk2/interface-glade.c:12645
+#: src/ui/gtk/gtk2/interface-glade.c:12731
 msgid "General"
 msgstr "一般"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13632
-#: src/ui/gtk/gtk2/interface-glade.c:12280
+#: src/ui/gtk/gtk1/interface-glade.c:13633
+#: src/ui/gtk/gtk2/interface-glade.c:12506
 msgid "Use _surplus bandwidth"
 msgstr "余剰帯域幅を利用する(_S)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13644
-#: src/ui/gtk/gtk2/interface-glade.c:12287
+#: src/ui/gtk/gtk1/interface-glade.c:13645
+#: src/ui/gtk/gtk2/interface-glade.c:12513
 msgid "Prefer _compressed connections"
 msgstr "圧縮転送を優先する(_C)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13656
-#: src/ui/gtk/gtk2/interface-glade.c:12294
+#: src/ui/gtk/gtk1/interface-glade.c:13657
+#: src/ui/gtk/gtk2/interface-glade.c:12520
 msgid "Use IP _Type of Service (TOS)"
 msgstr "IP Type of Service (TOS) を使用する(_T)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13666
-#: src/ui/gtk/gtk2/interface-glade.c:12414
+#: src/ui/gtk/gtk1/interface-glade.c:13667
+#: src/ui/gtk/gtk2/interface-glade.c:12640
 msgid "Available bandwidth"
 msgstr "使用可能な帯域幅"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13687
-#: src/ui/gtk/gtk2/interface-glade.c:12321
+#: src/ui/gtk/gtk1/interface-glade.c:13688
+#: src/ui/gtk/gtk2/interface-glade.c:12547
 msgid "Total input bandwidth limit:"
 msgstr "入力帯域幅の制限の合計:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13698
-#: src/ui/gtk/gtk1/interface-glade.c:13719
-#: src/ui/gtk/gtk1/interface-glade.c:13846
-#: src/ui/gtk/gtk1/interface-glade.c:13857
-#: src/ui/gtk/gtk1/interface-glade.c:13968
-#: src/ui/gtk/gtk1/interface-glade.c:13979
-#: src/ui/gtk/gtk1/interface-glade.c:14037
-#: src/ui/gtk/gtk1/interface-glade.c:14140
+#: src/ui/gtk/gtk1/interface-glade.c:13699
+#: src/ui/gtk/gtk1/interface-glade.c:13720
+#: src/ui/gtk/gtk1/interface-glade.c:13847
+#: src/ui/gtk/gtk1/interface-glade.c:13858
+#: src/ui/gtk/gtk1/interface-glade.c:13969
+#: src/ui/gtk/gtk1/interface-glade.c:13980
+#: src/ui/gtk/gtk1/interface-glade.c:14038
+#: src/ui/gtk/gtk1/interface-glade.c:14141
 msgid "KiB/s"
 msgstr "KiB/秒"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13708
-#: src/ui/gtk/gtk2/interface-glade.c:12329
+#: src/ui/gtk/gtk1/interface-glade.c:13709
+#: src/ui/gtk/gtk2/interface-glade.c:12555
 msgid "Total output bandwidth limit:"
 msgstr "出力帯域幅の制限の合計:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13729
-#: src/ui/gtk/gtk2/interface-glade.c:12337
+#: src/ui/gtk/gtk1/interface-glade.c:13730
+#: src/ui/gtk/gtk2/interface-glade.c:12563
 msgid "Measured HTTP latency:"
 msgstr "計測 HTTP 待ち時間:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13740
-#: src/ui/gtk/gtk2/interface-glade.c:12361
+#: src/ui/gtk/gtk1/interface-glade.c:13741
+#: src/ui/gtk/gtk2/interface-glade.c:12587
 msgid "secs"
 msgstr "秒"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13810
-#: src/ui/gtk/gtk2/interface-glade.c:12584
+#: src/ui/gtk/gtk1/interface-glade.c:13811
+#: src/ui/gtk/gtk2/interface-glade.c:12810
 msgid "Bandwidth limits for GnutellaNet traffic"
 msgstr "GnutellaNet トラフィックの帯域幅制限"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13896
-#: src/ui/gtk/gtk2/interface-glade.c:12498
+#: src/ui/gtk/gtk1/interface-glade.c:13897
+#: src/ui/gtk/gtk2/interface-glade.c:12724
 msgid "_Outgoing traffic"
 msgstr "ノード外へのトラフィック(_O)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13910
-#: src/ui/gtk/gtk2/interface-glade.c:12491
+#: src/ui/gtk/gtk1/interface-glade.c:13911
+#: src/ui/gtk/gtk2/interface-glade.c:12717
 msgid "_Incoming traffic"
 msgstr "ノード内へのトラフィック(_I)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13922
-#: src/ui/gtk/gtk2/interface-glade.c:12579
+#: src/ui/gtk/gtk1/interface-glade.c:13923
+#: src/ui/gtk/gtk2/interface-glade.c:12805
 msgid "Ultrapeer mode"
 msgstr "ウルトラピアモード"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13992
-#: src/ui/gtk/gtk2/interface-glade.c:12572
+#: src/ui/gtk/gtk1/interface-glade.c:13993
+#: src/ui/gtk/gtk2/interface-glade.c:12798
 msgid "Outgoing traffic to lea_ves"
 msgstr "リーフノードへのノード外トラフィック(_V)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14006
-#: src/ui/gtk/gtk2/interface-glade.c:12565
+#: src/ui/gtk/gtk1/interface-glade.c:14007
+#: src/ui/gtk/gtk2/interface-glade.c:12791
 msgid "Incoming traffic from _leaves"
 msgstr "リーフノードからノード内へのトラフィック(_L)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14018
-#: src/ui/gtk/gtk2/interface-glade.c:12727
+#: src/ui/gtk/gtk1/interface-glade.c:14019
+#: src/ui/gtk/gtk2/interface-glade.c:12953
 msgid "Bandwidth limits for HTTP traffic"
 msgstr "HTTP トラフィックの帯域幅制限"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14076
-#: src/ui/gtk/gtk2/interface-glade.c:12720
+#: src/ui/gtk/gtk1/interface-glade.c:14077
+#: src/ui/gtk/gtk2/interface-glade.c:12946
 msgid "Cumulative _download rate"
 msgstr "累積ダウンロード速度(_D)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14090
-#: src/ui/gtk/gtk2/interface-glade.c:12713
+#: src/ui/gtk/gtk1/interface-glade.c:14091
+#: src/ui/gtk/gtk2/interface-glade.c:12939
 msgid "Cumulative _upload rate"
 msgstr "累積アップロード速度(_U)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14104
-#: src/ui/gtk/gtk2/interface-glade.c:12705
+#: src/ui/gtk/gtk1/interface-glade.c:14105
+#: src/ui/gtk/gtk2/interface-glade.c:12931
 msgid "Enable dynamic upload slots _allocation"
 msgstr "アップロード受口の動的割当を有効にする(_A)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14126
-#: src/ui/gtk/gtk2/interface-glade.c:12651
-#: src/ui/gtk/gtk2/interface-glade.c:12711
+#: src/ui/gtk/gtk1/interface-glade.c:14127
+#: src/ui/gtk/gtk2/interface-glade.c:12877
+#: src/ui/gtk/gtk2/interface-glade.c:12937
 msgid ""
 "Until the configured percentage of outgoing HTTP bandwidth is in use, open "
 "additional upload slots on request."
@@ -8026,700 +8031,712 @@ msgstr ""
 "外部 HTTP 帯域幅の設定した割合が使用中になるまで、要求に応じてアップロード受"
 "口を追加します。"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14153
-#: src/ui/gtk/gtk2/interface-glade.c:12689
+#: src/ui/gtk/gtk1/interface-glade.c:14154
+#: src/ui/gtk/gtk2/interface-glade.c:12915
 msgid "Report an upload connection _speed of"
 msgstr "相手に告げるアップロード接続速度(_S)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14175
-#: src/ui/gtk/gtk2/interface-glade.c:12661
+#: src/ui/gtk/gtk1/interface-glade.c:14176
+#: src/ui/gtk/gtk2/interface-glade.c:12887
 msgid "What other people see as your connection speed."
 msgstr "他の人があなたの通信速度として見る値です。"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14178
-#: src/ui/gtk/gtk2/interface-glade.c:12673
+#: src/ui/gtk/gtk1/interface-glade.c:14179
+#: src/ui/gtk/gtk2/interface-glade.c:12899
 msgid "kbps to peers"
 msgstr "キロビット/秒でピアへ"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14201
-#: src/ui/gtk/gtk2/interface-glade.c:12698
+#: src/ui/gtk/gtk1/interface-glade.c:14202
+#: src/ui/gtk/gtk2/interface-glade.c:12924
 msgid "_Compute upload connection speed"
 msgstr "アップロード接続速度を算出する(_C)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14213
-#: src/ui/gtk/gtk2/interface-glade.c:12243
+#: src/ui/gtk/gtk1/interface-glade.c:14214
+#: src/ui/gtk/gtk2/interface-glade.c:12469
 msgid "Bandwidth"
 msgstr "帯域幅"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14247
-#: src/ui/gtk/gtk2/interface-glade.c:13000
+#: src/ui/gtk/gtk1/interface-glade.c:14248
+#: src/ui/gtk/gtk2/interface-glade.c:13226
 msgid "Keep downloading/incomplete files in"
 msgstr "ダウンロード中/未完成なファイルをここに保管"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14275
-#: src/ui/gtk/gtk1/interface-glade.c:14313
-#: src/ui/gtk/gtk1/interface-glade.c:14351
-#: src/ui/gtk/gtk2/interface-glade.c:9437
-#: src/ui/gtk/gtk2/interface-glade.c:9486
-#: src/ui/gtk/gtk2/interface-glade.c:12995
-#: src/ui/gtk/gtk2/interface-glade.c:13042
-#: src/ui/gtk/gtk2/interface-glade.c:13089
+#: src/ui/gtk/gtk1/interface-glade.c:14276
+#: src/ui/gtk/gtk1/interface-glade.c:14314
+#: src/ui/gtk/gtk1/interface-glade.c:14352
+#: src/ui/gtk/gtk2/interface-glade.c:9663
+#: src/ui/gtk/gtk2/interface-glade.c:9712
+#: src/ui/gtk/gtk2/interface-glade.c:13221
+#: src/ui/gtk/gtk2/interface-glade.c:13268
+#: src/ui/gtk/gtk2/interface-glade.c:13315
 msgid "_Browse"
 msgstr "参照(_B)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14285
-#: src/ui/gtk/gtk2/interface-glade.c:13047
+#: src/ui/gtk/gtk1/interface-glade.c:14286
+#: src/ui/gtk/gtk2/interface-glade.c:13273
 msgid "Move completely downloaded files to"
 msgstr "ダウンロードが完了したファイルをここに移動"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14323
-#: src/ui/gtk/gtk2/interface-glade.c:13094
+#: src/ui/gtk/gtk1/interface-glade.c:14324
+#: src/ui/gtk/gtk2/interface-glade.c:13320
 msgid "Move corrupted downloaded files to"
 msgstr "ダウンロードで破損したファイルをここに移動"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14377
-#: src/ui/gtk/gtk2/interface-glade.c:13109
+#: src/ui/gtk/gtk1/interface-glade.c:14378
+#: src/ui/gtk/gtk2/interface-glade.c:13335
 msgid "Convert spaces to underscores in generated filenames"
 msgstr "ファイル名では空白を下線に変換する"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14387
-#: src/ui/gtk/gtk2/interface-glade.c:13116
+#: src/ui/gtk/gtk1/interface-glade.c:14388
+#: src/ui/gtk/gtk2/interface-glade.c:13342
 msgid ""
 "Convert \"evil\" characters (like shell meta characters) to underscores in "
 "generated filenames"
 msgstr "ファイル名ではシェルのメタ文字のような \"有害な\" 文字を下線に変換する"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14397
-#: src/ui/gtk/gtk2/interface-glade.c:13123
+#: src/ui/gtk/gtk1/interface-glade.c:14398
+#: src/ui/gtk/gtk2/interface-glade.c:13349
 msgid ""
 "Apply above conversions, upon startup, to existing files in the downloading "
 "directory"
 msgstr "上記の変換を起動時にダウンロードフォルダにあるファイルに適用する"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14407
-#: src/ui/gtk/gtk2/interface-glade.c:13271
+#: src/ui/gtk/gtk1/interface-glade.c:14408
+#: src/ui/gtk/gtk2/interface-glade.c:13497
 msgid "Resume and retry"
 msgstr "再開と再試行"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14428
-#: src/ui/gtk/gtk2/interface-glade.c:13251
+#: src/ui/gtk/gtk1/interface-glade.c:14429
+#: src/ui/gtk/gtk2/interface-glade.c:13477
 msgid "_Overlap when resuming"
 msgstr "再開時のバイトの重なり(_O)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14441
-#: src/ui/gtk/gtk2/interface-glade.c:13241
+#: src/ui/gtk/gtk1/interface-glade.c:14442
+#: src/ui/gtk/gtk2/interface-glade.c:13467
 msgid "Maximum number of _retries"
 msgstr "再試行の最大回数(_R)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14463
-#: src/ui/gtk/gtk2/interface-glade.c:13268
+#: src/ui/gtk/gtk1/interface-glade.c:14464
+#: src/ui/gtk/gtk2/interface-glade.c:13494
 msgid "Maximum attempts to make, not counting HTTP busy indications"
 msgstr "実行の最大回数、HTTP 使用中と示されたものは含みません"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14477
-#: src/ui/gtk/gtk2/interface-glade.c:13238
+#: src/ui/gtk/gtk1/interface-glade.c:14478
+#: src/ui/gtk/gtk2/interface-glade.c:13464
 msgid "Amount of bytes to overlap when resuming download"
 msgstr "ダウンロード再開時に重なるバイト数"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14491
-#: src/ui/gtk/gtk2/interface-glade.c:13204
+#: src/ui/gtk/gtk1/interface-glade.c:14492
+#: src/ui/gtk/gtk2/interface-glade.c:13430
 msgid "Source quality"
 msgstr "送信源の品質"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14512
-#: src/ui/gtk/gtk2/interface-glade.c:13158
+#: src/ui/gtk/gtk1/interface-glade.c:14513
+#: src/ui/gtk/gtk2/interface-glade.c:13384
 msgid "Optimistic first _chunk"
 msgstr "最初のチャンクを大目に見る(_C)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14526
-#: src/ui/gtk/gtk2/interface-glade.c:13165
+#: src/ui/gtk/gtk1/interface-glade.c:14527
+#: src/ui/gtk/gtk2/interface-glade.c:13391
 msgid "Require _URN"
 msgstr "URN を要求する(_U)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14540
-#: src/ui/gtk/gtk2/interface-glade.c:13172
+#: src/ui/gtk/gtk1/interface-glade.c:14541
+#: src/ui/gtk/gtk2/interface-glade.c:13398
 msgid "Require _server name"
 msgstr "サーバー名を要求する(_S)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14552
-#: src/ui/gtk/gtk2/interface-glade.c:13460
+#: src/ui/gtk/gtk1/interface-glade.c:14553
+#: src/ui/gtk/gtk2/interface-glade.c:13686
 msgid "Delays and timeouts (all values in seconds)"
 msgstr "遅延とタイムアウト (値は全て秒単位)"
 
 # FIXME: ill-translation
-#: src/ui/gtk/gtk1/interface-glade.c:14571
-#: src/ui/gtk/gtk2/interface-glade.c:13433
+#: src/ui/gtk/gtk1/interface-glade.c:14572
+#: src/ui/gtk/gtk2/interface-glade.c:13659
 msgid "Retry stopped delay"
 msgstr "再試行中断の遅延秒数"
 
 # FIXME: ill-translation
-#: src/ui/gtk/gtk1/interface-glade.c:14582
-#: src/ui/gtk/gtk2/interface-glade.c:13442
+#: src/ui/gtk/gtk1/interface-glade.c:14583
+#: src/ui/gtk/gtk2/interface-glade.c:13668
 msgid "Retry refused delay"
 msgstr "再試行拒否の遅延秒数"
 
 # FIXME: ill-translation
-#: src/ui/gtk/gtk1/interface-glade.c:14593
-#: src/ui/gtk/gtk2/interface-glade.c:13451
+#: src/ui/gtk/gtk1/interface-glade.c:14594
+#: src/ui/gtk/gtk2/interface-glade.c:13677
 msgid "Retry busy delay"
 msgstr "再試行使用中の遅延秒数"
 
 # FIXME: ill-translation
-#: src/ui/gtk/gtk1/interface-glade.c:14604
-#: src/ui/gtk/gtk2/interface-glade.c:13379
+#: src/ui/gtk/gtk1/interface-glade.c:14605
+#: src/ui/gtk/gtk2/interface-glade.c:13605
 msgid "Retry timeout delay"
 msgstr "再試行タイムアウトの遅延秒数"
 
 # FIXME: ill-translation
-#: src/ui/gtk/gtk1/interface-glade.c:14615
-#: src/ui/gtk/gtk2/interface-glade.c:13388
+#: src/ui/gtk/gtk1/interface-glade.c:14616
+#: src/ui/gtk/gtk2/interface-glade.c:13614
 msgid "Retry timeout max"
 msgstr "再試行タイムアウトの最長秒数"
 
 # FIXME: ill-translation
-#: src/ui/gtk/gtk1/interface-glade.c:14626
-#: src/ui/gtk/gtk2/interface-glade.c:13397
+#: src/ui/gtk/gtk1/interface-glade.c:14627
+#: src/ui/gtk/gtk2/interface-glade.c:13623
 msgid "Retry timeout min"
 msgstr "再試行タイムアウトの最短秒数"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14652
-#: src/ui/gtk/gtk2/interface-glade.c:13415
+#: src/ui/gtk/gtk1/interface-glade.c:14653
+#: src/ui/gtk/gtk2/interface-glade.c:13641
 msgid "_Push sent timeout"
 msgstr "PUSH 送信のタイムアウト(_P)"
 
 # FIXME: ill-translation
-#: src/ui/gtk/gtk1/interface-glade.c:14686
-#: src/ui/gtk/gtk2/interface-glade.c:13296
+#: src/ui/gtk/gtk1/interface-glade.c:14687
+#: src/ui/gtk/gtk2/interface-glade.c:13522
 msgid "Delay in seconds to wait when running download stops"
 msgstr "実働中のダウンロードが中止した場合の待機遅延秒数"
 
 # FIXME: ill-translation
-#: src/ui/gtk/gtk1/interface-glade.c:14700
-#: src/ui/gtk/gtk2/interface-glade.c:13306
+#: src/ui/gtk/gtk1/interface-glade.c:14701
+#: src/ui/gtk/gtk2/interface-glade.c:13532
 msgid "Delay in seconds to wait if connection is refused"
 msgstr "接続が拒否されるかどうかを待つ遅延秒数"
 
 # FIXME: ill-translation
-#: src/ui/gtk/gtk1/interface-glade.c:14713
-#: src/ui/gtk/gtk2/interface-glade.c:13316
+#: src/ui/gtk/gtk1/interface-glade.c:14714
+#: src/ui/gtk/gtk2/interface-glade.c:13542
 msgid "Delay in seconds to wait after HTTP busy indication"
 msgstr "HTTP 使用中と示された後の遅延秒数"
 
 # FIXME: ill-translation
-#: src/ui/gtk/gtk1/interface-glade.c:14727
-#: src/ui/gtk/gtk2/interface-glade.c:13326
+#: src/ui/gtk/gtk1/interface-glade.c:14728
+#: src/ui/gtk/gtk2/interface-glade.c:13552
 msgid "Delay in seconds to wait after connection failure"
 msgstr "接続失敗後の遅延秒数"
 
 # FIXME: ill-translation
-#: src/ui/gtk/gtk1/interface-glade.c:14740
-#: src/ui/gtk/gtk2/interface-glade.c:13336
+#: src/ui/gtk/gtk1/interface-glade.c:14741
+#: src/ui/gtk/gtk2/interface-glade.c:13562
 msgid "Maximum seconds to wait on auto-retry timeouts"
 msgstr "自動再試行タイムアウトの最長待機秒数"
 
 # FIXME: ill-translation
-#: src/ui/gtk/gtk1/interface-glade.c:14753
-#: src/ui/gtk/gtk2/interface-glade.c:13346
+#: src/ui/gtk/gtk1/interface-glade.c:14754
+#: src/ui/gtk/gtk2/interface-glade.c:13572
 msgid "Minimum seconds to wait on auto-retry timeouts"
 msgstr "自動再試行タイムアウトの最短待機秒数"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14766
-#: src/ui/gtk/gtk2/interface-glade.c:13356
+#: src/ui/gtk/gtk1/interface-glade.c:14767
+#: src/ui/gtk/gtk2/interface-glade.c:13582
 msgid "Number of seconds before timeout for a connecting download"
 msgstr "接続しているダウンロードがタイムアウトになるまでの秒数"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14779
-#: src/ui/gtk/gtk2/interface-glade.c:13366
+#: src/ui/gtk/gtk1/interface-glade.c:14780
+#: src/ui/gtk/gtk2/interface-glade.c:13592
 msgid "Number of seconds before timeout for a 'push sent' download"
 msgstr "'PUSH 送信' ダウンロードがタイムアウトになるまでの秒数"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14792
-#: src/ui/gtk/gtk2/interface-glade.c:13376
+#: src/ui/gtk/gtk1/interface-glade.c:14793
+#: src/ui/gtk/gtk2/interface-glade.c:13602
 msgid "Number of seconds before timeout for a connected download"
 msgstr "接続されているダウンロードがタイムアウトになるまでの秒数"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14795
-#: src/ui/gtk/gtk2/interface-glade.c:13645
+#: src/ui/gtk/gtk1/interface-glade.c:14796
+#: src/ui/gtk/gtk2/interface-glade.c:13871
 msgid "Downloading from multiple sources (swarming)"
 msgstr "多数の送信源からのダウンロード (Swarming)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14814
-#: src/ui/gtk/gtk2/interface-glade.c:13507
+#: src/ui/gtk/gtk1/interface-glade.c:14815
+#: src/ui/gtk/gtk2/interface-glade.c:13733
 msgid "Enable s_warming"
 msgstr "有効にする(_W)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14844
-#: src/ui/gtk/gtk2/interface-glade.c:13500
+#: src/ui/gtk/gtk1/interface-glade.c:14845
+#: src/ui/gtk/gtk2/interface-glade.c:13726
 msgid "A_ggressive mode"
 msgstr "積極モード(_G)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14868
-#: src/ui/gtk/gtk2/interface-glade.c:13514
+#: src/ui/gtk/gtk1/interface-glade.c:14869
+#: src/ui/gtk/gtk2/interface-glade.c:13740
 msgid "M_inimum chunk size"
 msgstr "最小チャンクサイズ(_I)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14881
-#: src/ui/gtk/gtk2/interface-glade.c:13522
+#: src/ui/gtk/gtk1/interface-glade.c:14882
+#: src/ui/gtk/gtk2/interface-glade.c:13748
 msgid "Ma_ximum chunk size"
 msgstr "最大チャンクサイズ(_X)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14949
-#: src/ui/gtk/gtk2/interface-glade.c:13548
+#: src/ui/gtk/gtk1/interface-glade.c:14950
+#: src/ui/gtk/gtk2/interface-glade.c:13774
 msgid "Write buffer size"
 msgstr "書込バッファサイズ"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14960
-#: src/ui/gtk/gtk2/interface-glade.c:13556
+#: src/ui/gtk/gtk1/interface-glade.c:14961
+#: src/ui/gtk/gtk2/interface-glade.c:13782
 msgid "Read-ahead buffer"
 msgstr "先読込みバッファ"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15036
-#: src/ui/gtk/gtk2/interface-glade.c:13194
+#: src/ui/gtk/gtk1/interface-glade.c:15037
+#: src/ui/gtk/gtk2/interface-glade.c:13420
 msgid "Strict SHA_1 matching"
 msgstr "SHA1 に厳密に一致させる(_1)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15050
-#: src/ui/gtk/gtk2/interface-glade.c:13639
+#: src/ui/gtk/gtk1/interface-glade.c:15051
+#: src/ui/gtk/gtk2/interface-glade.c:13865
 msgid "Use fu_zzy matching"
 msgstr "曖昧一致を使用する(_Z)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15062
-#: src/ui/gtk/gtk2/interface-glade.c:13616
+#: src/ui/gtk/gtk1/interface-glade.c:15063
+#: src/ui/gtk/gtk2/interface-glade.c:13842
 msgid "Fuzzy threshold"
 msgstr "曖昧さの閾値"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15087
-#: src/ui/gtk/gtk2/interface-glade.c:13624
+#: src/ui/gtk/gtk1/interface-glade.c:15088
+#: src/ui/gtk/gtk2/interface-glade.c:13850
 msgid "_Apply fuzzy filter on download mesh entries"
 msgstr "ダウンロードメッシュ項目に曖昧フィルターを適用する(_A)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15101
-#: src/ui/gtk/gtk2/interface-glade.c:13189
+#: src/ui/gtk/gtk1/interface-glade.c:15102
+#: src/ui/gtk/gtk2/interface-glade.c:13415
 msgid "Watch hits for _alternate sources"
 msgstr "ヒットに別の送信源があるか見張る(_A)"
 
 # FIXME: ill-translation
-#: src/ui/gtk/gtk1/interface-glade.c:15115
-#: src/ui/gtk/gtk2/interface-glade.c:13199
+#: src/ui/gtk/gtk1/interface-glade.c:15116
+#: src/ui/gtk/gtk2/interface-glade.c:13425
 msgid "_Feed mesh from hits"
 msgstr "ヒットからメッシュに給付する(_F)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15127
-#: src/ui/gtk/gtk2/interface-glade.c:2508
-#: src/ui/gtk/gtk2/interface-glade.c:12937 src/ui/gtk/main.c:136
+#: src/ui/gtk/gtk1/interface-glade.c:15128
+#: src/ui/gtk/gtk2/interface-glade.c:2661
+#: src/ui/gtk/gtk2/interface-glade.c:13163 src/ui/gtk/main.c:136
 msgid "Downloads"
 msgstr "ダウンロード"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15161
-#: src/ui/gtk/gtk2/interface-glade.c:14091
+#: src/ui/gtk/gtk1/interface-glade.c:15162
+#: src/ui/gtk/gtk2/interface-glade.c:14320
 msgid "_Path(s) to files"
 msgstr "各ファイルへのパス(_P)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15196
-#: src/ui/gtk/gtk2/interface-glade.c:13998
+#: src/ui/gtk/gtk1/interface-glade.c:15197
+#: src/ui/gtk/gtk2/interface-glade.c:14227
 msgid "_Add directory"
 msgstr "フォルダを追加(_A)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15208
-#: src/ui/gtk/gtk2/interface-glade.c:14048
+#: src/ui/gtk/gtk1/interface-glade.c:15209
+#: src/ui/gtk/gtk2/interface-glade.c:14277
 msgid "_Rescan"
 msgstr "再スキャン(_R)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15218
-#: src/ui/gtk/gtk2/interface-glade.c:14053
+#: src/ui/gtk/gtk1/interface-glade.c:15219
+#: src/ui/gtk/gtk2/interface-glade.c:14282
 msgid "Files scanned"
 msgstr "各ファイルがスキャンされています。"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15245
-#: src/ui/gtk/gtk2/interface-glade.c:14081
+#: src/ui/gtk/gtk1/interface-glade.c:15246
+#: src/ui/gtk/gtk2/interface-glade.c:14310
 msgid "Ignore symbolically linked _directories"
 msgstr "シンボリックフォルダを無視する(_D)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15257
-#: src/ui/gtk/gtk2/interface-glade.c:14086
+#: src/ui/gtk/gtk1/interface-glade.c:15258
+#: src/ui/gtk/gtk2/interface-glade.c:14315
 msgid "Ignore symbolically linked regular _files"
 msgstr "シンボリックファイルを無視する(_F)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15277
-#: src/ui/gtk/gtk2/interface-glade.c:14065
+#: src/ui/gtk/gtk1/interface-glade.c:15278
+#: src/ui/gtk/gtk2/interface-glade.c:14294
 msgid "Search _extensions"
 msgstr "検索対象とする拡張子(_E)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15293
-#: src/ui/gtk/gtk2/interface-glade.c:14193
+#: src/ui/gtk/gtk1/interface-glade.c:15294
+#: src/ui/gtk/gtk2/interface-glade.c:14438
 msgid "Timeouts (all values in seconds)"
 msgstr "タイムアウト (値は全て秒単位)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15362
-#: src/ui/gtk/gtk2/interface-glade.c:14137
+#: src/ui/gtk/gtk1/interface-glade.c:15363
+#: src/ui/gtk/gtk2/interface-glade.c:14382
 msgid "Partial File Sharing"
 msgstr "部分ファイル共有"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15383
-#: src/ui/gtk/gtk2/interface-glade.c:14114
+#: src/ui/gtk/gtk1/interface-glade.c:15384
+#: src/ui/gtk/gtk2/interface-glade.c:14343
 msgid "First chunk _size"
 msgstr "先頭のチャンクサイズ(_S)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15396
-#: src/ui/gtk/gtk2/interface-glade.c:14130
+#: src/ui/gtk/gtk1/interface-glade.c:15397
+#: src/ui/gtk/gtk2/interface-glade.c:14359
 msgid "Enable upload of _partially downloaded files"
 msgstr "部分ファイルのアップロードを有効にする(_P)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15420
-#: src/ui/gtk/gtk2/interface-glade.c:14255
+#: src/ui/gtk/gtk1/interface-glade.c:15421
+#: src/ui/gtk/gtk2/interface-glade.c:14374
+#, fuzzy
+msgid "Minimum file size"
+msgstr "最小の大きさ:"
+
+#: src/ui/gtk/gtk1/interface-glade.c:15443
+#: src/ui/gtk/gtk2/interface-glade.c:14500
 msgid "Queuing details"
 msgstr "キューの詳細"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15439
-#: src/ui/gtk/gtk2/interface-glade.c:14232
+#: src/ui/gtk/gtk1/interface-glade.c:15462
+#: src/ui/gtk/gtk2/interface-glade.c:14477
 msgid "Minimum upload time"
 msgstr "最短アップロード時間"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15462
+#: src/ui/gtk/gtk1/interface-glade.c:15485
 msgid "Minimum chunk size"
 msgstr "最小チャンクサイズ"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15485
-#: src/ui/gtk/gtk2/interface-glade.c:14240
+#: src/ui/gtk/gtk1/interface-glade.c:15508
+#: src/ui/gtk/gtk2/interface-glade.c:14485
 msgid "Use realistic PARQ estimates"
 msgstr "実際的な PARQ 積算時間を利用する"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15495
-#: src/ui/gtk/gtk2/interface-glade.c:14826
+#: src/ui/gtk/gtk1/interface-glade.c:15518
+#: src/ui/gtk/gtk2/interface-glade.c:15071
 msgid "Statistics:"
 msgstr "統計:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15528
-#: src/ui/gtk/gtk2/interface-glade.c:14345
+#: src/ui/gtk/gtk1/interface-glade.c:15551
+#: src/ui/gtk/gtk2/interface-glade.c:14590
 msgid "Library scanning:"
 msgstr "ライブラリ走査:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15548
-#: src/ui/gtk/gtk2/interface-glade.c:14295
+#: src/ui/gtk/gtk1/interface-glade.c:15571
+#: src/ui/gtk/gtk2/interface-glade.c:14540
 msgid "Last scan initiated on:"
 msgstr "最終走査開始時間:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15559
-#: src/ui/gtk/gtk2/interface-glade.c:14304
+#: src/ui/gtk/gtk1/interface-glade.c:15582
+#: src/ui/gtk/gtk2/interface-glade.c:14549
 msgid "File scanning time:"
 msgstr "ファイル走査時間:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15612
-#: src/ui/gtk/gtk2/interface-glade.c:14717
+#: src/ui/gtk/gtk1/interface-glade.c:15635
+#: src/ui/gtk/gtk2/interface-glade.c:14962
 msgid "Query Routing Protocol:"
 msgstr "検索式経路設定プロトコル (QRP):"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15632
-#: src/ui/gtk/gtk2/interface-glade.c:14570
+#: src/ui/gtk/gtk1/interface-glade.c:15655
+#: src/ui/gtk/gtk2/interface-glade.c:14815
 msgid "Indexing started on:"
 msgstr "索引作成の開始時間:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15643
-#: src/ui/gtk/gtk1/interface-glade.c:15665
-#: src/ui/gtk/gtk1/interface-glade.c:15687
-#: src/ui/gtk/gtk2/interface-glade.c:14597
-#: src/ui/gtk/gtk2/interface-glade.c:14605
-#: src/ui/gtk/gtk2/interface-glade.c:14613
+#: src/ui/gtk/gtk1/interface-glade.c:15666
+#: src/ui/gtk/gtk1/interface-glade.c:15688
+#: src/ui/gtk/gtk1/interface-glade.c:15710
+#: src/ui/gtk/gtk2/interface-glade.c:14842
+#: src/ui/gtk/gtk2/interface-glade.c:14850
+#: src/ui/gtk/gtk2/interface-glade.c:14858
 msgid "and lasted"
 msgstr "継続時間"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15654
-#: src/ui/gtk/gtk2/interface-glade.c:14579
+#: src/ui/gtk/gtk1/interface-glade.c:15677
+#: src/ui/gtk/gtk2/interface-glade.c:14824
 msgid "Table generation started on:"
 msgstr "テーブル生成の開始時間:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15676
-#: src/ui/gtk/gtk2/interface-glade.c:14588
+#: src/ui/gtk/gtk1/interface-glade.c:15699
+#: src/ui/gtk/gtk2/interface-glade.c:14833
 msgid "Patch generation started on:"
 msgstr "パッチ生成の開始時間:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15840
-#: src/ui/gtk/gtk2/interface-glade.c:14541
+#: src/ui/gtk/gtk1/interface-glade.c:15863
+#: src/ui/gtk/gtk2/interface-glade.c:14786
 msgid "Query routing table information:"
 msgstr "検索式の経路設定テーブル情報:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15859
-#: src/ui/gtk/gtk2/interface-glade.c:14419
+#: src/ui/gtk/gtk1/interface-glade.c:15882
+#: src/ui/gtk/gtk2/interface-glade.c:14664
 msgid "Keywords:"
 msgstr "キーワード:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15870
-#: src/ui/gtk/gtk2/interface-glade.c:14428
+#: src/ui/gtk/gtk1/interface-glade.c:15893
+#: src/ui/gtk/gtk2/interface-glade.c:14673
 msgid "Slots:"
 msgstr "受口:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15881
-#: src/ui/gtk/gtk2/interface-glade.c:14437
+#: src/ui/gtk/gtk1/interface-glade.c:15904
+#: src/ui/gtk/gtk2/interface-glade.c:14682
 msgid "Filled slots:"
 msgstr "使用済み受口:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15892
-#: src/ui/gtk/gtk2/interface-glade.c:14392
+#: src/ui/gtk/gtk1/interface-glade.c:15915
+#: src/ui/gtk/gtk2/interface-glade.c:14637
 msgid "Generation:"
 msgstr "生成:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15903
-#: src/ui/gtk/gtk2/interface-glade.c:14401
+#: src/ui/gtk/gtk1/interface-glade.c:15926
+#: src/ui/gtk/gtk2/interface-glade.c:14646
 msgid "Filled ratio:"
 msgstr "使用済み比率:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15914
-#: src/ui/gtk/gtk2/interface-glade.c:14410
+#: src/ui/gtk/gtk1/interface-glade.c:15937
+#: src/ui/gtk/gtk2/interface-glade.c:14655
 msgid "Conflict ratio:"
 msgstr "競合比率:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16083
-#: src/ui/gtk/gtk2/interface-glade.c:14821
+#: src/ui/gtk/gtk1/interface-glade.c:16106
+#: src/ui/gtk/gtk2/interface-glade.c:15066
 msgid "Query routing patch information:"
 msgstr "検索式の経路設定パッチ情報:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16102
-#: src/ui/gtk/gtk2/interface-glade.c:14741
+#: src/ui/gtk/gtk1/interface-glade.c:16125
+#: src/ui/gtk/gtk2/interface-glade.c:14986
 msgid "Raw length:"
 msgstr "そのままの長さ:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16113
-#: src/ui/gtk/gtk2/interface-glade.c:14749
+#: src/ui/gtk/gtk1/interface-glade.c:16136
+#: src/ui/gtk/gtk2/interface-glade.c:14994
 msgid "Compressed length:"
 msgstr "圧縮された長さ:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16124
-#: src/ui/gtk/gtk2/interface-glade.c:14757
+#: src/ui/gtk/gtk1/interface-glade.c:16147
+#: src/ui/gtk/gtk2/interface-glade.c:15002
 msgid "Compression ratio:"
 msgstr "圧縮比率:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16264
-#: src/ui/gtk/gtk2/interface-glade.c:15157
+#: src/ui/gtk/gtk1/interface-glade.c:16287
+#: src/ui/gtk/gtk2/interface-glade.c:15404
 msgid "Show _confirmation dialog when leaving gtk-gnutella"
 msgstr "終了の際に確認ダイアログを表示する(_C)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16278
-#: src/ui/gtk/gtk2/interface-glade.c:15150
+#: src/ui/gtk/gtk1/interface-glade.c:16301
+#: src/ui/gtk/gtk2/interface-glade.c:15397
 msgid "Show _tooltips (does not affect all tooltips yet)"
 msgstr "ツールチップを表示する(_T) (未完成です)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16290
-#: src/ui/gtk/gtk2/interface-glade.c:15089
+#: src/ui/gtk/gtk1/interface-glade.c:16313
+#: src/ui/gtk/gtk2/interface-glade.c:15336
 msgid "Try to keep 'dead' entries around for"
 msgstr "'遺棄' 項目を保存しておく時間"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16323
-#: src/ui/gtk/gtk2/interface-glade.c:15126
+#: src/ui/gtk/gtk1/interface-glade.c:16346
+#: src/ui/gtk/gtk2/interface-glade.c:15373
 msgid "Update search results pane every"
 msgstr "検索結果の更新"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16356
-#: src/ui/gtk/gtk2/interface-glade.c:15081
+#: src/ui/gtk/gtk1/interface-glade.c:16379
+#: src/ui/gtk/gtk2/interface-glade.c:15328
 msgid "Toolbar style"
 msgstr "ツールバーのスタイル"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16383
-#: src/ui/gtk/gtk2/interface-glade.c:15189
+#: src/ui/gtk/gtk1/interface-glade.c:16406
+#: src/ui/gtk/gtk2/interface-glade.c:15436
 msgid "Expert mode"
 msgstr "上級者モード"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16401
-#: src/ui/gtk/gtk2/interface-glade.c:15182
+#: src/ui/gtk/gtk1/interface-glade.c:16424
+#: src/ui/gtk/gtk2/interface-glade.c:15429
 msgid "Show additional information and settings for advanced and _expert users"
 msgstr "上級者のための追加情報の表示と高度な設定(_E)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16413
-#: src/ui/gtk/gtk2/interface-glade.c:15366
+#: src/ui/gtk/gtk1/interface-glade.c:16436
+#: src/ui/gtk/gtk2/interface-glade.c:15613
 msgid "GnutellaNet display"
 msgstr "GnutellaNet 表示"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16446
-#: src/ui/gtk/gtk2/interface-glade.c:15204
+#: src/ui/gtk/gtk1/interface-glade.c:16469
+#: src/ui/gtk/gtk2/interface-glade.c:15451
 msgid "Display detailed traffic information"
 msgstr "詳細なトラフィック情報を表示"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16462
+#: src/ui/gtk/gtk1/interface-glade.c:16485
 msgid "Detailed traffic information to display"
 msgstr "表示する詳細なトラフィック情報"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16482
-#: src/ui/gtk/gtk2/interface-glade.c:15233
+#: src/ui/gtk/gtk1/interface-glade.c:16505
+#: src/ui/gtk/gtk2/interface-glade.c:15480
 msgid "TX compression"
 msgstr "圧縮(送信)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16492
-#: src/ui/gtk/gtk2/interface-glade.c:15268
+#: src/ui/gtk/gtk1/interface-glade.c:16515
+#: src/ui/gtk/gtk2/interface-glade.c:15515
 msgid "RX compression"
 msgstr "圧縮(受信)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16502
-#: src/ui/gtk/gtk2/interface-glade.c:15240
+#: src/ui/gtk/gtk1/interface-glade.c:16525
+#: src/ui/gtk/gtk2/interface-glade.c:15487
 msgid "TX speed"
 msgstr "速度(送信)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16512
-#: src/ui/gtk/gtk2/interface-glade.c:15275
+#: src/ui/gtk/gtk1/interface-glade.c:16535
+#: src/ui/gtk/gtk2/interface-glade.c:15522
 msgid "RX speed"
 msgstr "速度(受信)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16522
-#: src/ui/gtk/gtk2/interface-glade.c:15247
+#: src/ui/gtk/gtk1/interface-glade.c:16545
+#: src/ui/gtk/gtk2/interface-glade.c:15494
 msgid "TX queries"
 msgstr "検索式(送信)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16532
-#: src/ui/gtk/gtk2/interface-glade.c:15282
+#: src/ui/gtk/gtk1/interface-glade.c:16555
+#: src/ui/gtk/gtk2/interface-glade.c:15529
 msgid "RX queries"
 msgstr "検索式(受信)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16542
-#: src/ui/gtk/gtk2/interface-glade.c:15254
+#: src/ui/gtk/gtk1/interface-glade.c:16565
+#: src/ui/gtk/gtk2/interface-glade.c:15501
 msgid "TX query hits"
 msgstr "検索式ヒット(送信)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16552
-#: src/ui/gtk/gtk2/interface-glade.c:15289
+#: src/ui/gtk/gtk1/interface-glade.c:16575
+#: src/ui/gtk/gtk2/interface-glade.c:15536
 msgid "RX query hits"
 msgstr "検索式ヒット(受信)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16562
-#: src/ui/gtk/gtk2/interface-glade.c:15303
+#: src/ui/gtk/gtk1/interface-glade.c:16585
+#: src/ui/gtk/gtk2/interface-glade.c:15550
 msgid "Generated queries"
 msgstr "生成された検索式"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16572
-#: src/ui/gtk/gtk2/interface-glade.c:15310
+#: src/ui/gtk/gtk1/interface-glade.c:16595
+#: src/ui/gtk/gtk2/interface-glade.c:15557
 msgid "Pending local queries"
 msgstr "未解決のローカル検索式"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16582
-#: src/ui/gtk/gtk2/interface-glade.c:15261
+#: src/ui/gtk/gtk1/interface-glade.c:16605
+#: src/ui/gtk/gtk2/interface-glade.c:15508
 msgid "TX dropped"
 msgstr "破棄(送信)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16592
-#: src/ui/gtk/gtk2/interface-glade.c:15296
+#: src/ui/gtk/gtk1/interface-glade.c:16615
+#: src/ui/gtk/gtk2/interface-glade.c:15543
 msgid "RX dropped"
 msgstr "破棄(受信)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16602
-#: src/ui/gtk/gtk2/interface-glade.c:15317
+#: src/ui/gtk/gtk1/interface-glade.c:16625
+#: src/ui/gtk/gtk2/interface-glade.c:15564
 msgid "QRP stats"
 msgstr "QRP ステータス"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16612
-#: src/ui/gtk/gtk2/interface-glade.c:15324
+#: src/ui/gtk/gtk1/interface-glade.c:16635
+#: src/ui/gtk/gtk2/interface-glade.c:15571
 msgid "Dup / Bad / Weird"
 msgstr "重複/不正/奇形"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16622
-#: src/ui/gtk/gtk2/interface-glade.c:15331
+#: src/ui/gtk/gtk1/interface-glade.c:16645
+#: src/ui/gtk/gtk2/interface-glade.c:15578
 msgid "Ping / Pong round trip"
 msgstr "Ping/Pong の周回"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16632
-#: src/ui/gtk/gtk2/interface-glade.c:15338
+#: src/ui/gtk/gtk1/interface-glade.c:16655
+#: src/ui/gtk/gtk2/interface-glade.c:15585
 msgid "Library size"
 msgstr "ライブラリの大きさ"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16642
-#: src/ui/gtk/gtk2/interface-glade.c:15345
+#: src/ui/gtk/gtk1/interface-glade.c:16665
+#: src/ui/gtk/gtk2/interface-glade.c:15592
 msgid "Library # of files"
 msgstr "ライブラリのファイル数"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16652
-#: src/ui/gtk/gtk2/interface-glade.c:15359
+#: src/ui/gtk/gtk1/interface-glade.c:16675
+#: src/ui/gtk/gtk2/interface-glade.c:15606
 msgid "RX wire bytes"
 msgstr "伝送バイト(受信)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16662
-#: src/ui/gtk/gtk2/interface-glade.c:15352
+#: src/ui/gtk/gtk1/interface-glade.c:16685
+#: src/ui/gtk/gtk2/interface-glade.c:15599
 msgid "TX wire bytes"
 msgstr "伝送バイト(送信)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16672
-#: src/ui/gtk/gtk2/interface-glade.c:15047
+#: src/ui/gtk/gtk1/interface-glade.c:16695
+#: src/ui/gtk/gtk2/interface-glade.c:15294
 msgid "User Interface"
 msgstr "インターフェイス"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16706
-#: src/ui/gtk/gtk2/interface-glade.c:15585
+#: src/ui/gtk/gtk1/interface-glade.c:16729
+#: src/ui/gtk/gtk2/interface-glade.c:15803
 msgid "Property browser"
 msgstr "プロパティの参照"
 
 # MERGEBLE:
-#: src/ui/gtk/gtk1/interface-glade.c:16731
+#: src/ui/gtk/gtk1/interface-glade.c:16754
 msgid "Property pattern:"
 msgstr "プロパティのパターン:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16769 src/ui/gtk/settings_cb.c:403
+# NOTE: this string is used as follows
+#
+# 'Served 0 HTML and 0 Gnutella browse requests'
+#
+#: src/ui/gtk/gtk1/interface-glade.c:16793 src/ui/gtk/settings_cb.c:450
+#, fuzzy
+msgid "Saved"
+msgstr " "
+
+#: src/ui/gtk/gtk1/interface-glade.c:16809 src/ui/gtk/settings_cb.c:452
 msgid "Property"
 msgstr "プロパティ"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16777 src/ui/gtk/settings_cb.c:404
+#: src/ui/gtk/gtk1/interface-glade.c:16817 src/ui/gtk/settings_cb.c:453
 msgid "Value"
 msgstr "値"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16785 src/ui/gtk/settings_cb.c:405
-msgid "Description"
-msgstr "説明"
+#: src/ui/gtk/gtk1/interface-glade.c:16835
+msgid "Selected property:"
+msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:16802
-msgid "Edit value of property"
-msgstr "プロパティの値を編集"
+#: src/ui/gtk/gtk1/interface-glade.c:16843
+#: src/ui/gtk/gtk1/interface-glade.c:16861
+#: src/ui/gtk/gtk1/interface-glade.c:16896
+#: src/ui/gtk/gtk1/interface-glade.c:16922
+#: src/ui/gtk/gtk2/interface-glade.c:15779
+#: src/ui/gtk/gtk2/interface-glade.c:15797 src/ui/gtk/settings_cb.c:426
+#: src/ui/gtk/settings_cb.c:546 src/ui/gtk/settings_cb.c:612
+#, fuzzy
+msgid "<no property selected>"
+msgstr "<選択されていません>"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16826
-#: src/ui/gtk/gtk2/interface-glade.c:15747
+#: src/ui/gtk/gtk1/interface-glade.c:16852
+#: src/ui/gtk/gtk2/interface-glade.c:15791
+msgid "Min/Max:"
+msgstr ""
+
+#: src/ui/gtk/gtk1/interface-glade.c:16880
+#: src/ui/gtk/gtk2/interface-glade.c:15773
+msgid "Default value:"
+msgstr ""
+
+#: src/ui/gtk/gtk1/interface-glade.c:16907
+#, fuzzy
+msgid "Edit value:"
+msgstr "フィルター編集"
+
+#: src/ui/gtk/gtk1/interface-glade.c:16924
+#: src/ui/gtk/gtk2/interface-glade.c:15880
 msgid "Diverse properties"
 msgstr "様々なプロパティ"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16845
-#: src/ui/gtk/gtk2/interface-glade.c:15697
-msgid "The current IP address was set at:"
-msgstr "現在の IP アドレスが設定された時間:"
-
-#: src/ui/gtk/gtk1/interface-glade.c:16856
-#: src/ui/gtk/gtk2/interface-glade.c:15688
+#: src/ui/gtk/gtk1/interface-glade.c:16943
+#: src/ui/gtk/gtk2/interface-glade.c:15838
 msgid "Avg. time between IP address changes:"
 msgstr "IP アドレスが変わるまでの平均時間:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16867
-#: src/ui/gtk/gtk2/interface-glade.c:15679
-msgid "Running since:"
-msgstr "起動時間:"
-
-#: src/ui/gtk/gtk1/interface-glade.c:16878
-#: src/ui/gtk/gtk2/interface-glade.c:15706
+#: src/ui/gtk/gtk1/interface-glade.c:16954
+#: src/ui/gtk/gtk2/interface-glade.c:15829
 msgid "Avg. uptime of this servent:"
 msgstr "このサーバントの平均稼働時間:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16889
-#: src/ui/gtk/gtk2/interface-glade.c:15603
-msgid "Max. number of open files:"
-msgstr "開くファイルの最大数:"
-
-#: src/ui/gtk/gtk1/interface-glade.c:16900
-#: src/ui/gtk/gtk2/interface-glade.c:15612
+#: src/ui/gtk/gtk1/interface-glade.c:16965
+#: src/ui/gtk/gtk2/interface-glade.c:15847
 msgid "Available physical memory:"
 msgstr "利用可能な物理メモリ量:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16911
-#: src/ui/gtk/gtk2/interface-glade.c:15621
-msgid "TCP crawler visits:"
-msgstr "TCP クロウラーが訪れた回数:"
-
-#: src/ui/gtk/gtk1/interface-glade.c:16922
-#: src/ui/gtk/gtk2/interface-glade.c:15654
-msgid "UDP crawler visits:"
-msgstr "UDP クロウラーが訪れた回数:"
-
-#: src/ui/gtk/gtk1/interface-glade.c:17021
-#: src/ui/gtk/gtk2/interface-glade.c:15523
+#: src/ui/gtk/gtk1/interface-glade.c:17009
+#: src/ui/gtk/gtk2/interface-glade.c:15705
 msgid "Debugging"
 msgstr "バグ解析"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17328
-#: src/ui/gtk/gtk2/interface-glade.c:16937
+#: src/ui/gtk/gtk1/interface-glade.c:17319
+#: src/ui/gtk/gtk2/interface-glade.c:16655
 msgid "gtk-gnutella - Frequently Asked Questions"
 msgstr "gtk-gnutella - よく聞かれる質問"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17348
-#: src/ui/gtk/gtk2/interface-glade.c:16978
+#: src/ui/gtk/gtk1/interface-glade.c:17339
+#: src/ui/gtk/gtk2/interface-glade.c:16696
 msgid "Frequently Asked Questions:"
 msgstr "よく聞かれる質問:"
 
@@ -8818,11 +8835,26 @@ msgstr "Pixmap ファイルロード中のエラー: %s"
 
 # MERGEBLE:
 #: src/ui/gtk/gtk2/downloads.c:893
-#, c-format
-msgid "[%d/%d]  TR:  -"
+#, fuzzy, c-format
+msgid "[%u/%u]  TR:  -"
 msgstr "[%d/%d]  残り時間:  -"
 
-#: src/ui/gtk/gtk2/downloads.c:1507 src/ui/gtk/uploads_common.c:114
+#: src/ui/gtk/gtk2/downloads.c:1389
+#, fuzzy, c-format
+msgid " (slot %u"
+msgstr " (受口 %d"
+
+#: src/ui/gtk/gtk2/downloads.c:1406
+#, fuzzy, c-format
+msgid " retry in %us"
+msgstr " %d秒後に再試行"
+
+#: src/ui/gtk/gtk2/downloads.c:1473
+#, fuzzy, c-format
+msgid "Sending request (%u%%)"
+msgstr "リクエストを送信しています (%d%%)"
+
+#: src/ui/gtk/gtk2/downloads.c:1509 src/ui/gtk/uploads_common.c:114
 msgid "< 1s"
 msgstr "1秒未満"
 
@@ -8843,12 +8875,17 @@ msgid "FAILED"
 msgstr "失敗"
 
 # MERGEBLE:
-#: src/ui/gtk/gtk2/downloads.c:1617
+#: src/ui/gtk/gtk2/downloads.c:1616
 #, c-format
 msgid " TR: %s"
 msgstr " 残り時間: %s"
 
-#: src/ui/gtk/gtk2/downloads.c:1673
+#: src/ui/gtk/gtk2/downloads.c:1657
+#, fuzzy, c-format
+msgid "Retry in %us"
+msgstr "%d秒後に再試行"
+
+#: src/ui/gtk/gtk2/downloads.c:1672
 #, c-format
 msgid "Unknown status %u"
 msgstr "不明なステータス %u"
@@ -8893,20 +8930,97 @@ msgstr ""
 msgid "Download selected files"
 msgstr "ダウンロード"
 
-#: src/ui/gtk/gtk2/interface-glade.c:2678
+#: src/ui/gtk/gtk2/interface-glade.c:1998
+#, fuzzy
+msgid "_Navigation"
+msgstr "ナビゲータ"
+
+#: src/ui/gtk/gtk2/interface-glade.c:2007
+#, fuzzy
+msgid "_GnutellaNet"
+msgstr "GnutellaNet"
+
+#: src/ui/gtk/gtk2/interface-glade.c:2021
+#, fuzzy
+msgid "_Connections"
+msgstr "接続件数を表示(_C)"
+
+#: src/ui/gtk/gtk2/interface-glade.c:2026
+#: src/ui/gtk/gtk2/interface-glade.c:2113
+#, fuzzy
+msgid "_Stats"
+msgstr "ステータス"
+
+#: src/ui/gtk/gtk2/interface-glade.c:2031
+#, fuzzy
+msgid "_Hostcache"
+msgstr "ホストキャッシュ"
+
+#: src/ui/gtk/gtk2/interface-glade.c:2036
+#, fuzzy
+msgid "_Uploads"
+msgstr "アップロード"
+
+#: src/ui/gtk/gtk2/interface-glade.c:2050
+#, fuzzy
+msgid "_Transfers"
+msgstr "転送済データ"
+
+#: src/ui/gtk/gtk2/interface-glade.c:2055
+#, fuzzy
+msgid "_History"
+msgstr "履歴"
+
+#: src/ui/gtk/gtk2/interface-glade.c:2060
+#, fuzzy
+msgid "_Downloads"
+msgstr "ダウンロード"
+
+# FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
+#: src/ui/gtk/gtk2/interface-glade.c:2074
+#, fuzzy
+msgid "_Files"
+msgstr "ファイル"
+
+#: src/ui/gtk/gtk2/interface-glade.c:2079
+#, fuzzy
+msgid "_Queue"
+msgstr "キュー"
+
+#: src/ui/gtk/gtk2/interface-glade.c:2084
+#, fuzzy
+msgid "_Active"
+msgstr "アクティブ"
+
+#: src/ui/gtk/gtk2/interface-glade.c:2089
+#: src/ui/gtk/gtk2/interface-glade.c:2826
 msgid "_Search"
 msgstr "検索(_S)"
+
+#: src/ui/gtk/gtk2/interface-glade.c:2103
+#, fuzzy
+msgid "_Searches"
+msgstr "検索"
+
+#: src/ui/gtk/gtk2/interface-glade.c:2108
+#, fuzzy
+msgid "_Monitor"
+msgstr "モニタ"
+
+#: src/ui/gtk/gtk2/interface-glade.c:2168
+msgid "show _Navigation Tree"
+msgstr ""
 
 # NOTE: this string is used as follows
 #
 # 'Connect to 0 ultrapeers'
 #
-#: src/ui/gtk/gtk2/interface-glade.c:3338
+#: src/ui/gtk/gtk2/interface-glade.c:3547
 msgid "Connect to"
 msgstr "リーフ時には"
 
 # NOTE: see above
-#: src/ui/gtk/gtk2/interface-glade.c:3350
+#: src/ui/gtk/gtk2/interface-glade.c:3559
 msgid "ultrapeers"
 msgstr "基のウルトラピアに接続する。"
 
@@ -8914,17 +9028,17 @@ msgstr "基のウルトラピアに接続する。"
 #
 # 'Try to keep at least 0 and allow at most 0 total connections up.'
 #
-#: src/ui/gtk/gtk2/interface-glade.c:3396
+#: src/ui/gtk/gtk2/interface-glade.c:3605
 msgid "Try to keep at least"
 msgstr "ウルトラノード時に、最低"
 
 # NOTE: see above
-#: src/ui/gtk/gtk2/interface-glade.c:3410
+#: src/ui/gtk/gtk2/interface-glade.c:3619
 msgid "and allow at most"
 msgstr "件の接続を確保し、多くても"
 
 # NOTE: see above
-#: src/ui/gtk/gtk2/interface-glade.c:3423
+#: src/ui/gtk/gtk2/interface-glade.c:3632
 msgid "total connections up."
 msgstr "件までの接続数にする。"
 
@@ -8932,16 +9046,16 @@ msgstr "件までの接続数にする。"
 #
 # 'Use up to 0 connections to connect more quickly while not all slots are used.'
 #
-#: src/ui/gtk/gtk2/interface-glade.c:3434
+#: src/ui/gtk/gtk2/interface-glade.c:3643
 msgid "Use up to "
 msgstr "全ての受口が使用されるまでの間、より素早く接続するために "
 
 # NOTE: see above
-#: src/ui/gtk/gtk2/interface-glade.c:3446
+#: src/ui/gtk/gtk2/interface-glade.c:3655
 msgid "connections to connect more quickly while not all slots are used."
 msgstr "件までの接続を使用する。"
 
-#: src/ui/gtk/gtk2/interface-glade.c:3490
+#: src/ui/gtk/gtk2/interface-glade.c:3699
 msgid ""
 "The Global Unique IDentifier associated with this node. It's used for "
 "routing packets in the Gnutella network."
@@ -8949,145 +9063,145 @@ msgstr ""
 "このノードに関係付けられた識別子 (GUID - Global Unique IDentifier) です。これ"
 "は Gnutella ネットワーク上のパケット経路設定に用いられます。"
 
-#: src/ui/gtk/gtk2/interface-glade.c:3500
+#: src/ui/gtk/gtk2/interface-glade.c:3709
 msgid "Address/Port:"
 msgstr "アドレス/ポート:"
 
-#: src/ui/gtk/gtk2/interface-glade.c:3844
+#: src/ui/gtk/gtk2/interface-glade.c:4053
 msgid "Uploaded data:"
 msgstr "アップロード済データ:"
 
-#: src/ui/gtk/gtk2/interface-glade.c:3986
+#: src/ui/gtk/gtk2/interface-glade.c:4195
 msgid "Clear non-existent files"
 msgstr "存在しないファイルを消去"
 
-#: src/ui/gtk/gtk2/interface-glade.c:4482
+#: src/ui/gtk/gtk2/interface-glade.c:4691
 msgid "Remove completed downloads from list"
 msgstr "完了したダウンロードを一覧から削除する"
 
-#: src/ui/gtk/gtk2/interface-glade.c:4499
+#: src/ui/gtk/gtk2/interface-glade.c:4708
 msgid "_Clear completed"
 msgstr "完了したものを消去(_C)"
 
 # FIXME: could be removed
-#: src/ui/gtk/gtk2/interface-glade.c:4504
-#: src/ui/gtk/gtk2/interface-glade.c:6135
-#: src/ui/gtk/gtk2/interface-glade.c:15671
+#: src/ui/gtk/gtk2/interface-glade.c:4713
+#: src/ui/gtk/gtk2/interface-glade.c:6344
+#: src/ui/gtk/gtk2/interface-glade.c:15821
 msgid " "
 msgstr " "
 
-#: src/ui/gtk/gtk2/interface-glade.c:4534
-#: src/ui/gtk/gtk2/interface-glade.c:5429
+#: src/ui/gtk/gtk2/interface-glade.c:4743
+#: src/ui/gtk/gtk2/interface-glade.c:5638
 msgid "Sho_w settings"
 msgstr "設定の表示(_W)"
 
-#: src/ui/gtk/gtk2/interface-glade.c:4604
+#: src/ui/gtk/gtk2/interface-glade.c:4813
 msgid "Downloaded data:"
 msgstr "ダウンロード済データ:"
 
-#: src/ui/gtk/gtk2/interface-glade.c:5030
+#: src/ui/gtk/gtk2/interface-glade.c:5239
 msgid "Displaying"
 msgstr "表示内容"
 
-#: src/ui/gtk/gtk2/interface-glade.c:6066
+#: src/ui/gtk/gtk2/interface-glade.c:6275
 msgid "Flow _control"
 msgstr "フロー制御(_C)"
 
-#: src/ui/gtk/gtk2/interface-glade.c:6086
+#: src/ui/gtk/gtk2/interface-glade.c:6295
 msgid "_Received"
 msgstr "受信(_R)"
 
-#: src/ui/gtk/gtk2/interface-glade.c:6098
+#: src/ui/gtk/gtk2/interface-glade.c:6307
 msgid "Columns show hops"
 msgstr "ホップ数を表示"
 
-#: src/ui/gtk/gtk2/interface-glade.c:6553
-#: src/ui/gtk/gtk2/interface-glade.c:6870
-#: src/ui/gtk/gtk2/interface-glade.c:7174
-#: src/ui/gtk/gtk2/interface-glade.c:7417
-#: src/ui/gtk/gtk2/interface-glade.c:7687
-#: src/ui/gtk/gtk2/interface-glade.c:8272
-#: src/ui/gtk/gtk2/interface-glade.c:8899
+#: src/ui/gtk/gtk2/interface-glade.c:6762
+#: src/ui/gtk/gtk2/interface-glade.c:7079
+#: src/ui/gtk/gtk2/interface-glade.c:7383
+#: src/ui/gtk/gtk2/interface-glade.c:7626
+#: src/ui/gtk/gtk2/interface-glade.c:7896
+#: src/ui/gtk/gtk2/interface-glade.c:8481
+#: src/ui/gtk/gtk2/interface-glade.c:9108
 msgid "New/replace"
 msgstr "新規/置換"
 
-#: src/ui/gtk/gtk2/interface-glade.c:6578
-#: src/ui/gtk/gtk2/interface-glade.c:8297
-#: src/ui/gtk/gtk2/interface-glade.c:8904
+#: src/ui/gtk/gtk2/interface-glade.c:6787
+#: src/ui/gtk/gtk2/interface-glade.c:8506
+#: src/ui/gtk/gtk2/interface-glade.c:9113
 msgid "Delete"
 msgstr "削除"
 
-#: src/ui/gtk/gtk2/interface-glade.c:7098
+#: src/ui/gtk/gtk2/interface-glade.c:7307
 msgid "You can use suffixes such as KB, KiB, MB, MiB, GB, GiB etc."
 msgstr "KB, KiB, MB, MiB, GB, GiB 等の接尾辞を使用できます。"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9027
+#: src/ui/gtk/gtk2/interface-glade.c:9238
 msgid "Reverse DNS lookup"
 msgstr "DNS の逆引き検索"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9380
+#: src/ui/gtk/gtk2/interface-glade.c:9606
 msgid "Gtk-Gnutella Configuration Wizard"
 msgstr "Gtk-Gnutella 設定ウィザード"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9392
+#: src/ui/gtk/gtk2/interface-glade.c:9618
 msgid ""
 "<span weight=\"heavy\" size=\"xx-large\">Welcome to Gtk-Gnutella!</span>"
 msgstr ""
 "<span weight=\"heavy\" size=\"xx-large\">Gtk-Gnutella へようこそ！</span>"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9442
+#: src/ui/gtk/gtk2/interface-glade.c:9668
 msgid "Select a directory to save _downloads to"
 msgstr "ダウンロードを保存するフォルダを選択して下さい(_D)"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9491
+#: src/ui/gtk/gtk2/interface-glade.c:9717
 msgid "Select one or more directories to be _shared on the Gnutella network:"
 msgstr "Gnutella ネットワークで共有するフォルダを一つ以上選択して下さい(_S):"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9507
+#: src/ui/gtk/gtk2/interface-glade.c:9733
 msgid "Listen on TCP _port:"
 msgstr "待受 TCP ポート(_P):"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9519
+#: src/ui/gtk/gtk2/interface-glade.c:9745
 msgid "Make sure your firewall does not block this port!"
 msgstr "ファイアウォールでこのポートを塞いでいないか確認して下さい!"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9525
+#: src/ui/gtk/gtk2/interface-glade.c:9751
 msgid "Incoming connections"
 msgstr "内への接続"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9550
+#: src/ui/gtk/gtk2/interface-glade.c:9776
 msgid "T3"
 msgstr "T3"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9555
+#: src/ui/gtk/gtk2/interface-glade.c:9781
 msgid "T1"
 msgstr "T1"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9560
+#: src/ui/gtk/gtk2/interface-glade.c:9786
 msgid "SDSL"
 msgstr "SDSL"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9565
+#: src/ui/gtk/gtk2/interface-glade.c:9791
 msgid "ADSL"
 msgstr "ADSL"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9570
+#: src/ui/gtk/gtk2/interface-glade.c:9796
 msgid "ISDN (128 kbps)"
 msgstr "ISDN (128 キロビット/秒)"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9575
+#: src/ui/gtk/gtk2/interface-glade.c:9801
 msgid "ISDN (64 kbps)"
 msgstr "ISDN (64 キロビット/秒)"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9580
+#: src/ui/gtk/gtk2/interface-glade.c:9806
 msgid "Analog modem (56 kbps)"
 msgstr "アナログモデム (56 キロビット/秒)"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9587
+#: src/ui/gtk/gtk2/interface-glade.c:9813
 msgid "Type of internet _connection"
 msgstr "インターネット接続の種類(_C)"
 
-#: src/ui/gtk/gtk2/interface-glade.c:9593
+#: src/ui/gtk/gtk2/interface-glade.c:9819
 msgid ""
 "These are only the basic settings. You can change them at any time later "
 "from the <i>Config</i> section. You'll also find a lot more fine-grained "
@@ -9096,7 +9210,7 @@ msgstr ""
 "これらは基本的な設定です。後で<i>設定</i>セクションから変更できます。必要に応"
 "じたきめ細かなオプションもあります。"
 
-#: src/ui/gtk/gtk2/interface-glade.c:10151
+#: src/ui/gtk/gtk2/interface-glade.c:10377
 msgid ""
 "This option can give peformance boosts to those on a large network with many "
 "peers by trying to locate files on the local networks first."
@@ -9104,119 +9218,39 @@ msgstr ""
 "このオプションを使用すると、まずローカルネット上でファイルを位置付けてみる事"
 "で、多くのピアを伴う巨大なネットワーク上での能率を押し上げます。"
 
-#: src/ui/gtk/gtk2/interface-glade.c:10164
+#: src/ui/gtk/gtk2/interface-glade.c:10390
 msgid "_Addresses of local network(s)"
 msgstr "ローカルネットのアドレス(_A)"
 
-#: src/ui/gtk/gtk2/interface-glade.c:11286
+#: src/ui/gtk/gtk2/interface-glade.c:11512
 msgid "seconds (0 - disable)"
 msgstr "秒 (0 - 無効)"
 
-#: src/ui/gtk/gtk2/interface-glade.c:11811
+#: src/ui/gtk/gtk2/interface-glade.c:12037
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "ベンダーが占有できる接続受口の最大割合です。"
 
-#: src/ui/gtk/gtk2/interface-glade.c:14023
+#: src/ui/gtk/gtk2/interface-glade.c:14252
 msgid "_Remove directory"
 msgstr "フォルダを削除(_R)"
 
-#: src/ui/gtk/gtk2/interface-glade.c:14216
+#: src/ui/gtk/gtk2/interface-glade.c:14461
 msgid "Minimum chunk _size"
 msgstr "最小チャンクサイズ(_S)"
 
-#: src/ui/gtk/gtk2/interface-glade.c:15560
+#: src/ui/gtk/gtk2/interface-glade.c:15742
 msgid "Propery pattern:"
 msgstr "プロパティのパターン:"
 
-#: src/ui/gtk/gtk2/interface-glade.c:15809
-msgid "_Core debug level"
-msgstr "コアのバグ解析レベル(_C)"
-
-#: src/ui/gtk/gtk2/interface-glade.c:15818
-msgid "_GUI debug level"
-msgstr "GUI のバグ解析レベル(_G)"
-
-#: src/ui/gtk/gtk2/interface-glade.c:15827
-msgid "_Lib debug level"
-msgstr "ライブラリのバグ解析レベル(_L)"
-
-#: src/ui/gtk/gtk2/interface-glade.c:15836
-msgid "_Track properties"
-msgstr "経路情報(_T)"
-
-#: src/ui/gtk/gtk2/interface-glade.c:15861
-msgid "_Stop collecting hosts"
-msgstr "ホストの収集を中止(_S)"
-
-#: src/ui/gtk/gtk2/interface-glade.c:15868
-msgid "Global"
-msgstr "全般"
-
-#: src/ui/gtk/gtk2/interface-glade.c:15996
-msgid "_Search management"
-msgstr "検索管理(_S)"
-
-#: src/ui/gtk/gtk2/interface-glade.c:16004
-msgid "QR_P management"
-msgstr "QRP 管理(_P)"
-
-#: src/ui/gtk/gtk2/interface-glade.c:16012
-msgid "_UDP traffic"
-msgstr "UDP トラフィック(_U)"
-
-#: src/ui/gtk/gtk2/interface-glade.c:16020
-msgid "Query management"
-msgstr "検索式管理"
-
-#: src/ui/gtk/gtk2/interface-glade.c:16028
-msgid "Message routing"
-msgstr "メッセージ経路設定"
-
-#: src/ui/gtk/gtk2/interface-glade.c:16036
-msgid "Pong caching"
-msgstr "Pong キャッシュ"
-
-#: src/ui/gtk/gtk2/interface-glade.c:16044
-msgid "_GWebCache"
-msgstr "GWebCache(_G)"
-
-#: src/ui/gtk/gtk2/interface-glade.c:16052
-msgid "Dynamic query _hits"
-msgstr "動的検索式ヒット(_H)"
-
-#: src/ui/gtk/gtk2/interface-glade.c:16060
-msgid "Dynamic _querying"
-msgstr "動的問合わせ(_Q)"
-
-#: src/ui/gtk/gtk2/interface-glade.c:16068
-msgid "UR_L handling"
-msgstr "URL ハンドリング(_L)"
-
-#: src/ui/gtk/gtk2/interface-glade.c:16076
-msgid "_Vendor messages"
-msgstr "ベンダーメッセージ(_V)"
-
-#: src/ui/gtk/gtk2/interface-glade.c:16084
-msgid "GGEP extensions"
-msgstr "GGEP 拡張子"
-
-#: src/ui/gtk/gtk2/interface-glade.c:16092
-msgid "Functionality"
-msgstr "機能別"
-
-#: src/ui/gtk/gtk2/interface-glade.c:16097
-msgid "Debug levels"
-msgstr "バグ解析レベル"
-
-#: src/ui/gtk/gtk2/interface-glade.c:16224
+#: src/ui/gtk/gtk2/interface-glade.c:15942
 msgid "Edit filters"
 msgstr "フィルター編集"
 
-#: src/ui/gtk/gtk2/interface-glade.c:16275
+#: src/ui/gtk/gtk2/interface-glade.c:15993
 msgid "Close this search"
 msgstr "この検索を閉じる"
 
-#: src/ui/gtk/gtk2/interface-glade.c:16587
+#: src/ui/gtk/gtk2/interface-glade.c:16305
 msgid ""
 "Erases all selected files as far as they are incomplete and discontinues the "
 "download of the selected files."
@@ -9224,57 +9258,66 @@ msgstr ""
 "選択した複数のファイルを、それが不完全なものである限り、すべて削除してそれら"
 "のファイルのダウンロードを打ち切ります。"
 
-#: src/ui/gtk/gtk2/interface-glade.c:16821
+#: src/ui/gtk/gtk2/interface-glade.c:16539
 msgid "Select all matching regex from queue"
 msgstr "正規表現に一致するもの全てを待機列から選択"
 
-#: src/ui/gtk/gtk2/nodes.c:285
+#: src/ui/gtk/gtk2/nodes.c:213
+msgid "Location"
+msgstr ""
+
+#: src/ui/gtk/gtk2/nodes.c:218
+#, fuzzy
+msgid "Version"
+msgstr "拡張子"
+
+#: src/ui/gtk/gtk2/nodes.c:385
 msgid "Leaf"
 msgstr "リーフ"
 
-#: src/ui/gtk/gtk2/nodes.c:287
+#: src/ui/gtk/gtk2/nodes.c:387
 msgid "Ultrapeer"
 msgstr "ウルトラピア"
 
-#: src/ui/gtk/gtk2/nodes.c:289
+#: src/ui/gtk/gtk2/nodes.c:389
 msgid "Legacy"
 msgstr "レガシー"
 
-#: src/ui/gtk/gtk2/nodes.c:291
+#: src/ui/gtk/gtk2/nodes.c:391
 msgid "Crawler"
 msgstr "クロウラー"
 
-#: src/ui/gtk/gtk2/nodes.c:293
+#: src/ui/gtk/gtk2/nodes.c:393
 msgid "UDP"
 msgstr "UDP"
 
-#: src/ui/gtk/gtk2/nodes.c:326 src/ui/gtk/gtk2/search_cb.c:564
-#: src/ui/gtk/settings_cb.c:310
+#: src/ui/gtk/gtk2/nodes.c:432 src/ui/gtk/gtk2/search_cb.c:564
+#: src/ui/gtk/settings_cb.c:323
 msgid "Move the cursor over a row to see details."
 msgstr "表示したい行にカーソルを移動すると詳細が見られます。"
 
-#: src/ui/gtk/gtk2/nodes.c:343 src/ui/gtk/gtk2/search_cb.c:578
+#: src/ui/gtk/gtk2/nodes.c:449 src/ui/gtk/gtk2/search_cb.c:578
 msgid "Peer:"
 msgstr "ピア:"
 
-#: src/ui/gtk/gtk2/nodes.c:345
+#: src/ui/gtk/gtk2/nodes.c:451
 msgid "Peermode:"
 msgstr "ピアモード:"
 
-#: src/ui/gtk/gtk2/nodes.c:347
+#: src/ui/gtk/gtk2/nodes.c:453
 msgid "incoming"
 msgstr "内への接続"
 
-#: src/ui/gtk/gtk2/nodes.c:347
+#: src/ui/gtk/gtk2/nodes.c:453
 msgid "outgoing"
 msgstr "外への接続"
 
-#: src/ui/gtk/gtk2/nodes.c:418
+#: src/ui/gtk/gtk2/nodes.c:530
 #, c-format
 msgid "Reverse lookup for %s failed"
 msgstr "%s の逆引き検索に失敗しました。"
 
-#: src/ui/gtk/gtk2/nodes.c:798
+#: src/ui/gtk/gtk2/nodes.c:937
 msgid "Reverse lookup in progress..."
 msgstr "逆引き検索を実行中..."
 
@@ -9332,7 +9375,7 @@ msgstr "モニタ"
 
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
-#: src/ui/gtk/main.c:446
+#: src/ui/gtk/main.c:448
 msgid "translation_credit|"
 msgstr ""
 "翻訳者 (アルファベット順):\n"
@@ -9343,7 +9386,7 @@ msgstr ""
 "Thomas Schürger (ドイツ語)\tVitaliy Buyar (ウクライナ語)\n"
 "Wu Xiaoguang (簡体字中国語)"
 
-#: src/ui/gtk/main.c:490
+#: src/ui/gtk/main.c:495
 msgid ""
 "\n"
 "The FAQ document is damaged.\n"
@@ -9351,7 +9394,7 @@ msgstr ""
 "\n"
 "FAQ 文書に欠陥があります。\n"
 
-#: src/ui/gtk/main.c:499
+#: src/ui/gtk/main.c:518
 msgid ""
 "The FAQ document could not be loaded. Please read the online FAQ at http://"
 "gtk-gnutella.sourceforge.net/?page=faq instead."
@@ -9359,7 +9402,7 @@ msgstr ""
 "FAQ 文書を読み込めませんでした。代わりに http://gtk-gnutella.sourceforge."
 "net/?page=faq にあるオンラインの FAQ を御覧下さい。"
 
-#: src/ui/gtk/main.c:897
+#: src/ui/gtk/main.c:916
 #, c-format
 msgid "%d second"
 msgid_plural "%d seconds"
@@ -9514,115 +9557,116 @@ msgstr "マグネットを解析できません"
 msgid "The SHA1 query is not validly encoded"
 msgstr "この SHA1 検索式は適切にエンコードされていません"
 
-#: src/ui/gtk/settings.c:1137
+#: src/ui/gtk/settings.c:1093
 msgid "Never"
 msgstr "未発生"
 
-#: src/ui/gtk/settings.c:1200
+#: src/ui/gtk/settings.c:1156 src/ui/gtk/settings_cb.c:574
+#: src/ui/gtk/settings_cb.c:637
 msgid "No"
 msgstr "いいえ"
 
-#: src/ui/gtk/settings.c:1331
+#: src/ui/gtk/settings.c:1287
 #, c-format
 msgid "%u/%u host (%u%%)"
 msgid_plural "%u/%u hosts (%u%%)"
 msgstr[0] "%u/%u 基のホスト (%u%%)"
 
-#: src/ui/gtk/settings.c:1417 src/ui/gtk/settings.c:1439
+#: src/ui/gtk/settings.c:1373 src/ui/gtk/settings.c:1395
 msgid "loading..."
 msgstr "読込み中..."
 
-#: src/ui/gtk/settings.c:1418
+#: src/ui/gtk/settings.c:1374
 msgid "Reading host cache..."
 msgstr "ホストキャッシュ読込み中..."
 
-#: src/ui/gtk/settings.c:1440
+#: src/ui/gtk/settings.c:1396
 msgid "Reading ultra cache..."
 msgstr "ウルトラキャッシュ読込み中..."
 
-#: src/ui/gtk/settings.c:1484
+#: src/ui/gtk/settings.c:1440
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "*** 古いバージョンが動作中です！ ***"
 
-#: src/ui/gtk/settings.c:1509
+#: src/ui/gtk/settings.c:1465
 msgid "*** CPU OVERLOADED -- TRYING TO SAVE CYCLES ***"
 msgstr "** CPU が過負荷になっています --- サイクルの節約を試みます ***"
 
-#: src/ui/gtk/settings.c:1534
+#: src/ui/gtk/settings.c:1490
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
 msgstr "*** アップロードが停滞しています、帯域幅が不足していませんか？ ***"
 
-#: src/ui/gtk/settings.c:1566
+#: src/ui/gtk/settings.c:1522
 msgid "*** FILE DESCRIPTORS HAVE RUN OUT! ***"
 msgstr "*** ファイル記述子の数が尽きました！ ***"
 
-#: src/ui/gtk/settings.c:1571
+#: src/ui/gtk/settings.c:1527
 msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr "*** ファイル記述子の数が尽きかけています！ ***"
 
-#: src/ui/gtk/settings.c:1586
+#: src/ui/gtk/settings.c:1542
 msgid "*** VERSION WILL SOON BECOME OLD! ***"
 msgstr "*** このバージョンはもうすぐ古いものになります！ ***"
 
-#: src/ui/gtk/settings.c:1589
+#: src/ui/gtk/settings.c:1545
 #, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
 msgid_plural "*** VERSION WILL BECOME OLD IN %d DAYS! ***"
 msgstr[0] "*** このバージョンはあと %d 日で古いものになります！ ***"
 
-#: src/ui/gtk/settings.c:1980 src/ui/gtk/settings.c:2017
+#: src/ui/gtk/settings.c:1943 src/ui/gtk/settings.c:1980
 msgid "Hide settings"
 msgstr "設定を隠す"
 
-#: src/ui/gtk/settings.c:2058
+#: src/ui/gtk/settings.c:2021
 #, c-format
 msgid "Address/port changed to: %s"
 msgstr "アドレス/ポートが変更されました: %s"
 
 # MERGEBLE: not yet reported
-#: src/ui/gtk/settings.c:2388
+#: src/ui/gtk/settings.c:2351
 msgid "no sources"
 msgstr "送信源はありません"
 
-#: src/ui/gtk/settings.c:2392
+#: src/ui/gtk/settings.c:2355
 #, c-format
 msgid "%u source"
 msgid_plural "%u sources"
 msgstr[0] "%u 基の送信源"
 
-#: src/ui/gtk/settings.c:2407
+#: src/ui/gtk/settings.c:2370
 #, c-format
 msgid "%u active"
 msgstr "%u 件が動作中"
 
-#: src/ui/gtk/settings.c:2435
+#: src/ui/gtk/settings.c:2398
 #, c-format
 msgid "%u queued"
 msgstr "%u 件が待機中"
 
-#: src/ui/gtk/settings.c:2556
+#: src/ui/gtk/settings.c:2519
 #, c-format
 msgid "%u/%u connection"
 msgid_plural "%u/%u connections"
 msgstr[0] "%u/%u 件の接続"
 
-#: src/ui/gtk/settings.c:2593
+#: src/ui/gtk/settings.c:2556
 #, c-format
 msgid "%u/%u upload"
 msgid_plural "%u/%u uploads"
 msgstr[0] "%u/%u 件のアップロード"
 
-#: src/ui/gtk/settings.c:2618
+#: src/ui/gtk/settings.c:2581
 #, c-format
 msgid "%u/%u download"
 msgid_plural "%u/%u downloads"
 msgstr[0] "%u/%u 件のダウンロード"
 
-#: src/ui/gtk/settings_cb.c:485 src/ui/gtk/settings_cb.c:599
-msgid "<none selected>"
-msgstr "<選択されていません>"
+#: src/ui/gtk/settings_cb.c:617
+msgid "Select a property to see its description."
+msgstr ""
 
-#: src/ui/gtk/settings_cb.c:628
+#: src/ui/gtk/settings_cb.c:820
 #, c-format
 msgid "No property name matches the pattern \"%s\"."
 msgstr "パターン \"%s\" に一致するプロパティはありません。"
