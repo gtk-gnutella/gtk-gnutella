@@ -232,6 +232,33 @@ on_dlg_quit_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
     return TRUE;
 }
 
+#define GENERATE_MENU_HANDLER(item, tab) \
+void \
+on_menu_ ## item ## _activate(GtkMenuItem *unused_menuitem, \
+	gpointer unused_udata) \
+{ \
+	(void) unused_menuitem; \
+	(void) unused_udata; \
+    gtk_notebook_set_page( \
+		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")), \
+		nb_main_page_ ## tab ); \
+}
+
+GENERATE_MENU_HANDLER(net_connections, gnet);
+GENERATE_MENU_HANDLER(net_stats, gnet_stats);
+GENERATE_MENU_HANDLER(net_hostcache, hostcache);
+GENERATE_MENU_HANDLER(uploads_transfers, uploads);
+GENERATE_MENU_HANDLER(uploads_history, uploads_stats);
+GENERATE_MENU_HANDLER(downloads_files, dl_files);
+GENERATE_MENU_HANDLER(downloads_active, dl_active);
+GENERATE_MENU_HANDLER(downloads_queue, dl_queue);
+GENERATE_MENU_HANDLER(search_searches, search);
+GENERATE_MENU_HANDLER(search_monitor, monitor);
+GENERATE_MENU_HANDLER(search_stats, search_stats);
+
+#undef GENERATE_MENU_HANDLER
+
+
 #ifdef USE_GTK2
 static void
 menu_collapse(GtkTreeView *tv, GtkTreeIter *first)
@@ -406,30 +433,6 @@ on_main_gui_treeview_menu_row_expanded(GtkTreeView *tree, GtkTreeIter *iter,
 	g_assert(id >= 0 && id < nb_main_page_num);
 	gui_prop_set_guint32(PROP_TREEMENU_NODES_EXPANDED, &expanded, id, 1);
 }
-
-#define GENERATE_MENU_HANDLER(item, tab) \
-void \
-on_menu_ ## item ## _activate(GtkMenuItem *unused_menuitem, \
-	gpointer unused_udata) \
-{ \
-	(void) unused_menuitem; \
-	(void) unused_udata; \
-    gtk_notebook_set_page( \
-		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")), \
-		nb_main_page_ ## tab ); \
-}
-
-GENERATE_MENU_HANDLER(net_connections, gnet);
-GENERATE_MENU_HANDLER(net_stats, gnet_stats);
-GENERATE_MENU_HANDLER(net_hostcache, hostcache);
-GENERATE_MENU_HANDLER(uploads_transfers, uploads);
-GENERATE_MENU_HANDLER(uploads_history, uploads_stats);
-GENERATE_MENU_HANDLER(downloads_files, dl_files);
-GENERATE_MENU_HANDLER(downloads_active, dl_active);
-GENERATE_MENU_HANDLER(downloads_queue, dl_queue);
-GENERATE_MENU_HANDLER(search_searches, search);
-GENERATE_MENU_HANDLER(search_monitor, monitor);
-GENERATE_MENU_HANDLER(search_stats, search_stats);
 
 #endif /* USE_GTK2 */
 

@@ -76,6 +76,192 @@
 
 	    <widget>
 	      <class>GtkMenuItem</class>
+	      <name>menu_net</name>
+	      <label>GnutellaNet</label>
+	      <right_justify>False</right_justify>
+
+	      <widget>
+		<class>GtkMenu</class>
+		<name>menu_net_menu</name>
+
+		<widget>
+		  <class>GtkMenuItem</class>
+		  <name>connections</name>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_menu_net_connections_activate</handler>
+		    <last_modification_time>Sun, 06 Nov 2005 00:59:02 GMT</last_modification_time>
+		  </signal>
+		  <label>Connections</label>
+		  <right_justify>False</right_justify>
+		</widget>
+
+		<widget>
+		  <class>GtkMenuItem</class>
+		  <name>menu_net_stats</name>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_menu_net_stats_activate</handler>
+		    <last_modification_time>Sun, 06 Nov 2005 01:04:03 GMT</last_modification_time>
+		  </signal>
+		  <label>Stats</label>
+		  <right_justify>False</right_justify>
+		</widget>
+
+		<widget>
+		  <class>GtkMenuItem</class>
+		  <name>menu_net_hostcache</name>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_menu_net_hostcache_activate</handler>
+		    <last_modification_time>Sun, 06 Nov 2005 01:04:03 GMT</last_modification_time>
+		  </signal>
+		  <label>Hostcache</label>
+		  <right_justify>False</right_justify>
+		</widget>
+	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkMenuItem</class>
+	      <name>menu_uploads</name>
+	      <label>Uploads</label>
+	      <right_justify>False</right_justify>
+
+	      <widget>
+		<class>GtkMenu</class>
+		<name>menu_uploads_menu</name>
+
+		<widget>
+		  <class>GtkMenuItem</class>
+		  <name>menu_uploads_transfers</name>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_menu_uploads_transfers_activate</handler>
+		    <last_modification_time>Sun, 06 Nov 2005 01:08:47 GMT</last_modification_time>
+		  </signal>
+		  <label>Transfers</label>
+		  <right_justify>False</right_justify>
+		</widget>
+
+		<widget>
+		  <class>GtkMenuItem</class>
+		  <name>menu_uploads_history</name>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_menu_uploads_history_activate</handler>
+		    <last_modification_time>Sun, 06 Nov 2005 01:04:03 GMT</last_modification_time>
+		  </signal>
+		  <label>History</label>
+		  <right_justify>False</right_justify>
+		</widget>
+	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkMenuItem</class>
+	      <name>menu_downloads</name>
+	      <label>Downloads</label>
+	      <right_justify>False</right_justify>
+
+	      <widget>
+		<class>GtkMenu</class>
+		<name>menu_downloads_menu</name>
+
+		<widget>
+		  <class>GtkMenuItem</class>
+		  <name>menu_downloads_files</name>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_menu_downloads_files_activate</handler>
+		    <last_modification_time>Sun, 06 Nov 2005 01:04:03 GMT</last_modification_time>
+		  </signal>
+		  <label>Files</label>
+		  <right_justify>False</right_justify>
+		</widget>
+
+		<widget>
+		  <class>GtkMenuItem</class>
+		  <name>menu_downloads_active</name>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_menu_downloads_active_activate</handler>
+		    <last_modification_time>Sun, 06 Nov 2005 01:04:03 GMT</last_modification_time>
+		  </signal>
+		  <label>Active</label>
+		  <right_justify>False</right_justify>
+		</widget>
+
+		<widget>
+		  <class>GtkMenuItem</class>
+		  <name>menu_downloads_queue</name>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_menu_downloads_queue_activate</handler>
+		    <last_modification_time>Sun, 06 Nov 2005 01:04:03 GMT</last_modification_time>
+		  </signal>
+		  <label>Queue</label>
+		  <right_justify>False</right_justify>
+		</widget>
+	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkMenuItem</class>
+	      <name>menu_search</name>
+	      <label>Search</label>
+	      <right_justify>False</right_justify>
+
+	      <widget>
+		<class>GtkMenu</class>
+		<name>menu_search_menu</name>
+
+		<widget>
+		  <class>GtkMenuItem</class>
+		  <name>menu_search_searches</name>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_menu_search_searches_activate</handler>
+		    <last_modification_time>Sun, 06 Nov 2005 01:04:03 GMT</last_modification_time>
+		  </signal>
+		  <label>Searches</label>
+		  <right_justify>False</right_justify>
+		</widget>
+
+		<widget>
+		  <class>GtkMenuItem</class>
+		  <name>menu_search_monitor</name>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_menu_search_monitor_activate</handler>
+		    <last_modification_time>Sun, 06 Nov 2005 01:04:03 GMT</last_modification_time>
+		  </signal>
+		  <label>Monitor</label>
+		  <right_justify>False</right_justify>
+		</widget>
+
+		<widget>
+		  <class>GtkMenuItem</class>
+		  <name>menu_search_stats</name>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_menu_search_stats_activate</handler>
+		    <last_modification_time>Sun, 06 Nov 2005 01:04:03 GMT</last_modification_time>
+		  </signal>
+		  <label>Stats</label>
+		  <right_justify>False</right_justify>
+		</widget>
+	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkMenuItem</class>
+	      <name>separator21</name>
+	      <right_justify>False</right_justify>
+	    </widget>
+
+	    <widget>
+	      <class>GtkMenuItem</class>
 	      <name>quit</name>
 	      <accelerator>
 		<modifiers>GDK_CONTROL_MASK</modifiers>
@@ -163,19 +349,14 @@
 
 	    <widget>
 	      <class>GtkCheckMenuItem</class>
-	      <name>menu_statusbar_visible</name>
-	      <accelerator>
-		<modifiers>GDK_CONTROL_MASK</modifiers>
-		<key>GDK_s</key>
-		<signal>toggled</signal>
-	      </accelerator>
+	      <name>menu_navtree_visible</name>
 	      <signal>
 		<name>activate</name>
-		<handler>on_menu_statusbar_visible_activate</handler>
-		<last_modification_time>Sun, 24 Mar 2002 19:11:12 GMT</last_modification_time>
+		<handler>on_menu_navtree_visible_activate</handler>
+		<last_modification_time>Sun, 06 Nov 2005 00:10:02 GMT</last_modification_time>
 	      </signal>
-	      <label>show _Statusbar</label>
-	      <active>True</active>
+	      <label>show Nagivation Tree</label>
+	      <active>False</active>
 	      <always_show_toggle>True</always_show_toggle>
 	    </widget>
 
@@ -365,6 +546,30 @@
 		</widget>
 	      </widget>
 	    </widget>
+
+	    <widget>
+	      <class>GtkMenuItem</class>
+	      <name>separator20</name>
+	      <right_justify>False</right_justify>
+	    </widget>
+
+	    <widget>
+	      <class>GtkCheckMenuItem</class>
+	      <name>menu_statusbar_visible</name>
+	      <accelerator>
+		<modifiers>GDK_CONTROL_MASK</modifiers>
+		<key>GDK_s</key>
+		<signal>toggled</signal>
+	      </accelerator>
+	      <signal>
+		<name>activate</name>
+		<handler>on_menu_statusbar_visible_activate</handler>
+		<last_modification_time>Sun, 24 Mar 2002 19:11:12 GMT</last_modification_time>
+	      </signal>
+	      <label>show _Statusbar</label>
+	      <active>True</active>
+	      <always_show_toggle>True</always_show_toggle>
+	    </widget>
 	  </widget>
 	</widget>
 
@@ -438,8 +643,7 @@
 	  <class>GtkVPaned</class>
 	  <name>vpaned_sidebar</name>
 	  <handle_size>10</handle_size>
-	  <gutter_size>10</gutter_size>
-	  <position>114</position>
+	  <gutter_size>6</gutter_size>
 	  <child>
 	    <padding>0</padding>
 	    <expand>True</expand>
@@ -447,43 +651,49 @@
 	  </child>
 
 	  <widget>
-	    <class>GtkScrolledWindow</class>
-	    <name>sw_menu</name>
-	    <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-	    <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-	    <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-	    <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+	    <class>GtkViewport</class>
+	    <name>viewport_menu</name>
+	    <shadow_type>GTK_SHADOW_NONE</shadow_type>
 	    <child>
-	      <shrink>False</shrink>
-	      <resize>False</resize>
+	      <shrink>True</shrink>
+	      <resize>True</resize>
 	    </child>
 
 	    <widget>
-	      <class>GtkCTree</class>
-	      <name>ctree_menu</name>
-	      <can_focus>True</can_focus>
-	      <signal>
-		<name>tree_select_row</name>
-		<handler>on_ctree_menu_tree_select_row</handler>
-		<last_modification_time>Thu, 28 Mar 2002 15:12:13 GMT</last_modification_time>
-	      </signal>
-	      <columns>1</columns>
-	      <column_widths>80</column_widths>
-	      <selection_mode>GTK_SELECTION_BROWSE</selection_mode>
-	      <show_titles>True</show_titles>
-	      <shadow_type>GTK_SHADOW_IN</shadow_type>
+	      <class>GtkScrolledWindow</class>
+	      <name>sw_menu</name>
+	      <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+	      <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+	      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+	      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 
 	      <widget>
-		<class>GtkLabel</class>
-		<child_name>CTree:title</child_name>
-		<name>label117</name>
-		<label>Navigator</label>
-		<justify>GTK_JUSTIFY_CENTER</justify>
-		<wrap>False</wrap>
-		<xalign>7.45058e-09</xalign>
-		<yalign>0.5</yalign>
-		<xpad>0</xpad>
-		<ypad>0</ypad>
+		<class>GtkCTree</class>
+		<name>ctree_menu</name>
+		<can_focus>True</can_focus>
+		<signal>
+		  <name>tree_select_row</name>
+		  <handler>on_ctree_menu_tree_select_row</handler>
+		  <last_modification_time>Thu, 28 Mar 2002 15:12:13 GMT</last_modification_time>
+		</signal>
+		<columns>1</columns>
+		<column_widths>80</column_widths>
+		<selection_mode>GTK_SELECTION_BROWSE</selection_mode>
+		<show_titles>True</show_titles>
+		<shadow_type>GTK_SHADOW_IN</shadow_type>
+
+		<widget>
+		  <class>GtkLabel</class>
+		  <child_name>CTree:title</child_name>
+		  <name>label117</name>
+		  <label>Navigator</label>
+		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <wrap>False</wrap>
+		  <xalign>7.45058e-09</xalign>
+		  <yalign>0.5</yalign>
+		  <xpad>0</xpad>
+		  <ypad>0</ypad>
+		</widget>
 	      </widget>
 	    </widget>
 	  </widget>
@@ -517,7 +727,7 @@
 	      <widget>
 		<class>GtkViewport</class>
 		<name>viewport49</name>
-		<shadow_type>GTK_SHADOW_IN</shadow_type>
+		<shadow_type>GTK_SHADOW_NONE</shadow_type>
 
 		<widget>
 		  <class>GtkScrolledWindow</class>
