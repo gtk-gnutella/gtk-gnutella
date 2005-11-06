@@ -154,7 +154,8 @@ on_treeview_nodes_button_press_event(GtkWidget *unused_widget,
     if (3 == event->button) {
         /* right click section (popup menu) */
 
-        gtk_menu_popup(GTK_MENU(popup_nodes), NULL, NULL, NULL, NULL, 1, 0);
+        gtk_menu_popup(GTK_MENU(popup_nodes), NULL, NULL, NULL, NULL,
+			event->button, event->time);
         return TRUE;
 	}
 	return FALSE;
