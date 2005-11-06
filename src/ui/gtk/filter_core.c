@@ -1164,6 +1164,11 @@ filter_rule_to_gchar(rule_t *r)
 
 /**
  * Create a new filter with the given name.
+ *
+ * @param name	The name for the filter; must be UTF-8 encoded; the string
+ *				will be copied.
+ *
+ * @return an initialized filter context.
  */
 filter_t *
 filter_new(const gchar *name)
@@ -2323,13 +2328,13 @@ filter_shutdown(void)
 void
 filter_init(void)
 {
-    filter_global_pre  = filter_new(_("Global (pre)"));
-    filter_global_post = filter_new(_("Global (post)"));
-    filter_show        = filter_new(_("DISPLAY"));
-    filter_drop        = filter_new(_("DON'T DISPLAY"));
-    filter_download    = filter_new(_("DOWNLOAD"));
-    filter_nodownload  = filter_new(_("DON'T DOWNLOAD"));
-    filter_return      = filter_new(_("RETURN"));
+    filter_global_pre  = filter_new(lazy_ui_string_to_utf8(_("Global (pre)")));
+    filter_global_post = filter_new(lazy_ui_string_to_utf8(_("Global (post)")));
+    filter_show        = filter_new(lazy_ui_string_to_utf8(_("DISPLAY")));
+    filter_drop        = filter_new(lazy_ui_string_to_utf8(_("DON'T DISPLAY")));
+    filter_download    = filter_new(lazy_ui_string_to_utf8(_("DOWNLOAD")));
+    filter_nodownload = filter_new(lazy_ui_string_to_utf8(_("DON'T DOWNLOAD")));
+    filter_return      = filter_new(lazy_ui_string_to_utf8(_("RETURN")));
 
     filters = g_list_append(filters, filter_global_pre);
     filters = g_list_append(filters, filter_global_post);
