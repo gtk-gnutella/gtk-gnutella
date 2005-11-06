@@ -167,8 +167,6 @@ prop_parse_timestamp(const gchar *name,
 			errno = 0;
 			if ((time_t) -1 == (t = mktime(&tm)))
 				error = errno ? errno : EINVAL;
-			if (error)
-				raise(SIGTRAP);
 		}
 	}
 	
