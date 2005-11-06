@@ -286,7 +286,7 @@ nodes_gui_create_treeview_nodes(void)
 		GTK_SELECTION_MULTIPLE);
 
 	for (i = 0; i < G_N_ELEMENTS(columns); i++)
-		add_column(tree, columns[i].title, cell_renderer_func,
+		add_column(tree, _(columns[i].title), cell_renderer_func,
 			GUINT_TO_POINTER(columns[i].id));
 }
 
