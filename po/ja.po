@@ -69,7 +69,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-11-06 09:37+0900\n"
-"PO-Revision-Date: 2005-11-02 21:10+0900\n"
+"PO-Revision-Date: 2005-11-06 09:42+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -2937,7 +2937,7 @@ msgstr "タブあるいは検索一覧を表示します。"
 
 #: src/if/gui_property.c:1088
 msgid "Display Navigation Tree."
-msgstr ""
+msgstr "ナビゲーションツリーを表示します。"
 
 #: src/if/gui_property.c:1105
 msgid "Display toolbar."
@@ -6129,9 +6129,10 @@ msgstr ")"
 msgid "Show settings"
 msgstr "設定の表示"
 
+# NOTE: it shouldn't be translated, you can simply copy & paste
 #: src/ui/gtk/gtk1/interface-glade.c:4184
 msgid "#|Active"
-msgstr "アクティブ"
+msgstr "#|Active"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4192
 #: src/ui/gtk/gtk2/interface-glade.c:16598
@@ -6184,9 +6185,10 @@ msgstr " 件が現存, 内 "
 msgid " passive)"
 msgstr " 件が受動状態)"
 
+# NOTE: it shouldn't be translated, you can simply copy & paste
 #: src/ui/gtk/gtk1/interface-glade.c:4452
 msgid "#|Queue"
-msgstr "キュー"
+msgstr "#|Queue"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4460
 #: src/ui/gtk/gtk2/interface-glade.c:5677
@@ -8372,9 +8374,8 @@ msgstr "部分ファイルのアップロードを有効にする(_P)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15421
 #: src/ui/gtk/gtk2/interface-glade.c:14374
-#, fuzzy
 msgid "Minimum file size"
-msgstr "最小の大きさ:"
+msgstr "最小のファイルサイズ"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15443
 #: src/ui/gtk/gtk2/interface-glade.c:14500
@@ -8658,14 +8659,9 @@ msgstr "プロパティの参照"
 msgid "Property pattern:"
 msgstr "プロパティのパターン:"
 
-# NOTE: this string is used as follows
-#
-# 'Served 0 HTML and 0 Gnutella browse requests'
-#
 #: src/ui/gtk/gtk1/interface-glade.c:16793 src/ui/gtk/settings_cb.c:450
-#, fuzzy
 msgid "Saved"
-msgstr " "
+msgstr "保存されました"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16809 src/ui/gtk/settings_cb.c:452
 msgid "Property"
@@ -8677,7 +8673,7 @@ msgstr "値"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16835
 msgid "Selected property:"
-msgstr ""
+msgstr "選択されたプロパティ:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16843
 #: src/ui/gtk/gtk1/interface-glade.c:16861
@@ -8686,24 +8682,22 @@ msgstr ""
 #: src/ui/gtk/gtk2/interface-glade.c:15779
 #: src/ui/gtk/gtk2/interface-glade.c:15797 src/ui/gtk/settings_cb.c:426
 #: src/ui/gtk/settings_cb.c:546 src/ui/gtk/settings_cb.c:612
-#, fuzzy
 msgid "<no property selected>"
-msgstr "<選択されていません>"
+msgstr "<プロパティは選択されていません>"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16852
 #: src/ui/gtk/gtk2/interface-glade.c:15791
 msgid "Min/Max:"
-msgstr ""
+msgstr "最小/最大:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16880
 #: src/ui/gtk/gtk2/interface-glade.c:15773
 msgid "Default value:"
-msgstr ""
+msgstr "標準の値:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16907
-#, fuzzy
 msgid "Edit value:"
-msgstr "フィルター編集"
+msgstr "値を編集"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16924
 #: src/ui/gtk/gtk2/interface-glade.c:15880
@@ -8835,24 +8829,24 @@ msgstr "Pixmap ファイルロード中のエラー: %s"
 
 # MERGEBLE:
 #: src/ui/gtk/gtk2/downloads.c:893
-#, fuzzy, c-format
+#, c-format
 msgid "[%u/%u]  TR:  -"
-msgstr "[%d/%d]  残り時間:  -"
+msgstr "[%u/%u]  残り時間:  -"
 
 #: src/ui/gtk/gtk2/downloads.c:1389
-#, fuzzy, c-format
+#, c-format
 msgid " (slot %u"
-msgstr " (受口 %d"
+msgstr " (受口 %u"
 
 #: src/ui/gtk/gtk2/downloads.c:1406
-#, fuzzy, c-format
+#, c-format
 msgid " retry in %us"
-msgstr " %d秒後に再試行"
+msgstr " %u秒後に再試行"
 
 #: src/ui/gtk/gtk2/downloads.c:1473
-#, fuzzy, c-format
+#, c-format
 msgid "Sending request (%u%%)"
-msgstr "リクエストを送信しています (%d%%)"
+msgstr "リクエストを送信しています (%u%%)"
 
 #: src/ui/gtk/gtk2/downloads.c:1509 src/ui/gtk/uploads_common.c:114
 msgid "< 1s"
@@ -8881,9 +8875,9 @@ msgid " TR: %s"
 msgstr " 残り時間: %s"
 
 #: src/ui/gtk/gtk2/downloads.c:1657
-#, fuzzy, c-format
+#, c-format
 msgid "Retry in %us"
-msgstr "%d秒後に再試行"
+msgstr "%u秒後に再試行"
 
 #: src/ui/gtk/gtk2/downloads.c:1672
 #, c-format
@@ -8931,66 +8925,53 @@ msgid "Download selected files"
 msgstr "ダウンロード"
 
 #: src/ui/gtk/gtk2/interface-glade.c:1998
-#, fuzzy
 msgid "_Navigation"
-msgstr "ナビゲータ"
+msgstr "ナビゲーション(_N)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2007
-#, fuzzy
 msgid "_GnutellaNet"
-msgstr "GnutellaNet"
+msgstr "_GnutellaNet"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2021
-#, fuzzy
 msgid "_Connections"
-msgstr "接続件数を表示(_C)"
+msgstr "接続件数(_C)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2026
 #: src/ui/gtk/gtk2/interface-glade.c:2113
-#, fuzzy
 msgid "_Stats"
-msgstr "ステータス"
+msgstr "ステータス(_S)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2031
-#, fuzzy
 msgid "_Hostcache"
-msgstr "ホストキャッシュ"
+msgstr "ホストキャッシュ(_H)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2036
-#, fuzzy
 msgid "_Uploads"
-msgstr "アップロード"
+msgstr "アップロード(_U)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2050
-#, fuzzy
 msgid "_Transfers"
-msgstr "転送済データ"
+msgstr "転送済データ(_T)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2055
-#, fuzzy
 msgid "_History"
-msgstr "履歴"
+msgstr "履歴(_H)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2060
-#, fuzzy
 msgid "_Downloads"
-msgstr "ダウンロード"
+msgstr "ダウンロード(_D)"
 
-# FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
 #: src/ui/gtk/gtk2/interface-glade.c:2074
-#, fuzzy
 msgid "_Files"
-msgstr "ファイル"
+msgstr "ファイル(_F)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2079
-#, fuzzy
 msgid "_Queue"
-msgstr "キュー"
+msgstr "キュー(_Q)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2084
-#, fuzzy
 msgid "_Active"
-msgstr "アクティブ"
+msgstr "アクティブ(_A)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2089
 #: src/ui/gtk/gtk2/interface-glade.c:2826
@@ -8998,18 +8979,16 @@ msgid "_Search"
 msgstr "検索(_S)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2103
-#, fuzzy
 msgid "_Searches"
-msgstr "検索"
+msgstr "検索内容(_S)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2108
-#, fuzzy
 msgid "_Monitor"
-msgstr "モニタ"
+msgstr "モニター(_M)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2168
 msgid "show _Navigation Tree"
-msgstr ""
+msgstr "ナビゲーションツリーを表示(_N)"
 
 # NOTE: this string is used as follows
 #
@@ -9264,12 +9243,11 @@ msgstr "正規表現に一致するもの全てを待機列から選択"
 
 #: src/ui/gtk/gtk2/nodes.c:213
 msgid "Location"
-msgstr ""
+msgstr "場所"
 
 #: src/ui/gtk/gtk2/nodes.c:218
-#, fuzzy
 msgid "Version"
-msgstr "拡張子"
+msgstr "バージョン"
 
 #: src/ui/gtk/gtk2/nodes.c:385
 msgid "Leaf"
@@ -9664,7 +9642,7 @@ msgstr[0] "%u/%u 件のダウンロード"
 
 #: src/ui/gtk/settings_cb.c:617
 msgid "Select a property to see its description."
-msgstr ""
+msgstr "説明を見るにはプロパティを選択して下さい。"
 
 #: src/ui/gtk/settings_cb.c:820
 #, c-format
