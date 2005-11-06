@@ -58,7 +58,7 @@ extern const guint32  max_host_downloads;
 extern const guint32  max_uploads;
 extern const guint32  max_uploads_ip;
 extern const gchar   *local_ip;
-extern const guint64  current_ip_stamp;
+extern const time_t  current_ip_stamp;
 extern const guint32  average_ip_uptime;
 extern const time_t  start_stamp;
 extern const guint32  average_servent_uptime;
