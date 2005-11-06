@@ -973,17 +973,17 @@ short_rate(guint64 rate)
 gchar *
 short_time(gint t)
 {
-	static gchar b[SIZE_FIELD_MAX];
+	static gchar b[4 * SIZE_FIELD_MAX];
 	gint s = MAX(t, 0);
 
 	if (s > 86400)
-		gm_snprintf(b, sizeof(b), "%dd %dh", s / 86400, (s % 86400) / 3600);
+		gm_snprintf(b, sizeof(b), _("%dd %dh"), s / 86400, (s % 86400) / 3600);
 	else if (s > 3600)
-		gm_snprintf(b, sizeof(b), "%dh %dm", s / 3600, (s % 3600) / 60);
+		gm_snprintf(b, sizeof(b), _("%dh %dm"), s / 3600, (s % 3600) / 60);
 	else if (s > 60)
-		gm_snprintf(b, sizeof(b), "%dm %ds", s / 60, s % 60);
+		gm_snprintf(b, sizeof(b), _("%dm %ds"), s / 60, s % 60);
 	else
-		gm_snprintf(b, sizeof(b), "%ds", s);
+		gm_snprintf(b, sizeof(b), _("%ds"), s);
 
 	return b;
 }
