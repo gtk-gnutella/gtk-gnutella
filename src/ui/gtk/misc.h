@@ -28,11 +28,14 @@
 
 #include "gui.h"
 #include "if/ui/gtk/misc.h"
+#include "lib/prop.h"
 
 void gui_general_timer(time_t now);
 void gui_update_traffic_stats(void);
 void gui_update_stats_frames(void);
 void gui_fix_coords(guint32 *coord);
+void gui_save_window(GtkWidget *widget, property_t prop);
+void gui_restore_window(GtkWidget *widget, property_t prop);
 
 /*
  * Hit record comparison functions.

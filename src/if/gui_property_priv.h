@@ -74,6 +74,7 @@ extern const guint32  gnet_stats_recv_col_widths[10];
 extern const guint32  hcache_col_widths[4];
 extern const guint32  window_coords[4];
 extern const guint32  filter_dlg_coords[4];
+extern const guint32  prefs_dlg_coords[4];
 extern const guint32  fileinfo_divider_pos;
 extern const guint32  main_divider_pos;
 extern const guint32  gnet_stats_divider_pos;

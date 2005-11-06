@@ -124,21 +124,21 @@ gui_init_window_title(void)
  * The contents of the navigation tree menu in exact order.
  */
 static const struct {
-	gboolean	parent;	/**< Children have the last "TRUE" node as parent */
+	const gint	depth;	/**< Depth in tree */
 	const gchar *title; /**< Translatable title for the node */
-	gint		page;	/**< Page reference ("the target") for the node */
+	const gint	page;	/**< Page reference ("the target") for the node */
 } menu[] = {
-	{ TRUE,	 N_("GnutellaNet"),		nb_main_page_gnet },
-	{ FALSE, N_("Stats"),			nb_main_page_gnet_stats },
-	{ FALSE, N_("Hostcache"),		nb_main_page_hostcache },
-	{ TRUE,	 N_("Uploads"),			nb_main_page_uploads },
-	{ FALSE, N_("History"), 		nb_main_page_uploads_stats },
-	{ TRUE,	 N_("Downloads"),		nb_main_page_dl_files },
-	{ FALSE, N_("Active"),			nb_main_page_dl_active },
-	{ FALSE, N_("Queue"),			nb_main_page_dl_queue },
-	{ TRUE,	 N_("Search"),			nb_main_page_search },
-	{ FALSE, N_("Monitor"),			nb_main_page_monitor },
-	{ FALSE, N_("Stats"),			nb_main_page_search_stats },
+	{   0,	 N_("GnutellaNet"),		nb_main_page_gnet },
+	{     1, N_("Stats"),			nb_main_page_gnet_stats },
+	{     1, N_("Hostcache"),		nb_main_page_hostcache },
+	{   0,	 N_("Uploads"),			nb_main_page_uploads },
+	{     1, N_("History"), 		nb_main_page_uploads_stats },
+	{   0,	 N_("Downloads"),		nb_main_page_dl_files },
+	{     1, N_("Active"),			nb_main_page_dl_active },
+	{     1, N_("Queue"),			nb_main_page_dl_queue },
+	{   0,	 N_("Search"),			nb_main_page_search },
+	{     1, N_("Monitor"),			nb_main_page_monitor },
+	{     1, N_("Stats"),			nb_main_page_search_stats },
 };
 
 
@@ -167,11 +167,14 @@ gui_init_menu(void)
 		G_TYPE_INT		/* Menu entry ID (persistent between releases) */
 	};
 	GtkTreeView	*treeview;
-	GtkTreeIter	parent;
+	GtkTreeIter	parent, iter;
 	GtkTreeStore *store;
 	GtkTreeViewColumn *column;
     GtkCellRenderer *renderer;
 	guint i;
+	gint depth = -1;
+
+	STATIC_ASSERT(G_N_ELEMENTS(types) == 3);
 
     renderer = gtk_cell_renderer_text_new();
     g_object_set(renderer, "ypad", GUI_CELL_RENDERER_YPAD, (void *) 0);
@@ -179,18 +182,29 @@ gui_init_menu(void)
 	store = gtk_tree_store_newv(G_N_ELEMENTS(types), types);
 
 	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
-		GtkTreeIter	iter;
-
-		gtk_tree_store_append(store, &iter, menu[i].parent ? NULL : &parent);
-		if (menu[i].parent)
+		if (depth < menu[i].depth) {
+			g_assert(menu[i].depth == depth + 1);
+	
 			parent = iter;
-
+			depth = menu[i].depth;
+		} else if (depth > menu[i].depth) {
+			do {
+				gboolean valid;
+				
+				valid = gtk_tree_model_iter_parent(GTK_TREE_MODEL(store),
+							&parent, &iter);	
+				g_assert(valid);
+				iter = parent;
+			} while (--depth > menu[i].depth);
+			depth = menu[i].depth;
+		}
+		
+		gtk_tree_store_append(store, &iter, depth > 0 ? &parent : NULL);
 		gtk_tree_store_set(store, &iter,
 				0, _(menu[i].title),
 				1, menu[i].page,
 				2, i,
 				(-1));
-		STATIC_ASSERT(G_N_ELEMENTS(types) == 3);
 	}
 
 	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
@@ -202,8 +216,11 @@ gui_init_menu(void)
     gtk_tree_view_append_column(treeview, column);
 	gtk_tree_view_columns_autosize(treeview);
 
+#if 0
 	gtk_tree_model_foreach(GTK_TREE_MODEL(store),
-		(GtkTreeModelForeachFunc) gui_init_menu_helper, treeview);
+		gui_init_menu_helper, treeview);
+#endif
+
 	g_object_unref(store);
 
 	g_signal_connect(G_OBJECT(treeview), "cursor-changed",
@@ -297,10 +314,10 @@ gui_init_menu(void)
 
 		title[0] = _(menu[i].title);
     	node = gtk_ctree_insert_node(ctree_menu,
-					menu[i].parent ? NULL : parent_node, NULL,
+					menu[i].depth == 0 ? NULL : parent_node, NULL,
 					(gchar **) title, /* Override const */
 					0, NULL, NULL, NULL, NULL, FALSE, TRUE);
-		if (menu[i].parent)
+		if (i == 0 || menu[i].depth < menu[i - 1].depth)
 			parent_node = node;
 
     	gtk_ctree_node_set_row_data(ctree_menu, node,
@@ -698,84 +715,19 @@ main_gui_init(void)
 void
 main_gui_run(void)
 {
-    guint32 coord[4] = { 0, 0, 0, 0 };
 	time_t now = tm_time_exact();
 
-    gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, G_N_ELEMENTS(coord));
-	gui_fix_coords(coord);
-
+    gtk_widget_show(main_window);		/* Display the main window */
+	gui_restore_window(main_window, PROP_WINDOW_COORDS);
+ 
+    icon_init();
     main_gui_timer(now);
 
-    /*
-     * We need to tell Gtk the size of the window, otherwise we'll get
-     * strange side effects when the window is shown (like implicitly
-     * resized widgets).
-     *      -- Richard, 8/9/2002
-     */
-
-    gtk_window_set_default_size(GTK_WINDOW(main_window), coord[2], coord[3]);
-
-    gtk_widget_show(main_window);		/* Display the main window */
-
-    icon_init();
-
-#ifdef USE_GTK2
-    if (coord[2] != 0 && coord[3] != 0) {
-		gint x, y, dx, dy;
-		gint i;
-
-		/* First, move the window to the supposed location. Next make the
-		 * window visible by gtk_window_get_position()... */
-
-       	gtk_window_move(GTK_WINDOW(main_window), coord[0], coord[1]);
-
-		/* The first call to gtk_window_get_position() makes the window
-		 * visible but x and y are always set to zero. The second call
-		 * yields the *real* values. */
-
-		for (i = 0; i < 2; i++)
-			gtk_window_get_position(GTK_WINDOW(main_window), &x, &y);
-
-		gtk_window_resize(GTK_WINDOW(main_window), coord[2], coord[3]);
-
-		/* (At least) FVWM2 doesn't take the window decoration into account
-		 * when handling positions requests. Readjust the window position
-		 * if we detect that the window manager added an offset. */
-
-		dx = (gint) coord[0] - x;
-		dy = (gint) coord[1] - y;
-		if (dx || dy) {
-        	gtk_window_move(GTK_WINDOW(main_window),
-				coord[0] + dx, coord[1] + dy);
-		}
-	}
-#else
-    if (coord[2] != 0 && coord[3] != 0) {
-		gint x, y, dx, dy;
-
-        gdk_window_move_resize(main_window->window,
-			coord[0], coord[1], coord[2], coord[3]);
-
-		/* (At least) FVWM2 doesn't take the window decoration into account
-		 * when handling positions requests. Readjust the window position
-		 * if we detect that the window manager added an offset. */
-
-		gdk_window_get_root_origin(main_window->window, &x, &y);
-		dx = (gint) coord[0] - x;
-		dy = (gint) coord[1] - y;
-		if (dx || dy)
-        	gdk_window_move(main_window->window, coord[0] + dx, coord[1] + dy);
-
-	}
-
-    gtk_widget_fix_width(
+ 	gtk_widget_fix_width(
         lookup_widget(main_window, "frame_statusbar_uptime"),
         lookup_widget(main_window, "label_statusbar_uptime"),
         8, 8);
-#endif /* USE_GTK2 */
-
-    gtk_widget_show(main_window);		/* Display the main window */
-
+		
 	/*
 	 * Make sure the application starts in the Gnet pane.
 	 */
@@ -835,21 +787,7 @@ main_gui_shutdown(void)
 void
 main_gui_update_coords(void)
 {
-    guint32 coord[4] = { 0, 0, 0, 0};
-	gint x, y, w, h;
-
-#ifdef USE_GTK1
-	gdk_window_get_root_origin(main_window->window, &x, &y);
-	gdk_window_get_size(main_window->window, &w, &h);
-#else
-	gtk_window_get_position(GTK_WINDOW(main_window), &x, &y);
-	gtk_window_get_size(GTK_WINDOW(main_window), &w, &h);
-#endif /* USE_GTK1 */
-	coord[0] = x;
-	coord[1] = y;
-	coord[2] = w;
-	coord[3] = h;
-    gui_prop_set_guint32(PROP_WINDOW_COORDS, coord, 0, G_N_ELEMENTS(coord));
+	gui_save_window(main_window, PROP_WINDOW_COORDS);
 }
 
 /**

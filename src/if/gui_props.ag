@@ -352,6 +352,15 @@ prop = {
     };
 };
 
+prop = {
+    name = "prefs_dlg_coords";
+    desc = "Position and size of the preferences dialog.";
+    type = guint32;
+    vector_size = 4;
+    data = {
+        default = "{ 0, 0, 0, 0 }";
+    };
+};
 
 prop = {
     name = "fileinfo_divider_pos";
