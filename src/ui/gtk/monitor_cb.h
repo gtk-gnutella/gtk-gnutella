@@ -39,6 +39,10 @@ gboolean on_clist_monitor_button_press_event(GtkWidget *widget,
 #ifdef USE_GTK2
 gboolean on_treeview_monitor_button_press_event(GtkWidget *widget,
 	GdkEventButton *event, gpointer user_data);
+void on_button_monitor_clear_clicked(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
+void on_popup_monitor_copy_to_clipboard_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
 #endif /* USE_GTK2 */
 
 #endif /* _gtk_monitor_cb_h_ */

@@ -849,22 +849,46 @@ create_popup_monitor (void)
 {
   GtkWidget *popup_monitor;
   GtkWidget *popup_monitor_add_search;
+  GtkWidget *image758;
+  GtkWidget *popup_monitor_copy_to_clipboard;
+  GtkWidget *image759;
 
   popup_monitor = gtk_menu_new ();
   gtk_widget_set_name (popup_monitor, "popup_monitor");
 
-  popup_monitor_add_search = gtk_menu_item_new_with_mnemonic (_("Add as search"));
+  popup_monitor_add_search = gtk_image_menu_item_new_with_mnemonic (_("Add as search"));
   gtk_widget_set_name (popup_monitor_add_search, "popup_monitor_add_search");
   gtk_widget_show (popup_monitor_add_search);
   gtk_container_add (GTK_CONTAINER (popup_monitor), popup_monitor_add_search);
 
+  image758 = gtk_image_new_from_stock ("gtk-find", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image758, "image758");
+  gtk_widget_show (image758);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_monitor_add_search), image758);
+
+  popup_monitor_copy_to_clipboard = gtk_image_menu_item_new_with_mnemonic (_("Copy to clipboard"));
+  gtk_widget_set_name (popup_monitor_copy_to_clipboard, "popup_monitor_copy_to_clipboard");
+  gtk_widget_show (popup_monitor_copy_to_clipboard);
+  gtk_container_add (GTK_CONTAINER (popup_monitor), popup_monitor_copy_to_clipboard);
+
+  image759 = gtk_image_new_from_stock ("gtk-copy", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image759, "image759");
+  gtk_widget_show (image759);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_monitor_copy_to_clipboard), image759);
+
   g_signal_connect ((gpointer) popup_monitor_add_search, "activate",
                     G_CALLBACK (on_popup_monitor_add_search_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_monitor_copy_to_clipboard, "activate",
+                    G_CALLBACK (on_popup_monitor_copy_to_clipboard_activate),
                     NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (popup_monitor, popup_monitor, "popup_monitor");
   GLADE_HOOKUP_OBJECT (popup_monitor, popup_monitor_add_search, "popup_monitor_add_search");
+  GLADE_HOOKUP_OBJECT (popup_monitor, image758, "image758");
+  GLADE_HOOKUP_OBJECT (popup_monitor, popup_monitor_copy_to_clipboard, "popup_monitor_copy_to_clipboard");
+  GLADE_HOOKUP_OBJECT (popup_monitor, image759, "image759");
 
   return popup_monitor;
 }
@@ -5812,16 +5836,17 @@ create_main_window_monitor_tab (void)
 {
   GtkWidget *main_window_monitor_tab;
   GtkWidget *vbox_monitor;
+  GtkWidget *scrolledwindow26;
+  GtkWidget *viewport10;
+  GtkWidget *treeview_monitor;
   GtkWidget *hbox45;
+  GtkWidget *button_monitor_clear;
   GtkWidget *checkbutton_monitor_enable;
   GtkWidget *label75;
   GtkWidget *label68;
   GtkObject *spinbutton_monitor_items_adj;
   GtkWidget *spinbutton_monitor_items;
   GtkWidget *label69;
-  GtkWidget *scrolledwindow26;
-  GtkWidget *viewport10;
-  GtkWidget *treeview_monitor;
 
   main_window_monitor_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (main_window_monitor_tab, "main_window_monitor_tab");
@@ -5833,10 +5858,32 @@ create_main_window_monitor_tab (void)
   gtk_container_add (GTK_CONTAINER (main_window_monitor_tab), vbox_monitor);
   gtk_container_set_border_width (GTK_CONTAINER (vbox_monitor), 2);
 
+  scrolledwindow26 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow26, "scrolledwindow26");
+  gtk_widget_show (scrolledwindow26);
+  gtk_box_pack_start (GTK_BOX (vbox_monitor), scrolledwindow26, TRUE, TRUE, 0);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow26), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
+  viewport10 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport10, "viewport10");
+  gtk_widget_show (viewport10);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow26), viewport10);
+
+  treeview_monitor = gtk_tree_view_new ();
+  gtk_widget_set_name (treeview_monitor, "treeview_monitor");
+  gtk_widget_show (treeview_monitor);
+  gtk_container_add (GTK_CONTAINER (viewport10), treeview_monitor);
+  gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_monitor), TRUE);
+
   hbox45 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox45, "hbox45");
   gtk_widget_show (hbox45);
   gtk_box_pack_start (GTK_BOX (vbox_monitor), hbox45, FALSE, TRUE, 0);
+
+  button_monitor_clear = gtk_button_new_from_stock ("gtk-clear");
+  gtk_widget_set_name (button_monitor_clear, "button_monitor_clear");
+  gtk_widget_show (button_monitor_clear);
+  gtk_box_pack_start (GTK_BOX (hbox45), button_monitor_clear, FALSE, TRUE, 0);
 
   checkbutton_monitor_enable = gtk_check_button_new_with_mnemonic (_("Search _monitor enabled"));
   gtk_widget_set_name (checkbutton_monitor_enable, "checkbutton_monitor_enable");
@@ -5869,37 +5916,25 @@ create_main_window_monitor_tab (void)
   gtk_label_set_justify (GTK_LABEL (label69), GTK_JUSTIFY_CENTER);
   gtk_misc_set_padding (GTK_MISC (label69), 4, 0);
 
-  scrolledwindow26 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow26, "scrolledwindow26");
-  gtk_widget_show (scrolledwindow26);
-  gtk_box_pack_start (GTK_BOX (vbox_monitor), scrolledwindow26, TRUE, TRUE, 0);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow26), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-
-  viewport10 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport10, "viewport10");
-  gtk_widget_show (viewport10);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow26), viewport10);
-
-  treeview_monitor = gtk_tree_view_new ();
-  gtk_widget_set_name (treeview_monitor, "treeview_monitor");
-  gtk_widget_show (treeview_monitor);
-  gtk_container_add (GTK_CONTAINER (viewport10), treeview_monitor);
-  gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_monitor), TRUE);
+  g_signal_connect ((gpointer) button_monitor_clear, "clicked",
+                    G_CALLBACK (on_button_monitor_clear_clicked),
+                    NULL);
 
   gtk_label_set_mnemonic_widget (GTK_LABEL (label68), spinbutton_monitor_items);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_monitor_tab, main_window_monitor_tab, "main_window_monitor_tab");
   GLADE_HOOKUP_OBJECT (main_window_monitor_tab, vbox_monitor, "vbox_monitor");
+  GLADE_HOOKUP_OBJECT (main_window_monitor_tab, scrolledwindow26, "scrolledwindow26");
+  GLADE_HOOKUP_OBJECT (main_window_monitor_tab, viewport10, "viewport10");
+  GLADE_HOOKUP_OBJECT (main_window_monitor_tab, treeview_monitor, "treeview_monitor");
   GLADE_HOOKUP_OBJECT (main_window_monitor_tab, hbox45, "hbox45");
+  GLADE_HOOKUP_OBJECT (main_window_monitor_tab, button_monitor_clear, "button_monitor_clear");
   GLADE_HOOKUP_OBJECT (main_window_monitor_tab, checkbutton_monitor_enable, "checkbutton_monitor_enable");
   GLADE_HOOKUP_OBJECT (main_window_monitor_tab, label75, "label75");
   GLADE_HOOKUP_OBJECT (main_window_monitor_tab, label68, "label68");
   GLADE_HOOKUP_OBJECT (main_window_monitor_tab, spinbutton_monitor_items, "spinbutton_monitor_items");
   GLADE_HOOKUP_OBJECT (main_window_monitor_tab, label69, "label69");
-  GLADE_HOOKUP_OBJECT (main_window_monitor_tab, scrolledwindow26, "scrolledwindow26");
-  GLADE_HOOKUP_OBJECT (main_window_monitor_tab, viewport10, "viewport10");
-  GLADE_HOOKUP_OBJECT (main_window_monitor_tab, treeview_monitor, "treeview_monitor");
 
   return main_window_monitor_tab;
 }
