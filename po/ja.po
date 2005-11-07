@@ -68,19 +68,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-11-07 20:09+0900\n"
-"PO-Revision-Date: 2005-11-06 12:51+0900\n"
+"POT-Creation-Date: 2005-11-07 20:14+0900\n"
+"PO-Revision-Date: 2005-11-07 20:16+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Poedit-Language: Japanese\n"
-"X-Poedit-Country: JAPAN\n"
-"X-Poedit-SourceCharset: utf-8\n"
-"X-Poedit-KeywordsList: N_;Q_;NG_:1,2\n"
-"X-Poedit-Basepath: /opt/src/network/gnutella/gtk-gnutella-devel\n"
 
 #: src/core/downloads.c:950 src/core/downloads.c:1008
 msgid "No longer connected"
@@ -2750,15 +2745,15 @@ msgstr "接続ノードからのクエリを表示"
 
 #: src/if/gui_property.c:202
 msgid "TCP & UDP"
-msgstr "TCP と UDP"
+msgstr "TCPとUDP"
 
 #: src/if/gui_property.c:203
 msgid "TCP only"
-msgstr "TCP のみ"
+msgstr "TCPのみ"
 
 #: src/if/gui_property.c:204
 msgid "UDP only"
-msgstr "UDP のみ"
+msgstr "UDPのみ"
 
 #: src/if/gui_property.c:272
 msgid "Icons"
@@ -2901,9 +2896,8 @@ msgid "Position and size of the filter dialog."
 msgstr "フィルターダイアログの位置と大きさです。"
 
 #: src/if/gui_property.c:913
-#, fuzzy
 msgid "Position and size of the preferences dialog."
-msgstr "フィルターダイアログの位置と大きさです。"
+msgstr "環境設定ダイアログの位置と大きさです。"
 
 #: src/if/gui_property.c:933
 msgid "Position of the divider in the fileinfo panel."
@@ -5145,11 +5139,11 @@ msgstr "ファイル(_F)"
 #: src/ui/gtk/gtk1/interface-glade.c:13822
 #: src/ui/gtk/gtk2/interface-glade.c:11043 src/ui/gtk/main.c:131
 msgid "GnutellaNet"
-msgstr "GnutellaNet"
+msgstr "Gnutella ネット"
 
 #: src/ui/gtk/gtk1/interface-glade.c:733
 msgid "Connections"
-msgstr "接続件数"
+msgstr "接続状況"
 
 #: src/ui/gtk/gtk1/interface-glade.c:741 src/ui/gtk/gtk1/interface-glade.c:861
 #: src/ui/gtk/main.c:132 src/ui/gtk/main.c:141
@@ -5428,7 +5422,7 @@ msgstr "受動検索はこのノードを通過したいずれの検索結果に
 #: src/ui/gtk/gtk1/interface-glade.c:1738
 #: src/ui/gtk/gtk2/interface-glade.c:3685
 msgid "GnutellaNet connections"
-msgstr "GnutellaNet 接続"
+msgstr "Gnutella ネットワークの接続状況"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1784
 #: src/ui/gtk/gtk1/interface-glade.c:3222
@@ -5541,9 +5535,10 @@ msgstr "最大"
 msgid "Ultrapeers in leaf mode"
 msgstr "リーフモードでのウルトラピア"
 
+# FIXME: should be revised
 #: src/ui/gtk/gtk1/interface-glade.c:2003
 msgid "Quick-connect pool size"
-msgstr "敏速接続のプールサイズ"
+msgstr "簡易接続のプールサイズ"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2022
 msgid "Transferred data"
@@ -6839,7 +6834,7 @@ msgstr "今は何もありません"
 #: src/ui/gtk/gtk1/interface-glade.c:7652
 #: src/ui/gtk/gtk2/interface-glade.c:982
 msgid "Ruleset editor"
-msgstr "ルール集エディタ"
+msgstr "ルールエディター"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7703
 #: src/ui/gtk/gtk2/interface-glade.c:1018
@@ -7638,10 +7633,11 @@ msgstr "ダウンロード受信バッファ(_D):"
 msgid "Network"
 msgstr "ネットワーク"
 
+# NOTE: `Gnutella' may be redundant
 #: src/ui/gtk/gtk1/interface-glade.c:12288
 #: src/ui/gtk/gtk2/interface-glade.c:11471
 msgid "Gnutella network mode"
-msgstr "Gnutella ネットワークモード"
+msgstr "ネットワークモード"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12321
 #: src/ui/gtk/gtk2/interface-glade.c:11151
@@ -7790,10 +7786,11 @@ msgstr "検索キュー"
 msgid "Spacing"
 msgstr "間隔"
 
+# NOTE: `GnutellaNet' may be redundant
 #: src/ui/gtk/gtk1/interface-glade.c:13056
 #: src/ui/gtk/gtk2/interface-glade.c:11736
 msgid "GnutellaNet timeouts (all values in seconds)"
-msgstr "GnutellaNet タイムアウト (値は全て秒単位)"
+msgstr "タイムアウト (全て秒単位)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13077
 #: src/ui/gtk/gtk1/interface-glade.c:14890
@@ -7823,10 +7820,11 @@ msgstr "送信フロー制御のタイムアウト(_X)"
 msgid "Incoming connecting timeout"
 msgstr "ノード内への接続タイムアウト"
 
+# NOTE: `GnutellaNet' may be redundant
 #: src/ui/gtk/gtk1/interface-glade.c:13183
 #: src/ui/gtk/gtk2/interface-glade.c:11861
 msgid "GnutellaNet TTL settings"
-msgstr "GnutellaNet TTL 設定"
+msgstr "TTL (Time-To-Live) の設定"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13204
 #: src/ui/gtk/gtk2/interface-glade.c:11778
@@ -7955,10 +7953,11 @@ msgstr "ホップのランダム因子"
 msgid "Clean up queries before processing"
 msgstr "処理前に検索式を一掃"
 
+# NOTE: `GnutellaNet' may be redundant
 #: src/ui/gtk/gtk1/interface-glade.c:13671
 #: src/ui/gtk/gtk2/interface-glade.c:12236
 msgid "GnutellaNet message size limits"
-msgstr "GnutellaNet メッセージサイズ制限"
+msgstr "メッセージサイズの制限"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13690
 #: src/ui/gtk/gtk2/interface-glade.c:12203
@@ -8609,7 +8608,7 @@ msgstr "上級者のための追加情報の表示と高度な設定(_E)"
 #: src/ui/gtk/gtk1/interface-glade.c:16686
 #: src/ui/gtk/gtk2/interface-glade.c:15648
 msgid "GnutellaNet display"
-msgstr "GnutellaNet 表示"
+msgstr "Gnutellaネット表示"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16719
 #: src/ui/gtk/gtk2/interface-glade.c:15486
@@ -9000,9 +8999,8 @@ msgid "Download selected files"
 msgstr "ダウンロード"
 
 #: src/ui/gtk/gtk2/interface-glade.c:869
-#, fuzzy
 msgid "Copy to clipboard"
-msgstr "URL をコピー"
+msgstr "クリップボードへコピー"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2022
 msgid "_Navigation"
@@ -9010,11 +9008,11 @@ msgstr "ナビゲーション(_N)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2031
 msgid "_GnutellaNet"
-msgstr "_GnutellaNet"
+msgstr "Gnutellaネット(_G)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2045
 msgid "_Connections"
-msgstr "接続件数(_C)"
+msgstr "接続状況(_C)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2050
 #: src/ui/gtk/gtk2/interface-glade.c:2137
