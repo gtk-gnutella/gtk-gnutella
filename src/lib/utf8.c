@@ -123,7 +123,7 @@ enum utf8_cd {
 	UTF8_CD_ISO8859_6,
 	UTF8_CD_ISO8859_7,
 	UTF8_CD_ISO8859_8,
-	UTF8_CD_ISO2022_JP,
+	UTF8_CD_SJIS,
 	UTF8_CD_EUC_JP,
 	UTF8_CD_KOI8_R,
 
@@ -142,7 +142,7 @@ static struct {
 	{ D("ISO-8859-6",	UTF8_CD_ISO8859_6) },
 	{ D("ISO-8859-7",	UTF8_CD_ISO8859_7) },
 	{ D("ISO-8859-8",	UTF8_CD_ISO8859_8) },
-	{ D("ISO-2022-JP",	UTF8_CD_ISO2022_JP) },
+	{ D("SJIS",			UTF8_CD_SJIS) },
 	{ D("EUC-JP",		UTF8_CD_EUC_JP) },
 	{ D("KOI8-R",		UTF8_CD_KOI8_R) },
 #undef D
@@ -1439,7 +1439,7 @@ locale_init(void)
 	 * Skip regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c,v 1.85 "))
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c,v 1.86 "))
 		regression_checks();
 
 	locale_init_passed = TRUE;
@@ -1987,20 +1987,28 @@ looks_like_iso8859_8(const gchar *src)
 	return '\0' == c && n > 0 && (s - src) > 8 && (s - src) / n < 2;
 }
 
+/**
+ * SJIS
+ * [\x00-\x7F]                              # ASCII/JIS Roman
+ * [\x81-\x9F\xE0-\xFC][\x40-\x7E\x80-\xFC] # JIS X 0208:1997
+ * [\xA0-\xDF]                              # Half width Katakana
+ */	  
 gboolean
-looks_like_iso2022(const gchar *src)
+looks_like_sjis(const gchar *src)
 {
 	const gchar *s;
 	size_t n = 0;
 	guchar c;
 
 	for (s = src; '\0' != (c = *s); s++)
-		n += 0x1B == *s;
+		n += (c >= 0xA0 && c <= 0xDF) ||
+			(c >= 0x81 && c <= 0x9F) ||
+			(c >= 0xE0 && c <= 0xFC);
 
 	/* Rewind over trailing ASCII for better ratio detection */
 	s = ascii_rewind(src, s);
 
-	return '\0' == c && n > 0 && (s - src) / n < 5;
+	return '\0' == c && n > 0 && (s - src) / n < 2;
 }
 
 gboolean
@@ -2036,8 +2044,8 @@ unknown_to_utf8(const gchar *src, gboolean add_charset)
 	if (utf8_is_valid_string(src))
 		return deconstify_gchar(src);
 
-	if (looks_like_iso2022(src))
-		id = UTF8_CD_ISO2022_JP;
+	if (looks_like_sjis(src))
+		id = UTF8_CD_SJIS;
 
 	if (iso8859_is_valid_string(src)) {
 		const gchar *s;
