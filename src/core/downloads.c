@@ -8403,8 +8403,10 @@ download_retrieve(void)
 				1, d_push, FALSE, TRUE, NULL, NULL, 0);
 
 		if (d == NULL) {
-			g_message("Ignored dup download at line #%d (server %s)",
-				line - maxlines + 1, host_addr_port_to_string(d_addr, d_port));
+			if (download_debug)
+				g_message("Ignored dup download at line #%d (server %s)",
+					line - maxlines + 1,
+					host_addr_port_to_string(d_addr, d_port));
 			goto next_entry;
 		}
 
