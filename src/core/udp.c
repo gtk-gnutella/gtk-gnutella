@@ -181,7 +181,7 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
 			g_assert_not_reached();
 		}
 		if (got_reply) {
-			g_message("NTP detected");
+			g_message("NTP detected at %s", host_addr_to_string(addr));
 			ntp_got_reply(s);
 			return;
 		}
