@@ -7317,10 +7317,6 @@ msgstr "Gtk-gnutella névjegye"
 msgid "[name and version]"
 msgstr "[név és változat]"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10296
-msgid "$Id$"
-msgstr ""
-
 #: src/ui/gtk/gtk1/interface-glade.c:10329
 #: src/ui/gtk/gtk2/interface-glade.c:1538
 msgid "Original author:"

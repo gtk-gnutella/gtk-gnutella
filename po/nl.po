@@ -17,7 +17,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: src/core/downloads.c:950 src/core/downloads.c:1008
 msgid "No longer connected"
@@ -5105,7 +5105,9 @@ msgstr[1] "%u downloads vergeten"
 #, c-format
 msgid "Selected %u of %u queued download matching \"%s\"."
 msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
-msgstr[0] "%u van %u wachtende download overeenkomend met \"%s\" geselecteerd."
+msgstr[0] ""
+"%u van %u wachtende download overeenkomend met \"%s\" geselecteerd."
+msgstr[1] ""
 "%u van %u wachtende downloads overeenkomend met \"%s\" geselecteerd."
 
 #: src/ui/gtk/gtk1/fileinfo.c:143 src/ui/gtk/gtk2/fileinfo.c:324
@@ -7210,10 +7212,6 @@ msgstr "Over gtk-gnutella"
 #: src/ui/gtk/gtk1/interface-glade.c:10288
 msgid "[name and version]"
 msgstr "[naam en versie]"
-
-#: src/ui/gtk/gtk1/interface-glade.c:10296
-msgid "$Id$"
-msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:10329
 #: src/ui/gtk/gtk2/interface-glade.c:1538
@@ -9679,4 +9677,3 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 #: src/ui/gtk/uploads_common.c:205
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
-
