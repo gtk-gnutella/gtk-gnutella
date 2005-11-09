@@ -180,6 +180,7 @@ enum {
 enum {
     c_sr_filename = 0,
 	c_sr_ext,
+    c_sr_charset,
     c_sr_size,
 	c_sr_count,
     c_sr_loc,
@@ -189,7 +190,6 @@ enum {
 #ifdef USE_GTK2
 	c_sr_fg, /**< invisible, holds the foreground color for the row */
 	c_sr_bg, /**< invisible, holds the background color for the row */
-	c_sr_record, /**< invisible, pointer to the record_t of this entry */
 #endif
 	c_sr_num
 };
