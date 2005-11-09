@@ -90,8 +90,10 @@ monitor_gui_add(query_type_t type, const gchar *item,
 	}
 
 	if (monitor_max_items > 0) {
+		const gchar *charset_ptr, *s;
+		gchar *dbuf;
 		GtkTreeIter iter;
-		gchar buf[128];
+		gchar buf[1024];
 
     	/* Aquire an iterator */
     	gtk_list_store_prepend(monitor_model, &iter);
@@ -101,8 +103,15 @@ monitor_gui_add(query_type_t type, const gchar *item,
 		concat_strings(buf, sizeof buf,
 			QUERY_SHA1 == type ? "urn:sha1:" : "", item, (void *) 0);
 
-   		gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN,
-			lazy_unknown_to_utf8_normalized(buf, UNI_NORM_GUI, TRUE), (-1));
+		s = lazy_unknown_to_utf8_normalized(buf, UNI_NORM_GUI, &charset_ptr);
+		if (s != buf) {
+			dbuf = g_strconcat("<", charset_ptr, "> ", s);
+			s = dbuf;
+		} else {
+			dbuf = NULL;
+		}
+		gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN, s, (-1));
+		G_FREE_NULL(dbuf);
 	}
 }
 
