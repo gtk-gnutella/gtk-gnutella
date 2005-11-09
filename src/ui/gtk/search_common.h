@@ -112,6 +112,9 @@ typedef struct record {
 	 */
 
 	gchar * l_name;				/**< Lower-cased file name */
+	size_t l_len;				/**< Length of lower-cased representation */
+	gchar * utf8_name;			/**< Normalized UTF-8 version of name */
+	size_t utf8_len;			/**< Length of UTF-8 name representation */
 } record_t;
 
 /*

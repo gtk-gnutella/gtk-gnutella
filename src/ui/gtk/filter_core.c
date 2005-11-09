@@ -1945,9 +1945,9 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
     /*
      * We only try to prevent circles or the filter is inactive.
      */
-    if ((filter->visited == TRUE) || !filter_is_active(filter)) {
+
+    if (filter->visited || !filter_is_active(filter))
         return 0;
-    }
 
     filter->visited = TRUE;
 
@@ -1969,13 +1969,37 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
                 match = TRUE;
                 break;
             case RULE_TEXT: {
-				size_t namelen = -1;
 				gchar *l_name = rec->l_name;
+				gchar *utf8_name = rec->utf8_name;
 
-				if (NULL == l_name) {
-					l_name = utf8_strlower_copy(lazy_unknown_to_utf8_normalized(
-								rec->name, UNI_NORM_GUI, FALSE));
-					namelen = strlen(l_name);
+				if (utf8_name == NULL) {
+					struct record *wrec = deconstify_gpointer(rec);
+
+					utf8_name = (gchar *)
+						lazy_unknown_to_utf8_normalized(rec->name,
+						UNI_NORM_GUI, FALSE);
+
+					/*
+					 * Cache for further rules, to avoid costly utf8
+					 * transformations for each text-matching rule
+					 * they have configured.
+					 */
+
+					if (utf8_name != rec->name) {
+						utf8_name = g_strdup(utf8_name);
+						wrec->utf8_name = atom_str_get(utf8_name);
+						G_FREE_NULL(utf8_name);
+					} else
+						wrec->utf8_name = atom_str_get(rec->name);
+
+					wrec->utf8_len = strlen(wrec->utf8_name);
+					utf8_name = rec->utf8_name;
+				}
+
+				if (l_name == NULL) {
+					struct record *wrec = deconstify_gpointer(rec);
+
+					l_name = utf8_strlower_copy(utf8_name);
 
 					/*
 					 * Cache for further rules, to avoid costly utf8
@@ -1983,22 +2007,21 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
 					 * rule they have configured.
 					 */
 
-					{
-						struct record *wrec = deconstify_gpointer(rec);
-						wrec->l_name = atom_str_get(l_name);
-					}
+					wrec->l_name = atom_str_get(l_name);
+					wrec->l_len = strlen(rec->l_name);
+
 					G_FREE_NULL(l_name);
 					l_name = rec->l_name;
 				}
 
                 switch (r->u.text.type) {
                 case RULE_TEXT_EXACT:
-                    if (strcmp(r->u.text.case_sensitive ? rec->name : l_name,
+                    if (strcmp(r->u.text.case_sensitive ? utf8_name : l_name,
                             r->u.text.match) == 0)
                         match = TRUE;
                     break;
                 case RULE_TEXT_PREFIX:
-                    if (strncmp(r->u.text.case_sensitive ? rec->name : l_name,
+                    if (strncmp(r->u.text.case_sensitive ? utf8_name : l_name,
                             r->u.text.match, r->u.text.matchlen) == 0)
                         match = TRUE;
                     break;
@@ -2014,7 +2037,7 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
                         ) {
                             if (
 								pattern_qsearch(l->data,
-                                 r->u.text.case_sensitive ? rec->name : l_name,
+                                 r->u.text.case_sensitive ? utf8_name : l_name,
 								 0, 0, qs_any) == NULL
 							)
                                 failed = TRUE;
@@ -2023,29 +2046,28 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
 						match = !failed;
                     }
                     break;
-                case RULE_TEXT_SUFFIX:
-/* FIXME */
-#if 0
+                case RULE_TEXT_SUFFIX: {
+					size_t namelen = r->u.text.case_sensitive ?
+						rec->utf8_len : rec->l_len;
+					size_t n;
                     n = r->u.text.matchlen;
-					if (namelen == (size_t) -1)
-						namelen = strlen(rec->name);
                     if (namelen > n
                         && strcmp((r->u.text.case_sensitive
-                               ? rec->name : l_name) + namelen
+                               ? utf8_name : l_name) + namelen
                               - n, r->u.text.match) == 0)
                         match = TRUE;
-#endif
                     break;
+				}
                 case RULE_TEXT_SUBSTR:
                     if (
 						pattern_qsearch(r->u.text.u.pattern,
-                                r->u.text.case_sensitive ? rec->name : l_name,
+                                r->u.text.case_sensitive ? utf8_name : l_name,
 								0, 0, qs_any) != NULL
 					)
                         match = TRUE;
                     break;
                 case RULE_TEXT_REGEXP:
-                    if ((i = regexec(r->u.text.u.re, rec->name,
+                    if ((i = regexec(r->u.text.u.re, utf8_name,
                              0, NULL, 0)) == 0)
                         match = TRUE;
                     if (i == REG_ESPACE)
