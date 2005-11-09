@@ -84,6 +84,7 @@ extern const guint32  search_max_results;
 extern const guint32  gui_debug;
 extern const guint32  filter_main_divider_pos;
 extern const gboolean search_results_show_tabs;
+extern const gboolean sidebar_visible;
 extern const gboolean navtree_visible;
 extern const gboolean toolbar_visible;
 extern const gboolean statusbar_visible;
