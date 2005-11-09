@@ -153,9 +153,8 @@ void guc_hsep_add_global_table_listener(GCallback cb,
 void guc_hsep_remove_global_table_listener(GCallback cb);
 
 /* http interface functions */
-const gchar *guc_http_range_to_gchar(const GSList *list);
-GSList * guc_http_range_merge
-		(GSList *old_list, GSList *new_list);
+const gchar *guc_http_range_to_string(const GSList *list);
+GSList * guc_http_range_merge(GSList *old_list, GSList *new_list);
 
 /* node interface functions */
 void guc_node_add_node_added_listener
