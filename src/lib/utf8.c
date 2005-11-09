@@ -2028,12 +2028,12 @@ iso8859_is_valid_string(const gchar *src)
  * The returned string is in no defined Unicode normalization form.
  *
  * @param src a NUL-terminated string.
- * @param add_charset	If TRUE, the name of the charset used to convert
- *						the string is prepended to the result.
+ * @param charset_ptr	If not NULL, it will point to the name of the charset
+ *						used to convert string.
  * @return the original pointer or a newly allocated UTF-8 encoded string.
  */
 gchar *
-unknown_to_utf8(const gchar *src, gboolean add_charset)
+unknown_to_utf8(const gchar *src, const gchar **charset_ptr)
 {
 	enum utf8_cd id = UTF8_CD_INVALID;
 	iconv_t cd = (iconv_t) -1;
@@ -2041,8 +2041,11 @@ unknown_to_utf8(const gchar *src, gboolean add_charset)
 
 	g_assert(src);
 
-	if (utf8_is_valid_string(src))
+	if (utf8_is_valid_string(src)) {
+		if (charset_ptr)
+			*charset_ptr = "UTF-8";
 		return deconstify_gchar(src);
+	}
 
 	if (looks_like_sjis(src))
 		id = UTF8_CD_SJIS;
@@ -2079,20 +2082,8 @@ unknown_to_utf8(const gchar *src, gboolean add_charset)
 	dst = convert_to_utf8(cd, src);
 	g_assert(utf8_is_valid_string(dst));
 
-	if (add_charset) {
-		const gchar *cs;
-		gchar *p;
-
-		/*
-		 * Prepend " <charset> " to the returned string for debugging. When
-	 	 * sorting by filename, these should appear on top.
-		 */
-
-		cs = UTF8_CD_INVALID == id ? "locale" : utf8_cd_to_name(id);
-		p = g_strconcat(" <", cs, "> ", convert_to_utf8(cd, src), (void *) 0);
-		G_FREE_NULL(dst);
-		dst = p;
-	}
+	if (charset_ptr)
+		*charset_ptr = UTF8_CD_INVALID == id ? "locale" : utf8_cd_to_name(id);
 
 	return dst;
 }
@@ -2186,11 +2177,11 @@ iso8859_1_to_utf8_normalized(const gchar *src, uni_norm_t norm)
  */
 gchar *
 unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
-	gboolean add_charset)
+	const gchar **charset_ptr)
 {
 	gchar *s_utf8, *s_norm;
 
-	s_utf8 = unknown_to_utf8(src, add_charset); /* May return src */
+	s_utf8 = unknown_to_utf8(src, charset_ptr); /* May return src */
 	if (s_utf8 == src || is_ascii_string(s_utf8))
 		return s_utf8;
 
@@ -2284,8 +2275,8 @@ LAZY_CONVERT(iso8859_1_to_utf8, (const gchar *src), (src))
  * @returns the converted string or ``str'' if no conversion was necessary.
  */
 LAZY_CONVERT(unknown_to_utf8_normalized,
-		(const gchar *src, uni_norm_t norm, gboolean add_charset),
-		(src, norm, add_charset))
+		(const gchar *src, uni_norm_t norm, const gchar **charset_ptr),
+		(src, norm, charset_ptr))
 
 /**
  * Converts a string as returned by the UI toolkit to UTF-8 but returns the

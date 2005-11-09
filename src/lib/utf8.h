@@ -162,7 +162,7 @@ const gchar *lazy_locale_to_utf8(const gchar *src);
 
 const gchar *lazy_locale_to_utf8_normalized(const gchar *src, uni_norm_t norm);
 const gchar *lazy_unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
-			gboolean add_charset);
+				const gchar **charset_ptr);
 
 gchar *iso8859_1_to_utf8(const gchar *str);
 gchar *iso8859_1_to_utf8_normalized(const gchar *str, uni_norm_t norm);
@@ -177,9 +177,9 @@ gchar *locale_to_utf8_normalized(const gchar *str, uni_norm_t norm);
 gchar *utf8_to_filename(const gchar *s);
 gchar *filename_to_utf8_normalized(const gchar *str, uni_norm_t norm);
 
-gchar *unknown_to_utf8(const gchar *str, gboolean add_charset);
+gchar *unknown_to_utf8(const gchar *str, const gchar **charset_ptr);
 gchar *unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
-			gboolean add_charset);
+			const gchar **charset_ptr);
 
 size_t ascii_enforce(gchar *dst, size_t size, const gchar *src);
 size_t utf8_enforce(gchar *dst, size_t size, const gchar *src);
