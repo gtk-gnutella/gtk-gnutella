@@ -53,8 +53,8 @@ void hcache_retrieve_all(void);
 
 void hcache_timer(time_t now);
 
-const gchar *host_type_to_gchar(host_type_t type);
-const gchar *hcache_type_to_gchar(hcache_type_t type);
+const gchar *host_type_to_string(host_type_t type);
+const gchar *hcache_type_to_string(hcache_type_t type);
 
 gboolean hcache_add(
     hcache_type_t type, const host_addr_t addr, guint16 port,

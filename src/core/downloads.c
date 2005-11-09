@@ -3210,7 +3210,7 @@ download_pick_available(struct download *d)
 			g_message("PFSP no interesting chunks from %s for \"%s\", "
 				"available was: %s",
 				host_addr_port_to_string(download_addr(d), download_port(d)),
-				download_outname(d), http_range_to_gchar(d->ranges));
+				download_outname(d), http_range_to_string(d->ranges));
 
 		return FALSE;
 	}
@@ -3241,7 +3241,7 @@ download_pick_available(struct download *d)
 			"from %s for \"%s\", available was: %s",
 			uint64_to_string(from), uint64_to_string2(to - 1), d->overlap_size,
 			host_addr_port_to_string(download_addr(d), download_port(d)),
-			download_outname(d), http_range_to_gchar(d->ranges));
+			download_outname(d), http_range_to_string(d->ranges));
 
 	return TRUE;
 }
@@ -5951,8 +5951,8 @@ check_push_proxies(struct download *d, header_t *header)
 static void
 update_available_ranges(struct download *d, header_t *header)
 {
+	static const gchar available[] = "X-Available-Ranges";
 	gchar *buf;
-	const gchar *available = "X-Available-Ranges";
 
 	if (d->ranges != NULL) {
 		http_range_free(d->ranges);
@@ -6352,7 +6352,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 						uint64_to_string2(d->range_end - 1),
 						host_addr_port_to_string(download_addr(d),
 								download_port(d)),
-						download_outname(d), http_range_to_gchar(d->ranges));
+						download_outname(d), http_range_to_string(d->ranges));
 
 				break;
 			}

@@ -231,8 +231,8 @@ http_content_range_parse(const gchar *buf,
 
 filesize_t http_range_size(const GSList *list);
 void http_range_free(GSList *list);
-GSList *http_range_parse(
-	const gchar *field, gchar *value, filesize_t size, const gchar *vendor);
+GSList *http_range_parse(const gchar *field, const gchar *value,
+		filesize_t size, const gchar *vendor);
 gboolean http_range_contains(GSList *ranges, filesize_t from, filesize_t to);
 
 const gchar *http_url_strerror(http_url_error_t errnum);

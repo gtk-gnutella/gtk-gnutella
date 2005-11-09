@@ -131,8 +131,8 @@ void header_fmt_append_value(gpointer o, const gchar *str);
 gint header_fmt_length(gpointer o);
 void header_fmt_end(gpointer o);
 gchar *header_fmt_string(gpointer o);
-gchar *header_fmt_to_gchar(gpointer o);
+gchar *header_fmt_to_string(gpointer o);
 
 #endif	/* _header_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

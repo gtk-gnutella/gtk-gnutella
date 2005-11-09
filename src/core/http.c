@@ -892,7 +892,8 @@ ignored:
  */
 GSList *
 http_range_parse(
-	const gchar *field, gchar *value, filesize_t size, const gchar *vendor)
+	const gchar *field, const gchar *value, filesize_t size,
+	const gchar *vendor)
 {
 	static const gchar unit[] = "bytes";
 	GSList *ranges = NULL;
@@ -1179,7 +1180,7 @@ http_range_size(const GSList *list)
  * @returns a pointer to static data, containing the available ranges.
  */
 const gchar *
-http_range_to_gchar(const GSList *list)
+http_range_to_string(const GSList *list)
 {
 	static gchar str[4096];
 	const GSList *sl = list;

@@ -474,7 +474,7 @@ ip_port_to_string(guint32 ip, guint16 port)
 }
 
 const gchar *
-hostname_port_to_gchar(const gchar *hostname, guint16 port)
+hostname_port_to_string(const gchar *hostname, guint16 port)
 {
 	static gchar a[300];
 

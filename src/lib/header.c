@@ -808,7 +808,7 @@ header_fmt_string(gpointer o)
  * NB: returns pointer to static data!
  */
 gchar *
-header_fmt_to_gchar(gpointer o)
+header_fmt_to_string(gpointer o)
 {
 	static gchar line[HEADER_FMT_MAX_SIZE + 1];
 	struct header_fmt *hf = (struct header_fmt *) o;

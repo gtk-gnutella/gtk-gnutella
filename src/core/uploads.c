@@ -3043,7 +3043,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 					g_warning("client %s <%s> requested several ranges "
 						"for \"%s\": %s", host_addr_to_string(u->addr),
 						u->user_agent ? u->user_agent : "", reqfile->name_nfc,
-						http_range_to_gchar(ranges));
+						http_range_to_string(ranges));
 			}
 
 			r = (http_range_t *) ranges->data;
@@ -4201,7 +4201,7 @@ upload_get_info(gnet_upload_t uh)
 
    	info->name 			= u->name
 		? atom_str_get(lazy_unknown_to_utf8_normalized(u->name,
-						UNI_NORM_GUI, FALSE))
+						UNI_NORM_GUI, NULL))
 		: NULL;
 	
     info->user_agent    = u->user_agent

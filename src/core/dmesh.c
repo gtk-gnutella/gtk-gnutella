@@ -137,7 +137,7 @@ static const gchar dmesh_ban_file[] = "dmesh_ban";
 
 static void dmesh_retrieve(void);
 static void dmesh_ban_retrieve(void);
-static gchar *dmesh_urlinfo_to_gchar(const dmesh_urlinfo_t *info);
+static gchar *dmesh_urlinfo_to_string(const dmesh_urlinfo_t *info);
 
 /**
  * Hash a URL info.
@@ -513,7 +513,7 @@ dm_expire(struct dmesh *dm, guint32 agemax, const gchar *sha1)
 		if (dmesh_debug > 4)
 			g_message("MESH %s: EXPIRED \"%s\", age=%d",
 				sha1_base32(sha1),
-				dmesh_urlinfo_to_gchar(&dme->url),
+				dmesh_urlinfo_to_string(&dme->url),
 				(gint) delta_time(now, dme->stamp));
 
 		dmesh_entry_free(dme);
@@ -902,7 +902,7 @@ dmesh_urlinfo(const dmesh_urlinfo_t *info, gchar *buf,
  * Format the `info' URL and return pointer to static string.
  */
 static gchar *
-dmesh_urlinfo_to_gchar(const dmesh_urlinfo_t *info)
+dmesh_urlinfo_to_string(const dmesh_urlinfo_t *info)
 {
 	static gchar urlstr[1024];
 
@@ -995,7 +995,7 @@ dmesh_entry_url_stamp(const struct dmesh_entry *dme, gchar *buf, size_t size)
  * @return pointer to static string.
  */
 static const gchar *
-dmesh_entry_to_gchar(const struct dmesh_entry *dme)
+dmesh_entry_to_string(const struct dmesh_entry *dme)
 {
 	static gchar urlstr[1024];
 
@@ -1560,7 +1560,7 @@ dmesh_check_deferred_against_existing(gchar *sha1,
 			g_message("MESH %s: %s deferred \"%s\", stamp=%u age=%d",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
-				dmesh_urlinfo_to_gchar(url), (guint) d->stamp,
+				dmesh_urlinfo_to_string(url), (guint) d->stamp,
 				(gint) delta_time(now, d->stamp));
 		}
 	}
@@ -1622,7 +1622,7 @@ dmesh_check_deferred_against_themselves(gchar *sha1, GSList *deferred_urls)
 			g_message("MESH %s: %s consistent deferred \"%s\", stamp=%u age=%d",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
-				dmesh_urlinfo_to_gchar(url), (guint32) def->stamp,
+				dmesh_urlinfo_to_string(url), (guint32) def->stamp,
 				(gint) delta_time(tm_time(), def->stamp));
 		}
 	}
@@ -1760,7 +1760,7 @@ dmesh_collect_compact_locations(gchar *sha1, gchar *value)
 						g_message("MESH %s: %s compact \"%s\", stamp=%u",
 							sha1_base32(sha1),
 							ok ? "added" : "rejected",
-							dmesh_urlinfo_to_gchar(&info), (guint) now);
+							dmesh_urlinfo_to_string(&info), (guint) now);
 				} else if (dmesh_debug)
 					g_warning("ignoring invalid compact alt-loc \"%s\"", start);
 
@@ -2029,7 +2029,7 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 			g_message("MESH %s: %s \"%s\", stamp=%u age=%d",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
-				dmesh_urlinfo_to_gchar(&info), (guint) stamp,
+				dmesh_urlinfo_to_string(&info), (guint) stamp,
 				(gint) delta_time(now, stamp));
 
 	nolog:
@@ -2196,7 +2196,7 @@ dmesh_multiple_downloads(gchar *sha1, filesize_t size, fileinfo_t *fi)
 	for (p = buffer; n > 0; n--, p++) {
 		if (dmesh_debug > 2)
 			g_message("ALT-LOC queuing from MESH: %s",
-				dmesh_urlinfo_to_gchar(p));
+				dmesh_urlinfo_to_string(p));
 
 		download_auto_new(p->name, size, p->idx, p->addr, p->port,
 			blank_guid, NULL, sha1, now, FALSE,
@@ -2218,7 +2218,7 @@ dmesh_store_kv(gpointer key, gpointer value, gpointer udata)
 
 	for (sl = dm->entries; sl; sl = g_slist_next(sl)) {
 		const struct dmesh_entry *dme = sl->data;
-		fprintf(out, "%s\n", dmesh_entry_to_gchar(dme));
+		fprintf(out, "%s\n", dmesh_entry_to_string(dme));
 	}
 
 	fputs("\n", out);
@@ -2366,7 +2366,7 @@ dmesh_ban_store_kv(gpointer key, gpointer value, gpointer udata)
 	g_assert(key == dmb->info);
 
 	fprintf(out, "%lu %s\n",
-		(gulong) dmb->ctime, dmesh_urlinfo_to_gchar(dmb->info));
+		(gulong) dmb->ctime, dmesh_urlinfo_to_string(dmb->info));
 }
 
 /**

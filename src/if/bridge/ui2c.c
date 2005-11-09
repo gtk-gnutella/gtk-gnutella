@@ -445,9 +445,9 @@ guc_hsep_remove_global_table_listener(GCallback cb)
 
 /*	HTTP interface functions (UI -> Core)*/
 const gchar *
-guc_http_range_to_gchar(const GSList *list)
+guc_http_range_to_string(const GSList *list)
 {
-	return http_range_to_gchar(list);
+	return http_range_to_string(list);
 }
 
 GSList *

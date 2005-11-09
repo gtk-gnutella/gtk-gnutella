@@ -3182,7 +3182,7 @@ file_info_get(gchar *file, const gchar *path, filesize_t size,
 
 	/* First convert the filename to what the GUI used */
 	{
-		gchar *s = unknown_to_utf8_normalized(file, UNI_NORM_NETWORK, FALSE);
+		gchar *s = unknown_to_utf8_normalized(file, UNI_NORM_NETWORK, NULL);
 		if (file != s) {
 			file = s;
 			to_free = s;
@@ -5096,7 +5096,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 				/* Merge in the new ranges */
 				if (fileinfo_debug > 5)
 					printf(" ranges %s available\n",
-						http_range_to_gchar(src->ranges));
+						http_range_to_string(src->ranges));
 				new_r = http_range_merge(r, src->ranges);
 			}
 			fi_free_ranges(r);
@@ -5104,7 +5104,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 		}
 	}
 	if (fileinfo_debug > 5)
-		printf("    Final ranges: %s\n\n", http_range_to_gchar(r));
+		printf("    Final ranges: %s\n\n", http_range_to_string(r));
 	d->file_info->seen_on_network = r;
 
 	/*

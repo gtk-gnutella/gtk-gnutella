@@ -2383,7 +2383,7 @@ formatted_connection_pongs(gchar *field, host_type_t htype, gint num)
 		}
 
 		header_fmt_end(fmt);
-		line = header_fmt_to_gchar(fmt);
+		line = header_fmt_to_string(fmt);
 		header_fmt_free(fmt);
 	}
 

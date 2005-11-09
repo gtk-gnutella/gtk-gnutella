@@ -907,7 +907,7 @@ found:
 
 	if (pcache_debug > 8)
 		printf("returning recent %s PONG %s\n",
-			host_type_to_gchar(type),
+			host_type_to_string(type),
 			host_addr_port_to_string(cp->info.addr, cp->info.port));
 
 	return TRUE;
