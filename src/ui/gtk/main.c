@@ -144,6 +144,8 @@ static const struct {
 
 #ifdef USE_GTK2
 
+/* Not used due to auto-expand/collapse */
+#if 0
 static gboolean
 gui_init_menu_helper(GtkTreeModel *model, GtkTreePath *path,
 	GtkTreeIter *iter, gpointer data)
@@ -157,14 +159,14 @@ gui_init_menu_helper(GtkTreeModel *model, GtkTreePath *path,
 		gtk_tree_view_expand_row(GTK_TREE_VIEW(data), path, FALSE);
 	return FALSE;
 }
+#endif
 
 static void
 gui_init_menu(void)
 {
 	static GType types[] = {
 		G_TYPE_STRING,	/* Label */
-		G_TYPE_INT,		/* Notebook page */
-		G_TYPE_INT		/* Menu entry ID (persistent between releases) */
+		G_TYPE_POINTER,		/* Notebook page number (casted to a pointer)*/
 	};
 	GtkTreeView	*treeview;
 	GtkTreeIter	parent, iter;
@@ -174,7 +176,7 @@ gui_init_menu(void)
 	guint i;
 	gint depth = -1;
 
-	STATIC_ASSERT(G_N_ELEMENTS(types) == 3);
+	STATIC_ASSERT(G_N_ELEMENTS(types) == 2);
 
     renderer = gtk_cell_renderer_text_new();
     g_object_set(renderer, "ypad", GUI_CELL_RENDERER_YPAD, (void *) 0);
@@ -202,8 +204,7 @@ gui_init_menu(void)
 		gtk_tree_store_append(store, &iter, depth > 0 ? &parent : NULL);
 		gtk_tree_store_set(store, &iter,
 				0, _(menu[i].title),
-				1, menu[i].page,
-				2, i,
+				1, GINT_TO_POINTER(menu[i].page),
 				(-1));
 	}
 
@@ -727,7 +728,15 @@ main_gui_run(void)
         lookup_widget(main_window, "frame_statusbar_uptime"),
         lookup_widget(main_window, "label_statusbar_uptime"),
         8, 8);
-		
+
+#ifdef USE_GTK2
+	g_signal_connect(GTK_OBJECT(lookup_widget(main_window, "notebook_main")),
+		"switch-page", G_CALLBACK(on_notebook_main_switch_page), NULL);
+#else
+	gtk_signal_connect(GTK_OBJECT(lookup_widget(main_window, "notebook_main")),
+		"switch-page", on_notebook_main_switch_page, NULL);
+#endif /* USE_GTK2 */
+
 	/*
 	 * Make sure the application starts in the Gnet pane.
 	 */
