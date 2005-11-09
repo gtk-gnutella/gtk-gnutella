@@ -34,11 +34,26 @@ void filter_cb_close(void);
  * Filter dialog
  */
 gboolean on_dlg_filters_delete_event(GtkWidget *widget, gpointer user_data);
+
+#ifdef USE_GTK1
 void on_clist_filter_rules_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 void on_ctree_filter_filters_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 void on_clist_filter_rules_select_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
 void on_clist_filter_rules_unselect_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
 void on_clist_filter_rules_drag_end(GtkWidget *widget, GdkDragContext *drag_context, gpointer user_data);
+void on_ctree_filter_filters_tree_select_row(GtkCTree * ctree, GList *node, gint column, gpointer user_data);
+gboolean on_clist_filter_rules_button_press_event(GtkWidget * widget, GdkEventButton * event, gpointer user_data);
+#endif /* USE_GTK1 */
+
+#ifdef USE_GTK2
+gboolean on_treeview_filter_rules_button_press_event(GtkWidget *widget,
+	GdkEventButton *event, gpointer unused_udata);
+void on_treeview_filter_filters_select_row(GtkTreeView *tv,
+	gpointer unused_udata);
+void on_treeview_filter_rules_select_row(GtkTreeView *tv,
+	gpointer unused_udata);
+#endif /* USE_GTK2 */
+
 void on_button_filter_add_rule_text_clicked(GtkButton *button, gpointer user_data);
 void on_button_filter_add_rule_ip_clicked(GtkButton *button, gpointer user_data);
 void on_button_filter_add_rule_size_clicked(GtkButton *button, gpointer user_data);
@@ -60,9 +75,8 @@ void on_button_filter_reset_all_rules_clicked(GtkButton *button, gpointer user_d
 void on_button_filter_reset_clicked(GtkButton *button, gpointer user_data);
 void on_button_filter_reset_all_clicked(GtkButton *button, gpointer user_data);
 void on_button_filter_reset_rule_clicked(GtkButton *button, gpointer user_data);
-void on_ctree_filter_filters_tree_select_row(GtkCTree * ctree, GList *node, gint column, gpointer user_data);
 void on_checkbutton_filter_enabled_toggled(GtkToggleButton * togglebutton, gpointer user_data);
-gboolean on_clist_filter_rules_button_press_event(GtkWidget * widget, GdkEventButton * event, gpointer user_data);
+
 gboolean on_entry_filter_size_focus_out_event(GtkEditable *editable, gpointer unused_udata);
 gboolean on_entry_filter_size_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer unused_udata);
 

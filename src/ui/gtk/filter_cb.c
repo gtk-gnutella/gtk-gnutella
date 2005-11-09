@@ -49,6 +49,10 @@ RCSID("$Id$");
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
+/*
+ * Common code between Gtk+ 1.2 and Gtk+ 2.x first
+ */
+
 /**
  * Private variables.
  */
@@ -58,7 +62,8 @@ static rule_t *rule_clipboard = NULL;
  * Private functions.
  */
 
-static void clear_clipboard(void)
+static void
+clear_clipboard(void)
 {
     if (rule_clipboard != NULL) {
         filter_free_rule(rule_clipboard);
@@ -70,7 +75,8 @@ static void clear_clipboard(void)
  * Public functions.
  */
 
-void filter_cb_close(void)
+void
+filter_cb_close(void)
 {
     clear_clipboard();
 }
@@ -91,8 +97,189 @@ on_checkbutton_filter_enabled_toggled(GtkToggleButton *togglebutton,
     filter_set_enabled(work_filter, gtk_toggle_button_get_active(togglebutton));
 }
 
+void
+on_popup_filter_rule_paste_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+    rule_t *r;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+    if (work_filter == NULL || rule_clipboard == NULL)
+        return;
+
+    /*
+     * If the target is no longer valid, free the rule and
+     * clear the clipboard.
+     */
+    if (!filter_is_valid_in_session(rule_clipboard->target)) {
+        clear_clipboard();
+        return;
+    }
+
+    /*
+     * Since a rule may not be added to two filters, we copy again here.
+     * We want to keep the original copy in the clipboard since we may
+     * want to paste it elsewhere.
+     * The filter takes ownership of the added rule.
+     */
+    r = filter_duplicate_rule(rule_clipboard);
+
+    filter_append_rule_to_session(work_filter, r);
+}
+
+gboolean
+on_entry_filter_size_focus_out_event(GtkEditable *editable,
+	gpointer unused_udata)
+{
+	(void) unused_udata;
+
+	(void) filter_update_size(GTK_ENTRY(editable));
+	return FALSE;
+}
+
+gboolean
+on_entry_filter_size_key_press_event(GtkWidget *widget, GdkEventKey *event,
+	gpointer unused_udata)
+{
+
+  (void) unused_udata;
+
+  if (GDK_Return == event->keyval) {
+  	(void) filter_update_size(GTK_ENTRY(widget));
+  }
+  return FALSE;
+}
+
+void
+on_button_filter_reset_clicked(GtkButton *unused_button, gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+    if (work_filter != NULL)
+        filter_reset_stats(work_filter);
+}
+
+gboolean
+on_dlg_filters_delete_event(GtkWidget *unused_widget, gpointer unused_udata)
+{
+	(void) unused_widget;
+	(void) unused_udata;
+    filter_close_dialog(FALSE);
+
+    return TRUE;
+}
+
+void
+on_button_filter_ok_clicked(GtkButton *unused_button, gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+    filter_close_dialog(TRUE);
+}
+
+void
+on_button_filter_cancel_clicked(GtkButton *unused_button, gpointer unused_udata)
+{
+    gint page = gtk_notebook_get_current_page
+        (GTK_NOTEBOOK
+            (lookup_widget(filter_dialog, "notebook_filter_detail")));
+
+	(void) unused_button;
+	(void) unused_udata;
+
+    if (page == nb_filt_page_buttons) {
+        filter_close_dialog(FALSE);
+        return;
+    }
+    filter_gui_edit_rule(NULL);
+}
+
+void
+on_button_filter_apply_clicked(GtkButton *unused_button, gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+    filter_apply_changes();
+    filter_gui_edit_rule(NULL);
+}
+
+void
+on_button_filter_revert_clicked(GtkButton *unused_button, gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+    filter_revert_changes();
+    filter_gui_edit_rule(NULL);
+}
+
+void
+on_button_filter_abort_rule_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+    gtk_notebook_set_page(
+        GTK_NOTEBOOK(lookup_widget(filter_dialog, "notebook_filter_detail")),
+        nb_filt_page_buttons);
+}
+
+void
+on_button_filter_remove_clicked(GtkButton *unused_button, gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+    if (work_filter != NULL)
+        filter_remove_from_session(work_filter);
+}
+
+void
+on_entry_filter_new_activate(GtkEditable *editable, gpointer unused_udata)
+{
+    gchar *name = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
+	const gchar *nfc;
+    filter_t *filter;
+
+	(void) unused_udata;
+
+    g_strstrip(name);
+	nfc = lazy_ui_string_to_utf8(name);
+    if (nfc[0] != '\0' && filter_find_by_name_in_session(nfc) == NULL) {
+        filter = filter_new(nfc);
+        filter_add_to_session(filter);
+        gtk_entry_set_text(GTK_ENTRY(editable), "");
+        filter_set(filter);
+    } else
+        gdk_beep();
+	G_FREE_NULL(name);
+}
+
+void
+on_button_filter_create_clicked(GtkButton *unused_button, gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+    /*
+     * Delegate to on_entry_filter_new_activate.
+     */
+    on_entry_filter_new_activate(GTK_EDITABLE(lookup_widget(filter_dialog,
+												"entry_filter_new")), NULL);
+}
 
 
+/*
+ * Gtk+ 1.2 specific code
+ */
+
+#ifdef USE_GTK1
 void
 on_ctree_filter_filters_tree_select_row(GtkCTree *ctree, GList *node,
 	gint unused_column, gpointer unused_udata)
@@ -145,18 +332,6 @@ on_button_filter_reset_all_clicked(GtkButton *unused_button,
 }
 
 void
-on_button_filter_reset_clicked(GtkButton *unused_button, gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-    if (work_filter != NULL)
-        filter_reset_stats(work_filter);
-}
-
-
-
-void
 on_ctree_filter_filters_resize_column(GtkCList *unused_clist, gint column,
 	gint width, gpointer unused_udata)
 {
@@ -174,16 +349,6 @@ on_clist_filter_rules_resize_column(GtkCList *unused_clist, gint column,
 	(void) unused_udata;
 
     *(gint *) &filter_rules_col_widths[column] = width;
-}
-
-gboolean
-on_dlg_filters_delete_event(GtkWidget *unused_widget, gpointer unused_udata)
-{
-	(void) unused_widget;
-	(void) unused_udata;
-    filter_close_dialog(FALSE);
-
-    return TRUE;
 }
 
 void
@@ -225,7 +390,6 @@ on_clist_filter_rules_drag_end(GtkWidget *unused_widget,
 
     filter_adapt_order();
 }
-
 
 void
 on_button_filter_add_rule_text_clicked(GtkButton *unused_button,
@@ -299,16 +463,8 @@ on_button_filter_add_rule_state_clicked(GtkButton *unused_button,
     filter_gui_edit_state_rule(NULL);
 }
 
-void on_button_filter_ok_clicked(
-    GtkButton *unused_button, gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-    filter_close_dialog(TRUE);
-}
-
-void on_button_filter_add_rule_clicked(GtkButton *unused_button,
+void
+on_button_filter_add_rule_clicked(GtkButton *unused_button,
 	gpointer unused_udata)
 {
     gint page = gtk_notebook_get_current_page
@@ -362,45 +518,6 @@ void on_button_filter_add_rule_clicked(GtkButton *unused_button,
 
     filter_gui_edit_rule(NULL);
 }
-
-void on_button_filter_cancel_clicked(GtkButton *unused_button,
-	gpointer unused_udata)
-{
-    gint page = gtk_notebook_get_current_page
-        (GTK_NOTEBOOK
-            (lookup_widget(filter_dialog, "notebook_filter_detail")));
-
-	(void) unused_button;
-	(void) unused_udata;
-
-    if (page == nb_filt_page_buttons) {
-        filter_close_dialog(FALSE);
-        return;
-    }
-    filter_gui_edit_rule(NULL);
-}
-
-void
-on_button_filter_apply_clicked(GtkButton *unused_button, gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-    filter_apply_changes();
-    filter_gui_edit_rule(NULL);
-}
-
-void
-on_button_filter_revert_clicked(GtkButton *unused_button, gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-    filter_revert_changes();
-    filter_gui_edit_rule(NULL);
-}
-
-
 void
 on_button_filter_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
@@ -446,63 +563,6 @@ on_button_filter_remove_rule_clicked(GtkButton *unused_button,
         GTK_NOTEBOOK(lookup_widget(filter_dialog, "notebook_filter_detail")),
         nb_filt_page_buttons);
 }
-
-void
-on_button_filter_abort_rule_clicked(GtkButton *unused_button,
-	gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-    gtk_notebook_set_page(
-        GTK_NOTEBOOK(lookup_widget(filter_dialog, "notebook_filter_detail")),
-        nb_filt_page_buttons);
-}
-
-void
-on_button_filter_remove_clicked(GtkButton *unused_button, gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-    if (work_filter != NULL)
-        filter_remove_from_session(work_filter);
-}
-
-void
-on_entry_filter_new_activate(GtkEditable *editable, gpointer unused_udata)
-{
-    gchar *name = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
-	const gchar *nfc;
-    filter_t *filter;
-
-	(void) unused_udata;
-
-    g_strstrip(name);
-	nfc = lazy_ui_string_to_utf8(name);
-    if (nfc[0] != '\0' && filter_find_by_name_in_session(nfc) == NULL) {
-        filter = filter_new(nfc);
-        filter_add_to_session(filter);
-        gtk_entry_set_text(GTK_ENTRY(editable), "");
-        filter_set(filter);
-    } else
-        gdk_beep();
-	G_FREE_NULL(name);
-}
-
-void
-on_button_filter_create_clicked(GtkButton *unused_button, gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-    /*
-     * Delegate to on_entry_filter_new_activate.
-     */
-    on_entry_filter_new_activate(GTK_EDITABLE(lookup_widget(filter_dialog,
-												"entry_filter_new")), NULL);
-}
-
 void
 on_button_filter_reset_rule_clicked(GtkButton *unused_button,
 	gpointer unused_udata)
@@ -611,59 +671,440 @@ on_popup_filter_rule_copy_activate(GtkMenuItem *unused_menuitem,
         rule_clipboard = filter_duplicate_rule(r);
     }
 }
+#endif /* USE_GTK1 */
 
-void on_popup_filter_rule_paste_activate(
-    GtkMenuItem *unused_menuitem, gpointer unused_udata)
+
+/*
+ * Gtk+ 2.x specific code
+ */
+
+#ifdef USE_GTK2
+gboolean
+on_treeview_filter_rules_button_press_event(GtkWidget *widget,
+		GdkEventButton *event, gpointer unused_udata)
 {
-    rule_t *r;
-
-	(void) unused_menuitem;
+    gboolean sensitive;
+	
 	(void) unused_udata;
 
-    if (work_filter == NULL || rule_clipboard == NULL)
-        return;
+    if (event->button != 3)
+		return FALSE;
 
     /*
      * If the target is no longer valid, free the rule and
      * clear the clipboard.
      */
-    if (!filter_is_valid_in_session(rule_clipboard->target)) {
+    if (
+		rule_clipboard != NULL &&
+        !filter_is_valid_in_session(rule_clipboard->target)
+	) {
         clear_clipboard();
+        return TRUE;
+    }
+	
+	{
+		GtkTreePath *path;
+		
+		gtk_tree_view_get_cursor(GTK_TREE_VIEW(widget), &path, NULL);
+    	sensitive = path != NULL && work_filter != NULL;
+		gtk_tree_path_free(path);
+		path = NULL;
+	}
+
+    gtk_widget_set_sensitive(
+        lookup_widget(popup_filter_rule, "popup_filter_rule_copy"),
+        sensitive);
+    gtk_widget_set_sensitive(
+        lookup_widget(popup_filter_rule, "popup_filter_rule_paste"),
+        rule_clipboard != NULL);
+
+    gtk_menu_popup(GTK_MENU(popup_filter_rule), NULL, NULL, NULL, NULL,
+        event->button, event->time);
+
+	return TRUE;
+}
+
+void
+on_treeview_filter_filters_select_row(GtkTreeView *tv,
+	gpointer unused_udata)
+{
+	GtkTreePath *path;
+
+	(void) unused_udata;
+
+	gtk_tree_view_get_cursor(tv, &path, NULL);
+	if (path) {
+		GtkTreeIter iter;
+		GtkTreeModel *model;
+		gpointer p;
+
+		model = gtk_tree_view_get_model(tv);
+		gtk_tree_model_get_iter(model, &iter, path);
+		gtk_tree_path_free(path);
+		path = NULL;
+
+    	gtk_tree_model_get(model, &iter, 0, &p, (-1));
+    	filter_set(p);
+	}
+}
+
+static gboolean
+filter_reset_all_helper(GtkTreeModel *model, GtkTreePath *unused_path,
+	GtkTreeIter *iter, gpointer unused_udata)
+{
+	gpointer p;
+	
+	(void) unused_path;
+	(void) unused_udata;
+	
+   	gtk_tree_model_get(model, iter, 0, &p, (-1));
+	if (p) {
+		filter_t *filter = p;
+        filter_reset_stats(filter);
+	}
+	
+	return FALSE; /* continue traversal */
+}
+
+void
+on_button_filter_reset_all_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+    if (filter_dialog == NULL)
         return;
+
+	gtk_tree_model_foreach(gtk_tree_view_get_model(GTK_TREE_VIEW(
+		lookup_widget(filter_dialog, "treeview_filter_filters"))),
+		filter_reset_all_helper,
+		NULL);
+}
+
+void
+on_treeview_filter_rules_select_row(GtkTreeView *tv, gpointer unused_udata)
+{
+	GtkTreePath *path;
+
+	(void) unused_udata;
+
+   	gtk_tree_view_get_cursor(tv, &path, NULL);
+	if (path) {
+		GtkTreeIter iter;
+		GtkTreeModel *model;
+		gpointer p;
+
+		model = gtk_tree_view_get_model(tv);
+		gtk_tree_model_get_iter(model, &iter, path);
+		gtk_tree_path_free(path);
+		path = NULL;
+
+    	gtk_tree_model_get(model, &iter, 0, &p, (-1));
+ 		filter_gui_edit_rule(p);
+	}
+}
+
+void
+on_button_filter_add_rule_text_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(
+		GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"))));
+
+	filter_gui_edit_text_rule(NULL);
+}
+
+void
+on_button_filter_add_rule_ip_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(
+		GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"))));
+
+    filter_gui_edit_ip_rule(NULL);
+}
+
+void
+on_button_filter_add_rule_size_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(
+		GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"))));
+
+	filter_gui_edit_size_rule(NULL);
+}
+
+void
+on_button_filter_add_rule_jump_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(
+		GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"))));
+
+    filter_gui_edit_jump_rule(NULL);
+}
+
+void
+on_button_filter_add_rule_flag_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(
+		GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"))));
+
+    filter_gui_edit_flag_rule(NULL);
+}
+
+void
+on_button_filter_add_rule_state_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(
+		GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"))));
+	
+	filter_gui_edit_state_rule(NULL);
+}
+
+void
+on_button_filter_add_rule_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	GtkTreeView *tv;
+	GtkTreePath *path;
+    rule_t *r = NULL;
+	gint page;
+
+	(void) unused_button;
+	(void) unused_udata;
+
+	tv = GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"));
+    page = gtk_notebook_get_current_page(GTK_NOTEBOOK(
+				lookup_widget(filter_dialog, "notebook_filter_detail")));
+
+    switch (page) {
+    case nb_filt_page_text:
+    case nb_filt_page_ip:
+    case nb_filt_page_size:
+    case nb_filt_page_jump:
+    case nb_filt_page_flag:
+    case nb_filt_page_state:
+        r = filter_gui_get_rule();
+        break;
+    case nb_filt_page_sha1:
+        /*
+         * SHA1 rules are not changeable yet (maybe never).
+         * So we just return here.
+         */
+        filter_gui_edit_rule(NULL);
+        return;
+    case nb_filt_page_buttons:
+    default:
+        g_error("on_button_filter_on_clicked: invalid page %d", page);
     }
 
     /*
-     * Since a rule may not be added to two filters, we copy again here.
-     * We want to keep the original copy in the clipboard since we may
-     * want to paste it elsewhere.
-     * The filter takes ownership of the added rule.
+     *if a row is selected, we change the filter there
+     *else we add a new filter to the end of the list
      */
-    r = filter_duplicate_rule(rule_clipboard);
 
-    filter_append_rule_to_session(work_filter, r);
+   	gtk_tree_view_get_cursor(tv, &path, NULL);
+    if (path) {
+		GtkTreeModel *model;
+   		GtkTreeIter iter;
+		gpointer p;
+
+		model = gtk_tree_view_get_model(tv);
+		gtk_tree_model_get_iter(model, &iter, path);
+		gtk_tree_path_free(path);
+		path = NULL;
+
+		gtk_tree_model_get(model, &iter, 0, &p, (-1));
+        g_assert(p != NULL);
+
+        filter_replace_rule_in_session(work_filter, p, r);
+    } else {
+        filter_append_rule_to_session(work_filter, r);
+    }
+
+    filter_gui_edit_rule(NULL);
 }
 
-gboolean
-on_entry_filter_size_focus_out_event(GtkEditable *editable,
-	gpointer unused_udata)
+static gboolean
+filter_clear_helper(GtkTreeModel *model, GtkTreePath *unused_path,
+	GtkTreeIter *iter, gpointer slist_ptr)
 {
+	GSList **sl_ptr = slist_ptr;
+	gpointer p;
+	
+	(void) unused_path;
+
+	gtk_tree_model_get(model, iter, 0, &p, (-1));
+	*sl_ptr = g_slist_prepend(*sl_ptr, p);
+
+	return FALSE; /* continue traversal */
+}
+	
+void
+on_button_filter_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
+{
+	GSList *sl, *sl_rules = NULL;
+	
+	(void) unused_button;
 	(void) unused_udata;
 
-	(void) filter_update_size(GTK_ENTRY(editable));
-	return FALSE;
+	gtk_tree_model_foreach(
+		gtk_tree_view_get_model(GTK_TREE_VIEW(
+			lookup_widget(filter_dialog, "treeview_filter_rules"))),
+		filter_clear_helper,
+		&sl_rules);
+
+	for (sl = sl_rules; sl != NULL; sl = g_slist_next(sl))	
+		filter_remove_rule_from_session(work_filter, sl->data);
+	g_slist_free(sl_rules);
+	sl_rules = NULL;
+	
+    gtk_notebook_set_page(
+        GTK_NOTEBOOK(lookup_widget(filter_dialog, "notebook_filter_detail")),
+        nb_filt_page_buttons);
 }
 
-gboolean
-on_entry_filter_size_key_press_event(GtkWidget *widget, GdkEventKey *event,
+void
+on_button_filter_remove_rule_clicked(GtkButton *unused_button,
 	gpointer unused_udata)
 {
+	GtkTreeView *tv;
+	GtkTreePath *path;
 
-  (void) unused_udata;
+	(void) unused_button;
+	(void) unused_udata;
 
-  if (GDK_Return == event->keyval) {
-  	(void) filter_update_size(GTK_ENTRY(widget));
-  }
-  return FALSE;
+    tv = GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"));
+	gtk_tree_view_get_cursor(tv, &path, NULL);
+    if (path) {
+		GtkTreeModel *model;
+   		GtkTreeIter iter;
+		gpointer p;
+
+		model = gtk_tree_view_get_model(tv);
+		gtk_tree_model_get_iter(model, &iter, path);
+		gtk_tree_path_free(path);
+		path = NULL;
+
+		gtk_tree_model_get(model, &iter, 0, &p, (-1));
+    	filter_remove_rule_from_session(work_filter, p);
+
+    	gtk_notebook_set_page(
+          GTK_NOTEBOOK(lookup_widget(filter_dialog, "notebook_filter_detail")),
+          nb_filt_page_buttons);
+	}
 }
+
+void
+on_button_filter_reset_rule_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	GtkTreeView *tv;
+	GtkTreePath *path;
+
+	(void) unused_button;
+	(void) unused_udata;
+	
+    tv = GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"));
+	gtk_tree_view_get_cursor(tv, &path, NULL);
+    if (path) {
+		GtkTreeModel *model;
+		GtkTreeIter iter;
+		gpointer p;
+
+		model = gtk_tree_view_get_model(tv);
+		gtk_tree_model_get_iter(model, &iter, path);
+		gtk_tree_path_free(path);
+		path = NULL;
+
+		gtk_tree_model_get(model, &iter, 0, &p, (-1));
+    	filter_rule_reset_stats(p);
+	}
+}
+
+static gboolean
+filter_reset_all_rules_helper(GtkTreeModel *model, GtkTreePath *unused_path,
+	GtkTreeIter *iter, gpointer unused_udata)
+{
+	gpointer p;
+	
+	(void) unused_path;
+	(void) unused_udata;
+	
+   	gtk_tree_model_get(model, iter, 0, &p, (-1));
+	if (p) {
+        rule_t *rule = p;
+        filter_rule_reset_stats(rule);
+	}
+	
+	return FALSE; /* continue traversal */
+}
+
+void
+on_button_filter_reset_all_rules_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+	gtk_tree_model_foreach(
+		gtk_tree_view_get_model(GTK_TREE_VIEW(
+			lookup_widget(filter_dialog, "treeview_filter_rules"))),
+		filter_reset_all_rules_helper,
+		NULL);
+}
+
+void
+on_popup_filter_rule_copy_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+    GtkTreeView *tv;
+	GtkTreePath *path;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+    clear_clipboard();
+
+   	tv = GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"));
+	gtk_tree_view_get_cursor(tv, &path, NULL);
+	if (path) {
+		GtkTreeModel *model;
+		GtkTreeIter iter;
+		gpointer p;
+
+		model = gtk_tree_view_get_model(tv);
+		gtk_tree_model_get_iter(model, &iter, path);
+		gtk_tree_path_free(path);
+		path = NULL;
+
+		gtk_tree_model_get(model, &iter, 0, &p, (-1));
+        g_assert(p != NULL);
+        rule_clipboard = filter_duplicate_rule(p);
+    }
+}
+#endif /* USE_GTK2 */
 
 /* vi: set ts=4 sw=4 cindent: */

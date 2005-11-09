@@ -106,10 +106,10 @@ typedef struct rule {
     filter_t *target;
     union {
         struct _f_text {
-            int case_sensitive:1;	    /**< case sensitive (true) or not */
+            gint case_sensitive:1;	    /**< case sensitive (true) or not */
             enum rule_text_type type;	/**< type of match, see above */
-            char *match; 	            /**< match string */
-			gint matchlen;				/**< length of match string */
+            gchar *match; 	            /**< match string */
+			size_t match_len;			/**< length of match string */
             union {
                 cpattern_t *pattern;	/**< substring pattern */
                 GList *words;		    /**< a list of substring patterns */
@@ -155,12 +155,12 @@ extern filter_t *work_filter;
 filter_t *filter_new(const gchar *);
 filter_result_t *filter_record(struct search *, const struct record *);
 gchar *filter_rule_condition_to_string(const rule_t *r);
-gchar *filter_rule_to_gchar(rule_t *f);
-gboolean filter_is_builtin(filter_t *f);
-gboolean filter_is_global(filter_t *f);
+gchar *filter_rule_to_string(const rule_t *f);
+gboolean filter_is_builtin(const filter_t *f);
+gboolean filter_is_global(const filter_t *f);
 void filter_reset_stats(filter_t *filter);
 void filter_rule_reset_stats(rule_t *rule);
-rule_t *filter_duplicate_rule(rule_t *rule);
+rule_t *filter_duplicate_rule(const rule_t *rule);
 rule_t *filter_new_ip_rule(guint32, guint32, filter_t *, guint16);
 rule_t *filter_new_jump_rule(filter_t *,guint16);
 rule_t *filter_new_size_rule(filesize_t, filesize_t, filter_t *, guint16);
@@ -195,7 +195,7 @@ void filter_update_targets(void);
 void filter_free_result(filter_result_t *);
 void filter_free_rule(rule_t *rule);
 filter_t *filter_find_by_name_in_session(const gchar *name);
-gboolean filter_is_valid_in_session(filter_t *f);
+gboolean filter_is_valid_in_session(const filter_t *f);
 filter_t *filter_get_drop_target(void);
 filter_t *filter_get_show_target(void);
 filter_t *filter_get_download_target(void);

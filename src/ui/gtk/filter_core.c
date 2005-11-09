@@ -131,17 +131,17 @@ GList *filters_current = NULL;
  *** Implementation
  ***/
 void
-dump_ruleset(GList *ruleset)
+dump_ruleset(const GList *ruleset)
 {
-    GList *r;
-    gint n = 0;
+    const GList *r;
+    gint i;
 
-    for (r = ruleset; r != NULL; r = g_list_next(r))
-        g_message("       rule %3d : %s", n, filter_rule_to_gchar(r->data));
+    for (r = ruleset, i = 0; r != NULL; r = g_list_next(r), i++)
+        g_message("       rule %3d : %s", i, filter_rule_to_string(r->data));
 }
 
 void
-dump_filter(filter_t *filter)
+dump_filter(const filter_t *filter)
 {
     g_assert(filter != NULL);
     g_message(
@@ -155,7 +155,7 @@ dump_filter(filter_t *filter)
 }
 
 void
-dump_shadow(shadow_t *shadow)
+dump_shadow(const shadow_t *shadow)
 {
     g_assert(shadow != NULL);
     g_message(
@@ -457,7 +457,7 @@ filter_close_dialog(gboolean commit)
  * calls (like RULE_FLAG_VALID) will also apply to the the returned rule.
  */
 rule_t *
-filter_duplicate_rule(rule_t *r)
+filter_duplicate_rule(const rule_t *r)
 {
     g_assert(r != NULL);
 
@@ -484,10 +484,10 @@ filter_duplicate_rule(rule_t *r)
     case RULE_STATE:
         return filter_new_state_rule
             (r->u.state.display, r->u.state.download, r->target, r->flags);
-    default:
-        g_error("filter_duplicate_rule: unknown rule type: %d", r->type);
-        return NULL;
     }
+
+	g_error("filter_duplicate_rule: unknown rule type: %d", r->type);
+	return NULL;
 }
 
 
@@ -517,7 +517,7 @@ filter_new_text_rule(const gchar *match, gint type,
 		: utf8_strlower_copy(match);
 
 	r->u.text.match = buf;
-	r->u.text.matchlen = strlen(buf);
+	r->u.text.match_len = strlen(buf);
 
     buf = g_strdup(r->u.text.match);
 
@@ -1160,7 +1160,7 @@ filter_rule_condition_to_string(const rule_t *r)
  * Convert the filter to a human readable string.
  */
 gchar *
-filter_rule_to_gchar(rule_t *r)
+filter_rule_to_string(const rule_t *r)
 {
 	static gchar tmp[4096];
 
@@ -1359,7 +1359,7 @@ filter_free_rule(rule_t *r)
     g_assert(r != NULL);
 
     if (gui_debug >= 6)
-        g_message("freeing rule: %s", filter_rule_to_gchar(r));
+        g_message("freeing rule: %s", filter_rule_to_string(r));
 
     switch (r->type) {
     case RULE_TEXT:
@@ -1490,7 +1490,8 @@ filter_append_rule_to_session(filter_t *f, rule_t * const r)
 
     if (gui_debug >= 4)
         g_message("appending rule to filter: %s <- %s (%p)",
-            f->name, filter_rule_to_gchar(r), cast_to_gconstpointer(r->target));
+            f->name, filter_rule_to_string(r),
+			cast_to_gconstpointer(r->target));
 
     /*
      * The rule is added to a session, so we set the shadow flag.
@@ -1704,7 +1705,7 @@ filter_remove_rule_from_session(filter_t *f, rule_t * const r)
 
     if (gui_debug >= 4)
         g_message("removing rule in filter: %s -> %s",
-            f->name, filter_rule_to_gchar(r));
+            f->name, filter_rule_to_string(r));
 
     /*
      * Create a new shadow if necessary.
@@ -1740,7 +1741,7 @@ filter_remove_rule_from_session(filter_t *f, rule_t * const r)
          */
         if (gui_debug >= 4)
             g_message("while removing from %s: removing from added: %s",
-                f->name, filter_rule_to_gchar(r));
+                f->name, filter_rule_to_string(r));
         shadow->added = g_list_remove(shadow->added, r);
         filter_free_rule(r);
     } else {
@@ -1752,7 +1753,7 @@ filter_remove_rule_from_session(filter_t *f, rule_t * const r)
 
         if (gui_debug >= 4)
             g_message("while removing from %s: adding to removed: %s",
-                f->name, filter_rule_to_gchar(r));
+                f->name, filter_rule_to_string(r));
 
         shadow->removed = g_list_append(shadow->removed, r);
     }
@@ -1806,8 +1807,8 @@ filter_replace_rule_in_session(filter_t *f,
         gchar f1[4096];
 		const gchar *f2;
 
-		g_strlcpy(f1, filter_rule_to_gchar(old_rule), sizeof f1);
-        f2 = filter_rule_to_gchar(new_rule);
+		g_strlcpy(f1, filter_rule_to_string(old_rule), sizeof f1);
+        f2 = filter_rule_to_string(new_rule);
 
         g_message("replacing rules (old <- new): %s <- %s", f1, f2);
     }
@@ -1877,6 +1878,23 @@ filter_replace_rule_in_session(filter_t *f,
         filter_gui_set_ruleset(shadow->current);
 }
 
+#ifdef USE_GTK2
+static gboolean
+filter_adapt_order_helper(GtkTreeModel *model, GtkTreePath *unused_path,
+	GtkTreeIter *iter, gpointer list_ptr)
+{
+	GList **list = list_ptr;
+	gpointer p;
+	
+	(void) unused_path;
+	
+   	gtk_tree_model_get(model, iter, 0, &p, (-1));
+	if (p)
+        *list = g_list_prepend(*list, p);
+	
+	return FALSE; /* continue traversal */
+}
+#endif /* USE_GTK2 */
 
 
 /**
@@ -1890,6 +1908,7 @@ filter_replace_rule_in_session(filter_t *f,
  */
 void
 filter_adapt_order(void)
+#ifdef USE_GTK1
 {
     GList *neworder = NULL;
     gint row;
@@ -1927,6 +1946,39 @@ filter_adapt_order(void)
 
     shadow->current = neworder;
 }
+#endif /* USE_GTK1 */
+#ifdef USE_GTK2
+{
+    GList *new_order = NULL;
+    shadow_t *shadow;
+    GtkTreeView *tv;
+	GtkTreeModel *model;
+
+    if (!work_filter || filter_dialog == NULL)
+        return;
+
+    tv = GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"));
+	model = gtk_tree_view_get_model(tv);
+
+    /*
+     * Create a new shadow if necessary.
+     */
+    shadow = shadow_find(work_filter);
+    if (shadow == NULL)
+        shadow = shadow_new(work_filter);
+
+    /*
+     * Assumption: every rule in shadow->current is also
+     * bound to a row in the filter table. So we can free
+     * this list and rebuild it in the right order from the
+     * row data.
+     */
+    g_list_free(shadow->current);
+
+	gtk_tree_model_foreach(model, filter_adapt_order_helper, &new_order);
+    shadow->current = g_list_reverse(new_order);
+}
+#endif /* USE_GTK2 */
 
 
 #define MATCH_RULE(filter, r, res)									\
@@ -1936,7 +1988,7 @@ do {																\
     (prop_count)++;													\
     (r)->target->match_count++;										\
     if (gui_debug >= 10)											\
-        g_message("matched rule: %s", filter_rule_to_gchar((r)));	\
+        g_message("matched rule: %s", filter_rule_to_string((r)));	\
 } while (0)
 
 /**
@@ -1979,7 +2031,7 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 
         r = list->data;
         if (gui_debug >= 10)
-            g_message("trying to match against: %s", filter_rule_to_gchar(r));
+            g_message("trying to match against: %s", filter_rule_to_string(r));
 
         if (RULE_IS_ACTIVE(r)) {
             switch (r->type){
@@ -2028,28 +2080,27 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 
                 switch (r->u.text.type) {
                 case RULE_TEXT_EXACT:
-                    if (strcmp(r->u.text.case_sensitive ? utf8_name : l_name,
-                            r->u.text.match) == 0)
+                    if (0 == strcmp(r->u.text.case_sensitive ? ctx->utf8_name : ctx->l_name, r->u.text.match))
                         match = TRUE;
                     break;
                 case RULE_TEXT_PREFIX:
-                    if (strncmp(r->u.text.case_sensitive ? utf8_name : l_name,
-                            r->u.text.match, r->u.text.matchlen) == 0)
+                    if (
+						0 == strncmp(r->u.text.case_sensitive ? ctx->utf8_name : ctx->l_name, r->u.text.match, r->u.text.match_len)
+					)
                         match = TRUE;
                     break;
                 case RULE_TEXT_WORDS:	/* Contains ALL the words */
                     {
-                        GList *l;
+                        GList *iter;
 						gboolean failed = FALSE;
 
                         for (
-                            l = g_list_first(r->u.text.u.words);
-                            l && !failed;
-                            l = g_list_next(l)
+                            iter = g_list_first(r->u.text.u.words);
+                            iter && !failed;
+                            iter = g_list_next(iter)
                         ) {
                             if (
-								pattern_qsearch(l->data,
-                                 r->u.text.case_sensitive ? utf8_name : l_name,
+								pattern_qsearch(iter->data, r->u.text.case_sensitive ? ctx->utf8_name : ctx->l_name,
 								 0, 0, qs_any) == NULL
 							)
                                 failed = TRUE;
@@ -2062,25 +2113,24 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 					size_t namelen = r->u.text.case_sensitive ?
 						ctx->utf8_len : ctx->l_len;
 					size_t n;
-                    n = r->u.text.matchlen;
+                    n = r->u.text.match_len;
+					/* FIXME: > is WRONG, isn't that OBVIOUS?!!?!*/
                     if (namelen > n
                         && strcmp((r->u.text.case_sensitive
                                ? utf8_name : l_name) + namelen
                               - n, r->u.text.match) == 0)
                         match = TRUE;
+				   }
                     break;
-				}
                 case RULE_TEXT_SUBSTR:
                     if (
-						pattern_qsearch(r->u.text.u.pattern,
-                                r->u.text.case_sensitive ? utf8_name : l_name,
+						pattern_qsearch(r->u.text.u.pattern, r->u.text.case_sensitive ? ctx->utf8_name : ctx->l_name,
 								0, 0, qs_any) != NULL
 					)
                         match = TRUE;
                     break;
                 case RULE_TEXT_REGEXP:
-                    if ((i = regexec(r->u.text.u.re, utf8_name,
-                             0, NULL, 0)) == 0)
+                    if (0 == (i = regexec(r->u.text.u.re, r->u.text.case_sensitive ? ctx->utf8_name : ctx->l_name, 0, NULL, 0)))
                         match = TRUE;
                     if (i == REG_ESPACE)
                         g_warning("regexp memory overflow");
@@ -2108,8 +2158,8 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
             case RULE_SHA1:
                 if (rec->sha1 == r->u.sha1.hash)
                     match = TRUE;
-                else if ((rec->sha1 != NULL) &&  r->u.sha1.hash != NULL)
-                    if (memcmp(rec->sha1, r->u.sha1.hash, SHA1_RAW_SIZE) == 0)
+                else if (rec->sha1 != NULL && r->u.sha1.hash != NULL)
+                    if (0 == memcmp(rec->sha1, r->u.sha1.hash, SHA1_RAW_SIZE))
                         match = TRUE;
                 break;
             case RULE_FLAG:
@@ -2119,25 +2169,37 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
                     gboolean push_match;
 
                     stable_match =
-                        ((r->u.flag.busy == RULE_FLAG_SET) &&
-                         (rec->results_set->status & ST_BUSY)) ||
-                        ((r->u.flag.busy == RULE_FLAG_UNSET) &&
-                         !(rec->results_set->status & ST_BUSY)) ||
-                        (r->u.flag.busy == RULE_FLAG_IGNORE);
+                        (
+							r->u.flag.busy == RULE_FLAG_SET &&
+							(rec->results_set->status & ST_BUSY)
+						) ||
+                        (
+							r->u.flag.busy == RULE_FLAG_UNSET &&
+							!(rec->results_set->status & ST_BUSY)
+						) ||
+                        r->u.flag.busy == RULE_FLAG_IGNORE;
 
                     busy_match =
-                        ((r->u.flag.push == RULE_FLAG_SET) &&
-                         (rec->results_set->status & ST_FIREWALL)) ||
-                        ((r->u.flag.push == RULE_FLAG_UNSET) &&
-                         !(rec->results_set->status & ST_FIREWALL)) ||
-                        (r->u.flag.push == RULE_FLAG_IGNORE);
+                        (
+							r->u.flag.push == RULE_FLAG_SET &&
+							(rec->results_set->status & ST_FIREWALL)
+						) ||
+                        (
+							(r->u.flag.push == RULE_FLAG_UNSET) &&
+							!(rec->results_set->status & ST_FIREWALL)
+						) ||
+                        r->u.flag.push == RULE_FLAG_IGNORE;
 
                     push_match =
-                        ((r->u.flag.stable == RULE_FLAG_SET) &&
-                         (rec->results_set->status & ST_UPLOADED)) ||
-                        ((r->u.flag.stable == RULE_FLAG_UNSET) &&
-                         !(rec->results_set->status & ST_UPLOADED)) ||
-                        (r->u.flag.stable == RULE_FLAG_IGNORE);
+                        (
+							r->u.flag.stable == RULE_FLAG_SET &&
+							(rec->results_set->status & ST_UPLOADED)
+						) ||
+                        (
+							r->u.flag.stable == RULE_FLAG_UNSET &&
+							!(rec->results_set->status & ST_UPLOADED)
+						) ||
+						r->u.flag.stable == RULE_FLAG_IGNORE;
 
                     match = stable_match && busy_match && push_match;
                 }
@@ -2182,8 +2244,7 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
                 do_abort = TRUE;
                 r->match_count ++;
                 r->target->match_count ++;
-            } else
-            if ((r->target == filter_show)) {
+            } else if (r->target == filter_show) {
                 if (!res->props[FILTER_PROP_DISPLAY].state) {
 
                     res->props[FILTER_PROP_DISPLAY].state =
@@ -2191,8 +2252,7 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 
                     MATCH_RULE(filter, r, res);
                 }
-            } else
-            if (r->target == filter_drop) {
+            } else if (r->target == filter_drop) {
                 if (!res->props[FILTER_PROP_DISPLAY].state) {
 
                     res->props[FILTER_PROP_DISPLAY].state =
@@ -2202,8 +2262,7 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 
                     MATCH_RULE(filter, r, res);
                 }
-            } else
-            if (r->target == filter_download){
+            } else if (r->target == filter_download) {
                 if (!res->props[FILTER_PROP_DOWNLOAD].state) {
 
                     res->props[FILTER_PROP_DOWNLOAD].state =
@@ -2211,8 +2270,7 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 
                     MATCH_RULE(filter, r, res);
                 }
-            } else
-            if (r->target == filter_nodownload) {
+            } else if (r->target == filter_nodownload) {
                 if (!res->props[FILTER_PROP_DOWNLOAD].state) {
 
                     res->props[FILTER_PROP_DOWNLOAD].state =
@@ -2267,7 +2325,7 @@ filter_record(search_t *sch, const struct record *rec)
      * the props_set count with 0;
      */
 
-    result = walloc0(sizeof(*result));
+    result = walloc0(sizeof *result);
     filter_apply(filter_global_pre, &ctx, result);
 
     /*
@@ -2505,7 +2563,7 @@ filter_free_result(filter_result_t *res)
         };
     }
 
-    wfree(res, sizeof(*res));
+    wfree(res, sizeof *res);
 }
 
 /**
@@ -2514,9 +2572,9 @@ filter_free_result(filter_result_t *res)
  * in outside the session.
  */
 gboolean
-filter_is_valid_in_session(filter_t *f)
+filter_is_valid_in_session(const filter_t *f)
 {
-    return f != NULL && g_list_find(filters_current, f) != NULL;
+    return f && g_list_find(filters_current, deconstify_gpointer(f));
 }
 
 /**
@@ -2539,17 +2597,19 @@ filter_find_by_name_in_session(const gchar *name)
 }
 
 gboolean
-filter_is_global(filter_t *f)
+filter_is_global(const filter_t *f)
 {
-    return ((f == filter_global_pre) || (f == filter_global_post));
+    return f == filter_global_pre || f == filter_global_post;
 }
 
 gboolean
-filter_is_builtin(filter_t *f)
+filter_is_builtin(const filter_t *f)
 {
-    return ((f == filter_show) || (f == filter_drop) ||
-            (f == filter_download) || (f == filter_nodownload) ||
-            (f == filter_return));
+    return	f == filter_show ||
+			f == filter_drop ||
+            f == filter_download ||
+			f == filter_nodownload ||
+            f == filter_return;
 }
 
 filter_t *
