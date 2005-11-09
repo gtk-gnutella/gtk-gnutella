@@ -216,7 +216,7 @@ stats_hash_to_treeview(gpointer key, gpointer value, gpointer unused_udata)
 
 	/* update the display */
 
-	s = key ? unknown_to_utf8_normalized(key, UNI_NORM_GUI, FALSE) : NULL;
+	s = key ? unknown_to_utf8_normalized(key, UNI_NORM_GUI, NULL) : NULL;
 
 	gtk_list_store_append(store_search_stats, &iter);
 	gtk_list_store_set(store_search_stats, &iter,
