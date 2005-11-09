@@ -95,7 +95,65 @@ static struct {
 
 search_t *search_gui_get_current_search(void)	{ return current_search; }
 void search_gui_forget_current_search(void)		{ current_search = NULL; }
-void search_gui_current_search(search_t *sch)	{ current_search = sch; }
+
+static void
+on_option_menu_menu_item_activate(GtkMenuItem *unused_item, gpointer udata)
+{
+	GtkOptionMenu *option_menu;
+
+	(void) unused_item;
+
+	option_menu = GTK_OPTION_MENU(udata);
+	search_gui_set_current_search(option_menu_get_selected_data(option_menu));
+}
+
+void
+search_gui_option_menu_searches_update(void)
+{
+	GtkOptionMenu *option_menu;
+	GtkMenu *menu;
+	const GList *iter;
+
+	option_menu = GTK_OPTION_MENU(lookup_widget(main_window,
+						"option_menu_searches"));	
+	menu = GTK_MENU(gtk_menu_new());
+
+	iter = g_list_last(deconstify_gpointer(search_gui_get_searches()));
+	for (/* NOTHING */; iter != NULL; iter = g_list_previous(iter)) {
+		GtkWidget *item;
+		search_t *s = iter->data;
+
+		item = gtk_menu_item_new_with_label(lazy_utf8_to_ui_string(s->query));
+		gtk_widget_show(item);
+		gtk_object_set_user_data(GTK_OBJECT(item), s);
+		gtk_menu_shell_prepend(GTK_MENU_SHELL(menu), item);
+#ifdef USE_GTK1
+		gtk_signal_connect(GTK_OBJECT(item), "activate",
+			on_option_menu_menu_item_activate, option_menu);
+#endif /* USE_GTK1 */
+#ifdef USE_GTK2
+		g_signal_connect(GTK_OBJECT(item), "activate",
+			G_CALLBACK(on_option_menu_menu_item_activate), option_menu);
+#endif /* USE_GTK2 */
+
+	}
+	gtk_option_menu_set_menu(option_menu, GTK_WIDGET(menu));
+}
+
+void
+search_gui_option_menu_searches_select(const search_t *sch)
+{
+	option_menu_select_item_by_data(
+		GTK_OPTION_MENU(lookup_widget(main_window, "option_menu_searches")),
+		sch);
+}
+
+void
+search_gui_current_search(search_t *sch)
+{
+	search_gui_option_menu_searches_select(sch);
+   	current_search = sch;
+}
 
 /**
  * Create a new search and start it. Use default reissue timeout.
@@ -178,6 +236,7 @@ search_gui_free_record(record_t *rc)
 	g_assert(NULL == rc->results_set);
 
 	atom_str_free(rc->name);
+	atom_str_free(rc->ut8_name);
 	if (rc->ext != NULL)
         atom_str_free(rc->ext);
 	if (rc->tag != NULL)
@@ -607,6 +666,8 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 
     rc->ext = NULL;
 	rc->name = atom_str_get(r->name);
+	rc->utf8_name = atom_str_get(lazy_unknown_to_utf8_normalized(r->name,
+						UNI_NORM_GUI, &rc->charset));
     rc->size = r->size;
     rc->index = r->index;
     rc->sha1 = r->sha1 != NULL ? atom_sha1_get(r->sha1) : NULL;
@@ -686,6 +747,13 @@ on_search_entry_activate(GtkWidget *unused_widget, gpointer unused_udata)
 	(void) unused_widget;
 	(void) unused_udata;
 	search_gui_new_search_entered();
+}
+
+void
+on_option_menu_search_changed(GtkOptionMenu *option_menu, gpointer unused_udata)
+{
+	(void) unused_udata;
+	search_gui_set_current_search(option_menu_get_selected_data(option_menu));
 }
 
 /**
@@ -1256,34 +1324,30 @@ search_gui_flush(time_t now)
  * @author Andrew Meredith <andrew@anvil.org>
  */
 void
-search_gui_add_targetted_search(record_t *rec, filter_t *unused_filter)
+search_gui_add_targetted_search(gpointer data, gpointer unused_udata)
 {
+	const record_t *rec = data;
     search_t *new_search;
     rule_t *rule;
-	gchar *s;
 
-	(void) unused_filter;
+	(void) unused_udata;
     g_assert(rec != NULL);
-    g_assert(rec->name != NULL);
+    g_assert(rec->utf8_name != NULL);
 
-	s = unknown_to_utf8_normalized(rec->name, UNI_NORM_NFC, FALSE);
-	
     /* create new search item with search string set to filename */
-    search_gui_new_search(s, 0, &new_search);
+    search_gui_new_search(rec->utf8_name, 0, &new_search);
     g_assert(new_search != NULL);
 
     if (rec->sha1) {
-        rule = filter_new_sha1_rule(rec->sha1, s,
+        rule = filter_new_sha1_rule(rec->sha1, rec->utf8_name,
             		filter_get_download_target(), RULE_FLAG_ACTIVE);
     } else {
-        rule = filter_new_text_rule(s, RULE_TEXT_EXACT, TRUE,
+        rule = filter_new_text_rule(rec->utf8_name, RULE_TEXT_EXACT, TRUE,
             		filter_get_download_target(), RULE_FLAG_ACTIVE);
     }
     g_assert(rule != NULL);
 
     filter_append_rule(new_search->filter, rule);
-	if (s != rec->name)
-		G_FREE_NULL(s);
 }
 
 /**
@@ -1667,8 +1731,8 @@ search_gui_new_search_entered(void)
          * new_search will trigger a rebuild of the menu as a
          * side effect.
          */
-        default_filter = option_menu_get_selected_data
-            (lookup_widget(main_window, "optionmenu_search_filter"));
+        default_filter = option_menu_get_selected_data(GTK_OPTION_MENU(
+					lookup_widget(main_window, "optionmenu_search_filter")));
 
 		res = search_gui_new_search(text, 0, &search);
 

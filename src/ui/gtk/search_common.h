@@ -96,8 +96,10 @@ typedef struct record {
 	gint refcount;				/**< Number of hash tables it has been put to */
 	record_magic_t magic;		/**< Magic ID */
 
-	gchar  *name;				/**< File name */
-	gchar  *ext;				/**< File extension */
+	gchar  *name;				/**< Filename (atom) */
+	gchar  *ext;				/**< File extension (atom) */
+	gchar  *utf8_name;			/**< Filename converted to UTF-8 (atom) */
+	const gchar *charset;		/**< Detected charset of name (static const) */
 	filesize_t size;			/**< Size of file, in bytes */
 	guint32 index;				/**< Index for GET command */
 	gchar  *sha1;				/**< SHA1 URN (binary form, atom) */
@@ -149,12 +151,15 @@ const gchar *search_gui_parse_query(const gchar *querystr, GList **rules,
 void search_gui_filter_new(search_t *sch, GList *rules);
 
 struct filter;
-void search_gui_add_targetted_search(
-    struct record *rec, struct filter *noneed);
+void search_gui_add_targetted_search(gpointer data, gpointer unused_udata);
 void search_gui_update_items(struct search *);
 void search_gui_new_search_entered(void);
+void search_gui_option_menu_searches_update(void);
+void search_gui_option_menu_searches_select(const search_t *sch);
 
 gchar *search_xml_indent(const gchar *s);
+
+void on_option_menu_search_changed(GtkOptionMenu *option_menu, gpointer unused_udata);
 
 #endif /* _gtk_search_common_h_ */
 
