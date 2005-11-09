@@ -49,6 +49,8 @@ gint gui_record_sha1_or_name_eq(gconstpointer rec1, gconstpointer rec2);
 #ifdef USE_GTK2
 void gui_merge_window_as_tab(GtkWidget *toplvl, GtkWidget *notebook,
 	GtkWidget *window);
+gboolean tree_find_iter_by_data(GtkTreeModel *model, guint column,
+	gconstpointer data, GtkTreeIter *iter);
 #endif /* USE_GTK2 */
 
 #endif /* _gtk_misc_h_ */

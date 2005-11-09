@@ -430,7 +430,6 @@ gui_restore_window(GtkWidget *widget, property_t prop)
 			coord[0], coord[1], coord[2], coord[3]);
 
 		/* This causes a wandering window -- make it optional */
-#if 0
 		{
 			gint x, y, dx, dy;
 
@@ -445,7 +444,6 @@ gui_restore_window(GtkWidget *widget, property_t prop)
 			if (dx || dy)
 				gdk_window_move(widget->window, coord[0] + dx, coord[1] + dy);
 		}
-#endif
 	}
 #endif /* USE_GTK2 */
 }
@@ -555,6 +553,52 @@ gui_merge_window_as_tab(GtkWidget *toplvl,
 		}
 		g_list_free(children);
 	}
+}
+
+struct find_iter_by_data_context {
+	GtkTreeIter iter;		/**< The iter to initialize */
+	gconstpointer data;		/**< The data pointer to look for */
+	guint column;			/**< The column to check for data */
+	gboolean found;			/**< Set to TRUE when data was found */
+};
+
+static gboolean
+tree_find_iter_by_data_helper(GtkTreeModel *model, GtkTreePath *unused_path,
+	GtkTreeIter *iter, gpointer ctx_ptr)
+{
+	struct find_iter_by_data_context *ctx = ctx_ptr;
+	static const GValue zero_value;
+	GValue value = zero_value;
+
+	(void) unused_path;
+
+   	gtk_tree_model_get_value(model, iter, ctx->column, &value);
+	g_assert(G_TYPE_POINTER == G_VALUE_TYPE(&value));
+
+	if (g_value_peek_pointer(&value) == ctx->data) {
+		ctx->iter = *iter;
+		ctx->found = TRUE;
+		return TRUE;	/* stop traversal */
+	}
+		
+	return FALSE; /* continue traversal */
+}
+
+gboolean 
+tree_find_iter_by_data(GtkTreeModel *model,
+	guint column, gconstpointer data, GtkTreeIter *iter)
+{
+	struct find_iter_by_data_context ctx;
+
+	ctx.data = data;
+	ctx.found = FALSE;
+	ctx.column = column;
+	gtk_tree_model_foreach(model, tree_find_iter_by_data_helper, &ctx);
+
+	if (ctx.found && iter)
+		*iter = ctx.iter;
+
+	return ctx.found;
 }
 
 #endif	/* USE_GTK2 */
