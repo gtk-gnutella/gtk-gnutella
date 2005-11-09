@@ -589,7 +589,7 @@ search_retrieve_xml(void)
                     g_warning("Failed to resolve rule %d in \"%s\": "
 						"missing key %p",
                         n, filter->name,
-						cast_to_gconstpointer(filter_rule_to_gchar(rule)));
+						cast_to_gconstpointer(filter_rule_to_string(rule)));
 
 					/* Remove the corrupted filter, we can't handle it */
 					damaged = TRUE;
