@@ -92,13 +92,15 @@ void on_menu_downloads_active_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata);
 void on_menu_downloads_queue_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata);
-void on_menu_search_searches_activate(GtkMenuItem *unused_menuitem,
+void on_menu_search_results_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata);
 void on_menu_search_monitor_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata);
 void on_menu_search_stats_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata);
 
+void on_notebook_main_switch_page(GtkNotebook *unused_notebook,
+	GtkNotebookPage *unused_page, gint page_num, gpointer unused_udata);
 
 #ifdef USE_GTK2
 void on_main_gui_treeview_menu_motion(GtkTreeView *tv, GtkTreePath *path);

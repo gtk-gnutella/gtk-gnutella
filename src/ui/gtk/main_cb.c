@@ -255,7 +255,7 @@ GENERATE_MENU_HANDLER(uploads_history, uploads_stats);
 GENERATE_MENU_HANDLER(downloads_files, dl_files);
 GENERATE_MENU_HANDLER(downloads_active, dl_active);
 GENERATE_MENU_HANDLER(downloads_queue, dl_queue);
-GENERATE_MENU_HANDLER(search_searches, search);
+GENERATE_MENU_HANDLER(search_results, search);
 GENERATE_MENU_HANDLER(search_monitor, monitor);
 GENERATE_MENU_HANDLER(search_stats, search_stats);
 
@@ -384,16 +384,18 @@ on_main_gui_treeview_menu_cursor_changed(GtkTreeView *treeview,
     GtkTreeSelection *selection;
     GtkTreeModel *model = NULL;
     GtkTreeIter iter;
-    gint tab = 0;
 
 	(void) unused_udata;
     g_assert(treeview != NULL);
 
     selection = gtk_tree_view_get_selection(treeview);
     if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-        gtk_tree_model_get(GTK_TREE_MODEL(model), &iter, 1, &tab, (-1));
-        gtk_notebook_set_page
-            (GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")), tab);
+		gpointer data;
+
+        gtk_tree_model_get(GTK_TREE_MODEL(model), &iter, 1, &data, (-1));
+        gtk_notebook_set_current_page(
+			GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
+			GPOINTER_TO_UINT(data));
     }
 }
 
@@ -412,7 +414,7 @@ on_main_gui_treeview_menu_row_collapsed(GtkTreeView *tree, GtkTreeIter *iter,
 	 *			already destroyed.
 	 */
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree));
-	gtk_tree_model_get(GTK_TREE_MODEL(model), iter, 2, &id, (-1));
+	gtk_tree_model_get(GTK_TREE_MODEL(model), iter, 1, &id, (-1));
 	g_assert(id >= 0 && id < nb_main_page_num);
 	gui_prop_set_guint32(PROP_TREEMENU_NODES_EXPANDED, &expanded, id, 1);
 }
@@ -432,11 +434,77 @@ on_main_gui_treeview_menu_row_expanded(GtkTreeView *tree, GtkTreeIter *iter,
 	 *			already destroyed.
 	 */
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree));
-	gtk_tree_model_get(GTK_TREE_MODEL(model), iter, 2, &id, (-1));
+	gtk_tree_model_get(GTK_TREE_MODEL(model), iter, 1, &id, (-1));
 	g_assert(id >= 0 && id < nb_main_page_num);
 	gui_prop_set_guint32(PROP_TREEMENU_NODES_EXPANDED, &expanded, id, 1);
 }
-
 #endif /* USE_GTK2 */
+
+void
+on_notebook_main_switch_page(GtkNotebook *unused_notebook,
+	GtkNotebookPage *unused_page, gint page_num, gpointer unused_udata)
+#ifdef USE_GTK1
+{
+	static gboolean lock;
+    GtkCTreeNode *node;
+    GtkCTree *ctree;
+
+	(void) unused_notebook;
+	(void) unused_udata;
+	(void) unused_page;
+
+	if (lock)	/* Prevent recursion */
+		return;
+	lock = TRUE;
+
+	ctree = GTK_CTREE(lookup_widget(main_window, "ctree_menu"));
+    node = gtk_ctree_find_by_row_data(ctree, NULL, GINT_TO_POINTER(page_num));
+	if (node) {
+    	GtkCTreeNode *iter;
+
+		for (iter = node; iter != NULL; iter = GTK_CTREE_ROW(iter)->parent)
+			gtk_ctree_expand(ctree, iter);
+		
+        gtk_ctree_select(ctree, node);
+		if (!GTK_WIDGET_HAS_FOCUS(GTK_WIDGET(ctree)))
+			gtk_ctree_node_moveto(ctree, node, 0, 0.0, 0.0);
+	}
+
+	lock = FALSE;
+}
+#endif /* USE_GTK1 */
+#ifdef USE_GTK2
+{
+	static gboolean lock;
+	GtkTreeView *tv;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+
+	(void) unused_notebook;
+	(void) unused_udata;
+	(void) unused_page;
+
+	if (lock)	/* Prevent recursion */
+		return;
+	lock = TRUE;
+	
+	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_menu"));
+	model = gtk_tree_view_get_model(tv);
+	if (tree_find_iter_by_data(model, 1, GINT_TO_POINTER(page_num), &iter)) {
+		GtkTreePath *path;
+
+		path = gtk_tree_model_get_path(model, &iter);
+		while (gtk_tree_path_up(path))
+			gtk_tree_view_expand_row(tv, path, FALSE);
+		gtk_tree_path_free(path);
+		
+		path = gtk_tree_model_get_path(model, &iter);
+		gtk_tree_view_set_cursor(tv, path, NULL, FALSE);
+		gtk_tree_path_free(path);
+	}
+	
+	lock = FALSE;
+}
+#endif /* USE_GTK1 */
 
 /* vi: set ts=4 sw=4 cindent: */
