@@ -154,51 +154,45 @@ gtk_main_flush(void)
  * Select the menu item which has given data attached to it.
  */
 void
-option_menu_select_item_by_data(GtkWidget *m, gpointer *d)
+option_menu_select_item_by_data(GtkOptionMenu *option_menu, gconstpointer data)
 {
-    GList *l;
-    gint n = 0;
-    GtkWidget *menu;
+    GList *iter;
+    gint i;
 
-    g_assert(m != NULL);
-    g_assert(GTK_IS_OPTION_MENU(m));
+    g_assert(option_menu);
+    g_assert(data);
+    g_assert(GTK_IS_OPTION_MENU(option_menu));
 
-    menu = GTK_WIDGET(gtk_option_menu_get_menu(GTK_OPTION_MENU(m)));
-
-    for (l = GTK_MENU_SHELL(menu)->children; l != NULL; l = g_list_next(l)) {
-        if (l->data != NULL) {
-            if (gtk_object_get_user_data((GtkObject *) l->data) == d) {
-                gtk_option_menu_set_history(GTK_OPTION_MENU(m), n);
-                break;
-            }
+    iter = GTK_MENU_SHELL(gtk_option_menu_get_menu(option_menu))->children;
+    for (i = 0; iter != NULL; iter = g_list_next(iter), i++) {
+        if (iter->data && gtk_object_get_user_data(iter->data) == data) {
+			gtk_option_menu_set_history(option_menu, i);
+			return;
         }
-
-        n ++;
     }
 
-    if (l == NULL)
-        g_warning("option_menu_select_item_by_data: no item with data %p",
-			cast_to_gconstpointer(d));
+	g_warning("option_menu_select_item_by_data: no item with data %p", data);
 }
 
 
 
 /**
- * Add a new menu item to the GtkMenu m, with the label l and
- * the data d.
+ * Add a new menu item to the GtkMenu "menu" with the label "label_text" and
+ * the data "data".
  */
 GtkWidget *
-menu_new_item_with_data(GtkMenu * m, gchar * l, gpointer d )
+menu_new_item_with_data(GtkMenu *menu, const gchar *label_text, gpointer data)
 {
-    GtkWidget *w;
+    GtkWidget *widget;
 
-    g_assert(l != NULL);
+    g_assert(menu);
+    g_assert(label_text);
 
-    w = gtk_menu_item_new_with_label(l);
-    gtk_object_set_user_data((GtkObject *)w, (gpointer)d);
-    gtk_widget_show(w);
-    gtk_menu_append(m, w);
-    return w;
+    widget = gtk_menu_item_new_with_label(label_text);
+    gtk_object_set_user_data(GTK_OBJECT(widget), data);
+    gtk_widget_show(widget);
+    gtk_menu_append(menu, widget);
+    return widget;
 }
 
 
@@ -207,18 +201,15 @@ menu_new_item_with_data(GtkMenu * m, gchar * l, gpointer d )
  * the GtkOptionMenu m.
  */
 gpointer
-option_menu_get_selected_data(GtkWidget *m)
+option_menu_get_selected_data(GtkOptionMenu *option_menu)
 {
     GtkWidget *menu;
 
-    g_assert(GTK_IS_OPTION_MENU(m));
+    g_assert(GTK_IS_OPTION_MENU(option_menu));
 
-    menu = gtk_menu_get_active
-        (GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(m))));
-
-    return (menu != NULL) ? gtk_object_get_user_data(GTK_OBJECT(menu)) : NULL;
+    menu = gtk_menu_get_active(GTK_MENU(gtk_option_menu_get_menu(option_menu)));
+    return menu ? gtk_object_get_user_data(GTK_OBJECT(menu)) : NULL;
 }
-
 
 /**
  * Given a radio button it returns a pointer to the active radio
@@ -422,21 +413,22 @@ typedef struct collect_data_struct {
     GSList *results;
     GSList *to_unselect;
 	GCompareFunc cfn;
+	tree_selection_get_data_func gdf;	
 	GtkTreeView *tv;
 	const gchar *name; /* name of the treeview widget (for debugging) */
+	guint column;
 } collect_data_struct_t;
 
 static inline void
 tree_selection_collect_data_record(GtkTreeModel *model, GtkTreeIter *iter,
 		collect_data_struct_t *cdata, gboolean unselect)
 {
-	gpointer data = NULL;
+	gpointer data;
 
 	g_assert(NULL != cdata);
 	g_assert(NULL != iter);
 
-	gtk_tree_model_get(model, iter, c_sr_record, &data, (-1));
-	g_assert(NULL != data);
+	data = cdata->gdf(model, iter);
 
 	if (unselect) {
 		cdata->to_unselect = g_slist_prepend(cdata->to_unselect,
@@ -495,7 +487,8 @@ tree_selection_unselect_helper(gpointer data, gpointer user_data)
  * items from the result list. Using cfn will significantly increase runtime.
  */
 GSList *
-tree_selection_collect_data(GtkTreeSelection *selection, GCompareFunc cfn)
+tree_selection_collect_data(GtkTreeSelection *selection,
+	tree_selection_get_data_func gdf, GCompareFunc cfn)
 {
 	collect_data_struct_t cdata;
 
@@ -504,6 +497,7 @@ tree_selection_collect_data(GtkTreeSelection *selection, GCompareFunc cfn)
 	cdata.results = NULL;
 	cdata.to_unselect = NULL;
 	cdata.cfn = cfn;
+	cdata.gdf = gdf;
 	cdata.tv = gtk_tree_selection_get_tree_view(selection);
 	if (gui_debug >= 3) {
 		cdata.name = gtk_widget_get_name(
@@ -517,7 +511,7 @@ tree_selection_collect_data(GtkTreeSelection *selection, GCompareFunc cfn)
      * Browse selected rows and gather data.
      */
 	gtk_tree_selection_selected_foreach(selection,
-		tree_selection_collect_data_helper, (gpointer) &cdata);
+		tree_selection_collect_data_helper, &cdata);
 
     /*
      * Now unselect the rows from which we got data.

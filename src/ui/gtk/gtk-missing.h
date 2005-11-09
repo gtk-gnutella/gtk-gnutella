@@ -103,8 +103,11 @@ void gtk_combo_init_choices(
 /**
  * GtkOptionMenu
  */
-void option_menu_select_item_by_data(GtkWidget *m, gpointer *d);
-gpointer option_menu_get_selected_data(GtkWidget *m);
+void option_menu_select_item_by_data(GtkOptionMenu *option_menu,
+	gconstpointer data);
+gpointer option_menu_get_selected_data(GtkOptionMenu *option_menu);
+GtkWidget *menu_new_item_with_data(GtkMenu *menu, const gchar *label_text,
+	gpointer data);
 
 /**
  * GtkWidget
@@ -119,11 +122,14 @@ void gtk_mass_widget_set_sensitive(GtkWidget *tl,
 typedef void (*tree_view_motion_callback)(GtkTreeView *, GtkTreePath *);
 typedef struct tree_view_motion tree_view_motion_t;
 
+typedef gpointer (*tree_selection_get_data_func)(GtkTreeModel *model, GtkTreeIter *iter);
+
 GtkTreeIter *w_tree_iter_new(void);
 GtkTreeIter *w_tree_iter_copy(GtkTreeIter *iter);
 void w_tree_iter_free(GtkTreeIter *iter);
 void ht_w_tree_iter_free(gpointer);
-GSList *tree_selection_collect_data(GtkTreeSelection *tsel, GCompareFunc cfn);
+GSList *tree_selection_collect_data(GtkTreeSelection *tsel,
+		tree_selection_get_data_func gdf, GCompareFunc cfn);
 void tree_view_save_widths(GtkTreeView *treeview, property_t prop);
 void tree_view_save_visibility(GtkTreeView *treeview, property_t prop);
 void tree_view_restore_visibility(GtkTreeView *treeview, property_t prop);
@@ -134,7 +140,6 @@ void tree_view_motion_clear_callback(GtkTreeView *tv, tree_view_motion_t *tm);
 #endif /* USE_GTK2 */
 
 gint gtk_main_flush(void);
-GtkWidget *menu_new_item_with_data(GtkMenu *m, gchar *l, gpointer d );
 GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb);
 
 void gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra);
