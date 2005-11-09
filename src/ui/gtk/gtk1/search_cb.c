@@ -201,17 +201,7 @@ search_gui_set_details(const record_t *rc)
 
 		switch ((enum info_idx) j) {
 		case info_filename:
-			{	
-				gchar *s = NULL;
-				
-				if (rc->name)
-					s = unknown_to_utf8_normalized(rc->name,
-							UNI_NORM_GUI, FALSE);
-
-				gtk_entry_set_text(e, s ? lazy_utf8_to_locale(s) : "");
-				if (rc->name != s)
-					G_FREE_NULL(s);
-			}
+			gtk_entry_set_text(e, lazy_utf8_to_ui_string(rc->utf8_name));
 			break;
 			
 		case info_sha1:
@@ -223,7 +213,7 @@ search_gui_set_details(const record_t *rc)
 		case info_source:
 			gtk_entry_set_text(e,
 				rc->results_set->hostname
-					? hostname_port_to_gchar(rc->results_set->hostname,
+					? hostname_port_to_string(rc->results_set->hostname,
 						rc->results_set->port)
 					: host_addr_port_to_string(rc->results_set->addr,
 						rc->results_set->port));
@@ -291,7 +281,7 @@ search_gui_set_details(const record_t *rc)
 			gtk_text_freeze(xml);
 			gtk_text_set_point(xml, 0);
 			gtk_text_insert(xml, NULL, NULL, NULL,
-					lazy_utf8_to_locale(xml_text), -1);
+					lazy_utf8_to_ui_string(xml_text), -1);
 			gtk_text_thaw(xml);
 			G_FREE_NULL(xml_text);
 		}
@@ -420,7 +410,7 @@ search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
         gtk_widget_queue_draw((GtkWidget *) ctree); /* Force redraw */
     }
 
-	return (sel_files+sel_sources);
+	return sel_files + sel_sources;
 }
 
 
@@ -429,14 +419,6 @@ search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
 /***
  *** Glade callbacks
  ***/
-
-void
-on_combo_entry_searches_activate(GtkEditable *unused_editable,
-	gpointer unused_udata)
-{
-	(void) unused_editable;
-	(void) unused_udata;
-}
 
 void
 on_search_popdown_switch(GtkWidget *unused_w, gpointer unused_data)
@@ -858,9 +840,8 @@ on_button_search_passive_clicked(GtkButton *unused_button,
      * new_search will trigger a rebuild of the menu as a
      * side effect.
      */
-    default_filter = (filter_t *)
-        option_menu_get_selected_data
-            (lookup_widget(main_window, "optionmenu_search_filter"));
+    default_filter = option_menu_get_selected_data(GTK_OPTION_MENU(
+				lookup_widget(main_window, "optionmenu_search_filter")));
 
 	search_gui_new_search(_("Passive"), SEARCH_PASSIVE, &search);
 
