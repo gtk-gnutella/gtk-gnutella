@@ -40,22 +40,22 @@ RCSID("$Id$");
 static GtkTreeView *treeview_hcache = NULL;
 static GtkNotebook *notebook_main = NULL;
 
-static const gchar * const hcache_col_labels[] = {
-	N_("Cache contains"),
-	N_("Hosts"),
-	N_("Hits"),
-	N_("Misses")
+static const struct {
+	const gchar *text;
+} hcache_col_labels[] = {
+	{ N_("Cache contains") },
+	{ N_("Hosts") },
+	{ N_("Hits") },
+	{ N_("Misses") }
 };
 
 /***
  *** Private functions
  ***/
 
-static void add_column(
-	GtkTreeView *treeview,
-	gint column_id,
-	gfloat xalign,
-	const gchar *label)
+static void
+add_column(GtkTreeView *treeview,
+	gint column_id, gfloat xalign, const gchar *label)
 {
 	GtkTreeViewColumn *column;
 	GtkCellRenderer *renderer;
@@ -71,11 +71,11 @@ static void add_column(
 		"text", column_id,
 		(void *) 0);
 	g_object_set(column,
-		"fixed-width", 1,
+		"fixed-width", 100,
 		"min-width", 1,
 		"reorderable", TRUE,
 		"resizable", TRUE,
-		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
+		"sizing", GTK_TREE_VIEW_COLUMN_AUTOSIZE,
 		(void *) 0);
 	gtk_tree_view_append_column(treeview, column);
 }
@@ -84,7 +84,8 @@ static void add_column(
  *** Public functions
  ***/
 
-void hcache_gui_init(void)
+void
+hcache_gui_init(void)
 {
     GtkTreeModel *model;
     gint n;
@@ -117,19 +118,21 @@ void hcache_gui_init(void)
 
 	for (n = 0; (guint) n < G_N_ELEMENTS(hcache_col_labels); n++)
 		add_column(treeview_hcache, n, (gfloat) (n != 0),
-			_(hcache_col_labels[n]));
+			_(hcache_col_labels[n].text));
 
     gtk_tree_view_set_model(treeview_hcache, model);
     tree_view_restore_widths(treeview_hcache, PROP_HCACHE_COL_WIDTHS);
 	g_object_unref(model);
 }
 
-void hcache_gui_shutdown(void)
+void
+hcache_gui_shutdown(void)
 {
     tree_view_save_widths(treeview_hcache, PROP_HCACHE_COL_WIDTHS);
 }
 
-void hcache_gui_update(time_t now)
+void
+hcache_gui_update(time_t now)
 {
     hcache_stats_t stats[HCACHE_MAX];
 	static gboolean locked = FALSE;
@@ -172,4 +175,4 @@ cleanup:
 	locked = FALSE;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
