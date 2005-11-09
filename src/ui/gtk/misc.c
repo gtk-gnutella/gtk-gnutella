@@ -426,22 +426,25 @@ gui_restore_window(GtkWidget *widget, property_t prop)
 	}
 #else	/* !USE_GTK2 */
     if (coord[2] != 0 && coord[3] != 0) {
-		gint x, y, dx, dy;
-
         gdk_window_move_resize(widget->window,
 			coord[0], coord[1], coord[2], coord[3]);
 
-		/* This causes a wandering window */
+		/* This causes a wandering window -- make it optional */
 #if 0
-		/* (At least) FVWM2 doesn't take the window decoration into account
-		 * when handling positions requests. Readjust the window position
-		 * if we detect that the window manager added an offset. */
+		{
+			gint x, y, dx, dy;
 
-		gdk_window_get_root_origin(widget->window, &x, &y);
-		dx = (gint) coord[0] - x;
-		dy = (gint) coord[1] - y;
-		if (dx || dy)
-        	gdk_window_move(widget->window, coord[0] + dx, coord[1] + dy);
+			/* (At least) FVWM2 doesn't take the window decoration into account
+			 * when handling positions requests. Readjust the window position
+			 * if we detect that the window manager added an offset.
+			 */
+
+			gdk_window_get_root_origin(widget->window, &x, &y);
+			dx = (gint) coord[0] - x;
+			dy = (gint) coord[1] - y;
+			if (dx || dy)
+				gdk_window_move(widget->window, coord[0] + dx, coord[1] + dy);
+		}
 #endif
 	}
 #endif /* USE_GTK2 */
