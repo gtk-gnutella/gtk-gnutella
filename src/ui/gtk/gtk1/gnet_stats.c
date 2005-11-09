@@ -230,9 +230,9 @@ drop_stat_str(const gnet_stats_t *stats, gint reason)
     guint32 total = stats->pkg.dropped[MSG_TOTAL];
 
     if (stats->drop_reason[reason][selected_type] == 0)
-        return gnet_stats_drop_perc ? "-  " : "-";
+        return gnet_stats_perc ? "-  " : "-";
 
-    if (gnet_stats_drop_perc)
+    if (gnet_stats_perc)
         gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) stats->drop_reason[reason][selected_type] / total * 100);
     else

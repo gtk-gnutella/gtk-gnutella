@@ -60,12 +60,14 @@ static const gchar * const msg_stats_label[] = {
 	N_("Gen. sent")
 };
 
-enum {
+enum gnet_stats_nb_page {
+	GNET_STATS_NB_PAGE_STATS,
+	GNET_STATS_NB_PAGE_HORIZON,
 	GNET_STATS_NB_PAGE_MESSAGES,
 	GNET_STATS_NB_PAGE_FLOWC,
 	GNET_STATS_NB_PAGE_RECV,
 
-	GNET_STATS_NP_PAGE_NUMBER
+	NUM_GNET_STATS_NB_PAGES
 };
 
 static void hide_column_by_title(GtkTreeView *, const gchar *, gboolean);
@@ -153,13 +155,13 @@ byte_stat_str(gchar *dst, gulong n, const guint64 *val_tbl,
 
 static const gchar *
 drop_stat_str(gchar *dst, size_t size, const gnet_stats_t *stats, gint reason,
-	gint selected_type)
+	gint selected_type, gboolean percent)
 {
 	guint32 total = stats->pkg.dropped[MSG_TOTAL];
 
 	if (stats->drop_reason[reason][selected_type] == 0)
 		g_strlcpy(dst, "-", size);
-	else if (gnet_stats_drop_perc)
+	else if (percent)
 		gm_snprintf(dst, size, "%.2f%%",
 		    (gfloat) stats->drop_reason[reason][selected_type] / total * 100);
 	else
@@ -222,7 +224,7 @@ add_column(GtkTreeView *treeview, gint column_id, gint width, gfloat xalign,
 		"min-width", 1,
 		"reorderable", TRUE,
 		"resizable", TRUE,
-		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
+		"sizing", GTK_TREE_VIEW_COLUMN_AUTOSIZE,
 		(void *) 0);
 	gtk_tree_view_append_column(treeview, column);
 }
@@ -230,18 +232,19 @@ add_column(GtkTreeView *treeview, gint column_id, gint width, gfloat xalign,
 static void
 gnet_stats_update_general(const gnet_stats_t *stats)
 {
-	static gchar str[32];
-	GtkTreeView *treeview = treeview_gnet_stats_general;
 	GtkListStore *store;
 	GtkTreeIter iter;
 	gint n;
 
-	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
+	store = GTK_LIST_STORE(gtk_tree_view_get_model(
+				treeview_gnet_stats_general));
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
 	for (n = 0; n < GNR_TYPE_COUNT; n++) {
-		general_stat_str(str, sizeof(str), stats, n);
-		gtk_list_store_set(store, &iter, 1, str, (-1));
+		gchar buf[32];
+
+		general_stat_str(buf, sizeof buf, stats, n);
+		gtk_list_store_set(store, &iter, 1, buf, (-1));
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
 	}
 }
@@ -249,18 +252,20 @@ gnet_stats_update_general(const gnet_stats_t *stats)
 static void
 gnet_stats_update_drop_reasons(const gnet_stats_t *stats)
 {
-	static gchar str[32];
-	GtkTreeView *treeview = treeview_gnet_stats_drop_reasons;
 	GtkListStore *store;
 	GtkTreeIter iter;
 	gint n;
 
-	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
+	store = GTK_LIST_STORE(gtk_tree_view_get_model(
+				treeview_gnet_stats_drop_reasons));
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
 	for (n = 0; n < MSG_DROP_REASON_COUNT; n++) {
-		drop_stat_str(str, sizeof(str), stats, n, gnet_stats_drop_reasons_type);
-		gtk_list_store_set(store, &iter, 1, str, (-1));
+		gchar buf[32];
+
+		drop_stat_str(buf, sizeof buf, stats, n,
+			gnet_stats_drop_reasons_type, gnet_stats_bytes);
+		gtk_list_store_set(store, &iter, 1, buf, (-1));
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
 	}
 }
@@ -562,8 +567,8 @@ gnet_stats_gui_flowc_init(void)
 	g_object_unref(model);
 }
 
-static
-void gnet_stats_gui_drop_reasons_init(void)
+static void
+gnet_stats_gui_drop_reasons_init(void)
 {
 	GtkTreeView *treeview;
 	GtkTreeModel *model;
@@ -843,12 +848,14 @@ gnet_stats_gui_update(time_t now)
 	guc_gnet_stats_get(&stats);
 
 	current_page = gtk_notebook_get_current_page(notebook_gnet_stats);
-
-	gnet_stats_update_general(&stats);
-	gnet_stats_update_drop_reasons(&stats);
-	gnet_stats_update_horizon();
-
-	switch (current_page) {
+	switch ((enum gnet_stats_nb_page) current_page) {
+	case GNET_STATS_NB_PAGE_STATS:
+		gnet_stats_update_general(&stats);
+		gnet_stats_update_drop_reasons(&stats);
+		goto cleanup;
+	case GNET_STATS_NB_PAGE_HORIZON:
+		gnet_stats_update_horizon();
+		goto cleanup;
 	case GNET_STATS_NB_PAGE_MESSAGES:
 		switch (gnet_stats_source) {
 		case GNET_STATS_FULL:
@@ -863,16 +870,18 @@ gnet_stats_gui_update(time_t now)
 			g_assert_not_reached();
 		}
 		gnet_stats_update_messages(&stats);
-		break;
+		goto cleanup;
 	case GNET_STATS_NB_PAGE_FLOWC:
 		gnet_stats_update_flowc(&stats);
-		break;
+		goto cleanup;
 	case GNET_STATS_NB_PAGE_RECV:
 		gnet_stats_update_recv(&stats);
+		goto cleanup;
+
+	case NUM_GNET_STATS_NB_PAGES:
 		break;
-	default:
-		g_assert_not_reached();
 	}
+	g_assert_not_reached();
 
 cleanup:
 	locked = FALSE;
