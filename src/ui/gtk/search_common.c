@@ -236,7 +236,7 @@ search_gui_free_record(record_t *rc)
 	g_assert(NULL == rc->results_set);
 
 	atom_str_free(rc->name);
-	atom_str_free(rc->ut8_name);
+	atom_str_free(rc->utf8_name);
 	if (rc->ext != NULL)
         atom_str_free(rc->ext);
 	if (rc->tag != NULL)
