@@ -1591,6 +1591,23 @@ send_pushes_changed(property_t prop)
 }
 
 static gboolean
+sidebar_visible_changed(property_t prop)
+{
+    gboolean b;
+	GtkWidget *widget;
+
+    gui_prop_get_boolean_val(prop, &b);
+
+	widget = lookup_widget(main_window, "menu_sidebar_visible");
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), b);
+
+	widget = lookup_widget(main_window, "vbox_sidebar");
+   	(b ? gtk_widget_show : gtk_widget_hide)(widget);
+
+    return FALSE;
+}
+
+static gboolean
 navtree_visible_changed(property_t prop)
 {
     gboolean b;
@@ -2909,14 +2926,6 @@ static prop_map_t property_map[] = {
         "hpaned_main",
         FREQ_UPDATES, 0
     ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_GNET_STATS_DIVIDER_POS,
-        update_split_pane,
-        TRUE,
-        "hpaned_gnet_stats",
-        FREQ_UPDATES, 0
-    ),
 #ifdef USE_GTK1
     PROP_ENTRY(
         get_main_window,
@@ -2949,6 +2958,14 @@ static prop_map_t property_map[] = {
         update_split_pane,
         TRUE,
         "vpaned_results",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
+        PROP_SIDEBAR_VISIBLE,
+        sidebar_visible_changed,
+        TRUE,
+        "menu_sidebar_visible",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -4683,14 +4700,6 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
 	),
     PROP_ENTRY(
-        get_main_window,
-        PROP_GNET_STATS_DROP_PERC,
-        update_togglebutton,
-        TRUE,
-        "checkbutton_gnet_stats_drop_perc",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
         get_prefs_dialog,
         PROP_GNET_COMPACT_QUERY,
         update_togglebutton,
@@ -5675,9 +5684,6 @@ settings_gui_shutdown(void)
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_sidebar")));
 #endif /* USE_GTK1 */
-    *(guint32 *) &gnet_stats_divider_pos =
-        gtk_paned_get_position(GTK_PANED
-            (lookup_widget(main_window, "hpaned_gnet_stats")));
     *(guint32 *) &results_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_results")));
