@@ -220,9 +220,10 @@ on_search_notebook_focus_tab(GtkNotebook *notebook, GtkNotebookTab unused_tab,
 
 	(void) unused_tab;
 	(void) unused_udata;
+
 	page_num = gtk_notebook_get_current_page(notebook);
 	widget = gtk_notebook_get_nth_page(notebook, page_num);
-	sch = (search_t *) gtk_object_get_user_data(GTK_OBJECT(widget));
+	sch = gtk_object_get_user_data(GTK_OBJECT(widget));
 
 	g_return_if_fail(sch);
 
@@ -492,30 +493,6 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 	return FALSE;
 }
 
-static const record_t *
-search_get_record_at_path(GtkTreeView *tv, GtkTreePath *path)
-{
-	const GList *l = search_gui_get_searches();
-	search_t *sch = NULL;
-	GtkTreeModel *model;
-	GtkTreeIter iter;
-	const record_t *rc;
-
-	for (/* NOTHING */; NULL != l; l = g_list_next(l)) {
-		if (tv == GTK_TREE_VIEW(((search_t *) l->data)->tree_view)) {
-			sch = (search_t *) l->data;
-			break;
-		}
-	}
-	g_return_val_if_fail(NULL != sch, NULL);
-
-	model = GTK_TREE_MODEL(sch->model);
-	gtk_tree_model_get_iter(model, &iter, path);
-	gtk_tree_model_get(model, &iter, c_sr_record, &rc, (-1));
-
-	return rc;
-}
-
 static const gchar *
 search_get_vendor_from_record(const record_t *rc)
 {
@@ -554,7 +531,7 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			return;
 		}
 
-		rc = search_get_record_at_path(tv, path);
+		rc = search_gui_get_record_at_path(tv, path);
 	}
 
 	if (!rc) {
@@ -576,7 +553,8 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			"%s %s\n"
 			"%s %s",
 			_("Peer:"),
-			host_addr_port_to_string(rc->results_set->addr, rc->results_set->port),
+			host_addr_port_to_string(rc->results_set->addr,
+				rc->results_set->port),
 			_("Country:"),
 			iso3166_country_name(rc->results_set->country),
 			iso3166_country_cc(rc->results_set->country),
@@ -597,7 +575,6 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 static void
 search_update_details(GtkTreeView *tv, GtkTreePath *path)
 {
-	GtkTextBuffer *txt;
 	const record_t *rc = NULL;
 	gchar bytes[UINT64_DEC_BUFLEN];
 	gchar *xml_txt;
@@ -605,31 +582,25 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 	g_assert(tv != NULL);
 	g_assert(path != NULL);
 
-	rc = search_get_record_at_path(tv, path);
+	rc = search_gui_get_record_at_path(tv, path);
 	g_return_if_fail(rc != NULL);
 	
-	{
-		gchar *s = NULL;
-
-		if (rc->name)
-			s = unknown_to_utf8_normalized(rc->name, UNI_NORM_GUI, FALSE);
-		gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename")),
-			s ? s : "");
-		if (rc->name != s)
-			G_FREE_NULL(s);
-	}
-
+	gtk_entry_set_text(
+		GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename")),
+		rc->name
+			? lazy_unknown_to_utf8_normalized(rc->name, UNI_NORM_GUI, NULL)
+			: "");
+	
 	gtk_entry_printf(
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1")),
-			"%s%s",
-			rc->sha1 ? "urn:sha1:" : _("<no SHA1 known>"),
-			rc->sha1 ? sha1_base32(rc->sha1) : "");
+		GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1")),
+		"%s%s",
+		rc->sha1 ? "urn:sha1:" : _("<no SHA1 known>"),
+		rc->sha1 ? sha1_base32(rc->sha1) : "");
 
 	if (rc->results_set->hostname)
 		gtk_entry_set_text(GTK_ENTRY(
 					lookup_widget(main_window, "entry_result_info_source")),
-				hostname_port_to_gchar(
+				hostname_port_to_string(
 					rc->results_set->hostname, rc->results_set->port));
 	else
 		gtk_entry_set_text(GTK_ENTRY(
@@ -663,7 +634,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 		gchar *s;
 
 		s = rc->tag
-				? unknown_to_utf8_normalized(rc->tag, UNI_NORM_GUI, FALSE)
+				? unknown_to_utf8_normalized(rc->tag, UNI_NORM_GUI, NULL)
 				: NULL;
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag")),
@@ -672,18 +643,42 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 			G_FREE_NULL(s);
 	}
 
-	txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget(main_window,
+	/* Display XML data from the result if any */
+	{
+		GtkTextBuffer *txt;
+		
+		txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget(main_window,
 					"textview_result_info_xml")));
-	if (rc->xml) {
-		gchar *s = unknown_to_utf8_normalized(rc->xml, UNI_NORM_GUI, FALSE);
-		xml_txt = search_xml_indent(s);
-		if (rc->xml != s)
-			G_FREE_NULL(s);
-	} else {
-		xml_txt = NULL;
+	
+		/*
+		 * Character set detection usually fails here because XML
+		 * is mostly ASCII so that the thresholds are not reached.
+		 */
+		if (rc->xml) {
+			gchar *s = unknown_to_utf8_normalized(rc->xml, UNI_NORM_GUI, NULL);
+			xml_txt = search_xml_indent(s);
+			if (rc->xml != s)
+				G_FREE_NULL(s);
+		} else {
+			xml_txt = NULL;
+		}
+		gtk_text_buffer_set_text(txt, EMPTY_STRING(xml_txt), -1);
+		G_FREE_NULL(xml_txt);
 	}
-	gtk_text_buffer_set_text(txt, EMPTY_STRING(xml_txt), -1);
-	G_FREE_NULL(xml_txt);
+
+#if 0
+	/**
+	 * Dump the raw filename to enhance the character set detection.
+	 * The following helps to figure out what the actual encoding is:
+	 *
+	 *	for cs in $(iconv -l); do
+	 *	  printf "${cs}: ${filename}" | iconv -f "${cs}" -t UTF-8 2>/dev/null
+	 *	done
+	 */
+	g_message("filename[] = \"%s\"",
+		rc->name ? lazy_string_to_printf_escape(rc->name) : "(null)");
+	(void) lazy_string_to_printf_escape("");	/* release buffer if any */
+#endif
 }
 
 
@@ -723,8 +718,8 @@ on_button_search_passive_clicked(GtkButton *unused_button,
      * new_search will trigger a rebuild of the menu as a
      * side effect.
      */
-    default_filter = (filter_t *) option_menu_get_selected_data(
-		lookup_widget(main_window, "optionmenu_search_filter"));
+    default_filter = option_menu_get_selected_data(GTK_OPTION_MENU(
+					lookup_widget(main_window, "optionmenu_search_filter")));
 
 	search_gui_new_search(_("Passive"), SEARCH_PASSIVE, &search);
 
@@ -775,7 +770,8 @@ on_popup_search_drop_name_activate(GtkMenuItem *unused_menuitem,
     search = search_gui_get_current_search();
     g_assert(search != NULL);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
-    sl = tree_selection_collect_data(selection, gui_record_name_eq);
+    sl = tree_selection_collect_data(selection,
+			search_gui_get_record, gui_record_name_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_name_rule, search->filter);
     g_slist_free(sl);
 }
@@ -794,7 +790,8 @@ on_popup_search_drop_sha1_activate(GtkMenuItem *unused_menuitem,
     search = search_gui_get_current_search();
     g_assert(search != NULL);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
-    sl = tree_selection_collect_data(selection, gui_record_sha1_eq);
+    sl = tree_selection_collect_data(selection,
+			search_gui_get_record, gui_record_sha1_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_sha1_rule, search->filter);
     g_slist_free(sl);
 }
@@ -813,7 +810,8 @@ on_popup_search_drop_host_activate(GtkMenuItem *unused_menuitem,
     search = search_gui_get_current_search();
     g_assert(search != NULL);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
-    sl = tree_selection_collect_data(selection, gui_record_host_eq);
+    sl = tree_selection_collect_data(selection,
+			search_gui_get_record, gui_record_host_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_host_rule, search->filter);
     g_slist_free(sl);
 }
@@ -831,7 +829,8 @@ void on_popup_search_drop_name_global_activate(GtkMenuItem *unused_menuitem,
     search = search_gui_get_current_search();
     g_assert(search != NULL);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
-    sl = tree_selection_collect_data(selection, gui_record_name_eq);
+    sl = tree_selection_collect_data(selection,
+			search_gui_get_record, gui_record_name_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_name_rule,
         filter_get_global_pre());
     g_slist_free(sl);
@@ -851,7 +850,8 @@ on_popup_search_drop_sha1_global_activate(GtkMenuItem *unused_menuitem,
     search = search_gui_get_current_search();
     g_assert(search != NULL);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
-    sl = tree_selection_collect_data(selection, gui_record_sha1_eq);
+    sl = tree_selection_collect_data(selection,
+			search_gui_get_record, gui_record_sha1_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_sha1_rule,
         filter_get_global_pre());
     g_slist_free(sl);
@@ -871,7 +871,8 @@ on_popup_search_drop_host_global_activate(GtkMenuItem *unused_menuitem,
     search = search_gui_get_current_search();
     g_assert(search != NULL);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
-    sl = tree_selection_collect_data(selection, gui_record_host_eq);
+    sl = tree_selection_collect_data(selection,
+			search_gui_get_record, gui_record_host_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_host_rule,
         filter_get_global_pre());
     g_slist_free(sl);
@@ -891,7 +892,8 @@ on_popup_search_autodownload_name_activate(GtkMenuItem *unused_menuitem,
     search = search_gui_get_current_search();
     g_assert(search != NULL);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
-    sl = tree_selection_collect_data(selection, gui_record_name_eq);
+    sl = tree_selection_collect_data(selection,
+			search_gui_get_record, gui_record_name_eq);
     g_slist_foreach(sl, (GFunc) filter_add_download_name_rule, search->filter);
     g_slist_free(sl);
 }
@@ -910,7 +912,8 @@ on_popup_search_autodownload_sha1_activate(GtkMenuItem *unused_menuitem,
 	search = search_gui_get_current_search();
     g_assert(search != NULL);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
-    sl = tree_selection_collect_data(selection, gui_record_sha1_eq);
+    sl = tree_selection_collect_data(selection,
+			search_gui_get_record, gui_record_sha1_eq);
     g_slist_foreach(sl, (GFunc) filter_add_download_sha1_rule, search->filter);
     g_slist_free(sl);
 }
@@ -929,9 +932,9 @@ on_popup_search_new_from_selected_activate(GtkMenuItem *unused_menuitem,
     search = search_gui_get_current_search();
     g_assert(search != NULL);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
-    sl = tree_selection_collect_data(selection, gui_record_sha1_or_name_eq);
-    g_slist_foreach(
-        sl, (GFunc) search_gui_add_targetted_search, search->filter);
+    sl = tree_selection_collect_data(selection, search_gui_get_record,
+			gui_record_sha1_or_name_eq);
+    g_slist_foreach(sl, search_gui_add_targetted_search, search->filter);
     g_slist_free(sl);
 }
 
@@ -1059,9 +1062,6 @@ void
 on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
-	search_t *search;
-	GtkTreeSelection *selection;
-	GSList *sl, *sl_records;
 	guint32 bitzi_debug;
 
 	(void) unused_menuitem;
@@ -1071,53 +1071,7 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	if (bitzi_debug)
 		g_message("on_search_meta_data_active: called");
 
-	/* collect the list of files selected */
-
-	search = search_gui_get_current_search();
-	g_assert(search != NULL);
-
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
-	sl_records = tree_selection_collect_data(selection, gui_record_sha1_eq);
-
-	/* Queue up our requests */
-	if (bitzi_debug)
-		g_message("on_search_meta_data: %d items", g_slist_length(sl_records));
-
-	/* Make sure the column is actually visible. */
-	{
-		static const int min_width = 80;
-		GtkTreeViewColumn *col;
-		gint w;
-		
-		col = gtk_tree_view_get_column(GTK_TREE_VIEW(search->tree_view),
-				c_sr_meta);
-		g_assert(NULL != col);
-		gtk_tree_view_column_set_visible(col, TRUE);
-		w = gtk_tree_view_column_get_width(col);
-		if (w < min_width)
-			gtk_tree_view_column_set_fixed_width(col, min_width);
-	}
-			
-	for (sl = sl_records; sl; sl = g_slist_next(sl)) {
-		record_t *rec;
-
-		rec = sl->data;
-		if (rec->sha1) {
-			GtkTreeIter *parent;
-			
-			/* set the feedback */
-			parent = find_parent_with_sha1(search->parents, rec->sha1);
-			g_assert(parent != NULL);
-			gtk_tree_store_set(GTK_TREE_STORE(search->model), parent,
-				c_sr_meta, _("Query queued..."),
-				(-1));
-
-			/* then send the query... */
-	    	guc_query_bitzi_by_urn(rec->sha1);
-		}
-    }
-
-	g_slist_free(sl_records);
+	search_gui_request_bitzi_data();
 }
 
 

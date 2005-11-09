@@ -32,7 +32,6 @@ GtkWidget* create_dlg_filters_state_tab (void);
 GtkWidget* create_popup_nodes (void);
 GtkWidget* create_main_window_hostcache_tab (void);
 GtkWidget* create_popup_upload_stats (void);
-GtkWidget* create_dlg_wizard (void);
 GtkWidget* create_dlg_prefs (void);
 GtkWidget* create_dlg_prefs_net_tab (void);
 GtkWidget* create_dlg_prefs_gnet_tab (void);

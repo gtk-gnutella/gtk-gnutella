@@ -55,8 +55,6 @@ struct search {
 										 any seen SHA1 */
 	GtkWidget  *scrolled_window;	/**< GtkScrolledWindow, contains
 										 the GtkCList */
-	GtkWidget  *list_item;			/**< The GtkListItem in combo for
-										 this search */
     GtkWidget  *arrow;				/**< The arrow displaying sort order */
 
     gint        sort_col;
@@ -137,7 +135,9 @@ void gui_search_clear_results(void);
 
 #ifdef USE_GTK2
 void gui_search_force_update_tab_label(struct search *, time_t now);
-GtkTreeIter * find_parent_with_sha1(GHashTable *ht, gpointer key);
+void search_gui_request_bitzi_data(void);
+const record_t *search_gui_get_record_at_path(GtkTreeView *tv,
+					GtkTreePath *path);
 #else
 void gui_search_force_update_tab_label(struct search *);
 GtkCTreeNode *find_parent_with_sha1(GHashTable *ht, gpointer key);
