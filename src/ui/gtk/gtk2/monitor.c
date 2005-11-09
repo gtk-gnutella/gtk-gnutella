@@ -105,7 +105,7 @@ monitor_gui_add(query_type_t type, const gchar *item,
 
 		s = lazy_unknown_to_utf8_normalized(buf, UNI_NORM_GUI, &charset_ptr);
 		if (s != buf) {
-			dbuf = g_strconcat("<", charset_ptr, "> ", s);
+			dbuf = g_strconcat("<", charset_ptr, "> ", s, (void *) 0);
 			s = dbuf;
 		} else {
 			dbuf = NULL;
