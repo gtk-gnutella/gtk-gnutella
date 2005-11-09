@@ -461,6 +461,10 @@ search_gui_compare_records(gint sort_col,
             result = strcmp(r1->ext, r2->ext);
             break;
 
+        case c_sr_charset:
+            result = strcmp(r1->charset, r2->charset);
+            break;
+
         case c_sr_size:
 			/*
 			 * Sort by size, then by identical SHA1.
@@ -497,9 +501,6 @@ search_gui_compare_records(gint sort_col,
 
         case c_sr_meta:
 			break;				/* XXX Can't sort, metadata not in record! */
-
-        default:
-            g_assert_not_reached();
         }
     }
 
