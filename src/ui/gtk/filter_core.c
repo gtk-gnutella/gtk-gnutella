@@ -76,7 +76,22 @@ typedef struct shadow {
     guint32 fail_count;
 } shadow_t;
 
+/**
+ * Structure holding "global" variables during filtering.
+ */
+struct filter_context {
+	const struct record *rec;		/* From the GUI */
+	
+	/*
+	 * Cache for filtering: avoids recomputation at each filtering rule.
+	 * Those variables are initialized as needed.
+	 */
 
+	gchar *l_name;				/**< Lower-cased file name */
+	size_t l_len;				/**< Length of lower-cased representation */
+	gchar *utf8_name;			/**< Normalized UTF-8 version of name */
+	size_t utf8_len;			/**< Length of UTF-8 name representation */
+};
 
 /*
  * Private functions prototypes
@@ -1930,13 +1945,16 @@ do {																\
  * argument is changed depending on the rules that match.
  */
 static int
-filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
+filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 {
     GList *list;
     gint prop_count = 0;
     gboolean do_abort = FALSE;
+	const struct record *rec;
 
     g_assert(filter != NULL);
+    g_assert(ctx != NULL);
+	rec = ctx->rec;
     g_assert(rec != NULL);
     g_assert(res != NULL);
 	g_assert(rec->magic == RECORD_MAGIC);
@@ -1969,15 +1987,13 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
                 match = TRUE;
                 break;
             case RULE_TEXT: {
-				gchar *l_name = rec->l_name;
-				gchar *utf8_name = rec->utf8_name;
+				gchar *l_name = ctx->l_name;
+				gchar *utf8_name = ctx->utf8_name;
 
 				if (utf8_name == NULL) {
-					struct record *wrec = deconstify_gpointer(rec);
-
-					utf8_name = (gchar *)
-						lazy_unknown_to_utf8_normalized(rec->name,
-						UNI_NORM_GUI, FALSE);
+					utf8_name =
+						deconstify_gchar(lazy_unknown_to_utf8_normalized(
+							rec->name, UNI_NORM_GUI, FALSE));
 
 					/*
 					 * Cache for further rules, to avoid costly utf8
@@ -1985,20 +2001,16 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
 					 * they have configured.
 					 */
 
-					if (utf8_name != rec->name) {
-						utf8_name = g_strdup(utf8_name);
-						wrec->utf8_name = atom_str_get(utf8_name);
-						G_FREE_NULL(utf8_name);
-					} else
-						wrec->utf8_name = atom_str_get(rec->name);
+					if (utf8_name != rec->name)
+						ctx->utf8_name = atom_str_get(utf8_name);
+					else
+						ctx->utf8_name = atom_str_get(rec->name);
 
-					wrec->utf8_len = strlen(wrec->utf8_name);
-					utf8_name = rec->utf8_name;
+					ctx->utf8_len = strlen(ctx->utf8_name);
+					utf8_name = ctx->utf8_name;
 				}
 
 				if (l_name == NULL) {
-					struct record *wrec = deconstify_gpointer(rec);
-
 					l_name = utf8_strlower_copy(utf8_name);
 
 					/*
@@ -2007,11 +2019,11 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
 					 * rule they have configured.
 					 */
 
-					wrec->l_name = atom_str_get(l_name);
-					wrec->l_len = strlen(rec->l_name);
+					ctx->l_name = atom_str_get(l_name);
+					ctx->l_len = strlen(ctx->l_name);
 
 					G_FREE_NULL(l_name);
-					l_name = rec->l_name;
+					l_name = ctx->l_name;
 				}
 
                 switch (r->u.text.type) {
@@ -2048,7 +2060,7 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
                     break;
                 case RULE_TEXT_SUFFIX: {
 					size_t namelen = r->u.text.case_sensitive ?
-						rec->utf8_len : rec->l_len;
+						ctx->utf8_len : ctx->l_len;
 					size_t n;
                     n = r->u.text.matchlen;
                     if (namelen > n
@@ -2213,7 +2225,7 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
                  * We have a matched rule the target is not a builtin
                  * rule, so it must be a subchain. We gosub.
                  */
-                prop_count += filter_apply(r->target, rec, res);
+                prop_count += filter_apply(r->target, ctx, res);
                 r->match_count ++;
             }
         } else {
@@ -2229,8 +2241,6 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
     return prop_count;
 }
 
-
-
 /**
  * Check a particular record against the search filter and the global
  * filters. Returns a filter_property_t array with MAX_FILTER_PROP
@@ -2240,6 +2250,7 @@ filter_result_t *
 filter_record(search_t *sch, const struct record *rec)
 {
     filter_result_t *result;
+	struct filter_context ctx;
     gint i;
 
     g_assert(sch != NULL);
@@ -2247,24 +2258,29 @@ filter_record(search_t *sch, const struct record *rec)
 	g_assert(rec->magic == RECORD_MAGIC);
 	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
+	ctx.rec = rec;
+	ctx.l_name = ctx.utf8_name = NULL;
+	ctx.l_len = ctx.utf8_len = 0;
+
     /*
      * Initialize all properties with FILTER_PROP_STATE_UNKNOWN and
      * the props_set count with 0;
      */
+
     result = walloc0(sizeof(*result));
-    filter_apply(filter_global_pre, rec, result);
+    filter_apply(filter_global_pre, &ctx, result);
 
     /*
      * If not decided check if the filters for this search apply.
      */
     if (result->props_set < MAX_FILTER_PROP)
-        filter_apply(sch->filter, rec, result);
+        filter_apply(sch->filter, &ctx, result);
 
     /*
      * If it has not yet been decided, try the global filter
      */
 	if (result->props_set < MAX_FILTER_PROP)
-		filter_apply(filter_global_post, rec, result);
+		filter_apply(filter_global_post, &ctx, result);
 
     /*
      * Set the defaults for the props that are still in UNKNOWN state.
@@ -2287,6 +2303,15 @@ filter_record(search_t *sch, const struct record *rec)
             break;
         }
     }
+
+	/*
+	 * Cleanup cached variables.
+	 */
+
+	if (ctx.utf8_name != NULL)
+		atom_str_free(ctx.utf8_name);
+	if (ctx.l_name != NULL)
+		atom_str_free(ctx.l_name);
 
 	return result;
 }
