@@ -828,10 +828,24 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 }
 
 void
-on_menu_navtree_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
+on_menu_sidebar_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 {
 	(void) unused_udata;
+	checkmenu_changed(gui, PROP_SIDEBAR_VISIBLE, menuitem);
+}
+
+void
+on_menu_navtree_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
+{
+	gboolean sidebar, navtree;
+	
+	(void) unused_udata;
 	checkmenu_changed(gui, PROP_NAVTREE_VISIBLE, menuitem);
+
+	gui_prop_get_boolean_val(PROP_SIDEBAR_VISIBLE, &sidebar);
+	gui_prop_get_boolean_val(PROP_NAVTREE_VISIBLE, &navtree);
+	if (navtree && !sidebar)
+		gui_prop_set_boolean_val(PROP_SIDEBAR_VISIBLE, TRUE);
 }
 
 void
