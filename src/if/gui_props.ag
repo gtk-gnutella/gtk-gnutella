@@ -1153,3 +1153,42 @@ prop = {
     };
 };
 
+prop = {
+    name = "search_lifetime";
+    desc = "The lifetime of a search. If this time is exceeded, "
+	"the search is stopped.";
+    type = multichoice;
+    save = FALSE;
+    data = {
+        default = 0;
+    };
+    choice = {
+        name = "This session";
+        value = 0;
+    };
+    choice = {
+        name = "1 hour";
+        value = 1;
+    };
+    choice = {
+        name = "4 hours";
+        value = 4;
+    };
+    choice = {
+        name = "1 day";
+        value = 24;
+    };
+    choice = {
+        name = "4 days";
+        value = 96;
+    };
+    choice = {
+        name = "1 week";
+        value = 168;
+    };
+    choice = {
+        name = "2 weeks";
+        value = 336;
+    };
+};
+

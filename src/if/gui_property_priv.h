@@ -151,6 +151,7 @@ extern const guint32  treemenu_nodes_expanded[nb_main_page_num];
 extern const guint32  gnet_stats_pkg_col_widths[6];
 extern const guint32  gnet_stats_byte_col_widths[6];
 extern const guint32  config_toolbar_style;
+extern const guint32  search_lifetime;
 
 
 prop_set_t *gui_prop_init(void);

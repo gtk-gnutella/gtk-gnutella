@@ -277,6 +277,18 @@ prop_def_choice_t config_toolbar_style_choices[] = {
     {N_("Both (horizontal)"), 4},
     {NULL, 0}
 };
+guint32  search_lifetime     = 0;
+guint32  search_lifetime_def = 0;
+prop_def_choice_t search_lifetime_choices[] = { 
+    {N_("This session"), 0},
+    {N_("1 hour"), 1},
+    {N_("4 hours"), 4},
+    {N_("1 day"), 24},
+    {N_("4 days"), 96},
+    {N_("1 week"), 168},
+    {N_("2 weeks"), 336},
+    {NULL, 0}
+};
 
 static prop_set_t *gui_property = NULL;
 
@@ -2276,6 +2288,26 @@ gui_prop_init(void) {
     gui_property->props[108].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[108].data.guint32.min   = 0x00000000;
     gui_property->props[108].data.guint32.choices = config_toolbar_style_choices;
+
+
+    /*
+     * PROP_SEARCH_LIFETIME:
+     *
+     * General data:
+     */
+    gui_property->props[109].name = "search_lifetime";
+    gui_property->props[109].desc = _("The lifetime of a search. If this time is exceeded, the search is stopped.");
+    gui_property->props[109].ev_changed = event_new("search_lifetime_changed");
+    gui_property->props[109].save = FALSE;
+    gui_property->props[109].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[109].type               = PROP_TYPE_MULTICHOICE;
+    gui_property->props[109].data.guint32.def   = &search_lifetime_def;
+    gui_property->props[109].data.guint32.value = &search_lifetime;
+    gui_property->props[109].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[109].data.guint32.min   = 0x00000000;
+    gui_property->props[109].data.guint32.choices = search_lifetime_choices;
 
     gui_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
