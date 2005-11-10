@@ -1986,12 +1986,15 @@ qrp_update_routing_table(void)
  */
 static void
 qrp_merge_routing_table(gpointer unused_h, gpointer unused_c,
-	bgstatus_t unused_st, gpointer unused_arg)
+	bgstatus_t status, gpointer unused_arg)
 {
 	(void) unused_h;
 	(void) unused_c;
-	(void) unused_st;
 	(void) unused_arg;
+
+	if (status == BGS_KILLED)
+		return;
+
 	qrp_update_routing_table();
 }
 
@@ -2421,7 +2424,9 @@ qrt_compressed(gpointer unused_h, gpointer unused_u,
 	qup->compress = NULL;
 	qup->ready = TRUE;
 
-	if (status == BGS_ERROR) {		/* Error during processing */
+	if (status == BGS_KILLED)
+		goto error;
+	else if (status == BGS_ERROR) {		/* Error during processing */
 		g_warning("could not compress query routing patch to send to %s",
 			node_addr(qup->node));
 		goto error;
