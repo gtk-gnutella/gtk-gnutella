@@ -736,8 +736,8 @@ log_handler(const gchar *domain, GLogLevelFlags level,
 
 	safer = control_escape(message);
 
-	fprintf(stderr, "%04d%02d%02d %.2d:%.2d:%.2d (%s): %s\n",
-		1900 + ct->tm_year, ct->tm_mon + 1, ct->tm_mday,
+	fprintf(stderr, "%02d-%02d-%02d %.2d:%.2d:%.2d (%s): %s\n",
+		(1900 + ct->tm_year) % 100, ct->tm_mon + 1, ct->tm_mday,
 		ct->tm_hour, ct->tm_min, ct->tm_sec, prefix, safer);
 
 	if (safer != message)
