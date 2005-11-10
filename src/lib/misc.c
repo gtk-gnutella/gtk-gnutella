@@ -1339,21 +1339,54 @@ base32_sha1(const gchar *base32)
 }
 
 /**
- * Convert time to ISO style date, e.g. "2002-06-09T14:54:42Z".
+ * Convert time to an ISO 8601 timestamp, e.g. "2002-06-09T14:54:42Z".
  *
  * @return pointer to static data.
  */
-gchar *
-date_to_iso_gchar(time_t date)
+const gchar *
+timestamp_utc_to_string(time_t date)
 {
 	static gchar buf[80];
-	struct tm *tm;
+	const struct tm *tm;
 	size_t len;
 
 	tm = gmtime(&date);
-	len = strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", tm);
+	len = strftime(buf, sizeof buf, "%Y-%m-%dT%H:%M:%SZ", tm);
 	buf[len] = '\0';		/* Be really sure */
 
+	return buf;
+}
+
+/**
+ * Convert time to ISO 8601 date plus time, e.g. "2002-06-09 14:54:42".
+ *
+ * @return The length of the created string.
+ */
+size_t
+timestamp_to_string_buf(time_t date, gchar *dst, size_t size)
+{
+	const struct tm *tm = localtime(&date);
+	size_t len;
+
+	g_assert(size > 0);
+	tm = localtime(&date);
+	len = strftime(dst, size, "%Y-%m-%d %H:%M:%S", tm);
+	dst[len] = '\0';		/* Be really sure */
+
+	return len;
+}
+
+/**
+ * Convert time to ISO 8601 date plus time, e.g. "2005-11-10 20:21:57".
+ *
+ * @return pointer to static data.
+ */
+const gchar *
+timestamp_to_string(time_t date)
+{
+	static gchar buf[sizeof "9999-12-31 23:59:61"];
+
+	timestamp_to_string_buf(date, buf, sizeof buf);
 	return buf;
 }
 
@@ -1364,17 +1397,18 @@ date_to_iso_gchar(time_t date)
  * @param date time to convert.
  * @param dst buffer to hold the resulting string.
  * @param size the size of the dst buffer.
- * @return passed in dst
+ * @return length of the created string.
  */
-gchar *
-date_to_locale_time(time_t date, gchar *dst, size_t size)
+size_t
+timestamp_locale_to_string_buf(time_t date, gchar *dst, size_t size)
 {
 	const struct tm *tm = localtime(&date);
 	size_t len;
-	
+
+	g_assert(size > 0);	
 	len = strftime(dst, size, "%X", tm);
 	dst[len] = '\0';
-	return dst;
+	return len;
 }
 
 /**
@@ -1418,16 +1452,22 @@ static const gchar months[12][4] = {
 
 /**
  * Convert time to RFC-822 style date, into supplied string buffer.
+ *
+ * @param date The timestamp.
+ * @param buf The destination buffer to hold the resulting string. Must be
+ *            greater than zero.
+ * @param size The size of of "buf".
+ * @return The length of the created string.
  */
-static void
-date_to_rfc822(time_t date, gchar *buf, gint len)
+static size_t 
+timestamp_rfc822_to_string_buf(time_t date, gchar *buf, size_t size)
 {
 	struct tm *tm;
 	struct tm gmt_tm;
 	gint gmt_off;
 	gchar sign;
 
-	g_assert(len > 0);
+	g_assert(size > 0);
 	tm = gmtime(&date);
 	gmt_tm = *tm;					/* struct copy */
 	tm = localtime(&date);
@@ -1457,12 +1497,10 @@ date_to_rfc822(time_t date, gchar *buf, gint len)
 	} else
 		sign = '+';
 
-	gm_snprintf(buf, len, "%s, %02d %s %04d %02d:%02d:%02d %c%04d",
+	return gm_snprintf(buf, size, "%s, %02d %s %04d %02d:%02d:%02d %c%04d",
 		days[tm->tm_wday], tm->tm_mday, months[tm->tm_mon], tm->tm_year + 1900,
 		tm->tm_hour, tm->tm_min, tm->tm_sec,
 		sign, gmt_off / 60 * 100 + gmt_off % 60);
-
-	buf[len - 1] = '\0';		/* Be really sure */
 }
 
 /**
@@ -1470,12 +1508,12 @@ date_to_rfc822(time_t date, gchar *buf, gint len)
  *
  * @return pointer to static data.
  */
-gchar *
-date_to_rfc822_gchar(time_t date)
+const gchar *
+timestamp_rfc822_to_string(time_t date)
 {
 	static gchar buf[80];
 
-	date_to_rfc822(date, buf, sizeof(buf));
+	timestamp_rfc822_to_string_buf(date, buf, sizeof buf);
 	return buf;
 }
 
@@ -1483,26 +1521,32 @@ date_to_rfc822_gchar(time_t date)
  * Same as date_to_rfc822_gchar(), to be able to use the two in the same
  * printf() line.
  */
-gchar *
-date_to_rfc822_gchar2(time_t date)
+const gchar *
+timestamp_rfc822_to_string2(time_t date)
 {
 	static gchar buf[80];
 
-	date_to_rfc822(date, buf, sizeof(buf));
+	timestamp_rfc822_to_string_buf(date, buf, sizeof buf);
 	return buf;
 }
 
 /**
  * Convert time to RFC-1123 style date, into supplied string buffer.
+ *
+ * @param date The timestamp.
+ * @param buf The destination buffer to hold the resulting string. Must be
+ *            greater than zero.
+ * @param size The size of of "buf".
+ * @return The length of the created string.
  */
-static void
-date_to_rfc1123(time_t date, gchar *buf, gint len)
+static size_t 
+timestamp_rfc1123_to_string_buf(time_t date, gchar *buf, size_t size)
 {
 	const struct tm *tm;
 
-	g_assert(len > 0);
+	g_assert(size > 0);
 	tm = gmtime(&date);
-	gm_snprintf(buf, len, "%s, %02d %s %04d %02d:%02d:%02d GMT",
+	return gm_snprintf(buf, size, "%s, %02d %s %04d %02d:%02d:%02d GMT",
 		days[tm->tm_wday], tm->tm_mday, months[tm->tm_mon], tm->tm_year + 1900,
 		tm->tm_hour, tm->tm_min, tm->tm_sec);
 }
@@ -1512,12 +1556,12 @@ date_to_rfc1123(time_t date, gchar *buf, gint len)
  *
  * @returns pointer to static data.
  */
-gchar *
-date_to_rfc1123_gchar(time_t date)
+const gchar *
+timestamp_rfc1123_to_string(time_t date)
 {
 	static gchar buf[80];
 
-	date_to_rfc1123(date, buf, sizeof(buf));
+	timestamp_rfc1123_to_string_buf(date, buf, sizeof buf);
 	return buf;
 }
 

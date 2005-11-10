@@ -984,7 +984,7 @@ dmesh_entry_url_stamp(const struct dmesh_entry *dme, gchar *buf, size_t size)
 	 */
 
 	rw += concat_strings(&buf[rw], size - rw,
-			" ", date_to_iso_gchar(dme->stamp), (void *) 0);
+			" ", timestamp_utc_to_string(dme->stamp), (void *) 0);
 
 	return rw < size ? rw : (size_t) -1;
 }

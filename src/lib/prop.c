@@ -63,21 +63,6 @@ G_STMT_START {														\
 	}																\
 } G_STMT_END
 
-size_t
-timestamp_to_string_buf(time_t t, gchar *dst, size_t size)
-{
-	static const gchar date_fmt[] = "%Y-%m-%d %H:%M:%S";
-	const struct tm *tm;
-	size_t len;
-
-	g_assert(size > 0);
-	tm = localtime(&t);
-	len = strftime(dst, size, date_fmt, tm);
-	g_assert(len < size);
-	dst[len] = '\0';
-	return len;
-}
-
 typedef gint (* prop_parse_func_t)(const gchar *name,
 	const gchar *str, const gchar **endptr, gpointer vec, size_t i);
 

@@ -2766,8 +2766,8 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 		/* d->remove_msg updated below */
 
 		/* Append times of event/reschedule */
-		date_to_locale_time(tm_time(), event, sizeof event);
-		date_to_locale_time(d->retry_after, resched, sizeof resched);
+		timestamp_locale_to_string_buf(tm_time(), event, sizeof event);
+		timestamp_locale_to_string_buf(d->retry_after, resched, sizeof resched);
 
 		gm_snprintf(&d->error_str[len], sizeof d->error_str - len,
 			_(" at %s - rescheduled for %s"), event, resched);

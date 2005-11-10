@@ -1086,7 +1086,7 @@ node_init(void)
     ht_connected_nodes = g_hash_table_new(host_hash, host_eq);
 	nodes_by_id        = g_hash_table_new(NULL, NULL);
 
-	start_rfc822_date = atom_str_get(date_to_rfc822_gchar(now));
+	start_rfc822_date = atom_str_get(timestamp_rfc822_to_string(now));
 	gnet_prop_set_timestamp_val(PROP_START_STAMP, now);
 
 	udp_node = node_udp_create();

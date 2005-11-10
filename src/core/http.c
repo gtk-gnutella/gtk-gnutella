@@ -174,9 +174,9 @@ http_send_status(
 	if (code < 300 || !keep_alive || body)
 		no_content = "";
 
-	g_assert((size_t) header_size <= sizeof(header));
+	g_assert((size_t) header_size <= sizeof header);
 
-	date = date_to_rfc1123_gchar(clock_loc2gmt(tm_time()));
+	date = timestamp_rfc1123_to_string(clock_loc2gmt(tm_time()));
 	rw = gm_snprintf(header, header_size,
 		"HTTP/1.1 %d %s\r\n"
 		"Server: %s\r\n"

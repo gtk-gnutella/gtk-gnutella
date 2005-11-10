@@ -2407,7 +2407,7 @@ upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 		"Last-Modified: %s\r\n"
 		"Content-Type: %s\r\n"
 		"Content-Length: %s\r\n",
-			date_to_rfc1123_gchar(a->mtime),
+			timestamp_rfc1123_to_string(a->mtime),
 			a->sf->content_type,
 			csize);
 
@@ -2580,7 +2580,7 @@ prepare_browsing(gnutella_upload_t *u, header_t *header,
 		static gchar buf[64];
 
 		gm_snprintf(buf, sizeof buf, "Last-Modified: %s\r\n",
-			date_to_rfc1123_gchar(library_rescan_finished));
+			timestamp_rfc1123_to_string(library_rescan_finished));
 
 		g_assert(hevcnt < hevlen);
 		hev[hevcnt].he_type = HTTP_EXTRA_LINE;

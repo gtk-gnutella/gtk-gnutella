@@ -382,12 +382,14 @@ const gchar *local_hostname(void);
 /*
  * Date string conversions
  */
-gchar *date_to_iso_gchar(time_t date);
-gchar *date_to_locale_time(time_t date, gchar *dst, size_t size);
-gchar *date_to_rfc822_gchar(time_t date);
-gchar *date_to_rfc822_gchar2(time_t date);
-gchar *date_to_rfc1123_gchar(time_t date);
+const gchar *timestamp_to_string(time_t date);
+const gchar *timestamp_utc_to_string(time_t date);
+const gchar *timestamp_rfc822_to_string(time_t date);
+const gchar *timestamp_rfc822_to_string2(time_t date);
+const gchar *timestamp_rfc1123_to_string(time_t date);
 
+size_t timestamp_to_string_buf(time_t date, gchar *dst, size_t size);
+size_t timestamp_locale_to_string_buf(time_t date, gchar *dst, size_t size);
 /*
  * Time string conversions
  */
