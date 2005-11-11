@@ -775,40 +775,70 @@ gtk_editable_get_value_as_uint32(GtkEditable *editable)
  * choice number set as user_data.
  */
 void
-gtk_combo_init_choices(GtkCombo *combo, GtkSignalFunc func,
+widget_init_choices(GtkWidget *widget, GtkSignalFunc func,
 		prop_def_t *def, gpointer user_data)
 {
-    guint i;
     guint32 original;
 
     g_assert(def != NULL);
-    g_assert(combo != NULL);
+    g_assert(widget != NULL);
+    g_assert(GTK_IS_COMBO(widget) || GTK_IS_OPTION_MENU(widget));
     g_assert(def->type == PROP_TYPE_MULTICHOICE);
     g_assert(def->data.guint32.choices != NULL);
 
     original = *def->data.guint32.value;
 
-    for (i = 0; def->data.guint32.choices[i].title != NULL; i++) {
-        GtkWidget *list_item;
-        GList *l;
+	if (GTK_IS_COMBO(widget)) {
+		GtkCombo *combo = GTK_COMBO(widget);
+		const gchar *title;
+    	guint i;
+		
+		for (i = 0; (title = def->data.guint32.choices[i].title) != NULL; i++) {
+			GtkWidget *list_item;
+			GList *l;
 
-        list_item = gtk_list_item_new_with_label(
-						_(def->data.guint32.choices[i].title));
+			list_item = gtk_list_item_new_with_label(_(title));
 
-        gtk_object_set_user_data(GTK_OBJECT(list_item),
-            GINT_TO_POINTER(def->data.guint32.choices[i].value));
+			gtk_object_set_user_data(GTK_OBJECT(list_item),
+					GINT_TO_POINTER(def->data.guint32.choices[i].value));
 
-        gtk_widget_show(list_item);
+			gtk_widget_show(list_item);
 
-        gtk_signal_connect_after(GTK_OBJECT(list_item),
-			"select", func, user_data);
+			gtk_signal_connect_after(GTK_OBJECT(list_item),
+					"select", func, user_data);
 
-        l = g_list_prepend(NULL, (gpointer) list_item);
-        gtk_list_append_items(GTK_LIST(combo->list), l);
+			l = g_list_prepend(NULL, (gpointer) list_item);
+			gtk_list_append_items(GTK_LIST(combo->list), l);
 
-        if (def->data.guint32.choices[i].value == original)
-            gtk_list_select_child(GTK_LIST(combo->list), list_item);
-    }
+			if (def->data.guint32.choices[i].value == original)
+				gtk_list_select_child(GTK_LIST(combo->list), list_item);
+		}
+	} else if (GTK_IS_OPTION_MENU(widget)) {
+		GtkOptionMenu *option_menu = GTK_OPTION_MENU(widget);
+		GtkMenu *menu;
+		const gchar *title;
+		guint i;
+
+		menu = GTK_MENU(gtk_menu_new());
+		for (i = 0; (title = def->data.guint32.choices[i].title) != NULL; i++) {
+			GtkWidget *item;
+
+			item = gtk_menu_item_new_with_label(_(title));
+			gtk_widget_show(item);
+			gtk_object_set_user_data(GTK_OBJECT(item),
+				GUINT_TO_POINTER(def->data.guint32.choices[i].value));
+			gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+#ifdef USE_GTK1
+			gtk_signal_connect_after(GTK_OBJECT(item), "activate",
+				func, user_data);
+#endif /* USE_GTK1 */
+#ifdef USE_GTK2
+			g_signal_connect_after(GTK_OBJECT(item), "activate",
+				G_CALLBACK(func), user_data);
+#endif /* USE_GTK2 */
+		}
+		gtk_option_menu_set_menu(option_menu, GTK_WIDGET(menu));
+	}
 }
 
 #ifdef USE_GTK1

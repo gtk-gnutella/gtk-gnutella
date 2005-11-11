@@ -2273,7 +2273,7 @@ expert_mode_changed(property_t prop)
         "frame_expert_share_statistics",
         "frame_expert_oob_queries",
     };
-    gboolean expert, override;
+    gboolean expert;
 	GtkWidget *w;
     guint i;
 
@@ -2304,9 +2304,8 @@ expert_mode_changed(property_t prop)
             gtk_widget_hide(w);
     }
 
-	gnet_prop_get_boolean_val(PROP_ALLOW_AUTO_REQUERIES, &override);
     w = lookup_widget(main_window, "hbox_expert_search_timeout");
-    if (expert && override)
+    if (expert)
       gtk_widget_show(w);
     else
       gtk_widget_hide(w);
@@ -2727,7 +2726,7 @@ togglebutton_state_changed(GtkToggleButton *tb, gpointer user_data)
 static void
 multichoice_item_selected(GtkItem *i, gpointer data)
 {
-    prop_map_t *map_entry = (prop_map_t *) data;
+    prop_map_t *map_entry = data;
     prop_set_stub_t *stub = map_entry->stub;
     guint32 val = GPOINTER_TO_UINT(gtk_object_get_user_data(GTK_OBJECT(i)));
 
@@ -2843,10 +2842,10 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
 					printf("\t...connected toggle signal\n");
             }
 
-            if (top && GTK_IS_COMBO(w)) {
+            if (top && (GTK_IS_COMBO(w) || GTK_IS_OPTION_MENU(w))) {
                 g_assert(def->type == PROP_TYPE_MULTICHOICE);
 
-                gtk_combo_init_choices(GTK_COMBO(w),
+                widget_init_choices(w,
                     GTK_SIGNAL_FUNC(multichoice_item_selected),
                     def, map);
 

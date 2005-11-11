@@ -97,8 +97,8 @@ guint32 gtk_editable_get_value_as_uint(GtkEditable *editable);
 /**
  * GtkCombo
  */
-void gtk_combo_init_choices(
-    GtkCombo* combo, GtkSignalFunc func, prop_def_t *def, gpointer user_data);
+void widget_init_choices(GtkWidget * widget, GtkSignalFunc func,
+		prop_def_t *def, gpointer user_data);
 
 /**
  * GtkOptionMenu
