@@ -407,7 +407,8 @@ search_gui_close_search(search_t *sch)
  * search is stored there.
  */
 gboolean
-search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
+search_gui_new_search_full(const gchar *querystr,
+	time_t create_time, guint lifetime, guint32 reissue_timeout,
 	gint sort_col, gint sort_order, flag_t flags, search_t **search)
 {
 	static const search_t zero_sch;
@@ -423,7 +424,8 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 		statusbar_gui_warning(5, "%s", error);
 		return FALSE;
 	}
-	sch_id = guc_search_new(query, reissue_timeout, flags);
+	sch_id = guc_search_new(query, create_time, lifetime, reissue_timeout,
+				flags);
 	if ((gnet_search_t) -1 == sch_id) {
 		/*
 		 * An invalidly encoded SHA1 is already detected by

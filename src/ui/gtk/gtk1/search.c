@@ -296,8 +296,8 @@ search_gui_close_search(search_t *sch)
  */
 gboolean
 search_gui_new_search_full(const gchar *querystr,
-	guint32 reissue_timeout, gint sort_col,
-	gint sort_order, flag_t flags, search_t **search)
+	time_t create_time, guint lifetime, guint32 reissue_timeout,
+	gint sort_col, gint sort_order, flag_t flags, search_t **search)
 {
     GtkWidget *clist_search = lookup_widget(main_window, "clist_search");
     GtkWidget *notebook_search_results =
@@ -317,7 +317,8 @@ search_gui_new_search_full(const gchar *querystr,
 		statusbar_gui_message(5, "%s", error);
 		return FALSE;
 	}
-    sch_id = guc_search_new(query, reissue_timeout, flags);
+    sch_id = guc_search_new(query, create_time, lifetime,
+				reissue_timeout, flags);
 	if ((gnet_search_t) -1 == sch_id) {
 		statusbar_gui_warning(5, "%s", _("Failed to create the search"));
 		return FALSE;

@@ -49,6 +49,7 @@ RCSID("$Id$");
 #include "if/gnet_property.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/getdate.h"
 #include "lib/glib-missing.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
@@ -126,6 +127,8 @@ static const gchar TAG_SEARCH_ENABLED[]         = "Enabled";
 static const gchar TAG_SEARCH_SPEED[]           = "Speed";
 static const gchar TAG_SEARCH_PASSIVE[]         = "Passive";
 static const gchar TAG_SEARCH_REISSUE_TIMEOUT[] = "ReissueTimeout";
+static const gchar TAG_SEARCH_CREATE_TIME[] 	= "CreateTime";
+static const gchar TAG_SEARCH_LIFETIME[] 		= "LifeTime";
 static const gchar TAG_SEARCH_SORT_COL[]        = "SortCol";
 static const gchar TAG_SEARCH_SORT_ORDER[]      = "SortOrder";
 static const gchar TAG_RULE_TEXT_CASE[]         = "Case";
@@ -696,7 +699,7 @@ static void
 search_to_xml(xmlNodePtr parent, search_t *s)
 {
     xmlNodePtr newxml;
-    GList *l;
+    GList *iter;
 
     g_assert(s != NULL);
     g_assert(s->query != NULL);
@@ -717,13 +720,17 @@ search_to_xml(xmlNodePtr parent, search_t *s)
 
 	xml_prop_printf(newxml, TAG_SEARCH_ENABLED, "%u", s->enabled);
     xml_prop_printf(newxml, TAG_SEARCH_PASSIVE, "%u", TO_BOOL(s->passive));
-    xml_prop_printf(newxml, TAG_SEARCH_REISSUE_TIMEOUT,
-		"%u", guc_search_get_reissue_timeout(s->search_handle));
-    xml_prop_printf(newxml, TAG_SEARCH_SORT_COL, "%i", s->sort_col);
-    xml_prop_printf(newxml, TAG_SEARCH_SORT_ORDER, "%i", s->sort_order);
+    xml_prop_printf(newxml, TAG_SEARCH_REISSUE_TIMEOUT, "%u",
+		guc_search_get_reissue_timeout(s->search_handle));
+    xml_prop_printf(newxml, TAG_SEARCH_CREATE_TIME, "%s",
+		timestamp_to_string(guc_search_get_create_time(s->search_handle)));
+    xml_prop_printf(newxml, TAG_SEARCH_LIFETIME, "%u",
+		guc_search_get_lifetime(s->search_handle));
+    xml_prop_printf(newxml, TAG_SEARCH_SORT_COL, "%d", s->sort_col);
+    xml_prop_printf(newxml, TAG_SEARCH_SORT_ORDER, "%d", s->sort_order);
 
-    for (l = s->filter->ruleset; l != NULL; l = g_list_next(l))
-        rule_to_xml(newxml, l->data);
+    for (iter = s->filter->ruleset; iter != NULL; iter = g_list_next(iter))
+        rule_to_xml(newxml, iter->data);
 }
 
 
@@ -980,6 +987,8 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
     xmlNodePtr node;
     search_t * search;
     guint flags = 0;
+	guint lifetime;
+	time_t create_time;
 	gboolean override;
 
 	(void) unused_udata;
@@ -1038,6 +1047,34 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
         G_FREE_NULL(buf);
     }
 
+	create_time = (time_t) -1;
+	buf = STRTRACK(xml_get_string(xmlnode, TAG_SEARCH_CREATE_TIME));
+    if (buf) {
+		create_time = date2time(buf, tm_time());
+		if (create_time == (time_t) -1)
+			g_warning("xml_to_search: Unparseable \"%s\" attribute.",
+				TAG_SEARCH_CREATE_TIME);
+        G_FREE_NULL(buf);
+    }
+		/* consider legacy searches as created right now */
+	if (create_time == (time_t) -1)
+		create_time = tm_time();
+
+	lifetime = (guint) -1;
+	buf = STRTRACK(xml_get_string(xmlnode, TAG_SEARCH_LIFETIME));
+    if (buf) {
+		gint error;
+		lifetime = parse_uint16(buf, NULL, 10, &error);
+		if (error)
+			g_warning("xml_to_search: Unparseable \"%s\" attribute.",
+				TAG_SEARCH_LIFETIME);
+        G_FREE_NULL(buf);
+	}
+	/* legacy searches get a 2 week expiration time */
+	lifetime = MIN(14 * 24, lifetime);
+
+
+
 	/**
 	 * LimeWire considers *any* form of requerying unacceptable.
 	 * Deactivate it for now.
@@ -1054,7 +1091,7 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 			query);
 	}
 
-	search_gui_new_search_full(query, reissue_timeout,
+	search_gui_new_search_full(query, create_time, lifetime, reissue_timeout,
 		sort_col, sort_order, flags, &search);
 
     G_FREE_NULL(query);

@@ -129,6 +129,8 @@ typedef struct search_ctrl {
 	GHook *new_node_hook;
 	guint reissue_timeout_id;
 	guint reissue_timeout;		/**< timeout per search, 0 = search stopped */
+	time_t create_time;			/**< Time at which this search was created */
+	guint lifetime;				/**< Initial lifetime (in hours) */
 	guint query_emitted;		/**< # of queries emitted since last retry */
 	guint32 items;				/**< Items displayed in the GUI */
 	guint32 kept_results;		/**< Results we kept for last query */
@@ -2588,6 +2590,33 @@ search_get_reissue_timeout(gnet_search_t sh)
 }
 
 /**
+ * Get the initial lifetime (in hours) of a search.
+ */
+guint
+search_get_lifetime(gnet_search_t sh)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+    g_assert(sch != NULL);
+
+    return sch->lifetime;
+}
+
+/**
+ * Get the create time of a search.
+ */
+time_t
+search_get_create_time(gnet_search_t sh)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+    g_assert(sch != NULL);
+
+    return sch->create_time;
+}
+
+
+/**
  * Create a new suspended search and return a handle which identifies it.
  *
  * @param query an UTF-8 encoded query string.
@@ -2597,7 +2626,8 @@ search_get_reissue_timeout(gnet_search_t sh)
  *			search otherwise.
  */
 gnet_search_t
-search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
+search_new(const gchar *query,
+	time_t create_time, guint lifetime, guint32 reissue_timeout, flag_t flags)
 {
 	static const search_ctrl_t zero_sch;
 	const gchar *endptr;
@@ -2637,6 +2667,8 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 
 	sch->query = atom_str_get(qdup);
 	sch->frozen = TRUE;
+	sch->create_time = create_time;
+	sch->lifetime = lifetime;
 
 	G_FREE_NULL(qdup);
 

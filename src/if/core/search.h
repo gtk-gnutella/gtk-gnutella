@@ -135,7 +135,8 @@ typedef void (*search_got_results_listener_t)
 
 #ifdef CORE_SOURCES
 
-gnet_search_t search_new(const gchar *, guint32 timeout, flag_t flags);
+gnet_search_t search_new(const gchar *, time_t create_time, guint lifetime,
+		guint32 timeout, flag_t flags);
 void search_close(gnet_search_t sh);
 
 void search_start(gnet_search_t sh);
@@ -153,6 +154,8 @@ gboolean search_is_frozen(gnet_search_t sh);
 
 void search_set_reissue_timeout(gnet_search_t sh, guint32 timeout);
 guint32 search_get_reissue_timeout(gnet_search_t sh);
+guint search_get_lifetime(gnet_search_t sh);
+time_t search_get_create_time(gnet_search_t sh);
 
 void search_free_alt_locs(gnet_record_t *rc);
 void search_free_proxies(gnet_results_set_t *rs);

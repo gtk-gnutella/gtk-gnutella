@@ -51,6 +51,7 @@ RCSID("$Id$");
 #include "gtk/settings.h"
 
 #include "if/gui_property.h"
+#include "if/gui_property_priv.h"
 #include "if/gnet_property.h"
 #include "if/bridge/ui2c.h"
 
@@ -540,8 +541,10 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
 			_("Move the cursor over a row to see details."), NULL);
 		w = settings_gui_tooltips()->tip_window;
+#if 0
 		if (w)
 			gtk_widget_hide(w);
+#endif
 	} else {
 		gchar text[1024];
 
@@ -967,7 +970,7 @@ on_popup_search_duplicate_activate(GtkMenuItem *unused_menuitem,
     /* FIXME: should call search_duplicate which has to be written. */
     /* FIXME: should properly duplicate passive searches. */
 
-	search_gui_new_search_full(search->query,
+	search_gui_new_search_full(search->query, tm_time(), search_lifetime,
 		timeout, search->sort_col, search->sort_order,
 		search->enabled ? SEARCH_ENABLED : 0, NULL);
 }

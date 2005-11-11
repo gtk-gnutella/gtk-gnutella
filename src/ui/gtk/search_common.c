@@ -169,7 +169,7 @@ search_gui_new_search(const gchar *query, flag_t flags, search_t **search)
 	if (!(SEARCH_PASSIVE & flags))
 		query = lazy_ui_string_to_utf8(query);
 
-    ret = search_gui_new_search_full(query, timeout,
+    ret = search_gui_new_search_full(query, tm_time(), search_lifetime, timeout,
 			search_sort_default_column, search_sort_default_order,
 			flags | SEARCH_ENABLED, search);
 
@@ -1140,7 +1140,7 @@ search_matched(search_t *sch, results_set_t *rs)
 	else
 		sch->unseen_items += sch->items - old_items;
 
-	if (tm_time() - sch->last_update_time < TAB_UPDATE_TIME)
+	if (delta_time(tm_time(), sch->last_update_time) > TAB_UPDATE_TIME)
 		gui_search_update_tab_label(sch);
 
   	g_string_free(vinfo, TRUE);

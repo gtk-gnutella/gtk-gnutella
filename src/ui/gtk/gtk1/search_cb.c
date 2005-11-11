@@ -50,6 +50,7 @@ RCSID("$Id$");
 #include "search_cb.h"
 
 #include "if/gui_property.h"
+#include "if/gui_property_priv.h"
 #include "if/gnet_property.h"
 #include "if/bridge/ui2c.h"
 
@@ -1114,7 +1115,7 @@ on_popup_search_duplicate_activate(GtkMenuItem *unused_menuitem,
     /* FIXME: should call search_duplicate which has to be written. */
     /* FIXME: should properly duplicate passive searches. */
 	if (search)
-		search_gui_new_search_full(search->query,
+		search_gui_new_search_full(search->query, tm_time(), search_lifetime,
 			timeout, search->sort_col, search->sort_order,
 			search->enabled ? SEARCH_ENABLED : 0, NULL);
 }

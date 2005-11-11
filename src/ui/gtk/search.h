@@ -114,8 +114,8 @@ void search_gui_init(void);
 void search_gui_shutdown(void);
 
 gboolean search_gui_new_search_full(const gchar *query,
-	guint32 reissue_timeout, gint sort_col,
-	gint sort_order, flag_t flags, search_t **search);
+	time_t create_time, guint lifetime, guint32 reissue_timeout,
+	gint sort_col, gint sort_order, flag_t flags, search_t **search);
 struct search *search_new_full(const gchar *, guint32, flag_t flags);
 void search_gui_close_search(search_t *sch);
 
