@@ -56,10 +56,11 @@ create_main_window (void)
   GtkWidget *menu_view;
   GtkWidget *menu_view_menu;
   GtkAccelGroup *menu_view_menu_accels;
+  GtkWidget *menu_searchbar_visible;
   GtkWidget *menu_toolbar_visible;
   GtkWidget *menu_sidebar_visible;
   GtkWidget *menu_navtree_visible;
-  GtkWidget *separator6;
+  GtkWidget *separator24;
   GtkWidget *menu_downloads_visible;
   GtkWidget *menu_uploads_visible;
   GtkWidget *menu_connections_visible;
@@ -132,11 +133,13 @@ create_main_window (void)
   GtkWidget *progressbar_bws_lin;
   GtkWidget *progressbar_bws_lout;
   GtkWidget *vbox_right;
-  GtkWidget *frame139;
+  GtkWidget *viewport_searchbar;
   GtkWidget *hbox179;
   GtkWidget *button_search;
   GtkWidget *combo_search;
   GtkWidget *entry_search;
+  GtkWidget *option_menu_search_lifetime;
+  GtkWidget *option_menu_search_lifetime_menu;
   GtkWidget *optionmenu_search_filter;
   GtkWidget *optionmenu_search_filter_menu;
   guint button_search_passive_key;
@@ -480,6 +483,9 @@ create_main_window (void)
   GtkWidget *label651;
   GtkWidget *option_menu_searches;
   GtkWidget *option_menu_searches_menu;
+  GtkWidget *viewport51;
+  GtkWidget *hbox2107;
+  GtkWidget *label_search_expiry;
   guint button_search_close_key;
   GtkWidget *button_search_close;
   GtkWidget *vpaned_results;
@@ -969,6 +975,23 @@ create_main_window (void)
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_view), menu_view_menu);
   menu_view_menu_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (menu_view_menu));
 
+  menu_searchbar_visible = gtk_check_menu_item_new_with_label ("");
+  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_searchbar_visible)->child),
+                                   _("show Search_bar"));
+  gtk_widget_add_accelerator (menu_searchbar_visible, "activate_item", menu_view_menu_accels,
+                              tmp_key, 0, 0);
+  gtk_widget_set_name (menu_searchbar_visible, "menu_searchbar_visible");
+  gtk_widget_ref (menu_searchbar_visible);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_searchbar_visible", menu_searchbar_visible,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (menu_searchbar_visible);
+  gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_searchbar_visible);
+  gtk_widget_add_accelerator (menu_searchbar_visible, "activate", accel_group,
+                              GDK_F2, 0,
+                              GTK_ACCEL_VISIBLE);
+  gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_searchbar_visible), TRUE);
+  gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_searchbar_visible), TRUE);
+
   menu_toolbar_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_toolbar_visible)->child),
                                    _("show _Toolbar"));
@@ -1017,14 +1040,14 @@ create_main_window (void)
                               GTK_ACCEL_VISIBLE);
   gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_navtree_visible), TRUE);
 
-  separator6 = gtk_menu_item_new ();
-  gtk_widget_set_name (separator6, "separator6");
-  gtk_widget_ref (separator6);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "separator6", separator6,
+  separator24 = gtk_menu_item_new ();
+  gtk_widget_set_name (separator24, "separator24");
+  gtk_widget_ref (separator24);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "separator24", separator24,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (separator6);
-  gtk_container_add (GTK_CONTAINER (menu_view_menu), separator6);
-  gtk_widget_set_sensitive (separator6, FALSE);
+  gtk_widget_show (separator24);
+  gtk_container_add (GTK_CONTAINER (menu_view_menu), separator24);
+  gtk_widget_set_sensitive (separator24, FALSE);
 
   menu_downloads_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_downloads_visible)->child),
@@ -1733,14 +1756,14 @@ create_main_window (void)
   gtk_widget_show (vbox_right);
   gtk_paned_pack2 (GTK_PANED (hpaned_main), vbox_right, TRUE, FALSE);
 
-  frame139 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame139, "frame139");
-  gtk_widget_ref (frame139);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame139", frame139,
+  viewport_searchbar = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport_searchbar, "viewport_searchbar");
+  gtk_widget_ref (viewport_searchbar);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport_searchbar", viewport_searchbar,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame139);
-  gtk_box_pack_start (GTK_BOX (vbox_right), frame139, FALSE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame139), GTK_SHADOW_OUT);
+  gtk_widget_show (viewport_searchbar);
+  gtk_box_pack_start (GTK_BOX (vbox_right), viewport_searchbar, FALSE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport_searchbar), GTK_SHADOW_OUT);
 
   hbox179 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox179, "hbox179");
@@ -1748,7 +1771,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox179", hbox179,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox179);
-  gtk_container_add (GTK_CONTAINER (frame139), hbox179);
+  gtk_container_add (GTK_CONTAINER (viewport_searchbar), hbox179);
   gtk_container_set_border_width (GTK_CONTAINER (hbox179), 2);
 
   button_search = gtk_button_new_with_label (_("Search"));
@@ -1775,9 +1798,16 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_search", entry_search,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_search);
-  gtk_widget_add_accelerator (entry_search, "grab_focus", accel_group,
-                              GDK_F2, 0,
-                              GTK_ACCEL_VISIBLE);
+
+  option_menu_search_lifetime = gtk_option_menu_new ();
+  gtk_widget_set_name (option_menu_search_lifetime, "option_menu_search_lifetime");
+  gtk_widget_ref (option_menu_search_lifetime);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "option_menu_search_lifetime", option_menu_search_lifetime,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (option_menu_search_lifetime);
+  gtk_box_pack_start (GTK_BOX (hbox179), option_menu_search_lifetime, FALSE, FALSE, 0);
+  option_menu_search_lifetime_menu = gtk_menu_new ();
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_search_lifetime), option_menu_search_lifetime_menu);
 
   optionmenu_search_filter = gtk_option_menu_new ();
   gtk_widget_set_name (optionmenu_search_filter, "optionmenu_search_filter");
@@ -4755,6 +4785,33 @@ create_main_window (void)
   option_menu_searches_menu = gtk_menu_new ();
   gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_searches), option_menu_searches_menu);
 
+  viewport51 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport51, "viewport51");
+  gtk_widget_ref (viewport51);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport51", viewport51,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (viewport51);
+  gtk_box_pack_start (GTK_BOX (hbox146), viewport51, TRUE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport51), GTK_SHADOW_ETCHED_IN);
+
+  hbox2107 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox2107, "hbox2107");
+  gtk_widget_ref (hbox2107);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox2107", hbox2107,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox2107);
+  gtk_container_add (GTK_CONTAINER (viewport51), hbox2107);
+
+  label_search_expiry = gtk_label_new ("");
+  gtk_widget_set_name (label_search_expiry, "label_search_expiry");
+  gtk_widget_ref (label_search_expiry);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_search_expiry", label_search_expiry,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_search_expiry);
+  gtk_box_pack_start (GTK_BOX (hbox2107), label_search_expiry, FALSE, TRUE, 0);
+  gtk_misc_set_alignment (GTK_MISC (label_search_expiry), 7.45058e-09, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label_search_expiry), 5, 0);
+
   button_search_close = gtk_button_new_with_label ("");
   button_search_close_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (button_search_close)->child),
                                    _("Cl_ose search"));
@@ -6218,6 +6275,9 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (menu_search_stats), "activate",
                       GTK_SIGNAL_FUNC (on_menu_search_stats_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (menu_searchbar_visible), "activate",
+                      GTK_SIGNAL_FUNC (on_menu_searchbar_visible_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (menu_toolbar_visible), "activate",
                       GTK_SIGNAL_FUNC (on_menu_toolbar_visible_activate),
