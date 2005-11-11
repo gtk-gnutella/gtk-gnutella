@@ -51,6 +51,14 @@ gboolean on_dlg_about_delete_event(
     GtkWidget *widget, GdkEvent *event, gpointer user_data);
 
 /***
+ *** Keyboard shortcut dialog
+ ***/
+
+void
+on_menu_keyboard_shortcuts_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
+
+/***
  *** FAQ dialog
  ***/
 void on_button_faq_close_clicked(GtkButton *button, gpointer user_data);

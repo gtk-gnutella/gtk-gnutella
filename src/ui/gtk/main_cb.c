@@ -123,6 +123,16 @@ on_menu_prefs_activate(GtkMenuItem *unused_menuitem, gpointer unused_udata)
 	gdk_window_raise(dlg_prefs->window);
 }
 
+void
+on_menu_keyboard_shortcuts_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	g_message("%s: This is a stub", __func__);
+}
+
 
 
 /***
@@ -154,6 +164,9 @@ on_dlg_about_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 	return TRUE;
 }
 
+/***
+ *** FAQ dialog
+ ***/
 gboolean
 on_dlg_faq_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 	gpointer unused_udata)
