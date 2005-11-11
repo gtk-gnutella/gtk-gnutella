@@ -30,13 +30,14 @@
 # incoming/outgoing   (ノード) 内への/外への
 # invalid             無効な
 # jump                分岐
+# lifetime            有効期限
 # matching            一致
-# query, queries      検索式、検索語、問合わせ (クエリー)
+# query, queries      検索クエリー (クエリー)、検索語、問合わせ
 # querying            問合わせ
-# queue, queues       待機列、キュー
-# queued              待機中、待機列入り
+# queue, queues       キュー、待機列
+# queued              待機中、キュー/待機列へ入れられる
 # requery             再問合わせ
-# requeued            再び待機
+# requeued            (再び)キュー/待機列へ入れられる
 # route               経路 (ルート)
 # routing             経路設定 (ルート設定)
 # servent             サーバント
@@ -69,7 +70,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-11-12 07:31+0900\n"
-"PO-Revision-Date: 2005-11-10 23:32+0900\n"
+"PO-Revision-Date: 2005-11-12 07:02+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -140,9 +141,10 @@ msgid "Connection refused (%u retry)"
 msgid_plural "Connection refused (%u retries)"
 msgstr[0] "接続を拒否されました (%u 回目)"
 
+# FIXME: wtf
 #: src/core/downloads.c:3947
 msgid "Dup SHA1 during creation"
-msgstr "作成中に SHA1 を複製します"
+msgstr "重複する SHA1 を発見しました"
 
 # FIXME: what does `create' stand for?
 #: src/core/downloads.c:3968
@@ -204,7 +206,7 @@ msgstr "チャンク完了、接続を切ります"
 
 #: src/core/downloads.c:5448
 msgid "Weird HTTP status (protocol desync?)"
-msgstr "おかしな HTTP ステータス (プロトコルが非同期？)"
+msgstr "変な HTTP ステータス (プロトコルが非同期？)"
 
 #: src/core/downloads.c:5769
 msgid "No URN on server, waiting for overlap"
@@ -331,27 +333,27 @@ msgstr "送信フロー制御"
 
 #: src/core/gnet_stats.c:75 src/ui/gtk/gnet_stats_common.c:102
 msgid "Query text had no trailing NUL"
-msgstr "NULL で終わらない検索式テキスト"
+msgstr "NULL で終わらない検索クエリー"
 
 #: src/core/gnet_stats.c:76 src/ui/gtk/gnet_stats_common.c:103
 msgid "Query text too short"
-msgstr "短過ぎる検索式テキスト"
+msgstr "短過ぎる検索クエリー"
 
 #: src/core/gnet_stats.c:77 src/ui/gtk/gnet_stats_common.c:104
 msgid "Query had unnecessary overhead"
-msgstr "不要オーバーへッドがある検索式"
+msgstr "不要オーバーへッドがある検索クエリー"
 
 #: src/core/gnet_stats.c:78 src/ui/gtk/gnet_stats_common.c:105
 msgid "Message with malformed SHA1"
-msgstr "おかしな SHA1 があるメッセージ"
+msgstr "変な SHA1 があるメッセージ"
 
 #: src/core/gnet_stats.c:79 src/ui/gtk/gnet_stats_common.c:106
 msgid "Message with malformed UTF-8"
-msgstr "おかしな UTF-8 があるメッセージ"
+msgstr "変な UTF-8 があるメッセージ"
 
 #: src/core/gnet_stats.c:80 src/ui/gtk/gnet_stats_common.c:107
 msgid "Malformed Query Hit"
-msgstr "おかしな検索式ヒット"
+msgstr "変な検索クエリーヒット"
 
 #: src/core/gnet_stats.c:81 src/ui/gtk/gnet_stats_common.c:108
 msgid "Bad return address"
@@ -403,7 +405,7 @@ msgstr "BYE %d %.*s を受信しました"
 #: src/core/nodes.c:3745
 #, c-format
 msgid "Weird HELLO %s"
-msgstr "おかしな HELLO %s"
+msgstr "変な HELLO %s"
 
 #: src/core/nodes.c:3757
 #, c-format
@@ -482,7 +484,7 @@ msgstr "サーバントが停止します"
 
 #: src/core/nodes.c:4665
 msgid "Too frequent crawling"
-msgstr "クローリングの頻度が多すぎます"
+msgstr "クローリングの頻度が多過ぎます"
 
 #: src/core/nodes.c:4835
 #, c-format
@@ -616,11 +618,11 @@ msgstr "不明な操作です"
 #: src/core/shell.c:290 src/core/shell.c:338 src/core/shell.c:414
 #: src/core/shell.c:533 src/core/shell.c:587 src/core/shell.c:670
 msgid "Malformed command"
-msgstr "おかしなコマンドです"
+msgstr "変なコマンドです"
 
 #: src/core/shell.c:315
 msgid "Query string missing"
-msgstr "検索式文字列がありません"
+msgstr "検索クエリー文字列がありません"
 
 #: src/core/shell.c:322
 msgid "Search added"
@@ -765,7 +767,7 @@ msgstr "折り返し接続がタイムアウトしました"
 
 #: src/core/uploads.c:429
 msgid "Lifetime expired"
-msgstr "有効期間が切れました"
+msgstr "有効期限が切れました"
 
 #: src/core/uploads.c:511
 #, c-format
@@ -796,19 +798,19 @@ msgstr "<ホスト閲覧リクエスト> [%s%s%s]"
 
 #: src/core/uploads.c:2667
 msgid "query hits"
-msgstr "検索式ヒット"
+msgstr "検索クエリーヒット"
 
-# FIXME: what's this?
+# FIXME: wtf
 #: src/core/uploads.c:2668
 msgid ", deflate"
 msgstr ", deflate"
 
-# FIXME: what's this?
+# FIXME: wtf
 #: src/core/uploads.c:2669
 msgid ", gzip"
 msgstr ", gzip"
 
-# FIXME: what's this?
+# FIXME: wtf
 #: src/core/uploads.c:2670
 msgid ", chunked"
 msgstr ", チャンク化"
@@ -1104,9 +1106,9 @@ msgid ""
 "packets as necessary.  To avoid network flooding, keep this to a reasonable "
 "value."
 msgstr ""
-"必要に応じた数の検索式ヒットパケットを使用しながら、検索式に対してほぼこの数"
-"だけの結果を返します。ネットワークの氾濫を避けるために、妥当な値を設定してお"
-"いて下さい。"
+"必要なのと同じ数の検索クエリーヒット・パケットを使用しながら、多くてもこの結"
+"果数をある検索クエリーに対して返します。ネットワークの氾濫を避けるために、こ"
+"の値は妥当なものにして下さい。"
 
 #: src/if/gnet_property.c:1103
 msgid ""
@@ -1288,8 +1290,8 @@ msgid ""
 "the standard is TTL=4, so you cannot set a value lower than that."
 msgstr ""
 "広域送信するメッセージに許可する最大 TTL です。この値より大きい TTL を持つ検"
-"索式が来た場合、この値へ切り下げられます。Gnutella での標準は TTL=4 ですの"
-"で、これより低い値を設定することはできません。"
+"索クエリーが来た場合、この値へ切り下げられます。Gnutella での標準は TTL=4 で"
+"すので、これより低い値を設定することはできません。"
 
 #: src/if/gnet_property.c:1623
 msgid ""
@@ -1311,10 +1313,11 @@ msgid ""
 "parameter."
 msgstr ""
 "メッセージを中継する上での固定最大 TTL (ホップ数 + TTL) の上限です。これは標"
-"準の TTL=4 より大きくすべきでしょう。何故なら、接続が失われた場合に再ルートさ"
-"れるルートバックメッセージ (検索式ヒット) にも同様に適用されるからです。標準"
-"の広域送信メッセージは設定した最大 TTL によって制限される TTL を持ち、この値"
-"より十分低くなっている必要があります。"
+"準の TTL=4 より大きくした方が良いでしょう。もし接続が失われた場合に、再び経路"
+"情報を与えられるかもしれない、ルートバック・メッセージ (検索クエリーヒット) "
+"にも同様に適用されるからです。標準の広域送信メッセージはあなたが設定した最大 "
+"TTL によって制限される TTL を持ち、その制限値はこのパラメーターの値より十分小"
+"さくなっている必要があります。"
 
 #: src/if/gnet_property.c:1663
 msgid "For development use: debug level."
@@ -1386,11 +1389,11 @@ msgstr "URL ハンドリング関連のバグ解析メッセージの冗長度�
 
 #: src/if/gnet_property.c:2003
 msgid "Debug level for dynamic query hit routing."
-msgstr "動的検索式ヒット経路設定のバグ解析レベルです。"
+msgstr "動的検索クエリーヒット経路設定のバグ解析レベルです。"
 
 #: src/if/gnet_property.c:2023
 msgid "Debug level for dynamic queries."
-msgstr "動的検索式のバグ解析レベルです。"
+msgstr "動的検索クエリーのバグ解析レベルです。"
 
 #: src/if/gnet_property.c:2043
 msgid "Debug level for vendor messages."
@@ -1398,7 +1401,7 @@ msgstr "ベンダーメッセージのバグ解析レベルです。"
 
 #: src/if/gnet_property.c:2063
 msgid "Debug level for queries."
-msgstr "検索式のバグ解析レベルです。"
+msgstr "検索クエリーのバグ解析レベルです。"
 
 #: src/if/gnet_property.c:2083
 msgid "Debug level for searches and search results management."
@@ -1410,7 +1413,7 @@ msgstr "UDP トラフィックレイヤのバグ解析レベルです。"
 
 #: src/if/gnet_property.c:2123
 msgid "Debug level for the Query Routing Protocol."
-msgstr "検索式経路設定プロトコル (QRP) のバグ解析レベルです。"
+msgstr "検索クエリー経路設定プロトコル (QRP) のバグ解析レベルです。"
 
 #: src/if/gnet_property.c:2143
 msgid "Debug level for message routing."
@@ -1808,10 +1811,11 @@ msgid ""
 "or be optionally followed by '/' and a network mask prefix length. For "
 "instance, 192.168.0.1/24 would represent the whole 192.168.0.* network."
 msgstr ""
-"ローカルと考えられるネットワークを一覧表示します。これは ';' で区切られる IP "
-"アドレスの一覧です。IP アドレスは 192.168.0.1 のように表されたり、'/' の後に"
-"続く任意のネットワークマスクの範囲が加えられて表されたりします。例えば、"
-"192.168.0.1/24 は 192.168.0.* の全てのネットワークを表します。"
+"ローカルと考えられるネットワークを一覧表示します。これは「;」で区切られる IP "
+"アドレスの一覧です。IP アドレスは 192.168.0.1 のように表されたり、「/」の後に"
+"続く任意のネットワークマスクの範囲が加えられて表されたりします (詳しくは"
+"「CIDR」を参照のこと)。例えば、192.168.0.1/24 は 192.168.0.* の全てのネット"
+"ワークを表します。"
 
 #: src/if/gnet_property.c:3424
 msgid "Total number of completed downloads in this session."
@@ -1823,7 +1827,7 @@ msgstr "実行中のアップロード数です。"
 
 #: src/if/gnet_property.c:3464
 msgid "Number of registered (pending) uploads."
-msgstr "登録済(未確定)のアップロード数です。"
+msgstr "登録済 (未確定) のアップロード数です。"
 
 #: src/if/gnet_property.c:3484
 msgid "Total number of completed uploads in this session."
@@ -1873,9 +1877,9 @@ msgid ""
 "from the query hits that flow through our node. This looks for new entries "
 "for files we are sharing or already have in our mesh."
 msgstr ""
-"ノードを通過していく検索式ヒットから集められたデータがあるダウンロードメッ"
-"シュを自動的に給送するかどうかを選択します。これは共有しているファイルやすで"
-"にメッシュにあるファイルの、新規項目を参照します。"
+"ノードを通過して行く検索クエリーヒットからはデータが集められます、このデータ"
+"をダウンロードメッシュへ給付するかどうかを選択して下さい。これは共有している"
+"ファイルや、すでにメッシュにあるファイルの新規項目を参照します。"
 
 #: src/if/gnet_property.c:3629
 msgid ""
@@ -1923,8 +1927,8 @@ msgid ""
 "Remove unnecessary ballast from query string before processing or forwarding "
 "them. Reduces traffic at the cost of little CPU time."
 msgstr ""
-"検索式を処理したり転送したりする前に、不必要な部分を検索式の文字列から取り除"
-"きます。CPU タイムを少々使いますがトラフィックを減らします。"
+"検索クエリー文字列を処理したり転送したりする前に、不必要な部分を取り除きま"
+"す。CPU タイムを少々使いますが、トラフィックを減らします。"
 
 #: src/if/gnet_property.c:3768
 msgid ""
@@ -1942,20 +1946,20 @@ msgstr ""
 msgid ""
 "Whether gtk-gnutella is currently rebuilding its library in the background."
 msgstr ""
-"見えない所で Gtk-Gnutella のライブラリを再構築しているかどうかを表します。"
+"Gtk-Gnutella のライブラリーを見えない所で再構築しているかどうかを表します。"
 
 #: src/if/gnet_property.c:3802
 msgid ""
 "Whether gtk-gnutella is currently computing SHA1 of shared files in the "
 "background."
-msgstr "見えない所で共有ファイルの SHA1 を算出しているかどうかを表します。"
+msgstr "共有ファイルの SHA1 を見えない所で算出しているかどうかを表します。"
 
 #: src/if/gnet_property.c:3819
 msgid ""
 "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the "
 "background."
 msgstr ""
-"見えない所でダウンロードされたファイルの SHA1 を検証しているかどうかを表しま"
+"ダウンロードされたファイルの SHA1 を見えない所で検証しているかどうかを表しま"
 "す。"
 
 #: src/if/gnet_property.c:3836
@@ -1963,7 +1967,7 @@ msgid ""
 "Whether gtk-gnutella is currently moving files across filesystems or simply "
 "copying in the background."
 msgstr ""
-"見えない所でファイルシステムを横断するファイル移動あるいは単にコピーを行って"
+"ファイルシステムを横断するファイル移動あるいは単にコピーを見えない所で行って"
 "いるかどうかを表します。"
 
 #: src/if/gnet_property.c:3853
@@ -2350,9 +2354,9 @@ msgid ""
 "without being sent.  Set it so that it is slightly larger than the amount of "
 "opened searches."
 msgstr ""
-"ローカルに生成された検索式が接続先に送信されるまでの検索キューの大きさです。"
-"一杯になると最も古い検索式は送信されずに破棄されます。開始されている検索の数"
-"より少しだけ大きくなるように設定して下さい。"
+"あなたのノードで生成された検索クエリーが現在の接続で送信されるまでの検索"
+"キューの大きさです。一杯になると最も古い検索クエリーは送信されずに破棄されま"
+"す。現在行っている検索の数より少しだけ大きくなるように設定して下さい。"
 
 #: src/if/gnet_property.c:4854
 msgid ""
@@ -2360,15 +2364,16 @@ msgid ""
 "connection (for locally generated queries only!). The larger the value, the "
 "less negative impact it has on the network."
 msgstr ""
-"接続先に送信される二つの連続する検索式の間の最短秒です (ローカルに生成された"
-"検索式だけです！)。値を大きくすると、ネットワークへの負担は小さくなります。"
+"現在の接続に送信される、二つの連続する検索クエリー間の最短秒です (あなたの"
+"ノードで生成された検索クエリーだけです！)。値を大きくするのに伴い、ネットワー"
+"クへの負の影響は小さくなります。"
 
 #: src/if/gnet_property.c:4874
 msgid ""
 "Whether connection to gtk-gnutella via the 'shell' control interface should "
 "be allowed."
 msgstr ""
-"'シェル' 管理インターフェイス経由で gtk-gnutella に接続する事を許可するかどう"
+"「シェル」制御インターフェイス経由での gtk-gnutella への接続を許可するかどう"
 "かを選択します。"
 
 #: src/if/gnet_property.c:4891
@@ -2376,7 +2381,7 @@ msgid ""
 "Amount of seconds to leave 'dead' entries around so that they can still be "
 "displayed by the GUI along with the termination status."
 msgstr ""
-"GUI が終了ステータスと共に '遺棄' エントリーを今まで通り表示できるように、こ"
+"GUI が終了ステータスと共に「遺棄」エントリーを今まで通り表示できるように、こ"
 "のエントリーをそのまま残して置く秒数です。"
 
 #: src/if/gnet_property.c:4911
@@ -2387,10 +2392,11 @@ msgid ""
 "neighbour.  Dropped queries will be accounted for in the 'Message throttle' "
 "counter."
 msgstr ""
-"検索式文字列を TTL, ホップ数、重複の破棄によってアクティブに監視するかどうか"
-"を選択します。リーフノードとして動作していない場合のみに適用され、ホップ数が "
-"0 より大きい検索式にのみ適用されます。即ちすぐ隣から来る検索式には適用されま"
-"せん。破棄された検索式は 'メッセージスロットル' カウンタで数えられます。"
+"TTL (Time-To-Live) およびホップを数えたり、重複を破棄する事で、検索クエリーを"
+"活発にチェックすべきかどうかを選択します。これはリーフノードとして動作してい"
+"ず、ホップ数が 0 より大きい検索クエリーにのみ適用されます。つまり、すぐ隣から"
+"来る検索クエリーには適用されません。破棄された検索クエリーは「メッセージス"
+"ロットル」カウンターに数えられます。"
 
 #: src/if/gnet_property.c:4928
 msgid ""
@@ -2400,9 +2406,9 @@ msgid ""
 "higher it is set, the more likely you are to drop legitimate queries, so be "
 "careful."
 msgstr ""
-"TTL やホップ数で中継した最近の検索式を半減するまで留めておく期間です。標準の"
-"値 5 が丁度良いですが、望むなら異なる設定で実験することもできます。値を高くす"
-"ると正規の検索式を破棄し易くなるので、注意するようにして下さい。"
+"TTL やホップ数で中継した最近の検索クエリーを半減するまで留めておく期間です。"
+"標準の値 5 が丁度良いですが、望むなら異なる設定で実験することもできます。値を"
+"高くすると正規の検索クエリーを破棄し易くなるので、注意するようにして下さい。"
 
 #: src/if/gnet_property.c:4948
 msgid ""
@@ -2414,25 +2420,25 @@ msgid ""
 "can lower the constraint significantly. Deviations from the default of 1700 "
 "have exponential effects on the network traffic."
 msgstr ""
-"リーフノードから来る二つの同じ検索式を一つにするまでの最短秒数です。指定した"
-"秒数の前に検索式が再送されて来た場合、これは破棄され 'メッセージスロットル' "
-"カウンタに数えられます。あまり頻繁に検索式が再発行されるのはネットワークに"
-"とって有害ですが、Gnutella 接続の動的な性質上、一定量は許可する必要がありま"
-"す。これを無効にする事はできませんが、常識の範囲内でこの秒数を短くする事はで"
-"きます。標準の 1700 から外れるにつれ、ネットワークのトラフィックに指数関数的"
-"な影響を及ぼします。"
+"リーフノードから来る二つの同じ検索クエリーを Gnutella ネットワークにかけるま"
+"での最短秒数です。指定した秒数の前に検索クエリーが再送されて来た場合、これは"
+"破棄され「メッセージスロットル」カウンター数えられます。あまり頻繁に検索クエ"
+"リーが再発行されるのはネットワークにとって有害ですが、Gnutella 接続の動的な性"
+"質上、一定量は許可する必要があります。これを無効にする事はできませんが、常識"
+"の範囲内でこの秒数を短くする事はできます。標準の 1700 から外れるにつれ、ネッ"
+"トワークのトラフィックに指数関数的な影響を及ぼします。"
 
 #: src/if/gnet_property.c:4968
 msgid "Time at which we started the last scan of the library."
-msgstr "ライブラリのスキャンを最後に開始した時間です。"
+msgstr "ライブラリーのスキャンを最後に開始した時間です。"
 
 #: src/if/gnet_property.c:4988
 msgid "Time at which the last scan of the library finished."
-msgstr "最後のライブラリのスキャンが完了した時間です。"
+msgstr "ライブラリーのスキャンが最後に完了した時間です。"
 
 #: src/if/gnet_property.c:5008
 msgid "The number of seconds the last scan of the library took."
-msgstr "最後のライブラリのスキャンに掛かった秒数です。"
+msgstr "最後のライブラリーのスキャンに掛かった秒数です。"
 
 #: src/if/gnet_property.c:5028
 msgid "Time at which we started shared file indexing."
@@ -2444,7 +2450,7 @@ msgstr "共有ファイルの索引作成に費やした時間です。"
 
 #: src/if/gnet_property.c:5068
 msgid "Time at which we started query routing table generation."
-msgstr "検索式経路設定テーブルの生成を開始した時間です。"
+msgstr "検索クエリー経路設定テーブルの生成を開始した時間です。"
 
 #: src/if/gnet_property.c:5088
 msgid "Time spent computing the QRP table, in seconds."
@@ -2460,7 +2466,7 @@ msgstr "QRP テーブルパッチの算出に費やした時間を秒で表し�
 
 #: src/if/gnet_property.c:5148
 msgid "Query routing table generation number."
-msgstr "検索式経路設定テーブルの生成番号です。"
+msgstr "検索クエリー経路設定テーブルの生成番号です。"
 
 #: src/if/gnet_property.c:5168
 msgid "Amount of slots used by our QRP table."
@@ -2587,13 +2593,13 @@ msgid ""
 "default because it is deemed safe, as your node controls the bulk of the "
 "emitted traffic and honours the bandwidth limitations."
 msgstr ""
-"UDP サポートが有効にされた場合、Gtk-Gnutella が UDP 経由の検索式ヒットの帯域"
-"外 (Out-Of-Band) 配送の要求を遵守するかどうかを選択します。あなたのノードが "
-"UDP トラフィックの起源になってしまうので、これを有効にするために転送ポートの"
-"追加が必要になるべきではありません。したがって、仮装ファイアウォールによって"
-"開けられた一時的な UDP ポートへ送信された返答を受信することができます。あなた"
-"のノードが発生するトラフィックの大半を管理できて、帯域幅の制限を遵守する限り"
-"安全だと思われるため、標準では有効になります。"
+"UDP サポートが有効にされた場合、Gtk-Gnutella が UDP 経由の検索クエリーヒット"
+"の帯域外 (Out-Of-Band) 配送の要求を遵守するかどうかを選択します。あなたのノー"
+"ドが UDP トラフィックの起源になってしまうので、これを有効にするために転送ポー"
+"トの追加が必要になるべきではありません。したがって、仮装ファイアウォールに"
+"よって開けられた一時的な UDP ポートへ送信された返答を受信することができます。"
+"あなたのノードが発生するトラフィックの大半を管理できて、帯域幅の制限を遵守す"
+"る限り安全だと思われるため、標準では有効になります。"
 
 #: src/if/gnet_property.c:5539
 msgid ""
@@ -2605,13 +2611,13 @@ msgid ""
 "will travel through the Gnutella network and can be dropped by any flow-"
 "controlled relaying node, limiting the results you can get."
 msgstr ""
-"UDP 経由で検索式ヒットの帯域外 (Out-Of-Band) 配送を要求しながら検索式を送信す"
-"るかどうかを選択します。この設定は UDP がファイアウォールで遮られている場合に"
-"は無視されます、つまり要望のない UDP トラフィックは受信できません。まず UDP "
-"へ対応する事が必要になります。これは大量の UDP の返答を受け付けてしまいかねま"
-"せんので、この機能を無効にしても構いません。これを無効にすると、あなたのヒッ"
-"トは Gnutella ネットワークを通り抜けるようになり、あなたが得られる結果を制限"
-"しならが、フロー調整する中継ノードに破棄されます。"
+"UDP 経由で検索クエリーヒットの帯域外 (Out-Of-Band) 配送を要求しながら検索クエ"
+"リーを送信するかどうかを選択します。この設定は UDP がファイアウォールで遮られ"
+"ている場合には無視されます、つまり要望のない UDP トラフィックは受信できませ"
+"ん。まず UDP へ対応する事が必要になります。これは大量の UDP の返答を受け付け"
+"てしまいかねませんので、この機能を無効にしても構いません。これを無効にする"
+"と、あなたのヒットは Gnutella ネットワークを通り抜けるようになり、あなたが得"
+"られる結果を制限しならが、フロー調整する中継ノードに破棄されます。"
 
 #: src/if/gnet_property.c:5556
 msgid ""
@@ -2623,14 +2629,14 @@ msgid ""
 "connected to you will have to relay the hits, possibly dropping other query "
 "messages and lowering the efficiency of the search network."
 msgstr ""
-"ウルトラノードとして動作している時に、検索式ヒットの帯域外 (Out-Of-Band) 配送"
-"を要求していないリーフ検索式に対して代理サーバーとして振る舞うかどうかを選択"
-"します: Gtk-Gnutella は遠隔ノードからのヒットを催促して、適切なリーフに転送し"
-"ます。これは各リーフノードに対して有利に働きますが、あなたのウルトラノードに"
-"折り返される UDP トラフィックの大渋滞を引き起こす可能性があります。これを無効"
-"にすると、あなたに接続している全てのウルトラノードがこのヒットを中継しなけれ"
-"ばいけなくなり、その他の問合わせメッセージを破棄して検索ネットワークの効率を"
-"下げてしまうかもしれません。"
+"ウルトラノードとして動作している時に、検索クエリーヒットの帯域外 (Out-Of-"
+"Band) 配送を要求していないリーフ検索クエリーに対して代理サーバーとして振る舞"
+"うかどうかを選択します: Gtk-Gnutella は遠隔ノードからのヒットを催促して、適切"
+"なリーフに転送します。これは各リーフノードに対して有利に働きますが、あなたの"
+"ウルトラノードに折り返される UDP トラフィックの大渋滞を引き起こす可能性があり"
+"ます。これを無効にすると、あなたに接続している全てのウルトラノードがこのヒッ"
+"トを中継しなければいけなくなり、その他の問合わせメッセージを破棄して検索ネッ"
+"トワークの効率を下げてしまうかもしれません。"
 
 #: src/if/gnet_property.c:5573
 msgid ""
@@ -2728,27 +2734,27 @@ msgstr "表示しない"
 
 #: src/if/gui_property.c:180
 msgid "by words"
-msgstr "単語に別けて表示"
+msgstr "単語に分けて表示"
 
 #: src/if/gui_property.c:181
 msgid "by whole query"
-msgstr "完全なクエリで表示"
+msgstr "完全なクエリーで表示"
 
 #: src/if/gui_property.c:182
 msgid "by router"
-msgstr "接続ノードからのクエリを表示"
+msgstr "隣接ノードからのクエリーを表示"
 
 #: src/if/gui_property.c:204
 msgid "TCP & UDP"
-msgstr "TCPとUDP"
+msgstr "TCP と UDP"
 
 #: src/if/gui_property.c:205
 msgid "TCP only"
-msgstr "TCPのみ"
+msgstr "TCP のみ"
 
 #: src/if/gui_property.c:206
 msgid "UDP only"
-msgstr "UDPのみ"
+msgstr "UDP のみ"
 
 #: src/if/gui_property.c:274
 msgid "Icons"
@@ -2767,41 +2773,47 @@ msgid "Both (horizontal)"
 msgstr "両方 (水平に並べる)"
 
 #: src/if/gui_property.c:283
-#, fuzzy
 msgid "This session"
-msgstr "圧縮(送信)"
+msgstr "このセッションの間"
 
+# NOTE:
 #: src/if/gui_property.c:284
 msgid "1 hour"
-msgstr ""
+msgstr "1時間"
 
+# NOTE:
 #: src/if/gui_property.c:285
 msgid "4 hours"
-msgstr ""
+msgstr "4時間"
 
+# NOTE:
 #: src/if/gui_property.c:286
 msgid "1 day"
-msgstr ""
+msgstr "1日"
 
+# NOTE:
 #: src/if/gui_property.c:287
 msgid "4 days"
-msgstr ""
+msgstr "4日"
 
+# NOTE:
 #: src/if/gui_property.c:288
 msgid "1 week"
-msgstr ""
+msgstr "1週間"
 
+# NOTE:
 #: src/if/gui_property.c:289
 msgid "2 weeks"
-msgstr ""
+msgstr "2週間"
 
+# XXX: it's completely free translation
 #: src/if/gui_property.c:317
 msgid "Search monitor enabled."
-msgstr "検索モニターを有効にします。"
+msgstr "あなたのノードを通過する検索クエリーをチェックします。"
 
 #: src/if/gui_property.c:334
 msgid "Maximum number of queries visible in search monitor."
-msgstr "検索モニターに表示する検索式の最大数です。"
+msgstr "検索モニターに表示する検索クエリーの最大数です。"
 
 #: src/if/gui_property.c:354
 msgid "Match queue selection by regexp case sensitive."
@@ -3162,52 +3174,55 @@ msgstr "受信トラフィックの圧縮比を表示するかどうかを選択
 
 #: src/if/gui_property.c:1910
 msgid "Whether to display the amount of bytes sent on the TX wire."
-msgstr "送信ワイヤで送信されたバイト量を表示するかどうかを選択します。"
+msgstr "送信ワイヤーで送信されたバイト量を表示するかどうかを選択します。"
 
 #: src/if/gui_property.c:1927
 msgid "Whether to display the amount of bytes received on the RX wire."
-msgstr "受信ワイヤで受信されたバイト量を表示するかどうかを選択します。"
+msgstr "受信ワイヤーで受信されたバイト量を表示するかどうかを選択します。"
 
 #: src/if/gui_property.c:1944
 msgid "Whether TX instantaneous transmission speed should be displayed."
-msgstr "送信瞬間伝達速度を表示するかどうかを選択します。"
+msgstr "瞬間の送信伝送速度を表示するかどうかを選択します。"
 
 #: src/if/gui_property.c:1961
 msgid "Whether RX instantaneous transmission speed should be displayed."
-msgstr "受信瞬間伝達速度を表意するかどうかを選択します。"
+msgstr "瞬間の受信伝送速度を表意するかどうかを選択します。"
 
 #: src/if/gui_property.c:1978
 msgid "Whether count of transmitted queries should be displayed."
-msgstr "伝達された検索式の回数を表示するかどうかを選択します。"
+msgstr "伝送した検索クエリーの数を表示するかどうかを選択します。"
 
 #: src/if/gui_property.c:1995
 msgid "Whether count of received queries should be displayed."
-msgstr "受信した検索式の回数を表示するかどうかを選択します。"
+msgstr "受信した検索クエリーの数を表示するかどうかを選択します。"
 
 #: src/if/gui_property.c:2012
 msgid "Whether count of transmitted query hits should be displayed."
-msgstr "伝達された検索式ヒットの回数を表示するかどうかを選択します。"
+msgstr "伝送した検索クエリーヒットの数を表示するかどうかを選択します。"
 
 #: src/if/gui_property.c:2029
 msgid "Whether count of received query hits should be displayed."
-msgstr "受信した検索式ヒットの回数を表示するかどうかを選択します。"
+msgstr "受信した検索クエリーヒットの数を表示するかどうかを選択します。"
 
 #: src/if/gui_property.c:2046
 msgid "Whether count of locally generated queries should be displayed."
-msgstr "ローカルに生成された検索式の回数を表示するかどうかを選択します。"
+msgstr ""
+"あなたのノードで生成した検索クエリーの数を表示するかどうかを選択します。"
 
 #: src/if/gui_property.c:2063
 msgid ""
 "Whether count of local queries pending transmission should be displayed."
-msgstr "伝達が未解決のローカル検索式の回数を表示するかどうかを選択します。"
+msgstr ""
+"あなたのノードで生成して、伝送保留になっている検索クエリーの数を表示するかど"
+"うかを選択します。"
 
 #: src/if/gui_property.c:2080
 msgid "Whether count of dropped messages on TX should be displayed."
-msgstr "送信において破棄されたメッセージの回数を表示するかどうかを選択します。"
+msgstr "送信において破棄されたメッセージの数を表示するかどうかを選択します。"
 
 #: src/if/gui_property.c:2097
 msgid "Whether count of dropped messages on RX should be displayed."
-msgstr "受信において破棄されたメッセージの回数を表示するかどうかを選択します。"
+msgstr "受信において破棄されたメッセージの数を表示するかどうかを選択します。"
 
 #: src/if/gui_property.c:2114
 msgid ""
@@ -3218,19 +3233,20 @@ msgid ""
 "the passing threshold and 'e' the efficiency, i.e. the proportion of "
 "received queries that are sent to the node after QRP table filtering."
 msgstr ""
-"検索式経路設定プロトコル (QRP) の統計を表示するかどうかを選択します。リーフ"
-"ノードにおいて、これは単に受信した検索式の量を越える検索式ヒットの比率です。"
-"ウルトラピアにおいては、QRP テーブルでの受口の量を表示し、'g' は生成数、'f' "
-"は充足比率、't' は通過の閾値、そして 'e' は効率です。この効率とは、QRP テーブ"
-"ルのフィルター処理の後にリーフノードに送信される検索式の受信率です。"
+"検索クエリー経路設定プロトコル (QRP) の統計を表示するかどうかを選択します。"
+"リーフノードにおいて、これは単に受信した検索クエリーの量を越える検索クエリー"
+"ヒットの比率です。ウルトラピアにおいては、QRP テーブルでの受口の量を表示し、"
+"「g」は生成数、「f」は充足比率、「t」は通過の閾値、そして「e」は効率です。こ"
+"の効率とは、QRP テーブルのフィルター処理の後にリーフノードに送信される検索ク"
+"エリーの受信率です。"
 
 #: src/if/gui_property.c:2131
 msgid ""
 "Whether we should display message counts for duplicate, bad, weird and "
 "messages bearing an hostile IP address."
 msgstr ""
-"重複、不正、おかしなメッセージと敵対IPアドレスが送信するメッセージの回数を表"
-"示するかどうかを表します。"
+"重複、不正、変なメッセージと敵対 IP アドレスが送信するメッセージの回数を表示"
+"するかどうかを表します。"
 
 #: src/if/gui_property.c:2148
 msgid ""
@@ -3245,8 +3261,8 @@ msgid ""
 "Whether we should display the size of the node's library, when it is known "
 "to us."
 msgstr ""
-"ノードのライブラリの大きさが明らかになった場合に、それを表示するかどうかを選"
-"択します。"
+"ノードのライブラリーの大きさが明らかになった場合に、それを表示するかどうかを"
+"選択します。"
 
 #: src/if/gui_property.c:2182
 msgid ""
@@ -3285,7 +3301,7 @@ msgstr "ツールバーの外見を設定します。"
 #: src/if/gui_property.c:2299
 msgid ""
 "The lifetime of a search. If this time is exceeded, the search is stopped."
-msgstr ""
+msgstr "検索の有効期限です。この期限が経過すると、検索は打ち切られます。"
 
 #: src/lib/iso3166.c:58
 msgid "Anonymizing proxies"
@@ -4455,9 +4471,10 @@ msgstr "これで正確に一致する"
 msgid "Filter"
 msgstr "フィルター"
 
+# MERGLEBLE: Rule -> Rules
 #: src/ui/gtk/filter.c:281
 msgid "Rule"
-msgstr "ルール"
+msgstr "ルール数"
 
 #: src/ui/gtk/filter.c:282 src/ui/gtk/filter.c:291
 #: src/ui/gtk/gtk1/interface-glade.c:7849
@@ -4732,12 +4749,12 @@ msgstr "Push"
 #: src/ui/gtk/gnet_stats_common.c:55 src/ui/gtk/gtk1/interface-glade.c:13810
 #: src/ui/gtk/gtk2/interface-glade.c:11858 src/ui/gtk/gtk2/monitor.c:148
 msgid "Query"
-msgstr "検索式"
+msgstr "検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:56 src/ui/gtk/gtk1/interface-glade.c:13821
 #: src/ui/gtk/gtk2/interface-glade.c:11866
 msgid "Query hit"
-msgstr "検索式ヒット"
+msgstr "検索クエリーヒット"
 
 #: src/ui/gtk/gnet_stats_common.c:57 src/ui/gtk/gtk1/interface-glade.c:5693
 #: src/ui/gtk/gtk2/search_stats.c:384
@@ -4756,29 +4773,32 @@ msgstr "フロー制御"
 msgid "Routing errors"
 msgstr "経路設定エラー"
 
+# XXX: free translation
 #: src/ui/gtk/gnet_stats_common.c:130
 msgid "Searches to local DB"
-msgstr "ローカル DB への検索"
+msgstr "あなたの共有ファイルへの検索"
 
+# XXX: free translation
 #: src/ui/gtk/gnet_stats_common.c:131
 msgid "Hits on local DB"
-msgstr "ローカル DB でヒット"
+msgstr "あなたの共有ファイルにヒット"
 
+# XXX: free translation
 #: src/ui/gtk/gnet_stats_common.c:132
 msgid "Query hits received for local queries"
-msgstr "ローカル検索式用に受取った検索式ヒット"
+msgstr "あなたの検索クエリーが受取った検索クエリーヒット"
 
 #: src/ui/gtk/gnet_stats_common.c:133
 msgid "Query hits received for OOB-proxied queries"
-msgstr "OOB 代理検索式用に受取った検索式ヒット"
+msgstr "OOB 代理検索クエリーで受取った検索クエリーヒット"
 
 #: src/ui/gtk/gnet_stats_common.c:134
 msgid "Queries requesting OOB hit delivery"
-msgstr "OOB ヒット配送を要求する検索式"
+msgstr "OOB ヒット配送を要求する検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:135
 msgid "Stripped OOB flag on queries"
-msgstr "検索式の削除済 OOB フラッグ"
+msgstr "検索クエリーでの削除済 OOB フラッグ"
 
 #: src/ui/gtk/gnet_stats_common.c:136
 msgid "Duplicates with higher TTL"
@@ -4786,27 +4806,29 @@ msgstr "高 TTL での重複"
 
 #: src/ui/gtk/gnet_stats_common.c:137
 msgid "Duplicate OOB-proxied queries"
-msgstr "重複する OOB の代理検索式"
+msgstr "重複する OOB 代理検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:138
 msgid "OOB hits received for OOB-proxied queries"
-msgstr "OOB 代理検索式用に受取った OOB ヒット"
+msgstr "OOB 代理検索クエリーで受取った OOB ヒット"
 
 #: src/ui/gtk/gnet_stats_common.c:139
 msgid "OOB hits bearing alien IP address"
 msgstr "余所の IP アドレスを運ぶ OOB ヒット"
 
+# FIXME: wtf
 #: src/ui/gtk/gnet_stats_common.c:140
 msgid "Unclaimed locally-generated OOB hits"
 msgstr "催促無しのローカル生成 OOB ヒット"
 
+# FIXME: wtf
 #: src/ui/gtk/gnet_stats_common.c:141
 msgid "Partially claimed locally-generated OOB hits"
 msgstr "部分催促されているローカル生成 OOB ヒット"
 
 #: src/ui/gtk/gnet_stats_common.c:142
 msgid "Compacted queries"
-msgstr "圧縮検索式"
+msgstr "圧縮検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:143
 msgid "Bytes saved by compacting"
@@ -4814,11 +4836,11 @@ msgstr "圧縮保存済バイト"
 
 #: src/ui/gtk/gnet_stats_common.c:144
 msgid "UTF8 queries"
-msgstr "UTF8 検索式"
+msgstr "UTF8 検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:145
 msgid "SHA1 queries"
-msgstr "SHA1 検索式"
+msgstr "SHA1 検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:146
 msgid "Broadcasted push messages"
@@ -4826,63 +4848,68 @@ msgstr "広域送信 PUSH メッセージ"
 
 #: src/ui/gtk/gnet_stats_common.c:147
 msgid "Push proxy relayed messages"
-msgstr "プロキシ中継 PUSH メッセージ"
+msgstr "PUSH プロキシ中継メッセージ"
 
 #: src/ui/gtk/gnet_stats_common.c:148
 msgid "Push proxy broadcasted messages"
-msgstr "プロキシ広域送信 PUSH メッセージ"
+msgstr "PUSH プロキシ広域送信メッセージ"
 
 #: src/ui/gtk/gnet_stats_common.c:149
 msgid "Push proxy lookup failures"
-msgstr "プロキシ参照失敗 PUSH"
+msgstr "PUSH プロキシ参照失敗"
 
 #: src/ui/gtk/gnet_stats_common.c:150
 msgid "Locally generated dynamic queries"
-msgstr "ローカル生成された動的検索式"
+msgstr "ローカル生成の動的検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:151
 msgid "Leaf-generated dynamic queries"
-msgstr "リーフ生成された動的検索式"
+msgstr "リーフ生成の動的検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:152
 msgid "OOB-proxied leaf queries"
-msgstr "代理 OOB のリーフ検索式"
+msgstr "代理 OOB リーフ検索クエリー"
 
+# XXX: wtf
 #: src/ui/gtk/gnet_stats_common.c:153
 msgid "Fully completed dynamic queries"
-msgstr "完全完結した動的検索式"
+msgstr "完全完成の動的検索クエリー"
 
+# XXX: wtf
 #: src/ui/gtk/gnet_stats_common.c:154
 msgid "Partially completed dynamic queries"
-msgstr "部分完結した動的検索式"
+msgstr "部分完成の動的検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:155
 msgid "Dynamic queries ended with no results"
-msgstr "結果無しで終了した動的検索式"
+msgstr "結果無しで終了した動的検索クエリー"
 
+# XXX: wtf
 #: src/ui/gtk/gnet_stats_common.c:156
 msgid "Fully completed dynamic queries getting late results"
-msgstr "後に結果を得る完全完結した動的検索式"
+msgstr "後に結果を得る完全完成の動的検索クエリー"
 
+# XXX: wtf
 #: src/ui/gtk/gnet_stats_common.c:157
 msgid "Dynamic queries with partial late results"
-msgstr "後の部分的な結果を伴う動的検索式"
+msgstr "後の部分的な結果を伴う動的検索クエリー"
 
+# XXX: wtf
 #: src/ui/gtk/gnet_stats_common.c:158
 msgid "Dynamic queries completed by late results"
-msgstr "後の結果で完結する動的検索式"
+msgstr "後の結果で完成する動的検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:159
 msgid "Queries seen from GTKG"
-msgstr "GTKG からの検索式"
+msgstr "GTKG からの検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:160
 msgid "Queries seen from GTKG that were re-queries"
-msgstr "再問合わせする GTKG からの検索式"
+msgstr "GTKG からの検索クエリー (再問合わせ)"
 
 #: src/ui/gtk/gnet_stats_common.c:161
 msgid "Queries advertising support of GGEP \"H\""
-msgstr "GGEP \"H\" への対応を告知する検索式"
+msgstr "GGEP「H」への対応を知らせる検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:162
 msgid "GIV callbacks received"
@@ -5299,9 +5326,8 @@ msgstr "表示(_V)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:980
 #: src/ui/gtk/gtk2/interface-glade.c:2199
-#, fuzzy
 msgid "show Search_bar"
-msgstr "サイドバー(_S)"
+msgstr "サイドバー(_B)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:997
 msgid "show _Toolbar"
@@ -5476,7 +5502,7 @@ msgstr "クリックで表示を切替えます。"
 #: src/ui/gtk/gtk1/interface-glade.c:1698
 #: src/ui/gtk/gtk1/interface-glade.c:1738 src/ui/gtk/misc.c:139
 msgid "in"
-msgstr "でノード内へ"
+msgstr "(平均) で内へ"
 
 # NOTE: this string is used as follows
 #
@@ -5486,12 +5512,12 @@ msgstr "でノード内へ"
 #: src/ui/gtk/gtk1/interface-glade.c:1709
 #: src/ui/gtk/gtk1/interface-glade.c:1749 src/ui/gtk/misc.c:139
 msgid "out"
-msgstr "でノード外へ"
+msgstr "(平均) で外へ"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1671
 #: src/ui/gtk/gtk2/interface-glade.c:2795
 msgid "GnutellaNet traffic"
-msgstr "GnutellaNet トラフィック"
+msgstr "Gnet トラフィック"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1711
 #: src/ui/gtk/gtk2/interface-glade.c:2826
@@ -5860,7 +5886,7 @@ msgstr "ホスト数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3047 src/ui/gtk/gtk2/hcache.c:49
 msgid "Misses"
-msgstr "取り逃した数"
+msgstr "取逃した数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3055
 #: src/ui/gtk/gtk2/interface-glade.c:9521
@@ -5999,7 +6025,7 @@ msgstr "要求回数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3533 src/ui/gtk/gtk2/upload_stats.c:272
 msgid "Normalized"
-msgstr "正規化値"
+msgstr "正規値"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3549
 msgid "Clear nonexistant files"
@@ -6065,10 +6091,11 @@ msgstr "取得ファイル"
 msgid "File"
 msgstr "ファイル"
 
+# FIXME:
 #: src/ui/gtk/gtk1/interface-glade.c:3718 src/ui/gtk/gtk2/fileinfo.c:614
 #: src/ui/gtk/gtkcolumnchooser.c:206
 msgid "Done"
-msgstr "完了"
+msgstr "終了"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3726 src/ui/gtk/gtk2/fileinfo.c:615
 msgid "Sources"
@@ -6624,9 +6651,10 @@ msgid ""
 "results. You will not be able to send queries requesting out-of-band "
 "delivery of query hits."
 msgstr ""
-"TCP と UDP の両方に関してファイアウォール内にあるようです。PUSH の結果を見ら"
-"れないので、大量の検索結果を得る事はないでしょう。検索式ヒットの帯域外 (Out-"
-"Of-Band) 配送を要求する問い合わせの送信もできません。"
+"TCP と UDP の両方に関してファイアウォール内にあるようです。あなたは PUSH によ"
+"る検索結果を見られません、これは多くの検索結果は得られない事を意味します。検"
+"索クエリーヒットの帯域外 (Out-Of-Band) 配送をリクエストする検索クエリーの送信"
+"もできません。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6082
 #: src/ui/gtk/gtk2/interface-glade.c:2515
@@ -6637,11 +6665,11 @@ msgid ""
 "delivery of query hits. However, it is possible to punch a hole into the UDP "
 "firewall, so you will be able to send out-of-band query hits."
 msgstr ""
-"TCP と UDP の両方に関してファイアウォール内にあるようです。PUSH の結果を見ら"
-"れないので、大量の検索結果を得る事はないでしょう。検索式ヒットの帯域外 (Out-"
-"Of-Band) 配送を要求する問い合わせの送信もできなくなります。しかし、UDP ファイ"
-"アウォールに穴を開ける事は可能で、それにより帯域外検索式ヒットを送信できるよ"
-"うになります。"
+"TCP と UDP の両方に関してファイアウォール内にあるようです。あなたは PUSH によ"
+"る検索結果を見られません、これは多くの検索結果は得られない事を意味します。検"
+"索クエリーヒットの帯域外 (Out-Of-Band) 配送をリクエストする検索クエリーの送信"
+"もできません。しかしながら、UDP ファイアウォールに穴を開ける事は可能です。こ"
+"れにより帯域外検索クエリーヒットを送信できるようになります。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6100
 #: src/ui/gtk/gtk2/interface-glade.c:2527
@@ -6651,8 +6679,9 @@ msgid ""
 "seeing a large amount of results."
 msgstr ""
 "TCP に関してファイアウォール内にあるようです。つまり、他のホストはファイルを"
-"ダウンロードするためあなたのホストに接続する事はできません。PUSH の結果を見ら"
-"れないので、大量の検索結果を得る事はないでしょう。"
+"ダウンロードするために、あなたのホストに接続する事ができません。あなたは "
+"PUSH による検索結果を見られません、これは多くの検索結果は得られない事を意味し"
+"ます。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6118
 #: src/ui/gtk/gtk2/interface-glade.c:2539
@@ -6662,8 +6691,8 @@ msgid ""
 "delivery of query hits."
 msgstr ""
 "UDP に関してファイアウォール内にあるようです。つまり、UDP 経由で要請されない"
-"トラフィックは受信できません。検索式ヒットの帯域外 (Out-Of-Band) 配送を要求す"
-"る問い合わせは送信できません。"
+"トラフィックは受信できません。検索クエリーヒットの帯域外 (Out-Of-Band) 配送を"
+"要求する検索クエリーも送信できません。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6136
 #: src/ui/gtk/gtk2/interface-glade.c:2551
@@ -6674,9 +6703,9 @@ msgid ""
 "be able to receive any."
 msgstr ""
 "他のホストは TCP 経由であなたのホストに接続できますが、UDP はファイアウォール"
-"内にあります。しかし、このファイアウォールに穴を開ける事で、あなたの UDP パ"
-"ケットへの返答の受信を許可するようになります。帯域外 (Out-Of-Band) 検索式ヒッ"
-"トを送信できるようになりますが、何も受信できなくなります。"
+"内にあります。しかしながら、このファイアウォールに穴を開ける事で、あなたの "
+"UDP パケットへの返答の受信を許可するようになります。帯域外 (Out-Of-Band) 検索"
+"クエリーヒットを送信できるようになりますが、何も受信できなくなります。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6154
 #: src/ui/gtk/gtk2/interface-glade.c:2564
@@ -6685,8 +6714,8 @@ msgid ""
 "will be able to receive out-of-band results for your queries."
 msgstr ""
 "他のホストは TCP と UDP の両方を使用してあなたのホストに接続できます。PUSH リ"
-"クエストも送信でき、あなたの検索式に対して帯域外 (Out-Of-Band) からの結果を受"
-"け取ることができます。"
+"クエストも送信でき、あなたの検索クエリーに対して帯域外 (Out-Of-Band) からの結"
+"果を受け取ることができます。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:6173
 #: src/ui/gtk/gtk2/interface-glade.c:2593
@@ -6926,6 +6955,7 @@ msgstr "ルールエディター"
 msgid "_Create filter"
 msgstr "フィルター作成(_C)"
 
+# MERGEBLE:
 #: src/ui/gtk/gtk1/interface-glade.c:7841
 msgid "Rules"
 msgstr "ルール数"
@@ -7256,23 +7286,23 @@ msgstr "無視"
 msgid "#|State"
 msgstr "#|State"
 
-# FIXME: it should be accelerated
+# FIXME: should be accelerated
 #: src/ui/gtk/gtk1/interface-glade.c:10014
 msgid "Apply"
 msgstr "適用"
 
-# FIXME: it should be accelerated
+# FIXME: should be accelerated
 #: src/ui/gtk/gtk1/interface-glade.c:10023
 #: src/ui/gtk/gtk2/interface-glade.c:1211
 msgid "Revert"
 msgstr "戻す"
 
-# FIXME: it should be accelerated
+# FIXME: should be accelerated
 #: src/ui/gtk/gtk1/interface-glade.c:10032
 msgid "Ok"
 msgstr "OK"
 
-# FIXME: it should be accelerated
+# FIXME: should be accelerated
 #: src/ui/gtk/gtk1/interface-glade.c:10041
 msgid "Cancel"
 msgstr "キャンセル"
@@ -7310,10 +7340,6 @@ msgstr "Gtk-Gnutella について"
 msgid "[name and version]"
 msgstr "[name and version]"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10394
-msgid "$Id$"
-msgstr ""
-
 #: src/ui/gtk/gtk1/interface-glade.c:10427
 #: src/ui/gtk/gtk2/interface-glade.c:1517
 msgid "Original author:"
@@ -7322,7 +7348,7 @@ msgstr "原著作者:"
 #: src/ui/gtk/gtk1/interface-glade.c:10439
 #: src/ui/gtk/gtk2/interface-glade.c:1536
 msgid "Core development:"
-msgstr "中心部分の開発:"
+msgstr "中心部の開発:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10451
 #: src/ui/gtk/gtk2/interface-glade.c:1555
@@ -7544,7 +7570,7 @@ msgid ""
 "form of ip/bits or ip/netmask (eg 192.168.1.0/24 or "
 "192.168.1.0/255.255.255.0)"
 msgstr ""
-"ローカルネットを 'IP/ビット' または 'IP/ネットマスク' の形式でセミコロンで区"
+"ローカルネットを「IP/ビット」または「IP/ネットマスク」の形式でセミコロンで区"
 "切り、並べて入力して下さい。(例 192.168.1.0/24 または "
 "192.168.1.0/255.255.255.0)"
 
@@ -7646,12 +7672,12 @@ msgstr "その他"
 #: src/ui/gtk/gtk1/interface-glade.c:12239
 #: src/ui/gtk/gtk2/interface-glade.c:10264
 msgid "Enable \"_shell\" control interface"
-msgstr "\"シェル\" 管理インターフェイスを有効にする(_S)"
+msgstr "「シェル」制御インターフェイスを有効にする(_S)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12251
 #: src/ui/gtk/gtk2/interface-glade.c:10269
 msgid "Enable \"_Browse Host\" feature"
-msgstr "\"ホスト閲覧\" 機能を有効にする(_B)"
+msgstr "「ホスト閲覧」機能を有効にする(_B)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12261
 #: src/ui/gtk/gtk2/interface-glade.c:10343
@@ -7733,7 +7759,7 @@ msgstr "最後の切替時間"
 #: src/ui/gtk/gtk1/interface-glade.c:12660
 #: src/ui/gtk/gtk2/interface-glade.c:10914
 msgid "Large enough uptime"
-msgstr "充分長く稼動している"
+msgstr "充分な稼動時間がある"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12682
 #: src/ui/gtk/gtk2/interface-glade.c:10948
@@ -7743,7 +7769,7 @@ msgstr "ファイアウォール内にはない"
 #: src/ui/gtk/gtk1/interface-glade.c:12693
 #: src/ui/gtk/gtk2/interface-glade.c:10923
 msgid "Enough file descriptors"
-msgstr "充分な数のファイル記述がある"
+msgstr "充分なファイル記述子がある"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12705
 #: src/ui/gtk/gtk2/interface-glade.c:10957
@@ -7815,12 +7841,12 @@ msgstr "帯域外 (Out-Of-Band) 問合わせ"
 #: src/ui/gtk/gtk1/interface-glade.c:13056
 #: src/ui/gtk/gtk2/interface-glade.c:11217
 msgid "Queries ask for OOB results"
-msgstr "帯域外結果を要求する検索式"
+msgstr "帯域外結果を要求する検索クエリー"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13064
 #: src/ui/gtk/gtk2/interface-glade.c:11224
 msgid "Honour OOB flag in queries"
-msgstr "検索式では帯域外フラッグを遵守する"
+msgstr "検索クエリーでは帯域外フラッグを遵守する"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13072
 #: src/ui/gtk/gtk2/interface-glade.c:11232
@@ -7844,7 +7870,7 @@ msgid "GnutellaNet timeouts (all values in seconds)"
 msgstr "タイムアウト (全て秒単位)"
 
 # NOTE: `timeout' may be redundant
-# FIXME: `Connecting' to which?
+# XXX: `Connecting' to which?
 #: src/ui/gtk/gtk1/interface-glade.c:13175
 #: src/ui/gtk/gtk1/interface-glade.c:14988
 #: src/ui/gtk/gtk1/interface-glade.c:15663
@@ -7852,10 +7878,10 @@ msgstr "タイムアウト (全て秒単位)"
 #: src/ui/gtk/gtk2/interface-glade.c:13313
 #: src/ui/gtk/gtk2/interface-glade.c:14081
 msgid "Connectin_g timeout"
-msgstr "Gnutella ネットへの接続(_G)"
+msgstr "外への接続(_G)"
 
 # NOTE: `timeout' may be redundant
-# FIXME: `Connected' by which?
+# XXX: `Connected' by which?
 #: src/ui/gtk/gtk1/interface-glade.c:13188
 #: src/ui/gtk/gtk1/interface-glade.c:15014
 #: src/ui/gtk/gtk1/interface-glade.c:15676
@@ -7863,7 +7889,7 @@ msgstr "Gnutella ネットへの接続(_G)"
 #: src/ui/gtk/gtk2/interface-glade.c:13331
 #: src/ui/gtk/gtk2/interface-glade.c:14091
 msgid "Connected time_out"
-msgstr "Gnutella ネットからの接続(_O)"
+msgstr "内への接続(_O)"
 
 # NOTE: `timeout' may be redundant
 #: src/ui/gtk/gtk1/interface-glade.c:13201
@@ -7963,12 +7989,12 @@ msgstr "%"
 #: src/ui/gtk/gtk1/interface-glade.c:13576
 #: src/ui/gtk/gtk2/interface-glade.c:11637
 msgid "Watch for similar queries"
-msgstr "同類の検索式を見張る"
+msgstr "類似検索クエリーを見張る"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13586
 #: src/ui/gtk/gtk2/interface-glade.c:11603
 msgid "Similar query half-life"
-msgstr "類似検索式の半減期"
+msgstr "類似検索クエリーの半減期"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13608
 #: src/ui/gtk/gtk2/interface-glade.c:11620
@@ -8003,7 +8029,7 @@ msgstr "ホップのランダム因子"
 #: src/ui/gtk/gtk1/interface-glade.c:13747
 #: src/ui/gtk/gtk2/interface-glade.c:11757
 msgid "Clean up queries before processing"
-msgstr "処理前に検索式を一掃"
+msgstr "処理前に検索クエリーを掃除する"
 
 # NOTE: `GnutellaNet' may be redundant
 #: src/ui/gtk/gtk1/interface-glade.c:13769
@@ -8284,37 +8310,37 @@ msgstr "サーバー名を要求する(_S)"
 msgid "Delays and timeouts (all values in seconds)"
 msgstr "遅延とタイムアウト (全て秒単位)"
 
-# FIXME: ill-translation
+# FIXME: messy
 #: src/ui/gtk/gtk1/interface-glade.c:14920
 #: src/ui/gtk/gtk2/interface-glade.c:13340
 msgid "Retry stopped delay"
 msgstr "再実行中断の遅延秒数"
 
-# FIXME: ill-translation
+# FIXME: messy
 #: src/ui/gtk/gtk1/interface-glade.c:14931
 #: src/ui/gtk/gtk2/interface-glade.c:13349
 msgid "Retry refused delay"
 msgstr "再実行拒否の遅延秒数"
 
-# FIXME: ill-translation
+# FIXME: mess translation
 #: src/ui/gtk/gtk1/interface-glade.c:14942
 #: src/ui/gtk/gtk2/interface-glade.c:13358
 msgid "Retry busy delay"
 msgstr "再実行使用中の遅延秒数"
 
-# FIXME: ill-translation
+# FIXME: messy
 #: src/ui/gtk/gtk1/interface-glade.c:14953
 #: src/ui/gtk/gtk2/interface-glade.c:13286
 msgid "Retry timeout delay"
 msgstr "再実行タイムアウトの遅延秒数"
 
-# FIXME: ill-translation
+# FIXME: messy
 #: src/ui/gtk/gtk1/interface-glade.c:14964
 #: src/ui/gtk/gtk2/interface-glade.c:13295
 msgid "Retry timeout max"
 msgstr "再実行タイムアウトの最長秒数"
 
-# FIXME: ill-translation
+# FIXME: messy
 #: src/ui/gtk/gtk1/interface-glade.c:14975
 #: src/ui/gtk/gtk2/interface-glade.c:13304
 msgid "Retry timeout min"
@@ -8325,37 +8351,37 @@ msgstr "再実行タイムアウトの最短秒数"
 msgid "_Push sent timeout"
 msgstr "PUSH 送信のタイムアウト(_P)"
 
-# FIXME: ill-translation
+# FIXME: messy
 #: src/ui/gtk/gtk1/interface-glade.c:15035
 #: src/ui/gtk/gtk2/interface-glade.c:13203
 msgid "Delay in seconds to wait when running download stops"
 msgstr "実働中のダウンロードが中止した場合の待機遅延秒数"
 
-# FIXME: ill-translation
+# FIXME: messy
 #: src/ui/gtk/gtk1/interface-glade.c:15049
 #: src/ui/gtk/gtk2/interface-glade.c:13213
 msgid "Delay in seconds to wait if connection is refused"
 msgstr "接続が拒否されるかどうかを待つ遅延秒数"
 
-# FIXME: ill-translation
+# FIXME: messy
 #: src/ui/gtk/gtk1/interface-glade.c:15062
 #: src/ui/gtk/gtk2/interface-glade.c:13223
 msgid "Delay in seconds to wait after HTTP busy indication"
 msgstr "HTTP 使用中と示された後の遅延秒数"
 
-# FIXME: ill-translation
+# FIXME: messy
 #: src/ui/gtk/gtk1/interface-glade.c:15076
 #: src/ui/gtk/gtk2/interface-glade.c:13233
 msgid "Delay in seconds to wait after connection failure"
 msgstr "接続失敗後の遅延秒数"
 
-# FIXME: ill-translation
+# FIXME: messy
 #: src/ui/gtk/gtk1/interface-glade.c:15089
 #: src/ui/gtk/gtk2/interface-glade.c:13243
 msgid "Maximum seconds to wait on auto-retry timeouts"
 msgstr "自動再実行タイムアウトの最長待機秒数"
 
-# FIXME: ill-translation
+# FIXME: messy
 #: src/ui/gtk/gtk1/interface-glade.c:15102
 #: src/ui/gtk/gtk2/interface-glade.c:13253
 msgid "Minimum seconds to wait on auto-retry timeouts"
@@ -8364,17 +8390,17 @@ msgstr "自動再実行タイムアウトの最短待機秒数"
 #: src/ui/gtk/gtk1/interface-glade.c:15115
 #: src/ui/gtk/gtk2/interface-glade.c:13263
 msgid "Number of seconds before timeout for a connecting download"
-msgstr "接続しているダウンロードがタイムアウトになるまでの秒数"
+msgstr "接続しているダウンロードがタイムアウトするまでの秒数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15128
 #: src/ui/gtk/gtk2/interface-glade.c:13273
 msgid "Number of seconds before timeout for a 'push sent' download"
-msgstr "'PUSH 送信' ダウンロードがタイムアウトになるまでの秒数"
+msgstr "「PUSH 送信」ダウンロードがタイムアウトするまでの秒数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15141
 #: src/ui/gtk/gtk2/interface-glade.c:13283
 msgid "Number of seconds before timeout for a connected download"
-msgstr "接続されているダウンロードがタイムアウトになるまでの秒数"
+msgstr "接続されているダウンロードがタイムアウトするまでの秒数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15144
 #: src/ui/gtk/gtk2/interface-glade.c:13552
@@ -8419,7 +8445,7 @@ msgstr "SHA1 に厳密に一致させる(_1)"
 #: src/ui/gtk/gtk1/interface-glade.c:15399
 #: src/ui/gtk/gtk2/interface-glade.c:13546
 msgid "Use fu_zzy matching"
-msgstr "曖昧一致を使用する(_Z)"
+msgstr "曖昧に一致させる(_Z)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15411
 #: src/ui/gtk/gtk2/interface-glade.c:13523
@@ -8436,7 +8462,6 @@ msgstr "ダウンロードメッシュ項目に曖昧フィルターを適用す
 msgid "Watch hits for _alternate sources"
 msgstr "ヒットに別の送信源があるか見張る(_A)"
 
-# FIXME: ill-translation
 #: src/ui/gtk/gtk1/interface-glade.c:15464
 #: src/ui/gtk/gtk2/interface-glade.c:13106
 msgid "_Feed mesh from hits"
@@ -8531,27 +8556,27 @@ msgstr "実際的な PARQ 積算時間を利用する"
 #: src/ui/gtk/gtk1/interface-glade.c:15866
 #: src/ui/gtk/gtk2/interface-glade.c:14752
 msgid "Statistics:"
-msgstr "統計:"
+msgstr "各種統計:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15899
 #: src/ui/gtk/gtk2/interface-glade.c:14271
 msgid "Library scanning:"
-msgstr "ライブラリ走査:"
+msgstr "ライブラリーのスキャン:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15919
 #: src/ui/gtk/gtk2/interface-glade.c:14221
 msgid "Last scan initiated on:"
-msgstr "最終走査開始時間:"
+msgstr "最終スキャン開始時間:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15930
 #: src/ui/gtk/gtk2/interface-glade.c:14230
 msgid "File scanning time:"
-msgstr "ファイル走査時間:"
+msgstr "ファイルのスキャン時間:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15983
 #: src/ui/gtk/gtk2/interface-glade.c:14643
 msgid "Query Routing Protocol:"
-msgstr "検索式経路設定プロトコル (QRP):"
+msgstr "検索クエリー経路設定プロトコル (QRP):"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16003
 #: src/ui/gtk/gtk2/interface-glade.c:14496
@@ -8580,7 +8605,7 @@ msgstr "パッチ生成の開始時間:"
 #: src/ui/gtk/gtk1/interface-glade.c:16211
 #: src/ui/gtk/gtk2/interface-glade.c:14467
 msgid "Query routing table information:"
-msgstr "検索式の経路設定テーブル情報:"
+msgstr "検索クエリー経路設定テーブル情報:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16230
 #: src/ui/gtk/gtk2/interface-glade.c:14345
@@ -8615,7 +8640,7 @@ msgstr "競合比率:"
 #: src/ui/gtk/gtk1/interface-glade.c:16454
 #: src/ui/gtk/gtk2/interface-glade.c:14747
 msgid "Query routing patch information:"
-msgstr "検索式の経路設定パッチ情報:"
+msgstr "検索クエリー経路設定パッチ情報:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16473
 #: src/ui/gtk/gtk2/interface-glade.c:14667
@@ -8645,7 +8670,7 @@ msgstr "ツールチップを表示する(_T) (未完成です)"
 #: src/ui/gtk/gtk1/interface-glade.c:16661
 #: src/ui/gtk/gtk2/interface-glade.c:15017
 msgid "Try to keep 'dead' entries around for"
-msgstr "'遺棄' 項目を保存しておく時間"
+msgstr "「遺棄」項目を保存しておく時間"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16694
 #: src/ui/gtk/gtk2/interface-glade.c:15054
@@ -8684,62 +8709,62 @@ msgstr "表示する詳細なトラフィック情報"
 #: src/ui/gtk/gtk1/interface-glade.c:16853
 #: src/ui/gtk/gtk2/interface-glade.c:15161
 msgid "TX compression"
-msgstr "圧縮(送信)"
+msgstr "TX (送信) 圧縮比率"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16863
 #: src/ui/gtk/gtk2/interface-glade.c:15196
 msgid "RX compression"
-msgstr "圧縮(受信)"
+msgstr "RX (受信) 圧縮比率"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16873
 #: src/ui/gtk/gtk2/interface-glade.c:15168
 msgid "TX speed"
-msgstr "速度(送信)"
+msgstr "TX (送信) 伝送速度"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16883
 #: src/ui/gtk/gtk2/interface-glade.c:15203
 msgid "RX speed"
-msgstr "速度(受信)"
+msgstr "RX (受信) 伝送速度"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16893
 #: src/ui/gtk/gtk2/interface-glade.c:15175
 msgid "TX queries"
-msgstr "検索式(送信)"
+msgstr "TX (送信) 検索クエリー数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16903
 #: src/ui/gtk/gtk2/interface-glade.c:15210
 msgid "RX queries"
-msgstr "検索式(受信)"
+msgstr "RX (受信) 検索クエリー数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16913
 #: src/ui/gtk/gtk2/interface-glade.c:15182
 msgid "TX query hits"
-msgstr "検索式ヒット(送信)"
+msgstr "TX (送信) 検索クエリーヒット数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16923
 #: src/ui/gtk/gtk2/interface-glade.c:15217
 msgid "RX query hits"
-msgstr "検索式ヒット(受信)"
+msgstr "RX (受信) 検索クエリーヒット数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16933
 #: src/ui/gtk/gtk2/interface-glade.c:15231
 msgid "Generated queries"
-msgstr "生成された検索式"
+msgstr "生成検索クエリー数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16943
 #: src/ui/gtk/gtk2/interface-glade.c:15238
 msgid "Pending local queries"
-msgstr "未解決のローカル検索式"
+msgstr "保留ローカル検索クエリー数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16953
 #: src/ui/gtk/gtk2/interface-glade.c:15189
 msgid "TX dropped"
-msgstr "破棄(送信)"
+msgstr "TX (送信) 破棄メッセージ数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16963
 #: src/ui/gtk/gtk2/interface-glade.c:15224
 msgid "RX dropped"
-msgstr "破棄(受信)"
+msgstr "RX (受信) 破棄メッセージ数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16973
 #: src/ui/gtk/gtk2/interface-glade.c:15245
@@ -8749,32 +8774,32 @@ msgstr "QRP ステータス"
 #: src/ui/gtk/gtk1/interface-glade.c:16983
 #: src/ui/gtk/gtk2/interface-glade.c:15252
 msgid "Dup / Bad / Weird"
-msgstr "重複/不正/奇形"
+msgstr "重複/不正/変なメッセージ数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:16993
 #: src/ui/gtk/gtk2/interface-glade.c:15259
 msgid "Ping / Pong round trip"
-msgstr "Ping/Pong の周回"
+msgstr "Ping/Pong の周回時間"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17003
 #: src/ui/gtk/gtk2/interface-glade.c:15266
 msgid "Library size"
-msgstr "ライブラリの大きさ"
+msgstr "ライブラリーの大きさ"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17013
 #: src/ui/gtk/gtk2/interface-glade.c:15273
 msgid "Library # of files"
-msgstr "ライブラリのファイル数"
+msgstr "ライブラリーのファイル数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17023
 #: src/ui/gtk/gtk2/interface-glade.c:15287
 msgid "RX wire bytes"
-msgstr "伝送バイト(受信)"
+msgstr "RX (受信) 伝送バイト数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17033
 #: src/ui/gtk/gtk2/interface-glade.c:15280
 msgid "TX wire bytes"
-msgstr "伝送バイト(送信)"
+msgstr "TX (送信) 伝送バイト数"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17043
 #: src/ui/gtk/gtk2/interface-glade.c:14975
@@ -8911,7 +8936,7 @@ msgstr "拡張子"
 #: src/ui/gtk/gtk1/search.c:2172 src/ui/gtk/gtk1/search.c:2178
 #: src/ui/gtk/gtk2/search.c:1488
 msgid "Charset"
-msgstr "ｴﾝｺ-ﾃﾞｨﾝｸﾞ"
+msgstr "エンコード方式"
 
 #: src/ui/gtk/gtk1/search.c:2188 src/ui/gtk/gtk1/search.c:2194
 #: src/ui/gtk/gtk2/search.c:1490
@@ -8929,7 +8954,7 @@ msgstr "データベースにありません"
 
 #: src/ui/gtk/gtk1/search.c:2516
 msgid "Query queued..."
-msgstr "検索式をキューに入れます..."
+msgstr "検索クエリーをキューに入れました..."
 
 #: src/ui/gtk/gtk1/search_cb.c:211 src/ui/gtk/gtk2/search_cb.c:601
 msgid "<no SHA1 known>"
@@ -9081,7 +9106,7 @@ msgstr "Gnet トラフィックのステータス(_T)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:2339
 msgid "_Keyboard shortcuts"
-msgstr ""
+msgstr "ショートカット(_K)"
 
 # NOTE: this string is used as follows
 #
@@ -9329,22 +9354,22 @@ msgstr "逆引き検索を実行中..."
 msgid "The normalized search text is too short."
 msgstr "正規化された検索テキストが短すぎます。"
 
-# FIXME: ill-translation
+# FIXME: messy
 #: src/ui/gtk/hcache_common.c:39
 msgid "Fresh regular"
 msgstr "通常ノード(新規)"
 
-# FIXME: ill-translation
+# FIXME: messy
 #: src/ui/gtk/hcache_common.c:40
 msgid "Valid regular"
 msgstr "通常ノード(有効)"
 
-# FIXME: ill-translation
+# FIXME: messy
 #: src/ui/gtk/hcache_common.c:41
 msgid "Fresh ultra"
 msgstr "ウルトラノード(新規)"
 
-# FIXME: ill-translation
+# FIXME: messy
 #: src/ui/gtk/hcache_common.c:42
 msgid "Valid ultra"
 msgstr "ウルトラノード(有効)"
@@ -9424,7 +9449,7 @@ msgstr[0] "%lu 個のファイルを共有 (%s)"
 #
 #: src/ui/gtk/misc.c:140
 msgid "(avg)"
-msgstr "(平均)"
+msgstr " "
 
 #: src/ui/gtk/nodes_common.c:73
 msgid "Hello sent"
@@ -9515,13 +9540,13 @@ msgid "(passive search) "
 msgstr "(受動検索) "
 
 #: src/ui/gtk/search_common.c:1161
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
 "TCP, %u UDP)"
 msgstr ""
-"%s%s%u %s (%u 省略, %u 無視, %u 隠す, %u 自動ﾀﾞｳﾝﾛ-ﾄﾞ, %u %s) がヒット: %u (%"
-"u TCP, %u UDP)"
+"%s%u %s (%u 省略, %u 無視, %u 隠す, %u 自動DL, %u %s) がヒット: %u (%u TCP, %"
+"u UDP)"
 
 #: src/ui/gtk/search_common.c:1165
 msgid "item"
@@ -9537,32 +9562,33 @@ msgstr[0] "重複"
 msgid "No search"
 msgstr "検索無し"
 
+# NOTE:
 #: src/ui/gtk/search_common.c:1225
-#, fuzzy, c-format
+#, c-format
 msgid "Expires in %s"
-msgstr " %d秒後に再実行"
+msgstr "%sで無効にする"
 
+# NOTE:
 #: src/ui/gtk/search_common.c:1229
-#, fuzzy, c-format
+#, c-format
 msgid "Expired after %s"
-msgstr "失効"
+msgstr "%s後に無効にする"
 
 #: src/ui/gtk/search_common.c:1236
 msgid "Expires with this session"
-msgstr ""
+msgstr "このセッションで無効にする"
 
 #: src/ui/gtk/search_common.c:1239
-#, fuzzy
 msgid "[stopped]"
-msgstr "[打切] "
+msgstr "[打切]"
 
 #: src/ui/gtk/search_common.c:1536
 msgid "The query string is not UTF-8 encoded"
-msgstr "この検索式は UTF-8 でエンコードされていません"
+msgstr "この検索クエリーは UTF-8 でエンコードされていません"
 
 #: src/ui/gtk/search_common.c:1548
 msgid "The entered query is too long"
-msgstr "入力した検索式は長すぎます"
+msgstr "入力した検索クエリーは長すぎます"
 
 #: src/ui/gtk/search_common.c:1565
 msgid "The SHA1 of the magnet is not validly encoded"
@@ -9574,7 +9600,7 @@ msgstr "マグネットを解析できません"
 
 #: src/ui/gtk/search_common.c:1606
 msgid "The SHA1 query is not validly encoded"
-msgstr "この SHA1 検索式は適切にエンコードされていません"
+msgstr "この SHA1 検索クエリーは適切にエンコードされていません"
 
 #: src/ui/gtk/settings.c:1099
 msgid "Never"
@@ -9605,16 +9631,15 @@ msgstr "ウルトラキャッシュ読込み中..."
 
 #: src/ui/gtk/settings.c:1446
 msgid "*** RUNNING AN OLD VERSION! ***"
-msgstr "*** 古いバージョンが動作中です！ ***"
+msgstr "*** 古いバージョンを実行しています！ ***"
 
 #: src/ui/gtk/settings.c:1471
 msgid "*** CPU OVERLOADED -- TRYING TO SAVE CYCLES ***"
-msgstr ""
-"** CPU へ負荷がかかり過ぎています --- サイクルを節約するよう試みます ***"
+msgstr "** CPU への負荷が掛かり過ぎています --- サイクルを節約します ***"
 
 #: src/ui/gtk/settings.c:1496
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
-msgstr "*** アップロードが停滞しています、帯域幅が不足していませんか？ ***"
+msgstr "*** アップロードが停滞しています --- 帯域幅が不足していませんか？ ***"
 
 #: src/ui/gtk/settings.c:1528
 msgid "*** FILE DESCRIPTORS HAVE RUN OUT! ***"
@@ -9741,7 +9766,7 @@ msgstr "%s [%d] (受口 %d/%d)%s %s %s"
 
 #: src/ui/gtk/uploads_common.c:185
 msgid "lifetime:"
-msgstr "有効時間:"
+msgstr "有効期限:"
 
 #: src/ui/gtk/uploads_common.c:197
 msgid "Sending QUEUE, connecting back..."
