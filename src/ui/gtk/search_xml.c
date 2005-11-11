@@ -989,7 +989,6 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
     guint flags = 0;
 	guint lifetime;
 	time_t create_time;
-	gboolean override;
 
 	(void) unused_udata;
     g_assert(xmlnode != NULL);
@@ -998,7 +997,6 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 					NODE_SEARCH));
 
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &reissue_timeout);
-	gnet_prop_get_boolean_val(PROP_ALLOW_AUTO_REQUERIES, &override);
 
 	buf = STRTRACK(xml_get_string(xmlnode, TAG_SEARCH_QUERY));
     if (!buf) {
@@ -1072,17 +1070,6 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 	}
 	/* legacy searches get a 2 week expiration time */
 	lifetime = MIN(14 * 24, lifetime);
-
-
-
-	/**
-	 * LimeWire considers *any* form of requerying unacceptable.
-	 * Deactivate it for now.
-	 *		-- cbiere, 2005-03-22
-	 */
-
-	if (!(flags & SEARCH_PASSIVE) && !override)
-		flags &= ~SEARCH_ENABLED;
 
     if (gui_debug >= 4) {
         g_message("adding new %s %s search: %s",

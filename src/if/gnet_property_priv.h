@@ -302,7 +302,6 @@ extern const gboolean process_oob_queries;
 extern const gboolean send_oob_queries;
 extern const gboolean proxy_oob_queries;
 extern const gboolean uploads_stalling;
-extern const gboolean allow_auto_requeries;
 extern const gboolean use_global_hostiles_txt;
 extern const gboolean use_so_linger;
 extern const gboolean browse_host_enabled;

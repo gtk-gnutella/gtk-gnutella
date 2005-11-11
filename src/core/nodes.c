@@ -5080,7 +5080,6 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				degree,
 				current_peermode == NODE_P_ULTRA ?
 					"X-Dynamic-Querying: 0.1\r\n" : "",
-				allow_auto_requeries ? "" : "X-Requeries: False\r\n",
 				tok_version(), start_rfc822_date);
 
 			header_features_generate(&xfeatures.connections,
@@ -6263,8 +6262,7 @@ node_init_outgoing(struct gnutella_node *n)
 				"X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
 			degree,
 			current_peermode == NODE_P_ULTRA ?
-				"X-Dynamic-Querying: 0.1\r\n" : "",
-			allow_auto_requeries ? "" : "X-Requeries: False\r\n"
+				"X-Dynamic-Querying: 0.1\r\n" : ""
 		);
 
 		header_features_generate(&xfeatures.connections,
