@@ -828,6 +828,30 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 }
 
 void
+on_menu_searchbar_visible_activate(GtkMenuItem *menuitem,
+	gpointer unused_udata)
+{
+	GtkWidget *viewport, *entry;
+	
+	(void) unused_udata;
+	
+	viewport = lookup_widget(main_window, "viewport_searchbar");
+	entry = lookup_widget(main_window, "entry_search");
+
+	if (GTK_WIDGET_VISIBLE(viewport)) {
+		if (GTK_WIDGET_HAS_FOCUS(entry))
+			gtk_widget_hide(viewport);
+	} else {
+		gtk_widget_show(viewport);
+	}
+
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menuitem),
+		GTK_WIDGET_VISIBLE(viewport));
+	if (GTK_WIDGET_VISIBLE(viewport) && !GTK_WIDGET_HAS_FOCUS(entry))
+		gtk_widget_grab_focus(entry);
+}
+
+void
 on_menu_sidebar_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 {
 	(void) unused_udata;

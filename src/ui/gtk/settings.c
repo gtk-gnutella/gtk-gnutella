@@ -382,15 +382,21 @@ update_multichoice(property_t prop)
                 (guint) map_entry->type);
     }
 
-    l_iter = GTK_LIST(GTK_COMBO(w)->list)->children;
-	for (/* NOTHING */; NULL != l_iter; l_iter = g_list_next(l_iter)) {
-        gpointer cur = gtk_object_get_user_data(GTK_OBJECT(l_iter->data));
+	if (GTK_IS_COMBO(w)) {
+		l_iter = GTK_LIST(GTK_COMBO(w)->list)->children;
+		for (/* NOTHING */; NULL != l_iter; l_iter = g_list_next(l_iter)) {
+			gpointer cur = gtk_object_get_user_data(GTK_OBJECT(l_iter->data));
 
-        if (GPOINTER_TO_UINT(cur) == val) {
-            gtk_list_item_select(GTK_LIST_ITEM(l_iter->data));
-            break;
-        }
-    }
+			if (GPOINTER_TO_UINT(cur) == val) {
+				gtk_list_item_select(GTK_LIST_ITEM(l_iter->data));
+				break;
+			}
+		}
+	} else if (GTK_IS_OPTION_MENU(w)) {
+		/* FIXME: Implement this */
+	} else {
+		g_assert_not_reached();
+	}
 
     return FALSE;
 }
@@ -1593,8 +1599,8 @@ send_pushes_changed(property_t prop)
 static gboolean
 sidebar_visible_changed(property_t prop)
 {
-    gboolean b;
 	GtkWidget *widget;
+    gboolean b;
 
     gui_prop_get_boolean_val(prop, &b);
 
@@ -1610,8 +1616,8 @@ sidebar_visible_changed(property_t prop)
 static gboolean
 navtree_visible_changed(property_t prop)
 {
-    gboolean b;
 	GtkWidget *widget;
+    gboolean b;
 
     gui_prop_get_boolean_val(prop, &b);
 
@@ -2831,7 +2837,7 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
                 gtk_signal_connect(
                     GTK_OBJECT(w), "toggled",
                     (GtkSignalFunc) togglebutton_state_changed,
-                    (gpointer) map);
+                    map);
 
 				if (gui_debug >= 9)
 					printf("\t...connected toggle signal\n");
@@ -2842,7 +2848,7 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
 
                 gtk_combo_init_choices(GTK_COMBO(w),
                     GTK_SIGNAL_FUNC(multichoice_item_selected),
-                    def, (gpointer) map);
+                    def, map);
 
 				if (gui_debug >= 9)
 					printf("\t...connected multichoice signal\n");
@@ -4697,6 +4703,14 @@ static prop_map_t property_map[] = {
         update_multichoice,
         TRUE,
         "combo_gnet_stats_source",
+        FREQ_UPDATES, 0
+	),
+    PROP_ENTRY(
+        get_main_window,
+        PROP_SEARCH_LIFETIME,
+        update_multichoice,
+        TRUE,
+        "option_menu_search_lifetime",
         FREQ_UPDATES, 0
 	),
     PROP_ENTRY(

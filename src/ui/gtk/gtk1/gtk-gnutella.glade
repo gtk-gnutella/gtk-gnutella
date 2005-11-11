@@ -307,6 +307,24 @@
 
 	    <widget>
 	      <class>GtkCheckMenuItem</class>
+	      <name>menu_searchbar_visible</name>
+	      <accelerator>
+		<modifiers>0</modifiers>
+		<key>GDK_F2</key>
+		<signal>activate</signal>
+	      </accelerator>
+	      <signal>
+		<name>activate</name>
+		<handler>on_menu_searchbar_visible_activate</handler>
+		<last_modification_time>Thu, 10 Nov 2005 23:12:22 GMT</last_modification_time>
+	      </signal>
+	      <label>show Search_bar</label>
+	      <active>True</active>
+	      <always_show_toggle>True</always_show_toggle>
+	    </widget>
+
+	    <widget>
+	      <class>GtkCheckMenuItem</class>
 	      <name>menu_toolbar_visible</name>
 	      <visible>False</visible>
 	      <accelerator>
@@ -362,7 +380,7 @@
 
 	    <widget>
 	      <class>GtkMenuItem</class>
-	      <name>separator6</name>
+	      <name>separator24</name>
 	      <right_justify>False</right_justify>
 	    </widget>
 
@@ -1265,9 +1283,8 @@
 	</child>
 
 	<widget>
-	  <class>GtkFrame</class>
-	  <name>frame139</name>
-	  <label_xalign>0</label_xalign>
+	  <class>GtkViewport</class>
+	  <name>viewport_searchbar</name>
 	  <shadow_type>GTK_SHADOW_OUT</shadow_type>
 	  <child>
 	    <padding>0</padding>
@@ -1321,11 +1338,6 @@
 		<child_name>GtkCombo:entry</child_name>
 		<name>entry_search</name>
 		<can_focus>True</can_focus>
-		<accelerator>
-		  <modifiers>0</modifiers>
-		  <key>GDK_F2</key>
-		  <signal>grab_focus</signal>
-		</accelerator>
 		<signal>
 		  <name>changed</name>
 		  <handler>on_entry_search_changed</handler>
@@ -1341,6 +1353,19 @@
 		<text_max_length>0</text_max_length>
 		<text></text>
 	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkOptionMenu</class>
+	      <name>option_menu_search_lifetime</name>
+	      <can_focus>True</can_focus>
+	      <items></items>
+	      <initial_choice>0</initial_choice>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
 	    </widget>
 
 	    <widget>
@@ -6377,6 +6402,41 @@
 		    <expand>True</expand>
 		    <fill>True</fill>
 		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkViewport</class>
+		  <name>viewport51</name>
+		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkHBox</class>
+		    <name>hbox2107</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label_search_expiry</name>
+		      <label></label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>7.45058e-09</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>5</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>True</fill>
+		      </child>
+		    </widget>
+		  </widget>
 		</widget>
 
 		<widget>
