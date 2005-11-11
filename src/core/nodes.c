@@ -5053,7 +5053,6 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"%s"		/* X-Ultrapeer-Query-Routing */
 				"%s"		/* X-Degree + X-Max-TTL */
 				"%s"		/* X-Dynamic-Querying */
-				"%s"		/* X-Requeries */
 				"X-Token: %s\r\n"
 				"X-Live-Since: %s\r\n",
 				version_string,
@@ -6243,8 +6242,7 @@ node_init_outgoing(struct gnutella_node *n)
 			"%s"		/* X-Query-Routing */
 			"%s"		/* X-Ultrapeer-Query-Routing */
 			"%s"		/* X-Degree + X-Max-TTL */
-			"%s"		/* X-Dynamic-Querying */
-			"%s",		/* X-Requeries: False */
+			"%s",		/* X-Dynamic-Querying */
 			GNUTELLA_HELLO,
 			n->proto_major, n->proto_minor,
 			host_addr_port_to_string(listen_addr(), listen_port),
