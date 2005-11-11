@@ -112,7 +112,8 @@ refresh_popup(void)
 			!guc_search_is_frozen(search->search_handle));
 		gtk_widget_set_sensitive(
             lookup_widget(popup_search, "popup_search_resume"),
-			guc_search_is_frozen(search->search_handle));
+			guc_search_is_frozen(search->search_handle)
+				&& !search_gui_is_expired(search));
 		if (search->passive)
             gtk_widget_set_sensitive(
                 lookup_widget(popup_search, "popup_search_restart"),
@@ -1151,8 +1152,10 @@ on_popup_search_resume_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
     search = search_gui_get_current_search();
-	if (search)
+	if (search && !search_gui_is_expired(search)) {
 		gui_search_set_enabled(search, TRUE);
+		search_gui_update_expiry(search);
+	}
 }
 
 /**
@@ -1168,8 +1171,10 @@ on_popup_search_stop_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
     search = search_gui_get_current_search();
-	if (search)
+	if (search) {
 		gui_search_set_enabled(search, FALSE);
+		search_gui_update_expiry(search);
+	}
 }
 
 

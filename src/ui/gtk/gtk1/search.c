@@ -399,10 +399,6 @@ search_gui_new_search_full(const gchar *querystr,
 
 	search_gui_sort_column(sch, sort_col);
 	
-	searches = g_list_append(searches, sch);
-	search_gui_option_menu_searches_update();
-	search_gui_set_current_search(sch);
-
 	gtk_widget_set_sensitive(button_search_close, TRUE);
     gtk_widget_set_sensitive(
         lookup_widget(main_window, "button_search_expand_all"), TRUE);
@@ -411,8 +407,16 @@ search_gui_new_search_full(const gchar *querystr,
 
     gtk_entry_set_text(GTK_ENTRY(entry_search), "");
 
+	searches = g_list_append(searches, sch);
+	search_gui_option_menu_searches_update();
+	
+	if (search_gui_update_expiry(sch))
+		sch->enabled = FALSE;
+
 	if (sch->enabled)
 		guc_search_start(sch->search_handle);
+	
+	search_gui_set_current_search(sch);
 
 	set_search_color(sch);
 
@@ -1948,6 +1952,7 @@ search_gui_remove_search(search_t * sch)
 		search_gui_forget_current_search();
 
 		search_gui_update_items(NULL);
+    	search_gui_update_expiry(NULL);
 
         gtk_notebook_set_tab_label_text(notebook_search_results,
 			default_scrolled_window, _("(no search)"));
@@ -2105,6 +2110,9 @@ search_gui_set_current_search(search_t *sch)
 				gtk_ctree_node_moveto(ctree, node, 0, 0.0, 0.0);
 		}
     }
+
+	if (search_gui_update_expiry(sch))
+		gui_search_set_enabled(sch, FALSE);
 
     locked = FALSE;
 }

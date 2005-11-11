@@ -152,7 +152,9 @@ void search_gui_filter_new(search_t *sch, GList *rules);
 
 struct filter;
 void search_gui_add_targetted_search(gpointer data, gpointer unused_udata);
-void search_gui_update_items(struct search *);
+void search_gui_update_items(const struct search *);
+gboolean search_gui_update_expiry(const struct search *sch);
+gboolean search_gui_is_expired(const struct search *sch);
 void search_gui_new_search_entered(void);
 void search_gui_option_menu_searches_update(void);
 void search_gui_option_menu_searches_select(const search_t *sch);

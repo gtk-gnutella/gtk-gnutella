@@ -71,12 +71,11 @@ static zone_t *rc_zone;		/**< Allocation of record */
 
 static const gchar search_file[] = "searches"; /**< "old" file to searches */
 
-static gchar tmpstr[1024];
-
 static GSList *accumulated_rs = NULL;
 static GList *list_search_history = NULL;
 
 static GtkLabel *label_items_found = NULL;
+static GtkLabel *label_search_expiry = NULL;
 
 /**
  * Human readable translation of servent trailer open flags.
@@ -767,6 +766,8 @@ search_gui_common_init(void)
 
 	label_items_found = GTK_LABEL(
 		lookup_widget(main_window, "label_items_found"));
+	label_search_expiry = GTK_LABEL(
+		lookup_widget(main_window, "label_search_expiry"));
 }
 
 /**
@@ -1150,24 +1151,98 @@ search_matched(search_t *sch, results_set_t *rs)
  * Update the label string showing search stats.
  */
 void
-search_gui_update_items(struct search *sch)
+search_gui_update_items(const struct search *sch)
 {
+	gchar tmp[1024];
+
     if (sch) {
         const gchar *str = sch->passive ? _("(passive search) ") : "";
 
-		gm_snprintf(tmpstr, sizeof(tmpstr), _("%s%s%u %s "
+		gm_snprintf(tmp, sizeof tmp, _("%s%u %s "
 			"(%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s)"
 			" Hits: %u (%u TCP, %u UDP)"),
-			sch->enabled ? "" : _("[stopped] "),
 			str,
 			sch->items, NG_("item", "items", sch->items),
 			sch->skipped, sch->ignored, sch->hidden, sch->auto_downloaded,
 			sch->duplicates, NG_("dupe", "dupes", sch->duplicates),
 			sch->tcp_qhits + sch->udp_qhits, sch->tcp_qhits, sch->udp_qhits);
-    } else
-        g_strlcpy(tmpstr, _("No search"), sizeof(tmpstr));
+    } else {
+        utf8_strlcpy(tmp, _("No search"), sizeof tmp);
+	}
 
-	gtk_label_set(label_items_found, tmpstr);
+	gtk_label_set(label_items_found, tmp);
+}
+
+gboolean
+search_gui_is_expired(const struct search *sch)
+{
+	gboolean expired = FALSE;
+	
+	if (sch) {
+		time_t ct, start;
+		guint lt;
+		
+		gnet_prop_get_timestamp_val(PROP_START_STAMP, &start);
+		ct = guc_search_get_create_time(sch->search_handle);
+		lt = 3600 * guc_search_get_lifetime(sch->search_handle);
+
+		if (lt) {
+			gint d;
+
+			d = delta_time(tm_time(), ct);
+			d = MAX(0, d);
+			
+			if ((guint) d >= lt)
+					expired = TRUE;
+		} else if (delta_time(start, ct) > 0) {
+			expired = TRUE;
+		}
+	}
+
+	return expired;
+}
+	
+gboolean
+search_gui_update_expiry(const struct search *sch)
+{
+	gboolean expired = FALSE;
+
+    if (sch) {
+		if (sch->enabled) {
+			time_t ct, start;
+			guint lt;
+
+			gnet_prop_get_timestamp_val(PROP_START_STAMP, &start);
+			ct = guc_search_get_create_time(sch->search_handle);
+			lt = 3600 * guc_search_get_lifetime(sch->search_handle);
+
+			if (lt) {
+				gint d;
+				d = delta_time(tm_time(), ct);
+				d = MAX(0, d);
+				if ((guint) d < lt) {
+					gtk_label_printf(label_search_expiry,
+						_("Expires in %s"), short_time(lt - d));
+				} else {
+					expired = TRUE;
+					gtk_label_printf(label_search_expiry,
+						_("Expired after %s"), short_time(lt));
+				}
+			} else if (delta_time(start, ct) > 0) {
+				expired = TRUE;
+        		gtk_label_printf(label_search_expiry, "%s", _("Expired"));
+			} else {
+        		gtk_label_printf(label_search_expiry, "%s",
+					_("Expires with this session"));
+			}
+		} else {
+        	gtk_label_printf(label_search_expiry, "%s", _("[stopped]"));
+		}
+    } else {
+        gtk_label_printf(label_search_expiry, "%s", _("No search"));
+	}
+
+	return expired;
 }
 
 /***
@@ -1364,8 +1439,10 @@ search_gui_restart_search(search_t *sch)
 	sch->skipped = sch->ignored = sch->auto_downloaded = sch->duplicates = 0;
 
 	search_gui_update_items(sch);
+	guc_search_set_create_time(sch->search_handle, tm_time());
 	guc_search_update_items(sch->search_handle, sch->items);
 	guc_search_reissue(sch->search_handle);
+	search_gui_update_expiry(sch);
 }
 
 struct query {

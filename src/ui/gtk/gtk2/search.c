@@ -527,18 +527,22 @@ search_gui_new_search_full(const gchar *querystr,
             gtk_notebook_get_nth_page(
 				GTK_NOTEBOOK(notebook_search_results), 0), _("(no search)"));
     }
-
-	searches = g_list_append(searches, sch);
-	search_gui_option_menu_searches_update();
-	search_gui_set_current_search(sch);
 	
 	gtk_widget_set_sensitive(lookup_widget(main_window, "button_search_close"),
 		TRUE);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget(main_window, "entry_search")),
 		"");
+	
+	searches = g_list_append(searches, sch);
+	search_gui_option_menu_searches_update();
+
+	if (search_gui_update_expiry(sch))
+		sch->enabled = FALSE;
 
 	if (sch->enabled)
 		guc_search_start(sch->search_handle);
+
+	search_gui_set_current_search(sch);
 
 	if (NULL != search)
 		*search = sch;
@@ -1305,6 +1309,7 @@ search_gui_remove_search(search_t *sch)
 
 		search_gui_forget_current_search();
 		search_gui_update_items(NULL);
+		search_gui_update_expiry(NULL);
 
         gtk_notebook_set_tab_label_text(notebook_search_results,
 			default_scrolled_window, _("(no search)"));
@@ -1351,8 +1356,7 @@ search_gui_set_current_search(search_t *sch)
 
     passive = guc_search_is_passive(sch->search_handle);
     frozen = guc_search_is_frozen(sch->search_handle);
-    reissue_timeout = guc_search_get_reissue_timeout
-		(sch->search_handle);
+    reissue_timeout = guc_search_get_reissue_timeout(sch->search_handle);
 
     /*
      * We now propagate the column visibility from the current_search
@@ -1383,8 +1387,8 @@ search_gui_set_current_search(search_t *sch)
 	search_gui_current_search(sch);
 	sch->unseen_items = 0;
 
-    spinbutton_reissue_timeout = lookup_widget
-        (main_window, "spinbutton_search_reissue_timeout");
+    spinbutton_reissue_timeout = lookup_widget(main_window,
+									"spinbutton_search_reissue_timeout");
 
     if (sch != NULL) {
 		GtkTreeModel *model;
@@ -1454,6 +1458,10 @@ search_gui_set_current_search(search_t *sch)
 		gtk_notebook_page_num(notebook_search_results, sch->scrolled_window));
 
 	search_gui_menu_select(nb_main_page_search);
+	
+	if (search_gui_update_expiry(sch))
+		gui_search_set_enabled(sch, FALSE);
+
     locked = FALSE;
 }
 
