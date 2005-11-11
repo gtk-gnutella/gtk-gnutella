@@ -1903,7 +1903,7 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	 * When a search is frozen or the reissue_timout is zero, all we need
 	 * to do is to remove the timer.
 	 */
-	if (sch->frozen || (sch->reissue_timeout == 0))
+	if (sch->frozen || sch->reissue_timeout == 0)
 		return;
 
 	/*
@@ -2137,15 +2137,14 @@ search_results(gnutella_node_t *n, gint *results)
 	 */
 
 	for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
-		search_ctrl_t *sch = (search_ctrl_t *) sl->data;
+		search_ctrl_t *sch = sl->data;
 
 		if (!sch->frozen)
 			selected_searches = g_slist_prepend(selected_searches,
 				GUINT_TO_POINTER(sch->search_handle));
 	}
 
-	active_sch = (search_ctrl_t *)
-		g_hash_table_lookup(search_by_muid, n->header.muid);
+	active_sch = g_hash_table_lookup(search_by_muid, n->header.muid);
 
 	if (active_sch != NULL && !active_sch->frozen)
 		selected_searches = g_slist_prepend(selected_searches,
@@ -2244,7 +2243,7 @@ search_results(gnutella_node_t *n, gint *results)
 		search_handle_ignored_files != SEARCH_IGN_DISPLAY_AS_IS
 	) {
         for (sl = rs->records; sl != NULL; sl = g_slist_next(sl)) {
-            gnet_record_t *rc = (gnet_record_t *) sl->data;
+            gnet_record_t *rc = sl->data;
             enum ignore_val ival;
 
             ival = ignore_is_requested(rc->name, rc->size, rc->sha1);
@@ -2328,7 +2327,7 @@ search_get_id(gnet_search_t sh, gpointer *search)
 void
 search_notify_sent(gpointer search, guint32 id, guint32 node_id)
 {
-	search_ctrl_t *sch = (search_ctrl_t *) search;
+	search_ctrl_t *sch = search;
 
 	if (!search_alive(sch, id))
 		return;
@@ -2389,7 +2388,7 @@ search_check_results_set(gnet_results_set_t *rs)
 	fileinfo_t *fi;
 
 	for (sl = rs->records; sl; sl = g_slist_next(sl)) {
-		gnet_record_t *rc = (gnet_record_t *) sl->data;
+		gnet_record_t *rc = sl->data;
 
 		fi = file_info_has_identical(rc->name, rc->size, rc->sha1);
 
@@ -2455,9 +2454,9 @@ search_close(gnet_search_t sh)
      *      --BLUE 26/05/2002
      */
 
-	sl_search_ctrl = g_slist_remove(sl_search_ctrl, (gpointer) sch);
+	sl_search_ctrl = g_slist_remove(sl_search_ctrl, sch);
 	if (sch->passive)
-		sl_passive_ctrl = g_slist_remove(sl_passive_ctrl, (gpointer) sch);
+		sl_passive_ctrl = g_slist_remove(sl_passive_ctrl, sch);
 
     search_drop_handle(sch->search_handle);
 	g_hash_table_remove(searches, sch);
@@ -2615,6 +2614,18 @@ search_get_create_time(gnet_search_t sh)
     return sch->create_time;
 }
 
+/**
+ * Set the create time of a search.
+ */
+void
+search_set_create_time(gnet_search_t sh, time_t t)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+    g_assert(sch != NULL);
+
+	sch->create_time = t;
+}
 
 /**
  * Create a new suspended search and return a handle which identifies it.
@@ -2682,15 +2693,9 @@ search_new(const gchar *query,
 			cast_func_to_gpointer((func_ptr_t) node_added_callback);
 		g_hook_prepend(&node_added_hook_list, sch->new_node_hook);
 
-		/*
-		 * LimeWire considers *any* form of requerying unacceptable.
-		 * Deactivate it for now.
-		 *		-- cbiere, 2005-03-22
-		 */
-
 		if (reissue_timeout != 0 && reissue_timeout < SEARCH_MIN_RETRY)
 			reissue_timeout = SEARCH_MIN_RETRY;
-		sch->reissue_timeout = allow_auto_requeries ? reissue_timeout : 0;
+		sch->reissue_timeout = reissue_timeout;
 
 		sch->sent_nodes =
 			g_hash_table_new(sent_node_hash_func, sent_node_compare);

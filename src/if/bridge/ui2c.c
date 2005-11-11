@@ -610,6 +610,12 @@ guc_search_get_reissue_timeout(gnet_search_t sh)
 	return search_get_reissue_timeout(sh);
 }
 
+void
+guc_search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
+{
+	search_set_reissue_timeout(sh, timeout);
+}
+
 guint
 guc_search_get_lifetime(gnet_search_t sh)
 {
@@ -623,9 +629,9 @@ guc_search_get_create_time(gnet_search_t sh)
 }
 
 void
-guc_search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
+guc_search_set_create_time(gnet_search_t sh, time_t t)
 {
-	search_set_reissue_timeout(sh, timeout);
+	return search_set_create_time(sh, t);
 }
 
 gboolean

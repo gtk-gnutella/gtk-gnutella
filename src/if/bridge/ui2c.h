@@ -198,6 +198,7 @@ gint guc_get_parq_dl_retry_delay(const struct download *d);
 void guc_search_update_items(gnet_search_t sh, guint32 items);
 guint guc_search_get_lifetime(gnet_search_t sh);
 time_t guc_search_get_create_time(gnet_search_t sh);
+void guc_search_set_create_time(gnet_search_t sh, time_t t);
 guint32 guc_search_get_reissue_timeout(gnet_search_t sh);
 void guc_search_set_reissue_timeout(gnet_search_t sh, guint32 timeout);
 gboolean guc_search_is_passive(gnet_search_t sh);
