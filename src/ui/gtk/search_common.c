@@ -316,7 +316,7 @@ search_gui_clean_r_set(results_set_t *rs)
      * Remove empty searches from record set.
      */
 	for (sl = sl_remove; sl != NULL; sl = g_slist_next(sl)) {
-		record_t *rc = (record_t *) sl->data;
+		record_t *rc = sl->data;
 
 		rc->results_set = NULL;
 		search_gui_free_record(rc);
@@ -370,7 +370,7 @@ search_gui_free_r_set(results_set_t *rs)
 
 	g_assert(rs->num_recs == g_slist_length(rs->records));
 	for (sl = rs->records; sl != NULL; sl = g_slist_next(sl)) {
-		record_t *rc = (record_t *) sl->data;
+		record_t *rc = sl->data;
 
 		g_assert(rc->magic == RECORD_MAGIC);
 		g_assert(rc->results_set == rs);
@@ -413,7 +413,7 @@ search_gui_dispose_results(results_set_t *rs)
 	 */
 
 	for (l = search_gui_get_searches(); NULL != l; l = g_list_next(l)) {
-		search_t *sch = (search_t *) l->data;
+		search_t *sch = l->data;
 
 		if (NULL != sch->r_sets && hash_list_contains(sch->r_sets, rs)) {
 			refs++;			/* Found one more reference to this search */
@@ -466,7 +466,7 @@ search_gui_unref_record(record_t *rc)
 	g_assert(rs->num_recs > 0);
 	rs->num_recs--;
 
-	g_assert((rs->num_recs > 0) ^ (rs->records == NULL));
+	g_assert((rs->num_recs > 0) ^ (!rs->records));
 
 	/*
 	 * We can't free the results_set structure right now if it does not
@@ -657,7 +657,7 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     g_assert(r != NULL);
     g_assert(rs != NULL);
 
-    rc = (record_t *) zalloc(rc_zone);
+    rc = zalloc(rc_zone);
 
 	rc->magic = RECORD_MAGIC;
     rc->results_set = rs;
@@ -724,13 +724,14 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
 	rs->proxies = NULL;
 
     for (sl = r_set->records; sl != NULL; sl = g_slist_next(sl)) {
-        record_t *rc;
-		gnet_record_t *grc = (gnet_record_t *) sl->data;
+		gnet_record_t *grc = sl->data;
 
 		if (!(grc->flags & SR_DONT_SHOW)) {
+        	record_t *rc;
+		   
 			rc = search_gui_create_record(rs, grc);
 			rs->records = g_slist_prepend(rs->records, rc);
-			rs->num_recs ++;
+			rs->num_recs++;
 		} else
 			ignored++;
     }
@@ -964,7 +965,7 @@ search_matched(search_t *sch, results_set_t *rs)
 			need_push, skip_records);
 
   	for (l = rs->records; l && !skip_records; l = l->next) {
-		record_t *rc = (record_t *) l->data;
+		record_t *rc = l->data;
         filter_result_t *flt_result;
         gboolean downloaded = FALSE;
 		gboolean is_dup;
