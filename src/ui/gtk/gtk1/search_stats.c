@@ -348,53 +348,6 @@ search_stats_gui_init(void)
     GtkWidget *clist_search_stats =
         lookup_widget(main_window, "clist_search_stats");
 
-#if 0
-	{
-    	GtkCombo *combo_types = GTK_COMBO(
-        	lookup_widget(main_window, "combo_search_stats_type"));
-		
-		search_stats_mode_def = gui_prop_get_def(PROP_SEARCH_STATS_MODE);
-
-		gtk_combo_init_choices(
-				combo_types,
-				GTK_SIGNAL_FUNC(on_search_stats_type_selected),
-				search_stats_mode_def);
-
-		prop_free_def(search_stats_mode_def);
-
-		/*
-		 * Save search_stats_mode because it will be overridden
-		 * when we create the menu.
-		 */
-		original_mode = search_stats_mode;
-
-		n = 0;
-		while (search_stats_mode->data.guint32.choices[n].title != NULL) {
-			GtkWidget *list_item;
-			GList *l;
-
-			list_item = gtk_list_item_new_with_label(type_str[n]);
-			gtk_widget_show(list_item);
-
-			gtk_signal_connect(
-				GTK_OBJECT(list_item), "select",
-				GTK_SIGNAL_FUNC(on_search_stats_type_selected),
-				GINT_TO_POINTER(
-					search_stats_mode->data.guint32.choices[n].value));
-
-			l = g_list_prepend(NULL, (gpointer) list_item);
-			gtk_list_append_items(GTK_LIST(GTK_COMBO(combo_types)->list), l);
-
-			if (
-				search_stats_mode->data.guint32.choices[n].value ==
-				original_mode
-			)
-				gtk_list_select_child(
-						GTK_LIST(GTK_COMBO(combo_types)->list), list_item);
-		}
-	}
-#endif
-
     /* set up the clist to be sorted properly */
 	gtk_clist_set_sort_column(GTK_CLIST(clist_search_stats), c_st_total);
 	gtk_clist_set_sort_type(GTK_CLIST(clist_search_stats),

@@ -384,7 +384,6 @@ search_stats_gui_init(void)
 		{ 2, 1.0, N_("Total") },
 	};
 	size_t i;
-    GtkCombo *combo_types;
 	GtkTreeModel *model;
     GtkTreeView *treeview;
 
@@ -394,47 +393,8 @@ search_stats_gui_init(void)
         GTK_TREE_VIEW(lookup_widget(main_window, "treeview_search_stats"));
 	label_search_stats_count =
 		GTK_LABEL(lookup_widget(main_window, "label_search_stats_count"));
-    combo_types =
-		GTK_COMBO(lookup_widget(main_window, "combo_search_stats_type"));
 
 	treeview = treeview_search_stats;
-#if 0
-    search_stats_mode_def = gui_prop_get_def(PROP_SEARCH_STATS_MODE);
-
-    gtk_combo_init_choices(
-        combo_types,
-        GTK_SIGNAL_FUNC(on_search_stats_type_selected),
-        search_stats_mode_def);
-
-    prop_free_def(search_stats_mode_def);
-
-    /*
-     * Save search_stats_mode because it will be overridden
-     * when we create the menu.
-     */
-    original_mode = search_stats_mode;
-
-    n = 0;
-    while (search_stats_mode->data.guint32.choices[n].title != NULL) {
-        GtkWidget *list_item;
-        GList *l;
-
-        list_item = gtk_list_item_new_with_label(type_str[n]);
-        gtk_widget_show(list_item);
-
-        gtk_signal_connect(
-            GTK_OBJECT(list_item), "select",
-            GTK_SIGNAL_FUNC(on_search_stats_type_selected),
-            GINT_TO_POINTER(search_stats_mode->data.guint32.choices[n].value));
-
-        l = g_list_prepend(NULL, (gpointer) list_item);
-        gtk_list_append_items(GTK_LIST(GTK_COMBO(combo_types)->list), l);
-
-        if (search_stats_mode->data.guint32.choices[n].value == original_mode)
-            gtk_list_select_child(
-                GTK_LIST(GTK_COMBO(combo_types)->list), list_item);
-    }
-#endif
 
     /* set up the treeview to be sorted properly */
 	model = GTK_TREE_MODEL(gtk_list_store_newv(G_N_ELEMENTS(types), types));
