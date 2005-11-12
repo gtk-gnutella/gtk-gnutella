@@ -78,8 +78,6 @@ on_clist_fileinfo_resize_column(GtkCList *unused_clist,
 static gnet_fi_info_t *last_fi = NULL;
 
 /**
- * fi_gui_fill_info:
- *
  * Fill in the cell data. Calling this will always break the data
  * it filled in last time!
  *
@@ -304,7 +302,7 @@ fi_gui_add_row(gnet_fi_t fih)
 	filter_match = fi_gui_match_filter(info->file_name);
 
 	for (l = info->aliases; !filter_match && l; l = g_slist_next(l)) {
-		const gchar *alias = (const gchar *) l->data;
+		const gchar *alias = l->data;
 		filter_match = fi_gui_match_filter(alias);
 	}
 
