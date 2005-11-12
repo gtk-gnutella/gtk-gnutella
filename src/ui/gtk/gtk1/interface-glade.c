@@ -266,10 +266,10 @@ create_main_window (void)
   GtkWidget *label697;
   guint label390_key;
   GtkWidget *label390;
-  GtkWidget *combo_gnet_stats_source;
-  GtkWidget *combo_entry6;
-  GtkWidget *combo_gnet_stats_type;
-  GtkWidget *combo_entry_gnet_stats_type;
+  GtkWidget *option_menu_gnet_stats_source;
+  GtkWidget *option_menu_gnet_stats_source_menu;
+  GtkWidget *option_menu_gnet_stats_type;
+  GtkWidget *option_menu_gnet_stats_type_menu;
   GtkWidget *label_gnet_stats;
   GtkWidget *vbox127;
   GtkWidget *frame128;
@@ -503,10 +503,10 @@ create_main_window (void)
   GtkWidget *spinbutton_search_max_results;
   guint checkbutton_search_remove_downloaded_key;
   GtkWidget *checkbutton_search_remove_downloaded;
-  GtkWidget *combo_search_handle_ignored_files;
-  GtkWidget *combo_entry4;
   guint checkbutton_search_hide_downloaded_key;
   GtkWidget *checkbutton_search_hide_downloaded;
+  GtkWidget *option_menu_search_handle_ignored_files;
+  GtkWidget *option_menu_search_handle_ignored_files_menu;
   GtkWidget *scrolledwindow47;
   GtkWidget *viewport45;
   GtkWidget *frame137;
@@ -576,8 +576,8 @@ create_main_window (void)
   GtkWidget *label_monitor;
   GtkWidget *vbox12a;
   GtkWidget *hbox67;
-  GtkWidget *combo_search_stats_type;
-  GtkWidget *combo_entry1;
+  GtkWidget *option_menu_search_stats_type;
+  GtkWidget *option_menu_search_stats_type_menu;
   guint label101_key;
   GtkWidget *label101;
   GtkObject *spinbutton_search_stats_update_interval_adj;
@@ -2935,43 +2935,29 @@ create_main_window (void)
   gtk_misc_set_alignment (GTK_MISC (label390), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label390), 2, 0);
 
-  combo_gnet_stats_source = gtk_combo_new ();
-  gtk_widget_set_name (combo_gnet_stats_source, "combo_gnet_stats_source");
-  gtk_widget_ref (combo_gnet_stats_source);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_gnet_stats_source", combo_gnet_stats_source,
+  option_menu_gnet_stats_source = gtk_option_menu_new ();
+  gtk_widget_set_name (option_menu_gnet_stats_source, "option_menu_gnet_stats_source");
+  gtk_widget_ref (option_menu_gnet_stats_source);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "option_menu_gnet_stats_source", option_menu_gnet_stats_source,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_gnet_stats_source);
-  gtk_table_attach (GTK_TABLE (table93), combo_gnet_stats_source, 3, 4, 0, 1,
+  gtk_widget_show (option_menu_gnet_stats_source);
+  gtk_table_attach (GTK_TABLE (table93), option_menu_gnet_stats_source, 3, 4, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  option_menu_gnet_stats_source_menu = gtk_menu_new ();
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_gnet_stats_source), option_menu_gnet_stats_source_menu);
 
-  combo_entry6 = GTK_COMBO (combo_gnet_stats_source)->entry;
-  gtk_widget_set_name (combo_entry6, "combo_entry6");
-  gtk_widget_ref (combo_entry6);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_entry6", combo_entry6,
+  option_menu_gnet_stats_type = gtk_option_menu_new ();
+  gtk_widget_set_name (option_menu_gnet_stats_type, "option_menu_gnet_stats_type");
+  gtk_widget_ref (option_menu_gnet_stats_type);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "option_menu_gnet_stats_type", option_menu_gnet_stats_type,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_entry6);
-  gtk_widget_set_usize (combo_entry6, 70, -2);
-  gtk_entry_set_editable (GTK_ENTRY (combo_entry6), FALSE);
-
-  combo_gnet_stats_type = gtk_combo_new ();
-  gtk_widget_set_name (combo_gnet_stats_type, "combo_gnet_stats_type");
-  gtk_widget_ref (combo_gnet_stats_type);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_gnet_stats_type", combo_gnet_stats_type,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_gnet_stats_type);
-  gtk_table_attach (GTK_TABLE (table93), combo_gnet_stats_type, 3, 4, 1, 2,
+  gtk_widget_show (option_menu_gnet_stats_type);
+  gtk_table_attach (GTK_TABLE (table93), option_menu_gnet_stats_type, 3, 4, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_combo_set_value_in_list (GTK_COMBO (combo_gnet_stats_type), TRUE, TRUE);
-
-  combo_entry_gnet_stats_type = GTK_COMBO (combo_gnet_stats_type)->entry;
-  gtk_widget_set_name (combo_entry_gnet_stats_type, "combo_entry_gnet_stats_type");
-  gtk_widget_ref (combo_entry_gnet_stats_type);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_entry_gnet_stats_type", combo_entry_gnet_stats_type,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_entry_gnet_stats_type);
-  gtk_entry_set_editable (GTK_ENTRY (combo_entry_gnet_stats_type), FALSE);
+  option_menu_gnet_stats_type_menu = gtk_menu_new ();
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_gnet_stats_type), option_menu_gnet_stats_type_menu);
 
   label_gnet_stats = gtk_label_new (_("#|Gnet Stats"));
   gtk_widget_set_name (label_gnet_stats, "label_gnet_stats");
@@ -4953,25 +4939,6 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  combo_search_handle_ignored_files = gtk_combo_new ();
-  gtk_widget_set_name (combo_search_handle_ignored_files, "combo_search_handle_ignored_files");
-  gtk_widget_ref (combo_search_handle_ignored_files);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_search_handle_ignored_files", combo_search_handle_ignored_files,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_search_handle_ignored_files);
-  gtk_table_attach (GTK_TABLE (table68), combo_search_handle_ignored_files, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  combo_entry4 = GTK_COMBO (combo_search_handle_ignored_files)->entry;
-  gtk_widget_set_name (combo_entry4, "combo_entry4");
-  gtk_widget_ref (combo_entry4);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_entry4", combo_entry4,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_entry4);
-  gtk_widget_set_usize (combo_entry4, 66, -2);
-  gtk_entry_set_editable (GTK_ENTRY (combo_entry4), FALSE);
-
   checkbutton_search_hide_downloaded = gtk_check_button_new_with_label ("");
   checkbutton_search_hide_downloaded_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_search_hide_downloaded)->child),
                                    _("_Hide downloaded files"));
@@ -4985,6 +4952,18 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table68), checkbutton_search_hide_downloaded, 2, 3, 0, 1,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  option_menu_search_handle_ignored_files = gtk_option_menu_new ();
+  gtk_widget_set_name (option_menu_search_handle_ignored_files, "option_menu_search_handle_ignored_files");
+  gtk_widget_ref (option_menu_search_handle_ignored_files);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "option_menu_search_handle_ignored_files", option_menu_search_handle_ignored_files,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (option_menu_search_handle_ignored_files);
+  gtk_table_attach (GTK_TABLE (table68), option_menu_search_handle_ignored_files, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  option_menu_search_handle_ignored_files_menu = gtk_menu_new ();
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_search_handle_ignored_files), option_menu_search_handle_ignored_files_menu);
 
   scrolledwindow47 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow47, "scrolledwindow47");
@@ -5596,21 +5575,15 @@ create_main_window (void)
   gtk_widget_show (hbox67);
   gtk_box_pack_start (GTK_BOX (vbox12a), hbox67, FALSE, TRUE, 0);
 
-  combo_search_stats_type = gtk_combo_new ();
-  gtk_widget_set_name (combo_search_stats_type, "combo_search_stats_type");
-  gtk_widget_ref (combo_search_stats_type);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_search_stats_type", combo_search_stats_type,
+  option_menu_search_stats_type = gtk_option_menu_new ();
+  gtk_widget_set_name (option_menu_search_stats_type, "option_menu_search_stats_type");
+  gtk_widget_ref (option_menu_search_stats_type);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "option_menu_search_stats_type", option_menu_search_stats_type,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_search_stats_type);
-  gtk_box_pack_start (GTK_BOX (hbox67), combo_search_stats_type, TRUE, TRUE, 0);
-
-  combo_entry1 = GTK_COMBO (combo_search_stats_type)->entry;
-  gtk_widget_set_name (combo_entry1, "combo_entry1");
-  gtk_widget_ref (combo_entry1);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_entry1", combo_entry1,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_entry1);
-  gtk_entry_set_editable (GTK_ENTRY (combo_entry1), FALSE);
+  gtk_widget_show (option_menu_search_stats_type);
+  gtk_box_pack_start (GTK_BOX (hbox67), option_menu_search_stats_type, FALSE, FALSE, 0);
+  option_menu_search_stats_type_menu = gtk_menu_new ();
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_search_stats_type), option_menu_search_stats_type_menu);
 
   label101 = gtk_label_new ("");
   label101_key = gtk_label_parse_uline (GTK_LABEL (label101),
@@ -6553,9 +6526,9 @@ create_main_window (void)
                       GTK_SIGNAL_FUNC (on_button_search_stats_reset_clicked),
                       NULL);
 
-  gtk_widget_add_accelerator (combo_entry6, "grab_focus", accel_group,
+  gtk_widget_add_accelerator (option_menu_gnet_stats_source, "grab_focus", accel_group,
                               label697_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_add_accelerator (combo_entry_gnet_stats_type, "grab_focus", accel_group,
+  gtk_widget_add_accelerator (option_menu_gnet_stats_type, "grab_focus", accel_group,
                               label390_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
   gtk_widget_add_accelerator (spinbutton_search_reissue_timeout, "grab_focus", accel_group,
                               search_reissue_label_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
@@ -10886,8 +10859,8 @@ create_dlg_prefs (void)
   GtkObject *spinbutton_config_proxy_port_adj;
   GtkWidget *spinbutton_config_proxy_port;
   GtkWidget *entry_config_proxy_hostname;
-  GtkWidget *combo_config_proxy_protocol;
-  GtkWidget *combo_entry3;
+  GtkWidget *option_menu_config_proxy_protocol;
+  GtkWidget *option_menu_config_proxy_protocol_menu;
   GtkWidget *table54;
   guint checkbutton_config_proxy_auth_key;
   GtkWidget *checkbutton_config_proxy_auth;
@@ -10960,8 +10933,6 @@ create_dlg_prefs (void)
   GtkWidget *label439;
   GtkWidget *checkbutton_gnet_monitor_ip;
   GtkWidget *checkbutton_gnet_monitor_servents;
-  GtkWidget *combo_config_peermode;
-  GtkWidget *combo_entry2;
   GtkWidget *alignment34;
   GtkWidget *frame72;
   GtkWidget *table87;
@@ -10971,6 +10942,8 @@ create_dlg_prefs (void)
   GtkWidget *spinbutton_normal_connections;
   GtkObject *spinbutton_config_max_leaves_adj;
   GtkWidget *spinbutton_config_max_leaves;
+  GtkWidget *option_menu_config_peermode;
+  GtkWidget *option_menu_config_peermode_menu;
   GtkWidget *vbox121;
   GtkWidget *frame_gnet_can_become_ultra;
   GtkWidget *vbox116;
@@ -11473,8 +11446,8 @@ create_dlg_prefs (void)
   GtkWidget *spinbutton_search_accumulation_period;
   GtkWidget *label653;
   GtkWidget *label657;
-  GtkWidget *combo_config_toolbar_style;
-  GtkWidget *combo_entry5;
+  GtkWidget *option_menu_config_toolbar_style;
+  GtkWidget *option_menu_config_toolbar_style_menu;
   GtkWidget *frame64;
   GtkWidget *table45;
   guint checkbutton_expert_mode_key;
@@ -11852,23 +11825,17 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  combo_config_proxy_protocol = gtk_combo_new ();
-  gtk_widget_set_name (combo_config_proxy_protocol, "combo_config_proxy_protocol");
-  gtk_widget_ref (combo_config_proxy_protocol);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "combo_config_proxy_protocol", combo_config_proxy_protocol,
+  option_menu_config_proxy_protocol = gtk_option_menu_new ();
+  gtk_widget_set_name (option_menu_config_proxy_protocol, "option_menu_config_proxy_protocol");
+  gtk_widget_ref (option_menu_config_proxy_protocol);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "option_menu_config_proxy_protocol", option_menu_config_proxy_protocol,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_config_proxy_protocol);
-  gtk_table_attach (GTK_TABLE (table53), combo_config_proxy_protocol, 1, 2, 0, 1,
+  gtk_widget_show (option_menu_config_proxy_protocol);
+  gtk_table_attach (GTK_TABLE (table53), option_menu_config_proxy_protocol, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-
-  combo_entry3 = GTK_COMBO (combo_config_proxy_protocol)->entry;
-  gtk_widget_set_name (combo_entry3, "combo_entry3");
-  gtk_widget_ref (combo_entry3);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "combo_entry3", combo_entry3,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_entry3);
-  gtk_entry_set_editable (GTK_ENTRY (combo_entry3), FALSE);
+  option_menu_config_proxy_protocol_menu = gtk_menu_new ();
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_config_proxy_protocol), option_menu_config_proxy_protocol_menu);
 
   table54 = gtk_table_new (2, 4, FALSE);
   gtk_widget_set_name (table54, "table54");
@@ -12449,24 +12416,6 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  combo_config_peermode = gtk_combo_new ();
-  gtk_widget_set_name (combo_config_peermode, "combo_config_peermode");
-  gtk_widget_ref (combo_config_peermode);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "combo_config_peermode", combo_config_peermode,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_config_peermode);
-  gtk_table_attach (GTK_TABLE (table82), combo_config_peermode, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  combo_entry2 = GTK_COMBO (combo_config_peermode)->entry;
-  gtk_widget_set_name (combo_entry2, "combo_entry2");
-  gtk_widget_ref (combo_entry2);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "combo_entry2", combo_entry2,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_entry2);
-  gtk_entry_set_editable (GTK_ENTRY (combo_entry2), FALSE);
-
   alignment34 = gtk_alignment_new (7.45058e-09, 0.5, 0, 1);
   gtk_widget_set_name (alignment34, "alignment34");
   gtk_widget_ref (alignment34);
@@ -12539,6 +12488,18 @@ create_dlg_prefs (void)
   gtk_table_attach (GTK_TABLE (table87), spinbutton_config_max_leaves, 1, 2, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  option_menu_config_peermode = gtk_option_menu_new ();
+  gtk_widget_set_name (option_menu_config_peermode, "option_menu_config_peermode");
+  gtk_widget_ref (option_menu_config_peermode);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "option_menu_config_peermode", option_menu_config_peermode,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (option_menu_config_peermode);
+  gtk_table_attach (GTK_TABLE (table82), option_menu_config_peermode, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  option_menu_config_peermode_menu = gtk_menu_new ();
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_config_peermode), option_menu_config_peermode_menu);
 
   vbox121 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox121, "vbox121");
@@ -16734,22 +16695,16 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label657), 0, 0.5);
 
-  combo_config_toolbar_style = gtk_combo_new ();
-  gtk_widget_set_name (combo_config_toolbar_style, "combo_config_toolbar_style");
-  gtk_widget_ref (combo_config_toolbar_style);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "combo_config_toolbar_style", combo_config_toolbar_style,
+  option_menu_config_toolbar_style = gtk_option_menu_new ();
+  gtk_widget_set_name (option_menu_config_toolbar_style, "option_menu_config_toolbar_style");
+  gtk_widget_ref (option_menu_config_toolbar_style);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "option_menu_config_toolbar_style", option_menu_config_toolbar_style,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_table_attach (GTK_TABLE (table35), combo_config_toolbar_style, 1, 2, 2, 3,
+  gtk_table_attach (GTK_TABLE (table35), option_menu_config_toolbar_style, 1, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-
-  combo_entry5 = GTK_COMBO (combo_config_toolbar_style)->entry;
-  gtk_widget_set_name (combo_entry5, "combo_entry5");
-  gtk_widget_ref (combo_entry5);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "combo_entry5", combo_entry5,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_entry5);
-  gtk_entry_set_editable (GTK_ENTRY (combo_entry5), FALSE);
+  option_menu_config_toolbar_style_menu = gtk_menu_new ();
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_config_toolbar_style), option_menu_config_toolbar_style_menu);
 
   frame64 = gtk_frame_new (_("Expert mode"));
   gtk_widget_set_name (frame64, "frame64");
@@ -17488,7 +17443,7 @@ create_dlg_prefs (void)
                               label91_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
   gtk_widget_add_accelerator (spinbutton_config_proxy_port, "grab_focus", accel_group,
                               label92_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_add_accelerator (combo_entry3, "grab_focus", accel_group,
+  gtk_widget_add_accelerator (option_menu_config_proxy_protocol, "grab_focus", accel_group,
                               label90_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
   gtk_widget_add_accelerator (entry_config_socks_username, "grab_focus", accel_group,
                               label93_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);

@@ -3007,7 +3007,7 @@ static prop_map_t property_map[] = {
         PROP_CONFIG_TOOLBAR_STYLE,
         config_toolbar_style_changed,
         TRUE,
-        "combo_config_toolbar_style",
+        "option_menu_config_toolbar_style",
         FREQ_UPDATES, 0
     ),
 #endif /* 0 */
@@ -3859,7 +3859,7 @@ static prop_map_t property_map[] = {
         PROP_SEARCH_STATS_MODE,
         search_stats_mode_changed,
         FALSE, /* search_stats_gui_init takes care of that */
-        "combo_search_stats_type",
+        "option_menu_search_stats_type",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -4701,7 +4701,15 @@ static prop_map_t property_map[] = {
         PROP_GNET_STATS_SOURCE,
         update_multichoice,
         TRUE,
-        "combo_gnet_stats_source",
+        "option_menu_gnet_stats_source",
+        FREQ_UPDATES, 0
+	),
+    PROP_ENTRY(
+        get_main_window,
+        PROP_GNET_STATS_DROP_REASONS_TYPE,
+        update_multichoice,
+        TRUE,
+        "option_menu_gnet_stats_type",
         FREQ_UPDATES, 0
 	),
     PROP_ENTRY(
@@ -4797,7 +4805,7 @@ static prop_map_t property_map[] = {
         PROP_CONFIGURED_PEERMODE,
         configured_peermode_changed,
         TRUE,
-        "combo_config_peermode",
+        "option_menu_config_peermode",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -4805,7 +4813,7 @@ static prop_map_t property_map[] = {
         PROP_SEARCH_HANDLE_IGNORED_FILES,
         update_multichoice,
         TRUE,
-        "combo_search_handle_ignored_files",
+        "option_menu_search_handle_ignored_files",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -4853,7 +4861,7 @@ static prop_map_t property_map[] = {
         PROP_PROXY_PROTOCOL,
         update_multichoice,
         TRUE,
-        "combo_config_proxy_protocol",
+        "option_menu_config_proxy_protocol",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
