@@ -813,6 +813,64 @@ prop = {
 };
 
 prop = {
+    name = "gnet_stats_drop_reasons_type";
+    desc = "Choose message type for drop reasons.";
+    type = multichoice;
+    data = {
+        default = 11;
+    };
+	choice = {
+		name = "Unknown";
+		value = 0;		/* MSG_UNKNOWN */
+	};
+	choice = {
+		name = "Ping";
+		value = 1;		/* MSG_INIT */
+	};
+	choice = {
+		name = "Pong";
+		value = 2;		/* MSG_INIT_RESPONSE */
+	};
+	choice = {
+		name = "Bye";		/* MSG_BYE */
+		value = 3;
+	};
+	choice = {
+		name = "QRP";		/* MSG_QRP */
+		value = 4;
+	};
+	choice = {
+		name = "HSEP";		/* MSG_HSEP */
+		value = 5;
+	};
+	choice = {
+		name = "Vendor spec.";	/* MSG_VENDOR */
+		value = 6;
+	};
+	choice = {
+		name = "Vendor std.";	/* MSG_STANDARD */
+		value = 7;
+	};
+	choice = {
+		name = "Push";		/* MSG_PUSH_REQUEST */
+		value = 8;
+	};
+	choice = {
+		name = "Query";		/* MSG_SEARCH */
+		value = 9;
+	};
+	choice = {
+		name = "Query Hit";	/* MSG_SEARCH_RESULTS */
+		value = 10;
+	};
+	choice = {
+		name = "Total";		/* MSG_TOTAL */
+		value = 11;
+	};
+};
+
+
+prop = {
     name = "gnet_stats_with_headers";
     desc = "Include Gnutella packet header size to the volume.";
     type = boolean;

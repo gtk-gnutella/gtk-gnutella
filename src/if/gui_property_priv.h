@@ -119,6 +119,7 @@ extern const gboolean gnet_stats_perc;
 extern const gboolean gnet_stats_bytes;
 extern const gboolean gnet_stats_hops;
 extern const guint32  gnet_stats_source;
+extern const guint32  gnet_stats_drop_reasons_type;
 extern const gboolean gnet_stats_with_headers;
 extern const gboolean gnet_stats_drop_perc;
 extern const guint32  gnet_stats_general_col_widths[2];
