@@ -113,6 +113,7 @@ struct conv_to_utf8 {
 	iconv_t cd;		/**< iconv() conversion descriptor; -1 or iconv_open()ed */
 	gboolean is_ascii;	/**< Set to TRUE if name is "ASCII" */
 	gboolean is_utf8;	/**< Set to TRUE if name is "UTF-8" */
+	gboolean is_iso8859;	/**< Set to TRUE if name matches "ISO-8859-*" */
 };
 
 static const gchar *charset = NULL;	/** Name of the locale charset */
@@ -1230,6 +1231,7 @@ conv_to_utf8_new(const gchar *cs)
 	t->name = g_strdup(cs);
 	t->is_utf8 = 0 == strcmp(cs, "UTF-8");
 	t->is_ascii = 0 == strcmp(cs, "ASCII");
+	t->is_iso8859 = NULL != is_strprefix(cs, "ISO-8859-");
 	return t;
 }
 
@@ -2251,6 +2253,17 @@ filename_to_utf8_normalized(const gchar *src, uni_norm_t norm)
 				s = src;
 				break;
 			}
+		} else if (t->is_iso8859 && !iso8859_is_valid_string(src)) {
+			/*
+			 * iconv() may not care about characters in the range
+			 * 0x00..0x1F,0x7E and 0x80..BF which causes UTF-8 strings being
+			 * misdetected as ISO-8859-*. Such characters are unlikely used in
+			 * filenames and an underscore is about as useful as such control
+			 * characters. This is especially important for the case
+			 * G_FILENAME_ENCODING=ISO-8859-* when some filenames are UTF-8
+			 * encoded.
+			 */
+			continue;
 		} else {
 			dbuf = hyper_iconv(t->cd, NULL, 0, src, TRUE);
 			if (dbuf) {
