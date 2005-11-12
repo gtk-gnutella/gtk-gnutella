@@ -86,7 +86,8 @@ static const gchar * const msg_drop_reason[MSG_DROP_REASON_COUNT] = {
  *** Public functions
  ***/
 
-void gnet_stats_init(void)
+void
+gnet_stats_init(void)
 {
     memset(stats_lut, MSG_UNKNOWN, sizeof(stats_lut));
     stats_lut[GTA_MSG_INIT] = MSG_INIT;
@@ -105,11 +106,10 @@ void gnet_stats_init(void)
 }
 
 /**
- * gnet_stats_count_received_header
- *
  * Called when Gnutella header has been read.
  */
-void gnet_stats_count_received_header(gnutella_node_t *n)
+void
+gnet_stats_count_received_header(gnutella_node_t *n)
 {
 	guint t = stats_lut[n->header.function];
 	guint i;
@@ -139,11 +139,10 @@ void gnet_stats_count_received_header(gnutella_node_t *n)
 }
 
 /**
- * gnet_stats_count_received_payload
- *
  * Called when Gnutella payload has been read.
  */
-void gnet_stats_count_received_payload(gnutella_node_t *n)
+void
+gnet_stats_count_received_payload(const gnutella_node_t *n)
 {
     guint32 size = n->size;
 	guint t = stats_lut[n->header.function];
@@ -167,8 +166,9 @@ void gnet_stats_count_received_payload(gnutella_node_t *n)
     stats->byte.received_hops[i][t] += size;
 }
 
-void gnet_stats_count_queued(
-	gnutella_node_t *n, guint8 type, guint8 hops, guint32 size)
+void
+gnet_stats_count_queued(const gnutella_node_t *n,
+	guint8 type, guint8 hops, guint32 size)
 {
 	guint64 *stats_pkg;
 	guint64 *stats_byte;
@@ -196,8 +196,9 @@ void gnet_stats_count_queued(
     stats_byte[t] += size;
 }
 
-void gnet_stats_count_sent(
-	gnutella_node_t *n, guint8 type, guint8 hops, guint32 size)
+void
+gnet_stats_count_sent(const gnutella_node_t *n,
+	guint8 type, guint8 hops, guint32 size)
 {
 	guint64 *stats_pkg;
 	guint64 *stats_byte;
@@ -225,7 +226,8 @@ void gnet_stats_count_sent(
     stats_byte[t] += size;
 }
 
-void gnet_stats_count_expired(gnutella_node_t *n)
+void
+gnet_stats_count_expired(const gnutella_node_t *n)
 {
     guint32 size = n->size + sizeof(n->header);
 	guint t = stats_lut[n->header.function];
@@ -264,7 +266,8 @@ void gnet_stats_count_expired(gnutella_node_t *n)
     gs->byte.dropped[t] += (s);							\
 } while (0)
 
-void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
+void
+gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 {
 	guint32 size;
 	guint type;
@@ -287,15 +290,17 @@ void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 			node_addr(n), node_vendor(n), msg_drop_reason[reason]);
 }
 
-void gnet_stats_count_general(gnr_stats_t type, guint32 x)
+void
+gnet_stats_count_general(gnr_stats_t type, guint32 x)
 {
 	g_assert((gint) type >= 0 && type < GNR_TYPE_COUNT);
 
     gnet_stats.general[type] += x;
 }
 
-void gnet_stats_count_dropped_nosize(
-	gnutella_node_t *n, msg_drop_reason_t reason)
+void
+gnet_stats_count_dropped_nosize(
+	const gnutella_node_t *n, msg_drop_reason_t reason)
 {
 	guint type;
 	gnet_stats_t *stats;
@@ -312,9 +317,10 @@ void gnet_stats_count_dropped_nosize(
 			node_addr(n), node_vendor(n), msg_drop_reason[reason]);
 }
 
-void gnet_stats_count_flowc(gpointer head)
+void
+gnet_stats_count_flowc(gconstpointer head)
 {
-    struct gnutella_header *h = (struct gnutella_header *) head;
+    const struct gnutella_header *h = head;
 	guint t;
 	guint i;
 	guint32 size;
@@ -346,22 +352,25 @@ void gnet_stats_count_flowc(gpointer head)
  *** Public functions (gnet.h)
  ***/
 
-void gnet_stats_get(gnet_stats_t *s)
+void
+gnet_stats_get(gnet_stats_t *s)
 {
     g_assert(s != NULL);
-    memcpy(s, &gnet_stats, sizeof(*s));
+    *s = gnet_stats;
 }
 
-void gnet_stats_tcp_get(gnet_stats_t *s)
+void
+gnet_stats_tcp_get(gnet_stats_t *s)
 {
     g_assert(s != NULL);
-    memcpy(s, &gnet_tcp_stats, sizeof(*s));
+    *s = gnet_tcp_stats;
 }
 
-void gnet_stats_udp_get(gnet_stats_t *s)
+void
+gnet_stats_udp_get(gnet_stats_t *s)
 {
     g_assert(s != NULL);
-    memcpy(s, &gnet_udp_stats, sizeof(*s));
+    *s = gnet_udp_stats;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

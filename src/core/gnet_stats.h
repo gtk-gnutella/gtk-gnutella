@@ -32,16 +32,17 @@
 void gnet_stats_init(void);
 
 void gnet_stats_count_received_header(gnutella_node_t *n);
-void gnet_stats_count_received_payload(gnutella_node_t *n);
+void gnet_stats_count_received_payload(const gnutella_node_t *n);
 void gnet_stats_count_queued(
-	gnutella_node_t *n, guint8 type, guint8 hops, guint32 size);
+	const gnutella_node_t *n, guint8 type, guint8 hops, guint32 size);
 void gnet_stats_count_sent(
-	gnutella_node_t *n, guint8 type, guint8 hops, guint32 size);
-void gnet_stats_count_expired(gnutella_node_t *n);
-void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason);
+	const gnutella_node_t *n, guint8 type, guint8 hops, guint32 size);
+void gnet_stats_count_expired(const gnutella_node_t *n);
+void gnet_stats_count_dropped(gnutella_node_t *n,
+	msg_drop_reason_t reason);
 void gnet_stats_count_dropped_nosize(
-	gnutella_node_t *n, msg_drop_reason_t reason);
+	const gnutella_node_t *n, msg_drop_reason_t reason);
 void gnet_stats_count_general(gnr_stats_t, guint32);
-void gnet_stats_count_flowc(gpointer);
+void gnet_stats_count_flowc(gconstpointer);
 
 #endif /* _core_gnet_stats_h_ */
