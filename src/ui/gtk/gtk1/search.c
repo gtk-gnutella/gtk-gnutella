@@ -484,7 +484,7 @@ search_gui_compare_records(gint sort_col,
             break;
 
         case c_sr_info:
-			result = CMP(rs1->vcode.be32, rs2->vcode.be32);
+			result = CMP(ntohl(rs1->vcode.be32), ntohl(rs2->vcode.be32));
 			if (result)
 				break;
             result = CMP(rs1->status, rs2->status);

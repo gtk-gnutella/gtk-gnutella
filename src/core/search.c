@@ -1015,9 +1015,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 		if ((gint) tlen >= 5 && x[4] + 5 <= (gint) tlen)
 			trailer = s;
 
-		if (trailer)
-			rs->vcode.be32 = peek_be32(trailer);
-		else {
+		if (trailer) {
+			memcpy(rs->vcode.b, trailer, 4);
+		} else {
 			g_warning(
 				"UNKNOWN %d-byte trailer at offset %d in %s from %s "
 				"(%u/%u records parsed)",
@@ -1054,7 +1054,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 
         vendor = lookup_vendor_name(rs->vcode);
 
-        if ((vendor != NULL) && is_vendor_known(rs->vcode))
+        if (vendor != NULL && is_vendor_known(rs->vcode))
             rs->status |= ST_KNOWN_VENDOR;
 
 		READ_GUINT32_BE(trailer, t);

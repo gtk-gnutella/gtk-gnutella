@@ -130,21 +130,14 @@
 #define VENDOR_CODE_CMP(a, b) CMP(a, b)
 
 union vendor_code {
-	guint32	be32;
-	guchar	b[4];
+	guint32 be32;	/**< Always big-endian order; for convenient '=' and '!=' */
+	guchar	b[4];	/**< Holds a four-Letter Gnutella vendor ID */
 };
 
-const gchar *vendor_code_str(union vendor_code code);
+const gchar *vendor_code_str(guint32 code);
 const gchar *lookup_vendor_name(union vendor_code code);
 gboolean is_vendor_known(union vendor_code code);
 
-static inline const gchar *
-vendor_code_be32_str(guint32 code_be32)
-{
-	union vendor_code vc;
-	vc.be32 = code_be32;
-	return vendor_code_str(vc);
-}
 void vendor_init(void);
 
 #endif /* _vendors_h_ */

@@ -117,6 +117,13 @@ static void handle_time_sync_reply(struct gnutella_node *n,
 static void handle_udp_crawler_ping(struct gnutella_node *n,
 	const struct vmsg *vmsg, gchar *payload, gint size);
 
+#if 0
+static void handle_udp_head_ping(struct gnutella_node *n,
+	const struct vmsg *vmsg, gchar *payload, gint size);
+static void handle_udp_head_pong(struct gnutella_node *n,
+	const struct vmsg *vmsg, gchar *payload, gint size);
+#endif
+
 /**
  * Known vendor-specific messages.
  */
@@ -142,6 +149,10 @@ static const struct vmsg vmsg_map[] = {
 	{ T_LIME, 0x0015, 0x0002, handle_proxy_req, "Push-Proxy Request" },
 	{ T_LIME, 0x0016, 0x0001, handle_proxy_ack, "Push-Proxy Acknowledgment" },
 	{ T_LIME, 0x0016, 0x0002, handle_proxy_ack, "Push-Proxy Acknowledgment" },
+#if 0
+	{ T_LIME, 0x0017, 0x0001, handle_udp_head_ping, "UDP Head Ping" },
+	{ T_LIME, 0x0018, 0x0001, handle_udp_head_pong, "UDP Head Pong" },
+#endif
 
 	/* Above line intentionally left blank (for "!}sort" in vi) */
 };
@@ -182,9 +193,10 @@ struct vms_feature {
  * @returns handler callback if found, NULL otherwise.
  */
 static const struct vmsg *
-find_message(guint32 vendor, guint16 id, guint16 version)
+find_message(union vendor_code vc, guint16 id, guint16 version)
 {
   gint c_vendor, c_id, c_version;
+  guint32 vendor = ntohl(vc.be32);
 
 #define GET_KEY(i) (&vmsg_map[(i)])
 #define FOUND(i) G_STMT_START { \
@@ -224,21 +236,21 @@ vmsg_infostr(gconstpointer data, gint size)
 	guint16 version;
 	const struct vmsg *vm;
 
-	if ((size_t) size < sizeof *v)
+	if ((size_t) size < sizeof vc)
 		return "????";
 
-	vc.be32 = peek_be32(v->vendor);
+	memcpy(vc.b, v->vendor, 4);
 	id = peek_le16(v->selector_id);
 	version = peek_le16(v->version);
 
-	vm = find_message(vc.be32, id, version);
+	vm = find_message(vc, id, version);
 
 	if (vm == NULL)
 		gm_snprintf(msg, sizeof msg , "%s/%uv%u",
-			vendor_code_str(vc), id, version);
+			vendor_code_str(ntohl(vc.be32)), id, version);
 	else
 		gm_snprintf(msg, sizeof msg, "%s/%uv%u '%s'",
-			vendor_code_str(vc), id, version, vm->name);
+			vendor_code_str(ntohl(vc.be32)), id, version, vm->name);
 
 	return msg;
 }
@@ -262,16 +274,16 @@ vmsg_handle(struct gnutella_node *n)
 		return;
 	}
 
-	vc.be32 = peek_be32(v->vendor);
+	memcpy(vc.b, v->vendor, 4);
 	id = peek_le16(v->selector_id);
 	version = peek_le16(v->version);
 
-	vm = find_message(vc.be32, id, version);
+	vm = find_message(vc, id, version);
 
 	if (vmsg_debug > 4)
 		printf("VMSG %s \"%s\": %s/%uv%u\n",
 			gmsg_infostr(&n->header), vm == NULL ? "UNKNOWN" : vm->name,
-			vendor_code_str(vc), id, version);
+			vendor_code_str(ntohl(vc.be32)), id, version);
 
 	/*
 	 * If we can't handle the message, we count it as "unknown type", which
@@ -353,7 +365,7 @@ vmsg_bad_payload(
 
 	if (dbg || vmsg_debug)
 		gmsg_log_bad(n, "Bad payload size %d for %s/%dv%d (%s), expected %d",
-			size, vendor_code_be32_str(vmsg->vendor), vmsg->id, vmsg->version,
+			size, vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version,
 			vmsg->name, expected);
 }
 
@@ -394,10 +406,10 @@ handle_messages_supported(struct gnutella_node *n,
 
 	for (i = 0; i < count; i++) {
 		const struct vmsg *vm;
-		guint32 vendor;
+		union vendor_code vendor;
 		guint16 id, version;
 
-		vendor = peek_be32(&description[0]);
+		memcpy(&vendor.b, &description[0], 4);
 		id = peek_le16(&description[4]);
 		version = peek_le16(&description[6]);
 		description += 8;
@@ -408,13 +420,13 @@ handle_messages_supported(struct gnutella_node *n,
 			if (vmsg_debug > 1)
 				g_warning("VMSG node %s <%s> supports unknown %s/%dv%d",
 					node_addr(n), node_vendor(n),
-					vendor_code_be32_str(vendor), id, version);
+					vendor_code_str(ntohl(vendor.be32)), id, version);
 			continue;
 		}
 
 		if (vmsg_debug > 2)
 			printf("VMSG ...%s/%dv%d\n",
-				vendor_code_be32_str(vendor), id, version);
+				vendor_code_str(ntohl(vendor.be32)), id, version);
 
 		/*
 		 * Look for leaf-guided dynamic query support.
@@ -483,9 +495,9 @@ vmsg_send_messages_supported(struct gnutella_node *n)
 		if (msg->vendor == T_0000)		/* Don't send info about ourselves */
 			continue;
 
-		payload = poke_be32(payload, msg->vendor);
-		payload = poke_le16(payload, msg->id);
-		payload = poke_le16(payload, msg->version);
+		poke_be32(&payload[0], msg->vendor);
+		poke_le16(&payload[4], msg->id);
+		poke_le16(&payload[6], msg->version);
 
 		count++;
 	}
@@ -532,17 +544,17 @@ handle_features_supported(struct gnutella_node *n,
 	 */
 
 	for (i = 0; i < count; i++) {
-		guint32 vendor;
+		union vendor_code vendor;
 		guint16 version;
 
-		vendor = peek_be32(&description[0]);
+		memcpy(&vendor, &description[0], 4);
 		version = peek_le16(&description[4]);
 		description += 6;
 
 		if (vmsg_debug > 1)
 			printf("VMSG node %s <%s> supports feature %s/%u\n",
 				node_addr(n), node_vendor(n),
-				vendor_code_be32_str(vendor), version);
+				vendor_code_str(ntohl(vendor.be32)), version);
 
 		/* XXX -- look for specific features not present in handshake */
 	}
@@ -1020,7 +1032,7 @@ handle_oob_reply_ind(struct gnutella_node *n,
 		 */
 
 		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_be32_str(vmsg->vendor),
+			vendor_code_str(vmsg->vendor),
 			vmsg->id, vmsg->version, node_addr(n));
 		return;
 	}
@@ -1047,7 +1059,7 @@ handle_oob_reply_ind(struct gnutella_node *n,
 
 	if (hits == 0) {
 		g_warning("no results advertised in %s/%uv%u from %s",
-			vendor_code_be32_str(vmsg->vendor),
+			vendor_code_str(vmsg->vendor),
 			vmsg->id, vmsg->version, node_addr(n));
 		return;
 	}
@@ -1057,7 +1069,7 @@ handle_oob_reply_ind(struct gnutella_node *n,
 
 not_handling:
 	g_warning("not handling %s/%uv%u from %s",
-		vendor_code_be32_str(vmsg->vendor),
+		vendor_code_str(vmsg->vendor),
 		vmsg->id, vmsg->version, node_addr(n));
 }
 
@@ -1107,7 +1119,7 @@ handle_oob_reply_ack(struct gnutella_node *n,
 
 	if (!NODE_IS_UDP(n)) {
 		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_be32_str(vmsg->vendor),
+			vendor_code_str(vmsg->vendor),
 			vmsg->id, vmsg->version, node_addr(n));
 		return;
 	}
@@ -1415,7 +1427,7 @@ handle_udp_crawler_ping(struct gnutella_node *n,
 
 	if (!NODE_IS_UDP(n)) {
 		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_be32_str(vmsg->vendor),
+			vendor_code_str(vmsg->vendor),
 			vmsg->id, vmsg->version, node_addr(n));
 		return;
 	}
@@ -1484,6 +1496,96 @@ vmsg_send_udp_crawler_pong(struct gnutella_node *n, pmsg_t *mb)
 
 #if 0
 /**
+ * Handle reception of an UDP Head Ping
+ */
+static void
+handle_udp_head_ping(struct gnutella_node *n,
+	const struct vmsg *vmsg, gchar *payload, gint size)
+{
+	const guint expect_size = 1 + CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE;
+	guint8 features;
+
+	/*
+	 * We expect those messages to come via UDP.
+	 */
+
+	if (!NODE_IS_UDP(n)) {
+		g_warning("got %s/%uv%u from TCP via %s, ignoring",
+			vendor_code_str(vmsg->vendor),
+			vmsg->id, vmsg->version, node_addr(n));
+		return;
+	}
+
+	/*
+	 * The format of the message was reverse-engineered from LimeWire's code.
+	 *
+	 * The payload is made of a single "feature" byte and an URN:
+	 *
+	 *	 features:		some flags defining what to return
+	 *   urn:           typically urn:sha1:<base32 sha1>
+	 */
+
+	if ((guint) size != expect_size) {
+		vmsg_bad_payload(n, vmsg, size, expect_size);
+		return;
+	}
+
+	features = payload[0];
+	/* TODO: Implement this */
+}
+
+/**
+ * Handle reception of an Head Pong
+ */
+static void
+handle_udp_head_pong(struct gnutella_node *n,
+	const struct vmsg *vmsg, gchar *payload, gint size)
+{
+	const guint min_size = 2; /* features and code */
+	guint8 features;
+	guint8 code;
+
+	/*
+	 * We expect those messages to come via UDP.
+	 */
+
+	if (!NODE_IS_UDP(n)) {
+		g_warning("got %s/%uv%u from TCP via %s, ignoring",
+			vendor_code_str(vmsg->vendor),
+			vmsg->id, vmsg->version, node_addr(n));
+		return;
+	}
+
+	/*
+	 * The format of the message was reverse-engineered from LimeWire's code.
+	 *
+	 * offset	name			description
+	 * 0		Features		some flags
+	 * 1		Code			response code with flags (not found,
+	 *							firewalled,	downloading, complete file)
+	 * 2		Vendor ID		4-letter vendor ID of sender
+	 * 6		Queue Status	
+	 * 7		variable data
+	 *
+	 * The pong may also carry alt-locs and available ranges.
+	 *
+	 */
+
+	if ((guint) size != min_size) {
+		vmsg_bad_payload(n, vmsg, size, min_size);
+		return;
+	}
+
+	features = payload[0];
+	code = payload[1];
+
+	/* TODO: Implement this */
+}
+#endif
+
+
+#if 0
+/**
  * Send an "UDP Crawler Ping" message to specified node. -- For testing only
  */
 void
@@ -1532,7 +1634,7 @@ vmsg_map_is_sorted(void)
 
 		if (COMPARE(prev, e) >= 0)
 			g_error("vmsg_map[] unsorted (near %s/%uv%u '%s')",
-				vendor_code_be32_str(e->vendor), e->id, e->version, e->name);
+				vendor_code_str(e->vendor), e->id, e->version, e->name);
 	}
 
 #undef COMPARE

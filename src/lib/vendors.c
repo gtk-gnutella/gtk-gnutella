@@ -128,7 +128,7 @@ struct vendor {
  * @returns vendor string if found, NULL otherwise.
  */
 static gchar *
-find_vendor(guint32 code_be32)
+find_vendor(guint32 code)
 {
 #define GET_KEY(i) (vendor_map[(i)].code)
 #define FOUND(i) G_STMT_START { \
@@ -136,7 +136,7 @@ find_vendor(guint32 code_be32)
 	/* NOTREACHED */ \
 } G_STMT_END
 
-	BINARY_SEARCH(guint32, code_be32, G_N_ELEMENTS(vendor_map), VENDOR_CODE_CMP,
+	BINARY_SEARCH(guint32, code, G_N_ELEMENTS(vendor_map), VENDOR_CODE_CMP,
 		GET_KEY, FOUND);
 
 #undef FOUND
@@ -153,29 +153,34 @@ is_vendor_known(union vendor_code code)
     if (code.be32 == 0)
         return FALSE;
 
-	return find_vendor(code.be32) != NULL;
+	return find_vendor(ntohl(code.be32)) != NULL;
 }
 
 /**
  * Make up a printable version of the vendor code.
  *
+ * @param code A 4-letter Gnutella vendor ID in host-endian order thus
+ *        after peek_be32() or ntohl().
+ *
  * @return pointer to static data.
  */
 const gchar *
-vendor_code_str(union vendor_code code)
+vendor_code_str(guint32 code)
 {
-	static gchar temp[1 + G_N_ELEMENTS(code.b)];
+	static gchar temp[1 + sizeof code];
     guint i;
 
 	STATIC_ASSERT(5 == G_N_ELEMENTS(temp));
 
-	if (code.be32 == 0)
+    if (code == 0)
 		return "null";
 
-	for (i = 0; i < G_N_ELEMENTS(temp); i++) {
-        guchar c = code.b[i];
-		temp[i] = is_ascii_print(c) ? c : '.';
+	poke_be32(&temp[0], code);
+	for (i = 0; i < G_N_ELEMENTS(temp) - 1; i++) {
+		if (!is_ascii_print(temp[i]))
+			temp[i] = '.';
 	}
+
 	temp[4] = '\0';
 
 	return temp;
@@ -198,7 +203,7 @@ lookup_vendor_name(union vendor_code code)
     if (code.be32 == 0)
         return NULL;
 
-	name = find_vendor(code.be32);
+	name = find_vendor(ntohl(code.be32));
 	if (name != NULL)
 		return name;
 
@@ -224,7 +229,7 @@ void
 vendor_init(void)
 {
 	BINARY_ARRAY_SORTED(vendor_map, struct vendor, code,
-		VENDOR_CODE_CMP, vendor_code_be32_str);
+		VENDOR_CODE_CMP, vendor_code_str);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
