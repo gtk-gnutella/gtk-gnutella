@@ -40,8 +40,6 @@ RCSID("$Id$");
 #include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-static gint selected_type = MSG_TOTAL;
-
 /***
  *** Callbacks
  ***/
@@ -168,16 +166,6 @@ on_clist_gnet_stats_general_resize_column(GtkCList *unused_clist, gint column,
         &buf, column, 1);
 }
 
-static void
-on_gnet_stats_type_selected(GtkItem *unused_item, gpointer data)
-{
-	(void) unused_item;
-
-    selected_type = GPOINTER_TO_INT(data);
-    gnet_stats_gui_update(tm_time());
-}
-
-
 /***
  *** Private functions
  ***/
@@ -228,15 +216,16 @@ drop_stat_str(const gnet_stats_t *stats, gint reason)
 {
     static gchar strbuf[UINT64_DEC_BUFLEN];
     guint32 total = stats->pkg.dropped[MSG_TOTAL];
+	guint i = gnet_stats_drop_reasons_type;
 
-    if (stats->drop_reason[reason][selected_type] == 0)
+    if (stats->drop_reason[reason][i] == 0)
         return gnet_stats_perc ? "-  " : "-";
 
     if (gnet_stats_perc)
         gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
-            (gfloat) stats->drop_reason[reason][selected_type] / total * 100);
+            (gfloat) stats->drop_reason[reason][i] / total * 100);
     else
-        uint64_to_string_buf(stats->drop_reason[reason][selected_type],
+        uint64_to_string_buf(stats->drop_reason[reason][i],
 			strbuf, sizeof strbuf);
 
     return strbuf;
@@ -307,7 +296,6 @@ gnet_stats_gui_init(void)
     GtkCList *clist_general;
     GtkCList *clist_reason;
     GtkCList *clist_horizon;
-    GtkCombo *combo_types;
     gchar *titles[10];
     guint n;
 
@@ -326,8 +314,6 @@ gnet_stats_gui_init(void)
         lookup_widget(main_window, "clist_gnet_stats_general"));
     clist_horizon = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_horizon"));
-    combo_types = GTK_COMBO(
-        lookup_widget(main_window, "combo_gnet_stats_type"));
 
     /*
      * Set column justification for numeric columns to GTK_JUSTIFY_RIGHT.
@@ -369,8 +355,6 @@ gnet_stats_gui_init(void)
      * Initialize stats tables.
      */
     for (n = 0; n < MSG_TYPE_COUNT; n ++) {
-        GtkWidget *list_item;
-        GList *l;
         gint row;
 
         titles[0] = (gchar *) msg_type_str(n);
@@ -381,22 +365,6 @@ gnet_stats_gui_init(void)
         gtk_clist_set_selectable(clist_stats_fc_ttl, row, FALSE);
         row = gtk_clist_append(clist_stats_fc_hops, titles);
         gtk_clist_set_selectable(clist_stats_fc_hops, row, FALSE);
-
-        list_item = gtk_list_item_new_with_label(msg_type_str(n));
-
-        gtk_widget_show(list_item);
-
-        gtk_signal_connect(
-            GTK_OBJECT(list_item), "select",
-            GTK_SIGNAL_FUNC(on_gnet_stats_type_selected),
-            GINT_TO_POINTER(n));
-
-        l = g_list_prepend(NULL, (gpointer) list_item);
-        gtk_list_append_items(GTK_LIST(GTK_COMBO(combo_types)->list), l);
-
-        if (n == MSG_TOTAL)
-            gtk_list_select_child(
-                GTK_LIST(GTK_COMBO(combo_types)->list), list_item);
     }
 
     for (n = 0; n < MSG_DROP_REASON_COUNT; n ++) {

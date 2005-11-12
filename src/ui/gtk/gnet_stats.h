@@ -44,9 +44,6 @@ void on_clist_gnet_stats_horizon_resize_column(
     GtkCList *clist, gint column, gint width, gpointer user_data);
 #endif /* USE_GTK2 */
 
-void on_combo_entry_gnet_stats_drop_reasons_changed(
-    GtkEditable *editable, gpointer user_data);
-
 void gnet_stats_gui_init(void);
 void gnet_stats_gui_update(time_t now);
 void gnet_stats_gui_shutdown(void);

@@ -73,25 +73,6 @@ enum gnet_stats_nb_page {
 static void hide_column_by_title(GtkTreeView *, const gchar *, gboolean);
 static void gnet_stats_update_drop_reasons(const gnet_stats_t *);
 
-
-/***
- *** Callbacks
- ***/
-
-static gint gnet_stats_drop_reasons_type = MSG_TOTAL;
-
-static void
-on_gnet_stats_type_selected(GtkItem *unused_item, gpointer data)
-{
-	static gnet_stats_t stats;
-
-	(void) unused_item;
-
-	gnet_stats_drop_reasons_type = GPOINTER_TO_INT(data);
-	guc_gnet_stats_get(&stats);
-	gnet_stats_update_drop_reasons(&stats);
-}
-
 /***
  *** Private functions
  ***/
@@ -743,33 +724,6 @@ gnet_stats_gui_recv_init(void)
 	g_object_unref(model);
 }
 
-static void
-gnet_stats_gui_type_menu_init(void)
-{
-	GtkOptionMenu *option_menu;
-	GtkWidget *menu;
-	gint n;
-
-	option_menu = GTK_OPTION_MENU(
-		lookup_widget(main_window, "option_menu_gnet_stats_type"));
-	menu = gtk_menu_new();
-
-	for (n = 0; n < msg_type_str_size(); n++) {
-		GtkWidget *menu_item;
-
-		menu_item = gtk_menu_item_new_with_label(msg_type_str(n));
-		gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
-		g_signal_connect(
-			GTK_OBJECT(menu_item), "activate",
-			G_CALLBACK(on_gnet_stats_type_selected),
-			GINT_TO_POINTER(n));
-	}
-	gtk_option_menu_set_menu(option_menu, menu);
-	gtk_option_menu_set_history(option_menu, MSG_TOTAL);
-	gtk_widget_show_all(GTK_WIDGET(option_menu));
-}
-
-
 /***
  *** Public functions
  ***/
@@ -792,7 +746,6 @@ gnet_stats_gui_init(void)
 	gnet_stats_gui_general_init();
 	gnet_stats_gui_messages_init();
 	gnet_stats_gui_recv_init();
-	gnet_stats_gui_type_menu_init();
 
 	guc_hsep_add_global_table_listener(
 		(GCallback) gnet_stats_gui_horizon_update, FREQ_UPDATES, 0);
