@@ -108,13 +108,22 @@ static UConverter *conv_icu_locale = NULL;
 static UConverter *conv_icu_utf8 = NULL;
 #endif /* xxxUSE_ICU */
 
-static const gchar *charset = NULL;
-static const GSList *sl_filename_charsets = NULL;
+struct conv_to_utf8 {
+	gchar *name;	/**< Name of the source charset; g_strdup()ed */
+	iconv_t cd;		/**< iconv() conversion descriptor; -1 or iconv_open()ed */
+	gboolean is_ascii;	/**< Set to TRUE if name is "ASCII" */
+	gboolean is_utf8;	/**< Set to TRUE if name is "UTF-8" */
+};
 
-static iconv_t cd_locale_to_utf8 = (iconv_t) -1;
-static iconv_t cd_filename_to_utf8 = (iconv_t) -1;
+static const gchar *charset = NULL;	/** Name of the locale charset */
 
-static iconv_t cd_utf8_to_locale = (iconv_t) -1;
+/** A single-linked list of conv_to_utf8 structs. The first one is used
+ ** for converting from the primary charset. Additional charsets are optional.
+ **/
+static GSList *sl_filename_charsets = NULL;
+
+static iconv_t cd_locale_to_utf8 = (iconv_t) -1; /** Mainly used for Gtk+ 1.2 */
+static iconv_t cd_utf8_to_locale = (iconv_t) -1; /** Mainly used for Gtk+ 1.2 */
 static iconv_t cd_utf8_to_filename = (iconv_t) -1;
 
 
@@ -132,10 +141,10 @@ enum utf8_cd {
 };
 
 static struct {
-	iconv_t cd;
-	const gchar *name;
-	const enum utf8_cd id;
-	gboolean initialized;
+	iconv_t cd;				/**< iconv() conversion descriptor; may be -1 */
+	const gchar *name;		/**< Name of the source charset */
+	const enum utf8_cd id;	/**< Enumerated ID of the converter */
+	gboolean initialized;	/**< Whether initialization of "cd" was attempted */
 } utf8_cd_tab[] = {
 #define D(name, id) (iconv_t) -1, (name), (id), FALSE
 	{ D("ISO-8859-1",	UTF8_CD_ISO8859_1) },
@@ -148,6 +157,9 @@ static struct {
 #undef D
 };
 
+/**
+ * Looks up a "to UTF-8" converter by source charset name.
+ */
 static enum utf8_cd
 utf8_name_to_cd(const gchar *name)
 {
@@ -161,6 +173,9 @@ utf8_name_to_cd(const gchar *name)
 	return UTF8_CD_INVALID;
 }
 
+/**
+ * Determine the name of the source charset of a converter.
+ */
 const gchar *
 utf8_cd_to_name(enum utf8_cd id)
 {
@@ -173,7 +188,9 @@ utf8_cd_to_name(enum utf8_cd id)
 	return utf8_cd_tab[i].name;
 }
 
-
+/**
+ * Get the iconv() conversion descriptor of a converter.
+ */
 static iconv_t
 utf8_cd_get(enum utf8_cd id)
 {
@@ -209,28 +226,29 @@ locale_is_utf8(void)
 }
 
 const gchar *
-filename_charset(void)
+primary_filename_charset(void)
 {
-	g_assert(sl_filename_charsets);
-	g_assert(sl_filename_charsets->data);
+	const struct conv_to_utf8 *t;
 
-	return sl_filename_charsets->data;
+	g_assert(sl_filename_charsets);
+
+	t = sl_filename_charsets->data;
+	g_assert(t);
+	g_assert(t->name);
+
+	return t->name;
 }
 
 static inline gboolean
-filename_charset_is_utf8(void)
+primary_filename_charset_is_utf8(void)
 {
-	static gboolean initialized, is_utf8;
+	const struct conv_to_utf8 *t;
 
-	if (!initialized) {
-		const gchar *cs;
+	g_assert(sl_filename_charsets);
+	t = sl_filename_charsets->data;
+	g_assert(t);
 
-		initialized = TRUE;
-		cs = filename_charset();
-		g_assert(cs);
-		is_utf8 = 0 == strcmp(cs, "UTF-8");
-	}
-	return is_utf8;
+	return t->is_utf8;
 }
 
 static inline G_GNUC_CONST guint
@@ -1202,6 +1220,20 @@ locale_get_language(void)
 	return Q_("locale_get_language|en_US");
 }
 
+struct conv_to_utf8 *
+conv_to_utf8_new(const gchar *cs)
+{
+	struct conv_to_utf8 *t;
+
+	t = g_malloc(sizeof *t);
+	t->cd = (iconv_t) -1;
+	t->name = g_strdup(cs);
+	t->is_utf8 = 0 == strcmp(cs, "UTF-8");
+	t->is_ascii = 0 == strcmp(cs, "ASCII");
+	return t;
+}
+
+
 /**
  * Emulate GLib 2.x behaviour and select the appropriate character set
  * for filenames.
@@ -1214,7 +1246,8 @@ locale_get_language(void)
 GSList *
 get_filename_charsets(const gchar *locale)
 {
-	const gchar *utf8_cs = "UTF-8", *s, *next;
+	const gchar *s, *next;
+	gboolean has_locale = FALSE, has_utf8 = FALSE;
 	GSList *sl = NULL;
 
 	g_assert(locale);
@@ -1243,19 +1276,39 @@ get_filename_charsets(const gchar *locale)
 				cs = get_iconv_charset_alias(q);
 				G_FREE_NULL(q);
 			}
-			if (cs) {
-				if (utf8_cs && 0 == strcmp(cs, utf8_cs))
-					utf8_cs = NULL;
 
-				sl = g_slist_prepend(sl, g_strdup(cs));
+			/*
+			 * If the locale or UTF-8 was already listed, skip it. This way
+			 * using G_FILENAME_ENCODING="UTF-8,@locale,ISO-8859-1" has no
+			 * negative effect on performance if @locale is UTF-8 or
+			 * ISO-8859-1.
+			 */
+			if (cs && 0 == strcmp(cs, "UTF-8")) {
+				if (has_utf8)
+					cs = NULL;
+				has_utf8 = TRUE;
 			}
+			if (cs && 0 == strcmp(cs, locale)) {
+				if (has_locale)
+					cs = NULL;
+				has_locale = TRUE;
+			}
+
+			if (cs)
+				sl = g_slist_prepend(sl, conv_to_utf8_new(cs));
 		}
 	}
 
-	/* If UTF-8 wasn't in the list, add it as last option */
-	if (utf8_cs)
-		sl = g_slist_prepend(sl, g_strdup(utf8_cs));
 
+	/* If UTF-8 wasn't in the list, add it as penultimate (or actually first)
+	 * option. */
+	if (!has_utf8)
+		sl = g_slist_prepend(sl, conv_to_utf8_new("UTF-8"));
+	
+	/* Always add the locale charset as last resort if not already listed. */
+	if (!has_locale && 0 != strcmp("UTF-8", locale))
+		sl = g_slist_prepend(sl, conv_to_utf8_new(locale));
+	
 	return g_slist_reverse(sl);
 }
 
@@ -1294,11 +1347,82 @@ locale_init_show_results(void)
 
 	g_message("language code: \"%s\"", locale_get_language());
 	g_message("using locale character set \"%s\"", charset);
-	g_message("primary filename character set \"%s\"", filename_charset());
+	g_message("primary filename character set \"%s\"",
+		primary_filename_charset());
 
-	while (NULL != (sl = g_slist_next(sl)))
-		g_message("additional filename character set \"%s\"",
-			cast_to_gchar_ptr(deconstify_gpointer(sl->data)));
+	while (NULL != (sl = g_slist_next(sl))) {
+		const struct conv_to_utf8 *t = sl->data;
+
+		g_message("additional filename character set \"%s\"", t->name);
+	}
+}
+
+static void
+conversion_init(void)
+{
+	const gchar *pfcs = primary_filename_charset();
+	iconv_t cd_from_utf8;
+	GSList *sl;
+
+	g_assert(charset);
+	g_assert(pfcs);
+	
+	/*
+	 * Don't use iconv() for UTF-8 -> UTF-8 conversion, it's
+	 * pointless and apparently some implementations don't filter
+	 * invalid codepoints beyond U+10FFFF.
+	 */
+
+	if (!locale_is_utf8()) {
+		/* locale -> UTF-8 */
+		if (UTF8_CD_INVALID != utf8_name_to_cd(charset))
+			cd_locale_to_utf8 = utf8_cd_get(utf8_name_to_cd(charset));
+
+		if ((iconv_t) -1 == cd_locale_to_utf8) {
+			cd_locale_to_utf8 = iconv_open("UTF-8", charset);
+			if ((iconv_t) -1 == cd_locale_to_utf8)
+				g_warning("iconv_open(\"UTF-8\", \"%s\") failed.", charset);
+		}
+
+		/* UTF-8 -> locale */
+		if ((iconv_t) -1 == (cd_utf8_to_locale = iconv_open(charset, "UTF-8")))
+			g_warning("iconv_open(\"%s\", \"UTF-8\") failed.", charset);
+	}
+
+	/* Initialize UTF-8 -> primary filename charset conversion */
+	
+	/*
+	 * We don't need cd_utf8_to_filename if the filename character set
+	 * is ASCII or UTF-8. In the former case we fall back to ascii_enforce()
+	 * and in the latter conversion is nonsense.
+	 */
+	if (primary_filename_charset_is_utf8() || 0 == strcmp(pfcs, "ASCII")) {
+		cd_from_utf8 = (iconv_t) -1;
+	} else if (UTF8_CD_INVALID != utf8_name_to_cd(pfcs)) {
+		if ((iconv_t) -1 == (cd_from_utf8 = iconv_open(pfcs, "UTF-8")))
+			g_warning("iconv_open(\"%s\", \"UTF-8\") failed.", pfcs);
+	} else if (0 == strcmp(charset, pfcs)) {
+		cd_from_utf8 = cd_utf8_to_locale;
+	} else {
+		if ((iconv_t) -1 == (cd_from_utf8 = iconv_open(pfcs, "UTF-8")))
+			g_warning("iconv_open(\"%s\", \"UTF-8\") failed.", pfcs);
+	}
+
+	cd_utf8_to_filename = cd_from_utf8;
+
+	/* Initialize filename charsets -> UTF-8 conversion */
+	
+	for (sl = sl_filename_charsets; sl != NULL; sl = g_slist_next(sl)) {
+		struct conv_to_utf8 *t;
+
+		t = sl->data;
+		if (0 == strcmp("@locale", t->name) || 0 == strcmp(charset, t->name))
+			t->cd = cd_locale_to_utf8;
+		else if (UTF8_CD_INVALID != utf8_name_to_cd(t->name))
+			t->cd = utf8_cd_get(utf8_name_to_cd(t->name));
+		else if ((iconv_t) -1 == (t->cd = iconv_open("UTF-8", t->name)))
+				g_warning("iconv_open(\"UTF-8\", \"%s\") failed.", t->name);
+	}
 }
 
 void
@@ -1353,63 +1477,14 @@ locale_init(void)
 
 	textdomain_init(charset);
 
-	for (i = 0; i < G_N_ELEMENTS(latin_sets); i++)
+	for (i = 0; i < G_N_ELEMENTS(latin_sets); i++) {
 		if (0 == ascii_strcasecmp(charset, latin_sets[i])) {
 			latin_locale = TRUE;
 			break;
 		}
-
-	/*
-	 * Don't use iconv() for UTF-8 -> UTF-8 conversion, it's
-	 * pointless and apparently some implementations don't filter
-	 * invalid codepoints beyond U+10FFFF.
-	 */
-
-	if (!locale_is_utf8()) {
-		/* locale -> UTF-8 */
-		if (UTF8_CD_INVALID != utf8_name_to_cd(charset))
-			cd_locale_to_utf8 = utf8_cd_get(utf8_name_to_cd(charset));
-
-		if ((iconv_t) -1 == cd_locale_to_utf8) {
-			cd_locale_to_utf8 = iconv_open("UTF-8", charset);
-			if ((iconv_t) -1 == cd_locale_to_utf8)
-				g_warning("iconv_open(\"UTF-8\", \"%s\") failed.", charset);
-		}
-
-		/* UTF-8 -> locale */
-		if ((iconv_t) -1 == (cd_utf8_to_locale = iconv_open(charset, "UTF-8")))
-			g_warning("iconv_open(\"%s\", \"UTF-8\") failed.", charset);
 	}
 
-	/*
-	 * We don't need cd_utf8_to_filename if the filename character set
-	 * is ASCII or UTF-8. In the former case we fall back to ascii_enforce()
-	 * and in the latter conversion is nonsense.
-	 */
-	{
-		const gchar *cs = filename_charset();
-		iconv_t cd_from, cd_to;
-
-		if (locale_is_utf8() || 0 == strcmp(cs, "ASCII")) {
-			cd_from = (iconv_t) -1;
-			cd_to = (iconv_t) -1;
-		} else if (UTF8_CD_INVALID != utf8_name_to_cd(cs)) {
-			cd_from = utf8_cd_get(utf8_name_to_cd(cs));
-			if ((iconv_t) -1 == (cd_to = iconv_open(cs, "UTF-8")))
-				g_warning("iconv_open(\"%s\", \"UTF-8\") failed.", cs);
-		} else if (0 == strcmp(charset, cs)) {
-			cd_from = cd_locale_to_utf8;
-			cd_to = cd_utf8_to_locale;
-		} else {
-			if ((iconv_t) -1 == (cd_from = iconv_open("UTF-8", cs)))
-				g_warning("iconv_open(\"UTF-8\", \"%s\") failed.", cs);
-			if ((iconv_t) -1 == (cd_to = iconv_open(cs, "UTF-8")))
-				g_warning("iconv_open(\"%s\", \"UTF-8\") failed.", cs);
-		}
-
-		cd_filename_to_utf8 = cd_from;
-		cd_utf8_to_filename = cd_to;
-	}
+	conversion_init();
 
 #if 0  /* xxxUSE_ICU */
 	{
@@ -1476,12 +1551,18 @@ locale_close(void)
  * @param dst the destination buffer; may be NULL IFF dst_size is zero.
  * @param dst_size the size of the dst buffer.
  * @param src the source string to convert.
+ * @param abort_on_error If TRUE, the conversion is be aborted and zero
+ *						 is returned on any error. Otherwise, if iconv()
+ *						 returns EINVAL or EILSEQ an underscore is written
+ *						 to the destination buffer as replacement character.
+ *
  *
  * @return On success the size of the converting string including the
  *         trailing NUL. Otherwise, zero is returned.
  */
 static size_t
-complete_iconv(iconv_t cd, gchar *dst, size_t dst_left, const gchar *src)
+complete_iconv(iconv_t cd, gchar *dst, size_t dst_left, const gchar *src,
+	gboolean abort_on_error)
 {
 	const gchar * const dst0 = dst;
 	size_t src_left;
@@ -1524,6 +1605,9 @@ complete_iconv(iconv_t cd, gchar *dst, size_t dst_left, const gchar *src)
 			if (common_dbg > 1)
 				g_warning("complete_iconv: iconv() failed: %s", g_strerror(e));
 
+			if (abort_on_error)
+				goto error;
+
 			if (EILSEQ != e && EINVAL != e) {
 				errno = e;
 				goto error;
@@ -1563,12 +1647,17 @@ error:
  * @param src the source string to convert.
  * @param dst the destination buffer; may be NULL IFF dst_size is zero.
  * @param dst_size the size of the dst buffer.
+ * @param abort_on_error If TRUE, NULL is returned if iconv() returns EINVAL
+ *						 or EILSEQ during the conversion. Otherwise, an
+ *						 underscore is used as replacement character and
+ *						 conversion continues.
  *
  * @return On success the converted string, either "dst" or a newly
  *         allocated string. Returns NULL on failure.
  */
 static gchar *
-hyper_iconv(iconv_t cd, gchar *dst, size_t dst_size, const gchar *src)
+hyper_iconv(iconv_t cd, gchar *dst, size_t dst_size, const gchar *src,
+	gboolean abort_on_error)
 {
 	size_t size;
 
@@ -1576,14 +1665,14 @@ hyper_iconv(iconv_t cd, gchar *dst, size_t dst_size, const gchar *src)
 	g_assert(src);
 	g_assert(0 == dst_size || dst);
 
-	size = complete_iconv(cd, dst, dst_size, src);
+	size = complete_iconv(cd, dst, dst_size, src, abort_on_error);
 	if (0 == size) {
 		dst = NULL;
 	} else if (size > dst_size) {
 		size_t n;
 
 		dst = g_malloc(size);
-		n = complete_iconv(cd, dst, size, src);
+		n = complete_iconv(cd, dst, size, src, abort_on_error);
 		if (n != size) {
 			g_error("size=%ld, n=%ld, src=\"%s\" dst=\"%s\"",
 				(gulong) size, (gulong) n, src, dst);
@@ -1737,9 +1826,9 @@ utf8_to_filename_charset(const gchar *src)
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd_utf8_to_filename, sbuf, sizeof sbuf, src);
+	dst = hyper_iconv(cd_utf8_to_filename, sbuf, sizeof sbuf, src, FALSE);
 	if (!dst)
-		dst = filename_charset_is_utf8()
+		dst = primary_filename_charset_is_utf8()
 			? hyper_utf8_enforce(sbuf, sizeof sbuf, src)
 			: hyper_ascii_enforce(sbuf, sizeof sbuf, src);
 
@@ -1761,7 +1850,7 @@ utf8_to_filename(const gchar *src)
 	g_assert(src);
 
 	filename = utf8_to_filename_charset(src);
-	if (filename_charset_is_utf8() && !is_ascii_string(filename)) {
+	if (primary_filename_charset_is_utf8() && !is_ascii_string(filename)) {
 		gchar *p = filename;
 		filename = utf8_normalize(p, UNI_NORM_FILESYSTEM);
 		G_FREE_NULL(p);
@@ -1786,7 +1875,7 @@ utf8_to_locale(const gchar *src)
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd_utf8_to_locale, NULL, 0, src);
+	dst = hyper_iconv(cd_utf8_to_locale, NULL, 0, src, FALSE);
 	if (!dst)
 		dst = locale_is_utf8()
 			? hyper_utf8_enforce(NULL, 0, src)
@@ -1802,7 +1891,7 @@ convert_to_utf8(iconv_t cd, const gchar *src)
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd, sbuf, sizeof sbuf, src);
+	dst = hyper_iconv(cd, sbuf, sizeof sbuf, src, FALSE);
 	if (!dst)
 		dst = hyper_utf8_enforce(sbuf, sizeof sbuf, src);
 
@@ -2096,7 +2185,7 @@ convert_to_utf8_normalized(iconv_t cd, const gchar *src, uni_norm_t norm)
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd, sbuf, sizeof sbuf, src);
+	dst = hyper_iconv(cd, sbuf, sizeof sbuf, src, FALSE);
 	if (!dst)
 		dst = hyper_utf8_enforce(sbuf, sizeof sbuf, src);
 
@@ -2143,9 +2232,47 @@ locale_to_utf8_normalized(const gchar *src, uni_norm_t norm)
 gchar *
 filename_to_utf8_normalized(const gchar *src, uni_norm_t norm)
 {
+	const GSList *sl;
+	const gchar *s = NULL;
+	gchar *dbuf = NULL, *dst;
+
 	g_assert(src);
 
-	return convert_to_utf8_normalized(cd_filename_to_utf8, src, norm);
+	for (sl = sl_filename_charsets; sl != NULL; sl = g_slist_next(sl)) {
+		const struct conv_to_utf8 *t = sl->data;
+
+		if (t->is_utf8)	{
+			if (utf8_is_valid_string(src)) {
+				s = src;
+				break;
+			}
+		} else if (t->is_ascii) {
+			if (is_ascii_string(src)) {
+				s = src;
+				break;
+			}
+		} else {
+			dbuf = hyper_iconv(t->cd, NULL, 0, src, TRUE);
+			if (dbuf) {
+				g_message("t->name=\"%s\", src=\"%s\"", t->name, src);
+				s = dbuf;
+				break;
+			}
+		}
+	}
+
+	if (!s) {
+		if (!utf8_is_valid_string(src))
+			g_warning("Could not properly convert to UTF-8: \"%s\"", src);
+			
+		s = hyper_utf8_enforce(NULL, 0, src);
+	}
+
+	dst = utf8_normalize(s, norm);
+	if (dbuf != dst)
+		G_FREE_NULL(dbuf);
+
+	return dst;
 }
 
 /**
