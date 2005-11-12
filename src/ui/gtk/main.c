@@ -639,12 +639,12 @@ main_gui_early_init(gint argc, gchar **argv)
 	gui_init_window_title();
 
     /* search history combo stuff */
-    gtk_combo_disable_activate
-        (GTK_COMBO(lookup_widget(main_window, "combo_search")));
+    gtk_combo_disable_activate(GTK_COMBO(
+		lookup_widget(main_window, "combo_search")));
 
     /* copy url selection stuff */
-    gtk_selection_add_target
-        (popup_downloads, GDK_SELECTION_PRIMARY, GDK_SELECTION_TYPE_STRING, 1);
+    gtk_selection_add_target(popup_downloads,
+		GDK_SELECTION_PRIMARY, GDK_SELECTION_TYPE_STRING, 1);
 }
 
 void
