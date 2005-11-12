@@ -1153,24 +1153,17 @@ search_matched(search_t *sch, results_set_t *rs)
 void
 search_gui_update_items(const struct search *sch)
 {
-	gchar tmp[1024];
-
     if (sch) {
-        const gchar *str = sch->passive ? _("(passive search) ") : "";
-
-		gm_snprintf(tmp, sizeof tmp, _("%s%u %s "
+		gtk_label_printf(label_items_found, _("%u %s "
 			"(%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s)"
 			" Hits: %u (%u TCP, %u UDP)"),
-			str,
 			sch->items, NG_("item", "items", sch->items),
 			sch->skipped, sch->ignored, sch->hidden, sch->auto_downloaded,
 			sch->duplicates, NG_("dupe", "dupes", sch->duplicates),
 			sch->tcp_qhits + sch->udp_qhits, sch->tcp_qhits, sch->udp_qhits);
     } else {
-        utf8_strlcpy(tmp, _("No search"), sizeof tmp);
+       gtk_label_printf(label_items_found, "%s", _("No search"));
 	}
-
-	gtk_label_set(label_items_found, tmp);
 }
 
 gboolean
@@ -1178,7 +1171,7 @@ search_gui_is_expired(const struct search *sch)
 {
 	gboolean expired = FALSE;
 	
-	if (sch) {
+	if (sch && !sch->passive) {
 		time_t ct, start;
 		guint lt;
 		
@@ -1208,7 +1201,9 @@ search_gui_update_expiry(const struct search *sch)
 	gboolean expired = FALSE;
 
     if (sch) {
-		if (sch->enabled) {
+		if (sch->passive) {
+   			gtk_label_printf(label_search_expiry, "%s", _("Passive search"));
+		} else if (sch->enabled) {
 			time_t ct, start;
 			guint lt;
 
@@ -1285,7 +1280,7 @@ search_gui_flush(time_t now)
     GSList *frozen = NULL;
 
 	gui_prop_get_guint32_val(PROP_SEARCH_ACCUMULATION_PERIOD, &period);
-    if (now && (difftime(now, last) < period))
+    if (last && difftime(now, last) < period)
         return;
 
     last = now;
