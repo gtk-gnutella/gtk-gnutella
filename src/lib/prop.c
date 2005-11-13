@@ -104,6 +104,7 @@ prop_parse_timestamp(const gchar *name,
 		static const struct tm zero_tm;
 		struct tm tm;
 
+		t = 0;
 		tm = zero_tm;
 		tm.tm_year = u - 1900;
 
