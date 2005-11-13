@@ -19939,7 +19939,7 @@ http://maxmind.com/</property>
 			<widget class="GtkTable" id="table100">
 			  <property name="visible">True</property>
 			  <property name="n_rows">2</property>
-			  <property name="n_columns">2</property>
+			  <property name="n_columns">3</property>
 			  <property name="homogeneous">False</property>
 			  <property name="row_spacing">0</property>
 			  <property name="column_spacing">0</property>
@@ -20033,6 +20033,54 @@ http://maxmind.com/</property>
 			      <property name="bottom_attach">2</property>
 			      <property name="x_options">fill</property>
 			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkLabel" id="label983">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">slots</property>
+			      <property name="use_underline">False</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_LEFT</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">0</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">4</property>
+			      <property name="ypad">0</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">2</property>
+			      <property name="right_attach">3</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkLabel" id="label984">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes" context="yes">unit_of_time|s</property>
+			      <property name="use_underline">False</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_LEFT</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">0</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">4</property>
+			      <property name="ypad">0</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">2</property>
+			      <property name="right_attach">3</property>
+			      <property name="top_attach">1</property>
+			      <property name="bottom_attach">2</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
 			    </packing>
 			  </child>
 			</widget>
@@ -20649,7 +20697,7 @@ http://maxmind.com/</property>
 		      <property name="border_width">2</property>
 		      <property name="visible">True</property>
 		      <property name="n_rows">3</property>
-		      <property name="n_columns">6</property>
+		      <property name="n_columns">7</property>
 		      <property name="homogeneous">False</property>
 		      <property name="row_spacing">2</property>
 		      <property name="column_spacing">4</property>
@@ -20966,6 +21014,30 @@ http://maxmind.com/</property>
 			  <property name="top_attach">0</property>
 			  <property name="bottom_attach">1</property>
 			  <property name="x_padding">4</property>
+			  <property name="x_options">fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkLabel" id="label982">
+			  <property name="visible">True</property>
+			  <property name="label" translatable="yes" context="yes">unit_of_time|s</property>
+			  <property name="use_underline">False</property>
+			  <property name="use_markup">False</property>
+			  <property name="justify">GTK_JUSTIFY_LEFT</property>
+			  <property name="wrap">False</property>
+			  <property name="selectable">False</property>
+			  <property name="xalign">0</property>
+			  <property name="yalign">0.5</property>
+			  <property name="xpad">4</property>
+			  <property name="ypad">0</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">6</property>
+			  <property name="right_attach">7</property>
+			  <property name="top_attach">2</property>
+			  <property name="bottom_attach">3</property>
 			  <property name="x_options">fill</property>
 			  <property name="y_options"></property>
 			</packing>
@@ -21889,7 +21961,7 @@ message</property>
 				  <child>
 				    <widget class="GtkLabel" id="label744">
 				      <property name="visible">True</property>
-				      <property name="label">KiB/s</property>
+				      <property name="label" translatable="yes">KiB/s</property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">False</property>
 				      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -21913,7 +21985,7 @@ message</property>
 				  <child>
 				    <widget class="GtkLabel" id="label745">
 				      <property name="visible">True</property>
-				      <property name="label">KiB/s</property>
+				      <property name="label" translatable="yes">KiB/s</property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">False</property>
 				      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -21937,7 +22009,7 @@ message</property>
 				  <child>
 				    <widget class="GtkLabel" id="label746">
 				      <property name="visible">True</property>
-				      <property name="label" translatable="yes">secs</property>
+				      <property name="label" translatable="yes" context="yes">unit_of_time|s</property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">False</property>
 				      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -22148,7 +22220,7 @@ message</property>
 				  <child>
 				    <widget class="GtkLabel" id="label181">
 				      <property name="visible">True</property>
-				      <property name="label">KiB/s</property>
+				      <property name="label" translatable="yes">KiB/s</property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">False</property>
 				      <property name="justify">GTK_JUSTIFY_CENTER</property>
@@ -22172,7 +22244,7 @@ message</property>
 				  <child>
 				    <widget class="GtkLabel" id="label182">
 				      <property name="visible">True</property>
-				      <property name="label">KiB/s</property>
+				      <property name="label" translatable="yes">KiB/s</property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">False</property>
 				      <property name="justify">GTK_JUSTIFY_CENTER</property>
@@ -22359,7 +22431,7 @@ message</property>
 				  <child>
 				    <widget class="GtkLabel" id="label581">
 				      <property name="visible">True</property>
-				      <property name="label">KiB/s</property>
+				      <property name="label" translatable="yes">KiB/s</property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">False</property>
 				      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -22405,7 +22477,7 @@ message</property>
 				  <child>
 				    <widget class="GtkLabel" id="label582">
 				      <property name="visible">True</property>
-				      <property name="label">KiB/s</property>
+				      <property name="label" translatable="yes">KiB/s</property>
 				      <property name="use_underline">False</property>
 				      <property name="use_markup">False</property>
 				      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -22555,7 +22627,7 @@ message</property>
 			  <child>
 			    <widget class="GtkLabel" id="label125">
 			      <property name="visible">True</property>
-			      <property name="label">KiB/s</property>
+			      <property name="label" translatable="yes">KiB/s</property>
 			      <property name="use_underline">False</property>
 			      <property name="use_markup">False</property>
 			      <property name="justify">GTK_JUSTIFY_CENTER</property>
@@ -22579,7 +22651,7 @@ message</property>
 			  <child>
 			    <widget class="GtkLabel" id="label126">
 			      <property name="visible">True</property>
-			      <property name="label">KiB/s</property>
+			      <property name="label" translatable="yes">KiB/s</property>
 			      <property name="use_underline">False</property>
 			      <property name="use_markup">False</property>
 			      <property name="justify">GTK_JUSTIFY_CENTER</property>
@@ -23821,6 +23893,30 @@ message</property>
 			      <property name="y_options"></property>
 			    </packing>
 			  </child>
+
+			  <child>
+			    <widget class="GtkLabel" id="label985">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">attempts</property>
+			      <property name="use_underline">False</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_LEFT</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">0</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">2</property>
+			      <property name="right_attach">3</property>
+			      <property name="top_attach">1</property>
+			      <property name="bottom_attach">2</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
 			</widget>
 		      </child>
 
@@ -24551,7 +24647,7 @@ message</property>
 			      <property name="selectable">False</property>
 			      <property name="xalign">0</property>
 			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
+			      <property name="xpad">4</property>
 			      <property name="ypad">0</property>
 			    </widget>
 			    <packing>
@@ -24575,7 +24671,7 @@ message</property>
 			      <property name="selectable">False</property>
 			      <property name="xalign">0</property>
 			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
+			      <property name="xpad">4</property>
 			      <property name="ypad">0</property>
 			    </widget>
 			    <packing>
@@ -24719,7 +24815,7 @@ message</property>
 				      <property name="selectable">False</property>
 				      <property name="xalign">0</property>
 				      <property name="yalign">0.5</property>
-				      <property name="xpad">0</property>
+				      <property name="xpad">4</property>
 				      <property name="ypad">0</property>
 				    </widget>
 				    <packing>
@@ -24727,28 +24823,6 @@ message</property>
 				      <property name="right_attach">1</property>
 				      <property name="top_attach">0</property>
 				      <property name="bottom_attach">1</property>
-				      <property name="x_options">fill</property>
-				      <property name="y_options"></property>
-				    </packing>
-				  </child>
-
-				  <child>
-				    <widget class="GtkCheckButton" id="checkbutton_fuzzy_filter_dmesh">
-				      <property name="visible">True</property>
-				      <property name="can_focus">True</property>
-				      <property name="label" translatable="yes">_Apply fuzzy filter on download mesh entries</property>
-				      <property name="use_underline">True</property>
-				      <property name="relief">GTK_RELIEF_NORMAL</property>
-				      <property name="focus_on_click">True</property>
-				      <property name="active">False</property>
-				      <property name="inconsistent">False</property>
-				      <property name="draw_indicator">True</property>
-				    </widget>
-				    <packing>
-				      <property name="left_attach">0</property>
-				      <property name="right_attach">2</property>
-				      <property name="top_attach">1</property>
-				      <property name="bottom_attach">2</property>
 				      <property name="x_options">fill</property>
 				      <property name="y_options"></property>
 				    </packing>
@@ -24772,6 +24846,29 @@ message</property>
 				      <property name="top_attach">0</property>
 				      <property name="bottom_attach">1</property>
 				      <property name="x_options">shrink|fill</property>
+				      <property name="y_options"></property>
+				    </packing>
+				  </child>
+
+				  <child>
+				    <widget class="GtkCheckButton" id="checkbutton_fuzzy_filter_dmesh">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">_Apply fuzzy filter on download mesh entries</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <property name="active">False</property>
+				      <property name="inconsistent">False</property>
+				      <property name="draw_indicator">True</property>
+				    </widget>
+				    <packing>
+				      <property name="left_attach">0</property>
+				      <property name="right_attach">2</property>
+				      <property name="top_attach">1</property>
+				      <property name="bottom_attach">2</property>
+				      <property name="x_padding">4</property>
+				      <property name="x_options">fill</property>
 				      <property name="y_options"></property>
 				    </packing>
 				  </child>

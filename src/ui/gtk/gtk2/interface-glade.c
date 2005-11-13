@@ -10936,6 +10936,8 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *spinbutton_search_queue_size;
   GtkObject *spinbutton_search_queue_spacing_adj;
   GtkWidget *spinbutton_search_queue_spacing;
+  GtkWidget *label983;
+  GtkWidget *label984;
   GtkWidget *label770;
   GtkWidget *frame_expert_gnet_timeout;
   GtkWidget *table10;
@@ -10995,6 +10997,7 @@ create_dlg_prefs_gnet_tab (void)
   GtkObject *spinbutton_node_requery_threshold_adj;
   GtkWidget *spinbutton_node_requery_threshold;
   GtkWidget *checkbutton_node_watch_similar_queries;
+  GtkWidget *label982;
   GtkWidget *label429;
   GtkWidget *hbox287;
   GtkWidget *frame_expert_gnet_connections;
@@ -11595,7 +11598,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox286), frame_expert_search_queue, TRUE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame_expert_search_queue), 4);
 
-  table100 = gtk_table_new (2, 2, FALSE);
+  table100 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table100, "table100");
   gtk_widget_show (table100);
   gtk_container_add (GTK_CONTAINER (frame_expert_search_queue), table100);
@@ -11634,6 +11637,24 @@ create_dlg_prefs_gnet_tab (void)
   gtk_table_attach (GTK_TABLE (table100), spinbutton_search_queue_spacing, 1, 2, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label983 = gtk_label_new (_("slots"));
+  gtk_widget_set_name (label983, "label983");
+  gtk_widget_show (label983);
+  gtk_table_attach (GTK_TABLE (table100), label983, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label983), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label983), 4, 0);
+
+  label984 = gtk_label_new (Q_("unit_of_time|s"));
+  gtk_widget_set_name (label984, "label984");
+  gtk_widget_show (label984);
+  gtk_table_attach (GTK_TABLE (table100), label984, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label984), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label984), 4, 0);
 
   label770 = gtk_label_new (_("Search queue"));
   gtk_widget_set_name (label770, "label770");
@@ -11863,7 +11884,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_quality, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame_expert_gnet_quality), 4);
 
-  table37 = gtk_table_new (3, 6, FALSE);
+  table37 = gtk_table_new (3, 7, FALSE);
   gtk_widget_set_name (table37, "table37");
   gtk_widget_show (table37);
   gtk_container_add (GTK_CONTAINER (frame_expert_gnet_quality), table37);
@@ -11988,6 +12009,15 @@ create_dlg_prefs_gnet_tab (void)
   gtk_table_attach (GTK_TABLE (table37), checkbutton_node_watch_similar_queries, 4, 6, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
+
+  label982 = gtk_label_new (Q_("unit_of_time|s"));
+  gtk_widget_set_name (label982, "label982");
+  gtk_widget_show (label982);
+  gtk_table_attach (GTK_TABLE (table37), label982, 6, 7, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label982), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label982), 4, 0);
 
   label429 = gtk_label_new (_("Quality management"));
   gtk_widget_set_name (label429, "label429");
@@ -12327,6 +12357,8 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label772, "label772");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_search_queue_size, "spinbutton_search_queue_size");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_search_queue_spacing, "spinbutton_search_queue_spacing");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label983, "label983");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label984, "label984");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label770, "label770");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_gnet_timeout, "frame_expert_gnet_timeout");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table10, "table10");
@@ -12372,6 +12404,7 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label774, "label774");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_node_requery_threshold, "spinbutton_node_requery_threshold");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_node_watch_similar_queries, "checkbutton_node_watch_similar_queries");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label982, "label982");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label429, "label429");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, hbox287, "hbox287");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_gnet_connections, "frame_expert_gnet_connections");
@@ -12596,7 +12629,7 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label743), 0, 0.5);
 
-  label744 = gtk_label_new ("KiB/s");
+  label744 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label744, "label744");
   gtk_widget_show (label744);
   gtk_table_attach (GTK_TABLE (table79), label744, 2, 3, 0, 1,
@@ -12604,7 +12637,7 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label744), 0, 0.5);
 
-  label745 = gtk_label_new ("KiB/s");
+  label745 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label745, "label745");
   gtk_widget_show (label745);
   gtk_table_attach (GTK_TABLE (table79), label745, 2, 3, 1, 2,
@@ -12612,7 +12645,7 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label745), 0, 0.5);
 
-  label746 = gtk_label_new (_("secs"));
+  label746 = gtk_label_new (Q_("unit_of_time|s"));
   gtk_widget_set_name (label746, "label746");
   gtk_widget_show (label746);
   gtk_table_attach (GTK_TABLE (table79), label746, 2, 3, 2, 3,
@@ -12706,7 +12739,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table13), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table13), 4);
 
-  label181 = gtk_label_new ("KiB/s");
+  label181 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label181, "label181");
   gtk_widget_show (label181);
   gtk_table_attach (GTK_TABLE (table13), label181, 2, 3, 0, 1,
@@ -12715,7 +12748,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_label_set_justify (GTK_LABEL (label181), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label181), 0, 0.5);
 
-  label182 = gtk_label_new ("KiB/s");
+  label182 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label182, "label182");
   gtk_widget_show (label182);
   gtk_table_attach (GTK_TABLE (table13), label182, 2, 3, 1, 2,
@@ -12791,7 +12824,7 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_glout), TRUE);
 
-  label581 = gtk_label_new ("KiB/s");
+  label581 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label581, "label581");
   gtk_widget_show (label581);
   gtk_table_attach (GTK_TABLE (table62), label581, 2, 3, 0, 1,
@@ -12808,7 +12841,7 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_glin), TRUE);
 
-  label582 = gtk_label_new ("KiB/s");
+  label582 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label582, "label582");
   gtk_widget_show (label582);
   gtk_table_attach (GTK_TABLE (table62), label582, 2, 3, 1, 2,
@@ -12859,7 +12892,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table4), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table4), 4);
 
-  label125 = gtk_label_new ("KiB/s");
+  label125 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label125, "label125");
   gtk_widget_show (label125);
   gtk_table_attach (GTK_TABLE (table4), label125, 2, 3, 0, 1,
@@ -12868,7 +12901,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_label_set_justify (GTK_LABEL (label125), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label125), 0, 0.5);
 
-  label126 = gtk_label_new ("KiB/s");
+  label126 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label126, "label126");
   gtk_widget_show (label126);
   gtk_table_attach (GTK_TABLE (table4), label126, 2, 3, 1, 2,
@@ -13121,6 +13154,7 @@ create_dlg_prefs_dl_tab (void)
   GtkWidget *label171;
   GtkObject *spinbutton_config_download_max_retries_adj;
   GtkWidget *spinbutton_config_download_max_retries;
+  GtkWidget *label985;
   GtkWidget *label298;
   GtkWidget *frame_expert_dl_timeout;
   GtkWidget *table8;
@@ -13177,9 +13211,9 @@ create_dlg_prefs_dl_tab (void)
   GtkWidget *frame103;
   GtkWidget *table93;
   GtkWidget *label555;
-  GtkWidget *checkbutton_fuzzy_filter_dmesh;
   GtkObject *spinbutton_config_fuzzy_threshold_adj;
   GtkWidget *spinbutton_config_fuzzy_threshold;
+  GtkWidget *checkbutton_fuzzy_filter_dmesh;
   GtkWidget *checkbutton_config_use_fuzzy_matching;
   GtkWidget *label366;
   GtkTooltips *tooltips;
@@ -13522,6 +13556,14 @@ create_dlg_prefs_dl_tab (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_max_retries, _("Maximum attempts to make, not counting HTTP busy indications"), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_max_retries), TRUE);
 
+  label985 = gtk_label_new (_("attempts"));
+  gtk_widget_set_name (label985, "label985");
+  gtk_widget_show (label985);
+  gtk_table_attach (GTK_TABLE (table38), label985, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label985), 0, 0.5);
+
   label298 = gtk_label_new (_("Resume and retry"));
   gtk_widget_set_name (label298, "label298");
   gtk_widget_show (label298);
@@ -13806,6 +13848,7 @@ create_dlg_prefs_dl_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label934), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label934), 4, 0);
 
   label935 = gtk_label_new (_("Read-ahead buffer"));
   gtk_widget_set_name (label935, "label935");
@@ -13814,6 +13857,7 @@ create_dlg_prefs_dl_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label935), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label935), 4, 0);
 
   spinbutton_download_buffer_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_download_buffer_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_download_buffer_size_adj), 1, 0);
@@ -13874,13 +13918,7 @@ create_dlg_prefs_dl_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label555), 0, 0.5);
-
-  checkbutton_fuzzy_filter_dmesh = gtk_check_button_new_with_mnemonic (_("_Apply fuzzy filter on download mesh entries"));
-  gtk_widget_set_name (checkbutton_fuzzy_filter_dmesh, "checkbutton_fuzzy_filter_dmesh");
-  gtk_widget_show (checkbutton_fuzzy_filter_dmesh);
-  gtk_table_attach (GTK_TABLE (table93), checkbutton_fuzzy_filter_dmesh, 0, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_padding (GTK_MISC (label555), 4, 0);
 
   spinbutton_config_fuzzy_threshold_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_config_fuzzy_threshold = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_fuzzy_threshold_adj), 1, 0);
@@ -13889,6 +13927,13 @@ create_dlg_prefs_dl_tab (void)
   gtk_table_attach (GTK_TABLE (table93), spinbutton_config_fuzzy_threshold, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_fuzzy_filter_dmesh = gtk_check_button_new_with_mnemonic (_("_Apply fuzzy filter on download mesh entries"));
+  gtk_widget_set_name (checkbutton_fuzzy_filter_dmesh, "checkbutton_fuzzy_filter_dmesh");
+  gtk_widget_show (checkbutton_fuzzy_filter_dmesh);
+  gtk_table_attach (GTK_TABLE (table93), checkbutton_fuzzy_filter_dmesh, 0, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
 
   checkbutton_config_use_fuzzy_matching = gtk_check_button_new_with_mnemonic (_("Use fu_zzy matching"));
   gtk_widget_set_name (checkbutton_config_use_fuzzy_matching, "checkbutton_config_use_fuzzy_matching");
@@ -13977,6 +14022,7 @@ create_dlg_prefs_dl_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label172, "label172");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label171, "label171");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_config_download_max_retries, "spinbutton_config_download_max_retries");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label985, "label985");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label298, "label298");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, frame_expert_dl_timeout, "frame_expert_dl_timeout");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, table8, "table8");
@@ -14020,8 +14066,8 @@ create_dlg_prefs_dl_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, frame103, "frame103");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, table93, "table93");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label555, "label555");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_fuzzy_filter_dmesh, "checkbutton_fuzzy_filter_dmesh");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_config_fuzzy_threshold, "spinbutton_config_fuzzy_threshold");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_fuzzy_filter_dmesh, "checkbutton_fuzzy_filter_dmesh");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_use_fuzzy_matching, "checkbutton_config_use_fuzzy_matching");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label366, "label366");
   GLADE_HOOKUP_OBJECT_NO_REF (dlg_prefs_dl_tab, tooltips, "tooltips");
