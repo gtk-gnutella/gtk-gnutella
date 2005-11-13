@@ -1519,14 +1519,16 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		 * connection uses TLS or not. */
 		ret = recv(s->file_desc, buf, sizeof buf, MSG_PEEK);
 		if (ret > 0) {
-			static const gchar * const shakes[] = {
-				"GET ",		/* HTTP GET request			*/
-				"GIV ",		/* Gnutella PUSH upload 	*/
-				"GNUTELLA CONNECT/",
-				"HEAD ",	/* HTTP HEAD request		*/
-				"HELO ",	/* GTKG remote shell		*/
-				"QUEUE ",	/* PARQ						*/
-				"\n\n",		/* Gnutella connect back	*/
+			static const struct {
+				const gchar *prefix;
+			} shakes[] = {
+				{ "GET " },					/* HTTP GET request			*/
+				{ "GIV " },					/* Gnutella PUSH upload 	*/
+				{ "GNUTELLA CONNECT/" },
+				{ "HEAD " },				/* HTTP HEAD request		*/
+				{ "HELO " },				/* GTKG remote shell		*/
+				{ "QUEUE " },				/* PARQ						*/
+				{ "\n\n" },					/* Gnutella connect back	*/
 			};
 
 			/* We use strncmp() but the buffer might contain dirt. */
@@ -1539,7 +1541,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			/* Check whether the buffer contents match a known clear
 			 * text handshake. */
 			for (i = 0; i < G_N_ELEMENTS(shakes); i++) {
-				if (is_strprefix(buf, shakes[i])) {
+				if (is_strprefix(buf, shakes[i].prefix)) {
 					/* The socket doesn't use TLS. */
 					s->tls.enabled = FALSE;
 					break;
