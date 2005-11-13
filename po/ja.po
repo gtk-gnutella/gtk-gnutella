@@ -70,7 +70,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-11-13 22:16+0900\n"
-"PO-Revision-Date: 2005-11-13 22:18+0900\n"
+"PO-Revision-Date: 2005-11-13 22:30+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -7351,10 +7351,6 @@ msgstr "Gtk-Gnutella について"
 msgid "[name and version]"
 msgstr "[name and version]"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10367
-msgid "$Id$"
-msgstr ""
-
 #: src/ui/gtk/gtk1/interface-glade.c:10400
 #: src/ui/gtk/gtk2/interface-glade.c:1517
 msgid "Original author:"
@@ -9292,7 +9288,7 @@ msgstr "秒 (0 - 無効)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:11641
 msgid "slots"
-msgstr "受口"
+msgstr "の受口"
 
 #: src/ui/gtk/gtk2/interface-glade.c:11650
 #: src/ui/gtk/gtk2/interface-glade.c:12013
@@ -9306,7 +9302,7 @@ msgstr "ベンダーが占有できる接続受口の最大割合です。"
 
 #: src/ui/gtk/gtk2/interface-glade.c:13559
 msgid "attempts"
-msgstr "要求回数"
+msgstr "回"
 
 #: src/ui/gtk/gtk2/interface-glade.c:14326
 msgid "_Remove directory"
