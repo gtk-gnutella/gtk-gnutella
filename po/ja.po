@@ -70,7 +70,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-11-13 22:16+0900\n"
-"PO-Revision-Date: 2005-11-12 07:02+0900\n"
+"PO-Revision-Date: 2005-11-13 22:18+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -82,7 +82,7 @@ msgstr ""
 msgid "No longer connected"
 msgstr "もう接続していません"
 
-# FIXME: separation (src/core/downloads.c src/core/nodes.c)
+# FIXME: separation (src/core/downloads.c, src/core/nodes.c: Timeout -> Timeouted?)
 #: src/core/downloads.c:997 src/core/nodes.c:849 src/ui/gtk/hcache_common.c:43
 msgid "Timeout"
 msgstr "タイムアウト"
@@ -101,6 +101,8 @@ msgid "Suspended (SHA1 checking)"
 msgstr "一時休止 (SHA1 確認中)"
 
 # NOTE: both `s' show localized timestamp
+# XXX: while both `s' in gtk1 show localized strings correctly,
+#      gtk2 doesn't show them.
 #: src/core/downloads.c:2773
 #, c-format
 msgid " at %s - rescheduled for %s"
@@ -110,7 +112,7 @@ msgstr " (現在時: %s, 再予定時: %s)"
 msgid "Waiting for a free chunk"
 msgstr "空きチャンクを待受中"
 
-# FIXME: what does `start' stand for?
+# FIXME: what does `start' mean?
 #: src/core/downloads.c:3330
 msgid "No download slot (start)"
 msgstr "ダウンロード受口がありません (開始)"
@@ -141,12 +143,12 @@ msgid "Connection refused (%u retry)"
 msgid_plural "Connection refused (%u retries)"
 msgstr[0] "接続を拒否されました (%u 回目)"
 
-# FIXME: wtf
+# FIXME: gtkg found duplicated SHA1 or duplicates SHA1, which?
 #: src/core/downloads.c:3947
 msgid "Dup SHA1 during creation"
 msgstr "重複する SHA1 を発見しました"
 
-# FIXME: what does `create' stand for?
+# FIXME: what does `create' mean?
 #: src/core/downloads.c:3968
 msgid "No download slot (create)"
 msgstr "ダウンロード受口がありません (作成)"
@@ -690,19 +692,19 @@ msgstr "通常ノード"
 #: src/core/shell.c:680 src/ui/gtk/gtk1/interface-glade.c:2814
 #: src/ui/gtk/gtk2/gnet_stats.c:458
 msgid "Hops"
-msgstr "ホップ"
+msgstr "ホップ数"
 
 # FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
 #: src/core/shell.c:681 src/ui/gtk/gtk1/interface-glade.c:2823
 #: src/ui/gtk/gtk1/interface-glade.c:5814 src/ui/gtk/gtk2/gnet_stats.c:459
 msgid "Nodes"
-msgstr "ノード"
+msgstr "ノード数"
 
 # FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
 #: src/core/shell.c:682 src/ui/gtk/gtk1/interface-glade.c:2832
 #: src/ui/gtk/gtk1/interface-glade.c:5832 src/ui/gtk/gtk2/gnet_stats.c:460
 msgid "Files"
-msgstr "ファイル"
+msgstr "ファイル数"
 
 #: src/core/shell.c:683 src/ui/gtk/gtk1/interface-glade.c:2841
 #: src/ui/gtk/gtk1/interface-glade.c:3294
@@ -896,15 +898,15 @@ msgstr "SOCKS バージョン５"
 
 #: src/if/gnet_property.c:275
 msgid "IPv4 only"
-msgstr "IPv4のみ"
+msgstr "IPv4 のみ"
 
 #: src/if/gnet_property.c:276
 msgid "IPv6 only"
-msgstr "IPv6のみ"
+msgstr "IPv6 のみ"
 
 #: src/if/gnet_property.c:277
 msgid "IPv4 and IPv6"
-msgstr "IPv4とIPv6"
+msgstr "IPv4 と IPv6"
 
 #: src/if/gnet_property.c:406
 msgid "displayed normally"
@@ -1381,7 +1383,7 @@ msgstr "Bitzi 関連のバグ解析メッセージの冗長度です。"
 
 #: src/if/gnet_property.c:1963
 msgid "Verbosity of GWebCache related debug messages."
-msgstr "G ウェブキャッシュ関連のバグ解析メッセージの冗長度です。"
+msgstr "Gnutella ウェブキャッシュ関連のバグ解析メッセージの冗長度です。"
 
 #: src/if/gnet_property.c:1983
 msgid "Verbosity of URL handling related debug messages."
@@ -2804,10 +2806,10 @@ msgid "Query"
 msgstr "検索クエリー"
 
 #: src/if/gui_property.c:222
-#, fuzzy
 msgid "Query Hit"
 msgstr "検索クエリーヒット"
 
+# FIXME: separation (src/if/gui_property.c: Total -> All)
 #: src/if/gui_property.c:223 src/ui/gtk/gnet_stats_common.c:57
 #: src/ui/gtk/gtk1/interface-glade.c:5666 src/ui/gtk/gtk2/search_stats.c:384
 msgid "Total"
@@ -3130,7 +3132,7 @@ msgstr "ダウンロード設定を表示します。"
 
 #: src/if/gui_property.c:1572
 msgid "Collect statistics about searches that go through this node."
-msgstr "このノードを通過した検索に関する統計を集めます。"
+msgstr "このノードを通過して行く検索クエリーに関する統計を取ります。"
 
 #: src/if/gui_property.c:1592
 msgid "Interval in which the search stats are updated."
@@ -3178,7 +3180,7 @@ msgstr "表示されるステータスのソースを選択します。"
 
 #: src/if/gui_property.c:1754
 msgid "Choose message type for drop reasons."
-msgstr ""
+msgstr "破棄の理由を表示するメッセージの種類を選択して下さい。"
 
 #: src/if/gui_property.c:1774
 msgid "Include Gnutella packet header size to the volume."
@@ -5141,7 +5143,7 @@ msgstr "%d秒後に再実行"
 msgid "Sinking (%s bytes left)"
 msgstr "Sinking (%s バイト残存)"
 
-# FIXME: separation
+# FIXME: separation (src/ui/gtk/gtk2/upload_stats.c: Complete -> Completes)
 #: src/ui/gtk/gtk1/downloads.c:1360 src/ui/gtk/gtk1/interface-glade.c:3511
 #: src/ui/gtk/gtk2/downloads.c:1316 src/ui/gtk/gtk2/upload_stats.c:271
 msgid "Complete"
@@ -6594,9 +6596,10 @@ msgstr "更新する間隔(_U) (秒)"
 msgid "_Deletion coeff. (0-100)"
 msgstr "削除係数(_D) (0-100) "
 
+# FIXME: `Search Term' -> `Searches' or `Search queries'
 #: src/ui/gtk/gtk1/interface-glade.c:5649 src/ui/gtk/gtk2/search_stats.c:382
 msgid "Search Term"
-msgstr "検索用語"
+msgstr "検索クエリー"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5658 src/ui/gtk/gtk2/search_stats.c:383
 msgid "This Interval"
@@ -6624,7 +6627,7 @@ msgstr "状態をリセット(_R)"
 #: src/ui/gtk/gtk1/interface-glade.c:5718
 #: src/ui/gtk/gtk2/interface-glade.c:6131
 msgid "0 terms counted"
-msgstr "0 語の検索用語数"
+msgstr "0 件の検索クエリー"
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
 #: src/ui/gtk/gtk1/interface-glade.c:5729
@@ -7348,6 +7351,10 @@ msgstr "Gtk-Gnutella について"
 msgid "[name and version]"
 msgstr "[name and version]"
 
+#: src/ui/gtk/gtk1/interface-glade.c:10367
+msgid "$Id$"
+msgstr ""
+
 #: src/ui/gtk/gtk1/interface-glade.c:10400
 #: src/ui/gtk/gtk2/interface-glade.c:1517
 msgid "Original author:"
@@ -7543,12 +7550,12 @@ msgstr "代理サーバーの種類(_T):"
 #: src/ui/gtk/gtk1/interface-glade.c:11852
 #: src/ui/gtk/gtk2/interface-glade.c:10357
 msgid "Use username and password to _authenticate to proxy"
-msgstr "代理サーバー認証でユーザ名とパスワードを使用する(_A)"
+msgstr "代理サーバーの認証に利用者名とパスワードを使用する(_A)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11866
 #: src/ui/gtk/gtk2/interface-glade.c:10367
 msgid "_Username"
-msgstr "ユーザ名(_U)"
+msgstr "利用者名(_U)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11879
 #: src/ui/gtk/gtk2/interface-glade.c:10379
@@ -7661,7 +7668,7 @@ msgstr "時計の同期化"
 #: src/ui/gtk/gtk1/interface-glade.c:12144
 #: src/ui/gtk/gtk2/interface-glade.c:10582
 msgid "Host runs _NTP"
-msgstr "ホストが NTP を実行(_N)"
+msgstr "NTP を実行している(_N)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12156
 #: src/ui/gtk/gtk2/interface-glade.c:10574
@@ -8337,7 +8344,7 @@ msgstr "再実行中断の遅延秒数"
 msgid "Retry refused delay"
 msgstr "再実行拒否の遅延秒数"
 
-# FIXME: mess translation
+# FIXME: messy
 #: src/ui/gtk/gtk1/interface-glade.c:14903
 #: src/ui/gtk/gtk2/interface-glade.c:13747
 msgid "Retry busy delay"
@@ -8949,9 +8956,8 @@ msgstr "拡張子"
 
 #: src/ui/gtk/gtk1/search.c:2172 src/ui/gtk/gtk1/search.c:2178
 #: src/ui/gtk/gtk2/search.c:1488
-#, fuzzy
 msgid "Encoding"
-msgstr "内への接続"
+msgstr "エンコード方式"
 
 #: src/ui/gtk/gtk1/search.c:2188 src/ui/gtk/gtk1/search.c:2194
 #: src/ui/gtk/gtk2/search.c:1490
@@ -8997,7 +9003,7 @@ msgstr "受動検索"
 #, c-format
 msgid "%u term counted"
 msgid_plural "%u terms counted"
-msgstr[0] "%u 語の検索用語数"
+msgstr[0] "%u 件の検索クエリー"
 
 #: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:92
 #: src/ui/gtk/gtk2/support-glade.c:116
@@ -9035,6 +9041,7 @@ msgstr "リクエストを送信しています (%u%%)"
 msgid "< 1s"
 msgstr "1秒未満"
 
+# FIXME: wtf
 #: src/ui/gtk/gtk2/downloads.c:1536
 msgid "SHA1 figure"
 msgstr "SHA1 形態"
@@ -9284,22 +9291,20 @@ msgid "seconds (0 - disable)"
 msgstr "秒 (0 - 無効)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:11641
-#, fuzzy
 msgid "slots"
-msgstr "受口:"
+msgstr "受口"
 
 #: src/ui/gtk/gtk2/interface-glade.c:11650
 #: src/ui/gtk/gtk2/interface-glade.c:12013
 #: src/ui/gtk/gtk2/interface-glade.c:12648
 msgid "unit_of_time|s"
-msgstr ""
+msgstr "秒"
 
 #: src/ui/gtk/gtk2/interface-glade.c:12096
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "ベンダーが占有できる接続受口の最大割合です。"
 
 #: src/ui/gtk/gtk2/interface-glade.c:13559
-#, fuzzy
 msgid "attempts"
 msgstr "要求回数"
 
@@ -9571,13 +9576,13 @@ msgid "browsable"
 msgstr "閲覧可"
 
 #: src/ui/gtk/search_common.c:1158
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
 "TCP, %u UDP)"
 msgstr ""
-"%s%u %s (%u 省略, %u 無視, %u 隠す, %u 自動DL, %u %s) がヒット: %u (%u TCP, %"
-"u UDP)"
+"%u %s (%u 省略, %u 無視, %u 隠す, %u 自動DL, %u %s) がヒット: %u (%u TCP, %u "
+"UDP)"
 
 #: src/ui/gtk/search_common.c:1161
 msgid "item"
@@ -9594,29 +9599,28 @@ msgid "No search"
 msgstr "検索無し"
 
 #: src/ui/gtk/search_common.c:1206
-#, fuzzy
 msgid "Passive search"
-msgstr "(受動検索) "
+msgstr "受動検索"
 
 # NOTE:
 #: src/ui/gtk/search_common.c:1221
 #, c-format
 msgid "Expires in %s"
-msgstr "%sで無効にする"
+msgstr "%sで無効になります"
 
 # NOTE:
 #: src/ui/gtk/search_common.c:1225
 #, c-format
 msgid "Expired after %s"
-msgstr "%s後に無効にする"
+msgstr "%s後に無効になります"
 
 #: src/ui/gtk/search_common.c:1232
 msgid "Expires with this session"
-msgstr "このセッションで無効にする"
+msgstr "このセッションで無効になります"
 
 #: src/ui/gtk/search_common.c:1235
 msgid "[stopped]"
-msgstr "[打切]"
+msgstr "[打ち切られました]"
 
 #: src/ui/gtk/search_common.c:1532
 msgid "The query string is not UTF-8 encoded"
@@ -9811,7 +9815,3 @@ msgstr "QUEUE 送信、折り返し接続中..."
 #: src/ui/gtk/uploads_common.c:205
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE 送信完了、ヘッダーを待受中..."
-
-# NOTE: charset and encoding aren't always 1 by 1
-#~ msgid "Charset"
-#~ msgstr "エンコード方式"
