@@ -373,13 +373,13 @@ update_multichoice(property_t prop)
     }
 
     switch (map_entry->type) {
-        case PROP_TYPE_MULTICHOICE:
-            stub->guint32.get(prop, &val, 0, 1);
-            break;
-        default:
-            val = 0;
-            g_error("update_multichoice: incompatible type: %u",
-                (guint) map_entry->type);
+	case PROP_TYPE_MULTICHOICE:
+		stub->guint32.get(prop, &val, 0, 1);
+		break;
+	default:
+		val = 0;
+		g_error("update_multichoice: incompatible type: %u",
+			(guint) map_entry->type);
     }
 
 	if (GTK_IS_COMBO(w)) {
@@ -393,7 +393,8 @@ update_multichoice(property_t prop)
 			}
 		}
 	} else if (GTK_IS_OPTION_MENU(w)) {
-		/* FIXME: Implement this */
+		option_menu_select_item_by_data(GTK_OPTION_MENU(w),
+			GUINT_TO_POINTER(val));
 	} else {
 		g_assert_not_reached();
 	}

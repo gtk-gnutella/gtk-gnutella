@@ -160,7 +160,6 @@ option_menu_select_item_by_data(GtkOptionMenu *option_menu, gconstpointer data)
     gint i;
 
     g_assert(option_menu);
-    g_assert(data);
     g_assert(GTK_IS_OPTION_MENU(option_menu));
 
     iter = GTK_MENU_SHELL(gtk_option_menu_get_menu(option_menu))->children;
