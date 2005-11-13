@@ -2169,13 +2169,13 @@ gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
     gtk_widget_show_all(hbox);
     gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_ext, _("Extension"));
 
-	label = gtk_label_new(_("Charset"));
+	label = gtk_label_new(_("Encoding"));
     gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
     hbox = gtk_hbox_new(FALSE, 4);
     gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
 	gtk_clist_set_column_widget(GTK_CLIST(*ctree), c_sr_charset, hbox);
     gtk_widget_show_all(hbox);
-    gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_charset, _("Charset"));
+    gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_charset, _("Encoding"));
 
 	label = gtk_label_new(_("Size"));
     gtk_misc_set_alignment(GTK_MISC(label),0,0.5);

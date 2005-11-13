@@ -1485,7 +1485,7 @@ add_results_columns(GtkTreeView *treeview, gpointer udata)
 	} columns[] = {
 		{ N_("File"),	   c_sr_filename, 0.0, search_gui_cmp_filename },
 		{ N_("Extension"), c_sr_ext,	  0.0, search_gui_cmp_ext },
-		{ N_("Charset"),   c_sr_charset,  0.0, search_gui_cmp_charset },
+		{ N_("Encoding"),  c_sr_charset,  0.0, search_gui_cmp_charset },
 		{ N_("Size"),	   c_sr_size,	  1.0, search_gui_cmp_size },
 		{ N_("#"),		   c_sr_count,	  1.0, search_gui_cmp_count },
 		{ N_("Loc"),	   c_sr_loc,	  0.0, search_gui_cmp_country },
