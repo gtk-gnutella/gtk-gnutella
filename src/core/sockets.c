@@ -1522,10 +1522,11 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			static const gchar * const shakes[] = {
 				"GET ",		/* HTTP GET request			*/
 				"GIV ",		/* Gnutella PUSH upload 	*/
-				"HEAD ",	/* HTTP HEAD request		*/
-				"\n\n",		/* Gnutella connect back	*/
-				"HELO ",	/* GTKG remote shell		*/
 				"GNUTELLA CONNECT/",
+				"HEAD ",	/* HTTP HEAD request		*/
+				"HELO ",	/* GTKG remote shell		*/
+				"QUEUE ",	/* PARQ						*/
+				"\n\n",		/* Gnutella connect back	*/
 			};
 
 			/* We use strncmp() but the buffer might contain dirt. */
