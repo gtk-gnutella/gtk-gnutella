@@ -2313,7 +2313,7 @@
 		      <class>GtkEntry</class>
 		      <name>entry_nodes_ip</name>
 		      <width>72</width>
-		      <tooltip>The current IP address and listening port for this node. To change these go to Settings-&gt;Preferences-&gt;Network.</tooltip>
+		      <tooltip>The current IP address and listening port for this node. To change these go to File-&gt;Preferences-&gt;Network.</tooltip>
 		      <can_focus>True</can_focus>
 		      <editable>False</editable>
 		      <text_visible>True</text_visible>

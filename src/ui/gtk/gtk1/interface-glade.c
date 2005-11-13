@@ -2314,7 +2314,7 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_usize (entry_nodes_ip, 72, -2);
-  gtk_tooltips_set_tip (tooltips, entry_nodes_ip, _("The current IP address and listening port for this node. To change these go to Settings->Preferences->Network."), NULL);
+  gtk_tooltips_set_tip (tooltips, entry_nodes_ip, _("The current IP address and listening port for this node. To change these go to File->Preferences->Network."), NULL);
   gtk_entry_set_editable (GTK_ENTRY (entry_nodes_ip), FALSE);
 
   label_gnutellanet = gtk_label_new (_("#|Gnet"));

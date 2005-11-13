@@ -3812,7 +3812,7 @@ create_main_window_gnet_tab (void)
   gtk_widget_set_name (eventbox12, "eventbox12");
   gtk_widget_show (eventbox12);
   gtk_box_pack_start (GTK_BOX (hbox151), eventbox12, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox12, _("The current IP address and listening port for this node. To change these go to Settings->Preferences->Network."), NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox12, _("The current IP address and listening port for this node. To change these go to File->Preferences->Network."), NULL);
 
   label_nodes_ip = gtk_label_new ("");
   gtk_widget_set_name (label_nodes_ip, "label_nodes_ip");

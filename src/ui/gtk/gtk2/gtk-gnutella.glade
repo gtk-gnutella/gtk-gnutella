@@ -5545,7 +5545,7 @@ http://maxmind.com/</property>
 			      <child>
 				<widget class="GtkEventBox" id="eventbox12">
 				  <property name="visible">True</property>
-				  <property name="tooltip" translatable="yes">The current IP address and listening port for this node. To change these go to Settings-&gt;Preferences-&gt;Network.</property>
+				  <property name="tooltip" translatable="yes">The current IP address and listening port for this node. To change these go to File-&gt;Preferences-&gt;Network.</property>
 				  <property name="visible_window">True</property>
 				  <property name="above_child">False</property>
 
