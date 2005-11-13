@@ -105,6 +105,7 @@ struct vendor {
     { T_RASP, "Rasputin" },
     { T_RAZA, "Shareaza" },
     { T_SHNB, "Shinobu" },
+    { T_SNOW, "FrostWire" },
     { T_SNUT, "SwapNut" },
     { T_STRM, "Storm" },
     { T_SWAP, "Swapper" },

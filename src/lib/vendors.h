@@ -105,6 +105,7 @@
 #define T_RASP  MAKE_CODE('R','A','S','P')
 #define T_RAZA	MAKE_CODE('R','A','Z','A')
 #define T_SHNB	MAKE_CODE('S','H','N','B')
+#define T_SNOW	MAKE_CODE('S','N','O','W')
 #define T_SNUT	MAKE_CODE('S','N','U','T')
 #define T_STRM  MAKE_CODE('S','T','R','M')
 #define T_SWAP	MAKE_CODE('S','W','A','P')
