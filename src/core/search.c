@@ -1179,8 +1179,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 
 						ret = ggept_gtkg_ipv6_extract(e, &addr);
 						if (GGEP_OK == ret) {
-							/* XXX: Check validity, hostiles etc. */
-							if (is_host_addr(addr))
+							if (is_host_addr(addr) && !hostiles_check(rs->addr))
 								rs->addr = addr;
 						} else if (ret == GGEP_INVALID) {
 							if (search_debug > 3 || ggep_debug > 3) {
@@ -2516,7 +2515,11 @@ search_new_muid(gboolean initial)
 	addr = listen_addr();
 
 	for (i = 0; i < 100; i++) {
-		if (udp_active() && host_addr_is_routable(addr))
+		if (
+			udp_active() &&
+			NET_TYPE_IPV4 == host_addr_net(addr) &&
+			host_addr_is_routable(addr)
+		)
 			guid_query_oob_muid(muid, addr, listen_port, initial);
 		else
 			guid_query_muid(muid, initial);
