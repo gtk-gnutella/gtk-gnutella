@@ -1253,7 +1253,7 @@ filter_gui_edit_rule(rule_t *r)
 void
 filter_gui_edit_ip_rule(rule_t *r)
 {
-    gchar *ip, *mask;
+    gchar *ip;
     gpointer target = DEFAULT_TARGET;
     gboolean invert = FALSE;
     gboolean active = TRUE;
@@ -1265,23 +1265,19 @@ filter_gui_edit_ip_rule(rule_t *r)
         return;
 
     if (r != NULL) {
-        ip     = g_strdup(ip_to_string(r->u.ip.addr));
-        mask   = g_strdup(ip_to_string(r->u.ip.mask));
+        ip   = g_strdup_printf("%s/%u",
+					host_addr_to_string(r->u.ip.addr), r->u.ip.mask);
         target = r->target;
         invert = RULE_IS_NEGATED(r);
         active = RULE_IS_ACTIVE(r);
         soft   = RULE_IS_SOFT(r);
     } else {
 		ip = g_strdup("");
-		mask = g_strdup("255.255.255.255");
 	}
 
     gtk_entry_set_text(
         GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_ip_address")),
         ip);
-    gtk_entry_set_text(
-        GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_ip_mask")),
-        mask);
     option_menu_select_item_by_data(GTK_OPTION_MENU(
 			lookup_widget(filter_dialog, "optionmenu_filter_ip_target")),
         target);
@@ -1299,7 +1295,6 @@ filter_gui_edit_ip_rule(rule_t *r)
         soft);
 
    	G_FREE_NULL(ip);
-   	G_FREE_NULL(mask);
 
     gtk_notebook_set_page(
         GTK_NOTEBOOK(lookup_widget(filter_dialog, "notebook_filter_detail")),
@@ -1367,7 +1362,7 @@ filter_gui_edit_sha1_rule(rule_t *r)
 
 
 /**
- * Load a ip rule into the rule edtior or clear it if the rule is NULL.
+ * Load a text rule into the rule edtior or clear it if the rule is NULL.
  */
 
 void
@@ -1431,7 +1426,7 @@ filter_gui_edit_text_rule(rule_t *r)
 
 
 /**
- * Load a ip rule into the rule edtior or clear it if the rule is NULL.
+ * Load a size rule into the rule edtior or clear it if the rule is NULL.
  */
 void
 filter_gui_edit_size_rule(rule_t *r)
@@ -1488,7 +1483,7 @@ filter_gui_edit_size_rule(rule_t *r)
 
 
 /**
- * Load a ip rule into the rule edtior or clear it if the rule is NULL.
+ * Load a jump rule into the rule edtior or clear it if the rule is NULL.
  */
 void
 filter_gui_edit_jump_rule(rule_t *r)
@@ -1946,14 +1941,16 @@ filter_gui_get_text_rule(void)
 static rule_t *
 filter_gui_get_ip_rule(void)
 {
+	const gchar *ep;
     gchar *s;
-    guint32 addr;
+    host_addr_t addr;
     guint32 mask;
     filter_t *target;
     gboolean negate;
     gboolean active;
     gboolean soft;
     guint16 flags;
+	gint error;
 
     g_return_val_if_fail(filter_dialog != NULL, NULL);
 
@@ -1961,14 +1958,11 @@ filter_gui_get_ip_rule(void)
         	GTK_EDITABLE(lookup_widget(filter_dialog,
 								"entry_filter_ip_address")),
         	0, -1));
-	addr = ntohl(inet_addr(s));
-	G_FREE_NULL(s);
-
-	s = STRTRACK(gtk_editable_get_chars(
-        GTK_EDITABLE
-            (lookup_widget(filter_dialog, "entry_filter_ip_mask")),
-        0, -1));
-	mask = ntohl(inet_addr(s));
+	addr = string_to_host_addr(s, &ep);
+	if (*ep == '/')
+		mask = parse_uint32(&ep[1], NULL, 10, &error);
+	else
+		mask = -1;
 	G_FREE_NULL(s);
 
    	negate = gtk_toggle_button_get_active(

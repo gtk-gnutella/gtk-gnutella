@@ -10556,7 +10556,7 @@ for all filters</label>
 			    <class>GtkTable</class>
 			    <name>table23</name>
 			    <border_width>2</border_width>
-			    <rows>2</rows>
+			    <rows>1</rows>
 			    <columns>2</columns>
 			    <homogeneous>False</homogeneous>
 			    <row_spacing>2</row_spacing>
@@ -10570,7 +10570,7 @@ for all filters</label>
 			    <widget>
 			      <class>GtkLabel</class>
 			      <name>label191</name>
-			      <label>IP address</label>
+			      <label>IP address/mask</label>
 			      <justify>GTK_JUSTIFY_CENTER</justify>
 			      <wrap>False</wrap>
 			      <xalign>0</xalign>
@@ -10582,32 +10582,6 @@ for all filters</label>
 				<right_attach>1</right_attach>
 				<top_attach>0</top_attach>
 				<bottom_attach>1</bottom_attach>
-				<xpad>0</xpad>
-				<ypad>0</ypad>
-				<xexpand>False</xexpand>
-				<yexpand>False</yexpand>
-				<xshrink>False</xshrink>
-				<yshrink>False</yshrink>
-				<xfill>True</xfill>
-				<yfill>False</yfill>
-			      </child>
-			    </widget>
-
-			    <widget>
-			      <class>GtkLabel</class>
-			      <name>label143</name>
-			      <label>network mask</label>
-			      <justify>GTK_JUSTIFY_CENTER</justify>
-			      <wrap>False</wrap>
-			      <xalign>0.5</xalign>
-			      <yalign>0.5</yalign>
-			      <xpad>0</xpad>
-			      <ypad>0</ypad>
-			      <child>
-				<left_attach>0</left_attach>
-				<right_attach>1</right_attach>
-				<top_attach>1</top_attach>
-				<bottom_attach>2</bottom_attach>
 				<xpad>0</xpad>
 				<ypad>0</ypad>
 				<xexpand>False</xexpand>
@@ -10632,30 +10606,6 @@ for all filters</label>
 				<right_attach>2</right_attach>
 				<top_attach>0</top_attach>
 				<bottom_attach>1</bottom_attach>
-				<xpad>0</xpad>
-				<ypad>0</ypad>
-				<xexpand>True</xexpand>
-				<yexpand>False</yexpand>
-				<xshrink>False</xshrink>
-				<yshrink>False</yshrink>
-				<xfill>True</xfill>
-				<yfill>False</yfill>
-			      </child>
-			    </widget>
-
-			    <widget>
-			      <class>GtkEntry</class>
-			      <name>entry_filter_ip_mask</name>
-			      <can_focus>True</can_focus>
-			      <editable>True</editable>
-			      <text_visible>True</text_visible>
-			      <text_max_length>0</text_max_length>
-			      <text></text>
-			      <child>
-				<left_attach>1</left_attach>
-				<right_attach>2</right_attach>
-				<top_attach>1</top_attach>
-				<bottom_attach>2</bottom_attach>
 				<xpad>0</xpad>
 				<ypad>0</ypad>
 				<xexpand>True</xexpand>

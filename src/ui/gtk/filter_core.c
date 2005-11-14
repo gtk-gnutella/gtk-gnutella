@@ -463,27 +463,25 @@ filter_duplicate_rule(const rule_t *r)
 
     switch (r->type) {
     case RULE_TEXT:
-        return filter_new_text_rule
-            (r->u.text.match, r->u.text.type, r->u.text.case_sensitive,
-            r->target, r->flags);
+        return filter_new_text_rule(r->u.text.match, r->u.text.type,
+					r->u.text.case_sensitive, r->target, r->flags);
     case RULE_IP:
-        return filter_new_ip_rule
-            (r->u.ip.addr, r->u.ip.mask, r->target, r->flags);
+        return filter_new_ip_rule(r->u.ip.addr, r->u.ip.mask,
+					r->target, r->flags);
     case RULE_SIZE:
-        return filter_new_size_rule
-            (r->u.size.lower, r->u.size.upper, r->target, r->flags);
+        return filter_new_size_rule(r->u.size.lower, r->u.size.upper,
+					r->target, r->flags);
     case RULE_JUMP:
         return filter_new_jump_rule(r->target, r->flags);
     case RULE_SHA1:
-        return filter_new_sha1_rule
-            (r->u.sha1.hash, r->u.sha1.filename, r->target, r->flags);
+        return filter_new_sha1_rule(r->u.sha1.hash, r->u.sha1.filename,
+					r->target, r->flags);
     case RULE_FLAG:
-        return filter_new_flag_rule
-            (r->u.flag.stable, r->u.flag.busy, r->u.flag.push,
-            r->target, r->flags);
+        return filter_new_flag_rule(r->u.flag.stable, r->u.flag.busy,
+				r->u.flag.push, r->target, r->flags);
     case RULE_STATE:
-        return filter_new_state_rule
-            (r->u.state.display, r->u.state.download, r->target, r->flags);
+        return filter_new_state_rule(r->u.state.display, r->u.state.download,
+				r->target, r->flags);
     }
 
 	g_error("filter_duplicate_rule: unknown rule type: %d", r->type);
@@ -564,7 +562,8 @@ filter_new_text_rule(const gchar *match, gint type,
 
 
 rule_t *
-filter_new_ip_rule(guint32 addr, guint32 mask, filter_t *target, guint16 flags)
+filter_new_ip_rule(const host_addr_t addr, guint8 mask,
+	filter_t *target, guint16 flags)
 {
 	rule_t *r;
 
@@ -576,7 +575,6 @@ filter_new_ip_rule(guint32 addr, guint32 mask, filter_t *target, guint16 flags)
 
 	r->u.ip.addr  = addr;
 	r->u.ip.mask  = mask;
-	r->u.ip.addr &= r->u.ip.mask;
     r->target     = target;
     r->flags      = flags;
     set_flags(r->flags, RULE_FLAG_VALID);
@@ -983,8 +981,8 @@ filter_rule_condition_to_string(const rule_t *r)
 		}
         break;
     case RULE_IP:
-		gm_snprintf(tmp, sizeof tmp, _("If IP address matches %s/%s"),
-			ip_to_string(r->u.ip.addr), ip_to_string2(r->u.ip.mask));
+		gm_snprintf(tmp, sizeof tmp, _("If IP address matches %s/%u"),
+			host_addr_to_string(r->u.ip.addr), r->u.ip.mask);
         break;
     case RULE_SIZE:
 		if (r->u.size.upper == r->u.size.lower) {
@@ -2141,14 +2139,8 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
                 break;
 			}
             case RULE_IP:
-				{
-					guint32 ip;
-
-					/* @todo TODO: IPv6  */
-					ip = host_addr_ipv4(rec->results_set->addr);
-                	if ((ip & r->u.ip.mask) == r->u.ip.addr)
-                    	match = TRUE;
-				}
+				match = host_addr_matches(rec->results_set->addr,
+							r->u.ip.addr, r->u.ip.mask);
                 break;
             case RULE_SIZE:
                 if (rec->size >= r->u.size.lower &&
@@ -2707,15 +2699,13 @@ void
 filter_add_drop_host_rule(const struct record *rec, filter_t *filter)
 {
     rule_t *rule;
-	guint ip;
 
     g_assert(rec != NULL);
     g_assert(filter != NULL);
 	g_assert(rec->magic == RECORD_MAGIC);
 	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
-	ip = host_addr_ipv4(rec->results_set->addr); /* @todo TODO: IPv6  */
-    rule = filter_new_ip_rule(ip, 0xFFFFFFFF,
+    rule = filter_new_ip_rule(rec->results_set->addr, -1,
         		filter_get_drop_target(), RULE_FLAG_ACTIVE);
 
     filter_append_rule(filter, rule);

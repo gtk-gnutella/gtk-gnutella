@@ -816,8 +816,9 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
         break;
     case RULE_IP:
         newxml = xml_new_empty_child(parent, NODE_RULE_IP);
-        xml_prop_set(newxml, TAG_RULE_IP_ADDR, ip_to_string(r->u.ip.addr));
-        xml_prop_set(newxml, TAG_RULE_IP_MASK, ip_to_string(r->u.ip.mask));
+        xml_prop_set(newxml, TAG_RULE_IP_ADDR,
+			host_addr_to_string(r->u.ip.addr));
+        xml_prop_printf(newxml, TAG_RULE_IP_MASK, "%u", r->u.ip.mask);
         break;
     case RULE_SIZE:
 		{
@@ -1240,7 +1241,7 @@ xml_to_text_rule(xmlNodePtr xmlnode, gpointer data)
 static void
 xml_to_ip_rule(xmlNodePtr xmlnode, gpointer data)
 {
-    guint32 addr;
+    host_addr_t addr;
     guint32 mask;
     gchar *buf;
     rule_t *rule;
@@ -1259,7 +1260,7 @@ xml_to_ip_rule(xmlNodePtr xmlnode, gpointer data)
         g_warning("xml_to_ip_rule: rule without ip address");
 		return;
 	}
-	addr = string_to_ip(buf);	/* XXX: Needs validity check! */
+	addr = string_to_host_addr(buf, NULL); /* XXX: Needs validity check! */
     G_FREE_NULL(buf);
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_IP_MASK));
@@ -1267,7 +1268,15 @@ xml_to_ip_rule(xmlNodePtr xmlnode, gpointer data)
         g_warning("xml_to_ip_rule: rule without netmask");
 		return;
 	}
-	mask = string_to_ip(buf);	/* XXX: Needs validity check! */
+	mask = string_to_ip(buf);
+	if (mask == 0) {
+		gint error;
+		mask = parse_uint16(buf, NULL, 10, &error);
+		/* XXX: Needs validity check! */
+	} else {
+		/* For backwards-compatibility */
+		mask = netmask_to_cidr(mask);
+	}
     G_FREE_NULL(buf);
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_TARGET));

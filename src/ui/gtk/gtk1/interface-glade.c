@@ -7521,9 +7521,7 @@ create_dlg_filters (void)
   GtkWidget *hbox118;
   GtkWidget *table23;
   GtkWidget *label191;
-  GtkWidget *label143;
   GtkWidget *entry_filter_ip_address;
-  GtkWidget *entry_filter_ip_mask;
   GtkWidget *hbox109;
   GtkWidget *frame24;
   GtkWidget *optionmenu_filter_ip_target;
@@ -8413,7 +8411,7 @@ create_dlg_filters (void)
   gtk_widget_show (hbox118);
   gtk_container_add (GTK_CONTAINER (frame23), hbox118);
 
-  table23 = gtk_table_new (2, 2, FALSE);
+  table23 = gtk_table_new (1, 2, FALSE);
   gtk_widget_set_name (table23, "table23");
   gtk_widget_ref (table23);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "table23", table23,
@@ -8424,7 +8422,7 @@ create_dlg_filters (void)
   gtk_table_set_row_spacings (GTK_TABLE (table23), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table23), 4);
 
-  label191 = gtk_label_new (_("IP address"));
+  label191 = gtk_label_new (_("IP address/mask"));
   gtk_widget_set_name (label191, "label191");
   gtk_widget_ref (label191);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label191", label191,
@@ -8435,16 +8433,6 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label191), 0, 0.5);
 
-  label143 = gtk_label_new (_("network mask"));
-  gtk_widget_set_name (label143, "label143");
-  gtk_widget_ref (label143);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label143", label143,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label143);
-  gtk_table_attach (GTK_TABLE (table23), label143, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
   entry_filter_ip_address = gtk_entry_new ();
   gtk_widget_set_name (entry_filter_ip_address, "entry_filter_ip_address");
   gtk_widget_ref (entry_filter_ip_address);
@@ -8452,16 +8440,6 @@ create_dlg_filters (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_filter_ip_address);
   gtk_table_attach (GTK_TABLE (table23), entry_filter_ip_address, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  entry_filter_ip_mask = gtk_entry_new ();
-  gtk_widget_set_name (entry_filter_ip_mask, "entry_filter_ip_mask");
-  gtk_widget_ref (entry_filter_ip_mask);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "entry_filter_ip_mask", entry_filter_ip_mask,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_filter_ip_mask);
-  gtk_table_attach (GTK_TABLE (table23), entry_filter_ip_mask, 1, 2, 1, 2,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -10364,7 +10342,7 @@ create_dlg_about (void)
   gtk_widget_show (label_about_title);
   gtk_box_pack_start (GTK_BOX (hbox170), label_about_title, TRUE, TRUE, 0);
 
-  label_about_rcsid = gtk_label_new (_("$Id$"));
+  label_about_rcsid = gtk_label_new ("$Id$");
   gtk_widget_set_name (label_about_rcsid, "label_about_rcsid");
   gtk_widget_ref (label_about_rcsid);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label_about_rcsid", label_about_rcsid,

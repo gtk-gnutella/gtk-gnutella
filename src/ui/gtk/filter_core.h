@@ -28,8 +28,9 @@
 
 #include "gui.h"
 #include "if/core/filter.h"
-#include "lib/pattern.h"
+#include "lib/host_addr.h"
 #include "lib/misc.h"
+#include "lib/pattern.h"
 
 /*
  * Needed stuff from search.h
@@ -117,8 +118,8 @@ typedef struct rule {
             } u;
         } text;
         struct _f_ip {
-            guint32 addr;		        /**< IP address */
-            guint32 mask;               /**< netmask */
+            host_addr_t addr;		    /**< IP address */
+            guint8 mask;               	/**< CIDR netmask */
         } ip;
         struct _f_size {
             filesize_t lower;           /**< lower limit or 0 */
@@ -161,7 +162,8 @@ gboolean filter_is_global(const filter_t *f);
 void filter_reset_stats(filter_t *filter);
 void filter_rule_reset_stats(rule_t *rule);
 rule_t *filter_duplicate_rule(const rule_t *rule);
-rule_t *filter_new_ip_rule(guint32, guint32, filter_t *, guint16);
+rule_t *filter_new_ip_rule(const host_addr_t addr,
+		guint8 mask, filter_t *, guint16);
 rule_t *filter_new_jump_rule(filter_t *,guint16);
 rule_t *filter_new_size_rule(filesize_t, filesize_t, filter_t *, guint16);
 rule_t *filter_new_text_rule(const gchar *, gint,
