@@ -34,6 +34,8 @@
  *
  * @author Raphael Manfredi
  * @date 2002-2003
+ * @author Christian Biere
+ * @date 2004-2005
  */
 
 #include "common.h"
@@ -1516,7 +1518,7 @@ locale_init(void)
 	 * Skip regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c,v 1.88 "))
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c,v 1.91 "))
 		regression_checks();
 
 	locale_init_passed = TRUE;
@@ -4283,7 +4285,7 @@ locale_is_latin(void)
  * Composes an UTF-32 encoded string in-place. The modified string
  * might be shorter but is never longer than the original string.
  *
- * NB:	We assume that a direct composition, eliminates at most one
+ * NB:	We assume that a direct composition eliminates at most one
  *		character. Further, the string must be in canonical order.
  *
  * @param src an NUL-terminated UTF-32 string.
