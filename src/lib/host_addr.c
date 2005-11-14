@@ -116,11 +116,24 @@ host_addr_is_6to4(const host_addr_t ha)
 		htons(0x2002) == ha.addr.u16[0];
 }
 
-
 static inline guint32
 host_addr_6to4_ipv4(const host_addr_t ha)
 {
 	return peek_be32(&ha.addr.u16[1]);	/* 2002:AABBCCDD::/48 */
+}
+
+gboolean
+host_addr_6to4_to_ipv4(const host_addr_t from, host_addr_t *to)
+{
+	if (host_addr_is_6to4(from)) {
+		if (to)
+			to->addr.ipv4 = peek_be32(&from.addr.u16[1]);
+		return TRUE;
+	} else {
+		if (to)
+			*to = zero_host_addr;
+		return FALSE;
+	}
 }
 #endif /* USE_IPV6 */
 
@@ -533,7 +546,15 @@ gethostbyname_error(const gchar *host)
 #endif /* defined(HAS_HSTRERROR) */
 }
 
-
+/**
+ * Resolves an IP address to a hostname per DNS.
+ *
+ * @todo TODO: Use getnameinfo() if available.
+ *
+ * @param host The host address to resolve.
+ * @return	On success, the hostname is returned. Otherwise, NULL is returned.
+ *			The resulting string points to a static buffer.
+ */
 const gchar *
 host_addr_to_name(const host_addr_t ha)
 {
@@ -606,6 +627,17 @@ host_addr_to_name(const host_addr_t ha)
 	return he->h_name;
 }
 
+/**
+ * Resolves a hostname to an IP address per DNS.
+ *
+ * @todo TODO: This should return all resolved address not just the first
+ *             and it should be possible to request only IPv4 or IPv6
+ *             addresses.
+ *
+ * @param host A NUL-terminated string holding the hostname to resolve.
+ * @return On success, the first address IPv4 or IPv6 address is returned.
+ *         On failure, zero_host_addr is returned.
+ */
 host_addr_t
 name_to_host_addr(const gchar *host)
 #if defined(HAS_GETADDRINFO)

@@ -108,6 +108,7 @@ static const host_addr_t zero_host_addr;
 gboolean host_addr_convert(const host_addr_t from, host_addr_t *to,
 	enum net_type to_net);
 gboolean host_addr_can_convert(const host_addr_t from, enum net_type to_net);
+gboolean host_addr_6to4_to_ipv4(const host_addr_t from, host_addr_t *to);
 
 static inline gboolean
 host_addr_initialized(const host_addr_t ha)
@@ -349,6 +350,14 @@ host_addr_convert(const host_addr_t from, host_addr_t *to,
 		return TRUE;
 	}
 	*to = zero_host_addr;
+	return FALSE;
+}
+
+static inline gboolean
+host_addr_6to4_to_ipv4(const host_addr_t from, host_addr_t *to)
+{
+	if (to)
+		*to = zero_host_addr;
 	return FALSE;
 }
 
