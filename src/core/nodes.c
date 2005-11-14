@@ -3250,11 +3250,6 @@ node_is_now_connected(struct gnutella_node *n)
 	node_added = n;
 	g_hook_list_invoke(&node_added_hook_list, TRUE);
 	node_added = NULL;
-
-	/*
-	 * TODO Update the search button if there is the search entry
-	 * is not empty.
-	 */
 }
 
 /**
