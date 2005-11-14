@@ -1463,12 +1463,11 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 				ctx->map_end = 0;
 				return (ssize_t) -1;
 			}
-#ifdef MADV_SEQUENTIAL
-			/* TODO:	Add _proper_ Configure check for madvise.
-			 *			No mere symbol check, please.
-			 */
+			
+#if defined(HAS_MADVISE) || defined(MADV_SEQUENTIAL)
 			madvise(ctx->map, map_len, MADV_SEQUENTIAL);
 #endif /* MADV_SEQUENTIAL */
+
 		}
 
 		g_assert(ctx->map != NULL);
