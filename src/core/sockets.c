@@ -2550,6 +2550,8 @@ socket_bad_hostname(struct gnutella_socket *s)
 
 /**
  * Called when we got a reply from the ADNS process.
+ *
+ * @todo TODO: All resolved addresses should be attempted.
  */
 static void
 socket_connect_by_name_helper(const host_addr_t *addr, gpointer user_data)
@@ -2598,7 +2600,10 @@ socket_connect_by_name(const gchar *host, guint16 port,
 
 	g_assert(host);
 
-	ha = host_addr_set_ipv4(0); /* @todo TODO IPv6 */
+	/* The socket is closed and re-created if the hostname resolves
+	 * to an IPv6 address. */
+	ha = host_addr_set_ipv4(0);
+
 	s = walloc0(sizeof *s);
 	if (0 != socket_connect_prepare(s, ha, port, type, flags)) {
 		wfree(s, sizeof *s);
