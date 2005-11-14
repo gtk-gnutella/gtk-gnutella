@@ -38,8 +38,6 @@
  * implementation could be done with a specialized hash table /
  * re-keyable binary tree.
  *
- * @todo Would be easy in C++.
- *
  * @author Raphael Manfredi
  * @date 2001-2003
  * @author Michael Tesch
