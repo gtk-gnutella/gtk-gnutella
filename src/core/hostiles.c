@@ -340,7 +340,10 @@ hostiles_check(const host_addr_t ha)
 {
 	host_addr_t to;
 
-	if (host_addr_convert(ha, &to, NET_TYPE_IPV4)) {
+	if (
+		host_addr_convert(ha, &to, NET_TYPE_IPV4) ||
+		host_addr_6to4_to_ipv4(ha, &to)
+	) {
 		guint32 ip;
 		gint i;
 
