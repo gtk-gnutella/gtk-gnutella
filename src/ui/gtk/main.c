@@ -332,6 +332,13 @@ gui_init_menu(void)
 
 	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
 }
+
+static void
+gui_menu_shutdown(void)
+{
+	/* NOTHING */
+}
+	
 #endif /* USE_GTK2 */
 
 
