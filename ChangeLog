@@ -1,5 +1,39 @@
 # since last version
 
+- (2005-11-15 - RAM)
+ * Added client-side "browse host" support in the core.
+ * [GTK1] Initial implementation of client-side "browse host".
+
+- (2005-11-11 - RAM)
+ * [GTK1] Changed the way autoselection works in search results: it now
+   happens only when one selects the root of a folded tree, and it
+   auto-selects all the (hidden) children.
+
+- (2005-11-10 - RAM)
+ * When a bg_task is killed, don't launch any more processing in the
+   "done" callback: this cause QRP compression to attempt to send data
+   on a node that was being removed.
+
+- (2005-11-09 - RAM)
+ * Re-activated suffix filtering rules.
+
+- (2005-11-03 - RAM)
+ * Added .srt (video subtitles) to the default list of shared extensions.
+ * Tuned algorithm for PFSP with low amount of sources: use the amount of
+   alive sources instead of the amount known in the mesh.  Also request
+   the minimum filesize for PFSP as quickly as possible, but otherwise
+   request the smallest chunk size first to have rapid exchanges with the
+   remote server to gather more sources.
+ * Added GUI mapping for new pfsp_minimum_filesize property.
+
+- (2005-10-31 - RAM)
+ * Don't pursue QRT patch sending when node connection has been broken.
+
+- (2005-10-20 - RAM)
+ * When we know a small amount of alternate sources and PFSP is enabled,
+   always include ourselves in the X-Alt we generate to help propagation
+   of alternates, even if the bandwidth is saturated.
+
 - (2005-10-02 - RAM)
  * GTKG was not tracking the TTL of broadcasted messages received along a
    given connection, thereby leading it to believe it was receiving undue
