@@ -72,12 +72,13 @@ rx_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	rx_recv(rx->upper, mb);
 }
 
-/**
- * Create a new network driver, equipped with the `ops' operations and
+/*
+ * Create a new RX network driver, equipped with the `ops' operations and
  * initialize its specific parameters by calling the init routine with `args'.
  *
  * This routine is called only for the lowest stack layer.  Otherwise, call
  * rx_make_above() to create the driver (construction is done bottom-up).
+ *
  * Once the stack if fully built, rx_set_data_ind() must be called on the
  * top driver to set the data indication callback.
  *
@@ -86,22 +87,21 @@ rx_data_ind(rxdrv_t *rx, pmsg_t *mb)
  * @return NULL if there is an initialization problem.
  */
 rxdrv_t *
-rx_make_node(
-	struct gnutella_node *n,
+rx_make(
+	gpointer owner, gnet_host_t *host,
 	const struct rxdrv_ops *ops,
 	gpointer args)
 {
 	rxdrv_t *rx;
 
-	g_assert(n);
+	g_assert(owner);
 	g_assert(ops);
 
 	rx = walloc0(sizeof *rx);
 
-	rx->owner = n;
+	rx->owner = owner;
 	rx->ops = ops;
-	rx->host.addr = n->addr;
-	rx->host.port = n->port;
+	rx->host = *host;		/* Struct copy */
 	rx->upper = NULL;
 	rx->lower = NULL;
 

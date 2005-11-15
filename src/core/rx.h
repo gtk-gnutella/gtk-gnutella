@@ -84,10 +84,8 @@ struct rxdrv_ops {
  * Public interface
  */
 
-rxdrv_t *rx_make_node(
-	struct gnutella_node *n,
-	const struct rxdrv_ops *ops,
-	gpointer args);
+rxdrv_t *rx_make(gpointer owner, gnet_host_t *host,
+	const struct rxdrv_ops *ops, gpointer args);
 
 rxdrv_t *rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops,
 	gpointer args);
