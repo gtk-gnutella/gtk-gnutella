@@ -82,9 +82,9 @@ create_main_window (void)
   GtkWidget *menu_bws_glout_visible;
   GtkWidget *separator20;
   GtkWidget *menu_statusbar_visible;
-  GtkWidget *item2;
-  GtkWidget *item2_menu;
-  GtkAccelGroup *item2_menu_accels;
+  GtkWidget *menu_help;
+  GtkWidget *menu_help_menu;
+  GtkAccelGroup *menu_help_menu_accels;
   GtkWidget *menu_about;
   GtkWidget *menu_faq;
   GtkWidget *hpaned_main;
@@ -1281,37 +1281,37 @@ create_main_window (void)
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_statusbar_visible), TRUE);
   gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_statusbar_visible), TRUE);
 
-  item2 = gtk_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (item2)->child),
+  menu_help = gtk_menu_item_new_with_label ("");
+  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_help)->child),
                                    _("_Help"));
-  gtk_widget_add_accelerator (item2, "activate_item", accel_group,
+  gtk_widget_add_accelerator (menu_help, "activate_item", accel_group,
                               tmp_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_set_name (item2, "item2");
-  gtk_widget_ref (item2);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "item2", item2,
+  gtk_widget_set_name (menu_help, "menu_help");
+  gtk_widget_ref (menu_help);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_help", menu_help,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (item2);
-  gtk_container_add (GTK_CONTAINER (menubar1), item2);
+  gtk_widget_show (menu_help);
+  gtk_container_add (GTK_CONTAINER (menubar1), menu_help);
 
-  item2_menu = gtk_menu_new ();
-  gtk_widget_set_name (item2_menu, "item2_menu");
-  gtk_widget_ref (item2_menu);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "item2_menu", item2_menu,
+  menu_help_menu = gtk_menu_new ();
+  gtk_widget_set_name (menu_help_menu, "menu_help_menu");
+  gtk_widget_ref (menu_help_menu);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_help_menu", menu_help_menu,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_menu_item_set_submenu (GTK_MENU_ITEM (item2), item2_menu);
-  item2_menu_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (item2_menu));
+  gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_help), menu_help_menu);
+  menu_help_menu_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (menu_help_menu));
 
   menu_about = gtk_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_about)->child),
                                    _("_About"));
-  gtk_widget_add_accelerator (menu_about, "activate_item", item2_menu_accels,
+  gtk_widget_add_accelerator (menu_about, "activate_item", menu_help_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_about, "menu_about");
   gtk_widget_ref (menu_about);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_about", menu_about,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (menu_about);
-  gtk_container_add (GTK_CONTAINER (item2_menu), menu_about);
+  gtk_container_add (GTK_CONTAINER (menu_help_menu), menu_about);
   gtk_widget_add_accelerator (menu_about, "activate", accel_group,
                               GDK_a, GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
@@ -1319,14 +1319,14 @@ create_main_window (void)
   menu_faq = gtk_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_faq)->child),
                                    _("_FAQ"));
-  gtk_widget_add_accelerator (menu_faq, "activate_item", item2_menu_accels,
+  gtk_widget_add_accelerator (menu_faq, "activate_item", menu_help_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_faq, "menu_faq");
   gtk_widget_ref (menu_faq);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_faq", menu_faq,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (menu_faq);
-  gtk_container_add (GTK_CONTAINER (item2_menu), menu_faq);
+  gtk_container_add (GTK_CONTAINER (menu_help_menu), menu_faq);
   gtk_tooltips_set_tip (tooltips, menu_faq, _("Frequently Asked Questions"), NULL);
 
   hpaned_main = gtk_hpaned_new ();

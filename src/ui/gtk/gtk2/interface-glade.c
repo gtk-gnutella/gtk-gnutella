@@ -1786,7 +1786,7 @@ create_main_window (void)
   GtkWidget *vbox12;
   GtkWidget *hbox9291;
   GtkWidget *menubar1;
-  GtkWidget *file1;
+  GtkWidget *menu_file;
   GtkWidget *image1137;
   GtkWidget *file1_menu;
   GtkWidget *menu_net_connections;
@@ -2008,19 +2008,19 @@ create_main_window (void)
   gtk_widget_show (menubar1);
   gtk_box_pack_start (GTK_BOX (hbox9291), menubar1, FALSE, FALSE, 0);
 
-  file1 = gtk_image_menu_item_new_with_mnemonic (_("_File"));
-  gtk_widget_set_name (file1, "file1");
-  gtk_widget_show (file1);
-  gtk_container_add (GTK_CONTAINER (menubar1), file1);
+  menu_file = gtk_image_menu_item_new_with_mnemonic (_("_File"));
+  gtk_widget_set_name (menu_file, "menu_file");
+  gtk_widget_show (menu_file);
+  gtk_container_add (GTK_CONTAINER (menubar1), menu_file);
 
   image1137 = gtk_image_new_from_stock ("gtk-home", GTK_ICON_SIZE_MENU);
   gtk_widget_set_name (image1137, "image1137");
   gtk_widget_show (image1137);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (file1), image1137);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_file), image1137);
 
   file1_menu = gtk_menu_new ();
   gtk_widget_set_name (file1_menu, "file1_menu");
-  gtk_menu_item_set_submenu (GTK_MENU_ITEM (file1), file1_menu);
+  gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_file), file1_menu);
 
   menu_net_connections = gtk_image_menu_item_new_with_mnemonic (_("_GnutellaNet"));
   gtk_widget_set_name (menu_net_connections, "menu_net_connections");
@@ -2338,8 +2338,8 @@ create_main_window (void)
 
   menu_keyboard_shortcuts = gtk_image_menu_item_new_with_mnemonic (_("_Keyboard shortcuts"));
   gtk_widget_set_name (menu_keyboard_shortcuts, "menu_keyboard_shortcuts");
-  gtk_widget_show (menu_keyboard_shortcuts);
   gtk_container_add (GTK_CONTAINER (menu_help_menu), menu_keyboard_shortcuts);
+  gtk_widget_set_sensitive (menu_keyboard_shortcuts, FALSE);
 
   image1150 = gtk_image_new_from_stock ("gtk-dialog-info", GTK_ICON_SIZE_MENU);
   gtk_widget_set_name (image1150, "image1150");
@@ -3207,7 +3207,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, vbox12, "vbox12");
   GLADE_HOOKUP_OBJECT (main_window, hbox9291, "hbox9291");
   GLADE_HOOKUP_OBJECT (main_window, menubar1, "menubar1");
-  GLADE_HOOKUP_OBJECT (main_window, file1, "file1");
+  GLADE_HOOKUP_OBJECT (main_window, menu_file, "menu_file");
   GLADE_HOOKUP_OBJECT (main_window, image1137, "image1137");
   GLADE_HOOKUP_OBJECT (main_window, file1_menu, "file1_menu");
   GLADE_HOOKUP_OBJECT (main_window, menu_net_connections, "menu_net_connections");

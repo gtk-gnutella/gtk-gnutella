@@ -2451,7 +2451,7 @@ http://maxmind.com/</property>
 	      <property name="visible">True</property>
 
 	      <child>
-		<widget class="GtkImageMenuItem" id="file1">
+		<widget class="GtkImageMenuItem" id="menu_file">
 		  <property name="visible">True</property>
 		  <property name="label" translatable="yes">_File</property>
 		  <property name="use_underline">True</property>
@@ -3007,7 +3007,7 @@ http://maxmind.com/</property>
 
 		      <child>
 			<widget class="GtkImageMenuItem" id="menu_keyboard_shortcuts">
-			  <property name="visible">True</property>
+			  <property name="sensitive">False</property>
 			  <property name="label" translatable="yes">_Keyboard shortcuts</property>
 			  <property name="use_underline">True</property>
 			  <signal name="activate" handler="on_menu_keyboard_shortcuts_activate" last_modification_time="Thu, 10 Nov 2005 20:05:38 GMT"/>

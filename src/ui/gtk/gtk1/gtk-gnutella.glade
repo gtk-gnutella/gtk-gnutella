@@ -593,13 +593,13 @@
 
 	<widget>
 	  <class>GtkMenuItem</class>
-	  <name>item2</name>
+	  <name>menu_help</name>
 	  <label>_Help</label>
 	  <right_justify>False</right_justify>
 
 	  <widget>
 	    <class>GtkMenu</class>
-	    <name>item2_menu</name>
+	    <name>menu_help_menu</name>
 
 	    <widget>
 	      <class>GtkMenuItem</class>
