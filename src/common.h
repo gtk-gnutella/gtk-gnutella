@@ -238,6 +238,10 @@ struct passwd
 
 typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
 
+#ifndef G_MAXUINT64		/* glib1.x misses that one */
+#define G_MAXUINT64 G_GINT64_CONSTANT(0xffffffffffffffffU)
+#endif
+
 #include <stdarg.h>
 #include <regex.h>
 
