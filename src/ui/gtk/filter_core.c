@@ -61,7 +61,7 @@ RCSID("$Id$");
 
 /**
  * If FILTER_HIDE_ON_CLOSE is defined, the filter dialog is only hidden
- * when the dialog is close instead the of the dialog being destroyed.
+ * when the dialog is closed instead the of the dialog being destroyed.
  */
 #define FILTER_HIDE_ON_CLOSE
 
@@ -2041,23 +2041,8 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 				gchar *utf8_name = ctx->utf8_name;
 
 				if (utf8_name == NULL) {
-					utf8_name =
-						deconstify_gchar(lazy_unknown_to_utf8_normalized(
-							rec->name, UNI_NORM_GUI, FALSE));
-
-					/*
-					 * Cache for further rules, to avoid costly utf8
-					 * transformations for each text-matching rule
-					 * they have configured.
-					 */
-
-					if (utf8_name != rec->name)
-						ctx->utf8_name = atom_str_get(utf8_name);
-					else
-						ctx->utf8_name = atom_str_get(rec->name);
-
-					ctx->utf8_len = strlen(ctx->utf8_name);
-					utf8_name = ctx->utf8_name;
+					ctx->utf8_name = utf8_name = atom_str_get(rec->utf8_name);
+					ctx->utf8_len = strlen(utf8_name);
 				}
 
 				if (l_name == NULL) {
@@ -2078,12 +2063,17 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 
                 switch (r->u.text.type) {
                 case RULE_TEXT_EXACT:
-                    if (0 == strcmp(r->u.text.case_sensitive ? ctx->utf8_name : ctx->l_name, r->u.text.match))
+                    if (
+						0 == strcmp(r->u.text.case_sensitive ?
+							ctx->utf8_name : ctx->l_name, r->u.text.match)
+					)
                         match = TRUE;
                     break;
                 case RULE_TEXT_PREFIX:
                     if (
-						0 == strncmp(r->u.text.case_sensitive ? ctx->utf8_name : ctx->l_name, r->u.text.match, r->u.text.match_len)
+						0 == strncmp(r->u.text.case_sensitive ?
+							ctx->utf8_name : ctx->l_name,
+							r->u.text.match, r->u.text.match_len)
 					)
                         match = TRUE;
                     break;
@@ -2098,8 +2088,10 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
                             iter = g_list_next(iter)
                         ) {
                             if (
-								pattern_qsearch(iter->data, r->u.text.case_sensitive ? ctx->utf8_name : ctx->l_name,
-								 0, 0, qs_any) == NULL
+								NULL == pattern_qsearch(iter->data,
+									r->u.text.case_sensitive ?
+										ctx->utf8_name : ctx->l_name,
+									0, 0, qs_any)
 							)
                                 failed = TRUE;
                         }
@@ -2122,13 +2114,20 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
                     break;
                 case RULE_TEXT_SUBSTR:
                     if (
-						pattern_qsearch(r->u.text.u.pattern, r->u.text.case_sensitive ? ctx->utf8_name : ctx->l_name,
-								0, 0, qs_any) != NULL
+						NULL != pattern_qsearch(
+							r->u.text.u.pattern,
+							r->u.text.case_sensitive ?
+								ctx->utf8_name : ctx->l_name,
+							0, 0, qs_any)
 					)
                         match = TRUE;
                     break;
                 case RULE_TEXT_REGEXP:
-                    if (0 == (i = regexec(r->u.text.u.re, r->u.text.case_sensitive ? ctx->utf8_name : ctx->l_name, 0, NULL, 0)))
+                    if (
+						0 == (i = regexec(r->u.text.u.re,
+							r->u.text.case_sensitive ?
+								ctx->utf8_name : ctx->l_name, 0, NULL, 0))
+					)
                         match = TRUE;
                     if (i == REG_ESPACE)
                         g_warning("regexp memory overflow");
