@@ -1,0 +1,373 @@
+/*
+ * $Id$
+ *
+ * Copyright (c) 2005, Raphael Manfredi
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Handles the client-side of the Browse Host function.
+ *
+ * @author Raphael Manfredi
+ * @date 2005
+ */
+
+#include "common.h"
+
+RCSID("$Id$");
+
+#include "bh_download.h"
+#include "downloads.h"
+#include "pmsg.h"
+#include "bsched.h"
+
+#include "lib/atoms.h"
+#include "lib/endian.h"
+#include "lib/walloc.h"
+#include "lib/override.h"	/* Must be the last header included */
+
+#define BH_DL_DEFAULT_SIZE	4096	/* Default data buffer size */
+#define BH_DL_MAX_SIZE		65536	/* Maximum payload size we allow */
+
+/**
+ * Initialize the browse host context.
+ */
+struct browse_ctx *
+browse_host_dl_create(gpointer owner, gnet_host_t *host, gnet_search_t sh)
+{
+	struct browse_ctx *bc;
+
+	bc = walloc0(sizeof *bc);
+
+	bc->owner = owner;
+	bc->host = *host;			/* Struct copy */
+	bc->sh = sh;
+	bc->data = g_malloc(BH_DL_DEFAULT_SIZE);
+	bc->data_size = BH_DL_DEFAULT_SIZE;
+
+	return bc;
+}
+
+/**
+ * Check sure the browse-host context is for the proper search ID.
+ */
+gboolean
+browse_host_dl_for_search(struct browse_ctx *bc, gnet_search_t sh)
+{
+	g_assert(bc != NULL);
+
+	return bc->sh == sh;
+}
+
+/**
+ * Read data from the message buffer we just received.
+ *
+ * @return TRUE whilst we think there is more data to read in the buffer.
+ */
+static gboolean
+browse_data_read(struct browse_ctx *bc, pmsg_t *mb)
+{
+	gint r;
+
+	/*
+	 * Read header if it has not been fully fetched yet.
+	 */
+
+	if (!bc->has_header) {
+		gchar *w = (gchar *) &bc->header;
+
+		r = pmsg_read(mb, w + bc->pos, sizeof(bc->header) - bc->pos);
+		bc->pos += r;
+
+		if (bc->pos < sizeof(struct gnutella_header))
+			return FALSE;
+
+		bc->has_header = TRUE;		/* We have read the full header */
+		READ_GUINT32_LE(bc->header.size, bc->size);
+
+		/*
+		 * Protect against too large data.
+		 */
+
+		if (bc->size > BH_DL_MAX_SIZE) {
+			download_stop(bc->owner, GTA_DL_ERROR, "Gnutella payload too big");
+			return FALSE;
+		}
+
+		/*
+		 * Resize payload buffer if needed
+		 */
+
+		if (bc->size > bc->data_size) {
+			bc->data = g_realloc(bc->data, bc->size);
+			bc->data_size = bc->size;
+		}
+
+		bc->pos = 0;
+
+		/* FALL THROUGH */
+	}
+
+	/*
+	 * Read message data, if any.
+	 */
+
+	if (bc->size) {
+		r = pmsg_read(mb, bc->data + bc->pos, bc->size - bc->pos);
+		bc->pos += r;
+	}
+
+	if (bc->pos < bc->size)
+		return FALSE;
+
+	bc->has_header = FALSE;		/* For next message */
+	bc->pos = 0;
+
+	return TRUE;				/* Must process message and continue */
+}
+
+/**
+ * Process the whole message we read.
+ *
+ * @return FALSE if an error was reported (processing aborted).
+ */
+static gboolean
+browse_data_process(struct browse_ctx *bc)
+{
+	gnutella_node_t *n;
+
+	/*
+	 * We accept only query hits.
+	 */
+
+	if (bc->header.function != GTA_MSG_SEARCH_RESULTS) {
+		download_stop(bc->owner, GTA_DL_ERROR, "Non query-hit received");
+		return FALSE;
+	}
+
+	n = node_browse_prepare(
+		&bc->host, bc->vendor, &bc->header, bc->data, bc->size);
+
+	search_browse_results(n, bc->sh);
+	node_browse_cleanup(n);
+
+	return TRUE;
+}
+
+/**
+ * RX data indication callback used to give us some new Gnet traffic in a
+ * low-level message structure (which can contain several Gnet messages).
+ */
+static void
+browse_data_ind(rxdrv_t *rx, pmsg_t *mb)
+{
+	struct browse_ctx *bc = rx_owner(rx);
+
+	while (browse_data_read(bc, mb)) {
+		if (!browse_data_process(bc))
+			break;
+	}
+
+	pmsg_free(mb);
+}
+
+/***
+ *** RX link callbacks
+ ***/
+
+static void
+browse_rx_error(gpointer o, const gchar *reason, ...)
+{
+	struct browse_ctx *bc = o;
+	va_list args;
+
+	va_start(args, reason);
+	download_stop_v(bc->owner, GTA_DL_ERROR, reason, args);
+	va_end(args);
+}
+
+static void
+browse_rx_got_eof(gpointer o)
+{
+	struct browse_ctx *bc = o;
+
+	download_got_eof(bc->owner);
+}
+
+static void
+browse_rx_done(gpointer o)
+{
+	struct browse_ctx *bc = o;
+
+	download_rx_done(bc->owner);
+}
+
+static struct rx_link_cb browse_rx_link_cb = {
+	NULL,					/* add_rx_given */
+	browse_rx_error,		/* read_error */
+	browse_rx_got_eof,		/* got_eof */
+};
+
+static struct rx_chunk_cb browse_rx_chunk_cb = {
+	browse_rx_error,		/* chunk_error */
+	browse_rx_done,			/* chunk_end */
+};
+
+static struct rx_inflate_cb browse_rx_inflate_cb = {
+	NULL,					/* add_rx_inflated */
+	browse_rx_error,		/* inflate_error */
+};
+
+/**
+ * Prepare reception of query hit data by building an appropriate RX stack.
+ *
+ * @return TRUE if we may continue with the download, FALSE if the search
+ * was already closed in the GUI.
+ */
+gboolean
+browse_host_dl_receive(
+	struct browse_ctx *bc, gnet_host_t *host, wrap_io_t *wio,
+	const gchar *vendor, guint32 flags)
+{
+	g_assert(bc != NULL);
+
+	if (bc->closed)
+		return FALSE;
+
+	bc->host = *host;			/* Struct copy */
+	bc->vendor = atom_str_get(vendor);
+
+	/*
+	 * Freeing of the RX stack must be asynchronous: each time we establish
+	 * a new connection, dismantle the previous stack.  Otherwise the RX
+	 * stack will be freed when the corresponding download structure is
+	 * reclaimed.
+	 */
+
+	if (bc->rx != NULL) {
+		rx_free(bc->rx);
+		bc->rx = NULL;
+	}
+
+	{
+		struct rx_link_args args;
+
+		args.cb = &browse_rx_link_cb;
+		args.bs = bws.in;
+		args.wio = wio;
+
+		bc->rx = rx_make(bc, &bc->host, rx_link_get_ops(), &args);
+	}
+
+	if (flags & BH_DL_CHUNKED) {
+		struct rx_chunk_args args;
+
+		args.cb = &browse_rx_chunk_cb;
+
+		bc->rx = rx_make_above(bc->rx, rx_chunk_get_ops(), &args);
+	}
+
+	if (flags & BH_DL_INFLATE) {
+		struct rx_inflate_args args;
+
+		args.cb = &browse_rx_inflate_cb;
+
+		bc->rx = rx_make_above(bc->rx, rx_inflate_get_ops(), &args);
+	}
+
+	rx_set_data_ind(bc->rx, browse_data_ind);
+	rx_enable(bc->rx);
+
+	return TRUE;
+}
+
+/**
+ * Received data from outside the RX stack.
+ */
+void
+browse_host_dl_write(struct browse_ctx *bc, gchar *data, size_t len)
+{
+	pdata_t *db;
+	pmsg_t *mb;
+
+	g_assert(bc->rx != NULL);
+
+	/*
+	 * Prepare data buffer to feed the RX stack.
+	 */
+
+	db = pdata_allocb_ext(data, len, pdata_free_nop, NULL);
+	mb = pmsg_alloc(PMSG_P_DATA, db, 0, len);
+
+	/*
+	 * The message is given to the RX stack, and it will be freed by
+	 * the last function consuming it.
+	 */
+
+	rx_recv(rx_bottom(bc->rx), mb);
+}
+
+/**
+ * Disable the RX stack.
+ */
+void
+browse_host_dl_close(struct browse_ctx *bc)
+{
+	g_assert(bc != NULL);
+	g_assert(bc->rx != NULL);
+
+	rx_disable(bc->rx);
+}
+
+/**
+ * Terminate host browsing.
+ */
+void
+browse_host_dl_free(struct browse_ctx *bc)
+{
+	g_assert(bc != NULL);
+
+	if (bc->vendor)
+		atom_str_free(bc->vendor);
+	if (bc->rx)
+		rx_free(bc->rx);
+	if (!bc->closed)
+		search_dissociate_browse(bc->sh, bc->owner);
+	g_free(bc->data);
+	wfree(bc, sizeof *bc);
+}
+
+/**
+ * Signal that the corresponding search was closed.
+ */
+void
+browse_host_dl_search_closed(struct browse_ctx *bc, gnet_search_t sh)
+{
+	g_assert(bc != NULL);
+	g_assert(bc->sh == sh);
+
+	bc->closed = TRUE;
+}
+
+/* vi: set ts=4 sw=4 cindent: */

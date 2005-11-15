@@ -212,6 +212,8 @@ src/core/alive.c
 src/core/alive.h
 src/core/ban.c
 src/core/ban.h
+src/core/bh_download.c
+src/core/bh_download.h
 src/core/bh_upload.c
 src/core/bh_upload.h
 src/core/bitzi.c
@@ -307,6 +309,8 @@ src/core/routing.c
 src/core/routing.h
 src/core/rx.c
 src/core/rx.h
+src/core/rx_chunk.c
+src/core/rx_chunk.h
 src/core/rx_inflate.c
 src/core/rx_inflate.h
 src/core/rx_link.c
