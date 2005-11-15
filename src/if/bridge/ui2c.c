@@ -641,6 +641,18 @@ guc_search_is_passive(gnet_search_t sh)
 }
 
 gboolean
+guc_search_is_active(gnet_search_t sh)
+{
+	return search_is_active(sh);
+}
+
+gboolean
+guc_search_is_expired(gnet_search_t sh)
+{
+	return search_is_expired(sh);
+}
+
+gboolean
 guc_search_is_frozen(gnet_search_t sh)
 {
 	return search_is_frozen(sh);
@@ -651,6 +663,14 @@ guc_search_new(const gchar *query,
 	time_t create_time, guint lifetime, guint32 reissue_timeout, flag_t flags)
 {
 	return search_new(query, create_time, lifetime, reissue_timeout, flags);
+}
+
+gboolean
+guc_search_browse(gnet_search_t sh,
+	const gchar *hostname, host_addr_t addr, guint16 port,
+	const gchar *guid, gboolean push, const gnet_host_vec_t *proxies)
+{
+	return search_browse(sh, hostname, addr, port, guid, push, proxies);
 }
 
 void

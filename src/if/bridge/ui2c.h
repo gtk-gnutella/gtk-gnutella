@@ -202,10 +202,15 @@ void guc_search_set_create_time(gnet_search_t sh, time_t t);
 guint32 guc_search_get_reissue_timeout(gnet_search_t sh);
 void guc_search_set_reissue_timeout(gnet_search_t sh, guint32 timeout);
 gboolean guc_search_is_passive(gnet_search_t sh);
+gboolean guc_search_is_active(gnet_search_t sh);
 gboolean guc_search_is_frozen(gnet_search_t sh);
+gboolean guc_search_is_expired(gnet_search_t sh);
 gnet_search_t guc_search_new(const gchar *query,
 	time_t create_time, guint lifetime,
 	guint32 reissue_timeout, flag_t flags);
+gboolean guc_search_browse(gnet_search_t sh,
+	const gchar *hostname, host_addr_t addr, guint16 port,
+	const gchar *guid, gboolean push, const gnet_host_vec_t *proxies);
 void guc_search_reissue(gnet_search_t sh);
 void guc_search_close(gnet_search_t sh);
 void guc_search_start(gnet_search_t sh);
