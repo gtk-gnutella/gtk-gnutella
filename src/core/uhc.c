@@ -53,7 +53,6 @@ RCSID("$Id$");
 #include "lib/hashlist.h"
 #include "lib/glib-missing.h"
 #include "lib/misc.h"
-#include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
@@ -170,7 +169,7 @@ add_available_uhc(const gchar *hc)
 
 	g_assert(hc);
 
-	s = wcopy(hc, 1 + strlen(hc));
+	s = g_strdup(hc);
 	uhc_avail = random_value(100) < 50
 		? g_list_append(uhc_avail, s)
 		: g_list_prepend(uhc_avail, s);
@@ -210,8 +209,8 @@ uhc_pick(void)
 		add_available_uhc(uu->host);
 
 		uhc_used = g_list_remove(uhc_used, uu);
-		wfree(uu->host, 1 + strlen(uu->host));
-		wfree(uu, sizeof *uu);
+		G_FREE_NULL(uu->host);
+		G_FREE_NULL(uu);
 	}
 
 	len = g_list_length(uhc_avail);
@@ -229,7 +228,7 @@ uhc_pick(void)
 	{
 		struct used_uhc *uu;
 
-		uu = walloc(sizeof *uu);
+		uu = g_malloc(sizeof *uu);
 		uu->host = hc;
 		uu->stamp = tm_time();
 		uhc_used = g_list_append(uhc_used, uu);
