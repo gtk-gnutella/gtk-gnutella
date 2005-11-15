@@ -144,8 +144,6 @@ static const struct {
 
 #ifdef USE_GTK2
 
-/* Not used due to auto-expand/collapse */
-#if 0
 static gboolean
 gui_init_menu_helper(GtkTreeModel *model, GtkTreePath *path,
 	GtkTreeIter *iter, gpointer data)
@@ -153,13 +151,12 @@ gui_init_menu_helper(GtkTreeModel *model, GtkTreePath *path,
 	guint32 expanded;
 	gint id;
 
-	gtk_tree_model_get(model, iter, 2, &id, (-1));
+	gtk_tree_model_get(model, iter, 1, &id, (-1));
 	gui_prop_get_guint32(PROP_TREEMENU_NODES_EXPANDED, &expanded, id, 1);
 	if (expanded)
 		gtk_tree_view_expand_row(GTK_TREE_VIEW(data), path, FALSE);
 	return FALSE;
 }
-#endif
 
 static void
 gui_init_menu(void)
@@ -217,10 +214,8 @@ gui_init_menu(void)
     gtk_tree_view_append_column(treeview, column);
 	gtk_tree_view_columns_autosize(treeview);
 
-#if 0
 	gtk_tree_model_foreach(GTK_TREE_MODEL(store),
 		gui_init_menu_helper, treeview);
-#endif
 
 	g_object_unref(store);
 
@@ -230,13 +225,23 @@ gui_init_menu(void)
 		G_CALLBACK(on_main_gui_treeview_menu_row_collapsed), NULL);
 	g_signal_connect(G_OBJECT(treeview), "row-expanded",
 		G_CALLBACK(on_main_gui_treeview_menu_row_expanded), NULL);
-	g_signal_connect(G_OBJECT(treeview), "enter-notify-event",
-		G_CALLBACK(on_main_gui_treeview_menu_enter_notify), NULL);
-	g_signal_connect(G_OBJECT(treeview), "leave-notify-event",
-		G_CALLBACK(on_main_gui_treeview_menu_leave_notify), NULL);
-	
-	(void) tree_view_motion_set_callback(GTK_TREE_VIEW(treeview),
-				on_main_gui_treeview_menu_motion, 300);
+}
+
+static void
+gui_menu_shutdown(void)
+{
+	g_signal_handlers_disconnect_by_func(
+		G_OBJECT(lookup_widget(main_window, "treeview_menu")),
+		on_main_gui_treeview_menu_cursor_changed,
+		NULL);
+	g_signal_handlers_disconnect_by_func(
+		G_OBJECT(lookup_widget(main_window, "treeview_menu")),
+		on_main_gui_treeview_menu_row_collapsed,
+		NULL);
+	g_signal_handlers_disconnect_by_func(
+		G_OBJECT(lookup_widget(main_window, "treeview_menu")),
+		on_main_gui_treeview_menu_row_expanded,
+		NULL);
 }
 
 /**
@@ -328,7 +333,6 @@ gui_init_menu(void)
 	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
 }
 #endif /* USE_GTK2 */
-
 
 
 static GtkWidget *
@@ -777,6 +781,7 @@ main_gui_shutdown(void)
     filter_close_dialog(FALSE);
 	gtk_widget_hide(main_window);
 
+	gui_menu_shutdown();
     search_stats_gui_shutdown();
     filter_cb_close();
     monitor_gui_shutdown();
@@ -829,9 +834,9 @@ main_gui_timer(time_t now)
 		statusbar_gui_clear_timeouts(now);
 		filter_timer();				/* Update the filter stats */
 	} else {
-		static gint counter = 0;
+		static guint counter = 0;
 
-		switch (counter++ % 9) {
+		switch (counter) {
 		case 0: hcache_gui_update(now);					break;
 		case 1: gnet_stats_gui_update(now);				break;
 		case 2: search_stats_gui_update(now);			break;
@@ -842,9 +847,10 @@ main_gui_timer(time_t now)
 		case 7: filter_timer();							break;
 		case 8: downloads_gui_update_display(now);		break;
 		default:
-			g_error("bad modulus computation (counter was %d)", counter - 1);
+			g_error("bad modulus computation (counter is %d)", counter);
 			break;
 		}
+		counter = (counter + 1) % 9;
 	}
 }
 

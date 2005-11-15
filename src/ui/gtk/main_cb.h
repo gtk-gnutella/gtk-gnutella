@@ -111,11 +111,6 @@ void on_notebook_main_switch_page(GtkNotebook *unused_notebook,
 	GtkNotebookPage *unused_page, gint page_num, gpointer unused_udata);
 
 #ifdef USE_GTK2
-void on_main_gui_treeview_menu_motion(GtkTreeView *tv, GtkTreePath *path);
-gboolean on_main_gui_treeview_menu_enter_notify(GtkWidget *widget,
-	GdkEventCrossing *unused_event, gpointer unused_udata);
-gboolean on_main_gui_treeview_menu_leave_notify(GtkWidget *widget,
-	GdkEventCrossing *unused_event, gpointer unused_udata);
 void on_main_gui_treeview_menu_cursor_changed(GtkTreeView *, gpointer);
 void on_main_gui_treeview_menu_row_collapsed(
 	GtkTreeView *, GtkTreeIter *, GtkTreePath *, gpointer);
